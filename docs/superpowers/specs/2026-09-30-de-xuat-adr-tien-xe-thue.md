@@ -37,8 +37,10 @@
 3. **Chưa có giá thì xe vẫn chạy**, chuyến hiện "thiếu giá" — không bao giờ tính 0 đồng.
 4. Chỉ **xe thuê**; chi phí xe công ty không thuộc lượt này. Tiền xe **chưa chia vào đơn**. Phí huỷ với nhà xe Kế toán ghi tay.
 5. Kế toán có **bảng kê** "chuyến nào, nhà xe nào, bao nhiêu" để trả tay; việc đưa "nợ nhà xe" vào sổ công nợ làm sau (Q11, Q12 hỏi lúc đó).
-6. **Sửa trước sổ công nợ:** dòng nợ trong sổ được phép gắn với **chuyến** (không chỉ với đơn) — phải chốt trước khi sổ công nợ tạo bảng.
-7. **Bạn cần trả lời 2 câu** ở cuối tệp (cỡ xe tính giá; thứ tự làm so với sổ tiền), rồi duyệt sau khi người kiểm báo đạt.
+6. **Sửa trước sổ công nợ:** dòng nợ trong sổ được phép gắn với **chuyến** (không chỉ với đơn). **Nếu chưa duyệt kịp phần này, phiên sổ tiền lượt 1 phải dừng ở bước tạo bảng nợ (Task 3)** — tạo bảng rồi thì đổi rất tốn.
+7. **Chuyến kết thúc giữa chừng** (xe hỏng, tai nạn): máy **giữ giá đã chụp**; nhà xe tính ít hơn thì Kế toán điều chỉnh tay (có câu hỏi xác nhận, Q-T6).
+8. **Chi phí chuyến chưa có "khoá kỳ"** (tháng đã chốt vẫn ghi thêm được bằng điều chỉnh) — lệch có chủ ý **L-T1**, cùng hạn với sổ công nợ: khoá kỳ phải có cùng bản phát hành lượt 2 sổ (câu duyệt Q-T8).
+9. **Bạn cần trả lời các câu** ở mục "Câu hỏi còn mở" (gom lại ở trang ghép mục 6), rồi duyệt sau khi người kiểm báo đạt.
 
 ---
 
@@ -94,7 +96,7 @@
 | Luật | CSDL | Máy chủ |
 |---|---|---|
 | Tiền nguyên dương; có tuyến hoặc cỡ | `CHECK` | kiểm trước, lỗi tiếng Việt |
-| Không chồng hiệu lực cùng khoá (nhà xe, tuyến, cỡ) | trigger chèn (khuôn `pty_party_role_overlap`, `0011:97-104`) | kiểm trước, mã lỗi riêng |
+| Không chồng hiệu lực cùng khoá (nhà xe, tuyến, cỡ) | trigger chèn (khuôn `pty_party_role_overlap`, `0011:97-104`); so khoá có thể trống bằng `IS` (không dùng `=` — `NULL = NULL` không đúng), khoảng ngày mở bằng `COALESCE(valid_to_date, '9999-12-31')` | kiểm trước, mã lỗi riêng |
 | Chỉ-thêm: không đổi tiền/khoá; `valid_to_date` đặt **một lần**; không xoá | trigger `BEFORE UPDATE` + cấm `DELETE` | không có đường sửa tiền |
 | **Nhà xe đang mở vai `CARRIER`** (thay LCY-1) | trigger `BEFORE INSERT` đọc `v_pty_carrier` (view công bố, đã được phép cho trigger `vc_`) | kiểm qua hàm công bố của `parties` (có sẵn `nhaXeDangHopTac`, `src/modules/parties/index.ts:103 @49`) |
 
@@ -107,13 +109,14 @@
 
 ### T2. Chi phí chuyến: chụp lúc giao cho nhà xe, chỉ-thêm, thiếu giá thì giữ (Q4 a, Q5 a, Q6 a, Q7, Q8, Q9 a)
 
-**C1. Phạm vi:** chỉ chuyến có `carrier_party_id` **khác** công ty chủ (xe thuê). Xe công ty: không có dòng chi phí (Q8). Chuyến gom nhiều đơn: **không** chia vào đơn (Q9 a).
+**C1. Phạm vi:** chỉ chuyến có `carrier_party_id` là **xe của nhà xe** — hồ sơ đang mở vai `CARRIER` **và** không phải công ty chủ, cùng tiêu chí với C8 (lúc chụp). Xe công ty: không có dòng chi phí (Q8). Chuyến gom nhiều đơn: **không** chia vào đơn (Q9 a).
 
-**C2. Cột tuyến trên chuyến:** `vc_trip` thêm `route_code` (FK `vc_route`, trống được) bằng `ADD COLUMN`. Người xếp xe (`trip.dispatch`) chọn khi chuyến là xe thuê. Trigger mới: chỉ đổi được khi chuyến `PLANNED` (sau đó `vc_trip_final_frozen` `0042:412` đã khoá chuyến kết thúc/huỷ; `vc_trip_identity` `:281` không liệt kê cột này nên phải có trigger riêng cho giai đoạn đang chạy).
+**C2. Cột tuyến trên chuyến:** `vc_trip` thêm `route_code` (FK `vc_route`, trống được) bằng `ADD COLUMN`. Ai chọn: câu **Q-T5** (khuyến nghị người xếp xe — `trip.dispatch`). Trigger mới: chỉ đổi được khi chuyến `PLANNED` (sau đó `vc_trip_final_frozen` `0042:412` đã khoá chuyến kết thúc/huỷ; `vc_trip_identity` `:281` không liệt kê cột này nên phải có trigger riêng cho giai đoạn đang chạy).
 
 **C3. Dòng chi phí chuyến** `vc_trip_cost_line` (chỉ-thêm — 5.5; chụp — 5.6):
 - `trip_id` (FK `vc_trip`), `carrier_party_id` (FK `pty_party`);
-- `kind` `CHECK IN ('SNAPSHOT','ADJUSTMENT','REVERSAL')`; `amount INTEGER` — `SNAPSHOT > 0`, `ADJUSTMENT ≠ 0`, `REVERSAL` = âm đúng dòng gốc;
+- `kind` `CHECK IN ('SNAPSHOT','ADJUSTMENT','REVERSAL')`; `amount INTEGER` **có dấu** — `CHECK`: `SNAPSHOT > 0`, `ADJUSTMENT ≠ 0`; `REVERSAL` là **dòng đảo đối dấu đúng dòng gốc** (`amount = −gốc`), dấu do **trigger so với dòng gốc**, **không** ghim bằng `CHECK` theo `kind` (đảo một điều chỉnh âm thì dòng đảo dương);
+- *Khác có chủ ý với sổ ADR-0026:* ở sổ, dòng đảo là **số dương, đổi chỗ hai bên nợ/được nợ**; ở chi phí chuyến (một phía — Tour Đảo chịu), dòng đảo là **số có dấu ngược**. Hai kiểu không trộn; đưa vào sổ (D3) đi qua `tongChiPhiChuyen`;
 - **nguồn quy tắc** (5.6): `rate_id` (FK `vc_rental_rate`, bắt buộc với `SNAPSHOT`) + bản sao tuyến, cỡ xe, số khách của xe lúc chụp, đơn giá;
 - `reason_code` (FK `vc_reason`, nhóm mới `CHI_PHI_XE`: phụ thu chờ thêm giờ, phí cầu đường / bến bãi, **phí huỷ muộn** (Q7), nhập sai, và mã hệ thống "đổi nhà xe / xe / tuyến trước xuất bến") — bắt buộc với `ADJUSTMENT`, `REVERSAL`; ghi chú ngắn;
 - `reverses_id` (UNIQUE, trỏ chính bảng);
@@ -122,12 +125,14 @@
 
 **C4. Mốc chụp (Q4 a "Lúc giao cho nhà xe"):**
 - ADR-0049 không có bước "giao" riêng ⇒ mốc = **lô lệnh đặt `carrier_party_id` là một nhà xe** (tạo chuyến bằng xe nhà xe; đổi xe sang xe nhà xe). Câu chụp đi **trong cùng lô**, mang điều kiện dấu lô `EXISTS (… vc_trip.last_cmd_id = <dấu lô>)` (`0042:14-15 @49`) để bên thua không để lại dòng lẻ.
-- **Trước xuất bến**, lệnh đổi nhà xe / đổi xe (kể cả khi tài xế đối tác Từ chối và chuyến được giao lại — lượt 3 Bảng điều phối) / đổi tuyến ⇒ máy **tự đảo** dòng chụp cũ và chụp lại trong cùng lô (lý do hệ thống).
+- "Giao cho nhà xe" = **lúc văn phòng xếp xe của nhà xe** — không chờ ai bấm "Nhận". Lượt 3 Bảng điều phối có Nhận/Từ chối của tài xế đối tác: có dời mốc hay không là câu **Q-T4** (khuyến nghị giữ lúc xếp; Từ chối → giao lại → đảo + chụp lại).
+- **Trước xuất bến**, lệnh đổi nhà xe / đổi xe (kể cả khi tài xế đối tác Từ chối và chuyến được giao lại) / đổi tuyến ⇒ máy **tự đảo** dòng chụp cũ và chụp lại trong cùng lô (lý do hệ thống).
+- Nếu lần chụp lại **không được phép** vì nhà xe của chuyến đã thôi hợp tác (đổi tuyến trên chuyến của nhà xe cũ), **cả lệnh bị từ chối** — không để lại trạng thái "đã đảo, chưa chụp": 409 `carrier_inactive` "Nhà xe này đã thôi hợp tác nên máy không tính lại giá được. Hãy chọn xe của nhà xe khác, hoặc giữ tuyến cũ." (Đổi **sang** xe nhà xe khác vẫn làm được: đảo dòng cũ không kiểm vai, chụp mới kiểm vai nhà xe mới.)
 - **Từ lúc xuất bến:** không chụp lại tự động; chỉ `ADJUSTMENT` có lý do. Đổi hồ sơ xe (số chỗ) sau khi chụp không đổi chi phí.
 - **Huỷ chuyến trước xuất bến** ⇒ đảo dòng chụp trong cùng lô huỷ; phí huỷ nếu có = `ADJUSTMENT` Kế toán ghi tay (Q7).
-- Chi phí "đã phát sinh" khi chuyến `ENDED` hoặc `ENDED_INTERRUPTED`. Với chuyến gián đoạn, đây **không phải luật mới** mà là hệ quả của "sau xuất bến chỉ `ADJUSTMENT`": giá đã chụp giữ nguyên, Kế toán điều chỉnh nếu nhà xe tính ít hơn (**chạm tiền — người kiểm soi**; chủ/Kế toán xác nhận qua ca sổ vàng).
+- Chi phí "đã phát sinh" khi chuyến `ENDED` hoặc `ENDED_INTERRUPTED`. Với chuyến gián đoạn: giá đã chụp giữ nguyên, Kế toán điều chỉnh tay nếu nhà xe tính ít hơn — hệ quả của "sau xuất bến chỉ `ADJUSTMENT`", **nhưng chạm tiền nên đưa thành câu xác nhận Q-T6** và có ca sổ vàng.
 
-**C5. Thiếu giá (5.7; Q6 a):** không có dòng thắng ⇒ **không ghi dòng 0**. Chuyến **vẫn xuất bến** — "thiếu giá" **không** vào `kiemXuatBen`, **không** vào `MA_GIU`. Trạng thái **suy ra**: chuyến xe thuê chưa huỷ không có `SNAPSHOT` chưa đảo. Hiện ở bảng kê chi phí với người phải xử lý ("Quản trị nhập giá, rồi Kế toán bấm Chụp lại"). "Chụp lại" dùng được **chỉ khi đang thiếu giá, hoặc trước xuất bến**. Chỉ người có `transport.cost.view` thấy nhãn "thiếu giá" (giả định G-T4 — lịch chung mà Bán hàng xem không mang nhãn này).
+**C5. Thiếu giá (5.7; Q6 a):** không có dòng thắng ⇒ **không ghi dòng 0**. Chuyến **vẫn xuất bến** — "thiếu giá" **không** vào `kiemXuatBen`, **không** vào `MA_GIU`. Trạng thái **suy ra**: chuyến xe thuê chưa huỷ không có `SNAPSHOT` chưa đảo. Hiện ở bảng kê chi phí với người phải xử lý ("Quản trị nhập giá, rồi Kế toán bấm Chụp lại"). "Chụp lại" dùng được **chỉ khi đang thiếu giá, hoặc trước xuất bến**. Vế "Kế toán chụp lại **trước xuất bến**" là **ngoại lệ có chủ ý** của mốc Q4 (mốc là lúc xếp): cho phép lấy giá Quản trị vừa nhập/sửa khi xe chưa chạy, có nhật ký. Ngõ cụt "nhà xe đã thôi hợp tác mà chuyến cũ còn thiếu giá" (không thêm giá, không chụp lại được vì cả hai đòi vai đang mở) — câu **Q-T3**. Chỉ người có `transport.cost.view` thấy nhãn "thiếu giá" (giả định G-T4 — lịch chung mà Bán hàng xem không mang nhãn này).
 
 **C6. Một nguồn tính (5.4):** một hàm `tongChiPhiChuyen(dong[])` — mọi đường (màn chuyến, bảng kê, sau này đưa vào sổ) đi qua nó; `chonDongGiaThue` là hàm tra giá riêng. Hàng rào kiểu `buildlines-guard`: phép cộng tiền chi phí ở chỗ khác → đỏ.
 
@@ -138,6 +143,7 @@
 | `transport.cost.view` — chi phí chuyến, bảng kê | none | any | any | none | none | any | none | none | none |
 | `transport.cost.adjust` — điều chỉnh, đảo, chụp lại | none | any | none | none | none | any | none | none | none |
 
+- Ô `transport.cost.view` của **Quản trị** = `any` là đề xuất của người soạn (Q5 a của chủ chỉ nói Quản trị nhập giá) — câu **Q-T7**.
 - Chi phí chuyến là **giá vốn**: không bao giờ vào DTO của `orders` (kể cả với `FIELD` có `money.view = assigned`), DTO tài xế (ADR-0049 D3 "Không bao giờ: tiền" — không đổi), DTO lịch chung / chi tiết chuyến mà `SALES` xem qua `trip.view`, biên nhận (4.4). Chỉ đi qua route riêng hỏi `transport.cost.*`.
 - `SALES` xếp xe / chọn tuyến **gây ra** một lần chụp nhưng không thấy số: phản hồi lệnh xếp không mang tiền.
 
@@ -146,13 +152,14 @@
 | Luật | CSDL | Máy chủ |
 |---|---|---|
 | Chỉ-thêm | trigger cấm `UPDATE`/`DELETE` | không có đường sửa |
-| Dấu theo loại; lý do bắt buộc | `CHECK` theo `kind` | kiểm trước |
-| Đảo = âm đúng gốc, mỗi gốc đảo một lần | trigger chèn + `UNIQUE (reverses_id)` | — |
+| Dấu của `SNAPSHOT` (> 0), `ADJUSTMENT` (≠ 0); lý do bắt buộc | `CHECK` theo `kind` | kiểm trước |
+| Dòng đảo đối dấu đúng dòng gốc, cùng chuyến, mỗi gốc đảo một lần | trigger chèn so dòng gốc + `UNIQUE (reverses_id)` | — |
 | Mỗi chuyến tối đa một `SNAPSHOT` chưa đảo | trigger chèn (bảng `vc_`) | kiểm trong lô |
-| Tổng chi phí chuyến ≥ 0 | trigger chèn | `tongChiPhiChuyen` + kiểm trước |
+| Tổng chi phí chuyến ≥ 0 | trigger chèn — **vướng, kế hoạch chốt** (dưới) | `tongChiPhiChuyen` + kiểm trước |
 | **`SNAPSHOT` chỉ cho chuyến có `carrier_party_id` = dòng, đang mở vai `CARRIER`, không phải công ty chủ** (thay LCY-2) | trigger `BEFORE INSERT … WHEN NEW.kind = 'SNAPSHOT'` đọc `vc_trip`, `v_pty_carrier`, `v_pty_owner_company` | kiểm qua hàm công bố của `parties` |
 | `SNAPSHOT` / đảo tự động cùng lô với lệnh chuyến | điều kiện dấu lô trong câu ghi | — |
 
+- **Vướng "tổng ≥ 0":** chuyến có `SNAPSHOT` 1.000.000 và `ADJUSTMENT` −200.000; đổi tuyến trước xuất bến ⇒ lô ghi `REVERSAL` −1.000.000 **trước** `SNAPSHOT` mới ⇒ tổng tạm −200.000, trigger từng dòng sẽ chặn; huỷ chuyến cũng để tổng âm. Hướng đề xuất (kế hoạch chốt, người kiểm soi): trigger "tổng ≥ 0" **chỉ canh dòng `ADJUSTMENT`** (dòng người nhập); đảo / chụp tự động không bị canh; `audit-invariants` cảnh báo chuyến có tổng âm.
 - Luật vai **chỉ áp cho `SNAPSHOT`**: đảo / điều chỉnh cho chuyến của nhà xe đã thôi vai, hoặc sau khi đổi công ty chủ (ADR-0043), phải luôn làm được. **Người kiểm soi.**
 - `audit-invariants` (lưới thứ hai): `R-VC-COST-1` chuyến xe thuê chưa huỷ có ≤ 1 `SNAPSHOT` chưa đảo, liệt kê chuyến "thiếu giá" (mức thông tin); `R-VC-COST-2` đảo khớp gốc; `R-VC-COST-3` không chuyến nào của công ty chủ có dòng chi phí.
 
@@ -168,10 +175,10 @@
 
 **D1. Hình dạng `bil_debt_line`** (kế hoạch sổ tiền §3.2, migration B):
 - `order_id` **trống được** (vẫn khoá ngoại `NO ACTION` tới `orders`);
-- thêm `trip_id TEXT NULL` — **không khoá ngoại, không khai `logicalRefs`** ở lượt này;
-- `CHECK (order_id IS NULL OR trip_id IS NULL)` — không bao giờ cả hai (vĩnh viễn);
+- thêm `trip_id TEXT NULL` — **không khoá ngoại, không khai `logicalRefs`** ở lượt này; sổ dữ liệu (`docs/data-dictionary.json`) ghi rõ đây là **cột dự trữ** cho nợ nhà xe (ADR-0057 T3), lượt 1 luôn trống;
+- **`CHECK ((order_id IS NULL) <> (trip_id IS NULL))` — đúng một nguồn**, đặt **ngay trong migration B** của sổ tiền. Lý do: bất biến của dòng tiền được khoá bằng khai báo (ADR-0003 điều 3; Hiến chương 5.1), và `CHECK` **không thêm được bằng `ALTER` về sau** — để tới D3 thì phải dựng lại bảng chỉ-thêm;
 - `CHECK (trip_id IS NULL OR (order_service_id IS NULL AND receipt_id IS NULL))`;
-- trigger `bil_debt_line_order_required` (`BEFORE INSERT … WHEN NEW.order_id IS NULL` → `RAISE`) — **lượt 1 mọi dòng vẫn có đơn**; ADR phần "nợ nhà xe vào sổ" (D3 cũ) bỏ trigger này và thay bằng "đúng một nguồn" bằng migration mới.
+- trigger lượt 1 `bil_debt_line_trip_not_yet` (`BEFORE INSERT … WHEN NEW.trip_id IS NOT NULL` → `RAISE`) — chặn dòng chỉ-có-chuyến, nên **lượt 1 mọi dòng vẫn có đơn**; ADR phần "nợ nhà xe vào sổ" (D3 cũ) **chỉ bỏ trigger này** bằng migration mới, không đổi `CHECK`.
 - Loại dòng *chi phí vận chuyển*, loại phiếu *chốt chi phí vận chuyển* **chưa thêm** (bảng tra cứu, tập mở — thêm ở D3).
 
 **D2. Vì sao không có khoá ngoại `trip_id → vc_trip`:**
@@ -179,7 +186,7 @@
 - Dù khai cách nào, nó **đặt sẵn đáp án Q12 = (B)** (`billing → van-chuyen`); nếu chủ chọn Q12 = (A) (`van-chuyen → billing`) thì thành **vòng ở tầng SQL** — trái 5.3.
 - Chủ đã hoãn Q12 ⇒ lượt này giữ hình dạng **trung lập**: cột có sẵn, chưa ai ghi; toàn vẹn "trỏ chuyến có thật" và view số dư theo chuyến chốt ở D3 theo Q12.
 
-**D3. Không đổi ở sổ tiền lượt 1:** luật sinh dòng (ADR-0026 điều 4), ô quyền (điều 10), "Sổ của tôi" (điều 7), bất biến `R-BIL-*` lượt 1 (mọi dòng có đơn). `v_bil_party_balance (party_id, counterparty_id, order_id, balance)` (kế hoạch §3.2) giữ nguyên; **cách view thể hiện dòng theo chuyến chốt ở D3**. Test migration B thêm: dòng có `trip_id` → trigger chặn; dòng có cả hai → `CHECK` chặn.
+**D3. Không đổi ở sổ tiền lượt 1:** luật sinh dòng (ADR-0026 điều 4), ô quyền (điều 10), "Sổ của tôi" (điều 7), bất biến `R-BIL-*` lượt 1 (mọi dòng có đơn). `v_bil_party_balance (party_id, counterparty_id, order_id, balance)` (kế hoạch §3.2) giữ nguyên; **cách view thể hiện dòng theo chuyến chốt ở D3**. Test migration B thêm: dòng chỉ có `trip_id` → trigger chặn; dòng có cả hai **hoặc không có nguồn nào** → `CHECK` chặn.
 
 ### T4. Để sau — nói rõ cái gì thuộc ADR này, cái gì chưa
 
@@ -204,9 +211,9 @@
 
 | Chỗ | Nguyên văn | Sau ADR-0057 |
 |---|---|---|
-| Điều 3, dòng "Mỗi dòng" (`docs/adr/ADR-0026-*.md:63`) | "… **loại** (…) — đơn, dòng dịch vụ (nếu có), lần thu (nếu có)." | "… **loại** (…) — **nguồn: đơn hoặc chuyến xe, không bao giờ cả hai**; dòng dịch vụ và lần thu (nếu có) chỉ khi nguồn là đơn. **Lượt 1 mọi dòng có đơn** (trigger giữ); dòng nguồn chuyến chỉ mở khi ADR 'nợ nhà xe vào sổ' được duyệt (ADR-0057 T3)." |
+| Điều 3, dòng "Mỗi dòng" (`docs/adr/ADR-0026-*.md:63`) | "… **loại** (…) — đơn, dòng dịch vụ (nếu có), lần thu (nếu có)." | "… **loại** (…) — **nguồn: đơn hoặc chuyến xe, không bao giờ cả hai**; dòng dịch vụ và lần thu (nếu có) chỉ khi nguồn là đơn. **đúng một nguồn** (`CHECK`); **lượt 1 mọi dòng có đơn** (trigger giữ); dòng nguồn chuyến chỉ mở khi ADR 'nợ nhà xe vào sổ' được duyệt (ADR-0057 T3)." |
 | Điều 5 (`:72`) | "… ngược chiều, **phân bổ theo đơn** (Kế toán chọn đơn; một lần nộp nhiều đơn = nhiều dòng trong một phiếu)." | "… ngược chiều, **phân bổ theo đơn — hoặc theo chuyến khi trả nhà xe (từ ADR 'nợ nhà xe vào sổ')** (…)." |
-| Kế hoạch sổ tiền §3.2, hàng `bil_debt_line` (tài liệu kế hoạch, không phải ADR) | "`order_id`, `order_service_id` NULL, `receipt_id` NULL, …" | "`order_id` **NULL**, **`trip_id` NULL (không khoá ngoại)**, …; `CHECK` không cả hai; trigger `bil_debt_line_order_required`" — người lập kế hoạch sổ tiền sửa **sau khi chủ duyệt** |
+| Kế hoạch sổ tiền §3.2, hàng `bil_debt_line` (tài liệu kế hoạch, không phải ADR) | "`order_id`, `order_service_id` NULL, `receipt_id` NULL, …" | "`order_id` **NULL**, **`trip_id` NULL (không khoá ngoại, cột dự trữ)**, …; `CHECK ((order_id IS NULL) <> (trip_id IS NULL))`; trigger `bil_debt_line_trip_not_yet`" — người lập kế hoạch sổ tiền sửa **sau khi chủ duyệt** |
 
 ## Câu ADR khác bị thay (nguyên văn → mới)
 
@@ -230,7 +237,7 @@ LCY-1, LCY-2 của [CŨ]: **không còn** (đủ hai lớp).
 ## Cửa một chiều / hai chiều
 
 - **Một chiều:** bảng giá ở `vc_` (Q2 a); `vc_rental_rate`, `vc_trip_cost_line` chỉ-thêm; mốc chụp; hình dạng `bil_debt_line` sau Task 3.
-- **Hai chiều:** bốn ô quyền; danh mục tuyến / cỡ xe; lý do; thứ tự ưu tiên giá (mã + test); trigger `bil_debt_line_order_required` (bỏ bằng migration mới).
+- **Hai chiều:** bốn ô quyền; danh mục tuyến / cỡ xe; lý do; thứ tự ưu tiên giá (mã + test); trigger `bil_debt_line_trip_not_yet` (bỏ bằng migration mới).
 
 ## Hệ quả
 
@@ -244,7 +251,7 @@ LCY-1, LCY-2 của [CŨ]: **không còn** (đủ hai lớp).
   4. trigger chồng giá; trigger chỉ-thêm (giá, chi phí); trigger vai `CARRIER` lúc thêm giá; trigger `SNAPSHOT` đúng nhà xe / không công ty chủ; trigger một `SNAPSHOT` chưa đảo; trigger tổng ≥ 0;
   5. hàng rào một nguồn tính (`tongChiPhiChuyen`);
   6. bài thân trigger `vc_*` (`architecture.test.ts:768 @49`) vẫn xanh — trigger mới chỉ đọc `vc_` + view đã liệt kê;
-  7. (T3) test migration B: dòng nợ có `trip_id` → chặn; cả hai nguồn → chặn;
+  7. (T3) test migration B: dòng nợ chỉ có `trip_id` → trigger chặn; cả hai nguồn hoặc không nguồn → `CHECK` chặn;
   8. sổ vàng C12.
 - **Tài liệu:** `docs/data-dictionary.json` + `npm run dict`; `docs/SYSTEM-DESIGN.md`; `docs/CHANGE-GUIDE.md`; nhật ký thay đổi lời thường.
 
@@ -259,7 +266,8 @@ LCY-1, LCY-2 của [CŨ]: **không còn** (đủ hai lớp).
 7. `ADMIN` gọi điều chỉnh → 403; `SALES` gọi `GET …/chi-phi` → 403.
 8. Mọi dòng chi phí có `occurred_date` (ngày VN, `date(x) = x`) và `created_at` UTC; chuyến qua nửa đêm lấy ngày chạy.
 9. Bài số lạ (Hệ quả 1) xanh; `npm test`, `npm run typecheck` (0 lỗi), `npm run test:e2e`, `audit-invariants --db local` xanh.
-10. (T3) Migration B: `bil_debt_line` nhận dòng có đơn như ADR-0026; dòng có `trip_id` bị trigger chặn; `R-BIL-*` lượt 1 không đổi kết quả.
+10. (T3) Migration B: `bil_debt_line` nhận dòng có đơn như ADR-0026; dòng chỉ có `trip_id` bị trigger chặn; dòng có cả hai hoặc không nguồn nào bị `CHECK` chặn; `R-BIL-*` lượt 1 không đổi kết quả.
+11. Đổi tuyến trên chuyến mà nhà xe đã thôi hợp tác → 409 `carrier_inactive` (câu tiếng Việt), không còn dòng đảo lẻ. Đảo một `ADJUSTMENT` âm → dòng đảo dương, được.
 
 ## Phương án bị loại
 
@@ -289,6 +297,33 @@ LCY-1, LCY-2 của [CŨ]: **không còn** (đủ hai lớp).
 - **(a) Khuyến nghị — sổ tiền lượt 1 trước, tiền xe thuê sau; nhưng duyệt phần "dòng nợ gắn được với chuyến" (T3) ngay, trước khi sổ tiền tạo bảng:** Được: giữ đúng ưu tiên 29/9; hai phần dùng chung một dòng nợ đã sẵn chỗ cho chuyến. Mất: bảng kê chi phí xe có muộn hơn.
 - **(b) Tiền xe thuê trước:** Được: Kế toán có bảng kê chi phí xe sớm. Mất: chen ngang sổ tiền đã ưu tiên; phải chờ Bảng điều phối gộp trước như nhau.
 - **(c) Làm song song hai phiên:** Được: nhanh nhất trên giấy. Mất: hai phiên cùng tranh số migration và cùng sửa tệp quyền — dễ đụng nhau.
+
+
+**Q-T3 — Nhà xe đã thôi hợp tác, nhưng một chuyến cũ của họ còn "thiếu giá". Máy làm sao để Kế toán ghi được chi phí?** (Hôm nay theo đề xuất: không thêm giá được, không chụp lại được — cả hai đòi nhà xe còn hợp tác.)
+- **(a) Khuyến nghị — cho Quản trị thêm dòng giá "đã đóng sẵn" (có ngày kết thúc, không kéo tới hôm nay) cho nhà xe đã thôi hợp tác, và cho Kế toán "chụp lại" trên chuyến ĐÃ kết thúc mà không kiểm vai** — vì giá áp theo **ngày chạy**, lúc đó nhà xe còn hợp tác. Được: mọi chi phí vẫn đi qua bảng giá (một nguồn tính), không mở lại vai. Mất: nới luật "nhà xe phải đang hợp tác" ở hai chỗ hẹp (có nhật ký, có bài kiểm riêng).
+- **(b) Kế toán ghi "giá chốt tay" cho chuyến đó** (một dòng chi phí không trỏ bảng giá, lý do bắt buộc). Được: không đụng luật vai. Mất: có một đường tiền không qua bảng giá.
+- **(c) Quản trị tạm mở lại vai nhà xe, nhập giá, Kế toán chụp lại, rồi đóng vai.** Được: không thêm đường mới. Mất: thao tác vòng; trong lúc đó hồ sơ ghi sai sự thật "đang hợp tác".
+
+**Q-T4 — "Giao chuyến cho nhà xe" là lúc nào?** (Bạn đã chọn chụp giá "lúc giao cho nhà xe"; hôm nay văn phòng xếp xe là xong, chưa có nút "Nhận".)
+- **(a) Khuyến nghị — lúc văn phòng xếp xe của nhà xe, không chờ ai bấm Nhận; khi có Nhận/Từ chối (lượt 3 Bảng điều phối) vẫn giữ mốc này — tài xế Từ chối thì chuyến giao lại, máy tự huỷ giá cũ và chụp giá mới.** Được: một mốc đơn giản, không phụ thuộc lượt sau. Mất: giá chụp trước khi nhà xe thật sự đồng ý chạy.
+- **(b) Khi có nút Nhận thì dời mốc sang lúc nhà xe bấm Nhận.** Được: sát thoả thuận hơn. Mất: đổi mốc sau = ADR mới; chuyến chưa ai Nhận thì chưa có chi phí.
+
+**Q-T5 — Ai được chọn tuyến cho chuyến xe thuê?** (Tuyến quyết giá nào được lấy.)
+- **(a) Khuyến nghị — người xếp xe (Bán hàng, Quản trị, Toàn quyền)**, vì họ biết xe chạy đâu; họ không thấy số tiền, Kế toán thấy trên bảng kê và điều chỉnh nếu sai. Được: chọn đúng lúc xếp, không thêm bước. Mất: Bán hàng gián tiếp quyết mức giá mà không thấy số.
+- **(b) Chỉ Quản trị / Toàn quyền.** Được: người nhập giá chọn tuyến. Mất: mỗi chuyến xe thuê phải chờ Quản trị.
+- **(c) Kế toán chọn lúc đối chiếu.** Được: người trả tiền chọn. Mất: tới lúc đó chuyến chỉ có giá theo cỡ xe hoặc "thiếu giá".
+
+**Q-T6 — Chuyến xe thuê kết thúc giữa chừng (xe hỏng, tai nạn): chi phí tính thế nào?**
+- **(a) Khuyến nghị — giữ giá đã chụp; nhà xe tính ít hơn thì Kế toán ghi điều chỉnh tay, có lý do.** Được: không thêm luật. Mất: Kế toán phải nhớ xem các chuyến gián đoạn.
+- **(b) Chuyến gián đoạn tự hiện "chờ Kế toán xác nhận số" trên bảng kê cho tới khi Kế toán bấm xác nhận.** Được: không sót. Mất: thêm một trạng thái phải làm.
+
+**Q-T7 — Quản trị có xem được chi phí từng chuyến và bảng kê không?** (Bạn đã chọn: Quản trị nhập giá, Kế toán sửa tiền chuyến; chưa nói ai xem.)
+- **(a) Khuyến nghị — có (chỉ xem)**: Quản trị đã thấy bảng giá, xem chi phí để soát giá nhập đúng. Mất: thêm một vai thấy giá vốn.
+- **(b) Không — chỉ Kế toán và Toàn quyền.** Được: ít người thấy giá vốn hơn. Mất: Quản trị nhập giá mà không kiểm được kết quả.
+
+**Q-T8 — Duyệt lệch L-T1: chi phí chuyến chưa có "khoá kỳ"?** (Tháng đã chốt vẫn ghi thêm được bằng dòng điều chỉnh, như sổ công nợ lượt 1 bạn đã duyệt.)
+- **(a) Khuyến nghị — duyệt, cùng hạn với sổ công nợ: khoá kỳ phải có cùng bản phát hành lượt 2 sổ, áp cho cả chi phí chuyến.** Được: không làm khoá kỳ hai lần. Mất: tới lúc đó, số tháng cũ có thể bị điều chỉnh.
+- **(b) Làm khoá kỳ cho chi phí chuyến ngay lượt này.** Được: đúng Hiến chương ngay. Mất: làm cơ chế kỳ trước cả sổ công nợ, rồi phải ghép lại.
 
 ## Chưa kiểm
 

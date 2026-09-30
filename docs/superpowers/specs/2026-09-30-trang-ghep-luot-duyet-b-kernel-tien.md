@@ -11,6 +11,8 @@
 
 ---
 
+**Lượt A và lượt B là hai lượt duyệt riêng.** Lượt A = Bảng điều phối lượt 2–4 (ADR-0052…0054 tạm, người soạn khác, trang ghép riêng). Lượt B = tệp này. Không gộp câu duyệt của hai lượt; điểm chạm chung duy nhất đã thấy là bảng `vc_unavailability` (mục 4.2).
+
 ## 0. Trần "tối đa 3 quyết định chạm quyền/dữ liệu mỗi lượt" — đề nghị tách
 
 Có hai cách đếm:
@@ -43,7 +45,7 @@ Có hai cách đếm:
 | `vc_rental_rate` **(mới)** | `van-chuyen` | — | **chính sách tiền (giá vốn)** theo nhà xe — loại dữ liệu tiền **đầu tiên** trong module `van-chuyen` | 0057 |
 | `vc_trip_cost_line` **(mới)** | `van-chuyen` | — | **tiền đã chụp (giá vốn)** của chuyến xe thuê | 0057 |
 | `ord_transfer_leg` | `orders` | chặng đưa đón — **không mang tiền** (ADR-0047 A1) | + `flight_code` (0055); + `exclusive_vehicle`, `min_vehicle_seats` (0056) — **lời hứa về xe**, vẫn không mang tiền; không thêm loại dòng | 0055, 0056 |
-| `bil_debt_line` (**chưa có**, ADR-0026) | `billing` | *(dự kiến)* nợ theo **đơn** | hình dạng cho phép **nguồn = đơn hoặc chuyến** (không cả hai); lượt 1 mọi dòng vẫn có đơn (trigger) — **bảng dùng chung sẽ nhận một loại dữ liệu mới không gắn đơn** ở D3 (bài học F-01) | 0057 T3 |
+| `bil_debt_line` (**chưa có**, ADR-0026) | `billing` | *(dự kiến)* nợ theo **đơn** | **đúng một nguồn** (đơn hoặc chuyến — `CHECK`); `trip_id` là cột dự trữ; lượt 1 mọi dòng vẫn có đơn (trigger) — **bảng dùng chung sẽ nhận một loại dữ liệu mới không gắn đơn** ở D3 (bài học F-01) | 0057 T3 |
 | `audit_log` | `audit` | mọi hành động | hành động mới: khung bận, giá thuê, chi phí; `order_leg_updated` thêm trường | cả ba |
 
 ## 2. Từng dòng bản đồ quyền chạm các bảng này — áp cho loại nào
@@ -62,7 +64,7 @@ Cột theo `src/shared/permissions.ts:5 @49`. **(mới)** = ô thao tác mới (
 | `order.trip.edit` (`:78`) — sau xác nhận, route chặng | `ord_transfer_leg` 3 cột mới | ownOrAssigned | none | any | none | none | any | none | none | none | 0055, 0056 |
 | `transport.rate.view` **(mới)** | `vc_rental_rate`, danh mục | none | any | any | none | none | any | none | none | none | 0057 |
 | `transport.rate.manage` **(mới)** | `vc_rental_rate`, `vc_route`, cỡ xe (ghi) | none | none | any | none | none | any | none | none | none | 0057 |
-| `transport.cost.view` **(mới)** | `vc_trip_cost_line`, bảng kê | none | any | any | none | none | any | none | none | none | 0057 |
+| `transport.cost.view` **(mới)** | `vc_trip_cost_line`, bảng kê | none | any | any (**Q-T7**) | none | none | any | none | none | none | 0057 |
 | `transport.cost.adjust` **(mới)** | `vc_trip_cost_line` (điều chỉnh, đảo, chụp lại) | none | any | none | none | none | any | none | none | none | 0057 |
 | `ledger.view` (ADR-0026, chưa có) | `bil_debt_line` — **kể cả dòng nguồn chuyến** khi D3 mở | own | any | own | own | none | any | own | none | none | 0057 T3 |
 | `ledger.write` (ADR-0026, chưa có) | chốt, trả nhà xe (D3) | none | any | none | none | none | any | none | none | none | 0057 T3 |
@@ -89,7 +91,7 @@ Ghi chú áp loại:
 | Bảng giá thuê, tuyến, cỡ xe | `office` | `transport.rate.view` / `.manage` (đọc tên: + `trip.dispatch`) | chồng hiệu lực; chỉ-thêm; vai `CARRIER` lúc thêm (`v_pty_carrier`) | 0057 |
 | Chụp / đảo chi phí tự động | `office` (trong lô lệnh chuyến) | ô của lệnh chuyến (`trip.dispatch`) | dấu lô `last_cmd_id`; một `SNAPSHOT` chưa đảo; `SNAPSHOT` chỉ cho nhà xe ≠ công ty chủ (`v_pty_carrier`, `v_pty_owner_company`) | 0057 |
 | Điều chỉnh / chụp lại / bảng kê chi phí | `office` | `transport.cost.adjust` / `.view` | chỉ-thêm; đảo khớp gốc; tổng ≥ 0 | 0057 |
-| Dòng nợ nguồn chuyến | `billing` (D3) | `ledger.write` | lượt 1: trigger `bil_debt_line_order_required`; `CHECK` không cả hai nguồn | 0057 T3 |
+| Dòng nợ nguồn chuyến | `billing` (D3) | `ledger.write` | lượt 1: trigger `bil_debt_line_trip_not_yet`; `CHECK` đúng một nguồn | 0057 T3 |
 | Hợp đồng giữa các phần | — | `lichChungChang` +3 khoá, `hanhKhachChoChuyen` +2 khoá; không tự kiểm quyền (bài `src/orders-cong-bo.test.ts`) | — | 0055, 0056 |
 | DTO tài xế | cổng tài xế (ADR-0049 D3) | `trip.view` assigned | danh sách trắng: + số hiệu; **không** tiền, **không** khung bận | 0055, 0057 |
 
@@ -127,10 +129,34 @@ Ghi chú áp loại:
 
 ## 5. Điểm người kiểm độc lập nên xem kỹ
 
-1. Hình dạng T3 có thật sự trung lập với Q12 không (không khoá ngoại, không view, không cạnh); trigger `bil_debt_line_order_required` bỏ được sạch ở D3.
+1. Hình dạng T3 có thật sự trung lập với Q12 không (không khoá ngoại, không view, không cạnh); trigger `bil_debt_line_trip_not_yet` bỏ được sạch ở D3.
 2. Trigger vai `CARRIER` / công ty chủ **chỉ** ở lúc thêm giá và `SNAPSHOT` — không chặn đóng giá, đảo, điều chỉnh (view không theo ngày; ADR-0043 đổi công ty chủ).
 3. Khoá chống ghi chồng của "chụp lại" / "điều chỉnh" sau khi chuyến kết thúc (không dùng được `last_cmd_id`).
 4. Cách nhận biết "vi phạm cam kết mới" sau phá lệ (0056).
 5. `vc_dispatch_policy`: sửa tại chỗ `0041` hay `ADD COLUMN … DEFAULT` (khuôn I43).
 6. Cách đếm trần §9 (mục 0).
 7. Danh sách route GET cho bài số lạ có đủ lịch chung và chi tiết chuyến (Bán hàng có `trip.view`).
+8. (Sau kiểm lần 1) `CHECK` "đúng một nguồn" của `bil_debt_line` trong migration B; trigger `bil_debt_line_trip_not_yet` chỉ chặn dòng chỉ-có-chuyến.
+9. Vướng "tổng ≥ 0" khi đảo `SNAPSHOT` còn `ADJUSTMENT` âm (0057 C8).
+10. Cách nhận biết "vi phạm cam kết mới sau phá lệ" (0056 A3 — đề xuất chặt: mỗi lệnh còn vi phạm phải mang phá lệ).
+
+## 6. Mọi câu hỏi cho chủ của lượt B (lời thường — trả lời một lần; khuyến nghị đứng đầu)
+
+Chi tiết "được / mất" của từng câu ở tệp ADR ghi trong ngoặc. Trả lời kiểu "Q-T1 a, Q-T2 a, …".
+
+**Kernel lượt 2 (ADR-0055)**
+- **Q-K1 — Nhắc "chuyến dài, cho tài xế nghỉ" khi một chuyến quá 4 giờ?** (a) **Khuyến nghị:** có, 4 giờ, Toàn quyền đổi được — nhắc thôi, không chặn · (b) không nhắc, chỉ cảnh báo tổng 8 giờ/ngày · (c) có, con số khác. *Con số 4 giờ do người soạn đặt theo tra cứu, chưa có người chuyên môn kiểm.*
+
+**Kernel lượt 3 (ADR-0056)** — không còn câu hỏi; việc của bạn ngoài app: hỏi người chuyên môn về ghép khách nhiều đơn trên xe hợp đồng trước khi chạy chuyến ghép thật.
+
+**Tiền xe thuê (ADR-0057)**
+- **Q-T1 — Giá thuê "theo loại xe" hiểu thế nào?** (a) **Khuyến nghị:** theo cỡ xe tính bằng số khách (không kể tài xế), máy tự biết từ số chỗ đã khai — khớp lựa chọn "số chỗ tối thiểu" của bạn · (b) danh sách loại xe khai trên từng xe · (c) chỉ giá theo tuyến.
+- **Q-T2 — Làm tiền xe thuê trước hay sau sổ tiền lượt 1?** (a) **Khuyến nghị:** sổ tiền lượt 1 trước, tiền xe thuê sau — **nhưng duyệt ngay phần "dòng nợ gắn được với chuyến"**, nếu không phiên sổ tiền phải dừng ở bước tạo bảng nợ · (b) tiền xe thuê trước · (c) song song hai phiên (dễ đụng nhau).
+- **Q-T3 — Nhà xe đã thôi hợp tác mà chuyến cũ còn "thiếu giá":** (a) **Khuyến nghị:** Quản trị thêm được giá "đã đóng sẵn" cho nhà xe cũ, Kế toán "chụp lại" trên chuyến đã kết thúc không cần nhà xe còn hợp tác (giá tính theo ngày chạy) · (b) Kế toán ghi giá tay cho chuyến đó · (c) tạm mở lại vai nhà xe rồi đóng.
+- **Q-T4 — "Giao cho nhà xe" là lúc nào?** (a) **Khuyến nghị:** lúc văn phòng xếp xe của nhà xe; sau này có nút Nhận/Từ chối vẫn giữ mốc này, Từ chối thì máy huỷ giá cũ, chụp giá mới khi giao lại · (b) khi có nút Nhận thì dời sang lúc nhà xe bấm Nhận.
+- **Q-T5 — Ai chọn tuyến cho chuyến xe thuê?** (a) **Khuyến nghị:** người xếp xe (Bán hàng, Quản trị, Toàn quyền) — không thấy số tiền, Kế toán soát trên bảng kê · (b) chỉ Quản trị / Toàn quyền · (c) Kế toán chọn lúc đối chiếu.
+- **Q-T6 — Chuyến xe thuê kết thúc giữa chừng:** (a) **Khuyến nghị:** giữ giá đã chụp, nhà xe tính ít hơn thì Kế toán điều chỉnh tay có lý do · (b) chuyến đó tự hiện "chờ Kế toán xác nhận số" trên bảng kê.
+- **Q-T7 — Quản trị có xem chi phí từng chuyến và bảng kê không?** (a) **Khuyến nghị:** có, chỉ xem (đã thấy bảng giá) · (b) không, chỉ Kế toán và Toàn quyền.
+- **Q-T8 — Duyệt lệch L-T1 "chi phí chuyến chưa có khoá kỳ"?** (a) **Khuyến nghị:** duyệt, cùng hạn với sổ công nợ — khoá kỳ có cùng bản phát hành lượt 2 sổ · (b) làm khoá kỳ cho chi phí chuyến ngay lượt này.
+
+**Câu duyệt cuối** (sau khi người kiểm báo đạt bản sửa): "Duyệt ADR-0057 (tiền xe thuê, gồm sửa ADR-0026 và lệch L-T1) theo các câu trên?" — trình B1 trước; ADR-0055, ADR-0056 trình ở B2, B3.

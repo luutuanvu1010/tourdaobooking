@@ -31,7 +31,7 @@
 
 1. **Lịch xe vào xưởng:** Quản trị ghi trước "xe 79B-… bảo dưỡng 8:00–17:00 thứ Ba". Máy **không cho xếp chuyến** vào giờ đó; nếu xe **đã có chuyến** trong giờ đó thì **không cho ghi lịch**, phải dời chuyến trước (bạn chọn).
 2. Trạng thái "bảo dưỡng" hiện có vẫn giữ, dùng khi xe nằm xưởng chưa biết ngày ra.
-3. **Giờ lái tối đa:** máy cộng giờ các chuyến của một tài xế trong ngày; quá 8 giờ, hoặc một chuyến dài quá 4 giờ, thì **chỉ cảnh báo** trên bảng và lúc xếp — không chặn (bạn chọn; con số luật chưa có người chuyên môn kiểm).
+3. **Giờ lái tối đa:** máy cộng giờ các chuyến của một tài xế trong ngày; quá 8 giờ thì **chỉ cảnh báo** trên bảng và lúc xếp — không chặn (bạn chọn; con số luật chưa có người chuyên môn kiểm). Thêm nhắc "chuyến dài quá 4 giờ, nhớ cho tài xế nghỉ" là **đề xuất của người soạn**, chưa phải lời bạn — câu Q-K1.
 4. **Số hiệu chuyến bay:** thêm **một ô** trên chặng đưa đón (vd VN1553); người xếp xe và tài xế thấy; máy không tự tra, tài xế tự tra.
 5. Không thêm ô quyền mới.
 6. **Bạn cần:** sau khi người kiểm báo đạt, bấm duyệt (không còn câu hỏi mở).
@@ -64,7 +64,7 @@
   - **[CSDL]** trigger **mới** `BEFORE INSERT ON vc_trip` và `BEFORE UPDATE OF planned_start_ms, planned_end_ms, vehicle_id ON vc_trip` đọc `vc_unavailability` (cùng module). Không sửa hai trigger `vc_trip_overlap_ins/upd` (`0042:352-372 @49`); mỗi trigger mới một câu `RAISE`, mã `lc03_unavailable`.
   - **[Máy chủ]** `kiemTaoSuaChuyen` (`src/shared/dieu-phoi-kiem.ts:90 @49`) nhận khung bận như khoảng chặn — **một** hàm, không viết luật thứ hai.
 - (ii) **Q-L2-1 = a:** **không ghi** khung bận chồng lên chuyến **chưa huỷ, chưa kết thúc** của xe đó.
-  - **[CSDL]** trigger `BEFORE INSERT ON vc_unavailability` đọc `vc_trip` (cùng module), `RAISE` mã `unavailability_overlaps_trip`.
+  - **[CSDL]** trigger `BEFORE INSERT ON vc_unavailability WHEN NEW.subject = 'VEHICLE' AND EXISTS (…)` đọc `vc_trip` (cùng module; chuyến `status IN ('PLANNED','RUNNING')`), `RAISE` mã `unavailability_overlaps_trip`.
   - **[Máy chủ]** trả 409 "Xe đang có chuyến <mã> lúc <giờ> — dời hoặc đổi xe chuyến đó trước", kèm danh sách chuyến vướng (mã chuyến + giờ, không tên khách).
 
 **A3. Một nguồn cho mỗi câu hỏi:** "xe bây giờ có dùng được không" = `vc_vehicle.status` (`0033` — giữ nguyên tập đóng `active/maintenance/retired`); "xe bận khoảng giờ nào" = `vc_unavailability`. Máy **không** tự đổi `status` theo khung, **không** lưu cờ "đang bận" — suy ra lúc đọc.
@@ -85,6 +85,8 @@
 |---|---|---|
 | `duty_day_max_minutes` — tổng thời lượng chuyến của một tài xế trong một ngày chạy | 480 | 60–1440 |
 | `trip_no_break_max_minutes` — chuyến dài hơn → nhắc nghỉ giữa chuyến | 240 | 30–720 |
+
+- Cột `trip_no_break_max_minutes` và cảnh báo `CHUYEN_DAI_CAN_NGHI` **chỉ làm nếu chủ trả lời Q-K1 (a) hoặc (c)**; (b) thì bỏ cả hai.
 
 - **Cách thêm cột — kế hoạch chọn một, người kiểm soi:**
   - (1) **sửa tại chỗ `0041`** nếu lúc thi công `0041` **chưa áp remote** (tiền lệ ADR-0050 VK1-A sửa tại chỗ `0041`); giữ khuôn "KHÔNG DEFAULT, mỗi dòng là bản đầy đủ" (chú thích `0041:23-24 @49`, kế hoạch I43);
@@ -157,7 +159,7 @@
   7. `CHECK` khuôn số hiệu;
   8. bài liệt kê khoá DTO tài xế có số hiệu, không thêm khoá tên (mở rộng bài ADR-0049);
   9. bài thân trigger `vc_*` (`src/architecture.test.ts:752`, `:768 @49`) vẫn xanh — trigger mới chỉ đọc bảng `vc_`;
-  10. câu kiểm định kỳ `warn` "chuyến chưa huỷ chồng khung bận của xe" (lưới thứ hai).
+  10. câu kiểm định kỳ `warn` "chuyến chưa huỷ, **chưa kết thúc** chồng khung bận còn hiệu lực của xe" (lưới thứ hai; chuyến đã kết thúc là lịch sử, không báo).
 - **Tài liệu:** `docs/data-dictionary.json` + `npm run dict`; `docs/SYSTEM-DESIGN.md`; `docs/CHANGE-GUIDE.md`.
 - **Thứ tự:** chủ duyệt → kế hoạch → VK2-B (luật thuần) + VK2-C sau khi ADR-0049 lượt 1 gộp `main` → VK2-A → chủ vẽ màn (khung bận ở màn Xe, dải bận trên lịch chung, ô số hiệu) → giao diện → người kiểm độc lập → phát hành.
 
@@ -184,12 +186,17 @@
 
 - G-A1: khung tối đa 31 ngày (mã). G-A2: tên bảng, route, hành động nhật ký, mã câu báo — kế hoạch chốt.
 - G-A3: trigger chặn ghi `DRIVER` tới lượt 3 (siết, đảo được bằng migration).
-- G-B1: 480 / 240 phút gieo. G-B2: tên hai loại cảnh báo.
+- G-B1: 480 phút gieo (theo lời chủ "vượt 8 giờ"). **240 phút không phải giả định bề mặt** — người soạn đặt theo tra cứu 27/9 (lái liên tục ≤ 4 giờ, chưa có người chuyên môn kiểm) ⇒ câu Q-K1. G-B2: tên hai loại cảnh báo.
 - G-C1: số hiệu hiện cho tài xế mọi lúc. G-C2: nhật ký ghi giá trị số hiệu.
 
 ## Câu hỏi còn mở
 
-**Không có.** Ba câu Q-L2-1…3 chủ đã trả lời (lần 16). Cách thêm cột ở B1 là việc kỹ thuật của kế hoạch.
+Ba câu Q-L2-1…3 chủ đã trả lời (lần 16). Cách thêm cột ở B1 là việc kỹ thuật của kế hoạch. Còn **một** câu:
+
+**Q-K1 — Có nhắc "chuyến dài, nhớ cho tài xế nghỉ" khi một chuyến dài hơn 4 giờ không?** (Chỉ là nhắc, không chặn.)
+- **(a) Khuyến nghị — có, mức 4 giờ** (theo tra cứu: lái liên tục không quá 4 giờ; chưa có người chuyên môn kiểm), Toàn quyền đổi con số được. Được: người xếp xe thấy chuyến dài. Mất: giờ chuyến gồm cả giờ chờ, nên có thể nhắc thừa.
+- **(b) Không nhắc, chỉ cảnh báo tổng 8 giờ/ngày.** Được: bảng gọn. Mất: chuyến dài một mạch không ai để ý.
+- **(c) Có, nhưng con số khác** (bạn ghi số giờ).
 
 ## Chưa kiểm
 
