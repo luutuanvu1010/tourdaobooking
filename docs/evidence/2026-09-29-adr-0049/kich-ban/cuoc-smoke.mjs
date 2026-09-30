@@ -157,6 +157,13 @@ try {
     assert.equal(await p.ev(noCode), "");
     await axe(p, "chuyến đang chạy 390");
     assert.equal(await p.ev(khongBiChe(".dp-run-end .vc-btn")), "ok", "390: nút cuối (Kết thúc gián đoạn) không bị thanh tab che");
+    // bản 1.39: "Kết thúc gián đoạn" viền đỏ, nhỏ hơn "Kết thúc chuyến" (vẫn ≥ 44px); "Kết thúc chuyến" khoá vẫn giữ hình nút (nền màu nút, mờ)
+    const nut = await p.ev(`(() => { const k = document.querySelector('[data-action="ket-thuc"]'), g = document.querySelector('[data-action="ket-thuc-gian-doan"]'); const ks = getComputedStyle(k), gs = getComputedStyle(g), kr = k.getBoundingClientRect(), gr = g.getBoundingClientRect();
+      return { gStop: g.classList.contains('vc-btn-stop'), gBg: gs.backgroundColor, gBorder: gs.borderTopColor, gH: gr.height, gW: gr.width, kH: kr.height, kW: kr.width, kBg: ks.backgroundColor, kOp: ks.opacity, trang: getComputedStyle(document.body).backgroundColor }; })()`);
+    assert.equal(nut.gStop, true, JSON.stringify(nut));
+    assert.ok(nut.gH >= 44 && nut.gH < nut.kH && nut.gW < nut.kW, `gián đoạn nhỏ hơn: ${JSON.stringify(nut)}`);
+    assert.notEqual(nut.kBg, nut.trang, `Kết thúc chuyến khoá vẫn có nền nút: ${JSON.stringify(nut)}`);
+    assert.equal(nut.kOp, "0.5");
     await shotFull(p, "b5-chuyen-dang-chay-dien-thoai.png");
     await p.ev("window.scrollTo(0, 0), true");
   });

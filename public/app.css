@@ -1885,6 +1885,10 @@ body.login-page main.login { display: flex; flex-direction: column; height: 100%
 .dp-run-end { display: flex; flex-direction: column; gap: var(--s2); margin-top: var(--s2); }
 .dp-run-end .vc-btn { width: 100%; min-height: var(--h-field); font-size: var(--fs-vc-md); }
 .dp-run-end .dp-note { text-align: center; }
+/* bản 1.39: "Kết thúc gián đoạn" viền đỏ, nhỏ hơn "Kết thúc chuyến" (vẫn ≥ vùng chạm 44px); "Kết thúc chuyến" khi khoá giữ hình nút (màu nút, mờ .5 như .btn:disabled) —
+   `.vc-btn:disabled` tô nền trùng viền làm mất hình nút (cùng cách .dp-ct-actions ở Chi tiết chuyến). */
+.dp-run-end .vc-btn.dp-gian-doan { align-self: center; width: auto; min-height: var(--tap-min); font-size: var(--fs-vc-sm); }
+.dp-run-end .vc-btn.btn-accent:disabled { color: var(--c-on-dark); background: var(--c-accent); border-color: var(--c-accent); opacity: .5; }
 .dp-khai-gio-field .dp-khai-gio { max-width: var(--w-dp-khai-gio); }
 
 /* Cuốc của tôi (04) + một chuyến của tài xế (05 khung 5a, 06 khung 6b / 6c). Chỉ token. */
