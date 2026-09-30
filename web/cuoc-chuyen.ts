@@ -1,12 +1,12 @@
 // Một chuyến của TÀI XẾ (/cuoc-chuyen?id=) — ADR-0049 V6 Chuyến đang chạy (route 20–29) + V7 Xuất bến; bản vẽ docs/design/van-chuyen-dieu-phoi/project/05
 // (5a, 5b), 06 (6b, 6c); bản đối chiếu 2.5, H15; ruling R-P11, R-P17; lệnh điều phối vòng 3.
-// - Chưa xuất bến: CHỈ điều kiện CÒN THIẾU, mỗi dòng "(văn phòng lo)"; đạt hết → "Đủ điều kiện xuất bến" (không hạn giấy tờ, không số giấy tờ); nút "Xuất bến"
+// - Chưa xuất bến: CHỈ điều kiện CÒN THIẾU, mỗi dòng "(văn phòng lo)" + danh sách điểm (giờ hẹn / xe tới, số khách, không tên — chủ duyệt 30/9); đạt hết → "Đủ điều kiện xuất bến" (không hạn giấy tờ, không số giấy tờ); nút "Xuất bến"
 //   dính đáy, khoá khi còn thiếu. Tài xế tự bấm: KHÔNG ô "xảy ra lúc" — giờ là lúc bấm (máy chủ từ chối `xayRaLuc` từ route tài xế).
 // - Đang chạy: thẻ từng điểm (đón: khách + Đã đón / Vắng / Khách đã huỷ; trả: "Đã trả"), liên hệ của đơn (CHỈ từ GET — phản hồi lệnh không kèm, màn giữ
 //   `lienHe` của lần GET; không lưu vào bộ nhớ trình duyệt), đổi thứ tự điểm chưa tới bằng nút lên / xuống (không ô giờ), "Kết thúc chuyến", "Kết thúc gián
 //   đoạn" (chọn lý do; KHÔNG ô ghi chú — chủ Q1).
 // - Mất mạng: dòng đó "Chưa gửi được" + "Bấm lại" (CÙNG requestId — bấm lại hai lần vẫn một lệnh); máy KHÔNG tự gửi lại (lệnh điều phối, khác câu 5a).
-import { giuTenKhach, ketThucDuoc, type BuocDiem } from "../src/shared/tien-do-man";
+import { dongDiemXuatBen, giuTenKhach, ketThucDuoc, type BuocDiem } from "../src/shared/tien-do-man";
 import type { CuocChiTietResponse } from "../src/shared/contracts";
 import { coCuocCuaToi } from "../src/shared/start-page";
 import { ApiError, api } from "./api";
@@ -230,6 +230,18 @@ function veXuatBen(dauMang: HTMLElement | null): void {
             h("span", { class: "dp-cond-text" }, h("span", { class: "dp-cond-nhan" }, `${x.loiNhan} (văn phòng lo)`))))
         : [h("div", { class: "dp-cond", "data-dat": "true" }, h("span", { class: "dp-cond-mark is-dat", "aria-label": "Đạt" }, "✓"), h("span", { class: "dp-cond-text" }, h("span", { class: "dp-cond-nhan" }, "Đủ điều kiện xuất bến")))]),
     ),
+    // Điểm đón / trả (chủ duyệt 30/9): tên nơi, giờ hẹn, giờ xe tới, số khách — KHÔNG tên khách (tên chỉ khi đang chạy trong ngày chạy — ADR-0053).
+    r.diem.length
+      ? h(
+          "section",
+          { class: "vc-card dp-side-card dp-xb-diem", "aria-labelledby": "cc-diem-title" },
+          h("div", { class: "dp-card-head" }, h("h2", { id: "cc-diem-title", class: "dp-card-title" }, "Điểm đón / trả")),
+          ...dongDiemXuatBen(r.diem, c.gioBatDau.ngay).map((x) =>
+            h("div", { class: "dp-run-head" }, h("span", { class: "dp-run-so" }, x.so),
+              h("span", { class: "dp-run-text" }, h("span", { class: "dp-run-loai" }, x.nhan), h("span", { class: "dp-run-noi" }, x.noi)),
+              h("span", { class: "dp-note dp-xb-khach" }, x.khach))),
+        )
+      : null,
   );
   const nut = h("button", { type: "button", class: "vc-btn btn btn-accent", disabled: thieu.length > 0, "data-action": "xuat-ben" }, "Xuất bến");
   // Sau xuất bến, `gui` đọc lại chi tiết — có tên khách + liên hệ NẾU trong ngày chạy (phản hồi lệnh không kèm; xuất bến sớm tối hôm trước thì chưa có — Q-L3-B).

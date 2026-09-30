@@ -163,6 +163,14 @@ export function ketThucDuoc(suat: readonly Pick<SuatVao, "trangThai" | "loai">[]
   return !suat.some((x) => (x.loai ?? "PASSENGER") === "PASSENGER" && (x.trangThai === "WAITING" || x.trangThai === "BOARDED"));
 }
 
+/**
+ * Danh sách điểm ở màn Xuất bến của tài xế (chuyến chưa chạy — chủ duyệt 30/9, câu 6 README ảnh phác góp ý): số, nhãn ĐÓN/TRẢ kèm giờ hẹn / xe tới
+ * (cùng `buocDiem`), tên nơi, số khách. KHÔNG tên khách (tên chỉ ở chuyến đang chạy trong ngày chạy — ADR-0053); chỉ dữ liệu `diem` route đã trả.
+ */
+export function dongDiemXuatBen(diem: readonly DiemVao[], ngayXem: string): { so: string; nhan: string; noi: string; khach: string }[] {
+  return buocDiem(diem, [], "PLANNED", ngayXem).map((b) => ({ so: b.so, nhan: b.nhanLoai, noi: b.diem.tenNoi, khach: `${b.diem.soNguoi} khách` }));
+}
+
 // ---- Cuốc của tôi (bản vẽ 04) -------------------------------------------------------------------------------------------------------------------------------
 const THU = ["Chủ nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"] as const;
 const thuNgay = (ngay: string): string => {

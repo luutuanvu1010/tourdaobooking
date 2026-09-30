@@ -1850,6 +1850,9 @@ body.login-page main.login { display: flex; flex-direction: column; height: 100%
 .dp-moc strong { font-variant-numeric: tabular-nums; }
 .dp-moc-ghi { color: var(--c-text-muted); }
 .dp-run-list { display: flex; flex-direction: column; gap: var(--s3); }
+/* Danh sách điểm ở màn Xuất bến của tài xế (chủ duyệt 30/9): dùng lại dòng đầu thẻ điểm, số khách bên phải. */
+.dp-xb-diem .dp-run-head:last-child { border-bottom: 0; }
+.dp-xb-khach { flex: none; white-space: nowrap; }
 .dp-run-list-head { padding: 0; border-bottom: 0; }
 .dp-run { display: flex; flex-direction: column; overflow: hidden; }
 .dp-run.is-dang { border: var(--bw-vc) solid var(--c-primary); }

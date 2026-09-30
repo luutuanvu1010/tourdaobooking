@@ -105,6 +105,7 @@ try {
     assert.ok(!(await html(p)).match(/hạn \d\d\/\d\d\/\d{4}/), "không hạn giấy tờ ở màn tài xế");
     assert.equal(await p.ev(`document.querySelector('[data-action="xuat-ben"]').disabled`), true);
     assert.equal(await p.ev(txt(".dp-cc-foot")), "Chưa xuất bến được — văn phòng đang lo.");
+    assert.equal(await p.ev(`document.querySelectorAll('.dp-xb-diem').length`), 0, "chuyến chưa có điểm: không khối Điểm đón / trả");
     assert.equal(await p.ev(txt(".bar-title")), `Xuất bến ${T6.ma}`);
     assert.equal(await p.ev(khongBiChe("#cc-day .vc-btn")), "ok", "390: nút Xuất bến dính đáy không bị thanh tab che");
     await shotFull(p, "b6-xuat-ben-chua-dat-dien-thoai.png");
@@ -117,6 +118,12 @@ try {
     assert.equal(await p.ev(`document.querySelector('[data-action="xuat-ben"]').disabled`), false);
     assert.match(await p.ev(txt(".dp-cc-foot")), /^Bấm lúc xe lăn bánh — giờ ghi là lúc bấm \(\d\d:\d\d\)\.$/);
     for (const x of TEN_O4) assert.ok(!(await html(p)).includes(x), "trước xuất bến (ngoài ngày chạy) không tên khách");
+    // Chủ duyệt 30/9 (câu 6 README ảnh phác góp ý): màn Xuất bến có danh sách điểm — ĐÓN kèm giờ hẹn, TRẢ, số khách; không tên khách (đã kiểm ở trên).
+    const diemXb = await p.ev(`[...document.querySelectorAll('.dp-xb-diem .dp-run-head')].map((x) => ({ loai: x.querySelector('.dp-run-loai').innerText.trim(), khach: x.querySelector('.dp-xb-khach').innerText.trim() }))`);
+    assert.equal(diemXb.length, 2, JSON.stringify(diemXb));
+    assert.match(diemXb[0].loai, /^ĐÓN · HẸN \d\d:\d\d/, JSON.stringify(diemXb));
+    assert.equal(diemXb[1].loai, "TRẢ");
+    assert.deepEqual(diemXb.map((x) => x.khach), ["2 khách", "2 khách"]);
     await shotFull(p, "b6-xuat-ben-dat-dien-thoai.png");
     await p.ev(click('[data-action="xuat-ben"]'));
     await p.waitFor(`!!document.querySelector('.dp-run')`, "màn đang chạy");
