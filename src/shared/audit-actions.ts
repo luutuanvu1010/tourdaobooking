@@ -37,6 +37,10 @@ export const AUDIT_ACTIONS = {
   order_delivered: { label: "Đã giao – đã thu đủ", group: "order" },
   order_completed: { label: "Hoàn thành", group: "order" },
   payment_recorded: { label: "Ghi lần thu", group: "order" },
+  // ADR-0060: dấu "đã nhập phần mềm kế toán" (bảng chỉ-thêm bil_accounting_entry) — detail = moTaDauNhap (số hoá đơn nguyên văn; lý do đã chặn dãy số dài).
+  // Lịch sử đơn BỎ hai hành động này với người không qua ô accounting.entry.view; không vào hộp thông báo (v_aud_order_event là danh sách cho phép).
+  order_accounting_entry_marked: { label: "Đánh dấu đã nhập phần mềm kế toán", group: "order" },
+  order_accounting_entry_unmarked: { label: "Bỏ dấu đã nhập phần mềm kế toán", group: "order" },
   ledger_company_received: { label: "Xác nhận công ty đã nhận", group: "ledger" },
   ledger_settlement: { label: "Ghi nộp / trả tiền", group: "ledger" },
   ledger_refund: { label: "Ghi hoàn khách", group: "ledger" },
