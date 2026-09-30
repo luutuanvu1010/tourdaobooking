@@ -63,7 +63,11 @@
 - Quản trị / Toàn quyền gửi phá lệ, lý do nhóm `PHA_LE` (ô `trip.override` có sẵn — `permissions.ts:138 @49`: chỉ `ADMIN`, `SUPER_ADMIN`);
 - mã luật mới `CAM_KET` thêm vào `MA_LUAT_PHA_LE` (`src/shared/dieu-phoi-kieu.ts:74 @49`) **và** vào `MA_GIU` — bài ghim `dieu-phoi-kieu.test.ts:74-80 @49` đòi "đúng hai luật" và "mỗi mã cũng là một mã giữ": bài này **đổi giá trị ghim theo ADR** (thêm một mã), không nới;
 - phá lệ ghi vào cột mới `vc_trip.commitment_override_reason_code` (FK `vc_reason`, khuôn `rest_override_reason_code`, `0042:28 @49`), migration mới `ADD COLUMN`. Cổng xuất bến thấy cột này thì không giữ vì cam kết. Chuyến đã kết thúc/huỷ không sửa được cột (trigger `vc_trip_final_frozen`, `0042:412`) — đúng ý;
-- **Vi phạm mới sau phá lệ — cách nhận biết (đề xuất, chặt):** phá lệ **không miễn trước** cho lệnh sau. **Mỗi** lệnh xếp / dời đến / đổi xe mà `kiemCamKet` (xét chuyến **sau** lệnh) còn báo vi phạm đều phải mang phá lệ **trong chính lệnh đó** (sự kiện `PHA_LE` mã `CAM_KET` cùng dấu lô; cột `commitment_override_reason_code` ghi lý do lần gần nhất). Cổng xuất bến nhận khi lệnh **cuối cùng** làm đổi tập suất hoặc xe của chuyến có phá lệ đi kèm. Không cần cột lưu "danh sách đơn lúc phá lệ". Mất: vi phạm kéo dài thì mỗi lần xếp thêm lại cần Quản trị. Kế hoạch chỉ được nới cách này khi chủ đồng ý; **người kiểm soi**.
+- **Vi phạm mới sau phá lệ — cách nhận biết (đề xuất chặt, người kiểm soi):**
+  - phá lệ gắn với **đúng tập vi phạm lúc phá lệ**: ghi thêm cột `vc_trip.commitment_override_key` (TEXT) — danh sách id chặng vi phạm kèm loại (`XR`/`CX`), sắp xếp, nối chuỗi; chỉ khoá, không tên, không số tiền;
+  - **mọi lệnh** xếp / dời đến / đổi xe **và cổng xuất bến** chạy lại `kiemCamKet` trên chuyến hiện tại; còn vi phạm mà khoá hiện tại **khác** khoá đã phá lệ ⇒ lệnh trả 409 / cổng **giữ**, cần Quản trị phá lệ lại;
+  - vì vậy vi phạm phát sinh do **sửa đơn** (vd bật "xe riêng" sau khi đã xếp, hay tăng số chỗ tối thiểu) cũng phải phá lệ lại, dù không có lệnh xếp nào;
+  - hết vi phạm thì cột phá lệ không còn tác dụng (không cần xoá).
 - **Lớp giữ:** luật phá lệ được là **luật cấu hình**, không phải bất biến → **máy chủ** + **câu kiểm định kỳ** `warn` "chuyến đang chạy / đã chạy vi phạm cam kết mà không có phá lệ". **Không** trigger (trigger không biết đã có người phá lệ — cùng lý do khoảng nghỉ ở ADR-0049 D2). **Không** lệch 5.1. View `v_ord_leg_key` **không đổi**.
 
 **A4. Hàm hẹp của `orders`** thêm hai khoá `xeRieng`, `choToiThieu`: `lichChungChang` và `hanhKhachChoChuyen`. Không tiền, không tên. Nơi gọi vẫn đứng sau `can()` (bài `src/orders-cong-bo.test.ts` có sẵn).
@@ -93,7 +97,7 @@
 | ADR-0049 D1, `lichChungChang` (`:72`) | "Chỉ gồm: …, số người, số người đã có tên, cờ đặt gấp." | "…, cờ đặt gấp, **cờ xe riêng, số chỗ tối thiểu** (ADR-0056 VK3-A)" — nếu ADR-0055 cũng được duyệt thì thêm cả số hiệu chuyến bay |
 | ADR-0049 D2, cổng xuất bến (`:173-179`) | danh sách kiểm | thêm: "cam kết xe riêng / số chỗ của mọi chặng trên chuyến được giữ, **hoặc** chuyến đã có phá lệ cam kết" |
 | ADR-0049 D3, ô `trip.override` (`:200`) | "phá lệ mốc lúc xếp, khoảng nghỉ" | "phá lệ mốc lúc xếp, khoảng nghỉ, **cam kết xe riêng / số chỗ** (ADR-0056)" — không đổi ai giữ ô |
-| ADR-0049 D1, bảng `vc_trip` (`:82`) | "…, `rest_minutes_snapshot`, `rest_override_reason_code`, …" | thêm `commitment_override_reason_code` |
+| ADR-0049 D1, bảng `vc_trip` (`:82`) | "…, `rest_minutes_snapshot`, `rest_override_reason_code`, …" | thêm `commitment_override_reason_code`, `commitment_override_key` |
 | Thiết kế [TK] `docs/superpowers/specs/2026-09-29-bang-dieu-phoi-chung-design.md:166` (không phải ADR) | "… máy không cấm" (ghép khách đơn khác) | "… máy không cấm, **trừ khi một chặng trên chuyến mang cam kết xe riêng**" |
 | ADR-0040 D1, giấy tờ xe (`docs/adr/ADR-0040-*.md:35`) | "**gia hạn = thêm dòng mới, không sửa đè**. Sửa sai phải có lý do …" | "… ; **mỗi xe, mỗi loại tối đa một dòng hiện hành** — thay bằng Gia hạn, không thêm chuỗi song song (ADR-0056 VK3-B)." |
 | ADR-0047 A3, view `v_ord_leg_key` | `(id, order_id, order_service_id, is_open)` | **không đổi** (Q-L3-1 = a không cần trigger) |
@@ -125,6 +129,7 @@
 1. Chặng đơn A bật "xe riêng", xếp thêm suất đơn B vào cùng chuyến → 409; Quản trị phá lệ kèm lý do → qua, `commitment_override_reason_code` có giá trị, sự kiện phá lệ mang `CAM_KET`.
 2. Chặng yêu cầu ≥ 15 chỗ, xếp vào xe 7 chỗ hoặc đổi sang xe 7 chỗ → 409.
 3. Bật "xe riêng" sau khi đã ghép → `kiemXuatBen` giữ, lý do bằng lời.
+3b. Đã phá lệ ghép vào xe riêng, rồi xếp thêm đơn thứ ba **hoặc** bật "xe riêng" ở một chặng khác trên đơn → cổng xuất bến giữ, cần phá lệ lại.
 4. `PARTNER` bật "xe riêng" trên nháp của mình → được; `SALES` gửi phá lệ → 403.
 5. Thêm "Kiểm định" khi đã có dòng hiện hành → route 409 **và** `INSERT` tay → trigger chặn; Gia hạn → được; loại chưa có → được.
 6. `npm test`, `npm run typecheck`, `npm run test:e2e`, `audit-invariants --db local` xanh.

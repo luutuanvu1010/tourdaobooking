@@ -37,7 +37,7 @@ Có hai cách đếm:
 | `vc_unavailability` **(mới)** | `van-chuyen` | — | khung bận — **hai loại đối tượng** định trọn trong `CHECK`: của **xe** (mở ghi) và của **tài xế** (trigger chặn ghi tới lượt 3 Bảng điều phối; chủ đã chọn Q7 cũ a "Trong Vận chuyển", Q3 cũ c "chỉ đối tác") | 0055 |
 | `vc_dispatch_policy` | `van-chuyen` | chính sách điều phối có ngày hiệu lực (`0041:14 @49`) | + 2 con số giờ lái | 0055 |
 | `vc_reason` | `van-chuyen` | lý do theo nhóm (`0041:108 @49`) | + nhóm `BAN_XE` (0055), `CHI_PHI_XE` (0057) — dòng mới, **không thêm loại** | 0055, 0057 |
-| `vc_trip` | `van-chuyen` | chuyến; xe công ty và xe nhà xe **chung bảng**; `carrier_party_id` chụp lúc xếp (`0042:18-60 @49`) | + `commitment_override_reason_code` (0056), + `route_code` (0057); + trigger chồng khung bận (0055) | 0055–0057 |
+| `vc_trip` | `van-chuyen` | chuyến; xe công ty và xe nhà xe **chung bảng**; `carrier_party_id` chụp lúc xếp (`0042:18-60 @49`) | + `commitment_override_reason_code`, `commitment_override_key` (0056), + `route_code` (0057); + trigger chồng khung bận (0055) | 0055–0057 |
 | `vc_vehicle` | `van-chuyen` | xe công ty + xe nhà xe | phụ thuộc **Q-T1**: (a) không đổi cột — cỡ xe suy từ `passenger_capacity`; (b) thêm cột loại xe + danh mục loại xe | 0057 |
 | `vc_vehicle_document` | `van-chuyen` | giấy tờ xe (chuỗi gia hạn) | + trigger "một dòng hiện hành mỗi loại" | 0056 |
 | `vc_route` **(mới)** | `van-chuyen` | — | **nhãn tuyến** để tra giá (không phải lộ trình) | 0057 |
@@ -90,7 +90,7 @@ Ghi chú áp loại:
 | Thêm giấy tờ xe | `office` | `vehicle.manage` | trigger một dòng hiện hành | 0056 |
 | Bảng giá thuê, tuyến, cỡ xe | `office` | `transport.rate.view` / `.manage` (đọc tên: + `trip.dispatch`) | chồng hiệu lực; chỉ-thêm; vai `CARRIER` lúc thêm (`v_pty_carrier`) | 0057 |
 | Chụp / đảo chi phí tự động | `office` (trong lô lệnh chuyến) | ô của lệnh chuyến (`trip.dispatch`) | dấu lô `last_cmd_id`; một `SNAPSHOT` chưa đảo; `SNAPSHOT` chỉ cho nhà xe ≠ công ty chủ (`v_pty_carrier`, `v_pty_owner_company`) | 0057 |
-| Điều chỉnh / chụp lại / bảng kê chi phí | `office` | `transport.cost.adjust` / `.view` | chỉ-thêm; đảo khớp gốc; tổng ≥ 0 | 0057 |
+| Điều chỉnh / đảo / chụp lại / giá ghi tay / bảng kê chi phí | `office` | `transport.cost.adjust` / `.view` | chỉ-thêm; đảo khớp gốc; **tổng ≥ 0 sau mọi dòng** (lô huỷ/đổi đảo dòng âm trước, dòng dương sau); một nguồn giá còn hiệu lực (`SNAPSHOT` hoặc `GIA_GHI_TAY`) | 0057 |
 | Dòng nợ nguồn chuyến | `billing` (D3) | `ledger.write` | lượt 1: trigger `bil_debt_line_trip_not_yet`; `CHECK` đúng một nguồn | 0057 T3 |
 | Hợp đồng giữa các phần | — | `lichChungChang` +3 khoá, `hanhKhachChoChuyen` +2 khoá; không tự kiểm quyền (bài `src/orders-cong-bo.test.ts`) | — | 0055, 0056 |
 | DTO tài xế | cổng tài xế (ADR-0049 D3) | `trip.view` assigned | danh sách trắng: + số hiệu; **không** tiền, **không** khung bận | 0055, 0057 |
@@ -137,8 +137,8 @@ Ghi chú áp loại:
 6. Cách đếm trần §9 (mục 0).
 7. Danh sách route GET cho bài số lạ có đủ lịch chung và chi tiết chuyến (Bán hàng có `trip.view`).
 8. (Sau kiểm lần 1) `CHECK` "đúng một nguồn" của `bil_debt_line` trong migration B; trigger `bil_debt_line_trip_not_yet` chỉ chặn dòng chỉ-có-chuyến.
-9. Vướng "tổng ≥ 0" khi đảo `SNAPSHOT` còn `ADJUSTMENT` âm (0057 C8).
-10. Cách nhận biết "vi phạm cam kết mới sau phá lệ" (0056 A3 — đề xuất chặt: mỗi lệnh còn vi phạm phải mang phá lệ).
+9. "Tổng ≥ 0" canh mọi dòng; lô huỷ / đổi đảo **mọi** dòng còn hiệu lực theo thứ tự âm trước, dương sau (0057 C4, C8) — kiểm tổng không âm giữa lô trên D1 thật.
+10. Cách nhận biết "vi phạm cam kết mới sau phá lệ" (0056 A3): khoá tập vi phạm `commitment_override_key`; cổng xuất bến chạy lại `kiemCamKet`, khoá khác ⇒ phá lệ lại (kể cả vi phạm do sửa đơn).
 
 ## 6. Mọi câu hỏi cho chủ của lượt B (lời thường — trả lời một lần; khuyến nghị đứng đầu)
 
@@ -152,7 +152,7 @@ Chi tiết "được / mất" của từng câu ở tệp ADR ghi trong ngoặc.
 **Tiền xe thuê (ADR-0057)**
 - **Q-T1 — Giá thuê "theo loại xe" hiểu thế nào?** (a) **Khuyến nghị:** theo cỡ xe tính bằng số khách (không kể tài xế), máy tự biết từ số chỗ đã khai — khớp lựa chọn "số chỗ tối thiểu" của bạn · (b) danh sách loại xe khai trên từng xe · (c) chỉ giá theo tuyến.
 - **Q-T2 — Làm tiền xe thuê trước hay sau sổ tiền lượt 1?** (a) **Khuyến nghị:** sổ tiền lượt 1 trước, tiền xe thuê sau — **nhưng duyệt ngay phần "dòng nợ gắn được với chuyến"**, nếu không phiên sổ tiền phải dừng ở bước tạo bảng nợ · (b) tiền xe thuê trước · (c) song song hai phiên (dễ đụng nhau).
-- **Q-T3 — Nhà xe đã thôi hợp tác mà chuyến cũ còn "thiếu giá":** (a) **Khuyến nghị:** Quản trị thêm được giá "đã đóng sẵn" cho nhà xe cũ, Kế toán "chụp lại" trên chuyến đã kết thúc không cần nhà xe còn hợp tác (giá tính theo ngày chạy) · (b) Kế toán ghi giá tay cho chuyến đó · (c) tạm mở lại vai nhà xe rồi đóng.
+- **Q-T3 — Nhà xe đã thôi hợp tác mà chuyến cũ còn "thiếu giá":** (a) **Khuyến nghị:** Kế toán ghi "giá chốt tay" cho chuyến đó bằng một dòng điều chỉnh có lý do ("giá theo thoả thuận cũ với nhà xe X"), bảng kê hiện "giá ghi tay" — **không nới luật** nào; mất: con số do người nhập, không tra từ bảng giá · (b) cho thêm giá "đã đóng sẵn" cho nhà xe cũ và chụp lại — **nới luật "nhà xe phải đang hợp tác" thêm hai chỗ chỉ máy chủ canh**, hoặc phải mở thêm một hàng rào (cần bạn duyệt riêng) · (c) tạm mở lại vai nhà xe rồi đóng (hồ sơ tạm ghi sai sự thật).
 - **Q-T4 — "Giao cho nhà xe" là lúc nào?** (a) **Khuyến nghị:** lúc văn phòng xếp xe của nhà xe; sau này có nút Nhận/Từ chối vẫn giữ mốc này, Từ chối thì máy huỷ giá cũ, chụp giá mới khi giao lại · (b) khi có nút Nhận thì dời sang lúc nhà xe bấm Nhận.
 - **Q-T5 — Ai chọn tuyến cho chuyến xe thuê?** (a) **Khuyến nghị:** người xếp xe (Bán hàng, Quản trị, Toàn quyền) — không thấy số tiền, Kế toán soát trên bảng kê · (b) chỉ Quản trị / Toàn quyền · (c) Kế toán chọn lúc đối chiếu.
 - **Q-T6 — Chuyến xe thuê kết thúc giữa chừng:** (a) **Khuyến nghị:** giữ giá đã chụp, nhà xe tính ít hơn thì Kế toán điều chỉnh tay có lý do · (b) chuyến đó tự hiện "chờ Kế toán xác nhận số" trên bảng kê.
