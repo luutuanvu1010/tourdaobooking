@@ -12,14 +12,22 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // Bản 1.49 = khung Hỗ trợ kéo / đổi cỡ (kế hoạch 2026-10-01-khung-tro-ly-keo-doi-co) + ADR-0070 (trợ lý hiểu cấu trúc, tự sinh kho lúc build; kiểm độc
-    // lập ĐẠT CÓ ĐIỀU KIỆN, đã sửa I-1..I-3) + hướng dẫn bỏ câu "chưa có" về thu tiền / Đã giao / Hoàn thành. Số 1.49 vì main đã có 1.48 (nhóm dịch vụ).
-    version: "1.49",
+    // lập ĐẠT CÓ ĐIỀU KIỆN, đã sửa I-1..I-3) + hướng dẫn bỏ câu "chưa có" về thu tiền / Đã giao / Hoàn thành. Số 1.50 vì main đã có 1.48 (nhóm dịch vụ) và 1.49 (Góp ý).
+    version: "1.50",
     date: "2026-10-01",
     items: [
       { kind: "doi", text: "Khung Hỗ trợ gọn hơn, nằm ở góc phải phía dưới trên mọi máy; vẫn dùng được trang phía sau khi khung đang mở." },
       { kind: "moi", text: "Kéo thanh tiêu đề để dời khung Hỗ trợ, kéo góc trên bên trái để đổi cỡ. Máy nhớ chỗ đã đặt; bấm \"Về góc\" để trả về như cũ." },
       { kind: "moi", text: "Trợ lý Hỗ trợ hiểu các phần của app nối với nhau thế nào, vai nào làm được việc gì, nút nằm ở đâu trên trang — và tự cập nhật mỗi khi app đổi." },
       { kind: "sua", text: "Hướng dẫn: Hướng dẫn viên và Kế toán nay có phần ghi lần thu, Đã giao, Hoàn thành và đánh dấu đã nhập phần mềm kế toán (trước ghi nhầm là chưa có)." },
+    ],
+  },
+  {
+    // Sửa góp ý của chủ 1/10: màn Góp ý khổ máy tính — danh sách bên trái không nạp lại sau khi đổi trạng thái nên vẫn ghi "Mới".
+    version: "1.49",
+    date: "2026-10-01",
+    items: [
+      { kind: "sua", text: "Góp ý / Báo lỗi trên máy tính: đổi trạng thái hay trả lời xong thì danh sách bên trái cập nhật ngay, không còn ghi \"Mới\" cho yêu cầu đã xong." },
     ],
   },
   {
