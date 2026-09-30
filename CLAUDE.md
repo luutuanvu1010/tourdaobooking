@@ -67,6 +67,7 @@ Chủ dự án không phải lập trình viên. Quy tắc này áp cho **câu t
 | Không chắc nên hỏi chủ hay tự quyết; ai được quyết gì | Hiến pháp `playbook/CONSTITUTION.md`: P8, Điều 7.1 và 7.3 |
 | Việc lớn (dữ liệu, quyền, tiền, triển khai, luật, hook): ai kiểm, "xong" là gì | Hiến pháp: N3, N8, N9, P15, P16, Điều 6.1; điều cấm: Điều 5 |
 | Sửa luật, ADR, CLAUDE.md, `playbook/` | Hiến pháp Điều 9; `playbook/PIN-README.md`; `docs/adr/README.md` |
+| Sơ đồ kiến trúc tổng quan (C4: bối cảnh, khối triển khai, các phần máy chủ theo tầng, dữ liệu) | `docs/so-do-kien-truc/README.md` (bản trực quan `tong-the.html`, `van-chuyen.html` cùng thư mục) |
 | Hệ thống chạy thế nào (máy chủ, đăng nhập, một request) | `docs/SYSTEM-DESIGN.md` §2–§4 |
 | Luồng nghiệp vụ (lập đơn, xác nhận, phân công…) | `docs/SYSTEM-DESIGN.md` §6; nghiệp vụ và quyết định của chủ: `docs/SPEC-tourdao-sales.md`, `docs/superpowers/specs/` |
 | Dữ liệu: bảng, quan hệ, migration | `docs/SYSTEM-DESIGN.md` §5; từng cột: `docs/DATA-DICTIONARY.md` (nguồn `docs/data-dictionary.json`) |
