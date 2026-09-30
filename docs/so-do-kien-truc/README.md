@@ -348,6 +348,8 @@ flowchart LR
 
 Phân hệ lớn nhất và mới nhất. Bản đầy đủ có sơ đồ nối, tuyến bảy trạm của một chuyến, bảng quyền, dữ liệu, hàng rào và việc còn lại: [`van-chuyen.html`](van-chuyen.html).
 
+Hướng dẫn lời thường (làm gì, ai dùng thế nào, checklist trước khi thử): [`docs/VAN-CHUYEN.md`](../VAN-CHUYEN.md). Lộ trình và trạng thái từng lượt: [`docs/superpowers/specs/2026-09-29-van-chuyen-lo-trinh.md`](../superpowers/specs/2026-09-29-van-chuyen-lo-trinh.md).
+
 **Phạm vi theo bản.**
 - **1.35 (đã chạy):** xe, giấy tờ xe, tài xế, giấy tờ người (ADR-0040).
 - **1.37 (đã chạy):** nhà xe đối tác, tài xế đối tác trong danh bạ (ADR-0048).
