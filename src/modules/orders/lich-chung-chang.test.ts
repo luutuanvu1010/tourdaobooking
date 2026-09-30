@@ -102,6 +102,27 @@ test("TC-20 [0050] hai nơi CHỈ khác ở dãy từ 8 chữ số: chữ đã c
   assert.deepEqual([ca.datGap, cb.datGap], [false, true]);
 });
 
+// K2d (khoảng trống P16): `nguoiCuaDon` = khoá người của dòng hành khách HIỆN HÀNH — khách đã huỷ (`voided_at`) KHÔNG có mặt; khách sửa tên (dòng mới cùng
+// `person_key`) có mặt MỘT lần. Trước đây đổi `dongHienHanh(rows)` thành mọi dòng mà 0/1790 bài đỏ (người kiểm K2d).
+test("K2d nguoiCuaDon: chỉ khoá của dòng khách HIỆN HÀNH — khách đã huỷ vắng mặt, khách sửa tên có đúng một lần", async () => {
+  const w = setup();
+  const o = await order(w, true, [OUT("Khách sạn A")], {
+    passengers: [{ fullName: "Khách Dò Tìm Một", birthYear: 1911, paxCode: "adult" }, { fullName: "Khách Dò Tìm Hai", birthYear: 1922, paxCode: "adult" }],
+  });
+  let ds = (await w.call("GET", `/api/orders/${o.id}/passengers`, { as: SALES })).json;
+  const [a, b] = [...ds.passengers].sort((x: any, y: any) => (x.fullName < y.fullName ? -1 : 1));
+  // Huỷ khách "Một" (a); sửa tên khách "Hai" (b — dòng mới cùng person_key).
+  ds = (await w.call("POST", `/api/orders/${o.id}/passengers`, { as: SALES, body: { expectedUpdatedAt: ds.orderUpdatedAt, them: [], sua: [], huy: [a.personKey] } })).json;
+  const sua = await w.call("POST", `/api/orders/${o.id}/passengers`, {
+    as: SALES, body: { expectedUpdatedAt: ds.orderUpdatedAt, them: [], sua: [{ personKey: b.personKey, fullName: "Khách Dò Tìm Hai Sửa", birthYear: 1922, paxCode: "adult" }], huy: [] },
+  });
+  assert.equal(sua.status, 200, sua.text);
+  assert.ok(w.q("SELECT count(*) n FROM ord_passenger WHERE order_id = ? AND voided_at IS NOT NULL", o.id)[0].n >= 1, "chống bài rỗng: có dòng đã huỷ");
+  assert.equal(w.q("SELECT count(*) n FROM ord_passenger WHERE person_key = ?", b.personKey)[0].n, 2, "chống bài rỗng: khách sửa tên có HAI dòng cùng khoá");
+  const c = (await lichChungChang(w.env.DB, D, D)).chang.find((x: any) => x.orderId === o.id)!;
+  assert.deepEqual(c.nguoiCuaDon, [b.personKey], "chỉ khoá hiện hành, không khoá đã huỷ, không lặp");
+});
+
 test("TC-21 lienHeChoTaiXe: ĐÚNG bốn khoá; chỉ các đơn được hỏi, đơn đã xác nhận; rỗng → [] (không truy vấn)", async () => {
   const w = setup();
   const a = await order(w, true, [OUT("Khách sạn A")]);

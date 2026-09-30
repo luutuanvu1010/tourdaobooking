@@ -153,4 +153,78 @@ test("I19(a) \"chưa bị chính lô này dùng\": một chặng chỉ được 
   }
 });
 
+// K2d VỪA — ĐUA LC-01 trên HAI chuyến: hai lệnh xếp CÙNG một chặng vào hai chuyến khác nhau, đọc cùng trạng thái nên CÙNG chọn một khoá rảnh (I19a). Cổng
+// `version` không chặn (hai chuyến khác nhau) — chỉ chỉ mục duy nhất `vc_trip_allocation_person_open_uq` (LC-01) chặn: lệnh sau 409 `trip_rule` câu tiếng Việt
+// (không 500), lô của nó huỷ trọn, dữ liệu không trùng. Khung thử chạy yêu cầu gần như lần lượt (đo 30/9: hai lệnh song song vẫn ra hai khoá khác nhau), nên
+// bài dựng ĐUA CHẮC CHẮN bằng một CHẶN ở `env.DB.batch`: lô thứ nhất chờ tới khi lô thứ hai cũng tới (cả hai đã đọc xong trạng thái cũ), rồi hai lô chạy lần
+// lượt như D1 thật. Lệnh thua 409 chứng tỏ hai lệnh đã chọn CÙNG khoá (chọn khác khoá thì cả hai 200).
+test("K2d VỪA — đua LC-01 hai chuyến: hai lệnh xếp cùng chặng, cùng khoá rảnh → một 200, một 409 trip_rule tiếng Việt; không suất trùng (chặng, khoá người)", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const d = await don(w, { soNguoi: 2 });
+    const k = khoaCuaDon(w, d.id);
+    const t1 = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER}` });
+    const t2 = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER2}` });
+    const [v1, v2] = [(await chiTiet(w, t1.chuyen.id)).chuyen.version, (await chiTiet(w, t2.chuyen.id)).chuyen.version];
+    const goc = w.env.DB.batch;
+    const cho: (() => void)[] = [];
+    let den = 0;
+    w.env.DB.batch = async (stmts: unknown[]) => {
+      den++;
+      if (den === 1) await new Promise<void>((r) => cho.push(r));
+      else cho.splice(0).forEach((f) => f());
+      return goc(stmts);
+    };
+    const kq = await Promise.all([
+      w.call("POST", `/api/van-chuyen/chuyen/${t1.chuyen.id}/phan-bo`, { as: SALES, body: { version: v1, requestId: uuid(), chang: [{ legId: d.legId, soSuat: 1 }] } }),
+      w.call("POST", `/api/van-chuyen/chuyen/${t2.chuyen.id}/phan-bo`, { as: SALES, body: { version: v2, requestId: uuid(), chang: [{ legId: d.legId, soSuat: 1 }] } }),
+    ]);
+    w.env.DB.batch = goc;
+    assert.equal(den, 2, "chống bài rỗng: hai lô cùng tới chặn");
+    assert.deepEqual(kq.map((r: any) => r.status).sort(), [200, 409], kq.map((r: any) => `${r.status} ${r.text.slice(0, 160)}`).join(" | "));
+    const thua = kq.find((r: any) => r.status === 409)!;
+    assert.equal(thua.json.error.code, "trip_rule");
+    assert.match(thua.json.error.message, /Chuyến vừa thay đổi hoặc lệnh vi phạm luật chuyến xe/);
+    const mo = w.q("SELECT passenger_key k FROM vc_trip_allocation WHERE leg_id = ? AND valid_to_at IS NULL", d.legId).map((r: any) => r.k);
+    assert.deepEqual(mo, [k[0]], "đúng MỘT suất mở, mang khoá rảnh đầu (lệnh thua không để lại gì)");
+    assert.equal(w.q("SELECT count(*) n FROM (SELECT leg_id, passenger_key FROM vc_trip_allocation WHERE valid_to_at IS NULL AND passenger_key IS NOT NULL GROUP BY 1, 2 HAVING count(*) > 1)")[0].n, 0);
+    // Lệnh thua xếp lại (đọc lại) → nhận khoá rảnh kế tiếp.
+    const tThua = kq[0]!.status === 409 ? t1 : t2;
+    const lai = await xep(w, tThua.chuyen.id, d.legId, 1);
+    assert.equal(lai.status, 200, lai.text);
+    assert.deepEqual(khoaSuat(w, tThua.chuyen.id, d.legId), [k[1]]);
+  } finally {
+    tat();
+  }
+});
+
+// K2d CAO (người kiểm độc lập K2d @1f8b498 — CHỜ CHỦ chọn cách sửa: (1) giữ + "Cập nhật theo đơn", (2) máy tự thay lúc xuất bến, (3) bỏ tự gắn lúc xếp).
+// Điều BẮT BUỘC dù chủ chọn cách nào (ADR-0049 D2 "một hàm cho máy chủ và màn hình"): màn văn phòng (lý do giữ của GET chi tiết — `kiemXuatBen`) và lệnh xuất
+// bến phải CÙNG một kết luận. Kịch bản: đơn 2 khách A, B → xếp (máy gắn A, B — I19a) → huỷ A khỏi đơn → thêm C → màn nói "đạt" mà lệnh 409 THIEU_TEN.
+// ĐANG ĐỎ — đánh dấu `todo` (hiện trong kết quả `npm test` là "# todo", không chặn) cho tới khi điều phối báo lựa chọn của chủ; khi sửa lỗi CAO thì BỎ `todo`
+// (nợ chặn gộp — nhật ký thi công §10.33). KHÔNG được để `todo` này lại ở nhánh gộp.
+test("K2d CAO: khách được gắn tên lúc xếp rồi bị huỷ khỏi đơn (thêm khách mới) → màn văn phòng và lệnh xuất bến CÙNG kết luận (không 'màn đạt, nút không')", { todo: "chờ chủ — K2d CAO: cách sửa (1)/(2)/(3) chưa chọn" }, async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const d = await don(w, { soNguoi: 2 });
+    const t = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER}` });
+    assert.equal((await xep(w, t.chuyen.id, d.legId, 2)).status, 200);
+    const [a] = khoaCuaDon(w, d.id);
+    // Huỷ A khỏi đơn, thêm C (số khách giữ 2).
+    let ds = (await w.call("GET", `/api/orders/${d.id}/passengers`, { as: SALES })).json;
+    ds = (await w.call("POST", `/api/orders/${d.id}/passengers`, { as: SALES, body: { expectedUpdatedAt: ds.orderUpdatedAt, them: [], sua: [], huy: [a] } })).json;
+    const them = await w.call("POST", `/api/orders/${d.id}/passengers`, { as: SALES, body: { expectedUpdatedAt: ds.orderUpdatedAt, them: [{ fullName: "Khách Thay Thế", birthYear: 1980, paxCode: "adult" }], sua: [], huy: [] } });
+    assert.equal(them.status, 200, them.text);
+    denGio("12:40");
+    const man = await chiTiet(w, t.chuyen.id);
+    const lyDo = man.chuyen.lyDoGiu.map((l: any) => l.ma);
+    const x = await tienDo(w, "van-phong", t.chuyen.id, "xuat-ben");
+    assert.equal(lyDo.length === 0, x.status === 200, `màn: ${JSON.stringify(lyDo)} — lệnh xuất bến: ${x.status} ${x.text}`);
+  } finally {
+    tat();
+  }
+});
+
 void NGAY;
