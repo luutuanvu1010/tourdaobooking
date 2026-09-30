@@ -43,7 +43,7 @@
 | Câu | Trả lời (nguyên văn, ngày giờ, kênh) | Áp ở |
 |---|---|---|
 | Q1 — cách đặt chip nhóm dịch vụ (Task A5) | **Cách 1** — chủ chọn ngày 30/9 (điều phối chuyển lời trong đề bài Task A6): hàng riêng "Nhóm dịch vụ" dưới hàng lọc 1.42, lọc kết hợp VÀ, đổi chữ "Theo nhóm" → "Giá theo nhóm", dòng "Đang lọc: <tên> — N dịch vụ · Bỏ lọc" như ảnh phác | Task A6 |
-| Duyệt đề xuất luật mục A | _(chờ)_ | K3A |
+| Duyệt đề xuất luật mục A | **"Duyệt cả 4 (Recommended)"** — chủ trả lời 1/10 qua hộp hỏi của phiên điều phối chung (A-1 `src/CLAUDE.md`, A-2 `web/CLAUDE.md`, A-3 `docs/ARCHITECTURE.md` Phần II, A-4 `docs/adr/README.md`); điều phối áp đúng diff, mỗi tệp một commit | K3A |
 | Duyệt đề xuất luật mục B | _(chờ)_ | K3B |
 
 ## 3. Bảng từng task
