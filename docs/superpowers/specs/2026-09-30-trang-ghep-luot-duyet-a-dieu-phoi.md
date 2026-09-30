@@ -1,5 +1,7 @@
 # Trang ghép — lượt duyệt A của Bảng điều phối chung (ADR-0052, ADR-0053, ADR-0054 — số tạm)
 
+> **Câu hỏi của trang này ĐÃ ĐƯỢC CHỦ TRẢ LỜI 2026-09-30 — chọn khuyến nghị ở cả 7 câu.** Nguyên văn: `docs/superpowers/specs/2026-09-29-van-chuyen-hoi-dap-dieu-phoi.md`, mục "Trả lời lần 17". Các ADR vẫn chờ chủ duyệt theo lượt (A-1, A-1b, A-2, A-3).
+
 - **Loại:** trang ghép bắt buộc theo `CLAUDE.md` §9 ("bước ghép khi duyệt", chủ duyệt 2026-09-24): lượt duyệt gồm ≥ 2 quyết định, và bảng dùng chung (`ord_passenger`, `vc_trip*`, `vc_unavailability`) nhận thêm loại người đọc/ghi. Không phải ADR; mô tả các đề xuất ghép lại.
 - **Ngày:** 2026-09-30. AI soạn (vai lập kế hoạch). Chưa có người kiểm độc lập.
 - **Ba đề xuất:**

@@ -294,3 +294,28 @@ Chủ trả lời trực tiếp trong phiên (hộp chọn; mỗi câu hiện ph
 **Hai điểm người ghi phát hiện khi đối chiếu (KHÔNG phải lời chủ — trình chủ trong đề xuất ADR tiền):**
 - **Tiền Q10 × ADR-0026 đã duyệt.** Câu Q10 hỏi sửa *đề xuất* sổ công nợ; nhưng ADR-0026 đã được chủ duyệt 29/9 (kèm kế hoạch `docs/superpowers/plans/2026-09-29-so-tien-luot-1-ke-hoach.md`), `bil_debt_line` chưa có cột chuyến. ADR đã duyệt chỉ đổi bằng **ADR mới trỏ về nó** ⇒ đề xuất ADR tiền xe thuê phải có mục "Sửa câu nào của ADR-0026" (thêm tham chiếu chuyến tuỳ chọn vào dòng nợ) và nên được duyệt **trước khi** thi công Task 3 (migration B) của sổ tiền, để không phải dựng lại bảng chỉ-thêm.
 - **Tiền Q1 "Làm trước" × hướng 29/9.** Ngày 29/9 chủ chọn "ưu tiên sổ tiền trước tính năng mới" (sổ tiền lượt 1 thi công ngay sau ADR-0049 gộp). "Làm trước" ở Q1 nghĩa là không chờ **sổ công nợ** để làm giá xe; nó chưa nói **thứ tự thi công** so với sổ tiền lượt 1 ⇒ đề xuất ADR tiền hỏi chủ một câu thứ tự (khuyến nghị: sổ tiền lượt 1 trước, tiền xe thuê sau — dùng chung dòng nợ có cột chuyến).
+
+## Trả lời lần 17 (30/9, 16 câu phát sinh khi soạn đề xuất lượt A và lượt B)
+
+Nguồn câu hỏi: trang ghép lượt A `docs/superpowers/specs/2026-09-30-trang-ghep-luot-duyet-a-dieu-phoi.md` (mục câu hỏi, 7 câu Q-L2-A…Q-L4-B) và trang ghép lượt B `docs/superpowers/specs/2026-09-30-trang-ghep-luot-duyet-b-kernel-tien.md` §6 (9 câu Q-K1, Q-T1…Q-T8). Cả hai lượt đã qua người kiểm độc lập chỉ-đọc (lượt A: 3 vòng, kết thúc ĐẠT sau khi sửa dòng Q-L2-B; lượt B: 4 vòng, kết thúc ĐẠT CÓ ĐIỀU KIỆN nhỏ — đã sửa chữ ở `73ec521`). Chủ trả lời qua bốn hộp chọn, mỗi câu phương án khuyến nghị đứng đầu; **chủ chọn khuyến nghị ở cả 16 câu**. Nhãn dưới đây là nguyên văn nhãn chủ bấm. Đây là lời chủ cho CÂU HỎI; các ADR 0052–0057 (số tạm) vẫn chờ chủ **duyệt** theo lượt (A-1, A-1b, A-2, A-3; B1, B2, B3).
+
+| Mã | Câu (rút gọn từ hộp hỏi) | Chủ chọn (nguyên văn nhãn) |
+|---|---|---|
+| Q-T2 | Thứ tự sổ tiền lượt 1 và tiền xe thuê | **"Sổ tiền trước, duyệt ngay phần nợ gắn chuyến"** — phần T3 của ADR-0057 (dòng nợ gắn được chuyến, sửa ADR-0026) phải duyệt trước Task 3 của sổ tiền |
+| Q-T4 | "Giao cho nhà xe" (mốc chụp giá) là lúc nào | **"Lúc văn phòng xếp xe của nhà xe"** |
+| Q-T5 | Ai chọn tuyến cho chuyến xe thuê | **"Người xếp xe"** |
+| Q-T1 | Giá thuê "theo loại xe" | **"Theo cỡ xe = số khách"** |
+| Q-T3 | Nhà xe đã thôi hợp tác, chuyến cũ thiếu giá | **"Kế toán ghi giá chốt tay"** |
+| Q-T6 | Chuyến kết thúc giữa chừng | **"Giữ giá đã chụp, Kế toán chỉnh tay"** |
+| Q-T7 | Quản trị xem chi phí chuyến và bảng kê | **"Có, chỉ xem"** |
+| Q-T8 | Lệch L-T1 (chi phí chuyến chưa khoá kỳ) | **"Duyệt, cùng hạn sổ công nợ"** |
+| Q-L2-A | Xe đang chạy, khách đổi khách sạn: văn phòng "Cập nhật điểm theo đơn" | **"Có, có điều kiện"** (cùng xe, khách đang chờ, điểm chưa tới; vẫn theo luật mốc 6 giờ phía đơn) |
+| Q-L2-B | Chuyển khách sang xe chưa chạy nhưng đã trong 6 giờ | **"Có; chỉ miễn khi xe nhận đang chạy"** |
+| Q-L3-A | Tài xế đối tác thấy mã đơn + tên/SĐT người liên hệ | **"Có cả hai"** (không bao giờ thấy tiền hay chi tiết đơn) |
+| Q-L3-B | Siết tài xế công ty: chỉ thấy khách trong ngày chạy | **"Có, chỉ thấy trong ngày chạy"** — đóng kẽ G3-9 (`src/shared/dieu-phoi-kiem.ts:364` @ `thi-cong-adr-0049-tiep`) bằng một luật chung cho mọi tài xế |
+| Q-L3-C | Tài xế đối tác báo bận đè chuyến đã xếp | **"Không"** |
+| Q-L4-A | Bảng "dịch vụ đưa đón mấy chiều" cất ở đâu | **"Phần Vận chuyển"** (`vc_leg_template`; màn hình vẫn ở Danh mục) |
+| Q-L4-B | Khi đơn nháp, ai khai số người chặng về | **"Chỉ văn phòng"** |
+| Q-K1 | Nhắc nghỉ khi một chuyến lái liên tục quá 4 giờ | **"Có, 4 giờ, chỉ nhắc"** (con số do người soạn đặt, chưa có người chuyên môn kiểm; Toàn quyền đổi được) |
+
+**Việc kèm:** Q-L3-B chạm hành vi tài xế công ty của ADR-0049 (đang thi công, chưa phát hành) — điều phối ADR-0049 cần biết để quyết siết ngay trong lượt 1 hay ở lượt 3 (ghi nợ nếu để sau). Còn lại không đổi: 1.3, 1.4, tiền Q11–Q12, việc vẽ, hỏi pháp lý ghép khách.

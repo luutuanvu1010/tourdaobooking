@@ -1,5 +1,7 @@
 # Trang ghép — lượt duyệt B: Kernel lượt 2, Kernel lượt 3, Tiền xe thuê (`CLAUDE.md` §9 "bước ghép khi duyệt")
 
+> **Câu hỏi của trang này (§6) ĐÃ ĐƯỢC CHỦ TRẢ LỜI 2026-09-30 — chọn khuyến nghị ở cả 9 câu.** Nguyên văn: `docs/superpowers/specs/2026-09-29-van-chuyen-hoi-dap-dieu-phoi.md`, mục "Trả lời lần 17". Các ADR vẫn chờ chủ duyệt theo lượt (B1 = ADR-0057 trước, vì phần T3 phải duyệt trước Task 3 sổ tiền; B2; B3).
+
 - **Loại:** tài liệu trình duyệt đi kèm ba bản đề xuất; **chưa có người kiểm độc lập**. AI soạn (vai thiết kế), không tự duyệt.
 - **Ngày:** 2026-09-30.
 - **Ba bản đề xuất** (số ADR là số tạm — điều phối cấp số thật):
