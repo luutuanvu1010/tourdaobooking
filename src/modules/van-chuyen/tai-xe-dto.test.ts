@@ -14,7 +14,7 @@ const KHOA_GOC = ["chuyen", "diem", "dieuKienConThieu", "lyDo", "suat", "trongNg
 const CAM = /777000|Ghi chú đơn Dò Tìm|Thanh toán Dò Tìm|"An"|7911000000|Nơi cấp Dò Tìm|2030-12-31|\b[LT]:[0-9a-f-]{8,}|0900000001/;
 const CAM_KHOA = /"(tongTien|total|price|gia|ghiChu|customerNote|paymentNote|nguoiLap|staffName|nguoiPhuTrach|handler|soGiayTo|documentNumber|issuedPlace|hetHan|expiryDate|placeKey|khoaNoi\w*|staffId|sdt(?!LienHe)\w*)"\s*:/;
 
-/** `lienHe`: khoá liên hệ có mặt không; `ten`: suất có họ tên + năm sinh không (tên gắn vào suất lúc XẾP có chọn người, hoặc lúc XUẤT BẾN — I19b). */
+/** `lienHe`: khoá liên hệ có mặt không; `ten`: suất có họ tên + năm sinh không (tên gắn vào suất lúc XẾP — thân gửi hoặc máy tự chọn, I19a — hoặc lúc XUẤT BẾN — I19b). */
 const ghim = (j: any, v: { lienHe: boolean; ten: boolean }) => {
   assert.deepEqual(Object.keys(j).sort(), v.lienHe ? [...KHOA_GOC, "lienHe"].sort() : KHOA_GOC);
   assert.deepEqual(Object.keys(j.chuyen).sort(), KHOA_CHUYEN);
@@ -39,14 +39,14 @@ test("TC-39: NGOÀI ngày chạy (chuyến ngày mai, chưa chạy) — khoá ho
   }
 });
 
-test("TC-39: TRONG ngày chạy — GET chi tiết có lienHe (maDon, tenLienHe, sdtLienHe) và hoTen / namSinh của suất đã gắn tên (sau xuất bến — I19b); vẫn không tiền / ghi chú / số giấy tờ; phản hồi LỆNH TIẾN ĐỘ không kèm lienHe, không kèm tên (chỉ hai GET trả tên)", async () => {
+test("TC-39: TRONG ngày chạy — GET chi tiết có lienHe (maDon, tenLienHe, sdtLienHe) và hoTen / namSinh của suất đã gắn tên (ngay lúc xếp — I19a; bù lúc xuất bến — I19b); vẫn không tiền / ghi chú / số giấy tờ; phản hồi LỆNH TIẾN ĐỘ không kèm lienHe, không kèm tên (chỉ hai GET trả tên)", async () => {
   const tat = batDongHo();
   try {
     const w = setup();
     const a = await chuyenSan(w);
     const r = await w.call("GET", `/api/van-chuyen/cuoc-cua-toi/${a.id}`, { as: DRIVER });
     assert.equal(r.json.trongNgayChay, true);
-    ghim(r.json, { lienHe: true, ten: false }); // xếp theo số người: suất CHƯA gắn tên tới lúc xuất bến
+    ghim(r.json, { lienHe: true, ten: true }); // I19(a) (K2c VỪA-1): xếp theo số người → máy gắn tên theo thứ tự khoá người NGAY lúc xếp
     assert.deepEqual(r.json.lienHe, [{ maDon: a.don.code, tenLienHe: "Khách Liên Hệ Dò Tìm", sdtLienHe: "0912345678" }]);
     for (const x of r.json.lienHe) assert.deepEqual(Object.keys(x).sort(), ["maDon", "sdtLienHe", "tenLienHe"]);
     assert.doesNotMatch(r.text, CAM);

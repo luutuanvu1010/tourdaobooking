@@ -236,7 +236,8 @@ test("khối van-chuyen: đủ tuyến; tên hành khách chỉ ở GET /chuyen/
         await tao("G", DRIVER4, "18:30", "20:30");
       },
       "POST /api/van-chuyen/chuyen/:id/phan-bo": async () => {
-        // Chuyến C xếp KÈM khoá người (suất có tên ngay) — để mọi lệnh kế hoạch sau đó (sửa, cập nhật điểm, dời, rút) có cái để lộ.
+        // Chuyến C xếp KÈM khoá người (đường thân gửi `personKeys`); A / B / D / E / F xếp theo SỐ (máy tự gắn tên — I19a). Cả hai đường cho suất có tên ngay ⇒ mọi
+        // lệnh kế hoạch sau đó (sửa, cập nhật điểm, dời, rút) có cái để lộ.
         const pkC = (await w.call("GET", `/api/orders/${dC.id}/passengers`, { as: SALES })).json.passengers.map((x: any) => x.personKey);
         assert.equal(pkC.length, 3);
         for (const [k, d, n] of [["A", dA, 3], ["B", dB, 3], ["C", dC, 3], ["D", dD, 1], ["E", dE, 1], ["F", dF, 2]] as const) {
@@ -255,8 +256,9 @@ test("khối van-chuyen: đủ tuyến; tên hành khách chỉ ở GET /chuyen/
         await goi("GET /api/van-chuyen/lich", "lịch chung", "GET", `/api/van-chuyen/lich?ngay=${NGAY}`, SALES);
       },
       "GET /api/van-chuyen/chuyen/:id": async () => {
-        // Suất xếp theo SỐ (chưa gắn người) chưa có tên tới lúc xuất bến gắn tên (I19b) — ca "CÓ tên" ở sau xuất bến B.
-        await ct(T.A.chuyen.id);
+        // I19(a) (làm bù theo K2c VỪA-1): xếp theo SỐ → máy gắn tên ngay lúc xếp theo thứ tự khoá người ⇒ chi tiết văn phòng CÓ tên TRƯỚC xuất bến.
+        const c = await ct(T.A.chuyen.id);
+        assert.deepEqual(c.suat.map((s: any) => s.hoTen).sort(), TEN_VC, "chống bài rỗng: chi tiết chuyến văn phòng CÓ tên ngay sau xếp (I19a)");
       },
       "GET /api/van-chuyen/cuoc-cua-toi": async () => {
         await goi("GET /api/van-chuyen/cuoc-cua-toi", "danh sách cuốc", "GET", "/api/van-chuyen/cuoc-cua-toi", DRIVER);
