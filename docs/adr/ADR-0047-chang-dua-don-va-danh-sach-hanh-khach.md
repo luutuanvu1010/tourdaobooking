@@ -1,6 +1,6 @@
 # ADR-0047 — Chặng đưa đón và danh sách hành khách trên đơn; số khách hiệu lực công bố; tiền tố `ord_` (Vận chuyển 1b, lượt duyệt 1)
 
-- **Trạng thái:** **accepted**. Chủ dự án trả lời trực tiếp phiên điều phối, 2026-09-28 khuya. **Bổ sung bởi ADR-0055** (duyệt 2026-09-30): `ord_transfer_leg` thêm `flight_code`. **Bổ sung bởi ADR-0056** (duyệt 2026-09-30): `ord_transfer_leg` thêm `exclusive_vehicle`, `min_vehicle_seats`; `hanhKhachChoChuyen` thêm hai cờ đó.
+- **Trạng thái:** **accepted**. Chủ dự án trả lời trực tiếp phiên điều phối, 2026-09-28 khuya. **Bổ sung bởi ADR-0055** (duyệt 2026-09-30): `ord_transfer_leg` thêm `flight_code`. **Bổ sung bởi ADR-0056** (duyệt 2026-09-30): `ord_transfer_leg` thêm `exclusive_vehicle`, `min_vehicle_seats`; `hanhKhachChoChuyen` thêm hai cờ đó. **Bổ sung bởi ADR-0054** (duyệt 2026-09-30): chặng về có `pax_override` (≥ 1, chỉ văn phòng ghi, kể cả đơn nháp); form đơn tạo sẵn chặng theo mẫu dịch vụ (`vc_leg_template`).
   - Lượt duyệt 1 của đề xuất 1b (A1, A2, A3): nguyên văn **"Duyệt"**.
   - Q4 (ô giờ đón / nơi đón cũ): nguyên văn **"Chặng thay hẳn ô cũ"** — phương án (a), đã áp vào điều A1.
   - Nguồn: `docs/superpowers/specs/2026-09-28-de-xuat-adr-van-chuyen-1b.md` §3 (bản ở commit `17071b3`). Đề xuất đó **chưa qua người kiểm độc lập**.

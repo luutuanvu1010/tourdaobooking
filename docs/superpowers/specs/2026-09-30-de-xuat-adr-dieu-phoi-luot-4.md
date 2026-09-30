@@ -1,5 +1,7 @@
 # Đề xuất ADR-0054 (số tạm) — Bảng điều phối chung, lượt duyệt 4: chiều về theo dịch vụ (mẫu chặng trong Danh mục) và số người riêng của chặng về
 
+> **ĐÃ THÀNH `docs/adr/ADR-0054-dieu-phoi-luot-4-chieu-ve-theo-dich-vu.md` (accepted 2026-09-30).** Tệp này giữ làm bản nguồn; không sửa tiếp.
+
 - **Trạng thái:** **đề xuất — câu hỏi đã trả lời (lần 17), chờ duyệt lượt A-3 (D10).** Người kiểm độc lập chỉ-đọc: 3 vòng, kết thúc ĐẠT (điều phối ghi ở [HĐ] "Trả lời lần 17"). Bản này chép lời chủ lần 17 và hệ quả của ADR-0057 (đã duyệt, lần 19) vào quyết định. AI soạn (vai lập kế hoạch), không tự duyệt (Hiến pháp N3, Điều 7.2). Số ADR là **số tạm** (`docs/adr/README.md` giữ chỗ 0052–0056); điều phối cấp số thật lúc ghi.
 - **Ngày:** 2026-09-30.
 - **Thuộc gói:** lượt duyệt A (trang ghép chung `docs/superpowers/specs/2026-09-30-trang-ghep-luot-duyet-a-dieu-phoi.md`). **Độc lập** với ADR-0052, ADR-0053: không đụng bảng `vc_`, trình và duyệt lúc nào cũng được ([TK] §6.4 dòng D10, §8.1 lát 4.1).

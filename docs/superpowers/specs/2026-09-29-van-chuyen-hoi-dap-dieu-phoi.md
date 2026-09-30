@@ -358,3 +358,11 @@ Chủ nói "ok chúng ta duyệt với Subagent ở đây luôn nhé". Trước 
 | "Bạn có duyệt B3 — ADR-0056 (xe riêng / số chỗ tối thiểu, mỗi loại giấy tờ xe một bản) không?" | **"Duyệt ADR-0056"** |
 
 Đã ghi: `docs/adr/ADR-0055-van-chuyen-kernel-luot-2.md`, `docs/adr/ADR-0056-van-chuyen-kernel-luot-3.md` (accepted); dòng trỏ ở ADR-0040, ADR-0047, ADR-0049; mục lục. Lượt B (B1–B3) đã duyệt đủ. Còn chờ: lượt A (A-1, A-1b, A-2, A-3 — ADR-0052…0054).
+
+## Trả lời lần 21 (30/9, duyệt lượt A-3)
+
+| Câu (nguyên văn điều phối hỏi) | Chủ chọn |
+|---|---|
+| "Bạn có duyệt A-3 — ADR-0054 (chiều về theo dịch vụ: ô 'Đưa đón' mấy chiều, form tự tạo chặng về, chỉ văn phòng ghi số người về) không?" | **"Duyệt ADR-0054"** |
+
+Đã ghi: `docs/adr/ADR-0054-dieu-phoi-luot-4-chieu-ve-theo-dich-vu.md` (accepted); dòng trỏ ở ADR-0047, ADR-0049; mục lục. Còn chờ: A-1, A-1b (ADR-0052), A-2 (ADR-0053) — người soạn đang sửa hai chỗ tự mâu thuẫn của ADR-0052 theo kiểm nhanh @ `c4551d6`.
