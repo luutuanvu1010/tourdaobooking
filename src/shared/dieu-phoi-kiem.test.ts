@@ -380,7 +380,7 @@ test("I38 (R-P9): chặng có suất trên chuyến mà RƠI khỏi lichChungCha
 const sv = (o: Partial<SuatVao> & { id: string }): SuatVao => ({
   tripId: "t", loai: "PASSENGER", legId: "L", personKey: null, crewPartyId: null, boardStopId: null, alightStopId: null, trangThai: "WAITING", mo: true, moTuMs: 0, ...o,
 });
-test("I19 khoaNguoiRanh: hành khách hiện hành của đơn − khoá có suất MỞ ở CHẶNG ĐÓ (mọi chuyến) − khoá lệnh này đã dùng, theo thứ tự khoá người", () => {
+test("I19 khoaNguoiRanh: hành khách hiện hành của đơn − khoá có suất MỞ ở CHẶNG ĐÓ (mọi chuyến), theo thứ tự khoá người", () => {
   const nguoi = ["p3", "p1", "p2", "p4"];
   assert.deepEqual(khoaNguoiRanh({ legId: "L", nguoiCuaDon: nguoi, suatMoCuaChang: [] }), ["p1", "p2", "p3", "p4"], "sắp theo khoá người");
   const mo = [
@@ -390,7 +390,6 @@ test("I19 khoaNguoiRanh: hành khách hiện hành của đơn − khoá có su�
     sv({ id: "d", personKey: null }), // chưa tên → không tính
   ];
   assert.deepEqual(khoaNguoiRanh({ legId: "L", nguoiCuaDon: nguoi, suatMoCuaChang: mo }), ["p1", "p3", "p4"]);
-  assert.deepEqual(khoaNguoiRanh({ legId: "L", nguoiCuaDon: nguoi, suatMoCuaChang: mo, daDungTrongLenh: ["p1"] }), ["p3", "p4"], "khoá lệnh này đã dùng");
   assert.deepEqual(khoaNguoiRanh({ legId: "L", nguoiCuaDon: [], suatMoCuaChang: [] }), []);
 });
 test("I19(a) tenLucXep: khoá thân gửi đứng trước, phần còn lại lấp bằng khoá rảnh (không lặp khoá thân gửi), hết khoá rảnh → null", () => {

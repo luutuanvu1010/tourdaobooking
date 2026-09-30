@@ -134,10 +134,11 @@ export function kiemTaoSuaChuyen(v: KiemTaoSuaChuyenVao): KetQuaKiem {
 // ---- Xếp (mở suất) ----------------------------------------------------------------------------------------------------------------------------------------
 /**
  * KHOÁ NGƯỜI RẢNH của một chặng — MỘT luật cho cả hai điểm gắn tên (I19): (a) lúc xếp, (b) lúc xuất bến. = hành khách HIỆN HÀNH của đơn (`nguoiCuaDon`)
- * chưa có suất MỞ nào ở chặng `legId` trên MỌI chuyến (LC-01: UNIQUE (chặng, khoá người) khi mở) và chưa bị chính lệnh này dùng; sắp theo khoá người.
+ * chưa có suất MỞ nào ở chặng `legId` trên MỌI chuyến (LC-01: UNIQUE (chặng, khoá người) khi mở); sắp theo khoá người. "Chưa bị chính lệnh này dùng" không
+ * cần tham số: một chặng chỉ xuất hiện một lần trong thân xếp (`docXep`) và `tenLucXep` / lô xuất bến không lặp khoá trong một chặng (K2d THẤP: gỡ tham số thừa).
  */
-export function khoaNguoiRanh(v: { legId: string; nguoiCuaDon: readonly string[]; suatMoCuaChang: readonly SuatVao[]; daDungTrongLenh?: Iterable<string> }): string[] {
-  const daDung = new Set<string>(v.daDungTrongLenh ?? []);
+export function khoaNguoiRanh(v: { legId: string; nguoiCuaDon: readonly string[]; suatMoCuaChang: readonly SuatVao[] }): string[] {
+  const daDung = new Set<string>();
   for (const s of v.suatMoCuaChang) if (s.mo && s.legId === v.legId && s.personKey !== null) daDung.add(s.personKey);
   return [...new Set(v.nguoiCuaDon)].filter((p) => !daDung.has(p)).sort();
 }
