@@ -1,5 +1,7 @@
 # Phân hệ Vận chuyển — lộ trình và trạng thái (cập nhật 2026-09-30, sau khi bản 1.38 lên production)
 
+> **Muốn biết phân hệ làm gì, ai dùng thế nào, cần chuẩn bị gì trước khi thử:** đọc `docs/VAN-CHUYEN.md`. Tệp này chỉ ghi lộ trình và trạng thái.
+
 - **Loại:** tài liệu MÔ TẢ (không chuẩn tắc, không phải lời duyệt). Tên cũ của tệp giữ nguyên ngày 29/9 để các chỗ trỏ tới không gãy; nội dung là bản 30/9.
 - **Nguồn:** trạng thái production `docs/HANDOFF-N1.md` (mục đầu: bản 1.38); mục lục ADR `docs/adr/README.md`; lời chủ `docs/superpowers/specs/2026-09-29-van-chuyen-hoi-dap-dieu-phoi.md` (lần 1–25); bàn giao `docs/superpowers/plans/2026-09-30-van-chuyen-ban-giao-dieu-phoi.md`; nhật ký thi công ADR-0049 mục 10.39, 10.40; kế hoạch sổ tiền `docs/superpowers/plans/2026-09-29-so-tien-luot-1-ke-hoach.md`; `docs/BACKLOG.md`.
 - **Tóm tắt một câu:** mọi quyết định (ADR) của phân hệ đã được chủ duyệt; phần "xe, giấy tờ, nhà xe, Bảng điều phối lượt 1" đã chạy trên production bản 1.38, nhưng **chủ quyết chưa dùng Bảng điều phối cho chuyến thật** cho tới khi có màn nhập tên khách (ADR-0047 Phần B, chờ chủ vẽ). Các lượt sau đã duyệt, chưa thi công.
