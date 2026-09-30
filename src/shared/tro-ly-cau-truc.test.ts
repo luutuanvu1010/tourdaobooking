@@ -80,6 +80,36 @@ test("Đ2 kho (d): vai làm được / không làm được đúng MATRIX (dịc
   assert.match(cauTruc("Việc: duyệt Đặt gấp").chu, /Ai làm được: Quản trị, Toàn quyền\./);
 });
 
+// Kiểm độc lập 1/10 (I-1, I-2, I-3): ô "rộng trên bảng, hẹp ở máy chủ" — kho chỉ được nói điều máy chủ THỰC SỰ cho.
+const lamDuoc = (vai: string): string => cauTruc(`Vai ${vai} làm được gì`).chu.split("\n").find((l) => l.startsWith("Làm được:"))!;
+const khongLamDuoc = (vai: string): string => cauTruc(`Vai ${vai} làm được gì`).chu.split("\n").find((l) => l.startsWith("Không làm được:"))!;
+
+test("I-1: 'sửa số khách sau xác nhận' chỉ Hướng dẫn viên (đang phụ trách) + Toàn quyền — route hẹp handler-money-edit; Bán hàng, Kế toán, Quản trị KHÔNG", () => {
+  assert.match(cauTruc("Việc: sửa số khách sau xác nhận").chu, /Ai làm được: Hướng dẫn viên \(chỉ phần đang được giao cho mình\), Toàn quyền\./);
+  for (const v of ["Bán hàng", "Kế toán", "Quản trị"]) {
+    assert.ok(!lamDuoc(v).includes("sửa số khách sau xác nhận"), `${v}: ${lamDuoc(v)}`);
+    assert.ok(khongLamDuoc(v).includes("sửa số khách sau xác nhận"), v);
+  }
+  assert.ok(lamDuoc("Hướng dẫn viên").includes("sửa số khách sau xác nhận (chỉ phần đang được giao cho mình)"));
+});
+
+test("I-2: 'thêm dịch vụ nhập tay' — Kế toán KHÔNG (ô any chưa có tác dụng vì Kế toán không lập / sửa đơn)", () => {
+  assert.ok(!lamDuoc("Kế toán").includes("thêm dịch vụ nhập tay"), lamDuoc("Kế toán"));
+  assert.match(cauTruc("Việc: thêm dịch vụ nhập tay").chu, /Ai làm được: Bán hàng, Quản trị, Toàn quyền\./);
+});
+
+test("I-3: vai huỷ được đơn theo đường thường không bị ghi 'không làm được: huỷ đơn …' gây hiểu ngược; tên ô huỷ của HDV nói rõ", () => {
+  for (const v of ["Bán hàng", "Quản trị"]) assert.ok(!/(^|; |: )huỷ đơn/.test(khongLamDuoc(v)), `${v}: ${khongLamDuoc(v)}`);
+  assert.ok(lamDuoc("Hướng dẫn viên").includes(TEN_THAO_TAC["order.cancel"].ten));
+  assert.match(TEN_THAO_TAC["order.cancel"].ten, /hướng dẫn viên/);
+});
+
+test("M-3: bước Xác nhận đơn không nói sai 'chỉ còn sửa được thông tin chuyến' — HDV đang phụ trách vẫn sửa số khách", () => {
+  const b2 = cauTruc("Luồng chính, bước 2: Xác nhận đơn").chu;
+  assert.ok(!b2.includes("tiền bị khoá; chỉ còn sửa được thông tin chuyến."), "câu tuyệt đối cũ");
+  assert.match(b2, /hướng dẫn viên đang phụ trách vẫn sửa được số khách tới hết ngày đi/);
+});
+
 test("Đ2 kho (e): Tạo đơn — nhóm menu BÁN HÀNG, mục theo thứ tự, nút 'Lưu, chờ xác nhận' ở thanh nút cuối trang (sau Tóm tắt)", () => {
   const t = SO_DO_TRANG.find((x) => x.duongDan === "/order-form")!;
   assert.deepEqual(t.nhomMenu, ["BÁN HÀNG"]);
@@ -143,10 +173,13 @@ test("Đ5 viPhamKyThuat: bắt tiền tố bảng, a_b, /api/, đuôi tệp mã,
     "đơn nằm ở ord_order", "bảng vc_trip", "cột valid_from", "gọi /api/orders", "tệp rules.ts", "tệp gen.mjs", "tệp 0050.sql",
     "phân hệ orders lo đơn", "phân hệ van-chuyen", "chạy SELECT", "dữ liệu ở D1", "chạy trên Worker", "máy chủ Cloudflare", "dùng SQLite",
     "quyền SUPER_ADMIN", "quyền SALES", "ô order.view", "ô order.leg.short_notice",
+    // M-1 (kiểm độc lập 1/10)
+    "gọi OpenAI", "bật Turnstile", "chạy wrangler", "đóng gói esbuild", "mã JWT", "binding d1", "cơ sở D1",
   ]) assert.ok(viPhamKyThuat(s), s);
   for (const s of [
     "Đơn hàng dựa vào Danh bạ và Địa điểm.", "Bấm Lưu, chờ xác nhận ở cuối biểu mẫu.", "Trang /orders", "Face ID, mã PIN", "Góp ý / Báo lỗi",
     "Vận chuyển lấy khách từ đơn đã xác nhận.", "xe 16 chỗ", "Bảng tin", "trợ lý",
+    "bằng lái hạng D1", "Hạng D1 chở được xe khách", "Dịch vụ & giá (Google Sheet)", "bấm Thử key",
   ]) assert.equal(viPhamKyThuat(s), null, s);
 });
 

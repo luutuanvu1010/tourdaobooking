@@ -80,11 +80,18 @@ export function dungCauTruc(vao) {
   for (const [ma, t] of Object.entries(ten.phanHe)) { kiem(`tên phân hệ "${ma}"`, t.ten); kiem(`mô tả phân hệ "${ma}"`, t.moTa); }
   for (const [ma, t] of Object.entries(ten.thaoTac)) { kiem(`tên ô "${ma}"`, t.ten); kiem(`mô tả ô "${ma}"`, t.moTa); }
   for (const [ma, s] of Object.entries(ten.lyDo)) kiem(`lý do phụ thuộc "${ma}"`, s);
+  // Ô hẹp: chỉ THU HẸP (vai ngoài chiVai coi như none); vai trong chiVai phải khác none trên bảng.
+  const oHep = ten.oHep ?? {};
+  for (const [op, h] of Object.entries(oHep)) {
+    if (!ops.includes(op)) throw new Error(`Ô hẹp "${op}" không còn trong bản đồ quyền — xoá khỏi O_HEP ở ${TEP_TEN}.`);
+    for (const q of h.chiVai) if (!maQuyen.includes(q) || maTran[op][q] === "none") throw new Error(`Ô hẹp "${op}" ghi vai "${q}" mà bảng quyền không cho — O_HEP chỉ được thu hẹp (${TEP_TEN}).`);
+  }
+  const phamVi = (op, q) => (oHep[op] && !oHep[op].chiVai.includes(q) ? "none" : maTran[op][q]);
 
   const tenPH = (m) => ten.phanHe[m].ten;
   const tenOp = (op) => ten.thaoTac[op].ten;
   const coPhamVi = (op, q) => {
-    const s = maTran[op][q];
+    const s = phamVi(op, q);
     if (!(s in PHAM_VI) && s !== "none") throw new Error(`Phạm vi lạ "${s}" ở ô "${op}" — thêm cách đọc vào PHAM_VI của scripts/tro-ly-cau-truc-lib.mjs.`);
     return s;
   };
@@ -93,8 +100,8 @@ export function dungCauTruc(vao) {
     return pv ? `${tenOp(op)} (${pv})` : tenOp(op);
   };
   const aiLamDuoc = (op) => {
-    const co = maQuyen.filter((q) => coPhamVi(op, q) !== "none").map((q) => (PHAM_VI[maTran[op][q]] ? `${nhanQuyen[q]} (${PHAM_VI[maTran[op][q]]})` : nhanQuyen[q]));
-    const khong = maQuyen.filter((q) => maTran[op][q] === "none").map((q) => nhanQuyen[q]);
+    const co = maQuyen.filter((q) => coPhamVi(op, q) !== "none").map((q) => (PHAM_VI[phamVi(op, q)] ? `${nhanQuyen[q]} (${PHAM_VI[phamVi(op, q)]})` : nhanQuyen[q]));
+    const khong = maQuyen.filter((q) => phamVi(op, q) === "none").map((q) => nhanQuyen[q]);
     return { co, khong };
   };
   const trangTheo = (duong) => trang.find((t) => t.duongDan === duong);
@@ -154,7 +161,9 @@ export function dungCauTruc(vao) {
   const opHoi = ops.filter((op) => duocHoi.has(op));
   for (const q of maQuyen) {
     const co = opHoi.filter((op) => coPhamVi(op, q) !== "none").map((op) => viecCoPhamVi(op, q));
-    const khong = opHoi.filter((op) => maTran[op][q] === "none").map(tenOp);
+    // I-3: vai làm được "sửa, xác nhận, huỷ đơn" không bị ghi "không làm được: huỷ đơn … theo quyền hướng dẫn viên" (dễ hiểu ngược).
+    const huyDuoc = phamVi("order.modify", q) !== "none";
+    const khong = opHoi.filter((op) => phamVi(op, q) === "none" && !(op === "order.cancel" && huyDuoc)).map(tenOp);
     them(
       `Vai ${nhanQuyen[q]} làm được gì`,
       [q],

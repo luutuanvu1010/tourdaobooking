@@ -7,7 +7,7 @@
 // tiền, SĐT, email. Bộ sinh chạy `viPhamChu` (src/shared/huong-dan.ts) + `viPhamKyThuat` (src/shared/tro-ly-loc-ky-thuat.ts) trên mọi chữ sinh ra và ném lỗi
 // khi vi phạm. Chỉ ghi điều người dùng THẤY được; khoá (mã module, mã ô) ở bên trái KHÔNG BAO GIỜ đi ra ngoài.
 // Nguồn tham khảo khi soạn: docs/so-do-kien-truc/README.md (KHÔNG gửi nguyên văn — ADR-0070 điều 1).
-import type { OperationCode } from "./permissions.ts";
+import type { OperationCode, PermissionCode } from "./permissions.ts";
 
 export interface TenLoiThuong {
   /** Tên ngắn (dùng trong câu "Dựa vào: …", danh sách vai làm được). */
@@ -75,8 +75,8 @@ export const TEN_THAO_TAC: Readonly<Record<OperationCode, TenLoiThuong>> = {
   "order.passenger.write": { ten: "nhập danh sách hành khách", moTa: "Thêm, sửa, huỷ dòng họ tên và năm sinh hành khách của đơn." },
   "order.service.manual": { ten: "thêm dịch vụ nhập tay", moTa: "Gõ tên và giá một dịch vụ không có trong danh mục, khi Toàn quyền đang bật Dịch vụ nhập tay." },
   "task.progress": { ten: "cập nhật tiến độ việc được giao", moTa: "Báo tiến độ việc được giao trên đơn." },
-  "order.money.edit": { ten: "sửa số khách, dịch vụ sau xác nhận", moTa: "Đổi số khách hoặc dịch vụ của đơn đã xác nhận; app ghi thành dòng điều chỉnh." },
-  "order.cancel": { ten: "huỷ đơn đang phụ trách", moTa: "Hướng dẫn viên huỷ đơn mình đang phụ trách, luôn kèm lý do." },
+  "order.money.edit": { ten: "sửa số khách sau xác nhận", moTa: "Hướng dẫn viên đang phụ trách sửa số khách của đơn đã xác nhận, tới hết ngày đi, kèm lý do; app ghi thành dòng điều chỉnh." },
+  "order.cancel": { ten: "huỷ đơn mình phụ trách theo quyền hướng dẫn viên (kèm lý do)", moTa: "Hướng dẫn viên huỷ đơn mình đang phụ trách (đơn đã xác nhận, trước ngày đi), luôn kèm lý do. Người lập đơn huỷ đơn bằng việc sửa, xác nhận, huỷ đơn." },
   "dispatch.assign": { ten: "giao, đổi người phụ trách", moTa: "Chọn hoặc đổi người phụ trách một đơn." },
   "dispatch.claim": { ten: "nhận đơn đang chờ", moTa: "Bấm nhận phụ trách một đơn chưa có người phụ trách." },
   "dispatch.guides.view": { ten: "xem danh sách hướng dẫn viên", moTa: "Danh sách hẹp các hướng dẫn viên nội bộ." },
@@ -117,6 +117,22 @@ export const TEN_THAO_TAC: Readonly<Record<OperationCode, TenLoiThuong>> = {
   "assistant.ask": { ten: "hỏi trợ lý Hỗ trợ", moTa: "Hỏi cách dùng app qua nút Hỗ trợ." },
 };
 
+/**
+ * Ô HẸP (kiểm độc lập 1/10, I-1, I-2): ô mà bảng quyền ghi RỘNG hơn điều máy chủ thực sự cho hôm nay. Kho chỉ tính các vai trong `chiVai` (giữ phạm vi của
+ * bảng); vai khác coi như "không làm được". `lyDo` chỉ để người đọc mã (không gửi đi). Bộ sinh ném lỗi nếu ô không còn, hoặc `chiVai` có vai mà bảng ghi
+ * "none" (ô hẹp chỉ được THU HẸP, không được mở rộng). Khi route rộng được làm: xoá dòng ở đây trong cùng commit.
+ */
+export const O_HEP: Readonly<Partial<Record<OperationCode, { readonly chiVai: readonly PermissionCode[]; readonly lyDo: string }>>> = {
+  "order.money.edit": {
+    chiVai: ["FIELD", "SUPER_ADMIN"],
+    lyDo: "Route duy nhất hỏi ô này là POST /api/orders/:id/handler-money-edit (module dispatch): chỉ quyền có ô CHÍNH XÁC 'assigned' và đang được giao, cộng Toàn quyền. Ô 'own'/'any' của Bán hàng, Kế toán, Quản trị dành cho route khác CHƯA làm.",
+  },
+  "order.service.manual": {
+    chiVai: ["SALES", "ADMIN", "SUPER_ADMIN"],
+    lyDo: "permissions.ts: ô 'any' của Kế toán CHƯA có tác dụng — Kế toán không lập / sửa đơn (order.create, order.modify = none); chờ việc C2.",
+  },
+};
+
 /** Một bước của luồng chính (ADR-0070 điều 1: đơn → xác nhận → phụ trách → xếp xe → tiền → hoàn tất). */
 export interface BuocLuong {
   readonly ten: string;
@@ -143,7 +159,7 @@ export const LUONG_CHINH: readonly BuocLuong[] = [
   },
   {
     ten: "Xác nhận đơn",
-    moTa: "Trên trang đơn bấm Xác nhận đơn. Sau khi xác nhận, dịch vụ, số khách và tiền bị khoá; chỉ còn sửa được thông tin chuyến.",
+    moTa: "Trên trang đơn bấm Xác nhận đơn. Sau khi xác nhận, dịch vụ, số khách và tiền bị khoá với người lập đơn, chỉ còn sửa được thông tin chuyến; riêng hướng dẫn viên đang phụ trách vẫn sửa được số khách tới hết ngày đi.",
     viSao: "Xác nhận là lúc chốt với khách: từ đây app mới báo cho người liên quan, và chỉ đơn đã xác nhận mới xếp lên chuyến xe. Không xác nhận được thường vì: tài khoản không phải người lập hay người phụ trách đơn (hoặc vai không có quyền sửa đơn); giờ đón cách hiện tại dưới 6 giờ mà Quản trị chưa duyệt Đặt gấp; đơn đã huỷ.",
     thaoTac: ["order.modify", "order.leg.short_notice"],
     trang: "/order",
