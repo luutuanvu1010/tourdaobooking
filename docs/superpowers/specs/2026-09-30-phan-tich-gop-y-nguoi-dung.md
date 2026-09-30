@@ -99,3 +99,47 @@ Lệnh chỉ `SELECT`, không ghi gì. Ghi chú nội bộ (`internal = 1`) gi�
 - **T3** Kiểm tài xế có thấy lịch đón 2–3 ngày tới trên màn riêng của họ không.
 - **T4** Bộ lọc đơn nhiều điều kiện chọn đồng thời (ngày, dịch vụ, và tiêu chí khác) — thay G1a.
 - **T5** Điện thoại: hiện ngay giờ đón + điểm đón trên đơn (không phải bấm mở); rộng hơn là tối ưu màn điện thoại theo từng vai, nhất là tài xế.
+
+### Chủ trả lời (hộp hỏi gom, 2026-09-30, lượt 3)
+
+- **C4 cách làm:** bảng nhỏ riêng của Kế toán (không dùng "trường mở rộng tự do" — Hiến chương 5.2 đã duyệt cấm; AI đã nêu, chủ chọn theo luật). **Ai bấm:** Kế toán + Toàn quyền; người khác chỉ xem.
+- **C3:** Tour Đảo tự bán và tự xuất vé Vinpearl, không qua đại lý; chọn hướng 1 — "Đã xuất vé" theo **từng dịch vụ**, ô mã vé tuỳ chọn; người bấm: Bán hàng (đơn mình), Quản trị, Toàn quyền.
+- **T1 ai dùng:** Bán hàng, Kế toán, Quản trị, Toàn quyền. Không: HDV, Thực tập sinh, Đối tác, Tài xế.
+
+## 7. Kế hoạch cập nhật (thay mục 4)
+
+Hiện trạng dưới đây theo báo cáo trợ lý chỉ đọc 30/9 (mã `main` 75f01d0a), chưa chạy thử.
+
+### 7.1 Làm ngay — sổ tiền lượt 1 ("Hoàn tất đơn", lựa chọn A)
+Như mục 4 bước 1: kế hoạch `2026-09-29-so-tien-luot-1-ke-hoach.md`, bổ sung Task 10 theo YC-0001/0002 (Thanh toán trước Thông tin khách; hình thức thu mặc định Chuyển khoản). C2 (Kế toán/Quản trị sửa số lượng thực tế) làm **sau** lượt này.
+
+### 7.2 Làm song song — đợt giao diện G1 (bề mặt, không đụng quyền/dữ liệu)
+AI tự chốt các lựa chọn bề mặt dưới đây (đảo được); mọi màn **nhìn thấy mới** đưa chủ ảnh phác trước khi dựng (bài học Đợt D).
+
+| Việc | Hiện trạng | Làm gì |
+|---|---|---|
+| T4 + YC-0008/0012 Bộ lọc đơn nhiều điều kiện | Máy chủ chỉ lọc `status` + `q` (`orders/repository.ts:443-476`); cột có sẵn: `order_service.depart_date` (có chỉ mục), `catalog_code`, `orders.staff_id` | Lượt 1: khoảng ngày đi, dịch vụ (chọn nhiều), trạng thái (chọn nhiều), người lập, ô tìm — chọn đồng thời; giữ đúng phạm vi xem từng vai (`order.view`). **Người phụ trách** để lượt sau (nằm ở `dispatch`, `orders` không đọc được → cần hợp đồng mới). Thêm tham số API + e2e |
+| YC-0007 Trang chủ ngày mai/ngày kia | Chỉ "hôm nay" (`web/home.ts:86`); bài `dashboard.test.ts:185` ghim ngược | Thêm hai nhóm, cùng phạm vi người xem; lật bài ghim. Đụng `getDashboard` cùng sổ tiền Task 7 → gộp sau thì gộp lại |
+| T3 Tài xế xem lịch 2–3 ngày | **Có một phần:** màn "Cuốc của tôi" hiện Hôm nay + Ngày mai (`web/cuoc.ts:29`); máy chủ cho tới 31 ngày | Thêm nhóm "Ngày kia". Tên/năm sinh khách **vẫn chỉ hiện trong ngày chạy** (ADR-0053, cửa một chiều) — ngày tới chỉ thấy giờ, biển số, số khách, số điểm |
+| T5 Điện thoại: giờ + điểm đón hiện ngay | Chi tiết đơn đã hiện sẵn "Đón: giờ · nơi"; thẻ danh sách chỉ hiện giờ, **nơi đón nằm trong phần xổ**; màn cuốc của tài xế **không vẽ giờ hẹn** dù dữ liệu có (`dieu-phoi-dto.ts:131`) | Thẻ đơn: đưa nơi đón lên phần luôn thấy; màn cuốc: vẽ giờ hẹn cạnh từng điểm đón. **Tối ưu điện thoại theo từng vai** (rộng) = việc thiết kế: chủ vẽ trên Claude Design rồi làm đúng bản vẽ |
+| T2 Màn Góp ý theo luồng | Luồng máy chủ: Mới → Đã tiếp nhận → Đang xử lý → Đã xong / Từ chối; từ Đã xong chỉ về "Đã tiếp nhận" nên nút hiện "→ Đã tiếp nhận" (`web/feedback.ts:155`); chỉ Toàn quyền đổi trạng thái | Thanh bước trạng thái nổi bật; nút ở Đã xong/Từ chối đổi chữ thành **"Mở lại"** (máy chủ giữ nguyên: mở lại = về Đã tiếp nhận). Ảnh phác trước |
+| YC-0003 Lọc sản phẩm, nhớ trên máy | Chỉ ô gõ tìm (`web/catalog-picker.ts:31`) | Như G1d; nhớ bằng bộ nhớ trình duyệt của máy |
+| Chữ "Đã cọc" sót | `web/viec-cua-toi.ts:508` | Đổi chữ, trừ khi sổ tiền đã bỏ ô |
+
+### 7.3 Cần ADR (chạm quyền/dữ liệu/tiền) — một lượt duyệt, 3 quyết định + trang ghép
+Chủ đã chốt nguyên tắc trong chat; AI soạn ADR ghi lại + chi tiết kỹ thuật, chủ duyệt bản cuối (N3). Soạn ADR nháp ngoài `docs/adr/` rồi chuyển vào khi duyệt.
+
+- **D1 (C1) Biển số xe (+ tên tài xế) trên chi tiết đơn** cho người có ô `trip.view` (Bán hàng, Kế toán, Quản trị, Toàn quyền — những người này đã xem được Bảng điều phối, nên **không mở quyền mới**); HDV, Đối tác vẫn không thấy (luật C1 của ADR-0049). Kỹ thuật: `orders` không import `van-chuyen` → gốc lắp ráp tiêm hàm đọc (khuôn `mocToiThieu`) hoặc view `v_vc_*` mới; route kiểm `can(trip.view)`. Nhật ký chuyến vẫn không gắn đơn.
+- **D2 (C4) Bảng Kế toán "đã nhập phần mềm kế toán" + số hoá đơn** trong module `billing` (bảng `bil_*` đầu tiên nếu làm trước sổ tiền — nên làm **sau** sổ tiền lượt 1 để không tranh số migration/module); chỉ-thêm hoặc có dấu vết (Hiến chương 5.5); Kế toán + Toàn quyền ghi; ai xem đơn thì thấy dấu tick; thêm vào bộ lọc đơn. Quan hệ với "yêu cầu xuất hoá đơn" ADR-0004: ghi rõ đây là cờ nội bộ Kế toán, không thay luồng ADR-0004.
+- **D3 (T1) Mở lại Dịch vụ nhập tay cho nội bộ**, sửa một phần ADR-0021 + ADR-0027 (ADR-0027 ghi "sẽ mở lại khi cần thiết"): chỉ Bán hàng, Kế toán, Quản trị, Toàn quyền; tài khoản có quyền Đối tác **luôn bị chặn ở máy chủ** (gốc lỗi DK-T3-01: đối tác tự gõ giá lên phiếu mang MST Tour Đảo); công tắc do Toàn quyền bật/tắt, lưu thành dòng có ngày hiệu lực trong bảng có kiểu (Hiến chương 5.2; khuôn `vc_dispatch_policy`), không phải JSON. Tiền nhập tay đi qua sổ tiền như dịch vụ danh mục.
+
+### 7.4 Lượt duyệt sau
+- **D4 (C3) "Đã xuất vé" theo dịch vụ** + mã vé tuỳ chọn; Bán hàng (đơn mình), Quản trị, Toàn quyền. Câu còn mở cho đặc tả: dịch vụ nào có nút (mọi dịch vụ hay chỉ loại "vé" trong danh mục); mã vé có vào biên nhận không; bỏ đánh dấu được không.
+- **C2** sửa số lượng thực tế đơn đã xác nhận — sau sổ tiền lượt 1.
+- Người phụ trách trong bộ lọc đơn (T4 lượt 2).
+
+### 7.5 Thứ tự
+1. Phiên A: sổ tiền lượt 1 (dài nhất, bắt đầu ngay).
+2. Phiên B (song song): G1 — ảnh phác cho bộ lọc đơn, Trang chủ, Góp ý, thẻ đơn, gửi chủ; phần không cần ảnh (T3 "Ngày kia", giờ hẹn trên màn cuốc, chữ sót) làm luôn.
+3. Phiên C (song song, chỉ tài liệu): soạn ADR D1–D3 + trang ghép → chủ duyệt → thi công sau khi sổ tiền gộp main (D2 bắt buộc sau; D1, D3 có thể trước nếu không đụng migration của sổ tiền — kiểm số migration lúc đặt).
+4. Sau đó: D4, C2, người phụ trách trong bộ lọc; chủ vẽ Claude Design cho tối ưu điện thoại theo vai.
