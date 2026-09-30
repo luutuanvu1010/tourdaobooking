@@ -1,6 +1,6 @@
 # Đề xuất ADR-0053 (số tạm) — Bảng điều phối chung, lượt duyệt 3: tài xế nhà xe đối tác dùng app cho chuyến (cửa một chiều); Từ chối chuyến; Báo bận
 
-- **Trạng thái:** **ĐỀ XUẤT — chờ người kiểm độc lập (chỉ đọc) rồi chủ duyệt.** AI soạn (vai lập kế hoạch), không tự duyệt (Hiến pháp N3, Điều 7.2). Số ADR là **số tạm**; điều phối cấp số thật lúc ghi.
+- **Trạng thái:** **đề xuất — câu hỏi đã trả lời (lần 17), chờ duyệt lượt A-2 (D7, D8, D9), sau A-1.** Người kiểm độc lập chỉ-đọc: 3 vòng, kết thúc ĐẠT (điều phối ghi ở [HĐ] "Trả lời lần 17"). Bản này chép lời chủ lần 17 và hệ quả của ADR-0057 (đã duyệt, lần 19) vào quyết định. AI soạn (vai lập kế hoạch), không tự duyệt (Hiến pháp N3, Điều 7.2). Số ADR là **số tạm** (`docs/adr/README.md` giữ chỗ 0052–0056); điều phối cấp số thật lúc ghi.
 - **Ngày:** 2026-09-30.
 - **Thuộc gói:** lượt duyệt A, trang ghép chung `docs/superpowers/specs/2026-09-30-trang-ghep-luot-duyet-a-dieu-phoi.md`. **Ba quyết định chạm dữ liệu/quyền: D7, D8, D9** — đúng trần 3 của `CLAUDE.md` §9. **Duyệt sau ADR-0052** (D7 dùng ô `trip.transfer`, `trip.passenger.add` và luật người nhận tin của ADR-0052).
 - **Thay:** lượt duyệt II (D3 Từ chối, D4 Báo bận) của `docs/superpowers/specs/2026-09-28-de-xuat-adr-van-chuyen-luot-2.md` (gọi **[L2]**, chưa từng được duyệt). D5 cũ của [L2] (thông báo) đã sang ADR-0052 D6.
@@ -24,16 +24,15 @@
 
 ## Tóm tắt cho chủ (lời thường)
 
-1. **Tài xế nhà xe đối tác dùng app cho chuyến mình lái**, cùng nút như tài xế công ty: Xuất bến, Đã tới, Đã đón, Vắng, Kết thúc, bổ sung tên khách, nhờ xe khác đón (ĐP12).
-2. **Tên, năm sinh khách; tên + SĐT người liên hệ của đơn** (người liên hệ có thể là **nhân viên đại lý**, không phải khách) và **mã đơn** (không tiền, không chi tiết đơn): tài xế đối tác chỉ thấy **sau khi hết hạn Từ chối VÀ trong ngày chạy**. Ví dụ: chuyến 06:00 sáng mai → **tối nay chưa thấy**, từ 0 giờ sáng mai mới thấy; chuyến 14:00 → thấy từ 02:00 cùng ngày; bấm Xuất bến sớm cũng không thấy sớm hơn. Hết ngày chạy thì ẩn lại.
-3. **Đã thấy số khách thì không rút lại được** — đây là điều bạn đã chọn khi được báo "cửa một chiều".
-4. **Từ chối chuyến:** chỉ tài xế đối tác; tới **12 giờ trước giờ chạy** (bạn đổi được con số). Chọn lý do có sẵn. Chuyến quay về "chưa có tài xế", người xếp xe nhận tin. Quá hạn thì gọi văn phòng. Hạn đã qua thì **không mở lại** dù chuyến bị dời giờ hay con số bị đổi.
-5. **Báo bận:** tài xế đối tác tự ghi khung giờ bận, tự rút. Văn phòng không xếp được vào khung đó. Báo bận đè lên chuyến đã được xếp: chờ bạn chọn (Q-L3-C; khuyến nghị: không cho, phải Từ chối).
-6. **Tài xế công ty không có** Từ chối, Báo bận (Q3 c) — mở sau chỉ đổi một ô quyền.
-7. Tài xế công ty và tài xế đối tác **nhờ nhau đón** được (ĐP11). Khi chọn xe để nhờ, tài xế đối tác thấy mã chuyến, tên tài xế, chỗ trống, điểm sắp tới của xe khác (kể cả xe công ty) — không thấy khách xe khác.
-8. Tài xế đối tác vẫn **không** thấy tiền, đơn hàng, danh mục giá, hồ sơ người khác, tin "Toàn công ty".
-9. **Ba câu cần bạn chọn** (gom ở trang ghép): (Q-L3-A) tài xế đối tác có thấy mã đơn và tên + SĐT người liên hệ (có khi là nhân viên đại lý) như tài xế công ty không; (Q-L3-B) tài xế công ty có bị siết giống vậy không (hôm nay bấm Xuất bến tối hôm trước là thấy tên khách); (Q-L3-C) tài xế đối tác có được báo bận đè lên chuyến đã được xếp không.
-10. **Bạn cần vẽ:** V15 (Từ chối chuyến, Báo bận).
+1. **Tài xế nhà xe đối tác dùng app cho chuyến mình lái**, cùng nút như tài xế công ty (ĐP12).
+2. Họ thấy **tên, năm sinh khách; mã đơn; tên + SĐT người liên hệ** (có khi là nhân viên đại lý) — **chỉ trong ngày chạy và sau khi hết hạn Từ chối**. Chuyến 06:00 sáng mai: tối nay chưa thấy. Không bao giờ thấy tiền hay chi tiết đơn.
+3. **Tài xế công ty cũng bị siết** cùng luật "chỉ trong ngày chạy": bấm Xuất bến tối hôm trước không mở danh sách sớm (bạn chọn lần 17).
+4. **Cửa một chiều:** số khách người ngoài đã thấy thì không lấy lại được.
+5. **Từ chối chuyến** (chỉ tài xế đối tác): tới 12 giờ trước giờ chạy; hạn đã qua thì không mở lại dù chuyến bị dời. Chuyến về "chưa có tài xế", người xếp xe nhận tin. Giao lại cho xe / nhà xe khác thì **giá thuê được tính lại**; giá thoả thuận cũ phải nhập lại (ADR-0057).
+6. **Báo bận** (chỉ tài xế đối tác): tự ghi, tự rút; văn phòng không xếp vào khung đó; **không** báo bận đè chuyến đã được xếp — phải Từ chối hoặc gọi văn phòng (bạn chọn lần 17).
+7. Tài xế công ty không có Từ chối, Báo bận (Q3 c).
+8. Nhờ đón chéo xe công ty ↔ xe nhà xe được như nhau (ĐP11).
+9. Bạn cần: vẽ V15; thử bằng một tài khoản tài xế đối tác thật trước khi báo nhà xe.
 
 ---
 
@@ -60,12 +59,13 @@
 - Vì sao "giao": chỉ cách đọc này thoả **cả hai** câu. Đọc Q1(a) một mình cho phép thấy từ tối hôm trước (chuyến 06:00 hết hạn Từ chối lúc 18:00 hôm trước), trái "cùng luật tài xế công ty — trong ngày chạy"; [TK] `:1164` đã ghi Q1 cũ "chỉ có thể **siết** thêm" luật trong ngày chạy.
 - Mọi cặp (tài xế, chuyến) đều có hạn (migration gieo cho dòng lái đang mở — D8.1), nên không có nhánh "không có hạn".
 - **Một hàm thuần** ở `src/shared/` (mở rộng `trongNgayChay` — `src/shared/dieu-phoi-kiem.ts:364`, tên đề xuất `trongKhungXemKhach(chuyen, dongLai, bayGio)`) dùng cho DTO, câu ghi tên của tài xế (`trip.passenger.add`) và `lienHeChoTaiXe`. Không nơi nào tự tính khung.
-- Tài xế công ty (`DRIVER`): **chờ Q-L3-B**. Nếu (a, khuyến nghị): cùng hàm, không có vế hạn Từ chối (tài xế công ty không Từ chối), giữ vế "xuất bến từ ngày chạy". Nếu (b): giữ ADR-0049 ("ngày chạy **hoặc** `RUNNING`" — kẽ xuất bến sớm còn đó).
-- **Mã đơn và liên hệ cho tài xế đối tác: chờ Q-L3-A** (xem D7.3).
+- **Tài xế công ty (`DRIVER`) — Q-L3-B = a ([HĐ] "Trả lời lần 17" (30/9): nguyên văn nhãn "Có, chỉ thấy trong ngày chạy"):** **cùng hàm**, không có vế hạn Từ chối (tài xế công ty không Từ chối), có vế "đang chạy **và** xuất bến từ ngày chạy". Đây là **sửa hành vi của ADR-0049 D3** (câu thay ở mục "Câu ADR bị thay"); đóng kẽ G3-9 (`src/shared/dieu-phoi-kiem.ts:364@thi-cong-adr-0049-tiep`).
+  - **Thời điểm áp — khuyến nghị: ngay trong lượt 1 của ADR-0049, trước khi ADR-0049 phát hành.** Lý do: ADR-0049 chưa gộp, chưa phát hành; đây là **siết** (chỉ bớt thấy), đổi một hàm và bài kiểm; để tới lúc thi công lượt A-2 thì bản phát hành đầu tiên sẽ ra với kẽ "bấm Xuất bến tối hôm trước là thấy tên khách". Vế này **không phụ thuộc** A-1 (không dùng ô hay bảng nào của ADR-0052), nên thi hành được ngay khi chủ duyệt A-2; nếu A-2 chưa duyệt lúc ADR-0049 phát hành → điều phối ghi nợ có hạn.
+- **Mã đơn và liên hệ cho tài xế đối tác — Q-L3-A = a** ([HĐ] "Trả lời lần 17" (30/9): nguyên văn nhãn "Có cả hai"; không bao giờ tiền hay chi tiết đơn) — xem D7.3.
 
 **D7.3 Tài xế đối tác thấy / không thấy**
 - **Thấy** (chỉ chuyến mình có dòng lái mở): như tài xế công ty ở ADR-0049 D3 (mã chuyến, biển số, số chỗ, giờ, trạng thái; điểm dừng — chữ tự do che dãy ≥ 8 chữ số; giờ hẹn, giờ xe tới; **mã đơn**, số người mỗi điểm; trạng thái suất; điều kiện xuất bến còn thiếu) + khung D7.2 + danh sách xe khác khi nhờ đón (ADR-0052 D4.4: mã chuyến, **tên tài xế**, chỗ trống, điểm sắp tới — gồm cả chuyến xe công ty, ĐP11 a).
-- **Mã đơn và người liên hệ — CHỜ CHỦ (Q-L3-A).** ADR-0048 D2 ghi tài xế đối tác "không thấy đơn hàng"; ĐP12 a ghi "cùng luật tài xế công ty" (tài xế công ty thấy mã đơn và tên + SĐT người liên hệ — ADR-0049 D3). Người liên hệ của đơn **có thể là nhân viên đại lý / công ty lữ hành**, không phải khách. Hai câu chủ không nói thẳng điểm này ⇒ hỏi. Bản này viết theo khuyến nghị (a) "như tài xế công ty" (mã đơn là nhãn để gọi văn phòng; không tiền, không chi tiết đơn).
+- **Mã đơn và người liên hệ (Q-L3-A = a, "Có cả hai"):** tài xế đối tác thấy **mã đơn** (nhãn để gọi văn phòng) và **tên + SĐT người liên hệ** của đơn có khách trên chuyến mình (người liên hệ **có thể là nhân viên đại lý / công ty lữ hành**), trong khung D7.2. Không tiền, không chi tiết đơn. Đây là ngoại lệ có tên của câu "không thấy đơn hàng" (ADR-0048 D2).
 - **Không bao giờ:** mọi số tiền (kể cả giá thuê của chuyến mình); dịch vụ khác của đơn; ghi chú đơn; người lập, người phụ trách, tên bên đặt/đại lý; danh mục, giá; hồ sơ người khác; số giấy tờ đầy đủ (kể cả của mình); khách, số người, mã đơn của **xe khác**; lịch bận của người khác; tin "Toàn công ty" (`laNoiBo` giữ nguyên — ADR-0048).
 - **Máy tài xế:** hàng đợi ngoại tuyến chỉ giữ lệnh, không giữ danh sách khách ([L2] D2; bất biến "không lưu đệm `/api/*`").
 
@@ -123,6 +123,8 @@
 
 - **Không có phương án dự phòng duyệt sẵn cho B8.3.** Trigger so giờ hiện tại test được bằng dữ liệu gieo tương đối. Nếu thi công vẫn không làm được, **quay lại chủ** (lệch 5.1 mới cần chủ duyệt riêng).
 
+**D8.5a Giá thuê khi Từ chối rồi giao lại (ADR-0057 T2, đã duyệt):** Từ chối **không** tự đổi xe hay nhà xe, nên giá chuyến giữ nguyên nếu văn phòng chỉ xếp **tài xế khác của cùng nhà xe, cùng xe**. Nếu văn phòng **giao lại** cho xe khác / nhà xe khác / tuyến khác (trước xuất bến), lô đổi của ADR-0057 **tự đảo** nguồn giá cũ (`SNAPSHOT` hoặc `AGREED`) và **chụp lại giá bảng**; giá thoả thuận cũ **không** tự chuyển — Quản trị / Kế toán / Toàn quyền **nhập lại**; không có giá thì chuyến bị giữ `THIEU_GIA`, không xuất bến. Phí huỷ với nhà xe (nếu có) do Quản trị / Kế toán ghi tay (tiền Q7). Tài xế đối tác không thấy số tiền nào.
+
 **D8.6 Route:** `POST /api/van-chuyen/cuoc-cua-toi/:id/tu-choi` (cổng `staff`, thân `{ lyDo, requestId }`, cần `Origin` cùng site). `GET …/cuoc-cua-toi/:id` trả thêm `hanTuChoi` và `tuChoiDuoc` (máy tính sẵn, cùng hàm thuần).
 
 ### D9. Báo bận của tài xế đối tác (Q7 cũ = a, Q3 cũ = c)
@@ -147,7 +149,7 @@
 | # | Bất biến | Lớp CSDL | Lớp máy chủ |
 |---|---|---|---|
 | B9.1 | Kết thúc > bắt đầu; lý do thuộc nhóm `BAN_TAI_XE` | `CHECK` | hàm kiểm thân |
-| B9.2 | **CHỜ CHỦ (Q-L3-C)** — theo khuyến nghị (a): không ghi khung bận chồng chuyến tài xế đang được xếp (chưa kết thúc, chưa huỷ), để Báo bận không thành đường vòng qua hạn Từ chối | trigger `BEFORE INSERT` trên `vc_unavailability` đọc `vc_trip_driver` + `vc_trip` | 409 "Bạn đang có chuyến <mã> lúc …, hãy Từ chối chuyến (nếu còn hạn) hoặc gọi văn phòng" — mở rộng câu Q-L2-1 a của chủ (cho **xe**) sang **tài xế**; chủ chưa trả lời cho tài xế |
+| B9.2 | **Q-L3-C = a** ([HĐ] "Trả lời lần 17" (30/9): nguyên văn nhãn "Không"): không ghi khung bận chồng chuyến tài xế đang được xếp (chưa kết thúc, chưa huỷ), để Báo bận không thành đường vòng qua hạn Từ chối | trigger `BEFORE INSERT` trên `vc_unavailability` đọc `vc_trip_driver` + `vc_trip` | 409 "Bạn đang có chuyến <mã> lúc …, hãy Từ chối chuyến (nếu còn hạn) hoặc gọi văn phòng" — cùng hướng Q-L2-1 a (xe) |
 | B9.3 | **Không xếp tài xế vào chuyến chồng khung bận còn hiệu lực** | trigger `BEFORE INSERT` trên `vc_trip_driver` và khi đổi giờ `vc_trip` | hàm chồng giờ LC-03 (`kiemTaoSuaChuyen`) nhận khung bận như khoảng chặn — **một** hàm cho xe và tài xế ([K2] `:84`) |
 | B9.4 | Khung chỉ đi tiến (hiệu lực → đã rút); không sửa giờ, người; không xoá | trigger | câu rút có điều kiện |
 | B9.5 | Khung chồng khung của cùng tài xế | **cho phép** (hiện gộp) | — |
@@ -163,9 +165,9 @@ Tệp ADR cũ **không** sửa; `docs/adr/README.md` do điều phối cập nh�
 | ADR | Nguyên văn | Mới |
 |---|---|---|
 | ADR-0048 D2, ô quyền | "Ô xem chuyến, Từ chối, Báo bận: thuộc ADR-0047 và lượt duyệt II; tới lúc đó vẫn `none`." | "Cột `DRIVER_PARTNER`: `trip.view`, `trip.progress`, `trip.transfer`, `trip.passenger.add`, `trip.refuse` = `assigned`; `unavailability.self` = `own` (ADR-0053). Mọi ô khác giữ `none`." — **nới** bài ghim cả hàng (Điều 9.4) |
-| ADR-0048 D2, "Tài xế đối tác không thấy" | "đơn hàng, Trang chủ, danh mục giá" | theo Q-L3-A (a): giữ nguyên; thêm: "**mã đơn** và tên + SĐT người liên hệ trên chuyến mình lái (trong khung D7.2) là ngoại lệ có tên, không phải 'đơn hàng'" |
+| ADR-0048 D2, "Tài xế đối tác không thấy" | "đơn hàng, Trang chủ, danh mục giá" | (Q-L3-A a) giữ nguyên; thêm: "**mã đơn** và tên + SĐT người liên hệ trên chuyến mình lái (trong khung D7.2) là ngoại lệ có tên, không phải 'đơn hàng'" |
 | ADR-0049 D3, "Tài xế đối tác chưa dùng app cho chuyến (lượt 3, hỏi riêng)" / bảng ô cột `DRIVER_PARTNER` = `none` | `trip.view`, `trip.progress` cột `DRIVER_PARTNER` = `none` | = `assigned`; khung thấy dữ liệu khách của tài xế đối tác theo D7.2 (giao "trong ngày chạy" và "sau hạn Từ chối") |
-| ADR-0049 D3, "Trong ngày chạy" | "= hôm nay (ngày dân sự VN) là `service_date` của chuyến, **hoặc** chuyến đang chạy." | tài xế đối tác: D7.2 (qua hạn Từ chối **và** (ngày chạy **hoặc** đang chạy đã xuất bến từ ngày chạy)). Tài xế công ty: theo Q-L3-B (a: "… **hoặc** chuyến đang chạy **đã xuất bến từ ngày chạy**"; b: giữ nguyên) |
+| ADR-0049 D3, "Trong ngày chạy" | "= hôm nay (ngày dân sự VN) là `service_date` của chuyến, **hoặc** chuyến đang chạy." | tài xế đối tác: D7.2 (qua hạn Từ chối **và** (ngày chạy **hoặc** đang chạy đã xuất bến từ ngày chạy)). **Tài xế công ty (Q-L3-B a — sửa hành vi ADR-0049):** "= hôm nay (ngày dân sự VN) là `service_date` của chuyến, **hoặc** chuyến đang chạy **đã xuất bến từ ngày chạy trở đi**." Một hàm cho mọi tài xế; áp khuyến nghị ngay trong lượt 1 của ADR-0049 (D7.2) |
 | ADR-0049 D1, `vc_trip_driver` | cột: `trip_id`, `driver_party_id`, `valid_from_at`, `valid_to_at`, `close_reason` (… `REFUSED` để sẵn), `closed_by` | thêm `refuse_reason_code`, `closed_by_party_id` (D8.1); bảng mới `vc_refuse_deadline` |
 | ADR-0049 D2, `vc_dispatch_policy` | các cột lượt 1 | thêm `refuse_lead_minutes` (720) |
 | ADR-0049 D1, LC-03 | "Xe và tài xế không chồng giờ; …" | "… ; chuyến không xếp tài xế vào khung bận còn hiệu lực của người đó (ADR-0053 D9)." (phần xe: ADR Kernel lượt 2) |
@@ -214,9 +216,9 @@ Tệp ADR cũ **không** sửa; `docs/adr/README.md` do điều phối cập nh�
    - chuyến **23:30** ngày D qua nửa đêm: lúc 11:00 ngày D → vắng; 12:00 → có; 00:30 ngày D+1 khi `RUNNING` (xuất bến 23:20 ngày D) → có; 00:30 ngày D+1 sau `ENDED` → vắng;
    - **xuất bến sớm:** chuyến 06:00 ngày D, tài xế đối tác bấm Xuất bến lúc 18:30 ngày D−1 (chuyến `RUNNING`) → khoá tên, SĐT **vắng** tới 00:00 ngày D;
    - **xuất bến trong ngày chạy nhưng trước hạn:** chuyến 14:00 ngày D (hạn 02:00), bấm Xuất bến 00:05 ngày D → **vắng** tới 02:00;
-   - tài xế công ty cùng các ca: theo câu trả lời Q-L3-B;
+   - **tài xế công ty (Q-L3-B a):** chuyến 06:00 ngày D, bấm Xuất bến 18:30 ngày D−1 → **vắng** tới 00:00 ngày D; chuyến 23:30 qua nửa đêm, `RUNNING` lúc 00:30 ngày D+1 (xuất bến ngày D) → có; không có vế hạn Từ chối;
    - mọi lúc: không khoá tiền, không khoá dữ liệu xe khác ngoài bốn khoá ĐP9.
-4. **Từ chối:** lý do ngoài danh sách → 400; sau hạn → 409; chuyến đã xuất bến → 409; Toàn quyền không lái → 403; tài xế công ty → 403; **hai lệnh song song** (Từ chối + văn phòng đổi tài xế) → đúng một thắng, bên kia 409 `stale`, đúng một dòng nhật ký.
+4. **Từ chối:** (giá — ADR-0057) giao lại cho xe nhà xe khác → nguồn giá cũ bị đảo, giá bảng chụp lại; nguồn cũ là giá thoả thuận → chuyến `THIEU_GIA` tới khi nhập lại; chỉ đổi tài xế cùng nhà xe, cùng xe → giá giữ nguyên. Lý do ngoài danh sách → 400; sau hạn → 409; chuyến đã xuất bến → 409; Toàn quyền không lái → 403; tài xế công ty → 403; **hai lệnh song song** (Từ chối + văn phòng đổi tài xế) → đúng một thắng, bên kia 409 `stale`, đúng một dòng nhật ký.
 5. **Khoá dính (theo cặp):** hạn đã qua, văn phòng dời chuyến muộn thêm 1 ngày → Từ chối vẫn 409, khung thấy khách không đổi; Toàn quyền hạ `refuse_lead_minutes` → cặp cũ không đổi hạn; dời sớm hơn → hạn sớm theo; **dời sớm rồi dời lại** giờ cũ → hạn giữ mốc sớm; **đổi người rồi xếp lại đúng tài xế cũ** → dùng hạn cũ của cặp (không mở lại); SQL `UPDATE vc_refuse_deadline` tăng hoặc giữ nguyên `deadline_ms` → `RAISE`; **dời chuyến muộn hơn → lệnh dời thành công (200), không lỗi trigger, hạn không đổi**.
 6. **Lớp CSDL Từ chối** (chèn thẳng SQL): `REFUSED` với người đóng ≠ tài xế → `RAISE`; mở lại dòng đã đóng → `RAISE`; `REFUSED` khi chuyến `RUNNING` → `RAISE`; `refuse_reason_code` khi không `REFUSED` → `RAISE`.
 7. **Sau Từ chối:** chuyến bị giữ "chưa có tài xế — văn phòng"; tin tới người có `trip.dispatch = any`, không tới tài xế khác; tài xế mở lại chuyến → 404.
@@ -239,11 +241,9 @@ Tệp ADR cũ **không** sửa; `docs/adr/README.md` do điều phối cập nh�
 - **Lý do Từ chối là hằng trong mã** (khuôn `CANCEL_REASONS` của [L2] D3): `vc_reason` đã là danh mục lý do có kiểu của chính `van-chuyen` (Hiến chương 2.2 — lý do là dữ liệu); ràng buộc "orders không đọc `vc_`" không áp ở đây.
 - **Thêm mã quyền mới cho tài xế đối tác trên chuyến:** không cần — `DRIVER_PARTNER` đã tách khỏi `DRIVER` đúng để khác cột (ADR-0048 D2 lý do 3).
 
-## Câu hỏi còn mở (gom ở trang ghép mục 5)
+## Câu hỏi còn mở
 
-- **Q-L3-A** — tài xế đối tác thấy **mã đơn** và **tên + SĐT người liên hệ** (có thể là nhân viên đại lý) như tài xế công ty? (a) Có, như tài xế công ty (khuyến nghị) / (b) Chỉ tên + SĐT người liên hệ, không mã đơn / (c) Không liên hệ, không mã đơn — cần gọi thì gọi văn phòng.
-- **Q-L3-B** — siết tài xế công ty bằng **một** hàm: chỉ thấy khách trong ngày chạy, bấm Xuất bến sớm không mở sớm? (a) Có (khuyến nghị) / (b) Giữ như ADR-0049.
-- **Q-L3-C** — tài xế đối tác báo bận chồng lên chuyến đã được xếp? (a) Không cho, phải Từ chối hoặc gọi văn phòng (khuyến nghị — cùng cách bạn chọn cho xe ở Q-L2-1) / (b) Cho ghi, chuyến bị giữ đỏ để văn phòng xếp người khác.
+**Đã trả lời lần 17** ([HĐ] "Trả lời lần 17" (30/9)), nguyên văn nhãn: **Q-L3-A** "Có cả hai" (→ D7.3); **Q-L3-B** "Có, chỉ thấy trong ngày chạy" (→ D7.2, câu thay ADR-0049 D3; khuyến nghị áp ngay ở lượt 1 ADR-0049); **Q-L3-C** "Không" (→ B9.2). Không còn câu mở.
 
 ## Giả định và tự chốt (người kiểm soi)
 
@@ -251,14 +251,14 @@ Tệp ADR cũ **không** sửa; `docs/adr/README.md` do điều phối cập nh�
 |---|---|---|
 | G3-1 | Khung thấy khách của tài xế đối tác = **giao** hai câu trả lời (D7.2) | áp lời chủ (cách đọc duy nhất thoả cả hai) |
 | G3-2 | Hạn Từ chối chụp lúc xếp, "khoá dính" (D8.2) | thi hành lý do nêu trong Q1(a); tiền lệ Q-A4-1 |
-| G3-3 | (đã thành câu Q-L3-A) | — |
+| G3-3 | Mã đơn là nhãn — chủ chốt Q-L3-A a | đã trả lời lần 17 |
 | G3-4 | Lý do Từ chối, lý do bận là dòng `vc_reason` (Quản trị sửa) | bề mặt, hai chiều |
 | G3-5 | Tin Từ chối tới mọi người có `trip.dispatch = any` | hai chiều ([L2] giả định 6) |
 | G3-6 | Khung bận ≤ 14 ngày, không bắt đầu trong quá khứ | bề mặt |
 | G3-7 | Migration gieo hạn (giờ xuất bến − 720 phút) cho dòng lái đang mở lúc áp | bề mặt |
 | G3-8 | Kế toán không thấy khung bận của tài xế | quyền đọc hẹp hơn (siết) |
-| G3-9 | (đã thành câu Q-L3-B) | — |
-| G3-10 | B9.2 mở rộng Q-L2-1 a (xe) sang tài xế | đã thành câu Q-L3-C |
+| G3-9 | Kẽ tài xế công ty — chủ chốt Q-L3-B a | đã trả lời lần 17 |
+| G3-10 | B9.2 — chủ chốt Q-L3-C a | đã trả lời lần 17 |
 
 ## Việc vẽ cần chủ
 
