@@ -27,6 +27,9 @@ const ADR: Record<string, [Scope, Scope, Scope, Scope, Scope, Scope, Scope, Scop
   "trip.progress": ["any", "none", "any", "none", "none", "any", "none", "assigned", "none"], // ADR-0049 D3 (A15): ô MỚI — lệnh tiến độ; DRIVER assigned (NỚI ghim DRIVER — ĐÃ DUYỆT 2026-09-30 (lần 17), đề xuất luật mục 2); văn phòng bấm thay (R-P1)
   "trip.call_ack": ["ownOrAssigned", "none", "any", "none", "none", "any", "none", "none", "none"], // ADR-0051 GB2: ô MỚI — "Đã gọi báo" / "Bỏ đánh dấu": người lập / người phụ trách đơn, Quản trị, Toàn quyền
   "order.passenger.write": ["ownOrAssigned", "none", "any", "none", "own", "any", "own", "none", "none"], // ADR-0047 A2: ô MỚI — nhập/sửa (dòng mới)/huỷ dòng trong danh sách hành khách; bằng order.modify
+  // ADR-0061 điều 2 (accepted 2026-09-30): ô MỚI — thêm/sửa dịch vụ nhập tay khi công tắc BẬT. ACCOUNTING any nhưng CHƯA có tác dụng (Kế toán không lập/sửa
+  // đơn — chủ Q-1 "Giữ quyền sẵn, chờ việc C2"); PARTNER none VÀ máy chủ còn chặn mọi tài khoản có quyền Đối tác (holdsPartner — price-guards.ts).
+  "order.service.manual": ["any", "any", "any", "none", "none", "any", "none", "none", "none"],
   "task.progress": ["none", "none", "any", "assigned", "assigned", "any", "none", "none", "none"],
   "order.money.edit": ["own", "any", "any", "assigned", "none", "any", "none", "none", "none"], // ADR-0014 điều 6: FIELD đang phụ trách (đổi từ ADR-0009 điều 1 "KHÔNG đổi")
   "order.cancel": ["none", "none", "none", "assigned", "none", "any", "none", "none", "none"], // ADR-0014 điều 11: thao tác MỚI
@@ -297,6 +300,7 @@ test("ADR-0040 D3 + ADR-0049 D3: MỌI ô của Tài xế (DRIVER) — ghim nguy
     "order.passenger.write": "none", // ADR-0047 A2: tài xế KHÔNG đi qua ô này (đường ghi của tài xế, nếu có, do ADR lượt 2 quyết)
     "order.leg.short_notice": "none", // ADR-0049 D3: đặt gấp chỉ Quản trị, Toàn quyền
     "order.leg.short_notice.view": "none", // chủ H4/N-14: tài xế không xem chi tiết đơn (không đổi)
+    "order.service.manual": "none", // ADR-0061 điều 2: tài xế không nhập tay
     "dispatch.guides.view": "none", "payment.receive": "none", "payment.refund": "none", "invoice.request": "none", "invoice.issue": "none",
     "party.view": "none", "party.write": "none", "party.staff.write": "none", "admin.manage": "none", "admin.manage.superadmin": "none",
     "account.access.manage": "none", "staff.sheet.sync": "none", "audit.view": "none",
@@ -325,6 +329,7 @@ test("ADR-0048 D2: MỌI ô của Tài xế đối tác (DRIVER_PARTNER) — ghi
     "order.passenger.write": "none", // ADR-0047 A2 × ADR-0048 D2 (mọi ô nghiệp vụ của tài xế đối tác = none): không nhập / sửa / huỷ danh sách hành khách
     "order.leg.short_notice": "none", // ADR-0049 D3 × ADR-0048 D2
     "order.leg.short_notice.view": "none", // chủ H4/N-14 × ADR-0048 D2
+    "order.service.manual": "none", // ADR-0061 điều 2 × ADR-0048 D2
     "dispatch.guides.view": "none", "payment.receive": "none", "payment.refund": "none", "invoice.request": "none", "invoice.issue": "none",
     "party.view": "none", "party.write": "none", "party.staff.write": "none", "admin.manage": "none", "admin.manage.superadmin": "none",
     "account.access.manage": "none", "staff.sheet.sync": "none", "audit.view": "none",
