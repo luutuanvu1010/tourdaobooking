@@ -46,7 +46,7 @@ const ALLOWED_EDGES: Record<string, readonly string[]> = {
   // vc_vehicle.owner_party_id; ghi nhật ký qua auditStatement. Không module nào import van-chuyen.
   // NỚI hàng rào đã duyệt (Điều 9.4) — đã duyệt 2026-09-28 (chủ trả lời 'Duyệt tất cả, có mục Hiến chương'), xem docs/superpowers/plans/2026-09-28-van-chuyen-1a-de-xuat-luat.md.
   // ADR-0049 D1: suất trỏ chặng `ord_transfer_leg` + hàm hẹp của `orders` (chỉ gọi trong thân route sau `can()` — bài src/orders-cong-bo.test.ts); điểm dừng
-  // trỏ `loc_location`. Vẫn KHÔNG module nào import van-chuyen (bài "không module nào import van-chuyen" ở dưới). NỚI hàng rào (Điều 9.4) — CHỜ CHỦ DUYỆT
+  // trỏ `loc_location`. Vẫn KHÔNG module nào import van-chuyen (bài "không module nào import van-chuyen" ở dưới). NỚI hàng rào (Điều 9.4) — ĐÃ DUYỆT 2026-09-30 (lần 17)
   // ở docs/superpowers/plans/2026-09-29-adr-0049-de-xuat-luat.md mục 1 (trình lúc gộp).
   "van-chuyen": ["parties", "audit", "orders", "locations"],
 };
@@ -109,7 +109,7 @@ const NUA_NGHIEM: readonly { module: string; file: string }[] = [{ module: "orde
 /**
  * NGOẠI LỆ CÓ TÊN của R-N1-9 ("không xoá cứng bảng mới") — ADR-0047 A1, A2: chặng và hành khách của ĐƠN NHÁP xoá–chèn lại cùng lô khi lưu nháp
  * (như order_service). Lệch có chủ ý hẹp của Hiến chương 5.5 (chủ trả lời Q0 2026-09-29 "Cách 1: chỉ giữ bản cuối", điều phối chuyển lại). NỚI hàng
- * rào đã duyệt (Điều 9.4) — CHỜ CHỦ DUYỆT ở docs/superpowers/plans/2026-09-29-adr-0047-de-xuat-luat.md mục 2. Chỉ tên trong danh sách; mỗi câu phải có
+ * rào đã duyệt (Điều 9.4) — ĐÃ DUYỆT 2026-09-29 (lần 5) ở docs/superpowers/plans/2026-09-29-adr-0047-de-xuat-luat.md mục 2. Chỉ tên trong danh sách; mỗi câu phải có
  * điều kiện đơn nháp TRONG câu, và bảng đích phải có trigger `<bảng>_no_delete` (cấm xoá khi đơn không còn nháp). Danh sách chỉ được co lại (bài
  * "ngoại lệ thừa" ở cuối tệp).
  */
@@ -119,7 +119,7 @@ const XOA_CUNG_NHAP: readonly string[] = ["orders.leg_delete_draft", "orders.pas
  * NỢ CÓ TÊN, CÓ HẠN (ADR-0047 A3 "ghi nợ có tên, có hạn"): câu của tệp nửa nghiêm được đọc thẳng `audit_log` CHỈ trong lính gác `wonGuard`
  * (`EXISTS (SELECT 1 FROM audit_log WHERE id = ?)`) cùng lô với lưu nháp / sửa chuyến / route chặng / route hành khách (nợ LEGACY hiện có của orders:
  * "`wonGuard` của orders (đọc audit_log) ở lại tới N2" — xem LEGACY ở trên; `v_aud_order_event` lọc bỏ `updated`/`trip_updated` nên không thay được).
- * NỚI hàng rào đã duyệt (Điều 9.4) — CHỜ CHỦ DUYỆT ở docs/superpowers/plans/2026-09-29-adr-0047-de-xuat-luat.md mục 3 (hạn ĐỀ XUẤT, chủ chốt). Quá hạn → đỏ.
+ * NỚI hàng rào đã duyệt (Điều 9.4) — ĐÃ DUYỆT 2026-09-29 (lần 5) ở docs/superpowers/plans/2026-09-29-adr-0047-de-xuat-luat.md mục 3 (hạn ĐỀ XUẤT, chủ chốt). Quá hạn → đỏ.
  * Gỡ khi: `orders` lên STRICT với lính gác qua view công bố của `audit`, hoặc ADR khác chọn cơ chế khác. Câu đầu lô (tự quyết thắng/thua, không lính gác)
  * mang tên KHÁC câu có lính gác — chỉ tên có lính gác vào đây.
  */
@@ -133,7 +133,7 @@ const DOC_AUDIT_LOG_WONGUARD = {
 
 // vc_/vc: ADR-0040 D1 — NỚI hàng rào đã duyệt (Điều 9.4), đã duyệt 2026-09-28 (chủ trả lời 'Duyệt tất cả, có mục Hiến chương'), xem docs/superpowers/plans/2026-09-28-van-chuyen-1a-de-xuat-luat.md.
 // ord_: ADR-0047 A3 (bảng mới của orders; bảng cũ orders/order_item/order_service/order_money_adjustment giữ tên) — NỚI hàng rào đã duyệt (Điều 9.4),
-// CHỜ CHỦ DUYỆT ở docs/superpowers/plans/2026-09-29-adr-0047-de-xuat-luat.md mục 1.
+// ĐÃ DUYỆT 2026-09-29 (lần 5) ở docs/superpowers/plans/2026-09-29-adr-0047-de-xuat-luat.md mục 1.
 const TABLE_PREFIX: Record<string, string> = { pty_: "parties", loc_: "locations", stf_: "staff", fbk_: "feedback", dsp_: "dispatch", bil_: "billing", mnt_: "maintenance", aut_: "auth", ntf_: "thongbao", vc_: "van-chuyen", ord_: "orders" };
 const VIEW_PREFIX: Record<string, string> = { pty: "parties", loc: "locations", stf: "staff", ord: "orders", dsp: "dispatch", bil: "billing", aud: "audit", vc: "van-chuyen" };
 
@@ -630,7 +630,7 @@ test("R-N1-9: câu DELETE trên bảng mới bị bắt (phải đóng hiệu l�
 /**
  * NGOẠI LỆ CÓ TÊN của R-N1-14 (ADR-0047 A2): cột `ord_passenger.full_name` (họ tên hành khách — tên cột do ADR chốt) trùng TÊN với cột chết `staff.full_name`.
  * Chỉ tệp SQL nửa nghiêm của orders được nhắc chữ `full_name`; bù lại: bài "câu SQL có full_name không chạm bảng staff" ở cuối tệp (EXPLAIN) + bài
- * EXPLAIN của NUA_NGHIEM cấm tệp đó đọc thẳng bảng `staff`. NỚI hàng rào đã duyệt (Điều 9.4) — CHỜ CHỦ DUYỆT ở
+ * EXPLAIN của NUA_NGHIEM cấm tệp đó đọc thẳng bảng `staff`. NỚI hàng rào đã duyệt (Điều 9.4) — ĐÃ DUYỆT 2026-09-29 (lần 5) ở
  * docs/superpowers/plans/2026-09-29-adr-0047-de-xuat-luat.md mục 7.
  */
 const FULL_NAME_ORD_PASSENGER_FILES = new Set(["src/modules/orders/chang-hanh-khach-repo.ts"]);

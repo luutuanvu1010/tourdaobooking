@@ -5,14 +5,14 @@
 // Import kèm đuôi .ts và KHÔNG import module khác lúc chạy (bài kiểm kiến trúc nạp tệp này thẳng bằng Node): câu nhật ký (`auditStatement`) do nơi gọi
 // ghép vào lô.
 //
-// HAI NGOẠI LỆ CÓ TÊN ở bài EXPLAIN (src/architecture.test.ts — NỚI hàng rào đã duyệt, CHỜ CHỦ DUYỆT ở
+// HAI NGOẠI LỆ CÓ TÊN ở bài EXPLAIN (src/architecture.test.ts — NỚI hàng rào đã duyệt, ĐÃ DUYỆT 2026-09-29 (lần 5) ở
 // docs/superpowers/plans/2026-09-29-adr-0047-de-xuat-luat.md):
 //   - `XOA_CUNG_NHAP` (mục 2): hai câu `leg_delete_draft`, `passenger_delete_draft` xoá cứng dòng của ĐƠN NHÁP (lưu nháp xoá–chèn lại; lệch có chủ ý hẹp
 //     của Hiến chương 5.5 — chủ trả lời Q0 2026-09-29 "Cách 1: chỉ giữ bản cuối"). Điều kiện đơn nháp nằm TRONG câu; trigger `*_no_delete` là lưới CSDL.
 //   - `DOC_AUDIT_LOG_WONGUARD` (mục 3, có hạn): câu có đuôi `_guarded`/`_draft` đọc `audit_log` CHỈ ở lính gác "lô này đã thắng" (`EXISTS (SELECT 1 FROM
 //     audit_log WHERE id = ?)` — khuôn `wonGuard` của repository.ts): chỉ chạy khi câu UPDATE có điều kiện đứng đầu lô của CHÍNH request này đã áp dụng.
 // Tên cột `full_name` của `ord_passenger` (ADR-0047 A2) CHỈ xuất hiện trong chuỗi SQL ở tệp này, và luôn đọc ra dưới bí danh `ten` (bài R-N1-14 —
-// ngoại lệ có tên cho đúng tệp này, CHỜ CHỦ DUYỆT ở đề xuất luật mục 7).
+// ngoại lệ có tên cho đúng tệp này, ĐÃ DUYỆT 2026-09-29 (lần 5) ở đề xuất luật mục 7).
 import { defineSql } from "../../shared/sql-registry.ts";
 
 // ---- Số khách hiệu lực (ADR-0047 A3) -----------------------------------------------------------------------------------------------------------
@@ -157,7 +157,7 @@ export const legInsertGuarded = (db: D1Database, l: LegWrite, auditId: string): 
   db.prepare(LEG_INSERT_GUARDED).bind(...legBinds(l), auditId, ...datGapBinds(l.datGap));
 
 /**
- * XOÁ CỨNG chặng của ĐƠN NHÁP — ngoại lệ có tên `XOA_CUNG_NHAP` (CHỜ CHỦ DUYỆT, đề xuất luật mục 2). Lưu nháp xoá–chèn lại chặng cùng lô, TRƯỚC câu xoá
+ * XOÁ CỨNG chặng của ĐƠN NHÁP — ngoại lệ có tên `XOA_CUNG_NHAP` (ĐÃ DUYỆT 2026-09-29 (lần 5), đề xuất luật mục 2). Lưu nháp xoá–chèn lại chặng cùng lô, TRƯỚC câu xoá
  * dịch vụ (khoá ngoại). Điều kiện "đơn nháp" nằm TRONG câu; trigger `ord_transfer_leg_no_delete` cấm xoá khi đơn không còn nháp.
  */
 const LEG_DELETE_DRAFT = defineSql(
@@ -404,7 +404,7 @@ export const passengerInsert = (db: D1Database, p: PassengerWrite): D1PreparedSt
 export const passengerInsertGuarded = (db: D1Database, p: PassengerWrite, auditId: string): D1PreparedStatement =>
   db.prepare(PASSENGER_INSERT_GUARDED).bind(...passengerBinds(p), auditId);
 
-/** XOÁ CỨNG danh sách khách của ĐƠN NHÁP — ngoại lệ có tên `XOA_CUNG_NHAP` (CHỜ CHỦ DUYỆT); điều kiện nháp TRONG câu; trigger `ord_passenger_no_delete`. */
+/** XOÁ CỨNG danh sách khách của ĐƠN NHÁP — ngoại lệ có tên `XOA_CUNG_NHAP` (ĐÃ DUYỆT 2026-09-29 (lần 5)); điều kiện nháp TRONG câu; trigger `ord_passenger_no_delete`. */
 const PASSENGER_DELETE_DRAFT = defineSql(
   "orders",
   "passenger_delete_draft",

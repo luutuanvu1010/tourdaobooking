@@ -21,10 +21,10 @@ const ADR: Record<string, [Scope, Scope, Scope, Scope, Scope, Scope, Scope, Scop
   "order.trip.edit": ["ownOrAssigned", "none", "any", "none", "none", "any", "none", "none", "none"],
   "order.leg.short_notice": ["none", "none", "any", "none", "none", "any", "none", "none", "none"], // ADR-0049 D3: ô MỚI — đặt gấp chặng dưới mốc 6 giờ; chỉ Quản trị, Toàn quyền
   "order.leg.short_notice.view": ["any", "any", "any", "none", "none", "any", "none", "none", "none"], // chủ H4/N-14 (29/9, Trả lời lần 12): ô MỚI — xem ĐỦ dấu đặt gấp; mã khác chỉ cờ
-  "trip.view": ["any", "any", "any", "none", "none", "any", "none", "assigned", "none"], // ADR-0049 D3: ô MỚI — DRIVER assigned (NỚI ghim DRIVER — CHỜ CHỦ DUYỆT, đề xuất luật mục 2)
+  "trip.view": ["any", "any", "any", "none", "none", "any", "none", "assigned", "none"], // ADR-0049 D3: ô MỚI — DRIVER assigned (NỚI ghim DRIVER — ĐÃ DUYỆT 2026-09-30 (lần 17), đề xuất luật mục 2)
   "trip.dispatch": ["any", "none", "any", "none", "none", "any", "none", "none", "none"], // ADR-0049 D3: ô MỚI
   "trip.override": ["none", "none", "any", "none", "none", "any", "none", "none", "none"], // ADR-0049 D3: ô MỚI — phá lệ luật cấu hình, chỉ Quản trị, Toàn quyền
-  "trip.progress": ["any", "none", "any", "none", "none", "any", "none", "assigned", "none"], // ADR-0049 D3 (A15): ô MỚI — lệnh tiến độ; DRIVER assigned (NỚI ghim DRIVER — CHỜ CHỦ DUYỆT, đề xuất luật mục 2); văn phòng bấm thay (R-P1)
+  "trip.progress": ["any", "none", "any", "none", "none", "any", "none", "assigned", "none"], // ADR-0049 D3 (A15): ô MỚI — lệnh tiến độ; DRIVER assigned (NỚI ghim DRIVER — ĐÃ DUYỆT 2026-09-30 (lần 17), đề xuất luật mục 2); văn phòng bấm thay (R-P1)
   "trip.call_ack": ["ownOrAssigned", "none", "any", "none", "none", "any", "none", "none", "none"], // ADR-0051 GB2: ô MỚI — "Đã gọi báo" / "Bỏ đánh dấu": người lập / người phụ trách đơn, Quản trị, Toàn quyền
   "order.passenger.write": ["ownOrAssigned", "none", "any", "none", "own", "any", "own", "none", "none"], // ADR-0047 A2: ô MỚI — nhập/sửa (dòng mới)/huỷ dòng trong danh sách hành khách; bằng order.modify
   "task.progress": ["none", "none", "any", "assigned", "assigned", "any", "none", "none", "none"],
@@ -293,7 +293,7 @@ test("ADR-0040 D3 + ADR-0049 D3: MỌI ô của Tài xế (DRIVER) — ghim nguy
     "feedback.triage": "none", "settings.ops": "none", "order.pool.view": "none", "notice.send": "none", "company.legal.write": "none",
     "party.document.view": "own", // ngoại lệ có tên (Ruling R2, R5): xem giấy tờ của CHÍNH MÌNH, số che
     "party.document.write": "none", "party.document.reveal": "none", "vehicle.manage": "none",
-    // ADR-0049 D3 — NỚI (CHỜ CHỦ DUYỆT, đề xuất luật mục 2): tài xế công ty xem + bấm tiến độ chuyến MÌNH ĐANG LÁI (`assigned` — A13 / A15).
+    // ADR-0049 D3 — NỚI (ĐÃ DUYỆT 2026-09-30 (lần 17), đề xuất luật mục 2): tài xế công ty xem + bấm tiến độ chuyến MÌNH ĐANG LÁI (`assigned` — A13 / A15).
     "trip.view": "assigned", "trip.dispatch": "none", "trip.override": "none", "trip.progress": "assigned", "trip.call_ack": "none",
   };
   assert.deepEqual(Object.fromEntries((Object.keys(MATRIX) as OperationCode[]).map((op) => [op, MATRIX[op].DRIVER])), DRIVER_ROW);

@@ -130,7 +130,7 @@ export const MATRIX = {
   // điều 6). Route: /api/van-chuyen/* (module van-chuyen, cổng office). Danh mục loại giấy tờ xe: admin.manage; ngưỡng sắp hết hạn: settings.ops.
   "vehicle.manage": row("none", "none", "any", "none", "none", "any", "none", "none", "none"),
   // ADR-0049 D3 (Task A13): CHUYẾN XE. `trip.view` — xem lịch chung, chi tiết chuyến (văn phòng: Bán hàng, Kế toán, Quản trị, Toàn quyền; Tài xế công ty:
-  // CHỈ chuyến mình đang lái — `assigned` = dòng lái mở trên chuyến, tính trong van-chuyen, route tài xế A15). NỚI bài ghim hàng DRIVER — CHỜ CHỦ DUYỆT
+  // CHỈ chuyến mình đang lái — `assigned` = dòng lái mở trên chuyến, tính trong van-chuyen, route tài xế A15). NỚI bài ghim hàng DRIVER — ĐÃ DUYỆT 2026-09-30 (lần 17)
   // (đề xuất luật mục 2). `trip.dispatch` — tạo / sửa / xếp / rút / dời / huỷ chuyến, cập nhật điểm theo đơn (Bán hàng, Quản trị, Toàn quyền). `trip.override`
   // — phá lệ luật CẤU HÌNH (mốc tối thiểu, khoảng nghỉ) — chỉ Quản trị, Toàn quyền (ĐP3). Luật lõi LC-01…18 không ai phá lệ.
   "trip.view": row("any", "any", "any", "none", "none", "any", "none", "assigned", "none"),
@@ -138,7 +138,7 @@ export const MATRIX = {
   "trip.override": row("none", "none", "any", "none", "none", "any", "none", "none", "none"),
   // ADR-0049 D3 (Task A15): lệnh TIẾN ĐỘ (xuất bến, đã tới, đã đón, vắng, khách huỷ, đã trả, kết thúc, kết thúc gián đoạn, đổi thứ tự điểm khi đang chạy).
   // Tài xế công ty: CHỈ chuyến mình đang lái (`assigned` — route tài xế `…/cuoc-cua-toi/*`, cổng staff). Văn phòng (Bán hàng, Quản trị, Toàn quyền) bấm thay
-  // qua route RIÊNG `…/chuyen/:id/<lệnh>` (cổng office — R-P1), cùng một hàm xử lý. Kế toán: không. NỚI bài ghim hàng DRIVER — CHỜ CHỦ DUYỆT (đề xuất luật mục 2).
+  // qua route RIÊNG `…/chuyen/:id/<lệnh>` (cổng office — R-P1), cùng một hàm xử lý. Kế toán: không. NỚI bài ghim hàng DRIVER — ĐÃ DUYỆT 2026-09-30 (lần 17) (đề xuất luật mục 2).
   "trip.progress": row("any", "none", "any", "none", "none", "any", "none", "assigned", "none"),
   // ADR-0051 GB2 (Task A-GB): ghi / bỏ dấu "đã gọi báo khách" giờ hẹn mới của chặng đang trên xe — "đơn của ai người đó lo" (Hiến chương 5.8, ĐP6): Bán hàng
   // CHỈ đơn mình lập hoặc mình đang phụ trách (route truyền cả ownerId lẫn assigned — ctx.isAssigned của người phụ trách ĐƠN); Quản trị, Toàn quyền mọi chặng.
