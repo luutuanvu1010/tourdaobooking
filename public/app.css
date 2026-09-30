@@ -1634,6 +1634,10 @@ body.login-page main.login { display: flex; flex-direction: column; height: 100%
 .dp-ct-when { font-size: var(--fs-label); color: var(--c-text-muted); }
 .dp-ct-actions { display: flex; flex-wrap: wrap; gap: var(--s2); margin-left: auto; }
 .dp-ct-actions .vc-btn { white-space: nowrap; }
+/* Nhật ký giao diện 13.7: nút khoá của Chi tiết chuyến đặt THẲNG trên nền trang (đầu trang máy tính, cuối trang điện thoại). `.vc-btn:disabled` tô nền
+   --c-surface-alt = đúng nền trang → nút lẫn thành chữ thường. Ở đây giữ dáng nút ghost (nền, viền) và làm mờ theo khuôn nút khoá của bộ thiết kế
+   (Button disabled = opacity .5, như `.btn:disabled`). Chỉ token. */
+.dp-ct-actions .vc-btn-ghost-primary:disabled, .dp-ct-bottom .vc-btn-ghost-primary:disabled { color: var(--c-primary); background: var(--c-surface); border-color: var(--c-border); opacity: .5; }
 .dp-ct-lock { margin-bottom: var(--s3); }
 .dp-ct-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s4); align-items: start; }
 .dp-ct-main, .dp-ct-side { display: flex; flex-direction: column; gap: var(--s4); min-width: 0; }

@@ -490,3 +490,20 @@ Chưa gộp máy chủ mới (điều phối: đợi HEAD sau phần vá xoá đ
 - Kết quả Chrome vòng 5 (goi-bao 7/7, cuoc 11/11, dieu-phoi 11/11) đo ở `1b82078`, TRƯỚC 5b. 5b đo `rut-doi` 8/8 và `chuyen` 8/8 trên cùng nội dung với e2e6894. Chưa có số đo ba kịch bản vòng 5 ở e2e6894.
 - Mã lỗi của lệnh chuyển: 409 trả `message` theo bảng `THONG_BAO_409` (`src/modules/van-chuyen/dieu-phoi-route.ts:31`, mặc định "Lệnh chưa làm được."), lý do theo `loiNhan` / `aiXuLyNhan` (tiếng Việt). Giao diện chỉ ghép hai trường này (`docLoiLenh`), không hiện `code` — không lộ mã. Ca Chrome riêng cho "hết chỗ" / "chéo xe – tài xế" vẫn là nợ.
 - Trigger `orders_no_delete` (a364b12): kịch bản của nhánh này không xoá `orders` (chỉ `vc_dispatch_policy` ở `moc-chua-co-smoke`, `order_item` ở trình trợ giúp chung `a2-cdp.mjs`). Chưa chạy thật sau gộp.
+
+### 13.7 Sau gộp `d9b884b` (điều phối gộp → `dd665b3`; chủ 30/9 "Cho phép (Recommended)")
+- Chạy lại trên `dd665b3`:
+  - `npm test` hai bước: bước 1 1836/1836, bước 2 (bài đo giờ hook chạy một mình) 1/1, mã thoát 0.
+  - `npm run typecheck` 0; `npm run build:web` 0.
+  - Chrome, chạy riêng, không song song e2e: rut-doi 8/8, cuoc 11/11, goi-bao 7/7, dieu-phoi 11/11; chuyen 6/8 — đỏ ĐÚNG hai bước kiểm mới dưới đây (đỏ trước), các bước còn lại xanh.
+  - Trigger `orders_no_delete`: không kịch bản nào đỏ vì xoá đơn.
+- **Sửa bề mặt (giả định của điều phối, đảo ngược được)** — nút "Xuất bến thay tài xế" khi khoá trông như chữ thường.
+  - Gốc: `.vc-btn:disabled` tô nền `--c-surface-alt`, trùng nền trang (`body` = `--c-alt` = `--c-surface-alt`). Nút đặt thẳng trên nền trang (đầu trang máy tính `.dp-ct-actions`, cuối trang điện thoại `.dp-ct-bottom`) mất khung. Máy tính cũng dính, ảnh b2-chi-tiet-bi-giu-may-tinh cũ.
+  - Sửa: chỉ ở hai chỗ đó, nút ghost khoá giữ dáng nút (nền `--c-surface`, viền `--c-border`, chữ `--c-primary`) và mờ `opacity: .5`. Đây là khuôn nút khoá của bộ thiết kế (Button disabled = opacity .5, như `.btn:disabled` sẵn có). Chỉ token; không đổi logic, không đổi `.vc-btn:disabled` chung.
+- Chrome: `chuyen-smoke` bước 1 (1040) và bước 5 (390) thêm `nutKhoaRo`: nút khoá, nền khác nền trang, opacity < 1.
+  - Đỏ trước: 6 ✓ / 2 ✗ "nút khoá lẫn vào nền trang (rgb(234, 242, 248))".
+  - Xanh sau: 8/8.
+  - `npm run test:e2e -- pwa` (quét token sau dấu mốc PWA): đạt, 31 trang. `src/khung-dang-tai-css.test.ts` + `src/shared/sw-policy.test.ts`: 20/20.
+- Ảnh 390: trước `b2-nut-khoa-truoc-dien-thoai.png`, sau `b2-nut-khoa-sau-dien-thoai.png`; cả trang `b2-chi-tiet-bi-giu-dien-thoai.png`, `b2-chi-tiet-bi-giu-may-tinh.png` (chụp lại).
+- Q-B-18: KHÔNG đổi màn xếp (điều phối đang cho người kiểm máy chủ soi I19(a)).
+- Vệ sinh: sau mỗi lượt Chrome `ps` không còn wrangler / workerd nào của worktree này.

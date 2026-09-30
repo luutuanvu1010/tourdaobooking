@@ -26,6 +26,14 @@ const diem = `[...document.querySelectorAll('.dp-stop[data-diem]')].map((r) => (
 const dieuKien = `[...document.querySelectorAll('.dp-cond[data-dat]')].map((r) => ({ dat: r.dataset.dat === 'true', nhan: r.querySelector('.dp-cond-nhan').innerText, sub: r.querySelector('.dp-cond-sub')?.innerText ?? '' }))`;
 const nhatKy = `[...document.querySelectorAll('.dp-log')].map((r) => ({ ai: r.querySelector('.dp-log-who').innerText, may: r.querySelector('.dp-log-who').classList.contains('is-may'), text: r.lastElementChild.innerText }))`;
 const KHONG_CO = ["Kết thúc gián đoạn", "Mở màn Xuất bến ›"];
+// Nhật ký giao diện 13.7: nút KHOÁ đặt thẳng trên nền trang phải trông rõ là nút bị khoá — nền khác nền trang (không lẫn thành chữ thường) và mờ theo khuôn nút
+// khoá của bộ thiết kế (Button disabled = opacity .5).
+const nutKhoaRo = async (pg, sel) => {
+  const r = await pg.ev(`(() => { const b = document.querySelector(${JSON.stringify(sel)}); const cs = getComputedStyle(b); return { khoa: b.disabled, nen: cs.backgroundColor, trang: getComputedStyle(document.body).backgroundColor, mo: Number(cs.opacity) }; })()`);
+  assert.equal(r.khoa, true, `${sel}: phải khoá`);
+  assert.notEqual(r.nen, r.trang, `${sel}: nút khoá lẫn vào nền trang (${r.nen})`);
+  assert.ok(r.mo < 1, `${sel}: nút khoá chưa mờ (opacity ${r.mo})`);
+};
 
 try {
   // ---- Bán hàng, máy tính ------------------------------------------------------------------------------------------------------------------------------------
@@ -61,6 +69,7 @@ try {
     assert.equal(await p.ev(shown("#ct-bottom")), false, "nút cuối trang chỉ ở điện thoại");
     assert.equal(await p.ev(noCode), "");
     assert.ok(await p.ev(noOverflowX));
+    await nutKhoaRo(p, '.dp-ct-actions [data-action="xuat-ben-thay"]');
     await axe(p, "chi tiết chuyến 1040");
     await shotFull(p, "b2-chi-tiet-bi-giu-may-tinh.png");
   });
@@ -154,6 +163,7 @@ try {
     assert.deepEqual(await pm.ev(`[...document.querySelectorAll('#ct-bottom .vc-btn')].map((x) => x.textContent)`), ["Sửa chuyến", "Xuất bến thay tài xế", "Huỷ chuyến"]);
     assert.ok(await pm.ev(noOverflowX));
     assert.equal(await pm.ev(noCode), "");
+    await nutKhoaRo(pm, '#ct-bottom [data-action="xuat-ben-thay"]');
     await axe(pm, "chi tiết chuyến 390");
     await shotFull(pm, "b2-chi-tiet-bi-giu-dien-thoai.png");
   });
