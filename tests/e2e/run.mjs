@@ -33,7 +33,7 @@ const ROOT = join(HERE, "..", "..");
 // "tro-ly" (ADR-0066) đứng SAU "thongbao", TRƯỚC "maintenance" (cổng bảo trì chặn mọi route cần đăng nhập): dựng máy OpenAI GIẢ trên cổng E2E_OPENAI_PORT
 // (máy chủ trỏ vào nó bằng --var OPENAI_BASE_URL dưới đây); đổi cài đặt trợ lý rồi KHÔI PHỤC (bật, 5 USD, 30 câu) ở `finally`; tạo tài khoản dùng một lần.
 // "passkey" đứng CUỐI CÙNG: đổi PIN của salesB, tạm ngưng rồi kích hoạt lại field — mọi kịch bản của một lần chạy dùng chung một D1 tạm.
-const ALL = ["platform", "pwa", "orders", "trip", "chang-hanh-khach", "nhap-tay-va-gia-doi-tac", "admin", "turnstile", "catalog", "dispatch", "admin-race", "locations", "parties", "booker", "permissions", "feedback", "company", "bangtin", "thongbao", "tro-ly", "maintenance", "roles", "van-chuyen", "tai-xe-doi-tac", "chinh-sach-dieu-phoi", "dieu-phoi", "tai-xe-cuoc", "dieu-phoi-chay-dua", "so-tien", "passkey"];
+const ALL = ["platform", "pwa", "orders", "trip", "chang-hanh-khach", "nhap-tay-va-gia-doi-tac", "admin", "turnstile", "catalog", "dispatch", "admin-race", "locations", "parties", "booker", "permissions", "feedback", "company", "bangtin", "thongbao", "tro-ly", "maintenance", "roles", "van-chuyen", "tai-xe-doi-tac", "chinh-sach-dieu-phoi", "dieu-phoi", "tai-xe-cuoc", "dieu-phoi-chay-dua", "so-tien", "nhap-ke-toan", "passkey"];
 const picked = process.argv.slice(2);
 const scripts = picked.length ? picked : ALL;
 for (const s of scripts) if (!ALL.includes(s)) throw new Error(`Không có kịch bản "${s}" (có: ${ALL.join(", ")})`);

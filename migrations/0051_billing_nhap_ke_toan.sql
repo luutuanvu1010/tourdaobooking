@@ -1,5 +1,5 @@
--- Migration 0050 (billing) — DẤU "ĐÃ NHẬP PHẦN MỀM KẾ TOÁN" + "SỐ HOÁ ĐƠN ĐÃ NHẬP" trên đơn (ADR-0060 điều 1, accepted 2026-09-30).
--- Số 0050 do phiên điều phối chung cấp; trùng tiền tố với 0050_tro_ly.sql (chấp nhận được — wrangler theo dõi theo TÊN đầy đủ, như hai tệp 0016_*).
+-- Migration 0051 (billing) — DẤU "ĐÃ NHẬP PHẦN MỀM KẾ TOÁN" + "SỐ HOÁ ĐƠN ĐÃ NHẬP" trên đơn (ADR-0060 điều 1, accepted 2026-09-30).
+-- Số 0051 do phiên điều phối chung cấp (sửa cấp số 30/9: 0050 đã dùng cho 0050_tro_ly.sql trên main).
 -- Chỉ THÊM. Bảng CHỈ-THÊM: đánh dấu / bỏ dấu / sửa số = thêm dòng mới; trạng thái hiện tại của một đơn = dòng có rowid LỚN NHẤT của đơn đó
 -- (không xếp theo created_at — hai lần ghi cùng mili-giây; tiền lệ R-BIL-1). Không tiền, không trạng thái hoá đơn của ADR-0004.
 -- Không "trường mở rộng tự do" (Hiến chương 5.2): hai trường có kiểu, có CHECK. Khoá ngoại NO ACTION. 4 cột dấu vết (updated_* = created_*, như ADR-0026).
