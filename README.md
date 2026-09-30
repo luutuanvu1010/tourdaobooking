@@ -39,7 +39,7 @@ Thử nhanh trên **D1 tạm** (không đụng dữ liệu thật; mạng LAN, d
 
 ```
 npm run typecheck        # 0 lỗi (server, web/, web/sw/)
-npm test                 # luật thuần + kiểm kiến trúc (src/**/*.test.ts)
+npm test                 # scripts/chay-test.mjs: bộ chính src/**/*.test.ts song song (trừ bài đo giờ của hook), rồi bài đo giờ chạy MỘT MÌNH; một bước đỏ ⇒ thoát ≠ 0
 npm run test:e2e         # API thật trên D1 local tạm; CẦN MẠNG (đọc Google Sheet thật + xác minh Turnstile của Cloudflare) — tests/e2e/README.md
 ```
 

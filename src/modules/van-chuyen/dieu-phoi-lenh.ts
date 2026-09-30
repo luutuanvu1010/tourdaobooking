@@ -3,7 +3,7 @@
 // chặng (`lichChungChang`) do thân route đọc sau `can()` và truyền vào (bài src/orders-cong-bo.test.ts).
 import type { ChangLichChung, ChangNhapLichChung } from "../orders";
 import type { StaffProfile } from "../../shared/contracts";
-import { kiemTaoSuaChuyen, kiemXep, noiLechCuaSuat } from "../../shared/dieu-phoi-kiem";
+import { khoaNguoiRanh, kiemTaoSuaChuyen, kiemXep, noiLechCuaSuat, tenLucXep } from "../../shared/dieu-phoi-kiem";
 import type { ChangVao, KetQuaKiem } from "../../shared/dieu-phoi-kieu";
 import { dungLichChung } from "../../shared/dieu-phoi-lich-chung";
 import { error } from "../../shared/http";
@@ -120,12 +120,16 @@ export async function lenhXep(db: D1Database, nen: NenChuyen, lich: readonly Cha
   if (chan) return chan;
   const diemMoi: DiemMoi[] = [];
   const suatMoi: SuatMoi[] = [];
+  // I19(a) (làm bù theo kiểm độc lập K2c VỪA-1): khoá thân gửi trước, phần còn lại máy lấp bằng khoá người RẢNH theo thứ tự — MỘT luật với lúc xuất bến
+  // (I19b, `khoaNguoiRanh`): hành khách hiện hành của đơn, chưa có suất mở ở chặng (mọi chuyến). "Chưa bị chính lô này dùng": mỗi chặng xuất hiện MỘT lần
+  // trong thân (`docXep` → 400 "Một chặng xuất hiện hai lần") và `tenLucXep` không lặp khoá trong một chặng. Hết khoá rảnh → null (I19b bù lúc xuất bến).
   for (const c of b.chang) {
     const ch = nc.changLich.get(c.legId)!;
     const len = diemChoKhoa(nen.stops, diemMoi, t.id, "PICKUP", ch.khoaNoiDon, ch.noiDonDiemId, ch.noiDon);
     const xuong = ch.khoaNoiTra === null ? null : diemChoKhoa(nen.stops, diemMoi, t.id, "DROPOFF", ch.khoaNoiTra, ch.noiTraDiemId, ch.noiTra);
-    for (let i = 0; i < c.soSuat; i++) {
-      suatMoi.push({ id: crypto.randomUUID(), tripId: t.id, loai: "PASSENGER", legId: c.legId, personKey: c.personKeys[i] ?? null, crewPartyId: null, boardStopId: len, alightStopId: xuong });
+    const ranh = khoaNguoiRanh({ legId: c.legId, nguoiCuaDon: nc.chang.get(c.legId)!.nguoiCuaDon, suatMoCuaChang: nc.suatMoCuaChang });
+    for (const personKey of tenLucXep({ soSuat: c.soSuat, personKeys: c.personKeys, ranh })) {
+      suatMoi.push({ id: crypto.randomUUID(), tripId: t.id, loai: "PASSENGER", legId: c.legId, personKey, crewPartyId: null, boardStopId: len, alightStopId: xuong });
     }
   }
   for (const p of b.nguoiDiKem) suatMoi.push({ id: crypto.randomUUID(), tripId: t.id, loai: "CREW", legId: null, personKey: null, crewPartyId: p, boardStopId: null, alightStopId: null });

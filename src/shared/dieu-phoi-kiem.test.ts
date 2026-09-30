@@ -5,7 +5,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { ChangVao, ChinhSachVao, ChuyenVao, DiemVao, DieuKienVao, HangBangVao, KhungChuyen, SuatVao, TaiXeVao, XeVao } from "./dieu-phoi-kieu.ts";
-import { kiemKetThuc, kiemTaoSuaChuyen, kiemXep, kiemXuatBen, noiLechCuaSuat, trongNgayChay, type KiemTaoSuaChuyenVao, type KiemXuatBenVao } from "./dieu-phoi-kiem.ts";
+import { khoaNguoiRanh, kiemKetThuc, kiemTaoSuaChuyen, kiemXep, kiemXuatBen, noiLechCuaSuat, tenLucXep, trongNgayChay, type KiemTaoSuaChuyenVao, type KiemXuatBenVao } from "./dieu-phoi-kiem.ts";
 import type { LyDoGiu } from "./ly-do-giu.ts";
 import { batDauSomNhatSauDoiGio } from "./moc-toi-thieu.ts";
 import { vnLocalToMs } from "./vn-date.ts";
@@ -374,4 +374,37 @@ test("I38 (R-P9): chặng có suất trên chuyến mà RƠI khỏi lichChungCha
   // chặng CÓ trong dữ liệu vào nhưng đơn huỷ + khoá nơi lệch → chỉ DON_DA_HUY (không NOI_HEN_DOI — không bắt văn phòng "cập nhật điểm" cho khách đã huỷ)
   assert.deepEqual(ai(kiemXuatBen(xb({ chang: [chang({ donDaHuy: true, khoaNoiDon: "L:noi-khac" })] })).lyDo), ["DON_DA_HUY:VAN_PHONG"]);
   assert.deepEqual(ai(kiemXuatBen(xb({ chang: [chang({ changMo: false, khoaNoiDon: "L:noi-khac" })] })).lyDo), ["CHANG_DA_DONG:VAN_PHONG"]);
+});
+
+// ---- I19 — MỘT luật "khoá người rảnh" cho lúc xếp (a) và lúc xuất bến (b) (K2c VỪA-1: làm bù I19(a)) ---------------------------------------------------
+const sv = (o: Partial<SuatVao> & { id: string }): SuatVao => ({
+  tripId: "t", loai: "PASSENGER", legId: "L", personKey: null, crewPartyId: null, boardStopId: null, alightStopId: null, trangThai: "WAITING", mo: true, moTuMs: 0, ...o,
+});
+test("I19 khoaNguoiRanh: hành khách hiện hành của đơn − khoá có suất MỞ ở CHẶNG ĐÓ (mọi chuyến) − khoá lệnh này đã dùng, theo thứ tự khoá người", () => {
+  const nguoi = ["p3", "p1", "p2", "p4"];
+  assert.deepEqual(khoaNguoiRanh({ legId: "L", nguoiCuaDon: nguoi, suatMoCuaChang: [] }), ["p1", "p2", "p3", "p4"], "sắp theo khoá người");
+  const mo = [
+    sv({ id: "a", personKey: "p2" }), // mở, chặng L → đã dùng
+    sv({ id: "b", personKey: "p3", mo: false }), // suất đã đóng (rút) → tên dùng lại được
+    sv({ id: "c", personKey: "p4", legId: "L2" }), // chặng khác → không tính
+    sv({ id: "d", personKey: null }), // chưa tên → không tính
+  ];
+  assert.deepEqual(khoaNguoiRanh({ legId: "L", nguoiCuaDon: nguoi, suatMoCuaChang: mo }), ["p1", "p3", "p4"]);
+  assert.deepEqual(khoaNguoiRanh({ legId: "L", nguoiCuaDon: nguoi, suatMoCuaChang: mo, daDungTrongLenh: ["p1"] }), ["p3", "p4"], "khoá lệnh này đã dùng");
+  assert.deepEqual(khoaNguoiRanh({ legId: "L", nguoiCuaDon: [], suatMoCuaChang: [] }), []);
+});
+test("I19(a) tenLucXep: khoá thân gửi đứng trước, phần còn lại lấp bằng khoá rảnh (không lặp khoá thân gửi), hết khoá rảnh → null", () => {
+  assert.deepEqual(tenLucXep({ soSuat: 3, personKeys: [], ranh: ["p1", "p2", "p3", "p4"] }), ["p1", "p2", "p3"], "không gửi tên → máy chọn theo thứ tự");
+  assert.deepEqual(tenLucXep({ soSuat: 4, personKeys: [], ranh: ["p1", "p2"] }), ["p1", "p2", null, null], "thiếu tên → phần thiếu null");
+  assert.deepEqual(tenLucXep({ soSuat: 3, personKeys: ["p3"], ranh: ["p1", "p2", "p3"] }), ["p3", "p1", "p2"], "gửi một phần → lấp phần còn lại, không lặp p3");
+  assert.deepEqual(tenLucXep({ soSuat: 3, personKeys: ["p1"], ranh: ["p1", "p2", "p3"] }), ["p1", "p2", "p3"], "khoá đã gửi nằm đầu danh sách rảnh → không lặp p1");
+  assert.deepEqual(tenLucXep({ soSuat: 2, personKeys: ["p2", "p1"], ranh: ["p1", "p2", "p3"] }), ["p2", "p1"], "gửi đủ → đúng như gửi");
+  assert.deepEqual(tenLucXep({ soSuat: 0, personKeys: [], ranh: ["p1"] }), []);
+});
+test("I19(b) kiemXuatBen dùng CHUNG khoaNguoiRanh: khoá đã có suất mở ở chặng (chuyến khác) không được gắn lại; suất đã đóng trả khoá về", () => {
+  // Hai suất chưa tên trên chuyến này; đơn có p1, p2, p3; p1 đang ở chuyến khác (mở) → gắn p2, p3.
+  const suat = [sv({ id: "s1" }), sv({ id: "s2" })];
+  const khac = sv({ id: "x", tripId: "t2", personKey: "p1" });
+  const kq = khoaNguoiRanh({ legId: "L", nguoiCuaDon: ["p1", "p2", "p3"], suatMoCuaChang: [...suat, khac] });
+  assert.deepEqual(kq, ["p2", "p3"]);
 });

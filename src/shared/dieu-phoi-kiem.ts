@@ -132,6 +132,25 @@ export function kiemTaoSuaChuyen(v: KiemTaoSuaChuyenVao): KetQuaKiem {
 }
 
 // ---- Xếp (mở suất) ----------------------------------------------------------------------------------------------------------------------------------------
+/**
+ * KHOÁ NGƯỜI RẢNH của một chặng — MỘT luật cho cả hai điểm gắn tên (I19): (a) lúc xếp, (b) lúc xuất bến. = hành khách HIỆN HÀNH của đơn (`nguoiCuaDon`)
+ * chưa có suất MỞ nào ở chặng `legId` trên MỌI chuyến (LC-01: UNIQUE (chặng, khoá người) khi mở) và chưa bị chính lệnh này dùng; sắp theo khoá người.
+ */
+export function khoaNguoiRanh(v: { legId: string; nguoiCuaDon: readonly string[]; suatMoCuaChang: readonly SuatVao[]; daDungTrongLenh?: Iterable<string> }): string[] {
+  const daDung = new Set<string>(v.daDungTrongLenh ?? []);
+  for (const s of v.suatMoCuaChang) if (s.mo && s.legId === v.legId && s.personKey !== null) daDung.add(s.personKey);
+  return [...new Set(v.nguoiCuaDon)].filter((p) => !daDung.has(p)).sort();
+}
+/**
+ * I19(a) — tên cho `soSuat` suất khách MỚI của một chặng lúc xếp: khoá người thân gửi (`personKeys`, đã qua `kiemXep`) đứng trước; phần còn lại lấp bằng
+ * khoá rảnh (`khoaNguoiRanh`) theo thứ tự, bỏ khoá đã gửi; hết khoá rảnh → null (I19(b) bù lúc xuất bến). Kế hoạch I19 / T-1 (R-P3): "không chọn thì máy
+ * chọn theo thứ tự personKey".
+ */
+export function tenLucXep(v: { soSuat: number; personKeys: readonly string[]; ranh: readonly string[] }): (string | null)[] {
+  const gui = new Set(v.personKeys);
+  const lap = v.ranh.filter((p) => !gui.has(p));
+  return Array.from({ length: v.soSuat }, (_x, i) => (i < v.personKeys.length ? v.personKeys[i]! : (lap[i - v.personKeys.length] ?? null)));
+}
 export interface ThemVaoXe {
   chang: ChangVao;
   /** Số suất mới mở cho chặng này (≥ số khoá người gửi kèm). */
@@ -295,9 +314,8 @@ export function kiemXuatBen(v: KiemXuatBenVao): KetQuaXuatBen {
     const moMoiChuyen = v.suatMoCuaChang.filter((s) => s.mo && s.legId === legId);
     if (moMoiChuyen.length < ch.soNguoi) lyDo.push(lyDoGiu("THIEU_SUAT", `${ch.orderCode} ${moMoiChuyen.length}/${ch.soNguoi}`));
     if (moMoiChuyen.length > ch.soNguoi) lyDo.push(lyDoGiu("THUA_SUAT", `${ch.orderCode} ${moMoiChuyen.length}/${ch.soNguoi}`));
-    // Tên (I12, I19b): khoá người của đơn chưa có suất mở nào ở chặng này → gắn cho suất chưa tên của chuyến này, theo thứ tự khoá người / mã suất.
-    const daDung = new Set(moMoiChuyen.map((s) => s.personKey).filter((p): p is string => p !== null));
-    const ranh = ch.nguoiCuaDon.filter((p) => !daDung.has(p)).sort();
+    // Tên (I12, I19b): khoá người RẢNH (MỘT luật với lúc xếp — `khoaNguoiRanh`) → gắn cho suất chưa tên của chuyến này, theo thứ tự khoá người / mã suất.
+    const ranh = khoaNguoiRanh({ legId, nguoiCuaDon: ch.nguoiCuaDon, suatMoCuaChang: v.suatMoCuaChang });
     const chuaTen = v.suat.filter((s) => s.mo && s.legId === legId && s.personKey === null).sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
     chuaTen.forEach((s, i) => {
       const p = ranh[i];
