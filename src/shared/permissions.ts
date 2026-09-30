@@ -90,8 +90,12 @@ export const MATRIX = {
   "dispatch.assign": row("ownOrAssigned", "none", "any", "none", "none", "any", "none", "none", "none"), // đặt/đổi người phụ trách và nhiệm vụ (ADR-0009: cả người phụ trách hiện tại)
   "dispatch.claim": row("any", "none", "any", "any", "none", "any", "none", "none", "none"), // nhận phụ trách đơn CHƯA có người (ADR-0009; điều kiện "chưa có người" do dịch vụ của dispatch kiểm, không phải ô này) — FIELD any (ADR-0030 S20-6/S20-12); chốt Nhận (đã huỷ/qua ngày đi) + chặn tài khoản có quyền Đối tác ở route PUT /api/orders/:id/handler
   "dispatch.guides.view": row("none", "none", "none", "none", "any", "any", "none", "none", "none"), // danh sách hẹp hướng dẫn viên nội bộ — thao tác MỚI (ADR-0014 điều 9, chưa có route)
-  "payment.receive": row("own", "any", "any", "none", "none", "any", "none", "none", "none"), // ghi thu tiền
-  "payment.refund": row("none", "any", "any", "none", "none", "any", "none", "none", "none"), // ghi hoàn tiền
+  // Sổ tiền lượt 1 (ADR-0026 điều 10, bảng 9 cột bản làm mới §2 — accepted 2026-09-29): ghi LẦN THU trước "Đã giao" (route POST /api/orders/:id/payments,
+  // module billing). FIELD assigned (HDV đang phụ trách ghi tiền mình thu trước chuyến), PARTNER own, INTERN own — thay ô cọc trên form đơn của mình.
+  // Người thu ∈ {chính mình, Công ty} trừ Kế toán/Toàn quyền (kiểm ở route, không phải ô này).
+  "payment.receive": row("own", "any", "any", "assigned", "own", "any", "own", "none", "none"),
+  // Ghi HOÀN KHÁCH (route POST /api/ledger/refunds, module billing) — ADR-0026 điều 10: ADMIN any → none (H4 "Kế toán ghi", thận trọng).
+  "payment.refund": row("none", "any", "none", "none", "none", "any", "none", "none", "none"),
   "invoice.request": row("own", "any", "any", "none", "none", "any", "none", "none", "none"), // ghi yêu cầu hoá đơn + thông tin xuất
   "invoice.issue": row("none", "any", "any", "none", "none", "any", "none", "none", "none"), // đánh dấu hoá đơn đã xuất
   "party.view": row("any", "any", "any", "none", "none", "any", "none", "none", "none"), // xem hồ sơ khách/đại lý

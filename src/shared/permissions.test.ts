@@ -33,8 +33,10 @@ const ADR: Record<string, [Scope, Scope, Scope, Scope, Scope, Scope, Scope, Scop
   "dispatch.assign": ["ownOrAssigned", "none", "any", "none", "none", "any", "none", "none", "none"],
   "dispatch.claim": ["any", "none", "any", "any", "none", "any", "none", "none", "none"], // ADR-0009 điều 2: nhận phụ trách đơn chưa có người (điều kiện do dịch vụ của dispatch kiểm, không phải ô ma trận); ADR-0030 S20-6/S20-12: FIELD any
   "dispatch.guides.view": ["none", "none", "none", "none", "any", "any", "none", "none", "none"], // ADR-0014 điều 9: thao tác MỚI
-  "payment.receive": ["own", "any", "any", "none", "none", "any", "none", "none", "none"],
-  "payment.refund": ["none", "any", "any", "none", "none", "any", "none", "none", "none"],
+  // Sổ tiền lượt 1 (ADR-0026 điều 10 + bảng 9 cột của bản làm mới §2, accepted 2026-09-29): FIELD none → assigned, PARTNER none → own, INTERN none → own
+  // (giữ năng lực ghi tiền trả trước hôm nay); hoàn khách: ADMIN any → none (H4 "Kế toán ghi"). DRIVER, DRIVER_PARTNER none.
+  "payment.receive": ["own", "any", "any", "assigned", "own", "any", "own", "none", "none"],
+  "payment.refund": ["none", "any", "none", "none", "none", "any", "none", "none", "none"],
   "invoice.request": ["own", "any", "any", "none", "none", "any", "none", "none", "none"],
   "invoice.issue": ["none", "any", "any", "none", "none", "any", "none", "none", "none"],
   "party.view": ["any", "any", "any", "none", "none", "any", "none", "none", "none"],
@@ -218,9 +220,10 @@ test("mặc định từ chối: không quyền, thao tác lạ, chủ đơn thi
 const ADMIN_NONE_OPS: readonly OperationCode[] = [
   "admin.manage.superadmin", "order.cancel", "dispatch.guides.view", "settings.ops", "order.pool.view",
   "notice.send", "feedback.view", "feedback.triage", "staff.sheet.sync", "audit.view", "company.legal.write", "party.document.view",
+  "payment.refund", // sổ tiền lượt 1 (ADR-0026 điều 10): hoàn khách chỉ Kế toán, Toàn quyền (H4)
 ];
 
-test("FIELD không xem đơn/tiền/nhật ký của đơn KHÔNG được giao; ADMIN làm mọi thao tác của bản đồ TRỪ mười hai thao tác hẹp cố ý không mở", () => {
+test("FIELD không xem đơn/tiền/nhật ký của đơn KHÔNG được giao; ADMIN làm mọi thao tác của bản đồ TRỪ các thao tác hẹp cố ý không mở (ADMIN_NONE_OPS)", () => {
   const field = { id: "f", permissions: ["FIELD"] as const };
   for (const op of ["order.view", "money.view", "order.history.view", "order.create", "order.modify", "party.view", "party.staff.write", "admin.manage"] as OperationCode[]) assert.equal(can(field, op, { ownerId: "x" }), false, op);
   const admin = { id: "a", permissions: ["ADMIN"] as const };

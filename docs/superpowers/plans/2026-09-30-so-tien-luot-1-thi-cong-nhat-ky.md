@@ -62,6 +62,14 @@
 - Test `src/migrations-billing.test.ts` 13 bài: đỏ 13/13 khi chưa có tệp → xanh. Bài "không id cứng" bắt id công ty chủ viết cứng trong test lúc đầu — đã đổi sang đọc `v_pty_owner_company`.
 - `npm test` 1899/1899 + 1/1; typecheck 0.
 
+## Task 4 — Quyền (xong 30/9, chỉ đổi GIÁ TRỊ hai ô)
+
+- `payment.receive`: FIELD none → assigned, PARTNER none → own, INTERN none → own (SALES own, ACC/ADMIN/SA any, DRIVER/DRIVER_PARTNER none giữ).
+- `payment.refund`: ADMIN any → none (ACC, SA any; còn lại none).
+- Bài ghim đổi TRƯỚC (đỏ 3 bài) rồi mới đổi `MATRIX` (xanh): `src/shared/permissions.test.ts` (dòng ghim + thêm `payment.refund` vào `ADMIN_NONE_OPS` — bài "ADMIN làm mọi thao tác trừ…" đỏ đúng lý do), `src/modules/orders/xem-don-theo-quyen.test.ts` (ghim hàng PARTNER). Hàng DRIVER/DRIVER_PARTNER vốn đã `none` hai ô này.
+- Bốn ô mới (`order.handover`, `order.complete`, `ledger.view`, `ledger.write`) vào `MATRIX` CÙNG commit với route hỏi nó (Task 6); hai mục hoãn `payment.*` ở `docs/quyen-hoan.json` gỡ cùng route.
+- Không mã quyền mới ⇒ không đụng `EXTERNAL_PERMISSIONS`/LC-1. `npm test` 1899/1899.
+
 ## Ruling / giả định (ghi theo thứ tự gặp)
 
 (chưa có)

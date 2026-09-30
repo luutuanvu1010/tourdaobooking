@@ -276,7 +276,7 @@ test("ADR-0030 L1-12: MỌI ô của Đối tác (PARTNER) giữ nguyên — ghi
   const PARTNER_ROW: Record<string, string> = {
     "order.view": "own", "money.view": "own", "order.history.view": "own", "contact.view": "ownOrAssigned", "order.create": "any", "order.modify": "own",
     "order.trip.edit": "none", "task.progress": "assigned", "order.money.edit": "none", "order.cancel": "none", "dispatch.assign": "none", "dispatch.claim": "none",
-    "dispatch.guides.view": "any", "payment.receive": "none", "payment.refund": "none", "invoice.request": "none", "invoice.issue": "none", "party.view": "none",
+    "dispatch.guides.view": "any", "payment.receive": "own" /* ADR-0026 đ10: thay ô cọc trên form đơn của mình */, "payment.refund": "none", "invoice.request": "none", "invoice.issue": "none", "party.view": "none",
     "party.write": "none", "party.staff.write": "none", "admin.manage": "none", "admin.manage.superadmin": "none", "feedback.submit": "any", "feedback.view": "own",
     "feedback.triage": "none", "settings.ops": "none", "order.pool.view": "none", "account.access.manage": "none", "audit.view": "none", "notice.send": "none",
     "staff.sheet.sync": "none",
