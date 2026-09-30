@@ -161,6 +161,12 @@ Kết luận: thứ tự "hỏi quyền trước khi đọc thân" trong THÂN r
 
 **Ruling A-0b (2026-10-01, điều phối; thi công: người dựng A6):** đổi số migration nhóm dịch vụ `0053` → `0055` (đổi tên → `migrations/0055_nhom_dich_vu.sql`, test `src/migrations-0055.test.ts`) vì `0054_tl_bang_dieu_khien.sql` (bản 1.47, ADR-0069) lên `main` trước — luật "số = lớn nhất trong `migrations/` của main lúc gộp + 1". Chỉ đổi SỐ ở mã, test, tài liệu mô tả, sổ dữ liệu (`npm run dict`), `docs/ARCHITECTURE.md` (dòng tiền tố `ctl_`), `docs/adr/README.md` (dòng 0058 + dòng lịch sử giữ chỗ) và kế hoạch; không đổi nghĩa câu nào. Các chỗ `0053` ghi lịch sử của ruling A-0 ở trên giữ nguyên. Nhật ký thay đổi: mục nhóm dịch vụ đổi `1.47` → **`1.48`** (trên mục 1.47 của main).
 
+**Ruling A-8b (2026-10-01, điều phối chọn phương án A):** sau khi gộp main 1.47, bài `src/shared/huong-dan.test.ts` A4 ("Phần chung + một nhóm vai đọc được trong 30 phút") đỏ `quan-tri: 9 + 22 phút`. Nguyên nhân: hướng dẫn Quản trị của main có 3148 chữ (trần 3150); mục "Nhóm dịch vụ" của A8 thêm 91 chữ, thành 3239. Cách xử lý:
+- Gộp đoạn nhóm dịch vụ thành mục con "### Nhóm dịch vụ" trong "Dịch vụ & giá", còn khoảng 45 chữ.
+- Viết gọn "Dịch vụ & giá" và "Các danh mục cài đặt": bỏ chữ thừa ("bấm", "Vào", "lại", "cho"…), gộp câu lặp. Không bỏ ý nào, không đổi tên nút `[[…]]`.
+- Kết quả **3239 → 3145 chữ** (21 phút). Không đổi trần 30 phút, không sửa `huong-dan.test.ts`.
+- Bản nguồn `docs/superpowers/plans/2026-09-30-huong-dan-theo-vai-nguon/quan-tri.md` dòng "Nhóm dịch vụ" đã ghi theo cách mới. Đã chạy lại `node scripts/sinh-so-do-trang.mjs` (không đổi).
+
 ## 5. Kiểm độc lập
 
 | Vòng | Phần | Đỉnh được kiểm | Kết luận | Mục CAO / VỪA / THẤP | Đã sửa ở |

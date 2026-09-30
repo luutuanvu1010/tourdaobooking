@@ -103,27 +103,22 @@ Tìm: gõ tên hoặc số điện thoại, lọc theo loại, công việc, nơ
     },
     {
       tieuDe: "Dịch vụ & giá (Google Sheet)",
-      noiDung: `Nguồn danh mục là Google Sheet; app tự đồng bộ mỗi 15 phút.
+      noiDung: `Nguồn: Google Sheet; app tự đồng bộ mỗi 15 phút.
 
-1. Vào [[Dịch vụ & giá]]. Đầu trang ghi lần đồng bộ gần nhất và lỗi nếu có.
-2. Muốn lấy ngay: bấm [[Đồng bộ ngay từ Google Sheet]].
-3. App hỏi vì sắp ẩn nhiều dịch vụ: chỉ đồng ý khi chắc chắn Sheet đúng.
+1. [[Dịch vụ & giá]]: đầu trang ghi lần đồng bộ gần nhất và lỗi nếu có.
+2. Lấy ngay: [[Đồng bộ ngay từ Google Sheet]].
+3. App hỏi vì sắp ẩn nhiều dịch vụ: chỉ đồng ý khi chắc Sheet đúng.
 
-### Ghi đè giá (chỉ trong app, không ghi ngược vào Sheet)
-1. Tìm dịch vụ theo mã hoặc tên. Bấm [[Sửa giá]], gõ giá cho loại khách cần đổi, bấm [[Lưu ghi đè]].
-2. Về lại giá Sheet: [[Bỏ ghi đè]].
-3. Sheet đổi giá sau khi bạn đã ghi đè: dòng có cảnh báo. Giữ giá của bạn thì bấm [[Giữ ghi đè]].
+### Ghi đè giá (chỉ trong app, không ghi vào Sheet)
+1. Tìm theo mã hoặc tên, bấm [[Sửa giá]], gõ giá loại khách cần đổi, [[Lưu ghi đè]].
+2. Về giá Sheet: [[Bỏ ghi đè]].
+3. Sheet đổi giá sau khi bạn ghi đè: dòng có cảnh báo; giữ giá của bạn: [[Giữ ghi đè]].
 4. Tạm ngưng bán: [[Ẩn]]. Bán lại: [[Hiện lại]].
 
-Lọc được theo: [[Đang ghi đè giá]], [[Sheet đã đổi giá (cần xem)]], [[Đã ẩn]], [[Không còn trong Sheet]]. Đơn đã lập luôn giữ giá lúc lập.`,
-    },
-    {
-      tieuDe: "Nhóm dịch vụ",
-      noiDung: `Nhóm (Tour đảo, Thể thao biển…) do Quản trị quản lý trong app, không đọc từ Google Sheet.
+### Nhóm dịch vụ (trong app, không lấy từ Sheet)
+Khối [[Nhóm dịch vụ]]: [[Thêm nhóm]], [[Lên]], [[Xuống]], [[Tắt]] (nhóm phải trống; dùng lại: [[Bật]]). Chuyển nhóm: tick ô chọn (tối đa 50), chọn nhóm đích; một dịch vụ: [[Sửa giá]] → [[Đổi nhóm]], có lịch sử.
 
-1. Ở [[Dịch vụ & giá]], khối [[Nhóm dịch vụ]]: thêm nhóm bằng [[Thêm nhóm]]; sắp thứ tự bằng [[Lên]], [[Xuống]].
-2. Nhóm không xoá được, chỉ [[Tắt]] (dùng lại: [[Bật]]); nhóm còn dịch vụ thì chưa tắt được.
-3. Chuyển nhiều dịch vụ: tick ô chọn ở bảng, chọn nhóm đích (tối đa 50 một lần). Một dịch vụ: [[Sửa giá]], rồi [[Đổi nhóm]]; dưới đó có lịch sử nhóm.`,
+Lọc: [[Đang ghi đè giá]], [[Sheet đã đổi giá (cần xem)]], [[Đã ẩn]], [[Không còn trong Sheet]]. Đơn đã lập luôn giữ giá lúc lập.`,
     },
     {
       tieuDe: "Người phụ trách đơn",
@@ -172,28 +167,28 @@ Mở [[Sắp hết hạn]] (điện thoại: [[Giấy tờ sắp hết hạn]] �
     {
       tieuDe: "Các danh mục cài đặt",
       noiDung: `### Địa điểm
-1. Vào [[Địa điểm]], khung [[Thêm địa điểm]]: gõ mã (chữ HOA, số, gạch dưới), tên, loại, địa chỉ, thứ tự, bấm [[Thêm]].
-2. Sửa: [[Sửa]], rồi [[Lưu]]. Mã không đổi được.
-3. Không dùng nữa: bỏ tick [[Đang dùng]], bấm Lưu. Địa điểm không xoá được.
+1. [[Địa điểm]], khung [[Thêm địa điểm]]: gõ mã (chữ HOA, số, gạch dưới), tên, loại, địa chỉ, thứ tự, [[Thêm]].
+2. Sửa: [[Sửa]], [[Lưu]]. Mã không đổi được.
+3. Không dùng nữa: bỏ tick [[Đang dùng]], Lưu (không xoá được).
 
-### Loại giấy tờ người, loại giấy tờ xe, hạng bằng lái
-Mở [[Loại giấy tờ người]] (có cả [[Hạng giấy phép lái xe]]) hoặc [[Loại giấy tờ xe]]. Thêm: gõ mã, tên, tick [[Có ngày hết hạn]] nếu cần, thứ tự, bấm [[Thêm]]. Sửa: [[Sửa]], [[Lưu]]. Không xoá, chỉ ngưng dùng.
+### Loại giấy tờ người, xe, hạng bằng lái
+Mở [[Loại giấy tờ người]] (có cả [[Hạng giấy phép lái xe]]) hoặc [[Loại giấy tờ xe]]. Thêm: gõ mã, tên, tick [[Có ngày hết hạn]] nếu cần, thứ tự, [[Thêm]]. Sửa: [[Sửa]], [[Lưu]]. Không xoá, chỉ ngưng dùng.
 
 ### Trợ lý Hỗ trợ (chỉ Toàn quyền)
-Mở [[Trợ lý Hỗ trợ]] ở nhóm QUẢN TRỊ (điện thoại: trang **Tôi**). Trang có năm phần, mỗi phần có nút [[Lưu]] riêng, lưu có hiệu lực ngay:
-1. **Tình trạng**: bật hoặc tắt cho cả công ty, trần chi phí tháng, chi phí và số câu. Key chỉ hiện đã đặt hay chưa và bốn ký tự cuối; bấm [[Thử key]] để biết key còn dùng được, sai hay hết tiền. Đổi key làm trên Cloudflare, không nhập trong app.
-2. **Ai được dùng**: bật hoặc tắt theo từng vai và số câu mỗi người mỗi ngày. Tài khoản nhiều vai được dùng khi ít nhất một vai đang bật.
-3. **Lời dặn**: câu chào, giọng trả lời, lời dặn thêm, câu hỏi mẫu. Bấm [[Lưu thành bản mới]]; muốn trở lại bản trước thì mở lịch sử bản, bấm [[Quay lại bản này]].
-4. **Ngữ cảnh bổ sung**: gõ tiêu đề và nội dung, bấm [[Thêm đoạn]]; bỏ tick **Đang dùng** để tắt một đoạn.
-5. **Lịch sử hỏi đáp**: lọc theo ngày, người, vai hoặc tìm chữ, bấm [[Lọc]]. Lịch sử không xoá được.
+Mở [[Trợ lý Hỗ trợ]] ở nhóm QUẢN TRỊ (điện thoại: trang **Tôi**). Năm phần, mỗi phần có [[Lưu]] riêng, hiệu lực ngay:
+1. **Tình trạng**: bật / tắt cả công ty, trần chi phí tháng, chi phí và số câu. Key chỉ hiện đã đặt hay chưa và bốn ký tự cuối; [[Thử key]] cho biết key còn dùng được, sai hay hết tiền. Đổi key trên Cloudflare, không nhập trong app.
+2. **Ai được dùng**: bật / tắt theo từng vai và số câu mỗi người mỗi ngày. Tài khoản nhiều vai: dùng được khi có một vai đang bật.
+3. **Lời dặn**: câu chào, giọng trả lời, lời dặn thêm, câu hỏi mẫu. Bấm [[Lưu thành bản mới]]; trở lại bản trước: mở lịch sử bản, [[Quay lại bản này]].
+4. **Ngữ cảnh bổ sung**: gõ tiêu đề và nội dung, [[Thêm đoạn]]; bỏ tick **Đang dùng** để tắt một đoạn.
+5. **Lịch sử hỏi đáp**: lọc theo ngày, người, vai hoặc tìm chữ, [[Lọc]]. Lịch sử không xoá được.
 
-Chữ tuỳ chỉnh không được có số điện thoại, email, số tiền (app báo lỗi khi lưu). Trợ lý luôn từ chối bí mật, tiền, thông tin khách, lời dặn không bỏ được luật này.
+Chữ tuỳ chỉnh không được có số điện thoại, email, số tiền (lưu sẽ báo lỗi). Trợ lý luôn từ chối bí mật, tiền, thông tin khách, lời dặn không bỏ được luật này.
 
 ### Dịch vụ nhập tay (chỉ Toàn quyền bật / tắt)
-Trang **Tôi**, khối **Dịch vụ nhập tay**: bấm [[Bật dịch vụ nhập tay]] hoặc [[Tắt dịch vụ nhập tay]]. Mặc định tắt. Khi bật: Bán hàng, Quản trị, Toàn quyền thêm được dịch vụ gõ tên và giá tay ở form lập đơn ([[+ Dịch vụ nhập tay]]). Tài khoản có quyền Đối tác luôn không dùng được. Khi tắt: dịch vụ nhập tay đã có trên đơn vẫn giữ, chỉ xem. Văn phòng thêm dịch vụ nhập tay vào đơn nháp của Đối tác thì Đối tác không tự xác nhận được — văn phòng xác nhận thay.
+Trang **Tôi**, khối **Dịch vụ nhập tay**: [[Bật dịch vụ nhập tay]] hoặc [[Tắt dịch vụ nhập tay]]. Mặc định tắt. Khi bật: Bán hàng, Quản trị, Toàn quyền thêm được dịch vụ gõ tên và giá tay ở form lập đơn ([[+ Dịch vụ nhập tay]]). Tài khoản có quyền Đối tác luôn không dùng được. Khi tắt: dịch vụ nhập tay đã có trên đơn vẫn giữ, chỉ xem. Văn phòng thêm dịch vụ nhập tay vào đơn nháp của Đối tác thì Đối tác không tự xác nhận được — văn phòng xác nhận thay.
 
 ### Lý do điều phối
-Mở [[Lý do điều phối]]. Lý do chia nhóm, như [[Đổi giờ xe tới]], [[Huỷ chuyến]], [[Phá lệ]]. Thêm: [[+ Thêm lý do]] ở nhóm cần, gõ lý do, bấm [[Thêm]]. Sửa tên: [[Sửa]]. Không dùng nữa: [[Ngưng]]; dùng lại: [[Dùng lại]]. Lý do hệ thống tự dùng thì không ngưng được.`,
+Mở [[Lý do điều phối]]. Lý do chia nhóm, như [[Đổi giờ xe tới]], [[Huỷ chuyến]], [[Phá lệ]]. Thêm: [[+ Thêm lý do]] ở nhóm cần, gõ lý do, [[Thêm]]. Sửa tên: [[Sửa]]. Không dùng nữa: [[Ngưng]]; dùng lại: [[Dùng lại]]. Lý do hệ thống tự dùng không ngưng được.`,
     },
     {
       tieuDe: "Tình huống hay gặp",
