@@ -319,3 +319,23 @@ K2e (kiểm độc lập `1f8b498..01ba476`) đang chạy.
     - nhánh `stale` của nút mới chưa có bước Chrome.
     - Cả hai giao vòng 5g, cùng lúc với gộp `92dd556`.
 - Tóm tắt báo cáo của điều phối: `K2e-bao-cao-may-chu.md`, `K2e-bao-cao-giao-dien.md` (thư mục tạm của phiên).
+
+## Trả lời lần 17 (30/9 — duyệt đề xuất luật ADR-0049 lúc gộp, sau K2f)
+
+**K2f** (lượt kiểm cuối, bản tích hợp `giao-dien-dieu-phoi-luot-1` @ `728c643`): **ĐẠT CÓ ĐIỀU KIỆN**, được trình chủ.
+- Kiểm chéo toàn bộ 311 tệp đổi so với `main`: NỚI chỉ gồm mục 1–3, bảng "Chủ lần 16" và phần nền ADR-0047 đã duyệt.
+- Không tệp luật nào bị sửa trên nhánh.
+- e2e 30/30. Chrome 8 kịch bản xanh.
+- Ba điểm THẤP (số bước 13 → 14 ở mục 5; bài cho nhánh `stale` của lưới thứ hai; đếm 409 ở bước 6) giao vòng 5h.
+
+| Câu (điều phối hỏi, tóm nguyên văn) | Chủ chọn |
+|---|---|
+| "Duyệt 4 mục về quyền và hàng rào của Bảng điều phối xe? … (0) Bảy quyền mới … (1) Cho phần Vận chuyển đọc chặng đưa đón của đơn và danh sách địa điểm. (2) Cho tài xế công ty xem chuyến mình lái và tự bấm tiến độ. (3) Cho hiện họ tên, năm sinh khách trên màn tài xế (chỉ trong ngày chạy, chỉ chuyến mình lái) và trên màn chi tiết chuyến của văn phòng. …" | **"Duyệt cả 4 mục (Recommended)"** |
+| "Duyệt phần mô tả trong bốn tệp luật cho AI, để luật khớp với mã mới? … Kèm bốn dòng sổ hàng rào đang ghi "chờ chủ duyệt" của lượt này. …" | **"Duyệt (Recommended)"**: mục 5, 6, 7a, 7b, 7c, 8 và 4 dòng sổ hàng rào |
+| "Mấy nhãn cũ trong sổ hàng rào và trong chú thích mã vẫn ghi "chờ chủ duyệt", dù bạn đã duyệt các lượt đó: Vận chuyển 1a ngày 28/9 … và ADR-0047 ngày 29/9 … Đổi chúng thành "đã duyệt (ngày, nguồn)" không?" | **"Đổi thành "đã duyệt" (Recommended)"**: chỉ sửa chữ nhãn và chú thích, không đổi mã |
+
+Cách áp:
+- Điều phối chép đúng diff đã duyệt vào tệp luật trên nhánh tích hợp, mỗi tệp một commit.
+- Thứ tự: phần nền ADR-0047 và ADR-0048 (đã duyệt lần 5), rồi ADR-0049 mục 4 (lần 7), rồi mục 5–8.
+- Đổi chú thích "CHỜ CHỦ DUYỆT" ở mã mục 1–2 và bốn dòng sổ hàng rào thành "ĐÃ DUYỆT 2026-09-30 (lần 17)".
+- Xong thì có người kiểm độc lập (việc lớn, loại "luật").
