@@ -263,3 +263,26 @@ Bài học vận hành: điều phối dùng EnterWorktree đổi thư mục phi
   - VỪA-2: `web/CLAUDE.md:53` ghi 15/16 mục menu, thực tế 17. Áp khi chủ duyệt mục 5 của đề xuất luật. Không sửa riêng giữa chừng.
   - VỪA-3: T3 và T4 chuyển vào BACKLOG mục 7.
   - Q-B-18 đóng theo R-P28.
+
+## Trả lời lần 16 (30/9, sau người kiểm độc lập K2d — máy tự gắn tên lúc xếp)
+
+K2d @ `1f8b498`: **ĐẠT CÓ ĐIỀU KIỆN**, có một lỗi **CAO**. Người kiểm dựng lại được bằng kịch bản thật:
+- Đơn có hai khách A, B, xếp lên xe, máy tự gắn tên A, B. Sau đó huỷ A khỏi đơn và thêm C.
+- Màn văn phòng báo lý do giữ rỗng, nhưng lệnh xuất bến trả 409 `THIEU_TEN` "tải lại"; tải lại vẫn 409.
+- Thêm suất thì bị 409 vượt số người, rút thì 409 cần phá lệ. Chuyến bị kẹt.
+- Gốc lỗi: `kiemXuatBen` chỉ đếm số lượng; phép chặn thật nằm riêng ở `dieu-phoi-tien-do.ts:82-93`, tức luật thứ hai, lệch D2 "một hàm".
+- Bản chốt không bao giờ trỏ khách đã huỷ (route + trigger `vc_trip_manifest_scope`).
+
+Điều phối tra trước khi hỏi: ADR-0050 VK1-B đã có nguyên tắc cho nơi hẹn đổi sau khi xếp. Áp vào tên khách là một quyết định cụ thể chạm dữ liệu, nên phải hỏi chủ.
+
+| Câu (nguyên văn điều phối hỏi) | Chủ chọn |
+|---|---|
+| "Khách A đã được xếp lên xe (máy tự gắn tên). Sau đó bán hàng bỏ A khỏi đơn và thêm khách C, nên số người không đổi. Hiện màn văn phòng báo "đạt hết" nhưng bấm xuất bến bị chặn, và văn phòng không tự gỡ được. Dữ liệu không sai: danh sách hành khách chốt lúc xuất bến không bao giờ chứa người đã bị bỏ, chỉ là chuyến bị kẹt. Sửa theo cách nào?" — "Giữ xe + nút cập nhật" / "Máy tự thay lúc xuất bến" / "Bỏ tự gắn tên lúc xếp" | **"Giữ xe + nút cập nhật (Recommended)"**, theo khuôn ADR-0050 VK1-B: máy giữ chuyến, báo rõ "khách không còn trong đơn — cập nhật theo đơn"; văn phòng bấm một nút để thay bằng khách hiện có của đơn, không cần Quản trị phá lệ |
+| "Khi mạng chập chờn, điện thoại có thể gửi lại hai lần cùng một lệnh "Bỏ đánh dấu đã gọi báo khách". ADR-0051 (bạn đã duyệt) ghi: lần gửi lại phải trả đúng kết quả của lần đầu. Hiện máy trả gần đúng. …" — "Sửa cho khớp ADR" / "Chấp nhận lệch nhỏ" | **"Sửa cho khớp ADR (Recommended)"**: lưu kết quả lần đầu để lần gửi lại trả y hệt. `0043` chưa áp remote nên sửa tại chỗ. GA-59 **không** còn là dòng §16 |
+
+Điều phối chốt hình dạng lệnh (R-P29, theo khuôn `/cap-nhat-diem`):
+- lý do giữ mới `KHACH_DA_DOI`, nằm TRONG `kiemXuatBen`; lệnh xuất bến dùng đúng kết luận đó, bỏ luật thứ hai;
+- route `POST /api/van-chuyen/chuyen/:id/cap-nhat-khach`, thân `{ version, requestId }`, ô `trip.dispatch`, không xét mốc khoá; chỉ chuyến `PLANNED`, `RUNNING` → 409 `xe_dang_chay`;
+- mã đóng suất mới `PASSENGER_CHANGED` trong `CHECK` của `0042` (chưa áp remote); sự kiện chỉ ghi số lượng, không ghi tên.
+
+Người thi công được đổi tên mã nếu vướng, nhưng phải báo lại dưới dạng GA.
