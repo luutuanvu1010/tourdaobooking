@@ -16,6 +16,22 @@
 | `login_attempt` | bảng | tên cũ, giữ nguyên (ADR-0002 điều 2) |
 | `aut_passkey` | bảng |  |
 
+## billing
+
+| Đối tượng | Loại | Ghi chú |
+|---|---|---|
+| `bil_payment_method` | bảng tra cứu |  |
+| `bil_collector_role` | bảng tra cứu |  |
+| `bil_receipt_kind` | bảng tra cứu |  |
+| `bil_receipt_stage` | bảng tra cứu |  |
+| `bil_posting_kind` | bảng tra cứu |  |
+| `bil_debt_kind` | bảng tra cứu |  |
+| `bil_payment_receipt` | bảng | lần thu (ADR-0026 đ2), CHỈ-THÊM, dòng đảo trỏ reverses_id; migration 0045 chứa câu MỘT LẦN chép cọc cũ (orders.deposit_amount > 0) thành lần thu người thu CHƯA RÕ (ADR-0026 đ9, Q3) |
+| `bil_posting` | bảng | phiếu sổ (ADR-0026 đ3), CHỈ-THÊM; due_snapshot = phải thu chụp lúc Đã giao (Q4); trigger kiểm tiền trong lô Đã giao / Hoàn thành |
+| `bil_debt_line` | bảng | dòng nợ hai chân (ADR-0026 đ3), CHỈ-THÊM; nguồn = đơn HOẶC chuyến (ADR-0057 T3 — trip_id cột dự trữ, không khoá ngoại, lượt 1 luôn trống) |
+| `v_bil_order_paid` | view công bố | cột: order_id, paid_net, unknown_count |
+| `v_bil_party_balance` | view công bố | cột: party_id, counterparty_id, order_id, balance |
+
 ## catalog
 
 | Đối tượng | Loại | Ghi chú |
@@ -70,7 +86,7 @@
 | `order_item` | bảng | tên cũ, giữ nguyên (ADR-0002 điều 2) |
 | `order_money_adjustment` | bảng | tên cũ, giữ nguyên (ADR-0002 điều 2) |
 | `order_service` | bảng | tên cũ, giữ nguyên (ADR-0002 điều 2) |
-| `orders` | bảng | tên cũ, giữ nguyên (ADR-0002 điều 2) |
+| `orders` | bảng | tên cũ, giữ nguyên (ADR-0002 điều 2); cột chết: deposit_amount, deposit_method, remaining_amount; ba cột cọc KHÔNG DÙNG NỮA — xem ADR-0026 điều 9 (đơn mới ghi 0 / NULL / total để thoả trigger 0007; số đã thu, còn lại lấy từ billing). Cột mốc delivered_at/_by, completed_at/_by từ 0044 (ADR-0024 điều 3) |
 | `ord_transfer_leg` | bảng |  |
 | `ord_passenger` | bảng |  |
 | `v_ord_order_label` | view công bố | cột: id, order_code |

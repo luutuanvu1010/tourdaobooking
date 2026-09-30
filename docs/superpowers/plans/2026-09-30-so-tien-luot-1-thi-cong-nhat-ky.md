@@ -51,6 +51,17 @@
 - NT-R6 kiểm bằng HÀNH VI (thử đổi từng cột của `PRAGMA table_info(orders)` trong câu Hoàn thành), không đọc chữ thân trigger; tự kiểm: thêm cột tạm trong CSDL thử → báo đúng cột lọt.
 - Test `src/migrations-orders-da-giao.test.ts` 8 bài: đỏ 8/8 khi chưa có tệp → xanh 8/8. `npm test` 1886/1886 + 1/1; typecheck 0; bài luật thân trigger xanh với 19 trigger mới.
 
+## Task 3 — Migration `0045_billing_so_cong_no.sql` (xong 30/9)
+
+- 6 bảng tra cứu, 3 bảng chỉ-thêm (`bil_payment_receipt`, `bil_posting`, `bil_debt_line` — có `trip_id` + hai CHECK của ADR-0057 T3), 2 view (`v_bil_order_paid`, `v_bil_party_balance`), 14 trigger, 2 chỉ mục duy nhất một phần (mỗi đơn ≤ 1 phiếu Đã giao / Hoàn thành — lưới cho R-BIL-4, **thêm so với kế hoạch**).
+- **Ruling mã tra cứu:** mã VIẾT HOA (`CASH`, `BANK_TRANSFER`, `OTHER`) theo khuôn bảng tra cứu của repo (`CHECK (code = upper(code))`) và chữ "OTHER" của câu trả lời Q3; câu chuyển cọc chép `upper(deposit_method)` (kế hoạch §3.2 ghi "trùng mã deposit_method cũ" — chép 1:1 qua `upper()`).
+- Chuyển cọc (Q3): ngày = `date(created_at, '+7 hours')` (bài biên 17:30Z → hôm sau; 16:59:59Z → cùng ngày); hình thức NULL → `OTHER`; thu cho = `v_pty_owner_company` (vắng → NOT NULL chặn cả migration — có bài); `created_by = 'he-thong'`; `created_at` = mốc cố định `2026-09-30T00:00:00.000Z`.
+- Phiếu RECEIPT chỉ tạo khi lần thu có dòng nợ (người thu không phải Công ty do Kế toán ghi) — GĐ bề mặt thi công; lần thu luôn truy được qua `receipt_id` của dòng nợ.
+- Sổ dữ liệu: module `billing`, 9 bảng + 2 view, `deprecatedColumns` ba cột cọc của `orders`; thêm trường `note` (tuỳ chọn) vào bảng của sổ và bộ sinh `scripts/data-dictionary-lib.mjs` in nó (tài liệu mô tả) để ghi "câu một lần chép cọc cũ".
+- Kiểm "thông tin" mới ở `scripts/audit-checks.mjs` (mức `warn`): số đơn còn lần thu người thu chưa rõ.
+- Test `src/migrations-billing.test.ts` 13 bài: đỏ 13/13 khi chưa có tệp → xanh. Bài "không id cứng" bắt id công ty chủ viết cứng trong test lúc đầu — đã đổi sang đọc `v_pty_owner_company`.
+- `npm test` 1899/1899 + 1/1; typecheck 0.
+
 ## Ruling / giả định (ghi theo thứ tự gặp)
 
 (chưa có)

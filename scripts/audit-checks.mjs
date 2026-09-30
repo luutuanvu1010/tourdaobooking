@@ -116,6 +116,15 @@ export const CHECKS = [
     sql: `SELECT count(*) FROM staff s WHERE s.active = 1 AND NOT EXISTS (SELECT 1 FROM stf_permission p WHERE p.staff_id = s.id AND p.valid_to_at IS NULL)`,
     level: "warn-unless-strict",
   },
+  {
+    // Sổ tiền lượt 1 (ADR-0026 điều 9, kế hoạch Task 3): việc của Kế toán SAU phát hành — cọc cũ đã chép thành lần thu người thu CHƯA RÕ; đơn còn dòng
+    // đó không bấm "Đã giao" được tới khi Kế toán đảo và ghi lại đúng người thu. Tình trạng nghiệp vụ hợp lệ ⇒ mức warn (không bao giờ đỏ).
+    code: "thông tin",
+    what: "đơn còn lần thu người thu chưa rõ (cọc cũ chuyển sang sổ — Kế toán đảo rồi ghi lại đúng người thu)",
+    sql: "SELECT count(*) FROM v_bil_order_paid WHERE unknown_count > 0",
+    level: "warn",
+    note: "việc của Kế toán sau khi phát hành sổ tiền lượt 1 (ADR-0026 điều 9)",
+  },
 
   // ---- Luật cứng ADR-0018 — trigger LC-1/LC-3 chặn ở CSDL (migration 0024); các kiểm này là LƯỚI THỨ HAI (P21) cho dữ liệu sửa tay bằng SQL. ----
   // ADR-0048 B2.1 (NỚI — chờ chủ xác nhận ở tệp đề xuất luật mục 1c): quyền bên ngoài = {PARTNER, DRIVER_PARTNER} = EXTERNAL_PERMISSIONS của
