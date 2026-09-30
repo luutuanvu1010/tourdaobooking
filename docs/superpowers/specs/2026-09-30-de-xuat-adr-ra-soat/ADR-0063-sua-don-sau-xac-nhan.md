@@ -218,3 +218,12 @@ Không sửa tệp ADR cũ; `docs/adr/README.md` do điều phối cập nhật.
 - Tên của dịch vụ **có mã danh mục** trên đơn (`SubtotalServiceInput.name`) có phải luôn là tên chụp từ danh mục, không người dùng sửa được không — chưa kiểm. Nếu sửa được, hàm viết đoạn số khách phải lấy tên từ danh mục theo mã thay vì từ đơn.
 - Chưa kiểm `validateTripUpdate` có cho đổi `checkinDate` / `checkinTime` sau xác nhận không ảnh hưởng mốc 6 giờ.
 - Số lệnh đổi giờ thật trên production mỗi đơn (để biết 2 lần có đủ không): **không biết**.
+
+## Ghi chú từ người thi công Sổ tiền (30/9, qua phiên "phân tích góp ý" — đọc mã nhánh `worktree-agent-aa1fab0316112d404` @b494dee5, chỉ đọc)
+- `insertMoneyAdjustment` viết cứng `"order_money_adjusted_by_field"` ở `src/modules/orders/repository.ts:1136` (trên nhánh Sổ tiền; `:1150` trên main 1.38); nơi gọi duy nhất `src/modules/orders/index.ts:374`.
+- Thêm tham số hành động KHÔNG vướng Sổ tiền: `datGiaoStatement` so theo số thứ tự điều chỉnh; `hoan-tat.ts` đọc dòng điều chỉnh mới nhất bất kể hành động.
+- Ràng buộc khi thi công lát ADR-0063 (sau khi Sổ tiền gộp main):
+  - trigger của `0044` chặn chèn `order_money_adjustment` sau "Đã giao" ⇒ route văn phòng mới kiểm `DA_GIAO()` ngay sau kiểm quyền, và thêm dòng vào bảng CA/MIEN của `src/modules/billing/sau-da-giao.test.ts`;
+  - tên hành động mới khai ở `src/shared/audit-actions.ts` (xem ADR-0062 F1: có thể đã khai sẵn);
+  - `tests/e2e/dispatch.mjs` và `v1-nguoi-phu-trach.mjs` bước o khẳng định tên hành động hiện tại ⇒ giữ `order_money_adjusted_by_field` làm mặc định cho đường HDV.
+- Số bản: Sổ tiền lấy 1.41, nhánh giao diện của phiên Góp ý lấy 1.42 (tạm).
