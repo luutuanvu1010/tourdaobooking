@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { TRANG_CUOC, TRANG_DAU_TAI_XE, chiTaiXe, coCuocCuaToi, coPhanTaiXe, homeRedirect } from "./start-page.ts";
-import { PERMISSION_CODES, canAccessOrders, seesAllOrders, type PermissionCode } from "./permissions.ts";
+import { TRANG_CUOC, TRANG_DAU_TAI_XE, chiTaiXe, coCuocCuaToi, coMucDonHang, coPhanTaiXe, homeRedirect } from "./start-page.ts";
+import { MATRIX, PERMISSION_CODES, can, canAccessOrders, seesAllOrders, type PermissionCode } from "./permissions.ts";
 import { PAGES } from "./sw-policy.ts";
 
 // `id` thật (không rỗng): seesAllOrders() của PARTNER sai là vì ô "own" không có `ownerId` để so — test ghim đúng điều đó,
@@ -85,4 +85,25 @@ test("homeRedirect: 512 tập con quyền — tập KHÔNG có phần tài xế 
     assert.equal(homeRedirect(w), kyVong, w.permissions.join("+") || "(không quyền)");
   }
   assert.equal(n, 512);
+});
+
+// L3 (lỗi báo 30/9): Đối tác, Thực tập trên điện thoại không có đường về danh sách đơn của mình (thanh tab chỉ "Tạo đơn" + "Tôi").
+const coMuc = (...permissions: PermissionCode[]) => {
+  const w = who(...permissions);
+  return coMucDonHang({ seesAll: seesAllOrders(w), canCreate: can(w, "order.create") });
+};
+test("coMucDonHang: văn phòng xem mọi đơn, Đối tác, Thực tập (lập đơn → xem đơn mình) có mục \"Đơn hàng\"; HDV chỉ-FIELD, tài xế thì không", () => {
+  for (const c of ["SALES", "ACCOUNTING", "ADMIN", "SUPER_ADMIN", "PARTNER", "INTERN"] as const) assert.equal(coMuc(c), true, c);
+  assert.equal(coMuc("FIELD", "INTERN"), true, "lai HDV + Thực tập");
+  for (const c of ["FIELD", "DRIVER", "DRIVER_PARTNER"] as const) assert.equal(coMuc(c), false, c);
+});
+
+// Mục "Đơn hàng" suy từ hai cờ của bản nhớ khung (ADR-0035 — không thêm trường). Chỉ an toàn khi "lập được đơn" kéo theo "mở được danh sách đơn của mình":
+// GET /api/orders nhánh (2) "mình lập" hỏi order.view + money.view + contact.view với { ownerId: chính mình } (orders/index.ts). Bản đồ đổi làm lệch → đỏ.
+test("coMucDonHang an toàn: mọi mã quyền lập được đơn đều mở được danh sách đơn mình lập (order.view, money.view, contact.view)", () => {
+  for (const c of PERMISSION_CODES) {
+    if (MATRIX["order.create"][c] === "none") continue;
+    const w = { id: "toi", permissions: [c] };
+    for (const op of ["order.view", "money.view", "contact.view"] as const) assert.equal(can(w, op, { ownerId: "toi" }), true, `${c} ${op}`);
+  }
 });

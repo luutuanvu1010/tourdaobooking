@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { HandlerDto } from "./contracts.ts";
-import { handlerControls, handlerFailure, handlerSaved, handlerText, myJobActions, NO_HANDLER_TEXT, nguoiPhuTrachTuPhien } from "./handler-view.ts";
+import { handlerControls, handlerFailure, handlerSaved, handlerText, hoiDuocNguoiPhuTrach, myJobActions, NO_HANDLER_TEXT, nguoiPhuTrachTuPhien } from "./handler-view.ts";
 import { can, PERMISSION_CODES, type PermissionCode } from "./permissions.ts";
 
 // Ba nhân viên bán hàng (A lập đơn, B được giao, C người ngoài), quản trị, kế toán, nhân viên hiện trường.
@@ -143,4 +143,19 @@ test("nguoiPhuTrachTuPhien: 512 tập con quyền — có giá trị KHI VÀ CH�
 test("nguoiPhuTrachTuPhien: phiên thiếu hồ sơ hoặc tên rỗng → undefined (không dựng người phụ trách từ dữ liệu thiếu — trang hỏi máy chủ, ra 'chưa biết' như cũ)", () => {
   assert.equal(nguoiPhuTrachTuPhien(phien(["FIELD"], { partyId: null })), undefined);
   assert.equal(nguoiPhuTrachTuPhien(phien(["FIELD"], { fullName: "   " })), undefined);
+});
+
+// L2 (lỗi báo 30/9): GET /api/dispatch/handlers hỏi `order.view` KHÔNG ngữ cảnh (src/modules/dispatch/index.ts) → 403 với Đối tác, Thực tập, HDV; trang đơn
+// của Đối tác/Thực tập từng luôn hiện "Chưa tải được người phụ trách." + Thử lại. Giao diện chỉ gọi route đó khi hàm này đúng (cùng câu hỏi với route).
+test("hoiDuocNguoiPhuTrach: chỉ người xem được mọi đơn (văn phòng) — Đối tác, Thực tập, HDV, tài khoản lai của họ, tài xế thì không", () => {
+  for (const code of ["SALES", "ACCOUNTING", "ADMIN", "SUPER_ADMIN"] as const) assert.equal(hoiDuocNguoiPhuTrach(who("x", code)), true, code);
+  for (const perms of [["PARTNER"], ["INTERN"], ["FIELD"], ["FIELD", "INTERN"], ["PARTNER", "FIELD"], ["DRIVER"], ["DRIVER_PARTNER"]] as PermissionCode[][]) {
+    assert.equal(hoiDuocNguoiPhuTrach(who("x", ...perms)), false, perms.join("+"));
+  }
+  assert.equal(hoiDuocNguoiPhuTrach(who("x", "SALES", "PARTNER")), true, "lai văn phòng + Đối tác vẫn xem mọi đơn");
+  // Cùng câu hỏi với route: mọi tổ hợp quyền.
+  for (let mask = 0; mask < 1 << PERMISSION_CODES.length; mask++) {
+    const w = { id: "x", permissions: PERMISSION_CODES.filter((_, i) => mask & (1 << i)) };
+    assert.equal(hoiDuocNguoiPhuTrach(w), can(w, "order.view"));
+  }
 });

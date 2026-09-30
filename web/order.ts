@@ -18,10 +18,11 @@ import { CHIEU_LABEL } from "../src/shared/chang-dua-don";
 import { can } from "../src/shared/permissions";
 import { cauMoc, changDuoiMoc, tomTatChanXacNhan, type ChangCanDatGap } from "../src/shared/dat-gap-hien-thi";
 import { NO_BOOKER_TEXT } from "../src/shared/booker";
-import { NO_HANDLER_TEXT, handlerControls, handlerFailure, handlerSaved, nguoiPhuTrachTuPhien } from "../src/shared/handler-view";
+import { NO_HANDLER_TEXT, handlerControls, handlerFailure, handlerSaved, hoiDuocNguoiPhuTrach, nguoiPhuTrachTuPhien } from "../src/shared/handler-view";
+import { HANDLER_HIDDEN } from "../src/shared/order-confirmation";
 import { type PaxCounts } from "../src/shared/order-lines";
 import { banner, classifyOrderError, type Banner } from "../src/shared/order-errors";
-import { khongQuyenSuaText, orderActions, paxFullText } from "../src/shared/order-view";
+import { khongQuyenSuaText, orderActions, paxFullText, suaChuyenDuoc } from "../src/shared/order-view";
 import type { SuKienDon } from "../src/shared/bang-tin";
 
 const id = new URLSearchParams(location.search).get("id");
@@ -142,7 +143,8 @@ function kv(label: string, value: string | null, cls = ""): HTMLElement {
 }
 
 // ---- người phụ trách (v1.0, Task 8) ----
-type Handler = Api.HandlerDto | null | undefined; // null = chưa có người phụ trách; undefined = CHƯA BIẾT (lời gọi lỗi) — xem handlerControls
+// null = chưa có người phụ trách; undefined = CHƯA BIẾT (lời gọi lỗi) — xem handlerControls; HANDLER_HIDDEN = người xem không được biết (Đối tác, Thực tập — `hoiDuocNguoiPhuTrach`): ẩn cả khối
+type Handler = Api.HandlerDto | null | undefined | typeof HANDLER_HIDDEN;
 
 /**
  * Người phụ trách đang mở của đơn. KHÔNG bao giờ ném lỗi: lời gọi hỏng thì đơn vẫn hiển thị, khối người phụ trách báo "chưa tải được" (không đoán "chưa có người" rồi mời nhận).
@@ -205,8 +207,12 @@ function claimButton(order: Order): HTMLButtonElement {
   return btn;
 }
 
-/** Khối "Người phụ trách": tên (hoặc chip "Chưa có người phụ trách") + nút đổi/nhận theo `can()` (src/shared/handler-view.ts). Chưa biết người phụ trách → chữ báo + "Thử lại", không nút nào khác. */
-function handlerCard(order: Order, handler: Handler): HTMLElement {
+/**
+ * Khối "Người phụ trách": tên (hoặc chip "Chưa có người phụ trách") + nút đổi/nhận theo `can()` (src/shared/handler-view.ts). Chưa biết người phụ trách → chữ báo + "Thử lại", không nút nào khác.
+ * Người xem không được biết (`HANDLER_HIDDEN` — Đối tác, Thực tập; lỗi báo 30/9, L2) → không dựng khối (như ảnh biên nhận: không dòng, không câu chờ).
+ */
+function handlerCard(order: Order, handler: Handler): HTMLElement | null {
+  if (handler === HANDLER_HIDDEN) return null;
   const controls = handlerControls(staff!, order, handler);
   const buttons: HTMLElement[] = [];
   let summary: HTMLElement;
@@ -524,7 +530,8 @@ function nutGhiThu(order: Order, t: Api.OrderPaymentsResponse): HTMLElement {
 
 function render(order: Order, history: AuditEntry[], canModify: boolean, handler: Handler): void {
   current = order;
-  const a = orderActions(order.status, canModify);
+  // L1 (lỗi báo 30/9): nút "Sửa thông tin chuyến" / "Đổi khách" theo ô order.trip.edit (Đối tác, Thực tập: không) — không chỉ theo canModify.
+  const a = orderActions(order.status, canModify, suaChuyenDuoc(staff!, order.staffId, canModify));
   // ADR-0049 V12: chặng đơn nháp còn dưới mốc chưa đặt gấp (luật kiemMocDat, dữ liệu N-14) — chỉ để hiện; máy chủ vẫn quyết lúc xác nhận (409).
   const canDatGap = changDuoiMoc(order, mocPhut, Date.now());
   const duocDatGap = can(staff!, "order.leg.short_notice");
@@ -735,9 +742,12 @@ const layDon = id ? goiSom(() => api<Api.OrderDetailResponse>(`/api/orders/${enc
 // không ngữ cảnh — đúng cờ `seesAll` của bản nhớ khung ADR-0035) → chỉ gọi SỚM khi bản nhớ khung nói vậy (tiền lệ web/order-form.ts). Quyết định thật đợi
 // `initShell()`: hướng dẫn viên (chỉ xem đơn mình phụ trách) → người phụ trách = chính họ, tên từ phiên, KHÔNG gọi route đó (403 với họ — ruling Task 1.6).
 const layNguoiPhuTrachSom = id && layKhungNho()?.seesAll === true ? goiSom(() => loadHandler(id)) : null;
+// Người KHÔNG xem được mọi đơn (Đối tác, Thực tập — lỗi báo 30/9, L2): route 403 chắc chắn → không gọi, ẩn khối. Kiểm TRƯỚC lời gọi sớm: trên máy dùng chung
+// bản nhớ khung có thể là của người trước (văn phòng) nên lời gọi sớm đã chạy — kết quả của nó bị bỏ.
 function layNguoiPhuTrach(orderId: string): Promise<Handler> {
   const tuPhien = nguoiPhuTrachTuPhien(staff!);
   if (tuPhien) return Promise.resolve(tuPhien);
+  if (!hoiDuocNguoiPhuTrach(staff!)) return Promise.resolve(HANDLER_HIDDEN);
   return layNguoiPhuTrachSom ? layNguoiPhuTrachSom() : loadHandler(orderId);
 }
 staff = await initShell();
