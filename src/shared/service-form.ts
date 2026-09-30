@@ -380,16 +380,16 @@ export interface OrderSummary {
   subtotal: number;
   discount: number;
   total: number;
-  deposit: number;
-  remaining: number;
-  /** Cảnh báo (không chặn): giảm giá lớn hơn tạm tính / cọc lớn hơn tổng cộng. */
+  /** Số "thanh toán trước" người lập vừa gõ (ghi thành LẦN THU sau khi lưu — sổ tiền lượt 1). KHÔNG có "còn lại": số đó chỉ billing tính (ADR-0026 đ9, NT-R9). */
+  traTruoc: number;
+  /** Cảnh báo (không chặn): giảm giá lớn hơn tạm tính / trả trước lớn hơn tổng cộng. */
   warning: string | null;
 }
 
 /** Chỉ để xem trước; số chính thức do máy chủ tính lại khi lưu. */
-export function orderSummary(drafts: readonly ServiceDraft[], discount: number, deposit: number): OrderSummary {
+export function orderSummary(drafts: readonly ServiceDraft[], discount: number, traTruoc: number): OrderSummary {
   const subtotal = drafts.reduce((sum, d) => sum + draftSubtotal(d), 0);
   const total = subtotal - discount;
-  const warning = discount > subtotal ? "Giảm giá đang lớn hơn tạm tính." : deposit > total ? "Thanh toán trước đang lớn hơn tổng cộng." : null;
-  return { subtotal, discount, total, deposit, remaining: total - deposit, warning };
+  const warning = discount > subtotal ? "Giảm giá đang lớn hơn tạm tính." : traTruoc > total ? "Thanh toán trước đang lớn hơn tổng cộng." : null;
+  return { subtotal, discount, total, traTruoc, warning };
 }

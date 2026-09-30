@@ -336,6 +336,12 @@ textarea { min-height: 72px; resize: vertical; }
 .badge-draft { color: var(--c-sand-text); background: var(--c-sand-soft); }
 .badge-confirmed { color: var(--c-green-text); background: var(--c-green-soft); }
 .badge-cancelled { color: var(--c-text-muted); background: var(--c-surface-alt); }
+/* Sổ tiền lượt 1 (ADR-0025 đ9): hai mốc suy ra — dùng lại token màu có sẵn, không thêm màu mới. */
+.badge-delivered { color: var(--c-primary-strong); background: var(--c-primary-soft); }
+.badge-completed { color: var(--c-text-inverse); background: var(--c-primary); }
+/* Khối "Ghi lần thu" ở trang đơn (sổ tiền lượt 1). */
+.pay-form { margin-top: var(--s3); }
+.pay-inline { display: contents; }
 .empty { padding: var(--s6) var(--s4); text-align: center; color: var(--c-muted); }
 
 .summary { display: grid; gap: var(--s2); margin-top: var(--s4); }

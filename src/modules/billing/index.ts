@@ -126,8 +126,14 @@ export const billingModule: AppModule = {
       const tien = await tienNhieuDon(env.DB, [...don.keys()]);
       let count = 0;
       let total = 0;
-      for (const t of tien.values()) if (t.conLai > 0) (count++, (total += t.conLai));
-      return json({ count, total } satisfies UnpaidSummaryResponse);
+      let earliestDate: string | null = null;
+      for (const t of tien.values()) {
+        if (t.conLai <= 0) continue;
+        count++;
+        total += t.conLai;
+        if (t.ngayDiSomNhat && (earliestDate === null || t.ngayDiSomNhat < earliestDate)) earliestDate = t.ngayDiSomNhat;
+      }
+      return json({ count, total, earliestDate } satisfies UnpaidSummaryResponse);
     }),
 
     // "Sổ của tôi" (ADR-0026 đ7): ô `ledger.view` phạm vi của mình — mọi tài khoản nội bộ (Đối tác, tài xế: none). Cổng "staff" (HDV không qua cổng office).

@@ -181,19 +181,24 @@ export async function tienCuaDon(db: D1Database, info: ThongTinGiaoDon, ai: Nguo
     lyDoChuaHoanThanh: info.deliveredAt && !info.completedAt ? (lyHoan as LyDoGiuDonDto | null) : null,
     banDangGiu: ai.partyId ? Math.max(0, soDu.get(ai.partyId) ?? 0) : 0,
     coTheGhiThu: quyen.coTheGhiThu && info.deliveredAt === null,
+    quyenGiao: quyen.coTheBamGiao,
     coTheGiao: quyen.coTheBamGiao && info.deliveredAt === null && lyGiao === null,
+    quyenHoanThanh: quyen.coTheBamHoanThanh,
     coTheHoanThanh: quyen.coTheBamHoanThanh && info.deliveredAt !== null && info.completedAt === null && lyHoan === null,
     laKeToan: ai.laKeToan,
   };
 }
 
 /** Tiền của NHIỀU đơn (danh sách, Trang chủ, "Việc của tôi") — cùng hàm `conLai`. */
-export async function tienNhieuDon(db: D1Database, orderIds: readonly string[]): Promise<Map<string, SoTienDon & { phaiThu: number; daGiao: boolean; hoanThanh: boolean }>> {
+type TienMotDon = SoTienDon & { phaiThu: number; daGiao: boolean; hoanThanh: boolean; ngayDiSomNhat: string | null };
+export async function tienNhieuDon(db: D1Database, orderIds: readonly string[]): Promise<Map<string, TienMotDon>> {
   const [base, receipts] = await Promise.all([phaiThuNhieuDon(db, orderIds), receiptsOfOrders(db, orderIds)]);
   const theoDon = new Map<string, ReceiptRow[]>();
   for (const r of receipts) theoDon.set(r.order_id, [...(theoDon.get(r.order_id) ?? []), toReceiptRow(r)]);
-  const out = new Map<string, SoTienDon & { phaiThu: number; daGiao: boolean; hoanThanh: boolean }>();
-  for (const [id, b] of base) out.set(id, { ...conLai(theoDon.get(id) ?? [], b.phaiThu), phaiThu: b.phaiThu, daGiao: b.deliveredAt !== null, hoanThanh: b.completedAt !== null });
+  const out = new Map<string, TienMotDon>();
+  for (const [id, b] of base) {
+    out.set(id, { ...conLai(theoDon.get(id) ?? [], b.phaiThu), phaiThu: b.phaiThu, daGiao: b.deliveredAt !== null, hoanThanh: b.completedAt !== null, ngayDiSomNhat: b.ngayDiSomNhat });
+  }
   return out;
 }
 

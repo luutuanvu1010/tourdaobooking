@@ -91,10 +91,24 @@
 - Bảng tin: hai khoá mới `chot_giao`, `hoan_thanh` (chỉ làm mới màn hình, không gõ cửa — `web-push.ts` map null); route sổ cũng báo `tien` cho đơn liên quan.
 - Đột biến đã thấy đỏ: Bảng tin (NT-R7), câu bảo vệ (NT-F4), trigger Đã giao trong lô (NT-F6b) — dòng SO-HANG-RAO. `npm test` 1929/1929 + 1/1; typecheck 0.
 
+## Task 6e + 7 + 8 + phần Task 10 trên màn cũ (xong 30/9, MỘT commit — chênh: kế hoạch tách commit; gộp vì bỏ ba trường cọc khỏi `OrderDto` làm máy chủ, `web/` và e2e phải đổi CÙNG lúc mới xanh)
+
+- **6e (NT-F7):** 9 route ghi của `orders` + 3 route của `dispatch` trả 409 `order_delivered` ("Đơn đã giao – đã thu đủ, không sửa được nữa") SAU kiểm quyền; chi tiết đơn trả `canModify && !deliveredAt`. Bài `src/modules/billing/sau-da-giao.test.ts`: danh sách route ghi SINH từ module thật = bảng CA ∪ MIEN. Đỏ thật: dòng SO-HANG-RAO.
+- **7 (NT-R9, Q2):** `OrderDto`/`OrderSummaryDto`/`MyAssignmentDto`/`DashboardResponse` bỏ cọc / còn lại / `unpaid`; thêm `deliveredAt`/`completedAt`. Thân đơn còn `depositAmount > 0` (trang cũ trong bộ nhớ đệm) → 409 `client_outdated`. Đơn mới ghi 0 / NULL / total (thoả trigger 0007). Lưu nháp: tổng < cọc cũ → cọc về 0 + câu nhật ký ghi số cọc cũ (Q2; `src/modules/orders/coc-cu-nhap.test.ts`). Hàng rào `src/coc-cu-khong-doc.test.ts` (7 mục cho phép). `trangThaiHienThi` ở `src/shared/order-status-label.ts` (nhãn "Đã giao – đã thu đủ", "Hoàn thành").
+- **8 (NT-B1, NT-R3):** module `receipt` (KHONG_BANG) — `GET /api/orders/:id/receipt`, `dungBienNhan` danh sách trắng; `buildConfirmation` nhận `ReceiptDto`. Đã trả / còn lại lấy từ billing.
+- **10 (màn cũ):** form lập đơn — mục Thanh toán ĐỨNG TRƯỚC Khách hàng (YC-0001), hình thức mặc định Chuyển khoản, giữ nút "Sử dụng thông tin của tôi" (không điền sẵn); tiền trả trước = lần thu ghi ở BƯỚC HAI sau khi lưu đơn (`POST /payments`), lỗi bước hai → chi tiết đơn hiện dải "chưa ghi được tiền trả trước" (`?thutruoc=loi`). Chi tiết đơn: thẻ tiền (phải thu / đã thu / còn lại từ billing), nút "Đã giao – đã thu đủ" / "Hoàn thành" theo `quyenGiao`/`quyenHoanThanh`, lý do chưa giao được, ô ghi lần thu. Danh sách / Trang chủ / Việc của tôi: số đã thu / còn lại qua `POST /api/ledger/balances`, "chưa thu" qua `GET /api/ledger/unpaid-summary`. Chữ "Đã cọc" ở `web/viec-cua-toi.ts` (YC-0002) → "Đã thu" từ billing.
+- e2e: `orders.mjs` (trả trước = lần thu, còn lại qua billing), `dispatch.mjs` (MyAssignment chỉ `total`; D5 + G ghi lần thu 300.000 rồi kiểm `conLai` ở chi tiết + danh sách + HDV). `redteam` R8 nay ĐẠT.
+- `npm test` 1936/1936 + 1/1; typecheck 0; `build:web` được.
+
 ## Ruling / giả định (ghi theo thứ tự gặp)
 
-(chưa có)
+- R-1 (bề mặt): mã hình thức thu viết HOA (`CASH`/`BANK_TRANSFER`/`OTHER`) như bảng tra 0045; cọc cũ chữ thường đổi bằng `upper()` lúc chuyển.
+- R-2: khoá `dsp_assignment` sau Đã giao áp MỌI loại việc (đúng chữ ADR-0025 đ4), không riêng HANDLE.
+- R-3: không cần ngoại lệ Q1 cho `van-chuyen` — module đó không ghi bảng `ord_*`.
+- R-4: không có đường tự đóng đơn nào (R4 của kế hoạch) — không phải chặn thêm.
+- R-5: ca đua (NT-F3/F4/F6b…) chạy trên khung thử thay e2e (tất định); D1 thật chỉ ca R1.
+- R-6: tiền trả trước ở form lập đơn = hai bước (lưu đơn rồi ghi lần thu), không gộp vào `POST /api/orders` — giữ `orders` không biết `bil_` (NT-R1).
 
 ## Nợ / việc còn lại
 
-(chưa có)
+- N-1: đua hiếm giữa lúc route `orders` đọc mốc và lúc ghi (người khác bấm Đã giao giữa chừng) → trigger `order_delivered` chặn dữ liệu đúng, nhưng người dùng thấy lỗi 500 chung thay vì câu tiếng Việt. Chưa dịch.

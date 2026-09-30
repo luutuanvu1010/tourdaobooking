@@ -57,12 +57,14 @@ export interface PhaiThuDon {
   status: "draft" | "confirmed" | "cancelled";
   deliveredAt: string | null;
   completedAt: string | null;
+  /** Ngày đi sớm nhất của đơn (null = chưa dịch vụ nào có ngày) — ô "Còn thiếu tiền" của Trang chủ. */
+  ngayDiSomNhat: string | null;
 }
 /** "Phải thu hiện hành" + mốc của nhiều đơn (id lạ: không có trong Map). Rỗng → không truy vấn. */
 export async function phaiThuNhieuDon(db: D1Database, orderIds: readonly string[]): Promise<Map<string, PhaiThuDon>> {
   const rows = await moneyBaseMany(db, orderIds);
   const tien = await phaiThuCua(db, rows);
-  return new Map(rows.map((r) => [r.id, { phaiThu: tien.get(r.id)!, status: r.status, deliveredAt: r.delivered_at, completedAt: r.completed_at }]));
+  return new Map(rows.map((r) => [r.id, { phaiThu: tien.get(r.id)!, status: r.status, deliveredAt: r.delivered_at, completedAt: r.completed_at, ngayDiSomNhat: r.earliest_depart }]));
 }
 
 /** Mọi đơn đã xác nhận chưa "Đã giao" kèm phải thu (ô "Còn thiếu tiền" của Trang chủ — billing trừ tiền đã thu). */

@@ -2,6 +2,9 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { CompanyDto, OrderDetailDto, OrderItemDto, OrderServiceDto, OrderStatus } from "./contracts.ts";
 import { buildConfirmation, HANDLER_HIDDEN, PENDING_HANDLER_TEXT, type ConfirmationBlock, type ConfirmationModel } from "./order-confirmation.ts";
+// Sổ tiền lượt 1 (Task 8): bộ dựng nhận BIÊN NHẬN (ReceiptDto) máy chủ dựng theo danh sách trắng — bài này dựng ReceiptDto bằng CHÍNH hàm của máy chủ
+// (`dungBienNhan`) từ dữ liệu mẫu dạng đơn, để phép thử "không lộ nội bộ" vẫn đưa MỌI ô nội bộ của đơn vào nguồn.
+import { dungBienNhan } from "../modules/receipt/rules.ts";
 
 // ---- dữ liệu mẫu: đúng hình dạng OrderDetailDto (id/mã nội bộ có tên riêng để phép thử "không lộ" không đúng/sai do trùng chữ) ----
 const NO_TRIP = { departDate: null, departTime: null, pickupTime: null, pickupPlace: null, checkinDate: null, checkinTime: null, checkinPlace: null, note: null };
@@ -24,10 +27,12 @@ const svc = (o: Partial<OrderServiceDto> = {}): OrderServiceDto => ({
   id: "svc_INTERNAL_1", kind: "catalog", catalogCode: "TD101", name: "Tour 4 đảo Nha Trang", unit: "perPax", pax: { adult: 2, child: 1, senior: 0, infant: 0 },
   items: [item(), childItem()], catalogStatus: "price_changed", ...FULL_TRIP, ...o,
 });
-const order = (o: Partial<OrderDetailDto> = {}): OrderDetailDto => ({
+/** Mẫu dạng đơn + hai số của billing (`paid`, `remaining` — không thuộc đơn, đi vào ReceiptDto). */
+type DonMau = OrderDetailDto & { paid: number; remaining: number };
+const order = (o: Partial<DonMau> = {}): DonMau => ({
   id: "ord_INTERNAL", orderCode: "TD-20260921-0007", staffId: "stf_INTERNAL", staffName: "Nguyễn Thu Hà", bookerPartyId: null, bookerName: null, status: "draft",
   customerName: "Trần Văn Bình", customerPhone: "0901234567", customerEmail: "binh.tran@example.com", customerNote: "Cả nhà ăn chay, xin xếp ghế gần nhau",
-  subtotal: 3600000, discount: 100000, total: 3500000, depositAmount: 1000000, depositMethod: "cash", remainingAmount: 2500000,
+  subtotal: 3600000, discount: 100000, total: 3500000, deliveredAt: null, completedAt: null, paid: 1000000, remaining: 2500000,
   paymentNote: "PAYMENT-NOTE-NOI-BO: cọc qua Vietcombank", createdAt: "2026-09-20T18:30:00.000Z", updatedAt: "2026-09-20T18:35:00.000Z", confirmedAt: null,
   services: [svc()], ...o,
 });
@@ -41,7 +46,8 @@ function one<K extends Kind>(m: ConfirmationModel, kind: K): Extract<Confirmatio
   assert.equal(all.length, 1, `phải có đúng một khối "${kind}"`);
   return all[0]!;
 }
-const build = (o: OrderDetailDto, handler: string | null | typeof HANDLER_HIDDEN = "Lê Minh Tuấn", company: CompanyDto = COMPANY): ConfirmationModel => buildConfirmation(o, company, handler);
+const build = (o: DonMau, handler: string | null | typeof HANDLER_HIDDEN = "Lê Minh Tuấn", company: CompanyDto = COMPANY): ConfirmationModel =>
+  buildConfirmation(dungBienNhan(o, company, { daTra: o.paid, conLai: o.remaining }), handler);
 /** Giá trị của dòng nhãn/giá trị có nhãn `label` (undefined = không có dòng đó). */
 const value = (rows: { label: string; value: string }[], label: string): string | undefined => rows.find((r) => r.label === label)?.value;
 const details = (s: OrderServiceDto): { label: string; value: string }[] => one(build(order({ services: [s] })), "service").details;
@@ -220,14 +226,14 @@ test("người xem KHÔNG được biết người phụ trách (Đối tác —
 
 test("tổng kết: đúng số của đơn (không tự tính lại); chỉ Tổng cộng và Còn lại nổi bật; giảm giá 0 in '0 ₫'; còn lại âm giữ nguyên dấu", () => {
   const rows = (o: OrderDetailDto) => one(build(o), "summary").rows;
-  const a = rows(order({ subtotal: 12345678, discount: 0, total: 12345678, depositAmount: 5000000, remainingAmount: 7345678 }));
+  const a = rows(order({ subtotal: 12345678, discount: 0, total: 12345678, paid: 5000000, remaining: 7345678 }));
   assert.deepEqual(a.map((r) => [r.label, r.value, r.emphasis]), [
     ["Tạm tính", "12.345.678 ₫", false], ["Giảm giá", "0 ₫", false], ["Tổng cộng", "12.345.678 ₫", true], ["Thanh toán trước", "5.000.000 ₫", false], ["Còn lại", "7.345.678 ₫", true],
   ]);
-  const over = rows(order({ subtotal: 4000000, discount: 0, total: 4000000, depositAmount: 5000000, remainingAmount: -1000000 }));
+  const over = rows(order({ subtotal: 4000000, discount: 0, total: 4000000, paid: 5000000, remaining: -1000000 }));
   assert.equal(over.find((r) => r.label === "Còn lại")!.value, "-1.000.000 ₫");
   // số hiển thị là số của đơn, kể cả khi lệch so với tổng các dòng (máy chủ là nơi tính; ảnh chỉ in lại)
-  const odd = rows(order({ subtotal: 111, total: 222, remainingAmount: 333, depositAmount: 444, discount: 5 }));
+  const odd = rows(order({ subtotal: 111, total: 222, remaining: 333, paid: 444, discount: 5 }));
   assert.deepEqual(odd.map((r) => r.value), ["111 ₫", "-5 ₫", "222 ₫", "444 ₫", "333 ₫"]);
 });
 
@@ -293,7 +299,7 @@ test("làm sạch: ký tự điều khiển, NUL và bidi bị bỏ ở MỌI ô
       }),
     ],
   });
-  const m = buildConfirmation(dirty, { ...COMPANY, name: `CÔNG TY${RLO} TNHH TOUR ĐẢO`, address: `${COMPANY.address}${NUL}` }, `Lê${RLO} Minh Tuấn${NEL}`);
+  const m = build(dirty, `Lê${RLO} Minh Tuấn${NEL}`, { ...COMPANY, name: `CÔNG TY${RLO} TNHH TOUR ĐẢO`, address: `${COMPANY.address}${NUL}` });
   assert.deepEqual(strings(m).filter(hasBanned), [], "không chuỗi nào còn ký tự điều khiển/bidi");
   assert.equal(m.orderCode, "TD-20260921-0007");
   assert.equal(m.fileName, "xac-nhan-TD-20260921-0007.png");

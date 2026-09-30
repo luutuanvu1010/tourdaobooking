@@ -301,12 +301,12 @@ test("isFrozenManual (DK-T3-01, chủ dự án 2026-09-26): dịch vụ nhập t
 });
 
 // ---- tóm tắt tiền và nhãn ----
-test("orderSummary: số mẫu của đặc tả — tạm tính 7.450.000 ₫, cọc 1.000.000 ₫, còn lại 6.450.000 ₫; cảnh báo giảm giá/cọc quá lớn", () => {
+test("orderSummary: số mẫu của đặc tả — tạm tính 7.450.000 ₫, trả trước 1.000.000 ₫ (KHÔNG tự trừ ra 'còn lại' — sổ tiền lượt 1); cảnh báo giảm giá/trả trước quá lớn", () => {
   const drafts = [tourDraft(2, 1), setPax(newCatalogDraft(banana, "k2"), "adult", 7), setManualLine(setGuests({ ...newManualDraft("k3"), name: "Xe" }, 3), 0, { description: "Xe 7 chỗ 2 chiều", unitPrice: 800000 })];
-  assert.deepEqual(orderSummary(drafts, 0, 1000000), { subtotal: 7450000, discount: 0, total: 7450000, deposit: 1000000, remaining: 6450000, warning: null });
+  assert.deepEqual(orderSummary(drafts, 0, 1000000), { subtotal: 7450000, discount: 0, total: 7450000, traTruoc: 1000000, warning: null });
   assert.equal(orderSummary(drafts, 8000000, 0).warning, "Giảm giá đang lớn hơn tạm tính.");
   assert.equal(orderSummary(drafts, 0, 7500000).warning, "Thanh toán trước đang lớn hơn tổng cộng.");
-  assert.deepEqual(orderSummary([], 0, 0), { subtotal: 0, discount: 0, total: 0, deposit: 0, remaining: 0, warning: null });
+  assert.deepEqual(orderSummary([], 0, 0), { subtotal: 0, discount: 0, total: 0, traTruoc: 0, warning: null });
 });
 
 test("unitLabel: chip đơn vị của thẻ", () => {
@@ -328,9 +328,9 @@ const noPriceDto: OrderServiceDto = {
   departDate: null, departTime: null, pickupTime: null, pickupPlace: null, checkinDate: null, checkinTime: null, checkinPlace: null, note: null,
 };
 
-test("orderSummary với giảm giá khác 0: tổng cộng = tạm tính − giảm; cọc so với TỔNG CỘNG (không phải tạm tính)", () => {
+test("orderSummary với giảm giá khác 0: tổng cộng = tạm tính − giảm; trả trước so với TỔNG CỘNG (không phải tạm tính)", () => {
   const drafts = [tourDraft(2, 1)]; // 3.650.000
-  assert.deepEqual(orderSummary(drafts, 650000, 1000000), { subtotal: 3650000, discount: 650000, total: 3000000, deposit: 1000000, remaining: 2000000, warning: null });
+  assert.deepEqual(orderSummary(drafts, 650000, 1000000), { subtotal: 3650000, discount: 650000, total: 3000000, traTruoc: 1000000, warning: null });
   assert.equal(orderSummary(drafts, 650000, 3200000).warning, "Thanh toán trước đang lớn hơn tổng cộng."); // 3,2tr < tạm tính 3,65tr nhưng > tổng cộng 3tr
   assert.equal(orderSummary(drafts, 3650000, 0).warning, null); // giảm đúng bằng tạm tính: không cảnh báo
 });

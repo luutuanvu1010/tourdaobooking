@@ -19,8 +19,8 @@
 // Giữ anh em là cách CHẮC CHẮN không phụ thuộc hành vi ngầm của trình duyệt, đổi lại được — bề mặt, đã tự quyết
 // theo P8).
 import { type OrderStatus } from "./api";
-import { h, type Child } from "./dom";
-import { dateTime, dayMonth, paxCounts, paxCountsShort, STATUS_LABEL, vnd, vndShort } from "./format";
+import { h, replaceChildren, type Child } from "./dom";
+import { dateTime, dayMonth, paxCounts, paxCountsShort, trangThaiHienThi, vnd, vndShort } from "./format";
 import { icon } from "./icons";
 import { type PaxCounts } from "../src/shared/order-lines";
 
@@ -35,9 +35,9 @@ export interface OrderCardData {
   customerName: string;
   customerPhone: string;
   pax: PaxCounts;
-  /** Bỏ qua khi `money` = "none". */
-  depositAmount: number;
-  remainingAmount: number;
+  /** Mốc sổ tiền (ADR-0025) — nhãn "Đã giao – đã thu đủ" / "Hoàn thành" suy ra bằng `trangThaiHienThi`. */
+  deliveredAt?: string | null;
+  completedAt?: string | null;
   /** Bỏ qua khi `money` ≠ "full". */
   total: number;
   serviceNames: string[];
@@ -67,6 +67,8 @@ export interface OrderCardResult {
   el: HTMLElement;
   /** Chỗ giữ dòng người phụ trách bên trong phần xổ xuống — `web/orders.ts` điền tên sau khi `GET /api/dispatch/handlers` về (mẫu `is-pending`, giống trước Đợt E). */
   handlerSlot: HTMLElement;
+  /** Chỗ giữ "Còn thu" / "Đã trả" — điền bằng `dienTien` khi số của billing về (sổ tiền lượt 1). */
+  tien: { tienSlot: HTMLElement; daTraSlot: HTMLElement };
 }
 
 /** "Xe 7 chỗ" · "Xe 7 chỗ +2 dịch vụ" · "" (đơn chưa có dịch vụ nào — dòng bị bỏ qua, không hiện "—"). */
@@ -98,7 +100,10 @@ export function orderCard(o: OrderCardData, opts: OrderCardOptions = {}): OrderC
     o.index !== undefined && h("span", { class: "order-row-index" }, `${o.index}.`),
     h("span", { class: "order-row-when" }, when),
     h("span", { class: "order-row-name" }, o.customerName),
-    h("span", { class: `badge badge-${o.status}` }, STATUS_LABEL[o.status]),
+    (() => {
+      const tt = trangThaiHienThi(o);
+      return h("span", { class: `badge badge-${tt.khoa}` }, tt.nhan);
+    })(),
   );
 
   // ---- Dòng 2: SĐT (bấm gọi) · số khách (bản rút gọn) · "Còn thu" — ĐÚNG một hàng, không xuống dòng ----
@@ -112,9 +117,10 @@ export function orderCard(o: OrderCardData, opts: OrderCardOptions = {}): OrderC
   ];
   const pax = paxCountsShort(o.pax);
   if (pax) line2.push(h("span", { class: "order-row-pax icon-label" }, icon("guests", 16), pax));
-  if (money !== "none") {
-    line2.push(h("span", { class: "order-row-remaining" }, "Còn thu ", moneySpan(o.remainingAmount === 0 ? "money-ok" : "money-due", o.remainingAmount)));
-  }
+  // Sổ tiền lượt 1 (ADR-0026 đ9): "Còn thu" / "Đã trả" là số của billing — chỗ trống điền SAU (`dienTien`, một lời gọi `POST /api/ledger/balances` cho cả
+  // trang); chưa có số thì ẩn, không đoán.
+  const tienSlot = h("span", { class: "order-row-remaining", hidden: true });
+  if (money !== "none") line2.push(tienSlot);
 
   const link = h(
     "a",
@@ -155,7 +161,8 @@ export function orderCard(o: OrderCardData, opts: OrderCardOptions = {}): OrderC
   if (paxFull) detailLines.push(h("div", null, "Số khách: ", paxFull));
   // Phần xổ luôn đủ chỗ (mỗi trường một hàng riêng, không chung hàng với SĐT/nút xổ như dòng 2) — hiện số ĐẦY ĐỦ,
   // không rút gọn (khác "Còn thu" ở dòng 2, phải rút gọn vì chung hàng với SĐT trong khổ hẹp).
-  if (money !== "none") detailLines.push(h("div", null, "Đã trả ", vnd(o.depositAmount)));
+  const daTraSlot = h("div", { hidden: true });
+  if (money !== "none") detailLines.push(daTraSlot);
   if (money === "full") detailLines.push(h("div", null, "Tổng ", vnd(o.total)));
   if (svc) detailLines.push(h("div", null, svc));
   if (o.pickupPlace) detailLines.push(h("div", null, "Đón tại ", o.pickupPlace));
@@ -166,5 +173,14 @@ export function orderCard(o: OrderCardData, opts: OrderCardOptions = {}): OrderC
   const details = h("div", { id: detailsId, class: "order-card-details", hidden: true }, ...detailLines);
 
   const el = h("div", { class: "order-card" }, head, details);
-  return { el, handlerSlot };
+  return { el, handlerSlot, tien: { tienSlot, daTraSlot } };
+}
+
+/** Điền "Còn thu" (dòng 2) + "Đã trả" (phần xổ) từ số của billing. `t` vắng = chưa biết → giữ ẩn. */
+export function dienTien(slots: { tienSlot: HTMLElement; daTraSlot: HTMLElement }, t: { daThu: number; conLai: number } | undefined): void {
+  if (!t || !slots.tienSlot.isConnected) return;
+  replaceChildren(slots.tienSlot, "Còn thu ", moneySpan(t.conLai === 0 ? "money-ok" : "money-due", t.conLai));
+  slots.tienSlot.hidden = false;
+  replaceChildren(slots.daTraSlot, "Đã trả ", vnd(t.daThu));
+  slots.daTraSlot.hidden = false;
 }

@@ -46,7 +46,7 @@ const inDays = (n: number) => new Date(Date.now() + 7 * 3600e3 + n * 86400e3).to
 const orderBody = (extra: Record<string, unknown> = {}, departDate = inDays(3)) => ({
   customerName: "Khách Thử", customerPhone: "0912345678",
   services: [{ kind: "catalog", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate }],
-  depositAmount: 200000, depositMethod: "cash", ...extra,
+  ...extra,
 });
 async function newOrder(w: any, as: string, extra: Record<string, unknown> = {}, departDate?: string): Promise<string> {
   const r = await w.call("POST", "/api/orders", { as, body: orderBody(extra, departDate) });
@@ -167,9 +167,9 @@ test("'Việc của tôi' trả liên hệ khách VÀ tiền → hỏi contact.v
 
 // Task 1.8 (quyết định A của chủ dự án, 2026-09-27): ba trường tiền của "Việc của tôi" là số HIỆN HÀNH sau điều chỉnh (ADR-0017 điều 5) — PHẢI trùng
 // đúng số mà chi tiết đơn (`GET /api/orders/:id`, cùng người xem) trả, kể cả sau khi HDV sửa số khách (dòng điều chỉnh, không sửa đè cột tiền).
-test("'Việc của tôi' có Tổng tiền / Đã cọc / Còn thu = đúng số của chi tiết đơn, kể cả đơn nháp và đơn đã sửa số khách", async () => {
+test("'Việc của tôi' có Tổng tiền = đúng số của chi tiết đơn, kể cả đơn nháp và đơn đã sửa số khách (đã thu / còn thu: billing — sổ tiền lượt 1)", async () => {
   const w = setup();
-  const draft = await orderHandledBy(w, FIELD); // 2 người lớn × 500.000 = 1.000.000, cọc 200.000
+  const draft = await orderHandledBy(w, FIELD); // 2 người lớn × 500.000 = 1.000.000
   const conf = await orderHandledBy(w, FIELD);
   const ok = await w.call("POST", `/api/orders/${conf}/status`, { as: SALES, body: { status: "confirmed" } });
   assert.equal(ok.status, 200, ok.text);
@@ -180,9 +180,10 @@ test("'Việc của tôi' có Tổng tiền / Đã cọc / Còn thu = đúng s�
   const mine = await w.call("GET", "/api/dispatch/mine", { as: FIELD });
   assert.equal(mine.status, 200, mine.text);
   const byId = new Map(mine.json.assignments.map((a: any) => [a.orderId, a]));
-  const money = (a: any) => ({ total: a.total, depositAmount: a.depositAmount, remainingAmount: a.remainingAmount });
-  assert.deepEqual(money(byId.get(draft)), { total: 1000000, depositAmount: 200000, remainingAmount: 800000 }, "đơn nháp: số lúc lập");
-  assert.deepEqual(money(byId.get(conf)), { total: 1500000, depositAmount: 200000, remainingAmount: 1300000 }, "đơn đã xác nhận, đã sửa 2 → 3 người lớn: số SAU điều chỉnh");
+  const money = (a: any) => ({ total: a.total });
+  assert.deepEqual(money(byId.get(draft)), { total: 1000000 }, "đơn nháp: số lúc lập");
+  assert.deepEqual(money(byId.get(conf)), { total: 1500000 }, "đơn đã xác nhận, đã sửa 2 → 3 người lớn: số SAU điều chỉnh");
+  for (const a of mine.json.assignments) assert.ok(!("depositAmount" in a) && !("remainingAmount" in a), "sổ tiền lượt 1: 'Việc của tôi' không mang cọc cũ (ADR-0026 đ9)");
   for (const id of [draft, conf]) {
     const detail = (await w.call("GET", `/api/orders/${id}`, { as: FIELD })).json.order;
     assert.deepEqual(money(byId.get(id)), money(detail), `${id}: trùng chi tiết đơn`);

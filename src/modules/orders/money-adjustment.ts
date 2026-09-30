@@ -212,17 +212,16 @@ export function applyAdjustmentToOrder(order: OrderDetailDto, after: readonly { 
     subtotal += eff.subtotal;
     return eff.recomputed ? { ...s, pax: eff.recomputed.pax, items: eff.recomputed.lines.map(toItemDto) } : s;
   });
-  return { ...order, subtotal, ...effectiveMoney(subtotal, order.discount, order.depositAmount), services };
+  return { ...order, subtotal, ...effectiveMoney(subtotal, order.discount), services };
 }
 
 /**
- * `total`/`remainingAmount` từ `subtotal` hiệu lực (gốc hoặc đã cộng điều chỉnh) — `discount`/`depositAmount` KHÔNG đổi qua route sửa số khách
- * (chỉ FIELD sửa số khách/dịch vụ, không đụng cọc/giảm giá). Dùng chung cho overlay CHI TIẾT một đơn (`applyAdjustmentToOrder`) và DANH SÁCH
- * nhiều đơn (`orders/repository.ts:listOrders`) — hai nơi trước đây tính lệch nhau (danh sách hiện số gốc, chi tiết hiện số mới).
+ * `total` (khách phải trả HIỆN HÀNH) từ `subtotal` hiệu lực (gốc hoặc đã cộng điều chỉnh) — `discount` KHÔNG đổi qua route sửa số khách. Dùng chung cho
+ * overlay CHI TIẾT một đơn (`applyAdjustmentToOrder`) và DANH SÁCH nhiều đơn (`orders/repository.ts`). Sổ tiền lượt 1 (ADR-0026 đ9): bỏ tham số cọc —
+ * "đã thu / còn lại" là số của billing (`billing/rules.ts:conLai`, một hàm), `orders` chỉ công bố "phải thu".
  */
-export function effectiveMoney(subtotal: number, discount: number, depositAmount: number): { total: number; remainingAmount: number } {
-  const total = subtotal - discount;
-  return { total, remainingAmount: total - depositAmount };
+export function effectiveMoney(subtotal: number, discount: number): { total: number } {
+  return { total: subtotal - discount };
 }
 
 // ---- Quyết định một lần "HDV sửa số khách" (luật THUẦN; `orders/index.ts:editMoneyAsHandler` chỉ đọc/ghi D1 quanh hàm này) ------------------

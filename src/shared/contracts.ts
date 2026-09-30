@@ -127,7 +127,6 @@ export interface StaffSheetApplyResponse { created: { id: string; fullName: stri
 
 // ---- Đơn hàng ----------------------------------------------------------------
 export type OrderStatus = "draft" | "confirmed" | "cancelled";
-export type DepositMethod = "cash" | "bank_transfer" | "other";
 
 export interface OrderItemDto {
   id: string;
@@ -197,14 +196,16 @@ export interface OrderDto {
   customerNote: string | null;
   subtotal: number;
   discount: number;
+  /** Tổng khách phải trả HIỆN HÀNH (sau điều chỉnh). Ba cột cọc cũ KHÔNG còn trong DTO (ADR-0026 đ9): "đã thu / còn lại" lấy qua route của billing. */
   total: number;
-  depositAmount: number;
-  depositMethod: DepositMethod | null;
-  remainingAmount: number;
   paymentNote: string | null;
   createdAt: string;
   updatedAt: string;
   confirmedAt: string | null;
+  /** Mốc "Đã giao – đã thu đủ" (ADR-0024 đ3) — có ⇒ đơn bị khoá. Nhãn hiển thị suy ra (`nhanTrangThaiDon`, src/shared/trang-thai-don.ts). */
+  deliveredAt: string | null;
+  /** Mốc "Hoàn thành" (Kế toán). */
+  completedAt: string | null;
 }
 
 export interface OrderDetailDto extends OrderDto {
@@ -220,7 +221,7 @@ export interface OrderSummaryTripDto {
 
 export type OrderSummaryDto = Pick<
   OrderDto,
-  "id" | "orderCode" | "status" | "customerName" | "customerPhone" | "customerNote" | "total" | "depositAmount" | "remainingAmount" | "staffName" | "createdAt"
+  "id" | "orderCode" | "status" | "customerName" | "customerPhone" | "customerNote" | "total" | "staffName" | "createdAt" | "deliveredAt" | "completedAt"
 > & {
   /** Tên các dịch vụ theo đúng thứ tự trong đơn (sort_order) — client tự quyết hiện đầu + "+N dịch vụ" hay liệt kê hết (§7 mục 3). */
   serviceNames: string[];
@@ -275,8 +276,6 @@ export interface OrderInput {
   customerNote: string;
   services: ServiceInput[];
   discount: number;
-  depositAmount: number;
-  depositMethod: DepositMethod | null;
   paymentNote: string;
   /** Gắn hồ sơ có sẵn (id `pty_party`, chỉ cá nhân đang hoạt động); null/vắng = không gắn. Không gửi kèm `newBooker`. */
   bookerPartyId?: string | null;
@@ -443,7 +442,6 @@ export interface PoolResponse { orders: PoolOrderDto[] }
  */
 export interface DashboardResponse {
   today: OrderSummaryDto[];
-  unpaid: { total: number; count: number; earliestDate: string | null };
   draftCount: number;
   unassignedCount: number;
   revenueWeek: { total: number; count: number; from: string; to: string; daily: { date: string; total: number }[] };
@@ -589,12 +587,9 @@ export interface MyAssignmentDto {
   customerPhone: string;
   /** Từ bản 1.6: đơn NHÁP cũng có trong danh sách (không chỉ đã xác nhận) — giao diện dùng `status` để ẩn nút huỷ/sửa số khách (`myJobActions`). */
   status: OrderStatus;
-  /** Tổng tiền của đơn (VNĐ), số hiện hành sau điều chỉnh số khách — cùng số với `OrderDto.total` của chi tiết đơn. */
+  /** Tổng tiền của đơn (VNĐ), số hiện hành sau điều chỉnh số khách — cùng số với `OrderDto.total` của chi tiết đơn. "Đã thu / còn thu" lấy qua
+   *  `POST /api/ledger/balances` (billing — ADR-0026 đ9), không nằm ở đây. */
   total: number;
-  /** Đã cọc (VNĐ) — cùng số với `OrderDto.depositAmount`. */
-  depositAmount: number;
-  /** Còn thu (VNĐ) — cùng số với `OrderDto.remainingAmount` (máy chủ tính, giao diện không tự trừ). */
-  remainingAmount: number;
   services: MyAssignmentServiceDto[];
 }
 export interface MyAssignmentsResponse { assignments: MyAssignmentDto[] }
@@ -1387,7 +1382,10 @@ export interface OrderPaymentsResponse {
   /** Số tiền của công ty người đang xem còn giữ vì đơn này (hộp xác nhận "Bạn đang giữ X ₫ của công ty"). */
   banDangGiu: number;
   coTheGhiThu: boolean;
+  /** Người xem ĐƯỢC bấm (ô quyền) — nút hiện; `coTheGiao` = được bấm VÀ đủ điều kiện ngay lúc này (nút bật). */
+  quyenGiao: boolean;
   coTheGiao: boolean;
+  quyenHoanThanh: boolean;
   coTheHoanThanh: boolean;
   /** Người xem được chọn người thu khác mình / Công ty, và chọn ngày phát sinh khác hôm nay (Kế toán, Toàn quyền). */
   laKeToan: boolean;
@@ -1412,6 +1410,8 @@ export interface LedgerBalancesResponse {
 export interface UnpaidSummaryResponse {
   count: number;
   total: number;
+  /** Ngày đi sớm nhất trong các đơn còn thiếu tiền (null nếu không đơn nào). */
+  earliestDate: string | null;
 }
 
 /** Một dòng "Sổ của tôi" (`GET /api/ledger/mine`): mã đơn, ngày, loại, số tiền (dương = mình giữ thêm), số dư sau dòng — KHÔNG tên/SĐT khách. */
@@ -1433,3 +1433,50 @@ export interface SoCongNoResponse {
   choXacNhan: { receiptId: string; orderId: string; maDon: string | null; soTien: number; ngay: string; nguoiKhai: string }[];
   chuaRo: { receiptId: string; orderId: string; maDon: string | null; soTien: number; ngay: string }[];
 }
+
+// ---- Biên nhận (module receipt — ADR-0024 đ1, ADR-0026 đ11) -------------------------------------------------------------------------------------
+// DANH SÁCH TRẮNG: máy chủ dựng TỪNG trường dưới đây từ dữ liệu của orders / billing / company — KHÔNG trải đối tượng nguồn. KHÔNG BAO GIỜ có: a%, giá vốn,
+// giá danh mục, chiết khấu, hoa hồng, công nợ, tên người thu, hình thức thu, ghi chú nội bộ, mã danh mục, id. Thêm trường = sửa bài
+// src/modules/receipt/bien-nhan.test.ts (danh sách khoá + số lạ 480.017).
+export interface ReceiptLineDto {
+  description: string;
+  detail: string | null;
+  quantity: number;
+  /** Đơn giá BÁN LẺ trên đơn (máy chủ tính). */
+  unitPrice: number;
+  lineTotal: number;
+}
+export interface ReceiptServiceDto {
+  name: string;
+  /** Đơn vị (để in số khách "2 người lớn" hay "N khách"); "manual" = nhập tay. */
+  unit: string;
+  pax: PaxCounts;
+  departDate: string | null;
+  departTime: string | null;
+  pickupTime: string | null;
+  pickupPlace: string | null;
+  checkinDate: string | null;
+  checkinTime: string | null;
+  checkinPlace: string | null;
+  items: ReceiptLineDto[];
+}
+export interface ReceiptDto {
+  company: CompanyDto;
+  orderCode: string;
+  /** Khoá (chọn màu huy hiệu) + nhãn tiếng Việt (`trangThaiHienThi`). */
+  status: { khoa: "draft" | "confirmed" | "cancelled" | "delivered" | "completed"; nhan: string };
+  createdAt: string;
+  customerName: string;
+  customerPhone: string;
+  customerEmail: string | null;
+  customerNote: string | null;
+  services: ReceiptServiceDto[];
+  subtotal: number;
+  discount: number;
+  total: number;
+  /** Đã trả trước (billing `conLai` — một hàm). */
+  daTra: number;
+  /** Còn lại (≥ 0). */
+  conLai: number;
+}
+export interface ReceiptResponse { receipt: ReceiptDto }

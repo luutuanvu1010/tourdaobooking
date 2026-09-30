@@ -42,7 +42,7 @@ async function loadModule(entry: string): Promise<Record<string, AppModule>> {
   return (await import(`data:text/javascript;base64,${code}`)) as Record<string, AppModule>;
 }
 
-/** 15 module có route, đúng tên tệp + tên export như `src/index.ts` (gốc lắp ráp) dùng. */
+/** 16 module có route, đúng tên tệp + tên export như `src/index.ts` (gốc lắp ráp) dùng. */
 const MODULES: readonly { entry: string; exportName: string }[] = [
   { entry: "./modules/accounts/index.ts", exportName: "accountsModule" },
   { entry: "./modules/audit/index.ts", exportName: "auditModule" },
@@ -57,6 +57,7 @@ const MODULES: readonly { entry: string; exportName: string }[] = [
   { entry: "./modules/maintenance/index.ts", exportName: "maintenanceModule" },
   { entry: "./modules/orders/index.ts", exportName: "ordersModule" },
   { entry: "./modules/parties/index.ts", exportName: "partiesModule" },
+  { entry: "./modules/receipt/index.ts", exportName: "receiptModule" }, // sổ tiền lượt 1 (ADR-0024 điều 1 — hạng KHONG_BANG)
   { entry: "./modules/thongbao/index.ts", exportName: "thongbaoModule" },
   { entry: "./modules/van-chuyen/index.ts", exportName: "vanChuyenModule" }, // ADR-0040 D1
 ];
@@ -142,6 +143,7 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/ledger/settlements", access: "office" }, // ledger.write
   { method: "POST", path: "/api/ledger/refunds", access: "office" }, // payment.refund
   { method: "POST", path: "/api/ledger/adjustments", access: "office" }, // ledger.write
+  { method: "GET", path: "/api/orders/:id/receipt", access: "orders" }, // module receipt: order.view + money.view + contact.view phạm vi đơn
   { method: "POST", path: "/api/orders/:id/status", access: "orders" },
   { method: "PUT", path: "/api/orders/:id/trip", access: "orders" },
   // ADR-0047 A1 (2026-09-29): chặng đưa đón SAU XÁC NHẬN — thân hỏi can(order.trip.edit, { ownerId, assigned }) trước khi đọc thân
@@ -282,7 +284,7 @@ test("MODULES liệt kê ĐỦ mọi thư mục module có khai `...Module: AppM
   assert.deepEqual(routedDirs, listed, "có thư mục module khai AppModule nhưng chưa có trong MODULES của bài kiểm route-access này — thêm vào MODULES và SNAPSHOT");
 });
 
-test("mức truy cập của 172 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
+test("mức truy cập của 173 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
   const actual = await collectRealRoutes();
   // deepEqual TRƯỚC: khi có route mới/bị xoá, thông báo của nó chỉ ra ĐÚNG route lệch — hai assert.equal độ dài bên dưới chỉ để phòng hờ
   // (không bao giờ tự chạy tới nếu deepEqual đã trượt) và tài liệu hoá con số 86 để đối chiếu nhanh bằng mắt.
@@ -317,7 +319,8 @@ test("mức truy cập của 172 route hiện có khớp ảnh chụp đã duy�
   // 2026-09-30 (ADR-0051, Task A-GB): + 3 route nhắc "gọi báo khách" (GET …/nhac-goi-khach, POST …/chang/:legId/da-goi-bao, …/bo-danh-dau-goi-bao) = 159.)
   // 2026-09-30 (R-P29, chủ lần 16): + POST /api/van-chuyen/chuyen/:id/cap-nhat-khach = 160.
   // 2026-09-30 (sổ tiền lượt 1, module billing): + 12 route (/api/orders/:id/payments ×2, delivered, completed; /api/ledger ×8) = 172.
+  // 2026-09-30 (sổ tiền lượt 1, module receipt): + GET /api/orders/:id/receipt = 173.
   assert.deepEqual(actual, SNAPSHOT);
-  assert.equal(actual.length, 172, "số route thực tế lệch 172 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 172, "SNAPSHOT phải có đúng 172 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  assert.equal(actual.length, 173, "số route thực tế lệch 173 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 173, "SNAPSHOT phải có đúng 173 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

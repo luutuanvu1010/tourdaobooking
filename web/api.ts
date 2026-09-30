@@ -11,7 +11,6 @@ export type {
   CatalogAdminItemDto as CatalogAdminItem,
   CatalogServiceDto as CatalogService,
   CatalogSyncStateDto as CatalogSyncState,
-  DepositMethod,
   OrderDetailDto as Order,
   OrderInput,
   OrderItemDto as OrderItem,

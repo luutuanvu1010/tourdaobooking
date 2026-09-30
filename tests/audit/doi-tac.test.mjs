@@ -22,7 +22,7 @@ const inDays = (n) => new Date(Date.now() + 7 * 3600e3 + n * 86400e3).toISOStrin
 const orderBody = (extra = {}) => ({
   customerName: "Khách Riêng Của An", customerPhone: "0912345678",
   services: [{ kind: "catalog", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: inDays(3) }],
-  depositAmount: 200000, depositMethod: "cash", ...extra,
+  ...extra,
 });
 
 /**

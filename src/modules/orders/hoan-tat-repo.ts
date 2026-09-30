@@ -43,7 +43,9 @@ export async function serviceDates(db: D1Database, orderId: string): Promise<{ n
 const MONEY_BASE_MANY = defineSql(
   "orders",
   "money_base_many",
-  `SELECT id, status, discount, total, delivered_at, completed_at FROM orders WHERE id IN (SELECT value FROM json_each(?1))`,
+  `SELECT o.id, o.status, o.discount, o.total, o.delivered_at, o.completed_at,
+     (SELECT MIN(s.depart_date) FROM order_service s WHERE s.order_id = o.id AND s.depart_date IS NOT NULL) AS earliest_depart
+   FROM orders o WHERE o.id IN (SELECT value FROM json_each(?1))`,
 );
 export interface MoneyBaseRow {
   id: string;
@@ -52,6 +54,7 @@ export interface MoneyBaseRow {
   total: number;
   delivered_at: string | null;
   completed_at: string | null;
+  earliest_depart: string | null;
 }
 export async function moneyBaseMany(db: D1Database, orderIds: readonly string[]): Promise<MoneyBaseRow[]> {
   if (orderIds.length === 0) return [];

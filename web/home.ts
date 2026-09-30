@@ -70,13 +70,17 @@ function statTile(iconName: IconName, labelFull: string, labelShort: string, val
   );
 }
 
-function renderStats(data: Api.DashboardResponse): void {
-  const { unpaid, draftCount, unassignedCount } = data;
+/** Ô "Còn thiếu tiền" lấy từ billing (`GET /api/ledger/unpaid-summary` — sổ tiền lượt 1, ADR-0026 đ9); `null` = chưa tải được (hiện "—"). */
+function renderStats(data: Api.DashboardResponse, unpaidOrNull: Api.UnpaidSummaryResponse | null): void {
+  const { draftCount, unassignedCount } = data;
+  const unpaid = unpaidOrNull ?? { count: 0, total: 0, earliestDate: null };
   const unpaidSubFull = unpaid.count === 0 ? "Không có đơn nào" : `${unpaid.count} đơn${unpaid.earliestDate ? ` · sớm nhất đón ${dayMonth(unpaid.earliestDate)}` : ""}`;
   const unpaidSubShort = unpaid.count === 0 ? "Không có đơn nào" : `${unpaid.count} đơn`;
   replaceChildren(
     byId("dash-stats"),
-    statTile("money", "Còn thiếu tiền", "Còn thiếu", vnd(unpaid.total), `${vndShort(unpaid.total)} ₫`, unpaidSubFull, unpaidSubShort, "money-due"),
+    unpaidOrNull
+      ? statTile("money", "Còn thiếu tiền", "Còn thiếu", vnd(unpaid.total), `${vndShort(unpaid.total)} ₫`, unpaidSubFull, unpaidSubShort, "money-due")
+      : statTile("money", "Còn thiếu tiền", "Còn thiếu", "—", "—", "Chưa tải được số", "Chưa tải được"),
     statTile("doc-check", "Đơn chờ xác nhận", "Chờ xác nhận", String(draftCount), String(draftCount), "Cần xác nhận đơn", "Cần xác nhận đơn"),
     statTile("assign", "Chưa có người phụ trách", "Chưa phụ trách", String(unassignedCount), String(unassignedCount), "Chờ người nhận", "Chờ người nhận"),
   );
@@ -100,7 +104,7 @@ function renderStats(data: Api.DashboardResponse): void {
  * (chỉ hiện ở ≤639px, cùng cơ chế `.lbl-short`) trong cụm tiền bên phải — tái dùng ĐÚNG kỹ thuật gọi đã có (span + onclick +
  * `tel:`, giống `.order-row-phone` ở `web/orders.ts`), không đổi bố cục ba cụm khi/tên/tiền hiện có.
  */
-function todayRow(o: OrderSummary): HTMLElement {
+function todayRow(o: OrderSummary, tien: { conLai: number } | undefined): HTMLElement {
   const time = o.trip.pickupTime ?? "—";
   const pax = paxCounts(o.pax);
   const serviceLine = o.serviceNames.length === 0 ? "—" : o.serviceNames.length === 1 ? o.serviceNames[0] : `${o.serviceNames[0]} +${o.serviceNames.length - 1} dịch vụ`;
@@ -135,8 +139,11 @@ function todayRow(o: OrderSummary): HTMLElement {
     h(
       "span",
       { class: "dash-today-money" },
-      h("b", { class: o.remainingAmount === 0 ? "money-ok" : "money-due" }, h("span", { class: "lbl-full" }, vnd(o.remainingAmount)), h("span", { class: "lbl-short" }, `${vndShort(o.remainingAmount)} ₫`)),
-      h("span", { class: "muted lbl-full" }, o.remainingAmount === 0 ? "đã trả đủ" : "còn lại"),
+      // Sổ tiền lượt 1: "còn lại" là số của billing (`POST /api/ledger/balances`); chưa tải được → "—", không đoán.
+      tien
+        ? h("b", { class: tien.conLai === 0 ? "money-ok" : "money-due" }, h("span", { class: "lbl-full" }, vnd(tien.conLai)), h("span", { class: "lbl-short" }, `${vndShort(tien.conLai)} ₫`))
+        : h("b", null, "—"),
+      h("span", { class: "muted lbl-full" }, tien ? (tien.conLai === 0 ? "đã trả đủ" : "còn lại") : ""),
       h(
         "span",
         { class: "dash-today-call lbl-short", "aria-label": `Gọi ${o.customerPhone}`, onclick: (e: Event) => { e.preventDefault(); e.stopPropagation(); location.href = `tel:${o.customerPhone}`; } },
@@ -147,11 +154,11 @@ function todayRow(o: OrderSummary): HTMLElement {
   );
 }
 
-function renderToday(today: readonly OrderSummary[]): void {
+function renderToday(today: readonly OrderSummary[], tien: Api.LedgerBalancesResponse["balances"]): void {
   const badge = byId("dash-today-count");
   badge.textContent = String(today.length);
   badge.hidden = false; // chỉ hiện huy hiệu SAU khi đã có số thật — trước đó không để lộ viên thuốc xanh rỗng
-  replaceChildren(byId("dash-today-list"), ...today.map(todayRow));
+  replaceChildren(byId("dash-today-list"), ...today.map((o) => todayRow(o, tien[o.id])));
   byId("dash-today-empty").hidden = today.length > 0;
 }
 
@@ -282,12 +289,19 @@ async function taiDashboard(staff: Staff, lamMoi = false): Promise<void> {
   try {
     // loadReview() không bao giờ ném lỗi (allSettled + canSeeReviewAlerts() chặn trước) — gọi song song với
     // dashboard chính, không làm chậm phần còn lại của trang.
-    const [data, review] = await Promise.all([layDashboard(), lamMoi ? undefined : loadReview(staff)]);
+    const [data, review, unpaid] = await Promise.all([
+      layDashboard(),
+      lamMoi ? undefined : loadReview(staff),
+      api<Api.UnpaidSummaryResponse>("/api/ledger/unpaid-summary").catch(() => null), // sổ tiền lượt 1: ô "Còn thiếu tiền" rời dashboard của orders
+    ]);
+    const tien = data.today.length
+      ? await api<Api.LedgerBalancesResponse>("/api/ledger/balances", { method: "POST", body: { orderIds: data.today.map((o) => o.id) } }).then((r) => r.balances, () => ({}))
+      : {};
     loadingEl.hidden = true;
     if (lamMoi) showError(byId("error"), null); // lần tải đầu đã lỗi (banner còn hiện) mà làm mới này thành công → gỡ banner
     byId("dash-date").textContent = `${weekday}, ${dateStr} · ${data.today.length} chuyến đón hôm nay`;
-    renderStats(data);
-    renderToday(data.today);
+    renderStats(data, unpaid);
+    renderToday(data.today, tien);
     renderRevenue(data.revenueWeek);
     if (review !== undefined) renderReview(review);
     // Chỉ hiện khối nội dung SAU KHI dựng xong dữ liệu thật — lúc đang tải/lỗi giữ ẩn (tránh khối rỗng đọng lại cạnh skeleton/banner lỗi).
