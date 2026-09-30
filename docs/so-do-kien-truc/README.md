@@ -187,7 +187,9 @@ flowchart TB
   T6 --> T5 --> T4 --> T3 --> T2 --> T1 --> T0
 ```
 
-Mũi tên giữa các tầng nghĩa là "chỉ được gọi xuống". Mối nối cụ thể của từng phần:
+Mũi tên giữa các tầng nghĩa là "chỉ được gọi xuống". Tầng tính theo mối nối của [1.38]. Ở bản 1.37, Vận chuyển chỉ đọc Danh bạ và Nhật ký, nên đứng ở tầng 3.
+
+Mối nối cụ thể của từng phần:
 
 | Phần | Tên mã | Hạng | Làm gì | Được đọc / gọi |
 |---|---|---|---|---|
@@ -195,7 +197,7 @@ Mũi tên giữa các tầng nghĩa là "chỉ được gọi xuống". Mối n�
 | Vận chuyển | `van-chuyen` | nghiêm | Xe, giấy tờ xe, chuyến, điều phối, tài xế | `parties`, `audit`; từ [1.38] thêm `orders`, `locations` |
 | Phân công | `dispatch` | nghiêm | Người phụ trách đơn, hướng dẫn viên nhận việc | `orders`, `parties`, `locations`, `staff`, `audit` |
 | Quản lý tài khoản | `accounts` | cũ | Tạo tài khoản, cấp quyền, đổi PIN, nạp từ Sheet | `staff`, `auth`, `audit`, `maintenance` |
-| Đơn hàng | `orders` | cũ (có tệp nửa nghiêm) | Đơn, dịch vụ, thông tin chuyến, xác nhận; từ [1.38] chặng đưa đón, hành khách | `audit`, `catalog`, `staff`, `parties`, `locations` |
+| Đơn hàng | `orders` | cũ; [1.38] thêm tệp nửa nghiêm | Đơn, dịch vụ, thông tin chuyến, xác nhận; từ [1.38] chặng đưa đón, hành khách | `audit`, `catalog`, `staff`, `parties`, `locations` |
 | Đăng nhập | `auth` | nghiêm | PIN, Face ID (passkey), phiên, Turnstile | `staff`, `maintenance`, `parties` |
 | Góp ý | `feedback` | nghiêm | Phiếu góp ý / báo lỗi, email | `staff`, `audit` |
 | Nhân viên | `staff` | nghiêm | Tài khoản và quyền của từng người | `parties`, `audit` |
@@ -215,7 +217,7 @@ Mũi tên giữa các tầng nghĩa là "chỉ được gọi xuống". Mối n�
 - **Gốc lắp ráp** `src/index.ts`: nơi duy nhất nối chéo.
   - Nó tiêm vào `ctx` các hàm `isAssigned`, `newOrderHandler`, `ordersWithHandler`, `myHandledOrderIds`, `baoThayDoi`, `dongBangTin`, và từ [1.38] thêm `mocToiThieu`. Nhờ vậy `orders` không phải import `dispatch`, `van-chuyen` hay `bangtin`.
   - Nó cũng đưa cổng bảo trì `maintenanceBlock` cho bộ định tuyến.
-- **Luật thuần dùng chung** `src/shared/`: bảng quyền (`permissions.ts`), định tuyến (`router.ts`), hợp đồng dữ liệu (`contracts.ts`), luật tính tiền, luật kiểm chuyến… dùng chung cho máy chủ và màn hình. Không import `src/modules/`.
+- **Luật thuần dùng chung** `src/shared/`: bảng quyền (`permissions.ts`), định tuyến (`router.ts`), hợp đồng dữ liệu (`contracts.ts`), luật tính tiền, luật giấy tờ, và từ [1.38] luật kiểm chuyến… dùng chung cho máy chủ và màn hình. Không import `src/modules/`.
 
 ---
 
@@ -278,7 +280,7 @@ Chỉ phần chủ được ghi vào bảng của mình. Tiền tố tên bảng
 Luật dữ liệu:
 - **Tiền** là `INTEGER` đồng, chỉ máy chủ tính (`buildLines`).
 - **Ngày dân sự** theo giờ Việt Nam; dấu thời gian ISO UTC.
-- **Không xoá cứng:** đổi bằng dòng có hiệu lực (`valid_from/to`). Ngoại lệ có tên duy nhất: dòng `ord_*` của đơn nháp, `XOA_CUNG_NHAP`.
+- **Không xoá cứng:** đổi bằng dòng có hiệu lực (`valid_from/to`). Từ [1.38] có một ngoại lệ có tên duy nhất: dòng `ord_*` của đơn nháp, `XOA_CUNG_NHAP`.
 - **Migration chỉ thêm tệp mới.**
 
 Từng cột: [`docs/DATA-DICTIONARY.md`](../DATA-DICTIONARY.md).
@@ -337,7 +339,7 @@ flowchart LR
 - **Chỉ chủ dự án** chạy `day-len` và `trien-khai`, và chỉ trong Terminal. Hàng rào máy (hook `.claude/hooks/guard-remote.mjs`, `permissions.deny`) chặn AI tự đẩy mã, tự triển khai, tự ghi dữ liệu thật.
 - **Cloudflare không nối GitHub.** Đẩy mã lên GitHub không tự triển khai.
 - **Số phiên bản** lấy từ mục đầu của nhật ký thay đổi (`src/shared/changelog.ts`).
-- **Kiểm thử:** `npm test` (luật thuần + bài kiến trúc, hai bước), `npm run typecheck`, `npm run test:e2e` (API thật trên D1 tạm), kịch bản Chrome, `audit-invariants`.
+- **Kiểm thử:** `npm test` (luật thuần + bài kiến trúc; từ [1.38] chạy hai bước, bài đo tốc độ hàng rào chạy riêng), `npm run typecheck`, `npm run test:e2e` (API thật trên D1 tạm), kịch bản Chrome, `audit-invariants`.
 - **Runbook:** [`docs/HANDOFF-N1.md`](../HANDOFF-N1.md), [`docs/QUY-TRINH-PHAT-HANH.md`](../QUY-TRINH-PHAT-HANH.md).
 
 ---
