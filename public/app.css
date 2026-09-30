@@ -505,9 +505,9 @@ h3 { font-size: var(--fs-step-5); margin: var(--s4) 0 var(--s2); color: var(--c-
 .hdv .hdv-xem { display: inline-flex; align-items: center; justify-content: center; } /* bản 1.39: liên kết "Xem đơn" cùng cỡ nút của thẻ */
 .hdv-nhom { margin: var(--s3) 0 0; font-size: var(--fs-hdv-md); font-weight: 800; } /* bản 1.39: tiêu đề nhóm "Đã đi tour" */
 .hdv-money { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s2); margin: 0; }
-.hdv-money > div { display: flex; flex-direction: column; gap: var(--s1); min-width: 0; }
+.hdv-money > div { display: flex; flex-direction: column; gap: var(--s1); min-width: 0; justify-content: flex-end; }
 .hdv-money dt { font-size: var(--fs-label); font-weight: 600; color: var(--c-text-muted); }
-.hdv-money dd { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.hdv-money dd { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .hdv-note { margin: 0; font-size: var(--fs-hdv-sm); font-weight: 600; line-height: 1.4; }
 .hdv-actions { display: flex; flex-wrap: wrap; gap: var(--s2); }
 .hdv .btn.hdv-act { flex: 1 1 var(--w-hdv-act); min-height: var(--h-hdv-act); font-weight: 800; border-radius: var(--radius-md); }
@@ -692,7 +692,7 @@ body.login-page::before { content: ""; display: block; height: env(safe-area-ins
 .banner-actions { display: flex; flex-wrap: wrap; gap: var(--s2); margin-top: var(--s3); }
 
 /* chip, nhãn giá */
-.chip { padding: 0 var(--s2); font-size: var(--fs-badge); font-weight: 600; line-height: 1.5; border-radius: var(--radius-pill); }
+.chip { display: inline-block; white-space: nowrap; padding: 0 var(--s2); font-size: var(--fs-badge); font-weight: 600; line-height: 1.5; border-radius: var(--radius-pill); }
 .chip-unit { color: var(--c-primary); background: var(--c-primary-soft); }
 .chip-code, .chip-muted { color: var(--c-text-muted); background: var(--c-surface-alt); }
 .chip-warn { color: var(--c-sand-text); background: var(--c-sand-soft); border: 1px solid var(--c-sand-border); }
