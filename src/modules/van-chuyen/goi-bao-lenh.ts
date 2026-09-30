@@ -73,8 +73,9 @@ export interface BanChupBoDanhDau { moi: GioHen; maChuyen: string[] }
 /**
  * Phản hồi dựng TỪ DÒNG MỐC mà lệnh `requestId` đã ghi (ADR-0051 bước 4 "trả kết quả của lần đầu"; K2a T2; GA-59) — KHÔNG đọc trạng thái mốc / giờ hẹn / suất
  * mới nhất (lệnh khác, đổi giờ, dời chuyến chen vào sau không làm đổi phản hồi). Cùng hình `goiBaoChang`:
- * - dòng DA_GOI (chỉ lệnh lặp) → `gioHenDoi` null + `daGoiBao` { cu = giờ trước, moi = giờ của dòng, luc, nguoiBam = người ghi dòng, phienBan = seq, boDuoc }
- *   (lần đầu, `kiemDaGoiBao` buộc giờ "mới" màn gửi = giờ hiện hành đọc trước lô, và dòng ghi đúng giờ đó ⇒ không còn mục);
+ * - dòng DA_GOI (lần đầu VÀ lệnh lặp — R-P30, GA-67) → `gioHenDoi` null + `daGoiBao` { cu = giờ trước, moi = giờ của dòng, luc, nguoiBam = người ghi dòng,
+ *   phienBan = seq, boDuoc } — mọi trường suy từ dòng nên KHÔNG cần cột bản chụp (`kiemDaGoiBao` buộc giờ "mới" màn gửi = giờ hiện hành đọc trước lô, dòng ghi
+ *   đúng giờ đó ⇒ kết quả lệnh là "dấu đã gọi báo", không còn mục);
  * - dòng BO_DANH_DAU (lần đầu VÀ lệnh lặp — cùng hàm này) → `daGoiBao` null + `gioHenDoi` { cu = giờ của dòng, phienBan = seq, moi + maChuyen = bản chụp trên
  *   dòng, baoDuoc } hoặc `gioHenDoi` null khi bản chụp là null.
  * `baoDuoc` / `boDuoc` = quyền của NGƯỜI GỌI (tiêm) — không phải kết quả lệnh. `maDon` đọc qua `legFlags` (danh tính bền, có cả chặng đóng / đơn huỷ). Dòng

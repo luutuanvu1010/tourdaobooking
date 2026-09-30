@@ -61,7 +61,7 @@ import type { GoiBaoChangDto, NhacGoiKhachResponse } from "../../shared/contract
 import { NHAC_GOI_SO_NGAY } from "../../shared/goi-bao";
 import { changChoTrongKhoang, changChuDon, mocByRequest } from "./chuyen-repo";
 import { docBoDanhDauGoiBao, docDaGoiBao } from "./dieu-phoi-than";
-import { danhSachNhac, docGoiBao, goiBaoChang, nguoiBamGoiBao, phanHoiLenhLap, xuLyMoc, type QuyenGoiBao } from "./goi-bao-lenh";
+import { danhSachNhac, docGoiBao, phanHoiLenhLap, xuLyMoc, type QuyenGoiBao } from "./goi-bao-lenh";
 const CAN_XEM_CUOC = () => error(403, "forbidden", "Tài khoản này không có cuốc xe.");
 const CAN_BAM_THAY = () => error(403, "forbidden", "Tài khoản này không bấm thay tiến độ chuyến được.");
 /** `assigned` của route tài xế (kế hoạch mục 1.2): người gọi có hồ sơ và là tài xế ĐANG MỞ dòng lái của chuyến. */
@@ -1341,9 +1341,10 @@ export const vanChuyenModule: AppModule = {
       const hk = await hanhKhachChoChuyen(env.DB, [legId]);
       const r = await xuLyMoc("DA_GOI", env.DB, legId, hk, than.value, staff.id, Date.now());
       if (r) return r;
-      const d = await docGoiBao(env.DB, [legId]);
-      const nhan = await nhanNhanVien(nguoiBamGoiBao(d));
-      return json((await goiBaoChang(legId, hk, d, quyenGoiBaoCua(staff, isAssigned), nhan)) ?? { legId, maDon: null, gioHenDoi: null, daGoiBao: null } satisfies GoiBaoChangDto);
+      // R-P30 (GA-67): phản hồi lần đầu dựng từ CHÍNH dòng vừa ghi — cùng hàm với lệnh lặp ⇒ lặp trả y hệt lần đầu, lệnh khác chen vào sau lô không đổi kết quả.
+      const dong = await mocByRequest(env.DB, than.value.requestId);
+      if (!dong) throw new Error("da-goi-bao: lô đã chạy mà không thấy dòng mốc của requestId");
+      return json((await phanHoiLenhLap(env.DB, dong, quyenGoiBaoCua(staff, isAssigned), await nhanNhanVien(dong.created_by ? [dong.created_by] : []))) satisfies GoiBaoChangDto);
     }),
 
     // Thứ tự mã CỐ ĐỊNH (GB1): 403 thô (trip.view + trip.call_ack ≠ none ở một cột — trước mọi truy vấn) → 404 (chặng lạ, qua v_ord_leg_key) → 403 (người lập /
