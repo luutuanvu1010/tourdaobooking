@@ -143,3 +143,8 @@ Chủ đã chốt nguyên tắc trong chat; AI soạn ADR ghi lại + chi tiết
 2. Phiên B (song song): G1 — ảnh phác cho bộ lọc đơn, Trang chủ, Góp ý, thẻ đơn, gửi chủ; phần không cần ảnh (T3 "Ngày kia", giờ hẹn trên màn cuốc, chữ sót) làm luôn.
 3. Phiên C (song song, chỉ tài liệu): soạn ADR D1–D3 + trang ghép → chủ duyệt → thi công sau khi sổ tiền gộp main (D2 bắt buộc sau; D1, D3 có thể trước nếu không đụng migration của sổ tiền — kiểm số migration lúc đặt).
 4. Sau đó: D4, C2, người phụ trách trong bộ lọc; chủ vẽ Claude Design cho tối ưu điện thoại theo vai.
+
+### Cập nhật 30/9 tối
+- D1–D3 **ĐÃ DUYỆT** (chủ, hộp hỏi gom: "Duyệt cả ba, kèm 14 điểm chi tiết"; Q-2 "Không"; Q-1 "Giữ quyền sẵn, chờ việc C2") → ADR-0059, ADR-0060, ADR-0061 (accepted). Hai vòng kiểm độc lập ĐẠT CÓ ĐIỀU KIỆN, đã sửa; bản sửa cuối (29fa871e, chỉ bổ sung danh sách điểm A-10…A-14 và chủ ý lọc) chưa có vòng kiểm thứ ba.
+- Đợt G1 (phiên B): nhánh `worktree-agent-a70eb0a16a8dbebb3` @2622662e — kiểm độc lập ĐẠT CÓ ĐIỀU KIỆN (chốt số phiên bản khi gộp; trùng 1.39 với `giao-dien-sua-nho-1-39`). Sáu câu cho chủ về ảnh phác ở `docs/design/gop-y-2026-09-30/README.md` (trên nhánh đó).
+- Sổ tiền (phiên A): đang thi công ở `worktree-agent-aa1fab0316112d404`.
