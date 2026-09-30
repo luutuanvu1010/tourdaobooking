@@ -11,6 +11,20 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Sổ tiền lượt 1 = Hoàn tất đơn (ADR-0024 đ1–5, ADR-0025, ADR-0026; kế hoạch docs/superpowers/plans/2026-09-29-so-tien-luot-1-ke-hoach.md). Số "1.39"
+    // TẠM (production 1.38 ngày 30/9); người gộp chốt số trống kế tiếp LÚC GỘP. Hai màn "Sổ của tôi" / "Sổ công nợ" CHƯA dựng (chờ chủ xem ảnh phác)
+    // nên mục này không nhắc tới.
+    version: "1.39",
+    date: "2026-09-30",
+    items: [
+      { kind: "doi", text: "Lập đơn: mục Thanh toán nay nằm trước thông tin khách; tiền khách trả trước mặc định là chuyển khoản và được ghi thành một lần thu." },
+      { kind: "moi", text: "Chi tiết đơn có khung tiền: phải thu, đã thu, còn lại và từng lần thu; ghi thêm lần thu ngay trên đơn." },
+      { kind: "moi", text: "Hướng dẫn viên đang phụ trách (và Quản trị) bấm \"Đã giao – đã thu đủ\" khi khách đã trả đủ; từ lúc đó đơn không sửa được nữa." },
+      { kind: "moi", text: "Kế toán bấm \"Hoàn thành\" sau khi tiền đã về công ty; nếu chưa bấm được, đơn ghi rõ lý do và ai cần xử lý." },
+      { kind: "doi", text: "Tiền cọc ghi trên đơn cũ được chuyển thành lần thu \"chưa rõ người thu\"; Kế toán sẽ ghi lại đúng người thu." },
+    ],
+  },
+  {
     // Phát hành 1.38 (phân hệ Vận chuyển lượt 1): ADR-0049 (bảng điều phối chung, mốc 6 giờ + đặt gấp, cuốc tài xế — Task K1 của
     // docs/superpowers/plans/2026-09-29-adr-0049-thi-cong.md), ADR-0047 (chặng đưa đón + danh sách hành khách), Q-L3-B (ADR-0053 D7.2). Production 1.37
     // (kiem-phien-ban 30/9). Chủ quyết 30/9: phát hành nhưng CHƯA dùng Điều phối cho chuyến thật tới khi có màn nhập tên khách (ADR-0047 Phần B).
