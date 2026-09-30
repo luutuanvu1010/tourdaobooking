@@ -241,9 +241,8 @@ const call = async (account, method, path, body) => {
 };
 const NO_TRIP = { departDate: "", departTime: "", pickupTime: "", pickupPlace: "", checkinDate: "", checkinTime: "", checkinPlace: "", note: "" };
 const pax = (adult, child = 0, senior = 0, infant = 0) => ({ adult, child, senior, infant });
-const cust = (name, o = {}) => ({ customerName: name, customerPhone: "0903 111 222", customerEmail: "", customerNote: "", discount: 0, depositAmount: 0, depositMethod: null, paymentNote: "", ...o });
-// Sổ tiền lượt 1 (ADR-0026 đ9): máy chủ từ chối cọc trong thân đơn (409 client_outdated) — `create` tách ra và ghi thành LẦN THU sau khi lập đơn.
-const HINH_THUC = { cash: "CASH", bank_transfer: "BANK_TRANSFER" };
+const cust = (name, o = {}) => ({ customerName: name, customerPhone: "0903 111 222", customerEmail: "", customerNote: "", discount: 0, paymentNote: "", ...o });
+// Sổ tiền lượt 1 (ADR-0026 đ9): máy chủ từ chối cọc trong thân đơn (409 client_outdated) — dữ liệu mẫu mang `traTruoc`, `create` ghi thành LẦN THU sau khi lập đơn.
 const tour = (o = {}) => ({ kind: "catalog", catalogCode: "TD101", pax: pax(2, 1), unitPrices: { adult: 1350000, child: 950000 }, catalogPriceSeen: { adult: 1350000, child: 950000 }, ...NO_TRIP, departDate: vnDate(7), departTime: "07:30", pickupTime: "07:00", pickupPlace: "Khách sạn Sunrise, 12 Trần Phú", checkinTime: "06:45", checkinPlace: "Bến Cầu Đá", ...o });
 // Dịch vụ nhập tay (ảnh xác nhận phải vẽ đúng chúng: dữ liệu CŨ vẫn có). 2026-09-26 (DK-T3-01 R1, chủ dự án "loại bỏ hoàn toàn dịch vụ nhập tay"): API không
 // nhận dịch vụ nhập tay MỚI (400) → gửi dịch vụ danh mục giữ chỗ TTB06 (cùng số khách), `create` đổi nó thành ĐÚNG dịch vụ nhập tay này (tên, các dòng tiền,
@@ -252,12 +251,12 @@ const manual = (name, items, o = {}) => {
   const { pax: guests = pax(3), ...trip } = o;
   return { kind: "catalog", catalogCode: "TTB06", pax: pax(guests.adult), catalogPriceSeen: { adult: 800000 }, ...NO_TRIP, departDate: vnDate(7), ...trip, _legacy: { name, adult: guests.adult, items } }; // ADR-0021: cả đơn một ngày — mọi dịch vụ dựng sẵn cùng vnDate(7)
 };
-const create = async (account, { depositAmount = 0, depositMethod = null, ...body }) => {
+const create = async (account, { traTruoc = 0, traTruocHinhThuc = "OTHER", ...body }) => {
   const r = await call(account, "POST", "/api/orders", { ...body, services: body.services.map(({ _legacy, ...s }) => s) });
   assert.equal(r.status, 201, `dựng đơn: ${r.status} ${JSON.stringify(r.json)}`);
   const order = r.json.order;
-  if (depositAmount > 0) {
-    const t = await call(account, "POST", `/api/orders/${order.id}/payments`, { soTien: depositAmount, hinhThuc: HINH_THUC[depositMethod] ?? "OTHER", nguoiThu: "cong_ty" });
+  if (traTruoc > 0) {
+    const t = await call(account, "POST", `/api/orders/${order.id}/payments`, { soTien: traTruoc, hinhThuc: traTruocHinhThuc, nguoiThu: "cong_ty" });
     assert.equal(t.status, 201, `lần thu trả trước: ${t.status} ${JSON.stringify(t.json)}`);
   }
   if (!body.services.some((s) => s._legacy)) return order;
@@ -270,11 +269,11 @@ async function fx() {
   fixtures ??= (async () => {
     const f = {};
     f.one = await create(ACCOUNTS.salesA, {
-      ...cust("Trần Văn Bình", { customerEmail: "binh.tran@example.com", customerNote: "Cả nhà ăn chay, xin xếp ghế gần nhau.", depositAmount: 1000000, depositMethod: "bank_transfer" }),
+      ...cust("Trần Văn Bình", { customerEmail: "binh.tran@example.com", customerNote: "Cả nhà ăn chay, xin xếp ghế gần nhau.", traTruoc: 1000000, traTruocHinhThuc: "BANK_TRANSFER" }),
       services: [tour()],
     });
     f.multi = await create(ACCOUNTS.salesA, {
-      ...cust("Lê Thị Hoa", { customerEmail: "hoa.le@example.com", customerNote: "Đón sớm 06:30.\nCó hai cháu nhỏ, cần ghế trẻ em.", discount: 200000, depositAmount: 2000000, depositMethod: "cash" }),
+      ...cust("Lê Thị Hoa", { customerEmail: "hoa.le@example.com", customerNote: "Đón sớm 06:30.\nCó hai cháu nhỏ, cần ghế trẻ em.", discount: 200000, traTruoc: 2000000, traTruocHinhThuc: "CASH" }),
       services: [
         tour({ pax: pax(2, 1, 1), unitPrices: { adult: 1300000, child: 950000, senior: 1200000 }, catalogPriceSeen: { adult: 1350000, child: 950000, senior: 1200000 } }),
         { kind: "catalog", catalogCode: "TTB03", pax: pax(7), unitPrices: { adult: 1500000 }, catalogPriceSeen: { adult: 1500000 }, ...NO_TRIP, departDate: vnDate(7), departTime: "10:00" },
@@ -287,7 +286,7 @@ async function fx() {
       ...cust(`${LONG_WORD} (đại diện đoàn công ty du lịch Ánh Dương)`, {
         customerEmail: "nguyen.thi.hong.ngoc.phuong.uyen.doan.anh.duong.nhatrang@congtydulichanhduong.example.com",
         customerNote: "Đoàn 32 người, có 4 trẻ em và 3 người cao tuổi.\nXin xếp xe giường nằm cho người lớn tuổi.\nĂn chay ngày mùng một và ngày rằm.\nCần xuất hoá đơn công ty, gửi về email kế toán.\nLiên hệ trước 24 giờ khi có thay đổi lịch trình.",
-        discount: 5000000, depositAmount: 30000000, depositMethod: "bank_transfer",
+        discount: 5000000, traTruoc: 30000000, traTruocHinhThuc: "BANK_TRANSFER",
       }),
       services: [
         tour({ pax: pax(10, 2, 2), unitPrices: { adult: 1350000, child: 950000, senior: 1200000 }, catalogPriceSeen: { adult: 1350000, child: 950000, senior: 1200000 } }),
@@ -300,7 +299,7 @@ async function fx() {
       ],
     });
     f.edit = await create(ACCOUNTS.salesA, { ...cust("Khách Sửa Đơn"), services: [tour()] });
-    const confirmed = await create(ACCOUNTS.salesA, { ...cust("Phạm Đã Xác Nhận", { depositAmount: 500000, depositMethod: "cash" }), services: [tour(), manual("Xe đưa đón", [{ description: "Xe 7 chỗ", detail: "", quantity: 1, unitPrice: 800000 }], { departDate: vnDate(7) })] });
+    const confirmed = await create(ACCOUNTS.salesA, { ...cust("Phạm Đã Xác Nhận", { traTruoc: 500000, traTruocHinhThuc: "CASH" }), services: [tour(), manual("Xe đưa đón", [{ description: "Xe 7 chỗ", detail: "", quantity: 1, unitPrice: 800000 }], { departDate: vnDate(7) })] });
     assert.equal((await call(ACCOUNTS.salesA, "POST", `/api/orders/${confirmed.id}/status`, { status: "confirmed" })).status, 200, "xác nhận đơn dựng sẵn");
     f.confirmed = confirmed;
     const cancelled = await create(ACCOUNTS.salesA, { ...cust("Vũ Đã Huỷ"), services: [tour()] });

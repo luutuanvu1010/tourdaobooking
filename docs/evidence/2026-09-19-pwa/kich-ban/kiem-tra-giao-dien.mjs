@@ -56,7 +56,9 @@ note(!report.login.overflowX, "login: tràn ngang");
 await login(p, "0901000002", "736154");
 const mk = (name, phone, items, extra = {}) => ({ customerName: name, customerPhone: phone, customerEmail: "", customerNote: "Đón tại khách sạn, có 1 bé 5 tuổi", items: items.map(([description, detail, quantity, unitPrice]) => ({ catalogCode: null, description, detail, quantity, unitPrice })), discount: 0, depositAmount: 0, depositMethod: null, paymentNote: "", ...extra });
 const a = await api(p, "/api/orders", "POST", mk("Trần Văn Bình", "0901234567", [["Tour 4 đảo Nha Trang", "Khởi hành 20/09/2026", 2, 1350000], ["Lặn ngắm san hô", "Thêm cho cả đoàn", 1, 1500000]]));
-const b = await api(p, "/api/orders", "POST", mk("Lê Minh Châu", "0912345678", [["Tour 4 đảo Nha Trang", "Khởi hành 21/09/2026", 4, 1350000], ["Xe đưa đón", "", 1, 1400000]], { depositAmount: 3400000, depositMethod: "bank_transfer" }));
+const b = await api(p, "/api/orders", "POST", mk("Lê Minh Châu", "0912345678", [["Tour 4 đảo Nha Trang", "Khởi hành 21/09/2026", 4, 1350000], ["Xe đưa đón", "", 1, 1400000]]));
+// sổ tiền lượt 1 (ADR-0026 đ9): tiền trả trước = lần thu ghi bằng route sau khi lập đơn (thân đơn không còn cọc).
+if (b?.order?.id) await api(p, `/api/orders/${b.order.id}/payments`, "POST", { soTien: 3400000, hinhThuc: "BANK_TRANSFER", nguoiThu: "cong_ty" });
 note(a.status === 201 && b.status === 201, `tạo đơn mẫu lỗi: ${a.status}/${b.status} ${JSON.stringify(a.json)?.slice(0, 200)}`);
 await api(p, `/api/orders/${b.json.order.id}/status`, "POST", { status: "confirmed" });
 const orderId = a.json.order.id;
