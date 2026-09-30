@@ -2,7 +2,7 @@
 
 > **Loại tài liệu:** mô tả (không phải luật). Khi mâu thuẫn: Hiến pháp → Hiến chương và luật ở [`docs/ARCHITECTURE.md`](../ARCHITECTURE.md) → ADR ([`docs/adr/`](../adr/README.md)) → mã → tài liệu này. Thấy lệch với mã thì sửa tài liệu này trong cùng commit.
 > **Chuẩn trình bày:** mô hình C4 (mức 1 Bối cảnh → mức 2 Khối triển khai → mức 3 Thành phần) và khung arc42 rút gọn (bối cảnh, khối xây dựng, luồng chạy, triển khai, khía cạnh xuyên suốt, quyết định).
-> **Hiện trạng:** production chạy bản **1.37** (ngày 30/9/2026). Mục đánh dấu **[1.38]** là phần đang phát hành: Vận chuyển lượt 1 (ADR-0047 phần máy chủ, ADR-0049, ADR-0050, ADR-0051).
+> **Hiện trạng:** production chạy bản **1.38** (ngày 30/9/2026), gồm Vận chuyển lượt 1 (ADR-0047 phần máy chủ, ADR-0049, ADR-0050, ADR-0051).
 > **Bản trực quan** (mở bằng trình duyệt): [`tong-the.html`](tong-the.html) — toàn hệ thống; [`van-chuyen.html`](van-chuyen.html) — phân hệ Vận chuyển.
 
 ## Mục lục
@@ -49,9 +49,9 @@ Ngoài ra có quản trị danh bạ, danh mục dịch vụ, tài khoản và q
 
 | Lớp của sản phẩm | Trong Tour Đảo Booking |
 |---|---|
-| Trải nghiệm | Ứng dụng web cài lên iPhone như app ("Tour Đảo Booking"), giao diện tiếng Việt, 23 trang (31 trang từ [1.38]) |
+| Trải nghiệm | Ứng dụng web cài lên iPhone như app ("Tour Đảo Booking"), giao diện tiếng Việt, 31 trang |
 | Ứng dụng | Một máy chủ Cloudflare Worker, chia 15 phần (module) có ranh giới được máy kiểm |
-| Dữ liệu | Một cơ sở dữ liệu D1 (SQLite): 46 bảng (61 bảng từ [1.38]) |
+| Dữ liệu | Một cơ sở dữ liệu D1 (SQLite): 61 bảng |
 | Tích hợp | Google Sheet (chỉ đọc), Cloudflare Turnstile, thông báo đẩy Web Push, email |
 | Vận hành | Lịch chạy 15 phút, Bảng tin thời gian thực, chế độ bảo trì, nhật ký thao tác, quy trình phát hành có cổng kiểm |
 
@@ -187,17 +187,17 @@ flowchart TB
   T6 --> T5 --> T4 --> T3 --> T2 --> T1 --> T0
 ```
 
-Mũi tên giữa các tầng nghĩa là "chỉ được gọi xuống". Tầng tính theo mối nối của [1.38]. Ở bản 1.37, Vận chuyển chỉ đọc Danh bạ và Nhật ký, nên đứng ở tầng 3.
+Mũi tên giữa các tầng nghĩa là "chỉ được gọi xuống".
 
 Mối nối cụ thể của từng phần:
 
 | Phần | Tên mã | Hạng | Làm gì | Được đọc / gọi |
 |---|---|---|---|---|
 | Thông báo | `thongbao` | nghiêm | Tin nội bộ, thông báo đẩy | `audit`, `orders`, `dispatch`, `staff` |
-| Vận chuyển | `van-chuyen` | nghiêm | Xe, giấy tờ xe, chuyến, điều phối, tài xế | `parties`, `audit`; từ [1.38] thêm `orders`, `locations` |
+| Vận chuyển | `van-chuyen` | nghiêm | Xe, giấy tờ xe, chuyến, điều phối, tài xế | `parties`, `audit`, `orders`, `locations` |
 | Phân công | `dispatch` | nghiêm | Người phụ trách đơn, hướng dẫn viên nhận việc | `orders`, `parties`, `locations`, `staff`, `audit` |
 | Quản lý tài khoản | `accounts` | cũ | Tạo tài khoản, cấp quyền, đổi PIN, nạp từ Sheet | `staff`, `auth`, `audit`, `maintenance` |
-| Đơn hàng | `orders` | cũ; [1.38] thêm tệp nửa nghiêm | Đơn, dịch vụ, thông tin chuyến, xác nhận; từ [1.38] chặng đưa đón, hành khách | `audit`, `catalog`, `staff`, `parties`, `locations` |
+| Đơn hàng | `orders` | cũ, có tệp nửa nghiêm | Đơn, dịch vụ, thông tin chuyến, xác nhận, chặng đưa đón, hành khách | `audit`, `catalog`, `staff`, `parties`, `locations` |
 | Đăng nhập | `auth` | nghiêm | PIN, Face ID (passkey), phiên, Turnstile | `staff`, `maintenance`, `parties` |
 | Góp ý | `feedback` | nghiêm | Phiếu góp ý / báo lỗi, email | `staff`, `audit` |
 | Nhân viên | `staff` | nghiêm | Tài khoản và quyền của từng người | `parties`, `audit` |
@@ -215,9 +215,9 @@ Mối nối cụ thể của từng phần:
 
 **Hai lớp không thuộc phần nào.**
 - **Gốc lắp ráp** `src/index.ts`: nơi duy nhất nối chéo.
-  - Nó tiêm vào `ctx` các hàm `isAssigned`, `newOrderHandler`, `ordersWithHandler`, `myHandledOrderIds`, `baoThayDoi`, `dongBangTin`, và từ [1.38] thêm `mocToiThieu`. Nhờ vậy `orders` không phải import `dispatch`, `van-chuyen` hay `bangtin`.
+  - Nó tiêm vào `ctx` các hàm `isAssigned`, `newOrderHandler`, `ordersWithHandler`, `myHandledOrderIds`, `baoThayDoi`, `dongBangTin`, `mocToiThieu`. Nhờ vậy `orders` không phải import `dispatch`, `van-chuyen` hay `bangtin`.
   - Nó cũng đưa cổng bảo trì `maintenanceBlock` cho bộ định tuyến.
-- **Luật thuần dùng chung** `src/shared/`: bảng quyền (`permissions.ts`), định tuyến (`router.ts`), hợp đồng dữ liệu (`contracts.ts`), luật tính tiền, luật giấy tờ, và từ [1.38] luật kiểm chuyến… dùng chung cho máy chủ và màn hình. Không import `src/modules/`.
+- **Luật thuần dùng chung** `src/shared/`: bảng quyền (`permissions.ts`), định tuyến (`router.ts`), hợp đồng dữ liệu (`contracts.ts`), luật tính tiền, luật giấy tờ, luật kiểm chuyến… dùng chung cho máy chủ và màn hình. Không import `src/modules/`.
 
 ---
 
@@ -242,13 +242,13 @@ Sơ đồ tuần tự: [`docs/SYSTEM-DESIGN.md`](../SYSTEM-DESIGN.md) §3.
 
 ```mermaid
 flowchart LR
-  A["Lập đơn nháp<br/>Bán hàng / Đối tác"] --> B["Xác nhận đơn<br/>mốc 6 giờ, Đặt gấp [1.38]"]
+  A["Lập đơn nháp<br/>Bán hàng / Đối tác"] --> B["Xác nhận đơn<br/>mốc 6 giờ, Đặt gấp"]
   B --> C["Phân công người phụ trách<br/>hướng dẫn viên nhận / từ chối"]
-  B --> D["Lịch chung các chặng đón [1.38]"]
-  D --> E["Xếp khách lên xe [1.38]"]
-  E --> F["Kiểm điều kiện xuất bến [1.38]"]
-  F --> G["Xuất bến: chụp điều kiện,<br/>chốt danh sách khách [1.38]"]
-  G --> H["Tiến độ, kết thúc [1.38]"]
+  B --> D["Lịch chung các chặng đón"]
+  D --> E["Xếp khách lên xe"]
+  E --> F["Kiểm điều kiện xuất bến"]
+  F --> G["Xuất bến: chụp điều kiện,<br/>chốt danh sách khách"]
+  G --> H["Tiến độ, kết thúc"]
   B -.->|"báo tức thì"| BT["Bảng tin"]
   B -.->|"thông báo đẩy"| TB["Thông báo"]
 ```
@@ -263,9 +263,9 @@ Chỉ phần chủ được ghi vào bảng của mình. Tiền tố tên bảng
 
 | Chủ | Tiền tố / bảng | Số bảng | Nội dung |
 |---|---|---|---|
-| Vận chuyển | `vc_` | 4 → **17** [1.38] | Xe, giấy tờ xe, ngưỡng nhắc hạn; [1.38] chuyến, ai lái, điểm dừng, suất, sự kiện, bản chụp xuất bến, bản chốt danh sách, chính sách, gọi báo |
+| Vận chuyển | `vc_` | 17 | Xe, giấy tờ xe, ngưỡng nhắc hạn, chuyến, ai lái, điểm dừng, suất, sự kiện, bản chụp xuất bến, bản chốt danh sách, chính sách, gọi báo |
 | Danh bạ | `pty_` | 12 | Bên, người, tổ chức, vai, quan hệ, liên hệ, giấy tờ người, hạng bằng |
-| Đơn hàng | `orders`, `order_*`, `ord_` | 4 → **6** [1.38] | Đơn, dịch vụ, dòng giá, điều chỉnh tiền; [1.38] chặng đưa đón, hành khách |
+| Đơn hàng | `orders`, `order_*`, `ord_` | 6 | Đơn, dịch vụ, dòng giá, điều chỉnh tiền, chặng đưa đón, hành khách |
 | Thông báo | `ntf_` | 5 | Tin, người nhận, đã đọc, đã xác nhận, đăng ký thông báo đẩy |
 | Nhân viên | `staff`, `stf_` | 4 | Tài khoản, quyền, loại quyền, điều chỉnh quyền |
 | Góp ý | `fbk_` | 4 | Phiếu, tin trao đổi, loại, trạng thái |
@@ -275,12 +275,12 @@ Chỉ phần chủ được ghi vào bảng của mình. Tiền tố tên bảng
 | Địa điểm | `loc_` | 2 | Địa điểm, loại |
 | Nhật ký | `audit_log` | 1 | Mọi thao tác quan trọng |
 | Bảo trì, Công ty | `mnt_setting`, `company_profile` | 2 | Cài đặt bảo trì; logo |
-| **Tổng** | | **46 → 61** [1.38] | |
+| **Tổng** | | **61** | |
 
 Luật dữ liệu:
 - **Tiền** là `INTEGER` đồng, chỉ máy chủ tính (`buildLines`).
 - **Ngày dân sự** theo giờ Việt Nam; dấu thời gian ISO UTC.
-- **Không xoá cứng:** đổi bằng dòng có hiệu lực (`valid_from/to`). Từ [1.38] có một ngoại lệ có tên duy nhất: dòng `ord_*` của đơn nháp, `XOA_CUNG_NHAP`.
+- **Không xoá cứng:** đổi bằng dòng có hiệu lực (`valid_from/to`). Có một ngoại lệ có tên duy nhất: dòng `ord_*` của đơn nháp, `XOA_CUNG_NHAP`.
 - **Migration chỉ thêm tệp mới.**
 
 Từng cột: [`docs/DATA-DICTIONARY.md`](../DATA-DICTIONARY.md).
@@ -310,9 +310,9 @@ Chín mã quyền; một tài khoản giữ được nhiều quyền (trừ Tài
 |---|---|---|
 | Xác thực | Mã PIN 6 số hoặc Face ID (passkey); cookie phiên có chữ ký; Turnstile trước bộ chống dò PIN | `auth` |
 | Chống giả mạo | Lệnh ghi phải có `Origin` cùng nguồn; CSP chặt ở `public/_headers` | `src/shared/router.ts` |
-| Dữ liệu cá nhân | Nhật ký không ghi SĐT, email, mã số thuế, số giấy tờ; xem đủ số giấy tờ phải ghi nhật ký trước; [1.38] tên khách chỉ hiện cho tài xế trong ngày chạy | từng phần + bài kiểm |
+| Dữ liệu cá nhân | Nhật ký không ghi SĐT, email, mã số thuế, số giấy tờ; xem đủ số giấy tờ phải ghi nhật ký trước; tên khách chỉ hiện cho tài xế trong ngày chạy | từng phần + bài kiểm |
 | Nhật ký | Mọi thao tác quan trọng một dòng, chỉ thêm, nhãn tiếng Việt | `audit`, `src/shared/audit-actions.ts` |
-| Đồng thời | Khoá lạc quan `updated_at` + lính gác; [1.38] phần nghiêm dùng `version` + dấu lệnh, một lệnh là một lô ghi | từng phần |
+| Đồng thời | Khoá lạc quan `updated_at` + lính gác; phần nghiêm dùng `version` + dấu lệnh, một lệnh là một lô ghi | từng phần |
 | Bảo trì | Bật thì máy chủ chặn mọi SĐT ngoài danh sách cho phép, kể cả phiên đang mở | `maintenance`, trạm 5 |
 | Ngôn ngữ | Giao diện, thông báo lỗi, tài liệu đều tiếng Việt có dấu; không lộ mã trạng thái thô | toàn bộ |
 | Quan sát | Log JSON một dòng, `requestId`; lỗi không bắt được → 500 kèm mã yêu cầu | `src/shared/router.ts` |
@@ -339,7 +339,7 @@ flowchart LR
 - **Chỉ chủ dự án** chạy `day-len` và `trien-khai`, và chỉ trong Terminal. Hàng rào máy (hook `.claude/hooks/guard-remote.mjs`, `permissions.deny`) chặn AI tự đẩy mã, tự triển khai, tự ghi dữ liệu thật.
 - **Cloudflare không nối GitHub.** Đẩy mã lên GitHub không tự triển khai.
 - **Số phiên bản** lấy từ mục đầu của nhật ký thay đổi (`src/shared/changelog.ts`).
-- **Kiểm thử:** `npm test` (luật thuần + bài kiến trúc; từ [1.38] chạy hai bước, bài đo tốc độ hàng rào chạy riêng), `npm run typecheck`, `npm run test:e2e` (API thật trên D1 tạm), kịch bản Chrome, `audit-invariants`.
+- **Kiểm thử:** `npm test` (luật thuần + bài kiến trúc; chạy hai bước, bài đo tốc độ hàng rào chạy riêng), `npm run typecheck`, `npm run test:e2e` (API thật trên D1 tạm), kịch bản Chrome, `audit-invariants`.
 - **Runbook:** [`docs/HANDOFF-N1.md`](../HANDOFF-N1.md), [`docs/QUY-TRINH-PHAT-HANH.md`](../QUY-TRINH-PHAT-HANH.md).
 
 ---
@@ -351,13 +351,13 @@ Phân hệ lớn nhất và mới nhất. Bản đầy đủ có sơ đồ nối
 **Phạm vi theo bản.**
 - **1.35 (đã chạy):** xe, giấy tờ xe, tài xế, giấy tờ người (ADR-0040).
 - **1.37 (đã chạy):** nhà xe đối tác, tài xế đối tác trong danh bạ (ADR-0048).
-- **[1.38]:**
+- **1.38 (đã chạy):**
   - chặng đưa đón và hành khách (ADR-0047 phần máy chủ);
   - Bảng điều phối, mốc 6 giờ, đặt gấp (ADR-0049);
   - giờ thật khi bấm thay, giữ chuyến khi nơi đổi, Kiểm định + Bảo hiểm (ADR-0050);
   - nhắc gọi báo khách (ADR-0051).
 
-**Vòng đời một chuyến [1.38].** Đơn có chặng đón → lịch chung (dựng lúc đọc) → xếp khách lên xe (mỗi khách một suất) → kiểm điều kiện xuất bến → xuất bến (chụp điều kiện, chốt danh sách hành khách) → tiến độ → kết thúc.
+**Vòng đời một chuyến.** Đơn có chặng đón → lịch chung (dựng lúc đọc) → xếp khách lên xe (mỗi khách một suất) → kiểm điều kiện xuất bến → xuất bến (chụp điều kiện, chốt danh sách hành khách) → tiến độ → kết thúc.
 - Màn hình và nút xuất bến dùng chung một hàm kiểm: `kiemXuatBen`.
 - Xe bị giữ khi nơi đón đổi, khách đổi, hoặc giờ hẹn đổi.
 
@@ -406,6 +406,6 @@ Tài liệu này mô tả, nên thua mã. Khi đổi các thứ dưới đây, s
 | Thêm trang | §2 | `PAGES` trong `src/shared/sw-policy.ts` |
 | Thêm dịch vụ ngoài, binding, lịch | §3, §4 | `wrangler.jsonc` |
 | Thêm mã quyền, đổi cổng | §8 | `src/shared/permissions.ts`, `src/shared/router.ts` |
-| Phát hành bản mới | dòng "Hiện trạng" ở đầu, bỏ nhãn [1.38] khi bản lên production | `src/shared/changelog.ts` |
+| Phát hành bản mới | dòng "Hiện trạng" ở đầu, bỏ nhãn bản đang phát hành (vd `[1.39]`) khi bản lên production | `src/shared/changelog.ts` |
 
 Hai bản trực quan `tong-the.html`, `van-chuyen.html` là ảnh chụp ngày 30/9/2026 theo mã nhánh phát hành 1.38. Khi lệch, tệp Markdown này là bản đúng.
