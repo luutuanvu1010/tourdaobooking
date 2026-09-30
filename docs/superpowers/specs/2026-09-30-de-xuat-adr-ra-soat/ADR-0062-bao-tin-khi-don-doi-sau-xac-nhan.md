@@ -135,6 +135,11 @@
   - **Không tách theo ":"** (giờ "07:00" có dấu hai chấm) và không tin dấu ", " / " | " / " → " làm ranh giới khi chúng có thể nằm trong tên dịch vụ hay chữ nơi tự do. Hàm đọc khớp theo **ngữ pháp chặt**: nhãn cố định (bảng nhãn ở `src/shared/`, chữ cố định "đổi …", "thêm chặng đón", "bỏ chặng đón", "số khách: ", "số khách đi xe ") + **giá trị đã kiểm dạng**: ngày `YYYY-MM-DD`, giờ `HH:MM`, `(trống)`, số nguyên cho số khách.
   - Phần tên dịch vụ (tiền tố `<tên>: ` của `describeTripChange`, "Chiều đi · <tên>" của `moTaChang`) là chữ bất kỳ và **bị bỏ**. Nếu `detail` phân tích được theo **nhiều hơn một** cách (tên chứa ": ", " | ", " → " hay một nhãn trường), hoặc có phần không khớp ngữ pháp ⇒ dùng **câu chung** (Đ2 dưới) cho cả dòng.
   - **Không bao giờ** in ra một mẩu chữ thô của `detail`: câu tin chỉ ghép từ nhãn cố định + giá trị đã kiểm dạng + tên danh mục đã kiểm ở đường viết.
+  - Chữ tự do (tên dịch vụ, chữ nơi) nuốt được mọi chuỗi, nên một đổi giờ **giả** nằm cạnh chữ tự do luôn cho **ít nhất hai** cách phân tích (chữ tự do nuốt nó, hoặc không) ⇒ câu chung; đổi giả không bao giờ lọt vào câu tin.
+- **Vị trí cố định của các đoạn trong `detail` của `trip_updated`** (để phân tích được một cách):
+  - `[các khúc dịch vụ "<tên>: <phần đổi>" nối bằng " | "]` rồi `[" | số khách đi xe A → B" — khi `ridePax` đổi, ADR-0065]` rồi các **đuôi** `" · đặt gấp: <nhãn cố định>"` (`kemDatGap`) và `" · tính 1 lượt đổi giờ"` / `" · đổi giờ (Toàn quyền, không tính lượt)"` (ADR-0063 D3.5), thứ tự hai đuôi không quan trọng.
+  - Lệnh **chỉ** đổi `ridePax`: `detail` = `"số khách đi xe A → B"` (không khúc dịch vụ).
+  - Hàm đọc: (1) bóc các đuôi đã biết ở **cuối**; (2) nhận đoạn "số khách đi xe A → B" **chỉ ở cuối** phần còn lại (sau " | " hoặc đứng một mình); (3) phân tích phần còn lại theo ngữ pháp khúc dịch vụ. Đoạn ở cuối không thể do tên dịch vụ giả ra, vì mọi khúc dịch vụ kết thúc bằng phần đổi có khuôn, không bằng tên.
   - Dòng cũ không có đoạn này ⇒ câu chung "Đơn <mã>: đổi số khách".
 - **Một nguồn khuôn chữ:**
   - hàm viết (`describeTripChange`, `moTaChang`, hàm viết đoạn số khách, **`kemDatGap`** (`index.ts:81`), hàm viết đoạn đuôi lượt đổi giờ của ADR-0063, hàm viết đoạn "số khách đi xe" của ADR-0065 khi có) và hàm đọc `phanDoiCuaTin` có bài **khứ hồi**: mọi đầu ra của hàm viết đọc ra đúng phần đổi, và đoạn đuôi (đặt gấp, lượt đổi giờ) không lọt vào câu tin;
@@ -264,7 +269,10 @@ Tệp ADR cũ **không** sửa; `docs/adr/README.md` do điều phối cập nh�
      - tên chứa " → " hay chứa một nhãn trường khiến `detail` phân tích được nhiều cách → **câu chung** "Đơn <mã> vừa đổi chặng đưa đón", không in mẩu thô;
      - tên chứa " · lý do: " ở dòng số khách (tên danh mục lạ) → cắt sớm, phần trước không khớp ngữ pháp → câu chung "… đổi số khách";
      - lý do tự do chứa "số khách đi xe 1 → 9" → không vào câu tin (cắt tại " · lý do: " đầu tiên);
-     - giá trị sai dạng (vd "giờ đón 7h → 6h30") → câu chung, không in giá trị.
+     - giá trị sai dạng (vd "giờ đón 7h → 6h30") → câu chung, không in giá trị;
+     - **chữ nơi đón tự do** chứa ", giờ đón 01:00 → 02:00" (dòng `order_leg_updated` từ `moTaChang`, hoặc "đổi điểm đón" kèm đổi giờ thật) → tin chỉ "đổi nơi đón" (và đổi thật nếu có) **hoặc** câu chung; **không bao giờ** có "01:00 → 02:00";
+     - tên dịch vụ bắt đầu bằng "số khách đi xe 1 → 9 | " kèm đổi giờ thật → không có "số khách đi xe 1 → 9" trong tin (đoạn này chỉ được nhận ở cuối);
+   - **Khứ hồi đoạn "số khách đi xe"** (ADR-0065 bài 4c): lệnh chỉ đổi `ridePax` 4 → 3 → tin **thật** "Đơn <mã>: số khách đi xe 4 → 3", **không** câu chung; lệnh đổi giờ đón + `ridePax` + đặt gấp + tính lượt → tin có cả hai phần đổi, không có đuôi;
 3. **Tập nguồn một nơi (Đ1-a):**
    - mọi hành động có cờ `doiSoKhach` ∈ tập nguồn; tập nguồn ⊂ `AUDIT_ACTIONS`;
    - **mọi hành động ghi `order_money_adjustment` mang cờ `doiSoKhach`**: tham số hành động của `insertMoneyAdjustment` có kiểu chỉ nhận hành động mang cờ (kiểu dẫn từ `AUDIT_ACTIONS`), cộng bài quét mã nguồn — mọi câu `INSERT INTO order_money_adjustment` chỉ nằm trong `insertMoneyAdjustment` (thêm tạm một câu chèn thứ hai ở chỗ khác → đỏ);
@@ -290,6 +298,8 @@ Tệp ADR cũ **không** sửa; `docs/adr/README.md` do điều phối cập nh�
 
 - *(Bỏ ở lần sửa 1:)* giả định cũ "giờ đón gồm cả ngày đón / ngày khởi hành" nay thay bằng hằng "giờ" dùng chung, chủ chốt ở câu 3.
 - **Thêm / bỏ chặng đón có tin.** Hoàn tác: bỏ `order_leg_added` / `order_leg_closed` khỏi tập nguồn.
+- **Tin đổi số khách có kèm phần "số khách đi xe A → B" khi máy tự hạ** (ADR-0065, chỉ khi câu 8 = A). Hoàn tác: hàm đọc dừng sau đoạn "số khách: …".
+- **Khai trước hành động `order_money_adjusted`** (Đ1) dù lượt 2a chưa duyệt; bị bác thì hành động nằm chết, vô hại. Hoàn tác: gỡ khỏi hằng + migration tạo lại view.
 - **Không gộp** nhiều lần sửa; một lô một tin. Hoàn tác: luật đọc.
 - **Không công tắc theo loại tin.** Hoàn tác: ADR sau.
 - Người xem mọi đơn thấy tin ở ngăn "Tất cả" (không số đỏ, không gõ cửa), như mọi tin đơn khác.
