@@ -11,6 +11,15 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Bản 1.46 = gộp bốn nhánh đã qua kiểm độc lập (ADR-0059 xe đón trên đơn; ADR-0060 dấu kế toán, migration 0051; ADR-0061 nhập tay nội bộ,
+    // migration 0052; ADR-0067 ô Người lập). Mỗi nhánh ghi số tạm 1.45; người gộp chốt 1.46 trên 1.45 của main.
+    version: "1.46",
+    date: "2026-09-30",
+    items: [
+      { kind: "moi", text: "Chi tiết đơn: dưới giờ đón hiện xe đón khách — biển số, tên tài xế, số khách trên từng xe và xe đã chạy chưa. Chỉ người xem được Điều phối xe mới thấy." },
+    ],
+  },
+  {
     // Chủ báo 30/9 sau 1.44: (1) "chưa thấy trợ lý bật lên" — shell không gắn nút khi đang bảo trì; (2) thông báo điện thoại mất sau mỗi lần triển khai
     // — chưa chốt nguyên nhân gốc (điều tra chỉ đọc); sửa phần chắc chắn: nút "Bật" không còn luôn huỷ đăng ký cũ. Số "1.45" theo main 1.44.
     version: "1.45",

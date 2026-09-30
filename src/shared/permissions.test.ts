@@ -387,6 +387,16 @@ test("ADR-0051 GB2: trip.call_ack ⊆ order.trip.edit theo từng cột; trip.ca
   assert.deepEqual(PERMISSION_CODES.filter((p) => MATRIX["trip.call_ack"][p] !== "none"), ["SALES", "ADMIN", "SUPER_ADMIN"]);
 });
 
+// Khoá GIÁ TRỊ (ADR-0059): route `GET /api/van-chuyen/xe-cua-don/:orderId` (xe trên chi tiết đơn) hỏi `can(trip.view)` VÀ `can(order.view)` không ngữ cảnh,
+// và màn chi tiết đơn chỉ gọi route khi cả hai đúng. Bài này giữ nghĩa "người xem được Bảng điều phối (trip.view = any) thì xem được mọi đơn": ai sau này nới
+// trip.view = any cho một quyền không xem được mọi đơn (vd Thực tập, HDV) thì đỏ ở đây — phải quyết lại bằng ADR, không lặng lẽ mở xe trên đơn / lịch xe cho
+// họ. Không phải phép kiểm lúc chạy (thân route vẫn hỏi cả hai ô) — xem docs/SO-HANG-RAO.md.
+test("ADR-0059: mọi mã quyền có trip.view = any thì có order.view = any (xe trên chi tiết đơn chỉ cho người đã xem được Bảng điều phối)", () => {
+  for (const p of PERMISSION_CODES) {
+    if (MATRIX["trip.view"][p] === "any") assert.equal(MATRIX["order.view"][p], "any", `${p}: trip.view = any nhưng order.view = ${MATRIX["order.view"][p]}`);
+  }
+});
+
 test("ADR-0049 D3: ô order.leg.short_notice CHỈ ADMIN + SUPER_ADMIN (any); mọi mã khác none", () => {
   const co = PERMISSION_CODES.filter((p) => MATRIX["order.leg.short_notice"][p] !== "none");
   assert.deepEqual(co, ["ADMIN", "SUPER_ADMIN"]);

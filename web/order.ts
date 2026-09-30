@@ -23,6 +23,7 @@ import { HANDLER_HIDDEN } from "../src/shared/order-confirmation";
 import { type PaxCounts } from "../src/shared/order-lines";
 import { banner, classifyOrderError, type Banner } from "../src/shared/order-errors";
 import { khongQuyenSuaText, orderActions, paxFullText, suaChuyenDuoc } from "../src/shared/order-view";
+import { CHUA_XEP_XE, dongXeTrenDon, duocXemXeTrenDon } from "../src/shared/xe-tren-don";
 import type { SuKienDon } from "../src/shared/bang-tin";
 
 const id = new URLSearchParams(location.search).get("id");
@@ -36,6 +37,8 @@ let staff: Staff | null = null; // gán sau `initShell()`; các hàm dưới ch�
 let mocPhut: number | null = null;
 /** Tiền của đơn từ billing (`GET /api/orders/:id/payments` — sổ tiền lượt 1); null = chưa tải được / không được xem (khối tiền hiện "—", không đoán). */
 let tien: Api.OrderPaymentsResponse | null = null;
+/** Xe chở từng chặng (ADR-0059, route của van-chuyen); null = không được xem / chưa tải được — KHÔNG hiện khối (không nói "Chưa xếp xe" khi không biết). */
+let xeDon: Api.XeCuaDonResponse | null = null;
 
 // Form lập đơn ghi tiền trả trước ở BƯỚC HAI (sổ tiền lượt 1, NT-S6); bước đó hỏng thì chuyển tới đây kèm `thutruoc=loi` — báo một lần, bỏ tham số ngay.
 let baoThuTruocLoi = new URLSearchParams(location.search).get("thutruoc") === "loi";
@@ -103,6 +106,25 @@ function tenChang(legId: string): string | null {
  * Khối V12 dưới thông tin chuyến của một dịch vụ (bản vẽ 07): nhãn "Đặt gấp — …" của chặng đã đặt gấp (theo khoá có trong DTO — chủ H4) và dải cảnh báo dưới mốc
  * của chặng đơn NHÁP còn phải đặt gấp; người có ô order.leg.short_notice có nút "Đặt gấp" (route POST …/legs/:legId/short-notice).
  */
+/**
+ * ADR-0059: khối "Xe đón" dưới thông tin chuyến của một dịch vụ — mỗi chặng: "Xe … · Tài xế … · n khách · <trạng thái>" (chặng chia nhiều xe → nhiều dòng), chặng
+ * chưa xếp → "Chưa xếp xe". Chỉ khi đã tải được `xeDon` (người không đủ quyền không gọi route — `duocXemXeTrenDon`).
+ */
+function khoiXe(order: Order, serviceId: string): HTMLElement | null {
+  const s = order.services.find((x) => x.id === serviceId);
+  if (!s || !xeDon || s.legs.length === 0) return null;
+  const nhieuChang = s.legs.length > 1;
+  const dong: HTMLElement[] = [];
+  for (const l of s.legs) {
+    const c = xeDon.chang.find((x) => x.legId === l.id);
+    if (!c) continue;
+    const nhan = nhieuChang ? `Xe đón · ${CHIEU_LABEL[l.direction]}` : "Xe đón";
+    if (c.xe.length === 0) dong.push(kv(nhan, CHUA_XEP_XE, "xe-don-dong"));
+    for (const x of c.xe) dong.push(kv(nhan, dongXeTrenDon(x), "xe-don-dong"));
+  }
+  return dong.length ? h("div", { class: "xe-don", "data-xe-don": s.id }, ...dong) : null;
+}
+
 function khoiChang(order: Order, serviceId: string, canDatGap: readonly ChangCanDatGap[], duocDatGap: boolean): HTMLElement | null {
   const s = order.services.find((x) => x.id === serviceId);
   if (!s) return null;
@@ -569,7 +591,11 @@ function render(order: Order, history: AuditEntry[], canModify: boolean, handler
           a.editTrip ? bookerButton(order) : null,
         ),
 
-        renderServices(order, a.locked, (sid) => khoiChang(order, sid, canDatGap, duocDatGap)),
+        renderServices(order, a.locked, (sid) => {
+          const xe = khoiXe(order, sid);
+          const dg = khoiChang(order, sid, canDatGap, duocDatGap);
+          return xe && dg ? h("div", null, xe, dg) : xe ?? dg;
+        }),
       ),
       h(
         "div",
@@ -697,10 +723,11 @@ async function load(quiet = false): Promise<void> {
   const seq = ++loadSeq;
   try {
     // Người phụ trách tải song song với đơn; lời gọi của nó không bao giờ ném lỗi (xem loadHandler) nên đơn luôn hiển thị được.
-    const [{ order, history, canModify, mocToiThieuPhut }, handler, tienDon] = await Promise.all([layDon!(), layNguoiPhuTrach(id!), layTien(id!)]);
+    const [{ order, history, canModify, mocToiThieuPhut }, handler, tienDon, xe] = await Promise.all([layDon!(), layNguoiPhuTrach(id!), layTien(id!), layXe(id!)]);
     if (seq !== loadSeq) return;
     mocPhut = mocToiThieuPhut;
     tien = tienDon;
+    xeDon = xe;
     show(null);
     render(order, history, canModify, handler);
     if (baoThuTruocLoi) {
@@ -735,6 +762,10 @@ const lamMoi = taoBoLamMoi(async () => {
 /** Tiền của đơn (billing). KHÔNG ném lỗi: 403 / lỗi mạng → null — khối tiền hiện "—", đơn vẫn hiển thị. */
 const layTien = (orderId: string): Promise<Api.OrderPaymentsResponse | null> =>
   api<Api.OrderPaymentsResponse>(`/api/orders/${encodeURIComponent(orderId)}/payments`).catch(() => null);
+
+/** Xe chở từng chặng (ADR-0059). Chỉ gọi khi đủ HAI ô (trip.view + order.view không ngữ cảnh); KHÔNG ném lỗi: 403 / lỗi mạng → null — không hiện khối. */
+const layXe = (orderId: string): Promise<Api.XeCuaDonResponse | null> =>
+  duocXemXeTrenDon(staff!) ? api<Api.XeCuaDonResponse>(`/api/van-chuyen/xe-cua-don/${encodeURIComponent(orderId)}`).catch(() => null) : Promise.resolve(null);
 
 // Gọi sớm (web/goi-som.ts): đơn gửi NGAY, song song với /api/auth/me của initShell(); chỉ dựng trang sau khi initShell() xong.
 const layDon = id ? goiSom(() => api<Api.OrderDetailResponse>(`/api/orders/${encodeURIComponent(id)}`)) : null;

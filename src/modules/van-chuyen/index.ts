@@ -62,6 +62,11 @@ import { NHAC_GOI_SO_NGAY } from "../../shared/goi-bao";
 import { changChoTrongKhoang, changChuDon, mocByRequest } from "./chuyen-repo";
 import { docBoDanhDauGoiBao, docDaGoiBao } from "./dieu-phoi-than";
 import { danhSachNhac, docGoiBao, phanHoiLenhLap, xuLyMoc, type QuyenGoiBao } from "./goi-bao-lenh";
+// ADR-0059: xe trên chi tiết đơn — route đọc, danh sách trắng.
+import type { XeCuaDonResponse } from "../../shared/contracts";
+import { changMoCuaDon, donTonTai, xeCuaDon } from "./chuyen-repo";
+import { xeCuaDonDto } from "./dieu-phoi-dto";
+const CAN_XEM_XE_DON = () => error(403, "forbidden", "Tài khoản này không xem được xe đón khách của đơn.");
 const CAN_XEM_CUOC = () => error(403, "forbidden", "Tài khoản này không có cuốc xe.");
 const CAN_BAM_THAY = () => error(403, "forbidden", "Tài khoản này không bấm thay tiến độ chuyến được.");
 /** `assigned` của route tài xế (kế hoạch mục 1.2): người gọi có hồ sơ và là tài xế ĐANG MỞ dòng lái của chuyến. */
@@ -1309,6 +1314,17 @@ export const vanChuyenModule: AppModule = {
       const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
       const hk2 = await hanhKhachChoChuyen(env.DB, nen2.legIds);
       return json(await chiTietChuyen(env.DB, nen2, lich2.chang, hk2, false, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), bayGioMs) satisfies ChuyenChiTietResponse);
+    }),
+
+    // ---- XE TRÊN CHI TIẾT ĐƠN (ADR-0059) — màn chi tiết đơn gọi THÊM route này (khuôn ADR-0024 điều 4). HAI lần hỏi quyền KHÔNG ngữ cảnh, TRƯỚC mọi truy vấn
+    // (không dựa vào việc cổng office hôm nay trùng tập trip.view = any): trip.view (Tài xế công ty — assigned — bị từ chối) VÀ order.view (chỉ người xem mọi
+    // đơn). Bài ghim "trip.view = any ⇒ order.view = any" ở src/shared/permissions.test.ts. Đọc, không ghi nhật ký; nhật ký trip_* vẫn không gắn đơn.
+    route("GET", "/api/van-chuyen/xe-cua-don/:orderId", "office", async ({ env, params, staff }) => {
+      if (!can(staff, "trip.view") || !can(staff, "order.view")) return CAN_XEM_XE_DON();
+      const orderId = params.orderId ?? "";
+      if (!(await donTonTai(env.DB, orderId))) return error(404, "not_found", "Không tìm thấy đơn.");
+      const [legIds, rows] = await Promise.all([changMoCuaDon(env.DB, orderId), xeCuaDon(env.DB, orderId)]);
+      return json(xeCuaDonDto(legIds, rows) satisfies XeCuaDonResponse);
     }),
 
     // ---- NHẮC "GỌI BÁO KHÁCH" KHI GIỜ HẸN ĐỔI (ADR-0051 GB1, GB2 — Task A-GB) ----------------------------------------------------------------------------

@@ -152,7 +152,7 @@ test("họ tên, năm sinh hành khách chỉ rời máy chủ ở GET/POST /pas
 });
 
 // ==== KHỐI VAN-CHUYỂN (ADR-0049 Task A18 bước 2 + 2b — kế hoạch mục 1.6–1.8, TC-39, TC-50) =================================================================
-//   (1) ĐỦ TUYẾN (siết): tập route thật của van-chuyen thuộc điều phối (lịch, chuyến, cuốc của tôi, chặng, nhắc gọi khách, chính sách điều phối) — lấy từ MÃ
+//   (1) ĐỦ TUYẾN (siết): tập route thật của van-chuyen thuộc điều phối (lịch, chuyến, cuốc của tôi, chặng, nhắc gọi khách, chính sách điều phối, xe của đơn — ADR-0059) — lấy từ MÃ
 //       THẬT — phải BẰNG tập khoá của TUYEN_VC. Thêm route điều phối mới mà quên ca ở đây → đỏ (kể cả route 40 `cap-nhat-diem`, ba route gọi báo).
 //   (2) TÊN CHỈ Ở HAI ROUTE: họ tên / năm sinh (chuỗi tên, số năm sinh đứng riêng, khoá `hoTen`, `namSinh`) chỉ có trong thân GET /api/van-chuyen/chuyen/:id và GET /api/van-chuyen/cuoc-cua-toi/:id;
 //       mọi route khác (kể cả phản hồi lệnh ghi, lệnh tiến độ) KHÔNG. GET /cuoc-cua-toi/:id của chuyến NGOÀI ngày chạy không tên, không liên hệ.
@@ -161,7 +161,7 @@ test("họ tên, năm sinh hành khách chỉ rời máy chủ ở GET/POST /pas
 //       chốt không có cột khoá nơi. DTO tài xế không có khoá gọi báo (`gioHenDoi`, `daGoiBao`, `phienBan`).
 // SALES, SUP ở trên trùng giá trị với khung thử điều phối (tests/audit/dieu-phoi-khung.mjs).
 const TUYEN_VC_THAT = (await routesOf("./modules/van-chuyen/index.ts", "vanChuyenModule"))
-  .filter((k) => /^\/api\/van-chuyen\/(lich|chuyen|cuoc-cua-toi|chang|nhac-goi-khach|chinh-sach-dieu-phoi)(\/|$)/.test(k.split(" ")[1]!))
+  .filter((k) => /^\/api\/van-chuyen\/(lich|chuyen|cuoc-cua-toi|chang|nhac-goi-khach|chinh-sach-dieu-phoi|xe-cua-don)(\/|$)/.test(k.split(" ")[1]!))
   .sort();
 const TRA_TEN = ["GET /api/van-chuyen/chuyen/:id", "GET /api/van-chuyen/cuoc-cua-toi/:id"];
 const TEN_VC = ["Khách Dò Tìm 1", "Khách Dò Tìm 2", "Khách Dò Tìm 3"];
@@ -254,6 +254,11 @@ test("khối van-chuyen: đủ tuyến; tên hành khách chỉ ở GET /chuyen/
       },
       "GET /api/van-chuyen/lich": async () => {
         await goi("GET /api/van-chuyen/lich", "lịch chung", "GET", `/api/van-chuyen/lich?ngay=${NGAY}`, SALES);
+      },
+      "GET /api/van-chuyen/xe-cua-don/:orderId": async () => {
+        // ADR-0059: xe trên chi tiết đơn — đơn A có suất ĐÃ gắn tên (I19a) trên chuyến A: thân chỉ biển số, tên TÀI XẾ, số khách, trạng thái.
+        const r = await goi("GET /api/van-chuyen/xe-cua-don/:orderId", "xe của đơn A", "GET", `/api/van-chuyen/xe-cua-don/${dA.id}`, SALES);
+        assert.equal(r.chang[0].xe[0].soKhach, 3, "chống bài rỗng: đơn A có xe, 3 khách đã gắn tên");
       },
       "GET /api/van-chuyen/chuyen/:id": async () => {
         // I19(a) (làm bù theo K2c VỪA-1): xếp theo SỐ → máy gắn tên ngay lúc xếp theo thứ tự khoá người ⇒ chi tiết văn phòng CÓ tên TRƯỚC xuất bến.
