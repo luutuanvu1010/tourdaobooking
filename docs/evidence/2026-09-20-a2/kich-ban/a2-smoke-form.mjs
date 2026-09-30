@@ -19,16 +19,17 @@ try {
 
   // ---- 1b) bề mặt Tạo đơn (2026-09-25): tiêu đề, thứ tự mục, nút nhập tay ẩn, mặc định Tiền mặt, "Sử dụng thông tin của tôi" ----
   assert.equal(await p.ev("document.getElementById('form-title').textContent"), "Tạo đơn");
-  assert.deepEqual(await p.ev("[...document.querySelectorAll('.form-main > .card > h2')].map((x) => x.textContent)"), ["Chọn ngày", "Dịch vụ", "Thông tin khách hàng", "Thanh toán"]);
+  assert.deepEqual(await p.ev("[...document.querySelectorAll('.form-main > .card > h2')].map((x) => x.textContent)"), ["Chọn ngày", "Dịch vụ", "Thanh toán", "Thông tin khách hàng"]); // YC-0001 (chủ duyệt 30/9): Thanh toán TRƯỚC khách
   assert.equal(await p.ev("document.getElementById('add-manual').hidden"), true, "nút '+ Dịch vụ nhập tay' ẩn khi danh mục tải được");
-  assert.equal(await p.ev("document.getElementById('depositMethod').value"), "cash", "phương thức thanh toán mặc định Tiền mặt");
-  assert.match(await p.ev("document.querySelector('label:has(#depositAmount)').textContent"), /^Thanh toán trước/);
-  assert.match(await p.ev("document.querySelector('label:has(#depositMethod)').textContent"), /^Phương thức thanh toán/);
+  assert.equal(await p.ev("document.getElementById('prepaidMethod').value"), "BANK_TRANSFER", "hình thức trả trước mặc định Chuyển khoản (YC-0002, chủ duyệt 30/9)");
+  assert.match(await p.ev("document.querySelector('label:has(#prepaidAmount)').textContent"), /^Thanh toán trước/);
+  assert.match(await p.ev("document.querySelector('label:has(#prepaidMethod)').textContent"), /^Hình thức/);
+  assert.equal(await p.ev("document.getElementById('customerName').value"), "", "không điền sẵn tên khách (YC-0002)");
   await p.ev("document.getElementById('use-mine').click(); true");
   assert.deepEqual(await p.ev("[document.getElementById('customerName').value, document.getElementById('customerPhone').value, document.getElementById('customerEmail').value]"), [ACCOUNTS.salesA.name, ACCOUNTS.salesA.phone, ""]);
   await p.ev(setInput("document.getElementById('customerName')", ""));
   await p.ev(setInput("document.getElementById('customerPhone')", ""));
-  ok("Tạo đơn: thứ tự Chọn ngày → Dịch vụ → Thông tin khách hàng → Thanh toán; nhập tay ẩn; Tiền mặt mặc định; nút 'của tôi' điền tên + SĐT tài khoản");
+  ok("Tạo đơn: thứ tự Chọn ngày → Dịch vụ → Thanh toán → Thông tin khách hàng; nhập tay ẩn; Chuyển khoản mặc định, tên khách trống; nút 'của tôi' điền tên + SĐT tài khoản");
 
   // ---- 2) ô chọn danh mục: tìm, kết quả, trạng thái rỗng ----
   await p.ev("document.getElementById('catalog-q').focus(); true");
@@ -124,15 +125,15 @@ try {
 
   // ---- 7) thanh toán, tóm tắt, kiểm phía trình duyệt ----
   assert.match(await p.ev("document.getElementById('sum-subtotal').textContent"), /7\.350\.000/);
-  await p.ev(setInput("document.getElementById('depositAmount')", "1000000"));
-  await p.ev(setInput("document.getElementById('depositMethod')", "")); // bỏ mặc định Tiền mặt để kiểm lỗi thiếu phương thức
-  assert.match(await p.ev("document.getElementById('sum-remaining').textContent"), /6\.350\.000/);
-  await p.ev("document.getElementById('save').click(); true"); // thiếu tên/SĐT khách + chưa chọn hình thức cọc
+  await p.ev(setInput("document.getElementById('prepaidAmount')", "1000000"));
+  assert.match(await p.ev("document.getElementById('sum-prepaid').textContent"), /1\.000\.000/);
+  assert.equal(await p.ev("document.getElementById('sum-prepaid-row').hidden"), false, "tóm tắt hiện dòng trả trước (ghi sau khi lưu)");
+  await p.ev("document.getElementById('save').click(); true"); // thiếu tên/SĐT khách
   await p.waitFor("!document.getElementById('save-error').hidden", "banner kiểm phía trình duyệt");
   assert.equal(await p.ev("(() => { const r = document.getElementById('save-error').getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight; })()"), true, "banner lỗi nằm trong khung nhìn sau khi bấm Lưu (điện thoại)");
   const msg = await p.ev("document.getElementById('save-error').textContent");
-  for (const m of ["Nhập tên khách.", "Nhập số điện thoại khách.", "Chọn phương thức thanh toán."]) assert.ok(msg.includes(m), `thiếu "${m}" trong: ${msg}`);
-  ok("tóm tắt 7.350.000 / còn lại 6.350.000; bấm Lưu khi thiếu tên, SĐT, phương thức thanh toán → banner nêu đủ");
+  for (const m of ["Nhập tên khách.", "Nhập số điện thoại khách."]) assert.ok(msg.includes(m), `thiếu "${m}" trong: ${msg}`);
+  ok("tóm tắt 7.350.000 / trả trước 1.000.000; bấm Lưu khi thiếu tên, SĐT → banner nêu đủ");
 
   // ---- 8) lưu thành công → đơn có đúng dữ liệu (đọc lại qua API) ----
   // 2026-09-26 (DK-T3-01, chủ dự án "loại bỏ hoàn toàn dịch vụ nhập tay"): máy chủ không nhận dịch vụ nhập tay MỚI (400) → xoá thẻ nhập tay của bước 5
@@ -141,14 +142,15 @@ try {
   await p.waitFor(`${cards}.length === 2 && /6\\.550\\.000/.test(document.getElementById('sum-subtotal').textContent)`, "đã xoá thẻ nhập tay mới, tạm tính 6.550.000");
   await p.ev(setInput("document.getElementById('customerName')", "Trần Văn Bình"));
   await p.ev(setInput("document.getElementById('customerPhone')", "0901 234 567"));
-  await p.ev(setInput("document.getElementById('depositMethod')", "bank_transfer"));
   await p.ev("document.getElementById('save').click(); true");
   await p.waitFor("location.pathname === '/order'", "chuyển tới trang đơn sau khi lưu", 15000);
   const orderId = await p.ev("new URLSearchParams(location.search).get('id')");
   const detail = await p.ev(`fetch('/api/orders/' + ${JSON.stringify(orderId)}).then((r) => r.json())`);
   assert.equal(detail.order.services.length, 2);
   assert.equal(detail.order.subtotal, 6550000);
-  assert.equal(detail.order.remainingAmount, 5550000);
+  // Bước hai của form (sổ tiền lượt 1): trả trước 1.000.000 thành lần thu "Công ty thu – CK" → còn lại 5.550.000 (billing).
+  const tienDon = await p.ev(`fetch('/api/orders/' + ${JSON.stringify(orderId)} + '/payments').then((r) => r.json())`);
+  assert.deepEqual([tienDon.daThu, tienDon.conLai, tienDon.lanThu.length], [1000000, 5550000, 1]);
   const tour = detail.order.services.find((s) => s.catalogCode === "TD101");
   assert.deepEqual(tour.items.map((i) => [i.paxCode, i.quantity, i.unitPrice, i.catalogPrice]), [["adult", 2, 1300000, 1350000], ["child", 1, 950000, 950000]]);
   assert.equal(tour.departDate, vnDate(7));
