@@ -117,7 +117,7 @@ Trên máy tính, các mục nằm ở thanh bên, nhóm **QUẢN TRỊ › Vậ
 (Thao tác từng nút ở Danh bạ: chưa kiểm.)
 
 **Tài xế**
-1. **Quản lý tài khoản** → tạo tài khoản, chọn vai **"Tài xế công ty"** (từng bước ở màn này: chưa kiểm) (tài xế của nhà xe: vai **"Tài xế đối tác"** — vai này đứng một mình, không kèm quyền khác).
+1. **Quản lý tài khoản** → tạo tài khoản, chọn vai **"Tài xế công ty"**; tài xế của nhà xe: vai **"Tài xế đối tác"** (vai này đứng một mình, không kèm quyền khác). Từng bước ở màn này: chưa kiểm.
 2. **Danh bạ** → hồ sơ người của tài xế → mục **"Giấy tờ"** → **"Thêm giấy tờ"** → **Giấy phép lái xe**, ghi **hạng** và ngày hết hạn. Thiếu hạng, hết hạn, hoặc hạng không đủ chở số chỗ của xe thì chuyến bị giữ. Giới hạn gieo sẵn: hạng B tối đa 8 khách, D1 16, D2 29, D không giới hạn (không kể tài xế) — **chưa có người chuyên môn kiểm các con số này**.
 
 **Lý do điều phối**
