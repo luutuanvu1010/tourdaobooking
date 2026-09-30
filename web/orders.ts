@@ -3,7 +3,7 @@ import { KHOANG_NHANH, LOC_TRONG, boDieuKien, chipLocDon, docLocDaNho, docLocDon
 import { STATUS_LABEL } from "../src/shared/order-status-label";
 import { vnToday } from "../src/shared/vn-date";
 import { moBangTruot } from "./bang-truot";
-import { NO_HANDLER_TEXT, handlerText, nguoiPhuTrachTuPhien } from "../src/shared/handler-view";
+import { NO_HANDLER_TEXT, handlerText, hoiDuocNguoiPhuTrach, nguoiPhuTrachTuPhien } from "../src/shared/handler-view";
 import { ApiError, api, type OrderSummary, type Api, type Staff } from "./api";
 import { byId, h, replaceChildren } from "./dom";
 import { soDongCanTai, taoBoLamMoi } from "./lam-moi-logic";
@@ -129,9 +129,12 @@ async function fillTien(rows: readonly Row[]): Promise<void> {
  */
 async function fillHandlers(rows: readonly Row[]): Promise<void> {
   if (rows.length === 0) return;
-  const tuPhien = nguoiPhuTrachTuPhien(await nhanVien);
+  const nv = await nhanVien;
+  const tuPhien = nguoiPhuTrachTuPhien(nv);
   let handlers: Record<string, Api.HandlerDto | null> | null = null;
   if (tuPhien) handlers = Object.fromEntries(rows.map((r) => [r.id, tuPhien]));
+  // Đối tác, Thực tập (lỗi báo 30/9, L2 — `hoiDuocNguoiPhuTrach`): route 403 chắc chắn → không gọi; dòng "HDV: …" ẩn như khi chưa biết.
+  else if (!hoiDuocNguoiPhuTrach(nv)) handlers = null;
   else {
     try {
       handlers = (await api<Api.HandlersResponse>(`/api/dispatch/handlers?orderIds=${rows.map((r) => encodeURIComponent(r.id)).join(",")}`)).handlers;

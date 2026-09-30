@@ -3,6 +3,8 @@
 //     GET /api/catalog/for-order thay thế (route cho người lập đơn); GET /api/catalog về cổng office.
 //   - Form: ô đơn giá CHỈ XEM (readOnly) khi bằng giá danh mục; ô "Giảm giá" (#discount) khoá kèm dòng "Tài khoản đối tác tạm chưa được giảm giá.".
 //   - Đối chứng: tài khoản Bán hàng KHÔNG bị khoá hai ô trên.
+//   - Bước 6–7 (lỗi báo 30/9, L1–L3): trang đơn đã xác nhận của Đối tác / Thực tập không có nút sửa chuyến / đổi khách, không khối người phụ trách, không gọi
+//     GET /api/dispatch/handlers; thanh tab điện thoại có "Đơn hàng"; thanh bên máy tính có mục "Đơn hàng" không huy hiệu.
 // Sửa 2026-09-26 (bản 1.17): dòng báo từng nằm trong cột hẹp của hàng ba ô Thanh toán → xuống 3 hàng ở máy tính. Kịch bản nay tìm dòng báo theo
 // NỘI DUNG (không theo vị trí), đếm số hàng hiển thị thật (Range.getClientRects) — máy tính phải 1 hàng, điện thoại ≤ 2 — và kiểm ô giảm giá
 // trỏ tới nó bằng aria-describedby.
@@ -270,6 +272,101 @@ try {
       p.close();
     });
   }
+
+  // ==================================================================================================
+  // 6–7) LỖI BÁO 30/9 (L1, L2, L3): trang đơn ĐÃ XÁC NHẬN của Đối tác / Thực tập — KHÔNG nút "Sửa thông tin chuyến" / "Đổi khách" (máy chủ đòi ô
+  //      order.trip.edit = none → 403), KHÔNG khối "Người phụ trách" và KHÔNG lời gọi GET /api/dispatch/handlers (403 với họ — trước đây luôn hiện
+  //      "Chưa tải được người phụ trách." + Thử lại); thanh tab điện thoại có "Đơn hàng" (trước: chỉ "Tạo đơn" + "Tôi"), bấm vào ra danh sách đơn của
+  //      mình; thanh bên máy tính có mục "Đơn hàng" không huy hiệu, không gọi dashboard. Thực tập mở SAU CÙNG (kho cookie chung).
+  // ==================================================================================================
+  const donDaXacNhan = async (ai, ten) => {
+    const r = await call(ai, "POST", "/api/orders", {
+      customerName: ten, customerPhone: "0903 555 888", customerEmail: "", customerNote: "", discount: 0, depositAmount: 0, depositMethod: null, paymentNote: "",
+      services: [{ kind: "catalog", catalogCode: "TD101", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: TD101_ADULT }, departDate: vnDate(3), departTime: "", pickupTime: "07:30", pickupPlace: "Khách sạn Biển Xanh", checkinDate: "", checkinTime: "", checkinPlace: "", note: "" }],
+    });
+    assert.equal(r.status, 201, `lập đơn: ${JSON.stringify(r.json)}`);
+    const c = await call(ai, "POST", `/api/orders/${r.json.order.id}/status`, { status: "confirmed" });
+    assert.equal(c.status, 200, `xác nhận đơn: ${c.status} ${JSON.stringify(c.json)}`);
+    // Đối chứng máy chủ: sửa chuyến / đổi khách của đơn này bị từ chối (403) — đúng lý do giao diện phải ẩn hai nút.
+    const trip = await call(ai, "PUT", `/api/orders/${r.json.order.id}/booker`, { expectedUpdatedAt: "x" });
+    assert.equal(trip.status, 403, `máy chủ từ chối đổi khách: ${trip.status}`);
+    return r.json.order;
+  };
+  const trangDon = (p) =>
+    p.ev(`(() => ({
+      lock: document.querySelector('.lock-note')?.textContent ?? null,
+      editTrip: !!document.querySelector('[data-action="edit-trip"]'),
+      booker: !!document.querySelector('[data-action="change-booker"]'),
+      handlerCard: !!document.querySelector('.handler-card'),
+      handlerUnknown: document.body.textContent.includes('Chưa tải được người phụ trách'),
+      btns: [...document.querySelectorAll('#actions .btn')].map((b) => b.textContent.trim()),
+      tabs: [...document.querySelectorAll('#tabbar .tab')].map((a) => [a.querySelector(':scope > span:last-child').textContent.trim(), a.getAttribute('href'), a.getAttribute('aria-current')]),
+      side: [...document.querySelectorAll('#sidebar .sidebar-item')].map((a) => [a.querySelector('.sidebar-item-label')?.textContent.trim(), a.querySelector('.sidebar-item-badge')?.textContent ?? null]),
+    }))()`);
+  const LOCK_KHONG_SUA_CHUYEN = "Đơn đã xác nhận: dịch vụ, số khách và tiền đã khoá.";
+  const TABS = [["Đơn hàng", "/orders", "page"], ["Tạo đơn", "/order-form", null], ["Tôi", "/account", null]];
+  const goiHandlers = (p) => p.requests.filter((r) => r.url.includes("/api/dispatch/handlers")).map((r) => r.url);
+  const goiDashboard = (p) => p.requests.filter((r) => r.url.includes("/api/orders/dashboard")).map((r) => r.url);
+  const kiemTrangDon = async (p, nhan) => {
+    await p.waitFor("document.querySelector('#order .badge')?.textContent === 'Đã xác nhận' && !!document.querySelector('#actions')", `${nhan}: đơn đã xác nhận hiện`, 15000);
+    await sleep(600);
+    const s = await trangDon(p);
+    assert.equal(s.editTrip, false, `${nhan}: KHÔNG nút "Sửa thông tin chuyến" — ${JSON.stringify(s)}`);
+    assert.equal(s.booker, false, `${nhan}: KHÔNG nút "Đổi khách" — ${JSON.stringify(s)}`);
+    assert.ok(s.btns.includes("Huỷ đơn"), `${nhan}: vẫn có "Huỷ đơn" (order.modify own) — ${JSON.stringify(s.btns)}`);
+    assert.equal(s.lock, LOCK_KHONG_SUA_CHUYEN, `${nhan}: câu khoá không hứa "sửa được thông tin chuyến" — ${JSON.stringify(s.lock)}`);
+    assert.equal(s.handlerCard, false, `${nhan}: KHÔNG khối "Người phụ trách" — ${JSON.stringify(s)}`);
+    assert.equal(s.handlerUnknown, false, `${nhan}: KHÔNG chữ "Chưa tải được người phụ trách"`);
+    assert.deepEqual(goiHandlers(p), [], `${nhan}: KHÔNG gọi /api/dispatch/handlers`);
+    assert.deepEqual(p.consoleErrors, [], `${nhan}: lỗi console: ${p.consoleErrors}`);
+    return s;
+  };
+
+  const donDT = await donDaXacNhan(PARTNER, "Khách Đối Tác Đã Xác Nhận");
+  await step("6", "L1–L3 Đối tác: trang đơn đã xác nhận (390 + 1040) không nút sửa chuyến / đổi khách, không khối người phụ trách, không gọi handlers; tab điện thoại Đơn hàng · Tạo đơn · Tôi → bấm Đơn hàng ra danh sách đơn của mình; thanh bên máy tính có Đơn hàng không huy hiệu", async () => {
+    const d = await openAs(PARTNER, `/order?id=${donDT.id}`, DESK);
+    const sd = await kiemTrangDon(d, "Đối tác 1040");
+    const donHang = sd.side.find(([t]) => t === "Đơn hàng");
+    assert.ok(donHang, `thanh bên có mục "Đơn hàng" — ${JSON.stringify(sd.side)}`);
+    assert.equal(donHang[1], null, `mục "Đơn hàng" của Đối tác không huy hiệu — ${JSON.stringify(donHang)}`);
+    assert.deepEqual(goiDashboard(d), [], "không gọi /api/orders/dashboard (huy hiệu văn phòng)");
+    noteErrorLogs(d, "Đối tác /order máy tính");
+    await d.shot(join(OUT, "anh", "doi-tac-don-da-xac-nhan-may-tinh.png"));
+    d.close();
+
+    const m = await openAs(PARTNER, `/order?id=${donDT.id}`, MOB);
+    const sm = await kiemTrangDon(m, "Đối tác 390");
+    assert.deepEqual(sm.tabs, TABS, `thanh tab điện thoại — ${JSON.stringify(sm.tabs)}`);
+    noteErrorLogs(m, "Đối tác /order điện thoại");
+    await m.shot(join(OUT, "anh", "doi-tac-don-da-xac-nhan-dien-thoai.png"));
+    await m.ev("document.querySelector('#tabbar a[href=\"/orders\"]').click(); true");
+    await m.waitFor("location.pathname === '/orders' && document.querySelectorAll('#list .order-row').length > 0", "bấm tab Đơn hàng → danh sách đơn", 15000);
+    await sleep(600);
+    const ds = await m.ev("[...document.querySelectorAll('#list .order-row')].map((a) => a.textContent)");
+    assert.ok(ds.some((t) => t.includes("Khách Đối Tác Đã Xác Nhận")), `danh sách có đơn của mình — ${JSON.stringify(ds)}`);
+    assert.ok(!ds.some((t) => t.includes("HDV:") || t.includes("Chờ nhận")), `thẻ đơn không có dòng người phụ trách — ${JSON.stringify(ds)}`);
+    assert.deepEqual(goiHandlers(m), [], "danh sách: KHÔNG gọi /api/dispatch/handlers");
+    assert.equal(await m.ev("document.querySelector('#tabbar a[href=\"/orders\"]').getAttribute('aria-current')"), "page", "tab Đơn hàng sáng ở /orders");
+    assert.deepEqual(m.consoleErrors, [], `lỗi console: ${m.consoleErrors}`);
+    noteErrorLogs(m, "Đối tác /orders điện thoại");
+    await m.shot(join(OUT, "anh", "doi-tac-danh-sach-don-dien-thoai.png"));
+    m.close();
+  });
+
+  const INTERN = { name: "Thực Tập Lập Đơn", phone: "0900000272", pin: "246872", permissions: ["INTERN"] };
+  {
+    const { insertStaffSql } = await import(pathToFileURL(join(process.cwd(), "scripts", "staff-lib.mjs")).href);
+    for (const stmt of (await insertStaffSql(INTERN)).split("\n")) env.sql(stmt);
+  }
+  const donTT = await donDaXacNhan(INTERN, "Khách Thực Tập Đã Xác Nhận");
+  await step("7", "L1–L3 Thực tập (390): trang đơn đã xác nhận không nút sửa chuyến / đổi khách, không khối người phụ trách, không gọi handlers; tab Đơn hàng · Tạo đơn · Tôi", async () => {
+    const m = await openAs(INTERN, `/order?id=${donTT.id}`, MOB);
+    const sm = await kiemTrangDon(m, "Thực tập 390");
+    assert.deepEqual(sm.tabs, TABS, `thanh tab điện thoại — ${JSON.stringify(sm.tabs)}`);
+    noteErrorLogs(m, "Thực tập /order điện thoại");
+    await m.shot(join(OUT, "anh", "thuc-tap-don-da-xac-nhan-dien-thoai.png"));
+    m.close();
+  });
 } finally {
   for (const p of pages) try { p.close(); } catch { /* đã đóng */ }
   await env.stop();

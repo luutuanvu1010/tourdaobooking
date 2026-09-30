@@ -1,8 +1,8 @@
 // Trang khởi đầu theo quyền — logic thuần, gọi từ web/home.ts (Trang chủ ở "/"); có test cạnh tệp.
 //
 // Từ Đợt D, "/" là Trang chủ, gọi `GET /api/orders/dashboard` (cổng "orders" + `can()` không ngữ cảnh trong thân — ADR-0019). Tài khoản dùng được Đơn hàng nhưng
-// KHÔNG xem được mọi đơn (`seesAllOrders` sai — thực tế: chỉ có quyền Đối tác/Thực tập/Hướng dẫn viên, hoặc ghép các quyền đó) sẽ nhận 403 ở đó và không có mục "Đơn hàng"
-// trên thanh điều hướng. Trước Đợt D, "/" chính là Đơn hàng nên họ vào thẳng danh sách đơn của mình — hàm này giữ lại
+// KHÔNG xem được mọi đơn (`seesAllOrders` sai — thực tế: chỉ có quyền Đối tác/Thực tập/Hướng dẫn viên, hoặc ghép các quyền đó) sẽ nhận 403 ở đó (mục "Đơn hàng"
+// của Đối tác/Thực tập: `coMucDonHang`, từ lỗi báo 30/9). Trước Đợt D, "/" chính là Đơn hàng nên họ vào thẳng danh sách đơn của mình — hàm này giữ lại
 // hành vi đó (cách sửa A, chủ dự án chốt 2026-09-24): chuyển sang "/orders". Áp cho MỌI đường vào "/" (sau đăng nhập
 // PIN/Face ID, mở app PWA, gõ thẳng địa chỉ, "/home" cũ tự chuyển về "/") vì chỉ đặt ở chính trang "/".
 // KHÔNG đổi bản đồ quyền, KHÔNG đổi access của route: chỉ ghép hai hàm quyền sẵn có (ADR-0019: "thấy mọi đơn" là câu hỏi của bảng,
@@ -34,6 +34,15 @@ export const chiTaiXe = (who: PermissionHolder): boolean => {
   const r = homeRedirect(who);
   return r === TRANG_CUOC || r === TRANG_DAU_TAI_XE;
 };
+
+/**
+ * Mục / tab "Đơn hàng" (/orders) ở thanh bên máy tính và thanh tab điện thoại. Văn phòng xem mọi đơn (`seesAll`); người lập được đơn mà không xem mọi đơn
+ * (Đối tác, Thực tập — `canCreate`) thấy danh sách đơn MÌNH lập (nhánh "mình lập" của GET /api/orders). Lỗi báo 30/9 (L3, giả định bề mặt đảo ngược được):
+ * trước đây họ không có mục này, điện thoại không có đường về danh sách đơn. HDV chỉ-FIELD không có (họ dùng "Việc của tôi"); tài xế không có.
+ * Nhận đúng HAI cờ đã có trong bản nhớ khung (ADR-0035 — không thêm trường) để khung tạm vẽ đúng ngay. Bài `start-page.test.ts` ghim "lập được đơn ⇒ mở được
+ * danh sách đơn mình lập" trên bản đồ quyền.
+ */
+export const coMucDonHang = (co: { seesAll: boolean; canCreate: boolean }): boolean => co.seesAll || co.canCreate;
 
 /** Đường dẫn phải chuyển sang khi người dùng mở "/", hoặc `null` = ở lại Trang chủ. */
 export function homeRedirect(who: PermissionHolder): string | null {

@@ -25,6 +25,15 @@ export function nguoiPhuTrachTuPhien(staff: Pick<StaffProfile, "id" | "fullName"
   return { partyId: staff.partyId, staffId: staff.id, name: staff.fullName };
 }
 
+/**
+ * Người xem có được HỎI máy chủ danh sách người phụ trách (`GET /api/dispatch/handlers`) không — CÙNG câu hỏi với route (`can(order.view)` không ngữ cảnh =
+ * xem được mọi đơn; src/modules/dispatch/index.ts). Sai (Đối tác, Thực tập, tài khoản lai của họ, HDV): KHÔNG gọi route (chắc chắn 403). HDV đã có tên từ
+ * phiên (`nguoiPhuTrachTuPhien`, hỏi trước hàm này); người còn lại không được biết người phụ trách → trang đơn ẩn khối "Người phụ trách", danh sách ẩn dòng
+ * "HDV: …" — cùng tiền lệ `HANDLER_HIDDEN` của ảnh biên nhận (không dòng, không câu chờ). Lỗi báo 30/9 (L2): trước đây trang đơn luôn hiện "Chưa tải được
+ * người phụ trách." + Thử lại.
+ */
+export const hoiDuocNguoiPhuTrach = (viewer: PermissionHolder): boolean => can(viewer, "order.view");
+
 export interface HandlerControls {
   /** Nút mở bảng chọn người phụ trách (đổi, hoặc giao lần đầu). */
   assign: boolean;

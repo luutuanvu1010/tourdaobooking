@@ -19,20 +19,16 @@ export const HD_DOI_TAC: NhomHuongDan = {
       noiDung: `### Trên máy tính
 
 Thanh menu dọc bên trái có:
-- Nhóm BÁN HÀNG: [[Tạo đơn]].
+- Nhóm BÁN HÀNG: [[Đơn hàng]], [[Tạo đơn]].
 - Nhóm TÔI: [[Của tôi]], [[Góp ý / Báo lỗi]], [[Trợ giúp]].
 
 ### Trên điện thoại
 
-Thanh tab dưới đáy có [[Tạo đơn]] và [[Tôi]].
+Thanh tab dưới đáy có [[Đơn hàng]], [[Tạo đơn]] và [[Tôi]].
 
 ### Mở danh sách đơn của bạn
 
-Danh sách đơn không có mục riêng trên menu. Cách mở:
-- Mở app. App tự đưa bạn tới trang [[Đơn hàng]], gồm các đơn bạn đã lập.
-- Máy tính: bấm logo **Island Booking System** ở đầu menu bên trái.
-- Đang ở trang một đơn: bấm mũi tên quay lại ở góc trên.
-- Điện thoại, đang ở trang [[Tôi]]: bấm [[Tạo đơn]], rồi bấm [[Quay lại]] ở cuối trang. Hoặc đóng app rồi mở lại.`,
+Bấm [[Đơn hàng]] trên menu (máy tính) hoặc thanh tab (điện thoại). Trang này chỉ có các đơn bạn đã lập. Mở app cũng tự vào trang này.`,
     },
     {
       tieuDe: "Đăng nhập và đổi mã PIN",
@@ -122,7 +118,7 @@ App **không cho xác nhận** khi:
       tieuDe: "Tình huống hay gặp",
       noiDung: `### Khách muốn đổi giờ đón hoặc điểm đón sau khi đơn đã xác nhận
 
-Hãy **gọi văn phòng** để nhân viên sửa. Trên trang đơn có thể có nút [[Sửa thông tin chuyến]] hoặc [[Đổi khách]], nhưng tài khoản đối tác **không lưu được** các thay đổi này; app sẽ báo không có quyền.
+Hãy **gọi văn phòng** để nhân viên sửa. Sau khi xác nhận, tài khoản đối tác không sửa thông tin chuyến và không đổi khách, nên trang đơn không có hai nút này.
 
 ### Khách muốn thêm người sau khi đơn đã xác nhận
 
@@ -154,9 +150,9 @@ Vẫn lập và lưu đơn được. Nhưng muốn xác nhận thì phải có Q
     },
     {
       tieuDe: "Câu hỏi thường gặp",
-      noiDung: `### Khối Người phụ trách ghi "Chưa tải được người phụ trách." kèm nút Thử lại. Tôi làm sai gì?
+      noiDung: `### Sao trang đơn không ghi ai phụ trách?
 
-Bạn không làm sai. Hiện tại, tài khoản đối tác không xem được tên người phụ trách đơn, nên dòng này luôn hiện, bấm [[Thử lại]] cũng vậy. Mọi việc khác trên đơn vẫn dùng bình thường. Muốn biết ai lo đơn thì gọi văn phòng.
+Tài khoản đối tác không xem tên người phụ trách đơn, nên trang đơn và danh sách đơn không có phần này. Muốn biết ai lo đơn thì gọi văn phòng.
 
 ### Sao tôi không thấy Trang chủ?
 

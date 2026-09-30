@@ -177,11 +177,11 @@ Huỷ được cả đơn chờ xác nhận lẫn đã xác nhận, nếu là đ
       noiDung: `Thực tập lập đơn, sửa, xác nhận, huỷ **đơn của chính mình** giống Bán hàng. Khác ở mấy điểm sau:
 
 - **Chỉ thấy đơn mình lập.** Mở đơn người khác sẽ bị từ chối.
-- **Menu hẹp hơn**: không có [[Trang chủ]], mục [[Đơn hàng]], [[Danh bạ]], [[Điều phối xe]]. Trên điện thoại chỉ có tab [[Tạo đơn]] và [[Tôi]]. Muốn xem danh sách đơn của mình: mở app hoặc bấm logo — app tự đưa vào danh sách đơn của bạn.
+- **Menu hẹp hơn**: không có [[Trang chủ]], [[Danh bạ]], [[Điều phối xe]]. Mục [[Đơn hàng]] chỉ có đơn bạn lập. Trên điện thoại có tab [[Đơn hàng]], [[Tạo đơn]] và [[Tôi]]. Mở app cũng tự vào danh sách đơn của bạn.
 - **Không chọn người phụ trách** khi lập đơn: khối [[Người phụ trách]] không hiện, đơn luôn ở [[Chờ nhận]].
-- Trang đơn có thể ghi [[Chưa tải được người phụ trách.]] — đây là giới hạn đã biết. Ảnh biên nhận vẫn tạo được, chỉ không có dòng người phụ trách.
+- **Không thấy ai phụ trách đơn**: trang đơn không có khối Người phụ trách, thẻ đơn ở danh sách không có dòng "HDV: tên". Ảnh biên nhận cũng không có dòng người phụ trách.
 - Ô tra hồ sơ khách có thể báo không tra được hồ sơ — vẫn lưu đơn bình thường.
-- **Sau khi xác nhận, Thực tập không sửa được thông tin chuyến và không đổi khách.** Nút [[Sửa thông tin chuyến]] và [[Đổi khách]] vẫn hiện nhưng lưu sẽ bị từ chối. Cần đổi giờ đón thì nhờ Bán hàng phụ trách hoặc Quản trị.
+- **Sau khi xác nhận, Thực tập không sửa được thông tin chuyến và không đổi khách.** Trang đơn không có nút [[Sửa thông tin chuyến]] và [[Đổi khách]]. Cần đổi giờ đón thì nhờ Bán hàng phụ trách hoặc Quản trị.
 - **Thực tập không nhận phụ trách và không giao đơn**: không có nút [[Nhận phụ trách]]; cần người phụ trách thì nhờ Bán hàng.`,
     },
     {
