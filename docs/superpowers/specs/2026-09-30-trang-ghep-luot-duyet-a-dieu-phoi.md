@@ -14,7 +14,7 @@ Gói A có **9 quyết định** chạm dữ liệu/quyền (người kiểm đ�
 | Lượt | ADR | Quyết định | Duyệt khi | Câu chờ chủ |
 |---|---|---|---|---|
 | A-1 | 0052 | D4 (chuyển điểm), D5 (thêm điểm, báo huỷ, LC-15), D6 (thông báo) | sau khi các mục luật của ADR-0049 được chủ duyệt lúc gộp ([HĐ] lần 16 mục 1.1) | Q-L2-A, Q-L2-B |
-| A-1b | 0052 (phần sau) | D5c (cứu hộ — bấm thay qua `trip.progress`), D5b (tài xế ghi tên khách) | sau A-1; **ghép được với A-3** (tổng 3) | không |
+| A-1b | 0052 (phần sau) | D5c (cứu hộ — bấm thay qua `trip.progress`), D5b (tài xế ghi tên khách) | sau A-1; **không** ghép sẵn với A-3 (D10 có thể tách thành hai quyết định theo Q-L4-A/B — đếm lại sau khi chủ trả lời) | không |
 | A-2 | 0053 | D7, D8, D9 | **sau** A-1 (dùng ô và luật người nhận của 0052); ô `trip.passenger.add` của tài xế đối tác chỉ mở nếu A-1b đã duyệt | Q-L3-A, Q-L3-B, Q-L3-C |
 | A-3 | 0054 | D10 | lúc nào cũng được (độc lập) | Q-L4-A, Q-L4-B |
 
@@ -40,7 +40,7 @@ Gói A có **9 quyết định** chạm dữ liệu/quyền (người kiểm đ�
 | `vc_dispatch_policy` | chính sách có ngày hiệu lực | `trip.view` | `settings.ops` (Toàn quyền) | A-1: + `accept_wait_minutes`, `auto_confirm_transfer`; A-2: + `refuse_lead_minutes` |
 | `vc_reason` | danh mục lý do theo nhóm | theo màn | `admin.manage` | A-2: + nhóm `TU_CHOI_CHUYEN`, `BAN_TAI_XE` (Kernel: `BAN_XE`) |
 | `vc_leg_appt_ack` (ADR-0051, `0043`) | mốc giờ hẹn đã biết / đã gọi | văn phòng (`trip.view`) | lô mở suất lần đầu (`XEP`); `trip.call_ack` | A-1: lô "thêm điểm khi xe chạy" phải ghi `XEP` (trigger `vc_trip_allocation_needs_appt` canh) |
-| bảng mẫu chặng (**mới**, A-3; **chủ và tên chờ Q-L4-A** — khuyến nghị `vc_transfer_template` của `van-chuyen`; `catalog_` **không** phải tiền tố module hợp lệ) | mẫu chặng theo dịch vụ, chỉ-thêm, có hiệu lực, đủ bốn cột WHO; `code` = tham chiếu logic tới mã dịch vụ | màn Danh mục (cổng `admin`); form đơn qua route đọc mẫu (cổng `orders`, `order.create`) | `admin.manage` | A-3 |
+| bảng mẫu chặng (**mới**, A-3; **chủ và tên chờ Q-L4-A** — khuyến nghị `vc_leg_template` của `van-chuyen`; `catalog_` **không** phải tiền tố module hợp lệ) | mẫu chặng theo dịch vụ, chỉ-thêm, có hiệu lực, đủ bốn cột WHO; `code` = tham chiếu logic tới mã dịch vụ | màn Danh mục (cổng `admin`); form đơn qua route đọc mẫu (cổng `orders`, `order.create`) | `admin.manage` | A-3 |
 | `stf_permission` (`staff`) | quyền của tài khoản — **không đổi dữ liệu, không thêm mã**. Điểm mới: tài khoản giữ `DRIVER_PARTNER` (người ngoài) nay **được đọc dữ liệu khách**. LC-1 (`0037:10-12`, `NOT IN ('PARTNER','DRIVER_PARTNER')`) và LC-1b (`0037:18-23`, `DRIVER_PARTNER` đứng một mình) **giữ nguyên** ⇒ người ngoài đọc khách **chỉ** qua 6 ô `trip.*`/`unavailability.self`, không kèm quyền nào khác | — | — | A-2 (nghĩa, không dữ liệu) |
 | `audit_log` (+ view mới `v_aud_trip_event`) | + hành động chuyến, đề nghị, Từ chối, khung bận, mẫu chặng; **không** tên, năm sinh, SĐT, số giấy tờ | `thongbao` qua view (chỉ khoá) | các module qua `auditStatement` | A-1, A-2, A-3 |
 | `ntf_*`, Bảng tin | **không** thêm dòng — tin chuyến là hình chiếu | — | — | A-1 |
@@ -65,7 +65,7 @@ Cột theo `PERMISSION_CODES` (`src/shared/permissions.ts:5@thi-cong-adr-0049-ti
 | `order.view` (:72) | any | any | any | assigned | own | any | own | none | none | đọc `ord_transfer_leg`, `ord_passenger` qua màn đơn (tên khách thêm cần `contact.view`) — **không đổi**; dòng `source = 'DRIVER'` do tài xế nhập hiện cho mọi người xem được đơn đó; A-3: thấy `pax_override` | — |
 | `order.create` (:76) | any | none | any | none | any | any | any | none | none | tạo chặng, hành khách lúc lập đơn — **không đổi**; A-3: + đọc mẫu chặng (route cổng `orders`) cho form tạo sẵn chặng | A-3 (nghĩa) |
 | `order.passenger.write` (:86) | ownOrAssigned | none | any | none | own | any | own | none | none | `ord_passenger` qua màn đơn — **không đổi** (ĐP13 a: Bán hàng không có đường vòng qua màn chuyến) | — |
-| `order.modify` (:77) | ownOrAssigned | none | any | none | own | any | own | none | none | chặng khi đơn nháp; A-3: theo **Q-L4-B** — (b, khuyến nghị) ghi được `pax_override` khi nháp / (a) chỉ chép lại giá trị cũ | A-3 (theo Q-L4-B) |
+| `order.modify` (:77) | ownOrAssigned | none | any | none | own | any | own | none | none | chặng khi đơn nháp; A-3: theo **Q-L4-B** — (a, khuyến nghị) chỉ chép lại `pax_override` cũ / (b) ghi được khi nháp | A-3 (theo Q-L4-B) |
 | `order.trip.edit` (:78) | ownOrAssigned | none | any | none | none | any | none | none | none | chặng sau xác nhận; A-3: ghi `pax_override` sau xác nhận (cả hai phương án); (a) của Q-L4-B mở thêm đường ghi khi nháp | A-3 (nghĩa) |
 | `order.leg.short_notice` (:81) | none | none | any | none | none | any | none | none | none | cột đặt gấp của `ord_transfer_leg` — không đổi | — |
 | `order.leg.short_notice.view` (:85) | any | any | any | none | none | any | none | none | none | xem đủ dấu đặt gấp trên `ord_transfer_leg` — không đổi; A-3 thêm cột vào cùng bảng, không đổi ai xem dấu đặt gấp | — |
@@ -106,7 +106,7 @@ Cột theo `PERMISSION_CODES` (`src/shared/permissions.ts:5@thi-cong-adr-0049-ti
 | Chính sách (3 cột mới) | `office` | `settings.ops` | trigger chỉ-thêm (có sẵn) | A-1, A-2 |
 | Danh mục lý do (2 nhóm mới); mẫu chặng dịch vụ | `admin` | `admin.manage` | trigger chỉ-thêm bảng mẫu chặng | A-2, A-3 |
 | Đọc mẫu chặng cho form đơn | `orders` | `order.create` | — | A-3 |
-| Lưu chặng (`pax_override`) | `orders` | theo Q-L4-B: `order.modify` (nháp) + `order.trip.edit` (đã xác nhận) — hoặc chỉ `order.trip.edit` | `CHECK` `pax_override` | A-3 |
+| Lưu chặng (`pax_override`) | `orders` | theo Q-L4-B: (a, khuyến nghị) chỉ `order.trip.edit` (cả nháp — đường mới); (b) `order.modify` (nháp) + `order.trip.edit` (đã xác nhận) | `CHECK` `pax_override` | A-3 |
 | Hộp thông báo, gõ cửa, Bảng tin | `staff` (có sẵn) | hàm thuần người nhận: `can(trip.view, …)` hiện hành + dòng lái có hiệu lực lúc sự kiện; nhãn `dieu-xe` = `trip.view` không ngữ cảnh | — | A-1 |
 | Hợp đồng giữa các phần | — (không phải route) | hàm hẹp `orders` (`lichChungChang` :268, `hanhKhachChoChuyen` :193, `lienHeChoTaiXe` :319, **câu ghi hành khách của tài xế** mới) không tự kiểm quyền → bài quét "nơi gọi đứng sau `can()`"; hàm tiêm `ctx.baoThayDoiChuyen`, `ctx.chuyenLienQuan` (A-1); hàm khung `trongKhungXemKhach` (A-2) và `soNguoiChang` (A-3) là **một nguồn** | — | A-1…A-3 |
 
@@ -171,8 +171,8 @@ Chủ trả lời kiểu "Q-L2-A a, Q-L3-B a…". Câu nào chưa muốn trả l
 - (b) Trong phần Danh mục, kèm sửa luật kiến trúc và nâng phần Danh mục lên luật chặt. Được: cùng chỗ với dịch vụ. Mất: thêm một việc sửa luật lớn hơn cả tính năng.
 
 **Q-L4-B (ADR-0054). Khi đơn còn NHÁP, ai khai "số người chặng về"?** (Sau xác nhận: văn phòng — Bán hàng đơn mình, Quản trị, Toàn quyền.)
-- **(b) Người lập đơn nháp, kể cả Đối tác, Thực tập với đơn của mình (khuyến nghị).** Được: người đặt biết số người về ngay lúc đặt; đi đúng đường lưu nháp sẵn có. Mất: không đúng chữ "văn phòng sửa" ở giai đoạn nháp.
-- (a) Chỉ văn phòng, kể cả khi nháp. Được: đúng chữ "văn phòng sửa". Mất: phải mở một đường sửa mới; Đối tác phải nhờ văn phòng.
+- **(a) Chỉ văn phòng, kể cả khi nháp (khuyến nghị — đúng lời bạn "văn phòng sửa số người chặng về").** Lưu ý: Đối tác tự xác nhận đơn của mình, nên nếu Đối tác khai số người về thì con số đó đi thẳng vào xe mà văn phòng không nhìn; sau khi xác nhận Đối tác cũng không sửa được nữa. Được: số chỗ trên xe luôn do văn phòng ghi. Mất: phải làm thêm một đường sửa; Đối tác có khách về ít người phải nhờ văn phòng.
+- (b) Người lập đơn nháp, kể cả Đối tác, Thực tập với đơn của mình. Được: khai ngay lúc đặt, không thêm đường sửa. Mất: không đúng chữ "văn phòng sửa"; số người về do Đối tác khai vào xe mà văn phòng không duyệt.
 
 ## (6) Điểm người kiểm độc lập nên soi
 

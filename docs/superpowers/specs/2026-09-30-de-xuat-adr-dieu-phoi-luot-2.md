@@ -2,7 +2,7 @@
 
 - **Trạng thái:** **ĐỀ XUẤT — chờ người kiểm độc lập (chỉ đọc) rồi chủ duyệt.** AI soạn (vai lập kế hoạch), không tự duyệt (Hiến pháp N3, Điều 7.2). Số ADR là **số tạm** (`docs/adr/README.md:63`: số kế tiếp 0052); điều phối cấp số thật lúc ghi.
 - **Ngày:** 2026-09-30.
-- **Thuộc gói:** lượt duyệt A, trang ghép chung `docs/superpowers/specs/2026-09-30-trang-ghep-luot-duyet-a-dieu-phoi.md`. **Năm quyết định chạm dữ liệu/quyền, chia hai lượt duyệt** để giữ đúng chữ trần 3 của `CLAUDE.md` §9 (người kiểm độc lập V6): **lượt A-1 = D4 (chuyển điểm), D5 (thêm điểm, báo huỷ, LC-15 mới), D6 (thông báo)**; **lượt A-1b = D5c (cứu hộ — quyền bấm thay qua `trip.progress`) và D5b (tài xế ghi tên khách vào `ord_passenger`)**, duyệt sau A-1, có thể ghép với lượt A-3 (ADR-0054, một quyết định) cho đủ 3. D6 (thông báo) nằm ở lượt này vì [TK] §6.4 đặt nó ở lượt 2 và D4 cần báo tài xế B ([TK] `:927`); ADR-0051 cũng hẹn phần tin đẩy cho "lượt 2 D6" (`ADR-0051:97, :227, :278, :491`).
+- **Thuộc gói:** lượt duyệt A, trang ghép chung `docs/superpowers/specs/2026-09-30-trang-ghep-luot-duyet-a-dieu-phoi.md`. **Năm quyết định chạm dữ liệu/quyền, chia hai lượt duyệt** để giữ đúng chữ trần 3 của `CLAUDE.md` §9 (người kiểm độc lập V6): **lượt A-1 = D4 (chuyển điểm), D5 (thêm điểm, báo huỷ, LC-15 mới), D6 (thông báo)**; **lượt A-1b = D5c (cứu hộ — quyền bấm thay qua `trip.progress`) và D5b (tài xế ghi tên khách vào `ord_passenger`)**, duyệt sau A-1 (lượt riêng; chỉ ghép với lượt khác sau khi đếm lại trần 3). D6 (thông báo) nằm ở lượt này vì [TK] §6.4 đặt nó ở lượt 2 và D4 cần báo tài xế B ([TK] `:927`); ADR-0051 cũng hẹn phần tin đẩy cho "lượt 2 D6" (`ADR-0051:97, :227, :278, :491`).
 - **Nguồn (lời chủ, chuẩn — không hỏi lại):**
   - [HĐ] = `docs/superpowers/specs/2026-09-29-van-chuyen-hoi-dap-dieu-phoi.md`:
     - "Cách xe chạy thật" mục 7 (chuyển điểm khi xe chạy): *"Tôi nghĩ về phương án B, bảng điều phối chung sẽ nhận được thống tin này, tự động kích hoạt các logic có sẵn để tính toán, Ưu tiên luồng B nhận -> Điều phối xác nhận tự động"* — văn phòng **chỉ thêm điểm đón**, tài xế đề nghị với nhau;
@@ -50,7 +50,7 @@ ADR-0049 khoá hẳn kế hoạch của chuyến đang chạy (LC-15 "lượt 1:
 
 ### D4. Chuyển điểm đón giữa hai xe + máy tự xác nhận (ĐP4 a, ĐP9 a)
 
-**D4.1 Dữ liệu** (module `van-chuyen`, tiền tố `vc_`)
+**D4.1 Dữ liệu** (module `van-chuyen`, tiền tố `vc_`). Nếu chủ duyệt A-1 mà **bác** A-1b: tập `scope` vẫn định trọn (`STOP`, `ONBOARD`), nhưng đề nghị `ONBOARD` **chỉ do tài xế xe hỏng gửi** (ô `trip.transfer`); văn phòng không bấm thay.
 - **`vc_transfer_request`** — đề nghị chuyển, thực thể có trạng thái (Hiến chương 5.16: trạng thái chờ nằm trong CSDL):
   - `id`, `from_trip_id`, `to_trip_id`;
   - `scope` `CHECK IN ('STOP','ONBOARD')` — `STOP`: một cụm đón **chưa tới** của xe nguồn; `ONBOARD`: khách **đang trên xe / đang chờ** của xe nguồn (cứu hộ, D5c). `CHECK` đúng trường theo phạm vi: `STOP` ⇒ `from_stop_id` NOT NULL, nơi gặp NULL; `ONBOARD` ⇒ `from_stop_id` NULL, đúng một trong `meet_location_id` / `meet_place_text`;

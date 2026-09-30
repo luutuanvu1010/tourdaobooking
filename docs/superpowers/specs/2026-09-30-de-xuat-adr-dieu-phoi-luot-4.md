@@ -35,7 +35,7 @@
 ### D10.1 Mẫu chặng theo dịch vụ ("dịch vụ đưa đón mấy chiều") — dữ liệu trong app, có lịch sử (ĐP10 = a)
 
 - **Chủ bảng và tên bảng: CHỜ CHỦ (Q-L4-A).** Bản trước ghi `catalog_transfer_template` với tiền tố `catalog_` — **sai**: `catalog_` không phải tiền tố module (ADR-0002 "bảng cũ giữ tên"; `TABLE_PREFIX` ở `src/architecture.test.ts:137@thi-cong-adr-0049-tiep` không có; bài "bảng mới phải có tiền tố module" và bài khoá `LEGACY_TABLES` sẽ đỏ — người kiểm độc lập đã thấy đỏ thật). Hai cách hợp lệ:
-  - **(a, khuyến nghị) bảng `vc_transfer_template` của module `van-chuyen`** (tiền tố `vc_` đã đăng ký). `code` là **tham chiếu logic, không khoá ngoại** tới mã dịch vụ của `catalog` (tiền lệ R-P19). **Lưu ý:** mục `logicalRefs` của `docs/data-dictionary.json` đòi một `viaView` (`architecture.test.ts:223`) mà `catalog` chưa có view công bố — kế hoạch thi công chốt: ghi chú "tham chiếu mã dịch vụ, không kiểm định kỳ" hoặc hỏi lại nếu hàng rào đòi view (**chưa kiểm**). `van-chuyen` **không đọc** bảng `catalog` ⇒ **không cần cạnh module mới** (cạnh `van-chuyen → catalog` hôm nay không có — `architecture.test.ts:51`): màn Danh mục lấy danh sách dịch vụ từ route catalog sẵn có rồi gọi route `van-chuyen` để đọc/ghi mẫu; form đơn đọc mẫu qua route `van-chuyen` ở cổng `orders` + `can(order.create)` (trả mã → chế độ, không tiền, không dữ liệu cá nhân) — `orders` **không** import `van-chuyen`. Màn hình **vẫn ở "Danh mục"** đúng ĐP10 a (vị trí màn ≠ module chủ bảng).
+  - **(a, khuyến nghị) bảng `vc_leg_template` của module `van-chuyen`** (tiền tố `vc_` đã đăng ký). `code` là **tham chiếu logic, không khoá ngoại** tới mã dịch vụ của `catalog` (tiền lệ R-P19). **Lưu ý:** mục `logicalRefs` của `docs/data-dictionary.json` đòi một `viaView` (`architecture.test.ts:223`) mà `catalog` chưa có view công bố — kế hoạch thi công chốt: ghi chú "tham chiếu mã dịch vụ, không kiểm định kỳ" hoặc hỏi lại nếu hàng rào đòi view (**chưa kiểm**). `van-chuyen` **không đọc** bảng `catalog` ⇒ **không cần cạnh module mới** (cạnh `van-chuyen → catalog` hôm nay không có — `architecture.test.ts:51`): màn Danh mục lấy danh sách dịch vụ từ route catalog sẵn có rồi gọi route `van-chuyen` để đọc/ghi mẫu; form đơn đọc mẫu qua route `van-chuyen` ở cổng `orders` + `can(order.create)` (trả mã → chế độ, không tiền, không dữ liệu cá nhân) — `orders` **không** import `van-chuyen`. Màn hình **vẫn ở "Danh mục"** đúng ĐP10 a (vị trí màn ≠ module chủ bảng).
   - (b) tiền tố mới `cat_` cho module `catalog` (sửa ADR-0002 điều 2) và chuyển `catalog` sang STRICT (bảng mới đi `defineSql`). Được: dữ liệu dịch vụ ở cùng module dịch vụ. Mất: thêm một việc sửa luật kiến trúc + dời module cũ sang luật nghiêm (việc lớn hơn cả tính năng).
 - Cột (theo (a); tên bảng đổi theo câu trả lời):
 
@@ -70,8 +70,8 @@
 - **Số người hiệu lực của một chặng = một hàm thuần duy nhất** ở `src/shared/` (tên đề xuất `soNguoiChang(chang, soKhachDichVu)`): `pax_override` nếu có và ≤ số khách dịch vụ; nếu số khách dịch vụ sau này **giảm xuống dưới** `pax_override` thì lấy số khách dịch vụ (máy không tự sửa cột; câu kiểm định kỳ báo).
   - **Mọi nơi đang dùng "số người của chặng" phải đổi sang hàm này, trong cùng lát:** `lichChungChang` (`src/modules/orders/index.ts:268@thi-cong-adr-0049-tiep`), kiểm L-D1 (số suất mở ≤ số người) ở máy chủ, `kiemXuatBen` vế L-B1 (đủ tên cho số người), `trangThaiChang`, câu kiểm định kỳ L-D1/L-B1. Bài kiểm "một luật" (khuôn bài học Đợt E "hai luật"): quét mã, không nơi nào tự tính số người chặng ngoài hàm này.
 - **Quyền — CHỜ CHỦ (Q-L4-B).** Không thêm ô. Sau xác nhận: `order.trip.edit` (`permissions.ts:78`: SALES `ownOrAssigned`, ADMIN `any`, SA `any`) — đúng "văn phòng" và đúng đường sửa chặng hiện có. Khi đơn còn **nháp** có hai cách:
-  - **(b, khuyến nghị) người sửa được đơn nháp** (`order.modify`: gồm Đối tác, Thực tập với đơn của mình) khai luôn số người về, cùng lúc khai chặng. Lý do chọn: đi **đúng đường lưu nháp hôm nay** (không mở đường mới), người đặt biết số người về ngay lúc đặt, văn phòng vẫn sửa được sau xác nhận; đơn nháp chưa lên xe nên chưa ảnh hưởng điều xe.
-  - (a) chỉ văn phòng, kể cả khi nháp: phải **mở đường mới** — route sửa chặng bằng `order.trip.edit` hôm nay trả 409 với đơn nháp — và lưu nháp của Đối tác/Thực tập phải chép lại giá trị cũ (gửi khác → 403). Được: đúng chữ "văn phòng sửa". Mất: thêm đường ghi, Đối tác khai đơn khách về ít người phải nhờ văn phòng.
+  - **(a, khuyến nghị) chỉ văn phòng, kể cả khi nháp** — bám chữ lời chủ ĐP1 a "văn phòng sửa số người chặng về" (văn phòng = người có `order.trip.edit`). Lý do: Đối tác **tự xác nhận** đơn của mình (`order.modify = own`), nên số người về do Đối tác khai sẽ đi thẳng vào xe mà văn phòng không nhìn; sau xác nhận Đối tác lại không sửa được (`order.trip.edit` cột PARTNER = `none`). Được: đúng lời chủ; con số quyết định chỗ trên xe luôn do văn phòng ghi. Mất: phải mở **đường mới** — route sửa chặng bằng `order.trip.edit` hôm nay trả 409 với đơn nháp; lưu nháp của Đối tác/Thực tập chép lại giá trị cũ (gửi khác → 403); Đối tác có khách về ít người phải nhờ văn phòng.
+  - (b) người sửa được đơn nháp (`order.modify`: gồm Đối tác, Thực tập với đơn của mình) khai luôn số người về. Được: đi đúng đường lưu nháp hôm nay, không thêm đường ghi; người đặt khai ngay lúc đặt. Mất: không đúng chữ "văn phòng sửa"; số Đối tác khai vào xe mà văn phòng không duyệt.
   - Chặng về bị bỏ rồi thêm lại → mất `pax_override` (chặng mới).
 - **Mốc 6 giờ:** đổi số người **không** phải đổi "ngày, giờ, nơi đón, nơi trả" nên **không** đòi đặt gấp (ADR-0049 D2 chỉ liệt kê bốn trường đó). Chặng đã lên xe mà số người giảm → lịch chung hiện "thừa suất — gỡ bớt", chuyến bị **giữ** tới khi người xếp xe gỡ ([TK] §1.5 cuối; ADR-0049 D2 "giữ"); tăng → "thiếu suất".
 - **Nhật ký:** sửa chặng dùng hành động có sẵn `order_leg_updated` (ADR-0047), `detail` thêm "số người về cũ → mới". Không tên.
@@ -114,7 +114,8 @@ Phần còn lại có lớp CSDL đủ: `CHECK` của `pax_override` (≥ 1, ch�
   - `CHECK` `pax_override` (ghi `pax_override` cho chặng `OUT` → `RAISE`; ghi 0 → `RAISE`);
   - trigger chỉ-thêm bảng mẫu chặng (`UPDATE`/`DELETE` → `RAISE`);
   - bài "một luật số người chặng" (thêm cố ý một chỗ tự tính số người → đỏ);
-  - bài liệt kê khoá của route đọc mẫu cho form (chỉ mã, chế độ, giờ gợi ý).
+  - bài liệt kê khoá của route đọc mẫu cho form (chỉ mã, chế độ, giờ gợi ý);
+  - `src/hanh-khach-khong-lo-ten.test.ts` (`@thi-cong-adr-0049-tiep`): regex chọn route `:163-164` thêm nhóm `mau-chang` (theo Q-L4-A a) + ca "route mẫu chặng không mang tên khách, năm sinh, tiền".
 - **Tài liệu:** `docs/data-dictionary.json` + `npm run dict`; `docs/SYSTEM-DESIGN.md`; `docs/CHANGE-GUIDE.md`.
 - **Việc lớn** (dữ liệu) ⇒ người kiểm độc lập chỉ đọc sau thi công.
 
@@ -127,7 +128,7 @@ Phần còn lại có lớp CSDL đủ: `CHECK` của `pax_override` (≥ 1, ch�
 5. `pax_override`: chặng `OUT` → 400 ở route **và** `RAISE` ở CSDL; 0 → 400/`RAISE`; vượt số khách dịch vụ → 400 (L-R1); hợp lệ → 200, nhật ký có "số người về cũ → mới", không tên.
 6. `soNguoiChang` là nơi duy nhất: `lichChungChang` trả số người = `pax_override`; `kiemXuatBen` đòi đủ tên theo số người về (2/4 khách có tên, chặng về 2 người → đạt); L-D1 máy chủ chặn mở suất thứ 3 cho chặng về 2 người.
 7. Đổi mẫu dịch vụ không đổi chặng của đơn đã có.
-8. Quyền `pax_override` theo Q-L4-B: đã xác nhận — Bán hàng (đơn mình) → 200, đơn người khác → 403, Quản trị → 200, HDV / Đối tác → 403; nháp — (b) người lập nháp (kể cả Đối tác, Thực tập, đơn của mình) → 200; (a) Đối tác / Thực tập gửi giá trị khác → 403, không gửi → giá trị cũ còn nguyên.
+8. Quyền `pax_override` theo Q-L4-B: đã xác nhận — Bán hàng (đơn mình) → 200, đơn người khác → 403, Quản trị → 200, HDV / Đối tác → 403; nháp — (a) Bán hàng / Quản trị ghi được qua đường mới → 200, Đối tác / Thực tập gửi giá trị khác → 403, không gửi → giá trị cũ còn nguyên; (b) người lập nháp (kể cả Đối tác, Thực tập, đơn của mình) → 200.
 9. `npm test`, `npm run typecheck` (0 lỗi), `npm run test:e2e`, `node scripts/audit-invariants.mjs --db local` (thoát 0 dữ liệu sạch, thoát 1 dữ liệu gieo lỗi L-R1).
 
 ## Phương án bị loại
@@ -141,7 +142,7 @@ Phần còn lại có lớp CSDL đủ: `CHECK` của `pax_override` (≥ 1, ch�
 ## Câu hỏi còn mở (gom ở trang ghép mục 5)
 
 - **Q-L4-A** — bảng mẫu đưa đón thuộc phần nào: (a) Vận chuyển, tiền tố `vc_` (khuyến nghị) / (b) Danh mục với tiền tố mới `cat_` + sửa luật kiến trúc. Xem D10.1.
-- **Q-L4-B** — ai khai số người chặng về khi đơn còn nháp: (b) người sửa được đơn nháp (khuyến nghị) / (a) chỉ văn phòng. Xem D10.3.
+- **Q-L4-B** — ai khai số người chặng về khi đơn còn nháp: (a) chỉ văn phòng (khuyến nghị, bám lời chủ ĐP1 a) / (b) người sửa được đơn nháp. Xem D10.3.
 
 ## Việc vẽ cần chủ
 
