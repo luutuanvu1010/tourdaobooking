@@ -225,6 +225,28 @@ const cacMay = nhomList.map((ten, k) => ({ k, ten, ketQua: [] }));
 let failed = 0;
 let total = scripts.length;
 const batDau = Date.now();
+// Ctrl-C / SIGTERM (kiểm độc lập I-1, 2026-10-01): `finally` KHÔNG chạy khi Node bị tín hiệu giết, còn máy chủ `detached` sống tiếp (mồ côi, ppid 1) → dọn
+// ĐỒNG BỘ ngay tại đây: giết nhóm tiến trình của mọi máy chủ + xoá mọi D1 tạm, rồi thoát 130 / 143.
+function donKhiBiNgat(tin, ma) {
+  process.on(tin, () => {
+    console.log(`\n${tin}: dừng e2e — tắt ${cacMay.filter((m) => m.server?.pid).length} máy chủ, xoá D1 tạm.`);
+    for (const m of cacMay) {
+      try {
+        if (m.server?.pid) process.kill(-m.server.pid, "SIGKILL");
+      } catch {
+        /* đã tắt */
+      }
+      try {
+        if (m.persist) rmSync(m.persist, { recursive: true, force: true });
+      } catch {
+        /* bỏ qua */
+      }
+    }
+    process.exit(ma);
+  });
+}
+donKhiBiNgat("SIGINT", 130);
+donKhiBiNgat("SIGTERM", 143);
 try {
   if (soNhom > 1) console.log(`Chạy song song ${soNhom} nhóm, mỗi nhóm một D1 tạm + wrangler dev riêng (E2E_SONG_SONG=1: tuần tự như cũ):\n${cacMay.map((m) => `  nhóm ${m.k + 1}: ${m.ten.join(", ")}`).join("\n")}\n`);
   const dung = await Promise.allSettled(cacMay.map((m) => dungD1(m)));
