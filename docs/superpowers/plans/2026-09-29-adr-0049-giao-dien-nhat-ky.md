@@ -534,3 +534,26 @@ Chưa gộp máy chủ mới (điều phối: đợi HEAD sau phần vá xoá đ
 - Thấy, CHƯA sửa (ngoài phạm vi): tên trong một nhóm hiện theo thứ tự suất của DTO (vd. "3-3 · 3-2 · 3-4 · 3-1"), không theo thứ tự tên trong đơn. Sắp theo tên / thứ tự đơn là việc bề mặt, chờ điều phối.
 - KHÔNG sửa `web/CLAUDE.md`, T3, T4, Q-B-15.
 - Vệ sinh: sau mỗi lượt `ps` không còn wrangler / workerd của worktree này.
+
+### 13.9 Vòng 5d
+- **Sắp tên trong nhóm theo thứ tự của đơn — KHÔNG làm được ở giao diện; chờ điều phối ghi BACKLOG.**
+  - `SuatChuyenDto` (`src/shared/contracts.ts:1120`) không có trường thứ tự nào: không số thứ tự, không vị trí dòng, không khoá người. Chỉ có `id`, `loai`, `maDon`, `legId`, `chieu`, `diemLen`, `diemXuong`, `trangThai`, `coTen`, `hoTen?`, `namSinh?`, `daDon`, `daTra`.
+  - Máy chủ đọc suất `ORDER BY a.trip_id, a.valid_from_at, a.id` (`src/modules/van-chuyen/chuyen-repo.ts:122`); `id` là UUID ngẫu nhiên, nên trong một lần xếp thứ tự là ngẫu nhiên.
+  - Bảng `ord_passenger` (0035) cũng không có cột vị trí.
+  - Theo lệnh: không sửa máy chủ, không sắp theo tên. Chưa đổi mã, chưa chụp lại ảnh.
+- **Phương án nút "Cập nhật khách theo đơn"** (chủ lần 16; CHỜ hợp đồng máy chủ, chưa viết mã). Theo đúng khuôn "Cập nhật điểm theo đơn", ở bốn chỗ:
+  1. Chi tiết chuyến (`web/chuyen.ts`, khối dải lý do giữ):
+     - Khi chuyến lên kế hoạch có lý do `KHACH_DA_DOI`: dải đỏ "Chuyến bị giữ: Khách trong đơn đã đổi — cập nhật khách". Các dòng gồm câu máy chủ, rồi "Ai xử lý: … Không cần phá lệ, kể cả trong vùng khoá trước giờ xuất bến."
+     - Nút `btn-primary` "Cập nhật khách theo đơn" chỉ khi có ô `trip.dispatch`. Có cả hai lý do thì hai dải riêng.
+     - Hàm gửi giống `capNhatDiem`: bộ requestId riêng, thân `{ version, requestId }`, sau lệnh `docLai` (GA-55 — tên khách mới lấy từ GET), dải kết quả ok / info. `stale` → "Chuyến vừa được người khác sửa — tải lại"; lỗi khác → câu máy chủ + lý do.
+  2. Bảng Điều phối, thẻ "Chuyến đang chọn" (`web/dieu-phoi.ts`): cùng điều kiện; nút đứng cạnh "Cập nhật điểm theo đơn".
+  3. Bảng Điều phối, cột "Cần xử lý" (hàm thuần `src/shared/dieu-phoi-man.ts`): thêm hành động `cap-nhat-khach` khi có `KHACH_DA_DOI` và ô điều phối. Test đỏ trước.
+  4. Câu thuần:
+     - `cauKhoaMoc` thêm "Cập nhật khách theo đơn không cần phá lệ".
+     - `dieuKienXuatBen`: xếp `KHACH_DA_DOI` vào nhóm "Đủ tên khách". Đây là giả định; lựa chọn còn lại là nhóm "Không có đơn đã huỷ".
+  - Hộp xác nhận: "Cập nhật điểm theo đơn" hiện KHÔNG có hộp — bấm là gửi, nút khoá khi đang gửi. Làm "cùng khuôn" nghĩa là cũng không có hộp. Nếu muốn có hộp (vì thay tên khách trên xe) thì cần điều phối quyết.
+  - Không nút cho Kế toán / tài xế. Trong vùng khoá Bán hàng vẫn có nút (không phá lệ).
+  - Chrome dự kiến:
+    - xếp xong → văn phòng huỷ một khách khỏi đơn → chuyến bị giữ → dải + nút → bấm → tên mới hiện, hết giữ;
+    - trong vùng khoá Bán hàng vẫn bấm được; Kế toán không nút;
+    - P16: bỏ điều kiện ô → bước Kế toán đỏ.
