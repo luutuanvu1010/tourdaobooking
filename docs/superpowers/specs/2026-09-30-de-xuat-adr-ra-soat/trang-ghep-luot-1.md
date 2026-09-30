@@ -91,6 +91,9 @@ Kèm hai câu ở `cau-hoi-chu.md`: **câu 1** (14 nhóm; ATV thuộc Kong Fores
 **Lượt 1b — Báo tin khi đơn đổi (ADR-0062):**
 > "Duyệt ADR-0062: đơn đã xác nhận mà đổi giờ, nơi đón hoặc số khách thì người lập và người phụ trách (HDV) nhận tin ở chuông và màn hình khoá. Tin chỉ có mã đơn và phần đổi (vd 'giờ đón 07:00 → 06:30'), không SĐT, không tên khách, không tiền, không tên dịch vụ gõ tay. Người vừa sửa không nhận. Tài xế nhận tin riêng theo ADR-0052, không trùng. Tin ban đêm theo luật giờ yên lặng đã có."
 >
-> **Duyệt lượt này cũng là gật đầu rõ cho:** một "cửa sổ đọc" mới của nhật ký (có chữ nhật ký) chỉ phần thông báo được đọc; khuôn chữ nhật ký của lần sửa số khách thành hợp đồng giữa bên ghi và bên đọc. Không có lệch Hiến chương nào cần gật riêng.
+> **Duyệt lượt này cũng là gật đầu rõ cho** (mỗi điểm phải được chủ đồng ý, không ngầm định):
+> - **Nới luật kiến trúc** (`docs/ARCHITECTURE.md` Phần II §4, dòng 185: "cửa đọc chéo phần chỉ có khoá + nhãn + cờ"): cửa đọc mới `v_aud_order_change` có thêm **chữ mô tả nhật ký** (`detail`), vì phần thông báo cần chữ đó để dựng câu "giờ đón 07:00 → 06:30". Hàng rào bù: chỉ phần thông báo được đọc cửa này (bài kiểm), và hàm đọc chỉ lấy đoạn có khuôn máy viết, không bao giờ in chữ tự do. (ADR-0052 cùng loại việc đã chọn "không lấy chữ" — ở đây không làm vậy được.)
+> - **Ngoại lệ hẹp với ADR-0034 điều 1** ("không sửa lô ghi nào của `orders`"): lần sửa số khách ghi thêm một đoạn đầu có khuôn vào chữ nhật ký ("số khách: … · lý do: …"). Hệ quả thấy được: dòng Lịch sử trên trang đơn đổi cách ghi; hai bài kiểm tự động hiện có (`tests/e2e/dispatch.mjs:502,510`) phải sửa theo.
+> - **Khai trước một loại nhật ký chưa có nơi ghi** (`order_money_adjusted` — nơi ghi đầu tiên là ADR-0063): nếu lượt 2a bị bác thì loại này nằm im, vô hại (có hiện trong bộ lọc trang Nhật ký).
 
 Kèm ba câu ở `cau-hoi-chu.md`: **câu 3** ("giờ" gồm những gì — dùng chung với lượt 2a), **câu 5** (Đối tác / Thực tập là người lập có nhận tin — khuyến nghị Có, chỉ đơn họ lập), **câu 6** (tin không ghi nơi đón mới).

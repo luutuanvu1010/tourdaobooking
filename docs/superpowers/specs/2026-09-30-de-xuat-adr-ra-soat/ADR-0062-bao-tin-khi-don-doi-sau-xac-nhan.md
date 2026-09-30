@@ -93,7 +93,7 @@
   - **mọi hành động mang cờ `doiSoKhach: true`** ở `src/shared/audit-actions.ts`: `order_money_adjusted_by_field` (có dòng ghi từ hôm nay) và `order_money_adjusted` (văn phòng — ADR-0063 D1). Luật cờ (ép bằng bài kiểm, Đ1-a): **mọi hành động ghi dòng `order_money_adjustment` phải mang cờ `doiSoKhach`**, và mọi hành động mang cờ đều nằm trong tập nguồn.
   - **`order_money_adjusted` khai TRƯỚC (chọn cách (a) của người kiểm vòng 2):** khi thi công ADR này, `order_money_adjusted` được khai vào `src/shared/audit-actions.ts` kèm cờ `doiSoKhach` và có mặt trong tập nguồn + trong danh sách hành động của view `v_aud_order_change` (`0047`), dù chưa route nào ghi nó. ADR-0063 D1 chỉ là **nơi ghi đầu tiên**, không khai lại.
     - **Lý do chọn (a)** thay cho (b) "lát ADR-0063 kèm migration tạo lại view": view là cửa công bố (tạo lại = một chiều nhẹ, thêm một migration, thêm một chỗ phải khớp hằng); khai trước giữ đúng câu "duyệt lượt 2 sau không phải sửa ADR-0062", và bài 3 (view lọc **đúng** hằng tập nguồn) vẫn so với một hằng duy nhất.
-    - **Luật thứ tự:** việc nào lên `main` trước (thi công ADR-0062 hay lát ADR-0063 D1) thì **khai** `order_money_adjusted` (kèm cờ); việc sau **dùng lại**, không khai lần hai (bài `AUDIT_ACTIONS` không trùng khoá đã có).
+    - **Luật thứ tự:** việc nào lên `main` trước (thi công ADR-0062 hay lát ADR-0063 D1) thì **khai** `order_money_adjusted` (kèm cờ); việc sau **dùng lại**, không khai lần hai (khoá trùng trong một object literal do typecheck báo; không có bài test riêng cho việc này).
     - **Nếu lượt 2a bị bác:** hành động khai sẵn là **chết nhưng vô hại** — không route nào ghi, view không bao giờ trả dòng của nó, không tin nào sinh ra. Muốn dọn thì gỡ khỏi hằng + migration mới tạo lại view (không bắt buộc).
   - **Không** gồm: `order_leg_short_notice` (đặt gấp), `passengers` (danh sách tên), `booker`, ghi chú, nơi check-in, nơi trả.
 - **Đoạn đuôi không sinh tin:** hàm đọc bỏ qua (không đưa vào câu tin, không làm dòng thành tin) đoạn đuôi đặt gấp do `kemDatGap` nối (`index.ts:81`) và đoạn đuôi lượt đổi giờ " · tính 1 lượt đổi giờ" / " · đổi giờ (Toàn quyền, không tính lượt)" do ADR-0063 D3.5 nối. Hai hàm viết đó có mặt trong bài khứ hồi (Đ2).
@@ -223,6 +223,11 @@ Tệp ADR cũ **không** sửa; `docs/adr/README.md` do điều phối cập nh�
 - **HDV xem được thêm giá trị cũ** ("07:00 → 06:30"), vốn đã có trong lịch sử đơn họ phụ trách (`order.history.view = assigned`). Không mở dữ liệu mới cho HDV.
 - Lần sửa nhiều trường một lúc thành một tin dài hơn. Trên iPhone, câu dài bị cắt ở màn hình khoá; bấm vào đọc đủ.
 - Dòng cũ trước mốc phát hành không sinh tin.
+- **Nới luật kiến trúc (Phần II §4, `docs/ARCHITECTURE.md:185` — cửa đọc chéo "chỉ khoá + nhãn + cờ"):** `v_aud_order_change` có cột `detail`. Lý do: hàm đọc cần chữ để dựng câu; không có cách khác mà vẫn nêu được giá trị cũ → mới (ADR-0052 dòng 147 chọn "không `detail`" vì tin chuyến không cần giá trị). Hàng rào bù: bài "chỉ `thongbao` đọc view này" + luật an toàn của hàm đọc (chỉ đoạn khuôn máy viết). Nới này nằm trong câu duyệt lượt 1b (`trang-ghep-luot-1.md`), chủ gật rõ.
+- **Đổi khuôn `detail` của `order_money_adjusted_by_field`** ("Khách báo thêm 1 người" → "số khách: … · lý do: …"):
+  - `tests/e2e/dispatch.mjs:502` và `:510` đang khẳng định `detail` nguyên văn ⇒ sửa kỳ vọng trong cùng lát thi công;
+  - `web/order.ts:320` hiện `detail` nguyên văn ở khối Lịch sử ⇒ chữ Lịch sử đổi theo (ghi một gạch nhật ký thay đổi).
+- **Cờ `doiSoKhach` là trường MỚI của kiểu hành động** trong `src/shared/audit-actions.ts` (hôm nay mỗi hành động chỉ có `{label, group}`).
 - **Việc lớn** (dữ liệu: view mới, hợp đồng nhật ký; quyền đọc tin) ⇒ sau thi công phải có **người kiểm độc lập chỉ đọc** (CLAUDE.md §3).
 - **Tài liệu mô tả:** `docs/SYSTEM-DESIGN.md` (thông báo), `docs/CHANGE-GUIDE.md` (thêm loại tin đơn), `docs/data-dictionary.json` + `npm run dict`.
 
@@ -275,7 +280,7 @@ Tệp ADR cũ **không** sửa; `docs/adr/README.md` do điều phối cập nh�
    - **Khứ hồi đoạn "số khách đi xe"** (ADR-0065 bài 4c): lệnh chỉ đổi `ridePax` 4 → 3 → tin **thật** "Đơn <mã>: số khách đi xe 4 → 3", **không** câu chung; lệnh đổi giờ đón + `ridePax` + đặt gấp + tính lượt → tin có cả hai phần đổi, không có đuôi;
 3. **Tập nguồn một nơi (Đ1-a):**
    - mọi hành động có cờ `doiSoKhach` ∈ tập nguồn; tập nguồn ⊂ `AUDIT_ACTIONS`;
-   - **mọi hành động ghi `order_money_adjustment` mang cờ `doiSoKhach`**: tham số hành động của `insertMoneyAdjustment` có kiểu chỉ nhận hành động mang cờ (kiểu dẫn từ `AUDIT_ACTIONS`), cộng bài quét mã nguồn — mọi câu `INSERT INTO order_money_adjustment` chỉ nằm trong `insertMoneyAdjustment` (thêm tạm một câu chèn thứ hai ở chỗ khác → đỏ);
+   - **mọi hành động ghi `order_money_adjustment` mang cờ `doiSoKhach`**: tham số hành động của `insertMoneyAdjustment` có kiểu chỉ nhận hành động mang cờ (kiểu dẫn từ `AUDIT_ACTIONS`), cộng bài quét mã nguồn — mọi câu `INSERT INTO order_money_adjustment` trong mã chạy (loại trừ `*.test.ts` — 5 tệp test đang chèn thẳng để dựng dữ liệu) chỉ nằm trong `insertMoneyAdjustment` (thêm tạm một câu chèn thứ hai ở chỗ khác → đỏ);
    - nhãn trường giờ dùng trong hàm đọc lấy từ **đúng** hằng `TRUONG_GIO_TINH_LUOT` (không danh sách thứ hai; thêm tạm một mảng trường giờ riêng trong `thong-bao.ts` → đỏ);
    - view `v_aud_order_change` lọc **đúng** tập nguồn (so chuỗi SQL với hằng, khuôn `src/migrations-0025.test.ts`). Hằng so sánh là tập **đã khai** — gồm `order_money_adjusted` khai trước (Đ1) dù chưa có dòng ghi; bỏ nó khỏi view hoặc khỏi hằng → đỏ;
    - bảng nhãn trường thời gian ở `src/shared/` là tập cha của `TRUONG_GIO_TINH_LUOT`; `TRIP_VALUE_FIELDS` (`orders`) đọc nhãn từ bảng đó (viết lại một nhãn tay trong `service-rules.ts` → đỏ);
