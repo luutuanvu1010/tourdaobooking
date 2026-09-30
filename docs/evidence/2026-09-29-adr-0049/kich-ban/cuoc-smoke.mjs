@@ -8,7 +8,7 @@
 import { randomUUID } from "node:crypto";
 import {
   ACCOUNTS, CHU, DESK, MOB, apiCalls, assert, axe, axeNote, boDem, click, dungDuLieuDieuPhoi, dungMoiTruong, noCode, noOverflowX, shotFull, shotView, shown, sleep, txt,
-  typeInto,
+  typeInto, LOC_BEN_TAU, vnDate,
 } from "./dp-lib.mjs";
 
 const { env, call } = await dungMoiTruong([CHU]);
@@ -23,6 +23,46 @@ assert.equal(t6.status, 201, t6.text);
 const T6 = t6.json.chuyen;
 const TEN_O4 = ["Hành Khách Thử 5-1", "Hành Khách Thử 5-2"];
 const SDT_O4 = "0903 100 205";
+// Q-L3-B (ADR-0053 D7.2): tên / liên hệ khách chỉ hiện TRONG ngày chạy — T4 (ngày mai) bấm Xuất bến hôm nay là xuất bến SỚM → màn hiện "Khách N", không
+// liên hệ. Phía "có tên" dùng chuyến TH HÔM NAY (23:00–23:50, đơn OH đón 23:10) — dựng bằng route thật SAU bước 1 (bước 1 kỳ vọng "Hôm nay" trống): mốc đang
+// 48 giờ nên Quản trị đóng dấu "đặt gấp" lên chặng rồi mới xác nhận, xếp (ĐP2(ii): xếp chính chặng đặt gấp thì qua) — không chèn SQL, không phá lệ.
+// TH do CƯỜNG lái trên xe riêng 79A-444.44 (thêm bằng route thật): An vừa kết thúc T4 (ngày mai) ở bước 3 nên lái TH ngay bị chặn "Chưa đủ thời gian
+// nghỉ sau chuyến trước" (đúng luật — không chờ 30 phút). Kho cookie dùng CHUNG: đóng trang của An rồi mới mở trang của Cường (bước 3b–6).
+const TEN_OH = ["Hành Khách Hôm Nay 1", "Hành Khách Hôm Nay 2"];
+const SDT_OH = "0903 100 299";
+const LIEN_HE_OH = "Khách Điều Phối Hôm Nay";
+const dungChuyenHomNay = async () => {
+  const gioVn = new Date(Date.now() + 7 * 3600_000).toISOString().slice(11, 16);
+  assert.ok(gioVn < "22:50", `kịch bản cần chạy trước 22:50 giờ VN (chuyến hôm nay 23:00) — bây giờ ${gioVn}`);
+  const homNay = vnDate(0);
+  const o = await call(ACCOUNTS.salesA, "POST", "/api/orders", {
+    customerName: LIEN_HE_OH, customerPhone: SDT_OH, customerEmail: "", customerNote: "", discount: 0, depositAmount: 0, depositMethod: null, paymentNote: "",
+    services: [{
+      kind: "catalog", catalogCode: "TD101", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 1350000 },
+      departTime: "", pickupTime: "", pickupPlace: "", checkinDate: "", checkinTime: "", checkinPlace: "", note: "", departDate: homNay,
+      legs: [{ direction: "OUT", pickupDate: homNay, pickupTime: "23:10", pickupLocationId: null, pickupPlace: "InterContinental Nha Trang", dropoffLocationId: LOC_BEN_TAU, dropoffPlace: "" }],
+    }],
+    passengers: TEN_OH.map((fullName, i) => ({ fullName, birthYear: 1990 + i, paxCode: null })),
+  });
+  assert.equal(o.status, 201, `lập đơn hôm nay: ${o.text}`);
+  const legId = o.json.order.services[0].legs[0].id;
+  const g = await call(ACCOUNTS.admin, "POST", `/api/orders/${o.json.order.id}/legs/${legId}/short-notice`, { lyDo: "KHACH_DOAN_GOI_GAP" });
+  assert.equal(g.status, 200, `đặt gấp: ${g.text}`);
+  const c = await call(ACCOUNTS.admin, "POST", `/api/orders/${o.json.order.id}/status`, { status: "confirmed" });
+  assert.equal(c.status, 200, `xác nhận đơn hôm nay: ${c.text}`);
+  const v = await call(ACCOUNTS.admin, "POST", "/api/van-chuyen/xe", { plateNumber: "79A-444.44", chassisNumber: "DP7944444", name: "Xe thử 79A-444.44", passengerCapacity: 15 });
+  assert.equal(v.status, 201, `thêm xe hôm nay: ${v.text}`);
+  for (const typeCode of ["INSPECTION", "TPL_INSURANCE"]) {
+    const gt = await call(ACCOUNTS.admin, "POST", `/api/van-chuyen/xe/${v.json.vehicle.id}/giay-to`, { typeCode, number: `${typeCode}-79A-444.44`, expiryDate: vnDate(300) });
+    assert.equal(gt.status, 201, `giấy ${typeCode} xe hôm nay: ${gt.text}`);
+  }
+  const t = await call(ACCOUNTS.admin, "POST", "/api/van-chuyen/chuyen", { requestId: randomUUID(), xeId: v.json.vehicle.id, taiXePartyId: d.CUONG.partyId, batDau: { ngay: homNay, gio: "23:00" }, ketThuc: { ngay: homNay, gio: "23:50" } });
+  assert.equal(t.status, 201, `tạo chuyến hôm nay: ${t.text}`);
+  const x = await call(ACCOUNTS.admin, "POST", `/api/van-chuyen/chuyen/${t.json.chuyen.id}/phan-bo`, { version: t.json.chuyen.version, requestId: randomUUID(), chang: [{ legId, soSuat: 2 }] });
+  assert.equal(x.status, 200, `xếp chặng đặt gấp vào chuyến hôm nay: ${x.text}`);
+  return x.json.chuyen;
+};
+let TH = null;
 
 const tt = (p) => p.ev(`[...document.querySelectorAll('#tabbar a')].filter((a) => a.getClientRects().length).map((a) => [a.getAttribute('href'), a.innerText.trim(), a.getAttribute('aria-current')])`);
 const html = (p) => p.ev(`document.querySelector('main').innerHTML`);
@@ -34,7 +74,7 @@ const posts = (p, duoi) => apiCalls(p).filter((r) => r.method === "POST" && r.pa
 
 try {
   // ---- Tài xế (điện thoại) -----------------------------------------------------------------------------------------------------------------------------------
-  const p = await env.as(AN, "/", MOB);
+  let p = await env.as(AN, "/", MOB);
   await b.step("1", `4a 390 tài xế mở "/" → /cuoc: "Hôm nay" (trống) + "Ngày mai" (2 chuyến theo giờ); chuyến thiếu giấy xe "Bị giữ" + "(văn phòng lo)"; KHÔNG tên / SĐT khách; ba tab${axeNote()}`, async () => {
     await p.waitFor(`location.pathname === '/cuoc' && document.querySelectorAll('.dp-cuoc-day').length === 2`, "Cuốc của tôi dựng xong", 12000);
     const g = await p.ev(`[...document.querySelectorAll('.dp-cuoc-day')].map((x) => ({ t: x.querySelector('.dp-cuoc-day-title').innerText, n: x.querySelectorAll('.dp-cuoc-the').length, trong: x.querySelector('.dp-cuoc-trong')?.innerText ?? null }))`);
@@ -53,6 +93,8 @@ try {
     assert.equal(await p.ev(khongBiChe(".dp-cuoc-the")), "ok", "390: thẻ cuối không bị thanh tab che");
     await shotFull(p, "b4-cuoc-cua-toi-dien-thoai.png");
   });
+  // Chuyến HÔM NAY cho phía "có tên" của Q-L3-B — dựng SAU bước 1 (bước 1 kỳ vọng "Hôm nay" trống).
+  TH = await dungChuyenHomNay();
 
   await b.step("2", `6b 390 chuyến bị giữ: CHỈ điều kiện còn thiếu "(văn phòng lo)", không hạn giấy tờ; "Xuất bến" khoá + "Chưa xuất bến được — văn phòng đang lo."`, async () => {
     await p.ev(click(`.dp-cuoc-the[data-chuyen="${T6.id}"]`));
@@ -68,7 +110,7 @@ try {
     await shotFull(p, "b6-xuat-ben-chua-dat-dien-thoai.png");
   });
 
-  await b.step("3", `6c → 5a 390: chuyến đủ điều kiện ("Đủ điều kiện xuất bến"), trước xuất bến KHÔNG tên khách; bấm "Xuất bến" (không ô giờ, thân không có xayRaLuc) → đang chạy: tên + năm sinh + liên hệ của đơn hiện${axeNote()}`, async () => {
+  await b.step("3", `6c → 5a 390, Q-L3-B phía "không tên": chuyến NGÀY MAI (T4) đủ điều kiện ("Đủ điều kiện xuất bến"), trước xuất bến KHÔNG tên khách; bấm "Xuất bến" (không ô giờ, thân không có xayRaLuc) = xuất bến SỚM → đang chạy nhưng màn hiện "Khách N", KHÔNG tên, năm sinh, liên hệ`, async () => {
     await p.send("Page.navigate", { url: `${env.base}/cuoc-chuyen?id=${d.T4.id}` });
     await p.waitFor(`!!document.querySelector('[data-action="xuat-ben"]') && location.search.includes('${d.T4.id}')`, "màn xuất bến T4");
     assert.deepEqual(await p.ev(`[...document.querySelectorAll('.dp-cond')].map((x) => x.innerText.replace(/\\s+/g, ' ').trim())`), ["✓ Đủ điều kiện xuất bến"]);
@@ -81,10 +123,33 @@ try {
     const body = JSON.parse(posts(p, "/xuat-ben").at(-1).body);
     assert.deepEqual(Object.keys(body), ["requestId"], "tài xế tự bấm: không xayRaLuc");
     assert.match(await p.ev(txt(".dp-cc-head")), /^Đang chạy 79A-111\.11 · xuất bến \d\d:\d\d · trên xe 0\/15$/);
+    // Q-L3-B: chuyến ngày mai đã xuất bến sớm — màn tài xế hiện "Khách N", không tên / năm sinh / liên hệ (mở từ 00:00 ngày chạy).
     const k = await p.ev(`[...document.querySelectorAll('.dp-khach-ten')].map((x) => x.innerText)`);
-    assert.deepEqual(k.sort(), TEN_O4, "đang chạy (trong ngày chạy): có tên khách");
-    assert.match(await p.ev(txt(".dp-run-lien-he")), new RegExp(`^Liên hệ: Khách Điều Phối 5 ${SDT_O4}$`));
-    assert.equal(await p.ev(`document.querySelector('.dp-run-lien-he a').getAttribute('href')`), "tel:0903100205");
+    assert.deepEqual([...k].sort(), ["Khách 1", "Khách 2"], "chuyến NGÀY MAI đã xuất bến sớm: màn tài xế hiện 'Khách N', KHÔNG tên");
+    const h = await html(p);
+    for (const x of [...TEN_O4, SDT_O4, "0903100205", "Khách Điều Phối 5"]) assert.ok(!h.includes(x), `xuất bến sớm: không lộ ${x}`);
+    assert.equal(await p.ev(`!!document.querySelector('.dp-run-lien-he')`), false, "xuất bến sớm: không dòng liên hệ");
+    assert.equal(await p.ev(noCode), "");
+    await shotFull(p, "b5-xuat-ben-som-khong-ten-dien-thoai.png");
+    // Kết thúc T4 (gián đoạn, bằng route tài xế) — trả An về trạng thái không chạy cho bước 7 (văn phòng xuất bến thay T1 của An).
+    const kt = await call(AN, "POST", `/api/van-chuyen/cuoc-cua-toi/${d.T4.id}/ket-thuc-gian-doan`, { requestId: randomUUID(), lyDo: "GIAN_DOAN_KHAC" });
+    assert.equal(kt.status, 200, `kết thúc T4: ${kt.text}`);
+  });
+
+  await p.close();
+  p = await env.as(d.CUONG.account, "/", MOB);
+  await b.step("3b", `5a 390, Q-L3-B phía "có tên": chuyến HÔM NAY (TH, tài xế Cường) — bấm "Xuất bến" → đang chạy: tên + năm sinh + liên hệ của đơn hiện${axeNote()}`, async () => {
+    await p.send("Page.navigate", { url: `${env.base}/cuoc-chuyen?id=${TH.id}` });
+    await p.waitFor(`!!document.querySelector('[data-action="xuat-ben"]') && location.search.includes('${TH.id}')`, "màn xuất bến TH");
+    assert.deepEqual(await p.ev(`[...document.querySelectorAll('.dp-cond')].map((x) => x.innerText.replace(/\\s+/g, ' ').trim())`), ["✓ Đủ điều kiện xuất bến"]);
+    await p.ev(click('[data-action="xuat-ben"]'));
+    await p.waitFor(`!!document.querySelector('.dp-run')`, "màn đang chạy TH").catch(async (e) => { throw new Error(`${e.message}\n    trang: ${await p.ev(txt("#cc-trang"))}\n    POST: ${JSON.stringify(apiCalls(p).filter((r) => r.method === "POST").map((r) => r.path))}`); });
+    assert.deepEqual(Object.keys(JSON.parse(posts(p, "/xuat-ben").at(-1).body)), ["requestId"], "tài xế tự bấm: không xayRaLuc");
+    assert.match(await p.ev(txt(".dp-cc-head")), /^Đang chạy 79A-444\.44 · xuất bến \d\d:\d\d · trên xe 0\/15$/);
+    const k = await p.ev(`[...document.querySelectorAll('.dp-khach-ten')].map((x) => x.innerText)`);
+    assert.deepEqual([...k].sort(), TEN_OH, "đang chạy (trong ngày chạy): có tên khách");
+    assert.match(await p.ev(txt(".dp-run-lien-he")), new RegExp(`^Liên hệ: ${LIEN_HE_OH} ${SDT_OH}$`));
+    assert.equal(await p.ev(`document.querySelector('.dp-run-lien-he a').getAttribute('href')`), "tel:0903100299");
     assert.equal(await p.ev(txt('.dp-run [data-action="da-toi"]')), "Đã tới");
     assert.equal(await p.ev(`document.querySelectorAll('.dp-khach-btn').length`), 0, "chưa tới điểm: chưa đánh dấu khách");
     assert.equal(await p.ev(`document.querySelector('[data-action="ket-thuc"]').disabled`), true);
@@ -104,8 +169,8 @@ try {
     await p.ev(click('.dp-khach-btn[data-action="don"]'));
     await p.waitFor(`document.querySelectorAll('.dp-khach-kq.is-ok').length === 1`, "một khách đã đón");
     // GA-55: phản hồi lệnh không còn tên / liên hệ — màn đọc lại chi tiết: tên vẫn đúng, không "Khách 1", không ô trống.
-    assert.deepEqual((await p.ev(`[...document.querySelectorAll('.dp-khach-ten')].map((x) => x.innerText)`)).sort(), TEN_O4);
-    assert.match(await p.ev(txt(".dp-run-lien-he")), /^Liên hệ: Khách Điều Phối 5/);
+    assert.deepEqual((await p.ev(`[...document.querySelectorAll('.dp-khach-ten')].map((x) => x.innerText)`)).sort(), TEN_OH);
+    assert.match(await p.ev(txt(".dp-run-lien-he")), new RegExp(`^Liên hệ: ${LIEN_HE_OH}`));
     assert.match(await p.ev(txt(".dp-cc-head")), / · trên xe 1\/15$/);
   });
 
@@ -148,7 +213,7 @@ try {
   await p.close();
 
   // ---- Bán hàng bấm thay (máy tính) --------------------------------------------------------------------------------------------------------------------------
-  // Chờ hơn HAI phút kể từ lệnh cuối (chuyến trước của tài xế kết thúc ở bước 6): giờ sớm nhất khai được làm tròn LÊN phút, chờ một phút có khi vẫn trùng
+  // Chờ hơn HAI phút kể từ lệnh cuối (T4 của An kết thúc ở bước 3; TH của Cường ở bước 6): giờ sớm nhất khai được làm tròn LÊN phút, chờ một phút có khi vẫn trùng
   // phút lúc bấm (lần chạy thứ hai đã trùng) — hơn hai phút thì chắc chắn có một phút khai lùi hợp lệ khác lúc bấm.
   await sleep(125_000);
   const s = await env.as(ACCOUNTS.salesA, `/chuyen?id=${d.T1.id}`, DESK);
