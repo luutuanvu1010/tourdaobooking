@@ -23,6 +23,12 @@ export const ACCOUNTS = {
   fieldB: { name: "Hiện Trường B Test", phone: "0900000008", pin: "667788", permissions: ["FIELD"] },
 };
 
+/**
+ * Dấu nhận diện NỘI DUNG câu hỏi gửi trợ lý Hỗ trợ (ADR-0066 điều 7): tests/e2e/tro-ly.mjs chèn nó vào câu hỏi; run.mjs đỏ nếu log của wrangler dev có nó
+ * (máy chủ không bao giờ ghi nội dung hỏi / đáp ra log — chỉ mã lý do).
+ */
+export const TRO_LY_DAU = "DAU-TRO-LY-KHONG-LO-9X";
+
 let ipn = 0;
 /** IP giả khác nhau cho từng request để bộ đếm chống dò theo IP không chặn nhầm kịch bản. */
 export const freshIp = () => `10.${Math.floor(Math.random() * 250)}.${Math.floor(Math.random() * 250)}.${(++ipn % 250) + 1}`;

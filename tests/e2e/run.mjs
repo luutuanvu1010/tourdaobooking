@@ -10,7 +10,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { insertStaffSql } from "../../scripts/staff-lib.mjs";
-import { ACCOUNTS, TURNSTILE_TEST } from "./lib.mjs";
+import { ACCOUNTS, TRO_LY_DAU, TURNSTILE_TEST } from "./lib.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, "..", "..");
@@ -30,8 +30,10 @@ const ROOT = join(HERE, "..", "..");
 // "dieu-phoi-chay-dua" (TC-33, Task A14) sau đó: 10 yêu cầu xếp song song vào chuyến 3 chỗ trên dữ liệu dùng một lần (chạy riêng: npm run test:e2e -- dieu-phoi-chay-dua).
 // "so-tien" (sổ tiền lượt 1 — ADR-0024/0025/0026) đứng TRƯỚC "passkey": dùng field/fieldB/salesA/kế toán; tự cài/gỡ trigger thử trên D1 tạm
 // (ca R1, F6) — gỡ ở `finally`.
+// "tro-ly" (ADR-0066) đứng SAU "thongbao", TRƯỚC "maintenance" (cổng bảo trì chặn mọi route cần đăng nhập): dựng máy OpenAI GIẢ trên cổng E2E_OPENAI_PORT
+// (máy chủ trỏ vào nó bằng --var OPENAI_BASE_URL dưới đây); đổi cài đặt trợ lý rồi KHÔI PHỤC (bật, 5 USD, 30 câu) ở `finally`; tạo tài khoản dùng một lần.
 // "passkey" đứng CUỐI CÙNG: đổi PIN của salesB, tạm ngưng rồi kích hoạt lại field — mọi kịch bản của một lần chạy dùng chung một D1 tạm.
-const ALL = ["platform", "pwa", "orders", "trip", "chang-hanh-khach", "nhap-tay-va-gia-doi-tac", "admin", "turnstile", "catalog", "dispatch", "admin-race", "locations", "parties", "booker", "permissions", "feedback", "company", "bangtin", "thongbao", "maintenance", "roles", "van-chuyen", "tai-xe-doi-tac", "chinh-sach-dieu-phoi", "dieu-phoi", "tai-xe-cuoc", "dieu-phoi-chay-dua", "so-tien", "passkey"];
+const ALL = ["platform", "pwa", "orders", "trip", "chang-hanh-khach", "nhap-tay-va-gia-doi-tac", "admin", "turnstile", "catalog", "dispatch", "admin-race", "locations", "parties", "booker", "permissions", "feedback", "company", "bangtin", "thongbao", "tro-ly", "maintenance", "roles", "van-chuyen", "tai-xe-doi-tac", "chinh-sach-dieu-phoi", "dieu-phoi", "tai-xe-cuoc", "dieu-phoi-chay-dua", "so-tien", "passkey"];
 const picked = process.argv.slice(2);
 const scripts = picked.length ? picked : ALL;
 for (const s of scripts) if (!ALL.includes(s)) throw new Error(`Không có kịch bản "${s}" (có: ${ALL.join(", ")})`);
@@ -60,7 +62,7 @@ try {
   writeFileSync(seed, (await Promise.all(Object.values(ACCOUNTS).map((a) => insertStaffSql({ name: a.name, phone: a.phone, pin: a.pin, permissions: a.permissions })))).join("\n"));
   wrangler(["d1", "execute", "tourdao-sales-db", "--local", "--persist-to", persist, "--file", seed]);
 
-  const [port, inspector] = [await freePort(), await freePort()];
+  const [port, inspector, openaiPort] = [await freePort(), await freePort(), await freePort()];
   const base = `http://127.0.0.1:${port}`;
   const secret = randomBytes(48).toString("base64url"); // phiên chỉ sống trong lần chạy này
   server = spawn(
@@ -80,6 +82,9 @@ try {
       // Web Push (ADR-0036): ép khoá VAPID RỖNG — e2e không phụ thuộc .dev.vars của máy và KHÔNG BAO GIỜ gõ cửa dịch vụ đẩy thật bằng địa chỉ giả.
       "--var", "VAPID_PUBLIC_KEY:",
       "--var", "VAPID_PRIVATE_KEY:",
+      // Trợ lý Hỗ trợ (ADR-0066): khoá GIẢ + địa chỉ máy OpenAI GIẢ do tests/e2e/tro-ly.mjs dựng — e2e KHÔNG BAO GIỜ gọi OpenAI thật, không lệ thuộc .dev.vars.
+      "--var", "OPENAI_API_KEY:e2e-khoa-gia",
+      "--var", `OPENAI_BASE_URL:http://127.0.0.1:${openaiPort}`,
     ],
     { cwd: ROOT, detached: true, stdio: ["ignore", "pipe", "pipe"], env: { ...process.env, CI: "1" } },
   );
@@ -107,7 +112,7 @@ try {
     const started = Date.now();
     console.log(`▶ ${name}`);
     try {
-      execFileSync("node", [join(HERE, `${name}.mjs`)], { cwd: ROOT, stdio: "inherit", env: { ...process.env, E2E_BASE_URL: base, E2E_PERSIST_TO: persist } });
+      execFileSync("node", [join(HERE, `${name}.mjs`)], { cwd: ROOT, stdio: "inherit", env: { ...process.env, E2E_BASE_URL: base, E2E_PERSIST_TO: persist, E2E_OPENAI_PORT: String(openaiPort) } });
       console.log(`✔ ${name} (${((Date.now() - started) / 1000).toFixed(1)}s)\n`);
       results.push({ name, ok: true });
     } catch {
@@ -137,6 +142,8 @@ try {
   }
   // Web Push (ADR-0036): khoá VAPID bị ép rỗng → không lượt gửi nào được chạy, nên log máy chủ KHÔNG được có dòng `day_loi` (gửi hỏng/lỗi lô).
   results.push({ name: "không có day_loi (thiếu khoá VAPID thì không gửi)", ok: !log.includes('"event":"day_loi"') });
+  // Trợ lý Hỗ trợ (ADR-0066 điều 7): nội dung câu hỏi (mang dấu TRO_LY_DAU của tro-ly.mjs) KHÔNG BAO GIỜ được xuất hiện trong log máy chủ.
+  results.push({ name: "không có nội dung câu hỏi trợ lý trong log máy chủ", ok: !log.includes(TRO_LY_DAU) });
   console.log("── Tóm tắt từng bộ ──");
   for (const x of results) console.log(`${x.ok === true ? "✔" : x.ok === false ? "✘" : "⏭ chưa chạy (wrangler dev dùng chung đã thoát)"} ${x.name}`);
   failed = results.filter((x) => x.ok !== true).length;

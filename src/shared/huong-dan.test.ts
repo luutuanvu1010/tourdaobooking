@@ -24,7 +24,7 @@ test("id nhóm không trùng, đúng một Phần chung, mỗi nhóm có bắt �
 // (người kiểm độc lập 30/9: đổi tên nút mà changelog.ts / chú thích còn trích tên cũ ⇒ bài xanh giả — đúng lúc cần đỏ).
 // Kho tri thức của trợ lý Hỗ trợ (ADR-0066) cũng bỏ: sơ đồ trang là BẢN CHÉP nhãn giao diện (sinh từ mã), kiến trúc lời thường là văn xuôi —
 // để chúng trong kho thì một nút bị đổi tên vẫn "còn" trong bản chép và bài A2 xanh giả.
-const BO_QUA = new Set(["changelog.ts", "so-do-trang.ts", "tro-ly-kien-truc.ts", "tro-ly.ts"]);
+const BO_QUA = new Set(["changelog.ts", "so-do-trang.ts", "tro-ly-kien-truc.ts"]);
 const boChuThich = (s: string): string => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/<!--[\s\S]*?-->/g, "").replace(/(^|\s)\/\/.*$/gm, "$1");
 function khoChuGiaoDien(): string {
   const doc = (dir: string, duoi: string): string[] =>

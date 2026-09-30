@@ -8,6 +8,7 @@ import { MAINTENANCE_CODE } from "../src/shared/maintenance";
 import { endsAtFrom, renderMaintenanceMessage } from "./maintenance-screen";
 import { icon } from "./icons";
 import { xoaKhungNho } from "./khung-nho";
+import { datCoTuMo } from "./tro-ly-co";
 import { enableFlow, getAssertion, passkeyErrorMessage, passkeySupported, platformAuthenticatorAvailable } from "./passkey";
 
 registerServiceWorker();
@@ -171,6 +172,7 @@ passkeyBtn?.addEventListener("click", async () => {
   try {
     const credential = await getAssertion(p.opts); // KHÔNG có await nào trước dòng này trong lần chạm
     const me = await api<Api.MeResponse>("/api/auth/passkey/login", { method: "POST", body: { credential } });
+    datCoTuMo(); // ADR-0066 điều 9: khung Hỗ trợ tự mở MỘT lần ở trang đầu tiên sau đăng nhập
     if (await shouldInvite(me.staff.id)) return showInvite(me.staff.id);
     location.replace(next);
   } catch (err) {
@@ -419,6 +421,7 @@ form.addEventListener("submit", async (e) => {
       method: "POST",
       body: { phone: phoneInput.value.trim(), pin: pinInput.value, turnstileToken: token ?? undefined },
     });
+    datCoTuMo(); // ADR-0066 điều 9: khung Hỗ trợ tự mở MỘT lần ở trang đầu tiên sau đăng nhập
     if (await shouldInvite(me.staff.id)) return showInvite(me.staff.id);
     location.replace(next);
   } catch (err) {
