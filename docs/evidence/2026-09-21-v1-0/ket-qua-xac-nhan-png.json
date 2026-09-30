@@ -2,18 +2,178 @@
   "ghiChu": "Đo bằng Chrome headless trên wrangler dev cục bộ (D1 tạm, danh mục giả); không phải iPhone thật, không phải WebKit.",
   "buoc": [
     {
+      "id": "a",
+      "name": "tạo đơn bằng giao diện (dịch vụ theo người có thông tin chuyến + dịch vụ danh mục thứ hai) → tự chuyển tới /order?id=…&moi=1, hộp thoại tự mở đúng một lần, ảnh hiện, URL đã bỏ moi",
+      "dat": true
+    },
+    {
+      "id": "b",
+      "name": "PNG giải mã được, rộng ≥ 1440, cao đúng bố cục, không trống; chữ đúng vùng và đúng màu; dấu tiếng Việt được vẽ; ảnh giống hệt bản dựng từ mô hình kỳ vọng (và khác mô hình khác)",
+      "dat": true
+    },
+    {
+      "id": "c",
+      "name": "Tải ảnh PNG: <a download> đúng tên tệp trỏ blob: URL giải mã được; mọi blob: URL tạo ra bị thu hồi khi đóng (không còn tải được)",
+      "dat": true
+    },
+    {
+      "id": "d",
+      "name": "Chia sẻ: nút chỉ hiện khi navigator.canShare({ files }) đúng (cả hai nhánh); bấm → navigator.share nhận đúng tệp PNG; huỷ thì im lặng, lỗi khác thì báo tiếng Việt",
+      "dat": true
+    },
+    {
+      "id": "e",
+      "name": "tải lại trang không bật lại hộp thoại (URL sạch moi); mở đơn không kèm moi và SỬA đơn nháp cũng không tự bật; nút “Xác nhận gửi khách” luôn có",
+      "dat": true
+    },
+    {
+      "id": "f",
+      "name": "đơn đã xác nhận / đã huỷ mở lại bằng nút, huy hiệu đúng chữ và đúng màu token; SALES khác và kế toán cũng có nút",
+      "dat": true
+    },
+    {
+      "id": "g",
+      "name": "tên người phụ trách (ADR-0020 điều 9): API xác nhận có tên → in tên; API xác nhận CHƯA có người → 'Chưa có người phụ trách'; API lỗi/404/500/mất mạng/chậm → BỎ HẲN DÒNG (CHƯA BIẾT, không đoán, không dùng tên người lập); ảnh vẫn ra trong vài giây, không chặn",
+      "dat": true
+    },
+    {
+      "id": "h",
+      "name": "đơn cỡ tối đa (20 dịch vụ, 50 dòng, tên 100+ ký tự liền, tiền 100.000.000.000 ₫, ghi chú dài) và tiền rộng quá cột: không lỗi, không tràn lề, không chữ chồng nhau, mọi chữ có mực, đúng giới hạn diện tích canvas",
+      "dat": true
+    },
+    {
       "id": "i",
       "name": "vẽ lỗi (công ty lỗi, phông lỗi, phông treo, toBlob trả null, getContext null): thông báo tiếng Việt + nút Thử lại, không kẹt (Esc đóng được), Thử lại ra ảnh",
       "dat": true
+    },
+    {
+      "id": "j",
+      "name": "hộp thoại: role=dialog + aria-modal + tên, nền inert, focus trong hộp thoại, Esc/chạm nền đóng và trả focus; axe 0 vi phạm (390, 1040, trạng thái lỗi); vùng chạm ≥ 44 px; không tràn ngang; console/CSP sạch",
+      "dat": true
+    },
+    {
+      "id": "k",
+      "name": "ảnh mẫu (một dịch vụ, nhiều dịch vụ, đơn dài) qua đúng đường giao diện, ảnh chụp hộp thoại 390×844 và 1040×800; thời gian dựng",
+      "dat": true
     }
   ],
-  "axe": {},
-  "do": {},
-  "anh": {},
-  "thoiGian": {},
-  "lon": {},
+  "axe": {
+    "hop-thoai-390": [],
+    "hop-thoai-390-loi": [],
+    "hop-thoai-1040": []
+  },
+  "do": {
+    "390": {
+      "modal": "true",
+      "title": "Xác nhận đơn để gửi khách",
+      "inertAll": true,
+      "rootInert": false,
+      "inertCount": 6,
+      "focusIn": true,
+      "bodyOpen": true,
+      "small": [],
+      "controls": [
+        "Đóng",
+        "Tải ảnh PNG",
+        "Chia sẻ"
+      ],
+      "overflow": 0,
+      "dialogOverflow": 0,
+      "imgInFrame": true
+    },
+    "1040": {
+      "modal": "true",
+      "title": "Xác nhận đơn để gửi khách",
+      "inertAll": true,
+      "rootInert": false,
+      "inertCount": 6,
+      "focusIn": true,
+      "bodyOpen": true,
+      "small": [],
+      "controls": [
+        "Đóng",
+        "Tải ảnh PNG",
+        "Chia sẻ"
+      ],
+      "overflow": 0,
+      "dialogOverflow": 0,
+      "imgInFrame": true
+    }
+  },
+  "anh": {
+    "taoBangGiaoDien": {
+      "w": 1440,
+      "h": 2628,
+      "bytes": 461203,
+      "scale": 2,
+      "chu": 68
+    },
+    "xac-nhan-mau-1-mot-dich-vu.png": {
+      "w": 1440,
+      "h": 2268,
+      "cssH": 1134,
+      "bytes": 418573,
+      "chu": 57,
+      "dungMs": 105,
+      "phuTrach": null
+    },
+    "xac-nhan-mau-2-nhieu-dich-vu.png": {
+      "w": 1440,
+      "h": 4046,
+      "cssH": 2023,
+      "bytes": 697466,
+      "chu": 117,
+      "dungMs": 104,
+      "phuTrach": null
+    },
+    "xac-nhan-mau-3-don-dai.png": {
+      "w": 1440,
+      "h": 9226,
+      "cssH": 4613,
+      "bytes": 2103430,
+      "chu": 281,
+      "dungMs": 104,
+      "phuTrach": null
+    },
+    "chup-hop-thoai-390": "đã lưu",
+    "chup-hop-thoai-1040": "đã lưu",
+    "chup-trang-don-390": "đã lưu"
+  },
+  "thoiGian": {
+    "tenPhuTrachMs": {
+      "404": 103,
+      "500": 102,
+      "name": 105,
+      "none": 104,
+      "network": 108,
+      "slow": 3060
+    },
+    "xac-nhan-mau-1-mot-dich-vu.png": 105,
+    "xac-nhan-mau-2-nhieu-dich-vu.png": 104,
+    "xac-nhan-mau-3-don-dai.png": 104
+  },
+  "lon": {
+    "toi-da-100-ty": {
+      "w": 900,
+      "h": 18234,
+      "cssH": 14587,
+      "scale": 1.25,
+      "mp": 16.41,
+      "bytes": 4076668,
+      "chu": 854
+    },
+    "tien-rong-9e15": {
+      "w": 1440,
+      "h": 7882,
+      "cssH": 3941,
+      "scale": 2,
+      "mp": 11.35,
+      "bytes": 2068216,
+      "chu": 186
+    }
+  },
   "tongKet": {
-    "dat": 1,
+    "dat": 11,
     "hong": 0
   }
 }
