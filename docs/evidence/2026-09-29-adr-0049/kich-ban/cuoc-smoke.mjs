@@ -75,10 +75,10 @@ const posts = (p, duoi) => apiCalls(p).filter((r) => r.method === "POST" && r.pa
 try {
   // ---- Tài xế (điện thoại) -----------------------------------------------------------------------------------------------------------------------------------
   let p = await env.as(AN, "/", MOB);
-  await b.step("1", `4a 390 tài xế mở "/" → /cuoc: "Hôm nay" (trống) + "Ngày mai" (2 chuyến theo giờ); chuyến thiếu giấy xe "Bị giữ" + "(văn phòng lo)"; KHÔNG tên / SĐT khách; ba tab${axeNote()}`, async () => {
-    await p.waitFor(`location.pathname === '/cuoc' && document.querySelectorAll('.dp-cuoc-day').length === 2`, "Cuốc của tôi dựng xong", 12000);
+  await b.step("1", `4a 390 tài xế mở "/" → /cuoc: "Hôm nay" (trống) + "Ngày mai" (2 chuyến theo giờ) + "Ngày kia" (trống — góp ý T3); chuyến thiếu giấy xe "Bị giữ" + "(văn phòng lo)"; KHÔNG tên / SĐT khách; ba tab${axeNote()}`, async () => {
+    await p.waitFor(`location.pathname === '/cuoc' && document.querySelectorAll('.dp-cuoc-day').length === 3`, "Cuốc của tôi dựng xong", 12000);
     const g = await p.ev(`[...document.querySelectorAll('.dp-cuoc-day')].map((x) => ({ t: x.querySelector('.dp-cuoc-day-title').innerText, n: x.querySelectorAll('.dp-cuoc-the').length, trong: x.querySelector('.dp-cuoc-trong')?.innerText ?? null }))`);
-    assert.deepEqual(g, [{ t: "Hôm nay", n: 0, trong: "Không có cuốc nào." }, { t: "Ngày mai", n: 2, trong: null }]);
+    assert.deepEqual(g, [{ t: "Hôm nay", n: 0, trong: "Không có cuốc nào." }, { t: "Ngày mai", n: 2, trong: null }, { t: "Ngày kia", n: 0, trong: "Không có cuốc nào." }]);
     const the = await p.ev(`[...document.querySelectorAll('.dp-cuoc-the')].map((x) => ({ href: x.getAttribute('href'), text: x.innerText.replace(/\\s+/g, ' ').trim() }))`);
     assert.equal(the[0].href, `/cuoc-chuyen?id=${d.T4.id}`);
     assert.match(the[0].text, new RegExp(`^10:00 ${d.T4.ma} Đã lên kế hoạch 79A-111\\.11 · 2 khách · 1 điểm đón · 1 điểm trả$`));
@@ -310,7 +310,7 @@ try {
     const muc = await l.ev(`[...document.querySelectorAll('#sidebar .sidebar-item')].map((a) => [a.innerText.trim(), a.getAttribute('href')])`);
     assert.ok(muc.some(([t, h]) => t === "Cuốc của tôi" && h === "/cuoc"), JSON.stringify(muc));
     await l.ev(click('#sidebar a[href="/cuoc"]'));
-    await l.waitFor(`location.pathname === '/cuoc' && document.querySelectorAll('.dp-cuoc-day').length === 2`, "mở /cuoc");
+    await l.waitFor(`location.pathname === '/cuoc' && document.querySelectorAll('.dp-cuoc-day').length === 3`, "mở /cuoc");
     assert.equal(await l.ev(`document.querySelector('#sidebar a[href="/cuoc"]').getAttribute('aria-current')`), "page");
     assert.equal(await l.ev("!document.getElementById('error').hidden"), false);
     await l.send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
@@ -320,7 +320,7 @@ try {
     const tabs = await tt(l);
     assert.ok(!tabs.some(([h]) => h === "/cuoc"), `không tab Cuốc của tôi: ${JSON.stringify(tabs)}`);
     await l.ev(click('#vc-links a[href="/cuoc"]'));
-    await l.waitFor(`location.pathname === '/cuoc' && document.querySelectorAll('.dp-cuoc-day').length === 2`, "mở /cuoc (điện thoại)");
+    await l.waitFor(`location.pathname === '/cuoc' && document.querySelectorAll('.dp-cuoc-day').length === 3`, "mở /cuoc (điện thoại)");
     assert.deepEqual((await tt(l)).filter(([, , c]) => c === "page").map(([h]) => h), ["/account"], "tab Tôi sáng ở /cuoc");
     await shotFull(l, "b4-cuoc-tai-khoan-lai-dien-thoai.png");
   });

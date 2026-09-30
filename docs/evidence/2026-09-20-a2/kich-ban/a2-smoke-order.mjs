@@ -23,7 +23,7 @@ try {
   // 2026-09-26 (DK-T3-01, chủ dự án "loại bỏ hoàn toàn dịch vụ nhập tay"): API không nhận dịch vụ nhập tay MỚI → dựng đơn CŨ: lập với TTB06 (1 người lớn
   // × 800.000 — cùng số tiền với dòng nhập tay cũ nên tổng đơn không đổi) rồi đổi dịch vụ đó thành nhập tay bằng SQL khi đơn còn nháp.
   const created = await call(ACCOUNTS.salesA, "POST", "/api/orders", {
-    ...base, discount: 100000, depositAmount: 500000, depositMethod: "cash",
+    ...base, discount: 100000,
     services: [
       { kind: "catalog", catalogCode: "TD101", pax: pax(2, 1), unitPrices: { adult: 1300000, child: 950000 }, catalogPriceSeen: { adult: 1350000, child: 950000 }, ...NO_TRIP, departTime: "07:30", pickupTime: "07:00", pickupPlace: "Bến Cầu Đá", checkinTime: "09:00" },
       { kind: "catalog", catalogCode: "TTB06", pax: pax(1), catalogPriceSeen: { adult: 800000 }, ...NO_TRIP },
@@ -31,6 +31,8 @@ try {
   });
   assert.equal(created.status, 201, JSON.stringify(created.json));
   const order = created.json.order;
+  // Sổ tiền lượt 1 (ADR-0026 đ9): tiền trả trước = LẦN THU của billing (trước đây là cột cọc trên đơn).
+  assert.equal((await call(ACCOUNTS.salesA, "POST", `/api/orders/${order.id}/payments`, { soTien: 500000, hinhThuc: "CASH", nguoiThu: "toi" })).status, 201);
   env.sql(`UPDATE order_service SET catalog_code = NULL, unit = 'manual', name = 'Xe đưa đón riêng', pax_adult = 3 WHERE id = '${order.services[1].id}'`);
   env.sql(`UPDATE order_item SET catalog_code = NULL, pax_code = NULL, catalog_price = NULL, description = 'Xe 7 chỗ 2 chiều', detail = NULL WHERE service_id = '${order.services[1].id}'`);
   // ADR-0021: API nay chặn đơn lệch ngày ("có ngày" + "chưa có ngày"); ca này chỉ còn ở đơn CŨ → dựng lại bằng SQL: dịch vụ danh mục có ngày, dịch vụ nhập tay trống ngày
@@ -59,7 +61,7 @@ try {
   assert.equal(await p.ev(`${svc(1)}.querySelectorAll('.kv-warn').length`), 1);
   assert.equal(await p.ev(`${svc(1)}.querySelector('.tag-price') === null`), true, "dịch vụ nhập tay không có nhãn lệch giá");
   assert.deepEqual(await p.ev(pairs("document", ".totals .kv")).then((r) => r.slice(0, 5)), [
-    ["Tạm tính", "4.350.000 ₫"], ["Giảm giá", "100.000 ₫"], ["Tổng cộng", "4.250.000 ₫"], ["Thanh toán trước", "500.000 ₫ (Tiền mặt)"], ["Còn lại", "3.750.000 ₫"],
+    ["Tạm tính", "4.350.000 ₫"], ["Giảm giá", "100.000 ₫"], ["Tổng cộng", "4.250.000 ₫"], ["Đã thu", "500.000 ₫"], ["Còn lại", "3.750.000 ₫"],
   ]);
   assert.deepEqual(await p.ev("[...document.querySelectorAll('#actions .btn')].map((b) => b.textContent)"), ["Sửa", "Xác nhận đơn", "Huỷ đơn"]);
   assert.equal(await p.ev("!!document.querySelector('.lock-note')"), false, "đơn nháp không có dòng nhắc khoá");

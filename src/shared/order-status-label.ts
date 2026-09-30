@@ -6,3 +6,14 @@
 import type { OrderStatus } from "./contracts.ts";
 
 export const STATUS_LABEL: Record<OrderStatus, string> = { draft: "Chờ xác nhận", confirmed: "Đã xác nhận", cancelled: "Đã huỷ" };
+
+/**
+ * Nhãn trạng thái HIỂN THỊ của đơn kèm hai mốc sổ tiền (ADR-0024 đ3, ADR-0025 đ9): `status` vẫn chỉ ba giá trị; "Đã giao – đã thu đủ" / "Hoàn thành" SUY
+ * RA từ mốc. MỘT hàm cho danh sách, chi tiết, Trang chủ, biên nhận — không chép tay nhãn ở `web/`. `khoa` (dùng cho lớp CSS) KHÔNG phải chữ hiển thị.
+ */
+export type KhoaTrangThai = OrderStatus | "delivered" | "completed";
+export function trangThaiHienThi(o: { status: OrderStatus; deliveredAt?: string | null; completedAt?: string | null }): { khoa: KhoaTrangThai; nhan: string } {
+  if (o.status === "confirmed" && o.completedAt) return { khoa: "completed", nhan: "Hoàn thành" };
+  if (o.status === "confirmed" && o.deliveredAt) return { khoa: "delivered", nhan: "Đã giao – đã thu đủ" };
+  return { khoa: o.status, nhan: STATUS_LABEL[o.status] };
+}

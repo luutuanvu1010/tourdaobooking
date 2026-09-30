@@ -116,6 +116,15 @@ export const CHECKS = [
     sql: `SELECT count(*) FROM staff s WHERE s.active = 1 AND NOT EXISTS (SELECT 1 FROM stf_permission p WHERE p.staff_id = s.id AND p.valid_to_at IS NULL)`,
     level: "warn-unless-strict",
   },
+  {
+    // Sổ tiền lượt 1 (ADR-0026 điều 9, kế hoạch Task 3): việc của Kế toán SAU phát hành — cọc cũ đã chép thành lần thu người thu CHƯA RÕ; đơn còn dòng
+    // đó không bấm "Đã giao" được tới khi Kế toán đảo và ghi lại đúng người thu. Tình trạng nghiệp vụ hợp lệ ⇒ mức warn (không bao giờ đỏ).
+    code: "thông tin",
+    what: "đơn còn lần thu người thu chưa rõ (cọc cũ chuyển sang sổ — Kế toán đảo rồi ghi lại đúng người thu)",
+    sql: "SELECT count(*) FROM v_bil_order_paid WHERE unknown_count > 0",
+    level: "warn",
+    note: "việc của Kế toán sau khi phát hành sổ tiền lượt 1 (ADR-0026 điều 9)",
+  },
 
   // ---- Luật cứng ADR-0018 — trigger LC-1/LC-3 chặn ở CSDL (migration 0024); các kiểm này là LƯỚI THỨ HAI (P21) cho dữ liệu sửa tay bằng SQL. ----
   // ADR-0048 B2.1 (NỚI — chờ chủ xác nhận ở tệp đề xuất luật mục 1c): quyền bên ngoài = {PARTNER, DRIVER_PARTNER} = EXTERNAL_PERMISSIONS của
@@ -155,6 +164,88 @@ export const CHECKS = [
     code: "R-PTY-1",
     what: "đúng một hồ sơ đang mở vai công ty chủ (OWNER_COMPANY)",
     sql: "SELECT CASE WHEN count(*) = 1 THEN 0 ELSE 1 END FROM pty_party_role WHERE role_type_code = 'OWNER_COMPANY' AND valid_to_date IS NULL",
+    level: "fail",
+  },
+
+  // ---- Sổ tiền lượt 1 (ADR-0026 điều 7 — R-BIL-*; ADR-0025 NT 8 — hai bất biến mốc; NT-S9; kế hoạch Task 9, NT-A1). Trigger của migration 0044/0045 là
+  // đường chặn thứ nhất; các kiểm này là LƯỚI THỨ HAI cho SQL chạy tay (P21). Chỉ đếm, không in số tiền / tên. "Còn hiệu lực" = không phải dòng đảo và
+  // chưa bị đảo. R-BIL-2, R-BIL-5 (lượt 2) và R-BIL-7 (= R-PTY-1) ở danh sách GHI_CHU cuối tệp — không kiểm trùng, không in "đạt".
+  {
+    // R-BIL-1 (I1): tổng lần thu còn hiệu lực TẠI MỐC phiếu Đã giao = số phải thu phiếu đó chụp (due_snapshot). "Tại mốc" so theo created_at ≤ của
+    // phiếu (lần thu và phiếu cùng lô mang CÙNG một giờ máy chủ — service.ts `daGiao`); lần thu / đảo / hoàn khách ghi SAU đó là phiếu riêng, không làm đỏ.
+    // (Kế hoạch §3.2 ghi "so theo rowid" — không dùng được: rowid của hai bảng khác nhau không so với nhau; ghi ở sổ thi công.)
+    code: "R-BIL-1",
+    what: "đơn Đã giao: tổng lần thu còn hiệu lực tại mốc bằng đúng số phải thu phiếu Đã giao đã chụp",
+    sql: `SELECT count(*) FROM bil_posting p
+     WHERE p.kind_code = 'DELIVERED' AND NOT EXISTS (SELECT 1 FROM bil_posting x WHERE x.reverses_posting_id = p.id)
+       AND COALESCE((SELECT SUM(CASE WHEN r.kind_code = 'CUSTOMER_REFUND' THEN -r.amount ELSE r.amount END) FROM bil_payment_receipt r
+                     WHERE r.order_id = p.order_id AND r.created_at <= p.created_at AND r.reverses_id IS NULL
+                       AND NOT EXISTS (SELECT 1 FROM bil_payment_receipt x WHERE x.reverses_id = r.id AND x.created_at <= p.created_at)), 0) IS NOT p.due_snapshot`,
+    level: "fail",
+  },
+  {
+    // R-BIL-3 (I3) phần lần thu: dòng đảo cùng đơn, cùng loại, cùng số với gốc; gốc không phải dòng đảo (mỗi gốc tối đa một lần — UNIQUE reverses_id).
+    code: "R-BIL-3a",
+    what: "lần thu đảo khớp lần thu gốc (cùng đơn, cùng loại, cùng số; gốc không phải dòng đảo)",
+    sql: `SELECT count(*) FROM bil_payment_receipt x JOIN bil_payment_receipt g ON g.id = x.reverses_id
+     WHERE NOT (g.reverses_id IS NULL AND g.order_id = x.order_id AND g.kind_code = x.kind_code AND g.amount = x.amount)`,
+    level: "fail",
+  },
+  {
+    // R-BIL-3 (I3) phần dòng nợ: cùng số, ĐỔI CHỖ hai bên, cùng loại, cùng nguồn (đơn / chuyến); gốc không phải dòng đảo.
+    code: "R-BIL-3b",
+    what: "dòng nợ đảo khớp dòng gốc (cùng số, đổi chỗ hai bên, cùng loại, cùng nguồn)",
+    sql: `SELECT count(*) FROM bil_debt_line x JOIN bil_debt_line g ON g.id = x.reverses_line_id
+     WHERE NOT (g.reverses_line_id IS NULL AND g.amount = x.amount AND g.debtor_party_id = x.creditor_party_id AND g.creditor_party_id = x.debtor_party_id
+                AND g.kind_code = x.kind_code AND g.order_id IS x.order_id AND g.trip_id IS x.trip_id)`,
+    level: "fail",
+  },
+  {
+    // R-BIL-4 (I4): đơn Đã giao có ĐÚNG MỘT phiếu Đã giao còn hiệu lực; đơn chưa Đã giao không có phiếu nào. Đếm ĐƠN lệch.
+    code: "R-BIL-4a",
+    what: "đơn Đã giao có đúng một phiếu Đã giao; đơn chưa Đã giao không có phiếu Đã giao",
+    sql: `SELECT count(*) FROM orders o
+     WHERE (CASE WHEN o.delivered_at IS NULL THEN 0 ELSE 1 END) <> (SELECT count(*) FROM bil_posting p
+       WHERE p.order_id = o.id AND p.kind_code = 'DELIVERED' AND NOT EXISTS (SELECT 1 FROM bil_posting x WHERE x.reverses_posting_id = p.id))`,
+    level: "fail",
+  },
+  {
+    // R-BIL-4 vế Hoàn thành (ruling điều phối 29/9 ở kế hoạch): đơn có completed_at ⇔ đúng một phiếu COMPLETED.
+    code: "R-BIL-4b",
+    what: "đơn Hoàn thành có đúng một phiếu Hoàn thành; đơn chưa Hoàn thành không có phiếu Hoàn thành",
+    sql: `SELECT count(*) FROM orders o
+     WHERE (CASE WHEN o.completed_at IS NULL THEN 0 ELSE 1 END) <> (SELECT count(*) FROM bil_posting p
+       WHERE p.order_id = o.id AND p.kind_code = 'COMPLETED' AND NOT EXISTS (SELECT 1 FROM bil_posting x WHERE x.reverses_posting_id = p.id))`,
+    level: "fail",
+  },
+  {
+    // R-BIL-6: không đơn Đã giao nào còn lần thu người thu "chưa rõ" (cọc cũ chưa được Kế toán đảo + ghi lại).
+    code: "R-BIL-6",
+    what: "đơn Đã giao không còn lần thu người thu chưa rõ",
+    sql: "SELECT count(*) FROM orders o JOIN v_bil_order_paid v ON v.order_id = o.id WHERE o.delivered_at IS NOT NULL AND v.unknown_count > 0",
+    level: "fail",
+  },
+  {
+    // NT-S9: lượt 1 mọi lần thu "thu cho" công ty chủ. So với MỌI hồ sơ từng giữ vai công ty chủ (đổi công ty chủ — ADR-0024 6.5 — không làm lần thu cũ
+    // thành vi phạm). Giới hạn: không bắt "thu cho công ty chủ CŨ sau ngày đổi" — lượt 1 route không nhận giá trị này (máy chủ luôn dùng công ty chủ hiện hành).
+    code: "R-BIL-S9",
+    what: "mọi lần thu ghi 'thu cho' công ty chủ (lượt 1)",
+    sql: `SELECT count(*) FROM bil_payment_receipt r
+     WHERE r.collected_for_party_id NOT IN (SELECT party_id FROM pty_party_role WHERE role_type_code = 'OWNER_COMPANY')`,
+    level: "fail",
+  },
+  {
+    // ADR-0025 NT 8 (bất biến mốc 1): Hoàn thành ⇒ đã Đã giao.
+    code: "R-BIL-M1",
+    what: "đơn Hoàn thành thì đã Đã giao",
+    sql: "SELECT count(*) FROM orders WHERE completed_at IS NOT NULL AND delivered_at IS NULL",
+    level: "fail",
+  },
+  {
+    // ADR-0025 NT 8 (bất biến mốc 2): Đã giao ⇒ trạng thái 'confirmed' (đơn đã khoá không huỷ / không về nháp được).
+    code: "R-BIL-M2",
+    what: "đơn Đã giao vẫn ở trạng thái đã xác nhận",
+    sql: "SELECT count(*) FROM orders WHERE delivered_at IS NOT NULL AND status <> 'confirmed'",
     level: "fail",
   },
 
@@ -631,4 +722,15 @@ export const CHECKS = [
     sql: "SELECT count(*) AS n FROM aut_passkey p JOIN staff s ON s.id = p.staff_id WHERE p.valid_to_at IS NULL AND s.active = 0",
     level: "fail",
   },
+];
+
+/**
+ * Bất biến CÓ TÊN nhưng KHÔNG phải câu kiểm (in ra để người đọc biết, KHÔNG in "đạt"): R-BIL-2, R-BIL-5 chạy từ lượt 2 của sổ tiền (ADR-0026 điều 7);
+ * R-BIL-7 (đúng một hồ sơ công ty chủ) chính là R-PTY-1 ở trên — không kiểm trùng.
+ * @type {{ code: string, text: string }[]}
+ */
+export const GHI_CHU = [
+  { code: "R-BIL-2", text: "chưa áp dụng (lượt 2 sổ tiền: phần Tour Đảo = giá bán − giá vốn − hoa hồng theo số đã lưu)" },
+  { code: "R-BIL-5", text: "chưa áp dụng (lượt 2 sổ tiền: mỗi dòng dịch vụ của đơn đã chụp có người bán)" },
+  { code: "R-BIL-7", text: "đúng một hồ sơ công ty chủ — dùng lại R-PTY-1 (không kiểm trùng)" },
 ];

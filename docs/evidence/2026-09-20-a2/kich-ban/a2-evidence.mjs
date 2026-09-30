@@ -83,7 +83,7 @@ try {
   await full(p, "tt-form-trong.png");
   await check(p, "form-trong");
   await p.ev("document.getElementById('catalog-q').focus(); true");
-  await p.waitFor("document.querySelectorAll('#catalog-list button').length === 3", "danh sách danh mục");
+  await p.waitFor("document.querySelectorAll('#catalog-list .catalog-pick').length === 3", "danh sách danh mục");
   await view(p, "tt-ket-qua-tim.png");
   await axe(p, "form-ket-qua-tim");
   await p.ev(setInput("document.getElementById('catalog-q')", "khong-co"));
@@ -97,8 +97,8 @@ try {
   const pick = async (q) => {
     await p.ev("document.getElementById('catalog-q').focus(); true");
     await p.ev(setInput("document.getElementById('catalog-q')", q));
-    await p.waitFor("document.querySelectorAll('#catalog-list button').length === 1", `kết quả ${q}`);
-    await p.ev("document.querySelector('#catalog-list button').click(); true");
+    await p.waitFor("document.querySelectorAll('#catalog-list .catalog-pick').length === 1", `kết quả ${q}`);
+    await p.ev("document.querySelector('#catalog-list .catalog-pick').click(); true");
   };
   await pick("TD101");
   await p.waitFor(`${cards}.length === 1`, "thẻ 1");
@@ -137,7 +137,7 @@ try {
   await shotEl(p, `${cards}[0]`, "1e-the-loi-50-khach.png");
   await p.ev(setInput(counter(0, "Người lớn"), "2"));
   // 1f: banner kiểm phía trình duyệt (thiếu tên/SĐT/hình thức cọc)
-  await p.ev(setInput("document.getElementById('depositAmount')", "500000"));
+  await p.ev(setInput("document.getElementById('prepaidAmount')", "500000")); // sổ tiền lượt 1: ghi thành lần thu ở bước hai sau khi lưu
   await p.ev("document.getElementById('save').click(); true");
   await p.waitFor("!document.getElementById('save-error').hidden", "banner kiểm phía trình duyệt");
   await view(p, "1f-banner-kiem-tra.png");
@@ -145,7 +145,7 @@ try {
   // tt: đang lưu (yêu cầu treo)
   await p.ev(setInput("document.getElementById('customerName')", "Trần Văn Bình"));
   await p.ev(setInput("document.getElementById('customerPhone')", "0901 234 567"));
-  await p.ev(setInput("document.getElementById('depositMethod')", "cash"));
+  await p.ev(setInput("document.getElementById('prepaidMethod')", "CASH"));
   await p.ev("window.fetch = () => new Promise(() => {}); document.getElementById('save').click(); true");
   await p.waitFor("document.getElementById('save').textContent === 'Đang lưu…' && document.getElementById('save').disabled", "trạng thái đang lưu");
   await view(p, "tt-dang-luu.png");
@@ -159,11 +159,12 @@ try {
   // TTB06 (cùng 3 khách), `create` đổi nó thành ĐÚNG dịch vụ nhập tay cũ "Xe đưa đón riêng" bằng SQL khi đơn còn nháp (`env.legacyManual`).
   const svcCar = (o = {}) => ({ kind: "catalog", catalogCode: "TTB06", pax: pax(3), catalogPriceSeen: { adult: 800000 }, ...NO_TRIP, ...o,
     _legacy: { name: "Xe đưa đón riêng", adult: 3, items: [{ description: "Xe 7 chỗ 2 chiều", detail: "", quantity: 1, unitPrice: 800000 }] } });
-  const base = { customerName: "Trần Văn Bình", customerPhone: "0901 234 567", customerEmail: "", customerNote: "", discount: 100000, depositAmount: 500000, depositMethod: "cash", paymentNote: "" };
-  const create = async (body) => {
+  const base = { customerName: "Trần Văn Bình", customerPhone: "0901 234 567", customerEmail: "", customerNote: "", discount: 100000, paymentNote: "", traTruoc: 500000 }; // traTruoc: KHÔNG gửi trong thân đơn — `create` ghi thành lần thu (sổ tiền lượt 1)
+  const create = async ({ traTruoc = 0, ...body }) => {
     const r = await call(ACCOUNTS.salesA, "POST", "/api/orders", { ...body, services: body.services.map(({ _legacy, ...s }) => s) });
     assert.equal(r.status, 201, JSON.stringify(r.json));
     const order = r.json.order;
+    if (traTruoc > 0) assert.equal((await call(ACCOUNTS.salesA, "POST", `/api/orders/${order.id}/payments`, { soTien: traTruoc, hinhThuc: "CASH", nguoiThu: "toi" })).status, 201, "lần thu trả trước");
     if (!body.services.some((s) => s._legacy)) return order;
     body.services.forEach((s, i) => s._legacy && env.legacyManual(order.id, order.services[i].id, s._legacy));
     return (await call(ACCOUNTS.salesA, "GET", `/api/orders/${order.id}`)).json.order;

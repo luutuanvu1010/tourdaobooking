@@ -75,6 +75,7 @@ const BANG_STAFF: Record<string, MucBang | { DRIVER: MucBang; DRIVER_PARTNER: Mu
   "POST /api/feedback/:id/messages": { ma: 404, ly_do: "như trên" },
   "GET /api/feedback/badge": { ma: 200, ly_do: "số góp ý của mình (ADR-0038)" },
   "GET /api/feedback/mine": { ma: 200, ly_do: "góp ý của mình" },
+  "GET /api/ledger/mine": { ma: 403, ly_do: "sổ tiền lượt 1: \"Sổ của tôi\" — ô ledger.view của DRIVER, DRIVER_PARTNER là none (tài xế không thu tiền khách — bản làm mới §2)" },
   "GET /api/locations": { ma: 200, ly_do: "tên địa điểm (không nhạy cảm; mọi tài khoản đăng nhập — người làm hiện trường cũng cần)" },
   "POST /api/orders/:id/handler-cancel": { ma: 403, ly_do: "huỷ đơn đang phụ trách — ô order.cancel của DRIVER là none (đơn có thật → 403, không dữ liệu)" },
   "POST /api/orders/:id/handler-money-edit": { ma: 403, ly_do: "sửa số khách đơn đang phụ trách — chỉ cấp hẹp đang được giao / Toàn quyền (đơn có thật → 403)" },
@@ -112,7 +113,7 @@ function setup() {
 const dienThamSo = (path: string) => (path.startsWith("/api/orders/:id/") ? path.replace(":id", DON) : path.replace(/:[A-Za-z]+/g, LA));
 const khoa = (r: { method: string; path: string }) => `${r.method} ${r.path}`;
 
-test("danh sách route đủ: 14 module có route; mỗi route cổng staff có đúng một dòng ở BANG_STAFF (và ngược lại)", () => {
+test("danh sách route đủ: 16 module có route; mỗi route cổng staff có đúng một dòng ở BANG_STAFF (và ngược lại)", () => {
   assert.ok(ROUTES.length >= 110, `ít nhất 110 route (ảnh chụp route-access), thấy ${ROUTES.length}`);
   assert.deepEqual(Object.keys(BANG_STAFF).sort(), ROUTES.filter((r) => r.access === "staff").map(khoa).sort(), "route staff mới phải được QUYẾT cho tài xế (thêm dòng BANG_STAFF)");
 });

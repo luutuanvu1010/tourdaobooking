@@ -265,6 +265,13 @@ export function createApp(opts: AppOptions) {
         return await dispatch(request, env, exec);
       } catch (e) {
         const requestId = request.headers.get("cf-ray") ?? crypto.randomUUID();
+        // Sổ tiền lượt 1 (ADR-0025 đ4; kiểm độc lập T-1): route đã đọc "chưa Đã giao" nhưng người khác bấm Đã giao / Hoàn thành giữa lúc đọc và lúc ghi →
+        // trigger 0044 RAISE (`order_delivered:` / `order_completed:`), cả lô đã huỷ. Trả 409 câu cố định (không lộ chữ thô của CSDL), không 500 chung.
+        const msg = e instanceof Error ? e.message : String(e);
+        if (/\border_(delivered|completed):/.test(msg)) {
+          console.warn(JSON.stringify({ level: "warn", event: "order_delivered_race", requestId, method: request.method, path: new URL(request.url).pathname }));
+          return json({ error: { code: "order_delivered", message: "Đơn đã Đã giao – đã thu đủ (vừa có người bấm) — không sửa được nữa. Tải lại để xem đơn mới nhất." } }, 409);
+        }
         const err = e instanceof Error ? { name: e.name, message: e.message, stack: e.stack } : { message: String(e) };
         console.error(JSON.stringify({ level: "error", event: "unhandled", requestId, method: request.method, path: new URL(request.url).pathname, error: err }));
         return json({ error: { code: "internal", message: "Có lỗi hệ thống. Thử lại sau; nếu còn lỗi, báo quản trị viên kèm mã này.", requestId } }, 500);

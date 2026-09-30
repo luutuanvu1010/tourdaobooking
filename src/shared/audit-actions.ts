@@ -11,6 +11,7 @@ export const AUDIT_GROUPS = {
   feedback: "Góp ý",
   notice: "Thông báo",
   vehicle: "Xe", // ADR-0040 D1 (giả định G12): trang Nhật ký không có nhãn đối tượng cho xe — `detail` mở đầu bằng biển số
+  ledger: "Sổ tiền", // sổ tiền lượt 1 (ADR-0026): nộp/trả, xác nhận công ty đã nhận, hoàn khách, điều chỉnh, đảo — `detail` KHÔNG số tiền chi tiết, không SĐT
   trip: "Điều phối xe", // ADR-0049 (kế hoạch mục 1.1): chính sách điều phối, lý do; từ A13 thêm hành động chuyến `trip_*` (order_id luôn NULL — I17)
   system: "Hệ thống",
 } as const;
@@ -32,6 +33,15 @@ export const AUDIT_ACTIONS = {
   cancelled: { label: "Huỷ đơn", group: "order" },
   order_cancelled_by_field: { label: "Huỷ đơn (hướng dẫn viên đang phụ trách)", group: "order" },
   order_money_adjusted_by_field: { label: "Sửa số khách (hướng dẫn viên đang phụ trách)", group: "order" },
+  // Sổ tiền lượt 1 (ADR-0025, ADR-0026) — `detail` không SĐT, không số tiền chi tiết (kế hoạch §3.4).
+  order_delivered: { label: "Đã giao – đã thu đủ", group: "order" },
+  order_completed: { label: "Hoàn thành", group: "order" },
+  payment_recorded: { label: "Ghi lần thu", group: "order" },
+  ledger_company_received: { label: "Xác nhận công ty đã nhận", group: "ledger" },
+  ledger_settlement: { label: "Ghi nộp / trả tiền", group: "ledger" },
+  ledger_refund: { label: "Ghi hoàn khách", group: "ledger" },
+  ledger_adjustment: { label: "Ghi điều chỉnh sổ", group: "ledger" },
+  ledger_reversal: { label: "Ghi dòng đảo sổ", group: "ledger" },
   order_handler_changed: { label: "Đổi người phụ trách", group: "order" },
   order_claimed: { label: "Tự nhận phụ trách đơn", group: "order" },
   booker_changed: { label: "Đổi khách", group: "order" },

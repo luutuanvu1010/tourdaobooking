@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ảnh phác — Sổ của tôi</title>
+<!-- ẢNH PHÁC TĨNH (sổ tiền lượt 1, kế hoạch Task 10): chưa phải màn thật, số liệu giả. Chủ xem bố cục trước khi dựng (bài học Đợt D).
+     Dữ liệu thật sẽ đến từ GET /api/ledger/mine (SoCuaToiResponse: dangGiu + dòng {maDon, ngay, loai, soTien, soDu}). Màu/khoảng cách = token public/app.css. -->
+<style>
+  :root {
+    --c-primary: #0c4a6e; --c-primary-soft: #dcebf6; --c-surface: #ffffff; --c-surface-alt: #eaf2f8; --c-text: #0f172a; --c-text-muted: #475569;
+    --c-border: #d3e1ec; --c-green-soft: #dcfce7; --c-green-text: #166534; --c-sand-soft: #fbe3b3; --c-sand-text: #5a4109; --c-on-dark: #ffffff;
+    --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --radius-md: 12px; --radius-pill: 999px;
+    --shadow-card: 0 1px 3px rgba(15, 23, 42, 0.08); --fs-ui: 16px; --fs-label: 14px; --fs-badge: 12px; --fs-title: 18px;
+    --font: "Nunito", "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--c-surface-alt); color: var(--c-text); font: var(--fs-ui)/1.45 var(--font); }
+  .phac { background: var(--c-sand-soft); color: var(--c-sand-text); font-size: var(--fs-label); padding: var(--s2) var(--s4); text-align: center; }
+  header { background: var(--c-primary); color: var(--c-on-dark); padding: var(--s3) var(--s4); font-weight: 700; font-size: var(--fs-title); }
+  main { max-width: 640px; margin: 0 auto; padding: var(--s4); display: grid; gap: var(--s3); }
+  .card { background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius-md); box-shadow: var(--shadow-card); padding: var(--s4); }
+  .tong { display: grid; gap: var(--s1); }
+  .tong .nhan { color: var(--c-text-muted); font-size: var(--fs-label); }
+  .tong .so { font-size: 28px; font-weight: 800; color: var(--c-primary); }
+  .tong .giai { font-size: var(--fs-label); color: var(--c-text-muted); }
+  h2 { font-size: var(--fs-ui); margin: var(--s2) 0 0; }
+  .dong { display: grid; grid-template-columns: 1fr auto; gap: var(--s1) var(--s3); padding: var(--s3) 0; border-top: 1px solid var(--c-border); }
+  .dong:first-of-type { border-top: 0; }
+  .ma { font-weight: 700; }
+  .phu { color: var(--c-text-muted); font-size: var(--fs-label); }
+  .tien { text-align: right; font-weight: 700; }
+  .tien.giam { color: var(--c-green-text); }
+  .du { text-align: right; color: var(--c-text-muted); font-size: var(--fs-label); }
+  .loai { display: inline-block; padding: 0 var(--s2); border-radius: var(--radius-pill); font-size: var(--fs-badge); background: var(--c-primary-soft); color: var(--c-primary); }
+  .loai.nop { background: var(--c-green-soft); color: var(--c-green-text); }
+  .ghi { font-size: var(--fs-label); color: var(--c-text-muted); }
+</style>
+</head>
+<body>
+<div class="phac">ẢNH PHÁC — chưa phải màn thật, số liệu giả. Nhờ anh xem bố cục trước khi dựng.</div>
+<header>Sổ của tôi</header>
+<main>
+  <section class="card tong" aria-label="Tổng đang giữ">
+    <span class="nhan">Tiền của công ty bạn đang giữ</span>
+    <span class="so">1.250.000 ₫</span>
+    <span class="giai">Nộp về công ty rồi nhờ Kế toán ghi "nộp tiền" để số này về 0.</span>
+  </section>
+
+  <section class="card" aria-label="Các dòng">
+    <h2>Các lần phát sinh</h2>
+    <div class="dong">
+      <div><span class="ma">TD-20260930-0012</span> <span class="loai">Thu của khách</span><div class="phu">30/09/2026 · Tiền mặt</div></div>
+      <div><div class="tien">+ 850.000 ₫</div><div class="du">Còn giữ 1.250.000 ₫</div></div>
+    </div>
+    <div class="dong">
+      <div><span class="ma">TD-20260929-0007</span> <span class="loai">Công ty thu – CK (chờ xác nhận)</span><div class="phu">29/09/2026 · Chuyển khoản</div></div>
+      <div><div class="tien">+ 400.000 ₫</div><div class="du">Còn giữ 400.000 ₫</div></div>
+    </div>
+    <div class="dong">
+      <div><span class="ma">TD-20260928-0003</span> <span class="loai nop">Đã nộp về công ty</span><div class="phu">28/09/2026</div></div>
+      <div><div class="tien giam">− 600.000 ₫</div><div class="du">Còn giữ 0 ₫</div></div>
+    </div>
+    <div class="dong">
+      <div><span class="ma">TD-20260928-0003</span> <span class="loai">Thu của khách</span><div class="phu">28/09/2026 · Tiền mặt</div></div>
+      <div><div class="tien">+ 600.000 ₫</div><div class="du">Còn giữ 600.000 ₫</div></div>
+    </div>
+  </section>
+  <p class="ghi">Mã đơn chỉ để đối chiếu — đơn đã chuyển cho người khác phụ trách vẫn hiện ở đây nhưng không mở được (NT-S2).</p>
+</main>
+</body>
+</html>

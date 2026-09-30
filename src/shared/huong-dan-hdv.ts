@@ -1,0 +1,144 @@
+// Hướng dẫn: Hướng dẫn viên (bản 1.40). Luật viết ở src/shared/huong-dan.ts; nguồn đối chiếu docs/superpowers/plans/2026-09-30-huong-dan-theo-vai-nguon/hdv.md.
+import type { NhomHuongDan } from "./huong-dan.ts";
+
+export const HD_HDV: NhomHuongDan = {
+  id: "hdv",
+  tieuDe: "Hướng dẫn viên",
+  quyen: ["FIELD"],
+  gioiThieu:
+    "Bạn là hướng dẫn viên. Trong app, bạn nhận đơn đang chờ người lo, gọi khách, xem thông tin chuyến và tiền của đơn mình lo; khi cần thì sửa số khách hoặc huỷ đơn, luôn kèm lý do.",
+  batDauNhanh: `1. Bấm [[Tôi]] ở thanh dưới đáy.
+2. Kéo tới mục **Việc của tôi**. Có hai ô: **Chờ nhận** và **Đơn của tôi**.
+3. Ở khối **Đơn chờ nhận**, xem ngày đi, giờ đón, số khách.
+4. Đơn hợp lịch thì bấm [[Nhận]].
+5. Đơn chuyển xuống **Đơn của tôi**. Bấm [[Gọi]] để hẹn khách.
+6. Bấm chuông ở góc trên để xem thông báo.`,
+  muc: [
+    {
+      tieuDe: "Menu của bạn",
+      noiDung: `Trên điện thoại, thanh dưới đáy chỉ có một nút: [[Tôi]].
+
+Trên máy tính, menu bên trái có: [[Của tôi]], [[Góp ý / Báo lỗi]], [[Trợ giúp]].
+
+Mở app, bạn thấy trang [[Đơn hàng]]. Trang này chỉ có đơn **bạn đang lo**.
+
+Việc hằng ngày nằm ở trang [[Tôi]], mục **Việc của tôi**:
+- **Chờ nhận**: đơn chưa có ai lo.
+- **Đơn của tôi**: đơn bạn đang lo.
+
+Chuông ở góc trên là nơi xem thông báo.`,
+    },
+    {
+      tieuDe: "Nhận một đơn đang chờ",
+      noiDung: `1. Bấm [[Tôi]].
+2. Kéo tới khối **Đơn chờ nhận**. Đơn đi sớm nhất đứng đầu.
+3. Mỗi thẻ có: ngày đi, mã đơn, còn mấy ngày, tên dịch vụ, giờ đón, số khách, nơi đón.
+   - Ở đây **không có** tên khách, số điện thoại, tiền.
+4. Bấm [[Nhận]]. Nút đổi thành "Đang nhận…".
+5. Nhận xong, đơn nằm ở **Đơn của tôi**. Lúc này bạn mới thấy tên khách, số điện thoại và tiền.
+
+> Ví dụ: Chị Lan thấy một đơn tour đảo, đón 07:30 ở một khách sạn trên đường Trần Phú, 8 khách, đi thứ Tư. Chị bấm Nhận. Đơn chuyển xuống Đơn của tôi, có tên người đặt và nút Gọi.
+
+Người khác bấm nhận trước bạn: app báo "Đơn này vừa có người khác nhận phụ trách". Bạn chọn đơn khác.
+
+Không nhận được đơn **đã huỷ** hay **đã qua ngày đi**.`,
+    },
+    {
+      tieuDe: "Xem và lo đơn của mình",
+      noiDung: `Mỗi thẻ ở **Đơn của tôi** có:
+- Ngày đi, mã đơn, nhãn ngày như "Hôm nay", "Ngày mai".
+- Trạng thái: **Chờ xác nhận**, **Đã xác nhận** hoặc **Đã đi tour**.
+- Tên khách, số điện thoại và nút [[Gọi]]. Bấm là điện thoại quay số.
+- Từng dịch vụ: giờ đón, số khách, nơi đón, giờ khởi hành, check-in, ghi chú.
+- Ba ô tiền: **Tổng tiền**, **Thanh toán trước**, **Còn lại**.
+- Các nút [[Sửa số khách]], [[Huỷ đơn]], [[Xem đơn]] (tuỳ trạng thái đơn).
+
+Đơn sắp đi ở trên. Đơn đã đi tour ở dưới cùng, sau dòng **Đã đi tour**.
+
+Bấm [[Xem đơn]] để mở trang đầy đủ. Trang đó **chỉ để xem**, không sửa hay huỷ được. Muốn sửa hay huỷ thì quay lại **Việc của tôi**.
+
+> Ví dụ: Tối trước ngày đi, chị Lan bấm Gọi để hẹn khách 07:30 ở sảnh khách sạn. Chị xem ô Còn lại để biết có phải thu thêm không.`,
+    },
+    {
+      tieuDe: "Sửa số khách",
+      noiDung: `Chỉ làm được với đơn **Đã xác nhận**.
+
+1. Ở thẻ đơn, bấm [[Sửa số khách]].
+2. Ở từng dịch vụ, bấm nút tăng hoặc giảm cho từng loại khách.
+   - Dịch vụ ghi "không sửa được ở đây": nhờ văn phòng sửa.
+3. Ở ô **Lý do sửa (bắt buộc)**, bấm nhanh [[Khách thêm người]], [[Khách bớt người]] hoặc [[Đổi dịch vụ]], hoặc tự gõ.
+   - **Không gõ số điện thoại vào ô lý do.**
+4. Bấm [[Xác nhận]]. Muốn bỏ thì bấm [[Đóng]].
+
+Để trống lý do, app báo "Cần nhập lý do sửa."
+
+> Ví dụ: Sáng đi tour, khách báo thêm 2 trẻ em. Chị Lan bấm Sửa số khách, tăng Trẻ em thêm 2, bấm Khách thêm người, rồi bấm Xác nhận.`,
+    },
+    {
+      tieuDe: "Huỷ đơn",
+      noiDung: `Chỉ huỷ được đơn **Đã xác nhận**, và **trước ngày đi**. Huỷ rồi **không lấy lại được**.
+
+1. Ở thẻ đơn, bấm [[Huỷ đơn]].
+2. Chọn một lý do:
+   - [[Không liên hệ được với khách]]
+   - [[Khách yêu cầu huỷ]]
+   - [[Khác]]: gõ lý do vào ô hiện ra. **Không gõ số điện thoại**, máy sẽ từ chối.
+3. Bấm [[Huỷ đơn]] trong bảng để huỷ. Đổi ý thì bấm [[Giữ đơn]].
+
+> Ví dụ: Chị Lan gọi đoàn khách ba lần không ai nghe. Chị bấm Huỷ đơn, chọn Không liên hệ được với khách, rồi bấm Huỷ đơn.`,
+    },
+    {
+      tieuDe: "Thông báo",
+      noiDung: `Chuông có hai ngăn:
+- [[Của tôi]]: tin công ty gửi bạn, tin về đơn bạn lo, đơn mới đang chờ nhận.
+- [[Tất cả]]: thêm các tin khác.
+
+Khi văn phòng xác nhận một đơn chưa có ai lo, bạn nhận tin "Có đơn mới …, chưa có người phụ trách". Bấm vào tin là app mở trang [[Tôi]].
+
+Tin quan trọng có nút [[Đã hiểu]]. Đọc xong thì bấm.
+
+### Nhận thông báo trên màn hình khoá (iPhone)
+1. Mở app trong Safari, bấm **Chia sẻ**, chọn **Thêm vào MH chính**.
+2. Mở app từ biểu tượng vừa thêm.
+3. Vào [[Tôi]], bấm [[Bật thông báo trên điện thoại]] và cho phép.
+4. Muốn tắt: bấm [[Tắt]] ở cùng mục.`,
+    },
+    {
+      tieuDe: "Tình huống hay gặp",
+      noiDung: `- **Nhận đơn Chờ xác nhận:** vẫn nhận được, nhưng chưa sửa hay huỷ được. Thẻ ghi "Đơn đang chờ xác nhận — chưa thể huỷ hay sửa số khách." Đợi văn phòng xác nhận.
+- **Nhận nhầm, bận không đi được:** chưa có nút trả đơn (chưa có ở bản này). Gọi văn phòng giao cho người khác.
+- **Đơn đã qua ngày đi:** không còn nút [[Huỷ đơn]]. Nhờ văn phòng huỷ nếu cần.
+- **Đang sửa thì văn phòng cũng sửa đơn đó:** app đóng bảng, hiện dòng báo màu vàng rồi tải lại. Bạn xem lại rồi làm lại.
+- **Mất mạng:** app báo chưa tải được đơn. Có mạng thì tải lại trang.
+- **Không thấy khối Đơn chờ nhận:** tài khoản có thêm quyền Đối tác. Hỏi Quản trị.
+- **Đã giao, Hoàn thành:** app chưa có hai trạng thái này (chưa có ở bản này). Qua ngày đi, đơn chỉ đổi nhãn thành **Đã đi tour**.`,
+    },
+    {
+      tieuDe: "Điều bạn không làm được — hỏi ai",
+      noiDung: `- **Xem đơn của người khác:** không được. Bạn chỉ xem đơn mình lo và phần rút gọn của đơn chờ nhận.
+- **Lập đơn mới:** nhờ nhân viên bán hàng.
+- **Sửa dịch vụ, giờ đón, thông tin chuyến, xác nhận đơn:** nhờ người lập đơn hoặc văn phòng.
+- **Trả lại đơn đã nhận:** chưa có (chưa có ở bản này). Văn phòng giao cho người khác.
+- **Huỷ đơn chờ xác nhận, huỷ sau ngày đi:** nhờ văn phòng.
+- **Ghi thu tiền:** nhờ kế toán.
+- **Xem bảng giá, Danh bạ:** hỏi văn phòng.`,
+    },
+    {
+      tieuDe: "Câu hỏi thường gặp",
+      noiDung: `### Sao đơn chờ nhận không có số điện thoại khách?
+Vì đơn chưa phải của bạn. Bấm [[Nhận]] xong là thấy.
+
+### Hai người cùng bấm Nhận thì sao?
+Ai bấm trước được. Người sau thấy dòng báo, danh sách tự tải lại.
+
+### Huỷ nhầm có lấy lại được không?
+Không. Gọi văn phòng ngay để lập đơn mới.
+
+### Sửa số khách sau ngày đi được không?
+App vẫn cho sửa đơn đã xác nhận. Hỏi văn phòng trước khi sửa.
+
+### Tôi có thấy tiền của đơn không?
+Có, chỉ ở đơn bạn đang lo: **Tổng tiền**, **Thanh toán trước**, **Còn lại**.`,
+    },
+  ],
+};

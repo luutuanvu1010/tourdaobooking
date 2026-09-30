@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ảnh phác — Sổ công nợ</title>
+<!-- ẢNH PHÁC TĨNH (sổ tiền lượt 1, kế hoạch Task 10): chưa phải màn thật, số liệu và tên giả. Chủ xem bố cục trước khi dựng (bài học Đợt D).
+     Dữ liệu thật sẽ đến từ GET /api/ledger (SoCongNoResponse: soDu, choXacNhan, chuaRo) và các lệnh POST /api/ledger/company-receipts/:id/confirm,
+     /settlements, /refunds, /adjustments — chỉ Kế toán và Toàn quyền (ô ledger.write). Màu/khoảng cách = token public/app.css. -->
+<style>
+  :root {
+    --c-primary: #0c4a6e; --c-primary-soft: #dcebf6; --c-accent: #c0392b; --c-surface: #ffffff; --c-surface-alt: #eaf2f8; --c-text: #0f172a;
+    --c-text-muted: #475569; --c-border: #d3e1ec; --c-sand-soft: #fbe3b3; --c-sand-text: #5a4109; --c-danger-soft: #fde9ee; --c-danger-text: #8e0e2b;
+    --c-on-dark: #ffffff; --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --radius-sm: 8px; --radius-md: 12px; --radius-pill: 999px;
+    --shadow-card: 0 1px 3px rgba(15, 23, 42, 0.08); --fs-ui: 16px; --fs-label: 14px; --fs-badge: 12px; --fs-title: 18px; --tap-min: 44px;
+    --font: "Nunito", "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--c-surface-alt); color: var(--c-text); font: var(--fs-ui)/1.45 var(--font); }
+  .phac { background: var(--c-sand-soft); color: var(--c-sand-text); font-size: var(--fs-label); padding: var(--s2) var(--s4); text-align: center; }
+  header { background: var(--c-primary); color: var(--c-on-dark); padding: var(--s3) var(--s4); font-weight: 700; font-size: var(--fs-title); }
+  main { max-width: 960px; margin: 0 auto; padding: var(--s4); display: grid; gap: var(--s4); }
+  .card { background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius-md); box-shadow: var(--shadow-card); padding: var(--s4); }
+  h2 { font-size: var(--fs-ui); margin: 0 0 var(--s2); display: flex; align-items: center; gap: var(--s2); }
+  .dem { font-size: var(--fs-badge); background: var(--c-primary-soft); color: var(--c-primary); border-radius: var(--radius-pill); padding: 0 var(--s2); }
+  .dem.gap { background: var(--c-danger-soft); color: var(--c-danger-text); }
+  .dong { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: var(--s2) var(--s3); padding: var(--s3) 0; border-top: 1px solid var(--c-border); }
+  .dong:first-of-type { border-top: 0; }
+  .ten { font-weight: 700; }
+  .phu { color: var(--c-text-muted); font-size: var(--fs-label); }
+  .so { font-weight: 800; text-align: right; }
+  .nut { min-height: var(--tap-min); padding: 0 var(--s4); border-radius: var(--radius-sm); border: 1px solid var(--c-primary); background: var(--c-surface); color: var(--c-primary); font: 700 var(--fs-label) var(--font); }
+  .nut.chinh { background: var(--c-primary); color: var(--c-on-dark); }
+  .hang-nut { display: flex; flex-wrap: wrap; gap: var(--s2); justify-content: flex-end; }
+  .cong-cu { display: flex; flex-wrap: wrap; gap: var(--s2); }
+  .ghi { font-size: var(--fs-label); color: var(--c-text-muted); margin: 0; }
+  @media (max-width: 560px) { .dong { grid-template-columns: 1fr; } .so, .hang-nut { text-align: left; justify-content: flex-start; } }
+</style>
+</head>
+<body>
+<div class="phac">ẢNH PHÁC — chưa phải màn thật, số liệu và tên giả. Nhờ anh xem bố cục trước khi dựng.</div>
+<header>Sổ công nợ</header>
+<main>
+  <div class="cong-cu" aria-label="Lệnh của Kế toán">
+    <button class="nut chinh" type="button">Ghi nộp tiền / Công ty trả</button>
+    <button class="nut" type="button">Hoàn tiền cho khách</button>
+    <button class="nut" type="button">Điều chỉnh (có lý do)</button>
+  </div>
+
+  <section class="card" aria-label="Chờ xác nhận">
+    <h2>Công ty thu – chuyển khoản, chờ xác nhận <span class="dem">2</span></h2>
+    <div class="dong">
+      <div><div class="ten">TD-20260929-0007 · 400.000 ₫</div><div class="phu">29/09/2026 · Người khai: Nguyễn Văn A (Hướng dẫn viên)</div></div>
+      <div class="hang-nut"><button class="nut chinh" type="button">Công ty đã nhận</button></div>
+    </div>
+    <div class="dong">
+      <div><div class="ten">TD-20260930-0004 · 1.200.000 ₫</div><div class="phu">30/09/2026 · Người khai: Trần Thị B (Bán hàng)</div></div>
+      <div class="hang-nut"><button class="nut chinh" type="button">Công ty đã nhận</button></div>
+    </div>
+    <p class="ghi">Đối chiếu sao kê ngân hàng trước khi bấm. Bấm xong, người khai hết "đang giữ" khoản này.</p>
+  </section>
+
+  <section class="card" aria-label="Đang giữ tiền của công ty">
+    <h2>Ai đang giữ tiền của công ty</h2>
+    <div class="dong">
+      <div><div class="ten">Nguyễn Văn A</div><div class="phu">Hướng dẫn viên · 3 đơn</div></div>
+      <div class="so">1.250.000 ₫</div>
+    </div>
+    <div class="dong">
+      <div><div class="ten">Trần Thị B</div><div class="phu">Bán hàng · 1 đơn</div></div>
+      <div class="so">1.200.000 ₫</div>
+    </div>
+    <div class="dong">
+      <div><div class="ten">Đại lý Biển Xanh</div><div class="phu">Bên đặt · 1 đơn</div></div>
+      <div class="so">500.000 ₫</div>
+    </div>
+  </section>
+
+  <section class="card" aria-label="Người thu chưa rõ">
+    <h2>Tiền cọc cũ chưa rõ ai thu <span class="dem gap">5</span></h2>
+    <div class="dong">
+      <div><div class="ten">TD-20260915-0021 · 300.000 ₫</div><div class="phu">15/09/2026 · chép từ tiền cọc ghi trên đơn cũ</div></div>
+      <div class="hang-nut"><button class="nut" type="button">Đảo và ghi lại đúng người thu</button></div>
+    </div>
+    <p class="ghi">Đơn còn dòng này thì chưa bấm "Đã giao – đã thu đủ" được.</p>
+  </section>
+</main>
+</body>
+</html>

@@ -35,8 +35,8 @@ const themDichVuTrenForm = async (p, gio = "10:00") => {
   await p.waitFor(`!!document.getElementById('catalog-q')`, "ô tìm danh mục");
   await p.ev("document.getElementById('catalog-q').focus(); true");
   await p.ev(typeInto("#catalog-q", "TD101"));
-  await p.waitFor("document.querySelectorAll('#catalog-list button').length === 1", "TD101 trong danh mục");
-  await p.ev("document.querySelector('#catalog-list button').click(); true");
+  await p.waitFor("document.querySelectorAll('#catalog-list .catalog-pick').length === 1", "TD101 trong danh mục");
+  await p.ev("document.querySelector('#catalog-list .catalog-pick').click(); true");
   await p.waitFor(`document.querySelectorAll('#services .svc').length === 1`, "thẻ dịch vụ");
   await p.ev(typeInto("#orderDate", MAI));
   await p.ev(typeInto(`#services .svc [data-trip="pickupPlace"]`, "Sheraton Nha Trang"));

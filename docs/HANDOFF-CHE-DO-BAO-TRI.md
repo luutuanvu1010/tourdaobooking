@@ -16,6 +16,8 @@ Viết 2026-09-21 khi kết thúc phiên. Đọc trước: `CLAUDE.md`, `docs/CH
   6. Thử iPhone thật (lớp phủ + đếm ngược trong PWA đã cài): chưa kiểm.
   7. B5 `staff_party_required` lấy số kế tiếp sau `0018` (dự kiến `0019`; `0018` đã dùng cho người đặt trên đơn — N2 lát 1).
 
+- **Đổi 2026-09-30 (theo yêu cầu chủ dự án: "hết thời gian bảo trì mà hệ thống không tự tắt" là lỗi):** tới/qua giờ dự kiến hoàn tất thì máy chủ coi chế độ bảo trì là TẮT (`stateFromRow` ở `src/shared/maintenance.ts`, đọc theo giờ, không ghi lại dòng `mnt_setting`); lớp phủ và banner đăng nhập tự nhận ra khi đồng hồ về 0. Thay cho câu "hết giờ … vẫn chặn cho tới khi chủ tắt" ở §3 bên dưới (kế hoạch gốc). Bật tay bằng SQL không kèm giờ thì vẫn giữ bật. Ghi ở nhật ký phiên bản 1.43 (lúc viết CHƯA lên production).
+
 ## 1. Trạng thái lúc kết thúc phiên (lịch sử — TRƯỚC khi thi công)
 - **Production = bản v1.0** (mã `main` @ `db0a774`; migration tới `0014`; Turnstile **ĐÃ BẬT**, chủ đã đăng nhập thử thành công). Chi tiết ở `docs/HANDOFF-N1.md` (mục "TRẠNG THÁI TRIỂN KHAI — bản v1.0").
 - **Đã ĐĂNG XUẤT TẤT CẢ** (theo lệnh của chủ, 2026-09-21) bằng cách đổi `SESSION_SECRET` production sang giá trị ngẫu nhiên mới (không lưu ở đâu; `.dev.vars` là khoá riêng của máy phát triển). Mọi người, kể cả chủ, phải đăng nhập lại qua Turnstile. PIN không đổi, không ghi dữ liệu nào.

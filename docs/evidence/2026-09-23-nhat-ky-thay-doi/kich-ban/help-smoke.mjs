@@ -4,6 +4,7 @@
 //   b  máy tính 1040: thanh điều hướng dọc (#sidebar, nhóm TÔI) có "Trợ giúp"; điện thoại 390: trang Tôi có dòng "Trợ giúp"; thanh tab của SALES không thêm tab
 //   c  chấm đỏ: chưa xem ⇒ có ở tab Tôi + dòng Trợ giúp (chấm đứng ngay sau chữ, ≤ 16px); mở /help ⇒ tắt; lưu bản cũ ⇒ hiện lại; lưu rác ⇒ hiện; localStorage ném lỗi ⇒ không chấm, không lỗi
 //   d  console sạch, không lỗi CSP; vùng chạm ≥ 44px, không tràn ngang ở 390 và 320 trên /help
+//   f  hướng dẫn theo vai (30/9): SALES / ACCOUNTING / FIELD / ADMIN thấy đúng nhóm; chỉ Quản trị có "Hướng dẫn các vai khác"; mở hết mục ở 320 không tràn
 //   e  mất mạng (CDP giả lập offline, sau khi service worker đã lưu trang): tải lại /help vẫn đủ nhật ký + đúng dòng phiên bản (nhật ký vẽ TRƯỚC initShell)
 import assert from "node:assert/strict";
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -11,6 +12,7 @@ import { join } from "node:path";
 import { ACCOUNTS, ok, startEnv } from "../../2026-09-20-a2/kich-ban/a2-cdp.mjs";
 import { CHANGELOG } from "../../../../src/shared/changelog.ts";
 import { APP_NAME, formatReleaseLine } from "../../../../src/shared/app-info.ts";
+import { HD_CHUNG } from "../../../../src/shared/huong-dan-chung.ts";
 
 const OUT = process.env.OUT ?? "docs/evidence/2026-09-23-nhat-ky-thay-doi";
 mkdirSync(join(OUT, "anh"), { recursive: true });
@@ -186,6 +188,31 @@ try {
     } finally {
       await p.send("Network.emulateNetworkConditions", { offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1 }).catch(() => undefined);
       p.close();
+    }
+  });
+
+  // f (thêm 2026-09-30, đặc tả docs/superpowers/specs/2026-09-30-huong-dan-theo-vai.md A5): khối "Hướng dẫn cho bạn" đúng nhóm theo quyền.
+  await step("f", "hướng dẫn theo vai: mỗi quyền thấy đúng nhóm; Quản trị có \"Hướng dẫn các vai khác\"; không tràn 320", async () => {
+    const mong = { salesA: ["Bán hàng", HD_CHUNG.tieuDe], accounting: ["Kế toán", HD_CHUNG.tieuDe], field: ["Hướng dẫn viên", HD_CHUNG.tieuDe], admin: ["Quản trị", HD_CHUNG.tieuDe] };
+    for (const [key, nhom] of Object.entries(mong)) {
+      const p = await env.as(ACCOUNTS[key], "/help", key === "salesA" ? NARROW : M);
+      try {
+        await p.waitFor(`document.querySelectorAll('#huong-dan > .hd-nhom').length > 0`, `hướng dẫn hiện (${key})`, 10000);
+        const thay = await p.ev(`[...document.querySelectorAll('#huong-dan > .hd-nhom > h3')].map((e) => e.firstChild.textContent.trim())`);
+        assert.deepEqual(thay, nhom, key);
+        assert.equal(await p.ev(`${q("#huong-dan > .hd-nhom .hd-nhanh")}.open`), true, `"Bắt đầu nhanh" của nhóm đầu mở sẵn (${key})`);
+        assert.equal(await p.ev(`[...document.querySelectorAll('#huong-dan > details > summary')].some((s) => s.textContent === 'Hướng dẫn các vai khác')`), key === "admin", `"Hướng dẫn các vai khác" chỉ Quản trị (${key})`);
+        assert.ok((await p.ev(`document.querySelectorAll('#huong-dan .hd-nut').length`)) > 0, `có tên nút đóng khung (${key})`);
+        if (key === "salesA") {
+          await p.ev(`document.querySelectorAll('#huong-dan details').forEach((d) => (d.open = true)), true`);
+          const m = await measure(p);
+          assert.ok(m.tranNgang <= 0, `mở mọi mục ở 320px không tràn ngang: ${JSON.stringify(m)}`);
+          await shotKhung(p, join(OUT, "anh/f-huong-dan-320.png"));
+        }
+        assert.deepEqual(p.consoleErrors, [], `console (${key})`);
+      } finally {
+        p.close();
+      }
     }
   });
 } finally {

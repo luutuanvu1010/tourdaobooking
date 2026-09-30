@@ -47,7 +47,7 @@ const inDays = (n: number) => new Date(Date.now() + 7 * 3600e3 + n * 86400e3).to
 const orderBody = (extra: Record<string, unknown> = {}) => ({
   customerName: "Khách Thử", customerPhone: "0912345678",
   services: [{ kind: "catalog", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: inDays(3) }],
-  depositAmount: 200000, depositMethod: "cash", ...extra,
+  ...extra,
 });
 const count = (w: any, sql: string, ...a: unknown[]) => w.q(sql, ...a)[0].n;
 const actionsOf = (w: any, orderId: string) => w.q("SELECT action FROM audit_log WHERE order_id = ? ORDER BY created_at, rowid", orderId).map((r: any) => r.action);

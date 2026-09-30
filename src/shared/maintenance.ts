@@ -30,6 +30,17 @@ export function parseAllowedPhones(raw: string | null | undefined): string[] {
   return out;
 }
 
+/**
+ * Dòng `mnt_setting` → trạng thái có hiệu lực LÚC `nowMs`. TỰ TẮT: dòng còn bật nhưng đã tới/qua giờ dự kiến hoàn tất thì coi là TẮT (chủ dự án 30/9: hết giờ bảo trì
+ * mà hệ thống không tự tắt là lỗi) — không ghi lại dòng, lần bật sau ghi đè. Bật không kèm giờ (chỉ có khi sửa tay bằng SQL; route luôn đòi giờ) thì giữ bật. Chưa có dòng → TẮT.
+ */
+export function stateFromRow(row: { enabled: number; ends_at: string | null; allowed_phones: string | null } | null, nowMs: number): MaintenanceState {
+  if (!row) return { on: false, endsAt: null, allowedPhones: [] };
+  const at = row.ends_at ? Date.parse(row.ends_at) : NaN;
+  const on = row.enabled === 1 && !(Number.isFinite(at) && at <= nowMs);
+  return { on, endsAt: on ? row.ends_at : null, allowedPhones: parseAllowedPhones(row.allowed_phones) };
+}
+
 /** SĐT có nằm trong danh sách được phép không (dùng cho cả "được dùng app khi bảo trì" và "được bật/tắt chế độ"), bất kể đang bật hay tắt. */
 export function isAllowedPhone(state: MaintenanceState, rawPhone: string): boolean {
   const phone = normalizePhone(rawPhone);
@@ -91,7 +102,7 @@ const CONTACT = `liên hệ quản trị viên khi cần hỗ trợ thêm (${MAI
 /**
  * Thông điệp cho người bị chặn, tách thành ba đoạn để giao diện đặt một phần tử đếm ngược SỐNG ở giữa: `before + countdown + after`. Câu chủ dự án đã chốt:
  * "Hệ thống đang tạm đóng để bảo trì. Thời gian dự kiến hoàn tất là (countdown), liên hệ quản trị viên khi cần hỗ trợ thêm (0989929373)."
- * Hết giờ dự kiến → "…bảo trì và sắp hoàn tất, …" (vẫn chặn cho tới khi chủ tắt); chưa có giờ dự kiến → câu không nhắc giờ. `countdown` là null trong hai trường hợp đó.
+ * Hết giờ dự kiến → "…bảo trì và sắp hoàn tất, …" (giao diện hiện thoáng qua lúc đồng hồ về 0; máy chủ đã tự tắt — `stateFromRow`); chưa có giờ dự kiến → câu không nhắc giờ. `countdown` là null trong hai trường hợp đó.
  */
 export function maintenanceMessageParts(endsAt: string | null, nowMs: number): { before: string; countdown: string | null; after: string } {
   const at = endsAt ? Date.parse(endsAt) : NaN;

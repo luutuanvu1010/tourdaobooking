@@ -86,7 +86,8 @@ const BLOB_COUNTERS = `(() => { const c = URL.createObjectURL.bind(URL); window.
 const PAGE_JS = `(() => { window.__t = {
   blobOf(url) { const b = window.__blob.blobs.get(url); if (!b) throw new Error('không có Blob của ' + url); return b; },
   async sameBytes(a, b) { const [p, q] = await Promise.all([a.arrayBuffer(), b.arrayBuffer()]); if (p.byteLength !== q.byteLength) return false; const u = new Uint8Array(p), v = new Uint8Array(q); for (let i = 0; i < u.length; i++) if (u[i] !== v[i]) return false; return true; },
-  async modelOf(orderId, handler) { const [o, c] = await Promise.all([fetch('/api/orders/' + orderId).then((r) => r.json()), fetch('/api/company').then((r) => r.json())]); return __lib.buildConfirmation(o.order, c.company, handler); },
+  /* sổ tiền lượt 1 (ADR-0026 đ11): ảnh dựng từ biên nhận danh sách trắng GET /api/orders/:id/receipt */
+  async modelOf(orderId, handler) { const r = await fetch('/api/orders/' + orderId + '/receipt').then((x) => x.json()); return __lib.buildConfirmation(r.receipt, handler); },
 }; })();`;
 
 // ---- Giả lập lời gọi trong trang (sau khi trang tải): mỗi luật { match, method?, mode } — `500`, `empty` (handlers: {}), `gate` (giữ tới khi gọi releaseAll) ----
@@ -267,8 +268,8 @@ function getMain() {
     const cards = "document.querySelectorAll('#services .svc')";
     const card = `${cards}[0]`;
     await p.ev("document.getElementById('catalog-q').focus(); true");
-    await p.waitFor("(() => { const q = document.getElementById('catalog-q'); q.value = 'TTB06'; q.dispatchEvent(new Event('input', { bubbles: true })); return document.querySelectorAll('#catalog-list button').length === 1; })()", "TTB06 trong danh mục", 10000);
-    await p.ev("document.querySelector('#catalog-list button').click(); true");
+    await p.waitFor("(() => { const q = document.getElementById('catalog-q'); q.value = 'TTB06'; q.dispatchEvent(new Event('input', { bubbles: true })); return document.querySelectorAll('#catalog-list .catalog-pick').length === 1; })()", "TTB06 trong danh mục", 10000);
+    await p.ev("document.querySelector('#catalog-list .catalog-pick').click(); true");
     await p.waitFor(`${cards}.length === 1`, "thẻ danh mục TTB06");
     await p.ev(setInput(`${card}.querySelector('.counter-field[aria-label="Người lớn"]')`, "3"));
     await p.ev(`${card}.querySelector('details.trip > summary').click(); true`);

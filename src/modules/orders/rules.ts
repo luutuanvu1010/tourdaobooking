@@ -3,7 +3,7 @@
 // Chỉ import file thuần của shared, không chạm I/O để kiểm thử độc lập bằng `npm test`.
 import { parseBooker, type BookerInput } from "../../shared/booker.ts";
 import { MAX_CHANG_MOI_DICH_VU, doiNgayChang, kiemChang, tronChangCu, type ChangHopLe } from "../../shared/chang-dua-don.ts";
-import type { DepositMethod, OrderStatus } from "../../shared/contracts.ts";
+import type { OrderStatus } from "../../shared/contracts.ts";
 import { kiemDanhSachHanhKhach, type HanhKhachHopLe } from "../../shared/hanh-khach.ts";
 import { MAX_AMOUNT_VND as MAX_AMOUNT } from "../../shared/order-lines.ts";
 import { UUID_RE } from "../../shared/http.ts";
@@ -12,9 +12,7 @@ import { vnToday } from "../../shared/vn-date.ts";
 import { int, text } from "./fields.ts";
 import { MAX_LINES_PER_ORDER, MAX_SERVICES, validateService, type ServiceContext, type ServiceFailure, type ValidItem, type ValidService } from "./service-rules.ts";
 
-export type { BookerInput, DepositMethod, OrderStatus, ServiceContext, ValidItem, ValidService };
-
-export const DEPOSIT_METHODS: readonly DepositMethod[] = ["cash", "bank_transfer", "other"];
+export type { BookerInput, OrderStatus, ServiceContext, ValidItem, ValidService };
 
 /** Đơn đã kiểm tra: mọi số tiền dẫn xuất đều do server tính, không lấy từ client. */
 export interface ValidOrder {
@@ -30,9 +28,6 @@ export interface ValidOrder {
   subtotal: number;
   discount: number;
   total: number;
-  depositAmount: number;
-  depositMethod: DepositMethod | null;
-  remainingAmount: number;
   paymentNote: string | null;
   /** Chỉ dùng cho PUT: `updated_at` mà client đã đọc (khoá lạc quan). */
   expectedUpdatedAt: string | null;
@@ -180,14 +175,10 @@ export function validateOrder(input: unknown, ctx: ServiceContext): Validated {
   if (discount.value > subtotal) return fail("Giảm giá không được vượt quá tạm tính.");
   const total = subtotal - discount.value;
 
-  const deposit = int(b.depositAmount, "Thanh toán trước", 0, MAX_AMOUNT, 0);
-  if (deposit.error) return fail(deposit.error);
-  if (deposit.value > total) return fail("Thanh toán trước không được vượt quá tổng cộng.");
-
-  let depositMethod: DepositMethod | null = null;
-  if (deposit.value > 0) {
-    if (!DEPOSIT_METHODS.includes(b.depositMethod as DepositMethod)) return fail("Cần chọn phương thức thanh toán (tiền mặt, chuyển khoản hoặc khác).");
-    depositMethod = b.depositMethod as DepositMethod;
+  // Sổ tiền lượt 1 (ADR-0026 đ9): tiền trả trước KHÔNG còn nằm trong đơn — trình duyệt ghi LẦN THU ở bước hai (billing) sau khi đơn đã lưu. Trang lập
+  // đơn CŨ (bộ nhớ đệm PWA chưa tải bản mới) còn gửi khoản trả trước trong thân đơn → từ chối rõ ràng thay vì lặng lẽ bỏ mất số tiền đó.
+  if (typeof b.depositAmount === "number" && b.depositAmount > 0) {
+    return { ok: false, code: "client_outdated", message: "Trang lập đơn đã cũ — tải lại trang rồi nhập tiền trả trước ở mục Thanh toán." };
   }
 
   return {
@@ -203,9 +194,6 @@ export function validateOrder(input: unknown, ctx: ServiceContext): Validated {
       subtotal,
       discount: discount.value,
       total,
-      depositAmount: deposit.value,
-      depositMethod,
-      remainingAmount: total - deposit.value,
       paymentNote: paymentNote.value,
       expectedUpdatedAt: typeof b.expectedUpdatedAt === "string" && b.expectedUpdatedAt ? b.expectedUpdatedAt : null,
       passengers,

@@ -27,7 +27,9 @@ import { maskSource } from "../scripts/source-mask-lib.mjs";
 
 const SRC = fileURLToPath(new URL(".", import.meta.url));
 const WRITE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
-const FILES = ["modules/orders/index.ts", "modules/dispatch/index.ts"];
+// Sổ tiền lượt 1 (ADR-0025 điều 8, kế hoạch Task 1e — SIẾT): route ghi đơn của billing dưới /api/orders/* (ghi lần thu, Đã giao, Hoàn thành) cũng phải báo.
+// Route sổ `/api/ledger/*` nằm ngoài tiền tố nên không bị bắt (không ghi đơn).
+const FILES = ["modules/orders/index.ts", "modules/dispatch/index.ts", "modules/billing/index.ts"];
 const ORDERS_PREFIX = "/api/orders";
 const CALL_RE = /\bbaoThayDoi\s*\(/g;
 const BLOCK_KEYWORDS = /\b(if|for|while|switch|catch|do)\s*$/;

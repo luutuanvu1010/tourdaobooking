@@ -13,7 +13,7 @@ import {
 } from "../src/shared/service-form";
 import { MAX_LINES_PER_ORDER, MAX_SERVICES } from "../src/shared/trip-rules";
 import { vnToday } from "../src/shared/vn-date";
-import { ApiError, api, vuaLamBoiTabNay, type Api, type DepositMethod, type OrderInput } from "./api";
+import { ApiError, api, vuaLamBoiTabNay, type Api, type OrderInput } from "./api";
 import { openAssigneePicker } from "./assignee-picker";
 import { renderBanner } from "./banner";
 import { createBookerPicker } from "./booker-picker";
@@ -213,18 +213,21 @@ function renderOwner(focus = false): void {
 // ---- tóm tắt tiền và trạng thái nút ----
 function recompute(): void {
   const ds = drafts();
-  const s = orderSummary(ds, num("discount"), num("depositAmount"));
+  const s = orderSummary(ds, num("discount"), editId ? 0 : num("prepaidAmount"));
   byId("sum-subtotal").textContent = vnd(s.subtotal);
   byId("sum-total").textContent = vnd(s.total);
-  byId("sum-remaining").textContent = vnd(s.remaining);
+  // Sổ tiền lượt 1 (ADR-0026 đ9): KHÔNG tự trừ ra "còn lại" ở trình duyệt — chỉ nhắc lại số trả trước sẽ ghi thành lần thu sau khi lưu.
+  byId("sum-prepaid").textContent = vnd(s.traTruoc);
+  byId("sum-prepaid-row").hidden = s.traTruoc === 0;
   byId("mobile-total").textContent = vnd(s.total); // thanh dính đáy điện thoại: cùng giá trị đã tính ở trên, hiện lại cạnh nút Lưu (Bước 2 Đợt B)
-  byId("mobile-due").textContent = vnd(s.remaining);
-  // Bản 1.39: đếm dịch vụ ở tiêu đề khối, Tóm tắt và thanh dính đáy (một dòng "N dịch vụ · Tổng …"; "Còn lại" chỉ khi có thanh toán trước).
+  byId("mobile-prepaid").textContent = vnd(s.traTruoc);
+  byId("mobile-prepaid-row").hidden = s.traTruoc === 0;
+  // Bản 1.39: đếm dịch vụ ở tiêu đề khối, Tóm tắt và thanh dính đáy (một dòng "N dịch vụ · Tổng …"; sổ tiền lượt 1: "Trả trước" chỉ khi có số trả trước —
+  // không tự trừ "còn lại" ở trình duyệt, ADR-0026 đ9).
   const n = entries.length;
   byId("services-title").textContent = n > 0 ? `Dịch vụ (${n})` : "Dịch vụ";
   byId("sum-count").textContent = `${n} dịch vụ`;
   byId("mobile-count").textContent = `${n} dịch vụ`;
-  byId("mobile-due-wrap").hidden = s.deposit <= 0;
   picker.setSelected(ds.flatMap((d) => (d.kind === "catalog" ? [d.code] : [])));
   const warn = byId("sum-warning");
   warn.textContent = s.warning ?? "";
@@ -242,7 +245,7 @@ function recompute(): void {
   saveBtn.textContent = saving ? "Đang lưu…" : editId ? "Lưu thay đổi" : "Lưu, chờ xác nhận";
 }
 
-for (const id of ["discount", "depositAmount"]) {
+for (const id of ["discount", "prepaidAmount"]) {
   const el = field(id) as HTMLInputElement;
   el.addEventListener("input", () => {
     regroupMoney(el); // gõ tự nhóm hàng nghìn, giữ con trỏ
@@ -260,7 +263,7 @@ function validate(): { banner: Banner; focus: HTMLElement } | null {
       focusables.push(field(id));
     }
   };
-  // Cùng thứ tự với form: dịch vụ trước, khách hàng sau, thanh toán cuối.
+  // Cùng thứ tự với form: dịch vụ, thanh toán, khách hàng (chủ duyệt 30/9 — YC-0001/0002).
   if (entries.length === 0) lines.push("Thêm ít nhất một dịch vụ.");
   entries.forEach((e, i) => {
     for (const issue of draftIssues(e.draft)) {
@@ -273,21 +276,19 @@ function validate(): { banner: Banner; focus: HTMLElement } | null {
     lines.push("Các dịch vụ đang khác ngày — chọn một ngày cho cả đơn.");
     focusables.push(orderDateEl);
   }
+  const s = orderSummary(drafts(), num("discount"), editId ? 0 : num("prepaidAmount"));
+  if (s.discount > s.subtotal) lines.push("Giảm giá không được vượt quá tạm tính.");
+  else if (s.traTruoc > s.total) {
+    lines.push("Thanh toán trước không được vượt quá tổng cộng.");
+    focusables.push(field("prepaidAmount"));
+  }
   need("customerName", "Nhập tên khách.");
   need("customerPhone", "Nhập số điện thoại khách.");
-  const s = orderSummary(drafts(), num("discount"), num("depositAmount"));
-  if (s.discount > s.subtotal) lines.push("Giảm giá không được vượt quá tạm tính.");
-  else if (s.deposit > s.total) lines.push("Thanh toán trước không được vượt quá tổng cộng.");
-  if (s.deposit > 0 && !field("depositMethod").value) {
-    lines.push("Chọn phương thức thanh toán.");
-    focusables.push(field("depositMethod"));
-  }
   if (lines.length === 0) return null;
   return { banner: banner("danger", "Chưa lưu được — kiểm tra lại:", { lines: lines.map((text) => ({ text })) }), focus: focusables[0] ?? saveErrorEl };
 }
 
 function collect(): OrderInput {
-  const method = field("depositMethod").value as DepositMethod | "";
   return {
     customerName: field("customerName").value,
     customerPhone: field("customerPhone").value,
@@ -295,8 +296,6 @@ function collect(): OrderInput {
     customerNote: field("customerNote").value,
     services: entries.map((e) => toServiceInput(e.draft)),
     discount: num("discount"),
-    depositAmount: num("depositAmount"),
-    depositMethod: method || null,
     paymentNote: field("paymentNote").value,
     ...bookerPicker.payload(),
     ...(orderUpdatedAt ? { expectedUpdatedAt: orderUpdatedAt } : {}),
@@ -400,9 +399,23 @@ async function luu(datGap?: { entry: Entry; than: { lyDo: LyDoDatGap; ghiChu: st
         datGapLoi = "&datgap=loi";
       }
     }
+    // BƯỚC HAI (sổ tiền lượt 1 — ADR-0026 đ9, NT-S6): tiền trả trước KHÔNG nằm trong lô tạo đơn; đơn đã lưu xong mới ghi LẦN THU qua billing. Lỗi ở bước này
+    // KHÔNG làm mất đơn: vẫn sang trang đơn, kèm `thutruoc=loi` để trang đơn báo "Đơn đã lưu, chưa ghi được tiền trả trước — thử lại".
+    let thuTruocLoi = "";
+    const traTruoc = editId ? 0 : num("prepaidAmount");
+    if (traTruoc > 0) {
+      try {
+        await api(`/api/orders/${encodeURIComponent(order.id)}/payments`, {
+          method: "POST",
+          body: { soTien: traTruoc, hinhThuc: field("prepaidMethod").value as Api.LanThuInput["hinhThuc"], nguoiThu: field("prepaidCollector").value === "toi" ? "toi" : "cong_ty" } satisfies Api.LanThuInput,
+        });
+      } catch {
+        thuTruocLoi = "&thutruoc=loi";
+      }
+    }
     // THAY mục lịch sử của form (không thêm): Back/bfcache không đưa người dùng về form đã lưu, nơi bấm Lưu lần hai sẽ POST /api/orders lần hai (đơn trùng).
     // Đơn MỚI kèm `moi=1`: trang đơn tự mở hộp thoại "Xác nhận đơn để gửi khách" (ảnh PNG) một lần rồi bỏ tham số; đơn SỬA thì không.
-    location.replace(`/order?id=${encodeURIComponent(order.id)}${editId ? "" : "&moi=1"}${datGapLoi}`);
+    location.replace(`/order?id=${encodeURIComponent(order.id)}${editId ? "" : "&moi=1"}${datGapLoi}${thuTruocLoi}`);
   } catch (err) {
     setSaving(false);
     await onSaveError(err);
@@ -442,8 +455,6 @@ function fill(o: Api.OrderDetailDto): void {
   field("customerEmail").value = o.customerEmail ?? "";
   field("customerNote").value = o.customerNote ?? "";
   (field("discount") as HTMLInputElement).value = o.discount ? grouped(o.discount) : "";
-  (field("depositAmount") as HTMLInputElement).value = o.depositAmount ? grouped(o.depositAmount) : "";
-  field("depositMethod").value = o.depositMethod ?? "cash"; // đơn chưa có thanh toán trước: để sẵn "Tiền mặt" như form mới
   field("paymentNote").value = o.paymentNote ?? "";
   for (const en of [...entries]) unmount(en);
   orderUpdatedAt = o.updatedAt;
@@ -510,6 +521,11 @@ byId("use-mine").addEventListener("click", () => {
 // (gọi thì hiện thêm "Không tải được danh mục dịch vụ — tải lại trang…", lời khuyên sai vì tải lại không giúp gì). Hôm nay mọi mã có `order.modify`
 // đều có `order.create`; ai sửa đơn mà không được lập đơn thì thẻ đã lưu hiện ở dạng khoá như khi mất danh mục (xem `loadCatalog`).
 if (can(staff, "order.create")) await loadCatalog(); // trước loadOrder: thẻ đã lưu cần danh mục hiện tại để biết còn đổi số khách được không
+// Sửa đơn nháp: tiền trả trước là LẦN THU ở trang đơn (mục Thanh toán), không nhập lại ở form (sổ tiền lượt 1).
+if (editId) {
+  for (const f of ["prepaid-amount-field", "prepaid-method-field", "prepaid-collector-field"]) byId(f).hidden = true;
+  byId("prepaid-hint").textContent = "Tiền khách đã trả trước ghi ở trang đơn (mục Thanh toán → Ghi lần thu).";
+}
 if (editId) {
   byId("form-title").textContent = "Sửa đơn";
   setBarTitle("Sửa đơn");

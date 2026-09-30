@@ -28,8 +28,10 @@ const ROOT = join(HERE, "..", "..");
 // "dieu-phoi", "tai-xe-cuoc" (ADR-0049 Task A13 / A15) đứng SAU "chinh-sach-dieu-phoi" (chính sách, điều kiện gieo đã khôi phục), TRƯỚC "passkey": tạo tài khoản
 // tài xế / xe / đơn / chuyến dùng một lần (SĐT ngẫu nhiên, biển số theo Date.now()), chuyến chạy NGÀY KIA; không đụng salesB/field của passkey.
 // "dieu-phoi-chay-dua" (TC-33, Task A14) sau đó: 10 yêu cầu xếp song song vào chuyến 3 chỗ trên dữ liệu dùng một lần (chạy riêng: npm run test:e2e -- dieu-phoi-chay-dua).
+// "so-tien" (sổ tiền lượt 1 — ADR-0024/0025/0026) đứng TRƯỚC "passkey": dùng field/fieldB/salesA/kế toán; tự cài/gỡ trigger thử trên D1 tạm
+// (ca R1, F6) — gỡ ở `finally`.
 // "passkey" đứng CUỐI CÙNG: đổi PIN của salesB, tạm ngưng rồi kích hoạt lại field — mọi kịch bản của một lần chạy dùng chung một D1 tạm.
-const ALL = ["platform", "pwa", "orders", "trip", "chang-hanh-khach", "nhap-tay-va-gia-doi-tac", "admin", "turnstile", "catalog", "dispatch", "admin-race", "locations", "parties", "booker", "permissions", "feedback", "company", "bangtin", "thongbao", "maintenance", "roles", "van-chuyen", "tai-xe-doi-tac", "chinh-sach-dieu-phoi", "dieu-phoi", "tai-xe-cuoc", "dieu-phoi-chay-dua", "passkey"];
+const ALL = ["platform", "pwa", "orders", "trip", "chang-hanh-khach", "nhap-tay-va-gia-doi-tac", "admin", "turnstile", "catalog", "dispatch", "admin-race", "locations", "parties", "booker", "permissions", "feedback", "company", "bangtin", "thongbao", "maintenance", "roles", "van-chuyen", "tai-xe-doi-tac", "chinh-sach-dieu-phoi", "dieu-phoi", "tai-xe-cuoc", "dieu-phoi-chay-dua", "so-tien", "passkey"];
 const picked = process.argv.slice(2);
 const scripts = picked.length ? picked : ALL;
 for (const s of scripts) if (!ALL.includes(s)) throw new Error(`Không có kịch bản "${s}" (có: ${ALL.join(", ")})`);

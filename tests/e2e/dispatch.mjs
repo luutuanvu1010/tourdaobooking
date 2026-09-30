@@ -518,7 +518,7 @@ try {
   const listed = (await call(A, "GET", `/api/orders?q=${o14.orderCode}`)).body.orders.find((x) => x.id === o14.id);
   assert.ok(listed, "không tìm thấy đơn trong danh sách");
   assert.equal(listed.total, 900000, "danh sách đơn phải hiện SỐ MỚI (đã cộng điều chỉnh), khớp trang chi tiết");
-  assert.equal(listed.remainingAmount, viewed.remainingAmount, "remainingAmount của danh sách phải khớp trang chi tiết");
+  // Sổ tiền lượt 1 (ADR-0026 đ9): "còn lại" không còn trong danh sách / chi tiết đơn — billing trả (một hàm `conLai`), bài bốn bề mặt ở khối D5.
   // Đợt E: TIỀN đã đúng từ trước (khẳng định ở trên) nhưng SỐ KHÁCH của danh sách từng vẫn hiện số CŨ (2 khách, order_service gốc đã đóng
   // băng) trong khi trang chi tiết đã hiện đúng số mới — hai con số cạnh nhau trên cùng thẻ nói khác nhau. Khẳng định này bắt đúng lỗi đó.
   assert.deepEqual(listed.pax, viewed.services[0].pax, "SỐ KHÁCH của danh sách đơn phải khớp trang chi tiết");
@@ -734,8 +734,8 @@ try {
 
   // "Việc của tôi" (bản 1.6, ADR-0030 S23-8): FIELD thấy đơn CHÍNH MÌNH đang phụ trách, KỂ CẢ đơn nháp (o10) — chỉ loại đơn đã huỷ (o11, o16) và
   // đơn mình không phụ trách (o15). Mỗi đơn kèm `status` để giao diện tự quyết nút nào hiện (`myJobActions`). Tiền (Task 1.8, chủ dự án quyết
-  // 2026-09-27: HDV cần biết còn thu bao nhiêu): ĐÚNG ba trường cấp đơn `total`/`depositAmount`/`remainingAmount`, trùng số của chi tiết đơn; không
-  // giá từng dòng, không giảm giá — và dịch vụ vẫn không có trường tiền nào.
+  // 2026-09-27: HDV cần biết còn thu bao nhiêu): trường tiền cấp đơn `total` trùng chi tiết đơn (sổ tiền lượt 1: "đã thu / còn thu" lấy qua
+  // POST /api/ledger/balances của billing — ADR-0026 đ9); không giá từng dòng, không giảm giá — và dịch vụ vẫn không có trường tiền nào.
   const mine = async (cookie) => (await call(cookie, "GET", "/api/dispatch/mine")).body.assignments;
   const mineList = await mine(FIELD);
   const mineIds = mineList.map((x) => x.orderId);
@@ -748,22 +748,22 @@ try {
   assert.equal(mine10.status, "draft", "o10 còn nháp: trường status phải là 'draft'");
   const mine14 = mineList.find((x) => x.orderId === o14.id);
   assert.equal(mine14.status, "confirmed", "o14 đã xác nhận: trường status phải là 'confirmed'");
-  assert.deepEqual(Object.keys(mine14).sort(), ["customerName", "customerPhone", "depositAmount", "orderCode", "orderId", "remainingAmount", "services", "status", "total"]);
+  assert.deepEqual(Object.keys(mine14).sort(), ["customerName", "customerPhone", "orderCode", "orderId", "services", "status", "total"]);
   assert.deepEqual(
     Object.keys(mine14.services[0]).sort(),
     ["catalogCode", "checkinDate", "checkinPlace", "checkinTime", "departDate", "departTime", "editablePaxCodes", "id", "name", "note", "pax", "pickupPlace", "pickupTime"].sort(),
   );
   for (const [label, m] of [["o14 (đã xác nhận)", mine14], ["o10 (nháp)", mine10]]) {
-    const { services: svcs, total, depositAmount, remainingAmount, ...rest } = m;
+    const { services: svcs, total, ...rest } = m;
     assert.doesNotMatch(JSON.stringify(svcs), /subtotal|discount|total|price|amount/i, `${label}: dịch vụ trong 'Việc của tôi' không có trường tiền nào (không giá từng dòng)`);
-    assert.doesNotMatch(JSON.stringify(rest), /subtotal|discount|total|price|amount/i, `${label}: ngoài ba trường tiền cấp đơn, không lộ thêm trường tiền nào`);
+    assert.doesNotMatch(JSON.stringify(rest), /subtotal|discount|total|price|amount/i, `${label}: ngoài tổng tiền cấp đơn, không lộ thêm trường tiền nào`);
     const detail = await orderView(FIELD, m.orderId);
-    assert.deepEqual({ total, depositAmount, remainingAmount }, { total: detail.total, depositAmount: detail.depositAmount, remainingAmount: detail.remainingAmount }, `${label}: ba trường tiền trùng chi tiết đơn`);
+    assert.equal(total, detail.total, `${label}: tổng tiền trùng chi tiết đơn`);
   }
   assert.deepEqual(mine14.services[0].editablePaxCodes, ["adult"]);
   assert.equal((await mine(A)).some((x) => x.orderId === o14.id), false, "SALES (đã đổi người phụ trách o14 sang FIELD từ đầu mục 14) không còn thấy o14 trong DANH SÁCH CỦA CHÍNH HỌ");
   assert.deepEqual(await mine(ACC), [], "kế toán gọi được (access staff), chỉ không có đơn nào của họ — không lỗi");
-  console.log("✓ GET /api/dispatch/mine (bản 1.6 + Task 1.8): đơn CHÍNH MÌNH đang phụ trách kể cả nháp, kèm status; ba trường tiền cấp đơn trùng chi tiết đơn, không tiền từng dịch vụ");
+  console.log("✓ GET /api/dispatch/mine (bản 1.6 + Task 1.8): đơn CHÍNH MÌNH đang phụ trách kể cả nháp, kèm status; tổng tiền trùng chi tiết đơn, không tiền từng dịch vụ");
 
   // editablePaxCodes không được "mất" loại khách sau khi bị sửa về 0 (lỗi thật tìm được lúc kiểm độc lập 2026-09-22): dịch vụ theo người có HAI
   // loại khách (adult+child) — sửa trẻ em về 0 rồi gọi lại /api/dispatch/mine phải VẪN thấy "child" trong editablePaxCodes (server vẫn chấp nhận
@@ -951,27 +951,32 @@ try {
     console.log(`✓ D4 (TRỘN, sửa liên tiếp 2→5→6→4): tự tính ${expected.toLocaleString("vi-VN")}₫ — chi tiết ${s.chiTiet.total.toLocaleString("vi-VN")}₫, /orders ${s.orders.total.toLocaleString("vi-VN")}₫, Trang chủ ${s.dashboard.total.toLocaleString("vi-VN")}₫`);
   }
 
-  // --- D5: đơn TRỘN + CỌC + sửa — "còn thu" (remainingAmount) phải đúng ở CẢ BỐN bề mặt --------------------------------------------------------
+  // --- D5: đơn TRỘN + TRẢ TRƯỚC + sửa — "còn thu" phải đúng (sổ tiền lượt 1: MỘT hàm `conLai` của billing, dựa trên "phải thu hiện hành" đã áp điều
+  // chỉnh của orders; màn chi tiết đọc GET /api/orders/:id/payments, danh sách / Trang chủ / Việc của tôi đọc POST /api/ledger/balances) ---------
   {
-    const d5 = await legacyManualOrder([catSvc({ pax: { adult: 2 }, departDate: vnDate(0) })], 200000, { depositAmount: 300000, depositMethod: "cash" });
+    const d5 = await legacyManualOrder([catSvc({ pax: { adult: 2 }, departDate: vnDate(0) })], 200000);
+    assert.equal((await call(A, "POST", `/api/orders/${d5.id}/payments`, { soTien: 300000, hinhThuc: "CASH", nguoiThu: "cong_ty" })).status, 201, "trả trước 300.000 = lần thu");
     const d5SvcId = d5.services.find((s) => s.catalogCode === "ZH1").id;
     assert.equal((await call(A, "POST", `/api/orders/${d5.id}/status`, { status: "confirmed" })).status, 200);
     assert.equal((await setHandler(A, d5.id, fld.id)).status, 200);
-    r = await moneyEdit(FIELD, d5.id, { reason: "D5: đơn trộn có cọc", services: [{ id: d5SvcId, pax: pax(4) }] });
+    r = await moneyEdit(FIELD, d5.id, { reason: "D5: đơn trộn có trả trước", services: [{ id: d5SvcId, pax: pax(4) }] });
     assert.equal(r.status, 200, JSON.stringify(r.body));
 
     const expectedTotal = 4 * 300000 + 200000; // 1.400.000
-    const expectedRemaining = expectedTotal - 300000; // 1.100.000 (cọc không đổi qua điều chỉnh)
+    const expectedRemaining = expectedTotal - 300000; // 1.100.000 (lần thu không đổi qua điều chỉnh)
     const s = await measureFourSurfaces(d5.id, d5.orderCode);
     assert.equal(s.chiTiet.total, expectedTotal, "D5 chi tiết đơn: total");
-    assert.equal(s.chiTiet.remainingAmount, expectedRemaining, "D5 chi tiết đơn: còn thu");
     assert.equal(s.orders.total, expectedTotal, "D5 /api/orders: total");
-    assert.equal(s.orders.remainingAmount, expectedRemaining, "D5 /api/orders: còn thu");
     assert.ok(s.dashboard, "D5 phải có trong Trang chủ hôm nay");
     assert.equal(s.dashboard.total, expectedTotal, "D5 Trang chủ: total");
-    assert.equal(s.dashboard.remainingAmount, expectedRemaining, "D5 Trang chủ: còn thu");
-    measured.push({ ca: "D5 TRỘN + cọc (còn thu)", tuTinh: expectedRemaining, chiTiet: s.chiTiet.remainingAmount, orders: s.orders.remainingAmount, dashboard: s.dashboard.remainingAmount });
-    console.log(`✓ D5 (TRỘN + cọc 300.000): tự tính total ${expectedTotal.toLocaleString("vi-VN")}₫, còn thu ${expectedRemaining.toLocaleString("vi-VN")}₫ — khớp cả bốn bề mặt`);
+    const pay = (await call(A, "GET", `/api/orders/${d5.id}/payments`)).body;
+    const bal = (await call(A, "POST", "/api/ledger/balances", { orderIds: [d5.id] })).body.balances[d5.id];
+    const balHdv = (await call(FIELD, "POST", "/api/ledger/balances", { orderIds: [d5.id] })).body.balances[d5.id];
+    assert.equal(pay.conLai, expectedRemaining, "D5 chi tiết đơn (billing): còn thu");
+    assert.equal(bal.conLai, expectedRemaining, "D5 danh sách / Trang chủ (billing): còn thu");
+    assert.equal(balHdv.conLai, expectedRemaining, "D5 Việc của tôi (billing, HDV): còn thu");
+    measured.push({ ca: "D5 TRỘN + trả trước (còn thu — billing)", tuTinh: expectedRemaining, chiTiet: pay.conLai, orders: bal.conLai, dashboard: bal.conLai });
+    console.log(`✓ D5 (TRỘN + trả trước 300.000): tự tính total ${expectedTotal.toLocaleString("vi-VN")}₫, còn thu ${expectedRemaining.toLocaleString("vi-VN")}₫ — khớp chi tiết + danh sách + Việc của tôi (một hàm của billing)`);
   }
 
   // --- D6: đơn CŨ đã lưu `subtotal_after` THIẾU (dựng bằng SQL — bảng order_money_adjustment CHỈ-THÊM, không sửa được bản ghi cũ qua API bình
@@ -1015,10 +1020,11 @@ try {
     const g = (
       await call(A, "POST", "/api/orders", orderInput({
         services: [catSvc({ pax: { adult: 2 }, unitPrices: { adult: DEAL }, departDate: vnDate(0) })],
-        depositAmount: 300000, depositMethod: "cash",
       }))
     ).body.order;
     assert.ok(g?.id, "lập đơn giá thoả thuận thất bại");
+    assert.equal((await call(A, "POST", `/api/orders/${g.id}/payments`, { soTien: 300000, hinhThuc: "CASH", nguoiThu: "cong_ty" })).status, 201, "trả trước 300.000 = lần thu");
+    const conLaiBilling = async () => (await call(A, "GET", `/api/orders/${g.id}/payments`)).body.conLai;
     assert.equal(g.services[0].items[0].unitPrice, DEAL, "đối chứng: đơn lưu đúng giá thoả thuận");
     assert.equal(g.services[0].items[0].catalogPrice, 300000);
     const gSvc = g.services[0].id;
@@ -1032,7 +1038,7 @@ try {
     assert.equal(await adjCount(), 0, "G1: gửi lại y nguyên số khách KHÔNG được ghi dòng điều chỉnh");
     let s = await measureFourSurfaces(g.id, g.orderCode);
     assert.equal(s.chiTiet.total, 2 * DEAL, "G1 chi tiết: tổng giữ nguyên 400.000 (không nhảy lên 600.000 giá niêm yết)");
-    assert.equal(s.chiTiet.remainingAmount, 2 * DEAL - 300000, "G1 chi tiết: còn lại 100.000");
+    assert.equal(await conLaiBilling(), 2 * DEAL - 300000, "G1 (billing): còn lại 100.000");
     assert.equal(s.orders.total, 2 * DEAL, "G1 /orders");
     assert.equal(s.dashboard.total, 2 * DEAL, "G1 Trang chủ");
     console.log("✓ DK-T2-01 G1: HDV gửi lại y nguyên số khách → không ghi dòng điều chỉnh, tiền giữ giá thoả thuận ở mọi bề mặt");
@@ -1045,8 +1051,8 @@ try {
     const exp = 3 * DEAL; // 600.000 — KHÔNG phải 900.000 (3 × giá niêm yết)
     for (const [label, v] of [["chi tiết", s.chiTiet], ["/orders", s.orders], ["Trang chủ", s.dashboard], ["Việc của tôi", s.mine]]) {
       assert.equal(v.total, exp, `G2 ${label}: tổng theo giá thoả thuận`);
-      assert.equal(v.remainingAmount, exp - 300000, `G2 ${label}: còn lại = tổng − cọc`);
     }
+    assert.equal(await conLaiBilling(), exp - 300000, "G2 (billing): còn lại = phải thu hiện hành − đã thu");
     assert.equal(s.chiTiet.services[0].items[0].unitPrice, DEAL, "G2 chi tiết: dòng tiền mang đơn giá thoả thuận (phiếu gửi khách dựng từ đây)");
     assert.deepEqual(s.mine.services[0].pax, pax(3), "G2 Việc của tôi: số khách khớp");
     const adj = (await sqlRows(`SELECT subtotal_before, subtotal_after, after_json FROM order_money_adjustment WHERE order_id = '${g.id}'`))[0];
@@ -1054,7 +1060,7 @@ try {
     assert.deepEqual(JSON.parse(adj.after_json)[0].unitPrices, { adult: DEAL }, "G2: after_json lưu kèm đơn giá để truy vết");
     console.log("✓ DK-T2-01 G2: HDV 2→3 khách → 3 × giá thoả thuận ở chi tiết, /orders, Trang chủ; cột đã lưu cũng đúng");
   }
-  console.log("\n=== Đợt E task 7 — bảng số đo bốn bề mặt (tiền: total, hoặc remainingAmount cho D5) ===");
+  console.log("\n=== Đợt E task 7 — bảng số đo bốn bề mặt (tiền: total, hoặc còn thu của billing cho D5) ===");
   for (const m of measured) {
     console.log(`${m.ca}: tự tính ${m.tuTinh.toLocaleString("vi-VN")}₫ | chi tiết ${m.chiTiet.toLocaleString("vi-VN")}₫ | /orders ${m.orders.toLocaleString("vi-VN")}₫ | Trang chủ ${m.dashboard.toLocaleString("vi-VN")}₫`);
   }

@@ -6,6 +6,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { CompanyDto, OrderDetailDto } from "../../shared/contracts.ts";
 import { buildConfirmation } from "../../shared/order-confirmation.ts";
+import { dungBienNhan } from "../receipt/rules.ts";
 import { applyAdjustmentToOrder, effectiveService, effectiveSubtotal, recomputeService, type SubtotalServiceInput } from "./money-adjustment.ts";
 import type { StoredService } from "./service-rules.ts";
 
@@ -75,8 +76,8 @@ test("DK-T2-01 effectiveService: dòng đọc lên thiếu đơn giá → lùi v
 const order = (): OrderDetailDto => ({
   id: "o1", orderCode: "TD-1", staffId: "s1", staffName: "A", bookerPartyId: null, bookerName: null,
   status: "confirmed", customerName: "K", customerPhone: "090", customerEmail: null, customerNote: null,
-  subtotal: 2 * DEAL, discount: 0, total: 2 * DEAL, depositAmount: 1_000_000, depositMethod: "cash", remainingAmount: 1_000_000,
-  paymentNote: null, createdAt: "t", updatedAt: "t", confirmedAt: "t",
+  subtotal: 2 * DEAL, discount: 0, total: 2 * DEAL,
+  paymentNote: null, createdAt: "t", updatedAt: "t", confirmedAt: "t", deliveredAt: null, completedAt: null,
   services: [
     {
       id: "svc-1", kind: "catalog", catalogCode: "TD101", name: "Tour 4 đảo", unit: "perPax", pax: { ...ZERO, adult: 2 },
@@ -87,23 +88,23 @@ const order = (): OrderDetailDto => ({
   ],
 });
 
-test("DK-T2-01 applyAdjustmentToOrder (chi tiết đơn): sau điều chỉnh 2→3 → tạm tính 3.000.000, còn lại = tổng − cọc", () => {
+test("DK-T2-01 applyAdjustmentToOrder (chi tiết đơn): sau điều chỉnh 2→3 → tạm tính 3.000.000 (còn lại: billing — sổ tiền lượt 1)", () => {
   const out = applyAdjustmentToOrder(order(), [{ serviceId: "svc-1", pax: { ...ZERO, adult: 3 } }]);
   assert.equal(out.subtotal, 3 * DEAL);
   assert.equal(out.total, 3 * DEAL);
-  assert.equal(out.remainingAmount, 3 * DEAL - 1_000_000);
   assert.equal(out.services[0]!.items[0]!.unitPrice, DEAL);
 });
 
-test("DK-T2-01 applyAdjustmentToOrder: gửi lại y nguyên → số hiển thị không đổi (còn lại 1.000.000, không phải 1.700.000)", () => {
+test("DK-T2-01 applyAdjustmentToOrder: gửi lại y nguyên → số hiển thị không đổi (tổng 2.000.000, không phải 2.700.000)", () => {
   const out = applyAdjustmentToOrder(order(), [{ serviceId: "svc-1", pax: { ...ZERO, adult: 2 } }]);
   assert.equal(out.total, 2 * DEAL);
-  assert.equal(out.remainingAmount, 1_000_000);
 });
 
 test("DK-T2-01 phiếu xác nhận gửi khách (dựng từ đơn đã áp điều chỉnh): in đơn giá thoả thuận và tổng đúng", () => {
   const company = { name: "CÔNG TY TNHH TOUR ĐẢO", taxCode: "0", address: "", hotline: "", email: "", website: "" } as unknown as CompanyDto;
-  const model = buildConfirmation(applyAdjustmentToOrder(order(), [{ serviceId: "svc-1", pax: { ...ZERO, adult: 3 } }]), company, null);
+  // Sổ tiền lượt 1 (Task 8): phiếu dựng từ BIÊN NHẬN máy chủ (`dungBienNhan` — danh sách trắng), không từ cả đơn.
+  const receipt = dungBienNhan(applyAdjustmentToOrder(order(), [{ serviceId: "svc-1", pax: { ...ZERO, adult: 3 } }]), company, { daTra: 1_000_000, conLai: 2_000_000 });
+  const model = buildConfirmation(receipt, null);
   const text = JSON.stringify(model);
   assert.match(text, /1\.000\.000/, "đơn giá thoả thuận phải có trên phiếu");
   assert.doesNotMatch(text, /1\.350\.000/, "giá niêm yết KHÔNG được in lên phiếu");

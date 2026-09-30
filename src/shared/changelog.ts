@@ -11,6 +11,46 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Sửa lỗi chủ dự án báo 30/9: hết giờ bảo trì mà hệ thống không tự tắt (docs/HANDOFF-CHE-DO-BAO-TRI.md mục 0). 1.42 đã lên production; người gộp chốt số trống kế tiếp LÚC GỘP.
+    version: "1.43",
+    date: "2026-09-30",
+    items: [
+      { kind: "sua", text: "Chế độ bảo trì tự tắt đúng giờ dự kiến hoàn tất: mọi người vào lại app được ngay, không phải chờ quản trị viên tắt tay." },
+    ],
+  },
+  {
+    // Một lần phát hành gộp (chủ muốn "dễ và tiện nhất", 30/9): sổ tiền lượt 1 = Hoàn tất đơn (ADR-0024 đ1–5, ADR-0025, ADR-0026; kế hoạch
+    // docs/superpowers/plans/2026-09-29-so-tien-luot-1-ke-hoach.md) + đợt giao diện theo góp ý người dùng 30/9 (docs/design/gop-y-2026-09-30/). Số "1.42"
+    // theo điều phối (1.41 = "Hướng dẫn theo vai" đã lên main trước); người gộp chốt số trống kế tiếp LÚC GỘP. Hai màn "Sổ của tôi" / "Sổ công nợ" CHƯA dựng nên mục này không nhắc tới.
+    version: "1.42",
+    date: "2026-09-30",
+    items: [
+      { kind: "doi", text: "Lập đơn: mục Thanh toán nay nằm trước thông tin khách; tiền khách trả trước mặc định là chuyển khoản và được ghi thành một lần thu." },
+      { kind: "moi", text: "Chi tiết đơn có khung tiền: phải thu, đã thu, còn lại và từng lần thu; ghi thêm lần thu ngay trên đơn." },
+      { kind: "moi", text: "Hướng dẫn viên đang phụ trách (và Quản trị) bấm \"Đã giao – đã thu đủ\" khi khách đã trả đủ; từ lúc đó đơn không sửa được nữa." },
+      { kind: "moi", text: "Kế toán bấm \"Hoàn thành\" sau khi tiền đã về công ty; nếu chưa bấm được, đơn ghi rõ lý do và ai cần xử lý." },
+      { kind: "doi", text: "Tiền cọc ghi trên đơn cũ được chuyển thành lần thu \"chưa rõ người thu\"; Kế toán sẽ ghi lại đúng người thu." },
+      { kind: "doi", text: "Việc của tôi (hướng dẫn viên): ô tiền ghi \"Đã thu / Còn lại\" theo số tiền thật đã thu của đơn." },
+      { kind: "moi", text: "Kế toán xác nhận, đảo lần thu, ghi đã nộp và ghi hoàn cho khách ngay trên trang đơn; màn sổ riêng sẽ có sau." },
+      { kind: "moi", text: "Danh sách đơn có nút \"Lọc\": lọc cùng lúc theo ngày đi, dịch vụ, trạng thái và đơn mình lập; máy nhớ bộ lọc cho lần sau, bấm \"Xoá lọc\" để bỏ." },
+      { kind: "moi", text: "Trang chủ: khối \"Chuyến đón\" có ba nút Hôm nay / Ngày mai / Ngày kia." },
+      { kind: "moi", text: "Tạo đơn: lọc dịch vụ theo \"Hay dùng\" (bấm ☆ để ghim), theo người hoặc theo nhóm; máy nhớ lựa chọn cho lần sau." },
+      { kind: "moi", text: "Tài xế xem được cuốc của ngày kia ở trang \"Cuốc của tôi\" (trước chỉ hôm nay và ngày mai)." },
+      { kind: "doi", text: "Màn tài xế: mỗi điểm đón hiện thêm giờ xe tới nếu khác giờ hẹn khách." },
+      { kind: "doi", text: "Danh sách đơn: đơn có nơi đón hiện luôn dòng \"Đón tại …\" ngay trên thẻ, không phải bấm mở." },
+      { kind: "doi", text: "Góp ý / Báo lỗi: trạng thái hiện nổi bật theo từng bước (Mới → Đã tiếp nhận → Đang xử lý → Đã xong); yêu cầu đã xong hoặc bị từ chối có nút \"Mở lại\"." },
+    ],
+  },
+  {
+    // Hướng dẫn theo vai trong Trợ giúp (đặc tả docs/superpowers/specs/2026-09-30-huong-dan-theo-vai.md). Chỉ giao diện + nội dung, không đổi máy chủ / dữ liệu.
+    // Số "1.41" TẠM (main 1.40); người gộp chốt số trống kế tiếp LÚC GỘP.
+    version: "1.41",
+    date: "2026-09-30",
+    items: [
+      { kind: "moi", text: "Trợ giúp có \"Hướng dẫn cho bạn\": cách dùng app theo đúng vai của bạn. Đọc \"Bắt đầu nhanh\" trước, khoảng 30 phút là dùng được." },
+    ],
+  },
+  {
     // Sửa giao diện nhỏ theo rà soát 30/9 (docs/superpowers/specs/2026-09-30-ra-soat-luong-giao-dien-phan-loai-huong-dan.md §2 trên nhánh
     // ra-soat-luong-giao-dien): chỉ bề mặt, không đổi máy chủ / dữ liệu. Số 1.40 (1.39 = bản phông chữ đã lên production 30/9).
     version: "1.40",

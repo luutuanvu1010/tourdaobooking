@@ -204,6 +204,21 @@ try {
   assert.equal(r.status, 200, "người bị chặn vẫn đăng xuất được");
   console.log("✓ BẬT: /api/auth/config (on + giờ dự kiến, không lộ danh sách), /api/company, logout vẫn chạy");
 
+  // --- 8b) TỰ TẮT khi hết giờ dự kiến (chủ dự án 30/9): dòng cài đặt vẫn `enabled = 1` nhưng giờ đã qua → không chặn ai, config báo tắt; KHÔNG ai bấm tắt.
+  const PAST = new Date(Date.now() - 60_000).toISOString();
+  await sql(`UPDATE mnt_setting SET ends_at = '${PAST}' WHERE id = 'default'`);
+  assert.equal((await setting()).enabled, 1, "dòng cài đặt vẫn bật — tự tắt là do đọc theo giờ, không ghi lại");
+  assert.deepEqual((await call(null, "GET", "/api/auth/config")).body.maintenance, { on: false, endsAt: null }, "hết giờ: config công khai báo tắt");
+  for (const [name, cookie] of BLOCKED) {
+    r = await call(cookie, "GET", "/api/auth/me");
+    assert.equal(r.status, 200, `${name}: hết giờ bảo trì thì phiên cũ dùng lại được mà không cần chủ tắt: ${JSON.stringify(r.body)}`);
+    assert.deepEqual(r.body.maintenance, { on: false, endsAt: null }, name);
+  }
+  assert.deepEqual((await call(OWNER, "GET", "/api/maintenance")).body, { on: false, endsAt: null, canToggle: true }, "trang Tôi của chủ thấy đã tắt, nút bật vẫn còn");
+  await sql(`UPDATE mnt_setting SET ends_at = '${ENDS}' WHERE id = 'default'`); // trả lại giờ tương lai: bước 9 tắt bằng nút như cũ
+  assertBlocked(await call(BLOCKED[0][1], "GET", "/api/auth/me"), ENDS, "giờ tương lai trở lại → chặn lại");
+  console.log("✓ TỰ TẮT: qua giờ dự kiến thì không chặn ai (phiên cũ, config, trang Tôi) dù dòng cài đặt còn bật");
+
   // --- 9) TẮT: mọi thứ trở lại; phiên cũ dùng lại được; không ai bị khoá
   r = await call(OWNER, "PUT", "/api/maintenance", { on: false });
   assert.equal(r.status, 200, JSON.stringify(r.body));

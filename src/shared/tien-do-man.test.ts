@@ -60,6 +60,20 @@ const s = (id: string, diemLen: string, diemXuong: string, trangThai: SuatVao["t
   id, loai: "PASSENGER", maDon: "TD-1", diemLen, diemXuong, trangThai, ...(ten ? { hoTen: ten, namSinh: 1990 } : {}), daDon: null, daTra: null,
 });
 
+test("buocDiem: nhãn điểm đón có giờ hẹn; giờ xe tới hiện thêm khi khác giờ hẹn (góp ý T5) — điểm trả giữ 'TRẢ'", () => {
+  const g = (gio: string) => ({ ngay: "2026-09-30", gio });
+  const diem: DiemVao[] = [
+    { ...d(1, "PICKUP"), gioXeToi: g("07:20") },
+    { ...d(2, "PICKUP"), gioXeToi: g("07:30") },
+    { ...d(3, "PICKUP"), gioHen: null, gioXeToi: g("08:00") },
+    { ...d(4, "PICKUP"), gioXeToi: { ngay: "2026-10-01", gio: "06:50" } },
+    { ...d(5, "DROPOFF"), gioXeToi: g("09:00") },
+  ];
+  assert.deepEqual(buocDiem(diem, [], "PLANNED", "2026-09-30").map((x) => x.nhanLoai), [
+    "ĐÓN · HẸN 07:30 · XE TỚI 07:20", "ĐÓN · HẸN 07:30", "ĐÓN · XE TỚI 08:00", "ĐÓN · HẸN 07:30 · XE TỚI 06:50 01/10", "TRẢ",
+  ]);
+});
+
 test("buocDiem: điểm đón chưa tới → nút 'Đã tới', chưa có nút khách; đã tới → khách chờ có Đã đón / Vắng / Khách đã huỷ, khách vắng còn 'Đã đón'; điểm trả → 'Đã trả' khi còn khách trên xe", () => {
   const diem = [d(1, "PICKUP", "ARRIVED"), d(2, "PICKUP"), d(3, "DROPOFF")];
   const suat = [s("a", "d1", "d3", "BOARDED", "Nguyễn Thị Lan"), s("b", "d1", "d3", "WAITING", "Lê Hoàng Yến"), s("c", "d1", "d3", "NO_SHOW"), s("e", "d2", "d3", "WAITING")];
@@ -104,13 +118,15 @@ test("cauConKhach: 409 con_khach_chua_xong → câu có số + gợi ý 'Kết t
   assert.equal(cauConKhach({ conSuat: 1, conDiem: 1 }), "Còn 1 khách chưa xong ở 1 điểm.");
 });
 
-test("nhomCuoc: 'Hôm nay' + 'Ngày mai' (luôn có hai nhóm, trống vẫn hiện), theo giờ xuất bến; thẻ: số điểm đón / trả, trạng thái, điều kiện còn thiếu '(văn phòng lo)'", () => {
+test("nhomCuoc: 'Hôm nay' + 'Ngày mai' + 'Ngày kia' (luôn có ba nhóm, trống vẫn hiện — góp ý T3), theo giờ xuất bến; thẻ: số điểm đón / trả, trạng thái, điều kiện còn thiếu '(văn phòng lo)'", () => {
   const it = (id: string, ngay: string, gio: string, x: Partial<{ trangThai: string; dieuKienConThieu: { ma: string; loiNhan: string; aiXuLy: "VAN_PHONG" }[] }> = {}) => ({
     id, ma: `CX-${id}`, gioXuatBen: { ngay, gio }, trangThai: (x.trangThai ?? "PLANNED") as "PLANNED", trangThaiNhan: "Đã lên kế hoạch", bienSo: "79B-123.45", soKhach: 9, soDiemDon: 2, soDiemTra: 1,
     dieuKienConThieu: x.dieuKienConThieu ?? [],
   });
   const g = nhomCuoc([it("b", "2026-09-30", "09:00", { dieuKienConThieu: [{ ma: "THIEU_TEN", loiNhan: "Chưa đủ tên khách: TD-1 thiếu 2 tên", aiXuLy: "VAN_PHONG" }] }), it("a", "2026-09-30", "06:40", { trangThai: "RUNNING" })], "2026-09-30");
-  assert.deepEqual(g.map((x) => [x.tieuDe, x.ngay, x.the.length]), [["Hôm nay", "Thứ Tư 30/09", 2], ["Ngày mai", "Thứ Năm 01/10", 0]]);
+  assert.deepEqual(g.map((x) => [x.tieuDe, x.ngay, x.the.length]), [["Hôm nay", "Thứ Tư 30/09", 2], ["Ngày mai", "Thứ Năm 01/10", 0], ["Ngày kia", "Thứ Sáu 02/10", 0]]);
+  const ba = nhomCuoc([it("c", "2026-10-02", "07:00"), it("d", "2026-10-03", "07:00")], "2026-09-30");
+  assert.deepEqual(ba.map((x) => x.the.map((t) => t.ma)), [[], [], ["CX-c"]], "ngày kia vào nhóm thứ ba; ngày sau nữa không hiện");
   assert.deepEqual(g[0]!.the.map((t) => [t.gio, t.ma, t.chip.nhan, t.dong, t.canhBao, t.moChay]), [
     ["06:40", "CX-a", "Đang chạy", "79B-123.45 · 9 khách · 2 điểm đón · 1 điểm trả", [], true],
     ["09:00", "CX-b", "Bị giữ", "79B-123.45 · 9 khách · 2 điểm đón · 1 điểm trả", ["Chưa đủ tên khách: TD-1 thiếu 2 tên (văn phòng lo)"], false],

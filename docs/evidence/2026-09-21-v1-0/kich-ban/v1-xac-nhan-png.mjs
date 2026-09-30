@@ -63,6 +63,8 @@ async function step(id, name, fn) {
 const LIB_ENTRY = [
   'export { prepareConfirmation, renderConfirmationPng, CONFIRMATION_WIDTH, CONFIRMATION_MARGIN } from "./web/confirmation-image.ts";',
   'export { buildConfirmation } from "./src/shared/order-confirmation.ts";',
+  // Sổ tiền lượt 1 (ADR-0026 đ11): ảnh dựng từ ReceiptDto (danh sách trắng) — đơn giả của bước h đi qua CHÍNH hàm dựng biên nhận của máy chủ.
+  'export { dungBienNhan } from "./src/modules/receipt/rules.ts";',
 ].join("\n");
 let LIB_JS = null;
 let libError = "";
@@ -108,8 +110,8 @@ const PAGE_JS = `(() => {
       return btoa(s);
     },
     async modelOf(orderId, handler) {
-      const [o, c] = await Promise.all([fetch('/api/orders/' + orderId).then((r) => r.json()), fetch('/api/company').then((r) => r.json())]);
-      return __lib.buildConfirmation(o.order, c.company, handler);
+      const r = await fetch('/api/orders/' + orderId + '/receipt').then((x) => x.json()); // sổ tiền lượt 1: biên nhận danh sách trắng (đã trả / còn lại từ billing)
+      return __lib.buildConfirmation(r.receipt, handler);
     },
     /** Phân tích một ảnh PNG theo bố cục của CHÍNH mô hình: mọi khối chữ có mực đúng màu, lề trống, đáy trống, dải màu chính, dấu tiếng Việt, chồng chữ. */
     async analyzeModel(model, blob) {
@@ -239,7 +241,8 @@ const call = async (account, method, path, body) => {
 };
 const NO_TRIP = { departDate: "", departTime: "", pickupTime: "", pickupPlace: "", checkinDate: "", checkinTime: "", checkinPlace: "", note: "" };
 const pax = (adult, child = 0, senior = 0, infant = 0) => ({ adult, child, senior, infant });
-const cust = (name, o = {}) => ({ customerName: name, customerPhone: "0903 111 222", customerEmail: "", customerNote: "", discount: 0, depositAmount: 0, depositMethod: null, paymentNote: "", ...o });
+const cust = (name, o = {}) => ({ customerName: name, customerPhone: "0903 111 222", customerEmail: "", customerNote: "", discount: 0, paymentNote: "", ...o });
+// Sổ tiền lượt 1 (ADR-0026 đ9): máy chủ từ chối cọc trong thân đơn (409 client_outdated) — dữ liệu mẫu mang `traTruoc`, `create` ghi thành LẦN THU sau khi lập đơn.
 const tour = (o = {}) => ({ kind: "catalog", catalogCode: "TD101", pax: pax(2, 1), unitPrices: { adult: 1350000, child: 950000 }, catalogPriceSeen: { adult: 1350000, child: 950000 }, ...NO_TRIP, departDate: vnDate(7), departTime: "07:30", pickupTime: "07:00", pickupPlace: "Khách sạn Sunrise, 12 Trần Phú", checkinTime: "06:45", checkinPlace: "Bến Cầu Đá", ...o });
 // Dịch vụ nhập tay (ảnh xác nhận phải vẽ đúng chúng: dữ liệu CŨ vẫn có). 2026-09-26 (DK-T3-01 R1, chủ dự án "loại bỏ hoàn toàn dịch vụ nhập tay"): API không
 // nhận dịch vụ nhập tay MỚI (400) → gửi dịch vụ danh mục giữ chỗ TTB06 (cùng số khách), `create` đổi nó thành ĐÚNG dịch vụ nhập tay này (tên, các dòng tiền,
@@ -248,10 +251,14 @@ const manual = (name, items, o = {}) => {
   const { pax: guests = pax(3), ...trip } = o;
   return { kind: "catalog", catalogCode: "TTB06", pax: pax(guests.adult), catalogPriceSeen: { adult: 800000 }, ...NO_TRIP, departDate: vnDate(7), ...trip, _legacy: { name, adult: guests.adult, items } }; // ADR-0021: cả đơn một ngày — mọi dịch vụ dựng sẵn cùng vnDate(7)
 };
-const create = async (account, body) => {
+const create = async (account, { traTruoc = 0, traTruocHinhThuc = "OTHER", ...body }) => {
   const r = await call(account, "POST", "/api/orders", { ...body, services: body.services.map(({ _legacy, ...s }) => s) });
   assert.equal(r.status, 201, `dựng đơn: ${r.status} ${JSON.stringify(r.json)}`);
   const order = r.json.order;
+  if (traTruoc > 0) {
+    const t = await call(account, "POST", `/api/orders/${order.id}/payments`, { soTien: traTruoc, hinhThuc: traTruocHinhThuc, nguoiThu: "cong_ty" });
+    assert.equal(t.status, 201, `lần thu trả trước: ${t.status} ${JSON.stringify(t.json)}`);
+  }
   if (!body.services.some((s) => s._legacy)) return order;
   body.services.forEach((s, i) => s._legacy && env.legacyManual(order.id, order.services[i].id, s._legacy));
   return (await call(account, "GET", `/api/orders/${order.id}`)).json.order;
@@ -262,11 +269,11 @@ async function fx() {
   fixtures ??= (async () => {
     const f = {};
     f.one = await create(ACCOUNTS.salesA, {
-      ...cust("Trần Văn Bình", { customerEmail: "binh.tran@example.com", customerNote: "Cả nhà ăn chay, xin xếp ghế gần nhau.", depositAmount: 1000000, depositMethod: "bank_transfer" }),
+      ...cust("Trần Văn Bình", { customerEmail: "binh.tran@example.com", customerNote: "Cả nhà ăn chay, xin xếp ghế gần nhau.", traTruoc: 1000000, traTruocHinhThuc: "BANK_TRANSFER" }),
       services: [tour()],
     });
     f.multi = await create(ACCOUNTS.salesA, {
-      ...cust("Lê Thị Hoa", { customerEmail: "hoa.le@example.com", customerNote: "Đón sớm 06:30.\nCó hai cháu nhỏ, cần ghế trẻ em.", discount: 200000, depositAmount: 2000000, depositMethod: "cash" }),
+      ...cust("Lê Thị Hoa", { customerEmail: "hoa.le@example.com", customerNote: "Đón sớm 06:30.\nCó hai cháu nhỏ, cần ghế trẻ em.", discount: 200000, traTruoc: 2000000, traTruocHinhThuc: "CASH" }),
       services: [
         tour({ pax: pax(2, 1, 1), unitPrices: { adult: 1300000, child: 950000, senior: 1200000 }, catalogPriceSeen: { adult: 1350000, child: 950000, senior: 1200000 } }),
         { kind: "catalog", catalogCode: "TTB03", pax: pax(7), unitPrices: { adult: 1500000 }, catalogPriceSeen: { adult: 1500000 }, ...NO_TRIP, departDate: vnDate(7), departTime: "10:00" },
@@ -279,7 +286,7 @@ async function fx() {
       ...cust(`${LONG_WORD} (đại diện đoàn công ty du lịch Ánh Dương)`, {
         customerEmail: "nguyen.thi.hong.ngoc.phuong.uyen.doan.anh.duong.nhatrang@congtydulichanhduong.example.com",
         customerNote: "Đoàn 32 người, có 4 trẻ em và 3 người cao tuổi.\nXin xếp xe giường nằm cho người lớn tuổi.\nĂn chay ngày mùng một và ngày rằm.\nCần xuất hoá đơn công ty, gửi về email kế toán.\nLiên hệ trước 24 giờ khi có thay đổi lịch trình.",
-        discount: 5000000, depositAmount: 30000000, depositMethod: "bank_transfer",
+        discount: 5000000, traTruoc: 30000000, traTruocHinhThuc: "BANK_TRANSFER",
       }),
       services: [
         tour({ pax: pax(10, 2, 2), unitPrices: { adult: 1350000, child: 950000, senior: 1200000 }, catalogPriceSeen: { adult: 1350000, child: 950000, senior: 1200000 } }),
@@ -292,7 +299,7 @@ async function fx() {
       ],
     });
     f.edit = await create(ACCOUNTS.salesA, { ...cust("Khách Sửa Đơn"), services: [tour()] });
-    const confirmed = await create(ACCOUNTS.salesA, { ...cust("Phạm Đã Xác Nhận", { depositAmount: 500000, depositMethod: "cash" }), services: [tour(), manual("Xe đưa đón", [{ description: "Xe 7 chỗ", detail: "", quantity: 1, unitPrice: 800000 }], { departDate: vnDate(7) })] });
+    const confirmed = await create(ACCOUNTS.salesA, { ...cust("Phạm Đã Xác Nhận", { traTruoc: 500000, traTruocHinhThuc: "CASH" }), services: [tour(), manual("Xe đưa đón", [{ description: "Xe 7 chỗ", detail: "", quantity: 1, unitPrice: 800000 }], { departDate: vnDate(7) })] });
     assert.equal((await call(ACCOUNTS.salesA, "POST", `/api/orders/${confirmed.id}/status`, { status: "confirmed" })).status, 200, "xác nhận đơn dựng sẵn");
     f.confirmed = confirmed;
     const cancelled = await create(ACCOUNTS.salesA, { ...cust("Vũ Đã Huỷ"), services: [tour()] });
@@ -314,8 +321,8 @@ function getUi() {
     const counter = (i, label) => `${card(i)}.querySelector('.counter-field[aria-label=${JSON.stringify(label)}]')`;
     await p.ev("document.getElementById('catalog-q').focus(); true");
     await p.ev(setInput("document.getElementById('catalog-q')", "TD101"));
-    await p.waitFor("document.querySelectorAll('#catalog-list button').length === 1", "TD101 trong danh mục");
-    await p.ev("document.querySelector('#catalog-list button').click(); true");
+    await p.waitFor("document.querySelectorAll('#catalog-list .catalog-pick').length === 1", "TD101 trong danh mục");
+    await p.ev("document.querySelector('#catalog-list .catalog-pick').click(); true");
     await p.waitFor(`${cards}.length === 1`, "thẻ Tour 4 đảo");
     await p.ev(setInput(counter(0, "Người lớn"), "2"));
     await p.ev(setInput(counter(0, "Trẻ em"), "1"));
@@ -331,8 +338,8 @@ function getUi() {
     // tay (dữ liệu cũ) vẫn được kiểm ở các đơn dựng sẵn `f.multi`/`f.long`/`f.confirmed` (bước b, h, k).
     await p.ev("document.getElementById('catalog-q').focus(); true");
     await p.ev(setInput("document.getElementById('catalog-q')", "TTB06"));
-    await p.waitFor("document.querySelectorAll('#catalog-list button').length === 1", "TTB06 trong danh mục");
-    await p.ev("document.querySelector('#catalog-list button').click(); true");
+    await p.waitFor("document.querySelectorAll('#catalog-list .catalog-pick').length === 1", "TTB06 trong danh mục");
+    await p.ev("document.querySelector('#catalog-list .catalog-pick').click(); true");
     await p.waitFor(`${cards}.length === 2`, "thẻ Motor nước");
     await p.ev(setInput(counter(1, "Người lớn"), "3"));
     await p.ev(`${card(1)}.querySelector('details.trip > summary').click(); true`);
@@ -341,8 +348,8 @@ function getUi() {
     await p.ev(setInput("document.getElementById('customerPhone')", "0912 345 678"));
     await p.ev(setInput("document.getElementById('customerEmail')", "tuyet.nguyen@example.com"));
     await p.ev(setInput("document.getElementById('customerNote')", "Cả nhà ăn chay — xin xếp ghế gần nhau."));
-    await p.ev(setInput("document.getElementById('depositAmount')", "500000"));
-    await p.ev(setInput("document.getElementById('depositMethod')", "cash"));
+    await p.ev(setInput("document.getElementById('prepaidAmount')", "500000")); // sổ tiền lượt 1: ghi thành lần thu ở bước hai sau khi lưu
+    await p.ev(setInput("document.getElementById('prepaidMethod')", "CASH"));
     await p.ev("document.getElementById('save').click(); true");
     await p.waitFor("location.pathname === '/order'", "chuyển tới trang đơn sau khi lưu", 15000);
     await p.waitFor(`${DIALOG} !== null`, "hộp thoại tự mở", 8000);
@@ -635,7 +642,7 @@ const syntheticOrder = (money, big = true) => {
     id: "o1", orderCode: "TD-20260921-9999", staffId: "st", staffName: "Nguyễn Thị Người Lập", status: "confirmed",
     customerName: `${LONG_WORD}-${LONG_WORD}`, customerPhone: "0901 234 567", customerEmail: `${LONG_WORD.replace(/-/g, ".")}@example.com`.toLowerCase(),
     customerNote: Array.from({ length: 12 }, (_, i) => `Ghi chú khách dòng ${i + 1}: yêu cầu đặc biệt khá dài cần ngắt dòng đúng chỗ, dấu tiếng Việt không được cắt, ${LONG_WORD}`).join("\n"),
-    subtotal: money, discount: money, total: money, depositAmount: money, depositMethod: "cash", remainingAmount: -money, paymentNote: "NOI-BO", createdAt: "2026-09-20T18:30:00.000Z", updatedAt: "2026-09-20T18:30:00.000Z", confirmedAt: null, services,
+    subtotal: money, discount: money, total: money, paymentNote: "NOI-BO", createdAt: "2026-09-20T18:30:00.000Z", updatedAt: "2026-09-20T18:30:00.000Z", confirmedAt: null, deliveredAt: null, completedAt: null, services,
   };
 };
 await step("h", "đơn cỡ tối đa (20 dịch vụ, 50 dòng, tên 100+ ký tự liền, tiền 100.000.000.000 ₫, ghi chú dài) và tiền rộng quá cột: không lỗi, không tràn lề, không chữ chồng nhau, mọi chữ có mực, đúng giới hạn diện tích canvas", async () => {
@@ -644,7 +651,7 @@ await step("h", "đơn cỡ tối đa (20 dịch vụ, 50 dòng, tên 100+ ký t
     const order = syntheticOrder(money, big);
     const a = await p.ev(`(async () => {
       const company = (await (await fetch('/api/company')).json()).company;
-      const model = __lib.buildConfirmation(${JSON.stringify(order)}, company, 'Lê Minh Tuấn');
+      const model = __lib.buildConfirmation(__lib.dungBienNhan(${JSON.stringify(order)}, company, { daTra: ${money}, conLai: ${money} }), 'Lê Minh Tuấn');
       const blob = await __lib.renderConfirmationPng(model);
       return __t.analyzeModel(model, blob);
     })()`);
@@ -670,7 +677,7 @@ await step("i", "vẽ lỗi (công ty lỗi, phông lỗi, phông treo, toBlob t
     const ot = HTMLCanvasElement.prototype.toBlob; HTMLCanvasElement.prototype.toBlob = function (cb, ...r) { return window.__fail.blob ? cb(null) : ot.call(this, cb, ...r); };
     const og = HTMLCanvasElement.prototype.getContext; HTMLCanvasElement.prototype.getContext = function (...a) { return window.__fail.ctx ? null : og.apply(this, a); };
     const of = window.fetch.bind(window);
-    window.fetch = (u, i) => window.__fail.company && String(u).endsWith('/api/company') ? Promise.resolve(new Response(JSON.stringify({ error: { code: 'internal', message: 'giả lập' } }), { status: 500, headers: { 'content-type': 'application/json' } })) : of(u, i);
+    window.fetch = (u, i) => window.__fail.company && String(u).endsWith('/receipt') ? Promise.resolve(new Response(JSON.stringify({ error: { code: 'internal', message: 'giả lập' } }), { status: 500, headers: { 'content-type': 'application/json' } })) : of(u, i);
     return true; })()`);
   const VI = /[ăâđêôơưáàảãạấầẩẫậắằẳẵặéèẻẽẹếềểễệíìỉĩịóòỏõọốồổỗộớờởỡợúùủũụứừửữựýỳỷỹỵ]/i;
   const errorState = (p2) => p2.ev(`(() => { const e = document.querySelector('.sheet .confirm-error'); return e ? { role: e.getAttribute('role'), text: e.textContent, retry: !!e.querySelector('button.confirm-retry'), img: !!document.querySelector('.sheet .confirm-img'), dl: document.querySelector('.sheet a.confirm-download')?.hidden ?? null, busy: !!document.querySelector('.sheet .confirm-status') && !document.querySelector('.sheet .confirm-status').hidden } : null; })()`);

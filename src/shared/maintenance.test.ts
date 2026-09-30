@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   MAINTENANCE_CONTACT_PHONE, MAX_MAINTENANCE_MS, checkMaintenanceInput, formatCountdown, isAllowedPhone, isBlocked, maintenanceMessage, maintenanceMessageParts, parseAllowedPhones, phoneChangeProblem,
-  type MaintenanceState,
+  stateFromRow, type MaintenanceState,
 } from "./maintenance.ts";
 
 const NOW = Date.parse("2026-09-22T03:00:00.000Z");
@@ -59,7 +59,7 @@ test("thông điệp còn giờ: đúng chữ chủ dự án đã chốt, đếm
   assert.equal(maintenanceMessage("2026-09-22T04:23:10.000Z", NOW), parts.before + parts.countdown + parts.after);
 });
 
-test("thông điệp hết giờ dự kiến: 'sắp hoàn tất', không có đếm ngược (vẫn chặn tới khi chủ tắt)", () => {
+test("thông điệp hết giờ dự kiến: 'sắp hoàn tất', không có đếm ngược (giao diện hiện lúc đồng hồ về 0)", () => {
   for (const at of [NOW, NOW - 1, NOW - 3600_000]) {
     const parts = maintenanceMessageParts(new Date(at).toISOString(), NOW);
     assert.equal(parts.countdown, null);
@@ -129,4 +129,18 @@ test("phoneChangeProblem: không cho đổi SĐT của tài khoản đang là ng
   assert.equal(phoneChangeProblem(OFF, "0989929373", "0989929373"), null); // không đổi gì
   assert.equal(phoneChangeProblem(OFF, "0989929373", "+84 989 929 373"), null); // cùng số, chỉ khác cách gõ
   assert.equal(phoneChangeProblem(OFF, "0900000001", "0912345678"), null); // tài khoản thường đổi SĐT như cũ
+});
+
+test("TỰ TẮT khi hết giờ dự kiến: dòng còn bật nhưng giờ đã qua thì không chặn ai; chưa tới giờ vẫn chặn; bật không có giờ thì giữ bật", () => {
+  const row = (endsAt: string | null) => ({ enabled: 1, ends_at: endsAt, allowed_phones: MAINTENANCE_CONTACT_PHONE });
+  const hetGio = stateFromRow(row(new Date(NOW - 1).toISOString()), NOW);
+  assert.deepEqual(hetGio, { on: false, endsAt: null, allowedPhones: [MAINTENANCE_CONTACT_PHONE] }, "hết giờ: tắt, danh sách được phép vẫn còn cho nút bật/tắt của chủ");
+  assert.equal(isBlocked(hetGio, "0900000001"), false);
+  assert.equal(stateFromRow(row(new Date(NOW).toISOString()), NOW).on, false, "đúng giờ hẹn là mở lại");
+  const dangBat = stateFromRow(row("2026-09-22T05:00:00.000Z"), NOW);
+  assert.deepEqual(dangBat, ON);
+  assert.equal(isBlocked(dangBat, "0900000001"), true);
+  assert.equal(stateFromRow(row(null), NOW).on, true, "bật tay bằng SQL không kèm giờ: không có gì để hết hạn, giữ bật");
+  assert.deepEqual(stateFromRow({ enabled: 0, ends_at: "2026-09-22T05:00:00.000Z", allowed_phones: "" }, NOW), { on: false, endsAt: null, allowedPhones: [] });
+  assert.deepEqual(stateFromRow(null, NOW), { on: false, endsAt: null, allowedPhones: [] });
 });

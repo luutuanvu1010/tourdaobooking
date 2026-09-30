@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trang chủ: chuyến đón ngày mai, ngày kia</title>
+<!-- ẢNH PHÁC TĨNH (góp ý người dùng 30/9) — CHƯA phải màn thật; số liệu, tên, mã là giả. Chủ duyệt rồi mới dựng. Sinh từ một kịch bản tạm, sửa tay thoải mái. -->
+<style>
+:root{
+  /* Bản chép GIÁ TRỊ token từ đầu public/app.css (chỉ để ảnh phác tự đứng một mình; nguồn thật vẫn là app.css) */
+  --c-primary:#0c4a6e;--c-primary-strong:#082f49;--c-primary-soft:#dcebf6;--c-accent:#c0392b;--c-accent-soft:#fef2f0;
+  --c-sand-soft:#fbe3b3;--c-sand-text:#5a4109;--c-sand-border:#e9d3a4;--c-surface:#ffffff;--c-surface-alt:#eaf2f8;
+  --c-text:#0f172a;--c-text-muted:#475569;--c-border:#d3e1ec;--c-green-soft:#dcfce7;--c-green-text:#166534;--c-green-border:#a7e3bc;
+  --c-danger:#b01235;--c-danger-text:#8e0e2b;--c-danger-soft:#fde9ee;--c-danger-border:#f1c3cf;--c-on-dark:#ffffff;
+  --s1:4px;--s2:8px;--s3:12px;--s4:16px;--s5:24px;--s6:32px;--radius-sm:8px;--radius-md:12px;--radius-lg:18px;--radius-pill:999px;
+  --shadow-card:0 1px 3px rgba(15,23,42,.08);--shadow-overlay:0 12px 32px rgba(15,23,42,.16);--c-scrim:rgba(15,23,42,.45);
+  --fs-ui:16px;--fs-label:14px;--fs-badge:12px;--fs-title:18px;--tap-min:44px;--bar-h:60px;--tabbar-h:56px;
+  --font:"Nunito","Be Vietnam Pro",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:#f1f5f9;color:var(--c-text);font:var(--fs-ui)/1.5 var(--font);padding:var(--s5)}
+h1{font-size:22px;margin:0 0 var(--s2)} .lead{color:var(--c-text-muted);margin:0 0 var(--s5);max-width:900px}
+.row{display:flex;gap:var(--s6);flex-wrap:wrap;align-items:flex-start}
+.cap{font-size:var(--fs-label);font-weight:700;color:var(--c-text-muted);margin:0 0 var(--s2);max-width:390px}
+.phone{width:390px;min-height:760px;background:var(--c-surface-alt);border:1px solid var(--c-border);border-radius:28px;overflow:hidden;position:relative;box-shadow:var(--shadow-overlay)}
+.desk{width:1040px;background:var(--c-surface-alt);border:1px solid var(--c-border);border-radius:var(--radius-md);overflow:hidden;box-shadow:var(--shadow-overlay)}
+.bar{height:var(--bar-h);background:var(--c-primary);color:var(--c-on-dark);display:flex;align-items:center;padding:0 var(--s4);font-weight:800;font-size:var(--fs-title)}
+.pad{padding:var(--s3) var(--s4) calc(var(--tabbar-h) + var(--s3))}
+.tabbar{position:absolute;left:0;right:0;bottom:0;height:var(--tabbar-h);background:var(--c-surface);border-top:1px solid var(--c-border);display:flex;justify-content:space-around;align-items:center;font-size:var(--fs-badge);color:var(--c-text-muted)}
+.tabbar b{color:var(--c-primary)}
+.card{background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-md);padding:var(--s3) var(--s4);margin-bottom:var(--s2)}
+.muted{color:var(--c-text-muted);font-size:var(--fs-label)}
+.input{min-height:var(--tap-min);border:1px solid var(--c-border);border-radius:var(--radius-sm);background:var(--c-surface);display:flex;align-items:center;padding:0 var(--s3);font-size:var(--fs-ui);color:var(--c-text-muted);flex:1}
+.btn{min-height:var(--tap-min);border-radius:var(--radius-sm);border:1px solid var(--c-border);background:var(--c-surface);display:inline-flex;align-items:center;justify-content:center;padding:0 var(--s4);font-weight:700;font-size:var(--fs-ui);color:var(--c-primary);gap:var(--s2);white-space:nowrap}
+.btn-primary{background:var(--c-primary);border-color:var(--c-primary);color:var(--c-on-dark)}
+.chip{display:inline-flex;align-items:center;gap:var(--s1);height:32px;padding:0 var(--s3);border-radius:var(--radius-pill);background:var(--c-surface);border:1px solid var(--c-border);font-size:var(--fs-label);font-weight:700;color:var(--c-text);white-space:nowrap}
+.chip.on{background:var(--c-primary-soft);border-color:var(--c-primary);color:var(--c-primary)}
+.chip .x{font-weight:800;color:var(--c-text-muted)}
+.chips{display:flex;gap:var(--s2);flex-wrap:wrap;align-items:center}
+.link{color:var(--c-primary);font-weight:700;font-size:var(--fs-label);text-decoration:underline}
+.badge{font-size:var(--fs-badge);font-weight:800;padding:2px var(--s2);border-radius:var(--radius-pill);white-space:nowrap}
+.b-draft{background:var(--c-sand-soft);color:var(--c-sand-text)} .b-ok{background:var(--c-green-soft);color:var(--c-green-text)} .b-no{background:var(--c-danger-soft);color:var(--c-danger-text)}
+.oc-top{display:flex;gap:var(--s2);align-items:baseline} .oc-top .n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.oc-l{font-size:var(--fs-label);color:var(--c-text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--c-surface);border-radius:var(--radius-lg) var(--radius-lg) 0 0;box-shadow:var(--shadow-overlay);max-height:88%;display:flex;flex-direction:column}
+.scrim{position:absolute;inset:0;background:var(--c-scrim)}
+.sh-head{padding:var(--s4);border-bottom:1px solid var(--c-border);font-weight:800;font-size:var(--fs-title);display:flex;justify-content:space-between;align-items:center}
+.sh-body{padding:var(--s3) var(--s4);overflow:hidden;flex:1}
+.sh-foot{padding:var(--s3) var(--s4);border-top:1px solid var(--c-border);display:flex;gap:var(--s2)}
+.sh-foot .btn{flex:1}
+.grp{margin-bottom:var(--s4)} .grp h3{font-size:var(--fs-badge);margin:0 0 var(--s2);text-transform:uppercase;letter-spacing:.08em;color:var(--c-text-muted)}
+.chk{display:flex;align-items:center;gap:var(--s3);min-height:var(--tap-min);border-bottom:1px solid var(--c-border);font-size:var(--fs-label)}
+.box{width:22px;height:22px;border:2px solid var(--c-border);border-radius:6px;flex:none;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--c-on-dark)}
+.box.on{background:var(--c-primary);border-color:var(--c-primary)}
+.note{background:var(--c-surface);border:1px dashed var(--c-primary);border-radius:var(--radius-md);padding:var(--s3) var(--s4);font-size:var(--fs-label);max-width:360px}
+.note b{color:var(--c-primary)}
+.steps{display:flex;align-items:flex-start;margin:var(--s3) 0}
+.step{flex:1;text-align:center;position:relative;font-size:var(--fs-badge);font-weight:700;color:var(--c-text-muted)}
+.step .dot{width:28px;height:28px;border-radius:50%;margin:0 auto var(--s1);display:flex;align-items:center;justify-content:center;background:var(--c-surface);border:2px solid var(--c-border);font-size:var(--fs-label);position:relative;z-index:1}
+.step::before{content:"";position:absolute;top:13px;left:-50%;right:50%;height:2px;background:var(--c-border)}
+.step:first-child::before{display:none}
+.step.done .dot{background:var(--c-primary);border-color:var(--c-primary);color:var(--c-on-dark)} .step.done::before,.step.cur::before,.step.dong::before{background:var(--c-primary)}
+.step.cur .dot{border-color:var(--c-primary);color:var(--c-primary);box-shadow:0 0 0 4px var(--c-primary-soft)} .step.cur{color:var(--c-primary)}
+.step.dong .dot{background:var(--c-green-text);border-color:var(--c-green-text);color:var(--c-on-dark)} .step.dong{color:var(--c-green-text)}
+.status-big{display:flex;align-items:center;gap:var(--s2);font-weight:800;font-size:var(--fs-title)}
+.seg{display:flex;background:var(--c-surface-alt);border:1px solid var(--c-border);border-radius:var(--radius-pill);padding:3px;gap:3px}
+.seg span{flex:1;text-align:center;border-radius:var(--radius-pill);padding:var(--s1) 0;font-weight:700;font-size:var(--fs-label);color:var(--c-text-muted)}
+.seg span.on{background:var(--c-primary);color:var(--c-on-dark)}
+.trip{display:flex;gap:var(--s3);border-bottom:1px solid var(--c-border);padding:var(--s2) 0}
+.trip:last-child{border-bottom:0}
+.trip .t{width:76px;flex:none;font-weight:800} .trip .t small{display:block;font-weight:600;color:var(--c-text-muted);font-size:var(--fs-badge)}
+.sec-title{font-weight:800;font-size:var(--fs-title);margin:var(--s1) 0 var(--s2)}
+.q{background:var(--c-surface);border-left:4px solid var(--c-accent);padding:var(--s3) var(--s4);border-radius:var(--radius-sm);margin-top:var(--s5);max-width:900px}
+</style></head><body>
+<h1>Trang chủ: chuyến đón ngày mai, ngày kia</h1><p class="lead">Góp ý YC-0007. Cùng người xem như khối “Chuyến đón hôm nay” hiện có (ai xem được mọi đơn). Chưa dựng: phiên sổ tiền đang sửa phần máy chủ của Trang chủ, gộp xong mới làm.</p>
+<div class="row"><div><p class="cap">Cách A (khuyến nghị) · 390 — một khối, ba nút chuyển ngày</p><div class="phone"><div class="bar">Trang chủ</div><div class="pad">
+<div class="card"><div style="display:flex;justify-content:space-between;align-items:center"><span class="sec-title">Chuyến đón</span><span class="muted">Thứ Năm 01/10</span></div>
+<div class="seg" style="margin-bottom:8px"><span>Hôm nay (2)</span><span class="on">Ngày mai (3)</span><span>Ngày kia (1)</span></div><div class="trip"><div class="t">07:00<small>Homestay Mộc</small></div><div><b>Lê Hoàng Yến · 3 khách</b><div class="muted">Tour 4 đảo · TD-20260930-0020</div></div></div><div class="trip"><div class="t">08:00<small>Cảng Cầu Đá</small></div><div><b>Phạm Quốc Bảo · 2 khách</b><div class="muted">Vé Vinpearl · TD-20260930-0021</div></div></div><div class="trip"><div class="t">13:30<small>Sân bay Cam Ranh</small></div><div><b>Đỗ Minh Châu · 4 khách</b><div class="muted">Đưa đón sân bay · TD-20260930-0022</div></div></div></div>
+<div class="card muted">… các khối khác của Trang chủ giữ nguyên (Doanh thu, Cần xem lại…)</div></div><div class="tabbar"><b>Trang chủ</b><span>Đơn hàng</span><span>＋ Lập đơn</span><span>Tôi</span></div></div></div><div><p class="cap">Cách B · 390 — ba khối xếp chồng</p><div class="phone"><div class="bar">Trang chủ</div><div class="pad">
+<div class="card"><div class="sec-title">Chuyến đón hôm nay <span class="muted">(2)</span></div><div class="trip"><div class="t">06:15<small>Bến Cầu Đá</small></div><div><b>Nguyễn Thị Lan · 5 khách</b><div class="muted">Tour 4 đảo · TD-20260930-0012</div></div></div><div class="trip"><div class="t">07:30<small>KS Novotel</small></div><div><b>Trần Văn Bình · 2 khách</b><div class="muted">Lặn biển Hòn Mun · TD-20260930-0015</div></div></div></div>
+<div class="card"><div class="sec-title">Ngày mai · Thứ Năm 01/10 <span class="muted">(3)</span></div><div class="trip"><div class="t">07:00<small>Homestay Mộc</small></div><div><b>Lê Hoàng Yến · 3 khách</b><div class="muted">Tour 4 đảo · TD-20260930-0020</div></div></div><div class="trip"><div class="t">08:00<small>Cảng Cầu Đá</small></div><div><b>Phạm Quốc Bảo · 2 khách</b><div class="muted">Vé Vinpearl · TD-20260930-0021</div></div></div><div class="trip"><div class="t">13:30<small>Sân bay Cam Ranh</small></div><div><b>Đỗ Minh Châu · 4 khách</b><div class="muted">Đưa đón sân bay · TD-20260930-0022</div></div></div></div>
+<div class="card"><div class="sec-title">Ngày kia · Thứ Sáu 02/10 <span class="muted">(1)</span></div><div class="trip"><div class="t">06:45<small>KS Sheraton</small></div><div><b>Hoàng Gia Linh · 4 khách</b><div class="muted">Tour 4 đảo · TD-20260930-0025</div></div></div></div></div><div class="tabbar"><b>Trang chủ</b><span>Đơn hàng</span><span>＋ Lập đơn</span><span>Tôi</span></div></div></div></div>
+<div class="q"><b>Câu hỏi cho chủ</b><ol><li>Cách A (một khối, chuyển ngày bằng ba nút — Trang chủ không dài ra) hay cách B (ba khối xếp chồng — thấy hết một lượt nhưng trang dài)? Khuyến nghị A.</li><li>Ngày mai / ngày kia có hiện tên khách như hôm nay không, hay chỉ giờ, nơi đón, số khách, dịch vụ?</li></ol></div>
+</body></html>

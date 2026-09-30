@@ -504,3 +504,52 @@ test("ctx.nhanNhanVien (R-P20): chuyển env + id tới hàm tiêm; mảng rỗn
   const khong = createApp({ ...base, injected } as any);
   assert.deepEqual(await (await khong.fetch(new Request("http://x/api/nhan"), env, {} as ExecutionContext)).json(), { a: null, rong: null });
 });
+
+// Sổ tiền lượt 1 (kiểm độc lập T-1; ADR-0025 đ4): hai người đua — route đã đọc "chưa Đã giao" nhưng lô ghi gặp trigger 0044 (`order_delivered:` /
+// `order_completed:`) → 409 câu tiếng Việt, KHÔNG 500 chung. Lỗi khác vẫn 500 như cũ; chữ thô của trigger không lộ ra.
+function buildThrowing(err: unknown) {
+  const mod: AppModule = {
+    name: "giả",
+    routes: [
+      route("POST", "/api/ghi", "staff", async () => {
+        throw err;
+      }),
+    ],
+  };
+  const app = createApp({
+    modules: [mod],
+    currentStaff: async () => staffOf(["SALES"]),
+    injected: {
+      isAssigned: async () => false,
+      newOrderHandler: async () => ({ ok: false, message: "không dùng" }),
+      ordersWithHandler: async () => new Set<string>(),
+      handledOrderIdsOf: async () => [],
+      maintenanceBlock: async () => null,
+      partyAccount: async () => ({ linked: false }),
+      baoThayDoi: async () => {},
+      dongBangTin: async () => {},
+      giaoLoDay: async () => [],
+      mocToiThieu: async () => ({ phut: 360, policyId: "moc-gia-router", canhBaoPhut: 120 }),
+    },
+  });
+  return app.fetch(new Request("http://x/api/ghi", { method: "POST", headers: { origin: "http://x" } }), {} as Env, {} as ExecutionContext);
+}
+
+test("T-1: lỗi trigger 'order_delivered:' / 'order_completed:' trong lô ghi → 409 order_delivered câu tiếng Việt (không 500, không lộ chữ trigger)", async () => {
+  const orig = console.error;
+  console.error = () => {};
+  try {
+    for (const msg of ["D1_ERROR: order_delivered: đơn đã Đã giao – không sửa dịch vụ: SQLITE_CONSTRAINT", "order_completed: mốc Hoàn thành chỉ đặt một lần, sau Đã giao"]) {
+      const r = await buildThrowing(new Error(msg));
+      assert.equal(r.status, 409, msg);
+      const b = (await r.json()) as { error: { code: string; message: string } };
+      assert.equal(b.error.code, "order_delivered");
+      assert.match(b.error.message, /Đã giao – đã thu đủ/);
+      assert.doesNotMatch(b.error.message, /SQLITE|D1_ERROR|order_delivered:/);
+    }
+    const khac = await buildThrowing(new Error("D1_ERROR: something else"));
+    assert.equal(khac.status, 500, "lỗi khác vẫn 500");
+  } finally {
+    console.error = orig;
+  }
+});

@@ -105,6 +105,9 @@ try {
   };
   const confirm = async (o) => assert.equal((await call(ACCOUNTS.salesA, "POST", `/api/orders/${o.id}/status`, { status: "confirmed" })).status, 200, `xác nhận ${o.orderCode}`);
   const detail = async (o) => (await call(ACCOUNTS.salesA, "GET", `/api/orders/${o.id}`)).json.order;
+  // Sổ tiền lượt 1 (ADR-0026 đ9): tiền trả trước = LẦN THU của billing; "Đã thu / Còn thu" đọc từ billing (trước đây cột cọc trên đơn).
+  const thu = async (o, soTien) => assert.equal((await call(ACCOUNTS.salesA, "POST", `/api/orders/${o.id}/payments`, { soTien, hinhThuc: "CASH", nguoiThu: "toi" })).status, 201, `lần thu ${o.orderCode}`);
+  const tienOf = async (o) => (await call(ACCOUNTS.salesA, "GET", `/api/orders/${o.id}/payments`)).json;
 
   // Hàng chờ (không chọn HDV lúc lập): P1 ngày mai, hai dịch vụ, nơi đón có SĐT; P2 còn 3 ngày; P3 còn 5 ngày.
   const P1 = await newOrder("Khách Chờ Một", [td101({ adult: 2, child: 1 }, { departDate: vnDate(1), pickupTime: "07:15", pickupPlace: PICKUP_WITH_PHONE }), ttb06(2, { departDate: vnDate(1), pickupTime: "13:30", pickupPlace: "Cảng Cầu Đá" })]);
@@ -113,9 +116,11 @@ try {
   // Đơn của HDV (chọn HDV ngay lúc lập — ADR-0030 S20-4): M1 chờ xác nhận; M2 đã xác nhận, HAI dịch vụ danh mục, có cọc; M3 đã xác nhận rồi đẩy ngày đi về
   // quá khứ (đã đi tour); M4 đã xác nhận để huỷ.
   const M1 = await newOrder("Đỗ Minh Châu", [td101({ adult: 4, child: 1 }, { departDate: vnDate(2), departTime: "07:45", pickupTime: "07:15", pickupPlace: "Khách sạn Novotel", checkinTime: "08:15", checkinPlace: "Cảng Cầu Đá", note: "Khách ăn chay" })], { handlerStaffId: hdv.id });
-  const M2 = await newOrder("Vũ Thanh Hương", [td101({ adult: 2, child: 1 }, { departDate: vnDate(4), pickupTime: "06:30", pickupPlace: PICKUP_WITH_PHONE }), ttb06(2, { departDate: vnDate(4), pickupTime: "17:30", pickupPlace: "Bến Bình Ba" })], { handlerStaffId: hdv.id, depositAmount: 500000, depositMethod: "cash" });
+  const M2 = await newOrder("Vũ Thanh Hương", [td101({ adult: 2, child: 1 }, { departDate: vnDate(4), pickupTime: "06:30", pickupPlace: PICKUP_WITH_PHONE }), ttb06(2, { departDate: vnDate(4), pickupTime: "17:30", pickupPlace: "Bến Bình Ba" })], { handlerStaffId: hdv.id });
+  await thu(M2, 500000);
   const M3 = await newOrder("Hoàng Gia Linh", [td101({ adult: 3 }, { departDate: vnDate(3), pickupTime: "08:00", pickupPlace: "Cảng Cầu Đá, quầy số 3" })], { handlerStaffId: hdv.id });
-  const M4 = await newOrder("Phạm Quốc Bảo", [td101({ adult: 2 }, { departDate: vnDate(6), pickupTime: "07:30", pickupPlace: "Homestay Mộc" })], { handlerStaffId: hdv.id, depositAmount: 300000, depositMethod: "cash" });
+  const M4 = await newOrder("Phạm Quốc Bảo", [td101({ adult: 2 }, { departDate: vnDate(6), pickupTime: "07:30", pickupPlace: "Homestay Mộc" })], { handlerStaffId: hdv.id });
+  await thu(M4, 300000);
   for (const o of [M2, M3, M4]) await confirm(o);
   env.sql(`UPDATE order_service SET depart_date = '${vnDate(-2)}' WHERE order_id = '${M3.id}'`);
   console.log(`  (dữ liệu: hàng chờ ${P1.orderCode} ${P2.orderCode} ${P3.orderCode}; của HDV ${M1.orderCode} (chờ xác nhận) ${M2.orderCode} ${M3.orderCode} (đã đi tour) ${M4.orderCode})`);
@@ -146,7 +151,11 @@ try {
         overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
       };
     })()`);
-  const moneyOf = (d) => [["Tổng tiền", vnd(d.total)], ["Thanh toán trước", vnd(d.depositAmount)], ["Còn lại", vnd(d.remainingAmount)]] // bản 1.39: trước "Đã cọc / Còn thu";
+  // bản 1.39/1.40: "Còn lại"; sổ tiền lượt 1: "Đã thu" (số đã thu của billing — kiểm độc lập T-2).
+  const moneyOf = async (d) => {
+    const t = await tienOf(d);
+    return [["Tổng tiền", vnd(d.total)], ["Đã thu", vnd(t.daThu)], ["Còn lại", vnd(t.conLai)]];
+  };
 
   // ==================================================================================================
   // Máy tính 1040 — hàng chờ, Nhận, cập nhật lặng lẽ
@@ -182,7 +191,7 @@ try {
     assert.deepEqual(m3.buttons, ["Sửa số khách"], "đã đi tour: không “Huỷ đơn”");
     assert.equal(m2.note, null);
     for (const [c, o] of [[m1, M1], [m2, M2], [m4, M4], [m3, M3]]) {
-      assert.deepEqual(c.money, moneyOf(await detail(o)), `${o.orderCode}: Tổng tiền/Đã cọc/Còn thu trùng GET /api/orders/:id`);
+      assert.deepEqual(c.money, await moneyOf(await detail(o)), `${o.orderCode}: Tổng tiền (GET /api/orders/:id) / Đã thu / Còn lại (billing) trùng`);
       assert.equal(c.me, null, "bản 1.39: không lặp dòng HDV: <tên> ở từng thẻ");
       assert.equal(c.xem, `/order?id=${encodeURIComponent(o.id)}`, "liên kết Xem đơn");
       assert.ok(c.xemH >= 44, `Xem đơn cao ${c.xemH}px`);
@@ -257,7 +266,7 @@ try {
     const p3 = s.mine.find((c) => c.id === P3.id);
     assert.equal(p3.chip, "Chờ xác nhận");
     assert.deepEqual(p3.buttons, []);
-    assert.deepEqual(p3.money, moneyOf(await detail(P3)));
+    assert.deepEqual(p3.money, await moneyOf(await detail(P3)));
     assert.ok(p3.customer.includes("Khách Chờ Ba") && p3.customer.includes(POOL_PHONE), "sau khi nhận: thấy tên + SĐT khách");
     assert.equal((await call(ACCOUNTS.salesA, "GET", `/api/dispatch/handlers?orderIds=${P3.id}`)).json.handlers[P3.id]?.staffId, hdv.id, "máy chủ: HDV là người phụ trách P3");
     assert.equal(s.toasts, 0, "việc chính mình làm: không thông báo nổi");
@@ -344,8 +353,8 @@ try {
     assert.equal(after.total, before.total + 1350000, "máy chủ: tổng tăng đúng một người lớn TD101");
     await mob.waitFor(`(() => { const c = ${mineCard(M2)}; return !!c && c.querySelector('.hdv-money dd').textContent === ${JSON.stringify(vnd(after.total))}; })()`, "thẻ hiện tổng tiền mới", 10000);
     const s = await state(mob);
-    assert.deepEqual(s.mine.find((c) => c.id === M2.id).money, moneyOf(after));
-    console.log(`    tổng tiền ${M2.orderCode}: ${vnd(before.total)} → ${vnd(after.total)}; còn thu ${vnd(after.remainingAmount)}`);
+    assert.deepEqual(s.mine.find((c) => c.id === M2.id).money, await moneyOf(after));
+    console.log(`    tổng tiền ${M2.orderCode}: ${vnd(before.total)} → ${vnd(after.total)}; còn thu ${vnd((await tienOf(M2)).conLai)}`);
   });
 
   // Bước trước hỏng giữa chừng có thể để bảng mở → đóng trước (Esc) để bước sau không đổ lỗi dây chuyền.
@@ -391,7 +400,8 @@ try {
 
   // Lý do "Khác" (ADR-0030 điều 2, sửa đổi sau khi duyệt 2026-09-27): ô chữ tự do, máy chủ (không phải giao diện) chặn số điện thoại. Đơn RIÊNG (M5,
   // lập sau khi mob đã đóng) để không đụng các khẳng định số đếm/thứ tự "Đơn của tôi" đã kiểm ở bước 6 — mở trang MỚI (mob2) để tải đơn này.
-  const M5 = await newOrder("Bùi Thu Trang", [td101({ adult: 2 }, { departDate: vnDate(7), pickupTime: "07:00", pickupPlace: "Khách sạn Sunrise" })], { handlerStaffId: hdv.id, depositAmount: 400000, depositMethod: "cash" });
+  const M5 = await newOrder("Bùi Thu Trang", [td101({ adult: 2 }, { departDate: vnDate(7), pickupTime: "07:00", pickupPlace: "Khách sạn Sunrise" })], { handlerStaffId: hdv.id });
+  await thu(M5, 400000);
   await confirm(M5);
   const mob2 = await open(MOB);
   await step("9", "Điện thoại: “Huỷ đơn” lý do “Khác” — gõ số điện thoại → máy chủ chặn (400), lỗi hiện trong bảng, không huỷ, không mất chữ đã gõ; sửa lại lý do thường → huỷ thành công" + axeNote(), async () => {

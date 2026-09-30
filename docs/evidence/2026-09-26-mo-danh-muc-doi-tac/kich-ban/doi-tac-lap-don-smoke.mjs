@@ -113,11 +113,11 @@ try {
   /** Tìm TD101 trong ô tìm danh mục, chọn, đặt Người lớn = PAX; chờ dòng tiền người lớn hiện. */
   const pickTd101 = async (p) => {
     await p.ev("document.getElementById('catalog-q').focus(); true");
-    await p.waitFor("document.querySelectorAll('#catalog-list button').length >= 3 && /TD101/.test(document.getElementById('catalog-list').textContent)", "ô tìm danh mục hiện ≥ 3 dịch vụ gồm TD101", 10000);
-    const listed = await p.ev("[...document.querySelectorAll('#catalog-list button')].map((b) => b.textContent.trim().replace(/\\s+/g, ' '))");
+    await p.waitFor("document.querySelectorAll('#catalog-list .catalog-pick').length >= 3 && /TD101/.test(document.getElementById('catalog-list').textContent)", "ô tìm danh mục hiện ≥ 3 dịch vụ gồm TD101", 10000);
+    const listed = await p.ev("[...document.querySelectorAll('#catalog-list .catalog-pick')].map((b) => b.textContent.trim().replace(/\\s+/g, ' '))");
     await p.ev(setInput("document.getElementById('catalog-q')", "TD101"));
-    await p.waitFor("document.querySelectorAll('#catalog-list button').length === 1", "lọc TD101");
-    await p.ev("document.querySelector('#catalog-list button').click(); true");
+    await p.waitFor("document.querySelectorAll('#catalog-list .catalog-pick').length === 1", "lọc TD101");
+    await p.ev("document.querySelector('#catalog-list .catalog-pick').click(); true");
     await p.waitFor(`!!(${CARD})`, "thẻ Tour 4 đảo Nha Trang");
     await p.ev(setInput(ADULT, String(PAX)));
     await p.waitFor(`!(${ADULT_PRICE}).closest('.line').hidden && /2 ×/.test((${ADULT_PRICE}).closest('.line').querySelector('.line-qty').textContent)`, "dòng tiền người lớn 2 × hiện");
@@ -175,8 +175,8 @@ try {
   await step("1", "Đối tác (máy tính 1040): /order-form — ô tìm dịch vụ CÓ dịch vụ để chọn (3 mục danh mục, có TD101), KHÔNG có chữ “Không tải được danh mục”", async () => {
     desk = await openAs(PARTNER, "/order-form", DESK);
     await desk.ev("document.getElementById('catalog-q').focus(); true");
-    await desk.waitFor("document.querySelectorAll('#catalog-list button').length >= 3", "ô tìm danh mục hiện dịch vụ", 10000);
-    const listed = await desk.ev("[...document.querySelectorAll('#catalog-list button')].map((b) => b.textContent.trim().replace(/\\s+/g, ' '))");
+    await desk.waitFor("document.querySelectorAll('#catalog-list .catalog-pick').length >= 3", "ô tìm danh mục hiện dịch vụ", 10000);
+    const listed = await desk.ev("[...document.querySelectorAll('#catalog-list .catalog-pick')].map((b) => b.textContent.trim().replace(/\\s+/g, ' '))");
     assert.ok(listed.some((t) => t.includes("TD101")), `có TD101 trong danh sách — ${JSON.stringify(listed)}`);
     const text = await desk.ev("document.body.textContent");
     assert.ok(!text.includes(CATALOG_ERR), `KHÔNG được có “${CATALOG_ERR}”`);

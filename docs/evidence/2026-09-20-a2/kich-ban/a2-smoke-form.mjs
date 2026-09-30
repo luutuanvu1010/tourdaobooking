@@ -19,22 +19,23 @@ try {
 
   // ---- 1b) bề mặt Tạo đơn (2026-09-25): tiêu đề, thứ tự mục, nút nhập tay ẩn, mặc định Tiền mặt, "Sử dụng thông tin của tôi" ----
   assert.equal(await p.ev("document.getElementById('form-title').textContent"), "Tạo đơn");
-  assert.deepEqual(await p.ev("[...document.querySelectorAll('.form-main > .card > h2')].map((x) => x.textContent)"), ["Chọn ngày", "Dịch vụ", "Thông tin khách hàng", "Thanh toán"]);
+  assert.deepEqual(await p.ev("[...document.querySelectorAll('.form-main > .card > h2')].map((x) => x.textContent)"), ["Chọn ngày", "Dịch vụ", "Thanh toán", "Thông tin khách hàng"]); // YC-0001 (chủ duyệt 30/9): Thanh toán TRƯỚC khách
   assert.equal(await p.ev("document.getElementById('add-manual').hidden"), true, "nút '+ Dịch vụ nhập tay' ẩn khi danh mục tải được");
-  assert.equal(await p.ev("document.getElementById('depositMethod').value"), "cash", "phương thức thanh toán mặc định Tiền mặt");
-  assert.match(await p.ev("document.querySelector('label:has(#depositAmount)').textContent"), /^Thanh toán trước/);
-  assert.match(await p.ev("document.querySelector('label:has(#depositMethod)').textContent"), /^Phương thức thanh toán/);
+  assert.equal(await p.ev("document.getElementById('prepaidMethod').value"), "BANK_TRANSFER", "hình thức trả trước mặc định Chuyển khoản (YC-0002, chủ duyệt 30/9)");
+  assert.match(await p.ev("document.querySelector('label:has(#prepaidAmount)').textContent"), /^Thanh toán trước/);
+  assert.match(await p.ev("document.querySelector('label:has(#prepaidMethod)').textContent"), /^Hình thức/);
+  assert.equal(await p.ev("document.getElementById('customerName').value"), "", "không điền sẵn tên khách (YC-0002)");
   await p.ev("document.getElementById('use-mine').click(); true");
   assert.deepEqual(await p.ev("[document.getElementById('customerName').value, document.getElementById('customerPhone').value, document.getElementById('customerEmail').value]"), [ACCOUNTS.salesA.name, ACCOUNTS.salesA.phone, ""]);
   await p.ev(setInput("document.getElementById('customerName')", ""));
   await p.ev(setInput("document.getElementById('customerPhone')", ""));
-  ok("Tạo đơn: thứ tự Chọn ngày → Dịch vụ → Thông tin khách hàng → Thanh toán; nhập tay ẩn; Tiền mặt mặc định; nút 'của tôi' điền tên + SĐT tài khoản");
+  ok("Tạo đơn: thứ tự Chọn ngày → Dịch vụ → Thanh toán → Thông tin khách hàng; nhập tay ẩn; Chuyển khoản mặc định, tên khách trống; nút 'của tôi' điền tên + SĐT tài khoản");
 
   // ---- 2) ô chọn danh mục: tìm, kết quả, trạng thái rỗng ----
   await p.ev("document.getElementById('catalog-q').focus(); true");
-  await p.waitFor("document.querySelectorAll('#catalog-list button').length === 3", "3 dịch vụ danh mục hiện");
+  await p.waitFor("document.querySelectorAll('#catalog-list .catalog-pick').length === 3", "3 dịch vụ danh mục hiện");
   await p.ev(setInput("document.getElementById('catalog-q')", "phao"));
-  await p.waitFor("document.querySelectorAll('#catalog-list button').length === 1 && /TTB03/.test(document.getElementById('catalog-list').textContent)", "lọc theo 'phao'");
+  await p.waitFor("document.querySelectorAll('#catalog-list .catalog-pick').length === 1 && /TTB03/.test(document.getElementById('catalog-list').textContent)", "lọc theo 'phao'");
   assert.match(await p.ev("document.getElementById('catalog-list').textContent"), /theo nhóm 5 khách\/lượt/);
   await p.ev(setInput("document.getElementById('catalog-q')", "khong-co"));
   await p.waitFor("/Không tìm thấy dịch vụ/.test(document.getElementById('catalog-list').textContent)", "trạng thái rỗng của danh sách");
@@ -42,7 +43,7 @@ try {
 
   // ---- 2b) Enter trong ô tìm danh mục KHÔNG gửi cả form đơn hàng (ô tìm nằm trong <form>; nút mặc định của form là "Lưu") ----
   await p.ev(setInput("document.getElementById('catalog-q')", "phao"));
-  await p.waitFor("document.querySelectorAll('#catalog-list button').length === 1", "phao (kiểm Enter)");
+  await p.waitFor("document.querySelectorAll('#catalog-list .catalog-pick').length === 1", "phao (kiểm Enter)");
   await p.ev("document.getElementById('catalog-q').focus(); true");
   // phím Enter THẬT qua CDP: nếu form bị gửi ngầm, form trống này sẽ hiện banner kiểm phía trình duyệt (thiếu tên/SĐT/dịch vụ) ở #save-error
   await p.send("Input.dispatchKeyEvent", { type: "keyDown", key: "Enter", code: "Enter", windowsVirtualKeyCode: 13, text: "\r" });
@@ -55,8 +56,8 @@ try {
 
   // ---- 3) thêm dịch vụ nhóm (Phao chuối): 7 khách → 2 lượt ----
   await p.ev(setInput("document.getElementById('catalog-q')", "phao"));
-  await p.waitFor("document.querySelectorAll('#catalog-list button').length === 1", "phao");
-  await p.ev("document.querySelector('#catalog-list button').click(); true");
+  await p.waitFor("document.querySelectorAll('#catalog-list .catalog-pick').length === 1", "phao");
+  await p.ev("document.querySelector('#catalog-list .catalog-pick').click(); true");
   await p.waitFor(`${cards}.length === 1`, "thẻ Phao chuối");
   assert.equal(await p.ev(`${card(0)}.querySelector('.svc-name').textContent`), "Phao chuối");
   assert.equal(await p.ev(`${counter(0, "Số khách")}.value`), "1");
@@ -69,8 +70,8 @@ try {
   // ---- 4) thêm dịch vụ theo người (Tour 4 đảo): 2 người lớn + 1 trẻ em; đơn giá thương lượng ----
   await p.ev("document.getElementById('catalog-q').focus(); true");
   await p.ev(setInput("document.getElementById('catalog-q')", "TD101"));
-  await p.waitFor("document.querySelectorAll('#catalog-list button').length === 1", "TD101");
-  await p.ev("document.querySelector('#catalog-list button').click(); true");
+  await p.waitFor("document.querySelectorAll('#catalog-list .catalog-pick').length === 1", "TD101");
+  await p.ev("document.querySelector('#catalog-list .catalog-pick').click(); true");
   await p.waitFor(`${cards}.length === 2`, "thẻ Tour 4 đảo");
   await p.ev(setInput(counter(1, "Người lớn"), "2"));
   await p.ev(setInput(counter(1, "Trẻ em"), "1"));
@@ -125,15 +126,15 @@ try {
 
   // ---- 7) thanh toán, tóm tắt, kiểm phía trình duyệt ----
   assert.match(await p.ev("document.getElementById('sum-subtotal').textContent"), /7\.350\.000/);
-  await p.ev(setInput("document.getElementById('depositAmount')", "1000000"));
-  await p.ev(setInput("document.getElementById('depositMethod')", "")); // bỏ mặc định Tiền mặt để kiểm lỗi thiếu phương thức
-  assert.match(await p.ev("document.getElementById('sum-remaining').textContent"), /6\.350\.000/);
-  await p.ev("document.getElementById('save').click(); true"); // thiếu tên/SĐT khách + chưa chọn hình thức cọc
+  await p.ev(setInput("document.getElementById('prepaidAmount')", "1000000"));
+  assert.match(await p.ev("document.getElementById('sum-prepaid').textContent"), /1\.000\.000/);
+  assert.equal(await p.ev("document.getElementById('sum-prepaid-row').hidden"), false, "tóm tắt hiện dòng trả trước (ghi sau khi lưu)");
+  await p.ev("document.getElementById('save').click(); true"); // thiếu tên/SĐT khách
   await p.waitFor("!document.getElementById('save-error').hidden", "banner kiểm phía trình duyệt");
   assert.equal(await p.ev("(() => { const r = document.getElementById('save-error').getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight; })()"), true, "banner lỗi nằm trong khung nhìn sau khi bấm Lưu (điện thoại)");
   const msg = await p.ev("document.getElementById('save-error').textContent");
-  for (const m of ["Nhập tên khách.", "Nhập số điện thoại khách.", "Chọn phương thức thanh toán."]) assert.ok(msg.includes(m), `thiếu "${m}" trong: ${msg}`);
-  ok("tóm tắt 7.350.000 / còn lại 6.350.000; bấm Lưu khi thiếu tên, SĐT, phương thức thanh toán → banner nêu đủ");
+  for (const m of ["Nhập tên khách.", "Nhập số điện thoại khách."]) assert.ok(msg.includes(m), `thiếu "${m}" trong: ${msg}`);
+  ok("tóm tắt 7.350.000 / trả trước 1.000.000; bấm Lưu khi thiếu tên, SĐT → banner nêu đủ");
 
   // ---- 8) lưu thành công → đơn có đúng dữ liệu (đọc lại qua API) ----
   // 2026-09-26 (DK-T3-01, chủ dự án "loại bỏ hoàn toàn dịch vụ nhập tay"): máy chủ không nhận dịch vụ nhập tay MỚI (400) → xoá thẻ nhập tay của bước 5
@@ -142,14 +143,15 @@ try {
   await p.waitFor(`${cards}.length === 2 && /6\\.550\\.000/.test(document.getElementById('sum-subtotal').textContent)`, "đã xoá thẻ nhập tay mới, tạm tính 6.550.000");
   await p.ev(setInput("document.getElementById('customerName')", "Trần Văn Bình"));
   await p.ev(setInput("document.getElementById('customerPhone')", "0901 234 567"));
-  await p.ev(setInput("document.getElementById('depositMethod')", "bank_transfer"));
   await p.ev("document.getElementById('save').click(); true");
   await p.waitFor("location.pathname === '/order'", "chuyển tới trang đơn sau khi lưu", 15000);
   const orderId = await p.ev("new URLSearchParams(location.search).get('id')");
   const detail = await p.ev(`fetch('/api/orders/' + ${JSON.stringify(orderId)}).then((r) => r.json())`);
   assert.equal(detail.order.services.length, 2);
   assert.equal(detail.order.subtotal, 6550000);
-  assert.equal(detail.order.remainingAmount, 5550000);
+  // Bước hai của form (sổ tiền lượt 1): trả trước 1.000.000 thành lần thu "Công ty thu – CK" → còn lại 5.550.000 (billing).
+  const tienDon = await p.ev(`fetch('/api/orders/' + ${JSON.stringify(orderId)} + '/payments').then((r) => r.json())`);
+  assert.deepEqual([tienDon.daThu, tienDon.conLai, tienDon.lanThu.length], [1000000, 5550000, 1]);
   const tour = detail.order.services.find((s) => s.catalogCode === "TD101");
   assert.deepEqual(tour.items.map((i) => [i.paxCode, i.quantity, i.unitPrice, i.catalogPrice]), [["adult", 2, 1300000, 1350000], ["child", 1, 950000, 950000]]);
   assert.equal(tour.departDate, vnDate(7));
@@ -199,8 +201,8 @@ try {
   await p.waitFor("document.getElementById('catalog-q')", "form mới");
   await p.ev("document.getElementById('catalog-q').focus(); true");
   await p.ev(setInput("document.getElementById('catalog-q')", "TD101"));
-  await p.waitFor("document.querySelectorAll('#catalog-list button').length === 1", "TD101");
-  await p.ev("document.querySelector('#catalog-list button').click(); true");
+  await p.waitFor("document.querySelectorAll('#catalog-list .catalog-pick').length === 1", "TD101");
+  await p.ev("document.querySelector('#catalog-list .catalog-pick').click(); true");
   await p.waitFor(`${cards}.length === 1`, "thẻ");
   await p.ev(setInput("document.getElementById('orderDate')", vnDate(5)));
   await p.ev(setInput("document.getElementById('customerName')", "Khách Đổi Giá"));
@@ -266,8 +268,8 @@ try {
   // (trước đây bấm nút ẩn "+ Dịch vụ nhập tay"; lưu nay trả 400 nên kịch bản đổi, không phải lỗi mã).
   // Trang tới bằng Page.navigate (không qua env.as): GET /api/catalog có thể CHƯA xong lúc gõ, và ô tìm chỉ vẽ lại khi focus/gõ → gõ lại mỗi lần thăm dò.
   await p.ev("document.getElementById('catalog-q').focus(); true");
-  await p.waitFor("(() => { const q = document.getElementById('catalog-q'); q.value = 'TD101'; q.dispatchEvent(new Event('input', { bubbles: true })); return document.querySelectorAll('#catalog-list button').length === 1; })()", "TD101 (lịch sử)");
-  await p.ev("document.querySelector('#catalog-list button').click(); true");
+  await p.waitFor("(() => { const q = document.getElementById('catalog-q'); q.value = 'TD101'; q.dispatchEvent(new Event('input', { bubbles: true })); return document.querySelectorAll('#catalog-list .catalog-pick').length === 1; })()", "TD101 (lịch sử)");
+  await p.ev("document.querySelector('#catalog-list .catalog-pick').click(); true");
   await p.waitFor(`${cards}.length === 1`, "thẻ danh mục (lịch sử)");
   await p.ev(setInput("document.getElementById('customerName')", "Khách Lịch Sử"));
   await p.ev(setInput("document.getElementById('customerPhone')", "0903 555 666"));
@@ -285,10 +287,10 @@ try {
   p = await env.as(ACCOUNTS.salesA, "/order-form");
   await p.waitFor("document.getElementById('catalog-q')", "form mới (kiểm ARIA)");
   await p.ev("document.getElementById('catalog-q').focus(); true");
-  await p.waitFor("document.querySelectorAll('#catalog-list button').length === 4", "4 mục danh mục (gồm mục không chọn được)");
+  await p.waitFor("document.querySelectorAll('#catalog-list .catalog-pick').length === 4", "4 mục danh mục (gồm mục không chọn được)");
   const aria = await p.ev(`(() => {
     const list = document.getElementById('catalog-list');
-    const btns = [...list.querySelectorAll('button')];
+    const btns = [...list.querySelectorAll('.catalog-pick')];
     const x = btns.find((b) => b.textContent.includes('TDX01'));
     x.focus();
     const s = getComputedStyle(x);
@@ -300,7 +302,7 @@ try {
   assert.deepEqual([aria.xAriaDisabled, aria.xDisabled, aria.xFocusable, aria.othersAriaDisabled], ["true", false, true, 0], `mục không chọn được dùng aria-disabled (không disabled), vẫn focus được: ${JSON.stringify(aria)}`);
   assert.ok(Number(aria.xOpacity) < 1 && aria.xCursor === "not-allowed", `mục không chọn được hiện mờ + con trỏ not-allowed: ${JSON.stringify(aria)}`);
   assert.match(aria.xText, /chưa hỗ trợ/, "mục không chọn được ghi 'chưa hỗ trợ' (bản 1.39: trước là 'nhập tay' — dịch vụ nhập tay đã bỏ)");
-  await p.ev("[...document.querySelectorAll('#catalog-list button')].find((b) => b.textContent.includes('TDX01')).click(); true");
+  await p.ev("[...document.querySelectorAll('#catalog-list .catalog-pick')].find((b) => b.textContent.includes('TDX01')).click(); true");
   await sleep(300);
   assert.equal(await p.ev(`${cards}.length === 0 && !document.getElementById('catalog-list').hidden`), true, "bấm mục không chọn được: không thêm thẻ, danh sách vẫn mở");
   await p.ev(setInput("document.getElementById('catalog-q')", "khong-co"));
@@ -411,8 +413,8 @@ try {
   await p.ev(setInput(`${card(0)}.querySelector('input[placeholder="Vd: Xe 7 chỗ 2 chiều"]')`, "Xe 7 chỗ 2 chiều"));
   await p.ev(setInput(`${card(0)}.querySelector('.price-field')`, "500000"));
   await p.waitFor("document.getElementById('mobile-total').textContent.includes('500.000')", "khối tóm tắt điện thoại cập nhật số tiền");
-  const readMobileSummary = () => p.ev(`(() => { const s = getComputedStyle(document.querySelector('.mobile-actions-summary')); return { display: s.display, total: document.getElementById('mobile-total').textContent, due: document.getElementById('mobile-due').textContent }; })()`);
-  assert.deepEqual(await readMobileSummary(), { display: "block", total: "500.000 ₫", due: "500.000 ₫" }, "390px (điện thoại): khối tóm tắt PHẢI hiện, đúng số tiền");
+  const readMobileSummary = () => p.ev(`(() => { const s = getComputedStyle(document.querySelector('.mobile-actions-summary')); return { display: s.display, total: document.getElementById('mobile-total').textContent, prepaid: !document.getElementById('mobile-prepaid-row').hidden }; })()`);
+  assert.deepEqual(await readMobileSummary(), { display: "block", total: "500.000 ₫", prepaid: false }, "390px (điện thoại): khối tóm tắt PHẢI hiện, đúng số tiền (sổ tiền lượt 1: không trả trước → không dòng 'Trả trước', không tự trừ 'Còn lại')");
   await p.send("Emulation.setDeviceMetricsOverride", { width: 800, height: 900, deviceScaleFactor: 1, mobile: false });
   assert.equal((await readMobileSummary()).display, "none", "800px (khổ giữa, vd iPad dọc): khối tóm tắt PHẢI ẩn");
   await p.send("Emulation.setDeviceMetricsOverride", { width: 1040, height: 800, deviceScaleFactor: 1, mobile: false });
@@ -425,35 +427,35 @@ try {
   await p.waitFor("document.getElementById('catalog-q')", "form");
   await p.ev("document.getElementById('catalog-q').focus(); true");
   await p.ev(setInput("document.getElementById('catalog-q')", "TD101"));
-  await p.waitFor("document.querySelectorAll('#catalog-list button').length === 1", "TD101");
-  await p.ev("document.querySelector('#catalog-list button').click(); true");
+  await p.waitFor("document.querySelectorAll('#catalog-list .catalog-pick').length === 1", "TD101");
+  await p.ev("document.querySelector('#catalog-list .catalog-pick').click(); true");
   await p.waitFor(`${cards}.length === 1`, "thẻ để đo");
   // ---- 12a) bản 1.39: đếm dịch vụ (tiêu đề khối, Tóm tắt, thanh dính đáy một dòng), báo ngắn sau khi chọn, nhãn "đã chọn" (không chặn chọn trùng) ----
-  const dem = () => p.ev(`({ title: document.getElementById('services-title').textContent, sum: document.getElementById('sum-count').textContent, mob: document.querySelector('.mobile-sum-line > span:first-child').textContent, due: !document.getElementById('mobile-due-wrap').hidden, toast: [...document.querySelectorAll('.toast-bao')].map((t) => t.textContent), bar: Math.round(document.querySelector('.form-actions').getBoundingClientRect().height) })`);
+  const dem = () => p.ev(`({ title: document.getElementById('services-title').textContent, sum: document.getElementById('sum-count').textContent, mob: document.querySelector('.mobile-sum-line > span:first-child').textContent, due: !document.getElementById('mobile-prepaid-row').hidden, toast: [...document.querySelectorAll('.toast-bao')].map((t) => t.textContent), bar: Math.round(document.querySelector('.form-actions').getBoundingClientRect().height) })`);
   const d1 = await dem();
   assert.equal(d1.title, "Dịch vụ (1)");
   assert.equal(d1.sum, "1 dịch vụ");
   assert.match(d1.mob, /^1 dịch vụ · Tổng /);
-  assert.equal(d1.due, false, "chưa có thanh toán trước: không hiện 'Còn lại'");
+  assert.equal(d1.due, false, "chưa có thanh toán trước: không hiện 'Trả trước' (sổ tiền lượt 1 — thay 'Còn lại')");
   assert.match(d1.toast.at(-1) ?? "", /^Đã thêm .+ — đơn có 1 dịch vụ$/);
   assert.equal(await p.ev("getComputedStyle(document.querySelector('.toast-bao')).pointerEvents"), "none", "báo ngắn không bấm được");
   const toastR = await p.ev("(() => { const a = document.querySelector('.toast-bao').getBoundingClientRect(), b = document.getElementById('save').getBoundingClientRect(); return a.bottom <= b.top || a.top >= b.bottom; })()");
   assert.equal(toastR, true, "báo ngắn không che nút Lưu ở 390px");
   await p.ev("document.getElementById('catalog-q').focus(); true");
   await p.ev(setInput("document.getElementById('catalog-q')", "TD101"));
-  await p.waitFor("document.querySelectorAll('#catalog-list button').length === 1", "TD101 lần hai");
-  assert.equal(await p.ev("document.querySelector('#catalog-list button .chip-picked')?.textContent"), "đã chọn", "kết quả tìm đã có trong đơn gắn 'đã chọn'");
-  await p.ev("document.querySelector('#catalog-list button').click(); true");
+  await p.waitFor("document.querySelectorAll('#catalog-list .catalog-pick').length === 1", "TD101 lần hai");
+  assert.equal(await p.ev("document.querySelector('#catalog-list .catalog-pick .chip-picked')?.textContent"), "đã chọn", "kết quả tìm đã có trong đơn gắn 'đã chọn'");
+  await p.ev("document.querySelector('#catalog-list .catalog-pick').click(); true");
   await p.waitFor(`${cards}.length === 2`, "chọn trùng vẫn được");
   const d2 = await dem();
   assert.equal(d2.title, "Dịch vụ (2)");
   assert.match(d2.toast.at(-1) ?? "", /— đơn có 2 dịch vụ$/);
-  await p.ev(setInput("document.getElementById('depositAmount')", "100000"));
-  await p.waitFor("!document.getElementById('mobile-due-wrap').hidden", "có thanh toán trước: hiện 'Còn lại'");
+  await p.ev(setInput("document.getElementById('prepaidAmount')", "100000"));
+  await p.waitFor("!document.getElementById('mobile-prepaid-row').hidden", "có thanh toán trước: hiện 'Trả trước'");
   const d3 = await dem();
   console.log(`   thanh dính đáy 390px: không thanh toán trước ${d2.bar}px, có thanh toán trước ${d3.bar}px`);
-  await p.ev(setInput("document.getElementById('depositAmount')", ""));
-  ok(`đếm dịch vụ: 'Dịch vụ (N)', Tóm tắt 'N dịch vụ', thanh đáy một dòng (Còn lại chỉ khi có thanh toán trước; ${d2.bar}/${d3.bar}px), báo ngắn không che Lưu, nhãn 'đã chọn' không chặn chọn trùng`);
+  await p.ev(setInput("document.getElementById('prepaidAmount')", ""));
+  ok(`đếm dịch vụ: 'Dịch vụ (N)', Tóm tắt 'N dịch vụ', thanh đáy một dòng (Trả trước chỉ khi có thanh toán trước — sổ tiền lượt 1; ${d2.bar}/${d3.bar}px), báo ngắn không che Lưu, nhãn 'đã chọn' không chặn chọn trùng`);
   const m = await p.ev(`(() => {
     const small = [...document.querySelectorAll('.counter-btn, .svc-remove, #save, .catalog-list button, .trip > summary')].filter((el) => { const r = el.getBoundingClientRect(); return r.width > 0 && (r.height < 43.5 || r.width < 43.5); }).map((el) => el.className + ' ' + Math.round(el.getBoundingClientRect().width) + 'x' + Math.round(el.getBoundingClientRect().height));
     const smallFont = [...document.querySelectorAll('input, select, textarea')].filter((el) => el.getBoundingClientRect().width > 0 && parseFloat(getComputedStyle(el).fontSize) < 16).map((el) => el.id || el.className);

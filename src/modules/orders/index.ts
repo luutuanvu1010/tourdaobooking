@@ -10,9 +10,10 @@ import { UUID_RE, error, intParam, json, readJson } from "../../shared/http";
 import { can, seesOnlyAssignedOrders, type PermissionHolder } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
 import { vnToday, vnWeekRange } from "../../shared/vn-date";
+import { docLocDon } from "../../shared/loc-don";
 import { editablePaxCodesOf, planMoneyEdit } from "./money-adjustment";
 import {
-  addLeg, cancelOrder, changeBooker, changeLeg, confirmOrder, createOrder, effectivePax, findOrder, getDashboard, getDepartDates, getLatestAdjustment, getMeta, getOrderRef,
+  addLeg, cancelOrder, changeBooker, changeLeg, cocCuNhap, confirmOrder, createOrder, effectivePax, findOrder, getDashboard, getDepartDates, getLatestAdjustment, getMeta, getOrderRef,
   getServicesForSubtotal, getStoredServices, insertMoneyAdjustment, listOrders, listPoolSources, updateDraftOrder, updateTrip, writePassengerChange,
 } from "./repository";
 import {
@@ -29,7 +30,7 @@ import { toPoolOrders } from "./pool";
 import {
   PARTNER_DISCOUNT_CAP, PARTNER_DISCOUNT_MESSAGE, RETAIL_PRICE_MESSAGE, discountWithinCap, holdsPartner, manualFreezeViolation, retailPricesOnly,
 } from "./price-guards";
-import { canTransition, hasHandlerPick, isOrderStatus, parseHandlerPick, validateBookerChange, validateOrder, type Failure, type OrderStatus, type ValidOrder } from "./rules";
+import { canTransition, hasHandlerPick, parseHandlerPick, validateBookerChange, validateOrder, type Failure, type OrderStatus, type ValidOrder } from "./rules";
 import {
   keHoachChangTrip, loadOrderView, passengerList, planAddLeg, planCloseLeg, planEditLeg, planPassengerChange, resolveBooker, resolveLegPlaces, validationContext,
   type OrderValidationContext,
@@ -45,6 +46,8 @@ const FORBIDDEN_VIEW = () => error(403, "forbidden", "Tài khoản này không �
 const NOT_FOUND = () => error(404, "not_found", "Không tìm thấy đơn.");
 const NOT_EDITABLE = () => error(409, "not_editable", "Chỉ sửa được đơn đang chờ xác nhận. Muốn đổi đơn đã xác nhận, hãy huỷ và tạo đơn mới.");
 const CANCELLED = () => error(409, "not_editable", "Đơn đã huỷ, không sửa được.");
+/** Sổ tiền lượt 1 (ADR-0025 đ5): đơn đã "Đã giao – đã thu đủ" bị khoá — mọi route ghi từ chối SỚM bằng câu tiếng Việt (trigger 0044 là lưới cuối). */
+const DA_GIAO = () => error(409, "order_delivered", "Đơn đã Đã giao – đã thu đủ: không sửa, huỷ hay đổi người phụ trách được nữa. Sai sót thì Kế toán ghi điều chỉnh trong sổ.");
 const STALE = () => error(409, "stale", "Đơn vừa được người khác sửa, hãy tải lại rồi sửa tiếp.");
 const RACED = () => error(409, "invalid_transition", "Đơn vừa được người khác đổi trạng thái, hãy tải lại.");
 const PARTNER_PRICE = () => error(403, "forbidden", RETAIL_PRICE_MESSAGE);
@@ -330,6 +333,17 @@ export async function cancelOrderByHandler(db: D1Database, id: string, staffId: 
   return cancelOrder(db, id, staffId, "confirmed", prevUpdatedAt, { action: "order_cancelled_by_field", detail: reasonLabel });
 }
 
+// ---- Sổ tiền lượt 1 (ADR-0024 điều 3–4, ADR-0025): `orders` công bố trạng thái + "phải thu hiện hành" + hai câu mốc CHƯA CHẠY cho billing gộp vào
+// MỘT db.batch() (quy tắc 3 ADR-0002). `orders` không đọc bảng của billing. KHÔNG tự kiểm quyền — route của billing hỏi can() trước.
+export { donDangThuTien, phaiThuNhieuDon, thongTinGiaoDon, type PhaiThuDon, type ThongTinGiaoDon } from "./hoan-tat";
+export { datGiaoStatement, hoanThanhStatement, type DatGiaoInput } from "./hoan-tat-repo";
+
+/**
+ * API công khai cho module `receipt` (biên nhận — ADR-0024 đ1): chi tiết đơn HIỆN HÀNH (đã áp điều chỉnh) để receipt CHÉP TỪNG trường được phép vào
+ * `ReceiptDto` (danh sách trắng — không trải đối tượng). KHÔNG tự kiểm quyền — route của receipt hỏi can() trước khi trả.
+ */
+export const donChoBienNhan = (db: D1Database, id: string): Promise<OrderDetailDto | null> => loadOrderView(db, id, false);
+
 export type MoneyEditResult = { ok: true } | { ok: false; code: "not_found" | "not_confirmed" | "invalid_input" | "stale"; message?: string };
 
 /**
@@ -391,8 +405,6 @@ export async function getMyAssignments(db: D1Database, orderIds: readonly string
         customerPhone: o.customerPhone,
         status: o.status,
         total: o.total,
-        depositAmount: o.depositAmount,
-        remainingAmount: o.remainingAmount,
         services: o.services.map((s) => ({
           id: s.id,
           name: s.name,
@@ -473,12 +485,12 @@ export const ordersModule: AppModule = {
       if (seesAll && (!can(staff, "money.view") || !can(staff, "contact.view"))) return FORBIDDEN_VIEW();
       if (own && (!can(staff, "money.view", mine) || !can(staff, "contact.view", mine))) return FORBIDDEN_VIEW();
       if (handled && (!can(staff, "money.view", handling) || !can(staff, "contact.view", handling))) return FORBIDDEN_VIEW();
-      const raw = url.searchParams.get("status");
-      const status = raw ? (isOrderStatus(raw) ? raw : undefined) : null;
-      if (status === undefined) return error(400, "invalid_input", "Trạng thái lọc không hợp lệ.");
+      // Bộ lọc nhiều điều kiện (góp ý T4): kiểm ở `docLocDon` (thuần) SAU mọi câu hỏi quyền; listOrders AND bộ lọc với phạm vi ở trên — không bao giờ nới.
+      const loc = docLocDon(url.searchParams);
+      if (!loc.ok) return error(400, "invalid_input", loc.message);
       const result = await listOrders(env.DB, {
         q: (url.searchParams.get("q") ?? "").trim().slice(0, 100),
-        status,
+        loc: loc.loc,
         limit: intParam(url.searchParams.get("limit"), 30, 1, 100),
         offset: intParam(url.searchParams.get("offset"), 0, 0, 100000),
         ownerId: own ? staff.id : null,
@@ -542,7 +554,8 @@ export const ordersModule: AppModule = {
       if (!can(staff, "money.view", scope) || !can(staff, "contact.view", scope)) return FORBIDDEN_VIEW();
       // R-P21 (áp lời chủ H4): dòng đặt gấp của lịch sử rút gọn theo vai (Đối tác, HDV, Thực tập không thấy lý do, tên người duyệt).
       const history = can(staff, "order.history.view", scope) ? lichSuTheoVai(await getAuditTrail(env.DB, order.id), xemDuDatGap(staff)) : [];
-      return json({ order, history, canModify: can(staff, "order.modify", scope), mocToiThieuPhut: moc?.phut ?? null } satisfies OrderDetailResponse);
+      // Đơn đã "Đã giao" bị khoá (ADR-0025 đ5) ⇒ không còn nút sửa (giao diện chỉ ẩn/hiện; máy chủ từ chối ở mọi route ghi).
+      return json({ order, history, canModify: can(staff, "order.modify", scope) && order.deliveredAt === null, mocToiThieuPhut: moc?.phut ?? null } satisfies OrderDetailResponse);
     }),
 
     route("PUT", "/api/orders/:id", "orders", async ({ env, request, params, staff, isAssigned, baoThayDoi, mocToiThieu }) => {
@@ -551,6 +564,7 @@ export const ordersModule: AppModule = {
       const [meta, assigned] = await Promise.all([getMeta(env.DB, id), isAssigned(id)]);
       if (!meta) return NOT_FOUND();
       if (!can(staff, "order.modify", { ownerId: meta.staffId, assigned })) return FORBIDDEN();
+      if (meta.deliveredAt) return DA_GIAO();
       if (meta.status !== "draft") return NOT_EDITABLE();
       const body = await readJson(request);
       // ADR-0047 A2: thân có khoá `passengers` → hỏi thêm ô nhập tên khách với phạm vi CỦA ĐƠN NÀY (trước validateOrder).
@@ -579,7 +593,11 @@ export const ordersModule: AppModule = {
       const moc = coChang ? await mocToiThieu() : null;
       if (coChang && !moc) return MOC_CHUA_CO();
       const datGapNhap = coChang ? chepDatGapNhap(await legDatGapByOrder(env.DB, id), placed.value.services) : new Map<string, DatGapWrite>();
-      if (!(await updateDraftOrder(env.DB, id, staff.id, { ...placed.value, expectedUpdatedAt: expected }, booker.write, legMeta, datGapNhap))) {
+      // Q2 (chủ trả lời 2026-09-30 "Đưa cọc cũ về 0, ghi nhật ký"): nháp CŨ còn cọc ghi trên đơn mà tổng mới < cọc cũ → câu lưu nháp đưa cột cọc về 0 (số tiền
+      // không mất — đã là lần thu "chưa rõ" trong sổ của billing); ghi số cọc cũ vào dòng nhật ký `updated` (không SĐT).
+      const cocCu = await cocCuNhap(env.DB, id);
+      const ghiChuCoc = cocCu > placed.value.total ? `đưa tiền cọc cũ ${cocCu.toLocaleString("vi-VN")} ₫ ghi trên đơn về 0 (tiền đã nằm ở lần thu "chưa rõ" trong sổ)` : null;
+      if (!(await updateDraftOrder(env.DB, id, staff.id, { ...placed.value, expectedUpdatedAt: expected }, booker.write, legMeta, datGapNhap, ghiChuCoc))) {
         const now = await getMeta(env.DB, id);
         return now && now.status !== "draft" ? NOT_EDITABLE() : STALE();
       }
@@ -595,6 +613,7 @@ export const ordersModule: AppModule = {
       const [meta, assigned] = await Promise.all([getMeta(env.DB, id), isAssigned(id)]);
       if (!meta) return NOT_FOUND();
       if (!can(staff, "order.trip.edit", { ownerId: meta.staffId, assigned })) return FORBIDDEN();
+      if (meta.deliveredAt) return DA_GIAO();
       if (meta.status === "cancelled") return CANCELLED();
       const stored = await getStoredServices(env.DB, id);
       const tripBody = await readJson(request);
@@ -636,6 +655,7 @@ export const ordersModule: AppModule = {
       const [meta, assigned] = await Promise.all([getMeta(env.DB, id), isAssigned(id)]);
       if (!meta) return NOT_FOUND();
       if (!can(staff, "order.trip.edit", { ownerId: meta.staffId, assigned })) return FORBIDDEN();
+      if (meta.deliveredAt) return DA_GIAO();
       if (meta.status === "draft") return USE_ORDER_FORM();
       if (meta.status === "cancelled") return CANCELLED();
       const body = await readJson(request);
@@ -661,6 +681,7 @@ export const ordersModule: AppModule = {
       const [meta, assigned] = await Promise.all([getMeta(env.DB, id), isAssigned(id)]);
       if (!meta) return NOT_FOUND();
       if (!can(staff, "order.trip.edit", { ownerId: meta.staffId, assigned })) return FORBIDDEN();
+      if (meta.deliveredAt) return DA_GIAO();
       if (meta.status === "draft") return USE_ORDER_FORM();
       if (meta.status === "cancelled") return CANCELLED();
       if (!UUID_RE.test(legId)) return LEG_NOT_FOUND();
@@ -686,6 +707,7 @@ export const ordersModule: AppModule = {
       const [meta, assigned] = await Promise.all([getMeta(env.DB, id), isAssigned(id)]);
       if (!meta) return NOT_FOUND();
       if (!can(staff, "order.trip.edit", { ownerId: meta.staffId, assigned })) return FORBIDDEN();
+      if (meta.deliveredAt) return DA_GIAO();
       if (meta.status === "draft") return USE_ORDER_FORM();
       if (meta.status === "cancelled") return CANCELLED();
       if (!UUID_RE.test(legId)) return LEG_NOT_FOUND();
@@ -709,6 +731,7 @@ export const ordersModule: AppModule = {
       const { lyDo, ghiChu: ghiChuSach } = than.value;
       const [meta, moc] = await Promise.all([getMeta(env.DB, id), mocToiThieu()]);
       if (!meta) return NOT_FOUND();
+      if (meta.deliveredAt) return DA_GIAO();
       if (meta.status === "cancelled") return CANCELLED();
       if (!UUID_RE.test(legId)) return LEG_NOT_FOUND();
       const [leg, ref] = await Promise.all([legById(env.DB, legId, id), getOrderRef(env.DB, id)]);
@@ -747,6 +770,7 @@ export const ordersModule: AppModule = {
       const [meta, assigned] = await Promise.all([getMeta(env.DB, id), isAssigned(id)]);
       if (!meta) return NOT_FOUND();
       if (!can(staff, "order.passenger.write", { ownerId: meta.staffId, assigned })) return CANNOT_WRITE_PASSENGERS();
+      if (meta.deliveredAt) return DA_GIAO();
       if (meta.status === "draft") return USE_ORDER_FORM();
       if (meta.status === "cancelled") return CANCELLED();
       const plan = await planPassengerChange(env.DB, id, await readJson(request), vnToday(new Date()));
@@ -767,6 +791,7 @@ export const ordersModule: AppModule = {
       const [meta, assigned] = await Promise.all([getMeta(env.DB, id), isAssigned(id)]);
       if (!meta) return NOT_FOUND();
       if (!can(staff, "order.trip.edit", { ownerId: meta.staffId, assigned })) return FORBIDDEN();
+      if (meta.deliveredAt) return DA_GIAO();
       if (meta.status === "cancelled") return CANCELLED();
       const parsed = validateBookerChange(await readJson(request));
       if (!parsed.ok) return error(400, "invalid_input", parsed.message);
@@ -793,6 +818,7 @@ export const ordersModule: AppModule = {
       const [meta, assigned] = await Promise.all([getMeta(env.DB, id), isAssigned(id)]);
       if (!meta) return NOT_FOUND();
       if (!can(staff, "order.modify", { ownerId: meta.staffId, assigned })) return FORBIDDEN();
+      if (meta.deliveredAt) return DA_GIAO();
       const from = meta.status;
       if (!canTransition(from, to)) return error(409, "invalid_transition", `Không thể chuyển đơn từ "${from}" sang "${to}".`);
 
