@@ -85,7 +85,7 @@ r = await call(TX.cookie, "POST", `/api/van-chuyen/cuoc-cua-toi/${id}/xuat-ben`,
 assert.equal(r.status, 200, JSON.stringify(r.body));
 assert.equal(r.body.chuyen.trangThai, "RUNNING");
 // Chuyến ngày D = hôm nay + 2, tài xế bấm Xuất bến HÔM NAY (xuất bến sớm): Q-L3-B (ADR-0053 D7.2, kẽ G3-9) — đang chạy nhưng xuất bến TRƯỚC ngày chạy
-// → KHÔNG trong ngày chạy; tên / liên hệ vẫn vắng. Ca "có tên" trong ngày chạy + qua nửa đêm dùng đồng hồ giả: src/modules/van-chuyen/tai-xe-dto.test.ts.
+// → KHÔNG trong ngày chạy; tên / liên hệ vẫn vắng. Ca "có tên" trong ngày chạy trên API thật: mục 4 dưới; qua nửa đêm dùng đồng hồ giả: src/modules/van-chuyen/tai-xe-dto.test.ts.
 assert.equal(r.body.trongNgayChay, false, "xuất bến sớm (trước ngày chạy) → KHÔNG trong ngày chạy");
 assert.ok(r.body.suat.length > 0 && r.body.suat.every((s) => !("hoTen" in s) && !("namSinh" in s)) && !("lienHe" in r.body), "phản hồi lệnh tiến độ không kèm tên / liên hệ (TC-39 — chỉ GET chi tiết)");
 const [e] = await sqlRows(`SELECT occurred_source, occurred_at, created_at FROM vc_trip_event WHERE trip_id = '${id}' AND kind = 'DEPARTED'`);
@@ -108,3 +108,42 @@ assert.equal(r.body.chuyen.trangThai, "ENDED_INTERRUPTED");
 assert.equal((await sqlRows(`SELECT count(*) AS n FROM audit_log WHERE target_id = '${id}' AND action LIKE 'trip_%' AND order_id IS NOT NULL`))[0].n, 0, "nhật ký chuyến không mang order_id");
 void b;
 console.log("✓ lệnh tài xế: xayRaLuc → 400; xuất bến MAY_CHU; xuất bến sớm (trước ngày chạy) vẫn KHÔNG tên, liên hệ (Q-L3-B); đã tới; 'đã đón' lặp cùng requestId → một sự kiện; tài xế khác 404; kết thúc gián đoạn");
+
+// --- 4. TRONG ngày chạy (Q-L3-B, mục VỪA-1 của người kiểm độc lập 30/9): chuyến có ngày chạy = HÔM NAY (ngày VN), tài xế được xếp, bấm Xuất bến → GET chi
+// tiết CÓ họ tên, năm sinh, liên hệ. Giờ đón hôm nay 23:50 thường DƯỚI mốc tối thiểu → đi đúng đường nghiệp vụ: Quản trị đóng dấu "đặt gấp" lên chặng (route
+// short-notice), rồi mới xác nhận, xếp (ĐP2(ii): xếp chính chặng đặt gấp thì qua). Không đổi chính sách, không chèn SQL vào bảng đơn / chuyến. Chạy từ 23:40
+// giờ VN trở đi thì giờ chuyến hôm nay đã sát / qua → BỎ QUA ca này và in một dòng (không lách).
+const H = vnDate(0);
+const gioVnBayGio = new Date(Date.now() + 7 * 3600_000).toISOString().slice(11, 16);
+if (gioVnBayGio >= "23:40") {
+  console.log(`- BỎ QUA ca trong ngày chạy: bây giờ ${gioVnBayGio} giờ VN, sát nửa đêm`);
+} else {
+  const o = await call(SALES, "POST", "/api/orders", orderInput({
+    customerName: "Liên Hệ Hôm Nay E2E", customerPhone: "0913579247",
+    services: [catalogService({ pax: { adult: 1 }, departDate: H, legs: [{ direction: "OUT", pickupDate: H, pickupTime: "23:50", pickupLocationId: null, pickupPlace: `Khách sạn Hôm Nay E2E ${duoi}`, dropoffLocationId: LOC, dropoffPlace: "" }] })],
+    passengers: [{ fullName: "Khách Hôm Nay E2E", birthYear: 1950, paxCode: null }],
+  }));
+  assert.equal(o.status, 201, JSON.stringify(o.body));
+  const legId = o.body.order.services[0].legs[0].id;
+  r = await call(ADMIN, "POST", `/api/orders/${o.body.order.id}/legs/${legId}/short-notice`, { lyDo: "KHACH_DOAN_GOI_GAP" });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  r = await call(SALES, "POST", `/api/orders/${o.body.order.id}/status`, { status: "confirmed" });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  let c = await call(SALES, "POST", "/api/van-chuyen/chuyen", { requestId: uuid(), xeId: await xe("C"), taiXePartyId: TX2.party, batDau: { ngay: H, gio: "23:40" }, ketThuc: { ngay: H, gio: "23:59" } });
+  assert.equal(c.status, 201, JSON.stringify(c.body));
+  c = await call(SALES, "POST", `/api/van-chuyen/chuyen/${c.body.chuyen.id}/phan-bo`, { version: c.body.chuyen.version, requestId: uuid(), chang: [{ legId, soSuat: 1 }] });
+  assert.equal(c.status, 200, JSON.stringify(c.body));
+  const idH = c.body.chuyen.id;
+  r = await call(TX2.cookie, "POST", `/api/van-chuyen/cuoc-cua-toi/${idH}/xuat-ben`, { requestId: uuid() });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.equal(r.body.chuyen.trangThai, "RUNNING");
+  r = await call(TX2.cookie, "GET", `/api/van-chuyen/cuoc-cua-toi/${idH}`);
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.equal(r.body.trongNgayChay, true, "ngày chạy = hôm nay, đã xuất bến → TRONG ngày chạy");
+  assert.deepEqual(r.body.suat.map((s) => [s.hoTen, s.namSinh]), [["Khách Hôm Nay E2E", 1950]], "trong ngày chạy có họ tên + năm sinh");
+  assert.ok(Array.isArray(r.body.lienHe) && r.body.lienHe.length > 0, "trong ngày chạy có liên hệ (khác rỗng)");
+  assert.deepEqual(r.body.lienHe.map((x) => [x.maDon, x.tenLienHe, x.sdtLienHe]), [[r.body.suat[0].maDon, "Liên Hệ Hôm Nay E2E", "0913579247"]]);
+  r = await call(TX2.cookie, "POST", `/api/van-chuyen/cuoc-cua-toi/${idH}/ket-thuc-gian-doan`, { requestId: uuid(), lyDo: "GIAN_DOAN_KHAC" });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  console.log("✓ trong ngày chạy (ngày chạy = hôm nay, đặt gấp đúng đường, đã xuất bến): GET chi tiết có họ tên, năm sinh, liên hệ (Q-L3-B VỪA-1)");
+}
