@@ -15,7 +15,8 @@
     "parties",
     "staff",
     "thongbao",
-    "van-chuyen"
+    "van-chuyen",
+    "tro-ly"
   ],
   "tables": [
     {
@@ -405,6 +406,18 @@
       "module": "billing",
       "kind": "table",
       "note": "dòng nợ hai chân (ADR-0026 đ3), CHỈ-THÊM; nguồn = đơn HOẶC chuyến (ADR-0057 T3 — trip_id cột dự trữ, không khoá ngoại, lượt 1 luôn trống)"
+    },
+    {
+      "name": "tl_luot_hoi",
+      "module": "tro-ly",
+      "kind": "table",
+      "note": "một dòng / câu hỏi trợ lý Hỗ trợ (ADR-0066 điều 7), CHỈ-THÊM; KHÔNG cột nội dung hỏi/đáp; staff_id không khoá ngoại (tro-ly là lá); chi phí micro-USD (ngoại lệ có tên với luật tiền VNĐ)"
+    },
+    {
+      "name": "tl_cai_dat",
+      "module": "tro-ly",
+      "kind": "table",
+      "note": "bật/tắt + trần tháng (micro-USD) + trần ngày của trợ lý (ADR-0066), bản có hiệu lực CHỈ-THÊM (bản hiện hành = valid_from_at lớn nhất); chỉ Toàn quyền thêm bản mới (settings.ops)"
     }
   ],
   "views": [

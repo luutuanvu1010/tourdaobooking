@@ -1487,3 +1487,13 @@ export interface ReceiptDto {
   conLai: number;
 }
 export interface ReceiptResponse { receipt: ReceiptDto }
+
+// ---- Trợ lý Hỗ trợ (ADR-0066, module tro-ly) ----
+/** Thân `POST /api/tro-ly/hoi`. Máy chủ che SĐT / email / số giấy tờ và cắt 500 ký tự trước khi gửi đi. */
+export interface TroLyHoiRequest { cauHoi: string }
+/** Phản hồi 200 của `POST /api/tro-ly/hoi`: câu trả lời (chữ thường) + tên các mục hướng dẫn đã dùng. Lỗi: 503 `tro_ly_chua_bat`, 429 `tro_ly_het_tran_ngay` /
+ *  `tro_ly_het_tran_thang`, 502 `tro_ly_loi` — `error.message` là câu tiếng Việt hiện thẳng cho người dùng. */
+export interface TroLyHoiResponse { traLoi: string; nguon: string[] }
+/** `GET`/`POST /api/tro-ly/cai-dat` (chỉ Toàn quyền — ô settings.ops). `coKhoa`: máy chủ đã có khoá OpenAI chưa (không bao giờ trả giá trị khoá). */
+export interface TroLyCaiDatResponse { bat: boolean; tranThangUsd: number; tranNgay: number; coKhoa: boolean; thang: string; chiPhiThangUsd: number; soCauThang: number }
+export interface TroLyCaiDatRequest { bat: boolean; tranThangUsd: number; tranNgay: number }

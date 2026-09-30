@@ -63,6 +63,7 @@ const ADR: Record<string, [Scope, Scope, Scope, Scope, Scope, Scope, Scope, Scop
   "party.document.write": ["none", "none", "any", "none", "none", "any", "none", "none", "none"], // ADR-0040 D2: ghi giấy tờ của người + xem danh sách (số che) của người khác — Quản trị + Toàn quyền
   "party.document.reveal": ["none", "none", "any", "none", "none", "any", "none", "none", "none"], // ADR-0040 D2: "xem đủ số" — Quản trị + Toàn quyền; mỗi lần một dòng nhật ký không kèm số
   "vehicle.manage": ["none", "none", "any", "none", "none", "any", "none", "none", "none"], // ADR-0040 D1: xe, giấy tờ xe, danh sách sắp hết hạn — Quản trị + Toàn quyền (ADR-0038 điều 6)
+  "assistant.ask": ["any", "any", "any", "any", "any", "any", "any", "any", "any"], // ADR-0066 điều 1: hỏi trợ lý Hỗ trợ — mọi tài khoản đăng nhập
 };
 const ORDER: readonly PermissionCode[] = ["SALES", "ACCOUNTING", "ADMIN", "FIELD", "PARTNER", "SUPER_ADMIN", "INTERN", "DRIVER", "DRIVER_PARTNER"];
 const OPS = Object.keys(ADR) as OperationCode[];
@@ -307,6 +308,7 @@ test("ADR-0040 D3 + ADR-0049 D3: MỌI ô của Tài xế (DRIVER) — ghim nguy
     "trip.view": "assigned", "trip.dispatch": "none", "trip.override": "none", "trip.progress": "assigned", "trip.call_ack": "none",
     // Sổ tiền lượt 1 (bản làm mới §2): tài xế không thu tiền khách — none ở cả bốn ô mới (ledger.view none, không phải own: tài xế không bao giờ là người thu).
     "order.handover": "none", "order.complete": "none", "ledger.view": "none", "ledger.write": "none",
+    "assistant.ask": "any", // ngoại lệ có tên (ADR-0066 điều 1): hỏi trợ lý Hỗ trợ cách dùng app — trợ lý không đọc dữ liệu nghiệp vụ
   };
   assert.deepEqual(Object.fromEntries((Object.keys(MATRIX) as OperationCode[]).map((op) => [op, MATRIX[op].DRIVER])), DRIVER_ROW);
 });
@@ -332,6 +334,7 @@ test("ADR-0048 D2: MỌI ô của Tài xế đối tác (DRIVER_PARTNER) — ghi
     "party.document.write": "none", "party.document.reveal": "none", "vehicle.manage": "none",
     "trip.view": "none", "trip.dispatch": "none", "trip.override": "none", "trip.progress": "none", "trip.call_ack": "none", // ADR-0049 D3 × ADR-0048 D2: tài xế đối tác chưa dùng app cho chuyến (D7 — lượt sau)
     "order.handover": "none", "order.complete": "none", "ledger.view": "none", "ledger.write": "none", // sổ tiền lượt 1 (bản làm mới §2) — mọi ô tiền = none
+    "assistant.ask": "any", // ngoại lệ có tên (ADR-0066 điều 1): hỏi trợ lý Hỗ trợ — mọi tài khoản đăng nhập
   };
   assert.deepEqual(Object.fromEntries((Object.keys(MATRIX) as OperationCode[]).map((op) => [op, MATRIX[op].DRIVER_PARTNER])), DRIVER_PARTNER_ROW);
 });

@@ -21,6 +21,10 @@ interface __BaseEnv_Env {
 	// định. `npm run types` không sinh lại hai dòng này nếu .dev.vars không có VAPID_PRIVATE_KEY; thiếu thì thêm tay lại.
 	VAPID_PUBLIC_KEY?: string;
 	VAPID_PRIVATE_KEY?: string;
+	// Trợ lý Hỗ trợ (ADR-0066) — khai TAY như trên. OPENAI_API_KEY là bí mật (chủ dự án tự `wrangler secret put`); vắng = trợ lý trả 503 "chưa bật".
+	// OPENAI_BASE_URL tuỳ chọn (mặc định https://api.openai.com) — chỉ e2e / thử máy mình trỏ vào máy OpenAI giả. `npm run types` không sinh lại nếu .dev.vars thiếu.
+	OPENAI_API_KEY?: string;
+	OPENAI_BASE_URL?: string;
 }
 declare namespace Cloudflare {
 	interface GlobalProps {
