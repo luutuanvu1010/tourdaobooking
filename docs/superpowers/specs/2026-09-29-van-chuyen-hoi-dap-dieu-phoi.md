@@ -253,3 +253,44 @@ Trước khi hỏi, điều phối cũng gửi chủ 4 ảnh bằng chứng giao
 | — | K2c THẤP: `README.md:42` còn mô tả glob cũ | Người thi công sửa. `CLAUDE.md:52` chỉ qua đề xuất mục 7c | — |
 
 Bài học vận hành: điều phối dùng EnterWorktree đổi thư mục phiên chính sang worktree giao diện để gộp. Trong vài phút đó, lệnh Bash của người kiểm K2c (subagent không ghim thư mục) bị cách ly theo. Không đổi worktree của phiên chính khi subagent đang chạy.
+
+## Trả lời lần 16 (30/9, 28 câu gom — `docs/superpowers/specs/2026-09-30-van-chuyen-cau-hoi-cho-chu.md` mục 10, nhánh `cau-hoi-chu-van-chuyen` @ `ca57b28`)
+
+Chủ trả lời trực tiếp trong phiên (hộp chọn; mỗi câu hiện phương án khuyến nghị đầu tiên). Câu hỏi đầy đủ và phương án: mục 1–7 của tệp câu hỏi (dẫn nguồn từng câu). Ghi **nguyên văn nhãn chủ chọn**. Đây là lời chủ cho CÂU HỎI; từng lượt vẫn phải qua soạn ADR → người kiểm độc lập → chủ duyệt ADR (N3). Người ghi vào sổ: phiên lập kế hoạch sổ tiền (theo lệnh chủ 30/9: "ghi các câu trả lời vào sổ hỏi đáp, rồi soạn đề xuất ADR cho lượt 2–4, Kernel lượt 2–3 và tiền").
+
+| Nhóm | Mã | Chủ chọn (nguyên văn nhãn) | Hệ quả ghi nhận |
+|---|---|---|---|
+| Gấp — ADR-0049 | 1.1 Luật ADR-0049 | **"Xem từng mục lúc gộp"** | Không duyệt gộp một lần. Điều phối trình **từng mục** 0–3, 5–8 của `2026-09-29-adr-0049-de-xuat-luat.md` lúc gộp; mục nào không duyệt thì hoàn nguyên phần mã đó |
+| Gấp — ADR-0049 | 1.2 GA-59 | **"Chấp nhận lệch"** | "Bỏ đánh dấu gọi báo" bấm lặp chỉ khớp lần đầu khi giờ hẹn/tập chuyến không đổi thêm — ghi **lệch có chủ ý** ở `docs/SYSTEM-DESIGN.md` §16 (dòng GA-59), không thêm cột, không đổi `0043` |
+| Điều phối lượt 2 | ĐP4 | **a** — "Có, kèm lý do" | Tài xế xe kia đã "Nhận" mà thiếu khoảng nghỉ: Quản trị / Toàn quyền duyệt thay, lý do bắt buộc |
+| Điều phối lượt 2 | ĐP5 | **a** — "Tài xế đề nghị" | Xe hỏng: tài xế gửi đề nghị chuyển khách, xe cứu hộ nhận; văn phòng bấm thay được |
+| Điều phối lượt 2 | ĐP9 | **a** — "Mã, tài xế, chỗ trống" | Tài xế chọn xe nhờ đón thấy: mã chuyến, tên tài xế, chỗ trống, điểm sắp tới — **không thấy khách** |
+| Điều phối lượt 2 | ĐP13 | **a** — "Không" | Bán hàng không bổ sung tên khách trên màn chuyến; nhập ở màn đơn như hôm nay |
+| Lượt 4 | ĐP1 | **a** — "Có" | Chiều về được ít người hơn chiều đi; văn phòng sửa số người chặng về |
+| Lượt 4 | ĐP10 | **a** — "Trong app" | "Dịch vụ đưa đón mấy chiều" cài trong app, màn Danh mục, có lịch sử (không phải cột Google Sheet) |
+| Lượt 3 | Q2 cũ | **a** — "Tới 12 giờ trước" | Tài xế Từ chối chuyến được tới 12 giờ trước giờ chạy (con số là chính sách, đổi được) |
+| Lượt 3 | Q1 cũ | **a** — "Từ lúc hết hạn Từ chối" | Tài xế đối tác thấy tên, năm sinh, SĐT khách từ lúc hết hạn Từ chối tới hết ngày chạy |
+| Lượt 3 | ĐP12 | **a** — "Có, như tài xế công ty" | **Cửa một chiều** (chủ chọn khi đã được báo): tài xế nhà xe đối tác dùng app cho chuyến, cùng luật tài xế công ty |
+| Lượt 3 | ĐP11 | **a** — "Được, như nhau" | Tài xế công ty và tài xế đối tác nhờ nhau đón như nhau |
+| Lượt 3 | Q3 cũ | **c** — "Không, chỉ đối tác" | Tài xế **công ty** không có Từ chối / Báo bận; chỉ tài xế đối tác có (mở sau = đổi một ô quyền) |
+| Lượt 3 | Q7 cũ | **a** — "Trong Vận chuyển" | **Cửa một chiều:** lịch bận của tài xế lưu trong module `van-chuyen`, không ở hồ sơ người |
+| Kernel lượt 2 | Q-L2-1 | **a** — "Không cho ghi" | Lịch xe vào xưởng trùng chuyến đã xếp: không cho ghi, dời chuyến trước |
+| Kernel lượt 2 | Q-L2-2 | **a** — "Chỉ cảnh báo" | Vượt 8 giờ lái/ngày: chỉ cảnh báo (con số luật **chưa có người chuyên môn kiểm**) |
+| Kernel lượt 2 | Q-L2-3 | **a** — "Một ô số hiệu" | Số hiệu chuyến bay: một ô, tài xế tự tra |
+| Kernel lượt 3 | Q-L3-1 | **a** — "Chặn, Quản trị cho phép" | "Xe riêng" bị xếp ghép / xe nhỏ hơn: chặn, Quản trị cho phép kèm lý do |
+| Kernel lượt 3 | Q-L3-2 | **a** — "Số chỗ tối thiểu" | "Hạng xe hứa với khách" = số chỗ tối thiểu |
+| Kernel lượt 3 | Q-L3-3 | **a** — "Không cho, dùng Gia hạn" | Xe đã có giấy tờ loại đó: bấm "Thêm" bị từ chối, bảo dùng Gia hạn |
+| Tiền xe thuê | Q1 | **a** — "Làm trước" | **Đổi so với lời cũ** ("để sau, đi cùng sổ công nợ"): giá + chi phí xe làm trước, không chờ sổ công nợ |
+| Tiền xe thuê | Q2 | **a** — "Trong Vận chuyển" | **Cửa một chiều:** bảng giá thuê xe thuộc `van-chuyen` (không phải `pricing`) |
+| Tiền xe thuê | Q3 | **a** — "Theo tuyến thắng" | Nhà xe có cả giá theo tuyến và theo loại xe: giá theo tuyến thắng |
+| Tiền xe thuê | Q4 | **a** — "Lúc giao cho nhà xe" | Chụp giá vào chuyến lúc giao chuyến cho nhà xe |
+| Tiền xe thuê | Q5 | **a** — "Chia hai vai" | Quản trị + Toàn quyền nhập giá; Kế toán + Toàn quyền sửa tiền chuyến |
+| Tiền xe thuê | Q6 | **a** — "Cho chạy, hiện 'thiếu giá'" | Chuyến chưa có giá vẫn xuất bến, hiện "thiếu giá" |
+| Tiền xe thuê | Q9 | **a** — "Chỉ tính theo chuyến" | Tiền xe thuê chỉ tính theo chuyến, chưa chia vào đơn |
+| Tiền xe thuê | Q7, Q8, Q10 | **"Đồng ý cả ba"** | Q7: phí huỷ với nhà xe ghi tay trước, bảng mốc huỷ làm sau. Q8: chi phí xe công ty (xăng, lương, bảo dưỡng) không thuộc lượt này. Q10: dòng nợ gắn được với chuyến (không chỉ với đơn) |
+
+**Chưa hỏi / còn lại** (không đổi): 1.3 (cấp quyền lệnh gộp — việc của chủ), 1.4 (góp ý ảnh), tiền Q11–Q12 (lúc trình sổ công nợ), việc vẽ (mục 8 tệp câu hỏi), hỏi pháp lý ghép khách nhiều đơn trên một xe hợp đồng (Kernel lượt 3 — trước khi chạy chuyến ghép thật).
+
+**Hai điểm người ghi phát hiện khi đối chiếu (KHÔNG phải lời chủ — trình chủ trong đề xuất ADR tiền):**
+- **Tiền Q10 × ADR-0026 đã duyệt.** Câu Q10 hỏi sửa *đề xuất* sổ công nợ; nhưng ADR-0026 đã được chủ duyệt 29/9 (kèm kế hoạch `docs/superpowers/plans/2026-09-29-so-tien-luot-1-ke-hoach.md`), `bil_debt_line` chưa có cột chuyến. ADR đã duyệt chỉ đổi bằng **ADR mới trỏ về nó** ⇒ đề xuất ADR tiền xe thuê phải có mục "Sửa câu nào của ADR-0026" (thêm tham chiếu chuyến tuỳ chọn vào dòng nợ) và nên được duyệt **trước khi** thi công Task 3 (migration B) của sổ tiền, để không phải dựng lại bảng chỉ-thêm.
+- **Tiền Q1 "Làm trước" × hướng 29/9.** Ngày 29/9 chủ chọn "ưu tiên sổ tiền trước tính năng mới" (sổ tiền lượt 1 thi công ngay sau ADR-0049 gộp). "Làm trước" ở Q1 nghĩa là không chờ **sổ công nợ** để làm giá xe; nó chưa nói **thứ tự thi công** so với sổ tiền lượt 1 ⇒ đề xuất ADR tiền hỏi chủ một câu thứ tự (khuyến nghị: sổ tiền lượt 1 trước, tiền xe thuê sau — dùng chung dòng nợ có cột chuyến).
