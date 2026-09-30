@@ -9,7 +9,20 @@ npm run test:e2e                    # mọi kịch bản
 npm run test:e2e -- orders catalog  # chỉ vài kịch bản
 ```
 
-`run.mjs`: tạo thư mục tạm → áp mọi migration → nạp 5 tài khoản test (`lib.mjs` → `ACCOUNTS`: `salesA`, `salesB`, `admin`, `accountant`, `field`) → `wrangler dev --persist-to <tạm> --test-scheduled` trên cổng trống, `SESSION_SECRET` ngẫu nhiên, **Turnstile BẬT bằng khoá thử của Cloudflare** (`--var TURNSTILE_SITE_KEY` / `TURNSTILE_SECRET_KEY`; hằng ở `lib.mjs` → `TURNSTILE_TEST`) → chạy từng kịch bản → tắt server, xoá thư mục tạm. Không cần `.dev.vars`, không cần dọn tay. Vì Turnstile bật nên MỌI đăng nhập trong kịch bản phải đi qua `login()`/`session()` của `lib.mjs` (gửi token thử `XXXX.DUMMY.TOKEN.XXXX`); tự gọi `POST /api/auth/login` không kèm token sẽ nhận 403.
+**Song song theo nhóm (từ 2026-09-30, chủ dự án chọn phương án A):** `run.mjs` chia kịch bản thành N nhóm, **mỗi nhóm một D1 tạm + `wrangler dev` + cổng + máy OpenAI giả riêng**, các nhóm chạy đồng thời; trong một nhóm kịch bản vẫn chạy lần lượt theo đúng thứ tự `ALL` (mỗi nhóm là dãy con của `ALL`, nên mọi ràng buộc "chạy trước/sau" ghi ở `run.mjs` vẫn đúng). Chia bằng số đo thời gian `THOI_GIAN` trong `run.mjs` (nặng trước, vào nhóm nhẹ nhất; tất định) — thêm kịch bản mới thì thêm số đo vào đó (thiếu thì tính 15 giây, chỉ làm lệch nhóm, không bỏ sót).
+
+```
+E2E_SONG_SONG=1 npm run test:e2e    # tuần tự như cũ, MỘT máy chủ, đầu ra in thẳng — dùng khi dò lỗi
+E2E_SONG_SONG=4 npm run test:e2e    # 4 nhóm (mặc định: min(3, số CPU / 3) — máy 10 CPU là 3)
+```
+
+- Máy chủ bật **lần lượt** trước khi chạy kịch bản nào (mỗi lần bật, wrangler tự `build:web` ghi đè `public/js`); D1 các nhóm dựng đồng thời.
+- Nhiều nhóm: đầu ra mỗi kịch bản in **liền một khối** khi nó xong (không xen giữa các nhóm), rồi dòng `✔/✘ <tên> (giây) · nhóm k`.
+- Các bước kiểm cuối không nới: `audit-invariants --strict` chạy trên D1 của **mọi** nhóm (chạy đủ bộ); "không có `day_loi`" soi log **mọi** máy chủ; "không có nội dung câu hỏi trợ lý" chạy trên máy chủ của nhóm có `tro-ly`. Mỗi bước gộp thành **một** dòng tóm tắt (tên đứng đầu, nhóm đỏ ghi sau), nên tổng số dòng tóm tắt và dòng `E2E: x/y kịch bản …` giữ như cũ (`scripts/release-lib.mjs` → `parseE2eFailures` đọc `✘ <tên>`).
+- Một nhóm có máy chủ chết: nhóm đó dừng, kịch bản còn lại của nhóm ghi "chưa chạy" (tính đỏ); nhóm khác chạy tiếp.
+- Thời gian (máy 10 CPU, 30/9, máy đang bận việc khác): tuần tự 713–738 giây; 3 nhóm 282–398 giây (4 lượt: 366, 311, 398, 282 — lượt 398 giây máy tải 46); 4 nhóm 344 giây (một lượt); `E2E_SONG_SONG=1` 674 giây (một lượt, xanh). `E2E_SONG_SONG=2` chưa chạy thử. Đường găng là `dispatch.mjs` (~150–230 giây một mình — nhiều lần gọi `sql()` qua `npx wrangler d1 execute`), nên thêm nhóm quá 3 không nhanh hơn bao nhiêu.
+
+`run.mjs` (mỗi nhóm): tạo thư mục tạm → áp mọi migration → nạp 5 tài khoản test (`lib.mjs` → `ACCOUNTS`: `salesA`, `salesB`, `admin`, `accountant`, `field`) → `wrangler dev --persist-to <tạm> --test-scheduled` trên cổng trống, `SESSION_SECRET` ngẫu nhiên, **Turnstile BẬT bằng khoá thử của Cloudflare** (`--var TURNSTILE_SITE_KEY` / `TURNSTILE_SECRET_KEY`; hằng ở `lib.mjs` → `TURNSTILE_TEST`) → chạy từng kịch bản → tắt server, xoá thư mục tạm. Không cần `.dev.vars`, không cần dọn tay. Vì Turnstile bật nên MỌI đăng nhập trong kịch bản phải đi qua `login()`/`session()` của `lib.mjs` (gửi token thử `XXXX.DUMMY.TOKEN.XXXX`); tự gọi `POST /api/auth/login` không kèm token sẽ nhận 403.
 
 **Danh mục giả `ZE*` (từ 2026-09-26):** API không nhận dịch vụ nhập tay mới (DK-T3-01), nên `orderInput()` của `lib.mjs` mặc định dùng dịch vụ danh mục giả `ZE1` ("Dịch vụ thử", 1 người lớn × 100.000 — cùng tên/tiền với dịch vụ nhập tay mặc định cũ). Kịch bản dùng nó gọi `await ensureFakeCatalog()` ở đầu (UPSERT `in_sheet = 1`; lần đồng bộ Sheet thật của `catalog.mjs` ẩn mã giả nên kịch bản chạy sau phải bật lại). Đơn cũ có dịch vụ nhập tay: `makeLegacyManual` (SQL trên D1 tạm, khi đơn còn nháp).
 
