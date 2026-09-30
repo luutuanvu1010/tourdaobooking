@@ -1,6 +1,6 @@
 # ADR-0068 — Gộp hồ sơ cá nhân trùng: hồ sơ phụ trỏ về hồ sơ chính, chỉ chuyển phần còn sửa được, sổ sách giữ nguyên
 
-- **Trạng thái:** **proposed** — bản nháp chờ chủ dự án duyệt. Nháp đặt ngoài `docs/adr/` (luật hỏi quyền khi sửa `docs/adr/**`); duyệt xong mới chép vào `docs/adr/ADR-0068-gop-ho-so-ca-nhan.md` và thêm dòng mục lục.
+- **Trạng thái:** **accepted** — chủ dự án duyệt 2026-10-01 qua hộp hỏi gom của phiên: câu "Bạn duyệt bản quyết định gộp hồ sơ (ADR-0068) chưa…" → **"Duyệt, làm từng phần"**; cùng lượt: Q2 nhà xe cá nhân đứng tên xe → **"Từ chối gộp"** (409 `merge_source_owns_vehicle`); Q5 dòng bắt đầu sau hôm nay → **"Từ chối gộp"**; Q1/Q3/Q4 → **"Đồng ý cả ba"**. AI ghi lại. Chép vào `docs/adr/ADR-0068-gop-ho-so-ca-nhan.md` + dòng mục lục ở Task 0 của kế hoạch.
 - **Ngày:** 2026-09-30.
 - **Số:** 0068 — 0066 (trợ lý AI) và 0067 (lọc đơn theo người lập) đã có văn bản ở nhánh khác; **chưa ghi vào bảng "Số đã giữ chỗ"** của `docs/adr/README.md` (ghi khi duyệt, hoặc phiên điều phối chung cấp số khác nếu trùng).
 - **Thuộc gói:** một lượt duyệt gồm ADR này + đặc tả `dac-ta.md` cùng thư mục (trang ghép ở §9 của đặc tả). Hai quyết định chạm dữ liệu/quyền ≤ trần 3.

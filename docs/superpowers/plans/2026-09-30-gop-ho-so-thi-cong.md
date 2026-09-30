@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-> **CHỈ BẮT ĐẦU THI CÔNG KHI CHỦ DỰ ÁN XÁC NHẬN DUYỆT ADR-0068 BẰNG LỜI** (hiện `proposed`). Trước lời duyệt đó, không task nào dưới đây được chạy — kể cả Task 0. Khi hỏi duyệt, gom luôn các câu ở mục "Điểm dừng" vào **cùng một lần hỏi** (CLAUDE.md §3).
+> **ĐÃ DUYỆT 2026-10-01** (hộp hỏi gom): ADR-0068 "Duyệt, làm từng phần" (subagent-driven); Q1, Q3, Q4 = phương án Khuyến nghị ("Đồng ý cả ba"); Q2 = "Từ chối gộp"; Q5 = "Từ chối gộp". Mọi bước `[Dừng Qn]` đi theo phương án Khuyến nghị đã viết sẵn.
 
 **Goal:** Quản trị / Toàn quyền gộp được hai hồ sơ cá nhân trùng (hồ sơ phụ A trỏ về hồ sơ chính B, chỉ chuyển phần còn sửa được, sổ sách giữ nguyên), xem được danh sách "Hồ sơ nghi trùng", và máy chủ chặn tạo hồ sơ trùng khi Thêm tài khoản.
 
