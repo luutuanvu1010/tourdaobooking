@@ -358,6 +358,7 @@ try {
         todayRowCount: todayRows.length,
         todayRows,
         todayEmptyHidden: document.querySelector('#dash-today-empty').hidden,
+        todayDays: [...document.querySelectorAll('#dash-today-days .dash-day')].map((b) => ({ t: b.textContent.trim(), on: b.getAttribute('aria-pressed') })),
         stats,
         revenueRange: document.querySelector('#dash-revenue-range').textContent.trim(),
         revenueValue: shown(document.querySelector('.dash-revenue-value')),
@@ -480,6 +481,10 @@ try {
     assert.equal(m.todayBadge, "1", `${label}: huy hiệu phải = 1 — ${JSON.stringify(m)}`);
     assert.equal(m.todayRowCount, 1, `${label}: danh sách phải đúng 1 dòng (chỉ R1) — ${JSON.stringify(m.todayRows)}`);
     assert.equal(m.todayEmptyHidden, true, `${label}: thông báo "Không có chuyến nào hôm nay" phải ẨN (có dữ liệu) — ${JSON.stringify(m)}`);
+    // Góp ý YC-0007 (cách A): ba nút chuyển ngày, "Hôm nay" đang chọn, số trong ngoặc = số chuyến từng ngày (R3 ngày khác không phải mai/kia).
+    assert.deepEqual(m.todayDays.map((x) => x.on), ["true", "false", "false"], `${label}: ba nút ngày, Hôm nay đang chọn — ${JSON.stringify(m.todayDays)}`);
+    assert.equal(m.todayDays[0].t, "Hôm nay (1)", `${label}: ${JSON.stringify(m.todayDays)}`);
+    assert.ok(/^Ngày mai \(\d+\)$/.test(m.todayDays[1].t) && /^Ngày kia \(\d+\)$/.test(m.todayDays[2].t), `${label}: ${JSON.stringify(m.todayDays)}`);
 
     // === B) Lỗi đã sửa ở Task 1 KHÔNG TÁI PHÁT — giờ đón VÀ nơi đón hiển thị PHẢI là của dịch vụ HÔM NAY (sort_order=1),
     //     TUYỆT ĐỐI KHÔNG được là "19:30"/"Sân bay Cam Ranh" (dịch vụ sort_order=0, ngày MAI). So với giá trị LITERAL đã tạo, không chỉ so với API.
@@ -1426,7 +1431,8 @@ try {
       assert.ok(s.hasSvg && s.ariaHidden === "true", `J: ô số liệu #${i} (${icons.statLabels[i]}) phải có biểu tượng aria-hidden — ${JSON.stringify(s)}`);
       assert.ok(s.text && s.text.length > 0, `J: ô số liệu #${i} phải còn chữ đi kèm biểu tượng (không đứng một mình) — ${JSON.stringify(s)}`);
     });
-    for (const [name, x] of [["Chuyến đón hôm nay", icons.todayTitle], ["Doanh thu của tôi", icons.revenueTitle], ["Cần xem lại", icons.reviewHeading]]) {
+    // Góp ý YC-0007 (chủ chọn cách A, 30/9): tiêu đề khối nay là "Chuyến đón" + ba nút Hôm nay / Ngày mai / Ngày kia.
+    for (const [name, x] of [["Chuyến đón", icons.todayTitle], ["Doanh thu của tôi", icons.revenueTitle], ["Cần xem lại", icons.reviewHeading]]) {
       assert.ok(x.hasSvg && x.ariaHidden === "true", `J: tiêu đề "${name}" phải có biểu tượng aria-hidden — ${JSON.stringify(x)}`);
       assert.equal(x.text, name, `J: tiêu đề phải còn đúng chữ gốc "${name}" — ${JSON.stringify(x)}`);
     }
