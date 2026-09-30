@@ -98,3 +98,40 @@ Các lượt sau cũng cần vẽ khi mở: lượt 2 (V4, V8–V11), lượt 3 
 
 - `2026-09-29-van-chuyen-lo-trinh.md:21@GT` còn ghi "chủ vẽ 8 màn cho phần 4" — 8 màn đã vẽ xong tối 29/9.
 - Mục 8 lưu ý ở trên (dặn không vẽ Đặt gấp).
+
+## 10. Chủ đã trả lời (2026-09-30, trực tiếp trong phiên — hộp chọn, mỗi câu hiện phương án khuyến nghị đầu tiên)
+
+Ghi nguyên văn nhãn chủ chọn. Đây là lời chủ cho CÂU HỎI; các lượt vẫn phải qua bước soạn ADR / người kiểm / duyệt ADR như thường lệ (ghi vào sổ hỏi đáp là việc của điều phối).
+
+| Mã | Chủ chọn |
+|---|---|
+| 1.1 Luật ADR-0049 | **"Xem từng mục lúc gộp"** (không duyệt gộp một lần — điều phối trình từng mục lúc gộp như kế hoạch) |
+| 1.2 GA-59 | **"Chấp nhận lệch"** |
+| ĐP4 | **a** — "Có, kèm lý do" |
+| ĐP5 | **a** — "Tài xế đề nghị" |
+| ĐP9 | **a** — "Mã, tài xế, chỗ trống" |
+| ĐP13 | **a** — "Không" |
+| ĐP1 | **a** — "Có" |
+| ĐP10 | **a** — "Trong app" |
+| Q2 cũ | **a** — "Tới 12 giờ trước" |
+| Q1 cũ | **a** — "Từ lúc hết hạn Từ chối" |
+| ĐP12 | **a** — "Có, như tài xế công ty" (cửa một chiều — chủ chọn khi đã được báo) |
+| ĐP11 | **a** — "Được, như nhau" |
+| Q3 cũ | **c** — "Không, chỉ đối tác" |
+| Q7 cũ | **a** — "Trong Vận chuyển" |
+| Q-L2-1 | **a** — "Không cho ghi" |
+| Q-L2-2 | **a** — "Chỉ cảnh báo" |
+| Q-L2-3 | **a** — "Một ô số hiệu" |
+| Q-L3-1 | **a** — "Chặn, Quản trị cho phép" |
+| Q-L3-2 | **a** — "Số chỗ tối thiểu" |
+| Q-L3-3 | **a** — "Không cho, dùng Gia hạn" |
+| Tiền Q1 | **a** — "Làm trước" (đổi so với lời cũ "để sau, đi cùng sổ công nợ") |
+| Tiền Q2 | **a** — "Trong Vận chuyển" |
+| Tiền Q3 | **a** — "Theo tuyến thắng" |
+| Tiền Q4 | **a** — "Lúc giao cho nhà xe" |
+| Tiền Q5 | **a** — "Chia hai vai" |
+| Tiền Q6 | **a** — "Cho chạy, hiện 'thiếu giá'" |
+| Tiền Q9 | **a** — "Chỉ tính theo chuyến" |
+| Tiền Q7, Q8, Q10 | **"Đồng ý cả ba"** |
+
+**Chưa hỏi / còn lại:** 1.3 (cấp quyền lệnh gộp — việc của chủ), 1.4 (góp ý ảnh), Q11–Q12 tiền (để lúc trình sổ công nợ), việc vẽ (mục 8), hỏi pháp lý ghép khách (mục 6).
