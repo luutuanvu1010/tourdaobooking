@@ -83,3 +83,19 @@ Lệnh chỉ `SELECT`, không ghi gì. Ghi chú nội bộ (`internal = 1`) gi�
 - **C3 (YC-0010)** "Đã xuất vé": trạng thái cho từng dịch vụ đặt qua đối tác? Ai bấm, có ghi mã đặt chỗ không?
 - **C4 (YC-0011)** Cờ "đã nhập phần mềm kế toán" + số hoá đơn: gộp vào "yêu cầu xuất hoá đơn" của ADR-0004 hay là cờ riêng cho Kế toán? Gợi ý: làm trong `billing` sau sổ tiền lượt 1.
 - **C5 (YC-0002)** Thông tin khách mặc định "là tôi" (nhân viên lập đơn): dễ ghi nhầm khách thật thành nhân viên. Gợi ý: giữ nút "Sử dụng thông tin của tôi", không điền sẵn.
+
+### Chủ trả lời (chat 2026-09-30, lượt 2)
+
+- **C1: Có.** Hiện biển số xe đón trên đơn cho người bán hàng. Chạm quyền → soạn đề xuất ADR (mục 7).
+- **C2: theo khuyến nghị.** Làm sau sổ tiền lượt 1, mọi điều chỉnh đi qua sổ.
+- **C3:** chủ muốn được hỏi lại bằng một ví dụ cụ thể.
+- **C4:** thêm trường tạm kiểu "flex field" (không đụng cấu trúc lõi): ô tick "đã nhập phần mềm kế toán" + ô "Số hoá đơn đã nhập". Chạm dữ liệu → soạn đề xuất ADR (mục 7).
+- **C5:** giữ nút "Sử dụng thông tin của tôi", không điền sẵn.
+
+### Việc chủ thêm vào kế hoạch (lượt 2)
+
+- **T1** Hiện lại "Dịch vụ nhập tay" cho nội bộ công ty (đối tác không dùng được); công tắc bật/tắt ở màn của Toàn quyền.
+- **T2** Thiết kế lại màn Góp ý/Báo lỗi: trạng thái nổi bật, hiển thị theo luồng (Đã tiếp nhận → Đang xử lý → Đã xong); khi "Đã xong" thì hiện nút "Mở lại" thay vì "Đã tiếp nhận".
+- **T3** Kiểm tài xế có thấy lịch đón 2–3 ngày tới trên màn riêng của họ không.
+- **T4** Bộ lọc đơn nhiều điều kiện chọn đồng thời (ngày, dịch vụ, và tiêu chí khác) — thay G1a.
+- **T5** Điện thoại: hiện ngay giờ đón + điểm đón trên đơn (không phải bấm mở); rộng hơn là tối ưu màn điện thoại theo từng vai, nhất là tài xế.
