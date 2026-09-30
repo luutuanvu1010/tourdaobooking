@@ -474,6 +474,16 @@
       ]
     },
     {
+      "name": "v_ord_order_state",
+      "module": "orders",
+      "columns": [
+        "id",
+        "status",
+        "delivered_at",
+        "completed_at"
+      ]
+    },
+    {
       "name": "v_ord_leg_key",
       "module": "orders",
       "columns": [

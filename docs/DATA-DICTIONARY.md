@@ -76,6 +76,7 @@
 | `v_ord_order_label` | view công bố | cột: id, order_code |
 | `v_ord_order_owner` | view công bố | cột: id, staff_id |
 | `v_ord_order_flag` | view công bố | cột: id, is_confirmed, is_cancelled |
+| `v_ord_order_state` | view công bố | cột: id, status, delivered_at, completed_at |
 | `v_ord_leg_key` | view công bố | cột: id, order_id, order_service_id, is_open |
 | `v_ord_passenger_key` | view công bố | cột: person_key, order_id, has_current_row |
 | `v_ord_passenger_row` | view công bố | cột: id, person_key, order_id, is_current |

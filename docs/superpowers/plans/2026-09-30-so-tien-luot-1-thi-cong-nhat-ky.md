@@ -42,6 +42,15 @@
 - Dòng `docs/SO-HANG-RAO.md`: 4 dòng mới (NT-R1, R3, R4, R5).
 - Kiểm: `npm test` 1878/1878 + 1/1; `npm run typecheck` 0.
 
+## Task 2 — Migration `0044_orders_da_giao.sql` (xong 30/9)
+
+- Bốn cột mốc `delivered_at/_by`, `completed_at/_by`; view `v_ord_order_state (id, status, delivered_at, completed_at)` (+ sổ dữ liệu, `npm run dict`).
+- 19 trigger: `orders_milestone_insert` (đơn mới không mang sẵn mốc — **thêm so với kế hoạch**: không có nó thì `INSERT orders` kèm mốc lách được khoá), `orders_delivered_from_confirmed`, `orders_completed_after_delivered`, `orders_delivered_lock` (liệt kê mọi cột), khoá thêm/sửa/xoá cho `order_service`, `order_item`, `ord_transfer_leg`, `ord_passenger` (Q1), chèn `order_money_adjustment`; `dsp_assignment_delivered_lock_{ins,upd}` (module dispatch, đọc `v_ord_order_state`).
+- **Chênh (theo ADR, chặt hơn kế hoạch):** kế hoạch §3.1 ghi khoá "dòng `HANDLE`" cho cả chèn lẫn sửa `dsp_assignment`; ADR-0025 đ5 ghi "chặn **chèn dòng mới** và đổi dòng `HANDLE`" ⇒ chèn: chặn MỌI loại việc; sửa: chỉ dòng `HANDLE`. Hôm nay chỉ có loại `HANDLE` nên không khác hành vi.
+- Mốc và người bấm đi cùng nhau (trigger đòi `delivered_by`/`completed_by` khác NULL cùng lúc đặt mốc) — GĐ bề mặt dữ liệu, chặt hơn.
+- NT-R6 kiểm bằng HÀNH VI (thử đổi từng cột của `PRAGMA table_info(orders)` trong câu Hoàn thành), không đọc chữ thân trigger; tự kiểm: thêm cột tạm trong CSDL thử → báo đúng cột lọt.
+- Test `src/migrations-orders-da-giao.test.ts` 8 bài: đỏ 8/8 khi chưa có tệp → xanh 8/8. `npm test` 1886/1886 + 1/1; typecheck 0; bài luật thân trigger xanh với 19 trigger mới.
+
 ## Ruling / giả định (ghi theo thứ tự gặp)
 
 (chưa có)
