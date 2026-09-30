@@ -153,3 +153,8 @@ Chủ đã chốt nguyên tắc trong chat; AI soạn ADR ghi lại + chi tiết
 - Đồng ý: bộ lọc đơn (ảnh a), màn Góp ý (ảnh c), thẻ đơn 3 dòng "Đón tại"; Trang chủ **cách A**; màn "Xuất bến" của tài xế **thêm danh sách điểm** (không tên khách).
 - Lọc sản phẩm: chủ trả lời "Thêm ngay cột Loại/danh mục trong bảng điều khiển Giá. + 1" → hiểu: làm lọc bằng thứ đã có NGAY, **và** nhóm/loại dịch vụ quản lý trong app. Phần nhóm **trùng** việc phân loại dịch vụ của phiên rà soát (nhánh `ra-soat-luong-giao-dien`, chủ đã chọn "Trong app, gieo sẵn 15 nhóm", ADR-0058 đang soạn) → không làm ở đây; giao diện chừa chỗ chip nhóm.
 - **Chồng lấn với phiên rà soát** (`docs/superpowers/specs/2026-09-30-ra-soat-luong-giao-dien-phan-loai-huong-dan.md` trên nhánh đó): V5 "trang đơn hiện xe/tài xế" = ADR-0059 (đã duyệt); C3 "tài xế thấy điểm trước xuất bến" = câu 6 ở trên (chủ đã trả lời: thêm, không tên khách). Phiên rà soát không cần hỏi lại hai câu này.
+
+### Phối hợp với phiên điều phối chung (30/9 tối)
+- Số ADR: 0059–0061 giữ cho ba ADR đã duyệt ở phiên này; bản nháp của điều phối chung đổi sang 0062–0065; 0058 nhóm dịch vụ. Migration: 0044–0045 sổ tiền, 0046–0049 điều phối chung, ADR-0059..0061 lấy từ 0050 (điều phối chung cấp số lúc thi công).
+- **Việc cho người thi công ADR-0061:** bản 1.40 đổi chữ trong ô chọn dịch vụ từ "nhập tay" thành "chưa hỗ trợ" (`web/catalog-picker.ts`) — khi mở lại nhập tay phải sửa chữ này.
+- Xung đột chờ chủ (điều phối chung trình): HDV phụ trách có thấy xe trên đơn không (phiên kia chủ chọn có; ADR-0059 loại HDV — thi công ADR-0059 như đã duyệt, bổ sung bằng ADR sau nếu chủ chọn có); C2 "làm chung" hay "làm sau" sổ tiền.

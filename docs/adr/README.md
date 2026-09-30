@@ -70,7 +70,8 @@ Thứ tự tài liệu (Điều 3.1): Hiến pháp → ràng buộc dự án →
 | Số | Việc | Bản đề xuất | Trạng thái |
 |---|---|---|---|
 | 0058 | Phân loại dịch vụ (nhóm dịch vụ quản lý trong app, gieo sẵn theo Sheet) | `docs/superpowers/specs/2026-09-30-ra-soat-luong-giao-dien-phan-loai-huong-dan.md` (nhánh `ra-soat-luong-giao-dien`, chưa gộp) | chờ soạn ADR / chờ chủ duyệt |
-| — | (số ADR mới kế tiếp là 0062) | | |
+| 0062–0065 | Báo tin khi đơn đổi sau xác nhận (0062), sửa đơn sau xác nhận (0063), ghi chú đơn tới HDV (0064), số khách đi xe (0065) | bản nháp của phiên điều phối chung (chưa gộp) | chờ chủ duyệt |
+| — | (số ADR mới kế tiếp là 0066) | | |
 
 (0040, 0041, 0042, 0044, 0049, 0050, 0051, 0052–0057 và 0059–0061 đã có văn bản thật ở bảng trên nên bỏ khỏi bảng giữ chỗ.)
 
@@ -84,7 +85,10 @@ Thứ tự tài liệu (Điều 3.1): Hiến pháp → ràng buộc dự án →
 - 0037, 0038, 0039: ADR-0048 (nhà xe đối tác, `DRIVER_PARTNER`, LC-1 mới) — nhánh phát hành `phat-hanh-1-37` (bản 1.37), chờ chủ gộp + triển khai; áp TRƯỚC 0034–0035 của ADR-0047 được (người kiểm K2 thử: schema cuối giống hệt byte-for-byte);
 - 0040, 0041, 0042: ADR-0049 (Bảng điều phối chung lượt 1) — lần lượt năm cột "đặt gấp" trên `ord_transfer_leg`, chính sách điều phối, chuyến xe `vc_trip*` — giữ chỗ 2026-09-29 (kế hoạch `docs/superpowers/plans/2026-09-29-adr-0049-thi-cong.md`); dùng không hết thì nhả;
 - 0043: ADR-0051 ("Đã gọi báo": bảng `vc_leg_appt_ack` + trigger trên `vc_trip_allocation` của `0042`) — giữ chỗ 2026-09-29; **phải lên cùng lần phát hành với 0042**;
-- số kế tiếp cho việc khác là 0044.
+- 0044, 0045: sổ tiền lượt 1 (ADR-0024/0025/0026) — nhánh `worktree-agent-aa1fab0316112d404`, giữ chỗ 2026-09-30;
+- 0046–0049: ADR-0058/0062/0063/0065 (phiên điều phối chung) — giữ chỗ 2026-09-30;
+- 0050 trở đi: ADR-0059/0060/0061 và ADR-0054…0057 — điều phối chung cấp số cụ thể lúc thi công;
+- số kế tiếp cho việc khác: hỏi phiên điều phối chung.
 
 Số 0019 vẫn giữ cho B5 (xem `docs/HANDOFF-N1.md`).
 
