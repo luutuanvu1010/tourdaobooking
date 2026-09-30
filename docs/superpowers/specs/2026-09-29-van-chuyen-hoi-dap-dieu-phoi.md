@@ -292,3 +292,18 @@ Giao diện vòng 5d @ `997ee14` (chưa đổi mã). Điều phối tự quyết
 - `KHACH_DA_DOI` xếp vào dòng "Đủ tên khách" của danh sách điều kiện xuất bến.
 
 Sắp tên theo thứ tự trong đơn: DTO và `ord_passenger` chưa có thứ tự, nên chuyển BACKLOG mục 7.
+
+**Thi công chủ lần 16** (nhánh máy chủ, tự khai): `337f5e9`, sau đó `01ba476`.
+- `f81d7e1` — R-P29:
+  - lý do giữ `KHACH_DA_DOI` nằm trong `kiemXuatBen`;
+  - thêm route `/cap-nhat-khach`, mã đóng `PASSENGER_CHANGED`, sự kiện `ALLOCATION_PASSENGER_CHANGED`.
+- `68ed147` — GA-59: thêm cột bản chụp `bo_gio_hen_doi` ở `0043`, sửa tại chỗ. GA-59 ĐÓNG.
+- Ba mục NỚI có phép theo lời chủ lần 16: mã đóng mới, loại sự kiện mới, lệnh không khoá theo mốc. Cả ba ghi ở bảng "Chủ lần 16" của đề xuất luật.
+- GA-61…66: hình dạng lệnh, do người thi công ghi.
+
+| Mã | Câu | Điều phối chốt | Căn cứ |
+|---|---|---|---|
+| R-P30 | GA-67: phản hồi LẦN ĐẦU của "Đã gọi báo" đọc trạng thái sau lô. Khi có lệnh khác chen vào, nó khác kết quả của lệnh lặp | Sửa như "Bỏ đánh dấu": lần đầu cũng dựng từ dòng mốc, dùng `phanHoiLenhLap`. Làm ở `b813fe0`, không thêm cột. GA-67 ĐÓNG | Chủ lần 16 chọn "Sửa cho khớp ADR" (ADR-0051 bước 4). Câu "giữ như cũ" của điều phối có kèm điều kiện "nếu đã khớp tuyệt đối", mà thực tế không khớp tuyệt đối |
+| — | GA-68: `baoDuoc` / `boDuoc` trong phản hồi lặp là quyền của người gọi lúc gọi | Chấp nhận | Đây là cờ cho nút của người đang xem, không phải kết quả lệnh |
+
+K2e (kiểm độc lập `1f8b498..01ba476`) đang chạy.
