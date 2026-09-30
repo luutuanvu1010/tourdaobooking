@@ -11,6 +11,15 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // ADR-0059 (chủ duyệt 30/9, góp ý YC-0004): xe đón trên chi tiết đơn. Số "1.45" là số TẠM — trên nền thi công, "1.44" đã có trong main; người gộp chốt
+    // số trống kế tiếp LÚC GỘP (hai phiên song song ADR-0060/0061 cũng thêm mục). Không migration.
+    version: "1.45",
+    date: "2026-09-30",
+    items: [
+      { kind: "moi", text: "Chi tiết đơn: dưới giờ đón hiện xe đón khách — biển số, tên tài xế, số khách trên từng xe và xe đã chạy chưa. Chỉ người xem được Điều phối xe mới thấy." },
+    ],
+  },
+  {
     // Trợ lý Hỗ trợ AI (ADR-0066, chủ duyệt 30/9) + sửa các lỗi chủ báo 30/9 (Đối tác/Thực tập; HDV sửa số khách — "Cho sửa đến hết ngày đi").
     // Ba nhánh, mỗi nhánh người kiểm độc lập ĐẠT. Số "1.44" theo main 1.43; người gộp chốt số trống kế tiếp LÚC GỘP. Có migration 0050.
     version: "1.44",
