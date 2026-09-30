@@ -11,6 +11,20 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Phát hành 1.38 (phân hệ Vận chuyển lượt 1): ADR-0049 (bảng điều phối chung, mốc 6 giờ + đặt gấp, cuốc tài xế — Task K1 của
+    // docs/superpowers/plans/2026-09-29-adr-0049-thi-cong.md), ADR-0047 (chặng đưa đón + danh sách hành khách), Q-L3-B (ADR-0053 D7.2). Production 1.37
+    // (kiem-phien-ban 30/9). Chủ quyết 30/9: phát hành nhưng CHƯA dùng Điều phối cho chuyến thật tới khi có màn nhập tên khách (ADR-0047 Phần B).
+    version: "1.38",
+    date: "2026-09-30",
+    items: [
+      { kind: "doi", text: "Đơn có giờ đón cách bây giờ dưới 6 giờ vẫn lưu nháp được, nhưng muốn xác nhận thì phải có Quản trị bấm \"Đặt gấp\" cho chặng đó." },
+      { kind: "moi", text: "Có Bảng điều phối xe: lịch đón theo ngày, tạo chuyến, xếp khách lên xe; tài xế công ty xem cuốc của mình ở trang \"Cuốc của tôi\"." },
+      { kind: "doi", text: "Lưu ý: CHƯA dùng Bảng điều phối cho chuyến thật cho tới khi có màn nhập tên khách. Văn phòng vẫn điều xe như cũ." },
+      { kind: "doi", text: "Tài xế chỉ thấy tên và số liên hệ của khách trong ngày chạy; bấm Xuất bến sớm từ hôm trước cũng không thấy trước." },
+      { kind: "doi", text: "Thông tin đưa đón nay được lưu theo từng chặng (lượt đi, lượt về); màn nhập đơn vẫn như cũ." },
+    ],
+  },
+  {
     // ADR-0048 (nhà xe đối tác, tài xế đối tác; Task K1 của docs/superpowers/plans/2026-09-29-adr-0048-thi-cong.md). Số "1.37" TẠM theo điều phối
     // (production 1.36 từ 28/9 23:21 giờ VN; 1.37 là bản kế tiếp); người gộp chốt số trống kế tiếp LÚC GỘP (nhánh ADR-0047 đang xếp hàng).
     version: "1.37",
