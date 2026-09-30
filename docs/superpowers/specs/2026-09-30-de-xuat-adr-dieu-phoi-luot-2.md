@@ -249,7 +249,7 @@ Tệp ADR cũ **không** sửa; `docs/adr/README.md` do điều phối cập nh�
 
 ## Câu hỏi còn mở (chạm dữ liệu — nguồn chưa chốt; gom ở trang ghép mục 5)
 
-**Q-L2-B. Tài xế A nhờ chuyển khách sang xe B khi B **chưa chạy** nhưng đã trong 6 giờ trước giờ chạy. Có cần Quản trị / Toàn quyền phá lệ không?** Thiết kế đề nghị miễn mốc cho mọi chuyển điểm; bạn chưa chốt.
+**Q-L2-B. Tài xế A nhờ chuyển khách sang xe B khi B **chưa chạy** nhưng đã trong 6 giờ trước giờ chạy. Có cần Quản trị / Toàn quyền phá lệ không?** Thiết kế gốc đề nghị miễn mốc cho mọi chuyển điểm; khuyến nghị (a) của bản này siết lại: **chỉ miễn khi xe nhận đang chạy**, xe nhận chưa chạy mà đã trong 6 giờ thì vẫn cần Quản trị / Toàn quyền phá lệ (như ADR-0049 D2). Bạn chưa chốt.
 - **(a) Chỉ miễn khi xe B đang chạy (khuyến nghị):** B chưa chạy mà trong mốc → đề nghị chuyển văn phòng, Quản trị / Toàn quyền phá lệ kèm lý do (giống luật 6 giờ bạn đã chọn ở ĐP3). Được: giữ nguyên luật 6 giờ cho xe chưa chạy. Mất: cứu hộ bằng một xe mới xuất phát cần Quản trị bấm.
 - (b) Miễn mốc cho mọi chuyển điểm giữa hai xe. Được: nhanh. Mất: có đường xếp khách vào xe chưa chạy trong 6 giờ mà không cần Quản trị.
 
