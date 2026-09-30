@@ -175,7 +175,7 @@ Chủ chọn khuyến nghị ở cả 7 câu ([HĐ] "Trả lời lần 17", 30/9
 5e. Hệ quả ADR-0057: giá xe cứu hộ nhà xe (ADR-0052 D5c), Từ chối → giao lại (ADR-0053 D8.5a).
 6. `ord_passenger` nhận người ghi mới là **người ngoài** (A-2) — hàm câu ghi của `orders` và bài quét "sau `can()`" có phủ cột `DRIVER_PARTNER`.
 7. Mã đơn trong DTO tài xế đối tác (G3-3).
-8. LC-15 mới đủ chặt: văn phòng không rút/dời suất `RUNNING`; **bốn** đường mở/đóng suất có tên — (1) D5.1 thêm điểm/khách, (2) đề nghị chuyển `CONFIRMED` (kể cả cứu hộ `ONBOARD`), (3) Kết thúc gián đoạn, (4) cập nhật điểm theo đơn (`STOP_CHANGED` + mở lại cùng chuyến, chặng, người); báo huỷ chỉ đặt cờ.
+8. LC-15 mới đủ chặt: văn phòng không rút/dời suất `RUNNING`; **bốn** đường mở/đóng suất có tên — (1) D5.1 thêm điểm/khách, (2) đề nghị chuyển `CONFIRMED` (kể cả cứu hộ `ONBOARD`), (3) Kết thúc gián đoạn, (4) cập nhật điểm theo đơn (đóng `STOP_CHANGED` → mở lại cùng chuyến, chặng, người → câu chốt cuối lô kiểm "một đóng ↔ một mở"; UNIQUE LC-01 buộc đóng trước mở; lưới thứ hai ở `audit-invariants`); báo huỷ chỉ đặt cờ.
 9. `vc_unavailability` không thành hai bảng.
 
 ## (7) Chưa kiểm
