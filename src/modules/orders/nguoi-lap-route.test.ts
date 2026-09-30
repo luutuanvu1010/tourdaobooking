@@ -115,7 +115,7 @@ test("ADR-0067: phản hồi CHỈ có khoá id, ten, ganNhat — không SĐT, e
   assert.ok(!r.json.nguoiLap.some((x: any) => x.id === CHUA_LAP), "người chưa lập đơn nào không có mặt");
 });
 
-test("ADR-0067: route đứng TRƯỚC /api/orders/:id (chữ 'nguoi-lap' không bị hiểu là mã đơn → 404)", async () => {
+test("ADR-0067: route khớp trước /api/orders/:id — chưa ai lập đơn thì 200 với danh sách rỗng (không phải 404 'không tìm thấy đơn')", async () => {
   const w = setup();
   const r = await w.call("GET", "/api/orders/nguoi-lap", { as: SALES });
   assert.equal(r.status, 200, r.text);
