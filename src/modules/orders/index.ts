@@ -3,22 +3,23 @@
 // "Người phụ trách" do module `dispatch` giữ: `orders` KHÔNG import `dispatch` mà hỏi qua `ctx.isAssigned(orderId)` (gốc lắp ráp tiêm — ADR-0007 điều 4(b)).
 import { auditStatement, getAuditTrail } from "../audit";
 import type {
-  CanhBaoMocDto, CatalogChangeDto, CatalogChangedBody, DashboardResponse, IncompleteTripBody, MyAssignmentDto, OrderDetailDto, OrderDetailResponse, OrderListResponse,
-  MocToiThieuResponse, OrderResponse, PassengerListResponse, PaxCounts, PoolResponse, ShortNoticeRequiredBody,
+  CanhBaoMocDto, CatalogChangeDto, CatalogChangedBody, DashboardResponse, IncompleteTripBody, MyAssignmentDto, NhapTayResponse, OrderDetailDto, OrderDetailResponse,
+  OrderListResponse, MocToiThieuResponse, NguoiLapResponse, OrderResponse, PassengerListResponse, PaxCounts, PoolResponse, ShortNoticeRequiredBody,
 } from "../../shared/contracts";
 import { UUID_RE, error, intParam, json, readJson } from "../../shared/http";
 import { can, seesOnlyAssignedOrders, type PermissionHolder } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
 import { vnToday, vnWeekRange } from "../../shared/vn-date";
 import { docLocDon } from "../../shared/loc-don";
+import { LOC_NHAP_TOI_DA_NGAY, LOC_NHAP_TOI_DA_UNG_VIEN, laDongNhapKeToan, soNgayKhoang } from "../../shared/nhap-ke-toan";
 import { editablePaxCodesOf, planMoneyEdit } from "./money-adjustment";
 import {
   addLeg, cancelOrder, changeBooker, changeLeg, cocCuNhap, confirmOrder, createOrder, effectivePax, findOrder, getDashboard, getDepartDates, getLatestAdjustment, getMeta, getOrderRef,
-  getServicesForSubtotal, getStoredServices, insertMoneyAdjustment, listOrders, listPoolSources, updateDraftOrder, updateTrip, writePassengerChange,
+  getServicesForSubtotal, getStoredServices, insertMoneyAdjustment, listOrderIds, listOrders, listPoolSources, updateDraftOrder, updateTrip, writePassengerChange,
 } from "./repository";
 import {
-  legById, legDatGapByOrder, legLichChungNhapRows, legLichChungRows, legShortNotice, legTripRows, orderContactRows, passengerRowsByOrders, servicePaxByIds,
-  type DatGapWrite,
+  legById, legDatGapByOrder, legLichChungNhapRows, legLichChungRows, legShortNotice, legTripRows, manualPolicy, manualPolicyInsert, orderContactRows, passengerRowsByOrders,
+  servicePaxByIds, nguoiDaLapDon, type DatGapWrite,
 } from "./chang-hanh-khach-repo";
 import { khoaNoi } from "../../shared/khoa-noi";
 import { CHIEU_LABEL, LY_DO_DAT_GAP } from "../../shared/chang-dua-don";
@@ -28,7 +29,8 @@ import { dongHienHanh } from "../../shared/hanh-khach";
 import { maskLongDigits } from "../../shared/text-guards";
 import { toPoolOrders } from "./pool";
 import {
-  PARTNER_DISCOUNT_CAP, PARTNER_DISCOUNT_MESSAGE, RETAIL_PRICE_MESSAGE, discountWithinCap, holdsPartner, manualFreezeViolation, retailPricesOnly,
+  PARTNER_DISCOUNT_CAP, PARTNER_DISCOUNT_MESSAGE, RETAIL_PRICE_MESSAGE, discountWithinCap, duocNhapTay, holdsPartner, lyDoKhongNhapTay, manualFreezeViolation,
+  retailPricesOnly,
 } from "./price-guards";
 import { canTransition, hasHandlerPick, parseHandlerPick, validateBookerChange, validateOrder, type Failure, type OrderStatus, type ValidOrder } from "./rules";
 import {
@@ -109,12 +111,15 @@ async function legRaced(db: D1Database, orderId: string, legId: string): Promise
 
 /**
  * DK-T3-01 (kiểm toán 24/9; chủ dự án trả lời 2026-09-26) — các kiểm RIÊNG chạy SAU `validateOrder` ở POST/PUT đơn (luật thuần: `price-guards.ts`),
- * theo thứ tự: R1 (mọi tài khoản) dịch vụ nhập tay mới / sửa tên-giá dịch vụ nhập tay cũ → 400 `invalid_input`; R2 (tài khoản có quyền Đối tác) đơn giá
- * khác giá danh mục → 403 `forbidden`; R3 (tài khoản có quyền Đối tác) giảm giá cấp đơn vượt trần — hôm nay trần 0, "tạm không cho giảm" (chủ dự án 26/9)
- * → 403 `forbidden`. null = đạt.
+ * theo thứ tự: R1 — khi KHÔNG `duocNhapTay` (ADR-0061: tài khoản có quyền Đối tác TRƯỚC, rồi công tắc TẮT, rồi không có ô `order.service.manual`) dịch vụ
+ * nhập tay mới / sửa tên-giá dịch vụ nhập tay cũ → 400 `invalid_input` (câu theo lý do); R2 (tài khoản có quyền Đối tác) đơn giá khác giá danh mục → 403
+ * `forbidden`; R3 (tài khoản có quyền Đối tác) giảm giá cấp đơn vượt trần — hôm nay trần 0, "tạm không cho giảm" (chủ dự án 26/9) → 403 `forbidden`.
+ * `batNhapTay` = công tắc nhập tay, route đọc MỘT lần mỗi request (`manualPolicy`). null = đạt. MỌI route gọi `validateOrder` phải gọi hàm này (bài tĩnh
+ * `src/nhap-tay-guard.test.ts` — route sửa sau xác nhận C2 tương lai không lách được).
  */
-function priceGuard(staff: PermissionHolder, order: ValidOrder, ctx: OrderValidationContext): Response | null {
-  const frozen = manualFreezeViolation(order.services, ctx.stored);
+function priceGuard(staff: PermissionHolder, order: ValidOrder, ctx: OrderValidationContext, batNhapTay: boolean): Response | null {
+  const lyDo = lyDoKhongNhapTay(staff, batNhapTay);
+  const frozen = lyDo === null ? null : manualFreezeViolation(order.services, ctx.stored, lyDo);
   if (frozen) return error(400, "invalid_input", frozen);
   if (holdsPartner(staff) && !retailPricesOnly(order.items)) return PARTNER_PRICE();
   if (holdsPartner(staff) && !discountWithinCap(order.discount, PARTNER_DISCOUNT_CAP)) return PARTNER_DISCOUNT();
@@ -427,6 +432,43 @@ export async function getMyAssignments(db: D1Database, orderIds: readonly string
 export const ordersModule: AppModule = {
   name: "orders",
   routes: [
+    // ADR-0061 điều 6: công tắc "Dịch vụ nhập tay". Hai route thuộc module orders (bảng ord_manual_service_policy) nhưng CỐ Ý không nằm dưới /api/orders:
+    // đổi chính sách không phải thay đổi một đơn (không thuộc bài baoThayDoi của src/bang-tin-guard.test.ts), và tránh bẫy router ":id".
+    // ĐỌC (cổng orders): form lập đơn biết hiện nút theo `duocDung` (= duocNhapTay của CHÍNH người gọi). Chỉ người lập đơn cần biết → hỏi order.create
+    // (ADR-0019 điều 6: route sau cổng phải hỏi bảng; chỉ-HDV, Kế toán không lập đơn → 403). Toàn quyền có order.create nên màn cài đặt đọc cùng route.
+    route("GET", "/api/cai-dat/nhap-tay", "orders", async ({ env, staff }) => {
+      if (!can(staff, "order.create")) return error(403, "forbidden", "Tài khoản này không lập đơn nên không dùng dịch vụ nhập tay.");
+      const { bat } = await manualPolicy(env.DB, new Date().toISOString());
+      return json({ batNhapTay: bat, duocDung: duocNhapTay(staff, bat), doiDuoc: can(staff, "settings.ops") } satisfies NhapTayResponse);
+    }),
+    // GHI (cổng admin): chỉ ô settings.ops (hôm nay chỉ Toàn quyền — Quản trị qua cổng nhưng 403). Đổi = chèn dòng mới, valid_from_at = lúc ghi, không lùi
+    // (đi SAU dòng mới nhất, không trùng UNIQUE). Gửi CÙNG trạng thái đang hiệu lực = 200, không ghi dòng, không nhật ký. Nhật ký không gắn đơn (orderId NULL).
+    // Hai lệnh cùng lúc cùng mốc ⇒ lệnh thua va UNIQUE ⇒ 409 `stale` (lô không áp).
+    // Miễn trừ có tên ở bài NT-F7 (src/modules/billing/sau-da-giao.test.ts): không ghi đơn nào, không có đơn để khoá sau "Đã giao".
+    route("POST", "/api/cai-dat/nhap-tay", "admin", async ({ env, request, staff }) => {
+      if (!can(staff, "settings.ops")) return error(403, "forbidden", "Chỉ Toàn quyền bật / tắt được dịch vụ nhập tay.");
+      const body = (await readJson(request)) as { batNhapTay?: unknown } | null;
+      if (!body || typeof body !== "object" || typeof body.batNhapTay !== "boolean") return error(400, "invalid_input", "Chọn bật hoặc tắt dịch vụ nhập tay.");
+      const muon = body.batNhapTay;
+      const now = new Date();
+      const hienTai = await manualPolicy(env.DB, now.toISOString());
+      if (hienTai.bat !== muon) {
+        const sau = hienTai.moiNhat && Date.parse(hienTai.moiNhat) >= now.getTime() ? new Date(Date.parse(hienTai.moiNhat) + 1) : now;
+        const at = sau.toISOString();
+        try {
+          await env.DB.batch([
+            manualPolicyInsert(env.DB, crypto.randomUUID(), muon, at, staff.id),
+            auditStatement(env.DB, { staffId: staff.id, action: "manual_service_policy_changed", at, targetType: "system", detail: muon ? "Bật dịch vụ nhập tay" : "Tắt dịch vụ nhập tay" }),
+          ]);
+        } catch (e) {
+          // Hai lệnh đổi cùng lúc (kiểm độc lập VỪA-2): lệnh sau va UNIQUE valid_from_at ⇒ cả lô không áp (không dòng, không nhật ký) — báo tải lại, không 500.
+          if (/UNIQUE/i.test(String((e as Error)?.message ?? e))) return error(409, "stale", "Công tắc vừa được đổi — tải lại rồi thử lại.");
+          throw e;
+        }
+      }
+      return json({ batNhapTay: muon, duocDung: duocNhapTay(staff, muon), doiDuoc: true } satisfies NhapTayResponse);
+    }),
+
     // Trang chủ (docs/superpowers/sdd/2026-09-23-trang-chu-moi): số liệu TOÀN CÔNG TY + "Chuyến đón hôm nay" (`OrderSummaryDto[]` có tên/SĐT khách, tiền).
     // ADR-0019 điều 1–2: cổng "orders" chỉ lọc thô; thân hỏi ba ô KHÔNG ngữ cảnh (= xem được MỌI đơn, mọi tiền, mọi liên hệ) TRƯỚC mọi truy vấn —
     // Đối tác/Thực tập (`own`) → 403. Nếu sau này `money.view`/`contact.view` của một mã bị thu hẹp (vd `assigned`), Trang chủ của mã đó 403 chứ
@@ -467,7 +509,18 @@ export const ordersModule: AppModule = {
       return json({ mocToiThieuPhut: moc.phut, canhBaoPhut: moc.canhBaoPhut } satisfies MocToiThieuResponse);
     }),
 
-    route("GET", "/api/orders", "orders", async ({ env, url, staff, myHandledOrderIds }) => {
+    // ADR-0067 (chủ duyệt 30/9): danh sách NHỮNG NGƯỜI ĐÃ TỪNG LẬP ĐƠN cho ô "Người lập" của bộ lọc danh sách đơn. Hỏi ĐÚNG ba câu của nhánh "xem mọi
+    // đơn" của `GET /api/orders` ngay dưới (order.view / money.view / contact.view, KHÔNG ngữ cảnh) TRƯỚC mọi truy vấn: tập người nhận danh sách = tập
+    // người dùng được bộ lọc "mọi người" — ghép bằng bài ghim hành vi trên 512 tập con quyền (src/modules/orders/nguoi-lap-route.test.ts). Danh sách trắng
+    // `{ id, ten, ganNhat }` (tên đã hiện trên thẻ đơn cho đúng những người này); không SĐT, vai, trạng thái nghỉ. Chỉ đọc — không nhật ký.
+    // PHẢI đứng TRƯỚC "GET /api/orders/:id" (cùng lý do với route dashboard, pool ở trên — ":id" cũng khớp chữ "nguoi-lap").
+    route("GET", "/api/orders/nguoi-lap", "orders", async ({ env, staff }) => {
+      if (!can(staff, "order.view") || !can(staff, "money.view") || !can(staff, "contact.view")) return FORBIDDEN_VIEW();
+      const rows = await nguoiDaLapDon(env.DB);
+      return json({ nguoiLap: rows.map((r) => ({ id: r.id, ten: r.ten, ganNhat: vnToday(new Date(r.gan_nhat)) })) } satisfies NguoiLapResponse);
+    }),
+
+    route("GET", "/api/orders", "orders", async ({ env, url, staff, myHandledOrderIds, nhapKeToanCuaDon }) => {
       // BA NHÁNH LỌC (ADR-0030 S23-4, Review Focus 1), mỗi nhánh hỏi bảng quyền với ĐÚNG ngữ cảnh của tập đơn nó trả:
       //  (1) `can(order.view)` KHÔNG ngữ cảnh ("any" — SALES/ACCOUNTING/ADMIN/SUPER_ADMIN) → mọi đơn, không lọc;
       //  (2) "mình lập": `can(order.view, { ownerId: chính mình })` ("own" — PARTNER/INTERN) → đơn có người lập = chính mình;
@@ -485,19 +538,61 @@ export const ordersModule: AppModule = {
       if (seesAll && (!can(staff, "money.view") || !can(staff, "contact.view"))) return FORBIDDEN_VIEW();
       if (own && (!can(staff, "money.view", mine) || !can(staff, "contact.view", mine))) return FORBIDDEN_VIEW();
       if (handled && (!can(staff, "money.view", handling) || !can(staff, "contact.view", handling))) return FORBIDDEN_VIEW();
+      // ADR-0060 điều 5 (4): tham số lọc dấu kế toán CHỈ cho người có ô `accounting.entry.view` KHÔNG ngữ cảnh (any — Bán hàng, Kế toán, Quản trị, Toàn quyền);
+      // HDV, Thực tập, Đối tác gửi tham số → 403 (họ chỉ thấy nhãn trên thẻ đơn của mình). Đứng TRƯỚC mọi 400 của tham số.
+      const locNhapTho = url.searchParams.get("nhapKeToan");
+      if (locNhapTho !== null && !can(staff, "accounting.entry.view")) return error(403, "forbidden", "Tài khoản này không lọc được theo dấu nhập phần mềm kế toán.");
       // Bộ lọc nhiều điều kiện (góp ý T4): kiểm ở `docLocDon` (thuần) SAU mọi câu hỏi quyền; listOrders AND bộ lọc với phạm vi ở trên — không bao giờ nới.
       const loc = docLocDon(url.searchParams);
       if (!loc.ok) return error(400, "invalid_input", loc.message);
-      const result = await listOrders(env.DB, {
+      let locNhap: "da" | "chua" | null = null;
+      if (locNhapTho !== null) {
+        if (locNhapTho !== "da" && locNhapTho !== "chua") return error(400, "invalid_input", "Bộ lọc nhập phần mềm kế toán không hợp lệ.");
+        // A-6: bắt buộc kèm khoảng ngày đi, tối đa 92 ngày (tính cả hai đầu) — giữ tập ứng viên nhỏ, không phình theo năm tháng.
+        if (loc.loc.tu === null || loc.loc.den === null) return error(400, "invalid_input", "Lọc theo nhập phần mềm kế toán phải chọn Từ ngày và Đến ngày.");
+        if (soNgayKhoang(loc.loc.tu, loc.loc.den) > LOC_NHAP_TOI_DA_NGAY) {
+          return error(400, "invalid_input", `Lọc theo nhập phần mềm kế toán chỉ trong tối đa ${LOC_NHAP_TOI_DA_NGAY} ngày.`);
+        }
+        locNhap = locNhapTho;
+      }
+      // Nhãn "đã nhập" trên thẻ (A-12): ô xem hỏi theo TỪNG đơn — any; own (đơn mình lập); assigned (tập đơn đang phụ trách lấy MỘT lần mỗi request).
+      const xemNhapMoi = can(staff, "accounting.entry.view");
+      const xemNhapCuaMinh = can(staff, "accounting.entry.view", mine);
+      const xemNhapPhuTrach = can(staff, "accounting.entry.view", handling);
+      const phuTrach = handled || (!xemNhapMoi && xemNhapPhuTrach) ? await myHandledOrderIds() : null;
+      const phamVi = {
         q: (url.searchParams.get("q") ?? "").trim().slice(0, 100),
         loc: loc.loc,
-        limit: intParam(url.searchParams.get("limit"), 30, 1, 100),
-        offset: intParam(url.searchParams.get("offset"), 0, 0, 100000),
         ownerId: own ? staff.id : null,
         // Tập rỗng (chưa phụ trách đơn nào) = danh sách rỗng, KHÔNG phải "không lọc" (listOrders coi [] là "không đơn nào").
-        orderIds: handled ? await myHandledOrderIds() : null,
-      });
-      return json(result satisfies OrderListResponse);
+        orderIds: handled ? phuTrach : null,
+      };
+      const limit = intParam(url.searchParams.get("limit"), 30, 1, 100);
+      const offset = intParam(url.searchParams.get("offset"), 0, 0, 100000);
+      let result: Awaited<ReturnType<typeof listOrders>>;
+      let daNhap: Set<string> | null = null;
+      if (locNhap !== null) {
+        // ADR-0060 điều 5 (2): tập ứng viên trong khoảng ngày (CÙNG phạm vi + bộ lọc) → hàm tiêm của billing → lọc + phân trang trên tập đã lọc.
+        const ungVien = await listOrderIds(env.DB, phamVi, LOC_NHAP_TOI_DA_UNG_VIEN);
+        if (ungVien.length > LOC_NHAP_TOI_DA_UNG_VIEN) return error(400, "invalid_input", "Khoảng ngày có quá nhiều đơn để lọc theo nhập phần mềm kế toán — thu hẹp khoảng ngày.");
+        daNhap = await nhapKeToanCuaDon(ungVien);
+        if (daNhap === null) return error(503, "chua_san_sang", "Chưa lọc được theo nhập phần mềm kế toán. Thử lại sau.");
+        const set = daNhap;
+        const daLoc = ungVien.filter((id) => set.has(id) === (locNhap === "da"));
+        const trang = daLoc.slice(offset, offset + limit);
+        const r = await listOrders(env.DB, { ...phamVi, chiTrongIds: trang, limit, offset: 0 });
+        result = { ...r, hasMore: daLoc.length > offset + limit };
+      } else {
+        result = await listOrders(env.DB, { ...phamVi, limit, offset });
+      }
+      const phuTrachSet = new Set(phuTrach ?? []);
+      const duocXem = result.orders
+        .map((o) => o.id)
+        .filter((id) => xemNhapMoi || (xemNhapCuaMinh && result.owners.get(id) === staff.id) || (xemNhapPhuTrach && phuTrachSet.has(id)));
+      if (daNhap === null && duocXem.length) daNhap = await nhapKeToanCuaDon(duocXem);
+      const choXem = new Set(duocXem);
+      const orders = result.orders.map((o) => (daNhap?.has(o.id) && choXem.has(o.id) ? { ...o, nhapKeToan: true as const } : o));
+      return json({ orders, hasMore: result.hasMore } satisfies OrderListResponse);
     }),
 
     // Lập đơn. Đơn mới KHÔNG tự gắn người lập (ADR-0030 S20-4, ADR-0020 điều 1, Q-C): người lập chọn người phụ trách ngay trong form (`handlerStaffId`,
@@ -515,7 +610,7 @@ export const ordersModule: AppModule = {
       const ctx = await validationContext(env.DB, null);
       const parsed = validateOrder(body, ctx);
       if (!parsed.ok) return failure(parsed);
-      const guard = priceGuard(staff, parsed.value, ctx);
+      const guard = priceGuard(staff, parsed.value, ctx, (await manualPolicy(env.DB, new Date().toISOString())).bat); // ADR-0061: công tắc đọc một lần
       if (guard) return guard;
       // ADR-0047 (R7, R3): điểm danh mục của chặng phải đang dùng; đặt hai khoá cũ = dẫn xuất từ chặng (ghi kép vào cột cũ).
       const placed = await resolveLegPlaces(env.DB, parsed.value, ctx);
@@ -553,7 +648,11 @@ export const ordersModule: AppModule = {
       // ADR-0019 điều 2: chi tiết đơn trả tiền và liên hệ khách — hỏi hai ô với phạm vi CỦA ĐƠN NÀY; sai thì 403 (không cắt bớt trường).
       if (!can(staff, "money.view", scope) || !can(staff, "contact.view", scope)) return FORBIDDEN_VIEW();
       // R-P21 (áp lời chủ H4): dòng đặt gấp của lịch sử rút gọn theo vai (Đối tác, HDV, Thực tập không thấy lý do, tên người duyệt).
-      const history = can(staff, "order.history.view", scope) ? lichSuTheoVai(await getAuditTrail(env.DB, order.id), xemDuDatGap(staff)) : [];
+      // ADR-0060 điều 3 (ii): dòng order_accounting_entry_* chỉ cho người qua ô accounting.entry.view với ĐƠN NÀY (luật theo ô, không theo danh tính "Đối tác").
+      const xemNhapKeToan = can(staff, "accounting.entry.view", scope);
+      const history = can(staff, "order.history.view", scope)
+        ? lichSuTheoVai(await getAuditTrail(env.DB, order.id), xemDuDatGap(staff)).filter((e) => xemNhapKeToan || !laDongNhapKeToan(e.action))
+        : [];
       // Đơn đã "Đã giao" bị khoá (ADR-0025 đ5) ⇒ không còn nút sửa (giao diện chỉ ẩn/hiện; máy chủ từ chối ở mọi route ghi).
       return json({ order, history, canModify: can(staff, "order.modify", scope) && order.deliveredAt === null, mocToiThieuPhut: moc?.phut ?? null } satisfies OrderDetailResponse);
     }),
@@ -572,7 +671,7 @@ export const ordersModule: AppModule = {
       const ctx = await validationContext(env.DB, id);
       const parsed = validateOrder(body, ctx);
       if (!parsed.ok) return failure(parsed);
-      const guard = priceGuard(staff, parsed.value, ctx);
+      const guard = priceGuard(staff, parsed.value, ctx, (await manualPolicy(env.DB, new Date().toISOString())).bat); // ADR-0061: công tắc đọc một lần
       if (guard) return guard;
       const placed = await resolveLegPlaces(env.DB, parsed.value, ctx); // ADR-0047 (R7, R3)
       if (!placed.ok) return error(400, "invalid_input", placed.message);

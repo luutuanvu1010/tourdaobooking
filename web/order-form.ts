@@ -43,7 +43,7 @@ const formEl = byId<HTMLFormElement>("order-form");
 const servicesEl = byId("services");
 const emptyEl = byId("services-empty");
 const limitEl = byId("services-limit");
-const addManualBtn = byId<HTMLButtonElement>("add-manual"); // ẨN trong mọi trường hợp (ADR-0021); giữ phần tử để luồng cũ/kịch bản kiểm không gãy
+const addManualBtn = byId<HTMLButtonElement>("add-manual"); // ADR-0061 (sửa ADR-0021 điều 2): ẨN, trừ khi máy chủ trả `duocDung` (công tắc BẬT + được nhập tay)
 const orderDateEl = byId<HTMLInputElement>("orderDate");
 const saveBtn = byId<HTMLButtonElement>("save");
 const field = (id: string) => byId<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(id);
@@ -104,6 +104,9 @@ byId("catalog-slot").append(picker.root);
 
 // Tài khoản có quyền Đối tác (ADR-0027): đơn giá = giá danh mục, tạm chưa được giảm giá. Máy chủ là nơi chặn; form chỉ khoá ô cho khỏi gõ rồi bị từ chối.
 let retailOnly = false;
+// ADR-0061: người dùng được nhập tay (công tắc BẬT, có ô order.service.manual, không mang quyền Đối tác) — MÁY CHỦ quyết (`duocDung` của
+// GET /api/cai-dat/nhap-tay), giao diện không tự tính luật. Đọc TRƯỚC khi dựng thẻ đã lưu (loadOrder); lỗi / 403 → false (ẩn nút, thẻ chỉ xem).
+let duocNhapTay = false;
 
 function mount(d: ServiceDraft, open?: boolean): Entry {
   const entry = { draft: d, mocEl: h("div", { class: "dg-form-slot" }), canhBao: null as Entry["canhBao"] } as Omit<Entry, "card"> as Entry;
@@ -113,6 +116,7 @@ function mount(d: ServiceDraft, open?: boolean): Entry {
     openTrip: open ?? false, // bản 1.39 (chủ yêu cầu 30/9, thay giả định Q2 ngày 19/9): mọi khổ thu gọn mặc định; `?focus=` của cảnh báo thiếu chuyến vẫn mở đúng thẻ
     canAddLine: () => totalLines(drafts()) < MAX_LINES_PER_ORDER,
     retailOnly,
+    duocNhapTay,
     onChange: (next) => {
       entry.draft = next;
       recompute();
@@ -519,10 +523,18 @@ byId("use-mine").addEventListener("click", () => {
     el.dispatchEvent(new Event("input", { bubbles: true }));
   }
 });
+// ADR-0061: công tắc nhập tay — chỉ người lập đơn hỏi (máy chủ hỏi order.create; Kế toán, chỉ-HDV không gọi). Trước loadOrder: thẻ nhập tay đã lưu dựng theo cờ này.
+// Gọi song song với danh mục; chờ kết quả ngay sau danh mục (vẫn trước loadOrder).
+const layNhapTay = can(staff, "order.create")
+  ? api<Api.NhapTayResponse>("/api/cai-dat/nhap-tay").then((r) => r.duocDung, () => false)
+  : Promise.resolve(false);
 // ADR-0033: danh mục cho form chỉ dành cho người được lập đơn — máy chủ trả 403 cho tài khoản không có `order.create` (Kế toán), nên không gọi
 // (gọi thì hiện thêm "Không tải được danh mục dịch vụ — tải lại trang…", lời khuyên sai vì tải lại không giúp gì). Hôm nay mọi mã có `order.modify`
 // đều có `order.create`; ai sửa đơn mà không được lập đơn thì thẻ đã lưu hiện ở dạng khoá như khi mất danh mục (xem `loadCatalog`).
 if (can(staff, "order.create")) await loadCatalog(); // trước loadOrder: thẻ đã lưu cần danh mục hiện tại để biết còn đổi số khách được không
+duocNhapTay = await layNhapTay;
+addManualBtn.hidden = !duocNhapTay;
+picker.setNhapTay(duocNhapTay);
 // Sửa đơn nháp: tiền trả trước là LẦN THU ở trang đơn (mục Thanh toán), không nhập lại ở form (sổ tiền lượt 1).
 if (editId) {
   for (const f of ["prepaid-amount-field", "prepaid-method-field", "prepaid-collector-field"]) byId(f).hidden = true;

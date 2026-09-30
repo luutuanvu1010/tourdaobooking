@@ -170,7 +170,7 @@ const NOI_TX = "NOI CAP TAI XE DANH DAU";
 const SO_GPLX_KHUNG = ["791100000001", "791100000002"];
 const NOI_KHUNG = "Nơi cấp Dò Tìm";
 
-test("ba route điều phối (chi tiết chuyến, cuốc của tôi, xuất bến): thân không số của người, KHÔNG NƠI CẤP; nhật ký + bản chụp không số, không nơi cấp", async () => {
+test("ba route điều phối (chi tiết chuyến, cuốc của tôi, xuất bến) + xe của đơn (ADR-0059): thân không số của người, KHÔNG NƠI CẤP; nhật ký + bản chụp không số, không nơi cấp", async () => {
   const tat = batDongHo();
   try {
     const w = setup();
@@ -221,6 +221,10 @@ test("ba route điều phối (chi tiết chuyến, cuốc của tôi, xuất b�
     assert.equal(xbA.status, 200, xbA.text);
     assert.equal((await goi("cuốc A sau xuất bến", "GET", `/api/van-chuyen/cuoc-cua-toi/${A.chuyen.id}`, DRIVER)).status, 200);
     assert.equal((await goi("chi tiết A sau xuất bến", "GET", `/api/van-chuyen/chuyen/${A.chuyen.id}`, SALES)).status, 200);
+    // ADR-0059: xe trên chi tiết đơn có TÊN tài xế — thân không số giấy tờ, không nơi cấp của người.
+    const xeDon = await goi("xe của đơn A (ADR-0059)", "GET", `/api/van-chuyen/xe-cua-don/${dA.id}`, SALES);
+    assert.equal(xeDon.status, 200, xeDon.text);
+    assert.ok(xeDon.json.chang[0].xe[0].tenTaiXe, "chống bài rỗng: có tên tài xế");
     const chup = w.q("SELECT id, ket_qua FROM vc_trip_departure_check WHERE trip_id = ?", A.chuyen.id);
     assert.deepEqual(chup.map((c: any) => c.ket_qua), ["DAT"]);
     const muc = w.q("SELECT * FROM vc_trip_departure_check_item WHERE check_id = ?", chup[0].id);

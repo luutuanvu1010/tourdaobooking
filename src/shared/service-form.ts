@@ -179,10 +179,11 @@ export function draftFromDto(dto: OrderServiceDto, live: ReadonlyMap<string, Cat
 export const isLocked = (d: ServiceDraft): boolean => d.kind === "catalog" && d.source === "snapshot" && d.live === null;
 
 /**
- * Dịch vụ nhập tay ĐÃ LƯU (DK-T3-01, chủ dự án chốt 2026-09-26 "loại bỏ hoàn toàn dịch vụ nhập tay"): máy chủ chỉ nhận lại NGUYÊN tên + dòng tiền
- * (`orders/price-guards.ts`), nên thẻ hiện CHỈ XEM tên và dòng tiền; số khách, thông tin chuyến và nút "Xoá" vẫn dùng được.
+ * Dịch vụ nhập tay ĐÃ LƯU khi người dùng KHÔNG được nhập tay (DK-T3-01; ADR-0061: công tắc tắt, không có ô, hoặc tài khoản có quyền Đối tác): máy chủ chỉ
+ * nhận lại NGUYÊN tên + dòng tiền (`orders/price-guards.ts`), nên thẻ hiện CHỈ XEM tên và dòng tiền; số khách, thông tin chuyến và nút "Xoá" vẫn dùng được.
+ * `duocNhapTay` = `duocDung` do máy chủ trả (`GET /api/cai-dat/nhap-tay`) — giao diện không tự tính luật; mặc định false (an toàn: chỉ xem).
  */
-export const isFrozenManual = (d: ServiceDraft): boolean => d.kind === "manual" && d.id !== null;
+export const isFrozenManual = (d: ServiceDraft, duocNhapTay = false): boolean => d.kind === "manual" && d.id !== null && !duocNhapTay;
 
 // ---- chỉnh sửa (bất biến: trả bản mới) -------------------------------------------------------------------------------
 

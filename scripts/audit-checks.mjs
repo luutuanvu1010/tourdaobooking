@@ -638,6 +638,21 @@ export const CHECKS = [
     level: "warn",
     note: "cảnh báo (KHÔNG chặn phát hành — cùng lý do R-ORD-6a): lệch có thể là dữ liệu LỊCH SỬ từ trước bản vá Task 7, cần rà soát tay theo order_id",
   },
+  {
+    // R-ORD-NT1 (ADR-0061 điều 8, A-9): LỚP BÙ cho lệch 5.1 thu hẹp — luật "tài khoản có quyền Đối tác không nhập tay" chỉ ở mã (không trigger được: lưu nháp
+    // xoá–chèn lại order_service, dòng dịch vụ không có dấu người/lúc tạo riêng). Đơn có dịch vụ nhập tay (catalog_code NULL) mà người lập đang giữ quyền
+    // PARTNER còn hiệu lực, đơn tạo SAU mốc phát hành ADR-0061 = created_at của dòng đầu bảng ord_manual_service_policy (dòng gieo 0052 — không viết cứng
+    // ngày). Mức "warn": dòng nhập tay do NỘI BỘ thêm vào nháp của Đối tác (ADR-0061 "Hệ quả") cũng hiện ở đây — người rà soát xem theo mã đơn. Gỡ khi
+    // dòng dịch vụ có dấu vết riêng (ADR mới thêm trigger).
+    code: "R-ORD-NT1",
+    what: "đơn có dịch vụ nhập tay do tài khoản đang giữ quyền Đối tác lập, tạo sau mốc phát hành ADR-0061",
+    sql: `SELECT count(*) FROM orders o
+     WHERE o.created_at > (SELECT MIN(created_at) FROM ord_manual_service_policy)
+       AND EXISTS (SELECT 1 FROM order_service s WHERE s.order_id = o.id AND s.catalog_code IS NULL)
+       AND EXISTS (SELECT 1 FROM stf_permission p WHERE p.staff_id = o.staff_id AND p.permission_type_code = 'PARTNER' AND p.valid_to_at IS NULL)`,
+    level: "warn",
+    note: "cảnh báo (máy chủ đã chặn — duocNhapTay, Đối tác trước): rà soát tay theo mã đơn; có thể là dòng nhập tay nội bộ thêm vào nháp của Đối tác (hợp lệ)",
+  },
   // ---- ADR-0047 (chặng đưa đón `ord_transfer_leg`, hành khách `ord_passenger`) — kế hoạch Task A15 -------------------------------------------------
   // R-ORD-7 (Ruling R3 — GHI KÉP, chỉ phát hành 1; GỠ ở phát hành 2, cùng commit ngừng ghi kép): hai cột cũ `order_service.pickup_time/pickup_place` =
   // DẪN XUẤT của chặng chiều đi đầu còn mở (ngày, rồi giờ có trước giờ trống, rồi giờ, rồi id — cùng thứ tự `chieuDiDau`); nơi = tên điểm hoặc chữ. So cột

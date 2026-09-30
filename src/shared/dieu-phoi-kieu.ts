@@ -79,6 +79,14 @@ export const isMaLuatPhaLe = (v: unknown): v is MaLuatPhaLe => typeof v === "str
 // ---- Tập đóng (khớp CHECK của migration lõi chuyến) ------------------------------------------------------------------------------------------------------
 export const TRANG_THAI_CHUYEN = ["PLANNED", "RUNNING", "ENDED", "ENDED_INTERRUPTED", "CANCELLED"] as const;
 export type TrangThaiChuyen = (typeof TRANG_THAI_CHUYEN)[number];
+/** Nhãn tiếng Việt của trạng thái chuyến — MỘT nguồn cho DTO của van-chuyen và màn hình (ADR-0059: khối xe trên chi tiết đơn đổi mã sang chữ ở giao diện). */
+export const NHAN_TRANG_THAI_CHUYEN: Readonly<Record<TrangThaiChuyen, string>> = {
+  PLANNED: "Đã lên kế hoạch",
+  RUNNING: "Đang chạy",
+  ENDED: "Đã kết thúc",
+  ENDED_INTERRUPTED: "Kết thúc gián đoạn",
+  CANCELLED: "Đã huỷ",
+};
 /** Trạng thái cuối — chuyến không sửa được nữa (LC-06). */
 export const TRANG_THAI_CUOI_CHUYEN = ["ENDED", "ENDED_INTERRUPTED", "CANCELLED"] as const satisfies readonly TrangThaiChuyen[];
 

@@ -444,10 +444,17 @@ async function toSummaryDtos(db: D1Database, rows: readonly OrderRow[]): Promise
  * nghĩa là "không đơn nào" (KHÔNG phải "không lọc") — điều kiện json_each vẫn được đặt dù mảng rỗng. `orderIds` là trường BẮT BUỘC (không tuỳ chọn): mọi nơi
  * gọi phải tự nói rõ phạm vi.
  */
-export async function listOrders(
-  db: D1Database,
-  opts: { q: string; loc: LocDon; limit: number; offset: number; ownerId: string | null; orderIds: readonly string[] | null },
-): Promise<{ orders: OrderSummaryDto[]; hasMore: boolean }> {
+/** Tham số chung của danh sách đơn. `chiTrongIds` (ADR-0060 điều 5): chỉ các đơn này (AND — trang đã lọc theo dấu kế toán); null = không giới hạn. */
+export interface ListOrdersOpts {
+  q: string;
+  loc: LocDon;
+  ownerId: string | null;
+  orderIds: readonly string[] | null;
+  chiTrongIds?: readonly string[] | null;
+}
+
+/** MỘT bộ dựng điều kiện cho cả trang danh sách và tập ứng viên của bộ lọc dấu kế toán — hai câu không bao giờ lệch phạm vi / bộ lọc. */
+function dieuKienDanhSach(opts: ListOrdersOpts): { whereSql: string; binds: (string | number)[] } {
   const where: string[] = [];
   const binds: (string | number)[] = [];
   const scope: string[] = [];
@@ -460,6 +467,10 @@ export async function listOrders(
     binds.push(JSON.stringify(opts.orderIds));
   }
   if (scope.length) where.push(`(${scope.join(" OR ")})`);
+  if (opts.chiTrongIds != null) {
+    where.push("o.id IN (SELECT value FROM json_each(?))");
+    binds.push(JSON.stringify(opts.chiTrongIds));
+  }
   // Bộ lọc (góp ý T4, `src/shared/loc-don.ts`) — mọi điều kiện AND với phạm vi ở trên. Ngày đi + dịch vụ xét trên CÙNG một dòng dịch vụ (một EXISTS);
   // dịch vụ nhập tay không có mã danh mục nên không bao giờ khớp ô "dịch vụ". Mảng đi qua json_each để câu SQL vẫn tĩnh dạng.
   const { loc } = opts;
@@ -490,14 +501,34 @@ export async function listOrders(
     where.push(`(o.order_code LIKE ? ESCAPE '\\' OR o.customer_name LIKE ? ESCAPE '\\' OR o.customer_phone LIKE ? ESCAPE '\\' OR s.label LIKE ? ESCAPE '\\')`);
     binds.push(like, like, like, like);
   }
-  const sql = `${ORDER_SELECT} ${where.length ? `WHERE ${where.join(" AND ")}` : ""} ORDER BY o.created_at DESC, o.rowid DESC LIMIT ? OFFSET ?`;
+  return { whereSql: where.length ? `WHERE ${where.join(" AND ")}` : "", binds };
+}
+
+/** `owners`: người lập của từng đơn trên trang (route dùng cho ô `own` của nhãn dấu kế toán — ADR-0060 A-12); KHÔNG đưa ra DTO. */
+export async function listOrders(
+  db: D1Database,
+  opts: ListOrdersOpts & { limit: number; offset: number },
+): Promise<{ orders: OrderSummaryDto[]; hasMore: boolean; owners: Map<string, string> }> {
+  const { whereSql, binds } = dieuKienDanhSach(opts);
+  const sql = `${ORDER_SELECT} ${whereSql} ORDER BY o.created_at DESC, o.rowid DESC LIMIT ? OFFSET ?`;
   const { results } = await db
     .prepare(sql)
     .bind(...binds, opts.limit + 1, opts.offset)
     .all<OrderRow>();
   const rows = results.slice(0, opts.limit);
   const orders = await toSummaryDtos(db, rows);
-  return { orders, hasMore: results.length > opts.limit };
+  return { orders, hasMore: results.length > opts.limit, owners: new Map(rows.map((r) => [r.id, r.staff_id])) };
+}
+
+/**
+ * TẬP ỨNG VIÊN của bộ lọc dấu kế toán (ADR-0060 điều 5): mọi id đơn khớp CÙNG phạm vi + bộ lọc của trang danh sách (một bộ dựng điều kiện), đúng thứ tự
+ * danh sách, KHÔNG phân trang. Route bắt buộc kèm khoảng ngày (≤ 92 ngày) và chặn khi tập quá `LOC_NHAP_TOI_DA_UNG_VIEN` — đọc thêm `+1` để biết vượt.
+ */
+export async function listOrderIds(db: D1Database, opts: ListOrdersOpts, toiDa: number): Promise<string[]> {
+  const { whereSql, binds } = dieuKienDanhSach(opts);
+  const sql = `SELECT o.id FROM orders o JOIN v_stf_staff_label s ON s.id = o.staff_id ${whereSql} ORDER BY o.created_at DESC, o.rowid DESC LIMIT ?`;
+  const { results } = await db.prepare(sql).bind(...binds, toiDa + 1).all<{ id: string }>();
+  return results.map((r) => r.id);
 }
 
 /**

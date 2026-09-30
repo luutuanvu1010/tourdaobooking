@@ -533,3 +533,56 @@ export async function orderContactRows(db: D1Database, orderIds: readonly string
   if (orderIds.length === 0) return [];
   return (await db.prepare(ORDER_CONTACT_FOR_DRIVER).bind(JSON.stringify(orderIds)).all<OrderContactRow>()).results;
 }
+
+// ---- Chính sách "Dịch vụ nhập tay" (ADR-0061 điều 1 — bảng ord_manual_service_policy, migration 0052) ------------------------------------------
+
+/** Dòng hiệu lực = valid_from_at lớn nhất ≤ ?1 (bây giờ); kèm valid_from_at lớn nhất của MỌI dòng (để dòng mới không lùi, không trùng). */
+const MANUAL_POLICY_CURRENT = defineSql(
+  "orders",
+  "manual_policy_current",
+  `SELECT (SELECT enabled FROM ord_manual_service_policy WHERE valid_from_at <= ?1 ORDER BY valid_from_at DESC LIMIT 1) AS enabled,
+          (SELECT valid_from_at FROM ord_manual_service_policy WHERE valid_from_at <= ?1 ORDER BY valid_from_at DESC LIMIT 1) AS valid_from_at,
+          (SELECT MAX(valid_from_at) FROM ord_manual_service_policy) AS latest_at`,
+);
+const MANUAL_POLICY_INSERT = defineSql(
+  "orders",
+  "manual_policy_insert",
+  `INSERT INTO ord_manual_service_policy (id, enabled, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?3, ?4, ?3, ?4)`,
+);
+export interface ManualPolicy {
+  /** Công tắc đang BẬT. Bảng rỗng / chưa có dòng hiệu lực ⇒ false (ADR-0061 A-8: không đoán "bật"). */
+  bat: boolean;
+  /** Mốc hiệu lực của dòng đang áp; null = chưa có dòng nào hiệu lực. */
+  tuLuc: string | null;
+  /** valid_from_at lớn nhất của mọi dòng (dòng mới phải ĐI SAU mốc này — không lùi, không trùng UNIQUE). */
+  moiNhat: string | null;
+}
+/** Đọc MỘT lần mỗi request (ADR-0061 điều 3). */
+export async function manualPolicy(db: D1Database, nowIso: string): Promise<ManualPolicy> {
+  const r = await db.prepare(MANUAL_POLICY_CURRENT).bind(nowIso).first<{ enabled: number | null; valid_from_at: string | null; latest_at: string | null }>();
+  return { bat: r?.enabled === 1, tuLuc: r?.valid_from_at ?? null, moiNhat: r?.latest_at ?? null };
+}
+/** Câu chèn dòng chính sách mới (chưa chạy) — nơi gọi ghép cùng câu nhật ký vào MỘT db.batch. */
+export const manualPolicyInsert = (db: D1Database, id: string, bat: boolean, at: string, actorId: string): D1PreparedStatement =>
+  db.prepare(MANUAL_POLICY_INSERT).bind(id, bat ? 1 : 0, at, actorId);
+
+// ---- Người đã lập đơn (ADR-0067 — bộ lọc danh sách đơn, ô "Người lập") ------------------------------------------------------------------------------
+// Mọi người đã lập ít nhất một đơn (mọi trạng thái, kể cả nháp / huỷ), gồm người đã nghỉ và tài khoản Đối tác (chủ 30/9: "Hiện, không đánh dấu";
+// "Chung, không nhãn"). Tên qua view công bố `v_stf_staff_label` (như "Người lập: …" của thẻ đơn); KHÔNG đọc cột `active` của view (không lộ ai đã
+// nghỉ). Xếp theo đơn gần nhất (mới trước) rồi theo tên. Quét cả bảng `orders` (GROUP BY) — nơi gọi chỉ gọi MỘT lần khi mở bảng lọc. Nơi gọi PHẢI
+// hỏi quyền "xem mọi đơn" trước (route `GET /api/orders/nguoi-lap`).
+const NGUOI_DA_LAP_DON = defineSql(
+  "orders",
+  "nguoi_da_lap_don",
+  `SELECT o.staff_id AS id, s.label AS ten, MAX(o.created_at) AS gan_nhat FROM orders o JOIN v_stf_staff_label s ON s.id = o.staff_id
+   GROUP BY o.staff_id, s.label ORDER BY gan_nhat DESC, s.label`,
+);
+export interface NguoiDaLapDonRow {
+  id: string;
+  ten: string;
+  /** Dấu thời gian ISO UTC của đơn gần nhất (nơi gọi đổi sang ngày giờ Việt Nam). */
+  gan_nhat: string;
+}
+export async function nguoiDaLapDon(db: D1Database): Promise<NguoiDaLapDonRow[]> {
+  return (await db.prepare(NGUOI_DA_LAP_DON).all<NguoiDaLapDonRow>()).results;
+}

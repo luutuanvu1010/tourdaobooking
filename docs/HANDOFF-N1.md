@@ -2,7 +2,19 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 1.40: sửa giao diện nhỏ theo rà soát 30/9 (đếm dịch vụ ở form đơn; "Thông tin chuyến" thu gọn mặc định mọi khổ; thẻ HDV có giờ khởi hành / check-in / ghi chú dịch vụ + "Xem đơn"; tài xế thấy điểm đón, giờ hẹn, số khách TRƯỚC xuất bến; trang đơn không lặp ngày; sửa hai lỗi hiển thị do phông 1.39) — không migration — ĐÃ LÊN PRODUCTION (2026-09-30 17:49 giờ VN, chủ tự chạy `npm run day-len -- giao-dien-sua-nho-1-39` rồi `npm run trien-khai`)
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 1.42 (sổ tiền lượt 1 = "Hoàn tất đơn" + giao diện theo góp ý người dùng 30/9) ĐÃ LÊN PRODUCTION; hiện production chạy **1.43** (bảo trì tự tắt — phiên khác, chồng lên 1.42) — migration `0044`, `0045` đã áp (2026-09-30 tối, chủ tự chạy `npm run day-len -- worktree-agent-a70eb0a16a8dbebb3` rồi `npm run trien-khai`)
+
+AI (phiên "phân tích góp ý 30/9") kiểm bằng lệnh chỉ đọc 30/9 ~21:30 giờ VN:
+
+- **Phiên bản:** `node scripts/kiem-phien-ban.mjs --sau-deploy` → "ĐẠT: production đang chạy đúng bản 1.43." `origin/main` = 970f705d chứa trọn 1.42 (0080d65f). Hai lần `trien-khai` đầu KHÔNG tới bước phát hành (lần 2: AI đưa lệnh có `| tee` làm mất TTY → lệnh tự từ chối — đừng dẫn chủ chạy kiểu đó; muốn lưu thông báo dùng `script -q <tệp> npm run trien-khai`).
+- **1.42 gồm:** sổ tiền lượt 1 (ADR-0024 đ1–5, ADR-0025, ADR-0026: "Đã giao – đã thu đủ", "Hoàn thành", khoá đơn sau Đã giao, lần thu + sổ công nợ `bil_*`, biên nhận danh sách trắng, cọc cũ chuyển thành lần thu "chưa rõ"; thao tác Kế toán **TẠM** trên trang đơn + trường `keToan` của `GET /api/orders/:id/payments` — gỡ khi dựng hai màn sổ theo bản vẽ Claude Design của chủ); giao diện G1 (bộ lọc đơn nhiều điều kiện, Trang chủ Hôm nay/Ngày mai/Ngày kia, Góp ý thanh bước + "Mở lại", lọc sản phẩm "Hay dùng", tài xế "Ngày kia", thẻ đơn "Đón tại"); form lập đơn: Thanh toán trước Khách, mặc định Chuyển khoản. Kiểm độc lập: sổ tiền 2 vòng, G1 2 vòng, bản gộp 1 vòng — ĐẠT / ĐẠT CÓ ĐIỀU KIỆN đã sửa; `npm test` 1992/1992, e2e 31/31. Nguồn: `docs/superpowers/specs/2026-09-30-phan-tich-gop-y-nguoi-dung.md`, sổ thi công `docs/superpowers/plans/2026-09-30-so-tien-luot-1-thi-cong-nhat-ky.md`.
+- **Worker** (`wrangler deployments list`): 9d8572b2-6e80-499a-81e7-6d72d7f627f9 (14:13Z — nhiều khả năng 1.42, chưa đối chiếu số bản), 57805328-d7af-4157-95d4-f125c0dd2fb1 (14:19Z, mới nhất = 1.43). Trước đó fe80ecc9 (13:12Z) và 9c1f6d9c (13:02Z, 1.41 hướng dẫn theo vai). **KHÔNG lùi Worker về bản trước 1.42**: 0045 đã chuyển cọc cũ sang sổ, mã cũ không đọc sổ → hỏi AI trước khi lùi.
+- **Migration:** `wrangler d1 migrations list --remote` → "No migrations to apply!" (0044, 0045 đã áp).
+- **Dữ liệu:** `audit-invariants --db remote` thoát 0 → "Mọi bất biến đạt, 3 cảnh báo": ⚠ **22 lần thu người thu chưa rõ** (cọc cũ — Kế toán đảo rồi ghi lại đúng người thu bằng nút tạm trên trang đơn; đơn còn lần thu "chưa rõ" KHÔNG bấm Đã giao được); ⚠ R-VC-14 = 7; ⚠ R-ORD-8 = 7. Chín kiểm R-BIL đạt.
+- **Chưa kiểm:** thao tác thật bằng tài khoản đăng nhập (Đã giao, Hoàn thành, nút Kế toán); iPhone thật; ca vàng SV-SC-01..04 chờ chủ/Kế toán xác nhận; `v1-xac-nhan-png` bước b (phông) đỏ sẵn từ 1.39.
+- **Kế tiếp:** chủ vẽ hai màn sổ (Claude Design); ADR-0059/0060/0061 (accepted 30/9, thi công sau, migration ≥ 0050 do điều phối chung cấp); câu mở: ô "Người lập" chọn từng người (chạm API), thanh lọc ngang máy tính.
+
+## TRẠNG THÁI TRIỂN KHAI (cũ) — Phiên bản 1.40: sửa giao diện nhỏ theo rà soát 30/9 (đếm dịch vụ ở form đơn; "Thông tin chuyến" thu gọn mặc định mọi khổ; thẻ HDV có giờ khởi hành / check-in / ghi chú dịch vụ + "Xem đơn"; tài xế thấy điểm đón, giờ hẹn, số khách TRƯỚC xuất bến; trang đơn không lặp ngày; sửa hai lỗi hiển thị do phông 1.39) — không migration — ĐÃ LÊN PRODUCTION (2026-09-30 17:49 giờ VN, chủ tự chạy `npm run day-len -- giao-dien-sua-nho-1-39` rồi `npm run trien-khai`)
 
 AI (phiên điều phối chung) kiểm bằng lệnh chỉ đọc 30/9 17:50:
 

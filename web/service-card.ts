@@ -30,6 +30,8 @@ export interface CardOptions {
   /** Tài khoản có quyền Đối tác (ADR-0027 R2): đơn giá luôn là giá danh mục — ô đơn giá CHỈ XEM khi đang bằng giá danh mục; nếu đơn cũ đang lệch thì vẫn
    *  sửa được để đưa về đúng giá (máy chủ từ chối mọi giá khác). */
   retailOnly?: boolean;
+  /** ADR-0061: người dùng ĐƯỢC nhập tay (`duocDung` của máy chủ) — thẻ nhập tay đã lưu sửa được tên/giá; vắng/false = chỉ xem (máy chủ vẫn kiểm lại). */
+  duocNhapTay?: boolean;
 }
 
 export interface ServiceCard {
@@ -62,10 +64,10 @@ interface ManualRefs {
 }
 
 /** Khoá cấu trúc: đổi khoá này thì dựng lại phần thân (bộ đếm, dòng tiền); còn lại chỉ refresh tại chỗ. */
-function structKey(d: ServiceDraft): string {
+function structKey(d: ServiceDraft, duocNhapTay: boolean): string {
   return d.kind === "catalog"
     ? `c|${d.item.code}|${isLocked(d)}|${d.repick}|${cardCodes(d).join(",")}|${groupInfo(d) !== null}` // KHÔNG có d.source: bản chụp → hiện tại không dựng lại (giữ bàn phím); chữ phụ của bộ đếm cập nhật tại chỗ
-    : `m|${isFrozenManual(d)}|${d.lines.length}`;
+    : `m|${isFrozenManual(d, duocNhapTay)}|${d.lines.length}`;
 }
 
 export function createServiceCard(o: CardOptions): ServiceCard {
@@ -176,7 +178,7 @@ export function createServiceCard(o: CardOptions): ServiceCard {
     return h(
       "div",
       null,
-      h("div", { class: "svc-locked" }, h("p", { class: "muted" }, "Dịch vụ nhập tay đã ngừng — chỉ xem; muốn đổi thì xoá và chọn từ danh mục.")),
+      h("div", { class: "svc-locked" }, h("p", { class: "muted" }, "Dịch vụ nhập tay chỉ xem (đang tắt hoặc tài khoản này không được nhập tay); muốn đổi thì xoá và chọn từ danh mục.")),
       h("div", { class: "guest-row" }, h("div", { class: "guest-info" }, h("div", { class: "guest-label" }, "Số khách"), h("div", { class: "muted" }, "Chỉ để vận hành, không nhân với tiền")), guests.root),
       h("div", { class: "svc-sub" }, "Dòng tiền"),
       ...lines,
@@ -189,7 +191,7 @@ export function createServiceCard(o: CardOptions): ServiceCard {
     lineRefs = new Map();
     groupHint = null;
     emptyHint = null;
-    if (isFrozenManual(d)) return buildFrozenManualBody(d);
+    if (isFrozenManual(d, o.duocNhapTay)) return buildFrozenManualBody(d);
     const name = h("input", { type: "text", maxLength: 300, autocomplete: "off", value: d.name, placeholder: "Vd: Xe đưa đón riêng" });
     name.addEventListener("input", () => commit({ ...man(), name: name.value }));
     nameInput = name;
@@ -314,9 +316,9 @@ export function createServiceCard(o: CardOptions): ServiceCard {
   }
 
   function commit(next: ServiceDraft): void {
-    const before = structKey(draft);
+    const before = structKey(draft, o.duocNhapTay === true);
     draft = next;
-    if (structKey(next) !== before) rebuildBody();
+    if (structKey(next, o.duocNhapTay === true) !== before) rebuildBody();
     refresh();
     o.onChange(next); // trang cập nhật bản nháp của mình rồi gọi refreshLimits() của MỌI thẻ (trần dòng tính trên cả đơn)
   }
@@ -335,9 +337,9 @@ export function createServiceCard(o: CardOptions): ServiceCard {
   return {
     root,
     update(d) {
-      const before = structKey(draft);
+      const before = structKey(draft, o.duocNhapTay === true);
       draft = d;
-      if (structKey(d) !== before) rebuildBody();
+      if (structKey(d, o.duocNhapTay === true) !== before) rebuildBody();
       refresh();
       refreshLimits(); // thân có thể vừa được dựng lại: nút "+ Thêm dòng" mới mặc định bật
     },

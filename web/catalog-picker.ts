@@ -1,5 +1,6 @@
 // Ô "Chọn từ danh mục": ô tìm + danh sách kết quả (tên, mã, đơn vị, giá người lớn). Chạm một kết quả = thêm thẻ (onPick).
-// Dịch vụ chưa hỗ trợ đơn vị hoặc chưa có giá hiện mờ, không chạm được (ghi "chưa hỗ trợ" / "chưa có giá" — dịch vụ nhập tay đã bỏ từ bản 1.11): `aria-disabled` chứ không `disabled`, để vẫn nằm trong cây truy cập (người dùng đọc màn hình biết có mục này). Dịch vụ đã ẩn không có trong /api/catalog/for-order (nguồn của form lập đơn, ADR-0033) nên không hiện.
+// Dịch vụ chưa hỗ trợ đơn vị hoặc chưa có giá hiện mờ, không chạm được (ghi "chưa hỗ trợ" / "chưa có giá"; ADR-0061: người ĐƯỢC nhập tay — `setNhapTay(true)` —
+// thấy "chưa hỗ trợ — dùng nhập tay", gợi ý nút "+ Dịch vụ nhập tay"; người không được nhập tay chỉ thấy "chưa hỗ trợ" như bản 1.40): `aria-disabled` chứ không `disabled`, để vẫn nằm trong cây truy cập (người dùng đọc màn hình biết có mục này). Dịch vụ đã ẩn không có trong /api/catalog/for-order (nguồn của form lập đơn, ADR-0033) nên không hiện.
 // Danh sách là các nút thường (không role listbox/option: listbox đòi tên + mô hình phím mũi tên mà ở đây không có). Mỗi dòng: nút chọn (`.catalog-pick`) + nút ghim ☆/★ "Hay dùng" (`.catalog-ghim`) — anh em, không lồng.
 import type { CatalogGroupDto, CatalogServiceDto } from "../src/shared/contracts";
 import { unitLabel } from "../src/shared/service-form";
@@ -16,6 +17,8 @@ export interface CatalogPicker {
   setDisabled(reason: string | null): void;
   /** Bản 1.39: mã dịch vụ đang có trong đơn — kết quả tìm trùng mã gắn nhãn "đã chọn" (KHÔNG chặn chọn trùng, chủ quyết). */
   setSelected(codes: Iterable<string>): void;
+  /** ADR-0061: người dùng được nhập tay (`duocDung` của máy chủ) — dịch vụ chưa hỗ trợ ghi "chưa hỗ trợ — dùng nhập tay". */
+  setNhapTay(duocNhapTay: boolean): void;
   focus(): void;
   /** ADR-0058 Đ8: nhóm dịch vụ (thứ tự của máy chủ) cho hàng chip "Nhóm dịch vụ"; rỗng = ẩn hàng. */
   setGroups(groups: readonly CatalogGroupDto[]): void;
@@ -147,6 +150,7 @@ export function createCatalogPicker(o: { onPick: (item: CatalogServiceDto) => vo
     nhomTrangThaiChu.textContent = `Đang lọc: ${ten} — ${n} dịch vụ · `;
     nhomTrangThai.hidden = false;
   }
+  let nhapTay = false;
 
   function render(): void {
     capNhatTrangThai();
@@ -159,7 +163,7 @@ export function createCatalogPicker(o: { onPick: (item: CatalogServiceDto) => vo
           "button",
           { type: "button", class: "catalog-pick", "aria-disabled": usable ? false : "true" },
           h("span", { class: "catalog-name" }, h("strong", null, c.code), " ", c.name, c.supported ? h("span", { class: "chip chip-unit" }, unitLabel(c.unit)) : null, selected.has(c.code) ? h("span", { class: "chip chip-picked" }, "đã chọn") : null),
-          h("span", { class: "price" }, c.supported ? (c.prices.adult === null ? "chưa có giá" : vnd(c.prices.adult)) : "chưa hỗ trợ"),
+          h("span", { class: "price" }, c.supported ? (c.prices.adult === null ? "chưa có giá" : vnd(c.prices.adult)) : nhapTay ? "chưa hỗ trợ — dùng nhập tay" : "chưa hỗ trợ"),
         );
         b.addEventListener("click", () => {
           if (!usable) return; // mục không chọn được: bỏ qua (danh sách vẫn mở)
@@ -218,6 +222,10 @@ export function createCatalogPicker(o: { onPick: (item: CatalogServiceDto) => vo
     },
     setSelected(codes) {
       selected = new Set(codes);
+      if (!list.hidden) render();
+    },
+    setNhapTay(v) {
+      nhapTay = v;
       if (!list.hidden) render();
     },
     focus: () => q.focus(),

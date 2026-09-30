@@ -151,4 +151,55 @@ assert.equal((await call(ADMIN, "PATCH", `/api/staff/${M.id}`, { active: false }
 assert.equal((await call(ADMIN, "PUT", `/api/orders/${mOrder.id}/handler`, { staffId: meAdmin.id })).status, 200, "giao lại đơn của người đã nghỉ");
 assert.deepEqual((await call(ADMIN, "GET", `/api/dispatch/handlers?orderIds=${mOrder.id}`)).body.handlers[mOrder.id].staffId, meAdmin.id);
 console.log("✓ nhiều quyền + hiệu lực ngay");
+// --- ADR-0067: GET /api/orders/nguoi-lap — danh sách người đã lập đơn cho ô "Người lập" của bộ lọc. 200 CHỈ cho người xem mọi đơn (Bán hàng, Kế toán,
+// Quản trị, Toàn quyền, lai Bán hàng + HDV); HDV, Đối tác, Thực tập, lai HDV + Thực tập, Tài xế, Tài xế đối tác → 403. Gồm Đối tác và người đã nghỉ,
+// không nhãn; mỗi người đúng ba khoá id/ten/ganNhat. D1 dùng chung cả lần chạy ⇒ khẳng định "có mặt", không so nguyên danh sách.
+{
+  await ensureFakeCatalog();
+  const duoi = String(Date.now()).slice(-6);
+  const taoTheoQuyen = async (permissions, ten) => {
+    const x = await call(ADMIN, "POST", "/api/staff", { fullName: `${ten} ${duoi}`, phone: randomPhone(), permissions });
+    assert.equal(x.status, 201, JSON.stringify(x.body));
+    return { id: x.body.staff.id, ten: `${ten} ${duoi}`, cookie: (await login(x.body.staff.phone, x.body.pin)).cookie };
+  };
+  const taoTheoVai = async (roles, ten) => {
+    const x = await call(ADMIN, "POST", "/api/staff", { fullName: `${ten} ${duoi}`, phone: randomPhone(), roles });
+    assert.equal(x.status, 201, JSON.stringify(x.body));
+    return { id: x.body.staff.id, cookie: (await login(x.body.staff.phone, x.body.pin)).cookie };
+  };
+  const doiTac = await taoTheoQuyen(["PARTNER"], "Đối Tác Người Lập");
+  const nghi = await taoTheoQuyen(["SALES"], "Bán Hàng Sẽ Nghỉ");
+  const thucTap = await taoTheoQuyen(["INTERN"], "Thực Tập Người Lập");
+  const laiBanHdv = await taoTheoQuyen(["SALES", "FIELD"], "Lai Bán HDV");
+  const laiHdvTt = await taoTheoQuyen(["FIELD", "INTERN"], "Lai HDV Thực Tập");
+  const taiXe = await taoTheoVai(["DRIVER_INTERNAL"], "Tài Xế Người Lập");
+  const taiXeDt = await taoTheoVai(["DRIVER_EXTERNAL"], "Tài Xế Đối Tác Người Lập");
+  const donDt = await call(doiTac.cookie, "POST", "/api/orders", orderInput());
+  assert.equal(donDt.status, 201, JSON.stringify(donDt.body));
+  assert.equal((await call(nghi.cookie, "POST", "/api/orders", orderInput())).status, 201);
+  assert.equal((await call(ADMIN, "PATCH", `/api/staff/${nghi.id}`, { active: false })).status, 200, "cho nghỉ việc SAU khi đã lập đơn");
+
+  for (const [cookie, nhan] of [[SALES, "Bán hàng"], [ACC, "Kế toán"], [ADMIN, "Quản trị"], [await session(ACCOUNTS.superAdmin), "Toàn quyền"], [laiBanHdv.cookie, "lai Bán hàng + HDV"]]) {
+    r = await call(cookie, "GET", "/api/orders/nguoi-lap");
+    assert.equal(r.status, 200, `${nhan}: ${JSON.stringify(r.body)}`);
+    assert.deepEqual(Object.keys(r.body), ["nguoiLap"]);
+    for (const x of r.body.nguoiLap) assert.deepEqual(Object.keys(x).sort(), ["ganNhat", "id", "ten"], `${nhan}: ${JSON.stringify(x)}`);
+    const theoId = new Map(r.body.nguoiLap.map((x) => [x.id, x.ten]));
+    assert.equal(theoId.get(doiTac.id), doiTac.ten, `${nhan}: có Đối tác, không nhãn`);
+    assert.equal(theoId.get(nghi.id), nghi.ten, `${nhan}: có người đã nghỉ, không đánh dấu`);
+    assert.ok(!theoId.has(thucTap.id), `${nhan}: người chưa lập đơn không có mặt`);
+  }
+  for (const [cookie, nhan] of [[FIELD, "HDV"], [doiTac.cookie, "Đối tác"], [thucTap.cookie, "Thực tập"], [laiHdvTt.cookie, "lai HDV + Thực tập"], [taiXe.cookie, "Tài xế"], [taiXeDt.cookie, "Tài xế đối tác"]]) {
+    r = await call(cookie, "GET", "/api/orders/nguoi-lap");
+    assert.equal(r.status, 403, `${nhan}: ${r.status} ${JSON.stringify(r.body)}`);
+  }
+  assert.equal((await call(null, "GET", "/api/orders/nguoi-lap")).status, 401);
+  // Lọc theo người vừa chọn: Kế toán lọc theo Đối tác → đúng đơn Đối tác lập; Đối tác lọc theo người khác → rỗng (bộ lọc không nới phạm vi).
+  r = await call(ACC, "GET", `/api/orders?limit=100&nguoiLap=${doiTac.id}`);
+  assert.deepEqual(r.body.orders.map((x) => x.id), [donDt.body.order.id]);
+  r = await call(doiTac.cookie, "GET", `/api/orders?limit=100&nguoiLap=${nghi.id}`);
+  assert.equal(r.status, 200);
+  assert.deepEqual(r.body.orders, [], "Đối tác lọc theo người khác → rỗng");
+  console.log("✓ ADR-0067 người lập: 200 cho Bán hàng/Kế toán/Quản trị/Toàn quyền/lai Bán hàng+HDV (có Đối tác, người đã nghỉ; đúng 3 khoá); 403 HDV/Đối tác/Thực tập/lai HDV+Thực tập/Tài xế/Tài xế đối tác");
+}
 console.log("E2E PERMISSIONS OK");

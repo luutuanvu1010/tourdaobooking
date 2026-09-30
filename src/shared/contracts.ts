@@ -111,6 +111,15 @@ export interface MaintenanceStatusDto {
 }
 /** `GET`/`PUT /api/maintenance` (chỉ ADMIN): `canToggle` = chính người gọi có nằm trong danh sách được phép bật/tắt không (không lộ danh sách). */
 export interface MaintenanceResponse extends MaintenanceStatusDto { canToggle: boolean }
+
+// ---- Công tắc "Dịch vụ nhập tay" (ADR-0061 điều 6; module `orders`) ----
+/**
+ * `GET`/`POST /api/cai-dat/nhap-tay`: `batNhapTay` = công tắc đang BẬT; `duocDung` = CHÍNH người gọi có được nhập tay không (`duocNhapTay` của máy chủ —
+ * form lập đơn hiện nút "+ Dịch vụ nhập tay" theo trường này); `doiDuoc` = người gọi bật/tắt được không (ô `settings.ops` — màn cài đặt của Toàn quyền).
+ */
+export interface NhapTayResponse { batNhapTay: boolean; duocDung: boolean; doiDuoc: boolean }
+/** Thân `POST /api/cai-dat/nhap-tay` (chỉ Toàn quyền). */
+export interface NhapTayRequest { batNhapTay: boolean }
 /** Thân `PUT /api/maintenance`. `endsAt` bắt buộc khi `on = true`. */
 export interface MaintenanceRequest { on: boolean; endsAt?: string }
 /** Thân `error` của phản hồi 503 `maintenance` (mọi `/api/*` cần đăng nhập với người bị chặn, và `POST /api/auth/login`): `endsAt` để giao diện dựng đồng hồ đếm ngược mà không cần gọi thêm. */
@@ -229,6 +238,11 @@ export type OrderSummaryDto = Pick<
   pax: PaxCounts;
   /** Của dịch vụ ĐẦU TIÊN (sort_order nhỏ nhất); mọi trường null nếu đơn chưa có dịch vụ nào. */
   trip: OrderSummaryTripDto;
+  /**
+   * ADR-0060 A-12: nhãn "Đã nhập phần mềm kế toán" trên thẻ. CHỈ có (true) khi dấu hiện tại là đã nhập VÀ người xem qua ô `accounting.entry.view` với đơn
+   * đó; mọi trường hợp khác VẮNG khoá (không gửi false — người không được xem không suy ra được gì).
+   */
+  nhapKeToan?: true;
 };
 
 /** Thông tin chuyến client gửi lên: "" = chưa có. */
@@ -395,6 +409,13 @@ export interface IncompleteTripBody { error: { code: "incomplete_trip"; message:
 export interface CatalogChangedBody { error: { code: "catalog_changed"; message: string; changes: CatalogChangeDto[] } }
 
 export interface OrderListResponse { orders: OrderSummaryDto[]; hasMore: boolean }
+/**
+ * ADR-0067: một người đã từng lập đơn — cho ô "Người lập" của bộ lọc danh sách đơn (chỉ người xem mọi đơn). DANH SÁCH TRẮNG: mã tài khoản, tên hiển thị
+ * (như "Người lập: …" trên thẻ đơn), ngày dân sự giờ Việt Nam của đơn gần nhất (chỉ để phân biệt tên trùng). KHÔNG BAO GIỜ: SĐT, email, trạng thái
+ * nghỉ, vai, mã quyền, số đơn, tiền.
+ */
+export interface NguoiLapDto { id: string; ten: string; ganNhat: string }
+export interface NguoiLapResponse { nguoiLap: NguoiLapDto[] }
 /** Cảnh báo mốc tối thiểu khi LƯU NHÁP (ADR-0049 I27 — không chặn lưu): chặng có giờ, chưa đặt gấp, dưới mốc. `legKey` = id chặng. */
 export interface CanhBaoMocDto { legKey: string; phutConLai: number }
 /**
@@ -1313,6 +1334,21 @@ export interface CuocCuaToiItemDto {
   dieuKienConThieu: DieuKienConThieuDto[];
 }
 export interface CuocCuaToiResponse { tu: string; den: string; chuyen: CuocCuaToiItemDto[] }
+/**
+ * ADR-0059 — `GET /api/van-chuyen/xe-cua-don/:orderId`: xe chở từng chặng ĐANG MỞ của một đơn, DANH SÁCH TRẮNG (Hiến chương 4.4). Mỗi chặng một mục (kể cả
+ * chặng chưa xếp — `xe` rỗng); mỗi xe = một chuyến chưa huỷ có suất khách ĐANG MỞ của chặng. KHÔNG BAO GIỜ: SĐT tài xế, tên / năm sinh khách, khoá so sánh
+ * nơi, mã / id chuyến, tiền, giấy tờ. `trangThai` là mã — giao diện đổi sang chữ bằng `NHAN_TRANG_THAI_CHUYEN` (src/shared/dieu-phoi-kieu.ts).
+ */
+export interface XeCuaDonXeDto {
+  bienSo: string;
+  /** Tên hiển thị hồ sơ tài xế đang mở dòng lái; null = chuyến chưa có tài xế. */
+  tenTaiXe: string | null;
+  /** Số suất hành khách ĐANG MỞ của chặng trên chuyến này. */
+  soKhach: number;
+  trangThai: "PLANNED" | "RUNNING" | "ENDED" | "ENDED_INTERRUPTED" | "CANCELLED";
+}
+export interface XeCuaDonChangDto { legId: string; xe: XeCuaDonXeDto[] }
+export interface XeCuaDonResponse { chang: XeCuaDonChangDto[] }
 /** Route 20 (và phản hồi lệnh tiến độ của tài xế) — chi tiết một chuyến mình đang lái. */
 export interface CuocChiTietResponse {
   chuyen: {
@@ -1514,3 +1550,13 @@ export interface TroLyHoiResponse { traLoi: string; nguon: string[] }
 /** `GET`/`POST /api/tro-ly/cai-dat` (chỉ Toàn quyền — ô settings.ops). `coKhoa`: máy chủ đã có khoá OpenAI chưa (không bao giờ trả giá trị khoá). */
 export interface TroLyCaiDatResponse { bat: boolean; tranThangUsd: number; tranNgay: number; coKhoa: boolean; thang: string; chiPhiThangUsd: number; soCauThang: number }
 export interface TroLyCaiDatRequest { bat: boolean; tranThangUsd: number; tranNgay: number }
+
+/** ADR-0060: một dòng dấu "đã nhập phần mềm kế toán" (bảng chỉ-thêm). `nguoiBam` = tên hiển thị (không SĐT). */
+export interface NhapKeToanDongDto { id: string; daNhap: boolean; soHoaDon: string | null; lyDo: string | null; luc: string; nguoiBam: string | null }
+/**
+ * `GET /api/orders/:id/nhap-ke-toan` (ADR-0060 điều 4). `hienTai` null = chưa từng đánh dấu. `truocDo` (A-7): các dòng TRƯỚC dòng hiện tại, mới nhất trước —
+ * CHỈ có cho người giữ ô `accounting.entry.mark`, còn lại null. `coTheGhi` = có ô ghi; `donDaXacNhan` = đánh dấu được lúc này (đơn đã xác nhận).
+ */
+export interface NhapKeToanResponse { hienTai: NhapKeToanDongDto | null; truocDo: NhapKeToanDongDto[] | null; coTheGhi: boolean; donDaXacNhan: boolean }
+/** Thân `POST /api/orders/:id/nhap-ke-toan`: `truocDo` = id dòng hiện tại người dùng đang thấy (null = chưa có dòng) — khoá lạc quan. */
+export interface NhapKeToanInput { daNhap: boolean; soHoaDon?: string | null; lyDo?: string | null; truocDo: string | null }

@@ -11,6 +11,28 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Bản 1.46 = gộp bốn nhánh đã qua kiểm độc lập (ADR-0059 xe đón trên đơn; ADR-0060 dấu kế toán, migration 0051; ADR-0061 nhập tay nội bộ,
+    // migration 0052; ADR-0067 ô Người lập). Mỗi nhánh ghi số tạm 1.45; người gộp chốt 1.46 trên 1.45 của main.
+    version: "1.46",
+    date: "2026-09-30",
+    items: [
+      { kind: "moi", text: "Chi tiết đơn: dưới giờ đón hiện xe đón khách — biển số, tên tài xế, số khách trên từng xe và xe đã chạy chưa. Chỉ người xem được Điều phối xe mới thấy." },
+      { kind: "moi", text: "Kế toán đánh dấu đơn \"Đã nhập phần mềm kế toán\" kèm số hoá đơn; danh sách đơn có nhãn và lọc được đơn chưa nhập / đã nhập theo khoảng ngày." },
+      { kind: "moi", text: "Dịch vụ nhập tay trở lại khi Toàn quyền bật ở trang Tôi (mặc định tắt): Bán hàng, Quản trị thêm được dịch vụ gõ tên, giá tay. Tài khoản đối tác không dùng được." },
+      { kind: "moi", text: "Lọc đơn theo từng người lập: trong nút \"Lọc\", gõ tên để chọn người đã lập đơn (Bán hàng, Kế toán, Quản trị). Bộ lọc \"Đơn tôi lập\" đã nhớ vẫn giữ nguyên." },
+    ],
+  },
+  {
+    // Chủ báo 30/9 sau 1.44: (1) "chưa thấy trợ lý bật lên" — shell không gắn nút khi đang bảo trì; (2) thông báo điện thoại mất sau mỗi lần triển khai
+    // — chưa chốt nguyên nhân gốc (điều tra chỉ đọc); sửa phần chắc chắn: nút "Bật" không còn luôn huỷ đăng ký cũ. Số "1.45" theo main 1.44.
+    version: "1.45",
+    date: "2026-09-30",
+    items: [
+      { kind: "sua", text: "Nút \"Hỗ trợ\" nay hiện cả khi app đang bảo trì, cho những người vẫn được dùng app lúc đó." },
+      { kind: "sua", text: "Bật lại thông báo trên điện thoại không còn tạo đăng ký mới mỗi lần bấm; máy đã đăng ký thì giữ nguyên." },
+    ],
+  },
+  {
     // Trợ lý Hỗ trợ AI (ADR-0066, chủ duyệt 30/9) + sửa các lỗi chủ báo 30/9 (Đối tác/Thực tập; HDV sửa số khách — "Cho sửa đến hết ngày đi").
     // Ba nhánh, mỗi nhánh người kiểm độc lập ĐẠT. Số "1.44" theo main 1.43; người gộp chốt số trống kế tiếp LÚC GỘP. Có migration 0050.
     version: "1.44",
