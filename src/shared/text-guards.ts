@@ -69,3 +69,12 @@ export function cleanText(v: unknown, label: string, max: number, multiline: boo
   if (s.length > max) return { value: null, error: `${label} tối đa ${max} ký tự.` };
   return { value: s };
 }
+
+/**
+ * Địa chỉ email nằm TRONG chữ tự do (không neo đầu/cuối — khác các hàm kiểm ô email của `parties`/`orders` vốn kiểm cả chuỗi). MỘT nguồn cho: luật nội dung
+ * của hướng dẫn (`huong-dan.ts` — chặn email trong chữ hướng dẫn) và bộ che câu hỏi gửi trợ lý AI (`tro-ly.ts`, ADR-0066 điều 5). Cờ `g` để thay mọi chỗ;
+ * nơi chỉ cần "có hay không" dùng `new RegExp(EMAIL_TRONG_CHU.source)` hoặc `.match` (không giữ `lastIndex`).
+ */
+// Neo ranh giới `(?<![\w.+-])` (kiểm độc lập I-1, 30/9): bản không neo thử lại từ MỌI vị trí trong một dãy dài không có "@" nên chạy bậc hai (100k ký tự ≈ 4,7 s);
+// có neo thì chỉ bắt đầu ở đầu dãy — cùng kết quả khớp (đo lại trên các mẫu của huong-dan.test.ts / tro-ly.test.ts), thời gian tuyến tính.
+export const EMAIL_TRONG_CHU = /(?<![\w.+-])[\w.+-]+@[\w-]+\.[\w.]+/g;

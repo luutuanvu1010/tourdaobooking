@@ -11,6 +11,7 @@ import { layKhungNho, luuKhungNho, xoaKhungNho } from "./khung-nho";
 import { demSapHetHan } from "./vc-dem";
 import { registerServiceWorker } from "./pwa";
 import { ganThongBao } from "./thong-bao-ui";
+import { ganTroLy } from "./tro-ly";
 
 /** Trang của phân hệ Vận chuyển (ADR-0040 D1): mục con "Xe" sáng ở cả ba trang xe; ở điện thoại các trang này mở từ trang Tôi nên tab "Tôi" sáng. */
 const TRANG_XE = ["/xe", "/xe-sua", "/xe-chi-tiet"];
@@ -485,6 +486,8 @@ export async function initShell(): Promise<Staff> {
   // khung THẬT biết (bản nhớ khung chỉ 5 trường đã duyệt, ADR-0035).
   addNav(admin, seesAll, office, canCreate, staff, null, hasPermission(staff, "SUPER_ADMIN"), chiTaiXe(staff), can(staff, "vehicle.manage"), can(staff, "admin.manage"), can(staff, "settings.ops"), thayDieuPhoiXe(staff), coCuocCuaToi(staff));
   batDauBangTin(staff); // Bảng tin (ADR-0022): MỘT kết nối mỗi trang đã đăng nhập; nhánh mất mạng ở trên không tới đây (chưa có `staff`)
+  // Trợ lý Hỗ trợ (ADR-0066 điều 9): nút nổi ở mọi trang đã đăng nhập (initShell không chạy ở /login); KHÔNG khi đang bảo trì.
+  if (!me.maintenance?.on) ganTroLy(staff);
   return staff;
 }
 

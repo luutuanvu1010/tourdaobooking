@@ -29,3 +29,9 @@ PASSKEY_ORIGIN=http://localhost:8787
 # VAPID_PRIVATE_KEY là JWK P-256 (JSON) — bọc trong nháy đơn. Cách tạo cặp khoá: Task 5 của kế hoạch Thông báo lượt 2. e2e ép cả hai RỖNG.
 # VAPID_PUBLIC_KEY=
 # VAPID_PRIVATE_KEY='{"kty":"EC","crv":"P-256","x":"…","y":"…","d":"…"}'
+
+# Trợ lý Hỗ trợ (ADR-0066): TUỲ CHỌN. Vắng khoá = trợ lý trả 503 "Trợ lý chưa bật" (nút Hỗ trợ vẫn hiện). Production: CHỈ `wrangler secret put OPENAI_API_KEY`
+# (chủ dự án tự chạy) — không bao giờ ghi khoá thật vào tệp nào được commit. OPENAI_BASE_URL chỉ để trỏ vào máy OpenAI GIẢ khi thử (e2e tự đặt bằng --var);
+# vắng = https://api.openai.com. Muốn thử ở máy mình thì bỏ dấu # và điền khoá của chính bạn.
+# OPENAI_API_KEY=
+# OPENAI_BASE_URL=

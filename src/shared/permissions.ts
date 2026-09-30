@@ -157,6 +157,9 @@ export const MATRIX = {
   // CHỈ đơn mình lập hoặc mình đang phụ trách (route truyền cả ownerId lẫn assigned — ctx.isAssigned của người phụ trách ĐƠN); Quản trị, Toàn quyền mọi chặng.
   // Ô riêng (không dùng lại order.trip.edit — một mã một nghĩa, R-K1); bài ghim: không rộng hơn order.trip.edit ở mọi cột.
   "trip.call_ack": row("ownOrAssigned", "none", "any", "none", "none", "any", "none", "none", "none"),
+  // ADR-0066 điều 1 (accepted 2026-09-30): hỏi trợ lý AI "Hỗ trợ" cách dùng app — MỌI tài khoản đăng nhập (cả 9 mã quyền). Route POST /api/tro-ly/hoi
+  // (module tro-ly, cổng staff). Trợ lý không đọc dữ liệu nghiệp vụ nên ô này không mở gì ngoài kho hướng dẫn (ngoại lệ có tên ở hai bài ghim hàng tài xế).
+  "assistant.ask": row("any", "any", "any", "any", "any", "any", "any", "any", "any"),
 } as const satisfies Record<string, Row>;
 
 export type OperationCode = keyof typeof MATRIX;
