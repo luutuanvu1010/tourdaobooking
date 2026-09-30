@@ -107,6 +107,11 @@ export const MATRIX = {
   "ledger.write": row("none", "any", "none", "none", "none", "any", "none", "none", "none"),
   "invoice.request": row("own", "any", "any", "none", "none", "any", "none", "none", "none"), // ghi yêu cầu hoá đơn + thông tin xuất
   "invoice.issue": row("none", "any", "any", "none", "none", "any", "none", "none", "none"), // đánh dấu hoá đơn đã xuất
+  // ADR-0060 (accepted 2026-09-30): dấu "đã nhập phần mềm kế toán" + "Số hoá đơn đã nhập" (bảng chỉ-thêm bil_accounting_entry, module billing). KHÔNG dùng lại
+  // invoice.issue (khác nghĩa, có Quản trị — R-K1). Ghi: Kế toán + Toàn quyền (route POST /api/orders/:id/nhap-ke-toan). Xem: MỘT ô quyết cả chi tiết đơn,
+  // nhãn/lọc danh sách đơn, dòng nhật ký order_accounting_entry_* trong lịch sử đơn — bằng order.view trừ Đối tác none (Q-2 "Không"); bài ghim ⊆ order.view.
+  "accounting.entry.mark": row("none", "any", "none", "none", "none", "any", "none", "none", "none"),
+  "accounting.entry.view": row("any", "any", "any", "assigned", "none", "any", "own", "none", "none"),
   "party.view": row("any", "any", "any", "none", "none", "any", "none", "none", "none"), // xem hồ sơ khách/đại lý
   "party.write": row("any", "any", "any", "none", "none", "any", "none", "none", "none"), // tạo/sửa hồ sơ KHÔNG gắn tài khoản (khách, đại lý, HDV/tài xế chưa có tài khoản) — ADR-0007, ADR-0013
   "party.staff.write": row("none", "none", "any", "none", "none", "any", "none", "none", "none"), // sửa hồ sơ GẮN TÀI KHOẢN (tên, liên hệ) — ADR-0013; ADMIN còn phải quản được tài khoản đó (cấp bậc, ADR-0014 điều 8: ctx.partyAccount)
