@@ -274,7 +274,7 @@ textarea { min-height: 72px; resize: vertical; }
 .btn-primary { color: #fff; background: var(--c-primary); }
 .btn-accent { color: #fff; background: var(--c-accent); border-color: var(--c-accent); }
 .btn-danger { color: var(--c-danger); border-color: var(--c-danger); }
-.btn-link { padding: 4px 8px; background: none; border: 0; text-decoration: underline; font-weight: 600; }
+.btn-link { display: inline-flex; align-items: center; justify-content: center; min-height: var(--tap-min); padding: 4px 8px; background: none; border: 0; text-decoration: underline; font-weight: 600; } /* bản 1.39: vùng bấm ≥ 44px ở mọi nơi (trước ~28px), như .passkey-row .btn-link */
 .danger { color: var(--c-danger); }
 .actions { display: flex; flex-wrap: wrap; gap: var(--s3); margin-bottom: var(--s4); }
 
