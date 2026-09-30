@@ -118,6 +118,14 @@ Tìm: gõ tên hoặc số điện thoại, lọc theo loại, công việc, nơ
 Lọc được theo: [[Đang ghi đè giá]], [[Sheet đã đổi giá (cần xem)]], [[Đã ẩn]], [[Không còn trong Sheet]]. Đơn đã lập luôn giữ giá lúc lập.`,
     },
     {
+      tieuDe: "Nhóm dịch vụ",
+      noiDung: `Nhóm (Tour đảo, Thể thao biển…) do Quản trị quản lý trong app, không đọc từ Google Sheet.
+
+1. Ở [[Dịch vụ & giá]], khối [[Nhóm dịch vụ]]: thêm nhóm bằng [[Thêm nhóm]]; sắp thứ tự bằng [[Lên]], [[Xuống]].
+2. Nhóm không xoá được, chỉ [[Tắt]] (dùng lại: [[Bật]]); nhóm còn dịch vụ thì chưa tắt được.
+3. Chuyển nhiều dịch vụ: tick ô chọn ở bảng, chọn nhóm đích (tối đa 50 một lần). Một dịch vụ: [[Sửa giá]], rồi [[Đổi nhóm]]; dưới đó có lịch sử nhóm.`,
+    },
+    {
       tieuDe: "Người phụ trách đơn",
       noiDung: `1. Mở đơn từ [[Đơn hàng]], tìm khối [[Người phụ trách]].
 2. Đơn chưa có ai hiện [[Chờ nhận]]. Bấm [[Chọn người phụ trách]] (hoặc [[Đổi người phụ trách]]).

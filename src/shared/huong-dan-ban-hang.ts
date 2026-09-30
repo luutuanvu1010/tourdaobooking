@@ -34,6 +34,7 @@ Bốn tab: [[Trang chủ]], [[Đơn hàng]], [[Tạo đơn]], [[Tôi]]. Trong tr
 1. Bấm [[Tạo đơn]].
 2. Ở khối [[Chọn ngày]], chọn [[Ngày khởi hành]]. Ngày này áp cho **mọi dịch vụ** trong đơn.
 3. Ở khối [[Dịch vụ]], gõ vào ô [[Chọn từ danh mục]] (tên hoặc mã, ví dụ "4 đảo"), rồi chạm dịch vụ đúng. App báo ngắn đã thêm và hiện một thẻ dịch vụ.
+   - Danh mục dài: bấm một chip ở hàng [[Nhóm dịch vụ]] để chỉ thấy dịch vụ của nhóm đó; app nhớ lựa chọn trên máy này.
    - Dịch vụ hiện mờ, ghi "chưa có giá" hoặc "chưa hỗ trợ", thì không chọn được — báo Quản trị.
    - Dịch vụ đã có trong đơn mang nhãn "đã chọn".
 4. Trên thẻ, bấm **+** và **−** để nhập số khách theo từng loại ([[Người lớn]], [[Trẻ em]], [[Người cao tuổi]], [[Em bé]] — tuỳ dịch vụ). Dòng tiền hiện ngay bên dưới.
