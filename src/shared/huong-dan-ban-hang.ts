@@ -223,7 +223,7 @@ App đang dùng giá đã lưu. Kiểm tra lại giá trước khi gửi khách 
 
 ### Có dịch vụ nhập tay không?
 
-Không. Chỉ chọn từ danh mục. Đơn cũ có dịch vụ nhập tay thì chỉ xem được; muốn đổi thì xoá và chọn lại từ danh mục.
+Có khi Toàn quyền bật "Dịch vụ nhập tay" (mặc định tắt). Khi bật, form lập đơn có nút "+ Dịch vụ nhập tay": gõ tên dịch vụ, từng dòng tiền (mô tả, số lượng, đơn giá). Khi tắt, dịch vụ nhập tay đã có trên đơn chỉ xem được; muốn đổi thì xoá và chọn lại từ danh mục. Tài khoản Đối tác không dùng được dịch vụ nhập tay; bạn thêm dịch vụ nhập tay vào đơn nháp của Đối tác thì Đối tác không tự xác nhận được đơn đó — văn phòng xác nhận thay.
 
 ### Xem bản mới có gì ở đâu?
 

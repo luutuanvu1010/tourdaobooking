@@ -97,7 +97,7 @@ try {
       name: c.querySelector('.svc-name').textContent, line: c.querySelector('.mline')?.textContent ?? null, total: c.querySelector('.svc-total-amount').textContent,
       catalogPriceFields: document.querySelectorAll('#services .svc')[0].querySelectorAll('.price-field').length }; })()`);
   assert.deepEqual([frozen.inputs, frozen.priceFields, frozen.buttons, frozen.counter], [0, 0, ["Xoá"], true], `thẻ nhập tay đã lưu chỉ xem (chỉ còn bộ đếm + Xoá): ${JSON.stringify(frozen)}`);
-  assert.equal(frozen.note, "Dịch vụ nhập tay đã ngừng — chỉ xem; muốn đổi thì xoá và chọn từ danh mục.");
+  assert.equal(frozen.note, "Dịch vụ nhập tay chỉ xem (đang tắt hoặc tài khoản này không được nhập tay); muốn đổi thì xoá và chọn từ danh mục."); // ADR-0061: công tắc TẮT (mặc định)
   assert.deepEqual([frozen.name, frozen.total], ["Xe đưa đón riêng", "800.000 ₫"]);
   assert.match(frozen.line ?? "", /Xe 7 chỗ 2 chiều.*1 × 800\.000 ₫ =.*800\.000 ₫/);
   assert.ok(frozen.catalogPriceFields > 0, "thẻ danh mục vẫn có ô đơn giá");
