@@ -231,3 +231,25 @@ Trước khi hỏi, điều phối cũng gửi chủ 4 ảnh bằng chứng giao
 | "Người rành kỹ thuật, gõ lệnh thẳng vào dữ liệu (không qua app), vẫn xoá được trọn một đơn đã xác nhận, kèm chặng đón và danh sách khách. Qua app thì không làm được. Phần dữ liệu này chưa lên bản thật (mình đã kiểm), nên vá bây giờ rất rẻ. Vá không?" — "Vá ngay đợt này" / "Để sau" | **"Vá ngay đợt này"**: chặn xoá đơn không phải nháp ngay ở cơ sở dữ liệu; đơn nháp xoá được như cũ. Vá tại chỗ `0034` / `0035` (hoặc trigger gốc trên `orders` đặt trong migration chưa áp) |
 | "Lúc thi công, mình đã tự chốt khác bản vẽ của bạn mà chưa hỏi: khi tài xế mất mạng, máy KHÔNG tự gửi lại thao tác (Đã đón, Đã trả…). Tài xế thấy dòng "Chưa gửi được" và phải tự bấm lại (ảnh 1). Nếu tắt app trước khi bấm lại thì thao tác đó mất; văn phòng có thể bấm thay. Bạn chọn?" — "Giữ vậy, tự gửi lại để lượt sau" / "Làm tự gửi lại ngay đợt này" | **"Giữ vậy, tự gửi lại để lượt sau"**: ghi `docs/BACKLOG.md` mục 6 |
 | "Văn phòng chưa có nút rút hay chuyển MỘT nhóm khách ra khỏi chuyến, vì bản vẽ chưa có chỗ bấm. Xếp nhầm một nhóm thì phải huỷ CẢ chuyến rồi xếp lại tất cả. Trong 6 giờ trước giờ chạy, Bán hàng còn phải nhờ Quản trị phá lệ mới huỷ được. Máy chủ đã có sẵn lệnh, chỉ thiếu nút. Làm không?" — "Làm ngay, thợ tự đặt nút" / "Làm ngay, nhưng tôi vẽ trước" / "Để lượt sau" | **"Làm ngay, thợ tự đặt nút"**: thêm "Rút khỏi xe" và "Chuyển sang xe khác" trên từng nhóm khách ở Chi tiết chuyến. Gửi ảnh để chủ góp ý sau. Q-B-15 (sắp lại điểm khi chuyến đang chạy) KHÔNG nằm trong câu này, ghi BACKLOG mục 7 |
+
+## Sau lần 15: gộp, K2c máy chủ, ruling R-P28 (30/9 — KHÔNG phải lời chủ, trừ câu có ghi)
+
+- **Máy chủ** @ `d9b884b` (nhánh `thi-cong-adr-0049-tiep`):
+  - `b187c97`: bài đo CPU của hook chạy riêng. `npm test` = `scripts/chay-test.mjs`, hai bước.
+  - `a364b12`: trigger gốc `orders_no_delete` ở cuối `0034`, sửa tại chỗ (GA-60: chọn trigger gốc thay cho đổi `IS NOT` ở trigger con).
+- **Giao diện** @ `e2e6894` (vòng 5b):
+  - Thêm nút "Rút khỏi xe" / "Chuyển sang xe khác".
+  - Phiên giao diện bị bộ duyệt tự động chặn khi gộp. Điều phối hỏi chủ; **chủ chọn "Cho phép (Recommended)"** (30/9). Điều phối tự gộp `d9b884b` → `dd665b3`, xung đột `package.json`: giữ `build:web` của giao diện và `test` hai bước của máy chủ.
+  - Sau đó `01b3d15`: nút khoá "Xuất bến thay tài xế" rõ là nút bị khoá. Đây là giả định bề mặt của điều phối.
+  - Ảnh nút đã gửi chủ để góp ý chỗ đặt (D-B2-4).
+- **K2c máy chủ** @ `d9b884b`: **ĐẠT CÓ ĐIỀU KIỆN**, không lỗi CAO.
+  - Lệnh: `npm test` 2 lần xanh, chạy tuần tự 1780/1780, e2e 30/30 kèm `audit --strict` đạt.
+  - P16 tự làm trên bản sao tạm, cho cả trigger lẫn ngưỡng hook.
+
+| Mã | Câu | Điều phối chốt | Căn cứ |
+|---|---|---|---|
+| R-P28 | K2c VỪA-1: `dieu-phoi-lenh.ts:128` gắn `personKeys[i] ?? null`, máy KHÔNG tự chọn tên lúc xếp. Giao diện cũng không gửi `personKeys` (Q-B-18 của phiên giao diện) | **Làm bù I19(a) đúng chữ kế hoạch.** Suất không được chỉ định tên thì máy gắn khoá người rảnh của đơn theo thứ tự `personKey`. Dùng MỘT luật với `ganTen` của GA-9 / I19(b). Hết tên thì để `null`. Giao diện không đổi | Kế hoạch `…-adr-0049-thi-cong.md:155` (I19), T-1 / R-P3 đã xác nhận 29/9. Đây là quyết định đã chốt, nên mã phải khớp, không hỏi lại chủ (CLAUDE.md §3) |
+| — | K2c VỪA-2: GA-59 được xác nhận là có thật | Giữ như đã định: một dòng §16 trên trang duyệt luật, kèm phương án thêm cột | — |
+| — | K2c THẤP: `README.md:42` còn mô tả glob cũ | Người thi công sửa. `CLAUDE.md:52` chỉ qua đề xuất mục 7c | — |
+
+Bài học vận hành: điều phối dùng EnterWorktree đổi thư mục phiên chính sang worktree giao diện để gộp. Trong vài phút đó, lệnh Bash của người kiểm K2c (subagent không ghim thư mục) bị cách ly theo. Không đổi worktree của phiên chính khi subagent đang chạy.
