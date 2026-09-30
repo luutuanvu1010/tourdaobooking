@@ -2,7 +2,7 @@
 //  R1 — Câu 1: "loại bỏ hoàn toàn dịch vụ nhập tay khỏi giao diện … Sẽ mở lại khi cần thiết". ADR-0061 (accepted 2026-09-30) MỞ LẠI CÓ ĐIỀU KIỆN — NỚI
 //     hàng rào đã duyệt (Điều 9.4; chủ duyệt ADR-0061 là duyệt việc nới; dòng R1 ở docs/SO-HANG-RAO.md): R1 nay áp khi công tắc nhập tay TẮT, với người
 //     không có ô order.service.manual, và LUÔN với tài khoản có quyền Đối tác (kể cả lai). Các ca R1 "mọi tài khoản" cũ (mục 1–2) chạy khi công tắc TẮT
-//     (mặc định sau migration 0051); mục 9 bật công tắc bằng Toàn quyền và kiểm tiêu chí 2–5 của ADR-0061, rồi TẮT lại (D1 chung với kịch bản khác).
+//     (mặc định sau migration 0052); mục 9 bật công tắc bằng Toàn quyền và kiểm tiêu chí 2–5 của ADR-0061, rồi TẮT lại (D1 chung với kịch bản khác).
 //     Khi R1 áp: POST/PUT /api/orders không nhận dịch vụ nhập tay MỚI; dịch vụ nhập tay CŨ đã lưu của chính đơn bị "đóng băng" (tên + dòng tiền giữ
 //     nguyên), vẫn sửa được thông tin chuyến / số khách / ngày cả đơn, và xoá được khỏi đơn nháp. Vi phạm → 400 invalid_input.
 //  R2 (tài khoản CÓ quyền Đối tác — kể cả kèm quyền khác, chủ chốt 26/9 "Có quyền Đối tác là áp") — Câu 2: "đối tác vẫn phải trả một mức giá cố định cho công ty" + ADR-0014 điều 3 (ảnh xác
@@ -22,7 +22,7 @@ const SUPER = await session(ACCOUNTS.superAdmin);
 const FIELD = await session(ACCOUNTS.field);
 const congTac = async () => (await call(SUPER, "GET", "/api/cai-dat/nhap-tay")).body;
 const datCongTac = (who, on) => call(who, "POST", "/api/cai-dat/nhap-tay", { batNhapTay: on });
-// D1 local tạm dùng chung: lần chạy trước đứt giữa chừng có thể để công tắc BẬT — đưa về TẮT (mặc định sau migration 0051) rồi mới kiểm.
+// D1 local tạm dùng chung: lần chạy trước đứt giữa chừng có thể để công tắc BẬT — đưa về TẮT (mặc định sau migration 0052) rồi mới kiểm.
 if ((await congTac()).batNhapTay) assert.equal((await datCongTac(SUPER, false)).status, 200);
 assert.equal((await congTac()).batNhapTay, false, "đầu kịch bản: công tắc nhập tay TẮT");
 const ZE1 = FAKE_CATALOG.ZE1.prices.adult; // giá danh mục người lớn của ZE1
@@ -356,7 +356,7 @@ try {
   assert.equal((await confirm(SALES, r.body.order)).status, 200);
   console.log("✓ ADR-0061 tiêu chí 5: tắt lại → đơn có nhập tay vẫn mở, sửa giá/tên 400, gửi nguyên 200, xác nhận 200");
 } finally {
-  // D1 chung: luôn TẮT lại công tắc cho kịch bản sau (mặc định sau migration 0051).
+  // D1 chung: luôn TẮT lại công tắc cho kịch bản sau (mặc định sau migration 0052).
   if ((await congTac()).batNhapTay) await datCongTac(SUPER, false);
 }
 assert.equal((await congTac()).batNhapTay, false, "cuối kịch bản: công tắc TẮT");

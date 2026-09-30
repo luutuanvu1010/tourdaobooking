@@ -21,7 +21,7 @@ export const CHANGELOG: readonly ReleaseNote[] = [
       { kind: "sua", text: "Tài khoản đối tác, thực tập: trang đơn không còn báo \"Chưa tải được người phụ trách\"." },
       { kind: "moi", text: "Tài khoản đối tác, thực tập có mục \"Đơn hàng\" trên thanh dưới đáy để xem lại đơn mình đã lập." },
       { kind: "doi", text: "Hướng dẫn viên: lý do sửa số khách không được chứa số điện thoại; chỉ sửa số khách được tới hết ngày đi tour." },
-      // ADR-0061 (nhánh riêng, migration 0051): số "1.44" TẠM — người gộp chốt số lúc gộp.
+      // ADR-0061 (nhánh riêng, migration 0052): số "1.44" TẠM — người gộp chốt số lúc gộp.
       { kind: "moi", text: "Dịch vụ nhập tay trở lại khi Toàn quyền bật ở trang Tôi (mặc định tắt): Bán hàng, Quản trị thêm được dịch vụ gõ tên, giá tay. Tài khoản đối tác không dùng được." },
     ],
   },

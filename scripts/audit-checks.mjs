@@ -641,7 +641,7 @@ export const CHECKS = [
   {
     // R-ORD-NT1 (ADR-0061 điều 8, A-9): LỚP BÙ cho lệch 5.1 thu hẹp — luật "tài khoản có quyền Đối tác không nhập tay" chỉ ở mã (không trigger được: lưu nháp
     // xoá–chèn lại order_service, dòng dịch vụ không có dấu người/lúc tạo riêng). Đơn có dịch vụ nhập tay (catalog_code NULL) mà người lập đang giữ quyền
-    // PARTNER còn hiệu lực, đơn tạo SAU mốc phát hành ADR-0061 = created_at của dòng đầu bảng ord_manual_service_policy (dòng gieo 0051 — không viết cứng
+    // PARTNER còn hiệu lực, đơn tạo SAU mốc phát hành ADR-0061 = created_at của dòng đầu bảng ord_manual_service_policy (dòng gieo 0052 — không viết cứng
     // ngày). Mức "warn": dòng nhập tay do NỘI BỘ thêm vào nháp của Đối tác (ADR-0061 "Hệ quả") cũng hiện ở đây — người rà soát xem theo mã đơn. Gỡ khi
     // dòng dịch vụ có dấu vết riêng (ADR mới thêm trigger).
     code: "R-ORD-NT1",

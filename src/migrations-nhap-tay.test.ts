@@ -17,9 +17,9 @@ function open(): DatabaseSync {
 }
 const fails = (db: DatabaseSync, sql: string, re: RegExp) => assert.throws(() => db.exec(sql), re, sql);
 
-test("tệp migration *_chinh_sach_nhap_tay.sql có và mang số 0051 (số do điều phối chung cấp 30/9)", () => {
+test("tệp migration *_chinh_sach_nhap_tay.sql có và mang số 0052 (số do điều phối chung cấp lại 30/9: 0050 tro_ly, 0051 ADR-0060)", () => {
   assert.ok(TEP, "thiếu migrations/*_chinh_sach_nhap_tay.sql");
-  assert.equal(TEP!.slice(0, 4), "0051");
+  assert.equal(TEP!.slice(0, 4), "0052");
 });
 
 test("ord_manual_service_policy: sau migration có ĐÚNG một dòng, dòng hiệu lực là enabled = 0 (mặc định TẮT — ADR-0061 tiêu chí 1)", () => {

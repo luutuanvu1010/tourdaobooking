@@ -1568,7 +1568,7 @@ test("R-BIL-M1/M2 (ADR-0025 NT 8): Hoàn thành mà chưa Đã giao; Đã giao m
 
 // ---------------------------------------------------------------------------------------------------------------------
 // R-ORD-NT1 (ADR-0061 điều 8, A-9 — lớp bù cho lệch 5.1 thu hẹp): đơn có dịch vụ nhập tay (order_service.catalog_code NULL) mà người lập (orders.staff_id)
-// đang giữ quyền PARTNER còn hiệu lực, và đơn tạo SAU mốc phát hành ADR-0061 (= created_at của dòng đầu bảng ord_manual_service_policy — dòng gieo 0051).
+// đang giữ quyền PARTNER còn hiệu lực, và đơn tạo SAU mốc phát hành ADR-0061 (= created_at của dòng đầu bảng ord_manual_service_policy — dòng gieo 0052).
 // Mức "warn": máy chủ đã chặn (duocNhapTay — Đối tác trước); đây là lưới cho SQL chạy tay / đường ghi quên priceGuard. Đơn cũ trước mốc không bị xét.
 // ---------------------------------------------------------------------------------------------------------------------
 test("R-ORD-NT1: đơn có dịch vụ nhập tay do tài khoản có quyền Đối tác lập SAU mốc phát hành ADR-0061 → cảnh báo; trước mốc / nội bộ lập → không", () => {
@@ -1576,7 +1576,7 @@ test("R-ORD-NT1: đơn có dịch vụ nhập tay do tài khoản có quyền Đ
   assert.equal(nt1.level, "warn");
   const db = build();
   const moc = (db.prepare("SELECT MIN(created_at) AS m FROM ord_manual_service_policy").get() as { m: string }).m;
-  assert.ok(moc, "dòng gieo 0051 có mặt");
+  assert.ok(moc, "dòng gieo 0052 có mặt");
   const sau = new Date(Date.parse(moc) + 60_000).toISOString();
   const don = (id: string, staffId: string, at: string, manual: boolean) => {
     db.exec(`INSERT INTO orders (id, order_code, staff_id, status, customer_name, customer_phone, created_at, updated_at)

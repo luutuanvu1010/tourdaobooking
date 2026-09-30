@@ -534,7 +534,7 @@ export async function orderContactRows(db: D1Database, orderIds: readonly string
   return (await db.prepare(ORDER_CONTACT_FOR_DRIVER).bind(JSON.stringify(orderIds)).all<OrderContactRow>()).results;
 }
 
-// ---- Chính sách "Dịch vụ nhập tay" (ADR-0061 điều 1 — bảng ord_manual_service_policy, migration 0051) ------------------------------------------
+// ---- Chính sách "Dịch vụ nhập tay" (ADR-0061 điều 1 — bảng ord_manual_service_policy, migration 0052) ------------------------------------------
 
 /** Dòng hiệu lực = valid_from_at lớn nhất ≤ ?1 (bây giờ); kèm valid_from_at lớn nhất của MỌI dòng (để dòng mới không lùi, không trùng). */
 const MANUAL_POLICY_CURRENT = defineSql(
