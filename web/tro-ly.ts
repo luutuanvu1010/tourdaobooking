@@ -1,4 +1,4 @@
-// Trợ lý "Hỗ trợ" (ADR-0066 điều 9): nút nổi ở mọi trang sau đăng nhập (gắn từ initShell ở web/shell.ts — không ở /login, không khi bảo trì) + khung hỏi đáp
+// Trợ lý "Hỗ trợ" (ADR-0066 điều 9): nút nổi ở mọi trang sau đăng nhập (gắn từ initShell ở web/shell.ts — không ở /login; có cả khi bảo trì cho người được phép) + khung hỏi đáp
 // (bảng trượt dùng chung web/bang-truot.ts: điện thoại trượt từ đáy, máy tính hộp giữa). Khối cài đặt cho Toàn quyền ở trang Tôi (`ganCaiDatTroLy`).
 // Không innerHTML: câu trả lời hiện bằng textContent (xuống dòng giữ bằng CSS). Lịch sử hỏi đáp CHỈ nằm trong bộ nhớ của trang (không lưu máy, không lưu máy chủ).
 // Vị trí nút: góc phải dưới, trên thanh tab điện thoại; khi thanh nút dính đáy của trang (`.form-actions`, `.vc-bottom-bar`) đè vùng của nút thì nút nâng

@@ -5,6 +5,7 @@
 //   b  390: nút "Hỗ trợ" không che thanh tab (đáy nút ≤ đỉnh thanh tab), vùng chạm ≥ 44px; 1040: nút trong khung nhìn, không che thanh bên
 //   c  trang có thanh nút dính đáy (/order-form, 390 + 1040): nút nâng lên, không che nút nào của thanh
 //   d  gửi & nhận với máy giả: câu trả lời + dòng "Nguồn: …", dòng "Trả lời do AI…"; SĐT trong câu hỏi bị che TRƯỚC khi tới máy giả; ô gõ 16px
+//   e2 bảo trì bật: người được phép vẫn có nút Hỗ trợ và hỏi được (30/9)
 //   e  lỗi lời thường: Toàn quyền tắt trợ lý ⇒ câu "Trợ lý chưa bật…" trong khung (không màn bảo trì, không chữ Anh)
 //   f  320: mở khung, không tràn ngang; console sạch ở mọi trang đã mở
 //   g  trang Tôi: Toàn quyền thấy khối "Trợ lý Hỗ trợ" (chi phí tháng, nút lưu); Bán hàng không thấy
@@ -156,6 +157,26 @@ try {
       await p.shot(join(OUT, "anh/e-chua-bat-390.png"));
     } finally {
       await api(ACCOUNTS.owner, "POST", "/api/tro-ly/cai-dat", { bat: true, tranThangUsd: 5, tranNgay: 30 });
+    }
+  });
+
+  // e2 (thêm 30/9 sau khi chủ báo "chưa thấy trợ lý bật lên" lúc bảo trì đang bật): người ĐƯỢC PHÉP dùng app khi bảo trì vẫn có nút Hỗ trợ và hỏi được.
+  await step("e2", "bảo trì đang bật: người được phép vẫn thấy nút Hỗ trợ và hỏi được", async () => {
+    env.sql(`UPDATE mnt_setting SET allowed_phones = '${ACCOUNTS.owner.phone}' WHERE id = 'default'`);
+    const han = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+    assert.equal((await api(ACCOUNTS.owner, "PUT", "/api/maintenance", { on: true, endsAt: han })).status, 200);
+    try {
+      const p = await env.as(ACCOUNTS.owner, "/account", M);
+      tatCa.push(p);
+      await p.waitFor(`!!${q("#tl-fab")}`, "có nút Hỗ trợ khi bảo trì", 10000);
+      await p.ev(`${q("#tl-fab")}.click(), true`);
+      await p.waitFor(khungMo, "mở khung");
+      await p.ev(`(() => { ${q(".tl-o")}.value = 'đổi PIN'; ${q(".tl-gui")}.click(); return true; })()`);
+      await p.waitFor(`document.querySelectorAll(".tl-tin-tro-ly").length >= 2 || !!${q(".tl-tin-loi")}`, "có trả lời (ngoài câu chào)", 15000);
+      assert.equal(await p.ev(`!!${q(".tl-tin-loi")}`), false, "không báo lỗi khi bảo trì");
+      await p.shot(join(OUT, "anh/e2-bao-tri-390.png"));
+    } finally {
+      await api(ACCOUNTS.owner, "PUT", "/api/maintenance", { on: false });
     }
   });
 
