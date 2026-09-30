@@ -58,8 +58,10 @@ const ALLOWED_EDGES: Record<string, readonly string[]> = {
   // trỏ `loc_location`. Vẫn KHÔNG module nào import van-chuyen (bài "không module nào import van-chuyen" ở dưới). NỚI hàng rào (Điều 9.4) — ĐÃ DUYỆT 2026-09-30 (lần 17)
   // ở docs/superpowers/plans/2026-09-29-adr-0049-de-xuat-luat.md mục 1.
   "van-chuyen": ["parties", "audit", "orders", "locations"],
-  // ADR-0066: trợ lý Hỗ trợ — lá, không import module nào (kho tri thức là tệp thuần ở src/shared/; không ghi audit_log: tl_cai_dat chỉ thêm, dấu vết trên dòng).
-  "tro-ly": [],
+  // ADR-0066: trợ lý Hỗ trợ (kho tri thức là tệp thuần ở src/shared/). ADR-0069 (accepted 2026-09-30) kéo theo hai cạnh: `audit` — ghi `tro_ly_settings_changed`
+  // cùng lô với bản cài đặt mới (điều 5: "ai đổi lúc nào", không nội dung); `staff` — CHỈ ở tầng SQL, tên người hỏi / người lưu qua view công bố
+  // v_stf_staff_label (điều 5: lịch sử "ai hỏi"; mẫu `feedback`). Không module nào import tro-ly. NỚI cạnh (Điều 9.4): CHỜ chủ xác nhận ở báo cáo thi công ADR-0069.
+  "tro-ly": ["audit", "staff"],
 };
 
 /** Module đã áp điều 8(b) (SQL đăng ký qua defineSql). Module cũ nằm ở LEGACY cho tới hạn ghi kèm. */

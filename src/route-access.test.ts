@@ -274,6 +274,15 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/tro-ly/hoi", access: "staff" }, // ADR-0066 điều 1 — mọi tài khoản đăng nhập, ô assistant.ask (any)
   { method: "GET", path: "/api/tro-ly/cai-dat", access: "office" }, // ADR-0066 trang ghép — chỉ Toàn quyền (settings.ops trong thân)
   { method: "POST", path: "/api/tro-ly/cai-dat", access: "office" }, // như trên
+  { method: "GET", path: "/api/tro-ly/khung", access: "staff" }, // ADR-0069 điều 3, 4 — cờ được dùng + câu chào (mọi tài khoản, không dữ liệu nghiệp vụ)
+  { method: "POST", path: "/api/tro-ly/vai", access: "office" }, // ADR-0069 điều 1, 3 — chỉ Toàn quyền (settings.ops trong thân)
+  { method: "POST", path: "/api/tro-ly/thu-khoa", access: "office" }, // ADR-0069 điều 2 — như trên
+  { method: "GET", path: "/api/tro-ly/loi-dan", access: "office" }, // ADR-0069 điều 4 — như trên
+  { method: "POST", path: "/api/tro-ly/loi-dan", access: "office" }, // như trên
+  { method: "GET", path: "/api/tro-ly/ngu-canh", access: "office" }, // như trên
+  { method: "POST", path: "/api/tro-ly/ngu-canh", access: "office" }, // như trên
+  { method: "PUT", path: "/api/tro-ly/ngu-canh/:id", access: "office" }, // như trên
+  { method: "GET", path: "/api/tro-ly/lich-su", access: "office" }, // ADR-0069 điều 5 — như trên
 ]);
 
 // Lưới cho chính danh sách MODULES ở trên: nếu ai thêm một module mới có khai `export const xModule: AppModule` (tức có route) mà quên
@@ -288,7 +297,7 @@ test("MODULES liệt kê ĐỦ mọi thư mục module có khai `...Module: AppM
   assert.deepEqual(routedDirs, listed, "có thư mục module khai AppModule nhưng chưa có trong MODULES của bài kiểm route-access này — thêm vào MODULES và SNAPSHOT");
 });
 
-test("mức truy cập của 176 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
+test("mức truy cập của 185 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
   const actual = await collectRealRoutes();
   // deepEqual TRƯỚC: khi có route mới/bị xoá, thông báo của nó chỉ ra ĐÚNG route lệch — hai assert.equal độ dài bên dưới chỉ để phòng hờ
   // (không bao giờ tự chạy tới nếu deepEqual đã trượt) và tài liệu hoá con số 86 để đối chiếu nhanh bằng mắt.
@@ -325,7 +334,8 @@ test("mức truy cập của 176 route hiện có khớp ảnh chụp đã duy�
   // 2026-09-30 (sổ tiền lượt 1, module billing): + 12 route (/api/orders/:id/payments ×2, delivered, completed; /api/ledger ×8) = 172.
   // 2026-09-30 (sổ tiền lượt 1, module receipt): + GET /api/orders/:id/receipt = 173.
   // 2026-09-30 (ADR-0066, module tro-ly): + POST /api/tro-ly/hoi (staff), GET/POST /api/tro-ly/cai-dat (office) = 176.
+  // 2026-09-30 (ADR-0069, bảng điều khiển trợ lý): + GET /api/tro-ly/khung (staff) + 8 route quản lý (office, settings.ops) = 185.
   assert.deepEqual(actual, SNAPSHOT);
-  assert.equal(actual.length, 176, "số route thực tế lệch 176 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 176, "SNAPSHOT phải có đúng 176 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  assert.equal(actual.length, 185, "số route thực tế lệch 185 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 185, "SNAPSHOT phải có đúng 185 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

@@ -123,7 +123,9 @@ test("HÀNG RÀO che: SĐT, email, số căn cước bị che TRƯỚC khi tới
   assert.ok([...input].length <= 500);
 });
 
-test("HÀNG RÀO không nội dung: câu hỏi và câu trả lời không vào CSDL, không vào console (kể cả khi lỗi)", async () => {
+// ADR-0069 điều 5 SỬA ADR-0066 điều 7: nội dung hỏi đáp nay CÓ lưu — nhưng CHỈ ở tl_hoi_dap (câu hỏi đã che). Bài này giữ phần còn đúng: console, nhật ký
+// kiểm toán và sổ đếm tl_luot_hoi vẫn không có nội dung; phần "lịch sử chỉ chứa câu đã che" canh ở bài HÀNG RÀO lịch sử bên dưới.
+test("HÀNG RÀO không nội dung ngoài lịch sử: câu hỏi / câu trả lời không vào console, audit_log, tl_luot_hoi (kể cả khi lỗi)", async () => {
   const w = setup();
   const log: string[] = [];
   const goc = { log: console.log, warn: console.warn, error: console.error, info: console.info };
@@ -142,6 +144,7 @@ test("HÀNG RÀO không nội dung: câu hỏi và câu trả lời không vào 
   const dump = JSON.stringify(w.q("SELECT * FROM tl_luot_hoi")) + JSON.stringify(w.q("SELECT * FROM audit_log"));
   assert.ok(!dump.includes(DAU));
   assert.deepEqual(luot(w).map((x) => x.ket_qua), ["ok", "loi", "loi"]);
+  assert.equal(w.q("SELECT count(*) AS n FROM tl_hoi_dap")[0]!.n, 3, "mỗi câu tới bước trả lời có MỘT dòng lịch sử");
 });
 
 test("OpenAI lỗi / mạng hỏng → 502 câu tiếng Việt (không lộ chữ Anh của OpenAI), dòng 'loi' chi phí 0; có usage thì vẫn tính tiền", async () => {
@@ -241,7 +244,11 @@ test("cài đặt: Toàn quyền xem + lưu bản mới (chỉ thêm), Quản tr
   w.sqlite.exec(`INSERT INTO tl_luot_hoi (id, staff_id, ngay_vn, chi_phi_micro_usd, ket_qua, created_at, updated_at) VALUES ('a', '${ADM}', '${ngay}', 1234567, 'ok', 'x', 'x'), ('b', '${ADM}', '${ngay}', 0, 'het_tran', 'x', 'x')`);
   let r = await w.call("GET", "/api/tro-ly/cai-dat", { as: SUP });
   assert.equal(r.status, 200, r.text);
-  assert.deepEqual(r.json, { bat: true, tranThangUsd: 5, tranNgay: 30, coKhoa: true, thang: ngay.slice(0, 7), chiPhiThangUsd: 1.234567, soCauThang: 1 });
+  assert.deepEqual(
+    { ...r.json, vai: undefined, theoVai: undefined },
+    { bat: true, tranThangUsd: 5, tranNgay: 30, coKhoa: true, khoaCuoi: null, thang: ngay.slice(0, 7), chiPhiThangUsd: 1.234567, soCauThang: 1, soCauHomNay: 1, vai: undefined, theoVai: undefined },
+  );
+  assert.deepEqual(Object.values(r.json.vai), PERMISSION_CODES.map(() => true), "gieo 0054: bật cả 9 vai");
   for (const as of [ADM, SALES]) {
     assert.equal((await w.call("GET", "/api/tro-ly/cai-dat", { as })).status, 403, as);
     assert.equal((await w.call("POST", "/api/tro-ly/cai-dat", { as, body: { bat: false, tranThangUsd: 1, tranNgay: 1 } })).status, 403, as);
