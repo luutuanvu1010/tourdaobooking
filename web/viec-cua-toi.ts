@@ -10,10 +10,12 @@
 //    lấy từ PHIÊN (`staff.fullName`, Task 1.6) — KHÔNG gọi `GET /api/dispatch/handlers`, và KHÔNG dùng tên phiên cho đơn ở hàng chờ (chưa ai phụ trách).
 // Bảng tin (`don-thay-doi`, `can-tai-lai`): tải lại CẢ hai khối — đây là cách hàng chờ tự cập nhật lặng lẽ khi người khác Nhận (chủ dự án chọn: không
 // thông báo nổi cho người không liên quan). Không dựng lại dưới tay người đang dùng: hoãn khi bảng sửa/huỷ đang mở hoặc đang Nhận, thử lại khi xong.
+import { APP_NAME } from "../src/shared/app-info";
 import { handlerFailure, myJobActions } from "../src/shared/handler-view";
 import { PAX_LABEL, type PaxCode } from "../src/shared/order-lines";
 import { banner, type Banner } from "../src/shared/order-errors";
 import { can, holdsPartner } from "../src/shared/permissions";
+import { formatDm } from "../src/shared/trip-form";
 import { tripDeparted } from "../src/shared/trip-rules";
 import { vnToday } from "../src/shared/vn-date";
 import {
@@ -308,7 +310,28 @@ function cardTop(departDate: string | null, orderCode: string, today: string, ch
   );
 }
 
-function serviceRows(services: readonly { name: string; pax: Api.PoolServiceDto["pax"]; pickupTime: string | null; pickupPlace: string | null }[]): HTMLElement {
+/**
+ * Thông tin chuyến THÊM dưới dòng "Đón:" (bản 1.39, chỉ "Đơn của tôi" — DTO `MyAssignmentServiceDto` đã có sẵn; hàng chờ KHÔNG có các trường này, phần hẹp
+ * ADR-0030 S23-1): giờ khởi hành, check-in (ngày nếu khác ngày đi, giờ, nơi), ghi chú dịch vụ. Trường trống bị bỏ.
+ */
+interface ChuyenThem {
+  departTime?: string | null;
+  checkinDate?: string | null;
+  checkinTime?: string | null;
+  checkinPlace?: string | null;
+  note?: string | null;
+}
+
+function dongChuyenThem(s: ChuyenThem): HTMLElement[] {
+  const out: HTMLElement[] = [];
+  if (s.departTime) out.push(h("div", { class: "hdv-svc-place" }, `Khởi hành: ${s.departTime}`));
+  const checkin = [s.checkinDate ? formatDm(s.checkinDate) : null, s.checkinTime, s.checkinPlace].filter(Boolean).join(" · ");
+  if (checkin) out.push(h("div", { class: "hdv-svc-place" }, `Check-in: ${checkin}`));
+  if (s.note) out.push(h("div", { class: "hdv-svc-place hdv-svc-note" }, `Ghi chú: ${s.note}`));
+  return out;
+}
+
+function serviceRows(services: readonly ({ name: string; pax: Api.PoolServiceDto["pax"]; pickupTime: string | null; pickupPlace: string | null } & ChuyenThem)[]): HTMLElement {
   return h(
     "div",
     { class: "hdv-svcs" },
@@ -324,6 +347,7 @@ function serviceRows(services: readonly { name: string; pax: Api.PoolServiceDto[
           h("div", { class: "hdv-svc-name" }, s.name),
           h("div", { class: "hdv-svc-pax" }, h("strong", null, `${p.total} khách`), p.detail ? ` · ${p.detail}` : null),
           s.pickupPlace ? h("div", { class: "hdv-svc-place" }, `Đón: ${s.pickupPlace}`) : null,
+          ...dongChuyenThem(s),
         ),
       );
     }),
@@ -377,7 +401,7 @@ export async function initViecCuaToi(el: HTMLElement, staff: Staff): Promise<voi
     h(
       "div",
       { class: "hdv-head" },
-      h("div", { class: "hdv-titles" }, h("div", { class: "hdv-eyebrow" }, "Tour Đảo Booking · Việc của tôi"), h("div", { class: "hdv-title" }, `HDV: ${staff.fullName}`)),
+      h("div", { class: "hdv-titles" }, h("div", { class: "hdv-eyebrow" }, `${APP_NAME} · Việc của tôi`), h("div", { class: "hdv-title" }, `HDV: ${staff.fullName}`)),
       h("nav", { class: "hdv-nav", "aria-label": "Việc của tôi" }, poolTile, mineTile),
     ),
     said,
@@ -502,20 +526,20 @@ export async function initViecCuaToi(el: HTMLElement, staff: Staff): Promise<voi
         h("div", { class: "hdv-customer-text" }, h("div", { class: "hdv-customer-name" }, a.customerName), h("div", { class: "hdv-customer-phone" }, a.customerPhone)),
         h("a", { class: "hdv-call", href: telHref(a.customerPhone), "aria-label": `Gọi khách ${a.customerName}` }, icon("handset", 18), h("span", null, "Gọi")),
       ),
-      serviceRows(a.services),
-      h("div", { class: "hdv-me" }, `HDV: ${staff.fullName}`),
+      serviceRows(a.services), // bản 1.39: bỏ dòng "HDV: <tên>" lặp ở từng thẻ — tên đã ở đầu khối
       h(
         "dl",
         { class: "hdv-money" },
         h("div", null, h("dt", null, "Tổng tiền"), h("dd", null, vnd(a.total))),
-        h("div", null, h("dt", null, "Đã thu"), h("dd", null, tien ? vnd(tien.daThu) : "—")),
-        h("div", null, h("dt", null, "Còn thu"), h("dd", { class: tien && tien.conLai > 0 ? "money-due" : null }, tien ? vnd(tien.conLai) : "—")),
+        // Nhãn theo bản 1.40 (chủ duyệt rà soát 30/9: "Thanh toán trước / Còn lại"); SỐ lấy từ billing (sổ tiền lượt 1 — một hàm `conLai`, ADR-0026 đ9).
+        h("div", null, h("dt", null, "Thanh toán trước"), h("dd", null, tien ? vnd(tien.daThu) : "—")),
+        h("div", null, h("dt", null, "Còn lại"), h("dd", { class: tien && tien.conLai > 0 ? "money-due" : null }, tien ? vnd(tien.conLai) : "—")),
       ),
       tien?.daGiao ? h("p", { class: "hdv-note" }, tien.hoanThanh ? "Hoàn thành." : "Đã giao – đã thu đủ: đơn đã khoá.") : null,
       a.status === "draft" ? h("p", { class: "hdv-note" }, "Đơn đang chờ xác nhận — chưa thể huỷ hay sửa số khách.") : null,
-      buttons.length > 0 ? h("div", { class: "hdv-actions" }, ...buttons) : null,
-      // Ghi tiền đã thu / bấm "Đã giao – đã thu đủ": ở trang đơn (mục Thanh toán) — HDV đang phụ trách xem được đơn (ADR-0030 S23-1).
-      a.status === "confirmed" && !tien?.daGiao ? h("a", { class: "btn hdv-act", href: `/order?id=${encodeURIComponent(a.orderId)}` }, "Thu tiền · Đã giao") : null,
+      // bản 1.39: "Xem đơn" mở trang đơn (hướng dẫn viên xem được đơn mình đang phụ trách — máy chủ quyết). Ghi tiền đã thu / bấm "Đã giao – đã thu đủ"
+      // làm ở đó (mục Thanh toán — sổ tiền lượt 1).
+      h("div", { class: "hdv-actions" }, ...buttons, h("a", { class: "btn hdv-act hdv-xem", href: `/order?id=${encodeURIComponent(a.orderId)}` }, "Xem đơn")),
     );
   }
   async function loadMine(): Promise<boolean> {
@@ -532,7 +556,11 @@ export async function initViecCuaToi(el: HTMLElement, staff: Staff): Promise<voi
       mineCount.textContent = String(assignments.length);
       mineError.hidden = true;
       mineEmpty.hidden = assignments.length > 0;
-      replaceChildren(mineList, ...rows.map((r) => mineCard(r.a, today, tien[r.a.orderId])));
+      // bản 1.39: tiêu đề nhóm "Đã đi tour" trước thẻ đầu tiên đã đi (cùng điều kiện xếp cuối của `sortMyJobs`: đã xác nhận và qua ngày đi)
+      const daDi = rows.findIndex((r) => r.status === "confirmed" && r.departed);
+      const the = rows.map((r) => mineCard(r.a, today, tien[r.a.orderId]));
+      if (daDi >= 0) the.splice(daDi, 0, h("h3", { class: "hdv-nhom" }, "Đã đi tour"));
+      replaceChildren(mineList, ...the);
       return true;
     } catch {
       mineError.hidden = false;

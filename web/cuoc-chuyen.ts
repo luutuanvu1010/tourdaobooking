@@ -17,6 +17,7 @@ import { loiCua } from "./giay-to-ui";
 import { icon } from "./icons";
 import { initShell, setBarTitle, showError } from "./shell";
 import { cauLoiTienDo, dongMoc, veDiemChay, type LenhDiem } from "./tien-do-ui";
+import { formatDm } from "../src/shared/trip-form";
 import { msToVnLocal } from "../src/shared/vn-date";
 
 const errorEl = byId("error");
@@ -101,7 +102,7 @@ function ve(): void {
   const diemCho = [...choGui.keys()].filter((k) => k.startsWith("diem:"));
   const ketThuc = h("button", { type: "button", class: "vc-btn btn btn-accent", disabled: !ketThucDuoc(r.suat), "data-action": "ket-thuc" }, "Kết thúc chuyến");
   ketThuc.addEventListener("click", () => void chay("ket-thuc", () => gui("ket-thuc")));
-  const gianDoan = h("button", { type: "button", class: "vc-btn vc-btn-danger", "data-action": "ket-thuc-gian-doan" }, "Kết thúc gián đoạn");
+  const gianDoan = h("button", { type: "button", class: "vc-btn vc-btn-stop dp-gian-doan", "data-action": "ket-thuc-gian-doan" }, "Kết thúc gián đoạn"); // bản 1.39: nút viền đỏ, nhỏ hơn — không còn là nút to nhất lúc đang chạy (nút xác nhận trong hộp vẫn đỏ đặc)
   gianDoan.addEventListener("click", () => moGianDoan(gianDoan));
   replaceChildren(
     trangEl,
@@ -211,6 +212,19 @@ function moGianDoan(opener: HTMLElement): void {
   });
 }
 
+/** Điểm của chuyến CHƯA xuất bến (bản 1.39): số người ở mỗi điểm; điểm trả có giờ hẹn thì ghi kèm (điểm đón đã có "HẸN …" ở nhãn loại). */
+function veDiemTruoc(r: CuocChiTietResponse): HTMLElement[] {
+  const theoId = new Map(r.diem.map((d) => [d.id, d]));
+  return veDiemChay({
+    diem: r.diem, suat: [], trangThai: r.chuyen.trangThai, ngayXem: r.chuyen.gioBatDau.ngay, coNut: false, onLenh: () => undefined,
+    phuDiem: (b) => {
+      const d = theoId.get(b.diem.id)!;
+      const hen = d.loai === "DROPOFF" && d.gioHen ? `Hẹn ${d.gioHen.gio} · ` : "";
+      return { duoi: [h("div", { class: "dp-note dp-cc-so-nguoi" }, `${hen}${d.soNguoi} khách`)] };
+    },
+  });
+}
+
 /** Xuất bến (bản vẽ 6b, 6c — màn tài xế): chỉ điều kiện CÒN THIẾU "(văn phòng lo)"; đạt hết → "Đủ điều kiện xuất bến". Không ô giờ. */
 function veXuatBen(dauMang: HTMLElement | null): void {
   const r = duLieu!;
@@ -220,7 +234,11 @@ function veXuatBen(dauMang: HTMLElement | null): void {
     trangEl,
     dauMang,
     baoCao,
-    h("div", { class: "dp-note dp-cc-meta" }, `${c.bienSo} · ${c.gioBatDau.gio} · ${r.suat.length} khách`),
+    h("div", { class: "dp-note dp-cc-meta" }, `${c.bienSo} · ${formatDm(c.gioBatDau.ngay)} ${c.gioBatDau.gio} · ${r.suat.length} khách`),
+    // Bản 1.39 (chủ quyết 30/9: "tài xế nên thấy điểm đón từ trước, ngày giờ đón, vị trí và số lượng khách"): các điểm của chuyến TRƯỚC khi xuất bến — thứ tự,
+    // loại, tên nơi, giờ hẹn, số người; dùng lại cách vẽ điểm của màn đang chạy, KHÔNG nút tiến độ, KHÔNG khách từng người (`suat: []`) — tên / SĐT khách vẫn
+    // chỉ trong ngày chạy (ADR-0053 D7.2). Chỉ vẽ dữ liệu route 20 đã gửi (`diem`), không đổi máy chủ.
+    h("div", { class: "dp-run-list dp-cc-diem" }, ...veDiemTruoc(r)),
     h(
       "section",
       { class: "vc-card dp-side-card", "aria-labelledby": "cc-dk-title" },

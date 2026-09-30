@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { OrderItemDto, OrderServiceDto } from "./contracts.ts";
-import { catalogTag, khongQuyenSuaText, orderActions, serviceView, type OrderActions } from "./order-view.ts";
+import { catalogTag, khongQuyenSuaText, orderActions, paxFullText, serviceView, type OrderActions } from "./order-view.ts";
 
 const NO_TRIP = { departDate: null, departTime: null, pickupTime: null, pickupPlace: null, checkinDate: null, checkinTime: null, checkinPlace: null, note: null };
 const item = (o: Partial<OrderItemDto> = {}): OrderItemDto => ({
@@ -49,6 +49,21 @@ test("serviceView: thông tin chuyến — chưa có ngày → dòng cảnh báo
     { label: "Check-in", value: "Cùng ngày khởi hành · 09:00", warn: false },
     { label: "Ghi chú", value: "Đón trước cổng", warn: false },
   ]);
+});
+
+test("serviceView(s, ngày của đơn) (bản 1.39): dịch vụ cùng ngày với đơn không lặp dòng \"Khởi hành\" (chỉ còn giờ nếu có)", () => {
+  const v = serviceView(svc({ departDate: "2026-09-20", departTime: "07:30", pickupTime: "07:00", pickupPlace: "Bến Cầu Đá" }), "2026-09-20");
+  assert.deepEqual(v.trip, [
+    { label: "Giờ khởi hành", value: "07:30", warn: false },
+    { label: "Đón", value: "07:00 · Bến Cầu Đá", warn: false },
+  ]);
+  assert.deepEqual(serviceView(svc(), null).trip, [{ label: "Khởi hành", value: "Chưa có ngày khởi hành", warn: true }]);
+});
+
+test("paxFullText (bản 1.39): số khách viết đủ chữ cho dải đầu trang đơn, bỏ loại 0 khách, đúng thứ tự; không khách → \"\"", () => {
+  assert.equal(paxFullText({ adult: 8, child: 1, senior: 0, infant: 0 }), "8 người lớn, 1 trẻ em");
+  assert.equal(paxFullText({ adult: 2, child: 0, senior: 1, infant: 1 }), "2 người lớn, 1 người cao tuổi, 1 em bé");
+  assert.equal(paxFullText({ adult: 0, child: 0, senior: 0, infant: 0 }), "");
 });
 
 test("catalogTag: chỉ hai trạng thái có nhãn; ok/null không nhãn; serviceView mang nhãn theo catalogStatus", () => {

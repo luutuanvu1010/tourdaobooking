@@ -303,10 +303,16 @@ route("PUT", "/api/foo/:id", "office", async ({ env, request, params, staff }) =
 - Vi phạm CSP KHÔNG hiện ở `console.error` mà ở miền `Log` của CDP: dùng `logEntries` của `openPage()` (`a2-cdp.mjs`). Kiểm bằng `v1-dang-nhap.mjs` (bước b khẳng định header, bước g khẳng định không có vi phạm ở trình duyệt) — CSP chỉ có khi trang được phục vụ qua Workers Assets (`wrangler dev`/production), không có ở `file://`.
 - Nguồn ngoài mới thì thêm test cạnh khối Cloudflare ở `src/shared/sw-policy.test.ts` (service worker chỉ cache cùng nguồn; bài đó là hàng rào).
 
-**Font (tự lưu trữ):**
-- Tệp `.woff2` ở `public/fonts/`, tên chỉ `[A-Za-z0-9_-]` (khớp `STATIC_FILE` trong `src/shared/sw-policy.ts`); `@font-face` ở `public/app.css`; thêm vào `PRECACHE`.
-- `pwa.mjs` khẳng định ĐÚNG 6 tệp (`fontUrls.length === 6`): đổi số font phải sửa số đó.
+**Font — công thức "Phông chữ" (tự lưu trữ; rà soát 2026-09-30, đặc tả `docs/superpowers/specs/2026-09-30-phong-chu-va-co-chu.md`):**
+- MỌI chữ dùng **Be Vietnam Pro** (`--font` và `--font-display` cùng trỏ; LỆCH tourdaovn có chủ đích — chủ dự án giao chọn 30/9). Năm tệp `public/fonts/be-vietnam-pro-{400,500,600,700,800}.woff2`, **MỘT tệp mỗi độ đậm, đủ Latin + tiếng Việt + dấu tổ hợp**. **KHÔNG** tách tệp theo `unicode-range` như Google Fonts: chữ gõ kiểu "Unicode tổ hợp" (Unikey trên Windows, dữ liệu dán từ Sheet) có chữ gốc ở tệp này và dấu ở tệp kia → trình duyệt không ghép được, dấu lệch/rời (đã đo bằng CDP `CSS.getPlatformFontsForNode`: bản cũ vẽ một câu bằng Nunito + phông hệ thống).
+- Tạo lại tệp (máy có Python; `fonttools` + `brotli` cài trong venv tạm, KHÔNG thêm vào repo), nguồn TTF tĩnh ở kho `google/fonts`, thư mục `ofl/bevietnampro/` (giấy phép OFL):
+  `pyftsubset BeVietnamPro-<Tên>.ttf --unicodes="U+0000-00FF,U+0102-0103,U+0110-0111,U+0128-0129,U+0131,U+0152-0153,U+0168-0169,U+01A0-01A1,U+01AF-01B0,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0300-0301,U+0303-0304,U+0308-0309,U+0323,U+0329,U+1EA0-1EF9,U+2000-206F,U+20AB,U+20AC,U+2122,U+2212,U+2215,U+FEFF,U+FFFD" --layout-features+=tnum,ccmp,mark,mkmk,kern,locl --flavor=woff2 --desubroutinize --output-file=public/fonts/be-vietnam-pro-<độ đậm>.woff2` (Regular=400, Medium=500, SemiBold=600, Bold=700, ExtraBold=800). GIỮ hinting (không `--no-hinting`): Windows dùng nó cho chữ nhỏ.
+- Phông không có mũi tên, ✓, ✕, ▾ → chúng rơi về phông hệ thống theo chồng `--font` (Apple: San Francisco; Windows: Segoe UI / Segoe UI Symbol). Chấp nhận có chủ đích; đừng thêm phông biểu tượng.
+- `button, input, select, textarea { font-family: inherit; }` ở đầu `app.css`: phần tử form của trình duyệt KHÔNG kế thừa phông (Windows vẽ Arial). Đừng gỡ.
+- Tên tệp chỉ `[A-Za-z0-9_-]` (khớp `STATIC_FILE` trong `src/shared/sw-policy.ts`); thêm/bớt tệp phải sửa `PRECACHE` + số tệp ở `pwa.mjs` (`fontUrls.length === 5`). `src/phong-chu.test.ts` đỏ khi: `@font-face` có `unicode-range`, tệp thiếu/quá nhỏ/không có trong `PRECACHE`, một độ đậm được dùng mà không có tệp, chồng phông mất dự phòng Windows, mất luật `button … inherit`.
 - CSP `font-src 'self' data:` ở `public/_headers` đã cho font cùng origin; font từ CDN phải sửa CSP (và `STATIC_FILE`).
+
+**Cỡ chữ — thang `--fs-step-1…14` (12→32px) ở `:root`:** token cỡ chữ theo vai (`--fs-ui`, `--fs-hdv-*`, `--fs-vc-*`, `--fs-dp-*`…) chỉ được trỏ `var(--fs-step-N)`; luật CSS không viết cứng cỡ chữ (`src/phong-chu.test.ts` canh). Bậc nhỏ nhất 12px — dưới đó dấu chồng hai tầng (ấ, ở) nhoè trên màn Windows 100%. Cần cỡ mới: dùng bậc có sẵn; thêm bậc = hỏi chủ.
 
 **Biểu tượng:** `web/icons.ts` → thêm `tên: [["path", { d: "…" }]]` vào `SHAPES` (lưới 24×24, nét `currentColor`; `IconName` tự theo; dùng `icon("tên", cỡ)`). Icon PWA (PNG, không kênh alpha): quy trình ImageMagick ở `docs/PWA-IPHONE.md` "Dựng lại icon".
 
@@ -468,7 +474,7 @@ Ba lớp, đổi đúng lớp:
 
 **Kiểm:** `node --test src/shared/order-confirmation.test.ts src/shared/text-wrap.test.ts` → `npm test` → `npm run typecheck` → `npm run build:web` → `AXE_JS=… CHROME_BIN=… node docs/evidence/2026-09-21-v1-0/kich-ban/v1-xac-nhan-png.mjs` (12 dòng ✓; ghi ảnh mẫu vào `docs/evidence/2026-09-21-v1-0/anh/` — XEM ẢNH bằng mắt sau khi đổi bố cục) → ba `a2-smoke-*.mjs` nếu chạm `web/order.ts`/`web/order-form.ts` → `v1-nguoi-phu-trach.mjs` nếu đổi cách lấy tên người phụ trách của ảnh (bước c: ảnh sau khi đổi người giống từng byte bản dựng từ tên mới) → `npm run test:e2e -- pwa` nếu chạm CSS.
 
-**Bẫy:** ảnh có "₫" trông như "đ" gạch chân — đó là chữ ₫ của phông Nunito, không phải lỗi. Test giả lập lỗi phải đặt SAU lần mở thành công đầu tiên nếu lỗi nằm ở dữ liệu đã được nhớ (hồ sơ công ty được nhớ trong trang). `Runtime.evaluate` của CDP không bị CSP chặn nên kịch bản đóng gói bộ vẽ bằng esbuild và nạp thẳng vào trang; đó là công cụ kiểm, không phải mã chạy thật.
+**Bẫy:** ảnh có "₫" trông như "đ" gạch chân — đó là dáng chữ ₫ của phông (Nunito trước 30/9, Be Vietnam Pro từ 30/9), không phải lỗi. Test giả lập lỗi phải đặt SAU lần mở thành công đầu tiên nếu lỗi nằm ở dữ liệu đã được nhớ (hồ sơ công ty được nhớ trong trang). `Runtime.evaluate` của CDP không bị CSP chặn nên kịch bản đóng gói bộ vẽ bằng esbuild và nạp thẳng vào trang; đó là công cụ kiểm, không phải mã chạy thật.
 
 ### q. Chế độ bảo trì (chỉ chủ dự án dùng được) / cột "Đăng nhập gần nhất"
 

@@ -47,7 +47,8 @@ try {
   assert.equal(await p.ev(`${svc(0)}.querySelector('.svc-name').textContent`), "Tour 4 đảo Nha Trang");
   assert.deepEqual(await p.ev(`[...${svc(0)}.querySelectorAll('.chip')].map((c) => c.textContent)`), ["theo người", "TD101"]);
   assert.deepEqual(await p.ev(pairs(svc(0), ".svc-facts .kv")), [
-    ["Số khách", "2 người lớn · 1 trẻ em"], ["Khởi hành", `${dmy(vnDate(10))} · 07:30`], ["Đón", "07:00 · Bến Cầu Đá"], ["Check-in", "Cùng ngày khởi hành · 09:00"],
+    // bản 1.39: cùng ngày với đơn (dải đầu trang) → không lặp dòng "Khởi hành", chỉ còn "Giờ khởi hành"
+    ["Số khách", "2 người lớn · 1 trẻ em"], ["Giờ khởi hành", "07:30"], ["Đón", "07:00 · Bến Cầu Đá"], ["Check-in", "Cùng ngày khởi hành · 09:00"],
   ]);
   const lines0 = await p.ev(`[...${svc(0)}.querySelectorAll('.line-view')].map((l) => [l.querySelector('.line-name').textContent, l.querySelector('.line-calc').textContent, l.querySelector('.line-total').textContent, !!l.querySelector('.tag-price'), l.querySelector('.price-old')?.textContent ?? null])`);
   assert.match(lines0[0][0], /^Tour 4 đảo Nha Trang/);
@@ -138,8 +139,12 @@ try {
   assert.equal(await p.ev("document.querySelectorAll('#order .svc-view .lock').length"), 4, "mỗi dịch vụ: khoá ở Số khách và ở Tổng dịch vụ");
   const confirmedBtns = await p.ev("[...document.querySelectorAll('#actions .btn')].map((b) => b.textContent)");
   assert.ok(confirmedBtns.includes("Huỷ đơn") && !confirmedBtns.includes("Sửa") && !confirmedBtns.includes("Xác nhận đơn"), `đơn đã xác nhận: có 'Huỷ đơn', không còn 'Sửa'/'Xác nhận đơn' (từ Task 9 có thêm 'Sửa thông tin chuyến'): ${confirmedBtns}`);
+  // bản 1.39: dải đầu trang ghi số khách đủ chữ (không "NL/TE"), không tràn ngang ở 390px
+  const band = await p.ev("({ pax: [...document.querySelectorAll('.order-summary-band .grid4 > div')][2].querySelector('.value').textContent, over: document.documentElement.scrollWidth - innerWidth })");
+  assert.match(band.pax, /^\d+ người lớn, \d+ trẻ em$/, `dải đầu: ${band.pax}`);
+  assert.ok(band.over <= 0, `tràn ngang ${band.over}px`);
   assert.equal(await p.ev("document.getElementById('error').hidden"), true);
-  assert.deepEqual(await p.ev(pairs(svc(1), ".svc-facts .kv")), [["Số khách", "3 khách"], ["Khởi hành", dmy(vnDate(10))]]);
+  assert.deepEqual(await p.ev(pairs(svc(1), ".svc-facts .kv")), [["Số khách", "3 khách"]]); // bản 1.39: cùng ngày với đơn, không giờ → không còn dòng "Khởi hành"
   p.close();
   ok("đơn đã xác nhận: dòng nhắc khoá, 4 biểu tượng khoá, hết nút 'Sửa'/'Xác nhận đơn', còn 'Huỷ đơn'; dịch vụ nhập tay đã có ngày");
 

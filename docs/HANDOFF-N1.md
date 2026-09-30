@@ -2,7 +2,19 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 1.38: Vận chuyển lượt 1 — Bảng điều phối (ADR-0049), Kernel lượt 1 (ADR-0050), "Đã gọi báo" (ADR-0051), chặng đưa đón + hành khách phần máy chủ (ADR-0047 Phần A), mốc 6 giờ + "Đặt gấp", tài xế chỉ thấy khách trong ngày chạy (ADR-0053 D7.2, Q-L3-B); migration `0034`, `0035`, `0040`–`0043` ĐÃ LÊN PRODUCTION (2026-09-30 15:11 giờ VN, chủ dự án tự chạy `npm run day-len -- phat-hanh-1-38` rồi `npm run trien-khai`)
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 1.40: sửa giao diện nhỏ theo rà soát 30/9 (đếm dịch vụ ở form đơn; "Thông tin chuyến" thu gọn mặc định mọi khổ; thẻ HDV có giờ khởi hành / check-in / ghi chú dịch vụ + "Xem đơn"; tài xế thấy điểm đón, giờ hẹn, số khách TRƯỚC xuất bến; trang đơn không lặp ngày; sửa hai lỗi hiển thị do phông 1.39) — không migration — ĐÃ LÊN PRODUCTION (2026-09-30 17:49 giờ VN, chủ tự chạy `npm run day-len -- giao-dien-sua-nho-1-39` rồi `npm run trien-khai`)
+
+AI (phiên điều phối chung) kiểm bằng lệnh chỉ đọc 30/9 17:50:
+
+- **Phiên bản: 1.40.** `node scripts/kiem-phien-ban.mjs --sau-deploy` → "ĐẠT: production đang chạy đúng bản 1.40."; `GET /api/auth/config` `"version":"1.40"`. (Lần kiểm 17:44 còn 1.39 — lần `trien-khai` đầu chưa tới bước deploy; chủ chạy lại.)
+- **Chế độ bảo trì: TẮT** (`on:false`) — lúc 1.38 còn bật tới 4/10; chưa rõ ai tắt (đã hỏi chủ).
+- **Mã:** `origin/main` = 63a8e76a (nhánh `giao-dien-sua-nho-1-39` = 1.40, gồm gộp main 1db777f4 bản 1.39 phông chữ và nhánh tài liệu `ra-soat-luong-giao-dien`). Kiểm độc lập ĐẠT CÓ ĐIỀU KIỆN (hai THẤP: dòng APP_NAME ở thẻ HDV; nút "Xem đơn" chưa thử bằng tài khoản HDV thật). Sau gộp phông: `npm test` hai bước thoát 0, typecheck 0, 5 kịch bản Chrome xanh (a2-smoke-form, a2-smoke-order, hdv-viec-cua-toi-smoke, cuoc-smoke, dat-gap-smoke).
+- **Worker:** mới nhất **63d5e56c-6820-4e3b-81ee-782e30834030** (2026-09-30T10:49:33Z). Mốc lùi: 9c5c2217-a728-4ce9-9fdb-b28afc8b2c1d (1.39, 09:58Z). Lùi an toàn (không migration).
+- **Migration:** không có mới; `wrangler d1 migrations list --remote` → "No migrations to apply!". **Dữ liệu:** `audit-invariants --db remote` → "Mọi bất biến đạt, 2 cảnh báo" (R-VC-14 = 12, R-ORD-8 = 2 — như 1.38).
+- **Chưa kiểm:** iPhone thật; "Xem đơn" bằng tài khoản HDV thật.
+- **Kế tiếp:** trình chủ ADR 0058–0062 (rà soát 30/9 — `docs/superpowers/specs/2026-09-30-ra-soat-luong-giao-dien-phan-loai-huong-dan.md`; bản nháp đang sửa vòng 2 theo người kiểm độc lập, NGOÀI repo ở `~/.claude/jobs/9b4860df/tmp/adr-nhap/` — phải đưa vào repo trước khi phiên điều phối kết thúc); Sổ tiền lượt 1 đang thi công ở phiên khác (nhánh `worktree-agent-aa1fab0316112d404`, 0044–0045; ADR-0060 đề xuất chèn Task 7b); ADR-0047 Phần B chờ chủ vẽ (nhớ ô nơi trả + "Số khách đi xe").
+
+## TRẠNG THÁI TRIỂN KHAI (cũ) — Phiên bản 1.38: Vận chuyển lượt 1 — Bảng điều phối (ADR-0049), Kernel lượt 1 (ADR-0050), "Đã gọi báo" (ADR-0051), chặng đưa đón + hành khách phần máy chủ (ADR-0047 Phần A), mốc 6 giờ + "Đặt gấp", tài xế chỉ thấy khách trong ngày chạy (ADR-0053 D7.2, Q-L3-B); migration `0034`, `0035`, `0040`–`0043` ĐÃ LÊN PRODUCTION (2026-09-30 15:11 giờ VN, chủ dự án tự chạy `npm run day-len -- phat-hanh-1-38` rồi `npm run trien-khai`)
 
 AI (phiên điều phối chung, tiếp quản điều phối Vận chuyển 30/9) kiểm bằng lệnh chỉ đọc sau khi chủ báo xong (2026-09-30, chiều):
 

@@ -23,6 +23,7 @@ import { grouped, parseMoney, vnd } from "./format";
 import { suKienVeDon } from "./lam-moi-logic";
 import { regroupMoney } from "./money-input";
 import { createServiceCard, type ServiceCard } from "./service-card";
+import { hienBaoNgan } from "./toast";
 import { khoiCanhBaoMoc, khoiNhanDatGap } from "./dat-gap-ui";
 import { goiSom } from "./goi-som";
 import { icon } from "./icons";
@@ -33,7 +34,6 @@ const params = new URLSearchParams(location.search);
 const editId = params.get("id");
 const focusId = params.get("focus");
 const today = vnToday(new Date());
-const isPhone = window.matchMedia("(max-width: 640px)").matches; // chỉ để mở/thu gọn khối chuyến (accordion ≤ 640px)
 /** ≥ 960px: form hai cột, banner lỗi nằm ở cột phải dính (luôn thấy). Dưới 960px (điện thoại VÀ iPad dọc 641–959px) form một cột, banner nằm CUỐI form → lỗi phải cuộn tới banner. Đọc LÚC CẦN: xoay iPad đổi khổ. */
 const wide = (): boolean => window.matchMedia("(min-width: 960px)").matches;
 
@@ -97,6 +97,7 @@ const picker = createCatalogPicker({
   onPick: (item) => {
     const entry = mount(withOrderDate(newCatalogDraft(item, `k${++seq}`)));
     entry.card.root.scrollIntoView({ block: "nearest" });
+    hienBaoNgan(`Đã thêm ${item.name} — đơn có ${entries.length} dịch vụ`); // bản 1.39: sau khi chọn, ô tìm đóng và thẻ mới ở cuối — báo ngắn để biết đã thêm
   },
 });
 byId("catalog-slot").append(picker.root);
@@ -109,7 +110,7 @@ function mount(d: ServiceDraft, open?: boolean): Entry {
   entry.card = createServiceCard({
     draft: d,
     today,
-    openTrip: open ?? !isPhone, // ≤ 640px thẻ mới thu gọn khối chuyến (Q2); máy tính mở sẵn
+    openTrip: open ?? false, // bản 1.39 (chủ yêu cầu 30/9, thay giả định Q2 ngày 19/9): mọi khổ thu gọn mặc định; `?focus=` của cảnh báo thiếu chuyến vẫn mở đúng thẻ
     canAddLine: () => totalLines(drafts()) < MAX_LINES_PER_ORDER,
     retailOnly,
     onChange: (next) => {
@@ -221,6 +222,13 @@ function recompute(): void {
   byId("mobile-total").textContent = vnd(s.total); // thanh dính đáy điện thoại: cùng giá trị đã tính ở trên, hiện lại cạnh nút Lưu (Bước 2 Đợt B)
   byId("mobile-prepaid").textContent = vnd(s.traTruoc);
   byId("mobile-prepaid-row").hidden = s.traTruoc === 0;
+  // Bản 1.39: đếm dịch vụ ở tiêu đề khối, Tóm tắt và thanh dính đáy (một dòng "N dịch vụ · Tổng …"; sổ tiền lượt 1: "Trả trước" chỉ khi có số trả trước —
+  // không tự trừ "còn lại" ở trình duyệt, ADR-0026 đ9).
+  const n = entries.length;
+  byId("services-title").textContent = n > 0 ? `Dịch vụ (${n})` : "Dịch vụ";
+  byId("sum-count").textContent = `${n} dịch vụ`;
+  byId("mobile-count").textContent = `${n} dịch vụ`;
+  picker.setSelected(ds.flatMap((d) => (d.kind === "catalog" ? [d.code] : [])));
   const warn = byId("sum-warning");
   warn.textContent = s.warning ?? "";
   warn.hidden = !s.warning;

@@ -115,7 +115,7 @@ try {
   const P3 = await newOrder("Khách Chờ Ba", [td101({ adult: 3, senior: 1 }, { departDate: vnDate(5), pickupTime: "06:45", pickupPlace: "Nhà nghỉ Sao Biển" })]);
   // Đơn của HDV (chọn HDV ngay lúc lập — ADR-0030 S20-4): M1 chờ xác nhận; M2 đã xác nhận, HAI dịch vụ danh mục, có cọc; M3 đã xác nhận rồi đẩy ngày đi về
   // quá khứ (đã đi tour); M4 đã xác nhận để huỷ.
-  const M1 = await newOrder("Đỗ Minh Châu", [td101({ adult: 4, child: 1 }, { departDate: vnDate(2), pickupTime: "07:15", pickupPlace: "Khách sạn Novotel" })], { handlerStaffId: hdv.id });
+  const M1 = await newOrder("Đỗ Minh Châu", [td101({ adult: 4, child: 1 }, { departDate: vnDate(2), departTime: "07:45", pickupTime: "07:15", pickupPlace: "Khách sạn Novotel", checkinTime: "08:15", checkinPlace: "Cảng Cầu Đá", note: "Khách ăn chay" })], { handlerStaffId: hdv.id });
   const M2 = await newOrder("Vũ Thanh Hương", [td101({ adult: 2, child: 1 }, { departDate: vnDate(4), pickupTime: "06:30", pickupPlace: PICKUP_WITH_PHONE }), ttb06(2, { departDate: vnDate(4), pickupTime: "17:30", pickupPlace: "Bến Bình Ba" })], { handlerStaffId: hdv.id });
   await thu(M2, 500000);
   const M3 = await newOrder("Hoàng Gia Linh", [td101({ adult: 3 }, { departDate: vnDate(3), pickupTime: "08:00", pickupPlace: "Cảng Cầu Đá, quầy số 3" })], { handlerStaffId: hdv.id });
@@ -141,18 +141,20 @@ try {
         pool: pool.map((c) => ({ date: t(c.querySelector('.hdv-date')), code: t(c.querySelector('.hdv-code')), chip: t(c.querySelector('.hdv-chip')), buttons: [...c.querySelectorAll('button')].map(t), svcs: [...c.querySelectorAll('.hdv-svc')].map(t) })),
         mine: mine.map((c) => ({
           id: c.dataset.orderId, date: t(c.querySelector('.hdv-date')), code: t(c.querySelector('.hdv-code')), chip: t(c.querySelector('.hdv-chip')), chipClass: c.querySelector('.hdv-chip')?.className ?? null,
-          customer: t(c.querySelector('.hdv-customer')), tel: c.querySelector('.hdv-call')?.getAttribute('href') ?? null, me: t(c.querySelector('.hdv-me')),
+          customer: t(c.querySelector('.hdv-customer')), tel: c.querySelector('.hdv-call')?.getAttribute('href') ?? null, me: t(c.querySelector('.hdv-me')), xem: c.querySelector('a.hdv-xem')?.getAttribute('href') ?? null, xemH: Math.round(c.querySelector('a.hdv-xem')?.getBoundingClientRect().height ?? 0),
           money: [...c.querySelectorAll('.hdv-money > div')].map((d) => [t(d.querySelector('dt')), t(d.querySelector('dd'))]),
           note: t(c.querySelector('.hdv-note')), buttons: [...c.querySelectorAll('button')].map(t), svcs: [...c.querySelectorAll('.hdv-svc')].map(t),
         })),
         toasts: document.querySelectorAll('.toast').length,
+        mineOrder: [...document.querySelectorAll('#cua-toi .hdv-mine-list > *')].map((el) => el.matches('.hdv-nhom') ? '# ' + t(el) : el.dataset.orderId),
         poolBanner: document.querySelector('#cho-nhan .banner:not([hidden])') ? t(document.querySelector('#cho-nhan .banner')) : null,
         overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
       };
     })()`);
+  // bản 1.39: nhãn "Thanh toán trước / Còn lại" (trước "Đã cọc / Còn thu"); sổ tiền lượt 1: số lấy từ billing.
   const moneyOf = async (d) => {
     const t = await tienOf(d);
-    return [["Tổng tiền", vnd(d.total)], ["Đã thu", vnd(t.daThu)], ["Còn thu", vnd(t.conLai)]];
+    return [["Tổng tiền", vnd(d.total)], ["Thanh toán trước", vnd(t.daThu)], ["Còn lại", vnd(t.conLai)]];
   };
 
   // ==================================================================================================
@@ -161,7 +163,7 @@ try {
   const desk = await open(DESK);
   await step("1", "Máy tính: đầu khối + hai ô điều hướng; hàng chờ = 3 đơn đúng thứ tự ngày đi, phần hẹp (không SĐT khách, không tiền, nơi đón che dãy số); “Đơn của tôi” = 4 đơn đúng thứ tự, đúng chip, tiền trùng API, nút đúng trạng thái; khối trải hết bề ngang" + axeNote(), async () => {
     const s = await state(desk);
-    assert.equal(s.eyebrow, "Tour Đảo Booking · Việc của tôi");
+    assert.equal(s.eyebrow, "Island Booking System · Việc của tôi"); // bản 1.39: trước còn tên cũ "Tour Đảo Booking"
     assert.equal(s.title, `HDV: ${HDV.name}`);
     assert.deepEqual(s.tiles.map((x) => [x.href, x.hidden]), [["#cho-nhan", false], ["#cua-toi", false]]);
     assert.equal(s.poolCount, "3", JSON.stringify(s.tiles));
@@ -189,17 +191,35 @@ try {
     assert.deepEqual(m3.buttons, ["Sửa số khách"], "đã đi tour: không “Huỷ đơn”");
     assert.equal(m2.note, null);
     for (const [c, o] of [[m1, M1], [m2, M2], [m4, M4], [m3, M3]]) {
-      assert.deepEqual(c.money, await moneyOf(await detail(o)), `${o.orderCode}: Tổng tiền (GET /api/orders/:id) / Đã thu / Còn thu (billing) trùng`);
-      assert.equal(c.me, `HDV: ${HDV.name}`);
+      assert.deepEqual(c.money, await moneyOf(await detail(o)), `${o.orderCode}: Tổng tiền (GET /api/orders/:id) / Thanh toán trước / Còn lại (billing) trùng`);
+      assert.equal(c.me, null, "bản 1.39: không lặp dòng HDV: <tên> ở từng thẻ");
+      assert.equal(c.xem, `/order?id=${encodeURIComponent(o.id)}`, "liên kết Xem đơn");
+      assert.ok(c.xemH >= 44, `Xem đơn cao ${c.xemH}px`);
       assert.equal(c.tel, "tel:0912448305");
       assert.ok(c.customer.includes(POOL_PHONE) && c.customer.includes("Gọi"), c.customer);
     }
     assert.ok(m2.svcs[0].includes(PICKUP_WITH_PHONE), `đơn ĐÃ giao: nơi đón KHÔNG bị che — ${m2.svcs[0]}`);
+    // bản 1.39: dưới "Đón:" có giờ khởi hành, check-in, ghi chú dịch vụ (chỉ "Đơn của tôi"); tiêu đề nhóm "Đã đi tour" trước đơn đã đi
+    assert.match(m1.svcs[0], /Đón: Khách sạn Novotel Khởi hành: 07:45 Check-in: 08:15 · Cảng Cầu Đá Ghi chú: Khách ăn chay$/, m1.svcs[0]);
+    assert.deepEqual(s.mineOrder, [M1.id, M2.id, M4.id, "# Đã đi tour", M3.id]);
     const w = await desk.ev("(() => { const a = document.querySelector('.account-layout').getBoundingClientRect(); const m = document.querySelector('#myjobs').getBoundingClientRect(); return { layout: Math.round(a.width), myjobs: Math.round(m.width) }; })()");
     assert.equal(w.myjobs, w.layout, `#myjobs trải hết bề ngang lưới 2 cột — ${JSON.stringify(w)}`);
     assert.equal(s.overflow <= 1, true, `không tràn ngang — ${s.overflow}px`);
     await shotFull(desk, "hdv-viec-cua-toi-1040.png");
     await axe(desk, "Việc của tôi máy tính");
+  });
+
+  await step("1b", "bản 1.39: HDV bấm được “Xem đơn” — trang đơn mở được cả đơn chờ xác nhận lẫn đơn đã xác nhận; đơn đã xác nhận KHÔNG ghi “Chỉ sửa được thông tin chuyến” (HDV không có nút sửa chuyến)", async () => {
+    for (const [o, daXacNhan] of [[M1, false], [M2, true]]) {
+      const q = await env.as(HDV, `/order?id=${encodeURIComponent(o.id)}`, DESK);
+      pages.push(q);
+      await q.waitFor("!!document.querySelector('.order-summary-band') || !document.getElementById('error')?.hidden", `trang đơn ${o.orderCode}`, 15000);
+      const r = await q.ev("({ band: !!document.querySelector('.order-summary-band'), lock: document.querySelector('.lock-note')?.textContent ?? null, editTrip: !!document.querySelector('[data-action=\"edit-trip\"]') })");
+      assert.equal(r.band, true, `${o.orderCode}: HDV mở được trang đơn`);
+      assert.equal(r.editTrip, false, "HDV không có nút sửa chuyến");
+      if (daXacNhan) assert.equal(r.lock, "Đơn đã xác nhận: dịch vụ, số khách và tiền đã khoá.", r.lock);
+      else assert.equal(r.lock, null);
+    }
   });
 
   await step("2", "HDV khác Nhận một đơn (API, cookie riêng) → thẻ biến khỏi hàng chờ LẶNG LẼ qua Bảng tin: không thông báo nổi, không banner; số “Chờ nhận” còn 2", async () => {

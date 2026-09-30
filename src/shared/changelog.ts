@@ -11,10 +11,10 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
-    // Sổ tiền lượt 1 = Hoàn tất đơn (ADR-0024 đ1–5, ADR-0025, ADR-0026; kế hoạch docs/superpowers/plans/2026-09-29-so-tien-luot-1-ke-hoach.md). Số "1.39"
-    // TẠM (production 1.38 ngày 30/9); người gộp chốt số trống kế tiếp LÚC GỘP. Hai màn "Sổ của tôi" / "Sổ công nợ" CHƯA dựng (chờ chủ xem ảnh phác)
-    // nên mục này không nhắc tới.
-    version: "1.39",
+    // Sổ tiền lượt 1 = Hoàn tất đơn (ADR-0024 đ1–5, ADR-0025, ADR-0026; kế hoạch docs/superpowers/plans/2026-09-29-so-tien-luot-1-ke-hoach.md). Số "1.41"
+    // theo điều phối (production 1.40 ngày 30/9); người gộp chốt số trống kế tiếp LÚC GỘP. Hai màn "Sổ của tôi" / "Sổ công nợ" CHƯA dựng (chờ chủ xem
+    // ảnh phác) nên mục này không nhắc tới.
+    version: "1.41",
     date: "2026-09-30",
     items: [
       { kind: "doi", text: "Lập đơn: mục Thanh toán nay nằm trước thông tin khách; tiền khách trả trước mặc định là chuyển khoản và được ghi thành một lần thu." },
@@ -22,6 +22,30 @@ export const CHANGELOG: readonly ReleaseNote[] = [
       { kind: "moi", text: "Hướng dẫn viên đang phụ trách (và Quản trị) bấm \"Đã giao – đã thu đủ\" khi khách đã trả đủ; từ lúc đó đơn không sửa được nữa." },
       { kind: "moi", text: "Kế toán bấm \"Hoàn thành\" sau khi tiền đã về công ty; nếu chưa bấm được, đơn ghi rõ lý do và ai cần xử lý." },
       { kind: "doi", text: "Tiền cọc ghi trên đơn cũ được chuyển thành lần thu \"chưa rõ người thu\"; Kế toán sẽ ghi lại đúng người thu." },
+    ],
+  },
+  {
+    // Sửa giao diện nhỏ theo rà soát 30/9 (docs/superpowers/specs/2026-09-30-ra-soat-luong-giao-dien-phan-loai-huong-dan.md §2 trên nhánh
+    // ra-soat-luong-giao-dien): chỉ bề mặt, không đổi máy chủ / dữ liệu. Số 1.40 (1.39 = bản phông chữ đã lên production 30/9).
+    version: "1.40",
+    date: "2026-09-30",
+    items: [
+      { kind: "doi", text: "Tạo đơn: tiêu đề, phần Tóm tắt và thanh dưới đáy ghi rõ đơn đang có mấy dịch vụ; chọn xong có báo ngắn, dịch vụ đã chọn có nhãn \"đã chọn\"." },
+      { kind: "doi", text: "Tạo đơn: phần \"Thông tin chuyến\" nay thu gọn sẵn cả trên máy tính; dòng tóm tắt ghi giờ đón, nơi đón và giờ check-in." },
+      { kind: "doi", text: "Việc của tôi (hướng dẫn viên): thẻ đơn có giờ khởi hành, check-in, ghi chú và nút \"Xem đơn\"; nhãn tiền đổi thành \"Thanh toán trước / Còn lại\"." },
+      { kind: "doi", text: "Trang đơn: không lặp ngày khởi hành ở từng dịch vụ; số khách ở đầu trang ghi đủ chữ, ví dụ \"8 người lớn, 1 trẻ em\"." },
+      { kind: "doi", text: "Màn tài xế: nút \"Kết thúc gián đoạn\" nhỏ lại, viền đỏ; nút \"Kết thúc chuyến\" khi chưa bấm được vẫn hiện rõ là một nút." },
+      { kind: "moi", text: "Tài xế thấy trước các điểm đón, giờ hẹn và số khách của chuyến." },
+    ],
+  },
+  {
+    // Rà soát phông + cỡ chữ (chủ dự án giao 30/9: "chọn phông tiếng Việt chuẩn", lỗi phông nhẹ trên Windows) — đặc tả
+    // docs/superpowers/specs/2026-09-30-phong-chu-va-co-chu.md. Số "1.39" TẠM (production 1.38); người gộp chốt số trống kế tiếp LÚC GỘP.
+    version: "1.39",
+    date: "2026-09-30",
+    items: [
+      { kind: "sua", text: "Sửa lỗi chữ tiếng Việt trên máy tính Windows: dấu có lúc bị lệch hoặc tách khỏi chữ, nút bấm hiện phông khác." },
+      { kind: "doi", text: "Toàn bộ app dùng một phông chữ thiết kế riêng cho tiếng Việt (Be Vietnam Pro), hiển thị giống nhau trên iPhone, Android và máy tính." },
     ],
   },
   {
