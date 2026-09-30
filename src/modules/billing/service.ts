@@ -167,6 +167,10 @@ export async function tienCuaDon(db: D1Database, info: ThongTinGiaoDon, ai: Nguo
   const lyGiao = lyDoChuaGiaoDuoc({ status: info.status, deliveredAt: info.deliveredAt, homNay: vnToday(new Date()), ngayDi: info.ngayDi, dichVuThieuNgay: info.dichVuThieuNgay, coNguoiHuong: info.coNguoiHuong, so });
   const soDu = congTyId ? soDuTheoBen(lines.map(toLineRow), congTyId) : new Map<string, number>();
   const ten = await partyLabels(db, [...soDu.keys()]);
+  // Lần thu "Công ty thu – CK" chờ xác nhận = lần thu vai COMPANY còn dòng giữ hộ (HELD) chưa bị đảo — cùng điều kiện `xacNhanCongTyNhan` kiểm.
+  const daoDong = new Set(lines.flatMap((l) => (l.reverses_line_id ? [l.reverses_line_id] : [])));
+  const congTyThu = new Set(receipts.filter((r) => r.collector_role_code === "COMPANY").map((r) => r.id));
+  const choXacNhan = [...new Set(lines.filter((l) => l.kind_code === "HELD" && l.reverses_line_id === null && !daoDong.has(l.id) && l.receipt_id !== null && congTyThu.has(l.receipt_id)).map((l) => l.receipt_id!))];
   const lyHoan = lyDoChuaHoanThanh({ deliveredAt: info.deliveredAt, completedAt: info.completedAt, soDu, tenBen: (id) => ten.get(id)?.label ?? "Một người" });
   return {
     phaiThu: info.phaiThu,
@@ -186,6 +190,12 @@ export async function tienCuaDon(db: D1Database, info: ThongTinGiaoDon, ai: Nguo
     quyenHoanThanh: quyen.coTheBamHoanThanh,
     coTheHoanThanh: quyen.coTheBamHoanThanh && info.deliveredAt !== null && info.completedAt === null && lyHoan === null,
     laKeToan: ai.laKeToan,
+    keToan: ai.laKeToan
+      ? {
+          dangGiu: [...soDu].filter(([, v]) => v > 0).map(([partyId, soTien]) => ({ partyId, ten: ten.get(partyId)?.label ?? "Một người", soTien })),
+          choXacNhan,
+        }
+      : null,
   };
 }
 

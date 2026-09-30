@@ -374,6 +374,8 @@ textarea { min-height: 72px; resize: vertical; }
 /* Khối "Ghi lần thu" ở trang đơn (sổ tiền lượt 1). */
 .pay-form { margin-top: var(--s3); }
 .pay-inline { display: contents; }
+.kt-actions { display: inline-flex; flex-wrap: wrap; gap: var(--s2); margin-left: var(--s2); } /* nút Kế toán trên từng lần thu (sổ tiền lượt 1, đặt tạm) */
+.kt-khoi { margin-top: var(--s3); } .kt-khoi h3 { margin: 0 0 var(--s2); font-size: var(--fs-label); }
 .empty { padding: var(--s6) var(--s4); text-align: center; color: var(--c-muted); }
 
 .summary { display: grid; gap: var(--s2); margin-top: var(--s4); }

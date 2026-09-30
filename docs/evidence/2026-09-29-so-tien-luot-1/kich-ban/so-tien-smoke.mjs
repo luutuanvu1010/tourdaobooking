@@ -38,6 +38,7 @@ try {
   assert.deepEqual(r1.slice(0, 5), [["Tạm tính", "1.350.000 ₫"], ["Giảm giá", "0 ₫"], ["Tổng cộng", "1.350.000 ₫"], ["Đã thu", "500.000 ₫"], ["Còn lại", "850.000 ₫"]], JSON.stringify(r1));
   assert.equal(await p.ev("!!document.querySelector('[data-action=\"ghi-lan-thu\"]')"), true, "Bán hàng ghi được lần thu (own)");
   assert.equal(await p.ev("!!document.querySelector('[data-action=\"da-giao\"]')"), false, "Bán hàng KHÔNG có nút Đã giao");
+  assert.equal(await p.ev("!!document.querySelector('[data-khoi=\"ke-toan\"], [data-action=\"dao-lan-thu\"], [data-action=\"xac-nhan-ck\"]')"), false, "Bán hàng KHÔNG thấy thao tác Kế toán");
   assert.equal(await p.ev("document.querySelectorAll('[data-khoi=\"lan-thu\"] li').length"), 1, "một lần thu");
   assert.equal(await p.ev("document.documentElement.scrollWidth - document.documentElement.clientWidth <= 1"), true, "không tràn ngang 390");
   await p.shot(`${OUT}/1-ban-hang-390.png`);
@@ -62,6 +63,7 @@ try {
   await q.waitFor("[...document.querySelectorAll('.lock-note')].some((n) => /Đơn đã Đã giao – đã thu đủ/.test(n.textContent))", "câu khoá sau Đã giao", 10000);
   assert.equal(await q.ev("!!document.querySelector('[data-action=\"da-giao\"]')"), false, "hết nút Đã giao");
   assert.equal(await q.ev("!!document.querySelector('[data-action=\"hoan-thanh\"]')"), false, "Quản trị KHÔNG có nút Hoàn thành (order.complete = none)");
+  assert.equal(await q.ev("!!document.querySelector('[data-khoi=\"ke-toan\"], [data-action=\"dao-lan-thu\"]')"), false, "Quản trị KHÔNG thấy thao tác Kế toán (ledger.write = none)");
   assert.equal(await q.ev("!!document.querySelector('[data-action=\"ghi-lan-thu\"]')"), false, "đơn đã khoá: không ghi lần thu");
   assert.equal(await q.ev("document.querySelectorAll('.handler-card button').length"), 0, "đơn đã khoá: không nút đổi / nhận người phụ trách");
   assert.ok(/Đã giao – đã thu đủ/.test(await q.ev("document.body.textContent")), "nhãn trạng thái tiếng Việt");
@@ -79,6 +81,57 @@ try {
   d.close();
   ok("Máy tính 1040: khung Thanh toán + hai lần thu, không tràn");
   assert.deepEqual(errs, [], "không lỗi JS trên trang đơn");
+
+  // ---- 4) Kế toán (390): thao tác đặt TẠM trên trang đơn (điều phối 30/9) — xác nhận CK, ghi hoàn khách trả dư, ghi đã nộp; Đảo đòi lý do ----
+  const c2 = await call(ACCOUNTS.salesA, "POST", "/api/orders", {
+    customerName: "Khách Kế Toán", customerPhone: "0903 444 555", customerEmail: "", customerNote: "", discount: 0, paymentNote: "",
+    services: [{ kind: "catalog", catalogCode: "TD101", pax: { adult: 1, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 1350000, child: 950000, senior: 1200000, infant: 0 },
+      departDate: vnDate(3), departTime: "07:30", pickupTime: "07:00", pickupPlace: "Khách sạn Sunrise", checkinDate: "", checkinTime: "", checkinPlace: "", note: "" }],
+  });
+  assert.equal(c2.status, 201, JSON.stringify(c2.json));
+  const o2 = c2.json.order;
+  assert.equal((await call(ACCOUNTS.salesA, "POST", `/api/orders/${o2.id}/payments`, { soTien: 300000, hinhThuc: "BANK_TRANSFER", nguoiThu: "cong_ty" })).status, 201);
+  assert.equal((await call(ACCOUNTS.salesA, "POST", `/api/orders/${o2.id}/payments`, { soTien: 1200000, hinhThuc: "CASH", nguoiThu: "toi" })).status, 201);
+  const tien2 = async () => (await call(ACCOUNTS.accounting, "GET", `/api/orders/${o2.id}/payments`)).json;
+  const t0 = await tien2();
+  assert.deepEqual([t0.du, t0.keToan.choXacNhan.length, t0.keToan.dangGiu.map((d) => d.soTien)], [150000, 1, [1500000]]);
+  const k = await env.as(ACCOUNTS.accounting, `/order?id=${o2.id}`);
+  await k.waitFor("!!document.querySelector('[data-khoi=\"ke-toan\"]') && !!document.querySelector('[data-action=\"xac-nhan-ck\"]')", "khối Kế toán + nút xác nhận CK");
+  // (a) Xác nhận CK: bấm lần một chỉ mở hàng xác nhận (không gọi máy chủ), bấm "Công ty đã nhận" mới ghi.
+  await k.ev("document.querySelector('[data-action=\"xac-nhan-ck\"]').click(); true");
+  await k.waitFor("!!document.querySelector('[data-khoi=\"xac-nhan-xac-nhan-ck\"]')", "hàng xác nhận CK");
+  assert.equal((await tien2()).keToan.choXacNhan.length, 1, "chưa bấm lần hai: chưa ghi");
+  await k.shot(`${OUT}/5-ke-toan-xac-nhan-ck-390.png`);
+  await k.ev("document.querySelector('[data-khoi=\"xac-nhan-xac-nhan-ck\"] button[type=\"submit\"]').click(); true");
+  await k.waitFor("!document.querySelector('[data-action=\"xac-nhan-ck\"]')", "hết nút xác nhận CK", 10000);
+  assert.deepEqual((await tien2()).keToan.dangGiu.map((d) => d.soTien), [1200000], "sau xác nhận: Bán hàng còn giữ 1.200.000");
+  // (b) Đảo đòi lý do: gửi trống → báo lỗi, không ghi; bấm Thôi.
+  await k.ev("document.querySelector('[data-action=\"dao-lan-thu\"]').click(); true");
+  await k.waitFor("!!document.querySelector('[data-khoi=\"xac-nhan-dao-lan-thu\"]')", "hàng đảo");
+  await k.ev("document.querySelector('[data-khoi=\"xac-nhan-dao-lan-thu\"] button[type=\"submit\"]').click(); true");
+  await k.waitFor("/Nhập lý do đảo\\./.test(document.body.textContent)", "báo thiếu lý do");
+  assert.equal((await tien2()).lanThu.filter((l) => l.daDao).length, 0, "không đảo khi thiếu lý do");
+  await k.ev("[...document.querySelectorAll('[data-khoi=\"xac-nhan-dao-lan-thu\"] button')].find((b) => b.textContent === 'Thôi').click(); true");
+  // (c) Ghi hoàn cho khách trả dư 150.000 (người trả = Bán hàng đang giữ tiền).
+  await k.ev("document.querySelector('[data-action=\"ghi-hoan\"]').click(); true");
+  await k.waitFor("!!document.querySelector('[data-khoi=\"xac-nhan-ghi-hoan\"]')", "form hoàn");
+  assert.equal(await k.ev("document.querySelector('[data-khoi=\"xac-nhan-ghi-hoan\"] input').value"), "150.000", "số hoàn gợi ý = số dư");
+  await k.ev("(() => { const s = document.querySelectorAll('[data-khoi=\"xac-nhan-ghi-hoan\"] select'); s[0].value = 'CASH'; s[1].value = s[1].options[1].value; return true; })()");
+  await k.ev("document.querySelector('[data-khoi=\"xac-nhan-ghi-hoan\"] button[type=\"submit\"]').click(); true");
+  await k.waitFor("!document.querySelector('[data-action=\"ghi-hoan\"]')", "hết nút hoàn (hết dư)", 10000);
+  const t1 = await tien2();
+  assert.deepEqual([t1.du, t1.conLai, t1.keToan.dangGiu.map((d) => d.soTien)], [0, 0, [1050000]], "hoàn 150.000 từ tiền Bán hàng giữ");
+  // (d) Ghi đã nộp về công ty.
+  await k.ev("document.querySelector('[data-action=\"da-nop\"]').click(); true");
+  await k.waitFor("!!document.querySelector('[data-khoi=\"xac-nhan-da-nop\"]')", "hàng xác nhận nộp");
+  await k.ev("document.querySelector('[data-khoi=\"xac-nhan-da-nop\"] button[type=\"submit\"]').click(); true");
+  await k.waitFor("!document.querySelector('[data-action=\"da-nop\"]')", "hết nút nộp", 10000);
+  assert.deepEqual((await tien2()).keToan.dangGiu, [], "không còn ai giữ tiền của công ty vì đơn này");
+  assert.equal(await k.ev("document.documentElement.scrollWidth - document.documentElement.clientWidth <= 1"), true, "không tràn ngang 390");
+  await k.shot(`${OUT}/6-ke-toan-sau-390.png`);
+  assert.deepEqual([...k.consoleErrors], [], "không lỗi JS");
+  k.close();
+  ok("Kế toán 390: xác nhận CK (bấm hai lần mới ghi), Đảo đòi lý do, ghi hoàn khách trả dư, ghi đã nộp — số trong sổ khớp từng bước; Bán hàng / Quản trị không thấy các nút này");
 } finally {
   await env.stop();
 }

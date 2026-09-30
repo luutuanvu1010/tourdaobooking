@@ -362,3 +362,23 @@ test("T-3 (kiểm độc lập): hai Kế toán cùng ghi hoàn — lần hoàn 
   assert.equal(tong, 700_000, "chỉ lần hoàn chen vào được lưu; lô thua huỷ trọn");
   assert.equal(nhatKy(w, id, "ledger_refund"), 0, "lô thua không để lại nhật ký");
 });
+
+test("Thao tác Kế toán trên trang đơn (điều phối 30/9): GET payments trả khối `keToan` CHỈ cho Kế toán — ai đang giữ bao nhiêu vì ĐƠN NÀY + lần thu 'Công ty thu – CK' chờ xác nhận; người khác → null", async () => {
+  const w = setup();
+  const id = donDaXacNhan(w);
+  await thu(w, HDV, id, tienMat(400_000));
+  assert.equal((await thu(w, SALES, id, { soTien: 250_000, hinhThuc: "BANK_TRANSFER", nguoiThu: "cong_ty" })).status, 201);
+  const ck = one(w, "SELECT id FROM bil_payment_receipt WHERE order_id = ? AND collector_role_code = 'COMPANY'", id)!.id as string;
+  const kt = (await w.call("GET", `/api/orders/${id}/payments`, { as: KT })).json;
+  assert.ok(kt.keToan, "Kế toán thấy khối keToan");
+  assert.deepEqual(kt.keToan.choXacNhan, [ck]);
+  const giu = Object.fromEntries(kt.keToan.dangGiu.map((d: { partyId: string; soTien: number }) => [d.partyId, d.soTien]));
+  assert.deepEqual(giu, { [`pty-${HDV}`]: 400_000, [`pty-${SALES}`]: 250_000 });
+  assert.ok(kt.keToan.dangGiu.every((d: { ten: string }) => typeof d.ten === "string" && d.ten.length > 0));
+  // Kế toán xác nhận CK + ghi HDV nộp — khối cập nhật theo sổ.
+  assert.equal((await w.call("POST", `/api/ledger/company-receipts/${ck}/confirm`, { as: KT, body: {} })).status, 200);
+  assert.equal((await w.call("POST", "/api/ledger/settlements", { as: KT, body: { chieu: "nop", partyId: `pty-${HDV}`, phanBo: [{ orderId: id, soTien: 400_000 }] } })).status, 201);
+  const sau = (await w.call("GET", `/api/orders/${id}/payments`, { as: KT })).json.keToan;
+  assert.deepEqual([sau.choXacNhan, sau.dangGiu], [[], []]);
+  for (const ai of [SALES, HDV, ADMIN]) assert.equal((await w.call("GET", `/api/orders/${id}/payments`, { as: ai })).json.keToan, null, `không phải Kế toán (${ai})`);
+});

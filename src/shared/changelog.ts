@@ -23,6 +23,7 @@ export const CHANGELOG: readonly ReleaseNote[] = [
       { kind: "moi", text: "Kế toán bấm \"Hoàn thành\" sau khi tiền đã về công ty; nếu chưa bấm được, đơn ghi rõ lý do và ai cần xử lý." },
       { kind: "doi", text: "Tiền cọc ghi trên đơn cũ được chuyển thành lần thu \"chưa rõ người thu\"; Kế toán sẽ ghi lại đúng người thu." },
       { kind: "doi", text: "Việc của tôi (hướng dẫn viên): ô tiền ghi \"Đã thu / Còn lại\" theo số tiền thật đã thu của đơn." },
+      { kind: "moi", text: "Kế toán xác nhận, đảo lần thu, ghi đã nộp và ghi hoàn cho khách ngay trên trang đơn; màn sổ riêng sẽ có sau." },
     ],
   },
   {
