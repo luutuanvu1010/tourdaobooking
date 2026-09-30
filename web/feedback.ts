@@ -1,6 +1,6 @@
 // Trang Góp ý / Báo lỗi: gửi yêu cầu mới, "Yêu cầu của tôi", luồng trả lời; admin có thêm tab "Hàng đợi" (lọc, đổi trạng thái, ghi chú nội bộ).
 // Dữ liệu qua /api/feedback*. Chuỗi từ người dùng chỉ đi qua h()/textContent. Địa chỉ: /feedback (danh sách), ?id=<uuid> (luồng), ?new=1&from=<đường dẫn> (mở form).
-import { FEEDBACK_KINDS, FEEDBACK_KIND_NAME, FEEDBACK_STATUSES, FEEDBACK_STATUS_NAME, FEEDBACK_TRANSITIONS, nhanNutChuyen, type FeedbackStatus } from "../src/shared/feedback-catalog";
+import { FEEDBACK_KINDS, FEEDBACK_KIND_NAME, FEEDBACK_STATUSES, FEEDBACK_STATUS_NAME, FEEDBACK_TRANSITIONS, SAC_TRANG_THAI, buocGopY, nhanNutChuyen, type FeedbackStatus } from "../src/shared/feedback-catalog";
 import { ApiError, api, type Api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
 import { can } from "../src/shared/permissions";
@@ -84,7 +84,7 @@ function ticketRow(t: Api.FeedbackTicketDto): HTMLElement {
     { class: "list-row" },
     link,
     t.unread && h("span", { class: "badge badge-cancelled" }, "Mới"),
-    h("div", { class: "muted" }, `${t.kindName} · ${t.statusName} · ${when(t.lastActivityAt)}${tab === "queue" && t.submitterName ? ` · ${t.submitterName}` : ""}`),
+    h("div", { class: "muted" }, h("span", { class: `badge fb-badge is-${SAC_TRANG_THAI[t.status]}` }, t.statusName), ` ${t.kindName} · ${when(t.lastActivityAt)}${tab === "queue" && t.submitterName ? ` · ${t.submitterName}` : ""}`),
     t.mailPending && h("div", { class: "muted" }, "Chưa gửi được email báo admin"),
   );
 }
@@ -153,7 +153,7 @@ async function loadThread(id: string): Promise<void> {
   const controls: HTMLElement[] = [];
   if (d.canTriage) {
     for (const to of FEEDBACK_TRANSITIONS[t.status]) {
-      const b = h("button", { type: "button", class: "btn btn-link" }, nhanNutChuyen(t.status, to));
+      const b = h("button", { type: "button", class: "btn", "data-to": to }, nhanNutChuyen(t.status, to));
       b.addEventListener("click", async () => {
         await act(() => api<Api.FeedbackDetailResponse>(`/api/feedback/${id}`, { method: "PATCH", body: { status: to } }), b);
         void loadThread(id); // thành công hay 409 (trạng thái đã đổi) đều nạp lại để thấy trạng thái mới; lỗi vẫn hiện ở banner
@@ -161,15 +161,28 @@ async function loadThread(id: string): Promise<void> {
       controls.push(b);
     }
   }
+  // Khối trạng thái nổi bật (chủ duyệt ảnh c, 30/9): tên trạng thái có màu + thanh bước Mới → Đã tiếp nhận → Đang xử lý → Đã xong; Từ chối là nhánh rẽ.
+  const sac = SAC_TRANG_THAI[t.status];
+  const buoc = buocGopY(t.status);
+  const khoiTrangThai = h(
+    "section",
+    { class: `fb-status is-${sac}`, "aria-label": `Trạng thái: ${t.statusName}` },
+    h("div", { class: "fb-status-nhan" }, sac === "xong" ? "✓ " : sac === "tu-choi" ? "✕ " : "● ", t.statusName),
+    buoc
+      ? h("ol", { class: "fb-steps" }, ...buoc.map((b, i) => h("li", { class: `fb-step is-${b.tinh}`, "aria-current": b.tinh === "dang" ? "step" : undefined },
+          h("span", { class: "fb-step-dot", "aria-hidden": "true" }, b.tinh === "xong" ? "✓" : String(i + 1)), h("span", { class: "fb-step-nhan" }, b.nhan))))
+      : h("p", { class: "muted fb-status-nhanh" }, "Mới → Đã tiếp nhận → Từ chối"),
+    controls.length ? h("div", { class: "fb-status-nut" }, ...controls) : null,
+  );
   replaceChildren(
     box,
     h("a", { href: "/feedback" }, "← Danh sách"),
     h("h2", null, `${t.code} · ${t.title}`),
-    h("p", { class: "muted" }, `${t.kindName} · ${t.statusName}${t.resolvedIn ? ` · sửa ở bản ${t.resolvedIn}` : ""} · ${t.submitterName ?? ""} · ${when(t.createdAt)}`),
+    h("p", { class: "muted" }, `${t.kindName}${t.resolvedIn ? ` · sửa ở bản ${t.resolvedIn}` : ""} · ${t.submitterName ?? ""} · ${when(t.createdAt)}`),
     t.context.path || t.context.device || t.context.appVersion || t.context.orderCode
       ? h("p", { class: "muted" }, [t.context.path && `Trang: ${t.context.path}`, t.context.orderCode && `Đơn: ${t.context.orderCode}`, t.context.device && `Thiết bị: ${t.context.device}`, t.context.appVersion && `Bản: ${t.context.appVersion}`].filter(Boolean).join(" · "))
       : null,
-    ...controls,
+    khoiTrangThai,
     ...d.messages.map((m) =>
       h("div", { class: "card" }, h("div", { class: "muted" }, `${m.authorName ?? "?"} · ${when(m.createdAt)}`, m.internal && h("span", { class: "badge badge-draft" }, "Ghi chú nội bộ")), h("p", null, m.body)),
     ),

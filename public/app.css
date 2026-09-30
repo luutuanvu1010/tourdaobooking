@@ -125,7 +125,9 @@
   --c-sidebar-border: rgba(255, 255, 255, .12); /* viền mảnh trong sidebar (đầu/chân, không phải giữa các mục) */
   --c-sidebar-badge: rgba(255, 255, 255, .18);  /* nền mặc định huy hiệu số đếm trên sidebar */
   --ls-eyebrow: .08em;         /* giãn chữ tiêu đề nhóm viết hoa (BÁN HÀNG/QUẢN TRỊ/TÔI) */
-  --w-toast: 360px;            /* Bảng tin (ADR-0022): bề rộng thông báo nổi ở máy tính (điện thoại: gần hết bề ngang) */
+  --w-toast: 360px;
+  --fb-line: 2px;             /* nét nối + viền chấm của thanh bước Góp ý */
+  --fb-dot: 28px;              /* chấm của thanh bước trạng thái Góp ý (ảnh phác c, chủ duyệt 30/9) */            /* Bảng tin (ADR-0022): bề rộng thông báo nổi ở máy tính (điện thoại: gần hết bề ngang) */
   /* "Việc của tôi" của hướng dẫn viên (Task 1.8 ADR-0030) — số đo từ bản thiết kế "Viec cua toi - HDV v2.dc.html" (Claude Design 2026-09-27; chủ dự án
      yêu cầu làm đúng bản thiết kế — coi là duyệt các cỡ chữ/số đo dưới đây, cùng tiền lệ trang Đăng nhập). Màu đều là token sẵn có. */
   --fs-hdv-title: 22px;        /* "HDV: <tên>" đầu khối */
@@ -411,6 +413,31 @@ h3 { font-size: 1rem; margin: var(--s4) 0 var(--s2); color: var(--c-primary); }
 .passkey-row:last-child { border-bottom: 0; }
 .passkey-row .btn-link { justify-self: start; min-height: var(--tap-min); }
 /* trang "Góp ý" */
+/* Góp ý: khối trạng thái có màu + thanh bước + nhãn màu ở danh sách (chủ duyệt ảnh phác c, 30/9). Chỉ token. */
+.fb-status { margin: var(--s3) 0; padding: var(--s3) var(--s4); background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius-md); }
+.fb-status.is-xong { background: var(--c-green-soft); border-color: var(--c-green-border); }
+.fb-status.is-tu-choi { background: var(--c-danger-soft); border-color: var(--c-danger-border); }
+.fb-status-nhan { font-size: var(--fs-title); font-weight: 800; color: var(--c-primary); }
+.fb-status.is-moi .fb-status-nhan { color: var(--c-sand-text); }
+.fb-status.is-xong .fb-status-nhan { color: var(--c-green-text); }
+.fb-status.is-tu-choi .fb-status-nhan { color: var(--c-danger-text); }
+.fb-status-nhanh { margin: var(--s1) 0 0; }
+.fb-steps { display: flex; margin: var(--s3) 0 0; padding: 0; list-style: none; }
+.fb-step { position: relative; flex: 1; display: flex; flex-direction: column; align-items: center; gap: var(--s1); font-size: var(--fs-badge); font-weight: 700; text-align: center; color: var(--c-text-muted); }
+.fb-step + .fb-step::before { content: ""; position: absolute; top: calc(var(--fb-dot) / 2 - var(--fb-line) / 2); right: 50%; left: -50%; height: var(--fb-line); background: var(--c-border); }
+.fb-step.is-xong::before, .fb-step.is-dang::before { background: var(--c-primary); }
+.fb-step-dot { position: relative; z-index: 1; display: flex; align-items: center; justify-content: center; width: var(--fb-dot); height: var(--fb-dot); font-size: var(--fs-label); color: var(--c-text-muted); background: var(--c-surface); border: var(--fb-line) solid var(--c-border); border-radius: 50%; }
+.fb-step.is-xong .fb-step-dot { color: var(--c-on-dark); background: var(--c-primary); border-color: var(--c-primary); }
+.fb-status.is-xong .fb-step.is-xong .fb-step-dot { background: var(--c-green-text); border-color: var(--c-green-text); }
+.fb-step.is-dang { color: var(--c-primary); }
+.fb-step.is-dang .fb-step-dot { color: var(--c-primary); border-color: var(--c-primary); box-shadow: 0 0 0 var(--s1) var(--c-primary-soft); }
+.fb-status-nut { display: flex; flex-wrap: wrap; gap: var(--s2); margin-top: var(--s3); }
+.fb-status-nut .btn { min-height: var(--tap-min); }
+.fb-badge { margin-right: var(--s1); }
+.fb-badge.is-moi { color: var(--c-sand-text); background: var(--c-sand-soft); }
+.fb-badge.is-xu-ly { color: var(--c-primary); background: var(--c-primary-soft); }
+.fb-badge.is-xong { color: var(--c-green-text); background: var(--c-green-soft); }
+.fb-badge.is-tu-choi { color: var(--c-danger-text); background: var(--c-danger-soft); }
 .feedback-layout { display: block; } /* Đợt C Task 3: bố cục 2 cột ở máy tính — mặc định xếp dọc, giữ đúng thứ tự DOM gốc (#list-card rồi #thread) ở điện thoại */
 @media (min-width: 900px) {
   .feedback-layout { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s5); align-items: start; }

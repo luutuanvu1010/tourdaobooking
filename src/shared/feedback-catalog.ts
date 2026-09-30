@@ -31,6 +31,16 @@ export const canTransition = (from: FeedbackStatus, to: FeedbackStatus): boolean
 export const nhanNutChuyen = (from: FeedbackStatus, to: FeedbackStatus): string =>
   (from === "DONE" || from === "DECLINED") && to === "ACK" ? "Mở lại" : `→ ${FEEDBACK_STATUS_NAME[to]}`;
 
+/** Sắc màu của trạng thái (khối trạng thái + nhãn ở danh sách — chủ duyệt ảnh c, 30/9). */
+export const SAC_TRANG_THAI: Record<FeedbackStatus, "moi" | "xu-ly" | "xong" | "tu-choi"> = { NEW: "moi", ACK: "xu-ly", IN_PROGRESS: "xu-ly", DONE: "xong", DECLINED: "tu-choi" };
+const THU_TU_BUOC: readonly FeedbackStatus[] = ["NEW", "ACK", "IN_PROGRESS", "DONE"];
+/** Thanh bước Mới → Đã tiếp nhận → Đang xử lý → Đã xong. Từ chối là nhánh rẽ → null (màn ghi "Mới → Đã tiếp nhận → Từ chối"). Đã xong: mọi bước "xong". */
+export function buocGopY(s: FeedbackStatus): { nhan: string; tinh: "xong" | "dang" | "chua" }[] | null {
+  if (s === "DECLINED") return null;
+  const i = THU_TU_BUOC.indexOf(s);
+  return THU_TU_BUOC.map((b, k) => ({ nhan: FEEDBACK_STATUS_NAME[b], tinh: k < i || s === "DONE" ? "xong" : k === i ? "dang" : "chua" }));
+}
+
 /** Người gửi trả lời khi yêu cầu đã đóng → mở lại thành "Đã tiếp nhận". SQL ở repository.ts phản chiếu đúng luật này. */
 export const statusAfterSubmitterReply = (s: FeedbackStatus): FeedbackStatus => (s === "DONE" || s === "DECLINED" ? "ACK" : s);
 
