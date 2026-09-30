@@ -337,3 +337,13 @@ Ba câu làm rõ (hộp chọn, khuyến nghị đầu; chủ chọn khuyến ng
 | "Xe hỏng giữa đường, văn phòng cần gọi gấp một xe cứu hộ của nhà xe mà chưa có giá. Xử lý thế nào?" | **"Vẫn phải nhập giá thoả thuận trước"** — không ngoại lệ, không phá lệ |
 
 Kéo theo (để người soạn sửa ADR-0057, người kiểm soát lại): xuất bến bị chặn khi chuyến xe thuê không có nguồn giá (bảng giá đã chụp hoặc giá thoả thuận nhập trước); "giá ghi tay sau chuyến" của Q-T3 lần 17 không còn cần cho chuyến mới (chuyến không thể chạy khi chưa có giá) — người soạn đánh giá và nêu; lệch L-T1, T3 (dòng nợ gắn chuyến) không đổi.
+
+## Trả lời lần 19 (30/9, duyệt ADR-0057 tiền xe thuê — lượt duyệt B1)
+
+Sau lần 18 và các vòng kiểm độc lập (kết thúc **ĐẠT** @ `082c308`), chủ được trình bảy điểm lời thường của bản cuối kèm một kẽ hiếm nói một lần (C2a: xe của nhà xe đã thôi hợp tác nếu được xếp chuyến mới thì máy chưa đòi giá; cảnh báo `R-VC-COST-6`, nợ N-T1).
+
+| Câu (nguyên văn điều phối hỏi) | Chủ chọn |
+|---|---|
+| "Bạn có duyệt ADR-0057 (tiền xe thuê) bản cuối như 7 điểm trên, kèm kẽ hiếm đã nêu (bịt ở lượt sau)?" | **"Duyệt ADR-0057"** |
+
+Đã ghi: `docs/adr/ADR-0057-van-chuyen-tien-xe-thue.md` (accepted); dòng trỏ ở ADR-0004, ADR-0024, ADR-0026, ADR-0040, ADR-0049; mục lục `docs/adr/README.md` (giữ chỗ 0052–0056 cho các đề xuất còn chờ); kế hoạch sổ tiền §3.2 (bảng `bil_debt_line` đúng một nguồn). Còn chờ duyệt: A-1, A-1b, A-2, A-3 (ADR-0052…0054), B2 (ADR-0055), B3 (ADR-0056).

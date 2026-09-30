@@ -1,5 +1,7 @@
 # Đề xuất ADR-0057 (số tạm — điều phối cấp số thật) — Vận chuyển, tiền xe thuê: bảng giá thuê theo nhà xe (trong Vận chuyển); chi phí chuyến chụp lúc giao cho nhà xe; dòng nợ của sổ công nợ gắn được với chuyến (sửa ADR-0026)
 
+> **ĐÃ THÀNH `docs/adr/ADR-0057-van-chuyen-tien-xe-thue.md` (accepted 2026-09-30).** Tệp này giữ làm bản nguồn; không sửa tiếp.
+
 - **Trạng thái:** **ĐỀ XUẤT — chủ xem kỹ, CHƯA duyệt, đổi hai điểm ("Trả lời lần 18", commit `ae6b2fd`); bản này đã sửa theo lần 18, chờ người kiểm độc lập kiểm lại rồi chủ duyệt.** Bốn vòng kiểm trước (tới `e175d35`) xem bản trước lần 18.
   - AI soạn ở vai người thiết kế (P15); không tự duyệt (N3, Điều 7.2). Không đặt ở `docs/adr/`.
   - Thuộc **lượt duyệt B**; trang ghép `docs/superpowers/specs/2026-09-30-trang-ghep-luot-duyet-b-kernel-tien.md`. Trang ghép mục 0 đề nghị trình tệp này **riêng** thành lượt **B1** (vì phần T3 phải duyệt trước Task 3 của sổ tiền lượt 1).
