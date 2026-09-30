@@ -1,6 +1,6 @@
 import { ApiError, api, type Staff, type Api } from "./api";
 import { PERMISSION_LABEL, can, hasPermission, isOffice, seesAllOrders } from "../src/shared/permissions";
-import { TRANG_CUOC, TRANG_DAU_TAI_XE, chiTaiXe, coCuocCuaToi } from "../src/shared/start-page";
+import { TRANG_CUOC, TRANG_DAU_TAI_XE, chiTaiXe, coCuocCuaToi, coMucDonHang } from "../src/shared/start-page";
 import { thayDieuPhoiXe } from "../src/shared/dieu-phoi-man";
 import { append, byId, h, replaceChildren } from "./dom";
 import { initials } from "./format";
@@ -11,6 +11,7 @@ import { layKhungNho, luuKhungNho, xoaKhungNho } from "./khung-nho";
 import { demSapHetHan } from "./vc-dem";
 import { registerServiceWorker } from "./pwa";
 import { ganThongBao } from "./thong-bao-ui";
+import { ganTroLy } from "./tro-ly";
 
 /** Trang của phân hệ Vận chuyển (ADR-0040 D1): mục con "Xe" sáng ở cả ba trang xe; ở điện thoại các trang này mở từ trang Tôi nên tab "Tôi" sáng. */
 const TRANG_XE = ["/xe", "/xe-sua", "/xe-chi-tiet"];
@@ -38,6 +39,7 @@ interface Tab {
 
 /**
  * Thanh tab dưới đáy (điện thoại): nhân sự lập được đơn 4 tab, admin 6 tab; kế toán (xem đơn nhưng không lập đơn — ADR-0007) không có tab Đơn mới; tài khoản chỉ-FIELD chỉ có tab Tôi (việc được giao thuộc N2).
+ * Đối tác, Thực tập (lập đơn, chỉ xem đơn mình lập): "Đơn hàng" (danh sách đơn của họ — `coMucDonHang`, lỗi báo 30/9 L3), "Tạo đơn", "Tôi".
  * /order thuộc tab Đơn hàng, /audit thuộc tab Tôi. Trang Danh bạ/Địa điểm có ở thanh điều hướng trên và ở mục liên kết của tab Tôi (chưa có thiết kế điện thoại riêng).
  * Tài xế (`taiXe` — tài khoản "chỉ tài xế", `chiTaiXe`; ADR-0040 D3, bản vẽ Vận chuyển vo-dien-thoai role=driver): tab Trang chủ (/tai-xe) + Tôi; tài xế công ty
  * (`cuoc`, Q5 — bản vẽ Bảng điều phối) thêm "Cuốc của tôi" (/cuoc, trang mở đầu) ở giữa. Tài khoản vừa tài xế công ty vừa văn phòng (kiểm độc lập K2b T2,
@@ -55,7 +57,7 @@ function tabsFor(admin: boolean, seesAll: boolean, canCreate: boolean, taiXe = f
   // Đợt D Task 5 (ADR-0015 điều 4): trang mặc định đổi chỗ — "/" nay là Trang chủ, "/orders" là Đơn hàng.
   // active() của "/" phải khớp CHÍNH XÁC "/" (không dùng startsWith/prefix) để không lỡ sáng đèn cho mọi đường dẫn.
   if (seesAll) officeTabs.push({ href: "/", label: "Trang chủ", icon: "home", active: (p) => p === "/" });
-  if (seesAll) officeTabs.push({ href: "/orders", label: "Đơn hàng", icon: "orders", active: (p) => p === "/orders" || p === "/order" });
+  if (coMucDonHang({ seesAll, canCreate })) officeTabs.push({ href: "/orders", label: "Đơn hàng", icon: "orders", active: (p) => p === "/orders" || p === "/order" });
   if (canCreate) officeTabs.push({ href: "/order-form", label: "Tạo đơn", icon: "plus", active: (p) => p === "/order-form" });
   if (taiXe) officeTabs.push({ href: TRANG_DAU_TAI_XE, label: "Trang chủ", icon: "home", active: (p) => p === TRANG_DAU_TAI_XE });
   // Q5 (ADR-0049, bản vẽ Bảng điều phối vo-dien-thoai role=driver): tài xế công ty có tab "Cuốc của tôi" (trang mở đầu) giữa "Trang chủ" và "Tôi".
@@ -154,7 +156,7 @@ async function catalogConflictBadge(): Promise<number> {
  * Huy hiệu "Đơn hàng" = SỐ ĐƠN CHƯA XÁC NHẬN, không phải tổng số đơn (quyết định 8 của chủ dự án,
  * `docs/superpowers/specs/2026-09-23-trang-chu-moi-quyet-dinh.md`). Số này ĐÃ CÓ SẴN ở `GET /api/orders/dashboard`
  * (`draftCount` — cùng số ô "Đơn chờ xác nhận" của Trang chủ), không thêm route mới. Lỗi mạng → 0, giống
- * feedbackBadge(). Route khai cổng "orders" (từ ADR-0019 phần B, hỏi `order.view` + `money.view` + `contact.view` trong thân) nên chỉ gọi khi mục "Đơn hàng" có mặt (điều kiện `seesAll` = xem được mọi đơn).
+ * feedbackBadge(). Route khai cổng "orders" (từ ADR-0019 phần B, hỏi `order.view` + `money.view` + `contact.view` trong thân) nên chỉ gắn cho người xem được mọi đơn (`seesAll`) — mục "Đơn hàng" của Đối tác/Thực tập không có huy hiệu.
  */
 async function draftOrderBadge(): Promise<number> {
   try {
@@ -196,7 +198,8 @@ function navGroups(admin: boolean, seesAll: boolean, office: boolean, canCreate:
   // CHÍNH XÁC "/" (không phải mọi đường dẫn bắt đầu bằng "/").
   if (seesAll) sales.push({ href: "/", label: "Trang chủ", icon: "home", active: (p) => p === "/" });
   // Huy hiệu "Đơn hàng" = số đơn CHƯA XÁC NHẬN (quyết định 8 của chủ dự án đã chốt nghĩa của con số này), màu mặc định như bản mẫu.
-  if (seesAll) sales.push({ href: "/orders", label: "Đơn hàng", icon: "orders", badge: draftOrderBadge, active: (p) => p === "/orders" || p === "/order" });
+  // Đối tác, Thực tập (lỗi báo 30/9, L3 — `coMucDonHang`): có mục, KHÔNG huy hiệu (số lấy từ route Trang chủ, 403 với họ).
+  if (coMucDonHang({ seesAll, canCreate })) sales.push({ href: "/orders", label: "Đơn hàng", icon: "orders", badge: seesAll ? draftOrderBadge : undefined, active: (p) => p === "/orders" || p === "/order" });
   if (canCreate) sales.push({ href: "/order-form", label: "Tạo đơn", icon: "plus", active: (p) => p === "/order-form" });
   if (office) sales.push({ href: "/parties", label: "Danh bạ", icon: "contact-card", active: (p) => p === "/parties" });
 
@@ -483,6 +486,8 @@ export async function initShell(): Promise<Staff> {
   // khung THẬT biết (bản nhớ khung chỉ 5 trường đã duyệt, ADR-0035).
   addNav(admin, seesAll, office, canCreate, staff, null, hasPermission(staff, "SUPER_ADMIN"), chiTaiXe(staff), can(staff, "vehicle.manage"), can(staff, "admin.manage"), can(staff, "settings.ops"), thayDieuPhoiXe(staff), coCuocCuaToi(staff));
   batDauBangTin(staff); // Bảng tin (ADR-0022): MỘT kết nối mỗi trang đã đăng nhập; nhánh mất mạng ở trên không tới đây (chưa có `staff`)
+  // Trợ lý Hỗ trợ (ADR-0066 điều 9): nút nổi ở mọi trang đã đăng nhập (initShell không chạy ở /login); KHÔNG khi đang bảo trì.
+  if (!me.maintenance?.on) ganTroLy(staff);
   return staff;
 }
 

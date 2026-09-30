@@ -1,0 +1,48 @@
+// Kho tri thức (b) của trợ lý Hỗ trợ (ADR-0066 điều 3): hệ thống vận hành thế nào, viết lại bằng LỜI THƯỜNG cho NGƯỜI DÙNG.
+// Rút từ docs/SYSTEM-DESIGN.md §6, §8 và docs/VAN-CHUYEN.md (bản 1.38–1.42). Luật viết: KHÔNG tên bảng, hàm, tệp, đường dẫn API; không số liệu thật
+// (đơn, khách, tiền); không bí mật, cấu hình; không kể cách hệ thống được xây. Chỉ ghi điều người dùng THẤY và LÀM được trên màn hình.
+// Chữ này rời máy chủ (gửi OpenAI) nên qua luật nội dung `viPhamChu` (src/shared/huong-dan.ts) — bài kiểm ở tro-ly.test.ts.
+// Đổi tri thức: sửa đoạn ở đây → `node --test src/shared/tro-ly.test.ts` (docs/CHANGE-GUIDE.md công thức "trợ lý Hỗ trợ").
+
+export interface DoanKienTruc { readonly tieuDe: string; readonly noiDung: string }
+
+export const KIEN_TRUC: readonly DoanKienTruc[] = [
+  {
+    tieuDe: "Vai và quyền: vì sao mỗi người thấy menu khác nhau",
+    noiDung: `Mỗi tài khoản có một hoặc vài quyền: Bán hàng, Kế toán, Quản trị, Toàn quyền, Hướng dẫn viên, Đối tác, Thực tập, Tài xế, Tài xế đối tác. Menu, nút và dữ liệu hiện theo quyền: không thấy một mục nghĩa là tài khoản chưa có quyền đó, không phải lỗi. Dù giao diện có hiện nút, máy chủ vẫn kiểm lại quyền; bị từ chối thì app báo "không có quyền".
+Bán hàng lập và lo đơn của mình. Kế toán xem mọi đơn và tiền, ghi sổ, không lập đơn. Quản trị quản lý tài khoản, danh mục, địa điểm, xe. Toàn quyền là người phụ trách hệ thống: cài đặt, nhật ký, góp ý. Hướng dẫn viên chỉ thấy đơn mình đang phụ trách và hàng chờ nhận. Đối tác và Thực tập chỉ thấy đơn mình lập. Tài xế chỉ thấy chuyến mình lái và giấy tờ của mình. Muốn thêm quyền thì hỏi Quản trị.`,
+  },
+  {
+    tieuDe: "Vòng đời một đơn: nháp, xác nhận, huỷ",
+    noiDung: `Đơn mới luôn bắt đầu là đơn nháp: lưu được khi chưa đủ thông tin, sửa thoải mái. Khi đủ thông tin thì bấm xác nhận; đơn đã xác nhận không quay lại nháp. Đơn đã xác nhận vẫn sửa được thông tin chuyến (giờ đón, nơi đón, ghi chú) theo quyền. Huỷ đơn là trạng thái cuối, đơn huỷ không bị xoá mà vẫn nằm trong danh sách để tra lại.
+Tiền của đơn (thành tiền, tổng, còn lại) do máy chủ tự tính từ giá danh mục và số khách; không ai gõ tay được tổng tiền. Mỗi lần sửa đơn đều được ghi vào lịch sử của đơn: ai sửa, lúc nào.`,
+  },
+  {
+    tieuDe: "Người phụ trách đơn",
+    noiDung: `Người lập đơn có thể chọn người phụ trách ngay khi lập; không chọn thì đơn nằm ở hàng chờ để hướng dẫn viên hoặc nhân viên bấm nhận. Người phụ trách sửa được đơn mình phụ trách như người lập. Hướng dẫn viên chỉ thấy đơn khi đang là người phụ trách; khi được đổi sang người khác thì thôi thấy đơn đó. Hướng dẫn viên huỷ được đơn mình đang phụ trách (đơn đã xác nhận, trước ngày đi), luôn kèm lý do.`,
+  },
+  {
+    tieuDe: "Mốc 6 giờ và Đặt gấp",
+    noiDung: `Nếu giờ đón cách hiện tại dưới 6 giờ, đơn vẫn lưu nháp được nhưng chưa xác nhận được. Quản trị hoặc Toàn quyền phải bấm Đặt gấp cho chặng đó và chọn lý do; sau đó người lập mới xác nhận được. Mốc này không tắt được. Trên trang đơn, dải cảnh báo "dưới 6 giờ" cho biết chặng nào đang chờ duyệt đặt gấp.`,
+  },
+  {
+    tieuDe: "Thông báo: chuông, dải tin quan trọng, điện thoại",
+    noiDung: `App báo tin ở ba nơi: hình chuông ở đầu trang (tin chưa đọc có số đỏ), dải tin quan trọng ở đầu mọi trang (phải bấm Đã hiểu), và thông báo trên điện thoại khi đã bật. Tin về đơn gửi cho người lập, người phụ trách và người đang chờ nhận đơn; lưu nháp không báo ai, xác nhận mới báo. Khi đang mở app, danh sách đơn tự cập nhật không cần tải lại. Đổi PIN hoặc bị ngưng tài khoản thì thông báo điện thoại tự tắt, phải bật lại.`,
+  },
+  {
+    tieuDe: "Điều phối xe: đang thử, chưa dùng cho chuyến thật",
+    noiDung: `Phân hệ Vận chuyển gồm xe, giấy tờ xe, tài xế, nhà xe đối tác và bảng Điều phối xe (xếp khách của nhiều đơn lên một chuyến, tài xế bấm tiến độ Xuất bến, Đã đón, Đã trả, Kết thúc). Công ty CHƯA dùng bảng điều phối cho chuyến thật vì chưa có màn nhập tên hành khách; chuyến có khách sẽ bị giữ với lý do "Chưa đủ tên khách". Chuyến chỉ xuất bến khi đủ điều kiện (giấy tờ xe còn hạn, bằng lái đúng hạng, đủ tên khách, đủ chỗ, đủ giờ nghỉ); thiếu gì thì màn hình ghi rõ lý do và ai xử lý.`,
+  },
+  {
+    tieuDe: "Giấy tờ của người và của xe",
+    noiDung: `Giấy tờ (căn cước, giấy phép lái xe, khám sức khoẻ, đăng ký xe, kiểm định, bảo hiểm…) được ghi trong hồ sơ người ở Danh bạ hoặc ở chi tiết xe. Số giấy tờ luôn bị che; chỉ Quản trị hoặc Toàn quyền bấm Xem đủ số, số hiện trong chốc lát rồi tự che, và mỗi lần xem đều được ghi lại. Gia hạn là thêm một dòng mới, bản cũ giữ làm lịch sử; ghi sai thì dùng Sửa sai kèm lý do. Mỗi người xem giấy tờ của chính mình ở trang Tôi, mục Giấy tờ của tôi. Danh sách Sắp hết hạn gom giấy tờ sắp hết hoặc đã hết.`,
+  },
+  {
+    tieuDe: "Dữ liệu không bị xoá, chỉ ngưng hoặc đóng",
+    noiDung: `App không xoá hẳn dữ liệu nghiệp vụ: xe ngừng dùng, tài khoản bị ngưng, loại giấy tờ bị ngưng, chuyến bị huỷ… đều còn trong hệ thống để tra lại. Vì vậy khi thấy một mục "đã ngưng" thì đó là cách app giữ lịch sử, không phải lỗi. Mọi thay đổi quan trọng đều có dấu vết ai làm, lúc nào.`,
+  },
+  {
+    tieuDe: "Trợ lý Hỗ trợ trả lời được gì",
+    noiDung: `Trợ lý Hỗ trợ chỉ hướng dẫn cách dùng app, dựa trên bộ hướng dẫn trong Trợ giúp và danh sách trang, nút của app. Trợ lý không xem được đơn, khách, tiền hay dữ liệu thật của công ty, không làm thay thao tác nào, và có thể trả lời sai: luôn đối chiếu với màn hình. Câu nào chưa có trong hướng dẫn thì hỏi Quản trị hoặc gửi Góp ý.`,
+  },
+];

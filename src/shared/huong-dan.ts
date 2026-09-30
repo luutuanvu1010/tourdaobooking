@@ -3,6 +3,7 @@
 // Nội dung ở các tệp huong-dan-*.ts, viết bằng tập con markdown nhỏ (xem phanTich). Luật chủ duyệt 30/9: chữ hướng dẫn nằm trên
 // mọi máy (ADR-0035) nên CHỈ ghi tên nút và cách làm — không giá, không số liệu, không tên / SĐT thật; huong-dan.test.ts canh.
 import type { PermissionCode } from "./permissions.ts";
+import { EMAIL_TRONG_CHU } from "./text-guards.ts";
 import { HD_CHUNG } from "./huong-dan-chung.ts";
 import { HD_QUAN_TRI } from "./huong-dan-quan-tri.ts";
 import { HD_BAN_HANG } from "./huong-dan-ban-hang.ts";
@@ -117,20 +118,30 @@ export function nutCuaNhom(n: NhomHuongDan): string[] {
   return out;
 }
 
-/** Luật nội dung chủ duyệt 30/9: không số tiền, không chuỗi giống SĐT, không email. Trả các dòng vi phạm. */
-export function viPhamNoiDung(n: NhomHuongDan): string[] {
+/**
+ * Luật nội dung chủ duyệt 30/9 cho MỘT chuỗi: không số tiền, không chuỗi giống SĐT, không email. Trả `{ luat, khop }` của luật đầu tiên vi phạm, hoặc null.
+ * MỘT nguồn cho hướng dẫn (`viPhamNoiDung`), sơ đồ trang tự sinh và kho tri thức của trợ lý Hỗ trợ (ADR-0066 điều 3 — mọi chữ gửi đi phải qua luật này).
+ */
+export function viPhamChu(s: string): { luat: string; khop: string } | null {
   const luat: readonly [RegExp, string][] = [
     [/\d{1,3}(?:[.,]\d{3})+\s*(?:đ(?!\p{L})|₫|VNĐ|vnđ|đồng)/u, "số tiền"],
     [/\b\d+\s*(?:₫|VNĐ|vnđ)/u, "số tiền"],
     [/\d[\d .]{8,}\d/, "chuỗi số dài (giống số điện thoại)"],
-    [/[\w.+-]+@[\w-]+\.[\w.]+/, "địa chỉ email"],
+    [new RegExp(EMAIL_TRONG_CHU.source), "địa chỉ email"],
   ];
+  for (const [re, ten] of luat) {
+    const m = s.match(re);
+    if (m) return { luat: ten, khop: m[0] };
+  }
+  return null;
+}
+
+/** Luật nội dung chủ duyệt 30/9 trên mọi chữ của một nhóm. Trả các dòng vi phạm. */
+export function viPhamNoiDung(n: NhomHuongDan): string[] {
   const out: string[] = [];
   for (const s of chuCuaNhom(n)) {
-    for (const [re, ten] of luat) {
-      const m = s.match(re);
-      if (m) { out.push(`${n.id}: ${ten} "${m[0]}"`); break; }
-    }
+    const v = viPhamChu(s);
+    if (v) out.push(`${n.id}: ${v.luat} "${v.khop}"`);
   }
   return out;
 }

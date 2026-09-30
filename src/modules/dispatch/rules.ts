@@ -2,7 +2,7 @@
 // câu nhật ký. Import kèm đuôi .ts (chạy trực tiếp bằng `node --test`). Ma trận quyền là MỘT nơi (`src/shared/permissions.ts`): ở đây chỉ HỎI `can()`.
 import { UUID_RE } from "../../shared/http.ts";
 import { can, holdsPartner, MATRIX, type PermissionHolder } from "../../shared/permissions.ts";
-import { hasLongDigitRun } from "../../shared/text-guards.ts";
+import { hasLongDigitRun, PHONE_IN_TEXT_MESSAGE } from "../../shared/text-guards.ts";
 
 /** Số đơn tối đa của một lần tra `GET /api/dispatch/handlers` (danh sách đơn có trang tối đa 100 đơn). */
 export const MAX_HANDLER_LOOKUP = 100;
@@ -91,7 +91,7 @@ export function parseCancelReason(body: Record<string, unknown> | null): Parsed<
   const rawNote = body?.note;
   const note = typeof rawNote === "string" ? rawNote.trim() : "";
   if (note === "") return { ok: false, message: 'Cần nhập lý do khi chọn "Khác".' };
-  if (hasLongDigitRun(note)) return { ok: false, message: "Lý do không được chứa số điện thoại hoặc dãy số dài — chỉ ghi văn bản thường." };
+  if (hasLongDigitRun(note)) return { ok: false, message: PHONE_IN_TEXT_MESSAGE };
   return { ok: true, reason, note };
 }
 

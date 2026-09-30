@@ -188,7 +188,7 @@ try {
     assert.equal(m1.note, "Đơn đang chờ xác nhận — chưa thể huỷ hay sửa số khách.");
     assert.deepEqual(m1.buttons, [], "đơn chờ xác nhận: KHÔNG nút nào");
     assert.deepEqual(m2.buttons, ["Sửa số khách", "Huỷ đơn"]);
-    assert.deepEqual(m3.buttons, ["Sửa số khách"], "đã đi tour: không “Huỷ đơn”");
+    assert.deepEqual(m3.buttons, [], "đã đi tour: không “Huỷ đơn”, không “Sửa số khách” (chủ duyệt 2026-09-30: chỉ sửa tới hết ngày đi)");
     assert.equal(m2.note, null);
     for (const [c, o] of [[m1, M1], [m2, M2], [m4, M4], [m3, M3]]) {
       assert.deepEqual(c.money, await moneyOf(await detail(o)), `${o.orderCode}: Tổng tiền (GET /api/orders/:id) / Đã thu / Còn lại (billing) trùng`);

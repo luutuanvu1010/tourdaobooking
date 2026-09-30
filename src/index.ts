@@ -26,6 +26,7 @@ import { partiesModule } from "./modules/parties";
 import { findOrderRef, ordersModule } from "./modules/orders";
 import { accountOfParty, nhanNhanVienTheoId } from "./modules/staff";
 import { dayGoCua, tatMayStatement, thongbaoModule } from "./modules/thongbao";
+import { troLyModule } from "./modules/tro-ly";
 import { mocToiThieuHienHanh, vanChuyenModule } from "./modules/van-chuyen";
 import { HANDLER_TRUOC_KHONG_BIET, nhanSuKien } from "./shared/bang-tin";
 import { hanhDongCuaThayDoi, khoaVapid } from "./shared/web-push";
@@ -49,7 +50,7 @@ async function nemNeuLoi(viec: [string, Promise<unknown> | null][]): Promise<voi
 }
 
 const APP_OPTIONS: AppOptions = {
-  modules: [authModule, accountsModule, ordersModule, dispatchModule, billingModule, receiptModule, catalogModule, auditModule, locationsModule, partiesModule, companyModule, maintenanceModule, feedbackModule, bangtinModule, thongbaoModule, vanChuyenModule],
+  modules: [authModule, accountsModule, ordersModule, dispatchModule, billingModule, receiptModule, catalogModule, auditModule, locationsModule, partiesModule, companyModule, maintenanceModule, feedbackModule, bangtinModule, thongbaoModule, vanChuyenModule, troLyModule],
   currentStaff,
   checkConfig: checkAuthConfig,
   injected: {

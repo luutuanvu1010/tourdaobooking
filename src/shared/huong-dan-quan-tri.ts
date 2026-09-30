@@ -171,6 +171,9 @@ Mở [[Sắp hết hạn]] (điện thoại: [[Giấy tờ sắp hết hạn]] �
 ### Loại giấy tờ người, loại giấy tờ xe, hạng bằng lái
 Mở [[Loại giấy tờ người]] (có cả [[Hạng giấy phép lái xe]]) hoặc [[Loại giấy tờ xe]]. Thêm: gõ mã, tên, tick [[Có ngày hết hạn]] nếu cần, thứ tự, bấm [[Thêm]]. Sửa: [[Sửa]], [[Lưu]]. Không xoá, chỉ ngưng dùng.
 
+### Trợ lý Hỗ trợ (chỉ Toàn quyền)
+Trang **Tôi**, khối **Trợ lý Hỗ trợ**: xem đang bật hay tắt, đã có khoá chưa, chi phí tháng này. Tick hoặc bỏ tick [[Bật trợ lý]], sửa trần chi phí tháng và số câu mỗi người mỗi ngày, bấm [[Lưu cài đặt trợ lý]]. Tắt có hiệu lực ngay.
+
 ### Lý do điều phối
 Mở [[Lý do điều phối]]. Lý do chia nhóm, như [[Đổi giờ xe tới]], [[Huỷ chuyến]], [[Phá lệ]]. Thêm: [[+ Thêm lý do]] ở nhóm cần, gõ lý do, bấm [[Thêm]]. Sửa tên: [[Sửa]]. Không dùng nữa: [[Ngưng]]; dùng lại: [[Dùng lại]]. Lý do hệ thống tự dùng thì không ngưng được.`,
     },

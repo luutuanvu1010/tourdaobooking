@@ -1,7 +1,7 @@
 // Trang đơn (A2, đặc tả 5.3): DTO → mô hình hiển thị (mỗi dịch vụ một khối chỉ-đọc) và bộ nút theo trạng thái/quyền. Thuần, không DOM.
 import type { CatalogStatus, OrderServiceDto, OrderStatus } from "./contracts.ts";
 import { PAX_LABEL, PAX_ORDER, priceDeviation, type PaxCounts } from "./order-lines.ts";
-import { seesOnlyAssignedOrders, type PermissionHolder } from "./permissions.ts";
+import { can, seesOnlyAssignedOrders, type PermissionHolder } from "./permissions.ts";
 import { paxSummary, unitLabel } from "./service-form.ts";
 import { tripRows, type TripRow } from "./trip-form.ts";
 
@@ -103,11 +103,26 @@ export function khongQuyenSuaText(input: { ownerName: string; status: OrderStatu
   return `Chỉ ${ownerName} (người lập đơn), người phụ trách đơn hoặc quản trị viên mới được sửa, xác nhận hoặc huỷ đơn này.`;
 }
 
-/** `canModify` là cờ của máy chủ (`can(order.modify, owner)`), không suy ra ở client (D4). */
-export function orderActions(status: OrderStatus, canModify: boolean): OrderActions {
+/**
+ * `canModify` là cờ của máy chủ (`can(order.modify, owner)`), không suy ra ở client (D4). `canEditTrip` = `suaChuyenDuoc(...)`: nút "Sửa thông tin chuyến"
+ * và "Đổi khách" của đơn đã xác nhận (route PUT …/trip, PUT …/booker hỏi ô `order.trip.edit`, hẹp hơn `order.modify` — Đối tác, Thực tập: none).
+ */
+export function orderActions(status: OrderStatus, canModify: boolean, canEditTrip: boolean): OrderActions {
   const none: OrderActions = { edit: false, confirm: false, editTrip: false, cancel: false, noPermission: false, locked: status === "confirmed" };
   if (!canModify) return { ...none, noPermission: true };
   if (status === "draft") return { ...none, edit: true, confirm: true, cancel: true };
-  if (status === "confirmed") return { ...none, editTrip: true, cancel: true };
+  if (status === "confirmed") return { ...none, editTrip: canEditTrip, cancel: true };
   return none;
+}
+
+/**
+ * Người xem có sửa được THÔNG TIN CHUYẾN / đổi khách của đơn này không (ô `order.trip.edit` — một nguồn `permissions.ts`, không chép luật). Lỗi báo 30/9 (L1):
+ * trước đây giao diện chỉ dựa `canModify` nên Đối tác, Thực tập (order.modify = own, order.trip.edit = none) thấy hai nút rồi bị 403.
+ * Giao diện không luôn biết "đang phụ trách" (lời gọi người phụ trách có thể lỗi; Đối tác/Thực tập không được hỏi) nên suy PHẠM VI từ cờ `canModify` của máy
+ * chủ: không sửa được đơn → không sửa được chuyến; là người lập → phạm vi "own"; không phải người lập mà máy chủ vẫn cho sửa → chỉ có thể do đang phụ trách
+ * hoặc ô "any" → hỏi với `assigned: true`. Bài `order-view.test.ts` thử mọi tổ hợp quyền để ghim rằng cách suy này bằng đúng điều máy chủ quyết.
+ */
+export function suaChuyenDuoc(viewer: PermissionHolder, ownerId: string, canModify: boolean): boolean {
+  if (!canModify) return false;
+  return can(viewer, "order.trip.edit", { ownerId, assigned: ownerId !== viewer.id });
 }

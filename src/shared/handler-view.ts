@@ -25,6 +25,15 @@ export function nguoiPhuTrachTuPhien(staff: Pick<StaffProfile, "id" | "fullName"
   return { partyId: staff.partyId, staffId: staff.id, name: staff.fullName };
 }
 
+/**
+ * Người xem có được HỎI máy chủ danh sách người phụ trách (`GET /api/dispatch/handlers`) không — CÙNG câu hỏi với route (`can(order.view)` không ngữ cảnh =
+ * xem được mọi đơn; src/modules/dispatch/index.ts). Sai (Đối tác, Thực tập, tài khoản lai của họ, HDV): KHÔNG gọi route (chắc chắn 403). HDV đã có tên từ
+ * phiên (`nguoiPhuTrachTuPhien`, hỏi trước hàm này); người còn lại không được biết người phụ trách → trang đơn ẩn khối "Người phụ trách", danh sách ẩn dòng
+ * "HDV: …" — cùng tiền lệ `HANDLER_HIDDEN` của ảnh biên nhận (không dòng, không câu chờ). Lỗi báo 30/9 (L2): trước đây trang đơn luôn hiện "Chưa tải được
+ * người phụ trách." + Thử lại.
+ */
+export const hoiDuocNguoiPhuTrach = (viewer: PermissionHolder): boolean => can(viewer, "order.view");
+
 export interface HandlerControls {
   /** Nút mở bảng chọn người phụ trách (đổi, hoặc giao lần đầu). */
   assign: boolean;
@@ -81,9 +90,10 @@ export interface MyJobActions {
  * "Việc của tôi" (`GET /api/dispatch/mine`) từ bản 1.6 (ADR-0030 S23-8, lượt 1) trả CẢ đơn nháp, không chỉ đơn đã xác nhận — hàm thuần này quyết
  * nút nào hiện, theo `status` của đơn và đã qua ngày đi hay chưa. Nháp: `handler-money-edit`/`handler-cancel` đều từ chối bằng 409
  * (`not_confirmed`/`not_editable`) nên ẩn cả hai, tránh bấm hụt — huỷ đơn nháp thuộc lượt 2 (ADR-0030 D5), CHƯA có ở đây. Đã xác nhận còn ngày đi:
- * đủ cả hai. Đã xác nhận, qua ngày đi: giữ sửa số khách, ẩn huỷ (DK-T4-02 — nhờ văn phòng).
+ * đủ cả hai. Đã xác nhận, qua ngày đi: ẩn huỷ (DK-T4-02 — nhờ văn phòng) VÀ ẩn sửa số khách (chủ dự án duyệt 2026-09-30 "Cho sửa đến hết ngày
+ * đi" — máy chủ `handler-money-edit` chặn 409 `departed` với cùng `tripDeparted`, trừ Toàn quyền). Trong ngày đi vẫn đủ cả hai.
  */
 export function myJobActions({ status, departed }: { status: OrderStatus; departed: boolean }): MyJobActions {
   if (status !== "confirmed") return { cancel: false, editPax: false };
-  return { cancel: !departed, editPax: true };
+  return { cancel: !departed, editPax: !departed };
 }

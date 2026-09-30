@@ -58,6 +58,8 @@ const ALLOWED_EDGES: Record<string, readonly string[]> = {
   // trỏ `loc_location`. Vẫn KHÔNG module nào import van-chuyen (bài "không module nào import van-chuyen" ở dưới). NỚI hàng rào (Điều 9.4) — ĐÃ DUYỆT 2026-09-30 (lần 17)
   // ở docs/superpowers/plans/2026-09-29-adr-0049-de-xuat-luat.md mục 1.
   "van-chuyen": ["parties", "audit", "orders", "locations"],
+  // ADR-0066: trợ lý Hỗ trợ — lá, không import module nào (kho tri thức là tệp thuần ở src/shared/; không ghi audit_log: tl_cai_dat chỉ thêm, dấu vết trên dòng).
+  "tro-ly": [],
 };
 
 /** Module đã áp điều 8(b) (SQL đăng ký qua defineSql). Module cũ nằm ở LEGACY cho tới hạn ghi kèm. */
@@ -74,6 +76,7 @@ const STRICT: readonly { module: string; file: string }[] = [
   { module: "thongbao", file: "modules/thongbao/repository.ts" },
   { module: "van-chuyen", file: "modules/van-chuyen/repository.ts" }, // ADR-0040 D1 (siết: SQL đi qua defineSql, EXPLAIN)
   { module: "van-chuyen", file: "modules/van-chuyen/chuyen-repo.ts" }, // ADR-0049 D1 (siết, Task A13 — R-P4 (ii) "bài nhận hai tệp"): SQL chuyến xe
+  { module: "tro-ly", file: "modules/tro-ly/repository.ts" }, // ADR-0066: nghiêm từ ngày đầu
 ];
 
 /**
@@ -166,7 +169,7 @@ const DOC_AUDIT_LOG_WONGUARD = {
 // ĐÃ DUYỆT 2026-09-29 (lần 5) ở docs/superpowers/plans/2026-09-29-adr-0047-de-xuat-luat.md mục 1.
 // prc_/prc: ADR-0024 điều 1 (module pricing, bảng ở lượt 2).
 // ctl_/catalog: ADR-0058 điều 1 (nhóm dịch vụ; bảng cũ catalog_* giữ tên) — NỚI hàng rào đã duyệt (Điều 9.4), chủ duyệt ADR-0058 ngày 2026-09-30 (lượt 1a).
-const TABLE_PREFIX: Record<string, string> = { ctl_: "catalog", prc_: "pricing", pty_: "parties", loc_: "locations", stf_: "staff", fbk_: "feedback", dsp_: "dispatch", bil_: "billing", mnt_: "maintenance", aut_: "auth", ntf_: "thongbao", vc_: "van-chuyen", ord_: "orders" };
+const TABLE_PREFIX: Record<string, string> = { ctl_: "catalog", prc_: "pricing", pty_: "parties", loc_: "locations", stf_: "staff", fbk_: "feedback", dsp_: "dispatch", bil_: "billing", mnt_: "maintenance", aut_: "auth", ntf_: "thongbao", vc_: "van-chuyen", ord_: "orders", tl_: "tro-ly" };
 const VIEW_PREFIX: Record<string, string> = { prc: "pricing", pty: "parties", loc: "locations", stf: "staff", ord: "orders", dsp: "dispatch", bil: "billing", aud: "audit", vc: "van-chuyen" };
 
 // ---------------------------------------------------------------------------------------------------------------------

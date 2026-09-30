@@ -1,8 +1,10 @@
 // Luật THUẦN dùng chung server ↔ nơi khác trong repo (không I/O): nhận diện "dãy số dài giống số điện thoại" trong chữ tự do. MỘT nguồn sự thật cho
-// regex + ngưỡng (Q-N, chủ dự án: "8 chữ số") — đổi ngưỡng hay cách nhận diện dấu ngăn chỉ sửa Ở ĐÂY. Hai nơi dùng, hai cách xử lý khác nhau:
+// regex + ngưỡng (Q-N, chủ dự án: "8 chữ số") — đổi ngưỡng hay cách nhận diện dấu ngăn chỉ sửa Ở ĐÂY. Các nơi dùng, hai cách xử lý khác nhau:
 //  - `src/modules/orders/pool.ts` (`maskLongDigits`, ADR-0030 S23-2): CHE từng chữ số của dãy bằng "•" — hàng chờ nhận vẫn hiện được, chỉ ẩn số.
 //  - `src/modules/dispatch/rules.ts` (`parseCancelReason`, lý do "Khác" khi HDV huỷ đơn — ADR-0030 điều 2, sửa đổi sau khi duyệt 2026-09-27): CHẶN HẲN
 //    (400, không ghi), vì đây là nhật ký chỉ-thêm không xoá được (`migrations/0017_order_status_audit_guards.sql`) — che rồi vẫn ghi là không đủ.
+//  - `src/modules/orders/money-adjustment.ts` (`parseMoneyEditInput`, lý do HDV sửa số khách — chủ dự án duyệt 2026-09-30 "Những lỗi của app đã báo
+//    sửa luôn"): CHẶN HẲN như trên (lý do đi vào `audit_log.detail`, nhật ký chỉ-thêm). Hai nơi chặn dùng chung câu `PHONE_IN_TEXT_MESSAGE`.
 // Import kèm đuôi .ts (chạy trực tiếp bằng `node --test`). Test cạnh tệp: text-guards.test.ts.
 
 /** Ngưỡng: một dãy từ NGẦN NÀY chữ số trở lên coi là "giống số điện thoại/dãy số dài" (chủ dự án, Q-N: "8 chữ số"). */
@@ -23,6 +25,12 @@ export function hasLongDigitRun(text: string): boolean {
   }
   return false;
 }
+
+/**
+ * Câu báo lỗi DUY NHẤT khi chữ tự do bị chặn vì có dãy số dài (`hasLongDigitRun`) — dùng chung cho lý do "Khác" khi HDV huỷ đơn
+ * (`dispatch/rules.ts` `parseCancelReason`, ADR-0037) và lý do sửa số khách (`orders/money-adjustment.ts` `parseMoneyEditInput`, chủ duyệt 2026-09-30).
+ */
+export const PHONE_IN_TEXT_MESSAGE = "Lý do không được chứa số điện thoại hoặc dãy số dài — chỉ ghi văn bản thường.";
 
 const MASK_CHAR = "•";
 
@@ -61,3 +69,12 @@ export function cleanText(v: unknown, label: string, max: number, multiline: boo
   if (s.length > max) return { value: null, error: `${label} tối đa ${max} ký tự.` };
   return { value: s };
 }
+
+/**
+ * Địa chỉ email nằm TRONG chữ tự do (không neo đầu/cuối — khác các hàm kiểm ô email của `parties`/`orders` vốn kiểm cả chuỗi). MỘT nguồn cho: luật nội dung
+ * của hướng dẫn (`huong-dan.ts` — chặn email trong chữ hướng dẫn) và bộ che câu hỏi gửi trợ lý AI (`tro-ly.ts`, ADR-0066 điều 5). Cờ `g` để thay mọi chỗ;
+ * nơi chỉ cần "có hay không" dùng `new RegExp(EMAIL_TRONG_CHU.source)` hoặc `.match` (không giữ `lastIndex`).
+ */
+// Neo ranh giới `(?<![\w.+-])` (kiểm độc lập I-1, 30/9): bản không neo thử lại từ MỌI vị trí trong một dãy dài không có "@" nên chạy bậc hai (100k ký tự ≈ 4,7 s);
+// có neo thì chỉ bắt đầu ở đầu dãy — cùng kết quả khớp (đo lại trên các mẫu của huong-dan.test.ts / tro-ly.test.ts), thời gian tuyến tính.
+export const EMAIL_TRONG_CHU = /(?<![\w.+-])[\w.+-]+@[\w-]+\.[\w.]+/g;

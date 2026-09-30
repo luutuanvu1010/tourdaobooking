@@ -1,7 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { OrderItemDto, OrderServiceDto } from "./contracts.ts";
-import { catalogTag, khongQuyenSuaText, orderActions, paxFullText, serviceView, type OrderActions } from "./order-view.ts";
+import { catalogTag, khongQuyenSuaText, orderActions, paxFullText, serviceView, suaChuyenDuoc, type OrderActions } from "./order-view.ts";
+import { can, PERMISSION_CODES, type PermissionCode } from "./permissions.ts";
 
 const NO_TRIP = { departDate: null, departTime: null, pickupTime: null, pickupPlace: null, checkinDate: null, checkinTime: null, checkinPlace: null, note: null };
 const item = (o: Partial<OrderItemDto> = {}): OrderItemDto => ({
@@ -81,12 +82,12 @@ test("serviceView: đơn giá cao hơn giá danh mục → độ lệch dương;
 
 test("orderActions: nút theo trạng thái và quyền; đơn đã xác nhận khoá dịch vụ/tiền và chỉ còn sửa chuyến", () => {
   const A = (o: Partial<OrderActions>): OrderActions => ({ edit: false, confirm: false, editTrip: false, cancel: false, noPermission: false, locked: false, ...o });
-  assert.deepEqual(orderActions("draft", true), A({ edit: true, confirm: true, cancel: true }));
-  assert.deepEqual(orderActions("draft", false), A({ noPermission: true }));
-  assert.deepEqual(orderActions("confirmed", true), A({ editTrip: true, cancel: true, locked: true }));
-  assert.deepEqual(orderActions("confirmed", false), A({ noPermission: true, locked: true }));
-  assert.deepEqual(orderActions("cancelled", true), A({}));
-  assert.deepEqual(orderActions("cancelled", false), A({ noPermission: true }));
+  assert.deepEqual(orderActions("draft", true, true), A({ edit: true, confirm: true, cancel: true }));
+  assert.deepEqual(orderActions("draft", false, false), A({ noPermission: true }));
+  assert.deepEqual(orderActions("confirmed", true, true), A({ editTrip: true, cancel: true, locked: true }));
+  assert.deepEqual(orderActions("confirmed", false, false), A({ noPermission: true, locked: true }));
+  assert.deepEqual(orderActions("cancelled", true, true), A({}));
+  assert.deepEqual(orderActions("cancelled", false, false), A({ noPermission: true }));
 });
 
 // Vòng sửa 1 (I-2): câu "Chỉ <người lập>, người phụ trách đơn hoặc quản trị viên mới được sửa…" mâu thuẫn khi CHÍNH người đang xem là người phụ trách mà
@@ -109,4 +110,44 @@ test("khongQuyenSuaText: người khác (kế toán, bán hàng không liên qua
       JSON.stringify(perms),
     );
   }
+});
+
+// L1 (lỗi báo 30/9): Đối tác / Thực tập sửa, xác nhận, huỷ đơn MÌNH lập (order.modify = own) nhưng KHÔNG sửa thông tin chuyến / đổi khách sau xác nhận
+// (order.trip.edit = none) — trước đây nút "Sửa thông tin chuyến" và "Đổi khách" vẫn hiện (chỉ dựa canModify) rồi máy chủ trả 403.
+test("orderActions: đơn đã xác nhận, sửa được đơn nhưng KHÔNG có quyền sửa chuyến → không nút sửa chuyến/đổi khách, vẫn huỷ được", () => {
+  const A = (o: Partial<OrderActions>): OrderActions => ({ edit: false, confirm: false, editTrip: false, cancel: false, noPermission: false, locked: false, ...o });
+  assert.deepEqual(orderActions("confirmed", true, false), A({ cancel: true, locked: true }));
+  assert.deepEqual(orderActions("draft", true, false), A({ edit: true, confirm: true, cancel: true }), "đơn nháp không đổi (sửa chuyến của nháp đi qua nút Sửa)");
+});
+
+test("suaChuyenDuoc: Đối tác, Thực tập với đơn mình lập → false; Bán hàng người lập / người phụ trách, Quản trị → true; không sửa được đơn → false", () => {
+  const w = (id: string, ...permissions: PermissionCode[]) => ({ id, permissions });
+  assert.equal(suaChuyenDuoc(w("p", "PARTNER"), "p", true), false, "Đối tác, đơn mình lập");
+  assert.equal(suaChuyenDuoc(w("i", "INTERN"), "i", true), false, "Thực tập, đơn mình lập");
+  assert.equal(suaChuyenDuoc(w("s", "SALES"), "s", true), true, "Bán hàng lập đơn");
+  assert.equal(suaChuyenDuoc(w("s", "SALES"), "khac", true), true, "Bán hàng đang phụ trách (máy chủ đã cho sửa)");
+  assert.equal(suaChuyenDuoc(w("a", "ADMIN"), "khac", true), true, "Quản trị");
+  assert.equal(suaChuyenDuoc(w("s", "SALES"), "khac", false), false, "máy chủ không cho sửa");
+  assert.equal(suaChuyenDuoc(w("x", "SALES", "PARTNER"), "x", true), true, "tài khoản lai Bán hàng + Đối tác, đơn mình lập");
+  assert.equal(suaChuyenDuoc(w("x", "FIELD", "INTERN"), "x", true), false, "tài khoản lai HDV + Thực tập, đơn mình lập");
+});
+
+// Bài ghim: giao diện KHÔNG biết chắc "đang phụ trách" (lời gọi người phụ trách có thể lỗi) nên suaChuyenDuoc suy phạm vi từ cờ canModify của máy chủ.
+// Bài này thử MỌI tổ hợp quyền (2^9) × {người lập, không} × {đang phụ trách, không}: kết quả phải BẰNG ĐÚNG điều máy chủ quyết
+// (`can(order.modify)` rồi `can(order.trip.edit)` với phạm vi thật — orders/index.ts, route PUT …/trip và PUT …/booker). Bản đồ quyền đổi làm lệch → đỏ.
+test("suaChuyenDuoc khớp máy chủ ở mọi tổ hợp quyền × người lập × đang phụ trách", () => {
+  let lech = 0;
+  for (let mask = 0; mask < 1 << PERMISSION_CODES.length; mask++) {
+    const permissions = PERMISSION_CODES.filter((_, i) => mask & (1 << i));
+    const viewer = { id: "toi", permissions };
+    for (const ownerId of ["toi", "khac"]) {
+      for (const assigned of [true, false]) {
+        const scope = { ownerId, assigned };
+        const canModify = can(viewer, "order.modify", scope);
+        const mayChu = canModify && can(viewer, "order.trip.edit", scope);
+        if (suaChuyenDuoc(viewer, ownerId, canModify) !== mayChu) lech++;
+      }
+    }
+  }
+  assert.equal(lech, 0);
 });

@@ -185,6 +185,11 @@
   --z-ntf: 45;                 /* trên toast (40), dưới bảng trượt .sheet-root (50) */
   --ntf-badge-ring: 2px;       /* viền quanh huy hiệu số đỏ (tách khỏi nền chuông) */
   --ntf-tab-underline: 3px;    /* gạch chân tab đang chọn trong ngăn thông báo */
+  /* Trợ lý Hỗ trợ (ADR-0066 điều 9) — riêng của Tour Đảo Booking; màu đều là token sẵn có (không màu mới). */
+  --z-tl-fab: 35;              /* nút nổi "Hỗ trợ": trên thanh tab (30), dưới toast (40), ngăn thông báo (45), bảng trượt (50) */
+  --tl-nang-0: 0px;            /* mặc định của --tl-nang (JS đặt = chiều cao thanh nút dính đáy của trang, nếu có) */
+  --h-tl-khung: 280px;         /* chiều cao tối thiểu vùng hỏi đáp trong khung Hỗ trợ */
+  --w-tl-tin: 88%;             /* bong bóng tin tối đa ~9/10 bề rộng khung */
   /* Vận chuyển lượt 1a (ADR-0040) — số đo từ bản vẽ Claude Design docs/design/van-chuyen-1a/ (chủ dự án vẽ 2026-09-28; làm đúng bản vẽ — cùng tiền lệ
      Đăng nhập, Việc của tôi: coi là duyệt các số đo dưới đây). Hai token đầu là token MỚI của chính bản vẽ (bảng "Token đã dùng", dòng "MỚI"); các token
      còn lại là số đo bản vẽ viết cứng ở từng màn (sau dấu mốc PWA không được viết cứng). Màu đều là token sẵn có. */
@@ -465,13 +470,13 @@ h3 { font-size: var(--fs-step-5); margin: var(--s4) 0 var(--s2); color: var(--c-
 .narrow { max-width: var(--w-narrow); } /* thay cho style="max-width:420px" nội tuyến: mỗi style= nuôi thêm 'unsafe-inline' trong CSP (AUDIT-FINDINGS A14) */
 .account-layout { display: block; } /* Đợt C Task 2: bố cục 2 cột ở máy tính — mặc định xếp dọc, không đổi thứ tự DOM (sửa vòng 1: trước dùng div bọc account-main/account-side làm đảo thứ tự #maintenance trên điện thoại) */
 @media (max-width: 899px) {
-  #me, #links, #maintenance, #passkeys, #pin-form { max-width: var(--w-narrow); } /* hẹp lại như .narrow trước đây; #myjobs KHÔNG bị giới hạn (sửa vòng 1: rule cũ lỡ áp cho cả #myjobs) */
+  #me, #links, #maintenance, #tro-ly-cai-dat, #passkeys, #pin-form { max-width: var(--w-narrow); } /* hẹp lại như .narrow trước đây; #myjobs KHÔNG bị giới hạn (sửa vòng 1: rule cũ lỡ áp cho cả #myjobs) */
 }
 @media (min-width: 900px) {
   .account-layout { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s5); align-items: start; }
   #me, #links, #passkeys, #pin-form { grid-column: 1; } /* Task 10: #passkeys thiếu ở đây thì #maintenance ẩn (đa số tài khoản không phải chủ) làm #passkeys tự trôi sang cột 2 giữa chừng (đo bằng CDP: left ~532px, không thẳng hàng cột nào) */
   #myjobs { grid-column: 1 / -1; } /* Task 1.8: "Việc của tôi" của HDV có hai khối (chờ nhận / của tôi) — trải hết bề ngang, không bó vào nửa cột */
-  #maintenance { grid-column: 2; }
+  #maintenance, #tro-ly-cai-dat { grid-column: 2; } /* ADR-0066: khối cài đặt trợ lý của Toàn quyền đứng dưới bảo trì, cùng cột */
 }
 /* mục Face ID ở trang "Tôi": mỗi máy một dòng, ngăn bằng đường kẻ như danh sách dòng của app (.line-view/.mline) — trước đây là .card lồng trong #passkeys.card, cùng nền nên không thấy khung */
 .passkey-list { margin-bottom: var(--s3); border-top: 1px solid var(--c-border); border-bottom: 1px solid var(--c-border); }
@@ -2064,3 +2069,29 @@ body.login-page main.login { display: flex; flex-direction: column; height: 100%
   .dp-khach-nhom-nut { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); margin-top: var(--s2); }
 }
 .dp-sheet-khach .vc-reason { min-height: var(--h-dp-row); }
+
+/* ---------- Trợ lý Hỗ trợ (ADR-0066 điều 9; web/tro-ly.ts) — chỉ token ---------- */
+.tl-fab { position: fixed; z-index: var(--z-tl-fab); right: max(var(--s4), env(safe-area-inset-right)); bottom: calc(var(--s5) + var(--tl-nang, var(--tl-nang-0))); display: inline-flex; align-items: center; gap: var(--s1); min-height: var(--tap-min); padding: 0 var(--s4); font: inherit; font-size: var(--fs-label); font-weight: 700; color: var(--c-on-dark); background: var(--c-primary); border: 0; border-radius: var(--radius-pill); box-shadow: var(--shadow-overlay); cursor: pointer; }
+.tl-fab:hover { background: var(--c-primary-strong); }
+body.sheet-open .tl-fab { visibility: hidden; }
+@media (max-width: 640px) {
+  body.has-tabbar .tl-fab { bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + var(--s3) + var(--tl-nang, var(--tl-nang-0))); }
+}
+.tl-khung .sheet-body { min-height: var(--h-tl-khung); }
+.tl-ds { display: flex; flex-direction: column; gap: var(--s3); margin: 0; padding: 0; list-style: none; }
+.tl-tin { max-width: var(--w-tl-tin); padding: var(--s2) var(--s3); border-radius: var(--radius-md); }
+.tl-tin-nguoi { align-self: flex-end; background: var(--c-primary-soft); }
+.tl-tin-tro-ly { align-self: flex-start; background: var(--c-surface-alt); }
+.tl-tin-loi { align-self: flex-start; color: var(--c-danger-text); background: var(--c-danger-soft); border: 1px solid var(--c-danger-border); }
+.tl-chu { margin: 0; white-space: pre-line; overflow-wrap: anywhere; }
+.tl-nguon { margin: var(--s1) 0 0; font-size: var(--fs-badge); color: var(--c-text-muted); overflow-wrap: anywhere; }
+.tl-trang-thai { margin: var(--s3) 0 0; font-size: var(--fs-label); color: var(--c-text-muted); }
+.tl-trang-thai:empty { display: none; }
+.tl-luu-y { margin: var(--s3) 0 0; font-size: var(--fs-badge); color: var(--c-text-muted); }
+.tl-form { display: flex; align-items: flex-end; gap: var(--s2); }
+.tl-o { flex: 1; min-width: 0; min-height: var(--tap-min); margin: 0; font-size: var(--fs-step-5); resize: none; }
+.tl-gui { flex: none; }
+.tl-cd-form { display: grid; gap: var(--s3); }
+.tl-cd-bat { display: flex; align-items: center; gap: var(--s2); }
+.tl-cd-bat input { display: inline-block; width: auto; margin: 0; }
+.tl-cd-loi { margin: 0; color: var(--c-danger-text); }

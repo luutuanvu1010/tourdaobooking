@@ -58,7 +58,8 @@ export async function taoCapKhoaVapidThu() {
 /** `vapid: true` → máy chủ BẬT Web Push màn hình khoá (ADR-0036) bằng một cặp khoá VAPID sinh riêng cho lần chạy này (xem
  * `taoCapKhoaVapidThu`); mặc định TẮT (rỗng, cùng lý do B-22 với `turnstile`/`passkey`: không lộ cho các kịch bản Chrome
  * cũ không chủ đích kiểm mục này). Trả thêm `vapidPublicKey` trong kết quả `startEnv()` để kịch bản đối chiếu/log. */
-export async function startEnv({ turnstile = false, passkey = false, vapid = false } = {}) {
+/* `vars` (ADR-0066, kịch bản Hỗ trợ): biến thêm cho wrangler dev, vd { OPENAI_BASE_URL, OPENAI_API_KEY } trỏ máy OpenAI GIẢ — vắng thì như cũ. */
+export async function startEnv({ turnstile = false, passkey = false, vapid = false, vars = {} } = {}) {
   const { insertStaffSql } = await import(pathToFileURL(join(ROOT, "scripts", "staff-lib.mjs")).href);
   const persist = mkdtempSync(join(tmpdir(), "tourdao-a2-"));
   const profile = mkdtempSync(join(tmpdir(), "tourdao-a2-chrome-"));
@@ -80,7 +81,7 @@ export async function startEnv({ turnstile = false, passkey = false, vapid = fal
   // (Chrome cấm tạo passkey trên địa chỉ IP) — kịch bản dùng `env.localBase` để điều hướng, KHÔNG dùng `env.base` (127.0.0.1) cho các bước cần WebAuthn.
   const passkeyVars = passkey ? ["localhost", localBase] : ["", ""];
   const vapidKeys = vapid ? await taoCapKhoaVapidThu() : { publicB64u: "", privateJwk: "" };
-  const server = spawn("npx", ["wrangler", "dev", "--port", String(port), "--ip", "127.0.0.1", "--inspector-port", String(inspector), "--persist-to", persist, "--var", `SESSION_SECRET:${randomBytes(48).toString("base64url")}`, "--var", `TURNSTILE_SITE_KEY:${turnstileVars[0]}`, "--var", `TURNSTILE_SECRET_KEY:${turnstileVars[1]}`, "--var", `PASSKEY_RP_ID:${passkeyVars[0]}`, "--var", `PASSKEY_ORIGIN:${passkeyVars[1]}`, "--var", `VAPID_PUBLIC_KEY:${vapidKeys.publicB64u}`, "--var", `VAPID_PRIVATE_KEY:${vapidKeys.privateJwk}`],
+  const server = spawn("npx", ["wrangler", "dev", "--port", String(port), "--ip", "127.0.0.1", "--inspector-port", String(inspector), "--persist-to", persist, "--var", `SESSION_SECRET:${randomBytes(48).toString("base64url")}`, "--var", `TURNSTILE_SITE_KEY:${turnstileVars[0]}`, "--var", `TURNSTILE_SECRET_KEY:${turnstileVars[1]}`, "--var", `PASSKEY_RP_ID:${passkeyVars[0]}`, "--var", `PASSKEY_ORIGIN:${passkeyVars[1]}`, "--var", `VAPID_PUBLIC_KEY:${vapidKeys.publicB64u}`, "--var", `VAPID_PRIVATE_KEY:${vapidKeys.privateJwk}`, ...Object.entries(vars).flatMap(([k, v]) => ["--var", `${k}:${v}`])],
     { cwd: ROOT, detached: true, stdio: ["ignore", "pipe", "pipe"], env: { ...process.env, CI: "1" } });
   server.stdout.on("data", (d) => logs.push(String(d)));
   server.stderr.on("data", (d) => logs.push(String(d)));
