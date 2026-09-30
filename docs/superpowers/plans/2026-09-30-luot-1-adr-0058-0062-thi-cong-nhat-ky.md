@@ -75,6 +75,27 @@
 
 | # | Ngày | Nội dung | Ai quyết | Hệ quả |
 |---|---|---|---|---|
+| K0 | 2026-09-30 | Kiểm độc lập **bản kế hoạch**: ĐẠT CÓ ĐIỀU KIỆN (1 CAO, 4 VỪA, 10 THẤP). Người lập kế hoạch sửa hết trên nhánh `ke-hoach-luot-1-adr-0058-0062` — bảng dưới | điều phối giao sửa | Kế hoạch đủ điều kiện giao thi công |
+
+**Phát hiện → chỗ sửa trong kế hoạch (vòng kiểm kế hoạch 30/9):**
+
+| Mã | Phát hiện | Chỗ sửa |
+|---|---|---|
+| C1 | `service_group_history` JOIN `v_stf_staff_label` → cạnh `catalog → staff` (cấm) | §5.2 bỏ JOIN, trả `created_by`; §5.4 route trả `createdBy` (id), tên ghép phía web từ `GET /api/staff` (`accounts/index.ts:331`, `admin` + `admin.manage`); NT-A4 thêm "`ALLOWED_EDGES.catalog` vẫn `["audit"]`, không `v_stf_*`"; A2 P16 thêm đột biến JOIN; A7(c) ghép tên; K2A bước 4 |
+| V1 | `v1-nguoi-phu-trach.mjs` bước o khẳng định `detail` = lý do | §4 dòng bẫy mới; B2 tệp sửa + kỳ vọng "kết thúc bằng lý do"; K2B (5) chạy lại |
+| V2 | `ghiDatGapNhatKy`/`DAU_DAT_GAP` ở `orders/dat-gap.ts:93-94` | B3: chốt chuyển sang `src/shared/chang-dua-don.ts` cạnh `LY_DO_DAT_GAP`, `dat-gap.ts` import lại; khứ hồi canh `kemDatGap` |
+| V3 | Đường màn hình khoá chưa chốt | B5 mục "Chốt một đường": sửa `loaiTinDon` (chữ ký giữ) + `locHopThongBao` (thêm `mocTinDoi?`); `hop()` nối vào `don`; `nguoiNhanDay` / `web-push.ts` không sửa; B6 bỏ "nếu cần" |
+| V4 | Mốc = lúc phát hành, không phải lúc gộp | §5.6; NT-B16 mới (bài thuần, `test.todo` tới K1B); K1B, K2B (6), K3B (gộp–triển khai liền nhau), R7 |
+| T1 | Số dòng `thong-bao.ts`, `web-push.ts`, `catalogForOrderForm` | §4, ràng buộc chung |
+| T2 | `dispatch.mjs:502,510` | §4, B2 |
+| T3 | Sổ tiền `:1118` / `:1134` | §4, B0 |
+| T4 | NT-B1 dò nhãn mọi vị trí, cả nhánh "thêm —" | B1 bài regex + ghi chú `chang-dua-don.ts:272`, `:278-279` |
+| T5 | NT-A5 chỉ đỏ qua đột biến; A2 cần đỏ trước | NT-A5; A2 bước 1 thêm dòng `NUA_NGHIEM` trước |
+| T6 | Sổ dữ liệu không có mục trigger / chỉ mục | §5.1 cuối, A1 bước 3: `ctl_group` kind `lookup` |
+| T7 | Bật lại nhóm trùng tên | NT-A7 |
+| T8 | Chú thích 1.42 nói chip vào CUỐI hàng | §12 Q1 ghi lý do vẫn khuyến nghị cách 1 |
+| T9 | Bộ chọn dựng trước `initShell` | §5.5 + A6: `setTaiKhoan(staffId)` gọi sau `order-form.ts:487` |
+| T10 | Lưu y nguyên không ghi dòng | B6: không `detail` ⇒ không `tinDoi` (`orders/index.ts:359`), thêm ca |
 
 ## 5. Kiểm độc lập
 
