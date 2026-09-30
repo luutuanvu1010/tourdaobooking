@@ -267,8 +267,8 @@ function getMain() {
     const cards = "document.querySelectorAll('#services .svc')";
     const card = `${cards}[0]`;
     await p.ev("document.getElementById('catalog-q').focus(); true");
-    await p.waitFor("(() => { const q = document.getElementById('catalog-q'); q.value = 'TTB06'; q.dispatchEvent(new Event('input', { bubbles: true })); return document.querySelectorAll('#catalog-list button').length === 1; })()", "TTB06 trong danh mục", 10000);
-    await p.ev("document.querySelector('#catalog-list button').click(); true");
+    await p.waitFor("(() => { const q = document.getElementById('catalog-q'); q.value = 'TTB06'; q.dispatchEvent(new Event('input', { bubbles: true })); return document.querySelectorAll('#catalog-list .catalog-pick').length === 1; })()", "TTB06 trong danh mục", 10000);
+    await p.ev("document.querySelector('#catalog-list .catalog-pick').click(); true");
     await p.waitFor(`${cards}.length === 1`, "thẻ danh mục TTB06");
     await p.ev(setInput(`${card}.querySelector('.counter-field[aria-label="Người lớn"]')`, "3"));
     await p.ev(`${card}.querySelector('details.trip > summary').click(); true`);

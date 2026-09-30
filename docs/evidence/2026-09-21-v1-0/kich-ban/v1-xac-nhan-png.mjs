@@ -314,8 +314,8 @@ function getUi() {
     const counter = (i, label) => `${card(i)}.querySelector('.counter-field[aria-label=${JSON.stringify(label)}]')`;
     await p.ev("document.getElementById('catalog-q').focus(); true");
     await p.ev(setInput("document.getElementById('catalog-q')", "TD101"));
-    await p.waitFor("document.querySelectorAll('#catalog-list button').length === 1", "TD101 trong danh mục");
-    await p.ev("document.querySelector('#catalog-list button').click(); true");
+    await p.waitFor("document.querySelectorAll('#catalog-list .catalog-pick').length === 1", "TD101 trong danh mục");
+    await p.ev("document.querySelector('#catalog-list .catalog-pick').click(); true");
     await p.waitFor(`${cards}.length === 1`, "thẻ Tour 4 đảo");
     await p.ev(setInput(counter(0, "Người lớn"), "2"));
     await p.ev(setInput(counter(0, "Trẻ em"), "1"));
@@ -331,8 +331,8 @@ function getUi() {
     // tay (dữ liệu cũ) vẫn được kiểm ở các đơn dựng sẵn `f.multi`/`f.long`/`f.confirmed` (bước b, h, k).
     await p.ev("document.getElementById('catalog-q').focus(); true");
     await p.ev(setInput("document.getElementById('catalog-q')", "TTB06"));
-    await p.waitFor("document.querySelectorAll('#catalog-list button').length === 1", "TTB06 trong danh mục");
-    await p.ev("document.querySelector('#catalog-list button').click(); true");
+    await p.waitFor("document.querySelectorAll('#catalog-list .catalog-pick').length === 1", "TTB06 trong danh mục");
+    await p.ev("document.querySelector('#catalog-list .catalog-pick').click(); true");
     await p.waitFor(`${cards}.length === 2`, "thẻ Motor nước");
     await p.ev(setInput(counter(1, "Người lớn"), "3"));
     await p.ev(`${card(1)}.querySelector('details.trip > summary').click(); true`);

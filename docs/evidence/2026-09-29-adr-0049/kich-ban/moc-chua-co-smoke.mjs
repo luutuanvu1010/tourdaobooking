@@ -40,8 +40,8 @@ try {
     await s.waitFor(`!!document.getElementById('catalog-q')`, "ô tìm danh mục");
     await s.ev("document.getElementById('catalog-q').focus(); true");
     await s.ev(typeInto("#catalog-q", "TD101"));
-    await s.waitFor("document.querySelectorAll('#catalog-list button').length === 1", "TD101");
-    await s.ev("document.querySelector('#catalog-list button').click(); true");
+    await s.waitFor("document.querySelectorAll('#catalog-list .catalog-pick').length === 1", "TD101");
+    await s.ev("document.querySelector('#catalog-list .catalog-pick').click(); true");
     await s.waitFor(`document.querySelectorAll('#services .svc').length === 1`, "thẻ dịch vụ");
     await s.ev(typeInto("#orderDate", MAI));
     await s.ev(typeInto(`#services .svc [data-trip="pickupPlace"]`, "Sheraton Nha Trang"));

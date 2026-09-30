@@ -83,7 +83,7 @@ try {
   await full(p, "tt-form-trong.png");
   await check(p, "form-trong");
   await p.ev("document.getElementById('catalog-q').focus(); true");
-  await p.waitFor("document.querySelectorAll('#catalog-list button').length === 3", "danh sách danh mục");
+  await p.waitFor("document.querySelectorAll('#catalog-list .catalog-pick').length === 3", "danh sách danh mục");
   await view(p, "tt-ket-qua-tim.png");
   await axe(p, "form-ket-qua-tim");
   await p.ev(setInput("document.getElementById('catalog-q')", "khong-co"));
@@ -97,8 +97,8 @@ try {
   const pick = async (q) => {
     await p.ev("document.getElementById('catalog-q').focus(); true");
     await p.ev(setInput("document.getElementById('catalog-q')", q));
-    await p.waitFor("document.querySelectorAll('#catalog-list button').length === 1", `kết quả ${q}`);
-    await p.ev("document.querySelector('#catalog-list button').click(); true");
+    await p.waitFor("document.querySelectorAll('#catalog-list .catalog-pick').length === 1", `kết quả ${q}`);
+    await p.ev("document.querySelector('#catalog-list .catalog-pick').click(); true");
   };
   await pick("TD101");
   await p.waitFor(`${cards}.length === 1`, "thẻ 1");

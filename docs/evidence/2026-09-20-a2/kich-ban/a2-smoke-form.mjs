@@ -32,9 +32,9 @@ try {
 
   // ---- 2) ô chọn danh mục: tìm, kết quả, trạng thái rỗng ----
   await p.ev("document.getElementById('catalog-q').focus(); true");
-  await p.waitFor("document.querySelectorAll('#catalog-list button').length === 3", "3 dịch vụ danh mục hiện");
+  await p.waitFor("document.querySelectorAll('#catalog-list .catalog-pick').length === 3", "3 dịch vụ danh mục hiện");
   await p.ev(setInput("document.getElementById('catalog-q')", "phao"));
-  await p.waitFor("document.querySelectorAll('#catalog-list button').length === 1 && /TTB03/.test(document.getElementById('catalog-list').textContent)", "lọc theo 'phao'");
+  await p.waitFor("document.querySelectorAll('#catalog-list .catalog-pick').length === 1 && /TTB03/.test(document.getElementById('catalog-list').textContent)", "lọc theo 'phao'");
   assert.match(await p.ev("document.getElementById('catalog-list').textContent"), /theo nhóm 5 khách\/lượt/);
   await p.ev(setInput("document.getElementById('catalog-q')", "khong-co"));
   await p.waitFor("/Không tìm thấy dịch vụ/.test(document.getElementById('catalog-list').textContent)", "trạng thái rỗng của danh sách");
@@ -42,7 +42,7 @@ try {
 
   // ---- 2b) Enter trong ô tìm danh mục KHÔNG gửi cả form đơn hàng (ô tìm nằm trong <form>; nút mặc định của form là "Lưu") ----
   await p.ev(setInput("document.getElementById('catalog-q')", "phao"));
-  await p.waitFor("document.querySelectorAll('#catalog-list button').length === 1", "phao (kiểm Enter)");
+  await p.waitFor("document.querySelectorAll('#catalog-list .catalog-pick').length === 1", "phao (kiểm Enter)");
   await p.ev("document.getElementById('catalog-q').focus(); true");
   // phím Enter THẬT qua CDP: nếu form bị gửi ngầm, form trống này sẽ hiện banner kiểm phía trình duyệt (thiếu tên/SĐT/dịch vụ) ở #save-error
   await p.send("Input.dispatchKeyEvent", { type: "keyDown", key: "Enter", code: "Enter", windowsVirtualKeyCode: 13, text: "\r" });
@@ -55,8 +55,8 @@ try {
 
   // ---- 3) thêm dịch vụ nhóm (Phao chuối): 7 khách → 2 lượt ----
   await p.ev(setInput("document.getElementById('catalog-q')", "phao"));
-  await p.waitFor("document.querySelectorAll('#catalog-list button').length === 1", "phao");
-  await p.ev("document.querySelector('#catalog-list button').click(); true");
+  await p.waitFor("document.querySelectorAll('#catalog-list .catalog-pick').length === 1", "phao");
+  await p.ev("document.querySelector('#catalog-list .catalog-pick').click(); true");
   await p.waitFor(`${cards}.length === 1`, "thẻ Phao chuối");
   assert.equal(await p.ev(`${card(0)}.querySelector('.svc-name').textContent`), "Phao chuối");
   assert.equal(await p.ev(`${counter(0, "Số khách")}.value`), "1");
@@ -69,8 +69,8 @@ try {
   // ---- 4) thêm dịch vụ theo người (Tour 4 đảo): 2 người lớn + 1 trẻ em; đơn giá thương lượng ----
   await p.ev("document.getElementById('catalog-q').focus(); true");
   await p.ev(setInput("document.getElementById('catalog-q')", "TD101"));
-  await p.waitFor("document.querySelectorAll('#catalog-list button').length === 1", "TD101");
-  await p.ev("document.querySelector('#catalog-list button').click(); true");
+  await p.waitFor("document.querySelectorAll('#catalog-list .catalog-pick').length === 1", "TD101");
+  await p.ev("document.querySelector('#catalog-list .catalog-pick').click(); true");
   await p.waitFor(`${cards}.length === 2`, "thẻ Tour 4 đảo");
   await p.ev(setInput(counter(1, "Người lớn"), "2"));
   await p.ev(setInput(counter(1, "Trẻ em"), "1"));
@@ -198,8 +198,8 @@ try {
   await p.waitFor("document.getElementById('catalog-q')", "form mới");
   await p.ev("document.getElementById('catalog-q').focus(); true");
   await p.ev(setInput("document.getElementById('catalog-q')", "TD101"));
-  await p.waitFor("document.querySelectorAll('#catalog-list button').length === 1", "TD101");
-  await p.ev("document.querySelector('#catalog-list button').click(); true");
+  await p.waitFor("document.querySelectorAll('#catalog-list .catalog-pick').length === 1", "TD101");
+  await p.ev("document.querySelector('#catalog-list .catalog-pick').click(); true");
   await p.waitFor(`${cards}.length === 1`, "thẻ");
   await p.ev(setInput("document.getElementById('orderDate')", vnDate(5)));
   await p.ev(setInput("document.getElementById('customerName')", "Khách Đổi Giá"));
@@ -265,8 +265,8 @@ try {
   // (trước đây bấm nút ẩn "+ Dịch vụ nhập tay"; lưu nay trả 400 nên kịch bản đổi, không phải lỗi mã).
   // Trang tới bằng Page.navigate (không qua env.as): GET /api/catalog có thể CHƯA xong lúc gõ, và ô tìm chỉ vẽ lại khi focus/gõ → gõ lại mỗi lần thăm dò.
   await p.ev("document.getElementById('catalog-q').focus(); true");
-  await p.waitFor("(() => { const q = document.getElementById('catalog-q'); q.value = 'TD101'; q.dispatchEvent(new Event('input', { bubbles: true })); return document.querySelectorAll('#catalog-list button').length === 1; })()", "TD101 (lịch sử)");
-  await p.ev("document.querySelector('#catalog-list button').click(); true");
+  await p.waitFor("(() => { const q = document.getElementById('catalog-q'); q.value = 'TD101'; q.dispatchEvent(new Event('input', { bubbles: true })); return document.querySelectorAll('#catalog-list .catalog-pick').length === 1; })()", "TD101 (lịch sử)");
+  await p.ev("document.querySelector('#catalog-list .catalog-pick').click(); true");
   await p.waitFor(`${cards}.length === 1`, "thẻ danh mục (lịch sử)");
   await p.ev(setInput("document.getElementById('customerName')", "Khách Lịch Sử"));
   await p.ev(setInput("document.getElementById('customerPhone')", "0903 555 666"));
@@ -284,10 +284,10 @@ try {
   p = await env.as(ACCOUNTS.salesA, "/order-form");
   await p.waitFor("document.getElementById('catalog-q')", "form mới (kiểm ARIA)");
   await p.ev("document.getElementById('catalog-q').focus(); true");
-  await p.waitFor("document.querySelectorAll('#catalog-list button').length === 4", "4 mục danh mục (gồm mục không chọn được)");
+  await p.waitFor("document.querySelectorAll('#catalog-list .catalog-pick').length === 4", "4 mục danh mục (gồm mục không chọn được)");
   const aria = await p.ev(`(() => {
     const list = document.getElementById('catalog-list');
-    const btns = [...list.querySelectorAll('button')];
+    const btns = [...list.querySelectorAll('.catalog-pick')];
     const x = btns.find((b) => b.textContent.includes('TDX01'));
     x.focus();
     const s = getComputedStyle(x);
@@ -299,7 +299,7 @@ try {
   assert.deepEqual([aria.xAriaDisabled, aria.xDisabled, aria.xFocusable, aria.othersAriaDisabled], ["true", false, true, 0], `mục không chọn được dùng aria-disabled (không disabled), vẫn focus được: ${JSON.stringify(aria)}`);
   assert.ok(Number(aria.xOpacity) < 1 && aria.xCursor === "not-allowed", `mục không chọn được hiện mờ + con trỏ not-allowed: ${JSON.stringify(aria)}`);
   assert.match(aria.xText, /nhập tay/, "mục không chọn được có gợi ý 'nhập tay'");
-  await p.ev("[...document.querySelectorAll('#catalog-list button')].find((b) => b.textContent.includes('TDX01')).click(); true");
+  await p.ev("[...document.querySelectorAll('#catalog-list .catalog-pick')].find((b) => b.textContent.includes('TDX01')).click(); true");
   await sleep(300);
   assert.equal(await p.ev(`${cards}.length === 0 && !document.getElementById('catalog-list').hidden`), true, "bấm mục không chọn được: không thêm thẻ, danh sách vẫn mở");
   await p.ev(setInput("document.getElementById('catalog-q')", "khong-co"));
@@ -420,8 +420,8 @@ try {
   await p.waitFor("document.getElementById('catalog-q')", "form");
   await p.ev("document.getElementById('catalog-q').focus(); true");
   await p.ev(setInput("document.getElementById('catalog-q')", "TD101"));
-  await p.waitFor("document.querySelectorAll('#catalog-list button').length === 1", "TD101");
-  await p.ev("document.querySelector('#catalog-list button').click(); true");
+  await p.waitFor("document.querySelectorAll('#catalog-list .catalog-pick').length === 1", "TD101");
+  await p.ev("document.querySelector('#catalog-list .catalog-pick').click(); true");
   await p.waitFor(`${cards}.length === 1`, "thẻ để đo");
   const m = await p.ev(`(() => {
     const small = [...document.querySelectorAll('.counter-btn, .svc-remove, #save, .catalog-list button, .trip > summary')].filter((el) => { const r = el.getBoundingClientRect(); return r.width > 0 && (r.height < 43.5 || r.width < 43.5); }).map((el) => el.className + ' ' + Math.round(el.getBoundingClientRect().width) + 'x' + Math.round(el.getBoundingClientRect().height));

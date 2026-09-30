@@ -411,6 +411,11 @@ h3 { font-size: 1rem; margin: var(--s4) 0 var(--s2); color: var(--c-primary); }
 .catalog-list button:hover, .catalog-list button:focus { background: var(--c-alt); outline: none; }
 .catalog-list button[aria-disabled="true"] { opacity: .5; cursor: not-allowed; }
 .catalog-list .price { white-space: nowrap; color: var(--c-muted); }
+/* Lọc sản phẩm khi lập đơn (góp ý YC-0003 — chủ duyệt 30/9): hàng lọc (dùng lại .loc-nut) + mỗi dòng = nút chọn + nút ghim "Hay dùng". */
+.catalog-loc { display: flex; flex-wrap: wrap; gap: var(--s2); margin-top: var(--s2); }
+.catalog-row { display: flex; border-bottom: 1px solid var(--c-line); }
+.catalog-list .catalog-row .catalog-pick { flex: 1 1 auto; min-width: 0; border-bottom: 0; }
+.catalog-list .catalog-row .catalog-ghim { flex: none; justify-content: center; width: var(--tap-min); padding: 0; font-size: var(--fs-title); color: var(--c-sand-text); border-bottom: 0; }
 .price-cell { white-space: nowrap; }
 .price-cell .sheet { display: block; font-size: .8rem; color: var(--c-muted); text-decoration: line-through; }
 .price-cell .mark { color: var(--c-accent); font-weight: 700; }

@@ -69,7 +69,7 @@ try {
     await p.waitFor("document.getElementById('catalog-q') !== null", `ô tìm danh mục hiện (${label})`);
     await p.ev("document.getElementById('catalog-q').focus(); true"); // danh sách #catalog-list ẩn tới khi ô tìm nhận focus
     try {
-      await p.waitFor("!document.getElementById('catalog-list').hidden && document.querySelectorAll('#catalog-list button').length >= 1", `danh sách dịch vụ có ≥ 1 mục (${label})`, 8000);
+      await p.waitFor("!document.getElementById('catalog-list').hidden && document.querySelectorAll('#catalog-list .catalog-pick').length >= 1", `danh sách dịch vụ có ≥ 1 mục (${label})`, 8000);
     } catch (e) {
       const text = (await p.ev("document.body.textContent")).replace(/\s+/g, " ");
       const reqs = p.requests.filter((r) => r.url.includes("/api/catalog")).map((r) => r.url.replace(env.base, ""));
@@ -78,7 +78,7 @@ try {
     }
     const text = await p.ev("document.body.textContent");
     assert.ok(!text.includes(CATALOG_ERR), `${label}: KHÔNG được có chữ "${CATALOG_ERR}"`);
-    const count = await p.ev("document.querySelectorAll('#catalog-list button').length");
+    const count = await p.ev("document.querySelectorAll('#catalog-list .catalog-pick').length");
     const overflow = await p.ev("document.documentElement.scrollWidth - document.documentElement.clientWidth");
     assert.ok(overflow <= 1, `${label}: không cuộn ngang ở 390px — lệch ${overflow}px`);
     const reqs = p.requests.filter((r) => r.url.includes("/api/catalog")).map((r) => r.url.replace(env.base, ""));
@@ -100,8 +100,8 @@ try {
     assert.equal(old, 403, `${label}: GET /api/catalog phải 403 (cổng office)`);
 
     await p.ev(setInput("document.getElementById('catalog-q')", "TD101"));
-    await p.waitFor("document.querySelectorAll('#catalog-list button').length === 1", `lọc còn TD101 (${label})`);
-    await p.ev("document.querySelector('#catalog-list button').click(); true");
+    await p.waitFor("document.querySelectorAll('#catalog-list .catalog-pick').length === 1", `lọc còn TD101 (${label})`);
+    await p.ev("document.querySelector('#catalog-list .catalog-pick').click(); true");
     await p.waitFor(`!!(${CARD})`, `thẻ Tour 4 đảo Nha Trang (${label})`);
     await p.ev(setInput(ADULT, String(PAX)));
     await p.waitFor(`!(${ADULT_PRICE}).closest('.line').hidden`, `dòng tiền người lớn hiện (${label})`);

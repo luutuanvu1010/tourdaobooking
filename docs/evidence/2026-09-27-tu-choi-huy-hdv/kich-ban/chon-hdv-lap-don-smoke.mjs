@@ -179,8 +179,8 @@ try {
     await p.ev("document.getElementById('catalog-q').focus(); true");
     await p.waitFor("/TD101/.test(document.getElementById('catalog-list')?.textContent ?? '')", "ô tìm danh mục hiện TD101", 10000);
     await p.ev(setInput("document.getElementById('catalog-q')", "TD101"));
-    await p.waitFor("document.querySelectorAll('#catalog-list button').length === 1", "lọc TD101");
-    await p.ev("document.querySelector('#catalog-list button').click(); true");
+    await p.waitFor("document.querySelectorAll('#catalog-list .catalog-pick').length === 1", "lọc TD101");
+    await p.ev("document.querySelector('#catalog-list .catalog-pick').click(); true");
     await p.waitFor(`!!(${CARD})`, "thẻ Tour 4 đảo Nha Trang");
     await p.ev(setInput(`(${CARD}).querySelector('.counter-field[aria-label="Người lớn"]')`, "2"));
     await p.ev(setInput("document.getElementById('customerName')", customer));
