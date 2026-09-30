@@ -3,12 +3,12 @@
 // Ghi dữ liệu trả CÂU LỆNH chưa chạy (newPersonStatements…) để module gọi gộp vào một db.batch() — `staff` tạo tài khoản kèm hồ sơ như vậy.
 import { auditStatement } from "../audit";
 import type {
-  ContactPointDto, MergeItemDto, MergePreviewResponse, PartyDto, PartyListItemDto, PartyListResponse, PartyLookupResponse, PartyMergeRef, PartyMetaResponse,
+  ContactPointDto, MergeItemDto, MergePreviewResponse, PartyDto, PartyDuplicatesResponse, PartyListItemDto, PartyListResponse, PartyLookupResponse, PartyMergeRef, PartyMetaResponse,
   PartyRelationshipDto, PartyResponse, PartyRoleDto, PersonDocumentDto, PersonDocumentListResponse, PersonDocumentMetaResponse, PersonDocumentRevealResponse,
 } from "../../shared/contracts";
 import { LOAI_CO_DINH, MA_LOAI_GIAY_TO_RE, kiemLoaiGiayToMoi, kiemSuaLoaiGiayTo, soNgayConLai } from "../../shared/giay-to";
 import { OWNER_COMPANY_ROLE, thieuChoCongTyChu } from "../../shared/cong-ty-chu";
-import { chuanHoaTen } from "../../shared/ho-so-trung";
+import { capNghiTrung, chuanHoaTen } from "../../shared/ho-so-trung";
 import type { RoleCode } from "../../shared/roles";
 import { UUID_RE, error, escapeLike, intParam, json, readJson } from "../../shared/http";
 import { can, holdsPartner } from "../../shared/permissions";
@@ -20,7 +20,7 @@ import {
   accountRolesOf as accountRoleRows, addContactStatements, addRelationshipStatement, addRoleStatement, endContactStatement, endRelationshipStatement, endRoleStatement,
   companyIdentityOf, docsForMerge, driverDocsForDispatch, driversForDispatch, expiringDocumentsOfRoles, findLicenseClass, findParty, findPartiesByPhone, findPersonDocument, findPersonDocumentNumber, findPersonDocumentType, getPartyDetail,
   insertLicenseClassStatement, insertPersonDocTypeStatement, updateLicenseClassStatement, updatePersonDocTypeStatement, insertPersonDocStatement, isCarrierParty, isOwnerCompanyParty, listLicenseClasses, listParties,
-  listCarriers, listPersonDocumentTypes, listPersonDocuments, listRelationshipTypes, listRoleTypes, mergedFromOf, newOrganizationStatements, newPersonStatements, updatePersonDocStatement,
+  listCarriers, listPartiesByIds, openPersonPhones, personsForMatch, listPersonDocumentTypes, listPersonDocuments, listRelationshipTypes, listRoleTypes, mergedFromOf, newOrganizationStatements, newPersonStatements, updatePersonDocStatement,
   voidPersonDocStatement,
   openRoleCodesFor, ownerCompanyRows, relationshipEnds, renamePersonStatements, reopenRoleStatement, roleRowOf, roleTypeOf, updatePartyStatements,
   type GopDocRow, type PartyListRow, type PartyRow, type ContactRow, type PersonDocFull, type PersonDocRow, type PersonDocValues, type RelationshipRow, type RoleRow,
@@ -502,6 +502,29 @@ export const partiesModule: AppModule = {
       if (!phone) return error(400, "invalid_input", "Số điện thoại không hợp lệ (cần 10 số, bắt đầu bằng 0 hoặc +84).");
       const rows = await findPartiesByPhone(env.DB, phone, vnToday(new Date()));
       return json({ matches: rows.map(toListItem) } satisfies PartyLookupResponse);
+    }),
+
+    // ---- Hồ sơ nghi trùng (ADR-0068 Đ8; T1) — chỉ đọc, admin.manage. Khai TRƯỚC GET /api/parties/:id. SĐT đăng nhập tới qua ctx.gopHoSo (parties không import staff).
+    route("GET", "/api/parties/duplicates", "admin", async (ctx) => {
+      const { env, staff } = ctx;
+      if (!can(staff, "admin.manage")) return ADMIN_ONLY();
+      const today = vnToday(new Date());
+      const [nguoi, soLienHe, dangNhap] = await Promise.all([personsForMatch(env.DB), openPersonPhones(env.DB), ctx.gopHoSo.soDangNhap()]);
+      const { cap, conNua } = capNghiTrung({
+        hoSo: nguoi.map((p) => ({ id: p.id, ten: p.display_name })),
+        sdtLienHe: soLienHe.map((c) => ({ partyId: c.party_id, so: c.value_normalized })),
+        sdtDangNhap: dangNhap.map((d) => ({ partyId: d.partyId, so: d.phone })),
+      });
+      const theoId = new Map((await listPartiesByIds(env.DB, [...new Set(cap.flatMap((c) => [c.aId, c.bId]))], today)).map((r) => [r.id, toListItem(r)]));
+      const coTaiKhoan = new Set(dangNhap.map((d) => d.partyId));
+      return json({
+        pairs: cap.flatMap((c) => {
+          const a = theoId.get(c.aId);
+          const b = theoId.get(c.bId);
+          return a && b ? [{ a, b, lyDo: c.lyDo, aCoTaiKhoan: coTaiKhoan.has(c.aId), bCoTaiKhoan: coTaiKhoan.has(c.bId) }] : [];
+        }),
+        conNua,
+      } satisfies PartyDuplicatesResponse);
     }),
 
     route("GET", "/api/parties", "office", async ({ env, url, staff }) => {
