@@ -45,7 +45,7 @@ function setup() {
   return w;
 }
 
-test("ADR-0033: Đối tác, Thực tập, Bán hàng, Quản trị, Toàn quyền đọc được GET /api/catalog/for-order — đúng sáu khoá mỗi dịch vụ, cùng nội dung và thứ tự như Bán hàng thấy ở GET /api/catalog, không có dịch vụ ẩn", async () => {
+test("ADR-0033: Đối tác, Thực tập, Bán hàng, Quản trị, Toàn quyền đọc được GET /api/catalog/for-order — đúng bảy khoá mỗi dịch vụ (thêm groupCode — ADR-0058 Đ5), cùng nội dung và thứ tự như Bán hàng thấy ở GET /api/catalog, không có dịch vụ ẩn", async () => {
   const w = setup();
   const sales = await w.call("GET", "/api/catalog", { as: SALES });
   assert.equal(sales.status, 200, sales.text);

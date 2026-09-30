@@ -163,6 +163,7 @@ Kết luận: thứ tự "hỏi quyền trước khi đọc thân" trong THÂN r
 
 | Vòng | Phần | Đỉnh được kiểm | Kết luận | Mục CAO / VỪA / THẤP | Đã sửa ở |
 |---|---|---|---|---|---|
+| K2A (1/10, `nguoi-kiem-doc-lap`, chỉ đọc) | A — ADR-0058 | `274b5a54` (đã gộp `main` 1.46, gốc chung `26c44255`) | **ĐẠT**, sẵn sàng trình chủ | 0 / 0 / 6. Tự chạy lại: `npm test` 2154 + đo giờ 1/1; typecheck 0; e2e 35/35; `chip-nhom-smoke` 8/8; `danh-muc-nhom-smoke` 10/10; tự đếm 110 cặp khớp ADR; `kiem-phien-ban` ĐẠT. 17 đột biến P16, 16 đỏ; sống sót: dời `can()` xuống sau đọc thân ở POST groups (cổng `admin` chặn trước — "dựa vào kỷ luật", THẤP-1). THẤP-2 lịch sử nhóm hiện tên nhóm HIỆN TẠI (nhật ký giữ tên lúc đổi) — nợ; THẤP-3 tên bài "sáu khoá"; THẤP-4 = N-1; THẤP-5 = N-2; THẤP-6 kế hoạch còn ghi `0046` | THẤP-3, THẤP-6: điều phối sửa cùng commit ghi dòng này (tên bài → "bảy khoá"; ghi chú đầu kế hoạch + K3A + §9 bước 5 → `0053`). THẤP-1, 2, 4, 5: nợ, không chặn |
 
 ## 6. Phát hành
 
