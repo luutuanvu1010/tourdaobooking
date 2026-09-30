@@ -442,6 +442,7 @@ export const ordersModule: AppModule = {
     }),
     // GHI (cổng admin): chỉ ô settings.ops (hôm nay chỉ Toàn quyền — Quản trị qua cổng nhưng 403). Đổi = chèn dòng mới, valid_from_at = lúc ghi, không lùi
     // (đi SAU dòng mới nhất, không trùng UNIQUE). Gửi CÙNG trạng thái đang hiệu lực = 200, không ghi dòng, không nhật ký. Nhật ký không gắn đơn (orderId NULL).
+    // Hai lệnh cùng lúc cùng mốc ⇒ lệnh thua va UNIQUE ⇒ 409 `stale` (lô không áp).
     // Miễn trừ có tên ở bài NT-F7 (src/modules/billing/sau-da-giao.test.ts): không ghi đơn nào, không có đơn để khoá sau "Đã giao".
     route("POST", "/api/cai-dat/nhap-tay", "admin", async ({ env, request, staff }) => {
       if (!can(staff, "settings.ops")) return error(403, "forbidden", "Chỉ Toàn quyền bật / tắt được dịch vụ nhập tay.");
@@ -453,10 +454,16 @@ export const ordersModule: AppModule = {
       if (hienTai.bat !== muon) {
         const sau = hienTai.moiNhat && Date.parse(hienTai.moiNhat) >= now.getTime() ? new Date(Date.parse(hienTai.moiNhat) + 1) : now;
         const at = sau.toISOString();
-        await env.DB.batch([
-          manualPolicyInsert(env.DB, crypto.randomUUID(), muon, at, staff.id),
-          auditStatement(env.DB, { staffId: staff.id, action: "manual_service_policy_changed", at, targetType: "system", detail: muon ? "Bật dịch vụ nhập tay" : "Tắt dịch vụ nhập tay" }),
-        ]);
+        try {
+          await env.DB.batch([
+            manualPolicyInsert(env.DB, crypto.randomUUID(), muon, at, staff.id),
+            auditStatement(env.DB, { staffId: staff.id, action: "manual_service_policy_changed", at, targetType: "system", detail: muon ? "Bật dịch vụ nhập tay" : "Tắt dịch vụ nhập tay" }),
+          ]);
+        } catch (e) {
+          // Hai lệnh đổi cùng lúc (kiểm độc lập VỪA-2): lệnh sau va UNIQUE valid_from_at ⇒ cả lô không áp (không dòng, không nhật ký) — báo tải lại, không 500.
+          if (/UNIQUE/i.test(String((e as Error)?.message ?? e))) return error(409, "stale", "Công tắc vừa được đổi — tải lại rồi thử lại.");
+          throw e;
+        }
       }
       return json({ batNhapTay: muon, duocDung: duocNhapTay(staff, muon), doiDuoc: true } satisfies NhapTayResponse);
     }),

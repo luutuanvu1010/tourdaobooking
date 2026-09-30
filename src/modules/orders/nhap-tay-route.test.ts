@@ -136,3 +136,49 @@ test("tiêu chí 5: Toàn quyền TẮT lại — đơn đã có dịch vụ nh�
   const xn = await w.call("POST", `/api/orders/${id}/status`, { as: SALES, body: { status: "confirmed" } });
   assert.equal(xn.status, 200, xn.text);
 });
+
+test("kiểm độc lập VỪA-2: hai Toàn quyền bật công tắc CÙNG LÚC (cùng mili-giây, cả hai đã đọc TẮT) — không 500; một 200, một 409 `stale` câu tiếng Việt; bảng đúng một dòng BẬT mới", async () => {
+  const w = setup();
+  // Đóng băng đồng hồ (ứng dụng chạy CÙNG tiến trình với bài): hai request đọc cùng "bây giờ" ⇒ cùng valid_from_at ⇒ va UNIQUE nếu máy chủ không xử lý.
+  const ThatDate = Date;
+  const CO_DINH = ThatDate.now() + 60_000;
+  class DongHoDung extends ThatDate {
+    constructor(...a: unknown[]) {
+      if (a.length) super(...(a as [number]));
+      else super(CO_DINH);
+    }
+    static now() {
+      return CO_DINH;
+    }
+  }
+  globalThis.Date = DongHoDung as DateConstructor;
+  // Chặn lô ghi đầu tiên tới khi request thứ hai cũng tới bước ghi (cả hai đã ĐỌC công tắc = TẮT) — tái hiện đua thật, không phụ thuộc may rủi.
+  const goc = w.env.DB.batch.bind(w.env.DB);
+  let soLo = 0;
+  let mo!: () => void;
+  const cong = new Promise<void>((r) => (mo = r));
+  const hetGio = setTimeout(() => mo(), 2000);
+  w.env.DB.batch = async (cau: unknown[]) => {
+    if (++soLo === 2) mo();
+    if (soLo <= 2) await cong;
+    return goc(cau);
+  };
+  let kq: { status: number; json: any; text: string }[];
+  try {
+    kq = await Promise.all([bat(w, SUPER, true), bat(w, SUPER, true)]);
+  } finally {
+    globalThis.Date = ThatDate;
+    clearTimeout(hetGio);
+    w.env.DB.batch = goc;
+  }
+  assert.equal(soLo, 2, "cả hai request đều tới bước ghi (đua thật)");
+  const ma = kq.map((r) => r.status).sort();
+  assert.ok(!ma.includes(500), `không lỗi thô 500: ${kq.map((r) => r.text).join(" | ")}`);
+  assert.deepEqual(ma, [200, 409], `đua thật: một thắng, một 409 — ${kq.map((r) => r.text).join(" | ")}`);
+  for (const r of kq.filter((x) => x.status === 409)) {
+    assert.equal(r.json.error.code, "stale");
+    assert.equal(r.json.error.message, "Công tắc vừa được đổi — tải lại rồi thử lại.");
+  }
+  assert.deepEqual(w.q("SELECT enabled FROM ord_manual_service_policy ORDER BY valid_from_at").map((x: any) => x.enabled), [0, 1], "đúng một dòng BẬT mới");
+  assert.equal(w.q("SELECT count(*) AS n FROM audit_log WHERE action = 'manual_service_policy_changed'")[0].n, 1, "một dòng nhật ký");
+});
