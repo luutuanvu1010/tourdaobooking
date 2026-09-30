@@ -90,7 +90,7 @@ Ghi chú áp loại:
 | Thêm giấy tờ xe | `office` | `vehicle.manage` | trigger một dòng hiện hành | 0056 |
 | Bảng giá thuê, tuyến, cỡ xe | `office` | `transport.rate.view` / `.manage` (đọc tên: + `trip.dispatch`) | chồng hiệu lực; chỉ-thêm; vai `CARRIER` lúc thêm (`v_pty_carrier`) | 0057 |
 | Chụp / đảo chi phí tự động | `office` (trong lô lệnh chuyến) | ô của lệnh chuyến (`trip.dispatch`) | dấu lô `last_cmd_id`; một `SNAPSHOT` chưa đảo; `SNAPSHOT` chỉ cho nhà xe ≠ công ty chủ (`v_pty_carrier`, `v_pty_owner_company`) | 0057 |
-| Điều chỉnh / đảo / chụp lại / giá ghi tay / bảng kê chi phí | `office` | `transport.cost.adjust` / `.view` | chỉ-thêm; đảo khớp gốc; **tổng ≥ 0 sau mọi dòng** (lô huỷ/đổi đảo dòng âm trước, dòng dương sau); một nguồn giá còn hiệu lực (`SNAPSHOT` hoặc `GIA_GHI_TAY`) | 0057 |
+| Điều chỉnh / đảo / chụp lại / giá ghi tay / bảng kê chi phí | `office` | `transport.cost.adjust` / `.view` | chỉ-thêm; đảo khớp gốc; **tổng ≥ 0 sau mọi dòng** (lô huỷ/đổi đảo dòng âm trước, dòng dương sau); một nguồn giá còn hiệu lực (`SNAPSHOT` hoặc `GIA_GHI_TAY`, một trigger); `GIA_GHI_TAY` > 0 (`CHECK`); lô huỷ/đổi mang dấu lô + phiên bản chi phí (dòng chen giữa ⇒ lô thua); ba điều kiện của `GIA_GHI_TAY` chỉ máy chủ canh + kiểm định kỳ `R-VC-COST-5`; chuyến huỷ tổng = 0 (`R-VC-COST-4`) | 0057 |
 | Dòng nợ nguồn chuyến | `billing` (D3) | `ledger.write` | lượt 1: trigger `bil_debt_line_trip_not_yet`; `CHECK` đúng một nguồn | 0057 T3 |
 | Hợp đồng giữa các phần | — | `lichChungChang` +3 khoá, `hanhKhachChoChuyen` +2 khoá; không tự kiểm quyền (bài `src/orders-cong-bo.test.ts`) | — | 0055, 0056 |
 | DTO tài xế | cổng tài xế (ADR-0049 D3) | `trip.view` assigned | danh sách trắng: + số hiệu; **không** tiền, **không** khung bận | 0055, 0057 |
@@ -138,7 +138,7 @@ Ghi chú áp loại:
 7. Danh sách route GET cho bài số lạ có đủ lịch chung và chi tiết chuyến (Bán hàng có `trip.view`).
 8. (Sau kiểm lần 1) `CHECK` "đúng một nguồn" của `bil_debt_line` trong migration B; trigger `bil_debt_line_trip_not_yet` chỉ chặn dòng chỉ-có-chuyến.
 9. "Tổng ≥ 0" canh mọi dòng; lô huỷ / đổi đảo **mọi** dòng còn hiệu lực theo thứ tự âm trước, dương sau (0057 C4, C8) — kiểm tổng không âm giữa lô trên D1 thật.
-10. Cách nhận biết "vi phạm cam kết mới sau phá lệ" (0056 A3): khoá tập vi phạm `commitment_override_key`; cổng xuất bến chạy lại `kiemCamKet`, khoá khác ⇒ phá lệ lại (kể cả vi phạm do sửa đơn).
+10. Cách nhận biết "vi phạm cam kết mới sau phá lệ" (0056 A3): khoá tập vi phạm `commitment_override_key` (id xe + từng chặng vi phạm: id, loại, cờ xe riêng, số chỗ tối thiểu); cổng xuất bến chạy lại `kiemCamKet`, khoá khác ⇒ phá lệ lại (kể cả đổi sang xe nhỏ hơn, tăng số chỗ, vi phạm do sửa đơn); hết vi phạm ⇒ xoá hai cột phá lệ.
 
 ## 6. Mọi câu hỏi cho chủ của lượt B (lời thường — trả lời một lần; khuyến nghị đứng đầu)
 
