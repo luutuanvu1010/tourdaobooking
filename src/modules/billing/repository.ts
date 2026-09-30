@@ -90,6 +90,32 @@ const BALANCES_WITH_OWNER = defineSql(
 export const balancesWithOwner = async (db: D1Database): Promise<{ party_id: string; label: string | null; balance: number }[]> =>
   (await db.prepare(BALANCES_WITH_OWNER).all<{ party_id: string; label: string | null; balance: number }>()).results;
 
+/** Khoản "Công ty thu" do người không phải Kế toán khai, CHƯA được Kế toán xác nhận (dòng giữ hộ trên người khai chưa bị đảo — H3). */
+const PENDING_COMPANY = defineSql(
+  "billing",
+  "pending_company",
+  `SELECT r.id AS receipt_id, r.order_id, ol.order_code, r.amount, r.occurred_date, pl.display_name AS nguoi_khai
+   FROM bil_payment_receipt r JOIN bil_debt_line l ON l.receipt_id = r.id AND l.kind_code = 'HELD' AND l.reverses_line_id IS NULL
+   LEFT JOIN v_ord_order_label ol ON ol.id = r.order_id LEFT JOIN v_pty_party_label pl ON pl.id = l.debtor_party_id
+   WHERE r.collector_role_code = 'COMPANY' AND r.reverses_id IS NULL
+     AND NOT EXISTS (SELECT 1 FROM bil_debt_line x WHERE x.reverses_line_id = l.id)
+     AND NOT EXISTS (SELECT 1 FROM bil_payment_receipt y WHERE y.reverses_id = r.id)
+   ORDER BY r.rowid`,
+);
+export const pendingCompany = async (db: D1Database) =>
+  (await db.prepare(PENDING_COMPANY).all<{ receipt_id: string; order_id: string; order_code: string | null; amount: number; occurred_date: string; nguoi_khai: string | null }>()).results;
+
+/** Lần thu người thu CHƯA RÕ còn hiệu lực (cọc cũ chuyển sang — việc của Kế toán, ADR-0026 đ9). */
+const UNKNOWN_RECEIPTS = defineSql(
+  "billing",
+  "unknown_receipts",
+  `SELECT r.id AS receipt_id, r.order_id, ol.order_code, r.amount, r.occurred_date FROM bil_payment_receipt r LEFT JOIN v_ord_order_label ol ON ol.id = r.order_id
+   WHERE r.collector_role_code = 'UNKNOWN' AND r.reverses_id IS NULL AND NOT EXISTS (SELECT 1 FROM bil_payment_receipt y WHERE y.reverses_id = r.id)
+   ORDER BY r.rowid`,
+);
+export const unknownReceipts = async (db: D1Database) =>
+  (await db.prepare(UNKNOWN_RECEIPTS).all<{ receipt_id: string; order_id: string; order_code: string | null; amount: number; occurred_date: string }>()).results;
+
 const OWNER_COMPANY = defineSql("billing", "owner_company", `SELECT party_id FROM v_pty_owner_company LIMIT 1`);
 export async function ownerCompanyId(db: D1Database): Promise<string | null> {
   return (await db.prepare(OWNER_COMPANY).first<{ party_id: string }>())?.party_id ?? null;

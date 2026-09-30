@@ -17,7 +17,7 @@ import { can, hasPermission, holdsPartner, MATRIX } from "../../shared/permissio
 import { route, type AppModule, type NewOrderHandler } from "../../shared/router";
 import { tripDeparted } from "../../shared/trip-rules";
 import { vnToday } from "../../shared/vn-date";
-import { findHandledOrderIds, findHandlerOf, findHandlersOf, isHandler, type HandlerRow } from "./repository";
+import { findHandledOrderIds, findHandlerOf, findHandlersOf, guardHandlerStatement, isHandler, orderDelivered, type HandlerRow } from "./repository";
 import {
   CANCEL_REASON_LABEL, checkAssignee, handlerChangeVerdict, isOpenHandlerCollision, parseCancelReason, parseOrderIds, parseSetHandler,
 } from "./rules";
@@ -86,6 +86,12 @@ export async function newOrderHandler(db: D1Database, actorId: string, staffId: 
   const to = { partyId: target.partyId, name: target.name };
   return { ok: true, statements: (orderId, at) => newOrderHandlerStatements(db, { orderId, to, actorId, at, tuNhan: false }) };
 }
+
+/**
+ * API công khai cho BILLING (ADR-0024 điều 2 — cạnh billing → dispatch CHỈ để lấy câu này): câu bảo vệ CHƯA CHẠY "`partyId` vẫn là người phụ trách đang mở
+ * của đơn", gộp vào lô "Đã giao" của billing, đứng NGAY TRƯỚC câu `orders` (câu đó có `AND changes() > 0`).
+ */
+export const cauBaoVeNguoiPhuTrach = (db: D1Database, orderId: string, partyId: string): D1PreparedStatement => guardHandlerStatement(db, orderId, partyId);
 
 export const dispatchModule: AppModule = {
   name: "dispatch",

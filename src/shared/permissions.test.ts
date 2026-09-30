@@ -37,6 +37,11 @@ const ADR: Record<string, [Scope, Scope, Scope, Scope, Scope, Scope, Scope, Scop
   // (giữ năng lực ghi tiền trả trước hôm nay); hoàn khách: ADMIN any → none (H4 "Kế toán ghi"). DRIVER, DRIVER_PARTNER none.
   "payment.receive": ["own", "any", "any", "assigned", "own", "any", "own", "none", "none"],
   "payment.refund": ["none", "any", "none", "none", "none", "any", "none", "none", "none"],
+  // Sổ tiền lượt 1 — bốn ô MỚI (bảng 9 cột bản làm mới §2): Đã giao (ADR-0025 đ2), Hoàn thành (đ6), xem sổ / ghi sổ (ADR-0026 đ7, đ10).
+  "order.handover": ["none", "none", "any", "assigned", "none", "any", "none", "none", "none"],
+  "order.complete": ["none", "any", "none", "none", "none", "any", "none", "none", "none"],
+  "ledger.view": ["own", "any", "own", "own", "none", "any", "own", "none", "none"],
+  "ledger.write": ["none", "any", "none", "none", "none", "any", "none", "none", "none"],
   "invoice.request": ["own", "any", "any", "none", "none", "any", "none", "none", "none"],
   "invoice.issue": ["none", "any", "any", "none", "none", "any", "none", "none", "none"],
   "party.view": ["any", "any", "any", "none", "none", "any", "none", "none", "none"],
@@ -221,6 +226,8 @@ const ADMIN_NONE_OPS: readonly OperationCode[] = [
   "admin.manage.superadmin", "order.cancel", "dispatch.guides.view", "settings.ops", "order.pool.view",
   "notice.send", "feedback.view", "feedback.triage", "staff.sheet.sync", "audit.view", "company.legal.write", "party.document.view",
   "payment.refund", // sổ tiền lượt 1 (ADR-0026 điều 10): hoàn khách chỉ Kế toán, Toàn quyền (H4)
+  "order.complete", "ledger.write", // sổ tiền lượt 1: Hoàn thành / ghi sổ chỉ Kế toán, Toàn quyền (ADR-0025 đ6, ADR-0026 đ10)
+  "ledger.view", // ADMIN "own" — chỉ sổ của chính mình (ngữ cảnh ownerId người khác → không)
 ];
 
 test("FIELD không xem đơn/tiền/nhật ký của đơn KHÔNG được giao; ADMIN làm mọi thao tác của bản đồ TRỪ các thao tác hẹp cố ý không mở (ADMIN_NONE_OPS)", () => {
@@ -298,6 +305,8 @@ test("ADR-0040 D3 + ADR-0049 D3: MỌI ô của Tài xế (DRIVER) — ghim nguy
     "party.document.write": "none", "party.document.reveal": "none", "vehicle.manage": "none",
     // ADR-0049 D3 — NỚI (ĐÃ DUYỆT 2026-09-30 (lần 17), đề xuất luật mục 2): tài xế công ty xem + bấm tiến độ chuyến MÌNH ĐANG LÁI (`assigned` — A13 / A15).
     "trip.view": "assigned", "trip.dispatch": "none", "trip.override": "none", "trip.progress": "assigned", "trip.call_ack": "none",
+    // Sổ tiền lượt 1 (bản làm mới §2): tài xế không thu tiền khách — none ở cả bốn ô mới (ledger.view none, không phải own: tài xế không bao giờ là người thu).
+    "order.handover": "none", "order.complete": "none", "ledger.view": "none", "ledger.write": "none",
   };
   assert.deepEqual(Object.fromEntries((Object.keys(MATRIX) as OperationCode[]).map((op) => [op, MATRIX[op].DRIVER])), DRIVER_ROW);
 });
@@ -322,6 +331,7 @@ test("ADR-0048 D2: MỌI ô của Tài xế đối tác (DRIVER_PARTNER) — ghi
     "party.document.view": "own", // ngoại lệ có tên (ADR-0048 D2): xem giấy tờ của CHÍNH MÌNH, số che
     "party.document.write": "none", "party.document.reveal": "none", "vehicle.manage": "none",
     "trip.view": "none", "trip.dispatch": "none", "trip.override": "none", "trip.progress": "none", "trip.call_ack": "none", // ADR-0049 D3 × ADR-0048 D2: tài xế đối tác chưa dùng app cho chuyến (D7 — lượt sau)
+    "order.handover": "none", "order.complete": "none", "ledger.view": "none", "ledger.write": "none", // sổ tiền lượt 1 (bản làm mới §2) — mọi ô tiền = none
   };
   assert.deepEqual(Object.fromEntries((Object.keys(MATRIX) as OperationCode[]).map((op) => [op, MATRIX[op].DRIVER_PARTNER])), DRIVER_PARTNER_ROW);
 });

@@ -283,6 +283,7 @@ test("ADR-0030 L1-12: MỌI ô của Đối tác (PARTNER) giữ nguyên — ghi
     "company.legal.write": "none", // T2b (ADR-0024 6.4 + ADR-0038 điều 7): ô mới, chỉ Toàn quyền — thêm khi gộp main 356084a vào nhánh T2b (D19)
     "party.document.view": "none", "party.document.write": "none", "party.document.reveal": "none", // ADR-0040 D2: Đối tác không có giấy tờ trong app
     "vehicle.manage": "none", // ADR-0040 D1: quản lý xe chỉ Quản trị + Toàn quyền
+    "order.handover": "none", "order.complete": "none", "ledger.view": "none", "ledger.write": "none", // sổ tiền lượt 1 (bản làm mới §2): Đối tác không có sổ ở lượt 1 (đ12)
     "order.passenger.write": "own", // ADR-0047 A2: bằng order.modify — Đối tác nhập tên khách cho đơn CỦA MÌNH
     "order.leg.short_notice": "none", // ADR-0049 D3: đặt gấp chỉ Quản trị, Toàn quyền
     "order.leg.short_notice.view": "none", // chủ H4/N-14: Đối tác chỉ thấy cờ "đặt gấp — Quản trị đã duyệt"

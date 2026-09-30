@@ -1341,3 +1341,95 @@ export interface CuocChiTietResponse {
   lyDo: { code: string; nhan: string }[];
   trongNgayChay: boolean;
 }
+
+// ---- Sổ tiền lượt 1 (module billing — ADR-0024, ADR-0025, ADR-0026) -----------------------------------------------------------------------------
+// Số "đã thu / còn lại / dư" LUÔN do máy chủ tính (billing/rules.ts `conLai` — một hàm); trình duyệt chỉ vẽ. Không SĐT, không tên khách ở sổ.
+
+/** Lý do đơn đang bị giữ (chưa "Đã giao" / chưa "Hoàn thành" được) + ai phải xử lý (Hiến chương 5.7). */
+export interface LyDoGiuDonDto {
+  ma: string;
+  cau: string;
+  aiXuLy: string;
+}
+
+/** Một lần thu trên màn đơn (nội bộ). Nhãn đã là tiếng Việt; mã thô không lộ ra. */
+export interface LanThuDto {
+  id: string;
+  /** true = trả lại khách (hoàn). */
+  traLai: boolean;
+  soTien: number;
+  hinhThuc: string;
+  /** "Công ty", tên người thu, hoặc "Chưa rõ". */
+  nguoiThu: string;
+  nguoiThuChuaRo: boolean;
+  giaiDoan: string;
+  ngayPhatSinh: string;
+  daDao: boolean;
+  laDongDao: boolean;
+  nguoiGhi: string | null;
+  ghiChu: string | null;
+  ghiLuc: string;
+}
+
+/** `GET /api/orders/:id/payments` — tiền của MỘT đơn + lý do đang giữ + nút nào được hiện (máy chủ vẫn kiểm lại khi bấm). */
+export interface OrderPaymentsResponse {
+  phaiThu: number;
+  daThu: number;
+  conLai: number;
+  du: number;
+  chuaRo: number;
+  lanThu: LanThuDto[];
+  deliveredAt: string | null;
+  completedAt: string | null;
+  /** null = đủ điều kiện "Đã giao" (hoặc đã Đã giao — xem deliveredAt). */
+  lyDoChuaGiao: LyDoGiuDonDto | null;
+  lyDoChuaHoanThanh: LyDoGiuDonDto | null;
+  /** Số tiền của công ty người đang xem còn giữ vì đơn này (hộp xác nhận "Bạn đang giữ X ₫ của công ty"). */
+  banDangGiu: number;
+  coTheGhiThu: boolean;
+  coTheGiao: boolean;
+  coTheHoanThanh: boolean;
+  /** Người xem được chọn người thu khác mình / Công ty, và chọn ngày phát sinh khác hôm nay (Kế toán, Toàn quyền). */
+  laKeToan: boolean;
+}
+
+/** Thân ghi một lần thu (`POST /api/orders/:id/payments`, và `lanThu` tuỳ chọn của `POST /api/orders/:id/delivered`). */
+export interface LanThuInput {
+  soTien: number;
+  hinhThuc: "CASH" | "BANK_TRANSFER" | "OTHER";
+  /** "toi" = chính người ghi; "cong_ty" = Công ty thu (chuyển khoản vào tài khoản công ty…); { partyId } = người khác — CHỈ Kế toán / Toàn quyền. */
+  nguoiThu: "toi" | "cong_ty" | { partyId: string };
+  ngayPhatSinh?: string;
+  ghiChu?: string;
+}
+
+/** `POST /api/ledger/balances` — tiền từng đơn (chỉ đơn người gọi được xem tiền; đơn khác bị bỏ khỏi kết quả). */
+export interface LedgerBalancesResponse {
+  balances: Record<string, { phaiThu: number; daThu: number; conLai: number; du: number; chuaRo: number; daGiao: boolean; hoanThanh: boolean }>;
+}
+
+/** `GET /api/ledger/unpaid-summary` — ô "Còn thiếu tiền" của Trang chủ (đơn đã xác nhận chưa Đã giao còn phải thu). */
+export interface UnpaidSummaryResponse {
+  count: number;
+  total: number;
+}
+
+/** Một dòng "Sổ của tôi" (`GET /api/ledger/mine`): mã đơn, ngày, loại, số tiền (dương = mình giữ thêm), số dư sau dòng — KHÔNG tên/SĐT khách. */
+export interface SoCuaToiDongDto {
+  maDon: string | null;
+  ngay: string;
+  loai: string;
+  soTien: number;
+  soDu: number;
+}
+export interface SoCuaToiResponse {
+  dangGiu: number;
+  dong: SoCuaToiDongDto[];
+}
+
+/** `GET /api/ledger` (Kế toán, Toàn quyền): số dư từng bên với công ty, khoản "Công ty thu" chờ xác nhận, lần thu chưa rõ người thu. */
+export interface SoCongNoResponse {
+  soDu: { partyId: string; ten: string; dangGiu: number }[];
+  choXacNhan: { receiptId: string; orderId: string; maDon: string | null; soTien: number; ngay: string; nguoiKhai: string }[];
+  chuaRo: { receiptId: string; orderId: string; maDon: string | null; soTien: number; ngay: string }[];
+}

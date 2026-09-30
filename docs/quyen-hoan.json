@@ -18,30 +18,16 @@
       "nguoi_chiu_trach_nhiem": "chủ dự án"
     },
     {
-      "ma": "payment.receive",
-      "ly_do": "Để dành cho đợt N3 (thu tiền — ADR-0004); chưa có route.",
-      "ke_hoach": "Thi hành trong N3. Nếu N3 chưa bắt đầu trước hạn, chủ dự án gia hạn có ghi lý do.",
-      "han": "2026-12-31",
-      "nguoi_chiu_trach_nhiem": "chủ dự án"
-    },
-    {
-      "ma": "payment.refund",
-      "ly_do": "Để dành cho đợt N3 (hoàn tiền — ADR-0004); chưa có route.",
-      "ke_hoach": "Như payment.receive.",
-      "han": "2026-12-31",
-      "nguoi_chiu_trach_nhiem": "chủ dự án"
-    },
-    {
       "ma": "invoice.request",
       "ly_do": "Để dành cho đợt N3 (yêu cầu hoá đơn — ADR-0010); chưa có route.",
-      "ke_hoach": "Như payment.receive.",
+      "ke_hoach": "Thi hành trong N3 (hoá đơn — ADR-0010). Nếu N3 chưa bắt đầu trước hạn, chủ dự án gia hạn có ghi lý do. (payment.receive, payment.refund đã có route từ sổ tiền lượt 1.)",
       "han": "2026-12-31",
       "nguoi_chiu_trach_nhiem": "chủ dự án"
     },
     {
       "ma": "invoice.issue",
       "ly_do": "Để dành cho đợt N3 (đánh dấu hoá đơn đã xuất — ADR-0010); chưa có route.",
-      "ke_hoach": "Như payment.receive.",
+      "ke_hoach": "Thi hành trong N3 (hoá đơn — ADR-0010). Nếu N3 chưa bắt đầu trước hạn, chủ dự án gia hạn có ghi lý do. (payment.receive, payment.refund đã có route từ sổ tiền lượt 1.)",
       "han": "2026-12-31",
       "nguoi_chiu_trach_nhiem": "chủ dự án"
     }

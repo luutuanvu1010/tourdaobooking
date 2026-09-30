@@ -59,6 +59,8 @@ const HANH_DONG_CUA_THAY_DOI: Record<ThayDoiDon, string | null> = {
   sua: null,
   chuyen: null,
   tien: null,
+  chot_giao: null, // ADR-0025 điều 8 + ADR-0045: "Đã giao" / "Hoàn thành" không gõ cửa màn hình khoá (bản làm mới §3.14)
+  hoan_thanh: null,
 };
 export function hanhDongCuaThayDoi(t: ThayDoiDon): string | null {
   return HANH_DONG_CUA_THAY_DOI[t];

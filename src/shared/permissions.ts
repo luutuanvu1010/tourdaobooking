@@ -96,6 +96,15 @@ export const MATRIX = {
   "payment.receive": row("own", "any", "any", "assigned", "own", "any", "own", "none", "none"),
   // Ghi HOÀN KHÁCH (route POST /api/ledger/refunds, module billing) — ADR-0026 điều 10: ADMIN any → none (H4 "Kế toán ghi", thận trọng).
   "payment.refund": row("none", "any", "none", "none", "none", "any", "none", "none", "none"),
+  // Sổ tiền lượt 1 — BỐN Ô MỚI (bảng 9 cột bản làm mới §2, accepted 2026-09-29), mỗi ô có route hỏi nó ở module billing:
+  // "Đã giao – đã thu đủ" (ADR-0025 đ2): HDV đang phụ trách (assigned), Quản trị, Toàn quyền — Bán hàng, Kế toán KHÔNG (chủ chọn A 30/9). Route POST /api/orders/:id/delivered.
+  "order.handover": row("none", "none", "any", "assigned", "none", "any", "none", "none", "none"),
+  // "Hoàn thành" (ADR-0025 đ6): Kế toán, Toàn quyền — Quản trị KHÔNG. Route POST /api/orders/:id/completed.
+  "order.complete": row("none", "any", "none", "none", "none", "any", "none", "none", "none"),
+  // Xem sổ công nợ (ADR-0026 đ7, đ10): own = "Sổ của tôi" (GET /api/ledger/mine); any = sổ mọi bên (GET /api/ledger). Đối tác none ở lượt 1; tài xế none.
+  "ledger.view": row("own", "any", "own", "own", "none", "any", "own", "none", "none"),
+  // Ghi sổ (ADR-0026 đ5, đ8): xác nhận công ty đã nhận, nộp/trả, điều chỉnh, đảo; cũng là "Kế toán" khi ghi lần thu (ghi người thu khác, chọn ngày phát sinh).
+  "ledger.write": row("none", "any", "none", "none", "none", "any", "none", "none", "none"),
   "invoice.request": row("own", "any", "any", "none", "none", "any", "none", "none", "none"), // ghi yêu cầu hoá đơn + thông tin xuất
   "invoice.issue": row("none", "any", "any", "none", "none", "any", "none", "none", "none"), // đánh dấu hoá đơn đã xuất
   "party.view": row("any", "any", "any", "none", "none", "any", "none", "none", "none"), // xem hồ sơ khách/đại lý

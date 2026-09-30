@@ -85,3 +85,22 @@ export const insertHandlerIfNoneStatement = (db: D1Database, h: NewHandler): D1P
 /** Câu chốt: đóng dòng đang mở của `partyId` (người phụ trách route đã đọc). `meta.changes` = 0 ⇒ người phụ trách đã đổi giữa lúc đọc và ghi. */
 export const closeHandlerStatement = (db: D1Database, orderId: string, partyId: string, at: string, actorId: string): D1PreparedStatement =>
   db.prepare(CLOSE_HANDLER).bind(orderId, partyId, at, actorId);
+
+// ---- Sổ tiền lượt 1 (ADR-0024 điều 2, ADR-0025 điều 3c/5) ------------------------------------------------------------------------------------------
+/**
+ * CÂU BẢO VỆ "người này VẪN là người phụ trách đang mở của đơn" cho lô "Đã giao – đã thu đủ" của billing (cạnh billing → dispatch CHỈ cho câu này — ADR-0024
+ * đ2): không đổi giá trị nào (`updated_at = updated_at`), chỉ để `changes()` = 1 khi còn đúng người; câu `orders` đứng ngay sau có `AND changes() > 0`.
+ * Đổi người phụ trách KHÔNG đổi `orders.updated_at`, nên khoá lạc quan của đơn không bắt được — câu này đóng khe đó.
+ */
+const GUARD_HANDLER = defineSql(
+  "dispatch",
+  "guard_handler",
+  `UPDATE dsp_assignment SET updated_at = updated_at WHERE order_id = ?1 AND task_kind_code = 'HANDLE' AND valid_to_at IS NULL AND party_id = ?2`,
+);
+export const guardHandlerStatement = (db: D1Database, orderId: string, partyId: string): D1PreparedStatement => db.prepare(GUARD_HANDLER).bind(orderId, partyId);
+
+/** Đơn đã "Đã giao – đã thu đủ" chưa (view công bố của orders) — route ghi của dispatch từ chối sớm (ADR-0025 điều 5, bản làm mới §3 mục 12). */
+const ORDER_DELIVERED = defineSql("dispatch", "order_delivered", `SELECT delivered_at FROM v_ord_order_state WHERE id = ?1`);
+export async function orderDelivered(db: D1Database, orderId: string): Promise<boolean> {
+  return ((await db.prepare(ORDER_DELIVERED).bind(orderId).first<{ delivered_at: string | null }>())?.delivered_at ?? null) !== null;
+}

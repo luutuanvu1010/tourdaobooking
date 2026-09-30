@@ -79,6 +79,18 @@
 - Khung module: `src/modules/billing/repository.ts` (mọi SQL của Task 6, `defineSql`, EXPLAIN xanh) + `STRICT`; `index.ts` rỗng (bài `route-access`/`tai-xe-cong` đòi thư mục module có `index.ts`); `src/modules/orders/hoan-tat-repo.ts` (NỬA NGHIÊM — câu mốc Đã giao/Hoàn thành + đọc trạng thái) + `hoan-tat.ts` (phải thu hiện hành) — **tệp mới thay vì sửa `orders/repository.ts`** để tránh đụng phiên song song đang sửa `listOrders`.
 - NT-R2 thấy đỏ thật (dòng SO-HANG-RAO). `npm test` 1912/1912 + 1/1; typecheck 0.
 
+## Task 6a–6d — Route billing (xong 30/9, MỘT commit — chênh: kế hoạch ghi mỗi mục một commit; gộp vì bốn mục cùng tệp `index.ts`/`service.ts`, tách hunk tốn công mà không thêm an toàn)
+
+- 12 route (bảng §3.4): `GET|POST /api/orders/:id/payments`, `POST /api/orders/:id/delivered`, `POST /api/orders/:id/completed`, `POST /api/ledger/balances`, `GET /api/ledger/unpaid-summary`, `GET /api/ledger/mine` (cổng staff), `GET /api/ledger`, `POST /api/ledger/company-receipts/:receiptId/confirm`, `POST /api/ledger/settlements`, `POST /api/ledger/refunds`, `POST /api/ledger/adjustments`.
+- Bốn ô mới vào `MATRIX` cùng commit với route hỏi nó (`order.handover`, `order.complete`, `ledger.view`, `ledger.write`) + bài ghim hàng DRIVER / DRIVER_PARTNER / PARTNER; gỡ hai mục hoãn `payment.receive`, `payment.refund` ở `docs/quyen-hoan.json` (NT-R8 xanh: không mục hoãn thừa).
+- **Ruling "Kế toán" ở lần thu:** "người không phải Kế toán/Toàn quyền" (ADR-0026 đ2) đọc bằng ô `ledger.write` (Kế toán, Toàn quyền = any) — một nơi là MATRIX, không so mã quyền tay.
+- Câu bảo vệ người phụ trách chỉ gắn khi người gọi được phép NHỜ đang phụ trách (`!can(staff, "order.handover")` không ngữ cảnh) — Quản trị/Toàn quyền không cần.
+- Lô "Đã giao": `[guard dispatch] → UPDATE orders (updated_at + seq điều chỉnh + ngày đi muộn nhất + không dịch vụ thiếu ngày + M1) [AND changes() > 0] → [lần thu AT_DELIVERY + nhật ký payment_recorded + phiếu RECEIPT + dòng giữ hộ] → phiếu DELIVERED (due_snapshot) → nhật ký order_delivered (changes() > 0)`. Lô "Hoàn thành": `UPDATE orders → phiếu COMPLETED → nhật ký`.
+- **Chênh (kế hoạch để ở e2e):** NT-F3 (đua), F4, F5, F6, F6b, F8, Q2–Q5, S1–S5, S8, S9 chạy ở `src/modules/billing/lo-ghi.test.ts` trên KHUNG THỬ (`tests/audit/harness.mjs` — ứng dụng thật + SQLite thật, lô = giao dịch) — xen kẽ "người khác ghi giữa lúc đọc và lúc ghi" làm TẤT ĐỊNH bằng cách bọc `env.DB.batch`; e2e không làm được tất định. e2e `so-tien.mjs` giữ ca R1 (D1 thật) + luồng chính (Task 6 bổ sung dưới).
+- **GĐ bề mặt:** "Công ty trả" ở nộp/trả ghi dòng *quyết toán* người đó → công ty; điều chỉnh tự do: Kế toán chọn hai bên + loại dòng (HELD/SETTLEMENT/REFUND); hoàn khách không được quá số đã thu; ghi chú/lý do chặn dãy ≥ 8 chữ số (SĐT/số tài khoản).
+- Bảng tin: hai khoá mới `chot_giao`, `hoan_thanh` (chỉ làm mới màn hình, không gõ cửa — `web-push.ts` map null); route sổ cũng báo `tien` cho đơn liên quan.
+- Đột biến đã thấy đỏ: Bảng tin (NT-R7), câu bảo vệ (NT-F4), trigger Đã giao trong lô (NT-F6b) — dòng SO-HANG-RAO. `npm test` 1929/1929 + 1/1; typecheck 0.
+
 ## Ruling / giả định (ghi theo thứ tự gặp)
 
 (chưa có)
