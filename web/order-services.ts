@@ -49,6 +49,7 @@ function serviceBlock(v: ServiceView, locked: boolean, extra: HTMLElement | null
  * `locked` = đơn đã xác nhận (số khách và tiền hiển thị kiểu chỉ-đọc kèm biểu tượng khoá). `extra` (ADR-0049 V12): khối riêng của một dịch vụ đặt ngay dưới
  * thông tin chuyến — nhãn đặt gấp / cảnh báo dưới mốc của các chặng (web/order.ts dựng); null = không có gì.
  */
+// Bản 1.39: ngày của đơn = ngày của dịch vụ ĐẦU (cùng quy ước dải đầu trang, `summaryBand` ở web/order.ts) — dịch vụ cùng ngày không lặp dòng "Khởi hành".
 export function renderServices(order: Order, locked: boolean, extra: (serviceId: string) => HTMLElement | null = () => null): HTMLElement {
-  return h("section", { class: "services" }, h("h2", null, "Dịch vụ"), h("div", { class: "svc-list" }, ...order.services.map((s) => serviceBlock(serviceView(s), locked, extra(s.id)))));
+  return h("section", { class: "services" }, h("h2", null, "Dịch vụ"), h("div", { class: "svc-list" }, ...order.services.map((s) => serviceBlock(serviceView(s, order.services[0]?.departDate ?? null), locked, extra(s.id)))));
 }

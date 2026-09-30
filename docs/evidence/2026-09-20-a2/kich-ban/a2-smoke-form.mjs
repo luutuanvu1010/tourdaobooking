@@ -102,9 +102,10 @@ try {
   assert.match(await p.ev(`${card(2)}.textContent`), /Tên dịch vụ, không ghi tên khách\./);
   ok("dịch vụ nhập tay: 800.000, không nhãn lệch giá, có dòng nhắc 'không ghi tên khách'");
 
-  // ---- 6) khối thông tin chuyến: thu gọn trên điện thoại, tóm tắt, cảnh báo ----
+  // ---- 6) khối thông tin chuyến: thu gọn (bản 1.39: mọi khổ), tóm tắt, cảnh báo ----
   assert.equal(await p.ev(`${card(1)}.querySelector('details.trip').open`), false, "≤ 640px: thu gọn");
-  assert.equal(await p.ev(`${card(1)}.querySelector('.trip-summary').textContent`), "Chưa có ngày khởi hành");
+  // bản 1.39: dòng tóm tắt không ghi ngày (cả đơn một ngày) — thiếu giờ/nơi đón → "Chưa có giờ / nơi đón" (trước: "Chưa có ngày khởi hành")
+  assert.equal(await p.ev(`${card(1)}.querySelector('.trip-summary').textContent`), "Chưa có giờ / nơi đón");
   assert.equal(await p.ev(`${card(1)}.querySelector('.trip-summary').classList.contains('warn')`), true);
   await p.ev(`${card(1)}.querySelector('details.trip > summary').click(); true`);
   await p.waitFor(`${card(1)}.querySelector('details.trip').open`, "mở khối chuyến");
@@ -118,7 +119,7 @@ try {
   await p.waitFor(`/Giờ đón sau giờ khởi hành/.test(${card(1)}.querySelector('.svc-warnings').textContent)`, "cảnh báo giờ đón sau giờ khởi hành");
   await p.ev(setInput(dateIn("pickupTime"), "07:00"));
   await p.ev(setInput(dateIn("pickupPlace"), "Khách sạn Sunrise"));
-  await p.waitFor(`${card(1)}.querySelector('.trip-summary').textContent.endsWith('· 07:30 · đón 07:00 · Khách sạn Sunrise')`, "dòng tóm tắt của khối chuyến");
+  await p.waitFor(`${card(1)}.querySelector('.trip-summary').textContent === 'Đón 07:00 · Khách sạn Sunrise'`, "dòng tóm tắt của khối chuyến");
   assert.match(await p.ev(`${card(1)}.querySelector('label:has([data-trip="checkinDate"])').textContent`), /Để trống = cùng ngày khởi hành\./);
   ok("khối chuyến: thu gọn kèm dòng cảnh báo, cảnh báo ngày đã qua / giờ đón, dòng tóm tắt, nhắc 'cùng ngày'");
 
@@ -298,7 +299,7 @@ try {
   assert.deepEqual([aria.listRole, aria.withRole, aria.options], [null, 0, 0], `danh sách là nút thường, không listbox/option: ${JSON.stringify(aria)}`);
   assert.deepEqual([aria.xAriaDisabled, aria.xDisabled, aria.xFocusable, aria.othersAriaDisabled], ["true", false, true, 0], `mục không chọn được dùng aria-disabled (không disabled), vẫn focus được: ${JSON.stringify(aria)}`);
   assert.ok(Number(aria.xOpacity) < 1 && aria.xCursor === "not-allowed", `mục không chọn được hiện mờ + con trỏ not-allowed: ${JSON.stringify(aria)}`);
-  assert.match(aria.xText, /nhập tay/, "mục không chọn được có gợi ý 'nhập tay'");
+  assert.match(aria.xText, /chưa hỗ trợ/, "mục không chọn được ghi 'chưa hỗ trợ' (bản 1.39: trước là 'nhập tay' — dịch vụ nhập tay đã bỏ)");
   await p.ev("[...document.querySelectorAll('#catalog-list .catalog-pick')].find((b) => b.textContent.includes('TDX01')).click(); true");
   await sleep(300);
   assert.equal(await p.ev(`${cards}.length === 0 && !document.getElementById('catalog-list').hidden`), true, "bấm mục không chọn được: không thêm thẻ, danh sách vẫn mở");
@@ -355,7 +356,11 @@ try {
   await p.waitFor(`${cards}.length === 2`, "hai thẻ");
   assert.equal(await p.ev(`${cards}[0].querySelector('[data-trip="departDate"]') === null && ${cards}[1].querySelector('[data-trip="departDate"]') === null`), true, "thẻ dịch vụ không còn ô ngày riêng");
   await p.ev(setInput("document.getElementById('orderDate')", vnDate(6)));
-  await p.waitFor(`[...${cards}].every((c) => c.querySelector('.trip-summary').textContent.startsWith(${JSON.stringify(vnDate(6).slice(8, 10) + "/" + vnDate(6).slice(5, 7))}))`, "đổi ngày cả đơn: mọi thẻ theo");
+  // bản 1.39: dòng tóm tắt không còn ghi ngày → kiểm "mọi thẻ theo ngày cả đơn" bằng cảnh báo ngày đã qua hiện ở MỌI thẻ, rồi hết khi đổi lại
+  await p.ev(setInput("document.getElementById('orderDate')", vnDate(-2)));
+  await p.waitFor(`[...${cards}].every((c) => /Ngày khởi hành đã qua/.test(c.querySelector('.svc-warnings').textContent))`, "đổi ngày cả đơn (đã qua): mọi thẻ theo");
+  await p.ev(setInput("document.getElementById('orderDate')", vnDate(6)));
+  await p.waitFor(`[...${cards}].every((c) => c.querySelector('.svc-warnings').textContent === '')`, "đổi ngày cả đơn: mọi thẻ theo");
   p.close();
   ok("một ngày cho cả đơn: thẻ không có ô ngày riêng; đổi ngày ở 'Chọn ngày' áp cho mọi dịch vụ");
 
@@ -423,6 +428,32 @@ try {
   await p.waitFor("document.querySelectorAll('#catalog-list .catalog-pick').length === 1", "TD101");
   await p.ev("document.querySelector('#catalog-list .catalog-pick').click(); true");
   await p.waitFor(`${cards}.length === 1`, "thẻ để đo");
+  // ---- 12a) bản 1.39: đếm dịch vụ (tiêu đề khối, Tóm tắt, thanh dính đáy một dòng), báo ngắn sau khi chọn, nhãn "đã chọn" (không chặn chọn trùng) ----
+  const dem = () => p.ev(`({ title: document.getElementById('services-title').textContent, sum: document.getElementById('sum-count').textContent, mob: document.querySelector('.mobile-sum-line > span:first-child').textContent, due: !document.getElementById('mobile-due-wrap').hidden, toast: [...document.querySelectorAll('.toast-bao')].map((t) => t.textContent), bar: Math.round(document.querySelector('.form-actions').getBoundingClientRect().height) })`);
+  const d1 = await dem();
+  assert.equal(d1.title, "Dịch vụ (1)");
+  assert.equal(d1.sum, "1 dịch vụ");
+  assert.match(d1.mob, /^1 dịch vụ · Tổng /);
+  assert.equal(d1.due, false, "chưa có thanh toán trước: không hiện 'Còn lại'");
+  assert.match(d1.toast.at(-1) ?? "", /^Đã thêm .+ — đơn có 1 dịch vụ$/);
+  assert.equal(await p.ev("getComputedStyle(document.querySelector('.toast-bao')).pointerEvents"), "none", "báo ngắn không bấm được");
+  const toastR = await p.ev("(() => { const a = document.querySelector('.toast-bao').getBoundingClientRect(), b = document.getElementById('save').getBoundingClientRect(); return a.bottom <= b.top || a.top >= b.bottom; })()");
+  assert.equal(toastR, true, "báo ngắn không che nút Lưu ở 390px");
+  await p.ev("document.getElementById('catalog-q').focus(); true");
+  await p.ev(setInput("document.getElementById('catalog-q')", "TD101"));
+  await p.waitFor("document.querySelectorAll('#catalog-list .catalog-pick').length === 1", "TD101 lần hai");
+  assert.equal(await p.ev("document.querySelector('#catalog-list .catalog-pick .chip-picked')?.textContent"), "đã chọn", "kết quả tìm đã có trong đơn gắn 'đã chọn'");
+  await p.ev("document.querySelector('#catalog-list .catalog-pick').click(); true");
+  await p.waitFor(`${cards}.length === 2`, "chọn trùng vẫn được");
+  const d2 = await dem();
+  assert.equal(d2.title, "Dịch vụ (2)");
+  assert.match(d2.toast.at(-1) ?? "", /— đơn có 2 dịch vụ$/);
+  await p.ev(setInput("document.getElementById('depositAmount')", "100000"));
+  await p.waitFor("!document.getElementById('mobile-due-wrap').hidden", "có thanh toán trước: hiện 'Còn lại'");
+  const d3 = await dem();
+  console.log(`   thanh dính đáy 390px: không thanh toán trước ${d2.bar}px, có thanh toán trước ${d3.bar}px`);
+  await p.ev(setInput("document.getElementById('depositAmount')", ""));
+  ok(`đếm dịch vụ: 'Dịch vụ (N)', Tóm tắt 'N dịch vụ', thanh đáy một dòng (Còn lại chỉ khi có thanh toán trước; ${d2.bar}/${d3.bar}px), báo ngắn không che Lưu, nhãn 'đã chọn' không chặn chọn trùng`);
   const m = await p.ev(`(() => {
     const small = [...document.querySelectorAll('.counter-btn, .svc-remove, #save, .catalog-list button, .trip > summary')].filter((el) => { const r = el.getBoundingClientRect(); return r.width > 0 && (r.height < 43.5 || r.width < 43.5); }).map((el) => el.className + ' ' + Math.round(el.getBoundingClientRect().width) + 'x' + Math.round(el.getBoundingClientRect().height));
     const smallFont = [...document.querySelectorAll('input, select, textarea')].filter((el) => el.getBoundingClientRect().width > 0 && parseFloat(getComputedStyle(el).fontSize) < 16).map((el) => el.id || el.className);

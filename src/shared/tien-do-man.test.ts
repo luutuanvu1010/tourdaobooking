@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  buocDiem, cauConKhach, dongDiemXuatBen, cauTuChoiKhaiGio, giuTenKhach, goiYKhaiGio, ketThucDuoc, nhomCuoc, xayRaLucTu, type DiemVao, type SuatVao,
+  buocDiem, cauConKhach, cauTuChoiKhaiGio, giuTenKhach, goiYKhaiGio, ketThucDuoc, nhomCuoc, xayRaLucTu, type DiemVao, type SuatVao,
 } from "./tien-do-man.ts";
 import { vnLocalToMs } from "./vn-date.ts";
 
@@ -130,16 +130,5 @@ test("nhomCuoc: 'Hôm nay' + 'Ngày mai' + 'Ngày kia' (luôn có ba nhóm, tr�
   assert.deepEqual(g[0]!.the.map((t) => [t.gio, t.ma, t.chip.nhan, t.dong, t.canhBao, t.moChay]), [
     ["06:40", "CX-a", "Đang chạy", "79B-123.45 · 9 khách · 2 điểm đón · 1 điểm trả", [], true],
     ["09:00", "CX-b", "Bị giữ", "79B-123.45 · 9 khách · 2 điểm đón · 1 điểm trả", ["Chưa đủ tên khách: TD-1 thiếu 2 tên (văn phòng lo)"], false],
-  ]);
-});
-
-test("dongDiemXuatBen: màn Xuất bến của tài xế (chủ duyệt 30/9) — mỗi điểm: số, ĐÓN/TRẢ + giờ hẹn / xe tới, tên nơi, số khách; KHÔNG tên khách; theo thứ tự", () => {
-  const diem: DiemVao[] = [
-    { ...d(2, "DROPOFF"), soNguoi: 3 },
-    { ...d(1, "PICKUP"), gioXeToi: { ngay: "2026-10-01", gio: "07:20" }, soNguoi: 3, tenNoi: "KS Novotel" },
-  ];
-  assert.deepEqual(dongDiemXuatBen(diem, "2026-10-01"), [
-    { so: "1", nhan: "ĐÓN · HẸN 07:30 30/09 · XE TỚI 07:20", noi: "KS Novotel", khach: "3 khách" },
-    { so: "2", nhan: "TRẢ", noi: "Nơi 2", khach: "3 khách" },
   ]);
 });

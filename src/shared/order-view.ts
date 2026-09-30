@@ -1,6 +1,6 @@
 // Trang đơn (A2, đặc tả 5.3): DTO → mô hình hiển thị (mỗi dịch vụ một khối chỉ-đọc) và bộ nút theo trạng thái/quyền. Thuần, không DOM.
 import type { CatalogStatus, OrderServiceDto, OrderStatus } from "./contracts.ts";
-import { priceDeviation } from "./order-lines.ts";
+import { PAX_LABEL, PAX_ORDER, priceDeviation, type PaxCounts } from "./order-lines.ts";
 import { seesOnlyAssignedOrders, type PermissionHolder } from "./permissions.ts";
 import { paxSummary, unitLabel } from "./service-form.ts";
 import { tripRows, type TripRow } from "./trip-form.ts";
@@ -42,14 +42,15 @@ export function catalogTag(status: CatalogStatus | null): CatalogTag | null {
   return null;
 }
 
-export function serviceView(s: OrderServiceDto): ServiceView {
+/** `orderDate` (bản 1.39) = ngày của đơn đã hiện ở dải đầu trang — dịch vụ cùng ngày không lặp dòng "Khởi hành" (`tripRows`). */
+export function serviceView(s: OrderServiceDto, orderDate: string | null = null): ServiceView {
   return {
     id: s.id,
     name: s.name,
     code: s.catalogCode,
     unit: unitLabel(s.unit),
     pax: paxSummary(s.pax, s.unit),
-    trip: tripRows(s),
+    trip: tripRows(s, orderDate),
     lines: s.items.map((it) => ({
       id: it.id,
       description: it.description,
@@ -63,6 +64,11 @@ export function serviceView(s: OrderServiceDto): ServiceView {
     subtotal: s.items.reduce((sum, it) => sum + it.lineTotal, 0),
     tag: catalogTag(s.catalogStatus),
   };
+}
+
+/** Số khách viết đủ chữ cho dải đầu trang đơn (bản 1.39): "8 người lớn, 1 trẻ em"; bỏ loại 0 khách; không khách → "". Danh sách đơn vẫn viết tắt. */
+export function paxFullText(pax: PaxCounts): string {
+  return PAX_ORDER.filter((c) => pax[c] > 0).map((c) => `${pax[c]} ${PAX_LABEL[c].toLowerCase()}`).join(", ");
 }
 
 export interface OrderActions {

@@ -11,16 +11,42 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
-    // Đợt giao diện G1 theo góp ý người dùng 30/9 (docs/superpowers/specs/2026-09-30-phan-tich-gop-y-nguoi-dung.md §7.2: T2, T3, T5). Số "1.39" TẠM:
-    // nhánh giao-dien-sua-nho-1-39 và phiên sổ tiền lượt 1 cũng thêm mục — người gộp chốt số trống kế tiếp LÚC GỘP (gộp mục nếu phát hành chung).
-    // Bộ lọc đơn phía máy chủ (T4) chưa có màn nên chưa ghi ở đây.
+    // Đợt giao diện G1 theo góp ý người dùng 30/9 (docs/superpowers/specs/2026-09-30-phan-tich-gop-y-nguoi-dung.md §7.2 + câu trả lời của chủ cho README
+    // docs/design/gop-y-2026-09-30/). Số "1.42" TẠM theo điều phối (1.41 dành cho sổ tiền lượt 1); người gộp chốt số trống kế tiếp LÚC GỘP.
+    version: "1.42",
+    date: "2026-09-30",
+    items: [
+      { kind: "moi", text: "Danh sách đơn có nút \"Lọc\": lọc cùng lúc theo ngày đi, dịch vụ, trạng thái và đơn mình lập; máy nhớ bộ lọc cho lần sau, bấm \"Xoá lọc\" để bỏ." },
+      { kind: "moi", text: "Trang chủ: khối \"Chuyến đón\" có ba nút Hôm nay / Ngày mai / Ngày kia." },
+      { kind: "moi", text: "Tạo đơn: lọc dịch vụ theo \"Hay dùng\" (bấm ☆ để ghim), theo người hoặc theo nhóm; máy nhớ lựa chọn cho lần sau." },
+      { kind: "moi", text: "Tài xế xem được cuốc của ngày kia ở trang \"Cuốc của tôi\" (trước chỉ hôm nay và ngày mai)." },
+      { kind: "doi", text: "Màn tài xế: mỗi điểm đón hiện thêm giờ xe tới nếu khác giờ hẹn khách." },
+      { kind: "doi", text: "Danh sách đơn: đơn có nơi đón hiện luôn dòng \"Đón tại …\" ngay trên thẻ, không phải bấm mở." },
+      { kind: "doi", text: "Góp ý / Báo lỗi: trạng thái hiện nổi bật theo từng bước (Mới → Đã tiếp nhận → Đang xử lý → Đã xong); yêu cầu đã xong hoặc bị từ chối có nút \"Mở lại\"." },
+    ],
+  },
+  {
+    // Sửa giao diện nhỏ theo rà soát 30/9 (docs/superpowers/specs/2026-09-30-ra-soat-luong-giao-dien-phan-loai-huong-dan.md §2 trên nhánh
+    // ra-soat-luong-giao-dien): chỉ bề mặt, không đổi máy chủ / dữ liệu. Số 1.40 (1.39 = bản phông chữ đã lên production 30/9).
+    version: "1.40",
+    date: "2026-09-30",
+    items: [
+      { kind: "doi", text: "Tạo đơn: tiêu đề, phần Tóm tắt và thanh dưới đáy ghi rõ đơn đang có mấy dịch vụ; chọn xong có báo ngắn, dịch vụ đã chọn có nhãn \"đã chọn\"." },
+      { kind: "doi", text: "Tạo đơn: phần \"Thông tin chuyến\" nay thu gọn sẵn cả trên máy tính; dòng tóm tắt ghi giờ đón, nơi đón và giờ check-in." },
+      { kind: "doi", text: "Việc của tôi (hướng dẫn viên): thẻ đơn có giờ khởi hành, check-in, ghi chú và nút \"Xem đơn\"; nhãn tiền đổi thành \"Thanh toán trước / Còn lại\"." },
+      { kind: "doi", text: "Trang đơn: không lặp ngày khởi hành ở từng dịch vụ; số khách ở đầu trang ghi đủ chữ, ví dụ \"8 người lớn, 1 trẻ em\"." },
+      { kind: "doi", text: "Màn tài xế: nút \"Kết thúc gián đoạn\" nhỏ lại, viền đỏ; nút \"Kết thúc chuyến\" khi chưa bấm được vẫn hiện rõ là một nút." },
+      { kind: "moi", text: "Tài xế thấy trước các điểm đón, giờ hẹn và số khách của chuyến." },
+    ],
+  },
+  {
+    // Rà soát phông + cỡ chữ (chủ dự án giao 30/9: "chọn phông tiếng Việt chuẩn", lỗi phông nhẹ trên Windows) — đặc tả
+    // docs/superpowers/specs/2026-09-30-phong-chu-va-co-chu.md. Số "1.39" TẠM (production 1.38); người gộp chốt số trống kế tiếp LÚC GỘP.
     version: "1.39",
     date: "2026-09-30",
     items: [
-      { kind: "moi", text: "Tài xế xem được cuốc của ngày kia ở trang \"Cuốc của tôi\" (trước chỉ hôm nay và ngày mai)." },
-      { kind: "doi", text: "Khi chuyến đang chạy, mỗi điểm đón hiện thêm giờ xe tới nếu khác giờ hẹn khách." },
-      { kind: "doi", text: "Danh sách đơn: đơn có nơi đón hiện luôn dòng \"Đón tại …\" ngay trên thẻ, không phải bấm mở." },
-      { kind: "doi", text: "Góp ý / Báo lỗi: yêu cầu đã xong hoặc bị từ chối có nút \"Mở lại\" để xử lý tiếp." },
+      { kind: "sua", text: "Sửa lỗi chữ tiếng Việt trên máy tính Windows: dấu có lúc bị lệch hoặc tách khỏi chữ, nút bấm hiện phông khác." },
+      { kind: "doi", text: "Toàn bộ app dùng một phông chữ thiết kế riêng cho tiếng Việt (Be Vietnam Pro), hiển thị giống nhau trên iPhone, Android và máy tính." },
     ],
   },
   {

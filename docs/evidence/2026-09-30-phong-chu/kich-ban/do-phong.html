@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Đo phông</title>
+<link rel="stylesheet" href="/app.css"></head>
+<body style="padding:16px;background:#fff">
+<h1 data-k="h1">Điều phối xe — Hướng dẫn viên</h1>
+<p data-k="nfc-400">NFC 400: Đơn chờ nhận · Nguyễn Thị Mỹ Hạnh · Đảo Hòn Mun lặn ngắm san hô · 1.250.000 ₫</p>
+<p data-k="nfc-600" style="font-weight:600">NFC 600: Việc của tôi · Xác nhận đơn · Người phụ trách · Giờ đón 07:30</p>
+<p data-k="nfc-800" style="font-weight:800">NFC 800: ẤẦẨẪẬ ấầẩẫậ ỞỠỢ ởỡợ ỄỆ ễệ ƯỪỨỰ ừứự</p>
+<p data-k="nfd-400" id="nfd"></p>
+<p data-k="nfd-800" id="nfd8" style="font-weight:800"></p>
+<p><button data-k="button" type="button">Nút trần: Lưu nháp · Huỷ đơn</button> <button class="pill-btn" data-k="pill" type="button">Sửa số khách</button></p>
+<p><input data-k="input" value="Ô gõ: Nguyễn Văn Đức"></p>
+<p data-k="symbols">Ký hiệu: Trang chủ → Đơn · ✓ đạt · ✕ đóng · ↑ ↓ · ▾</p>
+<p data-k="tiny" style="font-size:var(--fs-dp-tiny)">Chữ nhỏ nhất (--fs-dp-tiny): Tải 12/16 khách · Bây giờ 14:05 · mốc ấở</p>
+<p data-k="pin" class="pin">482 913</p>
+<script>
+  // Dạng "Unicode tổ hợp" (NFD) — như chữ gõ bằng Unikey chế độ tổ hợp trên Windows hoặc dán từ nguồn khác.
+  const s = "NFD 400: Nguyễn Thị Mỹ Hạnh · Đảo Hòn Mun · Xác nhận đơn · Hướng dẫn viên";
+  document.getElementById("nfd").textContent = s.normalize("NFD");
+  document.getElementById("nfd8").textContent = "NFD 800: ẤẦẨẪẬ ỞỠỢ ỄỆ ƯỪỨỰ".normalize("NFD");
+</script>
+</body></html>
