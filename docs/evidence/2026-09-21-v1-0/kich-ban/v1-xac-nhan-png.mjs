@@ -63,6 +63,8 @@ async function step(id, name, fn) {
 const LIB_ENTRY = [
   'export { prepareConfirmation, renderConfirmationPng, CONFIRMATION_WIDTH, CONFIRMATION_MARGIN } from "./web/confirmation-image.ts";',
   'export { buildConfirmation } from "./src/shared/order-confirmation.ts";',
+  // Sổ tiền lượt 1 (ADR-0026 đ11): ảnh dựng từ ReceiptDto (danh sách trắng) — đơn giả của bước h đi qua CHÍNH hàm dựng biên nhận của máy chủ.
+  'export { dungBienNhan } from "./src/modules/receipt/rules.ts";',
 ].join("\n");
 let LIB_JS = null;
 let libError = "";
@@ -108,8 +110,8 @@ const PAGE_JS = `(() => {
       return btoa(s);
     },
     async modelOf(orderId, handler) {
-      const [o, c] = await Promise.all([fetch('/api/orders/' + orderId).then((r) => r.json()), fetch('/api/company').then((r) => r.json())]);
-      return __lib.buildConfirmation(o.order, c.company, handler);
+      const r = await fetch('/api/orders/' + orderId + '/receipt').then((x) => x.json()); // sổ tiền lượt 1: biên nhận danh sách trắng (đã trả / còn lại từ billing)
+      return __lib.buildConfirmation(r.receipt, handler);
     },
     /** Phân tích một ảnh PNG theo bố cục của CHÍNH mô hình: mọi khối chữ có mực đúng màu, lề trống, đáy trống, dải màu chính, dấu tiếng Việt, chồng chữ. */
     async analyzeModel(model, blob) {
@@ -240,6 +242,8 @@ const call = async (account, method, path, body) => {
 const NO_TRIP = { departDate: "", departTime: "", pickupTime: "", pickupPlace: "", checkinDate: "", checkinTime: "", checkinPlace: "", note: "" };
 const pax = (adult, child = 0, senior = 0, infant = 0) => ({ adult, child, senior, infant });
 const cust = (name, o = {}) => ({ customerName: name, customerPhone: "0903 111 222", customerEmail: "", customerNote: "", discount: 0, depositAmount: 0, depositMethod: null, paymentNote: "", ...o });
+// Sổ tiền lượt 1 (ADR-0026 đ9): máy chủ từ chối cọc trong thân đơn (409 client_outdated) — `create` tách ra và ghi thành LẦN THU sau khi lập đơn.
+const HINH_THUC = { cash: "CASH", bank_transfer: "BANK_TRANSFER" };
 const tour = (o = {}) => ({ kind: "catalog", catalogCode: "TD101", pax: pax(2, 1), unitPrices: { adult: 1350000, child: 950000 }, catalogPriceSeen: { adult: 1350000, child: 950000 }, ...NO_TRIP, departDate: vnDate(7), departTime: "07:30", pickupTime: "07:00", pickupPlace: "Khách sạn Sunrise, 12 Trần Phú", checkinTime: "06:45", checkinPlace: "Bến Cầu Đá", ...o });
 // Dịch vụ nhập tay (ảnh xác nhận phải vẽ đúng chúng: dữ liệu CŨ vẫn có). 2026-09-26 (DK-T3-01 R1, chủ dự án "loại bỏ hoàn toàn dịch vụ nhập tay"): API không
 // nhận dịch vụ nhập tay MỚI (400) → gửi dịch vụ danh mục giữ chỗ TTB06 (cùng số khách), `create` đổi nó thành ĐÚNG dịch vụ nhập tay này (tên, các dòng tiền,
@@ -248,10 +252,14 @@ const manual = (name, items, o = {}) => {
   const { pax: guests = pax(3), ...trip } = o;
   return { kind: "catalog", catalogCode: "TTB06", pax: pax(guests.adult), catalogPriceSeen: { adult: 800000 }, ...NO_TRIP, departDate: vnDate(7), ...trip, _legacy: { name, adult: guests.adult, items } }; // ADR-0021: cả đơn một ngày — mọi dịch vụ dựng sẵn cùng vnDate(7)
 };
-const create = async (account, body) => {
+const create = async (account, { depositAmount = 0, depositMethod = null, ...body }) => {
   const r = await call(account, "POST", "/api/orders", { ...body, services: body.services.map(({ _legacy, ...s }) => s) });
   assert.equal(r.status, 201, `dựng đơn: ${r.status} ${JSON.stringify(r.json)}`);
   const order = r.json.order;
+  if (depositAmount > 0) {
+    const t = await call(account, "POST", `/api/orders/${order.id}/payments`, { soTien: depositAmount, hinhThuc: HINH_THUC[depositMethod] ?? "OTHER", nguoiThu: "cong_ty" });
+    assert.equal(t.status, 201, `lần thu trả trước: ${t.status} ${JSON.stringify(t.json)}`);
+  }
   if (!body.services.some((s) => s._legacy)) return order;
   body.services.forEach((s, i) => s._legacy && env.legacyManual(order.id, order.services[i].id, s._legacy));
   return (await call(account, "GET", `/api/orders/${order.id}`)).json.order;
@@ -341,8 +349,8 @@ function getUi() {
     await p.ev(setInput("document.getElementById('customerPhone')", "0912 345 678"));
     await p.ev(setInput("document.getElementById('customerEmail')", "tuyet.nguyen@example.com"));
     await p.ev(setInput("document.getElementById('customerNote')", "Cả nhà ăn chay — xin xếp ghế gần nhau."));
-    await p.ev(setInput("document.getElementById('depositAmount')", "500000"));
-    await p.ev(setInput("document.getElementById('depositMethod')", "cash"));
+    await p.ev(setInput("document.getElementById('prepaidAmount')", "500000")); // sổ tiền lượt 1: ghi thành lần thu ở bước hai sau khi lưu
+    await p.ev(setInput("document.getElementById('prepaidMethod')", "CASH"));
     await p.ev("document.getElementById('save').click(); true");
     await p.waitFor("location.pathname === '/order'", "chuyển tới trang đơn sau khi lưu", 15000);
     await p.waitFor(`${DIALOG} !== null`, "hộp thoại tự mở", 8000);
@@ -635,7 +643,7 @@ const syntheticOrder = (money, big = true) => {
     id: "o1", orderCode: "TD-20260921-9999", staffId: "st", staffName: "Nguyễn Thị Người Lập", status: "confirmed",
     customerName: `${LONG_WORD}-${LONG_WORD}`, customerPhone: "0901 234 567", customerEmail: `${LONG_WORD.replace(/-/g, ".")}@example.com`.toLowerCase(),
     customerNote: Array.from({ length: 12 }, (_, i) => `Ghi chú khách dòng ${i + 1}: yêu cầu đặc biệt khá dài cần ngắt dòng đúng chỗ, dấu tiếng Việt không được cắt, ${LONG_WORD}`).join("\n"),
-    subtotal: money, discount: money, total: money, depositAmount: money, depositMethod: "cash", remainingAmount: -money, paymentNote: "NOI-BO", createdAt: "2026-09-20T18:30:00.000Z", updatedAt: "2026-09-20T18:30:00.000Z", confirmedAt: null, services,
+    subtotal: money, discount: money, total: money, paymentNote: "NOI-BO", createdAt: "2026-09-20T18:30:00.000Z", updatedAt: "2026-09-20T18:30:00.000Z", confirmedAt: null, deliveredAt: null, completedAt: null, services,
   };
 };
 await step("h", "đơn cỡ tối đa (20 dịch vụ, 50 dòng, tên 100+ ký tự liền, tiền 100.000.000.000 ₫, ghi chú dài) và tiền rộng quá cột: không lỗi, không tràn lề, không chữ chồng nhau, mọi chữ có mực, đúng giới hạn diện tích canvas", async () => {
@@ -644,7 +652,7 @@ await step("h", "đơn cỡ tối đa (20 dịch vụ, 50 dòng, tên 100+ ký t
     const order = syntheticOrder(money, big);
     const a = await p.ev(`(async () => {
       const company = (await (await fetch('/api/company')).json()).company;
-      const model = __lib.buildConfirmation(${JSON.stringify(order)}, company, 'Lê Minh Tuấn');
+      const model = __lib.buildConfirmation(__lib.dungBienNhan(${JSON.stringify(order)}, company, { daTra: ${money}, conLai: ${money} }), 'Lê Minh Tuấn');
       const blob = await __lib.renderConfirmationPng(model);
       return __t.analyzeModel(model, blob);
     })()`);
