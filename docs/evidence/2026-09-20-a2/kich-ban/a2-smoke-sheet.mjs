@@ -150,8 +150,9 @@ try {
   await p.waitFor(`${closed} && !document.getElementById('error').hidden && /Đã lưu thông tin chuyến\\./.test(document.getElementById('error').textContent)`, "đóng bảng + banner đã lưu", 15000);
   assert.equal(await p.ev("document.getElementById('error').classList.contains('banner-info')"), true);
   assert.equal(await p.ev("document.activeElement.dataset.action === 'edit-trip'"), true, "focus về nút mới sau khi tải lại");
-  assert.deepEqual(await p.ev(facts(1)), [["Số khách", "3 khách"], ["Khởi hành", dmy(vnDate(13))], ["Đón", "06:45 · Khách sạn Sunrise"]]);
-  assert.deepEqual(await p.ev(facts(0)), [["Số khách", "2 người lớn · 1 trẻ em"], ["Khởi hành", `${dmy(vnDate(13))} · 07:30`], ["Đón", "07:00"], ["Check-in", "Cùng ngày khởi hành · 09:00"], ["Ghi chú", "Đổi giờ đón"]]);
+  // bản 1.39: dịch vụ cùng ngày với đơn không lặp dòng "Khởi hành" (chỉ còn "Giờ khởi hành" nếu có giờ)
+  assert.deepEqual(await p.ev(facts(1)), [["Số khách", "3 khách"], ["Đón", "06:45 · Khách sạn Sunrise"]]);
+  assert.deepEqual(await p.ev(facts(0)), [["Số khách", "2 người lớn · 1 trẻ em"], ["Giờ khởi hành", "07:30"], ["Đón", "07:00"], ["Check-in", "Cùng ngày khởi hành · 09:00"], ["Ghi chú", "Đổi giờ đón"]]);
   const after = await getOrder();
   const [s0, s1] = after.order.services;
   assert.deepEqual([s0.departDate, s0.departTime, s0.pickupTime, s0.pickupPlace, s0.checkinTime, s0.note], [vnDate(13), "07:30", "07:00", null, "09:00", "Đổi giờ đón"], "dịch vụ 1: ngày theo ô cả đơn, xoá đúng điểm đón, phần khác nguyên vẹn");

@@ -3,7 +3,7 @@ import { renderBanner } from "./banner";
 import { openBookerSheet } from "./booker-sheet";
 import { openConfirmationDialog } from "./confirmation-dialog";
 import { byId, h, replaceChildren } from "./dom";
-import { METHOD_LABEL, STATUS_LABEL, actionLabel, dateTime, dayMonth, paxCounts, vnd } from "./format";
+import { METHOD_LABEL, STATUS_LABEL, actionLabel, dateTime, dayMonth, vnd } from "./format";
 import { openHandlerSheet } from "./handler-sheet";
 import { icon } from "./icons";
 import { suKienVeDon, taoBoLamMoi } from "./lam-moi-logic";
@@ -20,7 +20,7 @@ import { NO_BOOKER_TEXT } from "../src/shared/booker";
 import { NO_HANDLER_TEXT, handlerControls, handlerFailure, handlerSaved, nguoiPhuTrachTuPhien } from "../src/shared/handler-view";
 import { type PaxCounts } from "../src/shared/order-lines";
 import { banner, classifyOrderError, type Banner } from "../src/shared/order-errors";
-import { khongQuyenSuaText, orderActions } from "../src/shared/order-view";
+import { khongQuyenSuaText, orderActions, paxFullText } from "../src/shared/order-view";
 import type { SuKienDon } from "../src/shared/bang-tin";
 
 const id = new URLSearchParams(location.search).get("id");
@@ -226,12 +226,12 @@ function handlerCard(order: Order, handler: Handler): HTMLElement {
  */
 function summaryBand(order: Order): HTMLElement {
   const firstSvc = order.services[0];
-  const when = firstSvc?.departDate ? `${dayMonth(firstSvc.departDate)}${firstSvc.pickupTime ? ` · ${firstSvc.pickupTime}` : ""}` : "Chưa có ngày đón";
+  const when = firstSvc?.departDate ? `${dayMonth(firstSvc.departDate)}${firstSvc.pickupTime ? ` · ${firstSvc.pickupTime}` : ""}` : "Chưa có ngày khởi hành"; // bản 1.39: cùng chữ với dòng cảnh báo ở thẻ dịch vụ (trước: "Chưa có ngày đón")
   const totalPax = order.services.reduce<PaxCounts>(
     (sum, s) => ({ adult: sum.adult + s.pax.adult, child: sum.child + s.pax.child, senior: sum.senior + s.pax.senior, infant: sum.infant + s.pax.infant }),
     { adult: 0, child: 0, senior: 0, infant: 0 },
   );
-  const pax = paxCounts(totalPax);
+  const pax = paxFullText(totalPax); // bản 1.39: viết đủ chữ ("8 người lớn, 1 trẻ em"); danh sách đơn vẫn viết tắt
   // Cùng công thức rút gọn tên dịch vụ dùng ở trang Đơn hàng (`web/orders.ts`, `serviceLine`): tổng số khách phía trên CỘNG DỒN mọi
   // dịch vụ, nên dòng phụ này không được chỉ ghi tên dịch vụ đầu tiên (I2) — phải phản ánh đơn có bao nhiêu dịch vụ.
   const serviceNames = order.services.map((s) => s.name);
@@ -273,7 +273,7 @@ function render(order: Order, history: AuditEntry[], canModify: boolean, handler
     h("header", { class: "detail-head" }, h("h1", null, order.orderCode)),
     summaryBand(order),
     h("p", { class: "muted" }, `Lập ${dateTime(order.createdAt)} bởi ${order.staffName}`, order.confirmedAt && ` · Xác nhận ${dateTime(order.confirmedAt)}`),
-    a.locked ? h("p", { class: "lock-note" }, icon("lock", 18), "Đơn đã xác nhận: dịch vụ, số khách và tiền đã khoá. Chỉ sửa được thông tin chuyến.") : null,
+    a.locked ? h("p", { class: "lock-note" }, icon("lock", 18), a.editTrip ? "Đơn đã xác nhận: dịch vụ, số khách và tiền đã khoá. Chỉ sửa được thông tin chuyến." : "Đơn đã xác nhận: dịch vụ, số khách và tiền đã khoá.") : null, // bản 1.39: không có nút sửa chuyến (vd hướng dẫn viên, kế toán) thì không hứa "sửa được thông tin chuyến"
 
     h(
       "div",
