@@ -27,6 +27,10 @@ export const FEEDBACK_TRANSITIONS: Record<FeedbackStatus, readonly FeedbackStatu
 };
 export const canTransition = (from: FeedbackStatus, to: FeedbackStatus): boolean => FEEDBACK_TRANSITIONS[from].includes(to);
 
+/** Chữ trên nút đổi trạng thái (màn Góp ý): từ Đã xong / Từ chối về Đã tiếp nhận là "Mở lại" (góp ý T2) — luật chuyển giữ nguyên. */
+export const nhanNutChuyen = (from: FeedbackStatus, to: FeedbackStatus): string =>
+  (from === "DONE" || from === "DECLINED") && to === "ACK" ? "Mở lại" : `→ ${FEEDBACK_STATUS_NAME[to]}`;
+
 /** Người gửi trả lời khi yêu cầu đã đóng → mở lại thành "Đã tiếp nhận". SQL ở repository.ts phản chiếu đúng luật này. */
 export const statusAfterSubmitterReply = (s: FeedbackStatus): FeedbackStatus => (s === "DONE" || s === "DECLINED" ? "ACK" : s);
 

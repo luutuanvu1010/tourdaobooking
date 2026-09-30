@@ -1,6 +1,6 @@
 // Trang Góp ý / Báo lỗi: gửi yêu cầu mới, "Yêu cầu của tôi", luồng trả lời; admin có thêm tab "Hàng đợi" (lọc, đổi trạng thái, ghi chú nội bộ).
 // Dữ liệu qua /api/feedback*. Chuỗi từ người dùng chỉ đi qua h()/textContent. Địa chỉ: /feedback (danh sách), ?id=<uuid> (luồng), ?new=1&from=<đường dẫn> (mở form).
-import { FEEDBACK_KINDS, FEEDBACK_KIND_NAME, FEEDBACK_STATUSES, FEEDBACK_STATUS_NAME, FEEDBACK_TRANSITIONS, type FeedbackStatus } from "../src/shared/feedback-catalog";
+import { FEEDBACK_KINDS, FEEDBACK_KIND_NAME, FEEDBACK_STATUSES, FEEDBACK_STATUS_NAME, FEEDBACK_TRANSITIONS, nhanNutChuyen, type FeedbackStatus } from "../src/shared/feedback-catalog";
 import { ApiError, api, type Api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
 import { can } from "../src/shared/permissions";
@@ -153,7 +153,7 @@ async function loadThread(id: string): Promise<void> {
   const controls: HTMLElement[] = [];
   if (d.canTriage) {
     for (const to of FEEDBACK_TRANSITIONS[t.status]) {
-      const b = h("button", { type: "button", class: "btn btn-link" }, `→ ${FEEDBACK_STATUS_NAME[to]}`);
+      const b = h("button", { type: "button", class: "btn btn-link" }, nhanNutChuyen(t.status, to));
       b.addEventListener("click", async () => {
         await act(() => api<Api.FeedbackDetailResponse>(`/api/feedback/${id}`, { method: "PATCH", body: { status: to } }), b);
         void loadThread(id); // thành công hay 409 (trạng thái đã đổi) đều nạp lại để thấy trạng thái mới; lỗi vẫn hiện ở banner

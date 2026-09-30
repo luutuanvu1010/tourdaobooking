@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { FEEDBACK_STATUSES, FEEDBACK_TRANSITIONS, canTransition, feedbackCode, isFeedbackKind, isFeedbackStatus, statusAfterSubmitterReply, type FeedbackStatus } from "./feedback-catalog.ts";
+import { FEEDBACK_STATUSES, FEEDBACK_TRANSITIONS, canTransition, nhanNutChuyen, feedbackCode, isFeedbackKind, isFeedbackStatus, statusAfterSubmitterReply, type FeedbackStatus } from "./feedback-catalog.ts";
 
 test("bảng chuyển trạng thái: đúng từng cặp (5 × 5)", () => {
   const ok: Record<FeedbackStatus, FeedbackStatus[]> = {
@@ -28,4 +28,12 @@ test("mã người đọc và kiểm giá trị lạ", () => {
   assert.equal(isFeedbackStatus("NEW"), true);
   assert.equal(isFeedbackStatus("CLOSED"), false);
   assert.equal(canTransition("NEW", "NEW"), false);
+});
+
+test("nhãn nút đổi trạng thái: Đã xong / Từ chối → Đã tiếp nhận hiện 'Mở lại' (góp ý T2); các bước khác '→ <trạng thái>'", () => {
+  assert.equal(nhanNutChuyen("DONE", "ACK"), "Mở lại");
+  assert.equal(nhanNutChuyen("DECLINED", "ACK"), "Mở lại");
+  assert.equal(nhanNutChuyen("NEW", "ACK"), "→ Đã tiếp nhận");
+  assert.equal(nhanNutChuyen("ACK", "IN_PROGRESS"), "→ Đang xử lý");
+  assert.equal(nhanNutChuyen("IN_PROGRESS", "DONE"), "→ Đã xong");
 });
