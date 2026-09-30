@@ -60,7 +60,7 @@ const ALLOWED_EDGES: Record<string, readonly string[]> = {
   "van-chuyen": ["parties", "audit", "orders", "locations"],
   // ADR-0066: trợ lý Hỗ trợ (kho tri thức là tệp thuần ở src/shared/). ADR-0069 (accepted 2026-09-30) kéo theo hai cạnh: `audit` — ghi `tro_ly_settings_changed`
   // cùng lô với bản cài đặt mới (điều 5: "ai đổi lúc nào", không nội dung); `staff` — CHỈ ở tầng SQL, tên người hỏi / người lưu qua view công bố
-  // v_stf_staff_label (điều 5: lịch sử "ai hỏi"; mẫu `feedback`). Không module nào import tro-ly. NỚI cạnh (Điều 9.4): CHỜ chủ xác nhận ở báo cáo thi công ADR-0069.
+  // v_stf_staff_label (điều 5: lịch sử "ai hỏi"; mẫu `feedback`). Không module nào import tro-ly. NỚI cạnh (Điều 9.4): ĐÃ DUYỆT 2026-09-30 (chủ chọn 'Đồng ý cả hai' sau báo cáo kiểm độc lập ADR-0069).
   "tro-ly": ["audit", "staff"],
 };
 
