@@ -194,6 +194,9 @@ console.log("✓ nhiều quyền + hiệu lực ngay");
     assert.equal(r.status, 403, `${nhan}: ${r.status} ${JSON.stringify(r.body)}`);
   }
   assert.equal((await call(null, "GET", "/api/orders/nguoi-lap")).status, 401);
+  // D1 dùng chung: thongbao.mjs (chạy sau) đếm người nhận "noi-bo" bằng SQL "mọi tài khoản đang hoạt động có quyền khác PARTNER" — tài khoản Tài xế đối tác
+  // không thuộc nhóm đó phía máy chủ nên làm lệch phép đếm. Cho nghỉ tài khoản dùng một lần này ngay khi xong.
+  assert.equal((await call(ADMIN, "PATCH", `/api/staff/${taiXeDt.id}`, { active: false })).status, 200);
   // Lọc theo người vừa chọn: Kế toán lọc theo Đối tác → đúng đơn Đối tác lập; Đối tác lọc theo người khác → rỗng (bộ lọc không nới phạm vi).
   r = await call(ACC, "GET", `/api/orders?limit=100&nguoiLap=${doiTac.id}`);
   assert.deepEqual(r.body.orders.map((x) => x.id), [donDt.body.order.id]);
