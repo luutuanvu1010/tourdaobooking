@@ -1006,6 +1006,10 @@ body.login-page main.login { display: flex; flex-direction: column; height: 100%
 .dash-today { padding: 0; } /* .card cho padding mặc định; đầu mục + từng dòng tự chia lề (khuôn .list-card) */
 .dash-today-head { display: flex; align-items: center; gap: var(--s2); padding: var(--s3) var(--s4); border-bottom: 1px solid var(--c-border); }
 .dash-today-all { margin-left: auto; font-size: var(--fs-label); font-weight: 600; } /* liên kết tới trang Đơn hàng (bản mẫu) — chữ rút gọn "Tất cả" ở khổ điện thoại qua .lbl-full/.lbl-short */
+/* Ba nút chuyển ngày của "Chuyến đón" (góp ý YC-0007, cách A): nền nhạt, nút đang chọn nền primary. */
+.dash-days { display: flex; gap: var(--s1); margin: var(--s3) var(--s4) 0; padding: var(--s1); background: var(--c-surface-alt); border: 1px solid var(--c-border); border-radius: var(--radius-pill); }
+.dash-day { flex: 1; min-height: var(--tap-min); padding: 0 var(--s2); font: inherit; font-size: var(--fs-label); font-weight: 700; color: var(--c-text-muted); background: none; border: 0; border-radius: var(--radius-pill); cursor: pointer; white-space: nowrap; }
+.dash-day[aria-pressed="true"] { color: var(--c-on-dark); background: var(--c-primary); }
 #dash-today-list { display: flex; flex-direction: column; } /* kiểm gộp (minor): public/home.html không có class "dash-today-list" trên phần tử này (chỉ id) — selector cũ .dash-today-list chết */
 .dash-today-row { display: flex; align-items: center; gap: var(--s3); padding: var(--s3) var(--s4); color: inherit; text-decoration: none; border-bottom: 1px solid var(--c-border); }
 .dash-today-row:last-child { border-bottom: 0; }

@@ -543,6 +543,9 @@ export async function listPoolSources(db: D1Database, today: string): Promise<Po
 export interface DashboardData {
   /** "Chuyến đón hôm nay": đơn confirmed mà dịch vụ SỚM NHẤT có ngày đón (bỏ qua dịch vụ không có ngày) rơi đúng hôm nay — sắp theo giờ đón. */
   today: OrderSummaryDto[];
+  /** Cùng luật `today` cho ngày mai / ngày kia (góp ý YC-0007). */
+  tomorrow: OrderSummaryDto[];
+  dayAfter: OrderSummaryDto[];
   /** Đơn confirmed còn thiếu tiền (remainingAmount HIỆN HÀNH > 0, không phải cột gốc). */
   unpaid: { total: number; count: number; earliestDate: string | null };
   /** Đơn nháp chưa xác nhận (cùng `unassignedCount` là hai số duy nhất của Trang chủ có đếm đơn nháp). */
@@ -561,22 +564,10 @@ export interface DashboardData {
 }
 
 /**
- * Dữ liệu Trang chủ mới (`GET /api/orders/dashboard`, route `index.ts`). `today` = ngày dân sự VN (`vnToday`). `weekFrom`/`weekTo` = ngày dân sự VN
- * (thứ Hai/Chủ nhật, `vnWeekRange`), hai đầu bao gồm — hàm này tự đổi sang mốc ISO UTC nửa-mở khi lọc `created_at` (đúng quy ước `vnLocalToIso` đã
- * dùng nơi khác, KHÔNG tự chế cách đổi múi giờ mới).
- * BÀI HỌC ĐỢT B: `unpaid`/`revenueWeek` không lọc/tổng hợp thẳng trên cột `remaining_amount`/`total` GỐC của bảng `orders` — phải áp
- * `getLatestAdjustments` + `effectiveMoney` cho TỪNG đơn trước (đúng kỹ thuật `toSummaryDtos`/`listOrders` đang dùng).
- * `ordersWithHandler` = `ctx.ordersWithHandler` của route (gốc lắp ráp nối vào `dispatch`, ADR-0030 S20-13): trong các đơn đưa vào, đơn nào đang có
- * người phụ trách — nguồn DUY NHẤT của `unassignedCount`.
+ * "Chuyến đón" của MỘT ngày (Trang chủ): đơn confirmed mà dịch vụ SỚM NHẤT có ngày đón rơi đúng `ngay`, sắp theo giờ đón của dịch vụ quyết định.
+ * Tách từ khối 1 của `getDashboard` (góp ý YC-0007, 30/9) để dùng CÙNG luật cho hôm nay, ngày mai, ngày kia.
  */
-export async function getDashboard(
-  db: D1Database,
-  staffId: string,
-  today: string,
-  weekFrom: string,
-  weekTo: string,
-  ordersWithHandler: (orderIds: readonly string[]) => Promise<ReadonlySet<string>>,
-): Promise<DashboardData> {
+async function chuyenDonTrongNgay(db: D1Database, ngay: string): Promise<OrderSummaryDto[]> {
   // 1) "Chuyến đón hôm nay": id các đơn confirmed mà dịch vụ CÓ NGÀY sớm nhất của đơn (os.id = kết quả subquery) đúng bằng `today`.
   //    Đơn không có dịch vụ nào có ngày đón → subquery không ra dòng nào → không đơn nào khớp `os.id = NULL` → đơn đó không lọt vào (đúng ý §7).
   //    Sắp theo giờ đón của CHÍNH dịch vụ quyết định "hôm nay" (khác quy ước `summarizeServices` sắp theo sort_order — ở đây cần thứ tự lịch trình trong ngày).
@@ -599,7 +590,7 @@ export async function getDashboard(
          AND os.depart_date = ?1
          AND NOT EXISTS (SELECT 1 FROM order_service x WHERE x.order_id = o.id AND x.depart_date IS NOT NULL AND x.depart_date < ?1)`,
     )
-    .bind(today)
+    .bind(ngay)
     .all<{ id: string; order_id: string; depart_date: string; sort_order: number }>();
   const pickupOf = await derivedPickupByService(db, [...new Set(candidates.map((c) => c.order_id))]);
   const withPickup = candidates.map((c) => ({ ...c, pickupTime: pickupOf.get(c.id)?.pickupTime ?? null, pickupPlace: pickupOf.get(c.id)?.pickupPlace ?? null }));
@@ -622,12 +613,35 @@ export async function getDashboard(
       : [],
   );
   // json_each() không giữ thứ tự — sắp lại theo ĐÚNG thứ tự `todayIds` (đã sắp theo giờ đón ở câu trên).
-  const todaySummaries = (
+  return (
     await toSummaryDtos(
       db,
       todayIds.flatMap((id) => (todayRowsById.has(id) ? [todayRowsById.get(id)!] : [])),
     )
   ).map((s) => ({ ...s, trip: todayTripById.get(s.id) ?? s.trip }));
+}
+
+/**
+ * Dữ liệu Trang chủ mới (`GET /api/orders/dashboard`, route `index.ts`). `today` = ngày dân sự VN (`vnToday`). `weekFrom`/`weekTo` = ngày dân sự VN
+ * (thứ Hai/Chủ nhật, `vnWeekRange`), hai đầu bao gồm — hàm này tự đổi sang mốc ISO UTC nửa-mở khi lọc `created_at` (đúng quy ước `vnLocalToIso` đã
+ * dùng nơi khác, KHÔNG tự chế cách đổi múi giờ mới).
+ * BÀI HỌC ĐỢT B: `unpaid`/`revenueWeek` không lọc/tổng hợp thẳng trên cột `remaining_amount`/`total` GỐC của bảng `orders` — phải áp
+ * `getLatestAdjustments` + `effectiveMoney` cho TỪNG đơn trước (đúng kỹ thuật `toSummaryDtos`/`listOrders` đang dùng).
+ * `ordersWithHandler` = `ctx.ordersWithHandler` của route (gốc lắp ráp nối vào `dispatch`, ADR-0030 S20-13): trong các đơn đưa vào, đơn nào đang có
+ * người phụ trách — nguồn DUY NHẤT của `unassignedCount`.
+ */
+export async function getDashboard(
+  db: D1Database,
+  staffId: string,
+  today: string,
+  weekFrom: string,
+  weekTo: string,
+  ordersWithHandler: (orderIds: readonly string[]) => Promise<ReadonlySet<string>>,
+): Promise<DashboardData> {
+  // 1) "Chuyến đón" hôm nay, ngày mai, ngày kia — cùng một luật (`chuyenDonTrongNgay`). Ngày mai / ngày kia: góp ý YC-0007 (chủ chọn cách A, 30/9).
+  const [todaySummaries, tomorrowSummaries, dayAfterSummaries] = await Promise.all([
+    chuyenDonTrongNgay(db, today), chuyenDonTrongNgay(db, addDays(today, 1)), chuyenDonTrongNgay(db, addDays(today, 2)),
+  ]);
 
   // 2) "Còn thiếu tiền": MỌI đơn confirmed (không lọc trước theo cột gốc — điều chỉnh có thể đưa remainingAmount từ 0 lên dương hoặc ngược lại),
   //    áp effective money từng đơn (qua NGUỒN DUY NHẤT `computeEffectiveMoney`, Đợt E task 7) RỒI mới lọc/tổng hợp trong JS.
@@ -705,6 +719,8 @@ export async function getDashboard(
 
   return {
     today: todaySummaries,
+    tomorrow: tomorrowSummaries,
+    dayAfter: dayAfterSummaries,
     unpaid: { total: unpaidTotal, count: unpaidIds.length, earliestDate: earliestUnpaid?.d ?? null },
     draftCount: draftCountRow?.n ?? 0,
     unassignedCount,

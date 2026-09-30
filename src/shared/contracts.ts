@@ -443,6 +443,9 @@ export interface PoolResponse { orders: PoolOrderDto[] }
  */
 export interface DashboardResponse {
   today: OrderSummaryDto[];
+  /** Chuyến đón ngày mai / ngày kia — cùng luật và cùng người xem như `today` (góp ý YC-0007). */
+  tomorrow: OrderSummaryDto[];
+  dayAfter: OrderSummaryDto[];
   unpaid: { total: number; count: number; earliestDate: string | null };
   draftCount: number;
   unassignedCount: number;

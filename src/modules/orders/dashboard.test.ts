@@ -216,6 +216,38 @@ test("today: chỉ đơn confirmed có dịch vụ SỚM NHẤT (trong các dị
   assert.deepEqual(o4.trip, { departDate: TODAY, pickupTime: "06:00", pickupPlace: "Khách sạn 4a" }, "trip lấy theo dịch vụ QUYẾT ĐỊNH hôm nay (sv4a — ngày sớm nhất có ngày đón; ở đây trùng với sort_order nhỏ nhất, KHÔNG phải quy tắc chung, xem test 'trip lấy theo dịch vụ QUYẾT ĐỊNH…' bên dưới)");
 });
 
+test("tomorrow / dayAfter (góp ý YC-0007, chủ chọn cách A 30/9): CÙNG luật chọn đơn như 'hôm nay' — ngày SỚM NHẤT có ngày = ngày mai / ngày kia, chỉ đơn confirmed, sắp theo giờ đón", async () => {
+  const sqlite = seed();
+  const db = fakeD1(sqlite);
+  const KIA = "2026-09-26";
+  insertDraftOrder(sqlite, { id: "m1", staffId: "s-a", createdAt: "2026-09-20T01:00:00.000Z" });
+  insertService(sqlite, { id: "svm1", orderId: "m1", departDate: TOMORROW, pickupTime: "09:00" });
+  confirm(sqlite, "m1");
+  insertDraftOrder(sqlite, { id: "m2", staffId: "s-a", createdAt: "2026-09-20T01:00:00.000Z" });
+  insertService(sqlite, { id: "svm2", orderId: "m2", departDate: TOMORROW, pickupTime: "07:00", pickupPlace: "Bến Cầu Đá" });
+  confirm(sqlite, "m2");
+  // m3: dịch vụ sớm nhất là HÔM NAY, một dịch vụ ngày mai → chỉ ở "hôm nay", không lặp ở "ngày mai".
+  insertDraftOrder(sqlite, { id: "m3", staffId: "s-a", createdAt: "2026-09-20T01:00:00.000Z" });
+  insertService(sqlite, { id: "svm3a", orderId: "m3", sortOrder: 0, departDate: TODAY });
+  insertService(sqlite, { id: "svm3b", orderId: "m3", sortOrder: 1, departDate: TOMORROW });
+  confirm(sqlite, "m3");
+  // m4: nháp ngày mai → không vào. k1: ngày kia. x1: ngày sau ngày kia → không vào khối nào.
+  insertDraftOrder(sqlite, { id: "m4", staffId: "s-a", createdAt: "2026-09-20T01:00:00.000Z" });
+  insertService(sqlite, { id: "svm4", orderId: "m4", departDate: TOMORROW });
+  insertDraftOrder(sqlite, { id: "k1", staffId: "s-a", createdAt: "2026-09-20T01:00:00.000Z" });
+  insertService(sqlite, { id: "svk1", orderId: "k1", departDate: KIA, pickupTime: "06:45" });
+  confirm(sqlite, "k1");
+  insertDraftOrder(sqlite, { id: "x1", staffId: "s-a", createdAt: "2026-09-20T01:00:00.000Z" });
+  insertService(sqlite, { id: "svx1", orderId: "x1", departDate: "2026-09-27" });
+  confirm(sqlite, "x1");
+
+  const data = await getDashboard(db, "s-a", TODAY, WEEK.from, WEEK.to, NO_HANDLERS);
+  assert.deepEqual(data.today.map((o) => o.id), ["m3"]);
+  assert.deepEqual(data.tomorrow.map((o) => o.id), ["m2", "m1"], "ngày mai: theo giờ đón, không có m3 (sớm nhất là hôm nay), không có nháp");
+  assert.deepEqual(data.tomorrow[0]!.trip, { departDate: TOMORROW, pickupTime: "07:00", pickupPlace: "Bến Cầu Đá" });
+  assert.deepEqual(data.dayAfter.map((o) => o.id), ["k1"]);
+});
+
 test("today: đơn có điều chỉnh tiền → total/remainingAmount trong danh sách hôm nay là số HIỆN HÀNH, không phải cột gốc (bài học Đợt B)", async () => {
   const sqlite = seed();
   const db = fakeD1(sqlite);
