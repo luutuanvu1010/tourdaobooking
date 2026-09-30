@@ -20,7 +20,7 @@ import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { viPhamChu } from "../src/shared/huong-dan.ts";
 import { MATRIX, PERMISSION_CODES, PERMISSION_LABEL } from "../src/shared/permissions.ts";
-import { LUONG_CHINH, LY_DO_PHU_THUOC, TEN_PHAN_HE, TEN_THAO_TAC } from "../src/shared/tro-ly-cau-truc-ten.ts";
+import { LUONG_CHINH, LY_DO_PHU_THUOC, O_HEP, TEN_PHAN_HE, TEN_THAO_TAC } from "../src/shared/tro-ly-cau-truc-ten.ts";
 import { viPhamKyThuat } from "../src/shared/tro-ly-loc-ky-thuat.ts";
 import { maskSource } from "./source-mask-lib.mjs";
 import { docCanh, dungCauTruc, oDuocHoi, taoKiem } from "./tro-ly-cau-truc-lib.mjs";
@@ -192,7 +192,7 @@ export function dungDauVaoCauTruc(root = ROOT_MAC_DINH) {
     duocHoi: oDuocHoi(tepModule(root), ops, maskSource),
     maQuyen: [...PERMISSION_CODES],
     nhanQuyen: PERMISSION_LABEL,
-    ten: { phanHe: TEN_PHAN_HE, thaoTac: TEN_THAO_TAC, lyDo: LY_DO_PHU_THUOC, luong: LUONG_CHINH },
+    ten: { phanHe: TEN_PHAN_HE, thaoTac: TEN_THAO_TAC, lyDo: LY_DO_PHU_THUOC, luong: LUONG_CHINH, oHep: O_HEP },
     trang: dungSoDo(root),
     kiem,
   };

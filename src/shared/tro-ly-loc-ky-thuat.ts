@@ -2,10 +2,10 @@
 // Dùng ở hai nơi: (1) bộ sinh `scripts/sinh-so-do-trang.mjs` — gặp vi phạm thì NÉM LỖI (không âm thầm bỏ); (2) `viPhamKho` (src/shared/tro-ly.ts) — cho MỌI
 // đoạn của kho (hướng dẫn, cách app vận hành, sơ đồ trang, cấu trúc app, ngữ cảnh). Hàng rào ghi ở docs/SO-HANG-RAO.md.
 //
-// Chặn: tiền tố bảng và mọi tên dạng `a_b` / `A_B`; `/api/`; đuôi tệp mã; tên module tiếng Anh viết thường đứng riêng; câu lệnh SQL; `D1`, `Worker`,
-// `Cloudflare`, `SQL`/`SQLite`; mã quyền (`SALES`, `SUPER_ADMIN`…); mã ô quyền (`order.view`…).
-// Không canh (dựa vào kỷ luật + người duyệt đọc diff tệp sinh): tên hạ tầng khác (tên nhà cung cấp, thư viện), tên hàm viết liền kiểu lạc đà, đường dẫn trang.
-// Chặn nhầm đã biết: "D1" cũng là một hạng bằng lái — viết "hạng D một" hoặc sửa bộ lọc khi thật sự cần (ghi ở sổ hàng rào).
+// Chặn: tiền tố bảng và mọi tên dạng `a_b` / `A_B`; `/api/`; đuôi tệp mã; tên module tiếng Anh viết thường đứng riêng; câu lệnh SQL; `D1`/`d1` (trừ "hạng D1"
+// — hạng bằng lái), `Worker`, `Cloudflare`, `SQL`/`SQLite`, `OpenAI`, `Turnstile`, `wrangler`, `esbuild`, `JWT`; mã quyền (`SALES`, `SUPER_ADMIN`…); mã ô quyền.
+// Không chặn nhãn giao diện thật người dùng thấy trên màn hình ("Google Sheet", "Thử key", "Face ID").
+// Không canh (dựa vào kỷ luật + người duyệt đọc diff tệp sinh): nhà cung cấp / thư viện khác ngoài danh sách, tên hàm kiểu lạc đà, đường dẫn trang.
 import { MATRIX, PERMISSION_CODES } from "./permissions.ts";
 import { TEN_PHAN_HE } from "./tro-ly-cau-truc-ten.ts";
 
@@ -28,7 +28,8 @@ const LUAT: readonly (readonly [RegExp, string])[] = [
   [/\.(?:ts|mjs|sql|js)\b/i, "tên tệp mã"],
   [/\b(?:SELECT|INSERT|UPDATE|DELETE)\b/, "câu lệnh cơ sở dữ liệu"],
   [/\bSQL(?:ite)?\b/i, "tên cơ sở dữ liệu"],
-  [/\bD1\b/, "tên hạ tầng (D1)"],
+  [/(?<!hạng )\bD1\b/i, "tên hạ tầng (D1)"], // "hạng D1" là hạng bằng lái — không chặn
+  [/\b(?:OpenAI|Turnstile|wrangler|esbuild|JWT)\b/i, "tên công cụ / nhà cung cấp kỹ thuật"],
   [/\bWorkers?\b/i, "tên hạ tầng (Worker)"],
   [/\bCloudflare\b/i, "tên hạ tầng (Cloudflare)"],
   [O_QUYEN, "mã ô quyền"],
