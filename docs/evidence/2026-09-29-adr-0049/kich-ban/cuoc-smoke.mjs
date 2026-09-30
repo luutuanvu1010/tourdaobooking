@@ -157,6 +157,13 @@ try {
   await b.step("3b", `5a 390, Q-L3-B phía "có tên": chuyến HÔM NAY (TH, tài xế Cường) — bấm "Xuất bến" → đang chạy: tên + năm sinh + liên hệ của đơn hiện${axeNote()}`, async () => {
     await p.send("Page.navigate", { url: `${env.base}/cuoc-chuyen?id=${TH.id}` });
     await p.waitFor(`!!document.querySelector('[data-action="xuat-ben"]') && location.search.includes('${TH.id}')`, "màn xuất bến TH");
+    // bản 1.39: chuyến HÔM NAY trước xuất bến — máy chủ ĐÃ gửi tên khách (trong ngày chạy) nhưng danh sách điểm trước xuất bến KHÔNG vẽ tên / SĐT / liên hệ
+    const cth = (await call(d.CUONG.account, "GET", `/api/van-chuyen/cuoc-cua-toi/${TH.id}`)).json;
+    assert.ok(cth.suat.some((x) => x.hoTen), "ca này phân biệt được: máy chủ có gửi tên khách");
+    assert.ok((await p.ev("document.querySelectorAll('.dp-cc-diem .dp-run').length")) >= 2, "có danh sách điểm trước xuất bến");
+    const hTruoc = await html(p);
+    for (const x of [...TEN_OH, SDT_OH, SDT_OH.replace(/\s/g, ""), LIEN_HE_OH]) assert.ok(!hTruoc.includes(x), `trước xuất bến (hôm nay): không lộ ${x}`);
+    assert.equal(await p.ev("document.querySelectorAll('.dp-cc-diem .dp-khach, .dp-run-lien-he').length"), 0, "trước xuất bến: không khách từng người, không liên hệ");
     assert.deepEqual(await p.ev(`[...document.querySelectorAll('.dp-cond')].map((x) => x.innerText.replace(/\\s+/g, ' ').trim())`), ["✓ Đủ điều kiện xuất bến"]);
     await p.ev(click('[data-action="xuat-ben"]'));
     await p.waitFor(`!!document.querySelector('.dp-cc-head')`, "màn đang chạy TH").catch(async (e) => { throw new Error(`${e.message}\n    trang: ${await p.ev(txt("#cc-trang"))}\n    POST: ${JSON.stringify(apiCalls(p).filter((r) => r.method === "POST").map((r) => r.path))}`); });
