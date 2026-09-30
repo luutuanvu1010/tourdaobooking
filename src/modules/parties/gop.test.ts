@@ -129,3 +129,8 @@ test("có chặn vẫn trả đủ phần chuyển / giữ / bỏ (xem trước 
   assert.deepEqual(ma(k), ["merge_source_busy"]);
   assert.equal(k.lienHe.mo.length, 1);
 });
+
+test("Phán quyết Task 3: liên hệ của A bắt đầu sau hôm nay → merge_source_future_row (đóng 'hôm nay' sẽ phạm CHECK ngày đóng ≥ ngày bắt đầu); bắt đầu hôm nay thì không chặn", () => {
+  assert.deepEqual(ma(ke(hs("a", { lienHe: [sdt("c", "0912000111", { validFrom: "2026-10-02" })] }), hs("b"))), ["merge_source_future_row"]);
+  assert.deepEqual(ma(ke(hs("a", { lienHe: [sdt("c", "0912000111", { validFrom: HOM_NAY })] }), hs("b"))), []);
+});

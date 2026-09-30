@@ -7,6 +7,10 @@ export type NhomVai = "INTERNAL" | "EXTERNAL" | "OTHER";
 export interface LienHeGop { id: string; kind: string; value: string; valueNormalized: string; label: string | null; isPrimary: boolean; validFrom: string; validTo: string | null }
 export interface CongViecGop { id: string; code: string; name: string; group: NhomVai; locationId: string | null; locationName: string | null; validFrom: string; validTo: string | null }
 export interface QuanHeGop { id: string; typeCode: string; typeName: string; fromId: string; fromName: string; toId: string; toName: string; validFrom: string; validTo: string | null }
+/**
+ * `current` (HỢP ĐỒNG với nơi dựng đầu vào từ CSDL): dòng hiện hành ⇔ CHƯA huỷ VÀ không có dòng gia hạn nào CHƯA huỷ trỏ tới nó (`previous_id`) — đúng biểu
+ * thức HIEN_HANH của repository.ts (cột `is_current` của docsForMerge). `voided` = voided_at khác NULL.
+ */
 export interface GiayToGop { id: string; typeCode: string; typeName: string; className: string | null; previousId: string | null; voided: boolean; current: boolean }
 export interface HoSoGop {
   id: string;
@@ -50,7 +54,7 @@ const CAU: Record<Exclude<MaChanGop, "merge_source_busy" | "merge_order_invalid"
   merge_source_account_role: "Hồ sơ phụ đang giữ vai quyết định quyền đăng nhập (nội bộ hoặc bên ngoài) — kết thúc vai đó ở màn Quản lý tài khoản trước.",
   merge_role_group_conflict: "Sau khi gộp, hồ sơ chính sẽ vừa giữ vai nội bộ vừa giữ vai bên ngoài — không được.",
   merge_source_is_target: "Đã có hồ sơ khác gộp vào hồ sơ phụ này — hãy chọn nó làm hồ sơ chính (không gộp nối tiếp).",
-  merge_source_future_row: "Hồ sơ phụ có công việc hoặc quan hệ bắt đầu sau hôm nay — kết thúc hoặc sửa dòng đó trước khi gộp.",
+  merge_source_future_row: "Hồ sơ phụ có liên hệ, công việc hoặc quan hệ bắt đầu sau hôm nay — kết thúc hoặc sửa dòng đó trước khi gộp.",
   merge_source_owns_vehicle: "Hồ sơ phụ đang đứng tên xe — đổi chủ xe ở mục Xe trước khi gộp.",
 };
 const chanCo = (code: keyof typeof CAU): LyDoChan => ({ code, message: CAU[code] });
@@ -102,7 +106,10 @@ export function keHoachGop(a: HoSoGop, b: HoSoGop, ngoai: NgoaiGop, homNay: stri
   if (ban.length > 0) chan.push({ code: "merge_source_busy", message: `Hồ sơ phụ đang có việc chưa xong: ${ban.join(", ")}. Đổi người trước khi gộp.` });
   if (a.coHoSoTroVao) chan.push(chanCo("merge_source_is_target"));
   // [Dừng Q5] — khuyến nghị: chặn dòng bắt đầu sau hôm nay (câu đóng dòng đòi ngày đóng ≥ ngày bắt đầu).
-  if (a.congViec.some((r) => r.validFrom > homNay) || a.quanHe.some((x) => x.validFrom > homNay)) chan.push(chanCo("merge_source_future_row"));
+  // Phán quyết rà Task 3: cả LIÊN HỆ bắt đầu sau hôm nay (câu đóng liên hệ "hôm nay" sẽ phạm CHECK valid_to_date >= valid_from_date).
+  if (a.lienHe.some((c) => c.validFrom > homNay) || a.congViec.some((r) => r.validFrom > homNay) || a.quanHe.some((x) => x.validFrom > homNay)) {
+    chan.push(chanCo("merge_source_future_row"));
+  }
   if (ngoai.donLechTien.length > 0) {
     chan.push({ code: "merge_order_invalid", message: `Đơn ${ngoai.donLechTien.join(", ")} của hồ sơ phụ đang lệch số tiền — sửa đơn trước khi gộp.` });
   }
