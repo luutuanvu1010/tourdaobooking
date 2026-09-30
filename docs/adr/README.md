@@ -59,6 +59,8 @@ Theo Hiến pháp: P5 (mọi quyết định để lại dấu vết), N3 (khôn
 | [0055](ADR-0055-van-chuyen-kernel-luot-2.md) | **Vận chuyển — Kernel lượt 2:** khung bận của xe (lịch vào xưởng; không ghi chồng chuyến đã xếp), giờ lái tối đa/ngày và liên tục (chỉ cảnh báo, 480/240 phút đổi được), số hiệu chuyến bay trên chặng | **accepted** 2026-09-30 (lượt duyệt B2) |
 | [0056](ADR-0056-van-chuyen-kernel-luot-3.md) | **Vận chuyển — Kernel lượt 3:** cam kết "xe riêng" / "số chỗ tối thiểu" trên chặng (chặn xếp sai, Quản trị/Toàn quyền phá lệ có lý do, phá lệ gắn đúng tập vi phạm); mỗi xe mỗi loại giấy tờ một dòng hiện hành | **accepted** 2026-09-30 (lượt duyệt B3) |
 | [0057](ADR-0057-van-chuyen-tien-xe-thue.md) | **Vận chuyển — tiền xe thuê:** bảng giá thuê theo nhà xe trong `van-chuyen` (theo tuyến / cỡ xe, tuyến thắng, có hiệu lực); chi phí chuyến chụp lúc xếp xe nhà xe (chỉ-thêm, đảo khi đổi trước xuất bến); **chưa có giá thì xe thuê không xuất bến** (giá bảng hoặc giá thoả thuận trước do Quản trị/Kế toán/Toàn quyền nhập; không phá lệ, kể cả xe cứu hộ); Quản trị = Kế toán ở ô tiền xe thuê; dòng nợ sổ công nợ gắn đơn **hoặc** chuyến (sửa ADR-0026); lệch L-T1 (chưa khoá kỳ, cùng hạn sổ công nợ lượt 2); kẽ C2a + nợ N-T1 | **accepted** 2026-09-30 (lượt duyệt B1; sổ hỏi đáp Vận chuyển lần 19–22 — số sau gộp 30/9) |
+| [0058](ADR-0058-nhom-dich-vu.md) | **Nhóm dịch vụ:** nhóm quản lý trong app (module `catalog`, tiền tố mới `ctl_` — nới `TABLE_PREFIX`), mỗi dịch vụ một nhóm, gán có lịch sử; gieo một lần 14 nhóm / 110 dịch vụ theo Sheet 30/9 (ATV → Kong Forest), không đọc cột nhóm của Sheet định kỳ; Quản trị sửa (`admin.manage`); chip lọc nhóm + "Chưa phân loại" ở ô chọn dịch vụ của form đơn, nhớ theo người trên máy; `catalog` còn LEGACY hạn 2027-03-31; migration `0046` (giữ chỗ). Bổ sung ADR-0033 điều 2, ADR-0028 điều 2–3 | một chiều (bảng, dữ liệu gieo) | **accepted** 2026-09-30 (lượt duyệt 1a, phiên điều phối chung) |
+| [0062](ADR-0062-bao-tin-khi-don-doi-sau-xac-nhan.md) | **Báo tin khi đơn đổi sau xác nhận:** loại tin mới (hình chiếu nhật ký) khi đổi ngày / giờ (khởi hành, đón, check-in, chặng; thêm chặng đón), nơi đón hoặc số khách của đơn đã xác nhận — người lập (kể cả Đối tác / Thực tập, chỉ đơn họ lập) + người phụ trách nhận ở chuông và màn hình khoá, trừ người vừa sửa; tin không SĐT / tên khách / tiền / chữ gõ tay, không ghi nơi đón mới; view `v_aud_order_change` có `detail` chỉ `thongbao` đọc (nới Phần II §4); khai sẵn `order_money_adjusted`; migration `0047` (giữ chỗ). Bổ sung ADR-0034 điều 1, 3; ADR-0014 điều 12; ADR-0022 Q-C | hai chiều (view, loại tin) | **accepted** 2026-09-30 (lượt duyệt 1b, phiên điều phối chung) |
 
 Thứ tự tài liệu (Điều 3.1): Hiến pháp → ràng buộc dự án → **ADR** → quy trình/playbook → đặc tả từng bước → mã. Đặc tả mô hình dữ liệu N1 (`docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md`) viết sau khi ADR-0001…0007 được duyệt và **đã được chủ dự án duyệt cùng ADR-0008 (2026-09-20)**.
 
@@ -66,7 +68,11 @@ Thứ tự tài liệu (Điều 3.1): Hiến pháp → ràng buộc dự án →
 
 | Số | Việc | Bản đề xuất | Trạng thái |
 |---|---|---|---|
-| — | (số ADR mới kế tiếp là 0058) | | |
+| 0059, 0060, 0061 | Biển số xe trên chi tiết đơn; dấu "đã nhập phần mềm kế toán"; mở lại dịch vụ nhập tay nội bộ | nhánh `worktree-phan-tich-gop-y` (phiên Góp ý) | **accepted** 30/9 ở phiên Góp ý — chưa lên `main` |
+| 0063 | Sửa đơn sau xác nhận: số khách (Quản trị, Kế toán, người lập — lát riêng ngay SAU Sổ tiền lượt 1) + đổi giờ tối đa 2 lần mỗi đơn, bắt buộc ghi chú | `docs/superpowers/specs/2026-09-30-de-xuat-adr-ra-soat/ADR-0063-sua-don-sau-xac-nhan.md` | proposed — lượt duyệt 2a |
+| 0064 | HDV thấy thêm: ghi chú đơn; biển số + tài xế của đơn mình phụ trách (bổ sung ADR-0059) | `…/ADR-0064-hdv-thay-ghi-chu-don.md` | proposed — lượt duyệt 2b |
+| 0065 | Số khách đi xe (ô riêng do Bán hàng nhập) | `…/ADR-0065-so-khach-di-xe.md` | proposed — lượt duyệt 2b |
+| — | (số ADR mới kế tiếp là 0066) | | |
 
 (0040, 0041, 0042, 0044, 0049, 0050, 0051 và 0052–0057 đã có văn bản thật ở bảng trên nên bỏ khỏi bảng giữ chỗ.)
 
@@ -80,7 +86,9 @@ Thứ tự tài liệu (Điều 3.1): Hiến pháp → ràng buộc dự án →
 - 0037, 0038, 0039: ADR-0048 (nhà xe đối tác, `DRIVER_PARTNER`, LC-1 mới) — nhánh phát hành `phat-hanh-1-37` (bản 1.37), chờ chủ gộp + triển khai; áp TRƯỚC 0034–0035 của ADR-0047 được (người kiểm K2 thử: schema cuối giống hệt byte-for-byte);
 - 0040, 0041, 0042: ADR-0049 (Bảng điều phối chung lượt 1) — lần lượt năm cột "đặt gấp" trên `ord_transfer_leg`, chính sách điều phối, chuyến xe `vc_trip*` — giữ chỗ 2026-09-29 (kế hoạch `docs/superpowers/plans/2026-09-29-adr-0049-thi-cong.md`); dùng không hết thì nhả;
 - 0043: ADR-0051 ("Đã gọi báo": bảng `vc_leg_appt_ack` + trigger trên `vc_trip_allocation` của `0042`) — giữ chỗ 2026-09-29; **phải lên cùng lần phát hành với 0042**;
-- số kế tiếp cho việc khác là 0044.
+- 0044, 0045: Sổ tiền lượt 1 (ADR-0024/0025/0026) — nhánh `worktree-agent-aa1fab0316112d404` (phiên Góp ý), đang kiểm độc lập;
+- 0046: ADR-0058 (nhóm dịch vụ); 0047: ADR-0062 (view báo tin); 0048: ADR-0063 (bảng đếm lượt đổi giờ, phải sau 0044); 0049: ADR-0065 (cột số khách đi xe, phải sau 0044) — giữ chỗ 2026-09-30, phiên điều phối chung;
+- ADR-0054…0057 (Vận chuyển) và ADR-0060, 0061 (phiên Góp ý) lấy số từ 0050 trở đi, phiên điều phối chung cấp lúc thi công.
 
 Số 0019 vẫn giữ cho B5 (xem `docs/HANDOFF-N1.md`).
 

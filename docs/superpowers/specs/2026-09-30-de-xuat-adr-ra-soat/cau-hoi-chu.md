@@ -66,3 +66,12 @@ Kế toán (và HDV) sửa được số khách **dịch vụ** (vì liên quan 
 ---
 
 *Đã bỏ hai câu của bản nháp trước:* "tin ban đêm có rung không" (luật giờ yên lặng đã duyệt trả lời rồi: hiện, không rung) và "giữ hay sửa cách viết tên 14 nhóm" (Quản trị đổi tên trong app bất cứ lúc nào).
+
+---
+
+## Chủ đã trả lời (2026-09-30, hộp hỏi phiên điều phối chung — lượt duyệt 1)
+- Duyệt lượt 1a (ADR-0058) và 1b (ADR-0062) — hai tệp đã chuyển vào `docs/adr/` với trạng thái accepted.
+- Câu 1 = 14 nhóm, ATV → Kong Forest. Câu 2 = hạn 2027-03-31.
+- Câu 3 = A (mọi ngày / giờ trên đơn + thêm chặng đón; đổi nơi không tiêu lượt). Câu 3b = đổi giờ vì xe **có** tính lượt.
+- Câu 5 = **Có** (Đối tác / Thực tập nhận tin về đơn họ lập). Câu 6 = tin **không** ghi nơi đón mới.
+- **Còn chờ (lượt 2a/2b):** câu 4 (lần đổi giờ trước phát hành), câu 7 (xe giữ chỗ từng chặng; không sửa ô thì lưu gì), câu 8 (Kế toán và số khách đi xe).
