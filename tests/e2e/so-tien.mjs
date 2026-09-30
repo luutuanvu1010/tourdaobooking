@@ -109,5 +109,12 @@ const fldB = await me(await session(ACCOUNTS.fieldB));
   assert.ok(p.completedAt, "đã đặt mốc Hoàn thành");
   const v = (await call(A, "GET", `/api/orders/${o.id}`)).body.order;
   assert.ok(v.deliveredAt && v.completedAt, "chi tiết đơn mang hai mốc");
+  // Kiểm độc lập T-5: nhật ký trên D1 thật — mỗi lô ghi đúng MỘT dòng của mình, lô thua (Đã giao 409, Hoàn thành 409) không để lại dòng nào.
+  const nk = async (action) => (await sqlRows(`SELECT count(*) AS n FROM audit_log WHERE order_id = '${o.id}' AND action = '${action}'`))[0].n;
+  const soLanThu = (await sqlRows(`SELECT count(*) AS n FROM bil_payment_receipt WHERE order_id = '${o.id}' AND kind_code = 'CUSTOMER_PAYMENT'`))[0].n;
+  assert.equal(soLanThu, 2, "hai lần thu: Công ty thu – CK + HDV thu lúc giao");
+  assert.equal(await nk("payment_recorded"), soLanThu, "payment_recorded đúng bằng số lần thu");
+  assert.equal(await nk("order_delivered"), 1, "order_delivered đúng MỘT dòng (lần bấm thiếu tiền bị 409 không ghi)");
+  assert.equal(await nk("order_completed"), 1, "order_completed đúng MỘT dòng (lần bấm còn người giữ tiền bị 409 không ghi)");
   console.log(`✓ luồng chính (D1 local): Công ty thu – CK 100.000 + HDV thu ${(tong - 100000).toLocaleString("vi-VN")} lúc Đã giao → đơn khoá → biên nhận đủ → Hoàn thành sau khi xác nhận + nộp`);
 }
