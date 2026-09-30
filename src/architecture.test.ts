@@ -79,9 +79,16 @@ const STRICT: readonly { module: string; file: string }[] = [
 /**
  * NGOẠI LỆ CÓ HẠN (ADR-0002 điều 8(b)): SQL của module cũ chưa đăng ký — còn JOIN thẳng bảng module khác.
  * Hạn: `audit` và `orders` đã bỏ JOIN thẳng bảng (đọc qua view công bố) ở N1-B nhưng SQL của chúng chưa đăng ký — chuyển STRICT khi được chạm ở N2;
- * `wonGuard` của orders (đọc audit_log) ở lại tới N2; `accounts`, `catalog` chưa có SQL riêng đáng kể — chuyển STRICT khi có SQL mới.
+ * `wonGuard` của orders (đọc audit_log) ở lại tới N2; `accounts` chưa có SQL riêng đáng kể — chuyển STRICT khi có SQL mới. `catalog`: SQL mới (nhóm dịch vụ) đã ở tệp nửa nghiêm `nhom-repo.ts`; SQL cũ của `repository.ts` còn LEGACY tới hạn CATALOG_LEGACY_HAN (ADR-0058 Đ6).
  */
 const LEGACY = ["accounts", "audit", "catalog", "orders"] as const;
+
+/** ADR-0058 Đ6 (lệch có hạn, chủ chốt hạn 2027-03-31): `catalog` còn LEGACY; SQL mới chỉ ở tệp nửa nghiêm. Quá hạn → đỏ. Gỡ: đổi SQL cũ sang defineSql, bỏ xoá cứng catalog_override, đưa catalog lên STRICT. */
+const CATALOG_LEGACY_HAN = "2027-03-31";
+test("ADR-0058 Đ6: lệch có hạn — catalog còn LEGACY tới hạn", () => {
+  if (!(LEGACY as readonly string[]).includes("catalog")) return; // đã lên STRICT: bài tự hết việc (bỏ hằng cùng lúc)
+  assert.ok(CATALOG_LEGACY_HAN >= vnToday(new Date()), `catalog quá hạn LEGACY ${CATALOG_LEGACY_HAN} — lên STRICT hoặc chủ dự án gia hạn`);
+});
 
 /**
  * Hạng "module không dùng cơ sở dữ liệu" (KHONG_DB, ADR-0022, chủ duyệt 2026-09-25 — kế hoạch Bảng tin): nghiêm hơn
@@ -125,6 +132,8 @@ const NUA_NGHIEM: readonly { module: string; file: string }[] = [
   { module: "orders", file: "modules/orders/chang-hanh-khach-repo.ts" },
   // Sổ tiền lượt 1 (ADR-0024 điều 3–4 — SIẾT): câu mốc "Đã giao" / "Hoàn thành" + đọc trạng thái cho billing, mọi câu qua defineSql + EXPLAIN.
   { module: "orders", file: "modules/orders/hoan-tat-repo.ts" },
+  // ADR-0058 Đ6: SQL MỚI của `catalog` (hai bảng `ctl_`) chỉ ở tệp này; `repository.ts` cũ còn LEGACY tới CATALOG_LEGACY_HAN.
+  { module: "catalog", file: "modules/catalog/nhom-repo.ts" },
 ];
 
 /**
