@@ -706,7 +706,8 @@ export const voidPersonDocStatement = (db: D1Database, id: string, partyId: stri
 // ---- Gộp hồ sơ cá nhân (ADR-0068) -----------------------------------------------------------------------------------------------------------------------
 // Lính gác TRẠNG THÁI (kế hoạch R1): hai hồ sơ còn đang dùng và chưa gộp. parties là module nghiêm, không đọc audit_log nên KHÔNG dùng wonGuard; lô thua cuộc
 // đua (hồ sơ phụ đã bị lật ở lô khác) → mọi câu thành không-làm-gì, câu lật changes = 0 — TRỪ câu chép giấy tờ (GOP_CHEP_GIAY_TO): lô thua có giấy tờ cần
-// chép thì HỎNG CẢ LÔ (không đổi gì) thay vì changes = 0; route phải coi lỗi lô là "có thể đã thua cuộc đua" (đọc lại A). Đoạn chữ tĩnh (không nhận đầu vào).
+// chép thì HỎNG CẢ LÔ (không đổi gì) thay vì changes = 0. Ngoài ra MỌI lệch giữa lúc tính kế hoạch và lúc ghi (giấy tờ A đổi, B vừa có giấy tờ cùng loại,
+// A còn dòng mở) cũng HỎNG CẢ LÔ (xem GOP_CHEP_GIAY_TO, GOP_LAT). Route: lỗi lô = đọc lại A rồi báo. Đoạn chữ tĩnh (không nhận đầu vào).
 const LINH_GAC = (a: string, b: string): string => `(SELECT count(*) FROM pty_party g WHERE g.id IN (${a}, ${b}) AND g.active = 1 AND g.merged_into_id IS NULL) = 2`;
 
 // ?1 id liên hệ, ?2 hồ sơ phụ, ?3 ngày đóng (hôm nay VN), ?4 lúc, ?5 người, ?6 hồ sơ chính
@@ -762,19 +763,33 @@ const GOP_HUY_GIAY_TO = defineSql(
 // Dạng VALUES một dòng (KHÔNG `INSERT … SELECT … WHERE`): dạng SELECT làm SQLite quét bảng con trỏ tới pty_person_document (vc_trip_departure_check_item
 // của van-chuyen) để kiểm khoá ngoại — bài ranh giới ADR-0002 điều 8(b) chặn. Lính gác nằm ở cột party_id (NOT NULL): thua cuộc đua → party_id NULL → lỗi
 // NOT NULL (hoặc trigger BEFORE INSERT báo trước) → CẢ LÔ huỷ, không dòng nào đổi. Đừng dùng INSERT OR IGNORE (nuốt cả lỗi duy nhất/CHECK → mất giấy tờ).
-// ?1 id mới, ?2 hồ sơ chính, ?3 loại, ?4 số, ?5 khoá số, ?6 hạng, ?7 ngày cấp, ?8 nơi cấp, ?9 hết hạn, ?10 lúc, ?11 người, ?12 hồ sơ phụ
+// Cùng ô party_id còn hai điều kiện (vòng sửa 1 — mọi lệch giữa lúc tính kế hoạch và lúc ghi HỎNG CẢ LÔ): (a) dòng nguồn ?13 VỪA bị chính lô này huỷ
+// (voided_at = mốc lô) — khoá lạc quan của câu huỷ làm 0 dòng khi A sửa giấy tờ trong khe thì không chép bản cũ; (b) B chưa có dòng HIỆN HÀNH cùng loại (Đ4)
+// ngoài các dòng chính lô này vừa chép (created_at = mốc lô, created_by = người gộp — A có thể có nhiều chuỗi cùng loại).
+// ?1 id mới, ?2 hồ sơ chính, ?3 loại, ?4 số, ?5 khoá số, ?6 hạng, ?7 ngày cấp, ?8 nơi cấp, ?9 hết hạn, ?10 lúc, ?11 người, ?12 hồ sơ phụ, ?13 dòng nguồn
 const GOP_CHEP_GIAY_TO = defineSql(
   "parties",
   "gop_chep_giay_to",
   `INSERT INTO pty_person_document (id, party_id, document_type_code, document_number, number_key, license_class_code, issued_date, issued_place, expiry_date,
      previous_id, created_at, created_by, updated_at, updated_by)
-   VALUES (?1, (SELECT ?2 WHERE ${LINH_GAC("?12", "?2")}), ?3, ?4, ?5, ?6, ?7, ?8, ?9, NULL, ?10, ?11, ?10, ?11)`,
+   VALUES (?1, (SELECT ?2 WHERE ${LINH_GAC("?12", "?2")}
+       AND EXISTS (SELECT 1 FROM pty_person_document s WHERE s.id = ?13 AND s.party_id = ?12 AND s.voided_at = ?10)
+       AND NOT EXISTS (SELECT 1 FROM pty_person_document d WHERE d.party_id = ?2 AND d.document_type_code = ?3 AND NOT (d.created_at = ?10 AND d.created_by IS ?11)
+                         AND ${HIEN_HANH})),
+     ?3, ?4, ?5, ?6, ?7, ?8, ?9, NULL, ?10, ?11, ?10, ?11)`,
 );
-// Câu LẬT hồ sơ phụ — đứng SAU mọi câu chuyển và câu đổi người đặt đơn, NGAY TRƯỚC hai dòng nhật ký `changes() > 0`. ?1 phụ, ?2 chính, ?3 lúc, ?4 người.
+// Câu LẬT hồ sơ phụ — đứng SAU mọi câu chuyển và câu đổi người đặt đơn, NGAY TRƯỚC hai dòng nhật ký `changes() > 0`. ?1 phụ, ?2 chính, ?3 lúc, ?4 người,
+// ?5 hôm nay. Vòng sửa 1 (Đ3): A còn liên hệ / công việc / quan hệ MỞ (valid_to_date NULL hoặc > hôm nay — câu đóng gặp 0 dòng, hoặc dòng thêm trong khe) →
+// merged_into_id NULL cùng merged_at khác NULL → trigger party_merge_target (0055) ABORT → CẢ LÔ huỷ. Lính gác trạng thái sai → 0 dòng (lô thua), không lỗi.
 const GOP_LAT = defineSql(
   "parties",
   "gop_lat",
-  `UPDATE pty_party SET active = 0, merged_into_id = ?2, merged_at = ?3, updated_at = ?3, updated_by = ?4 WHERE id = ?1 AND ${LINH_GAC("?1", "?2")}`,
+  `UPDATE pty_party SET active = 0,
+     merged_into_id = (SELECT ?2 WHERE NOT EXISTS (SELECT 1 FROM pty_contact_point c WHERE c.party_id = ?1 AND (c.valid_to_date IS NULL OR c.valid_to_date > ?5))
+       AND NOT EXISTS (SELECT 1 FROM pty_party_role r WHERE r.party_id = ?1 AND (r.valid_to_date IS NULL OR r.valid_to_date > ?5))
+       AND NOT EXISTS (SELECT 1 FROM pty_party_relationship x WHERE (x.from_party_id = ?1 OR x.to_party_id = ?1) AND (x.valid_to_date IS NULL OR x.valid_to_date > ?5))),
+     merged_at = ?3, updated_at = ?3, updated_by = ?4
+   WHERE id = ?1 AND ${LINH_GAC("?1", "?2")}`,
 );
 
 export interface GopDocRow extends PersonDocFull { type_name: string; class_name: string | null }
@@ -835,6 +850,6 @@ export const gopHuyGiayToStatement = (db: D1Database, v: Nguoi & { id: string; e
 export const gopChepGiayToStatement = (db: D1Database, v: Nguoi & { du: GopDocRow }): D1PreparedStatement =>
   db.prepare(GOP_CHEP_GIAY_TO).bind(
     crypto.randomUUID(), v.b, v.du.document_type_code, v.du.document_number, v.du.number_key, v.du.license_class_code, v.du.issued_date, v.du.issued_place, v.du.expiry_date,
-    v.at, v.actorId, v.a,
+    v.at, v.actorId, v.a, v.du.id,
   );
-export const gopLatStatement = (db: D1Database, v: Nguoi): D1PreparedStatement => db.prepare(GOP_LAT).bind(v.a, v.b, v.at, v.actorId);
+export const gopLatStatement = (db: D1Database, v: Nguoi & { homNay: string }): D1PreparedStatement => db.prepare(GOP_LAT).bind(v.a, v.b, v.at, v.actorId, v.homNay);

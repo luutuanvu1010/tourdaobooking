@@ -32,5 +32,5 @@ export function loGop(
     ...ke.giayTo.huy.map((d) => gopHuyGiayToStatement(db, { ...n, id: d.id, expectedUpdatedAt: du(d.id).updated_at })),
     ...ke.giayTo.chep.map((d) => gopChepGiayToStatement(db, { ...n, du: du(d.id) })),
   ];
-  return { truocDon: s, lat: gopLatStatement(db, n) };
+  return { truocDon: s, lat: gopLatStatement(db, { ...n, homNay }) };
 }

@@ -154,3 +154,77 @@ test("Đ7: danh sách và tra SĐT không trả hồ sơ đã gộp, kể cả k
   assert.ok(rows.some((r) => r.id === "pc"));
   assert.deepEqual(await findPartiesByPhone(D, "0912000111", HOM_NAY), []);
 });
+
+// ---- Vòng sửa 1: MỌI lệch giữa lúc tính kế hoạch và lúc ghi → HỎNG CẢ LÔ (cùng hợp đồng với lô thua cuộc đua; route đọc lại A). Không so chữ lỗi,
+// trừ bài Sửa 2 (khẳng định đúng trigger party_merge_target của 0055 là thứ chặn).
+const anh = (db: DatabaseSync) => ({
+  party: q(db, "SELECT id, active, merged_into_id, merged_at, updated_at FROM pty_party ORDER BY id").map((r) => ({ ...r })),
+  lh: q(db, "SELECT id, party_id, is_primary, valid_to_date, updated_at FROM pty_contact_point ORDER BY id").map((r) => ({ ...r })),
+  vai: q(db, "SELECT id, party_id, valid_to_date, updated_at FROM pty_party_role ORDER BY id").map((r) => ({ ...r })),
+  qh: q(db, "SELECT id, from_party_id, to_party_id, valid_to_date, updated_at FROM pty_party_relationship ORDER BY id").map((r) => ({ ...r })),
+  gt: q(db, "SELECT id, party_id, document_type_code, voided_at, updated_at, expiry_date FROM pty_person_document ORDER BY id").map((r) => ({ ...r })),
+});
+const giayTo = (db: DatabaseSync, id: string, party: string, loai: string, han: string) =>
+  db.prepare(`INSERT INTO pty_person_document (id, party_id, document_type_code, document_number, number_key, expiry_date, previous_id, created_at, updated_at)
+    VALUES (?, ?, ?, NULL, NULL, ?, NULL, ?, ?)`).run(id, party, loai, han, AT, AT);
+async function hoSoCoGiayTo(D: unknown, id: string) {
+  const du = await docsForMerge(D as D1Database, id);
+  const a = hs(id, { giayTo: du.map((d) => ({ id: d.id, typeCode: d.document_type_code, typeName: d.type_name, className: d.class_name, previousId: d.previous_id, voided: d.voided_at !== null, current: d.is_current === 1 })) });
+  return { a, giayToDu: new Map(du.map((d) => [d.id, d])) };
+}
+
+test("Sửa 1: giấy tờ của A đổi SAU khi đọc (khoá lạc quan làm câu huỷ 0 dòng) → câu chép hỏng CẢ lô, không chép bản cũ sang B", async () => {
+  const db = openDb();
+  const D = fakeD1(db);
+  nguoi(db, "pa"); nguoi(db, "pb");
+  giayTo(db, "g1", "pa", "HEALTH_CHECK", "2027-01-01");
+  const { a, giayToDu } = await hoSoCoGiayTo(D, "pa");
+  const stmts = lo(D, a, hs("pb"), giayToDu);
+  db.prepare("UPDATE pty_person_document SET expiry_date = '2028-01-01', updated_at = ? WHERE id = 'g1'").run(AT2); // người khác vừa sửa
+  const truoc = anh(db);
+  await assert.rejects(D.batch(stmts));
+  assert.deepEqual(anh(db), truoc);
+});
+
+test("Sửa 2: A có thêm liên hệ / công việc / quan hệ mở SAU khi tính kế hoạch → câu lật hỏng CẢ lô (không để A đã gộp mà còn dòng mở)", async () => {
+  for (const them of [
+    (db: DatabaseSync) => lienHe(db, "c9", "pa", "0913000999", 0),
+    (db: DatabaseSync) => vai(db, "r9", "pa", "BOAT_CAPTAIN"),
+    (db: DatabaseSync) => { nguoi(db, "pc"); quanHe(db, "q9", "pc", "pa", "CONTACT_OF"); },
+  ]) {
+    const db = openDb();
+    const D = fakeD1(db);
+    nguoi(db, "pa"); nguoi(db, "pb");
+    lienHe(db, "c1", "pa", "0912000111", 0);
+    const stmts = lo(D, hs("pa", { lienHe: [lh("c1", "0912000111", false)] }), hs("pb"));
+    them(db);
+    const truoc = anh(db);
+    await assert.rejects(D.batch(stmts), /party_merge_target/);
+    assert.deepEqual(anh(db), truoc);
+  }
+});
+
+test("Sửa 3 (Đ4 cuộc đua): B vừa có giấy tờ hiện hành cùng loại SAU khi tính kế hoạch → câu chép hỏng CẢ lô (B không có hai dòng hiện hành)", async () => {
+  const db = openDb();
+  const D = fakeD1(db);
+  nguoi(db, "pa"); nguoi(db, "pb");
+  giayTo(db, "g1", "pa", "HEALTH_CHECK", "2027-01-01");
+  const { a, giayToDu } = await hoSoCoGiayTo(D, "pa");
+  const stmts = lo(D, a, hs("pb"), giayToDu);
+  giayTo(db, "g9", "pb", "HEALTH_CHECK", "2027-06-01");
+  const truoc = anh(db);
+  await assert.rejects(D.batch(stmts));
+  assert.deepEqual(anh(db), truoc);
+});
+
+test("Sửa 3 không chặn nhầm: A có HAI dòng hiện hành cùng loại (hai chuỗi) → cả hai sang B trong CÙNG lô", async () => {
+  const db = openDb();
+  const D = fakeD1(db);
+  nguoi(db, "pa"); nguoi(db, "pb");
+  giayTo(db, "g1", "pa", "HEALTH_CHECK", "2027-01-01");
+  giayTo(db, "g2", "pa", "HEALTH_CHECK", "2027-02-01");
+  const { a, giayToDu } = await hoSoCoGiayTo(D, "pa");
+  const r = await D.batch(lo(D, a, hs("pb"), giayToDu));
+  assert.equal(r.at(-1).meta.changes, 1);
+  assert.deepEqual(q(db, "SELECT expiry_date h FROM pty_person_document WHERE party_id = 'pb' AND voided_at IS NULL ORDER BY h").map((x) => x.h), ["2027-01-01", "2027-02-01"]);
+});
