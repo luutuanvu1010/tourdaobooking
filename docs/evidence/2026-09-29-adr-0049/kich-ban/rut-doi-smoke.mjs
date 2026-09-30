@@ -1,6 +1,7 @@
 // Vòng 5b — "Rút khỏi xe" / "Chuyển sang xe khác" trên từng nhóm khách của Chi tiết chuyến (/chuyen). Chủ trả lời lần 15: "Làm ngay, thợ tự đặt nút"; route 6
 // `rut`, route 7 `doi` của A13 (không đổi máy chủ). Nút theo ô trip.dispatch + chuyến lên kế hoạch; vùng khoá theo `khoaMoc` (Bán hàng: câu "cần Quản trị phá
 // lệ", không nút; Quản trị: hộp Phá lệ khi máy chủ đòi — khuôn huỷ chuyến H17); sau mỗi lệnh đọc lại GET chi tiết (GA-55). KHÔNG sắp lại điểm (Q-B-15).
+// Vòng 5c: tên có ngay sau xếp (máy chủ I19(a)); bước 2 + 3 kiểm nhóm CÒN LẠI đúng tên ngay trên cùng trang sau lệnh (P16: `docLai` → `return r` thì đỏ).
 // Chạy từ GỐC repo, sau `npm run build:web` (không cần mạng ngoài):
 //   AXE_JS=<…/axe.min.js> CHROME_BIN=docs/evidence/2026-09-20-a2/kich-ban/chrome-wrap.sh OUT=<thư mục ảnh> node docs/evidence/2026-09-29-adr-0049/kich-ban/rut-doi-smoke.mjs
 // Kho cookie của Chrome dùng CHUNG: Bán hàng → Quản trị → Kế toán (trang mở sau cùng là của Kế toán).
@@ -15,15 +16,11 @@ const d = await dungDuLieuDieuPhoi(env, call);
 // Vùng khoá có khách: Quản trị xếp O4 (quá mốc) vào T4 bằng phá lệ (đường thật).
 const x4 = await call(ACCOUNTS.admin, "POST", `/api/van-chuyen/chuyen/${d.T4.id}/phan-bo`, { version: d.T4.version, requestId: randomUUID(), chang: [{ legId: d.O4.legId, soSuat: 2 }], phaLe: { lyDo: "PHA_LE_SU_CO" } });
 assert.equal(x4.status, 200, x4.text);
-// Tên khách chỉ có trong DTO khi suất đã gắn khoá người. Màn xếp của văn phòng lượt này không gửi khoá (máy chủ gắn khi xuất bến) — để có nhóm CÓ TÊN trên
-// chuyến lên kế hoạch, Quản trị rút O1 khỏi T1 rồi xếp lại KÈM khoá người (đường thật; khoá đọc bằng SQL trên D1 tạm như party id của dữ liệu thử).
+// Vòng 5c (máy chủ I19(a), b94963a): lúc xếp máy tự gắn khoá người rảnh của đơn — chuyến lên kế hoạch có TÊN ngay sau xếp, KHÔNG cần gửi khoá người (bỏ
+// bước "rút rồi xếp lại kèm khoá đọc bằng SQL" của vòng 5b). Xếp thêm O5 (5 khách đủ tên) vào T1 như màn xếp (không khoá người) → T1 có HAI nhóm CÓ tên, để
+// kiểm ngay trên CÙNG trang sau lệnh rút / chuyển: nhóm còn lại vẫn đúng tên (GA-55 — `docLai`; khoảng trống P16 K2c VỪA-1).
 {
-  const ct = (await call(ACCOUNTS.admin, "GET", `/api/van-chuyen/chuyen/${d.T1.id}`)).json;
-  const r = await call(ACCOUNTS.admin, "POST", `/api/van-chuyen/chuyen/${d.T1.id}/rut`, { version: ct.chuyen.version, requestId: randomUUID(), suatIds: ct.suat.filter((x) => x.legId === d.O1.legId).map((x) => x.id) });
-  assert.equal(r.status, 200, r.text);
-  const keys = env.sql(`SELECT person_key FROM ord_passenger WHERE order_id = '${d.O1.id}' AND voided_at IS NULL ORDER BY full_name`).map((x) => x.person_key);
-  assert.equal(keys.length, 3);
-  const x = await call(ACCOUNTS.admin, "POST", `/api/van-chuyen/chuyen/${d.T1.id}/phan-bo`, { version: r.json.chuyen.version, requestId: randomUUID(), chang: [{ legId: d.O1.legId, soSuat: 3, personKeys: keys }] });
+  const x = await call(ACCOUNTS.admin, "POST", `/api/van-chuyen/chuyen/${d.T1.id}/phan-bo`, { version: d.T1.version, requestId: randomUUID(), chang: [{ legId: d.O5.legId, soSuat: 5 }] });
   assert.equal(x.status, 200, x.text);
 }
 
@@ -35,23 +32,32 @@ const moChuyen = async (p, id) => {
   await p.waitFor(`!document.body.dataset.cu && !!document.querySelector('.dp-ct-title')`, `mở chuyến ${id}`);
 };
 const TEN_O1 = ["Hành Khách Thử 1-1 1980", "Hành Khách Thử 1-2 1981", "Hành Khách Thử 1-3 1982"];
+const TEN_O5 = ["Hành Khách Thử 4-1 1980", "Hành Khách Thử 4-2 1981", "Hành Khách Thử 4-3 1982", "Hành Khách Thử 4-4 1983", "Hành Khách Thử 4-5 1984"];
+const TEN_O3 = ["Hành Khách Thử 3-1 1980", "Hành Khách Thử 3-2 1981", "Hành Khách Thử 3-3 1982", "Hành Khách Thử 3-4 1983"];
+const tenCua = (g, legId) => g.find((x) => x.khoa === legId)?.ten.split(" · ").sort();
 const chang = async (legId, ngay) => (await call(ACCOUNTS.admin, "GET", `/api/van-chuyen/lich?ngay=${ngay}`)).json.chang.find((c) => c.legId === legId);
 
 try {
   // ---- Bán hàng, máy tính ------------------------------------------------------------------------------------------------------------------------------------
   const p = await env.as(ACCOUNTS.salesA, `/chuyen?id=${d.T1.id}`, DESK);
-  await b.step("1", `1040 Bán hàng ${d.T1.ma}: thẻ "Khách trong chuyến" — nhóm theo đơn (tuyến, tên + năm sinh theo DTO), nút "Rút khỏi xe" + "Chuyển sang xe khác"${axeNote()}`, async () => {
+  await b.step("1", `1040 Bán hàng ${d.T1.ma}: thẻ "Khách trong chuyến" — hai nhóm theo đơn (tuyến, tên + năm sinh CÓ NGAY sau xếp — I19(a)), nút "Rút khỏi xe" + "Chuyển sang xe khác"${axeNote()}`, async () => {
     await p.waitFor(`!!document.querySelector('.dp-khach-nhom')`, "thẻ khách");
     const g = await p.ev(nhom);
-    assert.deepEqual(g.map((x) => [x.khoa, x.text, x.nut]), [[d.O1.legId, `${d.O1.ma} · 3 khách Sheraton Nha Trang → Bến tàu du lịch Nha Trang`, ["Rút khỏi xe", "Chuyển sang xe khác"]]]);
-    assert.deepEqual(g[0].ten.split(" · ").sort(), TEN_O1);
+    const nut2 = ["Rút khỏi xe", "Chuyển sang xe khác"];
+    assert.deepEqual(g.map((x) => [x.khoa, x.text, x.nut]).sort(), [
+      [d.O1.legId, `${d.O1.ma} · 3 khách Sheraton Nha Trang → Bến tàu du lịch Nha Trang`, nut2],
+      [d.O5.legId, `${d.O5.ma} · 5 khách Mường Thanh Luxury → nơi trả chưa chốt`, nut2],
+    ].sort());
+    assert.deepEqual(tenCua(g, d.O1.legId), TEN_O1);
+    assert.deepEqual(tenCua(g, d.O5.legId), TEN_O5, "xếp KHÔNG gửi khoá người vẫn có tên (máy chủ I19(a))");
+    assert.equal(await p.ev(`document.querySelector('.dp-khach-nhom-the').innerText.includes('chưa gắn tên')`), false);
     assert.equal(await p.ev(noCode), "");
     assert.ok(await p.ev(noOverflowX));
     await axe(p, "khách trong chuyến 1040");
     await shotFull(p, "b5b-khach-trong-chuyen-may-tinh.png");
   });
 
-  await b.step("2", `"Chuyển sang xe khác" → hộp chọn chuyến đích CÙNG NGÀY (danh sách máy chủ, trừ chuyến này; nút khoá tới khi chọn) → chuyển O1 sang ${d.T2.ma} (cùng khung giờ) → khách hiện ở chuyến đích, ĐÚNG tên; nhóm chưa gắn tên chỉ đếm "N khách chưa gắn tên"${axeNote()}`, async () => {
+  await b.step("2", `"Chuyển sang xe khác" → hộp chọn chuyến đích CÙNG NGÀY (danh sách máy chủ, trừ chuyến này; nút khoá tới khi chọn) → chuyển O1 sang ${d.T2.ma} (cùng khung giờ) → CÙNG trang: O1 biến mất, O5 còn lại vẫn đúng tên; ở chuyến đích O1 ĐÚNG tên, O2 "1 tên · 1 khách chưa gắn tên"${axeNote()}`, async () => {
     await p.ev(click('.dp-khach-nhom [data-action="doi"]'));
     await p.waitFor(`!!document.querySelector('.dp-sheet-khach [data-action="khach-gui"]')`, "hộp chuyển");
     await sleep(600);
@@ -67,16 +73,22 @@ try {
     const body = ghi(p, "/doi").at(-1);
     assert.deepEqual(Object.keys(body).sort(), ["denChuyenId", "denVersion", "requestId", "suatIds", "version"]);
     assert.equal(body.denChuyenId, d.T2.id);
-    assert.equal(await p.ev(`document.querySelectorAll('.dp-khach-nhom').length`), 0, "chuyến nguồn hết khách");
+    // CÙNG trang, chưa điều hướng (K2c VỪA-1): O1 biến mất, O5 còn lại vẫn ĐÚNG tên — phản hồi lệnh không có tên (GA-55), phải là tên của GET đọc lại.
+    const conLai = await p.ev(nhom);
+    assert.deepEqual(conLai.map((x) => x.khoa), [d.O5.legId], "chuyến nguồn chỉ còn O5");
+    assert.deepEqual(tenCua(conLai, d.O5.legId), TEN_O5, "sau chuyển, nhóm còn lại vẫn đúng tên ngay trên trang (đọc lại GET)");
+    assert.equal(await p.ev(`document.querySelector('.dp-khach-nhom-the').innerText.includes('chưa gắn tên')`), false);
     await moChuyen(p, d.T2.id);
     const g = await p.ev(nhom);
     assert.deepEqual(g.map((x) => x.khoa).sort(), [d.O1.legId, d.O2.legId].sort());
-    assert.deepEqual(g.find((x) => x.khoa === d.O1.legId).ten.split(" · ").sort(), TEN_O1, "tên đúng ở chuyến đích (GA-55 — đọc từ GET)");
-    // O2 xếp không kèm khoá người → DTO không có họ tên → màn chỉ đếm, không ô trống / "undefined" / tên bịa.
-    assert.equal(g.find((x) => x.khoa === d.O2.legId).ten, "2 khách chưa gắn tên");
+    assert.deepEqual(tenCua(g, d.O1.legId), TEN_O1, "tên đúng ở chuyến đích (GA-55 — đọc từ GET)");
+    // O2: 2 khách, đơn chỉ có 1 tên → máy gắn 1 khoá lúc xếp (I19(a)), suất còn lại null → tên + đếm phần chưa gắn (không ô trống / "undefined" / tên bịa).
+    assert.equal(g.find((x) => x.khoa === d.O2.legId).ten, "Hành Khách Thử 2-1 1980 · 1 khách chưa gắn tên");
   });
 
-  await b.step("3", `ngoài vùng khoá: "Rút khỏi xe" O2 khỏi ${d.T2.ma} → khách về cột "Chưa xếp" trên bảng Điều phối xe; thân không kèm phá lệ`, async () => {
+  await b.step("3", `ngoài vùng khoá: "Rút khỏi xe" O2 khỏi ${d.T2.ma} → CÙNG trang: O2 biến mất, O1 còn lại vẫn đúng tên; khách về cột "Chưa xếp" trên bảng Điều phối xe; thân không kèm phá lệ`, async () => {
+    await moChuyen(p, d.T2.id); // tự mở lại chuyến — bước này không dựa vào trang bước 2 để lại (P16 thấy đỏ ĐÚNG ở phép kiểm của bước này)
+    await p.waitFor(`!!document.querySelector('.dp-khach-nhom[data-nhom="${d.O2.legId}"] [data-action="rut"]')`, "nút rút O2");
     await p.ev(click(`.dp-khach-nhom[data-nhom="${d.O2.legId}"] [data-action="rut"]`));
     await p.waitFor(`!!document.querySelector('.dp-sheet-khach [data-action="khach-gui"]')`, "hộp rút");
     await sleep(600);
@@ -85,7 +97,11 @@ try {
     await p.waitFor(`/^Đã rút 2 khách khỏi /.test(${txt("#ct-trang > .dp-banner-ok .banner-title")} ?? '')`, "đã rút");
     const body = ghi(p, "/rut").at(-1);
     assert.deepEqual(Object.keys(body).sort(), ["requestId", "suatIds", "version"]);
-    assert.deepEqual((await p.ev(nhom)).map((x) => x.khoa), [d.O1.legId]);
+    // CÙNG trang, chưa điều hướng (K2c VỪA-1): O2 biến mất, O1 còn lại vẫn ĐÚNG tên, không "chưa gắn tên".
+    const conLai = await p.ev(nhom);
+    assert.deepEqual(conLai.map((x) => x.khoa), [d.O1.legId]);
+    assert.deepEqual(tenCua(conLai, d.O1.legId), TEN_O1, "sau rút, nhóm còn lại vẫn đúng tên ngay trên trang (đọc lại GET)");
+    assert.equal(await p.ev(`document.querySelector('.dp-khach-nhom-the').innerText.includes('chưa gắn tên')`), false);
     assert.equal((await chang(d.O2.legId, d.NGAY_XA)).trangThai, "CHUA_XEP");
     await p.ev(`document.body.dataset.cu = '1'`);
     await p.send("Page.navigate", { url: `${env.base}/dieu-phoi?ngay=${d.NGAY_XA}` });
@@ -107,8 +123,14 @@ try {
   const pm2 = await env.as(ACCOUNTS.salesA, `/chuyen?id=${d.T3.id}`, MOB);
   await b.step("4b", `390 Bán hàng ${d.T3.ma} (ngoài khoá): nhóm khách + hai nút lưới hai cột; hộp chọn chuyến đích ở điện thoại${axeNote()}`, async () => {
     await pm2.waitFor(`!!document.querySelector('.dp-khach-nhom [data-action="doi"]')`, "nút chuyển");
+    assert.deepEqual(tenCua(await pm2.ev(nhom), d.O3.legId), TEN_O3, "390: tên có ngay sau xếp (I19(a))");
     assert.ok(await pm2.ev(noOverflowX));
     await shotFull(pm2, "b5b-khach-trong-chuyen-dien-thoai.png");
+    // Ảnh gửi chủ (vòng 5c): ảnh cả trang dời thanh tab cố định vào giữa ảnh (nhật ký 12) — chụp THÊM khung nhìn với thẻ khách ở giữa màn cho thấy rõ tên.
+    await pm2.ev(`document.querySelector('.dp-khach-nhom-the').scrollIntoView({ block: 'center' })`);
+    await sleep(300);
+    await shotView(pm2, "b5c-khach-co-ten-dien-thoai.png");
+    await pm2.ev(`window.scrollTo(0, 0)`);
     await pm2.ev(click('.dp-khach-nhom [data-action="doi"]'));
     await pm2.waitFor(`!!document.querySelector('.dp-sheet-khach [data-action="khach-gui"]')`, "hộp chuyển");
     await sleep(600);

@@ -507,3 +507,30 @@ Chưa gộp máy chủ mới (điều phối: đợi HEAD sau phần vá xoá đ
 - Ảnh 390: trước `b2-nut-khoa-truoc-dien-thoai.png`, sau `b2-nut-khoa-sau-dien-thoai.png`; cả trang `b2-chi-tiet-bi-giu-dien-thoai.png`, `b2-chi-tiet-bi-giu-may-tinh.png` (chụp lại).
 - Q-B-18: KHÔNG đổi màn xếp (điều phối đang cho người kiểm máy chủ soi I19(a)).
 - Vệ sinh: sau mỗi lượt Chrome `ps` không còn wrangler / workerd nào của worktree này.
+
+### 13.8 Vòng 5c (kiểm độc lập K2c-giao diện @01b3d15: ĐẠT CÓ ĐIỀU KIỆN)
+- **Gộp máy chủ `1f8b498`** (b94963a I19(a) — máy tự gắn khoá người rảnh lúc xếp; 020643a README) bằng `git merge --no-ff` → `5cee29f`. Không xung đột, không bị bộ duyệt chặn.
+- **Q-B-18 đóng theo R-P28**: máy chủ tự gắn tên lúc xếp, màn xếp KHÔNG đổi. Câu 13.2 "màn xếp không gửi khoá người → nhóm chỉ đếm" nay chỉ còn đúng cho đơn THIẾU tên.
+- **Kỳ vọng đổi vì I19(a)** — chỉ `rut-doi-smoke`:
+  - Bước 2: O2 (2 khách, đơn có 1 tên) trước là "2 khách chưa gắn tên", nay là "Hành Khách Thử 2-1 1980 · 1 khách chưa gắn tên". Máy gắn 1 khoá lúc xếp; suất còn lại để null.
+  - Lần chạy đầu sau gộp: 7 ✓ / 1 ✗ đúng ở dòng này.
+  - Bỏ bước dựng "rút O1 rồi xếp lại kèm khoá người đọc bằng SQL" vì xếp không kèm khoá cũng đã có tên.
+  - Các kịch bản khác KHÔNG đổi kỳ vọng. `cuoc-smoke` bước 3 kiểm "trước xuất bến không tên" trên chuyến NGÀY MAI (ngoài ngày chạy — TC-39 chỉ đổi trong ngày chạy), vẫn xanh.
+- **Vá khoảng trống P16 (K2c VỪA-1)**:
+  - Dựng: xếp thêm O5 (5 khách đủ tên) vào T1 như màn xếp (không khoá người) → T1 có HAI nhóm có tên. Bước 1 kiểm cả hai nhóm có tên, không "chưa gắn tên".
+  - Bước 2 (chuyển O1 sang T2): ngay trên CÙNG trang, chưa điều hướng, O1 biến mất, O5 còn lại vẫn đúng 5 tên, không "chưa gắn tên".
+  - Bước 3 (rút O2 khỏi T2): tự mở lại T2, không dựa trang bước 2 để lại. Ngay trên cùng trang, O2 biến mất, O1 còn lại vẫn đúng 3 tên.
+  - Bước 4b kiểm tên O3 ở 390.
+  - **P16**: `docLai` → `return r;` → bước 2 đỏ ("sau chuyển, nhóm còn lại vẫn đúng tên…", thực tế "5 khách chưa gắn tên"). Bước 3 đỏ ĐÚNG ở phép kiểm của nó ("sau rút…", thực tế "3 khách chưa gắn tên") → 6 ✓ / 2 ✗ → hoàn nguyên (0 chuỗi đột biến).
+  - Lần P16 đầu, bước 3 đỏ lây ("hết giờ chờ: hộp rút") vì dựa trang bước 2. Đã sửa bằng cách tự mở lại chuyến.
+- **Chạy lại** (máy rảnh, không song song e2e):
+  - `npm test` hai bước: 1846/1846 + 1/1, mã thoát 0.
+  - `npm run typecheck` 0; `npm run build:web` 0.
+  - Chrome: rut-doi 8/8, chuyen 8/8, cuoc 11/11, goi-bao 7/7, dieu-phoi 11/11, tai-xe-trang-dau 4/4. Không lần đỏ thoáng qua vì máy bận.
+- **Ảnh gửi chủ**:
+  - 1040 `b5c-khach-co-ten-may-tinh.png`: T1, hai nhóm có tên ngay sau xếp.
+  - 390 `b5c-khach-co-ten-dien-thoai.png`: khung nhìn, thẻ ở giữa màn. Ảnh cả trang `b5b-khach-trong-chuyen-dien-thoai.png` có thanh tab đè lên dòng tên (lỗi cách chụp, nhật ký 12).
+  - Chụp lại các ảnh b5b.
+- Thấy, CHƯA sửa (ngoài phạm vi): tên trong một nhóm hiện theo thứ tự suất của DTO (vd. "3-3 · 3-2 · 3-4 · 3-1"), không theo thứ tự tên trong đơn. Sắp theo tên / thứ tự đơn là việc bề mặt, chờ điều phối.
+- KHÔNG sửa `web/CLAUDE.md`, T3, T4, Q-B-15.
+- Vệ sinh: sau mỗi lượt `ps` không còn wrangler / workerd của worktree này.
