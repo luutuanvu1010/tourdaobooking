@@ -79,3 +79,12 @@
 | Hướng dẫn theo vai làm thế nào? | **"Trong app + bản đọc ngoài, từ 1 nguồn"** — lượt 1 Bán hàng + HDV, có bài kiểm lệch | §4: đặc tả mới + câu quyền "chữ hướng dẫn nằm trên mọi máy" (còn hỏi) |
 
 Còn chờ chủ (chưa hỏi, không chặn phần đang làm): C3 tài xế thấy điểm trước xuất bến; V2 ghi chú đơn tới HDV; V3 ghi chú tới điều phối / tài xế; V5 trang đơn hiện xe / tài xế; V6 HDV ↔ tài xế thấy nhau; V7 ai sửa giờ / nơi đón sau xác nhận; định nghĩa "số khách của đơn"; câu quyền của hướng dẫn trong app; các đổi bố cục loại (ii).
+
+### 6.1 Chủ trả lời thêm (2026-09-30, chat — nguyên văn ý) và làm rõ (hộp hỏi, đều Recommended)
+
+- **C3:** "Tài xế nên thấy điểm đón từ trước, ngày giờ đón, vị trí và số lượng khách." ⇒ đã làm ở bản giao diện 1.40 (màn tài xế trước xuất bến vẽ danh sách điểm từ DTO có sẵn; tên / SĐT khách vẫn chỉ trong ngày chạy — ADR-0053 D7.2).
+- **V2 / V3:** "Ghi chú đơn … HDV mặc định được biết, nếu để tài xế cũng biết thì có thể vượt phạm vi cần thiết." ⇒ ghi chú đơn tới HDV; tài xế KHÔNG.
+- **V5:** "Trang đơn có thể hiện xe và tài xế đã xếp (nhưng ghi chú nhỏ là có thể thay đổi)." Làm rõ: người thấy = văn phòng + HDV phụ trách (Đối tác chưa).
+- **V7:** "Sau xác nhận thì Admin, Super Admin … và bán hàng được phép sửa giờ, và chỉ được sửa tối đa 2 lần, bắt buộc nêu ghi chú." Làm rõ: Bán hàng chỉ đơn mình lập / đang phụ trách; 2 lần MỖI ĐƠN, lần của Quản trị cũng tính, Toàn quyền không giới hạn.
+- **Số khách của đơn:** "là số khách sẽ di chuyển trên xe." Làm rõ: Bán hàng nhập ô riêng, gợi ý sẵn = số khách lớn nhất trong các dịch vụ.
+- Đề xuất ADR (bản nháp, chờ kiểm độc lập rồi trình chủ): lượt 1 = ADR-0058 (nhóm dịch vụ) + ADR-0059 (báo tin khi đơn đổi sau xác nhận); lượt 2 = ADR-0060 (sửa đơn sau xác nhận: số khách + giờ tối đa 2 lần), ADR-0061 (ghi chú đơn tới HDV; xe + tài xế trên trang đơn), ADR-0062 (số khách đi xe). Số migration dự kiến 0046–0049 (0044–0045 thuộc Sổ tiền đang thi công).
