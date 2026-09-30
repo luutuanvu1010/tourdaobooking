@@ -55,15 +55,20 @@ test("tripWarnings: giờ đón sau giờ khởi hành → cảnh báo; bằng n
   assert.deepEqual(codes(trip({ pickupTime: "08:00" })), []);
 });
 
-test("tripSummaryLine: dòng tóm tắt của accordion; thiếu ngày → cảnh báo", () => {
-  assert.deepEqual(tripSummaryLine(trip({ departDate: "2026-09-20", departTime: "07:30", pickupTime: "07:00", pickupPlace: "Khách sạn Sunrise" })), {
-    text: "20/09 · 07:30 · đón 07:00 · Khách sạn Sunrise",
+test("tripSummaryLine (bản 1.39): \"Đón <giờ> · <nơi>\", KHÔNG có ngày (cả đơn một ngày, ADR-0021); có giờ check-in thì thêm; thiếu cả giờ lẫn nơi đón → cảnh báo", () => {
+  assert.deepEqual(tripSummaryLine(trip({ departDate: "2026-09-20", departTime: "07:45", pickupTime: "07:30", pickupPlace: "KS Mường Thanh Luxury" })), {
+    text: "Đón 07:30 · KS Mường Thanh Luxury",
     warn: false,
   });
-  assert.deepEqual(tripSummaryLine(trip({ departDate: "2026-09-20" })), { text: "20/09", warn: false });
-  assert.deepEqual(tripSummaryLine(trip({ departDate: "2026-09-20", pickupPlace: "Khách sạn Sunrise" })), { text: "20/09 · đón tại Khách sạn Sunrise", warn: false });
-  assert.deepEqual(tripSummaryLine(trip()), { text: "Chưa có ngày khởi hành", warn: true });
-  assert.deepEqual(tripSummaryLine(trip({ pickupTime: "07:00" })), { text: "Chưa có ngày khởi hành · đón 07:00", warn: true });
+  assert.deepEqual(tripSummaryLine(trip({ pickupTime: "07:30", pickupPlace: "KS Mường Thanh Luxury", checkinTime: "08:15", checkinPlace: "Cảng Cầu Đá" })), {
+    text: "Đón 07:30 · KS Mường Thanh Luxury · Check-in 08:15",
+    warn: false,
+  });
+  assert.deepEqual(tripSummaryLine(trip({ departDate: "2026-09-20", pickupTime: "07:30" })), { text: "Đón 07:30", warn: false }, "chỉ có giờ đón");
+  assert.deepEqual(tripSummaryLine(trip({ pickupPlace: "Bến Cầu Đá" })), { text: "Đón tại Bến Cầu Đá", warn: false }, "chỉ có nơi đón");
+  assert.deepEqual(tripSummaryLine(trip({ departDate: "2026-09-20" })), { text: "Chưa có giờ / nơi đón", warn: true }, "có ngày nhưng chưa có giờ/nơi đón");
+  assert.deepEqual(tripSummaryLine(trip()), { text: "Chưa có giờ / nơi đón", warn: true });
+  assert.deepEqual(tripSummaryLine(trip({ checkinTime: "08:15" })), { text: "Chưa có giờ / nơi đón · Check-in 08:15", warn: true }, "có check-in nhưng chưa có đón");
 });
 
 test("tripRows: các dòng hiển thị ở trang đơn; check-in trống ngày = \"Cùng ngày khởi hành\"; trường rỗng bị bỏ", () => {
@@ -87,6 +92,19 @@ test("tripRows: các dòng hiển thị ở trang đơn; check-in trống ngày 
     { label: "Khởi hành", value: "20/09/2026", warn: false },
     { label: "Check-in", value: "21/09/2026", warn: false },
   ]);
+});
+
+test("tripRows(t, ngày của đơn) (bản 1.39): ngày khởi hành TRÙNG ngày của đơn → bỏ dòng \"Khởi hành\", còn giờ thì giữ dòng \"Giờ khởi hành\"; khác ngày (đơn cũ lệch ngày) hoặc chưa có ngày → như cũ", () => {
+  assert.deepEqual(tripRows(dto, "2026-09-20"), [
+    { label: "Giờ khởi hành", value: "07:30", warn: false },
+    { label: "Đón", value: "07:00 · Khách sạn Sunrise, 12 Trần Phú", warn: false },
+    { label: "Check-in", value: "Cùng ngày khởi hành · 07:15 · Cảng Cầu Đá", warn: false },
+    { label: "Ghi chú", value: "Bé dị ứng hải sản", warn: false },
+  ]);
+  assert.deepEqual(tripRows({ ...NONE, departDate: "2026-09-20", pickupPlace: "Bến Cầu Đá" }, "2026-09-20"), [{ label: "Đón", value: "Bến Cầu Đá", warn: false }], "trùng ngày, không giờ: bỏ hẳn");
+  assert.deepEqual(tripRows(dto, "2026-09-21")[0], { label: "Khởi hành", value: "20/09/2026 · 07:30", warn: false }, "đơn cũ lệch ngày: giữ ngày");
+  assert.deepEqual(tripRows(NONE, null), [{ label: "Khởi hành", value: "Chưa có ngày khởi hành", warn: true }], "chưa có ngày: giữ cảnh báo");
+  assert.deepEqual(tripRows(dto, null)[0], { label: "Khởi hành", value: "20/09/2026 · 07:30", warn: false });
 });
 
 test("tripSheetDateIssues (ADR-0021, một ô ngày cho cả đơn): không để trống; đổi ngày phải trong khoảng; ngày đã lưu (dù đã qua) giữ nguyên thì vẫn lưu được; đơn cũ lệch ngày để trống = giữ ngày cũ", () => {

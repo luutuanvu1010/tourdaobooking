@@ -33,7 +33,6 @@ const params = new URLSearchParams(location.search);
 const editId = params.get("id");
 const focusId = params.get("focus");
 const today = vnToday(new Date());
-const isPhone = window.matchMedia("(max-width: 640px)").matches; // chỉ để mở/thu gọn khối chuyến (accordion ≤ 640px)
 /** ≥ 960px: form hai cột, banner lỗi nằm ở cột phải dính (luôn thấy). Dưới 960px (điện thoại VÀ iPad dọc 641–959px) form một cột, banner nằm CUỐI form → lỗi phải cuộn tới banner. Đọc LÚC CẦN: xoay iPad đổi khổ. */
 const wide = (): boolean => window.matchMedia("(min-width: 960px)").matches;
 
@@ -109,7 +108,7 @@ function mount(d: ServiceDraft, open?: boolean): Entry {
   entry.card = createServiceCard({
     draft: d,
     today,
-    openTrip: open ?? !isPhone, // ≤ 640px thẻ mới thu gọn khối chuyến (Q2); máy tính mở sẵn
+    openTrip: open ?? false, // bản 1.39 (chủ yêu cầu 30/9, thay giả định Q2 ngày 19/9): mọi khổ thu gọn mặc định; `?focus=` của cảnh báo thiếu chuyến vẫn mở đúng thẻ
     canAddLine: () => totalLines(drafts()) < MAX_LINES_PER_ORDER,
     retailOnly,
     onChange: (next) => {

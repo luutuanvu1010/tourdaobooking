@@ -102,9 +102,10 @@ try {
   assert.match(await p.ev(`${card(2)}.textContent`), /Tên dịch vụ, không ghi tên khách\./);
   ok("dịch vụ nhập tay: 800.000, không nhãn lệch giá, có dòng nhắc 'không ghi tên khách'");
 
-  // ---- 6) khối thông tin chuyến: thu gọn trên điện thoại, tóm tắt, cảnh báo ----
+  // ---- 6) khối thông tin chuyến: thu gọn (bản 1.39: mọi khổ), tóm tắt, cảnh báo ----
   assert.equal(await p.ev(`${card(1)}.querySelector('details.trip').open`), false, "≤ 640px: thu gọn");
-  assert.equal(await p.ev(`${card(1)}.querySelector('.trip-summary').textContent`), "Chưa có ngày khởi hành");
+  // bản 1.39: dòng tóm tắt không ghi ngày (cả đơn một ngày) — thiếu giờ/nơi đón → "Chưa có giờ / nơi đón" (trước: "Chưa có ngày khởi hành")
+  assert.equal(await p.ev(`${card(1)}.querySelector('.trip-summary').textContent`), "Chưa có giờ / nơi đón");
   assert.equal(await p.ev(`${card(1)}.querySelector('.trip-summary').classList.contains('warn')`), true);
   await p.ev(`${card(1)}.querySelector('details.trip > summary').click(); true`);
   await p.waitFor(`${card(1)}.querySelector('details.trip').open`, "mở khối chuyến");
@@ -118,7 +119,7 @@ try {
   await p.waitFor(`/Giờ đón sau giờ khởi hành/.test(${card(1)}.querySelector('.svc-warnings').textContent)`, "cảnh báo giờ đón sau giờ khởi hành");
   await p.ev(setInput(dateIn("pickupTime"), "07:00"));
   await p.ev(setInput(dateIn("pickupPlace"), "Khách sạn Sunrise"));
-  await p.waitFor(`${card(1)}.querySelector('.trip-summary').textContent.endsWith('· 07:30 · đón 07:00 · Khách sạn Sunrise')`, "dòng tóm tắt của khối chuyến");
+  await p.waitFor(`${card(1)}.querySelector('.trip-summary').textContent.=== 'Đón 07:00 · Khách sạn Sunrise'`, "dòng tóm tắt của khối chuyến");
   assert.match(await p.ev(`${card(1)}.querySelector('label:has([data-trip="checkinDate"])').textContent`), /Để trống = cùng ngày khởi hành\./);
   ok("khối chuyến: thu gọn kèm dòng cảnh báo, cảnh báo ngày đã qua / giờ đón, dòng tóm tắt, nhắc 'cùng ngày'");
 
@@ -355,7 +356,11 @@ try {
   await p.waitFor(`${cards}.length === 2`, "hai thẻ");
   assert.equal(await p.ev(`${cards}[0].querySelector('[data-trip="departDate"]') === null && ${cards}[1].querySelector('[data-trip="departDate"]') === null`), true, "thẻ dịch vụ không còn ô ngày riêng");
   await p.ev(setInput("document.getElementById('orderDate')", vnDate(6)));
-  await p.waitFor(`[...${cards}].every((c) => c.querySelector('.trip-summary').textContent.startsWith(${JSON.stringify(vnDate(6).slice(8, 10) + "/" + vnDate(6).slice(5, 7))}))`, "đổi ngày cả đơn: mọi thẻ theo");
+  // bản 1.39: dòng tóm tắt không còn ghi ngày → kiểm "mọi thẻ theo ngày cả đơn" bằng cảnh báo ngày đã qua hiện ở MỌI thẻ, rồi hết khi đổi lại
+  await p.ev(setInput("document.getElementById('orderDate')", vnDate(-2)));
+  await p.waitFor(`[...${cards}].every((c) => /Ngày khởi hành đã qua/.test(c.querySelector('.svc-warnings').textContent))`, "đổi ngày cả đơn (đã qua): mọi thẻ theo");
+  await p.ev(setInput("document.getElementById('orderDate')", vnDate(6)));
+  await p.waitFor(`[...${cards}].every((c) => c.querySelector('.svc-warnings').textContent === '')`, "đổi ngày cả đơn: mọi thẻ theo");
   p.close();
   ok("một ngày cho cả đơn: thẻ không có ô ngày riêng; đổi ngày ở 'Chọn ngày' áp cho mọi dịch vụ");
 

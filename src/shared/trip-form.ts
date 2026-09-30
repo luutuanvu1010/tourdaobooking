@@ -49,14 +49,16 @@ export function tripWarnings(trip: TripInput, today: string): TripWarning[] {
 
 // ---- Hiển thị ----------------------------------------------------------------------------------------------------
 
-/** Dòng tóm tắt của accordion khi thu gọn: "20/09 · 07:30 · đón 07:00 · Khách sạn Sunrise". Chưa có ngày → `warn` (hiện kiểu cảnh báo). */
+/**
+ * Dòng tóm tắt của khối "Thông tin chuyến" khi thu gọn (bản 1.39): "Đón 07:30 · KS Mường Thanh Luxury · Check-in 08:15". KHÔNG ghi ngày — cả đơn một ngày,
+ * đã chọn ở đầu form (ADR-0021). Chỉ có giờ → "Đón 07:30"; chỉ có nơi → "Đón tại <nơi>". Thiếu cả giờ lẫn nơi đón → "Chưa có giờ / nơi đón", `warn`
+ * (hiện kiểu cảnh báo). Có giờ check-in thì thêm "Check-in <giờ>".
+ */
 export function tripSummaryLine(trip: TripInput): { text: string; warn: boolean } {
-  const parts: string[] = [];
-  if (trip.departTime !== "") parts.push(trip.departTime);
-  if (trip.pickupTime !== "") parts.push(`đón ${trip.pickupTime}`);
-  if (trip.pickupPlace !== "") parts.push(trip.pickupTime !== "" ? trip.pickupPlace : `đón tại ${trip.pickupPlace}`);
-  if (trip.departDate === "") return { text: ["Chưa có ngày khởi hành", ...parts].join(" · "), warn: true };
-  return { text: [formatDm(trip.departDate), ...parts].join(" · "), warn: false };
+  const { pickupTime: t, pickupPlace: p } = trip;
+  const warn = t === "" && p === "";
+  const pickup = warn ? "Chưa có giờ / nơi đón" : t !== "" ? [`Đón ${t}`, p].filter(Boolean).join(" · ") : `Đón tại ${p}`;
+  return { text: [pickup, trip.checkinTime !== "" ? `Check-in ${trip.checkinTime}` : ""].filter(Boolean).join(" · "), warn };
 }
 
 export interface TripRow {
@@ -65,10 +67,16 @@ export interface TripRow {
   warn: boolean;
 }
 
-/** Các dòng thông tin chuyến ở trang đơn (chỉ dòng có nội dung; luôn có "Khởi hành"). Check-in trống ngày = "Cùng ngày khởi hành". */
-export function tripRows(t: TripInfoDto): TripRow[] {
+/**
+ * Các dòng thông tin chuyến ở trang đơn (chỉ dòng có nội dung). Check-in trống ngày = "Cùng ngày khởi hành".
+ * `orderDate` (bản 1.39) = ngày của đơn đã hiện ở dải đầu trang: dịch vụ có ngày khởi hành TRÙNG ngày đó thì không lặp dòng "Khởi hành" — chỉ còn dòng
+ * "Giờ khởi hành" nếu có giờ. Khác ngày (đơn cũ lệch ngày), chưa có ngày, hay không truyền `orderDate` → luôn có dòng "Khởi hành" như cũ.
+ */
+export function tripRows(t: TripInfoDto, orderDate: string | null = null): TripRow[] {
   const rows: TripRow[] = [];
-  rows.push(
+  if (t.departDate !== null && t.departDate === orderDate) {
+    if (t.departTime) rows.push({ label: "Giờ khởi hành", value: t.departTime, warn: false });
+  } else rows.push(
     t.departDate === null
       ? { label: "Khởi hành", value: "Chưa có ngày khởi hành", warn: true }
       : { label: "Khởi hành", value: [formatDmy(t.departDate), t.departTime].filter(Boolean).join(" · "), warn: false },
