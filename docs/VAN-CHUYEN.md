@@ -86,7 +86,7 @@ Trên máy tính, các mục nằm ở thanh bên, nhóm **QUẢN TRỊ › Vậ
 
 ### 2.3 Cái gì CHƯA có (bản 1.38)
 
-- **Màn nhập tên hành khách** và **màn nhập / sửa chặng đưa đón mới** (chiều về, nơi trả, …) — ADR-0047 Phần B, chờ chủ vẽ. Hệ quả: chuyến có khách luôn bị giữ "Chưa đủ tên khách"; theo tìm trong mã giao diện, **không màn nào ghi được nơi trả**, nên chặng thiếu nơi trả cũng bị giữ.
+- **Màn nhập tên hành khách** và **màn nhập / sửa chặng đưa đón mới** (chiều về, nơi trả, …) — ADR-0047 Phần B, chờ chủ vẽ. Hệ quả: chuyến có khách luôn bị giữ "Chưa đủ tên khách". Ngoài ra, theo mã, **không màn nào ghi được nơi trả**: đơn lập bằng màn hiện tại tạo chặng chiều đi **không có nơi trả** (chỉ đơn cũ trước 1.38 được chép "Nơi check-in" sang làm nơi trả). Chặng thiếu nơi trả vẫn **xếp được** lên xe, nhưng chuyến bị giữ "Chặng chưa có nơi trả" và không xuất bến. Chặng chưa có giờ đón thì **không xếp được**.
 - **Tài xế đối tác dùng app cho chuyến**, Từ chối chuyến, Báo bận (ADR-0053, lượt 3).
 - **Chuyển điểm đón giữa hai xe**, việc văn phòng làm khi xe đang chạy, **cứu hộ** xe hỏng (ADR-0052, lượt 2).
 - **Chiều về tự tạo theo dịch vụ** (ADR-0054).
@@ -182,7 +182,7 @@ Trên máy tính, các mục nằm ở thanh bên, nhóm **QUẢN TRỊ › Vậ
 
 **Dữ liệu**
 - [ ] Quản trị nhập **Kiểm định** và **Bảo hiểm trách nhiệm dân sự** (còn hạn) cho **6 xe** đang thiếu (kiểm tra dữ liệu ngày 30/9 đếm 12 giấy thiếu = 6 xe × 2 loại). Thiếu thì xe bị giữ, không xuất bến.
-- [ ] Bổ sung **nơi trả** cho **2 chặng** đơn đã xác nhận (kiểm tra 30/9). **Lưu ý:** theo mã giao diện bản 1.38, chưa có màn nào ghi nơi trả — việc này thực tế phải chờ màn Phần B (hoặc người kỹ thuật làm qua đường máy chủ). Chưa kiểm có cách khác trong app.
+- [ ] Bổ sung **nơi trả** cho **2 chặng** đơn đã xác nhận (kiểm tra 30/9). **Lưu ý:** theo mã bản 1.38, chưa có màn nào ghi nơi trả — việc này thực tế phải chờ màn Phần B (hoặc người kỹ thuật làm qua đường máy chủ). Và **mọi đơn mới lập từ 1.38** cũng thiếu nơi trả, nên con số 2 sẽ tăng dần cho tới khi có Phần B.
 - [ ] Mỗi tài xế công ty: có tài khoản vai "Tài xế công ty"; hồ sơ người trong Danh bạ có **Giấy phép lái xe có hạng, còn hạn**, hạng đủ chở số chỗ của xe sẽ lái.
 - [ ] Mỗi xe: đúng "Số người được chở (không kể tài xế)", trạng thái "Đang dùng".
 - [ ] Nhờ người chuyên môn xác nhận bảng hạng bằng ↔ số khách và danh sách giấy tờ xe bắt buộc (hiện chỉ Kiểm định + Bảo hiểm).
@@ -211,6 +211,8 @@ Trên máy tính, các mục nằm ở thanh bên, nhóm **QUẢN TRỊ › Vậ
 
 **Nhóm 1 — thử được ngay**
 
+Dùng **hai đơn**: đơn A có giờ đón cách bây giờ khoảng 3 giờ (chỉ cho bước 1–5 và 13); đơn B có giờ đón **xa hơn 6 giờ** (ví dụ ngày mai) cho bước 7–12 và 15 — nếu dùng đơn A cho các bước này, chuyến nằm trong vùng khoá 6 giờ và Bán hàng bị chặn rút / chuyển. Đơn phải có giờ đón (chặng chưa có giờ thì không xếp được).
+
 | # | Bước | Kết quả mong đợi |
 |---|---|---|
 | 1 | Bán hàng lập đơn, giờ đón cách bây giờ khoảng 3 giờ, lưu nháp | Lưu được; thẻ dịch vụ có dải cảnh báo dưới mốc |
@@ -220,7 +222,7 @@ Trên máy tính, các mục nằm ở thanh bên, nhóm **QUẢN TRỊ › Vậ
 | 5 | Mở đơn bằng tài khoản Đối tác / Hướng dẫn viên (nếu xem được đơn đó) | Chỉ thấy "Đặt gấp — Quản trị đã duyệt", không thấy lý do, người duyệt |
 | 6 | Toàn quyền mở Chính sách điều phối (chỉ xem, không lưu) | Thấy các con số và "Lịch sử bản"; Quản trị mở thẳng trang này thì bị từ chối ("Chỉ Toàn quyền xem và đổi được…") |
 | 7 | Điều phối xe → "+ Chuyến mới" (xe, tài xế, giờ) → "Lưu chuyến"; xếp chặng của đơn đã xác nhận vào chuyến | Chuyến hiện trên dòng thời gian; khách rời cột "Chưa xếp" |
-| 8 | Mở chuyến đó | "Điều kiện xuất bến" có dòng "Đủ tên khách: Chưa đạt" (chưa có tên) — chuyến bị **giữ**, ai xử lý: Văn phòng |
+| 8 | Mở chuyến đó | "Điều kiện xuất bến" có dòng "Đủ tên khách: Chưa đạt" (chưa có tên) và, với đơn lập từ 1.38, "Điểm khớp đơn: Chưa đạt" ("Chặng chưa có nơi trả") — chuyến bị **giữ**, ai xử lý: Văn phòng |
 | 9 | Chuyến dùng một xe thiếu Bảo hiểm | Dòng "Giấy tờ xe: Chưa đạt", ai xử lý: Quản trị; không xuất bến được |
 | 10 | Sửa nơi đón của đơn đã xếp (bằng "Sửa thông tin chuyến" trên trang đơn) | Chuyến bị giữ "Nơi đón / trả đã đổi sau khi xếp — cập nhật điểm"; bấm "Cập nhật điểm theo đơn" → hết lý do đó, điểm dừng khớp đơn |
 | 11 | Sửa giờ đón của đơn đã xếp | Cột "Cần xử lý" hiện "Giờ hẹn đón đổi …"; bấm "Đã gọi báo" → mục chuyển thành "đã gọi báo khách (tên, giờ)"; "Bỏ đánh dấu" đưa về lại |
@@ -279,7 +281,7 @@ Trên máy tính, các mục nằm ở thanh bên, nhóm **QUẢN TRỊ › Vậ
 - **Lý do giữ:** `src/shared/ly-do-giu.ts` (`MA_GIU`); nhóm bảy dòng điều kiện `src/shared/dieu-phoi-man.ts` (`NHOM_DIEU_KIEN`); "trong ngày chạy" `src/shared/dieu-phoi-kiem.ts` (`trongNgayChay`).
 - **Giá trị gieo:** `migrations/0041_chinh_sach_dieu_phoi.sql` (chính sách 360/120/30 phút, `require_manifest` 1, `require_contract` 0, khai lùi 180; điều kiện `INSPECTION`, `TPL_INSURANCE`; bảng hạng bằng); `migrations/0033_van_chuyen_xe.sql`, `0032_giay_to_cua_nguoi.sql` (loại giấy tờ, hạng); `migrations/0038_nha_xe_doi_tac.sql` (vai "Nhà xe đối tác", quan hệ "Tài xế của"); lý do đặt gấp `src/shared/chang-dua-don.ts` (`LY_DO_DAT_GAP`).
 - **Chữ trên màn:** `web/dieu-phoi.ts`, `web/chuyen.ts`, `web/chuyen-sua.ts`, `web/dieu-phoi-ui.ts`, `web/tien-do-ui.ts`, `web/cuoc.ts`, `web/cuoc-chuyen.ts`, `web/tai-xe.ts`, `web/chinh-sach-dieu-phoi.ts`, `web/dieu-kien-xuat-ben.ts`, `web/ly-do-dieu-phoi.ts`, `web/dat-gap-ui.ts`, `src/shared/dat-gap-hien-thi.ts`, `src/shared/chinh-sach-hien-thi.ts`, `web/xe*.ts`, `web/order.ts`, `web/order-form.ts`, `web/parties.ts`, `src/shared/roles.ts`.
-- **Không màn nào ghi nơi trả:** tìm `dropoff` / `noiTra` trong `web/` chỉ thấy chỗ HIỆN (`web/dieu-phoi.ts:165`, `:431`); `web/trip-fields.ts` chỉ có "Nơi check-in".
+- **Không màn nào ghi nơi trả:** tìm `dropoff` / `noiTra` trong `web/` chỉ thấy chỗ HIỆN (`web/dieu-phoi.ts:165`, `:431`); `web/trip-fields.ts` chỉ có "Nơi check-in". Chặng mới từ form: `tronChangCu` (`src/shared/chang-dua-don.ts:237`, nơi trả `null`); `0034` chỉ chép `checkin_place` cho dữ liệu cũ. Xếp chặn khi thiếu giờ (`kiemXep`, `src/shared/dieu-phoi-kiem.ts:210`), còn thiếu nơi trả chỉ giữ lúc xuất bến (`:326`).
 - **Nhật ký thay đổi:** `src/shared/changelog.ts` mục 1.35–1.38.
 - **Trạng thái, quyết định:** `docs/HANDOFF-N1.md` (mục 1.38: Worker d5214617, bảo trì tới 4/10 13:21, audit R-VC-14 = 12, R-ORD-8 = 2); `docs/superpowers/specs/2026-09-29-van-chuyen-hoi-dap-dieu-phoi.md` (lời chủ lần 1–25); `docs/superpowers/plans/2026-09-30-van-chuyen-ban-giao-dieu-phoi.md`; `docs/superpowers/plans/2026-09-29-adr-0049-thi-cong-nhat-ky.md` mục 10.39, 10.40; `docs/BACKLOG.md` mục 5–7; ADR-0040, 0047–0057 (`docs/adr/README.md`).
 - **Kịch bản thử tay gốc:** kế hoạch ADR-0049 `docs/superpowers/plans/2026-09-29-adr-0049-thi-cong.md` mục 9 bước 8; kế hoạch ADR-0047 `docs/superpowers/plans/2026-09-29-adr-0047-thi-cong.md` mục 10 bước 7. Kịch bản Chrome tự động (dựng tên khách qua API trên D1 tạm): `docs/evidence/2026-09-29-adr-0049/kich-ban/` (`cuoc-smoke.mjs`, `dat-gap-smoke.mjs`, `dieu-phoi-smoke.mjs`, `chuyen-smoke.mjs`, `cap-nhat-khach-smoke.mjs`, `goi-bao-smoke.mjs`, …).
