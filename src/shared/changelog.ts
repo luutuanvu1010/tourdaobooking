@@ -11,6 +11,14 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Sửa lỗi chủ dự án báo 30/9: hết giờ bảo trì mà hệ thống không tự tắt (docs/HANDOFF-CHE-DO-BAO-TRI.md mục 0). 1.42 đã lên production; người gộp chốt số trống kế tiếp LÚC GỘP.
+    version: "1.43",
+    date: "2026-09-30",
+    items: [
+      { kind: "sua", text: "Chế độ bảo trì tự tắt đúng giờ dự kiến hoàn tất: mọi người vào lại app được ngay, không phải chờ quản trị viên tắt tay." },
+    ],
+  },
+  {
     // Một lần phát hành gộp (chủ muốn "dễ và tiện nhất", 30/9): sổ tiền lượt 1 = Hoàn tất đơn (ADR-0024 đ1–5, ADR-0025, ADR-0026; kế hoạch
     // docs/superpowers/plans/2026-09-29-so-tien-luot-1-ke-hoach.md) + đợt giao diện theo góp ý người dùng 30/9 (docs/design/gop-y-2026-09-30/). Số "1.42"
     // theo điều phối (1.41 = "Hướng dẫn theo vai" đã lên main trước); người gộp chốt số trống kế tiếp LÚC GỘP. Hai màn "Sổ của tôi" / "Sổ công nợ" CHƯA dựng nên mục này không nhắc tới.
@@ -30,7 +38,6 @@ export const CHANGELOG: readonly ReleaseNote[] = [
       { kind: "moi", text: "Tài xế xem được cuốc của ngày kia ở trang \"Cuốc của tôi\" (trước chỉ hôm nay và ngày mai)." },
       { kind: "doi", text: "Màn tài xế: mỗi điểm đón hiện thêm giờ xe tới nếu khác giờ hẹn khách." },
       { kind: "doi", text: "Danh sách đơn: đơn có nơi đón hiện luôn dòng \"Đón tại …\" ngay trên thẻ, không phải bấm mở." },
-      { kind: "sua", text: "Chế độ bảo trì tự tắt đúng giờ dự kiến hoàn tất: mọi người vào lại app được ngay, không phải chờ quản trị viên tắt tay." },
       { kind: "doi", text: "Góp ý / Báo lỗi: trạng thái hiện nổi bật theo từng bước (Mới → Đã tiếp nhận → Đang xử lý → Đã xong); yêu cầu đã xong hoặc bị từ chối có nút \"Mở lại\"." },
     ],
   },
