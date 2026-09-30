@@ -239,6 +239,26 @@ test("PUT /api/catalog/group-assignments: 51 mã → 400; nhóm lạ → 404; m�
   assert.equal((await w.call("GET", "/api/catalog/LP1/group-history", { as: ADM })).json.items.length, 0);
 });
 
+test("F1 (vòng sửa A3): tắt nhóm — lô gán chen vào SAU lần đếm → 409 'Nhóm còn 1 dịch vụ…', nhóm vẫn bật, không nhật ký", async () => {
+  const w = setup();
+  const g = nhom(w, "LPH");
+  const realBatch = w.env.DB.batch.bind(w.env.DB);
+  let chen = true;
+  w.env.DB.batch = async (stmts: any) => {
+    if (chen) {
+      chen = false; // mô phỏng lô gán thắng trước câu tắt (máy chủ đã đếm 0)
+      w.sqlite.exec(`INSERT INTO ctl_service_group (id, service_code, group_code, seq, valid_from_at, created_at, created_by, updated_at, updated_by)
+        VALUES ('chen', 'LP1', 'LPH', 1, '${NOW}', '${NOW}', NULL, '${NOW}', NULL)`);
+    }
+    return realBatch(stmts);
+  };
+  const r = await w.call("PATCH", "/api/catalog/groups/LPH", { as: ADM, body: { expectedUpdatedAt: g.updated_at, active: false } });
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.message, "Nhóm còn 1 dịch vụ, chuyển chúng sang nhóm khác trước.");
+  assert.equal(nhom(w, "LPH").active, 1);
+  assert.equal(demNhatKy(w, "catalog_group_updated"), 0);
+});
+
 test("Hai lô đua cùng một dịch vụ (cùng seq): lô sau bị CSDL chặn → 409, không ghi nửa chừng, không nhật ký thừa", async () => {
   const w = setup();
   // Mô phỏng đua: chèn tay dòng seq 1 cho TTBSNO SAU khi máy chủ đã đọc "chưa có dòng" — cách đơn giản: bọc prepare để chèn trước batch.

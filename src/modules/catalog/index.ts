@@ -236,7 +236,15 @@ export const catalogModule: AppModule = {
       } catch {
         return error(409, "conflict", "Chưa lưu được nhóm — có thể vừa có người đặt cùng tên cho nhóm khác. Tải lại rồi thử lại.");
       }
-      if (changes === 0) return NHOM_VUA_DOI();
+      if (changes === 0) {
+        // Hai lý do không ghi: mốc lệch (người khác vừa sửa), hoặc — khi tắt — có lô gán chen vào nhóm sau lần đếm ở trên (câu UPDATE tự chặn, F1).
+        const lai = await nhomTheoMa(env.DB, cu.code);
+        if (lai && lai.updated_at === expected && dangBat && !moi.active) {
+          const n = await demDichVuCuaNhom(env.DB, cu.code);
+          return error(409, "group_not_empty", `Nhóm còn ${n} dịch vụ, chuyển chúng sang nhóm khác trước.`);
+        }
+        return NHOM_VUA_DOI();
+      }
       const sau = await nhomTheoMa(env.DB, cu.code);
       if (!sau) return KHONG_CO_NHOM();
       return json({ group: nhomDto(sau, await demDichVuCuaNhom(env.DB, cu.code)) } satisfies CatalogGroupResponse);

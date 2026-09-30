@@ -42,10 +42,13 @@ const GROUP_INSERT = defineSql(
   `INSERT INTO ctl_group (code, name, sort_order, active, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, 1, ?4, ?5, ?4, ?5)`,
 );
 // Khoá lạc quan: chỉ ghi khi `updated_at` còn đúng như lúc người dùng đọc (?7) — `changes = 0` là có người khác vừa sửa (hoặc mã không có).
+// Bất biến ADR-0058 "tắt nhóm còn dịch vụ → 409" giữ NGAY TRONG câu (vòng sửa A3, F1): khi tắt (?4 = 0) mà nhóm còn dịch vụ HIỆN HÀNH thì không ghi
+// (`changes = 0`) — chặn đua "tầng trên đếm 0 xong, một lô gán chen vào trước khi tắt". Bật / sửa tên (?4 = 1) không bị điều kiện cản.
 const GROUP_UPDATE = defineSql(
   "catalog",
   "group_update",
-  `UPDATE ctl_group SET name = ?2, sort_order = ?3, active = ?4, updated_at = ?5, updated_by = ?6 WHERE code = ?1 AND updated_at = ?7`,
+  `UPDATE ctl_group SET name = ?2, sort_order = ?3, active = ?4, updated_at = ?5, updated_by = ?6 WHERE code = ?1 AND updated_at = ?7
+     AND (?4 = 1 OR NOT EXISTS (SELECT 1 FROM ctl_service_group s WHERE s.group_code = ?1 AND ${LATEST}))`,
 );
 const SERVICE_GROUP_LATEST = defineSql(
   "catalog",
@@ -106,7 +109,10 @@ export function themNhom(db: D1Database, i: ThemNhomInput): D1PreparedStatement 
 }
 
 export interface SuaNhomInput { code: string; name: string; sortOrder: number; active: boolean; staffId: string; now: string; updatedAtCu: string }
-/** Sửa nhóm có khoá lạc quan theo `updated_at` cũ; `changes = 0` → người khác vừa sửa. Tắt nhóm còn dịch vụ do tầng trên chặn trước (`demDichVuCuaNhom`). */
+/**
+ * Sửa nhóm có khoá lạc quan theo `updated_at` cũ; `changes = 0` → người khác vừa sửa, HOẶC (khi tắt) nhóm còn dịch vụ hiện hành. Tầng trên đếm trước
+ * (`demDichVuCuaNhom`) để trả câu có số; điều kiện trong câu là lưới chặn đua.
+ */
 export function suaNhom(db: D1Database, i: SuaNhomInput): D1PreparedStatement {
   return db.prepare(GROUP_UPDATE).bind(i.code, i.name, i.sortOrder, i.active ? 1 : 0, i.now, i.staffId, i.updatedAtCu);
 }

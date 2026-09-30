@@ -100,6 +100,13 @@ Kịch bản đột biến nằm ngoài repo (thư mục tạm của phiên), kh
 
 Kết luận: thứ tự "hỏi quyền trước khi đọc thân" trong THÂN route hôm nay **dựa vào kỷ luật + người kiểm đọc mã** (cổng `admin` trùng ô `admin.manage` nên không bài nào thấy được); thiếu hẳn `can` do hàng rào 2 luật (4) bắt.
 
+**Vòng sửa 1 của A3 — F1 (2026-09-30, điều phối quyết: "tắt nhóm còn dịch vụ → 409" là bất biến ADR-0058):** câu `group_update` (`src/modules/catalog/nhom-repo.ts`) thêm `AND (?4 = 1 OR NOT EXISTS (dịch vụ HIỆN HÀNH của nhóm))`; PATCH (`index.ts`) khi `changes = 0` đọc lại nhóm: mốc còn khớp + yêu cầu tắt → 409 "Nhóm còn N dịch vụ…", còn lại → 409 sai mốc.
+
+| Bước | Kết quả |
+|---|---|
+| Đỏ trước: ca mới `nhom-repo.test.ts` trên câu cũ | `not ok 7 - F1 (vòng sửa A3): câu TẮT nhóm tự chặn …` / `nhóm còn dịch vụ hiện hành → câu tắt không ghi` / `expected: 0 actual: 1` |
+| P16: bỏ tạm điều kiện `NOT EXISTS` (sau khi đã xanh) | 2 ca đỏ: `not ok 7 - F1 … câu TẮT nhóm tự chặn …` (`expected: 0 actual: 1`) và `not ok 14 - F1 (vòng sửa A3): tắt nhóm — lô gán chen vào SAU lần đếm → 409 …` (`expected: 409 actual: 200`) → hoàn nguyên từ bản sao → 15/15 xanh |
+
 ## 4. Ruling, lệch kế hoạch, nợ
 
 | # | Ngày | Nội dung | Ai quyết | Hệ quả |
@@ -141,6 +148,8 @@ Kết luận: thứ tự "hỏi quyền trước khi đọc thân" trong THÂN r
 | # | Nợ | Vì sao chấp nhận | Đề xuất gỡ |
 |---|---|---|---|
 | N-1 | Màn Danh mục (A7) tải `GET /api/staff` — trả cả SĐT — chỉ để ghép tên người sửa vào lịch sử nhóm | Cùng quyền `admin.manage` với màn Tài khoản (người xem vốn thấy SĐT ở đó); không mở dữ liệu cho ai mới; tránh cạnh `catalog → staff` (C1) | Sau này thêm route nhãn hẹp (id → tên hiển thị) cho các màn Quản trị cần ghép tên; ADR / kế hoạch riêng |
+| N-2 | Số "Chưa phân loại" của `GET /api/catalog/groups` (`chuaPhanLoai`) đếm MỌI dịch vụ của danh mục không có nhóm hiện hành — kể cả dịch vụ ẩn / đã rời Sheet; khác chip "Chưa phân loại" của form đơn (chỉ dịch vụ đang hiện) và khác kiểm định kỳ A4 (dịch vụ đang hiện) | Cùng gốc với `soDichVu` (đếm mọi dòng gán hiện hành) nên tổng khớp danh mục quản trị (điều phối, vòng sửa A3) | **Việc cho A7:** màn Quản trị ghi nhãn rõ con số này gồm cả dịch vụ ẩn / đã rời Sheet |
+| N-3 | `GET /api/catalog` và `GET /api/catalog/for-order` nay đọc `ctl_group` / `ctl_service_group` (A3) — deploy mã khi D1 chưa có migration `0053` thì hai route này lỗi, form đơn không mở được danh mục | Hai route bắt buộc phải có nhóm (ADR-0058 Đ5) | **Việc cho K3A (runbook):** migration `0053` BẮT BUỘC áp trước `wrangler deploy` (`npm run trien-khai` đã áp migration trước deploy — ghi rõ vào runbook phát hành) |
 
 **Ruling A-0 (2026-09-30, điều phối):** đổi số migration nhóm dịch vụ `0046` → `0053` (tệp `migrations/0053_nhom_dich_vu.sql`, test `src/migrations-0053.test.ts`). Lý do: `main` đã có `0050_tro_ly.sql` (bản 1.44); luật CLAUDE.md §10 số kế tiếp = số lớn nhất + 1; `0051`/`0052` đã cấp cho phiên khác (ADR-0060/0061). Các dòng cũ ở bảng trên còn ghi `0046` là lịch sử lúc thi công A1. ADR-0058 Đ7 (số giữ chỗ) và tệp kế hoạch giữ nguyên (tệp đã duyệt).
 

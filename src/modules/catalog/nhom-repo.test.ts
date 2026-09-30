@@ -119,3 +119,22 @@ test("gán vào nhóm đã tắt: trigger chặn (lưới cuối); mã lạ: kho
   await assert.rejects(async () => chay(db, (await ganNhomStatements(db, { codes: ["khong-co"], groupCode: "b", staffId: "u", now: T2 })).statements));
   assert.equal((await ganNhomStatements(db, { codes: ["khong-co"], groupCode: null, staffId: "u", now: T2 })).statements.length, 0, "mã chưa từng gán mà đích là Chưa phân loại: không có gì để ghi");
 });
+
+test("F1 (vòng sửa A3): câu TẮT nhóm tự chặn khi nhóm còn dịch vụ hiện hành — đua 'đếm xong rồi có người gán' → changes 0, nhóm vẫn bật; bật / sửa tên không bị cản", async () => {
+  const { sqlite, db } = moi();
+  chenDichVu(sqlite, "R1");
+  await chay(db, [themNhom(db, { code: "r", name: "Đua", sortOrder: 1, staffId: "u", now: T1 }), themNhom(db, { code: "k", name: "Khác", sortOrder: 2, staffId: "u", now: T1 })]);
+  // Tầng trên đã đếm 0 dịch vụ; ngay sau đó một lô gán R1 vào nhóm "r" thắng trước:
+  await chay(db, (await ganNhomStatements(db, { codes: ["R1"], groupCode: "r", staffId: "u", now: T1 })).statements);
+  const [tat] = await chay(db, [suaNhom(db, { code: "r", name: "Đua", sortOrder: 1, active: false, staffId: "u", now: T2, updatedAtCu: T1 })]);
+  assert.equal(tat!.meta.changes, 0, "nhóm còn dịch vụ hiện hành → câu tắt không ghi");
+  assert.equal((await nhomTheoMa(db, "r"))?.active, 1, "nhóm vẫn bật");
+  // Nhóm vẫn bật: sửa tên / thứ tự không bị điều kiện cản
+  const [sua] = await chay(db, [suaNhom(db, { code: "r", name: "Đua 2", sortOrder: 3, active: true, staffId: "u", now: T2, updatedAtCu: T1 })]);
+  assert.equal(sua!.meta.changes, 1);
+  // Chuyển R1 đi (dòng cũ vẫn trong lịch sử, không còn hiện hành) → tắt được
+  await chay(db, (await ganNhomStatements(db, { codes: ["R1"], groupCode: "k", staffId: "u", now: T2 })).statements);
+  const [tat2] = await chay(db, [suaNhom(db, { code: "r", name: "Đua 2", sortOrder: 3, active: false, staffId: "u", now: "2026-09-30T03:00:00.000Z", updatedAtCu: T2 })]);
+  assert.equal(tat2!.meta.changes, 1, "chỉ dòng HIỆN HÀNH tính — lịch sử cũ không cản");
+  assert.equal((await nhomTheoMa(db, "r"))?.active, 0);
+});
