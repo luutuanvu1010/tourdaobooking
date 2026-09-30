@@ -25,7 +25,7 @@
 4. Xe về chỉ giữ chỗ cho đúng số người về; danh sách tên đủ khi có đủ tên cho số người về.
 5. Bảng giá trên Google Sheet **không đổi**.
 6. Không đụng chuyến xe, không đụng tiền.
-7. **Ai sửa số người chặng về:** đúng như bạn nói, **văn phòng** (Bán hàng với đơn mình lập hoặc phụ trách, Quản trị, Toàn quyền) — dùng quyền sửa chuyến đi có sẵn. Đối tác, Thực tập, Hướng dẫn viên không sửa được. Không câu nào cần bạn trả lời thêm.
+7. **Hai câu cần bạn chọn:** (Q-L4-A) bảng "mẫu đưa đón" đặt ở phần nào của hệ thống — màn hình vẫn ở Danh mục; (Q-L4-B) ai sửa số người chặng về khi đơn còn nháp.
 8. **Bạn cần vẽ:** V12 (phần tự tạo chặng trên form đơn) và V14 (ô "Đưa đón" ở màn Danh mục).
 
 ---
@@ -34,22 +34,25 @@
 
 ### D10.1 Mẫu chặng theo dịch vụ ("dịch vụ đưa đón mấy chiều") — dữ liệu trong app, có lịch sử (ĐP10 = a)
 
-- **Bảng mới `catalog_transfer_template`**, chủ là module `catalog` (tiền tố `catalog_` đã có — `migrations/0006_catalog.sql:25`, `:44`, `:54`; **không** thêm tiền tố mới vào ADR-0002). Chỉ-thêm, có ngày hiệu lực (Hiến chương 5.2; khuôn `vc_dispatch_policy`).
+- **Chủ bảng và tên bảng: CHỜ CHỦ (Q-L4-A).** Bản trước ghi `catalog_transfer_template` với tiền tố `catalog_` — **sai**: `catalog_` không phải tiền tố module (ADR-0002 "bảng cũ giữ tên"; `TABLE_PREFIX` ở `src/architecture.test.ts:137@thi-cong-adr-0049-tiep` không có; bài "bảng mới phải có tiền tố module" và bài khoá `LEGACY_TABLES` sẽ đỏ — người kiểm độc lập đã thấy đỏ thật). Hai cách hợp lệ:
+  - **(a, khuyến nghị) bảng `vc_transfer_template` của module `van-chuyen`** (tiền tố `vc_` đã đăng ký). `code` là **tham chiếu logic, không khoá ngoại** tới mã dịch vụ của `catalog` (tiền lệ R-P19). **Lưu ý:** mục `logicalRefs` của `docs/data-dictionary.json` đòi một `viaView` (`architecture.test.ts:223`) mà `catalog` chưa có view công bố — kế hoạch thi công chốt: ghi chú "tham chiếu mã dịch vụ, không kiểm định kỳ" hoặc hỏi lại nếu hàng rào đòi view (**chưa kiểm**). `van-chuyen` **không đọc** bảng `catalog` ⇒ **không cần cạnh module mới** (cạnh `van-chuyen → catalog` hôm nay không có — `architecture.test.ts:51`): màn Danh mục lấy danh sách dịch vụ từ route catalog sẵn có rồi gọi route `van-chuyen` để đọc/ghi mẫu; form đơn đọc mẫu qua route `van-chuyen` ở cổng `orders` + `can(order.create)` (trả mã → chế độ, không tiền, không dữ liệu cá nhân) — `orders` **không** import `van-chuyen`. Màn hình **vẫn ở "Danh mục"** đúng ĐP10 a (vị trí màn ≠ module chủ bảng).
+  - (b) tiền tố mới `cat_` cho module `catalog` (sửa ADR-0002 điều 2) và chuyển `catalog` sang STRICT (bảng mới đi `defineSql`). Được: dữ liệu dịch vụ ở cùng module dịch vụ. Mất: thêm một việc sửa luật kiến trúc + dời module cũ sang luật nghiêm (việc lớn hơn cả tính năng).
+- Cột (theo (a); tên bảng đổi theo câu trả lời):
 
   | Cột | Nghĩa |
   |---|---|
   | `id` | |
-  | `code` | mã dịch vụ — **cùng khoá** với `catalog_override.code` (`0006:44`), không khoá ngoại tới `catalog_item` (dòng Sheet có thể biến mất rồi quay lại) |
+  | `code` | mã dịch vụ (tham chiếu logic, không khoá ngoại — dòng Sheet có thể biến mất rồi quay lại) |
   | `mode` | `CHECK IN ('NONE','ONE_WAY','ROUND_TRIP')` — tập đóng, định trọn |
-  | `return_time_hint` | giờ đón gợi ý chiều về (`HH:MM`, NULL = không gợi ý); `CHECK` khuôn giờ; chỉ có khi `mode = 'ROUND_TRIP'` |
-  | `valid_from_at` | lúc máy chủ ghi (hiệu lực ngay — khuôn lời chủ "Hiệu lực ngay" cho chính sách điều phối, [HĐ] "Trả lời lần 12" câu 3); `UNIQUE (code, valid_from_at)` |
-  | `created_at`, `created_by` | dấu vết |
+  | `return_time_hint` | giờ đón gợi ý chiều về (`HH:MM`, NULL = không gợi ý); chỉ có khi `mode = 'ROUND_TRIP'` |
+  | `valid_from_at` | lúc máy chủ ghi (hiệu lực ngay — khuôn "Hiệu lực ngay", [HĐ] "Trả lời lần 12" câu 3); `UNIQUE (code, valid_from_at)` |
+  | `created_at`, `created_by`, `updated_at`, `updated_by` | đủ **bốn cột WHO** (ADR-0003; bài `architecture.test.ts:290-313`) |
 
   - Dòng hiệu lực của một dịch vụ = dòng mới nhất đã tới. Không có dòng nào = `NONE` (không đưa đón) — đúng [TK] CH-09 "trống = không đưa đón".
   - Trigger cấm `UPDATE`/`DELETE` (chỉ-thêm). Đổi = thêm dòng.
 - **Không phải cột Sheet** (chủ chọn a): đồng bộ Sheet 15 phút **không** chạm bảng này (`catalog_sync` không đổi).
-- **Quyền:** ghi = cổng `admin` + `can(admin.manage)` (Quản trị, Toàn quyền — `src/shared/permissions.ts:100@thi-cong-adr-0049-tiep`), cùng ô với việc ghi đè danh mục hiện có. **Không thêm ô.** Đọc: màn Danh mục (cổng `admin`) và DTO danh mục cho người lập đơn (route của ADR-0033, cổng `orders`) — thêm **một** trường `duaDon: { mode, gioVeGoiY }`, không tiền.
-- **Nhật ký:** `catalog_transfer_template_set` — `detail` = mã dịch vụ, chế độ cũ → mới, giờ gợi ý. Không dữ liệu cá nhân.
+- **Quyền:** ghi = cổng `admin` + `can(admin.manage)` (Quản trị, Toàn quyền — `src/shared/permissions.ts:100@thi-cong-adr-0049-tiep`), cùng ô với việc ghi đè danh mục hiện có. **Không thêm ô.** Đọc: màn Danh mục (cổng `admin`); form đơn qua route đọc mẫu ở cổng `orders` + `can(order.create)` (theo (a)) hoặc qua DTO danh mục của ADR-0033 (theo (b)).
+- **Nhật ký:** `transfer_template_set` — `detail` = mã dịch vụ, chế độ cũ → mới, giờ gợi ý. Không dữ liệu cá nhân.
 
 ### D10.2 Lập đơn tự tạo chặng theo mẫu — chỉ là mặc định, sửa tay được
 
@@ -66,8 +69,9 @@
   - NULL = theo số khách hiệu lực của dịch vụ (như hôm nay).
 - **Số người hiệu lực của một chặng = một hàm thuần duy nhất** ở `src/shared/` (tên đề xuất `soNguoiChang(chang, soKhachDichVu)`): `pax_override` nếu có và ≤ số khách dịch vụ; nếu số khách dịch vụ sau này **giảm xuống dưới** `pax_override` thì lấy số khách dịch vụ (máy không tự sửa cột; câu kiểm định kỳ báo).
   - **Mọi nơi đang dùng "số người của chặng" phải đổi sang hàm này, trong cùng lát:** `lichChungChang` (`src/modules/orders/index.ts:268@thi-cong-adr-0049-tiep`), kiểm L-D1 (số suất mở ≤ số người) ở máy chủ, `kiemXuatBen` vế L-B1 (đủ tên cho số người), `trangThaiChang`, câu kiểm định kỳ L-D1/L-B1. Bài kiểm "một luật" (khuôn bài học Đợt E "hai luật"): quét mã, không nơi nào tự tính số người chặng ngoài hàm này.
-- **Quyền — áp lời chủ "văn phòng sửa" vào ô có sẵn, không thêm ô:** chỉ người qua `can(order.trip.edit, { ownerId, assigned })` ghi được `pax_override`, **cả khi đơn nháp lẫn đã xác nhận** (`permissions.ts:78@thi-cong-adr-0049-tiep`: SALES `ownOrAssigned`, ADMIN `any`, SA `any`; mọi cột khác `none` — đúng tập "văn phòng"). Đối tác, Thực tập, HDV **không** ghi được.
-  - Lưu nháp của người chỉ có `order.modify` (đơn nháp xoá–chèn lại chặng — C21): máy chủ **chép lại** `pax_override` cũ cho chặng về còn giữ; gửi giá trị khác bản cũ → 403. Tiền lệ: dấu "đặt gấp" được giữ qua lần lưu nháp ([HĐ] "Trả lời lần 6" Q1).
+- **Quyền — CHỜ CHỦ (Q-L4-B).** Không thêm ô. Sau xác nhận: `order.trip.edit` (`permissions.ts:78`: SALES `ownOrAssigned`, ADMIN `any`, SA `any`) — đúng "văn phòng" và đúng đường sửa chặng hiện có. Khi đơn còn **nháp** có hai cách:
+  - **(b, khuyến nghị) người sửa được đơn nháp** (`order.modify`: gồm Đối tác, Thực tập với đơn của mình) khai luôn số người về, cùng lúc khai chặng. Lý do chọn: đi **đúng đường lưu nháp hôm nay** (không mở đường mới), người đặt biết số người về ngay lúc đặt, văn phòng vẫn sửa được sau xác nhận; đơn nháp chưa lên xe nên chưa ảnh hưởng điều xe.
+  - (a) chỉ văn phòng, kể cả khi nháp: phải **mở đường mới** — route sửa chặng bằng `order.trip.edit` hôm nay trả 409 với đơn nháp — và lưu nháp của Đối tác/Thực tập phải chép lại giá trị cũ (gửi khác → 403). Được: đúng chữ "văn phòng sửa". Mất: thêm đường ghi, Đối tác khai đơn khách về ít người phải nhờ văn phòng.
   - Chặng về bị bỏ rồi thêm lại → mất `pax_override` (chặng mới).
 - **Mốc 6 giờ:** đổi số người **không** phải đổi "ngày, giờ, nơi đón, nơi trả" nên **không** đòi đặt gấp (ADR-0049 D2 chỉ liệt kê bốn trường đó). Chặng đã lên xe mà số người giảm → lịch chung hiện "thừa suất — gỡ bớt", chuyến bị **giữ** tới khi người xếp xe gỡ ([TK] §1.5 cuối; ADR-0049 D2 "giữ"); tăng → "thiếu suất".
 - **Nhật ký:** sửa chặng dùng hành động có sẵn `order_leg_updated` (ADR-0047), `detail` thêm "số người về cũ → mới". Không tên.
@@ -81,9 +85,9 @@ Tệp ADR cũ **không** sửa; `docs/adr/README.md` do điều phối cập nh�
 | ADR | Nguyên văn | Mới |
 |---|---|---|
 | ADR-0047 A1 | "**Số người của riêng chặng** (`pax_override`, chiều về ít người hơn): **chờ lượt 2** (Q6)." ([TK] `:1009` trích) | "Chặng **về** có `pax_override` (≥ 1, chỉ `RETURN`); số người hiệu lực của chặng tính bằng một hàm thuần duy nhất (ADR-0054 D10.3)." |
-| ADR-0047 A1 (tạo chặng) | chặng do người lập thêm tay ("Thêm chiều về") | "… Form đơn **tạo sẵn** chặng theo mẫu của dịch vụ (`catalog_transfer_template`, ADR-0054 D10.1–D10.2); người lập sửa tay được; máy chủ không bắt khớp mẫu." |
+| ADR-0047 A1 (tạo chặng) | chặng do người lập thêm tay ("Thêm chiều về") | "… Form đơn **tạo sẵn** chặng theo mẫu của dịch vụ (bảng mẫu chặng, ADR-0054 D10.1–D10.2); người lập sửa tay được; máy chủ không bắt khớp mẫu." |
 | ADR-0049 D1 (hàm `lichChungChang`, danh sách trường) | "… số người, số người đã có tên …" | "… số người **hiệu lực của chặng** (`soNguoiChang`, ADR-0054) …" — danh sách trường không thêm khoá |
-| ADR-0033 (DTO danh mục cho người lập đơn) | (không có trường đưa đón) | thêm `duaDon: { mode, gioVeGoiY }` — không tiền |
+| ADR-0033 (DTO danh mục cho người lập đơn) | (không có trường đưa đón) | chỉ nếu Q-L4-A = (b): thêm `duaDon: { mode, gioVeGoiY }` — không tiền. Theo (a): không đổi; form đọc mẫu qua route riêng của `van-chuyen` |
 
 ## Lệch có chủ ý khỏi Hiến chương 5.1 (khuôn ADR-0029; chỉ hợp lệ khi chủ duyệt)
 
@@ -91,40 +95,39 @@ Tệp ADR cũ **không** sửa; `docs/adr/README.md` do điều phối cập nh�
 |---|---|---|---|---|
 | **L-R1** (mới) | `pax_override` ≤ số khách hiệu lực của dịch vụ | số khách hiệu lực nằm trong JSON của `orders` (`after_json`) — cùng gốc với L-A1 (ADR-0047), L-D1 (ADR-0049) | máy chủ kiểm lúc lưu chặng; hàm `soNguoiChang` kẹp lúc đọc; câu kiểm định kỳ "chặng về có số người vượt số khách dịch vụ" (báo, không chặn) | số khách hiệu lực thành cột có kiểu — **cùng điều kiện gỡ** L-A1, L-D1 |
 
-Phần còn lại có lớp CSDL đủ: `CHECK` của `pax_override` (≥ 1, chỉ `RETURN`); `CHECK` `mode`; trigger chỉ-thêm của `catalog_transfer_template`.
+Phần còn lại có lớp CSDL đủ: `CHECK` của `pax_override` (≥ 1, chỉ `RETURN`); `CHECK` `mode`; trigger chỉ-thêm của bảng mẫu chặng.
 
 ## Cửa một chiều / hai chiều
 
-- **Một chiều (nhẹ):** chủ và tên bảng `catalog_transfer_template` (module `catalog`); tập `mode` trong `CHECK`; cột `pax_override` trên `ord_transfer_leg` một khi đã có dòng mang giá trị.
-- **Hai chiều:** giờ gợi ý; luật tự tạo chặng (hàm thuần, chỉ ở form); ai sửa `pax_override` (ô có sẵn); nhãn màn hình.
+- **Một chiều (nhẹ):** chủ và tên bảng mẫu chặng (theo Q-L4-A); tập `mode` trong `CHECK`; cột `pax_override` trên `ord_transfer_leg` một khi đã có dòng mang giá trị.
+- **Hai chiều:** giờ gợi ý; luật tự tạo chặng (hàm thuần, chỉ ở form); ai sửa `pax_override` (theo Q-L4-B); nhãn màn hình.
 - **Không một chiều nào về dữ liệu cá nhân hay tiền.**
 
 ## Hệ quả
 
 - **Migration:** hai migration chỉ-thêm (hoặc một), **số ≥ 0044, lấy lúc thi công** sau khi liệt kê migration của **mọi nhánh và worktree chưa gộp** (`CLAUDE.md` §10; `docs/adr/README.md:77` ghi "số kế tiếp cho việc khác là 0044"; sổ tiền, Kernel lượt 2–3 và ADR-0052/0053 có thể lấy số trước). `ALTER TABLE ord_transfer_leg ADD COLUMN pax_override …` phải đứng **sau** `0034` trên cùng nhánh phát hành.
-- **Module `catalog` đang là LEGACY** (`src/architecture.test.ts:74`, bảng ở `LEGACY_TABLES :90-92`). Bảng mới trong module cũ: kế hoạch thi công phải kiểm luật của `src/architecture.test.ts` cho bảng mới của module LEGACY (**chưa kiểm**); nếu hàng rào đòi, bảng mới đi đường SQL nghiêm (`defineSql`) ngay từ đầu — **siết**, không nới.
-- **Đồ thị:** không cạnh mới. `orders → catalog` đã có (`src/architecture.test.ts:40`); `catalog` không đọc `orders`.
+- **Kiến trúc:** theo Q-L4-A (a): bảng `vc_` trong module STRICT `van-chuyen`, SQL qua `defineSql`; **không cạnh mới** (`van-chuyen` không đọc `catalog`; `orders` không import `van-chuyen`). Theo (b): sửa ADR-0002 điều 2 (tiền tố `cat_`), thêm `cat_` vào `TABLE_PREFIX` (`architecture.test.ts:137`), chuyển `catalog` ra khỏi `LEGACY` (`:74`) — nới/đổi hàng rào, chủ duyệt riêng.
 - **Ô quyền:** không ô mới, không đổi giá trị ô nào (xem trang ghép).
-- **Route (tên đề xuất, kế hoạch chốt):** `GET/POST /api/catalog/:code/dua-don` (cổng `admin`, `admin.manage`) — xem lịch sử, thêm bản mới. Route danh mục cho người lập đơn (ADR-0033) thêm trường `duaDon`. Route lưu chặng của `orders` nhận thêm `soNguoiVe`.
+- **Route (tên đề xuất, kế hoạch chốt; theo (a)):** `GET/POST /api/van-chuyen/mau-chang/:code` (cổng `admin`, `admin.manage`) — xem lịch sử, thêm bản mới; `GET /api/van-chuyen/mau-chang` (cổng `orders`, `can(order.create)`) — mã → chế độ cho form. Route lưu chặng của `orders` nhận thêm `soNguoiVe`.
 - **Bất biến `audit-invariants` (câu mới):** "chặng về có `pax_override` > số khách hiệu lực của dịch vụ" (cảnh báo, L-R1); "chặng có `pax_override` mà không phải `RETURN`" (vi phạm — lưới thứ hai sau `CHECK`).
 - **Hàng rào mới** (mỗi cái một dòng `docs/SO-HANG-RAO.md`, kèm ngày thấy chặn thật: sửa cố ý → đỏ → hoàn nguyên):
   - `CHECK` `pax_override` (ghi `pax_override` cho chặng `OUT` → `RAISE`; ghi 0 → `RAISE`);
-  - trigger chỉ-thêm `catalog_transfer_template` (`UPDATE`/`DELETE` → `RAISE`);
+  - trigger chỉ-thêm bảng mẫu chặng (`UPDATE`/`DELETE` → `RAISE`);
   - bài "một luật số người chặng" (thêm cố ý một chỗ tự tính số người → đỏ);
-  - bài ghim DTO danh mục người lập đơn (khoá `duaDon` không mang tiền).
+  - bài liệt kê khoá của route đọc mẫu cho form (chỉ mã, chế độ, giờ gợi ý).
 - **Tài liệu:** `docs/data-dictionary.json` + `npm run dict`; `docs/SYSTEM-DESIGN.md`; `docs/CHANGE-GUIDE.md`.
 - **Việc lớn** (dữ liệu) ⇒ người kiểm độc lập chỉ đọc sau thi công.
 
 ## Tiêu chí nghiệm thu (kiểm bằng máy)
 
-1. SQL (`node:sqlite`): `UPDATE`/`DELETE` dòng `catalog_transfer_template` → `RAISE`; `mode` ngoài tập → `RAISE`; `return_time_hint` khi `mode ≠ ROUND_TRIP` → `RAISE`.
+1. SQL (`node:sqlite`): `UPDATE`/`DELETE` dòng bảng mẫu chặng → `RAISE`; bài tiền tố bảng + WHO (`architecture.test.ts`) xanh; `mode` ngoài tập → `RAISE`; `return_time_hint` khi `mode ≠ ROUND_TRIP` → `RAISE`.
 2. Route: Quản trị thêm bản mẫu → 201, bản cũ còn trong lịch sử; Bán hàng → 403; Toàn quyền → 201.
 3. Hàm `changMacDinh`: "hai chiều" → đúng 2 chặng, chặng về đảo nơi đón/trả; "một chiều" → 1; "không đưa đón" hoặc không có dòng → 0 (bảng ca).
 4. Form (kịch bản Chrome, khuôn `web/CLAUDE.md`): chọn dịch vụ "hai chiều" → hiện sẵn 2 chặng; bỏ chặng về, lưu nháp, mở lại → vẫn 1 chặng (máy chủ không tạo lại).
 5. `pax_override`: chặng `OUT` → 400 ở route **và** `RAISE` ở CSDL; 0 → 400/`RAISE`; vượt số khách dịch vụ → 400 (L-R1); hợp lệ → 200, nhật ký có "số người về cũ → mới", không tên.
 6. `soNguoiChang` là nơi duy nhất: `lichChungChang` trả số người = `pax_override`; `kiemXuatBen` đòi đủ tên theo số người về (2/4 khách có tên, chặng về 2 người → đạt); L-D1 máy chủ chặn mở suất thứ 3 cho chặng về 2 người.
 7. Đổi mẫu dịch vụ không đổi chặng của đơn đã có.
-8. Quyền `pax_override`: Bán hàng (đơn mình) → 200; Bán hàng đơn người khác → 403; Quản trị → 200; Đối tác / Thực tập lưu nháp gửi giá trị khác → 403, lưu nháp không gửi → giá trị cũ còn nguyên; HDV → 403.
+8. Quyền `pax_override` theo Q-L4-B: đã xác nhận — Bán hàng (đơn mình) → 200, đơn người khác → 403, Quản trị → 200, HDV / Đối tác → 403; nháp — (b) người lập nháp (kể cả Đối tác, Thực tập, đơn của mình) → 200; (a) Đối tác / Thực tập gửi giá trị khác → 403, không gửi → giá trị cũ còn nguyên.
 9. `npm test`, `npm run typecheck` (0 lỗi), `npm run test:e2e`, `node scripts/audit-invariants.mjs --db local` (thoát 0 dữ liệu sạch, thoát 1 dữ liệu gieo lỗi L-R1).
 
 ## Phương án bị loại
@@ -135,9 +138,10 @@ Phần còn lại có lớp CSDL đủ: `CHECK` của `pax_override` (≥ 1, ch�
 - **Chiều về luôn đủ người, ai không về thì "vắng"** (ĐP1 b): chủ chọn a.
 - **Cho `pax_override` ở cả chặng đi:** chủ chỉ nói chiều về; mở rộng sau bằng ADR (đổi một `CHECK`).
 
-## Câu hỏi còn mở
+## Câu hỏi còn mở (gom ở trang ghép mục 5)
 
-**Không có.** Người sửa `pax_override` được chốt bằng **áp** lời chủ "văn phòng sửa số người chặng về" vào ô có sẵn (D10.3) — không thêm ô, không đổi nghĩa ô. Người kiểm soi điểm này; chủ bác được (khi đó phương án khác là cho mọi người sửa được chặng, gồm người lập nháp là Đối tác, Thực tập).
+- **Q-L4-A** — bảng mẫu đưa đón thuộc phần nào: (a) Vận chuyển, tiền tố `vc_` (khuyến nghị) / (b) Danh mục với tiền tố mới `cat_` + sửa luật kiến trúc. Xem D10.1.
+- **Q-L4-B** — ai khai số người chặng về khi đơn còn nháp: (b) người sửa được đơn nháp (khuyến nghị) / (a) chỉ văn phòng. Xem D10.3.
 
 ## Việc vẽ cần chủ
 
@@ -147,6 +151,6 @@ Phần còn lại có lớp CSDL đủ: `CHECK` của `pax_override` (≥ 1, ch�
 ## Chưa kiểm
 
 - `catalog_item.code` có ổn định qua mỗi lần đồng bộ Sheet không — dựa vào việc `catalog_override` đã dùng `code` làm khoá (`0006:44`); **chưa kiểm** bằng dữ liệu thật.
-- Luật của `src/architecture.test.ts` cho bảng mới trong module LEGACY.
+- (Đã được người kiểm chỉ ra: `catalog_` không hợp lệ — xem Q-L4-A.)
 - Số migration kế tiếp trên mọi nhánh `worktree-agent-*` (người đọc chỉ kiểm được các nhánh có tên liên quan).
 - Tệp đề xuất này chưa có người kiểm độc lập.
