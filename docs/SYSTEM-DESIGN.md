@@ -548,7 +548,7 @@ Các bước: `markAttempt` → `fetchSheetCsv` → `parseCatalogSheet` (cột b
 
 ## 7. Danh mục API
 
-Tất cả 176 route khai bằng `route(...)` trong `src/modules/*/index.ts` (đếm lại: `grep -ho 'route("' src/modules/*/index.ts | wc -l`; con số này ĐỔI theo thời gian, đừng tin số ghi ở đây hơn lệnh grep).
+Tất cả 181 route khai bằng `route(...)` trong `src/modules/*/index.ts` (đếm lại: `grep -ho 'route("' src/modules/*/index.ts | wc -l`; con số này ĐỔI theo thời gian, đừng tin số ghi ở đây hơn lệnh grep).
 
 | Phương thức | Đường dẫn | Mức truy cập | Module | Mục đích |
 |---|---|---|---|---|
