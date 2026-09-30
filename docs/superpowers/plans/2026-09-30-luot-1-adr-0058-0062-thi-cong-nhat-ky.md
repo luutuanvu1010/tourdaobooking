@@ -97,6 +97,21 @@
 | T9 | Bộ chọn dựng trước `initShell` | §5.5 + A6: `setTaiKhoan(staffId)` gọi sau `order-form.ts:487` |
 | T10 | Lưu y nguyên không ghi dòng | B6: không `detail` ⇒ không `tinDoi` (`orders/index.ts:359`), thêm ca |
 
+**Vòng 2 kiểm kế hoạch (30/9): ĐẠT CÓ ĐIỀU KIỆN — sửa nốt:**
+
+| Mã | Phát hiện | Chỗ sửa |
+|---|---|---|
+| N1 (VỪA) | NT-B1 quét cả tệp sẽ đỏ vì câu báo lỗi cũng chứa nhãn (`service-rules.ts:86-91`, `:340-341`; `chang-dua-don.ts:126,133,137,142`) | B1: bài chỉ quét đoạn viết nhật ký (`TRIP_VALUE_FIELDS` → trước `describeTripUpdates`; thân `moTaChang`), vẫn bắt nhánh "thêm —" và nhánh sửa; dấu cắt không thấy → đỏ; ghi rõ câu báo lỗi ngoài phạm vi; P16 thêm đột biến trong thân `moTaChang` và ca đối chứng ngoài đoạn vẫn xanh |
+| N2 (THẤP) | §5.4 thiếu nhánh 409 bật lại trùng tên | §5.4 dòng `PATCH /api/catalog/groups/:code` |
+| N3 (THẤP) | Màn Danh mục tải `/api/staff` (có SĐT) chỉ để lấy tên | Ghi nợ N-1 ở bảng dưới |
+| N4 (THẤP) | NT-B16 tạo trước khi có hằng → lỗi import đỏ cả tệp | NT-B16 tạo ở B5 (dạng `test.todo`), bật ở K1B; thêm bước ở B5 |
+
+**Nợ đã chấp nhận:**
+
+| # | Nợ | Vì sao chấp nhận | Đề xuất gỡ |
+|---|---|---|---|
+| N-1 | Màn Danh mục (A7) tải `GET /api/staff` — trả cả SĐT — chỉ để ghép tên người sửa vào lịch sử nhóm | Cùng quyền `admin.manage` với màn Tài khoản (người xem vốn thấy SĐT ở đó); không mở dữ liệu cho ai mới; tránh cạnh `catalog → staff` (C1) | Sau này thêm route nhãn hẹp (id → tên hiển thị) cho các màn Quản trị cần ghép tên; ADR / kế hoạch riêng |
+
 ## 5. Kiểm độc lập
 
 | Vòng | Phần | Đỉnh được kiểm | Kết luận | Mục CAO / VỪA / THẤP | Đã sửa ở |
