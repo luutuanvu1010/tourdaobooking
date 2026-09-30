@@ -21,6 +21,8 @@ export const CHANGELOG: readonly ReleaseNote[] = [
       { kind: "sua", text: "Tài khoản đối tác, thực tập: trang đơn không còn báo \"Chưa tải được người phụ trách\"." },
       { kind: "moi", text: "Tài khoản đối tác, thực tập có mục \"Đơn hàng\" trên thanh dưới đáy để xem lại đơn mình đã lập." },
       { kind: "doi", text: "Hướng dẫn viên: lý do sửa số khách không được chứa số điện thoại; chỉ sửa số khách được tới hết ngày đi tour." },
+      // ADR-0060 (nhánh riêng, số TẠM "1.44" theo điều phối — người gộp chốt số lúc gộp; migration 0051).
+      { kind: "moi", text: "Kế toán đánh dấu đơn \"Đã nhập phần mềm kế toán\" kèm số hoá đơn; danh sách đơn có nhãn và lọc được đơn chưa nhập / đã nhập theo khoảng ngày." },
     ],
   },
   {
