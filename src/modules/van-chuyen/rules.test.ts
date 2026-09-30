@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  canhBaoXe, chiTietNhatKyXe, chuanHoaBienSo, chuanHoaSoKhung, kiemGiaHanXe, kiemSuaSaiXe, kiemSuaXe, kiemThemGiayToXe, kiemXeMoi, loiRangBuocXe, type DanhMucGiayToXe,
+  canhBaoXe, chiTietNhatKyXe, chuanHoaBienSo, chuanHoaSoKhung, kiemGiaHanXe, kiemSuaSaiXe, kiemSuaXe, kiemThemGiayToXe, kiemXeMoi, loiRangBuocChuyen, loiRangBuocXe, type DanhMucGiayToXe,
 } from "./rules.ts";
 
 const HOM_NAY = "2026-09-28";
@@ -142,4 +142,13 @@ test("kiemSuaXe (ADR-0048 D1, Q1 = (a) — chủ trả lời 29/9 'Sửa đượ
   const id = "3f1c2b4a-5d6e-4f70-8a9b-0c1d2e3f4a5b";
   assert.equal(ok(kiemSuaXe({ ...XE, status: "active", expectedUpdatedAt: "t1", ownerPartyId: id }, hienTai, HOM_NAY)).ownerPartyId, id);
   assert.equal(loi(kiemSuaXe({ ...XE, status: "active", expectedUpdatedAt: "t1", ownerPartyId: "abc" }, hienTai, HOM_NAY)), "Chủ xe không hợp lệ.");
+});
+
+test("loiRangBuocChuyen: bản chụp 'Bỏ đánh dấu' sai (GA-59 — trigger gb_snapshot / CHECK của 0043) → 409 trip_rule như gb_needs_appt; chuỗi mốc thua đua vẫn gio_hen_vua_doi; lỗi lạ → null", () => {
+  const luat = { status: 409, code: "trip_rule", message: "Chuyến vừa thay đổi hoặc lệnh vi phạm luật chuyến xe — tải lại rồi làm lại." };
+  assert.deepEqual(loiRangBuocChuyen('D1_ERROR: gb_snapshot: bản chụp "bỏ đánh dấu" chỉ chứa mã chuyến có thật: SQLITE_CONSTRAINT'), luat);
+  assert.deepEqual(loiRangBuocChuyen("D1_ERROR: gb_needs_appt: chặng chưa có mốc giờ hẹn: SQLITE_CONSTRAINT"), luat);
+  assert.deepEqual(loiRangBuocChuyen("CHECK constraint failed: vc_leg_appt_ack"), luat);
+  assert.equal(loiRangBuocChuyen("gb_chain: chuỗi mốc giờ hẹn không liền mạch")?.code, "gio_hen_vua_doi");
+  assert.equal(loiRangBuocChuyen("không liên quan"), null);
 });
