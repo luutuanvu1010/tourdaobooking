@@ -148,3 +148,8 @@ Chủ đã chốt nguyên tắc trong chat; AI soạn ADR ghi lại + chi tiết
 - D1–D3 **ĐÃ DUYỆT** (chủ, hộp hỏi gom: "Duyệt cả ba, kèm 14 điểm chi tiết"; Q-2 "Không"; Q-1 "Giữ quyền sẵn, chờ việc C2") → ADR-0059, ADR-0060, ADR-0061 (accepted). Hai vòng kiểm độc lập ĐẠT CÓ ĐIỀU KIỆN, đã sửa; bản sửa cuối (29fa871e, chỉ bổ sung danh sách điểm A-10…A-14 và chủ ý lọc) chưa có vòng kiểm thứ ba.
 - Đợt G1 (phiên B): nhánh `worktree-agent-a70eb0a16a8dbebb3` @2622662e — kiểm độc lập ĐẠT CÓ ĐIỀU KIỆN (chốt số phiên bản khi gộp; trùng 1.39 với `giao-dien-sua-nho-1-39`). Sáu câu cho chủ về ảnh phác ở `docs/design/gop-y-2026-09-30/README.md` (trên nhánh đó).
 - Sổ tiền (phiên A): đang thi công ở `worktree-agent-aa1fab0316112d404`.
+
+### Chủ trả lời ảnh phác G1 (hộp hỏi gom, 30/9 tối)
+- Đồng ý: bộ lọc đơn (ảnh a), màn Góp ý (ảnh c), thẻ đơn 3 dòng "Đón tại"; Trang chủ **cách A**; màn "Xuất bến" của tài xế **thêm danh sách điểm** (không tên khách).
+- Lọc sản phẩm: chủ trả lời "Thêm ngay cột Loại/danh mục trong bảng điều khiển Giá. + 1" → hiểu: làm lọc bằng thứ đã có NGAY, **và** nhóm/loại dịch vụ quản lý trong app. Phần nhóm **trùng** việc phân loại dịch vụ của phiên rà soát (nhánh `ra-soat-luong-giao-dien`, chủ đã chọn "Trong app, gieo sẵn 15 nhóm", ADR-0058 đang soạn) → không làm ở đây; giao diện chừa chỗ chip nhóm.
+- **Chồng lấn với phiên rà soát** (`docs/superpowers/specs/2026-09-30-ra-soat-luong-giao-dien-phan-loai-huong-dan.md` trên nhánh đó): V5 "trang đơn hiện xe/tài xế" = ADR-0059 (đã duyệt); C3 "tài xế thấy điểm trước xuất bến" = câu 6 ở trên (chủ đã trả lời: thêm, không tên khách). Phiên rà soát không cần hỏi lại hai câu này.
