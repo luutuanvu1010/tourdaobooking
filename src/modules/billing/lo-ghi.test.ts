@@ -343,3 +343,22 @@ test("POST /api/ledger/balances: chỉ trả đơn người gọi được xem t
   assert.deepEqual([tom.status, tom.json.count, tom.json.total], [200, 2, 1_600_000]);
   assert.equal((await w.call("GET", "/api/ledger/unpaid-summary", { as: DT })).status, 403);
 });
+
+test("T-3 (kiểm độc lập): hai Kế toán cùng ghi hoàn — lần hoàn CHEN VÀO giữa lúc đọc và lúc ghi → trigger canh 'không hoàn quá số đã thu' TRONG lô → 409, tổng hoàn không vượt số đã thu", async () => {
+  const w = setup();
+  const id = donDaXacNhan(w);
+  await thu(w, HDV, id, tienMat(1_100_000));
+  const hoan = { orderId: id, soTien: 700_000, hinhThuc: "CASH", nguoiTra: "cong_ty" };
+  // Kế toán thứ hai ghi hoàn 700.000 ngay trước lô của người thứ nhất (máy chủ người thứ nhất đã đọc "đã thu 1.100.000").
+  chenTruocLo(w, () => {
+    w.sqlite.prepare(`INSERT INTO bil_payment_receipt (id, order_id, kind_code, amount, collector_party_id, collector_role_code, method_code, collected_for_party_id, stage_code,
+      occurred_date, created_at, created_by, updated_at, updated_by) VALUES (?, ?, 'CUSTOMER_REFUND', 700000, (SELECT party_id FROM v_pty_owner_company), 'COMPANY', 'CASH', (SELECT party_id FROM v_pty_owner_company), 'PREPAID', '2026-09-01', ?, ?, ?, ?)`)
+      .run(uuid(), id, AT, KT, AT, KT);
+  });
+  const r = await w.call("POST", "/api/ledger/refunds", { as: KT, body: hoan });
+  assert.equal(r.status, 409, r.text);
+  assert.match(r.json.error.message, /Không hoàn quá số khách đã trả/);
+  const tong = one(w, "SELECT COALESCE(SUM(amount), 0) AS n FROM bil_payment_receipt WHERE order_id = ? AND kind_code = 'CUSTOMER_REFUND' AND reverses_id IS NULL", id)!.n;
+  assert.equal(tong, 700_000, "chỉ lần hoàn chen vào được lưu; lô thua huỷ trọn");
+  assert.equal(nhatKy(w, id, "ledger_refund"), 0, "lô thua không để lại nhật ký");
+});

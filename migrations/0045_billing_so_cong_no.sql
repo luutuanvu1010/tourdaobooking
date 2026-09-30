@@ -207,6 +207,14 @@ WHEN NEW.reverses_line_id IS NOT NULL AND NOT EXISTS (
     AND g.order_id IS NEW.order_id AND g.trip_id IS NEW.trip_id)
 BEGIN SELECT RAISE(ABORT, 'bil_reversal: dòng đảo phải cùng số, đổi chỗ hai bên, cùng loại, cùng nguồn với dòng gốc (chưa phải dòng đảo)'); END;
 
+-- Hoàn khách không vượt số khách đã trả (còn hiệu lực) — canh TRONG lô ghi (kiểm độc lập T-3): hai Kế toán cùng bấm "Ghi hoàn" thì lần sau bị từ chối,
+-- không dựa vào lần đọc trước lô của máy chủ. Dòng đảo của một lần hoàn (reverses_id có giá trị) không qua kiểm này.
+CREATE TRIGGER bil_payment_receipt_refund_within_paid BEFORE INSERT ON bil_payment_receipt
+WHEN NEW.kind_code = 'CUSTOMER_REFUND' AND NEW.reverses_id IS NULL AND NEW.amount > COALESCE((
+  SELECT SUM(CASE WHEN r.kind_code = 'CUSTOMER_REFUND' THEN -r.amount ELSE r.amount END) FROM bil_payment_receipt r
+  WHERE r.order_id = NEW.order_id AND r.reverses_id IS NULL AND NOT EXISTS (SELECT 1 FROM bil_payment_receipt x WHERE x.reverses_id = r.id)), 0)
+BEGIN SELECT RAISE(ABORT, 'refund_exceeds_paid: không hoàn quá số khách đã trả'); END;
+
 -- ADR-0057 (duyệt 30/9): lượt 1 mọi dòng nợ vẫn gắn đơn — dòng chỉ có chuyến bị chặn tới lượt Vận chuyển tiền xe.
 CREATE TRIGGER bil_debt_line_trip_not_yet BEFORE INSERT ON bil_debt_line
 WHEN NEW.trip_id IS NOT NULL

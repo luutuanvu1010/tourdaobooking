@@ -424,7 +424,13 @@ export async function ghiHoanKhach(db: D1Database, input: { raw: unknown; ai: Ng
     stmts.push(postingIfReceiptStatement(db, { id: postingId, kind: "REFUND", orderId: b.orderId, reason: ghiChu.value, reversesPostingId: null, occurredDate: ngay.value, dueSnapshot: null, at, by: input.ai.staffId }, receiptId));
     for (const d of dong) stmts.push(lineIfPostingStatement(db, lineOf(d, postingId, b.orderId, receiptId, at, input.ai.staffId)));
   }
-  await db.batch(stmts);
+  try {
+    await db.batch(stmts);
+  } catch (e) {
+    // Kiểm độc lập T-3: người khác vừa ghi hoàn / đảo lần thu giữa lúc đọc và lúc ghi → trigger bil_payment_receipt_refund_within_paid huỷ cả lô.
+    if (loiTrigger(e, "refund_exceeds_paid")) return loi(409, "stale", "Không hoàn quá số khách đã trả — số đã thu vừa thay đổi, tải lại rồi thử lại.");
+    throw e;
+  }
   return { ok: true, value: { orderId: b.orderId } };
 }
 

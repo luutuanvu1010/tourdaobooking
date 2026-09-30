@@ -267,5 +267,18 @@ test("điều chỉnh / đảo phải có lý do; phiếu gắn đơn thì phả
 test("mã lỗi mọi trigger mới có tiền tố mã (route dịch ra tiếng Việt)", () => {
   const moi = sqlOf(FILE).match(/RAISE\(ABORT, '([^']*)'\)/g) ?? [];
   assert.ok(moi.length >= 13, `chống bài rỗng: ${moi.length}`);
-  for (const r of moi) assert.match(r, /'(bil_append_only|bil_reversal|bil_trip_not_yet|bil_reason_required|bil_order_required|delivered_not_paid|completed_unsettled): /, r);
+  for (const r of moi) assert.match(r, /'(bil_append_only|bil_reversal|bil_trip_not_yet|bil_reason_required|bil_order_required|delivered_not_paid|completed_unsettled|refund_exceeds_paid): /, r);
+});
+
+test("T-3 (kiểm độc lập): hoàn khách không vượt số đã thu còn hiệu lực — vượt → RAISE refund_exceeds_paid; đúng bằng → qua; đảo lần hoàn không bị chặn; lần thu bị đảo không tính", () => {
+  const db = fresh();
+  const r1 = receipt(db, { order: "o1", amount: 300_000 });
+  receipt(db, { order: "o1", amount: 200_000 });
+  assert.throws(() => receipt(db, { order: "o1", amount: 500_001, kind: "CUSTOMER_REFUND" }), /refund_exceeds_paid:/);
+  const h = receipt(db, { order: "o1", amount: 200_000, kind: "CUSTOMER_REFUND" });
+  assert.throws(() => receipt(db, { order: "o1", amount: 300_001, kind: "CUSTOMER_REFUND" }), /refund_exceeds_paid:/, "đã hoàn 200.000 → còn hoàn được 300.000");
+  receipt(db, { order: "o1", amount: 200_000, kind: "CUSTOMER_REFUND", reverses: h });
+  receipt(db, { order: "o1", amount: 300_000, reverses: r1 });
+  assert.throws(() => receipt(db, { order: "o1", amount: 200_001, kind: "CUSTOMER_REFUND" }), /refund_exceeds_paid:/, "lần thu 300.000 đã đảo không tính");
+  receipt(db, { order: "o1", amount: 200_000, kind: "CUSTOMER_REFUND" });
 });
