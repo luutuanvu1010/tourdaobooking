@@ -81,3 +81,39 @@ test("NT-F7: sau Đã giao, MỌI route ghi của orders + dispatch (Toàn quy�
   const chiTiet = await w.call("GET", `/api/orders/${id}`, { as: SA });
   assert.equal(chiTiet.json.canModify, false, "chi tiết đơn đã Đã giao: không còn nút sửa");
 });
+
+test("T-1 (kiểm độc lập): ĐUA — route đọc 'chưa Đã giao', người khác bấm Đã giao ngay trước lô ghi → trigger 0044 chặn, route trả 409 order_delivered tiếng Việt (không 500), dữ liệu không đổi", async () => {
+  const w = world();
+  seedStaff(w.sqlite, { id: SA, phone: "0900000006", name: "Toàn Quyền", perms: ["SUPER_ADMIN"] });
+  const id = "99999999-9999-4999-8999-000000000011";
+  const AT = "2026-09-01T00:00:00.000Z";
+  const homNay = new Date(Date.now() + 7 * 3600_000).toISOString().slice(0, 10);
+  w.sqlite.prepare(`INSERT INTO orders (id, order_code, staff_id, status, customer_name, customer_phone, subtotal, total, remaining_amount, created_at, updated_at)
+    VALUES (?, 'TD-DUA', ?, 'draft', 'Khách Giả', '0900000099', 100000, 100000, 100000, ?, ?)`).run(id, SA, AT, AT);
+  w.sqlite.prepare(`INSERT INTO order_service (id, order_id, name, unit, pax_adult, depart_date) VALUES ('svc-dua', ?, 'Vé', 'perPax', 1, ?)`).run(id, homNay);
+  w.sqlite.prepare(`INSERT INTO order_item (id, order_id, service_id, description, quantity, unit_price, line_total) VALUES ('it-dua', ?, 'svc-dua', 'Người lớn', 1, 100000, 100000)`).run(id);
+  w.sqlite.prepare(`UPDATE orders SET status = 'confirmed', confirmed_at = ?, updated_at = ? WHERE id = ?`).run(AT, AT, id);
+  // Bọc lô ghi KẾ TIẾP: "người khác" bấm Đã giao ngay trước lô (tất định — khuôn chenTruocLo của lo-ghi.test.ts).
+  const goc = w.env.DB.batch;
+  let daChen = false;
+  w.env.DB.batch = async (stmts: unknown[]) => {
+    w.env.DB.batch = goc;
+    daChen = true;
+    w.sqlite.prepare(`UPDATE orders SET delivered_at = ?, delivered_by = ? WHERE id = ?`).run(AT, SA, id);
+    return goc(stmts);
+  };
+  const orig = console.warn;
+  console.warn = () => {};
+  let res;
+  try {
+    res = await w.call("POST", `/api/orders/${id}/status`, { as: SA, body: { status: "cancelled" } });
+  } finally {
+    console.warn = orig;
+  }
+  assert.equal(daChen, true, "route đi qua db.batch (ca đua thật sự xảy ra)");
+  assert.equal(res.status, 409, res.text);
+  assert.equal(res.json?.error?.code, "order_delivered", res.text);
+  assert.match(res.json.error.message, /^Đơn đã Đã giao – đã thu đủ/);
+  assert.doesNotMatch(res.text, /SQLITE|D1_ERROR/);
+  assert.equal(w.q("SELECT status FROM orders WHERE id = ?", id)[0].status, "confirmed", "lô huỷ: đơn không bị huỷ");
+});
