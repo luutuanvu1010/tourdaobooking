@@ -601,7 +601,7 @@ h3 { font-size: var(--fs-step-5); margin: var(--s4) 0 var(--s2); color: var(--c-
 .sheet-foot.hdv-sheet-foot .btn { flex: 1; min-height: var(--h-hdv-btn); font-weight: 800; border-radius: var(--radius-md); }
 button.row-link.danger { color: var(--c-danger); font-weight: 700; }
 
-html { -webkit-text-size-adjust: 100%; overscroll-behavior-y: none; touch-action: manipulation; } /* chủ báo 30/9: lỡ chạm hai lần làm phóng to — manipulation tắt phóng to khi chạm đúp nhưng VẪN cho hai ngón phóng to (không dùng user-scalable=no: người mắt kém cần) */
+html { -webkit-text-size-adjust: 100%; overscroll-behavior-y: none; touch-action: pan-x pan-y; } /* chủ quyết 30/9 "khoá chức năng phóng": pan-x pan-y = chỉ cuộn, không phóng to (cả chạm đúp lẫn hai ngón); kèm viewport user-scalable=no + chặn gesturestart ở web/pwa.ts vì iOS có thể bỏ qua viewport */
 body { -webkit-tap-highlight-color: transparent; }
 .bar-back, .bar-title, .bar-avatar, #tabbar { display: none; }
 /* Trang không có thanh đầu trang (đăng nhập): dải navy để chữ trắng của thanh trạng thái iOS đọc được. */
