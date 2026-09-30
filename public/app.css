@@ -458,6 +458,15 @@ h3 { font-size: var(--fs-step-5); margin: var(--s4) 0 var(--s2); color: var(--c-
 .catalog-list .price { white-space: nowrap; color: var(--c-muted); }
 /* Lọc sản phẩm khi lập đơn (góp ý YC-0003 — chủ duyệt 30/9): hàng lọc (dùng lại .loc-nut) + mỗi dòng = nút chọn + nút ghim "Hay dùng". */
 .catalog-loc { display: flex; flex-wrap: wrap; gap: var(--s2); margin-top: var(--s2); }
+/* ADR-0058 Đ8 (chủ chọn cách 1, 30/9 — ảnh phác docs/design/nhom-dich-vu-2026-09-30/): nhãn hàng "Lọc sẵn có" / "Nhóm dịch vụ"; hàng chip nhóm RIÊNG, trượt ngang
+   (không xuống dòng, không làm trang tràn ngang ở 390px); dòng "Đang lọc: … — N dịch vụ · Bỏ lọc". Chip dùng lại .loc-nut (vùng bấm ≥ --tap-min). */
+.catalog-hang-nhan { display: block; margin: var(--s2) 0 var(--s1); font-size: var(--fs-badge); font-weight: 800; text-transform: uppercase; color: var(--c-text-muted); }
+.catalog-hang-nhan + .catalog-loc { margin-top: 0; }
+.catalog-nhom { min-width: 0; }
+.catalog-nhom-chips { display: flex; gap: var(--s2); overflow-x: auto; padding: var(--s1) 0; }
+.catalog-nhom-chips .loc-nut { flex: none; white-space: nowrap; }
+.catalog-nhom-trang-thai { margin: var(--s1) 0 0; font-size: var(--fs-label); color: var(--c-text-muted); }
+.catalog-nhom-trang-thai .catalog-nhom-bo { padding: 0 var(--s1); color: var(--c-primary); }
 .catalog-row { display: flex; border-bottom: 1px solid var(--c-line); }
 .catalog-list .catalog-row .catalog-pick { flex: 1 1 auto; min-width: 0; border-bottom: 0; }
 .catalog-list .catalog-row .catalog-ghim { flex: none; justify-content: center; width: var(--tap-min); padding: 0; font-size: var(--fs-title); color: var(--c-sand-text); border-bottom: 0; }
