@@ -6,8 +6,10 @@ export const HD_TAI_XE: NhomHuongDan = {
   tieuDe: "Tài xế",
   quyen: ["DRIVER", "DRIVER_PARTNER"],
   gioiThieu:
-    "Bạn là tài xế. Trong app, bạn xem cuốc mình lái hôm nay và ngày mai, bấm từng bước khi chạy, và xem hạn giấy tờ của mình. Bạn không thấy đơn hàng hay tiền.",
+    "Bạn là tài xế. Tài xế công ty xem cuốc mình lái hôm nay và ngày mai, bấm từng bước khi chạy. Mọi tài xế xem được hạn giấy tờ của mình. Bạn không thấy đơn hàng hay tiền.",
   batDauNhanh: `> Lưu ý: Công ty CHƯA dùng phần điều xe trong app cho chuyến thật. Văn phòng vẫn điều xe như cũ. Thấy "Không có cuốc nào." là bình thường.
+
+> Lưu ý: tài xế của nhà xe đối tác chưa có phần cuốc xe — chỉ làm bước 3–5, rồi đọc mục cuối "Tài xế nhà xe đối tác".
 
 1. Mở app. Bạn vào thẳng [[Cuốc của tôi]].
 2. Xem hai nhóm **Hôm nay** và **Ngày mai**.
@@ -17,7 +19,7 @@ export const HD_TAI_XE: NhomHuongDan = {
   muc: [
     {
       tieuDe: "Menu của bạn",
-      noiDung: `Trên điện thoại, thanh dưới đáy có: [[Trang chủ]], [[Cuốc của tôi]], [[Tôi]].
+      noiDung: `Trên điện thoại, thanh dưới đáy của tài xế công ty có: [[Trang chủ]], [[Cuốc của tôi]], [[Tôi]]. Tài xế nhà xe đối tác chỉ có [[Trang chủ]] và [[Tôi]].
 - [[Trang chủ]]: lời chào và hai giấy tờ sắp hết hạn nhất.
 - [[Cuốc của tôi]]: các chuyến hôm nay và ngày mai.
 - [[Tôi]]: đủ **Giấy tờ của tôi**, đổi PIN, bật thông báo.
@@ -70,7 +72,7 @@ Trên máy tính, menu bên trái có: [[Trang chủ]], [[Cuốc của tôi]], [
       tieuDe: "Tài xế nhà xe đối tác",
       noiDung: `Nếu bạn là tài xế của nhà xe khác:
 - Bạn đăng nhập và xem **Giấy tờ của tôi** ở [[Trang chủ]] và [[Tôi]]. Số giấy tờ bị che một phần.
-- Trang chủ ghi "Cuốc xe của bạn sẽ hiện ở đây". Bạn chưa xem chuyến và chưa bấm được các bước chạy (chưa có trên bản 1.40).
+- Trang chủ ghi "Cuốc xe của bạn sẽ hiện ở đây". Bạn chưa xem chuyến và chưa bấm được các bước chạy (chưa có ở bản này).
 - Bạn không thấy đơn, giá hay tin nội bộ của công ty.
 - Giấy tờ sai hoặc có giấy mới: báo văn phòng, hoặc bấm [[Góp ý / Báo lỗi]].`,
     },

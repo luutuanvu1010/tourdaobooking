@@ -20,12 +20,23 @@ test("id nhóm không trùng, đúng một Phần chung, mỗi nhóm có bắt �
   }
 });
 
-// Kho chữ giao diện: mọi tệp chạy của app, TRỪ chính các tệp hướng dẫn (nếu không bài kiểm tự đúng).
+// Kho chữ giao diện: mọi tệp chạy của app, TRỪ chính các tệp hướng dẫn (nếu không bài kiểm tự đúng), TRỪ nhật ký thay đổi và chú thích
+// (người kiểm độc lập 30/9: đổi tên nút mà changelog.ts / chú thích còn trích tên cũ ⇒ bài xanh giả — đúng lúc cần đỏ).
+const BO_QUA = new Set(["changelog.ts"]);
+const boChuThich = (s: string): string => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/<!--[\s\S]*?-->/g, "").replace(/(^|\s)\/\/.*$/gm, "$1");
 function khoChuGiaoDien(): string {
   const doc = (dir: string, duoi: string): string[] =>
-    readdirSync(dir).filter((f) => f.endsWith(duoi) && !f.startsWith("huong-dan") && !f.endsWith(".test.ts")).map((f) => readFileSync(`${dir}/${f}`, "utf8"));
+    readdirSync(dir)
+      .filter((f) => f.endsWith(duoi) && !f.startsWith("huong-dan") && !f.endsWith(".test.ts") && !BO_QUA.has(f))
+      .map((f) => boChuThich(readFileSync(`${dir}/${f}`, "utf8")));
   return [...doc("web", ".ts"), ...doc("public", ".html"), ...doc("src/shared", ".ts")].join("\n").replace(/&amp;/g, "&").replace(/\\"/g, '"');
 }
+
+test("A2: kho chữ bỏ chú thích nhưng giữ chuỗi có // (đường dẫn)", () => {
+  assert.equal(boChuThich(`a("Lưu"); // nút "Xoá"\n/* "Sửa" */ b('https://x.vn') <!-- "Gọi" -->`).includes("Xoá"), false);
+  assert.ok(boChuThich(`b('https://x.vn')`).includes("https://x.vn"));
+  assert.ok(!boChuThich(`/* "Sửa" */ x`).includes("Sửa"));
+});
 
 // Nhãn phải là NGUYÊN một chuỗi trong mã (đứng giữa hai dấu nháy, hoặc giữa > < của HTML) — không chỉ là khúc con: nhãn ngắn như
 // "Đổi", "Gọi" là khúc con của gần như mọi tệp, kiểm "có chứa" thì không bao giờ đỏ. Cho phép khoảng trắng / dấu "…" sát mép (nhãn nút có dấu cách đệm).

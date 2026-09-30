@@ -181,7 +181,7 @@ Mở [[Lý do điều phối]]. Lý do chia nhóm, như [[Đổi giờ xe tới]
 - **Trang chủ báo Sheet đã đổi giá**: bấm vào, xem giá mới; đồng ý thì [[Bỏ ghi đè]], không thì [[Giữ ghi đè]].
 - **Đồng bộ báo lỗi**: app vẫn dùng bản đã lưu. Kiểm tra Sheet, thử lại sau; vẫn lỗi thì gửi Góp ý.
 - **Nhân viên không xác nhận được đơn vì giờ đón sát**: duyệt [[Đặt gấp]].
-- **Hai hồ sơ trùng đã có sẵn trong Danh bạ**: gộp hồ sơ (chưa có trên bản 1.40); hỏi người phụ trách hệ thống.`,
+- **Hai hồ sơ trùng đã có sẵn trong Danh bạ**: gộp hồ sơ (chưa có ở bản này); hỏi người phụ trách hệ thống.`,
     },
     {
       tieuDe: "Điều bạn không làm được — hỏi ai",

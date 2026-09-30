@@ -29,7 +29,7 @@ const ngay = new Date().toLocaleDateString("vi-VN", { timeZone: "Asia/Ho_Chi_Min
 const parts = [
   `<h1>Hướng dẫn sử dụng ${esc(APP_NAME)} — theo vai</h1>`,
   `<p>Bản ${esc(APP_VERSION)} · xuất ngày ${esc(ngay)}. Bản trong app (Tôi → Trợ giúp) luôn mới nhất; bản này là bản chụp để đọc và in.</p>`,
-  `<p><b>Cách đọc trong 30 phút:</b> đọc <b>Phần chung</b>, rồi phần của vai bạn — "Bắt đầu nhanh" trước, các mục sau khi cần. Chữ trong ngoặc vuông [như thế này] là tên nút trên màn hình.</p>`,
+  `<p><b>Cách đọc trong 30 phút:</b> đọc <b>Phần chung</b>, rồi phần của vai bạn — "Bắt đầu nhanh" trước, các mục sau khi cần. Chữ trong ngoặc vuông [như thế này] là tên nút hoặc chữ đúng như trên màn hình.</p>`,
   `<h2>Mục lục</h2><ol>${HUONG_DAN.map((n) => `<li>${esc(n.tieuDe)} — khoảng ${phutDoc(n)} phút</li>`).join("")}</ol>`,
 ];
 for (const n of HUONG_DAN) {

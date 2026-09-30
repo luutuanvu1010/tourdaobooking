@@ -24,7 +24,7 @@ export interface NhomHuongDan {
   readonly muc: readonly MucHuongDan[];
 }
 
-/** Thứ tự hiển thị. Phần chung luôn đầu. */
+/** Thứ tự trong bản đọc ngoài app (Phần chung đầu). Trang Trợ giúp đặt nhóm vai của người xem trước Phần chung (web/help.ts). */
 export const HUONG_DAN: readonly NhomHuongDan[] = [HD_CHUNG, HD_BAN_HANG, HD_HDV, HD_KE_TOAN, HD_DOI_TAC, HD_TAI_XE, HD_QUAN_TRI];
 
 /** Các nhóm tài khoản này thấy (Phần chung + nhóm có quyền giao nhau), đúng thứ tự HUONG_DAN. */

@@ -131,13 +131,13 @@ Khi được dùng (sau này): cột [[Cần xử lý]] có mục "Giờ hẹn �
 2. Sửa [[Giờ đón]] (hoặc [[Điểm đón]], ngày khởi hành của cả đơn…).
 3. Bấm [[Lưu thông tin chuyến]].
 4. App nhắc bản xác nhận đã gửi khách có thể lỗi thời → bấm [[Xem biên nhận]] và gửi lại ảnh mới.
-5. Tự gọi hoặc nhắn hướng dẫn viên phụ trách: app chưa tự báo cho họ khi giờ hoặc nơi đón đổi (chưa có trên bản 1.40).
+5. Tự gọi hoặc nhắn hướng dẫn viên phụ trách: app chưa tự báo cho họ khi giờ hoặc nơi đón đổi (chưa có ở bản này).
 
 > Lưu ý: nếu giờ đón mới cách bây giờ dưới mốc 6 giờ, app từ chối và chỉ Quản trị sửa được — hãy nhờ Quản trị. Muốn đổi hồ sơ khách của đơn đã xác nhận thì bấm [[Đổi khách]].
 
 ### Khách đổi số người hoặc dịch vụ sau khi đã xác nhận
 
-Sau xác nhận, dịch vụ, số khách và tiền **bị khoá** với Bán hàng. Hiện chỉ hướng dẫn viên đang phụ trách đơn sửa được số khách. Hãy báo hướng dẫn viên đó, hoặc hỏi Quản trị. Việc cho người lập đơn, Quản trị, Kế toán sửa số khách sau xác nhận đang chờ làm (chưa có trên bản 1.40).
+Sau xác nhận, dịch vụ, số khách và tiền **bị khoá** với Bán hàng. Hiện chỉ hướng dẫn viên đang phụ trách đơn sửa được số khách. Hãy báo hướng dẫn viên đó. Quản trị cũng KHÔNG sửa được. Tiền của đơn đã xác nhận không ai sửa được trong app, trừ tài khoản Toàn quyền. Việc cho người lập đơn, Quản trị, Kế toán sửa số khách sau xác nhận đang chờ làm (chưa có ở bản này).
 
 ### Đơn sát giờ — Đặt gấp
 
@@ -169,8 +169,8 @@ Huỷ được cả đơn chờ xác nhận lẫn đã xác nhận, nếu là đ
 
 - **HDV bấm Nhận**: thẻ đơn đổi từ [[Chờ nhận]] sang "HDV: tên"; bạn nhận tin nếu đơn liên quan tới bạn.
 - **HDV huỷ đơn** (họ phải chọn lý do): đơn thành [[Đã huỷ]], bạn nhận tin huỷ; khối [[Lịch sử]] của trang đơn có dòng huỷ đơn kèm lý do.
-- **HDV sửa số khách**: khối [[Lịch sử]] có dòng sửa số khách kèm lý do. App không gửi thông báo cho bạn về việc này (chưa có trên bản 1.40) — hãy xem Lịch sử.
-- **HDV từ chối đơn**: chưa có nút này (chưa có trên bản 1.40).`,
+- **HDV sửa số khách**: khối [[Lịch sử]] có dòng sửa số khách kèm lý do. App không gửi thông báo cho bạn về việc này (chưa có ở bản này) — hãy xem Lịch sử.
+- **HDV từ chối đơn**: chưa có nút này (chưa có ở bản này).`,
     },
     {
       tieuDe: "Thực tập — khác Bán hàng ở đâu",
@@ -181,15 +181,16 @@ Huỷ được cả đơn chờ xác nhận lẫn đã xác nhận, nếu là đ
 - **Không chọn người phụ trách** khi lập đơn: khối [[Người phụ trách]] không hiện, đơn luôn ở [[Chờ nhận]].
 - Trang đơn có thể ghi [[Chưa tải được người phụ trách.]] — đây là giới hạn đã biết. Ảnh biên nhận vẫn tạo được, chỉ không có dòng người phụ trách.
 - Ô tra hồ sơ khách có thể báo không tra được hồ sơ — vẫn lưu đơn bình thường.
-- **Sau khi xác nhận, Thực tập không sửa được thông tin chuyến và không đổi khách.** Nút [[Sửa thông tin chuyến]] và [[Đổi khách]] vẫn hiện nhưng lưu sẽ bị từ chối. Cần đổi giờ đón thì nhờ Bán hàng phụ trách hoặc Quản trị.`,
+- **Sau khi xác nhận, Thực tập không sửa được thông tin chuyến và không đổi khách.** Nút [[Sửa thông tin chuyến]] và [[Đổi khách]] vẫn hiện nhưng lưu sẽ bị từ chối. Cần đổi giờ đón thì nhờ Bán hàng phụ trách hoặc Quản trị.
+- **Thực tập không nhận phụ trách và không giao đơn**: không có nút [[Nhận phụ trách]]; cần người phụ trách thì nhờ Bán hàng.`,
     },
     {
       tieuDe: "Điều bạn không làm được — hỏi ai",
       noiDung: `- Duyệt đặt gấp cho đơn sát giờ; sửa giờ đón sát giờ sau xác nhận → **Quản trị**.
 - Sửa, xác nhận, huỷ đơn người khác lập mà bạn không phụ trách → người lập đơn, người phụ trách, hoặc **Quản trị** (đơn đang [[Chờ nhận]] thì bạn tự bấm [[Nhận phụ trách]]).
-- Sửa số khách, dịch vụ, tiền sau khi đã xác nhận → hướng dẫn viên phụ trách đơn, hoặc **Quản trị**.
+- Sửa số khách sau khi đã xác nhận → hướng dẫn viên đang phụ trách đơn (Quản trị không sửa được). Dịch vụ, tiền → chỉ tài khoản Toàn quyền.
 - Thêm, sửa dịch vụ và giá trong danh mục; dịch vụ "chưa có giá" → **Quản trị**.
-- Tiền thu thêm, hoàn tiền, hoá đơn → **Kế toán** (app chưa có chỗ ghi thu tiền trên bản 1.40).
+- Tiền thu thêm, hoàn tiền, hoá đơn → **Kế toán** (app chưa có chỗ ghi thu tiền ở bản này).
 - Quên mã PIN, bị khoá đăng nhập → **Quản trị**.
 - Điều xe cho chuyến thật → làm như cũ, ngoài app.
 - Báo lỗi app, góp ý → [[Góp ý / Báo lỗi]].`,

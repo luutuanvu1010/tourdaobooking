@@ -106,19 +106,19 @@ Tin quan trọng có nút [[Đã hiểu]]. Đọc xong thì bấm.
     {
       tieuDe: "Tình huống hay gặp",
       noiDung: `- **Nhận đơn Chờ xác nhận:** vẫn nhận được, nhưng chưa sửa hay huỷ được. Thẻ ghi "Đơn đang chờ xác nhận — chưa thể huỷ hay sửa số khách." Đợi văn phòng xác nhận.
-- **Nhận nhầm, bận không đi được:** chưa có nút trả đơn (chưa có trên bản 1.40). Gọi văn phòng giao cho người khác.
+- **Nhận nhầm, bận không đi được:** chưa có nút trả đơn (chưa có ở bản này). Gọi văn phòng giao cho người khác.
 - **Đơn đã qua ngày đi:** không còn nút [[Huỷ đơn]]. Nhờ văn phòng huỷ nếu cần.
 - **Đang sửa thì văn phòng cũng sửa đơn đó:** app đóng bảng, hiện dòng báo màu vàng rồi tải lại. Bạn xem lại rồi làm lại.
 - **Mất mạng:** app báo chưa tải được đơn. Có mạng thì tải lại trang.
 - **Không thấy khối Đơn chờ nhận:** tài khoản có thêm quyền Đối tác. Hỏi Quản trị.
-- **Đã giao, Hoàn thành:** app chưa có hai trạng thái này (chưa có trên bản 1.40). Qua ngày đi, đơn chỉ đổi nhãn thành **Đã đi tour**.`,
+- **Đã giao, Hoàn thành:** app chưa có hai trạng thái này (chưa có ở bản này). Qua ngày đi, đơn chỉ đổi nhãn thành **Đã đi tour**.`,
     },
     {
       tieuDe: "Điều bạn không làm được — hỏi ai",
       noiDung: `- **Xem đơn của người khác:** không được. Bạn chỉ xem đơn mình lo và phần rút gọn của đơn chờ nhận.
 - **Lập đơn mới:** nhờ nhân viên bán hàng.
 - **Sửa dịch vụ, giờ đón, thông tin chuyến, xác nhận đơn:** nhờ người lập đơn hoặc văn phòng.
-- **Trả lại đơn đã nhận:** chưa có (chưa có trên bản 1.40). Văn phòng giao cho người khác.
+- **Trả lại đơn đã nhận:** chưa có (chưa có ở bản này). Văn phòng giao cho người khác.
 - **Huỷ đơn chờ xác nhận, huỷ sau ngày đi:** nhờ văn phòng.
 - **Ghi thu tiền:** nhờ kế toán.
 - **Xem bảng giá, Danh bạ:** hỏi văn phòng.`,

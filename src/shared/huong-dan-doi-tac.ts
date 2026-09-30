@@ -45,7 +45,7 @@ Nên đổi mã PIN ngay lần đầu:
 2. Gõ **PIN hiện tại**, **PIN mới (6 số)**, **Nhập lại PIN mới**.
 3. Bấm [[Đổi PIN]].
 
-Muốn đăng nhập nhanh bằng Face ID: vào [[Tôi]], phần **Đăng nhập bằng Face ID**, bấm [[Bật trên máy này]]. Chỉ bật trên điện thoại riêng của bạn.
+Muốn đăng nhập nhanh bằng Face ID: vào [[Tôi]], phần **Đăng nhập bằng Face ID**, gõ lại PIN ở ô [[Nhập lại PIN để xác nhận]] rồi bấm [[Bật]]. Chỉ bật trên điện thoại riêng của bạn.
 
 > Lưu ý: Đừng dùng mã PIN dễ đoán, ví dụ sáu số giống nhau.`,
     },
@@ -149,14 +149,14 @@ Vẫn lập và lưu đơn được. Nhưng muốn xác nhận thì phải có Q
 - Sửa số khách, tiền sau khi xác nhận: không. Nhờ văn phòng.
 - Duyệt "Đặt gấp": không. Nhờ Quản trị.
 - Xem Danh bạ, Trang chủ của công ty: không.
-- Xin nhận lo một đơn, báo tiến độ tour (chưa có trên bản 1.40).
+- Xin nhận lo một đơn, báo tiến độ tour (chưa có ở bản này).
 - Nhận tin gửi toàn công ty: không, chỉ nhân viên nội bộ nhận.`,
     },
     {
       tieuDe: "Câu hỏi thường gặp",
       noiDung: `### Khối Người phụ trách ghi "Chưa tải được người phụ trách." kèm nút Thử lại. Tôi làm sai gì?
 
-Bạn không làm sai. Ở bản 1.40, tài khoản đối tác không xem được tên người phụ trách đơn, nên dòng này luôn hiện, bấm [[Thử lại]] cũng vậy. Mọi việc khác trên đơn vẫn dùng bình thường. Muốn biết ai lo đơn thì gọi văn phòng.
+Bạn không làm sai. Hiện tại, tài khoản đối tác không xem được tên người phụ trách đơn, nên dòng này luôn hiện, bấm [[Thử lại]] cũng vậy. Mọi việc khác trên đơn vẫn dùng bình thường. Muốn biết ai lo đơn thì gọi văn phòng.
 
 ### Sao tôi không thấy Trang chủ?
 

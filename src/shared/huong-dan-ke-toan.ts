@@ -55,7 +55,7 @@ Thanh tab dưới đáy có [[Trang chủ]], [[Đơn hàng]] và [[Tôi]]. Các 
 
 > Ví dụ: Khách "Trần Thị B" gọi hỏi tiền chuyển khoản đã được ghi nhận chưa. Chị Lan gõ số điện thoại của khách vào ô tìm kiếm. Danh sách còn đúng một đơn. Chị bấm vào đơn để xem.
 
-> Lưu ý: Hiện chỉ lọc được theo trạng thái và ô tìm kiếm. Lọc theo ngày (chưa có trên bản 1.40).`,
+> Lưu ý: Hiện chỉ lọc được theo trạng thái và ô tìm kiếm. Lọc theo ngày (chưa có ở bản này).`,
     },
     {
       tieuDe: "Xem tiền của một đơn",
@@ -106,15 +106,15 @@ Kế toán có nút [[+ Hồ sơ mới]] và được thêm, sửa hồ sơ khá
       tieuDe: "Tình huống hay gặp",
       noiDung: `### Thấy một đơn sai tiền
 
-Bạn không sửa được. Ghi lại mã đơn rồi báo người lập đơn hoặc người phụ trách đơn. Tên người lập có ở dòng "Lập … bởi …" dưới dải trên cùng. Tên người phụ trách có ở khối **Người phụ trách**. Đơn đã xác nhận thì nhờ Quản trị.
+Bạn không sửa được. Ghi lại mã đơn rồi báo người lập đơn hoặc người phụ trách đơn. Tên người lập có ở dòng "Lập … bởi …" dưới dải trên cùng. Tên người phụ trách có ở khối **Người phụ trách**. Đơn đã xác nhận: số khách chỉ hướng dẫn viên đang phụ trách đơn sửa được (Quản trị không sửa được); tiền của đơn đã xác nhận không ai sửa được trong app, trừ tài khoản Toàn quyền.
 
 ### Khách đã trả thêm tiền, muốn ghi vào đơn
 
-Ghi thu tiền, hoàn tiền, hoá đơn trong app (chưa có trên bản 1.40). Tạm thời ghi theo cách công ty đang dùng ngoài app. Khi đơn còn **Chờ xác nhận**, người lập đơn sửa được số **Thanh toán trước**.
+Ghi thu tiền, hoàn tiền, hoá đơn trong app (chưa có ở bản này). Tạm thời ghi theo cách công ty đang dùng ngoài app. Khi đơn còn **Chờ xác nhận**, người lập đơn sửa được số **Thanh toán trước**.
 
 ### Cần danh sách đơn để làm sổ
 
-Nút xuất ra tệp Excel (chưa có trên bản 1.40). Dùng ô tìm kiếm và ô trạng thái để lọc, rồi xem từng đơn.
+Nút xuất ra tệp Excel (chưa có ở bản này). Dùng ô tìm kiếm và ô trạng thái để lọc, rồi xem từng đơn.
 
 ### Đơn bị huỷ
 
@@ -128,11 +128,11 @@ Chuông ở thanh trên báo khi có đơn mới, có người nhận đơn, đ�
       tieuDe: "Điều bạn không làm được — hỏi ai",
       noiDung: `- Lập đơn mới: không. Nhờ nhân viên bán hàng.
 - Sửa, xác nhận, huỷ đơn: không. Nhờ người lập đơn, người phụ trách đơn hoặc Quản trị.
-- Sửa tiền, số khách sau khi xác nhận: không. Nhờ Quản trị.
+- Sửa tiền, số khách sau khi xác nhận: không. Số khách: báo hướng dẫn viên đang phụ trách đơn. Tiền: chỉ tài khoản Toàn quyền.
 - Nhận phụ trách, giao đơn cho người khác: không. Nhờ nhân viên bán hàng hoặc Quản trị.
 - Duyệt "Đặt gấp": không. Nhờ Quản trị.
 - Xếp xe, tạo chuyến, bấm tiến độ chuyến: không, bạn chỉ xem. Nhờ nhân viên bán hàng hoặc Quản trị.
-- Ghi thu tiền, hoàn tiền, xuất hoá đơn trong app (chưa có trên bản 1.40).
+- Ghi thu tiền, hoàn tiền, xuất hoá đơn trong app (chưa có ở bản này).
 - Sửa bảng giá dịch vụ, quản lý tài khoản nhân viên: không. Nhờ Quản trị.`,
     },
     {

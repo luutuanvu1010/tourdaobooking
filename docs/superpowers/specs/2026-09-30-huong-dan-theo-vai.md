@@ -8,7 +8,7 @@
 
 ## 1. Làm gì
 
-1. **Một nguồn:** nội dung hướng dẫn nằm ở `src/shared/huong-dan/` (mỗi nhóm vai một tệp, kiểu `changelog.ts`), viết bằng một tập con markdown nhỏ: `###` tiêu đề, đoạn văn, danh sách `1.` / `-`, `**đậm**`, `[[Tên nút]]` (tên nút / menu nguyên văn trong mã), dòng `> ` (ví dụ / lưu ý).
+1. **Một nguồn:** nội dung hướng dẫn nằm ở `src/shared/huong-dan.ts` + `src/shared/huong-dan-<nhóm>.ts` (mỗi nhóm vai một tệp phẳng, kiểu `changelog.ts`), viết bằng một tập con markdown nhỏ: `###` tiêu đề, đoạn văn, danh sách `1.` / `-`, `**đậm**`, `[[Tên nút]]` (tên nút / menu nguyên văn trong mã), dòng `> ` (ví dụ / lưu ý).
 2. **Trong app:** trang **Trợ giúp** thêm khối "Hướng dẫn cho bạn" ở đầu: hiện các nhóm vai mà tài khoản đang giữ; mỗi nhóm có "Bắt đầu nhanh" mở sẵn + các mục chi tiết thu gọn. Có "Phần chung" (đăng nhập, cài app, thông báo, Góp ý) cho mọi người. Không `innerHTML`; dựng bằng `h()`.
 3. **Ngoài app:** kịch bản `scripts/xuat-huong-dan.mjs` sinh một tệp HTML (mục lục theo vai) để đưa lên Google Docs; bản Google Docs là bản chụp có ngày, mỗi lần phát hành đổi hướng dẫn thì xuất lại.
 4. **Nhật ký thay đổi:** thêm mục phiên bản mới (số chốt lúc gộp).
