@@ -533,3 +533,24 @@ export async function orderContactRows(db: D1Database, orderIds: readonly string
   if (orderIds.length === 0) return [];
   return (await db.prepare(ORDER_CONTACT_FOR_DRIVER).bind(JSON.stringify(orderIds)).all<OrderContactRow>()).results;
 }
+
+// ---- Người đã lập đơn (ADR-0067 — bộ lọc danh sách đơn, ô "Người lập") ------------------------------------------------------------------------------
+// Mọi người đã lập ít nhất một đơn (mọi trạng thái, kể cả nháp / huỷ), gồm người đã nghỉ và tài khoản Đối tác (chủ 30/9: "Hiện, không đánh dấu";
+// "Chung, không nhãn"). Tên qua view công bố `v_stf_staff_label` (như "Người lập: …" của thẻ đơn); KHÔNG đọc cột `active` của view (không lộ ai đã
+// nghỉ). Xếp theo đơn gần nhất (mới trước) rồi theo tên. Quét cả bảng `orders` (GROUP BY) — nơi gọi chỉ gọi MỘT lần khi mở bảng lọc. Nơi gọi PHẢI
+// hỏi quyền "xem mọi đơn" trước (route `GET /api/orders/nguoi-lap`).
+const NGUOI_DA_LAP_DON = defineSql(
+  "orders",
+  "nguoi_da_lap_don",
+  `SELECT o.staff_id AS id, s.label AS ten, MAX(o.created_at) AS gan_nhat FROM orders o JOIN v_stf_staff_label s ON s.id = o.staff_id
+   GROUP BY o.staff_id, s.label ORDER BY gan_nhat DESC, s.label`,
+);
+export interface NguoiDaLapDonRow {
+  id: string;
+  ten: string;
+  /** Dấu thời gian ISO UTC của đơn gần nhất (nơi gọi đổi sang ngày giờ Việt Nam). */
+  gan_nhat: string;
+}
+export async function nguoiDaLapDon(db: D1Database): Promise<NguoiDaLapDonRow[]> {
+  return (await db.prepare(NGUOI_DA_LAP_DON).all<NguoiDaLapDonRow>()).results;
+}

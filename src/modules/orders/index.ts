@@ -4,7 +4,7 @@
 import { auditStatement, getAuditTrail } from "../audit";
 import type {
   CanhBaoMocDto, CatalogChangeDto, CatalogChangedBody, DashboardResponse, IncompleteTripBody, MyAssignmentDto, OrderDetailDto, OrderDetailResponse, OrderListResponse,
-  MocToiThieuResponse, OrderResponse, PassengerListResponse, PaxCounts, PoolResponse, ShortNoticeRequiredBody,
+  MocToiThieuResponse, NguoiLapResponse, OrderResponse, PassengerListResponse, PaxCounts, PoolResponse, ShortNoticeRequiredBody,
 } from "../../shared/contracts";
 import { UUID_RE, error, intParam, json, readJson } from "../../shared/http";
 import { can, seesOnlyAssignedOrders, type PermissionHolder } from "../../shared/permissions";
@@ -18,7 +18,7 @@ import {
 } from "./repository";
 import {
   legById, legDatGapByOrder, legLichChungNhapRows, legLichChungRows, legShortNotice, legTripRows, orderContactRows, passengerRowsByOrders, servicePaxByIds,
-  type DatGapWrite,
+  nguoiDaLapDon, type DatGapWrite,
 } from "./chang-hanh-khach-repo";
 import { khoaNoi } from "../../shared/khoa-noi";
 import { CHIEU_LABEL, LY_DO_DAT_GAP } from "../../shared/chang-dua-don";
@@ -465,6 +465,17 @@ export const ordersModule: AppModule = {
       const moc = await mocToiThieu();
       if (!moc) return MOC_CHUA_CO();
       return json({ mocToiThieuPhut: moc.phut, canhBaoPhut: moc.canhBaoPhut } satisfies MocToiThieuResponse);
+    }),
+
+    // ADR-0067 (chủ duyệt 30/9): danh sách NHỮNG NGƯỜI ĐÃ TỪNG LẬP ĐƠN cho ô "Người lập" của bộ lọc danh sách đơn. Hỏi ĐÚNG ba câu của nhánh "xem mọi
+    // đơn" của `GET /api/orders` ngay dưới (order.view / money.view / contact.view, KHÔNG ngữ cảnh) TRƯỚC mọi truy vấn: tập người nhận danh sách = tập
+    // người dùng được bộ lọc "mọi người" — ghép bằng bài ghim hành vi trên 512 tập con quyền (src/modules/orders/nguoi-lap-route.test.ts). Danh sách trắng
+    // `{ id, ten, ganNhat }` (tên đã hiện trên thẻ đơn cho đúng những người này); không SĐT, vai, trạng thái nghỉ. Chỉ đọc — không nhật ký.
+    // PHẢI đứng TRƯỚC "GET /api/orders/:id" (cùng lý do với route dashboard, pool ở trên — ":id" cũng khớp chữ "nguoi-lap").
+    route("GET", "/api/orders/nguoi-lap", "orders", async ({ env, staff }) => {
+      if (!can(staff, "order.view") || !can(staff, "money.view") || !can(staff, "contact.view")) return FORBIDDEN_VIEW();
+      const rows = await nguoiDaLapDon(env.DB);
+      return json({ nguoiLap: rows.map((r) => ({ id: r.id, ten: r.ten, ganNhat: vnToday(new Date(r.gan_nhat)) })) } satisfies NguoiLapResponse);
     }),
 
     route("GET", "/api/orders", "orders", async ({ env, url, staff, myHandledOrderIds }) => {
