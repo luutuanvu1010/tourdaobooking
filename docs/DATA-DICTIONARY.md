@@ -90,6 +90,7 @@
 | `orders` | bảng | tên cũ, giữ nguyên (ADR-0002 điều 2); cột chết: deposit_amount, deposit_method, remaining_amount; ba cột cọc KHÔNG DÙNG NỮA — xem ADR-0026 điều 9 (đơn mới ghi 0 / NULL / total để thoả trigger 0007; số đã thu, còn lại lấy từ billing). Cột mốc delivered_at/_by, completed_at/_by từ 0044 (ADR-0024 điều 3) |
 | `ord_transfer_leg` | bảng |  |
 | `ord_passenger` | bảng |  |
+| `ord_manual_service_policy` | bảng | công tắc "Dịch vụ nhập tay" (ADR-0061, migration 0052), CHỈ-THÊM; dòng hiệu lực = valid_from_at lớn nhất ≤ bây giờ, bảng rỗng = TẮT; gieo một dòng TẮT; chỉ Toàn quyền thêm dòng mới (settings.ops) |
 | `v_ord_order_label` | view công bố | cột: id, order_code |
 | `v_ord_order_owner` | view công bố | cột: id, staff_id |
 | `v_ord_order_flag` | view công bố | cột: id, is_confirmed, is_cancelled |

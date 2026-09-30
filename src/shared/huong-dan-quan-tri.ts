@@ -174,6 +174,9 @@ Mở [[Loại giấy tờ người]] (có cả [[Hạng giấy phép lái xe]]) 
 ### Trợ lý Hỗ trợ (chỉ Toàn quyền)
 Trang **Tôi**, khối **Trợ lý Hỗ trợ**: xem đang bật hay tắt, đã có khoá chưa, chi phí tháng này. Tick hoặc bỏ tick [[Bật trợ lý]], sửa trần chi phí tháng và số câu mỗi người mỗi ngày, bấm [[Lưu cài đặt trợ lý]]. Tắt có hiệu lực ngay.
 
+### Dịch vụ nhập tay (chỉ Toàn quyền bật / tắt)
+Trang **Tôi**, khối **Dịch vụ nhập tay**: bấm [[Bật dịch vụ nhập tay]] hoặc [[Tắt dịch vụ nhập tay]]. Mặc định tắt. Khi bật: Bán hàng, Quản trị, Toàn quyền thêm được dịch vụ gõ tên và giá tay ở form lập đơn ([[+ Dịch vụ nhập tay]]). Tài khoản có quyền Đối tác luôn không dùng được. Khi tắt: dịch vụ nhập tay đã có trên đơn vẫn giữ, chỉ xem. Văn phòng thêm dịch vụ nhập tay vào đơn nháp của Đối tác thì Đối tác không tự xác nhận được — văn phòng xác nhận thay.
+
 ### Lý do điều phối
 Mở [[Lý do điều phối]]. Lý do chia nhóm, như [[Đổi giờ xe tới]], [[Huỷ chuyến]], [[Phá lệ]]. Thêm: [[+ Thêm lý do]] ở nhóm cần, gõ lý do, bấm [[Thêm]]. Sửa tên: [[Sửa]]. Không dùng nữa: [[Ngưng]]; dùng lại: [[Dùng lại]]. Lý do hệ thống tự dùng thì không ngưng được.`,
     },

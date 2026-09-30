@@ -150,6 +150,12 @@
       "kind": "table"
     },
     {
+      "name": "ord_manual_service_policy",
+      "module": "orders",
+      "kind": "table",
+      "note": "công tắc \"Dịch vụ nhập tay\" (ADR-0061, migration 0052), CHỈ-THÊM; dòng hiệu lực = valid_from_at lớn nhất ≤ bây giờ, bảng rỗng = TẮT; gieo một dòng TẮT; chỉ Toàn quyền thêm dòng mới (settings.ops)"
+    },
+    {
       "name": "pty_contact_kind",
       "module": "parties",
       "kind": "lookup"

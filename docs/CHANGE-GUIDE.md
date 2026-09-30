@@ -779,6 +779,16 @@ Quyết định của chủ dự án (nguồn: `docs/HANDOFF-CHE-DO-BAO-TRI.md` 
 
 **Bẫy:** mã lỗi 503 của trợ lý là `tro_ly_chua_bat`, KHÔNG được là `maintenance` (mã đó làm `web/api.ts` bật màn bảo trì toàn trang). Thêm module có route mới ⇒ ảnh chụp `src/route-access.test.ts` + `BANG_STAFF` của `src/tai-xe-cong.test.ts` (route cổng `staff`).
 
+### z6. Bật / tắt "Dịch vụ nhập tay" (ADR-0061)
+
+**Luật (một nơi):** `lyDoKhongNhapTay(staff, chinhSachBat)` / `duocNhapTay` ở `src/modules/orders/price-guards.ts` — thứ tự CỐ ĐỊNH: tài khoản có quyền Đối tác (`holdsPartner`, kể cả lai) → công tắc TẮT → không có ô `order.service.manual` (SALES, ACCOUNTING, ADMIN, SUPER_ADMIN = any; ô của Kế toán CHƯA có tác dụng vì Kế toán không lập / sửa đơn — chờ C2). `priceGuard` (`src/modules/orders/index.ts`) nhận công tắc đọc MỘT lần mỗi request (`manualPolicy` ở `chang-hanh-khach-repo.ts`); `duocNhapTay` sai ⇒ R1 đóng băng như bản 1.38 (câu lỗi theo lý do: `NHAP_TAY_MESSAGE`). R2 / R3 (giá Đối tác) không đổi.
+- **Bật / tắt (người dùng):** Toàn quyền, trang Tôi, khối "Dịch vụ nhập tay" (`web/nhap-tay-cai-dat.ts`) → `POST /api/cai-dat/nhap-tay` `{ batNhapTay }`. Hiệu lực ngay, không cần deploy. Mặc định sau migration `0052` là TẮT; bảng rỗng cũng = TẮT.
+- **Bật / tắt bằng SQL (chỉ khi cần, local):** chèn dòng mới vào `ord_manual_service_policy` với `valid_from_at` = lúc chèn (bảng chỉ-thêm — `UPDATE`/`DELETE` bị trigger chặn). Remote: KHÔNG tự chạy (CLAUDE.md §8).
+- **Giao diện:** `web/order-form.ts` hỏi `GET /api/cai-dat/nhap-tay` (chỉ người có `order.create`) TRƯỚC khi dựng thẻ đã lưu; `duocDung` quyết nút `#add-manual`, thẻ nhập tay đã lưu sửa được (`isFrozenManual(d, duocNhapTay)`), chữ ô chọn "chưa hỗ trợ — dùng nhập tay" (`picker.setNhapTay`). Giao diện KHÔNG tự tính luật.
+- **Route mới ghi dịch vụ đơn (vd sửa sau xác nhận C2):** gọi `validateOrder` thì PHẢI gọi `priceGuard(…, (await manualPolicy(…)).bat)` — bài `src/nhap-tay-guard.test.ts` đỏ nếu quên; hoặc gọi thẳng `duocNhapTay`.
+- **Kiểm:** `node --test src/modules/orders/price-guards.test.ts src/modules/orders/nhap-tay-route.test.ts src/nhap-tay-guard.test.ts src/migrations-nhap-tay.test.ts` → `npm test` → `npm run test:e2e -- nhap-tay-va-gia-doi-tac` (kịch bản tự đưa công tắc về TẮT ở cuối — D1 chung) → Chrome `docs/evidence/2026-09-30-adr-0061/kich-ban/nhap-tay-smoke.mjs` + ba `a2-smoke-*.mjs`.
+- **Bẫy:** Đối tác KHÔNG xác nhận được đơn nháp của mình mà văn phòng đã thêm dòng nhập tay (R2 ở xác nhận — hệ quả có chủ ý, ADR-0061); văn phòng xác nhận thay. `R-ORD-NT1` (warn) sẽ hiện các đơn đó nếu người lập mang quyền Đối tác — rà theo mã đơn.
+
 ## 3. Ma trận "đổi cái gì → chạy kiểm nào"
 
 | Bạn chạm | Chạy |

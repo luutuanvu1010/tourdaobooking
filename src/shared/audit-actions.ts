@@ -119,6 +119,8 @@ export const AUDIT_ACTIONS = {
   location_created: { label: "Thêm địa điểm", group: "location" },
   location_updated: { label: "Sửa địa điểm", group: "location" },
   maintenance_changed: { label: "Đổi chế độ bảo trì", group: "system" },
+  // ADR-0061 điều 6: Toàn quyền bật / tắt "Dịch vụ nhập tay" (POST /api/cai-dat/nhap-tay) — không gắn đơn (orderId NULL); detail "Bật" / "Tắt".
+  manual_service_policy_changed: { label: "Đổi công tắc dịch vụ nhập tay", group: "system" },
   catalog_synced: { label: "Đồng bộ dịch vụ từ Sheet", group: "catalog" },
   catalog_overridden: { label: "Ghi đè giá dịch vụ", group: "catalog" },
   catalog_override_cleared: { label: "Bỏ ghi đè dịch vụ", group: "catalog" },

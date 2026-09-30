@@ -533,3 +533,35 @@ export async function orderContactRows(db: D1Database, orderIds: readonly string
   if (orderIds.length === 0) return [];
   return (await db.prepare(ORDER_CONTACT_FOR_DRIVER).bind(JSON.stringify(orderIds)).all<OrderContactRow>()).results;
 }
+
+// ---- Chính sách "Dịch vụ nhập tay" (ADR-0061 điều 1 — bảng ord_manual_service_policy, migration 0052) ------------------------------------------
+
+/** Dòng hiệu lực = valid_from_at lớn nhất ≤ ?1 (bây giờ); kèm valid_from_at lớn nhất của MỌI dòng (để dòng mới không lùi, không trùng). */
+const MANUAL_POLICY_CURRENT = defineSql(
+  "orders",
+  "manual_policy_current",
+  `SELECT (SELECT enabled FROM ord_manual_service_policy WHERE valid_from_at <= ?1 ORDER BY valid_from_at DESC LIMIT 1) AS enabled,
+          (SELECT valid_from_at FROM ord_manual_service_policy WHERE valid_from_at <= ?1 ORDER BY valid_from_at DESC LIMIT 1) AS valid_from_at,
+          (SELECT MAX(valid_from_at) FROM ord_manual_service_policy) AS latest_at`,
+);
+const MANUAL_POLICY_INSERT = defineSql(
+  "orders",
+  "manual_policy_insert",
+  `INSERT INTO ord_manual_service_policy (id, enabled, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?3, ?4, ?3, ?4)`,
+);
+export interface ManualPolicy {
+  /** Công tắc đang BẬT. Bảng rỗng / chưa có dòng hiệu lực ⇒ false (ADR-0061 A-8: không đoán "bật"). */
+  bat: boolean;
+  /** Mốc hiệu lực của dòng đang áp; null = chưa có dòng nào hiệu lực. */
+  tuLuc: string | null;
+  /** valid_from_at lớn nhất của mọi dòng (dòng mới phải ĐI SAU mốc này — không lùi, không trùng UNIQUE). */
+  moiNhat: string | null;
+}
+/** Đọc MỘT lần mỗi request (ADR-0061 điều 3). */
+export async function manualPolicy(db: D1Database, nowIso: string): Promise<ManualPolicy> {
+  const r = await db.prepare(MANUAL_POLICY_CURRENT).bind(nowIso).first<{ enabled: number | null; valid_from_at: string | null; latest_at: string | null }>();
+  return { bat: r?.enabled === 1, tuLuc: r?.valid_from_at ?? null, moiNhat: r?.latest_at ?? null };
+}
+/** Câu chèn dòng chính sách mới (chưa chạy) — nơi gọi ghép cùng câu nhật ký vào MỘT db.batch. */
+export const manualPolicyInsert = (db: D1Database, id: string, bat: boolean, at: string, actorId: string): D1PreparedStatement =>
+  db.prepare(MANUAL_POLICY_INSERT).bind(id, bat ? 1 : 0, at, actorId);

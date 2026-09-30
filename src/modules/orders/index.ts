@@ -3,8 +3,8 @@
 // "Người phụ trách" do module `dispatch` giữ: `orders` KHÔNG import `dispatch` mà hỏi qua `ctx.isAssigned(orderId)` (gốc lắp ráp tiêm — ADR-0007 điều 4(b)).
 import { auditStatement, getAuditTrail } from "../audit";
 import type {
-  CanhBaoMocDto, CatalogChangeDto, CatalogChangedBody, DashboardResponse, IncompleteTripBody, MyAssignmentDto, OrderDetailDto, OrderDetailResponse, OrderListResponse,
-  MocToiThieuResponse, OrderResponse, PassengerListResponse, PaxCounts, PoolResponse, ShortNoticeRequiredBody,
+  CanhBaoMocDto, CatalogChangeDto, CatalogChangedBody, DashboardResponse, IncompleteTripBody, MyAssignmentDto, NhapTayResponse, OrderDetailDto, OrderDetailResponse,
+  OrderListResponse, MocToiThieuResponse, OrderResponse, PassengerListResponse, PaxCounts, PoolResponse, ShortNoticeRequiredBody,
 } from "../../shared/contracts";
 import { UUID_RE, error, intParam, json, readJson } from "../../shared/http";
 import { can, seesOnlyAssignedOrders, type PermissionHolder } from "../../shared/permissions";
@@ -18,8 +18,8 @@ import {
   getServicesForSubtotal, getStoredServices, insertMoneyAdjustment, listOrderIds, listOrders, listPoolSources, updateDraftOrder, updateTrip, writePassengerChange,
 } from "./repository";
 import {
-  legById, legDatGapByOrder, legLichChungNhapRows, legLichChungRows, legShortNotice, legTripRows, orderContactRows, passengerRowsByOrders, servicePaxByIds,
-  type DatGapWrite,
+  legById, legDatGapByOrder, legLichChungNhapRows, legLichChungRows, legShortNotice, legTripRows, manualPolicy, manualPolicyInsert, orderContactRows, passengerRowsByOrders,
+  servicePaxByIds, type DatGapWrite,
 } from "./chang-hanh-khach-repo";
 import { khoaNoi } from "../../shared/khoa-noi";
 import { CHIEU_LABEL, LY_DO_DAT_GAP } from "../../shared/chang-dua-don";
@@ -29,7 +29,8 @@ import { dongHienHanh } from "../../shared/hanh-khach";
 import { maskLongDigits } from "../../shared/text-guards";
 import { toPoolOrders } from "./pool";
 import {
-  PARTNER_DISCOUNT_CAP, PARTNER_DISCOUNT_MESSAGE, RETAIL_PRICE_MESSAGE, discountWithinCap, holdsPartner, manualFreezeViolation, retailPricesOnly,
+  PARTNER_DISCOUNT_CAP, PARTNER_DISCOUNT_MESSAGE, RETAIL_PRICE_MESSAGE, discountWithinCap, duocNhapTay, holdsPartner, lyDoKhongNhapTay, manualFreezeViolation,
+  retailPricesOnly,
 } from "./price-guards";
 import { canTransition, hasHandlerPick, parseHandlerPick, validateBookerChange, validateOrder, type Failure, type OrderStatus, type ValidOrder } from "./rules";
 import {
@@ -110,12 +111,15 @@ async function legRaced(db: D1Database, orderId: string, legId: string): Promise
 
 /**
  * DK-T3-01 (kiểm toán 24/9; chủ dự án trả lời 2026-09-26) — các kiểm RIÊNG chạy SAU `validateOrder` ở POST/PUT đơn (luật thuần: `price-guards.ts`),
- * theo thứ tự: R1 (mọi tài khoản) dịch vụ nhập tay mới / sửa tên-giá dịch vụ nhập tay cũ → 400 `invalid_input`; R2 (tài khoản có quyền Đối tác) đơn giá
- * khác giá danh mục → 403 `forbidden`; R3 (tài khoản có quyền Đối tác) giảm giá cấp đơn vượt trần — hôm nay trần 0, "tạm không cho giảm" (chủ dự án 26/9)
- * → 403 `forbidden`. null = đạt.
+ * theo thứ tự: R1 — khi KHÔNG `duocNhapTay` (ADR-0061: tài khoản có quyền Đối tác TRƯỚC, rồi công tắc TẮT, rồi không có ô `order.service.manual`) dịch vụ
+ * nhập tay mới / sửa tên-giá dịch vụ nhập tay cũ → 400 `invalid_input` (câu theo lý do); R2 (tài khoản có quyền Đối tác) đơn giá khác giá danh mục → 403
+ * `forbidden`; R3 (tài khoản có quyền Đối tác) giảm giá cấp đơn vượt trần — hôm nay trần 0, "tạm không cho giảm" (chủ dự án 26/9) → 403 `forbidden`.
+ * `batNhapTay` = công tắc nhập tay, route đọc MỘT lần mỗi request (`manualPolicy`). null = đạt. MỌI route gọi `validateOrder` phải gọi hàm này (bài tĩnh
+ * `src/nhap-tay-guard.test.ts` — route sửa sau xác nhận C2 tương lai không lách được).
  */
-function priceGuard(staff: PermissionHolder, order: ValidOrder, ctx: OrderValidationContext): Response | null {
-  const frozen = manualFreezeViolation(order.services, ctx.stored);
+function priceGuard(staff: PermissionHolder, order: ValidOrder, ctx: OrderValidationContext, batNhapTay: boolean): Response | null {
+  const lyDo = lyDoKhongNhapTay(staff, batNhapTay);
+  const frozen = lyDo === null ? null : manualFreezeViolation(order.services, ctx.stored, lyDo);
   if (frozen) return error(400, "invalid_input", frozen);
   if (holdsPartner(staff) && !retailPricesOnly(order.items)) return PARTNER_PRICE();
   if (holdsPartner(staff) && !discountWithinCap(order.discount, PARTNER_DISCOUNT_CAP)) return PARTNER_DISCOUNT();
@@ -428,6 +432,43 @@ export async function getMyAssignments(db: D1Database, orderIds: readonly string
 export const ordersModule: AppModule = {
   name: "orders",
   routes: [
+    // ADR-0061 điều 6: công tắc "Dịch vụ nhập tay". Hai route thuộc module orders (bảng ord_manual_service_policy) nhưng CỐ Ý không nằm dưới /api/orders:
+    // đổi chính sách không phải thay đổi một đơn (không thuộc bài baoThayDoi của src/bang-tin-guard.test.ts), và tránh bẫy router ":id".
+    // ĐỌC (cổng orders): form lập đơn biết hiện nút theo `duocDung` (= duocNhapTay của CHÍNH người gọi). Chỉ người lập đơn cần biết → hỏi order.create
+    // (ADR-0019 điều 6: route sau cổng phải hỏi bảng; chỉ-HDV, Kế toán không lập đơn → 403). Toàn quyền có order.create nên màn cài đặt đọc cùng route.
+    route("GET", "/api/cai-dat/nhap-tay", "orders", async ({ env, staff }) => {
+      if (!can(staff, "order.create")) return error(403, "forbidden", "Tài khoản này không lập đơn nên không dùng dịch vụ nhập tay.");
+      const { bat } = await manualPolicy(env.DB, new Date().toISOString());
+      return json({ batNhapTay: bat, duocDung: duocNhapTay(staff, bat), doiDuoc: can(staff, "settings.ops") } satisfies NhapTayResponse);
+    }),
+    // GHI (cổng admin): chỉ ô settings.ops (hôm nay chỉ Toàn quyền — Quản trị qua cổng nhưng 403). Đổi = chèn dòng mới, valid_from_at = lúc ghi, không lùi
+    // (đi SAU dòng mới nhất, không trùng UNIQUE). Gửi CÙNG trạng thái đang hiệu lực = 200, không ghi dòng, không nhật ký. Nhật ký không gắn đơn (orderId NULL).
+    // Hai lệnh cùng lúc cùng mốc ⇒ lệnh thua va UNIQUE ⇒ 409 `stale` (lô không áp).
+    // Miễn trừ có tên ở bài NT-F7 (src/modules/billing/sau-da-giao.test.ts): không ghi đơn nào, không có đơn để khoá sau "Đã giao".
+    route("POST", "/api/cai-dat/nhap-tay", "admin", async ({ env, request, staff }) => {
+      if (!can(staff, "settings.ops")) return error(403, "forbidden", "Chỉ Toàn quyền bật / tắt được dịch vụ nhập tay.");
+      const body = (await readJson(request)) as { batNhapTay?: unknown } | null;
+      if (!body || typeof body !== "object" || typeof body.batNhapTay !== "boolean") return error(400, "invalid_input", "Chọn bật hoặc tắt dịch vụ nhập tay.");
+      const muon = body.batNhapTay;
+      const now = new Date();
+      const hienTai = await manualPolicy(env.DB, now.toISOString());
+      if (hienTai.bat !== muon) {
+        const sau = hienTai.moiNhat && Date.parse(hienTai.moiNhat) >= now.getTime() ? new Date(Date.parse(hienTai.moiNhat) + 1) : now;
+        const at = sau.toISOString();
+        try {
+          await env.DB.batch([
+            manualPolicyInsert(env.DB, crypto.randomUUID(), muon, at, staff.id),
+            auditStatement(env.DB, { staffId: staff.id, action: "manual_service_policy_changed", at, targetType: "system", detail: muon ? "Bật dịch vụ nhập tay" : "Tắt dịch vụ nhập tay" }),
+          ]);
+        } catch (e) {
+          // Hai lệnh đổi cùng lúc (kiểm độc lập VỪA-2): lệnh sau va UNIQUE valid_from_at ⇒ cả lô không áp (không dòng, không nhật ký) — báo tải lại, không 500.
+          if (/UNIQUE/i.test(String((e as Error)?.message ?? e))) return error(409, "stale", "Công tắc vừa được đổi — tải lại rồi thử lại.");
+          throw e;
+        }
+      }
+      return json({ batNhapTay: muon, duocDung: duocNhapTay(staff, muon), doiDuoc: true } satisfies NhapTayResponse);
+    }),
+
     // Trang chủ (docs/superpowers/sdd/2026-09-23-trang-chu-moi): số liệu TOÀN CÔNG TY + "Chuyến đón hôm nay" (`OrderSummaryDto[]` có tên/SĐT khách, tiền).
     // ADR-0019 điều 1–2: cổng "orders" chỉ lọc thô; thân hỏi ba ô KHÔNG ngữ cảnh (= xem được MỌI đơn, mọi tiền, mọi liên hệ) TRƯỚC mọi truy vấn —
     // Đối tác/Thực tập (`own`) → 403. Nếu sau này `money.view`/`contact.view` của một mã bị thu hẹp (vd `assigned`), Trang chủ của mã đó 403 chứ
@@ -558,7 +599,7 @@ export const ordersModule: AppModule = {
       const ctx = await validationContext(env.DB, null);
       const parsed = validateOrder(body, ctx);
       if (!parsed.ok) return failure(parsed);
-      const guard = priceGuard(staff, parsed.value, ctx);
+      const guard = priceGuard(staff, parsed.value, ctx, (await manualPolicy(env.DB, new Date().toISOString())).bat); // ADR-0061: công tắc đọc một lần
       if (guard) return guard;
       // ADR-0047 (R7, R3): điểm danh mục của chặng phải đang dùng; đặt hai khoá cũ = dẫn xuất từ chặng (ghi kép vào cột cũ).
       const placed = await resolveLegPlaces(env.DB, parsed.value, ctx);
@@ -619,7 +660,7 @@ export const ordersModule: AppModule = {
       const ctx = await validationContext(env.DB, id);
       const parsed = validateOrder(body, ctx);
       if (!parsed.ok) return failure(parsed);
-      const guard = priceGuard(staff, parsed.value, ctx);
+      const guard = priceGuard(staff, parsed.value, ctx, (await manualPolicy(env.DB, new Date().toISOString())).bat); // ADR-0061: công tắc đọc một lần
       if (guard) return guard;
       const placed = await resolveLegPlaces(env.DB, parsed.value, ctx); // ADR-0047 (R7, R3)
       if (!placed.ok) return error(400, "invalid_input", placed.message);

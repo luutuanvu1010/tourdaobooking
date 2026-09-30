@@ -111,6 +111,15 @@ export interface MaintenanceStatusDto {
 }
 /** `GET`/`PUT /api/maintenance` (chỉ ADMIN): `canToggle` = chính người gọi có nằm trong danh sách được phép bật/tắt không (không lộ danh sách). */
 export interface MaintenanceResponse extends MaintenanceStatusDto { canToggle: boolean }
+
+// ---- Công tắc "Dịch vụ nhập tay" (ADR-0061 điều 6; module `orders`) ----
+/**
+ * `GET`/`POST /api/cai-dat/nhap-tay`: `batNhapTay` = công tắc đang BẬT; `duocDung` = CHÍNH người gọi có được nhập tay không (`duocNhapTay` của máy chủ —
+ * form lập đơn hiện nút "+ Dịch vụ nhập tay" theo trường này); `doiDuoc` = người gọi bật/tắt được không (ô `settings.ops` — màn cài đặt của Toàn quyền).
+ */
+export interface NhapTayResponse { batNhapTay: boolean; duocDung: boolean; doiDuoc: boolean }
+/** Thân `POST /api/cai-dat/nhap-tay` (chỉ Toàn quyền). */
+export interface NhapTayRequest { batNhapTay: boolean }
 /** Thân `PUT /api/maintenance`. `endsAt` bắt buộc khi `on = true`. */
 export interface MaintenanceRequest { on: boolean; endsAt?: string }
 /** Thân `error` của phản hồi 503 `maintenance` (mọi `/api/*` cần đăng nhập với người bị chặn, và `POST /api/auth/login`): `endsAt` để giao diện dựng đồng hồ đếm ngược mà không cần gọi thêm. */

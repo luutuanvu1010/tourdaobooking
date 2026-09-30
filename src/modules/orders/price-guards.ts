@@ -1,9 +1,11 @@
 // Luật thuần vá DK-T3-01 (kiểm toán điểm khuất 24/9, HIGH — "Đối tác ngoài tự phát phiếu mang MST Tour Đảo với giá tự gõ hoặc giảm giá tuỳ ý"),
 // theo câu trả lời của chủ dự án ngày 2026-09-26. Hai kiểm RIÊNG, route gọi SAU `validateOrder` (không đổi cách `validateService` phân tích dữ liệu):
-//  R1 (mọi tài khoản) — Câu 1: "loại bỏ hoàn toàn dịch vụ nhập tay khỏi giao diện, đây là quyết định cuối cùng. Sẽ mở lại khi cần thiết."
-//     Máy chủ không nhận dịch vụ nhập tay MỚI; dịch vụ nhập tay CŨ đã lưu của chính đơn bị "đóng băng": tên + dòng tiền (mô tả, chi tiết, số lượng,
-//     đơn giá) phải giữ nguyên; thông tin chuyến và số khách vẫn sửa được (đơn một ngày cho cả đơn — ADR-0021 — nên đổi ngày đơn đổi cả dịch vụ nhập
-//     tay: cho qua); bỏ dịch vụ nhập tay khỏi đơn nháp thì được. Dữ liệu cũ không bị xoá.
+//  R1 — Câu 1 (26/9): "loại bỏ hoàn toàn dịch vụ nhập tay khỏi giao diện, đây là quyết định cuối cùng. Sẽ mở lại khi cần thiết." ADR-0061 (accepted
+//     2026-09-30) MỞ LẠI CÓ ĐIỀU KIỆN: R1 nay áp khi `duocNhapTay` SAI — công tắc nhập tay TẮT, người gọi không có ô `order.service.manual`, hoặc người gọi
+//     CÓ quyền Đối tác (luôn luôn, kể cả tài khoản lai). Khi R1 áp: máy chủ không nhận dịch vụ nhập tay MỚI; dịch vụ nhập tay CŨ đã lưu của chính đơn bị
+//     "đóng băng": tên + dòng tiền (mô tả, chi tiết, số lượng, đơn giá) phải giữ nguyên; thông tin chuyến và số khách vẫn sửa được (đơn một ngày cho cả
+//     đơn — ADR-0021 — nên đổi ngày đơn đổi cả dịch vụ nhập tay: cho qua); bỏ dịch vụ nhập tay khỏi đơn nháp thì được. Dữ liệu cũ không bị xoá.
+//     `duocNhapTay` đúng ⇒ bỏ qua R1 (thêm mới, sửa tên/giá dịch vụ nhập tay được). R2, R3 KHÔNG đổi (lớp chặn thứ hai cho Đối tác, cả ở xác nhận).
 //  R2 (tài khoản có quyền Đối tác) — Câu 2: "dù đối tác có giảm giá bao nhiêu đi nữa thì đối tác vẫn phải trả một mức giá cố định cho công ty Tour đảo"
 //     + ADR-0014 điều 3 ("ảnh xác nhận/hoá đơn luôn là giá bán lẻ"): mọi dòng tiền phải có giá danh mục và đơn giá = giá danh mục. Áp ở lập, sửa
 //     VÀ xác nhận đơn (xác nhận không kiểm lại giá — đơn nháp cũ phải bị bắt ở đó).
@@ -13,9 +15,33 @@
 //     Áp ở lập, sửa VÀ xác nhận (xác nhận đọc giảm giá ĐÃ LƯU). Khi có bảng chiết khấu (việc sau): route tính trần từ bảng đó rồi truyền vào
 //     `discountWithinCap` thay cho hằng 0, và đổi câu lỗi (câu hiện tại nói "chưa được thiết lập").
 // Không I/O; test cạnh tệp (price-guards.test.ts).
-import { holdsPartner } from "../../shared/permissions.ts";
+import { can, holdsPartner, type PermissionHolder } from "../../shared/permissions.ts";
 
-export const MANUAL_FROZEN_MESSAGE = "dịch vụ nhập tay đã ngừng — không thêm mới, không sửa tên hay giá. Muốn đổi, hãy xoá dịch vụ này rồi chọn dịch vụ từ danh mục.";
+/** Vì sao người gọi KHÔNG được nhập tay (ADR-0061): tài khoản có quyền Đối tác / công tắc đang TẮT / không có ô `order.service.manual`. */
+export type LyDoKhongNhapTay = "doi_tac" | "tat" | "khong_o";
+
+const LAM_TIEP = " — không thêm mới, không sửa tên hay giá. Muốn đổi, hãy xoá dịch vụ này rồi chọn dịch vụ từ danh mục.";
+/** Câu lỗi R1 theo lý do (ADR-0061 "Mã": nói rõ "chưa bật / tài khoản không được nhập tay"). Máy chủ ghép "Dịch vụ N: " phía trước (`classifyOrderError`). */
+export const NHAP_TAY_MESSAGE: Record<LyDoKhongNhapTay, string> = {
+  tat: `dịch vụ nhập tay đang tắt${LAM_TIEP}`,
+  khong_o: `tài khoản này không được dùng dịch vụ nhập tay${LAM_TIEP}`,
+  doi_tac: `tài khoản có quyền Đối tác không dùng được dịch vụ nhập tay${LAM_TIEP}`,
+};
+
+/**
+ * ADR-0061 điều 3 — MỘT hàm duy nhất quyết "được nhập tay". Thứ tự CỐ ĐỊNH: Đối tác TRƯỚC (`holdsPartner` — tài khoản lai SALES+PARTNER, PARTNER+FIELD,
+ * ADMIN+PARTNER cũng bị chặn, dù ô của quyền kia = any; `can()` là HỢP các ô nên chỉ hỏi ô thì tài khoản lai lọt), rồi công tắc, rồi ô. null = được.
+ * `chinhSachBat` do route đọc MỘT lần mỗi request (bảng `ord_manual_service_policy`; bảng rỗng = TẮT). Mọi đường ghi dịch vụ (hôm nay POST/PUT
+ * /api/orders; route sửa sau xác nhận C2 tương lai) phải đi qua hàm này — bài tĩnh `src/nhap-tay-guard.test.ts`.
+ */
+export function lyDoKhongNhapTay(staff: PermissionHolder, chinhSachBat: boolean): LyDoKhongNhapTay | null {
+  if (holdsPartner(staff)) return "doi_tac";
+  if (!chinhSachBat) return "tat";
+  if (!can(staff, "order.service.manual")) return "khong_o";
+  return null;
+}
+/** ADR-0061 điều 3: `duocNhapTay = chinhSachBat && can(staff, "order.service.manual") && !holdsPartner(staff)` — đọc CÙNG hàm `lyDoKhongNhapTay`. */
+export const duocNhapTay = (staff: PermissionHolder, chinhSachBat: boolean): boolean => lyDoKhongNhapTay(staff, chinhSachBat) === null;
 export const RETAIL_PRICE_MESSAGE = "Tài khoản đối tác dùng đúng giá bán lẻ theo danh mục; muốn giá khác, nhờ văn phòng.";
 export const PARTNER_DISCOUNT_MESSAGE =
   "Tài khoản đối tác chưa được giảm giá: mức giảm tối đa bằng mức chiết khấu Tour Đảo dành cho đối tác, mà mức này chưa được thiết lập. Muốn giảm cho khách, nhờ văn phòng.";
@@ -54,11 +80,11 @@ const sameLine = (a: FrozenLine, b: FrozenLine): boolean =>
   sameText(a.description, b.description) && sameText(a.detail, b.detail) && a.quantity === b.quantity && a.unitPrice === b.unitPrice;
 
 /**
- * R1: câu lỗi (có "Dịch vụ N: " để giao diện cuộn tới đúng thẻ — `classifyOrderError`) cho dịch vụ nhập tay ĐẦU TIÊN không phải "dịch vụ nhập tay đã
+ * R1 (chỉ gọi khi `lyDoKhongNhapTay` ≠ null): câu lỗi theo `lyDo` (có "Dịch vụ N: " để giao diện cuộn tới đúng thẻ — `classifyOrderError`) cho dịch vụ nhập tay ĐẦU TIÊN không phải "dịch vụ nhập tay đã
  * lưu của chính đơn này, giữ nguyên tên và dòng tiền"; null = đạt. Dịch vụ danh mục không bị xét. `id` phải trỏ tới dịch vụ đã lưu CÓ `catalogCode` null
  * (không mượn được id của dịch vụ danh mục — `validateService` tra id trên mọi dịch vụ đã lưu).
  */
-export function manualFreezeViolation(services: readonly FrozenInput[], stored: readonly FrozenStored[]): string | null {
+export function manualFreezeViolation(services: readonly FrozenInput[], stored: readonly FrozenStored[], lyDo: LyDoKhongNhapTay = "tat"): string | null {
   for (const [i, s] of services.entries()) {
     if (s.kind !== "manual") continue;
     const st = s.id === null ? undefined : stored.find((x) => x.id === s.id);
@@ -68,7 +94,7 @@ export function manualFreezeViolation(services: readonly FrozenInput[], stored: 
       sameText(st.name, s.name) &&
       st.lines.length === s.items.length &&
       st.lines.every((l, k) => sameLine(l, s.items[k]!));
-    if (!kept) return `Dịch vụ ${i + 1}: ${MANUAL_FROZEN_MESSAGE}`;
+    if (!kept) return `Dịch vụ ${i + 1}: ${NHAP_TAY_MESSAGE[lyDo]}`;
   }
   return null;
 }
