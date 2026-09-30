@@ -343,3 +343,48 @@ test("GA-59: 'Bỏ đánh dấu' khi giờ hẹn đã về đúng giờ cũ → 
   }
 });
 
+// R-P30 (GA-67 — cùng nguyên tắc chủ lần 16 "Sửa cho khớp ADR", ADR-0051 bước 4): phản hồi LẦN ĐẦU "Đã gọi báo" dựng từ CHÍNH dòng mốc vừa ghi — cùng đường với
+// lệnh lặp. Khung thử chạy yêu cầu gần như lần lượt nên bài dựng ĐUA CHẮC CHẮN bằng một CHẶN ở `env.DB.batch` (khuôn bài đua LC-01 — xep-gan-ten.test.ts): ngay
+// sau lô "Đã gọi báo", TRƯỚC khi route đọc lại để trả lời, chen vào (1) đổi giờ hẹn, (2) người khác bấm "Bỏ đánh dấu" dòng vừa ghi.
+test("R-P30 (GA-67): 'Đã gọi báo' — lệnh khác chen giữa lô và lần đọc sau lô (đổi giờ hẹn + người khác bỏ đánh dấu) → phản hồi lần đầu = dấu của CHÍNH lệnh này; lệnh lặp y hệt", async () => {
+  const tat = batDongHo();
+  try {
+    const w = khung();
+    const a = await chuyenSan(w, { soNguoi: 1 });
+    await doiGio(w, a.don.id, "13:15");
+    const goc = w.env.DB.batch;
+    let chen = 0;
+    w.env.DB.batch = async (stmts: any[]) => {
+      const kq = await goc(stmts);
+      if (chen === 0 && /^\s*INSERT INTO vc_leg_appt_ack/.test(stmts[0]?.sql ?? "") && stmts[0].args[3] === "DA_GOI") {
+        chen++;
+        await doiGio(w, a.don.id, "13:40");
+        const bo = await boDanh(w, a.don.legId, { phienBan: 2 }, ADM);
+        assert.equal(bo.status, 200, bo.text);
+      }
+      return kq;
+    };
+    const r1 = uuid();
+    const than = { requestId: r1, phienBan: 1, gioMoi: { ngay: NGAY, gio: "13:15" } };
+    let lan: any;
+    try {
+      lan = await w.call("POST", `/api/van-chuyen/chang/${a.don.legId}/da-goi-bao`, { as: SALES, body: than });
+    } finally {
+      w.env.DB.batch = goc;
+    }
+    assert.equal(chen, 1, "chống bài rỗng: đã chen đúng một lần sau lô 'Đã gọi báo'");
+    assert.equal(lan.status, 200, lan.text);
+    assert.deepEqual(moc(w, a.don.legId).map((x: any) => [x.seq, x.kind]), [[1, "XEP"], [2, "DA_GOI"], [3, "BO_DANH_DAU"]], "chống bài rỗng: trạng thái mốc ĐÃ khác ngay sau lô");
+    assert.equal(lan.json.gioHenDoi, null);
+    assert.deepEqual({ ...lan.json.daGoiBao, luc: undefined }, {
+      cu: { ngay: NGAY, gio: "13:00" }, moi: { ngay: NGAY, gio: "13:15" }, luc: undefined, nguoiBam: lan.json.daGoiBao.nguoiBam, phienBan: 2, boDuoc: true,
+    }, "kết quả của CHÍNH lệnh: dấu 'đã gọi báo 13:00 → 13:15', phiên bản 2");
+    assert.ok(lan.json.daGoiBao.nguoiBam, "nhãn người bấm = người ghi dòng");
+    assert.equal(lan.json.maDon, a.don.code);
+    const lap = await w.call("POST", `/api/van-chuyen/chang/${a.don.legId}/da-goi-bao`, { as: SALES, body: than });
+    assert.deepEqual([lap.status, lap.json], [200, lan.json], "lệnh lặp = phản hồi lần đầu");
+  } finally {
+    tat();
+  }
+});
+
