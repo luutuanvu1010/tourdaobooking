@@ -703,6 +703,10 @@ export interface PartyDto extends PartyListItemDto {
   accountLinked: boolean;
   /** ADR-0013 điều 6: NGƯỜI ĐANG XEM sửa được tên/liên hệ của hồ sơ này (máy chủ tính). Chỉ để ẩn/hiện nút; máy chủ vẫn chặn. */
   editable: boolean;
+  /** ADR-0068: hồ sơ này đã gộp vào hồ sơ nào (null = chưa gộp). Hồ sơ đã gộp chỉ đọc (`editable` = false). */
+  mergedInto: PartyMergeRef | null;
+  /** ADR-0068: các hồ sơ đã gộp VÀO hồ sơ này. */
+  mergedFrom: PartyMergeRef[];
 }
 
 export interface PartyListResponse { parties: PartyListItemDto[]; hasMore: boolean }
@@ -713,6 +717,32 @@ export interface PartyMetaResponse {
   roleTypes: { code: string; name: string; group: "INTERNAL" | "EXTERNAL" | "OTHER"; active: boolean }[];
   relationshipTypes: { code: string; name: string }[];
 }
+
+// ---- Gộp hồ sơ cá nhân (ADR-0068) — liên hệ chỉ hiện cho người giữ admin.manage (vốn thấy liên hệ ở Danh bạ); KHÔNG BAO GIỜ số giấy tờ. ----
+export interface PartyMergeRef { id: string; displayName: string; mergedAt: string }
+export type MergeItemKind = "LIEN_HE" | "CONG_VIEC" | "QUAN_HE" | "GIAY_TO";
+export interface MergeItemDto { loai: MergeItemKind; nhan: string; ghiChu: string | null }
+export interface MergePreviewResponse {
+  source: { id: string; displayName: string };
+  target: { id: string; displayName: string };
+  /** Lý do chặn (rỗng = gộp được). `message` tiếng Việt để hiện thẳng. */
+  chan: { code: string; message: string }[];
+  chuyen: MergeItemDto[];
+  giu: MergeItemDto[];
+  bo: MergeItemDto[];
+  /** Số đơn đổi người đặt sang hồ sơ chính (nháp + đã xác nhận chưa giao). */
+  donDoi: number;
+  /** Số đơn giữ ở hồ sơ phụ (đã giao + đã huỷ). */
+  donGiu: number;
+  /** Số dòng công nợ còn hiệu lực giữ ở hồ sơ phụ (sổ "theo người" của hồ sơ chính không thấy). */
+  dongNoGiu: number;
+}
+export type LyDoKhopDto = "PHONE" | "NAME" | "LOGIN_PHONE";
+export interface PartyDuplicatePairDto { a: PartyListItemDto; b: PartyListItemDto; lyDo: LyDoKhopDto[]; aCoTaiKhoan: boolean; bCoTaiKhoan: boolean }
+export interface PartyDuplicatesResponse { pairs: PartyDuplicatePairDto[]; conNua: boolean }
+/** Hồ sơ cá nhân khớp khi Thêm tài khoản (ADR-0068 Đ9) — không SĐT của hồ sơ. */
+export interface PartyMatchDto { id: string; displayName: string; lyDo: ("PHONE" | "NAME")[]; vai: string[]; coTaiKhoan: boolean }
+export interface PartyMatchResponse { khop: PartyMatchDto[] }
 
 // ---- Giấy tờ của người (ADR-0040 D2; module parties) — số LUÔN che ở mọi DTO dưới đây; số đầy đủ CHỈ có ở PersonDocumentRevealResponse. ----
 export interface PersonDocumentDto {

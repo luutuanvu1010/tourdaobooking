@@ -248,3 +248,33 @@ test("ba route điều phối (chi tiết chuyến, cuốc của tôi, xuất b�
     tat();
   }
 });
+
+test("ADR-0068 G8/G10: gộp hồ sơ — xem trước, phản hồi gộp, câu lỗi, nhật ký KHÔNG chứa số giấy tờ; số đi đúng sang hồ sơ chính (xem đủ số)", async () => {
+  const w = world();
+  seedStaff(w.sqlite, { id: SUP, phone: "0900000007", name: "Chủ", perms: ["SUPER_ADMIN"] });
+  const tao = async (ten: string) => (await w.call("POST", "/api/parties", { as: SUP, body: { kind: "PERSON", fullName: ten, contacts: [] } })).json.party.id as string;
+  const A = await tao("Gộp Dò Số");
+  const B = await tao("Gộp Dò Số Chính");
+  assert.equal((await w.call("POST", `/api/parties/${A}/documents`, { as: SUP, body: { typeCode: "CCCD", number: SO_CCCD, issuedPlace: NOI, expiryDate: "2035-01-01" } })).status, 201);
+  assert.equal((await w.call("POST", `/api/parties/${A}/documents`, { as: SUP, body: { typeCode: "GPLX", number: SO_GPLX, classCode: "D2", expiryDate: "2031-01-01" } })).status, 201);
+  const than: string[] = [];
+  const p = await w.call("POST", `/api/parties/${A}/merge/preview`, { as: SUP, body: { intoPartyId: B } });
+  assert.equal(p.status, 200, p.text);
+  than.push(p.text);
+  assert.deepEqual(p.json.chuyen.filter((x: any) => x.loai === "GIAY_TO").map((x: any) => x.nhan).sort(), ["Căn cước công dân (CCCD)", "Giấy phép lái xe Hạng D2"]);
+  const sai = await w.call("POST", `/api/parties/${A}/merge`, { as: SUP, body: { intoPartyId: B, xacNhan: "sai tên" } });
+  assert.equal(sai.status, 409, sai.text);
+  than.push(sai.text);
+  const r = await w.call("POST", `/api/parties/${A}/merge`, { as: SUP, body: { intoPartyId: B, xacNhan: "Gộp Dò Số" } });
+  assert.equal(r.status, 200, r.text);
+  than.push(r.text);
+  than.push((await w.call("GET", `/api/parties/${A}`, { as: SUP })).text, (await w.call("GET", `/api/parties/${B}`, { as: SUP })).text);
+  const nhatKy = JSON.stringify(w.q("SELECT detail FROM audit_log"));
+  for (const s of [...than, nhatKy]) for (const dau of DAU_SO_NGUOI) assert.ok(!s.includes(dau), `lộ số ${dau}`);
+  assert.ok(!nhatKy.includes(NOI), "nơi cấp không vào nhật ký");
+  // Kế hoạch R5: bảng giấy tờ không có cột lý do — lý do huỷ dòng ở hồ sơ phụ nằm ở chi tiết nhật ký party_merged.
+  assert.match(w.q("SELECT detail FROM audit_log WHERE action = 'party_merged' AND target_id = ?", A)[0].detail, /đã gộp vào hồ sơ khác/);
+  const cccdB = w.q("SELECT id FROM pty_person_document WHERE party_id = ? AND document_type_code = 'CCCD'", B)[0].id;
+  const xem = await w.call("POST", `/api/parties/${B}/documents/${cccdB}/reveal`, { as: SUP, body: {} });
+  assert.equal(xem.json.number, SO_CCCD, "chống bài rỗng: số thật đã sang hồ sơ chính");
+});

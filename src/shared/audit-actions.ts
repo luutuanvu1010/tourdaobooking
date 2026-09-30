@@ -71,6 +71,8 @@ export const AUDIT_ACTIONS = {
   party_role_added: { label: "Thêm vai trò hồ sơ", group: "party" },
   party_role_ended: { label: "Kết thúc vai trò hồ sơ", group: "party" },
   party_relationship_changed: { label: "Đổi quan hệ hồ sơ", group: "party" },
+  // ADR-0068: gộp hồ sơ — HAI dòng (hồ sơ phụ + hồ sơ chính), `detail` chỉ tên hai hồ sơ + số dòng chuyển theo loại (KHÔNG SĐT, email, số giấy tờ).
+  party_merged: { label: "Gộp hồ sơ", group: "party" },
   // ADR-0040 D2: giấy tờ của người — `detail` KHÔNG BAO GIỜ chứa số giấy tờ, nơi cấp (chiTietNhatKy của src/modules/parties/giay-to.ts).
   party_document_added: { label: "Thêm giấy tờ của người", group: "party" },
   party_document_renewed: { label: "Gia hạn giấy tờ của người", group: "party" },

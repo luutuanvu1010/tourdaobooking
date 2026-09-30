@@ -280,7 +280,7 @@ export function roleChangeStatements(
 
 export type CreateWithRoles =
   | { ok: true; id: string; partyId: string; pin: string; statements: D1PreparedStatement[]; permissions: PermissionCode[] }
-  | { ok: false; message: string };
+  | { ok: false; message: string; code?: "party_merged" };
 
 /**
  * Tạo tài khoản THEO VAI (ADR-0018): hồ sơ mới mang đúng các vai đã chọn (không thêm vai STAFF cũ), HOẶC dùng lại hồ sơ cá nhân có sẵn (chưa có tài khoản,
@@ -302,6 +302,8 @@ export async function createAccountWithRolesStatements(
     const party = await partySummary(db, input.existingPartyId);
     if (!party) return { ok: false, message: "Không tìm thấy hồ sơ đã chọn." };
     if (party.kind !== "PERSON") return { ok: false, message: "Tài khoản chung cho công ty làm ở giai đoạn sau — hãy chọn hồ sơ cá nhân." };
+    // ADR-0068 G16: hồ sơ đã gộp (luôn ngưng) — mã riêng để người tạo biết mở hồ sơ chính.
+    if (party.mergedIntoId) return { ok: false, code: "party_merged", message: "Hồ sơ này đã gộp vào hồ sơ khác — chọn hồ sơ chính." };
     if (!party.active) return { ok: false, message: "Hồ sơ đã chọn đang ngưng hoạt động." };
     if (await accountIdOfParty(db, input.existingPartyId)) return { ok: false, message: "Hồ sơ này đã có tài khoản." };
     const open = (await accountRolesOf(db, input.existingPartyId, today)).filter((r) => r.validTo === null).map((r) => r.roleTypeCode).filter(isRoleCode);

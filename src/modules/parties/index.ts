@@ -3,27 +3,30 @@
 // Ghi dữ liệu trả CÂU LỆNH chưa chạy (newPersonStatements…) để module gọi gộp vào một db.batch() — `staff` tạo tài khoản kèm hồ sơ như vậy.
 import { auditStatement } from "../audit";
 import type {
-  ContactPointDto, PartyDto, PartyListItemDto, PartyListResponse, PartyLookupResponse, PartyMetaResponse, PartyRelationshipDto, PartyResponse, PartyRoleDto,
-  PersonDocumentDto, PersonDocumentListResponse, PersonDocumentMetaResponse, PersonDocumentRevealResponse,
+  ContactPointDto, MergeItemDto, MergePreviewResponse, PartyDto, PartyListItemDto, PartyListResponse, PartyLookupResponse, PartyMergeRef, PartyMetaResponse,
+  PartyRelationshipDto, PartyResponse, PartyRoleDto, PersonDocumentDto, PersonDocumentListResponse, PersonDocumentMetaResponse, PersonDocumentRevealResponse,
 } from "../../shared/contracts";
 import { LOAI_CO_DINH, MA_LOAI_GIAY_TO_RE, kiemLoaiGiayToMoi, kiemSuaLoaiGiayTo, soNgayConLai } from "../../shared/giay-to";
 import { OWNER_COMPANY_ROLE, thieuChoCongTyChu } from "../../shared/cong-ty-chu";
+import { chuanHoaTen } from "../../shared/ho-so-trung";
 import type { RoleCode } from "../../shared/roles";
 import { UUID_RE, error, escapeLike, intParam, json, readJson } from "../../shared/http";
 import { can, holdsPartner } from "../../shared/permissions";
 import { normalizePhone } from "../../shared/phone";
 import { route, type AppModule, type Ctx } from "../../shared/router";
-import type { PartyAccountVerdict } from "../../shared/router";
+import type { DonCuaNguoiDatTom, PartyAccountVerdict } from "../../shared/router";
 import { vnToday } from "../../shared/vn-date";
 import {
   accountRolesOf as accountRoleRows, addContactStatements, addRelationshipStatement, addRoleStatement, endContactStatement, endRelationshipStatement, endRoleStatement,
-  companyIdentityOf, driverDocsForDispatch, driversForDispatch, expiringDocumentsOfRoles, findLicenseClass, findParty, findPartiesByPhone, findPersonDocument, findPersonDocumentNumber, findPersonDocumentType, getPartyDetail,
+  companyIdentityOf, docsForMerge, driverDocsForDispatch, driversForDispatch, expiringDocumentsOfRoles, findLicenseClass, findParty, findPartiesByPhone, findPersonDocument, findPersonDocumentNumber, findPersonDocumentType, getPartyDetail,
   insertLicenseClassStatement, insertPersonDocTypeStatement, updateLicenseClassStatement, updatePersonDocTypeStatement, insertPersonDocStatement, isCarrierParty, isOwnerCompanyParty, listLicenseClasses, listParties,
-  listCarriers, listPersonDocumentTypes, listPersonDocuments, listRelationshipTypes, listRoleTypes, newOrganizationStatements, newPersonStatements, updatePersonDocStatement,
+  listCarriers, listPersonDocumentTypes, listPersonDocuments, listRelationshipTypes, listRoleTypes, mergedFromOf, newOrganizationStatements, newPersonStatements, updatePersonDocStatement,
   voidPersonDocStatement,
   openRoleCodesFor, ownerCompanyRows, relationshipEnds, renamePersonStatements, reopenRoleStatement, roleRowOf, roleTypeOf, updatePartyStatements,
-  type PartyListRow, type PartyRow, type ContactRow, type PersonDocFull, type PersonDocRow, type PersonDocValues, type RelationshipRow, type RoleRow,
+  type GopDocRow, type PartyListRow, type PartyRow, type ContactRow, type PersonDocFull, type PersonDocRow, type PersonDocValues, type RelationshipRow, type RoleRow,
 } from "./repository";
+import { keHoachGop, type CongViecGop, type GiayToGop, type HoSoGop, type KeHoachGop, type NhomVai } from "./gop";
+import { loGop } from "./gop-lo";
 import { MA_HANG_RE, cheSo, chiTietNhatKy, chuanHoaSo, kiemGiaHan, kiemHangMoi, kiemSuaHang, kiemSuaSai, kiemThemGiayTo, type DanhMucGiayTo, type GiayToNhap } from "./giay-to";
 import {
   PARTY_ID_RE, QUAN_HE_TAI_XE_CUA, ROW_ID_RE, composePersonName, ownerCompanyAssignProblem, splitPersonName, validateContact, validateEndDate, validatePartyCreate, validatePartyUpdate,
@@ -54,9 +57,12 @@ export const closeAccountRoleStatement = (db: D1Database, partyId: string, roleI
 /** Câu mở lại một vai đã đóng trong hôm nay (tránh chèn dòng chồng lấn khi gỡ rồi gán lại cùng ngày). */
 export const reopenAccountRoleStatement = reopenRoleStatement;
 /** Tóm tắt hồ sơ cho module staff (tạo tài khoản trên hồ sơ có sẵn). */
-export async function partySummary(db: D1Database, id: string): Promise<{ kind: "PERSON" | "ORGANIZATION"; active: boolean; displayName: string } | null> {
+export async function partySummary(
+  db: D1Database,
+  id: string,
+): Promise<{ kind: "PERSON" | "ORGANIZATION"; active: boolean; displayName: string; mergedIntoId: string | null } | null> {
   const p = await findParty(db, id);
-  return p ? { kind: p.party_kind, active: p.active === 1, displayName: p.display_name } : null;
+  return p ? { kind: p.party_kind, active: p.active === 1, displayName: p.display_name, mergedIntoId: p.merged_into_id } : null;
 }
 
 /** Định danh Tour Đảo cho nơi đọc ngoài module (ADR-0024 điều 6 + 6.2). Trường có thể null: dữ liệu hồ sơ tổ chức cho phép trống. */
@@ -193,6 +199,114 @@ function constraintProblem(e: unknown): Response | null {
   return null;
 }
 
+// ---- Gộp hồ sơ cá nhân (ADR-0068) ----------------------------------------------------------------------------------------------------------------------
+const DA_GOP = () => error(409, "party_merged", "Hồ sơ này đã gộp vào hồ sơ khác — mở hồ sơ chính để sửa.");
+const MERGE_FORBIDDEN = () =>
+  error(403, "forbidden", "Tài khoản này không gộp được: hồ sơ chính (hoặc hồ sơ liên quan) gắn tài khoản mà bạn không quản lý được.");
+const MERGE_LOST_RACE = () => error(409, "merge_lost_race", "Hồ sơ vừa được gộp hoặc sửa ở nơi khác — tải lại, xem trước lại rồi thử lại.");
+// Hợp đồng lỗi của lô (phán quyết điều phối, Task 5–6): lô ném lỗi mà A chưa gộp → dữ liệu đổi giữa lúc tính kế hoạch và lúc ghi (cả lô đã huỷ, không đổi gì).
+const MERGE_STALE = () => error(409, "merge_stale", "Dữ liệu vừa thay đổi, hãy xem trước lại.");
+// Lô ném lỗi trigger tiền của đơn (cột cọc cũ không đọc được lúc tính kế hoạch — phán quyết Task 4): ở đây không biết mã đơn nên câu chung.
+const MERGE_ORDER_INVALID = () =>
+  error(409, "merge_order_invalid", "Có đơn của hồ sơ phụ đang lệch số tiền nên chưa đổi được người đặt — sửa đơn đó trước khi gộp.");
+const MERGE_CONFIRM = () => error(409, "merge_confirm_mismatch", "Gõ lại đúng tên hồ sơ phụ để xác nhận gộp.");
+const LY_DO_HUY_GIAY_TO_GOP = "đã gộp vào hồ sơ khác"; // ADR-0068 Đ1 bước 4 — bảng giấy tờ không có cột lý do (kế hoạch R5): lý do nằm ở nhật ký
+const intoParam = (b: Record<string, unknown> | null): string | null =>
+  typeof b?.intoPartyId === "string" && PARTY_ID_RE.test(b.intoPartyId) ? b.intoPartyId : null;
+
+interface HoSoDoc { hs: HoSoGop; giayToDu: GopDocRow[]; acc: PartyAccountVerdict }
+interface TinhGop { A: HoSoDoc; B: HoSoDoc; ke: KeHoachGop; don: DonCuaNguoiDatTom; soNo: number; homNay: string }
+
+async function docHoSoGop(ctx: Ctx<"admin">, id: string, nhom: ReadonlyMap<string, NhomVai>): Promise<HoSoDoc | null> {
+  const db = ctx.env.DB;
+  const [detail, acc, chu, docs, vao] = await Promise.all([getPartyDetail(db, id), ctx.partyAccount(id), laCongTyChu(db, id), docsForMerge(db, id), mergedFromOf(db, id)]);
+  if (!detail) return null;
+  const p = detail.party;
+  return {
+    acc,
+    giayToDu: docs,
+    hs: {
+      id, kind: p.party_kind, displayName: p.display_name, active: p.active === 1, mergedIntoId: p.merged_into_id, laCongTyChu: chu, coTaiKhoan: acc.linked,
+      coHoSoTroVao: vao.length > 0,
+      lienHe: detail.contacts.map((c) => ({
+        id: c.id, kind: c.contact_kind_code, value: c.value, valueNormalized: c.value_normalized, label: c.label, isPrimary: c.is_primary === 1, validFrom: c.valid_from_date,
+        validTo: c.valid_to_date,
+      })),
+      congViec: detail.roles.map((r) => ({
+        id: r.id, code: r.role_type_code, name: r.role_name, group: nhom.get(r.role_type_code) ?? "OTHER", locationId: r.location_id, locationName: r.location_name,
+        validFrom: r.valid_from_date, validTo: r.valid_to_date,
+      })),
+      quanHe: detail.relationships.map((x) => ({
+        id: x.id, typeCode: x.relationship_type_code, typeName: x.type_name, fromId: x.from_party_id, fromName: x.from_name, toId: x.to_party_id, toName: x.to_name,
+        validFrom: x.valid_from_date, validTo: x.valid_to_date,
+      })),
+      giayTo: docs.map((d) => ({
+        id: d.id, typeCode: d.document_type_code, typeName: d.type_name, className: d.class_name, previousId: d.previous_id, voided: d.voided_at !== null, current: d.is_current === 1,
+      })),
+    },
+  };
+}
+
+/** Đọc hai hồ sơ + phần của module khác rồi tính kế hoạch (dùng cho CẢ xem trước lẫn gộp — gộp luôn tính lại, không tin xem trước). */
+async function tinhGop(ctx: Ctx<"admin">, aId: string, bId: string, homNay: string): Promise<Response | TinhGop> {
+  const nhom = new Map((await listRoleTypes(ctx.env.DB)).map((t) => [t.code, t.role_group as NhomVai]));
+  const [A, B] = await Promise.all([docHoSoGop(ctx, aId, nhom), docHoSoGop(ctx, bId, nhom)]);
+  if (!A || !B) return NOT_FOUND();
+  // G12: hồ sơ chính gắn tài khoản mà người gộp không quản được (Quản trị khác / Toàn quyền) → 403 — luật cấp bậc có sẵn (staff tính qua ctx.partyAccount).
+  if (B.acc.linked && !B.acc.manageable) return MERGE_FORBIDDEN();
+  const [viec, don, soNo] = await Promise.all([ctx.gopHoSo.viecCua(aId), ctx.gopHoSo.donNguoiDat(aId), ctx.gopHoSo.soDongNo(aId)]);
+  const ke = keHoachGop(A.hs, B.hs, { ...viec, donLechTien: don.lechTien }, homNay);
+  // Kế hoạch R4: bên thứ ba của quan hệ bị chuyển / đóng cũng qua luật cấp bậc (như route kết thúc quan hệ xét cả hai đầu).
+  for (const khac of ke.benThu3) {
+    const v = await ctx.partyAccount(khac);
+    if (v.linked && !v.manageable) return MERGE_FORBIDDEN();
+  }
+  return { A, B, ke, don, soNo, homNay };
+}
+
+const NHAN_BO_VAI = { DA_CO: "hồ sơ chính đã có", VUA_KET_THUC: "hồ sơ chính vừa kết thúc công việc này hôm nay" } as const;
+const NHAN_CHI_DONG = {
+  HAI_DAU_LA_MOT: "quan hệ giữa hai hồ sơ đang gộp — chỉ kết thúc",
+  DA_CO: "hồ sơ chính đã có",
+  VUA_KET_THUC: "hồ sơ chính vừa kết thúc quan hệ này hôm nay",
+} as const;
+/** Bảng xem trước (G10). Liên hệ hiện nguyên giá trị (người xem giữ admin.manage); giấy tờ chỉ loại + hạng, KHÔNG số. */
+function xemTruocDto(t: TinhGop): MergePreviewResponse {
+  const { A, B, ke } = t;
+  const tenSau = (id: string, ten: string) => (id === B.hs.id ? B.hs.displayName : ten);
+  const nhanLienHe = (c: { kind: string; value: string }) => `${c.kind === "PHONE" ? "Điện thoại" : "Email"} ${c.value}`;
+  const nhanViec = (r: CongViecGop) => `${r.name} — ${r.locationName ?? "mọi nơi"}`;
+  const nhanGiayTo = (d: GiayToGop) => (d.className ? `${d.typeName} ${d.className}` : d.typeName);
+  const muc = (loai: MergeItemDto["loai"], nhan: string, ghiChu: string | null = null): MergeItemDto => ({ loai, nhan, ghiChu });
+  return {
+    source: { id: A.hs.id, displayName: A.hs.displayName },
+    target: { id: B.hs.id, displayName: B.hs.displayName },
+    chan: ke.chan.map((c) => ({ code: c.code, message: c.message })),
+    chuyen: [
+      ...ke.lienHe.mo.map((m) => muc("LIEN_HE", nhanLienHe(m.tu), m.chinh ? "liên hệ chính" : null)),
+      ...ke.congViec.mo.map((r) => muc("CONG_VIEC", nhanViec(r))),
+      ...ke.quanHe.mo.map((m) => muc("QUAN_HE", `${tenSau(m.fromId, m.tu.fromName)} — ${m.tu.typeName} — ${tenSau(m.toId, m.tu.toName)}`)),
+      ...ke.giayTo.chep.map((d) => muc("GIAY_TO", nhanGiayTo(d))),
+    ],
+    giu: ke.giayTo.giu.map((d) => muc("GIAY_TO", nhanGiayTo(d), "hồ sơ chính đã có loại giấy tờ này")),
+    bo: [
+      ...ke.lienHe.bo.map((c) => muc("LIEN_HE", nhanLienHe(c), "hồ sơ chính đã có")),
+      ...ke.congViec.bo.map((x) => muc("CONG_VIEC", nhanViec(x.cv), NHAN_BO_VAI[x.lyDo])),
+      ...ke.quanHe.chiDong.map((x) => muc("QUAN_HE", `${x.qh.fromName} — ${x.qh.typeName} — ${x.qh.toName}`, NHAN_CHI_DONG[x.lyDo])),
+    ],
+    donDoi: t.don.doi,
+    donGiu: t.don.giuDaGiao + t.don.giuDaHuy,
+    dongNoGiu: t.soNo,
+  };
+}
+/** Chi tiết nhật ký party_merged (G9): tên hai hồ sơ + số dòng theo loại. KHÔNG SĐT, email, số giấy tờ. */
+function chiTietGop(t: TinhGop): string {
+  const k = t.ke;
+  const giayTo = k.giayTo.huy.length > 0 ? ` (${k.giayTo.huy.length} dòng ở hồ sơ phụ huỷ, lý do: ${LY_DO_HUY_GIAY_TO_GOP})` : "";
+  return `gộp "${t.A.hs.displayName}" vào "${t.B.hs.displayName}": liên hệ ${k.lienHe.mo.length}, công việc ${k.congViec.mo.length}, quan hệ ${k.quanHe.mo.length}, `
+    + `giấy tờ ${k.giayTo.chep.length}${giayTo}, đơn đổi người đặt ${t.don.doi}`;
+}
+
 const toListItem = (r: PartyListRow): PartyListItemDto => ({
   id: r.id,
   kind: r.party_kind,
@@ -236,10 +350,12 @@ function toDetail(
   d: { party: PartyRow; contacts: ContactRow[]; roles: RoleRow[]; relationships: RelationshipRow[] },
   today: string,
   access: { accountLinked: boolean; editable: boolean },
+  vao: { id: string; display_name: string; merged_at: string }[],
 ): PartyDto {
   const p = d.party;
   const roles = d.roles.map(toRole);
   const openRoleCodes = roles.filter((r) => r.validFrom <= today && (r.validTo === null || r.validTo >= today)).map((r) => r.roleTypeCode);
+  const mergedInto: PartyMergeRef | null = p.merged_into_id ? { id: p.merged_into_id, displayName: p.merged_into_name ?? "", mergedAt: p.merged_at ?? "" } : null;
   return {
     id: p.id,
     kind: p.party_kind,
@@ -260,6 +376,8 @@ function toDetail(
     createdAt: p.created_at,
     updatedAt: p.updated_at,
     ...access,
+    mergedInto,
+    mergedFrom: vao.map((r) => ({ id: r.id, displayName: r.display_name, mergedAt: r.merged_at })),
   };
 }
 
@@ -342,11 +460,13 @@ const idParam = (params: Record<string, string>, name: string, re: RegExp): stri
  * Gọi được từ route "office" hoặc "admin" (cả hai luôn có `staff`).
  */
 async function respondParty<A extends "office" | "admin">(ctx: Ctx<A>, id: string, status = 200): Promise<Response> {
-  const [detail, acc, chu] = await Promise.all([getPartyDetail(ctx.env.DB, id), ctx.partyAccount(id), laCongTyChu(ctx.env.DB, id)]);
+  const [detail, acc, chu, vao] = await Promise.all([getPartyDetail(ctx.env.DB, id), ctx.partyAccount(id), laCongTyChu(ctx.env.DB, id), mergedFromOf(ctx.env.DB, id)]);
   if (!detail) return NOT_FOUND();
-  const editable = chu ? can(ctx.staff, "company.legal.write") : acc.linked ? can(ctx.staff, "party.staff.write") && acc.manageable : can(ctx.staff, "party.write");
+  // ADR-0068 G16: hồ sơ đã gộp chỉ đọc (mọi route ghi trả 409 party_merged).
+  const editable = detail.party.merged_into_id === null
+    && (chu ? can(ctx.staff, "company.legal.write") : acc.linked ? can(ctx.staff, "party.staff.write") && acc.manageable : can(ctx.staff, "party.write"));
   const today = vnToday(new Date());
-  const party = toDetail(detail, today, { accountLinked: acc.linked, editable });
+  const party = toDetail(detail, today, { accountLinked: acc.linked, editable }, vao);
   // ADR-0044 (chủ chọn 28/9): hồ sơ của tài khoản Toàn quyền — người xem không giữ Toàn quyền chỉ thấy vai ĐANG MỞ, không thấy lịch sử vai.
   if (acc.linked && acc.vaiAn && !can(ctx.staff, "admin.manage.superadmin")) party.roles = party.roles.filter((r) => r.validFrom <= today && (r.validTo === null || r.validTo >= today));
   return json({ party } satisfies PartyResponse, status);
@@ -509,6 +629,7 @@ export const partiesModule: AppModule = {
       if (!id || !party) return NOT_FOUND();
       const acc: PartyAccountVerdict = await ctx.partyAccount(id);
       if (acc.linked && !acc.manageable) return DOC_FORBIDDEN();
+      if (party.merged_into_id) return DA_GOP();
       if (party.party_kind !== "PERSON") return error(400, "invalid_input", "Giấy tờ chỉ gắn với hồ sơ cá nhân.");
       const now = new Date();
       const d = await danhMucGiayTo(env.DB, vnToday(now));
@@ -533,9 +654,11 @@ export const partiesModule: AppModule = {
       const { request, env, params, staff } = ctx;
       if (!can(staff, "party.document.write")) return DOC_FORBIDDEN();
       const id = idParam(params, "id", PARTY_ID_RE);
-      if (!id || !(await findParty(env.DB, id))) return NOT_FOUND();
+      const hoSo = id ? await findParty(env.DB, id) : null;
+      if (!id || !hoSo) return NOT_FOUND();
       const acc: PartyAccountVerdict = await ctx.partyAccount(id);
       if (acc.linked && !acc.manageable) return DOC_FORBIDDEN();
+      if (hoSo.merged_into_id) return DA_GOP();
       const did = idParam(params, "did", DOC_ID_RE);
       const cu = did ? await findPersonDocument(env.DB, did, id) : null;
       if (!did || !cu) return DOC_NOT_FOUND();
@@ -567,9 +690,11 @@ export const partiesModule: AppModule = {
       const { request, env, params, staff } = ctx;
       if (!can(staff, "party.document.write")) return DOC_FORBIDDEN();
       const id = idParam(params, "id", PARTY_ID_RE);
-      if (!id || !(await findParty(env.DB, id))) return NOT_FOUND();
+      const hoSo = id ? await findParty(env.DB, id) : null;
+      if (!id || !hoSo) return NOT_FOUND();
       const acc: PartyAccountVerdict = await ctx.partyAccount(id);
       if (acc.linked && !acc.manageable) return DOC_FORBIDDEN();
+      if (hoSo.merged_into_id) return DA_GOP();
       const did = idParam(params, "did", DOC_ID_RE);
       const cu = did ? await findPersonDocument(env.DB, did, id) : null;
       if (!did || !cu) return DOC_NOT_FOUND();
@@ -628,6 +753,59 @@ export const partiesModule: AppModule = {
       return json({ number: row.document_number } satisfies PersonDocumentRevealResponse);
     }),
 
+    // ---- Gộp hồ sơ cá nhân (ADR-0068 Đ1, Đ2, Đ5): admin.manage + cấp bậc; xem trước không ghi gì; gộp TÍNH LẠI kế hoạch rồi chạy MỘT db.batch() --------------
+    route("POST", "/api/parties/:id/merge/preview", "admin", async (ctx) => {
+      const { request, params, staff } = ctx;
+      if (!can(staff, "admin.manage")) return ADMIN_ONLY();
+      const id = idParam(params, "id", PARTY_ID_RE);
+      if (!id) return NOT_FOUND();
+      const into = intoParam(await readJson(request));
+      if (!into) return error(400, "invalid_input", "Chọn hồ sơ chính để gộp vào.");
+      const t = await tinhGop(ctx, id, into, vnToday(new Date()));
+      return t instanceof Response ? t : json(xemTruocDto(t) satisfies MergePreviewResponse);
+    }),
+
+    route("POST", "/api/parties/:id/merge", "admin", async (ctx) => {
+      const { request, env, params, staff } = ctx;
+      if (!can(staff, "admin.manage")) return ADMIN_ONLY();
+      const id = idParam(params, "id", PARTY_ID_RE);
+      if (!id) return NOT_FOUND();
+      const body = await readJson(request);
+      const into = intoParam(body);
+      if (!into) return error(400, "invalid_input", "Chọn hồ sơ chính để gộp vào.");
+      const now = new Date();
+      const t = await tinhGop(ctx, id, into, vnToday(now));
+      if (t instanceof Response) return t;
+      // Đặc tả G13 (phán quyết F7): A đã gộp xong (bấm đúp / người khác vừa gộp) = thua cuộc đua, không phải "đã ngưng dùng".
+      if (t.A.hs.mergedIntoId !== null) return MERGE_LOST_RACE();
+      const dau = t.ke.chan[0];
+      if (dau) return error(409, dau.code, dau.message);
+      if (chuanHoaTen(typeof body?.xacNhan === "string" ? body.xacNhan : "") !== chuanHoaTen(t.A.hs.displayName)) return MERGE_CONFIRM();
+      const at = now.toISOString();
+      const lo = loGop(env.DB, { a: id, b: into, ke: t.ke, giayToDu: new Map(t.A.giayToDu.map((d) => [d.id, d])), homNay: t.homNay, at, actorId: staff.id });
+      const detail = chiTietGop(t);
+      // Thứ tự (kế hoạch R1, R2): phần parties → câu đổi người đặt đơn (thấy "A còn đang dùng") → câu LẬT A → hai dòng nhật ký `changes() > 0`.
+      const stmts = [
+        ...lo.truocDon,
+        ctx.gopHoSo.cauDoiDon(id, into, at),
+        lo.lat,
+        auditStatement(env.DB, { staffId: staff.id, action: "party_merged", at, targetType: "party", targetId: id, detail }, "changes() > 0"),
+        auditStatement(env.DB, { staffId: staff.id, action: "party_merged", at, targetType: "party", targetId: into, detail }, "changes() > 0"),
+      ];
+      let results: D1Result[];
+      try {
+        results = await env.DB.batch(stmts);
+      } catch (e) {
+        // Hợp đồng lỗi của lô (phán quyết điều phối): mọi lệch giữa lúc tính và lúc ghi (lô thua có giấy tờ, dòng mở mới của A, giấy tờ / liên hệ chính đổi
+        // trong khe…) làm trigger / chỉ mục / NOT NULL huỷ CẢ lô — không dòng nào đổi. Không bao giờ 500, không lộ câu lỗi CSDL.
+        if ((await findParty(env.DB, id))?.merged_into_id) return MERGE_LOST_RACE();
+        if (e instanceof Error && /money_invariant/.test(e.message)) return MERGE_ORDER_INVALID();
+        return MERGE_STALE();
+      }
+      if ((results[stmts.length - 3]!.meta.changes ?? 0) === 0) return MERGE_LOST_RACE();
+      return respondParty(ctx, into);
+    }),
+
     // ---- Tạo / xem / sửa -----------------------------------------------------------------------------------------------
     route("POST", "/api/parties", "office", async (ctx) => {
       const { request, env, staff } = ctx;
@@ -665,6 +843,8 @@ export const partiesModule: AppModule = {
       if (chu ? !can(staff, "company.legal.write") : acc.linked ? !(can(staff, "party.staff.write") && acc.manageable) : !can(staff, "party.write")) {
         return chu ? OWNER_COMPANY_FORBIDDEN() : FORBIDDEN_WRITE();
       }
+      // ADR-0068 G16: hồ sơ đã gộp chỉ đọc — chặn TRƯỚC khi đọc thân (bật lại "đang dùng" không bao giờ chạm tới trigger party_merge_no_reopen).
+      if (current.merged_into_id) return DA_GOP();
       const parsed = validatePartyUpdate(await readJson(request), current.party_kind);
       if (!parsed.ok) return error(400, "invalid_input", parsed.message);
       if (acc.linked && parsed.value.active !== (current.active === 1)) return ACTIVE_BY_ACCOUNT();
@@ -688,6 +868,7 @@ export const partiesModule: AppModule = {
       if (chu ? !can(staff, "company.legal.write") : acc.linked ? !(can(staff, "party.staff.write") && acc.manageable) : !can(staff, "party.write")) {
         return chu ? OWNER_COMPANY_FORBIDDEN() : FORBIDDEN_WRITE();
       }
+      if (detail.party.merged_into_id) return DA_GOP();
       const parsed = validateContact(await readJson(request));
       if (!parsed.ok) return error(400, "invalid_input", parsed.message);
       const c = parsed.value;
@@ -708,12 +889,14 @@ export const partiesModule: AppModule = {
       const { request, env, params, staff } = ctx;
       const id = idParam(params, "id", PARTY_ID_RE);
       const cid = idParam(params, "cid", ROW_ID_RE);
-      if (!id || !cid || !(await findParty(env.DB, id))) return NOT_FOUND();
+      const hoSo = id ? await findParty(env.DB, id) : null;
+      if (!id || !cid || !hoSo) return NOT_FOUND();
       const [acc, chu]: [PartyAccountVerdict, boolean] = await Promise.all([ctx.partyAccount(id), laCongTyChu(env.DB, id)]);
       // ADR-0024 6.4: đóng liên hệ của hồ sơ công ty chủ (vd Hotline — biên nhận báo lỗi nếu hết Hotline) — chỉ ô company.legal.write.
       if (chu ? !can(staff, "company.legal.write") : acc.linked ? !(can(staff, "party.staff.write") && acc.manageable) : !can(staff, "party.write")) {
         return chu ? OWNER_COMPANY_FORBIDDEN() : FORBIDDEN_WRITE();
       }
+      if (hoSo.merged_into_id) return DA_GOP();
       const now = new Date();
       const to = validateEndDate(await readJson(request), vnToday(now));
       if (!to.ok) return error(400, "invalid_input", to.message);
@@ -737,6 +920,7 @@ export const partiesModule: AppModule = {
       if (!id || !party) return NOT_FOUND();
       const acc: PartyAccountVerdict = await ctx.partyAccount(id);
       if (acc.linked && !acc.manageable) return FORBIDDEN_WRITE();
+      if (party.merged_into_id) return DA_GOP();
       // ADR-0024 6.4: MỌI công việc trên hồ sơ công ty chủ — chỉ company.legal.write; hỏi TRƯỚC khi đọc thân (không để 400 lộ trước 403).
       const chu = await laCongTyChu(env.DB, id);
       if (chu && !can(staff, "company.legal.write")) return OWNER_COMPANY_FORBIDDEN();
@@ -791,9 +975,11 @@ export const partiesModule: AppModule = {
       if (!can(staff, "admin.manage")) return FORBIDDEN_WRITE();
       const id = idParam(params, "id", PARTY_ID_RE);
       const rid = idParam(params, "rid", ROW_ID_RE);
-      if (!id || !rid || !(await findParty(env.DB, id))) return NOT_FOUND();
+      const hoSo = id ? await findParty(env.DB, id) : null;
+      if (!id || !rid || !hoSo) return NOT_FOUND();
       const acc: PartyAccountVerdict = await ctx.partyAccount(id);
       if (acc.linked && !acc.manageable) return FORBIDDEN_WRITE();
+      if (hoSo.merged_into_id) return DA_GOP();
       const row = await roleRowOf(env.DB, id, rid);
       if (isAccountGroup(row?.group ?? null)) return ACCOUNT_ROLE();
       // ADR-0024 6.4 + 6.5 (i): công việc trên hồ sơ công ty chủ, hoặc chính dòng "Công ty chủ" — chỉ company.legal.write (403 trước mọi thứ khác).
@@ -826,9 +1012,11 @@ export const partiesModule: AppModule = {
       const { request, env, params, staff } = ctx;
       if (!can(staff, "admin.manage")) return FORBIDDEN_WRITE();
       const id = idParam(params, "id", PARTY_ID_RE);
-      if (!id || !(await findParty(env.DB, id))) return NOT_FOUND();
+      const hoSo = id ? await findParty(env.DB, id) : null;
+      if (!id || !hoSo) return NOT_FOUND();
       const acc: PartyAccountVerdict = await ctx.partyAccount(id);
       if (acc.linked && !acc.manageable) return FORBIDDEN_WRITE();
+      if (hoSo.merged_into_id) return DA_GOP();
       const now = new Date();
       const parsed = validateRelationship(await readJson(request), id, vnToday(now));
       if (!parsed.ok) return error(400, "invalid_input", parsed.message);
@@ -844,6 +1032,7 @@ export const partiesModule: AppModule = {
       }
       // Đầu kia chỉ biết SAU khi đọc thân, nên 403 này đứng sau 400 thân sai (không ghi gì trước đó).
       const other = parsed.value.fromPartyId === id ? parsed.value.toPartyId : parsed.value.fromPartyId;
+      if ((await findParty(env.DB, other))?.merged_into_id) return DA_GOP(); // đầu kia đã gộp → trỏ quan hệ vào hồ sơ chính
       const otherAcc: PartyAccountVerdict = await ctx.partyAccount(other);
       if (otherAcc.linked && !otherAcc.manageable) return FORBIDDEN_WRITE();
       const at = now.toISOString();
@@ -865,12 +1054,14 @@ export const partiesModule: AppModule = {
       if (!can(staff, "admin.manage")) return FORBIDDEN_WRITE();
       const id = idParam(params, "id", PARTY_ID_RE);
       const rid = idParam(params, "rid", ROW_ID_RE);
-      if (!id || !rid || !(await findParty(env.DB, id))) return NOT_FOUND();
+      const hoSo = id ? await findParty(env.DB, id) : null;
+      if (!id || !rid || !hoSo) return NOT_FOUND();
       const ends = await relationshipEnds(env.DB, id, rid);
       for (const partyId of new Set(ends ? [id, ends.from, ends.to] : [id])) {
         const acc: PartyAccountVerdict = await ctx.partyAccount(partyId);
         if (acc.linked && !acc.manageable) return FORBIDDEN_WRITE();
       }
+      if (hoSo.merged_into_id) return DA_GOP();
       const now = new Date();
       const to = validateEndDate(await readJson(request), vnToday(now));
       if (!to.ok) return error(400, "invalid_input", to.message);

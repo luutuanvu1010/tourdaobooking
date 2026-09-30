@@ -355,7 +355,7 @@ export const accountsModule: AppModule = {
         if (problem) return problemResponse(problem);
         if (await findStaffByPhone(db, phone)) return PHONE_TAKEN();
         const created = await createAccountWithRolesStatements(db, { fullName: name.value ?? null, phone, assignment: parsed.value, existingPartyId }, admin.id);
-        if (!created.ok) return error(409, "account_rule", created.message);
+        if (!created.ok) return error(409, created.code ?? "account_rule", created.message);
         const detail = [
           `vai: ${rolesLabel(parsed.value.roles)}`,
           `quyền: ${permissionsLabel(created.permissions)}`,
