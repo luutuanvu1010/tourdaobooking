@@ -10,7 +10,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { insertStaffSql } from "../../scripts/staff-lib.mjs";
-import { ACCOUNTS, TRO_LY_DAU, TURNSTILE_TEST } from "./lib.mjs";
+import { ACCOUNTS, TRO_LY_DAU, TRO_LY_KHOA, TURNSTILE_TEST } from "./lib.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, "..", "..");
@@ -83,7 +83,7 @@ try {
       "--var", "VAPID_PUBLIC_KEY:",
       "--var", "VAPID_PRIVATE_KEY:",
       // Trợ lý Hỗ trợ (ADR-0066): khoá GIẢ + địa chỉ máy OpenAI GIẢ do tests/e2e/tro-ly.mjs dựng — e2e KHÔNG BAO GIỜ gọi OpenAI thật, không lệ thuộc .dev.vars.
-      "--var", "OPENAI_API_KEY:e2e-khoa-gia",
+      "--var", `OPENAI_API_KEY:${TRO_LY_KHOA}`,
       "--var", `OPENAI_BASE_URL:http://127.0.0.1:${openaiPort}`,
     ],
     { cwd: ROOT, detached: true, stdio: ["ignore", "pipe", "pipe"], env: { ...process.env, CI: "1" } },

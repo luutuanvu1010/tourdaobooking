@@ -92,10 +92,16 @@ BEGIN SELECT RAISE(ABORT, 'tl_append_only: lịch sử hỏi đáp chỉ thêm, 
 CREATE TRIGGER tl_hoi_dap_no_delete BEFORE DELETE ON tl_hoi_dap
 BEGIN SELECT RAISE(ABORT, 'tl_append_only: lịch sử hỏi đáp không xoá'); END;
 
-INSERT INTO tl_vai (id, ma_quyen, bat, valid_from_at, created_at, created_by, updated_at, updated_by)
-SELECT 'gieo-0054-' || ma, ma, 1, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL
-FROM (SELECT 'SALES' AS ma UNION ALL SELECT 'ACCOUNTING' UNION ALL SELECT 'ADMIN' UNION ALL SELECT 'FIELD' UNION ALL SELECT 'PARTNER'
-      UNION ALL SELECT 'SUPER_ADMIN' UNION ALL SELECT 'INTERN' UNION ALL SELECT 'DRIVER' UNION ALL SELECT 'DRIVER_PARTNER');
+-- Chín câu INSERT riêng (D1 giới hạn số vế của SELECT ghép — UNION ALL chín vế bị từ chối "too many terms in compound SELECT").
+INSERT INTO tl_vai (id, ma_quyen, bat, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES ('gieo-0054-SALES', 'SALES', 1, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL);
+INSERT INTO tl_vai (id, ma_quyen, bat, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES ('gieo-0054-ACCOUNTING', 'ACCOUNTING', 1, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL);
+INSERT INTO tl_vai (id, ma_quyen, bat, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES ('gieo-0054-ADMIN', 'ADMIN', 1, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL);
+INSERT INTO tl_vai (id, ma_quyen, bat, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES ('gieo-0054-FIELD', 'FIELD', 1, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL);
+INSERT INTO tl_vai (id, ma_quyen, bat, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES ('gieo-0054-PARTNER', 'PARTNER', 1, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL);
+INSERT INTO tl_vai (id, ma_quyen, bat, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES ('gieo-0054-SUPER_ADMIN', 'SUPER_ADMIN', 1, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL);
+INSERT INTO tl_vai (id, ma_quyen, bat, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES ('gieo-0054-INTERN', 'INTERN', 1, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL);
+INSERT INTO tl_vai (id, ma_quyen, bat, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES ('gieo-0054-DRIVER', 'DRIVER', 1, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL);
+INSERT INTO tl_vai (id, ma_quyen, bat, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES ('gieo-0054-DRIVER_PARTNER', 'DRIVER_PARTNER', 1, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL);
 
 INSERT INTO tl_loi_dan (id, cau_chao, giong, loi_dan_them, cau_hoi_mau, valid_from_at, created_at, created_by, updated_at, updated_by)
 VALUES ('gieo-0054', 'Chào bạn! Hỏi mình cách dùng app, ví dụ: “Đổi mã PIN thế nào?” hoặc “Lập đơn mới ra sao?”.', '', '', '[]',
