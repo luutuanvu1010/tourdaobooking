@@ -1,44 +1,56 @@
-// TỆP SINH TỰ ĐỘNG — KHÔNG SỬA TAY. Sinh lại: `node scripts/sinh-so-do-trang.mjs` (src/shared/tro-ly.test.ts đỏ nếu lệch mã).
-// Sơ đồ trang cho trợ lý Hỗ trợ (ADR-0066 điều 3(c)): đường dẫn, tiêu đề, nhãn menu, nhãn nút / mục đọc từ mã giao diện. Chỉ nhãn chữ, không mã, không dữ liệu.
-// Không có cột "vai thấy trang": menu dựng theo quyền bằng mã thủ tục, không suy chắc chắn được bằng đọc tĩnh — trợ lý dựa vào hướng dẫn theo vai cho việc đó.
+// TỆP SINH TỰ ĐỘNG — KHÔNG SỬA TAY. Sinh lại: `node scripts/sinh-so-do-trang.mjs` (tự chạy ở đầu `npm run build:web` và `npm test`).
+// Sơ đồ trang cho trợ lý Hỗ trợ (ADR-0066 điều 3(c)) + bố cục trang (ADR-0070 điều 2): đường dẫn, tiêu đề, nhãn / nhóm menu, nhãn nút, mục theo thứ tự.
+// Chỉ nhãn chữ, không mã, không dữ liệu, không màu, không ảnh. Không có cột "vai thấy trang" — kho cấu trúc app (tro-ly-cau-truc.ts) nói vai làm được gì.
+
+export interface MucBoCuc {
+  /** Tiêu đề mục (h2/h3), "Đầu trang", "Thanh nút cuối trang" hoặc "Khác" (phần dựng khi chạy, nút đứng trước mọi tiêu đề). */
+  readonly muc: string;
+  readonly nut: readonly string[];
+}
 
 export interface TrangSoDo {
   readonly duongDan: string;
   readonly tieuDe: string;
   /** Nhãn của mục menu trỏ tới trang (thanh bên / thanh tab); rỗng = mở từ trang khác. */
   readonly menu: readonly string[];
-  /** Nhãn nút, liên kết dạng nút, tiêu đề mục trên trang. */
+  /** Nhóm của thanh bên máy tính (BÁN HÀNG, QUẢN TRỊ, "QUẢN TRỊ › Vận chuyển", TÔI). */
+  readonly nhomMenu: readonly string[];
+  /** Nhãn nút, liên kết dạng nút, tiêu đề mục trên trang (danh sách phẳng — kho c). */
   readonly nut: readonly string[];
+  /** Bố cục tĩnh theo thứ tự trên trang (kho e). */
+  readonly boCuc: readonly MucBoCuc[];
+  /** Mục / nút dựng khi trang chạy, theo thứ tự trong mã (xấp xỉ; có thể nằm trong hộp thoại). */
+  readonly boCucKhiChay: readonly MucBoCuc[];
 }
 
 export const SO_DO_TRANG: readonly TrangSoDo[] = [
-  {"duongDan":"/","tieuDe":"Trang chủ","menu":["Trang chủ"],"nut":["Trang chủ"]},
-  {"duongDan":"/orders","tieuDe":"Đơn hàng","menu":["Đơn hàng"],"nut":["Đơn hàng","Tải thêm","+ Tạo đơn","Xoá lọc","Huỷ","Áp dụng"]},
-  {"duongDan":"/order-form","tieuDe":"Tạo đơn","menu":["Tạo đơn"],"nut":["Tạo đơn","Chọn ngày","Dịch vụ","Thanh toán","Thông tin khách hàng","Tóm tắt","+ Dịch vụ nhập tay","Sử dụng thông tin của tôi","Lưu, chờ xác nhận","Quay lại","Người phụ trách","Bỏ chọn — để Chờ nhận"]},
-  {"duongDan":"/order","tieuDe":"Chi tiết đơn","menu":[],"nut":["Nhận phụ trách","Thử lại","Người phụ trách","Thanh toán","Thôi","Kế toán","Ghi lần thu","Ghi","Khách hàng","Lịch sử","Xem biên nhận","Đổi khách","Sửa thông tin chuyến"]},
-  {"duongDan":"/account","tieuDe":"Tôi","menu":["Tôi","Của tôi"],"nut":["Tôi","Đổi mã PIN","Đổi PIN","Đăng xuất","Danh bạ","Địa điểm","Loại giấy tờ người","Nhật ký","Gửi thông báo","Trợ lý Hỗ trợ","Góp ý / Báo lỗi","Trợ giúp","Giấy tờ của tôi","Xác nhận bằng Face ID","Gỡ","Gỡ tất cả","Đăng nhập bằng Face ID","Bật trên máy này","Thông báo trên điện thoại","Tắt","Bật thông báo trên điện thoại","Chế độ bảo trì"]},
-  {"duongDan":"/catalog","tieuDe":"Dịch vụ","menu":["Dịch vụ","Dịch vụ & giá"],"nut":["Danh mục dịch vụ & giá","Đồng bộ ngay từ Google Sheet","Lưu ghi đè","Đóng"]},
-  {"duongDan":"/staff","tieuDe":"Quản lý tài khoản","menu":["Tài khoản","Quản lý tài khoản"],"nut":["Quản lý tài khoản","Thêm tài khoản","Tạo tài khoản","Đồng bộ danh sách từ Google Sheet…","Sao chép danh sách","Đã ghi lại, ẩn đi","Lưu","Đóng","Vai và quyền","Tạo tài khoản cho người đã chọn","Xem trước dữ liệu từ Google Sheet","Đã có tài khoản"]},
-  {"duongDan":"/audit","tieuDe":"Nhật ký","menu":["Nhật ký"],"nut":["Nhật ký hệ thống","Tải thêm"]},
-  {"duongDan":"/parties","tieuDe":"Danh bạ","menu":["Danh bạ"],"nut":["Danh bạ","Tìm","+ Hồ sơ mới","Xem thêm","Tạo hồ sơ","Hồ sơ mới","Liên hệ","Công việc tại đâu","Người liên hệ, tài xế","Giấy tờ"]},
-  {"duongDan":"/locations","tieuDe":"Địa điểm","menu":["Địa điểm"],"nut":["Địa điểm","Thêm địa điểm","Thêm","Sửa","Lưu","Đóng"]},
-  {"duongDan":"/feedback","tieuDe":"Góp ý","menu":["Góp ý / Báo lỗi"],"nut":["Góp ý / Báo lỗi","Gửi yêu cầu mới","Gửi","Huỷ","Yêu cầu của tôi","Hàng đợi","+ Gửi yêu cầu mới","← Quay lại","← Danh sách"]},
-  {"duongDan":"/help","tieuDe":"Trợ giúp","menu":["Trợ giúp"],"nut":["Trợ giúp","Hướng dẫn cho bạn","Nhật ký thay đổi","Cần hỗ trợ?","Góp ý / Báo lỗi"]},
-  {"duongDan":"/gui-thong-bao","tieuDe":"Gửi thông báo","menu":["Gửi thông báo"],"nut":["Gửi thông báo","Đã gửi","Thu hồi","Giữ lại","Soạn tin"]},
-  {"duongDan":"/tai-xe","tieuDe":"Trang chủ","menu":["Trang chủ"],"nut":["Giấy tờ của tôi"]},
-  {"duongDan":"/xe","tieuDe":"Xe","menu":["Xe"],"nut":["Xe","Thêm xe"]},
-  {"duongDan":"/xe-sua","tieuDe":"Thêm xe","menu":[],"nut":["Thêm xe","Dùng lại xe","Ngừng dùng xe","Giữ nguyên","Ngừng dùng"]},
-  {"duongDan":"/xe-chi-tiet","tieuDe":"Chi tiết xe","menu":[],"nut":["Giấy tờ xe","Thêm giấy tờ","Sửa thông tin xe"]},
-  {"duongDan":"/giay-to-sap-het-han","tieuDe":"Giấy tờ sắp hết hạn","menu":["Sắp hết hạn"],"nut":["Giấy tờ sắp hết hạn"]},
-  {"duongDan":"/loai-giay-to-xe","tieuDe":"Loại giấy tờ xe","menu":["Loại giấy tờ xe"],"nut":["Loại giấy tờ xe"]},
-  {"duongDan":"/loai-giay-to-nguoi","tieuDe":"Loại giấy tờ người","menu":["Loại giấy tờ người"],"nut":["Loại giấy tờ người"]},
-  {"duongDan":"/chinh-sach-dieu-phoi","tieuDe":"Chính sách điều phối","menu":["Chính sách điều phối"],"nut":["Chính sách điều phối","Lịch sử bản","Đóng","Điều kiện theo cỡ xe, hạng bằng ›","Lưu thành bản mới"]},
-  {"duongDan":"/ly-do-dieu-phoi","tieuDe":"Lý do điều phối","menu":["Lý do điều phối"],"nut":["Lý do điều phối","Thêm","Đóng","Lưu"]},
-  {"duongDan":"/dieu-kien-xuat-ben","tieuDe":"Điều kiện xuất bến","menu":[],"nut":["Điều kiện xuất bến","Thêm điều kiện","Điều kiện theo cỡ xe","Lưu","Đóng","Số khách theo hạng bằng"]},
-  {"duongDan":"/chuyen-sua","tieuDe":"Chuyến mới","menu":[],"nut":["Chuyến mới","Lưu chuyến","Huỷ bỏ"]},
-  {"duongDan":"/chuyen","tieuDe":"Chi tiết chuyến","menu":[],"nut":["Cập nhật điểm theo đơn","Điểm dừng","Điều kiện xuất bến","Bản chụp lúc xuất bến","Nhật ký chuyến","Sửa chuyến","Kết thúc chuyến","Kết thúc gián đoạn","Khách trong chuyến","Rút khỏi xe","Chuyển sang xe khác","Đóng"]},
-  {"duongDan":"/dieu-phoi","tieuDe":"Điều phối xe","menu":["Điều phối xe"],"nut":["Điều phối xe","+ Chuyến mới","Dòng thời gian theo xe","Cập nhật điểm theo đơn","Bỏ đánh dấu","Xếp vào chuyến","Đóng"]},
-  {"duongDan":"/cuoc","tieuDe":"Cuốc của tôi","menu":["Cuốc của tôi"],"nut":["Cuốc của tôi"]},
-  {"duongDan":"/cuoc-chuyen","tieuDe":"Chuyến của tôi","menu":[],"nut":["Kết thúc chuyến","Kết thúc gián đoạn","Bấm lại","Đóng","Điều kiện xuất bến","Xuất bến"]},
-  {"duongDan":"/tro-ly-cai-dat","tieuDe":"Trợ lý Hỗ trợ","menu":["Trợ lý Hỗ trợ"],"nut":["Trợ lý Hỗ trợ","Lưu","Thử key","Tình trạng","Ai được dùng","Lưu thành bản mới","Quay lại bản này","Lời dặn","Thêm đoạn","Huỷ sửa","Sửa","Ngữ cảnh bổ sung","Lọc","Trang trước","Trang sau","Lịch sử hỏi đáp"]},
+  {"duongDan":"/","tieuDe":"Trang chủ","menu":["Trang chủ"],"nhomMenu":["BÁN HÀNG"],"nut":["Trang chủ"],"boCuc":[],"boCucKhiChay":[]},
+  {"duongDan":"/orders","tieuDe":"Đơn hàng","menu":["Đơn hàng"],"nhomMenu":["BÁN HÀNG"],"nut":["Đơn hàng","+ Tạo đơn","Tải thêm","Xoá lọc","Huỷ","Áp dụng"],"boCuc":[{"muc":"Đầu trang","nut":["+ Tạo đơn","Tải thêm"]}],"boCucKhiChay":[{"muc":"Khác","nut":["Xoá lọc","Huỷ","Áp dụng"]}]},
+  {"duongDan":"/order-form","tieuDe":"Tạo đơn","menu":["Tạo đơn"],"nhomMenu":["BÁN HÀNG"],"nut":["Tạo đơn","Chọn ngày","Dịch vụ","Thanh toán","Thông tin khách hàng","Tóm tắt","+ Dịch vụ nhập tay","Sử dụng thông tin của tôi","Lưu, chờ xác nhận","Quay lại","Người phụ trách","Bỏ chọn — để Chờ nhận"],"boCuc":[{"muc":"Chọn ngày","nut":[]},{"muc":"Dịch vụ","nut":["+ Dịch vụ nhập tay"]},{"muc":"Thanh toán","nut":[]},{"muc":"Thông tin khách hàng","nut":["Sử dụng thông tin của tôi"]},{"muc":"Tóm tắt","nut":[]},{"muc":"Thanh nút cuối trang","nut":["Lưu, chờ xác nhận","Quay lại"]}],"boCucKhiChay":[{"muc":"Người phụ trách","nut":["Bỏ chọn — để Chờ nhận"]}]},
+  {"duongDan":"/order","tieuDe":"Chi tiết đơn","menu":[],"nhomMenu":[],"nut":["Nhận phụ trách","Thử lại","Người phụ trách","Thanh toán","Thôi","Kế toán","Ghi lần thu","Ghi","Khách hàng","Lịch sử","Xem biên nhận","Đổi khách","Sửa thông tin chuyến"],"boCuc":[],"boCucKhiChay":[{"muc":"Khác","nut":["Nhận phụ trách","Thử lại"]},{"muc":"Người phụ trách","nut":[]},{"muc":"Thanh toán","nut":["Thôi"]},{"muc":"Kế toán","nut":["Ghi lần thu","Ghi","Thôi"]},{"muc":"Khách hàng","nut":[]},{"muc":"Lịch sử","nut":["Xem biên nhận","Đổi khách","Sửa thông tin chuyến"]}]},
+  {"duongDan":"/account","tieuDe":"Tôi","menu":["Tôi","Của tôi"],"nhomMenu":["TÔI"],"nut":["Tôi","Đổi mã PIN","Đổi PIN","Đăng xuất","Danh bạ","Địa điểm","Loại giấy tờ người","Nhật ký","Gửi thông báo","Trợ lý Hỗ trợ","Góp ý / Báo lỗi","Trợ giúp","Giấy tờ của tôi","Xác nhận bằng Face ID","Gỡ","Gỡ tất cả","Đăng nhập bằng Face ID","Bật trên máy này","Thông báo trên điện thoại","Tắt","Bật thông báo trên điện thoại","Chế độ bảo trì"],"boCuc":[{"muc":"Đổi mã PIN","nut":["Đổi PIN"]}],"boCucKhiChay":[{"muc":"Khác","nut":["Đăng xuất","Danh bạ","Địa điểm","Loại giấy tờ người","Nhật ký","Gửi thông báo","Trợ lý Hỗ trợ","Góp ý / Báo lỗi","Trợ giúp"]},{"muc":"Giấy tờ của tôi","nut":["Xác nhận bằng Face ID","Gỡ","Gỡ tất cả"]},{"muc":"Đăng nhập bằng Face ID","nut":[]},{"muc":"Bật trên máy này","nut":[]},{"muc":"Thông báo trên điện thoại","nut":["Tắt","Bật thông báo trên điện thoại"]},{"muc":"Chế độ bảo trì","nut":[]}]},
+  {"duongDan":"/catalog","tieuDe":"Dịch vụ","menu":["Dịch vụ","Dịch vụ & giá"],"nhomMenu":["QUẢN TRỊ"],"nut":["Danh mục dịch vụ & giá","Đồng bộ ngay từ Google Sheet","Lưu ghi đè","Đóng"],"boCuc":[{"muc":"Đầu trang","nut":["Đồng bộ ngay từ Google Sheet"]}],"boCucKhiChay":[{"muc":"Khác","nut":["Lưu ghi đè","Đóng"]}]},
+  {"duongDan":"/staff","tieuDe":"Quản lý tài khoản","menu":["Tài khoản","Quản lý tài khoản"],"nhomMenu":["QUẢN TRỊ"],"nut":["Quản lý tài khoản","Thêm tài khoản","Tạo tài khoản","Đồng bộ danh sách từ Google Sheet…","Sao chép danh sách","Đã ghi lại, ẩn đi","Lưu","Đóng","Vai và quyền","Tạo tài khoản cho người đã chọn","Xem trước dữ liệu từ Google Sheet","Đã có tài khoản"],"boCuc":[{"muc":"Thêm tài khoản","nut":["Tạo tài khoản","Đồng bộ danh sách từ Google Sheet…"]}],"boCucKhiChay":[{"muc":"Khác","nut":["Sao chép danh sách","Đã ghi lại, ẩn đi","Lưu","Đóng"]},{"muc":"Vai và quyền","nut":["Tạo tài khoản cho người đã chọn","Đóng"]},{"muc":"Xem trước dữ liệu từ Google Sheet","nut":[]},{"muc":"Đã có tài khoản","nut":[]}]},
+  {"duongDan":"/audit","tieuDe":"Nhật ký","menu":["Nhật ký"],"nhomMenu":["QUẢN TRỊ"],"nut":["Nhật ký hệ thống","Tải thêm"],"boCuc":[{"muc":"Đầu trang","nut":["Tải thêm"]}],"boCucKhiChay":[]},
+  {"duongDan":"/parties","tieuDe":"Danh bạ","menu":["Danh bạ"],"nhomMenu":["BÁN HÀNG"],"nut":["Danh bạ","Tìm","+ Hồ sơ mới","Xem thêm","Tạo hồ sơ","Hồ sơ mới","Liên hệ","Công việc tại đâu","Người liên hệ, tài xế","Giấy tờ"],"boCuc":[{"muc":"Đầu trang","nut":["Tìm","+ Hồ sơ mới","Xem thêm"]}],"boCucKhiChay":[{"muc":"Khác","nut":["Tạo hồ sơ"]},{"muc":"Hồ sơ mới","nut":[]},{"muc":"Liên hệ","nut":[]},{"muc":"Công việc tại đâu","nut":[]},{"muc":"Người liên hệ, tài xế","nut":[]},{"muc":"Giấy tờ","nut":[]},{"muc":"Giấy tờ","nut":[]}]},
+  {"duongDan":"/locations","tieuDe":"Địa điểm","menu":["Địa điểm"],"nhomMenu":["QUẢN TRỊ"],"nut":["Địa điểm","Thêm địa điểm","Thêm","Sửa","Lưu","Đóng"],"boCuc":[{"muc":"Thêm địa điểm","nut":["Thêm"]}],"boCucKhiChay":[{"muc":"Khác","nut":["Sửa","Lưu","Đóng"]}]},
+  {"duongDan":"/feedback","tieuDe":"Góp ý","menu":["Góp ý / Báo lỗi"],"nhomMenu":["TÔI"],"nut":["Góp ý / Báo lỗi","Gửi yêu cầu mới","Gửi","Huỷ","Yêu cầu của tôi","Hàng đợi","+ Gửi yêu cầu mới","← Quay lại","← Danh sách"],"boCuc":[{"muc":"Gửi yêu cầu mới","nut":["Gửi","Huỷ"]}],"boCucKhiChay":[{"muc":"Khác","nut":["Yêu cầu của tôi","Hàng đợi","+ Gửi yêu cầu mới","← Quay lại","Gửi","← Danh sách"]}]},
+  {"duongDan":"/help","tieuDe":"Trợ giúp","menu":["Trợ giúp"],"nhomMenu":["TÔI"],"nut":["Trợ giúp","Hướng dẫn cho bạn","Nhật ký thay đổi","Cần hỗ trợ?","Góp ý / Báo lỗi"],"boCuc":[{"muc":"Hướng dẫn cho bạn","nut":[]},{"muc":"Nhật ký thay đổi","nut":[]},{"muc":"Cần hỗ trợ?","nut":["Góp ý / Báo lỗi"]}],"boCucKhiChay":[]},
+  {"duongDan":"/gui-thong-bao","tieuDe":"Gửi thông báo","menu":["Gửi thông báo"],"nhomMenu":["QUẢN TRỊ"],"nut":["Gửi thông báo","Đã gửi","Thu hồi","Giữ lại","Soạn tin"],"boCuc":[{"muc":"Đã gửi","nut":[]}],"boCucKhiChay":[{"muc":"Khác","nut":["Thu hồi","Giữ lại"]},{"muc":"Soạn tin","nut":[]}]},
+  {"duongDan":"/tai-xe","tieuDe":"Trang chủ","menu":["Trang chủ"],"nhomMenu":["TÔI"],"nut":["Giấy tờ của tôi"],"boCuc":[{"muc":"Giấy tờ của tôi","nut":[]}],"boCucKhiChay":[]},
+  {"duongDan":"/xe","tieuDe":"Xe","menu":["Xe"],"nhomMenu":["QUẢN TRỊ › Vận chuyển"],"nut":["Xe","Thêm xe"],"boCuc":[{"muc":"Đầu trang","nut":["Thêm xe"]},{"muc":"Thanh nút cuối trang","nut":["Thêm xe"]}],"boCucKhiChay":[]},
+  {"duongDan":"/xe-sua","tieuDe":"Thêm xe","menu":[],"nhomMenu":[],"nut":["Thêm xe","Dùng lại xe","Ngừng dùng xe","Giữ nguyên","Ngừng dùng"],"boCuc":[{"muc":"Thanh nút cuối trang","nut":[]}],"boCucKhiChay":[{"muc":"Khác","nut":["Dùng lại xe","Ngừng dùng xe","Giữ nguyên","Ngừng dùng"]}]},
+  {"duongDan":"/xe-chi-tiet","tieuDe":"Chi tiết xe","menu":[],"nhomMenu":[],"nut":["Giấy tờ xe","Thêm giấy tờ","Sửa thông tin xe"],"boCuc":[{"muc":"Giấy tờ xe","nut":[]},{"muc":"Thanh nút cuối trang","nut":["Thêm giấy tờ"]}],"boCucKhiChay":[{"muc":"Khác","nut":["Sửa thông tin xe"]}]},
+  {"duongDan":"/giay-to-sap-het-han","tieuDe":"Giấy tờ sắp hết hạn","menu":["Sắp hết hạn"],"nhomMenu":["QUẢN TRỊ › Vận chuyển"],"nut":["Giấy tờ sắp hết hạn"],"boCuc":[],"boCucKhiChay":[]},
+  {"duongDan":"/loai-giay-to-xe","tieuDe":"Loại giấy tờ xe","menu":["Loại giấy tờ xe"],"nhomMenu":["QUẢN TRỊ › Vận chuyển"],"nut":["Loại giấy tờ xe"],"boCuc":[],"boCucKhiChay":[]},
+  {"duongDan":"/loai-giay-to-nguoi","tieuDe":"Loại giấy tờ người","menu":["Loại giấy tờ người"],"nhomMenu":["QUẢN TRỊ"],"nut":["Loại giấy tờ người"],"boCuc":[],"boCucKhiChay":[]},
+  {"duongDan":"/chinh-sach-dieu-phoi","tieuDe":"Chính sách điều phối","menu":["Chính sách điều phối"],"nhomMenu":["QUẢN TRỊ › Vận chuyển"],"nut":["Chính sách điều phối","Lịch sử bản","Đóng","Điều kiện theo cỡ xe, hạng bằng ›","Lưu thành bản mới"],"boCuc":[{"muc":"Thanh nút cuối trang","nut":[]}],"boCucKhiChay":[{"muc":"Lịch sử bản","nut":["Đóng","Điều kiện theo cỡ xe, hạng bằng ›","Lưu thành bản mới"]}]},
+  {"duongDan":"/ly-do-dieu-phoi","tieuDe":"Lý do điều phối","menu":["Lý do điều phối"],"nhomMenu":["QUẢN TRỊ › Vận chuyển"],"nut":["Lý do điều phối","Thêm","Đóng","Lưu"],"boCuc":[],"boCucKhiChay":[{"muc":"Khác","nut":["Thêm","Đóng","Lưu"]}]},
+  {"duongDan":"/dieu-kien-xuat-ben","tieuDe":"Điều kiện xuất bến","menu":[],"nhomMenu":[],"nut":["Điều kiện xuất bến","Thêm điều kiện","Điều kiện theo cỡ xe","Lưu","Đóng","Số khách theo hạng bằng"],"boCuc":[],"boCucKhiChay":[{"muc":"Khác","nut":["Thêm điều kiện"]},{"muc":"Điều kiện theo cỡ xe","nut":[]},{"muc":"Thêm điều kiện","nut":["Lưu","Đóng"]},{"muc":"Số khách theo hạng bằng","nut":[]}]},
+  {"duongDan":"/chuyen-sua","tieuDe":"Chuyến mới","menu":[],"nhomMenu":[],"nut":["Chuyến mới","Lưu chuyến","Huỷ bỏ"],"boCuc":[{"muc":"Thanh nút cuối trang","nut":[]}],"boCucKhiChay":[{"muc":"Khác","nut":["Lưu chuyến","Huỷ bỏ"]}]},
+  {"duongDan":"/chuyen","tieuDe":"Chi tiết chuyến","menu":[],"nhomMenu":[],"nut":["Cập nhật điểm theo đơn","Điểm dừng","Điều kiện xuất bến","Bản chụp lúc xuất bến","Nhật ký chuyến","Sửa chuyến","Kết thúc chuyến","Kết thúc gián đoạn","Khách trong chuyến","Rút khỏi xe","Chuyển sang xe khác","Đóng"],"boCuc":[],"boCucKhiChay":[{"muc":"Khác","nut":["Cập nhật điểm theo đơn"]},{"muc":"Điểm dừng","nut":[]},{"muc":"Điều kiện xuất bến","nut":[]},{"muc":"Bản chụp lúc xuất bến","nut":[]},{"muc":"Điều kiện xuất bến","nut":[]},{"muc":"Nhật ký chuyến","nut":["Sửa chuyến","Kết thúc chuyến","Kết thúc gián đoạn"]},{"muc":"Điểm dừng","nut":[]},{"muc":"Khách trong chuyến","nut":["Rút khỏi xe","Chuyển sang xe khác","Đóng"]}]},
+  {"duongDan":"/dieu-phoi","tieuDe":"Điều phối xe","menu":["Điều phối xe"],"nhomMenu":["QUẢN TRỊ › Vận chuyển"],"nut":["Điều phối xe","+ Chuyến mới","Dòng thời gian theo xe","Cập nhật điểm theo đơn","Bỏ đánh dấu","Xếp vào chuyến","Đóng"],"boCuc":[{"muc":"Đầu trang","nut":["+ Chuyến mới"]}],"boCucKhiChay":[{"muc":"Dòng thời gian theo xe","nut":["Cập nhật điểm theo đơn","Bỏ đánh dấu","Xếp vào chuyến","Đóng"]}]},
+  {"duongDan":"/cuoc","tieuDe":"Cuốc của tôi","menu":["Cuốc của tôi"],"nhomMenu":["TÔI"],"nut":["Cuốc của tôi"],"boCuc":[],"boCucKhiChay":[]},
+  {"duongDan":"/cuoc-chuyen","tieuDe":"Chuyến của tôi","menu":[],"nhomMenu":[],"nut":["Kết thúc chuyến","Kết thúc gián đoạn","Bấm lại","Đóng","Điều kiện xuất bến","Xuất bến"],"boCuc":[{"muc":"Thanh nút cuối trang","nut":[]}],"boCucKhiChay":[{"muc":"Khác","nut":["Kết thúc chuyến","Kết thúc gián đoạn","Bấm lại","Đóng"]},{"muc":"Điều kiện xuất bến","nut":["Xuất bến"]}]},
+  {"duongDan":"/tro-ly-cai-dat","tieuDe":"Trợ lý Hỗ trợ","menu":["Trợ lý Hỗ trợ"],"nhomMenu":["QUẢN TRỊ"],"nut":["Trợ lý Hỗ trợ","Lưu","Thử key","Tình trạng","Ai được dùng","Lưu thành bản mới","Quay lại bản này","Lời dặn","Thêm đoạn","Huỷ sửa","Sửa","Ngữ cảnh bổ sung","Lọc","Trang trước","Trang sau","Lịch sử hỏi đáp"],"boCuc":[],"boCucKhiChay":[{"muc":"Khác","nut":["Lưu","Thử key"]},{"muc":"Tình trạng","nut":["Lưu"]},{"muc":"Ai được dùng","nut":["Lưu thành bản mới","Quay lại bản này"]},{"muc":"Lời dặn","nut":["Thêm đoạn","Huỷ sửa","Sửa"]},{"muc":"Ngữ cảnh bổ sung","nut":["Lọc","Trang trước","Trang sau"]},{"muc":"Lịch sử hỏi đáp","nut":[]}]},
 ];
