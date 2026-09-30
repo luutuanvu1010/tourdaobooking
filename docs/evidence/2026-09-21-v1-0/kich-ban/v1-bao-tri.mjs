@@ -1,8 +1,8 @@
 // Kiểm giao diện CHẾ ĐỘ BẢO TRÌ bằng Chrome thật (nằm trong repo, không thêm dependency; KHÔNG cần mạng ngoài — Turnstile TẮT như các kịch bản A2). Chạy từ GỐC repo sau `npm run build:web`:
 //   AXE_JS=<…/axe/package/axe.min.js> CHROME_BIN=<…/kich-ban/chrome-wrap.sh> [OUT=<thư mục ghi ảnh>] node docs/evidence/2026-09-21-v1-0/kich-ban/v1-bao-tri.mjs
 // Phủ: mục bật/tắt ở /account (xác nhận hai bước trong trang, không window.confirm), dải "Đang ở chế độ bảo trì", lớp phủ toàn trang + đếm ngược sống + nút Đăng xuất + tự nhận ra khi chủ tắt,
-// banner ở /login, đăng nhập bị 503, hết giờ dự kiến, nhật ký không chứa SĐT, axe-core. Sửa web/maintenance-screen.ts, web/api.ts (phần bảo trì), web/account.ts (mục bảo trì), web/shell.ts (dải) thì chạy lại.
-// Môi trường của A2 (D1 tạm + wrangler dev Turnstile TẮT + Chrome CDP). "Chủ" = tài khoản admin thử (được đặt vào mnt_setting.allowed_phones), "nhân viên" = salesA.
+// banner ở /login, đăng nhập bị 503, tự tắt khi hết giờ dự kiến, nhật ký không chứa SĐT, axe-core. Sửa web/maintenance-screen.ts, web/api.ts (phần bảo trì), web/account.ts (mục bảo trì), web/shell.ts (dải) thì chạy lại.
+// Môi trường của A2 (D1 tạm + wrangler dev Turnstile TẮT + Chrome CDP). "Chủ" = tài khoản Toàn quyền thử `chu` (ADR-0019; được đặt vào mnt_setting.allowed_phones), "nhân viên" = salesA.
 import assert from "node:assert/strict";
 import { mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -17,7 +17,7 @@ const env = await startEnv();
 // Phiên của nhân viên lấy TRƯỚC khi bật bảo trì (bật rồi thì đăng nhập của họ bị chặn — đúng thứ ta muốn kiểm); các bước sau dùng lại phiên này = "phiên đang mở".
 // Các trang Chrome dùng CHUNG một kho cookie (CLAUDE.md §8): phiên của trang nào đang thao tác phải được đặt lại vào kho ngay trước đó (use()).
 const salesCookie = await env.login(ACCOUNTS.salesA);
-const ownerCookie = await env.login(ACCOUNTS.admin);
+const ownerCookie = await env.login(ACCOUNTS.chu);
 const acctCookie = await env.login(ACCOUNTS.accounting);
 const use = (page, cookie) => page.send("Network.setCookie", { name: cookie.name, value: cookie.value, url: env.base, httpOnly: true });
 async function asCookie(cookie, path) {
@@ -49,8 +49,8 @@ const axeViolations = async (page) => {
 };
 
 try {
-  const OWNER = ACCOUNTS.admin;
-  env.sql(`UPDATE mnt_setting SET allowed_phones = '${OWNER.phone}' WHERE id = 'default'`); // chủ thử = admin thử
+  const OWNER = ACCOUNTS.chu;
+  env.sql(`UPDATE mnt_setting SET allowed_phones = '${OWNER.phone}' WHERE id = 'default'`); // chủ thử = Toàn quyền thử (ADR-0019: ô settings.ops)
 
   // Nhân viên mở sẵn trang Tôi và gõ dở PIN — để thử "dữ liệu đang gõ không mất khi lớp phủ hiện".
   const staffPage = await asCookie(salesCookie, "/account");
@@ -222,13 +222,23 @@ try {
     p.close();
   });
 
-  await step("hết giờ dự kiến: lớp phủ đổi sang câu 'sắp hoàn tất', không có đồng hồ, vẫn chặn", async () => {
-    env.sql(`UPDATE mnt_setting SET ends_at = '2026-01-01T00:00:00.000Z' WHERE id = 'default'`);
+  await step("TỰ TẮT khi hết giờ dự kiến (chủ dự án 30/9): lớp phủ đang đếm → về 0 → tự báo 'đã mở lại' (trước vòng hỏi 20 giây); banner đăng nhập tự ẩn", async () => {
+    const ENDS_SOON = () => new Date(Date.now() + 8000).toISOString();
+    env.sql(`UPDATE mnt_setting SET ends_at = '${ENDS_SOON()}' WHERE id = 'default'`);
     const p = await asCookie(salesCookie, "/");
-    await p.waitFor(`!!${q("#maintenance-screen")}`, "lớp phủ");
-    assert.equal(await text(p, "#maintenance-screen .maint-msg"), "Hệ thống đang tạm đóng để bảo trì và sắp hoàn tất, liên hệ quản trị viên khi cần hỗ trợ thêm (0989929373).");
-    assert.equal(await p.ev(`!!${q("#maintenance-screen .maint-count")}`), false);
+    await p.waitFor(`!!${q("#maintenance-screen .maint-count")}`, "lớp phủ có đồng hồ đếm ngược");
+    await p.waitFor(`/Hệ thống đã mở lại/.test(${q("#maintenance-screen .maint-msg")}?.textContent ?? '')`, "đồng hồ về 0 → lớp phủ hỏi lại ngay, thấy đã mở lại", 15000);
+    assert.equal(await p.ev(`${q("#maintenance-screen .btn-primary")}.textContent`), "Tải lại trang");
     p.close();
+    env.sql(`UPDATE mnt_setting SET ends_at = '${ENDS_SOON()}' WHERE id = 'default'`);
+    const l = await env.openPage();
+    await l.send("Network.clearBrowserCookies");
+    await l.send("Page.navigate", { url: `${env.base}/login` });
+    await l.waitFor(`document.readyState === 'complete' && ${q("#maintenance-banner")}?.hidden === false`, "banner bảo trì đang hiện");
+    await l.waitFor(`${q("#maintenance-banner")}.hidden === true`, "đồng hồ về 0 → banner tự ẩn", 15000);
+    l.close();
+    // Trả giờ tương lai để bước sau (chủ tắt bằng nút) còn thấy "Đang bật".
+    env.sql(`UPDATE mnt_setting SET ends_at = '${new Date(Date.now() + 30 * 60_000).toISOString()}' WHERE id = 'default'`);
   });
 
   await step("chủ tắt bằng nút (một bước): Đang tắt, dải biến mất; nhân viên vào lại được", async () => {

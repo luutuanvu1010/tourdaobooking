@@ -19,9 +19,10 @@ export function endsAtFrom(details: unknown): string | null {
 
 /**
  * Dựng vào `container` câu thông điệp bảo trì với đồng hồ đếm ngược SỐNG (cập nhật mỗi giây trong MỘT phần tử riêng, `aria-live="off"` để trình đọc màn hình
- * không đọc từng giây). Hết giờ dự kiến → tự đổi sang câu "…sắp hoàn tất…" (vẫn chặn cho tới khi chủ tắt) và dừng đếm. Trả hàm huỷ (dọn bộ đếm giờ).
+ * không đọc từng giây). Hết giờ dự kiến → tự đổi sang câu "…sắp hoàn tất…", dừng đếm và gọi `onEnded` (máy chủ TỰ TẮT chế độ bảo trì đúng giờ này — `stateFromRow`,
+ * nên nơi gọi hỏi lại / ẩn banner). Trả hàm huỷ (dọn bộ đếm giờ).
  */
-export function renderMaintenanceMessage(container: HTMLElement, endsAt: string | null): () => void {
+export function renderMaintenanceMessage(container: HTMLElement, endsAt: string | null, onEnded?: () => void): () => void {
   let countEl: HTMLElement | null = null;
   let mode: "count" | "static" | null = null;
   let timer: ReturnType<typeof setInterval> | null = null;
@@ -41,12 +42,14 @@ export function renderMaintenanceMessage(container: HTMLElement, endsAt: string 
       replaceChildren(container, parts.before, countEl, parts.after);
       return;
     }
+    const wasCounting = mode === "count";
     if (mode !== "static") {
       mode = "static";
       countEl = null;
       replaceChildren(container, parts.before);
     }
     stop(); // không có giờ dự kiến hoặc đã hết giờ: không còn gì để đếm
+    if (wasCounting) onEnded?.(); // vừa đếm về 0 (không gọi khi mở ra đã hết giờ / không có giờ)
   };
   paint();
   if (mode === "count") timer = setInterval(paint, 1000);
@@ -57,13 +60,29 @@ export function renderMaintenanceMessage(container: HTMLElement, endsAt: string 
  * Phủ MỘT lớp toàn trang báo "đang bảo trì" lên trang hiện tại rồi trả Promise không bao giờ xong (như `goLogin`) để mã đang gọi API dừng lại thay vì chạy tiếp.
  * KHÔNG xoá/thay nội dung trang bên dưới (chữ người dùng đang gõ vẫn còn trong trang suốt lúc lớp phủ hiện) — chỉ vô hiệu hoá nó với bàn phím/trình đọc màn hình (`inert`).
  * Lời gọi API đang treo (vd "Đang lưu…") KHÔNG tự chạy tiếp, nên khi hệ thống mở lại người dùng phải TẢI LẠI trang: phần chưa lưu sẽ mất và lớp phủ nói rõ điều đó.
- * Người bị chặn có nút "Đăng xuất" (để không còn phiên treo trên máy dùng chung); cứ mỗi RECOVERY_POLL_MS lớp phủ hỏi lại cấu hình công khai và tự đổi câu chữ khi chủ đã tắt.
+ * Người bị chặn có nút "Đăng xuất" (để không còn phiên treo trên máy dùng chung); cứ mỗi RECOVERY_POLL_MS — và ngay khi đồng hồ đếm về 0 (máy chủ tự tắt đúng giờ) —
+ * lớp phủ hỏi lại cấu hình công khai và tự đổi câu chữ khi hệ thống đã mở lại.
  * Gọi nhiều lần (nhiều lời gọi API cùng gặp 503) vẫn chỉ có một lớp.
  */
 export function showMaintenanceScreen(endsAt: string | null): Promise<never> {
   if (!document.getElementById(SCREEN_ID)) {
     const message = h("p", { class: "maint-msg", id: "maintenance-message" });
-    const stopCount = renderMaintenanceMessage(message, endsAt); // bộ đếm chạy tới khi trang bị tải lại
+    let poll: ReturnType<typeof setInterval> | null = null;
+    const checkReopened = (): void => {
+      void fetch("/api/auth/config", { credentials: "same-origin" })
+        .then((res) => (res.ok ? (res.json() as Promise<AuthConfigResponse>) : null))
+        .then((config) => {
+          if (config?.maintenance?.on !== false || poll === null) return;
+          clearInterval(poll);
+          poll = null;
+          stopCount();
+          replaceChildren(message, "Hệ thống đã mở lại. Bấm “Tải lại trang” để tiếp tục; phần chưa lưu trên trang này sẽ mất.");
+          retry.textContent = "Tải lại trang";
+        })
+        .catch(() => undefined); // mất mạng: lần sau hỏi lại
+    };
+    // Đồng hồ về 0 → hỏi lại sau 2 giây (đồng hồ máy người dùng có thể nhanh hơn máy chủ một chút; trễ hơn nữa thì vòng hỏi định kỳ lo).
+    const stopCount = renderMaintenanceMessage(message, endsAt, () => setTimeout(checkReopened, 2000)); // bộ đếm chạy tới khi trang bị tải lại
     const retry = h("button", { class: "btn btn-primary", type: "button" }, "Thử lại");
     retry.addEventListener("click", () => location.reload()); // chủ đã tắt chế độ bảo trì thì vào lại được
     const logoutBtn = h("button", { class: "btn btn-link", type: "button" }, "Đăng xuất");
@@ -74,18 +93,7 @@ export function showMaintenanceScreen(endsAt: string | null): Promise<never> {
         .catch(() => undefined)
         .finally(() => location.assign("/login"));
     });
-    const poll = setInterval(() => {
-      void fetch("/api/auth/config", { credentials: "same-origin" })
-        .then((res) => (res.ok ? (res.json() as Promise<AuthConfigResponse>) : null))
-        .then((config) => {
-          if (config?.maintenance?.on !== false) return;
-          clearInterval(poll);
-          stopCount();
-          replaceChildren(message, "Hệ thống đã mở lại. Bấm “Tải lại trang” để tiếp tục; phần chưa lưu trên trang này sẽ mất.");
-          retry.textContent = "Tải lại trang";
-        })
-        .catch(() => undefined); // mất mạng: lần sau hỏi lại
-    }, RECOVERY_POLL_MS);
+    poll = setInterval(checkReopened, RECOVERY_POLL_MS);
     const screen = h(
       "div",
       { class: "maint-screen", id: SCREEN_ID, role: "alertdialog", "aria-modal": "true", "aria-labelledby": "maintenance-title", "aria-describedby": "maintenance-message" },

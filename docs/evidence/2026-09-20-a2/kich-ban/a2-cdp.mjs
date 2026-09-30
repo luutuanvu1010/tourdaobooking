@@ -20,6 +20,8 @@ export const ACCOUNTS = {
   salesB: { name: "Sales Hai", phone: "0900000202", pin: "246811", permissions: ["SALES"] },
   accounting: { name: "Kế Toán", phone: "0900000203", pin: "246812", permissions: ["ACCOUNTING"] },
   admin: { name: "Quản Trị", phone: "0900000204", pin: "112233", permissions: ["ADMIN"] },
+  // Chủ thử = Quản trị + Toàn quyền (như tài khoản chủ thật): từ ADR-0019 chỉ Toàn quyền (ô settings.ops) bật/tắt được bảo trì; trang Tôi chỉ hiện mục đó cho ADMIN. v1-bao-tri.mjs dùng làm "chủ".
+  chu: { name: "Chủ Thử", phone: "0900000277", pin: "246819", permissions: ["ADMIN", "SUPER_ADMIN"] },
 };
 
 /** Ngày dân sự giờ Việt Nam, cách hôm nay n ngày. */

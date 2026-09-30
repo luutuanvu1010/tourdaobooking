@@ -5,7 +5,7 @@
 import { auditStatement } from "../audit";
 import type { MaintenanceErrorBody, MaintenanceResponse, MaintenanceStatusDto } from "../../shared/contracts";
 import { error, json, readJson } from "../../shared/http";
-import { MAINTENANCE_CODE, checkMaintenanceInput, isAllowedPhone, isBlocked, maintenanceMessage, parseAllowedPhones, type MaintenanceState } from "../../shared/maintenance";
+import { MAINTENANCE_CODE, checkMaintenanceInput, isAllowedPhone, isBlocked, maintenanceMessage, stateFromRow, type MaintenanceState } from "../../shared/maintenance";
 import { can } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
 import { vnDateTimeText } from "../../shared/vn-date";
@@ -13,11 +13,9 @@ import { findSetting, updateSettingStatement } from "./repository";
 
 export type { MaintenanceState };
 
-/** Trạng thái hiện tại từ D1 (một truy vấn). Chưa có dòng cài đặt → TẮT. */
+/** Trạng thái có hiệu lực LÚC NÀY từ D1 (một truy vấn). Chưa có dòng cài đặt → TẮT; đã qua giờ dự kiến hoàn tất → TẮT (tự tắt, `stateFromRow`). */
 export async function getMaintenanceState(db: D1Database): Promise<MaintenanceState> {
-  const row = await findSetting(db);
-  if (!row) return { on: false, endsAt: null, allowedPhones: [] };
-  return { on: row.enabled === 1, endsAt: row.enabled === 1 ? row.ends_at : null, allowedPhones: parseAllowedPhones(row.allowed_phones) };
+  return stateFromRow(await findSetting(db), Date.now());
 }
 
 /** Phần công khai của trạng thái (KHÔNG có danh sách được phép). */

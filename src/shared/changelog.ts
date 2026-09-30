@@ -30,6 +30,7 @@ export const CHANGELOG: readonly ReleaseNote[] = [
       { kind: "moi", text: "Tài xế xem được cuốc của ngày kia ở trang \"Cuốc của tôi\" (trước chỉ hôm nay và ngày mai)." },
       { kind: "doi", text: "Màn tài xế: mỗi điểm đón hiện thêm giờ xe tới nếu khác giờ hẹn khách." },
       { kind: "doi", text: "Danh sách đơn: đơn có nơi đón hiện luôn dòng \"Đón tại …\" ngay trên thẻ, không phải bấm mở." },
+      { kind: "sua", text: "Chế độ bảo trì tự tắt đúng giờ dự kiến hoàn tất: mọi người vào lại app được ngay, không phải chờ quản trị viên tắt tay." },
       { kind: "doi", text: "Góp ý / Báo lỗi: trạng thái hiện nổi bật theo từng bước (Mới → Đã tiếp nhận → Đang xử lý → Đã xong); yêu cầu đã xong hoặc bị từ chối có nút \"Mở lại\"." },
     ],
   },

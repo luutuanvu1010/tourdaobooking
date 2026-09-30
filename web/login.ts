@@ -115,7 +115,8 @@ pinToggle?.addEventListener("click", () => {
 let stopMaintenance: (() => void) | null = null;
 function setMaintenance(on: boolean, endsAt: string | null): void {
   stopMaintenance?.();
-  stopMaintenance = on && maintenanceText ? renderMaintenanceMessage(maintenanceText, endsAt) : null;
+  // Đồng hồ về 0 = máy chủ đã tự tắt chế độ bảo trì (stateFromRow) → ẩn banner, mọi người đăng nhập lại được mà không phải tải lại trang.
+  stopMaintenance = on && maintenanceText ? renderMaintenanceMessage(maintenanceText, endsAt, () => setMaintenance(false, null)) : null;
   if (maintenanceEl) maintenanceEl.hidden = !on;
 }
 /** Dùng CHUNG cho lỗi bảo trì của cả nút Đăng nhập (PIN) và nút Face ID: cập nhật banner, không hiện lỗi chung ở #error. */
