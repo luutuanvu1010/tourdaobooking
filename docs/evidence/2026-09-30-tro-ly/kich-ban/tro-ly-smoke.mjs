@@ -8,7 +8,8 @@
 //   e2 bảo trì bật: người được phép vẫn có nút Hỗ trợ và hỏi được (30/9)
 //   e  lỗi lời thường: Toàn quyền tắt trợ lý ⇒ câu "Trợ lý chưa bật…" trong khung (không màn bảo trì, không chữ Anh)
 //   f  320: mở khung, không tràn ngang; console sạch ở mọi trang đã mở
-//   g  trang Tôi: Toàn quyền thấy khối "Trợ lý Hỗ trợ" (chi phí tháng, nút lưu); Bán hàng không thấy
+//   g  trang Tôi (ADR-0069, sửa 30/9): khối cài đặt cũ đã chuyển sang trang riêng — Toàn quyền có dòng "Trợ lý Hỗ trợ" → /tro-ly-cai-dat; Bán hàng không có
+//      (trang riêng kiểm ở docs/evidence/2026-09-30-bang-dieu-khien-tro-ly/kich-ban/bang-dieu-khien-tro-ly-smoke.mjs)
 import assert from "node:assert/strict";
 import { mkdirSync } from "node:fs";
 import { createServer } from "node:http";
@@ -77,6 +78,8 @@ try {
     await p.waitFor(`location.pathname === '/' && ${khungMo}`, "về Trang chủ và khung Hỗ trợ tự mở", 15000);
     assert.equal(await p.ev(`${q(".tl-khung .sheet-title")}.textContent`), "Hỗ trợ");
     assert.equal(await p.ev(`${q(".tl-khung .tl-luu-y")}.textContent`), "Trả lời do AI, có thể sai — đối chiếu màn hình.");
+    // ADR-0069 điều 5: khung ghi rõ câu hỏi được lưu.
+    assert.equal(await p.ev(`[...document.querySelectorAll(".tl-khung .tl-luu-y")].at(-1).textContent`), "Câu hỏi được lưu để cải thiện trợ lý — đừng gõ thông tin khách");
     await p.shot(join(OUT, "anh/a-tu-mo-390.png"));
     await p.ev(`${q(".tl-khung .sheet-close")}.click(), true`);
     await p.waitFor(`!${khungMo}`, "đóng khung");
@@ -194,22 +197,17 @@ try {
     await p.shot(join(OUT, "anh/f-khung-320.png"));
   });
 
-  await step("g", "trang Tôi: Toàn quyền có khối cài đặt trợ lý; Bán hàng không", async () => {
+  await step("g", "trang Tôi: Toàn quyền có dòng 'Trợ lý Hỗ trợ' sang trang riêng (khối cũ đã bỏ); Bán hàng không", async () => {
     const s = await env.as(ACCOUNTS.salesA, "/account", M);
     tatCa.push(s);
     await s.waitFor(`!!${q("#links")} && ${q("#links")}.children.length > 0`, "trang Tôi dựng xong", 10000);
     await sleep(500);
-    assert.equal(await s.ev(`${q("#tro-ly-cai-dat")}.hidden`), true, "Bán hàng không thấy khối");
+    assert.equal(await s.ev(`[...document.querySelectorAll('#links a')].some((a) => a.getAttribute('href') === '/tro-ly-cai-dat')`), false, "Bán hàng không có dòng");
     const o = await env.as(ACCOUNTS.owner, "/account", M);
     tatCa.push(o);
-    await o.waitFor(`${q("#tro-ly-cai-dat")} && !${q("#tro-ly-cai-dat")}.hidden`, "khối hiện cho Toàn quyền", 10000);
-    const chu = await o.ev(`${q("#tro-ly-cai-dat")}.innerText`);
-    assert.match(chu, /Trợ lý Hỗ trợ/);
-    assert.match(chu, /Đang bật\. Đã có khoá OpenAI\./);
-    assert.match(chu, /đã dùng .* USD trên trần 5 USD/);
-    assert.equal(await o.ev(`[...${q("#tro-ly-cai-dat")}.querySelectorAll('button')].map((b) => b.textContent)`).then((x) => x.join("|")), "Lưu cài đặt trợ lý");
-    await o.ev(`${q("#tro-ly-cai-dat")}.scrollIntoView(), true`);
-    await o.shot(join(OUT, "anh/g-cai-dat-toan-quyen-390.png"));
+    await o.waitFor(`[...document.querySelectorAll('#links a')].some((a) => a.getAttribute('href') === '/tro-ly-cai-dat')`, "Toàn quyền có dòng Trợ lý Hỗ trợ", 10000);
+    assert.equal(await o.ev(`!!document.getElementById('tro-ly-cai-dat')`), false, "khối cài đặt cũ đã bỏ");
+    await o.shot(join(OUT, "anh/g-dong-tro-ly-toan-quyen-390.png"));
   });
 
   await step("h", "console sạch ở mọi trang đã mở", async () => {

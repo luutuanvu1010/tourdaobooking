@@ -14,7 +14,7 @@ import { accountsModule } from "./modules/accounts";
 import { auditModule } from "./modules/audit";
 import { authModule, checkAuthConfig, currentStaff } from "./modules/auth";
 import { bangtinModule, dongCua, phatDon, xepHangDay } from "./modules/bangtin";
-import { billingModule } from "./modules/billing";
+import { billingModule, nhapKeToanCuaDon } from "./modules/billing";
 import { receiptModule } from "./modules/receipt";
 import { catalogModule, runScheduledSync } from "./modules/catalog";
 import { companyModule } from "./modules/company";
@@ -106,6 +106,8 @@ const APP_OPTIONS: AppOptions = {
     mocToiThieu: (env) => mocToiThieuHienHanh(env.DB),
     // NHÃN NGƯỜI BẤM (ruling R-P20): van-chuyen không import staff — gốc lắp ráp gọi hàm công bố của staff (chỉ tên hiển thị).
     nhanNhanVien: (env, ids) => nhanNhanVienTheoId(env.DB, ids),
+    // DẤU "ĐÃ NHẬP PHẦN MỀM KẾ TOÁN" (ADR-0060 điều 5): `orders` không đọc bảng bil_ — gốc lắp ráp gọi hàm đọc tập id của billing (lọc + nhãn danh sách đơn).
+    nhapKeToanCuaDon: (env, ids) => nhapKeToanCuaDon(env.DB, ids),
   },
 };
 const app = createApp(APP_OPTIONS);

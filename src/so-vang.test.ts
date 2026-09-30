@@ -90,7 +90,13 @@ type SuKien =
 type CaSoCongNo = {
   ma: string;
   xac_nhan: { trang_thai: string; nguoi: string | null; ngay: string | null };
-  dau_vao: { phai_thu: number; su_kien: SuKien[] };
+  dau_vao: {
+    phai_thu: number;
+    su_kien: SuKien[];
+    /** ADR-0061 điều 7 (tuỳ chọn): dòng tiền của đơn — danh mục (có mã) hoặc NHẬP TAY (mã null). */
+    dong_don?: { loai: "danh_muc" | "nhap_tay"; ma: string | null; so_luong: number; don_gia: number }[];
+    giam_gia?: number;
+  };
   dap_an: { da_thu: number; con_lai: number; du: number; chua_ro: number; no_tour_dao: Record<string, number>; giao_duoc: boolean };
 };
 
@@ -137,6 +143,7 @@ test("sổ vàng golden/so-cong-no-luot-1.json: đủ trường, số nguyên đ
   const seen = new Set<string>();
   const cases = loadSoCongNo();
   assert.ok(cases.length >= 4, "chống rỗng: ≥ 4 ca lượt 1");
+  assert.ok(cases.some((c) => c.dau_vao.dong_don?.some((l) => l.loai === "nhap_tay")), "ADR-0061 điều 7: có ít nhất một ca có dòng nhập tay");
   for (const c of cases) {
     assert.ok(!seen.has(c.ma), `mã trùng: ${c.ma}`);
     seen.add(c.ma);
@@ -144,6 +151,17 @@ test("sổ vàng golden/so-cong-no-luot-1.json: đủ trường, số nguyên đ
     if (c.xac_nhan.trang_thai === "da_xac_nhan") assert.ok(c.xac_nhan.nguoi && c.xac_nhan.ngay && isISODate(c.xac_nhan.ngay), `${c.ma}: ca đã xác nhận phải ghi người + ngày`);
     assert.ok(dong(c.dau_vao.phai_thu), c.ma);
     for (const e of c.dau_vao.su_kien) if ("so" in e) assert.ok(dong(e.so) && e.so > 0, `${c.ma}: số tiền sự kiện`);
+    // ADR-0061 điều 7: ca có dòng đơn — phải thu = Σ số lượng × đơn giá − giảm giá (dòng nhập tay tính như mọi dòng); dòng nhập tay không có mã danh mục.
+    if (c.dau_vao.dong_don) {
+      const dd = c.dau_vao.dong_don;
+      for (const l of dd) {
+        assert.ok(dong(l.don_gia) && Number.isInteger(l.so_luong) && l.so_luong > 0, `${c.ma}: dòng đơn số nguyên đồng`);
+        assert.equal(l.loai === "nhap_tay", l.ma === null, `${c.ma}: dòng nhập tay ⇔ không mã danh mục`);
+      }
+      const giam = c.dau_vao.giam_gia ?? 0;
+      assert.ok(dong(giam), `${c.ma}: giảm giá`);
+      assert.equal(c.dau_vao.phai_thu, dd.reduce((t, l) => t + l.so_luong * l.don_gia, 0) - giam, `${c.ma}: phải thu = Σ dòng − giảm giá`);
+    }
     const a = c.dap_an;
     assert.equal(a.con_lai, Math.max(0, c.dau_vao.phai_thu - a.da_thu), `${c.ma}: còn lại = max(0, phải thu − đã thu)`);
     assert.equal(a.du, Math.max(0, a.da_thu - c.dau_vao.phai_thu), `${c.ma}: dư = max(0, đã thu − phải thu)`);

@@ -16,7 +16,7 @@ export const SO_DO_TRANG: readonly TrangSoDo[] = [
   {"duongDan":"/orders","tieuDe":"Đơn hàng","menu":["Đơn hàng"],"nut":["Đơn hàng","Tải thêm","+ Tạo đơn","Xoá lọc","Huỷ","Áp dụng"]},
   {"duongDan":"/order-form","tieuDe":"Tạo đơn","menu":["Tạo đơn"],"nut":["Tạo đơn","Chọn ngày","Dịch vụ","Thanh toán","Thông tin khách hàng","Tóm tắt","+ Dịch vụ nhập tay","Sử dụng thông tin của tôi","Lưu, chờ xác nhận","Quay lại","Người phụ trách","Bỏ chọn — để Chờ nhận"]},
   {"duongDan":"/order","tieuDe":"Chi tiết đơn","menu":[],"nut":["Nhận phụ trách","Thử lại","Người phụ trách","Thanh toán","Thôi","Kế toán","Ghi lần thu","Ghi","Khách hàng","Lịch sử","Xem biên nhận","Đổi khách","Sửa thông tin chuyến"]},
-  {"duongDan":"/account","tieuDe":"Tôi","menu":["Tôi","Của tôi"],"nut":["Tôi","Đổi mã PIN","Đổi PIN","Đăng xuất","Danh bạ","Địa điểm","Loại giấy tờ người","Nhật ký","Gửi thông báo","Góp ý / Báo lỗi","Trợ giúp","Giấy tờ của tôi","Xác nhận bằng Face ID","Gỡ","Gỡ tất cả","Đăng nhập bằng Face ID","Bật trên máy này","Thông báo trên điện thoại","Tắt","Bật thông báo trên điện thoại","Chế độ bảo trì"]},
+  {"duongDan":"/account","tieuDe":"Tôi","menu":["Tôi","Của tôi"],"nut":["Tôi","Đổi mã PIN","Đổi PIN","Đăng xuất","Danh bạ","Địa điểm","Loại giấy tờ người","Nhật ký","Gửi thông báo","Trợ lý Hỗ trợ","Góp ý / Báo lỗi","Trợ giúp","Giấy tờ của tôi","Xác nhận bằng Face ID","Gỡ","Gỡ tất cả","Đăng nhập bằng Face ID","Bật trên máy này","Thông báo trên điện thoại","Tắt","Bật thông báo trên điện thoại","Chế độ bảo trì"]},
   {"duongDan":"/catalog","tieuDe":"Dịch vụ","menu":["Dịch vụ","Dịch vụ & giá"],"nut":["Danh mục dịch vụ & giá","Đồng bộ ngay từ Google Sheet","Lưu ghi đè","Đóng"]},
   {"duongDan":"/staff","tieuDe":"Quản lý tài khoản","menu":["Tài khoản","Quản lý tài khoản"],"nut":["Quản lý tài khoản","Thêm tài khoản","Tạo tài khoản","Đồng bộ danh sách từ Google Sheet…","Sao chép danh sách","Đã ghi lại, ẩn đi","Lưu","Đóng","Vai và quyền","Tạo tài khoản cho người đã chọn","Xem trước dữ liệu từ Google Sheet","Đã có tài khoản"]},
   {"duongDan":"/audit","tieuDe":"Nhật ký","menu":["Nhật ký"],"nut":["Nhật ký hệ thống","Tải thêm"]},
@@ -40,4 +40,5 @@ export const SO_DO_TRANG: readonly TrangSoDo[] = [
   {"duongDan":"/dieu-phoi","tieuDe":"Điều phối xe","menu":["Điều phối xe"],"nut":["Điều phối xe","+ Chuyến mới","Dòng thời gian theo xe","Cập nhật điểm theo đơn","Bỏ đánh dấu","Xếp vào chuyến","Đóng"]},
   {"duongDan":"/cuoc","tieuDe":"Cuốc của tôi","menu":["Cuốc của tôi"],"nut":["Cuốc của tôi"]},
   {"duongDan":"/cuoc-chuyen","tieuDe":"Chuyến của tôi","menu":[],"nut":["Kết thúc chuyến","Kết thúc gián đoạn","Bấm lại","Đóng","Điều kiện xuất bến","Xuất bến"]},
+  {"duongDan":"/tro-ly-cai-dat","tieuDe":"Trợ lý Hỗ trợ","menu":["Trợ lý Hỗ trợ"],"nut":["Trợ lý Hỗ trợ","Lưu","Thử key","Tình trạng","Ai được dùng","Lưu thành bản mới","Quay lại bản này","Lời dặn","Thêm đoạn","Huỷ sửa","Sửa","Ngữ cảnh bổ sung","Lọc","Trang trước","Trang sau","Lịch sử hỏi đáp"]},
 ];

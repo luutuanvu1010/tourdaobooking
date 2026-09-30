@@ -1,11 +1,17 @@
-// DK-T3-01 (kiểm toán 24/9; chủ dự án trả lời 2026-09-26): R1 dịch vụ nhập tay "đóng băng" (mọi tài khoản), R2 giá bán lẻ cho tài khoản CHỈ Đối tác,
+// DK-T3-01 (kiểm toán 24/9; chủ dự án trả lời 2026-09-26): R1 dịch vụ nhập tay "đóng băng", R2 giá bán lẻ cho tài khoản CHỈ Đối tác,
 // R3 trần giảm giá cấp đơn cho tài khoản CHỈ Đối tác (hôm nay trần = 0: "tạm không cho giảm" tới khi có bảng mức chiết khấu).
+// ADR-0061 (accepted 2026-09-30) THU HẸP R1 — NỚI hàng rào đã duyệt (Điều 9.4; chủ duyệt ADR-0061 là duyệt việc nới, dòng R1 ở docs/SO-HANG-RAO.md): R1 nay
+// chỉ áp khi công tắc nhập tay TẮT, với người không có ô `order.service.manual`, và LUÔN với tài khoản có quyền Đối tác (`duocNhapTay`, bảng ca dưới cùng).
+// Các ca R1 "mọi tài khoản" cũ đổi thành ca của `manualFreezeViolation` (luật đóng băng giữ nguyên) + câu lỗi theo LÝ DO (ADR-0061 "Mã").
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  MANUAL_FROZEN_MESSAGE, PARTNER_DISCOUNT_CAP, PARTNER_DISCOUNT_MESSAGE, RETAIL_PRICE_MESSAGE, discountWithinCap, holdsPartner, manualFreezeViolation, retailPricesOnly,
-  type FrozenStored,
+  NHAP_TAY_MESSAGE, PARTNER_DISCOUNT_CAP, PARTNER_DISCOUNT_MESSAGE, RETAIL_PRICE_MESSAGE, discountWithinCap, duocNhapTay, holdsPartner, lyDoKhongNhapTay, manualFreezeViolation,
+  retailPricesOnly, type FrozenStored,
 } from "./price-guards.ts";
+import { PERMISSION_CODES, type PermissionCode } from "../../shared/permissions.ts";
+
+const MANUAL_FROZEN_MESSAGE = NHAP_TAY_MESSAGE.tat; // lý do mặc định của manualFreezeViolation (công tắc TẮT)
 
 const trip = { departDate: "2026-10-01", departTime: null, pickupTime: null, pickupPlace: null, checkinDate: null, checkinTime: null, checkinPlace: null, note: null };
 const pax = (adult: number) => ({ adult, child: 0, senior: 0, infant: 0 });
@@ -66,8 +72,60 @@ test("R1: chi tiết đã lưu là chuỗi rỗng (dòng cũ) so khớp với nu
   assert.equal(manualFreezeViolation([manual("m", "Xe", [line("Xe", 1, 5, "")])], stored2), null);
 });
 
-test("R1: câu lỗi đúng lời chủ dự án (tiếng Việt, chỉ cách làm tiếp)", () => {
-  assert.equal(MANUAL_FROZEN_MESSAGE, "dịch vụ nhập tay đã ngừng — không thêm mới, không sửa tên hay giá. Muốn đổi, hãy xoá dịch vụ này rồi chọn dịch vụ từ danh mục.");
+test("R1 (ADR-0061): câu lỗi nói rõ LÝ DO (công tắc tắt / tài khoản không được nhập tay / tài khoản Đối tác), tiếng Việt, chỉ cách làm tiếp", () => {
+  const TIEP = " — không thêm mới, không sửa tên hay giá. Muốn đổi, hãy xoá dịch vụ này rồi chọn dịch vụ từ danh mục.";
+  assert.deepEqual(NHAP_TAY_MESSAGE, {
+    tat: `dịch vụ nhập tay đang tắt${TIEP}`,
+    khong_o: `tài khoản này không được dùng dịch vụ nhập tay${TIEP}`,
+    doi_tac: `tài khoản có quyền Đối tác không dùng được dịch vụ nhập tay${TIEP}`,
+  });
+  const moi = [manual(null, "Xe", [line("Xe", 1, 1)])];
+  assert.equal(manualFreezeViolation(moi, [], "khong_o"), `Dịch vụ 1: ${NHAP_TAY_MESSAGE.khong_o}`);
+  assert.equal(manualFreezeViolation(moi, [], "doi_tac"), `Dịch vụ 1: ${NHAP_TAY_MESSAGE.doi_tac}`);
+});
+
+// ---- ADR-0061: MỘT hàm quyết "được nhập tay" = công tắc bật && can(order.service.manual) && !holdsPartner — Đối tác kiểm TRƯỚC -------------------
+// Kỳ vọng VIẾT TAY từ bảng quyền của ADR-0061 (không suy từ can()/MATRIX — suy thì bài không chứng minh gì).
+const NOI_BO_DUOC = new Set<PermissionCode>(["SALES", "ACCOUNTING", "ADMIN", "SUPER_ADMIN"]);
+const ai = (...permissions: PermissionCode[]) => ({ id: "u1", permissions });
+
+test("ADR-0061 bảng quyền: công tắc BẬT — chỉ Bán hàng, Kế toán, Quản trị, Toàn quyền; HDV, Đối tác, Thực tập, Tài xế, Tài xế đối tác KHÔNG", () => {
+  const bat: Record<PermissionCode, boolean> = {
+    SALES: true, ACCOUNTING: true, ADMIN: true, FIELD: false, PARTNER: false, SUPER_ADMIN: true, INTERN: false, DRIVER: false, DRIVER_PARTNER: false,
+  };
+  for (const p of PERMISSION_CODES) assert.equal(duocNhapTay(ai(p), true), bat[p], `${p}, công tắc BẬT`);
+});
+
+test("ADR-0061: công tắc TẮT — KHÔNG ai được, kể cả Toàn quyền (tiêu chí 1)", () => {
+  for (const p of PERMISSION_CODES) assert.equal(duocNhapTay(ai(p), false), false, `${p}, công tắc TẮT`);
+});
+
+test("ADR-0061: tài khoản LAI có quyền Đối tác luôn bị chặn, dù ô của quyền kia = any (SALES+PARTNER, PARTNER+FIELD, ADMIN+PARTNER, SUPER_ADMIN+PARTNER)", () => {
+  for (const lai of [["SALES", "PARTNER"], ["PARTNER", "FIELD"], ["ADMIN", "PARTNER"], ["SUPER_ADMIN", "PARTNER"], ["ACCOUNTING", "PARTNER"]] as PermissionCode[][]) {
+    assert.equal(duocNhapTay(ai(...lai), true), false, `${lai.join("+")}, công tắc BẬT`);
+    assert.equal(lyDoKhongNhapTay(ai(...lai), true), "doi_tac", `${lai.join("+")}: lý do là Đối tác`);
+  }
+  assert.equal(duocNhapTay(ai("SALES", "FIELD"), true), true, "đối chứng: lai nội bộ SALES+FIELD vẫn được");
+  assert.equal(duocNhapTay(ai("FIELD", "INTERN"), true), false, "đối chứng: FIELD+INTERN không có ô");
+});
+
+test("ADR-0061: thứ tự lý do — Đối tác TRƯỚC công tắc, công tắc TRƯỚC ô", () => {
+  assert.equal(lyDoKhongNhapTay(ai("PARTNER"), false), "doi_tac", "Đối tác, công tắc tắt → vẫn là lý do Đối tác");
+  assert.equal(lyDoKhongNhapTay(ai("INTERN"), false), "tat", "không có ô, công tắc tắt → lý do công tắc");
+  assert.equal(lyDoKhongNhapTay(ai("INTERN"), true), "khong_o");
+  assert.equal(lyDoKhongNhapTay(ai("SALES"), true), null);
+});
+
+test("ADR-0061: MỌI tập con của 9 quyền (512) — được nhập tay ⇔ công tắc bật && có một quyền nội bộ được phép && KHÔNG có PARTNER", () => {
+  let n = 0;
+  for (let mask = 0; mask < 1 << PERMISSION_CODES.length; mask++) {
+    const perms = PERMISSION_CODES.filter((_, i) => mask & (1 << i));
+    const mong = perms.some((p) => NOI_BO_DUOC.has(p)) && !perms.includes("PARTNER");
+    assert.equal(duocNhapTay(ai(...perms), true), mong, `${perms.join("+") || "(không quyền)"}, BẬT`);
+    assert.equal(duocNhapTay(ai(...perms), false), false, `${perms.join("+") || "(không quyền)"}, TẮT`);
+    n++;
+  }
+  assert.equal(n, 512);
 });
 
 test("holdsPartner: CÓ quyền PARTNER là áp luật giá Đối tác, kể cả khi kèm quyền khác (chủ dự án chốt 2026-09-26)", () => {

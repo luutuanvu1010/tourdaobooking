@@ -28,6 +28,7 @@
 | `bil_debt_kind` | bảng tra cứu |  |
 | `bil_payment_receipt` | bảng | lần thu (ADR-0026 đ2), CHỈ-THÊM, dòng đảo trỏ reverses_id; migration 0045 chứa câu MỘT LẦN chép cọc cũ (orders.deposit_amount > 0) thành lần thu người thu CHƯA RÕ (ADR-0026 đ9, Q3) |
 | `bil_posting` | bảng | phiếu sổ (ADR-0026 đ3), CHỈ-THÊM; due_snapshot = phải thu chụp lúc Đã giao (Q4); trigger kiểm tiền trong lô Đã giao / Hoàn thành |
+| `bil_accounting_entry` | bảng | dấu "đã nhập phần mềm kế toán" + "Số hoá đơn đã nhập" của một đơn (ADR-0060), CHỈ-THÊM (trigger cấm sửa/xoá); trạng thái hiện tại = dòng rowid lớn nhất của đơn; bỏ dấu bắt buộc lý do (CHECK); không tiền, không trạng thái hoá đơn ADR-0004 |
 | `bil_debt_line` | bảng | dòng nợ hai chân (ADR-0026 đ3), CHỈ-THÊM; nguồn = đơn HOẶC chuyến (ADR-0057 T3 — trip_id cột dự trữ, không khoá ngoại, lượt 1 luôn trống) |
 | `v_bil_order_paid` | view công bố | cột: order_id, paid_net, unknown_count |
 | `v_bil_party_balance` | view công bố | cột: party_id, counterparty_id, order_id, balance |
@@ -89,6 +90,7 @@
 | `orders` | bảng | tên cũ, giữ nguyên (ADR-0002 điều 2); cột chết: deposit_amount, deposit_method, remaining_amount; ba cột cọc KHÔNG DÙNG NỮA — xem ADR-0026 điều 9 (đơn mới ghi 0 / NULL / total để thoả trigger 0007; số đã thu, còn lại lấy từ billing). Cột mốc delivered_at/_by, completed_at/_by từ 0044 (ADR-0024 điều 3) |
 | `ord_transfer_leg` | bảng |  |
 | `ord_passenger` | bảng |  |
+| `ord_manual_service_policy` | bảng | công tắc "Dịch vụ nhập tay" (ADR-0061, migration 0052), CHỈ-THÊM; dòng hiệu lực = valid_from_at lớn nhất ≤ bây giờ, bảng rỗng = TẮT; gieo một dòng TẮT; chỉ Toàn quyền thêm dòng mới (settings.ops) |
 | `v_ord_order_label` | view công bố | cột: id, order_code |
 | `v_ord_order_owner` | view công bố | cột: id, staff_id |
 | `v_ord_order_flag` | view công bố | cột: id, is_confirmed, is_cancelled |
@@ -168,6 +170,10 @@
 |---|---|---|
 | `tl_luot_hoi` | bảng | một dòng / câu hỏi trợ lý Hỗ trợ (ADR-0066 điều 7), CHỈ-THÊM; KHÔNG cột nội dung hỏi/đáp; staff_id không khoá ngoại (tro-ly là lá); chi phí micro-USD (ngoại lệ có tên với luật tiền VNĐ) |
 | `tl_cai_dat` | bảng | bật/tắt + trần tháng (micro-USD) + trần ngày của trợ lý (ADR-0066), bản có hiệu lực CHỈ-THÊM (bản hiện hành = valid_from_at lớn nhất); chỉ Toàn quyền thêm bản mới (settings.ops) |
+| `tl_vai` | bảng | công tắc trợ lý theo MÃ QUYỀN (ADR-0069 điều 3), bản có hiệu lực CHỈ-THÊM theo từng mã; mã không có dòng = tắt; người hỏi được dùng khi ít nhất một quyền đang bật; chỉ Toàn quyền thêm bản (settings.ops) |
+| `tl_loi_dan` | bảng | lời dặn của Toàn quyền (câu chào, giọng, lời dặn thêm, câu hỏi mẫu — ADR-0069 điều 4), bản có hiệu lực CHỈ-THÊM; mọi bản là lịch sử bản; chữ đã qua luật nội dung trước khi ghi; luật lõi của lời nhắc luôn đứng trước |
+| `tl_ngu_canh` | bảng | đoạn ngữ cảnh bổ sung cho kho tìm đoạn của trợ lý (ADR-0069 điều 4), bản có hiệu lực CHỈ-THÊM theo doan_id; sửa / bật / tắt = bản mới |
+| `tl_hoi_dap` | bảng | lịch sử hỏi đáp (ADR-0069 điều 5, sửa ADR-0066 điều 7), CHỈ-THÊM, ghi cùng lô với tl_luot_hoi (luot_id); câu hỏi ĐÃ CHE (CHECK chặn dãy 8 chữ số); chỉ Toàn quyền đọc (settings.ops); không xoá |
 
 ## Cạnh toàn vẹn (khoá ngoại có sẵn, không phải phụ thuộc mã — ADR-0002 điều 6)
 

@@ -2,7 +2,7 @@
 
 - **Trạng thái:** **accepted** 2026-10-01 (chủ dự án duyệt bằng lời qua hộp hỏi gom — nguyên văn ở `docs/superpowers/plans/2026-09-30-gop-ho-so-thi-cong-nhat-ky.md`). Bản nháp gốc giữ ở `docs/superpowers/specs/2026-09-30-gop-ho-so/`.
 - **Ngày:** 2026-09-30 (soạn), 2026-10-01 (duyệt).
-- **Số:** 0068 — 0066 (trợ lý AI) và 0067 (lọc đơn theo người lập) đã có văn bản ở nhánh khác. Migration `0056` (giữ chỗ, xem `docs/adr/README.md`; kế hoạch viết `0054` nhưng số đó đã dùng ở bản 1.47 — đổi 2026-10-01).
+- **Số:** 0068 — 0066 (trợ lý AI) và 0067 (lọc đơn theo người lập) đã có văn bản ở nhánh khác. Migration số tạm `0055_gop_ho_so.sql` theo luật 1.46 (không giữ chỗ; số lớn nhất của `main` + 1; nhánh gộp sau tự đổi tên) — kế hoạch viết `0054` nhưng số đó đã dùng ở bản 1.47.
 - **Thuộc gói:** một lượt duyệt gồm ADR này + đặc tả `docs/superpowers/specs/2026-09-30-gop-ho-so/dac-ta.md` (trang ghép ở §9 của đặc tả). Hai quyết định chạm dữ liệu/quyền ≤ trần 3.
 - **Nguồn (lời chủ, chuẩn — không hỏi lại):** phiên 2026-09-30, sau khi chủ phát hiện ở Danh bạ: "Nguyễn Phú Hải" hai dòng giống hệt (vai Khách hàng); "Nguyễn Tiền Phương" một hồ sơ có SĐT + vai Lái cano, một hồ sơ không SĐT + vai Điều hành chung (tài khoản). Chủ chọn **"1, làm chức năng gộp hồ sơ"**; hộp hỏi gom: **gộp tay + danh sách gợi ý**; **không có nút hoàn tác**; **Quản trị + Toàn quyền**; **làm luôn phần chặn tạo trùng khi thêm tài khoản**. Chủ đồng ý thiết kế trình trong trò chuyện (gồm: bản đầu **chỉ hồ sơ cá nhân**, **chưa có** nút "Không phải trùng"). Lượt duyệt 2026-10-01: **"Duyệt, làm từng phần"**; điểm dừng kế hoạch: Q2 và Q5 **"Từ chối gộp"**, Q1/Q3/Q4 **"Đồng ý cả ba"**.
 - **Mốc mã:** `main` = `5f6fcbc2` (bản 1.44).

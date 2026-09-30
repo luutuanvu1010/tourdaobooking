@@ -96,6 +96,13 @@ export interface Ctx<A extends Access = Access> {
    * nhãn — KHÔNG đoán tên (nhãn chỉ để hiển thị, không quyết quyền).
    */
   nhanNhanVien: (ids: readonly string[]) => Promise<Map<string, string> | null>;
+  /**
+   * DẤU "ĐÃ NHẬP PHẦN MỀM KẾ TOÁN" (ADR-0060 điều 5) — do gốc lắp ráp tiêm (`billing.nhapKeToanCuaDon`; `orders` KHÔNG đọc bảng `bil_`, không import `billing` —
+   * khuôn `ordersWithHandler`): trong các đơn `orderIds`, đơn nào có trạng thái hiện tại = đã nhập. KHÔNG phụ thuộc người gọi và KHÔNG tự kiểm quyền — route
+   * hỏi `accounting.entry.view` trước khi dùng kết quả. MỘT truy vấn D1, mảng id trong MỘT tham số JSON (mảng rỗng: không truy vấn). `null` = môi trường
+   * không tiêm (khung thử cố ý) ⇒ route không gắn nhãn, bộ lọc trả 503 — KHÔNG đoán "chưa nhập".
+   */
+  nhapKeToanCuaDon: (orderIds: readonly string[]) => Promise<Set<string> | null>;
 }
 
 export interface Route {
@@ -188,6 +195,8 @@ export interface AppOptions {
     mocToiThieu: (env: Env) => Promise<MocToiThieu | null>;
     /** R-P20. BẮT BUỘC trong mã chạy thật (`src/index.ts`: `nhanNhanVienTheoId` của staff); thiếu (khung thử cố ý) → router trả `null` (route để trống nhãn). */
     nhanNhanVien: (env: Env, ids: readonly string[]) => Promise<Map<string, string>>;
+    /** ADR-0060 điều 5. BẮT BUỘC trong mã chạy thật (`src/index.ts`: `nhapKeToanCuaDon` của billing); thiếu (khung thử cố ý) → router trả `null`. */
+    nhapKeToanCuaDon: (env: Env, orderIds: readonly string[]) => Promise<Set<string>>;
   };
 }
 
@@ -256,6 +265,8 @@ export function createApp(opts: AppOptions) {
       mocToiThieu: () => (typeof opts.injected.mocToiThieu === "function" ? opts.injected.mocToiThieu(env) : Promise.resolve(null)),
       nhanNhanVien: (ids) =>
         typeof opts.injected.nhanNhanVien !== "function" ? Promise.resolve(null) : ids.length === 0 ? Promise.resolve(new Map()) : opts.injected.nhanNhanVien(env, ids),
+      nhapKeToanCuaDon: (ids) =>
+        typeof opts.injected.nhapKeToanCuaDon !== "function" ? Promise.resolve(null) : ids.length === 0 ? Promise.resolve(new Set<string>()) : opts.injected.nhapKeToanCuaDon(env, ids),
     } as Ctx);
   }
 

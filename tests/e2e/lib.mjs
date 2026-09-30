@@ -28,6 +28,8 @@ export const ACCOUNTS = {
  * (máy chủ không bao giờ ghi nội dung hỏi / đáp ra log — chỉ mã lý do).
  */
 export const TRO_LY_DAU = "DAU-TRO-LY-KHONG-LO-9X";
+/** Khoá OpenAI GIẢ của máy chủ e2e (run.mjs `--var OPENAI_API_KEY`). Đủ dài (≥ 16) để route quản lý hiện 4 ký tự cuối "QZ7K" (ADR-0069 điều 2). */
+export const TRO_LY_KHOA = "e2e-khoa-gia-thu-nghiem-QZ7K";
 
 let ipn = 0;
 /** IP giả khác nhau cho từng request để bộ đếm chống dò theo IP không chặn nhầm kịch bản. */

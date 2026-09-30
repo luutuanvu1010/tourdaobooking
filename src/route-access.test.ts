@@ -134,6 +134,8 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   // Sổ tiền lượt 1 (module billing — ADR-0024/0025/0026, kế hoạch §3.4): 12 route; mỗi route tự hỏi can() với ô của MATRIX.
   { method: "GET", path: "/api/orders/:id/payments", access: "orders" }, // order.view + money.view phạm vi đơn
   { method: "POST", path: "/api/orders/:id/payments", access: "orders" }, // payment.receive { ownerId, assigned }
+  { method: "GET", path: "/api/orders/:id/nhap-ke-toan", access: "orders" }, // ADR-0060: order.view + accounting.entry.view phạm vi đơn
+  { method: "POST", path: "/api/orders/:id/nhap-ke-toan", access: "office" }, // ADR-0060: accounting.entry.mark (Kế toán, Toàn quyền)
   { method: "POST", path: "/api/orders/:id/delivered", access: "orders" }, // order.handover { assigned } — HDV đang phụ trách, Quản trị, Toàn quyền
   { method: "POST", path: "/api/orders/:id/completed", access: "office" }, // order.complete — Kế toán, Toàn quyền
   { method: "POST", path: "/api/ledger/balances", access: "orders" }, // POST chỉ-đọc: order.view + money.view từng đơn
@@ -157,7 +159,10 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/orders/:id/passengers", access: "orders" },
   { method: "GET", path: "/api/orders/dashboard", access: "orders" }, // Trang chủ — ADR-0019 điều 1: màn đơn; Đối tác/Thực tập vẫn 403 nhờ can(order.view/money.view/contact.view) không ngữ cảnh trong thân
   { method: "GET", path: "/api/orders/pool", access: "orders" }, // hàng chờ nhận (phần hẹp) — ADR-0030 S23-1/S23-2: thân hỏi can(order.pool.view) + !holdsPartner trước mọi đọc
+  { method: "GET", path: "/api/orders/nguoi-lap", access: "orders" }, // ADR-0067: thân hỏi ba ô "xem mọi đơn" (order.view/money.view/contact.view, không ngữ cảnh) trước mọi đọc
   { method: "GET", path: "/api/orders/moc-toi-thieu", access: "orders" }, // ruling R-P15 (ADR-0049 I31 cách a): thân hỏi can(order.create) trước mọi đọc; mốc qua ctx.mocToiThieu
+  { method: "GET", path: "/api/cai-dat/nhap-tay", access: "orders" }, // ADR-0061 điều 6: công tắc nhập tay (module orders) — thân hỏi can(order.create); trả duocNhapTay của người gọi
+  { method: "POST", path: "/api/cai-dat/nhap-tay", access: "admin" }, // ADR-0061 điều 6: bật / tắt — thân hỏi can(settings.ops) (chỉ Toàn quyền)
   { method: "GET", path: "/api/parties", access: "office" },
   { method: "POST", path: "/api/parties", access: "office" },
   { method: "GET", path: "/api/parties/:id", access: "office" },
@@ -271,9 +276,19 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "GET", path: "/api/van-chuyen/nhac-goi-khach", access: "office" }, // ADR-0051 GB1 — danh sách nhắc gọi khách (trip.view)
   { method: "POST", path: "/api/van-chuyen/chang/:legId/da-goi-bao", access: "office" }, // ADR-0051 — trip.call_ack
   { method: "POST", path: "/api/van-chuyen/chang/:legId/bo-danh-dau-goi-bao", access: "office" }, // ADR-0051 — trip.call_ack
+  { method: "GET", path: "/api/van-chuyen/xe-cua-don/:orderId", access: "office" }, // ADR-0059 — xe trên chi tiết đơn (trip.view + order.view không ngữ cảnh)
   { method: "POST", path: "/api/tro-ly/hoi", access: "staff" }, // ADR-0066 điều 1 — mọi tài khoản đăng nhập, ô assistant.ask (any)
   { method: "GET", path: "/api/tro-ly/cai-dat", access: "office" }, // ADR-0066 trang ghép — chỉ Toàn quyền (settings.ops trong thân)
   { method: "POST", path: "/api/tro-ly/cai-dat", access: "office" }, // như trên
+  { method: "GET", path: "/api/tro-ly/khung", access: "staff" }, // ADR-0069 điều 3, 4 — cờ được dùng + câu chào (mọi tài khoản, không dữ liệu nghiệp vụ)
+  { method: "POST", path: "/api/tro-ly/vai", access: "office" }, // ADR-0069 điều 1, 3 — chỉ Toàn quyền (settings.ops trong thân)
+  { method: "POST", path: "/api/tro-ly/thu-khoa", access: "office" }, // ADR-0069 điều 2 — như trên
+  { method: "GET", path: "/api/tro-ly/loi-dan", access: "office" }, // ADR-0069 điều 4 — như trên
+  { method: "POST", path: "/api/tro-ly/loi-dan", access: "office" }, // như trên
+  { method: "GET", path: "/api/tro-ly/ngu-canh", access: "office" }, // như trên
+  { method: "POST", path: "/api/tro-ly/ngu-canh", access: "office" }, // như trên
+  { method: "PUT", path: "/api/tro-ly/ngu-canh/:id", access: "office" }, // như trên
+  { method: "GET", path: "/api/tro-ly/lich-su", access: "office" }, // ADR-0069 điều 5 — như trên
 ]);
 
 // Lưới cho chính danh sách MODULES ở trên: nếu ai thêm một module mới có khai `export const xModule: AppModule` (tức có route) mà quên
@@ -288,7 +303,7 @@ test("MODULES liệt kê ĐỦ mọi thư mục module có khai `...Module: AppM
   assert.deepEqual(routedDirs, listed, "có thư mục module khai AppModule nhưng chưa có trong MODULES của bài kiểm route-access này — thêm vào MODULES và SNAPSHOT");
 });
 
-test("mức truy cập của 176 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
+test("mức truy cập của 191 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
   const actual = await collectRealRoutes();
   // deepEqual TRƯỚC: khi có route mới/bị xoá, thông báo của nó chỉ ra ĐÚNG route lệch — hai assert.equal độ dài bên dưới chỉ để phòng hờ
   // (không bao giờ tự chạy tới nếu deepEqual đã trượt) và tài liệu hoá con số 86 để đối chiếu nhanh bằng mắt.
@@ -325,7 +340,12 @@ test("mức truy cập của 176 route hiện có khớp ảnh chụp đã duy�
   // 2026-09-30 (sổ tiền lượt 1, module billing): + 12 route (/api/orders/:id/payments ×2, delivered, completed; /api/ledger ×8) = 172.
   // 2026-09-30 (sổ tiền lượt 1, module receipt): + GET /api/orders/:id/receipt = 173.
   // 2026-09-30 (ADR-0066, module tro-ly): + POST /api/tro-ly/hoi (staff), GET/POST /api/tro-ly/cai-dat (office) = 176.
+  // 2026-09-30 (ADR-0059, module van-chuyen): + GET /api/van-chuyen/xe-cua-don/:orderId (office) = 177.
+  // 2026-09-30 (ADR-0060, module billing): + GET/POST /api/orders/:id/nhap-ke-toan (orders / office) = 179 (gộp 1.46: nhánh ghi 178 trên nền 176).
+  // 2026-09-30 (ADR-0061, module orders): + GET /api/cai-dat/nhap-tay (orders), POST /api/cai-dat/nhap-tay (admin) = 181 (gộp 1.46: nhánh ghi 178 trên nền 176).
+  // 2026-09-30 (ADR-0067, module orders): + GET /api/orders/nguoi-lap (orders) = 182 (gộp 1.46: nhánh ghi 177 trên nền 176).
+  // 2026-10-01 (ADR-0069, bảng điều khiển trợ lý): + GET /api/tro-ly/khung (staff) + 8 route quản lý (office, settings.ops) = 191 (gộp 1.47: nhánh ghi 185 trên nền 176).
   assert.deepEqual(actual, SNAPSHOT);
-  assert.equal(actual.length, 176, "số route thực tế lệch 176 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 176, "SNAPSHOT phải có đúng 176 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  assert.equal(actual.length, 191, "số route thực tế lệch 191 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 191, "SNAPSHOT phải có đúng 191 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

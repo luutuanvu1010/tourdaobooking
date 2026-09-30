@@ -4,7 +4,8 @@
   "quy_uoc": {
     "su_kien.loai": "thu (khách trả; vai_nguoi_thu: nhan_vien | cong_ty | chua_ro; nguoi_ghi; nguoi_ghi_la_ke_toan) · xac_nhan_cong_ty (Kế toán bấm 'Công ty đã nhận' cho lần thu số thu_so — đếm từ 1 theo thứ tự sự kiện thu) · nop (ben nộp so về công ty) · hoan (nguoi_tra trả lại khách so; 'Tour Đảo' = công ty tự trả) · dao_thu (Kế toán đảo lần thu số thu_so)",
     "no_tour_dao": "dương = bên đó đang giữ tiền của Tour Đảo; âm = Tour Đảo còn nợ bên đó",
-    "giao_duoc": "đủ điều kiện TIỀN để bấm 'Đã giao – đã thu đủ' (đã thu ròng = phải thu, không còn lần thu chưa rõ) — không xét ngày đi / người phụ trách"
+    "giao_duoc": "đủ điều kiện TIỀN để bấm 'Đã giao – đã thu đủ' (đã thu ròng = phải thu, không còn lần thu chưa rõ) — không xét ngày đi / người phụ trách",
+    "dau_vao.dong_don": "(tuỳ chọn — ADR-0061 điều 7) các dòng tiền của đơn: loai danh_muc (có ma dịch vụ danh mục) | nhap_tay (ma null — dịch vụ nhập tay, không có giá danh mục / giá vốn); phai_thu = Σ so_luong × don_gia − giam_gia (máy chủ tính, như mọi dòng)"
   },
   "cac_ca": [
     {
@@ -65,6 +66,26 @@
         ]
       },
       "dap_an": { "da_thu": 1000000, "con_lai": 0, "du": 0, "chua_ro": 0, "no_tour_dao": { "HDV Nam": 1000000 }, "giao_duoc": true }
+    },
+    {
+      "ma": "SV-SC-05",
+      "mo_ta": "ADR-0061 điều 7 — đơn có DÒNG NHẬP TAY đi qua sổ tiền như dịch vụ danh mục. Khách lẻ: vé danh mục 2 người lớn × 850.000 + dịch vụ nhập tay \"Xe đưa đón riêng\" 2 × 400.000, giảm giá 100.000 → phải thu 2.400.000. HDV Nam thu tiền mặt 1.000.000 tại bến; khách chuyển khoản 1.400.000 vào tài khoản công ty (Kế toán ghi); HDV Nam nộp đủ 1.000.000 về công ty → HDV không nợ, Đã giao được.",
+      "nguon": "ADR-0061 điều 7 + tiêu chí 6 (Kế toán nhận biên nhận / sổ tiền của đơn có dòng nhập tay đúng từng đồng)",
+      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "dau_vao": {
+        "dong_don": [
+          { "loai": "danh_muc", "ma": "TD101", "mo_ta": "Người lớn", "so_luong": 2, "don_gia": 850000 },
+          { "loai": "nhap_tay", "ma": null, "ten_dich_vu": "Xe đưa đón riêng", "mo_ta": "Xe 7 chỗ 2 chiều", "so_luong": 2, "don_gia": 400000 }
+        ],
+        "giam_gia": 100000,
+        "phai_thu": 2400000,
+        "su_kien": [
+          { "loai": "thu", "vai_nguoi_thu": "nhan_vien", "nguoi_thu": "HDV Nam", "nguoi_ghi": "HDV Nam", "nguoi_ghi_la_ke_toan": false, "so": 1000000 },
+          { "loai": "thu", "vai_nguoi_thu": "cong_ty", "nguoi_thu": "Tour Đảo", "nguoi_ghi": "Kế toán", "nguoi_ghi_la_ke_toan": true, "so": 1400000 },
+          { "loai": "nop", "ben": "HDV Nam", "so": 1000000 }
+        ]
+      },
+      "dap_an": { "da_thu": 2400000, "con_lai": 0, "du": 0, "chua_ro": 0, "no_tour_dao": { "HDV Nam": 0 }, "giao_duoc": true }
     }
   ]
 }

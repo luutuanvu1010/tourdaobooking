@@ -84,6 +84,11 @@ export const MATRIX = {
   // (`legs[].datGap = { daDuyet: true }`). Không phạm vi đơn: phạm vi đã do order.view quyết. Hỏi ở `loadOrderView` qua `xemDuDatGap` (orders/index.ts).
   "order.leg.short_notice.view": row("any", "any", "any", "none", "none", "any", "none", "none", "none"),
   "order.passenger.write": row("ownOrAssigned", "none", "any", "none", "own", "any", "own", "none", "none"), // ADR-0047 A2: nhập, sửa (dòng mới), huỷ dòng trong danh sách hành khách — bằng order.modify; tài xế không đi qua ô này
+  // ADR-0061 điều 2 (accepted 2026-09-30): thêm / sửa tên-giá DỊCH VỤ NHẬP TAY khi công tắc nhập tay đang BẬT. Không phạm vi đơn (đơn nào lập/sửa được vẫn do
+  // order.create / order.modify quyết). Hỏi ở MỘT hàm `duocNhapTay` (orders/price-guards.ts): Đối tác TRƯỚC (holdsPartner — tài khoản lai cũng bị chặn), rồi
+  // công tắc, rồi ô này. ACCOUNTING any nhưng CHƯA CÓ TÁC DỤNG: Kế toán không lập / sửa đơn (order.create, order.modify = none) — chủ Q-1 "Giữ quyền sẵn,
+  // chờ việc C2" (route sửa đơn sau xác nhận tương lai phải gọi duocNhapTay).
+  "order.service.manual": row("any", "any", "any", "none", "none", "any", "none", "none", "none"),
   "task.progress": row("none", "none", "any", "assigned", "assigned", "any", "none", "none", "none"), // cập nhật trạng thái việc được giao — PARTNER chỉ có tác dụng khi đang phụ trách (ADR-0014 điều 10)
   "order.money.edit": row("own", "any", "any", "assigned", "none", "any", "none", "none", "none"), // số khách, dịch vụ, tiền sau xác nhận — ADR-0014 điều 6, route: POST /api/orders/:id/handler-money-edit (module dispatch, FIELD)
   "order.cancel": row("none", "none", "none", "assigned", "none", "any", "none", "none", "none"), // huỷ đơn đang phụ trách, lý do bắt buộc — ADR-0014 điều 11, route: POST /api/orders/:id/handler-cancel (module dispatch)
@@ -107,6 +112,11 @@ export const MATRIX = {
   "ledger.write": row("none", "any", "none", "none", "none", "any", "none", "none", "none"),
   "invoice.request": row("own", "any", "any", "none", "none", "any", "none", "none", "none"), // ghi yêu cầu hoá đơn + thông tin xuất
   "invoice.issue": row("none", "any", "any", "none", "none", "any", "none", "none", "none"), // đánh dấu hoá đơn đã xuất
+  // ADR-0060 (accepted 2026-09-30): dấu "đã nhập phần mềm kế toán" + "Số hoá đơn đã nhập" (bảng chỉ-thêm bil_accounting_entry, module billing). KHÔNG dùng lại
+  // invoice.issue (khác nghĩa, có Quản trị — R-K1). Ghi: Kế toán + Toàn quyền (route POST /api/orders/:id/nhap-ke-toan). Xem: MỘT ô quyết cả chi tiết đơn,
+  // nhãn/lọc danh sách đơn, dòng nhật ký order_accounting_entry_* trong lịch sử đơn — bằng order.view trừ Đối tác none (Q-2 "Không"); bài ghim ⊆ order.view.
+  "accounting.entry.mark": row("none", "any", "none", "none", "none", "any", "none", "none", "none"),
+  "accounting.entry.view": row("any", "any", "any", "assigned", "none", "any", "own", "none", "none"),
   "party.view": row("any", "any", "any", "none", "none", "any", "none", "none", "none"), // xem hồ sơ khách/đại lý
   "party.write": row("any", "any", "any", "none", "none", "any", "none", "none", "none"), // tạo/sửa hồ sơ KHÔNG gắn tài khoản (khách, đại lý, HDV/tài xế chưa có tài khoản) — ADR-0007, ADR-0013
   "party.staff.write": row("none", "none", "any", "none", "none", "any", "none", "none", "none"), // sửa hồ sơ GẮN TÀI KHOẢN (tên, liên hệ) — ADR-0013; ADMIN còn phải quản được tài khoản đó (cấp bậc, ADR-0014 điều 8: ctx.partyAccount)

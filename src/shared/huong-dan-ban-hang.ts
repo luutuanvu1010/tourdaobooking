@@ -96,7 +96,7 @@ App chỉ cho xác nhận khi mỗi dịch vụ có ngày khởi hành, ngày đ
       noiDung: `### Đơn hàng
 
 1. Bấm [[Đơn hàng]].
-2. Gõ vào ô tìm (mã đơn, tên, số điện thoại), hoặc bấm nút **Lọc** để lọc cùng lúc theo ngày đi, dịch vụ, trạng thái ([[Chờ xác nhận]], [[Đã xác nhận]], [[Đã huỷ]]) và [[Đơn tôi lập]], rồi bấm [[Áp dụng]]. Điều kiện đang lọc hiện thành nhãn trên danh sách; bấm × để bỏ từng cái, [[Xoá lọc]] để bỏ hết. Máy nhớ bộ lọc cho lần sau.
+2. Gõ vào ô tìm (mã đơn, tên, số điện thoại), hoặc bấm nút **Lọc** để lọc cùng lúc theo ngày đi, dịch vụ, trạng thái ([[Chờ xác nhận]], [[Đã xác nhận]], [[Đã huỷ]]) và người lập ([[Đơn tôi lập]], hoặc gõ tên để chọn từng người đã lập đơn), rồi bấm [[Áp dụng]]. Điều kiện đang lọc hiện thành nhãn trên danh sách; bấm × để bỏ từng cái, [[Xoá lọc]] để bỏ hết. Máy nhớ bộ lọc cho lần sau.
 3. Mỗi thẻ hiện mã, trạng thái, ngày, khách, tiền; mở phần xổ xuống để thấy người phụ trách ("HDV: tên" hoặc [[Chờ nhận]]). Bấm [[Tải thêm]] để xem đơn cũ hơn.
 
 Ô tìm trên thanh trên cùng cũng đưa bạn tới đây, kèm từ bạn gõ.
@@ -223,7 +223,7 @@ App đang dùng giá đã lưu. Kiểm tra lại giá trước khi gửi khách 
 
 ### Có dịch vụ nhập tay không?
 
-Không. Chỉ chọn từ danh mục. Đơn cũ có dịch vụ nhập tay thì chỉ xem được; muốn đổi thì xoá và chọn lại từ danh mục.
+Có khi Toàn quyền bật "Dịch vụ nhập tay" (mặc định tắt). Khi bật, form lập đơn có nút "+ Dịch vụ nhập tay": gõ tên dịch vụ, từng dòng tiền (mô tả, số lượng, đơn giá). Khi tắt, dịch vụ nhập tay đã có trên đơn chỉ xem được; muốn đổi thì xoá và chọn lại từ danh mục. Tài khoản Đối tác không dùng được dịch vụ nhập tay; bạn thêm dịch vụ nhập tay vào đơn nháp của Đối tác thì Đối tác không tự xác nhận được đơn đó — văn phòng xác nhận thay.
 
 ### Xem bản mới có gì ở đâu?
 

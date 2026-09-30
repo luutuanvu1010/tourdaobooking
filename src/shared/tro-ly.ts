@@ -2,9 +2,10 @@
 // Gồm: hằng mẫu + giá, che câu hỏi (điều 5), kho tri thức chia đoạn + tìm theo từ khoá (điều 3), lời nhắc hệ thống (điều 4), đọc phản hồi OpenAI,
 // tính chi phí micro-USD và quyết định trần (điều 6). Nguồn tra tài liệu OpenAI: docs/superpowers/specs/2026-09-30-adr-0066-tro-ly-ai-ho-tro.md mục "Thi công".
 import { HUONG_DAN, viPhamChu } from "./huong-dan.ts";
-import { PERMISSION_LABEL, type PermissionCode } from "./permissions.ts";
+import { PERMISSION_CODES, PERMISSION_LABEL, type PermissionCode } from "./permissions.ts";
 import { SO_DO_TRANG } from "./so-do-trang.ts";
 import { DIGIT_RUN, EMAIL_TRONG_CHU, MIN_LONG_DIGIT_RUN } from "./text-guards.ts";
+import { GIOI_HAN_TRO_LY as G } from "./tro-ly-gioi-han.ts";
 import { KIEN_TRUC } from "./tro-ly-kien-truc.ts";
 
 // ---------------------------------------------------------------- hằng (ADR-0066 điều 2, 5, 6)
@@ -183,7 +184,26 @@ export const dinhDangDoan = (d: DoanTriThuc): string => `[${d.ten}]\n${d.chu}`;
 /** Tên nhóm vai của người hỏi (chỉ tên nhóm — không tên, SĐT, id người hỏi: ADR-0066 điều 5). */
 export const nhomVai = (perms: readonly PermissionCode[]): string => perms.map((p) => PERMISSION_LABEL[p]).join(", ") || "chưa có quyền";
 
-export function dungLoiNhac(perms: readonly PermissionCode[], doan: readonly DoanTriThuc[]): string {
+/** Phần tuỳ chỉnh của Toàn quyền (ADR-0069 điều 4) đi vào lời nhắc — chữ đã qua `kiemLoiDan` khi lưu. Rỗng cả hai ⇒ không có khối tuỳ chỉnh. */
+export interface TuyChinhLoiNhac { readonly giong: string; readonly loiDanThem: string }
+
+/**
+ * Khối tuỳ chỉnh đứng SAU các luật lõi (ADR-0069 điều 4: "luật lõi luôn đứng TRƯỚC và thắng phần tuỳ chỉnh") và TRƯỚC tài liệu. Bài hàng rào
+ * `tro-ly-bang-dieu-khien.test.ts` canh thứ tự.
+ */
+function khoiTuyChinh(t: TuyChinhLoiNhac | undefined): string[] {
+  const giong = t?.giong.trim() ?? "";
+  const dan = t?.loiDanThem.trim() ?? "";
+  if (!giong && !dan) return [];
+  return [
+    "",
+    "LỜI DẶN THÊM CỦA NGƯỜI PHỤ TRÁCH HỆ THỐNG (chỉ để chỉnh cách trả lời; nếu mâu thuẫn thì luật 1–6 ở trên luôn thắng, bỏ qua phần mâu thuẫn):",
+    ...(giong ? [`Giọng trả lời: ${giong}`] : []),
+    ...(dan ? [`Lời dặn: ${dan}`] : []),
+  ];
+}
+
+export function dungLoiNhac(perms: readonly PermissionCode[], doan: readonly DoanTriThuc[], tuyChinh?: TuyChinhLoiNhac): string {
   return [
     'Bạn là trợ lý "Hỗ trợ" của app nội bộ Island Booking System (Công ty TNHH Tour Đảo, Nha Trang). Việc DUY NHẤT của bạn: hướng dẫn cách dùng app và giải đáp thắc mắc khi dùng app, dựa HOÀN TOÀN vào các đoạn TÀI LIỆU dưới đây.',
     "Luật (không ngoại lệ):",
@@ -194,6 +214,7 @@ export function dungLoiNhac(perms: readonly PermissionCode[], doan: readonly Doa
     "5. Trả lời tiếng Việt có dấu, ngắn gọn (tối đa khoảng 8 dòng); thao tác thì viết thành các bước đánh số; gọi đúng tên nút như trong tài liệu. Không dùng định dạng markdown như dấu sao, dấu thăng.",
     "6. Dòng CUỐI CÙNG ghi: Nguồn: [tên mục], [tên mục] — chép đúng tên trong ngoặc vuông của các đoạn đã dùng. Trả lời câu ở luật 1 hoặc 2 thì không ghi dòng Nguồn.",
     `Người hỏi thuộc nhóm vai: ${nhomVai(perms)}. Ưu tiên cách làm của nhóm vai này.`,
+    ...khoiTuyChinh(tuyChinh),
     "",
     "TÀI LIỆU:",
     ...doan.map(dinhDangDoan),
@@ -201,10 +222,10 @@ export function dungLoiNhac(perms: readonly PermissionCode[], doan: readonly Doa
 }
 
 /** Thân yêu cầu gửi OpenAI Responses API (POST /v1/responses). KHÔNG có `user`, `safety_identifier`, `metadata` (ADR-0066 điều 5); `store: false`. */
-export function thanYeuCau(perms: readonly PermissionCode[], doan: readonly DoanTriThuc[], cauHoiDaChe: string): Record<string, unknown> {
+export function thanYeuCau(perms: readonly PermissionCode[], doan: readonly DoanTriThuc[], cauHoiDaChe: string, tuyChinh?: TuyChinhLoiNhac): Record<string, unknown> {
   return {
     model: MAU_AI,
-    instructions: dungLoiNhac(perms, doan),
+    instructions: dungLoiNhac(perms, doan, tuyChinh),
     input: cauHoiDaChe,
     reasoning: { effort: MUC_SUY_LUAN },
     text: { verbosity: "low" },
@@ -302,4 +323,140 @@ export function viPhamKho(kho: readonly DoanTriThuc[] = chiaKho()): string[] {
     if (v) out.push(`${d.ten}: ${v.luat} "${v.khop}"`);
   }
   return out;
+}
+
+// ---------------------------------------------------------------- bảng điều khiển của Toàn quyền (ADR-0069)
+
+/**
+ * ADR-0069 điều 3: tài khoản dùng được trợ lý khi ÍT NHẤT một quyền của nó đang bật. Mã không có trong `vai` (không có dòng cấu hình) = TẮT (mặc định
+ * từ chối). MỘT hàm cho cả hai nơi: máy chủ chặn `POST /api/tro-ly/hoi` (403) và cờ `duocDung` của `GET /api/tro-ly/khung` (giao diện ẩn nút).
+ */
+export function duocDungTroLy(perms: readonly PermissionCode[], vai: Partial<Record<PermissionCode, boolean>>): boolean {
+  return perms.some((p) => vai[p] === true);
+}
+
+export const CAU_VAI_TAT = "Trợ lý Hỗ trợ đang tắt với vai của bạn. Xem hướng dẫn ở Trợ giúp hoặc hỏi Quản trị.";
+
+type Kiem<T> = { ok: true; value: T } | { ok: false; message: string };
+
+/** Thân `POST /api/tro-ly/vai`: `{ vai: { <9 mã quyền>: boolean } }` — đủ 9 mã, không mã lạ. */
+export function kiemVai(body: Record<string, unknown> | null): Kiem<Record<PermissionCode, boolean>> {
+  const v = body?.vai;
+  if (!v || typeof v !== "object" || Array.isArray(v)) return { ok: false, message: "Thiếu danh sách công tắc theo vai." };
+  const o = v as Record<string, unknown>;
+  if (Object.keys(o).length !== PERMISSION_CODES.length || !PERMISSION_CODES.every((p) => typeof o[p] === "boolean")) {
+    return { ok: false, message: "Công tắc theo vai không hợp lệ — cần đủ 9 vai, mỗi vai bật hoặc tắt." };
+  }
+  return { ok: true, value: Object.fromEntries(PERMISSION_CODES.map((p) => [p, o[p] as boolean])) as Record<PermissionCode, boolean> };
+}
+
+/** Luật nội dung A3 (`viPhamChu` — một nguồn với hướng dẫn và kho tri thức) cho một ô chữ tuỳ chỉnh; trả câu lời thường hoặc null. */
+function viPhamO(ten: string, s: string): string | null {
+  const v = viPhamChu(s);
+  return v ? `${ten} không được chứa ${v.luat} — chữ này được gửi sang máy AI cùng câu hỏi.` : null;
+}
+
+const KY_TU_LA = new RegExp("[\\u0000-\\u0009\\u000b-\\u001f\\u007f\\u2028\\u2029\\u200e\\u200f\\u202a-\\u202e\\u2066-\\u2069]", "g");
+/** Chuỗi → bỏ ký tự điều khiển (giữ xuống dòng), cắt khoảng trắng hai đầu; không phải chuỗi ⇒ null. */
+const chuSach = (v: unknown): string | null => (typeof v === "string" ? v.replace(/\r\n?/g, "\n").replace(KY_TU_LA, " ").trim() : null);
+
+export interface LoiDan { readonly cauChao: string; readonly giong: string; readonly loiDanThem: string; readonly cauHoiMau: readonly string[] }
+
+/** Thân lưu lời dặn (ADR-0069 điều 4). "Quay lại bản cũ" gửi lại nội dung bản cũ qua CHÍNH hàm này (bộ lọc chạy lại). */
+export function kiemLoiDan(body: Record<string, unknown> | null): Kiem<LoiDan> {
+  const cauChao = chuSach(body?.cauChao);
+  const giong = chuSach(body?.giong ?? "");
+  const loiDanThem = chuSach(body?.loiDanThem ?? "");
+  const mau = body?.cauHoiMau ?? [];
+  if (cauChao === null || giong === null || loiDanThem === null || !Array.isArray(mau)) return { ok: false, message: "Lời dặn không hợp lệ." };
+  if (!cauChao) return { ok: false, message: "Câu chào không được để trống." };
+  if (cauChao.length > G.cauChao) return { ok: false, message: `Câu chào tối đa ${G.cauChao} ký tự.` };
+  if (giong.length > G.giong) return { ok: false, message: `Giọng trả lời tối đa ${G.giong} ký tự.` };
+  if (loiDanThem.length > G.loiDanThem) return { ok: false, message: `Lời dặn thêm tối đa ${G.loiDanThem} ký tự.` };
+  const cauHoiMau: string[] = [];
+  for (const c of mau) {
+    const s = chuSach(c);
+    if (s === null) return { ok: false, message: "Câu hỏi mẫu không hợp lệ." };
+    const g = s.replace(/\s+/g, " ");
+    if (!g || cauHoiMau.includes(g)) continue;
+    if (g.length > G.cauMau) return { ok: false, message: `Mỗi câu hỏi mẫu tối đa ${G.cauMau} ký tự.` };
+    cauHoiMau.push(g);
+  }
+  if (cauHoiMau.length > G.soCauMau) return { ok: false, message: `Tối đa ${G.soCauMau} câu hỏi mẫu.` };
+  const loi =
+    viPhamO("Câu chào", cauChao) ?? viPhamO("Giọng trả lời", giong) ?? viPhamO("Lời dặn thêm", loiDanThem) ??
+    cauHoiMau.map((c) => viPhamO("Câu hỏi mẫu", c)).find((x) => x !== null) ?? null;
+  if (loi) return { ok: false, message: loi };
+  return { ok: true, value: { cauChao, giong, loiDanThem, cauHoiMau } };
+}
+
+export interface NguCanh { readonly tieuDe: string; readonly noiDung: string; readonly bat: boolean }
+export interface NguCanhHienHanh extends NguCanh { readonly doanId: string }
+
+/** Thân thêm / sửa một đoạn ngữ cảnh. Tiêu đề bỏ ngoặc vuông, gộp khoảng trắng (nó thành tên nguồn "[…]" trong lời nhắc). */
+export function kiemNguCanh(body: Record<string, unknown> | null): Kiem<NguCanh> {
+  const t = chuSach(body?.tieuDe);
+  const n = chuSach(body?.noiDung);
+  if (t === null || n === null || typeof body?.bat !== "boolean") return { ok: false, message: "Đoạn ngữ cảnh không hợp lệ." };
+  const tieuDe = tenSach(t);
+  if (!tieuDe) return { ok: false, message: "Tiêu đề đoạn không được để trống." };
+  if (!n) return { ok: false, message: "Nội dung đoạn không được để trống." };
+  if (tieuDe.length > G.tieuDeNguCanh) return { ok: false, message: `Tiêu đề đoạn tối đa ${G.tieuDeNguCanh} ký tự.` };
+  if (n.length > G.noiDungNguCanh) return { ok: false, message: `Nội dung đoạn tối đa ${G.noiDungNguCanh} ký tự.` };
+  const loi = viPhamO("Tiêu đề đoạn", tieuDe) ?? viPhamO("Nội dung đoạn", n);
+  if (loi) return { ok: false, message: loi };
+  return { ok: true, value: { tieuDe, noiDung: n, bat: body!.bat as boolean } };
+}
+
+/** Đoạn ngữ cảnh ĐANG BẬT → đoạn của kho (cho mọi vai), tên "Ngữ cảnh bổ sung › …": không trùng tên mục có sẵn, lọt danh sách trắng nguồn. */
+export function doanNguCanh(ds: readonly NguCanhHienHanh[]): DoanTriThuc[] {
+  return ds.filter((d) => d.bat).map((d) => ({ ten: `Ngữ cảnh bổ sung › ${tenSach(d.tieuDe)}`, quyen: [], chu: d.noiDung }));
+}
+
+/** ADR-0069 điều 2: chỉ 4 ký tự CUỐI của khoá (đã cắt khoảng trắng); khoá ngắn hơn 16 ký tự ⇒ null (4 ký tự của khoá ngắn lộ quá nhiều). */
+export function khoaCuoi(khoa: string | null | undefined): string | null {
+  const k = khoa?.trim() ?? "";
+  return k.length >= 16 ? k.slice(-4) : null;
+}
+
+/** "Thử key" (ADR-0069 điều 2): một câu CỐ ĐỊNH — không tài liệu, không dữ liệu công ty, không id người bấm; token ra nhỏ. */
+export function thanThuKhoa(): Record<string, unknown> {
+  return {
+    model: MAU_AI,
+    instructions: "Trả lời đúng một chữ: được",
+    input: "Thử kết nối.",
+    reasoning: { effort: MUC_SUY_LUAN },
+    max_output_tokens: 16,
+    store: false,
+  };
+}
+
+/** Mã lỗi OpenAI được phép đọc — DANH SÁCH TRẮNG. Chữ lỗi (`error.message`) của OpenAI có thể lặp lại một phần khoá: KHÔNG BAO GIỜ đọc / chuyển tiếp nó. */
+const MA_LOI_BIET = new Set(["insufficient_quota", "invalid_api_key"]);
+export function maLoiOpenAi(json: unknown): string | null {
+  const c = (json as { error?: { code?: unknown } } | null)?.error?.code;
+  return typeof c === "string" && MA_LOI_BIET.has(c) ? c : null;
+}
+
+export type MaThuKhoa = "duoc" | "sai_khoa" | "het_tien" | "gioi_han" | "loi_mang" | "loi_khac" | "chua_dat";
+const CAU_THU_KHOA: Record<MaThuKhoa, string> = {
+  duoc: "Key dùng được — trợ lý gọi được máy AI.",
+  sai_khoa: "Sai key — máy AI từ chối key này. Đặt lại key trên Cloudflare.",
+  het_tien: "Hết tiền — tài khoản máy AI đã hết hạn mức. Nạp thêm ở trang quản lý của máy AI.",
+  gioi_han: "Máy AI đang giới hạn số lần gọi. Thử lại sau ít phút.",
+  loi_mang: "Không kết nối được tới máy AI (lỗi mạng hoặc hết giờ chờ). Thử lại sau.",
+  loi_khac: "Máy AI báo lỗi khác. Thử lại sau ít phút.",
+  chua_dat: "Chưa đặt key — đặt key trên Cloudflare rồi thử lại.",
+};
+/** Kết quả "Thử key" theo MÃ trạng thái HTTP + mã lỗi đã lọc (không đọc chữ lỗi của OpenAI). */
+export function ketQuaThuKhoa(k: { ok: true } | { mang: true } | { chuaDat: true } | { status: number; maLoi: string | null }): { ma: MaThuKhoa; cau: string } {
+  const ma: MaThuKhoa =
+    "ok" in k ? "duoc"
+    : "mang" in k ? "loi_mang"
+    : "chuaDat" in k ? "chua_dat"
+    : k.status === 401 ? "sai_khoa"
+    : k.status === 429 && k.maLoi === "insufficient_quota" ? "het_tien"
+    : k.status === 429 ? "gioi_han"
+    : "loi_khac";
+  return { ma, cau: CAU_THU_KHOA[ma] };
 }

@@ -4,9 +4,9 @@
 import type { ChangLichChung } from "../orders";
 import type {
   BanChupDto, CanhBaoLichDto, ChangLichDto, ChuyenTomTatDto, DiemChuyenDto, GioVnDto, KhoaMocDto, LyDoDangDungDto, LyDoGiuDto, MocTienDoDto, NhatKyChuyenDto,
-  SuatChuyenDto, TaiXeChonDto, XeChonDto,
+  SuatChuyenDto, TaiXeChonDto, XeChonDto, XeCuaDonResponse,
 } from "../../shared/contracts";
-import { NHAN_SU_KIEN_CHUYEN, isNhomLyDo, type ChangVao, type LoaiSuKienChuyen, type TrangThaiChuyen } from "../../shared/dieu-phoi-kieu";
+import { NHAN_SU_KIEN_CHUYEN, NHAN_TRANG_THAI_CHUYEN, isNhomLyDo, type ChangVao, type LoaiSuKienChuyen } from "../../shared/dieu-phoi-kieu";
 import { noiLechCuaSuat } from "../../shared/dieu-phoi-kiem";
 import { NHAN_CANH_BAO_LICH, type CanhBaoLich } from "../../shared/dieu-phoi-lich-chung";
 import { NHAN_TRANG_THAI_CHANG, type TrangThaiChangRa } from "../../shared/dieu-phoi-trang-thai";
@@ -14,17 +14,12 @@ import { NHAN_AI_XU_LY, type LyDoGiu } from "../../shared/ly-do-giu";
 import { gioXetMocXep } from "../../shared/moc-toi-thieu";
 import { maskLongDigits } from "../../shared/text-guards";
 import { msToVnLocal, vnLocalToMs } from "../../shared/vn-date";
-import type { AllocRow, BanChupRow, EventRow, StopRow, TripRow, XeDieuPhoiRow } from "./chuyen-repo";
+import type { AllocRow, BanChupRow, EventRow, StopRow, TripRow, XeCuaDonRow, XeDieuPhoiRow } from "./chuyen-repo";
 import { diemVao, suatVao, type DuLieuChung } from "./dieu-phoi-doc";
 
 const PHUT = 60_000;
-export const NHAN_TRANG_THAI_CHUYEN: Readonly<Record<TrangThaiChuyen, string>> = {
-  PLANNED: "Đã lên kế hoạch",
-  RUNNING: "Đang chạy",
-  ENDED: "Đã kết thúc",
-  ENDED_INTERRUPTED: "Kết thúc gián đoạn",
-  CANCELLED: "Đã huỷ",
-};
+// Nhãn trạng thái chuyến nay ở src/shared/dieu-phoi-kieu.ts (một nguồn cho máy chủ + màn chi tiết đơn — ADR-0059); xuất lại để nơi gọi cũ không đổi.
+export { NHAN_TRANG_THAI_CHUYEN };
 export const gioVn = (ms: number): GioVnDto => {
   const { date, time } = msToVnLocal(ms);
   return { ngay: date, gio: time };
@@ -173,5 +168,18 @@ export function banChupDto(b: { chup: BanChupRow; muc: { item_kind: string; docu
   return {
     ketQua: b.chup.ket_qua, luc: gioVn(Date.parse(b.chup.checked_at)), bienSo: b.chup.plate_number, soCho: b.chup.passenger_capacity, nghiDaDung: b.chup.rest_minutes_used,
     muc: b.muc.map((m) => ({ loai: m.item_kind, loaiGiayTo: m.document_type_code, hang: m.license_class_code, hetHan: m.expiry_date })), soNguoiChot: b.chup.so_chot,
+  };
+}
+
+/**
+ * ADR-0059 — DTO xe trên chi tiết đơn, DỰNG MỚI TỪNG KHOÁ (danh sách trắng): mỗi chặng mở của đơn một mục (chưa xếp → `xe` rỗng), mỗi chuyến chưa huỷ chở khách
+ * của chặng một dòng. Không id / mã chuyến, không SĐT, không tên khách, không khoá nơi.
+ */
+export function xeCuaDonDto(legIds: readonly string[], rows: readonly XeCuaDonRow[]): XeCuaDonResponse {
+  return {
+    chang: legIds.map((legId) => ({
+      legId,
+      xe: rows.filter((r) => r.leg_id === legId).map((r) => ({ bienSo: r.plate_number, tenTaiXe: r.driver_name, soKhach: r.so_khach, trangThai: r.status })),
+    })),
   };
 }

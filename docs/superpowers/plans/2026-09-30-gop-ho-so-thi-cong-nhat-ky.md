@@ -18,4 +18,4 @@ Kế hoạch: `docs/superpowers/plans/2026-09-30-gop-ho-so-thi-cong.md`. Nhánh:
 ## Ruling / nợ
 
 - Task 0 do điều phối làm trực tiếp (chỉ tài liệu; ghi `docs/adr/**` bật hộp hỏi quyền của chủ — trợ lý phụ sẽ kẹt ở hộp hỏi).
-- Ruling: migration đổi 0054 → **0056** (0054 = `0054_tl_bang_dieu_khien` đã lên main bản 1.47; 0055 = `0055_nhom_dich_vu` nhánh thi-cong-luot-1) — nếu sai: đổi tên tệp, test tìm theo đuôi.
+- Ruling: migration số tạm **0055_gop_ho_so.sql** theo luật 1.46 của `docs/adr/README.md` (không giữ chỗ; số lớn nhất main + 1 = 0055; nhánh gộp sau đổi tên — `0055_nhom_dich_vu` của nhánh thi-cong-luot-1 cũng đang dùng 0055, ai gộp sau đổi) — nếu sai: đổi tên tệp, test tìm theo đuôi.

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="robots" content="noindex"><meta name="theme-color" content="#0c4a6e"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><title>Tôi — Island Booking System</title></head>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"><meta name="robots" content="noindex"><meta name="theme-color" content="#0c4a6e"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><title>Tôi — Island Booking System</title></head>
 <body data-title="Tôi">
 <header id="topbar"></header>
 <main>
@@ -13,8 +13,8 @@
     <section id="links" class="card list-card"></section>
     <!-- Chế độ bảo trì: web/account.ts chỉ hiện cho tài khoản được phép bật/tắt (GET /api/maintenance trả canToggle). -->
     <section id="maintenance" class="card" aria-labelledby="maintenance-heading" hidden></section>
-    <!-- Trợ lý Hỗ trợ (ADR-0066): web/tro-ly.ts chỉ hiện cho Toàn quyền (GET /api/tro-ly/cai-dat — ô settings.ops). -->
-    <section id="tro-ly-cai-dat" class="card" aria-labelledby="tro-ly-cai-dat-heading" hidden></section>
+    <!-- Dịch vụ nhập tay (ADR-0061): web/nhap-tay-cai-dat.ts chỉ hiện cho Toàn quyền (GET /api/cai-dat/nhap-tay trả doiDuoc — ô settings.ops). -->
+    <section id="nhap-tay-cai-dat" class="card" aria-labelledby="nhap-tay-heading" hidden></section>
     <!-- Đăng nhập bằng Face ID (ADR-0016): web/account.ts chỉ hiện khi máy chủ bật (GET /api/auth/config → passkey). -->
     <section id="passkeys" class="card" aria-labelledby="passkeys-heading" hidden></section>
     <!-- Thông báo màn hình khoá (ADR-0036): web/account.ts chỉ hiện khi máy chủ có khoá công khai VAPID (GET /api/account/thong-bao/may → khoa). -->

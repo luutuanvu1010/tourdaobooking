@@ -3,12 +3,14 @@
 // Chiều phụ thuộc: billing → orders, parties, staff, dispatch, audit. `orders` KHÔNG đọc bảng bil_; số "đã thu / còn lại" của mọi màn lấy qua route ở đây.
 // Mỗi route hỏi `can()` với ô của MATRIX TRƯỚC khi đọc thân / ghi (cổng router chỉ lọc thô — ADR-0019). Bảng tin (ADR-0022, ADR-0025 đ8): route ghi dưới
 // /api/orders/* báo `baoThayDoi` ĐÚNG MỘT lần, chỉ ở nhánh thành công, sau khi lô ghi xong (hàng rào src/bang-tin-guard.test.ts phủ tệp này).
-import type { LedgerBalancesResponse, OrderPaymentsResponse, SoCongNoResponse, SoCuaToiResponse, UnpaidSummaryResponse } from "../../shared/contracts";
+import type { LedgerBalancesResponse, NhapKeToanResponse, OrderPaymentsResponse, SoCongNoResponse, SoCuaToiResponse, UnpaidSummaryResponse } from "../../shared/contracts";
 import { UUID_RE, error, json, readJson } from "../../shared/http";
+import { docLenhNhapKeToan } from "../../shared/nhap-ke-toan";
 import { can, seesOnlyAssignedOrders, type PermissionHolder } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
 import { donDangThuTien, thongTinGiaoDon } from "../orders";
-import { orderOwners } from "./repository";
+import { donChoNhapKeToan, docNhapKeToan, ghiNhapKeToan } from "./nhap-ke-toan";
+import { accountingEnteredAmong, orderOwners } from "./repository";
 import {
   daGiao, ghiDieuChinh, ghiHoanKhach, ghiLanThu, ghiQuyetToan, hoanThanh, soCongNo, soCuaToi, tienCuaDon, tienNhieuDon, xacNhanCongTyNhan, type NguoiGoi,
 } from "./service";
@@ -19,6 +21,7 @@ const CANNOT_RECEIVE = () => error(403, "forbidden", "Tài khoản này không �
 const CANNOT_HANDOVER = () => error(403, "forbidden", "Chỉ hướng dẫn viên đang phụ trách đơn, Quản trị hoặc Toàn quyền mới bấm được Đã giao – đã thu đủ.");
 const CANNOT_COMPLETE = () => error(403, "forbidden", "Chỉ Kế toán hoặc Toàn quyền mới bấm được Hoàn thành.");
 const CANNOT_LEDGER = () => error(403, "forbidden", "Chỉ Kế toán hoặc Toàn quyền mới ghi được sổ công nợ.");
+const CANNOT_MARK_ENTRY = () => error(403, "forbidden", "Chỉ Kế toán hoặc Toàn quyền mới đánh dấu được đã nhập phần mềm kế toán.");
 const CANNOT_REFUND = () => error(403, "forbidden", "Chỉ Kế toán hoặc Toàn quyền mới ghi được hoàn tiền cho khách.");
 
 /** Người gọi cho service: `laKeToan` = có ô `ledger.write` (Kế toán, Toàn quyền — ghi người thu là người khác, chọn ngày phát sinh). */
@@ -94,6 +97,36 @@ export const billingModule: AppModule = {
       if (!kq.ok) return kq.res;
       baoThayDoi({ orderId: id, thayDoi: "hoan_thanh" });
       return json({ ok: true });
+    }),
+
+    // DẤU "ĐÃ NHẬP PHẦN MỀM KẾ TOÁN" (ADR-0060 điều 4) — đọc: `order.view` phạm vi đơn (chỉ-FIELD không phụ trách → 404, như /payments), rồi ô xem riêng
+    // `accounting.entry.view` cùng phạm vi (Đối tác một mình → 403 — Q-2 "Không"; lai SALES + PARTNER qua nhờ ô SALES). Dòng trước đó chỉ cho ô ghi (A-7).
+    route("GET", "/api/orders/:id/nhap-ke-toan", "orders", async ({ env, params, staff, isAssigned }) => {
+      const id = params.id!;
+      if (!UUID_RE.test(id)) return NOT_FOUND();
+      const [don, assigned] = await Promise.all([donChoNhapKeToan(env.DB, id), isAssigned(id)]);
+      if (!don) return NOT_FOUND();
+      const scope = { ownerId: don.ownerId, assigned };
+      if (!can(staff, "order.view", scope)) return seesOnlyAssignedOrders(staff) ? NOT_FOUND() : FORBIDDEN_VIEW();
+      if (!can(staff, "accounting.entry.view", scope)) return FORBIDDEN_VIEW();
+      return json((await docNhapKeToan(env.DB, id, { coTheGhi: can(staff, "accounting.entry.mark"), status: don.status })) satisfies NhapKeToanResponse);
+    }),
+
+    // Ghi dấu (ADR-0060 điều 3): ô `accounting.entry.mark` KHÔNG ngữ cảnh (Kế toán, Toàn quyền — Quản trị KHÔNG). Đánh dấu chỉ khi đơn đã xác nhận (A-3);
+    // bỏ dấu mọi trạng thái, bắt buộc lý do (A-4). Chạy được sau "Đã giao" / "Hoàn thành" (route billing — không thuộc NT-F7). Khoá lạc quan `truocDo`.
+    // Bảng tin: loại "tien" — chỉ làm mới màn hình, KHÔNG gõ cửa điện thoại (ADR-0045); gửi trùng trạng thái → 200, không ghi, không báo.
+    route("POST", "/api/orders/:id/nhap-ke-toan", "office", async ({ env, request, params, staff, baoThayDoi }) => {
+      if (!can(staff, "accounting.entry.mark")) return CANNOT_MARK_ENTRY();
+      const id = params.id!;
+      if (!UUID_RE.test(id)) return NOT_FOUND();
+      const don = await donChoNhapKeToan(env.DB, id);
+      if (!don) return NOT_FOUND();
+      const doc = docLenhNhapKeToan(await readJson(request));
+      if (!doc.ok) return error(400, "invalid_input", doc.message);
+      const kq = await ghiNhapKeToan(env.DB, { orderId: id, status: don.status, lenh: doc.lenh, staffId: staff.id });
+      if (!kq.ok) return kq.res;
+      if (kq.doi) baoThayDoi({ orderId: id, thayDoi: "tien" });
+      return json({ ok: true, doi: kq.doi });
     }),
 
     // Tiền nhiều đơn cùng lúc (danh sách, Trang chủ, "Việc của tôi") — POST chỉ-đọc (thân = danh sách id, tối đa 100; GĐ kế hoạch §3.4). Mỗi đơn hỏi
@@ -192,3 +225,9 @@ export async function soTienBienNhan(db: D1Database, orderId: string): Promise<{
   const t = (await tienNhieuDon(db, [orderId])).get(orderId);
   return t ? { daTra: t.daThu, conLai: t.conLai } : null;
 }
+
+/**
+ * ADR-0060 điều 5 — hàm đọc tập id do GỐC LẮP RÁP tiêm vào `ctx.nhapKeToanCuaDon` (orders không đọc bảng bil_): trong các đơn `orderIds`, đơn nào có trạng
+ * thái hiện tại = đã nhập phần mềm kế toán. KHÔNG tự kiểm quyền — route của orders hỏi `accounting.entry.view` trước khi dùng kết quả. Một truy vấn, MỘT tham số.
+ */
+export const nhapKeToanCuaDon = (db: D1Database, orderIds: readonly string[]): Promise<Set<string>> => accountingEnteredAmong(db, orderIds);

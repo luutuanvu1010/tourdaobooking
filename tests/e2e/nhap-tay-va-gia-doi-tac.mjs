@@ -1,7 +1,10 @@
 // DK-T3-01 (kiểm toán điểm khuất 24/9, HIGH) — ba luật máy chủ theo câu trả lời của chủ dự án ngày 2026-09-26:
-//  R1 (MỌI tài khoản) — Câu 1: "loại bỏ hoàn toàn dịch vụ nhập tay khỏi giao diện … Sẽ mở lại khi cần thiết": POST/PUT /api/orders không nhận dịch vụ
-//     nhập tay MỚI; dịch vụ nhập tay CŨ đã lưu của chính đơn bị "đóng băng" (tên + dòng tiền giữ nguyên), vẫn sửa được thông tin chuyến / số khách /
-//     ngày cả đơn, và xoá được khỏi đơn nháp. Vi phạm → 400 invalid_input.
+//  R1 — Câu 1: "loại bỏ hoàn toàn dịch vụ nhập tay khỏi giao diện … Sẽ mở lại khi cần thiết". ADR-0061 (accepted 2026-09-30) MỞ LẠI CÓ ĐIỀU KIỆN — NỚI
+//     hàng rào đã duyệt (Điều 9.4; chủ duyệt ADR-0061 là duyệt việc nới; dòng R1 ở docs/SO-HANG-RAO.md): R1 nay áp khi công tắc nhập tay TẮT, với người
+//     không có ô order.service.manual, và LUÔN với tài khoản có quyền Đối tác (kể cả lai). Các ca R1 "mọi tài khoản" cũ (mục 1–2) chạy khi công tắc TẮT
+//     (mặc định sau migration 0052); mục 9 bật công tắc bằng Toàn quyền và kiểm tiêu chí 2–5 của ADR-0061, rồi TẮT lại (D1 chung với kịch bản khác).
+//     Khi R1 áp: POST/PUT /api/orders không nhận dịch vụ nhập tay MỚI; dịch vụ nhập tay CŨ đã lưu của chính đơn bị "đóng băng" (tên + dòng tiền giữ
+//     nguyên), vẫn sửa được thông tin chuyến / số khách / ngày cả đơn, và xoá được khỏi đơn nháp. Vi phạm → 400 invalid_input.
 //  R2 (tài khoản CÓ quyền Đối tác — kể cả kèm quyền khác, chủ chốt 26/9 "Có quyền Đối tác là áp") — Câu 2: "đối tác vẫn phải trả một mức giá cố định cho công ty" + ADR-0014 điều 3 (ảnh xác
 //     nhận luôn là giá bán lẻ): ở lập (POST), sửa (PUT) và xác nhận (POST /status → confirmed) mọi dòng tiền phải có giá danh mục và đơn giá = giá
 //     danh mục → sai 403 forbidden. Nhân viên nội bộ không đổi gì.
@@ -10,11 +13,18 @@
 //     giảm" (trần = 0): giảm giá cấp đơn phải bằng 0 ở lập, sửa và xác nhận (xác nhận đọc giảm giá ĐÃ LƯU) → sai 403 forbidden. Nhân viên nội bộ không đổi.
 // Đơn của Đối tác dựng bằng API trực tiếp (từ 1.15 Đối tác đọc được danh mục — ADR-0028; kịch bản không cần giao diện). Dịch vụ nhập tay CŨ dựng bằng SQL trên D1 local tạm (`makeLegacyManual`).
 import assert from "node:assert/strict";
-import { ACCOUNTS, FAKE_CATALOG, call, catalogService, ensureFakeCatalog, login, makeLegacyManual, manualService, orderInput, randomPhone, session, sql, vnDate } from "./lib.mjs";
+import { ACCOUNTS, FAKE_CATALOG, call, catalogService, ensureFakeCatalog, login, makeLegacyManual, manualService, orderInput, randomPhone, session, sql, sqlRows, vnDate } from "./lib.mjs";
 
 await ensureFakeCatalog();
 const SALES = await session(ACCOUNTS.salesA);
 const ADMIN = await session(ACCOUNTS.admin);
+const SUPER = await session(ACCOUNTS.superAdmin);
+const FIELD = await session(ACCOUNTS.field);
+const congTac = async () => (await call(SUPER, "GET", "/api/cai-dat/nhap-tay")).body;
+const datCongTac = (who, on) => call(who, "POST", "/api/cai-dat/nhap-tay", { batNhapTay: on });
+// D1 local tạm dùng chung: lần chạy trước đứt giữa chừng có thể để công tắc BẬT — đưa về TẮT (mặc định sau migration 0052) rồi mới kiểm.
+if ((await congTac()).batNhapTay) assert.equal((await datCongTac(SUPER, false)).status, 200);
+assert.equal((await congTac()).batNhapTay, false, "đầu kịch bản: công tắc nhập tay TẮT");
 const ZE1 = FAKE_CATALOG.ZE1.prices.adult; // giá danh mục người lớn của ZE1
 const tag = Date.now().toString(36);
 const lines = (o) => o.services.flatMap((s) => s.items);
@@ -37,12 +47,14 @@ const catalogAsStored = (sv, patch = {}) => ({
   unitPrices: Object.fromEntries(sv.items.map((i) => [i.paxCode, i.unitPrice])), catalogPriceSeen: Object.fromEntries(sv.items.map((i) => [i.paxCode, i.catalogPrice])),
   ...patch,
 });
-const FROZEN = /dịch vụ nhập tay đã ngừng/;
+const FROZEN = /dịch vụ nhập tay đang tắt/; // ADR-0061: câu R1 theo lý do — công tắc TẮT
+const FROZEN_DOI_TAC = /tài khoản có quyền Đối tác không dùng được dịch vụ nhập tay/;
+const FROZEN_KHONG_O = /tài khoản này không được dùng dịch vụ nhập tay/;
 const RETAIL = /giá bán lẻ theo danh mục/;
 const NO_DISCOUNT = /^Tài khoản đối tác chưa được giảm giá: mức giảm tối đa bằng mức chiết khấu Tour Đảo dành cho đối tác, mà mức này chưa được thiết lập\. Muốn giảm cho khách, nhờ văn phòng\.$/;
 let r;
 
-// ================================================ R1 — dịch vụ nhập tay (mọi tài khoản) ================================================
+// ============================================ R1 — dịch vụ nhập tay (công tắc TẮT — ADR-0061) ============================================
 // 1) Không nhận dịch vụ nhập tay MỚI — đứng một mình hay cạnh dịch vụ danh mục; câu lỗi chỉ đúng dịch vụ (banner cuộn tới thẻ đó).
 r = await call(SALES, "POST", "/api/orders", orderInput({ customerName: `R1 mới ${tag}`, services: [manualService([{ description: "Xe 7 chỗ", quantity: 1, unitPrice: 800000 }])] }));
 assert.equal(r.status, 400, JSON.stringify(r.body));
@@ -51,7 +63,7 @@ assert.match(r.body.error.message, /^Dịch vụ 1: /);
 assert.match(r.body.error.message, FROZEN);
 r = await call(SALES, "POST", "/api/orders", orderInput({ customerName: `R1 mới ${tag}`, services: [catalogService(), manualService([{ description: "Áo phao", quantity: 1, unitPrice: 1 }])] }));
 assert.equal(r.status, 400, JSON.stringify(r.body));
-assert.match(r.body.error.message, /^Dịch vụ 2: dịch vụ nhập tay đã ngừng/);
+assert.match(r.body.error.message, /^Dịch vụ 2: dịch vụ nhập tay đang tắt/);
 assert.equal((await call(SALES, "GET", `/api/orders?q=${encodeURIComponent(`R1 mới ${tag}`)}`)).body.orders.length, 0, "không lưu đơn nào");
 console.log("✓ R1: POST dịch vụ nhập tay mới → 400 (một mình hay cạnh dịch vụ danh mục), không lưu đơn");
 
@@ -140,10 +152,10 @@ for (const [what, price] of [["thấp hơn", ZE1 - 10000], ["cao hơn", ZE1 + 10
   assert.match(r.body.error.message, RETAIL);
   assert.equal(await partnerCount(name), 0, `${what}: không lưu đơn`);
 }
-// dịch vụ nhập tay của Đối tác: R1 chặn trước (400, áp cho mọi tài khoản)
+// dịch vụ nhập tay của Đối tác: R1 chặn trước (400 — ADR-0061: tài khoản có quyền Đối tác luôn bị chặn, câu nói rõ lý do Đối tác)
 r = await call(P, "POST", "/api/orders", orderInput({ services: [manualService([{ description: "Tour 4 đảo", quantity: 2, unitPrice: 10000 }])] }));
 assert.equal(r.status, 400, JSON.stringify(r.body));
-assert.match(r.body.error.message, FROZEN);
+assert.match(r.body.error.message, FROZEN_DOI_TAC);
 console.log("✓ R2: Đối tác lập đơn với đơn giá khác giá danh mục (thấp/cao) → 403; dịch vụ nhập tay → 400 (R1)");
 
 // 4) R3: đúng giá danh mục + GIẢM GIÁ (dù 1₫ hay gần hết tiền) → 403, không lưu đơn; KHÔNG giảm giá → 201 (mặc định hoặc đơn giá tường minh = giá danh mục)
@@ -252,5 +264,101 @@ r = await call(PH, "POST", "/api/orders", orderInput({ customerName: `ĐT lai gi
 assert.equal(r.status, 403, `Đối tác lai, giảm 1đ: ${JSON.stringify(r.body)}`);
 assert.match(r.body.error.message, NO_DISCOUNT);
 console.log("✓ R2+R3: tài khoản có quyền Đối tác KÈM quyền nội bộ (PARTNER+FIELD, gán qua đường cũ) → đơn giá lệch 403, giảm giá 403");
+
+// ============================== ADR-0061 — công tắc "Dịch vụ nhập tay" (tiêu chí nghiệm thu 2–5) ==============================
+// Tài khoản thêm cho mục này: Thực tập (INTERN), lai Đối tác + Bán hàng (SALES+PARTNER, gán qua đường quản trị cũ như mục 8).
+const taoTk = async (ten, permissions) => {
+  const ph = randomPhone();
+  const x = await call(ADMIN, "POST", "/api/staff", { fullName: `${ten} ${tag}`, phone: ph, permissions });
+  assert.equal(x.status, 201, JSON.stringify(x.body));
+  return (await login(ph, x.body.pin)).cookie;
+};
+const INTERN = await taoTk("Thực Tập Nhập Tay", ["INTERN"]);
+const LAI_SALES = await taoTk("Đối Tác Lai Bán", ["SALES", "PARTNER"]);
+const nhapTayBody = (name) => orderInput({ customerName: name, services: [catalogService(), manualService([{ description: "Xe 7 chỗ", quantity: 2, unitPrice: 400000 }], { name: "Xe đưa đón riêng" })] });
+
+// 9a) Quản trị bật công tắc → 403 forbidden, công tắc vẫn TẮT (tiêu chí 4 nửa đầu)
+r = await datCongTac(ADMIN, true);
+assert.equal(r.status, 403, JSON.stringify(r.body));
+assert.equal(r.body.error.code, "forbidden");
+assert.equal((await congTac()).batNhapTay, false);
+// 9b) Toàn quyền bật → 200, có dòng nhật ký (tiêu chí 4 nửa sau); đọc lại: Bán hàng dùng được, lai Đối tác + Bán hàng thì không
+r = await datCongTac(SUPER, true);
+assert.equal(r.status, 200, JSON.stringify(r.body));
+assert.equal(r.body.batNhapTay, true);
+try {
+  const nk = await sqlRows(`SELECT count(*) AS n FROM audit_log WHERE action = 'manual_service_policy_changed' AND detail = 'Bật dịch vụ nhập tay' AND order_id IS NULL`);
+  assert.ok(Number(nk[0].n) >= 1, `có dòng nhật ký bật: ${JSON.stringify(nk)}`);
+  assert.deepEqual((await call(SALES, "GET", "/api/cai-dat/nhap-tay")).body, { batNhapTay: true, duocDung: true, doiDuoc: false });
+  assert.deepEqual((await call(LAI_SALES, "GET", "/api/cai-dat/nhap-tay")).body, { batNhapTay: true, duocDung: false, doiDuoc: false });
+  console.log("✓ ADR-0061: Quản trị bật công tắc → 403; Toàn quyền bật → 200 + nhật ký; Bán hàng dùng được, lai Đối tác + Bán hàng không");
+
+  // 9c) Tiêu chí 2: Bán hàng, Quản trị lập đơn có dịch vụ nhập tay → 201; tổng tiền do máy chủ tính (giá danh mục ZE1 + 2 × 400.000)
+  let donNhapTay;
+  for (const [ten, who] of [["Bán hàng", SALES], ["Quản trị", ADMIN]]) {
+    r = await call(who, "POST", "/api/orders", nhapTayBody(`NT bật ${ten} ${tag}`));
+    assert.equal(r.status, 201, `${ten}: ${JSON.stringify(r.body)}`);
+    assert.deepEqual([r.body.order.services[1].kind, r.body.order.subtotal], ["manual", ZE1 + 800000], ten);
+    if (who === SALES) donNhapTay = r.body.order;
+  }
+  console.log("✓ ADR-0061 tiêu chí 2: công tắc BẬT — Bán hàng, Quản trị lập đơn có dịch vụ nhập tay → 201, tổng tiền máy chủ tính");
+
+  // 9d) Tiêu chí 3 (POST): chỉ-HDV 403 forbidden; Thực tập, Đối tác, lai Đối tác + Bán hàng, lai Đối tác + HDV → 400 invalid_input
+  const ca = [
+    ["chỉ-HDV", FIELD, 403, "forbidden", null],
+    ["Thực tập", INTERN, 400, "invalid_input", FROZEN_KHONG_O],
+    ["Đối tác", P, 400, "invalid_input", FROZEN_DOI_TAC],
+    ["lai Đối tác + Bán hàng", LAI_SALES, 400, "invalid_input", FROZEN_DOI_TAC],
+    ["lai Đối tác + HDV", PH, 400, "invalid_input", FROZEN_DOI_TAC],
+  ];
+  for (const [ten, who, status, code, cau] of ca) {
+    r = await call(who, "POST", "/api/orders", nhapTayBody(`NT chặn ${ten} ${tag}`));
+    assert.equal(r.status, status, `${ten}: ${JSON.stringify(r.body)}`);
+    assert.equal(r.body.error.code, code, ten);
+    if (cau) assert.match(r.body.error.message, cau, ten);
+  }
+  console.log("✓ ADR-0061 tiêu chí 3 (POST): chỉ-HDV 403; Thực tập, Đối tác, lai Đối tác+Bán hàng, lai Đối tác+HDV 400 invalid_input");
+
+  // 9e) Tiêu chí 3 (PUT sửa nháp): người có order.modify trên đơn của mình thêm dịch vụ nhập tay → cùng mã 400
+  for (const [ten, who, cau] of [["Thực tập", INTERN, FROZEN_KHONG_O], ["Đối tác", P, FROZEN_DOI_TAC], ["lai Đối tác + Bán hàng", LAI_SALES, FROZEN_DOI_TAC]]) {
+    const x = await call(who, "POST", "/api/orders", orderInput({ customerName: `NT sửa ${ten} ${tag}` }));
+    assert.equal(x.status, 201, `${ten}: ${JSON.stringify(x.body)}`);
+    r = await put(who, x.body.order, [catalogAsStored(x.body.order.services[0]), manualService([{ description: "Xe", quantity: 1, unitPrice: 1 }])]);
+    assert.equal(r.status, 400, `${ten}: ${JSON.stringify(r.body)}`);
+    assert.equal(r.body.error.code, "invalid_input", ten);
+    assert.match(r.body.error.message, cau, ten);
+  }
+  console.log("✓ ADR-0061 tiêu chí 3 (PUT): Thực tập, Đối tác, lai Đối tác+Bán hàng sửa nháp thêm dịch vụ nhập tay → 400");
+
+  // 9f) Hệ quả có chủ ý (ADR-0061): Quản trị thêm dịch vụ nhập tay vào đơn nháp CỦA ĐỐI TÁC → Đối tác không xác nhận được (R2, 403); nội bộ xác nhận thay
+  const pd = (await call(P, "POST", "/api/orders", orderInput({ customerName: `NT nháp Đối tác ${tag}` }))).body.order;
+  r = await put(ADMIN, pd, [catalogAsStored(pd.services[0]), manualService([{ description: "Phụ thu", quantity: 1, unitPrice: 50000 }])]);
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  const pd2 = r.body.order;
+  r = await confirm(P, pd2);
+  assert.equal(r.status, 403, JSON.stringify(r.body));
+  assert.match(r.body.error.message, RETAIL);
+  assert.equal((await confirm(ADMIN, pd2)).status, 200, "Quản trị xác nhận thay");
+  console.log("✓ ADR-0061 hệ quả: nội bộ thêm nhập tay vào nháp của Đối tác → Đối tác xác nhận 403 (R2), Quản trị xác nhận thay 200");
+
+  // 9g) Tiêu chí 5: Toàn quyền TẮT → đơn đã có dịch vụ nhập tay vẫn mở; sửa giá/tên dòng đó → 400; gửi nguyên → 200; xác nhận → 200
+  r = await datCongTac(SUPER, false);
+  assert.deepEqual([r.status, r.body.batNhapTay], [200, false]);
+  const mo = await get(SALES, donNhapTay.id);
+  assert.equal(mo.services[1].kind, "manual");
+  r = await put(SALES, mo, [catalogAsStored(mo.services[0]), manualAsStored(mo.services[1], { items: [{ description: "Xe 7 chỗ", detail: "", quantity: 2, unitPrice: 1 }] })]);
+  assert.equal(r.status, 400, JSON.stringify(r.body));
+  assert.match(r.body.error.message, FROZEN);
+  r = await put(SALES, mo, [catalogAsStored(mo.services[0]), manualAsStored(mo.services[1], { name: "Xe khác" })]);
+  assert.equal(r.status, 400, JSON.stringify(r.body));
+  r = await put(SALES, mo, [catalogAsStored(mo.services[0]), manualAsStored(mo.services[1])], { customerNote: "giữ nguyên sau khi tắt" });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.equal((await confirm(SALES, r.body.order)).status, 200);
+  console.log("✓ ADR-0061 tiêu chí 5: tắt lại → đơn có nhập tay vẫn mở, sửa giá/tên 400, gửi nguyên 200, xác nhận 200");
+} finally {
+  // D1 chung: luôn TẮT lại công tắc cho kịch bản sau (mặc định sau migration 0052).
+  if ((await congTac()).batNhapTay) await datCongTac(SUPER, false);
+}
+assert.equal((await congTac()).batNhapTay, false, "cuối kịch bản: công tắc TẮT");
 
 console.log("E2E NHẬP TAY + GIÁ ĐỐI TÁC OK");

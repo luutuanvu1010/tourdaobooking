@@ -150,6 +150,12 @@
       "kind": "table"
     },
     {
+      "name": "ord_manual_service_policy",
+      "module": "orders",
+      "kind": "table",
+      "note": "công tắc \"Dịch vụ nhập tay\" (ADR-0061, migration 0052), CHỈ-THÊM; dòng hiệu lực = valid_from_at lớn nhất ≤ bây giờ, bảng rỗng = TẮT; gieo một dòng TẮT; chỉ Toàn quyền thêm dòng mới (settings.ops)"
+    },
+    {
       "name": "pty_contact_kind",
       "module": "parties",
       "kind": "lookup"
@@ -402,6 +408,12 @@
       "note": "phiếu sổ (ADR-0026 đ3), CHỈ-THÊM; due_snapshot = phải thu chụp lúc Đã giao (Q4); trigger kiểm tiền trong lô Đã giao / Hoàn thành"
     },
     {
+      "name": "bil_accounting_entry",
+      "module": "billing",
+      "kind": "table",
+      "note": "dấu \"đã nhập phần mềm kế toán\" + \"Số hoá đơn đã nhập\" của một đơn (ADR-0060), CHỈ-THÊM (trigger cấm sửa/xoá); trạng thái hiện tại = dòng rowid lớn nhất của đơn; bỏ dấu bắt buộc lý do (CHECK); không tiền, không trạng thái hoá đơn ADR-0004"
+    },
+    {
       "name": "bil_debt_line",
       "module": "billing",
       "kind": "table",
@@ -418,6 +430,30 @@
       "module": "tro-ly",
       "kind": "table",
       "note": "bật/tắt + trần tháng (micro-USD) + trần ngày của trợ lý (ADR-0066), bản có hiệu lực CHỈ-THÊM (bản hiện hành = valid_from_at lớn nhất); chỉ Toàn quyền thêm bản mới (settings.ops)"
+    },
+    {
+      "name": "tl_vai",
+      "module": "tro-ly",
+      "kind": "table",
+      "note": "công tắc trợ lý theo MÃ QUYỀN (ADR-0069 điều 3), bản có hiệu lực CHỈ-THÊM theo từng mã; mã không có dòng = tắt; người hỏi được dùng khi ít nhất một quyền đang bật; chỉ Toàn quyền thêm bản (settings.ops)"
+    },
+    {
+      "name": "tl_loi_dan",
+      "module": "tro-ly",
+      "kind": "table",
+      "note": "lời dặn của Toàn quyền (câu chào, giọng, lời dặn thêm, câu hỏi mẫu — ADR-0069 điều 4), bản có hiệu lực CHỈ-THÊM; mọi bản là lịch sử bản; chữ đã qua luật nội dung trước khi ghi; luật lõi của lời nhắc luôn đứng trước"
+    },
+    {
+      "name": "tl_ngu_canh",
+      "module": "tro-ly",
+      "kind": "table",
+      "note": "đoạn ngữ cảnh bổ sung cho kho tìm đoạn của trợ lý (ADR-0069 điều 4), bản có hiệu lực CHỈ-THÊM theo doan_id; sửa / bật / tắt = bản mới"
+    },
+    {
+      "name": "tl_hoi_dap",
+      "module": "tro-ly",
+      "kind": "table",
+      "note": "lịch sử hỏi đáp (ADR-0069 điều 5, sửa ADR-0066 điều 7), CHỈ-THÊM, ghi cùng lô với tl_luot_hoi (luot_id); câu hỏi ĐÃ CHE (CHECK chặn dãy 8 chữ số); chỉ Toàn quyền đọc (settings.ops); không xoá"
     }
   ],
   "views": [

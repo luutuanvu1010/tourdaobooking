@@ -277,7 +277,8 @@ test("ADR-0030 L1-12: MỌI ô của Đối tác (PARTNER) giữ nguyên — ghi
   const PARTNER_ROW: Record<string, string> = {
     "order.view": "own", "money.view": "own", "order.history.view": "own", "contact.view": "ownOrAssigned", "order.create": "any", "order.modify": "own",
     "order.trip.edit": "none", "task.progress": "assigned", "order.money.edit": "none", "order.cancel": "none", "dispatch.assign": "none", "dispatch.claim": "none",
-    "dispatch.guides.view": "any", "payment.receive": "own" /* ADR-0026 đ10: thay ô cọc trên form đơn của mình */, "payment.refund": "none", "invoice.request": "none", "invoice.issue": "none", "party.view": "none",
+    "dispatch.guides.view": "any", "payment.receive": "own" /* ADR-0026 đ10: thay ô cọc trên form đơn của mình */, "payment.refund": "none", "invoice.request": "none", "invoice.issue": "none",
+    "accounting.entry.mark": "none", "accounting.entry.view": "none" /* ADR-0060 Q-2 "Không": Đối tác không thấy dấu kế toán / số hoá đơn */, "party.view": "none",
     "party.write": "none", "party.staff.write": "none", "admin.manage": "none", "admin.manage.superadmin": "none", "feedback.submit": "any", "feedback.view": "own",
     "feedback.triage": "none", "settings.ops": "none", "order.pool.view": "none", "account.access.manage": "none", "audit.view": "none", "notice.send": "none",
     "staff.sheet.sync": "none",
@@ -288,6 +289,7 @@ test("ADR-0030 L1-12: MỌI ô của Đối tác (PARTNER) giữ nguyên — ghi
     "order.passenger.write": "own", // ADR-0047 A2: bằng order.modify — Đối tác nhập tên khách cho đơn CỦA MÌNH
     "order.leg.short_notice": "none", // ADR-0049 D3: đặt gấp chỉ Quản trị, Toàn quyền
     "order.leg.short_notice.view": "none", // chủ H4/N-14: Đối tác chỉ thấy cờ "đặt gấp — Quản trị đã duyệt"
+    "order.service.manual": "none", // ADR-0061 điều 2: Đối tác không bao giờ nhập tay (máy chủ còn chặn mọi tài khoản có quyền Đối tác — holdsPartner)
     "trip.view": "none", "trip.dispatch": "none", "trip.override": "none", "trip.progress": "none", "trip.call_ack": "none", // ADR-0049 D3: Đối tác không thấy lịch xe (C1)
     "assistant.ask": "any", // ADR-0066 điều 1: hỏi trợ lý Hỗ trợ — mọi tài khoản đăng nhập
   };
