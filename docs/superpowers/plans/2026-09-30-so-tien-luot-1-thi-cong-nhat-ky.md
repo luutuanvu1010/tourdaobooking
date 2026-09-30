@@ -127,6 +127,23 @@
 - Sửa nhờ kịch bản Chrome: (1) sau Đã giao khối "Người phụ trách" vẫn hiện nút đổi / nhận (máy chủ sẽ 409) → ẩn; (2) danh sách lần thu dùng lớp `.history` trùng khối Lịch sử (người không xem được lịch sử vẫn "thấy" `.history`) → lớp riêng `.pay-list`.
 - Người kiểm độc lập: **CHƯA** (Task 12 ngoài phạm vi giao) — việc tiền / dữ liệu / quyền này chưa được coi là "đạt".
 
+## Sửa theo kiểm độc lập (Task 12 — "ĐẠT CÓ ĐIỀU KIỆN", không CAO) + thao tác Kế toán đặt tạm (điều phối 30/9)
+
+- **V-2** (`b16022b9`): mọi kịch bản `docs/evidence/**` không còn gửi cọc > 0 trong thân đơn (quét lại toàn thư mục: 0 chỗ). `v1-xac-nhan-png` dùng khoá `traTruoc` → `create` ghi lần thu bằng route; `a2-evidence` như vậy + ô `prepaidAmount`; `kiem-tra-giao-dien` ghi lần thu sau khi lập; `lo-hong` bỏ hẳn (ca H* không phụ thuộc tiền). `dp-lib`, `dat-gap-smoke`, `bang-tin-smoke`, `dot-a-smoke`: chỉ gửi `depositAmount: 0` hoặc không gửi — máy chủ nhận.
+- **v1-xac-nhan-png bước b** chạy trên nhánh (`1793c619`) VÀ trên bản sao `origin/main` `3a39b5a7` (git archive ra `/tmp`, build:web): **cả hai đỏ đúng một bước b** "hai họ phông (tập con tiếng Việt) phải đã nạp: []", 12 bước còn lại xanh ⇒ đỏ SẴN từ main (bản 1.39 đổi phông), không do sổ tiền.
+- **T-1** (`4d8b0f99`): `src/shared/router.ts` bắt chung lỗi có tiền tố `order_delivered:` / `order_completed:` → 409 `order_delivered` câu cố định tiếng Việt (log `warn` `order_delivered_race`). Bài router đỏ trước; ca đua thật trên khung thử (`sau-da-giao.test.ts` "T-1"); đột biến tắt nhánh → `expected 409 actual 500` → hoàn nguyên.
+- **T-2** (`81e94da5`): "Việc của tôi" nhãn "Đã thu" (số đã thu của billing); kịch bản HDV sửa theo; nhật ký 1.41 thêm một dòng.
+- **T-3** (`00cda4fc`): trigger mới `bil_payment_receipt_refund_within_paid` trong **0045** (sửa tại chỗ — chưa áp remote, cùng nhánh); `ghiHoanKhach` dịch `refund_exceeds_paid` → 409. Ca đua hai Kế toán ở `lo-ghi.test.ts` "T-3" đỏ trước (`expected 409 actual 201`) → xanh; bài migration mới "T-3". **Bẫy:** D1 local của worktree đã áp 0045 cũ — `db:migrate:local` KHÔNG áp lại (wrangler theo tên tệp); e2e dùng D1 tạm nên đúng. Dọn: xoá `.wrangler/state/v3/d1` rồi migrate lại.
+- **T-4** (`c482b284`): gộp hai dòng KHONG_BANG ở SO-HANG-RAO (giữ ngày quan sát).
+- **T-5** (`196007a0`): `tests/e2e/so-tien.mjs` đếm nhật ký trên D1 thật: `order_delivered` 1, `order_completed` 1, `payment_recorded` = 2 = số lần thu.
+- **Thao tác Kế toán đặt TẠM trên trang đơn** (`1793c619`, điều phối 30/9 — chủ sẽ vẽ lại hai màn sổ trên Claude Design): trong khung Thanh toán, CHỈ khi máy chủ gửi khối mới `keToan` của `GET /api/orders/:id/payments` (chỉ `laKeToan` = ô `ledger.write`): mỗi lần thu "Xác nhận đã nhận" (CK chờ xác nhận) và "Đảo" (bắt buộc lý do, gồm lần thu "chưa rõ"); "X đang giữ Y ₫ … Đã nộp về công ty" (settlements, phân bổ đúng đơn này); "Ghi hoàn cho khách" khi dư. Không thêm route / quyền / migration — chỉ thêm TRƯỜNG `keToan` vào phản hồi có sẵn (lý do: không có cách nào khác biết ai giữ bao nhiêu VÌ ĐƠN NÀY và lần thu nào chờ xác nhận). Xác nhận tại chỗ, bấm hai lần mới ghi (không `confirm()`). Bài `lo-ghi` đỏ trước → xanh.
+
+### Kiểm sau sửa (30/9)
+- `npm test` 1959/1959 + 1/1; typecheck 0; build:web được.
+- `npm run test:e2e` đủ bộ trên `1793c619`: **31/31**, audit `--strict` đuôi: "Mọi bất biến đạt, 6 cảnh báo".
+- Chrome: `so-tien-smoke` 4/4 (thêm bước Kế toán 390: xác nhận CK, Đảo đòi lý do, ghi hoàn 150.000, ghi đã nộp; Bán hàng / Quản trị không thấy nút); `hdv-viec-cua-toi-smoke` 10/10 bước; `a2-smoke-order` 11 ✓; `v1-xac-nhan-png` 12/13 (bước b đỏ sẵn từ main — trên).
+- Ảnh / kết quả do các kịch bản cũ ghi lại đã hoàn nguyên (không đổi bằng chứng lịch sử).
+
 ## Ruling / giả định (ghi theo thứ tự gặp)
 
 - R-1 (bề mặt): mã hình thức thu viết HOA (`CASH`/`BANK_TRANSFER`/`OTHER`) như bảng tra 0045; cọc cũ chữ thường đổi bằng `upper()` lúc chuyển.
@@ -140,8 +157,8 @@
 
 ## Nợ / việc còn lại
 
-- N-1: đua hiếm giữa lúc route `orders` đọc mốc và lúc ghi (người khác bấm Đã giao giữa chừng) → trigger `order_delivered` chặn dữ liệu đúng, nhưng người dùng thấy lỗi 500 chung thay vì câu tiếng Việt. Chưa dịch.
-- N-2: kịch bản Chrome NGOÀI danh sách chạy lại vẫn gửi cọc > 0 trong thân đơn → sẽ gặp 409 `client_outdated`: `docs/evidence/2026-09-24-lo-hong-ho-so/kich-ban/lo-hong.mjs:21`, `docs/evidence/2026-09-19-pwa/kich-ban/kiem-tra-giao-dien.mjs:59`, `docs/evidence/2026-09-20-a2/kich-ban/a2-evidence.mjs:162`.
-- N-3: `v1-xac-nhan-png` bước b (phông Nunito) — đỏ, nhiều khả năng từ bản 1.39; cần phiên phông chữ sửa khẳng định.
-- N-4: hai màn "Sổ của tôi" / "Sổ công nợ" chưa dựng (chờ chủ duyệt ảnh phác); route đã có.
+- N-1: ĐÃ SỬA (T-1).
+- N-2 (ĐÃ SỬA — V-2): kịch bản Chrome NGOÀI danh sách chạy lại vẫn gửi cọc > 0 trong thân đơn → sẽ gặp 409 `client_outdated`: `docs/evidence/2026-09-24-lo-hong-ho-so/kich-ban/lo-hong.mjs:21`, `docs/evidence/2026-09-19-pwa/kich-ban/kiem-tra-giao-dien.mjs:59`, `docs/evidence/2026-09-20-a2/kich-ban/a2-evidence.mjs:162`.
+- N-3: `v1-xac-nhan-png` bước b (phông Nunito) — ĐÃ XÁC NHẬN đỏ sẵn trên origin/main `3a39b5a7`; phiên phông chữ sửa khẳng định.
+- N-4: hai màn "Sổ của tôi" / "Sổ công nợ" chưa dựng — chủ sẽ vẽ lại trên Claude Design; thao tác Kế toán tạm ở trang đơn.
 - N-5: Task 12 (kiểm độc lập + runbook triển khai) chưa làm.
