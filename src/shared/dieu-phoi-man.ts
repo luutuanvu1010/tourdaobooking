@@ -7,6 +7,7 @@
 import { nhanThoiLuong } from "./chinh-sach-hien-thi.ts";
 import type { CanhBaoLichDto, ChangLichDto, ChuyenTomTatDto, DiemChuyenDto, GioHenDto, GioVnDto, GoiBaoChangDto, LichChungResponse, LyDoGiuDto, MucNhacGoiDto, NhatKyChuyenDto } from "./contracts.ts";
 import { AI_XU_LY_GIO_HEN_DOI, NHAN_GIO_HEN_DOI, moTaDoiGio } from "./goi-bao.ts";
+import { NUT_CAP_NHAT_KHACH } from "./ly-do-giu.ts";
 import { can, type PermissionHolder } from "./permissions.ts";
 import { maskLongDigits } from "./text-guards.ts";
 import { msToVnLocal, vnLocalToMs } from "./vn-date.ts";
@@ -113,13 +114,16 @@ export function chuyenXepDuoc(l: Pick<LichChungResponse, "ngay" | "chuyen">): { 
 export function cauKhoaMoc(mocPhut: number | null, co: { phaLe: boolean; dieuPhoi: boolean }): string {
   const dau = `Trong ${mocPhut === null ? "mốc tối thiểu" : nhanThoiLuong(mocPhut)} trước giờ xuất bến — khoá xếp khách, đổi xe, đổi tài xế.`;
   if (!co.dieuPhoi) return dau;
-  return `${dau} ${co.phaLe ? "Bạn có thể phá lệ." : "Cần Quản trị phá lệ."} Cập nhật điểm theo đơn không cần phá lệ.`;
+  // Vòng 5e (R-P29): "Cập nhật khách theo đơn" cũng KHÔNG khoá theo mốc (máy chủ `DOI_KHACH_THEO_DON` ngoài LENH_KHOA_THEO_MOC).
+  return `${dau} ${co.phaLe ? "Bạn có thể phá lệ." : "Cần Quản trị phá lệ."} Cập nhật điểm theo đơn và ${NUT_CAP_NHAT_KHACH.toLowerCase()} không cần phá lệ.`;
 }
 
 // ---- "Cần xử lý" ---------------------------------------------------------------------------------------------------------------------------------------------
 export type HanhDong =
   | { nhan: string; kieu: "link"; href: string }
   | { nhan: string; kieu: "cap-nhat-diem"; tripId: string }
+  /** Vòng 5e (R-P29, chủ lần 16): "Cập nhật khách theo đơn" — lý do giữ KHACH_DA_DOI; khuôn "cap-nhat-diem". */
+  | { nhan: string; kieu: "cap-nhat-khach"; tripId: string }
   /** ADR-0051: "Đã gọi báo" — gửi lại `phienBan` + giờ "mới" màn đã hiện. */
   | { nhan: string; kieu: "goi-bao"; legId: string; phienBan: number; gioMoi: GioHenDto; maDon: string };
 export interface ViecCanXuLy {
@@ -155,6 +159,7 @@ export function viecCanXuLy(l: LichChungResponse, co: { dieuPhoi: boolean; phaLe
     const ma = new Set(c.lyDoGiu.map((x) => x.ma));
     const hanhDong: HanhDong[] = [];
     if (ma.has("NOI_HEN_DOI") && co.dieuPhoi) hanhDong.push({ nhan: "Cập nhật điểm theo đơn", kieu: "cap-nhat-diem", tripId: c.id });
+    if (ma.has("KHACH_DA_DOI") && co.dieuPhoi) hanhDong.push({ nhan: NUT_CAP_NHAT_KHACH, kieu: "cap-nhat-khach", tripId: c.id });
     if (ma.has("DIEU_KIEN_GIAY_TO_XE") && co.quanLyXe) hanhDong.push({ nhan: "Mở giấy tờ xe", kieu: "link", href: `/xe-chi-tiet?id=${encodeURIComponent(c.xe.id)}` });
     if (ma.has("CHUA_CO_TAI_XE") && co.dieuPhoi) hanhDong.push({ nhan: "Chọn tài xế", kieu: "link", href: `/chuyen-sua?id=${encodeURIComponent(c.id)}` });
     out.push({
@@ -281,7 +286,7 @@ export function hinhDongThoiGian(l: Pick<LichChungResponse, "ngay" | "chuyen" | 
 const NHOM_DIEU_KIEN: readonly { nhan: string; ma: readonly string[] }[] = [
   { nhan: "Giấy tờ xe", ma: ["DIEU_KIEN_GIAY_TO_XE", "XE_KHONG_DUNG"] },
   { nhan: "Giấy phép lái xe", ma: ["GPLX_THIEU", "GPLX_THIEU_HANG", "GPLX_HET_HAN", "HANG_BANG_KHONG_DU", "KHONG_CO_HANG_BANG", "DIEU_KIEN_GIAY_TO_TAI_XE", "CHUA_CO_TAI_XE", "CHEO_XE_TAI_XE"] },
-  { nhan: "Đủ tên khách", ma: ["THIEU_TEN"] },
+  { nhan: "Đủ tên khách", ma: ["THIEU_TEN", "KHACH_DA_DOI"] }, // KHACH_DA_DOI: vòng 5e — điều phối duyệt xếp vào dòng này
   { nhan: "Không có đơn đã huỷ", ma: ["DON_DA_HUY", "CHANG_DA_DONG", "CHANG_KHONG_HOP_LE"] },
   { nhan: "Điểm khớp đơn", ma: ["NOI_HEN_DOI", "CHUA_CO_GIO", "CHUA_CO_NOI_TRA", "GIO_HEN_NGOAI_CHUYEN", "THIEU_SUAT", "THUA_SUAT"] },
   { nhan: "Đủ chỗ", ma: ["VUOT_SO_CHO", "VUOT_SO_NGUOI_CHANG"] },

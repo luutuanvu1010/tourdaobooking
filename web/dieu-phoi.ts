@@ -11,7 +11,8 @@ import {
   cauKhoaMoc, changChuaXep, chipChang, chuyenXepDuoc, hinhDongThoiGian, kieuChuyen, nhanNgayXem, soLieuDieuPhoi, tuyenChuyen, viecCanXuLy,
   type HangXe, type KhoiChuyen, type ViecCanXuLy,
 } from "../src/shared/dieu-phoi-man";
-import type { ChangLichDto, ChuyenChiTietResponse, ChuyenTomTatDto, CapNhatDiemResponse, GoiBaoChangDto, LichChungResponse, NhacGoiKhachResponse } from "../src/shared/contracts";
+import type { ChangLichDto, ChuyenChiTietResponse, ChuyenTomTatDto, CapNhatDiemResponse, CapNhatKhachResponse, GoiBaoChangDto, LichChungResponse, NhacGoiKhachResponse } from "../src/shared/contracts";
+import { NUT_CAP_NHAT_KHACH } from "../src/shared/ly-do-giu";
 import { NHAN_TU_CHOI_GOI_BAO, type MaTuChoiGoiBao } from "../src/shared/goi-bao";
 import { ApiError } from "./api";
 import { can } from "../src/shared/permissions";
@@ -278,6 +279,10 @@ function theChon(): HTMLElement | null {
   const noiDoi = c.trangThai === "PLANNED" && c.lyDoGiu.some((x) => x.ma === "NOI_HEN_DOI") && co.dieuPhoi;
   const capNhat = noiDoi ? h("button", { type: "button", class: "vc-btn btn btn-primary", "data-action": "cap-nhat-diem" }, "Cập nhật điểm theo đơn") : null;
   capNhat?.addEventListener("click", () => void capNhatDiem(c, capNhat));
+  // Vòng 5e (R-P29): "Cập nhật khách theo đơn" cạnh "Cập nhật điểm theo đơn" — cùng điều kiện (chuyến lên kế hoạch + ô điều phối), lý do giữ KHACH_DA_DOI.
+  const khachDoi = c.trangThai === "PLANNED" && c.lyDoGiu.some((x) => x.ma === "KHACH_DA_DOI") && co.dieuPhoi;
+  const capNhatKh = khachDoi ? h("button", { type: "button", class: "vc-btn btn btn-primary", "data-action": "cap-nhat-khach" }, NUT_CAP_NHAT_KHACH) : null;
+  capNhatKh?.addEventListener("click", () => void capNhatKhach(c, capNhatKh));
   return h(
     "section",
     { class: "vc-card dp-chon", "aria-label": `Chuyến đang chọn ${c.ma}` },
@@ -286,7 +291,7 @@ function theChon(): HTMLElement | null {
     tuyen.length ? h("div", { class: "dp-route" }, ...tuyen) : null,
     c.trangThai === "PLANNED" && c.lyDoGiu.length ? h("div", { class: "dp-chon-giu" }, c.lyDoGiu.map((x) => x.loiNhan).join("; ")) : null,
     c.khoaMoc.dangKhoa && c.trangThai === "PLANNED" ? h("div", { class: "dg-lock dp-chon-lock" }, icon("lock", 14), cauKhoaMoc(lich!.mocToiThieuPhut, co)) : null,
-    h("div", { class: "dp-chon-actions" }, h("a", { class: "vc-btn vc-btn-ghost-primary", href: `/chuyen?id=${encodeURIComponent(c.id)}`, "data-action": "mo-chuyen" }, "Mở chuyến"), capNhat),
+    h("div", { class: "dp-chon-actions" }, h("a", { class: "vc-btn vc-btn-ghost-primary", href: `/chuyen?id=${encodeURIComponent(c.id)}`, "data-action": "mo-chuyen" }, "Mở chuyến"), capNhat, capNhatKh),
   );
 }
 const TONE_KIEU = { plan: "unit", run: "navy", done: "ok", held: "danger", nodrv: "warn", cancel: "muted" } as const;
@@ -309,8 +314,9 @@ function mucViec(v: ViecCanXuLy): HTMLElement {
       return b;
     }
     const c = lich!.chuyen.find((x) => x.id === a.tripId)!;
-    const b = h("button", { type: "button", class: "vc-btn btn btn-primary dp-cxl-btn", "data-action": "cap-nhat-diem" }, a.nhan);
-    b.addEventListener("click", () => void capNhatDiem(c, b));
+    const khach = a.kieu === "cap-nhat-khach";
+    const b = h("button", { type: "button", class: "vc-btn btn btn-primary dp-cxl-btn", "data-action": khach ? "cap-nhat-khach" : "cap-nhat-diem" }, a.nhan);
+    b.addEventListener("click", () => void (khach ? capNhatKhach(c, b) : capNhatDiem(c, b)));
     return b;
   });
   return h(
@@ -366,6 +372,19 @@ async function capNhatDiem(c: ChuyenTomTatDto, nut: HTMLButtonElement): Promise<
   try {
     const r = await lenhDiem.gui<CapNhatDiemResponse>(`/api/van-chuyen/chuyen/${encodeURIComponent(c.id)}/cap-nhat-diem`, "POST", { version: c.version });
     baoKetQua(r.daCapNhat > 0 ? dai("ok", `Đã cập nhật điểm theo đơn — ${c.ma}`, [`Đổi điểm cho ${r.daCapNhat} khách theo nơi đón / trả mới của đơn.`]) : dai("info", `Không có điểm nào cần cập nhật — ${c.ma}`));
+  } catch (e) {
+    const l = docLoiLenh(e);
+    baoKetQua(l.cu ? dai("warning", "Chuyến vừa được người khác sửa — đã tải lại bảng, bấm lại nếu vẫn cần.") : dai("danger", l.tieuDe, l.dong));
+  }
+  await nap();
+}
+/** Vòng 5e (R-P29): "Cập nhật khách theo đơn" — khuôn `capNhatDiem`; bảng không hiện tên khách nên chỉ `nap()` lại (tên đọc ở Chi tiết chuyến — GA-55). */
+const lenhKhach = taoLenh();
+async function capNhatKhach(c: ChuyenTomTatDto, nut: HTMLButtonElement): Promise<void> {
+  nut.disabled = true;
+  try {
+    const r = await lenhKhach.gui<CapNhatKhachResponse>(`/api/van-chuyen/chuyen/${encodeURIComponent(c.id)}/cap-nhat-khach`, "POST", { version: c.version });
+    baoKetQua(r.daCapNhat > 0 ? dai("ok", `Đã cập nhật khách theo đơn — ${c.ma}`, [`Cập nhật ${r.daCapNhat} chỗ theo khách hiện có của đơn.`]) : dai("info", `Không có khách nào cần cập nhật — ${c.ma}`));
   } catch (e) {
     const l = docLoiLenh(e);
     baoKetQua(l.cu ? dai("warning", "Chuyến vừa được người khác sửa — đã tải lại bảng, bấm lại nếu vẫn cần.") : dai("danger", l.tieuDe, l.dong));

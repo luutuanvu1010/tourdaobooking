@@ -133,7 +133,7 @@ try {
     await p.ev(`document.body.dataset.cu = '1'`);
     await p.send("Page.navigate", { url: `${env.base}/chuyen?id=${d.T4.id}` });
     await p.waitFor(`!document.body.dataset.cu && !!document.querySelector('.dp-ct-title')`, "mở T4");
-    assert.equal(await p.ev(txt(".dp-ct-lock")), "Trong 48 giờ trước giờ xuất bến — khoá xếp khách, đổi xe, đổi tài xế. Cần Quản trị phá lệ. Cập nhật điểm theo đơn không cần phá lệ.");
+    assert.equal(await p.ev(txt(".dp-ct-lock")), "Trong 48 giờ trước giờ xuất bến — khoá xếp khách, đổi xe, đổi tài xế. Cần Quản trị phá lệ. Cập nhật điểm theo đơn và cập nhật khách theo đơn không cần phá lệ.") /* vòng 5e: câu khoá nói cả lệnh mới */;
     await p.ev(click('.dp-ct-actions [data-action="huy-chuyen"]'));
     await p.waitFor(`!!document.querySelector('[data-action="huy-gui"]')`, "hộp huỷ mở");
     await p.ev(click('.sheet .vc-reason[data-code="HUY_KHONG_CON_KHACH"]'));
@@ -173,7 +173,7 @@ try {
   const q = await env.as(ACCOUNTS.admin, `/chuyen?id=${d.T4.id}`, DESK);
   await cho(q);
   await b.step("6", `H17 1040 Quản trị: dòng khoá "Bạn có thể phá lệ"; huỷ ${d.T4.ma} → hộp huỷ đóng, hộp "Phá lệ" mở → "Phá lệ và huỷ" gửi lại huỷ kèm phá lệ → đã huỷ`, async () => {
-    assert.equal(await q.ev(txt(".dp-ct-lock")), "Trong 48 giờ trước giờ xuất bến — khoá xếp khách, đổi xe, đổi tài xế. Bạn có thể phá lệ. Cập nhật điểm theo đơn không cần phá lệ.");
+    assert.equal(await q.ev(txt(".dp-ct-lock")), "Trong 48 giờ trước giờ xuất bến — khoá xếp khách, đổi xe, đổi tài xế. Bạn có thể phá lệ. Cập nhật điểm theo đơn và cập nhật khách theo đơn không cần phá lệ.") /* vòng 5e: câu khoá nói cả lệnh mới */;
     await q.ev(click('.dp-ct-actions [data-action="huy-chuyen"]'));
     await q.waitFor(`!!document.querySelector('[data-action="huy-gui"]')`, "hộp huỷ mở");
     await q.ev(click('.sheet .vc-reason[data-code="HUY_KHONG_CON_KHACH"]'));

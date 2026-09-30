@@ -2,12 +2,14 @@
 // chuyen.dc.html; bản đối chiếu 2.7, 2.12, H10, H11, H14, H17, R-P16.
 // - Đầu: mã, trạng thái (bị giữ đỏ), ngày giờ; nút theo cờ quyền: "Sửa chuyến", "Huỷ chuyến" (chỉ chuyến lên kế hoạch, ô trip.dispatch). Dòng khoá theo `khoaMoc`.
 // - "Cập nhật điểm theo đơn" (route 40, lý do giữ "Nơi đón / trả đã đổi"): không cần phá lệ; kết quả: đã cập nhật N / không có gì cần cập nhật / chuyến vừa bị sửa.
+// - Vòng 5e (R-P29, chủ lần 16): "Cập nhật khách theo đơn" (route `cap-nhat-khach`, lý do giữ KHACH_DA_DOI) — cùng khuôn, không hộp xác nhận, không phá lệ.
 // - Bảng điểm dừng (cờ `lechDon` → "Lệch đơn"), điều kiện xuất bến (danh mục cố định từ lý do giữ), nhật ký chuyến (ai bấm hoặc "máy"; hai giờ khi văn phòng khai).
 // - CHỜ A15 (chưa có route trên nhánh): "Xuất bến thay tài xế", nút tiến độ bấm thay, "Kết thúc gián đoạn", "Mở màn Xuất bến ›" — chưa dựng (không để nút chết).
 import { cauKhoaMoc, chuyenXepDuoc, dieuKienXuatBen, dongBanChup, dongGoiBao, dongNhatKy, gioHien, kieuChuyen, nhanDiem, nhomKhach, type NhomKhach } from "../src/shared/dieu-phoi-man";
 import { NHAN_TU_CHOI_GOI_BAO, type MaTuChoiGoiBao } from "../src/shared/goi-bao";
 import { ApiError } from "./api";
-import type { CapNhatDiemResponse, ChuyenChiTietResponse, LichChungResponse } from "../src/shared/contracts";
+import type { CapNhatDiemResponse, CapNhatKhachResponse, ChuyenChiTietResponse, LichChungResponse } from "../src/shared/contracts";
+import { NUT_CAP_NHAT_KHACH } from "../src/shared/ly-do-giu";
 import { can } from "../src/shared/permissions";
 import { api } from "./api";
 import { byId, h, replaceChildren, type Child } from "./dom";
@@ -92,6 +94,16 @@ function ve(): void {
     dais.push(dai("danger", "Chuyến bị giữ: Nơi đón / trả đã đổi — cập nhật điểm", [
       ...noiDoi.map((l) => l.loiNhan),
       `Ai xử lý: ${noiDoi[0]!.aiXuLyNhan}. Không cần phá lệ, kể cả trong vùng khoá trước giờ xuất bến.`,
+    ], undefined, nut ? [h("div", { class: "banner-actions" }, nut)] : []));
+  }
+  // Vòng 5e (R-P29): lý do giữ "Khách trong xe không còn trong đơn" + nút "Cập nhật khách theo đơn" — khuôn dải trên (không phá lệ, kể cả trong vùng khoá).
+  const khachDoi = c.lyDoGiu.filter((l) => l.ma === "KHACH_DA_DOI");
+  if (keHoach && khachDoi.length) {
+    const nut = coDieuPhoi ? h("button", { type: "button", class: "vc-btn btn btn-primary", "data-action": "cap-nhat-khach" }, NUT_CAP_NHAT_KHACH) : null;
+    nut?.addEventListener("click", () => capNhatKhach(nut));
+    dais.push(dai("danger", "Chuyến bị giữ: Khách trong đơn đã đổi — cập nhật khách", [
+      ...khachDoi.map((l) => l.loiNhan),
+      `Ai xử lý: ${khachDoi[0]!.aiXuLyNhan}. Không cần phá lệ, kể cả trong vùng khoá trước giờ xuất bến.`,
     ], undefined, nut ? [h("div", { class: "banner-actions" }, nut)] : []));
   }
   if (c.trangThai === "RUNNING") {
@@ -376,6 +388,25 @@ async function capNhatDiem(nut: HTMLButtonElement): Promise<void> {
     baoCao = r.daCapNhat > 0
       ? dai("ok", "Đã cập nhật điểm theo đơn", [`Đổi điểm cho ${r.daCapNhat} khách theo nơi đón / trả mới của đơn; điểm không còn khách chuyển “bỏ qua — không còn khách”.`])
       : dai("info", "Không có điểm nào cần cập nhật", ["Điểm dừng đã khớp các đơn trong chuyến."]);
+  } catch (e) {
+    const l = docLoiLenh(e);
+    baoCao = l.cu ? dai("warning", "Chuyến vừa được người khác sửa — tải lại", ["Tải lại để xem bản mới rồi bấm lại."], () => location.reload()) : dai("danger", l.tieuDe, l.dong);
+  }
+  ve();
+  (baoCao ?? trangEl).scrollIntoView({ block: "nearest" });
+}
+
+/** Vòng 5e (R-P29): "Cập nhật khách theo đơn" — thân `{ version, requestId }`; phản hồi KHÔNG tên → đọc lại GET (GA-55); lỗi như "Cập nhật điểm theo đơn". */
+const lenhKhach = taoLenh();
+async function capNhatKhach(nut: HTMLButtonElement): Promise<void> {
+  const c = duLieu!.chuyen;
+  nut.disabled = true;
+  try {
+    const r = await lenhKhach.gui<CapNhatKhachResponse>(`/api/van-chuyen/chuyen/${encodeURIComponent(c.id)}/cap-nhat-khach`, "POST", { version: c.version });
+    duLieu = await docLai(r);
+    baoCao = r.daCapNhat > 0
+      ? dai("ok", "Đã cập nhật khách theo đơn", [`Cập nhật ${r.daCapNhat} chỗ theo khách hiện có của đơn.`])
+      : dai("info", "Không có khách nào cần cập nhật", ["Khách trong xe đã khớp các đơn trong chuyến."]);
   } catch (e) {
     const l = docLoiLenh(e);
     baoCao = l.cu ? dai("warning", "Chuyến vừa được người khác sửa — tải lại", ["Tải lại để xem bản mới rồi bấm lại."], () => location.reload()) : dai("danger", l.tieuDe, l.dong);

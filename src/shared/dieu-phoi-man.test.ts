@@ -144,8 +144,8 @@ test("hinhDongThoiGian: khoảng giờ theo dữ liệu (ít nhất 06–21, m�
 });
 
 test("cauKhoaMoc: câu khoá theo ô của người xem (phá lệ được / cần Quản trị / chỉ xem)", () => {
-  assert.equal(cauKhoaMoc(360, { phaLe: true, dieuPhoi: true }), "Trong 6 giờ trước giờ xuất bến — khoá xếp khách, đổi xe, đổi tài xế. Bạn có thể phá lệ. Cập nhật điểm theo đơn không cần phá lệ.");
-  assert.equal(cauKhoaMoc(360, { phaLe: false, dieuPhoi: true }), "Trong 6 giờ trước giờ xuất bến — khoá xếp khách, đổi xe, đổi tài xế. Cần Quản trị phá lệ. Cập nhật điểm theo đơn không cần phá lệ.");
+  assert.equal(cauKhoaMoc(360, { phaLe: true, dieuPhoi: true }), "Trong 6 giờ trước giờ xuất bến — khoá xếp khách, đổi xe, đổi tài xế. Bạn có thể phá lệ. Cập nhật điểm theo đơn và cập nhật khách theo đơn không cần phá lệ."); // vòng 5e
+  assert.equal(cauKhoaMoc(360, { phaLe: false, dieuPhoi: true }), "Trong 6 giờ trước giờ xuất bến — khoá xếp khách, đổi xe, đổi tài xế. Cần Quản trị phá lệ. Cập nhật điểm theo đơn và cập nhật khách theo đơn không cần phá lệ."); // vòng 5e
   assert.equal(cauKhoaMoc(2880, { phaLe: false, dieuPhoi: false }), "Trong 48 giờ trước giờ xuất bến — khoá xếp khách, đổi xe, đổi tài xế.");
   assert.equal(cauKhoaMoc(null, { phaLe: false, dieuPhoi: false }), "Trong mốc tối thiểu trước giờ xuất bến — khoá xếp khách, đổi xe, đổi tài xế.");
 });
@@ -330,4 +330,30 @@ test("nhomKhach: gom suất đang mở theo chặng (một đơn một nhóm), n
   ]);
   assert.equal(nhomKhach([s("x", "l9", "TD-9", "d1", "d3"), s("y", "l9", "TD-9", "d1", "d3")], diem)[0]!.ten, "2 khách chưa gắn tên");
   assert.deepEqual(nhomKhach([], diem), []);
+});
+
+// ---- Vòng 5e (R-P29, chủ lần 16): "Cập nhật khách theo đơn" — khuôn "Cập nhật điểm theo đơn" ---------------------------------------------------------------
+test("vòng 5e: KHACH_DA_DOI → hành động 'Cập nhật khách theo đơn' ở Cần xử lý (chỉ khi có ô điều phối), cạnh 'Cập nhật điểm theo đơn'", () => {
+  const cauKhach = "Khách trong xe không còn trong đơn — bấm Cập nhật khách theo đơn: TD-8";
+  const L = lich({
+    chuyen: [
+      chuyen({ lyDoGiu: [ly("KHACH_DA_DOI", cauKhach)] }),
+      chuyen({ id: "t2", ma: "CX-3009-04", lyDoGiu: [ly("NOI_HEN_DOI", "Nơi đón / trả đã đổi sau khi xếp — cập nhật điểm: TD-9"), ly("KHACH_DA_DOI", cauKhach)] }),
+    ],
+  });
+  const v = viecCanXuLy(L, { dieuPhoi: true, phaLe: false, quanLyXe: false });
+  const t1 = v.find((x) => x.href === "/chuyen?id=t1")!;
+  assert.deepEqual(t1.hanhDong, [{ nhan: "Cập nhật khách theo đơn", kieu: "cap-nhat-khach", tripId: "t1" }]);
+  assert.deepEqual([t1.noiDung, t1.aiXuLy], [cauKhach, "Văn phòng"]);
+  assert.deepEqual(v.find((x) => x.href === "/chuyen?id=t2")!.hanhDong.map((a) => a.kieu), ["cap-nhat-diem", "cap-nhat-khach"]);
+  // Không có ô điều phối (Kế toán) → không nút.
+  assert.deepEqual(viecCanXuLy(L, { dieuPhoi: false, phaLe: false, quanLyXe: false }).flatMap((x) => x.hanhDong), []);
+});
+
+test("vòng 5e: câu khoá nói cả hai lệnh 'theo đơn' không cần phá lệ; KHACH_DA_DOI thuộc dòng 'Đủ tên khách'", () => {
+  assert.equal(cauKhoaMoc(360, { phaLe: false, dieuPhoi: true }), "Trong 6 giờ trước giờ xuất bến — khoá xếp khách, đổi xe, đổi tài xế. Cần Quản trị phá lệ. Cập nhật điểm theo đơn và cập nhật khách theo đơn không cần phá lệ.");
+  assert.equal(cauKhoaMoc(360, { phaLe: true, dieuPhoi: true }), "Trong 6 giờ trước giờ xuất bến — khoá xếp khách, đổi xe, đổi tài xế. Bạn có thể phá lệ. Cập nhật điểm theo đơn và cập nhật khách theo đơn không cần phá lệ.");
+  const dk = dieuKienXuatBen([ly("KHACH_DA_DOI", "Khách trong xe không còn trong đơn — bấm Cập nhật khách theo đơn: TD-8")]);
+  assert.deepEqual(dk.filter((d) => !d.dat).map((d) => [d.nhan, d.chiTiet]), [["Đủ tên khách", "Khách trong xe không còn trong đơn — bấm Cập nhật khách theo đơn: TD-8 · Ai xử lý: Văn phòng"]]);
+  assert.equal(dk.some((d) => d.nhan === "Khác"), false, "không rơi vào dòng 'Khác'");
 });

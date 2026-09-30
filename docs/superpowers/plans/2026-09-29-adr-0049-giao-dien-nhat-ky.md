@@ -557,3 +557,46 @@ Chưa gộp máy chủ mới (điều phối: đợi HEAD sau phần vá xoá đ
     - xếp xong → văn phòng huỷ một khách khỏi đơn → chuyến bị giữ → dải + nút → bấm → tên mới hiện, hết giữ;
     - trong vùng khoá Bán hàng vẫn bấm được; Kế toán không nút;
     - P16: bỏ điều kiện ô → bước Kế toán đỏ.
+- Điều phối nhận 13.9: việc sắp tên chuyển BACKLOG. Phương án nút được duyệt ở vòng 5e: KHÔNG hộp xác nhận; `KHACH_DA_DOI` vào dòng "Đủ tên khách".
+
+### 13.10 Vòng 5e — "Cập nhật khách theo đơn" (R-P29, chủ lần 16)
+- **Gộp máy chủ `337f5e9`** bằng `git merge --no-ff`, được `2aa58d2`. Không xung đột, không bị bộ duyệt chặn.
+  - Bẫy 53(4) — 0042 / 0043 sửa tại chỗ: mọi kịch bản Chrome của nhánh này dựng D1 TẠM mới cho mỗi lần chạy (`mkdtempSync` + `migrations apply --local --persist-to <tạm>` ở `a2-cdp.mjs`), nên không dính.
+  - `.wrangler/state/v3/d1` mặc định của worktree không được lệnh nào của phiên này dùng. Để nguyên, không xoá. Ai chạy `npm run dev` ở worktree này thì xoá thư mục đó rồi `npm run db:migrate:local` trước.
+- **Hợp đồng đọc lại ở mã**:
+  - `NUT_CAP_NHAT_KHACH` và câu `KHACH_DA_DOI` ở `src/shared/ly-do-giu.ts`.
+  - `CapNhatKhachResponse extends ChuyenChiTietResponse { daCapNhat }` ở `src/shared/contracts.ts`.
+  - `DOI_KHACH_THEO_DON` nằm NGOÀI khoá theo mốc (`src/shared/moc-toi-thieu.ts`).
+  - Nhật ký chuyến `ALLOCATION_PASSENGER_CHANGED` → "Cập nhật khách theo đơn".
+- **GA-59** (máy chủ trả `maDon` ở phản hồi "Bỏ đánh dấu"): giao diện không đổi. `web/chuyen.ts` thay nguyên mục gọi báo bằng phản hồi; `web/dieu-phoi.ts` dùng mã đơn của mục đã có. `goi-bao-smoke` 7/7.
+- **Làm (khuôn "Cập nhật điểm theo đơn", 4 chỗ, không hộp xác nhận, không phá lệ)**:
+  - Hàm thuần (`src/shared/dieu-phoi-man.ts`, test đỏ trước 2 bài):
+    - hành động `cap-nhat-khach` ở Cần xử lý khi có `KHACH_DA_DOI` + ô điều phối;
+    - `cauKhoaMoc` → "… Cập nhật điểm theo đơn và cập nhật khách theo đơn không cần phá lệ.";
+    - `KHACH_DA_DOI` vào dòng "Đủ tên khách".
+  - `web/chuyen.ts`: dải "Chuyến bị giữ: Khách trong đơn đã đổi — cập nhật khách" + nút.
+    - `capNhatKhach`: bộ requestId riêng; `docLai` sau lệnh (GA-55); dải "Đã cập nhật khách theo đơn" / "Không có khách nào cần cập nhật".
+    - `stale` → "Chuyến vừa được người khác sửa — tải lại"; lỗi khác → câu máy chủ + lý do.
+  - `web/dieu-phoi.ts`: nút ở thẻ "Chuyến đang chọn" và ở Cần xử lý. Sau lệnh `nap()` lại; bảng không hiện tên.
+- **Kỳ vọng đổi**:
+  - Câu khoá ở `chuyen-smoke` (bước 4, 6) và bài thuần `cauKhoaMoc` cũ. Lý do: câu nay nói cả lệnh mới.
+  - Không kịch bản nào khác đổi.
+- **Chrome** — `cap-nhat-khach-smoke.mjs` (mới, 6 bước):
+  1. Bảng 1040: mục Cần xử lý + thẻ đang chọn; chuyến có cả nơi đổi thì có hai nút.
+  2. Chi tiết 1040: dải + nút; bấm → CÙNG trang tên mới, hết giữ.
+  3. GA-62: bỏ không thêm → còn "Đủ tên khách" ✕ "thiếu 1 tên".
+  4. 390 trong vùng khoá: bấm được, không hộp phá lệ.
+  5. Kế toán: không nút ở hai màn, route 403.
+  6. Console sạch.
+  - Kịch bản viết SAU mã màn nên lần chạy đầu đã xanh. Đỏ quan sát được qua P16 (dưới) và bài thuần đỏ trước.
+- **P16** (hai đột biến cùng một lần chạy, mỗi đột biến làm đỏ bước riêng) → 2 ✓ / 4 ✗ → hoàn nguyên (0 chuỗi đột biến):
+  - Bỏ ô (`coDieuPhoi` → `true`) ở dải Chi tiết chuyến → bước 5 đỏ: "Chi tiết chuyến: không nút cập nhật khách".
+  - Bỏ `docLai` (`duLieu = r`) → bước 2 đỏ: "tên mới hiện ngay trên trang", thực tế "3 khách chưa gắn tên". Bước 3, 4 cũng đỏ.
+- **Chạy lại** (máy rảnh, không song song e2e):
+  - `npm test` hai bước: 1866/1866 + 1/1, thoát 0.
+  - `npm run typecheck` 0; `npm run build:web` 0.
+  - Chrome: cap-nhat-khach 6/6, rut-doi 8/8, chuyen 8/8, cuoc 11/11, goi-bao 7/7, dieu-phoi 11/11, tai-xe-trang-dau 4/4.
+- **Ảnh gửi chủ**:
+  - 1040: trước `b5e-khach-doi-truoc-may-tinh.png`, sau `b5e-khach-doi-sau-may-tinh.png`.
+  - 390, trong vùng khoá: trước `b5e-khach-doi-truoc-dien-thoai.png`, sau `b5e-khach-doi-sau-dien-thoai.png`; thẻ khách có tên mới `b5e-khach-doi-sau-ten-dien-thoai.png`.
+- Vệ sinh: `ps` sau mỗi lượt không còn wrangler / workerd của worktree này.
