@@ -5,6 +5,8 @@
 // mã chuyến, biển số, con số.
 
 export const AI_XU_LY = ["VAN_PHONG", "QUAN_TRI", "TOAN_QUYEN"] as const;
+/** Chữ NÚT của lệnh "Cập nhật khách theo đơn" (R-P29, chủ lần 16 — route `POST /api/van-chuyen/chuyen/:id/cap-nhat-khach`) — màn và câu lý do giữ dùng CHUNG. */
+export const NUT_CAP_NHAT_KHACH = "Cập nhật khách theo đơn";
 export type AiXuLy = (typeof AI_XU_LY)[number];
 export const NHAN_AI_XU_LY: Readonly<Record<AiXuLy, string>> = { VAN_PHONG: "Văn phòng", QUAN_TRI: "Quản trị", TOAN_QUYEN: "Toàn quyền" };
 
@@ -28,6 +30,9 @@ export const MA_GIU = {
   CHUA_CO_NOI_TRA: { loiNhan: "Chặng chưa có nơi trả", aiXuLy: "VAN_PHONG" },
   // ADR-0050 VK1-B: nơi đón / trả của chặng đổi sau khi xếp (khoá so sánh nơi lệch điểm của suất) → văn phòng bấm "cập nhật điểm theo đơn".
   NOI_HEN_DOI: { loiNhan: "Nơi đón / trả đã đổi sau khi xếp — cập nhật điểm", aiXuLy: "VAN_PHONG" },
+  // R-P29 (chủ lần 16, khuôn VK1-B): suất trên xe mang khoá người KHÔNG còn là hành khách hiện hành của đơn (khách bị bỏ / thay sau khi gắn tên) → văn phòng
+  // bấm "Cập nhật khách theo đơn". Câu không lộ tên; chi tiết chỉ mã đơn.
+  KHACH_DA_DOI: { loiNhan: `Khách trong xe không còn trong đơn — bấm ${NUT_CAP_NHAT_KHACH}`, aiXuLy: "VAN_PHONG" },
   // I38 (R-P9): chặng có suất trên chuyến mà ngày đón đã dời ra ngoài khoảng đọc quanh ngày chạy (không còn thuộc chuyến này).
   GIO_HEN_NGOAI_CHUYEN: { loiNhan: "Ngày đón của chặng đã đổi ra ngoài ngày chạy của chuyến", aiXuLy: "VAN_PHONG" },
   // Chuyến, xe, tài xế (văn phòng)

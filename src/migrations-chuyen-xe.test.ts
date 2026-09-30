@@ -468,7 +468,7 @@ test("TC-10 [SOI] K-03 (b) / I41: đổi board_stop_id của suất đang mở �
   loi(() => suat(db, { id: c.id, di: c2.di, tra: c.tra }, d.legs[0]!), /lc04_stop_scope/, "điểm lên của chuyến khác");
   loi(() => suat(db, { id: c.id, di: c.di, tra: c.di }, d.legs[0]!), /lc04_stop_scope/, "điểm xuống là điểm ĐÓN");
 });
-test("TC-10 [0050] VK1-B: đổi place_key / location_id / place_text / kind của điểm → RAISE (vc_trip_stop_identity); khuôn place_key sai → CHECK; đóng suất STOP_CHANGED → được, mã lạ → CHECK", () => {
+test("TC-10 [0050] VK1-B: đổi place_key / location_id / place_text / kind của điểm → RAISE (vc_trip_stop_identity); khuôn place_key sai → CHECK; đóng suất STOP_CHANGED / PASSENGER_CHANGED (R-P29, chủ lần 16) → được, mã lạ → CHECK", () => {
   const db = openDb();
   const c = chuyenChuan(db);
   const d = don(db);
@@ -484,6 +484,8 @@ test("TC-10 [0050] VK1-B: đổi place_key / location_id / place_text / kind c�
   loi(() => run(db, "UPDATE vc_trip_allocation SET valid_to_at = ?, close_reason = 'LA_LUNG' WHERE id = ?", AT, a), /CHECK constraint failed/);
   run(db, "UPDATE vc_trip_allocation SET valid_to_at = ?, close_reason = 'STOP_CHANGED' WHERE id = ?", AT, a);
   loi(() => run(db, "UPDATE vc_trip_allocation SET status = 'BOARDED' WHERE id = ?", a), /lc04_close_once/, "suất đã đóng không sửa");
+  const a2 = suat(db, c, d.legs[0]!);
+  run(db, "UPDATE vc_trip_allocation SET valid_to_at = ?, close_reason = 'PASSENGER_CHANGED' WHERE id = ?", AT, a2); // R-P29: "cập nhật khách theo đơn"
 });
 test("TC-10 LC-04: dòng tài xế chỉ ĐÓNG một lần, không đổi người / chuyến; chuyến không đổi mã", () => {
   const db = openDb();
@@ -806,10 +808,15 @@ test("R-P19: chặng / hành khách của đơn ĐÃ XÁC NHẬN không xoá đ�
 // =========================================================================================================================================================
 const RID = () => randomUUID();
 /** Chèn một dòng mốc (kind, seq, giờ mới, giờ trước). */
-function moc(db: Db, leg: string, o: { seq: number; kind: string; ngay?: string; gio?: string | null; truocNgay?: string | null; truocGio?: string | null; rid?: string | null }) {
-  run(db, `INSERT INTO vc_leg_appt_ack (id, leg_id, seq, kind, appt_date, appt_time, prev_appt_date, prev_appt_time, request_id, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, randomUUID(), leg, o.seq, o.kind, o.ngay ?? DAY, o.gio === undefined ? "07:00" : o.gio,
-    o.truocNgay === undefined ? DAY : o.truocNgay, o.truocGio === undefined ? "07:00" : o.truocGio, o.rid === undefined ? (o.kind === "XEP" ? null : RID()) : o.rid, AT, AT);
+/** `chup` = bản chụp kết quả lần đầu (GA-59) — mặc định JSON null ở BO_DANH_DAU, NULL ở loại khác. */
+function moc(
+  db: Db, leg: string,
+  o: { seq: number; kind: string; ngay?: string; gio?: string | null; truocNgay?: string | null; truocGio?: string | null; rid?: string | null; chup?: string | null },
+) {
+  run(db, `INSERT INTO vc_leg_appt_ack (id, leg_id, seq, kind, appt_date, appt_time, prev_appt_date, prev_appt_time, request_id, created_at, updated_at, bo_gio_hen_doi)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, randomUUID(), leg, o.seq, o.kind, o.ngay ?? DAY, o.gio === undefined ? "07:00" : o.gio,
+    o.truocNgay === undefined ? DAY : o.truocNgay, o.truocGio === undefined ? "07:00" : o.truocGio, o.rid === undefined ? (o.kind === "XEP" ? null : RID()) : o.rid, AT, AT,
+    o.chup === undefined ? (o.kind === "BO_DANH_DAU" ? "null" : null) : o.chup);
 }
 /** Chặng có khách chờ đón trên chuyến chưa chạy + mốc XEP 07:00. */
 function changTrenXe(db: Db): { leg: string; c: Chuyen; a: string } {
@@ -856,6 +863,38 @@ test("TC-GB-1: BO_DANH_DAU — sau XEP → gb_chain; không khôi phục đúng 
   moc(db, leg, { seq: 3, kind: "BO_DANH_DAU", gio: "09:00", truocGio: null }); // khôi phục 09:00; giờ trước NULL IS NULL
   moc(db, leg, { seq: 4, kind: "DA_GOI", gio: null, truocGio: "09:00" });
   assert.equal(one<{ n: number }>(db, "SELECT count(*) n FROM vc_leg_appt_ack WHERE leg_id = ?", leg).n, 4);
+});
+
+test("TC-GB-1 GA-59 (chủ lần 16): bản chụp kết quả lần đầu `bo_gio_hen_doi` — CHỈ và BẮT BUỘC ở BO_DANH_DAU; hình đóng { moi: { ngay, gio }, maChuyen: [mã có thật] } hoặc JSON null; khoá thừa / chữ tự do / mã lạ → chặn", () => {
+  const db = openDb();
+  const { leg, c } = changTrenXe(db); // XEP 09:00
+  const ma = one<{ code: string }>(db, "SELECT code FROM vc_trip WHERE id = ?", c.id).code;
+  loi(() => moc(db, leg, { seq: 2, kind: "DA_GOI", gio: "09:15", truocGio: "09:00", chup: "null" }), /CHECK constraint failed/, "DA_GOI không mang bản chụp");
+  moc(db, leg, { seq: 2, kind: "DA_GOI", gio: "09:15", truocGio: "09:00" });
+  const bo = (chup: string | null) => moc(db, leg, { seq: 3, kind: "BO_DANH_DAU", gio: "09:00", truocGio: "09:15", chup });
+  const tot = (gio: string | null, maChuyen: unknown[] = [ma]) => JSON.stringify({ moi: { ngay: DAY, gio }, maChuyen });
+  loi(() => bo(null), /CHECK constraint failed/, "BO_DANH_DAU thiếu bản chụp");
+  loi(() => bo("{khong-phai-json"), /CHECK constraint failed|malformed JSON/, "JSON hỏng");
+  loi(() => bo('"Khách Dò Tìm"'), /CHECK constraint failed/, "chuỗi trần (chữ tự do)");
+  loi(() => bo(JSON.stringify({ moi: { ngay: DAY, gio: "09:15" }, maChuyen: [ma], ten: "Khách Dò Tìm" })), /CHECK constraint failed/, "khoá thừa ở gốc");
+  loi(() => bo(JSON.stringify({ moi: { ngay: DAY, gio: "09:15", sdt: "0900000001" }, maChuyen: [ma] })), /CHECK constraint failed/, "khoá thừa trong moi");
+  loi(() => bo(JSON.stringify({ moi: { ngay: DAY }, maChuyen: [ma] })), /CHECK constraint failed/, "thiếu moi.gio");
+  loi(() => bo(JSON.stringify({ moi: { gio: "09:15" }, maChuyen: [ma] })), /CHECK constraint failed/, "thiếu moi.ngay");
+  loi(() => bo(JSON.stringify({ moi: { ngay: "2026-02-30", gio: "09:15" }, maChuyen: [ma] })), /CHECK constraint failed/, "ngày sai");
+  loi(() => bo(tot("9h15")), /CHECK constraint failed/, "giờ sai khuôn");
+  loi(() => bo(JSON.stringify({ moi: { ngay: DAY, gio: "09:15" } })), /CHECK constraint failed/, "thiếu maChuyen");
+  loi(() => bo(tot("09:15", [])), /CHECK constraint failed/, "maChuyen rỗng (có mục ⇒ có chuyến chở khách chờ)");
+  loi(() => bo(tot("09:15", ["Khách Dò Tìm 1990"])), /gb_snapshot/, "phần tử không phải mã chuyến có thật");
+  loi(() => bo(tot("09:15", [ma, 1990])), /gb_snapshot/, "phần tử không phải chữ");
+  bo(tot("09:15"));
+  assert.deepEqual(JSON.parse(one<{ s: string }>(db, "SELECT bo_gio_hen_doi s FROM vc_leg_appt_ack WHERE leg_id = ? AND seq = 3", leg).s), { moi: { ngay: DAY, gio: "09:15" }, maChuyen: [ma] });
+  moc(db, leg, { seq: 4, kind: "DA_GOI", gio: null, truocGio: "09:00" });
+  moc(db, leg, { seq: 5, kind: "BO_DANH_DAU", gio: "09:00", truocGio: null, chup: tot(null) }); // giờ mới "chưa chốt giờ" → được
+  moc(db, leg, { seq: 6, kind: "DA_GOI", gio: "09:40", truocGio: "09:00" });
+  moc(db, leg, { seq: 7, kind: "BO_DANH_DAU", gio: "09:00", truocGio: "09:40", chup: "null" }); // lần đầu không còn mục
+  const d = don(db);
+  loi(() => moc(db, d.legs[0]!, { seq: 1, kind: "XEP", truocNgay: null, truocGio: null, chup: "null" }), /CHECK constraint failed/, "XEP không mang bản chụp");
+  moc(db, d.legs[0]!, { seq: 1, kind: "XEP", truocNgay: null, truocGio: null }); // chống bài rỗng: đúng dòng đó, không bản chụp → được
 });
 
 test("TC-GB-1: dòng người bấm chỉ khi chặng còn khách CHỜ ĐÓN trên xe chưa kết thúc — suất đã đóng / đã lên / chuyến huỷ → gb_active; XEP không bị điều kiện này", () => {

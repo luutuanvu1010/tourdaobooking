@@ -282,6 +282,19 @@ test("khối van-chuyen: đủ tuyến; tên hành khách chỉ ở GET /chuyen/
         const r = await goi("POST /api/van-chuyen/chuyen/:id/cap-nhat-diem", "cập nhật điểm C", "POST", `/api/van-chuyen/chuyen/${T.C.chuyen.id}/cap-nhat-diem`, SALES, { version: c.chuyen.version, requestId: rid() });
         assert.equal(r.daCapNhat, 3, "chống bài rỗng: có suất được cập nhật");
       },
+      "POST /api/van-chuyen/chuyen/:id/cap-nhat-khach": async () => {
+        // R-P29 (chủ lần 16): người lập bỏ một khách của đơn C và thêm một khách (năm sinh đánh dấu) → chuyến C giữ KHACH_DA_DOI → "Cập nhật khách theo đơn".
+        let ds = (await w.call("GET", `/api/orders/${dC.id}/passengers`, { as: SALES })).json;
+        const bo = [...ds.passengers].sort((x: any, y: any) => (x.fullName < y.fullName ? -1 : 1))[2].personKey;
+        ds = (await w.call("POST", `/api/orders/${dC.id}/passengers`, { as: SALES, body: { expectedUpdatedAt: ds.orderUpdatedAt, them: [], sua: [], huy: [bo] } })).json;
+        const them = await w.call("POST", `/api/orders/${dC.id}/passengers`, {
+          as: SALES, body: { expectedUpdatedAt: ds.orderUpdatedAt, them: [{ fullName: TEN_VC[2], birthYear: 1913, paxCode: "adult" }], sua: [], huy: [] },
+        });
+        assert.equal(them.status, 200, them.text);
+        const c = await ct(T.C.chuyen.id);
+        const r = await goi("POST /api/van-chuyen/chuyen/:id/cap-nhat-khach", "cập nhật khách C", "POST", `/api/van-chuyen/chuyen/${T.C.chuyen.id}/cap-nhat-khach`, SALES, { version: c.chuyen.version, requestId: rid() });
+        assert.equal(r.daCapNhat, 1, "chống bài rỗng: có suất khách đã đổi được cập nhật");
+      },
       "GET /api/van-chuyen/nhac-goi-khach": async () => {
         const r = await goi("GET /api/van-chuyen/nhac-goi-khach", "nhắc gọi khách", "GET", "/api/van-chuyen/nhac-goi-khach", SALES);
         assert.equal(r.muc.length, 1, "chống bài rỗng: có mục nhắc");
@@ -395,7 +408,7 @@ test("khối van-chuyen: đủ tuyến; tên hành khách chỉ ở GET /chuyen/
     // gián đoạn ×2 — mọi suất đã đóng) do bài 3 (quét mã: đối `kemTen` / `hk` ở MỌI nơi gọi) canh.
     const KHONG_THE_LO = new Set(["POST /api/van-chuyen/chuyen", "POST /api/van-chuyen/chuyen/:id/huy", `${R}/ket-thuc-gian-doan`, `${V}/ket-thuc-gian-doan`]);
     const phaiCoCaiDeLo = TUYEN_VC_THAT.filter((k) => /^(POST|PUT) \/api\/van-chuyen\/(chuyen\/:id|cuoc-cua-toi\/:id)(\/|$)/.test(k) && !KHONG_THE_LO.has(k));
-    assert.equal(phaiCoCaiDeLo.length, 21, "5 lệnh kế hoạch (sửa, xếp, rút, dời, cập nhật điểm) + 8 lệnh tài xế + 8 lệnh văn phòng bấm thay");
+    assert.equal(phaiCoCaiDeLo.length, 22, "6 lệnh kế hoạch (sửa, xếp, rút, dời, cập nhật điểm, cập nhật khách — R-P29) + 8 lệnh tài xế + 8 lệnh văn phòng bấm thay");
     for (const r of phaiCoCaiDeLo) assert.ok(than.some((t) => t.route === r && t.coCaiDeLo), `${r}: không lần gọi nào có suất đã gắn tên — phép "không lộ tên" vô nghĩa ở route này`);
 
     // (3) NHẬT KÝ + cột chữ vc_* — mọi cột, bỏ mã UUID.
@@ -486,5 +499,5 @@ test("khối van-chuyen (bài 3, quét mã — K2a V2): chỉ GET /chuyen/:id tr
     }
   }
   assert.deepEqual(loi, []);
-  assert.deepEqual(dem, { chiTiet: 17, cuoc: 10 }, "chống bài rỗng: 17 nơi gọi chiTietChuyen (1 GET + 16 lệnh), 10 nơi gọi cuocChiTiet (1 GET + 9 lệnh tài xế)");
+  assert.deepEqual(dem, { chiTiet: 18, cuoc: 10 }, "chống bài rỗng: 18 nơi gọi chiTietChuyen (1 GET + 17 lệnh — thêm cập nhật khách, R-P29), 10 nơi gọi cuocChiTiet (1 GET + 9 lệnh tài xế)");
 });

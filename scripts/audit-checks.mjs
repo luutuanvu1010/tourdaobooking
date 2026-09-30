@@ -61,7 +61,7 @@ const TAI_XE_KHONG_DAT = `NOT EXISTS (
  * sự kiện chuyến), `trip_reason_*`, `dispatch_policy_changed`… (danh mục / chính sách — không có chuyến).
  */
 const HANH_DONG_CO_SU_KIEN = [
-  "trip_created", "trip_edited", "trip_cancelled", "trip_allocated", "trip_allocation_removed", "trip_allocation_moved", "trip_stops_synced", "trip_departed",
+  "trip_created", "trip_edited", "trip_cancelled", "trip_allocated", "trip_allocation_removed", "trip_allocation_moved", "trip_passengers_synced", "trip_stops_synced", "trip_departed",
   "trip_stop_arrived", "trip_passenger_boarded", "trip_passenger_no_show", "trip_passenger_cancelled_at_stop", "trip_passenger_dropped", "trip_stops_reordered",
   "trip_ended", "trip_ended_interrupted",
 ];
@@ -400,7 +400,7 @@ export const CHECKS = [
   // N-19 (R-P19 — chủ "Trả lời lần 13": suất trỏ chặng / người bằng tham chiếu LOGIC, không khoá ngoại; "danh sách khách của xe trỏ tới người không còn" do máy
   // chủ VÀ kiểm định kỳ bắt). R-VC-10 phủ bản chốt; câu này phủ BA tham chiếu còn lại: hai của SUẤT + `vc_leg_appt_ack.leg_id` (ADR-0051 — vế thứ ba, điều
   // phối giao 30/9, cùng mã). GA-58: MỌI suất (mở lẫn đã đóng); "người còn" = CÓ dòng `ord_passenger` cùng `person_key`, thuộc đơn của chặng — dòng đã huỷ
-  // (`voided_at`) / đã thay vẫn tính là còn (khách huỷ sau khi xếp là tình trạng nghiệp vụ, lý do giữ + R-VC-3 lo); mốc giờ hẹn: MỖI DÒNG trỏ chặng không còn
+  // (`voided_at`) / đã thay vẫn tính là còn (khách huỷ sau khi xếp là tình trạng nghiệp vụ: lý do giữ KHACH_DA_DOI + lệnh "Cập nhật khách theo đơn" — chủ lần 16, R-P29); mốc giờ hẹn: MỖI DÒNG trỏ chặng không còn
   // đếm một lần. Chỉ đếm.
   {
     code: "R-VC-19",

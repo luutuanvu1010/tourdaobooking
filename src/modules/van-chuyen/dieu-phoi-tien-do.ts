@@ -89,7 +89,9 @@ export async function lenhXuatBen(
     const pk = a.passenger_key ?? gan.get(a.id) ?? null;
     if (pk === null) continue; // chính sách không bắt đủ danh sách: suất chưa tên không có dòng bản chốt (câu hỏi Q-A15-1 — R-VC-4 ở A17)
     const row = dong.get(`${a.leg_id}|${pk}`);
-    if (!row) return loi409("chua_du_dieu_kien_xuat_ben", [lyDoGiu("THIEU_TEN", "danh sách khách vừa đổi — tải lại")]);
+    // Lưới THỨ HAI (R-P29): `kiemXuatBen` đã giữ KHACH_DA_DOI khi suất mang khoá không còn trong đơn; tới đây chỉ khi đơn đổi GIỮA lúc đọc lịch và lúc đọc
+    // hành khách của CHÍNH request này — trả CÙNG lý do màn sẽ hiện khi tải lại (không kết luận khác màn).
+    if (!row) return loi409("chua_du_dieu_kien_xuat_ben", [lyDoGiu("KHACH_DA_DOI", nc.changLich.get(a.leg_id!)?.orderCode)]);
     chot.push({ allocationId: a.id, passengerRowId: row, crewPartyId: null });
   }
   const soKhach = mo.filter((a) => a.kind === "PASSENGER").length;

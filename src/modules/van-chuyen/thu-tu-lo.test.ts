@@ -48,6 +48,8 @@ const MAU: Record<string, { vao: Record<string, unknown>; gac: string }> = {
   },
   loHuy: { vao: { ...L, tripId: T, version: 3, lyDo: "HUY_KHAC", phaLe: null, policyId: null, soSuatMo: 2, detail: "d" }, gac: T },
   loCapNhatDiem: { vao: { ...L, tripId: T, version: 3, diemMoi: [diem("d-9")], cap: [{ dongId: "a-1", mo: suat("a-9") }], diemBoQua: ["d-1"], detail: "d" }, gac: T },
+  // R-P29 (chủ lần 16): "cập nhật khách theo đơn" — một suất đóng + mở lại, một suất chỉ đóng (đơn giảm người).
+  loCapNhatKhach: { vao: { ...L, tripId: T, version: 3, cap: [{ dongId: "a-1", mo: suat("a-9") }, { dongId: "a-2", mo: null }], diemBoQua: ["d-1"], detail: "d" }, gac: T },
   loXuatBen: {
     vao: {
       ...L, tripId: T, version: 3, xayRa: XR, policyId: "cs-1", ganTen: [{ suatId: "a-1", personKey: "pk-1" }],
@@ -63,7 +65,9 @@ const MAU: Record<string, { vao: Record<string, unknown>; gac: string }> = {
   loKetThucGianDoan: { vao: { ...L, tripId: T, xayRa: XR, policyId: null, lyDo: "GIAN_DOAN_KHAC", soSuatDong: 1, detail: "d" }, gac: T },
   loDoiThuTu: { vao: { ...L, tripId: T, diem: [{ id: "d-2", seq: 5 }], policyId: null, detail: "d" }, gac: T },
   lenhDaGoiBao: { vao: { ...L, legId: "leg-1", phienBan: 1, moi: { ngay: "2027-03-11", gio: "09:15" }, cu: { ngay: "2027-03-11", gio: "09:00" }, tripId: T, detail: "d" }, gac: T },
-  lenhBoDanhDauGoiBao: { vao: { ...L, legId: "leg-1", phienBan: 2, moi: { ngay: "2027-03-11", gio: "09:00" }, cu: { ngay: "2027-03-11", gio: "09:15" }, tripId: T, detail: "d" }, gac: T },
+  lenhBoDanhDauGoiBao: {
+    vao: { ...L, legId: "leg-1", phienBan: 2, moi: { ngay: "2027-03-11", gio: "09:00" }, cu: { ngay: "2027-03-11", gio: "09:15" }, tripId: T, detail: "d", banChup: "null" }, gac: T,
+  },
 };
 /** Họ lệnh trên mốc giờ hẹn (ADR-0051; ruling VỪA-2) — LIỆT KÊ TÊN. Thêm tên = NỚI luật 3 — người kiểm soi. */
 const HO_LENH_MOC = ["lenhDaGoiBao", "lenhBoDanhDauGoiBao"];

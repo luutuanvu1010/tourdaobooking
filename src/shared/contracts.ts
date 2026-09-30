@@ -1231,6 +1231,11 @@ export interface CapNhatDiemRequest { version: number; requestId: string }
 /** Phản hồi "cập nhật điểm theo đơn" (I42): số suất đã đổi điểm (0 = không suất nào lệch — không ghi gì). */
 export interface CapNhatDiemResponse extends ChuyenChiTietResponse { daCapNhat: number }
 /**
+ * `POST /api/van-chuyen/chuyen/:id/cap-nhat-khach` (R-P29, chủ lần 16 — khuôn route 40): thân như `CapNhatDiemRequest`. `daCapNhat` = số suất khách ĐÃ ĐỔI
+ * được xử lý (đóng PASSENGER_CHANGED; mở lại tới số người của chặng). 0 = không có gì lệch (không ghi). Phản hồi KHÔNG tên (GA-55).
+ */
+export interface CapNhatKhachResponse extends ChuyenChiTietResponse { daCapNhat: number }
+/**
  * 409 của lệnh chuyến: `lyDo` = mọi lý do (luật thuần); `canQuyen` (can_pha_le) = người gọi có ô trip.override (đưa hộp phá lệ).
  * A15: `gio_xay_ra_ngoai_khoang` kèm `maGio` (mã kiemGioXayRa), `somNhat` (giờ sớm nhất khai được — R-P14; null = không phút nào) và `mocChan` (mốc gây chặn:
  * mã chuyến trước + giờ, hoặc nhãn sự kiện + giờ — không tên người); `con_khach_chua_xong` kèm `goiY` "KET_THUC_GIAN_DOAN" + số suất / điểm còn dở.

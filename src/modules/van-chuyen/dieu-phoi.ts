@@ -273,6 +273,29 @@ export function loCapNhatDiem(db: D1Database, l: LenhCapNhatDiem): CauCoNhan[] {
   return lo;
 }
 
+// ---- Cập nhật khách theo đơn (route 41 — R-P29, chủ lần 16; khuôn route 40) --------------------------------------------------------------------------------
+export interface LenhCapNhatKhach extends LenhChung {
+  tripId: string;
+  version: number;
+  /** Từng suất khách đã đổi: đóng PASSENGER_CHANGED NGAY TRƯỚC khi mở lại (cùng chặng, cùng điểm, khoá rảnh hoặc null) — hoặc chỉ đóng (đơn giảm người). */
+  cap: { dongId: string; mo: SuatMoi | null }[];
+  diemBoQua: string[];
+  detail: string;
+}
+export function loCapNhatKhach(db: D1Database, l: LenhCapNhatKhach): CauCoNhan[] {
+  const lo: CauCoNhan[] = [
+    cong(db, l, l.tripId, l.version),
+    nhatKy(db, l, "trip_passengers_synced", l.tripId, l.detail),
+    suKien(db, l, { tripId: l.tripId, loai: "ALLOCATION_PASSENGER_CHANGED", soNguoi: l.cap.length }),
+  ];
+  for (const c of l.cap) {
+    lo.push(dongSuat(db, l, l.tripId, c.dongId, LENH_DONG_SUAT.DOI_KHACH_THEO_DON));
+    if (c.mo) lo.push(chenSuat(db, l, c.mo));
+  }
+  lo.push(...l.diemBoQua.map((id) => boQuaDiem(db, l, l.tripId, id, LY_DO_BO_QUA_KHONG_CON_KHACH)));
+  return lo;
+}
+
 // =========================================================================================================================================================
 // LỆNH TIẾN ĐỘ (Task A15; kế hoạch mục 1.5; ADR-0050 VK1-A). Sự kiện mang giờ XẢY RA (`occurred_*`) + nguồn: `MAY_CHU` ⇒ đúng CHUỖI lúc bấm của request (I33 —
 // CHECK occurred_at = created_at); `VAN_PHONG_KHAI` ⇒ giờ văn phòng khai (đã qua kiemGioXayRa) + chính sách đã dùng (CHECK policy_id). Cột giờ trên điểm /
@@ -456,13 +479,14 @@ export interface LenhMoc extends LenhChung {
   tripId: string;
   detail: string;
 }
-const congMoc = (db: D1Database, l: LenhMoc, loai: "DA_GOI" | "BO_DANH_DAU"): CauCoNhan => ({
+const congMoc = (db: D1Database, l: LenhMoc, loai: "DA_GOI" | "BO_DANH_DAU", banChup: string | null): CauCoNhan => ({
   nhan: "CONG_MOC",
-  stmt: db.prepare(MOC_GOI_INSERT).bind(l.cmd, l.legId, l.phienBan, loai, l.moi.ngay, l.moi.gio, l.cu.ngay, l.cu.gio, l.requestId, l.lucIso, l.nguoiId),
+  stmt: db.prepare(MOC_GOI_INSERT).bind(l.cmd, l.legId, l.phienBan, loai, l.moi.ngay, l.moi.gio, l.cu.ngay, l.cu.gio, l.requestId, l.lucIso, l.nguoiId, banChup),
 });
 export function lenhDaGoiBao(db: D1Database, l: LenhMoc): CauCoNhan[] {
-  return [congMoc(db, l, "DA_GOI"), nhatKy(db, l, "trip_appt_called", l.tripId, l.detail)];
+  return [congMoc(db, l, "DA_GOI", null), nhatKy(db, l, "trip_appt_called", l.tripId, l.detail)];
 }
-export function lenhBoDanhDauGoiBao(db: D1Database, l: LenhMoc): CauCoNhan[] {
-  return [congMoc(db, l, "BO_DANH_DAU"), nhatKy(db, l, "trip_appt_call_undone", l.tripId, l.detail)];
+/** `banChup` (GA-59): kết quả lần đầu — JSON `{ moi, maChuyen }` hoặc `"null"` (không còn mục) — lưu trên dòng mốc để lệnh lặp trả y hệt. */
+export function lenhBoDanhDauGoiBao(db: D1Database, l: LenhMoc & { banChup: string }): CauCoNhan[] {
+  return [congMoc(db, l, "BO_DANH_DAU", l.banChup), nhatKy(db, l, "trip_appt_call_undone", l.tripId, l.detail)];
 }

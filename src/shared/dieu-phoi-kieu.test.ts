@@ -29,13 +29,14 @@ test("mọi mã lý do gieo ở migration *_chinh_sach_dieu_phoi.sql thuộc m�
   for (const r of rows) assert.ok(isNhomLyDo(r.reason_group), `${r.code}: nhóm lạ ${r.reason_group}`);
 });
 
-test("LOAI_SU_KIEN_CHUYEN: đủ 16 loại tương ứng các hành động trip_* của kế hoạch mục 1.1 (+ ALLOCATION_STOP_CHANGED — ADR-0050 VK1-B), không trùng, có nhãn", () => {
+test("LOAI_SU_KIEN_CHUYEN: đủ 17 loại tương ứng các hành động trip_* của kế hoạch mục 1.1 (+ ALLOCATION_STOP_CHANGED — ADR-0050 VK1-B; + ALLOCATION_PASSENGER_CHANGED — R-P29, chủ lần 16), không trùng, có nhãn", () => {
   assert.deepEqual([...LOAI_SU_KIEN_CHUYEN], [
     "CREATED", "UPDATED", "CANCELLED",
-    "ALLOCATED", "ALLOCATION_REMOVED", "ALLOCATION_MOVED", "ALLOCATION_STOP_CHANGED",
+    "ALLOCATED", "ALLOCATION_REMOVED", "ALLOCATION_MOVED", "ALLOCATION_STOP_CHANGED", "ALLOCATION_PASSENGER_CHANGED",
     "DEPARTED", "STOP_ARRIVED", "PASSENGER_BOARDED", "PASSENGER_NO_SHOW", "PASSENGER_CANCELLED_AT_STOP", "PASSENGER_DROPPED",
     "STOPS_REORDERED", "ENDED", "ENDED_INTERRUPTED",
   ]);
+  assert.equal(NHAN_SU_KIEN_CHUYEN.ALLOCATION_PASSENGER_CHANGED, "Cập nhật khách theo đơn");
   assert.equal(new Set(LOAI_SU_KIEN_CHUYEN).size, LOAI_SU_KIEN_CHUYEN.length);
   for (const k of LOAI_SU_KIEN_CHUYEN) assert.ok(NHAN_SU_KIEN_CHUYEN[k].trim().length > 0, k);
   // Ruling R-K1: MOVED / ALLOCATION_MOVED giữ nghĩa "dời sang chuyến KHÁC"; đổi điểm cùng chuyến là loại riêng.
@@ -48,7 +49,7 @@ test("ADR-0050 VK1-A (I35): LOAI_SU_KIEN_KHAI_GIO là TẬP CON của LOAI_SU_KI
     "DEPARTED", "STOP_ARRIVED", "PASSENGER_BOARDED", "PASSENGER_NO_SHOW", "PASSENGER_CANCELLED_AT_STOP", "PASSENGER_DROPPED", "ENDED", "ENDED_INTERRUPTED",
   ]);
   for (const k of LOAI_SU_KIEN_KHAI_GIO) assert.ok((LOAI_SU_KIEN_CHUYEN as readonly string[]).includes(k), k);
-  for (const k of ["CREATED", "UPDATED", "CANCELLED", "ALLOCATED", "ALLOCATION_REMOVED", "ALLOCATION_MOVED", "ALLOCATION_STOP_CHANGED", "STOPS_REORDERED"]) {
+  for (const k of ["CREATED", "UPDATED", "CANCELLED", "ALLOCATED", "ALLOCATION_REMOVED", "ALLOCATION_MOVED", "ALLOCATION_STOP_CHANGED", "ALLOCATION_PASSENGER_CHANGED", "STOPS_REORDERED"]) {
     assert.equal(isSuKienKhaiGio(k), false, `${k} là sự kiện kế hoạch / đổi thứ tự — không khai giờ`);
   }
   for (const k of LOAI_SU_KIEN_KHAI_GIO) assert.equal(isSuKienKhaiGio(k), true, k);
@@ -63,8 +64,10 @@ test("LENH_DONG_SUAT (bảng lệnh → mã đóng suất, một chỗ): 'cập 
     HUY_CO_KHACH: "TRIP_CANCELLED",
     KET_THUC_GIAN_DOAN: "TRIP_INTERRUPTED",
     DOI_DIEM_THEO_CHANG: "STOP_CHANGED",
+    DOI_KHACH_THEO_DON: "PASSENGER_CHANGED",
   });
   assert.equal(LENH_DONG_SUAT.DOI_DIEM_THEO_CHANG, "STOP_CHANGED");
+  assert.equal(LENH_DONG_SUAT.DOI_KHACH_THEO_DON, "PASSENGER_CHANGED", "R-P29 (chủ lần 16): mã RIÊNG, không dùng lại STOP_CHANGED / REMOVED");
   for (const [lenh, ma] of Object.entries(LENH_DONG_SUAT)) {
     assert.ok((LY_DO_DONG_SUAT as readonly string[]).includes(ma), `${lenh}: mã ${ma} phải thuộc LY_DO_DONG_SUAT (CHECK close_reason của 0042)`);
     if (lenh !== "KET_THUC_GIAN_DOAN") assert.ok((LENH_XEP as readonly string[]).includes(lenh), `${lenh} phải là một lệnh lúc xếp (LENH_XEP)`);
@@ -88,7 +91,7 @@ test("tập ĐÓNG của bốn máy trạng thái (khớp CHECK của migration 
   assert.deepEqual([...TRANG_THAI_DIEM], ["PENDING", "ARRIVED", "DONE", "SKIPPED", "MOVED"]);
   assert.deepEqual([...LOAI_DIEM], ["PICKUP", "DROPOFF"]);
   assert.deepEqual([...LOAI_SUAT], ["PASSENGER", "CREW"]);
-  assert.deepEqual([...LY_DO_DONG_SUAT], ["MOVED", "REMOVED", "TRIP_CANCELLED", "TRIP_INTERRUPTED", "TRANSFERRED", "STOP_CHANGED"]);
+  assert.deepEqual([...LY_DO_DONG_SUAT], ["MOVED", "REMOVED", "TRIP_CANCELLED", "TRIP_INTERRUPTED", "TRANSFERRED", "STOP_CHANGED", "PASSENGER_CHANGED"]);
   for (const s of TRANG_THAI_CUOI_CHUYEN) assert.ok((TRANG_THAI_CHUYEN as readonly string[]).includes(s));
   for (const s of KET_QUA_CUOI_SUAT) assert.ok((TRANG_THAI_SUAT as readonly string[]).includes(s));
 });

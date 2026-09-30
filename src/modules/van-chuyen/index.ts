@@ -41,14 +41,14 @@ import {
 
 // ADR-0049 D1–D3 (Task A13): chuyến xe — hàm hẹp của orders (chỉ gọi trong THÂN route, sau can() — bài src/orders-cong-bo.test.ts), đọc / dựng lô / DTO.
 import { hanhKhachChoChuyen, lichChungChang, lienHeChoTaiXe } from "../orders";
-import type { CapNhatDiemResponse, ChuyenChiTietResponse, CuocChiTietResponse, CuocCuaToiResponse, StaffProfile } from "../../shared/contracts";
+import type { CapNhatDiemResponse, CapNhatKhachResponse, ChuyenChiTietResponse, CuocChiTietResponse, CuocCuaToiResponse, StaffProfile } from "../../shared/contracts";
 import { kiemTaoSuaChuyen, trongNgayChay } from "../../shared/dieu-phoi-kiem";
 import { lyDoGiu } from "../../shared/ly-do-giu";
 import { isISODate, msToVnLocal } from "../../shared/vn-date";
 import { eventByRequest, eventsByTrips, tripCountByDate, tripsByDate, tripsCuaTaiXe, tripsTouching } from "./chuyen-repo";
 import { loTaoChuyen } from "./dieu-phoi";
 import { chinhSachVao, docChung, docNen, khungChuyen, taiXeVao, xeVao, type NenChuyen } from "./dieu-phoi-doc";
-import { dungLichNgay, lenhCapNhatDiem, lenhDoi, lenhHuy, lenhRut, lenhSuaChuyen, lenhXep } from "./dieu-phoi-lenh";
+import { dungLichNgay, lenhCapNhatDiem, lenhCapNhatKhach, lenhDoi, lenhHuy, lenhRut, lenhSuaChuyen, lenhXep } from "./dieu-phoi-lenh";
 import {
   CAN_DIEU_PHOI, CAN_PHA_LE, CAN_XEM_CHUYEN, KHONG_CO_CHUYEN, chayLo, chiTietChuyen, cuocChiTiet, danhSachCuoc, gioNgan, loi409, loiKiem, lyDoHopLe, nhanLyDo, phaLeNhatKy,
 } from "./dieu-phoi-route";
@@ -904,6 +904,31 @@ export const vanChuyenModule: AppModule = {
       return json({ ...(await chiTietChuyen(env.DB, nen2, lich2.chang, hk, false, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), bayGioMs)), daCapNhat } satisfies CapNhatDiemResponse);
     }),
 
+    // R-P29 (chủ lần 16 — "Giữ xe + nút cập nhật", khuôn route 40): "Cập nhật khách theo đơn" — máy tự tìm MỌI suất khách mở mang khoá người không còn trong
+    // đơn (cùng định nghĩa lý do giữ KHACH_DA_DOI), đóng PASSENGER_CHANGED + mở lại tới số người của chặng (khoá rảnh / null). Ô trip.dispatch; không khoá theo
+    // mốc; chỉ chuyến PLANNED (RUNNING → 409 xe_dang_chay). Không lệch → 200 daCapNhat 0 (không ghi, kể cả version cũ). Lệnh lặp → kết quả cũ.
+    route("POST", "/api/van-chuyen/chuyen/:id/cap-nhat-khach", "office", async ({ env, request, params, staff, nhanNhanVien, isAssigned }) => {
+      if (!can(staff, "trip.dispatch")) return CAN_DIEU_PHOI();
+      const than = docCapNhatDiem(await readJson(request));
+      if (!than.ok) return error(400, "invalid_input", than.message);
+      const b = than.value;
+      const nen = await docNen(env.DB, params.id ?? "");
+      if (!nen) return KHONG_CO_CHUYEN();
+      const bayGioMs = Date.now();
+      let daCapNhat = 0;
+      const lap = await eventByRequest(env.DB, b.requestId);
+      if (!lap) {
+        const lich = await lichChungChang(env.DB, nen.tu, nen.den);
+        const r = await lenhCapNhatKhach(env.DB, nen, lich.chang, b, staff, bayGioMs);
+        if (r instanceof Response) return r;
+        daCapNhat = r;
+      } else daCapNhat = (await eventsByTrips(env.DB, [nen.trip.id])).find((e) => e.id === lap.id)?.count ?? 0;
+      const nen2 = (await docNen(env.DB, nen.trip.id))!;
+      const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
+      const hk = await hanhKhachChoChuyen(env.DB, nen2.legIds);
+      return json({ ...(await chiTietChuyen(env.DB, nen2, lich2.chang, hk, false, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), bayGioMs)), daCapNhat } satisfies CapNhatKhachResponse);
+    }),
+
     // ---- LỆNH TIẾN ĐỘ — route TÀI XẾ (cổng staff; kế hoạch mục 1.7 route 19–29; Task A15) ------------------------------------------------------------------
     // Khuôn hai bước (mục 1.2): (1) `can(trip.view, { assigned: true })` — tài khoản không có ô nào → 403 trước mọi truy vấn; (2) chuyến có dòng lái MỞ của
     // CHÍNH người gọi (`assigned`) và ô của lệnh → không thì 404 (kể cả người có ô `any` — văn phòng bấm thay qua route office, R-P1); (3) rồi mới đọc thân
@@ -1337,9 +1362,10 @@ export const vanChuyenModule: AppModule = {
       const hk = await hanhKhachChoChuyen(env.DB, [legId]);
       const r = await xuLyMoc("BO_DANH_DAU", env.DB, legId, hk, than.value, staff.id, Date.now());
       if (r) return r;
-      const d = await docGoiBao(env.DB, [legId]);
-      const nhan = await nhanNhanVien(nguoiBamGoiBao(d));
-      return json((await goiBaoChang(legId, hk, d, quyenGoiBaoCua(staff, isAssigned), nhan)) ?? { legId, maDon: null, gioHenDoi: null, daGoiBao: null } satisfies GoiBaoChangDto);
+      // GA-59: phản hồi lần đầu dựng từ CHÍNH dòng vừa ghi (bản chụp kết quả) — cùng hàm với lệnh lặp ⇒ lặp trả y hệt lần đầu.
+      const dong = await mocByRequest(env.DB, than.value.requestId);
+      if (!dong) throw new Error("bo-danh-dau-goi-bao: lô đã chạy mà không thấy dòng mốc của requestId");
+      return json((await phanHoiLenhLap(env.DB, dong, quyenGoiBaoCua(staff, isAssigned), null)) satisfies GoiBaoChangDto);
     }),
   ],
 };

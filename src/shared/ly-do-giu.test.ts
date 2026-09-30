@@ -2,7 +2,7 @@
 // khái niệm này (K9) — máy chủ và màn hình cùng dùng; không lưu cột "giữ", tính lại mỗi lần đọc.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { AI_XU_LY, MA_GIU, NHAN_AI_XU_LY, isMaGiu, lyDoGiu } from "./ly-do-giu.ts";
+import { AI_XU_LY, MA_GIU, NHAN_AI_XU_LY, NUT_CAP_NHAT_KHACH, isMaGiu, lyDoGiu } from "./ly-do-giu.ts";
 
 test("mỗi mã giữ có câu tiếng Việt (không lộ mã kỹ thuật) và đúng một 'ai xử lý' thuộc tập đóng", () => {
   assert.deepEqual([...AI_XU_LY], ["VAN_PHONG", "QUAN_TRI", "TOAN_QUYEN"]);
@@ -39,4 +39,10 @@ test("lyDoGiu(ma, chiTiet): dựng đúng khoá; chi tiết nối vào câu; mã
 test("ADR-0050 VK1-B: NOI_HEN_DOI — nơi đón / trả đổi sau khi xếp → văn phòng xử lý (bấm 'cập nhật điểm theo đơn'); câu không lộ mã", () => {
   assert.deepEqual({ ...MA_GIU.NOI_HEN_DOI }, { loiNhan: "Nơi đón / trả đã đổi sau khi xếp — cập nhật điểm", aiXuLy: "VAN_PHONG" });
   assert.deepEqual(lyDoGiu("NOI_HEN_DOI", "ĐH-1024"), { ma: "NOI_HEN_DOI", loiNhan: "Nơi đón / trả đã đổi sau khi xếp — cập nhật điểm: ĐH-1024", aiXuLy: "VAN_PHONG" });
+});
+
+test("R-P29 (chủ lần 16): KHACH_DA_DOI — khách trong xe không còn trong đơn → văn phòng bấm nút 'Cập nhật khách theo đơn' (chữ nút DÙNG CHUNG); câu không lộ mã", () => {
+  assert.equal(NUT_CAP_NHAT_KHACH, "Cập nhật khách theo đơn");
+  assert.deepEqual({ ...MA_GIU.KHACH_DA_DOI }, { loiNhan: "Khách trong xe không còn trong đơn — bấm Cập nhật khách theo đơn", aiXuLy: "VAN_PHONG" });
+  assert.deepEqual(lyDoGiu("KHACH_DA_DOI", "ĐH-1024"), { ma: "KHACH_DA_DOI", loiNhan: "Khách trong xe không còn trong đơn — bấm Cập nhật khách theo đơn: ĐH-1024", aiXuLy: "VAN_PHONG" });
 });

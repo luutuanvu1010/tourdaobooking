@@ -244,8 +244,7 @@ test("TC-GB-9c: phạm vi danh sách nhắc theo NGÀY CHUYẾN — hôm nay + 1
 });
 
 // Kiểm độc lập K2a T2 — ADR-0051 bước 4: "requestId đã có dòng → 200, trả kết quả của LẦN ĐẦU". Phản hồi lệnh lặp dựng từ ĐÚNG dòng mốc mang requestId đó,
-// không đọc trạng thái mới nhất (lệnh khác chen vào giữa không làm đổi phản hồi lệnh lặp). GA-59: "Bỏ đánh dấu" chỉ khớp tuyệt đối khi giờ hẹn không đổi
-// thêm sau lần gọi báo và tập chuyến chở khách chờ không đổi (`moi`, `maChuyen` không nằm trong dòng mốc) — ca dưới giữ nguyên hai thứ đó.
+// không đọc trạng thái mới nhất (lệnh khác chen vào giữa không làm đổi phản hồi lệnh lặp). Ca giờ hẹn / tập chuyến đổi giữa hai lần gửi: hai bài GA-59 dưới.
 test("K2a T2: lệnh lặp 'Đã gọi báo' / 'Bỏ đánh dấu' (cùng requestId) trả ĐÚNG phản hồi lần đầu dù lệnh khác đã chen vào; không thêm dòng", async () => {
   const tat = batDongHo();
   try {
@@ -281,3 +280,66 @@ test("K2a T2: lệnh lặp 'Đã gọi báo' / 'Bỏ đánh dấu' (cùng reques
     tat();
   }
 });
+
+// GA-59 (chủ lần 16 "Sửa cho khớp ADR" — ADR-0051 bước 4): lệnh lặp "Bỏ đánh dấu" trả ĐÚNG phản hồi lần đầu kể cả khi giữa hai lần gửi giờ hẹn đổi thêm và
+// tập chuyến chở khách chờ đổi. Kết quả lần đầu (`moi`, `maChuyen` — hoặc "không còn mục") lưu trên CHÍNH dòng mốc (`bo_gio_hen_doi`, 0043).
+test("GA-59: lệnh lặp 'Bỏ đánh dấu' = đúng phản hồi lần đầu dù giờ hẹn đổi thêm (trước VÀ sau lần đầu) và khách đã dời sang chuyến khác; bản chụp trên dòng không có tên", async () => {
+  const tat = batDongHo();
+  try {
+    const w = khung();
+    const a = await chuyenSan(w, { soNguoi: 1 });
+    await doiGio(w, a.don.id, "13:15");
+    assert.equal((await baoGoi(w, a.don.legId, { phienBan: 1, gioMoi: { ngay: NGAY, gio: "13:15" } })).status, 200);
+    await doiGio(w, a.don.id, "13:30"); // đổi SAU khi đã gọi báo, TRƯỚC khi bỏ đánh dấu → "mới" của lần đầu là 13:30, không phải giờ lúc gọi báo (13:15)
+    const r2 = uuid();
+    const lan = await w.call("POST", `/api/van-chuyen/chang/${a.don.legId}/bo-danh-dau-goi-bao`, { as: SALES, body: { requestId: r2, phienBan: 2 } });
+    assert.equal(lan.status, 200, lan.text);
+    assert.deepEqual(lan.json, {
+      legId: a.don.legId, maDon: a.don.code, daGoiBao: null,
+      gioHenDoi: { cu: { ngay: NGAY, gio: "13:00" }, moi: { ngay: NGAY, gio: "13:30" }, phienBan: 3, maChuyen: [a.ma], baoDuoc: true },
+    });
+    // Giữa hai lần gửi: giờ hẹn đổi thêm + khách dời sang chuyến khác.
+    await doiGio(w, a.don.id, "13:45");
+    const b = await taoChuyen(w, { xe: xe(w), taiXe: "pty-66666666-6666-4666-8666-666666666668" });
+    const ct = await chiTiet(w, a.id);
+    const bb = await chiTiet(w, b.chuyen.id);
+    const doi = await w.call("POST", `/api/van-chuyen/chuyen/${a.id}/doi`, {
+      as: SALES, body: { version: ct.chuyen.version, requestId: uuid(), denChuyenId: b.chuyen.id, denVersion: bb.chuyen.version, suatIds: a.suat },
+    });
+    assert.equal(doi.status, 200, doi.text);
+    assert.deepEqual((await nhac(w)).muc.map((m: any) => [m.gioHenDoi.moi.gio, m.gioHenDoi.maChuyen]), [["13:45", [b.chuyen.ma]]], "chống bài rỗng: trạng thái hiện tại ĐÃ khác lần đầu");
+    const lap = await w.call("POST", `/api/van-chuyen/chang/${a.don.legId}/bo-danh-dau-goi-bao`, { as: SALES, body: { requestId: r2, phienBan: 2 } });
+    assert.equal(lap.status, 200, lap.text);
+    assert.deepEqual(lap.json, lan.json, "lệnh lặp = phản hồi lần đầu");
+    const chup = w.q("SELECT bo_gio_hen_doi AS s FROM vc_leg_appt_ack WHERE request_id = ?", r2)[0].s;
+    assert.deepEqual(JSON.parse(chup), { moi: { ngay: NGAY, gio: "13:30" }, maChuyen: [a.ma] }, "bản chụp chỉ giờ + mã chuyến");
+    assert.ok(!/Dò Tìm|1990|1991|0900/.test(chup), "không tên / năm sinh / SĐT");
+    assert.deepEqual(w.q("SELECT bo_gio_hen_doi AS s FROM vc_leg_appt_ack WHERE leg_id = ? AND kind <> 'BO_DANH_DAU'", a.don.legId).map((x: any) => x.s), [null, null],
+      "chỉ dòng BO_DANH_DAU mang bản chụp");
+  } finally {
+    tat();
+  }
+});
+
+test("GA-59: 'Bỏ đánh dấu' khi giờ hẹn đã về đúng giờ cũ → lần đầu KHÔNG còn mục (gioHenDoi null, bản chụp JSON null) — lệnh lặp y hệt dù giờ đổi tiếp", async () => {
+  const tat = batDongHo();
+  try {
+    const w = khung();
+    const a = await chuyenSan(w, { soNguoi: 1 });
+    await doiGio(w, a.don.id, "13:15");
+    assert.equal((await baoGoi(w, a.don.legId, { phienBan: 1, gioMoi: { ngay: NGAY, gio: "13:15" } })).status, 200);
+    await doiGio(w, a.don.id, "13:00"); // về lại giờ lúc xếp
+    const r2 = uuid();
+    const lan = await w.call("POST", `/api/van-chuyen/chang/${a.don.legId}/bo-danh-dau-goi-bao`, { as: SALES, body: { requestId: r2, phienBan: 2 } });
+    assert.equal(lan.status, 200, lan.text);
+    assert.deepEqual(lan.json, { legId: a.don.legId, maDon: a.don.code, gioHenDoi: null, daGoiBao: null });
+    await doiGio(w, a.don.id, "13:20");
+    assert.equal((await nhac(w)).muc.length, 1, "chống bài rỗng: nay lại có mục");
+    const lap = await w.call("POST", `/api/van-chuyen/chang/${a.don.legId}/bo-danh-dau-goi-bao`, { as: SALES, body: { requestId: r2, phienBan: 2 } });
+    assert.deepEqual([lap.status, lap.json], [200, lan.json], "lệnh lặp = phản hồi lần đầu");
+    assert.equal(w.q("SELECT bo_gio_hen_doi AS s FROM vc_leg_appt_ack WHERE request_id = ?", r2)[0].s, "null");
+  } finally {
+    tat();
+  }
+});
+

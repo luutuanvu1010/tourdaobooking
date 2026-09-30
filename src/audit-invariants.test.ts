@@ -1012,8 +1012,9 @@ const suatThang = (db: DatabaseSync, id: string, leg: string) =>
   db.prepare(`INSERT INTO vc_trip_allocation (id, trip_id, kind, leg_id, board_stop_id, status, valid_from_at, created_at, updated_at) VALUES (?, 'tr-x', 'PASSENGER', ?, 'st-x', 'WAITING', ?, ?, ?)`)
     .run(id, leg, T1, T1, T1);
 const mocThang = (db: DatabaseSync, leg: string, seq: number, kind: string, gio: string, truoc: string | null) =>
-  db.prepare(`INSERT INTO vc_leg_appt_ack (id, leg_id, seq, kind, appt_date, appt_time, prev_appt_date, prev_appt_time, request_id, created_at, updated_at)
-     VALUES (?, ?, ?, ?, '2026-10-05', ?, ?, ?, ?, ?, ?)`).run(`m-${leg}-${seq}`, leg, seq, kind, gio, truoc === null ? null : "2026-10-05", truoc, kind === "XEP" ? null : `r0000000-0000-4000-8000-${leg.padStart(6, "0")}${String(seq).padStart(6, "0")}`, T1, T1);
+  db.prepare(`INSERT INTO vc_leg_appt_ack (id, leg_id, seq, kind, appt_date, appt_time, prev_appt_date, prev_appt_time, request_id, created_at, updated_at, bo_gio_hen_doi)
+     VALUES (?, ?, ?, ?, '2026-10-05', ?, ?, ?, ?, ?, ?, ?)`).run(`m-${leg}-${seq}`, leg, seq, kind, gio, truoc === null ? null : "2026-10-05", truoc, kind === "XEP" ? null : `r0000000-0000-4000-8000-${leg.padStart(6, "0")}${String(seq).padStart(6, "0")}`, T1, T1,
+    kind === "BO_DANH_DAU" ? "null" : null); // GA-59: dòng BO_DANH_DAU mang bản chụp (JSON null = lần đầu không còn mục)
 
 test("R-VC-17 (ADR-0051): suất khách MỞ mà chặng không có mốc — có mốc (gieoMocXep) / suất đã đóng / suất người đi kèm → 0; chèn thẳng khi trigger bị gỡ → 1", () => {
   const c = one("R-VC-17");

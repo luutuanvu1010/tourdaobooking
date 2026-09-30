@@ -7,6 +7,9 @@
 --   BO_DANH_DAU  — dòng ĐẢO của một DA_GOI (khôi phục đúng giờ trước khi bấm).
 -- leg_id: tham chiếu LOGIC tới ord_transfer_leg(id) — KHÔNG khoá ngoại (R-P19, chủ chốt 29/9 "Trả lời lần 13"; cùng cách vc_trip_allocation.leg_id). Chặng luôn
 -- hợp lệ: dòng XEP chỉ sinh trong lô mở suất (đã qua LC-09); dòng khác đòi chặng còn suất khách chờ đón (trigger …_active). Không tên, không SĐT, không nơi.
+-- bo_gio_hen_doi (GA-59 — chủ lần 16 "Sửa cho khớp ADR", ADR-0051 bước 4 "lệnh lặp trả kết quả của lần đầu"): KẾT QUẢ LẦN ĐẦU của lệnh "Bỏ đánh dấu", chụp
+-- trước lô từ CHÍNH luật mục (`mucGioHenDoi`): JSON {"moi":{"ngay","gio"},"maChuyen":[mã chuyến]} hoặc JSON null (lần đầu không còn mục). `cu` = appt_* của
+-- dòng, `phienBan` = seq — không chép lại. Chỉ giờ + mã chuyến có thật (trigger …_snapshot): không tên, năm sinh, SĐT, chữ tự do.
 -- Thân trigger CHỈ đọc bảng vc_ (Hiến chương 5.3). Câu báo bắt đầu `gb_` → máy chủ đổi thành 409 (loiRangBuocChuyen).
 CREATE TABLE vc_leg_appt_ack (
   id              TEXT PRIMARY KEY,
@@ -18,6 +21,7 @@ CREATE TABLE vc_leg_appt_ack (
   prev_appt_date  TEXT CHECK (prev_appt_date IS NULL OR date(prev_appt_date) IS prev_appt_date),
   prev_appt_time  TEXT CHECK (prev_appt_time IS NULL OR prev_appt_time GLOB '[01][0-9]:[0-5][0-9]' OR prev_appt_time GLOB '2[0-3]:[0-5][0-9]'),
   request_id      TEXT UNIQUE CHECK (request_id IS NULL OR length(request_id) = 36),
+  bo_gio_hen_doi  TEXT,
   created_at      TEXT NOT NULL,
   created_by      TEXT,
   updated_at      TEXT NOT NULL,
@@ -29,7 +33,16 @@ CREATE TABLE vc_leg_appt_ack (
   CHECK ((kind = 'XEP') = (prev_appt_date IS NULL)),
   CHECK (kind <> 'XEP' OR prev_appt_time IS NULL),
   -- Dòng người bấm luôn là một THAY ĐỔI (so "IS": giờ NULL = "chưa chốt giờ" là một giá trị).
-  CHECK (kind = 'XEP' OR NOT (appt_date IS prev_appt_date AND appt_time IS prev_appt_time))
+  CHECK (kind = 'XEP' OR NOT (appt_date IS prev_appt_date AND appt_time IS prev_appt_time)),
+  -- GA-59: bản chụp có ĐÚNG ở dòng BO_DANH_DAU; hình đóng (khoá thừa → sai; so bằng IS để thiếu khoá không lọt qua thành NULL).
+  CHECK ((kind = 'BO_DANH_DAU') = (bo_gio_hen_doi IS NOT NULL)),
+  CHECK (bo_gio_hen_doi IS NULL OR (json_valid(bo_gio_hen_doi) AND (json_type(bo_gio_hen_doi) IS 'null' OR (
+    json_type(bo_gio_hen_doi) IS 'object' AND json_remove(bo_gio_hen_doi, '$.moi', '$.maChuyen') IS '{}'
+    AND json_type(bo_gio_hen_doi, '$.moi') IS 'object' AND json_remove(json_extract(bo_gio_hen_doi, '$.moi'), '$.ngay', '$.gio') IS '{}'
+    AND json_type(bo_gio_hen_doi, '$.moi.ngay') IS 'text' AND date(json_extract(bo_gio_hen_doi, '$.moi.ngay')) IS json_extract(bo_gio_hen_doi, '$.moi.ngay')
+    AND (json_type(bo_gio_hen_doi, '$.moi.gio') IS 'null' OR (json_type(bo_gio_hen_doi, '$.moi.gio') IS 'text'
+         AND (json_extract(bo_gio_hen_doi, '$.moi.gio') GLOB '[01][0-9]:[0-5][0-9]' OR json_extract(bo_gio_hen_doi, '$.moi.gio') GLOB '2[0-3]:[0-5][0-9]')))
+    AND json_type(bo_gio_hen_doi, '$.maChuyen') IS 'array' AND json_array_length(bo_gio_hen_doi, '$.maChuyen') >= 1))))
 );
 
 CREATE TRIGGER vc_leg_appt_ack_no_update BEFORE UPDATE ON vc_leg_appt_ack
@@ -46,6 +59,13 @@ WHEN NEW.seq > 1 AND (
   OR (NEW.kind = 'BO_DANH_DAU' AND NOT EXISTS (SELECT 1 FROM vc_leg_appt_ack p
                WHERE p.leg_id = NEW.leg_id AND p.seq = NEW.seq - 1 AND p.kind = 'DA_GOI' AND NEW.appt_date IS p.prev_appt_date AND NEW.appt_time IS p.prev_appt_time)))
 BEGIN SELECT RAISE(ABORT, 'gb_chain: chuỗi mốc giờ hẹn không liền mạch'); END;
+
+-- GA-59: phần tử của `maChuyen` trong bản chụp phải là MÃ của một chuyến có thật (mã chuyến không đổi — 0042) — không chữ tự do. CHECK không chứa được
+-- truy vấn con (json_each) → trigger.
+CREATE TRIGGER vc_leg_appt_ack_snapshot BEFORE INSERT ON vc_leg_appt_ack
+WHEN NEW.bo_gio_hen_doi IS NOT NULL AND json_valid(NEW.bo_gio_hen_doi) AND json_type(NEW.bo_gio_hen_doi, '$.maChuyen') IS 'array' AND EXISTS (
+  SELECT 1 FROM json_each(NEW.bo_gio_hen_doi, '$.maChuyen') j WHERE j.type <> 'text' OR NOT EXISTS (SELECT 1 FROM vc_trip t WHERE t.code = j.value))
+BEGIN SELECT RAISE(ABORT, 'gb_snapshot: bản chụp "bỏ đánh dấu" chỉ chứa mã chuyến có thật'); END;
 
 -- Dòng người bấm chỉ khi chặng còn khách CHỜ ĐÓN trên xe chưa kết thúc (suất khách mở WAITING, chuyến PLANNED / RUNNING).
 CREATE TRIGGER vc_leg_appt_ack_active BEFORE INSERT ON vc_leg_appt_ack

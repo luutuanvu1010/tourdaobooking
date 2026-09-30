@@ -37,7 +37,7 @@ test("ví dụ của ADR-0050: tài xế báo 'đón xong lúc 7:31', văn phòn
 });
 
 test("TC-46 LOAI_KHONG_KHAI_GIO: khai giờ cho sự kiện kế hoạch / đổi thứ tự → từ chối; tám loại tiến độ → không vướng mã này", () => {
-  for (const loai of ["CREATED", "ALLOCATED", "ALLOCATION_STOP_CHANGED", "STOPS_REORDERED", "CANCELLED"] as const) {
+  for (const loai of ["CREATED", "ALLOCATED", "ALLOCATION_STOP_CHANGED", "ALLOCATION_PASSENGER_CHANGED", "STOPS_REORDERED", "CANCELLED"] as const) {
     assert.ok(chan({ loai, diemId: null, suatId: null }).includes("LOAI_KHONG_KHAI_GIO"), loai);
   }
   assert.ok(!chan({}).includes("LOAI_KHONG_KHAI_GIO"));
