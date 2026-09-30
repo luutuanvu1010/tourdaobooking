@@ -11,6 +11,17 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Bản 1.47 = bảng điều khiển trợ lý (ADR-0069, migration 0054, kiểm độc lập + 4 đột biến 30/9) + khoá phóng to (chủ quyết 30/9) + e2e chạy
+    // song song (chỉ bộ kiểm, không đổi app). Số 1.47 vì main đã có 1.46 (chưa deploy lúc gộp).
+    version: "1.47",
+    date: "2026-10-01",
+    items: [
+      { kind: "moi", text: "Toàn quyền có trang \"Trợ lý Hỗ trợ\": thử khoá AI, bật tắt trợ lý theo vai, sửa câu chào và lời dặn, thêm ngữ cảnh, xem lịch sử câu hỏi và chi phí." },
+      { kind: "doi", text: "Khung Hỗ trợ ghi rõ câu hỏi được lưu để cải thiện trợ lý — đừng gõ thông tin khách vào câu hỏi." },
+      { kind: "doi", text: "Điện thoại: không còn phóng to màn hình khi lỡ chạm hai lần hay chụm hai ngón." },
+    ],
+  },
+  {
     // Bản 1.46 = gộp bốn nhánh đã qua kiểm độc lập (ADR-0059 xe đón trên đơn; ADR-0060 dấu kế toán, migration 0051; ADR-0061 nhập tay nội bộ,
     // migration 0052; ADR-0067 ô Người lập). Mỗi nhánh ghi số tạm 1.45; người gộp chốt 1.46 trên 1.45 của main.
     version: "1.46",
