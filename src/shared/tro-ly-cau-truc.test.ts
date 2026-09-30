@@ -90,6 +90,10 @@ test("Đ2 kho (e): Tạo đơn — nhóm menu BÁN HÀNG, mục theo thứ tự,
   const doan = chiaKho().find((d) => d.ten === "Sơ đồ trang › Tạo đơn")!;
   assert.match(doan.chu, /nhóm BÁN HÀNG/);
   assert.match(doan.chu, /Tóm tắt\. 6\. Thanh nút cuối trang — nút: Lưu, chờ xác nhận, Quay lại\./);
+  // Phần dựng bằng web/*.ts: không gán nút vào mục (thứ tự trong mã ≠ vị trí trên màn hình — bản đầu nói sai "Lịch sử — nút: … Sửa thông tin chuyến").
+  const ct = chiaKho().find((d) => d.ten === "Sơ đồ trang › Chi tiết đơn")!.chu;
+  assert.match(ct, /Nút hiện khi trang chạy \(tuỳ quyền và trạng thái\): [^\n]*Sửa thông tin chuyến/);
+  assert.ok(!/ — nút:/.test(ct.split("\n").filter((l) => l.includes("khi trang chạy")).join("\n")));
 });
 
 test("Đ2 (đặc tả mục 5 dòng 4): đổi tên một nút ⇒ kho sinh ra dùng tên MỚI (bố cục trang và bước luồng chính)", () => {

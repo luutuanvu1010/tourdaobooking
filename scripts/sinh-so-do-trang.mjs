@@ -7,7 +7,7 @@
 //      - tiêu đề trang: `<title>X — Island Booking System</title>` của public/<trang>.html (trang "/" là public/index.html);
 //      - bố cục (e) theo THỨ TỰ TỆP: `<h2>`/`<h3>` mở một mục; `<button>`, `<a class="…btn…">` thuộc mục gần nhất phía trên; khối `form-actions` /
 //        `vc-bottom-bar` mở mục "Thanh nút cuối trang". Phần dựng trong web/X.ts (`h("h2"|"h3"|"button"|"a", …, "Nhãn")`, chuỗi LITERAL) ghi riêng là
-//        "dựng khi trang chạy" (xấp xỉ: gán theo tiêu đề đứng trước trong mã; có thể nằm trong hộp thoại);
+//        "dựng khi trang chạy": danh sách mục và danh sách nút, KHÔNG gán nút vào mục (thứ tự trong mã không phải vị trí trên màn hình);
 //      - menu: `{ href, label }` của web/shell.ts; NHÓM menu (BÁN HÀNG / QUẢN TRỊ / QUẢN TRỊ › Vận chuyển / TÔI) đọc từ hàm `navGroups`.
 //   2. src/shared/tro-ly-cau-truc.ts — kho (d) cấu trúc app (lõi thuần scripts/tro-ly-cau-truc-lib.mjs): phân hệ + phụ thuộc (`ALLOWED_EDGES`), luồng chính,
 //      vai → làm được / không làm được (`MATRIX` + `PERMISSION_CODES`), dịch qua bảng tên src/shared/tro-ly-cau-truc-ten.ts.
@@ -122,27 +122,18 @@ export function boCucHtml(html) {
   return out;
 }
 
-/** Bố cục phần dựng trong web/X.ts — thứ tự trong mã (xấp xỉ vị trí thật). */
+/**
+ * Phần dựng trong web/X.ts: tiêu đề mục và nút theo thứ tự trong mã, HAI danh sách riêng. KHÔNG gán nút vào mục: thứ tự trong mã không phải vị trí
+ * trên màn hình (hàm dựng rời, hộp thoại) — gán đoán sẽ cho trợ lý nói sai chỗ một cách tự tin (thử 1/10: "Sửa thông tin chuyến" rơi vào mục Lịch sử).
+ */
 export function boCucTs(src) {
   const s = boChuThich(src);
-  const out = [];
-  let muc = null;
+  const out = { muc: [], nut: [] };
   const re = /h\(\s*"(button|a|h2|h3)"\s*,\s*(?:\{[^{}]*\}|null)\s*,\s*(?:"([^"\n]+)"|'([^'\n]+)')/g;
   for (const m of s.matchAll(re)) {
     const chu = m[2] ?? m[3];
-    if (m[1] === "h2" || m[1] === "h3") {
-      const t = nhan(chu, "tiêu đề mục (web)");
-      if (t) {
-        muc = { muc: t, nut: [] };
-        out.push(muc);
-      }
-    } else {
-      if (!muc) {
-        muc = { muc: "Khác", nut: [] };
-        out.push(muc);
-      }
-      themNhan(muc.nut, chu, "nút (web)");
-    }
+    if (m[1] === "h2" || m[1] === "h3") themNhan(out.muc, chu, "tiêu đề mục (web)");
+    else themNhan(out.nut, chu, "nút (web)");
   }
   return out;
 }
@@ -164,15 +155,15 @@ export function dungSoDo(root = ROOT_MAC_DINH) {
     const tieuDe = nhan(/<title>([^<]*?)\s+—\s+Island Booking System<\/title>/.exec(html)?.[1]?.trim() ?? "", `tiêu đề ${tepHtml}`) ?? "";
     const boCuc = boCucHtml(html);
     const tepTs = `web/${script}.ts`;
-    const boCucKhiChay = existsSync(join(root, tepTs)) ? boCucTs(doc(root, tepTs)) : [];
+    const khiChay = existsSync(join(root, tepTs)) ? boCucTs(doc(root, tepTs)) : { muc: [], nut: [] };
     // (c) danh sách phẳng như cũ: tiêu đề mục + nút của HTML (theo thứ tự), rồi của web/X.ts.
     const nut = [];
     const hTieuDe = [...html.replace(/<!--[\s\S]*?-->/g, "").matchAll(/<(h[1-3])\b[^>]*>([^<]+)<\/\1>/g)].map((m) => m[2]);
     for (const n of hTieuDe) themNhan(nut, n, tepHtml);
     for (const m of boCuc) for (const n of m.nut) if (!nut.includes(n)) nut.push(n);
-    for (const m of boCucKhiChay) for (const n of [...(m.muc === "Khác" ? [] : [m.muc]), ...m.nut]) if (!nut.includes(n)) nut.push(n);
+    for (const n of [...khiChay.muc, ...khiChay.nut]) if (!nut.includes(n)) nut.push(n);
     const mn = menu.get(duongDan);
-    out.push({ duongDan, tieuDe, menu: mn?.nhan ?? [], nhomMenu: mn?.nhom ?? [], nut, boCuc, boCucKhiChay });
+    out.push({ duongDan, tieuDe, menu: mn?.nhan ?? [], nhomMenu: mn?.nhom ?? [], nut, boCuc, khiChay });
   }
   return out;
 }
@@ -216,7 +207,7 @@ export function sinhTep(root = ROOT_MAC_DINH) {
 // Chỉ nhãn chữ, không mã, không dữ liệu, không màu, không ảnh. Không có cột "vai thấy trang" — kho cấu trúc app (tro-ly-cau-truc.ts) nói vai làm được gì.
 
 export interface MucBoCuc {
-  /** Tiêu đề mục (h2/h3), "Đầu trang", "Thanh nút cuối trang" hoặc "Khác" (phần dựng khi chạy, nút đứng trước mọi tiêu đề). */
+  /** Tiêu đề mục (h2/h3), "Đầu trang" (nút đứng trước mọi tiêu đề) hoặc "Thanh nút cuối trang". */
   readonly muc: string;
   readonly nut: readonly string[];
 }
@@ -232,8 +223,8 @@ export interface TrangSoDo {
   readonly nut: readonly string[];
   /** Bố cục tĩnh theo thứ tự trên trang (kho e). */
   readonly boCuc: readonly MucBoCuc[];
-  /** Mục / nút dựng khi trang chạy, theo thứ tự trong mã (xấp xỉ; có thể nằm trong hộp thoại). */
-  readonly boCucKhiChay: readonly MucBoCuc[];
+  /** Mục và nút dựng khi trang chạy (web/X.ts), theo thứ tự trong mã — HAI danh sách, không gán nút vào mục (vị trí thật không suy được từ mã). */
+  readonly khiChay: { readonly muc: readonly string[]; readonly nut: readonly string[] };
 }
 
 export const SO_DO_TRANG: readonly TrangSoDo[] = [

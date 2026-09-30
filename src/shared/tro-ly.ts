@@ -100,7 +100,8 @@ export function dongTrang(t: TrangSoDo): string {
   else if (t.menu.length) dong.push(`Mở từ thanh tab: ${t.menu.join(", ")}.`);
   else dong.push("Không có mục menu riêng — mở từ trang khác.");
   if (t.boCuc.length) dong.push(`Bố cục từ trên xuống: ${dsMuc(t.boCuc)}`);
-  if (t.boCucKhiChay.length) dong.push(`Phần dựng khi trang chạy (thứ tự theo mã, có thể nằm trong hộp thoại): ${dsMuc(t.boCucKhiChay)}`);
+  if (t.khiChay.muc.length) dong.push(`Mục hiện khi trang chạy (vị trí tuỳ dữ liệu, có thể nằm trong hộp thoại): ${t.khiChay.muc.join(", ")}.`);
+  if (t.khiChay.nut.length) dong.push(`Nút hiện khi trang chạy (tuỳ quyền và trạng thái): ${t.khiChay.nut.join(", ")}.`);
   return dong.join("\n");
 }
 
