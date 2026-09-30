@@ -1,4 +1,4 @@
-// Thẻ đơn rút gọn 2 dòng + nút xổ xuống (Đợt E Phần A, đặc tả docs/superpowers/specs/2026-09-23-dot-e-the-don-gon-va-bieu-tuong.md §A;
+// Thẻ đơn rút gọn 2 dòng (+ dòng "Đón tại" khi có nơi đón — góp ý T5) + nút xổ xuống (Đợt E Phần A, đặc tả docs/superpowers/specs/2026-09-23-dot-e-the-don-gon-va-bieu-tuong.md §A;
 // bố cục ĐÃ SỬA theo hai quyết định của chủ dự án 2026-09-24 — xem mục "Vòng sửa 2026-09-24" ở cuối đặc tả đó:
 // (1) GIỮ tên khách + mã đơn (Phần A trước đó làm mất, đã sửa); (2) đúng 2 dòng THẬT ở mọi khổ, kể cả 390px —
 // "đã trả"/"tổng" chuyển hẳn vào phần xổ để nhường chỗ, dòng 2 KHÔNG được xuống hàng.
@@ -116,11 +116,18 @@ export function orderCard(o: OrderCardData, opts: OrderCardOptions = {}): OrderC
     line2.push(h("span", { class: "order-row-remaining" }, "Còn thu ", moneySpan(o.remainingAmount === 0 ? "money-ok" : "money-due", o.remainingAmount)));
   }
 
+  // ---- Dòng 3 (góp ý T5, 2026-09-30): "Đón tại" luôn thấy, ngay dưới giờ đón — chỉ khi đơn có nơi đón; một hàng, dài thì cắt "…" (tên đầy đủ vẫn ở
+  // phần xổ, như tên khách). Nới quyết định "đúng 2 dòng" của Đợt E — ghi làm câu hỏi cho chủ ở docs/design/gop-y-2026-09-30/README.md.
+  const line3 = o.pickupPlace
+    ? h("div", { class: "order-card-line3" }, icon("pin", 16), h("span", { class: "order-row-place" }, "Đón tại ", o.pickupPlace))
+    : null;
+
   const link = h(
     "a",
     { class: "order-row", href: o.href },
     line1,
     h("div", { class: "order-card-line2" }, ...line2),
+    line3,
   );
 
   const toggle = h("button", {
