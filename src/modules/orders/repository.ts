@@ -8,6 +8,7 @@ import {
   openLegsStatement, orderConfirm, orderTouch, orderTouchGuarded, passengerDeleteDraft, passengerInsert, passengerInsertGuarded, passengerVoidGuarded,
   serviceMirrorUpdateGuarded, type DatGapWrite, type LegFields, type LegRow, type LegWrite, type PassengerWrite, type ServicePaxRow,
 } from "./chang-hanh-khach-repo";
+import type { LocDon } from "../../shared/loc-don";
 import type { PaxCode, PaxCounts } from "../../shared/order-lines";
 import { addDays, vnLocalToIso, vnToday } from "../../shared/vn-date";
 import { effectiveMoney, effectiveSubtotal, isAdjustmentSeqCollision, parseAdjustmentAfter, type AdjustmentEntry, type SubtotalServiceInput } from "./money-adjustment";
@@ -442,7 +443,7 @@ async function toSummaryDtos(db: D1Database, rows: readonly OrderRow[]): Promise
  */
 export async function listOrders(
   db: D1Database,
-  opts: { q: string; status: OrderStatus | null; limit: number; offset: number; ownerId: string | null; orderIds: readonly string[] | null },
+  opts: { q: string; loc: LocDon; limit: number; offset: number; ownerId: string | null; orderIds: readonly string[] | null },
 ): Promise<{ orders: OrderSummaryDto[]; hasMore: boolean }> {
   const where: string[] = [];
   const binds: (string | number)[] = [];
@@ -456,10 +457,31 @@ export async function listOrders(
     binds.push(JSON.stringify(opts.orderIds));
   }
   if (scope.length) where.push(`(${scope.join(" OR ")})`);
-  if (opts.status) {
-    where.push("o.status = ?");
-    binds.push(opts.status);
+  // Bộ lọc (góp ý T4, `src/shared/loc-don.ts`) — mọi điều kiện AND với phạm vi ở trên. Ngày đi + dịch vụ xét trên CÙNG một dòng dịch vụ (một EXISTS);
+  // dịch vụ nhập tay không có mã danh mục nên không bao giờ khớp ô "dịch vụ". Mảng đi qua json_each để câu SQL vẫn tĩnh dạng.
+  const { loc } = opts;
+  if (loc.trangThai.length) {
+    where.push("o.status IN (SELECT value FROM json_each(?))");
+    binds.push(JSON.stringify(loc.trangThai));
   }
+  if (loc.nguoiLap !== null) {
+    where.push("o.staff_id = ?");
+    binds.push(loc.nguoiLap);
+  }
+  const dv: string[] = [];
+  if (loc.tu !== null) {
+    dv.push("sv.depart_date >= ?");
+    binds.push(loc.tu);
+  }
+  if (loc.den !== null) {
+    dv.push("sv.depart_date <= ?");
+    binds.push(loc.den);
+  }
+  if (loc.dichVu.length) {
+    dv.push("sv.catalog_code IN (SELECT value FROM json_each(?))");
+    binds.push(JSON.stringify(loc.dichVu));
+  }
+  if (dv.length) where.push(`EXISTS (SELECT 1 FROM order_service sv WHERE sv.order_id = o.id AND ${dv.join(" AND ")})`);
   if (opts.q) {
     const like = `%${escapeLike(opts.q)}%`;
     where.push(`(o.order_code LIKE ? ESCAPE '\\' OR o.customer_name LIKE ? ESCAPE '\\' OR o.customer_phone LIKE ? ESCAPE '\\' OR s.label LIKE ? ESCAPE '\\')`);

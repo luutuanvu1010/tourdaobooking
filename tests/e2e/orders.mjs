@@ -343,4 +343,37 @@ assert.equal((await detail(Cx, h3)).canModify, true, "người phụ trách mớ
 assert.equal((await putOrder(Cx, h3now, { customerNote: "Cx sửa" })).status, 200);
 assert.equal((await putOrder(A, (await detail(A, h3)).order, { customerNote: "A vẫn sửa được" })).status, 200, "người lập vẫn sửa được");
 console.log("✓ người phụ trách huỷ đơn nháp; bị đổi người thì mất quyền ngay, người phụ trách mới có quyền");
+
+// --- Bộ lọc danh sách đơn nhiều điều kiện (góp ý T4): ngày đi, dịch vụ (nhiều), trạng thái (nhiều), người lập — AND nhau và với ô tìm; sai → 400 tiếng Việt.
+// D1 dùng chung cả lần chạy → mọi truy vấn kèm `q=<nhãn riêng>` để chỉ đếm đơn của đoạn này. Bài đủ ca (kể cả phạm vi theo vai) ở loc-don-route.test.ts.
+{
+  const tag = `Lọc ${Date.now()}`;
+  const mk = async (who, code, days) => {
+    const res = await call(who, "POST", "/api/orders", { customerName: `${tag} ${code}`, customerPhone: randomPhone(), services: [catalogService({ catalogCode: code, catalogPriceSeen: { ...FAKE_CATALOG[code].prices }, departDate: vnDate(days) })], depositAmount: 0, depositMethod: "cash" });
+    assert.equal(res.status, 201, JSON.stringify(res.body));
+    return res.body.order.id;
+  };
+  const x1 = await mk(A, "ZE1", 3);
+  const x2 = await mk(A, "ZE2", 4);
+  const x3 = await mk(Bc, "ZE1", 4);
+  assert.equal((await setStatus(Bc, { id: x3 }, "cancelled")).status, 200);
+  const loc = async (qs) => {
+    const res = await call(ADMIN, "GET", `/api/orders?limit=100&q=${encodeURIComponent(tag)}&${qs}`);
+    assert.equal(res.status, 200, `${qs}: ${JSON.stringify(res.body)}`);
+    return new Set(res.body.orders.map((x) => x.id));
+  };
+  assert.deepEqual(await loc(""), new Set([x1, x2, x3]));
+  assert.deepEqual(await loc(`tu=${vnDate(4)}&den=${vnDate(4)}`), new Set([x2, x3]), "ngày đi");
+  assert.deepEqual(await loc("dichVu=ZE2"), new Set([x2]), "dịch vụ");
+  assert.deepEqual(await loc("status=draft&status=cancelled"), new Set([x1, x2, x3]), "trạng thái chọn nhiều");
+  assert.deepEqual(await loc("status=cancelled"), new Set([x3]));
+  assert.deepEqual(await loc(`nguoiLap=${bId}`), new Set([x3]), "người lập");
+  assert.deepEqual(await loc(`nguoiLap=${bId}&dichVu=ZE1&tu=${vnDate(4)}&status=cancelled`), new Set([x3]), "bốn điều kiện cùng lúc");
+  assert.deepEqual(await loc(`dichVu=ZE1&den=${vnDate(3)}`), new Set([x1]));
+  const bad = await call(ADMIN, "GET", `/api/orders?tu=${vnDate(5)}&den=${vnDate(1)}`);
+  assert.equal(bad.status, 400);
+  assert.equal(bad.body.error.message, "Từ ngày không được sau Đến ngày.");
+  assert.equal((await call(ADMIN, "GET", "/api/orders?tu=2026-02-30")).status, 400);
+  console.log("✓ bộ lọc danh sách đơn: ngày đi, dịch vụ, trạng thái, người lập chọn đồng thời; tham số sai → 400");
+}
 console.log("E2E OK");

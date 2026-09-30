@@ -10,6 +10,7 @@ import { UUID_RE, error, intParam, json, readJson } from "../../shared/http";
 import { can, seesOnlyAssignedOrders, type PermissionHolder } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
 import { vnToday, vnWeekRange } from "../../shared/vn-date";
+import { docLocDon } from "../../shared/loc-don";
 import { editablePaxCodesOf, planMoneyEdit } from "./money-adjustment";
 import {
   addLeg, cancelOrder, changeBooker, changeLeg, confirmOrder, createOrder, effectivePax, findOrder, getDashboard, getDepartDates, getLatestAdjustment, getMeta, getOrderRef,
@@ -29,7 +30,7 @@ import { toPoolOrders } from "./pool";
 import {
   PARTNER_DISCOUNT_CAP, PARTNER_DISCOUNT_MESSAGE, RETAIL_PRICE_MESSAGE, discountWithinCap, holdsPartner, manualFreezeViolation, retailPricesOnly,
 } from "./price-guards";
-import { canTransition, hasHandlerPick, isOrderStatus, parseHandlerPick, validateBookerChange, validateOrder, type Failure, type OrderStatus, type ValidOrder } from "./rules";
+import { canTransition, hasHandlerPick, parseHandlerPick, validateBookerChange, validateOrder, type Failure, type OrderStatus, type ValidOrder } from "./rules";
 import {
   keHoachChangTrip, loadOrderView, passengerList, planAddLeg, planCloseLeg, planEditLeg, planPassengerChange, resolveBooker, resolveLegPlaces, validationContext,
   type OrderValidationContext,
@@ -473,12 +474,12 @@ export const ordersModule: AppModule = {
       if (seesAll && (!can(staff, "money.view") || !can(staff, "contact.view"))) return FORBIDDEN_VIEW();
       if (own && (!can(staff, "money.view", mine) || !can(staff, "contact.view", mine))) return FORBIDDEN_VIEW();
       if (handled && (!can(staff, "money.view", handling) || !can(staff, "contact.view", handling))) return FORBIDDEN_VIEW();
-      const raw = url.searchParams.get("status");
-      const status = raw ? (isOrderStatus(raw) ? raw : undefined) : null;
-      if (status === undefined) return error(400, "invalid_input", "Trạng thái lọc không hợp lệ.");
+      // Bộ lọc nhiều điều kiện (góp ý T4): kiểm ở `docLocDon` (thuần) SAU mọi câu hỏi quyền; listOrders AND bộ lọc với phạm vi ở trên — không bao giờ nới.
+      const loc = docLocDon(url.searchParams);
+      if (!loc.ok) return error(400, "invalid_input", loc.message);
       const result = await listOrders(env.DB, {
         q: (url.searchParams.get("q") ?? "").trim().slice(0, 100),
-        status,
+        loc: loc.loc,
         limit: intParam(url.searchParams.get("limit"), 30, 1, 100),
         offset: intParam(url.searchParams.get("offset"), 0, 0, 100000),
         ownerId: own ? staff.id : null,
