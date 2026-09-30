@@ -22,7 +22,7 @@
 - **Chủ chọn A (chat 30/9):** thi công đúng ADR-0025 như đã duyệt; Bán hàng không có nút. Không soạn ADR mới.
 - Việc cho phiên thi công (đã ghi ở bộ nhớ, chưa vào kế hoạch): mở rộng định dạng sổ vàng trước khi thêm ca lượt 1 (Task 5).
 
-## 2. Phân loại góp ý (điền khi có dữ liệu)
+## 2. Phân loại góp ý
 
 Mỗi `YC-xxxx` vào đúng **một** nhóm:
 
