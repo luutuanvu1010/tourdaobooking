@@ -683,7 +683,7 @@ async function nuaNghiemSql(): Promise<readonly SqlEntry[]> {
 }
 const sqlByKey = (entries: readonly SqlEntry[], key: string) => entries.find((x) => `${x.module}.${x.name}` === key);
 
-test("ADR-0047 A1/A2 (ngoại lệ XOA_CUNG_NHAP — CHỜ CHỦ DUYỆT, đề xuất luật mục 2): mỗi tên đang đăng ký, THẬT là câu xoá cứng (không ngoại lệ thì đỏ), có điều kiện đơn nháp TRONG câu, bảng đích có trigger <bảng>_no_delete", async () => {
+test("ADR-0047 A1/A2 (ngoại lệ XOA_CUNG_NHAP — ĐÃ DUYỆT 2026-09-29 (lần 5), đề xuất luật mục 2): mỗi tên đang đăng ký, THẬT là câu xoá cứng (không ngoại lệ thì đỏ), có điều kiện đơn nháp TRONG câu, bảng đích có trigger <bảng>_no_delete", async () => {
   const entries = await nuaNghiemSql();
   const triggerNames = new Set((db.prepare("SELECT name FROM sqlite_master WHERE type = 'trigger'").all() as { name: string }[]).map((t) => t.name));
   assert.deepEqual([...XOA_CUNG_NHAP].sort(), ["orders.leg_delete_draft", "orders.passenger_delete_draft"], "danh sách chỉ được co lại — thêm tên là NỚI, cần chủ duyệt");
@@ -696,7 +696,7 @@ test("ADR-0047 A1/A2 (ngoại lệ XOA_CUNG_NHAP — CHỜ CHỦ DUYỆT, đề 
   }
 });
 
-test("ADR-0047 A3 (nợ có hạn DOC_AUDIT_LOG_WONGUARD — CHỜ CHỦ DUYỆT, đề xuất luật mục 3): còn hạn (giờ VN); mỗi tên đang đăng ký, THẬT đọc audit_log (không ngoại lệ thì đỏ), và CHỈ qua lính gác `EXISTS (SELECT 1 FROM audit_log WHERE id = ?N)`", async () => {
+test("ADR-0047 A3 (nợ có hạn DOC_AUDIT_LOG_WONGUARD — ĐÃ DUYỆT 2026-09-29 (lần 5), đề xuất luật mục 3): còn hạn (giờ VN); mỗi tên đang đăng ký, THẬT đọc audit_log (không ngoại lệ thì đỏ), và CHỈ qua lính gác `EXISTS (SELECT 1 FROM audit_log WHERE id = ?N)`", async () => {
   const entries = await nuaNghiemSql();
   assert.ok(DOC_AUDIT_LOG_WONGUARD.han >= vnToday(new Date()), `nợ DOC_AUDIT_LOG_WONGUARD quá hạn ${DOC_AUDIT_LOG_WONGUARD.han} — gỡ nợ hoặc chủ dự án gia hạn`);
   for (const key of DOC_AUDIT_LOG_WONGUARD.ten) {
@@ -711,7 +711,7 @@ test("ADR-0047 A3 (nợ có hạn DOC_AUDIT_LOG_WONGUARD — CHỜ CHỦ DUYỆT
   }
 });
 
-test("ADR-0047 A2 (ngoại lệ R-N1-14 — CHỜ CHỦ DUYỆT, đề xuất luật mục 7): chỉ tệp nửa nghiêm được nhắc full_name; mọi câu có full_name chạm ord_passenger, KHÔNG chạm staff", async () => {
+test("ADR-0047 A2 (ngoại lệ R-N1-14 — ĐÃ DUYỆT 2026-09-29 (lần 5), đề xuất luật mục 7): chỉ tệp nửa nghiêm được nhắc full_name; mọi câu có full_name chạm ord_passenger, KHÔNG chạm staff", async () => {
   const entries = await nuaNghiemSql();
   const nua = new Set(NUA_NGHIEM.map((n) => `src/${n.file}`));
   for (const f of FULL_NAME_ORD_PASSENGER_FILES) {
