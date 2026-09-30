@@ -180,7 +180,14 @@ Mở [[Sắp hết hạn]] (điện thoại: [[Giấy tờ sắp hết hạn]] �
 Mở [[Loại giấy tờ người]] (có cả [[Hạng giấy phép lái xe]]) hoặc [[Loại giấy tờ xe]]. Thêm: gõ mã, tên, tick [[Có ngày hết hạn]] nếu cần, thứ tự, bấm [[Thêm]]. Sửa: [[Sửa]], [[Lưu]]. Không xoá, chỉ ngưng dùng.
 
 ### Trợ lý Hỗ trợ (chỉ Toàn quyền)
-Trang **Tôi**, khối **Trợ lý Hỗ trợ**: xem đang bật hay tắt, đã có khoá chưa, chi phí tháng này. Tick hoặc bỏ tick [[Bật trợ lý]], sửa trần chi phí tháng và số câu mỗi người mỗi ngày, bấm [[Lưu cài đặt trợ lý]]. Tắt có hiệu lực ngay.
+Mở [[Trợ lý Hỗ trợ]] ở nhóm QUẢN TRỊ (điện thoại: trang **Tôi**). Trang có năm phần, mỗi phần có nút [[Lưu]] riêng, lưu có hiệu lực ngay:
+1. **Tình trạng**: bật hoặc tắt cho cả công ty, trần chi phí tháng, chi phí và số câu. Key chỉ hiện đã đặt hay chưa và bốn ký tự cuối; bấm [[Thử key]] để biết key còn dùng được, sai hay hết tiền. Đổi key làm trên Cloudflare, không nhập trong app.
+2. **Ai được dùng**: bật hoặc tắt theo từng vai và số câu mỗi người mỗi ngày. Tài khoản nhiều vai được dùng khi ít nhất một vai đang bật.
+3. **Lời dặn**: câu chào, giọng trả lời, lời dặn thêm, câu hỏi mẫu. Bấm [[Lưu thành bản mới]]; muốn trở lại bản trước thì mở lịch sử bản, bấm [[Quay lại bản này]].
+4. **Ngữ cảnh bổ sung**: gõ tiêu đề và nội dung, bấm [[Thêm đoạn]]; bỏ tick **Đang dùng** để tắt một đoạn.
+5. **Lịch sử hỏi đáp**: lọc theo ngày, người, vai hoặc tìm chữ, bấm [[Lọc]]. Lịch sử không xoá được.
+
+Chữ tuỳ chỉnh không được có số điện thoại, email, số tiền (app báo lỗi khi lưu). Trợ lý luôn từ chối bí mật, tiền, thông tin khách, lời dặn không bỏ được luật này.
 
 ### Dịch vụ nhập tay (chỉ Toàn quyền bật / tắt)
 Trang **Tôi**, khối **Dịch vụ nhập tay**: bấm [[Bật dịch vụ nhập tay]] hoặc [[Tắt dịch vụ nhập tay]]. Mặc định tắt. Khi bật: Bán hàng, Quản trị, Toàn quyền thêm được dịch vụ gõ tên và giá tay ở form lập đơn ([[+ Dịch vụ nhập tay]]). Tài khoản có quyền Đối tác luôn không dùng được. Khi tắt: dịch vụ nhập tay đã có trên đơn vẫn giữ, chỉ xem. Văn phòng thêm dịch vụ nhập tay vào đơn nháp của Đối tác thì Đối tác không tự xác nhận được — văn phòng xác nhận thay.

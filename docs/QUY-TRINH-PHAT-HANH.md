@@ -91,7 +91,7 @@ Thay `<tên-nhánh>` bằng tên AI báo ở bước 2. Nếu nhánh chính đã
 ```
 npm run trien-khai
 ```
-Lệnh chạy vài phút, vì nó tự chạy toàn bộ kiểm thử, kể cả kiểm thử cần mạng.
+Lệnh chạy vài phút, vì nó tự chạy toàn bộ kiểm thử, kể cả kiểm thử cần mạng. Phần lâu nhất là kiểm thử đầu-cuối (bước 3b): từ 30/9 chạy song song 3 nhóm, khoảng **5–7 phút** (trước đó chạy lần lượt khoảng 12 phút) — vẫn đủ mọi bài kiểm.
 
 **Lệnh tự làm theo thứ tự:**
 

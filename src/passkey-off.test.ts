@@ -1,7 +1,7 @@
 // Đặc tả passkey §2.3 (chuẩn tắc): khi Face ID TẮT (thiếu/sai PASSKEY_RP_ID/PASSKEY_ORIGIN), MỌI route passkey trả 503
 // `passkey_unavailable` — kể cả xem danh sách và gỡ (rà soát cuối I-1). Bài kiểm chạy MÃ THẬT của route (gói bằng esbuild như
 // route-access.test.ts) với `env.DB` là Proxy NÉM LỖI khi bị chạm: chứng minh kiểm tắt đứng TRƯỚC mọi truy vấn D1.
-// Vì sao không phải e2e: bộ chạy e2e (tests/e2e/run.mjs) dựng MỘT wrangler dev với Face ID BẬT; dựng thêm server tắt cho riêng bài
+// Vì sao không phải e2e: bộ chạy e2e (tests/e2e/run.mjs) dựng wrangler dev (mỗi nhóm một máy) đều với Face ID BẬT; dựng thêm server tắt cho riêng bài
 // này tốn thêm một lần khởi động wrangler + migration cho mỗi lần chạy e2e.
 import { test } from "node:test";
 import assert from "node:assert/strict";

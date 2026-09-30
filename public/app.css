@@ -642,7 +642,7 @@ td.chon-td { width: var(--tap-min); padding-top: 0; padding-bottom: 0; }
 .sheet-foot.hdv-sheet-foot .btn { flex: 1; min-height: var(--h-hdv-btn); font-weight: 800; border-radius: var(--radius-md); }
 button.row-link.danger { color: var(--c-danger); font-weight: 700; }
 
-html { -webkit-text-size-adjust: 100%; overscroll-behavior-y: none; }
+html { -webkit-text-size-adjust: 100%; overscroll-behavior-y: none; touch-action: pan-x pan-y; } /* chủ quyết 30/9 "khoá chức năng phóng": pan-x pan-y = chỉ cuộn, không phóng to (cả chạm đúp lẫn hai ngón); kèm viewport user-scalable=no + chặn gesturestart ở web/pwa.ts vì iOS có thể bỏ qua viewport */
 body { -webkit-tap-highlight-color: transparent; }
 .bar-back, .bar-title, .bar-avatar, #tabbar { display: none; }
 /* Trang không có thanh đầu trang (đăng nhập): dải navy để chữ trắng của thanh trạng thái iOS đọc được. */
@@ -2136,3 +2136,26 @@ body.sheet-open .tl-fab { visibility: hidden; }
 .tl-cd-bat { display: flex; align-items: center; gap: var(--s2); }
 .tl-cd-bat input { display: inline-block; width: auto; margin: 0; }
 .tl-cd-loi { margin: 0; color: var(--c-danger-text); }
+/* Bảng điều khiển trợ lý Hỗ trợ (ADR-0069, /tro-ly-cai-dat) + câu hỏi mẫu trong khung Hỗ trợ — chỉ token */
+.tl-mau { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.tl-mau-nut { min-height: var(--tap-min); padding: var(--s1) var(--s3); font: inherit; font-size: var(--fs-label); color: var(--c-primary); text-align: left; background: var(--c-primary-soft); border: 1px solid var(--c-border); border-radius: var(--radius-pill); cursor: pointer; overflow-wrap: anywhere; }
+.tl-trang { display: grid; gap: var(--s4); }
+.tl-trang h2 { margin-top: 0; }
+.tl-cd-bao { margin: 0; font-size: var(--fs-label); }
+.tl-cd-hang { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); }
+.tl-cd-ds { display: grid; gap: var(--s3); margin: 0; padding: 0; list-style: none; }
+.tl-cd-vai { display: grid; gap: var(--s2); margin: 0; padding: 0; border: 0; }
+.tl-cd-vai legend { margin-bottom: var(--s2); font-weight: 700; }
+.tl-cd-ban summary { cursor: pointer; font-weight: 700; min-height: var(--tap-min); display: flex; align-items: center; }
+.tl-cd-ban-dong { display: grid; gap: var(--s1); padding: var(--s3); background: var(--c-surface-alt); border-radius: var(--radius-sm); min-width: 0; }
+.tl-cd-ban-dong p { margin: 0; overflow-wrap: anywhere; }
+.tl-cd-ban-dong .btn { justify-self: start; }
+.tl-cd-tieu-de { margin: 0; font-size: var(--fs-label); overflow-wrap: anywhere; }
+.tl-cd-loc { display: grid; gap: var(--s3); align-items: end; }
+.tl-cd-loc label, .tl-cd-form label { min-width: 0; }
+.tl-cd-loc input, .tl-cd-loc select { width: 100%; }
+@media (min-width: 900px) {
+  .tl-cd-loc { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .tl-cd-loc-tim { grid-column: span 3; }
+  .tl-cd-vai { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}

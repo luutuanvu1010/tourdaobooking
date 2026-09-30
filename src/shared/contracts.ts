@@ -1547,8 +1547,15 @@ export interface TroLyHoiRequest { cauHoi: string }
 /** Phản hồi 200 của `POST /api/tro-ly/hoi`: câu trả lời (chữ thường) + tên các mục hướng dẫn đã dùng. Lỗi: 503 `tro_ly_chua_bat`, 429 `tro_ly_het_tran_ngay` /
  *  `tro_ly_het_tran_thang`, 502 `tro_ly_loi` — `error.message` là câu tiếng Việt hiện thẳng cho người dùng. */
 export interface TroLyHoiResponse { traLoi: string; nguon: string[] }
-/** `GET`/`POST /api/tro-ly/cai-dat` (chỉ Toàn quyền — ô settings.ops). `coKhoa`: máy chủ đã có khoá OpenAI chưa (không bao giờ trả giá trị khoá). */
-export interface TroLyCaiDatResponse { bat: boolean; tranThangUsd: number; tranNgay: number; coKhoa: boolean; thang: string; chiPhiThangUsd: number; soCauThang: number }
+/**
+ * `GET`/`POST /api/tro-ly/cai-dat` (chỉ Toàn quyền — ô settings.ops; ADR-0069 điều 1, 2, 3, 6). `coKhoa`: máy chủ đã có khoá OpenAI chưa; `khoaCuoi`: TỐI ĐA
+ * 4 ký tự cuối của khoá (null khi chưa có hoặc khoá ngắn) — không bao giờ trả đủ khoá. `vai`: công tắc hiện hành của 9 mã quyền. `theoVai`: tháng này, đọc
+ * từ lịch sử hỏi đáp (một câu của tài khoản nhiều quyền tính cho mỗi quyền của nó).
+ */
+export interface TroLyCaiDatResponse {
+  bat: boolean; tranThangUsd: number; tranNgay: number; coKhoa: boolean; khoaCuoi: string | null; thang: string; chiPhiThangUsd: number; soCauThang: number;
+  soCauHomNay: number; vai: Record<PermissionCode, boolean>; theoVai: { vai: PermissionCode; soCau: number; chiPhiUsd: number }[];
+}
 export interface TroLyCaiDatRequest { bat: boolean; tranThangUsd: number; tranNgay: number }
 
 /** ADR-0060: một dòng dấu "đã nhập phần mềm kế toán" (bảng chỉ-thêm). `nguoiBam` = tên hiển thị (không SĐT). */
@@ -1560,3 +1567,21 @@ export interface NhapKeToanDongDto { id: string; daNhap: boolean; soHoaDon: stri
 export interface NhapKeToanResponse { hienTai: NhapKeToanDongDto | null; truocDo: NhapKeToanDongDto[] | null; coTheGhi: boolean; donDaXacNhan: boolean }
 /** Thân `POST /api/orders/:id/nhap-ke-toan`: `truocDo` = id dòng hiện tại người dùng đang thấy (null = chưa có dòng) — khoá lạc quan. */
 export interface NhapKeToanInput { daNhap: boolean; soHoaDon?: string | null; lyDo?: string | null; truocDo: string | null }
+/** `GET /api/tro-ly/khung` (mọi tài khoản đăng nhập): có được dùng trợ lý không (ADR-0069 điều 3 — giao diện ẩn nút) + câu chào, câu hỏi mẫu (điều 4). */
+export interface TroLyKhungResponse { duocDung: boolean; cauChao: string; cauHoiMau: string[] }
+/** `POST /api/tro-ly/vai` (Toàn quyền): đủ 9 mã quyền. Trả lại `TroLyCaiDatResponse`. */
+export interface TroLyVaiRequest { vai: Record<PermissionCode, boolean> }
+/** Lời dặn (ADR-0069 điều 4). `POST /api/tro-ly/loi-dan` nhận đúng dạng này; "quay lại bản cũ" = gửi lại nội dung của bản cũ. */
+export interface TroLyLoiDan { cauChao: string; giong: string; loiDanThem: string; cauHoiMau: string[] }
+export interface TroLyLoiDanResponse { hienHanh: TroLyLoiDan; cacBan: (TroLyLoiDan & { id: string; luc: string; nguoi: string | null })[] }
+/** Đoạn ngữ cảnh bổ sung. `POST /api/tro-ly/ngu-canh` thêm đoạn; `PUT /api/tro-ly/ngu-canh/:id` sửa / bật / tắt (= bản mới). */
+export interface TroLyNguCanhRequest { tieuDe: string; noiDung: string; bat: boolean }
+export interface TroLyNguCanhResponse { doan: { doanId: string; tieuDe: string; noiDung: string; bat: boolean; luc: string }[] }
+/** `GET /api/tro-ly/lich-su?tu=&den=&nguoi=&vai=&q=&trang=` (Toàn quyền). Câu hỏi là bản ĐÃ CHE. `vai` là nhãn tiếng Việt. */
+export interface TroLyLichSuResponse {
+  dong: { id: string; nguoi: string; vai: string[]; cauHoi: string; traLoi: string; nguon: string[]; chiPhiUsd: number; ketQua: string; luc: string }[];
+  coThem: boolean;
+  nguoi: { staffId: string; ten: string }[];
+}
+/** `POST /api/tro-ly/thu-khoa` (Toàn quyền): kết quả lời thường. */
+export interface TroLyThuKhoaResponse { ma: "duoc" | "sai_khoa" | "het_tien" | "gioi_han" | "loi_mang" | "loi_khac" | "chua_dat"; cau: string }

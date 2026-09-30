@@ -11,14 +11,25 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
-    // Nhóm dịch vụ (ADR-0058, lượt 1a, migration 0053). Nhánh thi công đặt số tạm; người gộp chốt số trống kế tiếp LÚC GỘP (main đang 1.46).
+    // Nhóm dịch vụ (ADR-0058, lượt 1a, migration 0053). Số 1.48 chốt lúc gộp main 1.47 (bảng điều khiển trợ lý) — 2026-10-01.
     // Chip cũ "Theo nhóm" (giá tính theo nhóm khách) đổi chữ thành "Giá theo nhóm" cho khỏi nhầm (chủ chọn cách 1).
-    version: "1.47",
+    version: "1.48",
     date: "2026-10-01",
     items: [
       { kind: "moi", text: "Chọn dịch vụ khi lập đơn: bấm chip ở hàng Nhóm dịch vụ (Tour đảo, Thể thao biển…) để chỉ thấy dịch vụ nhóm đó; app nhớ lựa chọn trên máy này." },
       { kind: "moi", text: "Quản trị sửa nhóm dịch vụ ở màn Dịch vụ & giá: thêm, đổi tên, sắp thứ tự, tắt nhóm, chuyển nhiều dịch vụ cùng lúc và xem lịch sử đổi nhóm." },
       { kind: "doi", text: "Nút lọc \"Theo nhóm\" đổi tên thành \"Giá theo nhóm\" cho khỏi nhầm với nhóm dịch vụ." },
+    ],
+  },
+  {
+    // Bản 1.47 = bảng điều khiển trợ lý (ADR-0069, migration 0054, kiểm độc lập + 4 đột biến 30/9) + khoá phóng to (chủ quyết 30/9) + e2e chạy
+    // song song (chỉ bộ kiểm, không đổi app). Số 1.47 vì main đã có 1.46 (chưa deploy lúc gộp).
+    version: "1.47",
+    date: "2026-10-01",
+    items: [
+      { kind: "moi", text: "Toàn quyền có trang \"Trợ lý Hỗ trợ\": thử khoá AI, bật tắt trợ lý theo vai, sửa câu chào và lời dặn, thêm ngữ cảnh, xem lịch sử câu hỏi và chi phí." },
+      { kind: "doi", text: "Khung Hỗ trợ ghi rõ câu hỏi được lưu để cải thiện trợ lý — đừng gõ thông tin khách vào câu hỏi." },
+      { kind: "doi", text: "Điện thoại: không còn phóng to màn hình khi lỡ chạm hai lần hay chụm hai ngón." },
     ],
   },
   {

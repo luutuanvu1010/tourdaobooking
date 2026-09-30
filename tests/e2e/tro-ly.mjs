@@ -1,11 +1,13 @@
 // Trợ lý Hỗ trợ (ADR-0066) trên API THẬT + D1 local, với máy OpenAI GIẢ cục bộ: run.mjs chọn cổng trống, đặt `--var OPENAI_BASE_URL:http://127.0.0.1:<cổng>`
 // + khoá giả `OPENAI_API_KEY`, truyền cổng qua E2E_OPENAI_PORT; kịch bản này dựng máy giả trên cổng đó và GHI LẠI thân mọi yêu cầu tới nó.
 // Ca "thiếu khoá → 503" KHÔNG chạy ở đây (wrangler dev dùng chung luôn có khoá giả; env không gỡ được lúc chạy) — phủ ở src/modules/tro-ly/tro-ly-route.test.ts.
-// Cài đặt bị đổi (tắt, trần) được KHÔI PHỤC ở `finally` bằng một bản mới (bảng chỉ thêm): bật, 5 USD, 30 câu.
+// Cài đặt bị đổi (tắt, trần) được KHÔI PHỤC ở `finally` bằng một bản mới (bảng chỉ thêm): bật, 5 USD, 30 câu; ADR-0069: công tắc vai bật lại cả 9, lời dặn
+// trả về bản đọc lúc đầu kịch bản (D1 dùng chung với các kịch bản khác).
 // Dấu `TRO_LY_DAU` nằm trong câu hỏi: run.mjs kiểm log wrangler dev KHÔNG BAO GIỜ chứa nó (không nội dung hỏi / đáp ra log — hàng rào ở docs/SO-HANG-RAO.md).
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
-import { ACCOUNTS, TRO_LY_DAU, call, login, randomPhone, session, sqlRows } from "./lib.mjs";
+import * as esbuild from "esbuild";
+import { ACCOUNTS, TRO_LY_DAU, TRO_LY_KHOA, call, login, randomPhone, session, sqlRows } from "./lib.mjs";
 
 const PORT = Number(process.env.E2E_OPENAI_PORT);
 if (!PORT) throw new Error("Thiếu E2E_OPENAI_PORT (chạy qua npm run test:e2e -- tro-ly)");
@@ -22,6 +24,11 @@ const may = createServer((req, res) => {
     if (cheDo === "loi") {
       res.writeHead(500, { "content-type": "application/json" });
       return res.end(JSON.stringify({ error: { message: "Internal error (English)" } }));
+    }
+    // ADR-0069 điều 2 (Thử key): 401 sai khoá — chữ lỗi LẶP LẠI một phần khoá như OpenAI thật; 429 hết hạn mức.
+    if (cheDo === "401" || cheDo === "429q") {
+      res.writeHead(cheDo === "401" ? 401 : 429, { "content-type": "application/json" });
+      return res.end(JSON.stringify({ error: { message: `Incorrect API key provided: ${TRO_LY_KHOA.slice(0, 10)}***${TRO_LY_KHOA.slice(-4)}`, code: cheDo === "401" ? "invalid_api_key" : "insufficient_quota" } }));
     }
     const ten = /\[([^\]]+)\]/.exec(String(body.instructions ?? ""))?.[1] ?? "";
     res.writeHead(200, { "content-type": "application/json" });
@@ -41,6 +48,16 @@ const hoi = (cookie, cauHoi) => call(cookie, "POST", "/api/tro-ly/hoi", { cauHoi
 const caiDat = (cookie, body) => call(cookie, "POST", "/api/tro-ly/cai-dat", body);
 const soDong = async () => (await sqlRows("SELECT count(*) AS n FROM tl_luot_hoi"))[0].n;
 const MAC_DINH = { bat: true, tranThangUsd: 5, tranNgay: 30 };
+const PERMS = ["SALES", "ACCOUNTING", "ADMIN", "FIELD", "PARTNER", "SUPER_ADMIN", "INTERN", "DRIVER", "DRIVER_PARTNER"];
+const tatCaVai = (bat) => Object.fromEntries(PERMS.map((p) => [p, bat]));
+const datVai = (vai) => call(OWNER, "POST", "/api/tro-ly/vai", { vai });
+const loiDanDau = (await call(OWNER, "GET", "/api/tro-ly/loi-dan")).body.hienHanh;
+assert.ok(loiDanDau?.cauChao, "đọc được lời dặn đầu kịch bản (để khôi phục)");
+
+// Route quản lý lấy từ CHÍNH module (esbuild như src/tai-xe-cong.test.ts) — không danh sách viết tay.
+const built = await esbuild.build({ entryPoints: [new URL("../../src/modules/tro-ly/index.ts", import.meta.url).pathname], bundle: true, format: "esm", platform: "neutral", target: "es2022", write: false, logLevel: "silent" });
+const { troLyModule } = await import(`data:text/javascript;base64,${Buffer.from(built.outputFiles[0].text).toString("base64")}`);
+const QUAN_LY = troLyModule.routes.filter((x) => x.access === "office");
 
 let r;
 try {
@@ -57,7 +74,7 @@ try {
   assert.ok(Array.isArray(r.body.nguon) && r.body.nguon.length === 1, JSON.stringify(r.body));
   assert.equal(nhan.length, 1);
   assert.equal(nhan[0].url, "/v1/responses");
-  assert.equal(nhan[0].auth, "Bearer e2e-khoa-gia");
+  assert.equal(nhan[0].auth, `Bearer ${TRO_LY_KHOA}`);
   assert.equal(nhan[0].body.model, "gpt-5-nano");
   assert.equal(nhan[0].body.store, false);
   for (const lo of [ACCOUNTS.salesA.phone, ACCOUNTS.salesA.name]) assert.ok(!JSON.stringify(nhan[0].body).includes(lo), `thân gửi đi lộ ${lo}`);
@@ -146,7 +163,78 @@ try {
     assert.equal(r.status, 200, `${ma}: ${JSON.stringify(r.body)}`);
   }
   console.log(`✓ mọi mã quyền hỏi được (${taiKhoan.map(([m]) => m).join(", ")})`);
+
+  // ---- ADR-0069: bảng điều khiển của Toàn quyền ----
+
+  // 10) Quản trị, Bán hàng: 403 ở MỌI route quản lý (lặp troLyModule.routes)
+  assert.ok(QUAN_LY.length >= 9, `chống bài rỗng: ${QUAN_LY.length}`);
+  for (const rt of QUAN_LY) {
+    const path = rt.path.replace(":id", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa");
+    for (const c of [ADMIN, SALES]) assert.equal((await call(c, rt.method, path, rt.method === "GET" ? undefined : {})).status, 403, `${rt.method} ${rt.path}`);
+  }
+  console.log(`✓ Quản trị, Bán hàng 403 ở cả ${QUAN_LY.length} route quản lý`);
+
+  // 11) vai tắt ⇒ 403 lời thường, KHÔNG gọi máy giả; khung báo không dùng; tài khoản lai (Bán hàng + Kế toán) vẫn hỏi được khi chỉ Kế toán bật
+  const lai = await call(OWNER, "POST", "/api/staff", { fullName: "Trợ Lý Lai E2E", phone: randomPhone(), permissions: ["SALES", "ACCOUNTING"] });
+  assert.equal(lai.status, 201, JSON.stringify(lai.body));
+  const laiCookie = (await login(lai.body.staff.phone, lai.body.pin)).cookie;
+  assert.equal((await datVai({ ...tatCaVai(true), SALES: false })).status, 200);
+  n = nhan.length;
+  r = await hoi(SALES, "đổi PIN thế nào");
+  assert.equal(r.status, 403, JSON.stringify(r.body));
+  assert.equal(r.body.error.code, "tro_ly_vai_tat");
+  assert.match(r.body.error.message, /^Trợ lý Hỗ trợ đang tắt với vai của bạn/);
+  assert.equal(nhan.length, n, "vai tắt không được gọi OpenAI");
+  assert.equal((await call(SALES, "GET", "/api/tro-ly/khung")).body.duocDung, false);
+  assert.equal((await hoi(laiCookie, "đổi PIN thế nào")).status, 200, "ít nhất một vai bật là được");
+  assert.equal((await datVai(tatCaVai(true))).status, 200);
+  assert.equal((await call(SALES, "GET", "/api/tro-ly/khung")).body.duocDung, true);
+  console.log("✓ vai tắt → 403, không gọi OpenAI, nút ẩn; tài khoản lai vẫn hỏi được");
+
+  // 12) lời dặn có SĐT ⇒ 400; lời dặn hợp lệ ⇒ khung hiện câu chào + câu hỏi mẫu mới
+  r = await call(OWNER, "POST", "/api/tro-ly/loi-dan", { ...loiDanDau, cauChao: "Cần gì gọi 0905 123 456" });
+  assert.equal(r.status, 400, JSON.stringify(r.body));
+  assert.match(r.body.error.message, /không được chứa/);
+  r = await call(OWNER, "POST", "/api/tro-ly/loi-dan", { cauChao: "Chào bạn, hỏi mình nhé (e2e).", giong: "ngắn gọn", loiDanThem: "", cauHoiMau: ["Đổi mã PIN thế nào?"] });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.deepEqual((await call(SALES, "GET", "/api/tro-ly/khung")).body, { duocDung: true, cauChao: "Chào bạn, hỏi mình nhé (e2e).", cauHoiMau: ["Đổi mã PIN thế nào?"] });
+  console.log("✓ lời dặn có SĐT → 400; lời dặn mới hiện ở khung");
+
+  // 13) lịch sử có câu ĐÃ CHE, không có SĐT gốc
+  r = await hoi(SALES, "khách 0905 777 888 hỏi đổi mã PIN thế nào E2E-LS");
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  r = await call(OWNER, "GET", "/api/tro-ly/lich-su?q=E2E-LS");
+  assert.equal(r.status, 200);
+  assert.equal(r.body.dong.length >= 1, true, JSON.stringify(r.body));
+  assert.ok(r.body.dong[0].cauHoi.includes("[đã che]"), r.body.dong[0].cauHoi);
+  assert.ok(!JSON.stringify(r.body).includes("777 888") && !JSON.stringify(r.body).includes("0905777888"));
+  const lsDb = await sqlRows("SELECT cau_hoi FROM tl_hoi_dap WHERE cau_hoi LIKE '%E2E-LS%'");
+  assert.ok(lsDb.length >= 1 && lsDb.every((x) => !x.cau_hoi.includes("777")), JSON.stringify(lsDb));
+  console.log("✓ lịch sử có câu đã che, không có SĐT gốc (cả phản hồi lẫn CSDL)");
+
+  // 14) tình trạng key: tối đa 4 ký tự cuối, KHÔNG cửa sổ 5 ký tự nào của khoá; Thử key 401 ⇒ sai key, 429 insufficient_quota ⇒ hết tiền
+  r = await call(OWNER, "GET", "/api/tro-ly/cai-dat");
+  assert.equal(r.body.khoaCuoi, "QZ7K");
+  const chu = [JSON.stringify(r.body)];
+  cheDo = "401";
+  r = await call(OWNER, "POST", "/api/tro-ly/thu-khoa", {});
+  assert.equal(r.status, 200);
+  assert.equal(r.body.ma, "sai_khoa", JSON.stringify(r.body));
+  assert.match(r.body.cau, /^Sai key/);
+  chu.push(JSON.stringify(r.body));
+  cheDo = "429q";
+  r = await call(OWNER, "POST", "/api/tro-ly/thu-khoa", {});
+  assert.equal(r.body.ma, "het_tien", JSON.stringify(r.body));
+  chu.push(JSON.stringify(r.body));
+  cheDo = "ok";
+  r = await call(OWNER, "POST", "/api/tro-ly/thu-khoa", {});
+  assert.equal(r.body.ma, "duoc");
+  const tat = chu.join("\n");
+  for (let i = 0; i + 5 <= TRO_LY_KHOA.length; i++) assert.ok(!tat.includes(TRO_LY_KHOA.slice(i, i + 5)), `lộ "${TRO_LY_KHOA.slice(i, i + 5)}"`);
+  console.log("✓ key chỉ lộ 4 ký tự cuối; Thử key: sai key (401), hết tiền (429), được");
 } finally {
   await caiDat(OWNER, MAC_DINH).catch(() => undefined);
+  await datVai(tatCaVai(true)).catch(() => undefined);
+  await call(OWNER, "POST", "/api/tro-ly/loi-dan", loiDanDau).catch(() => undefined);
   may.close();
 }

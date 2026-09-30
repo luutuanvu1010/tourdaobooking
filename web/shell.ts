@@ -29,6 +29,7 @@ const TRANG_DIEU_PHOI = ["/dieu-phoi", "/chuyen", "/chuyen-sua"];
 const TRANG_CUOC_CAC = [TRANG_CUOC, "/cuoc-chuyen"];
 const TRANG_CHINH_SACH = ["/chinh-sach-dieu-phoi", "/dieu-kien-xuat-ben"];
 const TRANG_LY_DO = "/ly-do-dieu-phoi";
+const TRANG_TRO_LY = "/tro-ly-cai-dat"; // ADR-0069: bảng điều khiển trợ lý Hỗ trợ (chỉ Toàn quyền)
 
 interface Tab {
   href: string;
@@ -65,7 +66,7 @@ function tabsFor(admin: boolean, seesAll: boolean, canCreate: boolean, taiXe = f
   return [
     ...officeTabs,
     ...adminTabs,
-    { href: "/account", label: "Tôi", icon: "me", active: (p) => p === "/account" || p === "/audit" || p === "/help" || p === "/gui-thong-bao" || TRANG_XE.includes(p) || p === TRANG_SAP_HET_HAN || p === TRANG_LOAI_GIAY_TO_XE || p === TRANG_LOAI_GIAY_TO_NGUOI || TRANG_CHINH_SACH.includes(p) || p === TRANG_LY_DO || TRANG_DIEU_PHOI.includes(p) || (!cuoc && TRANG_CUOC_CAC.includes(p)) },
+    { href: "/account", label: "Tôi", icon: "me", active: (p) => p === "/account" || p === "/audit" || p === "/help" || p === "/gui-thong-bao" || TRANG_XE.includes(p) || p === TRANG_SAP_HET_HAN || p === TRANG_LOAI_GIAY_TO_XE || p === TRANG_LOAI_GIAY_TO_NGUOI || TRANG_CHINH_SACH.includes(p) || p === TRANG_LY_DO || TRANG_DIEU_PHOI.includes(p) || p === TRANG_TRO_LY || (!cuoc && TRANG_CUOC_CAC.includes(p)) },
   ];
 }
 
@@ -237,6 +238,8 @@ function navGroups(admin: boolean, seesAll: boolean, office: boolean, canCreate:
   if (superAdmin) management.push({ href: "/audit", label: "Nhật ký", icon: "history", active: (p) => p === "/audit" });
   // ADR-0034 Task 8: tài khoản chỉ SUPER_ADMIN (không có ADMIN) vẫn phải thấy nhóm QUẢN TRỊ, chỉ với mục này.
   if (superAdmin) management.push({ href: "/gui-thong-bao", label: "Gửi thông báo", icon: "megaphone", active: (p) => p === "/gui-thong-bao" });
+  // ADR-0069 điều 1: bảng điều khiển trợ lý Hỗ trợ — chỉ Toàn quyền (ô settings.ops, cùng cờ `chinhSach`).
+  if (chinhSach) management.push({ href: TRANG_TRO_LY, label: "Trợ lý Hỗ trợ", icon: "chat", active: (p) => p === TRANG_TRO_LY });
 
   const me: NavItem[] = [
     // Tài xế (ADR-0040 D3): "Trang chủ" của họ là /tai-xe — đứng đầu nhóm TÔI (bản vẽ Vận chuyển: menu tài xế "Trang chủ, Của tôi"; giữ vỏ thật: Góp ý, Trợ giúp).
@@ -488,7 +491,8 @@ export async function initShell(): Promise<Staff> {
   batDauBangTin(staff); // Bảng tin (ADR-0022): MỘT kết nối mỗi trang đã đăng nhập; nhánh mất mạng ở trên không tới đây (chưa có `staff`)
   // Trợ lý Hỗ trợ (ADR-0066 điều 9): nút nổi ở mọi trang đã đăng nhập (initShell không chạy ở /login). CẢ khi đang bảo trì: lúc đó chỉ số điện thoại
   // được phép mới qua được máy chủ, đúng những người đang dùng app — ẩn trợ lý với họ là sai (chủ báo 30/9 "chưa thấy trợ lý bật lên" khi bảo trì đang bật).
-  ganTroLy(staff);
+  // ADR-0069 điều 3: nút chỉ dựng khi máy chủ báo tài khoản được dùng (vai đang bật) — hỏi không chặn khung trang.
+  void ganTroLy(staff);
   return staff;
 }
 
