@@ -112,7 +112,7 @@ Trong khối **Thanh toán**, bấm [[Ghi lần thu]]: số tiền, hình thức
 
 ### Đối chiếu tiền trên trang đơn
 
-Chưa có màn sổ riêng; mọi việc làm ngay trên trang đơn:
+Chưa có màn **Sổ công nợ** riêng; mọi việc làm ngay trên trang đơn:
 - Lần thu người khác khai là tiền vào công ty: đối chiếu tài khoản, bấm [[Xác nhận đã nhận]] rồi [[Công ty đã nhận]].
 - Lần thu ghi sai: bấm [[Đảo]], ghi lý do (bắt buộc). Sổ giữ dòng cũ và thêm một dòng đảo.
 - Khối **Kế toán** ghi ai đang giữ tiền của công ty: nhận tiền rồi bấm [[Đã nộp về công ty]].
@@ -120,7 +120,7 @@ Chưa có màn sổ riêng; mọi việc làm ngay trên trang đơn:
 
 ### Hoàn thành đơn
 
-Sau khi người phụ trách bấm **Đã giao – đã thu đủ** và không còn ai giữ tiền của công ty vì đơn, bấm [[Hoàn thành]] rồi đồng ý. **Không mở lại được.** Nút mờ thì dòng **Đang giữ đơn** ghi lý do.
+Sau khi đơn **Đã giao – đã thu đủ** và không còn ai giữ tiền của công ty vì đơn, bấm [[Hoàn thành]] rồi đồng ý. **Không mở lại được.** Nút mờ thì dòng **Đang giữ đơn** ghi lý do.
 
 ### Đánh dấu đã nhập phần mềm kế toán
 
@@ -146,7 +146,7 @@ Chuông ở thanh trên báo khi có đơn mới, có người nhận đơn, đ�
 - Nhận phụ trách, giao đơn cho người khác: không. Nhờ nhân viên bán hàng hoặc Quản trị.
 - Duyệt "Đặt gấp": không. Nhờ Quản trị.
 - Xếp xe, tạo chuyến, bấm tiến độ chuyến: không, bạn chỉ xem. Nhờ nhân viên bán hàng hoặc Quản trị.
-- Bấm **Đã giao – đã thu đủ**: không. Người phụ trách đơn hoặc Quản trị bấm.
+- Bấm **Đã giao – đã thu đủ**: không. Hướng dẫn viên đang phụ trách đơn hoặc Quản trị bấm.
 - Xuất hoá đơn trong app: không có. Xuất ở phần mềm kế toán rồi đánh dấu trên đơn.
 - Sửa bảng giá dịch vụ, quản lý tài khoản nhân viên: không. Nhờ Quản trị.`,
     },
