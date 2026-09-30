@@ -104,8 +104,9 @@ ADR-0049 khoá hẳn kế hoạch của chuyến đang chạy (LC-15 "lượt 1:
 
 **D5.3 LC-15 mới** (thay câu ADR-0049; lõi, không ai phá lệ)
 - Chuyến `RUNNING`:
-  - **mở suất** chỉ khi `added_after_departure = 1` **và** (lệnh D5.1 **hoặc** xác nhận một đề nghị `CONFIRMED` — `transfer_id` NOT NULL);
-  - **đóng suất** chỉ với (`TRANSFERRED` + `transfer_id` trỏ đề nghị `CONFIRMED`) **hoặc** `TRIP_INTERRUPTED` trong lô "Kết thúc gián đoạn" (giữ nguyên ADR-0049);
+  - **mở suất** chỉ khi `added_after_departure = 1` **và** (lệnh D5.1 **hoặc** xác nhận một đề nghị `CONFIRMED` — `transfer_id` NOT NULL — **hoặc** lô "cập nhật điểm theo đơn" D5.3a: cùng chuyến, cùng chặng, cùng `passenger_key` với một suất vừa đóng `STOP_CHANGED` trong **cùng lô** — nhận ra bằng dấu lệnh, khuôn LC-05);
+  - **đóng suất** chỉ với (`TRANSFERRED` + `transfer_id` trỏ đề nghị `CONFIRMED`) **hoặc** `TRIP_INTERRUPTED` trong lô "Kết thúc gián đoạn" (giữ nguyên ADR-0049) **hoặc** `STOP_CHANGED` khi suất `WAITING` ở điểm `PENDING` (D5.3a);
+  - **Tóm lại, bốn đường mở/đóng suất có tên trên chuyến đang chạy:** (1) D5.1 văn phòng thêm; (2) đề nghị chuyển `CONFIRMED` (kể cả cứu hộ `ONBOARD`); (3) Kết thúc gián đoạn; (4) cập nhật điểm theo đơn. Báo huỷ (D5.2) chỉ đặt cờ, không mở/đóng suất;
   - **thêm điểm** chỉ khi `added_while_running = 1`;
   - đặt `office_cancel_*` trên suất `WAITING`;
   - **cập nhật điểm theo đơn** (D5.3a): đóng `STOP_CHANGED` + mở lại **cùng chuyến, cùng chặng, cùng người** ở điểm mới (`added_after_departure = 1`; điểm mới `added_while_running = 1`), chỉ với suất `WAITING` ở điểm `PENDING`;
@@ -123,6 +124,7 @@ ADR-0049 khoá hẳn kế hoạch của chuyến đang chạy (LC-15 "lượt 1:
 - A (hoặc văn phòng bấm thay) bấm "Kết thúc gián đoạn" (ADR-0049) — LC-16 bảo đảm điểm còn chờ → `SKIPPED`.
 - **Không xe nào nhận được** (C chưa dùng app — vd xe nhà xe trước lượt A-2 — hoặc không đủ chỗ): đường của lượt 1 vẫn dùng: A kết thúc gián đoạn → chặng về "chưa xếp" → văn phòng tạo chuyến cứu hộ mới hoặc thêm vào xe đang chạy bằng D5.1 (Quản trị / Toàn quyền phá lệ mốc kèm lý do, như lượt 1).
 - **Giá xe cứu hộ của nhà xe (ADR-0057 T2, đã duyệt — lần 18: "Vẫn phải nhập giá thoả thuận trước")**: chuyến cứu hộ **mới** dùng xe nhà xe chỉ xuất bến khi có **nguồn giá** — giá bảng đã chụp lúc xếp, hoặc **giá thoả thuận trước** do Quản trị / Kế toán / Toàn quyền nhập (ô `transport.cost.adjust`); không ngoại lệ, không phá lệ (mã giữ `THIEU_GIA`). Xe cứu hộ đã `RUNNING` thì đã có nguồn giá (không xuất bến được nếu thiếu); khách nhận thêm giữa đường không đổi tiền (tiền theo chuyến — tiền Q9 a). Quy trình cứu hộ trên màn văn phòng phải có bước "nhập giá thoả thuận" ngay cạnh "tạo chuyến cứu hộ", hoặc dùng xe công ty.
+- **Thứ tự thi công với ADR-0057:** phần "xe nhà xe phải có giá" dựa vào cổng `THIEU_GIA` và ô `transport.cost.*` của ADR-0057, mà các ô này **chỉ vào ở bản phát hành T2** của ADR-0057 (sau khi ADR-0049 lượt 1 gộp `main`). Nếu A-1b / A-2 phát hành **trước** T2 thì cổng giá chưa có ⇒ chuyến xe thuê chưa có đường nhập giá trong app. **Khuyến nghị: thi công A-1b và A-2 sau T2**; nếu buộc phải trước, điều phối ghi nợ có hạn và phần giá của D5c / D8.5a thi hành cùng T2.
 
 **D5b (quyết định riêng — lượt A-1b). Tài xế bổ sung tên khách tại chỗ** (C15; ĐP13 = a) *(trước là D5.5; mở đường ghi mới vào `ord_passenger` nên tách khỏi D5)*
 - **Ô mới `trip.passenger.add`:** `DRIVER = assigned`; `SUPER_ADMIN = any` (ADR-0014 điều 2; route vẫn chốt "đang lái"); **`ADMIN = none`** — không có route văn phòng cho ô này, Quản trị nhập tên ở màn đơn bằng `order.passenger.write = any`; **`SALES = none`** (ĐP13 a — `permissions.ts:86`); mọi cột khác `none`; `DRIVER_PARTNER = none` ở lượt này.
@@ -135,7 +137,7 @@ ADR-0049 khoá hẳn kế hoạch của chuyến đang chạy (LC-15 "lượt 1:
 
 **D6.1 Nguồn tin = hình chiếu nhật ký** (khuôn ADR-0034 điều 1; không bảng `ntf_` mới)
 - View công bố mới của `audit`: `v_aud_trip_event` (id, chuyến, người làm, hành động, lúc) — chỉ khoá, không `detail`. `thongbao` đọc view này.
-- Hành động nhật ký sinh tin (danh sách chốt **trước khi ghi dòng đầu** — một chiều): xếp/gỡ/đổi tài xế; đổi giờ chuyến có tài xế; huỷ chuyến có tài xế; văn phòng thêm điểm / báo huỷ khi xe chạy; đề nghị gửi / xác nhận / leo thang / bác / hết hạn; kết thúc gián đoạn; khách vắng; giờ hẹn chặng đổi khi chặng đang có suất mở (`order_leg_updated`, MQ-07 — ADR-0051 hẹn).
+- Hành động nhật ký sinh tin (danh sách chốt **trước khi ghi dòng đầu** — một chiều): xếp/gỡ/đổi tài xế; đổi giờ chuyến có tài xế; huỷ chuyến có tài xế; văn phòng thêm điểm / báo huỷ khi xe chạy; **cập nhật điểm theo đơn trên xe đang chạy (`trip_stops_synced`, D5.3a — `detail` chỉ mã chuyến, mã đơn, số người, nhãn nơi cũ → mới; không tên, không SĐT)**; đề nghị gửi / xác nhận / leo thang / bác / hết hạn; kết thúc gián đoạn; khách vắng; giờ hẹn chặng đổi khi chặng đang có suất mở (`order_leg_updated`, MQ-07 — ADR-0051 hẹn).
 - **Không** đọc chữ `detail` để tìm người nhận (ADR-0030 điều 3).
 
 **D6.2 Người nhận — một hàm thuần duy nhất** (dùng chung hộp thông báo, gõ cửa màn hình khoá, Bảng tin)
@@ -144,7 +146,7 @@ ADR-0049 khoá hẳn kế hoạch của chuyến đang chạy (LC-15 "lượt 1:
   | Sự kiện | Nhận (ngăn "Của tôi") |
   |---|---|
   | xếp / gỡ tài xế | tài xế được xếp / bị gỡ |
-  | đổi giờ, huỷ chuyến; văn phòng thêm điểm, báo huỷ | tài xế có dòng lái mở **lúc sự kiện** |
+  | đổi giờ, huỷ chuyến; văn phòng thêm điểm, báo huỷ; **cập nhật điểm theo đơn khi xe đang chạy** ("đổi điểm đón X → Y") | tài xế có dòng lái mở **lúc sự kiện** (tin không tên, không SĐT khách) |
   | đề nghị gửi tới | tài xế đích |
   | đề nghị xác nhận / bác / hết hạn | tài xế nguồn, tài xế đích |
   | đề nghị **leo thang** | người có `trip.override` (Quản trị, Toàn quyền) — "cần xử lý" |

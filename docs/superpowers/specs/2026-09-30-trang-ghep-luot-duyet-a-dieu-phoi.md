@@ -140,7 +140,9 @@ Cột theo `PERMISSION_CODES` (`src/shared/permissions.ts:5@thi-cong-adr-0049-ti
 13. **Kernel lượt 2** (đề xuất ADR-0055 tạm, `2026-09-30-de-xuat-adr-kernel-luot-2.md` A1, lượt duyệt B; nguồn `2026-09-29-de-xuat-adr-van-chuyen-kernel-luot-2.md` VK2-A — bảng này định trọn `subject` và **chặn ghi `DRIVER`** tới A-2; A-2 bỏ trigger chặn bằng migration mới): **một** bảng `vc_unavailability` (`subject` `VEHICLE`/`DRIVER`) và **một** hàm chồng giờ LC-03 cho cả xe và tài xế. Ai duyệt trước tạo bảng với đủ tập `subject`; điều phối chốt thứ tự lúc cấp số.
 14. **ADR-0057 tiền xe thuê (ĐÃ DUYỆT, lần 19):** (a) **cứu hộ (A-1b D5c):** chuyến cứu hộ bằng xe nhà xe phải có giá bảng đã chụp hoặc giá thoả thuận (Quản trị / Kế toán / Toàn quyền nhập) **trước** xuất bến — không ngoại lệ, không phá lệ (`THIEU_GIA`); (b) **Từ chối → giao lại (A-2 D8.5a):** đổi xe / nhà xe / tuyến trước xuất bến thì lô đổi đảo nguồn giá cũ, chụp lại giá bảng; giá thoả thuận cũ phải nhập lại; chỉ đổi tài xế cùng nhà xe, cùng xe thì giá giữ nguyên; phí huỷ với nhà xe ghi tay (tiền Q7); (c) nhờ đón chéo không đổi tiền (theo chuyến); (d) **Quản trị = Kế toán** chỉ về các ô `transport.*` của ADR-0057 — **không** đổi ô chuyến: Kế toán vẫn `trip.view` (xem), không `trip.dispatch` (lời chủ Q1 ban đầu); tài xế đối tác không thấy số tiền nào.
 
-**Migration** — mọi số **≥ 0044, lấy lúc thi công** sau khi liệt kê mọi nhánh và worktree chưa gộp (`docs/adr/README.md:77`; sổ tiền, Kernel lượt 2–3 có thể lấy trước). Thứ tự phụ thuộc: `0042`/`0043` (ADR-0049/0051) → A-1 → A-2; A-3 chỉ cần `0034`. Không sửa migration đã áp remote.
+**Migration** — mọi số **≥ 0044, lấy lúc thi công** sau khi liệt kê mọi nhánh và worktree chưa gộp (`docs/adr/README.md:77`; sổ tiền, Kernel lượt 2–3 có thể lấy trước). Thứ tự phụ thuộc: `0042`/`0043` (ADR-0049/0051) → A-1 → A-2; A-3 chỉ cần `0034`.
+
+**Thứ tự thi công với ADR-0057:** phần "xe nhà xe phải có giá" dựa vào cổng `THIEU_GIA` và ô `transport.cost.*` của ADR-0057, mà các ô này **chỉ vào ở bản phát hành T2** của ADR-0057 (sau khi ADR-0049 lượt 1 gộp `main`). Nếu A-1b / A-2 phát hành **trước** T2 thì cổng giá chưa có ⇒ chuyến xe thuê chưa có đường nhập giá trong app. **Khuyến nghị: thi công A-1b và A-2 sau T2**; nếu buộc phải trước, điều phối ghi nợ có hạn và phần giá của D5c / D8.5a thi hành cùng T2. (Áp cho ADR-0052 D5c và ADR-0053 D8.5a.) Không sửa migration đã áp remote.
 
 ---
 
@@ -173,7 +175,7 @@ Chủ chọn khuyến nghị ở cả 7 câu ([HĐ] "Trả lời lần 17", 30/9
 5e. Hệ quả ADR-0057: giá xe cứu hộ nhà xe (ADR-0052 D5c), Từ chối → giao lại (ADR-0053 D8.5a).
 6. `ord_passenger` nhận người ghi mới là **người ngoài** (A-2) — hàm câu ghi của `orders` và bài quét "sau `can()`" có phủ cột `DRIVER_PARTNER`.
 7. Mã đơn trong DTO tài xế đối tác (G3-3).
-8. LC-15 mới đủ chặt: văn phòng không rút/dời suất `RUNNING`; chỉ ba đường có tên.
+8. LC-15 mới đủ chặt: văn phòng không rút/dời suất `RUNNING`; **bốn** đường mở/đóng suất có tên — (1) D5.1 thêm điểm/khách, (2) đề nghị chuyển `CONFIRMED` (kể cả cứu hộ `ONBOARD`), (3) Kết thúc gián đoạn, (4) cập nhật điểm theo đơn (`STOP_CHANGED` + mở lại cùng chuyến, chặng, người); báo huỷ chỉ đặt cờ.
 9. `vc_unavailability` không thành hai bảng.
 
 ## (7) Chưa kiểm

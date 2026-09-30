@@ -26,7 +26,7 @@
 
 1. **Tài xế nhà xe đối tác dùng app cho chuyến mình lái**, cùng nút như tài xế công ty (ĐP12).
 2. Họ thấy **tên, năm sinh khách; mã đơn; tên + SĐT người liên hệ** (có khi là nhân viên đại lý) — **chỉ trong ngày chạy và sau khi hết hạn Từ chối**. Chuyến 06:00 sáng mai: tối nay chưa thấy. Không bao giờ thấy tiền hay chi tiết đơn.
-3. **Tài xế công ty cũng bị siết** cùng luật "chỉ trong ngày chạy": bấm Xuất bến tối hôm trước không mở danh sách sớm (bạn chọn lần 17).
+3. **Tài xế công ty cũng bị siết** cùng luật "chỉ trong ngày chạy" — nếu áp sớm, bản phát hành đầu của Bảng điều phối sẽ đã siết tài xế công ty; nếu muộn, ghi nợ có hạn. Bấm Xuất bến tối hôm trước không mở danh sách sớm (bạn chọn lần 17).
 4. **Cửa một chiều:** số khách người ngoài đã thấy thì không lấy lại được.
 5. **Từ chối chuyến** (chỉ tài xế đối tác): tới 12 giờ trước giờ chạy; hạn đã qua thì không mở lại dù chuyến bị dời. Chuyến về "chưa có tài xế", người xếp xe nhận tin. Giao lại cho xe / nhà xe khác thì **giá thuê được tính lại**; giá thoả thuận cũ phải nhập lại (ADR-0057).
 6. **Báo bận** (chỉ tài xế đối tác): tự ghi, tự rút; văn phòng không xếp vào khung đó; **không** báo bận đè chuyến đã được xếp — phải Từ chối hoặc gọi văn phòng (bạn chọn lần 17).
@@ -124,6 +124,7 @@
 - **Không có phương án dự phòng duyệt sẵn cho B8.3.** Trigger so giờ hiện tại test được bằng dữ liệu gieo tương đối. Nếu thi công vẫn không làm được, **quay lại chủ** (lệch 5.1 mới cần chủ duyệt riêng).
 
 **D8.5a Giá thuê khi Từ chối rồi giao lại (ADR-0057 T2, đã duyệt):** Từ chối **không** tự đổi xe hay nhà xe, nên giá chuyến giữ nguyên nếu văn phòng chỉ xếp **tài xế khác của cùng nhà xe, cùng xe**. Nếu văn phòng **giao lại** cho xe khác / nhà xe khác / tuyến khác (trước xuất bến), lô đổi của ADR-0057 **tự đảo** nguồn giá cũ (`SNAPSHOT` hoặc `AGREED`) và **chụp lại giá bảng**; giá thoả thuận cũ **không** tự chuyển — Quản trị / Kế toán / Toàn quyền **nhập lại**; không có giá thì chuyến bị giữ `THIEU_GIA`, không xuất bến. Phí huỷ với nhà xe (nếu có) do Quản trị / Kế toán ghi tay (tiền Q7). Tài xế đối tác không thấy số tiền nào.
+- **Thứ tự thi công với ADR-0057:** phần "xe nhà xe phải có giá" dựa vào cổng `THIEU_GIA` và ô `transport.cost.*` của ADR-0057, mà các ô này **chỉ vào ở bản phát hành T2** của ADR-0057 (sau khi ADR-0049 lượt 1 gộp `main`). Nếu A-1b / A-2 phát hành **trước** T2 thì cổng giá chưa có ⇒ chuyến xe thuê chưa có đường nhập giá trong app. **Khuyến nghị: thi công A-1b và A-2 sau T2**; nếu buộc phải trước, điều phối ghi nợ có hạn và phần giá của D5c / D8.5a thi hành cùng T2.
 
 **D8.6 Route:** `POST /api/van-chuyen/cuoc-cua-toi/:id/tu-choi` (cổng `staff`, thân `{ lyDo, requestId }`, cần `Origin` cùng site). `GET …/cuoc-cua-toi/:id` trả thêm `hanTuChoi` và `tuChoiDuoc` (máy tính sẵn, cùng hàm thuần).
 
