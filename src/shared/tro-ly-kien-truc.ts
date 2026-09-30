@@ -43,6 +43,7 @@ Tiền của đơn (thành tiền, tổng, còn lại) do máy chủ tự tính 
   },
   {
     tieuDe: "Trợ lý Hỗ trợ trả lời được gì",
-    noiDung: `Trợ lý Hỗ trợ chỉ hướng dẫn cách dùng app, dựa trên bộ hướng dẫn trong Trợ giúp và danh sách trang, nút của app. Trợ lý không xem được đơn, khách, tiền hay dữ liệu thật của công ty, không làm thay thao tác nào, và có thể trả lời sai: luôn đối chiếu với màn hình. Câu nào chưa có trong hướng dẫn thì hỏi Quản trị hoặc gửi Góp ý.`,
+    noiDung: `Trợ lý Hỗ trợ chỉ hướng dẫn cách dùng app, dựa trên bộ hướng dẫn trong Trợ giúp và danh sách trang, nút của app. Trợ lý không xem được đơn, khách, tiền hay dữ liệu thật của công ty, không làm thay thao tác nào, và có thể trả lời sai: luôn đối chiếu với màn hình. Câu nào chưa có trong hướng dẫn thì hỏi Quản trị hoặc gửi Góp ý.
+Câu hỏi (đã che số điện thoại, email, số giấy tờ) và câu trả lời được lưu để cải thiện trợ lý; chỉ người phụ trách hệ thống đọc được, không ai xoá được. Người phụ trách hệ thống bật hoặc tắt trợ lý theo từng vai, đặt câu chào, câu hỏi mẫu và thêm đoạn ngữ cảnh ở trang Trợ lý Hỗ trợ; vai đang tắt thì không thấy nút Hỗ trợ.`,
   },
 ];

@@ -1,6 +1,9 @@
 // Trợ lý "Hỗ trợ" (ADR-0066 điều 9): nút nổi ở mọi trang sau đăng nhập (gắn từ initShell ở web/shell.ts — không ở /login; có cả khi bảo trì cho người được phép) + khung hỏi đáp
-// (bảng trượt dùng chung web/bang-truot.ts: điện thoại trượt từ đáy, máy tính hộp giữa). Khối cài đặt cho Toàn quyền ở trang Tôi (`ganCaiDatTroLy`).
-// Không innerHTML: câu trả lời hiện bằng textContent (xuống dòng giữ bằng CSS). Lịch sử hỏi đáp CHỈ nằm trong bộ nhớ của trang (không lưu máy, không lưu máy chủ).
+// (bảng trượt dùng chung web/bang-truot.ts: điện thoại trượt từ đáy, máy tính hộp giữa). Cài đặt của Toàn quyền ở trang riêng /tro-ly-cai-dat (ADR-0069).
+// ADR-0069: nút chỉ dựng khi `GET /api/tro-ly/khung` báo tài khoản được dùng (vai đang bật — máy chủ vẫn chặn lại); câu chào + câu hỏi mẫu theo lời dặn
+// của Toàn quyền. Tệp này nạp ở MỌI trang: KHÔNG import src/shared/tro-ly.ts / huong-dan.ts (kéo cả kho tri thức vào bundle) — máy chủ gửi chữ sẵn.
+// Không innerHTML: câu trả lời hiện bằng textContent (xuống dòng giữ bằng CSS). Đoạn hội thoại trên màn hình chỉ nằm trong bộ nhớ của trang (không lưu máy);
+// máy chủ lưu câu hỏi ĐÃ CHE + câu trả lời vào lịch sử chỉ Toàn quyền xem (ADR-0069 điều 5) — khung ghi rõ cho người dùng.
 // Vị trí nút: góc phải dưới, trên thanh tab điện thoại; khi thanh nút dính đáy của trang (`.form-actions`, `.vc-bottom-bar`) đè vùng của nút thì nút nâng
 // lên khỏi thanh đó (đo lúc chạy — giả định bề mặt ghi ở đặc tả, đảo ngược được).
 import { ApiError, api, type Api, type Staff } from "./api";
@@ -12,7 +15,10 @@ import { layCoTuMo } from "./tro-ly-co";
 type Tin = { ai: "nguoi"; chu: string } | { ai: "tro-ly"; chu: string; nguon: string[] } | { ai: "loi"; chu: string };
 
 const LOI_MANG = "Không kết nối được. Kiểm tra mạng rồi thử lại.";
+/** Dự phòng khi lời dặn chưa có câu chào (không xảy ra với dữ liệu gieo 0054). */
 const CHAO = "Chào bạn! Hỏi mình cách dùng app, ví dụ: “Đổi mã PIN thế nào?” hoặc “Lập đơn mới ra sao?”.";
+/** ADR-0069 điều 5 — nguyên văn. */
+const CAU_LUU = "Câu hỏi được lưu để cải thiện trợ lý — đừng gõ thông tin khách";
 const tin: Tin[] = [];
 let dangHoi = false;
 
@@ -27,21 +33,36 @@ function dongTin(t: Tin): HTMLElement {
   );
 }
 
-function moKhung(fab: HTMLElement): void {
+function moKhung(fab: HTMLElement, khung: Api.TroLyKhungResponse): void {
   const ds = h("ol", { class: "tl-ds", "aria-live": "polite", "aria-label": "Hỏi đáp" });
   const trangThai = h("p", { class: "tl-trang-thai", role: "status" });
   const o = h("textarea", { class: "tl-o", rows: 2, maxlength: 500, placeholder: "Gõ câu hỏi về cách dùng app…", "aria-label": "Câu hỏi" });
   const gui = h("button", { class: "btn btn-primary tl-gui", type: "submit" }, "Gửi");
   const form = h("form", { class: "tl-form" }, o, gui);
+  const mau = (): HTMLElement | null =>
+    tin.length || !khung.cauHoiMau.length
+      ? null
+      : h(
+        "li",
+        { class: "tl-mau" },
+        ...khung.cauHoiMau.map((c) => {
+          const b = h("button", { class: "tl-mau-nut", type: "button" }, c);
+          b.addEventListener("click", () => {
+            o.value = c;
+            void guiCauHoi();
+          });
+          return b;
+        }),
+      );
   const veLai = (): void => {
-    replaceChildren(ds, h("li", { class: "tl-tin tl-tin-tro-ly" }, h("p", { class: "tl-chu" }, CHAO)), ...tin.map(dongTin));
+    replaceChildren(ds, h("li", { class: "tl-tin tl-tin-tro-ly" }, h("p", { class: "tl-chu" }, khung.cauChao || CHAO)), mau(), ...tin.map(dongTin));
     trangThai.textContent = dangHoi ? "Đang trả lời…" : "";
     gui.disabled = dangHoi;
     ds.lastElementChild?.scrollIntoView({ block: "nearest" });
   };
   const bang = moBangTruot({
     title: "Hỗ trợ",
-    body: [ds, trangThai, h("p", { class: "tl-luu-y" }, "Trả lời do AI, có thể sai — đối chiếu màn hình.")],
+    body: [ds, trangThai, h("p", { class: "tl-luu-y" }, "Trả lời do AI, có thể sai — đối chiếu màn hình."), h("p", { class: "tl-luu-y" }, CAU_LUU)],
     foot: [form],
     footClass: "tl-foot",
     opener: fab,
@@ -104,11 +125,22 @@ function nangTheoThanhDay(fab: HTMLElement): void {
   if (nang > 0) fab.style.setProperty("--tl-nang", `${nang}px`);
 }
 
-/** Gắn nút "Hỗ trợ" (một lần mỗi trang); có cờ một-lần sau đăng nhập thì tự mở khung. */
-export function ganTroLy(_staff: Staff): void {
+/**
+ * Gắn nút "Hỗ trợ" (một lần mỗi trang) SAU KHI máy chủ báo tài khoản được dùng (ADR-0069 điều 3 — vai tắt: không có nút, không nhấp nháy); có cờ một-lần sau
+ * đăng nhập thì tự mở khung. Cờ luôn được đọc (và xoá) kể cả khi không dựng nút. Lỗi mạng khi hỏi cờ ⇒ không dựng nút (không đoán).
+ */
+export async function ganTroLy(_staff: Staff): Promise<void> {
   if (document.getElementById("tl-fab")) return;
+  const tuMo = layCoTuMo();
+  let khung: Api.TroLyKhungResponse;
+  try {
+    khung = await api<Api.TroLyKhungResponse>("/api/tro-ly/khung");
+  } catch {
+    return;
+  }
+  if (!khung.duocDung || document.getElementById("tl-fab")) return;
   const fab = h("button", { id: "tl-fab", class: "tl-fab", type: "button", "aria-haspopup": "dialog" }, icon("chat", 20), h("span", null, "Hỗ trợ"));
-  fab.addEventListener("click", () => moKhung(fab));
+  fab.addEventListener("click", () => moKhung(fab, khung));
   document.body.append(fab);
   let hen = 0;
   const doLai = (): void => {
@@ -119,57 +151,5 @@ export function ganTroLy(_staff: Staff): void {
   window.addEventListener("resize", doLai);
   window.addEventListener("scroll", doLai, { passive: true });
   doLai();
-  if (layCoTuMo()) moKhung(fab);
-}
-
-// ---- Khối cài đặt cho Toàn quyền ở trang Tôi (ô settings.ops — máy chủ kiểm lại) ----
-
-const usd = (n: number): string => `${n.toLocaleString("vi-VN", { maximumFractionDigits: 4 })} USD`;
-
-export async function ganCaiDatTroLy(el: HTMLElement): Promise<void> {
-  let s: Api.TroLyCaiDatResponse;
-  try {
-    s = await api<Api.TroLyCaiDatResponse>("/api/tro-ly/cai-dat");
-  } catch {
-    return; // không có quyền hoặc lỗi mạng: khối ẩn, phần còn lại của trang không ảnh hưởng
-  }
-  const loi = h("p", { class: "tl-cd-loi", role: "alert", hidden: true });
-  const ve = (s: Api.TroLyCaiDatResponse): void => {
-    const bat = h("input", { type: "checkbox", checked: s.bat });
-    const tran = h("input", { type: "number", min: 0, max: 100, step: 0.5, value: String(s.tranThangUsd), inputmode: "decimal" });
-    const ngay = h("input", { type: "number", min: 0, max: 200, step: 1, value: String(s.tranNgay), inputmode: "numeric" });
-    const luu = h("button", { class: "btn btn-primary", type: "submit" }, "Lưu cài đặt trợ lý");
-    const [nam, thang] = s.thang.split("-");
-    const form = h(
-      "form",
-      { class: "tl-cd-form" },
-      h("label", { class: "tl-cd-bat" }, bat, "Bật trợ lý"),
-      h("label", null, "Trần chi phí mỗi tháng (USD)", tran),
-      h("label", null, "Số câu mỗi người mỗi ngày", ngay),
-      loi,
-      luu,
-    );
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      loi.hidden = true;
-      luu.disabled = true;
-      try {
-        const body: Api.TroLyCaiDatRequest = { bat: bat.checked, tranThangUsd: Number(tran.value), tranNgay: Number(ngay.value) };
-        ve(await api<Api.TroLyCaiDatResponse>("/api/tro-ly/cai-dat", { method: "POST", body }));
-      } catch (err) {
-        loi.textContent = err instanceof ApiError ? err.message : LOI_MANG;
-        loi.hidden = false;
-        luu.disabled = false;
-      }
-    });
-    replaceChildren(
-      el,
-      h("h2", { id: "tro-ly-cai-dat-heading" }, "Trợ lý Hỗ trợ"),
-      h("p", null, s.bat ? "Đang bật." : "Đang tắt.", " ", s.coKhoa ? "Đã có khoá OpenAI." : "Chưa có khoá OpenAI — trợ lý báo “chưa bật” tới khi có khoá."),
-      h("p", { class: "muted" }, `Tháng ${thang}/${nam}: đã dùng ${usd(s.chiPhiThangUsd)} trên trần ${usd(s.tranThangUsd)} · ${s.soCauThang} câu.`),
-      form,
-    );
-  };
-  ve(s);
-  el.hidden = false;
+  if (tuMo) moKhung(fab, khung);
 }
