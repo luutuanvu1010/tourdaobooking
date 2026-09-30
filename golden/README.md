@@ -5,7 +5,7 @@
 ## Tệp
 | Tệp | Luật tiền | Trạng thái |
 |---|---|---|
-| `hoan-tat-cong-no.json` | Chia tiền khi đơn **Đã giao – đã thu đủ** (đặc tả `docs/superpowers/specs/2026-09-25-hoan-tat-don-va-so-ke-toan.md` §5, ADR-0025/0026 — nháp) | **Chờ chủ/Kế toán xác nhận** — chưa có mã sổ công nợ để chạy |
+| `hoan-tat-cong-no.json` | Chia tiền khi đơn **Đã giao – đã thu đủ** (đặc tả `docs/superpowers/specs/2026-09-25-hoan-tat-don-va-so-ke-toan.md` §5, ADR-0025/0026 — nháp) | **SV-HT-06, SV-HT-07 (khách lẻ, lượt 1): ĐÃ XÁC NHẬN** 2026-09-30 (Lưu Tuấn Vũ / Giám sát kinh doanh); SV-HT-01..05 (có người hưởng / nhà cung cấp — lượt 2): chờ xác nhận. Chưa có mã sổ công nợ để chạy lớp 2 |
 
 ## Hai lớp kiểm
 1. **Nhất quán nội tại** (`src/so-vang.test.ts`, chạy ngay): mỗi ca tự cân — tổng tiền thu = giá bán; nợ mỗi bên = tiền bên đó đã thu − phần bên đó được hưởng; phần Tour Đảo giữ = tiền công ty tự thu + tổng nợ các bên = giá bán − giá vốn − hoa hồng. Bắt **ca mẫu viết sai**, không kiểm mã.
