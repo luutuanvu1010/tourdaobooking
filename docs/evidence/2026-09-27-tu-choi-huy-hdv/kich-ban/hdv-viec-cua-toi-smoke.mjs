@@ -151,10 +151,10 @@ try {
         overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
       };
     })()`);
-  // bản 1.39: nhãn "Thanh toán trước / Còn lại" (trước "Đã cọc / Còn thu"); sổ tiền lượt 1: số lấy từ billing.
+  // bản 1.39/1.40: "Còn lại"; sổ tiền lượt 1: "Đã thu" (số đã thu của billing — kiểm độc lập T-2).
   const moneyOf = async (d) => {
     const t = await tienOf(d);
-    return [["Tổng tiền", vnd(d.total)], ["Thanh toán trước", vnd(t.daThu)], ["Còn lại", vnd(t.conLai)]];
+    return [["Tổng tiền", vnd(d.total)], ["Đã thu", vnd(t.daThu)], ["Còn lại", vnd(t.conLai)]];
   };
 
   // ==================================================================================================
@@ -191,7 +191,7 @@ try {
     assert.deepEqual(m3.buttons, ["Sửa số khách"], "đã đi tour: không “Huỷ đơn”");
     assert.equal(m2.note, null);
     for (const [c, o] of [[m1, M1], [m2, M2], [m4, M4], [m3, M3]]) {
-      assert.deepEqual(c.money, await moneyOf(await detail(o)), `${o.orderCode}: Tổng tiền (GET /api/orders/:id) / Thanh toán trước / Còn lại (billing) trùng`);
+      assert.deepEqual(c.money, await moneyOf(await detail(o)), `${o.orderCode}: Tổng tiền (GET /api/orders/:id) / Đã thu / Còn lại (billing) trùng`);
       assert.equal(c.me, null, "bản 1.39: không lặp dòng HDV: <tên> ở từng thẻ");
       assert.equal(c.xem, `/order?id=${encodeURIComponent(o.id)}`, "liên kết Xem đơn");
       assert.ok(c.xemH >= 44, `Xem đơn cao ${c.xemH}px`);

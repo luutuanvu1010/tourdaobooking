@@ -531,8 +531,8 @@ export async function initViecCuaToi(el: HTMLElement, staff: Staff): Promise<voi
         "dl",
         { class: "hdv-money" },
         h("div", null, h("dt", null, "Tổng tiền"), h("dd", null, vnd(a.total))),
-        // Nhãn theo bản 1.40 (chủ duyệt rà soát 30/9: "Thanh toán trước / Còn lại"); SỐ lấy từ billing (sổ tiền lượt 1 — một hàm `conLai`, ADR-0026 đ9).
-        h("div", null, h("dt", null, "Thanh toán trước"), h("dd", null, tien ? vnd(tien.daThu) : "—")),
+        // Sổ tiền lượt 1 (kiểm độc lập T-2): số là ĐÃ THU của billing (gồm cả tiền thu lúc giao) nên nhãn "Đã thu", không "Thanh toán trước" của bản 1.40.
+        h("div", null, h("dt", null, "Đã thu"), h("dd", null, tien ? vnd(tien.daThu) : "—")),
         h("div", null, h("dt", null, "Còn lại"), h("dd", { class: tien && tien.conLai > 0 ? "money-due" : null }, tien ? vnd(tien.conLai) : "—")),
       ),
       tien?.daGiao ? h("p", { class: "hdv-note" }, tien.hoanThanh ? "Hoàn thành." : "Đã giao – đã thu đủ: đơn đã khoá.") : null,
