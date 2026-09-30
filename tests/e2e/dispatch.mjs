@@ -404,7 +404,8 @@ assert.equal(r.status, 404);
 console.log("✓ đơn không tồn tại → 404");
 
 // --- 13b) DK-T4-02 (kiểm toán 24/9; chủ dự án chốt 2026-09-26): tour ĐÃ QUA NGÀY ĐI (ngày đi < hôm nay giờ VN) → HDV không huỷ được nữa (409 `departed`),
-// chỉ văn phòng huỷ; NGAY TRONG NGÀY ĐI vẫn huỷ được (khách không đến bến). Sửa số khách (handler-money-edit) giữ như cũ. Thời gian trôi mô phỏng bằng
+// chỉ văn phòng huỷ; NGAY TRONG NGÀY ĐI vẫn huỷ được (khách không đến bến). Sửa số khách (handler-money-edit): từ 2026-09-30 (chủ duyệt "Cho sửa đến
+// hết ngày đi") cũng 409 `departed` sau ngày đi với HDV, Toàn quyền vẫn sửa được. Thời gian trôi mô phỏng bằng
 // UPDATE order_service.depart_date trên D1 local tạm (trigger 0008 không khoá cột này — đúng cách kiểm toán dựng "tour 40 ngày trước").
 const confirmedForField = async () => {
   const o = await newOrder(A);
@@ -428,18 +429,28 @@ assert.equal(r.status, 409, "thứ tự kiểm: 409 departed đứng TRƯỚC 40
 assert.equal(r.body.error.code, "departed");
 r = await handlerCancel(A, oPast.id, { reason: "customer_requested" });
 assert.equal(r.status, 403, "thứ tự kiểm: 403 (không phải người phụ trách cấp hẹp) đứng TRƯỚC 409 departed");
-r = await call(FIELD, "POST", `/api/orders/${oPast.id}/handler-money-edit`, { reason: "tour đã đi — sửa số khách vẫn như cũ", services: oPast.services.filter((s) => s.catalogCode).map((s) => ({ id: s.id, pax: s.pax })) });
-assert.equal(r.status, 200, `handler-money-edit KHÔNG đổi (chủ chọn "sửa số khách giữ như hiện nay"): ${JSON.stringify(r.body)}`);
+const paxBody = (reason) => ({ reason, services: oPast.services.filter((s) => s.catalogCode).map((s) => ({ id: s.id, pax: s.pax })) });
+r = await call(FIELD, "POST", `/api/orders/${oPast.id}/handler-money-edit`, paxBody("tour đã đi — HDV sửa số khách"));
+assert.equal(r.status, 409, `handler-money-edit sau ngày đi: HDV bị chặn (chủ duyệt 2026-09-30 "Cho sửa đến hết ngày đi"): ${JSON.stringify(r.body)}`);
+assert.equal(r.body.error.code, "departed");
+assert.match(r.body.error.message, /đã qua ngày đi/);
+r = await call(SUPER, "POST", `/api/orders/${oPast.id}/handler-money-edit`, paxBody("Toàn quyền chỉnh sau tour"));
+assert.equal(r.status, 200, `Toàn quyền vẫn sửa số khách sau ngày đi: ${JSON.stringify(r.body)}`);
 r = await call(A, "POST", `/api/orders/${oPast.id}/status`, { status: "cancelled" });
 assert.equal(r.status, 200, "văn phòng (người lập) vẫn huỷ được tour đã qua ngày đi");
-console.log("✓ DK-T4-02: tour đã qua ngày đi → HDV huỷ 409 departed (trước 400, sau 403), đơn vẫn xác nhận; sửa số khách như cũ; văn phòng huỷ được");
+console.log("✓ DK-T4-02: tour đã qua ngày đi → HDV huỷ 409 departed (trước 400, sau 403), đơn vẫn xác nhận; HDV sửa số khách 409 departed, Toàn quyền 200; văn phòng huỷ được");
 
 const oToday = await confirmedForField();
 await setDepart(oToday.id, vnDate(0));
+r = await call(FIELD, "POST", `/api/orders/${oToday.id}/handler-money-edit`, { reason: "đúng ngày đi — khách thêm người", services: oToday.services.filter((s) => s.catalogCode).map((s) => ({ id: s.id, pax: { ...s.pax, adult: s.pax.adult + 1 } })) });
+assert.equal(r.status, 200, `ngày đi = hôm nay → HDV vẫn sửa số khách được: ${JSON.stringify(r.body)}`);
+r = await call(FIELD, "POST", `/api/orders/${oToday.id}/handler-money-edit`, { reason: "khách nhờ gọi 0905 123 456", services: oToday.services.filter((s) => s.catalogCode).map((s) => ({ id: s.id, pax: s.pax })) });
+assert.equal(r.status, 400, `lý do sửa số khách có SĐT → 400: ${JSON.stringify(r.body)}`);
+assert.match(r.body.error.message, /không được chứa số điện thoại/);
 r = await handlerCancel(FIELD, oToday.id, { reason: "not_reachable" });
 assert.equal(r.status, 200, `ngày đi = hôm nay → HDV vẫn huỷ được: ${JSON.stringify(r.body)}`);
 assert.equal((await orderMoney(oToday.id)).status, "cancelled");
-console.log("✓ DK-T4-02: ngày đi = hôm nay (giờ VN) → HDV vẫn huỷ được (200)");
+console.log("✓ DK-T4-02: ngày đi = hôm nay (giờ VN) → HDV vẫn sửa số khách (200), lý do có SĐT → 400, vẫn huỷ được (200)");
 
 // --- 14) POST /api/orders/:id/handler-money-edit: FIELD sửa số khách của đơn đang phụ trách, giá theo giá lúc lập đơn, ghi dòng điều chỉnh
 const T14 = "'2026-01-01T00:00:00.000Z'";

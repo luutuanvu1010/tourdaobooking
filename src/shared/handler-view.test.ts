@@ -97,11 +97,11 @@ test("handlerSaved: câu báo sau khi lưu — nhận, đổi người, giao l�
   assert.equal(handlerSaved("assign", "Sales Hai", false), "Đã giao đơn cho Sales Hai phụ trách.");
 });
 
-test("myJobActions (ADR-0030 S23-8, lượt 1): nháp → ẩn cả hai; đã xác nhận còn ngày đi → đủ cả hai; đã xác nhận qua ngày đi → chỉ còn sửa số khách", () => {
+test("myJobActions (ADR-0030 S23-8, lượt 1; chủ duyệt 2026-09-30 \"Cho sửa đến hết ngày đi\"): nháp → ẩn cả hai; đã xác nhận còn ngày đi → đủ cả hai; đã xác nhận qua ngày đi → ẩn cả hai", () => {
   assert.deepEqual(myJobActions({ status: "draft", departed: false }), { cancel: false, editPax: false }, "nháp chưa đi thì cũng ẩn cả hai (route đều 409)");
   assert.deepEqual(myJobActions({ status: "draft", departed: true }), { cancel: false, editPax: false }, "nháp đã qua ngày đi vẫn ẩn cả hai — trạng thái thắng, không xét departed");
   assert.deepEqual(myJobActions({ status: "confirmed", departed: false }), { cancel: true, editPax: true });
-  assert.deepEqual(myJobActions({ status: "confirmed", departed: true }), { cancel: false, editPax: true }, "giữ DK-T4-02: qua ngày đi thì ẩn huỷ, vẫn sửa được số khách");
+  assert.deepEqual(myJobActions({ status: "confirmed", departed: true }), { cancel: false, editPax: false }, "qua ngày đi: ẩn huỷ (DK-T4-02) và ẩn sửa số khách (chủ duyệt 2026-09-30) — máy chủ cũng chặn cả hai");
 });
 
 // Vòng sửa 1 sau kiểm độc lập lượt 1 ADR-0030 (phát hiện I-2): trang Đơn hàng, trang đơn và biên nhận gọi GET /api/dispatch/handlers (403 với HDV — route

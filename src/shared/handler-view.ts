@@ -81,9 +81,10 @@ export interface MyJobActions {
  * "Việc của tôi" (`GET /api/dispatch/mine`) từ bản 1.6 (ADR-0030 S23-8, lượt 1) trả CẢ đơn nháp, không chỉ đơn đã xác nhận — hàm thuần này quyết
  * nút nào hiện, theo `status` của đơn và đã qua ngày đi hay chưa. Nháp: `handler-money-edit`/`handler-cancel` đều từ chối bằng 409
  * (`not_confirmed`/`not_editable`) nên ẩn cả hai, tránh bấm hụt — huỷ đơn nháp thuộc lượt 2 (ADR-0030 D5), CHƯA có ở đây. Đã xác nhận còn ngày đi:
- * đủ cả hai. Đã xác nhận, qua ngày đi: giữ sửa số khách, ẩn huỷ (DK-T4-02 — nhờ văn phòng).
+ * đủ cả hai. Đã xác nhận, qua ngày đi: ẩn huỷ (DK-T4-02 — nhờ văn phòng) VÀ ẩn sửa số khách (chủ dự án duyệt 2026-09-30 "Cho sửa đến hết ngày
+ * đi" — máy chủ `handler-money-edit` chặn 409 `departed` với cùng `tripDeparted`, trừ Toàn quyền). Trong ngày đi vẫn đủ cả hai.
  */
 export function myJobActions({ status, departed }: { status: OrderStatus; departed: boolean }): MyJobActions {
   if (status !== "confirmed") return { cancel: false, editPax: false };
-  return { cancel: !departed, editPax: true };
+  return { cancel: !departed, editPax: !departed };
 }

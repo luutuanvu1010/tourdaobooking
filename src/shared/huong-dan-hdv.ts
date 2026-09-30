@@ -61,16 +61,16 @@ Bấm [[Xem đơn]] để mở trang đầy đủ. Trang đó **chỉ để xem*
     },
     {
       tieuDe: "Sửa số khách",
-      noiDung: `Chỉ làm được với đơn **Đã xác nhận**.
+      noiDung: `Chỉ làm được với đơn **Đã xác nhận**, tới **hết ngày đi**. Từ hôm sau không còn nút [[Sửa số khách]]; cần sửa thì nhờ tài khoản Toàn quyền.
 
 1. Ở thẻ đơn, bấm [[Sửa số khách]].
 2. Ở từng dịch vụ, bấm nút tăng hoặc giảm cho từng loại khách.
    - Dịch vụ ghi "không sửa được ở đây": nhờ văn phòng sửa.
 3. Ở ô **Lý do sửa (bắt buộc)**, bấm nhanh [[Khách thêm người]], [[Khách bớt người]] hoặc [[Đổi dịch vụ]], hoặc tự gõ.
-   - **Không gõ số điện thoại vào ô lý do.**
+   - **Không gõ số điện thoại**, máy sẽ từ chối.
 4. Bấm [[Xác nhận]]. Muốn bỏ thì bấm [[Đóng]].
 
-Để trống lý do, app báo "Cần nhập lý do sửa."
+Để trống lý do, app báo "Cần nhập lý do sửa." Lý do có số điện thoại, app báo "Lý do không được chứa số điện thoại hoặc dãy số dài — chỉ ghi văn bản thường."
 
 > Ví dụ: Sáng đi tour, khách báo thêm 2 trẻ em. Chị Lan bấm Sửa số khách, tăng Trẻ em thêm 2, bấm Khách thêm người, rồi bấm Xác nhận.`,
     },
@@ -107,7 +107,7 @@ Tin quan trọng có nút [[Đã hiểu]]. Đọc xong thì bấm.
       tieuDe: "Tình huống hay gặp",
       noiDung: `- **Nhận đơn Chờ xác nhận:** vẫn nhận được, nhưng chưa sửa hay huỷ được. Thẻ ghi "Đơn đang chờ xác nhận — chưa thể huỷ hay sửa số khách." Đợi văn phòng xác nhận.
 - **Nhận nhầm, bận không đi được:** chưa có nút trả đơn (chưa có ở bản này). Gọi văn phòng giao cho người khác.
-- **Đơn đã qua ngày đi:** không còn nút [[Huỷ đơn]]. Nhờ văn phòng huỷ nếu cần.
+- **Đơn đã qua ngày đi:** không còn nút [[Huỷ đơn]] và [[Sửa số khách]]. Cần huỷ thì nhờ văn phòng; cần sửa số khách thì nhờ tài khoản Toàn quyền.
 - **Đang sửa thì văn phòng cũng sửa đơn đó:** app đóng bảng, hiện dòng báo màu vàng rồi tải lại. Bạn xem lại rồi làm lại.
 - **Mất mạng:** app báo chưa tải được đơn. Có mạng thì tải lại trang.
 - **Không thấy khối Đơn chờ nhận:** tài khoản có thêm quyền Đối tác. Hỏi Quản trị.
@@ -120,6 +120,7 @@ Tin quan trọng có nút [[Đã hiểu]]. Đọc xong thì bấm.
 - **Sửa dịch vụ, giờ đón, thông tin chuyến, xác nhận đơn:** nhờ người lập đơn hoặc văn phòng.
 - **Trả lại đơn đã nhận:** chưa có (chưa có ở bản này). Văn phòng giao cho người khác.
 - **Huỷ đơn chờ xác nhận, huỷ sau ngày đi:** nhờ văn phòng.
+- **Sửa số khách sau ngày đi:** nhờ tài khoản Toàn quyền.
 - **Ghi thu tiền:** nhờ kế toán.
 - **Xem bảng giá, Danh bạ:** hỏi văn phòng.`,
     },
@@ -135,7 +136,7 @@ Ai bấm trước được. Người sau thấy dòng báo, danh sách tự tả
 Không. Gọi văn phòng ngay để lập đơn mới.
 
 ### Sửa số khách sau ngày đi được không?
-App vẫn cho sửa đơn đã xác nhận. Hỏi văn phòng trước khi sửa.
+Không. Bạn sửa được tới hết ngày đi. Từ hôm sau, nhờ tài khoản Toàn quyền sửa.
 
 ### Tôi có thấy tiền của đơn không?
 Có, chỉ ở đơn bạn đang lo: **Tổng tiền**, **Thanh toán trước**, **Còn lại**.`,

@@ -137,7 +137,7 @@ Khi được dùng (sau này): cột [[Cần xử lý]] có mục "Giờ hẹn �
 
 ### Khách đổi số người hoặc dịch vụ sau khi đã xác nhận
 
-Sau xác nhận, dịch vụ, số khách và tiền **bị khoá** với Bán hàng. Hiện chỉ hướng dẫn viên đang phụ trách đơn sửa được số khách. Hãy báo hướng dẫn viên đó. Quản trị cũng KHÔNG sửa được. Tiền của đơn đã xác nhận không ai sửa được trong app, trừ tài khoản Toàn quyền. Việc cho người lập đơn, Quản trị, Kế toán sửa số khách sau xác nhận đang chờ làm (chưa có ở bản này).
+Sau xác nhận, dịch vụ, số khách và tiền **bị khoá** với Bán hàng. Hiện chỉ hướng dẫn viên đang phụ trách đơn sửa được số khách, tới **hết ngày đi**. Hãy báo hướng dẫn viên đó; qua ngày đi thì nhờ tài khoản Toàn quyền. Quản trị cũng KHÔNG sửa được. Tiền của đơn đã xác nhận không ai sửa được trong app, trừ tài khoản Toàn quyền. Việc cho người lập đơn, Quản trị, Kế toán sửa số khách sau xác nhận đang chờ làm (chưa có ở bản này).
 
 ### Đơn sát giờ — Đặt gấp
 
@@ -188,7 +188,7 @@ Huỷ được cả đơn chờ xác nhận lẫn đã xác nhận, nếu là đ
       tieuDe: "Điều bạn không làm được — hỏi ai",
       noiDung: `- Duyệt đặt gấp cho đơn sát giờ; sửa giờ đón sát giờ sau xác nhận → **Quản trị**.
 - Sửa, xác nhận, huỷ đơn người khác lập mà bạn không phụ trách → người lập đơn, người phụ trách, hoặc **Quản trị** (đơn đang [[Chờ nhận]] thì bạn tự bấm [[Nhận phụ trách]]).
-- Sửa số khách sau khi đã xác nhận → hướng dẫn viên đang phụ trách đơn (Quản trị không sửa được). Dịch vụ, tiền → chỉ tài khoản Toàn quyền.
+- Sửa số khách sau khi đã xác nhận → hướng dẫn viên đang phụ trách đơn, tới hết ngày đi (Quản trị không sửa được); qua ngày đi → tài khoản Toàn quyền. Dịch vụ, tiền → chỉ tài khoản Toàn quyền.
 - Thêm, sửa dịch vụ và giá trong danh mục; dịch vụ "chưa có giá" → **Quản trị**.
 - Tiền thu thêm, hoàn tiền, hoá đơn → **Kế toán** (app chưa có chỗ ghi thu tiền ở bản này).
 - Quên mã PIN, bị khoá đăng nhập → **Quản trị**.
