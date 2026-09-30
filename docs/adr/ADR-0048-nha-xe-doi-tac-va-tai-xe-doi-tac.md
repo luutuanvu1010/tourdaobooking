@@ -4,6 +4,7 @@
   - Q4 = (a): một người không giữ cùng lúc "đối tác đặt đơn" và "tài xế đối tác";
   - Q5 = (a): nhà xe chưa có tài khoản đăng nhập ở lượt 2;
   - Q6 = (a): không chéo xe và tài xế.
+  - **Bổ sung bởi ADR-0053** (duyệt 2026-09-30): D2 — ô chuyến của `DRIVER_PARTNER`; tài xế đối tác thấy mã đơn và tên + SĐT người liên hệ trong khung thấy khách (ngoại lệ có tên của "không thấy đơn hàng") — nguyên văn → mới ở bảng "Câu ADR bị thay" của ADR-0053.
 
   Lời duyệt do điều phối chuyển lại; người soạn tệp này không trực tiếp thấy tin nhắn của chủ. AI soạn tệp (vai lập kế hoạch), không tự duyệt (Hiến pháp N3, Điều 7.2). Từ mốc này chỉ sửa dòng trạng thái; đổi nội dung phải bằng ADR mới trỏ về ADR này.
 - **Ngày:** 2026-09-28.
