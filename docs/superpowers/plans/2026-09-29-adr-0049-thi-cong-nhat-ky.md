@@ -620,4 +620,5 @@ Tệp nháp ngoài `migrations/` và ngoài `src/` (`/tmp/adr49-a0/`, đã xoá 
   - Không bài nào khác đổi: e2e `tai-xe-cuoc` kiểm "ngoài ngày chạy không tên" (luật trong ngày chạy — không đổi); e2e `dieu-phoi` kiểm "sau xuất bến mọi suất có tên" (vẫn đúng); `audit-invariants` dựng thô.
 - P16 bốn phép đều đỏ (sổ hàng rào dòng mới); phép "lấp lặp khoá đã gửi" lần đầu không đỏ → thêm ca phân biệt (khoá gửi nằm đầu danh sách rảnh) ở cả bài thuần lẫn bài route.
 - Tài liệu: SYSTEM-DESIGN §7 dòng route xếp; CHANGE-GUIDE bẫy 53 (6); sổ hàng rào (dòng mới + dòng A18).
+- **Kiểm (tự khai, tại `020643a` — sau I19(a) + README):** `npm test` hai lần liền: thoát 0 (bước 1 1789/1789, bước 2 1/1; 8 s mỗi lần); `node --test --test-concurrency=1 "src/**/*.test.ts"` 1790/1790 thoát 0; `npm run typecheck` thoát 0; `node --test "tests/audit/*.test.mjs"` 36/36 thoát 0; `npm run test:e2e` ĐỦ BỘ 30/30 thoát 0 — đuôi `audit-invariants --strict` ĐẠT (mọi câu fail = 0, có R-VC-4, R-VC-19; warn R-VC-7 (1), R-VC-14 (7), R-ORD-6a/6b/8/12 như trước). Trước e2e: worktree giao diện đang chạy e2e của nó (wrangler dev ~4 phút tuổi) — đã CHỜ tới khi tự xong, không tắt tiến trình của phiên khác.
 
