@@ -473,6 +473,38 @@ h3 { font-size: var(--fs-step-5); margin: var(--s4) 0 var(--s2); color: var(--c-
 .price-cell { white-space: nowrap; }
 .price-cell .sheet { display: block; font-size: var(--fs-old-badge); color: var(--c-muted); text-decoration: line-through; }
 .price-cell .mark { color: var(--c-accent); font-weight: 700; }
+/* Màn Danh mục — nhóm dịch vụ (ADR-0058 Đ4, Đ8 — Task A7, khuôn sẵn của /catalog): khối "Nhóm dịch vụ", ô chọn nhiều (nhãn bọc ô là vùng bấm ≥ --tap-min),
+   thanh "Chuyển N dịch vụ" nằm TRONG dòng chảy trang (không cố định — thanh tab 390px không che), phần nhóm + lịch sử trong hộp "Sửa giá". */
+.nhom-ds { margin: 0 0 var(--s2); padding: 0; list-style: none; }
+.nhom-dong { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s1) var(--s3); padding: var(--s1) 0; border-bottom: 1px solid var(--c-line); }
+.nhom-dong .nhom-ten { flex: 1 1 10rem; min-width: 0; font-weight: 700; overflow-wrap: anywhere; }
+.nhom-dong .nhom-so { font-size: var(--fs-label); color: var(--c-text-muted); white-space: nowrap; }
+.nhom-dong .badge { margin-left: 0; }
+.nhom-dong.nhom-tat .nhom-ten { color: var(--c-text-muted); }
+.nhom-dong .nhom-ten-sua { flex: 1 1 12rem; min-width: 0; width: auto; margin: 0; }
+.nhom-nut { display: flex; flex-wrap: wrap; gap: 0 var(--s1); }
+.nhom-nut .btn-link { min-width: var(--tap-min); }
+.nhom-nut .btn-link:disabled { opacity: .45; text-decoration: none; cursor: default; }
+.nhom-form { display: grid; gap: var(--s2); max-width: 32rem; }
+.nhom-form input { margin: 0; }
+.chon-o { display: inline-flex; align-items: center; justify-content: center; gap: var(--s2); min-width: var(--tap-min); min-height: var(--tap-min); margin: 0; font-size: var(--fs-label); color: var(--c-text); cursor: pointer; }
+.chon-o input { display: inline-block; width: auto; margin: 0; }
+td.chon-td { width: var(--tap-min); padding-top: 0; padding-bottom: 0; }
+.chon-bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2) var(--s3); margin-bottom: var(--s3); }
+.chon-bar .chon-het { justify-content: flex-start; }
+.chon-dem { font-weight: 700; }
+.chon-dem:empty { display: none; }
+.chon-dich { display: flex; align-items: center; gap: var(--s2); color: var(--c-text); }
+.chon-dich select { width: auto; max-width: 100%; margin: 0; }
+.chon-nut { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.chon-nut .btn { min-height: var(--tap-min); }
+.chon-ghi, .chon-bar .alert { flex-basis: 100%; margin: 0; }
+.card-col .the-dau { display: flex; align-items: center; gap: var(--s2); }
+.card-col .the-dau .chon-o { margin-left: calc(-1 * var(--s2)); }
+.nhom-sua { margin-top: var(--s4); padding-top: var(--s2); border-top: 1px solid var(--c-line); }
+.nhom-sua-hang { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--s2) var(--s3); }
+.nhom-sua-hang label { flex: 1 1 14rem; min-width: 0; }
+.nhom-sua-hang .btn { min-height: var(--tap-min); }
 
 /* ---------- app iPhone (PWA) — từ dấu mốc này đến cuối file: KHÔNG viết cứng màu/px, dùng token (tests/e2e/pwa.mjs kiểm) ---------- */
 /* trang "Tôi" */

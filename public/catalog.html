@@ -11,6 +11,7 @@
     <div id="status"></div>
     <button id="pull" class="btn btn-primary" type="button">Đồng bộ ngay từ Google Sheet</button>
   </section>
+  <section id="nhom-dv" class="card" aria-labelledby="nhom-dv-tieu-de"></section>
   <section id="edit" class="card" hidden></section>
   <div class="toolbar">
     <input id="q" type="search" placeholder="Tìm theo mã hoặc tên dịch vụ…" autocomplete="off">
@@ -18,9 +19,10 @@
       <option value="">Tất cả</option><option value="overridden">Đang ghi đè giá</option><option value="conflict">Sheet đã đổi giá (cần xem)</option><option value="hidden">Đã ẩn</option><option value="missing">Không còn trong Sheet</option>
     </select>
   </div>
+  <div id="chon-bar" class="chon-bar"></div>
   <section class="card table-wrap">
     <table class="items">
-      <thead><tr><th>Mã</th><th>Dịch vụ</th><th>Đơn vị</th><th>Người lớn</th><th>Trẻ em</th><th>Người cao tuổi</th><th>Em bé</th><th></th></tr></thead>
+      <thead><tr><th>Chọn</th><th>Mã</th><th>Dịch vụ</th><th>Nhóm</th><th>Đơn vị</th><th>Người lớn</th><th>Trẻ em</th><th>Người cao tuổi</th><th>Em bé</th><th></th></tr></thead>
       <tbody id="list"></tbody>
     </table>
   </section>
