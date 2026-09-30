@@ -1296,6 +1296,21 @@ export interface CuocCuaToiItemDto {
   dieuKienConThieu: DieuKienConThieuDto[];
 }
 export interface CuocCuaToiResponse { tu: string; den: string; chuyen: CuocCuaToiItemDto[] }
+/**
+ * ADR-0059 — `GET /api/van-chuyen/xe-cua-don/:orderId`: xe chở từng chặng ĐANG MỞ của một đơn, DANH SÁCH TRẮNG (Hiến chương 4.4). Mỗi chặng một mục (kể cả
+ * chặng chưa xếp — `xe` rỗng); mỗi xe = một chuyến chưa huỷ có suất khách ĐANG MỞ của chặng. KHÔNG BAO GIỜ: SĐT tài xế, tên / năm sinh khách, khoá so sánh
+ * nơi, mã / id chuyến, tiền, giấy tờ. `trangThai` là mã — giao diện đổi sang chữ bằng `NHAN_TRANG_THAI_CHUYEN` (src/shared/dieu-phoi-kieu.ts).
+ */
+export interface XeCuaDonXeDto {
+  bienSo: string;
+  /** Tên hiển thị hồ sơ tài xế đang mở dòng lái; null = chuyến chưa có tài xế. */
+  tenTaiXe: string | null;
+  /** Số suất hành khách ĐANG MỞ của chặng trên chuyến này. */
+  soKhach: number;
+  trangThai: "PLANNED" | "RUNNING" | "ENDED" | "ENDED_INTERRUPTED" | "CANCELLED";
+}
+export interface XeCuaDonChangDto { legId: string; xe: XeCuaDonXeDto[] }
+export interface XeCuaDonResponse { chang: XeCuaDonChangDto[] }
 /** Route 20 (và phản hồi lệnh tiến độ của tài xế) — chi tiết một chuyến mình đang lái. */
 export interface CuocChiTietResponse {
   chuyen: {

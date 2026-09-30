@@ -610,3 +610,38 @@ export const MOC_GOI_INSERT = defineSql(
                                 bo_gio_hen_doi)
    SELECT ?1, ?2, ?3 + 1, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?10, ?11, ?12 WHERE (SELECT max(seq) FROM vc_leg_appt_ack WHERE leg_id = ?2) = ?3`,
 );
+
+// ---- XE TRÊN CHI TIẾT ĐƠN (ADR-0059) — chỉ đọc, qua view công bố của orders (`v_ord_order_label` — đơn có tồn tại; `v_ord_leg_key` — chặng mở của đơn) và
+// parties (`v_pty_party_label` — tên tài xế). Không đọc SĐT, tên khách, khoá so sánh nơi. Bỏ chuyến huỷ; chỉ đếm suất KHÁCH đang mở.
+const DON_TON_TAI = defineSql("van-chuyen", "don_ton_tai", "SELECT 1 AS co FROM v_ord_order_label WHERE id = ?1");
+const CHANG_MO_CUA_DON = defineSql("van-chuyen", "chang_mo_cua_don", "SELECT k.id FROM v_ord_leg_key k WHERE k.order_id = ?1 AND k.is_open = 1 ORDER BY k.id");
+export interface XeCuaDonRow {
+  leg_id: string;
+  plate_number: string;
+  driver_name: string | null;
+  status: TripRow["status"];
+  so_khach: number;
+}
+const XE_CUA_DON = defineSql(
+  "van-chuyen",
+  "xe_cua_don",
+  `SELECT a.leg_id, v.plate_number, l.display_name AS driver_name, t.status, count(*) AS so_khach
+   FROM v_ord_leg_key k
+   JOIN vc_trip_allocation a ON a.leg_id = k.id AND a.kind = 'PASSENGER' AND a.valid_to_at IS NULL
+   JOIN vc_trip t ON t.id = a.trip_id AND t.status <> 'CANCELLED'
+   JOIN vc_vehicle v ON v.id = t.vehicle_id
+   LEFT JOIN vc_trip_driver d ON d.trip_id = t.id AND d.valid_to_at IS NULL
+   LEFT JOIN v_pty_party_label l ON l.id = d.driver_party_id
+   WHERE k.order_id = ?1 AND k.is_open = 1
+   GROUP BY a.leg_id, t.id
+   ORDER BY a.leg_id, t.planned_start_ms, t.code`,
+);
+export async function donTonTai(db: D1Database, orderId: string): Promise<boolean> {
+  return (await db.prepare(DON_TON_TAI).bind(orderId).first<{ co: number }>()) !== null;
+}
+export async function changMoCuaDon(db: D1Database, orderId: string): Promise<string[]> {
+  return (await db.prepare(CHANG_MO_CUA_DON).bind(orderId).all<{ id: string }>()).results.map((r) => r.id);
+}
+export async function xeCuaDon(db: D1Database, orderId: string): Promise<XeCuaDonRow[]> {
+  return (await db.prepare(XE_CUA_DON).bind(orderId).all<XeCuaDonRow>()).results;
+}
