@@ -357,3 +357,11 @@ test("vòng 5e: câu khoá nói cả hai lệnh 'theo đơn' không cần phá l
   assert.deepEqual(dk.filter((d) => !d.dat).map((d) => [d.nhan, d.chiTiet]), [["Đủ tên khách", "Khách trong xe không còn trong đơn — bấm Cập nhật khách theo đơn: TD-8 · Ai xử lý: Văn phòng"]]);
   assert.equal(dk.some((d) => d.nhan === "Khác"), false, "không rơi vào dòng 'Khác'");
 });
+
+test("vòng 5g (K2e VỪA-1): CẢ THIEU_TEN lẫn KHACH_DA_DOI → dòng 'Đủ tên khách' mang ĐỦ hai câu (theo thứ tự máy chủ), không mất câu nào", () => {
+  const khach = "Khách trong xe không còn trong đơn — bấm Cập nhật khách theo đơn: TD-8";
+  const thieu = "Chưa đủ tên khách: TD-8 thiếu 1 tên";
+  const dong = (ds: LyDoGiuDto[]) => dieuKienXuatBen(ds).filter((d) => !d.dat);
+  assert.deepEqual(dong([ly("KHACH_DA_DOI", khach), ly("THIEU_TEN", thieu)]), [{ nhan: "Đủ tên khách", dat: false, chiTiet: `${khach}; ${thieu} · Ai xử lý: Văn phòng` }]);
+  assert.deepEqual(dong([ly("THIEU_TEN", thieu), ly("KHACH_DA_DOI", khach)]), [{ nhan: "Đủ tên khách", dat: false, chiTiet: `${thieu}; ${khach} · Ai xử lý: Văn phòng` }]);
+});

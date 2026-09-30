@@ -103,6 +103,44 @@ try {
   });
   await p.close();
 
+  // ---- Vòng 5g (K2e VỪA-2): nhánh `stale` (409) của "Cập nhật khách theo đơn" — người khác sửa chuyến (dời giờ, vẫn lệch khách) TRƯỚC khi bấm ----------------
+  const ps = await env.as(ACCOUNTS.salesA, `/chuyen?id=${d.T3.id}`, DESK);
+  await cho(ps);
+  const doiGio = async (gio) => {
+    const hien = (await call(ACCOUNTS.admin, "GET", `/api/van-chuyen/chuyen/${d.T3.id}`)).json.chuyen;
+    const r = await call(ACCOUNTS.admin, "PUT", `/api/van-chuyen/chuyen/${d.T3.id}`, { version: hien.version, requestId: randomUUID(), batDau: { ngay: d.NGAY_XA, gio }, ketThuc: { ngay: d.NGAY_XA, gio: "16:30" } });
+    assert.equal(r.status, 200, r.text);
+    const sau = (await call(ACCOUNTS.admin, "GET", `/api/van-chuyen/chuyen/${d.T3.id}`)).json.chuyen;
+    assert.ok(sau.version > hien.version, "phiên bản chuyến tăng");
+    assert.ok(sau.lyDoGiu.some((l) => l.ma === "KHACH_DA_DOI"), "vẫn lệch khách sau khi dời giờ");
+  };
+  const conLech = async () => (await call(ACCOUNTS.admin, "GET", `/api/van-chuyen/chuyen/${d.T3.id}`)).json.chuyen.lyDoGiu.some((l) => l.ma === "KHACH_DA_DOI");
+  await b.step("3b", `stale: ${d.T3.ma} bị người khác dời giờ khi màn còn cũ → bấm "Cập nhật khách theo đơn" ở Chi tiết chuyến → câu "Chuyến vừa được người khác sửa — tải lại" (không mã, không tên người sửa, không dải thành công, máy chủ không ghi); ở bảng Điều phối → câu cùng khuôn "Cập nhật điểm theo đơn"`, async () => {
+    assert.deepEqual(await ps.ev(daiGiu), ["Chuyến bị giữ: Nơi đón / trả đã đổi — cập nhật điểm", TIEU_DE_GIU]);
+    await doiGio("14:25");
+    await ps.ev(click('#ct-trang [data-action="cap-nhat-khach"]'));
+    await ps.waitFor(`!!document.querySelector('#ct-trang > .banner-warning')`, "dải chuyến cũ");
+    assert.equal(await ps.ev(txt("#ct-trang > .banner-warning .banner-title")), "Chuyến vừa được người khác sửa — tải lại");
+    assert.equal(await ps.ev(`!!document.querySelector('#ct-trang > .banner-warning [data-action="tai-lai"]')`), true, "có nút Tải lại");
+    assert.equal(await ps.ev(`document.querySelector('#ct-trang > .banner-warning').innerText.includes('Quản Trị')`), false, "không tên người sửa");
+    assert.equal(await ps.ev(`!!document.querySelector('#ct-trang > .dp-banner-ok')`), false, "không dải thành công");
+    assert.equal(await ps.ev(noCode), "");
+    assert.equal(ghi(ps).length, 1, "đúng một lần gửi");
+    assert.ok(await conLech(), "máy chủ không ghi — chuyến vẫn giữ KHACH_DA_DOI");
+    // Bảng Điều phối (Cần xử lý): màn đọc lịch xong, người khác dời giờ lần nữa rồi mới bấm.
+    await moLai(ps, `/dieu-phoi?ngay=${d.NGAY_XA}`);
+    await ps.waitFor(`!!document.querySelector('#dp-cot-can-xu-ly .dp-cxl [data-action="cap-nhat-khach"]')`, "nút ở Cần xử lý");
+    await doiGio("14:20");
+    const nutT3 = `(() => { const m = [...document.querySelectorAll('#dp-cot-can-xu-ly .dp-cxl')].find((x) => x.querySelector('.dp-cxl-tieu-de').innerText.trim().startsWith(${JSON.stringify(d.T3.ma)})); m.querySelector('[data-action="cap-nhat-khach"]').click(); return true; })()`;
+    await ps.ev(nutT3);
+    await ps.waitFor(`!!document.querySelector('#dp-banner .banner-warning')`, "dải chuyến cũ ở bảng");
+    assert.equal(await ps.ev(txt("#dp-banner .banner-warning .banner-title")), "Chuyến vừa được người khác sửa — đã tải lại bảng, bấm lại nếu vẫn cần.");
+    assert.equal(await ps.ev(`!!document.querySelector('#dp-banner .dp-banner-ok')`), false);
+    assert.equal(await ps.ev(noCode), "");
+    assert.ok(await conLech(), "máy chủ không ghi — chuyến vẫn giữ KHACH_DA_DOI");
+  });
+  await ps.close();
+
   // ---- Bán hàng, điện thoại: T4 TRONG vùng khoá — vẫn bấm được, không phá lệ ------------------------------------------------------------------------------------
   const pm = await env.as(ACCOUNTS.salesA, `/chuyen?id=${d.T4.id}`, MOB);
   await cho(pm);
@@ -153,7 +191,9 @@ try {
   await k.close();
 
   await b.step("6", "không lỗi console ở mọi trang đã mở", async () => {
+    // 409 của lệnh (stale) là phản hồi mạng có chủ đích — Chrome ghi "Failed to load resource" vào console; lọc riêng dòng đó ở trang bước 3b.
     for (const pg of [p, pm, k]) assert.deepEqual(pg.consoleErrors, []);
+    assert.deepEqual(ps.consoleErrors.filter((x) => !/Failed to load resource: the server responded with a status of 409/.test(x)), []);
   });
 } finally {
   b.xong();

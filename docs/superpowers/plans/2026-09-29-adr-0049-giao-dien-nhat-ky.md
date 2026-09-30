@@ -618,3 +618,29 @@ Chưa gộp máy chủ mới (điều phối: đợi HEAD sau phần vá xoá đ
   - `npm run typecheck` 0; `npm run build:web` 0.
   - Chrome: goi-bao 7/7, chuyen 8/8, dieu-phoi 11/11, rut-doi 8/8, cap-nhat-khach 6/6 (lần cuối, sau khi sửa phép kiểm).
 - Ảnh 390: trước `b5f-o-khoa-truoc-dien-thoai.png`, sau `b5f-o-khoa-sau-dien-thoai.png`. Các ảnh b2 / b5b / b5c / b5e đã chụp lại với ổ khoá đúng cỡ.
+
+### 13.12 Vòng 5g (kiểm độc lập K2e-giao diện @40b6833: ĐẠT)
+- **Gộp máy chủ `92dd556`** (bốn điểm THẤP K2e, GA-69 — lưới thứ hai của lệnh xuất bến trả đúng lý do màn sẽ hiện; mã 409 không mới) bằng `git merge --no-ff`, được `321f882`. Không xung đột, không bị bộ duyệt chặn.
+- **VỪA-1** — bài thuần `dieuKienXuatBen` khi CÓ CẢ `THIEU_TEN` lẫn `KHACH_DA_DOI` (hai thứ tự):
+  - Dòng "Đủ tên khách" mang đủ hai câu, nối "; " theo thứ tự máy chủ, rồi "· Ai xử lý: Văn phòng".
+  - P16: phép nối chỉ lấy câu đầu (`ds.slice(0, 1)`) → bài đỏ (25/26) → hoàn nguyên (26/26).
+- **VỪA-2** — ca `stale` của "Cập nhật khách theo đơn" (`cap-nhat-khach-smoke` bước 3b):
+  - Chi tiết chuyến T3 đang giữ `KHACH_DA_DOI` → Quản trị dời giờ bắt đầu qua `PUT /api/van-chuyen/chuyen/:id`. Phiên bản tăng, VẪN lệch khách (kiểm qua GET).
+  - Bấm nút → dải "Chuyến vừa được người khác sửa — tải lại" + nút "Tải lại". Không mã, không tên người sửa, không dải thành công, đúng một lần gửi. GET sau đó vẫn `KHACH_DA_DOI`: máy chủ không ghi.
+  - Bảng Điều phối, cột Cần xử lý: màn đọc lịch xong thì dời giờ lần nữa rồi bấm → "Chuyến vừa được người khác sửa — đã tải lại bảng, bấm lại nếu vẫn cần." Đây là CÙNG khuôn "Cập nhật điểm theo đơn" ở bảng, vì bảng tự tải lại nên câu khác Chi tiết chuyến. Máy chủ không ghi.
+  - Console trang này lọc riêng dòng "Failed to load resource … status of 409", theo khuôn `dat-gap-smoke` / `chinh-sach-dieu-phoi-smoke`.
+  - P16: tắt nhánh `l.cu` của `capNhatKhach` (`false ?`) → bước 3b đỏ ("hết giờ chờ: dải chuyến cũ") → hoàn nguyên.
+- **THẤP — phạm vi thật của `.dg-lock svg { flex: none; }` (13.11)**: áp cho MỌI phần tử `.dg-lock` có biểu tượng:
+  - `web/chuyen.ts:85` (`.dp-ct-lock`), `web/chuyen.ts:433` (`.dp-khach-khoa`);
+  - `web/dieu-phoi.ts:293` (`.dp-chon-lock`), `web/dieu-phoi.ts:329` (`.dp-cxl-khoa`);
+  - CẢ dòng chặn xác nhận đơn ở `web/order.ts:360` (`.dg-lock` có `icon`; nhánh `.dg-lock-note` không có biểu tượng).
+  - `web/dieu-phoi.ts:407` `.dg-lock-note` không có biểu tượng.
+  - Người kiểm đã chạy `dat-gap-smoke` 12/12 xanh. 13.11 ghi "Chi tiết chuyến, thẻ khách, thẻ đang chọn" là thiếu.
+- **Dọn Chrome mồ côi PID 97196**:
+  - Đối chiếu: `lstart` 30/9 02:30:12, PPID 1, `--user-data-dir=…/tourdao-a2-chrome-Sofqz5`, `lsof` thư mục làm việc = worktree này. Cùng lúc với các wrangler mồ côi của chính kịch bản mình đã tắt ở 13.4 (lượt Chrome bị dừng lúc 02:30).
+  - Đã tắt đúng PID 97196 và 6 tiến trình con (97202, 97203, 97204, 97206, 97208, 97370).
+  - Sau đó `ps` không còn tiến trình `tourdao-a2-chrome` nào.
+- **Chạy lại** (máy rảnh, không song song e2e):
+  - `npm test` hai bước: 1869/1869 + 1/1, thoát 0.
+  - `npm run typecheck` 0; `npm run build:web` 0.
+  - Chrome: cap-nhat-khach 7/7, chuyen 8/8, rut-doi 8/8, dieu-phoi 11/11, goi-bao 7/7, cuoc 11/11.
