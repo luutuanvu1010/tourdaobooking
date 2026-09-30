@@ -253,3 +253,13 @@ Trước khi hỏi, điều phối cũng gửi chủ 4 ảnh bằng chứng giao
 | — | K2c THẤP: `README.md:42` còn mô tả glob cũ | Người thi công sửa. `CLAUDE.md:52` chỉ qua đề xuất mục 7c | — |
 
 Bài học vận hành: điều phối dùng EnterWorktree đổi thư mục phiên chính sang worktree giao diện để gộp. Trong vài phút đó, lệnh Bash của người kiểm K2c (subagent không ghim thư mục) bị cách ly theo. Không đổi worktree của phiên chính khi subagent đang chạy.
+
+**K2c giao diện** @ `01b3d15`, gồm cả commit gộp `dd665b3`: **ĐẠT CÓ ĐIỀU KIỆN**. Không có lỗi bảo mật hay dữ liệu.
+- **Máy chủ tự chặn:** Kế toán gọi rút / chuyển → 403; Bán hàng gửi phá lệ giả → 403; vùng khoá → 409 `can_pha_le`. Các chặn này có unit test gọi thẳng route.
+- **Commit gộp:** không mất nội dung của bên nào.
+- **Lệnh:** e2e 30/30. Chrome đủ bộ xanh. Riêng `v1-nguoi-phu-trach` đỏ thoáng qua một lần do máy bận, chạy lại được 17/17.
+- **Điều phối xử lý:**
+  - VỪA-1: khoảng trống P16. Bỏ `docLai` mà không kịch bản nào đỏ. Giao phiên giao diện thêm bước kiểm tên nhóm còn lại trên cùng trang, cùng lúc gộp `1f8b498` (I19(a)).
+  - VỪA-2: `web/CLAUDE.md:53` ghi 15/16 mục menu, thực tế 17. Áp khi chủ duyệt mục 5 của đề xuất luật. Không sửa riêng giữa chừng.
+  - VỪA-3: T3 và T4 chuyển vào BACKLOG mục 7.
+  - Q-B-18 đóng theo R-P28.
