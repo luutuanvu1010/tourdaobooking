@@ -68,3 +68,14 @@
 1. **Làm ngay (bề mặt, đảo ngược được, chủ đã yêu cầu):** đếm dịch vụ; "Thông tin chuyến" thu gọn mặc định cả máy tính + dòng tóm tắt mới; thẻ HDV hiện ghi chú dịch vụ / check-in + "Xem đơn"; thống nhất nhãn tiền và tên mục; các sửa (i) nhỏ khác. Một bản phát hành, chạy lại kịch bản Chrome liên quan.
 2. **Cần chủ quyết rồi mới làm:** C1 (báo đổi giờ tới HDV / người lập), C2 + V7 (ai sửa số khách, giờ / nơi đón sau xác nhận), C3 (tài xế thấy điểm trước xuất bến), V2 / V3 / V5 / V6, định nghĩa "số khách của đơn", phân loại dịch vụ (ADR-0058), hướng dẫn theo vai (đặc tả + câu quyền).
 3. **Đã có kế hoạch, không làm trùng:** ADR-0047 Phần B (C4, V4, T1, T3 — chủ vẽ, nhớ có **ô nơi trả**), Sổ tiền lượt 1 (V8, một phần C2), ADR-0052 D5/D6 (V9, T2).
+
+## 6. Chủ dự án trả lời (2026-09-30, hộp hỏi của phiên điều phối chung — nguyên văn lựa chọn)
+
+| Câu | Lựa chọn của chủ | Việc kéo theo |
+|---|---|---|
+| Sau xác nhận, đổi giờ / nơi đón / số khách thì ai được báo (tin trong app + màn hình khoá)? | **"Báo HDV + người lập đơn"** — HDV phụ trách và người lập / phụ trách đơn nhận tin; tài xế được báo riêng ở ADR-0052 D6 | C1: cần ADR mới (thay câu "chỉ báo khi xác nhận" của ADR-0045 cho loại tin này) |
+| Sau xác nhận, ai được sửa số khách (kéo theo tiền)? | **"Thêm Quản trị + Kế toán + người lập đơn"** — mỗi lần sửa ghi lịch sử tiền; làm chung với Sổ tiền lượt 1 | C2: ADR / gắn kế hoạch Sổ tiền lượt 1 (chạm tiền, quyền) |
+| Phân loại dịch vụ quản lý ở đâu? | **"Trong app, gieo sẵn 15 nhóm"** — một lần từ Sheet (sửa nhóm của ATV), Quản trị sửa sau; mỗi dịch vụ một nhóm, thẻ để sau | §3: ADR-0058 + kế hoạch; giữ chỗ số migration |
+| Hướng dẫn theo vai làm thế nào? | **"Trong app + bản đọc ngoài, từ 1 nguồn"** — lượt 1 Bán hàng + HDV, có bài kiểm lệch | §4: đặc tả mới + câu quyền "chữ hướng dẫn nằm trên mọi máy" (còn hỏi) |
+
+Còn chờ chủ (chưa hỏi, không chặn phần đang làm): C3 tài xế thấy điểm trước xuất bến; V2 ghi chú đơn tới HDV; V3 ghi chú tới điều phối / tài xế; V5 trang đơn hiện xe / tài xế; V6 HDV ↔ tài xế thấy nhau; V7 ai sửa giờ / nơi đón sau xác nhận; định nghĩa "số khách của đơn"; câu quyền của hướng dẫn trong app; các đổi bố cục loại (ii).
