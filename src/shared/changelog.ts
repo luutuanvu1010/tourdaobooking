@@ -11,6 +11,16 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Chủ báo 30/9 sau 1.44: (1) "chưa thấy trợ lý bật lên" — shell không gắn nút khi đang bảo trì; (2) thông báo điện thoại mất sau mỗi lần triển khai
+    // — chưa chốt nguyên nhân gốc (điều tra chỉ đọc); sửa phần chắc chắn: nút "Bật" không còn luôn huỷ đăng ký cũ. Số "1.45" theo main 1.44.
+    version: "1.45",
+    date: "2026-09-30",
+    items: [
+      { kind: "sua", text: "Nút \"Hỗ trợ\" nay hiện cả khi app đang bảo trì, cho những người vẫn được dùng app lúc đó." },
+      { kind: "sua", text: "Bật lại thông báo trên điện thoại không còn tạo đăng ký mới mỗi lần bấm; máy đã đăng ký thì giữ nguyên." },
+    ],
+  },
+  {
     // Trợ lý Hỗ trợ AI (ADR-0066, chủ duyệt 30/9) + sửa các lỗi chủ báo 30/9 (Đối tác/Thực tập; HDV sửa số khách — "Cho sửa đến hết ngày đi").
     // Ba nhánh, mỗi nhánh người kiểm độc lập ĐẠT. Số "1.44" theo main 1.43; người gộp chốt số trống kế tiếp LÚC GỘP. Có migration 0050.
     version: "1.44",

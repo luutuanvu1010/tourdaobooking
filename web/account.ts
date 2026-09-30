@@ -3,6 +3,7 @@ import { NGUONG_MAC_DINH, chipHan, coMucGiayToCuaToi, ngayVN, tenGiayTo } from "
 import { PERMISSION_LABEL, can, hasPermission, isOffice } from "../src/shared/permissions";
 import { chiTaiXe, coCuocCuaToi, coPhanTaiXe } from "../src/shared/start-page";
 import { thayDieuPhoiXe } from "../src/shared/dieu-phoi-man";
+import { canHuyDangKyCu } from "../src/shared/push-khoa";
 import { vnDateTimeText, vnLocalToIso } from "../src/shared/vn-date";
 import { byId, h, replaceChildren } from "./dom";
 import { initials } from "./format";
@@ -381,10 +382,12 @@ async function renderPush(): Promise<void> {
       // ĐÃ có một subscription (mayNay=false ở trên: máy chủ đã tắt, hoặc đổi cặp khoá VAPID — Bước "Tắt khẩn cấp").
       // `subscribe()` với `applicationServerKey` KHÁC subscription đang có ném `InvalidStateError` ngay, không tự
       // thay — phải `unsubscribe()` trước. Cùng khoá thì `unsubscribe()` xong `subscribe()` lại chỉ tốn một nhịp mạng.
+      // 30/9 (chủ báo mất thông báo sau mỗi lần triển khai): cùng khoá ⇒ GIỮ subscription cũ, chỉ gửi lại địa chỉ; khác khoá ⇒ huỷ trước (canHuyDangKyCu).
       const subCu = await reg2.pushManager.getSubscription();
-      if (subCu) await subCu.unsubscribe().catch(() => undefined);
+      const giuCu = subCu && !canHuyDangKyCu(subCu.options.applicationServerKey, khoa);
+      if (subCu && !giuCu) await subCu.unsubscribe().catch(() => undefined);
       // `Uint8Array.from` trả kiểu tổng quát hơn `BufferSource` mong đợi (TS ≥5.7, buffer có thể là SharedArrayBuffer) — ép kiểu, dữ liệu vẫn đúng.
-      const newSub = await reg2.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64uSangBytes(khoa) as BufferSource });
+      const newSub = giuCu && subCu ? subCu : await reg2.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64uSangBytes(khoa) as BufferSource });
       await api("/api/account/thong-bao/may", { method: "POST", body: { endpoint: newSub.endpoint, thietBi: thietBiTu(navigator.userAgent) } });
       await renderPush();
     } catch (err) {
