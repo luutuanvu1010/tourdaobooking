@@ -339,3 +339,21 @@ Cách áp:
 - Thứ tự: phần nền ADR-0047 và ADR-0048 (đã duyệt lần 5), rồi ADR-0049 mục 4 (lần 7), rồi mục 5–8.
 - Đổi chú thích "CHỜ CHỦ DUYỆT" ở mã mục 1–2 và bốn dòng sổ hàng rào thành "ĐÃ DUYỆT 2026-09-30 (lần 17)".
 - Xong thì có người kiểm độc lập (việc lớn, loại "luật").
+
+## Trả lời lần 18 (30/9 — ba chỗ chữ cho luật khớp mã, phát hiện khi lập danh sách áp luật)
+
+| Câu (điều phối hỏi, tóm nguyên văn) | Chủ chọn |
+|---|---|
+| "(1) Hiến chương phần kỹ thuật: câu mô tả Vận chuyển đọc đơn bạn đã duyệt thiếu tên một bảng tra cứu (đã duyệt ở lần 13) và thừa tên một hàm không còn dùng. Sửa cho đúng. (2) … CLAUDE.md gốc và luật mã máy chủ vẫn ghi "không xoá cứng" mà không nêu ngoại lệ [đơn nháp, ADR-0047] … Chép cùng câu đó vào hai tệp. (3) Thêm lưu ý: "giờ đón và điểm đón nay đọc từ chặng đưa đón; hai cột cũ trên dịch vụ chỉ còn là bản sao, đừng đọc". Câu này là mục 4d của ADR-0047, trước đây chưa hỏi bạn." — "Duyệt cả 3" / "Chỉ duyệt 1 và 2" / "Xem nguyên văn trước" | **"Duyệt cả 3 (Recommended)"** |
+
+Cách áp:
+- **(1)** `docs/ARCHITECTURE.md:175`, sau A-10: thêm `v_ord_passenger_row` vào danh sách view của trigger, bỏ `soKhachHieuLuc`. Diff ở mục 3.1 của danh sách áp luật.
+- **(2)** `CLAUDE.md` §7 "Dữ liệu" và `src/CLAUDE.md` câu "không xoá cứng": thêm vế ngoại lệ, đúng chữ đã duyệt ở `docs/ARCHITECTURE.md` (A-7): "ngoại lệ có tên duy nhất: dòng `ord_*` của đơn nháp xoá–chèn lại khi lưu nháp — ADR-0047, `XOA_CUNG_NHAP`".
+- **(3)** Mục 4d ADR-0047: một gạch ở `CLAUDE.md` §10, chép nguyên văn đoạn của đề xuất ADR-0047 mục 4d.
+  - Gạch "(Tuỳ chọn)" của mục 4b ở `src/CLAUDE.md` KHÔNG thuộc câu hỏi này, vẫn chưa hỏi.
+
+Còn để sau, không chặn phát hành:
+- ADR-0047 4c (màn chặng và hành khách chưa có trên nhánh) và mục 6 (phát hành 2);
+- gạch tuỳ chọn 4b;
+- dòng `nhat-ky-loc-smoke` ở `web/CLAUDE.md`;
+- vế mục 8b ở dòng Trạng thái của `docs/ARCHITECTURE.md`.
