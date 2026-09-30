@@ -1,8 +1,8 @@
 # Đề xuất ADR-0055 (số tạm — điều phối cấp số thật) — Vận chuyển, thừa kế Transportation Kernel, lượt 2: khung bận của xe; giờ lái tối đa (chỉ cảnh báo); số hiệu chuyến bay trên chặng
 
-- **Trạng thái:** **ĐỀ XUẤT — chờ người kiểm độc lập (chỉ đọc) rồi chủ duyệt.**
+- **Trạng thái:** **ĐỀ XUẤT — câu hỏi đã trả lời (lần 16, lần 17), người kiểm độc lập ĐẠT; chờ chủ duyệt lượt B2.** Lượt B1 (ADR-0057 tiền xe thuê) **đã duyệt** 30/9 — `docs/adr/ADR-0057-van-chuyen-tien-xe-thue.md`.
   - AI soạn ở vai người thiết kế (P15); không tự duyệt (N3, Điều 7.2). Không đặt ở `docs/adr/`: chủ duyệt xong, điều phối chép sang và cấp số (tiền lệ: bản đề xuất lượt 1 → `docs/adr/ADR-0050-van-chuyen-kernel-luot-1.md`).
-  - Thuộc **lượt duyệt B** (cùng ADR-0056 tạm, ADR-0057 tạm); trang ghép chung: `docs/superpowers/specs/2026-09-30-trang-ghep-luot-duyet-b-kernel-tien.md`. Trang ghép mục 0 đề nghị (theo cách đếm chặt của `CLAUDE.md` §9 — tối đa 3 quyết định chạm quyền/dữ liệu mỗi lượt) tách thành **B1** = tiền (ADR-0057), **B2** = tệp này (3 quyết định), **B3** = ADR-0056.
+  - Thuộc **lượt duyệt B** (cùng ADR-0056 tạm, ADR-0057 tạm); trang ghép chung: `docs/superpowers/specs/2026-09-30-trang-ghep-luot-duyet-b-kernel-tien.md`. Trang ghép mục 0 đề nghị (theo cách đếm chặt của `CLAUDE.md` §9 — tối đa 3 quyết định chạm quyền/dữ liệu mỗi lượt) tách thành **B1** = tiền (ADR-0057 — **đã duyệt**), **B2** = tệp này (3 quyết định), **B3** = ADR-0056.
 - **Ngày:** 2026-09-30.
 - **Nguồn:**
   - bản đề xuất gốc `docs/superpowers/specs/2026-09-29-de-xuat-adr-van-chuyen-kernel-luot-2.md` (**[NG]**) — nội dung kỹ thuật lấy từ đây; tệp này chỉ chốt theo lời chủ và đo lại mã;
@@ -31,10 +31,10 @@
 
 1. **Lịch xe vào xưởng:** Quản trị ghi trước "xe 79B-… bảo dưỡng 8:00–17:00 thứ Ba". Máy **không cho xếp chuyến** vào giờ đó; nếu xe **đã có chuyến** trong giờ đó thì **không cho ghi lịch**, phải dời chuyến trước (bạn chọn).
 2. Trạng thái "bảo dưỡng" hiện có vẫn giữ, dùng khi xe nằm xưởng chưa biết ngày ra.
-3. **Giờ lái tối đa:** máy cộng giờ các chuyến của một tài xế trong ngày; quá 8 giờ thì **chỉ cảnh báo** trên bảng và lúc xếp — không chặn (bạn chọn; con số luật chưa có người chuyên môn kiểm). Thêm nhắc "chuyến dài quá 4 giờ, nhớ cho tài xế nghỉ" là **đề xuất của người soạn**, chưa phải lời bạn — câu Q-K1.
+3. **Giờ lái tối đa:** máy cộng giờ các chuyến của một tài xế trong ngày; quá 8 giờ thì **chỉ cảnh báo** trên bảng và lúc xếp — không chặn (bạn chọn; con số luật chưa có người chuyên môn kiểm). Một chuyến dài quá 4 giờ thì **nhắc** "nhớ cho tài xế nghỉ" (bạn chọn Q-K1 "Có, 4 giờ, chỉ nhắc"); Toàn quyền đổi con số được.
 4. **Số hiệu chuyến bay:** thêm **một ô** trên chặng đưa đón (vd VN1553); người xếp xe và tài xế thấy; máy không tự tra, tài xế tự tra.
 5. Không thêm ô quyền mới.
-6. **Bạn cần:** sau khi người kiểm báo đạt, bấm duyệt (không còn câu hỏi mở).
+6. **Bạn cần:** bấm duyệt lượt B2 (không còn câu hỏi mở).
 
 ---
 
@@ -86,7 +86,7 @@
 | `duty_day_max_minutes` — tổng thời lượng chuyến của một tài xế trong một ngày chạy | 480 | 60–1440 |
 | `trip_no_break_max_minutes` — chuyến dài hơn → nhắc nghỉ giữa chuyến | 240 | 30–720 |
 
-- Cột `trip_no_break_max_minutes` và cảnh báo `CHUYEN_DAI_CAN_NGHI` **chỉ làm nếu chủ trả lời Q-K1 (a) hoặc (c)**; (b) thì bỏ cả hai.
+- Cột `trip_no_break_max_minutes` và cảnh báo `CHUYEN_DAI_CAN_NGHI` **làm** — chủ chọn Q-K1 (a) "Có, 4 giờ, chỉ nhắc" (lần 17).
 
 - **Cách thêm cột — kế hoạch chọn một, người kiểm soi:**
   - (1) **sửa tại chỗ `0041`** nếu lúc thi công `0041` **chưa áp remote** (tiền lệ ADR-0050 VK1-A sửa tại chỗ `0041`); giữ khuôn "KHÔNG DEFAULT, mỗi dòng là bản đầy đủ" (chú thích `0041:23-24 @49`, kế hoạch I43);
@@ -186,17 +186,27 @@
 
 - G-A1: khung tối đa 31 ngày (mã). G-A2: tên bảng, route, hành động nhật ký, mã câu báo — kế hoạch chốt.
 - G-A3: trigger chặn ghi `DRIVER` tới lượt 3 (siết, đảo được bằng migration).
-- G-B1: 480 phút gieo (theo lời chủ "vượt 8 giờ"). **240 phút không phải giả định bề mặt** — người soạn đặt theo tra cứu 27/9 (lái liên tục ≤ 4 giờ, chưa có người chuyên môn kiểm) ⇒ câu Q-K1. G-B2: tên hai loại cảnh báo.
+- G-B1: 480 phút gieo (theo lời chủ "vượt 8 giờ"). 240 phút: **chủ chọn** Q-K1 (a) lần 17 (con số theo tra cứu 27/9, chưa có người chuyên môn kiểm). G-B2: tên hai loại cảnh báo.
 - G-C1: số hiệu hiện cho tài xế mọi lúc. G-C2: nhật ký ghi giá trị số hiệu.
 
-## Câu hỏi còn mở
+## Câu hỏi đã trả lời (lời chủ — không hỏi lại)
 
-Ba câu Q-L2-1…3 chủ đã trả lời (lần 16). Cách thêm cột ở B1 là việc kỹ thuật của kế hoạch. Còn **một** câu:
+| Mã | Chủ chọn (nguyên văn nhãn) | Lần |
+|---|---|---|
+| Q-L2-1 | a — "Không cho ghi" (khung bận chồng chuyến đã xếp) | 16 |
+| Q-L2-2 | a — "Chỉ cảnh báo" (vượt 8 giờ lái/ngày) | 16 |
+| Q-L2-3 | a — "Một ô số hiệu" | 16 |
+| Q-K1 | a — "Có, 4 giờ, chỉ nhắc" | 17 |
 
-**Q-K1 — Có nhắc "chuyến dài, nhớ cho tài xế nghỉ" khi một chuyến dài hơn 4 giờ không?** (Chỉ là nhắc, không chặn.)
-- **(a) Khuyến nghị — có, mức 4 giờ** (theo tra cứu: lái liên tục không quá 4 giờ; chưa có người chuyên môn kiểm), Toàn quyền đổi con số được. Được: người xếp xe thấy chuyến dài. Mất: giờ chuyến gồm cả giờ chờ, nên có thể nhắc thừa.
-- **(b) Không nhắc, chỉ cảnh báo tổng 8 giờ/ngày.** Được: bảng gọn. Mất: chuyến dài một mạch không ai để ý.
-- **(c) Có, nhưng con số khác** (bạn ghi số giờ).
+**Câu còn mở cho chủ: không có.** Việc ngoài app (không chặn duyệt): hỏi người chuyên môn con số giờ lái trước khi đổi sang chặn.
+
+## Hệ quả của ADR-0057 (đã duyệt) lên tệp này
+
+- **Khung bận của xe × chuyến xe thuê:** độc lập. Chuyến xe thuê bị giữ `THIEU_GIA` vẫn là chuyến chưa huỷ, chưa kết thúc ⇒ vẫn chặn ghi khung bận chồng lên nó (Q-L2-1 a). Đổi xe để tránh khung bận ⇒ lô đổi xe của ADR-0057 tự đảo nguồn giá cũ và chụp lại (C4 của ADR-0057); đổi sang xe công ty ⇒ cờ `rented` về 0.
+- **Cột trên `vc_trip`:** tệp này **không** thêm cột vào `vc_trip` (chỉ thêm trigger chồng khung bận); `rented`, `route_code` của ADR-0057 không liên quan.
+- **Trigger chặn chèn chuyến không `PLANNED`** (ADR-0057): fixture test của khung bận phải chèn chuyến `PLANNED` rồi `UPDATE` (cùng danh sách fixture ADR-0057 đã nêu).
+- **Giờ lái, số hiệu chuyến bay:** không.
+- **Mã phá lệ:** tệp này không thêm mã nào vào `MA_LUAT_PHA_LE` / `MA_GIU` (chỉ hai loại cảnh báo) — không đụng bài ghim.
 
 ## Chưa kiểm
 
@@ -204,4 +214,4 @@ Ba câu Q-L2-1…3 chủ đã trả lời (lần 16). Cách thêm cột ở B1 l
 - Trạng thái remote của `0034`, `0041`: theo kiểm của điều phối ở lần 15, người soạn **không** tự chạy lệnh chỉ-đọc.
 - `ALTER TABLE ADD COLUMN … NOT NULL DEFAULT … CHECK` trên D1 (đường (2) của B1): chưa thử trên `node:sqlite` và D1 local.
 - Dòng mã `@49` đo trên `1f8b498`; phải đo lại sau khi ADR-0049 gộp `main`.
-- Bản đề xuất này **chưa có người kiểm độc lập**.
+- Người kiểm độc lập (lượt B, nhiều vòng) báo **ĐẠT** cho tệp này; chưa chạy test (vai lập kế hoạch).

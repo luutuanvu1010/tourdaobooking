@@ -2,7 +2,8 @@
 
 > **Câu hỏi của trang này (§6) ĐÃ ĐƯỢC CHỦ TRẢ LỜI 2026-09-30 — chọn khuyến nghị ở cả 9 câu.** Nguyên văn: `docs/superpowers/specs/2026-09-29-van-chuyen-hoi-dap-dieu-phoi.md`, mục "Trả lời lần 17". Các ADR vẫn chờ chủ duyệt theo lượt (B1 = ADR-0057 trước, vì phần T3 phải duyệt trước Task 3 sổ tiền; B2; B3).
 
-- **Loại:** tài liệu trình duyệt đi kèm ba bản đề xuất; **chưa có người kiểm độc lập**. AI soạn (vai thiết kế), không tự duyệt.
+- **Loại:** tài liệu trình duyệt đi kèm ba bản đề xuất; người kiểm độc lập ĐẠT. AI soạn (vai thiết kế), không tự duyệt.
+- **Trạng thái lượt:** **B1 (ADR-0057 tiền xe thuê) ĐÃ DUYỆT** 30/9 — `docs/adr/ADR-0057-van-chuyen-tien-xe-thue.md`. **Còn B2 (ADR-0055), B3 (ADR-0056)** — câu hỏi đã trả lời, chờ chủ duyệt.
 - **Ngày:** 2026-09-30.
 - **Ba bản đề xuất** (số ADR là số tạm — điều phối cấp số thật):
   - **ADR-0055** `docs/superpowers/specs/2026-09-30-de-xuat-adr-kernel-luot-2.md` — khung bận của xe (VK2-A), giờ lái tối đa chỉ cảnh báo (VK2-B), số hiệu chuyến bay (VK2-C);
@@ -168,4 +169,4 @@ Ghi chú áp loại:
 
 **Việc của chủ ngoài app (Kernel lượt 3):** hỏi người chuyên môn về ghép khách nhiều đơn trên xe hợp đồng trước khi chạy chuyến ghép thật.
 
-**Câu duyệt:** B1 — "Duyệt ADR-0057 (tiền xe thuê, bản sửa theo lần 18, gồm sửa ADR-0026 và lệch L-T1)?"; B2 — ADR-0055; B3 — ADR-0056.
+**Câu duyệt:** B1 — **đã duyệt** (ADR-0057). Còn: B2 — "Duyệt ADR-0055 (khung bận xe, giờ lái chỉ cảnh báo/nhắc, số hiệu chuyến bay)?"; B3 — "Duyệt ADR-0056 (xe riêng / số chỗ tối thiểu, một bản giấy tờ mỗi loại)?". Hệ quả của ADR-0057 lên hai tệp: mục "Hệ quả của ADR-0057" trong từng tệp.

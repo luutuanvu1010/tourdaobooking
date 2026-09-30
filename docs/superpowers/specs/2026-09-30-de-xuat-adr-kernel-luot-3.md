@@ -1,6 +1,6 @@
 # Đề xuất ADR-0056 (số tạm — điều phối cấp số thật) — Vận chuyển, thừa kế Transportation Kernel, lượt 3: cam kết xe riêng / số chỗ tối thiểu trên chặng; mỗi xe mỗi loại giấy tờ một dòng hiện hành
 
-- **Trạng thái:** **ĐỀ XUẤT — chờ người kiểm độc lập (chỉ đọc) rồi chủ duyệt.**
+- **Trạng thái:** **ĐỀ XUẤT — câu hỏi đã trả lời (lần 16), người kiểm độc lập ĐẠT; chờ chủ duyệt lượt B3.** Lượt B1 (ADR-0057) **đã duyệt** 30/9.
   - AI soạn ở vai người thiết kế (P15); không tự duyệt (N3, Điều 7.2). Không đặt ở `docs/adr/`.
   - Thuộc **lượt duyệt B** (cùng ADR-0055 tạm, ADR-0057 tạm); trang ghép: `docs/superpowers/specs/2026-09-30-trang-ghep-luot-duyet-b-kernel-tien.md` (mục 0 đề nghị tách: B1 tiền, B2 Kernel lượt 2, **B3 = tệp này**).
 - **Ngày:** 2026-09-30.
@@ -33,7 +33,7 @@
 3. Giá không đổi: hai ô này không mang tiền.
 4. **Giấy tờ xe:** xe đã có "Kiểm định" đang dùng mà bấm "Thêm Kiểm định" → máy từ chối, bảo "dùng Gia hạn" (bạn chọn). Bản trùng cũ đã có thì Quản trị huỷ tay.
 5. **Việc của bạn ngoài app:** hỏi người chuyên môn về ghép khách nhiều đơn trên xe hợp đồng trước khi chạy chuyến ghép thật.
-6. **Bạn cần:** sau khi người kiểm báo đạt, bấm duyệt (không còn câu hỏi mở).
+6. **Bạn cần:** bấm duyệt lượt B3 (không còn câu hỏi mở).
 
 ---
 
@@ -149,14 +149,29 @@
 - G-2: suất người đi kèm không phạm R-XR.
 - G-3: R-CX so với số chỗ không kể tài xế.
 
-## Câu hỏi còn mở
+## Câu hỏi đã trả lời (lời chủ — không hỏi lại)
 
-**Không có** câu mới cho lượt này. Câu pháp lý ghép khách là việc của chủ ngoài app (ở trên). Câu "cỡ xe" của tiền xe thuê nằm ở ADR-0057 (Q-T1).
+| Mã | Chủ chọn (nguyên văn nhãn) | Lần |
+|---|---|---|
+| Q-L3-1 | a — "Chặn, Quản trị cho phép" | 16 |
+| Q-L3-2 | a — "Số chỗ tối thiểu" | 16 |
+| Q-L3-3 | a — "Không cho, dùng Gia hạn" | 16 |
+
+**Câu còn mở cho chủ: không có.** Việc ngoài app (không chặn duyệt): hỏi người chuyên môn pháp lý về ghép khách nhiều đơn trên xe hợp đồng trước khi chạy chuyến ghép thật.
+
+## Hệ quả của ADR-0057 (đã duyệt) lên tệp này
+
+- **"Số chỗ" một nghĩa — đã khớp:** ADR-0057 chọn giá theo cỡ xe = số khách **không kể tài xế** (Q-T1 lần 17), cùng nghĩa `min_vehicle_seats` và `passenger_capacity` ở đây.
+- **Cột trên `vc_trip` dùng chung bảng:** tệp này thêm `commitment_override_reason_code`, `commitment_override_key`; ADR-0057 thêm `rented`, `route_code`. Bốn cột độc lập, đều `ADD COLUMN`, đều bị `vc_trip_final_frozen` khoá sau khi chuyến kết thúc/huỷ. Trigger "chỉ hạ `rented` 1 → 0 khi chủ xe mới là công ty chủ" chỉ bắt khi `rented` đổi — không vướng lệnh phá lệ cam kết. Số migration: sau các số của ADR-0057 và sổ tiền.
+- **Đổi xe vì cam kết số chỗ** (R-CX) trên chuyến xe thuê ⇒ lô đổi xe của ADR-0057 tự đảo nguồn giá cũ và chụp lại; `commitment_override_key` có id xe nên đổi xe cũng buộc phá lệ lại nếu còn vi phạm. Hai cơ chế cùng lô, không xung đột.
+- **Cổng xuất bến:** `kiemXuatBen` nhận thêm cả `kiemCamKet` (tệp này) và nguồn giá `THIEU_GIA` (ADR-0057). Mã phá lệ: `CAM_KET` vào **cả** `MA_LUAT_PHA_LE` và `MA_GIU`; `THIEU_GIA` **chỉ** vào `MA_GIU` (không phá lệ). Bài ghim "mỗi mã phá lệ là mã giữ" (`dieu-phoi-kieu.test.ts:74-80 @49`) thoả cả hai; giá trị ghim đổi thành ba mã phá lệ (`MOC_TOI_THIEU`, `KHOANG_NGHI`, `CAM_KET`). Quản trị phá lệ cam kết **không** làm chuyến xe thuê thiếu giá chạy được.
+- **Trigger chặn chèn chuyến không `PLANNED`** (ADR-0057): fixture test của `kiemCamKet` / cổng xuất bến chèn chuyến `PLANNED` rồi `UPDATE`.
+- **Giấy tờ xe (VK3-B):** không.
 
 ## Chưa kiểm
 
 - Pháp lý ghép khách xe hợp đồng: chưa có người chuyên môn kiểm.
 - Số dòng giấy tờ xe song song trên production (`R-VC-11`): lộ trình ghi 0; người soạn chưa tự kiểm (lệnh chỉ-đọc remote là việc của chủ/điều phối). Kiểm lại ngay trước khi phát hành trigger.
 - Nhu cầu thật: bao nhiêu đơn mua xe riêng / xe cỡ lớn.
+- Người kiểm độc lập (lượt B) báo **ĐẠT** cho tệp này; chưa chạy test (vai lập kế hoạch).
 - Trạng thái remote của `0034`, `0042`: theo kiểm của điều phối ở lần 15, người soạn không tự chạy lệnh.
-- Bản đề xuất này **chưa có người kiểm độc lập**.
