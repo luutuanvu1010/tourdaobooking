@@ -42,10 +42,10 @@ Bốn tab: [[Trang chủ]], [[Đơn hàng]], [[Tạo đơn]], [[Tôi]]. Trong tr
    - Sửa được đơn giá; dòng khác giá danh mục hiện nhãn [[Khác giá danh mục]].
 5. Bấm dòng [[Thông tin chuyến]] trên thẻ để mở ra, điền [[Giờ khởi hành]], [[Giờ đón]], [[Điểm đón]], và nếu có thì [[Ngày check-in]], [[Giờ check-in]], [[Nơi check-in]], [[Ghi chú dịch vụ]]. Khi thu gọn, dòng tóm tắt ghi giờ đón, nơi đón và giờ check-in.
 6. Cần thêm dịch vụ khác thì lặp lại bước 3 đến 5 (tối đa 20 dịch vụ). Bấm [[Xoá]] trên thẻ để bỏ một dịch vụ.
-7. Khối [[Thông tin khách hàng]]: điền **Tên khách**, [[Số điện thoại]] (bắt buộc), [[Email]], [[Ghi chú / yêu cầu đặc biệt]].
+7. Khối [[Thanh toán]]: [[Giảm giá (₫)]], [[Thanh toán trước (₫)]], [[Hình thức]] ([[Chuyển khoản]] — mặc định, [[Tiền mặt]], [[Khác]]), [[Người nhận tiền]], [[Ghi chú thanh toán]]. Tiền trả trước được ghi vào sổ ngay sau khi lưu đơn.
+8. Khối [[Thông tin khách hàng]]: điền **Tên khách**, [[Số điện thoại]] (bắt buộc), [[Email]], [[Ghi chú / yêu cầu đặc biệt]].
    - Gõ xong số điện thoại, app tìm hồ sơ trùng số. Đúng người thì bấm [[Dùng hồ sơ này]]; khách mới thì bấm [[Tạo hồ sơ mới]]. Không chọn gì vẫn lưu được.
    - Nút [[Sử dụng thông tin của tôi]] điền tên và số của chính bạn.
-8. Khối [[Thanh toán]]: [[Giảm giá (₫)]], [[Thanh toán trước (₫)]], [[Phương thức thanh toán]] ([[Tiền mặt]], [[Chuyển khoản]], [[Khác]]), [[Ghi chú thanh toán]].
 9. Khối [[Người phụ trách]]: để trống thì đơn ở trạng thái [[Chờ nhận]] — hướng dẫn viên nào cũng nhận được. Muốn giao luôn thì bấm [[Chọn người phụ trách]], tìm tên, chạm người đó. Đổi ý thì bấm [[Đổi]] hoặc [[Bỏ chọn — để Chờ nhận]].
 10. Xem khối [[Tóm tắt]] rồi bấm [[Lưu, chờ xác nhận]]. Đơn lưu ở trạng thái [[Chờ xác nhận]]; app chuyển sang trang đơn và tự mở hộp ảnh biên nhận.
 
@@ -96,7 +96,7 @@ App chỉ cho xác nhận khi mỗi dịch vụ có ngày khởi hành, ngày đ
       noiDung: `### Đơn hàng
 
 1. Bấm [[Đơn hàng]].
-2. Gõ vào ô tìm (mã đơn, tên, số điện thoại) hoặc chọn trạng thái: [[Mọi trạng thái]], [[Chờ xác nhận]], [[Đã xác nhận]], [[Đã huỷ]].
+2. Gõ vào ô tìm (mã đơn, tên, số điện thoại), hoặc bấm nút **Lọc** để lọc cùng lúc theo ngày đi, dịch vụ, trạng thái ([[Chờ xác nhận]], [[Đã xác nhận]], [[Đã huỷ]]) và [[Đơn tôi lập]], rồi bấm [[Áp dụng]]. Điều kiện đang lọc hiện thành nhãn trên danh sách; bấm × để bỏ từng cái, [[Xoá lọc]] để bỏ hết. Máy nhớ bộ lọc cho lần sau.
 3. Mỗi thẻ hiện mã, trạng thái, ngày, khách, tiền; mở phần xổ xuống để thấy người phụ trách ("HDV: tên" hoặc [[Chờ nhận]]). Bấm [[Tải thêm]] để xem đơn cũ hơn.
 
 Ô tìm trên thanh trên cùng cũng đưa bạn tới đây, kèm từ bạn gõ.
@@ -104,7 +104,7 @@ App chỉ cho xác nhận khi mỗi dịch vụ có ngày khởi hành, ngày đ
 ### Trang chủ
 
 - Ba ô của cả công ty: [[Còn thiếu tiền]], [[Đơn chờ xác nhận]], [[Chưa có người phụ trách]] — bấm để sang [[Đơn hàng]].
-- [[Chuyến đón hôm nay]]: đơn đã xác nhận đi hôm nay, xếp theo giờ đón; trên điện thoại có nút [[Gọi]] khách.
+- [[Chuyến đón]]: đơn đã xác nhận, xếp theo giờ đón; bấm [[Hôm nay]] / [[Ngày mai]] / [[Ngày kia]] để đổi ngày; trên điện thoại có nút [[Gọi]] khách.
 - [[Doanh thu của tôi]]: chỉ đơn **bạn lập** đã xác nhận trong tuần.`,
     },
     {

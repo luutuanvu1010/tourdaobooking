@@ -49,13 +49,13 @@ Thanh tab dưới đáy có [[Trang chủ]], [[Đơn hàng]] và [[Tôi]]. Các 
       tieuDe: "Tìm và lọc đơn",
       noiDung: `1. Bấm [[Đơn hàng]].
 2. Gõ vào ô tìm kiếm của danh sách: mã đơn, tên hoặc số điện thoại. Danh sách tự lọc sau khi bạn ngừng gõ.
-3. Muốn lọc theo trạng thái thì chọn ở ô [[Mọi trạng thái]]. Có ba lựa chọn: **Chờ xác nhận**, **Đã xác nhận**, **Đã huỷ**.
+3. Muốn lọc thì bấm nút **Lọc**: chọn cùng lúc ngày đi (có nút nhanh [[Hôm nay]], [[Ngày mai]], [[3 ngày tới]], [[Tuần này]]), dịch vụ, trạng thái (**Chờ xác nhận**, **Đã xác nhận**, **Đã huỷ**) và người lập, rồi bấm [[Áp dụng]]. Bấm × trên nhãn để bỏ từng điều kiện, [[Xoá lọc]] để bỏ hết; máy nhớ bộ lọc cho lần sau.
 4. Cuối danh sách có nút [[Tải thêm]] nếu còn đơn.
 5. Mỗi thẻ đơn có nút xổ xuống để xem thêm: tiền thanh toán trước, còn lại, người phụ trách.
 
 > Ví dụ: Khách "Trần Thị B" gọi hỏi tiền chuyển khoản đã được ghi nhận chưa. Chị Lan gõ số điện thoại của khách vào ô tìm kiếm. Danh sách còn đúng một đơn. Chị bấm vào đơn để xem.
 
-> Lưu ý: Hiện chỉ lọc được theo trạng thái và ô tìm kiếm. Lọc theo ngày (chưa có ở bản này).`,
+> Lưu ý: Chưa lọc được theo người phụ trách (sẽ có sau).`,
     },
     {
       tieuDe: "Xem tiền của một đơn",
@@ -114,11 +114,11 @@ Ghi thu tiền, hoàn tiền, hoá đơn trong app (chưa có ở bản này). T
 
 ### Cần danh sách đơn để làm sổ
 
-Nút xuất ra tệp Excel (chưa có ở bản này). Dùng ô tìm kiếm và ô trạng thái để lọc, rồi xem từng đơn.
+Nút xuất ra tệp Excel (chưa có ở bản này). Dùng ô tìm kiếm và nút **Lọc** để lọc, rồi xem từng đơn.
 
 ### Đơn bị huỷ
 
-Chọn **Đã huỷ** ở ô [[Mọi trạng thái]] để xem. Khối **Lịch sử** của đơn cho biết ai huỷ, lúc nào.
+Bấm nút **Lọc**, chọn **Đã huỷ** rồi bấm [[Áp dụng]] để xem. Khối **Lịch sử** của đơn cho biết ai huỷ, lúc nào.
 
 ### Chuông thông báo
 

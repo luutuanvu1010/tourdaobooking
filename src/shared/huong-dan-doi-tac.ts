@@ -115,7 +115,7 @@ App **không cho xác nhận** khi:
     {
       tieuDe: "Xem lại đơn của mình",
       noiDung: `1. Mở danh sách [[Đơn hàng]] (xem cách mở ở mục Menu của bạn).
-2. Gõ mã đơn, tên hoặc số điện thoại vào ô tìm kiếm, hoặc chọn trạng thái ở ô [[Mọi trạng thái]].
+2. Gõ mã đơn, tên hoặc số điện thoại vào ô tìm kiếm, hoặc bấm nút **Lọc** để lọc theo ngày đi, dịch vụ, trạng thái rồi bấm [[Áp dụng]]; [[Xoá lọc]] để bỏ.
 3. Bấm vào một đơn để xem đủ khách, dịch vụ, tiền.`,
     },
     {
