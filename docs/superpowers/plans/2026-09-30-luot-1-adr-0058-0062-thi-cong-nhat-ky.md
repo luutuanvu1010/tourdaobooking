@@ -15,14 +15,14 @@
 
 | Bước | Kết quả |
 |---|---|
-| 1. Đỉnh `main`; số bản trên `main` | |
-| 2. Sổ tiền (1.41) và nhánh 1.42 đã gộp `main` chưa | |
-| 3. Số migration (`ls migrations` + quét mọi nhánh); `0046` còn trống | |
-| 4. Ảnh chụp Sheet: giờ, số byte, sha256; khớp 110 mã của ADR | |
-| 5. Mốc `npm test` / `typecheck` (số test, số lỗi, `uptime` nếu ca CPU đỏ) | |
-| 6. Mốc e2e + `audit-invariants --db local` (đỏ sẵn có) | |
-| 7. Độ lệch `tệp:dòng` so với §4 kế hoạch | |
-| 8. Hai số đếm chỉ-đọc do chủ chạy (`co_mat`, `dang_tren_sheet`, `ngoai_bang_gieo`) | |
+| 1. Đỉnh `main`; số bản trên `main` | `main` = `970f705d` ("Nhật ký phiên bản: sửa bảo trì tự tắt chuyển sang bản 1.43"); nhánh thi công gộp `main` ở `a76b2792`. Số bản đầu `changelog.ts` = **1.43** (bảo trì tự tắt). Phần A dời thành **1.44** (điều phối chốt, chưa sửa changelog ở A0/A1) |
+| 2. Sổ tiền (1.41) và nhánh 1.42 đã gộp `main` chưa | Cả hai ĐÃ gộp `main` (danh sách nhánh đã gộp `main` có `worktree-agent-aa1fab0316112d404` và `worktree-agent-a70eb0a16a8dbebb3`); `main` có `0044`, `0045`, `src/shared/loc-danh-muc.ts` |
+| 3. Số migration (`ls migrations` + quét mọi nhánh); `0046` còn trống | `ls migrations` tới `0045_billing_so_cong_no.sql`. Lệnh quét mọi nhánh (khuôn kế hoạch §2) cho `0044`, `0045`, **`0050_tro_ly.sql`** (nhánh khác chưa gộp). `0046` CÒN TRỐNG trên mọi nhánh → dùng `0046_nhom_dich_vu.sql`. (Lưu ý cho điều phối: một nhánh khác đã giữ `0050` — không đụng `0046`–`0049`) |
+| 4. Ảnh chụp Sheet: giờ, số byte, sha256; khớp 110 mã của ADR | Tải 2026-09-30 (phiên thi công A0/A1): **26 888 byte**, sha256 `6a06864f847c7308d4a5968ca3ac20bd70a6b639f7d1d70b27601077b867f713` = TRÙNG ảnh chụp của ADR. Đối chiếu bằng máy (phân tích CSV, cột 1 / 13 / 14 với bảng ADR): 110 mã, không trùng, KHỚP đúng 110 mã của ADR (không thừa, không thiếu); mã nhóm cột 14 khớp ADR ở 109/110 mã, lệch DUY NHẤT `ATV` (CSV `TBA`, ADR `KON` — đúng chỗ lỗi ADR đã nêu); tên nhóm cột 13 khớp 14/14 (trừ nhãn của ATV) |
+| 5. Mốc `npm test` / `typecheck` (số test, số lỗi, `uptime` nếu ca CPU đỏ) | `npm test` bước 1: 1993 test, 1993 xanh, 0 đỏ; bước 2 (bài đo giờ hook): 1/1 xanh (`uptime` load ~3.9). `npm run typecheck`: 0 lỗi (cả ba tsconfig). Đo TRƯỚC khi có `0046` |
+| 6. Mốc e2e + `audit-invariants --db local` (đỏ sẵn có) | `npm run test:e2e`: **31/31 kịch bản xanh** (gồm `audit-invariants` cuối chuỗi trên D1 tạm). Có wrangler dev mồ côi của worktree khác (`bao-tri-tu-tat`) đang chạy, dùng thư mục tạm riêng nên không khoá; tôi không tắt (không phải của phiên này). `node scripts/audit-invariants.mjs --db local` chạy trên D1 local của worktree (chưa nạp nhân viên): thoát 1, MỘT bất biến `R-N1-5` (chưa có quản trị viên) — do D1 local trống, không liên quan `0046`; e2e (D1 tạm có tài khoản) thì sạch |
+| 7. Độ lệch `tệp:dòng` so với §4 kế hoạch | Đo trên `970f705d`+nhánh: `architecture.test.ts` `STRICT` `:64`, `LEGACY` `:84`, `LEGACY_TABLES` `:105`, `NUA_NGHIEM` `:124`, `DOC_AUDIT_LOG_WONGUARD` `:147`, `TABLE_PREFIX` `:160` (kế hoạch `:55`, `:74`, `:88`, `:107`, `:126`, `:137` — lệch +9…+23; `:160` đã tính một dòng chú thích tôi thêm). `catalog/index.ts`: `catalogForOrderForm` `:81` (khớp), `GET /api/catalog` `:99`, `for-order` `:110` (kế hoạch `:102`, `:112` — lệch ≤ 3). `catalog/repository.ts`: `ON CONFLICT(code)` `:125`, `in_sheet = 0` `:132`, xoá `catalog_override` `:166` (khớp). `contracts.ts`: `CatalogServiceDto` `:475`, `CatalogAdminItemDto` `:481`, `CatalogPublicResponse` `:506` (khớp). `web/catalog-picker.ts` 123 dòng (bản 1.42 viết lại, `KHOA_NHO` `:24`); `web/catalog.ts` 220 dòng (khớp); `web/order-form.ts` gọi danh mục ở `:323`, `:439`, `:496`, `:523` (kế hoạch `:103`, `:228`, `:324`, `:485` — lệch nhiều: A6 đo lại). `audit-actions.ts` nhóm `catalog` `:118-122` (kế hoạch `:108-112`) |
+| 8. Hai số đếm chỉ-đọc do chủ chạy (`co_mat`, `dang_tren_sheet`, `ngoai_bang_gieo`) | CHƯA — nhờ điều phối chuyển lệnh ở kế hoạch §9 bước 1 cho chủ; không chặn A1–A4, chỉ chặn K3A |
 
 ### 1.2 Phần B (Task B0)
 
@@ -50,8 +50,8 @@
 
 | Task | Commit | Đỏ trước (dòng đỏ nguyên văn) | Xanh sau (lệnh + số) | P16 (đột biến → đỏ → hoàn nguyên) | Dòng `SO-HANG-RAO` | Ghi chú |
 |---|---|---|---|---|---|---|
-| A0 | | | | | | |
-| A1 | | | | | | |
+| A0 | (chỉ sổ; cùng commit với A1) | không áp dụng | không áp dụng (mốc: 1993 + 1 test xanh, typecheck 0, e2e 31/31) | không áp dụng | không áp dụng | Xem §1.1 |
+| A1 | "Nhóm dịch vụ: migration 0046 …" (SHA ghi ở báo cáo) | `node --test src/migrations-0046.test.ts` (migration tạm dời đi): `not ok 1 - NT-A3: danh sách gieo trong 0046 đúng bảng ADR-0058…` / `error: "ENOENT: no such file or directory, open '…/migrations/0046_nhom_dich_vu.sql'"`; `not ok 2 - NT-A3: 14 nhóm gieo…` / `error: 'no such table: ctl_group'`; `not ok 3 - NT-A2: DB có đủ 110 mã…` / ENOENT. Ghi chú trung thực: migration đã soạn nháp trước khi chạy đỏ, nên ca đỏ lấy bằng cách dời tệp tạm rồi trả lại | `node --test src/migrations-0046.test.ts` → 11/11 xanh; `npm test` → 2004 + 1 xanh, 0 đỏ; `npm run typecheck` → 0 lỗi; `npm run db:migrate:local` → `0046_nhom_dich_vu.sql` ✅; `npm run test:e2e` → 31/31 xanh | Xem "P16 chi tiết A1" ngay dưới bảng | 2 dòng mới cuối `docs/SO-HANG-RAO.md` | Sửa thêm 4 tệp test cũ đếm `audit_log` trên schema đầy đủ (dòng gieo `catalog_groups_seeded` làm chúng đỏ 14 ca) — xem ruling A1-1 |
 | A2 | | | | | | |
 | A3 | | | | | | |
 | A4 | | | | | | |
@@ -71,11 +71,29 @@
 | B8 | | | | | | |
 | K1B | | | | | | |
 
+**P16 chi tiết A1 (2026-09-30, mỗi phép: sửa tạm → chạy `node --test` → hoàn nguyên; `cmp` với bản sao xác nhận nguyên vẹn):**
+
+| Đột biến | Kết quả đỏ (nguyên văn) |
+|---|---|
+| bỏ trigger `ctl_service_group_no_update` | `not ok 6 - NT-A1: ctl_service_group chỉ-thêm (không sửa, không xoá)` / `error: 'Missing expected exception.'` |
+| bỏ trigger `ctl_service_group_no_delete` | cùng ca 6, cùng thông báo |
+| bỏ trigger `ctl_group_no_delete` | `not ok 7 - NT-A1: ctl_group không xoá được (tắt bằng active = 0), sửa tên / tắt vẫn được` / `Missing expected exception.` |
+| bỏ trigger `ctl_service_group_active_group` | `not ok 8 - NT-A1: gán vào nhóm đang tắt bị chặn; bật lại thì gán được; …` và `not ok 9 - NT-A1: khoá ngoại — …` (2 ca đỏ) |
+| bỏ chỉ mục `ctl_group_name_active` | `not ok 11 - NT-A1: tên trùng giữa hai nhóm ĐANG DÙNG → lỗi duy nhất; …` / `Missing expected exception.` |
+| bỏ `UNIQUE (service_code, seq)` | `not ok 10 - NT-A1: trùng (service_code, seq) → lỗi duy nhất; seq < 1 → lỗi CHECK` / `Missing expected exception.` |
+| bỏ `REFERENCES catalog_item (code)` | `not ok 9 - NT-A1: khoá ngoại — service_code phải có trong catalog_item; nhóm lạ bị chặn` / `Missing expected exception.` |
+| `('ATV','KON')` → `('ATV','TBA')` | 3 ca đỏ: `not ok 1 - NT-A3: danh sách gieo trong 0046 đúng bảng ADR-0058 (110 cặp, 14 nhóm, ATV → KON)`, `not ok 3 - NT-A2: DB có đủ 110 mã…`, `not ok 5 - NT-A2: DB thiếu một phần mã…` |
+| bỏ câu `INSERT INTO audit_log` | 3 ca đỏ: `not ok 3`, `not ok 4 - NT-A2: DB chưa đồng bộ Sheet → 14 nhóm, 0 gán, detail 'gieo 14 nhóm, 0 dịch vụ'`, `not ok 5` |
+| bỏ `ctl_: "catalog"` khỏi `TABLE_PREFIX` (`src/architecture.test.ts`) | `not ok 6 - ADR-0002 điều 2: bảng mới có tiền tố đúng module; bảng không tiền tố phải đánh dấu legacy` / `error: 'ctl_group không có tiền tố module nên phải đánh dấu "legacy": true (tên cũ giữ nguyên)'` |
+
+Kịch bản đột biến nằm ngoài repo (thư mục tạm của phiên), không commit.
+
 ## 4. Ruling, lệch kế hoạch, nợ
 
 | # | Ngày | Nội dung | Ai quyết | Hệ quả |
 |---|---|---|---|---|
 | K0 | 2026-09-30 | Kiểm độc lập **bản kế hoạch**: ĐẠT CÓ ĐIỀU KIỆN (1 CAO, 4 VỪA, 10 THẤP). Người lập kế hoạch sửa hết trên nhánh `ke-hoach-luot-1-adr-0058-0062` — bảng dưới | điều phối giao sửa | Kế hoạch đủ điều kiện giao thi công |
+| A1-1 | 2026-09-30 | Dòng nhật ký `catalog_groups_seeded` do migration gieo (ADR-0058 Đ7, NT-A2) làm ĐỎ 14 ca ở 4 tệp test cũ vốn giả định `audit_log` rỗng trên schema đầy đủ (`src/migrations-0017.test.ts`, `src/modules/accounts/patch-staff.test.ts`, `src/modules/accounts/reset-pin-self.test.ts`, `src/modules/audit/an-toan-quyen.test.ts`). Sửa: các bài chỉ bỏ dòng gieo (`action != 'catalog_groups_seeded'` / id `gieo-nhom-dich-vu`) khỏi phép đếm — không đổi ý nghĩa bài | thi công A1 (bề mặt test, đảo ngược được; ghi để điều phối biết) | Bài tương lai đếm `audit_log` trên schema đầy đủ cũng phải bỏ dòng này (ghi ở CHANGE-GUIDE §3). **Việc cho A3:** khai hành động `catalog_groups_seeded` (nhãn tiếng Việt) ở `src/shared/audit-actions.ts` — trang Nhật ký của Toàn quyền sẽ liệt kê dòng gieo này sau khi `0046` lên production; chưa khai thì chữ hiển thị là mã thô |
 
 **Phát hiện → chỗ sửa trong kế hoạch (vòng kiểm kế hoạch 30/9):**
 

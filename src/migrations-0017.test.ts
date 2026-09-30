@@ -70,7 +70,8 @@ test("0017: nhật ký chỉ-thêm — thêm được, không sửa, không xoá
   fails(db, "UPDATE audit_log SET detail = 'sửa lén' WHERE id = 'l1'", /audit_append_only/);
   fails(db, "DELETE FROM audit_log WHERE id = 'l1'", /audit_append_only/);
   fails(db, "DELETE FROM audit_log", /audit_append_only/);
-  assert.equal((db.prepare("SELECT count(*) AS n FROM audit_log").get() as { n: number }).n, 1);
+  // 0046 gieo một dòng nhật ký hệ thống (catalog_groups_seeded) — không tính vào dòng của bài này.
+  assert.equal((db.prepare("SELECT count(*) AS n FROM audit_log WHERE action != 'catalog_groups_seeded'").get() as { n: number }).n, 1);
 });
 
 test("0017: ba trigger bảo vệ còn tồn tại trên schema đầy đủ (bắt migration sau dựng lại bảng mà quên tạo lại)", () => {
