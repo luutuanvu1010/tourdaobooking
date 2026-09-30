@@ -1138,8 +1138,8 @@ body.login-page main.login { display: flex; flex-direction: column; height: 100%
 .hd-tieu-de { font-size: var(--fs-step-5); }
 .hd-ds { padding-left: var(--s5); }
 .hd-ds li + li { margin-top: var(--s1); }
-.hd-ghi-chu { padding: var(--s2) var(--s3); background: var(--c-sand-soft); color: var(--c-sand-text); border-left: 3px solid var(--c-sand); border-radius: var(--radius-sm); }
-.hd-nut { display: inline; padding: 0 var(--s1); border: 1px solid var(--c-border); border-radius: var(--radius-sm); background: var(--c-surface-alt); font-weight: 600; overflow-wrap: anywhere; -webkit-box-decoration-break: clone; box-decoration-break: clone; } /* inline: tên nút dài xuống dòng, không tràn ngang ở 320px */
+.hd-ghi-chu { padding: var(--s2) var(--s3); background: var(--c-sand-soft); color: var(--c-sand-text); border-left: var(--s1) solid var(--c-sand); border-radius: var(--radius-sm); }
+.hd-nut { display: inline; padding: 0 var(--s1); border: 1px solid var(--c-border); border-radius: var(--radius-sm); background: var(--c-surface-alt); font-weight: 600; overflow-wrap: anywhere; -webkit-box-decoration-break: clone; box-decoration-break: clone; } /* inline: tên nút dài được xuống dòng, không tràn ngang ở màn hẹp nhất */
 
 /* Bảng tin (ADR-0022, TD-4): thông báo nổi khi có đơn đổi. Vùng cố định không chắn thao tác (pointer-events chỉ bật ở từng thông báo); điện thoại: ngay trên thanh tab; máy tính: góc trên phải, dưới thanh công việc. z-index 40 = trên thanh tab (30), dưới bảng trượt (50). */
 .toast-vung { position: fixed; z-index: 40; display: flex; flex-direction: column; gap: var(--s2); pointer-events: none; left: max(var(--s4), env(safe-area-inset-left)); right: max(var(--s4), env(safe-area-inset-right)); bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + var(--s3)); }
