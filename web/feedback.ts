@@ -134,11 +134,16 @@ async function loadThread(id: string): Promise<void> {
   byId("list-card").hidden = !wide();
   const box = byId("thread");
   box.hidden = false;
-  let d: Api.FeedbackDetailResponse;
+  let d: Api.FeedbackDetailResponse | null = null;
   try {
     d = await api<Api.FeedbackDetailResponse>(`/api/feedback/${id}`);
   } catch (err) {
     fail(err);
+  }
+  // ≥ 900px danh sách hiện cạnh luồng: nạp lại SAU lời gọi trên (máy chủ vừa đánh dấu đã xem) — gọi mỗi lần loadThread() chạy
+  // (mở, trả lời, đổi trạng thái) để danh sách không giữ trạng thái "Mới" cũ khi yêu cầu đã xong (góp ý 1/10).
+  if (wide()) void loadList();
+  if (!d) {
     replaceChildren(box, h("a", { href: "/feedback" }, "← Quay lại"));
     return;
   }
@@ -194,7 +199,8 @@ async function loadThread(id: string): Promise<void> {
 
 const id = params.get("id");
 if (id) {
-  if (wide()) void loadList(); // ≥ 900px: danh sách hiện cùng luồng nên phải có nội dung, không chỉ khung rỗng (Đợt C Task 3)
+  // ≥ 900px: danh sách hiện cùng luồng (Đợt C Task 3) — loadThread() tự nạp nó SAU khi máy chủ đánh dấu đã xem; không gọi song
+  // song ở đây vì lời gọi đó có thể về sau cùng và ghi đè danh sách bằng dữ liệu cũ.
   void loadThread(id);
   // Đăng ký MỘT LẦN cho lần tải trang này (loadThread() có thể được gọi lại sau khi gửi trả lời/đổi trạng thái,
   // nhưng listener chỉ cần gắn một lần ở đây): đổi khổ cửa sổ qua mốc 900px ngay trên trang đang mở luồng

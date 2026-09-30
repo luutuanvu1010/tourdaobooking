@@ -11,6 +11,14 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Sửa góp ý của chủ 1/10: màn Góp ý khổ máy tính — danh sách bên trái không nạp lại sau khi đổi trạng thái nên vẫn ghi "Mới".
+    version: "1.49",
+    date: "2026-10-01",
+    items: [
+      { kind: "sua", text: "Góp ý / Báo lỗi trên máy tính: đổi trạng thái hay trả lời xong thì danh sách bên trái cập nhật ngay, không còn ghi \"Mới\" cho yêu cầu đã xong." },
+    ],
+  },
+  {
     // Nhóm dịch vụ (ADR-0058, lượt 1a, migration 0055). Số 1.48 chốt lúc gộp main 1.47 (bảng điều khiển trợ lý) — 2026-10-01.
     // Chip cũ "Theo nhóm" (giá tính theo nhóm khách) đổi chữ thành "Giá theo nhóm" cho khỏi nhầm (chủ chọn cách 1).
     version: "1.48",
