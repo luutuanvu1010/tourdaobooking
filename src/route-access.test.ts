@@ -107,6 +107,12 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "DELETE", path: "/api/catalog/:code/override", access: "admin" },
   { method: "GET", path: "/api/catalog/admin", access: "admin" },
   { method: "POST", path: "/api/catalog/sync", access: "admin" },
+  // ADR-0058 Đ4 (2026-09-30, Task A3): năm route nhóm dịch vụ — cổng admin + can(admin.manage) dòng đầu thân
+  { method: "GET", path: "/api/catalog/groups", access: "admin" },
+  { method: "POST", path: "/api/catalog/groups", access: "admin" },
+  { method: "PATCH", path: "/api/catalog/groups/:code", access: "admin" },
+  { method: "PUT", path: "/api/catalog/group-assignments", access: "admin" },
+  { method: "GET", path: "/api/catalog/:code/group-history", access: "admin" },
   { method: "GET", path: "/api/company", access: "public" },
   { method: "GET", path: "/api/dispatch/assignees", access: "office" },
   { method: "GET", path: "/api/dispatch/handlers", access: "orders" }, // ADR-0019 điều 1: màn đơn; thân hỏi can(order.view) không ngữ cảnh
@@ -288,7 +294,7 @@ test("MODULES liệt kê ĐỦ mọi thư mục module có khai `...Module: AppM
   assert.deepEqual(routedDirs, listed, "có thư mục module khai AppModule nhưng chưa có trong MODULES của bài kiểm route-access này — thêm vào MODULES và SNAPSHOT");
 });
 
-test("mức truy cập của 176 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
+test("mức truy cập của 181 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
   const actual = await collectRealRoutes();
   // deepEqual TRƯỚC: khi có route mới/bị xoá, thông báo của nó chỉ ra ĐÚNG route lệch — hai assert.equal độ dài bên dưới chỉ để phòng hờ
   // (không bao giờ tự chạy tới nếu deepEqual đã trượt) và tài liệu hoá con số 86 để đối chiếu nhanh bằng mắt.
@@ -325,7 +331,9 @@ test("mức truy cập của 176 route hiện có khớp ảnh chụp đã duy�
   // 2026-09-30 (sổ tiền lượt 1, module billing): + 12 route (/api/orders/:id/payments ×2, delivered, completed; /api/ledger ×8) = 172.
   // 2026-09-30 (sổ tiền lượt 1, module receipt): + GET /api/orders/:id/receipt = 173.
   // 2026-09-30 (ADR-0066, module tro-ly): + POST /api/tro-ly/hoi (staff), GET/POST /api/tro-ly/cai-dat (office) = 176.
+  // 2026-09-30 (ADR-0058 Đ4, Task A3): + 5 route nhóm dịch vụ (GET/POST /api/catalog/groups, PATCH …/groups/:code, PUT …/group-assignments,
+  // GET /api/catalog/:code/group-history — cổng admin) = 181.
   assert.deepEqual(actual, SNAPSHOT);
-  assert.equal(actual.length, 176, "số route thực tế lệch 176 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 176, "SNAPSHOT phải có đúng 176 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  assert.equal(actual.length, 181, "số route thực tế lệch 181 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 181, "SNAPSHOT phải có đúng 181 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

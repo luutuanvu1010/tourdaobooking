@@ -26,6 +26,7 @@ function catalogItem(code: string, conflicts: CatalogAdminItemDto["conflicts"] =
     conflicts,
     overrideUpdatedAt: null,
     updatedAt: "2026-09-23T00:00:00.000Z",
+    groupCode: null,
   };
 }
 function ticket(code: string, status: FeedbackTicketDto["status"], kindName = "Báo lỗi"): FeedbackTicketDto {

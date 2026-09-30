@@ -53,7 +53,7 @@
 | A0 | (chỉ sổ; cùng commit với A1) | không áp dụng | không áp dụng (mốc: 1993 + 1 test xanh, typecheck 0, e2e 31/31) | không áp dụng | không áp dụng | Xem §1.1 |
 | A1 | "Nhóm dịch vụ: migration 0046 …" (SHA ghi ở báo cáo) | `node --test src/migrations-0046.test.ts` (migration tạm dời đi): `not ok 1 - NT-A3: danh sách gieo trong 0046 đúng bảng ADR-0058…` / `error: "ENOENT: no such file or directory, open '…/migrations/0046_nhom_dich_vu.sql'"`; `not ok 2 - NT-A3: 14 nhóm gieo…` / `error: 'no such table: ctl_group'`; `not ok 3 - NT-A2: DB có đủ 110 mã…` / ENOENT. Ghi chú trung thực: migration đã soạn nháp trước khi chạy đỏ, nên ca đỏ lấy bằng cách dời tệp tạm rồi trả lại | `node --test src/migrations-0046.test.ts` → 11/11 xanh; `npm test` → 2004 + 1 xanh, 0 đỏ; `npm run typecheck` → 0 lỗi; `npm run db:migrate:local` → `0046_nhom_dich_vu.sql` ✅; `npm run test:e2e` → 31/31 xanh | Xem "P16 chi tiết A1" ngay dưới bảng | 2 dòng mới cuối `docs/SO-HANG-RAO.md` | Sửa thêm 4 tệp test cũ đếm `audit_log` trên schema đầy đủ (dòng gieo `catalog_groups_seeded` làm chúng đỏ 14 ca) — xem ruling A1-1 |
 | A2 | "Nhóm dịch vụ: tệp SQL nửa nghiêm `nhom-repo.ts` …" (SHA ở báo cáo A2) | `node --test src/modules/catalog/nhom-rules.test.ts src/architecture.test.ts`: `not ok 13 - ADR-0002 điều 8(b): SQL đã đăng ký của module nghiêm …` / `Cannot find module …/src/modules/catalog/nhom-repo.ts` (ERR_MODULE_NOT_FOUND); các bài `.prepare(` thô và XOA_CUNG_NHAP / DOC_AUDIT_LOG_WONGUARD cũng đỏ cùng lỗi nạp | xem báo cáo A2 (số test ghi lúc chạy `npm test`) | (1) `db.prepare("SELECT 1 FROM catalog_override")` → `not ok 15 …` `.prepare(` thô; (2) `defineSql` đọc `orders` → `catalog.doc_orders_tam: đọc TRỰC TIẾP bảng orders …`; (3) `LEFT JOIN v_stf_staff_label` → `cạnh catalog → staff chưa khai`; (4) `DELETE FROM ctl_group` → `xoá cứng bảng ctl_group`; (5) `CATALOG_LEGACY_HAN = "2026-01-01"` → `catalog quá hạn LEGACY 2026-01-01 …`; hoàn nguyên → xanh | 2 dòng mới ("`nhom-repo.ts` nửa nghiêm", "Hạn lệch LEGACY `catalog`") | Lệch nhỏ: `nhom-repo.ts` không import `../audit` (bài nạp tệp thẳng bằng Node) — hàm ghi trả câu chuẩn bị, `index.ts` ghép `auditStatement` (A3) |
-| A3 | | | | | | |
+| A3 | "Nhóm dịch vụ: năm route quản trị nhóm + nhóm trong DTO danh mục …" (SHA ở báo cáo A3) | `node --test src/modules/catalog/danh-muc-lap-don.test.ts src/modules/catalog/nhom-route.test.ts src/route-access.test.ts`: 11 đỏ — `not ok 1 - ADR-0033: … đúng sáu khoá` (thiếu `'groups'`), `not ok 6/7 - ADR-0058 Đ5 …`, `not ok 8 - NT-A6 …` / `Bán hàng GET /api/catalog/groups undefined: {"error":{"code":"method_not_allowed",…}}`, `not ok 16 - mức truy cập của 181 route …`; `npm run test:e2e -- catalog` trên `index.ts` cũ: `TypeError: Cannot read properties of undefined (reading 'length')` ở `dsAdmin.groups.length` | cùng lệnh → xanh; `npm test` bước 1: 2078/2078 xanh (bước 2 đo giờ hook đỏ — máy tải cao, xem báo cáo); `npm run typecheck` 0 lỗi; `npm run test:e2e -- catalog` → `E2E CATALOG OK`; e2e đủ bộ + `audit-invariants --db local`: xem báo cáo A3 | Xem "P16 chi tiết A3" dưới bảng | không dòng mới (hàng rào 1, 2 và bài khoá DTO sẵn có) | Lệch đề bài: đột biến "dời `can` xuống sau `readJson`" KHÔNG làm hàng rào 2 đỏ (hàng rào không canh thứ tự — đúng giới hạn đã ghi ở đầu tệp bài) — thay bằng bài hành vi `nhom-route.test.ts` (xem P16) |
 | A4 | | | | | | |
 | A5 | | | | | | |
 | A6 | | | | | | |
@@ -87,6 +87,18 @@
 | bỏ `ctl_: "catalog"` khỏi `TABLE_PREFIX` (`src/architecture.test.ts`) | `not ok 6 - ADR-0002 điều 2: bảng mới có tiền tố đúng module; bảng không tiền tố phải đánh dấu legacy` / `error: 'ctl_group không có tiền tố module nên phải đánh dấu "legacy": true (tên cũ giữ nguyên)'` |
 
 Kịch bản đột biến nằm ngoài repo (thư mục tạm của phiên), không commit.
+
+**P16 chi tiết A3 (2026-09-30, mỗi phép: sửa tạm `src/modules/catalog/index.ts` → chạy `node --test` → hoàn nguyên từ bản sao; `git diff --stat` xác nhận chỉ còn thay đổi thật):**
+
+| Đột biến | Kết quả |
+|---|---|
+| dời `if (!can(staff, "admin.manage")) …` của `POST /api/catalog/groups` xuống SAU `readJson` (đề bài) | **KHÔNG đỏ**: `route-write-guard` + `permission-enforcement` 14/14 xanh, `nhom-route.test.ts` 7/7 xanh. Hàng rào 2 không canh thứ tự (giới hạn đã ghi ở đầu `src/route-write-guard.test.ts`); cổng thô `admin` của router chặn năm vai kia TRƯỚC thân nên bài hành vi cũng không thấy |
+| bỏ hẳn dòng `can` ở `POST /api/catalog/groups` | `route-write-guard` đỏ 2 ca: `not ok 1 - hàng rào 2: mọi đường ghi …` / `Đường ghi chỉ dựa cổng thô …: POST /api/catalog/groups (catalog, access "admin")`, `not ok 2 - hàng rào 2 (ADR-0019) …` |
+| đổi tạm cổng `PUT /api/catalog/group-assignments` sang `office`, `can` vẫn dòng đầu | `nhom-route.test.ts` 7/7 xanh (ô trong thân tự chặn được) |
+| như trên + dời `can` xuống SAU `kiemLoGan` | `not ok 1 - NT-A6: … hỏi quyền TRƯỚC khi đọc thân …` / `Bán hàng PUT /api/catalog/group-assignments {"codes":["TD0",…,"TD50"],"groupCode":"TTB"}: {"error":{"code":"invalid_input","message":"Mỗi lần gán tối đa 50 dịch vụ."}}` |
+| thêm tạm `sheetRow: 1` vào `publicItem` (đề bài) | `not ok 1 - ADR-0033: … đúng sáu khoá mỗi dịch vụ …` / `+   'sheetRow',` |
+
+Kết luận: thứ tự "hỏi quyền trước khi đọc thân" trong THÂN route hôm nay **dựa vào kỷ luật + người kiểm đọc mã** (cổng `admin` trùng ô `admin.manage` nên không bài nào thấy được); thiếu hẳn `can` do hàng rào 2 luật (4) bắt.
 
 ## 4. Ruling, lệch kế hoạch, nợ
 

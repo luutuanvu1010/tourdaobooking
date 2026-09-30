@@ -52,6 +52,7 @@ Mục lục: §1 Bảng tra nhanh · §2 Công thức a1–a3, b–v · §3 Ma t
 | Thêm một loại tin mới về đơn (hành động nhật ký mới lên chuông/hộp thông báo) | `src/shared/thong-bao.ts` (`loaiTinDon`, `CAU`), `src/shared/contracts.ts` (`LoaiTin`), `migrations/00xx_*.sql` (view `v_aud_order_event`), `web/thong-bao-ui.ts` (icon/màu) | w |
 | Thêm biến môi trường / bí mật | `wrangler.jsonc` (`vars`), `.dev.vars`, `worker-configuration.d.ts` | l |
 | Đổi cách đồng bộ Sheet / danh mục / ghi đè admin | `src/modules/catalog/*`, `src/shared/sheets.ts` | k |
+| Nhóm dịch vụ (thêm / đổi tên / sắp thứ tự / tắt nhóm, chuyển nhóm dịch vụ, `groupCode` / `groups` trong DTO danh mục) — ADR-0058 | `src/modules/catalog/{nhom-repo,nhom-rules,index}.ts`, `migrations/0053_nhom_dich_vu.sql`, `src/modules/catalog/{nhom-route,danh-muc-lap-don}.test.ts`, `tests/e2e/catalog.mjs` | k |
 | Đổi cột Sheet nhân viên / cách nạp nhân viên | `src/modules/staff/sheet.ts`, `src/modules/accounts/index.ts` | k |
 | Thêm bước vào Cron | `src/index.ts` (`scheduled`), `wrangler.jsonc` (`triggers.crons`) | k |
 | Thêm cột vào danh sách đơn | `src/modules/orders/repository.ts` (`listOrders`), `src/shared/contracts.ts`, `web/orders.ts` | n |
@@ -349,6 +350,14 @@ route("PUT", "/api/foo/:id", "office", async ({ env, request, params, staff }) =
 - `service.ts`: `syncCatalog`, `bootstrapIfNeverSynced`.
 - `repository.ts`: `applySync` chỉ chạm `catalog_item`, KHÔNG đụng `catalog_override`; ghi theo lô `CHUNK` = 40 câu, không nguyên tử xuyên lô (lần sau tự lành).
 - `index.ts`: route + `getEffectiveServices` (đường DUY NHẤT `orders` đọc giá hiệu lực).
+- `nhom-repo.ts` (tệp SQL "nửa nghiêm", `defineSql`) + `nhom-rules.ts` (luật thuần): nhóm dịch vụ (ADR-0058) — hai bảng `ctl_group`, `ctl_service_group` (lịch sử chỉ thêm, dòng `seq` lớn nhất = nhóm hiện hành).
+
+**Nhóm dịch vụ (ADR-0058) — sửa TRONG APP, KHÔNG đọc cột nhóm của Sheet:**
+- Nhóm gieo MỘT LẦN bằng migration `0053` (chữ viết sẵn trong tệp SQL); sau đó Quản trị quản lý bằng năm route `/api/catalog/groups*`, `/api/catalog/group-assignments`, `/api/catalog/:code/group-history` (`docs/SYSTEM-DESIGN.md` §7). ĐỪNG thêm cột nhóm vào `sheet.ts`/`CatalogInput` (bài NT-A10 ở `sheet.test.ts`), đừng viết câu `ctl_*` ở `repository.ts`.
+- Route ghi: `can(staff, "admin.manage")` dòng đầu thân; hàm ghi của `nhom-repo.ts` chỉ TRẢ câu chuẩn bị — `index.ts` ghép `auditStatement` rồi chạy MỘT `db.batch`. Kiểm TRƯỚC khi ghi (nhóm có/đang bật, mã dịch vụ có trong danh mục) — đừng phân loại 404/409 bằng chữ lỗi CSDL (trigger `ctl_group_inactive` nổ cả khi mã nhóm không tồn tại).
+- DTO: `groupCode` / `groups` trộn ở `index.ts` (`catalogForOrderForm`, `adminItem`) — KHÔNG sửa câu `SELECT` của `repository.ts`. Thêm khoá DTO mới → sửa tập khoá ở `danh-muc-lap-don.test.ts`.
+- Đồng bộ Sheet an toàn với khoá ngoại `ctl_service_group.service_code → catalog_item(code)` vì chỉ `INSERT … ON CONFLICT DO UPDATE` / `UPDATE in_sheet = 0`; đổi sang `REPLACE`/`DELETE` sẽ làm Cron lỗi (ca canh ở `tests/e2e/catalog.mjs`: gán nhóm → `sync force` → 200).
+- Kịch bản e2e đừng gán nhóm cho mã giả `ZZ*`/`ZT*`/`ZH*` — các kịch bản xoá cứng chúng khi dọn, khoá ngoại sẽ chặn.
 
 **Thêm một cột Sheet:**
 1. Migration `ALTER TABLE catalog_item ADD COLUMN …`.

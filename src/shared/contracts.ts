@@ -474,7 +474,14 @@ export interface AuditListResponse { entries: AuditRecordDto[]; hasMore: boolean
 /** Dịch vụ như nhân viên bán hàng thấy (giá đã áp ghi đè của Admin). */
 export interface CatalogServiceDto extends CatalogService {
   supported: boolean;
+  /** ADR-0058 Đ5: nhóm hiện hành; `null` = chưa phân loại HOẶC nhóm đang tắt. */
+  groupCode: string | null;
 }
+
+/** ADR-0058 Đ5: nhóm cho form đơn — chỉ nhóm đang dùng có ≥ 1 dịch vụ đang hiện, xếp theo thứ tự. */
+export interface CatalogGroupDto { code: string; name: string }
+/** ADR-0058 Đ4: nhóm như Quản trị thấy (kể cả nhóm tắt); `soDichVu` = số dịch vụ hiện hành; `updatedAt` dùng làm `expectedUpdatedAt` khi sửa. */
+export interface CatalogAdminGroupDto extends CatalogGroupDto { sortOrder: number; active: boolean; soDichVu: number; updatedAt: string }
 
 export interface CatalogConflictDto { code: PaxCode; base: number | null; current: number | null; override: number }
 
@@ -492,6 +499,8 @@ export interface CatalogAdminItemDto {
   conflicts: CatalogConflictDto[];
   overrideUpdatedAt: string | null;
   updatedAt: string;
+  /** ADR-0058 Đ5: nhóm hiện hành thật (kể cả nhóm đang tắt); `null` = chưa phân loại. */
+  groupCode: string | null;
 }
 
 export interface CatalogSyncStateDto {
@@ -503,8 +512,16 @@ export interface CatalogSyncStateDto {
   problems: { row: number; message: string }[];
 }
 
-export interface CatalogPublicResponse { items: CatalogServiceDto[]; sync: { lastSuccessAt: string | null; error: string | null } }
-export interface CatalogAdminResponse { items: CatalogAdminItemDto[]; sync: CatalogSyncStateDto }
+export interface CatalogPublicResponse { items: CatalogServiceDto[]; sync: { lastSuccessAt: string | null; error: string | null }; groups: CatalogGroupDto[] }
+export interface CatalogAdminResponse { items: CatalogAdminItemDto[]; sync: CatalogSyncStateDto; groups: CatalogAdminGroupDto[] }
+/** `GET /api/catalog/groups` — `chuaPhanLoai` = số dịch vụ của danh mục (kể cả ẩn / đã rời Sheet) không có nhóm hiện hành. */
+export interface CatalogGroupsResponse { groups: CatalogAdminGroupDto[]; chuaPhanLoai: number }
+/** `POST /api/catalog/groups` (201), `PATCH /api/catalog/groups/:code`. */
+export interface CatalogGroupResponse { group: CatalogAdminGroupDto }
+/** `PUT /api/catalog/group-assignments` — `doi` số dịch vụ đổi nhóm thật, `boQua` số mã đã ở đúng nhóm (không ghi). */
+export interface CatalogGroupAssignResponse { doi: number; boQua: number }
+/** `GET /api/catalog/:code/group-history` — mới nhất trước; `createdBy` là id tài khoản (`null` = Hệ thống gieo); `nhom` là tên (`null` = Chưa phân loại). */
+export interface CatalogGroupHistoryResponse { items: { luc: string; createdBy: string | null; nhom: string | null }[] }
 export interface CatalogItemResponse { item: CatalogAdminItemDto }
 export interface CatalogSyncResponse {
   ok: true;

@@ -53,10 +53,13 @@ test("ADR-0033: Đối tác, Thực tập, Bán hàng, Quản trị, Toàn quy�
   for (const as of [PARTNER, INTERN, SALES, ADM, SUP]) {
     const r = await w.call("GET", "/api/catalog/for-order", { as });
     assert.equal(r.status, 200, `${NAME[as]}: ${r.text}`);
-    assert.deepEqual(Object.keys(r.json).sort(), ["items", "sync"], `${NAME[as]}: phản hồi chỉ có items + sync`);
+    // ADR-0058 Đ5 (Task A3): thêm ĐÚNG `groups` ở cấp trên và `groupCode` mỗi dịch vụ — không khoá nào khác (không giá gốc, không cột Sheet).
+    assert.deepEqual(Object.keys(r.json).sort(), ["groups", "items", "sync"], `${NAME[as]}: phản hồi chỉ có groups + items + sync`);
     assert.deepEqual(Object.keys(r.json.sync).sort(), ["error", "lastSuccessAt"], `${NAME[as]}: sync chỉ có hai khoá`);
-    for (const item of r.json.items) assert.deepEqual(Object.keys(item).sort(), ["code", "name", "notes", "prices", "supported", "unit"], `${NAME[as]} ${item.code}`);
+    for (const item of r.json.items) assert.deepEqual(Object.keys(item).sort(), ["code", "groupCode", "name", "notes", "prices", "supported", "unit"], `${NAME[as]} ${item.code}`);
+    for (const g of r.json.groups) assert.deepEqual(Object.keys(g).sort(), ["code", "name"], `${NAME[as]}: nhóm cho form chỉ có mã + tên`);
     assert.deepEqual(r.json.items, sales.json.items, `${NAME[as]}: danh mục phải ĐÚNG như Bán hàng thấy ở GET /api/catalog (cùng giá, cùng thứ tự)`);
+    assert.deepEqual(r.json.groups, sales.json.groups, `${NAME[as]}: danh sách nhóm phải ĐÚNG như Bán hàng thấy ở GET /api/catalog`);
     assert.equal(r.json.items.some((i: any) => i.code === "AN"), false, `${NAME[as]}: dịch vụ ẩn không lọt vào`);
   }
 });
@@ -127,4 +130,48 @@ test("ADR-0033 (đảo có chủ đích so với bản 1.15): GET /api/catalog v
     assert.equal(r.status, 200, `${NAME[as]}: ${r.text}`);
     assert.ok(r.json.items.some((i: any) => i.code === "TOUR4DAO"), NAME[as]);
   }
+});
+
+// ---- ADR-0058 Đ5 (Task A3, NT-A9): nhóm trong DTO danh mục -------------------------------------------------------------------------------------
+// Khung thử áp migration 0053 trên catalog_item RỖNG → 14 nhóm, 0 dòng gán. Gán thẳng bằng SQL ở đây (bài route ghi ở nhom-route.test.ts).
+const GAN = (code: string, group: string | null, seq = 1) =>
+  `INSERT INTO ctl_service_group (id, service_code, group_code, seq, valid_from_at, created_at, created_by, updated_at, updated_by)
+   VALUES ('t-${code}-${seq}', '${code}', ${group === null ? "NULL" : `'${group}'`}, ${seq}, '${NOW}', '${NOW}', NULL, '${NOW}', NULL)`;
+
+test("ADR-0058 Đ5: groupCode mỗi dịch vụ = nhóm hiện hành; groups chỉ nhóm đang dùng có ≥ 1 dịch vụ đang hiện, xếp sort_order; nhóm của dịch vụ ẩn không lọt", async () => {
+  const w = setup();
+  w.sqlite.exec(GAN("PHAO", "TDA"));
+  w.sqlite.exec(GAN("PHAO", "TTB", 2)); // dòng seq lớn nhất = hiện hành
+  w.sqlite.exec(GAN("AN", "LPH")); // dịch vụ ẩn: nhóm LPH không có dịch vụ đang hiện nào → không vào groups
+  for (const path of ["/api/catalog", "/api/catalog/for-order"]) {
+    const r = await w.call("GET", path, { as: SALES });
+    assert.equal(r.status, 200, r.text);
+    const by = Object.fromEntries(r.json.items.map((i: any) => [i.code, i.groupCode]));
+    assert.deepEqual(by, { PHAO: "TTB", TOUR4DAO: null }, `${path}: PHAO ở nhóm hiện hành TTB; TOUR4DAO chưa phân loại`);
+    assert.deepEqual(r.json.groups, [{ code: "TTB", name: "Thể thao biển" }], `${path}: chỉ nhóm có dịch vụ đang hiện`);
+  }
+  w.sqlite.exec(GAN("TOUR4DAO", "TDA"));
+  const r = await w.call("GET", "/api/catalog/for-order", { as: PARTNER });
+  assert.deepEqual(r.json.groups.map((g: any) => g.code), ["TDA", "TTB"], "xếp theo sort_order (Tour đảo 1, Thể thao biển 7)");
+});
+
+test("ADR-0058 Đ5: nhóm đang TẮT → dịch vụ của nó groupCode null ở form đơn, nhóm không có trong groups; danh sách quản trị vẫn liệt kê nhóm tắt", async () => {
+  const w = setup();
+  w.sqlite.exec(GAN("PHAO", "TTB"));
+  w.sqlite.exec(GAN("TOUR4DAO", "TDA"));
+  w.sqlite.exec(`UPDATE ctl_group SET active = 0 WHERE code = 'TTB'`); // khung thử đặt thẳng (máy chủ chặn tắt nhóm còn dịch vụ — bài ở nhom-route.test.ts)
+  const r = await w.call("GET", "/api/catalog/for-order", { as: SALES });
+  const by = Object.fromEntries(r.json.items.map((i: any) => [i.code, i.groupCode]));
+  assert.deepEqual(by, { PHAO: null, TOUR4DAO: "TDA" });
+  assert.deepEqual(r.json.groups, [{ code: "TDA", name: "Tour đảo" }]);
+  const adm = await w.call("GET", "/api/catalog/admin", { as: ADM });
+  assert.equal(adm.status, 200, adm.text);
+  const ttb = adm.json.groups.find((g: any) => g.code === "TTB");
+  assert.ok(ttb, "danh sách quản trị có cả nhóm tắt");
+  assert.equal(ttb.active, false);
+  assert.equal(ttb.soDichVu, 1);
+  assert.deepEqual(Object.keys(ttb).sort(), ["active", "code", "name", "soDichVu", "sortOrder", "updatedAt"]);
+  assert.equal(adm.json.groups.length, 14, "đủ 14 nhóm gieo");
+  assert.equal(adm.json.items.find((i: any) => i.code === "PHAO").groupCode, "TTB", "quản trị thấy nhóm hiện hành thật (kể cả nhóm tắt)");
+  assert.equal(adm.json.items.find((i: any) => i.code === "AN").groupCode, null);
 });
