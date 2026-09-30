@@ -5,8 +5,8 @@
 import type { ChangChoChuyen } from "../orders";
 import type { DaGoiBaoDto, GioHenDoiDto, GoiBaoChangDto, MucNhacGoiDto } from "../../shared/contracts";
 import {
-  NHAN_TU_CHOI_GOI_BAO, daGoiBao, kiemBoDanhDau, kiemDaGoiBao, mocHienHanh, moTaDoiGio, mucGioHenDoi, type ChangGoiBao, type MaTuChoiGoiBao, type MocVao,
-  type MucGioHenDoi, type SuatGoiBao,
+  NHAN_TU_CHOI_GOI_BAO, daGoiBao, kiemBoDanhDau, kiemDaGoiBao, mocHienHanh, moTaDoiGio, mucGioHenDoi, type ChangGoiBao, type GioHen, type MaTuChoiGoiBao,
+  type MocVao, type MucGioHenDoi, type SuatGoiBao,
 } from "../../shared/goi-bao";
 import { json } from "../../shared/http";
 import { msToVnLocal } from "../../shared/vn-date";
@@ -68,33 +68,31 @@ export async function goiBaoChang(
     : null;
   return { legId, maDon: chang?.orderCode ?? null, gioHenDoi: muc ? gioHenDoiDto(muc, duoc) : null, daGoiBao: daGoi };
 }
+/** Bản chụp kết quả lần đầu của "Bỏ đánh dấu" (GA-59; cột `bo_gio_hen_doi` của 0043): `null` = lần đầu không còn mục. */
+export interface BanChupBoDanhDau { moi: GioHen; maChuyen: string[] }
 /**
- * Phản hồi LỆNH LẶP (cùng `requestId` — ADR-0051 bước 4 "trả kết quả của lần đầu"; kiểm độc lập K2a T2): dựng từ ĐÚNG dòng mốc lệnh đó đã ghi, KHÔNG đọc trạng
- * thái mốc mới nhất (lệnh khác chen vào sau không làm đổi phản hồi). Cùng hình `goiBaoChang` trả ở lần đầu:
- * - dòng DA_GOI → `gioHenDoi` null + `daGoiBao` { cu = giờ trước, moi = giờ của dòng, luc, nguoiBam = người ghi dòng, phienBan = seq, boDuoc } — KHỚP TUYỆT
- *   ĐỐI lần đầu (lần đầu, `kiemDaGoiBao` buộc giờ "mới" màn gửi = giờ hiện hành đọc trước lô, và dòng ghi đúng giờ đó ⇒ không còn mục);
- * - dòng BO_DANH_DAU → `daGoiBao` null + `gioHenDoi` { cu = giờ của dòng, moi = giờ trước của dòng (= giờ lúc đã gọi báo), phienBan = seq, maChuyen, baoDuoc }.
- *   GA-59: `moi` và `maChuyen` KHÔNG nằm trong dòng mốc — khớp lần đầu khi giờ hẹn không đổi thêm sau lần gọi báo và tập chuyến chở khách chờ không đổi;
- *   `maChuyen` đọc các chuyến ĐANG chở khách chờ của chặng (rỗng nếu không còn). Khớp tuyệt đối mọi ca cần thêm cột — không làm (hỏi điều phối).
- * `maDon` đọc qua `legFlags` (danh tính bền, có cả chặng đóng / đơn huỷ). Dòng của chặng khác URL / loại khác route → vẫn trả kết quả của CHÍNH dòng đó.
+ * Phản hồi dựng TỪ DÒNG MỐC mà lệnh `requestId` đã ghi (ADR-0051 bước 4 "trả kết quả của lần đầu"; K2a T2; GA-59) — KHÔNG đọc trạng thái mốc / giờ hẹn / suất
+ * mới nhất (lệnh khác, đổi giờ, dời chuyến chen vào sau không làm đổi phản hồi). Cùng hình `goiBaoChang`:
+ * - dòng DA_GOI (chỉ lệnh lặp) → `gioHenDoi` null + `daGoiBao` { cu = giờ trước, moi = giờ của dòng, luc, nguoiBam = người ghi dòng, phienBan = seq, boDuoc }
+ *   (lần đầu, `kiemDaGoiBao` buộc giờ "mới" màn gửi = giờ hiện hành đọc trước lô, và dòng ghi đúng giờ đó ⇒ không còn mục);
+ * - dòng BO_DANH_DAU (lần đầu VÀ lệnh lặp — cùng hàm này) → `daGoiBao` null + `gioHenDoi` { cu = giờ của dòng, phienBan = seq, moi + maChuyen = bản chụp trên
+ *   dòng, baoDuoc } hoặc `gioHenDoi` null khi bản chụp là null.
+ * `baoDuoc` / `boDuoc` = quyền của NGƯỜI GỌI (tiêm) — không phải kết quả lệnh. `maDon` đọc qua `legFlags` (danh tính bền, có cả chặng đóng / đơn huỷ). Dòng
+ * của chặng khác URL / loại khác route → vẫn trả kết quả của CHÍNH dòng đó.
  */
 export async function phanHoiLenhLap(db: D1Database, row: MocRow, quyen: QuyenGoiBao, nhan: ReadonlyMap<string, string> | null): Promise<GoiBaoChangDto> {
   const m = mocVao(row);
   const [co, chu] = await Promise.all([legFlags(db, [row.leg_id]), changChuDon(db, [row.leg_id])]);
   const duoc = chu[0] ? await quyen(chu[0].order_id, chu[0].owner_id) : false;
   const maDon = co[0]?.order_code ?? null;
-  const truoc = m.truoc ?? m.gio;
   if (m.loai === "DA_GOI") {
     const daGoi: DaGoiBaoDto = {
-      cu: truoc, moi: m.gio, luc: msToVnLocal(Date.parse(m.luc)).time, nguoiBam: m.nguoiId ? (nhan?.get(m.nguoiId) ?? null) : null, phienBan: m.seq, boDuoc: duoc,
+      cu: m.truoc ?? m.gio, moi: m.gio, luc: msToVnLocal(Date.parse(m.luc)).time, nguoiBam: m.nguoiId ? (nhan?.get(m.nguoiId) ?? null) : null, phienBan: m.seq, boDuoc: duoc,
     };
     return { legId: row.leg_id, maDon, gioHenDoi: null, daGoiBao: daGoi };
   }
-  const cho = (await suatKhachMoCuaChang(db, [row.leg_id])).map(suatGoiBao)
-    .filter((s) => s.trangThai === "WAITING" && (s.trangThaiChuyen === "PLANNED" || s.trangThaiChuyen === "RUNNING"));
-  const maChuyen = [...new Map(cho.map((s) => [s.tripId, s])).values()]
-    .sort((a, b) => (a.ngayChuyen === b.ngayChuyen ? (a.maChuyen < b.maChuyen ? -1 : 1) : a.ngayChuyen < b.ngayChuyen ? -1 : 1)).map((s) => s.maChuyen);
-  return { legId: row.leg_id, maDon, gioHenDoi: { cu: m.gio, moi: truoc, phienBan: m.seq, maChuyen, baoDuoc: duoc }, daGoiBao: null };
+  const chup = JSON.parse(row.bo_gio_hen_doi ?? "null") as BanChupBoDanhDau | null;
+  return { legId: row.leg_id, maDon, gioHenDoi: chup ? { cu: m.gio, moi: chup.moi, phienBan: m.seq, maChuyen: [...chup.maChuyen], baoDuoc: duoc } : null, daGoiBao: null };
 }
 /** Người đã bấm các dòng DA_GOI hiện hành (để lấy nhãn tên một lần mỗi request — R-P20). */
 export const nguoiBamGoiBao = (d: DuLieuGoiBao): string[] =>
@@ -164,8 +162,12 @@ export async function xuLyMoc(
   const kq = kiemBoDanhDau({ moc, phienBan: b.phienBan, suat });
   if (!kq.ok) return loiGoiBao(kq.ma);
   const goi = mocHienHanh(moc)!;
+  // GA-59: kết quả lần đầu = mục của chặng SAU dòng đảo, tính bằng CHÍNH luật mục (`mucGioHenDoi`) trên dữ liệu đã đọc cho quyết định — lưu trên dòng; phản hồi
+  // lần đầu lẫn lệnh lặp dựng từ dòng (`phanHoiLenhLap`).
+  const sau = mucGioHenDoi({ chang, moc: [...moc, { seq: goi.seq + 1, loai: "BO_DANH_DAU", gio: goi.truoc!, truoc: goi.gio, luc: lenhChung.lucIso, nguoiId }], suat });
+  const banChup: BanChupBoDanhDau | null = sau ? { moi: sau.moi, maChuyen: sau.maChuyen } : null;
   return chayLoMoc(db, lenhBoDanhDauGoiBao(db, {
-    ...lenhChung, legId, phienBan: goi.seq, moi: goi.truoc!, cu: goi.gio, tripId,
+    ...lenhChung, legId, phienBan: goi.seq, moi: goi.truoc!, cu: goi.gio, tripId, banChup: JSON.stringify(banChup),
     detail: `${chang.orderCode} · ${chieu} · bỏ đánh dấu đã gọi báo giờ hẹn đón ${moTaDoiGio(goi.truoc!, goi.gio)} · ${maChuyen}`,
   }), b.requestId);
 }

@@ -544,11 +544,13 @@ export interface MocRow {
   prev_appt_time: string | null;
   created_at: string;
   created_by: string | null;
+  /** GA-59: kết quả lần đầu của "Bỏ đánh dấu" (JSON `{ moi, maChuyen }` hoặc `null`); NULL ở dòng XEP / DA_GOI. */
+  bo_gio_hen_doi: string | null;
 }
 const MOC_BY_LEGS = defineSql(
   "van-chuyen",
   "moc_by_legs",
-  `SELECT id, leg_id, seq, kind, appt_date, appt_time, prev_appt_date, prev_appt_time, created_at, created_by FROM vc_leg_appt_ack
+  `SELECT id, leg_id, seq, kind, appt_date, appt_time, prev_appt_date, prev_appt_time, created_at, created_by, bo_gio_hen_doi FROM vc_leg_appt_ack
    WHERE leg_id IN (SELECT value FROM json_each(?1)) ORDER BY leg_id, seq`,
 );
 export async function mocByLegs(db: D1Database, legIds: readonly string[]): Promise<MocRow[]> {
@@ -558,9 +560,9 @@ export async function mocByLegs(db: D1Database, legIds: readonly string[]): Prom
 const MOC_BY_REQUEST = defineSql(
   "van-chuyen",
   "moc_by_request",
-  "SELECT id, leg_id, seq, kind, appt_date, appt_time, prev_appt_date, prev_appt_time, created_at, created_by FROM vc_leg_appt_ack WHERE request_id = ?1",
+  "SELECT id, leg_id, seq, kind, appt_date, appt_time, prev_appt_date, prev_appt_time, created_at, created_by, bo_gio_hen_doi FROM vc_leg_appt_ack WHERE request_id = ?1",
 );
-/** Dòng mốc do lệnh `requestId` ghi (DA_GOI / BO_DANH_DAU — dòng XEP không mang requestId): lệnh lặp dựng phản hồi TỪ dòng này (ADR-0051 bước 4, K2a T2). */
+/** Dòng mốc do lệnh `requestId` ghi (DA_GOI / BO_DANH_DAU — dòng XEP không mang requestId): phản hồi lệnh (lần đầu "Bỏ đánh dấu" và mọi lệnh lặp) dựng TỪ dòng này (ADR-0051 bước 4, K2a T2, GA-59). */
 export async function mocByRequest(db: D1Database, requestId: string): Promise<MocRow | null> {
   return db.prepare(MOC_BY_REQUEST).bind(requestId).first<MocRow>();
 }
@@ -599,11 +601,12 @@ export async function changChuDon(db: D1Database, legIds: readonly string[]): Pr
 /**
  * CÂU CỔNG của họ lệnh mốc giờ hẹn (nhãn CONG_MOC — ADR-0051; ruling VỪA-2): dòng mới seq = phienBan + 1 CHỈ khi mốc hiện hành của chặng đúng là `phienBan`
  * (khoá lạc quan riêng — không chạm vc_trip, không tăng version). ?1 id (= dấu lệnh = id nhật ký), ?2 chặng, ?3 phienBan, ?4 loại (DA_GOI / BO_DANH_DAU),
- * ?5 ngày mới, ?6 giờ mới, ?7 ngày trước, ?8 giờ trước, ?9 request_id, ?10 lúc, ?11 người.
+ * ?5 ngày mới, ?6 giờ mới, ?7 ngày trước, ?8 giờ trước, ?9 request_id, ?10 lúc, ?11 người, ?12 bản chụp kết quả lần đầu (chỉ BO_DANH_DAU — GA-59; DA_GOI NULL).
  */
 export const MOC_GOI_INSERT = defineSql(
   "van-chuyen",
   "moc_goi_insert",
-  `INSERT INTO vc_leg_appt_ack (id, leg_id, seq, kind, appt_date, appt_time, prev_appt_date, prev_appt_time, request_id, created_at, created_by, updated_at, updated_by)
-   SELECT ?1, ?2, ?3 + 1, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?10, ?11 WHERE (SELECT max(seq) FROM vc_leg_appt_ack WHERE leg_id = ?2) = ?3`,
+  `INSERT INTO vc_leg_appt_ack (id, leg_id, seq, kind, appt_date, appt_time, prev_appt_date, prev_appt_time, request_id, created_at, created_by, updated_at, updated_by,
+                                bo_gio_hen_doi)
+   SELECT ?1, ?2, ?3 + 1, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?10, ?11, ?12 WHERE (SELECT max(seq) FROM vc_leg_appt_ack WHERE leg_id = ?2) = ?3`,
 );

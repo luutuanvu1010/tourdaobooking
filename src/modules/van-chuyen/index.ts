@@ -1362,9 +1362,10 @@ export const vanChuyenModule: AppModule = {
       const hk = await hanhKhachChoChuyen(env.DB, [legId]);
       const r = await xuLyMoc("BO_DANH_DAU", env.DB, legId, hk, than.value, staff.id, Date.now());
       if (r) return r;
-      const d = await docGoiBao(env.DB, [legId]);
-      const nhan = await nhanNhanVien(nguoiBamGoiBao(d));
-      return json((await goiBaoChang(legId, hk, d, quyenGoiBaoCua(staff, isAssigned), nhan)) ?? { legId, maDon: null, gioHenDoi: null, daGoiBao: null } satisfies GoiBaoChangDto);
+      // GA-59: phản hồi lần đầu dựng từ CHÍNH dòng vừa ghi (bản chụp kết quả) — cùng hàm với lệnh lặp ⇒ lặp trả y hệt lần đầu.
+      const dong = await mocByRequest(env.DB, than.value.requestId);
+      if (!dong) throw new Error("bo-danh-dau-goi-bao: lô đã chạy mà không thấy dòng mốc của requestId");
+      return json((await phanHoiLenhLap(env.DB, dong, quyenGoiBaoCua(staff, isAssigned), null)) satisfies GoiBaoChangDto);
     }),
   ],
 };

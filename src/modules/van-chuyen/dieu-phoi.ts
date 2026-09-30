@@ -479,13 +479,14 @@ export interface LenhMoc extends LenhChung {
   tripId: string;
   detail: string;
 }
-const congMoc = (db: D1Database, l: LenhMoc, loai: "DA_GOI" | "BO_DANH_DAU"): CauCoNhan => ({
+const congMoc = (db: D1Database, l: LenhMoc, loai: "DA_GOI" | "BO_DANH_DAU", banChup: string | null): CauCoNhan => ({
   nhan: "CONG_MOC",
-  stmt: db.prepare(MOC_GOI_INSERT).bind(l.cmd, l.legId, l.phienBan, loai, l.moi.ngay, l.moi.gio, l.cu.ngay, l.cu.gio, l.requestId, l.lucIso, l.nguoiId),
+  stmt: db.prepare(MOC_GOI_INSERT).bind(l.cmd, l.legId, l.phienBan, loai, l.moi.ngay, l.moi.gio, l.cu.ngay, l.cu.gio, l.requestId, l.lucIso, l.nguoiId, banChup),
 });
 export function lenhDaGoiBao(db: D1Database, l: LenhMoc): CauCoNhan[] {
-  return [congMoc(db, l, "DA_GOI"), nhatKy(db, l, "trip_appt_called", l.tripId, l.detail)];
+  return [congMoc(db, l, "DA_GOI", null), nhatKy(db, l, "trip_appt_called", l.tripId, l.detail)];
 }
-export function lenhBoDanhDauGoiBao(db: D1Database, l: LenhMoc): CauCoNhan[] {
-  return [congMoc(db, l, "BO_DANH_DAU"), nhatKy(db, l, "trip_appt_call_undone", l.tripId, l.detail)];
+/** `banChup` (GA-59): kết quả lần đầu — JSON `{ moi, maChuyen }` hoặc `"null"` (không còn mục) — lưu trên dòng mốc để lệnh lặp trả y hệt. */
+export function lenhBoDanhDauGoiBao(db: D1Database, l: LenhMoc & { banChup: string }): CauCoNhan[] {
+  return [congMoc(db, l, "BO_DANH_DAU", l.banChup), nhatKy(db, l, "trip_appt_call_undone", l.tripId, l.detail)];
 }

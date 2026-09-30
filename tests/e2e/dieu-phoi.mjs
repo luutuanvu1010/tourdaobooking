@@ -1,6 +1,7 @@
 // Điều phối xe lượt 1 — VĂN PHÒNG (ADR-0049 D1–D3; ADR-0050 VK1-A, VK1-B; kế hoạch Task A13 + A15; TC-29, TC-47, TC-51) trên API THẬT (wrangler dev, D1 local tạm):
 //   (1) tạo chuyến → xếp 2 chặng → GET chi tiết GIỮ "thiếu tên" (văn phòng xử lý) → nhập tên ở đơn → hết giữ;
 //   (2) TC-51: sửa nơi đón của chặng sau khi xếp → giữ NOI_HEN_DOI → "cập nhật điểm theo đơn" → suất cũ đóng STOP_CHANGED, suất mới ở điểm mới, điểm cũ SKIPPED;
+//   (2b) R-P29 (chủ lần 16): bỏ một khách ĐÃ gắn tên của A + thêm người mới → màn và lệnh xuất bến CÙNG giữ KHACH_DA_DOI → "cập nhật khách theo đơn" → hết giữ;
 //   (3) TC-29: Bán hàng BẤM THAY xuất bến → 200; có bản chụp ĐẠT + dòng con, bản chốt trỏ đúng dòng `ord_passenger`, suất đã gắn tên (I19b);
 //   (4) TC-47 trên D1: khai giờ "đã tới" lùi 5 phút → sự kiện VAN_PHONG_KHAI, giờ xảy ra = giờ khai (đúng khuôn toISOString), có chính sách; khai ngoài kẹp →
 //       409 gio_xay_ra_ngoai_khoang kèm giờ sớm nhất; Kế toán → 403;
@@ -78,6 +79,32 @@ assert.ok(!r.body.chuyen.lyDoGiu.some((l) => l.ma === "NOI_HEN_DOI"));
 assert.equal((await sqlRows(`SELECT count(*) AS n FROM vc_trip_allocation WHERE trip_id = '${tripId}' AND close_reason = 'STOP_CHANGED'`))[0].n, 2);
 assert.equal((await sqlRows(`SELECT count(*) AS n FROM vc_trip_stop WHERE trip_id = '${tripId}' AND status = 'SKIPPED' AND skip_reason_code = 'BO_QUA_KHONG_CON_KHACH'`))[0].n, 0, "điểm cũ còn khách của B");
 console.log("✓ (2) TC-51: giữ NOI_HEN_DOI → cập nhật điểm theo đơn 200 (2 suất đóng STOP_CHANGED + mở lại), hết giữ; không lộ khoá nơi");
+
+// --- (2b) R-P29: khách của A đổi SAU khi máy gắn tên lúc xếp (I19a) → giữ KHACH_DA_DOI ở cả màn lẫn lệnh → cập nhật khách theo đơn ---
+ds = (await call(SALES, "GET", `/api/orders/${a.id}/passengers`)).body;
+const boKhoa = ds.passengers.find((x) => x.fullName === P(1).fullName).personKey;
+r = await call(SALES, "POST", `/api/orders/${a.id}/passengers`, { expectedUpdatedAt: ds.orderUpdatedAt, them: [P(5)], sua: [], huy: [boKhoa] });
+assert.equal(r.status, 200, JSON.stringify(r.body));
+r = await call(SALES, "GET", `/api/van-chuyen/chuyen/${tripId}`);
+assert.deepEqual(r.body.chuyen.lyDoGiu.map((l) => l.ma), ["KHACH_DA_DOI"], JSON.stringify(r.body.chuyen.lyDoGiu));
+const phienBanGiu = r.body.chuyen.version;
+r = await call(SALES, "POST", `/api/van-chuyen/chuyen/${tripId}/xuat-ben`, { requestId: uuid() });
+assert.equal(r.status, 409, JSON.stringify(r.body));
+assert.deepEqual([r.body.error.code, r.body.error.lyDo.map((l) => l.ma)], ["chua_du_dieu_kien_xuat_ben", ["KHACH_DA_DOI"]], "màn và lệnh CÙNG kết luận");
+assert.equal((await call(ACC, "POST", `/api/van-chuyen/chuyen/${tripId}/cap-nhat-khach`, { version: phienBanGiu, requestId: uuid() })).status, 403, "Kế toán không cập nhật");
+r = await call(SALES, "POST", `/api/van-chuyen/chuyen/${tripId}/cap-nhat-khach`, { version: phienBanGiu, requestId: uuid() });
+assert.equal(r.status, 200, JSON.stringify(r.body));
+assert.equal(r.body.daCapNhat, 1);
+assert.ok(!r.body.chuyen.lyDoGiu.some((l) => l.ma === "KHACH_DA_DOI"), JSON.stringify(r.body.chuyen.lyDoGiu));
+assert.doesNotMatch(JSON.stringify(r.body), /Khách Điều Phối E2E/, "phản hồi không có tên khách (GA-55)");
+const khoaMoi = (await call(SALES, "GET", `/api/orders/${a.id}/passengers`)).body.passengers.find((x) => x.fullName === P(5).fullName).personKey;
+const moA = await sqlRows(`SELECT passenger_key AS k FROM vc_trip_allocation WHERE trip_id = '${tripId}' AND valid_to_at IS NULL AND leg_id = '${a.services[0].legs[0].id}'`);
+assert.ok(moA.some((x) => x.k === khoaMoi) && !moA.some((x) => x.k === boKhoa), "suất mở lại mang khoá người mới; không còn suất mở mang khoá đã bỏ");
+assert.equal((await sqlRows(`SELECT count(*) AS n FROM vc_trip_allocation WHERE trip_id = '${tripId}' AND close_reason = 'PASSENGER_CHANGED'`))[0].n, 1);
+const [nkKhach] = await sqlRows(`SELECT detail FROM audit_log WHERE action = 'trip_passengers_synced' AND target_id = '${tripId}'`);
+assert.match(nkKhach.detail, /cập nhật khách theo đơn — .*: 1 khách/);
+assert.doesNotMatch(nkKhach.detail, /Khách Điều Phối E2E|1933/, "nhật ký chỉ số");
+console.log("✓ (2b) R-P29: khách đổi sau khi gắn tên → màn + lệnh xuất bến cùng giữ KHACH_DA_DOI; Kế toán 403; cập nhật khách theo đơn 200 (1 suất PASSENGER_CHANGED, mở lại khoá mới), hết giữ; không lộ tên");
 
 // --- (3) TC-29: Bán hàng bấm thay xuất bến ---
 assert.equal((await call(ACC, "POST", `/api/van-chuyen/chuyen/${tripId}/xuat-ben`, { requestId: uuid() })).status, 403, "Kế toán không bấm thay");
@@ -185,8 +212,8 @@ console.log(`✓ (6b) hai người bấm song song → một 200, một 409 (${m
 const [{ s: seqCuoi, t: gioCuoi }] = await sqlRows(`SELECT max(seq) AS s, (SELECT appt_time FROM vc_leg_appt_ack WHERE leg_id = '${legG}' ORDER BY seq DESC LIMIT 1) AS t FROM vc_leg_appt_ack WHERE leg_id = '${legG}'`);
 await sql(`INSERT INTO vc_leg_appt_ack (id, leg_id, seq, kind, appt_date, appt_time, prev_appt_date, prev_appt_time, request_id, created_at, updated_at)
   VALUES ('${uuid()}', '${legG}', ${seqCuoi + 1}, 'DA_GOI', '${D}', NULL, '${D}', '${gioCuoi}', '${uuid()}', '${AT}', '${AT}')`);
-await sql(`INSERT INTO vc_leg_appt_ack (id, leg_id, seq, kind, appt_date, appt_time, prev_appt_date, prev_appt_time, request_id, created_at, updated_at)
-  VALUES ('${uuid()}', '${legG}', ${seqCuoi + 2}, 'BO_DANH_DAU', '${D}', '${gioCuoi}', '${D}', NULL, '${uuid()}', '${AT}', '${AT}')`);
+await sql(`INSERT INTO vc_leg_appt_ack (id, leg_id, seq, kind, appt_date, appt_time, prev_appt_date, prev_appt_time, request_id, created_at, updated_at, bo_gio_hen_doi)
+  VALUES ('${uuid()}', '${legG}', ${seqCuoi + 2}, 'BO_DANH_DAU', '${D}', '${gioCuoi}', '${D}', NULL, '${uuid()}', '${AT}', '${AT}', 'null')`);
 try {
   await sql(`INSERT INTO vc_leg_appt_ack (id, leg_id, seq, kind, appt_date, appt_time, prev_appt_date, prev_appt_time, request_id, created_at, updated_at)
     VALUES ('${uuid()}', '${legG}', ${seqCuoi + 3}, 'DA_GOI', '${D}', '11:00', '${D}', NULL, '${uuid()}', '${AT}', '${AT}')`);
