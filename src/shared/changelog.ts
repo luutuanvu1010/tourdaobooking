@@ -19,6 +19,7 @@ export const CHANGELOG: readonly ReleaseNote[] = [
       { kind: "moi", text: "Chi tiết đơn: dưới giờ đón hiện xe đón khách — biển số, tên tài xế, số khách trên từng xe và xe đã chạy chưa. Chỉ người xem được Điều phối xe mới thấy." },
       { kind: "moi", text: "Kế toán đánh dấu đơn \"Đã nhập phần mềm kế toán\" kèm số hoá đơn; danh sách đơn có nhãn và lọc được đơn chưa nhập / đã nhập theo khoảng ngày." },
       { kind: "moi", text: "Dịch vụ nhập tay trở lại khi Toàn quyền bật ở trang Tôi (mặc định tắt): Bán hàng, Quản trị thêm được dịch vụ gõ tên, giá tay. Tài khoản đối tác không dùng được." },
+      { kind: "moi", text: "Lọc đơn theo từng người lập: trong nút \"Lọc\", gõ tên để chọn người đã lập đơn (Bán hàng, Kế toán, Quản trị). Bộ lọc \"Đơn tôi lập\" đã nhớ vẫn giữ nguyên." },
     ],
   },
   {

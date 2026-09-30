@@ -180,11 +180,12 @@ const ai = (await call(TQ, "GET", `/api/thong-bao/${qt.id}/nguoi-da-hieu`)).body
 assert.ok(ai.daHieu.some((x) => x.ten === ACCOUNTS.salesA.name));
 assert.equal((await call(ADMIN, "GET", `/api/thong-bao/${qt.id}/nguoi-da-hieu`)).status, 403);
 // m1 (rà soát độc lập lượt 2, rẻ): soNguoiNhan ở da-gui đếm đúng nhóm nhận 'noi-bo', KHÔNG tính người GỬI (TQ) — đếm lại thẳng từ CSDL
-// (mọi tài khoản active giữ ít nhất một quyền khác PARTNER, trừ chính TQ) để không phụ thuộc số tài khoản seed sẵn có thể đổi.
+// (mọi tài khoản active giữ ít nhất một quyền KHÔNG thuộc quyền bên ngoài — Đối tác, Tài xế đối tác: cùng tập `EXTERNAL_PERMISSIONS` mà `laNoiBo` ở
+// src/shared/thong-bao.ts dùng — trừ chính TQ) để không phụ thuộc số tài khoản seed sẵn có thể đổi.
 const noiBoKhacTQ = (
   await sqlRows(
     `SELECT COUNT(DISTINCT s.id) AS n FROM staff s JOIN stf_permission p ON p.staff_id = s.id AND p.valid_to_at IS NULL
-     WHERE s.active = 1 AND p.permission_type_code != 'PARTNER' AND s.id != '${tqId}'`,
+     WHERE s.active = 1 AND p.permission_type_code NOT IN ('PARTNER', 'DRIVER_PARTNER') AND s.id != '${tqId}'`,
   )
 )[0].n;
 const guiQt = (await call(TQ, "GET", "/api/thong-bao/da-gui")).body.tin.find((x) => x.id === qt.id);

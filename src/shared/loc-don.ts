@@ -7,7 +7,8 @@
 import { CATALOG_CODE_RE } from "./order-lines.ts";
 import { STATUS_LABEL } from "./order-status-label.ts";
 import { addDays, isISODate, vnWeekRange } from "./vn-date.ts";
-import type { OrderStatus } from "./contracts.ts";
+import { normName } from "./assignee-pick.ts";
+import type { NguoiLapDto, OrderStatus } from "./contracts.ts";
 import { LOC_NHAP_TOI_DA_NGAY, soNgayKhoang } from "./nhap-ke-toan.ts";
 
 export const LOC_DON_TOI_DA_DICH_VU = 20;
@@ -46,17 +47,22 @@ export function docLocDon(p: URLSearchParams): { ok: true; loc: LocDon } | { ok:
 }
 
 // ---- Phía màn Đơn hàng (chủ duyệt ảnh phác a, 30/9) -----------------------------------------------------------------------
-/** Bộ lọc như màn giữ và nhớ trên máy. "Người lập" ở màn là "đơn tôi lập" (chưa có nguồn danh sách người lập cho mọi vai — xem báo cáo 30/9). */
+/**
+ * Bộ lọc như màn giữ và nhớ trên máy. `nguoiLap` = mã tài khoản người lập (ADR-0067: chọn từng người, chỉ người xem mọi đơn), hoặc dấu
+ * `NGUOI_LAP_TOI_CU` khi đọc bộ lọc "Đơn tôi lập" nhớ từ bản cũ (lúc đó chưa biết mã người xem — `chotLocDon` đổi thành mã chính mình).
+ */
 export interface LocDonMan {
   tu: string | null;
   den: string | null;
   dichVu: string[];
   trangThai: OrderStatus[];
-  cuaToi: boolean;
+  nguoiLap: string | null;
   /** ADR-0060: "đã / chưa nhập phần mềm kế toán" — chỉ người có ô xem dấu không ngữ cảnh; bắt buộc kèm khoảng ngày (`kiemLocNhapKeToan`). */
   nhapKeToan: "da" | "chua" | null;
 }
-export const LOC_TRONG: LocDonMan = { tu: null, den: null, dichVu: [], trangThai: [], cuaToi: false, nhapKeToan: null };
+export const LOC_TRONG: LocDonMan = { tu: null, den: null, dichVu: [], trangThai: [], nguoiLap: null, nhapKeToan: null };
+/** Dấu "Đơn tôi lập" của bộ lọc nhớ từ bản ≤ 1.45 (`cuaToi: true`). Không khớp dạng mã tài khoản nên không bao giờ trùng một người thật. */
+export const NGUOI_LAP_TOI_CU = ":toi";
 export type KhoaDieuKien = "ngay" | "dichVu" | "trangThai" | "nguoiLap" | "nhapKeToan";
 
 /** ADR-0060 A-6 (cùng luật máy chủ): lọc theo dấu kế toán phải có Từ ngày + Đến ngày, tối đa 92 ngày tính cả hai đầu. null = hợp lệ. */
@@ -74,15 +80,22 @@ export function thamSoLocDon(loc: LocDonMan, toiId: string): [string, string][] 
   if (loc.den) p.push(["den", loc.den]);
   for (const c of loc.dichVu) p.push(["dichVu", c]);
   for (const t of loc.trangThai) p.push(["status", t]);
-  if (loc.cuaToi) p.push(["nguoiLap", toiId]);
+  if (loc.nguoiLap) p.push(["nguoiLap", loc.nguoiLap === NGUOI_LAP_TOI_CU ? toiId : loc.nguoiLap]);
   if (loc.nhapKeToan) p.push(["nhapKeToan", loc.nhapKeToan]);
   return p;
 }
 
 const ngayNgan = (d: string): string => `${d.slice(8, 10)}/${d.slice(5, 7)}`;
 
-/** Chip "đang lọc" ở đầu danh sách — mỗi nhóm điều kiện một chip. `tenDv`: mã → tên dịch vụ (thiếu tên thì hiện mã). */
-export function chipLocDon(loc: LocDonMan, tenDv: ReadonlyMap<string, string>): { khoa: KhoaDieuKien; nhan: string }[] {
+/**
+ * Chip "đang lọc" ở đầu danh sách — mỗi nhóm điều kiện một chip. `tenDv`: mã → tên dịch vụ (thiếu tên thì hiện mã). `nguoi`: mã người xem + mã → tên
+ * người lập (ADR-0067): chính mình → "Đơn tôi lập"; thiếu tên (danh sách chưa tải / người không còn trong danh sách) → "Người lập đã chọn", không mã thô.
+ */
+export function chipLocDon(
+  loc: LocDonMan,
+  tenDv: ReadonlyMap<string, string>,
+  nguoi: { toiId: string; ten: ReadonlyMap<string, string> } = { toiId: "", ten: new Map() },
+): { khoa: KhoaDieuKien; nhan: string }[] {
   const out: { khoa: KhoaDieuKien; nhan: string }[] = [];
   if (loc.tu || loc.den) {
     const nhan = loc.tu && loc.den ? (loc.tu === loc.den ? `Ngày đi ${ngayNgan(loc.tu)}` : `Ngày đi ${ngayNgan(loc.tu)} – ${ngayNgan(loc.den)}`)
@@ -94,7 +107,10 @@ export function chipLocDon(loc: LocDonMan, tenDv: ReadonlyMap<string, string>): 
     out.push({ khoa: "dichVu", nhan: loc.dichVu.length > 1 ? `${dau} +${loc.dichVu.length - 1}` : dau });
   }
   if (loc.trangThai.length) out.push({ khoa: "trangThai", nhan: loc.trangThai.map((t) => STATUS_LABEL[t]).join(", ") });
-  if (loc.cuaToi) out.push({ khoa: "nguoiLap", nhan: "Đơn tôi lập" });
+  if (loc.nguoiLap) {
+    const toi = loc.nguoiLap === NGUOI_LAP_TOI_CU || (nguoi.toiId !== "" && loc.nguoiLap === nguoi.toiId);
+    out.push({ khoa: "nguoiLap", nhan: toi ? "Đơn tôi lập" : (nguoi.ten.get(loc.nguoiLap) ?? "Người lập đã chọn") });
+  }
   if (loc.nhapKeToan) out.push({ khoa: "nhapKeToan", nhan: loc.nhapKeToan === "da" ? "Đã nhập PM kế toán" : "Chưa nhập PM kế toán" });
   return out;
 }
@@ -107,7 +123,31 @@ export function boDieuKien(loc: LocDonMan, khoa: KhoaDieuKien): LocDonMan {
   if (khoa === "nhapKeToan") return { ...loc, nhapKeToan: null };
   if (khoa === "dichVu") return { ...loc, dichVu: [] };
   if (khoa === "trangThai") return { ...loc, trangThai: [] };
-  return { ...loc, cuaToi: false };
+  return { ...loc, nguoiLap: null };
+}
+
+/**
+ * Chốt bộ lọc đã nhớ SAU khi biết người xem (ADR-0067): dấu "Đơn tôi lập" của bản cũ → mã chính mình; người KHÔNG xem mọi đơn (ô "Người lập" không
+ * hiện — thường là bộ nhớ của tài khoản khác trên cùng máy) → bỏ ô người lập. Máy chủ vẫn AND bộ lọc với phạm vi xem, đây chỉ để màn không lọc ngầm.
+ */
+export function chotLocDon(loc: LocDonMan, toiId: string, xemMoiDon: boolean): LocDonMan {
+  if (loc.nguoiLap === null) return loc;
+  if (!xemMoiDon) return { ...loc, nguoiLap: null };
+  return loc.nguoiLap === NGUOI_LAP_TOI_CU ? { ...loc, nguoiLap: toiId } : loc;
+}
+
+/**
+ * Danh sách người lập cho ô chọn (ADR-0067): bỏ chính người xem (đã có lối tắt "Đơn tôi lập"), giữ thứ tự máy chủ (đơn gần nhất trước), lọc theo chữ gõ
+ * (không dấu cũng khớp — `normName`). Tên trùng trong danh sách (kể cả nhiều "(chưa có hồ sơ)") → kèm ngày đơn gần nhất để phân biệt (A-7).
+ */
+export function dsNguoiLapChon(ds: readonly NguoiLapDto[], toiId: string, tim: string): { id: string; nhan: string }[] {
+  const khac = ds.filter((x) => x.id !== toiId);
+  const dem = new Map<string, number>();
+  for (const x of khac) dem.set(x.ten, (dem.get(x.ten) ?? 0) + 1);
+  const kim = normName(tim.trim());
+  return khac
+    .filter((x) => !kim || normName(x.ten).includes(kim))
+    .map((x) => ({ id: x.id, nhan: (dem.get(x.ten) ?? 0) > 1 ? `${x.ten} · đơn gần nhất ${ngayNgan(x.ganNhat)}` : x.ten }));
 }
 
 export type KhoangNhanh = "hom-nay" | "ngay-mai" | "3-ngay" | "tuan-nay";
@@ -135,7 +175,9 @@ export function docLocDaNho(raw: string | null): LocDonMan {
     const trangThai = mang(o.trangThai);
     if (!dichVu || !trangThai) return LOC_TRONG;
     const nhapKeToan = o.nhapKeToan === "da" || o.nhapKeToan === "chua" ? o.nhapKeToan : null;
-    const loc: LocDonMan = { tu: chuoi(o.tu), den: chuoi(o.den), dichVu, trangThai: trangThai as OrderStatus[], cuaToi: o.cuaToi === true, nhapKeToan };
+    // Bản ≤ 1.45 nhớ "Đơn tôi lập" là `cuaToi: true` (chưa có khoá `nguoiLap`) → dấu NGUOI_LAP_TOI_CU, chốt thành mã chính mình ở `chotLocDon`.
+    const nguoiLap = chuoi(o.nguoiLap) ?? (o.cuaToi === true ? NGUOI_LAP_TOI_CU : null);
+    const loc: LocDonMan = { tu: chuoi(o.tu), den: chuoi(o.den), dichVu, trangThai: trangThai as OrderStatus[], nguoiLap, nhapKeToan };
     return docLocDon(new URLSearchParams(thamSoLocDon(loc, "x"))).ok && kiemLocNhapKeToan(loc) === null ? loc : LOC_TRONG;
   } catch {
     return LOC_TRONG;

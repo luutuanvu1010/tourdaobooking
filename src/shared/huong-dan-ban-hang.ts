@@ -96,7 +96,7 @@ App chỉ cho xác nhận khi mỗi dịch vụ có ngày khởi hành, ngày đ
       noiDung: `### Đơn hàng
 
 1. Bấm [[Đơn hàng]].
-2. Gõ vào ô tìm (mã đơn, tên, số điện thoại), hoặc bấm nút **Lọc** để lọc cùng lúc theo ngày đi, dịch vụ, trạng thái ([[Chờ xác nhận]], [[Đã xác nhận]], [[Đã huỷ]]) và [[Đơn tôi lập]], rồi bấm [[Áp dụng]]. Điều kiện đang lọc hiện thành nhãn trên danh sách; bấm × để bỏ từng cái, [[Xoá lọc]] để bỏ hết. Máy nhớ bộ lọc cho lần sau.
+2. Gõ vào ô tìm (mã đơn, tên, số điện thoại), hoặc bấm nút **Lọc** để lọc cùng lúc theo ngày đi, dịch vụ, trạng thái ([[Chờ xác nhận]], [[Đã xác nhận]], [[Đã huỷ]]) và người lập ([[Đơn tôi lập]], hoặc gõ tên để chọn từng người đã lập đơn), rồi bấm [[Áp dụng]]. Điều kiện đang lọc hiện thành nhãn trên danh sách; bấm × để bỏ từng cái, [[Xoá lọc]] để bỏ hết. Máy nhớ bộ lọc cho lần sau.
 3. Mỗi thẻ hiện mã, trạng thái, ngày, khách, tiền; mở phần xổ xuống để thấy người phụ trách ("HDV: tên" hoặc [[Chờ nhận]]). Bấm [[Tải thêm]] để xem đơn cũ hơn.
 
 Ô tìm trên thanh trên cùng cũng đưa bạn tới đây, kèm từ bạn gõ.

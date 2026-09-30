@@ -1,5 +1,5 @@
 import { can, seesAllOrders } from "../src/shared/permissions";
-import { KHOANG_NHANH, LOC_TRONG, boDieuKien, chipLocDon, docLocDaNho, docLocDon, khoangNhanh, kiemLocNhapKeToan, soDieuKienLoc, thamSoLocDon, type LocDonMan } from "../src/shared/loc-don";
+import { KHOANG_NHANH, LOC_TRONG, NGUOI_LAP_TOI_CU, boDieuKien, chipLocDon, chotLocDon, docLocDaNho, docLocDon, dsNguoiLapChon, khoangNhanh, kiemLocNhapKeToan, soDieuKienLoc, thamSoLocDon, type LocDonMan } from "../src/shared/loc-don";
 import { STATUS_LABEL } from "../src/shared/order-status-label";
 import { vnToday } from "../src/shared/vn-date";
 import { moBangTruot } from "./bang-truot";
@@ -48,7 +48,7 @@ function ghiNho(l: LocDonMan): void {
   }
 }
 let loc: LocDonMan = docLocDaNho(docNho());
-/** Mã tài khoản đang xem — cần cho "Đơn tôi lập"; có sau initShell(). */
+/** Mã tài khoản đang xem — cần cho "Đơn tôi lập" (và dấu "Đơn tôi lập" của bộ lọc nhớ từ bản cũ); có sau initShell(). */
 let toiId = "";
 
 /** Đường dẫn `GET /api/orders` theo bộ lọc/ô tìm đang hiện. */
@@ -69,8 +69,8 @@ if (qFromUrl) qInput.value = qFromUrl;
 // khi đường dẫn trùng; lần đầu đã bắt đầu thì bỏ hẳn — không để một lần tải sau (bộ lọc đổi rồi quay về mặc định) nhận nhầm bản chụp lúc mở trang
 // (người kiểm độc lập 2026-09-27, phát hiện Important).
 const urlDau = listUrl(0, PAGE);
-// "Đơn tôi lập" cần mã người xem (chưa có lúc này) → bỏ gọi sớm, tải sau initShell().
-let layDau: (() => Promise<Api.OrderListResponse>) | null = loc.cuaToi ? null : goiSom(() => api<Api.OrderListResponse>(urlDau));
+// Bộ lọc "Đơn tôi lập" nhớ từ bản cũ cần mã người xem (chưa có lúc này) → bỏ gọi sớm, tải sau initShell().
+let layDau: (() => Promise<Api.OrderListResponse>) | null = loc.nguoiLap === NGUOI_LAP_TOI_CU ? null : goiSom(() => api<Api.OrderListResponse>(urlDau));
 
 /** Một thẻ đơn + chỗ ghi người phụ trách (điền sau khi `GET /api/dispatch/handlers` về). */
 interface Row {
@@ -252,6 +252,25 @@ function layDanhMuc(who: Staff): Promise<{ code: string; name: string }[] | null
   return danhMuc;
 }
 
+/** ADR-0067: những người đã lập đơn (ô "Người lập" — chỉ người xem mọi đơn). Tải MỘT lần: khi mở bảng lọc, hoặc lúc mở trang nếu bộ lọc đã nhớ chọn
+ *  một người khác (tên cho chip). Lỗi → null (ô vẫn còn "Mọi người" / "Đơn tôi lập"); lần mở bảng sau thử lại. */
+let dsNguoiLap: Promise<Api.NguoiLapDto[] | null> | null = null;
+const tenNguoi = new Map<string, string>();
+function layNguoiLap(): Promise<Api.NguoiLapDto[] | null> {
+  dsNguoiLap ??= (async () => {
+    try {
+      const ds = (await api<Api.NguoiLapResponse>("/api/orders/nguoi-lap")).nguoiLap;
+      for (const x of ds) tenNguoi.set(x.id, x.ten);
+      return ds;
+    } catch {
+      dsNguoiLap = null;
+      return null;
+    }
+  })();
+  return dsNguoiLap;
+}
+const NGUOI_TOI_DA = 50; // số dòng người lập hiện một lúc — hơn thì gõ tên để tìm (tài khoản Đối tác có thể nhiều)
+
 function apDungLoc(moi: LocDonMan): void {
   loc = moi;
   ghiNho(loc);
@@ -261,7 +280,7 @@ function apDungLoc(moi: LocDonMan): void {
 
 /** Chip "đang lọc" + "Xoá lọc" ở đầu danh sách; số điều kiện trên nút "Lọc". */
 function veChip(): void {
-  const chip = chipLocDon(loc, tenDv);
+  const chip = chipLocDon(loc, tenDv, { toiId, ten: tenNguoi });
   locDem.textContent = String(chip.length);
   locDem.hidden = chip.length === 0;
   locMo.setAttribute("aria-label", chip.length ? `Lọc đơn — đang lọc ${chip.length} điều kiện` : "Lọc đơn");
@@ -356,7 +375,6 @@ function moBoLoc(): void {
     veDv();
   });
 
-  // Người lập: chỉ người xem mọi đơn (chủ duyệt 30/9). Chưa có nguồn danh sách người lập cho mọi vai → "Mọi người" / "Đơn tôi lập".
   // ADR-0060: "Nhập phần mềm kế toán" — chỉ người có ô xem dấu không ngữ cảnh (máy chủ 403 với người khác); bắt buộc kèm khoảng ngày (≤ 92 ngày).
   const nhapKt = can(who, "accounting.entry.view")
     ? h("select", { id: "loc-nhap-kt", onchange: (e: Event) => {
@@ -368,10 +386,49 @@ function moBoLoc(): void {
         h("option", { value: "da", selected: nhap.nhapKeToan === "da" }, "Đã nhập"))
     : null;
 
-  const nguoi = seesAllOrders(who)
-    ? h("select", { id: "loc-nguoi", onchange: (e: Event) => (nhap.cuaToi = (e.target as HTMLSelectElement).value === "toi") },
-        h("option", { value: "", selected: !nhap.cuaToi }, "Mọi người"), h("option", { value: "toi", selected: nhap.cuaToi }, "Đơn tôi lập"))
-    : null;
+  // Người lập (ADR-0067, chủ duyệt 30/9): chỉ người xem mọi đơn. "Mọi người" / "Đơn tôi lập" (lối tắt = chính mình) ở đầu, rồi ô gõ tìm + danh sách
+  // những người đã lập đơn (bỏ chính mình; kể cả người đã nghỉ và Đối tác — không nhãn). Người đang chọn luôn hiện để bỏ chọn được.
+  let nguoiNhom: HTMLElement | null = null;
+  if (seesAllOrders(who)) {
+    const ngTim = h("input", { type: "search", id: "loc-nguoi-tim", placeholder: "Tìm người lập…", autocomplete: "off", "aria-label": "Tìm người lập" }) as HTMLInputElement;
+    const ngDau = h("div", { class: "loc-nguoi-dau" });
+    const ngDs = h("div", { class: "loc-dv-ds", "data-ds": "nguoiLap" }, h("p", { class: "muted" }, "Đang tải danh sách người lập…"));
+    let dsNg: Api.NguoiLapDto[] | null | undefined; // undefined = đang tải; null = lỗi
+    const chon = (id: string | null, nhan: string): HTMLElement => {
+      const o = h("input", { type: "radio", name: "loc-nguoi", checked: nhap.nguoiLap === id, "data-nguoi": id ?? "" }) as HTMLInputElement;
+      o.addEventListener("change", () => {
+        if (o.checked) nhap.nguoiLap = id;
+      });
+      return h("label", { class: "loc-dv" }, o, h("span", null, nhan));
+    };
+    const veNg = (): void => {
+      replaceChildren(ngDau, chon(null, "Mọi người"), chon(toiId, "Đơn tôi lập"));
+      if (dsNg === undefined) return;
+      if (dsNg === null) {
+        replaceChildren(ngDs, h("p", { class: "muted" }, "Chưa tải được danh sách người lập."));
+        return;
+      }
+      const khop = dsNguoiLapChon(dsNg, toiId, ngTim.value);
+      const daChon = nhap.nguoiLap !== null && nhap.nguoiLap !== toiId && !khop.slice(0, NGUOI_TOI_DA).some((x) => x.id === nhap.nguoiLap)
+        ? [chon(nhap.nguoiLap, tenNguoi.get(nhap.nguoiLap) ?? "Người lập đã chọn")]
+        : [];
+      const dong = khop.slice(0, NGUOI_TOI_DA).map((x) => chon(x.id, x.nhan));
+      replaceChildren(
+        ngDs,
+        ...daChon,
+        ...dong,
+        ...(dong.length === 0 ? [h("p", { class: "muted" }, "Không có người lập khớp.")] : []),
+        ...(khop.length > NGUOI_TOI_DA ? [h("p", { class: "muted" }, `Còn ${khop.length - NGUOI_TOI_DA} người — gõ tên để tìm.`)] : []),
+      );
+    };
+    ngTim.addEventListener("input", veNg);
+    veNg();
+    void layNguoiLap().then((r) => {
+      dsNg = r;
+      veNg();
+    });
+    nguoiNhom = h("fieldset", { class: "loc-nhom", "data-nhom": "nguoiLap" }, h("legend", null, "Người lập"), ngDau, ngTim, ngDs);
+  }
 
   const huy = h("button", { type: "button", class: "btn" }, "Huỷ");
   const apDung = h("button", { type: "button", class: "btn btn-primary", "data-action": "ap-dung-loc" }, "Áp dụng");
@@ -383,7 +440,7 @@ function moBoLoc(): void {
         h("div", { class: "loc-ngay" }, h("label", null, "Từ ngày", tu), h("label", null, "Đến ngày", den))),
       h("fieldset", { class: "loc-nhom", "data-nhom": "trangThai" }, h("legend", null, "Trạng thái"), h("div", { class: "loc-nut-hang" }, ...trangThai)),
       dvNhom,
-      nguoi ? h("label", { class: "loc-nhom" }, "Người lập", nguoi) : null,
+      nguoiNhom,
       nhapKt ? h("label", { class: "loc-nhom" }, "Nhập phần mềm kế toán (cần Từ ngày – Đến ngày)", nhapKt) : null,
       loi,
     ],
@@ -424,7 +481,13 @@ staffDaCo = staff;
 const newOrderBtn = document.getElementById("new-order");
 if (newOrderBtn) newOrderBtn.hidden = !can(staff, "order.create");
 toiId = staff.id;
-if (loc.cuaToi && !seesAllOrders(staff)) loc = { ...loc, cuaToi: false }; // bộ lọc nhớ của tài khoản khác trên cùng máy: ô này chỉ cho người xem mọi đơn
+// ADR-0067: dấu "Đơn tôi lập" nhớ từ bản cũ → mã chính mình (ghi lại dạng mới); bộ lọc nhớ của tài khoản khác trên cùng máy: ô người lập chỉ cho người xem mọi đơn.
+{
+  const chot = chotLocDon(loc, staff.id, seesAllOrders(staff));
+  if (loc.nguoiLap === NGUOI_LAP_TOI_CU && chot.nguoiLap === staff.id) ghiNho(chot);
+  loc = chot;
+}
+if (loc.nguoiLap !== null && loc.nguoiLap !== staff.id) void layNguoiLap().then(() => veChip()); // tên người lập cho chip của bộ lọc đã nhớ
 if (loc.nhapKeToan && !can(staff, "accounting.entry.view")) loc = { ...loc, nhapKeToan: null }; // ADR-0060: bộ lọc nhớ của tài khoản khác — máy chủ sẽ 403
 veChip();
 if (loc.dichVu.length) void layDanhMuc(staff).then(() => veChip()); // tên dịch vụ cho chip của bộ lọc đã nhớ

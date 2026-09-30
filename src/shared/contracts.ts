@@ -409,6 +409,13 @@ export interface IncompleteTripBody { error: { code: "incomplete_trip"; message:
 export interface CatalogChangedBody { error: { code: "catalog_changed"; message: string; changes: CatalogChangeDto[] } }
 
 export interface OrderListResponse { orders: OrderSummaryDto[]; hasMore: boolean }
+/**
+ * ADR-0067: một người đã từng lập đơn — cho ô "Người lập" của bộ lọc danh sách đơn (chỉ người xem mọi đơn). DANH SÁCH TRẮNG: mã tài khoản, tên hiển thị
+ * (như "Người lập: …" trên thẻ đơn), ngày dân sự giờ Việt Nam của đơn gần nhất (chỉ để phân biệt tên trùng). KHÔNG BAO GIỜ: SĐT, email, trạng thái
+ * nghỉ, vai, mã quyền, số đơn, tiền.
+ */
+export interface NguoiLapDto { id: string; ten: string; ganNhat: string }
+export interface NguoiLapResponse { nguoiLap: NguoiLapDto[] }
 /** Cảnh báo mốc tối thiểu khi LƯU NHÁP (ADR-0049 I27 — không chặn lưu): chặng có giờ, chưa đặt gấp, dưới mốc. `legKey` = id chặng. */
 export interface CanhBaoMocDto { legKey: string; phutConLai: number }
 /**
