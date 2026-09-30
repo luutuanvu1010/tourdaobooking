@@ -645,3 +645,21 @@ export async function changMoCuaDon(db: D1Database, orderId: string): Promise<st
 export async function xeCuaDon(db: D1Database, orderId: string): Promise<XeCuaDonRow[]> {
   return (await db.prepare(XE_CUA_DON).bind(orderId).all<XeCuaDonRow>()).results;
 }
+
+// ---- ADR-0068 Đ2 (gộp hồ sơ): việc xe đang mở của MỘT hồ sơ — CHỈ gốc lắp ráp gọi qua hàm công bố viecXeCuaNguoi ----------------------------------------
+// "Chưa chốt" = chuyến PLANNED hoặc RUNNING. ?1 = hồ sơ. Chỉ đếm, không trả chuyến / xe.
+const VIEC_XE_CUA_NGUOI = defineSql(
+  "van-chuyen",
+  "viec_xe_cua_nguoi",
+  `SELECT
+     (SELECT count(*) FROM vc_trip_driver d JOIN vc_trip t ON t.id = d.trip_id
+       WHERE d.driver_party_id = ?1 AND d.valid_to_at IS NULL AND t.status IN ('PLANNED', 'RUNNING')) AS lai,
+     (SELECT count(*) FROM vc_trip_allocation a JOIN vc_trip t ON t.id = a.trip_id
+       WHERE a.kind = 'CREW' AND a.crew_party_id = ?1 AND a.valid_to_at IS NULL AND t.status IN ('PLANNED', 'RUNNING')) AS to_lai,
+     (SELECT count(*) FROM vc_trip t WHERE t.carrier_party_id = ?1 AND t.status IN ('PLANNED', 'RUNNING')) AS chu_xe,
+     (SELECT count(*) FROM vc_vehicle v WHERE v.owner_party_id = ?1) AS so_xe`,
+);
+export async function viecXeCuaNguoi(db: D1Database, partyId: string): Promise<{ laiChuyen: number; toLaiChuyen: number; chuXeChuyen: number; soXe: number }> {
+  const r = await db.prepare(VIEC_XE_CUA_NGUOI).bind(partyId).first<{ lai: number; to_lai: number; chu_xe: number; so_xe: number }>();
+  return { laiChuyen: r?.lai ?? 0, toLaiChuyen: r?.to_lai ?? 0, chuXeChuyen: r?.chu_xe ?? 0, soXe: r?.so_xe ?? 0 };
+}

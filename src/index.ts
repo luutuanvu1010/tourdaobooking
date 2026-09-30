@@ -4,6 +4,7 @@
 // đang phụ trách" (ADR-0030 S20-13) nhưng KHÔNG được import `dispatch` (dispatch → orders là chiều được phép, chiều ngược lại sẽ thành vòng) và không đọc view
 // `v_dsp_*` của nó. Router chỉ chuyển chúng vào `ctx`.
 // `parties` cần biết hồ sơ gắn tài khoản nào (ADR-0013) nhưng KHÔNG được import `staff` — tiêm `partyAccount`.
+// GỘP HỒ SƠ (ADR-0068): parties nhận "việc đang mở", đơn theo người đặt, câu đổi người đặt, số dòng nợ, SĐT đăng nhập qua ctx.gopHoSo — không cạnh phụ thuộc mới.
 // BẢNG TIN (ADR-0022): module `bangtin` là lá, không đọc cơ sở dữ liệu (KHONG_DB) — gốc lắp ráp đọc mã đơn/người lập (`orders`) + người phụ trách
 // (`dispatch`), tính nhãn người nhận (`nhanSuKien`) rồi đưa cho `phatDon`. Đây cũng là NƠI DUY NHẤT nạp lớp Durable Object `BangTin` (`tram.ts`) —
 // wrangler cần lớp đó được export từ tệp chính.
@@ -14,20 +15,20 @@ import { accountsModule } from "./modules/accounts";
 import { auditModule } from "./modules/audit";
 import { authModule, checkAuthConfig, currentStaff } from "./modules/auth";
 import { bangtinModule, dongCua, phatDon, xepHangDay } from "./modules/bangtin";
-import { billingModule, nhapKeToanCuaDon } from "./modules/billing";
+import { billingModule, nhapKeToanCuaDon, soDongNoCuaNguoi } from "./modules/billing";
 import { receiptModule } from "./modules/receipt";
 import { catalogModule, runScheduledSync } from "./modules/catalog";
 import { companyModule } from "./modules/company";
-import { dispatchModule, handledOrderIdsOf, handlerOf, isOrderHandler, newOrderHandler, ordersWithHandler } from "./modules/dispatch";
+import { dispatchModule, handledOrderIdsOf, handlerOf, isOrderHandler, newOrderHandler, ordersWithHandler, soDonDangPhuTrachCua } from "./modules/dispatch";
 import { locationsModule } from "./modules/locations";
 import { feedbackModule } from "./modules/feedback";
 import { maintenanceBlock, maintenanceModule } from "./modules/maintenance";
 import { partiesModule } from "./modules/parties";
-import { findOrderRef, ordersModule } from "./modules/orders";
-import { accountOfParty, nhanNhanVienTheoId } from "./modules/staff";
+import { cauDoiNguoiDat, donCuaNguoiDat, findOrderRef, ordersModule } from "./modules/orders";
+import { accountOfParty, nhanNhanVienTheoId, soDangNhapTheoHoSo } from "./modules/staff";
 import { dayGoCua, tatMayStatement, thongbaoModule } from "./modules/thongbao";
 import { troLyModule } from "./modules/tro-ly";
-import { mocToiThieuHienHanh, vanChuyenModule } from "./modules/van-chuyen";
+import { mocToiThieuHienHanh, vanChuyenModule, viecXeCuaNguoi } from "./modules/van-chuyen";
 import { HANDLER_TRUOC_KHONG_BIET, nhanSuKien } from "./shared/bang-tin";
 import { hanhDongCuaThayDoi, khoaVapid } from "./shared/web-push";
 import { createApp, type AppOptions } from "./shared/router";
@@ -106,6 +107,17 @@ const APP_OPTIONS: AppOptions = {
     mocToiThieu: (env) => mocToiThieuHienHanh(env.DB),
     // NHÃN NGƯỜI BẤM (ruling R-P20): van-chuyen không import staff — gốc lắp ráp gọi hàm công bố của staff (chỉ tên hiển thị).
     nhanNhanVien: (env, ids) => nhanNhanVienTheoId(env.DB, ids),
+    // GỘP HỒ SƠ (ADR-0068 Đ2, Đ6, Đ8): parties không import orders / dispatch / van-chuyen / billing / staff — gốc lắp ráp là NƠI DUY NHẤT gọi các hàm công bố này.
+    gopHoSo: (env) => ({
+      viecCua: async (partyId) => {
+        const [phuTrachDon, xe] = await Promise.all([soDonDangPhuTrachCua(env.DB, partyId), viecXeCuaNguoi(env.DB, partyId)]);
+        return { phuTrachDon, ...xe };
+      },
+      donNguoiDat: (partyId) => donCuaNguoiDat(env.DB, partyId),
+      cauDoiDon: (tu, sang, at) => cauDoiNguoiDat(env.DB, tu, sang, at),
+      soDongNo: (partyId) => soDongNoCuaNguoi(env.DB, partyId),
+      soDangNhap: () => soDangNhapTheoHoSo(env.DB),
+    }),
     // DẤU "ĐÃ NHẬP PHẦN MỀM KẾ TOÁN" (ADR-0060 điều 5): `orders` không đọc bảng bil_ — gốc lắp ráp gọi hàm đọc tập id của billing (lọc + nhãn danh sách đơn).
     nhapKeToanCuaDon: (env, ids) => nhapKeToanCuaDon(env.DB, ids),
   },

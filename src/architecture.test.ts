@@ -130,6 +130,8 @@ const NUA_NGHIEM: readonly { module: string; file: string }[] = [
   { module: "orders", file: "modules/orders/chang-hanh-khach-repo.ts" },
   // Sổ tiền lượt 1 (ADR-0024 điều 3–4 — SIẾT): câu mốc "Đã giao" / "Hoàn thành" + đọc trạng thái cho billing, mọi câu qua defineSql + EXPLAIN.
   { module: "orders", file: "modules/orders/hoan-tat-repo.ts" },
+  // ADR-0068 Đ1 bước 5 (SIẾT): đọc đơn theo người đặt + câu đổi người đặt khi gộp hồ sơ — mọi câu qua defineSql + EXPLAIN.
+  { module: "orders", file: "modules/orders/nguoi-dat-gop-repo.ts" },
 ];
 
 /**
@@ -874,6 +876,25 @@ test("ADR-0049 D2 (siết, kế hoạch mục 1.6): chỉ gốc lắp ráp (src/
     if (/\bmocToiThieuHienHanh\b/.test(maskSource(readFileSync(file, "utf8"), { strings: false, comments: true }))) problems.push(rel);
   }
   assert.deepEqual(problems, [], "orders nhận mốc qua ctx.mocToiThieu — không gọi thẳng hàm công bố của van-chuyen");
+});
+
+test("ADR-0068 Đ6 (siết): chỉ gốc lắp ráp (src/index.ts) và module chủ nhắc sáu hàm công bố của gộp hồ sơ (bỏ chú thích)", () => {
+  const CHU: Record<string, string> = {
+    viecXeCuaNguoi: "src/modules/van-chuyen/",
+    soDongNoCuaNguoi: "src/modules/billing/",
+    soDonDangPhuTrachCua: "src/modules/dispatch/",
+    cauDoiNguoiDat: "src/modules/orders/",
+    soDangNhapTheoHoSo: "src/modules/staff/",
+    donCuaNguoiDat: "src/modules/orders/",
+  };
+  const problems: string[] = [];
+  for (const file of walk(SRC)) {
+    const rel = relative(ROOT, file).split(sep).join("/");
+    if (rel === "src/index.ts") continue;
+    const text = maskSource(readFileSync(file, "utf8"), { strings: false, comments: true });
+    for (const [ten, chu] of Object.entries(CHU)) if (!rel.startsWith(chu) && new RegExp(`\\b${ten}\\b`).test(text)) problems.push(`${rel}: ${ten}`);
+  }
+  assert.deepEqual(problems, [], "các hàm này tới parties qua ctx.gopHoSo — không module nào gọi thẳng");
 });
 
 // ADR-0049 Task A19 (siết do điều phối giao): `taoAppChoKhungThu` (src/index.ts) dựng ứng dụng với hàm tiêm GHI ĐÈ (mốc giả, bỏ nhãn người bấm…) — chỉ khung
