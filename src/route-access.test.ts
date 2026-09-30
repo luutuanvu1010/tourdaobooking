@@ -48,6 +48,7 @@ const MODULES: readonly { entry: string; exportName: string }[] = [
   { entry: "./modules/audit/index.ts", exportName: "auditModule" },
   { entry: "./modules/auth/index.ts", exportName: "authModule" },
   { entry: "./modules/bangtin/index.ts", exportName: "bangtinModule" },
+  { entry: "./modules/billing/index.ts", exportName: "billingModule" }, // sổ tiền lượt 1 (ADR-0024 điều 1)
   { entry: "./modules/catalog/index.ts", exportName: "catalogModule" },
   { entry: "./modules/company/index.ts", exportName: "companyModule" },
   { entry: "./modules/dispatch/index.ts", exportName: "dispatchModule" },

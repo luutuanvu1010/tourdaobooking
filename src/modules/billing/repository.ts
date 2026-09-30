@@ -1,0 +1,227 @@
+// SQL của module billing (bảng `bil_*`, migration 0045 — sổ tiền lượt 1). Module NGHIÊM từ ngày đầu (ADR-0024 điều 1; `STRICT` ở src/architecture.test.ts):
+// mọi câu qua `defineSql` (câu TĨNH, tham số ?N) và chịu bài EXPLAIN — chỉ chạm bảng `bil_` và view công bố của module được phép phụ thuộc
+// (`v_ord_order_state`, `v_ord_order_owner`, `v_ord_order_label` của orders; `v_pty_owner_company`, `v_pty_party_label` của parties; `v_stf_staff_label` của
+// staff). Ghi bảng của module khác (orders, dispatch) thì nhận câu CHƯA CHẠY từ index.ts của module chủ rồi gộp vào CÙNG `db.batch()` (ADR-0002 quy tắc 3).
+// Import kèm đuôi .ts (bài kiểm kiến trúc nạp tệp này thẳng bằng Node).
+//
+// CHỈ-THÊM: không câu UPDATE/DELETE nào trên bảng bil_ (trigger cấm). Mỗi câu ghi có LÍNH GÁC trong câu (EXISTS …) để câu sau chỉ áp khi câu trước đã áp —
+// bên thua đua không để lại dòng nào (kế hoạch §3.3).
+import { defineSql } from "../../shared/sql-registry.ts";
+
+// ---------------------------------------------------------------------------------------------------------------------------------------------------
+// Đọc
+// ---------------------------------------------------------------------------------------------------------------------------------------------------
+const RECEIPT_COLS = `r.id, r.order_id, r.kind_code, r.amount, r.collector_party_id, r.collector_role_code, r.method_code, r.stage_code, r.occurred_date,
+  r.reverses_id, r.note, r.created_at, r.created_by, pl.display_name AS collector_label, sl.label AS created_by_label`;
+const RECEIPT_JOIN = `FROM bil_payment_receipt r LEFT JOIN v_pty_party_label pl ON pl.id = r.collector_party_id LEFT JOIN v_stf_staff_label sl ON sl.id = r.created_by`;
+
+const RECEIPTS_OF_ORDER = defineSql("billing", "receipts_of_order", `SELECT ${RECEIPT_COLS} ${RECEIPT_JOIN} WHERE r.order_id = ?1 ORDER BY r.rowid`);
+const RECEIPTS_OF_ORDERS = defineSql(
+  "billing",
+  "receipts_of_orders",
+  `SELECT r.id, r.order_id, r.kind_code, r.amount, r.collector_party_id, r.collector_role_code, r.reverses_id FROM bil_payment_receipt r
+   WHERE r.order_id IN (SELECT value FROM json_each(?1)) ORDER BY r.rowid`,
+);
+const RECEIPT_BY_ID = defineSql("billing", "receipt_by_id", `SELECT ${RECEIPT_COLS} ${RECEIPT_JOIN} WHERE r.id = ?1`);
+
+export interface ReceiptDbRow {
+  id: string;
+  order_id: string;
+  kind_code: "CUSTOMER_PAYMENT" | "CUSTOMER_REFUND";
+  amount: number;
+  collector_party_id: string | null;
+  collector_role_code: "COMPANY" | "STAFF" | "BOOKER" | "SUPPLIER" | "UNKNOWN";
+  method_code: string;
+  stage_code: string;
+  occurred_date: string;
+  reverses_id: string | null;
+  note: string | null;
+  created_at: string;
+  created_by: string | null;
+  collector_label: string | null;
+  created_by_label: string | null;
+}
+export const receiptsOfOrder = async (db: D1Database, orderId: string): Promise<ReceiptDbRow[]> =>
+  (await db.prepare(RECEIPTS_OF_ORDER).bind(orderId).all<ReceiptDbRow>()).results;
+export async function receiptsOfOrders(db: D1Database, orderIds: readonly string[]): Promise<Pick<ReceiptDbRow, "id" | "order_id" | "kind_code" | "amount" | "collector_party_id" | "collector_role_code" | "reverses_id">[]> {
+  if (orderIds.length === 0) return [];
+  return (await db.prepare(RECEIPTS_OF_ORDERS).bind(JSON.stringify(orderIds)).all<ReceiptDbRow>()).results;
+}
+export const receiptById = (db: D1Database, id: string): Promise<ReceiptDbRow | null> => db.prepare(RECEIPT_BY_ID).bind(id).first<ReceiptDbRow>();
+
+const LINE_COLS = `l.id, l.posting_id, l.debtor_party_id, l.creditor_party_id, l.amount, l.kind_code, l.order_id, l.receipt_id, l.reverses_line_id, l.created_at,
+  p.kind_code AS posting_kind, p.occurred_date, p.reason, ol.order_code`;
+const LINE_JOIN = `FROM bil_debt_line l JOIN bil_posting p ON p.id = l.posting_id LEFT JOIN v_ord_order_label ol ON ol.id = l.order_id`;
+const LINES_OF_ORDER = defineSql("billing", "lines_of_order", `SELECT ${LINE_COLS} ${LINE_JOIN} WHERE l.order_id = ?1 ORDER BY l.rowid`);
+const LINES_OF_PARTY = defineSql("billing", "lines_of_party", `SELECT ${LINE_COLS} ${LINE_JOIN} WHERE l.debtor_party_id = ?1 OR l.creditor_party_id = ?1 ORDER BY l.rowid`);
+const LINES_OF_RECEIPT = defineSql("billing", "lines_of_receipt", `SELECT ${LINE_COLS} ${LINE_JOIN} WHERE l.receipt_id = ?1 ORDER BY l.rowid`);
+const LINE_BY_ID = defineSql("billing", "line_by_id", `SELECT ${LINE_COLS} ${LINE_JOIN} WHERE l.id = ?1`);
+const LINE_REVERSED = defineSql("billing", "line_reversed", `SELECT id FROM bil_debt_line WHERE reverses_line_id = ?1`);
+
+export interface LineDbRow {
+  id: string;
+  posting_id: string;
+  debtor_party_id: string;
+  creditor_party_id: string;
+  amount: number;
+  kind_code: "HELD" | "SETTLEMENT" | "REFUND";
+  order_id: string | null;
+  receipt_id: string | null;
+  reverses_line_id: string | null;
+  created_at: string;
+  posting_kind: string;
+  occurred_date: string;
+  reason: string | null;
+  order_code: string | null;
+}
+export const linesOfOrder = async (db: D1Database, orderId: string): Promise<LineDbRow[]> => (await db.prepare(LINES_OF_ORDER).bind(orderId).all<LineDbRow>()).results;
+export const linesOfParty = async (db: D1Database, partyId: string): Promise<LineDbRow[]> => (await db.prepare(LINES_OF_PARTY).bind(partyId).all<LineDbRow>()).results;
+export const linesOfReceipt = async (db: D1Database, receiptId: string): Promise<LineDbRow[]> => (await db.prepare(LINES_OF_RECEIPT).bind(receiptId).all<LineDbRow>()).results;
+export const lineById = (db: D1Database, id: string): Promise<LineDbRow | null> => db.prepare(LINE_BY_ID).bind(id).first<LineDbRow>();
+export const lineReversed = async (db: D1Database, id: string): Promise<boolean> => (await db.prepare(LINE_REVERSED).bind(id).first()) !== null;
+
+/** Số dư mọi bên với công ty chủ (dương = bên đó đang giữ tiền của công ty) — màn sổ của Kế toán. */
+const BALANCES_WITH_OWNER = defineSql(
+  "billing",
+  "balances_with_owner",
+  `SELECT b.party_id, pl.display_name AS label, SUM(b.balance) AS balance FROM v_bil_party_balance b LEFT JOIN v_pty_party_label pl ON pl.id = b.party_id
+   WHERE b.counterparty_id = (SELECT party_id FROM v_pty_owner_company LIMIT 1) GROUP BY b.party_id, pl.display_name HAVING SUM(b.balance) <> 0 ORDER BY pl.sort_key`,
+);
+export const balancesWithOwner = async (db: D1Database): Promise<{ party_id: string; label: string | null; balance: number }[]> =>
+  (await db.prepare(BALANCES_WITH_OWNER).all<{ party_id: string; label: string | null; balance: number }>()).results;
+
+const OWNER_COMPANY = defineSql("billing", "owner_company", `SELECT party_id FROM v_pty_owner_company LIMIT 1`);
+export async function ownerCompanyId(db: D1Database): Promise<string | null> {
+  return (await db.prepare(OWNER_COMPANY).first<{ party_id: string }>())?.party_id ?? null;
+}
+
+const PARTY_LABELS = defineSql("billing", "party_labels", `SELECT id, display_name, active FROM v_pty_party_label WHERE id IN (SELECT value FROM json_each(?1))`);
+export async function partyLabels(db: D1Database, ids: readonly string[]): Promise<Map<string, { label: string; active: boolean }>> {
+  if (ids.length === 0) return new Map();
+  const rows = (await db.prepare(PARTY_LABELS).bind(JSON.stringify(ids)).all<{ id: string; display_name: string; active: number }>()).results;
+  return new Map(rows.map((r) => [r.id, { label: r.display_name, active: r.active === 1 }]));
+}
+
+const ORDER_OWNERS = defineSql("billing", "order_owners", `SELECT id, staff_id FROM v_ord_order_owner WHERE id IN (SELECT value FROM json_each(?1))`);
+export async function orderOwners(db: D1Database, ids: readonly string[]): Promise<Map<string, string>> {
+  if (ids.length === 0) return new Map();
+  return new Map((await db.prepare(ORDER_OWNERS).bind(JSON.stringify(ids)).all<{ id: string; staff_id: string }>()).results.map((r) => [r.id, r.staff_id]));
+}
+
+const ORDER_STATE = defineSql("billing", "order_state", `SELECT id, status, delivered_at, completed_at FROM v_ord_order_state WHERE id = ?1`);
+export const orderState = (db: D1Database, id: string) =>
+  db.prepare(ORDER_STATE).bind(id).first<{ id: string; status: "draft" | "confirmed" | "cancelled"; delivered_at: string | null; completed_at: string | null }>();
+
+// ---------------------------------------------------------------------------------------------------------------------------------------------------
+// Ghi (chỉ thêm). `collected_for_party_id` LUÔN = công ty chủ đọc TRONG câu (NT-S9: route không nhận giá trị khác từ trình duyệt).
+// ---------------------------------------------------------------------------------------------------------------------------------------------------
+const RECEIPT_INSERT_COLS = `id, order_id, kind_code, amount, collector_party_id, collector_role_code, method_code, collected_for_party_id, stage_code, occurred_date,
+  reverses_id, note, created_at, created_by, updated_at, updated_by`;
+const RECEIPT_VALUES = `?1, ?2, ?3, ?4, ?5, ?6, ?7, (SELECT party_id FROM v_pty_owner_company LIMIT 1), ?8, ?9, NULL, ?10, ?11, ?12, ?11, ?12`;
+/** Lần thu TRƯỚC "Đã giao" (ADR-0026 đ10 — không thêm điều kiện trạng thái huỷ: đơn huỷ còn tiền phải có chỗ ghi). */
+const RECEIPT_BEFORE_DELIVERED = defineSql(
+  "billing",
+  "receipt_before_delivered",
+  `INSERT INTO bil_payment_receipt (${RECEIPT_INSERT_COLS}) SELECT ${RECEIPT_VALUES}
+   WHERE EXISTS (SELECT 1 FROM v_ord_order_state WHERE id = ?2 AND delivered_at IS NULL)`,
+);
+/** Lần thu nhập ở bước "Đã giao" — chỉ áp khi câu `orders` CỦA CHÍNH LÔ NÀY đã đặt mốc ?13. */
+const RECEIPT_AT_DELIVERY = defineSql(
+  "billing",
+  "receipt_at_delivery",
+  `INSERT INTO bil_payment_receipt (${RECEIPT_INSERT_COLS}) SELECT ${RECEIPT_VALUES}
+   WHERE EXISTS (SELECT 1 FROM v_ord_order_state WHERE id = ?2 AND delivered_at = ?13)`,
+);
+/** Trả lại khách (Kế toán ghi hoàn — ADR-0026 đ5, M2): không điều kiện mốc. */
+const RECEIPT_REFUND = defineSql("billing", "receipt_refund", `INSERT INTO bil_payment_receipt (${RECEIPT_INSERT_COLS}) SELECT ${RECEIPT_VALUES}`);
+/** Dòng ĐẢO của một lần thu (Kế toán — ADR-0026 đ8): chép gốc, trỏ gốc; trigger `bil_payment_receipt_reversal_match` + UNIQUE canh. */
+const RECEIPT_REVERSAL = defineSql(
+  "billing",
+  "receipt_reversal",
+  `INSERT INTO bil_payment_receipt (${RECEIPT_INSERT_COLS})
+   SELECT ?1, g.order_id, g.kind_code, g.amount, g.collector_party_id, g.collector_role_code, g.method_code, g.collected_for_party_id, g.stage_code, ?2, g.id, ?3, ?4, ?5, ?4, ?5
+   FROM bil_payment_receipt g WHERE g.id = ?6`,
+);
+
+export interface NewReceipt {
+  id: string;
+  orderId: string;
+  kind: "CUSTOMER_PAYMENT" | "CUSTOMER_REFUND";
+  amount: number;
+  collectorPartyId: string | null;
+  collectorRole: "COMPANY" | "STAFF";
+  method: string;
+  stage: "PREPAID" | "AT_DELIVERY";
+  occurredDate: string;
+  note: string | null;
+  at: string;
+  by: string;
+}
+const bindReceipt = (db: D1Database, sql: string, r: NewReceipt, ...extra: string[]) =>
+  db.prepare(sql).bind(r.id, r.orderId, r.kind, r.amount, r.collectorPartyId, r.collectorRole, r.method, r.stage, r.occurredDate, r.note, r.at, r.by, ...extra);
+export const receiptBeforeDeliveredStatement = (db: D1Database, r: NewReceipt) => bindReceipt(db, RECEIPT_BEFORE_DELIVERED, r);
+export const receiptAtDeliveryStatement = (db: D1Database, r: NewReceipt, deliveredAt: string) => bindReceipt(db, RECEIPT_AT_DELIVERY, r, deliveredAt);
+export const receiptRefundStatement = (db: D1Database, r: NewReceipt) => bindReceipt(db, RECEIPT_REFUND, r);
+export const receiptReversalStatement = (db: D1Database, i: { id: string; occurredDate: string; note: string | null; at: string; by: string; reversesId: string }) =>
+  db.prepare(RECEIPT_REVERSAL).bind(i.id, i.occurredDate, i.note, i.at, i.by, i.reversesId);
+
+const POSTING_COLS = "id, kind_code, order_id, reason, reverses_posting_id, occurred_date, due_snapshot, created_at, created_by, updated_at, updated_by";
+const POSTING_VALUES = "?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?8, ?9";
+/** Phiếu kèm lần thu ?10 — chỉ áp khi lần thu đó đã được chèn (câu trước có lính gác). */
+const POSTING_IF_RECEIPT = defineSql("billing", "posting_if_receipt", `INSERT INTO bil_posting (${POSTING_COLS}) SELECT ${POSTING_VALUES} WHERE EXISTS (SELECT 1 FROM bil_payment_receipt WHERE id = ?10)`);
+/** Phiếu "Đã giao" — chỉ áp khi câu `orders` của chính lô đã đặt mốc ?10; trigger `bil_posting_delivered_paid` kiểm tiền (RAISE ⇒ cả lô huỷ). */
+const POSTING_IF_DELIVERED_AT = defineSql(
+  "billing",
+  "posting_if_delivered_at",
+  `INSERT INTO bil_posting (${POSTING_COLS}) SELECT ${POSTING_VALUES} WHERE EXISTS (SELECT 1 FROM v_ord_order_state WHERE id = ?3 AND delivered_at = ?10)`,
+);
+/** Phiếu "Hoàn thành" — chỉ áp khi câu `orders` của chính lô đã đặt mốc ?10; trigger `bil_posting_completed_settled` kiểm còn ai nợ công ty. */
+const POSTING_IF_COMPLETED_AT = defineSql(
+  "billing",
+  "posting_if_completed_at",
+  `INSERT INTO bil_posting (${POSTING_COLS}) SELECT ${POSTING_VALUES} WHERE EXISTS (SELECT 1 FROM v_ord_order_state WHERE id = ?3 AND completed_at = ?10)`,
+);
+/** Phiếu sổ của Kế toán (xác nhận công ty đã nhận, nộp/trả, hoàn, điều chỉnh, đảo) — không điều kiện mốc. */
+const POSTING_PLAIN = defineSql("billing", "posting_plain", `INSERT INTO bil_posting (${POSTING_COLS}) VALUES (${POSTING_VALUES})`);
+
+export interface NewPosting {
+  id: string;
+  kind: "RECEIPT" | "DELIVERED" | "COMPLETED" | "COMPANY_RECEIVED" | "SETTLEMENT" | "REFUND" | "ADJUSTMENT" | "REVERSAL";
+  orderId: string | null;
+  reason: string | null;
+  reversesPostingId: string | null;
+  occurredDate: string;
+  dueSnapshot: number | null;
+  at: string;
+  by: string;
+}
+const bindPosting = (db: D1Database, sql: string, p: NewPosting, ...extra: string[]) =>
+  db.prepare(sql).bind(p.id, p.kind, p.orderId, p.reason, p.reversesPostingId, p.occurredDate, p.dueSnapshot, p.at, p.by, ...extra);
+export const postingIfReceiptStatement = (db: D1Database, p: NewPosting, receiptId: string) => bindPosting(db, POSTING_IF_RECEIPT, p, receiptId);
+export const postingIfDeliveredAtStatement = (db: D1Database, p: NewPosting, deliveredAt: string) => bindPosting(db, POSTING_IF_DELIVERED_AT, p, deliveredAt);
+export const postingIfCompletedAtStatement = (db: D1Database, p: NewPosting, completedAt: string) => bindPosting(db, POSTING_IF_COMPLETED_AT, p, completedAt);
+export const postingPlainStatement = (db: D1Database, p: NewPosting) => bindPosting(db, POSTING_PLAIN, p);
+
+/** Dòng nợ — chỉ áp khi phiếu ?2 đã được chèn trong lô (lính gác), nên phiếu thua ⇒ không dòng nào. */
+const LINE_IF_POSTING = defineSql(
+  "billing",
+  "line_if_posting",
+  `INSERT INTO bil_debt_line (id, posting_id, debtor_party_id, creditor_party_id, amount, kind_code, order_id, trip_id, order_service_id, receipt_id, reverses_line_id,
+     created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, NULL, NULL, ?8, ?9, ?10, ?11, ?10, ?11 WHERE EXISTS (SELECT 1 FROM bil_posting WHERE id = ?2)`,
+);
+export interface NewLine {
+  id: string;
+  postingId: string;
+  debtorPartyId: string;
+  creditorPartyId: string;
+  amount: number;
+  kind: "HELD" | "SETTLEMENT" | "REFUND";
+  orderId: string;
+  receiptId: string | null;
+  reversesLineId: string | null;
+  at: string;
+  by: string;
+}
+export const lineIfPostingStatement = (db: D1Database, l: NewLine) =>
+  db.prepare(LINE_IF_POSTING).bind(l.id, l.postingId, l.debtorPartyId, l.creditorPartyId, l.amount, l.kind, l.orderId, l.receiptId, l.reversesLineId, l.at, l.by);

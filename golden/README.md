@@ -6,11 +6,12 @@
 | Tệp | Luật tiền | Trạng thái |
 |---|---|---|
 | `hoan-tat-cong-no.json` | Chia tiền khi đơn **Đã giao – đã thu đủ** (đặc tả `docs/superpowers/specs/2026-09-25-hoan-tat-don-va-so-ke-toan.md` §5, ADR-0025/0026 — nháp) | **SV-HT-06, SV-HT-07 (khách lẻ, lượt 1): ĐÃ XÁC NHẬN** 2026-09-30 (Lưu Tuấn Vũ / Giám sát kinh doanh); SV-HT-01..05 (có người hưởng / nhà cung cấp — lượt 2): chờ xác nhận. Chưa có mã sổ công nợ để chạy lớp 2 |
+| `so-cong-no-luot-1.json` | Sổ công nợ lượt 1 (ADR-0026 điều 4–5, ADR-0025 điều 3d/3e, M2) — **định dạng mới**: mỗi ca là CHUỖI SỰ KIỆN tiền trên một đơn khách lẻ (thu, công ty xác nhận đã nhận, nộp, hoàn khách, đảo lần thu), đáp án = đã thu, còn lại, dư chờ hoàn, lần thu chưa rõ, số dư từng bên, có Đã giao được không | **SV-SC-01..04: CHỜ chủ dự án / Kế toán xác nhận** (AI soạn 2026-09-30, người thi công sổ tiền lượt 1) |
 | `dieu-phoi/xe-a-b-luot-1.json` | **Không phải luật tiền** — bộ ca mẫu điều phối xe (ADR-0049 lượt 1; ví dụ xe A / xe B của chủ): tạo chuyến, xếp, giữ thiếu tên, nhập tên, xuất bến, mốc 6 giờ, vắng, đón muộn, kết thúc gián đoạn, chuyến cứu hộ; thêm theo ADR-0050 (B17–B23): nơi hẹn đổi sau khi xếp → giữ, cập nhật điểm theo đơn → hết giữ, văn phòng khai giờ xảy ra, khoảng nghỉ theo giờ xảy ra, xe nhà xe thiếu Bảo hiểm → giữ — mỗi bước: đầu vào, quyết định, danh sách mã luật. Cùng khuôn 5.17 (đáp án do chủ xác nhận). Bài chạy: `src/dieu-phoi-ca-mau.test.ts` (chạy ngay trên luật thuần thật, không dùng `src/so-vang.test.ts`) | **Chờ chủ xác nhận** — trước lượt duyệt 2 (lát 2.1), không chặn lượt 1 |
 
 ## Hai lớp kiểm
 1. **Nhất quán nội tại** (`src/so-vang.test.ts`, chạy ngay): mỗi ca tự cân — tổng tiền thu = giá bán; nợ mỗi bên = tiền bên đó đã thu − phần bên đó được hưởng; phần Tour Đảo giữ = tiền công ty tự thu + tổng nợ các bên = giá bán − giá vốn − hoa hồng. Bắt **ca mẫu viết sai**, không kiểm mã.
-2. **Chạy trên mã thật** (khi có sổ công nợ): cùng tệp ca, gọi hàm sinh dòng sổ thật, so đáp án. **Chưa có** — thêm khi thi công ADR-0026; lúc đó chỉ tính ca có `xac_nhan.trang_thai = "da_xac_nhan"`.
+2. **Chạy trên mã thật** (`src/so-vang.test.ts`, bài "LỚP 2" — có từ sổ tiền lượt 1, 2026-09-30): ca lượt 1 của cả hai tệp (khách lẻ, không người hưởng / nhà cung cấp) đi qua CHÍNH luật sinh dòng `src/modules/billing/rules.ts`, so đáp án đến từng đồng. CHỈ tính ca `"da_xac_nhan"` (hôm nay SV-HT-06, SV-HT-07); ca chờ xác nhận in "chưa áp dụng" và không được đếm; bài đỏ nếu < 2 ca đã xác nhận chạy (không "xanh vì rỗng").
 
 ## Quy ước số
 - Tiền: số nguyên đồng (VNĐ), không số thập phân.

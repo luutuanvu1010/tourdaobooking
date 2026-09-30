@@ -330,6 +330,11 @@ export async function cancelOrderByHandler(db: D1Database, id: string, staffId: 
   return cancelOrder(db, id, staffId, "confirmed", prevUpdatedAt, { action: "order_cancelled_by_field", detail: reasonLabel });
 }
 
+// ---- Sổ tiền lượt 1 (ADR-0024 điều 3–4, ADR-0025): `orders` công bố trạng thái + "phải thu hiện hành" + hai câu mốc CHƯA CHẠY cho billing gộp vào
+// MỘT db.batch() (quy tắc 3 ADR-0002). `orders` không đọc bảng của billing. KHÔNG tự kiểm quyền — route của billing hỏi can() trước.
+export { donDangThuTien, phaiThuNhieuDon, thongTinGiaoDon, type PhaiThuDon, type ThongTinGiaoDon } from "./hoan-tat";
+export { datGiaoStatement, hoanThanhStatement, type DatGiaoInput } from "./hoan-tat-repo";
+
 export type MoneyEditResult = { ok: true } | { ok: false; code: "not_found" | "not_confirmed" | "invalid_input" | "stale"; message?: string };
 
 /**

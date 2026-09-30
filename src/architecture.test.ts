@@ -63,6 +63,7 @@ const ALLOWED_EDGES: Record<string, readonly string[]> = {
 /** Module đã áp điều 8(b) (SQL đăng ký qua defineSql). Module cũ nằm ở LEGACY cho tới hạn ghi kèm. */
 const STRICT: readonly { module: string; file: string }[] = [
   { module: "auth", file: "modules/auth/repository.ts" },
+  { module: "billing", file: "modules/billing/repository.ts" }, // ADR-0024 điều 1: nghiêm từ ngày đầu (sổ tiền lượt 1 — NT-R2)
   { module: "company", file: "modules/company/repository.ts" },
   { module: "dispatch", file: "modules/dispatch/repository.ts" },
   { module: "feedback", file: "modules/feedback/repository.ts" },
@@ -120,7 +121,11 @@ const LEGACY_TABLES: readonly string[] = [
  * EXPLAIN (chỉ chạm bảng của mình / view công bố / khoá ngoại được phép) và bài `.prepare(<chuỗi thô>)` / `db.exec(<chuỗi thô>)`. Không quét cả thư mục
  * module (SQL cũ của `orders/repository.ts` vẫn là nợ LEGACY). Module lên STRICT thì bỏ khỏi đây.
  */
-const NUA_NGHIEM: readonly { module: string; file: string }[] = [{ module: "orders", file: "modules/orders/chang-hanh-khach-repo.ts" }];
+const NUA_NGHIEM: readonly { module: string; file: string }[] = [
+  { module: "orders", file: "modules/orders/chang-hanh-khach-repo.ts" },
+  // Sổ tiền lượt 1 (ADR-0024 điều 3–4 — SIẾT): câu mốc "Đã giao" / "Hoàn thành" + đọc trạng thái cho billing, mọi câu qua defineSql + EXPLAIN.
+  { module: "orders", file: "modules/orders/hoan-tat-repo.ts" },
+];
 
 /**
  * NGOẠI LỆ CÓ TÊN của R-N1-9 ("không xoá cứng bảng mới") — ADR-0047 A1, A2: chặng và hành khách của ĐƠN NHÁP xoá–chèn lại cùng lô khi lưu nháp

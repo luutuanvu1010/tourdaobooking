@@ -70,6 +70,15 @@
 - Bốn ô mới (`order.handover`, `order.complete`, `ledger.view`, `ledger.write`) vào `MATRIX` CÙNG commit với route hỏi nó (Task 6); hai mục hoãn `payment.*` ở `docs/quyen-hoan.json` gỡ cùng route.
 - Không mã quyền mới ⇒ không đụng `EXTERNAL_PERMISSIONS`/LC-1. `npm test` 1899/1899.
 
+## Task 5 — Luật thuần billing + sổ vàng (xong 30/9)
+
+- `src/modules/billing/rules.ts`: `conLai` (HÀM DUY NHẤT đã thu / còn lại / dư / chưa rõ — NT-R9), `hieuLuc`, `sinhDongLanThu`, `sinhDongXacNhanCongTy`, `sinhDongQuyetToan`, `sinhDongHoanKhach`, `sinhDongDao`, `sinhPhieuDaGiao` (lượt 1 rỗng), `soDuTheoBen`, `lyDoChuaGiaoDuoc` (thứ tự cố định + "ai xử lý" — Hiến chương 5.7), `lyDoChuaHoanThanh`, `ngayPhatSinh` (NT-S8), `dong` (định dạng tiền không phụ thuộc máy).
+- **GĐ bề mặt:** ngày phát sinh không được SAU hôm nay (kể cả Kế toán); hoàn khách do nhân viên trả bằng tiền đang giữ ⇒ dòng *hoàn khách* công ty → người trả (bù giữ hộ); công ty tự trả ⇒ không dòng.
+- `rules.test.ts` 11 bài (có bài ĐỐI CHIẾU `conLai` ↔ view `v_bil_order_paid` ↔ trigger `bil_posting_delivered_paid` trên cùng dữ liệu). **Ghi thật:** tệp luật và tệp test viết cùng lượt (module mới) — không có lần chạy "đỏ vì thiếu hàm" riêng; đỏ-trước của luật tiền nằm ở trigger (Task 3) và sổ vàng.
+- Sổ vàng: **định dạng mới** `golden/so-cong-no-luot-1.json` (chuỗi sự kiện — theo phân tích góp ý §1 "mở rộng định dạng trước khi thêm ca") với 4 ca lượt 1 ở `cho_xac_nhan` (SV-SC-01 giữ tiền mặt rồi nộp; -02 "Công ty thu – CK" chờ xác nhận; -03 trả dư chờ hoàn; -04 cọc cũ chưa rõ bị đảo rồi ghi lại). `src/so-vang.test.ts` thêm LỚP 2 chạy trên `rules.ts`: chạy SV-HT-06, SV-HT-07 (đã xác nhận 30/9) → khớp; in "chưa áp dụng 4 ca". Đã thử một lần (bản sao tạm, hoàn nguyên) đổi 4 ca sang "đã xác nhận" → mã khớp đáp án — KHÔNG phải xác nhận, chủ/Kế toán phải xem.
+- Khung module: `src/modules/billing/repository.ts` (mọi SQL của Task 6, `defineSql`, EXPLAIN xanh) + `STRICT`; `index.ts` rỗng (bài `route-access`/`tai-xe-cong` đòi thư mục module có `index.ts`); `src/modules/orders/hoan-tat-repo.ts` (NỬA NGHIÊM — câu mốc Đã giao/Hoàn thành + đọc trạng thái) + `hoan-tat.ts` (phải thu hiện hành) — **tệp mới thay vì sửa `orders/repository.ts`** để tránh đụng phiên song song đang sửa `listOrders`.
+- NT-R2 thấy đỏ thật (dòng SO-HANG-RAO). `npm test` 1912/1912 + 1/1; typecheck 0.
+
 ## Ruling / giả định (ghi theo thứ tự gặp)
 
 (chưa có)
