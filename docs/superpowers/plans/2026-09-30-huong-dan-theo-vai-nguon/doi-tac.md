@@ -1,0 +1,32 @@
+# Nguồn đối chiếu — Hướng dẫn vai Đối tác (bản 1.40)
+
+Nội dung hiển thị: `src/shared/huong-dan-doi-tac.ts` (HD_DOI_TAC). Đối chiếu trên worktree huong-dan-theo-vai, gốc main 3d0d2fe5. Số dòng kiểm bằng `grep -n` ngày 2026-09-30. Tệp này chỉ dành cho người soạn và người kiểm, không hiển thị cho người dùng.
+
+## Tệp:dòng theo từng mục
+
+- Bản đồ quyền cột PARTNER: src/shared/permissions.ts:72-73 (order.view/money.view own), :75 contact.view ownOrAssigned, :76 order.create any, :77 order.modify own, :78 order.trip.edit none, :81 short_notice none, :85 short_notice.view none (chỉ cờ "Quản trị đã duyệt"), :86 passenger.write own, :87 task.progress assigned (chưa có route — :59-60), :90-91 assign/claim none, :92 dispatch.guides.view (chưa có route), :97-98 party none, :122 party.document.view none, :136 trip.view none. holdsPartner :238. EXTERNAL_PERMISSIONS :29.
+- Trang đầu: src/shared/start-page.ts:39-41 (không seesAll → /orders); web/home.ts:253-258 (chuyển hướng trước khi gọi dashboard); src/shared/changelog.ts:338.
+- Menu của bạn: web/shell.ts:200 (Tạo đơn), :201 (Danh bạ chỉ office → không có), :197/:199 (Trang chủ/Đơn hàng chỉ seesAll → không có), :242-244; tab điện thoại shell.ts:57-59, :66. Logo về "/": shell.ts:310 (sidebar-head href "/"), :381 (brand thanh trên); logo ẩn ở trang có data-title trên điện thoại: public/app.css:542-544 (@media max-width 640px). public/orders.html:3 không data-title (logo hiện ở trang Đơn hàng); public/order.html:3 data-back="/orders"; public/account.html:3 data-title="Tôi"; public/order-form.html:63 (liên kết "Quay lại" href="/orders").
+- Đăng nhập và đổi PIN: public/login.html (Số điện thoại, Mã PIN 6 số, Đăng nhập, nút Face ID). public/account.html (Đổi mã PIN, PIN hiện tại, PIN mới (6 số), Nhập lại PIN mới, Đổi PIN). Face ID: web/account.ts:256-263 (Đăng nhập bằng Face ID, Bật trên máy này), web/passkey.ts:88 ("Chỉ bật trên điện thoại riêng của bạn.").
+- Lập đơn: public/order-form.html (Chọn ngày, Ngày khởi hành, Dịch vụ, Thông tin khách hàng, Sử dụng thông tin của tôi, Tên khách *, Số điện thoại *, Ghi chú / yêu cầu đặc biệt, Thanh toán, Giảm giá (₫), Thanh toán trước (₫), Phương thức thanh toán, Tóm tắt, Lưu, chờ xác nhận, Quay lại); web/catalog-picker.ts:25, :28 (Chọn từ danh mục), :42-43 (đã chọn / chưa có giá / chưa hỗ trợ), :53 (Không tìm thấy dịch vụ.); web/service-card.ts:89 (Thông tin chuyến), :126 (Số khách), src/shared/order-lines.ts:7 (Người lớn/Trẻ em/Người cao tuổi/Em bé); web/trip-fields.ts:32-43 (Giờ đón, Điểm đón, check-in, Ghi chú dịch vụ); changelog.ts:18 (Thông tin chuyến thu gọn sẵn, 1.40); web/order-form.ts:242 (Lưu, chờ xác nhận / Lưu thay đổi), :405 (lưu xong mở trang đơn), :514 (Sửa đơn).
+- Giá đối tác: web/order-form.ts:105-106, :488, :522-527 ("Tài khoản đối tác tạm chưa được giảm giá."); máy chủ src/modules/orders/price-guards.ts:19-21; changelog.ts:247.
+- Không chọn người phụ trách: web/order-form.ts:494; src/modules/orders/index.ts:42, :500 (CANNOT_PICK_HANDLER); changelog.ts:326.
+- Danh mục chỉ-đọc: ADR-0028 (điều 1 bị thay bởi ADR-0033) docs/adr/ADR-0028-doi-tac-thuc-tap-xem-danh-muc-chi-doc.md:3; route src/modules/catalog/index.ts:110 (GET /api/catalog/for-order, cổng orders); web/order-form.ts:324, :428; trang /catalog chỉ admin (shell.ts:203-208; catalog/index.ts:99 /api/catalog cổng office); changelog.ts:236.
+- Sửa / Xác nhận / Huỷ: web/order.ts:350 (Sửa), :354 (Xác nhận đơn + câu hỏi lại), :359 (Huỷ đơn + "Huỷ đơn này? Việc huỷ không thể hoàn tác."), :360 (dòng chặn); src/modules/orders/index.ts:787-800 (order.modify own; chặn giá/giảm giá đối tác PARTNER_PRICE/PARTNER_DISCOUNT :50-51), :813-821 (incomplete_trip, short_notice_required); src/modules/orders/rules.ts:237-241 (draft→confirmed/cancelled, confirmed→cancelled); src/shared/order-errors.ts:78-80 ("Chưa đủ thông tin chuyến để xác nhận đơn."); src/shared/dat-gap-hien-thi.ts:29 ("Đặt gấp — Quản trị đã duyệt"), :60 ("Cần Quản trị duyệt đặt gấp").
+- Biên nhận: web/order.ts:363; web/confirmation-dialog.ts:8 (Đối tác: bỏ dòng người phụ trách), :155, :218; changelog.ts:127.
+- Xem lại đơn: public/orders.html:8, :10; web/orders.ts:27-31; src/modules/orders/index.ts:466-486 (nhánh "own" chỉ đơn mình lập).
+- Người phụ trách không tải được: web/order.ts:140-148 (loadHandler nuốt lỗi → undefined), :203-204 ("Chưa tải được người phụ trách." + Thử lại); route src/modules/dispatch/index.ts:96-97 (can(order.view) không ngữ cảnh → PARTNER 403). Danh sách: web/orders.ts:88-107 (dòng người phụ trách ẩn).
+- Thông báo: src/shared/thong-bao.ts:45-49 (tin "toàn công ty" chỉ tài khoản có quyền nội bộ); changelog.ts:174 (chuông có ở tài khoản Đối tác).
+- Không có "Giấy tờ của tôi": permissions.ts:122 (PARTNER none); web/account.ts:97-103.
+- Góp ý: permissions.ts:106-107 (submit any, view own).
+
+## Điểm chưa chắc / nghi lỗi
+
+- **NGHI LỖI (chưa kiểm trên máy thật) — nút hiện nhưng máy chủ từ chối:** đơn đã xác nhận của chính Đối tác hiện "Sửa thông tin chuyến" và "Đổi khách", dòng khoá nói "Chỉ sửa được thông tin chuyến" (web/order.ts:276, :372, :394; src/shared/order-view.ts:111 chỉ dựa `canModify` = order.modify own). Máy chủ hỏi order.trip.edit = none cho PARTNER (src/modules/orders/index.ts:597, :769) → 403 với câu "Chỉ người lập đơn, người phụ trách đơn hoặc quản trị viên…" (:39) — khó hiểu vì người bấm chính là người lập. Hướng dẫn ghi "gọi văn phòng". Đề xuất cho chủ: ẩn hai nút theo order.trip.edit.
+- **Điện thoại không có đường menu về danh sách đơn:** không có tab Đơn hàng (shell.ts:57-59), logo ẩn ở trang có data-title trên điện thoại (public/app.css:542-544). Hướng dẫn ghi đường vòng. Có thể chủ muốn thêm tab "Đơn của tôi".
+- **"Chưa tải được người phụ trách." luôn hiện** trên trang đơn của Đối tác (nợ đã biết). Hướng dẫn ghi "không phải lỗi của bạn".
+- **Ô "Hồ sơ khách" trên form Tạo đơn** (booker-picker) với tài khoản không có party.view: chưa kiểm hành vi; hướng dẫn không nhắc tới.
+- **Nhãn có ký hiệu** ("Tên khách *", "Số điện thoại *", "Thanh toán trước (₫)", "Giảm giá (₫)"): hướng dẫn in **đậm** phần chữ, không dùng [[...]].
+- **"Xin nhận" / báo tiến độ** (task.progress, dispatch.guides.view) có trong bảng quyền nhưng chưa có route — ghi "(chưa có trên bản 1.40)".
+- **Tên app trên iPhone** "Tour Đảo Booking" cũ: theo nhật ký thay đổi (app đã cài giữ tên cũ tới khi cài lại). Chưa kiểm trên máy thật.
+- **Đối tác huỷ được cả đơn đã xác nhận của mình** (order.modify own, confirmed→cancelled). Hướng dẫn ghi đúng vậy, kèm cảnh báo không hoàn tác. Chưa kiểm bằng tài khoản thật.

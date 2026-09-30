@@ -164,3 +164,7 @@
 - N-4: hai màn "Sổ của tôi" / "Sổ công nợ" chưa dựng — chủ sẽ vẽ lại trên Claude Design; thao tác Kế toán tạm ở trang đơn.
 - N-5: Task 12 (kiểm độc lập + runbook triển khai) chưa làm.
 - Kiểm độc lập vòng 2 (V-B): thêm ca 403 Quản trị / Bán hàng cho `settlements` và `company-receipts/:id/confirm` + ca tài khoản lai (Bán hàng + Đối tác) `keToan = null` (`lo-ghi.test.ts` "V-B"). Xanh ngay (hành vi đã đúng) — đột biến bỏ cổng `ledger.write` ở `settlements` → `expected 403 actual 201` → hoàn nguyên.
+
+## Đổi số bản sang 1.42 (điều phối 30/9, sau khi gộp phát hành chung)
+
+- `origin/main` 7711559f ("Hướng dẫn theo vai") đã lấy số **1.41**. Mục nhật ký gộp (sổ tiền lượt 1 + đợt giao diện góp ý 30/9) đổi thành **1.42**, đứng trên 1.41 của main (giữ nguyên); bài ghim dòng phiên bản = 1.42. Các dòng "1.41" ở trên là lịch sử lúc thi công.

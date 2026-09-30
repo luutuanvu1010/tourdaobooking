@@ -433,7 +433,6 @@ export interface PoolResponse { orders: PoolOrderDto[] }
 /**
  * `GET /api/orders/dashboard` (Trang chủ mới, `access: "office"`) — tổng quan cho nhân viên văn phòng.
  * `today`: đơn confirmed mà dịch vụ SỚM NHẤT có ngày đón (bỏ qua dịch vụ không có ngày) rơi đúng hôm nay.
- * `unpaid`: đơn confirmed còn thiếu tiền theo số HIỆN HÀNH (đã áp điều chỉnh, nếu có) — `earliestDate` = ngày đón sớm nhất trong số đó, null nếu không đơn nào có ngày.
  * `draftCount`: đơn nháp chưa xác nhận.
  * `unassignedCount`: đơn nháp hoặc đã xác nhận (không tính đơn huỷ) chưa có người phụ trách — ADR-0020 điều 7 (M1 = A), ADR-0030 S20-13.
  * `revenueWeek`: doanh thu (tổng `total` hiện hành) của CHÍNH người xem trong tuần `from`..`to` (thứ Hai–Chủ nhật, giờ Việt Nam, hai đầu bao gồm).

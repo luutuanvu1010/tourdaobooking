@@ -12,9 +12,9 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // Một lần phát hành gộp (chủ muốn "dễ và tiện nhất", 30/9): sổ tiền lượt 1 = Hoàn tất đơn (ADR-0024 đ1–5, ADR-0025, ADR-0026; kế hoạch
-    // docs/superpowers/plans/2026-09-29-so-tien-luot-1-ke-hoach.md) + đợt giao diện theo góp ý người dùng 30/9 (docs/design/gop-y-2026-09-30/). Số "1.41"
-    // theo điều phối (production 1.40); người gộp chốt số trống kế tiếp LÚC GỘP. Hai màn "Sổ của tôi" / "Sổ công nợ" CHƯA dựng nên mục này không nhắc tới.
-    version: "1.41",
+    // docs/superpowers/plans/2026-09-29-so-tien-luot-1-ke-hoach.md) + đợt giao diện theo góp ý người dùng 30/9 (docs/design/gop-y-2026-09-30/). Số "1.42"
+    // theo điều phối (1.41 = "Hướng dẫn theo vai" đã lên main trước); người gộp chốt số trống kế tiếp LÚC GỘP. Hai màn "Sổ của tôi" / "Sổ công nợ" CHƯA dựng nên mục này không nhắc tới.
+    version: "1.42",
     date: "2026-09-30",
     items: [
       { kind: "doi", text: "Lập đơn: mục Thanh toán nay nằm trước thông tin khách; tiền khách trả trước mặc định là chuyển khoản và được ghi thành một lần thu." },
@@ -31,6 +31,15 @@ export const CHANGELOG: readonly ReleaseNote[] = [
       { kind: "doi", text: "Màn tài xế: mỗi điểm đón hiện thêm giờ xe tới nếu khác giờ hẹn khách." },
       { kind: "doi", text: "Danh sách đơn: đơn có nơi đón hiện luôn dòng \"Đón tại …\" ngay trên thẻ, không phải bấm mở." },
       { kind: "doi", text: "Góp ý / Báo lỗi: trạng thái hiện nổi bật theo từng bước (Mới → Đã tiếp nhận → Đang xử lý → Đã xong); yêu cầu đã xong hoặc bị từ chối có nút \"Mở lại\"." },
+    ],
+  },
+  {
+    // Hướng dẫn theo vai trong Trợ giúp (đặc tả docs/superpowers/specs/2026-09-30-huong-dan-theo-vai.md). Chỉ giao diện + nội dung, không đổi máy chủ / dữ liệu.
+    // Số "1.41" TẠM (main 1.40); người gộp chốt số trống kế tiếp LÚC GỘP.
+    version: "1.41",
+    date: "2026-09-30",
+    items: [
+      { kind: "moi", text: "Trợ giúp có \"Hướng dẫn cho bạn\": cách dùng app theo đúng vai của bạn. Đọc \"Bắt đầu nhanh\" trước, khoảng 30 phút là dùng được." },
     ],
   },
   {
