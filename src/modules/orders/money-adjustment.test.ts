@@ -1,5 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { PHONE_IN_TEXT_MESSAGE } from "../../shared/text-guards.ts";
 import type { OrderDetailDto } from "../../shared/contracts.ts";
 import {
   applyAdjustmentToOrder, editablePaxCodesOf, effectiveMoney, effectiveService, effectiveSubtotal, isAdjustmentSeqCollision, parseAdjustmentAfter, parseMoneyEditInput, recomputeService,
@@ -53,6 +54,19 @@ test("parseMoneyEditInput: thiếu lý do, lý do rỗng/toàn khoảng trắng 
     const r = parseMoneyEditInput(body as Record<string, unknown>, ["svc-1"]);
     assert.ok(!r.ok && /lý do/i.test(r.message), JSON.stringify(body));
   }
+});
+
+test("parseMoneyEditInput: lý do chứa số điện thoại (mọi cách viết) → từ chối, đúng câu của lý do huỷ (chủ duyệt 2026-09-30)", () => {
+  for (const reason of ["gọi 0905 123 456", "0905123456", "+84 905 123 456", "(0258) 3521 234", "0905.123.456", "0905-123-456"]) {
+    const r = parseMoneyEditInput({ reason, services: [{ id: "svc-1", pax: PAX }] }, ["svc-1"]);
+    assert.ok(!r.ok, reason);
+    assert.equal(r.message, PHONE_IN_TEXT_MESSAGE, reason);
+  }
+});
+
+test("parseMoneyEditInput: lý do có số ngắn (số phòng, số khách, giờ) → vẫn hợp lệ", () => {
+  const r = parseMoneyEditInput({ reason: "Khách thêm 2 trẻ em, phòng 1203, đón 6:30", services: [{ id: "svc-1", pax: PAX }] }, ["svc-1"]);
+  assert.ok(r.ok);
 });
 
 test("parseMoneyEditInput: thiếu một dịch vụ từ danh mục của đơn → từ chối", () => {

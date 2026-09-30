@@ -35,6 +35,7 @@ const STALE = () => error(409, "stale", "Người phụ trách đơn vừa đư�
 const CANCEL_FORBIDDEN = () => error(403, "forbidden", "Chỉ hướng dẫn viên đang phụ trách đơn mới huỷ được đơn theo cách này.");
 const NOT_CONFIRMED = () => error(409, "not_editable", "Chỉ huỷ được đơn đã xác nhận qua đường này; đơn chờ xác nhận hoặc đã huỷ không dùng được.");
 const DEPARTED = () => error(409, "departed", "Tour đã qua ngày đi — hướng dẫn viên không huỷ được nữa. Nhờ văn phòng huỷ nếu cần.");
+const MONEY_EDIT_DEPARTED = () => error(409, "departed", "Đơn đã qua ngày đi — không sửa số khách được nữa. Cần sửa, nhờ tài khoản Toàn quyền.");
 const HANDLER_RACED = () => error(409, "stale", "Đơn vừa được người khác đổi, hãy tải lại rồi thử lại.");
 /** Chốt "Nhận" (ADR-0030 S20-5, lệch có chủ ý 5.1 — `docs/SYSTEM-DESIGN.md` §16): áp CHỈ cho tự nhận đơn chưa có người, không áp cho "giao". */
 const CLAIM_PARTNER_FORBIDDEN = () => error(403, "forbidden", "Tài khoản có quyền Đối tác không làm người phụ trách được.");
@@ -234,8 +235,10 @@ export const dispatchModule: AppModule = {
     }),
 
     // Sửa số khách của đơn đang phụ trách CẤP HẸP (FIELD — ADR-0014 điều 6). Ghi thêm dòng điều chỉnh, KHÔNG sửa đè order_service/order_item/cột
-    // tiền. Không lộ giá cho FIELD: phản hồi chỉ { ok: true }. Thứ tự: 404 → 403 (không phải người phụ trách/không có order.money.edit) → 409/400
-    // do editMoneyAsHandler tự kiểm (không phải đơn đã xác nhận; thân yêu cầu sai/thiếu/thừa dịch vụ) → 409 stale nếu thua khoá lạc quan.
+    // tiền. Không lộ giá cho FIELD: phản hồi chỉ { ok: true }. Thứ tự: 404 → 403 (không phải người phụ trách/không có order.money.edit) → 409 đã
+    // giao → 409 `departed` (qua ngày đi — chủ dự án duyệt 2026-09-30 "Cho sửa đến hết ngày đi": cùng `tripDeparted` + `vnToday` với huỷ đơn,
+    // DK-T4-02; ĐÚNG ngày đi vẫn sửa được; Toàn quyền KHÔNG bị chặn) → 409/400 do editMoneyAsHandler tự kiểm (không phải đơn đã xác nhận; thân yêu
+    // cầu sai/thiếu/thừa dịch vụ; lý do có SĐT — `hasLongDigitRun`) → 409 stale nếu thua khoá lạc quan.
     route("POST", "/api/orders/:id/handler-money-edit", "staff", async ({ env, request, params, staff, isAssigned, baoThayDoi }) => {
       const orderId = params.id!;
       if (!UUID_RE.test(orderId)) return NOT_FOUND();
@@ -248,6 +251,7 @@ export const dispatchModule: AppModule = {
       const narrowEligible = assigned && staff.permissions.some((p) => MATRIX["order.money.edit"][p] === "assigned");
       if (!narrowEligible && !hasPermission(staff, "SUPER_ADMIN")) return MONEY_EDIT_FORBIDDEN();
       if (await orderDelivered(env.DB, orderId)) return DA_GIAO();
+      if (!hasPermission(staff, "SUPER_ADMIN") && tripDeparted(await findOrderDepartDates(env.DB, orderId), vnToday(new Date()))) return MONEY_EDIT_DEPARTED();
       const result = await editMoneyAsHandler(env.DB, orderId, staff.id, await readJson(request));
       if (!result.ok) {
         if (result.code === "not_found") return NOT_FOUND();

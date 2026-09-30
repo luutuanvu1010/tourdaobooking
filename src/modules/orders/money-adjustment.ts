@@ -3,6 +3,7 @@
 import type { OrderDetailDto, OrderItemDto, OrderServiceDto } from "../../shared/contracts.ts";
 import { PAX_ORDER, availableCodes, type GeneratedLine, type PaxCode, type PaxCounts } from "../../shared/order-lines.ts";
 import { snapshotService, storedServiceLines, storedUnitPrices, type StoredService } from "./service-rules.ts";
+import { hasLongDigitRun, PHONE_IN_TEXT_MESSAGE } from "../../shared/text-guards.ts";
 
 const PAX_CODES: readonly PaxCode[] = ["adult", "child", "senior", "infant"];
 
@@ -85,6 +86,9 @@ export function parseMoneyEditInput(
 ): Parsed<{ reason: string; services: { id: string; pax: PaxCounts }[] }> {
   const reason = typeof body?.reason === "string" ? body.reason.trim() : "";
   if (!reason) return { ok: false, message: "Cần nhập lý do sửa." };
+  // Lý do đi thẳng vào nhật ký chỉ-thêm (`audit_log.detail`) — chặn dãy số dài giống SĐT bằng ĐÚNG luật + câu của lý do "Khác" khi HDV huỷ đơn
+  // (ADR-0037, `src/shared/text-guards.ts`; chủ dự án duyệt 2026-09-30 "Những lỗi của app đã báo sửa luôn"; Hiến chương 5.12: nhật ký không chứa SĐT).
+  if (hasLongDigitRun(reason)) return { ok: false, message: PHONE_IN_TEXT_MESSAGE };
   if (!Array.isArray(body?.services)) return { ok: false, message: "Thiếu danh sách dịch vụ." };
   const services: { id: string; pax: PaxCounts }[] = [];
   for (const raw of body.services) {
