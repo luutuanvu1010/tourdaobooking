@@ -59,6 +59,9 @@ Theo Hiến pháp: P5 (mọi quyết định để lại dấu vết), N3 (khôn
 | [0055](ADR-0055-van-chuyen-kernel-luot-2.md) | **Vận chuyển — Kernel lượt 2:** khung bận của xe (lịch vào xưởng; không ghi chồng chuyến đã xếp), giờ lái tối đa/ngày và liên tục (chỉ cảnh báo, 480/240 phút đổi được), số hiệu chuyến bay trên chặng | **accepted** 2026-09-30 (lượt duyệt B2) |
 | [0056](ADR-0056-van-chuyen-kernel-luot-3.md) | **Vận chuyển — Kernel lượt 3:** cam kết "xe riêng" / "số chỗ tối thiểu" trên chặng (chặn xếp sai, Quản trị/Toàn quyền phá lệ có lý do, phá lệ gắn đúng tập vi phạm); mỗi xe mỗi loại giấy tờ một dòng hiện hành | **accepted** 2026-09-30 (lượt duyệt B3) |
 | [0057](ADR-0057-van-chuyen-tien-xe-thue.md) | **Vận chuyển — tiền xe thuê:** bảng giá thuê theo nhà xe trong `van-chuyen` (theo tuyến / cỡ xe, tuyến thắng, có hiệu lực); chi phí chuyến chụp lúc xếp xe nhà xe (chỉ-thêm, đảo khi đổi trước xuất bến); **chưa có giá thì xe thuê không xuất bến** (giá bảng hoặc giá thoả thuận trước do Quản trị/Kế toán/Toàn quyền nhập; không phá lệ, kể cả xe cứu hộ); Quản trị = Kế toán ở ô tiền xe thuê; dòng nợ sổ công nợ gắn đơn **hoặc** chuyến (sửa ADR-0026); lệch L-T1 (chưa khoá kỳ, cùng hạn sổ công nợ lượt 2); kẽ C2a + nợ N-T1 | **accepted** 2026-09-30 (lượt duyệt B1; sổ hỏi đáp Vận chuyển lần 19–22 — số sau gộp 30/9) |
+| [0059](ADR-0059-bien-so-xe-tren-chi-tiet-don.md) | **Góp ý người dùng D1 — biển số xe + tên tài xế, số khách, trạng thái chuyến trên chi tiết đơn** cho người có `trip.view` = any (Bán hàng, Kế toán, Quản trị, Toàn quyền — không mở quyền mới); HDV, Đối tác, Thực tập, Tài xế không thấy; route đọc riêng của `van-chuyen` (trình duyệt gọi thêm), hỏi `trip.view` + `order.view` không ngữ cảnh; danh sách trắng không SĐT/tên khách/`place_key`; nhật ký `trip_*` vẫn không gắn đơn. Bổ sung ADR-0049 D3 | hai chiều | **accepted** 2026-09-30 (chủ, hộp hỏi gom "Duyệt cả ba, kèm 14 điểm chi tiết"; AI ghi lại) |
+| [0060](ADR-0060-dau-nhap-phan-mem-ke-toan.md) | **Góp ý người dùng D2 — dấu "đã nhập phần mềm kế toán" + "Số hoá đơn đã nhập"**: bảng chỉ-thêm `bil_accounting_entry` (module `billing`, không flexfield); ô ghi `accounting.entry.mark` (Kế toán, Toàn quyền), ô xem `accounting.entry.view` (Đối tác không — Q-2); lọc danh sách đơn đã/chưa nhập bắt buộc kèm khoảng ngày (hàm đọc tiêm của `billing`); cờ nội bộ, không thay luồng hoá đơn ADR-0004. Bổ sung ADR-0024; thi công sau sổ tiền lượt 1 | một chiều (bảng `bil_`) | **accepted** 2026-09-30 (chủ, hộp hỏi gom "Duyệt cả ba, kèm 14 điểm chi tiết", Q-2 "Không"; AI ghi lại) |
+| [0061](ADR-0061-mo-lai-dich-vu-nhap-tay-noi-bo.md) | **Góp ý người dùng D3 — mở lại "Dịch vụ nhập tay" cho nội bộ:** công tắc `ord_manual_service_policy` có ngày hiệu lực, chỉ Toàn quyền đổi (`settings.ops`), **mặc định TẮT**; ô `order.service.manual` (Bán hàng, Kế toán — chưa có tác dụng, chờ C2 —, Quản trị, Toàn quyền); tài khoản có quyền Đối tác **luôn bị chặn** kể cả tài khoản lai; tắt thì đơn cũ giữ nguyên. Sửa một phần ADR-0021 điều 2, ADR-0027 điều 1; thu hẹp lệch 5.1 của ADR-0029 (lớp bù `R-ORD-NT1`); nới dòng R1 của sổ hàng rào (Điều 9.4) | một chiều (bảng `ord_`) | **accepted** 2026-09-30 (chủ, hộp hỏi gom "Duyệt cả ba, kèm 14 điểm chi tiết", Q-1 "Giữ quyền sẵn, chờ việc C2"; AI ghi lại) |
 
 Thứ tự tài liệu (Điều 3.1): Hiến pháp → ràng buộc dự án → **ADR** → quy trình/playbook → đặc tả từng bước → mã. Đặc tả mô hình dữ liệu N1 (`docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md`) viết sau khi ADR-0001…0007 được duyệt và **đã được chủ dự án duyệt cùng ADR-0008 (2026-09-20)**.
 
@@ -66,9 +69,10 @@ Thứ tự tài liệu (Điều 3.1): Hiến pháp → ràng buộc dự án →
 
 | Số | Việc | Bản đề xuất | Trạng thái |
 |---|---|---|---|
-| — | (số ADR mới kế tiếp là 0058) | | |
+| 0058 | Phân loại dịch vụ (nhóm dịch vụ quản lý trong app, gieo sẵn theo Sheet) | `docs/superpowers/specs/2026-09-30-ra-soat-luong-giao-dien-phan-loai-huong-dan.md` (nhánh `ra-soat-luong-giao-dien`, chưa gộp) | chờ soạn ADR / chờ chủ duyệt |
+| — | (số ADR mới kế tiếp là 0062) | | |
 
-(0040, 0041, 0042, 0044, 0049, 0050, 0051 và 0052–0057 đã có văn bản thật ở bảng trên nên bỏ khỏi bảng giữ chỗ.)
+(0040, 0041, 0042, 0044, 0049, 0050, 0051, 0052–0057 và 0059–0061 đã có văn bản thật ở bảng trên nên bỏ khỏi bảng giữ chỗ.)
 
 **Số migration đã giữ chỗ** (2026-09-28; nếu thứ tự lên main đảo thì nhánh lên sau đổi tên tệp):
 - 0028: vai "IT", ADR-0044 (đã lên main, bản 1.30);

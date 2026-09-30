@@ -1,14 +1,16 @@
 # Đề xuất ADR lượt góp ý người dùng (D1, D2, D3) + trang ghép — 2026-09-30
 
+> **ĐÃ DUYỆT 2026-09-30.** Chủ dự án trả lời trong chat (hộp hỏi gom; điều phối chuyển lại nguyên văn): *"Duyệt cả ba, kèm 14 điểm chi tiết"* (D1, D2, D3 + A-1…A-14); Q-2: *"Không"*; Q-1: *"Giữ quyền sẵn, chờ việc C2"*. Bản chuẩn tắc: `docs/adr/ADR-0059-bien-so-xe-tren-chi-tiet-don.md`, `docs/adr/ADR-0060-dau-nhap-phan-mem-ke-toan.md`, `docs/adr/ADR-0061-mo-lai-dich-vu-nhap-tay-noi-bo.md`. Tệp này giữ làm hồ sơ trình duyệt (kèm trang ghép).
+
 > **Nói ngắn cho chủ dự án (lời thường):**
 > - **D1:** người văn phòng (Bán hàng, Kế toán, Quản trị, Toàn quyền) mở đơn sẽ thấy xe nào đón khách và ai lái. Hướng dẫn viên, Đối tác, Thực tập, Tài xế không thấy. Không mở thêm quyền cho ai.
 > - **D2:** Kế toán (và Toàn quyền) bấm dấu "đã nhập phần mềm kế toán" trên đơn, kèm số hoá đơn. Chỉ ghi thêm, không xoá; bỏ dấu phải ghi lý do. Lọc được danh sách đơn "đã nhập / chưa nhập" trong một khoảng ngày. Làm sau phần sổ tiền.
 > - **D3:** "Dịch vụ nhập tay" có công tắc do Toàn quyền bật/tắt, mặc định tắt. Đối tác không bao giờ dùng được. Việc này gồm ba thay đổi luật bạn cần biết: (1) sửa một phần hai quyết định cũ đã ẩn và chặn nhập tay (ADR-0021, ADR-0027); (2) quy tắc "luật quan trọng phải được chặn cả ở cơ sở dữ liệu" vẫn chưa làm được cho nhập tay — giữ ngoại lệ đã duyệt hôm 26/9 nhưng thu hẹp lại, có lớp kiểm định kỳ bù; (3) nới một hàng rào đã ghi sổ: hôm nay máy chặn nhập tay với **mọi** người, sau D3 chỉ chặn khi công tắc tắt, với người không được phép, và luôn luôn với Đối tác.
-> - Có hai câu cần bạn chọn ở cuối tệp (Q-1, Q-2) và một danh sách điểm AI tự thêm để bạn duyệt hoặc cắt.
+> - Hai câu Q-1, Q-2 và 14 điểm AI tự thêm: **đã được chủ trả lời/duyệt 2026-09-30** (xem cuối tệp).
 
-> **Bản ĐỀ XUẤT, chưa duyệt.** AI soạn (vai lập kế hoạch, chỉ tài liệu), không tự duyệt (Hiến pháp N3, Điều 7.2). Chủ duyệt bản cuối thì điều phối chuyển từng ADR vào `docs/adr/` (thư mục đó bị hỏi quyền — `.claude/settings.json`), cấp số thật và ghi mục lục.
+> **Bản đề xuất (đã duyệt 2026-09-30 — xem khung đầu tệp).** AI soạn (vai lập kế hoạch, chỉ tài liệu), không tự duyệt (Hiến pháp N3, Điều 7.2). Chủ duyệt bản cuối thì điều phối chuyển từng ADR vào `docs/adr/` (thư mục đó bị hỏi quyền — `.claude/settings.json`), cấp số thật và ghi mục lục.
 
-- **Số ADR tạm:** **0059** (D1), **0060** (D2), **0061** (D3). Số **0058** đã bị nhánh chưa gộp `ra-soat-luong-giao-dien` @ `77590349` dùng cho "phân loại dịch vụ" (`docs/superpowers/specs/2026-09-30-ra-soat-luong-giao-dien-phan-loai-huong-dan.md:57`) — bỏ qua để khỏi trùng. **Điều phối cần ghi giữ chỗ 0059–0061 vào bảng "Số đã giữ chỗ" của `docs/adr/README.md`** (người soạn không sửa `docs/adr/`).
+- **Số ADR tạm:** **0059** (D1), **0060** (D2), **0061** (D3). Số **0058** đã bị nhánh chưa gộp `ra-soat-luong-giao-dien` @ `77590349` dùng cho "phân loại dịch vụ" (`docs/superpowers/specs/2026-09-30-ra-soat-luong-giao-dien-phan-loai-huong-dan.md:57`) — bỏ qua để khỏi trùng. Sau khi chủ duyệt (2026-09-30), ba số này là số thật: đã ghi mục lục `docs/adr/README.md` và giữ chỗ 0058 cho nhánh `ra-soat-luong-giao-dien`.
 - **Nguồn lời chủ:** `docs/superpowers/specs/2026-09-30-phan-tich-gop-y-nguoi-dung.md` trên nhánh `worktree-phan-tich-gop-y` @ `841c0384` (mục 6 "Chủ trả lời" lượt 2, lượt 3; mục 7.3). Tệp đó **chưa** có trên nhánh này; trích dẫn theo nhánh@commit.
 - **Mã đo** trên `main` @ `836c8247` (bản 1.38, migration tới `0043`).
 - **Hiến chương đã tra trước** (`docs/ARCHITECTURE.md` Phần I, đã duyệt): 5.2 (cấu hình bằng dữ liệu có kiểu, cấm flexfield), 5.3 (đồ thị không vòng kể cả tầng SQL), 5.4, 5.5 (chỉ-thêm, dấu vết), 5.7, 5.12, 5.13, 5.17.
@@ -27,9 +29,9 @@
 
 ---
 
-# ADR-0059 (tạm) — D1: Biển số xe và tài xế đón khách hiện trên chi tiết đơn cho người đã xem được lịch xe
+# ADR-0059 — D1: Biển số xe và tài xế đón khách hiện trên chi tiết đơn cho người đã xem được lịch xe
 
-- **Trạng thái:** đề xuất (proposed). Chủ đã chốt nguyên tắc (C1 lượt 2: *"Có. Hiện biển số xe đón trên đơn cho người bán hàng"*); ADR này ghi lại + chi tiết kỹ thuật để duyệt bản cuối.
+- **Trạng thái:** **accepted 2026-09-30** (*"Duyệt cả ba, kèm 14 điểm chi tiết"* (D1, D2, D3 + A-1…A-14); Q-2: *"Không"*; Q-1: *"Giữ quyền sẵn, chờ việc C2"*). Chủ đã chốt nguyên tắc (C1 lượt 2: *"Có. Hiện biển số xe đón trên đơn cho người bán hàng"*); ADR này ghi lại + chi tiết kỹ thuật để duyệt bản cuối.
 - **Loại:** **hai chiều** — không bảng, không cột, không mã quyền mới; rút lại = gỡ một route và một khối giao diện.
 - **Sửa ADR:** **bổ sung** ADR-0049 D3 (thêm một route đọc của `van-chuyen`); không thay câu nào của luật C1 ADR-0049 ("Hướng dẫn viên, Đối tác không thấy" — `docs/adr/ADR-0049-bang-dieu-phoi-chung-luot-1.md:31`).
 - **Hiến chương áp:** 4.4 (danh sách trường dựng mới), 5.3, 5.12.
@@ -104,9 +106,9 @@ Tài khoản lai (vd SALES + FIELD) thấy, vì `can()` hợp các ô — đúng
 
 ---
 
-# ADR-0060 (tạm) — D2: Dấu "đã nhập phần mềm kế toán" + "Số hoá đơn đã nhập" — bảng nhỏ chỉ-thêm của `billing`
+# ADR-0060 — D2: Dấu "đã nhập phần mềm kế toán" + "Số hoá đơn đã nhập" — bảng nhỏ chỉ-thêm của `billing`
 
-- **Trạng thái:** đề xuất (proposed). Chủ đã chốt nguyên tắc (C4 lượt 2 + lượt 3: *"bảng nhỏ riêng của Kế toán (không dùng 'trường mở rộng tự do' — Hiến chương 5.2)"*; *"Kế toán + Toàn quyền; người khác chỉ xem"*).
+- **Trạng thái:** **accepted 2026-09-30** (*"Duyệt cả ba, kèm 14 điểm chi tiết"* (D1, D2, D3 + A-1…A-14); Q-2: *"Không"*; Q-1: *"Giữ quyền sẵn, chờ việc C2"*). Chủ đã chốt nguyên tắc (C4 lượt 2 + lượt 3: *"bảng nhỏ riêng của Kế toán (không dùng 'trường mở rộng tự do' — Hiến chương 5.2)"*; *"Kế toán + Toàn quyền; người khác chỉ xem"*).
 - **Loại:** **một chiều** ở phần bảng (tiền tố `bil_`, bảng chỉ-thêm có dữ liệu thì không gỡ được mà không dựng lại); ô quyền mới là hai chiều.
 - **Sửa ADR:** **bổ sung** ADR-0024 (thêm một bảng vào danh sách bảng của `billing`); **không** sửa ADR-0004 (luồng yêu cầu xuất hoá đơn giữ nguyên).
 - **Hiến chương áp:** 5.2, 5.3, 5.5, 5.12, 5.13.
@@ -141,7 +143,7 @@ Tài khoản lai (vd SALES + FIELD) thấy, vì `can()` hợp các ô — đúng
    - Nhật ký cùng lô: `order_accounting_entry_marked` / `order_accounting_entry_unmarked` (gắn `order_id`), detail = trạng thái + số hoá đơn + lý do. Không SĐT/email/MST (5.12).
    - **Đường lộ của dòng nhật ký gắn đơn** (khác `trip_*`, dòng này CÓ `order_id`): (i) hình chiếu thông báo `v_aud_order_event` là **danh sách hành động cho phép** (`migrations/0025_thong_bao.sql:53-56`: chỉ `created`, `order_claimed`, `order_handler_changed`, `confirmed`, `cancelled`, `order_cancelled_by_field`) ⇒ hành động mới **không** vào hộp thông báo, không cần sửa; (ii) lịch sử đơn (`getAuditTrail` + `lichSuTheoVai`, `src/modules/orders/index.ts:544`) hiện mọi hành động gắn đơn cho người có `order.history.view` (`permissions.ts:74`: ownOrAssigned·any·any·assigned·own·any·own·none·none) ⇒ `lichSuTheoVai` **bỏ** hai hành động này khi người xem **không** qua `can(accounting.entry.view, { ownerId, assigned })` (ô mới ở điều 4). Luật định nghĩa theo **ô quyền**, không theo danh tính "Đối tác" — cùng khuôn `order.leg.short_notice.view` / `xemDuDatGap` (`src/modules/orders/index.ts:80`).
    - **Hàng rào Bảng tin:** kế hoạch sổ tiền thêm `billing/index.ts` vào bài `src/bang-tin-guard.test.ts` (NT-R7) ⇒ route này **gọi `baoThayDoi`** (màn đơn của người khác đang mở tự làm mới), với loại thay đổi **không gõ cửa điện thoại** (ADR-0045: thông báo nổi chỉ khi xác nhận; khuôn NT-F10) — loại cụ thể chốt ở kế hoạch. Không xin miễn trừ `MIEN`.
-4. **Ô xem mới `accounting.entry.view`** (tên tạm; tiền lệ ô xem riêng `order.leg.short_notice.view`, `permissions.ts:85`) — MỘT ô quyết cả ba đường đọc: chi tiết đơn, nhãn/lọc ở danh sách, dòng nhật ký trong lịch sử đơn. Giá trị đề xuất: SALES any · ACCOUNTING any · ADMIN any · FIELD assigned · **PARTNER theo Q-2** (khuyến nghị none) · SUPER_ADMIN any · INTERN own · DRIVER none · DRIVER_PARTNER none (các cột ngoài PARTNER = đúng `order.view`, `permissions.ts:72`). Bài ghim: ô này không rộng hơn `order.view` ở mọi cột.
+4. **Ô xem mới `accounting.entry.view`** (tên tạm; tiền lệ ô xem riêng `order.leg.short_notice.view`, `permissions.ts:85`) — MỘT ô quyết cả ba đường đọc: chi tiết đơn, nhãn/lọc ở danh sách, dòng nhật ký trong lịch sử đơn. Giá trị đề xuất: SALES any · ACCOUNTING any · ADMIN any · FIELD assigned · **PARTNER none** (chủ trả lời Q-2 "Không", 2026-09-30) · SUPER_ADMIN any · INTERN own · DRIVER none · DRIVER_PARTNER none (các cột ngoài PARTNER = đúng `order.view`, `permissions.ts:72`). Bài ghim: ô này không rộng hơn `order.view` ở mọi cột.
    - **Tài khoản lai SALES + PARTNER:** `can()` hợp các ô ⇒ ô SALES = any cho qua ⇒ **thấy** dấu (kể cả khi PARTNER = none). Chấp nhận có chủ ý, nhất quán D1 và cách bản đồ quyền đang chạy; test ghi rõ ca này.
    - **Đọc trên chi tiết đơn:** route `billing` `GET /api/orders/:id/nhap-ke-toan` (cổng `orders`): hỏi `can(order.view, scope)` rồi `can(accounting.entry.view, scope)` (`scope = { ownerId, assigned }`); sai ô xem ⇒ 403 (giao diện không gọi khi phía trình duyệt biết trước là không có ô); trả trạng thái hiện tại (daNhap, soHoaDon, lúc, tên người bấm) và — chỉ cho người có `accounting.entry.mark` — các dòng trước đó.
 5. **Lọc và gắn nhãn ở danh sách đơn** (`GET /api/orders`, module `orders`, `src/modules/orders/index.ts:458`): `orders` không đọc `bil_` ⇒ gốc lắp ráp tiêm **một hàm đọc** của `billing`, khuôn `ordersWithHandler(orderIds)` (`src/shared/router.ts:56`): `ctx.nhapKeToanCuaDon(orderIds)` ⇒ tập id **trong danh sách truyền vào** có trạng thái hiện tại `entered = 1`.
@@ -164,7 +166,7 @@ Tài khoản lai (vd SALES + FIELD) thấy, vì `can()` hợp các ô — đúng
 | ADMIN | none (lời chủ: chỉ Kế toán + Toàn quyền) | any |
 | SUPER_ADMIN | **any** | any |
 | FIELD (HDV) | none | assigned (đơn đang phụ trách) |
-| PARTNER | none | **theo Q-2** (khuyến nghị: none) |
+| PARTNER | none | **none** (Q-2 = "Không") |
 | INTERN | none | own (đơn của mình) |
 | DRIVER | none | none |
 | DRIVER_PARTNER | none | none |
@@ -183,7 +185,7 @@ Tài khoản lai SALES + PARTNER: ghi không được; **thấy** dấu (hợp �
 - **Route:** `POST /api/orders/:id/nhap-ke-toan`, `GET /api/orders/:id/nhap-ke-toan` (module `billing`); tham số `nhapKeToan` của `GET /api/orders` (bắt buộc kèm khoảng ngày); một hàm tiêm mới `nhapKeToanCuaDon` ở `src/shared/router.ts` + `src/index.ts`; hai ô mới `accounting.entry.mark`, `accounting.entry.view`. Hành động nhật ký mới ở `src/shared/audit-actions.ts`.
 - **Test:**
   - Migration: `UPDATE`/`DELETE` bị chặn; `CHECK` bỏ dấu thiếu lý do, số hoá đơn rỗng/quá dài bị chặn.
-  - Route: 9 quyền + lai (ADMIN+ACCOUNTING ghi được; ADMIN một mình 403; **SALES+PARTNER** ghi 403 nhưng xem được dấu và dòng nhật ký; **PARTNER+FIELD** xem theo ô FIELD `assigned`); `lichSuTheoVai` bỏ `order_accounting_entry_*` với người không qua ô xem (ca PARTNER một mình theo Q-2); lọc thiếu khoảng ngày ⇒ 400; đơn nháp ⇒ 409; đơn đã "Đã giao"/"Hoàn thành" ⇒ ghi được; chạy đua `truocDo` ⇒ một bên 409.
+  - Route: 9 quyền + lai (ADMIN+ACCOUNTING ghi được; ADMIN một mình 403; **SALES+PARTNER** ghi 403 nhưng xem được dấu và dòng nhật ký; **PARTNER+FIELD** xem theo ô FIELD `assigned`); `lichSuTheoVai` bỏ `order_accounting_entry_*` với người không qua ô xem (ca PARTNER một mình: không thấy — Q-2 = "Không"); lọc thiếu khoảng ngày ⇒ 400; đơn nháp ⇒ 409; đơn đã "Đã giao"/"Hoàn thành" ⇒ ghi được; chạy đua `truocDo` ⇒ một bên 409.
   - Bài NT-R4 của sổ tiền ("`orders` không nhắc `bil_`") vẫn xanh — không SQL nào của `orders` chạm `bil_accounting_entry`.
   - e2e: Kế toán đánh dấu → danh sách lọc "chưa nhập" không còn đơn đó; bỏ dấu có lý do → quay lại.
   - Bài bản đồ quyền (`src/shared/permissions.test.ts`): ghim giá trị hàng `accounting.entry.mark`.
@@ -191,7 +193,7 @@ Tài khoản lai SALES + PARTNER: ghi không được; **thấy** dấu (hợp �
 - Kiểm định kỳ (tuỳ chọn, mức `warn`): `R-BIL-AE1` — đơn nháp có dòng `entered = 1` (không thể xảy ra qua route; bắt SQL chạy tay).
 
 ## Tiêu chí nghiệm thu
-1. Kế toán đánh dấu đơn đã xác nhận, nhập số "HD-000123" ⇒ người qua ô `accounting.entry.view` với đơn đó thấy "Đã nhập phần mềm kế toán · HD-000123" trên chi tiết, thẻ danh sách và lịch sử đơn; người không qua ô (PARTNER một mình nếu Q-2 = none) không thấy ở cả ba chỗ; tài khoản lai SALES + PARTNER thấy.
+1. Kế toán đánh dấu đơn đã xác nhận, nhập số "HD-000123" ⇒ người qua ô `accounting.entry.view` với đơn đó thấy "Đã nhập phần mềm kế toán · HD-000123" trên chi tiết, thẻ danh sách và lịch sử đơn; người không qua ô (PARTNER một mình — Q-2 = "Không") không thấy ở cả ba chỗ; tài khoản lai SALES + PARTNER thấy.
 2. Quản trị, Bán hàng, HDV gọi route ghi ⇒ 403.
 3. Bỏ dấu không lý do ⇒ 400; có lý do ⇒ dòng mới, dấu mất, dòng cũ vẫn còn (xem được ở lịch sử cho Kế toán).
 4. `UPDATE bil_accounting_entry …` chạy tay ⇒ bị trigger chặn.
@@ -200,9 +202,9 @@ Tài khoản lai SALES + PARTNER: ghi không được; **thấy** dấu (hợp �
 
 ---
 
-# ADR-0061 (tạm) — D3: Mở lại "Dịch vụ nhập tay" cho nội bộ, có công tắc của Toàn quyền (mặc định TẮT); Đối tác luôn bị chặn
+# ADR-0061 — D3: Mở lại "Dịch vụ nhập tay" cho nội bộ, có công tắc của Toàn quyền (mặc định TẮT); Đối tác luôn bị chặn
 
-- **Trạng thái:** đề xuất (proposed). Chủ đã chốt nguyên tắc (T1 lượt 2: *"Hiện lại 'Dịch vụ nhập tay' cho nội bộ công ty (đối tác không dùng được); công tắc bật/tắt ở màn của Toàn quyền"*; lượt 3: *"Bán hàng, Kế toán, Quản trị, Toàn quyền. Không: HDV, Thực tập sinh, Đối tác, Tài xế"*).
+- **Trạng thái:** **accepted 2026-09-30** (*"Duyệt cả ba, kèm 14 điểm chi tiết"* (D1, D2, D3 + A-1…A-14); Q-2: *"Không"*; Q-1: *"Giữ quyền sẵn, chờ việc C2"*). Chủ đã chốt nguyên tắc (T1 lượt 2: *"Hiện lại 'Dịch vụ nhập tay' cho nội bộ công ty (đối tác không dùng được); công tắc bật/tắt ở màn của Toàn quyền"*; lượt 3: *"Bán hàng, Kế toán, Quản trị, Toàn quyền. Không: HDV, Thực tập sinh, Đối tác, Tài xế"*).
 - **Loại:** **một chiều** ở phần bảng chính sách (tiền tố `ord_`, bảng chỉ-thêm); luật mở/đóng là hai chiều (tắt công tắc).
 - **Sửa ADR:** sửa **một phần** ADR-0021 điều 2 và ADR-0027 điều 1; sửa điều kiện gỡ lệch 5.1 của ADR-0029 (bảng "Câu bị thay" dưới).
 - **Hiến chương áp:** 5.1 (lệch thu hẹp), 5.2, 5.4, 5.5, 5.7, 5.17.
@@ -243,7 +245,7 @@ Tài khoản lai SALES + PARTNER: ghi không được; **thấy** dấu (hợp �
 | Quyền | `order.service.manual` (mới) | Thực tế khi công tắc BẬT |
 |---|---|---|
 | SALES | any | Thêm/sửa dịch vụ nhập tay trên đơn mình lập/sửa được |
-| ACCOUNTING | any | **Chưa có tác dụng** — Kế toán không lập/sửa đơn (`order.create`/`order.modify` none). Xem **Q-1** |
+| ACCOUNTING | any | **Chưa có tác dụng** — Kế toán không lập/sửa đơn (`order.create`/`order.modify` none). Q-1 = (a) "Giữ quyền sẵn, chờ việc C2" |
 | ADMIN | any | Được |
 | SUPER_ADMIN | any | Được |
 | FIELD (HDV) | none | Không |
@@ -267,7 +269,7 @@ Ghi công tắc: `settings.ops` (chỉ Toàn quyền — không đổi ô).
 - **Công tắc là JSON trong một bảng "cài đặt chung":** trái 5.2 (không JSON tự do).
 - **Chỉ hỏi `can(order.service.manual)`, không `holdsPartner`:** tài khoản lai SALES + PARTNER lọt — lặp lại lỗi người kiểm độc lập đã chứng minh 26/9 (`permissions.ts:232-236`).
 - **Mở cho mọi người lập đơn rồi dựa R2 chặn Đối tác ở xác nhận:** Đối tác vẫn lưu nháp được giá tự gõ; trái lời chủ "đối tác không dùng được"; mất lớp chặn thứ nhất.
-- **Cấp `order.create` cho Kế toán để dùng nhập tay:** nở quyền lập đơn — ngoài phạm vi, xem Q-1.
+- **Cấp `order.create` cho Kế toán để dùng nhập tay:** nở quyền lập đơn — ngoài phạm vi; chủ chọn Q-1 (a) "Giữ quyền sẵn, chờ việc C2".
 
 ## Hệ quả — migration, route, test, hàng rào
 - **Migration** (một tệp): bảng + hai trigger chỉ-thêm + dòng gieo `enabled = 0`. `docs/data-dictionary.json` + `npm run dict`.
@@ -282,7 +284,7 @@ Ghi công tắc: `settings.ops` (chỉ Toàn quyền — không đổi ô).
 - **Đơn nháp của Đối tác có dòng nhập tay do nội bộ thêm:** Bán hàng đang phụ trách (hoặc Quản trị) thêm dòng nhập tay vào đơn nháp do Đối tác lập ⇒ **Đối tác không xác nhận được** đơn đó (R2 ở nhánh xác nhận, `src/modules/orders/index.ts:806` — dòng nhập tay không có giá danh mục) và nhận 403 "Tài khoản đối tác dùng đúng giá bán lẻ theo danh mục…". Người nội bộ xác nhận thay. Hệ quả có chủ ý (giữ lớp chặn thứ hai), ghi vào hướng dẫn cho văn phòng.
 - **NỚI hàng rào đã duyệt (Điều 9.4) — chỉ chủ duyệt được:** dòng `docs/SO-HANG-RAO.md:27` (`tests/e2e/nhap-tay-va-gia-doi-tac.mjs` + `src/modules/orders/price-guards.test.ts`, "R1: dịch vụ nhập tay mới … (mọi tài khoản) → 400", đã thấy chặn thật từ 2026-09-26) bị **thu hẹp** thành "khi công tắc TẮT / không có ô / có quyền Đối tác". Các ca R1 "mọi tài khoản" trong hai tệp test trên **đổi kỳ vọng** (có ghi lý do trỏ ADR này); ca Đối tác giữ nguyên. Duyệt ADR-0061 là duyệt việc nới này.
 - **Hàng rào mới cần dòng ở `docs/SO-HANG-RAO.md`:** (a) `holdsPartner` đứng trước trong `duocNhapTay` (bài ca lai); (b) bài tĩnh "route ghi dịch vụ gọi `priceGuard`"; (c) trigger chỉ-thêm `ord_manual_service_policy`; (d) `R-ORD-NT1` — mọi dòng ghi **"chưa quan sát chặn"** tới khi thi công sửa cố ý → đỏ → hoàn nguyên.
-- **Ô có giá trị nhưng chưa có tác dụng:** nếu chủ chọn Q-1 (a), ô `order.service.manual` của ACCOUNTING = `any` mà máy chủ **chưa hỏi ở đường nào** Kế toán đi được (bài học 24/9: giá trị trong bản đồ ≠ bản đồ đang được thi hành). Ghi rõ ở chú thích ô trong `permissions.ts` và ở sổ hàng rào: "Kế toán — chưa có tác dụng, chờ route C2".
+- **Ô có giá trị nhưng chưa có tác dụng:** chủ đã chọn Q-1 (a) ⇒ ô `order.service.manual` của ACCOUNTING = `any` mà máy chủ **chưa hỏi ở đường nào** Kế toán đi được (bài học 24/9: giá trị trong bản đồ ≠ bản đồ đang được thi hành). Ghi rõ ở chú thích ô trong `permissions.ts` và ở sổ hàng rào: "Kế toán — chưa có tác dụng, chờ route C2".
 - Tài liệu: `docs/SYSTEM-DESIGN.md` §16 (dòng lệch ADR-0029 cập nhật), `docs/CHANGE-GUIDE.md` (công thức "bật/tắt nhập tay").
 
 ## Tiêu chí nghiệm thu
@@ -324,7 +326,7 @@ Cột: SALES · ACCOUNTING · ADMIN · FIELD · PARTNER · SUPER_ADMIN · INTERN
 |---|---|---|---|
 | `trip.view` (có) | any·any·any·none·none·any·none·assigned·none | `vc_*` qua route mới `xe-cua-don` | route hỏi **không ngữ cảnh** ⇒ chỉ ô `any`; DRIVER không qua |
 | `order.history.view` (có, `permissions.ts:74`) | ownOrAssigned·any·any·assigned·own·any·own·none·none | `audit_log` qua lịch sử đơn — nay gồm dòng `order_accounting_entry_*` (gắn đơn) | `lichSuTheoVai` bỏ hai hành động này khi người xem không qua `accounting.entry.view`; `trip_*` không gắn đơn nên không qua đây |
-| `accounting.entry.view` **(mới)** | any·any·any·assigned·**Q-2**·any·own·none·none | `bil_accounting_entry` (đọc: chi tiết, nhãn/lọc danh sách, nhật ký) | không rộng hơn `order.view`; lai SALES+PARTNER thấy (hợp ô) |
+| `accounting.entry.view` **(mới)** | any·any·any·assigned·**none**·any·own·none·none | `bil_accounting_entry` (đọc: chi tiết, nhãn/lọc danh sách, nhật ký) | không rộng hơn `order.view`; lai SALES+PARTNER thấy (hợp ô) |
 | `order.view` (có) | any·any·any·assigned·own·any·own·none·none | route `xe-cua-don` (không ngữ cảnh ⇒ chỉ `any`); route đọc dấu D2 (có ngữ cảnh đơn) | hỏi trước `accounting.entry.view` quyết Đối tác có thấy dấu D2 không |
 | `accounting.entry.mark` **(mới)** | none·any·none·none·none·any·none·none·none | `bil_accounting_entry` (mọi dòng) | không dùng lại `invoice.issue` |
 | `invoice.request`, `invoice.issue` (có, chưa route) | không đổi | `bil_invoice_request` (dự kiến ADR-0004) | **không** chạm `bil_accounting_entry` |
@@ -360,7 +362,7 @@ Không có ô nào mới cho INTERN, FIELD, DRIVER, DRIVER_PARTNER. Không mã q
 
 ---
 
-# Câu chờ chủ (chỉ điểm nguyên tắc chưa chốt)
+# Câu chờ chủ — ĐÃ TRẢ LỜI 2026-09-30: Q-1 = (a) "Giữ quyền sẵn, chờ việc C2"; Q-2 = (a) "Không"
 
 **Q-1. Kế toán và "Dịch vụ nhập tay".** Chủ đã chọn Kế toán được dùng nhập tay, nhưng hôm nay Kế toán **không lập, không sửa đơn** — nên dù có quyền, Kế toán chưa có chỗ để thêm dịch vụ nhập tay.
 - **(a) Giữ quyền sẵn cho Kế toán, chưa mở lập/sửa đơn** (Khuyến nghị): Kế toán dùng được khi có việc "sửa số lượng thực tế đơn đã xác nhận" (câu C2, làm sau sổ tiền). Được: không nở quyền; mất: hôm nay Kế toán chưa dùng được.
@@ -373,7 +375,7 @@ Không có ô nào mới cho INTERN, FIELD, DRIVER, DRIVER_PARTNER. Không mã q
 
 ---
 
-# Điểm AI thêm ngoài lời chủ — chờ chủ duyệt hoặc cắt
+# Điểm AI thêm ngoài lời chủ — ĐÃ DUYỆT CẢ 14 ĐIỂM 2026-09-30 ("Duyệt cả ba, kèm 14 điểm chi tiết")
 
 Chủ chỉ chốt nguyên tắc; các điểm dưới đây AI thêm cho đủ chi tiết kỹ thuật. Duyệt ADR là duyệt cả các điểm này; muốn bỏ điểm nào thì nói mã điểm.
 
