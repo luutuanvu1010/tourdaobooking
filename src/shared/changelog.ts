@@ -11,6 +11,19 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Trợ lý Hỗ trợ AI (ADR-0066, chủ duyệt 30/9) + sửa các lỗi chủ báo 30/9 (Đối tác/Thực tập; HDV sửa số khách — "Cho sửa đến hết ngày đi").
+    // Ba nhánh, mỗi nhánh người kiểm độc lập ĐẠT. Số "1.44" theo main 1.43; người gộp chốt số trống kế tiếp LÚC GỘP. Có migration 0050.
+    version: "1.44",
+    date: "2026-09-30",
+    items: [
+      { kind: "moi", text: "Nút \"Hỗ trợ\" ở mọi trang: hỏi trợ lý AI cách dùng app, trả lời theo hướng dẫn kèm nguồn. Trợ lý có thể sai — đối chiếu màn hình." },
+      { kind: "sua", text: "Tài khoản đối tác, thực tập: đơn đã xác nhận không còn hiện nút \"Sửa thông tin chuyến\", \"Đổi khách\" mà bấm lưu lại bị từ chối." },
+      { kind: "sua", text: "Tài khoản đối tác, thực tập: trang đơn không còn báo \"Chưa tải được người phụ trách\"." },
+      { kind: "moi", text: "Tài khoản đối tác, thực tập có mục \"Đơn hàng\" trên thanh dưới đáy để xem lại đơn mình đã lập." },
+      { kind: "doi", text: "Hướng dẫn viên: lý do sửa số khách không được chứa số điện thoại; chỉ sửa số khách được tới hết ngày đi tour." },
+    ],
+  },
+  {
     // Sửa lỗi chủ dự án báo 30/9: hết giờ bảo trì mà hệ thống không tự tắt (docs/HANDOFF-CHE-DO-BAO-TRI.md mục 0). 1.42 đã lên production; người gộp chốt số trống kế tiếp LÚC GỘP.
     version: "1.43",
     date: "2026-09-30",
