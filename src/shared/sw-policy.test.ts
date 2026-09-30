@@ -54,7 +54,7 @@ test("script, khung và mọi yêu cầu của Cloudflare Turnstile không bao g
 });
 
 test("khác nguồn thì 'pass' kể cả khi đường dẫn TRÔNG GIỐNG tệp của khung app (quyết định theo nguồn, không theo đường dẫn)", () => {
-  for (const p of ["/", "/login", "/app.css", "/js/login.js", "/fonts/nunito-latin-viet-var.woff2", "/icons/icon-192.png", "/manifest.webmanifest"]) {
+  for (const p of ["/", "/login", "/app.css", "/js/login.js", "/fonts/be-vietnam-pro-400.woff2", "/icons/icon-192.png", "/manifest.webmanifest"]) {
     assert.equal(routeFor("GET", CF + p, ORIGIN), "pass", CF + p);
     assert.equal(routeFor("GET", "http://booking.tourdao.vn" + p, ORIGIN), "pass", "khác giao thức là khác nguồn: http://" + p);
     assert.equal(routeFor("GET", "https://sub.booking.tourdao.vn" + p, ORIGIN), "pass", "tên miền con là khác nguồn: " + p);
@@ -76,7 +76,7 @@ test("danh sách nạp sẵn và trang chỉ chứa đường dẫn tương đ�
 });
 
 test("trang và tài nguyên tĩnh đã biết vào cache khung (query của trang bị bỏ qua khi khớp)", () => {
-  for (const p of ["/", "/login", "/order?id=1", "/order-form?id=1", "/js/orders.js", "/js/order-form.js", "/app.css", "/icons/icon-192.png", "/icons/apple-touch-icon.png", "/manifest.webmanifest", "/fonts/nunito-latin-viet-var.woff2", "/fonts/be-vietnam-pro-latin-viet-800.woff2"]) {
+  for (const p of ["/", "/login", "/order?id=1", "/order-form?id=1", "/js/orders.js", "/js/order-form.js", "/app.css", "/icons/icon-192.png", "/icons/apple-touch-icon.png", "/manifest.webmanifest", "/fonts/be-vietnam-pro-400.woff2", "/fonts/be-vietnam-pro-800.woff2"]) {
     assert.equal(shell(p), "shell", p);
   }
 });
