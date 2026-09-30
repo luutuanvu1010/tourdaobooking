@@ -1915,6 +1915,9 @@ body.login-page main.login { display: flex; flex-direction: column; height: 100%
 .dp-cc-day { display: flex; flex-direction: column; gap: var(--s1); }
 .dp-cc-day .vc-btn { min-height: var(--h-field); }
 .dp-cc-foot { text-align: center; }
+.dp-cc-diem { margin-bottom: var(--s3); } /* bản 1.39: điểm của chuyến trước khi xuất bến, trên khối điều kiện */
+.dp-cc-so-nguoi { padding: var(--s2) var(--s4) var(--s2) calc(var(--s4) + var(--dp-run-so) + var(--s3)); font-weight: 700; color: var(--c-text); } /* thẳng cột với tên nơi */
+.dp-cc-diem .dp-run-head { border-bottom: 0; padding-bottom: 0; }
 @media (min-width: 641px) { .dp-cc-day { position: static; display: flex; margin: var(--s4) 0 0; padding: 0; background: none; border: 0; } }
 .dp-cc-day[hidden] { display: none; }
 .dp-thu-tu-nhom { display: flex; flex: none; gap: var(--s1); }
