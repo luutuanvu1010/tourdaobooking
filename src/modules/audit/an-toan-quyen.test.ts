@@ -30,7 +30,7 @@ function setup() {
   return { w, log };
 }
 
-// bỏ dòng gieo của migration 0046 (id gieo-nhom-dich-vu, ADR-0058) — không phải dòng do bài này ghi
+// bỏ dòng gieo của migration 0053 (id gieo-nhom-dich-vu, ADR-0058) — không phải dòng do bài này ghi
 const ids = (r: any): string[] => r.json.entries.map((e: any) => e.id).filter((id: string) => id !== "gieo-nhom-dich-vu").sort();
 /** Truy vấn của trang Nhật ký như người KHÔNG giữ Toàn quyền nhận (hideSilent = true), trả dạng giống kết quả route cho `ids()`. */
 async function asNonSuper(w: any, opts: { action?: string; q?: string; limit?: number } = {}) {

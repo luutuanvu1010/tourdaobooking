@@ -1,4 +1,4 @@
-// Kiểm migration 0046 — Nhóm dịch vụ (ADR-0058): ctl_group + ctl_service_group (lịch sử gán chỉ-thêm), gieo 14 nhóm / 110 dịch vụ — trên SQLite thật (node:sqlite).
+// Kiểm migration 0053 — Nhóm dịch vụ (ADR-0058): ctl_group + ctl_service_group (lịch sử gán chỉ-thêm), gieo 14 nhóm / 110 dịch vụ — trên SQLite thật (node:sqlite).
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
@@ -6,10 +6,10 @@ import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
 const DIR = join(import.meta.dirname, "..", "migrations");
-const TEN_0046 = "0046_nhom_dich_vu.sql";
+const TEN_0053 = "0053_nhom_dich_vu.sql";
 const T = "2026-09-30T01:00:00.000Z";
 
-/** Nạp mọi migration có tên nhỏ hơn `ten` (hoặc tới hết nếu bỏ trống), theo thứ tự — để chèn catalog_item TRƯỚC khi 0046 gieo. */
+/** Nạp mọi migration có tên nhỏ hơn `ten` (hoặc tới hết nếu bỏ trống), theo thứ tự — để chèn catalog_item TRƯỚC khi 0053 gieo. */
 function moiToi(ten?: string): DatabaseSync {
   const db = new DatabaseSync(":memory:");
   db.exec("PRAGMA foreign_keys = ON");
@@ -63,11 +63,11 @@ const TEN_NHOM: [string, string][] = [
 const TAT_CA_MA = Object.values(BANG_GIEO).flat();
 const THEO_MA = Object.fromEntries(Object.entries(BANG_GIEO).flatMap(([g, ms]) => ms.map((m) => [m, g])));
 
-test("NT-A3: danh sách gieo trong 0046 đúng bảng ADR-0058 (110 cặp, 14 nhóm, ATV → KON)", () => {
+test("NT-A3: danh sách gieo trong 0053 đúng bảng ADR-0058 (110 cặp, 14 nhóm, ATV → KON)", () => {
   assert.equal(TAT_CA_MA.length, 110, "hằng chép từ ADR phải đủ 110");
   assert.equal(new Set(TAT_CA_MA).size, 110);
   assert.equal(Object.keys(BANG_GIEO).length, 14);
-  const sql = readFileSync(join(DIR, TEN_0046), "utf8");
+  const sql = readFileSync(join(DIR, TEN_0053), "utf8");
   const cap = [...sql.matchAll(/\('([A-Z0-9]+)', ?'([A-Z]{3})'\)/g)].map((m) => [m[1], m[2]] as [string, string]);
   assert.equal(cap.length, 110);
   assert.equal(new Set(cap.map((c) => c[0])).size, 110, "không trùng mã");
@@ -84,9 +84,9 @@ test("NT-A3: 14 nhóm gieo đúng tên và thứ tự sort_order 1…14 của b�
 });
 
 test("NT-A2: DB có đủ 110 mã → 14 nhóm, 110 gán seq = 1, một dòng nhật ký gieo", () => {
-  const db = moiToi(TEN_0046);
+  const db = moiToi(TEN_0053);
   for (const ma of TAT_CA_MA) chenDichVu(db, ma);
-  napMigration(db, TEN_0046);
+  napMigration(db, TEN_0053);
   assert.equal((db.prepare("SELECT COUNT(*) AS n FROM ctl_group").get() as { n: number }).n, 14);
   const gan = db.prepare("SELECT service_code, group_code, seq, created_by, valid_from_at FROM ctl_service_group").all() as { service_code: string; group_code: string; seq: number; created_by: string | null; valid_from_at: string }[];
   assert.equal(gan.length, 110);
@@ -115,9 +115,9 @@ test("NT-A2: DB chưa đồng bộ Sheet → 14 nhóm, 0 gán, detail 'gieo 14 n
 });
 
 test("NT-A2: DB thiếu một phần mã → chỉ gán mã có mặt trong bảng gieo; mã lạ (mới trên Sheet) không có dòng gán", () => {
-  const db = moiToi(TEN_0046);
+  const db = moiToi(TEN_0053);
   for (const ma of ["TDMCT1", "ATV", "MOI1"]) chenDichVu(db, ma);
-  napMigration(db, TEN_0046);
+  napMigration(db, TEN_0053);
   const gan = db.prepare("SELECT service_code, group_code FROM ctl_service_group ORDER BY service_code").all().map((r) => ({ ...r }));
   assert.deepEqual(gan, [
     { service_code: "ATV", group_code: "KON" },
@@ -127,9 +127,9 @@ test("NT-A2: DB thiếu một phần mã → chỉ gán mã có mặt trong bả
 });
 
 function moiDayDu(): DatabaseSync {
-  const db = moiToi(TEN_0046);
+  const db = moiToi(TEN_0053);
   for (const ma of ["TDMCT1", "TDMCM", "ATV"]) chenDichVu(db, ma);
-  napMigration(db, TEN_0046);
+  napMigration(db, TEN_0053);
   return db;
 }
 const ghiGan = (db: DatabaseSync, id: string, ma: string, nhom: string | null, seq: number) =>

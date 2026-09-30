@@ -130,6 +130,8 @@ Kịch bản đột biến nằm ngoài repo (thư mục tạm của phiên), kh
 |---|---|---|---|
 | N-1 | Màn Danh mục (A7) tải `GET /api/staff` — trả cả SĐT — chỉ để ghép tên người sửa vào lịch sử nhóm | Cùng quyền `admin.manage` với màn Tài khoản (người xem vốn thấy SĐT ở đó); không mở dữ liệu cho ai mới; tránh cạnh `catalog → staff` (C1) | Sau này thêm route nhãn hẹp (id → tên hiển thị) cho các màn Quản trị cần ghép tên; ADR / kế hoạch riêng |
 
+**Ruling A-0 (2026-09-30, điều phối):** đổi số migration nhóm dịch vụ `0046` → `0053` (tệp `migrations/0053_nhom_dich_vu.sql`, test `src/migrations-0053.test.ts`). Lý do: `main` đã có `0050_tro_ly.sql` (bản 1.44); luật CLAUDE.md §10 số kế tiếp = số lớn nhất + 1; `0051`/`0052` đã cấp cho phiên khác (ADR-0060/0061). Các dòng cũ ở bảng trên còn ghi `0046` là lịch sử lúc thi công A1. ADR-0058 Đ7 (số giữ chỗ) và tệp kế hoạch giữ nguyên (tệp đã duyệt).
+
 ## 5. Kiểm độc lập
 
 | Vòng | Phần | Đỉnh được kiểm | Kết luận | Mục CAO / VỪA / THẤP | Đã sửa ở |
