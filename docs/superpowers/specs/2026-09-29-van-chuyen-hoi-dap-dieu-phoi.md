@@ -307,3 +307,15 @@ Sắp tên theo thứ tự trong đơn: DTO và `ord_passenger` chưa có thứ 
 | — | GA-68: `baoDuoc` / `boDuoc` trong phản hồi lặp là quyền của người gọi lúc gọi | Chấp nhận | Đây là cờ cho nút của người đang xem, không phải kết quả lệnh |
 
 K2e (kiểm độc lập `1f8b498..01ba476`) đang chạy.
+
+**K2e (30/9)** — cả hai lượt kiểm đều ĐẠT.
+- **Máy chủ** @ `01ba476`: không có lỗi CAO hay VỪA.
+  - Người kiểm thử thật trên D1 local: `CHECK` hình và trigger bản chụp đều chặn được.
+  - Bốn điểm THẤP đã sửa ở `92dd556`. Trong đó GA-69: lưới thứ hai của lệnh xuất bến tính lại `kiemXuatBen` bằng danh sách người vừa đọc, nên câu 409 luôn trùng với lý do màn hiện sau khi tải lại.
+- **Giao diện** @ `40b6833`: không có lỗi CAO.
+  - Kịch bản Chrome và kiểm tiếp cận (axe) đều xanh.
+  - VỪA:
+    - chưa có bài kiểm cho ca `THIEU_TEN` và `KHACH_DA_DOI` xuất hiện cùng lúc;
+    - nhánh `stale` của nút mới chưa có bước Chrome.
+    - Cả hai giao vòng 5g, cùng lúc với gộp `92dd556`.
+- Tóm tắt báo cáo của điều phối: `K2e-bao-cao-may-chu.md`, `K2e-bao-cao-giao-dien.md` (thư mục tạm của phiên).
