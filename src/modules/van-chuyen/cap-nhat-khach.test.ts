@@ -5,7 +5,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import * as esbuild from "esbuild";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
-import { ACC, DRIVER, DRIVER2, FIELD, NGAY, SALES, batDongHo, chiTiet, denGio, don, setup, taoChuyen, tienDo, uuid, xe } from "../../../tests/audit/dieu-phoi-khung.mjs";
+import { ACC, DRIVER, DRIVER2, FIELD, NGAY, SALES, SUP, batDongHo, chiTiet, denGio, don, setup, taoChuyen, tienDo, uuid, xe } from "../../../tests/audit/dieu-phoi-khung.mjs";
 
 const khoaCuaDon = (w: any, orderId: string): string[] =>
   w.q(`SELECT p.person_key k FROM ord_passenger p WHERE p.order_id = ? AND p.voided_at IS NULL
@@ -273,6 +273,48 @@ test("K2e THẤP-3 lưới thứ hai: suất chưa tên vừa được GÁN TẠ
     assert.deepEqual(j.error.lyDo, man, "câu 409 = đúng lý do màn hiện khi tải lại (mã + câu)");
     assert.equal(w.q("SELECT status FROM vc_trip WHERE id = ?", t.chuyen.id)[0].status, "PLANNED", "không ghi gì");
     assert.deepEqual(khoaSuat(w, t.chuyen.id, d.legId).filter((k) => k === null).length, 1, "suất chưa tên vẫn chưa tên");
+  } finally {
+    tat();
+  }
+});
+
+// K2f THẤP-2 (vòng 5g → 5h, bài giao cho người thi công giao diện): nhánh "tính lại vẫn đạt → CHUYEN_CU()" của lưới thứ hai (`dieu-phoi-tien-do.ts`). Chính sách
+// KHÔNG bắt đủ danh sách (requireManifest=false) ⇒ bỏ người vừa được GÁN TẠM giữa lúc đọc lịch và lúc đọc hành khách thì tính lại vẫn đạt (suất chưa tên được
+// phép) — gán tạm cũ không còn đúng ⇒ 409 `stale` "tải lại", KHÔNG ghi gì; màn tải lại không giữ.
+test("K2f THẤP-2 lưới thứ hai, chính sách không bắt đủ danh sách: người được gán tạm bị bỏ giữa hai lần đọc → 409 stale 'tải lại'; không DEPARTED, không bản chốt, vẫn PLANNED; GET không giữ", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const cs = await w.call("POST", "/api/van-chuyen/chinh-sach-dieu-phoi", {
+      as: SUP, body: { minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes: 30, requireManifest: false, proxyBackdateMaxMinutes: 180 },
+    });
+    assert.equal(cs.status, 201, cs.text);
+    assert.equal(cs.json.current.requireManifest, false, "chính sách hiện hành không bắt đủ danh sách");
+    const d = await don(w, { soNguoi: 2, ten: 1 });
+    const t = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER}` });
+    await xep(w, t.chuyen.id, d.legId, 2);
+    assert.deepEqual(khoaSuat(w, t.chuyen.id, d.legId).map((k) => k !== null), [true, false], "chống bài rỗng: một suất có tên, một suất chưa tên");
+    await doiKhach(w, d.id, { them: ["Khách Gán Tạm"] });
+    const truoc = khoaCuaDon(w, d.id);
+    denGio("12:40");
+    assert.deepEqual(await lyDo(w, t.chuyen.id), [], "chống bài rỗng: chính sách không bắt đủ danh sách → trước lệnh không giữ gì");
+    const nen = await M.docNen(w.env.DB, t.chuyen.id);
+    const lich = await M.lichChungChang(w.env.DB, nen.tu, nen.den);
+    const daCo = khoaSuat(w, t.chuyen.id, d.legId).filter((k) => k !== null);
+    const b = truoc.find((k) => !daCo.includes(k))!;
+    await doiKhach(w, d.id, { huy: [b] }); // bỏ ĐÚNG người sẽ được gán tạm
+    const hk = await M.hanhKhachChoChuyen(w.env.DB, nen.legIds);
+    const r = await M.lenhXuatBen(w.env.DB, nen, lich.chang, hk, { requestId: uuid(), xayRaMs: null }, { id: SALES, bamThay: true }, Date.now());
+    assert.ok(r instanceof Response, "bị chặn");
+    assert.equal(r.status, 409);
+    const j = await r.json();
+    assert.equal(j.error.code, "stale");
+    assert.match(j.error.message, /tải lại/);
+    assert.equal(w.q("SELECT count(*) n FROM vc_trip_event WHERE trip_id = ? AND kind = 'DEPARTED'", t.chuyen.id)[0].n, 0, "không sự kiện DEPARTED");
+    assert.equal(w.q("SELECT count(*) n FROM vc_trip_departure_check WHERE trip_id = ?", t.chuyen.id)[0].n, 0, "không bản chốt (phiếu kiểm)");
+    assert.equal(w.q("SELECT count(*) n FROM vc_trip_manifest WHERE trip_id = ?", t.chuyen.id)[0].n, 0, "không bản chốt (danh sách)");
+    assert.equal(w.q("SELECT status FROM vc_trip WHERE id = ?", t.chuyen.id)[0].status, "PLANNED", "vẫn PLANNED");
+    assert.deepEqual(await lyDo(w, t.chuyen.id), [], "GET tải lại không giữ");
   } finally {
     tat();
   }

@@ -644,3 +644,30 @@ Chưa gộp máy chủ mới (điều phối: đợi HEAD sau phần vá xoá đ
   - `npm test` hai bước: 1869/1869 + 1/1, thoát 0.
   - `npm run typecheck` 0; `npm run build:web` 0.
   - Chrome: cap-nhat-khach 7/7, chuyen 8/8, rut-doi 8/8, dieu-phoi 11/11, goi-bao 7/7, cuoc 11/11.
+- Việc 6: gộp `7c8bdae` → `728c643`. Hai xung đột ở tệp đề xuất luật đã gỡ; dòng `dat-gap-smoke` sửa 11 → 12 bước.
+- Việc 7 (đổi nhãn "CHỜ CHỦ DUYỆT" → "ĐÃ DUYỆT" ở `docs/SO-HANG-RAO.md` và chú thích `src/architecture.test.ts`): **bộ duyệt tự động của phiên từ chối** ("Instruction Poisoning"). Không làm, không lách; đã báo điều phối kèm nguồn duyệt tìm được.
+
+### 13.13 Vòng 5h (kiểm độc lập K2f @728c643: ĐẠT CÓ ĐIỀU KIỆN — ba điểm THẤP)
+- **THẤP-1** — đề xuất luật mục 5, bảng "Sửa → Chạy": `chinh-sach-dieu-phoi-smoke` 13 → **14** bước (có bước 9b R-P22).
+  - Đếm `grep -o 'b\.step(' <tệp> | wc -l` ở HEAD: chinh-sach-dieu-phoi 14, dat-gap 12, dieu-phoi 11, chuyen 8, chuyen-sua 12, cuoc 11, rut-doi 8, cap-nhat-khach 7, goi-bao 7, moc-chua-co 6.
+  - Mọi số khác trong bảng mục 5 đã khớp. KHÔNG sửa `web/CLAUDE.md`.
+- **THẤP-2** — bài máy chủ cho nhánh "tính lại vẫn đạt → `CHUYEN_CU()`" của lưới thứ hai (`src/modules/van-chuyen/dieu-phoi-tien-do.ts`, khối `if (!row)`):
+  - Bài mới "K2f THẤP-2" trong `src/modules/van-chuyen/cap-nhat-khach.test.ts`, theo khuôn "K2e THẤP-3".
+  - Dựng: Toàn quyền lưu chính sách mới `requireManifest: false` qua route (201). Đơn 2 người / 1 tên; xếp 2; thêm "Khách Gán Tạm". Trước lệnh không giữ gì. Đọc lịch → bỏ đúng người sẽ được gán tạm → đọc hành khách → `lenhXuatBen`.
+  - Khẳng định:
+    - 409 `stale`, câu có "tải lại";
+    - 0 sự kiện `DEPARTED`, 0 `vc_trip_departure_check`, 0 `vc_trip_manifest`;
+    - chuyến vẫn `PLANNED`;
+    - GET tải lại `lyDoGiu` rỗng.
+  - Không đổi mã máy chủ (`git diff` chỉ tệp test + import `SUP`).
+  - P16, hai phép, mỗi phép đỏ rồi hoàn nguyên:
+    - (a) cho nhánh đi tiếp ghi lô (`continue`) → đỏ: mã `trip_rule` thay vì `stale` — lô bị ràng buộc CSDL chặn;
+    - (b) trả "thành công" (`null`) → đỏ "bị chặn".
+- **THẤP-3** — `cap-nhat-khach-smoke` bước 6: ĐẾM dòng 409, không lọc theo mẫu.
+  - **Phát hiện**: dòng "Failed to load resource … 409" của Chrome đi qua miền Log (`logEntries`), KHÔNG qua `consoleErrors`. Bộ lọc 5g trên `consoleErrors` vì thế không bao giờ khớp: lần P16 đầu đếm được 0 dòng.
+  - Nay: `consoleErrors` của MỌI trang (kể cả trang bước 3b) phải rỗng. Ở trang bước 3b, `logEntries` mức lỗi có ĐÚNG 2 dòng 409, không lỗi nào khác.
+  - P16: bản sao tạm của kịch bản thêm lần 409 thứ ba ở bảng → bước 6 đỏ (thấy 3 dòng) → xoá bản sao. Kịch bản thật 7/7.
+- **Chạy lại** (máy rảnh, không song song e2e):
+  - `npm test` hai bước: 1870/1870 + 1/1, thoát 0.
+  - `npm run typecheck` 0; `npm run build:web` 0.
+  - Chrome `cap-nhat-khach-smoke` 7/7.

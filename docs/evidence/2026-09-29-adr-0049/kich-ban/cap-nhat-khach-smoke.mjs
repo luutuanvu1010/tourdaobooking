@@ -191,9 +191,14 @@ try {
   await k.close();
 
   await b.step("6", "không lỗi console ở mọi trang đã mở", async () => {
-    // 409 của lệnh (stale) là phản hồi mạng có chủ đích — Chrome ghi "Failed to load resource" vào console; lọc riêng dòng đó ở trang bước 3b.
-    for (const pg of [p, pm, k]) assert.deepEqual(pg.consoleErrors, []);
-    assert.deepEqual(ps.consoleErrors.filter((x) => !/Failed to load resource: the server responded with a status of 409/.test(x)), []);
+    // K2f THẤP-3: 409 của lệnh (stale) là phản hồi mạng có chủ đích. Chrome ghi "Failed to load resource … 409" qua miền Log (`logEntries`), KHÔNG qua console
+    // của trang (`consoleErrors`) — bộ lọc cũ theo mẫu trên `consoleErrors` không bao giờ khớp. Nay ĐẾM ở `logEntries`: ĐÚNG 2 dòng (hai lần bấm cố ý ở bước
+    // 3b: Chi tiết chuyến + bảng Điều phối); mọi lỗi khác của trang đó (console lẫn Log) phải rỗng.
+    for (const pg of [p, ps, pm, k]) assert.deepEqual(pg.consoleErrors, []);
+    const la409 = (e) => /Failed to load resource: the server responded with a status of 409/.test(e.text);
+    const loiLog = ps.logEntries.filter((e) => e.level === "error");
+    assert.equal(loiLog.filter(la409).length, 2, `đúng 2 dòng 409 (bước 3b) — thấy: ${JSON.stringify(loiLog.map((e) => e.text))}`);
+    assert.deepEqual(loiLog.filter((e) => !la409(e)).map((e) => e.text), []);
   });
 } finally {
   b.xong();
