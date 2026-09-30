@@ -115,6 +115,7 @@ try {
     const loi = await d.ev(loiNhom);
     assert.match(loi, /Tour đảo/, `câu trùng tên của máy chủ: ${loi}`);
     assert.doesNotMatch(loi, /[a-z]+_[a-z]+/, "không lộ mã lỗi thô");
+    assert.equal(await d.ev("document.getElementById('nhom-ten-moi').value"), "Tour đảo", "lỗi 409: chữ đã gõ vẫn còn trong ô");
     await d.ev(setInput("document.getElementById('nhom-ten-moi')", "Nhóm thử"));
     await d.ev("document.querySelector('#nhom-dv [data-act=\"luu-moi\"]').click(); true");
     await d.waitFor(`${tenNhom}.at(-1) === 'Nhóm thử'`, "Nhóm thử cuối khối");
@@ -215,6 +216,13 @@ try {
     assert.match((await d.ev(lichSu))[0], /^\d\d\/\d\d \d\d:\d\d — Quản Trị: Long Phú → Hòn Tằm$/);
     await d.waitFor("document.querySelector('#list tr[data-code=\"TD101\"] .nhom-o').textContent === 'Hòn Tằm'", "cột Nhóm của TD101 đổi");
     assert.equal(await d.ev(soNhom("Hòn Tằm")), "1 dịch vụ");
+    // Route một dịch vụ (PATCH /api/catalog/:code — Ẩn / Hiện lại) trả `item` thay vào danh sách: cột Nhóm phải giữ nhóm thật, không rơi về "Chưa phân loại".
+    await d.ev("[...document.querySelectorAll('#list tr[data-code=\"TD101\"] button')].find((b) => b.textContent === 'Ẩn').click(); true");
+    await d.waitFor("[...document.querySelectorAll('#list tr[data-code=\"TD101\"] button')].some((b) => b.textContent === 'Hiện lại')", "TD101 đã ẩn");
+    assert.equal(await d.ev("document.querySelector('#list tr[data-code=\"TD101\"] .nhom-o').textContent"), "Hòn Tằm", "ẩn xong vẫn đúng nhóm");
+    await d.ev("[...document.querySelectorAll('#list tr[data-code=\"TD101\"] button')].find((b) => b.textContent === 'Hiện lại').click(); true");
+    await d.waitFor("[...document.querySelectorAll('#list tr[data-code=\"TD101\"] button')].some((b) => b.textContent === 'Ẩn')", "TD101 hiện lại");
+    assert.equal(await d.ev("document.querySelector('#list tr[data-code=\"TD101\"] .nhom-o').textContent"), "Hòn Tằm", "hiện lại vẫn đúng nhóm");
     await d.ev(bamNhom("Long Phú", "tat")); // nay rỗng → tắt được
     await d.waitFor(`(${dongNhom("Long Phú")}).querySelector('.badge')?.textContent === 'Đã tắt'`, "Long Phú rỗng → tắt được");
     await d.ev(bamNhom("Long Phú", "bat"));

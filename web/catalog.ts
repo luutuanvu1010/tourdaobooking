@@ -267,9 +267,14 @@ function nutNhom(label: string, act: string, onclick: () => void, opts: { disabl
   return b;
 }
 
-function oTenNhom(attrs: Record<string, unknown>, value: string, luu: () => void): HTMLInputElement {
+/** Chữ đang gõ ở ô đổi tên / ô tên nhóm mới — giữ qua lần dựng lại khối sau lỗi 400/409 để người dùng không mất chữ đã gõ. */
+let banNhapTen = "";
+let banNhapMoi = "";
+
+function oTenNhom(attrs: Record<string, unknown>, value: string, luu: () => void, nhap: (v: string) => void): HTMLInputElement {
   const o = h("input", { type: "text", maxLength: 40, autocomplete: "off", ...attrs });
   o.value = value;
+  o.addEventListener("input", () => nhap(o.value));
   o.addEventListener("keydown", (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
@@ -282,10 +287,15 @@ function oTenNhom(attrs: Record<string, unknown>, value: string, luu: () => void
 
 function dongNhom(g: Nhom, i: number): HTMLElement {
   if (suaTenMa === g.code) {
-    const luu = () => void doiNhom(g, { name: o.value.trim() }, () => (suaTenMa = null));
-    const o = oTenNhom({ class: "nhom-ten-sua", "aria-label": `Tên mới cho nhóm ${g.name}` }, g.name, luu);
+    const luu = () =>
+      void doiNhom(g, { name: o.value.trim() }, () => {
+        suaTenMa = null;
+        banNhapTen = "";
+      });
+    const o = oTenNhom({ class: "nhom-ten-sua", "aria-label": `Tên mới cho nhóm ${g.name}` }, banNhapTen || g.name, luu, (v) => (banNhapTen = v));
     const huy = () => {
       suaTenMa = null;
+      banNhapTen = "";
       renderNhom();
     };
     return h("li", { class: "nhom-dong", "data-nhom": g.code }, o, h("div", { class: "nhom-nut" }, nutNhom("Lưu", "luu-ten", luu), nutNhom("Huỷ", "huy-ten", huy)));
@@ -294,6 +304,7 @@ function dongNhom(g: Nhom, i: number): HTMLElement {
   const sau = nhoms[i + 1];
   const doiTen = () => {
     suaTenMa = g.code;
+    banNhapTen = "";
     nhomLoi = "";
     renderNhom();
   };
@@ -320,9 +331,10 @@ function renderNhom(): void {
   let them: HTMLElement;
   if (themNhomMo) {
     const luu = () => void themNhom(o.value.trim());
-    const o = oTenNhom({ id: "nhom-ten-moi" }, "", luu);
+    const o = oTenNhom({ id: "nhom-ten-moi" }, banNhapMoi, luu, (v) => (banNhapMoi = v));
     const huy = () => {
       themNhomMo = false;
+      banNhapMoi = "";
       nhomLoi = "";
       renderNhom();
     };
@@ -371,6 +383,7 @@ async function themNhom(name: string): Promise<void> {
   try {
     await api<Api.CatalogGroupResponse>("/api/catalog/groups", { method: "POST", body: { name } });
     themNhomMo = false;
+    banNhapMoi = "";
     nhomLoi = "";
   } catch (err) {
     nhomLoi = loiChu(err);
