@@ -102,14 +102,14 @@ Chỉ bạn và người phụ trách hệ thống đọc được yêu cầu c�
     },
     {
       tieuDe: "Hỏi trợ lý Hỗ trợ",
-      noiDung: `Nút [[Hỗ trợ]] nằm ở góc dưới bên phải mọi trang. Khung này tự mở một lần sau mỗi lần đăng nhập.
+      noiDung: `Nút [[Hỗ trợ]] nằm ở góc dưới bên phải mọi trang. Khung này tự mở một lần sau mỗi lần đăng nhập. Không thấy nút: trợ lý đang tắt với vai của bạn.
 
-1. Bấm [[Hỗ trợ]], gõ câu hỏi về cách dùng app, bấm [[Gửi]].
+1. Bấm [[Hỗ trợ]], gõ câu hỏi về cách dùng app, bấm [[Gửi]]. Có câu hỏi mẫu thì chạm vào để gửi luôn.
 2. Đọc câu trả lời. Dòng **Nguồn** cho biết mục hướng dẫn trợ lý đã dựa vào.
 
 - Trợ lý chỉ biết hướng dẫn và các trang của app. Nó không xem được đơn, khách hay tiền, và không làm thay bạn.
 - Trả lời do AI, có thể sai: luôn đối chiếu với màn hình.
-- Đừng gõ số điện thoại hay thông tin khách. App tự che trước khi gửi đi.
+- Câu hỏi được lưu để cải thiện trợ lý, chỉ người phụ trách hệ thống đọc được. Đừng gõ thông tin khách. Số điện thoại, email được app tự che trước khi lưu và gửi đi.
 - Báo **Trợ lý chưa bật** hoặc **tạm nghỉ tới tháng sau**: đọc Trợ giúp, hoặc hỏi Quản trị.`,
     },
     {

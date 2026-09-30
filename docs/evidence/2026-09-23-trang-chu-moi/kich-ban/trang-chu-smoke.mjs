@@ -853,7 +853,7 @@ try {
   // ==================================================================================================
   // 29/9 (làm xanh kịch bản, Phần B ADR-0049): ADR-0038 — trang Nhật ký chỉ Toàn quyền (ô audit.view). Quản trị mở /audit chỉ thấy câu từ chối, ô "Lọc hành
   // động" không bao giờ dựng → kịch bản cũ kẹt (đỏ sẵn). Trang /audit nay mở bằng tài khoản Quản trị + Toàn quyền (như chủ dự án); thanh bên của tài khoản đó
-  // có 20 mục = 17 của Quản trị + "Chính sách điều phối" (ADR-0049 B8), "Nhật ký", "Gửi thông báo".
+  // có 20 mục = 17 của Quản trị + "Chính sách điều phối" (ADR-0049 B8), "Nhật ký", "Gửi thông báo". 30/9 (ADR-0069): + "Trợ lý Hỗ trợ" (ô settings.ops) = 21.
   const TOAN_QUYEN = { name: "Chủ Khung Thử", phone: "0900000396", pin: "998866", permissions: ["ADMIN", "SUPER_ADMIN"] };
   {
     const { insertStaffSql } = await import(pathToFileURL(join(process.cwd(), "scripts", "staff-lib.mjs")).href);
@@ -887,7 +887,7 @@ try {
         ready: `document.querySelector('.toolbar select option[value]:not([value=""])') !== null`,
         mainCap: () => CSS_W_MAIN,
         account: TOAN_QUYEN,
-        sidebar: 20,
+        sidebar: 21,
       },
     ];
 
@@ -999,7 +999,7 @@ try {
         assert.equal(f.newBtnShown, false, `${at}: nút "Tạo đơn" trên thanh công việc chỉ từ 641px (điện thoại đã có tab "Tạo đơn") — ${JSON.stringify(f)}`);
       } else {
         assert.equal(f.sidebarShown, true, `${at}: thanh bên PHẢI hiện từ 641px (quyết định 9 của chủ dự án) — ${JSON.stringify(f)}`);
-        assert.equal(f.sidebarLinks, spec.sidebar, `${at}: thanh bên phải đủ ${spec.sidebar} mục của tài khoản mở trang (Quản trị 17 — ADR-0038 không "Nhật ký", ADR-0049 B8 có "Lý do điều phối", B1 có "Điều phối xe"; Toàn quyền 20) — ${JSON.stringify(f)}`);
+        assert.equal(f.sidebarLinks, spec.sidebar, `${at}: thanh bên phải đủ ${spec.sidebar} mục của tài khoản mở trang (Quản trị 17 — ADR-0038 không "Nhật ký", ADR-0049 B8 có "Lý do điều phối", B1 có "Điều phối xe"; Toàn quyền 21 — ADR-0069 thêm "Trợ lý Hỗ trợ") — ${JSON.stringify(f)}`);
         assert.equal(f.tabbarLinks, 0, `${at}: thanh tab dưới đáy KHÔNG được hiện cùng thanh bên — ${JSON.stringify(f)}`);
         assert.equal(f.logoutShown, true, `${at}: "Đăng xuất" phải hiển thị thật trong thanh bên — ${JSON.stringify(f)}`);
         assert.equal(f.sidebarWidth, f.sidebarToken, `${at}: thanh bên phải rộng đúng token --w-sidebar (${f.sidebarToken}px) — ${JSON.stringify(f)}`);

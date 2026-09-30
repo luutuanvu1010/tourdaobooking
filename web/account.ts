@@ -10,7 +10,6 @@ import { initials } from "./format";
 import { helpHasNews, newDot } from "./help-seen";
 import { icon } from "./icons";
 import { renderMaintenanceMessage } from "./maintenance-screen";
-import { ganCaiDatTroLy } from "./tro-ly";
 import { ganCaiDatNhapTay } from "./nhap-tay-cai-dat";
 import { enableFlow, getAssertion, passkeyErrorMessage, platformAuthenticatorAvailable } from "./passkey";
 import { b64uSangBytes, thietBiTu } from "./push-ui";
@@ -52,6 +51,8 @@ const lienKetDau = [
 const lienKetSau = [
   can(staff, "audit.view") && h("a", { class: "row-link", href: "/audit" }, "Nhật ký", icon("next", 20)), // ADR-0038 điều 6: chỉ Toàn quyền
   hasPermission(staff, "SUPER_ADMIN") && h("a", { class: "row-link", href: "/gui-thong-bao" }, "Gửi thông báo", icon("next", 20)),
+  // ADR-0069 điều 1: cài đặt trợ lý chuyển từ khối ở trang này sang trang riêng — chỉ Toàn quyền (ô settings.ops).
+  can(staff, "settings.ops") && h("a", { class: "row-link", href: "/tro-ly-cai-dat" }, "Trợ lý Hỗ trợ", icon("next", 20)),
   h("a", { class: "row-link", href: "/feedback" }, "Góp ý / Báo lỗi", feedbackBadgeEl, icon("next", 20)),
   h("a", { class: "row-link", href: "/help" }, "Trợ giúp", helpHasNews() && newDot(), icon("next", 20)),
   logoutBtn,
@@ -535,9 +536,6 @@ async function initMaintenance(): Promise<void> {
   }
 }
 void initMaintenance();
-
-// ---- Trợ lý Hỗ trợ (ADR-0066): bật / tắt, trần, chi phí tháng — chỉ Toàn quyền (ô settings.ops; máy chủ kiểm lại) ----
-if (can(staff, "settings.ops")) void ganCaiDatTroLy(byId("tro-ly-cai-dat"));
 
 // ---- Dịch vụ nhập tay (ADR-0061 điều 6): công tắc bật / tắt — chỉ Toàn quyền (ô settings.ops; máy chủ kiểm lại) ----
 if (can(staff, "settings.ops")) void ganCaiDatNhapTay(byId("nhap-tay-cai-dat"));

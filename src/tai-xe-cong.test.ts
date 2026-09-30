@@ -71,6 +71,7 @@ const BANG_STAFF: Record<string, MucBang | { DRIVER: MucBang; DRIVER_PARTNER: Mu
   "GET /api/bang-tin": { ma: 426, ly_do: "bắt tay Bảng tin; nhãn nhận tin tính bằng can() — DRIVER không có tat-ca/cho-nhan, chỉ nguoi:<mình>; thiếu Upgrade → 426" },
   "GET /api/dispatch/mine": { ma: 403, ly_do: "việc của hướng dẫn viên — ô contact.view / money.view của DRIVER là none" },
   "POST /api/feedback": { ma: 400, ly_do: "gửi góp ý (feedback.submit any — Ruling R2, như mọi tài khoản); thân rỗng → 400" },
+  "GET /api/tro-ly/khung": { ma: 200, ly_do: "ADR-0069 điều 3, 4: cờ được dùng trợ lý + câu chào, câu hỏi mẫu (chữ đã qua bộ lọc nội dung) — không dữ liệu nghiệp vụ" },
   "POST /api/tro-ly/hoi": { ma: 400, ly_do: "ADR-0066 điều 1: hỏi trợ lý Hỗ trợ (assistant.ask any — mọi tài khoản); thân rỗng → 400, không đọc dữ liệu nghiệp vụ" },
   "GET /api/feedback/:id": { ma: 404, ly_do: "góp ý của mình (feedback.view own); id lạ → 404" },
   "POST /api/feedback/:id/messages": { ma: 404, ly_do: "như trên" },
