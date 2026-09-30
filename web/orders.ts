@@ -7,7 +7,7 @@ import { NO_HANDLER_TEXT, handlerText, nguoiPhuTrachTuPhien } from "../src/share
 import { ApiError, api, type OrderSummary, type Api, type Staff } from "./api";
 import { byId, h, replaceChildren } from "./dom";
 import { soDongCanTai, taoBoLamMoi } from "./lam-moi-logic";
-import { orderCard } from "./order-card";
+import { dienTien, orderCard } from "./order-card";
 import { goiSom } from "./goi-som";
 import { initShell, showError } from "./shell";
 
@@ -77,6 +77,7 @@ interface Row {
   id: string;
   el: HTMLElement;
   slot: HTMLElement;
+  tien: { tienSlot: HTMLElement; daTraSlot: HTMLElement };
 }
 
 function row(o: OrderSummary, index: number): Row {
@@ -84,7 +85,7 @@ function row(o: OrderSummary, index: number): Row {
   // web/order-card.ts (chỉ áp cho /orders ở đợt này — xem đặc tả 2026-09-23-dot-e-the-don-gon-va-bieu-tuong.md,
   // mục "Vòng sửa 2026-09-24"). `handlerSlot` thay cho `slot` cũ: vẫn cùng class `order-row-handler`/`is-pending`,
   // chỉ đổi CHỖ ĐỨNG (nay trong phần xổ xuống thay vì luôn hiện).
-  const { el, handlerSlot } = orderCard({
+  const { el, handlerSlot, tien } = orderCard({
     id: o.id,
     href: `/order?id=${encodeURIComponent(o.id)}`,
     orderCode: o.orderCode,
@@ -94,8 +95,8 @@ function row(o: OrderSummary, index: number): Row {
     customerName: o.customerName,
     customerPhone: o.customerPhone,
     pax: o.pax,
-    depositAmount: o.depositAmount,
-    remainingAmount: o.remainingAmount,
+    deliveredAt: o.deliveredAt,
+    completedAt: o.completedAt,
     total: o.total,
     serviceNames: o.serviceNames,
     staffName: o.staffName,
@@ -104,7 +105,19 @@ function row(o: OrderSummary, index: number): Row {
     pickupPlace: o.trip.pickupPlace,
     index,
   });
-  return { id: o.id, el, slot: handlerSlot };
+  return { id: o.id, el, slot: handlerSlot, tien };
+}
+
+/** "Còn thu" / "Đã trả" của các thẻ vừa dựng: MỘT lời gọi billing cho cả trang (sổ tiền lượt 1 — ADR-0026 đ9). Lỗi → chỗ tiền giữ ẩn, danh sách vẫn dùng được. */
+async function fillTien(rows: readonly Row[]): Promise<void> {
+  if (rows.length === 0) return;
+  let balances: Api.LedgerBalancesResponse["balances"] = {};
+  try {
+    balances = (await api<Api.LedgerBalancesResponse>("/api/ledger/balances", { method: "POST", body: { orderIds: rows.map((r) => r.id) } })).balances;
+  } catch {
+    return;
+  }
+  for (const r of rows) dienTien(r.tien, balances[r.id]);
 }
 
 /**
@@ -173,6 +186,7 @@ async function load(reset: boolean, refresh = false): Promise<void> {
     moreBtn.hidden = !hasMore;
     emptyEl.hidden = offset > 0;
     void fillHandlers(rows); // không chờ: danh sách hiện ngay, người phụ trách điền vào khi về
+    void fillTien(rows); // như trên: tiền của billing điền vào khi về
   } catch (err) {
     // Làm mới lặng lẽ giữ danh sách cũ — trừ khi khung "đang tải" của lần tải ĐẦU (bị làm mới này thay thế) còn hiện: lúc đó phải báo lỗi, không để trang kẹt.
     if (seq === loadSeq && (!refresh || !loadingEl.hidden)) {

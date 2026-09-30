@@ -1404,3 +1404,164 @@ test("R-VC-16 (K-02): điểm DANH MỤC của suất khớp nơi hiện hành c
   db.prepare("UPDATE ord_transfer_leg SET pickup_place = 'Khách sạn khác' WHERE id = ?").run(d2.leg);
   assert.equal(violations(db, c), 1, "điểm chữ tự do: KHÔNG phủ (giới hạn đã ghi)");
 });
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Sổ tiền lượt 1 (ADR-0026 đ7 — R-BIL-*; ADR-0025 NT 8 — hai bất biến mốc; NT-S9; kế hoạch Task 9, NT-A1). Mỗi kiểm có ca xanh (dữ liệu do đúng luồng
+// sinh ra) và ca đỏ; ca đỏ phải GỠ trigger tương ứng trong DB tạm (trigger là đường chặn thứ nhất — kiểm này là lưới thứ hai cho SQL chạy tay).
+const BIL_AT = "2026-09-30T03:00:00.000Z";
+const BIL_SAU = "2026-09-30T04:00:00.000Z";
+const chuCongTy = (db: DatabaseSync): string => String((db.prepare("SELECT party_id FROM v_pty_owner_company LIMIT 1").get() as { party_id: string }).party_id);
+function donBil(db: DatabaseSync, id: string): void {
+  addOrder(db, id);
+  db.prepare("INSERT INTO order_service (id, order_id, sort_order, catalog_code, name, unit, pax_adult, depart_date) VALUES (?, ?, 0, 'ZH1', 'Tour', 'perPax', 1, '2026-09-30')").run(`sv-${id}`, id);
+  db.prepare("UPDATE orders SET status = 'confirmed', confirmed_at = ?, total = 300000, subtotal = 300000, remaining_amount = 300000 WHERE id = ?").run(T1, id);
+}
+function lanThuBil(db: DatabaseSync, o: { id: string; order: string; amount: number; at?: string; role?: string; party?: string | null; kind?: string; reverses?: string | null; forParty?: string }): void {
+  const role = o.role ?? "STAFF";
+  db.prepare(
+    `INSERT INTO bil_payment_receipt (id, order_id, kind_code, amount, collector_party_id, collector_role_code, method_code, collected_for_party_id, stage_code, occurred_date,
+       reverses_id, note, created_at, created_by, updated_at, updated_by) VALUES (?, ?, ?, ?, ?, ?, 'CASH', ?, 'PREPAID', '2026-09-30', ?, NULL, ?, 's-an', ?, 's-an')`,
+  ).run(o.id, o.order, o.kind ?? "CUSTOMER_PAYMENT", o.amount, role === "UNKNOWN" ? null : (o.party ?? "pty-s-an"), role, o.forParty ?? chuCongTy(db), o.reverses ?? null, o.at ?? BIL_AT, o.at ?? BIL_AT);
+}
+function phieuBil(db: DatabaseSync, o: { id: string; order: string; kind: string; due?: number | null; at?: string }): void {
+  db.prepare(
+    `INSERT INTO bil_posting (id, kind_code, order_id, reason, reverses_posting_id, occurred_date, due_snapshot, created_at, created_by, updated_at, updated_by)
+     VALUES (?, ?, ?, NULL, NULL, '2026-09-30', ?, ?, 's-an', ?, 's-an')`,
+  ).run(o.id, o.kind, o.order, o.due ?? null, o.at ?? BIL_AT, o.at ?? BIL_AT);
+}
+function dongNoBil(db: DatabaseSync, o: { id: string; posting: string; order: string; debtor: string; creditor: string; amount: number; reverses?: string | null; receipt?: string | null }): void {
+  db.prepare(
+    `INSERT INTO bil_debt_line (id, posting_id, debtor_party_id, creditor_party_id, amount, kind_code, order_id, trip_id, order_service_id, receipt_id, reverses_line_id,
+       created_at, created_by, updated_at, updated_by) VALUES (?, ?, ?, ?, ?, 'HELD', ?, NULL, NULL, ?, ?, ?, 's-an', ?, 's-an')`,
+  ).run(o.id, o.posting, o.debtor, o.creditor, o.amount, o.order, o.receipt ?? null, o.reverses ?? null, BIL_AT, BIL_AT);
+}
+/** Đơn `o-bil` đi ĐÚNG luồng: lần thu 300.000 (An giữ) + một lần thu 50.000 đã đảo → Đã giao (phiếu chụp 300.000). Trả id công ty chủ. */
+function donDaGiao(db: DatabaseSync, id = "o-bil"): string {
+  const ct = chuCongTy(db);
+  donBil(db, id);
+  lanThuBil(db, { id: `r1-${id}`, order: id, amount: 300000 });
+  phieuBil(db, { id: `pr1-${id}`, order: id, kind: "RECEIPT" });
+  dongNoBil(db, { id: `l1-${id}`, posting: `pr1-${id}`, order: id, debtor: "pty-s-an", creditor: ct, amount: 300000, receipt: `r1-${id}` });
+  lanThuBil(db, { id: `r2-${id}`, order: id, amount: 50000 });
+  lanThuBil(db, { id: `r2d-${id}`, order: id, amount: 50000, reverses: `r2-${id}` });
+  db.prepare("UPDATE orders SET delivered_at = ?, delivered_by = 's-an' WHERE id = ?").run(BIL_AT, id);
+  phieuBil(db, { id: `pd-${id}`, order: id, kind: "DELIVERED", due: 300000 });
+  return ct;
+}
+const bil = (code: string) => one(code);
+
+test("R-BIL-*: đủ kiểm lượt 1, mức fail; R-BIL-2/5 'chưa áp dụng' và R-BIL-7 = R-PTY-1 ở danh sách ghi chú (không kiểm trùng, không in 'đạt')", async () => {
+  for (const c of ["R-BIL-1", "R-BIL-3a", "R-BIL-3b", "R-BIL-4a", "R-BIL-4b", "R-BIL-6", "R-BIL-S9", "R-BIL-M1", "R-BIL-M2"]) assert.equal(bil(c).level, "fail", c);
+  assert.equal(CHECKS.filter((c) => /^R-BIL-(2|5|7)\b/.test(c.code)).length, 0, "R-BIL-2/5/7 không phải câu kiểm");
+  const { GHI_CHU } = (await import(new URL("../scripts/audit-checks.mjs", import.meta.url).href)) as { GHI_CHU: { code: string; text: string }[] };
+  assert.deepEqual(GHI_CHU.map((g) => g.code), ["R-BIL-2", "R-BIL-5", "R-BIL-7"]);
+  assert.match(GHI_CHU[0]!.text, /chưa áp dụng/);
+  assert.match(GHI_CHU[1]!.text, /chưa áp dụng/);
+  assert.match(GHI_CHU[2]!.text, /R-PTY-1/);
+  const script = readFileSync(new URL("../scripts/audit-invariants.mjs", import.meta.url), "utf8");
+  assert.match(script, /GHI_CHU/, "script in danh sách ghi chú");
+});
+
+test("R-BIL-*: đơn đi đúng luồng (lần thu, đảo, Đã giao, hoàn khách SAU Đã giao, Hoàn thành sau khi nộp) → mọi kiểm 0 vi phạm", () => {
+  const db = build();
+  const ct = donDaGiao(db);
+  // Hoàn khách + đảo SAU Đã giao là phiếu riêng — R-BIL-1 so số tại thời điểm phiếu Đã giao, không đỏ.
+  lanThuBil(db, { id: "r3", order: "o-bil", amount: 20000, kind: "CUSTOMER_REFUND", at: BIL_SAU });
+  lanThuBil(db, { id: "r1d", order: "o-bil", amount: 300000, reverses: "r1-o-bil", at: BIL_SAU });
+  phieuBil(db, { id: "pnop", order: "o-bil", kind: "SETTLEMENT", at: BIL_SAU });
+  dongNoBil(db, { id: "l-nop", posting: "pnop", order: "o-bil", debtor: ct, creditor: "pty-s-an", amount: 300000 });
+  db.prepare("UPDATE orders SET completed_at = ?, completed_by = 's-an' WHERE id = 'o-bil'").run(BIL_SAU);
+  phieuBil(db, { id: "pc", order: "o-bil", kind: "COMPLETED", at: BIL_SAU });
+  donBil(db, "o-chua"); // đơn chưa giao, có lần thu chưa rõ (cọc cũ) — hợp lệ
+  lanThuBil(db, { id: "r-cu", order: "o-chua", amount: 100000, role: "UNKNOWN" });
+  assert.deepEqual(CHECKS.filter((c) => c.code.startsWith("R-BIL")).map((c) => [c.code, violations(db, c)]).filter((r) => r[1] !== 0), []);
+});
+
+test("R-BIL-1: phiếu Đã giao chụp số KHÁC tổng lần thu còn hiệu lực tạo trước nó → vi phạm (gỡ trigger bil_posting_delivered_paid)", () => {
+  const db = build();
+  donDaGiao(db);
+  assert.equal(violations(db, bil("R-BIL-1")), 0);
+  db.exec("DROP TRIGGER bil_posting_delivered_paid");
+  donBil(db, "o-sai");
+  lanThuBil(db, { id: "rs", order: "o-sai", amount: 100000 });
+  db.prepare("UPDATE orders SET delivered_at = ?, delivered_by = 's-an' WHERE id = 'o-sai'").run(BIL_AT);
+  phieuBil(db, { id: "pds", order: "o-sai", kind: "DELIVERED", due: 300000 });
+  assert.equal(violations(db, bil("R-BIL-1")), 1);
+});
+
+test("R-BIL-1: lần thu ghi SAU phiếu Đã giao (thời điểm lớn hơn) không được tính vào số tại mốc", () => {
+  const db = build();
+  db.exec("DROP TRIGGER bil_posting_delivered_paid");
+  donBil(db, "o-x");
+  lanThuBil(db, { id: "rx1", order: "o-x", amount: 200000 });
+  db.prepare("UPDATE orders SET delivered_at = ?, delivered_by = 's-an' WHERE id = 'o-x'").run(BIL_AT);
+  phieuBil(db, { id: "pdx", order: "o-x", kind: "DELIVERED", due: 300000 });
+  lanThuBil(db, { id: "rx2", order: "o-x", amount: 100000, at: BIL_SAU });
+  assert.equal(violations(db, bil("R-BIL-1")), 1, "bù sau mốc không che được lệch tại mốc");
+});
+
+test("R-BIL-3a/3b: dòng đảo LỆCH gốc (khác số / không đổi chỗ hai bên) → vi phạm (gỡ trigger đảo)", () => {
+  const db = build();
+  const ct = donDaGiao(db);
+  assert.equal(violations(db, bil("R-BIL-3a")), 0);
+  assert.equal(violations(db, bil("R-BIL-3b")), 0);
+  db.exec("DROP TRIGGER bil_payment_receipt_reversal_match");
+  db.exec("DROP TRIGGER bil_debt_line_reversal_match");
+  donBil(db, "o-d");
+  lanThuBil(db, { id: "rg", order: "o-d", amount: 100000 });
+  lanThuBil(db, { id: "rgd", order: "o-d", amount: 90000, reverses: "rg" });
+  assert.equal(violations(db, bil("R-BIL-3a")), 1);
+  phieuBil(db, { id: "pg", order: "o-d", kind: "RECEIPT" });
+  dongNoBil(db, { id: "lg", posting: "pg", order: "o-d", debtor: "pty-s-an", creditor: ct, amount: 100000 });
+  dongNoBil(db, { id: "lgd", posting: "pg", order: "o-d", debtor: "pty-s-an", creditor: ct, amount: 100000, reverses: "lg" });
+  assert.equal(violations(db, bil("R-BIL-3b")), 1, "đảo không đổi chỗ hai bên");
+});
+
+test("R-BIL-4a/4b: đơn Đã giao thiếu phiếu Đã giao; phiếu Đã giao trên đơn chưa giao; Hoàn thành thiếu phiếu → vi phạm", () => {
+  const db = build();
+  donBil(db, "o-a");
+  db.prepare("UPDATE orders SET delivered_at = ?, delivered_by = 's-an' WHERE id = 'o-a'").run(BIL_AT);
+  assert.equal(violations(db, bil("R-BIL-4a")), 1, "Đã giao không phiếu");
+  donBil(db, "o-b");
+  phieuBil(db, { id: "pdb", order: "o-b", kind: "DELIVERED", due: 0 });
+  assert.equal(violations(db, bil("R-BIL-4a")), 2, "phiếu Đã giao trên đơn chưa giao");
+  db.prepare("UPDATE orders SET completed_at = ?, completed_by = 's-an' WHERE id = 'o-a'").run(BIL_SAU);
+  assert.equal(violations(db, bil("R-BIL-4b")), 1, "Hoàn thành không phiếu");
+  donBil(db, "o-c");
+  phieuBil(db, { id: "pcc", order: "o-c", kind: "COMPLETED" });
+  assert.equal(violations(db, bil("R-BIL-4b")), 2, "phiếu Hoàn thành trên đơn chưa Hoàn thành");
+});
+
+test("R-BIL-6: đơn Đã giao còn lần thu người thu chưa rõ → vi phạm; đơn chưa giao thì không", () => {
+  const db = build();
+  db.exec("DROP TRIGGER bil_posting_delivered_paid");
+  donBil(db, "o-u");
+  lanThuBil(db, { id: "ru", order: "o-u", amount: 300000, role: "UNKNOWN" });
+  assert.equal(violations(db, bil("R-BIL-6")), 0, "chưa giao: hợp lệ (việc của Kế toán)");
+  db.prepare("UPDATE orders SET delivered_at = ?, delivered_by = 's-an' WHERE id = 'o-u'").run(BIL_AT);
+  phieuBil(db, { id: "pdu", order: "o-u", kind: "DELIVERED", due: 300000 });
+  assert.equal(violations(db, bil("R-BIL-6")), 1);
+});
+
+test("R-BIL-S9 (NT-S9): lần thu 'thu cho' KHÔNG phải công ty chủ → vi phạm", () => {
+  const db = build();
+  donBil(db, "o-s");
+  lanThuBil(db, { id: "rs9", order: "o-s", amount: 1000 });
+  assert.equal(violations(db, bil("R-BIL-S9")), 0);
+  lanThuBil(db, { id: "rs9b", order: "o-s", amount: 1000, forParty: "pty-s-an" });
+  assert.equal(violations(db, bil("R-BIL-S9")), 1);
+});
+
+test("R-BIL-M1/M2 (ADR-0025 NT 8): Hoàn thành mà chưa Đã giao; Đã giao mà trạng thái không phải 'confirmed' → vi phạm (gỡ trigger 0044)", () => {
+  const db = build();
+  donDaGiao(db);
+  assert.equal(violations(db, bil("R-BIL-M1")), 0);
+  assert.equal(violations(db, bil("R-BIL-M2")), 0);
+  db.exec("DROP TRIGGER orders_completed_after_delivered");
+  donBil(db, "o-m1");
+  db.prepare("UPDATE orders SET completed_at = ?, completed_by = 's-an' WHERE id = 'o-m1'").run(BIL_SAU);
+  assert.equal(violations(db, bil("R-BIL-M1")), 1);
+  db.exec("DROP TRIGGER orders_delivered_lock");
+  db.prepare("UPDATE orders SET status = 'cancelled' WHERE id = 'o-bil'").run();
+  assert.equal(violations(db, bil("R-BIL-M2")), 1);
+});

@@ -29,7 +29,7 @@ const inDays = (n) => new Date(Date.now() + 7 * 3600e3 + n * 86400e3).toISOStrin
 const orderBody = (extra = {}) => ({
   customerName: "Khách Một", customerPhone: "0912345678",
   services: [{ kind: "catalog", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: inDays(3) }],
-  depositAmount: 200000, depositMethod: "cash", ...extra,
+  ...extra,
 });
 
 test("R1 FINDING idempotency: gửi lại cùng POST /api/orders (bấm 2 lần / mạng chập) tạo 2 đơn", async () => {
@@ -154,14 +154,18 @@ test("R7 PASS retry xác nhận/huỷ: lần 2 không đổi kết quả nghiệ
   assert.deepEqual(acts.filter((a) => a === "cancelled").length, 1);
 });
 
-// Nợ ĐÃ GHI: ADR-0004 "Hai nguồn 'đã trả'" — ba cột cọc của `orders` sẽ thay bằng sổ thu tiền `bil_*` ở N3. Test chỉ minh hoạ hệ quả hiện tại.
-test("R8 FINDING (nợ đã ghi, ADR-0004) money: đơn đã HUỶ vẫn giữ tiền cọc + 'còn lại' như đơn sống; không có bản ghi hoàn/giữ cọc", async () => {
+// ĐÃ VÁ (sổ tiền lượt 1 — ADR-0026 đ9, 2026-09-30): ba cột cọc không còn mang nghĩa (đơn mới ghi 0 / NULL / total); tiền trả trước là LẦN THU của billing,
+// đơn đã huỷ vẫn có chỗ ghi (lần thu còn hiệu lực — việc hoàn khách của Kế toán).
+test("R8 PASS (đã vá — sổ tiền lượt 1) money: đơn đã HUỶ — cột cọc = 0, tiền đã trả nằm ở lần thu của sổ (billing), không mất dấu", async () => {
   const w = setup();
   const o = (await w.call("POST", "/api/orders", { as: A, body: orderBody() })).json.order;
+  const thu = await w.call("POST", `/api/orders/${o.id}/payments`, { as: A, body: { soTien: 200000, hinhThuc: "CASH", nguoiThu: "cong_ty" } });
+  assert.equal(thu.status, 201, thu.text);
   await w.call("POST", `/api/orders/${o.id}/status`, { as: A, body: { status: "confirmed" } });
   await w.call("POST", `/api/orders/${o.id}/status`, { as: A, body: { status: "cancelled" } });
-  const r = w.q("SELECT status, deposit_amount, remaining_amount FROM orders WHERE id = ?", o.id)[0];
-  assert.deepEqual({ ...r }, { status: "cancelled", deposit_amount: 200000, remaining_amount: 800000 });
+  const r = w.q("SELECT status, deposit_amount FROM orders WHERE id = ?", o.id)[0];
+  assert.deepEqual({ ...r }, { status: "cancelled", deposit_amount: 0 });
+  assert.equal(w.q("SELECT count(*) AS n FROM bil_payment_receipt WHERE order_id = ?", o.id)[0].n, 1);
 });
 
 test("R9 FINDING session: đăng xuất không thu hồi token; cookie cũ còn dùng được 7 ngày", async () => {

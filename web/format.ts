@@ -1,8 +1,8 @@
 import { AUDIT_ACTIONS } from "../src/shared/audit-actions";
 import { vndShort } from "../src/shared/money";
 import { PAX_ORDER, type PaxCounts } from "../src/shared/order-lines";
-import { STATUS_LABEL } from "../src/shared/order-status-label";
-import type { AuditAction, DepositMethod } from "./api";
+import { STATUS_LABEL, trangThaiHienThi } from "../src/shared/order-status-label";
+import type { AuditAction } from "./api";
 
 const nf = new Intl.NumberFormat("vi-VN");
 
@@ -10,7 +10,7 @@ const nf = new Intl.NumberFormat("vi-VN");
 export const vnd = (n: number): string => `${nf.format(n)} ₫`;
 export const grouped = (n: number): string => nf.format(n);
 
-export { STATUS_LABEL, vndShort };
+export { STATUS_LABEL, trangThaiHienThi, vndShort };
 
 /** "1.350.000 đ" / "1350000" → 1350000; rỗng → 0. */
 export function parseMoney(text: string): number {
@@ -21,7 +21,8 @@ export function parseMoney(text: string): number {
 export const dateTime = (iso: string): string =>
   new Date(iso).toLocaleString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
 
-export const METHOD_LABEL: Record<DepositMethod, string> = { cash: "Tiền mặt", bank_transfer: "Chuyển khoản", other: "Khác" };
+/** Hình thức thu của lần thu (sổ tiền lượt 1 — mã của bảng tra cứu `bil_payment_method`). Mặc định trên form: Chuyển khoản (chủ duyệt 30/9, YC-0001/0002). */
+export const METHOD_LABEL: Record<"BANK_TRANSFER" | "CASH" | "OTHER", string> = { BANK_TRANSFER: "Chuyển khoản", CASH: "Tiền mặt", OTHER: "Khác" };
 
 /** Nhãn hành động nhật ký — lấy từ nguồn duy nhất src/shared/audit-actions.ts. Hành động lạ (bản mới hơn giao diện) hiện mã thô. */
 export const actionLabel = (a: AuditAction): string => AUDIT_ACTIONS[a]?.label ?? a;

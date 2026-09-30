@@ -129,8 +129,6 @@ try {
     customerNote: "",
     services,
     discount: 0,
-    depositAmount: 0,
-    depositMethod: "cash",
     paymentNote: "",
     ...extra,
   });
@@ -158,13 +156,15 @@ try {
   // 1) Tạo dữ liệu thật qua API (ADMIN) — TRƯỚC khi mở "/".
   //    R1 (mục B — bẫy bug Task 1 đã sửa): 2 dịch vụ NGÀY KHÁC NHAU, sort_order NGƯỢC chiều ngày:
   //      sort_order=0 → NGÀY MAI (giờ/nơi đón rõ ràng khác), sort_order=1 → HÔM NAY (dịch vụ QUYẾT ĐỊNH "hôm nay").
-  //    Trả đủ tiền (remainingAmount=0) để không lẫn vào ô "Còn thiếu tiền" (tách bạch với R3 bên dưới).
+  //    Trả đủ tiền (lần thu 300.000 — billing conLai=0) để không lẫn vào ô "Còn thiếu tiền" (tách bạch với R3 bên dưới).
   // ==================================================================================================
   const r1Services = [
     manualService("Đưa đón sân bay (dịch vụ NGÀY MAI, không phải dịch vụ quyết định)", { departDate: TODAY, pickupTime: "19:30", pickupPlace: "Sân bay Cam Ranh", unitPrice: 150_000 }), // ADR-0021: API chặn đơn lệch ngày → dựng đơn CŨ: tạo cùng ngày rồi đổi dịch vụ này sang NGÀY MAI bằng SQL (dưới)
     manualService("Tour 4 đảo (dịch vụ HÔM NAY — quyết định)", { departDate: TODAY, pickupTime: "06:15", pickupPlace: "Bến Cầu Đá", unitPrice: 150_000 }),
   ];
-  const r1 = await createAndConfirm(orderInput("Khách Bẫy B Hôm Nay", "0900000301", r1Services, { depositAmount: 300_000 }));
+  const r1 = await createAndConfirm(orderInput("Khách Bẫy B Hôm Nay", "0900000301", r1Services));
+  // Sổ tiền lượt 1 (ADR-0026 đ9): "trả đủ" = LẦN THU 300.000 của billing (trước đây cột cọc trên đơn).
+  assert.equal((await call(ACCOUNTS.admin, "POST", `/api/orders/${r1.id}/payments`, { soTien: 300_000, hinhThuc: "CASH", nguoiThu: "toi" })).status, 201, "lần thu R1");
   env.sql(`UPDATE order_service SET depart_date = '${TOMORROW}' WHERE id = '${r1.services[0].id}'`); // đơn cũ (trước 1.11) có thể lệch ngày — Trang chủ vẫn phải chọn đúng dịch vụ hôm nay
   ok(`R1 tạo + xác nhận (id ${r1.id}): 2 dịch vụ (sort_order 0 = mai 19:30/Sân bay Cam Ranh, sort_order 1 = hôm nay 06:15/Bến Cầu Đá), đã trả đủ 300.000`);
 
@@ -234,7 +234,7 @@ try {
   const apiTruth = await call(ACCOUNTS.admin, "GET", "/api/orders/dashboard");
   assert.equal(apiTruth.status, 200, `GET /api/orders/dashboard phải trả 200 (không phải 404 do route :id nuốt mất): ${JSON.stringify(apiTruth.json)}`);
   const data = apiTruth.json;
-  assert.ok(Array.isArray(data.today) && typeof data.unpaid === "object" && typeof data.draftCount === "number", `GET /api/orders/dashboard trả sai hình dạng dữ liệu: ${JSON.stringify(data)}`);
+  assert.ok(Array.isArray(data.today) && !("unpaid" in data) && typeof data.draftCount === "number", `GET /api/orders/dashboard trả sai hình dạng dữ liệu: ${JSON.stringify(data)}`);
   ok("F) GET /api/orders/dashboard trả 200 với đúng hình dạng DashboardResponse — route đứng đúng chỗ (trước /api/orders/:id)");
 
   // ==================================================================================================
@@ -242,9 +242,11 @@ try {
   //    Đây là lưới thứ hai (ngoài dashboard.test.ts của Task 1): xác nhận qua ĐƯỜNG HTTP THẬT, không chỉ hàm thuần.
   // ==================================================================================================
   assert.equal(data.draftCount, 1, `draftCount phải = 1 (chỉ R2) — API trả ${JSON.stringify(data)}`);
-  assert.equal(data.unpaid.count, 1, `unpaid.count phải = 1 (chỉ R3, R1 đã trả đủ) — ${JSON.stringify(data.unpaid)}`);
-  assert.equal(data.unpaid.total, 12_345_000, `unpaid.total phải = 12.345.000 (R3) — ${JSON.stringify(data.unpaid)}`);
-  assert.equal(data.unpaid.earliestDate, OTHER_DATE, `unpaid.earliestDate phải là ngày đón của R3 — ${JSON.stringify(data.unpaid)}`);
+  // Sổ tiền lượt 1: ô "Còn thiếu tiền" đọc GET /api/ledger/unpaid-summary (billing — một hàm conLai), không còn khối `unpaid` của dashboard.
+  const unpaid = (await call(ACCOUNTS.admin, "GET", "/api/ledger/unpaid-summary")).json;
+  assert.equal(unpaid.count, 1, `unpaid.count phải = 1 (chỉ R3, R1 đã trả đủ) — ${JSON.stringify(unpaid)}`);
+  assert.equal(unpaid.total, 12_345_000, `unpaid.total phải = 12.345.000 (R3) — ${JSON.stringify(unpaid)}`);
+  assert.equal(unpaid.earliestDate, OTHER_DATE, `unpaid.earliestDate phải là ngày đón của R3 — ${JSON.stringify(unpaid)}`);
   assert.equal(data.today.length, 1, `today phải chỉ có R1 (R2 nháp, R3 không phải hôm nay) — ${JSON.stringify(data.today.map((o) => o.id))}`);
   assert.equal(data.today[0].id, r1.id, "today[0] phải là R1");
   assert.deepEqual(data.today[0].trip, { departDate: TODAY, pickupTime: "06:15", pickupPlace: "Bến Cầu Đá" }, `trip của R1 trong API phải là dịch vụ QUYẾT ĐỊNH (sort_order=1, hôm nay), KHÔNG phải sort_order=0 (mai) — ${JSON.stringify(data.today[0].trip)}`);
@@ -493,9 +495,9 @@ try {
     assert.equal(row.place, "Bến Cầu Đá", `${label}: nơi đón hiển thị PHẢI là "Bến Cầu Đá" (dịch vụ HÔM NAY) — thấy "${row.place}". Nếu đây là "Sân bay Cam Ranh" thì bug Task 1 ĐÃ TÁI PHÁT.`);
     assert.notEqual(row.time, "19:30", `${label}: giờ đón KHÔNG được là giờ của dịch vụ ngày mai`);
     assert.notEqual(row.place, "Sân bay Cam Ranh", `${label}: nơi đón KHÔNG được là nơi đón của dịch vụ ngày mai`);
-    assert.equal(row.money, "0 ₫", `${label}: dòng R1 phải hiện đúng số CÒN LẠI hiện hành (remainingAmount) = 0 ₫ (đã trả đủ 300.000) — ${JSON.stringify(row)}`);
+    assert.equal(row.money, "0 ₫", `${label}: dòng R1 phải hiện đúng số CÒN LẠI hiện hành (billing conLai) = 0 ₫ (đã trả đủ 300.000) — ${JSON.stringify(row)}`);
     if (mode === "desktop") {
-      assert.equal(row.moneySub, "đã trả đủ", `${label}: R1 đã trả đủ (remainingAmount=0) phải hiện "đã trả đủ" — ${JSON.stringify(row)}`);
+      assert.equal(row.moneySub, "đã trả đủ", `${label}: R1 đã trả đủ (billing conLai=0) phải hiện "đã trả đủ" — ${JSON.stringify(row)}`);
       assert.ok(row.sub && row.sub.includes("0900000301"), `${label}: dòng phụ ĐẦY ĐỦ phải chứa SĐT khách — ${JSON.stringify(row)}`);
       // Fix round 2: ở máy tính, thao tác gọi đã có sẵn trong dòng phụ (SĐT gạch chân) — nút gọi riêng (`.dash-today-call`,
       // chỉ dành cho khổ hẹp) TỒN TẠI trong DOM (dùng chung cho mọi khổ) nhưng KHÔNG được hiển thị ở đây (tránh trùng lặp/lệch mockup).

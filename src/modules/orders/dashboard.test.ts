@@ -248,7 +248,7 @@ test("tomorrow / dayAfter (góp ý YC-0007, chủ chọn cách A 30/9): CÙNG lu
   assert.deepEqual(data.dayAfter.map((o) => o.id), ["k1"]);
 });
 
-test("today: đơn có điều chỉnh tiền → total/remainingAmount trong danh sách hôm nay là số HIỆN HÀNH, không phải cột gốc (bài học Đợt B)", async () => {
+test("today: đơn có điều chỉnh tiền → total trong danh sách hôm nay là số HIỆN HÀNH, không phải cột gốc (bài học Đợt B)", async () => {
   const sqlite = seed();
   const db = fakeD1(sqlite);
   insertDraftOrder(sqlite, { id: "o1", staffId: "s-a", createdAt: "2026-09-20T01:00:00.000Z", m: { subtotal: 1_000_000, total: 1_000_000, depositAmount: 200_000, remainingAmount: 800_000 } });
@@ -263,7 +263,7 @@ test("today: đơn có điều chỉnh tiền → total/remainingAmount trong da
   const data = await getDashboard(db, "s-a", TODAY, WEEK.from, WEEK.to, NO_HANDLERS);
   assert.equal(data.today.length, 1);
   assert.equal(data.today[0]!.total, 400_000, "total = TỰ TÍNH LẠI từ order_item + pax mới (4×100.000), không phải 1.000.000 gốc VÀ không phải cột subtotal_after đã lưu (cố ý đặt = 999 ở trên)");
-  assert.equal(data.today[0]!.remainingAmount, 200_000, "remainingAmount = 400.000 - 200.000 cọc, không phải 800.000 gốc");
+  assert.ok(!("remainingAmount" in data.today[0]!), "sổ tiền lượt 1: thẻ Trang chủ không mang 'còn lại' (billing trả qua POST /api/ledger/balances)");
 });
 
 // Đợt E: sau khi HDV sửa số khách hậu xác nhận, /orders và "Chuyến đón hôm nay" của Trang chủ từng hiện đúng TIỀN nhưng vẫn hiện số khách CŨ
@@ -284,56 +284,15 @@ test("today: đơn có điều chỉnh SỐ KHÁCH → pax trong danh sách hôm
   assert.deepEqual(data.today[0]!.pax, { adult: 5, child: 0, senior: 0, infant: 0 }, "pax phải là số MỚI (5), không phải 1 (order_service gốc, đã đóng băng)");
 });
 
-// ---- 2) "Còn thiếu tiền" -----------------------------------------------------------------------------------------
+// ---- 2) "Còn thiếu tiền" — RỜI Trang chủ của orders (sổ tiền lượt 1, ADR-0026 đ9): số đã thu là của billing ⇒ `GET /api/ledger/unpaid-summary`
+// (bài ở src/modules/billing/lo-ghi.test.ts). Ở đây chỉ canh: getDashboard không còn trả khối này (orders không đọc bảng bil_).
 
-test("unpaid: áp effective money TỪNG đơn rồi mới lọc >0 — không lọc thẳng cột remaining_amount gốc (Đợt B)", async () => {
-  const sqlite = seed();
-  const db = fakeD1(sqlite);
-
-  // p1: gốc ĐÃ THU ĐỦ (remaining=0) nhưng điều chỉnh TĂNG subtotal → hiện hành còn thiếu → PHẢI tính vào unpaid.
-  // Dịch vụ DANH MỤC 5×100.000=500.000 gốc, điều chỉnh tăng lên 15×100.000=1.500.000 (subtotalAfter đặt SAI/rác để chứng minh không còn đọc cột đó).
-  insertDraftOrder(sqlite, { id: "p1", staffId: "s-a", createdAt: "2026-09-20T01:00:00.000Z", m: { subtotal: 500_000, total: 500_000, depositAmount: 500_000, remainingAmount: 0 } });
-  insertCatalogService(sqlite, { id: "svp1", orderId: "p1", departDate: "2026-09-26", priceAdult: 100_000, paxAdult: 5 });
-  confirm(sqlite, "p1");
-  insertAdjustment(sqlite, { id: "adjp1", orderId: "p1", seq: 1, subtotalBefore: 500_000, subtotalAfter: 999, after: [{ serviceId: "svp1", pax: { adult: 15, child: 0, senior: 0, infant: 0 } }] });
-
-  // p2: gốc CÒN THIẾU (remaining=300.000) nhưng điều chỉnh GIẢM subtotal đủ để hết thiếu → hiện hành = 0 → KHÔNG tính vào unpaid.
-  // Dịch vụ DANH MỤC 10×100.000=1.000.000 gốc, điều chỉnh giảm còn 7×100.000=700.000.
-  insertDraftOrder(sqlite, { id: "p2", staffId: "s-a", createdAt: "2026-09-20T01:00:00.000Z", m: { subtotal: 1_000_000, total: 1_000_000, depositAmount: 700_000, remainingAmount: 300_000 } });
-  insertCatalogService(sqlite, { id: "svp2", orderId: "p2", departDate: "2026-09-30", priceAdult: 100_000, paxAdult: 10 });
-  confirm(sqlite, "p2");
-  insertAdjustment(sqlite, { id: "adjp2", orderId: "p2", seq: 1, subtotalBefore: 1_000_000, subtotalAfter: 999, after: [{ serviceId: "svp2", pax: { adult: 7, child: 0, senior: 0, infant: 0 } }] });
-
-  // p3: confirmed, không điều chỉnh, còn thiếu 250.000 → tính vào unpaid (ca thường).
-  insertDraftOrder(sqlite, { id: "p3", staffId: "s-a", createdAt: "2026-09-20T01:00:00.000Z", m: { subtotal: 250_000, total: 250_000, depositAmount: 0, remainingAmount: 250_000 } });
-  insertService(sqlite, { id: "svp3", orderId: "p3", departDate: "2026-09-25" });
-  confirm(sqlite, "p3");
-
-  // p4: NHÁP, còn thiếu → KHÔNG tính (đơn nháp không lọt vào bất kỳ số liệu nào trừ draftCount).
-  insertDraftOrder(sqlite, { id: "p4", staffId: "s-a", createdAt: "2026-09-20T01:00:00.000Z", m: { subtotal: 900_000, total: 900_000, depositAmount: 0, remainingAmount: 900_000 } });
-
-  // p5: confirmed, đã thu đủ, không điều chỉnh → KHÔNG tính. (Không dịch vụ nào — dùng đường INSERT trực tiếp, tránh trigger "đủ chuyến mới xác nhận được".)
-  insertConfirmedOrderNoServices(sqlite, {
-    id: "p5",
-    staffId: "s-a",
-    createdAt: "2026-09-20T01:00:00.000Z",
-    m: { subtotal: 100_000, total: 100_000, depositAmount: 100_000, remainingAmount: 0 },
-  });
-
-  const data = await getDashboard(db, "s-a", TODAY, WEEK.from, WEEK.to, NO_HANDLERS);
-  assert.equal(data.unpaid.count, 2, "chỉ p1 (0→dương) và p3 (còn thiếu, không đổi)");
-  assert.equal(data.unpaid.total, 1_000_000 + 250_000, "1.500.000 - 500.000 cọc (p1) + 250.000 (p3)");
-  assert.equal(data.unpaid.earliestDate, "2026-09-25", "ngày đón sớm nhất trong số đơn CÒN THIẾU TIỀN (p3, bỏ qua p2 đã loại)");
-});
-
-test("unpaid: không đơn nào còn thiếu → count/total = 0, earliestDate = null", async () => {
+test("unpaid: không còn trong dữ liệu Trang chủ của orders (chuyển sang billing — GET /api/ledger/unpaid-summary)", async () => {
   const sqlite = seed();
   const db = fakeD1(sqlite);
   const data = await getDashboard(db, "s-a", TODAY, WEEK.from, WEEK.to, NO_HANDLERS);
-  assert.deepEqual(data.unpaid, { total: 0, count: 0, earliestDate: null });
+  assert.ok(!("unpaid" in data));
 });
-
-// ---- 3) Đơn nháp --------------------------------------------------------------------------------------------------
 
 test("draftCount: đếm đúng số đơn nháp, không đếm đơn đã xác nhận/huỷ", async () => {
   const sqlite = seed();

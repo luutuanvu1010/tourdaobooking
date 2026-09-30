@@ -95,8 +95,8 @@ test("parseMoneyEditInput: thân không phải object, services không phải m�
 const baseOrder = (): OrderDetailDto => ({
   id: "o1", orderCode: "TD-1", staffId: "s1", staffName: "A", bookerPartyId: null, bookerName: null,
   status: "confirmed", customerName: "K", customerPhone: "090", customerEmail: null, customerNote: null,
-  subtotal: 600000, discount: 0, total: 600000, depositAmount: 100000, depositMethod: "cash", remainingAmount: 500000,
-  paymentNote: null, createdAt: "t", updatedAt: "t", confirmedAt: "t",
+  subtotal: 600000, discount: 0, total: 600000,
+  paymentNote: null, createdAt: "t", updatedAt: "t", confirmedAt: "t", deliveredAt: null, completedAt: null,
   services: [
     {
       id: "svc-1", kind: "catalog", catalogCode: "TOUR-1", name: "Tour đảo", unit: "perPax",
@@ -108,21 +108,20 @@ const baseOrder = (): OrderDetailDto => ({
   ],
 });
 
-test("applyAdjustmentToOrder: cộng dồn điều chỉnh — subtotal/total/remainingAmount và pax/items của dịch vụ đổi theo", () => {
+test("applyAdjustmentToOrder: cộng dồn điều chỉnh — subtotal/total và pax/items của dịch vụ đổi theo (không còn 'còn lại' — sổ tiền lượt 1)", () => {
   const out = applyAdjustmentToOrder(baseOrder(), [{ serviceId: "svc-1", pax: { adult: 3, child: 0, senior: 0, infant: 0 } }]);
   assert.equal(out.subtotal, 900000);
   assert.equal(out.total, 900000, "discount = 0 nên total = subtotal");
-  assert.equal(out.remainingAmount, 800000, "900000 - 100000 cọc (không đổi)");
+  assert.ok(!("remainingAmount" in out), "đơn không còn mang 'còn lại' (ADR-0026 đ9)");
   assert.deepEqual(out.services[0]!.pax, { adult: 3, child: 0, senior: 0, infant: 0 });
   assert.equal(out.services[0]!.items[0]!.quantity, 3);
 });
 
-test("applyAdjustmentToOrder: không đổi discount/depositAmount/depositMethod/status", () => {
+test("applyAdjustmentToOrder: không đổi discount/status/mốc", () => {
   const out = applyAdjustmentToOrder(baseOrder(), [{ serviceId: "svc-1", pax: { adult: 3, child: 0, senior: 0, infant: 0 } }]);
   assert.equal(out.discount, 0);
-  assert.equal(out.depositAmount, 100000);
-  assert.equal(out.depositMethod, "cash");
   assert.equal(out.status, "confirmed");
+  assert.equal(out.deliveredAt, null);
 });
 
 test("applyAdjustmentToOrder: dịch vụ KHÔNG có trong after (đơn chưa có điều chỉnh nào, after=[]) → giữ nguyên như lưu", () => {
@@ -159,9 +158,9 @@ test("editablePaxCodesOf: dịch vụ nhập tay (catalogCode null) → rỗng",
 });
 
 // --- effectiveMoney -------------------------------------------------------------------------------------------------
-test("effectiveMoney: total = subtotal - discount; remainingAmount = total - depositAmount", () => {
-  assert.deepEqual(effectiveMoney(900000, 0, 100000), { total: 900000, remainingAmount: 800000 });
-  assert.deepEqual(effectiveMoney(900000, 50000, 100000), { total: 850000, remainingAmount: 750000 });
+test("effectiveMoney: total = subtotal - discount (sổ tiền lượt 1: bỏ tham số cọc — 'còn lại' là số của billing)", () => {
+  assert.deepEqual(effectiveMoney(900000, 0), { total: 900000 });
+  assert.deepEqual(effectiveMoney(900000, 50000), { total: 850000 });
 });
 
 // --- effectiveService / effectiveSubtotal (Đợt E task 7 — NGUỒN DUY NHẤT cho tiền hiệu lực; tái phát lần 4 của "hai nơi tính cùng một số theo hai

@@ -104,8 +104,8 @@ test("applyAdjustedPax: pax của after_json HỎNG (thiếu trường, không �
 const baseOrder = (): OrderDetailDto => ({
   id: "o1", orderCode: "TD-1", staffId: "s1", staffName: "A", bookerPartyId: null, bookerName: null,
   status: "confirmed", customerName: "K", customerPhone: "090", customerEmail: null, customerNote: null,
-  subtotal: 600000, discount: 0, total: 600000, depositAmount: 100000, depositMethod: "cash", remainingAmount: 500000,
-  paymentNote: null, createdAt: "t", updatedAt: "t", confirmedAt: "t",
+  subtotal: 600000, discount: 0, total: 600000,
+  paymentNote: null, createdAt: "t", updatedAt: "t", confirmedAt: "t", deliveredAt: null, completedAt: null,
   services: [
     {
       id: "svc-1", kind: "catalog", catalogCode: "TOUR-1", name: "Tour đảo", unit: "perPax",

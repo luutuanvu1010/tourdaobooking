@@ -20,8 +20,6 @@ const base = {
     manual([{ description: "Tour Hòn Mun", quantity: 3, unitPrice: 450000 }, { description: "Thuê áo phao", quantity: 1, unitPrice: 50000, detail: "3 cái" }]),
   ],
   discount: 100000,
-  depositAmount: 500000,
-  depositMethod: "cash",
 };
 
 function ok(input: unknown, c: ServiceContext = ctx) {
@@ -36,12 +34,12 @@ const fails = (input: unknown, c: ServiceContext = ctx) => {
 };
 const message = (input: unknown) => fails(input).message;
 
-test("server tự tính line_total, subtotal, total, remaining", () => {
+test("server tự tính line_total, subtotal, total (không còn 'còn lại' trong đơn — sổ tiền lượt 1)", () => {
   const v = ok(base);
   assert.deepEqual(v.items.map((i) => i.lineTotal), [1350000, 50000]);
   assert.equal(v.subtotal, 1400000);
   assert.equal(v.total, 1300000);
-  assert.equal(v.remainingAmount, 800000);
+  assert.ok(!("remainingAmount" in v) && !("depositAmount" in v), "ValidOrder không mang cọc (ADR-0026 đ9)");
   assert.equal(v.customerName, "Nguyễn Văn A");
 });
 
@@ -49,7 +47,6 @@ test("bỏ qua số dẫn xuất do client gửi (chống gian lận giá)", () 
   const v = ok({ ...base, total: 1, subtotal: 1, remainingAmount: 0, services: [manual([{ description: "X", quantity: 2, unitPrice: 10, lineTotal: 1 }])], discount: 0, depositAmount: 0 });
   assert.equal(v.total, 20);
   assert.equal(v.items[0]!.lineTotal, 20);
-  assert.equal(v.remainingAmount, 20);
 });
 
 test("số tiền phải là số nguyên không âm, không nhận chuỗi/thập phân", () => {
@@ -61,16 +58,17 @@ test("số tiền phải là số nguyên không âm, không nhận chuỗi/th�
   assert.match(message({ ...base, discount: -5 }), /Giảm giá/);
 });
 
-test("giảm giá ≤ tạm tính, thanh toán trước ≤ tổng cộng", () => {
+test("giảm giá ≤ tạm tính", () => {
   assert.match(message({ ...base, discount: 1400001 }), /Giảm giá/);
-  assert.equal(ok({ ...base, discount: 1400000, depositAmount: 0 }).total, 0);
-  assert.match(message({ ...base, depositAmount: 1300001 }), /Thanh toán trước/);
-  assert.equal(ok({ ...base, depositAmount: 1300000 }).remainingAmount, 0);
+  assert.equal(ok({ ...base, discount: 1400000 }).total, 0);
 });
 
-test("có thanh toán trước thì cần phương thức thanh toán; không có thì bỏ phương thức", () => {
-  assert.match(message({ ...base, depositMethod: undefined }), /phương thức thanh toán/);
-  assert.equal(ok({ ...base, depositAmount: 0, depositMethod: "cash" }).depositMethod, null);
+test("sổ tiền lượt 1 (ADR-0026 đ9): thân đơn còn khoản trả trước > 0 (trang lập đơn CŨ) → client_outdated, không lặng lẽ bỏ mất số tiền; 0 / vắng → bỏ qua", () => {
+  const r = fails({ ...base, depositAmount: 500000, depositMethod: "cash" });
+  assert.equal(r.code, "client_outdated");
+  assert.match(r.message, /tải lại trang/);
+  ok({ ...base, depositAmount: 0, depositMethod: "cash" });
+  ok(base);
 });
 
 test("một ngày cho cả đơn (ADR-0021): mọi dịch vụ cùng ngày khởi hành; 'chưa có ngày' cũng là một giá trị", () => {

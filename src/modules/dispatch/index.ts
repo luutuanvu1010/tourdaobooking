@@ -17,7 +17,7 @@ import { can, hasPermission, holdsPartner, MATRIX } from "../../shared/permissio
 import { route, type AppModule, type NewOrderHandler } from "../../shared/router";
 import { tripDeparted } from "../../shared/trip-rules";
 import { vnToday } from "../../shared/vn-date";
-import { findHandledOrderIds, findHandlerOf, findHandlersOf, isHandler, type HandlerRow } from "./repository";
+import { findHandledOrderIds, findHandlerOf, findHandlersOf, guardHandlerStatement, isHandler, orderDelivered, type HandlerRow } from "./repository";
 import {
   CANCEL_REASON_LABEL, checkAssignee, handlerChangeVerdict, isOpenHandlerCollision, parseCancelReason, parseOrderIds, parseSetHandler,
 } from "./rules";
@@ -43,6 +43,8 @@ const CLAIM_DEPARTED = () => error(409, "departed", "Tour đã qua ngày đi, kh
 const MONEY_EDIT_FORBIDDEN = () => error(403, "forbidden", "Chỉ hướng dẫn viên đang phụ trách đơn mới sửa được số khách theo cách này.");
 const MONEY_EDIT_NOT_CONFIRMED = () => error(409, "not_editable", "Chỉ sửa được số khách của đơn đã xác nhận qua đường này.");
 const MONEY_EDIT_STALE = () => error(409, "stale", "Đơn vừa được sửa bởi người khác, hãy tải lại rồi thử lại.");
+/** Sổ tiền lượt 1 (ADR-0025 đ5, bản làm mới §3 mục 12): đơn đã "Đã giao – đã thu đủ" — không đổi / nhận người phụ trách, không huỷ, không sửa số khách. */
+const DA_GIAO = () => error(409, "order_delivered", "Đơn đã Đã giao – đã thu đủ: không sửa, huỷ hay đổi người phụ trách được nữa. Sai sót thì Kế toán ghi điều chỉnh trong sổ.");
 
 /** Người dùng `staffId` có phải người phụ trách ĐANG MỞ của đơn `orderId` không. Gốc lắp ráp tiêm vào `ctx.isAssigned` (ADR-0007 điều 4(b)). */
 export const isOrderHandler = (db: D1Database, staffId: string, orderId: string): Promise<boolean> => isHandler(db, staffId, orderId);
@@ -86,6 +88,12 @@ export async function newOrderHandler(db: D1Database, actorId: string, staffId: 
   const to = { partyId: target.partyId, name: target.name };
   return { ok: true, statements: (orderId, at) => newOrderHandlerStatements(db, { orderId, to, actorId, at, tuNhan: false }) };
 }
+
+/**
+ * API công khai cho BILLING (ADR-0024 điều 2 — cạnh billing → dispatch CHỈ để lấy câu này): câu bảo vệ CHƯA CHẠY "`partyId` vẫn là người phụ trách đang mở
+ * của đơn", gộp vào lô "Đã giao" của billing, đứng NGAY TRƯỚC câu `orders` (câu đó có `AND changes() > 0`).
+ */
+export const cauBaoVeNguoiPhuTrach = (db: D1Database, orderId: string, partyId: string): D1PreparedStatement => guardHandlerStatement(db, orderId, partyId);
 
 export const dispatchModule: AppModule = {
   name: "dispatch",
@@ -159,6 +167,7 @@ export const dispatchModule: AppModule = {
       const verdict = handlerChangeVerdict(staff, { ownerId: order.staffId }, current ? { staffId: current.staff_id } : null, input.staffId);
       if (verdict === "stale") return STALE();
       if (verdict === "forbidden") return FORBIDDEN();
+      if (await orderDelivered(env.DB, orderId)) return DA_GIAO();
       // "Nhận" thật: đơn CHƯA có người (current === null) và người gọi tự đặt CHÍNH MÌNH. Chốt Nhận (ADR-0030 S20-5) và chặn tài khoản lai (có quyền Đối
       // tác) chỉ áp NHÁNH này — giao cho người khác không đổi (đúng chú thích ở trên).
       if (current === null && input.staffId === staff.id) {
@@ -207,6 +216,7 @@ export const dispatchModule: AppModule = {
       const [order, assigned] = await Promise.all([findOrderOwner(env.DB, orderId), isAssigned(orderId)]);
       if (!order) return NOT_FOUND();
       if (!can(staff, "order.cancel", { assigned })) return CANCEL_FORBIDDEN();
+      if (await orderDelivered(env.DB, orderId)) return DA_GIAO();
       if (order.status !== "confirmed") return NOT_CONFIRMED();
       if (tripDeparted(await findOrderDepartDates(env.DB, orderId), vnToday(new Date()))) return DEPARTED();
       const input = parseCancelReason(await readJson(request));
@@ -237,6 +247,7 @@ export const dispatchModule: AppModule = {
       // cấp hẹp thật (ô CHÍNH XÁC = "assigned", tức FIELD) VÀ đang được giao, cộng SUPER_ADMIN (ADR-0014 điều 2: any ở MỌI thao tác, không ngoại lệ).
       const narrowEligible = assigned && staff.permissions.some((p) => MATRIX["order.money.edit"][p] === "assigned");
       if (!narrowEligible && !hasPermission(staff, "SUPER_ADMIN")) return MONEY_EDIT_FORBIDDEN();
+      if (await orderDelivered(env.DB, orderId)) return DA_GIAO();
       const result = await editMoneyAsHandler(env.DB, orderId, staff.id, await readJson(request));
       if (!result.ok) {
         if (result.code === "not_found") return NOT_FOUND();

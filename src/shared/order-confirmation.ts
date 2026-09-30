@@ -11,13 +11,13 @@
 // gõ rời về dạng dựng sẵn (NFC). Bộ vẽ có thể đưa thẳng vào canvas; nó chỉ cần tách theo "\n".
 // Đơn nháp CHƯA có ngày khởi hành thì dịch vụ đó KHÔNG có dòng "Khởi hành" (ảnh gửi khách không mang cảnh báo nội bộ "Chưa có ngày khởi hành" của trang đơn).
 // CỐ Ý KHÔNG có trong mô hình (đặc tả "Nội dung"): ghi chú vận hành của dịch vụ, nhãn khác giá danh mục, mã danh mục, giá danh mục, id, đơn vị thô, ghi chú thanh toán, cách cọc.
-// Tiền lấy NGUYÊN từ đơn (máy chủ tính); chỉ "tổng dịch vụ" được cộng ở đây.
+// Tiền lấy NGUYÊN từ biên nhận máy chủ dựng (ReceiptDto — danh sách trắng, sổ tiền lượt 1); chỉ "tổng dịch vụ" được cộng ở đây.
 // NGƯỜI LẬP ĐƠN (`order.staffName`) KHÔNG BAO GIỜ được in trong vai "Nhân viên phụ trách" (quyết định chủ dự án 2026-09-28, sửa lỗi hiển thị sai sự thật khi đơn do
 // Đối tác/HDV lập chưa có ai phụ trách — cùng gốc với ADR-0020 điều 9/ADR-0030 S20-4: đơn mới không tự gắn người lập làm người phụ trách): đơn CHƯA có
 // người phụ trách (`handlerName` null hoặc rỗng sau khi làm sạch — xem `titleBlock`) thì KHÔNG có dòng "Nhân viên phụ trách", thay bằng `TitleBlock.note`
 // = `PENDING_HANDLER_TEXT`. Trường hợp KHÔNG BIẾT (404/5xx/mất mạng/hết giờ/dữ liệu hỏng) KHÔNG đi tới đây: hộp thoại (`web/confirmation-dialog.ts`) chặn
 // lại trước, không tạo ảnh, không đoán — hàm này không có tham số nào biểu diễn "chưa biết".
-import type { CompanyDto, OrderDetailDto, OrderServiceDto, OrderStatus } from "./contracts.ts";
+import type { CompanyDto, ReceiptDto, ReceiptServiceDto } from "./contracts.ts";
 import { PAX_LABEL, PAX_ORDER, parseUnit, paxTotal, type PaxCounts } from "./order-lines.ts";
 import { formatDmy } from "./trip-form.ts";
 import { vnToday } from "./vn-date.ts";
@@ -33,7 +33,8 @@ export interface HeaderBlock {
 export interface TitleBlock {
   kind: "title";
   title: string;
-  status: { code: OrderStatus; text: string };
+  /** `code` chỉ để bộ vẽ chọn màu huy hiệu (không in ra); `text` = nhãn tiếng Việt do máy chủ gửi (`ReceiptDto.status.nhan`). */
+  status: { code: ReceiptDto["status"]["khoa"]; text: string };
   /** Mã đơn, Ngày lập, Nhân viên phụ trách (dòng nào thiếu dữ liệu thì bỏ; KHÔNG có dòng "Nhân viên phụ trách" khi đơn chưa có người — xem `note`). */
   rows: LabelValue[];
   /** Câu chờ nhận (`PENDING_HANDLER_TEXT`) khi đơn CHƯA có người phụ trách; `null` khi đã có (dòng "Nhân viên phụ trách" ở `rows` đủ). */
@@ -75,8 +76,6 @@ export interface ConfirmationModel {
   blocks: ConfirmationBlock[];
 }
 
-/** Chữ hiện cho khách theo trạng thái đơn (đặc tả: nháp = "Chờ xác nhận" vì ảnh xuất được ngay sau khi tạo đơn). */
-export const CONFIRMATION_STATUS_TEXT: Record<OrderStatus, string> = { draft: "Chờ xác nhận", confirmed: "Đã xác nhận", cancelled: "Đã huỷ" };
 
 /** Đơn CHƯA có người phụ trách (quyết định chủ dự án 2026-09-28): một sự thật duy nhất, không đoán tên. Thay cho dòng "Nhân viên phụ trách" ở `TitleBlock.note`. */
 export const PENDING_HANDLER_TEXT = "Đơn khởi tạo thành công và đang chờ hướng dẫn viên nhận khách";
@@ -146,12 +145,12 @@ function guestText(pax: PaxCounts, unit: string): string | null {
 }
 
 /** Ngày + giờ khởi hành: "25/09/2026 · 07:30"; thiếu mảnh nào bỏ mảnh đó. */
-function departureText(s: OrderServiceDto): string {
+function departureText(s: ReceiptServiceDto): string {
   return joinDot([s.departDate === null ? null : formatDmy(s.departDate), s.departTime]);
 }
 
 /** Check-in: chỉ khi có ít nhất một trong ngày/giờ/nơi; không ngày = "Cùng ngày khởi hành" (giống trang đơn). */
-function checkinText(s: OrderServiceDto): string {
+function checkinText(s: ReceiptServiceDto): string {
   if (clean(s.checkinDate) === "" && clean(s.checkinTime) === "" && clean(s.checkinPlace) === "") return "";
   return joinDot([clean(s.checkinDate) === "" ? "Cùng ngày khởi hành" : formatDmy(clean(s.checkinDate)), s.checkinTime, s.checkinPlace]);
 }
@@ -167,7 +166,7 @@ function headerBlock(company: CompanyDto): HeaderBlock {
   };
 }
 
-function titleBlock(order: OrderDetailDto, handler: HandlerInput): TitleBlock {
+function titleBlock(order: ReceiptDto, handler: HandlerInput): TitleBlock {
   // Người phụ trách (việc 3): CHẮC CHẮN chưa có (handlerName trống sau khi làm sạch) → không dòng "Nhân viên phụ trách", thay bằng câu chờ nhận (note).
   // Tên người lập (`order.staffName`) KHÔNG BAO GIỜ đứng vào vai này (quyết định chủ dự án 2026-09-28) — xem đầu tệp.
   const hidden = handler === HANDLER_HIDDEN;
@@ -176,13 +175,13 @@ function titleBlock(order: OrderDetailDto, handler: HandlerInput): TitleBlock {
   return {
     kind: "title",
     title: "XÁC NHẬN ĐƠN DỊCH VỤ",
-    status: { code: order.status, text: CONFIRMATION_STATUS_TEXT[order.status] },
+    status: { code: order.status.khoa, text: clean(order.status.nhan) },
     rows: rowsOf([["Mã đơn", order.orderCode], ["Ngày lập", vnDate(order.createdAt)], ["Nhân viên phụ trách", handlerName]]),
     note: noHandler ? PENDING_HANDLER_TEXT : null,
   };
 }
 
-function customerBlock(order: OrderDetailDto): CustomerBlock {
+function customerBlock(order: ReceiptDto): CustomerBlock {
   return {
     kind: "customer",
     heading: "Thông tin khách hàng",
@@ -190,12 +189,12 @@ function customerBlock(order: OrderDetailDto): CustomerBlock {
   };
 }
 
-function serviceBlock(s: OrderServiceDto, index: number): ServiceBlock {
+function serviceBlock(s: ReceiptServiceDto, index: number): ServiceBlock {
   return {
     kind: "service",
     index,
     name: clean(s.name),
-    // KHÔNG dùng `s.note` (ghi chú vận hành nội bộ), `s.catalogCode`, `s.unit`, `s.catalogStatus`, `s.id`.
+    // `ReceiptServiceDto` KHÔNG có ghi chú vận hành, mã/giá danh mục, id (danh sách trắng của máy chủ — ADR-0026 đ11).
     details: rowsOf([["Số khách", guestText(s.pax, s.unit)], ["Khởi hành", departureText(s)], ["Đón khách", joinDot([s.pickupTime, s.pickupPlace])], ["Check-in", checkinText(s)]]),
     columns: { ...COLUMNS },
     lines: s.items.map((it) => ({
@@ -209,15 +208,16 @@ function serviceBlock(s: OrderServiceDto, index: number): ServiceBlock {
   };
 }
 
-function summaryBlock(order: OrderDetailDto): SummaryBlock {
+function summaryBlock(order: ReceiptDto): SummaryBlock {
   return {
     kind: "summary",
     rows: [
       { label: "Tạm tính", value: money(order.subtotal), emphasis: false },
       { label: "Giảm giá", value: money(order.discount > 0 ? -order.discount : order.discount), emphasis: false },
       { label: "Tổng cộng", value: money(order.total), emphasis: true },
-      { label: "Thanh toán trước", value: money(order.depositAmount), emphasis: false },
-      { label: "Còn lại", value: money(order.remainingAmount), emphasis: true },
+      // Sổ tiền lượt 1 (ADR-0026 đ9, đ11): "đã trả trước / còn lại" là số của billing (một hàm `conLai`), máy chủ đặt vào ReceiptDto.
+      { label: "Thanh toán trước", value: money(order.daTra), emphasis: false },
+      { label: "Còn lại", value: money(order.conLai), emphasis: true },
     ],
   };
 }
@@ -235,12 +235,15 @@ function fileNameOf(orderCode: string): string {
 }
 
 /**
- * Đơn + hồ sơ công ty + tên người phụ trách → mô hình nội dung ảnh xác nhận. `handlerName` = người phụ trách đang mở của đơn (việc 3);
+ * BIÊN NHẬN (`ReceiptDto`, máy chủ dựng theo danh sách trắng — `GET /api/orders/:id/receipt`, module receipt, ADR-0024 đ1 / ADR-0026 đ11) + tên người
+ * phụ trách → mô hình nội dung ảnh xác nhận. Không còn nhận cả đơn (`OrderDetailDto`) từ trình duyệt. `handlerName` = người phụ trách đang mở của đơn (việc 3);
  * `null`/trống = CHẮC CHẮN chưa có người phụ trách → dòng "Nhân viên phụ trách" biến mất, thay bằng câu chờ nhận (`PENDING_HANDLER_TEXT`) ở
  * `TitleBlock.note`; `HANDLER_HIDDEN` = người xem không được biết → không dòng, không câu chờ. KHÔNG có tham số/giá trị nào cho trạng thái "chưa biết" — người gọi (`web/confirmation-dialog.ts`) phải tự chặn ảnh lại
  * trước khi tới đây nếu chưa biết. Không sửa `order`/`company`; kết quả chỉ gồm chuỗi, số, mảng, đối tượng.
  */
-export function buildConfirmation(order: OrderDetailDto, company: CompanyDto, handlerName: HandlerInput): ConfirmationModel {
+export function buildConfirmation(receipt: ReceiptDto, handlerName: HandlerInput): ConfirmationModel {
+  const order = receipt;
+  const company = receipt.company;
   return {
     orderCode: clean(order.orderCode),
     fileName: fileNameOf(order.orderCode),

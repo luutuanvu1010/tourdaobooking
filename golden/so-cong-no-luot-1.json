@@ -1,0 +1,70 @@
+{
+  "_mo_ta": "Sổ vàng — sổ công nợ lượt 1 (ADR-0026 điều 4, 5; ADR-0025 điều 3d/3e; M2). Khác hoan-tat-cong-no.json (chia tiền theo vai lúc Đã giao): mỗi ca ở đây là một CHUỖI SỰ KIỆN tiền trên MỘT đơn khách lẻ (thu, công ty xác nhận đã nhận, nộp, hoàn khách, đảo lần thu), đáp án = đã thu ròng, còn lại, dư chờ hoàn, số lần thu chưa rõ, số dư từng bên với Tour Đảo, có bấm Đã giao được không. Định dạng MỚI (mở rộng sổ vàng cho lượt 1 — phân tích góp ý 30/9 §1) vì khuôn cũ (một bảng 'đã thu / được hưởng') không tả được khoản 'Công ty thu – CK' chờ xác nhận, nộp tiền, hoàn khách, cọc cũ chưa rõ. AI soạn 2026-09-30 (người thi công), CHỜ chủ dự án / Kế toán xác nhận — AI không tự xác nhận (N8).",
+  "luat": "so-cong-no-luot-1",
+  "quy_uoc": {
+    "su_kien.loai": "thu (khách trả; vai_nguoi_thu: nhan_vien | cong_ty | chua_ro; nguoi_ghi; nguoi_ghi_la_ke_toan) · xac_nhan_cong_ty (Kế toán bấm 'Công ty đã nhận' cho lần thu số thu_so — đếm từ 1 theo thứ tự sự kiện thu) · nop (ben nộp so về công ty) · hoan (nguoi_tra trả lại khách so; 'Tour Đảo' = công ty tự trả) · dao_thu (Kế toán đảo lần thu số thu_so)",
+    "no_tour_dao": "dương = bên đó đang giữ tiền của Tour Đảo; âm = Tour Đảo còn nợ bên đó",
+    "giao_duoc": "đủ điều kiện TIỀN để bấm 'Đã giao – đã thu đủ' (đã thu ròng = phải thu, không còn lần thu chưa rõ) — không xét ngày đi / người phụ trách"
+  },
+  "cac_ca": [
+    {
+      "ma": "SV-SC-01",
+      "mo_ta": "Khách lẻ, vé 1.000.000. HDV Nam thu đủ 1.000.000 tiền mặt tại bến → đang giữ 1.000.000 của công ty; sau đó nộp đủ về công ty (Kế toán ghi) → về 0.",
+      "nguon": "ADR-0026 Hệ quả 2 (NT-S1, phần tiền mặt)",
+      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "dau_vao": {
+        "phai_thu": 1000000,
+        "su_kien": [
+          { "loai": "thu", "vai_nguoi_thu": "nhan_vien", "nguoi_thu": "HDV Nam", "nguoi_ghi": "HDV Nam", "nguoi_ghi_la_ke_toan": false, "so": 1000000 },
+          { "loai": "nop", "ben": "HDV Nam", "so": 1000000 }
+        ]
+      },
+      "dap_an": { "da_thu": 1000000, "con_lai": 0, "du": 0, "chua_ro": 0, "no_tour_dao": { "HDV Nam": 0 }, "giao_duoc": true }
+    },
+    {
+      "ma": "SV-SC-02",
+      "mo_ta": "Khách lẻ, 1.000.000. Khách chuyển khoản 500.000 vào tài khoản công ty, HDV Nam KHAI 'Công ty thu – CK'; HDV thu 500.000 tiền mặt. Trước khi Kế toán xác nhận: HDV vẫn tính nợ cả 1.000.000 (H3 — thận trọng). Kế toán bấm 'Công ty đã nhận' → HDV còn giữ 500.000.",
+      "nguon": "ADR-0026 điều 4 gạch 2 (H3), Hệ quả 2",
+      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "dau_vao": {
+        "phai_thu": 1000000,
+        "su_kien": [
+          { "loai": "thu", "vai_nguoi_thu": "cong_ty", "nguoi_thu": "Tour Đảo", "nguoi_ghi": "HDV Nam", "nguoi_ghi_la_ke_toan": false, "so": 500000 },
+          { "loai": "thu", "vai_nguoi_thu": "nhan_vien", "nguoi_thu": "HDV Nam", "nguoi_ghi": "HDV Nam", "nguoi_ghi_la_ke_toan": false, "so": 500000 },
+          { "loai": "xac_nhan_cong_ty", "thu_so": 1 }
+        ]
+      },
+      "dap_an": { "da_thu": 1000000, "con_lai": 0, "du": 0, "chua_ro": 0, "no_tour_dao": { "HDV Nam": 500000 }, "giao_duoc": true }
+    },
+    {
+      "ma": "SV-SC-03",
+      "mo_ta": "Khách lẻ đặt 2 người × 500.000, HDV Nam thu trước 1.000.000 tiền mặt; sau đó bớt 1 người → phải thu còn 500.000. Khách đã trả dư 500.000 — chưa bấm Đã giao được; HDV trả lại khách 500.000 từ tiền đang giữ (Kế toán ghi hoàn, người trả = HDV Nam) → hết dư, bấm Đã giao được; HDV còn giữ 500.000.",
+      "nguon": "M2 (chủ 29/9 'Không chặn, chờ hoàn'), ADR-0025 điều 3d",
+      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "dau_vao": {
+        "phai_thu": 500000,
+        "su_kien": [
+          { "loai": "thu", "vai_nguoi_thu": "nhan_vien", "nguoi_thu": "HDV Nam", "nguoi_ghi": "HDV Nam", "nguoi_ghi_la_ke_toan": false, "so": 1000000 },
+          { "loai": "hoan", "nguoi_tra": "HDV Nam", "so": 500000 }
+        ]
+      },
+      "dap_an": { "da_thu": 500000, "con_lai": 0, "du": 0, "chua_ro": 0, "no_tour_dao": { "HDV Nam": 500000 }, "giao_duoc": true }
+    },
+    {
+      "ma": "SV-SC-04",
+      "mo_ta": "Đơn cũ 1.000.000 có cọc 300.000 ghi trên đơn (trước sổ tiền) → chuyển thành lần thu người thu CHƯA RÕ: chưa bấm Đã giao được. Kế toán đảo lần thu đó rồi ghi lại đúng: HDV Nam đã thu cọc 300.000 tiền mặt; HDV thu nốt 700.000 tại bến → HDV giữ 1.000.000; bấm Đã giao được.",
+      "nguon": "ADR-0026 điều 9, ADR-0025 điều 3e, Q3",
+      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "dau_vao": {
+        "phai_thu": 1000000,
+        "su_kien": [
+          { "loai": "thu", "vai_nguoi_thu": "chua_ro", "nguoi_thu": null, "nguoi_ghi": "he-thong", "nguoi_ghi_la_ke_toan": false, "so": 300000 },
+          { "loai": "dao_thu", "thu_so": 1 },
+          { "loai": "thu", "vai_nguoi_thu": "nhan_vien", "nguoi_thu": "HDV Nam", "nguoi_ghi": "Kế toán Lan", "nguoi_ghi_la_ke_toan": true, "so": 300000 },
+          { "loai": "thu", "vai_nguoi_thu": "nhan_vien", "nguoi_thu": "HDV Nam", "nguoi_ghi": "HDV Nam", "nguoi_ghi_la_ke_toan": false, "so": 700000 }
+        ]
+      },
+      "dap_an": { "da_thu": 1000000, "con_lai": 0, "du": 0, "chua_ro": 0, "no_tour_dao": { "HDV Nam": 1000000 }, "giao_duoc": true }
+    }
+  ]
+}

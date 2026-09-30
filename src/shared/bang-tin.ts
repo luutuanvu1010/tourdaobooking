@@ -4,8 +4,11 @@
 
 import { can, hasPermission, holdsPartner, isOffice, type PermissionHolder } from "./permissions.ts";
 
-/** 9 loại thay đổi một đơn có thể phát (điều 4 + điều 7). */
-export const THAY_DOI = ["tao", "tao_cho_nhan", "nhan", "giao", "xac_nhan", "huy", "sua", "chuyen", "tien"] as const;
+/**
+ * 11 loại thay đổi một đơn có thể phát (điều 4 + điều 7). Sổ tiền lượt 1 (ADR-0025 điều 8): `chot_giao` ("Đã giao – đã thu đủ" — KHÔNG dùng `giao`, vốn là
+ * giao người phụ trách) và `hoan_thanh` — CHỈ làm mới màn hình (không thông báo nổi, không gõ cửa màn hình khoá — ADR-0045; giả định bề mặt đảo được).
+ */
+export const THAY_DOI = ["tao", "tao_cho_nhan", "nhan", "giao", "xac_nhan", "huy", "sua", "chuyen", "tien", "chot_giao", "hoan_thanh"] as const;
 export type ThayDoiDon = (typeof THAY_DOI)[number];
 
 /** Sự kiện phát cho mọi màn hình đang mở — ĐÚNG 5 khoá, không hơn (điều 4). `maDon` = `orders.order_code`. */

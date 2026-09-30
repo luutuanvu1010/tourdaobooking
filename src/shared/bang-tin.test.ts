@@ -18,8 +18,8 @@ import {
   type TrangThaiPhuTrach,
 } from "./bang-tin.ts";
 
-test("THAY_DOI đúng 9 giá trị (điều 4 + điều 7 ADR-0022)", () => {
-  assert.deepEqual([...THAY_DOI], ["tao", "tao_cho_nhan", "nhan", "giao", "xac_nhan", "huy", "sua", "chuyen", "tien"]);
+test("THAY_DOI đúng 11 giá trị (điều 4 + điều 7 ADR-0022; + chot_giao, hoan_thanh — ADR-0025 điều 8)", () => {
+  assert.deepEqual([...THAY_DOI], ["tao", "tao_cho_nhan", "nhan", "giao", "xac_nhan", "huy", "sua", "chuyen", "tien", "chot_giao", "hoan_thanh"]);
 });
 
 // 512 tập con của 9 mã quyền (ADR-0040 D3 thêm DRIVER, ADR-0048 D2 thêm DRIVER_PARTNER) — suy kỳ vọng từ MATRIX/can(), không chép tay (P16: bài kiểm không được tự khoá giá trị đọc nhầm là luật).

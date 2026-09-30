@@ -25,7 +25,6 @@ const inDays = (n: number) => new Date(Date.now() + 7 * 3600e3 + n * 86400e3).to
 const orderBody = () => ({
   customerName: "Khách Thử", customerPhone: "0912345678",
   services: [{ kind: "catalog", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: inDays(3) }],
-  depositAmount: 200000, depositMethod: "cash",
 });
 /** Đơn đã xác nhận, đã giao cho FIELD — trạng thái cần để `handler-cancel` nhận (không phải 403/409). */
 async function confirmedForField(w: any): Promise<string> {

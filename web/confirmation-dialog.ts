@@ -7,7 +7,7 @@
 // KHÔNG BAO GIỜ dùng tên người lập; KHÔNG BIẾT (404/5xx/mất mạng/hết giờ/dữ liệu hỏng) → KHÔNG tạo ảnh, dừng lại ở thông báo "Chưa tải được người phụ
 // trách" + Thử lại — không được đoán. Riêng 403 (Đối tác/Thực tập không được biết) → `HANDLER_HIDDEN`, vẫn tạo ảnh, chỉ bỏ phần người phụ trách. Lỗi ở bất
 // kỳ bước nào khác → thông báo tiếng Việt + nút "Thử lại", không bao giờ kẹt ở "Đang tạo ảnh…" (hạn chót 30 giây).
-import type { CompanyDto } from "../src/shared/contracts";
+import type { ReceiptDto } from "../src/shared/contracts";
 import { nguoiPhuTrachTuPhien } from "../src/shared/handler-view";
 import { buildConfirmation, HANDLER_HIDDEN, type HandlerInput } from "../src/shared/order-confirmation";
 import { api, ApiError, type Api, type Order, type Staff } from "./api";
@@ -27,18 +27,11 @@ const HANDLER_TIMEOUT_MS = 3_000;
 const TOTAL_TIMEOUT_MS = 30_000;
 
 // ---- dữ liệu phụ ----------------------------------------------------------------------------------------------------------------------------------------------------
-let companyCache: Promise<CompanyDto> | null = null;
-/** Hồ sơ công ty: nhớ sau lần thành công; lỗi thì KHÔNG nhớ (lần Thử lại hỏi lại). */
-function loadCompany(): Promise<CompanyDto> {
-  if (!companyCache) {
-    const p = api<Api.CompanyResponse>("/api/company").then((r) => r.company);
-    companyCache = p;
-    p.catch(() => {
-      if (companyCache === p) companyCache = null;
-    });
-  }
-  return companyCache;
-}
+/**
+ * BIÊN NHẬN do máy chủ dựng theo danh sách trắng (`GET /api/orders/:id/receipt`, module receipt — sổ tiền lượt 1, ADR-0024 đ1 / ADR-0026 đ11): hồ sơ công ty,
+ * đơn, đã trả trước / còn lại (billing). Trình duyệt KHÔNG dựng biên nhận từ cả đơn nữa. Không nhớ đệm: tiền đổi theo lần thu.
+ */
+const loadReceipt = (orderId: string): Promise<ReceiptDto> => api<Api.ReceiptResponse>(`/api/orders/${encodeURIComponent(orderId)}/receipt`).then((r) => r.receipt);
 
 /** Sentinel riêng cho "hết giờ" — không được lẫn với `null` (nghĩa là máy chủ đã trả lời rõ "chưa có người phụ trách"). */
 const HANDLER_TIMED_OUT = Symbol("handler-timed-out");
@@ -79,7 +72,7 @@ class StageError extends Error {
 }
 
 const MESSAGES: Record<Stage, string> = {
-  company: "Chưa tải được thông tin công ty để in lên ảnh. Kiểm tra kết nối mạng rồi bấm “Thử lại”.",
+  company: "Chưa tải được biên nhận (thông tin công ty và số tiền) để in lên ảnh. Kiểm tra kết nối mạng rồi bấm “Thử lại”.",
   handler: "Chưa tải được người phụ trách, vui lòng thử lại.",
   font: "Chưa tải được phông chữ để vẽ ảnh. Kiểm tra kết nối mạng rồi bấm “Thử lại”.",
   canvas: "Trình duyệt chưa vẽ được ảnh xác nhận. Bấm “Thử lại”; nếu vẫn lỗi, hãy đóng rồi mở lại đơn này.",
@@ -105,15 +98,15 @@ interface Made {
 async function make(order: Order, viewer: Staff): Promise<Made> {
   const tuPhien = nguoiPhuTrachTuPhien(viewer);
   const handler = tuPhien ? Promise.resolve(tuPhien.name) : loadHandlerName(order.id); // chạy song song với công ty và việc nạp phông; không bao giờ lỗi (ba trạng thái, xem loadHandlerName)
-  let company: CompanyDto;
+  let receipt: ReceiptDto;
   try {
-    company = await loadCompany();
+    receipt = await loadReceipt(order.id);
   } catch {
     throw new StageError("company");
   }
   const handlerName = await handler;
   if (handlerName === undefined) throw new StageError("handler"); // KHÔNG BIẾT: dừng lại, không tạo ảnh, không đoán (chủ dự án 2026-09-28)
-  const model = buildConfirmation(order, company, handlerName);
+  const model = buildConfirmation(receipt, handlerName);
   const blob = await renderConfirmationPng(model);
   return { blob, fileName: model.fileName, orderCode: model.orderCode };
 }

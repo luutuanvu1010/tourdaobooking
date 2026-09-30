@@ -14,7 +14,7 @@ import { addDays, vnLocalToIso, vnToday } from "../../shared/vn-date";
 import { effectiveMoney, effectiveSubtotal, isAdjustmentSeqCollision, parseAdjustmentAfter, type AdjustmentEntry, type SubtotalServiceInput } from "./money-adjustment";
 import type { PoolSourceOrder, PoolSourceService } from "./pool";
 import type { FrozenLine } from "./price-guards";
-import { orderCodePrefix, type DepositMethod, type OrderStatus, type ValidOrder } from "./rules";
+import { orderCodePrefix, type OrderStatus, type ValidOrder } from "./rules";
 import { confirmWindow, summarizeDeviations, type StoredService, type ValidService, type ValidTrip } from "./service-rules";
 
 interface OrderRow {
@@ -32,13 +32,12 @@ interface OrderRow {
   subtotal: number;
   discount: number;
   total: number;
-  deposit_amount: number;
-  deposit_method: DepositMethod | null;
-  remaining_amount: number;
   payment_note: string | null;
   created_at: string;
   updated_at: string;
   confirmed_at: string | null;
+  delivered_at: string | null;
+  completed_at: string | null;
 }
 
 interface ServiceRow {
@@ -168,13 +167,12 @@ function toDto(r: OrderRow): OrderDto {
     subtotal: r.subtotal,
     discount: r.discount,
     total: r.total,
-    depositAmount: r.deposit_amount,
-    depositMethod: r.deposit_method,
-    remainingAmount: r.remaining_amount,
     paymentNote: r.payment_note,
     createdAt: r.created_at,
     updatedAt: r.updated_at,
     confirmedAt: r.confirmed_at,
+    deliveredAt: r.delivered_at,
+    completedAt: r.completed_at,
   };
 }
 
@@ -339,6 +337,8 @@ export async function getDepartDates(db: D1Database, orderId: string): Promise<(
 
 export interface OrderMeta {
   status: OrderStatus;
+  /** Mốc "Đã giao – đã thu đủ" (0044) — có ⇒ mọi route ghi của orders từ chối sớm (ADR-0025 đ5; trigger là lưới cuối). */
+  deliveredAt: string | null;
   staffId: string;
   updatedAt: string;
   bookerPartyId: string | null;
@@ -356,13 +356,16 @@ export async function getOrderRef(db: D1Database, id: string): Promise<{ staffId
 export async function getMeta(db: D1Database, id: string): Promise<OrderMeta | null> {
   const row = await db
     .prepare(
-      `SELECT o.status, o.staff_id, o.updated_at, o.booker_party_id, b.display_name AS booker_name, o.customer_name, o.customer_phone
+      `SELECT o.status, o.staff_id, o.updated_at, o.booker_party_id, b.display_name AS booker_name, o.customer_name, o.customer_phone, o.delivered_at
        FROM orders o LEFT JOIN v_pty_party_label b ON b.id = o.booker_party_id WHERE o.id = ?`,
     )
     .bind(id)
-    .first<{ status: OrderStatus; staff_id: string; updated_at: string; booker_party_id: string | null; booker_name: string | null; customer_name: string; customer_phone: string }>();
+    .first<{ status: OrderStatus; staff_id: string; updated_at: string; booker_party_id: string | null; booker_name: string | null; customer_name: string; customer_phone: string; delivered_at: string | null }>();
   return row
-    ? { status: row.status, staffId: row.staff_id, updatedAt: row.updated_at, bookerPartyId: row.booker_party_id, bookerName: row.booker_name, customerName: row.customer_name, customerPhone: row.customer_phone }
+    ? {
+        status: row.status, staffId: row.staff_id, updatedAt: row.updated_at, bookerPartyId: row.booker_party_id, bookerName: row.booker_name, customerName: row.customer_name,
+        customerPhone: row.customer_phone, deliveredAt: row.delivered_at,
+      }
     : null;
 }
 
@@ -401,7 +404,7 @@ async function toSummaryDtos(db: D1Database, rows: readonly OrderRow[]): Promise
   const effectiveByOrder = await computeEffectiveMoney(db, dtos, latestAdjustments);
   const page = dtos.map((d) => {
     const money = effectiveByOrder.get(d.id)!;
-    return { ...d, total: money.total, remainingAmount: money.remainingAmount };
+    return { ...d, total: money.total };
   });
 
   // Tóm tắt dịch vụ CHỈ cho các đơn thật sự cần (page). `json_each(?1)` nhận MẢNG JSON các id: câu SQL vẫn TĨNH dù số đơn đổi (mẫu ở dispatch/repository.ts).
@@ -423,10 +426,10 @@ async function toSummaryDtos(db: D1Database, rows: readonly OrderRow[]): Promise
       customerPhone: d.customerPhone,
       customerNote: d.customerNote,
       total: d.total,
-      depositAmount: d.depositAmount,
-      remainingAmount: d.remainingAmount,
       staffName: d.staffName,
       createdAt: d.createdAt,
+      deliveredAt: d.deliveredAt,
+      completedAt: d.completedAt,
       serviceNames: s.serviceNames,
       pax: s.pax,
       trip: s.trip,
@@ -546,8 +549,6 @@ export interface DashboardData {
   /** Cùng luật `today` cho ngày mai / ngày kia (góp ý YC-0007). */
   tomorrow: OrderSummaryDto[];
   dayAfter: OrderSummaryDto[];
-  /** Đơn confirmed còn thiếu tiền (remainingAmount HIỆN HÀNH > 0, không phải cột gốc). */
-  unpaid: { total: number; count: number; earliestDate: string | null };
   /** Đơn nháp chưa xác nhận (cùng `unassignedCount` là hai số duy nhất của Trang chủ có đếm đơn nháp). */
   draftCount: number;
   /**
@@ -625,8 +626,8 @@ async function chuyenDonTrongNgay(db: D1Database, ngay: string): Promise<OrderSu
  * Dữ liệu Trang chủ mới (`GET /api/orders/dashboard`, route `index.ts`). `today` = ngày dân sự VN (`vnToday`). `weekFrom`/`weekTo` = ngày dân sự VN
  * (thứ Hai/Chủ nhật, `vnWeekRange`), hai đầu bao gồm — hàm này tự đổi sang mốc ISO UTC nửa-mở khi lọc `created_at` (đúng quy ước `vnLocalToIso` đã
  * dùng nơi khác, KHÔNG tự chế cách đổi múi giờ mới).
- * BÀI HỌC ĐỢT B: `unpaid`/`revenueWeek` không lọc/tổng hợp thẳng trên cột `remaining_amount`/`total` GỐC của bảng `orders` — phải áp
- * `getLatestAdjustments` + `effectiveMoney` cho TỪNG đơn trước (đúng kỹ thuật `toSummaryDtos`/`listOrders` đang dùng).
+ * BÀI HỌC ĐỢT B: `revenueWeek` không tổng hợp thẳng trên cột `total` GỐC của bảng `orders` — phải áp `getLatestAdjustments` + `effectiveMoney` cho TỪNG
+ * đơn trước (đúng kỹ thuật `toSummaryDtos`/`listOrders` đang dùng).
  * `ordersWithHandler` = `ctx.ordersWithHandler` của route (gốc lắp ráp nối vào `dispatch`, ADR-0030 S20-13): trong các đơn đưa vào, đơn nào đang có
  * người phụ trách — nguồn DUY NHẤT của `unassignedCount`.
  */
@@ -643,33 +644,8 @@ export async function getDashboard(
     chuyenDonTrongNgay(db, today), chuyenDonTrongNgay(db, addDays(today, 1)), chuyenDonTrongNgay(db, addDays(today, 2)),
   ]);
 
-  // 2) "Còn thiếu tiền": MỌI đơn confirmed (không lọc trước theo cột gốc — điều chỉnh có thể đưa remainingAmount từ 0 lên dương hoặc ngược lại),
-  //    áp effective money từng đơn (qua NGUỒN DUY NHẤT `computeEffectiveMoney`, Đợt E task 7) RỒI mới lọc/tổng hợp trong JS.
-  const { results: confirmedRows } = await db
-    .prepare(`SELECT id, discount, total, deposit_amount, remaining_amount FROM orders WHERE status = 'confirmed'`)
-    .all<{ id: string; discount: number; total: number; deposit_amount: number; remaining_amount: number }>();
-  const latestConfirmed = await getLatestAdjustments(db, confirmedRows.map((r) => r.id));
-  const confirmedMoney = await computeEffectiveMoney(
-    db,
-    confirmedRows.map((r) => ({ id: r.id, discount: r.discount, depositAmount: r.deposit_amount, total: r.total, remainingAmount: r.remaining_amount })),
-    latestConfirmed,
-  );
-  const unpaidIds: string[] = [];
-  let unpaidTotal = 0;
-  for (const r of confirmedRows) {
-    const money = confirmedMoney.get(r.id)!;
-    if (money.remainingAmount > 0) {
-      unpaidIds.push(r.id);
-      unpaidTotal += money.remainingAmount;
-    }
-  }
-  // Ngày đón SỚM NHẤT trong số các đơn còn thiếu tiền (giúp biết chuyến gần nhất đang chưa thu đủ) — null nếu không đơn nào có dịch vụ có ngày.
-  const earliestUnpaid = unpaidIds.length
-    ? await db
-        .prepare(`SELECT MIN(depart_date) AS d FROM order_service WHERE order_id IN (SELECT value FROM json_each(?1)) AND depart_date IS NOT NULL`)
-        .bind(JSON.stringify(unpaidIds))
-        .first<{ d: string | null }>()
-    : null;
+  // 2) "Còn thiếu tiền" RỜI Trang chủ của orders (sổ tiền lượt 1 — ADR-0026 đ9): số đã thu là của billing, `orders` không đọc bảng bil_ ⇒ ô đó lấy qua
+  //    `GET /api/ledger/unpaid-summary` (module billing).
 
   // 3) Đơn nháp chưa xác nhận.
   const draftCountRow = await db.prepare(`SELECT COUNT(*) AS n FROM orders WHERE status = 'draft'`).first<{ n: number }>();
@@ -688,19 +664,15 @@ export async function getDashboard(
 
   // 5) "Doanh thu của tôi tuần này": đơn confirmed do CHÍNH staffId lập, trong [weekFrom, weekTo] giờ VN (hai đầu bao gồm) — đổi sang mốc ISO UTC
   //    nửa-mở [đầu thứ Hai, đầu thứ Hai TUẦN SAU) bằng `vnLocalToIso` (đúng quy ước "00:00 giờ VN" đã dùng ở nơi khác, không tự chế).
-  //    Doanh thu = `total` HIỆN HÀNH (subtotal đã trừ giảm giá) — không phải remainingAmount (đây là giá trị đơn, không phải số còn phải thu).
+  //    Doanh thu = `total` HIỆN HÀNH (subtotal đã trừ giảm giá) — giá trị đơn, không phải số còn phải thu.
   const weekFromIso = vnLocalToIso(`${weekFrom}T00:00`)!;
   const weekToIsoExclusive = vnLocalToIso(`${addDays(weekTo, 1)}T00:00`)!;
   const { results: weekRows } = await db
-    .prepare(`SELECT id, discount, total, deposit_amount, remaining_amount, created_at FROM orders WHERE status = 'confirmed' AND staff_id = ?1 AND created_at >= ?2 AND created_at < ?3`)
+    .prepare(`SELECT id, discount, total, created_at FROM orders WHERE status = 'confirmed' AND staff_id = ?1 AND created_at >= ?2 AND created_at < ?3`)
     .bind(staffId, weekFromIso, weekToIsoExclusive)
-    .all<{ id: string; discount: number; total: number; deposit_amount: number; remaining_amount: number; created_at: string }>();
+    .all<{ id: string; discount: number; total: number; created_at: string }>();
   const latestWeek = await getLatestAdjustments(db, weekRows.map((r) => r.id));
-  const weekMoney = await computeEffectiveMoney(
-    db,
-    weekRows.map((r) => ({ id: r.id, discount: r.discount, depositAmount: r.deposit_amount, total: r.total, remainingAmount: r.remaining_amount })),
-    latestWeek,
-  );
+  const weekMoney = await computeEffectiveMoney(db, weekRows.map((r) => ({ id: r.id, discount: r.discount, total: r.total })), latestWeek);
   let revenueTotal = 0;
   // Đợt D Task 2: gộp doanh thu HIỆN HÀNH theo ngày dân sự VN của `created_at` — CÙNG tập đơn/CÙNG số tiền đang cộng
   // vào `revenueTotal` ở trên, không tính lại từ nguồn khác (tránh lệch giữa `daily` và `total`, xem test tổng invariant).
@@ -721,7 +693,6 @@ export async function getDashboard(
     today: todaySummaries,
     tomorrow: tomorrowSummaries,
     dayAfter: dayAfterSummaries,
-    unpaid: { total: unpaidTotal, count: unpaidIds.length, earliestDate: earliestUnpaid?.d ?? null },
     draftCount: draftCountRow?.n ?? 0,
     unassignedCount,
     revenueWeek: { total: revenueTotal, count: weekRows.length, daily },
@@ -898,7 +869,8 @@ export async function createOrder(
           )
           .bind(
             id, prefix, prefix, `${prefix}%`, staffId, order.customerName, order.customerPhone, order.customerEmail, order.customerNote,
-            order.subtotal, order.discount, order.total, order.depositAmount, order.depositMethod, order.remainingAmount, order.paymentNote, at, at,
+            // Ba cột cọc cũ KHÔNG mang nghĩa nữa (ADR-0026 đ9): đơn mới ghi 0 / NULL / total — chỉ để thoả trigger 0007 (không ai đọc).
+            order.subtotal, order.discount, order.total, 0, null, order.total, order.paymentNote, at, at,
             booker.partyId, booker.partyId,
           ),
         ...services.stmts,
@@ -932,6 +904,8 @@ export async function updateDraftOrder(
   booker: BookerWrite = NO_BOOKER,
   legMeta: LegMeta = new Map(),
   datGapNhap: DatGapNhap = new Map(),
+  /** Q2 (ADR-0026 đ9): câu thêm vào nhật ký `updated` khi lưu nháp đưa cọc cũ về 0 (route tính từ `cocCuNhap`). */
+  ghiChuThem: string | null = null,
 ): Promise<boolean> {
   const at = nextStamp(order.expectedUpdatedAt);
   const auditId = crypto.randomUUID();
@@ -942,17 +916,23 @@ export async function updateDraftOrder(
     ...booker.before,
     db
       .prepare(
+        // Ba cột cọc cũ (ADR-0026 đ9): GIỮ cột cọc của nháp cũ, chỉ tính lại phần dư để thoả trigger 0007; Q2 (chủ 30/9 "Đưa cọc cũ về 0, ghi nhật ký"):
+        // CHỈ khi tổng mới < cọc cũ thì đưa cọc về 0 / NULL (số tiền không mất — đã là lần thu "chưa rõ" trong sổ). Vế phải của SET đọc giá trị CŨ của dòng.
         `UPDATE orders SET customer_name = ?, customer_phone = ?, customer_email = ?, customer_note = ?,
-           subtotal = ?, discount = ?, total = ?, deposit_amount = ?, deposit_method = ?, remaining_amount = ?, payment_note = ?,
+           subtotal = ?, discount = ?, total = ?,
+           deposit_amount = CASE WHEN ? < deposit_amount THEN 0 ELSE deposit_amount END,
+           deposit_method = CASE WHEN ? < deposit_amount THEN NULL ELSE deposit_method END,
+           remaining_amount = CASE WHEN ? < deposit_amount THEN ? ELSE ? - deposit_amount END,
+           payment_note = ?,
            booker_party_id = ${BOOKER_VALUE}, updated_at = ?
          WHERE id = ? AND status = 'draft' AND updated_at = ?`,
       )
       .bind(
         order.customerName, order.customerPhone, order.customerEmail, order.customerNote,
-        order.subtotal, order.discount, order.total, order.depositAmount, order.depositMethod, order.remainingAmount, order.paymentNote,
+        order.subtotal, order.discount, order.total, order.total, order.total, order.total, order.total, order.total, order.paymentNote,
         booker.partyId, booker.partyId, at, id, order.expectedUpdatedAt,
       ),
-    auditStatement(db, { id: auditId, orderId: id, staffId, action: "updated", at, detail: joinDetail(summarizeDeviations(order.items), booker.note, paxNote) }, "changes() > 0"),
+    auditStatement(db, { id: auditId, orderId: id, staffId, action: "updated", at, detail: joinDetail(summarizeDeviations(order.items), booker.note, paxNote, ghiChuThem) }, "changes() > 0"),
     db.prepare(`DELETE FROM order_item WHERE order_id = ? AND ${guard.sql}`).bind(id, ...guard.binds),
     legDeleteDraft(db, id, auditId),
     db.prepare(`DELETE FROM order_service WHERE order_id = ? AND ${guard.sql}`).bind(id, ...guard.binds),
@@ -1127,9 +1107,7 @@ export async function getServicesForSubtotal(db: D1Database, orderIds: readonly 
 export interface OrderMoneyBase {
   id: string;
   discount: number;
-  depositAmount: number;
   total: number;
-  remainingAmount: number;
 }
 
 /**
@@ -1143,20 +1121,28 @@ export async function computeEffectiveMoney(
   db: D1Database,
   orders: readonly OrderMoneyBase[],
   latestAdjustments: ReadonlyMap<string, LatestAdjustmentOverlay>,
-): Promise<Map<string, { total: number; remainingAmount: number }>> {
+): Promise<Map<string, { total: number }>> {
   const adjustedIds = orders.filter((o) => latestAdjustments.has(o.id)).map((o) => o.id);
   const servicesByOrder = await getServicesForSubtotal(db, adjustedIds);
-  const out = new Map<string, { total: number; remainingAmount: number }>();
+  const out = new Map<string, { total: number }>();
   for (const o of orders) {
     const adj = latestAdjustments.get(o.id);
     if (adj === undefined) {
-      out.set(o.id, { total: o.total, remainingAmount: o.remainingAmount });
+      out.set(o.id, { total: o.total });
       continue;
     }
     const subtotal = effectiveSubtotal(servicesByOrder.get(o.id) ?? [], adj.after);
-    out.set(o.id, effectiveMoney(subtotal, o.discount, o.depositAmount));
+    out.set(o.id, effectiveMoney(subtotal, o.discount));
   }
   return out;
+}
+
+/**
+ * Q2 (ADR-0026 đ9, chủ trả lời 2026-09-30 "Đưa cọc cũ về 0, ghi nhật ký"): số cọc cũ còn ghi trên đơn NHÁP — CHỈ để route lưu nháp ghi một dòng nhật ký khi
+ * tổng mới < cọc cũ (câu UPDATE đưa cột về 0). Không bề mặt nào hiển thị số này (tiền trả trước là lần thu của billing).
+ */
+export async function cocCuNhap(db: D1Database, id: string): Promise<number> {
+  return (await db.prepare("SELECT deposit_amount FROM orders WHERE id = ? AND status = 'draft'").bind(id).first<{ deposit_amount: number }>())?.deposit_amount ?? 0;
 }
 
 /**

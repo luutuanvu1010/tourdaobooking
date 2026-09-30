@@ -20,6 +20,17 @@
         <div id="services" class="svc-list"></div>
         <p id="services-empty" class="svc-empty">Chưa có dịch vụ. Chọn dịch vụ từ danh mục.</p>
       </section>
+      <section class="card" id="pay-card">
+        <h2>Thanh toán</h2>
+        <div class="grid three">
+          <label>Giảm giá (₫)<input id="discount" type="text" inputmode="numeric" autocomplete="off" placeholder="0"></label>
+          <label id="prepaid-amount-field">Thanh toán trước (₫)<input id="prepaidAmount" type="text" inputmode="numeric" autocomplete="off" placeholder="0"></label>
+          <label id="prepaid-method-field">Hình thức<select id="prepaidMethod"><option value="BANK_TRANSFER" selected>Chuyển khoản</option><option value="CASH">Tiền mặt</option><option value="OTHER">Khác</option></select></label>
+        </div>
+        <label id="prepaid-collector-field">Người nhận tiền<select id="prepaidCollector"><option value="cong_ty" selected>Công ty (vào tài khoản công ty)</option><option value="toi">Tôi thu</option></select></label>
+        <p class="muted" id="prepaid-hint">Tiền trả trước được ghi vào sổ ngay sau khi lưu đơn.</p>
+        <label class="pay-note">Ghi chú thanh toán<textarea id="paymentNote" maxlength="1000" placeholder="vd: nội dung chuyển khoản"></textarea></label>
+      </section>
       <section class="card">
         <h2>Thông tin khách hàng</h2>
         <button id="use-mine" class="btn" type="button">Sử dụng thông tin của tôi</button>
@@ -31,15 +42,6 @@
         </div>
         <div id="booker-slot"></div>
       </section>
-      <section class="card">
-        <h2>Thanh toán</h2>
-        <div class="grid three">
-          <label>Giảm giá (₫)<input id="discount" type="text" inputmode="numeric" autocomplete="off" placeholder="0"></label>
-          <label>Thanh toán trước (₫)<input id="depositAmount" type="text" inputmode="numeric" autocomplete="off" placeholder="0"></label>
-          <label>Phương thức thanh toán<select id="depositMethod"><option value="">—</option><option value="cash" selected>Tiền mặt</option><option value="bank_transfer">Chuyển khoản</option><option value="other">Khác</option></select></label>
-        </div>
-        <label class="pay-note">Ghi chú thanh toán<textarea id="paymentNote" maxlength="1000" placeholder="vd: số tài khoản đã chuyển"></textarea></label>
-      </section>
     </div>
     <div class="form-side">
       <section class="card summary-card">
@@ -48,7 +50,7 @@
           <div class="kv"><span class="muted">Dịch vụ</span><span id="sum-count">0 dịch vụ</span></div>
           <div class="kv"><span class="muted">Tạm tính</span><span id="sum-subtotal">0 ₫</span></div>
           <div class="kv strong"><span>Tổng cộng</span><span id="sum-total">0 ₫</span></div>
-          <div class="kv strong"><span>Còn lại</span><span id="sum-remaining">0 ₫</span></div>
+          <div class="kv" id="sum-prepaid-row" hidden><span class="muted">Thanh toán trước (ghi sau khi lưu)</span><span id="sum-prepaid">0 ₫</span></div>
           <div id="sum-warning" class="alert warn" hidden></div>
           <p class="muted summary-note">Số trên đây chỉ để xem trước; hệ thống tính lại chính thức khi lưu.</p>
         </div>
@@ -57,7 +59,7 @@
       <div id="save-error" class="banner" role="alert" hidden></div>
       <div class="form-actions">
         <div class="mobile-actions-summary">
-          <div class="kv strong mobile-sum-line"><span><span id="mobile-count">0 dịch vụ</span> · Tổng <span id="mobile-total">0 ₫</span></span><span id="mobile-due-wrap" hidden>Còn lại <span id="mobile-due">0 ₫</span></span></div>
+          <div class="kv strong mobile-sum-line"><span><span id="mobile-count">0 dịch vụ</span> · Tổng <span id="mobile-total">0 ₫</span></span><span id="mobile-prepaid-row" hidden>Trả trước <span id="mobile-prepaid">0 ₫</span></span></div>
         </div>
         <button id="save" class="btn btn-primary" type="submit">Lưu, chờ xác nhận</button>
         <a class="btn" href="/orders">Quay lại</a>

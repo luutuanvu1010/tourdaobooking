@@ -26,7 +26,6 @@ const inDays = (n: number) => new Date(Date.now() + 7 * 3600e3 + n * 86400e3).to
 const orderBody = (departDate = inDays(3)) => ({
   customerName: "Khách Thử", customerPhone: "0912345678",
   services: [{ kind: "catalog", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate }],
-  depositAmount: 200000, depositMethod: "cash",
 });
 /** Đơn do PARTNER lập: KHÔNG có người phụ trách mặc định (ADR-0014 điều 9/10, checkAssignee từ chối PARTNER). */
 async function newUnhandledOrder(w: any, departDate?: string): Promise<string> {

@@ -4,6 +4,7 @@
     "accounts",
     "audit",
     "auth",
+    "billing",
     "catalog",
     "company",
     "dispatch",
@@ -133,7 +134,9 @@
       "name": "orders",
       "module": "orders",
       "kind": "table",
-      "legacy": true
+      "legacy": true,
+      "deprecatedColumns": ["deposit_amount", "deposit_method", "remaining_amount"],
+      "note": "ba cột cọc KHÔNG DÙNG NỮA — xem ADR-0026 điều 9 (đơn mới ghi 0 / NULL / total để thoả trigger 0007; số đã thu, còn lại lấy từ billing). Cột mốc delivered_at/_by, completed_at/_by từ 0044 (ADR-0024 điều 3)"
     },
     {
       "name": "ord_transfer_leg",
@@ -354,6 +357,54 @@
       "logicalRefs": [
         { "column": "leg_id", "toTable": "ord_transfer_leg", "viaView": "v_ord_leg_key", "note": "mốc giờ hẹn của chặng (ADR-0051, 0043) — dòng XEP chỉ sinh trong lô mở suất (đã qua LC-09); dòng người bấm đòi chặng còn suất khách chờ đón + kiểm định kỳ R-VC-19 — R-P19" }
       ]
+    },
+    {
+      "name": "bil_payment_method",
+      "module": "billing",
+      "kind": "lookup"
+    },
+    {
+      "name": "bil_collector_role",
+      "module": "billing",
+      "kind": "lookup"
+    },
+    {
+      "name": "bil_receipt_kind",
+      "module": "billing",
+      "kind": "lookup"
+    },
+    {
+      "name": "bil_receipt_stage",
+      "module": "billing",
+      "kind": "lookup"
+    },
+    {
+      "name": "bil_posting_kind",
+      "module": "billing",
+      "kind": "lookup"
+    },
+    {
+      "name": "bil_debt_kind",
+      "module": "billing",
+      "kind": "lookup"
+    },
+    {
+      "name": "bil_payment_receipt",
+      "module": "billing",
+      "kind": "table",
+      "note": "lần thu (ADR-0026 đ2), CHỈ-THÊM, dòng đảo trỏ reverses_id; migration 0045 chứa câu MỘT LẦN chép cọc cũ (orders.deposit_amount > 0) thành lần thu người thu CHƯA RÕ (ADR-0026 đ9, Q3)"
+    },
+    {
+      "name": "bil_posting",
+      "module": "billing",
+      "kind": "table",
+      "note": "phiếu sổ (ADR-0026 đ3), CHỈ-THÊM; due_snapshot = phải thu chụp lúc Đã giao (Q4); trigger kiểm tiền trong lô Đã giao / Hoàn thành"
+    },
+    {
+      "name": "bil_debt_line",
+      "module": "billing",
+      "kind": "table",
+      "note": "dòng nợ hai chân (ADR-0026 đ3), CHỈ-THÊM; nguồn = đơn HOẶC chuyến (ADR-0057 T3 — trip_id cột dự trữ, không khoá ngoại, lượt 1 luôn trống)"
     }
   ],
   "views": [
@@ -474,6 +525,16 @@
       ]
     },
     {
+      "name": "v_ord_order_state",
+      "module": "orders",
+      "columns": [
+        "id",
+        "status",
+        "delivered_at",
+        "completed_at"
+      ]
+    },
+    {
       "name": "v_ord_leg_key",
       "module": "orders",
       "columns": [
@@ -508,6 +569,25 @@
       "columns": [
         "order_id",
         "first_at"
+      ]
+    },
+    {
+      "name": "v_bil_order_paid",
+      "module": "billing",
+      "columns": [
+        "order_id",
+        "paid_net",
+        "unknown_count"
+      ]
+    },
+    {
+      "name": "v_bil_party_balance",
+      "module": "billing",
+      "columns": [
+        "party_id",
+        "counterparty_id",
+        "order_id",
+        "balance"
       ]
     }
   ],

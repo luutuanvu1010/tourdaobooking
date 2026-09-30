@@ -6,7 +6,7 @@
 //  - "Đơn chờ nhận" — `GET /api/orders/pool` (PHẦN HẸP, nơi đón đã che dãy số ở máy chủ — không tự che lần hai). Nút "Nhận" → `PUT /api/orders/:id/handler`
 //    { staffId: chính mình }. Thua đua (409 stale) hay máy chủ từ chối → banner (`handlerFailure`) + tải lại. KHÔNG dựng dữ liệu đơn ở trình duyệt sau khi
 //    nhận: tải lại CẢ hai danh sách từ máy chủ. Tài khoản lai (có quyền Đối tác) → máy chủ 403 → khối này ẩn hẳn (không hiện lỗi).
-//  - "Đơn của tôi" — `GET /api/dispatch/mine` (có Tổng tiền/Thanh toán trước/Còn lại từ Task 1.8, quyết định A của chủ dự án). Nút theo `myJobActions`. Tên HDV
+//  - "Đơn của tôi" — `GET /api/dispatch/mine` (Tổng tiền) + `POST /api/ledger/balances` (Đã thu/Còn thu — sổ tiền lượt 1, billing). Nút theo `myJobActions`. Tên HDV
 //    lấy từ PHIÊN (`staff.fullName`, Task 1.6) — KHÔNG gọi `GET /api/dispatch/handlers`, và KHÔNG dùng tên phiên cho đơn ở hàng chờ (chưa ai phụ trách).
 // Bảng tin (`don-thay-doi`, `can-tai-lai`): tải lại CẢ hai khối — đây là cách hàng chờ tự cập nhật lặng lẽ khi người khác Nhận (chủ dự án chọn: không
 // thông báo nổi cho người không liên quan). Không dựng lại dưới tay người đang dùng: hoãn khi bảng sửa/huỷ đang mở hoặc đang Nhận, thử lại khi xong.
@@ -494,12 +494,15 @@ export async function initViecCuaToi(el: HTMLElement, staff: Staff): Promise<voi
   }
 
   // -- Đơn của tôi --
-  function mineCard(a: Api.MyAssignmentDto, today: string): HTMLElement {
+  /** Tiền của đơn lấy từ billing (`POST /api/ledger/balances` — sổ tiền lượt 1, ADR-0026 đ9); `undefined` = chưa tải được (hiện "—", không đoán). */
+  type TienDon = Api.LedgerBalancesResponse["balances"][string] | undefined;
+  function mineCard(a: Api.MyAssignmentDto, today: string, tien: TienDon): HTMLElement {
     const dates = a.services.map((s) => s.departDate);
     const departDate = orderDepartDate(dates);
     const departed = tripDeparted(dates, today);
     const chip = myJobChip(a.status, departed);
-    const actions = myJobActions({ status: a.status, departed });
+    // Đơn đã "Đã giao – đã thu đủ" bị khoá (ADR-0025 đ5): không còn nút sửa số khách / huỷ (máy chủ cũng từ chối).
+    const actions = tien?.daGiao ? { editPax: false, cancel: false } : myJobActions({ status: a.status, departed });
     // "Sửa số khách" chỉ khi có ít nhất một dịch vụ sửa được (dịch vụ nhập tay / thiếu giá đã chụp thì bảng chỉ để xem — không mở bảng rỗng).
     const canEdit = actions.editPax && a.services.some((s) => s.catalogCode !== null && s.editablePaxCodes.length > 0);
     const buttons: HTMLElement[] = [];
@@ -528,17 +531,24 @@ export async function initViecCuaToi(el: HTMLElement, staff: Staff): Promise<voi
         "dl",
         { class: "hdv-money" },
         h("div", null, h("dt", null, "Tổng tiền"), h("dd", null, vnd(a.total))),
-        h("div", null, h("dt", null, "Thanh toán trước"), h("dd", null, vnd(a.depositAmount))),
-        h("div", null, h("dt", null, "Còn lại"), h("dd", { class: a.remainingAmount > 0 ? "money-due" : null }, vnd(a.remainingAmount))),
+        // Sổ tiền lượt 1 (kiểm độc lập T-2): số là ĐÃ THU của billing (gồm cả tiền thu lúc giao) nên nhãn "Đã thu", không "Thanh toán trước" của bản 1.40.
+        h("div", null, h("dt", null, "Đã thu"), h("dd", null, tien ? vnd(tien.daThu) : "—")),
+        h("div", null, h("dt", null, "Còn lại"), h("dd", { class: tien && tien.conLai > 0 ? "money-due" : null }, tien ? vnd(tien.conLai) : "—")),
       ),
+      tien?.daGiao ? h("p", { class: "hdv-note" }, tien.hoanThanh ? "Hoàn thành." : "Đã giao – đã thu đủ: đơn đã khoá.") : null,
       a.status === "draft" ? h("p", { class: "hdv-note" }, "Đơn đang chờ xác nhận — chưa thể huỷ hay sửa số khách.") : null,
-      // bản 1.39: "Xem đơn" mở trang đơn (hướng dẫn viên xem được đơn mình đang phụ trách — máy chủ quyết)
+      // bản 1.39: "Xem đơn" mở trang đơn (hướng dẫn viên xem được đơn mình đang phụ trách — máy chủ quyết). Ghi tiền đã thu / bấm "Đã giao – đã thu đủ"
+      // làm ở đó (mục Thanh toán — sổ tiền lượt 1).
       h("div", { class: "hdv-actions" }, ...buttons, h("a", { class: "btn hdv-act hdv-xem", href: `/order?id=${encodeURIComponent(a.orderId)}` }, "Xem đơn")),
     );
   }
   async function loadMine(): Promise<boolean> {
     try {
       const { assignments } = await api<Api.MyAssignmentsResponse>("/api/dispatch/mine");
+      // Tiền từng đơn: MỘT lời gọi billing cho cả danh sách; lỗi thì thẻ hiện "—" (không đoán số) — danh sách vẫn hiện.
+      const tien = assignments.length
+        ? await api<Api.LedgerBalancesResponse>("/api/ledger/balances", { method: "POST", body: { orderIds: assignments.map((a) => a.orderId) } }).then((r) => r.balances, () => ({}) as Api.LedgerBalancesResponse["balances"])
+        : {};
       const today = vnToday(new Date());
       const rows = sortMyJobs(
         assignments.map((a) => ({ a, orderCode: a.orderCode, status: a.status, departDate: orderDepartDate(a.services.map((s) => s.departDate)), departed: tripDeparted(a.services.map((s) => s.departDate), today) })),
@@ -548,7 +558,7 @@ export async function initViecCuaToi(el: HTMLElement, staff: Staff): Promise<voi
       mineEmpty.hidden = assignments.length > 0;
       // bản 1.39: tiêu đề nhóm "Đã đi tour" trước thẻ đầu tiên đã đi (cùng điều kiện xếp cuối của `sortMyJobs`: đã xác nhận và qua ngày đi)
       const daDi = rows.findIndex((r) => r.status === "confirmed" && r.departed);
-      const the = rows.map((r) => mineCard(r.a, today));
+      const the = rows.map((r) => mineCard(r.a, today, tien[r.a.orderId]));
       if (daDi >= 0) the.splice(daDi, 0, h("h3", { class: "hdv-nhom" }, "Đã đi tour"));
       replaceChildren(mineList, ...the);
       return true;

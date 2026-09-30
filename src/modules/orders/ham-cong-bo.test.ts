@@ -38,7 +38,6 @@ async function order(w: any, confirm: boolean, extra: Record<string, unknown> = 
     as: SALES,
     body: {
       customerName: "Khách Dò Tìm Chủ Đơn", customerPhone: "0912345678", customerEmail: "do.tim@example.com", customerNote: "Ghi chú kín 0987654321", paymentNote: "Tiền mặt",
-      depositAmount: 300000, depositMethod: "cash",
       services: [{ kind: "catalog", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: D, note: "Ghi chú dịch vụ", legs: [OUT, RET] }],
       passengers: [{ fullName: "Khách Dò Tìm Một", birthYear: 1911, paxCode: "adult" }, { fullName: "Khách Dò Tìm Hai", birthYear: 1922, paxCode: null }],
       ...extra,

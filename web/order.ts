@@ -3,7 +3,8 @@ import { renderBanner } from "./banner";
 import { openBookerSheet } from "./booker-sheet";
 import { openConfirmationDialog } from "./confirmation-dialog";
 import { byId, h, replaceChildren } from "./dom";
-import { METHOD_LABEL, STATUS_LABEL, actionLabel, dateTime, dayMonth, vnd } from "./format";
+import { METHOD_LABEL, actionLabel, dateTime, dayMonth, parseMoney, trangThaiHienThi, vnd } from "./format";
+import { regroupMoney } from "./money-input";
 import { openHandlerSheet } from "./handler-sheet";
 import { icon } from "./icons";
 import { suKienVeDon, taoBoLamMoi } from "./lam-moi-logic";
@@ -32,6 +33,16 @@ let current: Order | null = null;
 let staff: Staff | null = null; // gán sau `initShell()`; các hàm dưới chỉ chạy sau đó
 /** Mốc tối thiểu đang hiệu lực (phút) từ GET /api/orders/:id (ADR-0049 I31); null = chưa có chính sách (máy chủ trả 503 lúc xác nhận). */
 let mocPhut: number | null = null;
+/** Tiền của đơn từ billing (`GET /api/orders/:id/payments` — sổ tiền lượt 1); null = chưa tải được / không được xem (khối tiền hiện "—", không đoán). */
+let tien: Api.OrderPaymentsResponse | null = null;
+
+// Form lập đơn ghi tiền trả trước ở BƯỚC HAI (sổ tiền lượt 1, NT-S6); bước đó hỏng thì chuyển tới đây kèm `thutruoc=loi` — báo một lần, bỏ tham số ngay.
+let baoThuTruocLoi = new URLSearchParams(location.search).get("thutruoc") === "loi";
+if (baoThuTruocLoi) {
+  const url = new URL(location.href);
+  url.searchParams.delete("thutruoc");
+  history.replaceState(history.state, "", url.pathname + url.search + url.hash);
+}
 
 // Biểu mẫu lập đơn "Duyệt đặt gấp" (ADR-0049 R-P15) tự lưu nháp rồi gọi lệnh đặt gấp; lệnh đó hỏng thì chuyển tới đây kèm `datgap=loi` — báo một lần, bỏ tham số
 // NGAY (như `moi`) để tải lại trang không báo lại.
@@ -206,8 +217,9 @@ function handlerCard(order: Order, handler: Handler): HTMLElement {
     buttons.push(retry);
   } else {
     summary = h("p", { class: "handler-name" }, handler === null ? h("span", { class: "chip chip-warn" }, NO_HANDLER_TEXT) : handler.name);
-    if (controls.assign) buttons.push(changeButton(order, handler, controls.assignLabel));
-    if (controls.claim) buttons.push(claimButton(order));
+    // Sổ tiền lượt 1 (ADR-0025 đ4): sau "Đã giao" máy chủ từ chối đổi / nhận người phụ trách (409 order_delivered) — không hiện nút.
+    if (controls.assign && !order.deliveredAt) buttons.push(changeButton(order, handler, controls.assignLabel));
+    if (controls.claim && !order.deliveredAt) buttons.push(claimButton(order));
   }
   return h(
     "section",
@@ -245,7 +257,7 @@ function summaryBand(order: Order): HTMLElement {
       "div",
       null,
       h("div", { class: "label" }, "MÃ ĐƠN"),
-      h("div", { class: "value" }, order.orderCode, " ", h("span", { class: `badge badge-${order.status}` }, STATUS_LABEL[order.status])),
+      h("div", { class: "value" }, order.orderCode, " ", badgeTrangThai(order)),
     ),
     h("div", { class: "sep" }),
     h(
@@ -254,9 +266,260 @@ function summaryBand(order: Order): HTMLElement {
       stat("ĐÓN", when, firstSvc?.pickupPlace ?? undefined),
       stat("KHÁCH", order.customerName, order.customerPhone),
       stat("SỐ KHÁCH", pax || "—", serviceLine),
-      stat("CÒN LẠI", vnd(order.remainingAmount), `Tổng ${vnd(order.total)} · thanh toán trước ${vnd(order.depositAmount)}`, order.remainingAmount > 0),
+      tien
+        ? stat(tien.du > 0 ? "KHÁCH TRẢ DƯ" : "CÒN LẠI", vnd(tien.du > 0 ? tien.du : tien.conLai), `Tổng ${vnd(order.total)} · đã thu ${vnd(tien.daThu)}`, tien.conLai > 0 || tien.du > 0)
+        : stat("CÒN LẠI", "—", `Tổng ${vnd(order.total)}`),
     ),
   );
+}
+
+/** Huy hiệu trạng thái: "Đã giao – đã thu đủ" / "Hoàn thành" suy ra từ mốc (`trangThaiHienThi`, src/shared — một nguồn nhãn). */
+function badgeTrangThai(order: Order): HTMLElement {
+  const tt = trangThaiHienThi(order);
+  return h("span", { class: `badge badge-${tt.khoa}` }, tt.nhan);
+}
+
+// ---- Thanh toán (sổ tiền lượt 1 — ADR-0025, ADR-0026): số do billing tính; trình duyệt chỉ vẽ, ẩn/hiện nút theo cờ máy chủ gửi ----
+function tienCard(order: Order): HTMLElement {
+  const t = tien;
+  const rows: HTMLElement[] = [kv("Tạm tính", vnd(order.subtotal)), kv("Giảm giá", vnd(order.discount)), kv("Tổng cộng", vnd(order.total), "strong")];
+  if (t) {
+    rows.push(kv("Đã thu", vnd(t.daThu)));
+    rows.push(t.du > 0 ? kv("Khách trả dư", `${vnd(t.du)} — chờ Kế toán hoàn`, "strong") : kv("Còn lại", vnd(t.conLai), "strong"));
+  } else rows.push(kv("Đã thu / còn lại", "Chưa tải được"));
+  rows.push(kv("Ghi chú thanh toán", order.paymentNote));
+  const lanThu =
+    t && t.lanThu.length
+      ? h(
+          "ul",
+          { class: "pay-list", "data-khoi": "lan-thu" },
+          ...t.lanThu.map((l) =>
+            h(
+              "li",
+              null,
+              h("span", { class: "muted" }, `${dayMonth(l.ngayPhatSinh)} · ${l.giaiDoan}`),
+              ` — ${l.traLai ? "Trả lại khách " : ""}${vnd(l.soTien)} · ${l.hinhThuc} · người thu: ${l.nguoiThu}`,
+              l.laDongDao ? h("span", { class: "muted" }, " (dòng đảo)") : l.daDao ? h("span", { class: "muted" }, " (đã đảo)") : null,
+              t.keToan && !t.completedAt ? nutKeToanLanThu(order, t, l) : null,
+            ),
+          ),
+        )
+      : null;
+  // NT-F11 (Hiến chương 5.7): lý do đơn đang bị giữ + ai phải xử lý — hiện NGAY, không đợi bấm nút mới báo lỗi. Đơn nháp / huỷ không cần dòng này.
+  const lyDo = t ? (t.deliveredAt ? t.lyDoChuaHoanThanh : t.lyDoChuaGiao) : null;
+  const giu =
+    lyDo && lyDo.ma !== "not_confirmed" && lyDo.ma !== "cancelled"
+      ? h("p", { class: "dg-lock dg-lock-note", "data-khoi": "ly-do-giu" }, `Đang giữ đơn: ${lyDo.cau} Ai xử lý: ${lyDo.aiXuLy}.`)
+      : null;
+  const keToan = t?.keToan && !t.completedAt ? khoiKeToan(order, t) : null;
+  const nut: HTMLElement[] = [];
+  if (t?.coTheGhiThu) nut.push(nutGhiThu(order, t));
+  if (t && t.quyenGiao && !t.deliveredAt && order.status === "confirmed") nut.push(nutChot(order, "delivered", t));
+  if (t && t.quyenHoanThanh && t.deliveredAt && !t.completedAt) nut.push(nutChot(order, "completed", t));
+  return h(
+    "section",
+    { class: "card totals", "data-khoi": "thanh-toan" },
+    h("h2", null, "Thanh toán"),
+    ...rows,
+    lanThu,
+    keToan,
+    giu,
+    nut.length ? h("div", { class: "handler-actions" }, ...nut) : null,
+  );
+}
+
+// ---- Thao tác Kế toán đặt TẠM trên trang đơn (điều phối 30/9: hai màn sổ riêng chờ chủ vẽ lại trên Claude Design). Chỉ hiện khi máy chủ gửi khối
+// `keToan` (người có ô `ledger.write`); máy chủ vẫn là cổng. Chỉ gọi route billing đã có. Mỗi thao tác mở một hàng xác nhận NGAY trong thẻ (không dùng
+// confirm() của trình duyệt): bấm lần hai mới ghi. ----
+
+/** Mở một hàng xác nhận tại chỗ: `noiDung` (các ô nhập, nếu có) + nút ghi + "Thôi"; `ghi` trả lời gọi máy chủ; xong → tải lại đơn và báo. */
+function hangXacNhan(opts: { nhan: string; action: string; cau: string; nutGhi: string; o?: HTMLElement[]; ghi: () => Promise<unknown>; bao: string; kiem?: () => string | null }): HTMLElement {
+  const wrap = h("span", { class: "pay-inline" });
+  const mo = h("button", { type: "button", class: "btn btn-link", "data-action": opts.action }, opts.nhan);
+  mo.addEventListener("click", () => {
+    const ghi = h("button", { type: "submit", class: "btn btn-primary" }, opts.nutGhi);
+    const thoi = h("button", { type: "button", class: "btn" }, "Thôi");
+    const form = h(
+      "form",
+      { class: "pay-form", "data-khoi": `xac-nhan-${opts.action}` },
+      h("p", null, opts.cau),
+      opts.o && opts.o.length ? h("div", { class: "grid two" }, ...opts.o) : null,
+      h("div", { class: "handler-actions" }, ghi, thoi),
+    ) as HTMLFormElement;
+    thoi.addEventListener("click", () => replaceChildren(wrap, mo));
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const loiNhap = opts.kiem?.() ?? null;
+      if (loiNhap) return show(banner("danger", loiNhap));
+      ghi.disabled = true;
+      show(null);
+      try {
+        await opts.ghi();
+        await load();
+        if (bannerEl.hidden) show(banner("info", opts.bao));
+      } catch (err) {
+        show(errorBanner(err));
+        ghi.disabled = false;
+      }
+    });
+    replaceChildren(wrap, form);
+  });
+  wrap.append(mo);
+  return wrap;
+}
+
+/** Nút trên từng lần thu: "Xác nhận đã nhận" (Công ty thu – CK do người khác khai — H3), "Đảo" (ghi dòng đảo, bắt buộc lý do; gồm lần thu "chưa rõ" từ cọc cũ). */
+function nutKeToanLanThu(order: Order, t: Api.OrderPaymentsResponse, l: Api.LanThuDto): HTMLElement | null {
+  const nut: HTMLElement[] = [];
+  if (t.keToan!.choXacNhan.includes(l.id)) {
+    nut.push(
+      hangXacNhan({
+        nhan: "Xác nhận đã nhận", action: "xac-nhan-ck", nutGhi: "Công ty đã nhận",
+        cau: `Đã đối chiếu: công ty đã nhận ${vnd(l.soTien)} vào tài khoản?`,
+        ghi: () => api(`/api/ledger/company-receipts/${encodeURIComponent(l.id)}/confirm`, { method: "POST", body: {} }),
+        bao: `Đã xác nhận công ty nhận ${vnd(l.soTien)}.`,
+      }),
+    );
+  }
+  if (!l.daDao && !l.laDongDao) {
+    const lyDo = h("input", { type: "text", autocomplete: "off", maxlength: "500", placeholder: "Vì sao đảo (bắt buộc)" }) as HTMLInputElement;
+    nut.push(
+      hangXacNhan({
+        nhan: "Đảo", action: "dao-lan-thu", nutGhi: "Ghi dòng đảo",
+        cau: `Đảo lần ${l.traLai ? "hoàn" : "thu"} ${vnd(l.soTien)} (người thu: ${l.nguoiThu})? Sổ giữ dòng cũ và thêm một dòng đảo.`,
+        o: [h("label", null, "Lý do", lyDo)],
+        kiem: () => (lyDo.value.trim() ? null : "Nhập lý do đảo."),
+        ghi: () => api("/api/ledger/adjustments", { method: "POST", body: { loai: "dao_lan_thu", receiptId: l.id, lyDo: lyDo.value.trim() } }),
+        bao: `Đã đảo lần ${l.traLai ? "hoàn" : "thu"} ${vnd(l.soTien)}.`,
+      }),
+    );
+  }
+  return nut.length ? h("span", { class: "kt-actions" }, ...nut) : null;
+}
+
+/** Khối Kế toán dưới danh sách lần thu: ai đang giữ tiền của công ty vì đơn này → "Đã nộp về công ty"; khách trả dư → "Ghi hoàn cho khách". */
+function khoiKeToan(order: Order, t: Api.OrderPaymentsResponse): HTMLElement | null {
+  const kt = t.keToan!;
+  const dong: HTMLElement[] = kt.dangGiu.map((d) =>
+    h(
+      "li",
+      { "data-khoi": "dang-giu" },
+      `${d.ten} đang giữ ${vnd(d.soTien)} của công ty `,
+      hangXacNhan({
+        nhan: "Đã nộp về công ty", action: "da-nop", nutGhi: "Ghi đã nộp",
+        cau: `Ghi ${d.ten} đã nộp ${vnd(d.soTien)} của đơn này về công ty?`,
+        ghi: () => api("/api/ledger/settlements", { method: "POST", body: { chieu: "nop", partyId: d.partyId, phanBo: [{ orderId: order.id, soTien: d.soTien }] } }),
+        bao: `Đã ghi ${d.ten} nộp ${vnd(d.soTien)}.`,
+      }),
+    ),
+  );
+  let hoan: HTMLElement | null = null;
+  if (t.du > 0) {
+    const soTien = h("input", { type: "text", inputmode: "numeric", autocomplete: "off", value: String(t.du) }) as HTMLInputElement;
+    regroupMoney(soTien);
+    soTien.addEventListener("input", () => regroupMoney(soTien));
+    const hinhThuc = h("select", null, ...(["BANK_TRANSFER", "CASH", "OTHER"] as const).map((m) => h("option", { value: m }, METHOD_LABEL[m]))) as HTMLSelectElement;
+    const nguoiTra = h("select", null, h("option", { value: "cong_ty" }, "Công ty"), ...kt.dangGiu.map((d) => h("option", { value: d.partyId }, d.ten))) as HTMLSelectElement;
+    hoan = hangXacNhan({
+      nhan: "Ghi hoàn cho khách", action: "ghi-hoan", nutGhi: "Ghi hoàn",
+      cau: `Khách đã trả dư ${vnd(t.du)}. Ghi số tiền đã hoàn cho khách:`,
+      o: [h("label", null, "Số tiền (₫)", soTien), h("label", null, "Hình thức", hinhThuc), h("label", null, "Người trả cho khách", nguoiTra)],
+      kiem: () => (parseMoney(soTien.value) > 0 ? null : "Nhập số tiền hoàn."),
+      ghi: () =>
+        api("/api/ledger/refunds", {
+          method: "POST",
+          body: { orderId: order.id, soTien: parseMoney(soTien.value), hinhThuc: hinhThuc.value, nguoiTra: nguoiTra.value === "cong_ty" ? "cong_ty" : { partyId: nguoiTra.value } },
+        }),
+      bao: "Đã ghi hoàn cho khách.",
+    });
+  }
+  if (dong.length === 0 && !hoan) return null;
+  return h(
+    "div",
+    { class: "kt-khoi", "data-khoi": "ke-toan" },
+    h("h3", null, "Kế toán"),
+    dong.length ? h("ul", { class: "pay-list" }, ...dong) : null,
+    hoan,
+  );
+}
+
+/** "Đã giao – đã thu đủ" / "Hoàn thành": nút TẮT khi máy chủ báo chưa đủ điều kiện (lý do hiện ngay trên); bấm → hỏi xác nhận → route billing → tải lại. */
+function nutChot(order: Order, loai: "delivered" | "completed", t: Api.OrderPaymentsResponse): HTMLButtonElement {
+  const giao = loai === "delivered";
+  const btn = h("button", { type: "button", class: giao ? "btn btn-accent" : "btn btn-primary", "data-action": giao ? "da-giao" : "hoan-thanh" }, giao ? "Đã giao – đã thu đủ" : "Hoàn thành");
+  btn.disabled = giao ? !t.coTheGiao : !t.coTheHoanThanh;
+  btn.addEventListener("click", async () => {
+    const cau = giao
+      ? `Xác nhận Đã giao – đã thu đủ? Từ lúc này đơn bị khoá, không sửa, huỷ hay đổi người phụ trách được nữa.${t.banDangGiu > 0 ? ` Bạn đang giữ ${vnd(t.banDangGiu)} của công ty — nhớ nộp về công ty.` : ""}`
+      : "Xác nhận Hoàn thành đơn này? Không mở lại được.";
+    if (!confirm(cau)) return;
+    btn.disabled = true;
+    show(null);
+    try {
+      await api(`/api/orders/${encodeURIComponent(order.id)}/${loai}`, { method: "POST", body: {} });
+      await load();
+      if (bannerEl.hidden) show(banner("info", giao ? "Đã giao – đã thu đủ. Đơn đã khoá." : "Đơn đã Hoàn thành."));
+    } catch (err) {
+      const b = errorBanner(err);
+      await load(true);
+      show(b);
+    }
+  });
+  return btn;
+}
+
+/** "Ghi lần thu" (ADR-0026 đ2): số tiền, hình thức (mặc định Chuyển khoản — chủ duyệt 30/9), người nhận (Công ty / tôi); Kế toán chọn được ngày phát sinh. */
+function nutGhiThu(order: Order, t: Api.OrderPaymentsResponse): HTMLElement {
+  const wrap = h("div", { class: "pay-inline" });
+  const mo = h("button", { type: "button", class: "btn", "data-action": "ghi-lan-thu" }, "Ghi lần thu");
+  mo.addEventListener("click", () => {
+    const soTien = h("input", { type: "text", inputmode: "numeric", autocomplete: "off", placeholder: "0" }) as HTMLInputElement;
+    soTien.addEventListener("input", () => regroupMoney(soTien));
+    const hinhThuc = h("select", null, ...(["BANK_TRANSFER", "CASH", "OTHER"] as const).map((m) => h("option", { value: m }, METHOD_LABEL[m]))) as HTMLSelectElement;
+    const nguoi = h("select", null, h("option", { value: "cong_ty" }, "Công ty (vào tài khoản công ty)"), h("option", { value: "toi" }, "Tôi thu")) as HTMLSelectElement;
+    const ngay = t.laKeToan ? (h("input", { type: "date" }) as HTMLInputElement) : null;
+    const ghi = h("button", { type: "submit", class: "btn btn-primary" }, "Ghi");
+    const thoi = h("button", { type: "button", class: "btn" }, "Thôi");
+    const form = h(
+      "form",
+      { class: "pay-form", "data-khoi": "form-lan-thu" },
+      h(
+        "div",
+        { class: "grid two" },
+        h("label", null, "Số tiền (₫)", soTien),
+        h("label", null, "Hình thức", hinhThuc),
+        h("label", null, "Người nhận tiền", nguoi),
+        ngay ? h("label", null, "Ngày phát sinh", ngay) : null,
+      ),
+      h("div", { class: "handler-actions" }, ghi, thoi),
+    ) as HTMLFormElement;
+    thoi.addEventListener("click", () => replaceChildren(wrap, mo));
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const so = parseMoney(soTien.value);
+      if (so <= 0) return show(banner("danger", "Nhập số tiền đã thu."));
+      ghi.disabled = true;
+      show(null);
+      try {
+        const than: Api.LanThuInput = {
+          soTien: so,
+          hinhThuc: hinhThuc.value as Api.LanThuInput["hinhThuc"],
+          nguoiThu: nguoi.value === "toi" ? "toi" : "cong_ty",
+          ...(ngay?.value ? { ngayPhatSinh: ngay.value } : {}),
+        };
+        await api(`/api/orders/${encodeURIComponent(order.id)}/payments`, { method: "POST", body: than });
+        await load();
+        if (bannerEl.hidden) show(banner("info", `Đã ghi lần thu ${vnd(so)}.`));
+      } catch (err) {
+        show(errorBanner(err));
+        ghi.disabled = false;
+      }
+    });
+    replaceChildren(wrap, form);
+    soTien.focus();
+  });
+  wrap.append(mo);
+  return wrap;
 }
 
 function render(order: Order, history: AuditEntry[], canModify: boolean, handler: Handler): void {
@@ -273,7 +536,11 @@ function render(order: Order, history: AuditEntry[], canModify: boolean, handler
     h("header", { class: "detail-head" }, h("h1", null, order.orderCode)),
     summaryBand(order),
     h("p", { class: "muted" }, `Lập ${dateTime(order.createdAt)} bởi ${order.staffName}`, order.confirmedAt && ` · Xác nhận ${dateTime(order.confirmedAt)}`),
-    a.locked ? h("p", { class: "lock-note" }, icon("lock", 18), a.editTrip ? "Đơn đã xác nhận: dịch vụ, số khách và tiền đã khoá. Chỉ sửa được thông tin chuyến." : "Đơn đã xác nhận: dịch vụ, số khách và tiền đã khoá.") : null, // bản 1.39: không có nút sửa chuyến (vd hướng dẫn viên, kế toán) thì không hứa "sửa được thông tin chuyến"
+    order.deliveredAt
+      ? h("p", { class: "lock-note" }, icon("lock", 18), order.completedAt ? "Đơn đã Hoàn thành — đơn đã khoá." : "Đơn đã Đã giao – đã thu đủ — đơn đã khoá, không sửa, huỷ hay đổi người phụ trách được nữa.")
+      : a.locked
+        ? h("p", { class: "lock-note" }, icon("lock", 18), a.editTrip ? "Đơn đã xác nhận: dịch vụ, số khách và tiền đã khoá. Chỉ sửa được thông tin chuyến." : "Đơn đã xác nhận: dịch vụ, số khách và tiền đã khoá.") // bản 1.39: không có nút sửa chuyến (vd hướng dẫn viên, kế toán) thì không hứa "sửa được thông tin chuyến"
+        : null,
 
     h(
       "div",
@@ -300,17 +567,7 @@ function render(order: Order, history: AuditEntry[], canModify: boolean, handler
       h(
         "div",
         { class: "side" },
-        h(
-          "section",
-          { class: "card totals" },
-          h("h2", null, "Thanh toán"),
-          kv("Tạm tính", vnd(order.subtotal)),
-          kv("Giảm giá", vnd(order.discount)),
-          kv("Tổng cộng", vnd(order.total), "strong"),
-          kv("Thanh toán trước", order.depositAmount ? `${vnd(order.depositAmount)}${order.depositMethod ? ` (${METHOD_LABEL[order.depositMethod]})` : ""}` : vnd(0)),
-          kv("Còn lại", vnd(order.remainingAmount), "strong"),
-          kv("Ghi chú thanh toán", order.paymentNote),
-        ),
+        tienCard(order),
       ),
     ),
 
@@ -346,7 +603,7 @@ function render(order: Order, history: AuditEntry[], canModify: boolean, handler
   const btns: HTMLElement[] = [];
   // Quyền sửa/xác nhận/huỷ do MÁY CHỦ quyết (`canModify`, kể cả người phụ trách — ADR-0009); câu này chỉ giải thích cho người không có quyền.
   // Hướng dẫn viên LÀ người phụ trách mà không sửa được (order.modify FIELD = none) → câu riêng, không nói "người phụ trách đơn … mới được sửa" (`khongQuyenSuaText`).
-  if (a.noPermission) btns.push(h("p", { class: "muted" }, khongQuyenSuaText({ ownerName: order.staffName, status: order.status, viewer: staff! })));
+  if (a.noPermission && !order.deliveredAt) btns.push(h("p", { class: "muted" }, khongQuyenSuaText({ ownerName: order.staffName, status: order.status, viewer: staff! })));
   if (a.edit) btns.push(h("a", { class: "btn", href: `/order-form?id=${encodeURIComponent(order.id)}` }, "Sửa"));
   // Bản vẽ 7a / 7b: còn chặng phải đặt gấp → nút Xác nhận khoá + dòng nói vì sao (Bán hàng: "Cần Quản trị duyệt đặt gấp"; Quản trị: "Duyệt đặt gấp xong thì xác nhận được.").
   const chanXacNhan = a.confirm ? tomTatChanXacNhan(canDatGap, duocDatGap) : null;
@@ -433,11 +690,16 @@ async function load(quiet = false): Promise<void> {
   const seq = ++loadSeq;
   try {
     // Người phụ trách tải song song với đơn; lời gọi của nó không bao giờ ném lỗi (xem loadHandler) nên đơn luôn hiển thị được.
-    const [{ order, history, canModify, mocToiThieuPhut }, handler] = await Promise.all([layDon!(), layNguoiPhuTrach(id!)]);
+    const [{ order, history, canModify, mocToiThieuPhut }, handler, tienDon] = await Promise.all([layDon!(), layNguoiPhuTrach(id!), layTien(id!)]);
     if (seq !== loadSeq) return;
     mocPhut = mocToiThieuPhut;
+    tien = tienDon;
     show(null);
     render(order, history, canModify, handler);
+    if (baoThuTruocLoi) {
+      baoThuTruocLoi = false;
+      show(banner("warning", "Đơn đã lưu, chưa ghi được tiền trả trước — thử lại.", { lines: [{ text: "Bấm “Ghi lần thu” ở mục Thanh toán bên dưới." }] }));
+    }
     if (baoDatGapLoi) {
       baoDatGapLoi = false;
       show(banner("warning", "Đơn đã lưu nhưng chưa duyệt đặt gấp được.", { lines: [{ text: "Bấm “Đặt gấp” ở chặng bên dưới để duyệt lại." }] }));
@@ -462,6 +724,10 @@ const lamMoi = taoBoLamMoi(async () => {
   if (sheetOpen()) return show(banner("info", "Đơn vừa được cập nhật — Tải lại", { action: "reload_order" }));
   await load(true);
 });
+
+/** Tiền của đơn (billing). KHÔNG ném lỗi: 403 / lỗi mạng → null — khối tiền hiện "—", đơn vẫn hiển thị. */
+const layTien = (orderId: string): Promise<Api.OrderPaymentsResponse | null> =>
+  api<Api.OrderPaymentsResponse>(`/api/orders/${encodeURIComponent(orderId)}/payments`).catch(() => null);
 
 // Gọi sớm (web/goi-som.ts): đơn gửi NGAY, song song với /api/auth/me của initShell(); chỉ dựng trang sau khi initShell() xong.
 const layDon = id ? goiSom(() => api<Api.OrderDetailResponse>(`/api/orders/${encodeURIComponent(id)}`)) : null;
