@@ -1,6 +1,6 @@
 # ĐỀ XUẤT ADR-0067 — Bộ lọc đơn: chọn từng người lập (danh sách người đã lập đơn cho người xem mọi đơn)
 
-- **Trạng thái:** **proposed** — số 0067 do điều phối chung cấp (0066 là Trợ lý AI). Người kiểm độc lập chỉ-đọc vòng 1: ĐẠT CÓ ĐIỀU KIỆN; bản này đã sửa theo (VỪA-1, THẤP-1..3, hai lệch dòng) — bản sửa chưa được kiểm lại; chưa trình chủ. AI không tự duyệt (Hiến pháp N3, Điều 7.2).
+- **Trạng thái:** **ĐÃ DUYỆT 2026-09-30** — chủ dự án trả lời trong chat 30/9 (hộp hỏi, điều phối chép nguyên văn lựa chọn): *"Duyệt, thi công luôn"*; Câu 1 người đã nghỉ: *"Hiện, không đánh dấu"*; Câu 2 Đối tác: *"Chung, không nhãn"*; chấp nhận cách thử phá đổi tạm ô `money.view` trong bản đồ của khung thử (tiêu chí 8). Văn bản quyết định: `docs/adr/ADR-0067-loc-don-theo-nguoi-lap.md`. Số 0067 do điều phối chung cấp (0066 là Trợ lý AI). Người kiểm độc lập chỉ-đọc vòng 1: ĐẠT CÓ ĐIỀU KIỆN, đã sửa theo (VỪA-1, THẤP-1..3, hai lệch dòng) — bản sửa chưa được kiểm lại. AI ghi lại, không tự duyệt (Hiến pháp N3, Điều 7.2).
 - **Ngày:** 2026-09-30.
 - **Lời chủ (nguồn):** chat 30/9, hộp hỏi về bộ lọc danh sách đơn, ô "Người lập": *"Có, cho người xem mọi đơn"* — cho CHỌN TỪNG NHÂN VIÊN, áp cho người có `order.view` = any (Bán hàng, Kế toán, Quản trị, Toàn quyền).
 - **Loại:** **hai chiều** — không bảng, không cột, không migration, không mã quyền mới, không ô quyền mới; rút lại = gỡ một route đọc và đổi ô chọn về hai lựa chọn cũ.
@@ -11,7 +11,7 @@
 - **Mã đo** trên `main` @ `5f6fcbc2` (bản 1.44).
 
 ## Tóm tắt (lời thường)
-Ở màn Đơn hàng, ô "Người lập" hiện chỉ có "Mọi người / Đơn tôi lập". Đề xuất: thêm một đường đọc nhỏ trả **danh sách những người đã từng lập đơn** (chỉ mã + tên, không SĐT, không vai), chỉ cho Bán hàng, Kế toán, Quản trị, Toàn quyền. Ô "Người lập" thành ô chọn có gõ tìm. Không lộ thêm gì: tên người lập những người này **đã thấy** trên từng thẻ đơn và đã tìm được bằng ô tìm kiếm.
+Ở màn Đơn hàng, ô "Người lập" hiện chỉ có "Mọi người / Đơn tôi lập". Đã duyệt: thêm một đường đọc nhỏ trả **danh sách những người đã từng lập đơn** (chỉ mã + tên, không SĐT, không vai), chỉ cho Bán hàng, Kế toán, Quản trị, Toàn quyền. Ô "Người lập" thành ô chọn có gõ tìm. Không lộ thêm gì: tên người lập những người này **đã thấy** trên từng thẻ đơn và đã tìm được bằng ô tìm kiếm.
 
 ## Bối cảnh (đo mã thật)
 - **Máy chủ đã lọc được theo người lập:** `docLocDon` đọc `nguoiLap` (một mã, dạng `^[A-Za-z0-9-]{1,64}$`) — `src/shared/loc-don.ts:14-15`, `:41-43`; `listOrders` thêm `o.staff_id = ?` **AND** với phạm vi xem — `src/modules/orders/repository.ts:470-473`; phạm vi (own/assigned) đặt trước ở `:453-462`.
@@ -57,8 +57,8 @@
 ## Lộ tên — phân tích
 - **Nhân viên nội bộ:** tên đã hiện trên mọi thẻ đơn và chi tiết đơn cho bốn quyền này, và đã tìm được bằng ô tìm. Danh sách không thêm thông tin.
 - **Tài khoản lai:** `can()` hợp các ô. SALES + FIELD ⇒ any ⇒ thấy (đúng, người này đã xem mọi đơn). FIELD + INTERN ⇒ assigned ∪ own ⇒ 403. SALES + PARTNER (còn gán được qua đường quản trị cũ — `src/shared/permissions.ts:248-254`) ⇒ thấy, nhất quán với việc tài khoản đó hôm nay đã xem được mọi đơn; ADR này không làm lỗ đó rộng hơn.
-- **Nhân viên đã nghỉ:** vẫn có trong danh sách (đơn cũ của họ vẫn hiện, lọc được là có ích). Không kèm cờ "đã nghỉ": trạng thái tài khoản là thông tin nhân sự **mới** với Bán hàng/Kế toán (thẻ đơn không hiện). Hỏi chủ ở Câu 1.
-- **Người lập là Đối tác:** Bán hàng hôm nay **đã thấy** tên tài khoản Đối tác trên thẻ đơn của đơn Đối tác lập (thẻ không phân biệt vai — `web/order-card.ts:176`; tên từ hồ sơ người của tài khoản, `v_stf_staff_label`). Danh sách chung không lộ thêm. Nhưng vì **không** kèm nhãn vai, người xem không phân biệt được ai là Đối tác trong danh sách. Hỏi chủ ở Câu 2.
+- **Nhân viên đã nghỉ:** vẫn có trong danh sách (đơn cũ của họ vẫn hiện, lọc được là có ích). Không kèm cờ "đã nghỉ": trạng thái tài khoản là thông tin nhân sự **mới** với Bán hàng/Kế toán (thẻ đơn không hiện). **Chủ chốt Câu 1 = A** ("Hiện, không đánh dấu").
+- **Người lập là Đối tác:** Bán hàng hôm nay **đã thấy** tên tài khoản Đối tác trên thẻ đơn của đơn Đối tác lập (thẻ không phân biệt vai — `web/order-card.ts:176`; tên từ hồ sơ người của tài khoản, `v_stf_staff_label`). Danh sách chung không lộ thêm. Nhưng vì **không** kèm nhãn vai, người xem không phân biệt được ai là Đối tác trong danh sách. **Chủ chốt Câu 2 = A** ("Chung, không nhãn").
 - **Toàn quyền (vai ẩn, ADR-0042/0044):** danh sách chỉ có tên, không vai ⇒ không lộ vai. Tên tài khoản của chủ hiện trong danh sách là **giới hạn đã được chấp nhận** ở ADR-0042 điều 4: *"tên tài khoản của chủ vẫn hiện ở đơn chủ lập/phụ trách"* (`docs/adr/ADR-0042-quan-tri-lay-lai-dang-nhap-cap-duoi-toan-quyen-la-vai-an.md:22`) — danh sách không lộ gì hơn.
 - **Trùng tên / nhiều "(chưa có hồ sơ)":** hai người cùng tên, hoặc nhiều tài khoản chưa có hồ sơ cùng nhãn "(chưa có hồ sơ)", sẽ không phân biệt được nếu chỉ có tên. Cách hiện phân biệt đơn giản: **chỉ khi tên trùng** trong danh sách, kèm ngày đơn gần nhất của người đó (vd "Nguyễn Văn A · đơn gần nhất 28/09") — xem A-7.
 
@@ -107,9 +107,9 @@ Tài khoản lai: như mục "Lộ tên".
 5. Phản hồi route chỉ có khoá `id`, `ten`, `ganNhat` cho mỗi người (bài quét tự động): không SĐT, email, trạng thái nghỉ, vai.
 6. Đối tác gọi `GET /api/orders?nguoiLap=<mã người khác>` ⇒ danh sách rỗng.
 7. Bộ lọc "Đơn tôi lập" đã nhớ trên máy từ bản cũ ⇒ sau khi cập nhật vẫn lọc đúng đơn của chính mình.
-8. Thử phá: bỏ tạm câu hỏi `money.view` khỏi route mới ⇒ bài ghim hành vi đỏ (quan sát chặn một lần, P16), rồi hoàn nguyên. *(Hôm nay ô `money.view` trùng `order.view` ở mọi mã nên để thấy đỏ, lúc thử phá kèm đổi tạm một ô `money.view` trong bản đồ của khung thử — ghi rõ cách làm vào sổ hàng rào.)*
+8. Thử phá: bỏ tạm câu hỏi `money.view` khỏi route mới ⇒ bài ghim hành vi đỏ (quan sát chặn một lần, P16), rồi hoàn nguyên. *(Hôm nay ô `money.view` trùng `order.view` ở mọi mã nên để thấy đỏ, lúc thử phá kèm đổi tạm một ô `money.view` trong bản đồ của khung thử — ghi rõ cách làm vào sổ hàng rào. Chủ đã chấp nhận cách này 30/9.)*
 
-## Điểm AI thêm ngoài lời chủ (cần chủ duyệt kèm)
+## Điểm AI thêm ngoài lời chủ (chủ đã duyệt kèm — "Duyệt, thi công luôn")
 - **A-1:** Danh sách chỉ gồm người **đã từng lập đơn** (không phải mọi tài khoản) — người chưa lập đơn thì lọc ra rỗng, vô ích.
 - **A-2:** Chỉ trả **mã + tên** (+ ngày đơn gần nhất để phân biệt tên trùng, A-7); không nhãn vai (tránh lộ vai ẩn Toàn quyền, ADR-0042/0044), không trạng thái nghỉ.
 - **A-3:** Xếp theo **đơn gần nhất** (mới trước) thay vì theo tên — người đang làm nổi lên đầu, người đã nghỉ chìm xuống mà không cần đánh dấu.
@@ -118,13 +118,13 @@ Tài khoản lai: như mục "Lộ tên".
 - **A-6:** Cổng route = đúng ba câu hỏi quyền của nhánh "xem mọi đơn" (không chỉ `order.view`), ghép bằng bài ghim hành vi trên mọi tập con quyền.
 - **A-7:** Tên trùng (kể cả nhiều "(chưa có hồ sơ)") ⇒ kèm ngày đơn gần nhất cạnh tên để phân biệt; tên không trùng thì chỉ hiện tên.
 
-## Câu chờ chủ (nguyên tắc chưa chốt)
+## Câu đã hỏi chủ (ĐÃ CHỐT 30/9: Câu 1 = A, Câu 2 = A)
 **Câu 1 — Người đã nghỉ việc có hiện trong ô "Người lập" không, và có đánh dấu không?**
-- **A (khuyến nghị):** Hiện, không đánh dấu, tự xuống cuối danh sách (xếp theo đơn gần nhất). Lọc được đơn cũ của họ; không cho Bán hàng/Kế toán biết ai đã nghỉ.
+- **A — CHỦ CHỌN** ("Hiện, không đánh dấu"): tự xuống cuối danh sách (xếp theo đơn gần nhất). Lọc được đơn cũ của họ; không cho Bán hàng/Kế toán biết ai đã nghỉ.
 - B: Hiện, tách nhóm "Đã nghỉ việc" ở cuối. Dễ nhìn hơn; nhưng Bán hàng/Kế toán thấy được ai đã nghỉ (thông tin nhân sự mới với họ).
 - C: Ẩn người đã nghỉ. Danh sách gọn; nhưng không lọc được đơn cũ của họ (vẫn tìm bằng ô tìm kiếm được).
 
 **Câu 2 — Tài khoản Đối tác có nằm chung trong ô "Người lập" không?**
-- **A (khuyến nghị):** Chung một danh sách, không nhãn. Tên Đối tác hôm nay đã hiện trên thẻ đơn cho Bán hàng/Kế toán, nên không lộ thêm; làm nhanh nhất.
+- **A — CHỦ CHỌN** ("Chung, không nhãn"): Chung một danh sách, không nhãn. Tên Đối tác hôm nay đã hiện trên thẻ đơn cho Bán hàng/Kế toán, nên không lộ thêm; làm nhanh nhất.
 - B: Tách nhóm "Đối tác" riêng. Dễ phân biệt; nhưng phải cho phần đơn hàng đọc thêm thông tin quyền của tài khoản (một đường đọc mới giữa hai phần của hệ thống — hôm nay phần đơn hàng không đọc quyền của ai) và lộ vai của từng người.
 - C: Chỉ nhân viên nội bộ, bỏ Đối tác. Danh sách ngắn; nhưng không lọc được đơn do Đối tác lập — và cũng phải đọc thông tin quyền như B.
