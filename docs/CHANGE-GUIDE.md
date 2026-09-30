@@ -75,6 +75,7 @@ Mục lục: §1 Bảng tra nhanh · §2 Công thức a1–a3, b–v · §3 Ma t
 | Tài khoản Tài xế (quyền `DRIVER`, vai "Tài xế công ty", trang đầu của tài xế, route nào tài xế gọi được) | `src/shared/permissions.ts` (cột thứ tám), `src/shared/roles.ts`, `src/shared/start-page.ts` (`TRANG_DAU_TAI_XE`), `src/tai-xe-cong.test.ts` (`BANG_STAFF`), `migrations/0031_vai_quyen_tai_xe.sql` | e, u, y |
 | Tiền của đơn: lần thu, "Đã giao – đã thu đủ", "Hoàn thành", sổ công nợ, "Sổ của tôi", biên nhận (sổ tiền lượt 1 — ADR-0024/0025/0026) | `src/modules/billing/{rules,service,repository,index}.ts`, `src/modules/orders/{hoan-tat,hoan-tat-repo}.ts`, `src/modules/receipt/{rules,index}.ts`, `migrations/0044_orders_da_giao.sql`, `migrations/0045_billing_so_cong_no.sql`, `golden/so-cong-no-luot-1.json` | z4, d, e |
 | Thông báo màn hình khoá / Web Push (nút bật ở trang Tôi, khoá VAPID, giờ yên lặng, tự tắt, gửi chia lô) | `src/shared/web-push.ts` (+ test), `src/modules/thongbao/{repository,index}.ts` (`ntf_push_sub`), `src/index.ts` (`dayGoCua` móc vào `baoThayDoi`/`POST /api/thong-bao`, `giaoLoDay`), `src/modules/bangtin/tram.ts` (`xepHangDay`), `web/push-ui.ts`, `web/account.ts`, `web/shell.ts` (`logout`), `web/sw/sw.ts`, `wrangler.jsonc` (`vars.VAPID_PUBLIC_KEY`), `migrations/0026_thong_bao_may.sql`; hướng dẫn tạo khoá cho chủ: `docs/HUONG-DAN-BAT-THONG-BAO-DIEN-THOAI.md` | x |
+| Trợ lý "Hỗ trợ" (AI trả lời cách dùng app — ADR-0066): đổi tri thức, sinh lại sơ đồ trang, đổi mẫu / giá / trần, lời nhắc, che câu hỏi, nút nổi / khung hỏi đáp, cài đặt của Toàn quyền | `src/shared/tro-ly.ts` (+ test), `src/shared/tro-ly-kien-truc.ts`, `src/shared/so-do-trang.ts` (SINH bởi `scripts/sinh-so-do-trang.mjs`), `src/shared/huong-dan*.ts`, `src/modules/tro-ly/{repository,index}.ts` (+ `tro-ly-route.test.ts`), `migrations/0050_tro_ly.sql`, `web/tro-ly.ts`, `web/tro-ly-co.ts`, `web/login.ts` (cờ tự mở), `web/shell.ts`, `tests/e2e/tro-ly.mjs`, kịch bản Chrome `docs/evidence/2026-09-30-tro-ly/kich-ban/tro-ly-smoke.mjs` | z5 |
 
 ## 2. Các công thức
 
@@ -191,6 +192,7 @@ route("PUT", "/api/foo/:id", "office", async ({ env, request, params, staff }) =
 ### d. Migration (cột, bảng, view, trigger)
 
 **Số kế tiếp (hiện tại):**
+- Cập nhật 2026-09-30 (nhánh Trợ lý Hỗ trợ — ADR-0066): nhánh này thêm `0050_tro_ly.sql` (CHƯA lên production). `0044`, `0045` đã có trong `main` (sổ tiền lượt 1); **`0046`–`0049` điều phối giữ chỗ cho các nhánh khác chưa gộp**. Số kế tiếp sau nhánh này: `0051` — vẫn kiểm mọi nhánh chưa gộp trước khi đặt số.
 - Cập nhật 2026-09-29 (nhánh thi công ADR-0048): nhánh này thêm `0037_tai_xe_doi_tac.sql`, `0038_nha_xe_doi_tac.sql`, `0039_chu_xe_nha_xe.sql` (CHƯA lên production); `0034`–`0036` giữ chỗ cho nhánh ADR-0047 (thi công song song — nhánh nào lên `main` sau thì đổi tên tệp nếu thứ tự đảo, `docs/adr/README.md`). **Số kế tiếp: `0040`** — vẫn kiểm các nhánh chưa gộp trước khi đặt số. `0037` có `DROP TRIGGER` + `CREATE TRIGGER` cùng tên (tạo lại LC-1): D1 local đọc được (đã áp bằng `npm run db:migrate:local`).
 - Cập nhật 2026-09-28 (nhánh Vận chuyển 1a — Ruling R13 của điều phối): nhánh này thêm `0031_vai_quyen_tai_xe.sql`, `0032_giay_to_cua_nguoi.sql`, `0033_van_chuyen_xe.sql` (CHƯA lên production); `0029` vẫn giữ cho nhánh Thông báo (đính kèm). **Số kế tiếp sau nhánh này: `0034`** — vẫn kiểm các nhánh chưa gộp trước khi đặt số (bullet dưới).
 - Cập nhật 2026-09-28 (nhánh T2b): tệp cuối của nhánh này là `0030_ho_so_cong_ty_chu.sql` (hồ sơ công ty chủ, CHƯA lên production); `main` dừng ở `0027`; **`0028` và `0029` đã được điều phối chia cho hai nhánh khác chưa gộp** (siết quyền — vai IT; Thông báo — đính kèm). Trạng thái áp remote KHÔNG suy từ tài liệu — kiểm bằng `wrangler d1 migrations list tourdao-sales-db --remote` (lệnh chỉ đọc). **`0019` CỐ Ý bỏ trống — giữ cho B5** (`staff_party_required`: trigger bắt buộc `party_id` + giữ quản trị viên cuối; B5 vẫn CHƯA được làm, xem `docs/HANDOFF-N1.md`). **Số kế tiếp:** số lớn nhất trong `migrations/` + 1, sau khi đã tính các số nhánh khác đang giữ (hỏi điều phối khi nhiều nhánh cùng xếp hàng). B5 lấy ĐÚNG số `0019` đã giữ sẵn, không phải số kế tiếp. Test của migration mới nên tìm tệp theo ĐUÔI tên (vd `endsWith("_ho_so_cong_ty_chu.sql")`) để đổi số chỉ phải đổi tên tệp. Trước khi thêm migration mới, kiểm `migrations/` VÀ mọi nhánh/worktree chưa gộp (`git ls-tree --name-only <nhánh> migrations/`) xem số đã bị giữ chưa. **Hiện trạng thật đổi liên tục — đừng tin số ghi ở đây hơn** `wrangler d1 migrations list --remote` (chỉ đọc, an toàn) hoặc `docs/HANDOFF-N1.md`.
@@ -755,11 +757,33 @@ Quyết định của chủ dự án (nguồn: `docs/HANDOFF-CHE-DO-BAO-TRI.md` 
 
 **Kiểm:** `node --test src/modules/billing/*.test.ts src/modules/receipt/*.test.ts src/audit-invariants.test.ts src/coc-cu-khong-doc.test.ts` → `npm test` → `npm run typecheck` → `npm run test:e2e -- so-tien orders dispatch`.
 
+### z5. Trợ lý "Hỗ trợ" (ADR-0066)
+
+**Kho tri thức = ba nguồn, đều là chữ đã qua luật nội dung A3** (`viPhamChu` ở `src/shared/huong-dan.ts` — không số tiền, không chuỗi giống SĐT, không email; bài `viPhamKho` trong `src/shared/tro-ly.test.ts`):
+1. Hướng dẫn theo vai (`src/shared/huong-dan-*.ts`) — mỗi mục một đoạn, tên đoạn "Nhóm › Mục" (hiện ở dòng "Nguồn").
+2. Cách app vận hành, lời thường (`src/shared/tro-ly-kien-truc.ts`) — KHÔNG tên bảng / hàm / tệp / đường dẫn API, không số liệu thật; bài "kiến trúc lời thường" canh chữ kỹ thuật.
+3. Sơ đồ trang TỰ SINH (`src/shared/so-do-trang.ts`) — **không sửa tay**: đổi nhãn nút, tiêu đề trang, menu, thêm trang ⇒ chạy `node scripts/sinh-so-do-trang.mjs` rồi commit tệp sinh ra; bài "chạy lại bộ sinh ra ĐÚNG tệp" đỏ nếu quên (như `npm run dict`). Bộ sinh chỉ đọc chuỗi LITERAL (`h("button"|"a"|"h2"|"h3", …, "Nhãn")`, `<button>`, `<h1-3>`, `<a class="…btn…">`, `{ href, label }` của `web/shell.ts`); nhãn dựng bằng biến sẽ không có.
+
+**Sửa theo thứ tự:**
+- Đổi / thêm tri thức: sửa đoạn ở nguồn 1 hoặc 2 → `node --test src/shared/tro-ly.test.ts src/shared/huong-dan.test.ts` (A2 nguyên chuỗi, A3, A4 ≤ 30 phút). Tên mục không được trùng, không chứa `[` `]`.
+- Đổi mẫu / mức suy luận / trần token ra / giá: hằng `MAU_AI`, `MUC_SUY_LUAN`, `TOKEN_RA_TOI_DA`, `GIA_NGHIN_MICRO_USD_MOI_TOKEN` ở đầu `src/shared/tro-ly.ts` (+ sửa bài `thanYeuCau` / `chiPhiMicroUsd`); tra giá ở trang giá chính thức và ghi ngày tra.
+- Đổi lời nhắc (phạm vi trả lời, câu từ chối, câu "chưa có"): `dungLoiNhac` — câu nguyên văn của ADR-0066 điều 4, 6 là hằng `CAU_CHUA_CO`, `CAU_HET_TRAN_THANG` (đổi = ADR mới).
+- Che câu hỏi: `cheCauHoi` — che TRƯỚC rồi mới cắt 500; dãy số tái dùng `DIGIT_RUN` / `MIN_LONG_DIGIT_RUN` (`src/shared/text-guards.ts`), email `EMAIL_TRONG_CHU` (cùng tệp) — một nguồn.
+- Route (`src/modules/tro-ly/index.ts`): thứ tự `can(assistant.ask)` → đầu vào → cài đặt + khoá (503) → trần tháng rồi trần ngày (429, KHÔNG gọi mạng) → che → chọn đoạn (không đoạn nào ⇒ trả câu "chưa có", không gọi mạng) → gọi OpenAI → ghi MỘT dòng `tl_luot_hoi`. **Không bao giờ** ghi câu hỏi / câu trả lời vào CSDL, nhật ký, `console` — dòng log lỗi chỉ `{ event: "tro_ly_loi", ly_do }`.
+- Cài đặt (bật / tắt, trần): Toàn quyền ở trang Tôi, khối "Trợ lý Hỗ trợ" (`ganCaiDatTroLy`, route `GET`/`POST /api/tro-ly/cai-dat` — cổng `office` + `settings.ops`); bảng chỉ thêm, bản mới có hiệu lực ngay.
+- Khoá: `OPENAI_API_KEY` chỉ qua `wrangler secret put` (chủ dự án tự chạy); `OPENAI_BASE_URL` chỉ cho e2e / thử máy mình. Cả hai khai TAY ở `worker-configuration.d.ts` (công thức l — `npm run types` không sinh lại nếu `.dev.vars` thiếu).
+- Giao diện: `web/tro-ly.ts` gắn nút từ `initShell` (không khi bảo trì); nút tự nâng khi thanh nút dính đáy (`.form-actions`, `.vc-bottom-bar`) đè nó — trang mới có thanh dính đáy kiểu khác thì thêm bộ chọn vào `nangTheoThanhDay`. CSS khối `.tl-*` cuối `public/app.css` (chỉ token).
+
+**Kiểm:** `node --test src/shared/tro-ly.test.ts src/modules/tro-ly/tro-ly-route.test.ts src/migrations-tro-ly.test.ts src/shared/huong-dan.test.ts` → `npm test` → `npm run typecheck` → `npm run build:web` → `npm run test:e2e -- tro-ly pwa` (máy OpenAI GIẢ do `run.mjs` + `tro-ly.mjs` dựng, không gọi OpenAI thật; cuối lượt kiểm log máy chủ không chứa dấu nội dung câu hỏi) → Chrome `docs/evidence/2026-09-30-tro-ly/kich-ban/tro-ly-smoke.mjs` nếu chạm `web/tro-ly*.ts`, `web/shell.ts`, `web/login.ts` hoặc khối `.tl-*`.
+
+**Bẫy:** mã lỗi 503 của trợ lý là `tro_ly_chua_bat`, KHÔNG được là `maintenance` (mã đó làm `web/api.ts` bật màn bảo trì toàn trang). Thêm module có route mới ⇒ ảnh chụp `src/route-access.test.ts` + `BANG_STAFF` của `src/tai-xe-cong.test.ts` (route cổng `staff`).
+
 ## 3. Ma trận "đổi cái gì → chạy kiểm nào"
 
 | Bạn chạm | Chạy |
 |---|---|
 | `src/shared/*.ts`, `rules.ts`, `fields.ts`, `sheet.ts` (luật thuần) | `node --test <tệp>.test.ts` → `npm test` → `npm run typecheck` (mã dùng cả ở `web/` nên `tsc -p web` cũng kiểm) |
+| Trợ lý Hỗ trợ: `src/shared/tro-ly*.ts`, `src/shared/so-do-trang.ts`, `scripts/sinh-so-do-trang.mjs`, `src/modules/tro-ly/*`, `web/tro-ly*.ts` | công thức z5 (mục **Kiểm**); đổi giao diện bất kỳ (nhãn nút, tiêu đề, menu) ⇒ `node scripts/sinh-so-do-trang.mjs` rồi `node --test src/shared/tro-ly.test.ts` |
 | `src/shared/contracts.ts` | `npm run typecheck` (cả ba tsconfig) → `npm run test:e2e` |
 | `src/modules/*/index.ts`, `repository.ts`, `service.ts` (route, SQL) | `npm test` (kiến trúc) → `npm run typecheck` → `npm run test:e2e -- <module>` |
 | `migrations/*.sql` | `npm test` → `npm run db:migrate:local` → `npm run test:e2e` ĐỦ BỘ (đuôi `audit-invariants`) → `npm run dict` nếu đổi bảng/view |

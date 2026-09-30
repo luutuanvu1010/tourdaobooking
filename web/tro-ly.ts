@@ -1,8 +1,8 @@
 // Trợ lý "Hỗ trợ" (ADR-0066 điều 9): nút nổi ở mọi trang sau đăng nhập (gắn từ initShell ở web/shell.ts — không ở /login, không khi bảo trì) + khung hỏi đáp
 // (bảng trượt dùng chung web/bang-truot.ts: điện thoại trượt từ đáy, máy tính hộp giữa). Khối cài đặt cho Toàn quyền ở trang Tôi (`ganCaiDatTroLy`).
 // Không innerHTML: câu trả lời hiện bằng textContent (xuống dòng giữ bằng CSS). Lịch sử hỏi đáp CHỈ nằm trong bộ nhớ của trang (không lưu máy, không lưu máy chủ).
-// Vị trí nút: góc phải dưới, trên thanh tab điện thoại; trang có thanh nút dính đáy (`.form-actions`, `.vc-bottom-bar`) thì nút nâng lên đúng chiều cao thanh
-// đó (đo lúc chạy — giả định bề mặt ghi ở đặc tả, đảo ngược được).
+// Vị trí nút: góc phải dưới, trên thanh tab điện thoại; khi thanh nút dính đáy của trang (`.form-actions`, `.vc-bottom-bar`) đè vùng của nút thì nút nâng
+// lên khỏi thanh đó (đo lúc chạy — giả định bề mặt ghi ở đặc tả, đảo ngược được).
 import { ApiError, api, type Api, type Staff } from "./api";
 import { moBangTruot } from "./bang-truot";
 import { h, replaceChildren } from "./dom";
@@ -83,11 +83,25 @@ function moKhung(fab: HTMLElement): void {
   o.focus();
 }
 
-/** Nâng nút lên trên thanh nút dính đáy của trang (nếu có và đang hiện). Đo bằng trình duyệt, không chép số. */
+/** Khoảng hở giữa nút và thanh bị né (đơn vị điểm ảnh CSS của trình duyệt — đo lúc chạy, không phải giá trị CSS). */
+const HO = 8;
+
+/**
+ * Nâng nút lên khỏi thanh nút dính đáy của trang (`.form-actions`, `.vc-bottom-bar`) NẾU thanh đang đè vùng của nút: đo vị trí nút ở chỗ mặc định, đo thanh,
+ * có giao nhau thì đặt `--tl-nang` = phần cần nâng. Thanh dính thay đổi vị trí khi cuộn (cột tóm tắt của form lập đơn ở máy tính) nên đo lại khi cuộn.
+ */
 function nangTheoThanhDay(fab: HTMLElement): void {
-  const thanh = [...document.querySelectorAll<HTMLElement>(".form-actions, .vc-bottom-bar")].find((el) => el.offsetParent !== null && !el.closest(".sheet-root"));
-  if (thanh) fab.style.setProperty("--tl-nang", `${Math.ceil(thanh.getBoundingClientRect().height)}px`);
-  else fab.style.removeProperty("--tl-nang");
+  fab.style.removeProperty("--tl-nang");
+  const f = fab.getBoundingClientRect();
+  let nang = 0;
+  for (const el of document.querySelectorAll<HTMLElement>(".form-actions, .vc-bottom-bar")) {
+    if (el.offsetParent === null || el.closest(".sheet-root")) continue;
+    const b = el.getBoundingClientRect();
+    const ngang = b.left < f.right && b.right > f.left;
+    const doc = b.top < f.bottom + HO && b.bottom > f.top - HO;
+    if (ngang && doc) nang = Math.max(nang, Math.ceil(f.bottom - b.top + HO));
+  }
+  if (nang > 0) fab.style.setProperty("--tl-nang", `${nang}px`);
 }
 
 /** Gắn nút "Hỗ trợ" (một lần mỗi trang); có cờ một-lần sau đăng nhập thì tự mở khung. */
@@ -103,6 +117,7 @@ export function ganTroLy(_staff: Staff): void {
   };
   new MutationObserver(doLai).observe(document.body, { childList: true, subtree: true });
   window.addEventListener("resize", doLai);
+  window.addEventListener("scroll", doLai, { passive: true });
   doLai();
   if (layCoTuMo()) moKhung(fab);
 }

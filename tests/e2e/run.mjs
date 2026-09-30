@@ -143,7 +143,25 @@ try {
   // Web Push (ADR-0036): khoá VAPID bị ép rỗng → không lượt gửi nào được chạy, nên log máy chủ KHÔNG được có dòng `day_loi` (gửi hỏng/lỗi lô).
   results.push({ name: "không có day_loi (thiếu khoá VAPID thì không gửi)", ok: !log.includes('"event":"day_loi"') });
   // Trợ lý Hỗ trợ (ADR-0066 điều 7): nội dung câu hỏi (mang dấu TRO_LY_DAU của tro-ly.mjs) KHÔNG BAO GIỜ được xuất hiện trong log máy chủ.
-  results.push({ name: "không có nội dung câu hỏi trợ lý trong log máy chủ", ok: !log.includes(TRO_LY_DAU) });
+  // Đo 30/9: `wrangler dev` (CI=1) KHÔNG in console của Worker ra stdout — soi `log` không bao giờ đỏ (đột biến console.log(câu hỏi) vẫn xanh). Console của
+  // Worker nằm ở bảng `logs` của Local Explorer (`/cdn-cgi/local/explorer/api/local/observability/query`, chỉ đọc) — hỏi ở đó; bảng rỗng / không hỏi được = ĐỎ
+  // (không để bài kiểm rỗng thành "sạch"). Chỉ khi có chạy kịch bản tro-ly.
+  if (scripts.includes("tro-ly") && server.exitCode === null) {
+    const hoiLog = async (sqlText) => {
+      const r = await fetch(`${base}/cdn-cgi/local/explorer/api/local/observability/query`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ sql: sqlText }) });
+      return (await r.json()).result.rows[0][0];
+    };
+    let ok = false;
+    try {
+      const tong = await hoiLog("SELECT count(*) FROM logs");
+      const lo = await hoiLog(`SELECT count(*) FROM logs WHERE message LIKE '%${TRO_LY_DAU}%'`);
+      ok = tong > 0 && lo === 0 && !log.includes(TRO_LY_DAU);
+      if (!ok) console.log(`⚠ log Worker: ${tong} dòng, ${lo} dòng chứa nội dung câu hỏi trợ lý`);
+    } catch (e) {
+      console.log(`⚠ không đọc được log Worker (Local Explorer): ${e}`);
+    }
+    results.push({ name: "không có nội dung câu hỏi trợ lý trong log Worker", ok });
+  }
   console.log("── Tóm tắt từng bộ ──");
   for (const x of results) console.log(`${x.ok === true ? "✔" : x.ok === false ? "✘" : "⏭ chưa chạy (wrangler dev dùng chung đã thoát)"} ${x.name}`);
   failed = results.filter((x) => x.ok !== true).length;

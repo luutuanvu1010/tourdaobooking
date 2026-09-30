@@ -470,13 +470,13 @@ h3 { font-size: var(--fs-step-5); margin: var(--s4) 0 var(--s2); color: var(--c-
 .narrow { max-width: var(--w-narrow); } /* thay cho style="max-width:420px" nội tuyến: mỗi style= nuôi thêm 'unsafe-inline' trong CSP (AUDIT-FINDINGS A14) */
 .account-layout { display: block; } /* Đợt C Task 2: bố cục 2 cột ở máy tính — mặc định xếp dọc, không đổi thứ tự DOM (sửa vòng 1: trước dùng div bọc account-main/account-side làm đảo thứ tự #maintenance trên điện thoại) */
 @media (max-width: 899px) {
-  #me, #links, #maintenance, #passkeys, #pin-form { max-width: var(--w-narrow); } /* hẹp lại như .narrow trước đây; #myjobs KHÔNG bị giới hạn (sửa vòng 1: rule cũ lỡ áp cho cả #myjobs) */
+  #me, #links, #maintenance, #tro-ly-cai-dat, #passkeys, #pin-form { max-width: var(--w-narrow); } /* hẹp lại như .narrow trước đây; #myjobs KHÔNG bị giới hạn (sửa vòng 1: rule cũ lỡ áp cho cả #myjobs) */
 }
 @media (min-width: 900px) {
   .account-layout { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s5); align-items: start; }
   #me, #links, #passkeys, #pin-form { grid-column: 1; } /* Task 10: #passkeys thiếu ở đây thì #maintenance ẩn (đa số tài khoản không phải chủ) làm #passkeys tự trôi sang cột 2 giữa chừng (đo bằng CDP: left ~532px, không thẳng hàng cột nào) */
   #myjobs { grid-column: 1 / -1; } /* Task 1.8: "Việc của tôi" của HDV có hai khối (chờ nhận / của tôi) — trải hết bề ngang, không bó vào nửa cột */
-  #maintenance { grid-column: 2; }
+  #maintenance, #tro-ly-cai-dat { grid-column: 2; } /* ADR-0066: khối cài đặt trợ lý của Toàn quyền đứng dưới bảo trì, cùng cột */
 }
 /* mục Face ID ở trang "Tôi": mỗi máy một dòng, ngăn bằng đường kẻ như danh sách dòng của app (.line-view/.mline) — trước đây là .card lồng trong #passkeys.card, cùng nền nên không thấy khung */
 .passkey-list { margin-bottom: var(--s3); border-top: 1px solid var(--c-border); border-bottom: 1px solid var(--c-border); }

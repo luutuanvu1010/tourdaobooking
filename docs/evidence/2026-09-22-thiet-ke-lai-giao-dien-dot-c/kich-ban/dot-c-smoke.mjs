@@ -124,7 +124,8 @@ try {
     await p.waitFor("!!document.querySelector('#maintenance') && !document.querySelector('#maintenance').hidden", "mục Chế độ bảo trì hiện (máy tính)");
     let m = await measureAccount(p);
     assert.equal(m.layoutDisplay, "grid", `Tôi (máy tính): .account-layout phải display:grid — ${JSON.stringify(m)}`);
-    assert.deepEqual(m.domOrder, ["me", "myjobs", "links-top", "vc-eyebrow", "vc-links", "links", "maintenance", "passkeys", "push", "pin-form"], `Tôi (máy tính): thứ tự DOM gốc phải giữ nguyên — ${JSON.stringify(m)}`);
+    // ADR-0066 (30/9): thêm khối "Trợ lý Hỗ trợ" của Toàn quyền (#tro-ly-cai-dat) ngay sau #maintenance — cùng nhóm cài đặt của chủ.
+    assert.deepEqual(m.domOrder, ["me", "myjobs", "links-top", "vc-eyebrow", "vc-links", "links", "maintenance", "tro-ly-cai-dat", "passkeys", "push", "pin-form"], `Tôi (máy tính): thứ tự DOM gốc phải giữ nguyên — ${JSON.stringify(m)}`);
     assert.equal(m.maintHidden, false, `Tôi (máy tính): #maintenance phải HIỆN (canToggle=true) — ${JSON.stringify(m)}`);
     assert.equal(m.meColumn, "1", `Tôi (máy tính): #me phải ở cột trái (grid-column 1) — ${JSON.stringify(m)}`);
     assert.equal(m.maintColumn, "2", `Tôi (máy tính): #maintenance phải ở cột phải (grid-column 2) — ${JSON.stringify(m)}`);
@@ -138,7 +139,7 @@ try {
     await p.waitFor("!!document.querySelector('#maintenance') && !document.querySelector('#maintenance').hidden", "mục Chế độ bảo trì hiện (điện thoại)");
     m = await measureAccount(p);
     assert.equal(m.layoutDisplay, "block", `Tôi (điện thoại): .account-layout phải display:block — ${JSON.stringify(m)}`);
-    assert.deepEqual(m.domOrder, ["me", "myjobs", "links-top", "vc-eyebrow", "vc-links", "links", "maintenance", "passkeys", "push", "pin-form"], `Tôi (điện thoại): thứ tự DOM gốc phải giữ nguyên — ${JSON.stringify(m)}`);
+    assert.deepEqual(m.domOrder, ["me", "myjobs", "links-top", "vc-eyebrow", "vc-links", "links", "maintenance", "tro-ly-cai-dat", "passkeys", "push", "pin-form"], `Tôi (điện thoại): thứ tự DOM gốc phải giữ nguyên — ${JSON.stringify(m)}`);
     assert.ok(m.scrollOverflow <= 1, `Tôi (điện thoại): không được tràn ngang — lệch ${m.scrollOverflow}px`);
     assert.deepEqual(p.consoleErrors, [], `lỗi console (Tôi điện thoại): ${p.consoleErrors}`);
     await shot(p, "toi-dien-thoai.png");

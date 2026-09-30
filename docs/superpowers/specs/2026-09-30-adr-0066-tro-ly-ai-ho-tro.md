@@ -27,3 +27,37 @@
 ## Hệ quả
 - Dữ liệu rời hệ thống: chỉ câu hỏi đã che + đoạn hướng dẫn / sơ đồ trang (đã qua luật nội dung A3). Xử lý tại máy chủ OpenAI (Mỹ). Điều khoản lưu dữ liệu của OpenAI API: **chưa kiểm** — kiểm trước khi bật.
 - AI có thể trả lời sai; câu trả lời luôn kèm nguồn mục và dặn đối chiếu màn hình.
+
+---
+
+## Thi công (2026-09-30, nhánh `worktree-agent-aafde1b67d6cd2bf2`) — ghi của người thi công, KHÔNG đổi quyết định ở trên
+
+### Tài liệu OpenAI đã tra (30/9/2026)
+- https://developers.openai.com/api/docs/models/gpt-5-nano — hỗ trợ cả Responses lẫn Chat Completions; cửa sổ 400.000 token, tối đa 128.000 token ra; giá vào 0,05 / vào đã đệm 0,005 / ra 0,40 USD cho 1 triệu token (khớp ADR).
+- https://developers.openai.com/api/docs/guides/reasoning — `reasoning.effort` tuỳ mẫu (none, minimal, low, …); chạm `max_output_tokens` ⇒ `status: "incomplete"`, `incomplete_details.reason = "max_output_tokens"`; tên trường `usage.input_tokens_details.cached_tokens`, `usage.output_tokens_details.reasoning_tokens`.
+- https://developers.openai.com/cookbook/examples/gpt-5/gpt-5_new_params_and_tools — `minimal` áp cho gpt-5, gpt-5-mini, gpt-5-nano; `text.verbosity` low / medium / high.
+- https://developers.openai.com/api/reference/resources/responses/methods/create — thân phản hồi: `output[]` gồm phần tử `type: "message"` có `content[]` kiểu `output_text` (trường `output_text` gộp sẵn chỉ có ở SDK).
+- Chưa kiểm: một bài diễn đàn cộng đồng báo 400 khi gửi `reasoning` cho gpt-5-nano — nhiều khả năng do gửi vào Chat Completions; mã chuyển MỌI lỗi 4xx/5xx thành câu tiếng Việt + dòng `loi`. **Lần gọi thật đầu tiên sau khi chủ đặt khoá phải xem một câu hỏi thử có trả 200 không**; nếu 400 vì `minimal`, đổi `MUC_SUY_LUAN` (một dòng, `src/shared/tro-ly.ts`) sang `low`.
+
+### API đã chọn
+`POST {OPENAI_BASE_URL | https://api.openai.com}/v1/responses` với `{ model: "gpt-5-nano", instructions, input, reasoning: { effort: "minimal" }, text: { verbosity: "low" }, max_output_tokens: 1200, store: false }`. Không gửi `user`, `safety_identifier`, `metadata`. Hết giờ 20 giây.
+
+### Ước chi phí mỗi câu (lời nhắc THẬT dựng từ kho, token ƯỚC 3 ký tự / token — chưa gọi OpenAI thật)
+8 câu mẫu cho 8 quyền: lời nhắc 5.300–12.100 ký tự ⇒ 1.800–4.000 token vào; giả sử 500 token ra ⇒ 290–403 micro-USD/câu (trung bình 331); trường hợp xấu (hết 1.200 token ra) 570–683 micro-USD. ⇒ 5 USD ≈ 7.000–15.000 câu/tháng. Bộ tách từ thật của OpenAI với tiếng Việt có dấu có thể ra nhiều token hơn ước ~20–30 %. Số thật đọc ở khối "Trợ lý Hỗ trợ" trang Tôi (Toàn quyền) sau vài ngày dùng.
+
+### Giả định bề mặt (đảo ngược được) — ghi theo P8
+1. **Vị trí nút Hỗ trợ:** góc phải dưới; điện thoại: ngay trên thanh tab. Khi thanh nút dính đáy của trang (`.form-actions`, `.vc-bottom-bar`) đè vùng của nút thì nút tự nâng lên khỏi thanh (đo lúc chạy, cả khi cuộn). Hoàn tác: sửa `nangTheoThanhDay` ở `web/tro-ly.ts`.
+2. **Mã lỗi:** 503 `tro_ly_chua_bat` (không dùng mã `maintenance` — mã đó bật màn bảo trì toàn trang); 429 `tro_ly_het_tran_ngay` / `tro_ly_het_tran_thang`; 502 `tro_ly_loi` khi OpenAI lỗi / hết giờ / mạng hỏng.
+3. **Trần ngày đếm dòng `ok` và `loi`** (câu đã tới bước hỏi), không đếm `het_tran` — lỗi cũng tính để một lỗi lặp không thành vòng gọi vô hạn.
+4. **Không đoạn tài liệu nào khớp câu hỏi ⇒ trả ngay câu "Chưa có trong hướng dẫn…" mà KHÔNG gọi OpenAI** (ghi dòng `ok`, chi phí 0) — tiết kiệm và tất định.
+5. **Dòng Nguồn:** chỉ giữ tên mục CÓ trong các đoạn đã gửi (mẫu bịa tên không lọt); mẫu không ghi nguồn ⇒ lấy đoạn xếp đầu; câu "chưa có" / từ chối ⇒ không nguồn.
+6. **Kiểm-rồi-ghi không nguyên tử:** vài câu gửi cùng lúc có thể vượt trần một chút (mỗi câu dưới 0,001 USD). Chấp nhận; lớp hai là giới hạn ngân sách ở bảng điều khiển OpenAI (ADR điều 6).
+7. **Không ghi `audit_log` khi đổi cài đặt:** `tl_cai_dat` chỉ thêm, mỗi bản mang `created_by` / `created_at` — dấu vết trên chính dòng (Hiến chương 5.5). Nhờ vậy module `tro-ly` là lá (không cạnh tới `audit`).
+8. **Sơ đồ trang không có cột "vai thấy trang":** menu dựng theo quyền bằng mã thủ tục; đọc tĩnh không suy chắc được ⇒ bỏ trống (người điều phối dặn "không đoán"). Trợ lý dựa vào hướng dẫn theo vai cho việc "ai thấy gì".
+9. **Tự mở một lần:** cờ `sessionStorage` đặt ngay sau POST đăng nhập thành công (PIN và Face ID), đọc-rồi-xoá ở trang đầu; không đặt ở nhánh "đã có phiên → vào thẳng".
+10. **Lịch sử hỏi đáp chỉ trong bộ nhớ của trang** (không lưu máy, không lưu máy chủ): chuyển trang là mất — đúng tinh thần "không lưu nội dung".
+11. **Trần tháng nhận USD ở giao diện** (0–100, lưu micro-USD); số câu / người / ngày 0–200.
+
+### Lệch / chưa làm so với giao việc
+- Ca e2e "thiếu khoá → 503" KHÔNG chạy trên `wrangler dev` dùng chung (khoá giả luôn có, env không gỡ được lúc chạy) — phủ ở `src/modules/tro-ly/tro-ly-route.test.ts` (chạy CẢ ứng dụng trên SQLite thật, `fetch` giả).
+- Điều khoản lưu dữ liệu của OpenAI API: chưa kiểm (ADR "Hệ quả" đã ghi — kiểm trước khi bật). Mã gửi `store: false`.
