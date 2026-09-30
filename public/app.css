@@ -287,6 +287,27 @@ textarea { min-height: 72px; resize: vertical; }
 /* danh sách */
 .toolbar { display: flex; flex-wrap: wrap; gap: var(--s3); margin-bottom: var(--s4); }
 .toolbar input { flex: 1 1 220px; margin: 0; } .toolbar select { flex: 0 0 auto; width: auto; margin: 0; }
+/* Bộ lọc đơn nhiều điều kiện (góp ý T4 — chủ duyệt ảnh phác a, 30/9): nút "Lọc" + số điều kiện, hàng chip "đang lọc", bảng trượt "Lọc đơn". */
+.loc-mo { display: inline-flex; flex: 0 0 auto; align-items: center; gap: var(--s2); min-height: var(--tap-min); }
+.loc-dem { color: var(--c-sand-text); background: var(--c-sand-soft); }
+.loc-chip { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); margin: calc(-1 * var(--s2)) 0 var(--s4); }
+.loc-chip-muc { display: inline-flex; align-items: center; gap: var(--s1); min-height: var(--tap-min); padding: 0 var(--s1) 0 var(--s3); font-size: var(--fs-label); font-weight: 700; color: var(--c-primary); background: var(--c-primary-soft); border: 1px solid var(--c-primary); border-radius: var(--radius-pill); }
+.loc-chip-bo { min-width: var(--tap-min); min-height: var(--tap-min); padding: 0; font: inherit; font-size: var(--fs-title); font-weight: 800; color: var(--c-text-muted); background: none; border: 0; border-radius: var(--radius-pill); cursor: pointer; }
+.loc-xoa { min-height: var(--tap-min); }
+.loc-nhom { margin: 0 0 var(--s4); padding: 0; border: 0; }
+.loc-nhom legend, label.loc-nhom { margin-bottom: var(--s2); padding: 0; font-size: var(--fs-badge); font-weight: 800; letter-spacing: var(--ls-eyebrow); text-transform: uppercase; color: var(--c-text-muted); }
+.loc-nhom-dem { text-transform: none; letter-spacing: 0; }
+.loc-nut-hang { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.loc-nut { min-height: var(--tap-min); padding: 0 var(--s3); font: inherit; font-size: var(--fs-label); font-weight: 700; color: var(--c-text); background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius-pill); cursor: pointer; }
+.loc-nut[aria-pressed="true"] { color: var(--c-primary); background: var(--c-primary-soft); border-color: var(--c-primary); }
+.loc-ngay { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s2); margin-top: var(--s2); }
+.loc-dv-ds { max-height: 40vh; margin-top: var(--s2); overflow-y: auto; }
+.loc-dv { display: flex; align-items: center; gap: var(--s3); min-height: var(--tap-min); font-size: var(--fs-label); color: var(--c-text); border-bottom: 1px solid var(--c-border); }
+.loc-dv input { flex: none; width: auto; margin: 0; }
+.sheet-foot.loc-foot { display: flex; align-items: center; gap: var(--s2); }
+.sheet-foot.loc-foot .btn { min-height: var(--tap-min); }
+.sheet-foot.loc-foot .btn-primary { flex: 1; }
+.sheet-foot.loc-foot .btn-link { margin-right: auto; }
 /* Đợt D Task 4 vòng sửa 2 (mục 2): ô chọn `width: auto` tự rộng theo TUỲ CHỌN DÀI NHẤT (394px ở trang Nhật ký),
    nhưng từ khi thanh bên hạ ngưỡng xuống 641px thì hộp nội dung của `main` ở 641px chỉ còn 373px → tràn ngang 5px
    (đo thật: /audit 641px scrollWidth 646; 645px → 646; 650/768px → không tràn). `max-width: 100%` chỉ chặn tràn,

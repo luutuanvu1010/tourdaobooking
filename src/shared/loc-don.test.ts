@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { docLocDon, LOC_DON_TOI_DA_DICH_VU } from "./loc-don.ts";
+import { boDieuKien, chipLocDon, docLocDaNho, docLocDon, khoangNhanh, LOC_DON_TOI_DA_DICH_VU, LOC_TRONG, soDieuKienLoc, thamSoLocDon, type LocDonMan } from "./loc-don.ts";
 
 const doc = (qs: string) => docLocDon(new URLSearchParams(qs));
 
@@ -53,4 +53,51 @@ test("docLocDon: người lập — một mã; sai dạng hoặc nhiều mã →
   const hai = doc("nguoiLap=a1&nguoiLap=b2");
   assert.equal(hai.ok, false);
   assert.match((hai as any).message, /một người lập/);
+});
+
+// ---- Phía màn (chủ duyệt ảnh a, 30/9) -------------------------------------------------------------------------------
+const TOI = "11111111-1111-4111-8111-111111111111";
+const L = (x: Partial<LocDonMan>): LocDonMan => ({ ...LOC_TRONG, ...x });
+
+test("thamSoLocDon: bộ lọc màn → tham số máy chủ đọc lại được bằng docLocDon (cùng một luật); 'đơn tôi lập' = mã của người xem", () => {
+  const loc = L({ tu: "2026-10-01", den: "2026-10-03", dichVu: ["TD101", "ZE1"], trangThai: ["draft", "confirmed"], cuaToi: true });
+  const p = new URLSearchParams(thamSoLocDon(loc, TOI));
+  assert.deepEqual(docLocDon(p), { ok: true, loc: { tu: "2026-10-01", den: "2026-10-03", dichVu: ["TD101", "ZE1"], trangThai: ["draft", "confirmed"], nguoiLap: TOI } });
+  assert.deepEqual(thamSoLocDon(LOC_TRONG, TOI), [], "không lọc → không tham số");
+});
+
+test("soDieuKienLoc / chipLocDon / boDieuKien: mỗi nhóm một chip, nhãn tiếng Việt; bỏ từng nhóm", () => {
+  const loc = L({ tu: "2026-10-01", den: "2026-10-03", dichVu: ["TD101", "ZE1"], trangThai: ["draft", "confirmed"], cuaToi: true });
+  assert.equal(soDieuKienLoc(loc), 4);
+  assert.equal(soDieuKienLoc(LOC_TRONG), 0);
+  const ten = new Map([["TD101", "Tour 4 đảo"]]);
+  assert.deepEqual(chipLocDon(loc, ten), [
+    { khoa: "ngay", nhan: "Ngày đi 01/10 – 03/10" },
+    { khoa: "dichVu", nhan: "Tour 4 đảo +1" },
+    { khoa: "trangThai", nhan: "Chờ xác nhận, Đã xác nhận" },
+    { khoa: "nguoiLap", nhan: "Đơn tôi lập" },
+  ]);
+  assert.deepEqual(chipLocDon(L({ tu: "2026-10-01" }), ten), [{ khoa: "ngay", nhan: "Ngày đi từ 01/10" }]);
+  assert.deepEqual(chipLocDon(L({ den: "2026-10-01" }), ten), [{ khoa: "ngay", nhan: "Ngày đi đến 01/10" }]);
+  assert.deepEqual(chipLocDon(L({ tu: "2026-10-01", den: "2026-10-01" }), ten), [{ khoa: "ngay", nhan: "Ngày đi 01/10" }]);
+  assert.deepEqual(chipLocDon(L({ dichVu: ["ZE1"] }), ten), [{ khoa: "dichVu", nhan: "ZE1" }], "không có tên → mã");
+  assert.deepEqual(boDieuKien(loc, "ngay"), { ...loc, tu: null, den: null });
+  assert.deepEqual(boDieuKien(loc, "dichVu").dichVu, []);
+  assert.deepEqual(boDieuKien(loc, "trangThai").trangThai, []);
+  assert.equal(boDieuKien(loc, "nguoiLap").cuaToi, false);
+});
+
+test("khoangNhanh: Hôm nay / Ngày mai / 3 ngày tới / Tuần này theo ngày giờ Việt Nam truyền vào", () => {
+  assert.deepEqual(khoangNhanh("hom-nay", "2026-09-30"), { tu: "2026-09-30", den: "2026-09-30" });
+  assert.deepEqual(khoangNhanh("ngay-mai", "2026-09-30"), { tu: "2026-10-01", den: "2026-10-01" });
+  assert.deepEqual(khoangNhanh("3-ngay", "2026-09-30"), { tu: "2026-09-30", den: "2026-10-02" });
+  assert.deepEqual(khoangNhanh("tuan-nay", "2026-09-30"), { tu: "2026-09-28", den: "2026-10-04" });
+});
+
+test("docLocDaNho: đọc bộ lọc đã nhớ trên máy — rác / sai dạng / bản cũ → không lọc (không bao giờ ném lỗi)", () => {
+  const loc = L({ tu: "2026-10-01", dichVu: ["TD101"], trangThai: ["cancelled"], cuaToi: true });
+  assert.deepEqual(docLocDaNho(JSON.stringify(loc)), loc);
+  for (const rac of [null, "", "{", "[]", "42", "null", JSON.stringify({ tu: "hôm qua" }), JSON.stringify({ trangThai: ["xong"] }), JSON.stringify({ dichVu: "TD101" }), JSON.stringify({ tu: "2026-10-05", den: "2026-10-01" })]) {
+    assert.deepEqual(docLocDaNho(rac), LOC_TRONG, String(rac));
+  }
 });

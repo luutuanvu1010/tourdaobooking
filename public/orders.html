@@ -6,11 +6,10 @@
   <h1>Đơn hàng</h1>
   <div class="toolbar">
     <input id="q" type="search" placeholder="Tìm mã đơn, tên, SĐT…" autocomplete="off">
-    <select id="status" aria-label="Lọc trạng thái">
-      <option value="">Mọi trạng thái</option><option value="draft">Chờ xác nhận</option><option value="confirmed">Đã xác nhận</option><option value="cancelled">Đã huỷ</option>
-    </select>
+    <button id="loc-mo" class="btn loc-mo" type="button" aria-haspopup="dialog">Lọc <span id="loc-dem" class="badge loc-dem" hidden></span></button>
     <a id="new-order" class="btn btn-primary" href="/order-form" hidden>+ Tạo đơn</a>
   </div>
+  <div id="loc-chip" class="loc-chip" hidden></div>
   <div id="error" class="alert" role="alert" hidden></div>
   <div id="loading" class="skeleton-list" aria-hidden="true"><div class="skeleton-row"></div><div class="skeleton-row"></div></div>
   <div id="list"></div>
