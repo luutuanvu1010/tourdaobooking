@@ -319,3 +319,21 @@ Nguồn câu hỏi: trang ghép lượt A `docs/superpowers/specs/2026-09-30-tra
 | Q-K1 | Nhắc nghỉ khi một chuyến lái liên tục quá 4 giờ | **"Có, 4 giờ, chỉ nhắc"** (con số do người soạn đặt, chưa có người chuyên môn kiểm; Toàn quyền đổi được) |
 
 **Việc kèm:** Q-L3-B chạm hành vi tài xế công ty của ADR-0049 (đang thi công, chưa phát hành) — điều phối ADR-0049 cần biết để quyết siết ngay trong lượt 1 hay ở lượt 3 (ghi nợ nếu để sau). Còn lại không đổi: 1.3, 1.4, tiền Q11–Q12, việc vẽ, hỏi pháp lý ghép khách.
+
+## Trả lời lần 18 (30/9, khi xem kỹ ADR-0057 tiền xe thuê trước lúc duyệt — chủ chưa duyệt, đổi hai điểm)
+
+Chủ được trình bảy điểm lời thường của ADR-0057 (bản `docs/superpowers/specs/2026-09-30-de-xuat-adr-tien-xe-thue.md`), chọn **"Chưa duyệt, cần xem kỹ"**, nghe giải thích từng điểm bằng ví dụ, rồi trả lời nguyên văn:
+
+> "ADR-0057 (tiền xe thuê) : 3- Chưa có giá thì không được chạy, giá phải có niêm yết hoặc thoả thuận giá trước, đây là nguyên tắc của thị trường, cũng là phù hợp với luật. 5- Quản trị có quyền ngang kế toán -"
+
+**Hệ quả:** điểm 3 **thay** lời chủ lần 16 tiền Q6 a ("Cho chạy, hiện 'thiếu giá'") — chủ tự đổi, có nêu lý do; lời mới thắng. Điểm 5 thay một phần Q5 a ("Chia hai vai") và Q-T7 lần 17.
+
+Ba câu làm rõ (hộp chọn, khuyến nghị đầu; chủ chọn khuyến nghị cả ba — nguyên văn nhãn):
+
+| Câu (nguyên văn điều phối hỏi) | Chủ chọn |
+|---|---|
+| "Khi bảng giá chưa có giá cho chuyến này, 'giá thoả thuận trước' cho riêng chuyến đó do ai nhập (và phải nhập trước khi xe xuất bến)?" | **"Quản trị, Kế toán, Toàn quyền"** |
+| "'Quản trị có quyền ngang Kế toán' nghĩa là gì với tiền xe thuê?" | **"Hai vai giống hệt"** — Quản trị và Kế toán đều: nhập bảng giá, xem bảng kê, sửa tiền chuyến (có lý do) |
+| "Xe hỏng giữa đường, văn phòng cần gọi gấp một xe cứu hộ của nhà xe mà chưa có giá. Xử lý thế nào?" | **"Vẫn phải nhập giá thoả thuận trước"** — không ngoại lệ, không phá lệ |
+
+Kéo theo (để người soạn sửa ADR-0057, người kiểm soát lại): xuất bến bị chặn khi chuyến xe thuê không có nguồn giá (bảng giá đã chụp hoặc giá thoả thuận nhập trước); "giá ghi tay sau chuyến" của Q-T3 lần 17 không còn cần cho chuyến mới (chuyến không thể chạy khi chưa có giá) — người soạn đánh giá và nêu; lệch L-T1, T3 (dòng nợ gắn chuyến) không đổi.
