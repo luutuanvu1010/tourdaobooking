@@ -1,5 +1,7 @@
 # Đề xuất ADR-0052 (số tạm) — Bảng điều phối chung, lượt duyệt 2: chuyển điểm đón giữa hai xe (máy tự xác nhận); thay đổi khi xe đang chạy (thêm điểm, báo huỷ, cứu hộ, tài xế bổ sung tên); thông báo và Bảng tin cho chuyến
 
+> **ĐÃ THÀNH `docs/adr/ADR-0052-dieu-phoi-luot-2-chuyen-diem-va-xe-dang-chay.md` (accepted 2026-09-30).** Tệp này giữ làm bản nguồn; không sửa tiếp.
+
 - **Trạng thái:** **đề xuất — câu hỏi đã trả lời (lần 17), chờ duyệt lượt A-1 (D4, D5, D6) và lượt A-1b (D5c, D5b).** Người kiểm độc lập chỉ-đọc: 3 vòng, kết thúc ĐẠT (điều phối ghi ở [HĐ] "Trả lời lần 17"). Bản này chép lời chủ lần 17 và hệ quả của ADR-0057 (đã duyệt, lần 19) vào quyết định. AI soạn (vai lập kế hoạch), không tự duyệt (Hiến pháp N3, Điều 7.2). Số ADR là **số tạm** (`docs/adr/README.md` giữ chỗ 0052–0056); điều phối cấp số thật lúc ghi.
 - **Ngày:** 2026-09-30.
 - **Thuộc gói:** lượt duyệt A, trang ghép chung `docs/superpowers/specs/2026-09-30-trang-ghep-luot-duyet-a-dieu-phoi.md`. **Năm quyết định chạm dữ liệu/quyền, chia hai lượt duyệt** để giữ đúng chữ trần 3 của `CLAUDE.md` §9 (người kiểm độc lập V6): **lượt A-1 = D4 (chuyển điểm), D5 (thêm điểm, báo huỷ, LC-15 mới), D6 (thông báo)**; **lượt A-1b = D5c (cứu hộ — quyền bấm thay qua `trip.progress`) và D5b (tài xế ghi tên khách vào `ord_passenger`)**, duyệt sau A-1 (lượt riêng; chỉ ghép với lượt khác sau khi đếm lại trần 3). D6 (thông báo) nằm ở lượt này vì [TK] §6.4 đặt nó ở lượt 2 và D4 cần báo tài xế B ([TK] `:927`); ADR-0051 cũng hẹn phần tin đẩy cho "lượt 2 D6" (`ADR-0051:97, :227, :278, :491`).

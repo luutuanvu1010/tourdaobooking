@@ -1,5 +1,7 @@
 # Đề xuất ADR-0053 (số tạm) — Bảng điều phối chung, lượt duyệt 3: tài xế nhà xe đối tác dùng app cho chuyến (cửa một chiều); Từ chối chuyến; Báo bận
 
+> **ĐÃ THÀNH `docs/adr/ADR-0053-dieu-phoi-luot-3-tai-xe-doi-tac.md` (accepted 2026-09-30).** Tệp này giữ làm bản nguồn; không sửa tiếp.
+
 - **Trạng thái:** **đề xuất — câu hỏi đã trả lời (lần 17), chờ duyệt lượt A-2 (D7, D8, D9), sau A-1.** Người kiểm độc lập chỉ-đọc: 3 vòng, kết thúc ĐẠT (điều phối ghi ở [HĐ] "Trả lời lần 17"). Bản này chép lời chủ lần 17 và hệ quả của ADR-0057 (đã duyệt, lần 19) vào quyết định. AI soạn (vai lập kế hoạch), không tự duyệt (Hiến pháp N3, Điều 7.2). Số ADR là **số tạm** (`docs/adr/README.md` giữ chỗ 0052–0056); điều phối cấp số thật lúc ghi.
 - **Ngày:** 2026-09-30.
 - **Thuộc gói:** lượt duyệt A, trang ghép chung `docs/superpowers/specs/2026-09-30-trang-ghep-luot-duyet-a-dieu-phoi.md`. **Ba quyết định chạm dữ liệu/quyền: D7, D8, D9** — đúng trần 3 của `CLAUDE.md` §9. **Duyệt sau ADR-0052** (D7 dùng ô `trip.transfer`, `trip.passenger.add` và luật người nhận tin của ADR-0052).

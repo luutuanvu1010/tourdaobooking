@@ -366,3 +366,17 @@ Chủ nói "ok chúng ta duyệt với Subagent ở đây luôn nhé". Trước 
 | "Bạn có duyệt A-3 — ADR-0054 (chiều về theo dịch vụ: ô 'Đưa đón' mấy chiều, form tự tạo chặng về, chỉ văn phòng ghi số người về) không?" | **"Duyệt ADR-0054"** |
 
 Đã ghi: `docs/adr/ADR-0054-dieu-phoi-luot-4-chieu-ve-theo-dich-vu.md` (accepted); dòng trỏ ở ADR-0047, ADR-0049; mục lục. Còn chờ: A-1, A-1b (ADR-0052), A-2 (ADR-0053) — người soạn đang sửa hai chỗ tự mâu thuẫn của ADR-0052 theo kiểm nhanh @ `c4551d6`.
+
+## Trả lời lần 22 (30/9, duyệt lượt A-1, A-1b, A-2)
+
+Trước khi trình, người soạn ghi câu trả lời lần 17 vào quyết định, thêm hệ quả ADR-0057, và sửa theo ba lần kiểm nhanh (LC-15 bốn đường có tên; tin `trip_stops_synced` không tên, nhãn nơi che số; lô "cập nhật điểm theo đơn" đóng → mở → câu chốt đếm theo `trip_id`, tách suất có tên / chưa tên). Người kiểm độc lập: **ĐẠT** @ `3bc38d7` (sửa chữ ở `eebcf15`).
+
+| Câu (nguyên văn điều phối hỏi) | Chủ chọn |
+|---|---|
+| "Bạn có duyệt A-1 — ADR-0052 phần đầu (nhờ xe khác đón, ba việc văn phòng được làm khi xe chạy, tin báo) không?" | **"Duyệt A-1"** |
+| "Bạn có duyệt A-1b — ADR-0052 phần sau (cứu hộ chuyển khách, xe cứu hộ nhà xe phải có giá, tài xế ghi tên khách chưa có tên) không?" | **"Duyệt A-1b"** |
+| "Bạn có duyệt A-2 — ADR-0053 (tài xế đối tác dùng app, thấy khách trong ngày chạy sau hạn Từ chối, Từ chối trước 12 giờ, Báo bận; siết cả tài xế công ty) không? Đây là cửa một chiều về dữ liệu khách." | **"Duyệt A-2"** |
+
+Đã ghi: `docs/adr/ADR-0052-dieu-phoi-luot-2-chuyen-diem-va-xe-dang-chay.md`, `docs/adr/ADR-0053-dieu-phoi-luot-3-tai-xe-doi-tac.md` (accepted); dòng trỏ ở ADR-0007, 0019, 0022, 0034, 0047, 0048, 0049, 0050, 0051; mục lục.
+
+**Tất cả đề xuất của lần 16 đã duyệt:** ADR-0052…0057. **Việc cho phiên điều phối ADR-0049:** (1) siết tài xế công ty chỉ thấy khách trong ngày chạy (Q-L3-B, ADR-0053) — khuyến nghị áp trước khi Bảng điều phối lượt 1 phát hành, nếu không thì ghi nợ có hạn; (2) A-1b và A-2 thi công sau bản phát hành T2 của ADR-0057 (cổng giá). Việc của chủ: vẽ V4, V8–V11, V12, V14, V15; xác nhận bộ ca mẫu xe A/B; hỏi pháp lý ghép khách; thử tài khoản tài xế đối tác thật trước khi báo nhà xe.
