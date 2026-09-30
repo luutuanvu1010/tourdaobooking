@@ -11,6 +11,14 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // ADR-0067 (chủ duyệt 30/9): ô "Người lập" của bộ lọc danh sách đơn chọn từng người. Số "1.45" TẠM (main 1.44); người gộp chốt số trống kế tiếp LÚC GỘP.
+    version: "1.45",
+    date: "2026-09-30",
+    items: [
+      { kind: "moi", text: "Lọc đơn theo từng người lập: trong nút \"Lọc\", gõ tên để chọn người đã lập đơn (Bán hàng, Kế toán, Quản trị). Bộ lọc \"Đơn tôi lập\" đã nhớ vẫn giữ nguyên." },
+    ],
+  },
+  {
     // Trợ lý Hỗ trợ AI (ADR-0066, chủ duyệt 30/9) + sửa các lỗi chủ báo 30/9 (Đối tác/Thực tập; HDV sửa số khách — "Cho sửa đến hết ngày đi").
     // Ba nhánh, mỗi nhánh người kiểm độc lập ĐẠT. Số "1.44" theo main 1.43; người gộp chốt số trống kế tiếp LÚC GỘP. Có migration 0050.
     version: "1.44",
