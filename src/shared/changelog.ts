@@ -11,6 +11,19 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Đợt giao diện G1 theo góp ý người dùng 30/9 (docs/superpowers/specs/2026-09-30-phan-tich-gop-y-nguoi-dung.md §7.2: T2, T3, T5). Số "1.39" TẠM:
+    // nhánh giao-dien-sua-nho-1-39 và phiên sổ tiền lượt 1 cũng thêm mục — người gộp chốt số trống kế tiếp LÚC GỘP (gộp mục nếu phát hành chung).
+    // Bộ lọc đơn phía máy chủ (T4) chưa có màn nên chưa ghi ở đây.
+    version: "1.39",
+    date: "2026-09-30",
+    items: [
+      { kind: "moi", text: "Tài xế xem được cuốc của ngày kia ở trang \"Cuốc của tôi\" (trước chỉ hôm nay và ngày mai)." },
+      { kind: "doi", text: "Khi chuyến đang chạy, mỗi điểm đón hiện thêm giờ xe tới nếu khác giờ hẹn khách." },
+      { kind: "doi", text: "Danh sách đơn: đơn có nơi đón hiện luôn dòng \"Đón tại …\" ngay trên thẻ, không phải bấm mở." },
+      { kind: "doi", text: "Góp ý / Báo lỗi: yêu cầu đã xong hoặc bị từ chối có nút \"Mở lại\" để xử lý tiếp." },
+    ],
+  },
+  {
     // Phát hành 1.38 (phân hệ Vận chuyển lượt 1): ADR-0049 (bảng điều phối chung, mốc 6 giờ + đặt gấp, cuốc tài xế — Task K1 của
     // docs/superpowers/plans/2026-09-29-adr-0049-thi-cong.md), ADR-0047 (chặng đưa đón + danh sách hành khách), Q-L3-B (ADR-0053 D7.2). Production 1.37
     // (kiem-phien-ban 30/9). Chủ quyết 30/9: phát hành nhưng CHƯA dùng Điều phối cho chuyến thật tới khi có màn nhập tên khách (ADR-0047 Phần B).
