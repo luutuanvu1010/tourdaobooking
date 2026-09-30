@@ -1,4 +1,4 @@
-# ADR-0049 (Bảng điều phối chung, lượt 1) — đề xuất sửa luật (mục 4 ĐÃ DUYỆT 29/9; mục 0–3, 5–8 CHỜ CHỦ DUYỆT ở lượt duyệt này — bộ hồ sơ chốt theo mã `92dd556`, 30/9)
+# ADR-0049 (Bảng điều phối chung, lượt 1) — đề xuất sửa luật (CHỦ ĐÃ DUYỆT: mục 4 ngày 29/9, mục 0–3, 5–8 ngày 30/9 — ĐÃ ÁP 30/9)
 
 - **Ngày:** 2026-09-29; **chốt bộ hồ sơ duyệt 2026-09-30** theo mã nhánh `thi-cong-adr-0049-tiep` @ `92dd556` (người thi công, lệnh điều phối — số dòng, tên hằng, số ô, số route, số loại sự kiện đã đối chiếu mã; xem "Số dòng thật" và "Kiểm chéo toàn nhánh" ở cuối tệp).
 - **Người soạn:** phiên lập kế hoạch ADR-0049 (nhánh `worktree-agent-ac68c5ff0d389ca6c`). Kế hoạch đi kèm: `docs/superpowers/plans/2026-09-29-adr-0049-thi-cong.md`. Người thi công **điền lại số dòng thật** ở Task A20 và bước B-kết (mục 5 của tệp này).
@@ -14,7 +14,7 @@
   - bảng "Câu ADR bị thay" (:253–274).
 - **Trạng thái:**
   - **Mục 4: chủ chọn (a) "Sửa luật chung cho khớp", 29/9** — Trả lời lần 7, `docs/superpowers/specs/2026-09-29-van-chuyen-hoi-dap-dieu-phoi.md` (nhánh `adr-van-chuyen-0047-0048` @ `8e7336f`). Điều phối áp diff mục 4 lúc gộp ADR-0049, mỗi tệp một commit.
-  - **Mục 0–3, 5–8: CHỜ CHỦ DUYỆT ở lượt này** — trình lúc gộp, như tiền lệ ADR-0047/0048 (ruling R-P5 của điều phối). Mã trên nhánh thi công mang chú thích "CHỜ CHỦ DUYỆT" cho mục 1, 2, 3. Bốn dòng sổ hàng rào đang ghi "CHỜ CHỦ DUYỆT" của lượt này: xem "Tóm tắt cho chủ".
+  - **Mục 0–3, 5–8: CHỦ ĐÃ DUYỆT 2026-09-30** — "Trả lời lần 17" ("Duyệt cả 4 mục", "Duyệt"), kèm bốn dòng sổ hàng rào; "Trả lời lần 18" thêm câu :175 cho khớp mã (thêm `v_ord_passenger_row`, bỏ `soKhachHieuLuc`). **ĐÃ ÁP 2026-09-30** trên nhánh tích hợp `giao-dien-dieu-phoi-luot-1`, mỗi tệp luật một commit: `src/CLAUDE.md` `c974b63`, `web/CLAUDE.md` `eba23ff`, `CLAUDE.md` `e53e6e2`, `docs/ARCHITECTURE.md` `5edce72`; nhãn "CHỜ CHỦ DUYỆT" ở mã mục 1–3 và bốn dòng sổ → "ĐÃ DUYỆT 2026-09-30 (lần 17)" ở `a270afe`. Dòng 53 của `web/CLAUDE.md` dùng số của mã (17 / 20, `:541`), ghép từ đoạn "sau B1".
   - **Bảng "Chủ lần 16" (cuối tệp): ĐÃ CÓ PHÉP** theo lời chủ lần 16 (30/9 — "Giữ xe + nút cập nhật", "Sửa cho khớp ADR"); ghi để chủ thấy, KHÔNG hỏi lại.
   - **GA-59 ĐÓNG** (chủ lần 16 "Sửa cho khớp ADR" — lệnh lặp "Bỏ đánh dấu" trả đúng kết quả lần đầu); GA-67 ĐÓNG theo R-P30 (cùng nguyên tắc cho "Đã gọi báo"). **Không** có (và không cần) dòng "lệch có chủ ý" nào ở `docs/SYSTEM-DESIGN.md` §16 cho hai việc này.
   - **Cách chạy bài đo giờ của hook** (`npm test` hai bước — mục 7c): chủ ĐÃ QUYẾT lần 15 ("Cho bài này chạy riêng"); mục 7c chỉ chép chữ vào `CLAUDE.md`, ghi để chủ thấy.
