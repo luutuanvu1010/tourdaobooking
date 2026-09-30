@@ -44,6 +44,9 @@ const ADR: Record<string, [Scope, Scope, Scope, Scope, Scope, Scope, Scope, Scop
   "ledger.write": ["none", "any", "none", "none", "none", "any", "none", "none", "none"],
   "invoice.request": ["own", "any", "any", "none", "none", "any", "none", "none", "none"],
   "invoice.issue": ["none", "any", "any", "none", "none", "any", "none", "none", "none"],
+  // ADR-0060 (accepted 2026-09-30): dấu "đã nhập phần mềm kế toán" — ghi chỉ Kế toán + Toàn quyền (không Quản trị); xem = order.view trừ Đối tác none (Q-2 "Không").
+  "accounting.entry.mark": ["none", "any", "none", "none", "none", "any", "none", "none", "none"],
+  "accounting.entry.view": ["any", "any", "any", "assigned", "none", "any", "own", "none", "none"],
   "party.view": ["any", "any", "any", "none", "none", "any", "none", "none", "none"],
   "party.write": ["any", "any", "any", "none", "none", "any", "none", "none", "none"],
   "party.staff.write": ["none", "none", "any", "none", "none", "any", "none", "none", "none"], // ADR-0013
@@ -229,6 +232,7 @@ const ADMIN_NONE_OPS: readonly OperationCode[] = [
   "payment.refund", // sổ tiền lượt 1 (ADR-0026 điều 10): hoàn khách chỉ Kế toán, Toàn quyền (H4)
   "order.complete", "ledger.write", // sổ tiền lượt 1: Hoàn thành / ghi sổ chỉ Kế toán, Toàn quyền (ADR-0025 đ6, ADR-0026 đ10)
   "ledger.view", // ADMIN "own" — chỉ sổ của chính mình (ngữ cảnh ownerId người khác → không)
+  "accounting.entry.mark", // ADR-0060: ghi dấu "đã nhập phần mềm kế toán" chỉ Kế toán, Toàn quyền (lời chủ)
 ];
 
 test("FIELD không xem đơn/tiền/nhật ký của đơn KHÔNG được giao; ADMIN làm mọi thao tác của bản đồ TRỪ các thao tác hẹp cố ý không mở (ADMIN_NONE_OPS)", () => {
@@ -298,6 +302,7 @@ test("ADR-0040 D3 + ADR-0049 D3: MỌI ô của Tài xế (DRIVER) — ghim nguy
     "order.leg.short_notice": "none", // ADR-0049 D3: đặt gấp chỉ Quản trị, Toàn quyền
     "order.leg.short_notice.view": "none", // chủ H4/N-14: tài xế không xem chi tiết đơn (không đổi)
     "dispatch.guides.view": "none", "payment.receive": "none", "payment.refund": "none", "invoice.request": "none", "invoice.issue": "none",
+    "accounting.entry.mark": "none", "accounting.entry.view": "none", // ADR-0060: tài xế không xem đơn, không ghi dấu kế toán
     "party.view": "none", "party.write": "none", "party.staff.write": "none", "admin.manage": "none", "admin.manage.superadmin": "none",
     "account.access.manage": "none", "staff.sheet.sync": "none", "audit.view": "none",
     "feedback.submit": "any", "feedback.view": "own", // ngoại lệ có tên (Ruling R2)
@@ -326,6 +331,7 @@ test("ADR-0048 D2: MỌI ô của Tài xế đối tác (DRIVER_PARTNER) — ghi
     "order.leg.short_notice": "none", // ADR-0049 D3 × ADR-0048 D2
     "order.leg.short_notice.view": "none", // chủ H4/N-14 × ADR-0048 D2
     "dispatch.guides.view": "none", "payment.receive": "none", "payment.refund": "none", "invoice.request": "none", "invoice.issue": "none",
+    "accounting.entry.mark": "none", "accounting.entry.view": "none", // ADR-0060: tài xế không xem đơn, không ghi dấu kế toán
     "party.view": "none", "party.write": "none", "party.staff.write": "none", "admin.manage": "none", "admin.manage.superadmin": "none",
     "account.access.manage": "none", "staff.sheet.sync": "none", "audit.view": "none",
     "feedback.submit": "any", "feedback.view": "own", // ngoại lệ có tên (ADR-0048 D2)
@@ -402,4 +408,17 @@ test("ADR-0049 D3: ô order.leg.short_notice CHỈ ADMIN + SUPER_ADMIN (any); m�
   assert.deepEqual(co, ["ADMIN", "SUPER_ADMIN"]);
   assert.equal(MATRIX["order.leg.short_notice"].ADMIN, "any");
   assert.equal(MATRIX["order.leg.short_notice"].SUPER_ADMIN, "any");
+});
+
+// ADR-0060 (siết): ghi dấu "đã nhập phần mềm kế toán" CHỈ Kế toán + Toàn quyền (lời chủ — Quản trị KHÔNG); ô xem KHÔNG rộng hơn order.view ở mọi cột
+// (một người không xem được đơn thì không thấy dấu kế toán của đơn đó); Đối tác none (Q-2 "Không").
+test("ADR-0060: accounting.entry.mark ≠ none ĐÚNG ở ACCOUNTING, SUPER_ADMIN (any); accounting.entry.view ⊆ order.view theo từng cột; PARTNER none", () => {
+  assert.deepEqual(PERMISSION_CODES.filter((p) => MATRIX["accounting.entry.mark"][p] !== "none"), ["ACCOUNTING", "SUPER_ADMIN"]);
+  for (const p of ["ACCOUNTING", "SUPER_ADMIN"] as const) assert.equal(MATRIX["accounting.entry.mark"][p], "any");
+  for (const p of PERMISSION_CODES) {
+    const a = MATRIX["accounting.entry.view"][p];
+    const b = MATRIX["order.view"][p];
+    assert.ok(BAC[a]! <= BAC[b]! && !(a === "own" && b === "assigned") && !(a === "assigned" && b === "own"), `${p}: accounting.entry.view ${a} rộng hơn order.view ${b}`);
+  }
+  assert.equal(MATRIX["accounting.entry.view"].PARTNER, "none");
 });

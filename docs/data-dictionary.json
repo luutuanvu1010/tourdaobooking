@@ -402,6 +402,12 @@
       "note": "phiếu sổ (ADR-0026 đ3), CHỈ-THÊM; due_snapshot = phải thu chụp lúc Đã giao (Q4); trigger kiểm tiền trong lô Đã giao / Hoàn thành"
     },
     {
+      "name": "bil_accounting_entry",
+      "module": "billing",
+      "kind": "table",
+      "note": "dấu \"đã nhập phần mềm kế toán\" + \"Số hoá đơn đã nhập\" của một đơn (ADR-0060), CHỈ-THÊM (trigger cấm sửa/xoá); trạng thái hiện tại = dòng rowid lớn nhất của đơn; bỏ dấu bắt buộc lý do (CHECK); không tiền, không trạng thái hoá đơn ADR-0004"
+    },
+    {
       "name": "bil_debt_line",
       "module": "billing",
       "kind": "table",

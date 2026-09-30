@@ -23,6 +23,7 @@ import { h, replaceChildren, type Child } from "./dom";
 import { dateTime, dayMonth, paxCounts, paxCountsShort, trangThaiHienThi, vnd, vndShort } from "./format";
 import { icon } from "./icons";
 import { type PaxCounts } from "../src/shared/order-lines";
+import { NHAN_DA_NHAP } from "../src/shared/nhap-ke-toan";
 
 export interface OrderCardData {
   id: string;
@@ -47,6 +48,8 @@ export interface OrderCardData {
   pickupPlace: string | null;
   /** Số thứ tự trong danh sách (1, 2, 3…); bỏ qua = không hiện. */
   index?: number;
+  /** ADR-0060 A-12: máy chủ chỉ gửi `true` khi đơn đã nhập phần mềm kế toán VÀ người xem qua ô xem dấu — vắng = không hiện gì. */
+  nhapKeToan?: true;
 }
 
 export type OrderCardMoneyMode = "full" | "no-total" | "none";
@@ -128,12 +131,18 @@ export function orderCard(o: OrderCardData, opts: OrderCardOptions = {}): OrderC
     ? h("div", { class: "order-card-line3" }, icon("pin", 16), h("span", { class: "order-row-place" }, "Đón tại ", o.pickupPlace))
     : null;
 
+  // ADR-0060 A-12: nhãn "Đã nhập phần mềm kế toán" — một hàng riêng (dòng 2 không được xuống hàng), dùng lại khuôn dòng 3.
+  const lineKt = o.nhapKeToan
+    ? h("div", { class: "order-card-line3 money-ok", "data-nhap-ke-toan": "" }, icon("doc-check", 16), h("span", { class: "order-row-place" }, NHAN_DA_NHAP))
+    : null;
+
   const link = h(
     "a",
     { class: "order-row", href: o.href },
     line1,
     h("div", { class: "order-card-line2" }, ...line2),
     line3,
+    lineKt,
   );
 
   const toggle = h("button", {

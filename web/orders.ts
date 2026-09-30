@@ -1,5 +1,5 @@
 import { can, seesAllOrders } from "../src/shared/permissions";
-import { KHOANG_NHANH, LOC_TRONG, boDieuKien, chipLocDon, docLocDaNho, docLocDon, khoangNhanh, soDieuKienLoc, thamSoLocDon, type LocDonMan } from "../src/shared/loc-don";
+import { KHOANG_NHANH, LOC_TRONG, boDieuKien, chipLocDon, docLocDaNho, docLocDon, khoangNhanh, kiemLocNhapKeToan, soDieuKienLoc, thamSoLocDon, type LocDonMan } from "../src/shared/loc-don";
 import { STATUS_LABEL } from "../src/shared/order-status-label";
 import { vnToday } from "../src/shared/vn-date";
 import { moBangTruot } from "./bang-truot";
@@ -104,6 +104,7 @@ function row(o: OrderSummary, index: number): Row {
     customerNote: o.customerNote,
     pickupPlace: o.trip.pickupPlace,
     index,
+    ...(o.nhapKeToan ? { nhapKeToan: true as const } : {}),
   });
   return { id: o.id, el, slot: handlerSlot, tien };
 }
@@ -356,6 +357,17 @@ function moBoLoc(): void {
   });
 
   // Người lập: chỉ người xem mọi đơn (chủ duyệt 30/9). Chưa có nguồn danh sách người lập cho mọi vai → "Mọi người" / "Đơn tôi lập".
+  // ADR-0060: "Nhập phần mềm kế toán" — chỉ người có ô xem dấu không ngữ cảnh (máy chủ 403 với người khác); bắt buộc kèm khoảng ngày (≤ 92 ngày).
+  const nhapKt = can(who, "accounting.entry.view")
+    ? h("select", { id: "loc-nhap-kt", onchange: (e: Event) => {
+        const v = (e.target as HTMLSelectElement).value;
+        nhap.nhapKeToan = v === "da" || v === "chua" ? v : null;
+      } },
+        h("option", { value: "", selected: nhap.nhapKeToan === null }, "Tất cả"),
+        h("option", { value: "chua", selected: nhap.nhapKeToan === "chua" }, "Chưa nhập"),
+        h("option", { value: "da", selected: nhap.nhapKeToan === "da" }, "Đã nhập"))
+    : null;
+
   const nguoi = seesAllOrders(who)
     ? h("select", { id: "loc-nguoi", onchange: (e: Event) => (nhap.cuaToi = (e.target as HTMLSelectElement).value === "toi") },
         h("option", { value: "", selected: !nhap.cuaToi }, "Mọi người"), h("option", { value: "toi", selected: nhap.cuaToi }, "Đơn tôi lập"))
@@ -372,6 +384,7 @@ function moBoLoc(): void {
       h("fieldset", { class: "loc-nhom", "data-nhom": "trangThai" }, h("legend", null, "Trạng thái"), h("div", { class: "loc-nut-hang" }, ...trangThai)),
       dvNhom,
       nguoi ? h("label", { class: "loc-nhom" }, "Người lập", nguoi) : null,
+      nhapKt ? h("label", { class: "loc-nhom" }, "Nhập phần mềm kế toán (cần Từ ngày – Đến ngày)", nhapKt) : null,
       loi,
     ],
     foot: [xoa, huy, apDung],
@@ -387,8 +400,9 @@ function moBoLoc(): void {
   apDung.addEventListener("click", () => {
     nhap = { ...nhap, tu: tu.value || null, den: den.value || null };
     const kiem = docLocDon(new URLSearchParams(thamSoLocDon(nhap, toiId || "x")));
-    if (!kiem.ok) {
-      replaceChildren(loi, kiem.message);
+    const kiemKt = kiemLocNhapKeToan(nhap);
+    if (!kiem.ok || kiemKt !== null) {
+      replaceChildren(loi, !kiem.ok ? kiem.message : kiemKt!);
       loi.hidden = false;
       return;
     }
@@ -411,6 +425,7 @@ const newOrderBtn = document.getElementById("new-order");
 if (newOrderBtn) newOrderBtn.hidden = !can(staff, "order.create");
 toiId = staff.id;
 if (loc.cuaToi && !seesAllOrders(staff)) loc = { ...loc, cuaToi: false }; // bộ lọc nhớ của tài khoản khác trên cùng máy: ô này chỉ cho người xem mọi đơn
+if (loc.nhapKeToan && !can(staff, "accounting.entry.view")) loc = { ...loc, nhapKeToan: null }; // ADR-0060: bộ lọc nhớ của tài khoản khác — máy chủ sẽ 403
 veChip();
 if (loc.dichVu.length) void layDanhMuc(staff).then(() => veChip()); // tên dịch vụ cho chip của bộ lọc đã nhớ
 

@@ -229,6 +229,11 @@ export type OrderSummaryDto = Pick<
   pax: PaxCounts;
   /** Của dịch vụ ĐẦU TIÊN (sort_order nhỏ nhất); mọi trường null nếu đơn chưa có dịch vụ nào. */
   trip: OrderSummaryTripDto;
+  /**
+   * ADR-0060 A-12: nhãn "Đã nhập phần mềm kế toán" trên thẻ. CHỈ có (true) khi dấu hiện tại là đã nhập VÀ người xem qua ô `accounting.entry.view` với đơn
+   * đó; mọi trường hợp khác VẮNG khoá (không gửi false — người không được xem không suy ra được gì).
+   */
+  nhapKeToan?: true;
 };
 
 /** Thông tin chuyến client gửi lên: "" = chưa có. */
@@ -1512,3 +1517,13 @@ export interface TroLyHoiResponse { traLoi: string; nguon: string[] }
 /** `GET`/`POST /api/tro-ly/cai-dat` (chỉ Toàn quyền — ô settings.ops). `coKhoa`: máy chủ đã có khoá OpenAI chưa (không bao giờ trả giá trị khoá). */
 export interface TroLyCaiDatResponse { bat: boolean; tranThangUsd: number; tranNgay: number; coKhoa: boolean; thang: string; chiPhiThangUsd: number; soCauThang: number }
 export interface TroLyCaiDatRequest { bat: boolean; tranThangUsd: number; tranNgay: number }
+
+/** ADR-0060: một dòng dấu "đã nhập phần mềm kế toán" (bảng chỉ-thêm). `nguoiBam` = tên hiển thị (không SĐT). */
+export interface NhapKeToanDongDto { id: string; daNhap: boolean; soHoaDon: string | null; lyDo: string | null; luc: string; nguoiBam: string | null }
+/**
+ * `GET /api/orders/:id/nhap-ke-toan` (ADR-0060 điều 4). `hienTai` null = chưa từng đánh dấu. `truocDo` (A-7): các dòng TRƯỚC dòng hiện tại, mới nhất trước —
+ * CHỈ có cho người giữ ô `accounting.entry.mark`, còn lại null. `coTheGhi` = có ô ghi; `donDaXacNhan` = đánh dấu được lúc này (đơn đã xác nhận).
+ */
+export interface NhapKeToanResponse { hienTai: NhapKeToanDongDto | null; truocDo: NhapKeToanDongDto[] | null; coTheGhi: boolean; donDaXacNhan: boolean }
+/** Thân `POST /api/orders/:id/nhap-ke-toan`: `truocDo` = id dòng hiện tại người dùng đang thấy (null = chưa có dòng) — khoá lạc quan. */
+export interface NhapKeToanInput { daNhap: boolean; soHoaDon?: string | null; lyDo?: string | null; truocDo: string | null }

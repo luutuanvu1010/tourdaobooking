@@ -251,3 +251,62 @@ export interface NewLine {
 }
 export const lineIfPostingStatement = (db: D1Database, l: NewLine) =>
   db.prepare(LINE_IF_POSTING).bind(l.id, l.postingId, l.debtorPartyId, l.creditorPartyId, l.amount, l.kind, l.orderId, l.receiptId, l.reversesLineId, l.at, l.by);
+
+// ---------------------------------------------------------------------------------------------------------------------------------------------------
+// Dấu "đã nhập phần mềm kế toán" (ADR-0060, migration *_billing_nhap_ke_toan.sql) — CHỈ-THÊM; trạng thái hiện tại = dòng rowid LỚN NHẤT của đơn.
+// ---------------------------------------------------------------------------------------------------------------------------------------------------
+const ENTRY_COLS = `e.id, e.entered, e.invoice_number, e.reason, e.created_at, sl.label AS created_by_label`;
+const ENTRIES_OF_ORDER = defineSql(
+  "billing",
+  "accounting_entries_of_order",
+  `SELECT ${ENTRY_COLS} FROM bil_accounting_entry e LEFT JOIN v_stf_staff_label sl ON sl.id = e.created_by WHERE e.order_id = ?1 ORDER BY e.rowid DESC`,
+);
+export interface AccountingEntryDbRow {
+  id: string;
+  entered: 0 | 1;
+  invoice_number: string | null;
+  reason: string | null;
+  created_at: string;
+  created_by_label: string | null;
+}
+/** Mọi dòng của một đơn, MỚI NHẤT TRƯỚC (dòng đầu = trạng thái hiện tại). */
+export const accountingEntriesOfOrder = async (db: D1Database, orderId: string): Promise<AccountingEntryDbRow[]> =>
+  (await db.prepare(ENTRIES_OF_ORDER).bind(orderId).all<AccountingEntryDbRow>()).results;
+
+/** Trong các đơn `?1` (mảng JSON — MỘT tham số, không đụng trần 100 tham số của D1), đơn nào có trạng thái hiện tại = đã nhập. */
+const ENTERED_AMONG = defineSql(
+  "billing",
+  "accounting_entered_among",
+  `SELECT j.value AS order_id FROM json_each(?1) j
+   WHERE (SELECT e.entered FROM bil_accounting_entry e WHERE e.order_id = j.value ORDER BY e.rowid DESC LIMIT 1) = 1`,
+);
+export async function accountingEnteredAmong(db: D1Database, orderIds: readonly string[]): Promise<Set<string>> {
+  if (orderIds.length === 0) return new Set();
+  const rows = (await db.prepare(ENTERED_AMONG).bind(JSON.stringify(orderIds)).all<{ order_id: string }>()).results;
+  return new Set(rows.map((r) => r.order_id));
+}
+
+/**
+ * Thêm một dòng — LÍNH GÁC trong câu: (a) khoá lạc quan: id dòng hiện tại của đơn IS ?8 (null = chưa có dòng); (b) đánh dấu (?3 = 1) chỉ khi đơn đang
+ * `confirmed` (A-3, view công bố v_ord_order_state); bỏ dấu mọi trạng thái. Thua ⇒ không dòng nào, nhật ký cùng lô (`changes() > 0`) cũng không.
+ */
+const ENTRY_INSERT = defineSql(
+  "billing",
+  "accounting_entry_insert",
+  `INSERT INTO bil_accounting_entry (id, order_id, entered, invoice_number, reason, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?6, ?7
+   WHERE (SELECT x.id FROM bil_accounting_entry x WHERE x.order_id = ?2 ORDER BY x.rowid DESC LIMIT 1) IS ?8
+     AND (?3 = 0 OR EXISTS (SELECT 1 FROM v_ord_order_state s WHERE s.id = ?2 AND s.status = 'confirmed'))`,
+);
+export interface NewAccountingEntry {
+  id: string;
+  orderId: string;
+  entered: boolean;
+  invoiceNumber: string | null;
+  reason: string | null;
+  at: string;
+  by: string;
+  expectedCurrentId: string | null;
+}
+export const accountingEntryInsertStatement = (db: D1Database, e: NewAccountingEntry) =>
+  db.prepare(ENTRY_INSERT).bind(e.id, e.orderId, e.entered ? 1 : 0, e.invoiceNumber, e.reason, e.at, e.by, e.expectedCurrentId);

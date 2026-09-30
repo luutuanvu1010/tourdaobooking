@@ -17,6 +17,7 @@ export const CHANGELOG: readonly ReleaseNote[] = [
     date: "2026-09-30",
     items: [
       { kind: "moi", text: "Chi tiết đơn: dưới giờ đón hiện xe đón khách — biển số, tên tài xế, số khách trên từng xe và xe đã chạy chưa. Chỉ người xem được Điều phối xe mới thấy." },
+      { kind: "moi", text: "Kế toán đánh dấu đơn \"Đã nhập phần mềm kế toán\" kèm số hoá đơn; danh sách đơn có nhãn và lọc được đơn chưa nhập / đã nhập theo khoảng ngày." },
     ],
   },
   {
