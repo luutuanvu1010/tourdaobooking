@@ -11,6 +11,17 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Nhóm dịch vụ (ADR-0058, lượt 1a, migration 0053). Nhánh thi công đặt số tạm; người gộp chốt số trống kế tiếp LÚC GỘP (main đang 1.46).
+    // Chip cũ "Theo nhóm" (giá tính theo nhóm khách) đổi chữ thành "Giá theo nhóm" cho khỏi nhầm (chủ chọn cách 1).
+    version: "1.47",
+    date: "2026-10-01",
+    items: [
+      { kind: "moi", text: "Chọn dịch vụ khi lập đơn: bấm chip ở hàng Nhóm dịch vụ (Tour đảo, Thể thao biển…) để chỉ thấy dịch vụ nhóm đó; app nhớ lựa chọn trên máy này." },
+      { kind: "moi", text: "Quản trị sửa nhóm dịch vụ ở màn Dịch vụ & giá: thêm, đổi tên, sắp thứ tự, tắt nhóm, chuyển nhiều dịch vụ cùng lúc và xem lịch sử đổi nhóm." },
+      { kind: "doi", text: "Nút lọc \"Theo nhóm\" đổi tên thành \"Giá theo nhóm\" cho khỏi nhầm với nhóm dịch vụ." },
+    ],
+  },
+  {
     // Bản 1.46 = gộp bốn nhánh đã qua kiểm độc lập (ADR-0059 xe đón trên đơn; ADR-0060 dấu kế toán, migration 0051; ADR-0061 nhập tay nội bộ,
     // migration 0052; ADR-0067 ô Người lập). Mỗi nhánh ghi số tạm 1.45; người gộp chốt 1.46 trên 1.45 của main.
     version: "1.46",
