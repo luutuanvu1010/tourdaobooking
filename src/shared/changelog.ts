@@ -11,6 +11,15 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Hướng dẫn theo vai trong Trợ giúp (đặc tả docs/superpowers/specs/2026-09-30-huong-dan-theo-vai.md). Chỉ giao diện + nội dung, không đổi máy chủ / dữ liệu.
+    // Số "1.41" TẠM (main 1.40); người gộp chốt số trống kế tiếp LÚC GỘP.
+    version: "1.41",
+    date: "2026-09-30",
+    items: [
+      { kind: "moi", text: "Trợ giúp có \"Hướng dẫn cho bạn\": cách dùng app theo đúng vai của bạn. Đọc \"Bắt đầu nhanh\" trước, khoảng 30 phút là dùng được." },
+    ],
+  },
+  {
     // Sửa giao diện nhỏ theo rà soát 30/9 (docs/superpowers/specs/2026-09-30-ra-soat-luong-giao-dien-phan-loai-huong-dan.md §2 trên nhánh
     // ra-soat-luong-giao-dien): chỉ bề mặt, không đổi máy chủ / dữ liệu. Số 1.40 (1.39 = bản phông chữ đã lên production 30/9).
     version: "1.40",

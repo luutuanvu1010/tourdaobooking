@@ -1,0 +1,32 @@
+# Nguồn đối chiếu — Hướng dẫn Quản trị + Toàn quyền (bản 1.40, main 3d0d2fe5)
+
+Nội dung ở `src/shared/huong-dan-quan-tri.ts`. Đường dẫn tính từ gốc repo. Chỉ đọc mã, **chưa thử trên trình duyệt thật**, chưa có người kiểm độc lập.
+
+## Đối chiếu theo mục
+
+- **Menu**: web/shell.ts:46-68 (tabsFor: Dịch vụ, Tài khoản), :193-252 (navGroups: Dịch vụ & giá, Quản lý tài khoản, Địa điểm, Loại giấy tờ người, Vận chuyển › Điều phối xe/Xe/Sắp hết hạn/Loại giấy tờ xe/Chính sách điều phối/Lý do điều phối, Nhật ký, Gửi thông báo); web/account.ts:42-90 (liên kết trang Tôi, nhóm VẬN CHUYỂN, "Giấy tờ sắp hết hạn"); src/shared/dieu-phoi-man.ts:26-28.
+- **Tạo tài khoản**: public/staff.html (Thêm tài khoản, Họ tên, Số điện thoại (tên đăng nhập), Vai và quyền, Tạo tài khoản, Đăng nhập gần nhất); web/staff.ts:34-48 (Sao chép danh sách, Đã ghi lại, ẩn đi), :282-287 (Dùng hồ sơ có sẵn: …); web/role-picker.ts:49-88 (Quyền sẽ có, Sẽ thêm, Sẽ mất); src/shared/roles.ts:25-48 (tên vai, nhóm Nội bộ/Bên ngoài, superAdminOnly), :138-172 (luật chặn); src/modules/accounts/index.ts:35-45.
+- **Đổi vai / sửa**: web/staff.ts:181-233 (Sửa, Số điện thoại đăng nhập, Lưu, Đóng); web/role-picker.ts:84-88 (Chỉnh riêng cho người này (cộng hoặc bớt quyền), Cộng thêm, Bớt đi, lý do bắt buộc).
+- **Quên PIN, khoá, mất máy, nghỉ việc**: web/staff.ts:66 (quanDuoc — chỉ cấp dưới), :80 (Bị khoá đăng nhập), :88-122 (Đặt lại PIN, Mở khoá, Gỡ Face ID (n), Ngưng, Kích hoạt lại); src/modules/accounts/index.ts:43 (không tự đặt lại PIN); src/shared/permissions.ts:99-103.
+- **Danh bạ**: public/parties.html (+ Hồ sơ mới, Tìm, Gồm cả hồ sơ đã ngưng); web/parties.ts:138-198 (Cá nhân / Tổ chức (đại lý, công ty), Họ và tên, Tên gọi, Tên pháp lý, Mã số thuế, Địa chỉ, Email nhận hoá đơn, Mở hồ sơ này, Tạo hồ sơ), :211-350 (Lưu thông tin, Đang dùng, Liên hệ chính, Thêm liên hệ, Đóng, Thêm công việc, Kết thúc, Thêm người liên hệ, Thêm quan hệ tài xế, Thêm tài xế, "Hồ sơ này LÀ tài xế của nhà xe…"); migrations/0038_nha_xe_doi_tac.sql (vai "Nhà xe đối tác", nhóm OTHER).
+- **Giấy tờ người**: web/parties.ts:366-530 (Giấy tờ, Thêm giấy tờ, Gia hạn, Sửa sai, Xem đủ số, Che lại, chỉ xem với cấp trên); web/giay-to-ui.ts:123-230 (Hạng, Giấy này không có hạn, Lưu gia hạn, Lưu sửa sai), :308-320 (hộp Xem đủ số?); src/shared/permissions.ts:122-128.
+- **Dịch vụ & giá**: public/catalog.html (Đồng bộ ngay từ Google Sheet, bộ lọc); web/catalog.ts:34-41 (trạng thái đồng bộ, "Hệ thống tự đồng bộ mỗi 15 phút."), :77-80 (Sửa giá, Giữ ghi đè, Bỏ ghi đè, Ẩn/Hiện lại), :147 (Lưu ghi đè), :204 (hỏi khi ẩn nhiều); src/modules/catalog/index.ts:118-175 (admin.manage); wrangler.jsonc:10.
+- **Người phụ trách**: web/order.ts:197-218 (khối Người phụ trách); web/handler-sheet.ts:36-106 (Lưu người phụ trách); src/shared/handler-view.ts:9 (Chờ nhận), :43 (Chọn/Đổi người phụ trách).
+- **Đặt gấp**: web/dat-gap-ui.ts:37-113 (Đặt gấp, Ghi chú ngắn, Duyệt đặt gấp); src/shared/chang-dua-don.ts:32-37 (4 lý do); web/order.ts:94-110, :267; web/order-form.ts:151, :489; src/shared/dieu-phoi-man.ts:195 (Đơn nháp chờ duyệt đặt gấp); src/shared/permissions.ts:81; docs/VAN-CHUYEN.md:123-127.
+- **Xe, sắp hết hạn**: public/xe.html (Thêm xe); web/xe-sua.ts:69-188 (Biển số, Số khung, Tên / đời xe, Chủ xe, Số người được chở (không kể tài xế), Lưu xe, Ngừng dùng xe, Ngừng dùng, Dùng lại xe); web/xe-chi-tiet.ts:80-156 (Thêm giấy tờ, Gia hạn, Sửa sai, Sửa thông tin xe); web/giay-to-sap-het-han.ts:23-35; docs/VAN-CHUYEN.md:106-111 (Kiểm định + Bảo hiểm bắt buộc).
+- **Phá lệ**: web/dieu-phoi-ui.ts:107-122; web/chuyen.ts:513-583 (Phá lệ và rút, Phá lệ và chuyển, Phá lệ và huỷ); web/chuyen-sua.ts:273 (Phá lệ và lưu); src/shared/permissions.ts:138; src/shared/changelog.ts mục 1.38 (chưa dùng cho chuyến thật).
+- **Các danh mục**: public/locations.html + web/locations.ts:41-147 (Thêm địa điểm, Thêm, Sửa, Lưu, Đang dùng); web/danh-muc-giay-to-khoi.ts:27-178 (Hạng giấy phép lái xe, Có ngày hết hạn); web/ly-do-dieu-phoi.ts:73-179 (+ Thêm lý do, Thêm, Sửa); src/shared/dieu-phoi-kieu.ts:16-24 (tên nhóm); src/shared/chinh-sach-hien-thi.ts:215-217 (Ngưng / Dùng lại / lý do hệ thống không ngưng được).
+- **Không làm được**: src/shared/permissions.ts:99-117 (admin.manage.superadmin, staff.sheet.sync, audit.view, feedback.triage, settings.ops, notice.send, company.legal.write); src/shared/roles.ts:52, :126-131.
+- **Toàn quyền**: web/staff.ts:336-370, :381 (Đồng bộ danh sách từ Google Sheet…, Xem trước dữ liệu từ Google Sheet, Tạo tài khoản cho người đã chọn); web/account.ts:401-531 (Chế độ bảo trì, Bật chế độ bảo trì, Xác nhận bật, Quay lại, Cập nhật giờ dự kiến, Tắt chế độ bảo trì); src/modules/maintenance/index.ts:44-54 (canToggle = Toàn quyền + SĐT trong danh sách được phép); web/gui-thong-bao.ts:77-213 (Toàn công ty, Chọn nhóm, Tin quan trọng, Gửi thông báo, Xem ai đã hiểu, Thu hồi); web/chinh-sach-dieu-phoi.ts:142-179 (Mốc tối thiểu (giờ), Cảnh báo sát mốc (giờ), Khoảng nghỉ tài xế (phút), Khai lùi tối đa (phút), Phải đủ danh sách khách, Lưu thành bản mới, Lịch sử bản, Điều kiện theo cỡ xe, hạng bằng ›); public/audit.html:8; web/feedback.ts:97 (Hàng đợi), :177; web/parties.ts:36-38, :283-291 (đổi công ty chủ).
+
+## Điểm chưa chắc / chưa kiểm
+
+- Đặt gấp: "đổi ngày/giờ/nơi đón thì mất dấu, phải bấm lại" (docs/VAN-CHUYEN.md) chưa thử trên màn thật nên đã **bỏ khỏi** nội dung.
+- Gộp hai hồ sơ trùng trong Danh bạ: không thấy nút trên giao diện → ghi "(chưa có trên bản 1.40)". Ô admin.manage nhắc "gộp hồ sơ" (permissions.ts:100) nên có thể có đường máy chủ; chưa kiểm.
+- Trang Điều kiện xuất bến: chưa đọc từng nút; hướng dẫn chỉ nêu lối vào.
+- Nhãn bộ lọc trạng thái ở trang Xe và nhãn loại địa điểm (lấy từ máy chủ): chưa đọc, nên không ghi.
+- Vai "Nhà xe đối tác" hiện trong ô chọn công việc ở Danh bạ: suy từ migration 0038 + lọc nhóm OTHER ở web/parties.ts; chưa thử.
+- Nút "Gỡ Face ID (n)" và "Dùng hồ sơ có sẵn: <tên>" có phần thay đổi theo dữ liệu nên viết **đậm**, không dùng [[…]].
+- Ba nút 30/60/120 phút của bảo trì dựng bằng mẫu `${m} phút` nên viết **đậm**.
+- Bảng điều phối: bản 1.38 ghi chưa dùng cho chuyến thật; hướng dẫn nhắc hỏi người phụ trách hệ thống trước khi dùng.
+- Chưa thử bằng tài khoản Quản trị thật trên trình duyệt.

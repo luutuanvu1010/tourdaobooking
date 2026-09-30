@@ -1124,6 +1124,22 @@ body.login-page main.login { display: flex; flex-direction: column; height: 100%
 .release-note h3 { margin: 0 0 var(--s2); }
 .release-items { margin: 0; padding-left: var(--s4); }
 .release-items li + li { margin-top: var(--s1); }
+/* Hướng dẫn theo vai (trang Trợ giúp — src/shared/huong-dan.ts) */
+.hd-nhom + .hd-nhom { margin-top: var(--s5); padding-top: var(--s4); border-top: 1px solid var(--c-line); }
+.hd-nhom h3 { margin: 0 0 var(--s1); }
+.hd-phut { font-weight: 400; font-size: var(--fs-step-3); }
+.hd-muc { border: 1px solid var(--c-line); border-radius: var(--radius-sm); margin-top: var(--s2); }
+.hd-muc > summary { min-height: var(--tap-min); display: flex; align-items: center; padding: var(--s1) var(--s3); font-weight: 600; cursor: pointer; }
+.hd-muc[open] > summary { border-bottom: 1px solid var(--c-line); }
+.hd-nhanh > summary { background: var(--c-primary-soft); border-radius: var(--radius-sm); }
+.hd-muc > .hd-noi-dung, .hd-muc > .hd-nhom { padding: var(--s2) var(--s3) var(--s3); }
+.hd-noi-dung > * { margin: var(--s2) 0 0; }
+.hd-noi-dung > :first-child { margin-top: 0; }
+.hd-tieu-de { font-size: var(--fs-step-5); }
+.hd-ds { padding-left: var(--s5); }
+.hd-ds li + li { margin-top: var(--s1); }
+.hd-ghi-chu { padding: var(--s2) var(--s3); background: var(--c-sand-soft); color: var(--c-sand-text); border-left: 3px solid var(--c-sand); border-radius: var(--radius-sm); }
+.hd-nut { display: inline; padding: 0 var(--s1); border: 1px solid var(--c-border); border-radius: var(--radius-sm); background: var(--c-surface-alt); font-weight: 600; overflow-wrap: anywhere; -webkit-box-decoration-break: clone; box-decoration-break: clone; } /* inline: tên nút dài xuống dòng, không tràn ngang ở 320px */
 
 /* Bảng tin (ADR-0022, TD-4): thông báo nổi khi có đơn đổi. Vùng cố định không chắn thao tác (pointer-events chỉ bật ở từng thông báo); điện thoại: ngay trên thanh tab; máy tính: góc trên phải, dưới thanh công việc. z-index 40 = trên thanh tab (30), dưới bảng trượt (50). */
 .toast-vung { position: fixed; z-index: 40; display: flex; flex-direction: column; gap: var(--s2); pointer-events: none; left: max(var(--s4), env(safe-area-inset-left)); right: max(var(--s4), env(safe-area-inset-right)); bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + var(--s3)); }
