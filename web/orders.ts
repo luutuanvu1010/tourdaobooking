@@ -424,8 +424,8 @@ staffDaCo = staff;
 const newOrderBtn = document.getElementById("new-order");
 if (newOrderBtn) newOrderBtn.hidden = !can(staff, "order.create");
 toiId = staff.id;
-if (loc.cuaToi && !seesAllOrders(staff)) loc = { ...loc, cuaToi: false };
-if (loc.nhapKeToan && !can(staff, "accounting.entry.view")) loc = { ...loc, nhapKeToan: null }; // ADR-0060: bộ lọc nhớ của tài khoản khác — máy chủ sẽ 403 // bộ lọc nhớ của tài khoản khác trên cùng máy: ô này chỉ cho người xem mọi đơn
+if (loc.cuaToi && !seesAllOrders(staff)) loc = { ...loc, cuaToi: false }; // bộ lọc nhớ của tài khoản khác trên cùng máy: ô này chỉ cho người xem mọi đơn
+if (loc.nhapKeToan && !can(staff, "accounting.entry.view")) loc = { ...loc, nhapKeToan: null }; // ADR-0060: bộ lọc nhớ của tài khoản khác — máy chủ sẽ 403
 veChip();
 if (loc.dichVu.length) void layDanhMuc(staff).then(() => veChip()); // tên dịch vụ cho chip của bộ lọc đã nhớ
 

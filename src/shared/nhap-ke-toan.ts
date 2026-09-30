@@ -11,6 +11,8 @@ export const SO_HOA_DON_TOI_DA = 50;
 export const LY_DO_TOI_DA = 300;
 /** "Số hoá đơn đã nhập" = số tham chiếu trong phần mềm kế toán ngoài: chữ, số, dấu cách, `. / _ - #`. Giữ NGUYÊN VĂN (tiêu chí 1: "· HD-000123"). */
 const SO_HOA_DON_RE = /^[\p{L}\p{N} ./_#-]+$/u;
+/** Dãy từ 10 chữ số LIỀN trở lên trong số hoá đơn — dấu hiệu SĐT / MST dán nhầm (Hiến chương 5.12). */
+const SO_HOA_DON_DAY_DAI_RE = /\d{10,}/;
 
 /** Bộ lọc danh sách đơn "đã / chưa nhập" (ADR-0060 điều 5, A-6): bắt buộc kèm khoảng ngày đi, tối đa NGÀY này (tính CẢ hai đầu). */
 export const LOC_NHAP_TOI_DA_NGAY = 92;
@@ -44,6 +46,9 @@ export function docLenhNhapKeToan(raw: unknown): { ok: true; lenh: NhapKeToanLen
   if (b.daNhap) {
     if (lyDo.value !== null) return { ok: false, message: "Chỉ ghi lý do khi bỏ dấu." };
     if (so.value !== null && !SO_HOA_DON_RE.test(so.value)) return { ok: false, message: "Số hoá đơn chỉ gồm chữ, số, dấu cách và các dấu . / _ - #." };
+    // Hiến chương 5.12 (kiểm độc lập 30/9): số hoá đơn đi NGUYÊN VĂN vào bảng chỉ-thêm và nhật ký chỉ-thêm — chặn dãy ≥ 10 chữ số LIỀN (SĐT, MST dán nhầm);
+    // số hoá đơn thật (vd 7–8 chữ số, hoặc có dấu ngăn) vẫn nhận.
+    if (so.value !== null && SO_HOA_DON_DAY_DAI_RE.test(so.value)) return { ok: false, message: "Số hoá đơn có dãy số quá dài — có thể là SĐT/MST dán nhầm." };
     return { ok: true, lenh: { daNhap: true, soHoaDon: so.value, lyDo: null, truocDo } };
   }
   if (so.value !== null) return { ok: false, message: "Bỏ dấu thì không kèm số hoá đơn." };

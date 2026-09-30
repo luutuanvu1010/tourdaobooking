@@ -35,6 +35,13 @@ test("docLenhNhapKeToan: thân sai kiểu, thiếu truocDo, số quá dài / ký
   assert.match(loi({ daNhap: false, lyDo: "x".repeat(301), truocDo: null }), /tối đa 300/);
 });
 
+test("docLenhNhapKeToan (kiểm độc lập, Hiến chương 5.12): số hoá đơn có dãy ≥ 10 chữ số liền → 400 (SĐT/MST dán nhầm); 9 chữ số liền, số có dấu ngăn vẫn được", () => {
+  assert.equal(loi({ daNhap: true, soHoaDon: "0905123456", truocDo: null }), "Số hoá đơn có dãy số quá dài — có thể là SĐT/MST dán nhầm.");
+  assert.match(loi({ daNhap: true, soHoaDon: "HD-4201234567", truocDo: null }), /quá dài/);
+  assert.equal(docLenhNhapKeToan({ daNhap: true, soHoaDon: "HD-000123456", truocDo: null }).ok, true);
+  assert.equal(docLenhNhapKeToan({ daNhap: true, soHoaDon: "00012345/2026", truocDo: null }).ok, true);
+});
+
 test("moTaDauNhap / lenhKhongDoi / laDongNhapKeToan / soNgayKhoang", () => {
   assert.equal(moTaDauNhap({ daNhap: true, soHoaDon: "HD-000123", lyDo: null }), "Đã nhập phần mềm kế toán · HD-000123");
   assert.equal(moTaDauNhap({ daNhap: true, soHoaDon: null, lyDo: null }), "Đã nhập phần mềm kế toán");

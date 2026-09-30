@@ -43,8 +43,9 @@ export function khoiNhapKeToan(orderId: string, d: Api.NhapKeToanResponse, hang:
         nut.push(h("p", { class: "muted" }, "Đánh dấu được khi đơn đã xác nhận."));
       }
     } else {
+      // Sửa số = đánh dấu lại (máy chủ chỉ nhận khi đơn đã xác nhận — A-3): đơn nháp / đã huỷ chỉ còn "Bỏ dấu" (kiểm độc lập 30/9).
       const so = oSo(ht.soHoaDon ?? "");
-      nut.push(hang({
+      if (d.donDaXacNhan) nut.push(hang({
         nhan: "Sửa số hoá đơn", action: "nhap-kt-sua-so", nutGhi: "Lưu số",
         cau: "Sửa số hoá đơn đã nhập (lần cũ vẫn được giữ lại):",
         o: [h("label", null, "Số hoá đơn đã nhập", so)],

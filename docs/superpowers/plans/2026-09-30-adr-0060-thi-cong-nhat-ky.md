@@ -32,6 +32,12 @@ Trần chọn: `LOC_NHAP_TOI_DA_UNG_VIEN = 5000` (≈ 195 KB JSON, 10% trần 2 
 6. **Trạng thái "Đã giao" / "Hoàn thành":** không đổi `status` (vẫn `confirmed`) ⇒ đánh dấu được — có bài route.
 7. **`R-BIL-AE1`** (kiểm định kỳ tuỳ chọn): CHƯA làm.
 
+## Sửa theo kiểm độc lập (30/9 — ĐẠT, 3 mục THẤP)
+
+1. **Số hoá đơn chặn dãy ≥ 10 chữ số liền** (`src/shared/nhap-ke-toan.ts`, câu "Số hoá đơn có dãy số quá dài — có thể là SĐT/MST dán nhầm."). Lý do — Hiến chương 5.12: số hoá đơn đi NGUYÊN VĂN vào bảng chỉ-thêm `bil_accounting_entry` và nhật ký chỉ-thêm `audit_log` (không xoá được), nên SĐT (10 chữ số) / MST (10–13 chữ số) dán nhầm vào ô này sẽ nằm vĩnh viễn trong dữ liệu. Ngưỡng 10 chữ số LIỀN (không phải 8 chữ số qua dấu ngăn như chữ tự do) để số hoá đơn thật — thường 7–8 chữ số, hoặc có dấu ngăn như `00012345/2026` — vẫn nhận. Test đỏ trước (`not ok 4 …`), xanh sau.
+2. Trang đơn: đơn chưa / không còn xác nhận (nháp, đã huỷ) mà đang có dấu → chỉ còn nút "Bỏ dấu" (ẩn "Sửa số hoá đơn" — máy chủ vốn từ chối 409).
+3. `web/orders.ts`: sửa chú thích dính dòng.
+
 ## Tiêu chí nghiệm thu (ADR-0060) — bằng chứng
 
 | # | Tiêu chí | Bài |
