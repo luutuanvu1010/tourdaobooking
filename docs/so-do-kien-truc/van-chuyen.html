@@ -1,0 +1,620 @@
+<!doctype html>
+<html lang="vi">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bản đồ phân hệ Vận chuyển</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@600;700;800&family=Nunito:wght@400;600;700;800&display=swap">
+<style>
+:root{
+  --bg:#eaf2f8; --card:#ffffff; --ink:#0f172a; --muted:#475569; --line:#d3e1ec;
+  --sea:#0c4a6e; --sea-deep:#082f49; --sea-soft:#dcebf6; --sea-faint:#f0f7fc;
+  --coral:#c0392b; --coral-soft:#fef2f0;
+  --sand:#b7791f; --sand-soft:#fbeed2; --sand-line:#e9d3a4; --sand-ink:#5a4109;
+  --ok:#166534; --ok-soft:#dcfce7; --no:#94a3b8;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --display:"Be Vietnam Pro","Nunito",system-ui,sans-serif;
+  --body:"Nunito","Be Vietnam Pro",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --radius:12px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#08141e; --card:#0f2233; --ink:#e6eef5; --muted:#9fb3c4; --line:#21405a;
+    --sea:#7cc0ea; --sea-deep:#b9def5; --sea-soft:#15395a; --sea-faint:#112b41;
+    --coral:#f08a7c; --coral-soft:#3a1d1a;
+    --sand:#e8b04d; --sand-soft:#33280f; --sand-line:#5c4718; --sand-ink:#f3d69c;
+    --ok:#6ee7a0; --ok-soft:#113524; --no:#5b7086;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#08141e; --card:#0f2233; --ink:#e6eef5; --muted:#9fb3c4; --line:#21405a;
+  --sea:#7cc0ea; --sea-deep:#b9def5; --sea-soft:#15395a; --sea-faint:#112b41;
+  --coral:#f08a7c; --coral-soft:#3a1d1a;
+  --sand:#e8b04d; --sand-soft:#33280f; --sand-line:#5c4718; --sand-ink:#f3d69c;
+  --ok:#6ee7a0; --ok-soft:#113524; --no:#5b7086;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.55;padding-inline:16px;padding-block:0 48px}
+.wrap{max-width:1080px;margin:0 auto}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0;color:var(--sea-deep)}
+h1{font-size:clamp(26px,4.4vw,38px);font-weight:800;letter-spacing:-.01em;line-height:1.15}
+h2{font-size:clamp(19px,2.6vw,23px);font-weight:700}
+h3{font-size:15px;font-weight:700}
+p{margin:0}
+code,.code{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.eyebrow{font-size:11.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--sea)}
+
+/* Đầu trang */
+header.top{padding-block:28px 18px;display:grid;gap:10px}
+.lede{max-width:66ch;color:var(--muted)}
+.meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;padding:3px 10px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--ink);white-space:nowrap}
+.pill.coral{border-color:transparent;background:var(--coral-soft);color:var(--coral)}
+.pill.sand{border-color:var(--sand-line);background:var(--sand-soft);color:var(--sand-ink)}
+.pill.ok{border-color:transparent;background:var(--ok-soft);color:var(--ok)}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor;flex:none}
+
+nav.toc{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:8px;margin-bottom:8px;border-bottom:1px solid var(--line)}
+nav.toc ol{list-style:none;margin:0;padding:0;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
+nav.toc a{display:block;white-space:nowrap;font-size:13px;font-weight:700;color:var(--sea);text-decoration:none;padding:5px 11px;border-radius:999px;background:var(--card);border:1px solid var(--line)}
+nav.toc a:hover,nav.toc a:focus-visible{background:var(--sea-soft);outline:none}
+
+section{padding-block:26px 6px;display:grid;gap:14px;scroll-margin-top:56px}
+.sec-head{display:grid;gap:4px}
+.sec-head p{color:var(--muted);max-width:70ch}
+
+.panel{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px}
+
+/* 1. Bốn tầng */
+.tiers{display:grid;gap:10px}
+.tier{display:grid;grid-template-columns:150px 1fr;gap:14px;align-items:start;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px}
+.tier-label{display:grid;gap:2px}
+.tier-label b{font-family:var(--display);font-size:15px;color:var(--sea-deep)}
+.tier-label span{font-size:12.5px;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{display:grid;gap:1px;padding:7px 11px;border-radius:9px;background:var(--sea-faint);border:1px solid var(--line);min-width:0}
+.chip b{font-size:13.5px;font-weight:700}
+.chip small{font-size:12px;color:var(--muted)}
+.chip.core{background:var(--sea);border-color:var(--sea)}
+.chip.core b,.chip.core small{color:#fff}
+:root[data-theme="dark"] .chip.core b,:root[data-theme="dark"] .chip.core small{color:#08141e}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .chip.core b,:root:not([data-theme="light"]) .chip.core small{color:#08141e}}
+.chip.later{border-style:dashed;background:transparent}
+.tier-arrow{justify-self:center;font-size:12px;font-weight:700;color:var(--muted);display:flex;align-items:center;gap:6px}
+.tier-arrow::before,.tier-arrow::after{content:"";width:28px;height:1px;background:var(--line)}
+
+/* 2. Sơ đồ nối */
+.diagram{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:10px}
+.diagram svg{display:block;min-width:720px;width:100%;height:auto}
+.n-box{fill:var(--sea-faint);stroke:var(--line);stroke-width:1.2}
+.n-core{fill:var(--sea);stroke:var(--sea)}
+.n-root{fill:var(--sand-soft);stroke:var(--sand-line);stroke-width:1.2}
+.t-title{font-family:var(--display);font-weight:700;font-size:15px;fill:var(--sea-deep)}
+.t-core{font-family:var(--display);font-weight:800;font-size:18px;fill:#fff}
+.t-core-sub{font-family:var(--body);font-size:12.5px;fill:#dcebf6}
+:root[data-theme="dark"] .t-core,:root[data-theme="dark"] .t-core-sub{fill:#08141e}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .t-core,:root:not([data-theme="light"]) .t-core-sub{fill:#08141e}}
+.t-sub{font-family:var(--body);font-size:12.5px;fill:var(--muted)}
+.t-code{font-family:var(--mono);font-size:11px;fill:var(--muted)}
+.t-edge{font-family:var(--body);font-size:12px;font-weight:700;fill:var(--sea)}
+.t-edge-sand{font-family:var(--body);font-size:12px;font-weight:700;fill:var(--sand-ink)}
+.e{stroke:var(--sea);stroke-width:1.8;fill:none}
+.e-sand{stroke:var(--sand);stroke-width:1.8;fill:none;stroke-dasharray:5 4}
+.e-no{stroke:var(--coral);stroke-width:1.6;fill:none;stroke-dasharray:3 4}
+.ah{fill:var(--sea)} .ah-sand{fill:var(--sand)}
+.t-no{font-family:var(--body);font-size:12px;font-weight:700;fill:var(--coral)}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12.5px;color:var(--muted);padding:2px 4px}
+.legend i{display:inline-block;width:22px;height:0;border-top:2px solid var(--sea);vertical-align:middle;margin-right:6px}
+.legend i.s{border-top:2px dashed var(--sand)} .legend i.c{border-top:2px dotted var(--coral)}
+
+/* 3. Tuyến một chuyến xe */
+.route{display:grid;grid-template-columns:repeat(7,1fr);gap:0;position:relative;padding-top:6px}
+.route::before{content:"";position:absolute;left:calc(100%/14);right:calc(100%/14);top:22px;height:5px;border-radius:5px;background:var(--sea)}
+.stop{position:relative;display:grid;justify-items:center;text-align:center;gap:6px;padding-inline:6px}
+.stop .no{position:relative;z-index:1;width:34px;height:34px;border-radius:50%;background:var(--card);border:5px solid var(--sea);display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:14px;color:var(--sea-deep)}
+.stop.go .no{background:var(--coral);border-color:var(--coral);color:#fff}
+.stop h3{font-size:14px}
+.stop p{font-size:12.5px;color:var(--muted)}
+.stop .who{font-size:11.5px;font-weight:700;color:var(--sea);background:var(--sea-faint);border-radius:6px;padding:1px 7px}
+.holds{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px}
+.hold{border:1px dashed var(--sand-line);background:var(--sand-soft);border-radius:var(--radius);padding:12px 14px;display:grid;gap:6px}
+.hold .when{font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--sand-ink)}
+.hold b{font-size:14px}
+.hold p{font-size:13px;color:var(--ink)}
+.hold .fix{font-size:12.5px;font-weight:700;color:var(--sand-ink)}
+.checks{display:flex;flex-wrap:wrap;gap:6px}
+.check{font-size:12.5px;font-weight:700;padding:3px 9px;border-radius:7px;background:var(--ok-soft);color:var(--ok)}
+
+/* 4. Ai làm gì */
+.tbl-wrap{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:var(--radius)}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:13.5px}
+th,td{padding:9px 12px;text-align:center;border-bottom:1px solid var(--line)}
+th{font-family:var(--display);font-weight:700;font-size:12.5px;color:var(--sea-deep);background:var(--sea-faint);position:sticky;top:0}
+td:first-child,th:first-child{text-align:left}
+td:first-child b{display:block;font-size:13.5px}
+td:first-child small{color:var(--muted);font-size:12px}
+tr:last-child td{border-bottom:none}
+.y{color:var(--ok);font-weight:800}
+.p{color:var(--sand-ink);font-weight:800;font-size:12px;background:var(--sand-soft);border-radius:6px;padding:2px 6px;white-space:nowrap}
+.n{color:var(--no)}
+.foot{font-size:12.5px;color:var(--muted)}
+
+/* 5. Dữ liệu */
+.data{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
+.owner{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;display:grid;gap:10px;align-content:start}
+.owner-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.owner-h code{font-size:11.5px}
+.group{display:grid;gap:4px}
+.group .gl{font-size:11.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.row{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:baseline;padding:4px 0;border-bottom:1px dashed var(--line)}
+.row:last-child{border-bottom:none}
+.row span{font-size:13.5px}
+.row code{font-size:11px;text-align:right;word-break:break-all}
+.row.view span::before{content:"cửa đọc · ";color:var(--sea);font-weight:700;font-size:12px}
+
+/* 6. Hàng rào + lộ trình */
+.guards{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:10px}
+.guard{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;display:grid;grid-template-columns:28px 1fr;gap:10px;align-items:start}
+.guard svg{width:24px;height:24px;stroke:var(--sea);fill:none;stroke-width:1.8}
+.guard b{font-size:14px;display:block}
+.guard p{font-size:13px;color:var(--muted)}
+.road{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.stage{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;display:grid;gap:8px;align-content:start}
+.stage.now{border-color:var(--coral);box-shadow:0 0 0 1px var(--coral) inset}
+.stage.plan{border-style:dashed}
+.stage h3{display:flex;align-items:center;gap:8px}
+.stage ul{margin:0;padding-left:18px;display:grid;gap:4px;font-size:13px}
+.stage li small{color:var(--muted)}
+
+.road2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.todo{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.todo-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;display:grid;gap:10px;align-content:start}
+.todo-card.now{border-color:var(--coral);box-shadow:0 0 0 1px var(--coral) inset}
+.todo-card.you-card{background:var(--sea-faint)}
+.todo-h{display:grid;grid-template-columns:32px 1fr;gap:10px;align-items:start}
+.todo-h h3{font-size:16px}
+.num{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:14px;background:var(--sea-soft);color:var(--sea-deep)}
+.todo-card.now .num{background:var(--coral);color:#fff}
+.tag{display:inline-block;margin-top:3px;font-size:12px;font-weight:700;color:var(--muted)}
+.tag.coral{color:var(--coral)} .tag.sand{color:var(--sand-ink)} .tag.you{color:var(--sea)}
+.todo-card ul{margin:0;padding-left:18px;display:grid;gap:5px;font-size:13.5px}
+.todo-card li small{color:var(--muted)}
+.todo-card li.you{list-style:none;margin-left:-18px;padding:4px 8px;border-radius:7px;background:var(--sand-soft);color:var(--sand-ink);font-weight:700}
+.todo-card li.you::before{content:"Bạn · ";font-weight:800}
+.todo-card ul.sub{margin-top:4px;gap:2px;font-size:13px;color:var(--muted)}
+@media (max-width:820px){ .todo{grid-template-columns:1fr} }
+@media (max-width:520px){ .road2{grid-template-columns:1fr} }
+footer{margin-top:28px;padding-top:14px;border-top:1px solid var(--line);font-size:12.5px;color:var(--muted);display:grid;gap:4px}
+
+@media (max-width:820px){
+  .tier{grid-template-columns:1fr;gap:8px}
+  .route{grid-template-columns:1fr;gap:10px;padding-left:4px}
+  .route::before{left:21px;right:auto;top:10px;bottom:10px;width:5px;height:auto}
+  .stop{grid-template-columns:34px 1fr;justify-items:start;text-align:left;column-gap:12px;row-gap:2px;padding-inline:0}
+  .stop .no{grid-row:span 3}
+  .road{grid-template-columns:1fr 1fr}
+}
+@media (max-width:520px){ .road{grid-template-columns:1fr} }
+@media (prefers-reduced-motion:no-preference){ nav.toc a{transition:background .15s} }
+</style>
+
+<div class="wrap">
+<header class="top">
+  <span class="eyebrow">Tour Đảo Booking · kiến trúc</span>
+  <h1>Bản đồ phân hệ Vận chuyển</h1>
+  <p class="lede">Phân hệ lo xe, tài xế và chuyến đưa đón khách: từ chặng đón trên đơn, xếp khách lên xe, kiểm đủ điều kiện, tới lúc xe xuất bến và trả khách. Trang này vẽ lại toàn bộ theo mã thật của bản 1.38.</p>
+  <div class="meta">
+    <span class="pill coral"><span class="dot"></span>Bản 1.38 đang chuẩn bị phát hành</span>
+    <span class="pill ok"><span class="dot"></span>Xe, giấy tờ, nhà xe đã chạy (1.35, 1.37)</span>
+    <span class="pill sand"><span class="dot"></span>Còn 5 nhóm việc · xem mục 7</span>
+    <span class="pill">Cập nhật 30/9/2026</span>
+  </div>
+</header>
+
+<nav class="toc" aria-label="Mục lục">
+  <ol>
+    <li><a href="#tang">1 · Bốn tầng</a></li>
+    <li><a href="#noi">2 · Các phần nối nhau</a></li>
+    <li><a href="#chuyen">3 · Một chuyến xe</a></li>
+    <li><a href="#quyen">4 · Ai làm được gì</a></li>
+    <li><a href="#dulieu">5 · Dữ liệu</a></li>
+    <li><a href="#rao">6 · Hàng rào an toàn</a></li>
+    <li><a href="#conlai">7 · Việc còn lại</a></li>
+  </ol>
+</nav>
+
+<!-- 1. Bốn tầng -->
+<section id="tang">
+  <div class="sec-head">
+    <span class="eyebrow">Nhìn một lượt</span>
+    <h2>Bốn tầng, từ người dùng tới dữ liệu</h2>
+    <p>Người dùng bấm trên màn hình; màn hình gọi máy chủ; máy chủ kiểm quyền và luật rồi mới ghi vào dữ liệu. Ô xanh đậm là phần lõi của Vận chuyển.</p>
+  </div>
+  <div class="tiers">
+    <div class="tier">
+      <div class="tier-label"><b>Người dùng</b><span>ai mở phân hệ</span></div>
+      <div class="chips">
+        <div class="chip"><b>Bán hàng</b><small>xếp xe, bấm thay tài xế</small></div>
+        <div class="chip"><b>Quản trị · Toàn quyền</b><small>như Bán hàng + phá lệ, đặt gấp, xe, chính sách</small></div>
+        <div class="chip"><b>Kế toán</b><small>chỉ xem</small></div>
+        <div class="chip"><b>Tài xế công ty</b><small>chuyến mình lái</small></div>
+        <div class="chip later"><b>Tài xế đối tác</b><small>từ lượt 3</small></div>
+      </div>
+    </div>
+    <div class="tier-arrow">bấm</div>
+    <div class="tier">
+      <div class="tier-label"><b>Màn hình</b><span>trang trong app</span></div>
+      <div class="chips">
+        <div class="chip core"><b>Điều phối xe</b><small>lịch chung theo ngày · /dieu-phoi</small></div>
+        <div class="chip core"><b>Chi tiết chuyến</b><small>điểm dừng, khách, điều kiện · /chuyen</small></div>
+        <div class="chip"><b>Tạo / sửa chuyến</b><small>/chuyen-sua</small></div>
+        <div class="chip"><b>Cuốc của tôi</b><small>màn tài xế · /cuoc</small></div>
+        <div class="chip"><b>Đơn hàng</b><small>dải mốc 6 giờ, nút Đặt gấp</small></div>
+        <div class="chip"><b>Xe và giấy tờ</b><small>/xe · sắp hết hạn</small></div>
+        <div class="chip"><b>Chính sách điều phối</b><small>mốc giờ, lý do, điều kiện xuất bến</small></div>
+      </div>
+    </div>
+    <div class="tier-arrow">gọi</div>
+    <div class="tier">
+      <div class="tier-label"><b>Máy chủ</b><span>các phần (module)</span></div>
+      <div class="chips">
+        <div class="chip core"><b>Vận chuyển</b><small>xe, chuyến, suất, tiến độ · van-chuyen</small></div>
+        <div class="chip"><b>Đơn hàng</b><small>chặng đưa đón, hành khách · orders</small></div>
+        <div class="chip"><b>Danh bạ</b><small>tài xế, nhà xe, giấy tờ người · parties</small></div>
+        <div class="chip"><b>Địa điểm</b><small>khách sạn, bến tàu · locations</small></div>
+        <div class="chip"><b>Nhật ký</b><small>ai làm gì, lúc nào · audit</small></div>
+      </div>
+    </div>
+    <div class="tier-arrow">ghi</div>
+    <div class="tier">
+      <div class="tier-label"><b>Dữ liệu</b><span>cơ sở dữ liệu D1</span></div>
+      <div class="chips">
+        <div class="chip core"><b>17 bảng vc_</b><small>xe, chuyến, suất, sự kiện, bản chốt</small></div>
+        <div class="chip"><b>2 bảng ord_</b><small>chặng, hành khách</small></div>
+        <div class="chip"><b>3 bảng pty_</b><small>giấy tờ người, hạng bằng</small></div>
+        <div class="chip"><b>7 cửa đọc mới (view)</b><small>nối Vận chuyển với Đơn, Danh bạ</small></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 2. Sơ đồ nối -->
+<section id="noi">
+  <div class="sec-head">
+    <span class="eyebrow">Ranh giới</span>
+    <h2>Vận chuyển nối với các phần khác thế nào</h2>
+    <p>Vận chuyển đọc ba phần khác và ghi nhật ký, nhưng chỉ qua cửa công bố. Không phần nào gọi thẳng vào Vận chuyển. Mốc 6 giờ đi sang Đơn hàng qua gốc lắp ráp.</p>
+  </div>
+  <div class="diagram" role="img" aria-label="Sơ đồ: Vận chuyển ở giữa, đọc Đơn hàng, Danh bạ, Địa điểm và ghi Nhật ký; gốc lắp ráp chuyển mốc 6 giờ từ Vận chuyển sang Đơn hàng">
+    <svg viewBox="0 0 960 430" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ah"/></marker>
+        <marker id="as" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ah-sand"/></marker>
+      </defs>
+
+      <!-- Gốc lắp ráp -->
+      <rect x="330" y="14" width="300" height="62" rx="12" class="n-root"/>
+      <text x="480" y="40" text-anchor="middle" class="t-title">Gốc lắp ráp</text>
+      <text x="480" y="61" text-anchor="middle" class="t-code">src/index.ts · tiêm ctx.mocToiThieu</text>
+
+      <!-- Vận chuyển (lõi) -->
+      <rect x="330" y="160" width="300" height="118" rx="14" class="n-core"/>
+      <text x="480" y="196" text-anchor="middle" class="t-core">Vận chuyển</text>
+      <text x="480" y="218" text-anchor="middle" class="t-core-sub">xe · chuyến · suất khách · tiến độ</text>
+      <text x="480" y="238" text-anchor="middle" class="t-core-sub">điều kiện xuất bến · gọi báo</text>
+      <text x="480" y="262" text-anchor="middle" class="t-core-sub" style="font-family:var(--mono);font-size:11px">van-chuyen · module nghiêm</text>
+
+      <!-- Đơn hàng -->
+      <rect x="20" y="150" width="236" height="138" rx="12" class="n-box"/>
+      <text x="138" y="180" text-anchor="middle" class="t-title">Đơn hàng</text>
+      <text x="138" y="202" text-anchor="middle" class="t-sub">chặng đưa đón, hành khách</text>
+      <text x="138" y="221" text-anchor="middle" class="t-sub">mốc 6 giờ, Đặt gấp</text>
+      <text x="138" y="248" text-anchor="middle" class="t-code">orders · ord_transfer_leg</text>
+      <text x="138" y="264" text-anchor="middle" class="t-code">ord_passenger</text>
+
+      <!-- Danh bạ -->
+      <rect x="704" y="86" width="236" height="120" rx="12" class="n-box"/>
+      <text x="822" y="116" text-anchor="middle" class="t-title">Danh bạ</text>
+      <text x="822" y="138" text-anchor="middle" class="t-sub">tài xế, nhà xe, công ty chủ</text>
+      <text x="822" y="157" text-anchor="middle" class="t-sub">giấy tờ của người</text>
+      <text x="822" y="184" text-anchor="middle" class="t-code">parties · taiXeChoDieuPhoi</text>
+
+      <!-- Địa điểm -->
+      <rect x="704" y="236" width="236" height="84" rx="12" class="n-box"/>
+      <text x="822" y="266" text-anchor="middle" class="t-title">Địa điểm</text>
+      <text x="822" y="288" text-anchor="middle" class="t-sub">khách sạn, bến tàu, cáp treo</text>
+      <text x="822" y="306" text-anchor="middle" class="t-code">v_loc_location_label</text>
+
+      <!-- Nhật ký -->
+      <rect x="360" y="346" width="240" height="70" rx="12" class="n-box"/>
+      <text x="480" y="374" text-anchor="middle" class="t-title">Nhật ký</text>
+      <text x="480" y="396" text-anchor="middle" class="t-code">audit_log · 1 sự kiện = 1 dòng</text>
+
+      <!-- Cạnh: VC → Đơn -->
+      <path d="M330,205 L258,205" class="e" marker-end="url(#a)"/>
+      <text x="294" y="193" text-anchor="middle" class="t-edge">đọc</text>
+      <text x="294" y="226" text-anchor="middle" class="t-code">3 hàm hẹp</text>
+      <text x="294" y="240" text-anchor="middle" class="t-code">+ 4 view</text>
+
+      <!-- Cạnh: VC → Danh bạ -->
+      <path d="M630,190 L702,160" class="e" marker-end="url(#a)"/>
+      <text x="662" y="160" text-anchor="middle" class="t-edge">đọc</text>
+
+      <!-- Cạnh: VC → Địa điểm -->
+      <path d="M630,250 L702,272" class="e" marker-end="url(#a)"/>
+      <text x="662" y="284" text-anchor="middle" class="t-edge">đọc</text>
+
+      <!-- Cạnh: VC → Nhật ký -->
+      <path d="M480,278 L480,344" class="e" marker-end="url(#a)"/>
+      <text x="492" y="316" class="t-edge">ghi cùng lô</text>
+
+      <!-- Mốc 6 giờ: VC → Gốc → Đơn -->
+      <path d="M430,160 L430,78" class="e-sand" marker-end="url(#as)"/>
+      <text x="422" y="124" text-anchor="end" class="t-edge-sand">mốc 6 giờ</text>
+      <path d="M330,45 C200,45 138,80 138,148" class="e-sand" marker-end="url(#as)"/>
+      <text x="206" y="58" text-anchor="middle" class="t-edge-sand">tiêm vào Đơn</text>
+
+      <!-- Không ai gọi thẳng VC -->
+      <path d="M560,78 L560,158" class="e-no"/>
+      <text x="572" y="112" class="t-no">✕ không phần nào</text>
+      <text x="572" y="128" class="t-no">gọi thẳng vào</text>
+    </svg>
+  </div>
+  <div class="legend">
+    <span><i></i>Vận chuyển đọc hoặc ghi qua cửa công bố</span>
+    <span><i class="s"></i>Mốc 6 giờ đi vòng qua gốc lắp ráp</span>
+    <span><i class="c"></i>Lối bị cấm</span>
+  </div>
+  <p class="foot">Hàm hẹp của Đơn hàng: <code>lichChungChang</code>, <code>hanhKhachChoChuyen</code>, <code>lienHeChoTaiXe</code> — chỉ gọi sau khi đã kiểm quyền. Cửa đọc: <code>v_ord_leg_key</code>, <code>v_ord_order_flag</code>, <code>v_ord_passenger_key</code>, <code>v_ord_passenger_row</code>, <code>v_pty_carrier</code>, <code>v_pty_carrier_driver</code>, <code>v_pty_owner_company</code>. Cạnh cho phép ghi trong bài kiến trúc: <code>van-chuyen → parties, audit, orders, locations</code>.</p>
+</section>
+
+<!-- 3. Một chuyến xe -->
+<section id="chuyen">
+  <div class="sec-head">
+    <span class="eyebrow">Vòng đời</span>
+    <h2>Một chuyến xe đi qua bảy trạm</h2>
+    <p>Mỗi trạm là một bước có thật trong máy. Trạm màu san hô là lúc xe xuất bến: mọi điều kiện được chụp lại và danh sách khách được chốt làm chứng cứ.</p>
+  </div>
+  <div class="panel">
+    <div class="route">
+      <div class="stop"><div class="no">1</div><h3>Đơn có chặng đón</h3><p>Giờ hẹn, nơi đón, nơi trả, số khách, tên khách</p><span class="who">Bán hàng</span></div>
+      <div class="stop"><div class="no">2</div><h3>Lịch chung</h3><p>Mọi chặng cần xe trong ngày, dựng lúc mở (không lưu riêng)</p><span class="who">Điều phối xe</span></div>
+      <div class="stop"><div class="no">3</div><h3>Xếp lên xe</h3><p>Mỗi khách một suất; máy tự gắn tên; rút hoặc chuyển xe được</p><span class="who">Bán hàng · Quản trị</span></div>
+      <div class="stop"><div class="no">4</div><h3>Kiểm điều kiện</h3><p>Một hàm kiểm dùng chung cho màn hình và nút xuất bến</p><span class="who">Máy tự kiểm</span></div>
+      <div class="stop go"><div class="no">5</div><h3>Xuất bến</h3><p>Chụp điều kiện, chốt danh sách hành khách</p><span class="who">Tài xế · văn phòng bấm thay</span></div>
+      <div class="stop"><div class="no">6</div><h3>Tiến độ</h3><p>Tới điểm, đã đón, vắng, đã trả; ghi giờ thật</p><span class="who">Tài xế · văn phòng</span></div>
+      <div class="stop"><div class="no">7</div><h3>Kết thúc</h3><p>Hết chuyến hoặc gián đoạn giữa đường</p><span class="who">Tài xế · văn phòng</span></div>
+    </div>
+  </div>
+
+  <div class="panel" style="display:grid;gap:10px">
+    <h3>Trạm 4 kiểm những gì</h3>
+    <div class="checks">
+      <span class="check">Giấy tờ xe còn hạn</span>
+      <span class="check">Bằng lái đủ hạng</span>
+      <span class="check">Đủ tên khách</span>
+      <span class="check">Không có đơn đã huỷ</span>
+      <span class="check">Điểm khớp đơn</span>
+      <span class="check">Đủ chỗ</span>
+      <span class="check">Đủ giờ nghỉ</span>
+    </div>
+    <p class="foot">Chưa đạt dòng nào thì xe bị giữ, kèm lý do và người cần xử lý. Giấy tờ xe gieo sẵn hai loại: Kiểm định và Bảo hiểm.</p>
+  </div>
+
+  <div class="holds">
+    <div class="hold"><span class="when">Sát giờ chạy</span><b>Mốc 6 giờ</b><p>Trong 6 giờ trước giờ chạy, khoá xếp khách, đổi xe, đổi tài xế. Muốn đổi phải có Quản trị hoặc Toàn quyền phá lệ, ghi lý do.</p><span class="fix">Đơn đón sát giờ: Quản trị bấm "Đặt gấp" rồi mới xác nhận đơn</span></div>
+    <div class="hold"><span class="when">Đơn đổi nơi đón</span><b>Giữ xe: nơi hẹn đã đổi</b><p>Người bán sửa nơi đón sau khi đã xếp xe.</p><span class="fix">Bấm "Cập nhật điểm theo đơn" · không cần phá lệ</span></div>
+    <div class="hold"><span class="when">Đơn đổi khách</span><b>Giữ xe: khách không còn trong đơn</b><p>Khách đã gắn tên trên xe bị bỏ khỏi đơn.</p><span class="fix">Bấm "Cập nhật khách theo đơn" · không cần phá lệ</span></div>
+    <div class="hold"><span class="when">Giờ hẹn đổi</span><b>Nhắc gọi báo khách</b><p>Giờ hẹn đổi sau khi đã xếp xe thì bảng điều phối nhắc.</p><span class="fix">Gọi xong bấm "Đã gọi báo"</span></div>
+  </div>
+</section>
+
+<!-- 4. Ai làm được gì -->
+<section id="quyen">
+  <div class="sec-head">
+    <span class="eyebrow">Quyền</span>
+    <h2>Ai làm được gì</h2>
+    <p>Lấy thẳng từ bảng quyền của máy chủ. Màn hình chỉ ẩn hay hiện nút; máy chủ luôn kiểm lại.</p>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>Việc</th><th>Bán hàng</th><th>Kế toán</th><th>Quản trị</th><th>Toàn quyền</th><th>Tài xế công ty</th></tr></thead>
+      <tbody>
+        <tr><td><b>Xem chuyến, lịch xe</b><small>trip.view</small></td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td><span class="p">chuyến mình lái</span></td></tr>
+        <tr><td><b>Tạo chuyến, xếp, rút, chuyển khách</b><small>trip.dispatch</small></td><td class="y">✓</td><td class="n">–</td><td class="y">✓</td><td class="y">✓</td><td class="n">–</td></tr>
+        <tr><td><b>Phá lệ mốc 6 giờ</b><small>trip.override</small></td><td class="n">–</td><td class="n">–</td><td class="y">✓</td><td class="y">✓</td><td class="n">–</td></tr>
+        <tr><td><b>Bấm tiến độ (xuất bến, đón, trả)</b><small>trip.progress</small></td><td class="y">✓ <small class="foot">bấm thay</small></td><td class="n">–</td><td class="y">✓</td><td class="y">✓</td><td><span class="p">chuyến mình lái</span></td></tr>
+        <tr><td><b>Đã gọi báo khách</b><small>trip.call_ack</small></td><td><span class="p">đơn của mình</span></td><td class="n">–</td><td class="y">✓</td><td class="y">✓</td><td class="n">–</td></tr>
+        <tr><td><b>Đặt gấp chặng sát giờ</b><small>order.leg.short_notice</small></td><td class="n">–</td><td class="n">–</td><td class="y">✓</td><td class="y">✓</td><td class="n">–</td></tr>
+        <tr><td><b>Xem dấu đặt gấp trên đơn</b><small>order.leg.short_notice.view</small></td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="n">–</td></tr>
+        <tr><td><b>Quản lý xe, giấy tờ xe</b><small>vehicle.manage</small></td><td class="n">–</td><td class="n">–</td><td class="y">✓</td><td class="y">✓</td><td class="n">–</td></tr>
+        <tr><td><b>Ghi, xem đủ số giấy tờ người</b><small>party.document.write / reveal</small></td><td class="n">–</td><td class="n">–</td><td class="y">✓</td><td class="y">✓</td><td class="n">–</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="foot">Hướng dẫn viên, Đối tác, Thực tập và Tài xế đối tác chưa có quyền nào ở Vận chuyển lượt 1. Tên và năm sinh khách chỉ hiện ở Chi tiết chuyến của văn phòng, và ở màn tài xế trong đúng ngày chạy (xuất bến sớm từ tối hôm trước thì tên vẫn ẩn tới 0 giờ).</p>
+</section>
+
+<!-- 5. Dữ liệu -->
+<section id="dulieu">
+  <div class="sec-head">
+    <span class="eyebrow">Dữ liệu</span>
+    <h2>Mỗi bảng thuộc về đúng một phần</h2>
+    <p>Chỉ phần chủ được ghi vào bảng của mình. Phần khác muốn đọc thì đi qua cửa đọc (view) hoặc hàm công bố.</p>
+  </div>
+  <div class="data">
+    <div class="owner">
+      <div class="owner-h"><h3>Vận chuyển</h3><code>van-chuyen · vc_</code></div>
+      <div class="group"><span class="gl">Xe và giấy tờ · đã chạy từ 1.35</span>
+        <div class="row"><span>Xe (của công ty hoặc nhà xe)</span><code>vc_vehicle</code></div>
+        <div class="row"><span>Giấy tờ xe</span><code>vc_vehicle_document</code></div>
+        <div class="row"><span>Loại giấy tờ xe</span><code>vc_vehicle_document_type</code></div>
+        <div class="row"><span>Ngưỡng nhắc sắp hết hạn</span><code>vc_expiry_policy</code></div>
+      </div>
+      <div class="group"><span class="gl">Chính sách</span>
+        <div class="row"><span>Mốc giờ, giờ nghỉ, bắt đủ danh sách</span><code>vc_dispatch_policy</code></div>
+        <div class="row"><span>Điều kiện xuất bến</span><code>vc_departure_rule</code></div>
+        <div class="row"><span>Hạng bằng lái → số khách tối đa</span><code>vc_license_capacity</code></div>
+        <div class="row"><span>Lý do (phá lệ, huỷ, vắng…)</span><code>vc_reason</code></div>
+      </div>
+      <div class="group"><span class="gl">Chuyến xe</span>
+        <div class="row"><span>Chuyến</span><code>vc_trip</code></div>
+        <div class="row"><span>Ai lái</span><code>vc_trip_driver</code></div>
+        <div class="row"><span>Điểm dừng</span><code>vc_trip_stop</code></div>
+        <div class="row"><span>Suất trên xe (khách, người đi kèm)</span><code>vc_trip_allocation</code></div>
+        <div class="row"><span>Sự kiện, chỉ thêm</span><code>vc_trip_event</code></div>
+        <div class="row"><span>Bản chụp điều kiện lúc xuất bến</span><code>vc_trip_departure_check(_item)</code></div>
+        <div class="row"><span>Danh sách hành khách đã chốt</span><code>vc_trip_manifest</code></div>
+        <div class="row"><span>Mốc giờ hẹn, dấu "Đã gọi báo"</span><code>vc_leg_appt_ack</code></div>
+      </div>
+    </div>
+    <div class="owner">
+      <div class="owner-h"><h3>Đơn hàng</h3><code>orders · ord_</code></div>
+      <div class="group"><span class="gl">Bảng</span>
+        <div class="row"><span>Chặng đưa đón (giờ hẹn, nơi đón, nơi trả)</span><code>ord_transfer_leg</code></div>
+        <div class="row"><span>Hành khách (họ tên, năm sinh)</span><code>ord_passenger</code></div>
+        <div class="row"><span>Dấu đặt gấp trên chặng</span><code>short_notice_*</code></div>
+      </div>
+      <div class="group"><span class="gl">Công bố cho Vận chuyển</span>
+        <div class="row view"><span>khoá chặng</span><code>v_ord_leg_key</code></div>
+        <div class="row view"><span>cờ đơn (nháp, huỷ…)</span><code>v_ord_order_flag</code></div>
+        <div class="row view"><span>khoá người</span><code>v_ord_passenger_key</code></div>
+        <div class="row view"><span>dòng hành khách</span><code>v_ord_passenger_row</code></div>
+      </div>
+      <div class="owner-h" style="margin-top:6px"><h3>Danh bạ</h3><code>parties · pty_</code></div>
+      <div class="group"><span class="gl">Bảng</span>
+        <div class="row"><span>Giấy tờ của người (CCCD, bằng lái)</span><code>pty_person_document</code></div>
+        <div class="row"><span>Loại giấy tờ người</span><code>pty_person_document_type</code></div>
+        <div class="row"><span>Hạng bằng lái</span><code>pty_license_class</code></div>
+      </div>
+      <div class="group"><span class="gl">Công bố cho Vận chuyển</span>
+        <div class="row view"><span>công ty chủ</span><code>v_pty_owner_company</code></div>
+        <div class="row view"><span>nhà xe</span><code>v_pty_carrier</code></div>
+        <div class="row view"><span>tài xế thuộc nhà xe</span><code>v_pty_carrier_driver</code></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 6. Hàng rào + lộ trình -->
+<section id="rao">
+  <div class="sec-head">
+    <span class="eyebrow">An toàn</span>
+    <h2>Tám hàng rào giữ dữ liệu đúng</h2>
+    <p>Các hàng rào này có bài kiểm tự động; những cái chính đã được thử phá cố ý để chắc chúng chặn thật.</p>
+  </div>
+  <div class="guards">
+    <div class="guard"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 9h8M8 13h8M8 17h5"/></svg><div><b>Một lệnh là một lô ghi</b><p>Ghi theo đúng thứ tự: cổng phiên bản, nhật ký, dấu lệnh, trạng thái cuối. Hai người bấm cùng lúc thì một người nhận "tải lại".</p></div></div>
+    <div class="guard"><svg viewBox="0 0 24 24"><path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z"/></svg><div><b>Luật ở cả hai tầng</b><p>Luật lõi của chuyến nằm ở cả cơ sở dữ liệu lẫn máy chủ.</p></div></div>
+    <div class="guard"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg><div><b>Một hàm kiểm dùng chung</b><p>Màn hình báo "đạt" thì nút xuất bến cũng đạt; không có luật thứ hai.</p></div></div>
+    <div class="guard"><svg viewBox="0 0 24 24"><path d="M6 4h9l3 3v13H6z"/><path d="M9 11h6M9 15h6"/></svg><div><b>Chứng cứ chỉ thêm</b><p>Sự kiện, bản chụp xuất bến, danh sách chốt không sửa, không xoá.</p></div></div>
+    <div class="guard"><svg viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/></svg><div><b>Đơn đã xác nhận không xoá được</b><p>Kể cả khi gõ lệnh thẳng vào dữ liệu. Đơn nháp vẫn xoá được.</p></div></div>
+    <div class="guard"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c1-4 4-6 7-6s6 2 7 6"/></svg><div><b>Tên khách giữ kín</b><p>Chỉ ở Chi tiết chuyến và màn tài xế trong ngày chạy. Lệnh ghi không trả tên.</p></div></div>
+    <div class="guard"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h4M7 14h7"/></svg><div><b>Số giấy tờ không vào nhật ký</b><p>Muốn xem đủ số căn cước, bằng lái phải ghi nhật ký trước.</p></div></div>
+    <div class="guard"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M8 16L16 8"/></svg><div><b>Không ai gọi thẳng Vận chuyển</b><p>Vận chuyển chỉ đọc phần khác qua cửa công bố, bài kiến trúc canh.</p></div></div>
+  </div>
+
+</section>
+
+<!-- 7. Việc còn lại -->
+<section id="conlai">
+  <div class="sec-head">
+    <span class="eyebrow">Lộ trình</span>
+    <h2>Đã chạy, đang lên và việc còn lại</h2>
+    <p>Việc còn lại chia năm nhóm theo ai làm và đang chờ gì. Nhóm 2 là việc lớn chưa có trong các ADR đã duyệt: màn cho nhân viên nhập chặng và danh sách khách.</p>
+  </div>
+
+  <div class="road2">
+    <div class="stage"><h3><span class="pill ok"><span class="dot"></span>Đã chạy</span></h3>
+      <ul>
+        <li>Xe, giấy tờ xe, tài xế, giấy tờ người <small>· 1.35 · ADR-0040</small></li>
+        <li>Nhà xe đối tác, tài xế đối tác trong danh bạ <small>· 1.37 · ADR-0048</small></li>
+      </ul></div>
+    <div class="stage now"><h3><span class="pill coral"><span class="dot"></span>Đang lên 1.38</span></h3>
+      <ul>
+        <li>Chặng đưa đón và hành khách <small>· ADR-0047 phần máy chủ</small></li>
+        <li>Bảng điều phối, mốc 6 giờ, đặt gấp <small>· ADR-0049</small></li>
+        <li>Giờ thật, giữ khi nơi đổi, kiểm định + bảo hiểm <small>· ADR-0050</small></li>
+        <li>Nhắc gọi báo khách <small>· ADR-0051</small></li>
+      </ul></div>
+  </div>
+
+  <div class="todo">
+    <div class="todo-card now">
+      <div class="todo-h"><span class="num">1</span><div><h3>Phát hành bản 1.38</h3><span class="tag coral">Đang làm · phiên điều phối chung</span></div></div>
+      <ul>
+        <li>Gộp nhánh chính, gộp phần siết "tên khách chỉ hiện trong ngày chạy"</li>
+        <li>Viết nhật ký thay đổi 1.38, chạy kiểm lần cuối</li>
+        <li class="you">Bạn quyết chuyện tên khách: chưa có màn nhập tên, công tắc "bắt đủ danh sách" đang bật</li>
+        <li class="you">Bạn chạy lệnh gộp và lệnh triển khai</li>
+        <li>Sau triển khai: kiểm hệ thống thật, thử iPhone thật</li>
+      </ul>
+    </div>
+
+    <div class="todo-card">
+      <div class="todo-h"><span class="num">2</span><div><h3>Màn nhập chặng và danh sách khách</h3><span class="tag sand">Chưa thiết kế xong · chờ bản vẽ</span></div></div>
+      <ul>
+        <li>Phần giao diện của ADR-0047. Máy chủ đã có trong 1.38 nhưng nhân viên chưa có màn để nhập</li>
+        <li class="you">Bạn vẽ bộ 1: 5 màn chặng và khách</li>
+        <li>Mục 6 của ADR-0047: bỏ hẳn hai cột giờ đón, điểm đón cũ ở lần phát hành sau</li>
+        <li>Dòng luật giao diện cho các màn này (mục 4c, chưa hỏi)</li>
+      </ul>
+    </div>
+
+    <div class="todo-card">
+      <div class="todo-h"><span class="num">3</span><div><h3>Đã duyệt, chưa thi công</h3><span class="tag">Thi công sau khi 1.38 gộp vào nhánh chính</span></div></div>
+      <ul>
+        <li><b>Sổ tiền lượt 1</b> <small>· ADR-0024, 0025, 0026 · làm đầu tiên</small></li>
+        <li>Tiền xe thuê <small>· ADR-0057 · sau sổ tiền</small></li>
+        <li>Chuyển điểm, xe đang chạy <small>· ADR-0052</small></li>
+        <li>Tài xế đối tác dùng app, từ chối <small>· ADR-0053</small></li>
+        <li>Chiều về theo dịch vụ <small>· ADR-0054</small></li>
+        <li>Khung bận xe, giờ lái, số chuyến bay <small>· ADR-0055</small></li>
+        <li>Xe riêng, cỡ xe tối thiểu <small>· ADR-0056</small></li>
+      </ul>
+      <p class="foot">Thứ tự đã chốt: sổ tiền → tiền xe thuê; cứu hộ (ADR-0052 phần A-1b) và tài xế đối tác (ADR-0053) làm sau phần tiền xe thuê.</p>
+    </div>
+
+    <div class="todo-card">
+      <div class="todo-h"><span class="num">4</span><div><h3>Việc để sau</h3><span class="tag">Danh sách việc để sau · mục 4–7</span></div></div>
+      <ul>
+        <li>Quản trị ghi và xem đủ số giấy tờ của tài khoản cấp trên <small>· mục 4</small></li>
+        <li>Ô ghi chú gõ tự do trong chuyến <small>· mục 5</small></li>
+        <li>Tài xế mất mạng: máy tự gửi lại thao tác <small>· mục 6</small></li>
+        <li>Việc nhỏ của Bảng điều phối <small>· mục 7</small>:
+          <ul class="sub">
+            <li>Sắp lại điểm dừng khi xe đang chạy</li>
+            <li>Hạng bằng lái trong ô chọn tài xế</li>
+            <li>Số đếm trên mục menu "Điều phối xe"</li>
+            <li>Giờ kết thúc dự kiến trong danh sách cuốc</li>
+            <li>Một nút "trả hết"</li>
+            <li>Câu báo nêu số phút tối đa khi khai giờ lùi</li>
+            <li>Sắp tên khách theo thứ tự trong đơn</li>
+            <li>Ba lỗi nhỏ ở kịch bản kiểm</li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+
+    <div class="todo-card you-card">
+      <div class="todo-h"><span class="num">5</span><div><h3>Việc chỉ bạn làm được</h3><span class="tag you">Việc của chủ dự án</span></div></div>
+      <ul>
+        <li>Vẽ màn: bộ 1 (5 màn chặng và khách); màn cho lượt sau V4, V8–V11, V12, V14, V15 <small>· theo ghi chép phiên sổ tiền</small></li>
+        <li>Xác nhận đáp án ca mẫu "xe A / xe B" <small>· đang ghi "chờ chủ xác nhận"</small></li>
+        <li>Hỏi luật sư chuyện ghép khách trên xe hợp đồng <small>· NĐ 158/2024</small></li>
+        <li>Xác nhận quy định giấy tờ xe, hạng bằng lái <small>· tra 27/9, chưa có người chuyên môn xác nhận</small></li>
+        <li>Thử tài khoản thật: tài xế công ty, tài xế đối tác</li>
+      </ul>
+    </div>
+  </div>
+  <p class="foot">Ngoài ra còn vài sửa chữ nhỏ trong tài liệu luật và bản bàn giao chưa vào nhánh chính; phiên điều phối chung đã được báo.</p>
+</section>
+
+<footer>
+  <span>Vẽ theo mã nhánh phát hành 1.38 và các ADR đã duyệt tới 30/9/2026. Số bảng, cửa đọc, quyền lấy thẳng từ migration và bảng quyền của máy chủ.</span>
+  <span>Tài liệu gốc: sổ hỏi đáp Vận chuyển, kế hoạch thi công ADR-0049, trang ghép §10.</span>
+</footer>
+</div>

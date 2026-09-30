@@ -1,0 +1,469 @@
+<!doctype html>
+<html lang="vi">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bản đồ Tour Đảo Booking</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@600;700;800&family=Nunito:wght@400;600;700;800&display=swap">
+<style>
+:root{
+  --bg:#eaf2f8; --card:#ffffff; --ink:#0f172a; --muted:#475569; --line:#d3e1ec;
+  --sea:#0c4a6e; --sea-deep:#082f49; --sea-soft:#dcebf6; --sea-faint:#f0f7fc;
+  --coral:#c0392b; --coral-soft:#fef2f0;
+  --sand:#b7791f; --sand-soft:#fbeed2; --sand-line:#e9d3a4; --sand-ink:#5a4109;
+  --ok:#166534; --ok-soft:#dcfce7; --on-core:#ffffff;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --display:"Be Vietnam Pro","Nunito",system-ui,sans-serif;
+  --body:"Nunito","Be Vietnam Pro",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --radius:12px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#08141e; --card:#0f2233; --ink:#e6eef5; --muted:#9fb3c4; --line:#21405a;
+    --sea:#7cc0ea; --sea-deep:#b9def5; --sea-soft:#15395a; --sea-faint:#112b41;
+    --coral:#f08a7c; --coral-soft:#3a1d1a;
+    --sand:#e8b04d; --sand-soft:#33280f; --sand-line:#5c4718; --sand-ink:#f3d69c;
+    --ok:#6ee7a0; --ok-soft:#113524; --on-core:#08141e;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#08141e; --card:#0f2233; --ink:#e6eef5; --muted:#9fb3c4; --line:#21405a;
+  --sea:#7cc0ea; --sea-deep:#b9def5; --sea-soft:#15395a; --sea-faint:#112b41;
+  --coral:#f08a7c; --coral-soft:#3a1d1a;
+  --sand:#e8b04d; --sand-soft:#33280f; --sand-line:#5c4718; --sand-ink:#f3d69c;
+  --ok:#6ee7a0; --ok-soft:#113524; --on-core:#08141e;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.55;padding-inline:16px;padding-block:0 48px}
+.wrap{max-width:1080px;margin:0 auto}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0;color:var(--sea-deep)}
+h1{font-size:clamp(26px,4.4vw,38px);font-weight:800;letter-spacing:-.01em;line-height:1.15}
+h2{font-size:clamp(19px,2.6vw,23px);font-weight:700}
+h3{font-size:15px;font-weight:700}
+p{margin:0}
+code{font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+.eyebrow{font-size:11.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--sea)}
+header.top{padding-block:28px 18px;display:grid;gap:10px}
+.lede{max-width:68ch;color:var(--muted)}
+.meta{display:flex;flex-wrap:wrap;gap:8px}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;padding:3px 10px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--ink);white-space:nowrap;font-variant-numeric:tabular-nums}
+.pill.coral{border-color:transparent;background:var(--coral-soft);color:var(--coral)}
+.pill.ok{border-color:transparent;background:var(--ok-soft);color:var(--ok)}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor;flex:none}
+nav.toc{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:8px;margin-bottom:8px;border-bottom:1px solid var(--line)}
+nav.toc ol{list-style:none;margin:0;padding:0;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
+nav.toc a{display:block;white-space:nowrap;font-size:13px;font-weight:700;color:var(--sea);text-decoration:none;padding:5px 11px;border-radius:999px;background:var(--card);border:1px solid var(--line)}
+nav.toc a:hover,nav.toc a:focus-visible{background:var(--sea-soft);outline:none}
+section{padding-block:26px 6px;display:grid;gap:14px;scroll-margin-top:56px}
+.sec-head{display:grid;gap:4px}
+.sec-head p{color:var(--muted);max-width:72ch}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px}
+.foot{font-size:12.5px;color:var(--muted)}
+
+/* SVG toàn cảnh */
+.diagram{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:10px}
+.diagram svg{display:block;min-width:760px;width:100%;height:auto}
+.b{fill:var(--sea-faint);stroke:var(--line);stroke-width:1.2}
+.b-core{fill:var(--sea);stroke:var(--sea)}
+.b-zone{fill:none;stroke:var(--sea);stroke-width:1.4;stroke-dasharray:6 5}
+.b-ext{fill:var(--card);stroke:var(--sand-line);stroke-width:1.2}
+.t1{font-family:var(--display);font-weight:700;font-size:14.5px;fill:var(--sea-deep)}
+.t1c{font-family:var(--display);font-weight:800;font-size:16px;fill:var(--on-core)}
+.t2c{font-family:var(--body);font-size:12px;fill:var(--on-core);opacity:.9}
+.t2{font-family:var(--body);font-size:12px;fill:var(--muted)}
+.tz{font-family:var(--display);font-weight:800;font-size:12px;fill:var(--sea);letter-spacing:.06em}
+.te{font-family:var(--body);font-size:11.5px;font-weight:700;fill:var(--sea)}
+.tes{font-family:var(--body);font-size:11.5px;font-weight:700;fill:var(--sand-ink)}
+.e{stroke:var(--sea);stroke-width:1.7;fill:none}
+.es{stroke:var(--sand);stroke-width:1.6;fill:none;stroke-dasharray:5 4}
+.ah{fill:var(--sea)} .ahs{fill:var(--sand)}
+
+/* Tuyến một yêu cầu */
+.route{display:grid;grid-template-columns:repeat(8,1fr);position:relative;padding-top:6px}
+.route::before{content:"";position:absolute;left:calc(100%/16);right:calc(100%/16);top:22px;height:5px;border-radius:5px;background:var(--sea)}
+.stop{position:relative;display:grid;justify-items:center;text-align:center;gap:5px;padding-inline:5px}
+.stop .no{position:relative;z-index:1;width:34px;height:34px;border-radius:50%;background:var(--card);border:5px solid var(--sea);display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:14px;color:var(--sea-deep)}
+.stop.key .no{background:var(--coral);border-color:var(--coral);color:#fff}
+.stop h3{font-size:13.5px}
+.stop p{font-size:12px;color:var(--muted)}
+.stop .st{font-size:11px;font-weight:800;color:var(--coral);font-family:var(--mono)}
+
+/* Tầng phụ thuộc */
+.layers{display:grid;gap:8px}
+.layer{display:grid;grid-template-columns:92px 1fr;gap:12px;align-items:stretch}
+.layer-n{display:grid;align-content:center;justify-items:center;background:var(--sea-soft);border-radius:10px;font-family:var(--display);font-weight:800;color:var(--sea-deep);font-size:13px;text-align:center;padding:6px}
+.layer-n small{font-family:var(--body);font-weight:600;font-size:11px;color:var(--muted)}
+.mods{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:8px}
+.mod{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:9px 12px;display:grid;gap:3px;align-content:start}
+.mod-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.mod-h b{font-size:14px}
+.mod p{font-size:12.5px;color:var(--muted)}
+.mod .dep{font-size:11.5px;color:var(--sea);font-weight:700}
+.mod .dep code{color:var(--sea);font-weight:400}
+.mod.core{border-color:var(--sea);box-shadow:0 0 0 1px var(--sea) inset}
+.tag{font-size:10.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;padding:1px 6px;border-radius:5px;white-space:nowrap}
+.tag.strict{background:var(--ok-soft);color:var(--ok)}
+.tag.legacy{background:var(--sand-soft);color:var(--sand-ink)}
+.tag.leaf{background:var(--sea-soft);color:var(--sea-deep)}
+.layer-arrow{font-size:12px;color:var(--muted);text-align:center}
+
+/* Vai */
+.roles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.rg{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;display:grid;gap:8px;align-content:start}
+.rg ul{margin:0;padding-left:18px;display:grid;gap:4px;font-size:13.5px}
+.rg li small{color:var(--muted)}
+.gates{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.gate{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:grid;gap:3px}
+.gate b{font-size:13.5px}
+.gate code{font-size:11px}
+.gate p{font-size:12.5px;color:var(--muted)}
+
+/* Dữ liệu */
+.data{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.own{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:grid;gap:4px;align-content:start}
+.own-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.own-h b{font-size:14px}
+.count{font-family:var(--display);font-weight:800;font-size:18px;color:var(--sea);font-variant-numeric:tabular-nums}
+.own p{font-size:12.5px;color:var(--muted)}
+.own.core{border-color:var(--sea)}
+
+/* Hàng rào + phát hành */
+.guards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}
+.guard{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;display:grid;gap:4px}
+.guard b{font-size:14px}
+.guard p{font-size:13px;color:var(--muted)}
+.pipe{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;counter-reset:s}
+.step{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:grid;gap:4px;align-content:start;position:relative}
+.step.you{background:var(--sand-soft);border-color:var(--sand-line)}
+.step .who{font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.step.you .who{color:var(--sand-ink)}
+.step b{font-size:13.5px}
+.step p{font-size:12.5px;color:var(--muted)}
+.checks{display:flex;flex-wrap:wrap;gap:6px}
+.check{font-size:12.5px;font-weight:700;padding:3px 9px;border-radius:7px;background:var(--ok-soft);color:var(--ok);font-variant-numeric:tabular-nums}
+footer{margin-top:28px;padding-top:14px;border-top:1px solid var(--line);font-size:12.5px;color:var(--muted);display:grid;gap:4px}
+
+@media (max-width:860px){
+  .route{grid-template-columns:1fr;gap:10px;padding-left:4px}
+  .route::before{left:21px;right:auto;top:10px;bottom:10px;width:5px;height:auto}
+  .stop{grid-template-columns:34px 1fr;justify-items:start;text-align:left;column-gap:12px;row-gap:1px;padding-inline:0}
+  .stop .no{grid-row:span 3}
+  .roles{grid-template-columns:1fr}
+  .gates{grid-template-columns:1fr 1fr}
+  .pipe{grid-template-columns:1fr 1fr}
+  .layer{grid-template-columns:1fr}
+  .layer-n{justify-items:start;text-align:left}
+}
+@media (max-width:520px){ .gates,.pipe{grid-template-columns:1fr} }
+@media (prefers-reduced-motion:no-preference){ nav.toc a{transition:background .15s} }
+</style>
+
+<div class="wrap">
+<header class="top">
+  <span class="eyebrow">Công ty TNHH Tour Đảo · kiến trúc phần mềm</span>
+  <h1>Bản đồ Tour Đảo Booking</h1>
+  <p class="lede">Phần mềm nội bộ để lập đơn tour, phân công hướng dẫn viên, điều xe đưa đón và quản lý danh bạ. Chạy trên Cloudflare tại booking.tourdao.vn, cài lên iPhone như một ứng dụng. Trang này vẽ toàn bộ hệ thống theo mã thật.</p>
+  <div class="meta">
+    <span class="pill ok"><span class="dot"></span>Đang chạy bản 1.37</span>
+    <span class="pill coral"><span class="dot"></span>1.38 đang chuẩn bị</span>
+    <span class="pill">15 phần máy chủ</span>
+    <span class="pill">31 trang</span>
+    <span class="pill">~61 bảng dữ liệu</span>
+    <span class="pill">9 vai người dùng</span>
+  </div>
+</header>
+
+<nav class="toc" aria-label="Mục lục">
+  <ol>
+    <li><a href="#toan-canh">1 · Toàn cảnh</a></li>
+    <li><a href="#yeu-cau">2 · Một yêu cầu</a></li>
+    <li><a href="#phan">3 · 15 phần máy chủ</a></li>
+    <li><a href="#vai">4 · Người dùng và cổng</a></li>
+    <li><a href="#du-lieu">5 · Dữ liệu</a></li>
+    <li><a href="#an-toan">6 · An toàn và phát hành</a></li>
+  </ol>
+</nav>
+
+<!-- 1. Toàn cảnh -->
+<section id="toan-canh">
+  <div class="sec-head">
+    <span class="eyebrow">Hạ tầng</span>
+    <h2>Toàn cảnh: từ điện thoại tới cơ sở dữ liệu</h2>
+    <p>Trang tĩnh do Cloudflare phục vụ thẳng, không chạm máy chủ. Mọi việc đọc, ghi dữ liệu đi qua một máy chủ duy nhất rồi mới vào cơ sở dữ liệu. Ô viền cát là dịch vụ bên ngoài.</p>
+  </div>
+  <div class="diagram" role="img" aria-label="Sơ đồ hạ tầng: người dùng dùng điện thoại hoặc máy tính, vào Cloudflare gồm trang tĩnh, máy chủ, Bảng tin và lịch 15 phút; máy chủ ghi vào cơ sở dữ liệu D1 và gọi Google Sheet, Turnstile, thông báo đẩy, email">
+    <svg viewBox="0 0 980 500" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ah"/></marker>
+        <marker id="as" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahs"/></marker>
+      </defs>
+
+      <!-- Người dùng -->
+      <rect x="16" y="120" width="160" height="150" rx="12" class="b"/>
+      <text x="96" y="150" text-anchor="middle" class="t1">Nhân viên</text>
+      <text x="96" y="172" text-anchor="middle" class="t2">và đối tác</text>
+      <text x="96" y="200" text-anchor="middle" class="t2">9 vai: bán hàng, kế toán,</text>
+      <text x="96" y="217" text-anchor="middle" class="t2">quản trị, hướng dẫn viên,</text>
+      <text x="96" y="234" text-anchor="middle" class="t2">tài xế, đối tác…</text>
+
+      <!-- Thiết bị -->
+      <rect x="210" y="110" width="176" height="170" rx="12" class="b"/>
+      <text x="298" y="140" text-anchor="middle" class="t1">iPhone · máy tính</text>
+      <text x="298" y="162" text-anchor="middle" class="t2">ứng dụng cài từ Safari</text>
+      <text x="298" y="179" text-anchor="middle" class="t2">"Tour Đảo Booking"</text>
+      <text x="298" y="207" text-anchor="middle" class="t2">bộ nhớ đệm giữ trang</text>
+      <text x="298" y="224" text-anchor="middle" class="t2">Face ID (khoá mật mã)</text>
+      <text x="298" y="252" text-anchor="middle" class="t2" style="font-family:var(--mono);font-size:11px">public/sw.js</text>
+      <path d="M176,195 L208,195" class="e" marker-end="url(#a)"/>
+
+      <!-- Vùng Cloudflare -->
+      <rect x="420" y="20" width="330" height="368" rx="16" class="b-zone"/>
+      <text x="436" y="42" class="tz">CLOUDFLARE · booking.tourdao.vn</text>
+
+      <rect x="440" y="58" width="200" height="58" rx="10" class="b"/>
+      <text x="540" y="82" text-anchor="middle" class="t1">Trang tĩnh · 31 trang</text>
+      <text x="540" y="102" text-anchor="middle" class="t2">Workers Assets · public/</text>
+
+      <rect x="654" y="58" width="76" height="58" rx="10" class="b"/>
+      <text x="692" y="82" text-anchor="middle" class="t1">Lịch</text>
+      <text x="692" y="102" text-anchor="middle" class="t2">15 phút</text>
+
+      <rect x="440" y="140" width="290" height="96" rx="12" class="b-core"/>
+      <text x="585" y="170" text-anchor="middle" class="t1c">Máy chủ</text>
+      <text x="585" y="192" text-anchor="middle" class="t2c">bộ định tuyến + 15 phần (module)</text>
+      <text x="585" y="210" text-anchor="middle" class="t2c">kiểm quyền mọi yêu cầu /api</text>
+      <text x="585" y="227" text-anchor="middle" class="t2c" style="font-family:var(--mono);font-size:11px">Worker tourdao-sales · src/index.ts</text>
+
+      <rect x="440" y="262" width="200" height="66" rx="10" class="b"/>
+      <text x="540" y="288" text-anchor="middle" class="t1">Bảng tin</text>
+      <text x="540" y="308" text-anchor="middle" class="t2">báo "đơn vừa đổi" tức thì</text>
+
+      <!-- D1 -->
+      <rect x="800" y="140" width="164" height="96" rx="12" class="b"/>
+      <text x="882" y="170" text-anchor="middle" class="t1">Cơ sở dữ liệu</text>
+      <text x="882" y="192" text-anchor="middle" class="t2">D1 (SQLite)</text>
+      <text x="882" y="212" text-anchor="middle" class="t2">~61 bảng</text>
+
+      <!-- Cạnh chính -->
+      <path d="M386,160 C410,150 420,100 438,90" class="e" marker-end="url(#a)"/>
+      <text x="398" y="118" class="te">trang</text>
+      <path d="M386,195 L438,190" class="e" marker-end="url(#a)"/>
+      <text x="396" y="186" class="te">/api</text>
+      <path d="M386,240 C410,262 420,285 438,288" class="e" marker-end="url(#a)" marker-start="url(#a)"/>
+      <text x="382" y="300" class="te">WebSocket</text>
+      <path d="M730,188 L798,188" class="e" marker-end="url(#a)"/>
+      <text x="740" y="178" class="te">đọc, ghi</text>
+      <path d="M540,236 L540,260" class="e" marker-end="url(#a)"/>
+      <text x="548" y="253" class="te">phát tin</text>
+      <path d="M692,116 L692,138" class="e" marker-end="url(#a)"/>
+
+      <!-- Dịch vụ ngoài -->
+      <rect x="20" y="412" width="176" height="72" rx="10" class="b-ext"/>
+      <text x="108" y="438" text-anchor="middle" class="t1">Google Sheet</text>
+      <text x="108" y="458" text-anchor="middle" class="t2">danh mục dịch vụ, nhân viên</text>
+      <text x="108" y="474" text-anchor="middle" class="t2">chỉ đọc, không ghi ngược</text>
+
+      <rect x="214" y="412" width="176" height="72" rx="10" class="b-ext"/>
+      <text x="302" y="438" text-anchor="middle" class="t1">Turnstile</text>
+      <text x="302" y="458" text-anchor="middle" class="t2">chống máy dò mã PIN</text>
+      <text x="302" y="474" text-anchor="middle" class="t2">ở màn đăng nhập</text>
+
+      <rect x="408" y="412" width="176" height="72" rx="10" class="b-ext"/>
+      <text x="496" y="438" text-anchor="middle" class="t1">Thông báo đẩy</text>
+      <text x="496" y="458" text-anchor="middle" class="t2">tới điện thoại (Web Push)</text>
+      <text x="496" y="474" text-anchor="middle" class="t2">khi đơn được xác nhận…</text>
+
+      <rect x="602" y="412" width="176" height="72" rx="10" class="b-ext"/>
+      <text x="690" y="438" text-anchor="middle" class="t1">Email</text>
+      <text x="690" y="458" text-anchor="middle" class="t2">báo góp ý, báo lỗi</text>
+      <text x="690" y="474" text-anchor="middle" class="t2">tới chủ dự án</text>
+
+      <rect x="796" y="412" width="168" height="72" rx="10" class="b"/>
+      <text x="880" y="438" text-anchor="middle" class="t1">Máy của chủ dự án</text>
+      <text x="880" y="458" text-anchor="middle" class="t2">day-len: đẩy mã lên GitHub</text>
+      <text x="880" y="474" text-anchor="middle" class="t2">trien-khai: đưa lên Cloudflare</text>
+      <path d="M860,410 L752,320" class="e" marker-end="url(#a)"/>
+      <text x="826" y="352" class="te">triển khai</text>
+
+      <path d="M700,236 L700,396" class="es"/>
+      <path d="M108,396 L700,396" class="es"/>
+      <path d="M108,396 L108,408" class="es" marker-end="url(#as)"/>
+      <path d="M302,396 L302,408" class="es" marker-end="url(#as)"/>
+      <path d="M496,396 L496,408" class="es" marker-end="url(#as)"/>
+      <path d="M690,396 L690,408" class="es" marker-end="url(#as)"/>
+      <text x="250" y="389" text-anchor="middle" class="tes">máy chủ gọi ra dịch vụ ngoài</text>
+    </svg>
+  </div>
+  <p class="foot">Bảng tin là một Durable Object: không lưu tin, tin đi rồi thôi. Lịch 15 phút kéo danh mục dịch vụ từ Google Sheet. Chỉ một tên miền, <code>booking.tourdao.vn</code>. Đường dẫn <code>/api/*</code> luôn vào máy chủ trước; mọi thứ khác là trang tĩnh. Bí mật (khoá phiên, khoá Turnstile, khoá thông báo) chỉ nằm trong kho bí mật của Cloudflare, không nằm trong mã.</p>
+</section>
+
+<!-- 2. Một yêu cầu -->
+<section id="yeu-cau">
+  <div class="sec-head">
+    <span class="eyebrow">Đường đi</span>
+    <h2>Một yêu cầu đi qua tám trạm kiểm</h2>
+    <p>Ví dụ bấm "Lưu đơn". Trạm nào không qua thì dừng ngay và trả câu báo; phần xử lý chỉ chạy khi qua đủ bảy trạm đầu.</p>
+  </div>
+  <div class="panel">
+    <div class="route">
+      <div class="stop"><div class="no">1</div><h3>Khớp đường dẫn</h3><p>Không có đường thì trả "không tìm thấy"</p><span class="st">404 · 405</span></div>
+      <div class="stop"><div class="no">2</div><h3>Kiểm cấu hình</h3><p>Thiếu khoá phiên thì từ chối hết</p><span class="st">500</span></div>
+      <div class="stop"><div class="no">3</div><h3>Chống giả mạo</h3><p>Lệnh ghi phải đến từ chính trang của app</p><span class="st">403 · 415</span></div>
+      <div class="stop"><div class="no">4</div><h3>Phiên đăng nhập</h3><p>PIN hoặc Face ID, cookie có chữ ký</p><span class="st">401</span></div>
+      <div class="stop"><div class="no">5</div><h3>Cổng bảo trì</h3><p>Đang bảo trì thì chỉ các số điện thoại được phép mới qua</p><span class="st">503</span></div>
+      <div class="stop"><div class="no">6</div><h3>Cổng theo nhóm</h3><p>Năm cổng: công khai, nhân viên, văn phòng, đơn hàng, quản trị</p><span class="st">403</span></div>
+      <div class="stop key"><div class="no">7</div><h3>Quyền từng việc</h3><p>Phần xử lý hỏi bảng quyền cho đúng thao tác, đúng đơn</p><span class="st">403 · 409</span></div>
+      <div class="stop"><div class="no">8</div><h3>Ghi và trả kết quả</h3><p>Ghi dữ liệu và nhật ký cùng một lô; trả kết quả không lưu đệm</p><span class="st">200</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- 3. 15 phần -->
+<section id="phan">
+  <div class="sec-head">
+    <span class="eyebrow">Máy chủ</span>
+    <h2>15 phần, xếp theo tầng phụ thuộc</h2>
+    <p>Mỗi phần chỉ được gọi xuống các phần ở tầng thấp hơn, không có vòng. Bài kiểm kiến trúc chặn mọi mối nối ngoài danh sách. Phần "nghiêm" bị kiểm chặt từng câu truy vấn; phần "cũ" còn ngoại lệ có hạn.</p>
+  </div>
+  <div class="layers">
+    <div class="layer"><div class="layer-n">Tầng 6<small>trên cùng</small></div>
+      <div class="mods">
+        <div class="mod"><div class="mod-h"><b>Thông báo</b><span class="tag strict">nghiêm</span></div><p>Tin nội bộ, thông báo đẩy tới điện thoại</p><span class="dep">đọc: <code>orders dispatch staff audit</code></span></div>
+      </div></div>
+    <div class="layer-arrow">↓ chỉ gọi xuống</div>
+    <div class="layer"><div class="layer-n">Tầng 5</div>
+      <div class="mods">
+        <div class="mod core"><div class="mod-h"><b>Vận chuyển</b><span class="tag strict">nghiêm</span></div><p>Xe, giấy tờ xe, chuyến, điều phối, tài xế</p><span class="dep">đọc: <code>orders parties locations audit</code></span></div>
+        <div class="mod"><div class="mod-h"><b>Phân công</b><span class="tag strict">nghiêm</span></div><p>Người phụ trách đơn, hướng dẫn viên nhận việc</p><span class="dep">đọc: <code>orders parties locations staff audit</code></span></div>
+        <div class="mod"><div class="mod-h"><b>Quản lý tài khoản</b><span class="tag legacy">cũ</span></div><p>Tạo tài khoản, cấp quyền, nạp nhân viên từ Sheet</p><span class="dep">đọc: <code>staff auth maintenance audit</code></span></div>
+      </div></div>
+    <div class="layer"><div class="layer-n">Tầng 4</div>
+      <div class="mods">
+        <div class="mod core"><div class="mod-h"><b>Đơn hàng</b><span class="tag legacy">cũ</span></div><p>Lập, sửa, xác nhận đơn; dịch vụ, chặng đón, hành khách</p><span class="dep">đọc: <code>catalog staff parties locations audit</code></span></div>
+        <div class="mod"><div class="mod-h"><b>Đăng nhập</b><span class="tag strict">nghiêm</span></div><p>PIN, Face ID, phiên, chống dò mã</p><span class="dep">đọc: <code>staff parties maintenance</code></span></div>
+        <div class="mod"><div class="mod-h"><b>Góp ý / Báo lỗi</b><span class="tag strict">nghiêm</span></div><p>Phiếu góp ý, trao đổi, email báo chủ</p><span class="dep">đọc: <code>staff audit</code></span></div>
+      </div></div>
+    <div class="layer"><div class="layer-n">Tầng 3</div>
+      <div class="mods">
+        <div class="mod"><div class="mod-h"><b>Nhân viên</b><span class="tag strict">nghiêm</span></div><p>Tài khoản và bảng quyền của từng người</p><span class="dep">đọc: <code>parties audit</code></span></div>
+        <div class="mod"><div class="mod-h"><b>Công ty</b><span class="tag strict">nghiêm</span></div><p>Logo; tên, mã số thuế lấy từ hồ sơ công ty chủ</p><span class="dep">đọc: <code>parties</code></span></div>
+      </div></div>
+    <div class="layer"><div class="layer-n">Tầng 2<small>lõi</small></div>
+      <div class="mods">
+        <div class="mod core"><div class="mod-h"><b>Danh bạ</b><span class="tag strict">nghiêm</span></div><p>Mọi "Bên": khách, đại lý, đối tác, nhân viên, nhà xe, công ty chủ; vai, liên hệ, giấy tờ</p><span class="dep">đọc: <code>locations audit</code></span></div>
+      </div></div>
+    <div class="layer"><div class="layer-n">Tầng 1</div>
+      <div class="mods">
+        <div class="mod"><div class="mod-h"><b>Địa điểm</b><span class="tag strict">nghiêm</span></div><p>Khách sạn, bến tàu, điểm tham quan</p><span class="dep">đọc: <code>audit</code></span></div>
+        <div class="mod"><div class="mod-h"><b>Danh mục dịch vụ</b><span class="tag legacy">cũ</span></div><p>Bảng giá tour, đồng bộ từ Google Sheet</p><span class="dep">đọc: <code>audit</code></span></div>
+        <div class="mod"><div class="mod-h"><b>Bảo trì</b><span class="tag strict">nghiêm</span></div><p>Bật tắt chế độ bảo trì, chỉ chủ dùng</p><span class="dep">đọc: <code>audit</code></span></div>
+      </div></div>
+    <div class="layer"><div class="layer-n">Tầng 0<small>đáy</small></div>
+      <div class="mods">
+        <div class="mod core"><div class="mod-h"><b>Nhật ký</b><span class="tag legacy">cũ</span></div><p>Ai làm gì, lúc nào; chỉ thêm, không sửa</p><span class="dep">không gọi ai</span></div>
+        <div class="mod"><div class="mod-h"><b>Bảng tin</b><span class="tag leaf">lá</span></div><p>Báo tức thì cho màn hình đang mở; không có bảng dữ liệu</p><span class="dep">không gọi ai · gốc lắp ráp nối vào</span></div>
+      </div></div>
+  </div>
+  <p class="foot">Gốc lắp ráp (<code>src/index.ts</code>) là nơi duy nhất nối chéo: nó đưa "người phụ trách", "mốc 6 giờ", "báo Bảng tin" vào Đơn hàng mà Đơn hàng không phải gọi Phân công, Vận chuyển hay Bảng tin. Logic dùng chung cho máy chủ và màn hình nằm ở <code>src/shared/</code>, gồm cả bảng quyền.</p>
+</section>
+
+<!-- 4. Vai và cổng -->
+<section id="vai">
+  <div class="sec-head">
+    <span class="eyebrow">Người dùng</span>
+    <h2>Chín vai, năm cổng</h2>
+    <p>Một tài khoản có thể giữ nhiều vai. Quyền của từng việc nằm ở một bảng duy nhất trên máy chủ; màn hình chỉ ẩn hay hiện nút, máy chủ luôn kiểm lại.</p>
+  </div>
+  <div class="roles">
+    <div class="rg"><h3>Văn phòng</h3><ul>
+      <li>Bán hàng <small>· lập đơn, xếp xe</small></li>
+      <li>Kế toán <small>· xem đơn, tiền</small></li>
+      <li>Quản trị <small>· danh mục, danh bạ, xe, phá lệ</small></li>
+      <li>Toàn quyền <small>· thêm nhật ký, bảo trì, pháp lý công ty</small></li>
+      <li>Thực tập <small>· quyền hẹp</small></li>
+    </ul></div>
+    <div class="rg"><h3>Hiện trường</h3><ul>
+      <li>Hướng dẫn viên <small>· việc của mình, nhận hoặc từ chối</small></li>
+      <li>Tài xế công ty <small>· cuốc của mình, giấy tờ của mình</small></li>
+    </ul></div>
+    <div class="rg"><h3>Bên ngoài</h3><ul>
+      <li>Đối tác <small>· lập đơn của mình, xem danh mục</small></li>
+      <li>Tài xế đối tác <small>· đứng một mình, không kèm vai khác</small></li>
+    </ul><p class="foot">Tài khoản bên ngoài không giữ thêm quyền nội bộ nào; cơ sở dữ liệu cũng chặn.</p></div>
+  </div>
+  <div class="gates">
+    <div class="gate"><b>Công khai</b><code>public</code><p>Đăng nhập, tên công ty</p></div>
+    <div class="gate"><b>Nhân viên</b><code>staff</code><p>Mọi tài khoản đã đăng nhập</p></div>
+    <div class="gate"><b>Văn phòng</b><code>office</code><p>Vai văn phòng</p></div>
+    <div class="gate"><b>Đơn hàng</b><code>orders</code><p>Văn phòng hoặc Đối tác</p></div>
+    <div class="gate"><b>Quản trị</b><code>admin</code><p>Quản trị, Toàn quyền</p></div>
+  </div>
+</section>
+
+<!-- 5. Dữ liệu -->
+<section id="du-lieu">
+  <div class="sec-head">
+    <span class="eyebrow">Dữ liệu</span>
+    <h2>~61 bảng, mỗi bảng một chủ</h2>
+    <p>Chỉ phần chủ được ghi vào bảng của mình; phần khác đọc qua cửa công bố. Tiền lưu số nguyên đồng, chỉ máy chủ tính; ngày giờ theo giờ Việt Nam; không xoá cứng, đổi bằng dòng có hiệu lực.</p>
+  </div>
+  <div class="data">
+    <div class="own core"><div class="own-h"><b>Vận chuyển</b><span class="count">17</span></div><p>Xe, giấy tờ xe, chuyến, suất khách, sự kiện, bản chốt, chính sách</p><code>vc_</code></div>
+    <div class="own core"><div class="own-h"><b>Danh bạ</b><span class="count">12</span></div><p>Bên, người, tổ chức, vai, quan hệ, liên hệ, giấy tờ người, hạng bằng</p><code>pty_</code></div>
+    <div class="own core"><div class="own-h"><b>Đơn hàng</b><span class="count">6</span></div><p>Đơn, dịch vụ, dòng giá, điều chỉnh tiền, chặng đón, hành khách</p><code>orders · order_* · ord_</code></div>
+    <div class="own"><div class="own-h"><b>Thông báo</b><span class="count">5</span></div><p>Tin, người nhận, đã đọc, đã xác nhận, đăng ký thông báo đẩy</p><code>ntf_</code></div>
+    <div class="own"><div class="own-h"><b>Nhân viên</b><span class="count">4</span></div><p>Tài khoản, quyền, loại quyền, điều chỉnh quyền</p><code>staff · stf_</code></div>
+    <div class="own"><div class="own-h"><b>Góp ý</b><span class="count">4</span></div><p>Phiếu, tin trao đổi, loại, trạng thái</p><code>fbk_</code></div>
+    <div class="own"><div class="own-h"><b>Phân công</b><span class="count">3</span></div><p>Giao việc, trạng thái, loại việc</p><code>dsp_</code></div>
+    <div class="own"><div class="own-h"><b>Danh mục dịch vụ</b><span class="count">3</span></div><p>Mục dịch vụ, sửa tay, lần đồng bộ</p><code>catalog_*</code></div>
+    <div class="own"><div class="own-h"><b>Đăng nhập</b><span class="count">2</span></div><p>Khoá Face ID, lần thử PIN</p><code>aut_ · login_attempt</code></div>
+    <div class="own"><div class="own-h"><b>Địa điểm</b><span class="count">2</span></div><p>Địa điểm, loại địa điểm</p><code>loc_</code></div>
+    <div class="own"><div class="own-h"><b>Nhật ký</b><span class="count">1</span></div><p>Mọi thao tác quan trọng; không ghi SĐT, email, mã số thuế, số giấy tờ</p><code>audit_log</code></div>
+    <div class="own"><div class="own-h"><b>Bảo trì · Công ty</b><span class="count">2</span></div><p>Cài đặt bảo trì; logo công ty</p><code>mnt_setting · company_profile</code></div>
+  </div>
+  <p class="foot">Số bảng đếm theo lệnh tạo bảng trong các tệp migration của nhánh phát hành 1.38; 17 bảng Vận chuyển và 2 bảng chặng, hành khách lên hệ thống thật cùng bản 1.38.</p>
+</section>
+
+<!-- 6. An toàn và phát hành -->
+<section id="an-toan">
+  <div class="sec-head">
+    <span class="eyebrow">An toàn</span>
+    <h2>Hàng rào và cách phát hành</h2>
+    <p>Máy kiểm từng lần sửa; người kiểm độc lập xem lại việc lớn; chủ dự án là người duy nhất đưa bản mới lên hệ thống thật.</p>
+  </div>
+  <div class="guards">
+    <div class="guard"><b>Mặc định từ chối</b><p>Đường nào cũng phải khai cổng; việc nào cũng hỏi bảng quyền.</p></div>
+    <div class="guard"><b>Ranh giới các phần</b><p>Bài kiểm kiến trúc chặn mối nối lạ và câu truy vấn đọc lén bảng của phần khác.</p></div>
+    <div class="guard"><b>Luật sát dữ liệu</b><p>Luật quan trọng nằm ở cả máy chủ lẫn cơ sở dữ liệu, sai là bị chặn ngay khi ghi.</p></div>
+    <div class="guard"><b>Dữ liệu cá nhân</b><p>Nhật ký không ghi SĐT, email, mã số thuế, số giấy tờ; xem đủ số phải ghi nhật ký trước.</p></div>
+    <div class="guard"><b>Chỉ thêm, không sửa</b><p>Nhật ký, sự kiện, bản chốt chỉ thêm dòng; tệp migration đã áp không bao giờ sửa lại.</p></div>
+    <div class="guard"><b>Hàng rào cho AI</b><p>Máy chặn AI tự đẩy mã, tự triển khai, tự ghi dữ liệu thật; AI không tự sửa luật của chính mình.</p></div>
+  </div>
+
+  <div class="panel" style="display:grid;gap:12px">
+    <h3>Một bản mới đi từ đâu tới hệ thống thật</h3>
+    <div class="pipe">
+      <div class="step"><span class="who">AI</span><b>Làm trên nhánh riêng</b><p>Mỗi việc một thư mục riêng; viết bài kiểm đỏ trước, xanh sau</p></div>
+      <div class="step"><span class="who">Người kiểm độc lập</span><b>Kiểm lại</b><p>Chỉ đọc, tự chạy lại lệnh, thử phá cố ý</p></div>
+      <div class="step you"><span class="who">Chủ dự án</span><b>Duyệt</b><p>Quyết định dữ liệu, quyền, tiền, luật; đọc nhật ký thay đổi</p></div>
+      <div class="step you"><span class="who">Chủ dự án</span><b>npm run day-len</b><p>Gộp vào nhánh chính và đẩy lên GitHub</p></div>
+      <div class="step you"><span class="who">Chủ dự án</span><b>npm run trien-khai</b><p>Kiểm, áp dữ liệu mới, triển khai, kiểm lại dữ liệu thật và số bản</p></div>
+    </div>
+    <div class="checks">
+      <span class="check">~1 870 bài kiểm tự động</span>
+      <span class="check">30 kịch bản đầu-cuối</span>
+      <span class="check">Kịch bản trên trình duyệt Chrome</span>
+      <span class="check">Kiểm bất biến dữ liệu thật</span>
+      <span class="check">Cổng số phiên bản trước và sau triển khai</span>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <span>Vẽ theo mã nhánh phát hành 1.38 (30/9/2026): danh sách phần và mối nối lấy từ bài kiểm kiến trúc, bảng từ các tệp migration, trang từ danh sách trang của bộ nhớ đệm, hạ tầng từ cấu hình Cloudflare.</span>
+  <span>Tài liệu gốc: docs/SYSTEM-DESIGN.md, docs/ARCHITECTURE.md, src/architecture.test.ts. Phân hệ Vận chuyển có trang riêng: <a href="van-chuyen.html">Bản đồ phân hệ Vận chuyển</a>. Bản chữ, chuẩn C4: <a href="README.md">README.md</a> cùng thư mục.</span>
+</footer>
+</div>

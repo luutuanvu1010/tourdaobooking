@@ -10,6 +10,7 @@ Dự án **độc lập hoàn toàn** với repo `tourdaovn` (website công khai
 |---|---|
 | Làm việc trong repo này (quy tắc, lệnh, chỉ đường tới tài liệu đọc đúng lúc) | [`CLAUDE.md`](CLAUDE.md) |
 | **Sửa/thêm gì đó nhanh** (công thức từng loại việc, bẫy) | [`docs/CHANGE-GUIDE.md`](docs/CHANGE-GUIDE.md) |
+| **Sơ đồ kiến trúc** (chuẩn C4: bối cảnh, khối triển khai, 15 phần máy chủ, luồng, dữ liệu, vị trí như một SaaS) | [`docs/so-do-kien-truc/`](docs/so-do-kien-truc/README.md) — kèm bản trực quan `tong-the.html`, `van-chuyen.html` |
 | Hiểu cả hệ thống (topology, luồng, API, quyền, dữ liệu, giao diện) | [`docs/SYSTEM-DESIGN.md`](docs/SYSTEM-DESIGN.md) |
 | Luật kiến trúc (ranh giới module, dữ liệu, nơi đặt code) | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), [`docs/adr/`](docs/adr/README.md) |
 | Đặc tả nghiệp vụ và quyết định của chủ dự án | [`docs/SPEC-tourdao-sales.md`](docs/SPEC-tourdao-sales.md) |
@@ -20,7 +21,7 @@ Dự án **độc lập hoàn toàn** với repo `tourdaovn` (website công khai
 
 ## Kiến trúc trong một đoạn
 
-Một Worker, nhiều module độc lập trong `src/modules/<tên>/` (`accounts`, `audit`, `auth`, `catalog`, `company`, `dispatch`, `feedback`, `locations`, `maintenance`, `orders`, `parties`, `staff`). Mỗi module sở hữu route + bảng + logic của mình và chỉ lộ ra qua `index.ts`; module khác chỉ import `index.ts`. Router chung (`src/shared/router.ts`) lo 401/403/404/405, chặn ghi cross-site (kiểm `Origin`) và bắt lỗi toàn cục. Luật thuần dùng chung giữa máy chủ và giao diện nằm ở `src/shared/`. Giao diện là TypeScript thuần (`web/*.ts` → esbuild → `public/js/`) trên HTML tĩnh `public/*.html`. Chi tiết: `docs/ARCHITECTURE.md` và `docs/SYSTEM-DESIGN.md`.
+Một Worker, 15 module độc lập trong `src/modules/<tên>/` (`accounts`, `audit`, `auth`, `bangtin`, `catalog`, `company`, `dispatch`, `feedback`, `locations`, `maintenance`, `orders`, `parties`, `staff`, `thongbao`, `van-chuyen`), cộng Durable Object Bảng tin và Cron 15 phút. Mỗi module sở hữu route + bảng + logic của mình và chỉ lộ ra qua `index.ts`; module khác chỉ import `index.ts`. Router chung (`src/shared/router.ts`) lo 401/403/404/405, chặn ghi cross-site (kiểm `Origin`) và bắt lỗi toàn cục. Luật thuần dùng chung giữa máy chủ và giao diện nằm ở `src/shared/`. Giao diện là TypeScript thuần (`web/*.ts` → esbuild → `public/js/`) trên HTML tĩnh `public/*.html`. Sơ đồ: [`docs/so-do-kien-truc/`](docs/so-do-kien-truc/README.md). Luật: `docs/ARCHITECTURE.md`. Chi tiết: `docs/SYSTEM-DESIGN.md`.
 
 ## Chạy local
 

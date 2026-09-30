@@ -3,6 +3,7 @@
 > Mô tả **hiện trạng mã tại HEAD của nhánh này**, cho kỹ sư (hoặc một phiên Claude mới) chưa biết dự án và cần sửa nhanh, đúng.
 > Luật kiến trúc: `docs/ARCHITECTURE.md` + `docs/adr/`. Đặc tả nghiệp vụ: `docs/SPEC-tourdao-sales.md`. Bảng/cột/view: `docs/DATA-DICTIONARY.md` (sinh từ `docs/data-dictionary.json`). Triển khai/hoàn tác: `docs/HANDOFF-N1.md`. PWA: `docs/PWA-IPHONE.md`.
 > Tài liệu này KHÔNG chép lại các tệp đó; khi mâu thuẫn thì **mã thắng** — xem §16.
+> Sơ đồ kiến trúc tổng quan theo chuẩn C4 (bối cảnh, khối triển khai, 15 phần máy chủ theo tầng, dữ liệu, vị trí như một SaaS): `docs/so-do-kien-truc/README.md`.
 
 ## Mục lục
 
