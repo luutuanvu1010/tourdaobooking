@@ -92,8 +92,9 @@ Thứ tự tài liệu (Điều 3.1): Hiến pháp → ràng buộc dự án →
 - 0043: ADR-0051 ("Đã gọi báo": bảng `vc_leg_appt_ack` + trigger trên `vc_trip_allocation` của `0042`) — giữ chỗ 2026-09-29; **phải lên cùng lần phát hành với 0042**;
 - 0044, 0045: sổ tiền lượt 1 (ADR-0024/0025/0026) — nhánh `worktree-agent-aa1fab0316112d404`, giữ chỗ 2026-09-30;
 - 0046: ADR-0058 (nhóm dịch vụ); 0047: ADR-0062 (view báo tin); 0048: ADR-0063 (bảng đếm lượt đổi giờ, phải sau 0044); 0049: ADR-0065 (cột số khách đi xe, phải sau 0044) — giữ chỗ 2026-09-30, phiên điều phối chung;
-- ADR-0054…0057 (Vận chuyển) và ADR-0059, 0060, 0061 (phiên Góp ý) lấy số từ 0050 trở đi, phiên điều phối chung cấp lúc thi công;
-- số kế tiếp cho việc khác: hỏi phiên điều phối chung.
+- 0050: ADR-0066 (trợ lý Hỗ trợ, `0050_tro_ly`) — đã lên main, bản 1.44;
+- 0051: ADR-0060 (`0051_billing_nhap_ke_toan`); 0052: ADR-0061 (`0052_chinh_sach_nhap_tay`) — gộp ở nhánh phát hành 1.46 (2026-09-30); ADR-0059 và ADR-0067 không có migration;
+- **Luật từ 1.46 (2026-09-30): không giữ chỗ số migration trước nữa.** Nhánh thi công đặt số tạm = số lớn nhất trong `migrations/` của main + 1; **ai gộp sau tự đổi tên tệp lên số lớn nhất lúc gộp + 1** (kể cả chỗ tệp được nhắc trong bài kiểm / tài liệu), không để trùng số. Các dòng giữ chỗ 0046–0049 ở trên là lịch sử: nhánh nào dùng tới thì cũng theo luật này.
 
 Số 0019 vẫn giữ cho B5 (xem `docs/HANDOFF-N1.md`).
 
