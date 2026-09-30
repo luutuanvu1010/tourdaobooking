@@ -173,7 +173,8 @@
     {
       "name": "pty_party",
       "module": "parties",
-      "kind": "table"
+      "kind": "table",
+      "note": "merged_into_id (NULL = chưa gộp) + merged_at (ISO UTC): hồ sơ phụ đã gộp vào hồ sơ chính (ADR-0068) — đặt MỘT lần cùng active = 0, không chuỗi, không mở lại (trigger pty_party_merge_*); tham chiếu sổ sách cũ vẫn trỏ hồ sơ phụ, gom theo người thì đi theo merged_into_id một bước"
     },
     {
       "name": "pty_party_relationship",

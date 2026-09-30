@@ -106,7 +106,7 @@
 | `pty_contact_kind` | bảng tra cứu |  |
 | `pty_contact_point` | bảng |  |
 | `pty_organization` | bảng |  |
-| `pty_party` | bảng |  |
+| `pty_party` | bảng | merged_into_id (NULL = chưa gộp) + merged_at (ISO UTC): hồ sơ phụ đã gộp vào hồ sơ chính (ADR-0068) — đặt MỘT lần cùng active = 0, không chuỗi, không mở lại (trigger pty_party_merge_*); tham chiếu sổ sách cũ vẫn trỏ hồ sơ phụ, gom theo người thì đi theo merged_into_id một bước |
 | `pty_party_relationship` | bảng |  |
 | `pty_party_role` | bảng |  |
 | `pty_person` | bảng |  |
