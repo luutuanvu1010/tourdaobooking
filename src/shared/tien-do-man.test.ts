@@ -104,13 +104,15 @@ test("cauConKhach: 409 con_khach_chua_xong → câu có số + gợi ý 'Kết t
   assert.equal(cauConKhach({ conSuat: 1, conDiem: 1 }), "Còn 1 khách chưa xong ở 1 điểm.");
 });
 
-test("nhomCuoc: 'Hôm nay' + 'Ngày mai' (luôn có hai nhóm, trống vẫn hiện), theo giờ xuất bến; thẻ: số điểm đón / trả, trạng thái, điều kiện còn thiếu '(văn phòng lo)'", () => {
+test("nhomCuoc: 'Hôm nay' + 'Ngày mai' + 'Ngày kia' (luôn có ba nhóm, trống vẫn hiện — góp ý T3), theo giờ xuất bến; thẻ: số điểm đón / trả, trạng thái, điều kiện còn thiếu '(văn phòng lo)'", () => {
   const it = (id: string, ngay: string, gio: string, x: Partial<{ trangThai: string; dieuKienConThieu: { ma: string; loiNhan: string; aiXuLy: "VAN_PHONG" }[] }> = {}) => ({
     id, ma: `CX-${id}`, gioXuatBen: { ngay, gio }, trangThai: (x.trangThai ?? "PLANNED") as "PLANNED", trangThaiNhan: "Đã lên kế hoạch", bienSo: "79B-123.45", soKhach: 9, soDiemDon: 2, soDiemTra: 1,
     dieuKienConThieu: x.dieuKienConThieu ?? [],
   });
   const g = nhomCuoc([it("b", "2026-09-30", "09:00", { dieuKienConThieu: [{ ma: "THIEU_TEN", loiNhan: "Chưa đủ tên khách: TD-1 thiếu 2 tên", aiXuLy: "VAN_PHONG" }] }), it("a", "2026-09-30", "06:40", { trangThai: "RUNNING" })], "2026-09-30");
-  assert.deepEqual(g.map((x) => [x.tieuDe, x.ngay, x.the.length]), [["Hôm nay", "Thứ Tư 30/09", 2], ["Ngày mai", "Thứ Năm 01/10", 0]]);
+  assert.deepEqual(g.map((x) => [x.tieuDe, x.ngay, x.the.length]), [["Hôm nay", "Thứ Tư 30/09", 2], ["Ngày mai", "Thứ Năm 01/10", 0], ["Ngày kia", "Thứ Sáu 02/10", 0]]);
+  const ba = nhomCuoc([it("c", "2026-10-02", "07:00"), it("d", "2026-10-03", "07:00")], "2026-09-30");
+  assert.deepEqual(ba.map((x) => x.the.map((t) => t.ma)), [[], [], ["CX-c"]], "ngày kia vào nhóm thứ ba; ngày sau nữa không hiện");
   assert.deepEqual(g[0]!.the.map((t) => [t.gio, t.ma, t.chip.nhan, t.dong, t.canhBao, t.moChay]), [
     ["06:40", "CX-a", "Đang chạy", "79B-123.45 · 9 khách · 2 điểm đón · 1 điểm trả", [], true],
     ["09:00", "CX-b", "Bị giữ", "79B-123.45 · 9 khách · 2 điểm đón · 1 điểm trả", ["Chưa đủ tên khách: TD-1 thiếu 2 tên (văn phòng lo)"], false],

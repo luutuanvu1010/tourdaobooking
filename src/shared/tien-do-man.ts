@@ -174,9 +174,11 @@ export interface TheCuoc {
   /** Chuyến đang chạy → nút "Mở chuyến đang chạy". */
   moChay: boolean;
 }
-/** Hai nhóm "Hôm nay", "Ngày mai" (luôn có, trống vẫn hiện), mỗi nhóm theo giờ xuất bến. Không tên, không SĐT khách (R-P17). */
+/** Ba nhóm "Hôm nay", "Ngày mai", "Ngày kia" (luôn có, trống vẫn hiện — góp ý T3: tài xế xem trước 2–3 ngày), mỗi nhóm theo giờ xuất bến. Không tên,
+ *  không SĐT khách (R-P17; tên / năm sinh chỉ ở chi tiết chuyến TRONG ngày chạy — ADR-0053). */
 export function nhomCuoc(ds: readonly CuocCuaToiItemDto[], homNay: string): { tieuDe: string; ngay: string; iso: string; the: TheCuoc[] }[] {
   const mai = addDays(homNay, 1);
+  const kia = addDays(homNay, 2);
   const the = (c: CuocCuaToiItemDto): TheCuoc => {
     const giu = c.trangThai === "PLANNED" && c.dieuKienConThieu.length > 0;
     const chip: TheCuoc["chip"] = c.trangThai === "RUNNING" ? { nhan: "Đang chạy", tone: "unit" } : giu ? { nhan: "Bị giữ", tone: "danger" }
@@ -192,5 +194,6 @@ export function nhomCuoc(ds: readonly CuocCuaToiItemDto[], homNay: string): { ti
   return [
     { tieuDe: "Hôm nay", ngay: thuNgay(homNay), iso: homNay, the: theoNgay(homNay) },
     { tieuDe: "Ngày mai", ngay: thuNgay(mai), iso: mai, the: theoNgay(mai) },
+    { tieuDe: "Ngày kia", ngay: thuNgay(kia), iso: kia, the: theoNgay(kia) },
   ];
 }

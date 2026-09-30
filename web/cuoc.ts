@@ -1,6 +1,6 @@
 // Cuốc của tôi (/cuoc) — ADR-0049 V5 (route 19), trang mở đầu của tài xế công ty (Q5); bản vẽ docs/design/van-chuyen-dieu-phoi/project/04 Cuoc cua toi.dc.html
 // (4a, 4b điện thoại; 4c máy tính); bản đối chiếu 2.5, H15; ruling R-P17.
-// - Hôm nay + ngày mai; mỗi chuyến: giờ xuất bến, trạng thái, mã, biển số, số khách, số điểm đón / trả; điều kiện còn thiếu "(văn phòng lo)".
+// - Hôm nay + ngày mai + ngày kia (góp ý T3); mỗi chuyến: giờ xuất bến, trạng thái, mã, biển số, số khách, số điểm đón / trả; điều kiện còn thiếu "(văn phòng lo)".
 // - KHÔNG tên, KHÔNG SĐT khách ở màn này (DTO không có). Chuyến đang chạy: "Mở chuyến đang chạy". Bấm thẻ → /cuoc-chuyen?id= (xuất bến / đang chạy).
 // - Giờ kết thúc dự kiến (bản vẽ "06:40 – 08:25") chưa có trong DTO route 19 — chỉ hiện giờ xuất bến (ghi câu hỏi Q-B-12 ở nhật ký).
 import { nhomCuoc } from "../src/shared/tien-do-man";
@@ -26,7 +26,7 @@ async function main(): Promise<void> {
   byId("cu-ngay").textContent = `${thu.charAt(0).toLocaleUpperCase("vi-VN")}${thu.slice(1)}, ${d}/${m}/${y}`;
   let r: CuocCuaToiResponse;
   try {
-    r = await api<CuocCuaToiResponse>(`/api/van-chuyen/cuoc-cua-toi?tu=${homNay}&den=${addDays(homNay, 1)}`);
+    r = await api<CuocCuaToiResponse>(`/api/van-chuyen/cuoc-cua-toi?tu=${homNay}&den=${addDays(homNay, 2)}`);
   } catch (e) {
     return showError(errorEl, loiCua(e));
   }
