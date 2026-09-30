@@ -10,6 +10,7 @@ test("chuanHoaTen: NFC, chữ thường kiểu Việt, bỏ khoảng trắng đ�
   assert.equal(chuanHoaTen(NFD), chuanHoaTen("Nguyễn Phú Hải"));
   assert.notEqual(chuanHoaTen("Nguyễn Phú Hai"), chuanHoaTen("Nguyễn Phú Hải"), "giữ dấu: Hai ≠ Hải");
   assert.equal(chuanHoaTen("ĐẶNG"), "đặng");
+  assert.equal(chuanHoaTen("A \t\u00a0B"), "a b", "tab và khoảng trắng không ngắt cũng gộp");
 });
 
 test("capNghiTrung: một cặp xuất hiện MỘT lần dù khớp nhiều lý do; lý do gộp và xếp PHONE, NAME, LOGIN_PHONE", () => {
@@ -45,4 +46,13 @@ test("capNghiTrung: nhiều lý do đứng trước; cắt ở giới hạn và 
 test("NHAN_LY_DO_KHOP: đủ ba lý do, chữ tiếng Việt", () => {
   assert.deepEqual(Object.keys(NHAN_LY_DO_KHOP).sort(), ["LOGIN_PHONE", "NAME", "PHONE"]);
   for (const v of Object.values(NHAN_LY_DO_KHOP)) assert.match(v, /[à-ỹ]/);
+});
+
+test("capNghiTrung: tên rỗng / chỉ khoảng trắng và SĐT rỗng KHÔNG sinh cặp giả", () => {
+  const r = capNghiTrung({
+    hoSo: [{ id: "a", ten: "" }, { id: "b", ten: "   " }, { id: "c", ten: "\u00a0" }],
+    sdtLienHe: [{ partyId: "a", so: "" }, { partyId: "b", so: "" }],
+    sdtDangNhap: [{ partyId: "c", so: "" }],
+  });
+  assert.deepEqual(r.cap, []);
 });

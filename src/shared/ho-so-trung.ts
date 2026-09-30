@@ -37,14 +37,14 @@ export function capNghiTrung(
   };
   const nhom = (ds: { key: string; id: string }[]): string[][] => {
     const m = new Map<string, Set<string>>();
-    for (const d of ds) m.set(d.key, (m.get(d.key) ?? new Set()).add(d.id));
+    for (const d of ds) if (d.key) m.set(d.key, (m.get(d.key) ?? new Set()).add(d.id));
     return [...m.values()].filter((s) => s.size > 1).map((s) => [...s]);
   };
   const lienHe = v.sdtLienHe.filter((c) => trongTap.has(c.partyId));
   for (const ids of nhom(lienHe.map((c) => ({ key: c.so, id: c.partyId })))) for (let i = 0; i < ids.length; i++) for (let j = i + 1; j < ids.length; j++) them(ids[i]!, ids[j]!, "PHONE");
   for (const ids of nhom(v.hoSo.map((h) => ({ key: chuanHoaTen(h.ten), id: h.id })))) for (let i = 0; i < ids.length; i++) for (let j = i + 1; j < ids.length; j++) them(ids[i]!, ids[j]!, "NAME");
   for (const d of v.sdtDangNhap) {
-    if (!trongTap.has(d.partyId)) continue;
+    if (!d.so || !trongTap.has(d.partyId)) continue;
     for (const c of lienHe) if (c.so === d.so) them(d.partyId, c.partyId, "LOGIN_PHONE");
   }
   const cap = [...theoCap.entries()]
