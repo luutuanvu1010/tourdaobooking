@@ -109,6 +109,8 @@ const APP_OPTIONS: AppOptions = {
     nhanNhanVien: (env, ids) => nhanNhanVienTheoId(env.DB, ids),
     // GỘP HỒ SƠ (ADR-0068 Đ2, Đ6, Đ8): parties không import orders / dispatch / van-chuyen / billing / staff — gốc lắp ráp là NƠI DUY NHẤT gọi các hàm công bố này.
     gopHoSo: (env) => ({
+      // KIỂM "ĐANG BẬN" (Đ2): giữa lúc kiểm này và lô ghi gộp có khe thời gian CHẤP NHẬN ĐƯỢC (không có câu bảo vệ trong lô); lưới an toàn = bất biến
+      // kiểm toán R-PTY-MERGE-4 (Task 10) bắt nếu có việc lọt sang hồ sơ phụ.
       viecCua: async (partyId) => {
         const [phuTrachDon, xe] = await Promise.all([soDonDangPhuTrachCua(env.DB, partyId), viecXeCuaNguoi(env.DB, partyId)]);
         return { phuTrachDon, ...xe };

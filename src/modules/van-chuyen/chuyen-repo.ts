@@ -657,7 +657,7 @@ const VIEC_XE_CUA_NGUOI = defineSql(
      (SELECT count(*) FROM vc_trip_allocation a JOIN vc_trip t ON t.id = a.trip_id
        WHERE a.kind = 'CREW' AND a.crew_party_id = ?1 AND a.valid_to_at IS NULL AND t.status IN ('PLANNED', 'RUNNING')) AS to_lai,
      (SELECT count(*) FROM vc_trip t WHERE t.carrier_party_id = ?1 AND t.status IN ('PLANNED', 'RUNNING')) AS chu_xe,
-     (SELECT count(*) FROM vc_vehicle v WHERE v.owner_party_id = ?1) AS so_xe`,
+     (SELECT count(*) FROM vc_vehicle v WHERE v.owner_party_id = ?1 AND v.status <> 'retired') AS so_xe`,
 );
 export async function viecXeCuaNguoi(db: D1Database, partyId: string): Promise<{ laiChuyen: number; toLaiChuyen: number; chuXeChuyen: number; soXe: number }> {
   const r = await db.prepare(VIEC_XE_CUA_NGUOI).bind(partyId).first<{ lai: number; to_lai: number; chu_xe: number; so_xe: number }>();
