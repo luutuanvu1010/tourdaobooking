@@ -382,3 +382,27 @@ test("Thao tác Kế toán trên trang đơn (điều phối 30/9): GET payments
   assert.deepEqual([sau.choXacNhan, sau.dangGiu], [[], []]);
   for (const ai of [SALES, HDV, ADMIN]) assert.equal((await w.call("GET", `/api/orders/${id}/payments`, { as: ai })).json.keToan, null, `không phải Kế toán (${ai})`);
 });
+
+test("Kiểm độc lập vòng 2 (V-B): ghi nộp / xác nhận 'Công ty đã nhận' — Quản trị, Bán hàng → 403, sổ không đổi; tài khoản LAI (Bán hàng + Đối tác) xem tiền đơn của mình → keToan = null", async () => {
+  const w = setup();
+  const LAI = "66666666-6666-4666-8666-666666666699";
+  seedStaff(w.sqlite, { id: LAI, phone: "0900000099", name: "Lai Hai Quyền", perms: ["SALES", "PARTNER"] });
+  const id = donDaXacNhan(w);
+  await thu(w, HDV, id, tienMat(400_000));
+  assert.equal((await thu(w, SALES, id, { soTien: 250_000, hinhThuc: "BANK_TRANSFER", nguoiThu: "cong_ty" })).status, 201);
+  const ck = one(w, "SELECT id FROM bil_payment_receipt WHERE order_id = ? AND collector_role_code = 'COMPANY'", id)!.id as string;
+  const soDong = () => one(w, "SELECT count(*) AS n FROM bil_debt_line WHERE order_id = ?", id)!.n;
+  const truoc = soDong();
+  const nop = { chieu: "nop", partyId: `pty-${HDV}`, phanBo: [{ orderId: id, soTien: 400_000 }] };
+  for (const ai of [ADMIN, SALES]) {
+    assert.equal((await w.call("POST", "/api/ledger/settlements", { as: ai, body: nop })).status, 403, `settlements ${ai}`);
+    assert.equal((await w.call("POST", `/api/ledger/company-receipts/${ck}/confirm`, { as: ai, body: {} })).status, 403, `confirm ${ai}`);
+  }
+  assert.equal(soDong(), truoc, "không dòng nợ nào được ghi");
+  assert.equal(nhatKy(w, id, "ledger_settlement") + nhatKy(w, id, "ledger_company_received"), 0, "không nhật ký");
+  const idLai = donDaXacNhan(w, { owner: LAI });
+  const r = await w.call("GET", `/api/orders/${idLai}/payments`, { as: LAI });
+  assert.equal(r.status, 200, r.text);
+  assert.equal(r.json.keToan, null, "tài khoản lai không phải Kế toán");
+  assert.equal(r.json.laKeToan, false);
+});
