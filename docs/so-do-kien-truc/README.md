@@ -109,7 +109,7 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-  subgraph TB["Thiết bị người dùng"]
+  subgraph TBND["Thiết bị người dùng"]
     UI["Giao diện<br/>HTML tĩnh + TypeScript thuần<br/>web/*.ts → public/js"]
     SW["Service worker<br/>public/sw.js · giữ trang"]
   end
