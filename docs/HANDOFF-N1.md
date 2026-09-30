@@ -2,7 +2,24 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 1.37: nhà xe đối tác + tài xế đối tác (ADR-0048 — vai `CARRIER`, quan hệ "Tài xế của", xe của nhà xe, quyền `DRIVER_PARTNER`, LC-1 mới + LC-1b; migration `0037`–`0039`) ĐÃ LÊN PRODUCTION (2026-09-29 14:48 giờ VN, chủ dự án tự chạy `npm run day-len -- phat-hanh-1-37` rồi `npm run trien-khai`)
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 1.38: Vận chuyển lượt 1 — Bảng điều phối (ADR-0049), Kernel lượt 1 (ADR-0050), "Đã gọi báo" (ADR-0051), chặng đưa đón + hành khách phần máy chủ (ADR-0047 Phần A), mốc 6 giờ + "Đặt gấp", tài xế chỉ thấy khách trong ngày chạy (ADR-0053 D7.2, Q-L3-B); migration `0034`, `0035`, `0040`–`0043` ĐÃ LÊN PRODUCTION (2026-09-30 15:11 giờ VN, chủ dự án tự chạy `npm run day-len -- phat-hanh-1-38` rồi `npm run trien-khai`)
+
+AI (phiên điều phối chung, tiếp quản điều phối Vận chuyển 30/9) kiểm bằng lệnh chỉ đọc sau khi chủ báo xong (2026-09-30, chiều):
+
+- **Phiên bản: 1.38.** `node scripts/kiem-phien-ban.mjs --sau-deploy` → "ĐẠT: production đang chạy đúng bản 1.38."; `GET /api/auth/config` trả `"version":"1.38"`.
+- **Chế độ bảo trì: ĐANG BẬT** (chủ bật lại 30/9), `endsAt` = 2026-10-04T06:21:00Z (13:21 giờ VN ngày 4/10).
+- **Mã trên `main` / GitHub:** `origin/main` = e352e348 (nhánh `phat-hanh-1-38` = `giao-dien-dieu-phoi-luot-1` 6593df1 + Q-L3-B 43ae290/cb8df42 + e2e/Chrome + sổ hàng rào dòng Q-L3-B (chủ cho sửa 30/9) + changelog 1.38 + nhật ký 10.39–10.40; gộp `main` gồm `so-do-kien-truc` 45327822). Kiểm độc lập: Q-L3-B ĐẠT CÓ ĐIỀU KIỆN (VỪA-1 đã xử lý ở 947dddc); áp luật lần 17–18 ĐẠT CÓ ĐIỀU KIỆN (VỪA-1 đã sửa ở 2ba0e2c); **kiểm cuối K3 @e16ccfbe ĐẠT CÓ ĐIỀU KIỆN** (chỉ THẤP-1, đã sửa ở cf7aae4b), e2e 30/30. Sau lần sửa cuối: `npm test` hai bước thoát 0, typecheck 0.
+- **Worker:** `wrangler deployments list` → mới nhất **d5214617-5c05-4c61-952a-7946617e4d3b**, tạo 2026-09-30T08:11:39Z. Mốc lùi: d886c111-a7d9-4c2d-ac9f-6e5620c9eaf5 (1.37). Lùi Worker về 1.37 an toàn về dữ liệu theo phân tích của người kiểm K3 (migration chỉ thêm; mã 1.37 không đọc bảng chặng mới, không xoá đơn; chưa có chuyến) — **chưa thử lùi thật**; sau khi lùi, chặng thành bản cũ dần (mã 1.37 chỉ ghi cột cũ).
+- **Migration D1:** `0034_chang_dua_don`, `0035_hanh_khach`, `0040_dat_gap_chang`, `0041_chinh_sach_dieu_phoi`, `0042_chuyen_xe`, `0043_nhac_goi_bao` đã áp — `wrangler d1 migrations list --remote` → "No migrations to apply!". Trước phát hành remote chờ đúng sáu tệp này (kiểm 30/9).
+- **Kiểm dữ liệu:** `audit-invariants --db remote` → "Mọi bất biến đạt, 2 cảnh báo (D1 remote)":
+  - ⚠ **R-VC-14 = 12** (6 xe × Kiểm định + Bảo hiểm TNDS, khớp truy vấn chủ chạy trước phát hành). Quản trị nhập giấy **trước khi** dùng Điều phối cho chuyến thật.
+  - ⚠ **R-ORD-8 = 2**: chặng mở của đơn đã xác nhận, ngày đón từ hôm nay trở đi, chưa chốt nơi trả — văn phòng bổ sung (tình trạng nghiệp vụ, không chặn).
+- **AI kiểm công khai (không đăng nhập):** `GET /api/van-chuyen/lich` → 401.
+- **Quyết định chủ 30/9:** phát hành nhưng **CHƯA dùng Bảng điều phối cho chuyến thật** cho tới khi có màn nhập tên khách (ADR-0047 Phần B) — chuyến có khách bị giữ `THIEU_TEN` vì `require_manifest` = 1. Mốc 6 giờ có hiệu lực ngay với việc xác nhận đơn: chỉ Quản trị / Toàn quyền bấm "Đặt gấp" — cần báo nhân viên (chưa kiểm đã báo hay chưa).
+- **Chưa kiểm:** thao tác thật bằng tài khoản đã đăng nhập (Đặt gấp, Chính sách điều phối, Cuốc của tôi); iPhone thật.
+- **Kế tiếp:** ADR-0047 Phần B (chờ bản vẽ); **Sổ tiền lượt 1** (phiên mới, theo `docs/superpowers/plans/2026-09-29-so-tien-luot-1-ke-hoach.md` — Task 0 đo lại, migration ≥ 0044); rồi ADR-0057 T1/T2 → ADR-0052 A-1b, ADR-0053 A-2; ADR-0054/0055/0056 và A-1 theo điều phối. Bỏ nhãn [1.38] trong `docs/so-do-kien-truc/README.md` (§13 của tệp).
+
+## TRẠNG THÁI TRIỂN KHAI (cũ) — Phiên bản 1.37: nhà xe đối tác + tài xế đối tác (ADR-0048 — vai `CARRIER`, quan hệ "Tài xế của", xe của nhà xe, quyền `DRIVER_PARTNER`, LC-1 mới + LC-1b; migration `0037`–`0039`) ĐÃ LÊN PRODUCTION (2026-09-29 14:48 giờ VN, chủ dự án tự chạy `npm run day-len -- phat-hanh-1-37` rồi `npm run trien-khai`)
 
 AI (phiên điều phối) kiểm bằng lệnh chỉ đọc sau khi chủ báo xong (2026-09-29, chiều):
 
