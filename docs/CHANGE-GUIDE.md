@@ -441,7 +441,7 @@ route("PUT", "/api/foo/:id", "office", async ({ env, request, params, staff }) =
 2. `assert` từ `node:assert/strict`; in `✓ …` từng nhóm; kết thúc bằng một dòng `E2E … OK`; lỗi = thoát khác 0.
 3. Thêm tên vào `ALL` ở `tests/e2e/run.mjs`. Thứ tự CÓ nghĩa: `admin-race` tạm ngưng admin khác nên chạy gần cuối; `catalog.mjs` cần D1 CHƯA từng đồng bộ danh mục (`tests/e2e/README.md`).
 4. Thêm dòng vào bảng của `tests/e2e/README.md`. Tài khoản thử mới → `ACCOUNTS` trong `lib.mjs` (`run.mjs` nạp bằng `insertStaffSql`).
-5. Mọi kịch bản dùng CHUNG một D1 tạm → dùng dữ liệu độc nhất (`randomPhone()`, mã có `Date.now()`), dọn ở `finally` (mẫu `trip.mjs`: danh mục giả `ZT*`).
+5. Mọi kịch bản CÙNG NHÓM dùng CHUNG một D1 tạm (từ 30/9 `run.mjs` chia kịch bản thành nhiều nhóm chạy song song, mỗi nhóm một D1 + `wrangler dev` riêng, trong nhóm giữ thứ tự `ALL`; kịch bản mới phải chạy được trên D1 mới — không được CẦN kịch bản khác chạy trước — và thêm số đo giây vào `THOI_GIAN` để chia nhóm cho cân; `E2E_SONG_SONG=1` = tuần tự) → dùng dữ liệu độc nhất (`randomPhone()`, mã có `Date.now()`), dọn ở `finally` (mẫu `trip.mjs`: danh mục giả `ZT*`).
 
 **Chạy e2e:** `npm run test:e2e -- <tên>` (chạy lẻ KHÔNG chạy `audit-invariants`). Lẻ trên server có sẵn: đặt `E2E_BASE_URL`, `E2E_PERSIST_TO` rồi `node tests/e2e/<tên>.mjs`.
 

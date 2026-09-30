@@ -1,4 +1,4 @@
-// Chạy toàn bộ e2e trên một D1 local TẠM (không đụng .wrangler/state của máy) với wrangler dev riêng.
+// Chạy toàn bộ e2e trên D1 local TẠM (không đụng .wrangler/state của máy) với wrangler dev riêng — mỗi NHÓM một D1 + một wrangler dev (xem "Chạy song song theo NHÓM" dưới).
 // Dùng: npm run test:e2e                 — mọi kịch bản
 //       npm run test:e2e -- orders catalog — chỉ các kịch bản chỉ định
 // Cần mạng: admin.mjs và catalog.mjs đọc Google Sheet thật (quyết định của chủ dự án 2026-09-19).
@@ -34,7 +34,7 @@ const ROOT = join(HERE, "..", "..");
 // (ca R1, F6) — gỡ ở `finally`.
 // "tro-ly" (ADR-0066) đứng SAU "thongbao", TRƯỚC "maintenance" (cổng bảo trì chặn mọi route cần đăng nhập): dựng máy OpenAI GIẢ trên cổng E2E_OPENAI_PORT
 // (máy chủ trỏ vào nó bằng --var OPENAI_BASE_URL dưới đây); đổi cài đặt trợ lý rồi KHÔI PHỤC (bật, 5 USD, 30 câu) ở `finally`; tạo tài khoản dùng một lần.
-// "passkey" đứng CUỐI CÙNG: đổi PIN của salesB, tạm ngưng rồi kích hoạt lại field — mọi kịch bản của một lần chạy dùng chung một D1 tạm.
+// "passkey" đứng CUỐI CÙNG: đổi PIN của salesB, tạm ngưng rồi kích hoạt lại field — mọi kịch bản CÙNG NHÓM dùng chung một D1 tạm (passkey luôn cuối nhóm của nó).
 const ALL = ["platform", "pwa", "orders", "trip", "chang-hanh-khach", "nhap-tay-va-gia-doi-tac", "admin", "turnstile", "catalog", "dispatch", "admin-race", "locations", "parties", "booker", "permissions", "feedback", "company", "bangtin", "thongbao", "tro-ly", "maintenance", "roles", "van-chuyen", "tai-xe-doi-tac", "chinh-sach-dieu-phoi", "dieu-phoi", "tai-xe-cuoc", "dieu-phoi-chay-dua", "so-tien", "passkey"];
 const picked = process.argv.slice(2);
 const scripts = picked.length ? picked : ALL;
