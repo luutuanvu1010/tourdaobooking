@@ -953,7 +953,7 @@ export const vanChuyenModule: AppModule = {
       const assigned = dangLai(nen, staff);
       if (!nen || !assigned || !can(staff, "trip.view", { assigned })) return KHONG_CO_CHUYEN();
       const bayGioMs = Date.now();
-      const trongNgay = trongNgayChay({ ngayChay: nen.trip.service_date, trangThai: nen.trip.status }, vnToday(new Date(bayGioMs)));
+      const trongNgay = trongNgayChay({ ngayChay: nen.trip.service_date, trangThai: nen.trip.status, xuatBenMs: nen.trip.departed_ms }, vnToday(new Date(bayGioMs)));
       const lich = await lichChungChang(env.DB, nen.tu, nen.den);
       const hk = trongNgay ? await hanhKhachChoChuyen(env.DB, nen.legIds) : [];
       const donIds = [...new Set(lich.chang.filter((c) => nen.allocs.some((a) => a.valid_to_at === null && a.leg_id === c.legId)).map((c) => c.orderId))];
@@ -977,7 +977,7 @@ export const vanChuyenModule: AppModule = {
         if (r) return r;
       }
       const nen2 = (await docNen(env.DB, nen.trip.id))!;
-      const trongNgay = trongNgayChay({ ngayChay: nen2.trip.service_date, trangThai: nen2.trip.status }, vnToday(new Date(bayGioMs)));
+      const trongNgay = trongNgayChay({ ngayChay: nen2.trip.service_date, trangThai: nen2.trip.status, xuatBenMs: nen2.trip.departed_ms }, vnToday(new Date(bayGioMs)));
       const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
       // Phản hồi lệnh tiến độ KHÔNG kèm họ tên / liên hệ — chỉ GET /cuoc-cua-toi/:id (TC-39: đúng hai route van-chuyen trả tên); màn tải lại chi tiết.
       return json(await cuocChiTiet(env.DB, nen2, lich2.chang, [], null, nhanNhanVien, bayGioMs, trongNgay) satisfies CuocChiTietResponse);
@@ -997,7 +997,7 @@ export const vanChuyenModule: AppModule = {
         if (r) return r;
       }
       const nen2 = (await docNen(env.DB, nen.trip.id))!;
-      const trongNgay = trongNgayChay({ ngayChay: nen2.trip.service_date, trangThai: nen2.trip.status }, vnToday(new Date(bayGioMs)));
+      const trongNgay = trongNgayChay({ ngayChay: nen2.trip.service_date, trangThai: nen2.trip.status, xuatBenMs: nen2.trip.departed_ms }, vnToday(new Date(bayGioMs)));
       const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
       // Phản hồi lệnh tiến độ KHÔNG kèm họ tên / liên hệ — chỉ GET /cuoc-cua-toi/:id (TC-39: đúng hai route van-chuyen trả tên); màn tải lại chi tiết.
       return json(await cuocChiTiet(env.DB, nen2, lich2.chang, [], null, nhanNhanVien, bayGioMs, trongNgay) satisfies CuocChiTietResponse);
@@ -1017,7 +1017,7 @@ export const vanChuyenModule: AppModule = {
         if (r) return r;
       }
       const nen2 = (await docNen(env.DB, nen.trip.id))!;
-      const trongNgay = trongNgayChay({ ngayChay: nen2.trip.service_date, trangThai: nen2.trip.status }, vnToday(new Date(bayGioMs)));
+      const trongNgay = trongNgayChay({ ngayChay: nen2.trip.service_date, trangThai: nen2.trip.status, xuatBenMs: nen2.trip.departed_ms }, vnToday(new Date(bayGioMs)));
       const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
       // Phản hồi lệnh tiến độ KHÔNG kèm họ tên / liên hệ — chỉ GET /cuoc-cua-toi/:id (TC-39: đúng hai route van-chuyen trả tên); màn tải lại chi tiết.
       return json(await cuocChiTiet(env.DB, nen2, lich2.chang, [], null, nhanNhanVien, bayGioMs, trongNgay) satisfies CuocChiTietResponse);
@@ -1037,7 +1037,7 @@ export const vanChuyenModule: AppModule = {
         if (r) return r;
       }
       const nen2 = (await docNen(env.DB, nen.trip.id))!;
-      const trongNgay = trongNgayChay({ ngayChay: nen2.trip.service_date, trangThai: nen2.trip.status }, vnToday(new Date(bayGioMs)));
+      const trongNgay = trongNgayChay({ ngayChay: nen2.trip.service_date, trangThai: nen2.trip.status, xuatBenMs: nen2.trip.departed_ms }, vnToday(new Date(bayGioMs)));
       const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
       // Phản hồi lệnh tiến độ KHÔNG kèm họ tên / liên hệ — chỉ GET /cuoc-cua-toi/:id (TC-39: đúng hai route van-chuyen trả tên); màn tải lại chi tiết.
       return json(await cuocChiTiet(env.DB, nen2, lich2.chang, [], null, nhanNhanVien, bayGioMs, trongNgay) satisfies CuocChiTietResponse);
@@ -1057,7 +1057,7 @@ export const vanChuyenModule: AppModule = {
         if (r) return r;
       }
       const nen2 = (await docNen(env.DB, nen.trip.id))!;
-      const trongNgay = trongNgayChay({ ngayChay: nen2.trip.service_date, trangThai: nen2.trip.status }, vnToday(new Date(bayGioMs)));
+      const trongNgay = trongNgayChay({ ngayChay: nen2.trip.service_date, trangThai: nen2.trip.status, xuatBenMs: nen2.trip.departed_ms }, vnToday(new Date(bayGioMs)));
       const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
       // Phản hồi lệnh tiến độ KHÔNG kèm họ tên / liên hệ — chỉ GET /cuoc-cua-toi/:id (TC-39: đúng hai route van-chuyen trả tên); màn tải lại chi tiết.
       return json(await cuocChiTiet(env.DB, nen2, lich2.chang, [], null, nhanNhanVien, bayGioMs, trongNgay) satisfies CuocChiTietResponse);
@@ -1077,7 +1077,7 @@ export const vanChuyenModule: AppModule = {
         if (r) return r;
       }
       const nen2 = (await docNen(env.DB, nen.trip.id))!;
-      const trongNgay = trongNgayChay({ ngayChay: nen2.trip.service_date, trangThai: nen2.trip.status }, vnToday(new Date(bayGioMs)));
+      const trongNgay = trongNgayChay({ ngayChay: nen2.trip.service_date, trangThai: nen2.trip.status, xuatBenMs: nen2.trip.departed_ms }, vnToday(new Date(bayGioMs)));
       const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
       // Phản hồi lệnh tiến độ KHÔNG kèm họ tên / liên hệ — chỉ GET /cuoc-cua-toi/:id (TC-39: đúng hai route van-chuyen trả tên); màn tải lại chi tiết.
       return json(await cuocChiTiet(env.DB, nen2, lich2.chang, [], null, nhanNhanVien, bayGioMs, trongNgay) satisfies CuocChiTietResponse);
@@ -1097,7 +1097,7 @@ export const vanChuyenModule: AppModule = {
         if (r) return r;
       }
       const nen2 = (await docNen(env.DB, nen.trip.id))!;
-      const trongNgay = trongNgayChay({ ngayChay: nen2.trip.service_date, trangThai: nen2.trip.status }, vnToday(new Date(bayGioMs)));
+      const trongNgay = trongNgayChay({ ngayChay: nen2.trip.service_date, trangThai: nen2.trip.status, xuatBenMs: nen2.trip.departed_ms }, vnToday(new Date(bayGioMs)));
       const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
       // Phản hồi lệnh tiến độ KHÔNG kèm họ tên / liên hệ — chỉ GET /cuoc-cua-toi/:id (TC-39: đúng hai route van-chuyen trả tên); màn tải lại chi tiết.
       return json(await cuocChiTiet(env.DB, nen2, lich2.chang, [], null, nhanNhanVien, bayGioMs, trongNgay) satisfies CuocChiTietResponse);
@@ -1117,7 +1117,7 @@ export const vanChuyenModule: AppModule = {
         if (r) return r;
       }
       const nen2 = (await docNen(env.DB, nen.trip.id))!;
-      const trongNgay = trongNgayChay({ ngayChay: nen2.trip.service_date, trangThai: nen2.trip.status }, vnToday(new Date(bayGioMs)));
+      const trongNgay = trongNgayChay({ ngayChay: nen2.trip.service_date, trangThai: nen2.trip.status, xuatBenMs: nen2.trip.departed_ms }, vnToday(new Date(bayGioMs)));
       const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
       // Phản hồi lệnh tiến độ KHÔNG kèm họ tên / liên hệ — chỉ GET /cuoc-cua-toi/:id (TC-39: đúng hai route van-chuyen trả tên); màn tải lại chi tiết.
       return json(await cuocChiTiet(env.DB, nen2, lich2.chang, [], null, nhanNhanVien, bayGioMs, trongNgay) satisfies CuocChiTietResponse);
@@ -1137,7 +1137,7 @@ export const vanChuyenModule: AppModule = {
         if (r) return r;
       }
       const nen2 = (await docNen(env.DB, nen.trip.id))!;
-      const trongNgay = trongNgayChay({ ngayChay: nen2.trip.service_date, trangThai: nen2.trip.status }, vnToday(new Date(bayGioMs)));
+      const trongNgay = trongNgayChay({ ngayChay: nen2.trip.service_date, trangThai: nen2.trip.status, xuatBenMs: nen2.trip.departed_ms }, vnToday(new Date(bayGioMs)));
       const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
       // Phản hồi lệnh tiến độ KHÔNG kèm họ tên / liên hệ — chỉ GET /cuoc-cua-toi/:id (TC-39: đúng hai route van-chuyen trả tên); màn tải lại chi tiết.
       return json(await cuocChiTiet(env.DB, nen2, lich2.chang, [], null, nhanNhanVien, bayGioMs, trongNgay) satisfies CuocChiTietResponse);

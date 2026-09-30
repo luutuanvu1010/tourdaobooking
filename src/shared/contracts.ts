@@ -1281,7 +1281,7 @@ export interface DoiThuTuRequest { requestId: string; diem: { id: string; thuTu:
 /**
  * DTO TÀI XẾ (kế hoạch mục 1.8; ruling R-P11, R-P17) — dựng MỚI từng khoá (src/modules/van-chuyen/tai-xe-dto.ts). KHÔNG BAO GIỜ: tiền, dịch vụ khác, ghi chú
  * đơn, người lập, người phụ trách, số giấy tờ, hạn GPLX, khoá so sánh nơi. `hoTen`, `namSinh`, `lienHe` CHỈ trong ngày chạy (hôm nay là ngày chạy, hoặc chuyến
- * đang chạy) — ngoài ngày chạy các khoá đó VẮNG MẶT (không phải chuỗi rỗng). `lienHe` chỉ ở `GET /cuoc-cua-toi/:id` (phản hồi lệnh tiến độ không kèm —
+ * đang chạy đã xuất bến từ ngày chạy trở đi — ADR-0053 D7.2, Q-L3-B; xuất bến tối hôm trước không mở sớm) — ngoài ngày chạy các khoá đó VẮNG MẶT (không phải chuỗi rỗng). `lienHe` chỉ ở `GET /cuoc-cua-toi/:id` (phản hồi lệnh tiến độ không kèm —
  * màn tải lại chi tiết).
  */
 export interface DieuKienConThieuDto { ma: string; loiNhan: string; aiXuLy: "VAN_PHONG" | "QUAN_TRI" | "TOAN_QUYEN" }

@@ -312,10 +312,28 @@ test("kiemKetThuc (LC-16): mọi suất mở đã có kết quả cuối và m�
 
 test("TC-18 trongNgayChay: hôm nay = ngày chạy → có; hôm qua + đang chạy (qua nửa đêm) → có; ngày mai → không; hôm qua đã kết thúc → không", () => {
   assert.equal(trongNgayChay({ ngayChay: "2026-09-30", trangThai: "PLANNED" }, "2026-09-30"), true);
-  assert.equal(trongNgayChay({ ngayChay: "2026-09-29", trangThai: "RUNNING" }, "2026-09-30"), true);
+  assert.equal(trongNgayChay({ ngayChay: "2026-09-29", trangThai: "RUNNING", xuatBenMs: Date.parse("2026-09-29T23:20:00+07:00") }, "2026-09-30"), true);
   assert.equal(trongNgayChay({ ngayChay: "2026-10-01", trangThai: "PLANNED" }, "2026-09-30"), false);
   assert.equal(trongNgayChay({ ngayChay: "2026-09-29", trangThai: "ENDED" }, "2026-09-30"), false);
   assert.equal(trongNgayChay({ ngayChay: "2026-09-30", trangThai: "ENDED" }, "2026-09-30"), true, "đã kết thúc trong ngày chạy vẫn là ngày chạy");
+});
+
+// Q-L3-B (ADR-0053 D7.2, câu thay ADR-0049 D3; kẽ G3-9): "đang chạy" chỉ tính khi ĐÃ XUẤT BẾN TỪ NGÀY CHẠY TRỞ ĐI (ngày VN của giờ xuất bến ≥ ngày chạy).
+// Bấm Xuất bến tối hôm trước KHÔNG mở tên / SĐT khách sớm — một luật cho mọi tài xế.
+test("TC-18 / Q-L3-B trongNgayChay: xuất bến SỚM (tối hôm trước, chuyến RUNNING) → KHÔNG trong ngày chạy tới 00:00 ngày chạy; qua nửa đêm (xuất bến trong ngày chạy) → có", () => {
+  const ms = (ngay: string, gio: string) => Date.parse(`${ngay}T${gio}:00+07:00`);
+  // chuyến 06:00 ngày 01/10, bấm Xuất bến 18:30 ngày 30/9 → lúc 23:00 ngày 30/9 vắng; 00:05 ngày 01/10 có (hôm nay là ngày chạy)
+  assert.equal(trongNgayChay({ ngayChay: "2026-10-01", trangThai: "RUNNING", xuatBenMs: ms("2026-09-30", "18:30") }, "2026-09-30"), false, "xuất bến sớm không mở tên khách");
+  assert.equal(trongNgayChay({ ngayChay: "2026-10-01", trangThai: "RUNNING", xuatBenMs: ms("2026-09-30", "18:30") }, "2026-10-01"), true);
+  // xuất bến 23:59 ngày hôm trước (sát nửa đêm) vẫn là trước ngày chạy
+  assert.equal(trongNgayChay({ ngayChay: "2026-10-01", trangThai: "RUNNING", xuatBenMs: ms("2026-09-30", "23:59") }, "2026-09-30"), false);
+  // chuyến 23:30 ngày 30/9 qua nửa đêm: xuất bến 23:20 ngày 30/9, 00:30 ngày 01/10 còn RUNNING → có; xuất bến đúng 00:00 ngày chạy cũng tính
+  assert.equal(trongNgayChay({ ngayChay: "2026-09-30", trangThai: "RUNNING", xuatBenMs: ms("2026-09-30", "23:20") }, "2026-10-01"), true);
+  assert.equal(trongNgayChay({ ngayChay: "2026-09-30", trangThai: "RUNNING", xuatBenMs: ms("2026-09-30", "00:00") }, "2026-10-01"), true);
+  // xuất bến sớm hôm trước rồi chạy qua ngày chạy sang hôm sau: vẫn không (không có ngày VN xuất bến ≥ ngày chạy, hôm nay ≠ ngày chạy)
+  assert.equal(trongNgayChay({ ngayChay: "2026-09-30", trangThai: "RUNNING", xuatBenMs: ms("2026-09-29", "22:00") }, "2026-10-01"), false);
+  // RUNNING mà thiếu giờ xuất bến (không xảy ra — CHECK của vc_trip) → không (không đoán)
+  assert.equal(trongNgayChay({ ngayChay: "2026-09-29", trangThai: "RUNNING", xuatBenMs: null }, "2026-09-30"), false);
 });
 
 // ---- ADR-0050 VK1-B (TC-48, luật thuần — khoá GIẢ): giữ NOI_HEN_DOI khi nơi hẹn đổi sau khi xếp; VK1-A (TC-47, I37): nghỉ đo từ giờ XẢY RA xuất bến -------

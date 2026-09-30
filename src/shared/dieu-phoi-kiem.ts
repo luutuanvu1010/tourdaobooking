@@ -17,7 +17,7 @@ import { KET_QUA_CUOI_SUAT } from "./dieu-phoi-kieu.ts";
 import { LOAI_CO_DINH } from "./giay-to.ts";
 import { lyDoGiu, type LyDoGiu } from "./ly-do-giu.ts";
 import { kiemMocXep, type LenhXep } from "./moc-toi-thieu.ts";
-import { msToVnLocal } from "./vn-date.ts";
+import { msToVnLocal, vnToday } from "./vn-date.ts";
 
 const PHUT = 60_000;
 const NGAY_MS = 24 * 3600e3;
@@ -385,6 +385,11 @@ export function kiemKetThuc(v: { suat: SuatVao[]; diem: DiemVao[] }): { duoc: tr
   return conSuat === 0 && conDiem === 0 ? { duoc: true } : { duoc: false, goiY: "KET_THUC_GIAN_DOAN", conSuat, conDiem };
 }
 
-/** "Trong ngày chạy" (ADR-0049 D3): hôm nay (ngày VN) là ngày chạy của chuyến, HOẶC chuyến đang chạy (qua nửa đêm). Ngoài khoảng đó DTO tài xế không có tên, SĐT. */
-export const trongNgayChay = (chuyen: { ngayChay: string; trangThai: TrangThaiChuyen }, homNay: string): boolean =>
-  chuyen.ngayChay === homNay || chuyen.trangThai === "RUNNING";
+/**
+ * "Trong ngày chạy" (ADR-0049 D3, câu thay ở ADR-0053 D7.2 — Q-L3-B a, đóng kẽ G3-9): hôm nay (ngày VN) là ngày chạy của chuyến, HOẶC chuyến đang chạy
+ * VÀ ngày VN của giờ xuất bến (giờ xảy ra, `departed_ms`) ≥ ngày chạy — vế sau chỉ để phủ chuyến qua nửa đêm. Bấm Xuất bến tối hôm trước KHÔNG mở tên,
+ * SĐT khách sớm. Ngoài khoảng đó DTO tài xế không có tên, SĐT. Một hàm cho mọi tài xế (vế "sau hạn Từ chối" của tài xế đối tác thêm ở lượt 3 — D7.2).
+ */
+export const trongNgayChay = (chuyen: { ngayChay: string; trangThai: TrangThaiChuyen; xuatBenMs: number | null }, homNay: string): boolean =>
+  chuyen.ngayChay === homNay ||
+  (chuyen.trangThai === "RUNNING" && chuyen.xuatBenMs !== null && vnToday(new Date(chuyen.xuatBenMs)) >= chuyen.ngayChay);

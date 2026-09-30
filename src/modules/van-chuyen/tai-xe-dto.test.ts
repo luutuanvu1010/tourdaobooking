@@ -1,5 +1,5 @@
 // DTO TÀI XẾ (ADR-0049 D3; kế hoạch mục 1.8; TC-39; ruling R-P11, R-P17 — Task A15): bài LIỆT KÊ KHOÁ. Ngoài ngày chạy các khoá `hoTen`, `namSinh`, `lienHe`
-// VẮNG MẶT; trong ngày chạy có; chuyến đang chạy qua nửa đêm vẫn có. MỌI lúc không có tiền, ghi chú, người lập, người phụ trách, số giấy tờ, nơi cấp, hạn GPLX,
+// VẮNG MẶT; trong ngày chạy có; chuyến đang chạy qua nửa đêm vẫn có; xuất bến SỚM tối hôm trước vẫn vắng (Q-L3-B). MỌI lúc không có tiền, ghi chú, người lập, người phụ trách, số giấy tờ, nơi cấp, hạn GPLX,
 // khoá so sánh nơi. Mốc văn phòng khai giờ có `nguoiBam` là CHUỖI tên; không khai → không có khoá `nguoiBam`. Đồng hồ giả — tests/audit/dieu-phoi-khung.mjs.
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -82,6 +82,31 @@ test("TC-39: chuyến ĐANG CHẠY qua nửa đêm (ngày chạy hôm qua) vẫn
     assert.equal(sau.json.trongNgayChay, false);
     assert.equal("lienHe" in sau.json, false);
     void NGAY;
+  } finally {
+    tat();
+  }
+});
+
+test("TC-39 / Q-L3-B (ADR-0053 D7.2, kẽ G3-9): tài xế công ty bấm Xuất bến TỐI HÔM TRƯỚC (chuyến 06:00 ngày mai thành RUNNING) — GET chi tiết VẪN không có tên, năm sinh, liên hệ tới 00:00 ngày chạy; từ 00:05 ngày chạy → có", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const a = await chuyenSan(w, { ngay: NGAY_SAU, bd: "06:00", kt: "08:00", gio: "06:30" });
+    denGio("18:30");
+    const x = await tienDo(w, "tai-xe", a.id, "xuat-ben");
+    assert.equal(x.status, 200, x.text);
+    assert.equal(x.json.chuyen.trangThai, "RUNNING", "chống bài rỗng: chuyến ĐÃ chạy (xuất bến sớm được máy chủ nhận)");
+    assert.equal(x.json.trongNgayChay, false, "phản hồi lệnh: chưa tới ngày chạy");
+    denGio("23:00");
+    const r = await w.call("GET", `/api/van-chuyen/cuoc-cua-toi/${a.id}`, { as: DRIVER });
+    assert.equal(r.status, 200, r.text);
+    assert.equal(r.json.trongNgayChay, false, "xuất bến sớm không mở tên khách");
+    ghim(r.json, { lienHe: false, ten: false });
+    assert.doesNotMatch(r.text, /Dò Tìm \d|0912345678|Khách Liên Hệ/, "không tên khách, không liên hệ");
+    denGio("00:05", NGAY_SAU);
+    const sau = await w.call("GET", `/api/van-chuyen/cuoc-cua-toi/${a.id}`, { as: DRIVER });
+    assert.equal(sau.json.trongNgayChay, true, "tới ngày chạy → có");
+    ghim(sau.json, { lienHe: true, ten: true });
   } finally {
     tat();
   }

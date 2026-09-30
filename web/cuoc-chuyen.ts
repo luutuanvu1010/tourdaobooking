@@ -232,7 +232,7 @@ function veXuatBen(dauMang: HTMLElement | null): void {
     ),
   );
   const nut = h("button", { type: "button", class: "vc-btn btn btn-accent", disabled: thieu.length > 0, "data-action": "xuat-ben" }, "Xuất bến");
-  // Sau xuất bến, `gui` đọc lại chi tiết — có tên khách + liên hệ của ngày chạy (phản hồi lệnh không kèm).
+  // Sau xuất bến, `gui` đọc lại chi tiết — có tên khách + liên hệ NẾU trong ngày chạy (phản hồi lệnh không kèm; xuất bến sớm tối hôm trước thì chưa có — Q-L3-B).
   nut.addEventListener("click", () => void chay("xuat-ben", () => gui("xuat-ben")));
   replaceChildren(dayEl, nut, h("span", { class: "dp-note dp-cc-foot" }, thieu.length ? "Chưa xuất bến được — văn phòng đang lo." : `Bấm lúc xe lăn bánh — giờ ghi là lúc bấm (${msToVnLocal(Date.now()).time}).`));
   dayEl.hidden = false;

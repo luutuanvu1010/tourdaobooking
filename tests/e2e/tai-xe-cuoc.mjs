@@ -84,13 +84,18 @@ assert.deepEqual([r.status, r.body.error.code], [400, "xay_ra_khong_nhan"]);
 r = await call(TX.cookie, "POST", `/api/van-chuyen/cuoc-cua-toi/${id}/xuat-ben`, { requestId: uuid() });
 assert.equal(r.status, 200, JSON.stringify(r.body));
 assert.equal(r.body.chuyen.trangThai, "RUNNING");
-assert.equal(r.body.trongNgayChay, true, "đang chạy → trong ngày chạy");
+// Chuyến ngày D = hôm nay + 2, tài xế bấm Xuất bến HÔM NAY (xuất bến sớm): Q-L3-B (ADR-0053 D7.2, kẽ G3-9) — đang chạy nhưng xuất bến TRƯỚC ngày chạy
+// → KHÔNG trong ngày chạy; tên / liên hệ vẫn vắng. Ca "có tên" trong ngày chạy + qua nửa đêm dùng đồng hồ giả: src/modules/van-chuyen/tai-xe-dto.test.ts.
+assert.equal(r.body.trongNgayChay, false, "xuất bến sớm (trước ngày chạy) → KHÔNG trong ngày chạy");
 assert.ok(r.body.suat.length > 0 && r.body.suat.every((s) => !("hoTen" in s) && !("namSinh" in s)) && !("lienHe" in r.body), "phản hồi lệnh tiến độ không kèm tên / liên hệ (TC-39 — chỉ GET chi tiết)");
 const [e] = await sqlRows(`SELECT occurred_source, occurred_at, created_at FROM vc_trip_event WHERE trip_id = '${id}' AND kind = 'DEPARTED'`);
 assert.deepEqual([e.occurred_source, e.occurred_at], ["MAY_CHU", e.created_at]);
 r = await call(TX.cookie, "GET", `/api/van-chuyen/cuoc-cua-toi/${id}`);
-assert.deepEqual(r.body.suat.map((s) => s.hoTen).sort(), ["Khách Cuốc E2E 1", "Khách Cuốc E2E 2"]);
-assert.deepEqual(r.body.lienHe.map((x) => [x.tenLienHe, x.sdtLienHe]), [["Liên Hệ Cuốc E2E", "0913579246"]]);
+assert.equal(r.body.chuyen.trangThai, "RUNNING");
+assert.equal(r.body.trongNgayChay, false);
+assert.ok(r.body.suat.length === 2 && r.body.suat.every((s) => !("hoTen" in s) && !("namSinh" in s)), "xuất bến sớm không mở họ tên / năm sinh (Q-L3-B)");
+assert.equal("lienHe" in r.body, false, "xuất bến sớm không mở liên hệ (Q-L3-B)");
+assert.doesNotMatch(JSON.stringify(r.body), /Khách Cuốc|0913579246|Liên Hệ Cuốc/);
 const diemDon = r.body.diem.find((d) => d.loai === "PICKUP").id;
 assert.equal((await call(TX.cookie, "POST", `/api/van-chuyen/cuoc-cua-toi/${id}/diem/${diemDon}/da-toi`, { requestId: uuid() })).status, 200);
 const rid = uuid();
@@ -102,4 +107,4 @@ assert.equal(r.status, 200, JSON.stringify(r.body));
 assert.equal(r.body.chuyen.trangThai, "ENDED_INTERRUPTED");
 assert.equal((await sqlRows(`SELECT count(*) AS n FROM audit_log WHERE target_id = '${id}' AND action LIKE 'trip_%' AND order_id IS NOT NULL`))[0].n, 0, "nhật ký chuyến không mang order_id");
 void b;
-console.log("✓ lệnh tài xế: xayRaLuc → 400; xuất bến MAY_CHU; sau xuất bến có tên + liên hệ; đã tới; 'đã đón' lặp cùng requestId → một sự kiện; tài xế khác 404; kết thúc gián đoạn");
+console.log("✓ lệnh tài xế: xayRaLuc → 400; xuất bến MAY_CHU; xuất bến sớm (trước ngày chạy) vẫn KHÔNG tên, liên hệ (Q-L3-B); đã tới; 'đã đón' lặp cùng requestId → một sự kiện; tài xế khác 404; kết thúc gián đoạn");
