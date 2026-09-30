@@ -25,12 +25,22 @@
   - Schema hiện hành: **135 trigger**; `orders` 19 cột (`id … confirmed_at, booker_party_id`).
 - **Ruling Q1 (chủ "Khoá cả hai", kèm ngoại lệ "đóng chặng nếu Vận chuyển cần"):** đã xác minh — chỉ `src/modules/orders/chang-hanh-khach-repo.ts` ghi `ord_transfer_leg`/`ord_passenger`; `van-chuyen` không ghi bảng `ord_*` (module nghiêm, EXPLAIN chặn). Đóng chặng chỉ qua route `orders` (`POST …/legs/:legId/close`) vốn bị từ chối sau "Đã giao". ⇒ **Không cần ngoại lệ**; khoá cả hai bảng không chừa câu nào.
 - **R4:** chỉ `dispatch/repository.ts` ghi `dsp_assignment` (không trigger nào ghi bảng này; không luồng tự đóng khi ngưng tài khoản) ⇒ trigger khoá `dsp_assignment` không chặn luồng nào có sẵn.
-- **Mốc e2e:** (điền khi chạy xong)
+- **Mốc e2e (30/9, trước khi sửa):** `npm run test:e2e` → `E2E: 1/30 kịch bản LỖI` — đỏ duy nhất `catalog` (`tests/e2e/catalog.mjs:169`: `900000 !== 850000` — kịch bản đọc Google Sheet THẬT, giá TDMCT1 trên Sheet đổi giữa lần chạy; không do nhánh này). Mọi kịch bản khác + `audit-invariants` xanh.
 
 ## Spike (làm TRƯỚC Task 2 theo lời khuyên rà soát — nền của C1/V1 và NT-R5)
 
 - **R1 — ĐẠT trên D1 local (miniflare, `wrangler dev --local`), 30/9.** Ca R1 của `tests/e2e/so-tien.mjs`: kịch bản tự cài trigger `e2e_spike_r1` (`BEFORE INSERT ON audit_log … RAISE`) nhắm câu THỨ BA của lô đổi người phụ trách (`PUT /api/orders/:id/handler`: đóng dòng cũ → mở dòng mới → nhật ký) ⇒ 500, dòng `dsp_assignment` y nguyên (câu 1, 2 không lưu), không dòng nhật ký; gỡ trigger rồi làm lại cùng lệnh ⇒ 200 (ca không đỏ vì lệnh sai). Lệnh: `npm run test:e2e -- so-tien` → `E2E: 2/2 kịch bản xanh`. **Chỉ chứng minh trên D1 local**; D1 production chưa kiểm (AI không chạy remote) — cùng giả định với mọi lô `db.batch()` hiện có.
 - **R2 — EXPLAIN của Node 22 (`node:sqlite`) CÓ lộ chương trình con của trigger.** Thử trên CSDL tạm: `EXPLAIN UPDATE a SET x = 1` với trigger `BEFORE UPDATE OF x ON a WHEN EXISTS (SELECT 1 FROM b …) BEGIN … FROM v_view … END` in `Program` rồi `OpenRead b`, `OpenRead v_view` ⇒ dùng "cách chính" của Task 1d (không cần cách dự phòng tách thân trigger).
+
+## Task 1 — Rào kiến trúc (xong 30/9)
+
+- 1a `ALLOWED_EDGES`: `billing → orders, parties, staff, dispatch, audit`; `receipt → orders, billing, parties, company`; `pricing → parties, catalog, audit`; `orders` thêm `pricing`; `TABLE_PREFIX`/`VIEW_PREFIX` thêm `prc_`/`prc`. `pricing` chưa có thư mục (GĐ kế hoạch). Đột biến `dispatch → billing` → đỏ "vòng phụ thuộc: billing → dispatch → billing".
+- 1b bài "orders không nhắc `bil_`" — đột biến → đỏ `src/modules/orders/repository.ts:1314`.
+- 1c hạng `KHONG_BANG = ["receipt"]` + bài quét + bài phân hạng — **đột biến chờ Task 8** (thư mục `receipt` chưa có; bài bỏ qua thư mục vắng, vẫn đối chiếu sổ dữ liệu).
+- 1d luật thân trigger bằng EXPLAIN (spike R2) — 135 trigger hiện có đều thoả; ba ca đáp án biết trước khớp ĐÚNG kế hoạch. **Chênh:** CSDL ranh giới của bài này TẮT khoá ngoại — bật thì SQLite sinh lượt quét bảng con khi có trigger (INSERT `orders` "đọc" `dsp_assignment`, `audit_log`) làm báo nhầm 5 trigger. Đột biến trigger `orders` đọc `pty_party` → đỏ; đột biến với `bil_payment_receipt` làm lại sau migration `0045`.
+- 1e (hàng rào Bảng tin phủ `billing/index.ts`) **dời sang Task 6** — tệp chưa tồn tại; bài đọc tệp cố định, thêm tên tệp vắng sẽ ném lỗi (không được làm bài bỏ qua tệp vắng = nới).
+- Dòng `docs/SO-HANG-RAO.md`: 4 dòng mới (NT-R1, R3, R4, R5).
+- Kiểm: `npm test` 1878/1878 + 1/1; `npm run typecheck` 0.
 
 ## Ruling / giả định (ghi theo thứ tự gặp)
 

@@ -20,6 +20,9 @@ const WEB = join(ROOT, "web");
 const ALLOWED_EDGES: Record<string, readonly string[]> = {
   accounts: ["staff", "auth", "audit", "maintenance"], // maintenance: không cho đổi SĐT của tài khoản chủ dự án (PATCH /api/staff/:id)
   audit: [],
+  // ADR-0024 điều 2 (sổ tiền lượt 1, accepted 2026-09-29): billing giữ lần thu, phiếu sổ, dòng nợ; lấy câu `UPDATE orders` CHƯA chạy từ orders/index.ts và câu
+  // bảo vệ "còn là người phụ trách" từ dispatch/index.ts (cạnh billing → dispatch CHỈ cho câu đó — ADR-0024 đ2); nhãn người qua staff/parties; nhật ký qua audit.
+  billing: ["orders", "parties", "staff", "dispatch", "audit"],
   // maintenance: đăng nhập bị chặn khi bảo trì; GET /api/auth/config và /me báo trạng thái (chỉ đọc).
   // parties: ADR-0024 6.2 — GET /api/auth/config trả tên + MST công ty chủ qua hàm công bố ownerCompany (chỉ đọc; auth vốn đã tới parties bắc cầu qua
   // staff). NỚI hàng rào đã duyệt (Điều 9.4) — đã duyệt 2026-09-28 (chủ trả lời 'duyệt luật T2b'), xem docs/superpowers/plans/2026-09-28-t2b-de-xuat-luat.md.
@@ -37,8 +40,14 @@ const ALLOWED_EDGES: Record<string, readonly string[]> = {
   feedback: ["staff", "audit"], // đọc nhãn nhân viên (v_stf_staff_label) + ghi nhật ký `feedback_*`; không module nào import feedback
   locations: ["audit"],
   maintenance: ["audit"], // ghi nhật ký `maintenance_changed`; là lá của cạnh auth → maintenance (không vòng)
-  orders: ["audit", "catalog", "staff", "parties", "locations"],
+  // pricing: ADR-0024 điều 2 — tỷ lệ chiết khấu/hoa hồng chụp trong luồng của đơn lúc Xác nhận (lượt 2; lượt 1 chưa import).
+  orders: ["audit", "catalog", "staff", "parties", "locations", "pricing"],
   parties: ["locations", "audit"],
+  // ADR-0024 điều 1–2: chính sách giá theo ngày (lượt 2). GIẢ ĐỊNH BỀ MẶT (kế hoạch Task 1a): lượt 1 CHƯA tạo thư mục src/modules/pricing/ (không SQL ⇒
+  // chưa vào STRICT được) — chỉ khai ranh giới; tạo thư mục + STRICT ở lượt 2.
+  pricing: ["parties", "catalog", "audit"],
+  // ADR-0024 điều 1: biên nhận theo danh sách trắng — KHÔNG bảng, KHÔNG SQL (hạng KHONG_BANG); chuyển tay cầm DB cho hàm công bố của các module dưới.
+  receipt: ["orders", "billing", "parties", "company"],
   staff: ["parties", "audit"],
   // ADR-0034: đọc view công bố (sự kiện đơn, người lập, người phụ trách, nhãn) + auditStatement + getStaffAccount; không module nào import thongbao
   thongbao: ["audit", "orders", "dispatch", "staff"],
@@ -79,6 +88,13 @@ const LEGACY = ["accounts", "audit", "catalog", "orders"] as const;
  * (kể cả `index.ts`/`tram.ts`, không chỉ `repository.ts` — module này còn không có `repository.ts`).
  */
 const KHONG_DB = ["bangtin"] as const;
+
+/**
+ * Hạng "module không bảng" (KHONG_BANG, ADR-0024 điều 1 — accepted 2026-09-29): chặt hơn STRICT (không bảng, không view, không câu SQL nào — không
+ * `.prepare(`/`.batch(`/`.exec(` ở BẤT KỲ tệp `.ts` nào của module), lỏng hơn KHONG_DB (ĐƯỢC nhắc `env.DB` để chuyển tay cầm cho HÀM CÔNG BỐ của module
+ * mình phụ thuộc). Hôm nay chỉ `receipt` (biên nhận = một cách nhìn dữ liệu của module khác theo danh sách trắng). Siết thêm, không nới KHONG_DB.
+ */
+const KHONG_BANG = ["receipt"] as const;
 
 /**
  * ADR-0047 A3 (T3b) — SIẾT: tập bảng mang cờ `legacy: true` ở docs/data-dictionary.json bị KHOÁ đúng danh sách này (bảng tên cũ, có trước luật tiền tố).
@@ -134,8 +150,9 @@ const DOC_AUDIT_LOG_WONGUARD = {
 // vc_/vc: ADR-0040 D1 — NỚI hàng rào đã duyệt (Điều 9.4), đã duyệt 2026-09-28 (chủ trả lời 'Duyệt tất cả, có mục Hiến chương'), xem docs/superpowers/plans/2026-09-28-van-chuyen-1a-de-xuat-luat.md.
 // ord_: ADR-0047 A3 (bảng mới của orders; bảng cũ orders/order_item/order_service/order_money_adjustment giữ tên) — NỚI hàng rào đã duyệt (Điều 9.4),
 // ĐÃ DUYỆT 2026-09-29 (lần 5) ở docs/superpowers/plans/2026-09-29-adr-0047-de-xuat-luat.md mục 1.
-const TABLE_PREFIX: Record<string, string> = { pty_: "parties", loc_: "locations", stf_: "staff", fbk_: "feedback", dsp_: "dispatch", bil_: "billing", mnt_: "maintenance", aut_: "auth", ntf_: "thongbao", vc_: "van-chuyen", ord_: "orders" };
-const VIEW_PREFIX: Record<string, string> = { pty: "parties", loc: "locations", stf: "staff", ord: "orders", dsp: "dispatch", bil: "billing", aud: "audit", vc: "van-chuyen" };
+// prc_/prc: ADR-0024 điều 1 (module pricing, bảng ở lượt 2).
+const TABLE_PREFIX: Record<string, string> = { prc_: "pricing", pty_: "parties", loc_: "locations", stf_: "staff", fbk_: "feedback", dsp_: "dispatch", bil_: "billing", mnt_: "maintenance", aut_: "auth", ntf_: "thongbao", vc_: "van-chuyen", ord_: "orders" };
+const VIEW_PREFIX: Record<string, string> = { prc: "pricing", pty: "parties", loc: "locations", stf: "staff", ord: "orders", dsp: "dispatch", bil: "billing", aud: "audit", vc: "van-chuyen" };
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Đọc mã nguồn
@@ -505,17 +522,21 @@ test("R-N1-12: vai trò hồ sơ không là điều kiện cho phép — chỉ m
   assert.deepEqual(problems, [], "vai trò hồ sơ (HDV, tài xế…) chỉ để ghi và truy vấn, không bao giờ để cho/chặn thao tác (ADR-0001 mục 4, ADR-0005)");
 });
 
-test("module không nghiêm phải nằm trong LEGACY (ngoại lệ có hạn) hoặc KHONG_DB — module mới không được trốn 8(b)", () => {
+test("module không nghiêm phải nằm trong LEGACY (ngoại lệ có hạn), KHONG_DB hoặc KHONG_BANG — module mới không được trốn 8(b)", () => {
   const strict = new Set(STRICT.map((s) => s.module));
   const khongDb = new Set<string>(KHONG_DB);
+  const khongBang = new Set<string>(KHONG_BANG);
   for (const m of MODULES) {
     assert.ok(
-      strict.has(m) || (LEGACY as readonly string[]).includes(m) || khongDb.has(m),
-      `module "${m}" không nghiêm, không có trong LEGACY, không thuộc KHONG_DB: thêm vào STRICT (kèm repository dùng defineSql)`,
+      strict.has(m) || (LEGACY as readonly string[]).includes(m) || khongDb.has(m) || khongBang.has(m),
+      `module "${m}" không nghiêm, không có trong LEGACY, không thuộc KHONG_DB/KHONG_BANG: thêm vào STRICT (kèm repository dùng defineSql)`,
     );
   }
   for (const m of LEGACY) assert.ok(!strict.has(m), `module "${m}" đã nghiêm — bỏ khỏi LEGACY`);
   for (const m of khongDb) assert.ok(!strict.has(m) && !(LEGACY as readonly string[]).includes(m), `module "${m}" thuộc KHONG_DB thì không được đồng thời ở STRICT hoặc LEGACY`);
+  for (const m of khongBang) {
+    assert.ok(!strict.has(m) && !(LEGACY as readonly string[]).includes(m) && !khongDb.has(m), `module "${m}" thuộc KHONG_BANG thì không được đồng thời ở STRICT, LEGACY hoặc KHONG_DB`);
+  }
 });
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -538,6 +559,36 @@ test("KHONG_DB: mọi tệp .ts (trừ *.test.ts) của module hạng KHONG_DB k
     }
   }
   assert.deepEqual(problems, [], "module KHONG_DB không được chạm cơ sở dữ liệu ở bất kỳ tệp nào (không có repository.ts) — xem ADR-0022");
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// KHONG_BANG (ADR-0024 điều 1): module không bảng — không câu SQL ở BẤT KỲ tệp .ts nào (trừ *.test.ts), không bảng/view nào trong sổ dữ liệu thuộc nó.
+// Được nhắc `env.DB` (chuyển tay cầm cho hàm công bố của module khác). Che chú thích như khongDbHits.
+// ---------------------------------------------------------------------------------------------------------------------
+function khongBangHits(rel: string, source: string): string[] {
+  const code = source.split("\n").map((line) => (/^\s*(?:\/\/|\/\*|\*)/.test(line) ? "" : line.replace(/\/\/.*$/, ""))).join("\n");
+  const out: string[] = [];
+  for (const needle of [".prepare(", ".batch(", ".exec("]) if (code.includes(needle)) out.push(`${rel}: chứa "${needle}"`);
+  return out;
+}
+
+test("bộ bắt KHONG_BANG: bắt .prepare(/.batch(/.exec(, cho qua env.DB và chú thích", () => {
+  assert.deepEqual(khongBangHits("m.ts", "const r = await ordersReceipt(env.DB, id);"), []);
+  assert.deepEqual(khongBangHits("m.ts", "// env.DB.prepare(\"SELECT 1\") — ví dụ"), []);
+  assert.equal(khongBangHits("m.ts", "await env.DB.prepare(SQL).first();").length, 1);
+  assert.equal(khongBangHits("m.ts", "await env.DB.batch([a]);").length, 1);
+  assert.equal(khongBangHits("m.ts", "await env.DB.exec(SQL);").length, 1);
+});
+
+test("KHONG_BANG: mọi tệp .ts (trừ *.test.ts) của module hạng KHONG_BANG không có .prepare(/.batch(/.exec(; không bảng/view nào trong sổ dữ liệu thuộc module đó", () => {
+  const problems: string[] = [];
+  for (const m of KHONG_BANG) {
+    for (const o of [...dict.tables, ...dict.views]) if (o.module === m) problems.push(`sổ dữ liệu: ${o.name} thuộc module ${m} (hạng KHONG_BANG không có bảng/view)`);
+    const dir = join(SRC, "modules", m);
+    if (statSync(dir, { throwIfNoEntry: false }) === undefined) continue; // module chưa có thư mục (chưa thi công) — không có mã để quét
+    for (const file of walk(dir)) problems.push(...khongBangHits(relative(ROOT, file).split(sep).join("/"), readFileSync(file, "utf8")));
+  }
+  assert.deepEqual(problems, [], "module KHONG_BANG không có SQL — gọi hàm công bố của module sở hữu dữ liệu (ADR-0024 điều 1)");
 });
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -615,6 +666,38 @@ test("ADR-0030 S20-13: không tệp nào trong src/modules/orders/ (kể cả *.
     [],
     "`orders` không đọc view `v_dsp_*` của `dispatch` (ADR-0030 S20-13) — tập đơn đang có người phụ trách lấy qua hàm tiêm `ctx.ordersWithHandler` (gốc lắp ráp nối vào dispatch)",
   );
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// ADR-0024 điều 4 (sổ tiền lượt 1, siết — bản làm mới §4.1): `orders` KHÔNG BAO GIỜ đọc bảng/view `bil_` — không trong mã, không trong câu SQL. `orders`
+// còn LEGACY (SQL cũ không qua EXPLAIN) nên cần bài riêng này: quét MỌI tệp `.ts` của src/modules/orders/ KỂ CẢ *.test.ts, che CHÚ THÍCH nhưng KHÔNG che
+// chuỗi (SQL nằm trong chuỗi). Bắt cả `bil_…` lẫn `v_bil_…`, mọi kiểu chữ. Số "đã thu / còn phải thu" do `billing` trả qua route của nó.
+// KHÔNG canh: tên ghép động ("bi" + "l_…"). Luật trigger (điều 5) có bài riêng ở cuối tệp.
+// ---------------------------------------------------------------------------------------------------------------------
+function billingNameHits(rel: string, source: string): string[] {
+  const code = maskSource(source, { strings: false, comments: true });
+  const out: string[] = [];
+  const re = /bil_/gi;
+  for (let m = re.exec(code); m; m = re.exec(code)) out.push(`${rel}:${code.slice(0, m.index).split("\n").length}`);
+  return out;
+}
+
+test("bộ bắt `bil_`: bắt trong SQL (chuỗi/template, mọi kiểu chữ, cả v_bil_), cho qua chú thích, báo đúng tệp:dòng", () => {
+  const cases: [string, boolean][] = [
+    ["db.prepare(`SELECT 1 FROM bil_payment_receipt WHERE order_id = ?`)", true],
+    ['const SQL = "SELECT paid_net FROM v_bil_order_paid";', true],
+    ["db.prepare(`SELECT 1 FROM BIL_POSTING`)", true],
+    ["// orders không đọc bil_payment_receipt — lời giải thích", false],
+    ["/* bil_posting trong chú thích khối */ const x = 1;", false],
+    ["const x = 1; // v_bil_ ở chú thích cuối dòng", false],
+  ];
+  for (const [src, caught] of cases) assert.equal(billingNameHits("mau.ts", src).length > 0, caught, src);
+  assert.deepEqual(billingNameHits("mau.ts", "const a = 1;\n// bil_x\nconst q = `FROM bil_posting`;"), ["mau.ts:3"], "báo đúng tệp:dòng");
+});
+
+test("ADR-0024 điều 4: không tệp nào trong src/modules/orders/ (kể cả *.test.ts) nhắc `bil_` ngoài chú thích — orders không đọc sổ của billing", () => {
+  const problems = walkAll(join(SRC, "modules", "orders")).flatMap((file) => billingNameHits(relative(ROOT, file).split(sep).join("/"), readFileSync(file, "utf8")));
+  assert.deepEqual(problems, [], "`orders` không đọc bảng/view `bil_` (ADR-0024 điều 4) — số đã thu/còn lại lấy qua route của `billing`");
 });
 
 test("R-N1-9: câu DELETE trên bảng mới bị bắt (phải đóng hiệu lực hoặc active = 0); UPDATE thì không", () => {
@@ -821,4 +904,118 @@ test("R-P19 (chủ chốt 29/9, Trả lời lần 13): mỗi tham chiếu LOGIC 
     assert.ok(dich && view, `${t.name}.${r.column}: bảng ${r.toTable} / view ${r.viaView} không có trong sổ`);
     assert.equal(view!.module, dich!.module, `${r.viaView} phải là view công bố của module chủ ${r.toTable}`);
   }
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// ADR-0024 điều 5 (sổ tiền lượt 1, siết ADR-0002 điều 8): THÂN một trigger chỉ được đọc (a) bảng/view CÙNG module với bảng đặt trigger, hoặc (b) VIEW CÔNG BỐ
+// của module mà module đó được phép phụ thuộc (ALLOWED_EDGES); chỉ được GHI bảng cùng module. Hỏi CHÍNH SQLite (không quét chuỗi): với mỗi trigger của
+// schema thật, dựng CSDL "ranh giới" (bảng + chỉ mục + view công bố thay bằng bảng rỗng cùng cột — như `boundaryDb`) CHỈ cài đúng trigger đó, EXPLAIN một
+// câu tối thiểu kích hoạt nó, trừ đi số lần mở quan hệ của CÙNG câu khi không có trigger — phần dư là thân trigger (spike R2 30/9: EXPLAIN của node:sqlite
+// liệt kê cả chương trình con của trigger). Bài `vc_` quét chuỗi ở trên GIỮ NGUYÊN (gỡ = nới rào).
+// ---------------------------------------------------------------------------------------------------------------------
+function triggerBoundaryDb(): DatabaseSync {
+  // TẮT khoá ngoại: có trigger thì SQLite sinh thêm lượt quét BẢNG CON để đếm vi phạm khoá ngoại (isMultiWrite) — những lần mở đó là của câu kích hoạt,
+  // không phải của thân trigger (thử 30/9: bật khoá ngoại thì INSERT orders "đọc" dsp_assignment, audit_log chỉ vì có trigger).
+  const b = new DatabaseSync(":memory:", { enableForeignKeyConstraints: false });
+  const master = db.prepare("SELECT type, name, sql FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' AND sql IS NOT NULL").all() as { type: string; name: string; sql: string }[];
+  for (const m of master.filter((x) => x.type === "table")) b.exec(m.sql);
+  for (const m of master.filter((x) => x.type === "index")) b.exec(m.sql);
+  for (const v of dict.views) b.exec(`CREATE TABLE ${v.name} (${columns(v.name).map((c) => c.name).join(", ")})`);
+  return b;
+}
+
+/** Sự kiện của trigger: bảng, loại câu, danh sách cột `UPDATE OF` (null = mọi cột). */
+function triggerEvent(sql: string): { table: string; kind: "INSERT" | "UPDATE" | "DELETE"; cols: string[] | null } {
+  const m = /\b(?:BEFORE|AFTER)\s+(INSERT|DELETE|UPDATE(?:\s+OF\s+([\w\s,]+?))?)\s+ON\s+["`]?(\w+)/i.exec(sql);
+  if (!m) throw new Error(`không đọc được sự kiện của trigger: ${sql.slice(0, 120)}`);
+  const kind = m[1]!.toUpperCase().startsWith("UPDATE") ? "UPDATE" : (m[1]!.toUpperCase() as "INSERT" | "DELETE");
+  return { table: m[3]!, kind, cols: m[2] ? m[2].split(",").map((c) => c.trim()) : null };
+}
+
+/** Quan hệ thân một trigger đọc/ghi (tên bảng hoặc view công bố), theo EXPLAIN có-trừ-không. `tb` là CSDL ranh giới KHÔNG có trigger nào khác. */
+function triggerTouches(tb: DatabaseSync, name: string, sql: string): { table: string; reads: Set<string>; writes: Set<string> } {
+  const ev = triggerEvent(sql);
+  const cols = (tb.prepare(`PRAGMA table_info(${ev.table})`).all() as { name: string }[]).map((c) => c.name);
+  const fire =
+    ev.kind === "INSERT" ? `INSERT INTO ${ev.table} DEFAULT VALUES`
+    : ev.kind === "DELETE" ? `DELETE FROM ${ev.table}`
+    : `UPDATE ${ev.table} SET ${(ev.cols ?? cols).map((c) => `${c} = ${c}`).join(", ")}`;
+  const rootOf = new Map<number, string>();
+  for (const r of tb.prepare("SELECT tbl_name, rootpage FROM sqlite_master WHERE rootpage > 0").all() as { tbl_name: string; rootpage: number }[]) rootOf.set(r.rootpage, r.tbl_name);
+  const count = (): Map<string, number> => {
+    const out = new Map<string, number>();
+    for (const op of tb.prepare(`EXPLAIN ${fire}`).all() as { opcode: string; p2: number; p3: number }[]) {
+      const rel = rootOf.get(op.p2);
+      if (!rel || op.p3 !== 0 || (op.opcode !== "OpenRead" && op.opcode !== "OpenWrite")) continue;
+      const k = `${op.opcode}:${rel}`;
+      out.set(k, (out.get(k) ?? 0) + 1);
+    }
+    return out;
+  };
+  const base = count();
+  tb.exec(sql);
+  try {
+    const withTrigger = count();
+    const reads = new Set<string>();
+    const writes = new Set<string>();
+    for (const [k, n] of withTrigger) {
+      if (n <= (base.get(k) ?? 0)) continue;
+      const [op, rel] = k.split(":") as [string, string];
+      (op === "OpenWrite" ? writes : reads).add(rel);
+    }
+    return { table: ev.table, reads, writes };
+  } finally {
+    tb.exec(`DROP TRIGGER ${name}`);
+  }
+}
+
+/** Vi phạm luật thân trigger (ADR-0024 điều 5) của một trigger. */
+function triggerBodyViolations(tb: DatabaseSync, name: string, sql: string): string[] {
+  const t = triggerTouches(tb, name, sql);
+  const mod = ownerOf(t.table);
+  if (mod === undefined) return [`${name}: bảng ${t.table} không có trong sổ dữ liệu`];
+  const deps = new Set(ALLOWED_EDGES[mod] ?? []);
+  const out: string[] = [];
+  for (const w of t.writes) if (w !== t.table && ownerOf(w) !== mod) out.push(`${name} (${mod}): GHI ${w} của module ${ownerOf(w) ?? "không có trong sổ"}`);
+  for (const r of t.reads) {
+    const owner = ownerOf(r);
+    if (owner === mod) continue;
+    if (owner === undefined) out.push(`${name} (${mod}): đọc ${r} — không có trong sổ dữ liệu`);
+    else if (!isView(r)) out.push(`${name} (${mod}): đọc TRỰC TIẾP bảng ${r} của module ${owner} (chỉ được đọc view công bố)`);
+    else if (!deps.has(owner)) out.push(`${name} (${mod}): đọc view ${r} của module ${owner} — cạnh ${mod} → ${owner} chưa khai`);
+  }
+  return out;
+}
+
+test("bộ phân tích thân trigger (ADR-0024 đ5): đáp án biết trước của trigger có thật + bắt trigger đọc thẳng bảng module khác", () => {
+  const tb = triggerBoundaryDb();
+  const sqlOf = (n: string) => (db.prepare("SELECT sql FROM sqlite_master WHERE type = 'trigger' AND name = ?").get(n) as { sql: string } | undefined)?.sql;
+  const known: [string, string[]][] = [
+    ["lc1_stf_permission_external_partner_only", ["staff", "v_pty_open_role_group"]],
+    ["orders_confirm_requires_trip", ["order_service"]],
+    ["vc_vehicle_owner_ins", ["v_pty_carrier", "v_pty_owner_company"]],
+  ];
+  for (const [n, expect] of known) {
+    const s = sqlOf(n);
+    assert.ok(s, `trigger ${n} không còn trong schema — đổi ca đáp án biết trước`);
+    const t = triggerTouches(tb, n, s);
+    assert.deepEqual([...t.reads].filter((r) => r !== t.table).sort(), [...expect].sort(), `${n}: quan hệ thân trigger đọc`);
+    assert.deepEqual(triggerBodyViolations(tb, n, s), [], `${n}: hợp lệ`);
+  }
+  // Trigger giả trên `orders` đọc thẳng bảng `pty_party` (của parties, không phải view) → vi phạm; đọc view công bố `v_pty_owner_company` → hợp lệ
+  // (orders → parties đã khai); ghi `staff` → vi phạm.
+  const bad = "CREATE TRIGGER t_tu_kiem_bad BEFORE UPDATE OF status ON orders WHEN EXISTS (SELECT 1 FROM pty_party) BEGIN SELECT RAISE(ABORT, 'x'); END";
+  assert.ok(triggerBodyViolations(tb, "t_tu_kiem_bad", bad).some((v) => /đọc TRỰC TIẾP bảng pty_party của module parties/.test(v)));
+  const ok = "CREATE TRIGGER t_tu_kiem_ok BEFORE UPDATE OF status ON orders WHEN EXISTS (SELECT 1 FROM v_pty_owner_company) BEGIN SELECT RAISE(ABORT, 'x'); END";
+  assert.deepEqual(triggerBodyViolations(tb, "t_tu_kiem_ok", ok), []);
+  const write = "CREATE TRIGGER t_tu_kiem_ghi AFTER UPDATE OF status ON orders BEGIN UPDATE staff SET active = active; END";
+  assert.ok(triggerBodyViolations(tb, "t_tu_kiem_ghi", write).some((v) => /GHI staff của module staff/.test(v)));
+});
+
+test("ADR-0024 điều 5: thân MỌI trigger của schema chỉ đọc bảng cùng module / view công bố của module được phép phụ thuộc, chỉ ghi bảng cùng module", () => {
+  const tb = triggerBoundaryDb();
+  const trig = db.prepare("SELECT name, sql FROM sqlite_master WHERE type = 'trigger' ORDER BY name").all() as { name: string; sql: string }[];
+  assert.ok(trig.length >= 130, `chống bài rỗng: phải có ≥ 130 trigger (0001–0043 có 135), thấy ${trig.length}`);
+  const problems = trig.flatMap((t) => triggerBodyViolations(tb, t.name, t.sql));
+  assert.deepEqual(problems, [], "trigger chỉ đọc bảng của module mình hoặc view công bố của module được phép phụ thuộc (ADR-0024 điều 5)");
 });
