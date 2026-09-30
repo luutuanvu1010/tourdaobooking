@@ -1565,3 +1565,34 @@ test("R-BIL-M1/M2 (ADR-0025 NT 8): Hoàn thành mà chưa Đã giao; Đã giao m
   db.prepare("UPDATE orders SET status = 'cancelled' WHERE id = 'o-bil'").run();
   assert.equal(violations(db, bil("R-BIL-M2")), 1);
 });
+
+// ---------------------------------------------------------------------------------------------------------------------
+// R-ORD-NT1 (ADR-0061 điều 8, A-9 — lớp bù cho lệch 5.1 thu hẹp): đơn có dịch vụ nhập tay (order_service.catalog_code NULL) mà người lập (orders.staff_id)
+// đang giữ quyền PARTNER còn hiệu lực, và đơn tạo SAU mốc phát hành ADR-0061 (= created_at của dòng đầu bảng ord_manual_service_policy — dòng gieo 0051).
+// Mức "warn": máy chủ đã chặn (duocNhapTay — Đối tác trước); đây là lưới cho SQL chạy tay / đường ghi quên priceGuard. Đơn cũ trước mốc không bị xét.
+// ---------------------------------------------------------------------------------------------------------------------
+test("R-ORD-NT1: đơn có dịch vụ nhập tay do tài khoản có quyền Đối tác lập SAU mốc phát hành ADR-0061 → cảnh báo; trước mốc / nội bộ lập → không", () => {
+  const nt1 = one("R-ORD-NT1");
+  assert.equal(nt1.level, "warn");
+  const db = build();
+  const moc = (db.prepare("SELECT MIN(created_at) AS m FROM ord_manual_service_policy").get() as { m: string }).m;
+  assert.ok(moc, "dòng gieo 0051 có mặt");
+  const sau = new Date(Date.parse(moc) + 60_000).toISOString();
+  const don = (id: string, staffId: string, at: string, manual: boolean) => {
+    db.exec(`INSERT INTO orders (id, order_code, staff_id, status, customer_name, customer_phone, created_at, updated_at)
+             VALUES ('${id}', 'TD-${id}', '${staffId}', 'draft', 'K', '0900000009', '${at}', '${at}')`);
+    db.exec(`INSERT INTO order_service (id, order_id, catalog_code, name, unit, pax_adult, depart_date)
+             VALUES ('sv-${id}', '${id}', ${manual ? "NULL" : "'TD101'"}, 'Xe', ${manual ? "'manual'" : "'perPax'"}, 1, '2026-10-01')`);
+  };
+  assert.equal(violations(db, nt1), 0, "chưa có đơn");
+  don("nt-cu", "s-lai", T1, true);
+  assert.equal(violations(db, nt1), 0, "đơn nhập tay của tài khoản lai Đối tác TRƯỚC mốc — không xét");
+  don("nt-noibo", "s-an", sau, true);
+  assert.equal(violations(db, nt1), 0, "nội bộ (SALES) lập đơn nhập tay sau mốc — hợp lệ khi công tắc bật");
+  don("nt-danhmuc", "s-lai", sau, false);
+  assert.equal(violations(db, nt1), 0, "tài khoản lai Đối tác lập đơn DANH MỤC — không xét");
+  don("nt-lai", "s-lai", sau, true);
+  assert.equal(violations(db, nt1), 1, "tài khoản lai SALES+PARTNER lập đơn nhập tay sau mốc → cảnh báo");
+  db.exec(`UPDATE stf_permission SET valid_to_at = '${sau}' WHERE staff_id = 's-lai' AND permission_type_code = 'PARTNER'`);
+  assert.equal(violations(db, nt1), 0, "quyền PARTNER đã đóng → không còn 'đang giữ'");
+});
