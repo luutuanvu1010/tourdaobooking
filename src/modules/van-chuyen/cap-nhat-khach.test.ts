@@ -243,3 +243,38 @@ test("R-P29 lưới thứ hai: lịch đọc trước khi đổi khách, hành k
     tat();
   }
 });
+
+// K2e THẤP-3 (GA-69): khe đua của lưới thứ hai với suất CHƯA tên — `kiemXuatBen` (lịch đọc TRƯỚC) gán tạm người B cho suất chưa tên (I19b), rồi B bị bỏ khỏi đơn
+// trước khi hành khách được đọc (SAU). Suất vẫn null trong CSDL nên màn tải lại KHÔNG giữ KHACH_DA_DOI (suatKhachDaDoi bỏ qua suất chưa tên) mà giữ THIEU_TEN.
+// Lưới thứ hai phải trả ĐÚNG lý do màn sẽ hiện khi tải lại (tính lại CHÍNH `kiemXuatBen` với danh sách người mới đọc), không dẫn văn phòng tới nút sai.
+test("K2e THẤP-3 lưới thứ hai: suất chưa tên vừa được GÁN TẠM cho người bị bỏ giữa hai lần đọc → 409 mang ĐÚNG lý do màn hiện khi tải lại (THIEU_TEN), không KHACH_DA_DOI; không ghi gì", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const d = await don(w, { soNguoi: 2, ten: 1 });
+    const t = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER}` });
+    await xep(w, t.chuyen.id, d.legId, 2);
+    assert.deepEqual(khoaSuat(w, t.chuyen.id, d.legId).map((k) => k !== null), [true, false], "chống bài rỗng: một suất có tên, một suất chưa tên");
+    await doiKhach(w, d.id, { them: ["Khách Gán Tạm"] });
+    const truoc = khoaCuaDon(w, d.id);
+    denGio("12:40");
+    const nen = await M.docNen(w.env.DB, t.chuyen.id);
+    const lich = await M.lichChungChang(w.env.DB, nen.tu, nen.den);
+    const daCo = khoaSuat(w, t.chuyen.id, d.legId).filter((k) => k !== null);
+    const b = truoc.find((k) => !daCo.includes(k))!;
+    await doiKhach(w, d.id, { huy: [b] }); // bỏ ĐÚNG người sẽ được gán tạm
+    const hk = await M.hanhKhachChoChuyen(w.env.DB, nen.legIds);
+    const r = await M.lenhXuatBen(w.env.DB, nen, lich.chang, hk, { requestId: uuid(), xayRaMs: null }, { id: SALES, bamThay: true }, Date.now());
+    assert.ok(r instanceof Response, "bị chặn");
+    assert.equal(r.status, 409);
+    const j = await r.json();
+    const man = (await chiTiet(w, t.chuyen.id)).chuyen.lyDoGiu;
+    assert.deepEqual(man.map((l: any) => l.ma), ["THIEU_TEN"], "chống bài rỗng: màn tải lại giữ THIEU_TEN");
+    assert.deepEqual(j.error.lyDo, man, "câu 409 = đúng lý do màn hiện khi tải lại (mã + câu)");
+    assert.equal(w.q("SELECT status FROM vc_trip WHERE id = ?", t.chuyen.id)[0].status, "PLANNED", "không ghi gì");
+    assert.deepEqual(khoaSuat(w, t.chuyen.id, d.legId).filter((k) => k === null).length, 1, "suất chưa tên vẫn chưa tên");
+  } finally {
+    tat();
+  }
+});
+

@@ -14,7 +14,7 @@ import {
 } from "./dieu-phoi";
 import { chinhSachVao, diemVao, docChung, docNguCanh, suatVao, type NenChuyen } from "./dieu-phoi-doc";
 import { kiemGioLenh, ketThucTruoc, vaoGio, type NenGio } from "./dieu-phoi-gio";
-import { chayLo, loi409 } from "./dieu-phoi-route";
+import { CHUYEN_CU, chayLo, loi409 } from "./dieu-phoi-route";
 import { chinhSachHienHanh } from "./repository";
 import type { DoiThuTuThan, KetThucGianDoanThan, TienDoThan } from "./dieu-phoi-than";
 
@@ -70,10 +70,11 @@ export async function lenhXuatBen(
   const x = xayRaCua(l, b.xayRaMs);
   const gio = kiemGioLenh(n, vaoGio(n, "DEPARTED"), x.ms, b.xayRaMs !== null);
   if (gio) return gio;
-  const kq = kiemXuatBen({
+  const vao = {
     chuyen: nc.chuyen, suat: nc.suat, chang: [...nc.chang.values()], changNgoai: nc.changNgoai, suatMoCuaChang: nc.suatMoCuaChang, diem: nc.diem, chuyenKhac: nc.chuyenKhac,
     chinhSach: chinhSachVao(cs), hangBang: chung.hangBang, dieuKien: chung.dieuKien, bayGioMs, xuatBenMs: x.ms,
-  });
+  };
+  const kq = kiemXuatBen(vao);
   if (!kq.dat || !cs || kq.chup.taiXePartyId === null) return loi409("chua_du_dieu_kien_xuat_ben", kq.lyDo);
   // Bản chốt: khách trỏ DÒNG hành khách hiện hành (của đúng chặng, đúng khoá người — sau khi gắn tên còn thiếu); người đi kèm trỏ hồ sơ.
   const dong = new Map<string, string>();
@@ -89,9 +90,15 @@ export async function lenhXuatBen(
     const pk = a.passenger_key ?? gan.get(a.id) ?? null;
     if (pk === null) continue; // chính sách không bắt đủ danh sách: suất chưa tên không có dòng bản chốt (câu hỏi Q-A15-1 — R-VC-4 ở A17)
     const row = dong.get(`${a.leg_id}|${pk}`);
-    // Lưới THỨ HAI (R-P29): `kiemXuatBen` đã giữ KHACH_DA_DOI khi suất mang khoá không còn trong đơn; tới đây chỉ khi đơn đổi GIỮA lúc đọc lịch và lúc đọc
-    // hành khách của CHÍNH request này — trả CÙNG lý do màn sẽ hiện khi tải lại (không kết luận khác màn).
-    if (!row) return loi409("chua_du_dieu_kien_xuat_ben", [lyDoGiu("KHACH_DA_DOI", nc.changLich.get(a.leg_id!)?.orderCode)]);
+    // Lưới THỨ HAI (R-P29; K2e THẤP-3 — GA-69): tới đây chỉ khi đơn đổi GIỮA lúc đọc lịch và lúc đọc hành khách của CHÍNH request này — người trên suất (đã
+    // gắn từ trước ⇒ màn tải lại giữ KHACH_DA_DOI; hay vừa được `kiemXuatBen` GÁN TẠM cho suất chưa tên ⇒ suất vẫn chưa tên, màn tải lại giữ THIEU_TEN nếu
+    // chính sách bắt đủ danh sách) không còn trong đơn. Trả ĐÚNG lý do màn sẽ hiện khi tải lại: tính lại CHÍNH `kiemXuatBen` với danh sách người vừa đọc (`hk`)
+    // — không đoán mã. Tính lại mà vẫn đạt (không bắt đủ danh sách) → 409 `stale` "tải lại" (gán tạm cũ không còn đúng, không ghi).
+    if (!row) {
+      const moi = new Map(hk.map((ch) => [ch.legId, ch.nguoi.map((p) => p.personKey)]));
+      const lai = kiemXuatBen({ ...vao, chang: vao.chang.map((ch) => (moi.has(ch.legId) ? { ...ch, nguoiCuaDon: moi.get(ch.legId)! } : ch)) });
+      return lai.dat ? CHUYEN_CU() : loi409("chua_du_dieu_kien_xuat_ben", lai.lyDo);
+    }
     chot.push({ allocationId: a.id, passengerRowId: row, crewPartyId: null });
   }
   const soKhach = mo.filter((a) => a.kind === "PASSENGER").length;
