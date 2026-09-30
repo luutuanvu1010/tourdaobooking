@@ -1593,6 +1593,7 @@ body.login-page main.login { display: flex; flex-direction: column; height: 100%
 .dg-sheet-slot { margin-bottom: var(--s4); }
 .dg-lock { display: flex; align-items: center; gap: var(--s1); margin: 0; font-size: var(--fs-label); font-weight: 700; color: var(--c-sand-text); }
 .dg-lock.dg-lock-note { font-size: var(--fs-badge); font-weight: 600; color: var(--c-text-muted); }
+.dg-lock svg { flex: none; } /* vòng 5f (nhật ký 13.11): câu khoá dài xuống nhiều dòng — ổ khoá không bị flex ép nhỏ hơn cỡ biểu tượng (khuôn `.field-error svg`) */
 
 /* ---------- Bảng điều phối lượt 1 — màn văn phòng B2 Chi tiết chuyến, B3 Tạo / sửa chuyến (bản vẽ docs/design/van-chuyen-dieu-phoi/project/02, 03).
    Chip trạng thái chung của ba màn (tone ở src/shared/dieu-phoi-man.ts). Chỉ token. ---------- */

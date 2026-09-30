@@ -109,6 +109,11 @@ try {
   await b.step("4", `390 Bán hàng ${d.T4.ma} (trong vùng khoá): câu khoá nói "cập nhật khách theo đơn không cần phá lệ"; dải + nút; bấm → không hộp phá lệ, tên mới hiện, hết giữ${axeNote()}`, async () => {
     assert.equal(await pm.ev(txt(".dp-ct-lock")), "Trong 48 giờ trước giờ xuất bến — khoá xếp khách, đổi xe, đổi tài xế. Cần Quản trị phá lệ. Cập nhật điểm theo đơn và cập nhật khách theo đơn không cần phá lệ.");
     assert.deepEqual(await pm.ev(daiGiu), [TIEU_DE_GIU]);
+    // Vòng 5f (nhật ký 13.11): ổ khoá của dòng khoá không bị flex ép nhỏ khi câu dài xuống nhiều dòng — cỡ vẽ = cỡ khai của biểu tượng (16 ở đầu trang,
+    // 14 ở thẻ khách — khớp chữ 14 của dòng).
+    const oKhoa = await pm.ev(`[...document.querySelectorAll('.dp-ct-lock svg, .dp-khach-khoa svg')].map((x) => [Math.round(x.getBoundingClientRect().width), Number(x.getAttribute('width'))])`);
+    assert.equal(oKhoa.length, 2, "dòng khoá đầu trang + dòng khoá thẻ khách");
+    for (const [ve, khai] of oKhoa) assert.equal(ve, khai, `ổ khoá bị ép nhỏ: ${JSON.stringify(oKhoa)}`);
     assert.ok(await pm.ev(noOverflowX));
     await axe(pm, "dải khách đổi 390");
     await shotView(pm, "b5e-khach-doi-truoc-dien-thoai.png");

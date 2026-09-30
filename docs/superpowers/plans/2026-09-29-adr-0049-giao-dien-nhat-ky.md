@@ -600,3 +600,21 @@ Chưa gộp máy chủ mới (điều phối: đợi HEAD sau phần vá xoá đ
   - 1040: trước `b5e-khach-doi-truoc-may-tinh.png`, sau `b5e-khach-doi-sau-may-tinh.png`.
   - 390, trong vùng khoá: trước `b5e-khach-doi-truoc-dien-thoai.png`, sau `b5e-khach-doi-sau-dien-thoai.png`; thẻ khách có tên mới `b5e-khach-doi-sau-ten-dien-thoai.png`.
 - Vệ sinh: `ps` sau mỗi lượt không còn wrangler / workerd của worktree này.
+
+### 13.11 Vòng 5f
+- **Gộp máy chủ `01ba476`**:
+  - Nội dung: `b813fe0` R-P30 / GA-67 — phản hồi lần đầu "Đã gọi báo" dựng từ dòng mốc; hình DTO không đổi.
+  - Gộp bằng `git merge --no-ff`, được `4435cda`. Không xung đột, không bị bộ duyệt chặn.
+  - `goi-bao-smoke` 7/7, không phải đổi kỳ vọng.
+- **Sửa bề mặt (giả định của điều phối, đảo ngược được)**: ổ khoá ở dòng khoá quá nhỏ trên điện thoại.
+  - Gốc: `.dg-lock` là hàng flex; câu khoá dài xuống nhiều dòng thì flex ép `svg` nhỏ lại (đo được: 5px thay vì 16 ở `.dp-ct-lock`, 8px thay vì 14 ở `.dp-khach-khoa`).
+  - Sửa: thêm `.dg-lock svg { flex: none; }` — khuôn sẵn có `.field-error svg` / `.vc-alert svg`. Không token mới, không đổi logic.
+  - Cỡ vẽ nay bằng cỡ khai: 16 với chữ 14 ở đầu trang, 14 với chữ 14 ở thẻ khách. Áp cho mọi dòng `.dg-lock` (Chi tiết chuyến, thẻ khách, thẻ đang chọn).
+- **Chrome**: `cap-nhat-khach-smoke` bước 4 (390) thêm phép "ổ khoá không bị ép nhỏ" — cỡ vẽ của `svg` = thuộc tính `width`.
+  - Đỏ trước: lần đầu so hằng [16, 16], thực tế "5,8". Lần xanh đầu lại đỏ vì ổ khoá thẻ khách khai 14 → sửa phép thành so với cỡ khai, không so hằng.
+  - P16: bỏ `flex: none` → bước 4 đỏ "[[5,16],[8,14]]" → hoàn nguyên → 6/6.
+- **Chạy lại** (máy rảnh, không song song e2e):
+  - `npm test` hai bước: 1867/1867 + 1/1, thoát 0.
+  - `npm run typecheck` 0; `npm run build:web` 0.
+  - Chrome: goi-bao 7/7, chuyen 8/8, dieu-phoi 11/11, rut-doi 8/8, cap-nhat-khach 6/6 (lần cuối, sau khi sửa phép kiểm).
+- Ảnh 390: trước `b5f-o-khoa-truoc-dien-thoai.png`, sau `b5f-o-khoa-sau-dien-thoai.png`. Các ảnh b2 / b5b / b5c / b5e đã chụp lại với ổ khoá đúng cỡ.
