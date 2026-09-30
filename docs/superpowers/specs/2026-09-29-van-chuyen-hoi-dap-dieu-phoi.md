@@ -286,3 +286,9 @@ K2d @ `1f8b498`: **ĐẠT CÓ ĐIỀU KIỆN**, có một lỗi **CAO**. Ngườ
 - mã đóng suất mới `PASSENGER_CHANGED` trong `CHECK` của `0042` (chưa áp remote); sự kiện chỉ ghi số lượng, không ghi tên.
 
 Người thi công được đổi tên mã nếu vướng, nhưng phải báo lại dưới dạng GA.
+
+Giao diện vòng 5d @ `997ee14` (chưa đổi mã). Điều phối tự quyết hai điểm bề mặt, đảo ngược được:
+- Nút "Cập nhật khách theo đơn" KHÔNG có hộp xác nhận, cùng khuôn nút "Cập nhật điểm theo đơn". Nút đặt ở 4 chỗ như nút cũ.
+- `KHACH_DA_DOI` xếp vào dòng "Đủ tên khách" của danh sách điều kiện xuất bến.
+
+Sắp tên theo thứ tự trong đơn: DTO và `ord_passenger` chưa có thứ tự, nên chuyển BACKLOG mục 7.
