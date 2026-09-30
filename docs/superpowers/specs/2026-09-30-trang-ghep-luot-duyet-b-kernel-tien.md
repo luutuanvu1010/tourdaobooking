@@ -2,10 +2,10 @@
 
 > **Lượt B đã duyệt đủ (2026-09-30):** B1 = `docs/adr/ADR-0057-van-chuyen-tien-xe-thue.md`, B2 = `docs/adr/ADR-0055-van-chuyen-kernel-luot-2.md`, B3 = `docs/adr/ADR-0056-van-chuyen-kernel-luot-3.md`.
 
-> **Câu hỏi của trang này (§6) ĐÃ ĐƯỢC CHỦ TRẢ LỜI 2026-09-30 — chọn khuyến nghị ở cả 9 câu.** Nguyên văn: `docs/superpowers/specs/2026-09-29-van-chuyen-hoi-dap-dieu-phoi.md`, mục "Trả lời lần 17". Các ADR vẫn chờ chủ duyệt theo lượt (B1 = ADR-0057 trước, vì phần T3 phải duyệt trước Task 3 sổ tiền; B2; B3).
+> **Câu hỏi của trang này (§6) ĐÃ ĐƯỢC CHỦ TRẢ LỜI 2026-09-30 — chọn khuyến nghị ở cả 9 câu.** Nguyên văn: `docs/superpowers/specs/2026-09-29-van-chuyen-hoi-dap-dieu-phoi.md`, mục "Trả lời lần 17". Các ADR đã được chủ duyệt đủ (B1, B2, B3) ngày 2026-09-30 — xem khung đầu trang.
 
 - **Loại:** tài liệu trình duyệt đi kèm ba bản đề xuất; người kiểm độc lập ĐẠT. AI soạn (vai thiết kế), không tự duyệt.
-- **Trạng thái lượt:** **B1 (ADR-0057 tiền xe thuê) ĐÃ DUYỆT** 30/9 — `docs/adr/ADR-0057-van-chuyen-tien-xe-thue.md`. **Còn B2 (ADR-0055), B3 (ADR-0056)** — câu hỏi đã trả lời, chờ chủ duyệt.
+- **Trạng thái lượt:** **B1 (ADR-0057), B2 (ADR-0055), B3 (ADR-0056) ĐÃ DUYỆT** 2026-09-30 — `docs/adr/ADR-0057-van-chuyen-tien-xe-thue.md`, `docs/adr/ADR-0055-van-chuyen-kernel-luot-2.md`, `docs/adr/ADR-0056-van-chuyen-kernel-luot-3.md` (sổ hỏi đáp lần 19, 20).
 - **Ngày:** 2026-09-30.
 - **Ba bản đề xuất** (số ADR là số tạm — điều phối cấp số thật):
   - **ADR-0055** `docs/superpowers/specs/2026-09-30-de-xuat-adr-kernel-luot-2.md` — khung bận của xe (VK2-A), giờ lái tối đa chỉ cảnh báo (VK2-B), số hiệu chuyến bay (VK2-C);

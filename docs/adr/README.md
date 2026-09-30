@@ -68,7 +68,7 @@ Thứ tự tài liệu (Điều 3.1): Hiến pháp → ràng buộc dự án →
 |---|---|---|---|
 | — | (số ADR mới kế tiếp là 0058) | | |
 
-(0040, 0041, 0042, 0044, 0049, 0050 và 0051 đã có văn bản thật ở bảng trên nên bỏ khỏi bảng giữ chỗ.)
+(0040, 0041, 0042, 0044, 0049, 0050, 0051 và 0052–0057 đã có văn bản thật ở bảng trên nên bỏ khỏi bảng giữ chỗ.)
 
 **Số migration đã giữ chỗ** (2026-09-28; nếu thứ tự lên main đảo thì nhánh lên sau đổi tên tệp):
 - 0028: vai "IT", ADR-0044 (đã lên main, bản 1.30);
