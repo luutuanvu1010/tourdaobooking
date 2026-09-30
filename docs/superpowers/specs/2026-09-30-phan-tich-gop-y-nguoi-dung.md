@@ -158,3 +158,9 @@ Chủ đã chốt nguyên tắc trong chat; AI soạn ADR ghi lại + chi tiết
 - Số ADR: 0059–0061 giữ cho ba ADR đã duyệt ở phiên này; bản nháp của điều phối chung đổi sang 0062–0065; 0058 nhóm dịch vụ. Migration: 0044–0045 sổ tiền, 0046–0049 điều phối chung, ADR-0059..0061 lấy từ 0050 (điều phối chung cấp số lúc thi công).
 - **Việc cho người thi công ADR-0061:** bản 1.40 đổi chữ trong ô chọn dịch vụ từ "nhập tay" thành "chưa hỗ trợ" (`web/catalog-picker.ts`) — khi mở lại nhập tay phải sửa chữ này.
 - Xung đột chờ chủ (điều phối chung trình): HDV phụ trách có thấy xe trên đơn không (phiên kia chủ chọn có; ADR-0059 loại HDV — thi công ADR-0059 như đã duyệt, bổ sung bằng ADR sau nếu chủ chọn có); C2 "làm chung" hay "làm sau" sổ tiền.
+
+### Sổ tiền lượt 1 — kiểm độc lập và quyết định triển khai (30/9 tối)
+- Task 12 (người kiểm độc lập): **ĐẠT CÓ ĐIỀU KIỆN**, không CAO; 8 phép thử phá đều đỏ đúng chỗ; npm test 1953/1954 (1 đỏ do bản sao không có .git), e2e 31/31. V-1: chưa có màn nào gọi route ghi sổ → đơn cũ có cọc không "Đã giao" được, đơn HDV giữ tiền không "Hoàn thành" được. V-2, T-1…T-5: giao người thi công sửa.
+- Chủ: "sản phẩm đang ở chế độ phát triển và thử nghiệm, làm sao để dễ và tiện nhất"; hai màn sổ chủ **tự vẽ lại trên Claude Design**.
+- Điều phối chọn (bề mặt, đảo được): thao tác Kế toán (xác nhận / đảo lần thu, đã nộp về công ty, ghi hoàn) đặt TẠM trong khung Thanh toán của trang đơn; không thêm route/quyền/migration; màn sổ riêng dựng theo bản vẽ của chủ sau. Hoàn tác: gỡ các nút tạm khi có màn sổ.
+- Điều phối chung báo: chủ duyệt ADR-0058 (nhóm dịch vụ) và ADR-0062 (báo tin khi đơn đổi sau xác nhận; câu 5: Đối tác/Thực tập nhận tin về đơn họ lập) trên nhánh `de-xuat-adr-ra-soat` @3a39b5a7 — khi gộp README: giữ cả hai phía, số ADR kế tiếp 0066.
