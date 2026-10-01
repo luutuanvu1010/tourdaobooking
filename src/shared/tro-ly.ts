@@ -9,6 +9,8 @@ import { GIOI_HAN_TRO_LY as G } from "./tro-ly-gioi-han.ts";
 import { CAU_TRUC } from "./tro-ly-cau-truc.ts";
 import { KIEN_TRUC } from "./tro-ly-kien-truc.ts";
 import { viPhamKyThuat } from "./tro-ly-loc-ky-thuat.ts";
+import type { SoToken } from "./tro-ly-mau.ts";
+export { chiPhiMicroUsd } from "./tro-ly-mau.ts";
 
 // ---------------------------------------------------------------- hằng (ADR-0066 điều 2, 5, 6)
 
@@ -20,11 +22,6 @@ export const MUC_SUY_LUAN = "minimal";
 export const TOKEN_RA_TOI_DA = 1200;
 /** Hết giờ gọi OpenAI (ADR-0066 thi công: 20 giây). */
 export const HET_GIO_MS = 20_000;
-/**
- * Giá gpt-5-nano tra ngày 30/9/2026 (developers.openai.com/api/docs/models/gpt-5-nano): USD cho 1 triệu token — vào 0,05; vào đã đệm 0,005; ra 0,40.
- * Viết bằng NGHÌN-micro-USD mỗi token (số nguyên) để tính không sai số dấu phẩy động: 1 USD / 1M token = 1 micro-USD / token = 1000 đơn vị ở đây.
- */
-export const GIA_NGHIN_MICRO_USD_MOI_TOKEN = { vao: 50, vaoDem: 5, ra: 400 } as const;
 /** Câu hỏi tối đa (ký tự) SAU khi che (ADR-0066 điều 5). */
 export const CAU_HOI_TOI_DA = 500;
 /**
@@ -259,7 +256,7 @@ export function thanYeuCau(perms: readonly PermissionCode[], doan: readonly Doan
 
 // ---------------------------------------------------------------- đọc phản hồi + nguồn
 
-export interface SuDung { readonly vao: number; readonly vaoDem: number; readonly ra: number }
+export type SuDung = SoToken;
 export interface PhanHoiDoc { readonly chu: string; readonly suDung: SuDung | null }
 
 const soKhongAm = (v: unknown): number => (typeof v === "number" && Number.isFinite(v) && v > 0 ? Math.floor(v) : 0);
@@ -305,14 +302,6 @@ export function tachNguon(chu: string, daGui: readonly DoanTriThuc[]): { traLoi:
 }
 
 // ---------------------------------------------------------------- chi phí + trần (ADR-0066 điều 6)
-
-/** micro-USD, làm tròn LÊN: (vào − đệm) × 0,05 + đệm × 0,005 + ra × 0,40 (USD / 1M token ≡ micro-USD / token). */
-export function chiPhiMicroUsd(u: SuDung | null): number {
-  if (!u) return 0;
-  const g = GIA_NGHIN_MICRO_USD_MOI_TOKEN;
-  const khongDem = Math.max(0, u.vao - u.vaoDem);
-  return Math.ceil((khongDem * g.vao + u.vaoDem * g.vaoDem + u.ra * g.ra) / 1000);
-}
 
 export interface CaiDatTroLy { readonly bat: boolean; readonly tranThangMicroUsd: number; readonly tranNgay: number }
 export type QuyetDinh = "tat" | "het_tran_thang" | "het_tran_ngay" | "duoc";

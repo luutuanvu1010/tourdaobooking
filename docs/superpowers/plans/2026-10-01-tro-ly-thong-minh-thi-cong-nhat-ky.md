@@ -7,7 +7,15 @@
 
 ## Tra cứu OpenAI (Task 2 bước 1)
 
-(điền: URL, ngày tra, giá, mức suy nghĩ, verbosity, input nhiều lượt + instructions)
+Ngày tra: 2026-10-01 (WebFetch, trang chính thức OpenAI).
+- Giá USD / 1 triệu token (vào / vào đã đệm / ra), ĐÃ XÁC NHẬN trên trang:
+  - `https://developers.openai.com/api/docs/models/gpt-5-nano`: 0,05 / 0,005 / 0,40.
+  - `https://developers.openai.com/api/docs/models/gpt-5-mini`: 0,25 / 0,025 / 2.
+  - `https://developers.openai.com/api/docs/models/gpt-5`: 1,25 / 0,125 / 10.
+  - Ba trang đều ghi mẫu đã/ sắp bị mẫu đời sau thay thế (gpt-5 "superseded"); giá vẫn hiện hành. Chưa có dấu hiệu bị ngừng.
+- Mức suy nghĩ: ba trang mẫu KHÔNG liệt kê. Cookbook `https://developers.openai.com/cookbook/examples/gpt-5/gpt-5_new_params_and_tools` chỉ nêu rõ `minimal` và "mặc định medium", không liệt kê đủ. Theo phán quyết D1 dùng `minimal / low / medium / high` cho cả ba mẫu (CHƯA kiểm từng mẫu bằng trang chính thức; Task 7 "Thử key" nên bắt lỗi 400 nếu mức bị từ chối).
+- `text.verbosity`: cookbook nêu giá trị `low`, `medium` (mặc định), `high` — đã kiểm.
+- `input` nhiều lượt cùng `instructions`: chưa có câu nói rõ trên trang đã mở ⇒ CHƯA KIỂM (báo điều phối trước Task 7).
 
 ## Đột biến hàng rào (sửa cố ý → đỏ → hoàn nguyên → xanh)
 
