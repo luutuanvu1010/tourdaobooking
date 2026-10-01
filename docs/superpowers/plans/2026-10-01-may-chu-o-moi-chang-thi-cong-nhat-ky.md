@@ -84,3 +84,15 @@ Còn lọc `status = 'confirmed'`; lô `changeLeg` đẩy mốc đơn (`orderTou
   `node --test src/migrations-chang-o-moi.test.ts` 3/3; `src/migrations-chang-dua-don.test.ts src/architecture.test.ts src/migrations-n1.test.ts` 73/73.
 - **Thấy chặn thật (2026-10-01):** đổi cố ý `direction = 'RETURN'` → `'OUT'` trong CHECK → bài TC-P1 đỏ (2/3) → hoàn nguyên; bỏ cố ý vế
   `flight_code = upper(flight_code)` → TC-F1 đỏ (2/3) → hoàn nguyên; chạy lại 3/3, `cmp` khớp bản gốc.
+
+## Task 2 — luật thuần (2026-10-01)
+
+- Đỏ trước: `node --test src/shared/chang-dua-don.test.ts src/shared/so-nguoi-chang.test.ts` → 2 tệp lỗi nạp (chưa có hàm).
+- Xanh: `chuanHoaSoHieuChuyenBay` + `KHUON_SO_HIEU_CHUYEN_BAY`, `kiemChang` đọc hai ô phụ CHỈ khi khoá có mặt (vắng → không có khoá trong kết quả), `chiDoiOPhu`,
+  `moTaChang` thêm "số hiệu chuyến bay A → B" / "số người chiều về A → B" (trống = "theo số khách dịch vụ"), thêm chặng kèm hai ô khi có; `toGhi` (thân cũ)
+  chép hai ô của chặng đang lưu. Tệp mới `src/shared/so-nguoi-chang.ts`: `soNguoiChang` (+ móc `them.soKhachDiXe` bị bỏ qua, có bài ghim) và `tongKhach`
+  (chỗ cộng bốn loại tuổi DUY NHẤT cho số người chặng). `ChangDaLuu` khai hai ô BẮT BUỘC (đọc cột) ⇒ `toStoredLeg` thiếu thì typecheck đỏ (đã thấy đỏ 1 lỗi rồi sửa).
+  `LegInput` thêm `flightCode?`, `paxOverride?`; câu đọc chặng (`LEG_COLS`) thêm hai cột.
+- Kết quả: 26/26 bài thuần; `src/modules/orders/*.test.ts` + thuần 317/317; typecheck 0 lỗi.
+- **Ruling (bề mặt):** TC-P2 ghi "số người chiều về 4 → 2" — bài viết từ số 4 tường minh; trống thì nhãn "theo số khách dịch vụ" (Task 2.2). Thêm chặng kèm CẢ số người
+  chiều về khi có (kế hoạch chỉ nêu số hiệu) — giá trị số, không dữ liệu cá nhân.

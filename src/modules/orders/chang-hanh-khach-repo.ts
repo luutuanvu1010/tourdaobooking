@@ -50,7 +50,7 @@ export async function servicePaxByOrder(db: D1Database, orderId: string): Promis
 const LEG_COLS = `l.id, l.order_id, l.order_service_id, l.direction, l.pickup_date, l.pickup_time, l.pickup_location_id, l.pickup_place,
   COALESCE(pl.name, l.pickup_place) AS pickup_label, l.dropoff_location_id, l.dropoff_place, COALESCE(dl.name, l.dropoff_place) AS dropoff_label,
   l.closed_at, l.created_at, l.created_by, l.updated_at,
-  l.short_notice_reason, l.short_notice_note, l.short_notice_at, sl.label AS short_notice_by_label`;
+  l.short_notice_reason, l.short_notice_note, l.short_notice_at, sl.label AS short_notice_by_label, l.flight_code, l.pax_override`;
 // Người duyệt đặt gấp: TÊN HIỂN THỊ qua view công bố của staff (không SĐT) — chủ H4 / N-14; lớp route quyết ai thấy tên (ô order.leg.short_notice.view).
 const LEG_JOIN = `FROM ord_transfer_leg l
   LEFT JOIN v_loc_location_label pl ON pl.id = l.pickup_location_id
@@ -84,6 +84,10 @@ export interface LegRow {
   short_notice_note: string | null;
   short_notice_at: string | null;
   short_notice_by_label: string | null;
+  /** Số hiệu chuyến bay (0057, ADR-0055 VK2-C) — chữ HOA đã chuẩn hoá, NULL = chưa có. */
+  flight_code: string | null;
+  /** Số người riêng của chặng VỀ (0057, ADR-0054 D10.3) — NULL = theo số khách dịch vụ. */
+  pax_override: number | null;
 }
 
 export async function openLegsByOrders(db: D1Database, orderIds: readonly string[]): Promise<LegRow[]> {

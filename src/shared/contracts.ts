@@ -327,6 +327,16 @@ export interface LegInput {
   pickupPlace: string;
   dropoffLocationId: string | null;
   dropoffPlace: string;
+  /**
+   * Số hiệu chuyến bay (ADR-0055 VK2-C): máy chủ bỏ khoảng trắng + chữ HOA, khuôn `^[A-Z0-9]{2}[0-9]{1,4}[A-Z]?$`; `""` = xoá. VẮNG khoá = GIỮ giá trị đang lưu
+   * (lưu nháp, sửa chặng). Ghi theo ô của route chứa chặng (nháp `order.modify`, sau xác nhận `order.trip.edit`); không xét mốc 6 giờ.
+   */
+  flightCode?: string;
+  /**
+   * Số người RIÊNG của chặng VỀ (ADR-0054 D10.3): số nguyên ≥ 1, ≤ số khách hiệu lực của dịch vụ (L-R1); `null` = theo số khách dịch vụ. Chỉ chặng `RETURN`.
+   * Chỉ văn phòng ghi (`order.trip.edit`) — lưu nháp gửi giá trị KHÁC bản đang lưu mà không có ô → 403; VẮNG khoá = giữ. Không xét mốc 6 giờ.
+   */
+  paxOverride?: number | null;
 }
 /** `PUT /api/orders/:id/legs/:legId` — sửa trường vận hành của chặng (không đổi chiều, không đổi dịch vụ). */
 export type LegEditInput = Omit<LegInput, "id" | "direction">;

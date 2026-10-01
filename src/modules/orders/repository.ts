@@ -204,6 +204,8 @@ export const toStoredLeg = (r: LegRow): StoredLeg => ({
   dropoffLocationId: r.dropoff_location_id,
   dropoffPlace: r.dropoff_place,
   dropoffLabel: r.dropoff_label,
+  flightCode: r.flight_code,
+  paxOverride: r.pax_override,
   serviceId: r.order_service_id,
   createdAt: r.created_at,
   createdBy: r.created_by,
