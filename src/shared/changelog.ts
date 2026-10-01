@@ -12,12 +12,20 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // Yêu cầu chủ 2026-10-01: Mai in đậm tên nút / đường điều hướng bằng cặp ** (luật 9 mới + dòng định dạng máy chủ nối); khung chat, ô thử, lịch sử hiện chữ đậm.
-    // Số "1.60" = bản lớn nhất trong nhánh (1.59) + 1; nhánh khác gộp trước thì đánh lại số.
-    version: "1.60",
+    // Số "1.61" = main 1.60 (đổi tên Loại giấy tờ cá nhân) + 1 — đánh lại lúc gộp main b8032a45 (thi công ghi 1.60).
+    version: "1.61",
     date: "2026-10-01",
     items: [
       { kind: "moi", text: "Mai in đậm đúng tên nút và đường đi trong app, ví dụ: bấm Lưu thông tin; vào Danh bạ › Hồ sơ mới, để bạn dễ nhìn từng bước." },
       { kind: "doi", text: "Toàn quyền: bản lời nhắc tự lưu vẫn dùng được, máy chủ tự thêm một dòng cho phép Mai in đậm tên nút." },
+    ],
+  },
+  {
+    // Chủ dự án 2026-10-01: đổi tên trang "Loại giấy tờ người" → "Loại giấy tờ cá nhân" (chỉ đổi chữ; đường dẫn /loai-giay-to-nguoi giữ nguyên). Không migration. Số "1.60" = main 1.59 + 1 (đánh lại lúc gộp main 1.59 — trợ lý Mai, 2026-10-01).
+    version: "1.60",
+    date: "2026-10-01",
+    items: [
+      { kind: "doi", text: "Trang \"Loại giấy tờ người\" đổi tên thành \"Loại giấy tờ cá nhân\" (căn cước, bằng lái, khám sức khoẻ, tập huấn). Nội dung không đổi." },
     ],
   },
   {

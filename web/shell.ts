@@ -232,8 +232,8 @@ function navGroups(admin: boolean, seesAll: boolean, office: boolean, canCreate:
     ...(phien ? [{ href: TRANG_PHIEN, label: "Phiên đăng nhập", icon: "lock" as const, active: (p: string) => p === TRANG_PHIEN }] : []),
     ...(admin ? [{ href: "/locations", label: "Địa điểm", icon: "pin" as const, active: (p: string) => p === "/locations" }] : []),
   ];
-  // Loại giấy tờ người (danh mục chung — giấy tờ thuộc về người; tách 2026-09-28): ngay sau "Địa điểm", trước "Vận chuyển". Ô admin.manage.
-  if (danhMuc) management.push({ href: TRANG_LOAI_GIAY_TO_NGUOI, label: "Loại giấy tờ người", icon: "doc-check", active: (p) => p === TRANG_LOAI_GIAY_TO_NGUOI });
+  // Loại giấy tờ cá nhân (danh mục chung — giấy tờ thuộc về người; tách 2026-09-28): ngay sau "Địa điểm", trước "Vận chuyển". Ô admin.manage.
+  if (danhMuc) management.push({ href: TRANG_LOAI_GIAY_TO_NGUOI, label: "Loại giấy tờ cá nhân", icon: "doc-check", active: (p) => p === TRANG_LOAI_GIAY_TO_NGUOI });
   // Vận chuyển (ADR-0040 D1, ô vehicle.manage; bản vẽ 00): mục cha sau Địa điểm, luôn mở các mục con; huy hiệu cát ở "Sắp hết hạn" = số giấy đã hết + sắp hết.
   // Mục con "Loại giấy tờ xe" (tách 2026-09-28) cần THÊM ô admin.manage (route sửa danh mục hỏi ô này) — hôm nay mọi người giữ vehicle.manage đều giữ admin.manage.
   // Bảng điều phối lượt 1 (Q-B-4): mục cha hiện khi có ô vehicle.manage HOẶC trip.view; "Điều phối xe" là mục con đầu (ô trip.view — Bán hàng, Kế toán thấy

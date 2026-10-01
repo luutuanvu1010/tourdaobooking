@@ -81,7 +81,7 @@ try {
   assert.deepEqual(await thanhBen(p), [["QUẢN TRỊ", ["Quản lý tài khoản"]], ["TÔI", ["Của tôi", "Góp ý / Báo lỗi", "Trợ giúp"]]], "C. thanh bên Nhân sự");
   assert.equal(await p.ev("document.getElementById('maintenance').hidden"), true, "C. trang Tôi KHÔNG có mục bảo trì");
   const linkNS = await p.ev(`[...document.querySelectorAll('main .row-link')].map((a) => a.textContent.trim())`);
-  for (const m of ["Địa điểm", "Gửi thông báo", "Nhật ký", "Danh bạ", "Loại giấy tờ người"]) assert.ok(!linkNS.some((t) => t.startsWith(m)), `C. trang Tôi không được có dòng "${m}": ${JSON.stringify(linkNS)}`);
+  for (const m of ["Địa điểm", "Gửi thông báo", "Nhật ký", "Danh bạ", "Loại giấy tờ cá nhân"]) assert.ok(!linkNS.some((t) => t.startsWith(m)), `C. trang Tôi không được có dòng "${m}": ${JSON.stringify(linkNS)}`);
   assert.deepEqual(await baoLoi(p), [], "C. trang Tôi không có dòng báo lỗi");
   assert.deepEqual(p.consoleErrors, [], "C. trang Tôi không lỗi JS");
   p.close();
