@@ -168,8 +168,8 @@ Mở [[Loại giấy tờ người]] (có cả [[Hạng giấy phép lái xe]]) 
 ### Trợ lý Hỗ trợ (chỉ Toàn quyền)
 Mở [[Trợ lý Hỗ trợ]] ở nhóm QUẢN TRỊ (điện thoại: trang **Tôi**). Sáu phần, mỗi phần có nút lưu riêng, hiệu lực ngay:
 1. **Tình trạng**: bật / tắt cả công ty, trần chi phí tháng, chi phí, số câu, lượt thử. Key chỉ hiện đã đặt hay chưa và bốn ký tự cuối; [[Thử key]] cho biết key còn dùng được, sai hay hết tiền. Đổi key làm ngoài app.
-2. **Ai được dùng**: bật / tắt theo từng vai và số câu mỗi người mỗi ngày, [[Lưu]].
-3. **Bộ não**: chọn mẫu AI (có giá ước tính), mức suy nghĩ, độ dài; sửa lời nhắc, [[Lưu bộ não]]. [[Khôi phục mặc định]] trả lời nhắc gốc; mở Lịch sử bản, [[Quay lại bản này]]. Thử trước: chọn vai, gõ câu hỏi, [[Thử với cấu hình đang soạn]]; lượt thử tính vào trần tháng.
+2. **Ai được dùng**: bật / tắt theo từng vai và số câu mỗi người mỗi ngày, [[Lưu]]. Tài khoản nhiều vai: dùng được khi có một vai đang bật.
+3. **Bộ não**: chọn mẫu AI (có giá ước tính), mức suy nghĩ, độ dài; sửa lời nhắc, [[Lưu bộ não]]. [[Khôi phục mặc định]] chỉ đưa lời nhắc gốc vào ô soạn, phải bấm [[Lưu bộ não]] thì mới có hiệu lực; mở Lịch sử bản, [[Quay lại bản này]]. Thử trước: chọn vai, gõ câu hỏi, [[Thử với cấu hình đang soạn]]; lượt thử tính vào trần chi phí tháng nhưng không tính vào số câu mỗi người mỗi ngày.
 4. **Lời dặn**: câu chào, câu hỏi mẫu, [[Lưu thành bản mới]].
 5. **Ngữ cảnh bổ sung**: gõ tiêu đề và nội dung, [[Thêm đoạn]]; bỏ tick **Đang dùng** để tắt một đoạn.
 6. **Lịch sử hỏi đáp**: lọc theo ngày, người, vai hoặc tìm chữ, [[Lọc]]. Không xoá được.
