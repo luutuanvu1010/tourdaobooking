@@ -428,7 +428,7 @@ async function renderMySessions(): Promise<void> {
   replaceChildren(
     mySessionsEl,
     h("h2", { id: "my-sessions-heading" }, "Phiên đăng nhập của tôi"),
-    h("p", { class: "muted" }, "Mỗi tài khoản (trừ IT và Toàn quyền) chỉ đăng nhập trên một máy: đăng nhập máy mới thì máy cũ tự đăng xuất. Ứng dụng đã cài và Safari trên cùng một iPhone tính là hai máy."),
+    h("p", { class: "muted" }, "Tuỳ quyền, tài khoản chỉ đăng nhập trên một máy (do Toàn quyền đặt): đăng nhập máy mới thì máy cũ tự đăng xuất. Ứng dụng đã cài và Safari trên cùng một iPhone tính là hai máy."),
     list.length === 0 ? h("p", { class: "muted" }, "Chưa có phiên nào.") : h("div", { class: "passkey-list" }, ...list.map(dong)),
     out,
   );

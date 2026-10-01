@@ -11,6 +11,15 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Có migration 0067 (ADR-0085). Số "1.64" = main 1.63 + 1 (đánh lại lúc gộp main 1.63, 2026-10-01; trước ghi 1.62). KIỂM LẠI LÚC GỘP (nhánh khác gộp trước thì đánh lại số).
+    version: "1.64",
+    date: "2026-10-01",
+    items: [
+      { kind: "moi", text: "Toàn quyền đặt được quyền nào chỉ đăng nhập một máy, quyền nào được nhiều máy, ở trang Phiên đăng nhập → Chính sách đăng nhập." },
+      { kind: "doi", text: "Chuyển một quyền về Một máy thì các máy thừa đăng xuất ngay, giữ máy đăng nhập gần nhất. Đổi vai của một người cũng có thể đăng xuất máy thừa của họ." },
+    ],
+  },
+  {
     // Nợ nhỏ sau 1.62 (Đưa đón + Hành khách): PM-1, PM-2, số hiệu chuyến bay trên điều phối / thẻ tài xế, "Người đổi" ở lịch sử mẫu chặng, đơn vị bằng chữ ở Danh mục.
     // Không migration. Số "1.63" = main 1.62 + 1 (2026-10-01).
     version: "1.63",

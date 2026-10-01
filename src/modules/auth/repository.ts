@@ -116,22 +116,17 @@ const SS_END_ALL_IF_SUSPENDED = defineSql("auth", "session_end_all_if_suspended"
 // (sessionStatus, so max(created_at, last_seen_at)) không coi phiên đang dùng là "Đã đổi thông tin đăng nhập".
 const SS_MARK_REISSUED = defineSql("auth", "session_mark_reissued",
   "UPDATE aut_session SET last_seen_at = ?2, updated_at = ?2, updated_by = ?3 WHERE id = ?1 AND ended_at IS NULL");
-// (2d) ADR-0075 điều 3 — tài khoản MẤT miễn luật một máy (bỏ Toàn quyền / vai IT): lô [dọn hạn (1) → kết thúc mọi phiên trừ phiên còn sống mới nhất →
-// đánh dấu phiên còn lại single = 1]. Thứ tự này để chỉ mục duy nhất aut_session_one_live không vỡ (đánh dấu khi chỉ còn MỘT dòng chưa kết thúc); dọn hạn
-// đứng trước để phiên giữ là phiên CÒN HẠN mới nhất, phiên hết hạn ghi đúng 'het_han'. Cả hai câu chỉ chạy khi tài khoản KHÔNG còn giữ Toàn quyền lúc câu
-// chạy (view v_stf_toan_quyen): câu chốt "còn quản trị viên khác" của lô đổi quyền thua thì quyền chưa đổi → không đụng phiên nào (khuôn (2b)).
-// RETURNING id: phiên vừa bị kết thúc (đóng Bảng tin của chúng) / phiên được giữ (giữ thông báo của máy đó) — ADR-0075 điều 6.
-const KHONG_TOAN_QUYEN = "NOT EXISTS (SELECT 1 FROM v_stf_toan_quyen WHERE staff_id = ?1)";
+// (2d) Một tài khoản MẤT nhiều máy khi đổi quyền / vai (ADR-0085 Q2 điều 7, thay ADR-0075 điều 3): [dọn hạn (1) → kết thúc mọi phiên trừ phiên còn sống mới nhất
+// → đánh dấu phiên còn lại single = 1]. Thứ tự giữ chỉ mục aut_session_one_live không vỡ. KHÔNG còn tự kiểm "không giữ Toàn quyền" trong SQL: route đặt hai câu
+// này ở lô THỨ HAI, chỉ chạy khi lô đổi quyền/vai đã thắng câu chốt "quản trị viên cuối" (bài accounts/mat-mien-route.test.ts, đột biến ở sổ hàng rào).
+// RETURNING id: phiên vừa bị kết thúc (đóng Bảng tin) / phiên được giữ (giữ thông báo của máy đó) — ADR-0075 điều 6.
 const SS_END_ALL_BUT_NEWEST = defineSql("auth", "session_end_all_but_newest",
   "UPDATE aut_session SET ended_at = ?2, end_reason = 'mat_mien', ended_by = ?3, updated_at = ?2, updated_by = ?3 WHERE staff_id = ?1 AND ended_at IS NULL AND id <> " +
-    `(SELECT id FROM aut_session WHERE staff_id = ?1 AND ended_at IS NULL ORDER BY created_at DESC, id DESC LIMIT 1) AND ${KHONG_TOAN_QUYEN} RETURNING id`);
+    "(SELECT id FROM aut_session WHERE staff_id = ?1 AND ended_at IS NULL ORDER BY created_at DESC, id DESC LIMIT 1) RETURNING id");
 const SS_MARK_SINGLE = defineSql("auth", "session_mark_single",
-  `UPDATE aut_session SET single = 1, updated_at = ?2, updated_by = ?3 WHERE staff_id = ?1 AND ended_at IS NULL AND ${KHONG_TOAN_QUYEN} RETURNING id`);
-// (2e) tài khoản ĐƯỢC miễn: phiên còn sống thôi chịu chỉ mục một máy. ?4 = 1: chỉ khi tài khoản giữ Toàn quyền lúc câu chạy (route đổi quyền: tài khoản không
-// vai, miễn ⇔ Toàn quyền — câu chốt thua thì không đổi); ?4 = 0: route đổi vai đặt câu này SAU khi câu chốt đã thắng (miễn có thể do vai IT).
-const SS_MARK_MULTI = defineSql("auth", "session_mark_multi",
-  "UPDATE aut_session SET single = 0, updated_at = ?2, updated_by = ?3 WHERE staff_id = ?1 AND ended_at IS NULL AND single = 1 " +
-    "AND (?4 = 0 OR EXISTS (SELECT 1 FROM v_stf_toan_quyen WHERE staff_id = ?1))");
+  "UPDATE aut_session SET single = 1, updated_at = ?2, updated_by = ?3 WHERE staff_id = ?1 AND ended_at IS NULL RETURNING id");
+// Nới (một máy → nhiều máy) KHÔNG ghi gì lên aut_session (ADR-0085 đặc tả §4.2 bước 4, §4.4): chỉ mục chỉ đếm single = 1 nên phiên cũ single = 1 sống cạnh
+// phiên mới single = 0 không vi phạm.
 const SS_END_ONE = defineSql("auth", "session_end_one",
   "UPDATE aut_session SET ended_at = ?3, end_reason = ?2, ended_by = ?4, updated_at = ?3, updated_by = ?4 WHERE id = ?1 AND ended_at IS NULL");
 // (3) chèn phiên mới: last_seen_at = updated_at = created_at; created_by = chính tài khoản đăng nhập (như aut_passkey).
@@ -157,8 +152,6 @@ export const markSessionReissuedStatement = (db: D1Database, id: string, at: str
 export const endAllButNewestStatement = (db: D1Database, staffId: string, at: string, by: string): D1PreparedStatement =>
   db.prepare(SS_END_ALL_BUT_NEWEST).bind(staffId, at, by);
 export const markSingleStatement = (db: D1Database, staffId: string, at: string, by: string): D1PreparedStatement => db.prepare(SS_MARK_SINGLE).bind(staffId, at, by);
-export const markMultiStatement = (db: D1Database, staffId: string, at: string, by: string, requireToanQuyen: boolean): D1PreparedStatement =>
-  db.prepare(SS_MARK_MULTI).bind(staffId, at, by, requireToanQuyen ? 1 : 0);
 export const endSessionStatement = (db: D1Database, id: string, reason: string, at: string, by: string | null): D1PreparedStatement =>
   db.prepare(SS_END_ONE).bind(id, reason, at, by);
 export const insertSessionStatement = (db: D1Database, v: {
@@ -175,3 +168,57 @@ export async function listSessions(db: D1Database, staffId: string | null, liveO
   return (await db.prepare(SS_LIST_ALL).bind(staffId, liveOnly ? 1 : 0, nowIso).all<SessionRow>()).results;
 }
 export const getSession = (db: D1Database, id: string): Promise<SessionRow | null> => db.prepare(SS_GET).bind(id).first<SessionRow>();
+
+// ---- Chính sách đăng nhập `aut_session_policy` (ADR-0085, migration 0067) ----------------------------------------------------------------
+// MỘT mẩu điều kiện "tài khoản <cột> được nhiều máy" cho ba câu (siết, đánh dấu, đếm xem trước) và cho bất biến R-AUT-SESSION-3 (scripts/audit-checks.mjs chép
+// nguyên văn — bài đối chiếu ở src/audit-invariants.test.ts). Nguồn chính sách: bảng (khi lưu — đọc SAU các câu ghi chính sách cùng lô) hoặc tham số JSON
+// (xem trước). Quyền / vai IT đọc qua view công bố của staff (v_stf_*), không JOIN bảng stf_/pty_. Bản TypeScript: isSingleDevice (session-ledger.ts).
+const nhieuMayDieuKien = (cotStaff: string, nguonQuyen: string): string =>
+  `(EXISTS (SELECT 1 FROM v_stf_nhieu_may_co_dinh f WHERE f.staff_id = ${cotStaff}) OR EXISTS (SELECT 1 FROM v_stf_quyen_mo q WHERE q.staff_id = ${cotStaff} AND q.permission_code IN (${nguonQuyen})))`;
+const NGUON_BANG = "SELECT p.permission_code FROM aut_session_policy p WHERE p.valid_to_at IS NULL AND p.multi = 1";
+const moiNhatConSong = (cotStaff: string, locHan: string) =>
+  `(SELECT n.id FROM aut_session n WHERE n.staff_id = ${cotStaff} AND n.ended_at IS NULL${locHan} ORDER BY n.created_at DESC, n.id DESC LIMIT 1)`;
+
+export interface PolicyRow { id: string; permission_code: string; multi: number }
+const POL_LIST = defineSql("auth", "policy_list", "SELECT id, permission_code, multi FROM aut_session_policy WHERE valid_to_at IS NULL ORDER BY permission_code");
+const POL_CLOSE = defineSql("auth", "policy_close",
+  "UPDATE aut_session_policy SET valid_to_at = ?3, updated_at = ?3, updated_by = ?4 WHERE id = ?1 AND permission_code = ?2 AND valid_to_at IS NULL");
+// Chèn SAU câu đóng: câu đóng thua (id đang xem đã không còn là dòng hiện hành) ⇒ permission_code NULL ⇒ lỗi NOT NULL ⇒ CẢ lô lùi (all-or-nothing, đặc tả §4.2
+// bước 3.1 — lần lưu nhiều quyền không được ghi một nửa). changes() là của câu hoàn tất ngay trước (câu đóng).
+const POL_INSERT_AFTER_CLOSE = defineSql("auth", "policy_insert_after_close",
+  "INSERT INTO aut_session_policy (id, permission_code, multi, valid_from_at, valid_to_at, created_at, created_by, updated_at, updated_by) " +
+    "SELECT ?1, CASE WHEN changes() > 0 THEN ?2 END, ?3, ?4, NULL, ?4, ?5, ?4, ?5");
+// Chèn khi bản đang xem CHƯA có dòng: dòng hiện hành đã có (người khác vừa đặt) ⇒ chỉ mục aut_session_policy_one_current vỡ ⇒ cả lô lùi.
+const POL_INSERT_NEW = defineSql("auth", "policy_insert_new",
+  "INSERT INTO aut_session_policy (id, permission_code, multi, valid_from_at, valid_to_at, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?4, NULL, ?4, ?5, ?4, ?5)");
+// Siết theo tập (đặc tả §4.2 bước 3.3): dọn hạn MỌI tài khoản → kết thúc mọi phiên trừ phiên mới nhất của tài khoản nay một máy → đánh dấu single = 1.
+// Số câu cố định, không phụ thuộc số người. Câu ghi không mở đầu bằng WITH (khung thử coi WITH là câu đọc).
+const SS_END_EXPIRED_ALL = defineSql("auth", "session_end_expired_all",
+  "UPDATE aut_session SET ended_at = ?1, end_reason = 'het_han', updated_at = ?1, updated_by = NULL WHERE ended_at IS NULL AND expires_at <= ?1");
+const SS_SIET_THEO_TAP = defineSql("auth", "session_siet_theo_tap",
+  "UPDATE aut_session SET ended_at = ?1, end_reason = 'mat_mien', ended_by = ?2, updated_at = ?1, updated_by = ?2 WHERE ended_at IS NULL " +
+    `AND NOT ${nhieuMayDieuKien("aut_session.staff_id", NGUON_BANG)} AND id <> ${moiNhatConSong("aut_session.staff_id", "")} RETURNING id, staff_id`);
+const SS_DANH_DAU_MOT_MAY = defineSql("auth", "session_danh_dau_mot_may_theo_tap",
+  `UPDATE aut_session SET single = 1, updated_at = ?1, updated_by = ?2 WHERE ended_at IS NULL AND single = 0 AND NOT ${nhieuMayDieuKien("aut_session.staff_id", NGUON_BANG)}`);
+// Xem trước (đặc tả §4.3): cùng mẩu điều kiện, nguồn = tập đề xuất (JSON ?1); phiên còn hạn tại ?2 (lô thật dọn hạn trước nên tương đương).
+const SS_DEM_SIET = defineSql("auth", "session_dem_siet_theo_tap",
+  "SELECT count(*) AS so_phien, count(DISTINCT s.staff_id) AS so_nguoi FROM aut_session s WHERE s.ended_at IS NULL AND s.expires_at > ?2 " +
+    `AND NOT ${nhieuMayDieuKien("s.staff_id", "SELECT value FROM json_each(?1)")} AND s.id <> ${moiNhatConSong("s.staff_id", " AND n.expires_at > ?2")}`);
+export async function listPolicyRows(db: D1Database): Promise<PolicyRow[]> {
+  return (await db.prepare(POL_LIST).all<PolicyRow>()).results;
+}
+export const closePolicyStatement = (db: D1Database, v: { id: string; code: string; at: string; by: string }): D1PreparedStatement =>
+  db.prepare(POL_CLOSE).bind(v.id, v.code, v.at, v.by);
+export const insertPolicyAfterCloseStatement = (db: D1Database, v: { id: string; code: string; multi: boolean; at: string; by: string }): D1PreparedStatement =>
+  db.prepare(POL_INSERT_AFTER_CLOSE).bind(v.id, v.code, v.multi ? 1 : 0, v.at, v.by);
+export const insertPolicyNewStatement = (db: D1Database, v: { id: string; code: string; multi: boolean; at: string; by: string }): D1PreparedStatement =>
+  db.prepare(POL_INSERT_NEW).bind(v.id, v.code, v.multi ? 1 : 0, v.at, v.by);
+/** Lỗi ràng buộc do lần lưu dựa trên bản chính sách cũ (NOT NULL của câu chèn sau đóng, hoặc UNIQUE dòng hiện hành). */
+export const laLoiChinhSachCu = (e: unknown): boolean => e instanceof Error && /aut_session_policy\.permission_code/.test(e.message);
+export const endExpiredAllStatement = (db: D1Database, at: string): D1PreparedStatement => db.prepare(SS_END_EXPIRED_ALL).bind(at);
+export const sietTheoTapStatement = (db: D1Database, at: string, by: string): D1PreparedStatement => db.prepare(SS_SIET_THEO_TAP).bind(at, by);
+export const danhDauMotMayTheoTapStatement = (db: D1Database, at: string, by: string): D1PreparedStatement => db.prepare(SS_DANH_DAU_MOT_MAY).bind(at, by);
+export async function demSietTheoTap(db: D1Database, nhieuMay: readonly string[], nowIso: string): Promise<{ soPhien: number; soNguoi: number }> {
+  const r = await db.prepare(SS_DEM_SIET).bind(JSON.stringify(nhieuMay), nowIso).first<{ so_phien: number; so_nguoi: number }>();
+  return { soPhien: r?.so_phien ?? 0, soNguoi: r?.so_nguoi ?? 0 };
+}

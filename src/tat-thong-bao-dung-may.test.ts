@@ -84,7 +84,7 @@ test("ADR-0046 điểm 3: thao tác bảo mật vẫn tắt MỌI máy (lý do t
   assert.equal(dong(w, b).revoke_reason, "tai-khoan-doi", "ngưng tài khoản → mọi máy tắt");
 });
 
-test("ADR-0046 điểm 2–3: MỌI route gọi dongBangTin khai cờ tatThongBao đúng loại — 7 thao tác bảo mật true, gỡ phiên chỉ-phiên (ADR-0075 điều 6b), đổi quyền/vai false; route mới gọi dongBangTin phải được xếp loại ở đây", () => {
+test("ADR-0046 điểm 2–3: MỌI route gọi dongBangTin khai cờ tatThongBao đúng loại — 7 thao tác bảo mật true, gỡ phiên chỉ-phiên (ADR-0075 điều 6b), lưu chính sách chỉ-phiên danh sách (ADR-0085 Q3), đổi quyền/vai false; route mới gọi dongBangTin phải được xếp loại ở đây", () => {
   // Kiểm người kiểm độc lập 28/9 (VỪA): bài chạy-app ở trên chỉ phủ đổi SĐT/ngưng + đổi quyền/vai; 5 route bảo mật còn lại (gỡ Face ID, đổi PIN
   // bằng Face ID, quản trị đặt lại PIN / gỡ Face ID) cần giả lập WebAuthn/PIN thật — bài QUÉT NGUỒN này canh cờ của TỪNG route (tách theo `route(`).
   // Quét MỌI tệp .ts (không phải test) dưới src/modules/ — người kiểm cuối 28/9 (VỪA): bản trước chỉ đọc accounts + maintenance, route mới ở
@@ -109,6 +109,8 @@ test("ADR-0046 điểm 2–3: MỌI route gọi dongBangTin khai cờ tatThongBa
     // Dạng CHỈ PHIÊN (`chiPhien: true`, ADR-0075 điều 6b) — tắt thông báo CHỈ máy của các phiên được nêu: xếp loại riêng "chỉ-phiên"; route gỡ phiên PHẢI dùng
     // dạng này (đợt sửa sau kiểm độc lập 2026-10-01: dạng `giuPhien: null` cũ tắt MỌI máy của tài khoản — sai "của đúng máy đó").
     co.push(...[...than.matchAll(/dongBangTin\(\{\s*staffId:[^}]*?sessionIds:[^}]*?chiPhien:\s*true\s*\}\)/g)].map(() => "chỉ-phiên"));
+    // ADR-0085 Q3 (NỚI có chủ đích, chủ duyệt 2026-10-01 — sổ hàng rào): dạng "danh sách phiên, chỉ-phiên" KHÔNG có staffId — CHỈ route lưu chính sách được dùng.
+    co.push(...[...than.matchAll(/dongBangTin\(\{\s*phienKetThuc:[^}]*\}\)/g)].map(() => "chỉ-phiên danh sách"));
     const goi = (than.match(/dongBangTin\(/g) ?? []).length;
     assert.equal(co.length, goi, `${r.ten}: mọi lời gọi dongBangTin phải khai rõ tatThongBao: true|false`);
     if (goi > 0) thay[r.ten] = co;
@@ -125,6 +127,7 @@ test("ADR-0046 điểm 2–3: MỌI route gọi dongBangTin khai cờ tatThongBa
     "POST /api/staff/:id/reset-pin": [true], // quản trị đặt lại PIN
     "POST /api/staff/:id/passkeys/remove-all": [true], // quản trị gỡ mọi Face ID
     "POST /api/sessions/:id/revoke": ["chỉ-phiên"], // ADR-0075 điều 6b–7: IT/Toàn quyền gỡ phiên — tắt CHỈ máy của phiên bị gỡ (không phải mọi máy)
+    "PUT /api/sessions/policy": ["chỉ-phiên danh sách"], // ADR-0085 Q3: lưu chính sách — tắt CHỈ máy của các phiên vừa kết thúc (một lời gọi cho cả danh sách)
   });
   // Chế độ bảo trì chỉ đóng Bảng tin ("tat-ca"), không tắt máy (ADR-0036/0046 điểm 4).
   const bt = readFileSync(new URL("./modules/maintenance/index.ts", import.meta.url), "utf8");

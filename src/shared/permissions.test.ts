@@ -76,6 +76,7 @@ const ADR: Record<string, [Scope, Scope, Scope, Scope, Scope, Scope, Scope, Scop
   "assistant.ask": ["any", "any", "any", "any", "any", "any", "any", "any", "any", "any"], // ADR-0066 điều 1: hỏi trợ lý Hỗ trợ — mọi tài khoản đăng nhập
   "auth.session.viewAll": ["none", "none", "none", "none", "none", "any", "none", "none", "none", "none"], // ADR-0075 điều 7: xem sổ phiên của MỌI tài khoản — chỉ Toàn quyền (vai IT mang Toàn quyền)
   "auth.session.revoke": ["none", "none", "none", "none", "none", "any", "none", "none", "none", "none"], // ADR-0075 điều 7: gỡ một phiên đăng nhập — chỉ Toàn quyền
+  "auth.session.policy": ["none", "none", "none", "none", "none", "any", "none", "none", "none", "none"], // ADR-0085: chỉ Toàn quyền
 };
 const ORDER: readonly PermissionCode[] = ["SALES", "ACCOUNTING", "ADMIN", "FIELD", "PARTNER", "SUPER_ADMIN", "INTERN", "DRIVER", "DRIVER_PARTNER", "HR"];
 const OPS = Object.keys(ADR) as OperationCode[];
@@ -243,7 +244,7 @@ const ADMIN_NONE_OPS: readonly OperationCode[] = [
   "order.complete", "ledger.write", // sổ tiền lượt 1: Hoàn thành / ghi sổ chỉ Kế toán, Toàn quyền (ADR-0025 đ6, ADR-0026 đ10)
   "ledger.view", // ADMIN "own" — chỉ sổ của chính mình (ngữ cảnh ownerId người khác → không)
   "accounting.entry.mark", // ADR-0060: ghi dấu "đã nhập phần mềm kế toán" chỉ Kế toán, Toàn quyền (lời chủ)
-  "auth.session.viewAll", "auth.session.revoke", // ADR-0075 điều 7: sổ phiên của mọi người, gỡ phiên — chỉ Toàn quyền (Quản trị không giữ Toàn quyền → 403)
+  "auth.session.viewAll", "auth.session.revoke", "auth.session.policy", // ADR-0075 điều 7: sổ phiên của mọi người, gỡ phiên — chỉ Toàn quyền (Quản trị không giữ Toàn quyền → 403)
   "party.document.reveal", // ADR-0083 điều 2: xem đủ số giấy tờ chỉ Toàn quyền — Quản trị chỉ thấy số đã che
 ];
 
@@ -328,7 +329,7 @@ test("ADR-0040 D3 + ADR-0049 D3: MỌI ô của Tài xế (DRIVER) — ghim nguy
     // Sổ tiền lượt 1 (bản làm mới §2): tài xế không thu tiền khách — none ở cả bốn ô mới (ledger.view none, không phải own: tài xế không bao giờ là người thu).
     "order.handover": "none", "order.complete": "none", "ledger.view": "none", "ledger.write": "none",
     "assistant.ask": "any", // ngoại lệ có tên (ADR-0066 điều 1): hỏi trợ lý Hỗ trợ cách dùng app — trợ lý không đọc dữ liệu nghiệp vụ
-    "auth.session.viewAll": "none", "auth.session.revoke": "none", // ADR-0075 điều 7: chỉ Toàn quyền
+    "auth.session.viewAll": "none", "auth.session.revoke": "none", "auth.session.policy": "none", // ADR-0075 điều 7: chỉ Toàn quyền
   };
   assert.deepEqual(Object.fromEntries((Object.keys(MATRIX) as OperationCode[]).map((op) => [op, MATRIX[op].DRIVER])), DRIVER_ROW);
 });
@@ -357,7 +358,7 @@ test("ADR-0048 D2: MỌI ô của Tài xế đối tác (DRIVER_PARTNER) — ghi
     "trip.view": "none", "trip.dispatch": "none", "trip.override": "none", "trip.progress": "none", "trip.call_ack": "none", // ADR-0049 D3 × ADR-0048 D2: tài xế đối tác chưa dùng app cho chuyến (D7 — lượt sau)
     "order.handover": "none", "order.complete": "none", "ledger.view": "none", "ledger.write": "none", // sổ tiền lượt 1 (bản làm mới §2) — mọi ô tiền = none
     "assistant.ask": "any", // ngoại lệ có tên (ADR-0066 điều 1): hỏi trợ lý Hỗ trợ — mọi tài khoản đăng nhập
-    "auth.session.viewAll": "none", "auth.session.revoke": "none", // ADR-0075 điều 7: chỉ Toàn quyền
+    "auth.session.viewAll": "none", "auth.session.revoke": "none", "auth.session.policy": "none", // ADR-0075 điều 7: chỉ Toàn quyền
   };
   assert.deepEqual(Object.fromEntries((Object.keys(MATRIX) as OperationCode[]).map((op) => [op, MATRIX[op].DRIVER_PARTNER])), DRIVER_PARTNER_ROW);
 });
@@ -382,7 +383,7 @@ test("ADR-0071: MỌI ô của Nhân sự (HR) — ghim nguyên dòng, chỉ ba 
     "party.document.write": "none", "party.document.reveal": "none", "vehicle.manage": "none",
     "trip.view": "none", "trip.dispatch": "none", "trip.override": "none", "trip.progress": "none", "trip.call_ack": "none",
     "assistant.ask": "any",
-    "auth.session.viewAll": "none", "auth.session.revoke": "none", // ADR-0075 điều 7: chỉ Toàn quyền
+    "auth.session.viewAll": "none", "auth.session.revoke": "none", "auth.session.policy": "none", // ADR-0075 điều 7: chỉ Toàn quyền
   };
   assert.deepEqual(Object.fromEntries((Object.keys(MATRIX) as OperationCode[]).map((op) => [op, MATRIX[op].HR])), HR_ROW);
 });

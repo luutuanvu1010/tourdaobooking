@@ -4,18 +4,20 @@ import { getMaintenanceState, maintenanceBlock, toStatus } from "../maintenance"
 import { ownerCompany } from "../parties";
 import { accountRoleCodesOf, authenticate, findStaffByPhone, getActiveStaff, isValidPin, normalizePhone, recordLogin, type StaffProfile } from "../staff";
 import { APP_VERSION } from "../../shared/app-info";
-import type { AuthConfigResponse, MeResponse, PasskeyRequestOptionsResponse } from "../../shared/contracts";
+import type { AuthConfigResponse, MeResponse, PasskeyRequestOptionsResponse, SessionPolicyChange } from "../../shared/contracts";
 import { error, getCookie, json, readJson } from "../../shared/http";
 import { route, type AppModule } from "../../shared/router";
 import { PASSKEY_ERRORS, checkPasskeyAssertion, clearChallengeCookie, issuePasskeyChallenge, limitChallenge, passkeyRp, readPasskeyChallenge } from "./passkey";
 import {
   endAllButNewestStatement, endAllSessionsIfSuspendedStatement as endAllIfSuspendedRow, endExpiredSessionsStatement, endOtherSessionsStatement, endSessionStatement, findLiveSession,
-  getSession, insertSessionStatement, markMultiStatement, markSessionReissuedStatement, markSingleStatement, touchSessionStatement,
+  getSession, insertSessionStatement, listPolicyRows, markSessionReissuedStatement, markSingleStatement, touchSessionStatement,
+  closePolicyStatement, danhDauMotMayTheoTapStatement, endExpiredAllStatement, insertPolicyAfterCloseStatement, insertPolicyNewStatement, sietTheoTapStatement,
 } from "./repository";
+import { isQuyenDatDuoc, type QuyenDatDuoc } from "../../shared/chinh-sach-dang-nhap";
 import type { PermissionCode } from "../../shared/permissions";
 import type { RoleCode } from "../../shared/roles";
 import { SESSION_COOKIE, SESSION_TTL_SECONDS, clearedSessionCookie, createSessionToken, isSecure, sessionCookie, verifySessionToken } from "./session";
-import { SESSION_TOUCH_MS, isSingleDevice, sessionDeviceLabel, trimIp, trimUserAgent, END_REASON_LABEL, type EndReason } from "./session-ledger";
+import { SESSION_TOUCH_MS, isSingleDevice, sessionDeviceLabel, trimIp, trimUserAgent, END_REASON_LABEL, type EndReason, type TapNhieuMay } from "./session-ledger";
 import { IP_LIMIT, PHONE_LIMIT, clearAttempts, ipKey, lockedPhones, phoneKey, reserveAttempts, unlockPhone } from "./throttle";
 import { turnstileGate, turnstileLog, turnstileSiteKey } from "./turnstile";
 import { passkeyRelyingParty } from "./webauthn";
@@ -73,8 +75,9 @@ export async function issueLoginSession(
 ): Promise<{ cookie: string; sessionId: string; endedSessionIds: string[]; single: boolean } | { conflict: Response }> {
   const now = opts.now ?? Date.now();
   const at = new Date(now).toISOString();
-  const roles = await accountRoleCodesOf(env.DB, profile.id);
-  const single = isSingleDevice(profile.permissions, roles);
+  // ADR-0085: chính sách đọc MỖI lần cấp phiên (một câu ≤ 9 dòng), cùng lúc với vai.
+  const [roles, nhieuMay] = await Promise.all([accountRoleCodesOf(env.DB, profile.id), docTapNhieuMay(env.DB)]);
+  const single = isSingleDevice(profile.permissions, roles, nhieuMay);
   const id = crypto.randomUUID();
   const ua = request.headers.get("user-agent");
   let ended: string[] = [];
@@ -128,35 +131,66 @@ export const endAllSessionsIfSuspendedStatement = (db: D1Database, staffId: stri
  */
 export { markSessionReissuedStatement };
 
+/** Chính sách đăng nhập hiện hành (ADR-0085): đọc D1 MỖI lần gọi — không lưu đệm trong Worker (mỗi bản Worker sẽ giữ một bản khác nhau). Bỏ qua mã lạ. */
+export async function docChinhSachPhien(db: D1Database): Promise<{ id: string; permissionCode: QuyenDatDuoc; multi: boolean }[]> {
+  return (await listPolicyRows(db)).flatMap((r) => (isQuyenDatDuoc(r.permission_code) ? [{ id: r.id, permissionCode: r.permission_code, multi: r.multi === 1 }] : []));
+}
+export const docTapNhieuMay = async (db: D1Database): Promise<TapNhieuMay> =>
+  new Set((await docChinhSachPhien(db)).filter((r) => r.multi).map((r) => r.permissionCode));
+export type { TapNhieuMay };
 /**
- * ADR-0075 điều 3: đổi quyền / vai làm đổi miễn luật một máy (miễn = Toàn quyền hoặc vai IT — `isSingleDevice`, tính trên quyền + vai TRƯỚC và SAU lần đổi).
- * - Mất miễn: [dọn hạn → kết thúc mọi phiên trừ phiên còn sống mới nhất ('mat_mien') → đánh dấu phiên còn lại single = 1] — thứ tự này để chỉ mục duy nhất
- *   không vỡ; hai câu sau chỉ chạy khi tài khoản không còn Toàn quyền lúc câu chạy (câu chốt quản trị viên cuối thua → không đụng phiên).
- * - Được miễn: phiên còn sống single = 0 (`requireToanQuyen`: chỉ khi tài khoản giữ Toàn quyền lúc câu chạy — route đổi quyền, lô có câu chốt).
- * Các câu chưa chạy; người gọi nối vào CUỐI lô ghi quyền/vai (lô chạy sau khi câu chốt thắng nếu có), rồi đọc `ketQua(kết quả của lô đó)` để đóng Bảng tin
- * của đúng các phiên vừa bị kết thúc, giữ thông báo của phiên được giữ (ADR-0075 điều 6).
+ * Lô ghi chính sách (ADR-0085 đặc tả §4.2 bước 3.1): mỗi quyền đổi — có bản đang xem: [đóng đúng id → chèn sau đóng]; chưa có dòng: [chèn mới]. Lần lưu dựa
+ * trên bản cũ làm CẢ lô lùi (laLoiChinhSachCu) — người gọi trả 409. Chưa chạy.
+ */
+export function luuChinhSachStatements(db: D1Database, v: { thayDoi: readonly SessionPolicyChange[]; at: string; by: string }): D1PreparedStatement[] {
+  return v.thayDoi.flatMap((t) => {
+    const moi = { id: crypto.randomUUID(), code: t.permissionCode, multi: t.multi, at: v.at, by: v.by };
+    return t.banDangXem === null
+      ? [insertPolicyNewStatement(db, moi)]
+      : [closePolicyStatement(db, { id: t.banDangXem, code: t.permissionCode, at: v.at, by: v.by }), insertPolicyAfterCloseStatement(db, moi)];
+  });
+}
+/** Siết theo tập (đặc tả §4.2 bước 3.3): [dọn hạn → siết (RETURNING id, staff_id) → đánh dấu một máy]. Nối SAU các câu ghi chính sách cùng lô.
+ * Các câu này PHẢI đứng CUỐI lô: `ketQua` đọc theo vị trí (`r.at(-2)` = câu siết). */
+export function sietTheoTapStatements(db: D1Database, at: string, by: string): { statements: D1PreparedStatement[]; ketQua: (r: readonly D1Result[]) => { sessionIds: string[]; staffIds: string[] } } {
+  return {
+    statements: [endExpiredAllStatement(db, at), sietTheoTapStatement(db, at, by), danhDauMotMayTheoTapStatement(db, at, by)],
+    ketQua: (r) => {
+      const rows = (r.at(-2)?.results ?? []) as { id: string; staff_id: string }[];
+      return { sessionIds: rows.map((x) => x.id), staffIds: [...new Set(rows.map((x) => x.staff_id))] };
+    },
+  };
+}
+export { demSietTheoTap, laLoiChinhSachCu } from "./repository";
+
+/**
+ * ADR-0085 Q2 điều 7 (thay ADR-0075 điều 3): đổi quyền / vai làm đổi "được nhiều máy" (`isSingleDevice` với chính sách `nhieuMay` — Toàn quyền, vai IT, hoặc
+ * quyền mà chính sách đặt Nhiều máy — tính trên quyền + vai TRƯỚC và SAU lần đổi, cùng MỘT bản chính sách đọc đầu request).
+ * - Mất nhiều máy: [dọn hạn → kết thúc mọi phiên trừ phiên còn sống mới nhất ('mat_mien') → đánh dấu phiên còn lại single = 1] — thứ tự này để chỉ mục duy
+ *   nhất không vỡ. Các câu KHÔNG tự kiểm quyền trong SQL.
+ * - Được nhiều máy hoặc không đổi: không câu nào (đặc tả §4.4 — nới không ghi phiên).
+ * Các câu chưa chạy; người gọi đặt các câu ở lô THỨ HAI nếu lô đổi quyền/vai có câu chốt (chỉ chạy khi câu chốt đã thắng); không có câu chốt thì nối cuối lô
+ * duy nhất. Rồi đọc `ketQua(kết quả của lô chứa các câu)` để đóng Bảng tin của đúng các phiên vừa bị kết thúc, giữ thông báo của phiên được giữ (ADR-0075 điều 6).
  */
 export function exemptionChangeStatements(
   db: D1Database,
   v: {
-    staffId: string; at: string; by: string; requireToanQuyen: boolean;
+    staffId: string; at: string; by: string; nhieuMay: TapNhieuMay;
     before: { permissions: readonly PermissionCode[]; roles: readonly RoleCode[] }; after: { permissions: readonly PermissionCode[]; roles: readonly RoleCode[] };
   },
 ): { statements: D1PreparedStatement[]; ketQua: (results: readonly D1Result[]) => { endedSessionIds: string[]; keptSessionId: string | null } } {
-  const truoc = isSingleDevice(v.before.permissions, v.before.roles);
-  const sau = isSingleDevice(v.after.permissions, v.after.roles);
-  if (!truoc && sau) {
-    return {
-      statements: [endExpiredSessionsStatement(db, v.staffId, v.at), endAllButNewestStatement(db, v.staffId, v.at, v.by), markSingleStatement(db, v.staffId, v.at, v.by)],
-      ketQua: (results) => {
-        const ids = (r: D1Result | undefined) => ((r?.results ?? []) as { id: string }[]).map((x) => x.id);
-        return { endedSessionIds: ids(results.at(-2)), keptSessionId: ids(results.at(-1))[0] ?? null };
-      },
-    };
-  }
+  const truoc = isSingleDevice(v.before.permissions, v.before.roles, v.nhieuMay);
+  const sau = isSingleDevice(v.after.permissions, v.after.roles, v.nhieuMay);
   const none = () => ({ endedSessionIds: [], keptSessionId: null });
-  if (truoc && !sau) return { statements: [markMultiStatement(db, v.staffId, v.at, v.by, v.requireToanQuyen)], ketQua: none };
-  return { statements: [], ketQua: none };
+  // Nới (một máy → nhiều máy) hoặc không đổi: KHÔNG ghi gì lên aut_session (ADR-0085 đặc tả §4.4).
+  if (!(!truoc && sau)) return { statements: [], ketQua: none };
+  return {
+    statements: [endExpiredSessionsStatement(db, v.staffId, v.at), endAllButNewestStatement(db, v.staffId, v.at, v.by), markSingleStatement(db, v.staffId, v.at, v.by)],
+    ketQua: (results) => {
+      const ids = (r: D1Result | undefined) => ((r?.results ?? []) as { id: string }[]).map((x) => x.id);
+      return { endedSessionIds: ids(results.at(-2)), keptSessionId: ids(results.at(-1))[0] ?? null };
+    },
+  };
 }
 
 export type PinAttemptResult =

@@ -5,7 +5,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { DatabaseSync, type SupportedValueType } from "node:sqlite";
 import { readFileSync, readdirSync } from "node:fs";
-import { batMayStatements, tatMayCuaPhienStatement, tatMayTruPhienStatement } from "./repository.ts";
+import { batMayStatements, tatMayCuaCacPhienStatement, tatMayCuaPhienStatement, tatMayTruPhienStatement } from "./repository.ts";
 
 const DIR = new URL("../../../migrations/", import.meta.url);
 
@@ -119,4 +119,26 @@ test("máy dùng chung đổi chủ: tài khoản khác đăng ký cùng endpoin
     { id: "m1", staff_id: "s1", session_id: "A", revoke_reason: "doi-tai-khoan" },
     { id: "m2", staff_id: "s2", session_id: "Z", revoke_reason: null },
   ]);
+});
+
+test("ADR-0085 Q3: TAT_MAY_CUA_CAC_PHIEN — chỉ tắt đăng ký mang ĐÚNG các phiên trong danh sách (nhiều tài khoản), lý do mat-mien; máy giữ lại, đăng ký session_id NULL, phiên ngoài danh sách, dòng đã tắt không đụng; danh sách rỗng → 0 dòng", async () => {
+  const { sqlite, db } = setup();
+  chen(sqlite, "a1", "s1", ep("a1"), "A1"); // phiên vừa kết thúc của s1
+  chen(sqlite, "a2", "s1", ep("a2"), "A2"); // máy giữ lại của s1
+  chen(sqlite, "an", "s1", ep("an"), null); // đăng ký chưa gắn phiên
+  chen(sqlite, "b1", "s2", ep("b1"), "B1"); // phiên vừa kết thúc của s2
+  chen(sqlite, "c1", "s3", ep("c1"), "C1"); // phiên không trong danh sách
+  chen(sqlite, "ax", "s1", ep("ax"), "A1");
+  sqlite.exec(`UPDATE ntf_push_sub SET revoked_at = '${T0}', revoke_reason = 'tu-tat' WHERE id = 'ax'`);
+  const r = await tatMayCuaCacPhienStatement(db, ["A1", "B1"], T1).run();
+  assert.equal(r.meta.changes, 2);
+  assert.deepEqual(dong(sqlite, "SELECT id, revoked_at, revoke_reason, updated_by FROM ntf_push_sub ORDER BY id"), [
+    { id: "a1", revoked_at: T1, revoke_reason: "mat-mien", updated_by: null },
+    { id: "a2", revoked_at: null, revoke_reason: null, updated_by: null },
+    { id: "an", revoked_at: null, revoke_reason: null, updated_by: null },
+    { id: "ax", revoked_at: T0, revoke_reason: "tu-tat", updated_by: null },
+    { id: "b1", revoked_at: T1, revoke_reason: "mat-mien", updated_by: null },
+    { id: "c1", revoked_at: null, revoke_reason: null, updated_by: null },
+  ]);
+  assert.equal((await tatMayCuaCacPhienStatement(db, [], T2).run()).meta.changes, 0, "danh sách rỗng → không tắt gì");
 });

@@ -16,6 +16,7 @@
 | `login_attempt` | bảng | tên cũ, giữ nguyên (ADR-0002 điều 2) |
 | `aut_passkey` | bảng |  |
 | `aut_session` | bảng | sổ phiên đăng nhập (ADR-0075, migration 0065): mỗi lần cấp phiên là một dòng, KHÔNG xoá (kết thúc = ended_at + end_reason đi cặp). single = 1: tài khoản chịu luật một máy, chỉ mục duy nhất aut_session_one_live chặn hai phiên sống cùng lúc. ip và user_agent là DỮ LIỆU CÁ NHÂN, giữ vô hạn, chỉ IT/Toàn quyền và chính chủ tài khoản xem, KHÔNG vào nhật ký |
+| `aut_session_policy` | bảng | chính sách đăng nhập (ADR-0085, migration 0067): mỗi quyền app đặt được (9 mã, không SUPER_ADMIN) tối đa một dòng hiện hành; multi = 1 là Nhiều máy; bảng trống = mọi quyền Một máy. Không xoá dòng — đổi = đóng dòng hiện hành (valid_to_at) + chèn dòng mới trong cùng lô; lưu có kiểm phiên bản (id dòng đang xem) |
 
 ## billing
 
@@ -135,6 +136,8 @@
 | `stf_permission_type` | bảng tra cứu |  |
 | `v_stf_staff_label` | view công bố | cột: id, label, active, party_id |
 | `v_stf_toan_quyen` | view công bố | cột: staff_id |
+| `v_stf_quyen_mo` | view công bố | cột: staff_id, permission_code |
+| `v_stf_nhieu_may_co_dinh` | view công bố | cột: staff_id |
 | `v_stf_staff_xung_ho` | view công bố | cột: id, given_name, gender |
 
 ## thongbao
@@ -145,7 +148,7 @@
 | `ntf_notice_target` | bảng |  |
 | `ntf_ack` | bảng |  |
 | `ntf_read_mark` | bảng |  |
-| `ntf_push_sub` | bảng | session_id (0065, ADR-0075 điều 6b): phiên đã đăng ký máy này; NULL = đăng ký trước phát hành. revoke_reason thêm bi-thay: tài khoản một máy đăng nhập máy khác — tắt mọi đăng ký trừ đăng ký của phiên mới; bi-go: IT/Toàn quyền gỡ một phiên — tắt CHỈ đăng ký mang đúng mã phiên đó (đăng ký session_id NULL không đụng) |
+| `ntf_push_sub` | bảng | session_id (0065, ADR-0075 điều 6b): phiên đã đăng ký máy này; NULL = đăng ký trước phát hành. revoke_reason thêm bi-thay: tài khoản một máy đăng nhập máy khác — tắt mọi đăng ký trừ đăng ký của phiên mới; bi-go: IT/Toàn quyền gỡ một phiên — tắt CHỈ đăng ký mang đúng mã phiên đó (đăng ký session_id NULL không đụng). mat-mien (0067, ADR-0085 Q3): Toàn quyền lưu chính sách đăng nhập chuyển quyền sang Một máy — tắt CHỈ đăng ký mang đúng mã các phiên vừa bị kết thúc (máy giữ lại và đăng ký session_id NULL không đụng) |
 
 ## van-chuyen
 

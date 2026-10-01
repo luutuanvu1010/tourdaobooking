@@ -92,7 +92,8 @@ Thứ tự tài liệu (Điều 3.1): Hiến pháp → ràng buộc dự án →
 | 0064 | HDV thấy thêm: ghi chú đơn; biển số + tài xế của đơn mình phụ trách (bổ sung ADR-0059) | `…/ADR-0064-hdv-thay-ghi-chu-don.md` | proposed — lượt duyệt 2b |
 | 0065 | Số khách đi xe (ô riêng do Bán hàng nhập) | `…/ADR-0065-so-khach-di-xe.md` | proposed — lượt duyệt 2b |
 | 0066 | Trợ lý AI "Hỗ trợ" | đặc tả `docs/superpowers/specs/2026-09-30-adr-0066-tro-ly-ai-ho-tro.md` (phiên khác) | accepted 2026-09-30 — văn bản ở đặc tả, chưa có tệp trong `docs/adr/` |
-| — | (số ADR mới kế tiếp là 0087 — 0085 chính sách đăng nhập ở nhánh `chinh-sach-dang-nhap`; 0086 bỏ hai ô quyền chưa có route; 0074, 0075 đăng nhập 2FA / sổ phiên; 0076–0081 đã dùng trên main; 0082 trợ lý tìm theo nghĩa; 0083 nợ rà soát vai ↔ quyền; 0084 trợ lý Mai) | | |
+| [0085](ADR-0085-chinh-sach-dang-nhap.md) | **Chính sách đăng nhập:** bảng `aut_session_policy` (mỗi quyền app trừ Toàn quyền: một máy / nhiều máy, hiệu lực theo thời gian); được nhiều máy = Toàn quyền **hoặc** vai IT **hoặc** một quyền hiệu lực đặt "nhiều máy" (sửa ADR-0075 điều 3); ô `auth.session.policy` chỉ Toàn quyền; siết = đăng xuất ngay giữ phiên mới nhất (một câu theo tập; đổi quyền/vai: lô thứ hai sau câu chốt); nhật ký im lặng; ngoại lệ hàng rào thông báo dạng "chỉ-phiên" | một chiều (bảng, migration); hai chiều (từng giá trị chính sách) | **accepted** 2026-10-01 (chủ, "duyêt") |
+| — | (số ADR mới kế tiếp là 0087 — 0074, 0075 đăng nhập 2FA / sổ phiên; 0076–0081 đã dùng trên main; 0082 trợ lý tìm theo nghĩa; 0083 nợ rà soát vai ↔ quyền; 0084 trợ lý Mai; 0085 chính sách đăng nhập; 0086 bỏ hai ô quyền chưa có route — bị bác) | | |
 
 (0040, 0041, 0042, 0044, 0049, 0050, 0051, 0052–0057, 0058, 0059–0061, 0062 và 0067 đã có văn bản thật ở bảng trên nên bỏ khỏi bảng giữ chỗ.)
 

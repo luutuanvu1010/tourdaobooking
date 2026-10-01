@@ -32,6 +32,9 @@ export type MucDongBangTin =
   | { staffId: string; tatThongBao: boolean }
   | { staffId: string; sessionIds: string[]; giuPhien: string | null }
   | { staffId: string; sessionIds: string[]; chiPhien: true }
+  // ADR-0085 Q3: Toàn quyền LƯU CHÍNH SÁCH làm nhiều tài khoản mất nhiều máy — MỘT lời gọi cho cả danh sách phiên vừa kết thúc (không một staffId nào):
+  // đóng Bảng tin của đúng các phiên đó + tắt CHỈ đăng ký mang đúng các phiên đó (lý do mat-mien). Khoá `phienKetThuc` riêng để nhánh cũ không bắt nhầm.
+  | { phienKetThuc: string[] }
   | "tat-ca";
 export type NewOrderHandler = { ok: true; statements: (orderId: string, at: string) => D1PreparedStatement[] } | { ok: false; message: string };
 

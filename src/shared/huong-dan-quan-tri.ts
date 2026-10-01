@@ -34,11 +34,11 @@ Bạn không thấy các vai quản lý (Giám đốc, Điều hành chung, IT, 
       tieuDe: "Đổi vai, sửa tên hoặc số điện thoại",
       noiDung: `1. [[Quản lý tài khoản]], ở dòng người đó bấm [[Sửa]].
 2. Sửa [[Họ tên]], [[Số điện thoại đăng nhập]] nếu cần. Đổi số là đổi tên đăng nhập của họ.
-3. Tick hoặc bỏ tick vai. Xem kỹ dòng **Sẽ thêm** và **Sẽ mất**.
+3. Tick hoặc bỏ tick vai. Xem kỹ dòng **Sẽ thêm** và **Sẽ mất**. Đổi vai có thể đăng xuất máy thừa.
 4. Cần cộng hoặc bớt riêng một quyền: mở [[Chỉnh riêng cho người này (cộng hoặc bớt quyền)]], tick ở [[Cộng thêm]] hoặc [[Bớt đi]], gõ lý do (bắt buộc).
 5. Bấm [[Lưu]]; không lưu thì bấm [[Đóng]].
 
-> Ví dụ: Bạn Ngọc chuyển sang kế toán. Bỏ Nhân viên kinh doanh, tick Kế toán, app báo sẽ thêm Kế toán, sẽ mất Bán hàng, bấm Lưu.`,
+> Ví dụ: Ngọc chuyển sang kế toán: bỏ Nhân viên kinh doanh, tick Kế toán, bấm Lưu.`,
     },
     {
       tieuDe: "Quên PIN, bị khoá, mất máy, nghỉ việc",
@@ -214,7 +214,7 @@ Mở [[Lý do điều phối]]. Lý do chia nhóm, như [[Đổi giờ xe tới]
 
 ### Tài khoản
 - Gán được vai Giám đốc, Điều hành chung, IT, Hành chính nhân sự; sửa được cả tài khoản Quản trị và Hành chính nhân sự.
-- Tạo tài khoản ở khung [[Thêm tài khoản]] của trang Quản lý tài khoản, cùng cách Hành chính nhân sự làm.
+- Tạo tài khoản ở khung [[Thêm tài khoản]], như Hành chính nhân sự.
 
 ### Chế độ bảo trì
 Chỉ hiện ở trang Tôi của tài khoản Toàn quyền. Khi bật, mọi tài khoản khác (kể cả Quản trị) thấy màn hình bảo trì; tài khoản Toàn quyền vẫn dùng bình thường.
@@ -229,8 +229,6 @@ Chỉ hiện ở trang Tôi của tài khoản Toàn quyền. Khi bật, mọi t
 2. Chọn gửi cho [[Toàn công ty]] hoặc [[Chọn nhóm]]. Tick [[Tin quan trọng]] nếu cần mọi người bấm Đã hiểu.
 3. Bấm [[Gửi thông báo]]. Sau đó xem [[Xem ai đã hiểu]], hoặc [[Thu hồi]] (không hoàn tác được).
 
-> Ví dụ: gửi "Lịch nghỉ lễ" cho Toàn công ty, tick Tin quan trọng; hôm sau bấm Xem ai đã hiểu.
-
 ### Chính sách điều phối
 Mở [[Chính sách điều phối]], sửa [[Mốc tối thiểu (giờ)]], [[Cảnh báo sát mốc (giờ)]], [[Khoảng nghỉ tài xế (phút)]], [[Khai lùi tối đa (phút)]], công tắc [[Phải đủ danh sách khách]]. Bấm [[Lưu thành bản mới]], có hiệu lực ngay; bản cũ vào [[Lịch sử bản]]. Liên kết [[Điều kiện theo cỡ xe, hạng bằng ›]] mở trang Điều kiện xuất bến.
 
@@ -238,6 +236,7 @@ Mở [[Chính sách điều phối]], sửa [[Mốc tối thiểu (giờ)]], [[C
 Mở [[Phiên đăng nhập]] (điện thoại: trang **Tôi**) xem ai đang đăng nhập trên máy nào.
 - [[Gỡ phiên]]: máy đó đăng xuất ngay.
 - Nghi lộ PIN, mất máy: [[Gỡ phiên + đặt lại PIN]]; PIN mới hiện một lần, gửi riêng cho người đó.
+- **Chính sách đăng nhập**: mỗi quyền chọn Một máy hoặc Nhiều máy (một quyền Nhiều máy là đủ); [[Lưu chính sách]], xem số máy sẽ đăng xuất, [[Xác nhận lưu]].
 
 ### Nhật ký, Góp ý, hồ sơ công ty
 - [[Nhật ký]]: tìm theo mã đơn, mã dịch vụ hoặc tên nhân viên.

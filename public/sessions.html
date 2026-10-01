@@ -8,6 +8,8 @@
   <div id="error" class="alert" role="alert" hidden></div>
   <div id="ok" class="alert ok" role="status" hidden></div>
   <section id="secret" class="card secret" hidden></section>
+  <!-- web/chinh-sach-dang-nhap-ui.ts dựng mục này chỉ khi có ô auth.session.policy (ADR-0085) — hỏi ĐÚNG ô này, không dùng chung auth.session.viewAll. -->
+  <section id="policy-card" class="card" hidden></section>
   <!-- web/sessions.ts dựng ô lọc, bảng (máy tính) và thẻ (điện thoại) chỉ khi máy chủ nói có ô auth.session.viewAll (ADR-0075 điều 7). -->
   <div id="filters" class="toolbar" hidden></div>
   <section id="table-card" class="card table-wrap phien-bang" hidden>

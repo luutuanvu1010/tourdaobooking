@@ -98,6 +98,15 @@ export interface StaffSessionDto extends SessionDto { staffId: string; staffName
 export interface SessionListResponse { sessions: SessionDto[] }
 /** GET /api/sessions — tối đa 200 phiên mới nhất (lọc theo tài khoản / đang hiệu lực). */
 export interface StaffSessionListResponse { sessions: StaffSessionDto[] }
+/** Chính sách đăng nhập (ADR-0085): một dòng mỗi quyền đặt được (9 mã, thứ tự QUYEN_DAT_DUOC). `banId` = id dòng hiện hành (null = chưa từng đặt = Một máy). */
+export interface SessionPolicyRowDto { permissionCode: PermissionCode; label: string; multi: boolean; banId: string | null }
+export interface SessionPolicyResponse { rows: SessionPolicyRowDto[] }
+/** Xem trước: số phiên sẽ kết thúc và số người bị ảnh hưởng nếu tập "Nhiều máy" thành đúng tập đã chọn. */
+export interface SessionPolicyPreviewResponse { soPhien: number; soNguoi: number }
+/** Một quyền đổi khi lưu: `banDangXem` = `banId` lúc tải (kiểm phiên bản — khác dòng hiện hành thì 409). */
+export interface SessionPolicyChange { permissionCode: PermissionCode; multi: boolean; banDangXem: string | null }
+export interface SessionPolicySaveRequest { thayDoi: SessionPolicyChange[] }
+export interface SessionPolicySaveResponse { rows: SessionPolicyRowDto[]; soPhien: number; soNguoi: number }
 export interface PasskeyDescriptorJson { type: "public-key"; id: string }
 /** Cho navigator.credentials.get — mọi trường nhị phân là base64url. */
 export interface PasskeyRequestOptionsResponse {

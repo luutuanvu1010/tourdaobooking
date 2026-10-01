@@ -5,7 +5,7 @@
 import { auditStatement, type AuditAction } from "../audit";
 import {
   PASSKEY_ERRORS, checkPasskeyAssertion, clearChallengeCookie, countActivePasskeys, deviceLabel, endAllSessionsIfSuspendedStatement, endAllSessionsStatement,
-  endOneSessionStatement, endOtherSessionsStatement, exemptionChangeStatements, getSession, listMySessions, listSessions, toSessionDto, firstUserHandle, insertPasskeyStatement, issuePasskeyChallenge, limitChallenge, listActivePasskeys, lockedPhones, logPasskeyRejected,
+  demSietTheoTap, docChinhSachPhien, docTapNhieuMay, endOneSessionStatement, laLoiChinhSachCu, luuChinhSachStatements, sietTheoTapStatements, endOtherSessionsStatement, exemptionChangeStatements, getSession, listMySessions, listSessions, toSessionDto, firstUserHandle, insertPasskeyStatement, issuePasskeyChallenge, limitChallenge, listActivePasskeys, lockedPhones, logPasskeyRejected,
   markSessionReissuedStatement, passkeyRp, readPasskeyChallenge, revokeAllPasskeysIfSuspendedStatement, reissueSessionCookie, revokeAllPasskeysStatement,
   revokePasskeyStatement, toPasskeyDto, unlockPhone, verifyPinThrottled, verifyRegistration,
 } from "../auth";
@@ -15,13 +15,16 @@ import {
   setPermissionStatements, setPinStatement, touchCredentialsStatement, updateStaffStatement, validateFreshPin, validateNewPin, type StaffAccount,
 } from "../staff";
 import type {
-  PartyMatchResponse, PasskeyCreationOptionsResponse, PasskeyListResponse, PasskeyResponse, PasskeyRequestOptionsResponse, SessionListResponse, StaffAccountDto, StaffListResponse, StaffResponse,
-  StaffRolesResponse, StaffSessionListResponse, StaffWithPinResponse,
+  PartyMatchResponse, PasskeyCreationOptionsResponse, PasskeyListResponse, PasskeyResponse, PasskeyRequestOptionsResponse, SessionListResponse, SessionPolicyPreviewResponse,
+  SessionPolicyResponse, SessionPolicyRowDto, SessionPolicySaveResponse, StaffAccountDto, StaffListResponse, StaffResponse, StaffRolesResponse, StaffSessionListResponse, StaffWithPinResponse,
 } from "../../shared/contracts";
 import { toBase64Url } from "../../shared/encoding";
 import { UUID_RE, error, json, readJson } from "../../shared/http";
 import { PARTY_ID_RE } from "../../shared/party-id";
-import { PERMISSION_CODES, can, isPermissionCode, type PermissionCode, quyenHienThi } from "../../shared/permissions";
+import {
+  QUYEN_DAT_DUOC, docTapNhieuMayThamSo, kiemThayDoiChinhSach, moTaThayDoiChinhSach, tapNhieuMaySau, type QuyenDatDuoc,
+} from "../../shared/chinh-sach-dang-nhap";
+import { PERMISSION_CODES, PERMISSION_LABEL, can, isPermissionCode, type PermissionCode, quyenHienThi } from "../../shared/permissions";
 import { route, type AppModule, type Ctx } from "../../shared/router";
 import {
   highPermissionProblem, parseRoleAssignment, permissionsLabel, roleAssignmentProblem, rolesLabel, taiKhoanLaiProblem, laiNoiBoBenNgoaiProblem, type RoleCode, type RoleProblem,
@@ -41,6 +44,15 @@ const NOT_ACCOUNT_VIEW = () => error(403, "forbidden", "Tài khoản này không
 const NOT_ACCOUNT_CREATE = () => error(403, "forbidden", "Chỉ Hành chính nhân sự hoặc người phụ trách hệ thống được thêm tài khoản.");
 // ADR-0075 điều 7: xem sổ phiên của mọi người / gỡ phiên — chỉ IT/Toàn quyền.
 const NOT_SESSION_ADMIN = () => error(403, "forbidden", "Chỉ IT/Toàn quyền xem và gỡ được phiên đăng nhập.");
+// ADR-0085 Q1 điều 3: chính sách đăng nhập — chỉ Toàn quyền.
+const NOT_SESSION_POLICY = () => error(403, "forbidden", "Chỉ người phụ trách hệ thống đặt được chính sách đăng nhập.");
+const POLICY_STALE = () => error(409, "policy_stale", "Chính sách vừa được người khác đổi — tải lại.");
+/** 9 dòng theo QUYEN_DAT_DUOC; quyền chưa có dòng = Một máy, banId null. */
+const chinhSachDto = (rows: readonly { id: string; permissionCode: QuyenDatDuoc; multi: boolean }[]): SessionPolicyRowDto[] =>
+  QUYEN_DAT_DUOC.map((c) => {
+    const r = rows.find((x) => x.permissionCode === c);
+    return { permissionCode: c, label: PERMISSION_LABEL[c], multi: r?.multi ?? false, banId: r?.id ?? null };
+  });
 const NOT_SUPER_ONLY = () => error(403, "forbidden", "Việc này chỉ người phụ trách hệ thống làm được.");
 const NOT_MANAGER = () => error(403, "forbidden", "Chỉ quản lý được tài khoản cấp dưới.");
 // DK-T3-02: đặt lại PIN ở đây KHÔNG hỏi PIN cũ — áp lên chính mình thì một phiên bỏ quên đủ để chiếm hẳn tài khoản (vượt ADR-0016 điều 2a).
@@ -537,22 +549,27 @@ export const accountsModule: AppModule = {
       if (!plan.changed) return json({ staff: await one(db, t.id) } satisfies StaffResponse);
       const detail = `${permissionsLabel(t.permissions)} → ${permissionsLabel(next)}`;
       // Khi bỏ ADMIN: câu đóng ADMIN có điều kiện đứng đầu; nhật ký chỉ ghi nếu nó thắng (changes() > 0); các câu còn lại mang cùng điều kiện.
-      // ADR-0075 điều 3: tài khoản ở route này không có vai (ROLE_MANAGED ở trên) → miễn luật một máy ⇔ giữ Toàn quyền; câu phiên nối CUỐI cùng lô, tự kiểm
-      // Toàn quyền lúc chạy (requireToanQuyen) nên câu chốt thua thì không đụng phiên nào.
-      const phien = exemptionChangeStatements(db, { staffId: t.id, at, by: admin.id, requireToanQuyen: true, before: { permissions: t.permissions, roles: [] }, after: { permissions: next, roles: [] } });
+      // ADR-0085 Q2 điều 7: chính sách đọc ĐẦU request; "được nhiều máy" TRƯỚC/SAU tính bằng cùng một bản. Câu phiên KHÔNG tự kiểm quyền trong SQL: có câu chốt
+      // (gỡ ADMIN) thì câu phiên chạy ở lô THỨ HAI, chỉ khi lô quyền đã thắng câu chốt; không có câu chốt thì nối cuối lô duy nhất (nguyên tử).
+      const nhieuMay = await docTapNhieuMay(db);
+      const phien = exemptionChangeStatements(db, { staffId: t.id, at, by: admin.id, nhieuMay, before: { permissions: t.permissions, roles: [] }, after: { permissions: next, roles: [] } });
       const stmts = [
-        ...(plan.guarded ? [plan.guarded] : []), adminAudit(db, admin.id, "permission_changed", t.id, detail, plan.guarded ? "changes() > 0" : undefined), ...plan.rest, ...phien.statements,
+        ...(plan.guarded ? [plan.guarded] : []), adminAudit(db, admin.id, "permission_changed", t.id, detail, plan.guarded ? "changes() > 0" : undefined), ...plan.rest,
+        ...(plan.guarded ? [] : phien.statements),
       ];
       let results: D1Result[];
+      let loPhien: D1Result[] = [];
       try {
         results = await db.batch(stmts);
+        if (plan.guarded && (results[0]!.meta.changes ?? 0) === 0) return LAST_ADMIN();
+        loPhien = plan.guarded ? (phien.statements.length ? await db.batch(phien.statements) : []) : results;
       } catch (e) {
+        // Lô hai lỗi ⇒ quyền/vai đã đổi, phiên thừa sống tới lần đăng nhập sau; R-AUT-SESSION-3 thấy.
         const rule = ruleViolation(e); // lưới cuối: lỗi trigger (LC-1b…) thành 409, không 500
         if (rule) return rule;
         throw e;
       }
-      if (plan.guarded && (results[0]!.meta.changes ?? 0) === 0) return LAST_ADMIN();
-      const matMien = phien.ketQua(results);
+      const matMien = phien.ketQua(loPhien);
       // ADR-0075 điều 6: máy vừa mất phiên vì mất miễn — đóng Bảng tin của đúng các phiên đó, tắt thông báo của tài khoản trừ máy được giữ.
       if (matMien.endedSessionIds.length) ctx.dongBangTin({ staffId: t.id, sessionIds: matMien.endedSessionIds, giuPhien: matMien.keptSessionId });
       ctx.dongBangTin({ staffId: t.id, tatThongBao: false }); // BẢNG TIN (KN-2): quyền vừa đổi. ADR-0046: đổi quyền KHÔNG tắt thông báo điện thoại.
@@ -597,10 +614,11 @@ export const accountsModule: AppModule = {
         change.dropped.length ? `luật cứng gạt: ${permissionsLabel(change.dropped)}` : "",
         parsed.value.reason ? `lý do: ${parsed.value.reason}` : "",
       ].filter(Boolean).join("; ");
-      // ADR-0075 điều 3: miễn luật một máy tính trên quyền + vai TRƯỚC và SAU. Câu phiên nối CUỐI lô ghi vai — lô đó chỉ chạy khi câu chốt (nếu có) đã thắng,
-      // nên không cần tự kiểm Toàn quyền khi được miễn (miễn có thể do vai IT).
+      // ADR-0085 Q2 điều 7: "được nhiều máy" tính trên quyền + vai TRƯỚC và SAU, cùng MỘT bản chính sách đọc ở đây. Câu phiên đi cùng lô vai (lô thứ hai) —
+      // chỉ chạy khi câu chốt thắng; không câu chốt: cuối lô duy nhất.
+      const nhieuMay = await docTapNhieuMay(db);
       const phien = exemptionChangeStatements(db, {
-        staffId: t.id, at, by: admin.id, requireToanQuyen: false,
+        staffId: t.id, at, by: admin.id, nhieuMay,
         before: { permissions: t.permissions, roles: state.roles }, after: { permissions: change.next, roles: parsed.value.roles },
       });
       let cuoi: D1Result[] = [];
@@ -622,6 +640,7 @@ export const accountsModule: AppModule = {
           ]);
         }
       } catch (e) {
+        // Lô hai lỗi ⇒ quyền/vai đã đổi, phiên thừa sống tới lần đăng nhập sau; R-AUT-SESSION-3 thấy.
         const rule = ruleViolation(e);
         if (rule) return rule;
         throw e;
@@ -745,6 +764,52 @@ export const accountsModule: AppModule = {
       // sau của tài khoản một máy tắt nó — tat_may_tru_phien).
       ctx.dongBangTin({ staffId: row.staff_id, sessionIds: [row.id], chiPhien: true });
       return json({ ok: true });
+    }),
+
+    // ---- Chính sách đăng nhập (ADR-0085). Ở module accounts vì lưu ghi nhật ký session_policy_changed trong CÙNG lô (auth không import audit). ----
+    route("GET", "/api/sessions/policy", "admin", async ({ env, staff }) => {
+      if (!can(staff, "auth.session.policy")) return NOT_SESSION_POLICY();
+      return json({ rows: chinhSachDto(await docChinhSachPhien(env.DB)) } satisfies SessionPolicyResponse);
+    }),
+
+    // Xem trước: số phiên sẽ kết thúc + số người nếu tập "Nhiều máy" thành đúng `nhieuMay` (cùng mẩu điều kiện SQL với lô siết thật).
+    route("GET", "/api/sessions/policy/preview", "admin", async ({ env, url, staff }) => {
+      if (!can(staff, "auth.session.policy")) return NOT_SESSION_POLICY();
+      const tap = docTapNhieuMayThamSo(url.searchParams.get("nhieuMay"));
+      if (!tap.ok) return error(400, "invalid_input", tap.message);
+      return json((await demSietTheoTap(env.DB, tap.value, new Date().toISOString())) satisfies SessionPolicyPreviewResponse);
+    }),
+
+    route("PUT", "/api/sessions/policy", "admin", async (ctx) => {
+      if (!can(ctx.staff, "auth.session.policy")) return NOT_SESSION_POLICY();
+      const parsed = kiemThayDoiChinhSach((await readJson(ctx.request))?.thayDoi);
+      if (!parsed.ok) return error(400, "invalid_input", parsed.message);
+      const db = ctx.env.DB;
+      const at = new Date().toISOString(); // MỘT mốc cho dòng chính sách, nhật ký, phiên bị kết thúc
+      const hienHanh = await docChinhSachPhien(db);
+      // Siết khi có quyền chuyển sang Một máy. Số đếm cho nhật ký lấy bằng CÙNG câu với xem trước, ngay trước lô (auditStatement nhận chuỗi cố định); lệch với số
+      // RETURNING thật (chỉ khi có đăng nhập chen giữa) → một dòng log cảnh báo không dữ liệu cá nhân. Ghi là lựa chọn bề mặt ở sổ thi công.
+      const siet = parsed.value.some((t) => !t.multi);
+      const dem = siet ? await demSietTheoTap(db, tapNhieuMaySau(hienHanh, parsed.value), at) : { soPhien: 0, soNguoi: 0 };
+      const lo = siet ? sietTheoTapStatements(db, at, ctx.staff.id) : null;
+      let kq: D1Result[];
+      try {
+        kq = await db.batch([
+          ...luuChinhSachStatements(db, { thayDoi: parsed.value, at, by: ctx.staff.id }),
+          auditStatement(db, { staffId: ctx.staff.id, action: "session_policy_changed", at, targetType: "staff", detail: moTaThayDoiChinhSach(parsed.value, dem) }),
+          ...(lo?.statements ?? []),
+        ]);
+      } catch (e) {
+        if (laLoiChinhSachCu(e)) return POLICY_STALE();
+        throw e;
+      }
+      const ketThuc = lo ? lo.ketQua(kq) : { sessionIds: [], staffIds: [] };
+      if (ketThuc.sessionIds.length !== dem.soPhien) {
+        console.warn(JSON.stringify({ level: "warn", event: "session_policy_count_drift", estimated: dem.soPhien, actual: ketThuc.sessionIds.length }));
+      }
+      // ADR-0085 Q3: MỘT lời gọi cho cả danh sách — đóng Bảng tin + tắt thông báo CHỈ của các máy vừa bị kết thúc (máy giữ lại, đăng ký chưa gắn phiên không đụng).
+      if (ketThuc.sessionIds.length) ctx.dongBangTin({ phienKetThuc: ketThuc.sessionIds });
+      return json({ rows: chinhSachDto(await docChinhSachPhien(db)), soPhien: ketThuc.sessionIds.length, soNguoi: ketThuc.staffIds.length } satisfies SessionPolicySaveResponse);
     }),
   ],
 };

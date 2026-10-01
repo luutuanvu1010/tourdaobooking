@@ -26,7 +26,7 @@ import { maintenanceBlock, maintenanceModule } from "./modules/maintenance";
 import { partiesModule } from "./modules/parties";
 import { cauDoiNguoiDat, donCuaNguoiDat, findOrderRef, ordersModule } from "./modules/orders";
 import { accountOfParty, nhanNhanVienTheoId, soDangNhapTheoHoSo } from "./modules/staff";
-import { dayGoCua, tatMayCuaPhienStatement, tatMayStatement, tatMayTruPhienStatement, thongbaoModule } from "./modules/thongbao";
+import { dayGoCua, tatMayCuaCacPhienStatement, tatMayCuaPhienStatement, tatMayStatement, tatMayTruPhienStatement, thongbaoModule } from "./modules/thongbao";
 import { troLyModule } from "./modules/tro-ly";
 import { mocToiThieuHienHanh, vanChuyenModule, viecXeCuaNguoi } from "./modules/van-chuyen";
 import { HANDLER_TRUOC_KHONG_BIET, nhanSuKien } from "./shared/bang-tin";
@@ -100,6 +100,15 @@ const APP_OPTIONS: AppOptions = {
     // Nhánh CHỈ PHIÊN (ADR-0075 điều 6b, IT/Toàn quyền gỡ phiên): trạm chỉ nhận `{ sessionIds }`; tắt CHỈ máy nhận mang đúng các phiên đó, lý do bi-go.
     // Phải xét TRƯỚC nhánh "sessionIds" (dạng này cũng có sessionIds; lọt xuống dưới là giuPhien undefined ⇒ tắt mọi máy).
     dongBangTin: async (env, muc) => {
+      // ADR-0085 Q3 — danh sách phiên do lưu chính sách: xét TRƯỚC mọi nhánh khác (không có staffId; khoá riêng phienKetThuc).
+      if (typeof muc === "object" && "phienKetThuc" in muc) {
+        if (muc.phienKetThuc.length === 0) return;
+        await nemNeuLoi([
+          ["tram", dongCua(env, { sessionIds: muc.phienKetThuc })],
+          ["tat-may", tatMayCuaCacPhienStatement(env.DB, muc.phienKetThuc, new Date().toISOString()).run()],
+        ]);
+        return;
+      }
       if (typeof muc === "object" && "chiPhien" in muc) {
         await nemNeuLoi([
           ["tram", dongCua(env, { sessionIds: muc.sessionIds })],
