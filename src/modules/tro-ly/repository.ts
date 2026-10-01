@@ -134,7 +134,7 @@ export interface LuotHoi {
   ra: number;
   chiPhi: number;
   ketQua: "ok" | "het_tran" | "loi";
-  /** Mã mẫu của lượt (chi phí theo giá mẫu này — B8); null khi chưa gọi được mẫu nào. */
+  /** Mã mẫu của lượt (chi phí theo giá mẫu này — B8); null khi KHÔNG gọi mẫu nào (dòng het_tran). */
   mau: string | null;
   /** Lượt "Thử key" / ô thử của Toàn quyền (T3). */
   laThu: boolean;

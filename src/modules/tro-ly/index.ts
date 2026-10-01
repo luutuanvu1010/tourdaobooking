@@ -117,7 +117,7 @@ export const troLyModule: AppModule = {
       const { boNao } = boNaoHieuLuc(null, loiDan);
       const luot = (ketQua: LuotHoi["ketQua"], u: SuDung | null): LuotHoi => ({
         id: crypto.randomUUID(), staffId: staff.id, ngayVn, vao: u?.vao ?? 0, vaoDem: u?.vaoDem ?? 0, ra: u?.ra ?? 0, chiPhi: chiPhiMicroUsd(u, boNao.mau),
-        ketQua, mau: boNao.mau, laThu: false, at,
+        ketQua, mau: ketQua === "het_tran" ? null : boNao.mau, laThu: false, at, // het_tran: không gọi mẫu ⇒ mau null (chú thích LuotHoi)
       });
       // ADR-0066 điều 6: trần kiểm TRƯỚC khi dựng lời nhắc / gọi mạng. Kiểm-rồi-ghi không nguyên tử: vài câu gửi cùng lúc có thể vượt trần một chút
       // (mỗi câu ~0,001 USD) — chấp nhận, ghi ở đặc tả; lớp hai là giới hạn ngân sách ở bảng điều khiển OpenAI.

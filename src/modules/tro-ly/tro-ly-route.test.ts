@@ -240,7 +240,8 @@ test("HÀNG RÀO trần ngày: đủ 30 câu hôm nay → 429, dòng het_tran; d
   assert.equal(r.json.error.code, "tro_ly_het_tran_ngay");
   assert.match(r.json.error.message, /30 câu/);
   assert.equal(goi.length, 1);
-  assert.equal(luot(w).filter((x) => x.created_at !== "x").at(-1)!.ket_qua, "het_tran");
+  const cuoi = luot(w).filter((x) => x.created_at !== "x").at(-1)!;
+  assert.deepEqual([cuoi.ket_qua, cuoi.mau, cuoi.chi_phi_micro_usd], ["het_tran", null, 0], "het_tran: không gọi mẫu ⇒ mau null");
   assert.equal((await hoi(w, ADM, "đổi PIN")).status, 200, "trần ngày là của TỪNG người");
 });
 

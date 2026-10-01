@@ -213,6 +213,8 @@ test("Đ4 dungLoiNhac luật 2: ĐƯỢC giải thích mức khái niệm; VẪN
   ]) assert.ok(luat2.includes(cam), `luật 2 thiếu "${cam}"`);
   // Ruling điều phối 1/10: câu cách-dùng-app ngoài tài liệu đi luật 5 (mềm), KHÔNG nằm trong danh sách từ chối của luật 2 (luật 2 luôn thắng).
   assert.ok(!luat2.includes("quy trình ngoài tài liệu"), "luật 2 không được từ chối 'quy trình ngoài tài liệu'");
+  // Fix vòng 1 (1/10): điều 2 luôn thắng ⇒ phải tự loại trừ câu cách dùng app (câu mẫu "Đổi mã PIN thế nào?" không bị từ chối). Câu này ở CUỐI điều 2.
+  assert.ok(luat2.endsWith(`"${CAU_TU_CHOI}". Danh sách này không gồm câu hỏi cách dùng app, như cách đổi mã PIN của chính mình hay xem bảng giá ở đâu trong app — trả lời theo điều 1 hoặc 5.`), luat2.slice(-200));
   assert.ok(luat2.includes(`"${CAU_TU_CHOI}"`));
   assert.equal(CAU_TU_CHOI, "Mình chỉ hướng dẫn cách dùng app, không trả lời được câu này — hỏi Quản trị nếu cần.");
 });
