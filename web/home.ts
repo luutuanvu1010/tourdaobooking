@@ -478,6 +478,10 @@ const layFeedback = () => api<Api.FeedbackQueueResponse>("/api/feedback");
 async function main(): Promise<void> {
   initSectionIcons();
   ganOTim();
+  // Cùng luật với web/shell.ts (chấm `.new-dot`): bấm Quay lại từ /help, trang được phục hồi nguyên trạng từ bộ đệm lùi/tiến — đã xem bản mới thì gỡ chấm ô Trợ giúp.
+  window.addEventListener("pageshow", (e) => {
+    if (e.persisted && !helpHasNews()) for (const cham of document.querySelectorAll(".dash-o-cham")) cham.remove();
+  });
   const staff = await initShell();
   // Tài khoản chỉ Đối tác: Trang chủ (dashboard văn phòng) không dành cho họ → sang thẳng Đơn hàng, TRƯỚC khi gọi
   // dashboard (không để lộ 403). `replace` để nút Quay lại không dội về "/" (src/shared/start-page.ts).
