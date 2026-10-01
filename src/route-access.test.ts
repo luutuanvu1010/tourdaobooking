@@ -295,7 +295,7 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/tro-ly/hoi", access: "staff" }, // ADR-0066 điều 1 — mọi tài khoản đăng nhập, ô assistant.ask (any)
   { method: "GET", path: "/api/tro-ly/cai-dat", access: "office" }, // ADR-0066 trang ghép — chỉ Toàn quyền (settings.ops trong thân)
   { method: "POST", path: "/api/tro-ly/cai-dat", access: "office" }, // như trên
-  { method: "GET", path: "/api/tro-ly/khung", access: "staff" }, // ADR-0069 điều 3, 4 — cờ được dùng + câu chào (mọi tài khoản, không dữ liệu nghiệp vụ)
+  { method: "GET", path: "/api/tro-ly/khung", access: "staff" }, // ADR-0069 điều 3, 4 — cờ được dùng + câu chào (mọi tài khoản, không dữ liệu nghiệp vụ); ADR-0084: + cách gọi / xưng của chính người gọi
   { method: "POST", path: "/api/tro-ly/vai", access: "office" }, // ADR-0069 điều 1, 3 — chỉ Toàn quyền (settings.ops trong thân)
   { method: "POST", path: "/api/tro-ly/thu-khoa", access: "office" }, // ADR-0069 điều 2 — như trên
   { method: "GET", path: "/api/tro-ly/loi-dan", access: "office" }, // ADR-0069 điều 4 — như trên

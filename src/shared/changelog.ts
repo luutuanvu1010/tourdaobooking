@@ -17,7 +17,7 @@ export const CHANGELOG: readonly ReleaseNote[] = [
     version: "1.57",
     date: "2026-10-01",
     items: [
-      { kind: "moi", text: "Trợ lý tên Mai: chào và gọi bạn theo tên, xưng \"anh/chị\" theo ô Giới tính mới trong hồ sơ người (chưa ghi thì gọi \"bạn\")." },
+      { kind: "moi", text: "Trợ lý tên Mai: gọi bạn là \"anh/chị + tên\" theo ô Giới tính mới trong hồ sơ người và xưng \"em\"; chưa ghi giới tính thì gọi \"bạn\"." },
       { kind: "moi", text: "Khung Hỗ trợ: khi bạn gửi câu hỏi, hiện ngay ba chấm nhấp nháy kèm chữ \"Mai đang trả lời…\" cho đến khi có câu trả lời." },
       { kind: "doi", text: "Khung Hỗ trợ: nút đổi cỡ đổi sang biểu tượng hai mũi tên chéo, ô gõ ghi \"Hãy hỏi Mai tại đây nhé!\"." },
       { kind: "doi", text: "Khung Hỗ trợ bỏ hai dòng nhắc nhỏ (vẫn có ở Trợ giúp). Nút \"Về góc\" trả cả vị trí lẫn cỡ về mặc định và nháy viền để biết đã nhận." },

@@ -6,6 +6,7 @@ import assert from "node:assert/strict";
 import { PERMISSION_CODES, type PermissionCode } from "./permissions.ts";
 import { chonDoan, doanNguCanh, duocDungTroLy, ketQuaThuKhoa, khoaCuoi, kiemLoiDan, kiemNguCanh, kiemVai, thanThuKhoa } from "./tro-ly.ts";
 import { GIOI_HAN_TRO_LY as G } from "./tro-ly-gioi-han.ts";
+import { CAU_CHAO_MAC_DINH } from "./xung-ho.ts";
 
 const tatCa = (bat: boolean): Record<PermissionCode, boolean> => Object.fromEntries(PERMISSION_CODES.map((p) => [p, bat])) as Record<PermissionCode, boolean>;
 
@@ -117,4 +118,11 @@ test("ketQuaThuKhoa: được / sai key (401) / hết tiền (429 insufficient_q
     const c = ketQuaThuKhoa(k).cau;
     assert.ok(c.length > 5 && !/_|http|error|invalid/i.test(c), c);
   }
+});
+
+test("ADR-0084 Đ5: câu chào có chỗ thay {ten} (câu mặc định Mai) LƯU ĐƯỢC qua bộ lọc lời dặn — ngoặc nhọn không bị chặn, giữ nguyên văn", () => {
+  const r = kiemLoiDan({ ...LD, cauChao: CAU_CHAO_MAC_DINH });
+  assert.equal(r.ok, true, JSON.stringify(r));
+  if (r.ok) assert.equal(r.value.cauChao, CAU_CHAO_MAC_DINH);
+  assert.equal(kiemLoiDan({ ...LD, cauChao: "{ten} ơi, hỏi {ten} gì cũng được" }).ok, true);
 });
