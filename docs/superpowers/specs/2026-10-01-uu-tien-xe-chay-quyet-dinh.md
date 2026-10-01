@@ -1,0 +1,31 @@
+# Ưu tiên "phần bắt buộc để xe chạy" — quyết định của chủ (2026-10-01)
+
+> Tài liệu ghi lời chủ (P19: trạng thái sống trong tài liệu). Nguồn: chat + hộp chọn ngày 1/10, sau khi đọc `2026-10-01-doi-chieu-phieu-giam-doc.md`.
+
+## Lời chủ
+
+> *"ghi nợ vào trong backlog để làm sau. Trước hết là làm những phần bắt buộc để xe chạy được mà còn thiếu: màn hình nhập danh sách khách, điểm trả khách và phân hệ theo dõi tiền (đại lý đối tác và hdv tại cảng nợ công ty và/hoặc ngược lại)"*
+
+Các ý khác của phiếu Giám đốc → `docs/BACKLOG.md` mục 10 (đã ghi).
+
+## Hộp chọn 1/10 (phương án chủ chọn)
+
+| # | Câu | Chủ chọn |
+|---|---|---|
+| U1 | Màn nhập danh sách khách + nơi trả chưa có bản vẽ | **Chủ vẽ Claude Design trước** (không chọn phương án AI khuyến nghị "thợ dựng theo khuôn sẵn") → thi công giao diện chờ link bản vẽ |
+| U2 | Đợt này có thêm ô mới cần đổi dữ liệu không | **Thêm cả các ô mới**: "Số khách đi xe" (`pax_override`, ADR-0054 đã duyệt), mã chuyến bay (`flight_code`, ADR-0055 đã duyệt), **nơi trả tự điền theo dịch vụ** (chưa có ADR — cần ADR mới) |
+| U3 | Đại lý/đối tác thanh toán với công ty thế nào | **Ghi nợ từng đơn, chốt theo tháng**: đơn "Đã giao" thì sổ ghi ngay ai nợ ai; Kế toán đối chiếu và trả/thu gộp nhiều đơn mỗi tháng, bù trừ hoa hồng với tiền đại lý đang giữ; khoá sổ tháng |
+| U4 | Đại lý/đối tác có tự xem sổ của mình không | **Có, chỉ xem của mình**: số dư và từng đơn; không thấy giá vốn, tỷ lệ nội bộ |
+
+## Hiện trạng (đọc 1/10, nhánh `main`)
+
+- **Danh sách khách + nơi trả (ADR-0047):** máy chủ (Phần A) đã chạy từ 1.38 — bảng `ord_transfer_leg` có cột nơi trả, `ord_passenger`, API `POST/PUT /legs`, `GET/POST /passengers`. Giao diện (Phần B, kế hoạch `docs/superpowers/plans/2026-09-29-adr-0047-thi-cong.md:1028-1068`, B0–B7) chưa làm, chờ bản vẽ 5 màn. Chuyến hiện bị giữ vì `CHUA_CO_NOI_TRA` và `THIEU_TEN` (`src/shared/dieu-phoi-kiem.ts:326, :350`).
+- **Ô mới:** `pax_override` và `flight_code` chưa có cột (chỉ chú thích ở `src/modules/orders/index.ts:189`) → cần migration (số kế tiếp dự kiến **0056**, kiểm lại mọi nhánh lúc đặt). Nơi trả mặc định theo dịch vụ: mẫu chặng `vc_leg_template` của ADR-0054 chưa có cột nơi trả.
+- **Sổ tiền:** lượt 1 (1.42) đã có HDV nội bộ thu tiền → nợ công ty, Kế toán ghi nộp/trả; khung sổ hai chân, phiếu quyết toán. **Chưa có:** chiết khấu/hoa hồng/mua giá đại lý/thu hộ/giá vốn (D4/D5 của ADR-0024), khoá kỳ (hạn: đi cùng bản lượt 2 — ADR-0026, ADR-0057 L-T1), đối tác xem sổ (`ledger.view` PARTNER = none), đơn có bên đặt là đối tác bị chặn "Đã giao" (`src/modules/billing/rules.ts:179-181`). Không có đặc tả/kế hoạch lượt 2.
+
+## Việc tiếp theo
+
+1. Lệnh vẽ Claude Design cho 5 màn ADR-0047 + các ô mới → chủ vẽ, gửi link.
+2. ADR nháp "nơi trả mặc định theo dịch vụ" + kế hoạch phần máy chủ cho `pax_override` / `flight_code` / nơi trả mặc định (migration 0056) — làm được trước khi có bản vẽ.
+3. ADR nháp sổ tiền lượt 2 (đại lý/đối tác, khoá kỳ tháng, đối tác xem sổ) + trang ghép → người kiểm độc lập → chủ duyệt (tối đa 3 quyết định chạm quyền/dữ liệu mỗi lượt duyệt).
+4. Câu tiền còn mở (ai nhập bảng mức, dịch vụ thiếu mức, cộng tác viên, đơn đối tác đang kẹt, nợ nhà xe) → ghi trong ADR nháp với phương án khuyến nghị, **chủ quyết lúc duyệt ADR**, AI không tự chọn.
