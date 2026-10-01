@@ -5,9 +5,9 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import {
   GIA_NHUNG, HET_GIO_NHUNG_MS, LO_GHI_D1, LO_NHUNG_DAU_VAO, LO_NHUNG_TOKEN_UOC, MAU_NHUNG, NGAY_TRA_GIA_NHUNG, NGUON_GIA_NHUNG, SO_CHIEU_NHUNG,
-  blobSangVec, chiaLo, chiaLoNhung, chiPhiNhungMicroUsd, cosin, docPhanHoiNhung, khoaDoan, mucTranTren, thanNhung, tienBuUoc, vecSangBlob,
+  K_RRF, NGUONG_COSIN, blobSangVec, chiaLo, chiaLoNhung, chiPhiNhungMicroUsd, chonDoanTron, cosin, daChonTuKhoa, docPhanHoiNhung, khoaDoan, khopManh, mucTranTren, thanNhung, tienBuUoc, vecSangBlob,
 } from "./tro-ly-van-nghia.ts";
-import { chiaKho, dinhDangDoan } from "./tro-ly.ts";
+import { KHONG_TIM_THAY, SO_DOAN_TOI_DA, chiaKho, dinhDangDoan, dungLoiNhac, truyVanTim, uocToken, type DoanTriThuc } from "./tro-ly.ts";
 import { GIOI_HAN_TRO_LY as G } from "./tro-ly-gioi-han.ts";
 
 test("hằng embedding: mẫu text-embedding-3-small, 512 chiều, 0,02 USD / 1 triệu token = 20.000 micro-USD, có ngày tra + nguồn; hạn giờ riêng 8 giây", () => {
@@ -104,4 +104,76 @@ test("hàng rào lô: đoạn dài nhất của kho + đoạn ngữ cảnh tối
   assert.ok(LO_NHUNG_DAU_VAO <= 2048 && LO_NHUNG_TOKEN_UOC * 3 <= 300_000);
   assert.ok(kho.length + G.soNguCanh <= 600, `kho ${kho.length} đoạn: tính bù lần đầu ghi mỗi đoạn một câu D1 — xem lại LO_GHI_D1 / cách ghi`);
   assert.equal(LO_GHI_D1, 50);
+});
+
+// ---- Chọn đoạn trộn (Đ3: C1–C5) ----
+const mot = (i: number): Float32Array => { const v = new Float32Array(SO_CHIEU_NHUNG); v[i] = 1; return v; };
+/** Véc-tơ có cô-sin với mot(0) ĐÚNG bằng x. */
+const coSin = (x: number): Float32Array => { const v = new Float32Array(SO_CHIEU_NHUNG); v[0] = x; v[1] = Math.sqrt(1 - x * x); return v; };
+const KHO: DoanTriThuc[] = [
+  { ten: "Đặt gấp", quyen: [], chu: "Bấm nút Đặt gấp khi chặng dưới mốc sáu giờ." },
+  { ten: "Trang chủ", quyen: [], chu: "Trang chủ dùng để xem việc hôm nay." },
+  { ten: "Đổi PIN", quyen: [], chu: "Vào trang Tôi, bấm Đổi PIN, gõ mã mới hai lần." },
+  { ten: "Xe", quyen: [], chu: "Danh sách xe của công ty và giấy tờ xe." },
+];
+const tom = (ds: ReturnType<typeof chonDoanTron>) => ds.map((x) => [x.doan.ten, x.theoNghia, x.theoTuKhoa]);
+
+test("C1: RRF — đoạn có CẢ hai tín hiệu đứng trước đoạn chỉ khớp nghĩa; ngưỡng cô-sin 0,3 (0,29 bỏ, 0,31 giữ); vecDoan null = không có nghĩa", () => {
+  assert.equal(NGUONG_COSIN, 0.3);
+  assert.equal(K_RRF, 60);
+  const ds = chonDoanTron("đổi PIN", mot(0), KHO, [null, coSin(0.29), mot(0), coSin(0.31)], ["SALES"]);
+  assert.deepEqual(tom(ds), [["Đổi PIN", true, true], ["Xe", true, false]]);
+});
+
+test("C1: giữ trọng số vai — hai đoạn cùng chữ, đoạn của nhóm vai người hỏi đứng trước; đoạn vai khác vẫn được chọn (xếp sau)", () => {
+  const kho: DoanTriThuc[] = [
+    { ten: "Kế toán › Đổi PIN", quyen: ["ACCOUNTING"], chu: "Vào trang Tôi, bấm Đổi PIN." },
+    { ten: "Bán hàng › Đổi PIN", quyen: ["SALES"], chu: "Vào trang Tôi, bấm Đổi PIN." },
+  ];
+  assert.deepEqual(chonDoanTron("đổi PIN", mot(0), kho, [mot(0), mot(0)], ["SALES"]).map((x) => x.doan.ten), ["Bán hàng › Đổi PIN", "Kế toán › Đổi PIN"]);
+});
+
+test("C1: ngân sách token và tối đa 12 đoạn như chonDoan", () => {
+  const kho: DoanTriThuc[] = Array.from({ length: 20 }, (_, i) => ({ ten: `Mục ${String.fromCharCode(65 + i)}`, quyen: [], chu: `Đổi PIN cách ${String.fromCharCode(65 + i)}.` }));
+  const vec = kho.map(() => mot(0));
+  assert.equal(chonDoanTron("đổi PIN", mot(0), kho, vec, ["SALES"]).length, SO_DOAN_TOI_DA);
+  const motDoan = uocToken(dinhDangDoan(kho[0]!));
+  assert.equal(chonDoanTron("đổi PIN", mot(0), kho, vec, ["SALES"], motDoan * 3).length, 3);
+});
+
+test("C2: đoạn khớp CẶP âm tiết (tên nút 'Đặt gấp') được giữ dù cô-sin thấp; đoạn chỉ khớp lẻ chữ phổ biến 'dùng' mà cô-sin thấp bị bỏ", () => {
+  assert.deepEqual(tom(chonDoanTron("cách dùng nút đặt gấp", mot(0), KHO, KHO.map(() => mot(1)), ["SALES"])), [["Đặt gấp", false, true]]);
+});
+
+test("C3: câu không khớp từ khoá nào nhưng gần nghĩa một đoạn ⇒ đoạn đó được chọn, cờ khớp nghĩa", () => {
+  assert.deepEqual(tom(chonDoanTron("quên mật khẩu đăng nhập", mot(0), KHO, [mot(1), mot(1), mot(0), mot(1)], ["SALES"])), [["Đổi PIN", true, false]]);
+});
+
+test("C4: kho THẬT + mọi véc-tơ đoạn trực giao câu hỏi ⇒ chỉ còn đoạn khớp MẠNH — đo 2026-10-01, vai Bán hàng: than phiền 1, đổi PIN 10, lập đơn 41 (trần 12); không còn đoạn ⇒ khối tài liệu 'không tìm thấy'", () => {
+  // Hướng dẫn đổi chữ ⇒ con số có thể đổi: đo lại (nhật ký thi công "Số đo luật khớp mạnh"), sửa số ở đây kèm lý do — không nới luật để giữ số.
+  const kho = chiaKho();
+  const vec = kho.map(() => mot(1));
+  const dem = (c: string) => khopManh(c, kho, ["SALES"]).filter(Boolean).length;
+  assert.deepEqual([dem("sao app khó dùng thế"), dem("đổi mã PIN thế nào"), dem("lập đơn mới ra sao")], [1, 10, 41]);
+  assert.deepEqual(chonDoanTron("sao app khó dùng thế", mot(0), kho, vec, ["SALES"]).map((x) => x.doan.ten), ["Bán hàng › Điều phối xe — chưa dùng cho chuyến thật"]);
+  // 41 khớp mạnh ⇒ RRF + trần 12 đoạn / 6.000 token chọn tiếp (F7: khoá tên cụ thể, không chỉ "có đoạn").
+  const lapDon = chonDoanTron("lập đơn mới ra sao", mot(0), kho, vec, ["SALES"]).map((x) => x.doan.ten);
+  assert.equal(lapDon.length, SO_DOAN_TOI_DA);
+  assert.equal(lapDon[0], "Cấu trúc app › Việc: lập đơn mới");
+  assert.ok(lapDon.includes("Bán hàng › Lập đơn mới"), JSON.stringify(lapDon));
+  const doiPin = chonDoanTron("đổi mã PIN thế nào", mot(0), kho, vec, ["SALES"]).map((x) => x.doan.ten);
+  assert.equal(doiPin.length, 10);
+  assert.ok(doiPin.includes("Phần chung › Trang Tôi, đổi PIN, đăng xuất"), JSON.stringify(doiPin));
+  assert.deepEqual(chonDoanTron("zzqx wqpv", mot(0), kho, vec, ["SALES"]), []);
+  assert.ok(dungLoiNhac("Bạn là trợ lý.", ["SALES"], []).endsWith(`TÀI LIỆU:\n${KHONG_TIM_THAY}`));
+});
+
+test("C5: truy vấn = câu hiện tại + câu trước gần nhất — câu nối tiếp không khớp gì vẫn ra đoạn nhờ câu trước", () => {
+  const vec = KHO.map(() => mot(1));
+  assert.deepEqual(chonDoanTron("còn trên điện thoại thì sao", mot(0), KHO, vec, ["SALES"]), []);
+  assert.deepEqual(tom(chonDoanTron(truyVanTim("còn trên điện thoại thì sao", "đổi PIN thế nào"), mot(0), KHO, vec, ["SALES"])), [["Đổi PIN", false, true]]);
+});
+
+test("daChonTuKhoa (đường lùi): mọi đoạn cờ khớp từ khoá, không khớp nghĩa", () => {
+  assert.deepEqual(tom(daChonTuKhoa([KHO[2]!])), [["Đổi PIN", false, true]]);
 });

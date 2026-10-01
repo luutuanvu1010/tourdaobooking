@@ -10,9 +10,18 @@ Ngày tra: 2026-10-01 (người thi công mở lại bằng WebFetch; khớp s�
 - `https://developers.openai.com/api/docs/models/text-embedding-3-small`: giá 0,02 USD / 1 triệu token (không phân biệt batch) ⇒ `GIA_NHUNG` = 20.000 micro-USD.
 - `https://developers.openai.com/api/reference/resources/embeddings/methods/create`: mảng `input` ≤ 2048 phần tử; ≤ 8192 token mỗi đầu vào; ≤ 300.000 token tổng mỗi yêu cầu; không nhận chuỗi rỗng; `dimensions` chỉ có ở `text-embedding-3` trở lên; `encoding_format` `float` | `base64`; phản hồi `data[].index` + `embedding`, `usage.prompt_tokens`.
 
+## Số đo luật khớp mạnh (Task 2)
+
+Đo 2026-10-01 trên kho thật (`chiaKho()`, 214 đoạn), vai `SALES`, mọi véc-tơ đoạn trực giao câu hỏi (chỉ còn đoạn khớp mạnh); lệnh: `node --test src/shared/tro-ly-van-nghia.test.ts` (bài C4) + kịch bản đo tạm gọi `khopManh` / `chonDoanTron`:
+- "sao app khó dùng thế" → 1 khớp mạnh → chọn `Bán hàng › Điều phối xe — chưa dùng cho chuyến thật`.
+- "đổi mã PIN thế nào" → 10 khớp mạnh → chọn đủ 10, có `Phần chung › Trang Tôi, đổi PIN, đăng xuất`.
+- "lập đơn mới ra sao" → 41 khớp mạnh → RRF + trần 12 đoạn chọn 12, đầu là `Cấu trúc app › Việc: lập đơn mới`, có `Bán hàng › Lập đơn mới`.
+- Khớp số kỳ vọng của kế hoạch (1 / 10 / 41) ⇒ không kích hoạt D3. Bài C4 khoá thêm tên cụ thể (ruling F7) thay cho "1 ≤ số ≤ 12" của bản kế hoạch.
+- F5: điểm từ khoá × hệ số vai chỉ một chỗ (`diemTuKhoa` + `heSoVai` ở `src/shared/tro-ly.ts`); `chonDoanTron` tính BM25 MỘT lần mỗi câu (hàm nội bộ `tuKhoaVaManh` dùng chung với `khopManh`) — lệch nhỏ khỏi mã mẫu của kế hoạch (mẫu gọi `diemTuKhoa` hai lần).
+
 ## Đột biến hàng rào (sửa cố ý → đỏ → hoàn nguyên → xanh)
 
-(điền theo từng task)
+- Task 2, 2026-10-01: bỏ nhánh `x.coCap ||` trong luật khớp mạnh → C4 đỏ; hạ `TY_LE_DIEM_MANH * max` thành `0.3 * max` → C4 đỏ; hoàn nguyên → 45/45 xanh (`tro-ly-van-nghia.test.ts` + `tro-ly.test.ts`).
 
 ## Kiểm
 

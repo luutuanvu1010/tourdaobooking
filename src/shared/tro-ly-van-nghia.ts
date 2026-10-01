@@ -4,7 +4,8 @@
 // Giá tra 2026-10-01 (đã mở được): developers.openai.com/api/docs/models/text-embedding-3-small ($0,02 / 1M token);
 // developers.openai.com/api/reference/resources/embeddings/methods/create (≤ 2.048 đầu vào, ≤ 8.192 token / đầu vào, ≤ 300.000 token / yêu cầu; `dimensions` cho text-embedding-3).
 import { chiPhiToiDa } from "./tro-ly-mau.ts";
-import { NGAN_SACH_TOKEN, uocToken } from "./tro-ly.ts";
+import type { PermissionCode } from "./permissions.ts";
+import { NGAN_SACH_TOKEN, SO_DOAN_TOI_DA, diemTuKhoa, heSoVai, layTheoNganSach, uocToken, type DiemTuKhoa, type DoanTriThuc } from "./tro-ly.ts";
 
 export const MAU_NHUNG = "text-embedding-3-small";
 /** Số chiều rút gọn qua tham số `dimensions` (giả định bề mặt của đặc tả §6 — đổi số = mọi khoá đổi = tính lại cả kho một lần). */
@@ -112,3 +113,63 @@ export const mucTranTren = (mau: string, tokenVaoKhongTaiLieu: number, tokenRaTo
 
 /** Đ5(2) — tiền embedding ƯỚC của các đoạn sẽ tính bù. */
 export const tienBuUoc = (chu: readonly string[]): number => chiPhiNhungMicroUsd(chu.reduce((a, s) => a + uocToken(s), 0));
+
+// ---------------------------------------------------------------- chọn đoạn trộn (Đ3)
+
+/** Ngưỡng cô-sin (R3 của kế hoạch — đánh giá lại bằng 12 câu mẫu sau triển khai; đổi = sửa hằng + bài thuần). */
+export const NGUONG_COSIN = 0.3;
+/** Hằng k của Reciprocal Rank Fusion (giá trị chuẩn). */
+export const K_RRF = 60;
+/** Khớp mạnh nhánh 2: điểm từ khoá (đã nhân vai) ≥ 0,7 × điểm cao nhất VÀ ≥ 2 âm tiết đơn khác nhau của câu hỏi. */
+export const TY_LE_DIEM_MANH = 0.7;
+export const SO_TU_MANH = 2;
+
+export interface DoanDaChon { readonly doan: DoanTriThuc; readonly theoNghia: boolean; readonly theoTuKhoa: boolean }
+
+/** Điểm từ khoá đã nhân vai + cờ khớp mạnh, từ MỘT lần tính BM25 (diemTuKhoa) — dùng chung cho khopManh và chonDoanTron. */
+function tuKhoaVaManh(tk: readonly DiemTuKhoa[], kho: readonly DoanTriThuc[], perms: readonly PermissionCode[]): { bm: number[]; manh: boolean[] } {
+  const bm = tk.map((x, i) => x.diem * heSoVai(kho[i]!, perms));
+  const max = Math.max(0, ...bm);
+  const manh = tk.map((x, i) => x.coCap || (max > 0 && bm[i]! >= TY_LE_DIEM_MANH * max && x.soTuDon >= SO_TU_MANH));
+  return { bm, manh };
+}
+
+/**
+ * Khớp từ khoá MẠNH (Đ3): ≥ 1 cặp âm tiết liền nhau của câu hỏi, HOẶC (điểm BM25 ĐÃ NHÂN vai ≥ 0,7 × điểm cao nhất VÀ ≥ 2 âm tiết đơn khác nhau).
+ * Khớp lẻ một chữ phổ biến ("dùng", "app") không đủ.
+ */
+export function khopManh(cauHoi: string, kho: readonly DoanTriThuc[], perms: readonly PermissionCode[]): boolean[] {
+  return tuKhoaVaManh(diemTuKhoa(cauHoi, kho), kho, perms).manh;
+}
+
+/**
+ * C1: điểm trộn RRF của hạng BM25 (đã nhân vai, chỉ đoạn > 0) và hạng cô-sin (đã nhân vai, chỉ đoạn ≥ ngưỡng); bỏ đoạn cô-sin < ngưỡng TRỪ đoạn khớp mạnh;
+ * rồi ngân sách token + tối đa 12 đoạn (layTheoNganSach — chung với chonDoan). `vecDoan[i]` null = đoạn chưa có dấu vân (không tín hiệu nghĩa).
+ * Không còn đoạn ⇒ [] (người gọi viết KHONG_TIM_THAY như cũ).
+ */
+export function chonDoanTron(
+  cauHoi: string, vecCauHoi: Float32Array, kho: readonly DoanTriThuc[], vecDoan: readonly (Float32Array | null)[], perms: readonly PermissionCode[],
+  nganSach = NGAN_SACH_TOKEN, toiDa = SO_DOAN_TOI_DA,
+): DoanDaChon[] {
+  const { bm, manh } = tuKhoaVaManh(diemTuKhoa(cauHoi, kho), kho, perms);
+  const cs = kho.map((_, i) => { const v = vecDoan[i]; return v ? cosin(vecCauHoi, v) : -1; });
+  const hang = (diem: readonly number[], co: (i: number) => boolean): Map<number, number> => {
+    const ds = kho.map((_, i) => i).filter(co).sort((a, b) => diem[b]! - diem[a]! || a - b);
+    return new Map(ds.map((i, h) => [i, h + 1]));
+  };
+  const hangTuKhoa = hang(bm, (i) => bm[i]! > 0);
+  const hangNghia = hang(cs.map((c, i) => c * heSoVai(kho[i]!, perms)), (i) => cs[i]! >= NGUONG_COSIN);
+  const ung: { i: number; diem: number; theoNghia: boolean; theoTuKhoa: boolean }[] = [];
+  kho.forEach((_, i) => {
+    const theoNghia = cs[i]! >= NGUONG_COSIN;
+    if (!theoNghia && !manh[i]) return;
+    const rB = hangTuKhoa.get(i);
+    const rC = hangNghia.get(i);
+    ung.push({ i, diem: (rB ? 1 / (K_RRF + rB) : 0) + (rC ? 1 / (K_RRF + rC) : 0), theoNghia, theoTuKhoa: bm[i]! > 0 });
+  });
+  ung.sort((a, b) => b.diem - a.diem || a.i - b.i);
+  return layTheoNganSach(ung, (x) => kho[x.i]!, nganSach, toiDa).map((x) => ({ doan: kho[x.i]!, theoNghia: x.theoNghia, theoTuKhoa: x.theoTuKhoa }));
+}
+
+/** Đường lùi (Đ4): đoạn chọn bằng chonDoan (luật cũ) — cờ khớp từ khoá, không khớp nghĩa. */
+export const daChonTuKhoa = (ds: readonly DoanTriThuc[]): DoanDaChon[] => ds.map((doan) => ({ doan, theoNghia: false, theoTuKhoa: true }));

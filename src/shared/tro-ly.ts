@@ -145,31 +145,43 @@ export interface KetQuaTim { readonly doan: DoanTriThuc; readonly diem: number }
 const K1 = 1.2;
 const B = 0.75;
 /** Hệ số ưu tiên: đoạn của nhóm vai người hỏi ×1,5; đoạn chung ×1; đoạn của vai khác ×0,6 (vẫn trả lời được, nhưng xếp sau). */
-const heSoVai = (d: DoanTriThuc, perms: readonly PermissionCode[]): number =>
+export const heSoVai = (d: DoanTriThuc, perms: readonly PermissionCode[]): number =>
   d.quyen.length === 0 ? 1 : d.quyen.some((q) => perms.includes(q)) ? 1.5 : 0.6;
 
-/** Xếp hạng mọi đoạn theo câu hỏi (BM25 trên tên mục + nội dung); chỉ trả đoạn có điểm > 0, điểm cao trước (hoà: giữ thứ tự kho). */
-export function timDoan(cauHoi: string, perms: readonly PermissionCode[], kho: readonly DoanTriThuc[] = chiaKho()): KetQuaTim[] {
+/** Điểm từ khoá THÔ (chưa nhân hệ số vai) của MỌI đoạn, cùng thứ tự kho (ADR-0082 Đ3): BM25 + số âm tiết đơn khác nhau khớp + có khớp cặp âm tiết liền nhau. */
+export interface DiemTuKhoa { readonly diem: number; readonly soTuDon: number; readonly coCap: boolean }
+export function diemTuKhoa(cauHoi: string, kho: readonly DoanTriThuc[]): DiemTuKhoa[] {
   const q = [...new Set(tachTu(cauHoi))];
-  if (!q.length) return [];
+  if (!q.length) return kho.map(() => ({ diem: 0, soTuDon: 0, coCap: false }));
   const docs = kho.map((d) => tachTu(`${d.ten} ${d.chu}`));
   const avg = docs.reduce((a, d) => a + d.length, 0) / Math.max(1, docs.length);
   const df = new Map<string, number>();
   for (const d of docs) for (const t of new Set(d)) df.set(t, (df.get(t) ?? 0) + 1);
   const N = docs.length;
-  const out: KetQuaTim[] = [];
-  docs.forEach((d, i) => {
+  return docs.map((d) => {
     const tf = new Map<string, number>();
     for (const t of d) tf.set(t, (tf.get(t) ?? 0) + 1);
     let diem = 0;
+    let soTuDon = 0;
+    let coCap = false;
     for (const t of q) {
       const f = tf.get(t);
       if (!f) continue;
       const n = df.get(t) ?? 0;
       const idf = Math.log(1 + (N - n + 0.5) / (n + 0.5));
       diem += idf * ((f * (K1 + 1)) / (f + K1 * (1 - B + (B * d.length) / avg)));
+      if (t.includes("_")) coCap = true;
+      else soTuDon++;
     }
-    if (diem > 0) out.push({ doan: kho[i]!, diem: diem * heSoVai(kho[i]!, perms) });
+    return { diem, soTuDon, coCap };
+  });
+}
+
+/** Xếp hạng mọi đoạn theo câu hỏi (BM25 trên tên mục + nội dung, nhân hệ số vai); chỉ trả đoạn có điểm > 0, điểm cao trước (hoà: giữ thứ tự kho). */
+export function timDoan(cauHoi: string, perms: readonly PermissionCode[], kho: readonly DoanTriThuc[] = chiaKho()): KetQuaTim[] {
+  const out: KetQuaTim[] = [];
+  diemTuKhoa(cauHoi, kho).forEach((x, i) => {
+    if (x.diem > 0) out.push({ doan: kho[i]!, diem: x.diem * heSoVai(kho[i]!, perms) });
   });
   return out.map((x, i) => ({ x, i })).sort((a, b) => b.x.diem - a.x.diem || a.i - b.i).map(({ x }) => x);
 }
@@ -178,19 +190,23 @@ export function timDoan(cauHoi: string, perms: readonly PermissionCode[], kho: r
  * Lấy đoạn theo thứ tự điểm tới khi hết ngân sách (ước token); đoạn không vừa phần còn lại thì bỏ qua, xét đoạn sau. Tối đa `toiDa` đoạn.
  * `toiDa` 8 → 12 (ADR-0070, 1/10): kho thêm các đoạn cấu trúc app ngắn (~70–250 token) nên 8 đoạn chỉ dùng ~2.500 / 6.000 token và đẩy đoạn liên quan
  * (vd "Mốc 6 giờ và Đặt gấp" cho câu "vì sao không xác nhận được đơn") ra ngoài; ngân sách token vẫn là trần thật.
+ * MỘT vòng ngân sách cho cả chonDoan (từ khoá) và chonDoanTron (ADR-0082).
  */
 export const SO_DOAN_TOI_DA = 12;
-export function chonDoan(cauHoi: string, perms: readonly PermissionCode[], kho?: readonly DoanTriThuc[], nganSach = NGAN_SACH_TOKEN, toiDa = SO_DOAN_TOI_DA): DoanTriThuc[] {
-  const out: DoanTriThuc[] = [];
+export function layTheoNganSach<T>(ds: readonly T[], doanCua: (x: T) => DoanTriThuc, nganSach = NGAN_SACH_TOKEN, toiDa = SO_DOAN_TOI_DA): T[] {
+  const out: T[] = [];
   let con = nganSach;
-  for (const { doan } of timDoan(cauHoi, perms, kho)) {
+  for (const x of ds) {
     if (out.length >= toiDa) break;
-    const t = uocToken(dinhDangDoan(doan));
+    const t = uocToken(dinhDangDoan(doanCua(x)));
     if (t > con) continue;
-    out.push(doan);
+    out.push(x);
     con -= t;
   }
   return out;
+}
+export function chonDoan(cauHoi: string, perms: readonly PermissionCode[], kho?: readonly DoanTriThuc[], nganSach = NGAN_SACH_TOKEN, toiDa = SO_DOAN_TOI_DA): DoanTriThuc[] {
+  return layTheoNganSach(timDoan(cauHoi, perms, kho).map((x) => x.doan), (d) => d, nganSach, toiDa);
 }
 
 export const dinhDangDoan = (d: DoanTriThuc): string => `[${d.ten}]\n${d.chu}`;
