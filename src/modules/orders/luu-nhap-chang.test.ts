@@ -148,6 +148,26 @@ test("400: chặng id không thuộc dịch vụ này; legs có ở dịch vụ 
   assert.equal(created.status, 400, created.text);
 });
 
+// PM-1 (nợ nhỏ 2026-10-01): phiên khác vừa BỎ chặng rồi phiên này lưu bằng mốc CŨ, gửi lại id chặng đã bỏ → trước đây 400 "chặng không thuộc dịch vụ"
+// (kiểm thân chạy trước khoá lạc quan); nay 409 `stale` — khoá lạc quan kiểm TRƯỚC thân. Không ghi gì; mốc ĐÚNG mà id lạ vẫn 400 (bài trên).
+test("PM-1: mốc cũ + chặng vừa bị phiên khác bỏ → 409 stale (không phải 400); chặng của bên thắng còn nguyên", async () => {
+  const w = setup();
+  const o = await create(w, body({ services: [svc({ legs: [OUT, RET] })] }));
+  const sid = o.services[0].id;
+  const legOut = o.services[0].legs.find((l: any) => l.direction === "OUT");
+  const legRet = o.services[0].legs.find((l: any) => l.direction === "RETURN");
+  const bo = await w.call("PUT", `/api/orders/${o.id}`, { as: SALES, body: body({ expectedUpdatedAt: o.updatedAt, services: [svc({ id: sid, legs: [{ ...OUT, id: legOut.id }] })] }) });
+  assert.equal(bo.status, 200, bo.text);
+  const sau = legsOf(w, o.id);
+  const cu = await w.call("PUT", `/api/orders/${o.id}`, {
+    as: SALES,
+    body: body({ expectedUpdatedAt: o.updatedAt, services: [svc({ id: sid, legs: [{ ...OUT, id: legOut.id }, { ...RET, id: legRet.id, pickupTime: "17:00" }] })] }),
+  });
+  assert.equal(cu.status, 409, cu.text);
+  assert.equal(cu.json.error.code, "stale");
+  assert.deepEqual(legsOf(w, o.id), sau);
+});
+
 test("xác nhận đơn nháp có chặng THIẾU ngày mà dịch vụ có ngày → máy chủ điền ngày đi vào chặng (R4c), đơn xác nhận được", async () => {
   const w = setup();
   const o = await create(w, body({ services: [svc({ legs: [OUT] })] }));

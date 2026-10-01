@@ -733,6 +733,10 @@ export const ordersModule: AppModule = {
       const body = await readJson(request);
       // ADR-0047 A2: thân có khoá `passengers` → hỏi thêm ô nhập tên khách với phạm vi CỦA ĐƠN NÀY (trước validateOrder).
       if (hasPassengersKey(body) && !can(staff, "order.passenger.write", { ownerId: meta.staffId, assigned })) return CANNOT_WRITE_PASSENGERS();
+      // PM-1: khoá lạc quan kiểm TRƯỚC thân — mốc gửi lên đã cũ thì thân so với chặng/dịch vụ ĐANG lưu (phiên khác vừa đổi) sẽ báo lỗi sai chỗ
+      // ("chặng không thuộc dịch vụ"); trả 409 stale cho form bảo tải lại. Lính gác `updated_at = ?` trong câu ghi vẫn giữ (đua sau bước này).
+      const mocGui = body?.expectedUpdatedAt;
+      if (typeof mocGui === "string" && mocGui !== "" && mocGui !== meta.updatedAt) return STALE();
       const ctx = await validationContext(env.DB, id);
       const parsed = validateOrder(body, ctx);
       if (!parsed.ok) return failure(parsed);
