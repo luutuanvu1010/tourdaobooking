@@ -26,6 +26,7 @@ import { CHIEU_LABEL, LY_DO_DAT_GAP } from "../../shared/chang-dua-don";
 import { nguongMocVn, type MocToiThieu } from "../../shared/moc-toi-thieu";
 import { canhBaoMocCua, chepDatGapNhap, docDatGap, duoiMocKhiSua, ghiDatGapNhatKy, lichSuTheoVai } from "./dat-gap";
 import { dongHienHanh } from "../../shared/hanh-khach";
+import { soNguoiChang, tongKhach } from "../../shared/so-nguoi-chang";
 import { maskLongDigits } from "../../shared/text-guards";
 import { toPoolOrders } from "./pool";
 import {
@@ -245,7 +246,7 @@ export interface ChangChoChuyen {
   /** Tên điểm danh mục hoặc chữ tự do — đã che dãy số. */
   noiDon: string;
   noiTra: string | null;
-  /** Số khách HIỆU LỰC của dịch vụ (chờ lượt 2 nếu có `pax_override`). */
+  /** Số người HIỆU LỰC của CHẶNG (`soNguoiChang` — ADR-0054 D10.3: chặng về có số riêng → min(số riêng, số khách hiệu lực của dịch vụ)). */
   soNguoi: number;
   /** Người có tên (dòng hiện hành): khoá bền `personKey`, bản tên đã dùng `rowId`. */
   nguoi: { personKey: string; rowId: string; fullName: string; birthYear: number }[];
@@ -282,7 +283,7 @@ export async function hanhKhachChoChuyen(db: D1Database, legIds: readonly string
       pickupTime: l.pickup_time,
       noiDon: maskLongDigits(l.noi_don),
       noiTra: maskLongDigits(l.noi_tra),
-      soNguoi: p ? p.adult + p.child + p.senior + p.infant : 0,
+      soNguoi: soNguoiChang({ direction: l.direction, paxOverride: l.pax_override }, p ? tongKhach(p) : 0),
       nguoi: (current.get(l.order_id) ?? []).map((n) => ({ personKey: n.personKey, rowId: n.rowId, fullName: n.fullName, birthYear: n.birthYear })),
     };
   });
@@ -303,8 +304,10 @@ export interface ChangLichChung {
   noiDonDiemId: string | null;
   noiTra: string | null;
   noiTraDiemId: string | null;
-  /** Số khách HIỆU LỰC của dịch vụ (cả bốn loại tuổi — LC-02). */
+  /** Số người HIỆU LỰC của CHẶNG (`soNguoiChang` — ADR-0054 D10.3; số khách dịch vụ = cả bốn loại tuổi — LC-02). */
   soNguoi: number;
+  /** Số hiệu chuyến bay của chặng (ADR-0055 VK2-C C3); null = chưa có. */
+  soHieuChuyenBay: string | null;
   /** Khoá người (`person_key`) của hành khách HIỆN HÀNH của đơn — chỉ khoá, không tên (I12). */
   nguoiCuaDon: string[];
   /** Chặng mang dấu đặt gấp. */
@@ -358,7 +361,8 @@ export async function lichChungChang(db: D1Database, tuNgay: string, denNgay: st
       noiDonDiemId: l.pickup_location_id,
       noiTra: maskLongDigits(l.noi_tra),
       noiTraDiemId: l.dropoff_location_id,
-      soNguoi: p ? p.adult + p.child + p.senior + p.infant : 0,
+      soNguoi: soNguoiChang({ direction: l.direction, paxOverride: l.pax_override }, p ? tongKhach(p) : 0),
+      soHieuChuyenBay: l.flight_code,
       nguoiCuaDon: [...(khoaNguoi.get(l.order_id) ?? [])],
       datGap: l.dat_gap === 1,
       khoaNoiDon: (await khoaNoi({ locationId: l.pickup_location_id, placeText: l.pickup_place }))!,

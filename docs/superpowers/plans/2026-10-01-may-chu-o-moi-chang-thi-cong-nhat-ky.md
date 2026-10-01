@@ -125,3 +125,21 @@ Còn lọc `status = 'confirmed'`; lô `changeLeg` đẩy mốc đơn (`orderTou
 - **Ruling (dữ liệu, có bài):** lưu nháp gửi CÙNG id chặng về đang có số người nhưng chiều ĐI (không khoá) → số người NULL, không 403 (chặng về coi như bỏ — ADR-0054
   D10.3 "bỏ rồi thêm lại → mất"; Đối tác vốn bỏ được chặng). Nếu chép sẽ vỡ CHECK (500).
 - **Ruling (bề mặt):** câu 400 của `PUT /trip` khi có ô phụ: "Số hiệu chuyến bay và số người chiều về sửa ở từng chặng đưa đón, không sửa ở đây."
+
+## Task 4 — đường đọc (2026-10-01)
+
+- Đỏ trước: sửa bài liệt kê khoá TRƯỚC — `lich-chung-chang.test.ts` (+ `soHieuChuyenBay`), `tai-xe-dto.test.ts` `KHOA_SUAT` (+ `soHieuChuyenBay`); bài mới TC-F7
+  (DTO tài xế ngoài ngày chạy có số hiệu, không tên; chi tiết chuyến văn phòng có số hiệu), TC-F7 phần đơn (`LegDto.flightCode/paxOverride` cho Đối tác đơn mình;
+  biên nhận `GET /receipt` không có số hiệu), TC-P8 (lichChungChang / hanhKhachChoChuyen số người về = 2, cột vượt số khách → kẹp lúc đọc, cột giữ nguyên).
+  → 7 + 1 đỏ.
+- Xanh: `LegDto` + 2 khoá; `ChangLichChung.soHieuChuyenBay`; `soNguoi` của `lichChungChang` và `hanhKhachChoChuyen` = `soNguoiChang(…, tongKhach(p))` (bỏ hai
+  chỗ cộng tay); `ChangChoChuyen` KHÔNG thêm số hiệu (giữ hẹp); `SuatChuyenDto.soHieuChuyenBay` (văn phòng) lấy từ `changLich`; DTO tài xế chọn thêm khoá này
+  NGOÀI nhánh `trongNgay`. Biên nhận: `ReceiptServiceDto` không có chặng ⇒ không đổi (bài ghim qua route).
+- Bài tích hợp mới `src/modules/van-chuyen/so-nguoi-chang-ve.test.ts` (TC-P8 phía xe): chặng về 2 người của dịch vụ 4 khách — xếp 3 suất → 409
+  `vuot_so_nguoi_chang` (L-D1); xếp 2 → 200; 2/4 khách có tên → xuất bến 200 (L-B1 không giữ thiếu tên).
+- **Thấy chặn thật (2026-10-01):** bỏ cố ý nhánh `RETURN` của `soNguoiChang` → bài lich-chung TC-P8 và bài tích hợp đỏ → hoàn nguyên → xanh.
+- `node --test src/modules/orders/*.test.ts src/modules/van-chuyen/*.test.ts src/hanh-khach-khong-lo-ten.test.ts src/orders-cong-bo.test.ts src/dieu-phoi-ca-mau.test.ts
+  src/architecture.test.ts src/shared/*.test.ts` → 1263/1263 (bộ ca mẫu `golden/dieu-phoi/` KHÔNG đổi đáp án). Typecheck 0.
+- **Ruling T1 (kế hoạch 4.2):** số hiệu gắn vào SUẤT (`suat[]`, theo `legId`), không vào điểm dừng (`diem[]`) — một điểm dừng gom suất của nhiều chặng.
+- **Ruling 4.3:** `src/giay-to-khong-lo-so.test.ts` không cần ca mới (số hiệu không phải giấy tờ); hàng rào thật là các bài liệt kê khoá ở trên.
+- `DRIVER_PARTNER`: không mở sớm (DTO dùng chung route của DRIVER; ADR-0053 lượt 3 chưa mở — không đổi gì ở cổng).

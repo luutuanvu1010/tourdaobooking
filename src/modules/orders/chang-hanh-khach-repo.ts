@@ -477,7 +477,7 @@ const LEG_TRIP_VIEW = defineSql(
   "orders",
   "leg_trip_view",
   `SELECT l.id, l.order_id, o.order_code, s.id AS service_id, s.name AS service_name, l.direction, l.pickup_date, l.pickup_time,
-     COALESCE(pl.name, l.pickup_place) AS noi_don, COALESCE(dl.name, l.dropoff_place) AS noi_tra
+     COALESCE(pl.name, l.pickup_place) AS noi_don, COALESCE(dl.name, l.dropoff_place) AS noi_tra, l.pax_override
    FROM ord_transfer_leg l
    JOIN orders o ON o.id = l.order_id
    JOIN order_service s ON s.id = l.order_service_id
@@ -496,6 +496,8 @@ export interface LegTripRow {
   pickup_time: string | null;
   noi_don: string;
   noi_tra: string | null;
+  /** Số người riêng của chặng về — CHỈ để tính `soNguoiChang` (không trả ra nguyên cột). */
+  pax_override: number | null;
 }
 export async function legTripRows(db: D1Database, legIds: readonly string[]): Promise<LegTripRow[]> {
   if (legIds.length === 0) return [];
@@ -515,7 +517,7 @@ const LEG_LICH_CHUNG = defineSql(
   `SELECT l.id, l.order_id, o.order_code, s.id AS service_id, s.name AS service_name, l.direction, l.pickup_date, l.pickup_time,
      l.pickup_location_id, l.pickup_place, COALESCE(pl.name, l.pickup_place) AS noi_don,
      l.dropoff_location_id, l.dropoff_place, COALESCE(dl.name, l.dropoff_place) AS noi_tra,
-     l.short_notice_reason IS NOT NULL AS dat_gap
+     l.short_notice_reason IS NOT NULL AS dat_gap, l.flight_code, l.pax_override
    FROM ord_transfer_leg l
    JOIN orders o ON o.id = l.order_id
    JOIN order_service s ON s.id = l.order_service_id
@@ -539,6 +541,10 @@ export interface LegLichChungRow {
   dropoff_place: string | null;
   noi_tra: string | null;
   dat_gap: number;
+  /** Số hiệu chuyến bay (ADR-0055 C3 → khoá `soHieuChuyenBay`). */
+  flight_code: string | null;
+  /** Số người riêng của chặng về — CHỈ để tính `soNguoiChang`. */
+  pax_override: number | null;
 }
 export async function legLichChungRows(db: D1Database, tuNgay: string, denNgay: string): Promise<LegLichChungRow[]> {
   return (await db.prepare(LEG_LICH_CHUNG).bind(tuNgay, denNgay).all<LegLichChungRow>()).results;

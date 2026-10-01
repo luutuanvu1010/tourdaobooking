@@ -354,6 +354,10 @@ export interface LegDto {
   dropoffPlace: string | null;
   dropoffLabel: string | null;
   updatedAt: string;
+  /** Số hiệu chuyến bay (ADR-0055 VK2-C C3 — ai xem được chặng thì thấy); null = chưa có. */
+  flightCode: string | null;
+  /** Số người riêng của chặng VỀ (ADR-0054 D10.3); null = theo số khách dịch vụ. */
+  paxOverride: number | null;
   /**
    * Dấu ĐẶT GẤP của chặng (ADR-0049 D2; chủ H4 / N-14, 29/9): `null` = chặng không đặt gấp. Văn phòng (ô `order.leg.short_notice.view`) nhận ĐỦ
    * (`DatGapDayDuDto`); Đối tác, HDV, Thực tập CHỈ nhận cờ `{ daDuyet: true }` — khoá lý do, người, lúc, ghi chú VẮNG MẶT.
@@ -1201,6 +1205,8 @@ export interface SuatChuyenDto {
   diemLen: string | null;
   diemXuong: string | null;
   trangThai: "WAITING" | "BOARDED" | "NO_SHOW" | "CANCELLED_AT_STOP" | "DROPPED";
+  /** Số hiệu chuyến bay của CHẶNG của suất (ADR-0055 VK2-C C3; gắn vào suất, không vào điểm dừng — ruling T1); null = chưa có / suất người đi kèm. */
+  soHieuChuyenBay: string | null;
   /** Có tên khách chưa (khoá người đã gắn). */
   coTen: boolean;
   /** Họ tên + năm sinh — CHỈ ở chi tiết chuyến của văn phòng (R-P1; `trip.view = any` ⇒ `contact.view = any`) và DTO tài xế trong ngày chạy (A15). */
@@ -1422,6 +1428,8 @@ export interface CuocChiTietResponse {
     trangThai: "WAITING" | "BOARDED" | "NO_SHOW" | "CANCELLED_AT_STOP" | "DROPPED";
     daDon: MocTienDoDto | null;
     daTra: MocTienDoDto | null;
+    /** Số hiệu chuyến bay của chặng — CÓ MỌI LÚC như giờ, nơi hẹn (ADR-0055 C3, G-C1: không kèm tên không chỉ ra một người). */
+    soHieuChuyenBay: string | null;
     hoTen?: string;
     namSinh?: number;
   }[];

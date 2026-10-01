@@ -228,6 +228,8 @@ const toLegDto = (l: StoredLeg): LegDto => ({
   dropoffPlace: l.dropoffPlace,
   dropoffLabel: l.dropoffLabel,
   updatedAt: l.updatedAt,
+  flightCode: l.flightCode,
+  paxOverride: l.paxOverride,
   datGap: l.datGap
     ? {
         daDuyet: true,

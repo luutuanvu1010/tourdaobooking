@@ -140,6 +140,7 @@ export function suatChuyenDto(
   const nguoi = a.passenger_key ? v.ten.get(a.passenger_key) : undefined;
   return {
     id: a.id, loai: a.kind, maDon, legId: a.leg_id, chieu: ch?.direction ?? null, diemLen: a.board_stop_id, diemXuong: a.alight_stop_id, trangThai: a.status,
+    soHieuChuyenBay: ch?.soHieuChuyenBay ?? null,
     coTen: a.passenger_key !== null,
     ...(nguoi ? { hoTen: nguoi.fullName, namSinh: nguoi.birthYear } : {}),
     daDon: mocTienDo(suKienCuoi(v.events, a.trip_id, ["PASSENGER_BOARDED"], (e) => e.allocation_id === a.id), v.nhan),

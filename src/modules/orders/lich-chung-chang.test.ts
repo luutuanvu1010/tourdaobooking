@@ -14,7 +14,7 @@ import "./chang-hanh-khach-repo.ts";
 
 type Mod = typeof import("./index.ts");
 const built = await esbuild.build({ entryPoints: [new URL("./index.ts", import.meta.url).pathname], bundle: true, format: "esm", platform: "neutral", target: "es2022", write: false, logLevel: "silent" });
-const { lichChungChang, lienHeChoTaiXe } = (await import(`data:text/javascript;base64,${Buffer.from(built.outputFiles[0]!.text).toString("base64")}`)) as Mod;
+const { lichChungChang, lienHeChoTaiXe, hanhKhachChoChuyen } = (await import(`data:text/javascript;base64,${Buffer.from(built.outputFiles[0]!.text).toString("base64")}`)) as Mod;
 
 const SALES = "11111111-1111-4111-8111-111111111111";
 const ADM = "33333333-3333-4333-8333-333333333333";
@@ -61,7 +61,7 @@ test("TC-20 lichChungChang: ĐÚNG các khoá của chặng (có khoaNoiDon / kh
   for (const c of kq.chang) {
     assert.deepEqual(Object.keys(c).sort(), [
       "datGap", "direction", "khoaNoiDon", "khoaNoiTra", "legId", "nguoiCuaDon", "noiDon", "noiDonDiemId", "noiTra", "noiTraDiemId", "orderCode", "orderId", "pickupDate",
-      "pickupTime", "serviceName", "soNguoi",
+      "pickupTime", "serviceName", "soHieuChuyenBay", "soNguoi",
     ]);
   }
   assert.deepEqual(kq.nhap, [{ legId: nhap.services[0].legs[0].id, orderId: nhap.id, orderCode: nhap.orderCode, pickupDate: D, pickupTime: "06:30", datGap: false }]);
@@ -149,3 +149,30 @@ test("TC-20 lớp thứ nhất: câu SQL của lichChungChang (defineSql) không
 });
 
 void FIELD;
+
+test("kế hoạch ô mới TC-F7 + TC-P8: lichChungChang có `soHieuChuyenBay`; số người chặng về = soNguoiChang (pax_override 2 của dịch vụ 4 khách → 2; cột vượt số khách → kẹp lúc đọc, cột không đổi); hanhKhachChoChuyen cùng số", async () => {
+  const w = setup();
+  const r = await w.call("POST", "/api/orders", {
+    as: SALES,
+    body: {
+      customerName: "Khách Thử", customerPhone: "0912345678",
+      services: [{ kind: "catalog", catalogCode: "ZA1", pax: { adult: 4, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: D,
+        legs: [{ ...OUT("Sân bay Cam Ranh"), flightCode: "VN1553" }, { ...RET, paxOverride: 2, flightCode: "VJ123" }] }],
+    },
+  });
+  assert.equal(r.status, 201, r.text);
+  assert.equal((await w.call("POST", `/api/orders/${r.json.order.id}/status`, { as: SALES, body: { status: "confirmed" } })).status, 200);
+  const kq = await lichChungChang(w.env.DB, D, inDays(4));
+  const di = kq.chang.find((c: any) => c.direction === "OUT")!;
+  const ve = kq.chang.find((c: any) => c.direction === "RETURN")!;
+  assert.deepEqual([di.soNguoi, di.soHieuChuyenBay], [4, "VN1553"]);
+  assert.deepEqual([ve.soNguoi, ve.soHieuChuyenBay], [2, "VJ123"]);
+  const hk = await hanhKhachChoChuyen(w.env.DB, [di.legId, ve.legId]);
+  assert.deepEqual(hk.map((c: any) => [c.direction, c.soNguoi]).sort(), [["OUT", 4], ["RETURN", 2]]);
+  // Cột vượt số khách (tình trạng sau khi giảm khách — chèn thẳng để mô phỏng): đọc kẹp về số khách dịch vụ, cột giữ nguyên (máy không tự sửa).
+  w.sqlite.prepare("UPDATE ord_transfer_leg SET pax_override = 6 WHERE id = ?").run(ve.legId);
+  const kq2 = await lichChungChang(w.env.DB, D, inDays(4));
+  assert.equal(kq2.chang.find((c: any) => c.legId === ve.legId)!.soNguoi, 4);
+  assert.equal((await hanhKhachChoChuyen(w.env.DB, [ve.legId]))[0]!.soNguoi, 4);
+  assert.equal(w.q("SELECT pax_override FROM ord_transfer_leg WHERE id = ?", ve.legId)[0].pax_override, 6);
+});

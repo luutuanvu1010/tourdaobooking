@@ -368,3 +368,18 @@ test("TC-P10: số người về 2 đã lưu, số khách giảm còn 1 — Đ�
   assert.equal(mot.status, 200, mot.text);
   assert.equal(cotTheoChieu(w, o.id, "RETURN").pax_override, 1);
 });
+
+// ---- Task 4 — đường ĐỌC (TC-F7 phần đơn) ---------------------------------------------------------------------------------------------------------------------
+test("TC-F7: chi tiết đơn — LegDto có flightCode + paxOverride (ai xem được chặng thì thấy, kể cả Đối tác đơn mình); biên nhận gửi khách KHÔNG có số hiệu (C3)", async () => {
+  const w = setup();
+  const o = await lap(w, PARTNER, [{ ...OUT, flightCode: "VN1553" }, RET]);
+  assert.equal((await nhanhNhap(w, o, ADM, ve(o), { expectedUpdatedAt: ve(o).updatedAt, paxOverride: 2 })).status, 200);
+  const p = (await w.call("GET", `/api/orders/${o.id}`, { as: PARTNER })).json.order;
+  assert.deepEqual([di(p).flightCode, di(p).paxOverride], ["VN1553", null]);
+  assert.deepEqual([ve(p).flightCode, ve(p).paxOverride], [null, 2]);
+  const s = await lap(w, SALES, [{ ...OUT, flightCode: "VN1553" }]);
+  await xacNhan(w, s);
+  const bn = await w.call("GET", `/api/orders/${s.id}/receipt`, { as: ADM });
+  assert.equal(bn.status, 200, bn.text);
+  assert.doesNotMatch(bn.text, /VN1553|flightCode|soHieu/);
+});
