@@ -55,7 +55,7 @@ async function step(id, name, fn) {
 }
 const q = (sel) => `document.querySelector(${JSON.stringify(sel)})`;
 const rect = (sel) => `(() => { const el = ${q(sel)}; if (!el) return null; const r = el.getBoundingClientRect(); return { top: r.top, bottom: r.bottom, left: r.left, right: r.right, width: r.width, height: r.height }; })()`;
-const khungMo = `!!${q(".sheet-root .tl-khung")}`;
+const khungMo = `!!${q("#tl-khung.tl-khung")}`;
 const tatCa = [];
 
 const env = await startEnv({ vars: { OPENAI_API_KEY: "khoa-gia-chrome", OPENAI_BASE_URL: `http://127.0.0.1:${PORT}` } });
@@ -76,12 +76,12 @@ try {
     await p.ev(`${q("#submit")}.click(), true`);
     await p.waitFor(`location.pathname !== '/login'`, "rời trang đăng nhập", 15000);
     await p.waitFor(`location.pathname === '/' && ${khungMo}`, "về Trang chủ và khung Hỗ trợ tự mở", 15000);
-    assert.equal(await p.ev(`${q(".tl-khung .sheet-title")}.textContent`), "Hỗ trợ");
+    assert.equal(await p.ev(`${q(".tl-khung .tl-tieu-de")}.textContent`), "Hỗ trợ");
     assert.equal(await p.ev(`${q(".tl-khung .tl-luu-y")}.textContent`), "Trả lời do AI, có thể sai — đối chiếu màn hình.");
     // ADR-0069 điều 5: khung ghi rõ câu hỏi được lưu.
     assert.equal(await p.ev(`[...document.querySelectorAll(".tl-khung .tl-luu-y")].at(-1).textContent`), "Câu hỏi được lưu để cải thiện trợ lý — đừng gõ thông tin khách");
     await p.shot(join(OUT, "anh/a-tu-mo-390.png"));
-    await p.ev(`${q(".tl-khung .sheet-close")}.click(), true`);
+    await p.ev(`${q(".tl-khung .tl-dong")}.click(), true`);
     await p.waitFor(`!${khungMo}`, "đóng khung");
     await p.send("Page.reload", {});
     await p.waitFor(`document.readyState === 'complete' && !!${q("#tl-fab")}`, "tải lại xong, có nút", 10000);

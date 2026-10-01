@@ -18,6 +18,20 @@ if (!tatCa.includes(TEP_DO_GIO)) {
 }
 const chinh = tatCa.filter((f) => f !== TEP_DO_GIO);
 
+// Bước 0 (ADR-0070 điều 3): sinh lại kho tri thức của trợ lý (sơ đồ trang, bố cục, cấu trúc app) TRƯỚC khi chạy bài — bài luôn chạy trên bản khớp mã.
+// Bộ sinh lỗi (thiếu tên lời thường, chữ có tên kỹ thuật) ⇒ npm test đỏ. Tệp sinh vừa ĐỔI (trong git đang cũ) ⇒ vẫn chạy bài trên bản mới, rồi thoát ≠ 0
+// để người sửa commit tệp sinh (thay cho bài "chạy lại ra đúng tệp", bài đó xanh hiển nhiên sau bước này).
+let sinhLoi = null;
+let sinhDoi = [];
+try {
+  const { ghiTatCa } = await import("./sinh-so-do-trang.mjs");
+  sinhDoi = ghiTatCa();
+  console.log(sinhDoi.length ? `▶ Bước 0 — đã sinh lại kho trợ lý: ${sinhDoi.join(", ")}` : "▶ Bước 0 — kho trợ lý khớp mã");
+} catch (e) {
+  sinhLoi = e instanceof Error ? e.message : String(e);
+  console.error(`✘ Bước 0 — bộ sinh kho trợ lý lỗi: ${sinhLoi}`);
+}
+
 console.log(`▶ Bước 1/2 — bộ kiểm chính (${chinh.length} tệp, song song; trừ ${TEP_DO_GIO})`);
 const b1 = spawnSync(process.execPath, ["--test", ...chinh], { cwd: ROOT, stdio: "inherit" });
 console.log(`\n▶ Bước 2/2 — bài đo giờ của hook, chạy MỘT MÌNH (${TEP_DO_GIO}, --test-concurrency=1)`);
@@ -25,4 +39,12 @@ const b2 = spawnSync(process.execPath, ["--test", "--test-concurrency=1", TEP_DO
 
 const ma = (r) => (r.status === null ? 1 : r.status);
 console.log(`\n── npm test: bước 1 thoát ${ma(b1)}, bước 2 thoát ${ma(b2)}`);
+if (sinhLoi) {
+  console.error(`✘ npm test ĐỎ vì bộ sinh kho trợ lý lỗi (bước 0): ${sinhLoi}`);
+  process.exit(1);
+}
+if (sinhDoi.length) {
+  console.error(`✘ npm test ĐỎ: đã sinh lại ${sinhDoi.join(", ")} — tệp trong git đang cũ so với mã. Commit các tệp này rồi chạy lại (lần sau sẽ xanh).`);
+  process.exit(1);
+}
 process.exit(ma(b1) !== 0 ? ma(b1) : ma(b2));

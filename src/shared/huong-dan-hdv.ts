@@ -6,7 +6,7 @@ export const HD_HDV: NhomHuongDan = {
   tieuDe: "Hướng dẫn viên",
   quyen: ["FIELD"],
   gioiThieu:
-    "Bạn là hướng dẫn viên. Trong app, bạn nhận đơn đang chờ người lo, gọi khách, xem thông tin chuyến và tiền của đơn mình lo; khi cần thì sửa số khách hoặc huỷ đơn, luôn kèm lý do.",
+    "Bạn là hướng dẫn viên. Trong app, bạn nhận đơn đang chờ người lo, gọi khách, xem thông tin chuyến và tiền của đơn mình lo, ghi tiền đã thu và bấm Đã giao khi xong; khi cần thì sửa số khách hoặc huỷ đơn, luôn kèm lý do.",
   batDauNhanh: `1. Bấm [[Tôi]] ở thanh dưới đáy.
 2. Kéo tới mục **Việc của tôi**. Có hai ô: **Chờ nhận** và **Đơn của tôi**.
 3. Ở khối **Đơn chờ nhận**, xem ngày đi, giờ đón, số khách.
@@ -50,12 +50,12 @@ Không nhận được đơn **đã huỷ** hay **đã qua ngày đi**.`,
 - Trạng thái: **Chờ xác nhận**, **Đã xác nhận** hoặc **Đã đi tour**.
 - Tên khách, số điện thoại và nút [[Gọi]]. Bấm là điện thoại quay số.
 - Từng dịch vụ: giờ đón, số khách, nơi đón, giờ khởi hành, check-in, ghi chú.
-- Ba ô tiền: **Tổng tiền**, **Thanh toán trước**, **Còn lại**.
+- Ba ô tiền: **Tổng tiền**, **Đã thu**, **Còn lại**.
 - Các nút [[Sửa số khách]], [[Huỷ đơn]], [[Xem đơn]] (tuỳ trạng thái đơn).
 
 Đơn sắp đi ở trên. Đơn đã đi tour ở dưới cùng, sau dòng **Đã đi tour**.
 
-Bấm [[Xem đơn]] để mở trang đầy đủ. Trang đó **chỉ để xem**, không sửa hay huỷ được. Muốn sửa hay huỷ thì quay lại **Việc của tôi**.
+Bấm [[Xem đơn]] để mở trang đầy đủ. Ở đó không sửa hay huỷ được (làm ở **Việc của tôi**), nhưng có khối **Thanh toán** để ghi tiền và bấm Đã giao (xem mục dưới).
 
 > Ví dụ: Tối trước ngày đi, chị Lan bấm Gọi để hẹn khách 07:30 ở sảnh khách sạn. Chị xem ô Còn lại để biết có phải thu thêm không.`,
     },
@@ -88,6 +88,19 @@ Bấm [[Xem đơn]] để mở trang đầy đủ. Trang đó **chỉ để xem*
 > Ví dụ: Chị Lan gọi đoàn khách ba lần không ai nghe. Chị bấm Huỷ đơn, chọn Không liên hệ được với khách, rồi bấm Huỷ đơn.`,
     },
     {
+      tieuDe: "Thu tiền và bấm Đã giao",
+      noiDung: `Làm trên trang đơn (bấm [[Xem đơn]]), khối **Thanh toán**. Khối này ghi **Đã thu**, **Còn lại** và từng lần thu.
+
+**Ghi tiền khách trả:**
+1. Bấm [[Ghi lần thu]].
+2. Gõ số tiền, chọn hình thức, chọn người nhận tiền: [[Tôi thu]] (tiền mặt bạn cầm) hoặc [[Công ty (vào tài khoản công ty)]].
+3. Bấm [[Ghi]].
+
+**Xong tour, khách đã trả đủ:** bấm [[Đã giao – đã thu đủ]] rồi đồng ý. Nút chỉ bấm được khi đơn đã xác nhận, từ ngày đi trở đi, và số đã thu **bằng đúng** số phải thu. Nút bị mờ thì dòng **Đang giữ đơn** ghi lý do và ai xử lý.
+
+Sau Đã giao, đơn **bị khoá**: không sửa số khách, không huỷ, không ghi thêm lần thu. Thẻ ghi "Đã giao – đã thu đủ: đơn đã khoá." Bạn đang cầm tiền mặt của công ty thì nhớ nộp về; Kế toán ghi đã nộp rồi bấm **Hoàn thành**.`,
+    },
+    {
       tieuDe: "Thông báo",
       noiDung: `Chuông có hai ngăn:
 - [[Của tôi]]: tin công ty gửi bạn, tin về đơn bạn lo, đơn mới đang chờ nhận.
@@ -111,7 +124,7 @@ Tin quan trọng có nút [[Đã hiểu]]. Đọc xong thì bấm.
 - **Đang sửa thì văn phòng cũng sửa đơn đó:** app đóng bảng, hiện dòng báo màu vàng rồi tải lại. Bạn xem lại rồi làm lại.
 - **Mất mạng:** app báo chưa tải được đơn. Có mạng thì tải lại trang.
 - **Không thấy khối Đơn chờ nhận:** tài khoản có thêm quyền Đối tác. Hỏi Quản trị.
-- **Đã giao, Hoàn thành:** app chưa có hai trạng thái này (chưa có ở bản này). Qua ngày đi, đơn chỉ đổi nhãn thành **Đã đi tour**.`,
+- **Không bấm được Đã giao:** đọc dòng **Đang giữ đơn** trên trang đơn. Còn thiếu tiền thì ghi thêm lần thu; khách trả dư hay lần thu chưa rõ người thu thì chờ Kế toán.`,
     },
     {
       tieuDe: "Điều bạn không làm được — hỏi ai",
@@ -121,7 +134,7 @@ Tin quan trọng có nút [[Đã hiểu]]. Đọc xong thì bấm.
 - **Trả lại đơn đã nhận:** chưa có (chưa có ở bản này). Văn phòng giao cho người khác.
 - **Huỷ đơn chờ xác nhận, huỷ sau ngày đi:** nhờ văn phòng.
 - **Sửa số khách sau ngày đi:** nhờ tài khoản Toàn quyền.
-- **Ghi thu tiền:** nhờ kế toán.
+- **Hoàn tiền cho khách, xác nhận tiền đã vào công ty, bấm Hoàn thành:** Kế toán làm.
 - **Xem bảng giá, Danh bạ:** hỏi văn phòng.`,
     },
     {
@@ -139,7 +152,7 @@ Không. Gọi văn phòng ngay để lập đơn mới.
 Không. Bạn sửa được tới hết ngày đi. Từ hôm sau, nhờ tài khoản Toàn quyền sửa.
 
 ### Tôi có thấy tiền của đơn không?
-Có, chỉ ở đơn bạn đang lo: **Tổng tiền**, **Thanh toán trước**, **Còn lại**.`,
+Có, chỉ ở đơn bạn đang lo: **Tổng tiền**, **Đã thu**, **Còn lại**.`,
     },
   ],
 };
