@@ -26,18 +26,23 @@ test("Đ3: dòng do máy chủ nối — đúng văn bản ADR, một dòng", ()
   assert.ok(!dongMai(xungHo("A\nB", "NAM")).includes("\n"));
 });
 
-test("Đ5: thayTen thay MỌI {ten}; đầu câu viết hoa chữ đầu; câu không có {ten} giữ nguyên văn", () => {
+test("Đ5 + Đ2 (phán quyết điều phối 1/10): thayTen thay MỌI {ten} và {xung}; đầu câu viết hoa chữ đầu; câu không có chỗ thay giữ nguyên văn", () => {
   assert.equal(
-    thayTen(CAU_CHAO_MAC_DINH, "anh Vũ"),
+    thayTen(CAU_CHAO_MAC_DINH, xungHo("Vũ", "NAM")),
     "Chào anh Vũ, em là Mai — trợ lý của Tour Đảo. Anh Vũ cần hỏi gì về cách dùng app cứ hỏi em nhé!",
   );
-  assert.equal(thayTen(CAU_CHAO_MAC_DINH, "bạn"), "Chào bạn, em là Mai — trợ lý của Tour Đảo. Bạn cần hỏi gì về cách dùng app cứ hỏi em nhé!");
-  assert.equal(thayTen("{ten} ơi, chào nhé", "chị Lan"), "Chị Lan ơi, chào nhé");
-  assert.equal(thayTen("Chào bạn! Hỏi mình nhé.", "anh Vũ"), "Chào bạn! Hỏi mình nhé.");
+  // Đ2: chưa ghi giới tính ⇒ gọi "bạn", xưng "mình" — câu chào cũng vậy (không "Chào bạn, em là Mai").
+  assert.equal(
+    thayTen(CAU_CHAO_MAC_DINH, xungHo("Vũ", null)),
+    "Chào bạn, mình là Mai — trợ lý của Tour Đảo. Bạn cần hỏi gì về cách dùng app cứ hỏi mình nhé!",
+  );
+  assert.equal(thayTen("{ten} ơi, chào nhé", xungHo("Lan", "NU")), "Chị Lan ơi, chào nhé");
+  assert.equal(thayTen("Xin chào. {xung} là Mai.", xungHo(null, null)), "Xin chào. Mình là Mai.");
+  assert.equal(thayTen("Chào bạn! Hỏi mình nhé.", xungHo("Vũ", "NAM")), "Chào bạn! Hỏi mình nhé.");
 });
 
-test("Đ5: câu chào mặc định đúng văn bản ADR", () => {
-  assert.equal(CAU_CHAO_MAC_DINH, "Chào {ten}, em là Mai — trợ lý của Tour Đảo. {ten} cần hỏi gì về cách dùng app cứ hỏi em nhé!");
+test("Đ5 (phán quyết điều phối 1/10): câu chào mặc định có {ten} và {xung}", () => {
+  assert.equal(CAU_CHAO_MAC_DINH, "Chào {ten}, {xung} là Mai — trợ lý của Tour Đảo. {ten} cần hỏi gì về cách dùng app cứ hỏi {xung} nhé!");
 });
 
 test("Đ1: gioiTinhHopLe — chỉ NAM / NU; còn lại NULL", () => {

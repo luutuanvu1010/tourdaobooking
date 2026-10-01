@@ -5,8 +5,8 @@ import { test, afterEach } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { world, seedStaff } from "../../../tests/audit/harness.mjs";
-import { cheCauHoi, chiaKho, chonDoan, dinhDangDoan, thanYeuCau, truyVanTim, uocToken, uocTokenVao } from "../../shared/tro-ly.ts";
-import { chiPhiToiDa } from "../../shared/tro-ly-mau.ts";
+import { NGAN_SACH_TOKEN as NGAN, cheCauHoi, chiaKho, chonDoan, dinhDangDoan, thanYeuCau, truyVanTim, uocToken, uocTokenVao } from "../../shared/tro-ly.ts";
+import { chiPhiToiDa, timMau } from "../../shared/tro-ly-mau.ts";
 import { MAU_NHUNG, SO_CHIEU_NHUNG, chiPhiNhungMicroUsd, chiaLoNhung, mucTranTren, tienBuUoc } from "../../shared/tro-ly-van-nghia.ts";
 import { xoaBoNhoVanNghia } from "./van-nghia.ts";
 import { xungHo } from "../../shared/xung-ho.ts";
@@ -271,4 +271,33 @@ test("Review Focus 2 (route): phản hồi embeddings KHÔNG có usage ⇒ tiề
   // Kho nằm trong MỘT lô (tiền đề) ⇒ tiền ước lô = tienBuUoc(kho); câu hỏi không có gì để che ⇒ ước bằng uocToken(câu).
   assert.equal(chiaLoNhung(chiaKho().map(dinhDangDoan)).length, 1, "tiền đề: kho một lô");
   assert.equal(luot(w)[0]![0], MO + chiPhiNhungMicroUsd(uocToken("đổi mã PIN thế nào")) + TIEN_BU_KHO);
+});
+
+test("T-1 (kiểm độc lập 1/10) HÀNG RÀO ADR-0084: mức trần trên tính CẢ dòng Mai của CHÍNH người hỏi — trần = mức của người thật − 1 ⇒ 429 (hỏi VÀ ô thử); kiểm bằng 'bạn' sẽ lọt", async () => {
+  // Tên gọi dài + mẫu GPT-5 (giá vào cao) để phần chữ thêm của dòng Mai đổi mức trần trên ít nhất vài micro-USD — đủ để bài phân biệt người thật với "bạn".
+  const TEN = "Ánhnguyệtthiênhươngngọcdiệpkimchiphươngthảo";
+  const g5 = timMau("gpt-5")!;
+  const q = "đổi mã PIN thế nào";
+  for (const duong of ["hoi", "thu"] as const) {
+    const w = setup();
+    const g = openAiGia();
+    const ai = duong === "hoi" ? SALES : SUP;
+    w.sqlite.prepare("UPDATE pty_person SET given_name = ?, gender = 'NU' WHERE party_id = ?").run(TEN, `pty-${ai}`);
+    const mac = (await w.call("GET", "/api/tro-ly/bo-nao", { as: SUP })).json.hienHanh as BoNaoThu;
+    const bn: BoNaoThu = { mau: "gpt-5", mucSuyNghi: g5.mucSuyNghi[0]!, doDai: "low", tokenRaToiDa: 1200, loiNhac: mac.loiNhac };
+    const perms = duong === "hoi" ? ["SALES"] : ["ACCOUNTING"];
+    const muc = (nguoi: ReturnType<typeof xungHo>) => mucTranTren(bn.mau, uocTokenVao(thanYeuCau(bn as never, perms as never, nguoi, [], q)), bn.tokenRaToiDa, q);
+    const that = muc(xungHo(TEN, "NU"));
+    const ban = muc(BAN);
+    // Phần chữ thêm của dòng Mai ("chị <tên>" / "em" thay "bạn" / "mình") ⇒ mức trần tăng ĐÚNG bằng tiền tối đa của số token thêm.
+    const tokThem = uocTokenVao(thanYeuCau(bn as never, perms as never, xungHo(TEN, "NU"), [], q)) - uocTokenVao(thanYeuCau(bn as never, perms as never, BAN, [], q));
+    assert.ok(tokThem > 0, `tokThem ${tokThem}`);
+    assert.equal(that - ban, chiPhiToiDa(bn.mau, uocTokenVao(thanYeuCau(bn as never, perms as never, BAN, [], q)) + NGAN + tokThem, bn.tokenRaToiDa) - chiPhiToiDa(bn.mau, uocTokenVao(thanYeuCau(bn as never, perms as never, BAN, [], q)) + NGAN, bn.tokenRaToiDa));
+    assert.ok(that - ban >= 2, `tiền đề: mức người thật ${that} cao hơn mức "bạn" ${ban} ít nhất 2 micro-USD`);
+    if (duong === "hoi") assert.equal((await w.call("PUT", "/api/tro-ly/bo-nao", { as: SUP, body: bn })).status, 200);
+    assert.equal((await datTran(w, that - 1)).status, 200);
+    const r = duong === "hoi" ? await hoi(w, q) : await w.call("POST", "/api/tro-ly/thu", { as: SUP, body: { boNao: bn, cauHoi: q, vai: "ACCOUNTING" } });
+    assert.equal(r.status, 429, `${duong}: ${r.text}`);
+    assert.deepEqual([g.nhung.length, g.traLoi.length], [0, 0], duong);
+  }
 });

@@ -116,8 +116,9 @@ function moKhung(fab: HTMLElement, khung: Api.TroLyKhungResponse): void {
           return b;
         }),
       );
-  // ADR-0084 Đ5: lời chào dựng ngay ở trình duyệt (không gọi AI) — thay MỌI {ten} bằng cách gọi máy chủ đã tính; câu không có {ten} giữ nguyên văn.
-  const loiChao = thayTen(khung.cauChao || CHAO, khung.goi || "bạn");
+  // ADR-0084 Đ5 (+ Đ2): lời chào dựng ngay ở trình duyệt (không gọi AI) — thay MỌI {ten} / {xung} bằng cách gọi / cách xưng máy chủ đã tính;
+  // câu không có chỗ thay giữ nguyên văn.
+  const loiChao = thayTen(khung.cauChao || CHAO, { goi: khung.goi || "bạn", xung: khung.xung || "mình" });
   const veLai = (): void => {
     replaceChildren(ds, h("li", { class: "tl-tin tl-tin-tro-ly", "data-tl": "loi-chao" }, h("p", { class: "tl-chu" }, loiChao)), mau(), ...tin.map(dongTin), dangHoi ? bongBongDangTra() : null);
     gui.disabled = dangHoi;
@@ -215,7 +216,21 @@ function moKhung(fab: HTMLElement, khung: Api.TroLyKhungResponse): void {
   co.addEventListener("keydown", phim(doiCo));
   // Điều tra 1/10: bấm thật (chuột và chạm, 1040 + 390) đã về đúng vị trí + cỡ mặc định và xoá bộ nhớ; chỗ "bấm không thấy gì" còn lại là khung ĐANG ở mặc định
   // (mở khung luôn ở mặc định) ⇒ không có gì dời. Nên mỗi lần bấm khung nháy viền một nhịp: luôn thấy nút đã nhận.
+  // Gỡ lớp nháy khi hiệu ứng chạy xong (`animationend`); dự phòng (giảm chuyển động tắt hiệu ứng ⇒ không có animationend) hẹn đúng thời lượng token
+  // `--tl-nhay` của public/app.css — không số cứng (kiểm độc lập T-5).
   let henNhay = 0;
+  const thoiNhayMs = (): number => {
+    const v = getComputedStyle(hop).getPropertyValue("--tl-nhay").trim();
+    const n = parseFloat(v);
+    return Number.isFinite(n) ? (v.endsWith("ms") ? n : n * 1000) : 0;
+  };
+  const tatNhay = (): void => {
+    clearTimeout(henNhay);
+    hop.classList.remove("is-ve-goc");
+  };
+  hop.addEventListener("animationend", (e) => {
+    if (e.animationName === "tl-ve-goc-nhay") tatNhay();
+  });
   veGoc.addEventListener("click", () => {
     luu = null;
     ghiLuu(null);
@@ -224,7 +239,7 @@ function moKhung(fab: HTMLElement, khung: Api.TroLyKhungResponse): void {
     void hop.offsetWidth; // khởi động lại hiệu ứng khi bấm liên tiếp
     hop.classList.add("is-ve-goc");
     clearTimeout(henNhay);
-    henNhay = window.setTimeout(() => hop.classList.remove("is-ve-goc"), 800);
+    henNhay = window.setTimeout(tatNhay, thoiNhayMs());
   });
   nutMoi.addEventListener("click", () => {
     if (dangHoi) return;

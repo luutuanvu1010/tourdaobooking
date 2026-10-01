@@ -26,16 +26,22 @@ export function xungHo(tenGoi: string | null | undefined, gioiTinh: string | nul
 /** ADR-0084 Đ3: dòng MÁY CHỦ nối sau lời nhắc của bộ não (Toàn quyền không sửa được). Một dòng. */
 export const dongMai = (x: XungHo): string => `Tên bạn là Mai, trợ lý của Tour Đảo. Người đang hỏi: gọi là '${x.goi}', xưng '${x.xung}'.`;
 
-/** ADR-0084 Đ5: câu chào mặc định (chỗ thay `{ten}`). */
-export const CAU_CHAO_MAC_DINH = "Chào {ten}, em là Mai — trợ lý của Tour Đảo. {ten} cần hỏi gì về cách dùng app cứ hỏi em nhé!";
-
 /**
- * ADR-0084 Đ5: thay MỌI `{ten}` bằng cách gọi. `{ten}` đứng đầu câu (đầu chuỗi hoặc sau . ! ? và khoảng trắng) ⇒ viết hoa chữ đầu ("Anh Vũ cần…", "Bạn cần…")
- * — giả định bề mặt, đảo ngược được. Câu không có `{ten}` giữ nguyên văn.
+ * ADR-0084 Đ5 + Đ2: câu chào mặc định (chỗ thay `{ten}` = cách gọi, `{xung}` = cách xưng). Phán quyết điều phối 2026-10-01 (sau kiểm độc lập TB-2): văn bản
+ * Đ5 ("… em là Mai …") mâu thuẫn Đ2 ("bạn" thì xưng "mình") — chủ đã chốt cặp "bạn / mình", nên câu chào xưng theo `{xung}`.
  */
-export function thayTen(cauChao: string, goi: string): string {
-  const hoa = goi ? goi.charAt(0).toLocaleUpperCase("vi") + goi.slice(1) : goi;
-  return cauChao.replace(/\{ten\}/g, (_m, i: number, s: string) => (/(^|[.!?…]\s+)$/.test(s.slice(0, i)) ? hoa : goi));
+export const CAU_CHAO_MAC_DINH = "Chào {ten}, {xung} là Mai — trợ lý của Tour Đảo. {ten} cần hỏi gì về cách dùng app cứ hỏi {xung} nhé!";
+
+const hoaDau = (s: string): string => (s ? s.charAt(0).toLocaleUpperCase("vi") + s.slice(1) : s);
+/**
+ * ADR-0084 Đ5: thay MỌI `{ten}` bằng cách gọi và MỌI `{xung}` bằng cách xưng. Chỗ thay đứng đầu câu (đầu chuỗi hoặc sau . ! ? … và khoảng trắng) ⇒ viết hoa
+ * chữ đầu ("Anh Vũ cần…", "Mình là…") — giả định bề mặt, đảo ngược được. Câu không có chỗ thay giữ nguyên văn.
+ */
+export function thayTen(cauChao: string, x: XungHo): string {
+  return cauChao.replace(/\{(ten|xung)\}/g, (_m, k: string, i: number, s: string) => {
+    const v = k === "ten" ? x.goi : x.xung;
+    return /(^|[.!?…]\s+)$/.test(s.slice(0, i)) ? hoaDau(v) : v;
+  });
 }
 
 /** Giá trị đọc từ CSDL → giới tính hợp lệ hoặc NULL (giá trị lạ — chỉ có thể lọt bằng SQL tay — coi như chưa ghi). */

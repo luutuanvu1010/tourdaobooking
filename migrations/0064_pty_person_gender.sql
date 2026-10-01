@@ -18,9 +18,10 @@ CREATE VIEW v_stf_staff_xung_ho AS
 
 -- Đ3 + Đ5: câu chào mặc định theo vai Mai. tl_loi_dan CHỈ THÊM (trigger chặn sửa / xoá) ⇒ thêm MỘT bản mới, chép giọng / lời dặn / câu hỏi mẫu của bản
 -- hiện hành — CHỈ KHI bản hiện hành vẫn là bản GIEO của 0054 (Toàn quyền chưa lưu bản nào). Bản Toàn quyền đã lưu không tự đổi. Thứ tự "hiện hành" đúng
--- như câu loi-dan-hien-hanh của src/modules/tro-ly/repository.ts. created_by NULL = hệ thống.
+-- như câu loi-dan-hien-hanh của src/modules/tro-ly/repository.ts. created_by NULL = hệ thống. Câu chào có {xung} (phán quyết điều phối 1/10: Đ5 khớp Đ2 —
+-- chưa ghi giới tính thì "Chào bạn, mình là Mai…"); trùng CAU_CHAO_MAC_DINH của src/shared/xung-ho.ts (bài migration ghim).
 INSERT INTO tl_loi_dan (id, cau_chao, giong, loi_dan_them, cau_hoi_mau, valid_from_at, created_at, created_by, updated_at, updated_by)
-SELECT 'mai-adr-0084', 'Chào {ten}, em là Mai — trợ lý của Tour Đảo. {ten} cần hỏi gì về cách dùng app cứ hỏi em nhé!', h.giong, h.loi_dan_them, h.cau_hoi_mau,
+SELECT 'mai-adr-0084', 'Chào {ten}, {xung} là Mai — trợ lý của Tour Đảo. {ten} cần hỏi gì về cách dùng app cứ hỏi {xung} nhé!', h.giong, h.loi_dan_them, h.cau_hoi_mau,
        strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL
 FROM (SELECT id, giong, loi_dan_them, cau_hoi_mau FROM tl_loi_dan ORDER BY valid_from_at DESC, created_at DESC, id DESC LIMIT 1) h
 WHERE h.id = 'gieo-0054';

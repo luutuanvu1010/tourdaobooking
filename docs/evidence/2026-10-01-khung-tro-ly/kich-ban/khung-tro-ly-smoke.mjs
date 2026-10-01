@@ -18,7 +18,8 @@
 //   m  390 (bản 1.57, ghi vào docs/evidence/2026-10-01-tro-ly-mai/): placeholder "Hãy hỏi Mai tại đây nhé!"; nút đổi cỡ vẽ biểu tượng SVG (không còn góc CSS);
 //      gửi câu (máy giả chậm 1,5 giây) ⇒ NGAY hiện bong bóng của trợ lý "Mai đang trả lời…" với ba chấm đang chạy animation, không còn dòng trạng thái riêng;
 //      có trả lời ⇒ bong bóng mất; có lỗi (máy giả 500) ⇒ bong bóng mất, hiện tin lỗi; prefers-reduced-motion ⇒ ba chấm ẩn, còn chữ
-//   n  (ADR-0084, ảnh vào docs/evidence/2026-10-01-tro-ly-mai/anh/) lời chào có tên: hồ sơ chưa ghi giới tính ⇒ "Chào bạn, em là Mai — … Bạn cần hỏi gì…";
+//   n  (ADR-0084, ảnh vào docs/evidence/2026-10-01-tro-ly-mai/anh/) lời chào có tên: hồ sơ chưa ghi giới tính ⇒ "Chào bạn, mình là Mai — … Bạn cần hỏi gì…
+//      cứ hỏi mình nhé!" (phán quyết điều phối 1/10: câu chào xưng theo {xung}, khớp Đ2);
 //      đặt giới tính Nữ (SQL trên D1 tạm) ⇒ mở lại khung: "Chào chị Một, em là Mai — … Chị Một cần hỏi gì…", không còn chữ {ten}; 390 + 1040;
 //      câu hỏi gửi máy giả mang dòng Mai "gọi là 'chị Một', xưng 'em'"
 //   k  console sạch
@@ -369,13 +370,14 @@ try {
     mkdirSync(MAI, { recursive: true });
     const chao = `${q('[data-tl="loi-chao"] .tl-chu')}.textContent`;
     let p = await moKhung(M);
-    assert.equal(await p.ev(chao), "Chào bạn, em là Mai — trợ lý của Tour Đảo. Bạn cần hỏi gì về cách dùng app cứ hỏi em nhé!");
+    await p.shot(join(MAI, "n-loi-chao-ban-minh-390.png"));
+    assert.equal(await p.ev(chao), "Chào bạn, mình là Mai — trợ lý của Tour Đảo. Bạn cần hỏi gì về cách dùng app cứ hỏi mình nhé!");
     env.sql(`UPDATE pty_person SET gender = 'NU' WHERE party_id = (SELECT party_id FROM staff WHERE phone = '${ACCOUNTS.salesA.phone}')`);
     for (const vp of [M, DESK]) {
       p = await moKhung(vp);
       const t = await p.ev(chao);
       assert.equal(t, "Chào chị Một, em là Mai — trợ lý của Tour Đảo. Chị Một cần hỏi gì về cách dùng app cứ hỏi em nhé!");
-      assert.ok(!t.includes("{ten}"));
+      assert.ok(!t.includes("{ten}") && !t.includes("{xung}"));
       assert.equal(await p.ev("document.documentElement.scrollWidth - innerWidth"), 0);
       await p.shot(join(MAI, `n-loi-chao-co-ten-${vp.width}.png`));
     }
