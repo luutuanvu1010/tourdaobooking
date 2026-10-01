@@ -38,7 +38,7 @@
 2. **Lưu chính sách chạy đua** (hai Toàn quyền lưu cùng lúc từ cùng một bản; một lần lưu nhiều quyền mà chỉ một quyền thua) — mong: một 200, một 409, bên thua không ghi dòng chính sách nào và không đăng xuất máy nào. Bài: Task 3 (SQLite thật, lô lùi) + Task 6 (route, `Promise.all`).
 3. **Đăng nhập chạy đua với lần lưu "Một máy"** — phiên mới có thể mang `single = 0` theo chính sách cũ; mong: bất biến cảnh báo `R-AUT-SESSION-3` thấy được, lần đăng nhập sau tự lành; e2e `--strict` không đỏ vì khe đã biết. Bài: Task 7 (mức `warn`, không phải `warn-unless-strict`).
 4. **Đối tác ~1000 tài khoản chuyển về "Một máy"** — mong: một lô, số câu cố định, xong trong vài giây, mỗi tài khoản còn đúng phiên mới nhất, đúng một lời gọi đóng Bảng tin. Bài: Task 3 (5 vs 50 tài khoản cùng số câu), Task 6 (route 50 tài khoản, một lời gọi `dongBangTin`), Task 9 (D1 local, 1000 tài khoản, đo giờ).
-5. **Máy được giữ lại mất thông báo / đăng ký `session_id` NULL bị tắt nhầm** khi siết theo chính sách — mong: chỉ đăng ký của phiên vừa kết thúc bị tắt (lý do `mat-mien`), máy giữ lại và đăng ký chưa gắn phiên còn bật; nhánh mới của gốc lắp ráp không rơi vào nhánh cũ (khoá phân biệt riêng). Bài: Task 5 (SQLite thật, ba dòng `ntf_push_sub`; bài dây thật qua gốc lắp ráp).
+5. **Máy được giữ lại mất thông báo / đăng ký `session_id` NULL bị tắt nhầm** khi siết theo chính sách — mong: chỉ đăng ký của phiên vừa kết thúc bị tắt (lý do `mat-mien`), máy giữ lại và đăng ký chưa gắn phiên còn bật; nhánh mới của gốc lắp ráp không rơi vào nhánh cũ (khoá phân biệt riêng). Bài: Task 5 (SQL trên SQLite thật, sáu dòng `ntf_push_sub`) + Task 6 bài DÂY THẬT qua gốc lắp ráp (máy vừa kết thúc, máy giữ lại, dòng `session_id` NULL) + đột biến Task 6 Step 6 (d).
 6. (thêm) **Chữ Trợ giúp vượt trần đọc A4** — Quản trị đang đúng 3150 chữ (21 phút), Phần chung 1346 chữ (9 phút, còn 4 chữ). Bài: Task 8 đo trước khi sửa, chữ đổi được cân từng chữ.
 
 ---
@@ -439,7 +439,7 @@ export const isSingleDevice = (permissions: readonly PermissionCode[], roles: re
   !(permissions.includes("SUPER_ADMIN") || roles.includes("IT") || permissions.some((p) => nhieuMay.has(p)));
 ```
 
-  Chạy bài → PASS. `npm run typecheck` sẽ ĐỎ ở `auth/index.ts:77, :146-147` — đúng mong đợi, Task 4 sửa; **chưa commit typecheck đỏ**: tạm truyền `new Set()` ở hai chỗ đó kèm chú thích `// Task 4: đọc chính sách thật` để giữ hành vi 1.58 và typecheck xanh.
+  Chạy bài → PASS. `npm run typecheck` sẽ ĐỎ ở `auth/index.ts:77, :146-147` — đúng mong đợi, Task 4 sửa; **chưa commit typecheck đỏ**: tạm truyền `new Set()` ở hai chỗ đó kèm chú thích `// Task 4: đọc chính sách thật` để giữ hành vi 1.58 và typecheck xanh. **Khung thử cũng phải sửa ngay** (typecheck không phủ nó): `tests/audit/harness.mjs:136` gọi `app.isSingleDevice(prof.permissions, …)` hai đối số — thân mới gọi `nhieuMay.has` nên MỌI bài dùng khung thử sẽ ném `TypeError`. Sửa thành `app.isSingleDevice(prof.permissions, await app.accountRoleCodesOf(env.DB, as), new Set()) // Task 4: đọc chính sách thật` — KHÔNG thêm giá trị mặc định cho tham số (đó chính là lỗ vừa bịt).
 - [ ] **Step 8: Ô quyền.** `src/shared/permissions.ts`, sau dòng `"auth.session.revoke"` (~`:186`):
 
 ```ts
@@ -464,7 +464,7 @@ export const isSingleDevice = (permissions: readonly PermissionCode[], roles: re
 
   Chạy `node scripts/sinh-so-do-trang.mjs` (sinh lại `tro-ly-cau-truc.ts`/`so-do-trang.ts`).
 - [ ] **Step 11:** `npm run typecheck` (0 lỗi) và `npm test` xanh (gồm `tro-ly*.test.ts`, `an-toan-quyen.test.ts`, `permissions.test.ts`).
-- [ ] **Step 12: Commit** — `git add src/shared/chinh-sach-dang-nhap.ts src/shared/chinh-sach-dang-nhap.test.ts src/shared/contracts.ts src/modules/auth/session-ledger.ts src/modules/auth/session-ledger.test.ts src/modules/auth/index.ts src/shared/permissions.ts src/shared/permissions.test.ts src/shared/audit-actions.ts src/modules/audit/an-toan-quyen.test.ts src/shared/tro-ly-cau-truc-ten.ts src/shared/tro-ly-cau-truc.ts src/shared/so-do-trang.ts`; tiêu đề "Luật thuần chính sách đăng nhập, ô auth.session.policy, nhật ký im lặng (ADR-0085)"; thân: "isSingleDevice nhận tập Nhiều máy bắt buộc để không nơi nào quên chính sách; ô mới chỉ Toàn quyền theo ADR-0085 Q1 điều 3."
+- [ ] **Step 12: Commit** — `git add src/shared/chinh-sach-dang-nhap.ts src/shared/chinh-sach-dang-nhap.test.ts src/shared/contracts.ts src/modules/auth/session-ledger.ts src/modules/auth/session-ledger.test.ts src/modules/auth/index.ts tests/audit/harness.mjs src/shared/permissions.ts src/shared/permissions.test.ts src/shared/audit-actions.ts src/modules/audit/an-toan-quyen.test.ts src/shared/tro-ly-cau-truc-ten.ts src/shared/tro-ly-cau-truc.ts src/shared/so-do-trang.ts`; tiêu đề "Luật thuần chính sách đăng nhập, ô auth.session.policy, nhật ký im lặng (ADR-0085)"; thân: "isSingleDevice nhận tập Nhiều máy bắt buộc để không nơi nào quên chính sách; ô mới chỉ Toàn quyền theo ADR-0085 Q1 điều 3."
 
 ---
 
@@ -485,7 +485,7 @@ export const isSingleDevice = (permissions: readonly PermissionCode[], roles: re
   - `endExpiredAllStatement(db, at)`; `sietTheoTapStatement(db, at, by)` (`RETURNING id, staff_id`); `danhDauMotMayTheoTapStatement(db, at, by)`
   - `demSietTheoTap(db, nhieuMay: readonly string[], nowIso: string): Promise<{ soPhien: number; soNguoi: number }>`
   - `laLoiChinhSachCu(e: unknown): boolean`
-  - XOÁ `markMultiStatement` + `SS_MARK_MULTI` (nới không ghi phiên). `endAllButNewestStatement`/`markSingleStatement` giữ nguyên ở task này (Task 4 bỏ `KHONG_TOAN_QUYEN`).
+  - Task này CHỈ THÊM (SQL chính sách + siết theo tập + bài kiểm). Không đụng `SS_MARK_MULTI`, `KHONG_TOAN_QUYEN`, `exemptionChangeStatements` hay route nào — mọi đổi hành vi thuộc Task 4.
 
 - [ ] **Step 1: Test đỏ** — `src/modules/auth/chinh-sach-repo.test.ts` (D1 giả theo đúng khuôn `session-repo.test.ts`: chép hàm `fakeD1` của tệp đó, kể cả nhánh `RETURNING` và BEGIN/COMMIT/ROLLBACK; thêm bộ đếm số câu mỗi lô):
 
@@ -661,12 +661,9 @@ test("đánh dấu một máy không vỡ chỉ mục khi tài khoản còn mộ
 
 - [ ] **Step 2:** `node --test src/modules/auth/chinh-sach-repo.test.ts` → FAIL (thiếu hàm xuất).
 - [ ] **Step 3: SQL** — trong `src/modules/auth/repository.ts`:
-  (a) Xoá khối `(2e)` (`SS_MARK_MULTI`, `:129-134`) và thay bằng chú thích dưới; GIỮ NGUYÊN `(2d)` (`KHONG_TOAN_QUYEN`, `SS_END_ALL_BUT_NEWEST`, `SS_MARK_SINGLE`) — Task 4 mới bỏ điều kiện SQL đó, CÙNG commit với việc dời câu phiên sang lô thứ hai (bỏ trước thì giữa hai commit có lỗ CAO-1). Thêm sau `(2d)`:
+  (a) Thêm SAU khối `(2e)` (không sửa `(2d)`/`(2e)` — Task 4 sửa, CÙNG commit với việc dời câu phiên sang lô thứ hai; sửa trước thì giữa hai commit có lỗ CAO-1):
 
 ```ts
-// Nới (một máy → nhiều máy) KHÔNG ghi gì lên aut_session (ADR-0085 đặc tả §4.2 bước 4, §4.4): chỉ mục chỉ đếm single = 1 nên phiên cũ single = 1 sống cạnh
-// phiên mới single = 0 không vi phạm.
-
 // ---- Chính sách đăng nhập `aut_session_policy` (ADR-0085, migration 0067) ----------------------------------------------------------------
 // MỘT mẩu điều kiện "tài khoản <cột> được nhiều máy" cho ba câu (siết, đánh dấu, đếm xem trước) và cho bất biến R-AUT-SESSION-3 (scripts/audit-checks.mjs chép
 // nguyên văn — bài đối chiếu ở src/audit-invariants.test.ts). Nguồn chính sách: bảng (khi lưu — đọc SAU các câu ghi chính sách cùng lô) hoặc tham số JSON
@@ -704,7 +701,7 @@ const SS_DEM_SIET = defineSql("auth", "session_dem_siet_theo_tap",
     `AND NOT ${nhieuMayDieuKien("s.staff_id", "SELECT value FROM json_each(?1)")} AND s.id <> ${moiNhatConSong("s.staff_id", " AND n.expires_at > ?2")}`);
 ```
 
-  (b) Hàm xuất (`:139-148`): xoá `markMultiStatement`; giữ nguyên `endAllButNewestStatement`, `markSingleStatement`; thêm:
+  (b) Hàm xuất — thêm sau `getSession` (cuối tệp), không đổi hàm cũ:
 
 ```ts
 export async function listPolicyRows(db: D1Database): Promise<PolicyRow[]> {
@@ -727,10 +724,9 @@ export async function demSietTheoTap(db: D1Database, nhieuMay: readonly string[]
 }
 ```
 
-- [ ] **Step 4: Sửa `session-repo.test.ts`** — bỏ `markMultiStatement` khỏi import và bài dùng nó. Chạy `node --test src/modules/auth/session-repo.test.ts src/modules/auth/chinh-sach-repo.test.ts` → PASS.
-- [ ] **Step 5:** `node --test src/architecture.test.ts` (EXPLAIN: `auth` chỉ đọc bảng của mình + view `v_stf_*`) → PASS. `npm run typecheck` sẽ đỏ ở `auth/index.ts` (`markMultiStatement` biến mất): sửa `exemptionChangeStatements` NHÁNH "được miễn" thành `return { statements: [], ketQua: none }` ngay ở task này (nới không ghi gì — đặc tả §4.4), bỏ import `markMultiStatement`; giữ tham số `requireToanQuyen` tới Task 4 (không dùng nữa — ghi `void v.requireToanQuyen` KHÔNG được; xoá luôn khỏi kiểu và hai nơi gọi ở `accounts/index.ts:542, :603`). Bài `mat-mien-route.test.ts` bài 2 ("cấp Toàn quyền → single=0") sẽ ĐỎ — đúng đổi hành vi có chủ đích; Task 4 viết lại. **Ghi vào sổ**; để commit xanh, đánh dấu bài đó `test.skip("… — Task 4 viết lại theo ADR-0085 (nới không ghi phiên)")` và Task 4 bỏ `skip`.
-- [ ] **Step 6:** `npm test` xanh (trừ bài skip có ghi lý do), `npm run typecheck` 0.
-- [ ] **Step 7: Commit** — `git add src/modules/auth/repository.ts src/modules/auth/chinh-sach-repo.test.ts src/modules/auth/session-repo.test.ts src/modules/auth/index.ts src/modules/accounts/index.ts src/modules/accounts/mat-mien-route.test.ts`; tiêu đề "SQL chính sách đăng nhập: lưu all-or-nothing, siết theo tập, đếm xem trước (ADR-0085)"; thân: "Một mẩu điều kiện cho siết/đánh dấu/đếm để xem trước khớp việc thật; lần lưu thua lùi cả lô; bỏ điều kiện SQL cài cứng 'không giữ Toàn quyền' (thay bằng thứ tự lô ở Task 4)."
+- [ ] **Step 4:** Chạy `node --test src/modules/auth/chinh-sach-repo.test.ts src/modules/auth/session-repo.test.ts` → PASS.
+- [ ] **Step 5:** `node --test src/architecture.test.ts` (EXPLAIN: `auth` chỉ đọc bảng của mình + view `v_stf_*`) → PASS. `npm run typecheck` 0, `npm test` xanh.
+- [ ] **Step 6: Commit** — `git add src/modules/auth/repository.ts src/modules/auth/chinh-sach-repo.test.ts`; tiêu đề "SQL chính sách đăng nhập: lưu all-or-nothing, siết theo tập, đếm xem trước (ADR-0085)"; thân: "Một mẩu điều kiện cho siết/đánh dấu/đếm để xem trước khớp việc thật; lần lưu dựa trên bản cũ làm cả lô lùi; số câu không phụ thuộc số người."
 
 ---
 
@@ -738,7 +734,7 @@ export async function demSietTheoTap(db: D1Database, nhieuMay: readonly string[]
 
 **Files:**
 - Modify: `src/modules/auth/index.ts:71-99` (`issueLoginSession`), `:131-158` (`exemptionChangeStatements`), khối xuất
-- Modify: `src/modules/auth/repository.ts:118-128` (bỏ `KHONG_TOAN_QUYEN`), `src/modules/auth/session-repo.test.ts`
+- Modify: `src/modules/auth/repository.ts:118-134` (bỏ `KHONG_TOAN_QUYEN`, `SS_MARK_MULTI`, `markMultiStatement`), `src/modules/auth/session-repo.test.ts`
 - Modify: `src/modules/accounts/index.ts:511-560` (route `PUT /api/staff/:id/permissions`), `:573-634` (route `PUT /api/staff/:id/roles`)
 - Modify: `tests/audit/harness.mjs:37-40` (bundle), `:130-145` (`token`)
 - Modify: `src/modules/accounts/mat-mien-route.test.ts` (viết lại)
@@ -760,7 +756,7 @@ const datChinhSach = (w: any, code: string, multi: 0 | 1) =>
 const ADM2 = "44444444-4444-4444-8444-444444444444";
 ```
 
-  Thay bài 2 (đang `skip`) bằng:
+  Thay bài 2 ("cấp Toàn quyền → single=0" — hành vi đổi có chủ đích: nới không còn ghi phiên) bằng:
 
 ```ts
 test("ADR-0085 §4.4: tài khoản ĐƯỢC nhiều máy (cấp Toàn quyền, hoặc thêm quyền mà chính sách đặt Nhiều máy) → KHÔNG ghi gì lên phiên; không gọi Bảng tin theo phiên", async () => {
@@ -876,7 +872,7 @@ export type { TapNhieuMay };
   const single = isSingleDevice(profile.permissions, roles, nhieuMay);
 ```
 
-  (bỏ `new Set()` tạm của Task 2).
+  (bỏ `new Set()` tạm của Task 2 — ở đây và ở `exemptionChangeStatements`; khung thử sửa ở Step 3).
   (c) `exemptionChangeStatements` — kiểu `v` thay `requireToanQuyen: boolean` bằng `nhieuMay: TapNhieuMay`; thân:
 
 ```ts
@@ -895,7 +891,14 @@ export type { TapNhieuMay };
 ```
 
   Sửa chú thích JSDoc của hàm: "ADR-0085 Q2 điều 7 (thay ADR-0075 điều 3): … người gọi đặt các câu ở lô THỨ HAI nếu lô đổi quyền/vai có câu chốt; không có câu chốt thì nối cuối lô duy nhất".
-- [ ] **Step 4b: Bỏ điều kiện SQL cài cứng** — `src/modules/auth/repository.ts` khối `(2d)`: xoá hằng `KHONG_TOAN_QUYEN` và thay hai câu bằng:
+- [ ] **Step 4b: Bỏ điều kiện SQL cài cứng và câu "được miễn"** — `src/modules/auth/repository.ts`: xoá khối `(2e)` (`SS_MARK_MULTI`) cùng hàm `markMultiStatement`, thay bằng chú thích:
+
+```ts
+// Nới (một máy → nhiều máy) KHÔNG ghi gì lên aut_session (ADR-0085 đặc tả §4.2 bước 4, §4.4): chỉ mục chỉ đếm single = 1 nên phiên cũ single = 1 sống cạnh
+// phiên mới single = 0 không vi phạm.
+```
+
+  bỏ `markMultiStatement` khỏi import ở `auth/index.ts` và khỏi `session-repo.test.ts` (import + bài dùng nó). Rồi khối `(2d)`: xoá hằng `KHONG_TOAN_QUYEN` và thay hai câu bằng:
 
 ```ts
 // (2d) Một tài khoản MẤT nhiều máy khi đổi quyền / vai (ADR-0085 Q2 điều 7, thay ADR-0075 điều 3): [dọn hạn (1) → kết thúc mọi phiên trừ phiên còn sống mới nhất
@@ -937,7 +940,7 @@ const SS_MARK_SINGLE = defineSql("auth", "session_mark_single",
 
   Import `docTapNhieuMay` từ `../auth`.
 - [ ] **Step 6: Route đổi vai** (`:600-606`): thay `requireToanQuyen: false` bằng `nhieuMay: await docTapNhieuMay(db)` (đọc trước `exemptionChangeStatements`, sau `state`); sửa chú thích "câu phiên đi cùng lô vai (lô thứ hai) — chỉ chạy khi câu chốt thắng; không câu chốt: cuối lô duy nhất". Cấu trúc lô giữ nguyên (đã đúng thứ tự).
-- [ ] **Step 7:** `node --test src/modules/accounts/mat-mien-route.test.ts` → PASS (bỏ `skip`). `npm run typecheck` 0.
+- [ ] **Step 7:** `node --test src/modules/accounts/mat-mien-route.test.ts src/modules/auth/session-repo.test.ts` → PASS. `npm run typecheck` 0.
 - [ ] **Step 8: Quan sát chặn thật (P16)** — sao lưu `src/modules/accounts/index.ts` vào `$TMPDIR/accounts-index.bak`; ở route đổi quyền đổi `...(plan.guarded ? [] : phien.statements)` thành `...phien.statements` và `plan.guarded ? (…) : results` thành `results` (câu phiên trở lại lô đầu, không còn SQL tự kiểm) → chạy `node --test src/modules/accounts/mat-mien-route.test.ts` → PHẢI ĐỎ ở bài "AC8" (phiên của ADM đã kết thúc dù 409). Ghi nguyên văn dòng `not ok …` vào sổ → khôi phục từ bản sao → xanh; `git status` chỉ còn các tệp của task.
 - [ ] **Step 9:** `npm test` xanh (đặc biệt `phien-route.test.ts`, `dang-nhap-tat-may-cu.test.ts`, `tat-thong-bao-dung-may.test.ts`, `patch-staff.test.ts`, `tests/audit/*.test.mjs` như trước — năm bài đỏ sẵn D-02, P2, P3, P5, P6 nếu còn thì đối chiếu bản HEAD trước).
 - [ ] **Step 10: Commit** — `git add src/modules/auth/index.ts src/modules/auth/repository.ts src/modules/auth/session-repo.test.ts src/modules/accounts/index.ts tests/audit/harness.mjs src/modules/accounts/mat-mien-route.test.ts`; tiêu đề "Cấp phiên và đổi quyền/vai dùng chính sách đăng nhập; câu phiên ở lô thứ hai sau câu chốt (ADR-0085)"; thân: "Thay điều kiện SQL cài cứng 'không giữ Toàn quyền' (CAO-1 của lượt kiểm thiết kế): với chính sách 'ADMIN = Nhiều máy', gỡ ADMIN của quản trị viên cuối từng có thể đăng xuất máy dù lần đổi bị từ chối."
@@ -951,7 +954,7 @@ const SS_MARK_SINGLE = defineSql("auth", "session_mark_single",
 - Modify: `src/modules/thongbao/repository.ts:150-177`, `src/modules/thongbao/index.ts:22`
 - Modify: `src/index.ts:96-121` (hàm tiêm `dongBangTin`)
 - Modify: `src/modules/thongbao/may-theo-phien.test.ts`, `src/tat-thong-bao-dung-may.test.ts`
-- Modify: `src/dang-nhap-tat-may-cu.test.ts` (thêm bài dây thật cho nhánh mới)
+- (Bài dây thật qua gốc lắp ráp: Task 6 Step 1 — cần route phát lời gọi.)
 
 **Interfaces:**
 - Produces: biến thể `{ phienKetThuc: string[] }` của `MucDongBangTin` (khoá phân biệt riêng `phienKetThuc` — KHÔNG dùng lại `sessionIds`/`chiPhien`, để nhánh cũ không bắt nhầm); `tatMayCuaCacPhienStatement(db, sessionIds: readonly string[], at: string)` (lý do `mat-mien`).
@@ -959,15 +962,30 @@ const SS_MARK_SINGLE = defineSql("auth", "session_mark_single",
 - [ ] **Step 1: Test đỏ — SQL** (thêm vào `src/modules/thongbao/may-theo-phien.test.ts`, theo khuôn bài `TAT_MAY_CUA_PHIEN` có sẵn — dùng lại hàm dựng CSDL/chèn đăng ký của tệp):
 
 ```ts
-test("ADR-0085 Q3: tatMayCuaCacPhienStatement — chỉ tắt đăng ký mang ĐÚNG các phiên trong danh sách (mọi tài khoản), lý do mat-mien; máy giữ lại, đăng ký session_id NULL, dòng đã tắt không đụng; danh sách rỗng → 0 dòng", () => {
-  // Ba tài khoản; A: phiên A1 (kết thúc), A2 (giữ), NULL; B: phiên B1 (kết thúc); C: phiên C1 (không trong danh sách)
-  // … chèn 5 đăng ký theo hàm phụ có sẵn của tệp (endpoint khác nhau), 1 dòng đã tắt của A1 từ trước.
-  // Chạy câu với ["A1", "B1"] → A1 + B1 revoke_reason = 'mat-mien', revoked_at = AT; A2, NULL, C1 còn bật; dòng đã tắt giữ lý do cũ.
-  // Chạy câu với [] → changes = 0.
+test("ADR-0085 Q3: TAT_MAY_CUA_CAC_PHIEN — chỉ tắt đăng ký mang ĐÚNG các phiên trong danh sách (nhiều tài khoản), lý do mat-mien; máy giữ lại, đăng ký session_id NULL, phiên ngoài danh sách, dòng đã tắt không đụng; danh sách rỗng → 0 dòng", async () => {
+  const { sqlite, db } = setup();
+  chen(sqlite, "a1", "s1", ep("a1"), "A1"); // phiên vừa kết thúc của s1
+  chen(sqlite, "a2", "s1", ep("a2"), "A2"); // máy giữ lại của s1
+  chen(sqlite, "an", "s1", ep("an"), null); // đăng ký chưa gắn phiên
+  chen(sqlite, "b1", "s2", ep("b1"), "B1"); // phiên vừa kết thúc của s2
+  chen(sqlite, "c1", "s3", ep("c1"), "C1"); // phiên không trong danh sách
+  chen(sqlite, "ax", "s1", ep("ax"), "A1");
+  sqlite.exec(`UPDATE ntf_push_sub SET revoked_at = '${T0}', revoke_reason = 'tu-tat' WHERE id = 'ax'`);
+  const r = await tatMayCuaCacPhienStatement(db, ["A1", "B1"], T1).run();
+  assert.equal(r.meta.changes, 2);
+  assert.deepEqual(dong(sqlite, "SELECT id, revoked_at, revoke_reason, updated_by FROM ntf_push_sub ORDER BY id"), [
+    { id: "a1", revoked_at: T1, revoke_reason: "mat-mien", updated_by: null },
+    { id: "a2", revoked_at: null, revoke_reason: null, updated_by: null },
+    { id: "an", revoked_at: null, revoke_reason: null, updated_by: null },
+    { id: "ax", revoked_at: T0, revoke_reason: "tu-tat", updated_by: null },
+    { id: "b1", revoked_at: T1, revoke_reason: "mat-mien", updated_by: null },
+    { id: "c1", revoked_at: null, revoke_reason: null, updated_by: null },
+  ]);
+  assert.equal((await tatMayCuaCacPhienStatement(db, [], T2).run()).meta.changes, 0, "danh sách rỗng → không tắt gì");
 });
 ```
 
-  Viết thân bài cụ thể bằng đúng hàm phụ của tệp (đọc tệp trước; không đoán tên). Chạy → FAIL (thiếu hàm).
+  (`chen`, `ep`, `dong`, `T0`–`T2` là hàm phụ / hằng có sẵn của tệp — bài `TAT_MAY_CUA_PHIEN` ở `:77` dùng đúng chúng; nếu `chen` đòi `staff_id` có thật trong `staff`, gieo `s1`–`s3` như bài đó.) Thêm `tatMayCuaCacPhienStatement` vào import. Chạy → FAIL (thiếu hàm).
 - [ ] **Step 2: SQL** — `src/modules/thongbao/repository.ts` sau `TAT_MAY_CUA_PHIEN`:
 
 ```ts
@@ -987,19 +1005,7 @@ const TAT_MAY_CUA_CAC_PHIEN = defineSql("thongbao", "tat_may_cua_cac_phien", `
   | { phienKetThuc: string[] }
 ```
 
-- [ ] **Step 4: Test đỏ — dây thật qua gốc lắp ráp.** Thêm vào `src/dang-nhap-tat-may-cu.test.ts` (không `ghiDe` — gọi hàm tiêm thật):
-
-```ts
-test("ADR-0085 Q3: dongBangTin({ phienKetThuc }) qua gốc lắp ráp THẬT tắt đúng đăng ký của các phiên đó; máy giữ lại và đăng ký session_id NULL còn bật; không ném", async () => {
-  // Dựng world() thường; seed SALES; chèn 3 dòng ntf_push_sub thẳng (session_id 'ket-thuc', 'giu', NULL) theo cột của bảng (đọc PRAGMA table_info(ntf_push_sub));
-  // gọi hàm tiêm: lấy bằng app.taoAppChoKhungThu? — KHÔNG: gọi route thật làm phát sinh lời gọi là Task 6. Ở đây dùng hàm xuất của gốc lắp ráp nếu có
-  // (src/index.ts xuất `taoAppChoKhungThu` + phần tiêm mặc định): tìm hàm tiêm mặc định bằng grep "dongBangTin: async (env, muc)" và xuất nó dưới tên
-  // `dongBangTinMacDinh` cho bài (chỉ thêm xuất, không đổi hành vi).
-  // Khẳng định: 'ket-thuc' → 'mat-mien'; 'giu' và NULL → revoked_at NULL.
-});
-```
-
-  Cách gọi cụ thể: `src/index.ts` xuất thêm `export const dongBangTinMacDinh = <đối tượng tiêm>.dongBangTin` (đặt tên theo cấu trúc thật của tệp — đọc `:60-130` trước); khung thử bundle thêm `export { dongBangTinMacDinh } from "./index";`. Chạy → FAIL (nhánh mới chưa có: rơi vào nhánh cuối, `dongCua(env, muc)` + `muc.tatThongBao` undefined ⇒ không tắt gì ⇒ khẳng định 'mat-mien' đỏ).
+- [ ] **Step 4: Bằng chứng dây thật** — chưa có route nào phát lời gọi dạng mới (route lưu chính sách ở Task 6), nên bài chạy hàm tiêm THẬT của gốc lắp ráp (không `ghiDe`) là bài "dây thật" ở Task 6 Step 1, và đột biến Task 6 Step 6 (d) (xoá nhánh `phienKetThuc` dưới đây ⇒ bài đó đỏ). KHÔNG thêm xuất nào vào `src/index.ts` chỉ để thử.
 - [ ] **Step 5: Gốc lắp ráp.** `src/index.ts` — trong `dongBangTin: async (env, muc) => {`, ĐẦU TIÊN (trước nhánh `chiPhien`):
 
 ```ts
@@ -1014,8 +1020,7 @@ test("ADR-0085 Q3: dongBangTin({ phienKetThuc }) qua gốc lắp ráp THẬT t�
       }
 ```
 
-  Typecheck: các nhánh sau dùng `muc.staffId` — TypeScript thu hẹp kiểu sau `return`; nếu vẫn báo lỗi ở nhánh cuối (`dongCua(env, muc)`), thu hẹp tường minh bằng `if (typeof muc === "object" && !("staffId" in muc)) return;` ngay sau khối mới.
-  Chạy bài Step 4 → PASS.
+  Typecheck: các nhánh sau dùng `muc.staffId` — TypeScript thu hẹp kiểu sau `return`; nếu vẫn báo lỗi ở nhánh cuối (`dongCua(env, muc)`), thu hẹp tường minh bằng `if (typeof muc === "object" && !("staffId" in muc)) return;` ngay sau khối mới. Import `tatMayCuaCacPhienStatement` từ `./modules/thongbao` (dòng `:29`).
 - [ ] **Step 6: Hàng rào — `src/tat-thong-bao-dung-may.test.ts` (NỚI có chủ đích, chủ đã duyệt ADR-0085 Q3).** Trong bài "MỌI route gọi dongBangTin…":
   (a) sau dòng đếm `"chỉ-phiên"` thêm:
 
@@ -1028,7 +1033,7 @@ test("ADR-0085 Q3: dongBangTin({ phienKetThuc }) qua gốc lắp ráp THẬT t�
   (c) đổi tên bài: thêm "…, lưu chính sách chỉ-phiên danh sách (ADR-0085 Q3)…".
   Chưa có route ⇒ bài sẽ đỏ ở bảng ghim tới Task 6 — **để bài xanh ở commit này, chưa thêm (b)**; Task 6 thêm (b) cùng route. Thêm (a) ngay (không đổi kết quả khi chưa ai gọi).
 - [ ] **Step 7:** `npm run typecheck` 0; `npm test` xanh.
-- [ ] **Step 8: Commit** — `git add src/shared/router.ts src/modules/thongbao/repository.ts src/modules/thongbao/index.ts src/modules/thongbao/may-theo-phien.test.ts src/index.ts tests/audit/harness.mjs src/dang-nhap-tat-may-cu.test.ts src/tat-thong-bao-dung-may.test.ts`; tiêu đề "Bảng tin + thông báo: dạng danh sách phiên chỉ-phiên cho lưu chính sách (ADR-0085 Q3)"; thân: "Siết theo tập kết thúc phiên của nhiều người — một lời gọi, không staffId; khoá riêng để không rơi vào nhánh tắt-mọi-máy cũ; máy giữ lại và đăng ký chưa gắn phiên không bị tắt."
+- [ ] **Step 8: Commit** — `git add src/shared/router.ts src/modules/thongbao/repository.ts src/modules/thongbao/index.ts src/modules/thongbao/may-theo-phien.test.ts src/index.ts src/tat-thong-bao-dung-may.test.ts`; tiêu đề "Bảng tin + thông báo: dạng danh sách phiên chỉ-phiên cho lưu chính sách (ADR-0085 Q3)"; thân: "Siết theo tập kết thúc phiên của nhiều người — một lời gọi, không staffId; khoá riêng để không rơi vào nhánh tắt-mọi-máy cũ; máy giữ lại và đăng ký chưa gắn phiên không bị tắt."
 
 ---
 
@@ -1126,6 +1131,29 @@ test("§6 quy tắc 5 (AC2, AC3): 'Bán hàng = Nhiều máy' → hai lần đă
   assert.deepEqual(goi, [{ phienKetThuc: daDong }], "đúng MỘT lời gọi cho cả danh sách");
 });
 
+test("§6 quy tắc 8 + Review Focus 5 — DÂY THẬT (không ghiDe, hàm tiêm của gốc lắp ráp): siết tắt đăng ký của máy vừa kết thúc (mat-mien); máy giữ lại và đăng ký session_id NULL còn bật", async () => {
+  const w = await setup();
+  assert.equal((await luu(w, [{ permissionCode: "SALES", multi: true, banDangXem: null }])).status, 200);
+  const m1 = await dangNhap(w, "0900000001", "iPhone");
+  const m2 = await dangNhap(w, "0900000001", "Windows");
+  const ep1 = "https://fcm.googleapis.com/fcm/send/cs-may-1";
+  const ep2 = "https://fcm.googleapis.com/fcm/send/cs-may-2";
+  for (const [cookie, endpoint] of [[m1, ep1], [m2, ep2]] as const) {
+    const r = await w.call("POST", "/api/account/thong-bao/may", { headers: { cookie }, body: { endpoint, thietBi: "Máy thử" } });
+    assert.equal(r.status, 200, r.text);
+  }
+  // Một đăng ký cũ chưa gắn phiên (trước bản 1.58), cùng tài khoản.
+  w.sqlite.exec(`INSERT INTO ntf_push_sub (id, staff_id, endpoint, thiet_bi, revoked_at, revoke_reason, created_at, created_by, updated_at, updated_by, session_id)
+    VALUES ('cs-null', '${SALES}', 'https://fcm.googleapis.com/fcm/send/cs-null', 'Máy cũ', NULL, NULL, '2026-09-01T00:00:00.000Z', '${SALES}', '2026-09-01T00:00:00.000Z', NULL, NULL)`);
+  const r = await luu(w, [{ permissionCode: "SALES", multi: false, banDangXem: banCua(await docBan(w), "SALES") }]);
+  assert.equal(r.status, 200, r.text);
+  await choMotNhip();
+  const dongCua = (ep: string) => w.q("SELECT revoked_at, revoke_reason FROM ntf_push_sub WHERE endpoint = ? ORDER BY created_at DESC LIMIT 1", ep)[0];
+  assert.equal(dongCua(ep1).revoke_reason, "mat-mien");
+  assert.equal(dongCua(ep2).revoked_at, null, "máy giữ lại vẫn nhận thông báo");
+  assert.equal(dongCua("https://fcm.googleapis.com/fcm/send/cs-null").revoked_at, null, "đăng ký chưa gắn phiên không bị tắt");
+});
+
 test("AC4: Bán hàng + Kế toán, chỉ Kế toán Nhiều máy → được nhiều máy", async () => {
   const w = await setup();
   assert.equal((await luu(w, [{ permissionCode: "ACCOUNTING", multi: true, banDangXem: null }])).status, 200);
@@ -1195,7 +1223,7 @@ test("§6 quy tắc 7 (AC11): nhật ký session_policy_changed im lặng, khôn
 });
 ```
 
-  (Thông điệp 409 và 403 dùng chữ của Step 3.) Chạy → FAIL (404 — route chưa có).
+  (Thông điệp 409 và 403 dùng chữ của Step 3. Cột `ntf_push_sub` theo `migrations/0026_thong_bao_may.sql` + `session_id` của 0065; nếu bảng có thêm cột NOT NULL ở bản đang thi công, bổ sung vào câu chèn `cs-null`.) Chạy → FAIL (404 — route chưa có).
 - [ ] **Step 2: Hàm công bố của `auth`** (`auth/index.ts`, cạnh `docChinhSachPhien`):
 
 ```ts
@@ -1298,7 +1326,8 @@ const chinhSachDto = (rows: readonly { id: string; permissionCode: QuyenDatDuoc;
 - [ ] **Step 6: Quan sát chặn thật (P16)** — trên bản sao (`$TMPDIR/…bak`), lần lượt, ghi `not ok …` vào sổ, khôi phục sau mỗi lần:
   (a) `auth.session.policy` cột ADMIN = `any` ⇒ `chinh-sach-phien-route.test.ts` bài 403 ĐỎ;
   (b) route PUT gọi `ctx.dongBangTin({ staffId: ctx.staff.id, tatThongBao: true })` thay dạng `phienKetThuc` ⇒ `tat-thong-bao-dung-may.test.ts` ĐỎ ở bảng ghim;
-  (c) `POL_INSERT_AFTER_CLOSE` bỏ `CASE WHEN changes() > 0 THEN ?2 END` (ghi `?2`) ⇒ `chinh-sach-repo.test.ts` bài kiểm phiên bản ĐỎ + bài route AC7 ĐỎ (hai 200).
+  (c) `POL_INSERT_AFTER_CLOSE` bỏ `CASE WHEN changes() > 0 THEN ?2 END` (ghi `?2`) ⇒ `chinh-sach-repo.test.ts` bài kiểm phiên bản ĐỎ + bài route AC7 ĐỎ (hai 200);
+  (d) xoá nhánh `phienKetThuc` ở `src/index.ts` (Task 5 Step 5) ⇒ bài "DÂY THẬT" ĐỎ (`ep1` không `mat-mien`).
 - [ ] **Step 7: Commit** — `git add src/modules/accounts/index.ts src/modules/auth/index.ts src/modules/accounts/chinh-sach-phien-route.test.ts src/route-access.test.ts src/route-write-guard.test.ts src/tat-thong-bao-dung-may.test.ts`; tiêu đề "Route chính sách đăng nhập: xem, xem trước, lưu có kiểm phiên bản + siết theo tập (ADR-0085)"; thân: "Toàn quyền đặt quyền nào Một máy / Nhiều máy; lưu all-or-nothing, 409 khi dựa trên bản cũ; siết một lô số câu cố định, một lời gọi tắt thông báo cho cả danh sách."
 
 ---
@@ -1316,21 +1345,35 @@ test("R-AUT-SESSION-3 (ADR-0085 điều 8): mức warn (không đỏ ở --stric
   assert.equal(one("R-AUT-SESSION-3").level, "warn");
 });
 
-test("R-AUT-SESSION-3: tài khoản theo chính sách HIỆN HÀNH là một máy mà có > 1 phiên sống còn hạn là MỘT vi phạm; nhiều máy (chính sách / Toàn quyền), phiên hết hạn không tính", () => {
-  const db = /* CSDL đủ migration như các bài R-AUT-SESSION trên */;
-  // a: SALES, 2 phiên sống single=0 (đăng nhập chạy đua lúc chính sách cũ) → vi phạm
-  // b: SALES + ACCOUNTING, chính sách ACCOUNTING = 1, 2 phiên sống → không
-  // c: SUPER_ADMIN, 2 phiên sống → không
-  // d: SALES, 1 phiên sống + 1 phiên ended_at NULL nhưng expires_at đã qua → không
-  assert.equal(violations(db, one("R-AUT-SESSION-3")), 1, "đếm theo tài khoản");
+/** build() có s-admin (ADMIN), s-an (SALES), s-lai (SALES + PARTNER), s-cuu (FIELD) đang hoạt động. Chính sách: Đối tác = Nhiều máy; s-admin thêm Toàn quyền. */
+function buildChinhSach(): DatabaseSync {
+  const db = build();
+  db.exec(`INSERT INTO aut_session_policy (id, permission_code, multi, valid_from_at, created_at, updated_at) VALUES ('pol-partner', 'PARTNER', 1, '${T1}', '${T1}', '${T1}')`);
+  db.exec(`INSERT INTO stf_permission (id, staff_id, permission_type_code, valid_from_at, created_at, updated_at) VALUES ('stp-admin-sa', 's-admin', 'SUPER_ADMIN', '${T1}', '${T1}', '${T1}')`);
+  addSession(db, { id: "an-1", staffId: "s-an", single: 0 }); // đăng nhập chạy đua lúc chính sách cũ → vi phạm
+  addSession(db, { id: "an-2", staffId: "s-an", single: 0 });
+  addSession(db, { id: "lai-1", staffId: "s-lai", single: 0 }); // một quyền (Đối tác) Nhiều máy → không
+  addSession(db, { id: "lai-2", staffId: "s-lai", single: 0 });
+  addSession(db, { id: "ad-1", staffId: "s-admin", single: 0 }); // Toàn quyền → không
+  addSession(db, { id: "ad-2", staffId: "s-admin", single: 0 });
+  addSession(db, { id: "cuu-1", staffId: "s-cuu", single: 0 }); // một phiên sống + một phiên quá hạn → không
+  addSession(db, { id: "cuu-2", staffId: "s-cuu", single: 0, expires: T2 });
+  return db;
+}
+
+test("R-AUT-SESSION-3: tài khoản theo chính sách HIỆN HÀNH là một máy mà có > 1 phiên sống còn hạn là MỘT vi phạm; nhiều máy (chính sách / Toàn quyền), phiên quá hạn không tính", () => {
+  assert.equal(violations(buildChinhSach(), one("R-AUT-SESSION-3")), 1, "chỉ s-an; đếm theo tài khoản");
 });
 
-test("R-AUT-SESSION-3 đếm cùng tập tài khoản với xem trước khi tập Nhiều máy = chính sách hiện hành (cùng mẩu điều kiện)", async () => {
-  // Cùng CSDL bài trên: demSietTheoTap(fakeD1(db), ["ACCOUNTING"], now).soNguoi === violations(db, one("R-AUT-SESSION-3"))
+test("R-AUT-SESSION-3 đếm cùng tập tài khoản với xem trước khi tập Nhiều máy = chính sách hiện hành (cùng mẩu điều kiện SQL)", async () => {
+  const db = buildChinhSach();
+  const d1 = { prepare: (sql: string) => ({ bind: (...a: SupportedValueType[]) => ({ first: async () => ({ ...db.prepare(sql).get(...a) }) }) }) } as unknown as D1Database;
+  const xemTruoc = await demSietTheoTap(d1, ["PARTNER"], new Date().toISOString());
+  assert.equal(xemTruoc.soNguoi, violations(db, one("R-AUT-SESSION-3")));
 });
 ```
 
-  Viết phần chèn dữ liệu bằng các câu `INSERT` cụ thể (pty_party, staff, stf_permission, aut_session_policy, aut_session) như `chinh-sach-repo.test.ts` Task 3; bài đối chiếu import `demSietTheoTap` từ `./modules/auth/repository.ts` và một `fakeD1` tối thiểu (`prepare().bind().first()`). Chạy → FAIL (không có mã).
+  Import thêm `demSietTheoTap` từ `./modules/auth/repository.ts` và `type SupportedValueType` từ `node:sqlite` (nếu tệp chưa có). `T2` của tệp là mốc đã qua (bài `R-AUT-SESSION-1` dùng nó làm "quá hạn"). Nếu `addSession` không nhận `single: 0` cho hai phiên cùng tài khoản vì chỉ mục — chỉ mục chỉ chặn `single = 1`, nên được. Chạy → FAIL (không có mã).
 - [ ] **Step 2: Kiểm** — `scripts/audit-checks.mjs`:
 
 ```js
@@ -1378,7 +1421,7 @@ node --input-type=module -e 'const m = await import("./src/shared/huong-dan.ts")
 
   Lúc viết kế hoạch: `chung 9 1346`, `quan-tri 21 3150`, `nhan-su 5 604`. Ràng buộc: Phần chung ≤ 1350 chữ (giữ 9 phút) VÀ Quản trị ≤ 3150 chữ.
 - [ ] **Step 2: Trợ giúp — sửa đúng các câu dưới (đã cân chữ):**
-  - `huong-dan-chung.ts:90` — "Đăng nhập máy mới thì máy cũ tự đăng xuất (trừ IT, Toàn quyền)." → "Tuỳ quyền, đăng nhập máy mới thì máy cũ tự đăng xuất (do Toàn quyền đặt)." (14 → 14 chữ).
+  - `huong-dan-chung.ts:90` — "Đăng nhập máy mới thì máy cũ tự đăng xuất (trừ IT, Toàn quyền)." → "Tuỳ quyền, đăng nhập máy mới thì máy cũ tự đăng xuất (do Toàn quyền đặt)." (14 → 16 chữ; cùng câu hỏi thường gặp +1 ⇒ Phần chung 1349 ≤ 1350).
   - `huong-dan-chung.ts:134` — "**Đăng nhập hai máy được không?** Không, xem mục Mỗi tài khoản một máy." → "**Đăng nhập hai máy được không?** Tuỳ quyền, xem mục Mỗi tài khoản một máy." (+1).
   - `huong-dan-quan-tri.ts:37` — sau "Xem kỹ dòng **Sẽ thêm** và **Sẽ mất**." thêm " Đổi vai có thể đăng xuất máy thừa." (+7).
   - `huong-dan-quan-tri.ts:41` — ví dụ Ngọc → "> Ví dụ: Ngọc chuyển sang kế toán: bỏ Nhân viên kinh doanh, tick Kế toán, bấm Lưu." (−11).
@@ -1551,7 +1594,17 @@ if (can(staff, "auth.session.policy")) void dungMucChinhSach(byId("policy-card")
 // E2E chính sách đăng nhập (ADR-0085; đặc tả §11 AC2–AC10). Đổi chính sách TOÀN HỆ THỐNG của D1 tạm ⇒ khôi phục trong `finally` (đặc tả §6 quy tắc 10);
 // tài khoản thử dùng một lần (không đụng salesA/salesB dùng chung). Cookie lấy TƯỜNG MINH từ đăng nhập (không dựa helper tạo lại phiên).
 import assert from "node:assert/strict";
-import { ACCOUNTS, BASE, call, gieoTaiKhoanLai, session, sql, sqlRows } from "./lib.mjs";
+import { ACCOUNTS, BASE, call, randomPhone, session, sql, sqlRows } from "./lib.mjs";
+import { insertStaffSql } from "../../scripts/staff-lib.mjs";
+
+/** Tài khoản thử dùng một lần — gieo thẳng vào D1 tạm, KHÔNG đăng nhập (gieoTaiKhoanLai của lib đăng nhập một lần, làm lệch số phiên của các ca dưới). */
+async function taoTaiKhoanThu(name, permissions) {
+  const phone = randomPhone();
+  const pin = String(100000 + Math.floor(Math.random() * 900000));
+  await sql((await insertStaffSql({ name, phone, pin, permissions })).replace(/\n/g, " "));
+  const [row] = await sqlRows(`SELECT id FROM staff WHERE phone = '${phone}'`);
+  return { id: row.id, phone, pin };
+}
 
 const SA = await session(ACCOUNTS.superAdmin);
 const ADM = await session(ACCOUNTS.admin);
@@ -1581,7 +1634,7 @@ try {
   console.log("✓ 403 Quản trị/Nhân sự; 400 SUPER_ADMIN/mã lạ");
 
   // 3. AC2: Bán hàng = Nhiều máy → hai máy cùng sống
-  const X = await gieoTaiKhoanLai("Bán hàng thử chính sách", ["SALES"]);
+  const X = await taoTaiKhoanThu("Bán hàng thử chính sách", ["SALES"]);
   let r = await luu([{ permissionCode: "SALES", multi: true, banDangXem: banCua(await ban(), "SALES") }]);
   assert.equal(r.status, 200, JSON.stringify(r.body));
   const m1 = await dangNhapMay(X, "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) Version/18.0 Mobile/15E148 Safari/604.1");
@@ -1618,7 +1671,7 @@ try {
   console.log("✓ AC7: hai lần lưu đè nhau → 200 + 409");
 
   // 6. AC4: Bán hàng + Kế toán, chỉ Kế toán Nhiều máy → nhiều máy
-  const Y = await gieoTaiKhoanLai("Bán hàng kế toán thử", ["SALES", "ACCOUNTING"]);
+  const Y = await taoTaiKhoanThu("Bán hàng kế toán thử", ["SALES", "ACCOUNTING"]);
   assert.equal((await luu([{ permissionCode: "ACCOUNTING", multi: true, banDangXem: banCua(await ban(), "ACCOUNTING") }])).status, 200);
   const y1 = await dangNhapMay(Y, "iPhone A");
   const y2 = await dangNhapMay(Y, "Windows B");
@@ -1627,7 +1680,7 @@ try {
   console.log("✓ AC4: một quyền Nhiều máy là đủ");
 
   // 7. AC9: Quản trị đổi vai Z (Kế toán → Nhân viên kinh doanh) → máy thừa đăng xuất ngay
-  const Z = await gieoTaiKhoanLai("Kế toán thử đổi vai", ["ACCOUNTING"]);
+  const Z = await taoTaiKhoanThu("Kế toán thử đổi vai", ["ACCOUNTING"]);
   const z1 = await dangNhapMay(Z, "iPhone Z");
   const z2 = await dangNhapMay(Z, "Windows Z");
   r = await call(ADM, "PUT", `/api/staff/${Z.id}/roles`, { roles: ["SALES_STAFF"] });
@@ -1672,7 +1725,7 @@ try {
 }
 ```
 
-  Ghi chú cho người thi công: (a) `wrangler d1 execute --command` nhận nhiều câu nối bằng `;` — nếu bản wrangler đang dùng từ chối, gọi `sql()` từng câu; (b) đọc chữ ký `call()` của `lib.mjs` (thân là đối số thứ tư) và `gieoTaiKhoanLai` (trả `{ id, partyId, phone, pin, cookie }`) — `session({ phone, pin })` bên trong đã đăng nhập một lần, nên hai lần `dangNhapMay` sau đó là máy 2 và 3: điều chỉnh khẳng định "máy 1/máy 2" theo đúng thứ tự (máy cũ nhất bị kết thúc trước); (c) nếu `audit-invariants --strict` cuối nhóm báo vi phạm do dữ liệu 1000 tài khoản (vd thiếu cột hồ sơ), bổ sung đúng cột theo lời báo — KHÔNG nới bất biến.
+  Ghi chú cho người thi công: (a) `wrangler d1 execute --command` nhận nhiều câu nối bằng `;` — nếu bản wrangler đang dùng từ chối, gọi `sql()` từng câu; (b) `call(cookie, method, path, body)` — thân là đối số thứ tư (`lib.mjs:41`); `taoTaiKhoanThu` không đăng nhập nên m1/m2 là hai phiên DUY NHẤT của tài khoản (số "1 máy / 1 người" của xem trước đúng); (c) nếu `audit-invariants --strict` cuối nhóm báo vi phạm do dữ liệu 1000 tài khoản (vd thiếu cột hồ sơ), bổ sung đúng cột theo lời báo — KHÔNG nới bất biến.
 - [ ] **Step 2: Đăng ký** — `tests/e2e/run.mjs`: thêm `"chinh-sach-phien"` vào `ALL` ngay TRƯỚC `"phien"`; chú thích: `// "chinh-sach-phien" (ADR-0085) đứng TRƯỚC "phien": đổi chính sách toàn hệ thống rồi KHÔI PHỤC ở finally; tài khoản thử dùng một lần + 1000 tài khoản Đối tác giả (hồ sơ đầy đủ).`; `THOI_GIAN` thêm `"chinh-sach-phien": 30`.
 - [ ] **Step 3:** `npm run test:e2e -- chinh-sach-phien phien passkey` → xanh (cần mạng). Ghi số ms của AC10 vào sổ. Rồi `npm run test:e2e` đủ bộ → xanh, ba nhóm `audit-invariants` có `✓ R-AUT-SESSION-1/2` và dòng cảnh báo/✓ `R-AUT-SESSION-3`.
 - [ ] **Step 4: Quan sát chặn thật (P16, e2e)** — tạm bỏ khối `finally` khôi phục, chạy `npm run test:e2e -- chinh-sach-phien phien` → `phien` PHẢI ĐỎ (chính sách "Nhiều máy" còn sót làm khẳng định "máy 1 bị đá" sai) — chứng minh khôi phục là cần; hoàn nguyên. Ghi vào sổ.
@@ -1739,14 +1792,15 @@ try {
 | §9 đo 1000 tài khoản | 9 |
 | §11 AC1–AC12 | AC1: 9 Step 3 (`phien` cũ xanh không sửa); AC2–4: 6, 9; AC5: 6, 8, 9; AC6: 2, 6, 9; AC7: 6, 9; AC8: 4; AC9: 4, 9; AC10: 3, 6, 9; AC11: 6; AC12: 7, 8, 10 |
 
-**2. Không giữ chỗ:** Hai chỗ kế hoạch CHỦ Ý để người thi công đọc mã rồi viết (không đoán tên hàm phụ): thân bài `tatMayCuaCacPhienStatement` ở Task 5 Step 1 (dùng hàm phụ có sẵn của `may-theo-phien.test.ts`) và cách xuất hàm tiêm mặc định ở Task 5 Step 4 (cấu trúc `src/index.ts`) — mỗi chỗ có khẳng định cụ thể phải đạt. Task 7 Step 1 phần chèn dữ liệu theo khuôn Task 3 (đã có mã đủ). Task 9 ghi chú (b) yêu cầu đọc thứ tự máy của `gieoTaiKhoanLai` (hàm đó đã đăng nhập một lần) để đặt đúng khẳng định "máy cũ nhất bị kết thúc".
+**2. Không giữ chỗ:** mọi bài có mã đầy đủ. Chỗ còn dặn "đọc mã trước": tên hàm phụ có sẵn (`chen`, `ep`, `dong`, `build`, `addSession`, `violations`, `one`) — đã đối chiếu tệp thật lúc viết; kiểu `ChangeItem.kind` của nhật ký phiên bản; cách `web/api.ts` gửi thân PUT. Bài dây thật của nhánh `phienKetThuc` ở Task 6 (cần route), Task 5 không thêm xuất chỉ để thử.
 
 **3. Nhất quán tên:** `isSingleDevice(perms, roles, nhieuMay)` (T2) ← T3 test, T4 harness/index; `docTapNhieuMay`, `docChinhSachPhien` (T4) ← T6; `luuChinhSachStatements`, `sietTheoTapStatements` (T6 auth) dùng `closePolicyStatement`, `insertPolicyAfterCloseStatement`, `insertPolicyNewStatement`, `endExpiredAllStatement`, `sietTheoTapStatement`, `danhDauMotMayTheoTapStatement` (T3); `{ phienKetThuc }` (T5) ← T6; `tatMayCuaCacPhienStatement` (T5); DTO `SessionPolicy*` (T2) ← T6, T8; nút "Lưu chính sách", "Xác nhận lưu" (T8 UI) ← T8 Trợ giúp.
 
-**4. Review Focus:** 5 mục chính + mục 6 (trần A4) đều có bài ở task sở hữu: 1 → T4 bài AC8 + đột biến; 2 → T3 bài kiểm phiên bản + T6 bài AC7; 3 → T7; 4 → T3 (5 vs 50), T6 (50, một lời gọi), T9 (1000); 5 → T5 (SQL + dây thật), T6 bài AC3 (một lời gọi), T9 (mat-mien / máy giữ lại bật); 6 → T8 Step 1–2.
+**4. Review Focus:** 5 mục chính + mục 6 (trần A4) đều có bài ở task sở hữu: 1 → T4 bài AC8 + đột biến; 2 → T3 bài kiểm phiên bản + T6 bài AC7; 3 → T7; 4 → T3 (5 vs 50), T6 (50, một lời gọi), T9 (1000); 5 → T5 (SQL), T6 bài DÂY THẬT + bài AC3 (một lời gọi), T9 (mat-mien / máy giữ lại bật); 6 → T8 Step 1–2.
 
 **Lệch / bổ sung so với đặc tả (người thi công ghi vào sổ, người kiểm xin soi):**
 - Đặc tả §4.2 bước 3.1 nói "câu thua → 409", §4.2 bước 3.3 nói câu siết "tính theo chính sách thật đang lưu nếu câu đóng/chèn thua". Kế hoạch đọc là **all-or-nothing**: câu thua gây lỗi ràng buộc, CẢ lô lùi (không ghi nửa chừng, không siết, không nhật ký) → 409. Chặt hơn, khớp "cả lô trả 409" và tiêu chí AC7.
 - Số máy/số người trong nhật ký: `auditStatement` nhận chuỗi cố định nên số lấy bằng câu đếm xem trước NGAY TRƯỚC lô; lệch với số thật (chỉ khi có đăng nhập chen giữa) → một dòng log cảnh báo không dữ liệu cá nhân. Phản hồi PUT trả số THẬT. Bề mặt, đổi được.
 - Lý do tắt thông báo mới `mat-mien` (đặc tả không đặt tên; Phần A dùng `bi-thay` cho mất miễn qua đổi quyền/vai — giữ nguyên ở hai route đó).
+- Bài cũ "quản trị viên cuối → 409, không phiên nào đổi" (`mat-mien-route.test.ts` bài 4) xanh vì LÝ DO KHÁC: lời kiểm trước lô (`checkAccountChange`) chặn sớm, lô không bao giờ chạy. Kế hoạch viết lại bằng cách ngưng quản trị viên thứ hai GIỮA lời kiểm và lô (bài AC8, Task 4) để câu chốt trong lô thật sự thua.
 - Hai view `v_stf_*` mới (đặc tả nói "đọc qua view của module staff" nhưng chưa có view phù hợp); view vai IT đọc `pty_party_role` trong migration — lệch kế thừa có tên của ADR-0075 điều 3.
