@@ -20,7 +20,7 @@
 | Nhánh nháp mới của `PUT /legs/:legId` | câu đầu lô MỚI `leg_pax_override_checked` | chỉ `pax_override` |
 
 Các mốc khác (đo lại): `ChangChoChuyen` `index.ts:177`, `hanhKhachChoChuyen` `:201`, `lichChungChang` `:276`, `PUT /api/orders/:id` `:660` (`legMeta` `:689`),
-`POST /legs` `:751`, `PUT /legs/:legId` `:776`; `service.ts` `planAddLeg` `:127`, `planEditLeg` `:155`; `chang-dua-don.ts` `ChangHopLe` `:62`, `kiemChang` `:112`,
+`POST /legs` `:751`, `PUT /legs/:legId` `:776`; `service.ts` `planAddLeg` `:122`, `planEditLeg` `:150`; `chang-dua-don.ts` `ChangHopLe` `:62`, `kiemChang` `:112`,
 `moTaChang` `:266`; `chang-hanh-khach-repo.ts` `LEG_SET` `:170`, `LEG_SET_DAT_GAP` `:175`, `leg_update_checked` `:186-191`; `tai-xe-dto.ts:cuocChiTietDto` `:43-99`;
 `dieu-phoi-dto.ts:suatChuyenDto` `:133-147`.
 
@@ -64,7 +64,23 @@ Còn lọc `status = 'confirmed'`; lô `changeLeg` đẩy mốc đơn (`orderTou
 - **Task 7 MỞ** (không còn "CHỜ"): chủ chọn Q-D = A ở hộp chọn lượt 2 (`2026-10-01-uu-tien-xe-chay-quyet-dinh.md`) = duyệt bản nháp
   `docs/superpowers/specs/2026-10-01-de-xuat-adr-noi-tra-mac-dinh.md`. Không chép vào `docs/adr/` (số dự kiến từ 0073, chốt lúc gộp); chú thích mã trỏ tệp nháp.
 - **Q-B = giữ** (chủ): chỉ đổi ô phụ trên chặng đã đặt gấp → giữ dấu; thân có `datGap` → cờ giữ = 0 (ghi dấu mới); `/trip` luôn 0.
-- **Q-C = chấp nhận:** `CHECK` một cột + trigger; ghi `docs/SYSTEM-DESIGN.md` §16.
+- **Q-C KHÔNG CÒN CẦN (ruling Task 1, 2026-10-01):** thi công ĐÚNG CHỮ ADR-0054 D10.3 — MỘT `CHECK (pax_override IS NULL OR (pax_override >= 1 AND direction = 'RETURN'))`
+  thêm bằng `ALTER TABLE … ADD COLUMN`. Tiền đề của kế hoạch Task 1.2 và CHANGE-GUIDE z bước 4 ("CHECK nhiều cột không thêm được bằng ALTER") là SAI:
+  - tiền lệ `0040` (`short_notice_lead_minutes` CHECK tham chiếu bốn cột khác, đã áp production);
+  - node:sqlite: `ALTER TABLE t ADD COLUMN p INTEGER CHECK (p IS NULL OR (p >= 1 AND direction = 'RETURN'))` rồi `UPDATE` dòng OUT → `CHECK constraint failed`;
+  - D1 local (`wrangler d1 execute --local`, bảng thử `zz_thu`, đã xoá): cùng câu → `SQLITE_CONSTRAINT_CHECK`; `npm run db:migrate:local` áp 0057 ✅.
+  - Chủ chỉ CHO PHÉP lệch (Q-C) vì tưởng bắt buộc; ADR đã duyệt thi công được nguyên chữ ⇒ không lệch, **không ghi §16**, sổ hàng rào chỉ MỘT lớp `CHECK`.
+  - **Lệch so với lời giao của điều phối** ("CHECK một cột + trigger, ghi §16") và so với kế hoạch TC-P1 / Task 1.2 ("trigger") — có chủ ý, ghi ở đây và báo cáo.
+  - CHANGE-GUIDE z bước 4 (tài liệu mô tả) đã sửa câu sai. Bản nháp ADR nơi trả D1 nhánh "nếu ALTER → trigger" mang cùng tiền đề sai — không ảnh hưởng (Task 7 đi
+    nhánh `CREATE TABLE`); KHÔNG sửa bản nháp đã duyệt, chỉ ghi ở đây để người chép sang `docs/adr/` bỏ nhánh đó.
 - **Q-A:** làm `pax_override` (chiều về) đợt này; `ride_pax` (Task 8) KHÔNG làm.
 - `GET /api/van-chuyen/mau-chang` ở cổng `orders`: router không giới hạn cổng `orders` theo đường dẫn (tiền lệ `/api/catalog/for-order`, `/api/dispatch/handlers`)
   ⇒ chỉ thêm dòng SNAPSHOT, không nới hàng rào.
+
+## Task 1 — migration `0057_chang_so_nguoi_chuyen_bay.sql` (2026-10-01)
+
+- Đỏ trước: `node --test src/migrations-chang-o-moi.test.ts` → 4 fail (chưa có tệp / cột).
+- Xanh: hai `ALTER TABLE ord_transfer_leg ADD COLUMN` (nguyên chữ CHECK của ADR-0055 C1 và ADR-0054 D10.3). `npm run db:migrate:local` ✅ (0057 áp).
+  `node --test src/migrations-chang-o-moi.test.ts` 3/3; `src/migrations-chang-dua-don.test.ts src/architecture.test.ts src/migrations-n1.test.ts` 73/73.
+- **Thấy chặn thật (2026-10-01):** đổi cố ý `direction = 'RETURN'` → `'OUT'` trong CHECK → bài TC-P1 đỏ (2/3) → hoàn nguyên; bỏ cố ý vế
+  `flight_code = upper(flight_code)` → TC-F1 đỏ (2/3) → hoàn nguyên; chạy lại 3/3, `cmp` khớp bản gốc.

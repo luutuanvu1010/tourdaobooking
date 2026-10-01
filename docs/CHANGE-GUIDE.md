@@ -710,7 +710,7 @@ Quyết định của chủ dự án (nguồn: `docs/HANDOFF-CHE-DO-BAO-TRI.md` 
 1. Luật thuần: `src/shared/chang-dua-don.ts` / `src/shared/hanh-khach.ts` (+ test cạnh tệp) — dùng chung cho giao diện Phần B.
 2. SQL: thêm câu vào tệp nửa nghiêm; câu có lính gác → thêm tên vào `DOC_AUDIT_LOG_WONGUARD` (NỚI — đề xuất luật cho chủ).
 3. Lô ghi: câu đầu có điều kiện → `auditStatement(…, "changes() > 0")` với id riêng → mọi câu sau mang lính gác; route gọi `baoThayDoi` đúng một lần (chặng `chuyen`, khách `sua`).
-4. Đổi cột: migration MỚI chỉ-thêm (`ALTER TABLE ord_transfer_leg ADD COLUMN … NULL`); CHECK nhiều cột không thêm được bằng `ALTER` → trigger.
+4. Đổi cột: migration MỚI chỉ-thêm (`ALTER TABLE ord_transfer_leg ADD COLUMN … NULL`). CHECK CỘT của cột thêm bằng `ALTER` ĐƯỢC tham chiếu cột khác của dòng (`0040` `short_notice_lead_minutes`, `0057` `pax_override … direction = 'RETURN'` — đã thử node:sqlite và D1 local 2026-10-01; câu cũ "CHECK nhiều cột không thêm được bằng `ALTER` → trigger" là SAI, đã sửa). Chỉ CHECK BẢNG (đứng riêng sau danh sách cột) mới không thêm được bằng `ALTER`.
 
 **Kiểm:** `node --test src/shared/chang-dua-don.test.ts src/shared/hanh-khach.test.ts src/migrations-chang-dua-don.test.ts src/migrations-hanh-khach.test.ts src/migrations-dat-gap.test.ts src/shared/router.test.ts src/shared/khoa-noi.test.ts src/modules/orders/*.test.ts src/orders-cong-bo.test.ts src/hanh-khach-khong-lo-ten.test.ts src/audit-invariants.test.ts src/architecture.test.ts` → `npm test` → `npm run typecheck` → `npm run test:e2e -- chang-hanh-khach trip orders dispatch bangtin`.
 
