@@ -125,7 +125,7 @@ Lưu ý thiết kế cho đợt 2: SĐT đăng nhập **có thể không phải*
 ## 9. Rủi ro và điều chưa kiểm
 
 - **R1 — Email có gửi tới địa chỉ bất kỳ không: CHƯA KIỂM.** Binding Cloudflare kiểu cũ chỉ gửi tới địa chỉ đã xác minh trong Email Routing; Email Service mới gửi rộng sau khi xác minh tên miền. Kế hoạch phải có **task 0** kiểm điều này (trên máy local/staging, không ghi production). Để email không chặn cả đợt, **thứ tự phát hành: TOTP + mã dự phòng trước, email sau** (cùng đợt 1, có thể khác bản).
-- **R2 — Mạnh bằng yếu tố yếu nhất:** ai bật cả TOTP lẫn email thì kẻ chiếm được hộp thư là đủ. Câu Q4.
+- **R2 — Mạnh bằng yếu tố yếu nhất:** ai bật cả TOTP lẫn email thì kẻ chiếm được hộp thư là đủ. Q4 = A: vai Quản trị, Toàn quyền, Kế toán không dùng email; người còn lại chấp nhận rủi ro này.
 - **R3 — Phiên cũ:** đã xử lý — token kiểu cũ bị từ chối, mọi người đăng nhập lại một lần (ADR-0072).
 - **R6 — Gỡ phiên không phải khoá:** người có PIN (+ lớp hai) vào lại được ngay; đuổi kẻ gian phải gỡ phiên + đặt lại PIN (nút gộp).
 - **R7 — Ứng dụng đã cài và Safari trên cùng iPhone là hai máy:** đăng nhập ở Safari đá ứng dụng ra. Ghi Trợ giúp + lời báo.
