@@ -2,13 +2,15 @@
 // Kiểm quyền từng route KHÔNG nằm ở đây: router (src/shared/router.ts) dùng `currentStaff` do gốc lắp ráp truyền vào.
 import { getMaintenanceState, maintenanceBlock, toStatus } from "../maintenance";
 import { ownerCompany } from "../parties";
-import { authenticate, findStaffByPhone, getActiveStaff, isValidPin, normalizePhone, recordLogin, type StaffProfile } from "../staff";
+import { accountRoleCodesOf, authenticate, findStaffByPhone, getActiveStaff, isValidPin, normalizePhone, recordLogin, type StaffProfile } from "../staff";
 import { APP_VERSION } from "../../shared/app-info";
 import type { AuthConfigResponse, MeResponse, PasskeyRequestOptionsResponse } from "../../shared/contracts";
 import { error, getCookie, json, readJson } from "../../shared/http";
 import { route, type AppModule } from "../../shared/router";
 import { PASSKEY_ERRORS, checkPasskeyAssertion, clearChallengeCookie, issuePasskeyChallenge, limitChallenge, passkeyRp, readPasskeyChallenge } from "./passkey";
-import { SESSION_COOKIE, clearedSessionCookie, createSessionToken, isSecure, sessionCookie, verifySessionToken } from "./session";
+import { endExpiredSessionsStatement, endOtherSessionsStatement, findLiveSession, insertSessionStatement, liveSessionIds, touchSessionStatement } from "./repository";
+import { SESSION_COOKIE, SESSION_TTL_SECONDS, clearedSessionCookie, createSessionToken, isSecure, sessionCookie, verifySessionToken } from "./session";
+import { SESSION_TOUCH_MS, isSingleDevice, sessionDeviceLabel, trimUserAgent, type EndReason } from "./session-ledger";
 import { IP_LIMIT, PHONE_LIMIT, clearAttempts, ipKey, lockedPhones, phoneKey, reserveAttempts, unlockPhone } from "./throttle";
 import { turnstileGate, turnstileLog, turnstileSiteKey } from "./turnstile";
 import { passkeyRelyingParty } from "./webauthn";
@@ -35,21 +37,71 @@ export function checkAuthConfig(env: Env): string | null {
   return null;
 }
 
-/** Nhân viên đang hoạt động ứng với cookie phiên của request, hoặc null. Phiên phát hành trước lần đổi PIN gần nhất bị từ chối. */
-export async function currentStaff(request: Request, env: Env): Promise<StaffProfile | null> {
+/**
+ * Nhân viên + mã phiên của request, hoặc null (ADR-0075 điều 1). Kiểm: chữ ký → dòng aut_session còn sống (chưa kết thúc, chưa hết hạn) → tài khoản hoạt động
+ * (lưới `credentials_changed_at`: phiên phát hành trước lần đổi PIN/gỡ Face ID gần nhất bị từ chối). `last_seen_at` ghi thưa (tối đa 5 phút một lần).
+ */
+export async function currentStaff(request: Request, env: Env): Promise<{ staff: StaffProfile; sessionId: string } | null> {
   const token = getCookie(request, SESSION_COOKIE);
-  const session = token ? await verifySessionToken(env.SESSION_SECRET, token) : null;
-  return session ? getActiveStaff(env.DB, session.staffId, session.issuedAt) : null;
+  const t = token ? await verifySessionToken(env.SESSION_SECRET, token) : null;
+  if (!t) return null;
+  const now = Date.now();
+  const nowIso = new Date(now).toISOString();
+  const [row, staff] = await Promise.all([findLiveSession(env.DB, t.sessionId, t.staffId, nowIso), getActiveStaff(env.DB, t.staffId, t.issuedAt)]);
+  if (!row || !staff) return null;
+  if (Date.parse(row.last_seen_at) < now - SESSION_TOUCH_MS) {
+    await touchSessionStatement(env.DB, row.id, nowIso, new Date(now - SESSION_TOUCH_MS).toISOString()).run().catch((e: unknown) =>
+      console.error(JSON.stringify({ level: "error", event: "session_touch_failed", message: e instanceof Error ? e.message : String(e) })));
+  }
+  return { staff, sessionId: t.sessionId };
 }
 
 /**
- * Header Set-Cookie cho một phiên mới của nhân viên (dùng sau khi đổi PIN để giữ thiết bị hiện tại đăng nhập, hoặc sau khi
- * đăng nhập bằng Face ID). `issuedAt` (mili-giây): truyền đúng mốc vừa ghi vào `credentials_changed_at` để phiên mới không
- * tự bị thu hồi (`getActiveStaff` từ chối khi `credentials_changed_at > sessionIssuedAt`).
+ * NƠI DUY NHẤT cấp phiên MỚI (ADR-0075 điều 2; đặc tả §6 quy tắc 4). Một lô: dọn phiên hết hạn → (tài khoản một máy) kết thúc phiên còn sống,
+ * lý do "bi_thay" → chèn phiên mới. Chỉ mục aut_session_one_live là lưới khi hai lần đăng nhập chạy đua: lần thua nhận 409 sạch.
+ * `endedSessionIds` = các phiên vừa bị thay (đọc ngay trước lô) — để đóng Bảng tin / thông báo của đúng máy cũ (Task 6).
  */
-export async function newSessionCookie(request: Request, env: Env, staffId: string, issuedAt = Date.now()): Promise<string> {
-  return sessionCookie(await createSessionToken(env.SESSION_SECRET, staffId, issuedAt), isSecure(request));
+export async function issueLoginSession(
+  request: Request, env: Env, profile: StaffProfile, method: "PIN" | "PIN_MFA" | "PIN_TRUSTED" | "PASSKEY",
+  opts: { trustedDeviceId?: string | null; now?: number } = {},
+): Promise<{ cookie: string; sessionId: string; endedSessionIds: string[] } | { conflict: Response }> {
+  const now = opts.now ?? Date.now();
+  const at = new Date(now).toISOString();
+  const roles = await accountRoleCodesOf(env.DB, profile.id);
+  const single = isSingleDevice(profile.permissions, roles);
+  const ended = single ? await liveSessionIds(env.DB, profile.id) : [];
+  const id = crypto.randomUUID();
+  const ua = request.headers.get("user-agent");
+  try {
+    await env.DB.batch([
+      endExpiredSessionsStatement(env.DB, profile.id, at),
+      ...(single ? [endOtherSessionsStatement(env.DB, profile.id, null, "bi_thay", at, null)] : []),
+      insertSessionStatement(env.DB, {
+        id, staffId: profile.id, method, single: single ? 1 : 0, trustedDeviceId: opts.trustedDeviceId ?? null,
+        deviceLabel: sessionDeviceLabel(ua), userAgent: trimUserAgent(ua), ip: request.headers.get("cf-connecting-ip"),
+        at, expiresAt: new Date(now + SESSION_TTL_SECONDS * 1000).toISOString(),
+      }),
+    ]);
+  } catch (e) {
+    if (e instanceof Error && /UNIQUE/i.test(e.message)) return { conflict: error(409, "session_race", "Tài khoản đang đăng nhập ở máy khác cùng lúc. Thử lại sau vài giây.") };
+    throw e;
+  }
+  return { cookie: sessionCookie(await createSessionToken(env.SESSION_SECRET, profile.id, id, now), isSecure(request)), sessionId: id, endedSessionIds: ended };
 }
+
+/**
+ * Cấp lại cookie cho phiên ĐANG CÓ (đổi PIN, gỡ Face ID, đặt PIN bằng Face ID — ADR-0075 điều 5): giữ mã phiên; `issuedAt` (mili-giây) = đúng mốc vừa ghi
+ * vào `credentials_changed_at` để lưới `getActiveStaff` không tự thu hồi phiên này.
+ */
+export async function reissueSessionCookie(request: Request, env: Env, staffId: string, sessionId: string, issuedAt: number): Promise<string> {
+  return sessionCookie(await createSessionToken(env.SESSION_SECRET, staffId, sessionId, issuedAt), isSecure(request));
+}
+
+export { endOtherSessionsStatement, liveSessionIds };
+export type { EndReason };
+/** Kết thúc MỌI phiên còn sống của tài khoản (đặt lại PIN, ngưng, tắt lớp hai…). Chưa chạy — gộp vào lô của module gọi. */
+export const endAllSessionsStatement = (db: D1Database, staffId: string, reason: EndReason, at: string, by: string | null): D1PreparedStatement =>
+  endOtherSessionsStatement(db, staffId, null, reason, at, by);
 
 export type PinAttemptResult =
   | { ok: true; profile: StaffProfile }
@@ -138,7 +190,9 @@ export const authModule: AppModule = {
       await recordLogin(env.DB, result.profile.id, new Date().toISOString()).catch((e: unknown) =>
         console.error(JSON.stringify({ level: "error", event: "record_login_failed", message: e instanceof Error ? e.message : String(e) })),
       );
-      return json({ staff: result.profile } satisfies MeResponse, 200, { "set-cookie": await newSessionCookie(request, env, result.profile.id) });
+      const issued = await issueLoginSession(request, env, result.profile, "PIN");
+      if ("conflict" in issued) return issued.conflict;
+      return json({ staff: result.profile } satisfies MeResponse, 200, { "set-cookie": issued.cookie });
     }),
 
     // ---- Đăng nhập bằng Face ID (passkey, ADR-0016). Công khai: KHÔNG đi qua cổng bảo trì của router nên tự gọi maintenanceBlock. Không Turnstile, không bộ chống dò PIN (không có PIN để dò) — chỉ hạn mức xin thách thức theo IP.
@@ -162,10 +216,11 @@ export const authModule: AppModule = {
       const ch = await readPasskeyChallenge(request, env, "login", null);
       if (!ch) return PASSKEY_ERRORS.expired();
       // Thứ tự đặc tả §2.6: kiểm chữ ký/bộ đếm (trong checkPasskeyAssertion) → cổng bảo trì theo quyền của chủ khoá (gate, TRƯỚC dùng một lần) → dùng một lần → recordLogin → td_session.
-      // Mốc phiên lấy TRƯỚC khi kiểm (rà soát cuối M-1): khoá bị gỡ trước lúc đánh dấu dùng thì markPasskeyUsed thua (valid_to_at IS NULL); bị gỡ
-      // SAU mốc này thì credentials_changed_at > issuedAt nên getActiveStaff thu hồi phiên — phiên không thể "mới hơn" lần gỡ khoá đã sinh ra nó.
+      // Phiên chỉ được chèn sau khi markPasskeyUsed (trong checkPasskeyAssertion) thành công: khoá bị gỡ trước lúc đánh dấu dùng thì lần dùng thua.
+      // Mốc cấp phiên (`opts.now` của issueLoginSession = created_at của dòng phiên và issuedAt của token) lấy TRƯỚC khi kiểm: lần gỡ khoá chạy song song
+      // làm credentials_changed_at > mốc này nên lưới getActiveStaff / sessionStatus vẫn thu hồi — phiên không thể "mới hơn" lần gỡ khoá đã sinh ra nó.
       // Còn lại đúng một ca biên: lần gỡ rơi vào CÙNG mili-giây với mốc này (phép so là `>`), cửa sổ 1 ms.
-      const issuedAt = Date.now();
+      const phatHanh = Date.now();
       const checked = await checkPasskeyAssertion(env, rp, ch, credential, null, async (pk) => {
         const owner = await getActiveStaff(env.DB, pk.staff_id);
         if (!owner) return PASSKEY_ERRORS.unknown();
@@ -178,7 +233,9 @@ export const authModule: AppModule = {
       await recordLogin(env.DB, profile.id, new Date().toISOString()).catch((e: unknown) =>
         console.error(JSON.stringify({ level: "error", event: "record_login_failed", message: e instanceof Error ? e.message : String(e) })),
       );
-      const res = json({ staff: profile } satisfies MeResponse, 200, { "set-cookie": await newSessionCookie(request, env, profile.id, issuedAt) });
+      const issued = await issueLoginSession(request, env, profile, "PASSKEY", { now: phatHanh });
+      if ("conflict" in issued) return issued.conflict;
+      const res = json({ staff: profile } satisfies MeResponse, 200, { "set-cookie": issued.cookie });
       res.headers.append("set-cookie", clearChallengeCookie(request));
       return res;
     }),

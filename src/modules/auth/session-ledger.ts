@@ -1,0 +1,49 @@
+// Luật THUẦN của sổ phiên (ADR-0075): lý do kết thúc, miễn luật một máy, tên máy, trạng thái hiển thị. Không đọc CSDL.
+import type { PermissionCode } from "../../shared/permissions.ts";
+import type { RoleCode } from "../../shared/roles.ts";
+
+export type EndReason = "dang_xuat" | "bi_thay" | "bi_go" | "doi_pin" | "dat_lai_pin" | "tat_hai_lop" | "ngung" | "het_han" | "mat_mien" | "doi_face_id";
+export const END_REASON_LABEL: Record<EndReason, string> = {
+  dang_xuat: "Đã đăng xuất",
+  bi_thay: "Bị thay bởi máy khác",
+  bi_go: "Bị IT/Toàn quyền gỡ",
+  doi_pin: "Đã đổi PIN",
+  dat_lai_pin: "Bị đặt lại PIN",
+  tat_hai_lop: "Bị tắt bảo mật hai lớp",
+  ngung: "Tài khoản ngưng",
+  het_han: "Hết hạn",
+  mat_mien: "Không còn quyền dùng nhiều máy",
+  doi_face_id: "Đã gỡ Face ID",
+};
+/** `last_seen_at` ghi tối đa một lần mỗi 5 phút (ADR-0075 điều 9). */
+export const SESSION_TOUCH_MS = 5 * 60 * 1000;
+
+/** ADR-0075 điều 3: miễn luật một máy = giữ quyền SUPER_ADMIN hoặc vai IT còn hiệu lực. */
+export const isSingleDevice = (permissions: readonly PermissionCode[], roles: readonly RoleCode[]): boolean =>
+  !(permissions.includes("SUPER_ADMIN") || roles.includes("IT"));
+
+/** Tên máy hiển thị = loại máy + trình duyệt rút gọn từ User-Agent (ADR-0075 điều 9). Ứng dụng đã cài trên iPhone/iPad không có `Version/… Safari`. */
+export function sessionDeviceLabel(userAgent: string | null): string {
+  const ua = userAgent ?? "";
+  const kind = /iPhone/.test(ua) ? "iPhone" : /iPad/.test(ua) ? "iPad" : /Android/.test(ua) ? "Android"
+    : /Macintosh|Mac OS X/.test(ua) ? "Máy Mac" : /Windows/.test(ua) ? "Máy Windows" : null;
+  if (!kind) return "Thiết bị khác";
+  const browser = /EdgA?\//.test(ua) ? "Edge" : /CriOS|Chrome\//.test(ua) ? "Chrome" : /FxiOS|Firefox\//.test(ua) ? "Firefox"
+    : /Version\/[\d.]+.*Safari/.test(ua) ? "Safari" : /(iPhone|iPad)/.test(ua) ? "Ứng dụng đã cài" : "Trình duyệt";
+  return `${kind} · ${browser}`;
+}
+
+/** User-Agent lưu tối đa 200 ký tự (CHECK của bảng aut_session). */
+export const trimUserAgent = (ua: string | null): string | null => (ua === null ? null : ua.slice(0, 200));
+
+/** Trạng thái hiển thị của một dòng phiên: theo dòng (đã kết thúc), theo hạn, rồi theo lưới `credentials_changed_at` (đổi PIN/gỡ Face ID sau lúc cấp phiên). */
+export function sessionStatus(
+  row: { ended_at: string | null; end_reason: EndReason | null; expires_at: string; created_at: string },
+  credentialsChangedAtMs: number | null,
+  nowIso: string,
+): { live: boolean; label: string } {
+  if (row.ended_at !== null && row.end_reason !== null) return { live: false, label: END_REASON_LABEL[row.end_reason] };
+  if (row.expires_at <= nowIso) return { live: false, label: END_REASON_LABEL.het_han };
+  if (credentialsChangedAtMs !== null && credentialsChangedAtMs > Date.parse(row.created_at)) return { live: false, label: "Đã đổi thông tin đăng nhập" };
+  return { live: true, label: "Đang hiệu lực" };
+}

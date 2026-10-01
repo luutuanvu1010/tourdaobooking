@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
-import { ACCOUNTS, call as raw, freshIp as fresh, login, randomPhone as rnd, session } from "./lib.mjs";
+import { ACCOUNTS, call as raw, freshIp as fresh, login, randomPhone as rnd, session, sessionMoi } from "./lib.mjs";
 
 const cookieOf = (r) => r.cookie;
 
-const ADMIN = await session(ACCOUNTS.admin);
+let ADMIN = await session(ACCOUNTS.admin); // `let`: ca DK-T3-02 đăng nhập lại tài khoản Quản trị (luật một máy đá cookie cũ) rồi lấy cookie mới
 const SALES = await session(ACCOUNTS.salesA);
 const SUPER_ADMIN = await session(ACCOUNTS.superAdmin);
 // ADR-0071: Hành chính nhân sự tạo tài khoản; Quản trị chỉ sửa / ngưng / hỗ trợ đăng nhập cho cấp dưới.
@@ -123,10 +123,12 @@ for (const [who, cookie, account] of [["Quản trị", ADMIN, ACCOUNTS.admin], [
   assert.match(r.body.error.message, /Đổi mã PIN/, "thông báo chỉ sang mục Đổi mã PIN ở trang Tôi");
   assert.equal(r.body.pin, undefined, "không được trả PIN mới");
   assert.equal((await raw(cookie, "GET", "/api/auth/me")).status, 200, `${who}: phiên đang mở vẫn hợp lệ (không có gì bị ghi)`);
-  assert.equal((await login(account.phone, account.pin)).status, 200, `${who}: PIN cũ vẫn đăng nhập được`);
+  // PIN cũ vẫn đăng nhập được (sessionMoi ném lỗi nếu không 200). Luật một máy (ADR-0075): lần đăng nhập này đá cookie cũ của Quản trị — lấy lại ở dưới.
+  await sessionMoi(account);
   r = await raw(SUPER_ADMIN, "GET", "/api/audit?action=pin_reset&limit=50");
   assert.ok(!r.body.entries.some((e) => e.targetId === selfId), `${who}: không có dòng nhật ký pin_reset cho chính mình`);
 }
+ADMIN = await session(ACCOUNTS.admin);
 console.log("✓ DK-T3-02: Quản trị/Toàn quyền tự đặt lại PIN của mình → 403, phiên và PIN cũ giữ nguyên");
 
 // --- đặt lại PIN thu hồi phiên cũ (cũng là vế "vẫn đặt lại được cho cấp dưới" của DK-T3-02: A đang chỉ có quyền Bán hàng)
@@ -143,8 +145,9 @@ assert.ok(!JSON.stringify(r.body).includes(A.pin));
 console.log("✓ đặt lại PIN thu hồi phiên cũ, nhật ký không lộ PIN");
 
 // --- đổi PIN của chính mình
-let sess = cookieOf(await login(A.phone, A.pin));
+// Luật một máy (ADR-0075): A chịu luật nên đăng nhập `sess` (SAU) đã đá `other` (bị thay); vế "đổi PIN đăng xuất máy khác" vẫn đúng.
 const other = cookieOf(await login(A.phone, A.pin)); // thiết bị khác
+let sess = cookieOf(await login(A.phone, A.pin));
 const beforePinChange = await lastLoginOf(A.id);
 assert.equal((await raw(sess, "POST", "/api/account/change-pin", { currentPin: "000000", newPin: "482915" })).status, 403);
 assert.equal((await raw(sess, "POST", "/api/account/change-pin", { currentPin: A.pin, newPin: "123456" })).status, 400);

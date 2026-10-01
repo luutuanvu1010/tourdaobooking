@@ -1,4 +1,4 @@
-// SQL của các bảng module auth sở hữu: `login_attempt` (bảng cũ, giữ tên — ADR-0002 điều 2) và `aut_passkey` (ADR-0016, migration 0023).
+// SQL của các bảng module auth sở hữu: `login_attempt` (bảng cũ, giữ tên — ADR-0002 điều 2), `aut_passkey` (ADR-0016, migration 0023) và `aut_session` (sổ phiên, ADR-0075, migration 0061).
 // Mọi câu đi qua defineSql (ADR-0002 điều 8(b)), import bằng đuôi .ts để bài kiểm kiến trúc nạp được tệp này. SQL TĨNH, liệt kê cột tường minh.
 import { defineSql } from "../../shared/sql-registry.ts";
 
@@ -91,3 +91,57 @@ export async function lockedPhoneKeys(db: D1Database, since: number, limit: numb
   const { results } = await db.prepare(ATTEMPT_LOCKED).bind(since, limit).all<{ key: string }>();
   return results.map((r) => r.key);
 }
+
+// ---- Sổ phiên đăng nhập `aut_session` (ADR-0075, migration 0061) ----------------------------------------------------------------------
+// Không xoá dòng: kết thúc = đặt ended_at + end_reason (+ ended_by khi do người gỡ). Mọi câu ghi đặt cả cột kiểm toán updated_at/updated_by.
+export interface SessionRow {
+  id: string; staff_id: string; method: string; single: number; trusted_device_id: string | null; device_label: string;
+  user_agent: string | null; ip: string | null; created_at: string; last_seen_at: string; expires_at: string;
+  ended_at: string | null; end_reason: string | null; ended_by: string | null;
+}
+const SS_COLS = "id, staff_id, method, single, trusted_device_id, device_label, user_agent, ip, created_at, last_seen_at, expires_at, ended_at, end_reason, ended_by";
+// (1) dọn phiên đã quá hạn mà chưa kết thúc — PHẢI đứng trước (2)/(3): dòng hết hạn chưa kết thúc vẫn nằm trong chỉ mục duy nhất aut_session_one_live.
+const SS_END_EXPIRED = defineSql("auth", "session_end_expired",
+  "UPDATE aut_session SET ended_at = ?2, end_reason = 'het_han', updated_at = ?2, updated_by = NULL WHERE staff_id = ?1 AND ended_at IS NULL AND expires_at <= ?2");
+// (2) kết thúc mọi phiên còn sống của tài khoản (trừ ?2 nếu có) — dùng cho "bị thay", đổi PIN, gỡ, ngưng…
+const SS_END_OTHERS = defineSql("auth", "session_end_others",
+  "UPDATE aut_session SET ended_at = ?4, end_reason = ?3, ended_by = ?5, updated_at = ?4, updated_by = ?5 WHERE staff_id = ?1 AND ended_at IS NULL AND (?2 IS NULL OR id <> ?2)");
+const SS_END_ONE = defineSql("auth", "session_end_one",
+  "UPDATE aut_session SET ended_at = ?3, end_reason = ?2, ended_by = ?4, updated_at = ?3, updated_by = ?4 WHERE id = ?1 AND ended_at IS NULL");
+// (3) chèn phiên mới: last_seen_at = updated_at = created_at; created_by = chính tài khoản đăng nhập (như aut_passkey).
+const SS_INSERT = defineSql("auth", "session_insert",
+  `INSERT INTO aut_session (${SS_COLS}, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?9, ?10, NULL, NULL, NULL, ?2, ?9, NULL)`);
+const SS_FIND_LIVE = defineSql("auth", "session_find_live",
+  `SELECT ${SS_COLS} FROM aut_session WHERE id = ?1 AND staff_id = ?2 AND ended_at IS NULL AND expires_at > ?3`);
+const SS_TOUCH = defineSql("auth", "session_touch",
+  "UPDATE aut_session SET last_seen_at = ?2, updated_at = ?2 WHERE id = ?1 AND ended_at IS NULL AND last_seen_at < ?3");
+const SS_LIVE_IDS = defineSql("auth", "session_live_ids",
+  "SELECT id FROM aut_session WHERE staff_id = ?1 AND ended_at IS NULL");
+const SS_LIST_MINE = defineSql("auth", "session_list_mine",
+  `SELECT ${SS_COLS} FROM aut_session WHERE staff_id = ?1 ORDER BY created_at DESC LIMIT 30`);
+const SS_LIST_ALL = defineSql("auth", "session_list_all",
+  `SELECT ${SS_COLS} FROM aut_session WHERE (?1 IS NULL OR staff_id = ?1) AND (?2 = 0 OR (ended_at IS NULL AND expires_at > ?3)) ORDER BY created_at DESC LIMIT 200`);
+const SS_GET = defineSql("auth", "session_get", `SELECT ${SS_COLS} FROM aut_session WHERE id = ?1`);
+
+export const endExpiredSessionsStatement = (db: D1Database, staffId: string, at: string): D1PreparedStatement => db.prepare(SS_END_EXPIRED).bind(staffId, at);
+export const endOtherSessionsStatement = (db: D1Database, staffId: string, keep: string | null, reason: string, at: string, by: string | null): D1PreparedStatement =>
+  db.prepare(SS_END_OTHERS).bind(staffId, keep, reason, at, by);
+export const endSessionStatement = (db: D1Database, id: string, reason: string, at: string, by: string | null): D1PreparedStatement =>
+  db.prepare(SS_END_ONE).bind(id, reason, at, by);
+export const insertSessionStatement = (db: D1Database, v: {
+  id: string; staffId: string; method: string; single: 0 | 1; trustedDeviceId: string | null; deviceLabel: string; userAgent: string | null; ip: string | null; at: string; expiresAt: string;
+}): D1PreparedStatement => db.prepare(SS_INSERT).bind(v.id, v.staffId, v.method, v.single, v.trustedDeviceId, v.deviceLabel, v.userAgent, v.ip, v.at, v.expiresAt);
+export const findLiveSession = (db: D1Database, id: string, staffId: string, nowIso: string): Promise<SessionRow | null> =>
+  db.prepare(SS_FIND_LIVE).bind(id, staffId, nowIso).first<SessionRow>();
+export const touchSessionStatement = (db: D1Database, id: string, nowIso: string, staleBeforeIso: string): D1PreparedStatement =>
+  db.prepare(SS_TOUCH).bind(id, nowIso, staleBeforeIso);
+export async function liveSessionIds(db: D1Database, staffId: string): Promise<string[]> {
+  return (await db.prepare(SS_LIVE_IDS).bind(staffId).all<{ id: string }>()).results.map((r) => r.id);
+}
+export async function listMySessions(db: D1Database, staffId: string): Promise<SessionRow[]> {
+  return (await db.prepare(SS_LIST_MINE).bind(staffId).all<SessionRow>()).results;
+}
+export async function listSessions(db: D1Database, staffId: string | null, liveOnly: boolean, nowIso: string): Promise<SessionRow[]> {
+  return (await db.prepare(SS_LIST_ALL).bind(staffId, liveOnly ? 1 : 0, nowIso).all<SessionRow>()).results;
+}
+export const getSession = (db: D1Database, id: string): Promise<SessionRow | null> => db.prepare(SS_GET).bind(id).first<SessionRow>();

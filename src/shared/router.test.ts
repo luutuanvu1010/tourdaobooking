@@ -5,6 +5,8 @@ import type { StaffProfile } from "./contracts.ts";
 import { json } from "./http.ts";
 import { createApp, route, type AppModule } from "./router.ts";
 
+/** `currentStaff` giả trả nhân viên + mã phiên (sổ phiên ADR-0075), hoặc null. */
+const phien = (s: StaffProfile | null) => (s ? { staff: s, sessionId: "phien-thu" } : null);
 const staffOf = (permissions: StaffProfile["permissions"], phone = "0900000001"): StaffProfile => ({ id: "s1", fullName: "NV", phone, partyId: null, permissions });
 
 function build(staff: StaffProfile | null, block: (staff: StaffProfile) => Response | null) {
@@ -25,7 +27,7 @@ function build(staff: StaffProfile | null, block: (staff: StaffProfile) => Respo
   };
   const app = createApp({
     modules: [mod],
-    currentStaff: async () => staff,
+    currentStaff: async () => phien(staff),
     injected: {
       isAssigned: async () => false,
       newOrderHandler: async () => ({ ok: false, message: "không dùng" }),
@@ -128,7 +130,7 @@ test("ADR-0013 điều 4: ctx.partyAccount chuyển đúng người đang đăng
   const who = { id: "u1", phone: "0900000001", fullName: "A", permissions: ["SALES"] } as unknown as StaffProfile;
   const app = createApp({
     modules: [mod],
-    currentStaff: async (req) => (new URL(req.url).pathname === "/api/pa-open" ? null : who),
+    currentStaff: async (req) => (new URL(req.url).pathname === "/api/pa-open" ? null : phien(who)),
     injected: {
       isAssigned: async () => false,
       newOrderHandler: async () => ({ ok: false, message: "không dùng" }),
@@ -162,7 +164,7 @@ test("ADR-0030 S20-13: ctx.myHandledOrderIds() hỏi đúng người đang đăn
   const who = { id: "u1", phone: "0900000001", fullName: "A", permissions: ["SALES"] } as unknown as StaffProfile;
   const app = createApp({
     modules: [mod],
-    currentStaff: async (req) => (new URL(req.url).pathname === "/api/mine-open" ? null : who),
+    currentStaff: async (req) => (new URL(req.url).pathname === "/api/mine-open" ? null : phien(who)),
     injected: {
       isAssigned: async () => false,
       newOrderHandler: async () => ({ ok: false, message: "không dùng" }),
@@ -198,7 +200,7 @@ test("ADR-0030 S20-4: ctx.newOrderHandler(staffId) chuyển NGƯỜI ĐANG ĐĂN
   const who = { id: "u1", phone: "0900000001", fullName: "A", permissions: ["SALES"] } as unknown as StaffProfile;
   const app = createApp({
     modules: [mod],
-    currentStaff: async (req) => (new URL(req.url).pathname === "/api/pick-open" ? null : who),
+    currentStaff: async (req) => (new URL(req.url).pathname === "/api/pick-open" ? null : phien(who)),
     injected: {
       isAssigned: async () => false,
       newOrderHandler: async (_env, actor, staffId) => {
@@ -246,7 +248,7 @@ function buildBangTin(staff: StaffProfile, overrides: BangTinOverrides = {}) {
   };
   const app = createApp({
     modules: [mod],
-    currentStaff: async () => staff,
+    currentStaff: async () => phien(staff),
     injected: {
       isAssigned: async () => false,
       newOrderHandler: async () => ({ ok: false, message: "không dùng" }),
@@ -422,7 +424,7 @@ test("ctx.giaoLoDay: chuyển env + danh sách tới hàm tiêm và trả nguyê
   };
   const app = createApp({
     modules: [mod],
-    currentStaff: async () => staffOf(["SALES"]),
+    currentStaff: async () => phien(staffOf(["SALES"])),
     injected: {
       isAssigned: async () => false,
       defaultHandlerStatement: () => null,
@@ -450,7 +452,7 @@ test("ctx.mocToiThieu: chuyển env tới hàm tiêm và trả nguyên kết qu�
   };
   const base = {
     modules: [mod],
-    currentStaff: async () => staffOf(["SALES"]),
+    currentStaff: async () => phien(staffOf(["SALES"])),
   };
   const injected = {
     isAssigned: async () => false,
@@ -481,7 +483,7 @@ test("ctx.nhanNhanVien (R-P20): chuyển env + id tới hàm tiêm; mảng rỗn
       return json({ a: a === null ? null : [...a], rong: rong === null ? null : [...rong] });
     })],
   };
-  const base = { modules: [mod], currentStaff: async () => staffOf(["SALES"]) };
+  const base = { modules: [mod], currentStaff: async () => phien(staffOf(["SALES"])) };
   const injected = {
     isAssigned: async () => false,
     defaultHandlerStatement: () => null,
@@ -518,7 +520,7 @@ function buildThrowing(err: unknown) {
   };
   const app = createApp({
     modules: [mod],
-    currentStaff: async () => staffOf(["SALES"]),
+    currentStaff: async () => phien(staffOf(["SALES"])),
     injected: {
       isAssigned: async () => false,
       newOrderHandler: async () => ({ ok: false, message: "không dùng" }),
@@ -552,4 +554,34 @@ test("T-1: lỗi trigger 'order_delivered:' / 'order_completed:' trong lô ghi �
   } finally {
     console.error = orig;
   }
+});
+
+test("ADR-0075: route cần đăng nhập nhận ctx.sessionId từ currentStaff; route công khai nhận null (không đọc phiên)", async () => {
+  const seen: (string | null)[] = [];
+  const mod: AppModule = {
+    name: "giả",
+    routes: [
+      route("GET", "/api/mine", "staff", async (ctx) => (seen.push(ctx.sessionId), new Response("ok"))),
+      route("GET", "/api/open", "public", async (ctx) => (seen.push(ctx.sessionId), new Response("ok"))),
+    ],
+  };
+  const app = createApp({
+    modules: [mod],
+    currentStaff: async () => ({ staff: staffOf(["SALES"]), sessionId: "phien-42" }),
+    injected: {
+      isAssigned: async () => false,
+      newOrderHandler: async () => ({ ok: false, message: "không dùng" }),
+      ordersWithHandler: async () => new Set<string>(),
+      handledOrderIdsOf: async () => [],
+      maintenanceBlock: async () => null,
+      partyAccount: async () => ({ linked: false }),
+      baoThayDoi: async () => {},
+      dongBangTin: async () => {},
+      giaoLoDay: async () => [],
+      mocToiThieu: async () => ({ phut: 360, policyId: "moc-gia-router", canhBaoPhut: 120 }),
+    },
+  } as unknown as Parameters<typeof createApp>[0]);
+  assert.equal((await app.fetch(new Request("http://x/api/mine"), {} as Env, {} as ExecutionContext)).status, 200);
+  assert.equal((await app.fetch(new Request("http://x/api/open"), {} as Env, {} as ExecutionContext)).status, 200);
+  assert.deepEqual(seen, ["phien-42", null]);
 });

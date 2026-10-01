@@ -66,10 +66,18 @@ export function login(phone, pin, ip) {
   return call(null, "POST", "/api/auth/login", { phone, pin, turnstileToken: TURNSTILE_TEST.dummyToken }, ip);
 }
 
-/** Đăng nhập tài khoản test, trả cookie phiên. */
+const PHIEN_DA_CO = new Map(); // phone → cookie. Luật một máy (ADR-0075): đăng nhập lại cùng tài khoản đá cookie cũ — kịch bản dùng chung MỘT phiên mỗi tài khoản.
+/** Cookie phiên của tài khoản test (đăng nhập một lần, dùng lại). Bài cần phiên MỚI (thử đăng nhập, thử bị đá) gọi `login()` hoặc `sessionMoi()`. */
 export async function session(account) {
+  const co = PHIEN_DA_CO.get(account.phone);
+  if (co && (await call(co, "GET", "/api/auth/me")).status === 200) return co;
+  return sessionMoi(account);
+}
+/** Đăng nhập MỚI (cố ý): cookie cũ của tài khoản chịu luật một máy bị đá; cookie mới được nhớ cho các lần `session()` sau. */
+export async function sessionMoi(account) {
   const r = await login(account.phone, account.pin);
   if (r.status !== 200) throw new Error(`Không đăng nhập được ${account.phone}: ${r.status} ${JSON.stringify(r.body)}`);
+  PHIEN_DA_CO.set(account.phone, r.cookie);
   return r.cookie;
 }
 

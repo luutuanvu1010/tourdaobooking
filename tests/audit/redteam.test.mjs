@@ -170,8 +170,8 @@ test("R8 PASS (đã vá — sổ tiền lượt 1) money: đơn đã HUỶ — c
 
 test("R9 FINDING session: đăng xuất không thu hồi token; cookie cũ còn dùng được 7 ngày", async () => {
   const w = setup();
-  const { app, SECRET } = await import("./harness.mjs");
-  const token = await app.createSessionToken(SECRET, A);
+  const { app } = await import("./harness.mjs");
+  const token = await w.token(A);
   await w.call("POST", "/api/auth/logout", { headers: { cookie: `td_session=${token}` }, body: {} });
   const me = await app.default.fetch(new Request("https://booking.tourdao.vn/api/auth/me", { headers: { cookie: `td_session=${token}` } }), w.env, { waitUntil() {} });
   assert.equal(me.status, 200);

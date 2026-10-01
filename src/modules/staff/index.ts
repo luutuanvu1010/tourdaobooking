@@ -368,3 +368,10 @@ export async function accountRoleCodes(db: D1Database, accounts: readonly StaffA
   const byParty = await openRoleCodesByParty(db, accounts.flatMap((a) => (a.partyId ? [a.partyId] : [])));
   return new Map(accounts.map((a) => [a.id, ROLE_CODES.filter((c) => (a.partyId ? (byParty.get(a.partyId) ?? []) : []).includes(c))]));
 }
+
+/** Mã vai tài khoản còn hiệu lực của MỘT tài khoản (ADR-0075 điều 3: auth hỏi vai IT lúc cấp phiên). */
+export async function accountRoleCodesOf(db: D1Database, staffId: string): Promise<RoleCode[]> {
+  const acct = await getStaffAccount(db, staffId);
+  if (!acct) return [];
+  return (await accountRoleCodes(db, [acct])).get(staffId) ?? [];
+}

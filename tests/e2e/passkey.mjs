@@ -120,15 +120,20 @@ const S3b = sessionCookie(r);
 assert.equal((await call(S3b, "GET", "/api/auth/me")).status, 200);
 assert.equal((await call(S2, "GET", "/api/auth/me")).status, 401);
 assert.equal((await login(A.phone, A.pin, freshIp())).status, 401);
-assert.equal((await login(A.phone, "583920", freshIp())).status, 200);
+// Luật một máy (ADR-0075): salesB chịu luật — mỗi lần đăng nhập lại đá cookie trước đó. `HIEN` = cookie của lần đăng nhập MỚI NHẤT.
+r = await login(A.phone, "583920", freshIp());
+assert.equal(r.status, 200);
+let HIEN = r.cookie;
 console.log("✓ đặt PIN bằng Face ID");
 
 // 10b. Dùng lại đúng cookie thách thức "pin" + chữ ký đã dùng ở trên (dùng một lần) → bị từ chối; PIN không đổi thêm lần nữa
-// (phiên S3 đã hết hiệu lực vì lần đổi PIN trước đã cấp phiên mới S3b — dùng S3b để lời gọi tới được đúng chỗ kiểm thách thức, không bị chặn sớm ở tầng phiên)
-r = await call(cookieJar(S3b, challengeCookie(pOpt)), "POST", "/api/account/pin-by-passkey", { newPin: "246813", credential: pinCred });
+// (S3b đã bị đá bởi lần đăng nhập PIN ở cuối bước 10 — luật một máy; dùng phiên còn sống HIEN để lời gọi tới được đúng chỗ kiểm thách thức, không bị chặn sớm ở tầng phiên)
+r = await call(cookieJar(HIEN, challengeCookie(pOpt)), "POST", "/api/account/pin-by-passkey", { newPin: "246813", credential: pinCred });
 assert.equal(r.status, 400, JSON.stringify(r.body));
 assert.equal(r.body.error.code, "passkey_expired");
-assert.equal((await login(A.phone, "583920", freshIp())).status, 200, "PIN vẫn là PIN đã đặt ở lần đầu");
+r = await login(A.phone, "583920", freshIp());
+assert.equal(r.status, 200, "PIN vẫn là PIN đã đặt ở lần đầu");
+HIEN = r.cookie;
 assert.equal((await login(A.phone, "246813", freshIp())).status, 401, "PIN KHÔNG bị đổi thêm lần nữa qua thách thức dùng lại");
 console.log("✓ dùng lại thách thức PIN cũ (cookie + chữ ký) → bị từ chối, PIN không đổi lần hai");
 
@@ -138,17 +143,21 @@ const SO = await session(ACCOUNTS.field);
 const enabledOther = await enable(SO, ACCOUNTS.field.pin, other);
 assert.equal(enabledOther.status, 201, JSON.stringify(enabledOther.body));
 const otherPkId = enabledOther.body.passkey.id;
-pOpt = await call(S3b, "POST", "/api/account/pin-by-passkey/options", {});
-r = await call(cookieJar(S3b, challengeCookie(pOpt)), "POST", "/api/account/pin-by-passkey", { newPin: "583921", credential: await other.sign(pOpt.body.publicKey.challenge) });
+pOpt = await call(HIEN, "POST", "/api/account/pin-by-passkey/options", {});
+r = await call(cookieJar(HIEN, challengeCookie(pOpt)), "POST", "/api/account/pin-by-passkey", { newPin: "583921", credential: await other.sign(pOpt.body.publicKey.challenge) });
 assert.equal(r.status, 403);
 assert.equal(r.body.error.code, "passkey_not_yours");
 console.log("✓ không dùng Face ID của người khác");
 
 // 12. Gỡ một passkey: máy khác 401, máy đang thao tác nhận phiên mới 200; đăng nhập bằng khoá đã gỡ → 401 passkey_unknown
+// Luật một máy (ADR-0075): "máy khác" S4 đăng nhập TRƯỚC, rồi máy đang thao tác đăng nhập lại (đá S4 — bị thay) — hai phiên của salesB không cùng sống được.
 const S4 = sessionCookie((await passkeyLogin(auth)).r);
-r = await call(S3b, "DELETE", `/api/account/passkeys/${pkId}`);
+r = await login(A.phone, "583920", freshIp());
 assert.equal(r.status, 200);
-const S3c = sessionCookie(r) ?? S3b;
+HIEN = r.cookie;
+r = await call(HIEN, "DELETE", `/api/account/passkeys/${pkId}`);
+assert.equal(r.status, 200);
+const S3c = sessionCookie(r) ?? HIEN;
 assert.equal((await call(S3c, "GET", "/api/auth/me")).status, 200);
 assert.equal((await call(S4, "GET", "/api/auth/me")).status, 401);
 r = (await passkeyLogin(auth)).r;
@@ -180,7 +189,11 @@ console.log("✓ tài khoản ngưng bằng SQL (passkey chưa gỡ) → Face ID
 // 12d. Tự gỡ hết Face ID của CHÍNH MÌNH (không phải admin) khi đang có ≥1 khoá còn hiệu lực (authB2): đăng xuất máy khác, máy hiện tại nhận phiên mới
 const S5 = sessionCookie((await passkeyLogin(authB2)).r); // "máy khác" đăng nhập bằng khoá còn hiệu lực
 assert.ok(S5);
-r = await call(S3c, "POST", "/api/account/passkeys/remove-all", {});
+// Luật một máy (ADR-0075): S5 đã đá S3c; máy đang thao tác đăng nhập lại bằng PIN (đá S5 — bị thay) rồi mới gỡ.
+r = await login(A.phone, "583920", freshIp());
+assert.equal(r.status, 200);
+HIEN = r.cookie;
+r = await call(HIEN, "POST", "/api/account/passkeys/remove-all", {});
 assert.equal(r.status, 200, JSON.stringify(r.body));
 assert.ok(r.body.removed >= 1, JSON.stringify(r.body));
 const S3d = sessionCookie(r);

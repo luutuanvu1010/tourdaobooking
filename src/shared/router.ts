@@ -50,6 +50,8 @@ export interface Ctx<A extends Access = Access> {
   params: Record<string, string>;
   /** Nhân viên đang đăng nhập — luôn có với route "staff"/"admin". */
   staff: A extends "public" ? StaffProfile | null : StaffProfile;
+  /** Mã phiên đăng nhập của request (dòng `aut_session`, ADR-0075) — có với mọi route cần đăng nhập; route công khai luôn `null` (router không đọc cookie ở đó). */
+  sessionId: string | null;
   /**
    * Người đang đăng nhập có phải người phụ trách ĐANG MỞ của đơn `orderId` không — kết quả điền vào `can(staff, op, { ownerId, assigned })` cho các ô
    * `ownOrAssigned`/`assigned` (ADR-0007 điều 4(b), ADR-0009 điều 3). Do gốc lắp ráp tiêm (module `orders` không import `dispatch`). Là một HÀM (không phải giá trị
@@ -179,8 +181,8 @@ function checkWriteRequest(request: Request, url: URL): Response | null {
 
 export interface AppOptions {
   modules: AppModule[];
-  /** Nhân viên đang đăng nhập ứng với request (đọc cookie phiên), hoặc null. */
-  currentStaff: (request: Request, env: Env) => Promise<StaffProfile | null>;
+  /** Nhân viên đang đăng nhập + mã phiên (sổ phiên ADR-0075) ứng với request (đọc cookie phiên), hoặc null. */
+  currentStaff: (request: Request, env: Env) => Promise<{ staff: StaffProfile; sessionId: string } | null>;
   /** Kiểm cấu hình bắt buộc trước khi xử lý; trả thông báo lỗi (→ 500) hoặc null. */
   checkConfig?: (env: Env) => string | null;
   /**
@@ -258,9 +260,12 @@ export function createApp(opts: AppOptions) {
     if (blocked) return blocked;
 
     let staff: StaffProfile | null = null;
+    let sessionId: string | null = null;
     if (hit.r.access !== "public") {
-      staff = await opts.currentStaff(request, env);
-      if (!staff) return error(401, "unauthenticated", "Chưa đăng nhập hoặc phiên đã hết hạn.");
+      const cur = await opts.currentStaff(request, env);
+      if (!cur) return error(401, "unauthenticated", "Chưa đăng nhập hoặc phiên đã hết hạn.");
+      staff = cur.staff;
+      sessionId = cur.sessionId;
       const maintenance = await opts.injected.maintenanceBlock(env, staff);
       if (maintenance) return maintenance;
       // ADR-0014 điều 2: SUPER_ADMIN = any ở mọi thao tác, kể cả admin.manage — không thay thế ADMIN, nên tài khoản chỉ giữ SUPER_ADMIN (không giữ ADMIN)
@@ -272,7 +277,7 @@ export function createApp(opts: AppOptions) {
     }
     const who = staff;
     return hit.r.handler({
-      request, env, exec, url, params: hit.params, staff,
+      request, env, exec, url, params: hit.params, staff, sessionId,
       isAssigned: (orderId) => (who ? opts.injected.isAssigned(env, who.id, orderId) : Promise.resolve(false)),
       newOrderHandler: (staffId) => (who ? opts.injected.newOrderHandler(env, who, staffId) : Promise.resolve(NOT_SIGNED_IN)),
       ordersWithHandler: (orderIds) => opts.injected.ordersWithHandler(env, orderIds),

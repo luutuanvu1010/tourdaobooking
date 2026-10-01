@@ -5,8 +5,8 @@
 import { auditStatement, type AuditAction } from "../audit";
 import {
   PASSKEY_ERRORS, checkPasskeyAssertion, clearChallengeCookie, countActivePasskeys, deviceLabel, firstUserHandle, insertPasskeyStatement, issuePasskeyChallenge,
-  limitChallenge, listActivePasskeys, lockedPhones, logPasskeyRejected, newSessionCookie, passkeyRp, readPasskeyChallenge, revokeAllPasskeysIfSuspendedStatement,
-  revokeAllPasskeysStatement, revokePasskeyStatement, toPasskeyDto, unlockPhone, verifyPinThrottled, verifyRegistration,
+  limitChallenge, listActivePasskeys, lockedPhones, logPasskeyRejected, passkeyRp, readPasskeyChallenge, revokeAllPasskeysIfSuspendedStatement,
+  reissueSessionCookie, revokeAllPasskeysStatement, revokePasskeyStatement, toPasskeyDto, unlockPhone, verifyPinThrottled, verifyRegistration,
 } from "../auth";
 import {
   accountRoleCodes, canManageAccount, checkAccountChange, checkStaffName, countActiveAdmins, createAccountStatements, createAccountWithRolesStatements, findStaffByPhone, hoSoKhopKhiTaoTaiKhoan,
@@ -175,11 +175,15 @@ export function patchStaffStatements(
   return { statements: stmts, guardIndex: needsUpdate ? 0 : -1 };
 }
 
+/** Route "staff" luôn có mã phiên (router đọc từ sổ phiên — ADR-0075); thiếu là bất thường → coi như chưa đăng nhập, không cấp lại cookie. */
+const NO_SESSION = () => error(401, "unauthenticated", "Chưa đăng nhập hoặc phiên đã hết hạn.");
+
 export const accountsModule: AppModule = {
   name: "accounts",
   routes: [
     // ---- Đổi PIN của chính mình -------------------------------------------------
-    route("POST", "/api/account/change-pin", "staff", async ({ request, env, staff, dongBangTin }) => {
+    route("POST", "/api/account/change-pin", "staff", async ({ request, env, staff, sessionId, dongBangTin }) => {
+      if (!sessionId) return NO_SESSION();
       const body = await readJson(request);
       const currentPin = body?.currentPin;
       if (!isValidPin(currentPin)) return error(400, "invalid_input", "Cần nhập PIN hiện tại (6 số).");
@@ -195,8 +199,8 @@ export const accountsModule: AppModule = {
       ]);
       // BẢNG TIN (KN-2): PIN vừa đổi — đóng các kết nối cũ của chính tài khoản này (thiết bị khác sẽ phải đăng nhập lại rồi mới nối lại được).
       dongBangTin({ staffId: staff.id, tatThongBao: true });
-      // Mọi phiên cũ (kể cả thiết bị khác) đã bị thu hồi; cấp phiên mới để thiết bị này không phải đăng nhập lại.
-      return json({ ok: true }, 200, { "set-cookie": await newSessionCookie(request, env, staff.id) });
+      // Mọi phiên cũ (kể cả thiết bị khác) đã bị thu hồi (lưới credentials_changed_at); cấp lại cookie cho phiên đang dùng (giữ mã phiên — ADR-0075 điều 5) để thiết bị này không phải đăng nhập lại.
+      return json({ ok: true }, 200, { "set-cookie": await reissueSessionCookie(request, env, staff.id, sessionId, Date.now()) });
     }),
 
     // ---- Đăng nhập bằng Face ID (passkey, ADR-0016) — của chính mình ------------------------------------------
@@ -267,8 +271,9 @@ export const accountsModule: AppModule = {
     }),
 
     // Gỡ = đóng hiệu lực + đăng xuất mọi máy khác (điều 6); máy đang thao tác nhận phiên mới cùng mốc `now`.
-    route("POST", "/api/account/passkeys/remove-all", "staff", async ({ request, env, staff, dongBangTin }) => {
+    route("POST", "/api/account/passkeys/remove-all", "staff", async ({ request, env, staff, sessionId, dongBangTin }) => {
       if (!passkeyRp(env)) return PASSKEY_ERRORS.off();
+      if (!sessionId) return NO_SESSION();
       const now = Date.now();
       const at = new Date(now).toISOString();
       const [revoked] = await env.DB.batch([
@@ -279,11 +284,12 @@ export const accountsModule: AppModule = {
       const removed = revoked!.meta.changes ?? 0;
       // BẢNG TIN (KN-2): credentials_changed_at luôn được "touch" ở trên dù không còn Face ID nào — đóng kết nối cũ theo đúng nhịp đó.
       dongBangTin({ staffId: staff.id, tatThongBao: true });
-      return json({ removed }, 200, removed > 0 ? { "set-cookie": await newSessionCookie(request, env, staff.id, now) } : {});
+      return json({ removed }, 200, removed > 0 ? { "set-cookie": await reissueSessionCookie(request, env, staff.id, sessionId, now) } : {});
     }),
 
-    route("DELETE", "/api/account/passkeys/:id", "staff", async ({ request, env, staff, params, dongBangTin }) => {
+    route("DELETE", "/api/account/passkeys/:id", "staff", async ({ request, env, staff, sessionId, params, dongBangTin }) => {
       if (!passkeyRp(env)) return PASSKEY_ERRORS.off();
+      if (!sessionId) return NO_SESSION();
       const id = params.id!;
       if (!UUID_RE.test(id)) return error(404, "not_found", "Không tìm thấy Face ID này.");
       const now = Date.now();
@@ -295,7 +301,7 @@ export const accountsModule: AppModule = {
       ]);
       if ((revoked!.meta.changes ?? 0) === 0) return error(404, "not_found", "Không tìm thấy Face ID này.");
       dongBangTin({ staffId: staff.id, tatThongBao: true }); // BẢNG TIN (KN-2): gỡ thành công — đóng kết nối cũ.
-      return json({ ok: true }, 200, { "set-cookie": await newSessionCookie(request, env, staff.id, now) });
+      return json({ ok: true }, 200, { "set-cookie": await reissueSessionCookie(request, env, staff.id, sessionId, now) });
     }),
 
     // Đặt PIN mới bằng Face ID, không cần PIN cũ (điều 2b): bắt buộc MỘT lần ký passkey mới với thách thức "pin" riêng — phiên đang mở là không đủ.
@@ -314,9 +320,10 @@ export const accountsModule: AppModule = {
       );
     }),
 
-    route("POST", "/api/account/pin-by-passkey", "staff", async ({ request, env, staff, dongBangTin }) => {
+    route("POST", "/api/account/pin-by-passkey", "staff", async ({ request, env, staff, sessionId, dongBangTin }) => {
       const rp = passkeyRp(env);
       if (!rp) return PASSKEY_ERRORS.off();
+      if (!sessionId) return NO_SESSION();
       const body = await readJson(request);
       const problem = validateFreshPin(body?.newPin);
       if (problem) return error(400, "invalid_input", problem);
@@ -332,7 +339,7 @@ export const accountsModule: AppModule = {
       ]);
       await unlockPhone(env.DB, staff.phone); // chủ quyết 2026-09-23: có PIN mới thì gỡ khoá "sai PIN quá nhiều", như admin reset-pin
       dongBangTin({ staffId: staff.id, tatThongBao: true }); // BẢNG TIN (KN-2): PIN vừa đổi.
-      const res = json({ ok: true }, 200, { "set-cookie": await newSessionCookie(request, env, staff.id, now) });
+      const res = json({ ok: true }, 200, { "set-cookie": await reissueSessionCookie(request, env, staff.id, sessionId, now) });
       res.headers.append("set-cookie", clearChallengeCookie(request));
       return res;
     }),
