@@ -49,8 +49,13 @@ export async function dungMucChinhSach(el: HTMLElement): Promise<void> {
       await tai();
     } catch (err) {
       if (err instanceof ApiError && err.code === "policy_stale") {
-        await tai();
         bao = { loai: "loi", chu: "Chính sách vừa được người khác đổi — đã tải lại" };
+        // Tải lại bọc riêng: lỗi ở đây không được thành lời hứa bị từ chối mà không ai xử lý.
+        try {
+          await tai();
+        } catch (loiTai) {
+          bao = { loai: "loi", chu: loiTai instanceof ApiError ? loiTai.message : "Chính sách vừa được người khác đổi — chưa tải lại được, hãy mở lại trang." };
+        }
       } else bao = { loai: "loi", chu: err instanceof ApiError ? err.message : "Không kết nối được máy chủ." };
     } finally {
       dangGui = false;

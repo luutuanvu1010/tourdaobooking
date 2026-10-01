@@ -150,7 +150,8 @@ export function luuChinhSachStatements(db: D1Database, v: { thayDoi: readonly Se
       : [closePolicyStatement(db, { id: t.banDangXem, code: t.permissionCode, at: v.at, by: v.by }), insertPolicyAfterCloseStatement(db, moi)];
   });
 }
-/** Siết theo tập (đặc tả §4.2 bước 3.3): [dọn hạn → siết (RETURNING id, staff_id) → đánh dấu một máy]. Nối SAU các câu ghi chính sách cùng lô. */
+/** Siết theo tập (đặc tả §4.2 bước 3.3): [dọn hạn → siết (RETURNING id, staff_id) → đánh dấu một máy]. Nối SAU các câu ghi chính sách cùng lô.
+ * Các câu này PHẢI đứng CUỐI lô: `ketQua` đọc theo vị trí (`r.at(-2)` = câu siết). */
 export function sietTheoTapStatements(db: D1Database, at: string, by: string): { statements: D1PreparedStatement[]; ketQua: (r: readonly D1Result[]) => { sessionIds: string[]; staffIds: string[] } } {
   return {
     statements: [endExpiredAllStatement(db, at), sietTheoTapStatement(db, at, by), danhDauMotMayTheoTapStatement(db, at, by)],

@@ -177,9 +177,10 @@ export function batMayStatements(db: D1Database, a: { id: string; staffId: strin
 /** Tắt mọi máy nhận của tài khoản trừ máy mang phiên `giuPhien` (ADR-0075 điều 6b). Chưa chạy. */
 export const tatMayTruPhienStatement = (db: D1Database, staffId: string, giuPhien: string | null, at: string): D1PreparedStatement =>
   db.prepare(TAT_MAY_TRU_PHIEN).bind(staffId, giuPhien, at);
-/** Tắt CHỈ các máy nhận mang đúng các phiên `sessionIds` của tài khoản (IT/Toàn quyền gỡ phiên — ADR-0075 điều 6b). Chưa chạy. */
+/** Tắt CHỈ máy nhận mang đúng các phiên `sessionIds`, nhiều tài khoản một lúc (Toàn quyền lưu chính sách đăng nhập — ADR-0085 Q3, lý do mat-mien). Chưa chạy. */
 export const tatMayCuaCacPhienStatement = (db: D1Database, sessionIds: readonly string[], at: string): D1PreparedStatement =>
   db.prepare(TAT_MAY_CUA_CAC_PHIEN).bind(JSON.stringify(sessionIds), at);
+/** Tắt CHỈ các máy nhận mang đúng các phiên `sessionIds` của tài khoản (IT/Toàn quyền gỡ phiên — ADR-0075 điều 6b). Chưa chạy. */
 export const tatMayCuaPhienStatement = (db: D1Database, staffId: string, sessionIds: readonly string[], at: string): D1PreparedStatement =>
   db.prepare(TAT_MAY_CUA_PHIEN).bind(staffId, JSON.stringify(sessionIds), at);
 export const tatMayStatement = (db: D1Database, staffId: string, endpoint: string | null, lyDo: string, at: string, by: string | null): D1PreparedStatement =>

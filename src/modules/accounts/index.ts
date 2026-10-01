@@ -564,6 +564,7 @@ export const accountsModule: AppModule = {
         if (plan.guarded && (results[0]!.meta.changes ?? 0) === 0) return LAST_ADMIN();
         loPhien = plan.guarded ? (phien.statements.length ? await db.batch(phien.statements) : []) : results;
       } catch (e) {
+        // Lô hai lỗi ⇒ quyền/vai đã đổi, phiên thừa sống tới lần đăng nhập sau; R-AUT-SESSION-3 thấy.
         const rule = ruleViolation(e); // lưới cuối: lỗi trigger (LC-1b…) thành 409, không 500
         if (rule) return rule;
         throw e;
@@ -639,6 +640,7 @@ export const accountsModule: AppModule = {
           ]);
         }
       } catch (e) {
+        // Lô hai lỗi ⇒ quyền/vai đã đổi, phiên thừa sống tới lần đăng nhập sau; R-AUT-SESSION-3 thấy.
         const rule = ruleViolation(e);
         if (rule) return rule;
         throw e;
