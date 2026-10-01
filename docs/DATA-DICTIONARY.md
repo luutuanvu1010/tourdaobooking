@@ -16,6 +16,7 @@
 | `login_attempt` | bảng | tên cũ, giữ nguyên (ADR-0002 điều 2) |
 | `aut_passkey` | bảng |  |
 | `aut_session` | bảng | sổ phiên đăng nhập (ADR-0075, migration 0065): mỗi lần cấp phiên là một dòng, KHÔNG xoá (kết thúc = ended_at + end_reason đi cặp). single = 1: tài khoản chịu luật một máy, chỉ mục duy nhất aut_session_one_live chặn hai phiên sống cùng lúc. ip và user_agent là DỮ LIỆU CÁ NHÂN, giữ vô hạn, chỉ IT/Toàn quyền và chính chủ tài khoản xem, KHÔNG vào nhật ký |
+| `aut_session_policy` | bảng | chính sách đăng nhập (ADR-0085, migration 0067): mỗi quyền app đặt được (9 mã, không SUPER_ADMIN) tối đa một dòng hiện hành; multi = 1 là Nhiều máy; bảng trống = mọi quyền Một máy. Không xoá dòng — đổi = đóng dòng hiện hành (valid_to_at) + chèn dòng mới trong cùng lô; lưu có kiểm phiên bản (id dòng đang xem) |
 
 ## billing
 
@@ -135,6 +136,8 @@
 | `stf_permission_type` | bảng tra cứu |  |
 | `v_stf_staff_label` | view công bố | cột: id, label, active, party_id |
 | `v_stf_toan_quyen` | view công bố | cột: staff_id |
+| `v_stf_quyen_mo` | view công bố | cột: staff_id, permission_code |
+| `v_stf_nhieu_may_co_dinh` | view công bố | cột: staff_id |
 | `v_stf_staff_xung_ho` | view công bố | cột: id, given_name, gender |
 
 ## thongbao
