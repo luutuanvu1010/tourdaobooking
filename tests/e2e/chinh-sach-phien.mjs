@@ -29,6 +29,7 @@ async function dangNhapMay(tk, ua) {
   return r.headers.get("set-cookie").split(";")[0];
 }
 const ban0 = await ban(); // chính sách lúc vào kịch bản — khôi phục về đúng giá trị này
+let loiGoc = null;
 try {
   // 1. AC5: Quản trị, Nhân sự → 403
   for (const c of [ADM, HR]) {
@@ -113,22 +114,35 @@ try {
     `INSERT INTO aut_session (id, staff_id, method, single, trusted_device_id, device_label, user_agent, ip, created_at, last_seen_at, expires_at, ended_at, end_reason, ended_by, created_by, updated_at, updated_by) ${N} SELECT 'ss-cs1000-a-' || i, 'stf-cs1000-' || i, 'PIN', 0, NULL, 'Máy', NULL, NULL, '${at}', '${at}', '${het}', NULL, NULL, NULL, 'stf-cs1000-' || i, '${at}', NULL FROM n;`,
     `INSERT INTO aut_session (id, staff_id, method, single, trusted_device_id, device_label, user_agent, ip, created_at, last_seen_at, expires_at, ended_at, end_reason, ended_by, created_by, updated_at, updated_by) ${N} SELECT 'ss-cs1000-b-' || i, 'stf-cs1000-' || i, 'PIN', 0, NULL, 'Máy', NULL, NULL, '${at2}', '${at2}', '${het}', NULL, NULL, NULL, 'stf-cs1000-' || i, '${at2}', NULL FROM n;`,
   ].join(" "));
+  const banPartner = banCua(await ban(), "PARTNER"); // lấy bản TRƯỚC khi bấm giờ: chỉ đo đúng lời gọi PUT
   const t0 = Date.now();
-  r = await luu([{ permissionCode: "PARTNER", multi: false, banDangXem: banCua(await ban(), "PARTNER") }]);
+  r = await luu([{ permissionCode: "PARTNER", multi: false, banDangXem: banPartner }]);
   const ms = Date.now() - t0;
   assert.equal(r.status, 200, JSON.stringify(r.body));
   assert.equal(r.body.soNguoi >= 1000, true);
+  assert.equal(r.body.soPhien >= 1000, true);
   const [con] = await sqlRows("SELECT count(*) AS n FROM (SELECT staff_id FROM aut_session WHERE staff_id LIKE 'stf-cs1000-%' AND ended_at IS NULL GROUP BY staff_id HAVING count(*) > 1)");
-  assert.equal(con.n, 0, "mỗi tài khoản còn đúng một phiên");
-  console.log(`✓ AC10: siết 1000 tài khoản Đối tác — một lô, ${ms} ms, ${r.body.soPhien} máy / ${r.body.soNguoi} người`);
+  assert.equal(con.n, 0, "không tài khoản nào còn hơn một phiên");
+  const dem = async (m) => (await sqlRows(`SELECT count(*) AS n FROM aut_session WHERE id LIKE 'ss-cs1000-${m}-%' AND ended_at IS NULL`))[0].n;
+  assert.equal(await dem("b"), 1000, "giữ phiên MỚI NHẤT của mỗi tài khoản (không kết thúc cả hai)");
+  assert.equal(await dem("a"), 0, "phiên cũ hơn đã kết thúc");
+  console.log(`✓ AC10: siết 1000 tài khoản Đối tác — một lô, ${ms} ms (chỉ PUT), ${r.body.soPhien} máy / ${r.body.soNguoi} người`);
+} catch (e) {
+  loiGoc = e;
+  throw e;
 } finally {
-  // Khôi phục chính sách lúc vào kịch bản: đọc bản HIỆN TẠI (lấy banId mới) rồi đặt lại từng quyền khác ban0.
-  const hien = await ban();
-  const thayDoi = hien.filter((h) => h.multi !== ban0.find((b) => b.permissionCode === h.permissionCode).multi)
-    .map((h) => ({ permissionCode: h.permissionCode, multi: ban0.find((b) => b.permissionCode === h.permissionCode).multi, banDangXem: h.banId }));
-  if (thayDoi.length) {
-    const k = await luu(thayDoi);
-    assert.equal(k.status, 200, `khôi phục chính sách: ${JSON.stringify(k.body)}`);
+  // Khôi phục chính sách lúc vào kịch bản: đọc bản HIỆN TẠI (lấy banId mới) rồi đặt lại từng quyền khác ban0. Lỗi khôi phục không che lỗi gốc.
+  try {
+    const hien = await ban();
+    const thayDoi = hien.filter((h) => h.multi !== ban0.find((b) => b.permissionCode === h.permissionCode).multi)
+      .map((h) => ({ permissionCode: h.permissionCode, multi: ban0.find((b) => b.permissionCode === h.permissionCode).multi, banDangXem: h.banId }));
+    if (thayDoi.length) {
+      const k = await luu(thayDoi);
+      assert.equal(k.status, 200, `khôi phục chính sách: ${JSON.stringify(k.body)}`);
+    }
+    console.log("✓ đã khôi phục chính sách");
+  } catch (e2) {
+    if (!loiGoc) throw e2;
+    console.error(`✘ khôi phục chính sách cũng lỗi (lỗi gốc giữ nguyên): ${e2.message}`);
   }
-  console.log("✓ đã khôi phục chính sách");
 }
