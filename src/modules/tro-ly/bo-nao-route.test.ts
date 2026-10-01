@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { world, seedStaff } from "../../../tests/audit/harness.mjs";
 import { LOI_NHAC_MAC_DINH } from "../../shared/tro-ly-bo-nao.ts";
+import { vnToday } from "../../shared/vn-date.ts";
 
 const SALES = "11111111-1111-4111-8111-111111111111";
 const SALES2 = "22222222-2222-4222-8222-222222222222";
@@ -274,4 +275,114 @@ test("HÀNG RÀO kiểm trần trước khi gọi (P2): đã dùng + chi phí T�
   assert.equal((await luuBoNao(w, { ...MINI, mau: "gpt-5-nano", mucSuyNghi: "minimal", tokenRaToiDa: 1200 })).status, 200);
   assert.equal((await hoi(w, SALES, "đổi mã PIN thế nào")).status, 200, "nano: tối đa < 0,04 USD");
   assert.equal(goi.length, 1);
+});
+
+// ---- Ô thử (ADR-0073 Đ5: T1–T5) ----
+const thu = (w: W, body: Record<string, unknown>, as = SUP) => w.call("POST", "/api/tro-ly/thu", { as, body });
+const THU = { boNao: { ...MINI, mau: "gpt-5-nano", mucSuyNghi: "minimal", tokenRaToiDa: 1200 }, cauHoi: "khách 0905 123 456 hỏi đổi mã PIN thế nào", vai: "ACCOUNTING" };
+
+test("T1 + T5: ô thử chạy đúng đường ống thật với cấu hình CHƯA lưu + vai giả định; trả câu trả lời, nguồn, token, tiền, mẫu; KHÔNG đổi cấu hình đang dùng", async () => {
+  const w = setup();
+  const goi = openAiGia({ usage: { input_tokens: 3000, input_tokens_details: { cached_tokens: 0 }, output_tokens: 400 } });
+  const truoc = w.q("SELECT count(*) AS n FROM tl_bo_nao")[0]!.n;
+  const r = await thu(w, { ...THU, boNao: { ...THU.boNao, mau: "gpt-5-mini", loiNhac: "Lời nhắc ĐANG SOẠN." } });
+  assert.equal(r.status, 200, r.text);
+  assert.equal(goi[0]!.body.model, "gpt-5-mini");
+  assert.ok(String(goi[0]!.body.instructions).startsWith("Lời nhắc ĐANG SOẠN."));
+  assert.match(String(goi[0]!.body.instructions), /Người hỏi thuộc nhóm vai: Kế toán\./);
+  assert.equal(goi[0]!.body.input, "khách [đã che] hỏi đổi mã PIN thế nào", "che như hỏi thật");
+  assert.deepEqual({ ...r.json, traLoi: "-", nguon: "-" }, { traLoi: "-", nguon: "-", tokenVao: 3000, tokenRa: 400, chiPhiMicroUsd: 1550, chiPhiUsd: 0.00155, mau: "gpt-5-mini" }); // 3000 × 0,25 + 400 × 2
+  assert.equal(r.json.nguon.length, 1);
+  assert.equal(w.q("SELECT count(*) AS n FROM tl_bo_nao")[0]!.n, truoc, "T5: thử không thêm bản");
+  assert.equal((await boNao(w)).json.hienHanh.mau, "gpt-5-nano");
+  assert.equal(w.q("SELECT count(*) AS n FROM audit_log WHERE action = 'tro_ly_settings_changed'")[0]!.n, 0, "thử không ghi nhật ký đổi cài đặt");
+});
+
+test("T2: cấu hình thử sai ⇒ 400 như khi lưu; vai lạ / câu rỗng ⇒ 400; không gọi mẫu, không ghi dòng", async () => {
+  const w = setup();
+  const goi = openAiGia();
+  for (const sai of [{ boNao: { ...THU.boNao, mau: "gpt-4o" } }, { boNao: { ...THU.boNao, loiNhac: "mail lan@vidu.vn" } }, { boNao: null }, { vai: "KHACH" }, { vai: ["SALES"] }, { cauHoi: "  " }, { cauHoi: "a".repeat(2001) }]) {
+    const r = await thu(w, { ...THU, ...sai });
+    assert.equal(r.status, 400, JSON.stringify(sai).slice(0, 60));
+    assert.ok(!/[a-z]+_[a-z]+/.test(r.json.error.message), r.json.error.message);
+  }
+  assert.equal(goi.length, 0);
+  assert.equal(w.q("SELECT count(*) AS n FROM tl_luot_hoi")[0]!.n, 0);
+});
+
+test("T3: lượt thử ghi tl_luot_hoi (la_thu = 1, có mẫu), KHÔNG ghi tl_hoi_dap, KHÔNG tính trần lượt ngày; HÀNG RÀO lượt thử TÍNH vào trần tiền tháng", async () => {
+  const w = setup();
+  openAiGia();
+  assert.equal((await w.call("POST", "/api/tro-ly/cai-dat", { as: SUP, body: { bat: true, tranThangUsd: 5, tranNgay: 1 } })).status, 200);
+  for (let i = 0; i < 3; i++) assert.equal((await thu(w, THU)).status, 200);
+  const rows = w.q("SELECT la_thu, mau, chi_phi_micro_usd FROM tl_luot_hoi");
+  assert.ok(rows.length === 3 && rows.every((x) => x.la_thu === 1 && x.mau === "gpt-5-nano"), JSON.stringify(rows));
+  assert.equal(w.q("SELECT count(*) AS n FROM tl_hoi_dap")[0]!.n, 0);
+  assert.equal((await hoi(w, SUP, "đổi mã PIN thế nào")).status, 200, "trần ngày 1: ba lượt thử không bị đếm");
+  const daDung = Number(w.q("SELECT SUM(chi_phi_micro_usd) AS s FROM tl_luot_hoi")[0]!.s);
+  assert.equal((await w.call("POST", "/api/tro-ly/cai-dat", { as: SUP, body: { bat: true, tranThangUsd: daDung / 1_000_000, tranNgay: 30 } })).status, 200);
+  const r = await hoi(w, SALES, "đổi mã PIN thế nào");
+  assert.equal(r.status, 429, "tiền của lượt thử làm chạm trần tháng");
+  assert.equal(r.json.error.code, "tro_ly_het_tran_thang");
+  const t = await thu(w, THU);
+  assert.equal(t.status, 429, "ô thử cũng bị trần tháng chặn");
+  assert.equal(t.json.error.code, "tro_ly_het_tran_thang");
+});
+
+test("T4: thử chạy được khi trợ lý đang TẮT; thiếu khoá ⇒ 503 như hỏi thường", async () => {
+  const w = setup();
+  openAiGia();
+  assert.equal((await w.call("POST", "/api/tro-ly/cai-dat", { as: SUP, body: { bat: false, tranThangUsd: 5, tranNgay: 30 } })).status, 200);
+  assert.equal((await thu(w, THU)).status, 200);
+  const w2 = setup(null);
+  const r = await thu(w2, THU);
+  assert.equal(r.status, 503);
+  assert.equal(r.json.error.code, "tro_ly_chua_bat");
+});
+
+test("Review Focus 4: trợ lý TẮT + có khoá + trần tháng đã chạm ⇒ ô thử 429, không gọi mẫu (tắt không miễn trần tháng)", async () => {
+  const w = setup();
+  const goi = openAiGia();
+  assert.equal((await w.call("POST", "/api/tro-ly/cai-dat", { as: SUP, body: { bat: false, tranThangUsd: 1, tranNgay: 30 } })).status, 200);
+  const ngay = vnToday(new Date());
+  w.sqlite.exec(`INSERT INTO tl_luot_hoi (id, staff_id, ngay_vn, chi_phi_micro_usd, ket_qua, created_at, updated_at) VALUES ('day', '${ADM}', '${ngay}', 1000000, 'ok', 'x', 'x')`);
+  const r = await thu(w, THU);
+  assert.equal(r.status, 429, r.text);
+  assert.equal(goi.length, 0);
+});
+
+test("HÀNG RÀO kiểm trần trước khi gọi ở ô thử (P2, ruling F7): đã dùng + chi phí TỐI ĐA của cấu hình thử > trần ⇒ 429, KHÔNG gọi mẫu; cấu hình rẻ cùng trần vẫn chạy", async () => {
+  const w = setup();
+  const goi = openAiGia();
+  assert.equal((await w.call("POST", "/api/tro-ly/cai-dat", { as: SUP, body: { bat: true, tranThangUsd: 0.04, tranNgay: 30 } })).status, 200);
+  const r = await thu(w, { ...THU, boNao: { ...THU.boNao, mau: "gpt-5", mucSuyNghi: "high", tokenRaToiDa: 4000 } });
+  assert.equal(r.status, 429, r.text);
+  assert.equal(r.json.error.code, "tro_ly_het_tran_thang");
+  assert.equal(goi.length, 0, "không được gọi mẫu");
+  assert.equal((await thu(w, THU)).status, 200, "nano: tối đa < 0,04 USD");
+  assert.equal(goi.length, 1);
+});
+
+test("Ô thử: OpenAI trả 400 (vd. mẫu không nhận mức suy nghĩ) ⇒ câu tiếng Việt dễ hiểu mã mau_tu_choi, KHÔNG 500; lượt ghi loi + la_thu = 1; log không nội dung", async () => {
+  const w = setup();
+  openAiGia({ status: 400 });
+  const log: string[] = [];
+  const errCu = console.error;
+  console.error = (...a: unknown[]) => { log.push(a.map(String).join(" ")); };
+  let r;
+  try { r = await thu(w, THU); } finally { console.error = errCu; }
+  assert.equal(r.status, 502, r.text);
+  assert.equal(r.json.error.code, "mau_tu_choi");
+  assert.match(r.json.error.message, /Mẫu AI đang chọn không nhận/);
+  assert.deepEqual(w.q("SELECT ket_qua, la_thu, mau FROM tl_luot_hoi").map((x) => [x.ket_qua, x.la_thu, x.mau]), [["loi", 1, "gpt-5-nano"]]);
+  assert.equal(w.q("SELECT count(*) AS n FROM tl_hoi_dap")[0]!.n, 0);
+  assert.ok(!log.join("\n").includes("PIN") && !log.join("\n").includes("[đã che]"), "log không nội dung");
+});
+
+test("Ô thử: chỉ Toàn quyền (Quản trị, Bán hàng 403)", async () => {
+  const w = setup();
+  const goi = openAiGia();
+  for (const as of [ADM, SALES]) assert.equal((await thu(w, THU, as)).status, 403);
+  assert.equal(goi.length, 0);
+  assert.equal(w.q("SELECT count(*) AS n FROM tl_luot_hoi")[0]!.n, 0);
 });

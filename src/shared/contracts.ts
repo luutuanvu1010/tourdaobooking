@@ -1615,3 +1615,7 @@ export interface TroLyBoNaoResponse {
 }
 /** `GET /api/tro-ly/bo-nao/lich-su` (Toàn quyền): 30 bản mới nhất; `phanDoi` = phần đổi so với bản trước (lời thường, không nội dung). */
 export interface TroLyBoNaoLichSuResponse { cacBan: (TroLyBoNao & { id: string; luc: string; nguoi: string | null; phanDoi: string })[] }
+/** `POST /api/tro-ly/thu` (Toàn quyền — ADR-0073 Đ5): cấu hình CHƯA lưu + câu hỏi + MỘT vai giả định. Chạy đúng đường ống thật; tính vào trần TIỀN tháng,
+ *  không tính trần lượt ngày; không ghi lịch sử hỏi đáp; chạy được khi trợ lý đang tắt. Mẫu từ chối cấu hình (OpenAI 400) ⇒ 502 mã `mau_tu_choi`, câu lời thường. */
+export interface TroLyThuRequest { boNao: TroLyBoNao; cauHoi: string; vai: PermissionCode }
+export interface TroLyThuResponse { traLoi: string; nguon: string[]; tokenVao: number; tokenRa: number; chiPhiMicroUsd: number; chiPhiUsd: number; mau: string }

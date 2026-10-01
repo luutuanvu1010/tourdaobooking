@@ -137,6 +137,27 @@ not ok 15 - HÀNG RÀO kiểm trần trước khi gọi (P2): đã dùng + chi p
 - Ước dùng `uocTokenVao(than)` (toàn bộ `instructions` + `input`, gồm phần nhớ và đoạn tài liệu), không riêng ngân sách 6.000 token tài liệu. MỘT hàm `kiemTranTruocKhiGoi` (export ở `src/modules/tro-ly/index.ts`) — Task 9 (ô thử) dùng lại, không chép khối.
 - Đường phòng thủ (gọi lại không nhớ) không kiểm lại: lần hai nhỏ hơn lần đầu đã qua kiểm.
 
+### Task 9 — ô thử `POST /api/tro-ly/thu` (Đ5, T1–T5): hàng rào (d) "lượt thử TÍNH vào trần tiền tháng" + chỉ Toàn quyền + cờ `la_thu` + kiểm trần trước khi gọi ở ô thử — 2026-10-01
+
+Mỗi đột biến làm MỘT mình, chạy `node --test src/modules/tro-ly/bo-nao-route.test.ts`, rồi hoàn nguyên (kiểm `git diff` / grep), chạy lại ⇒ `# pass 23`, `# fail 0`.
+
+1. (d) `TONG_THANG` (`repository.ts`): `COALESCE(SUM(chi_phi_micro_usd), 0) AS tong` → `COALESCE(SUM(CASE WHEN la_thu = 0 THEN chi_phi_micro_usd ELSE 0 END), 0) AS tong` ⇒ `# fail 2`:
+   ```
+   not ok 6 - B10 + T6: Thử key dùng MẪU ĐANG CHỌN, ghi la_thu = 1; … CÓ vào tiền tháng; có dòng lượt thử tháng
+   not ok 18 - T3: lượt thử ghi tl_luot_hoi (la_thu = 1, có mẫu), KHÔNG ghi tl_hoi_dap, KHÔNG tính trần lượt ngày; HÀNG RÀO lượt thử TÍNH vào trần tiền tháng
+   ```
+   Hoàn nguyên bằng bản sao tệp; `git diff --stat src/modules/tro-ly/repository.ts` rỗng.
+2. Chỉ Toàn quyền: `if (!can(staff, "settings.ops"))` của route thử → `if (false)` ⇒ `# fail 1`: `not ok 23 - Ô thử: chỉ Toàn quyền (Quản trị, Bán hàng 403)`.
+3. Cờ thử: `laThu: true` của route thử → `laThu: false` ⇒ `# fail 2`: `not ok 18 - T3 …`, `not ok 22 - Ô thử: OpenAI trả 400 … lượt ghi loi + la_thu = 1 …`.
+4. Kiểm trần trước khi gọi ở ô thử (ruling F7 — CÙNG hàm `kiemTranTruocKhiGoi` với route hỏi): `if (kiemTranTruocKhiGoi(` → `if (false && kiemTranTruocKhiGoi(` ⇒ `# fail 3`: `not ok 18 - T3 …`, `not ok 20 - Review Focus 4 …`, `not ok 21 - HÀNG RÀO kiểm trần trước khi gọi ở ô thử (P2, ruling F7) …`.
+
+Quyết định / giả định:
+- Nhật ký: lượt thử KHÔNG ghi `audit_log` (không đổi cấu hình; dấu vết = dòng `tl_luot_hoi`: người, ngày, mẫu, tiền — không nội dung). Không có chữ câu hỏi / câu trả lời / lời nhắc trong log console (bài "OpenAI trả 400" kiểm).
+- Mẫu từ chối / lỗi OpenAI: trả **502** với mã + câu của `ketQuaThuKhoa` (400 ⇒ `mau_tu_choi`, 401 ⇒ `sai_khoa`, mạng ⇒ `loi_mang`…) — cùng câu với Thử key; không 500. Trả về rỗng (`rong`) ⇒ 502 `tro_ly_loi` câu chung. Lượt lỗi vẫn ghi `ket_qua = 'loi'`, `la_thu = 1`, có mẫu (tiền đã tiêu vẫn tính).
+- Dòng `het_tran` của ô thử ghi `mau` NULL (như route hỏi — chưa gọi mẫu).
+- Vai giả định = MỘT mã quyền (chuỗi trong `PERMISSION_CODES`); mảng / mã lạ ⇒ 400. Chỉ tên nhóm vai vào lời nhắc (`dungLoiNhac`), tìm đoạn ưu tiên theo vai đó.
+- Số route: 201 → 202 (kế hoạch ghi 203 → 204 — theo ruling F1 đếm lại bằng grep). `docs/SYSTEM-DESIGN.md` §7: số route + dòng bảng route.
+
 ## Kiểm
 
 (điền ở Task 18)

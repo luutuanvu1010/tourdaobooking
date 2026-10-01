@@ -9,7 +9,7 @@
 // ADR-0073: bộ não tuỳ biến (tl_bo_nao), ô thử, nhớ 3 lượt, lọc số tiền + kiểm trần trước khi gọi. Gọi mẫu + làm sạch câu trả lời ở goi-mau.ts.
 import { auditStatement } from "../audit";
 import type {
-  TroLyBoNaoLichSuResponse, TroLyBoNaoResponse, TroLyCaiDatResponse, TroLyHoiResponse, TroLyKhungResponse, TroLyLichSuResponse, TroLyLoiDanResponse, TroLyNguCanhResponse, TroLyThuKhoaResponse,
+  TroLyBoNaoLichSuResponse, TroLyBoNaoResponse, TroLyCaiDatResponse, TroLyHoiResponse, TroLyKhungResponse, TroLyLichSuResponse, TroLyLoiDanResponse, TroLyNguCanhResponse, TroLyThuKhoaResponse, TroLyThuResponse,
 } from "../../shared/contracts";
 import { error, escapeLike, intParam, json, readJson, UUID_RE } from "../../shared/http";
 import { can, PERMISSION_CODES, PERMISSION_LABEL, type PermissionCode } from "../../shared/permissions";
@@ -336,6 +336,60 @@ export const troLyModule: AppModule = {
           phanDoi: phanDoi(ds[i + 1] ?? null, b),
         })),
       } satisfies TroLyBoNaoLichSuResponse);
+    }),
+
+    // ADR-0073 Đ5: ô thử — cấu hình CHƯA lưu (qua CÙNG kiemBoNao với PUT — T2) + câu hỏi + MỘT vai giả định (chỉ tên nhóm vai vào lời nhắc); chạy đúng đường
+    // ống thật (che, tìm đoạn theo vai, gọi, nguồn, ẩn tiền — traLoiMotCau). Chạy được khi trợ lý TẮT (T4 — thử trước khi bật) nhưng KHÔNG miễn trần tiền tháng
+    // (T3; kiemTranTruocKhiGoi — MỘT hàm với route hỏi, ruling F7); không trần ngày (la_thu = 1); không nhớ; không ghi tl_hoi_dap; không đổi bộ não đã lưu (T5).
+    // Không ghi audit_log: lượt thử không đổi cấu hình; dấu vết là dòng tl_luot_hoi (người, ngày, mẫu, tiền — không nội dung).
+    route("POST", "/api/tro-ly/thu", "office", async ({ env, request, staff }) => {
+      if (!can(staff, "settings.ops")) return error(403, "forbidden", "Chỉ Toàn quyền thử được trợ lý.");
+      const body = await readJson(request);
+      const bn = kiemBoNao((body?.boNao ?? null) as Record<string, unknown> | null);
+      if (!bn.ok) return error(400, "invalid_input", bn.message);
+      const raw = body?.cauHoi;
+      if (typeof raw !== "string" || !raw.trim()) return error(400, "invalid_input", "Gõ câu hỏi thử trước khi bấm.");
+      if (raw.length > CAU_HOI_THO_TOI_DA) return error(400, "invalid_input", CAU_QUA_DAI);
+      const vaiThu = body?.vai;
+      if (typeof vaiThu !== "string" || !(PERMISSION_CODES as readonly string[]).includes(vaiThu)) return error(400, "invalid_input", "Chọn một vai giả định để thử.");
+      const khoa = khoaCua(env);
+      // T4: thiếu khoá ⇒ 503 như hỏi thường; trợ lý tắt KHÔNG chặn ô thử.
+      if (!khoa) return error(503, "tro_ly_chua_bat", CAU_CHUA_BAT);
+      const cauHoi = cheCauHoi(raw);
+      if (!cauHoi) return error(400, "invalid_input", "Gõ câu hỏi thử trước khi bấm.");
+
+      const db = env.DB;
+      const boNao = bn.value;
+      const perms = [vaiThu as PermissionCode];
+      const now = new Date();
+      const at = now.toISOString();
+      const ngayVn = vnToday(now);
+      const { tu, den } = khoangThang(ngayVn);
+      // Tổng tháng đọc MỚI trong request này (gồm lượt thử — T3).
+      const [caiDat, thang, nguCanh] = await Promise.all([docCaiDat(db), tongThang(db, tu, den), docNguCanh(db)]);
+      const luot = (ketQua: LuotHoi["ketQua"], u: SuDung | null): LuotHoi => ({
+        id: crypto.randomUUID(), staffId: staff.id, ngayVn, vao: u?.vao ?? 0, vaoDem: u?.vaoDem ?? 0, ra: u?.ra ?? 0, chiPhi: chiPhiMicroUsd(u, boNao.mau),
+        ketQua, mau: ketQua === "het_tran" ? null : boNao.mau, laThu: true, at,
+      });
+      const doan = chonDoan(cauHoi, perms, [...chiaKho(), ...doanNguCanh(nguCanh)]);
+      const than = thanYeuCau(boNao, perms, doan, cauHoi);
+      if (kiemTranTruocKhiGoi(boNao, than, thang.tong, caiDat.tranThangMicroUsd)) {
+        await ghiLuot(db, luot("het_tran", null));
+        return error(429, "tro_ly_het_tran_thang", CAU_HET_TRAN_THANG);
+      }
+      const kq = await traLoiMotCau(env, khoa, than, doan);
+      const l = luot(kq.ok ? "ok" : "loi", kq.suDung);
+      await ghiLuot(db, l);
+      if (!kq.ok) {
+        logLoi(`thu_${kq.loi}`);
+        if (kq.loi === "rong") return error(502, "tro_ly_loi", CAU_LOI);
+        // Cùng câu lời thường với Thử key (vd. 400 ⇒ mau_tu_choi "mẫu không nhận mức suy nghĩ…"); không chuyển tiếp chữ lỗi của OpenAI.
+        const tk = ketQuaThuKhoa(kq.status === null ? { mang: true } : { status: kq.status, maLoi: kq.maLoi });
+        return error(502, tk.ma, tk.cau);
+      }
+      return json({
+        traLoi: kq.traLoi, nguon: kq.nguon, tokenVao: l.vao, tokenRa: l.ra, chiPhiMicroUsd: l.chiPhi, chiPhiUsd: usd(l.chiPhi), mau: boNao.mau,
+      } satisfies TroLyThuResponse);
     }),
 
     // ADR-0069 điều 5: lịch sử hỏi đáp — chỉ Toàn quyền; lọc ngày (YYYY-MM-DD, giờ VN), người, vai; tìm chữ; 30 dòng mỗi trang. Không route xoá.
