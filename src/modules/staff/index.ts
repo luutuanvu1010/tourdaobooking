@@ -14,7 +14,7 @@ import {
   type AdjustmentRow, type StaffRow,
 } from "./repository";
 import { canManageAccount, checkAccountChange, generatePin, isWeakPin, partyAccountVerdict, validateFreshPin } from "./rules";
-import type { PartyMatchDto, StaffAccount, StaffProfile } from "../../shared/contracts";
+import type { PartyMatchResponse, StaffAccount, StaffProfile } from "../../shared/contracts";
 import { PERMISSION_CODES, type PermissionCode } from "../../shared/permissions";
 import { ROLES, ROLE_CODES, effectivePermissions, groupOf, isRoleCode, type RoleAssignment, type RoleCode } from "../../shared/roles";
 import { addDays, vnToday } from "../../shared/vn-date";
@@ -278,11 +278,19 @@ export type CreateWithRoles =
   | { ok: true; id: string; partyId: string; pin: string; statements: D1PreparedStatement[]; permissions: PermissionCode[] }
   | { ok: false; message: string; code?: "party_merged" };
 
-/** ADR-0068 Đ9: hồ sơ cá nhân khớp khi Thêm tài khoản — MỘT nguồn cho 409 party_match_exists và route đọc của màn Quản lý tài khoản. Không SĐT của hồ sơ. */
-export async function hoSoKhopKhiTaoTaiKhoan(db: D1Database, v: { phone: string | null; ten: string | null }): Promise<PartyMatchDto[]> {
+/**
+ * ADR-0068 Đ9: hồ sơ cá nhân khớp khi Thêm tài khoản — MỘT nguồn cho 409 party_match_exists và route đọc của màn Quản lý tài khoản. Không SĐT của hồ sơ.
+ * ADR-0071 điều 3b: thu hẹp theo người gọi. `xemDanhBa` (ô party.view) → như cũ. Không (Hành chính nhân sự) → chỉ hồ sơ đang mở vai tài khoản (ROLE_CODES) hoặc
+ * đã có tài khoản; phần còn lại (khách, hồ sơ không vai tài khoản) gộp thành cờ `coHoSoKhacTrongDanhBa` — không id, tên, vai.
+ */
+export async function hoSoKhopKhiTaoTaiKhoan(db: D1Database, v: { phone: string | null; ten: string | null }, xemDanhBa: boolean): Promise<PartyMatchResponse> {
   const khop = await hoSoCaNhanKhop(db, v);
   const coTaiKhoan = await partiesWithAccount(db, khop.map((k) => k.id));
-  return khop.map((k) => ({ ...k, coTaiKhoan: coTaiKhoan.has(k.id) }));
+  const thayDuoc = (k: (typeof khop)[number]) => xemDanhBa || coTaiKhoan.has(k.id) || k.maVai.some(isRoleCode);
+  return {
+    khop: khop.filter(thayDuoc).map(({ maVai: _maVai, ...k }) => ({ ...k, coTaiKhoan: coTaiKhoan.has(k.id) })),
+    coHoSoKhacTrongDanhBa: khop.some((k) => !thayDuoc(k)),
+  };
 }
 
 /**
@@ -291,7 +299,7 @@ export async function hoSoKhopKhiTaoTaiKhoan(db: D1Database, v: { phone: string 
  */
 export async function createAccountWithRolesStatements(
   db: D1Database,
-  input: { fullName: string | null; phone: string; assignment: RoleAssignment; existingPartyId: string | null },
+  input: { fullName: string | null; phone: string; assignment: RoleAssignment; existingPartyId: string | null; xemDanhBa: boolean },
   actorId: string,
 ): Promise<CreateWithRoles> {
   const now = new Date();
@@ -304,6 +312,12 @@ export async function createAccountWithRolesStatements(
   if (input.existingPartyId) {
     const party = await partySummary(db, input.existingPartyId);
     if (!party) return { ok: false, message: "Không tìm thấy hồ sơ đã chọn." };
+    // ADR-0071 điều 3b: người gọi không xem được Danh bạ chỉ dùng được hồ sơ họ được thấy (đang mở vai tài khoản hoặc đã có tài khoản) — hồ sơ khác trả ĐÚNG
+    // câu "không tìm thấy" như trên (không lộ hồ sơ tồn tại).
+    if (!input.xemDanhBa) {
+      const moVaiTaiKhoan = (await accountRolesOf(db, input.existingPartyId, today)).some((r) => r.validTo === null && isRoleCode(r.roleTypeCode));
+      if (!moVaiTaiKhoan && !(await accountIdOfParty(db, input.existingPartyId))) return { ok: false, message: "Không tìm thấy hồ sơ đã chọn." };
+    }
     if (party.kind !== "PERSON") return { ok: false, message: "Tài khoản chung cho công ty làm ở giai đoạn sau — hãy chọn hồ sơ cá nhân." };
     // ADR-0068 G16: hồ sơ đã gộp (luôn ngưng) — mã riêng để người tạo biết mở hồ sơ chính.
     if (party.mergedIntoId) return { ok: false, code: "party_merged", message: "Hồ sơ này đã gộp vào hồ sơ khác — chọn hồ sơ chính." };

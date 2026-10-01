@@ -14,7 +14,7 @@ import {
   setPermissionStatements, setPinStatement, touchCredentialsStatement, updateStaffStatement, validateFreshPin, validateNewPin, type StaffAccount,
 } from "../staff";
 import type {
-  PartyMatchDto, PartyMatchResponse, PasskeyCreationOptionsResponse, PasskeyListResponse, PasskeyResponse, PasskeyRequestOptionsResponse, StaffAccountDto, StaffListResponse, StaffResponse,
+  PartyMatchResponse, PasskeyCreationOptionsResponse, PasskeyListResponse, PasskeyResponse, PasskeyRequestOptionsResponse, StaffAccountDto, StaffListResponse, StaffResponse,
   StaffRolesResponse, StaffWithPinResponse,
 } from "../../shared/contracts";
 import { toBase64Url } from "../../shared/encoding";
@@ -45,8 +45,18 @@ const SELF_RESET_PIN = () => error(403, "forbidden", "Không tự đặt lại P
 const NO_PARTY = () => error(409, "no_party", "Tài khoản này chưa có hồ sơ (đang di trú dữ liệu). Thử lại sau ít phút.");
 const ROLE_MANAGED = () => error(409, "role_managed", "Tài khoản đã gán vai — đổi quyền bằng cách chọn vai hoặc chỉnh riêng ở mục Vai và quyền.");
 // ADR-0068 Đ9 (C2): chặn tạo hồ sơ trùng ở MÁY CHỦ — không đặt trong createAccountWithRolesStatements (đường tạo DUY NHẤT từ khi gỡ đồng bộ Sheet — ADR-0071).
-const MATCH_EXISTS = (khop: PartyMatchDto[]) =>
-  json({ error: { code: "party_match_exists", message: "Đã có hồ sơ cá nhân trùng số điện thoại hoặc họ tên. Chọn “Dùng hồ sơ này”, hoặc đánh dấu “Vẫn tạo hồ sơ mới” nếu là người khác.", khop } }, 409);
+// ADR-0071 điều 3b: chỉ có hồ sơ trùng người gọi không được thấy (cờ, `khop` rỗng) → câu riêng, không nhắc "Dùng hồ sơ này".
+const MATCH_EXISTS = (kq: PartyMatchResponse) =>
+  json({
+    error: {
+      code: "party_match_exists",
+      message: kq.khop.length > 0
+        ? "Đã có hồ sơ cá nhân trùng số điện thoại hoặc họ tên. Chọn “Dùng hồ sơ này”, hoặc đánh dấu “Vẫn tạo hồ sơ mới” nếu là người khác."
+        : "Số hoặc tên này đã có trong Danh bạ. Vẫn tạo được hồ sơ mới; sau đó nhờ Quản trị gộp hồ sơ trùng.",
+      ...kq,
+    },
+  }, 409);
+const coTrung = (kq: PartyMatchResponse) => kq.khop.length > 0 || kq.coHoSoKhacTrongDanhBa;
 const problemResponse = (p: RoleProblem): Response => error(p.forbidden ? 403 : 400, p.forbidden ? "forbidden" : "invalid_input", p.message);
 /** Lỗi trigger luật cứng / ràng buộc duy nhất → phản hồi rõ nghĩa (lưới cuối — kiểm thuần đã chặn trước). */
 function ruleViolation(e: unknown): Response | null {
@@ -339,6 +349,7 @@ export const accountsModule: AppModule = {
     route("POST", "/api/staff", "accounts", async ({ request, env, staff: admin }) => {
       if (!can(admin, "account.create")) return NOT_ACCOUNT_CREATE(); // ADR-0071 điều 1b: Quản trị KHÔNG tạo tài khoản nữa
       const actorIsSuper = can(admin, "admin.manage.superadmin"); // LC-4 (ADR-0019): "là Toàn quyền" do bảng quyền trả lời, không kiểm tay
+      const xemDanhBa = can(admin, "party.view"); // ADR-0071 điều 3b: hồ sơ trùng / hồ sơ có sẵn thu hẹp theo quyền xem Danh bạ
       const db = env.DB;
       const body = await readJson(request);
       const phone = typeof body?.phone === "string" ? normalizePhone(body.phone) : null;
@@ -355,10 +366,10 @@ export const accountsModule: AppModule = {
         if (problem) return problemResponse(problem);
         if (await findStaffByPhone(db, phone)) return PHONE_TAKEN();
         if (!existingPartyId && body.taoHoSoMoi !== true) {
-          const khop = await hoSoKhopKhiTaoTaiKhoan(db, { phone, ten: name.value ?? null });
-          if (khop.length > 0) return MATCH_EXISTS(khop);
+          const kq = await hoSoKhopKhiTaoTaiKhoan(db, { phone, ten: name.value ?? null }, xemDanhBa);
+          if (coTrung(kq)) return MATCH_EXISTS(kq);
         }
-        const created = await createAccountWithRolesStatements(db, { fullName: name.value ?? null, phone, assignment: parsed.value, existingPartyId }, admin.id);
+        const created = await createAccountWithRolesStatements(db, { fullName: name.value ?? null, phone, assignment: parsed.value, existingPartyId, xemDanhBa }, admin.id);
         if (!created.ok) return error(409, created.code ?? "account_rule", created.message);
         const detail = [
           `vai: ${rolesLabel(parsed.value.roles)}`,
@@ -391,8 +402,8 @@ export const accountsModule: AppModule = {
       if (lai) return problemResponse(lai);
       if (await findStaffByPhone(db, phone)) return PHONE_TAKEN();
       if (body?.taoHoSoMoi !== true) {
-        const khop = await hoSoKhopKhiTaoTaiKhoan(db, { phone, ten: name.value! });
-        if (khop.length > 0) return MATCH_EXISTS(khop);
+        const kq = await hoSoKhopKhiTaoTaiKhoan(db, { phone, ten: name.value! }, xemDanhBa);
+        if (coTrung(kq)) return MATCH_EXISTS(kq);
       }
       const created = await createAccountStatements(db, { fullName: name.value!, phone, permissions: perms.value! }, admin.id);
       try {
@@ -412,8 +423,8 @@ export const accountsModule: AppModule = {
       if (!can(admin, "account.create")) return NOT_ACCOUNT_CREATE();
       const phone = normalizePhone(url.searchParams.get("phone") ?? "");
       const ten = (url.searchParams.get("ten") ?? "").trim().slice(0, 200);
-      if (!phone && !ten) return json({ khop: [] } satisfies PartyMatchResponse);
-      return json({ khop: await hoSoKhopKhiTaoTaiKhoan(env.DB, { phone, ten: ten || null }) } satisfies PartyMatchResponse);
+      if (!phone && !ten) return json({ khop: [], coHoSoKhacTrongDanhBa: false } satisfies PartyMatchResponse);
+      return json((await hoSoKhopKhiTaoTaiKhoan(env.DB, { phone, ten: ten || null }, can(admin, "party.view"))) satisfies PartyMatchResponse);
     }),
 
     // ---- Sửa một tài khoản (tên, SĐT đăng nhập, ngưng/kích hoạt) --------------------------------

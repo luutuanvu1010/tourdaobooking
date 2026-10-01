@@ -270,20 +270,23 @@ function clearExisting(): void {
 // ADR-0068 Đ9 (C1): gõ SĐT hoặc tên → liệt kê MỌI hồ sơ cá nhân khớp; phải chọn "Dùng hồ sơ này" hoặc tick "Vẫn tạo hồ sơ mới" thì nút Tạo mở. Máy chủ kiểm lại
 // (409 party_match_exists — cùng một hàm với route đọc). Tra sau 300 ms ngừng gõ; chỉ nhận kết quả của lần tra MỚI NHẤT (`lanKhop`).
 let khop: Api.PartyMatchDto[] = [];
+// ADR-0071 điều 3b: có hồ sơ trùng mà tài khoản này không được thấy (không xem Danh bạ — Hành chính nhân sự): máy chủ chỉ báo cờ, không tên.
+let khopAn = false;
+const CAU_KHOP_AN = "Số hoặc tên này đã có trong Danh bạ. Vẫn tạo được hồ sơ mới; sau đó nhờ Quản trị gộp hồ sơ trùng.";
 const taoMoi = h("input", { type: "checkbox", class: "o-tick" });
 const nutTao = byId<HTMLFormElement>("add-form").querySelector<HTMLButtonElement>('button[type="submit"]')!;
-const capNhatNutTao = () => { nutTao.disabled = khop.length > 0 && !existingPartyId && !taoMoi.checked; };
+const capNhatNutTao = () => { nutTao.disabled = (khop.length > 0 || khopAn) && !existingPartyId && !taoMoi.checked; };
 taoMoi.addEventListener("change", capNhatNutTao);
 function veKhop(): void {
-  if (khop.length === 0 || existingPartyId) {
+  if ((khop.length === 0 && !khopAn) || existingPartyId) {
     if (!existingPartyId) existingNote.hidden = true;
     capNhatNutTao();
     return;
   }
   replaceChildren(
     existingNote,
-    h("p", null, "Đã có hồ sơ khớp — chọn một hồ sơ, hoặc tạo hồ sơ mới nếu là người khác:"),
-    h("ul", null, ...khop.map((k) => {
+    khop.length > 0 && h("p", null, "Đã có hồ sơ khớp — chọn một hồ sơ, hoặc tạo hồ sơ mới nếu là người khác:"),
+    khop.length > 0 && h("ul", null, ...khop.map((k) => {
       const dung = h("button", { type: "button", class: "btn btn-link" }, "Dùng hồ sơ này");
       dung.addEventListener("click", () => {
         existingPartyId = k.id;
@@ -297,6 +300,7 @@ function veKhop(): void {
       return h("li", null, h("strong", null, k.displayName), ` — ${lyDo}`, k.vai.length ? ` — ${k.vai.join(", ")}` : "", " ",
         k.coTaiKhoan ? h("span", { class: "muted" }, "(đã có tài khoản)") : dung);
     })),
+    khopAn && h("p", null, CAU_KHOP_AN),
     h("label", { class: "check" }, taoMoi, "Vẫn tạo hồ sơ mới (người khác trùng tên/số)"),
   );
   existingNote.hidden = false;
@@ -312,16 +316,17 @@ const traKhop = () => {
     const lan = ++lanKhop;
     const phone = addPhone.value.trim();
     const ten = addName.value.trim();
-    let ds: Api.PartyMatchDto[] = [];
+    let ds: Api.PartyMatchResponse = { khop: [], coHoSoKhacTrongDanhBa: false };
     if (phone || ten) {
       try {
-        ds = (await api<Api.PartyMatchResponse>(`/api/staff/ho-so-khop?${new URLSearchParams({ phone, ten })}`)).khop;
+        ds = await api<Api.PartyMatchResponse>(`/api/staff/ho-so-khop?${new URLSearchParams({ phone, ten })}`);
       } catch {
-        ds = []; // SĐT chưa đúng dạng hay mất mạng giữa lúc gõ: không chặn, không báo lỗi — máy chủ vẫn trả 409 khi bấm Tạo
+        // SĐT chưa đúng dạng hay mất mạng giữa lúc gõ: không chặn, không báo lỗi — máy chủ vẫn trả 409 khi bấm Tạo
       }
     }
     if (lan !== lanKhop) return;
-    khop = ds;
+    khop = ds.khop;
+    khopAn = ds.coHoSoKhacTrongDanhBa === true;
     veKhop();
   }, 300);
 };
@@ -365,7 +370,9 @@ byId<HTMLFormElement>("add-form").addEventListener("submit", async (e) => {
     // Máy chủ thấy hồ sơ khớp mà lần tra lúc gõ chưa kịp trả (hoặc vừa có hồ sơ mới): hiện khối với danh sách của máy chủ, kèm câu báo của máy chủ.
     if (err instanceof ApiError && err.code === "party_match_exists") {
       huyTraKhop();
-      khop = (err.details as { khop?: Api.PartyMatchDto[] } | undefined)?.khop ?? [];
+      const ct = err.details as Partial<Api.PartyMatchResponse> | undefined;
+      khop = ct?.khop ?? [];
+      khopAn = ct?.coHoSoKhacTrongDanhBa === true;
       veKhop();
       return showError(errorEl, err.message);
     }
@@ -377,6 +384,7 @@ byId<HTMLFormElement>("add-form").addEventListener("submit", async (e) => {
   addName.value = addPhone.value = "";
   addPicker.reset(EMPTY);
   khop = [];
+  khopAn = false;
   taoMoi.checked = false;
   veKhop();
   await load();

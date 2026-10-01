@@ -70,5 +70,5 @@ test("C1 [Dừng Q4]: GET /api/staff/ho-so-khop trả ĐÚNG danh sách của 40
   assert.deepEqual(r.json.khop, post.json.error.khop);
   assert.equal((await w.call("GET", `/api/staff/ho-so-khop?phone=${SO}`, { as: SALES })).status, 403);
   assert.equal((await w.call("GET", `/api/staff/ho-so-khop?phone=${SO}`, { as: ADM })).status, 403, "ADR-0071: Quản trị không tạo tài khoản ⇒ không hỏi hồ sơ khớp");
-  assert.deepEqual((await w.call("GET", "/api/staff/ho-so-khop", { as: SUP })).json, { khop: [] });
+  assert.deepEqual((await w.call("GET", "/api/staff/ho-so-khop", { as: SUP })).json, { khop: [], coHoSoKhacTrongDanhBa: false });
 });

@@ -745,7 +745,9 @@ export interface PartyDuplicatePairDto { a: PartyListItemDto; b: PartyListItemDt
 export interface PartyDuplicatesResponse { pairs: PartyDuplicatePairDto[]; conNua: boolean }
 /** Hồ sơ cá nhân khớp khi Thêm tài khoản (ADR-0068 Đ9) — không SĐT của hồ sơ. */
 export interface PartyMatchDto { id: string; displayName: string; lyDo: ("PHONE" | "NAME")[]; vai: string[]; coTaiKhoan: boolean }
-export interface PartyMatchResponse { khop: PartyMatchDto[] }
+/** ADR-0071 điều 3b: `coHoSoKhacTrongDanhBa` = có hồ sơ trùng mà người gọi không được thấy (không xem Danh bạ — Hành chính nhân sự): khách, hồ sơ không vai tài
+ * khoản. Không kèm id, tên, vai. Người xem được Danh bạ thấy mọi hồ sơ trùng trong `khop` nên cờ luôn false. */
+export interface PartyMatchResponse { khop: PartyMatchDto[]; coHoSoKhacTrongDanhBa: boolean }
 
 // ---- Giấy tờ của người (ADR-0040 D2; module parties) — số LUÔN che ở mọi DTO dưới đây; số đầy đủ CHỈ có ở PersonDocumentRevealResponse. ----
 export interface PersonDocumentDto {
