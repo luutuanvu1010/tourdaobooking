@@ -16,7 +16,7 @@ const AT = new Date().toISOString();
 let r;
 
 const taiKhoan = async (roles) => {
-  const x = await call(ADMIN, "POST", "/api/staff", { fullName: `Cuốc E2E ${roles.join(" ")} ${duoi}`, phone: randomPhone(), roles });
+  const x = await call(ADMIN, "POST", "/api/staff", { taoHoSoMoi: true, fullName: `Cuốc E2E ${roles.join(" ")} ${duoi}`, phone: randomPhone(), roles });
   assert.equal(x.status, 201, JSON.stringify(x.body));
   const lg = await login(x.body.staff.phone, x.body.pin);
   assert.equal(lg.status, 200, JSON.stringify(lg.body));

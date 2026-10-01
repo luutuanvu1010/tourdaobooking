@@ -53,7 +53,7 @@ function doiToiDa(promise, ms) {
  * các kịch bản khác (đặc biệt `passkey.mjs`, chạy cuối cùng) cần giữ nguyên trạng. */
 async function taoTaiKhoanDungMotLan(name, permissions = ["SALES"]) {
   const phone = randomPhone();
-  const r = await call(ADMIN, "POST", "/api/staff", { fullName: name, phone, permissions });
+  const r = await call(ADMIN, "POST", "/api/staff", { taoHoSoMoi: true, fullName: name, phone, permissions });
   assert.equal(r.status, 201, JSON.stringify(r.body));
   const cookie = await session({ phone, pin: r.body.pin });
   return { id: r.body.staff.id, phone, cookie };

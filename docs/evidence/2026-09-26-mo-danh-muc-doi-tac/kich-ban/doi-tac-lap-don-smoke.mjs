@@ -91,7 +91,7 @@ try {
   // ---- Tài khoản Đối tác: tạo qua API quản trị (vai Cộng tác viên → quyền PARTNER), như e2e nhap-tay-va-gia-doi-tac.mjs ----
   const partnerPhone = "0900000271";
   let PARTNER;
-  const createdStaff = await call(ACCOUNTS.admin, "POST", "/api/staff", { fullName: "Đối Tác Lập Đơn", phone: partnerPhone, roles: ["COLLABORATOR"] });
+  const createdStaff = await call(ACCOUNTS.admin, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Đối Tác Lập Đơn", phone: partnerPhone, roles: ["COLLABORATOR"] });
   if (createdStaff.status === 201) {
     assert.deepEqual(createdStaff.json.staff.permissions, ["PARTNER"], `vai Cộng tác viên → chỉ quyền Đối tác: ${JSON.stringify(createdStaff.json.staff)}`);
     PARTNER = { name: "Đối Tác Lập Đơn", phone: partnerPhone, pin: createdStaff.json.pin };

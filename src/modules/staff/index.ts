@@ -3,7 +3,7 @@
 // audit vào một db.batch() — đổi tài khoản và ghi dấu vết thành công/thất bại cùng nhau. Tên người thuộc hồ sơ (module parties):
 // tạo/đổi tên tài khoản gọi hàm của parties (cạnh staff → parties, ADR-0002); staff.full_name/role là cột chết (ADR-0005).
 import {
-  accountRolesOf, closeAccountRoleStatement, newPersonStatements, openAccountRoleStatement, openRoleCodesByParty, partySummary, renamePersonStatements,
+  accountRolesOf, closeAccountRoleStatement, hoSoCaNhanKhop, newPersonStatements, openAccountRoleStatement, openRoleCodesByParty, partySummary, renamePersonStatements,
   reopenAccountRoleStatement, splitPersonName, validatePersonFullName, type AccountRole,
 } from "../parties";
 import { hashPin, verifyDummy, verifyPin } from "./password";
@@ -15,7 +15,7 @@ import {
 } from "./repository";
 import { canManageAccount, checkAccountChange, generatePin, isWeakPin, partyAccountVerdict, validateFreshPin } from "./rules";
 import { parseStaffSheet as parseSheetRows, type StaffCandidate, type StaffSheetParse } from "./sheet";
-import type { StaffAccount, StaffProfile } from "../../shared/contracts";
+import type { PartyMatchDto, StaffAccount, StaffProfile } from "../../shared/contracts";
 import { PERMISSION_CODES, type PermissionCode } from "../../shared/permissions";
 import { ROLES, ROLE_CODES, effectivePermissions, groupOf, isRoleCode, type RoleAssignment, type RoleCode } from "../../shared/roles";
 import { addDays, vnToday } from "../../shared/vn-date";
@@ -281,6 +281,13 @@ export function roleChangeStatements(
 export type CreateWithRoles =
   | { ok: true; id: string; partyId: string; pin: string; statements: D1PreparedStatement[]; permissions: PermissionCode[] }
   | { ok: false; message: string; code?: "party_merged" };
+
+/** ADR-0068 Đ9: hồ sơ cá nhân khớp khi Thêm tài khoản — MỘT nguồn cho 409 party_match_exists và route đọc của màn Quản lý tài khoản. Không SĐT của hồ sơ. */
+export async function hoSoKhopKhiTaoTaiKhoan(db: D1Database, v: { phone: string | null; ten: string | null }): Promise<PartyMatchDto[]> {
+  const khop = await hoSoCaNhanKhop(db, v);
+  const coTaiKhoan = await partiesWithAccount(db, khop.map((k) => k.id));
+  return khop.map((k) => ({ ...k, coTaiKhoan: coTaiKhoan.has(k.id) }));
+}
 
 /**
  * Tạo tài khoản THEO VAI (ADR-0018): hồ sơ mới mang đúng các vai đã chọn (không thêm vai STAFF cũ), HOẶC dùng lại hồ sơ cá nhân có sẵn (chưa có tài khoản,
