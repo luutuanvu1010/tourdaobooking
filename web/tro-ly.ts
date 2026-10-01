@@ -21,8 +21,6 @@ type Tin = { ai: "nguoi"; chu: string } | { ai: "tro-ly"; chu: string; nguon: st
 const LOI_MANG = "Không kết nối được. Kiểm tra mạng rồi thử lại.";
 /** Dự phòng khi lời dặn chưa có câu chào (không xảy ra với dữ liệu gieo 0054). */
 const CHAO = "Chào bạn! Hỏi mình cách dùng app, ví dụ: “Đổi mã PIN thế nào?” hoặc “Lập đơn mới ra sao?”.";
-/** ADR-0069 điều 5 — nguyên văn. */
-const CAU_LUU = "Câu hỏi được lưu để cải thiện trợ lý — đừng gõ thông tin khách";
 const tin: Tin[] = [];
 let dangHoi = false;
 
@@ -137,8 +135,8 @@ function moKhung(fab: HTMLElement, khung: Api.TroLyKhungResponse): void {
     "div",
     { id: "tl-khung", class: "tl-khung", role: "dialog", "aria-labelledby": "tl-khung-tieu-de" },
     dau,
-    h("div", { class: "tl-than" }, ds, h("p", { class: "tl-luu-y" }, "Trả lời do AI, có thể sai — đối chiếu màn hình.")),
-    h("div", { class: "tl-chan" }, form, h("p", { class: "tl-luu-y" }, CAU_LUU), nutMoi),
+    h("div", { class: "tl-than" }, ds),
+    h("div", { class: "tl-chan" }, form, nutMoi),
   );
   const doAnToan = h("div", { class: "tl-do-an-toan", "aria-hidden": "true" });
 
@@ -212,10 +210,18 @@ function moKhung(fab: HTMLElement, khung: Api.TroLyKhungResponse): void {
   };
   keoThanh.addEventListener("keydown", phim(keo));
   co.addEventListener("keydown", phim(doiCo));
+  // Điều tra 1/10: bấm thật (chuột và chạm, 1040 + 390) đã về đúng vị trí + cỡ mặc định và xoá bộ nhớ; chỗ "bấm không thấy gì" còn lại là khung ĐANG ở mặc định
+  // (mở khung luôn ở mặc định) ⇒ không có gì dời. Nên mỗi lần bấm khung nháy viền một nhịp: luôn thấy nút đã nhận.
+  let henNhay = 0;
   veGoc.addEventListener("click", () => {
     luu = null;
     ghiLuu(null);
     kepLai();
+    hop.classList.remove("is-ve-goc");
+    void hop.offsetWidth; // khởi động lại hiệu ứng khi bấm liên tiếp
+    hop.classList.add("is-ve-goc");
+    clearTimeout(henNhay);
+    henNhay = window.setTimeout(() => hop.classList.remove("is-ve-goc"), 800);
   });
   nutMoi.addEventListener("click", () => {
     if (dangHoi) return;

@@ -8,6 +8,7 @@
 //   d  đổi cỡ bằng tay nắm góc trên-trái: góc phải dưới đứng yên; kéo quá ⇒ dừng ở cỡ nhỏ nhất 260×300
 //   e  tải lại trang: vị trí / cỡ được giữ
 //   f  nút "Về góc": về đúng vị trí mặc định, xoá bộ nhớ
+//   f2 (1.57) bấm 'Về góc' bằng chuột thật sau khi kéo + đổi cỡ ⇒ vị trí và cỡ mặc định, xoá bộ nhớ
 //   g  đổi cỡ cửa sổ (1040×800 → 700×480): khung kẹp lại trong khung nhìn
 //   h  390 cảm ứng (Input.dispatchTouchEvent) kéo thanh tiêu đề: khung dời, trang không cuộn
 //   i  Esc đóng + tiêu điểm về nút; bấm nút khi đang mở = đóng (aria-expanded); trang phía sau vẫn bấm được khi khung mở (không modal)
@@ -142,8 +143,10 @@ try {
       assert.ok(co.width >= 44 && co.height >= 44, `tay nắm ${co.width}×${co.height}`);
       assert.ok(co.left <= k.left + 2 && co.top <= k.top + 2, "tay nắm ở góc trên-trái");
       assert.equal(await p.ev(`${q(".tl-ve-goc")}.textContent`), "Về góc");
-      const luuY = await p.ev(`[...document.querySelectorAll('#tl-khung .tl-luu-y')].map((x) => x.textContent)`);
-      assert.deepEqual(luuY, ["Trả lời do AI, có thể sai — đối chiếu màn hình.", "Câu hỏi được lưu để cải thiện trợ lý — đừng gõ thông tin khách"]);
+      // Chủ dự án 1/10: bỏ hai dòng nhắc trong khung (ý vẫn ở trang Trợ giúp).
+      assert.equal(await p.ev(`document.querySelectorAll('#tl-khung .tl-luu-y').length`), 0, "không còn dòng nhắc");
+      const chuKhung = await p.ev(`${q("#tl-khung")}.innerText`);
+      assert.ok(!chuKhung.includes("Câu hỏi được lưu") && !chuKhung.includes("Trả lời do AI"), "hai dòng nhắc đã bỏ");
       assert.ok((await p.ev(`${q(".tl-tin-tro-ly .tl-chu")}.textContent`)).length > 0, "có câu chào");
       if (vp === M || vp === DESK) await p.shot(join(OUT, `anh/a-mac-dinh-${vp.width}.png`));
     }
@@ -214,6 +217,37 @@ try {
     await sleep(150);
     assert.deepEqual(await p.ev(rect("#tl-khung")), macDinh[1040]);
     assert.equal(await p.ev(`localStorage.getItem('td_tro_ly_khung')`), null);
+  });
+
+  await step("f2", "'Về góc' bấm BẰNG CHUỘT THẬT (không .click() giả): kéo khung ra khỏi góc + đổi cỡ, bấm ⇒ vị trí VÀ cỡ về mặc định, xoá bộ nhớ; 1040 + 390", async () => {
+    for (const [vp, camUng] of [[DESK, false], [M, false], [M, true]]) {
+      const p = await moKhung(vp);
+      const mac = await p.ev(rect("#tl-khung"));
+      await keoChuot(p, ".tl-co", -80, -60); // đổi cỡ (góc phải dưới đứng yên)
+      await keoChuot(p, ".tl-keo", -120, -90); // rồi kéo ra khỏi góc
+      const lech = await p.ev(rect("#tl-khung"));
+      assert.notDeepEqual(lech, mac, `${vp.width}: đã rời mặc định`);
+      assert.ok(lech.width !== mac.width || lech.height !== mac.height, `${vp.width}: cỡ đã đổi — ${JSON.stringify({ mac, lech })}`);
+      assert.notEqual(await p.ev(`localStorage.getItem('td_tro_ly_khung')`), null, "đã nhớ");
+      const nut = await p.ev(rect(".tl-ve-goc"));
+      const [x, y] = [nut.left + nut.width / 2, nut.top + nut.height / 2];
+      if (camUng) {
+        await p.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y }] });
+        await p.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+      } else {
+        await p.send("Input.dispatchMouseEvent", { type: "mouseMoved", x, y });
+        await p.send("Input.dispatchMouseEvent", { type: "mousePressed", x, y, button: "left", buttons: 1, clickCount: 1 });
+        await p.send("Input.dispatchMouseEvent", { type: "mouseReleased", x, y, button: "left", buttons: 0, clickCount: 1 });
+      }
+      await sleep(200);
+      assert.deepEqual(await p.ev(rect("#tl-khung")), mac, `${vp.width}${camUng ? ' (chạm)' : ''}: về đúng vị trí + cỡ mặc định`);
+      assert.equal(await p.ev(`localStorage.getItem('td_tro_ly_khung')`), null, "xoá bộ nhớ");
+      assert.equal(await p.ev(`${q("#tl-khung")}.classList.contains('is-ve-goc')`), true, "khung nháy viền báo nút đã nhận");
+      assert.equal(await p.ev(`getComputedStyle(${q("#tl-khung")}).animationName`), "tl-ve-goc-nhay");
+      await sleep(900);
+      assert.equal(await p.ev(`${q("#tl-khung")}.classList.contains('is-ve-goc')`), false, "nháy xong thì tắt");
+      if (vp === M) await p.shot(join(OUT, "anh/f2-ve-goc-390.png"));
+    }
   });
 
   await step("g", "đổi cỡ cửa sổ 1040×800 → 700×480: khung kẹp lại trong khung nhìn", async () => {

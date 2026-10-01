@@ -18,6 +18,7 @@ export const CHANGELOG: readonly ReleaseNote[] = [
     items: [
       { kind: "moi", text: "Khung Hỗ trợ: khi bạn gửi câu hỏi, hiện ngay ba chấm nhấp nháy kèm chữ \"Mai đang trả lời…\" cho đến khi có câu trả lời." },
       { kind: "doi", text: "Khung Hỗ trợ: nút đổi cỡ đổi sang biểu tượng hai mũi tên chéo, ô gõ ghi \"Hãy hỏi Mai tại đây nhé!\"." },
+      { kind: "doi", text: "Khung Hỗ trợ bỏ hai dòng nhắc nhỏ (vẫn có ở Trợ giúp). Nút \"Về góc\" trả cả vị trí lẫn cỡ về mặc định và nháy viền để biết đã nhận." },
       { kind: "sua", text: "Toàn quyền: khi mẫu AI dùng hết số token cho phần suy nghĩ nên chưa viết được câu trả lời, ô thử nói rõ và chỉ cách chỉnh." },
     ],
   },

@@ -4,7 +4,7 @@
 //   a  đăng nhập bằng màn /login THẬT (390): khung Hỗ trợ TỰ MỞ một lần ở trang đầu; đóng rồi tải lại ⇒ không tự mở nữa
 //   b  390: nút "Hỗ trợ" không che thanh tab (đáy nút ≤ đỉnh thanh tab), vùng chạm ≥ 44px; 1040: nút trong khung nhìn, không che thanh bên
 //   c  trang có thanh nút dính đáy (/order-form, 390 + 1040): nút nâng lên, không che nút nào của thanh
-//   d  gửi & nhận với máy giả: câu trả lời + dòng "Nguồn: …", dòng "Trả lời do AI…"; SĐT trong câu hỏi bị che TRƯỚC khi tới máy giả; ô gõ 16px
+//   d  gửi & nhận với máy giả: câu trả lời + dòng "Nguồn: …"; SĐT trong câu hỏi bị che TRƯỚC khi tới máy giả; ô gõ 16px
 //   e2 bảo trì bật: người được phép vẫn có nút Hỗ trợ và hỏi được (30/9)
 //   e  lỗi lời thường: Toàn quyền tắt trợ lý ⇒ câu "Trợ lý chưa bật…" trong khung (không màn bảo trì, không chữ Anh)
 //   f  320: mở khung, không tràn ngang; console sạch ở mọi trang đã mở
@@ -81,9 +81,10 @@ try {
     await p.waitFor(`location.pathname !== '/login'`, "rời trang đăng nhập", 15000);
     await p.waitFor(`location.pathname === '/' && ${khungMo}`, "về Trang chủ và khung Hỗ trợ tự mở", 15000);
     assert.equal(await p.ev(`${q(".tl-khung .tl-tieu-de")}.textContent`), "Hỗ trợ");
-    assert.equal(await p.ev(`${q(".tl-khung .tl-luu-y")}.textContent`), "Trả lời do AI, có thể sai — đối chiếu màn hình.");
-    // ADR-0069 điều 5: khung ghi rõ câu hỏi được lưu.
-    assert.equal(await p.ev(`[...document.querySelectorAll(".tl-khung .tl-luu-y")].at(-1).textContent`), "Câu hỏi được lưu để cải thiện trợ lý — đừng gõ thông tin khách");
+    // Chủ dự án 1/10 (bản 1.57): bỏ hai dòng nhắc trong khung (ý vẫn ở trang Trợ giúp) — khẳng định KHÔNG còn.
+    assert.equal(await p.ev(`document.querySelectorAll(".tl-khung .tl-luu-y").length`), 0);
+    const chuKhung = await p.ev(`${q(".tl-khung")}.innerText`);
+    assert.ok(!chuKhung.includes("Trả lời do AI") && !chuKhung.includes("Câu hỏi được lưu"), "hai dòng nhắc đã bỏ");
     await p.shot(join(OUT, "anh/a-tu-mo-390.png"));
     await p.ev(`${q(".tl-khung .tl-dong")}.click(), true`);
     await p.waitFor(`!${khungMo}`, "đóng khung");
