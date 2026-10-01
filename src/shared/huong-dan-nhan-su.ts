@@ -35,7 +35,7 @@ App tự chặn: một người vừa vai nội bộ vừa vai bên ngoài; vai 
       tieuDe: "Đổi vai, sửa tên hoặc số điện thoại, nghỉ việc",
       noiDung: `1. [[Quản lý tài khoản]], ở dòng người đó bấm [[Sửa]].
 2. Sửa [[Họ tên]], [[Số điện thoại đăng nhập]] nếu cần. Đổi số là đổi tên đăng nhập của họ.
-3. Tick hoặc bỏ tick vai. Xem kỹ dòng **Sẽ thêm** và **Sẽ mất**. Bấm [[Lưu]]; không lưu thì bấm [[Đóng]].
+3. Tick hoặc bỏ tick vai. Xem kỹ dòng **Sẽ thêm** và **Sẽ mất**. Đổi vai có thể đăng xuất máy thừa. Bấm [[Lưu]]; không lưu thì bấm [[Đóng]].
 4. **Nghỉ việc**: bấm [[Ngưng]], xác nhận. Họ bị đăng xuất ngay. Quay lại làm thì bấm [[Kích hoạt lại]]. Tài khoản không bao giờ bị xoá.
 
 Bạn chỉ sửa được tài khoản **không có quyền Quản trị hoặc Nhân sự**; trên dòng của họ các nút bị ẩn.`,

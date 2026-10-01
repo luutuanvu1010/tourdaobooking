@@ -11,6 +11,15 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Có migration 0067 (ADR-0085). Số "1.62" = main 1.61 + 1 — điều phối đã chốt; KIỂM LẠI LÚC GỘP (nhánh khác gộp trước thì đánh lại số).
+    version: "1.62",
+    date: "2026-10-01",
+    items: [
+      { kind: "moi", text: "Toàn quyền đặt được quyền nào chỉ đăng nhập một máy, quyền nào được nhiều máy, ở trang Phiên đăng nhập → Chính sách đăng nhập." },
+      { kind: "doi", text: "Chuyển một quyền về Một máy thì các máy thừa đăng xuất ngay, giữ máy đăng nhập gần nhất. Đổi vai của một người cũng có thể đăng xuất máy thừa của họ." },
+    ],
+  },
+  {
     // Yêu cầu chủ 2026-10-01: Mai in đậm tên nút / đường điều hướng bằng cặp ** (luật 9 mới + dòng định dạng máy chủ nối); khung chat, ô thử, lịch sử hiện chữ đậm.
     // Số "1.61" = main 1.60 (đổi tên Loại giấy tờ cá nhân) + 1 — đánh lại lúc gộp main b8032a45 (thi công ghi 1.60).
     version: "1.61",

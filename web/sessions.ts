@@ -8,6 +8,7 @@ import { can } from "../src/shared/permissions";
 import { vnDateTimeText } from "../src/shared/vn-date";
 import { byId, h, replaceChildren } from "./dom";
 import { initShell, showError } from "./shell";
+import { dungMucChinhSach } from "./chinh-sach-dang-nhap-ui";
 
 const errorEl = byId("error");
 const okEl = byId("ok");
@@ -47,6 +48,9 @@ function hienPinMoi(name: string, phone: string, pin: string): void {
   secretEl.hidden = false;
   secretEl.scrollIntoView({ block: "nearest" });
 }
+
+// ADR-0085: mục "Chính sách đăng nhập" hỏi ĐÚNG ô của nó (luật 1.52) — không lồng trong nhánh auth.session.viewAll.
+if (can(staff, "auth.session.policy")) void dungMucChinhSach(byId("policy-card"));
 
 if (!can(staff, "auth.session.viewAll")) {
   showError(errorEl, "Trang Phiên đăng nhập chỉ người phụ trách hệ thống (IT, Toàn quyền) xem được.");
