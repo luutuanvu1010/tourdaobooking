@@ -41,6 +41,7 @@ const VAI = [
   "--c-btn-primary-bg", "--c-btn-primary-text", "--c-btn-primary-border", "--c-btn-primary-hover-bg",
   "--c-selected-bg", "--c-selected-text", "--c-selected-border",
   "--c-tab-new-bg", "--c-tab-new-icon", "--c-band-bg", "--c-on-band", "--c-maint-bg",
+  "--c-tab-active-bg", "--c-tab-active-text", "--c-fab-bg", "--c-fab-text", "--c-fab-hover-bg", "--c-avatar-bg", "--c-avatar-text",
 ];
 
 test("màu theo vai: mọi token vai khai ở :root", () => {
@@ -48,7 +49,7 @@ test("màu theo vai: mọi token vai khai ở :root", () => {
 });
 
 test("màu theo vai: thanh, nút chính, mảng đậm không trỏ thẳng màu thương hiệu", () => {
-  const boChon = ["#topbar", "#sidebar", ".btn-primary", ".login-submit", ".ntf-panel-head", ".order-summary-band", "#tabbar .tab-new .tab-icon", ".bar-back", ".sidebar-"];
+  const boChon = ["#topbar", "#sidebar", ".btn-primary", ".login-submit", ".ntf-panel-head", ".order-summary-band", "#tabbar .tab-new .tab-icon", ".bar-back", ".sidebar-", ".tl-fab", ".avatar", "#tabbar .tab["];
   const cam = /(?:^|[\s;{])(?:color|background|background-color|border-color|border-top-color):\s*(?:var\(--c-(?:primary|primary-strong|on-dark)\)|#fff\b|#ffffff\b)/;
   const loi: string[] = [];
   for (const m of luat.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
@@ -105,6 +106,10 @@ test("màu theo vai: mọi cặp chữ/nền của thanh, nút chính, mục đa
     ["--c-selected-text", "--c-selected-bg"],
     ["--c-tab-new-icon", "--c-tab-new-bg"],
     ["--c-on-band", "--c-band-bg"],
+    ["--c-tab-active-text", "--c-tab-active-bg"],
+    ["--c-fab-text", "--c-fab-bg"],
+    ["--c-fab-text", "--c-fab-hover-bg"],
+    ["--c-avatar-text", "--c-avatar-bg"],
   ];
   const loi = cap.map(([chu, nen]) => `${chu} trên ${nen}: ${tuongPhan(chu, nen).toFixed(2)}:1`).filter((_, i) => tuongPhan(...cap[i]!) < 4.5);
   assert.deepEqual(loi, []);

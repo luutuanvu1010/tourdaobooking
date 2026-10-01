@@ -317,9 +317,16 @@
   --c-tab-new-icon: var(--c-accent);
   --c-band-bg: var(--c-primary-soft);         /* mảng đậm: dải tóm tắt đơn, đầu bảng thông báo ở điện thoại */
   --c-on-band: var(--c-primary);
-  --c-maint-bg: var(--c-surface-alt);
+  --c-maint-bg: var(--c-surface-alt);    /* nền màn che bảo trì (chữ nằm trên thẻ trắng, không cần màu chữ riêng) */
+  --c-tab-active-bg: var(--c-primary-soft); /* viên nền nhạt sau biểu tượng mục ĐANG chọn ở thanh dưới điện thoại (chủ dự án 2026-10-02: chữ mảnh nên cần thêm dấu hiệu ngoài màu) */
+  --c-tab-active-text: var(--c-primary);
+  --c-fab-bg: var(--c-primary-soft);     /* nút nổi "Hỗ trợ" */
+  --c-fab-text: var(--c-primary);
+  --c-fab-hover-bg: var(--c-primary-soft-hover);
+  --c-avatar-bg: var(--c-primary-soft);  /* ảnh đại diện chữ cái (trang Tôi) */
+  --c-avatar-text: var(--c-primary);
   --c-primary-soft-hover: #c9def0;       /* rê chuột nút chính nền nhạt — đậm hơn --c-primary-soft một bậc (chữ --c-primary trên nền này ≥ 4,5:1 — src/token-giao-dien.test.ts) */
-  --c-status-bar: #ffffff;               /* thanh trạng thái iPhone (giờ, pin): PHẢI là hex — khớp <meta name="theme-color"> ở mọi public/*.html và theme_color của manifest (tests/e2e/pwa.mjs) */ /* nền màn che bảo trì (chữ nằm trên thẻ trắng, không cần màu chữ riêng) */
+  --c-status-bar: #ffffff;               /* thanh trạng thái iPhone (giờ, pin): PHẢI là hex — khớp <meta name="theme-color"> ở mọi public/*.html và theme_color của manifest (tests/e2e/pwa.mjs) */
   /* — ĐỘ ĐẬM CHỮ (2026-10-02, chủ dự án): mọi độ đậm của app đi qua năm mức dưới đây — luật không viết số (src/token-giao-dien.test.ts).
      Tên mức là VAI trong thứ bậc chữ (thường → nhấn nhất), không phải độ đậm thật: đổi cảm giác chữ cả app = đổi giá trị ở đây. Mỗi giá trị
      phải có tệp phông riêng ở @font-face đầu tệp (src/phong-chu.test.ts). — */
@@ -604,7 +611,7 @@ td.chon-td { width: var(--tap-min); padding-top: 0; padding-bottom: 0; }
   .feedback-layout { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s5); align-items: start; }
 }
 .profile { display: flex; align-items: center; gap: var(--s3); }
-.avatar { flex: none; display: flex; align-items: center; justify-content: center; width: var(--avatar); height: var(--avatar); border-radius: 50%; color: var(--c-on-dark); background: var(--c-primary); font-weight: var(--fw-heavy); font-size: var(--fs-name); }
+.avatar { flex: none; display: flex; align-items: center; justify-content: center; width: var(--avatar); height: var(--avatar); border-radius: 50%; color: var(--c-avatar-text); background: var(--c-avatar-bg); font-weight: var(--fw-heavy); font-size: var(--fs-name); }
 .profile-name { font-weight: var(--fw-heavy); font-size: var(--fs-name); }
 .list-card { padding-top: 0; padding-bottom: 0; }
 .row-link { display: flex; justify-content: space-between; align-items: center; width: 100%; min-height: var(--row-h); padding: 0; font: inherit; color: var(--c-text); text-decoration: none; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--c-line); cursor: pointer; }
@@ -711,8 +718,9 @@ body.login-page::before { content: ""; display: block; height: env(safe-area-ins
 
   #tabbar { display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; padding: 0 var(--s1) env(safe-area-inset-bottom); background: var(--c-bg); border-top: 1px solid var(--c-line); }
   #tabbar .tab { flex: 1 1 0; min-width: 0; min-height: var(--tabbar-h); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--s1); font-size: var(--fs-tab); font-weight: var(--fw-semibold); color: var(--c-muted); text-decoration: none; }
-  #tabbar .tab[aria-current="page"] { color: var(--c-primary); font-weight: var(--fw-heavy); }
+  #tabbar .tab[aria-current="page"] { color: var(--c-tab-active-text); font-weight: var(--fw-heavy); }
   #tabbar .tab-icon { display: flex; align-items: center; justify-content: center; height: var(--tab-icon); } /* cùng chiều cao để các nhãn thẳng hàng với nút Đơn mới */
+  #tabbar .tab[aria-current="page"]:not(.tab-new) .tab-icon { padding: 0 var(--s3); background: var(--c-tab-active-bg); border-radius: var(--radius-pill); } /* chủ dự án 2026-10-02: chữ mảnh nên mục đang chọn cần dấu hiệu ngoài màu chữ — viên nền nhạt sau biểu tượng (nút tròn Tạo đơn đã có nền riêng) */
   #tabbar .tab-new .tab-icon { width: var(--tab-icon); border-radius: 50%; color: var(--c-tab-new-icon); background: var(--c-tab-new-bg); }
   body.has-tabbar main { padding-bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + var(--s4)); }
   body.has-tabbar { min-height: var(--h-trang-toi-thieu); }
@@ -2163,8 +2171,8 @@ body.login-page main.login { display: flex; flex-direction: column; height: 100%
 .dp-sheet-khach .vc-reason { min-height: var(--h-dp-row); }
 
 /* ---------- Trợ lý Hỗ trợ (ADR-0066 điều 9; web/tro-ly.ts) — chỉ token ---------- */
-.tl-fab { position: fixed; z-index: var(--z-tl-fab); right: max(var(--s4), env(safe-area-inset-right)); bottom: calc(var(--s5) + var(--tl-nang, var(--tl-nang-0))); display: inline-flex; align-items: center; gap: var(--s1); min-height: var(--tap-min); padding: 0 var(--s4); font: inherit; font-size: var(--fs-label); font-weight: var(--fw-bold); color: var(--c-on-dark); background: var(--c-primary); border: 0; border-radius: var(--radius-pill); box-shadow: var(--shadow-overlay); cursor: pointer; }
-.tl-fab:hover { background: var(--c-primary-strong); }
+.tl-fab { position: fixed; z-index: var(--z-tl-fab); right: max(var(--s4), env(safe-area-inset-right)); bottom: calc(var(--s5) + var(--tl-nang, var(--tl-nang-0))); display: inline-flex; align-items: center; gap: var(--s1); min-height: var(--tap-min); padding: 0 var(--s4); font: inherit; font-size: var(--fs-label); font-weight: var(--fw-bold); color: var(--c-fab-text); background: var(--c-fab-bg); border: 0; border-radius: var(--radius-pill); box-shadow: var(--shadow-overlay); cursor: pointer; }
+.tl-fab:hover { background: var(--c-fab-hover-bg); }
 body.sheet-open .tl-fab { visibility: hidden; }
 @media (max-width: 640px) {
   body.has-tabbar .tl-fab { bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + var(--s3) + var(--tl-nang, var(--tl-nang-0))); }
