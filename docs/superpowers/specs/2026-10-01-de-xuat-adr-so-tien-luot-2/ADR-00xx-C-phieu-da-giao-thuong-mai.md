@@ -51,9 +51,13 @@
 6. **Lệch có chủ ý L-C1 (Hiến chương 5.1) — thu hẹp bằng lớp CSDL một phần, có hạn** (chủ quyết ở câu **C10**):
    - **Phần CSDL canh được (khuyến nghị thêm — C10 = A):** phiếu "Đã giao" chụp thêm `gross_snapshot` = Σ thành tiền các dòng **trước giảm** tại mốc (cùng khuôn `due_snapshot` chủ đã đồng ý lưu ở Q4 30/9; tính bằng hàm duy nhất). Trigger trên `bil_debt_line` (chỉ đọc bảng `bil_`, view `v_pty_owner_company`):
      - (i) dòng `HOA_HONG`, `GIA_VON` **bắt buộc** `order_service_id`; mỗi (phiếu, dòng dịch vụ) tối đa **một** `HOA_HONG` và **một** `GIA_VON` (chỉ mục duy nhất một phần);
+     - **Phạm vi của (ii)–(iv):** chỉ áp cho dòng **gốc** (`reverses_line_id IS NULL`) thuộc **phiếu `DELIVERED` có `gross_snapshot` NOT NULL**. **Miễn:** dòng đảo (trigger `bil_debt_line_reversal_match`, `migrations/0045:203-208`, buộc đổi chỗ hai bên — ADR-0026 điều 8), mọi dòng của phiếu **điều chỉnh** (`ADJUSTMENT`, vd ví dụ D-3 "A → TĐ 20.000 loại hoa hồng"; phiếu bổ sung giá vốn của M1 = A — không có `gross_snapshot`), và phiếu `DELIVERED` tạo trước mốc phát hành (`gross_snapshot` NULL). (i) áp cho mọi dòng `HOA_HONG`/`GIA_VON` gốc của phiếu `DELIVERED` (dòng điều chỉnh có thể gắn hoặc không gắn dòng dịch vụ — chốt ở kế hoạch).
      - (ii) chiều đúng: `HOA_HONG`, `GIA_VON` có bên nợ = công ty chủ; `GIAM_GIA_BEN_DAT` có bên được nợ = công ty chủ;
-     - (iii) cộng dồn `HOA_HONG` + `GIA_VON` trên một phiếu ≤ `gross_snapshot`;
-     - (iv) `GIAM_GIA_BEN_DAT` (nếu có) = `gross_snapshot` − `due_snapshot` **đúng từng đồng** (giảm giá cấp đơn là phần chênh duy nhất giữa hai số).
+     - (iii) cộng dồn `HOA_HONG` + `GIA_VON` **gốc** trên một phiếu `DELIVERED` ≤ `gross_snapshot` (không tính dòng đảo);
+     - (iv) `GIAM_GIA_BEN_DAT` gốc (nếu có) = `gross_snapshot` − `due_snapshot` **đúng từng đồng** (giảm giá cấp đơn là phần chênh duy nhất giữa hai số).
+     - **Không có trigger** ép "đơn có người hưởng và giảm giá > 0 thì **phải** có dòng `GIAM_GIA_BEN_DAT`" (trigger trên dòng không biết lúc nào lô đã chèn xong) — điều này **chỉ** do mã + kiểm định kỳ `R-BIL-14` canh; ghi vào lệch L-C1.
+     - **Vi phạm (iii)** gần như chỉ xảy ra khi **cấu hình sai** (mức hoa hồng + a% vượt giá bán). Route "Đã giao" **kiểm trước bằng hàm duy nhất** và trả **lý do giữ lời thường** (5.7): mã `terms_exceed_price` — "Mức hoa hồng / giá vốn cài cho đơn này vượt giá bán — Kế toán xem lại", ai xử lý: **Kế toán**; trigger chỉ là lưới cuối, `RAISE` có tiền tố mã được route dịch ra cùng câu đó, **không** trả lỗi SQL thô.
+     - **Việc của kế hoạch (spike trước khi dựa vào):** thử trên D1 local `ALTER TABLE bil_posting ADD COLUMN gross_snapshot INTEGER` kèm `CHECK` theo `kind_code` (SQLite có thể không cho `ADD COLUMN` kèm `CHECK` tham chiếu cột khác — nếu không, đổi sang trigger `BEFORE INSERT` trên `bil_posting`); ghi kết quả vào nhật ký thi công.
    - **Phần chỉ ở mã:** số hoa hồng / giá vốn **đúng tỷ lệ** của từng dòng (phần vạn, làm tròn, đếm khách H7) và "mỗi dòng ≤ thành tiền **dòng đó**" — viết công thức trong trigger là đường tính thứ hai (trái 5.4); còn thành tiền từng dòng sau điều chỉnh số khách hôm nay nằm trong JSON của `order_money_adjustment` nên không có view đọc được. Lớp bù: hàm duy nhất + sổ vàng (5.17) + `R-BIL-2` định kỳ.
    - **Điều kiện / hạn gỡ phần còn lại:** khi thành tiền dòng sau điều chỉnh có **cột** (không còn chỉ ở JSON — vd ADR nào sửa `order_money_adjustment`, hoặc chủ chọn lưu số tiền dòng vào bản chụp) thì thêm view + trigger "mỗi dòng ≤ thành tiền dòng"; **xét lại muộn nhất** ở ADR "nợ nhà xe vào sổ" (lượt sổ kế tiếp). **Chỉ hợp lệ khi chủ duyệt** (Hiến chương 6.1).
 7. **Đơn đã có số liệu cũ khi lượt 2 lên** — ba nhóm, mỗi nhóm một cách:
@@ -156,6 +160,8 @@ Số dư: **Đại lý A nợ 3.000.000 + 250.000 − 500.000 = 2.750.000** ✓ 
 4. Trần: đại lý / Bán hàng (C8 = A) giảm vượt ⇒ 400; giảm bằng trần ⇒ được; xác nhận lại so với bản chụp.
 5. `audit-invariants`: cố ý chèn dòng hoa hồng lệch 1 đồng ⇒ `R-BIL-2` thoát 1; đơn "Đã giao" trước mốc ⇒ chỉ cảnh báo.
 6. Bài cũ ghim `booker_partner` đảo có chủ đích (đỏ → xanh), ghi ở kế hoạch.
+7. (C10 = A) **Đảo một dòng `HOA_HONG` đã ghi** (Kế toán, `dao_dong`) **chạy được** — trigger (ii)–(iv) không chặn dòng đảo; **ví dụ D-3** (phiếu điều chỉnh "A → TĐ 20.000 loại hoa hồng") **chạy được**; phiếu điều chỉnh bổ sung `GIA_VON` cho đơn "Đã giao" lượt 1 (M1 = A, không `gross_snapshot`) **chạy được**.
+8. (C10 = A) Mỗi trigger (i)–(iv) thấy chặn thật một lần bằng SQL chạy tay trên phiếu `DELIVERED` mới; cấu hình mức + a% vượt giá bán ⇒ route trả lý do giữ `terms_exceed_price` bằng lời thường, không lỗi SQL thô.
 
 ## Xung đột / điều chưa chắc
 

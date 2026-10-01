@@ -4,7 +4,7 @@
 
 | Lượt | Câu |
 |---|---|
-| 2a (ADR-A) | C2, C3, C4, C9 |
+| 2a (ADR-A) | C2, C3, C4, C9, C13 |
 | 2b (ADR-B) | C5, C6 |
 | 2c (ADR-C) | C1, C8, C10, C11 |
 | 2d (ADR-D + E) | C7, C12 |
@@ -96,6 +96,14 @@ Ngày 26/9 bạn đồng ý tạm để luật giá đối tác chỉ ở máy c
 - **A (khuyến nghị) — Đồng ý nới ba điểm đó** (chỉ đúng ba điểm, không nới gì khác; mỗi điểm phải thấy chặn thật một lần sau khi thi công).
 - **B — Không nới; đặt khoá tháng trong sổ tiền.** Ít phần hơn, nhưng phần Vận chuyển phải đọc sổ tiền ⇒ coi như trả lời trước Q12 = "nhà xe ghi nợ theo sổ tiền".
 - **C — Không nới; chỉ khoá sổ tiền, chưa khoá chi phí xe thuê.** Lỡ hạn bạn đã duyệt cho phần Vận chuyển (phải có ADR gia hạn).
+
+## C13 — Đơn do đại lý tự lập: app tự ghi "bên đặt = đại lý"? Còn đơn cũ thì sao? *(ADR-00xx-A điều 3)*
+
+Hôm nay app **chưa** gắn được công ty lữ hành làm "bên đặt", và đơn đại lý tự lập ghi "người đặt" là khách. Muốn tính hoa hồng thì bên đặt phải là chính đại lý. Đây là **đổi cách lập đơn**.
+
+- **A (khuyến nghị) — Đơn mới: tự ghi bên đặt = đại lý; nhân viên lập hộ chọn được công ty lữ hành làm bên đặt. Đơn cũ chưa "Đã giao": app liệt kê cho Văn phòng / Kế toán chuyển bên đặt sang đại lý từng đơn** (không tự đổi hàng loạt). Khách đi tour vẫn ghi là "khách của đại lý". Đúng người, không sửa nhầm đơn cũ; đổi lại phải xử lý tay một danh sách đơn cũ.
+- **B — Như A, nhưng đơn cũ do tài khoản đại lý lập được tự chuyển bên đặt sang đại lý lúc lên bản.** Nhanh, nhưng có thể sai với đơn đại lý lập hộ người quen (không hưởng hoa hồng).
+- **C — Không đổi cách lập đơn; Văn phòng tự chọn bên đặt đúng mỗi lần.** Ít đổi app nhất, dễ quên ⇒ đơn đại lý bị tính như khách lẻ (mất hoa hồng) mà không ai thấy.
 
 ---
 

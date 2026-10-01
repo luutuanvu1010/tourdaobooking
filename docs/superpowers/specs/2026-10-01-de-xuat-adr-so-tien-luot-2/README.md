@@ -9,7 +9,7 @@
 ## Số hiệu
 
 - **ADR:** số giữ chỗ `ADR-00xx-A` … `ADR-00xx-E` để tham chiếu chéo không vỡ. Số thật dự kiến từ **0071**, chốt lúc gộp — trên các nhánh đã có ADR-0068 (`gop-ho-so-ca-nhan`), 0069, 0070 (trợ lý); `docs/adr/README.md` trên `main` còn ghi "kế tiếp là 0068" (cũ); một phiên khác có thể đang soạn ADR "nơi trả mặc định".
-- **Migration:** dự kiến từ **0060**, chốt lúc gộp — `0056` là `0056_gop_ho_so` (nhánh `worktree-gop-ho-so`), `0057`–`0059` đã dùng ở kế hoạch máy chủ ô chặng. Trên các nhánh còn có **hai** tệp `0055_*` (`0055_nhom_dich_vu` ở `main`, `0055_gop_ho_so` ở nhánh khác — có thể đã đổi số); người gộp rà mọi nhánh trước khi đặt số.
+- **Migration:** dự kiến từ **0060**, chốt lúc gộp — `0056` là `0056_gop_ho_so` (nhánh `worktree-gop-ho-so`), `0057`–`0059` đã dùng ở kế hoạch máy chủ ô chặng; người gộp rà mọi nhánh chưa gộp trước khi đặt số.
 
 ## Mục lục
 
@@ -22,14 +22,18 @@
 | [ADR-00xx-E](ADR-00xx-E-doi-tac-xem-so.md) | Đối tác xem sổ của mình — **ô mới `ledger.partner.view`** (giữ `ledger.view` PARTNER `none`), chỉ các loại dòng phía đối tác, DTO danh sách trắng riêng; 4 hàng rào đề xuất | 1 | **2d** |
 | [de-xuat-luat.md](de-xuat-luat.md) | Diff đề xuất cho tệp luật: `src/architecture.test.ts` (`ALLOWED_EDGES`, `STRICT`, `TABLE_PREFIX`/`VIEW_PREFIX`, `VIEW_CHO_TRIGGER_VC`), `docs/ARCHITECTURE.md` bảng thi hành 5.14 / 5.17, dòng sổ hàng rào — **chưa duyệt** | — | 2a, 2d |
 | [trang-ghep.md](trang-ghep.md) | Trang ghép `CLAUDE.md` §9: đếm trần 3; bảng chứa ai; ô quyền nào chạm bảng nào (hai nghĩa "của mình"); cổng nào canh cửa nào; ngoài phạm vi | — | mọi lượt |
-| [cau-hoi-chu.md](cau-hoi-chu.md) | **12 câu** chưa có lời chủ (C1–C12), khuyến nghị đứng đầu, lời thường; bảng "đã chốt" | — | theo lượt |
+| [cau-hoi-chu.md](cau-hoi-chu.md) | **13 câu** chưa có lời chủ (C1–C13), khuyến nghị đứng đầu, lời thường; bảng "đã chốt" | — | theo lượt |
 
 ## Thứ tự lượt duyệt (mỗi lượt ≤ 3 quyết định — `CLAUDE.md` §9)
 
-1. **Lượt 2a — ADR-00xx-A** (3). Câu kèm: **C2, C3, C4, C9**. Phần diff `VIEW_PREFIX` thêm `ctl` của `de-xuat-luat.md` mục 2.
+1. **Lượt 2a — ADR-00xx-A** (3). Câu kèm: **C2, C3, C4, C9, C13**. Phần diff `VIEW_PREFIX` thêm `ctl` của `de-xuat-luat.md` mục 2.
 2. **Lượt 2b — ADR-00xx-B** (2). Câu kèm: **C5, C6**.
 3. **Lượt 2c — ADR-00xx-C** (3: dòng thương mại + mở chặn; ai chịu giảm giá / trần; lệch L-C1). Câu kèm: **C1, C8, C10, C11**. Sau 2a, 2b.
-4. **Lượt 2d — ADR-00xx-D + ADR-00xx-E** (2 + 1 = 3). Câu kèm: **C7, C12** (C12 = duyệt `de-xuat-luat.md` mục 1, 3). Sau 2c (E đọc dòng của C và bảng kê / cờ khoá của D).
+4. **Lượt 2d — ADR-00xx-D + ADR-00xx-E** (2 + 1 = 3). Câu kèm: **C7, C12**. Sau 2c (E đọc dòng của C và bảng kê / cờ khoá của D).
+
+**C12 là câu riêng về nới hàng rào** (Điều 9.4): duyệt ADR-D **không** tự động là duyệt nới — chủ trả lời C12 (lời thường) cho đúng ba điểm ở `de-xuat-luat.md` mục 1–3; mục 2 phần `ctl` (view nhóm dịch vụ) thuộc lượt 2a và được hỏi gộp trong C12 để chủ thấy mọi chỗ nới ở một nơi. Nếu C12 = B hoặc C thì ADR-D phải sửa trước khi duyệt.
+
+**Quyết định gom nhiều thứ** (người kiểm xin chủ đọc kỹ — một lần "duyệt" kéo theo cả gói): ADR-A quyết định (1) gồm bảng mức + nguồn nhóm dịch vụ + view `v_ctl_service_group` + hai ô; (2) gồm danh sách vai được hưởng + view `v_pty_open_role` + đường để đại lý thành bên đặt (tách câu riêng C13); (3) gồm bảng chụp + chụp lại khi đổi bên đặt + hai ô (một ô là đề xuất mới). ADR-B (5) gồm nới ADR-0026 điều 2 + phiếu `COUNTERPARTY_CONFIRMED` + `collected_for` + biên nhận chia phần. ADR-C (6) gồm loại dòng mới + đổi lớp SQL lượt 1 + lý do giữ mới. ADR-D (9) gồm module mới + trigger ở hai module + ô mới + nới hàng rào (tách câu riêng C12).
 
 **Một bản phát hành cho cả năm ADR.** ADR-0026 đặt hạn "khoá kỳ phải có **trong cùng bản phát hành** với lượt 2 (D4/D5)", ADR-0057 L-T1 kéo theo khoá kỳ cho chi phí xe thuê. Phát hành A/B mà thiếu D là lỡ hạn chủ đã duyệt. Thi công theo lát được, gộp `main` và triển khai một lần.
 
