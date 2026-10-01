@@ -21,6 +21,25 @@ Ngày tra: 2026-10-01 (WebFetch, trang chính thức OpenAI).
 
 (điền theo từng task: lệnh, đột biến, thông báo đỏ nguyên văn, xác nhận hoàn nguyên bằng `git diff --stat`)
 
+### Task 3 — hàng rào (c) "mẫu ngoài danh sách bị từ chối" (`kiemBoNao`, B2) — 2026-10-01
+
+- Đột biến: trong `src/shared/tro-ly-bo-nao.ts` đổi `const mau = typeof body.mau === "string" ? timMau(body.mau) : null;` thành `const mau = typeof body.mau === "string" ? (timMau(body.mau) ?? timMau("gpt-5-nano")) : null;` (mẫu lạ lặng lẽ thành nano).
+- Lệnh: `node --test src/shared/tro-ly-bo-nao.test.ts` ⇒ `# pass 7`, `# fail 1`. Thông báo đỏ nguyên văn:
+
+```
+not ok 2 - HÀNG RÀO kiemBoNao (B2): mẫu ngoài danh sách / mức mẫu không nhận / độ dài lạ / token ngoài 800–4000 / mức Cao < 2000 / lời nhắc rỗng, > 12.000, có SĐT, email, số tiền ⇒ lỗi tiếng Việt
+  location: '…/src/shared/tro-ly-bo-nao.test.ts:16:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    {"mau":"gpt-4o","mucSuyNghi":"low","doDai":"medium","tokenRaToiDa":1500,"loiNhac
+
+    true !== false
+  code: 'ERR_ASSERTION'
+```
+
+- Hoàn nguyên bằng tay đúng dòng đó (tệp mới chưa commit); chạy lại ⇒ `# pass 8`, `# fail 0`; `grep -c 'timMau("gpt-5-nano")' src/shared/tro-ly-bo-nao.ts` = 0.
+- Ghi chú Task 3: ca B4 (lời nhắc chứa "TÀI LIỆU:" không làm mất / nhân đôi khối thật) thuộc Task 5 (`dungLoiNhac` nhận lời nhắc) theo kế hoạch; Task 3 chỉ ghim bản mặc định KHÔNG chứa "TÀI LIỆU:".
+
 ## Kiểm
 
 (điền ở Task 18)

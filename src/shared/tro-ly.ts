@@ -1,5 +1,5 @@
 // Luật THUẦN của trợ lý AI "Hỗ trợ" (ADR-0066, accepted 2026-09-30). Không I/O: máy chủ (module tro-ly) gọi, test chạy trực tiếp bằng `node --test`.
-// Gồm: hằng mẫu + giá, che câu hỏi (điều 5), kho tri thức chia đoạn + tìm theo từ khoá (điều 3), lời nhắc hệ thống (điều 4), đọc phản hồi OpenAI,
+// Gồm: hằng gọi mẫu (giá + danh sách mẫu ở tro-ly-mau.ts — ADR-0073), che câu hỏi (điều 5), kho tri thức chia đoạn + tìm theo từ khoá (điều 3), lời nhắc hệ thống (điều 4), đọc phản hồi OpenAI,
 // tính chi phí micro-USD và quyết định trần (điều 6). Nguồn tra tài liệu OpenAI: docs/superpowers/specs/2026-09-30-adr-0066-tro-ly-ai-ho-tro.md mục "Thi công".
 import { HUONG_DAN, viPhamChu } from "./huong-dan.ts";
 import { PERMISSION_CODES, PERMISSION_LABEL, type PermissionCode } from "./permissions.ts";
@@ -11,10 +11,12 @@ import { KIEN_TRUC } from "./tro-ly-kien-truc.ts";
 import { viPhamKyThuat } from "./tro-ly-loc-ky-thuat.ts";
 import type { SoToken } from "./tro-ly-mau.ts";
 export { chiPhiMicroUsd } from "./tro-ly-mau.ts";
+import { CAU_TU_CHOI, chuSach } from "./tro-ly-bo-nao.ts";
+export { CAU_TU_CHOI } from "./tro-ly-bo-nao.ts";
 
 // ---------------------------------------------------------------- hằng (ADR-0066 điều 2, 5, 6)
 
-/** Mẫu cơ bản rẻ nhất (ADR-0066 điều 2). Đổi mẫu = sửa MỘT dòng này + giá bên dưới + test. */
+/** Mẫu cơ bản rẻ nhất (ADR-0066 điều 2) — = MAU_MAC_DINH của tro-ly-mau.ts (giá + danh sách mẫu ở đó, ADR-0073 Đ1). */
 export const MAU_AI = "gpt-5-nano";
 /** Mức suy luận thấp nhất của họ GPT-5 (cookbook OpenAI "GPT-5 New Params and Tools": minimal — gpt-5, gpt-5-mini, gpt-5-nano). */
 export const MUC_SUY_LUAN = "minimal";
@@ -50,7 +52,6 @@ export const cauHetTranNgay = (tran: number): string => `Bạn đã hỏi đủ 
 export const CAU_LOI = "Trợ lý đang bận hoặc gặp lỗi. Thử lại sau ít phút, hoặc xem hướng dẫn ở Trợ giúp.";
 /** ADR-0066 điều 4 — nguyên văn. */
 export const CAU_CHUA_CO = "Chưa có trong hướng dẫn — hỏi Quản trị hoặc gửi Góp ý";
-export const CAU_TU_CHOI = "Mình chỉ hướng dẫn cách dùng app, không trả lời được câu này — hỏi Quản trị nếu cần.";
 
 // ---------------------------------------------------------------- che câu hỏi (ADR-0066 điều 5)
 
@@ -371,10 +372,6 @@ function viPhamO(ten: string, s: string): string | null {
   const v = viPhamChu(s);
   return v ? `${ten} không được chứa ${v.luat} — chữ này được gửi sang máy AI cùng câu hỏi.` : null;
 }
-
-const KY_TU_LA = new RegExp("[\\u0000-\\u0009\\u000b-\\u001f\\u007f\\u2028\\u2029\\u200e\\u200f\\u202a-\\u202e\\u2066-\\u2069]", "g");
-/** Chuỗi → bỏ ký tự điều khiển (giữ xuống dòng), cắt khoảng trắng hai đầu; không phải chuỗi ⇒ null. */
-const chuSach = (v: unknown): string | null => (typeof v === "string" ? v.replace(/\r\n?/g, "\n").replace(KY_TU_LA, " ").trim() : null);
 
 export interface LoiDan { readonly cauChao: string; readonly giong: string; readonly loiDanThem: string; readonly cauHoiMau: readonly string[] }
 

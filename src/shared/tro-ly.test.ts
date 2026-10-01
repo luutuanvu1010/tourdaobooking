@@ -9,6 +9,7 @@ import {
 } from "./tro-ly.ts";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { sinhTep, DICH } from "../../scripts/sinh-so-do-trang.mjs";
+import { MAU_MAC_DINH, TOKEN_VAO_UOC_MOT_CAU } from "./tro-ly-mau.ts";
 
 // ---- che (ADR-0066 điều 5)
 
@@ -171,4 +172,9 @@ test("khoangThang + kiemCaiDat", () => {
 
 test("sơ đồ trang: chạy lại bộ sinh ra ĐÚNG tệp đang có (sửa giao diện mà quên `node scripts/sinh-so-do-trang.mjs` ⇒ đỏ)", async () => {
   assert.equal(readFileSync(new URL(`../../${DICH}`, import.meta.url), "utf8"), await sinhTep());
+});
+
+test("tro-ly-mau.ts ghim cùng số với tro-ly.ts: token vào ước một câu = ngân sách tài liệu; mẫu mặc định = MAU_AI", () => {
+  assert.equal(TOKEN_VAO_UOC_MOT_CAU, NGAN_SACH_TOKEN);
+  assert.equal(MAU_MAC_DINH, MAU_AI);
 });
