@@ -86,9 +86,14 @@ export function checkMaintenanceInput(body: Record<string, unknown> | null, nowM
 
 const pad2 = (n: number): string => String(n).padStart(2, "0");
 
-/** Thời gian còn lại (mili giây, > 0) → "3 giờ 05 phút 09 giây" / "23 phút 10 giây" / "42 giây"; làm tròn LÊN giây để đồng hồ không hiện "0 giây" khi còn chút ít. */
+/** Thời gian còn lại (mili giây, > 0) → "3 ngày 5 giờ 10 phút" (từ 1 ngày: bỏ giây, làm tròn LÊN phút — chủ dự án 2026-10-01) /
+ * "3 giờ 05 phút 09 giây" / "23 phút 10 giây" / "42 giây"; làm tròn LÊN giây để đồng hồ không hiện "0 giây" khi còn chút ít. */
 export function formatCountdown(msLeft: number): string {
   const total = Math.max(1, Math.ceil(msLeft / 1000));
+  if (total >= 86400) {
+    const mins = Math.ceil(total / 60);
+    return `${Math.floor(mins / 1440)} ngày ${Math.floor((mins % 1440) / 60)} giờ ${mins % 60} phút`;
+  }
   const h = Math.floor(total / 3600);
   const m = Math.floor((total % 3600) / 60);
   const s = total % 60;

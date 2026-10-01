@@ -46,7 +46,16 @@ test("formatCountdown: giờ/phút/giây, bỏ đơn vị lớn đang bằng 0, 
   assert.equal(formatCountdown(42_000), "42 giây");
   assert.equal(formatCountdown(1), "1 giây");
   assert.equal(formatCountdown(3600_000), "1 giờ 00 phút 00 giây");
-  assert.equal(formatCountdown(49 * 3600_000 + 60_000), "49 giờ 01 phút 00 giây");
+  assert.equal(formatCountdown(23 * 3600_000 + 59 * 60_000 + 59_000), "23 giờ 59 phút 59 giây");
+});
+
+test("formatCountdown: từ 1 ngày trở lên đếm theo ngày-giờ-phút, bỏ giây, làm tròn lên phút (chủ dự án 2026-10-01)", () => {
+  assert.equal(formatCountdown(3 * 86400_000 + 5 * 3600_000 + 10 * 60_000), "3 ngày 5 giờ 10 phút");
+  assert.equal(formatCountdown(49 * 3600_000 + 60_000), "2 ngày 1 giờ 1 phút");
+  assert.equal(formatCountdown(86400_000), "1 ngày 0 giờ 0 phút");
+  assert.equal(formatCountdown(86400_000 + 1), "1 ngày 0 giờ 1 phút");
+  assert.equal(formatCountdown(86400_000 - 1), "1 ngày 0 giờ 0 phút");
+  assert.equal(formatCountdown(7 * 86400_000), "7 ngày 0 giờ 0 phút");
 });
 
 test("thông điệp còn giờ: đúng chữ chủ dự án đã chốt, đếm ngược nằm trong câu", () => {
