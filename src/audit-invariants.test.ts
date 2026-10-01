@@ -4,7 +4,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
-import { DatabaseSync } from "node:sqlite";
+import { DatabaseSync, type SupportedValueType } from "node:sqlite";
+import { demSietTheoTap } from "./modules/auth/repository.ts";
 import { OWNER_COMPANY_ROLE } from "./shared/cong-ty-chu.ts";
 import { vnToday } from "./shared/vn-date.ts";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts — hàm gieo DÙNG CHUNG mốc giờ hẹn (ADR-0051)
@@ -577,6 +578,37 @@ test("R-AUT-SESSION-2: phiên đã kết thúc của tài khoản ngưng, phiên
   addSession(db, { id: "ss-binh", staffId: "s-binh", ended: true });
   addSession(db, { id: "ss-an", staffId: "s-an" });
   assert.equal(violations(db, one("R-AUT-SESSION-2")), 0);
+});
+
+test("R-AUT-SESSION-3 (ADR-0085 điều 8): mức warn (không đỏ ở --strict — khe đăng nhập chạy đua đã biết)", () => {
+  assert.equal(one("R-AUT-SESSION-3").level, "warn");
+});
+
+/** build() có s-admin (ADMIN), s-an (SALES), s-lai (SALES + PARTNER), s-cuu (FIELD) đang hoạt động. Chính sách: Đối tác = Nhiều máy; s-admin thêm Toàn quyền. */
+function buildChinhSach(): DatabaseSync {
+  const db = build();
+  db.exec(`INSERT INTO aut_session_policy (id, permission_code, multi, valid_from_at, created_at, updated_at) VALUES ('pol-partner', 'PARTNER', 1, '${T1}', '${T1}', '${T1}')`);
+  db.exec(`INSERT INTO stf_permission (id, staff_id, permission_type_code, valid_from_at, created_at, updated_at) VALUES ('stp-admin-sa', 's-admin', 'SUPER_ADMIN', '${T1}', '${T1}', '${T1}')`);
+  addSession(db, { id: "an-1", staffId: "s-an", single: 0 }); // đăng nhập chạy đua lúc chính sách cũ → vi phạm
+  addSession(db, { id: "an-2", staffId: "s-an", single: 0 });
+  addSession(db, { id: "lai-1", staffId: "s-lai", single: 0 }); // một quyền (Đối tác) Nhiều máy → không
+  addSession(db, { id: "lai-2", staffId: "s-lai", single: 0 });
+  addSession(db, { id: "ad-1", staffId: "s-admin", single: 0 }); // Toàn quyền → không
+  addSession(db, { id: "ad-2", staffId: "s-admin", single: 0 });
+  addSession(db, { id: "cuu-1", staffId: "s-cuu", single: 0 }); // một phiên sống + một phiên quá hạn → không
+  addSession(db, { id: "cuu-2", staffId: "s-cuu", single: 0, expires: T2 });
+  return db;
+}
+
+test("R-AUT-SESSION-3: tài khoản theo chính sách HIỆN HÀNH là một máy mà có > 1 phiên sống còn hạn là MỘT vi phạm; nhiều máy (chính sách / Toàn quyền), phiên quá hạn không tính", () => {
+  assert.equal(violations(buildChinhSach(), one("R-AUT-SESSION-3")), 1, "chỉ s-an; đếm theo tài khoản");
+});
+
+test("R-AUT-SESSION-3 đếm cùng tập tài khoản với xem trước khi tập Nhiều máy = chính sách hiện hành (cùng mẩu điều kiện SQL)", async () => {
+  const db = buildChinhSach();
+  const d1 = { prepare: (sql: string) => ({ bind: (...a: SupportedValueType[]) => ({ first: async () => ({ ...db.prepare(sql).get(...a) }) }) }) } as unknown as D1Database;
+  const xemTruoc = await demSietTheoTap(d1, ["PARTNER"], new Date().toISOString());
+  assert.equal(xemTruoc.soNguoi, violations(db, one("R-AUT-SESSION-3")));
 });
 
 // ---------------------------------------------------------------------------------------------------------------------

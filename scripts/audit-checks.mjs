@@ -837,6 +837,19 @@ export const CHECKS = [
     sql: "SELECT count(*) FROM aut_session x JOIN v_stf_staff_label s ON s.id = x.staff_id WHERE x.ended_at IS NULL AND s.active = 0",
     level: "fail",
   },
+  // R-AUT-SESSION-3 (ADR-0085 điều 8): tài khoản theo CHÍNH SÁCH HIỆN HÀNH là một máy mà có > 1 phiên sống còn hạn. Khe đã biết: lần đăng nhập đọc chính sách cũ
+  // "Nhiều máy" ngay trước lô siết → phiên mới single = 0; tự lành ở lần đăng nhập sau. Mức WARN (không đỏ ở --strict của e2e / cổng triển khai) — để thấy, không để chặn.
+  // Mẩu điều kiện "được nhiều máy" CHÉP NGUYÊN VĂN `nhieuMayDieuKien` của src/modules/auth/repository.ts (bài đối chiếu ở src/audit-invariants.test.ts).
+  {
+    code: "R-AUT-SESSION-3",
+    what: "tài khoản theo chính sách hiện hành là một máy mà có hơn một phiên sống",
+    sql: `SELECT count(*) FROM (SELECT x.staff_id FROM aut_session x WHERE x.ended_at IS NULL AND x.expires_at > ${BAY_GIO_ISO}
+          AND NOT (EXISTS (SELECT 1 FROM v_stf_nhieu_may_co_dinh f WHERE f.staff_id = x.staff_id)
+               OR EXISTS (SELECT 1 FROM v_stf_quyen_mo q WHERE q.staff_id = x.staff_id AND q.permission_code IN
+                          (SELECT p.permission_code FROM aut_session_policy p WHERE p.valid_to_at IS NULL AND p.multi = 1)))
+          GROUP BY x.staff_id HAVING count(*) > 1)`,
+    level: "warn",
+  },
   // R-CTL-1 (ADR-0058, NT-A11): dịch vụ ĐANG HIỆN (in_sheet = 1, không bị catalog_override.hidden = 1) mà CHƯA PHÂN LOẠI — không có dòng gán hiện hành
   // (seq lớn nhất của service_code), hoặc dòng hiện hành có group_code NULL, hoặc trỏ tới nhóm đang TẮT (form đơn hiện nó là "Chưa phân loại"). Mã mới trên
   // Sheet ở lại "Chưa phân loại" cho tới khi Quản trị gán — tình trạng nghiệp vụ hợp lệ, cần người rà soát ⇒ mức warn (in số, không bao giờ đỏ). Chỉ đếm số.

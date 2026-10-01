@@ -52,3 +52,7 @@
     `not ok 4 - §6 quy tắc 8 + Review Focus 5 — DÂY THẬT (không ghiDe, hàm tiêm của gốc lắp ráp): siết tắt đăng ký của máy vừa kết thúc (mat-mien); máy giữ lại và đăng ký session_id NULL còn bật`
 - Task 6, lựa chọn bề mặt (ghi theo mã): số "đăng xuất N máy của M người" trong nhật ký `session_policy_changed` lấy bằng câu đếm xem trước NGAY TRƯỚC lô (nhật ký nhận chuỗi cố định); lệch với số RETURNING thật (chỉ khi có đăng nhập chen giữa) → một dòng log `session_policy_count_drift` (chỉ hai con số, không dữ liệu cá nhân); phản hồi trả số thật.
 - Task 6, ghi chú: `src/shared/tro-ly-cau-truc.ts` (kho trợ lý, sinh tự động ở Bước 0 của `npm test`) đổi theo ô `auth.session.policy` (mục "Việc: đặt chính sách đăng nhập" + dòng "không làm được" của 10 vai) — commit cùng Task 6 (bản trong git trước Task 6 chưa có mục này; tệp sinh đổi thì `npm test` thoát ≠ 0 tới khi commit).
+- Task 7 (R-AUT-SESSION-3, mức warn), quan sát chặn thật 2026-10-01 — đột biến "`HAVING count(*) > 1` → `> 5` trong kiểm R-AUT-SESSION-3":
+  `not ok 43 - R-AUT-SESSION-3: tài khoản theo chính sách HIỆN HÀNH là một máy mà có > 1 phiên sống còn hạn là MỘT vi phạm; nhiều máy (chính sách / Toàn quyền), phiên quá hạn không tính`
+  `not ok 44 - R-AUT-SESSION-3 đếm cùng tập tài khoản với xem trước khi tập Nhiều máy = chính sách hiện hành (cùng mẩu điều kiện SQL)`
+  (khôi phục từ bản sao, xanh lại; bài đỏ trước khi có mã: 3 bài `phải có đúng một kiểm R-AUT-SESSION-3`).
