@@ -12,8 +12,8 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // ADR-0047 Phần B (giao diện Đưa đón + Hành khách theo bản vẽ Claude Design của chủ 1/10) + màn mẫu chặng ADR-0054/0076 + cảnh báo sớm (chủ "2 — Có").
-    // Không migration. Số "1.60" = main 1.59 + 1 (đánh lại lần ba lúc gộp main 1.59 — Trợ lý Hỗ trợ, 2026-10-01; trước ghi 1.57, 1.58, 1.59).
-    version: "1.60",
+    // Không migration. Số "1.61" = main 1.60 + 1 (đánh lại lần bốn lúc gộp main 1.60 — đổi tên Loại giấy tờ cá nhân, 2026-10-01; trước ghi 1.57–1.60).
+    version: "1.61",
     date: "2026-10-01",
     items: [
       { kind: "moi", text: "Form đơn có khối \"Đưa đón\": chiều đi, chiều về, ngày giờ đón, nơi đón, nơi trả, số hiệu chuyến bay, số người chiều về." },
@@ -22,6 +22,14 @@ export const CHANGELOG: readonly ReleaseNote[] = [
       { kind: "moi", text: "Chi tiết đơn có \"Sửa đưa đón\" và \"Sửa danh sách\" cho đơn đã xác nhận." },
       { kind: "moi", text: "Danh mục: Quản trị cài mỗi dịch vụ đưa đón mấy chiều, giờ về và nơi trả gợi ý." },
       { kind: "moi", text: "Nhắc sớm khi xác nhận đơn và khi xếp xe nếu còn thiếu nơi trả hoặc tên khách; vẫn làm tiếp được." },
+    ],
+  },
+  {
+    // Chủ dự án 2026-10-01: đổi tên trang "Loại giấy tờ người" → "Loại giấy tờ cá nhân" (chỉ đổi chữ; đường dẫn /loai-giay-to-nguoi giữ nguyên). Không migration. Số "1.60" = main 1.59 + 1 (đánh lại lúc gộp main 1.59 — trợ lý Mai, 2026-10-01).
+    version: "1.60",
+    date: "2026-10-01",
+    items: [
+      { kind: "doi", text: "Trang \"Loại giấy tờ người\" đổi tên thành \"Loại giấy tờ cá nhân\" (căn cước, bằng lái, khám sức khoẻ, tập huấn). Nội dung không đổi." },
     ],
   },
   {

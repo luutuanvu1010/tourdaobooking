@@ -1,9 +1,9 @@
 // Kịch bản Chrome — chỗ vào phân hệ Vận chuyển (bản vẽ 00), màn 01 Danh sách xe, màn 02 Thêm / sửa xe (ADR-0040 D1; docs/design/van-chuyen-1a/).
 // 1) menu máy tính: mục cha "Vận chuyển" (nhóm QUẢN TRỊ, sau Địa điểm) luôn mở hai mục con "Xe", "Sắp hết hạn" (huy hiệu số); breadcrumb "Vận chuyển › Xe".
-//    Từ 2026-09-28 (tách "Danh mục giấy tờ" theo chủ dữ liệu — không có trong bản vẽ): giữa "Địa điểm" và "Vận chuyển" có "Loại giấy tờ người"; mục con thứ ba
+//    Từ 2026-09-28 (tách "Danh mục giấy tờ" theo chủ dữ liệu — không có trong bản vẽ): giữa "Địa điểm" và "Vận chuyển" có "Loại giấy tờ cá nhân"; mục con thứ ba
 //    "Loại giấy tờ xe" (ô admin.manage) — kiểm kỹ ở danh-muc-giay-to-smoke.mjs.
 // 2) trang Tôi điện thoại của Quản trị: nhãn "VẬN CHUYỂN" + hai dòng Xe / Giấy tờ sắp hết hạn (+ "Loại giấy tờ xe", 2026-09-28), ngay dưới Danh bạ / Địa điểm
-//    (+ "Loại giấy tờ người", 2026-09-28).
+//    (+ "Loại giấy tờ cá nhân", 2026-09-28).
 // 3) Bán hàng: không mục, không dòng, không lời gọi /api/van-chuyen/*; mở thẳng /xe → câu từ chối của máy chủ, không nút Thêm xe.
 // 4) 01 trạng thái trống (390 + 1040).  5) 02 thêm xe qua form (bộ đếm −/+, Lưu xe → chi tiết).  6) biển số trùng → "Biển số này đang dùng cho xe khác." dưới ô.
 // 7) 01 có xe: thẻ / bảng, trạng thái, cảnh báo giấy tờ có biểu tượng + chữ, bộ lọc có số đếm.  8) 02 sửa: "Ngừng dùng xe" → hộp xác nhận "không bị xoá" → Ngừng.
@@ -33,9 +33,9 @@ try {
       assert.ok(qt, JSON.stringify(m.groups));
       const labels = qt.items.map((i) => i.label);
       const at = labels.indexOf("Địa điểm");
-      // "Loại giấy tờ người" (sau Địa điểm) và mục con "Loại giấy tờ xe": tách "Danh mục giấy tờ" 2026-09-28 (chủ dự án), không có trong bản vẽ 00.
+      // "Loại giấy tờ cá nhân" (sau Địa điểm) và mục con "Loại giấy tờ xe": tách "Danh mục giấy tờ" 2026-09-28 (chủ dự án), không có trong bản vẽ 00.
       // ADR-0049 B1 (vòng 3, bản vẽ Bảng điều phối vo-may-tinh): mục con "Điều phối xe" (ô trip.view) đứng ĐẦU dưới "Vận chuyển", trước "Xe".
-      assert.deepEqual(labels.slice(at, at + 7), ["Địa điểm", "Loại giấy tờ người", "Vận chuyển", "Điều phối xe", "Xe", "Sắp hết hạn", "Loại giấy tờ xe"], JSON.stringify(labels));
+      assert.deepEqual(labels.slice(at, at + 7), ["Địa điểm", "Loại giấy tờ cá nhân", "Vận chuyển", "Điều phối xe", "Xe", "Sắp hết hạn", "Loại giấy tờ xe"], JSON.stringify(labels));
       const [cha, dieuPhoi, xe, han, loaiXe] = qt.items.slice(at + 2, at + 7);
       assert.equal(cha.tag, "DIV", "mục cha không phải liên kết (bản vẽ: luôn mở, chỉ các mục con bấm được)");
       assert.equal(cha.current, null);
@@ -52,7 +52,7 @@ try {
     }
   });
 
-  await dem.step("2", "trang Tôi điện thoại (Quản trị): nhãn “VẬN CHUYỂN” + Xe / Giấy tờ sắp hết hạn / Loại giấy tờ xe ngay dưới Danh bạ / Địa điểm / Loại giấy tờ người" + axeNote(), async () => {
+  await dem.step("2", "trang Tôi điện thoại (Quản trị): nhãn “VẬN CHUYỂN” + Xe / Giấy tờ sắp hết hạn / Loại giấy tờ xe ngay dưới Danh bạ / Địa điểm / Loại giấy tờ cá nhân" + axeNote(), async () => {
     const p = await env.as(ADMIN, "/account", MOB);
     try {
       await p.waitFor("!!document.querySelector('#vc-links')", "nhóm VẬN CHUYỂN", 10000);
@@ -62,8 +62,8 @@ try {
         const order = [...document.querySelector('.account-layout').children].filter((e) => e.getClientRects().length > 0).map((e) => e.id || e.className);
         return { top: rows('#links-top'), eyebrow: t(document.querySelector('.vc-eyebrow')), vc: rows('#vc-links'), rest: rows('#links'), order };
       })()`);
-      // "Loại giấy tờ người" / "Loại giấy tờ xe": tách dòng "Danh mục giấy tờ" cũ (Task A19) theo chủ dữ liệu, 2026-09-28 — không có trong bản vẽ 00.
-      assert.deepEqual(s.top.map((r) => r.text), ["Danh bạ", "Địa điểm", "Loại giấy tờ người"]);
+      // "Loại giấy tờ cá nhân" / "Loại giấy tờ xe": tách dòng "Danh mục giấy tờ" cũ (Task A19) theo chủ dữ liệu, 2026-09-28 — không có trong bản vẽ 00.
+      assert.deepEqual(s.top.map((r) => r.text), ["Danh bạ", "Địa điểm", "Loại giấy tờ cá nhân"]);
       assert.equal(s.eyebrow, "VẬN CHUYỂN");
       // ADR-0049 B8 (bản vẽ Bảng điều phối 08 khung 8d, 2026-09-29): Quản trị có thêm dòng "Lý do điều phối" cuối nhóm (không có "Chính sách điều phối" — chỉ Toàn quyền).
       assert.deepEqual(s.vc, [{ href: "/dieu-phoi", text: "Điều phối xe" }, { href: "/xe", text: "Xe" }, { href: "/giay-to-sap-het-han", text: "Giấy tờ sắp hết hạn" }, { href: "/loai-giay-to-xe", text: "Loại giấy tờ xe" }, { href: "/ly-do-dieu-phoi", text: "Lý do điều phối" }]);

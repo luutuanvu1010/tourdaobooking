@@ -15,7 +15,7 @@ import { insertStaffSql } from "./staff-lib.mjs";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const PORT = 8787;
 const tunnel = process.argv.includes("--tunnel");
-const wrangler = (args) => execFileSync("npx", ["wrangler", ...args], { cwd: ROOT, stdio: ["ignore", "pipe", "pipe"], encoding: "utf8", env: { ...process.env, CI: "1" } });
+const wrangler = (args) => execFileSync("npx", ["wrangler", ...args], { cwd: ROOT, stdio: ["ignore", "pipe", "pipe"], encoding: "utf8", maxBuffer: 256 * 1024 * 1024, env: { ...process.env, CI: "1" } }); // maxBuffer: đầu ra apply vượt 1 MB từ migration 0062 (2026-10-01)
 
 const pin = () => {
   for (;;) {

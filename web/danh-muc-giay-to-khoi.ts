@@ -1,6 +1,6 @@
 // Khối danh mục giấy tờ DÙNG CHUNG của hai trang (tách 2026-09-28 theo quyết định của chủ dự án "Tách theo chủ dữ liệu"):
 //  - "Loại giấy tờ xe" (/loai-giay-to-xe, web/loai-giay-to-xe.ts) — thuộc phân hệ Vận chuyển (mục con dưới "Vận chuyển" / nhóm VẬN CHUYỂN ở trang Tôi);
-//  - "Loại giấy tờ người" (/loai-giay-to-nguoi, web/loai-giay-to-nguoi.ts) — loại giấy tờ của người + hạng giấy phép lái xe: danh mục chung của Danh bạ
+//  - "Loại giấy tờ cá nhân" (/loai-giay-to-nguoi, web/loai-giay-to-nguoi.ts) — loại giấy tờ của người + hạng giấy phép lái xe: danh mục chung của Danh bạ
 //    ("giấy tờ thuộc về người"), mục trong nhóm QUẢN TRỊ ngay sau "Địa điểm".
 // Trước đó là MỘT trang /danh-muc-giay-to gộp ba khối (ADR-0040 D1, D2; Task A19 — khuôn sẵn của trang Địa điểm, web/locations.ts); đường dẫn cũ nay chỉ
 // còn chuyển hướng (public/danh-muc-giay-to.html, khuôn public/home.html). Sửa có khoá lạc quan (expectedUpdatedAt); không xoá — chỉ ngưng dùng. Chỉ người giữ
