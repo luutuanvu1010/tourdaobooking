@@ -5,7 +5,8 @@ import assert from "node:assert/strict";
 import { DatabaseSync, type SupportedValueType } from "node:sqlite";
 import { readFileSync, readdirSync } from "node:fs";
 import {
-  endExpiredSessionsStatement, endOtherSessionsStatement, getSession, insertSessionStatement, touchSessionStatement,
+  endAllButNewestStatement, endExpiredSessionsStatement, endOtherSessionsStatement, getSession, insertSessionStatement, markMultiStatement, markSingleStatement,
+  touchSessionStatement,
 } from "./repository.ts";
 
 const DIR = new URL("../../../migrations/", import.meta.url);
@@ -135,4 +136,73 @@ test("touch chỉ ghi khi last_seen_at cũ hơn 5 phút", async () => {
   assert.equal(stale.meta.changes, 1);
   const p1 = sqlite.prepare("SELECT last_seen_at, updated_at FROM aut_session WHERE id = 'p1'").get() as { last_seen_at: string; updated_at: string };
   assert.deepEqual({ ...p1 }, { last_seen_at: iso(t0 + 10 * 60_000), updated_at: iso(t0 + 10 * 60_000) });
+});
+
+// ---- ADR-0075 điều 3 (Task 8): mất / được miễn luật một máy khi đổi quyền, vai ------------------------------------------------------------------------
+const loMatMien = (db: D1Database, at: string, by: string) => [
+  endExpiredSessionsStatement(db, "s1", at), endAllButNewestStatement(db, "s1", at, by), markSingleStatement(db, "s1", at, by),
+];
+const dong = (sqlite: DatabaseSync, id: string) =>
+  ({ ...sqlite.prepare("SELECT single, ended_at, end_reason, ended_by, updated_at, updated_by FROM aut_session WHERE id = ?").get(id) });
+const themNguoi = (sqlite: DatabaseSync, id: string, phone: string) =>
+  sqlite.exec(`INSERT INTO staff (id, phone, pin_hash, role, full_name, active, created_at) VALUES ('${id}', '${phone}', 'x', 'sales', '', 1, '2026-01-01T00:00:00Z')`);
+
+test("mất miễn: 3 phiên sống single=0 → còn ĐÚNG phiên mới nhất (single=1), 2 phiên 'mat_mien' do người đổi; RETURNING trả phiên bị kết thúc và phiên giữ", async () => {
+  const { db, sqlite } = setup();
+  themNguoi(sqlite, "adm", "0900000009");
+  await insertSessionStatement(db, row("p1", 0, "2026-10-01T09:00:00.000Z", LATER)).run();
+  await insertSessionStatement(db, row("p2", 0, "2026-10-01T10:00:00.000Z", LATER)).run();
+  await insertSessionStatement(db, row("p3", 0, "2026-10-01T11:00:00.000Z", LATER)).run();
+  const kq = await db.batch(loMatMien(db, NOW, "adm"));
+  assert.deepEqual((kq[1]!.results as { id: string }[]).map((r) => r.id).sort(), ["p1", "p2"]);
+  assert.deepEqual(kq[2]!.results, [{ id: "p3" }], "câu đánh dấu một máy trả đúng phiên được giữ");
+  assert.deepEqual(phienSong(sqlite, "s1"), ["p3"]);
+  for (const id of ["p1", "p2"]) assert.deepEqual(dong(sqlite, id), { single: 0, ended_at: NOW, end_reason: "mat_mien", ended_by: "adm", updated_at: NOW, updated_by: "adm" });
+  assert.deepEqual(dong(sqlite, "p3"), { single: 1, ended_at: null, end_reason: null, ended_by: null, updated_at: NOW, updated_by: "adm" });
+});
+
+test("mất miễn: đảo thứ tự (đánh dấu single=1 TRƯỚC khi kết thúc) → UNIQUE, cả lô lùi — lý do thứ tự [kết thúc → đánh dấu]", async () => {
+  const { db, sqlite } = setup();
+  await insertSessionStatement(db, row("p1", 0, "2026-10-01T10:00:00.000Z", LATER)).run();
+  await insertSessionStatement(db, row("p2", 0, "2026-10-01T11:00:00.000Z", LATER)).run();
+  await assert.rejects(db.batch([markSingleStatement(db, "s1", NOW, "s1"), endAllButNewestStatement(db, "s1", NOW, "s1")]), /UNIQUE/);
+  assert.deepEqual(phienSong(sqlite, "s1"), ["p1", "p2"]);
+});
+
+test("mất miễn: phiên hết hạn chưa kết thúc (kể cả phiên có created_at MỚI NHẤT) không vỡ chỉ mục duy nhất — kết thúc 'het_han', phiên còn hạn mới nhất được giữ", async () => {
+  const { db, sqlite } = setup();
+  await insertSessionStatement(db, row("p1", 0, "2026-09-20T00:00:00.000Z", EXPIRED)).run();
+  await insertSessionStatement(db, row("p2", 0, "2026-10-01T10:00:00.000Z", LATER)).run();
+  await insertSessionStatement(db, row("p3", 0, "2026-10-01T11:00:00.000Z", LATER)).run();
+  await insertSessionStatement(db, row("p4", 0, "2026-10-01T23:00:00.000Z", "2026-10-01T23:30:00.000Z")).run();
+  await db.batch(loMatMien(db, NOW, "s1"));
+  assert.equal(dong(sqlite, "p1").end_reason, "het_han");
+  assert.equal(dong(sqlite, "p4").end_reason, "het_han");
+  assert.equal(dong(sqlite, "p2").end_reason, "mat_mien");
+  assert.deepEqual(phienSong(sqlite, "s1"), ["p3"]);
+  assert.equal(dong(sqlite, "p3").single, 1);
+});
+
+test("mất miễn: tài khoản VẪN giữ Toàn quyền lúc câu chạy (vd câu chốt quản trị viên cuối thua) → không kết thúc, không đánh dấu phiên nào", async () => {
+  const { db, sqlite } = setup();
+  sqlite.exec("INSERT INTO stf_permission (id, staff_id, permission_type_code, valid_from_at, created_at, updated_at) VALUES ('sp', 's1', 'SUPER_ADMIN', '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')");
+  await insertSessionStatement(db, row("p1", 0, "2026-10-01T10:00:00.000Z", LATER)).run();
+  await insertSessionStatement(db, row("p2", 0, "2026-10-01T11:00:00.000Z", LATER)).run();
+  const kq = await db.batch(loMatMien(db, NOW, "s1"));
+  assert.deepEqual(kq[1]!.results, []);
+  assert.deepEqual(kq[2]!.results, []);
+  assert.deepEqual(phienSong(sqlite, "s1"), ["p1", "p2"]);
+  assert.equal(dong(sqlite, "p2").single, 0);
+});
+
+test("được miễn: phiên sống single=1 → single=0 (cột kiểm toán); requireToanQuyen = true mà tài khoản không giữ Toàn quyền → không đổi", async () => {
+  const { db, sqlite } = setup();
+  themNguoi(sqlite, "adm", "0900000009");
+  await insertSessionStatement(db, row("p1", 1, "2026-10-01T10:00:00.000Z", LATER)).run();
+  const khong = await markMultiStatement(db, "s1", NOW, "adm", true).run();
+  assert.equal(khong.meta.changes, 0);
+  assert.equal(dong(sqlite, "p1").single, 1);
+  const co = await markMultiStatement(db, "s1", NOW, "adm", false).run();
+  assert.equal(co.meta.changes, 1);
+  assert.deepEqual(dong(sqlite, "p1"), { single: 0, ended_at: null, end_reason: null, ended_by: null, updated_at: NOW, updated_by: "adm" });
 });

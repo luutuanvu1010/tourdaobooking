@@ -2,7 +2,7 @@
 // và gửi đi — không dựa vào helper tạo lại phiên (che mất "bị đá → 401").
 // Kết thúc bằng sessionMoi(salesA) để các kịch bản sau (cùng D1 tạm) có phiên sống.
 import assert from "node:assert/strict";
-import { ACCOUNTS, BASE, call, freshIp, login, session, sessionMoi, sqlRows } from "./lib.mjs";
+import { ACCOUNTS, BASE, call, freshIp, login, randomPhone, session, sessionMoi, sqlRows } from "./lib.mjs";
 import { createFakeAuthenticator } from "./fake-authenticator.mjs";
 import { randomUUID } from "node:crypto";
 
@@ -336,6 +336,38 @@ const batMay = async (ck, ep) => assert.equal((await call(ck, "POST", "/api/acco
   assert.equal(r.status, 200);
   assert.ok(r.body.entries.some((e) => e.targetId === id), "Toàn quyền thấy dòng session_revoked");
   console.log("✓ nhật ký session_revoked: một dòng, không IP; Quản trị 403 ở trang Nhật ký, Toàn quyền thấy");
+}
+
+// ---- Task 8 (ADR-0075 điều 3): mất miễn luật một máy → còn phiên mới nhất -----------------------------------------------------------------------------
+// KHÔNG hạ quyền superAdmin dùng chung (nhóm e2e khác chạy song song cần nó): superAdmin tạo một tài khoản Toàn quyền THỬ, đăng nhập 2 máy (cookie tường minh),
+// rồi bỏ Toàn quyền của tài khoản đó. Cuối cùng ngưng tài khoản thử.
+{
+  const sa = await dangNhapMay(WINDOWS, undefined, SA);
+  const phone = randomPhone();
+  r = await call(sa, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Toàn Quyền Thử Mất Miễn", phone, permissions: ["SUPER_ADMIN"] });
+  assert.equal(r.status, 201, JSON.stringify(r.body));
+  const tk = { phone, pin: r.body.pin };
+  const tid = r.body.staff.id;
+  const may1 = await dangNhapMay(IPHONE, undefined, tk);
+  await new Promise((ok) => setTimeout(ok, 5)); // created_at khác nhau: máy 2 là phiên mới nhất
+  const may2 = await dangNhapMay(WINDOWS, undefined, tk);
+  for (const ck of [may1, may2]) assert.equal((await call(ck, "GET", "/api/auth/me")).status, 200, "Toàn quyền: hai máy cùng sống");
+  r = await call(sa, "PUT", `/api/staff/${tid}/permissions`, { permissions: ["SALES"] });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  const song = await sqlRows(`SELECT id, single FROM aut_session WHERE staff_id = '${tid}' AND ended_at IS NULL`);
+  assert.deepEqual(song.map((x) => ({ id: x.id, single: x.single })), [{ id: maPhien(may2), single: 1 }], "còn đúng phiên mới nhất, chịu luật một máy");
+  assert.equal((await call(may1, "GET", "/api/auth/me")).status, 401, "máy cũ bị đăng xuất");
+  assert.equal((await call(may2, "GET", "/api/auth/me")).status, 200, "máy mới nhất còn dùng được");
+  assert.equal((await call(may1, "POST", "/api/auth/session-ended")).body.reason, "Không còn quyền dùng nhiều máy");
+  const d1 = await dongCua(maPhien(may1));
+  assert.equal(d1.end_reason, "mat_mien");
+  assert.equal(d1.ended_by, saId);
+  // Đăng nhập máy 3 → nay chịu luật một máy: máy 2 bị thay
+  const may3 = await dangNhapMay(IPHONE, undefined, tk);
+  assert.equal((await call(may2, "GET", "/api/auth/me")).status, 401, "sau khi mất miễn: máy mới đá máy cũ");
+  assert.equal((await call(may3, "GET", "/api/auth/me")).status, 200);
+  assert.equal((await call(sa, "PATCH", `/api/staff/${tid}`, { active: false })).status, 200);
+  console.log("✓ bỏ Toàn quyền của tài khoản đang mở 2 máy → còn phiên mới nhất (single=1), máy cũ 401 'Không còn quyền dùng nhiều máy'; máy sau đá máy trước");
 }
 
 await sessionMoi(SA);

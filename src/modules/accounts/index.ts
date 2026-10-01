@@ -5,7 +5,7 @@
 import { auditStatement, type AuditAction } from "../audit";
 import {
   PASSKEY_ERRORS, checkPasskeyAssertion, clearChallengeCookie, countActivePasskeys, deviceLabel, endAllSessionsIfSuspendedStatement, endAllSessionsStatement,
-  endOneSessionStatement, endOtherSessionsStatement, getSession, listMySessions, listSessions, toSessionDto, firstUserHandle, insertPasskeyStatement, issuePasskeyChallenge, limitChallenge, listActivePasskeys, lockedPhones, logPasskeyRejected,
+  endOneSessionStatement, endOtherSessionsStatement, exemptionChangeStatements, getSession, listMySessions, listSessions, toSessionDto, firstUserHandle, insertPasskeyStatement, issuePasskeyChallenge, limitChallenge, listActivePasskeys, lockedPhones, logPasskeyRejected,
   markSessionReissuedStatement, passkeyRp, readPasskeyChallenge, revokeAllPasskeysIfSuspendedStatement, reissueSessionCookie, revokeAllPasskeysStatement,
   revokePasskeyStatement, toPasskeyDto, unlockPhone, verifyPinThrottled, verifyRegistration,
 } from "../auth";
@@ -533,7 +533,12 @@ export const accountsModule: AppModule = {
       if (!plan.changed) return json({ staff: await one(db, t.id) } satisfies StaffResponse);
       const detail = `${permissionsLabel(t.permissions)} → ${permissionsLabel(next)}`;
       // Khi bỏ ADMIN: câu đóng ADMIN có điều kiện đứng đầu; nhật ký chỉ ghi nếu nó thắng (changes() > 0); các câu còn lại mang cùng điều kiện.
-      const stmts = [...(plan.guarded ? [plan.guarded] : []), adminAudit(db, admin.id, "permission_changed", t.id, detail, plan.guarded ? "changes() > 0" : undefined), ...plan.rest];
+      // ADR-0075 điều 3: tài khoản ở route này không có vai (ROLE_MANAGED ở trên) → miễn luật một máy ⇔ giữ Toàn quyền; câu phiên nối CUỐI cùng lô, tự kiểm
+      // Toàn quyền lúc chạy (requireToanQuyen) nên câu chốt thua thì không đụng phiên nào.
+      const phien = exemptionChangeStatements(db, { staffId: t.id, at, by: admin.id, requireToanQuyen: true, before: { permissions: t.permissions, roles: [] }, after: { permissions: next, roles: [] } });
+      const stmts = [
+        ...(plan.guarded ? [plan.guarded] : []), adminAudit(db, admin.id, "permission_changed", t.id, detail, plan.guarded ? "changes() > 0" : undefined), ...plan.rest, ...phien.statements,
+      ];
       let results: D1Result[];
       try {
         results = await db.batch(stmts);
@@ -543,6 +548,9 @@ export const accountsModule: AppModule = {
         throw e;
       }
       if (plan.guarded && (results[0]!.meta.changes ?? 0) === 0) return LAST_ADMIN();
+      const matMien = phien.ketQua(results);
+      // ADR-0075 điều 6: máy vừa mất phiên vì mất miễn — đóng Bảng tin của đúng các phiên đó, tắt thông báo của tài khoản trừ máy được giữ.
+      if (matMien.endedSessionIds.length) ctx.dongBangTin({ staffId: t.id, sessionIds: matMien.endedSessionIds, giuPhien: matMien.keptSessionId });
       ctx.dongBangTin({ staffId: t.id, tatThongBao: false }); // BẢNG TIN (KN-2): quyền vừa đổi. ADR-0046: đổi quyền KHÔNG tắt thông báo điện thoại.
       return json({ staff: await one(db, t.id) } satisfies StaffResponse);
     }),
@@ -585,10 +593,17 @@ export const accountsModule: AppModule = {
         change.dropped.length ? `luật cứng gạt: ${permissionsLabel(change.dropped)}` : "",
         parsed.value.reason ? `lý do: ${parsed.value.reason}` : "",
       ].filter(Boolean).join("; ");
+      // ADR-0075 điều 3: miễn luật một máy tính trên quyền + vai TRƯỚC và SAU. Câu phiên nối CUỐI lô ghi vai — lô đó chỉ chạy khi câu chốt (nếu có) đã thắng,
+      // nên không cần tự kiểm Toàn quyền khi được miễn (miễn có thể do vai IT).
+      const phien = exemptionChangeStatements(db, {
+        staffId: t.id, at, by: admin.id, requireToanQuyen: false,
+        before: { permissions: t.permissions, roles: state.roles }, after: { permissions: change.next, roles: parsed.value.roles },
+      });
+      let cuoi: D1Result[] = [];
       try {
         if (change.permissions.guarded) {
           // Gỡ ADMIN: câu chốt "còn quản trị viên khác" ĐẦU batch; nhật ký + quyền + chỉnh tay mang cùng điều kiện. Vai (module parties) không mang được
-          // điều kiện của staff nên chạy SAU, chỉ khi câu chốt thắng — tranh chấp chỉ có thể xảy ra giữa hai tài khoản Toàn quyền (LC-4).
+          // điều kiện của staff nên chạy SAU, chỉ khi câu chốt thắng — tranh chấp chỉ có thể xảy ra giữa hai tài khoản Toàn quyền (LC-4). Câu phiên đi cùng lô vai.
           const results = await db.batch([
             change.permissions.guarded,
             adminAudit(db, admin.id, "account_roles_changed", t.id, detail, "changes() > 0"),
@@ -596,15 +611,20 @@ export const accountsModule: AppModule = {
             ...change.adjustmentStatements,
           ]);
           if ((results[0]!.meta.changes ?? 0) === 0) return LAST_ADMIN();
-          if (change.roleStatements.length) await db.batch(change.roleStatements);
+          if (change.roleStatements.length || phien.statements.length) cuoi = await db.batch([...change.roleStatements, ...phien.statements]);
         } else {
-          await db.batch([...change.roleStatements, ...change.adjustmentStatements, ...change.permissions.rest, adminAudit(db, admin.id, "account_roles_changed", t.id, detail)]);
+          cuoi = await db.batch([
+            ...change.roleStatements, ...change.adjustmentStatements, ...change.permissions.rest, adminAudit(db, admin.id, "account_roles_changed", t.id, detail), ...phien.statements,
+          ]);
         }
       } catch (e) {
         const rule = ruleViolation(e);
         if (rule) return rule;
         throw e;
       }
+      const matMien = phien.ketQua(cuoi);
+      // ADR-0075 điều 6: máy vừa mất phiên vì mất miễn — đóng Bảng tin của đúng các phiên đó, tắt thông báo của tài khoản trừ máy được giữ.
+      if (matMien.endedSessionIds.length) ctx.dongBangTin({ staffId: t.id, sessionIds: matMien.endedSessionIds, giuPhien: matMien.keptSessionId });
       ctx.dongBangTin({ staffId: t.id, tatThongBao: false }); // BẢNG TIN (KN-2): vai/quyền vừa đổi. ADR-0046: đổi vai KHÔNG tắt thông báo điện thoại.
       return json({ staff: await one(db, t.id) } satisfies StaffResponse);
     }),
@@ -700,7 +720,11 @@ export const accountsModule: AppModule = {
       const row = await getSession(db, ctx.params.id!);
       if (!row) return error(404, "not_found", "Không tìm thấy phiên.");
       if (row.id === ctx.sessionId) return error(409, "self_session", "Đây là phiên của chính bạn — dùng nút Đăng xuất.");
-      const at = new Date().toISOString(); // MỘT mốc giờ cho dòng phiên và dòng nhật ký
+      const at = new Date().toISOString(); // MỘT mốc giờ cho dòng phiên, dòng nhật ký và phép tính "còn sống"
+      // Phiên đã chết mà dòng chưa kết thúc (hết hạn; chết theo lưới credentials_changed_at) → 409 như phiên đã kết thúc: không ghi đè lịch sử bằng 'bi_go',
+      // không nhật ký, không tắt thông báo mọi máy của tài khoản. Cùng phép tính với màn sổ phiên (toSessionDto: dòng → hạn → lưới của CHỦ phiên).
+      const chu = (await chuPhienTheoId(db, [row.staff_id])).get(row.staff_id);
+      if (!toSessionDto(row, chu?.credentialsChangedAt ?? null, at, null).live) return error(409, "already_ended", "Phiên này đã kết thúc.");
       const res = await db.batch([
         endOneSessionStatement(db, row.id, "bi_go", at, ctx.staff.id),
         // ADR-0075 điều 8: ai gỡ (staff_id), tài khoản bị gỡ (target), mã phiên (detail) — KHÔNG IP/User-Agent. Chỉ ghi khi câu trên thật sự kết thúc phiên.

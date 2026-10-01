@@ -152,3 +152,22 @@ test("GET /api/sessions (Toàn quyền): tên người, lọc theo tài khoản 
   assert.deepEqual(locHet.json.sessions.map((s: any) => s.id).sort(), ["da-xong", maPhien(tkAn)].sort());
   assert.equal((await w.call("GET", "/api/sessions?staffId=rac", { as: SUP })).status, 400, "mã tài khoản hỏng → 400");
 });
+
+test("ADR-0075 điều 7: gỡ phiên đã chết mà dòng chưa kết thúc (hết hạn / chết theo lưới credentials_changed_at) → 409 already_ended; không ghi đè lịch sử, không nhật ký, không gọi Bảng tin", async () => {
+  const goi: any[] = [];
+  const w = seedAll(world({ ghiDe: { dongBangTin: async (_env: unknown, muc: unknown) => { goi.push(muc); } } }));
+  themPhien(w, { id: "het-han", staff: SALES });
+  w.sqlite.prepare("UPDATE aut_session SET expires_at = ? WHERE id = 'het-han'").run(new Date(Date.now() - 60_000).toISOString());
+  themPhien(w, { id: "chet-luoi", staff: SUP2, single: 0, createdAt: new Date(Date.now() - 7200_000).toISOString() });
+  w.sqlite.prepare("UPDATE staff SET credentials_changed_at = ? WHERE id = ?").run(Date.now() - 3600_000, SUP2);
+  for (const id of ["het-han", "chet-luoi"]) {
+    const r = await w.call("POST", `/api/sessions/${id}/revoke`, { as: SUP, body: {} });
+    assert.equal(r.status, 409, `${id}: ${r.text}`);
+    assert.equal(r.json.error.code, "already_ended");
+    const d = w.q("SELECT ended_at, end_reason FROM aut_session WHERE id = ?", id)[0];
+    assert.equal(d.ended_at, null, `${id}: không ghi 'bi_go' lên phiên đã chết`);
+    assert.equal(d.end_reason, null);
+  }
+  assert.equal(w.q("SELECT count(*) n FROM audit_log WHERE action = 'session_revoked'")[0].n, 0, "không nhật ký");
+  assert.deepEqual(goi, [], "không tắt thông báo / Bảng tin của tài khoản");
+});

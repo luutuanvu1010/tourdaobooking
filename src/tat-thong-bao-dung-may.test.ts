@@ -97,13 +97,15 @@ test("ADR-0046 điểm 2–3: MỌI route gọi dongBangTin khai cờ tatThongBa
   const src = coGoi.filter((f) => f === "accounts/index.ts").map((f) => readFileSync(new URL(f, goc), "utf8")).join("\n");
   const RE_ROUTE = /route\("(GET|POST|PUT|PATCH|DELETE)", "([^"]+)"/g;
   const moc = [...src.matchAll(RE_ROUTE)].map((m) => ({ ten: `${m[1]} ${m[2]}`, tu: m.index ?? 0 }));
-  const thay: Record<string, boolean[]> = {};
+  const thay: Record<string, (boolean | string)[]> = {};
   moc.forEach((r, i) => {
     const than = src.slice(r.tu, i + 1 < moc.length ? moc[i + 1]!.tu : src.length);
-    const co = [...than.matchAll(/dongBangTin\(\{\s*staffId:[^}]*?tatThongBao:\s*(true|false)\s*\}\)/g)].map((m) => m[1] === "true");
-    // ADR-0075 điều 6: dạng THEO PHIÊN với `giuPhien: null` tắt MỌI máy của tài khoản — tính là `true` (thao tác bảo mật). Dạng theo phiên giữ một máy
-    // (`giuPhien: <biến>`) KHÔNG được nhận ở đây: route accounts dùng nó sẽ đỏ (phải xếp loại lại có chủ đích).
+    const co: (boolean | string)[] = [...than.matchAll(/dongBangTin\(\{\s*staffId:[^}]*?tatThongBao:\s*(true|false)\s*\}\)/g)].map((m) => m[1] === "true");
+    // ADR-0075 điều 6: dạng THEO PHIÊN với `giuPhien: null` tắt MỌI máy của tài khoản — tính là `true` (thao tác bảo mật).
     co.push(...[...than.matchAll(/dongBangTin\(\{\s*staffId:[^}]*?sessionIds:[^}]*?giuPhien:\s*null\s*\}\)/g)].map(() => true));
+    // Dạng theo phiên GIỮ một máy (`giuPhien: <biến>`) — tắt thông báo mọi máy TRỪ máy được giữ: xếp loại riêng "giữ-phiên"; chỉ hai route đổi quyền/vai được
+    // dùng (ADR-0075 điều 3: mất miễn → còn phiên mới nhất). Route accounts khác dùng dạng này → bảng dưới đỏ (phải xếp loại lại có chủ đích).
+    co.push(...[...than.matchAll(/dongBangTin\(\{\s*staffId:[^}]*?sessionIds:[^}]*?giuPhien:\s*(?!null\b)[A-Za-z_$][\w$.]*\s*\}\)/g)].map(() => "giữ-phiên"));
     const goi = (than.match(/dongBangTin\(/g) ?? []).length;
     assert.equal(co.length, goi, `${r.ten}: mọi lời gọi dongBangTin phải khai rõ tatThongBao: true|false`);
     if (goi > 0) thay[r.ten] = co;
@@ -114,8 +116,9 @@ test("ADR-0046 điểm 2–3: MỌI route gọi dongBangTin khai cờ tatThongBa
     "DELETE /api/account/passkeys/:id": [true], // gỡ một Face ID (tự gỡ)
     "POST /api/account/pin-by-passkey": [true], // đổi PIN bằng Face ID
     "PATCH /api/staff/:id": [true], // ngưng tài khoản / đổi SĐT đăng nhập
-    "PUT /api/staff/:id/permissions": [false], // đổi quyền — ADR-0046 điểm 2: KHÔNG tắt
-    "PUT /api/staff/:id/roles": [false], // đổi vai — ADR-0046 điểm 2: KHÔNG tắt
+    // đổi quyền / vai — ADR-0046 điểm 2: KHÔNG tắt; riêng khi mất miễn một máy (ADR-0075 điều 3) tắt máy vừa bị kết thúc, giữ máy còn lại
+    "PUT /api/staff/:id/permissions": [false, "giữ-phiên"],
+    "PUT /api/staff/:id/roles": [false, "giữ-phiên"],
     "POST /api/staff/:id/reset-pin": [true], // quản trị đặt lại PIN
     "POST /api/staff/:id/passkeys/remove-all": [true], // quản trị gỡ mọi Face ID
     "POST /api/sessions/:id/revoke": [true], // ADR-0075 điều 7: IT/Toàn quyền gỡ phiên — theo phiên, giuPhien null ⇒ tắt mọi máy (thao tác bảo mật)

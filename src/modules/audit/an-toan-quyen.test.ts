@@ -43,7 +43,7 @@ test("ADR-0038 điều 6: Quản trị gọi trang Nhật ký → 403", async ()
   assert.equal((await w.call("GET", "/api/audit", { as: ADM })).status, 403);
 });
 
-test("ADR-0038: người không giữ Toàn quyền KHÔNG nhận 6 thao tác im lặng do Toàn quyền làm (kể cả tài khoản giữ cả Quản trị lẫn Toàn quyền); nhận thao tác thường của Toàn quyền và mọi thao tác của Quản trị", async () => {
+test("ADR-0038: người không giữ Toàn quyền KHÔNG nhận 7 thao tác im lặng do Toàn quyền làm (kể cả tài khoản giữ cả Quản trị lẫn Toàn quyền); nhận thao tác thường của Toàn quyền và mọi thao tác của Quản trị", async () => {
   const { w, log } = setup();
   const silentBySup = SILENT.map((a) => log(SUP, a));
   const silentByDir = SILENT.map((a) => log(DIR, a));
