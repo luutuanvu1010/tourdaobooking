@@ -3,6 +3,7 @@
 import { normalizePhone } from "../../shared/phone.ts";
 import { isISODate } from "../../shared/vn-date.ts";
 import { PARTY_ID_RE } from "../../shared/party-id.ts";
+import { kiemGioiTinh, type GioiTinh } from "../../shared/xung-ho.ts";
 
 export type Result<T> = { ok: true; value: T } | { ok: false; message: string };
 const fail = (message: string): { ok: false; message: string } => ({ ok: false, message });
@@ -164,12 +165,17 @@ export interface OrgFields {
   address: string | null;
   invoiceEmail: string | null;
 }
+/** ADR-0084 Đ1: `gender` của hồ sơ người — tạo: NULL = chưa ghi; sửa: `undefined` = giữ nguyên giá trị đang lưu, NULL = xoá. */
 export type PartyCreate =
-  | { kind: "PERSON"; name: PersonName; contacts: ContactInput[] }
+  | { kind: "PERSON"; name: PersonName; gender: GioiTinh | null; contacts: ContactInput[] }
   | { kind: "ORGANIZATION"; org: OrgFields; contacts: ContactInput[] };
 export type PartyUpdate =
-  | { kind: "PERSON"; name: PersonName; active: boolean; expectedUpdatedAt: string }
+  | { kind: "PERSON"; name: PersonName; gender: GioiTinh | null | undefined; active: boolean; expectedUpdatedAt: string }
   | { kind: "ORGANIZATION"; org: OrgFields; active: boolean; expectedUpdatedAt: string };
+
+/** Tổ chức không có giới tính: ô trống / vắng bỏ qua, có giá trị ⇒ lỗi (không lặng lẽ nuốt). */
+const KHONG_GIOI_TINH_TO_CHUC = (b: Record<string, unknown>): string | null =>
+  b.gender === undefined || b.gender === null || b.gender === "" ? null : "Hồ sơ tổ chức không có giới tính.";
 
 const optText = (v: unknown, label: string, max: number): Result<string | null> => {
   if (v === undefined || v === null || v === "") return { ok: true, value: null };
@@ -204,9 +210,14 @@ export function validatePartyCreate(body: Record<string, unknown> | null): Resul
   if (!contacts.ok) return contacts;
   if (body.kind === "PERSON") {
     const name = personName(body);
-    return name.ok ? { ok: true, value: { kind: "PERSON", name: name.value, contacts: contacts.value } } : name;
+    if (!name.ok) return name;
+    const gender = kiemGioiTinh(body.gender);
+    if (!gender.ok) return gender;
+    return { ok: true, value: { kind: "PERSON", name: name.value, gender: gender.value ?? null, contacts: contacts.value } };
   }
   if (body.kind === "ORGANIZATION") {
+    const khong = KHONG_GIOI_TINH_TO_CHUC(body);
+    if (khong) return fail(khong);
     const org = orgFields(body);
     return org.ok ? { ok: true, value: { kind: "ORGANIZATION", org: org.value, contacts: contacts.value } } : org;
   }
@@ -220,8 +231,13 @@ export function validatePartyUpdate(body: Record<string, unknown> | null, kind: 
   if (typeof body.active !== "boolean") return fail("Trạng thái hoạt động phải là true/false.");
   if (kind === "PERSON") {
     const name = personName(body);
-    return name.ok ? { ok: true, value: { kind, name: name.value, active: body.active, expectedUpdatedAt: body.expectedUpdatedAt } } : name;
+    if (!name.ok) return name;
+    const gender = kiemGioiTinh(body.gender);
+    if (!gender.ok) return gender;
+    return { ok: true, value: { kind, name: name.value, gender: gender.value, active: body.active, expectedUpdatedAt: body.expectedUpdatedAt } };
   }
+  const khong = KHONG_GIOI_TINH_TO_CHUC(body);
+  if (khong) return fail(khong);
   const org = orgFields(body);
   return org.ok ? { ok: true, value: { kind, org: org.value, active: body.active, expectedUpdatedAt: body.expectedUpdatedAt } } : org;
 }

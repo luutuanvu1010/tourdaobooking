@@ -3,6 +3,7 @@
 // Đọc địa điểm CHỈ qua view công bố v_loc_location_label (ADR-0008); không đụng bảng loc_* trực tiếp.
 import { defineSql } from "../../shared/sql-registry.ts";
 import type { ContactInput, OrgFields, PersonName, RelationshipInput, RoleInput } from "./rules.ts";
+import type { GioiTinh } from "../../shared/xung-ho.ts";
 import { composePersonName } from "./rules.ts";
 
 export type PartyKind = "PERSON" | "ORGANIZATION";
@@ -25,6 +26,8 @@ export interface PartyRow {
   family_name: string | null;
   middle_name: string | null;
   given_name: string | null;
+  /** ADR-0084 Đ1: 'NAM' | 'NU' | NULL (= chưa ghi). Đọc thô — giá trị lạ (không qua mã) coi như chưa ghi ở DTO. */
+  gender: string | null;
   legal_name: string | null;
   tax_code: string | null;
   address: string | null;
@@ -86,7 +89,7 @@ const LOOKUP = defineSql(
 const FIND = defineSql(
   "parties",
   "find",
-  `SELECT p.id, p.party_kind, p.display_name, p.active, p.created_at, p.updated_at, pe.family_name, pe.middle_name, pe.given_name,
+  `SELECT p.id, p.party_kind, p.display_name, p.active, p.created_at, p.updated_at, pe.family_name, pe.middle_name, pe.given_name, pe.gender,
           o.legal_name, o.tax_code, o.address, o.invoice_email, p.merged_into_id, p.merged_at, t.display_name AS merged_into_name
    FROM pty_party p LEFT JOIN pty_person pe ON pe.party_id = p.id LEFT JOIN pty_organization o ON o.party_id = p.id LEFT JOIN pty_party t ON t.id = p.merged_into_id
    WHERE p.id = ?1`,
@@ -221,8 +224,8 @@ const INSERT_PARTY = defineSql(
 const INSERT_PERSON = defineSql(
   "parties",
   "insert_person",
-  `INSERT INTO pty_person (party_id, family_name, middle_name, given_name, created_at, created_by, updated_at, updated_by)
-   VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?5, ?6)`,
+  `INSERT INTO pty_person (party_id, family_name, middle_name, given_name, gender, created_at, created_by, updated_at, updated_by)
+   VALUES (?1, ?2, ?3, ?4, ?7, ?5, ?6, ?5, ?6)`,
 );
 const INSERT_ORG = defineSql(
   "parties",
@@ -277,7 +280,7 @@ const END_RELATIONSHIP = defineSql(
 const UPDATE_PERSON = defineSql(
   "parties",
   "update_person",
-  `UPDATE pty_person SET family_name = ?2, middle_name = ?3, given_name = ?4, updated_at = ?5, updated_by = ?6
+  `UPDATE pty_person SET family_name = ?2, middle_name = ?3, given_name = ?4, gender = ?8, updated_at = ?5, updated_by = ?6
    WHERE party_id = ?1 AND (SELECT updated_at FROM pty_party WHERE id = ?1) = ?7`,
 );
 const UPDATE_ORG = defineSql(
@@ -316,7 +319,7 @@ const roleStatement = (db: D1Database, partyId: string, r: RoleInput, actorId: s
 /** Tạo hồ sơ cá nhân (+ liên hệ + vai trò ban đầu). API công khai cho module khác (staff tạo tài khoản kèm hồ sơ + vai STAFF). */
 export function newPersonStatements(
   db: D1Database,
-  input: { name: PersonName; contacts?: ContactInput[]; roles?: RoleInput[]; contactsFrom: string },
+  input: { name: PersonName; gender?: GioiTinh | null; contacts?: ContactInput[]; roles?: RoleInput[]; contactsFrom: string },
   actorId: string | null,
   at: string,
 ): { partyId: string; statements: D1PreparedStatement[] } {
@@ -326,7 +329,7 @@ export function newPersonStatements(
     partyId,
     statements: [
       db.prepare(INSERT_PARTY).bind(partyId, "PERSON", composePersonName(name), at, actorId),
-      db.prepare(INSERT_PERSON).bind(partyId, name.family, name.middle, name.given, at, actorId),
+      db.prepare(INSERT_PERSON).bind(partyId, name.family, name.middle, name.given, at, actorId, input.gender ?? null),
       ...(input.contacts ?? []).map((c) => contactStatement(db, partyId, c, input.contactsFrom, actorId, at)),
       ...(input.roles ?? []).map((r) => roleStatement(db, partyId, r, actorId, at)),
     ],
@@ -355,13 +358,14 @@ export function newOrganizationStatements(
 export function updatePartyStatements(
   db: D1Database,
   id: string,
-  v: { kind: "PERSON"; name: PersonName; active: boolean; expectedUpdatedAt: string } | { kind: "ORGANIZATION"; org: OrgFields; active: boolean; expectedUpdatedAt: string },
+  // `gender` ĐÃ quyết (route thay "vắng ô" bằng giá trị đang lưu — ADR-0084 Đ1).
+  v: { kind: "PERSON"; name: PersonName; gender: GioiTinh | null; active: boolean; expectedUpdatedAt: string } | { kind: "ORGANIZATION"; org: OrgFields; active: boolean; expectedUpdatedAt: string },
   actorId: string,
   at: string,
 ): D1PreparedStatement[] {
   if (v.kind === "PERSON") {
     return [
-      db.prepare(UPDATE_PERSON).bind(id, v.name.family, v.name.middle, v.name.given, at, actorId, v.expectedUpdatedAt),
+      db.prepare(UPDATE_PERSON).bind(id, v.name.family, v.name.middle, v.name.given, at, actorId, v.expectedUpdatedAt, v.gender),
       db.prepare(UPDATE_PARTY).bind(id, composePersonName(v.name), v.active ? 1 : 0, at, actorId, v.expectedUpdatedAt),
     ];
   }

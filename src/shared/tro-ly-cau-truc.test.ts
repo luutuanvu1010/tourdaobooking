@@ -9,6 +9,7 @@ import { join } from "node:path";
 import { CAU_TU_CHOI, chiaKho, chonDoan, dinhDangDoan, dungLoiNhac, uocToken, viPhamKho, NGAN_SACH_TOKEN, type DoanTriThuc } from "./tro-ly.ts";
 import { viPhamKyThuat } from "./tro-ly-loc-ky-thuat.ts";
 import { LOI_NHAC_MAC_DINH } from "./tro-ly-bo-nao.ts";
+import { xungHo } from "./xung-ho.ts";
 import { LUONG_CHINH, TEN_PHAN_HE, TEN_THAO_TAC } from "./tro-ly-cau-truc-ten.ts";
 import { MATRIX, PERMISSION_CODES, PERMISSION_LABEL } from "./permissions.ts";
 import { CAU_TRUC } from "./tro-ly-cau-truc.ts";
@@ -201,7 +202,7 @@ test("Đ5: viPhamKho áp bộ lọc tên kỹ thuật cho MỌI đoạn của kh
 
 test("Đ4 dungLoiNhac luật 2: ĐƯỢC giải thích mức khái niệm; VẪN từ chối từng mục của ADR-0070 điều 4 bằng câu từ chối nguyên văn", () => {
   // Lời nhắc THẬT gửi đi khi chưa có bản bộ não nào = bản mặc định qua dungLoiNhac (ADR-0073 B4, B5) — sửa luật từ chối của bản mặc định ⇒ đỏ.
-  const p = dungLoiNhac(LOI_NHAC_MAC_DINH, ["SALES"], []);
+  const p = dungLoiNhac(LOI_NHAC_MAC_DINH, ["SALES"], xungHo(null, null), []);
   assert.ok(p.startsWith(LOI_NHAC_MAC_DINH));
   assert.equal(p.split("\n").filter((d) => d.startsWith("2. ")).length, 1, "đúng một luật 2");
   const luat2 = p.split("\n").find((d) => d.startsWith("2. "))!;
@@ -244,7 +245,7 @@ test("Đ6: 'Nút Lưu nháp ở đâu?' ⇒ chọn bước Lập đơn (nút th�
 test("Đ6: 'App dùng cơ sở dữ liệu gì?' ⇒ không đoạn kỹ thuật nào được chọn; lời nhắc có luật từ chối cơ sở dữ liệu", () => {
   const ds = chonDoan("App dùng cơ sở dữ liệu gì?", ["SUPER_ADMIN"]);
   for (const d of ds) assert.equal(viPhamKyThuat(`${d.ten}\n${d.chu}`), null, d.ten);
-  assert.match(dungLoiNhac(LOI_NHAC_MAC_DINH, ["SUPER_ADMIN"], ds), /máy chủ, hạ tầng, cơ sở dữ liệu/);
+  assert.match(dungLoiNhac(LOI_NHAC_MAC_DINH, ["SUPER_ADMIN"], xungHo(null, null), ds), /máy chủ, hạ tầng, cơ sở dữ liệu/);
 });
 
 test("Đ6: kho có (d) và (e); tổng kho lớn hơn ngân sách nhưng mỗi câu chỉ gửi ≤ 6.000 token", () => {

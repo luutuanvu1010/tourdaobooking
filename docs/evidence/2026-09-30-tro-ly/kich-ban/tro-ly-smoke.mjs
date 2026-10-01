@@ -4,7 +4,7 @@
 //   a  đăng nhập bằng màn /login THẬT (390): khung Hỗ trợ TỰ MỞ một lần ở trang đầu; đóng rồi tải lại ⇒ không tự mở nữa
 //   b  390: nút "Hỗ trợ" không che thanh tab (đáy nút ≤ đỉnh thanh tab), vùng chạm ≥ 44px; 1040: nút trong khung nhìn, không che thanh bên
 //   c  trang có thanh nút dính đáy (/order-form, 390 + 1040): nút nâng lên, không che nút nào của thanh
-//   d  gửi & nhận với máy giả: câu trả lời + dòng "Nguồn: …", dòng "Trả lời do AI…"; SĐT trong câu hỏi bị che TRƯỚC khi tới máy giả; ô gõ 16px
+//   d  gửi & nhận với máy giả: câu trả lời + dòng "Nguồn: …"; SĐT trong câu hỏi bị che TRƯỚC khi tới máy giả; ô gõ 16px
 //   e2 bảo trì bật: người được phép vẫn có nút Hỗ trợ và hỏi được (30/9)
 //   e  lỗi lời thường: Toàn quyền tắt trợ lý ⇒ câu "Trợ lý chưa bật…" trong khung (không màn bảo trì, không chữ Anh)
 //   f  320: mở khung, không tràn ngang; console sạch ở mọi trang đã mở
@@ -81,9 +81,10 @@ try {
     await p.waitFor(`location.pathname !== '/login'`, "rời trang đăng nhập", 15000);
     await p.waitFor(`location.pathname === '/' && ${khungMo}`, "về Trang chủ và khung Hỗ trợ tự mở", 15000);
     assert.equal(await p.ev(`${q(".tl-khung .tl-tieu-de")}.textContent`), "Hỗ trợ");
-    assert.equal(await p.ev(`${q(".tl-khung .tl-luu-y")}.textContent`), "Trả lời do AI, có thể sai — đối chiếu màn hình.");
-    // ADR-0069 điều 5: khung ghi rõ câu hỏi được lưu.
-    assert.equal(await p.ev(`[...document.querySelectorAll(".tl-khung .tl-luu-y")].at(-1).textContent`), "Câu hỏi được lưu để cải thiện trợ lý — đừng gõ thông tin khách");
+    // Chủ dự án 1/10 (bản 1.57): bỏ hai dòng nhắc trong khung (ý vẫn ở trang Trợ giúp) — khẳng định KHÔNG còn.
+    assert.equal(await p.ev(`document.querySelectorAll(".tl-khung .tl-luu-y").length`), 0);
+    const chuKhung = await p.ev(`${q(".tl-khung")}.innerText`);
+    assert.ok(!chuKhung.includes("Trả lời do AI") && !chuKhung.includes("Câu hỏi được lưu"), "hai dòng nhắc đã bỏ");
     await p.shot(join(OUT, "anh/a-tu-mo-390.png"));
     await p.ev(`${q(".tl-khung .tl-dong")}.click(), true`);
     await p.waitFor(`!${khungMo}`, "đóng khung");
@@ -138,11 +139,11 @@ try {
     assert.equal(await p.ev(`getComputedStyle(${q(".tl-o")}).fontSize`), "16px");
     const n = nhan.length;
     await p.ev(`(() => { const o = ${q(".tl-o")}; o.value = 'Khách 0905 123 456 hỏi đổi mã PIN thế nào?'; ${q(".tl-gui")}.click(); return true; })()`);
-    await p.waitFor(`document.querySelectorAll('.tl-tin-tro-ly').length >= 2`, "có câu trả lời", 15000);
+    await p.waitFor(`document.querySelectorAll('.tl-tin-tro-ly:not(.tl-dang-tra)').length >= 2`, "có câu trả lời", 15000);
     assert.equal(nhan.length, n + 1);
     const input = String(nhan.at(-1).input);
     assert.ok(!/\d{3}/.test(input) && input.includes("[đã che]"), input);
-    const tra = await p.ev(`[...document.querySelectorAll('.tl-tin-tro-ly')].at(-1).innerText`);
+    const tra = await p.ev(`[...document.querySelectorAll('.tl-tin-tro-ly:not(.tl-dang-tra)')].at(-1).innerText`);
     assert.match(tra, /Bấm Đổi PIN\./);
     assert.match(tra, /Nguồn: /);
     assert.equal(await p.ev(`${q(".tl-gui")}.disabled`), false);
@@ -179,7 +180,7 @@ try {
       await p.ev(`${q("#tl-fab")}.click(), true`);
       await p.waitFor(khungMo, "mở khung");
       await p.ev(`(() => { ${q(".tl-o")}.value = 'đổi PIN'; ${q(".tl-gui")}.click(); return true; })()`);
-      await p.waitFor(`document.querySelectorAll(".tl-tin-tro-ly").length >= 2 || !!${q(".tl-tin-loi")}`, "có trả lời (ngoài câu chào)", 15000);
+      await p.waitFor(`document.querySelectorAll(".tl-tin-tro-ly:not(.tl-dang-tra)").length >= 2 || !!${q(".tl-tin-loi")}`, "có trả lời (ngoài câu chào)", 15000);
       assert.equal(await p.ev(`!!${q(".tl-tin-loi")}`), false, "không báo lỗi khi bảo trì");
       await p.shot(join(OUT, "anh/e2-bao-tri-390.png"));
     } finally {

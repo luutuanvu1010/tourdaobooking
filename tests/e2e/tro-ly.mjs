@@ -76,6 +76,15 @@ const loiDanDau = (await call(OWNER, "GET", "/api/tro-ly/loi-dan")).body.hienHan
 assert.ok(loiDanDau?.cauChao, "đọc được lời dặn đầu kịch bản (để khôi phục)");
 const boNaoDau = (await call(OWNER, "GET", "/api/tro-ly/bo-nao")).body.hienHanh;
 assert.ok(boNaoDau?.loiNhac, "đọc được bộ não đầu kịch bản (để khôi phục)");
+// ADR-0084: hồ sơ của salesA đọc lúc đầu (để khôi phục tên + giới tính ở `finally` — D1 dùng chung).
+const [salesARow] = await sqlRows(`SELECT id, party_id FROM staff WHERE phone = '${ACCOUNTS.salesA.phone}'`);
+const hoSoA = async () => (await call(ADMIN, "GET", `/api/parties/${salesARow.party_id}`)).body.party;
+const hoSoADau = await hoSoA();
+assert.ok(hoSoADau?.id, "đọc được hồ sơ salesA đầu kịch bản (để khôi phục)");
+const suaHoSoA = async (fullName, gender) => {
+  const p = await hoSoA();
+  return call(ADMIN, "PUT", `/api/parties/${p.id}`, { fullName, gender, active: p.active, expectedUpdatedAt: p.updatedAt });
+};
 
 // Route quản lý lấy từ CHÍNH module (esbuild như src/tai-xe-cong.test.ts) — không danh sách viết tay.
 const built = await esbuild.build({ entryPoints: [new URL("../../src/modules/tro-ly/index.ts", import.meta.url).pathname], bundle: true, format: "esm", platform: "neutral", target: "es2022", write: false, logLevel: "silent" });
@@ -271,8 +280,31 @@ try {
   assert.match(r.body.error.message, /không được chứa/);
   r = await call(OWNER, "POST", "/api/tro-ly/loi-dan", { cauChao: "Chào bạn, hỏi mình nhé (e2e).", giong: "ngắn gọn", loiDanThem: "", cauHoiMau: ["Đổi mã PIN thế nào?"] });
   assert.equal(r.status, 200, JSON.stringify(r.body));
-  assert.deepEqual((await call(SALES, "GET", "/api/tro-ly/khung")).body, { duocDung: true, cauChao: "Chào bạn, hỏi mình nhé (e2e).", cauHoiMau: ["Đổi mã PIN thế nào?"] });
+  assert.deepEqual(
+    (await call(SALES, "GET", "/api/tro-ly/khung")).body,
+    { duocDung: true, cauChao: "Chào bạn, hỏi mình nhé (e2e).", cauHoiMau: ["Đổi mã PIN thế nào?"], goi: hoSoADau.gender === "NU" ? `chị ${hoSoADau.givenName}` : hoSoADau.gender === "NAM" ? `anh ${hoSoADau.givenName}` : "bạn", xung: hoSoADau.gender ? "em" : "mình" },
+  );
   console.log("✓ lời dặn có SĐT → 400; lời dặn mới hiện ở khung");
+
+  // 12b) ADR-0084: Quản trị đặt giới tính Nữ (+ họ / tên đệm ĐẶC BIỆT) cho salesA qua đường sửa hồ sơ thật; khung trả "chị <tên gọi>"; câu hỏi gửi máy giả có
+  //      dòng Mai "gọi là 'chị Lanh', xưng 'em'" và KHÔNG có họ, tên đệm, SĐT, id tài khoản, id hồ sơ; tên / giới tính gửi kèm thân yêu cầu bị bỏ qua.
+  r = await suaHoSoA("Họxyzq Đệmwqk Lanh", "NU");
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.equal(r.body.party.gender, "NU");
+  const kh = (await call(SALES, "GET", "/api/tro-ly/khung")).body;
+  assert.deepEqual([kh.goi, kh.xung], ["chị Lanh", "em"]);
+  assert.ok(!("gender" in kh) && !JSON.stringify(kh).includes("Họxyzq"), JSON.stringify(kh));
+  n = nhan.length;
+  r = await call(SALES, "POST", "/api/tro-ly/hoi", { cauHoi: "đổi mã PIN thế nào", ten: "Giả Mạo", gioiTinh: "NAM", goi: "sếp Tổng" });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.equal(nhan.length, n + 1);
+  const thanMai = JSON.stringify(nhan.at(-1).body);
+  assert.ok(String(nhan.at(-1).body.instructions).includes("Tên bạn là Mai, trợ lý của Tour Đảo. Người đang hỏi: gọi là 'chị Lanh', xưng 'em'."), String(nhan.at(-1).body.instructions).slice(-500));
+  for (const cam of ["Họxyzq", "Đệmwqk", ACCOUNTS.salesA.phone, salesARow.id, salesARow.party_id, "Giả Mạo", "sếp Tổng"]) assert.ok(!thanMai.includes(cam), `thân gửi máy giả lộ "${cam}"`);
+  assert.ok(!("user" in nhan.at(-1).body));
+  r = await suaHoSoA(hoSoADau.displayName, hoSoADau.gender ?? "");
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  console.log("✓ ADR-0084: giới tính Nữ ⇒ khung 'chị Lanh'; máy giả nhận dòng Mai 'chị Lanh', không họ / tên đệm / SĐT / id; thân yêu cầu không đổi được cách gọi");
 
   // 13) lịch sử có câu ĐÃ CHE, không có SĐT gốc
   r = await hoi(SALES, "khách 0905 777 888 hỏi đổi mã PIN thế nào E2E-LS");
@@ -396,6 +428,10 @@ try {
   await khoiPhuc("vai", datVai(tatCaVai(true)));
   await khoiPhuc("lời dặn", call(OWNER, "POST", "/api/tro-ly/loi-dan", loiDanDau));
   if (boNaoDau) await khoiPhuc("bộ não", call(OWNER, "PUT", "/api/tro-ly/bo-nao", boNaoDau));
+  {
+    const p = await hoSoA().catch(() => null);
+    if (p && (p.displayName !== hoSoADau.displayName || p.gender !== hoSoADau.gender)) await khoiPhuc("hồ sơ salesA", suaHoSoA(hoSoADau.displayName, hoSoADau.gender ?? ""));
+  }
   if (loiKhoiPhuc.length) { console.error(`KHÔI PHỤC THẤT BẠI — D1 có thể còn cấu hình thử: ${loiKhoiPhuc.join("; ")}`); process.exitCode = 1; }
   may.close();
 }

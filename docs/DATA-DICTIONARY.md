@@ -123,6 +123,7 @@
 | `v_pty_owner_company` | view công bố | cột: party_id |
 | `v_pty_carrier` | view công bố | cột: party_id |
 | `v_pty_carrier_driver` | view công bố | cột: carrier_party_id, driver_party_id |
+| `v_pty_person_xung_ho` | view công bố | cột: party_id, given_name, gender |
 
 ## staff
 
@@ -134,6 +135,7 @@
 | `stf_permission_type` | bảng tra cứu |  |
 | `v_stf_staff_label` | view công bố | cột: id, label, active, party_id |
 | `v_stf_toan_quyen` | view công bố | cột: staff_id |
+| `v_stf_staff_xung_ho` | view công bố | cột: id, given_name, gender |
 
 ## thongbao
 

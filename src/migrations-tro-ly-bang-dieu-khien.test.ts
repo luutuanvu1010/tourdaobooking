@@ -12,10 +12,10 @@ const DIR = new URL("../migrations/", import.meta.url);
 const files = readdirSync(DIR).filter((f) => f.endsWith(".sql")).sort();
 const TEP = files.find((f) => f.endsWith("_tl_bang_dieu_khien.sql"));
 
-function open(): DatabaseSync {
+function open(denHet = true): DatabaseSync {
   const db = new DatabaseSync(":memory:");
   db.exec("PRAGMA foreign_keys = ON");
-  for (const f of files) db.exec(readFileSync(new URL(f, DIR), "utf8"));
+  for (const f of denHet ? files : files.filter((x) => x <= TEP!)) db.exec(readFileSync(new URL(f, DIR), "utf8"));
   return db;
 }
 const NOW = "2026-09-30T01:00:00.000Z";
@@ -43,12 +43,13 @@ test("HÀNG RÀO không cột khoá: ĐÚNG tập cột của bốn bảng mới
   for (const c of all) assert.ok(!/khoa|key|secret|token_api/i.test(c), `cột nghi chứa khoá: ${c}`);
 });
 
+// Lời dặn gieo CỦA 0054 — đọc trên CSDL chỉ áp migration tới 0054: từ ADR-0084 (*_pty_person_gender) có thêm bản câu chào Mai (bài migrations-pty-person-gender.test.ts).
 test("gieo: công tắc bật cho ĐÚNG 9 mã quyền của app (= PERMISSION_CODES); lời dặn = câu chào bản 1.44/1.45, không câu hỏi mẫu", () => {
   const db = open();
   const vai = db.prepare("SELECT ma_quyen, bat FROM tl_vai ORDER BY ma_quyen").all() as { ma_quyen: string; bat: number }[];
   assert.deepEqual(vai.map((v) => v.ma_quyen), [...PERMISSION_CODES].sort());
   assert.ok(vai.every((v) => v.bat === 1));
-  const ld = db.prepare("SELECT cau_chao, giong, loi_dan_them, cau_hoi_mau FROM tl_loi_dan").all();
+  const ld = open(false).prepare("SELECT cau_chao, giong, loi_dan_them, cau_hoi_mau FROM tl_loi_dan").all();
   assert.deepEqual(ld.map((r) => ({ ...r })), [{
     cau_chao: "Chào bạn! Hỏi mình cách dùng app, ví dụ: “Đổi mã PIN thế nào?” hoặc “Lập đơn mới ra sao?”.",
     giong: "", loi_dan_them: "", cau_hoi_mau: "[]",
