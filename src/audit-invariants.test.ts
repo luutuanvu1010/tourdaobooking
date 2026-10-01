@@ -1713,3 +1713,63 @@ test("R-PTY-MERGE-4: hồ sơ đã gộp còn đứng tên xe chưa ngừng → 
   xe("xe-chay", "active", null);
   assert.equal(violations(db, one("R-PTY-MERGE-4")), 1);
 });
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Ô MỚI CỦA CHẶNG (kế hoạch 2026-10-01-may-chu-o-moi-chang Task 5.2; ADR-0054 D10.3): R-ORD-13 (fail), R-ORD-14 (warn, L-R1); R-VC-3 / R-VC-7 dùng số
+// người CỦA CHẶNG (`soNguoiChangSql` — cùng nghĩa `soNguoiChang`).
+// ---------------------------------------------------------------------------------------------------------------------
+/** Đổi chặng của `donTho` thành chiều VỀ có số người riêng `so` (gỡ trigger danh tính — bài kiểm CÂU KIỂM ĐỊNH KỲ, không kiểm lớp CSDL). */
+function thanhChangVe(db: DatabaseSync, leg: string, so: number | null) {
+  db.exec("DROP TRIGGER IF EXISTS ord_transfer_leg_identity");
+  db.prepare("UPDATE ord_transfer_leg SET direction = 'RETURN', pax_override = ? WHERE id = ?").run(so, leg);
+}
+
+test("R-ORD-13: chặng ĐI mang pax_override → 1 (fail); chặng về mang số / chặng đi không số → 0", () => {
+  const c = one("R-ORD-13");
+  assert.equal(c.level, "fail");
+  const db = tho();
+  const d = donTho(db, { pax: 4 });
+  const v = donTho(db, { pax: 4 });
+  thanhChangVe(db, v.leg, 2);
+  assert.equal(violations(db, c), 0);
+  // Lưới thứ hai: CHECK của 0057 chặn ghi thẳng — dựng lại bảng không CHECK là việc của SQL tay; ở đây gỡ CHECK bằng cách tắt kiểm ràng buộc.
+  db.exec("PRAGMA ignore_check_constraints = ON");
+  db.prepare("UPDATE ord_transfer_leg SET pax_override = 2 WHERE id = ?").run(d.leg);
+  assert.equal(violations(db, c), 1);
+});
+
+test("R-ORD-14 (L-R1): chặng về có số người ≤ số khách hiệu lực → 0; vượt → 1 (warn); đơn huỷ / chặng đóng → không đếm; điều chỉnh số khách (after_json) được tính", () => {
+  const c = one("R-ORD-14");
+  assert.equal(c.level, "warn");
+  assert.ok(c.sql.includes("pax_adult + s.pax_child"), "dùng CHUNG đoạn số khách hiệu lực");
+  const db = tho();
+  const a = donTho(db, { pax: 2 });
+  thanhChangVe(db, a.leg, 2);
+  assert.equal(violations(db, c), 0);
+  db.prepare("UPDATE ord_transfer_leg SET pax_override = 3 WHERE id = ?").run(a.leg);
+  assert.equal(violations(db, c), 1);
+  db.prepare(`INSERT INTO order_money_adjustment (id, order_id, seq, before_json, after_json, subtotal_before, subtotal_after) VALUES ('adj-1', ?, 1, '[]', ?, 0, 0)`)
+    .run(a.order, JSON.stringify([{ serviceId: a.svc, pax: { adult: 3, child: 0, senior: 0, infant: 0 } }]));
+  assert.equal(violations(db, c), 0, "số khách hiệu lực 3 (sau điều chỉnh) — không vượt");
+  const b = donTho(db, { pax: 1 });
+  thanhChangVe(db, b.leg, 2);
+  assert.equal(violations(db, c), 1);
+  db.prepare("UPDATE orders SET status = 'cancelled' WHERE id = ?").run(b.order);
+  assert.equal(violations(db, c), 0, "đơn huỷ không đếm");
+});
+
+test("R-VC-3 / R-VC-7 dùng số người CỦA CHẶNG: chặng về 1 người của dịch vụ 2 khách — 1 suất là đủ (R-VC-7 = 0), 2 suất là thừa (R-VC-3 = 1)", () => {
+  const c3 = one("R-VC-3");
+  const c7 = one("R-VC-7");
+  const db = tho();
+  const iso = new Date(NOW_MS + 7 * H + 120 * 60_000).toISOString();
+  const d = donTho(db, { pax: 2, ngay: iso.slice(0, 10), gio: iso.slice(11, 16) });
+  thanhChangVe(db, d.leg, 1);
+  assert.equal(violations(db, c7), 1, "chưa xếp ai — thiếu");
+  const t = chuyenTho(db);
+  suatTho(db, { trip: t, leg: d.leg });
+  assert.equal(violations(db, c7), 0, "1/1 người của chặng về — đủ");
+  assert.equal(violations(db, c3), 0);
+  suatTho(db, { trip: t, leg: d.leg });
+  assert.equal(violations(db, c3), 1, "2 suất > 1 người của chặng về");
+});

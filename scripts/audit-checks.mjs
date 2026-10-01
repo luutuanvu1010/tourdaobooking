@@ -40,6 +40,11 @@ const soKhachHieuLuc = (s) => `COALESCE(
                WHERE a.order_id = ${s}.order_id AND a.seq = (SELECT MAX(seq) FROM order_money_adjustment b WHERE b.order_id = ${s}.order_id) AND json_extract(je.value, '$.serviceId') = ${s}.id
                LIMIT 1),
             ${s}.pax_adult + ${s}.pax_child + ${s}.pax_senior + ${s}.pax_infant)`;
+/**
+ * Số người HIỆU LỰC của CHẶNG alias `l` thuộc dịch vụ alias `s` — CÙNG NGHĨA `soNguoiChang` (src/shared/so-nguoi-chang.ts; ADR-0054 D10.3): chặng VỀ có `pax_override`
+ * → min(số riêng, số khách hiệu lực của dịch vụ); còn lại = số khách hiệu lực. MỘT đoạn cho R-VC-3 (L-D1) và R-VC-7 — không viết bộ đọc `after_json` thứ hai.
+ */
+const soNguoiChangSql = (l, s) => `(CASE WHEN ${l}.direction = 'RETURN' AND ${l}.pax_override IS NOT NULL THEN min(${l}.pax_override, ${soKhachHieuLuc(s)}) ELSE ${soKhachHieuLuc(s)} END)`;
 /** Mốc "bây giờ" dạng ISO UTC đúng khuôn `toISOString()` (so chuỗi với valid_from_at / created_at). */
 const BAY_GIO_ISO = "strftime('%Y-%m-%dT%H:%M:%fZ', 'now')";
 /** Mili-giây "bây giờ" (so với *_ms của vc_trip). */
@@ -377,9 +382,9 @@ export const CHECKS = [
   // trigger / luật máy chủ; chỉ đếm (không biển số, không tên, không số giấy tờ). Mức theo kế hoạch: fail = dữ liệu hỏng; warn = tình trạng cần người xem.
   {
     code: "R-VC-3",
-    what: "chặng có số suất khách MỞ nhiều hơn số khách hiệu lực (L-D1)",
+    what: "chặng có số suất khách MỞ nhiều hơn số người của chặng (L-D1; chặng về có số người riêng — ADR-0054 D10.3)",
     sql: `SELECT count(*) FROM ord_transfer_leg l JOIN order_service s ON s.id = l.order_service_id
-          WHERE (SELECT count(*) FROM vc_trip_allocation a WHERE a.leg_id = l.id AND a.kind = 'PASSENGER' AND a.valid_to_at IS NULL) > ${soKhachHieuLuc("s")}`,
+          WHERE (SELECT count(*) FROM vc_trip_allocation a WHERE a.leg_id = l.id AND a.kind = 'PASSENGER' AND a.valid_to_at IS NULL) > ${soNguoiChangSql("l", "s")}`,
     level: "warn",
     note: "cảnh báo: số khách của dịch vụ vừa GIẢM sau khi xếp (HDV sửa số khách) — văn phòng rút bớt suất khỏi xe",
   },
@@ -424,7 +429,7 @@ export const CHECKS = [
             AND (l.pickup_date || ' ' || l.pickup_time) < strftime('%Y-%m-%d %H:%M', 'now', '+7 hours',
                   '+' || COALESCE((SELECT p.min_lead_minutes FROM vc_dispatch_policy p WHERE p.valid_from_at <= ${BAY_GIO_ISO} ORDER BY p.valid_from_at DESC LIMIT 1), 0) || ' minutes')
             AND (SELECT count(*) FROM vc_trip_allocation a JOIN vc_trip t ON t.id = a.trip_id
-                  WHERE a.leg_id = l.id AND a.kind = 'PASSENGER' AND a.valid_to_at IS NULL AND t.status <> 'CANCELLED') < ${soKhachHieuLuc("s")}`,
+                  WHERE a.leg_id = l.id AND a.kind = 'PASSENGER' AND a.valid_to_at IS NULL AND t.status <> 'CANCELLED') < ${soNguoiChangSql("l", "s")}`,
     level: "warn",
     note: "cảnh báo: khách sắp tới giờ đón mà chưa có xe — văn phòng xếp ngay (trong mốc cần Quản trị phá lệ, trừ chặng đặt gấp)",
   },
@@ -772,6 +777,24 @@ export const CHECKS = [
     sql: `SELECT count(*) FROM ord_transfer_leg l JOIN orders o ON o.id = l.order_id WHERE o.status <> 'cancelled' AND l.closed_at IS NULL AND l.pickup_place = '(chưa ghi nơi đón)'`,
     level: "warn",
     note: "cảnh báo (không chặn phát hành): văn phòng bổ sung nơi đón cho các chặng này",
+  },
+  // R-ORD-13 / R-ORD-14 (ADR-0054 D10.3; kế hoạch ô mới Task 5.2): số người RIÊNG của chặng về `pax_override`.
+  //   13: lưới THỨ HAI sau CHECK của 0057 (chỉ chặng `RETURN` mang số) — mức fail (dữ liệu hỏng).
+  //   14: L-R1 — số người về VƯỢT số khách hiệu lực của dịch vụ (số khách giảm SAU khi văn phòng ghi; máy không tự sửa cột, `soNguoiChang` kẹp lúc đọc) — tình
+  //       trạng nghiệp vụ hợp lệ, văn phòng xem lại ⇒ warn. Dùng CHUNG đoạn số khách hiệu lực `soKhachHieuLuc`.
+  {
+    code: "R-ORD-13",
+    what: "chặng có số người riêng (pax_override) mà không phải chiều về",
+    sql: `SELECT count(*) FROM ord_transfer_leg WHERE pax_override IS NOT NULL AND direction <> 'RETURN'`,
+    level: "fail",
+  },
+  {
+    code: "R-ORD-14",
+    what: "chặng về còn mở của đơn chưa huỷ có số người riêng nhiều hơn số khách hiệu lực của dịch vụ (L-R1)",
+    sql: `SELECT count(*) FROM ord_transfer_leg l JOIN order_service s ON s.id = l.order_service_id JOIN orders o ON o.id = l.order_id
+          WHERE l.closed_at IS NULL AND o.status <> 'cancelled' AND l.pax_override IS NOT NULL AND l.pax_override > ${soKhachHieuLuc("s")}`,
+    level: "warn",
+    note: "cảnh báo (không chặn phát hành): số khách của dịch vụ đã giảm dưới số người chiều về — văn phòng sửa lại số người chiều về (xe đang dùng số khách dịch vụ)",
   },
   // R-AUT-1 (ADR-0016 điều 6/8): một tài khoản bị ngưng (`active = 0`) không được còn Face ID nào CÒN HIỆU LỰC (`valid_to_at IS NULL`) — đăng nhập
   // Face ID còn bị `getActiveStaff` chặn ở tầng ứng dụng, kiểm này là LƯỚI DỮ LIỆU cho bất biến đó, không phải đường chặn đăng nhập.

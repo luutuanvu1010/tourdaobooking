@@ -143,3 +143,18 @@ Còn lọc `status = 'confirmed'`; lô `changeLeg` đẩy mốc đơn (`orderTou
 - **Ruling T1 (kế hoạch 4.2):** số hiệu gắn vào SUẤT (`suat[]`, theo `legId`), không vào điểm dừng (`diem[]`) — một điểm dừng gom suất của nhiều chặng.
 - **Ruling 4.3:** `src/giay-to-khong-lo-so.test.ts` không cần ca mới (số hiệu không phải giấy tờ); hàng rào thật là các bài liệt kê khoá ở trên.
 - `DRIVER_PARTNER`: không mở sớm (DTO dùng chung route của DRIVER; ADR-0053 lượt 3 chưa mở — không đổi gì ở cổng).
+
+## Task 5 — bài "một luật số người chặng" + kiểm định kỳ (2026-10-01)
+
+- `src/so-nguoi-chang-mot-luat.test.ts` (mới, 2 bài): quét `src/modules/orders/`, `src/modules/van-chuyen/`, `src/shared/dieu-phoi-*.ts` (bản che chú thích) — (1) cộng
+  bốn loại tuổi / `paxTotal(` ngoài danh sách cho phép (3 mục có tên: `order_confirm` ≥ 1 khách, trần khách mỗi dịch vụ, lý do "no_guests" — đều là số khách DỊCH VỤ;
+  mục thừa → đỏ); (2) ở `orders` mọi `soNguoi:` mang giá trị phải là `soNguoiChang(`; đúng MỘT định nghĩa `soNguoiChang` và `tongKhach` (src + web). Chống bài rỗng.
+  - Bài viết SAU khi Task 4 đã bỏ hai chỗ cộng tay ⇒ "đỏ trước" chứng minh bằng TC-P9: **thấy chặn thật (2026-10-01)** — thêm lại `p.adult + p.child + p.senior +
+    p.infant` ở `lichChungChang` → 2/2 đỏ; đổi thành `soNguoi: p ? tongKhach(p) : 0` → bài (2) đỏ → hoàn nguyên → 2/2 xanh.
+- `scripts/audit-checks.mjs`: đoạn `soNguoiChangSql(l, s)` (cùng nghĩa `soNguoiChang`, dùng lại `soKhachHieuLuc` — không bộ đọc `after_json` thứ hai) thay số khách
+  dịch vụ ở **R-VC-3** (L-D1) và **R-VC-7** (ADR-0054 D10.3 đòi đổi "câu kiểm định kỳ L-D1/L-B1" — kế hoạch Task 5.2 chưa nêu, làm theo ADR); thêm **R-ORD-13**
+  (fail: `pax_override` trên chặng không phải chiều về — lưới thứ hai sau CHECK) và **R-ORD-14** (warn: L-R1, chặng về mở của đơn chưa huỷ có số người > số khách
+  hiệu lực). L-B1 kiểm định kỳ (R-VC-4) đếm theo bản chốt, không theo số khách ⇒ không đổi.
+- Bài `src/audit-invariants.test.ts` (+3): R-ORD-13 (ca xanh, ca đỏ qua `PRAGMA ignore_check_constraints`), R-ORD-14 (ca xanh, vượt, điều chỉnh `after_json`
+  được tính, đơn huỷ không đếm), R-VC-3/R-VC-7 dùng số người của chặng. Dữ liệu khoẻ ⇒ 0 (bài "dữ liệu khoẻ" có sẵn phủ mọi câu). 94/94.
+- **Thấy chặn thật (2026-10-01):** vô hiệu nhánh `RETURN` của `soNguoiChangSql` → bài R-VC-3/R-VC-7 đỏ → hoàn nguyên → xanh.
