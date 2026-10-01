@@ -21,7 +21,7 @@ export const HD_QUAN_TRI: NhomHuongDan = {
 
 ### Trên điện thoại
 - Tab ở đáy: [[Trang chủ]], [[Đơn hàng]], [[Tạo đơn]], [[Dịch vụ]], [[Tài khoản]], **Tôi**.
-- Các trang khác mở từ trang Tôi: [[Danh bạ]], [[Địa điểm]], [[Loại giấy tờ cá nhân]], và nhóm VẬN CHUYỂN ([[Điều phối xe]], [[Xe]], [[Giấy tờ sắp hết hạn]], [[Loại giấy tờ xe]], [[Lý do điều phối]]).
+- Các trang khác mở từ trang Tôi: [[Danh bạ]], [[Địa điểm]], [[Loại giấy tờ cá nhân]], nhóm VẬN CHUYỂN ([[Điều phối xe]], [[Xe]], [[Giấy tờ sắp hết hạn]], [[Loại giấy tờ xe]], [[Lý do điều phối]]).
 - Bảng ở trang quản trị có thể phải kéo ngang. Việc nhiều nên làm trên máy tính.`,
     },
     {
@@ -163,7 +163,7 @@ Mở [[Sắp hết hạn]] (điện thoại: [[Giấy tờ sắp hết hạn]] �
 2. Sửa: [[Sửa]], [[Lưu]]. Mã không đổi được.
 3. Không dùng nữa: bỏ tick [[Đang dùng]], Lưu (không xoá được).
 
-### Loại giấy tờ cá nhân, xe, hạng bằng lái
+### Loại giấy tờ, hạng bằng lái
 Mở [[Loại giấy tờ cá nhân]] (có cả [[Hạng giấy phép lái xe]]) hoặc [[Loại giấy tờ xe]]. Thêm: gõ mã, tên, tick [[Có ngày hết hạn]] nếu cần, thứ tự, [[Thêm]]. Sửa: [[Sửa]], [[Lưu]]. Không xoá, chỉ ngưng dùng.
 
 ### Trợ lý Hỗ trợ (chỉ Toàn quyền)
