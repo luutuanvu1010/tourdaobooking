@@ -1560,8 +1560,9 @@ export interface ReceiptDto {
 export interface ReceiptResponse { receipt: ReceiptDto }
 
 // ---- Trợ lý Hỗ trợ (ADR-0066, module tro-ly) ----
-/** Thân `POST /api/tro-ly/hoi`. Máy chủ che SĐT / email / số giấy tờ và cắt 500 ký tự trước khi gửi đi. */
-export interface TroLyHoiRequest { cauHoi: string }
+/** Thân `POST /api/tro-ly/hoi`. Máy chủ che SĐT / email / số giấy tờ và cắt 500 ký tự trước khi gửi đi. `cuocTroChuyen` (ADR-0073 Đ4): mã ngẫu nhiên khung sinh —
+ *  máy chủ tự lấy ≤ 3 lượt trước của CHÍNH người hỏi cùng mã; trình duyệt KHÔNG gửi nội dung lượt trước. Sai dạng ⇒ 400; thiếu / null ⇒ không nhớ. */
+export interface TroLyHoiRequest { cauHoi: string; cuocTroChuyen?: string | null }
 /** Phản hồi 200 của `POST /api/tro-ly/hoi`: câu trả lời (chữ thường) + tên các mục hướng dẫn đã dùng. Lỗi: 503 `tro_ly_chua_bat`, 429 `tro_ly_het_tran_ngay` /
  *  `tro_ly_het_tran_thang`, 502 `tro_ly_loi` — `error.message` là câu tiếng Việt hiện thẳng cho người dùng. */
 export interface TroLyHoiResponse { traLoi: string; nguon: string[] }

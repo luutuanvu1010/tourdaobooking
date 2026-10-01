@@ -16,8 +16,8 @@ import { can, PERMISSION_CODES, PERMISSION_LABEL, type PermissionCode } from "..
 import { route, type AppModule } from "../../shared/router";
 import {
   CAU_CHUA_BAT, CAU_HET_TRAN_THANG, CAU_HOI_THO_TOI_DA, CAU_LOI, CAU_QUA_DAI, CAU_VAI_TAT, cauHetTranNgay, cheCauHoi, chiPhiMicroUsd, chiaKho, chonDoan,
-  doanNguCanh, duocDungTroLy, ketQuaThuKhoa, khoaCuoi, khoangThang, kiemCaiDat, kiemLoiDan, kiemNguCanh, kiemVai, quyetDinhTran, thanThuKhoa, thanYeuCau,
-  type SuDung,
+  doanNguCanh, duocDungTroLy, ketQuaThuKhoa, khoaCuoi, khoangThang, kiemCaiDat, kiemLoiDan, kiemNguCanh, kiemVai, NHO_TRONG_MS, quyetDinhTran, thanThuKhoa, thanYeuCau,
+  truyVanTim, type SuDung,
 } from "../../shared/tro-ly";
 import { LOI_NHAC_MAC_DINH, boNaoHieuLuc, kiemBoNao, phanDoi } from "../../shared/tro-ly-bo-nao";
 import { DANH_SACH_MAU, DO_DAI, DO_DAI_NHAN, MUC_NHAN, uocMotCauMicroUsd } from "../../shared/tro-ly-mau";
@@ -26,7 +26,7 @@ import { GIOI_HAN_TRO_LY as G } from "../../shared/tro-ly-gioi-han";
 import { vnToday } from "../../shared/vn-date";
 import {
   boNaoStatement, cacBanBoNao, cacBanLoiDan, caiDatStatement, coNguCanh, demCauHomNay, demCauHomNayCongTy, docBoNao, docCaiDat, docLoiDan, docNguCanh, docVai, ghiLuot, hoiDapStatement, lichSu,
-  loiDanStatement, luotStatement, nguCanhStatement, nguoiDaHoi, theoVai, tongThang, vaiStatement, type LuotHoi,
+  loiDanStatement, luotStatement, nguCanhStatement, nguoiDaHoi, nhoLuot, theoVai, tongThang, vaiStatement, type LuotHoi,
 } from "./repository";
 
 /** Khoá OpenAI đang đặt (secret `OPENAI_API_KEY`); rỗng / chỉ khoảng trắng = chưa có. */
@@ -36,6 +36,9 @@ const khoaCua = (env: Env): string | null => env.OPENAI_API_KEY?.trim() || null;
 const logLoi = (lyDo: string): void => console.error(JSON.stringify({ event: "tro_ly_loi", ly_do: lyDo }));
 
 const usd = (micro: number): number => micro / 1_000_000;
+/** Cộng mức dùng hai lần gọi (phòng thủ gọi lại không nhớ); cả hai null ⇒ null. */
+const congSuDung = (a: SuDung | null, b: SuDung | null): SuDung | null =>
+  a && b ? { vao: a.vao + b.vao, vaoDem: a.vaoDem + b.vaoDem, ra: a.ra + b.ra } : (a ?? b);
 const duVai = (v: Partial<Record<PermissionCode, boolean>>): Record<PermissionCode, boolean> =>
   Object.fromEntries(PERMISSION_CODES.map((p) => [p, v[p] === true])) as Record<PermissionCode, boolean>;
 
@@ -127,6 +130,12 @@ export const troLyModule: AppModule = {
       if (typeof raw !== "string" || !raw.trim()) return error(400, "invalid_input", "Gõ câu hỏi trước khi gửi.");
       // Kiểm độc lập I-1: câu thô quá dài bị từ chối TRƯỚC khi che (không đọc CSDL, không ghi dòng, không gọi mạng).
       if (raw.length > CAU_HOI_THO_TOI_DA) return error(400, "invalid_input", CAU_QUA_DAI);
+      // ADR-0073 Đ4 (N1, N4): mã cuộc trò chuyện do khung sinh — thiếu / null ⇒ hỏi như câu đầu; sai dạng ⇒ 400. KHÔNG nhận nội dung lượt trước từ trình duyệt.
+      const cuocTho = body?.cuocTroChuyen;
+      if (cuocTho !== undefined && cuocTho !== null && (typeof cuocTho !== "string" || !UUID_RE.test(cuocTho))) {
+        return error(400, "invalid_input", "Mã cuộc trò chuyện không hợp lệ — bấm \"Cuộc trò chuyện mới\" rồi hỏi lại.");
+      }
+      const cuocTroChuyen = typeof cuocTho === "string" ? cuocTho : null;
       const db = env.DB;
       const [caiDat, vai] = await Promise.all([docCaiDat(db), docVai(db)]);
       // ADR-0069 điều 3: vai tắt ⇒ 403 lời thường TRƯỚC trần, không gọi mạng, không ghi dòng.
@@ -166,14 +175,26 @@ export const troLyModule: AppModule = {
           luotStatement(db, l),
           hoiDapStatement(db, {
             luotId: l.id, staffId: staff.id, vai: staff.permissions, ngayVn, cauHoiDaChe: cauHoi, traLoi, nguon, chiPhi: l.chiPhi,
-            ketQua: l.ketQua === "loi" ? "loi" : "ok", at,
+            ketQua: l.ketQua === "loi" ? "loi" : "ok", at, cuocTroChuyen,
           }),
         ]);
       };
-      // ADR-0069 điều 4: đoạn ngữ cảnh đang bật vào CÙNG kho tìm đoạn (cùng ngân sách token) với hướng dẫn.
-      const doan = chonDoan(cauHoi, staff.permissions, [...chiaKho(), ...doanNguCanh(nguCanh)]);
+      // ADR-0073 Đ4 (N2, N3): ≤ 3 lượt gần nhất của CHÍNH người hỏi, CÙNG mã, kết quả ok, trong 2 giờ — MÁY CHỦ đọc tl_hoi_dap (đã che khi lưu).
+      const nho = cuocTroChuyen ? await nhoLuot(db, staff.id, cuocTroChuyen, new Date(now.getTime() - NHO_TRONG_MS).toISOString()) : [];
+      // ADR-0069 điều 4: đoạn ngữ cảnh đang bật vào CÙNG kho tìm đoạn (cùng ngân sách token) với hướng dẫn. N5: tìm bằng câu hiện tại + câu trước gần nhất.
+      const doan = chonDoan(truyVanTim(cauHoi, nho.at(-1)?.cauHoi ?? null), staff.permissions, [...chiaKho(), ...doanNguCanh(nguCanh)]);
+      // `than` = TOÀN BỘ đầu vào (lời nhắc + phần nhớ + câu mới): ước token trước khi gọi (Task 8) phải dùng uocTokenVao(than), không chỉ câu mới.
+      const than = thanYeuCau(boNao, staff.permissions, doan, cauHoi, nho);
       // P1 (Đ7a): kq.traLoi đã qua anSoTien trong traLoiMotCau — biến này là thứ DUY NHẤT được trả và được lưu (bài route "HÀNG RÀO lọc số tiền").
-      const kq = await traLoiMotCau(env, khoa, thanYeuCau(boNao, staff.permissions, doan, cauHoi), doan);
+      let kq = await traLoiMotCau(env, khoa, than, doan);
+      // Phòng thủ (nhật ký thi công: chưa kiểm được OpenAI nhận `input` nhiều lượt cùng `instructions`): 400 cho yêu cầu CÓ phần nhớ ⇒ gọi lại ĐÚNG MỘT lần
+      // không nhớ (một lượt, như trước ADR-0073). Log chỉ tên sự kiện. Mức dùng của lần đầu (nếu có) cộng vào lượt — tiền đã tiêu vẫn tính.
+      if (!kq.ok && kq.status === 400 && nho.length) {
+        console.error(JSON.stringify({ event: "tro_ly_nho_bi_tu_choi" }));
+        const dau = kq.suDung;
+        const lai = await traLoiMotCau(env, khoa, thanYeuCau(boNao, staff.permissions, doan, cauHoi), doan);
+        kq = { ...lai, suDung: congSuDung(dau, lai.suDung) };
+      }
       if (!kq.ok) {
         logLoi(kq.loi);
         await ghi(luot("loi", kq.suDung), CAU_LOI, []);

@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
   CAU_CHUA_CO, CAU_HOI_TOI_DA, CAU_TU_CHOI, CHE, KHONG_TIM_THAY, NGAN_SACH_TOKEN, boDau, cheCauHoi, chiPhiMicroUsd, chiaKho, chonDoan, docPhanHoi,
-  dungLoiNhac, khoangThang, kiemCaiDat, quyetDinhTran, tachNguon, tachTu, thanThuKhoa, thanYeuCau, timDoan, uocToken, uocTokenVao, viPhamKho, dinhDangDoan,
+  dungLoiNhac, khoangThang, kiemCaiDat, quyetDinhTran, tachNguon, tachTu, thanThuKhoa, thanYeuCau, timDoan, truyVanTim, uocToken, uocTokenVao, viPhamKho, dinhDangDoan,
   type DoanTriThuc,
 } from "./tro-ly.ts";
 import { LOI_NHAC_MAC_DINH, THONG_SO_MAC_DINH } from "./tro-ly-bo-nao.ts";
@@ -229,4 +229,10 @@ test("khoangThang + kiemCaiDat", () => {
 
 test("sơ đồ trang: chạy lại bộ sinh ra ĐÚNG tệp đang có (sửa giao diện mà quên `node scripts/sinh-so-do-trang.mjs` ⇒ đỏ)", async () => {
   assert.equal(readFileSync(new URL(`../../${DICH}`, import.meta.url), "utf8"), await sinhTep());
+});
+
+test("truyVanTim (N5): câu hỏi hiện tại + câu hỏi lượt trước gần nhất; không có lượt trước ⇒ chỉ câu hiện tại; câu nối tiếp tìm ra đoạn đúng", () => {
+  assert.equal(truyVanTim("còn trên điện thoại thì sao", null), "còn trên điện thoại thì sao");
+  assert.equal(truyVanTim("còn trên điện thoại thì sao", "đổi mã PIN thế nào"), "còn trên điện thoại thì sao đổi mã PIN thế nào");
+  assert.ok(chonDoan(truyVanTim("thế còn cách khác?", "đổi mã PIN thế nào"), ["SALES"]).some((d) => /PIN/.test(d.ten)));
 });

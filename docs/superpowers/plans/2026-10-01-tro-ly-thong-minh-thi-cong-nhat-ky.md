@@ -105,6 +105,25 @@ not ok 1 - chỉ Toàn quyền: Quản trị, Bán hàng nhận 403 ở MỌI ro
   - Thứ tự bản bộ não: `valid_from_at DESC, created_at DESC, rowid DESC` (kế hoạch ghi `id DESC`). `id` là UUID ngẫu nhiên ⇒ hai lần lưu cùng mili-giây có thứ tự ngẫu nhiên (bài B6 có thể chập chờn, "bản hiện hành" có thể sai). `rowid` = thứ tự chèn, tiền lệ module `audit`. Chú thích migration 0060 ("hoà thì created_at, id") KHÔNG sửa (tệp migration chỉ thêm) — lệch mô tả nhỏ, chờ điều phối viên quyết có cần ghi lại.
   - Ruling "Thử key 400 ⇒ câu dễ hiểu": thêm mã `mau_tu_choi` vào `MaThuKhoa` / `TroLyThuKhoaResponse.ma` (status 400 ⇒ "Mẫu AI đang chọn không nhận cấu hình thử (ví dụ mức suy nghĩ) — chọn mẫu hoặc mức khác ở phần Bộ não rồi thử lại."); route vẫn 200, lượt ghi `ket_qua = 'loi'`, `la_thu = 1`. Giao diện chỉ hiện `cau` nên không phải sửa `web/`. Bài: `tro-ly-bang-dieu-khien.test.ts` (thuần) + bài "B10: OpenAI trả 400 …" ở `bo-nao-route.test.ts` (đỏ trước, xanh sau).
 
+### Task 7 — hàng rào (b) "phần nhớ chỉ lấy từ `tl_hoi_dap` của CHÍNH người hỏi" (`NHO_LUOT`, N3) — 2026-10-01
+
+- Đột biến: trong `src/modules/tro-ly/repository.ts` câu `nho-luot` đổi `WHERE staff_id = ?1 AND` thành `WHERE (staff_id = ?1 OR 1) AND`.
+- Lệnh: `node --test src/modules/tro-ly/bo-nao-route.test.ts` ⇒ `# pass 13`, `# fail 1`. Thông báo đỏ:
+
+```
+not ok 10 - HÀNG RÀO nhớ chỉ cùng người (N3): người B gửi mã cuộc trò chuyện của người A ⇒ KHÔNG nhận lượt nào của A
+  error: |-
+    Expected values to be strictly equal:
+    + [
+    +   {
+    +     content: 'đổi mã PIN thế nào MOC-RIENG-A',
+```
+
+- Hoàn nguyên bằng `sed`; `git diff src/modules/tro-ly/repository.ts | grep -c "OR 1"` = 0; chạy lại ⇒ `# pass 14`, `# fail 0`.
+- Điểm (d) của "Tra cứu OpenAI" (`input` dạng danh sách lượt user / assistant cùng `instructions`) VẪN CHƯA KIỂM bằng trang chính thức hay gọi thật. Theo ruling điều phối: thi công đúng kế hoạch (dạng danh sách) + **đường phòng thủ**: yêu cầu CÓ phần nhớ mà OpenAI trả 400 ⇒ gọi lại ĐÚNG MỘT lần không nhớ (một lượt, `input` là chuỗi như trước), console chỉ ghi `{"event":"tro_ly_nho_bi_tu_choi"}` (không nội dung); mức dùng của lần đầu (nếu OpenAI có trả) cộng vào lượt. Bài: "Phòng thủ (ADR-0073 Đ4, …)" ở `bo-nao-route.test.ts` (OpenAI giả từ chối mọi `input` dạng mảng). Việc người làm: xác nhận bằng một câu hỏi thật hai lượt sau khi lên bản thử; nếu log có `tro_ly_nho_bi_tu_choi` thì phần nhớ đang không có tác dụng.
+- Cho Task 8 (kiểm trần trước khi gọi): route dựng `than` (lời nhắc + phần nhớ + câu mới) THÀNH MỘT BIẾN trước khi gọi — ước token phải là `uocTokenVao(than)` (đã gồm `input` dạng mảng), không chỉ câu mới. Lưu ý: đường phòng thủ là lần gọi thứ hai — Task 8 nên coi trần kiểm cho lần đầu là đủ (lần hai nhỏ hơn).
+- Mã cuộc trò chuyện kiểm bằng `UUID_RE` có sẵn (`/^[0-9a-f-]{36}$/`, chữ thường) — lỏng (nhận 36 dấu gạch) nhưng an toàn vì mã chỉ là khoá tra trong phạm vi `staff_id` của chính người hỏi. Khung (task giao diện) phải sinh mã bằng `crypto.randomUUID()` (chữ thường).
+
 ## Kiểm
 
 (điền ở Task 18)

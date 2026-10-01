@@ -155,3 +155,108 @@ test("B10: OpenAI trả 400 cho Thử key (vd. mẫu không nhận mức suy ngh
   assert.match(r.json.cau, /^Mẫu AI đang chọn không nhận/);
   assert.deepEqual({ ...w.q("SELECT mau, la_thu, ket_qua FROM tl_luot_hoi")[0]! }, { mau: "gpt-5-mini", la_thu: 1, ket_qua: "loi" });
 });
+
+const chenLuotCu = (w: W, id: string, staffId: string, cuoc: string, createdAt: string, ketQua: "ok" | "loi", cauHoi: string) => {
+  w.sqlite.exec(`INSERT INTO tl_luot_hoi (id, staff_id, ngay_vn, ket_qua, created_at, updated_at) VALUES ('l-${id}', '${staffId}', '2026-10-01', '${ketQua}', '${createdAt}', '${createdAt}')`);
+  w.sqlite.exec(`INSERT INTO tl_hoi_dap (id, luot_id, staff_id, vai, ngay_vn, cau_hoi, tra_loi, nguon, ket_qua, cuoc_tro_chuyen, created_at, created_by, updated_at, updated_by)
+    VALUES ('h-${id}', 'l-${id}', '${staffId}', '["SALES"]', '2026-10-01', '${cauHoi}', 'Đáp ${id}', '[]', '${ketQua}', '${cuoc}', '${createdAt}', '${staffId}', '${createdAt}', '${staffId}')`);
+};
+
+test("N1 + N2: cùng mã cuộc trò chuyện ⇒ input = TỐI ĐA 3 lượt user / assistant gần nhất (cũ → mới) rồi câu mới; mã lưu vào tl_hoi_dap", async () => {
+  const w = setup();
+  const goi = openAiGia();
+  for (const c of ["đổi mã PIN thế nào", "bật thông báo ra sao", "lập đơn mới ra sao", "xác nhận đơn thế nào"]) assert.equal((await hoi(w, SALES, c, CUOC)).status, 200);
+  assert.equal(goi[0]!.body.input, "đổi mã PIN thế nào", "lượt đầu: chuỗi như cũ");
+  assert.equal((await hoi(w, SALES, "còn trên điện thoại thì sao", CUOC)).status, 200);
+  const input = goi.at(-1)!.body.input as { role: string; content: string }[];
+  assert.ok(Array.isArray(input), JSON.stringify(input));
+  assert.deepEqual(input.map((x) => x.role), ["user", "assistant", "user", "assistant", "user", "assistant", "user"]);
+  assert.deepEqual(input.filter((x) => x.role === "user").map((x) => x.content), ["bật thông báo ra sao", "lập đơn mới ra sao", "xác nhận đơn thế nào", "còn trên điện thoại thì sao"]);
+  assert.equal(input[1]!.content, "Làm theo hướng dẫn.", "câu trả lời trước lấy từ tl_hoi_dap (đã bỏ dòng Nguồn, đã ẩn tiền)");
+  assert.deepEqual(w.q("SELECT DISTINCT cuoc_tro_chuyen AS c FROM tl_hoi_dap").map((x) => x.c), [CUOC]);
+});
+
+test("N6: lượt trước mang chữ '[đã che]' đi nguyên vào phần nhớ", async () => {
+  const w = setup();
+  const goi = openAiGia();
+  await hoi(w, SALES, "khách 0905 123 456 hỏi đổi mã PIN thế nào", CUOC);
+  await hoi(w, SALES, "còn cách khác không", CUOC);
+  const input = goi.at(-1)!.body.input as { role: string; content: string }[];
+  assert.equal(input[0]!.content, "khách [đã che] hỏi đổi mã PIN thế nào");
+  assert.ok(!JSON.stringify(goi.map((g) => g.body)).includes("0905"));
+});
+
+test("HÀNG RÀO nhớ chỉ cùng người (N3): người B gửi mã cuộc trò chuyện của người A ⇒ KHÔNG nhận lượt nào của A", async () => {
+  const w = setup();
+  const goi = openAiGia();
+  await hoi(w, SALES, "đổi mã PIN thế nào MOC-RIENG-A", CUOC);
+  assert.equal((await hoi(w, SALES2, "còn cách khác không", CUOC)).status, 200);
+  assert.equal(goi.at(-1)!.body.input, "còn cách khác không");
+  assert.ok(!JSON.stringify(goi.at(-1)!.body).includes("MOC-RIENG-A"));
+});
+
+test("N4: mã sai dạng ⇒ 400 lời thường, không gọi mẫu, không ghi dòng; thiếu / null ⇒ hỏi như câu đầu", async () => {
+  const w = setup();
+  const goi = openAiGia();
+  for (const sai of ["abc", 5, "x".repeat(36), { a: 1 }]) {
+    const r = await hoi(w, SALES, "đổi mã PIN thế nào", sai);
+    assert.equal(r.status, 400, JSON.stringify(sai));
+    assert.match(r.json.error.message, /cuộc trò chuyện/);
+  }
+  assert.equal(goi.length, 0);
+  assert.equal(w.q("SELECT count(*) AS n FROM tl_luot_hoi")[0]!.n, 0);
+  assert.equal((await hoi(w, SALES, "đổi mã PIN thế nào", null)).status, 200);
+  assert.equal(goi.at(-1)!.body.input, "đổi mã PIN thế nào");
+  assert.equal(w.q("SELECT cuoc_tro_chuyen AS c FROM tl_hoi_dap")[0]!.c, null);
+});
+
+test("Review Focus 3: lượt LỖI, lượt quá 2 giờ, lượt của cuộc trò chuyện KHÁC không vào phần nhớ", async () => {
+  const w = setup();
+  const goi = openAiGia();
+  const cu = new Date(Date.now() - 3 * 3600_000).toISOString();
+  const moi = new Date(Date.now() - 60_000).toISOString();
+  chenLuotCu(w, "qua-gio", SALES, CUOC, cu, "ok", "CAU-QUA-2-GIO");
+  chenLuotCu(w, "loi", SALES, CUOC, moi, "loi", "CAU-LOI");
+  chenLuotCu(w, "khac", SALES, CUOC2, moi, "ok", "CAU-CUOC-KHAC");
+  chenLuotCu(w, "dung", SALES, CUOC, moi, "ok", "CAU-DUNG");
+  assert.equal((await hoi(w, SALES, "còn gì nữa không", CUOC)).status, 200);
+  const s = JSON.stringify(goi[0]!.body.input);
+  assert.ok(s.includes("CAU-DUNG"), s);
+  for (const khong of ["CAU-QUA-2-GIO", "CAU-LOI", "CAU-CUOC-KHAC"]) assert.ok(!s.includes(khong), khong);
+});
+
+test("N5 route: câu nối tiếp không khớp đoạn nào vẫn tìm được đoạn nhờ câu hỏi lượt trước", async () => {
+  const w = setup();
+  const goi = openAiGia();
+  await hoi(w, SALES, "đổi mã PIN thế nào", CUOC);
+  await hoi(w, SALES, "zzqx wqpv", CUOC);
+  assert.ok(!String(goi.at(-1)!.body.instructions).endsWith("(không tìm thấy đoạn hướng dẫn liên quan)"));
+});
+
+test("Phòng thủ (ADR-0073 Đ4, điểm OpenAI chưa kiểm): OpenAI trả 400 cho yêu cầu NHIỀU LƯỢT ⇒ gọi lại ĐÚNG MỘT lần không phần nhớ; 200; log chỉ tên sự kiện", async () => {
+  const w = setup();
+  openAiGia();
+  assert.equal((await hoi(w, SALES, "đổi mã PIN thế nào", CUOC)).status, 200);
+  const goi: GoiGia[] = [];
+  globalThis.fetch = (async (_i: RequestInfo | URL, init?: RequestInit) => {
+    const body = JSON.parse(String(init?.body ?? "{}")) as Record<string, unknown>;
+    goi.push({ body });
+    if (Array.isArray(body.input)) return new Response(JSON.stringify({ error: { message: "input lạ" } }), { status: 400 });
+    return new Response(JSON.stringify({ output: [{ type: "message", content: [{ type: "output_text", text: "Trả lời một lượt." }] }], usage: { input_tokens: 100, output_tokens: 10 } }), { status: 200 });
+  }) as typeof fetch;
+  const log: string[] = [];
+  const errCu = console.error;
+  console.error = (...a: unknown[]) => { log.push(a.map(String).join(" ")); };
+  let r;
+  try { r = await hoi(w, SALES, "còn cách khác không", CUOC); } finally { console.error = errCu; }
+  assert.equal(r.status, 200, r.text);
+  assert.equal(r.json.traLoi, "Trả lời một lượt.");
+  assert.equal(goi.length, 2, "đúng một lần gọi lại");
+  assert.ok(Array.isArray(goi[0]!.body.input));
+  assert.equal(goi[1]!.body.input, "còn cách khác không");
+  assert.ok(log.some((l) => l.includes("tro_ly_nho_bi_tu_choi")), JSON.stringify(log));
+  assert.ok(!log.join("\n").includes("cách khác") && !log.join("\n").includes("PIN"), "log không nội dung");
+  // hai lần gọi đều tính tiền: lượt ok gộp mức dùng của cả hai
+  const l = w.q("SELECT ket_qua FROM tl_luot_hoi ORDER BY created_at DESC, rowid DESC LIMIT 1")[0]!;
+  assert.equal(l.ket_qua, "ok");
+});

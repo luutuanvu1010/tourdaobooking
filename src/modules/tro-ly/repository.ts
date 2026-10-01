@@ -5,7 +5,7 @@
 // Tên người đọc CHỈ qua view công bố v_stf_staff_label (module staff — cạnh tro-ly → staff ở ALLOWED_EDGES).
 import { defineSql } from "../../shared/sql-registry.ts";
 import { PERMISSION_CODES, type PermissionCode } from "../../shared/permissions.ts";
-import type { CaiDatTroLy, LoiDan, NguCanh, NguCanhHienHanh } from "../../shared/tro-ly.ts";
+import type { CaiDatTroLy, LoiDan, LuotTruoc, NguCanh, NguCanhHienHanh } from "../../shared/tro-ly.ts";
 import type { BanBoNaoLuu, BoNao } from "../../shared/tro-ly-bo-nao.ts";
 
 const CAI_DAT = defineSql(
@@ -88,7 +88,15 @@ const THEM_NGU_CANH = defineSql(
 const GHI_HOI_DAP = defineSql(
   "tro-ly",
   "ghi-hoi-dap",
-  "INSERT INTO tl_hoi_dap (id, luot_id, staff_id, vai, ngay_vn, cau_hoi, tra_loi, nguon, chi_phi_micro_usd, ket_qua, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?3, ?11, ?3)",
+  "INSERT INTO tl_hoi_dap (id, luot_id, staff_id, vai, ngay_vn, cau_hoi, tra_loi, nguon, chi_phi_micro_usd, ket_qua, cuoc_tro_chuyen, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?12, ?11, ?3, ?11, ?3)",
+);
+
+// Phần nhớ (ADR-0073 Đ4): ≤ 3 lượt GẦN NHẤT của CHÍNH người hỏi (staff_id), CÙNG mã cuộc trò chuyện, kết quả ok, từ mốc `tuLuc` (2 giờ trước). Chỉ mục
+// tl_hoi_dap_cuoc (staff_id, cuoc_tro_chuyen, created_at). Hoà created_at (cùng mili giây) ⇒ rowid (thứ tự chèn) quyết.
+const NHO_LUOT = defineSql(
+  "tro-ly",
+  "nho-luot",
+  "SELECT cau_hoi, tra_loi FROM tl_hoi_dap WHERE staff_id = ?1 AND cuoc_tro_chuyen = ?2 AND ket_qua = 'ok' AND created_at >= ?3 ORDER BY created_at DESC, rowid DESC LIMIT 3",
 );
 // Lịch sử hỏi đáp (chỉ Toàn quyền): lọc tuỳ chọn ngày từ / đến, người, vai (json_each), tìm chữ (LIKE có ESCAPE ở câu hỏi hoặc câu trả lời). Mới trước.
 const LICH_SU = defineSql(
@@ -234,12 +242,14 @@ export interface HoiDap {
   chiPhi: number;
   ketQua: "ok" | "loi";
   at: string;
+  /** Mã cuộc trò chuyện (ADR-0073 Đ4); null = không gửi mã. */
+  cuocTroChuyen: string | null;
 }
 
 export const hoiDapStatement = (db: D1Database, h: HoiDap): D1PreparedStatement =>
   db
     .prepare(GHI_HOI_DAP)
-    .bind(crypto.randomUUID(), h.luotId, h.staffId, JSON.stringify(h.vai), h.ngayVn, h.cauHoiDaChe, h.traLoi, JSON.stringify(h.nguon), h.chiPhi, h.ketQua, h.at);
+    .bind(crypto.randomUUID(), h.luotId, h.staffId, JSON.stringify(h.vai), h.ngayVn, h.cauHoiDaChe, h.traLoi, JSON.stringify(h.nguon), h.chiPhi, h.ketQua, h.at, h.cuocTroChuyen);
 
 /** `mauTim`: mẫu LIKE đã thoát ký tự đặc biệt (`escapeLike` ở src/shared/http.ts) và bọc `%…%`, hoặc null. */
 export interface LocLichSu { tu: string | null; den: string | null; nguoi: string | null; vai: string | null; mauTim: string | null; gioiHan: number; boQua: number }
@@ -280,3 +290,9 @@ export async function cacBanBoNao(db: D1Database): Promise<BanBoNaoDong[]> {
 
 export const boNaoStatement = (db: D1Database, b: BoNao, at: string, by: string): D1PreparedStatement =>
   db.prepare(THEM_BO_NAO).bind(crypto.randomUUID(), b.mau, b.mucSuyNghi, b.doDai, b.tokenRaToiDa, b.loiNhac, at, by);
+
+/** Lượt trước cho phần nhớ, CŨ → MỚI (thứ tự hội thoại). Nội dung đã che sẵn khi lưu (chữ "[đã che]" giữ nguyên — N6). */
+export async function nhoLuot(db: D1Database, staffId: string, cuocTroChuyen: string, tuLuc: string): Promise<LuotTruoc[]> {
+  const { results } = await db.prepare(NHO_LUOT).bind(staffId, cuocTroChuyen, tuLuc).all<{ cau_hoi: string; tra_loi: string }>();
+  return results.map((r) => ({ cauHoi: r.cau_hoi, traLoi: r.tra_loi })).reverse();
+}

@@ -242,6 +242,12 @@ export function thanYeuCau(b: BoNao, perms: readonly PermissionCode[], doan: rea
 /** Ước token VÀO của một thân yêu cầu (lời nhắc + câu hỏi + phần nhớ) — cho kiểm trần trước khi gọi (ADR-0073 Đ7b). */
 export const uocTokenVao = (than: Record<string, unknown>): number => uocToken(String(than.instructions ?? "")) + uocToken(JSON.stringify(than.input ?? ""));
 
+/** Phần nhớ (ADR-0073 Đ4): lượt trong 2 giờ gần nhất (giả định bề mặt, đặc tả §7). Số lượt (3) nằm trong câu SQL tĩnh `nho-luot` của repository. */
+export const NHO_TRONG_MS = 2 * 60 * 60 * 1000;
+
+/** Truy vấn tìm đoạn (N5): câu hỏi hiện tại NỐI câu hỏi lượt trước gần nhất — câu nối tiếp ("còn trên điện thoại thì sao") không mất ngữ cảnh. */
+export const truyVanTim = (cauHoi: string, cauTruoc: string | null): string => (cauTruoc ? `${cauHoi} ${cauTruoc}` : cauHoi);
+
 // ---------------------------------------------------------------- đọc phản hồi + nguồn
 
 export type SuDung = SoToken;
