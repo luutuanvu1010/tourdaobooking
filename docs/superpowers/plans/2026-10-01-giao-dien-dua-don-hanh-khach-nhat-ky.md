@@ -62,7 +62,8 @@
   - `a2-smoke-form.mjs` 25 ✓ OK; `a2-smoke-order.mjs` 11 ✓ OK; `a2-smoke-sheet.mjs` 14 ✓ OK; `dat-gap-smoke.mjs` 12/12 OK; `doi-tac-lap-don-smoke.mjs` 8/8 OK.
   - `v1-xac-nhan-png.mjs` 11 ✓ / 2 ✗ (b: "hai họ phông phải đã nạp", j: axe `meta-viewport`) — **đỏ y hệt trên commit gốc 34db1b5c** (đã chạy bản gốc ở `/tmp/base-dd`: cùng 2 ✗).
   - `v1-nguoi-phu-trach.mjs` 14 ✓ / 3 ✗ (h, j: axe `meta-viewport`; l: 403 `/api/dispatch/handlers` ở /orders) — **đỏ y hệt trên commit gốc** (bản gốc: cùng h, j, l). Một lần chạy riêng có thêm k ✗ do lệnh `wrangler d1 execute` lỗi (máy bận), chạy lại thì hết.
-- Chưa chạy: kịch bản Chrome của Người 2 sau khi gộp (`danh-muc-dua-don-smoke.mjs`, `canh-bao-xep-smoke.mjs`); e2e đủ bộ; `trang-chu-smoke`, `v1-nguoi-phu-trach` khác ngoài hai cái trên.
+- Kịch bản Chrome của Người 2 chạy lại SAU KHI GỘP (đã sửa `dieu-phoi-kiem.ts`, `app.css`): `danh-muc-dua-don-smoke.mjs` 9/9, `canh-bao-xep-smoke.mjs` 2/2 (ảnh của họ giữ bản gốc).
+- Chưa chạy: e2e đủ bộ; `trang-chu-smoke.mjs`, `chip-nhom-smoke.mjs` và các kịch bản khác không chạm.
 
 ## Đề xuất luật (không tự sửa — `web/CLAUDE.md` là tệp luật)
 
