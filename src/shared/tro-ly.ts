@@ -44,7 +44,7 @@ export const CHE = "[đã che]";
 export const CAU_CHUA_BAT = "Trợ lý chưa bật. Xem hướng dẫn ở Trợ giúp hoặc hỏi Quản trị.";
 /** ADR-0066 điều 6 — nguyên văn. */
 export const CAU_HET_TRAN_THANG = "Trợ lý tạm nghỉ tới tháng sau — xem Trợ giúp";
-export const cauHetTranNgay = (tran: number): string => `Bạn đã hỏi đủ ${tran} câu hôm nay. Mai hỏi tiếp, hoặc xem hướng dẫn ở Trợ giúp.`;
+export const cauHetTranNgay = (tran: number): string => `Bạn đã hỏi đủ ${tran} câu hôm nay. Ngày mai hỏi tiếp, hoặc xem hướng dẫn ở Trợ giúp.`;
 /** Chỉ ô thử của Toàn quyền (khung nhân viên giữ CAU_LOI): mẫu suy nghĩ đã dùng hết token ra mà chưa viết được chữ nào. */
 export const CAU_HET_TOKEN_RA = "Mẫu AI đã dùng hết số token trả lời cho phần suy nghĩ trước khi kịp viết câu trả lời. Tăng \"Số token trả lời tối đa\" hoặc giảm \"Mức suy nghĩ\" rồi thử lại.";
 export const CAU_LOI = "Trợ lý đang bận hoặc gặp lỗi. Thử lại sau ít phút, hoặc xem hướng dẫn ở Trợ giúp.";

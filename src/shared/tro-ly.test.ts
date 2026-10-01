@@ -4,7 +4,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
-  CAU_CHUA_CO, CAU_HOI_TOI_DA, CAU_TU_CHOI, CHE, KHONG_TIM_THAY, NGAN_SACH_TOKEN, boDau, cheCauHoi, chiPhiMicroUsd, chiaKho, chonDoan, diemTuKhoa, docPhanHoi,
+  CAU_CHUA_CO, CAU_HOI_TOI_DA, CAU_TU_CHOI, CHE, cauHetTranNgay, KHONG_TIM_THAY, NGAN_SACH_TOKEN, boDau, cheCauHoi, chiPhiMicroUsd, chiaKho, chonDoan, diemTuKhoa, docPhanHoi,
   dungLoiNhac, heSoVai, khoangThang, kiemCaiDat, quyetDinhTran, tachNguon, tachTu, thanThuKhoa, thanYeuCau, timDoan, truyVanTim, uocToken, uocTokenVao, viPhamKho, dinhDangDoan,
   type DoanTriThuc,
 } from "./tro-ly.ts";
@@ -156,6 +156,10 @@ test("ADR-0084 Đ3: dòng Mai do MÁY CHỦ nối — ĐÚNG MỘT lần, SAU l�
   const than = thanYeuCau(MAC_DINH, ["SALES"], chi, DOAN1, "đổi PIN");
   assert.ok(String(than.instructions).includes(that));
   for (const k of ["user", "safety_identifier", "metadata"]) assert.ok(!(k in than), k);
+});
+
+test("ADR-0084: câu hết trần ngày viết 'Ngày mai' — trợ lý tên Mai, chữ 'Mai hỏi tiếp' đọc như tên người", () => {
+  assert.equal(cauHetTranNgay(30), "Bạn đã hỏi đủ 30 câu hôm nay. Ngày mai hỏi tiếp, hoặc xem hướng dẫn ở Trợ giúp.");
 });
 
 test("ADR-0084 Đ3: kiểm trần tính CẢ dòng Mai — tên gọi dài hơn ⇒ ước token vào lớn hơn (cùng hàm thân với lần gọi thật)", () => {
