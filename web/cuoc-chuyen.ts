@@ -6,7 +6,7 @@
 //   `lienHe` của lần GET; không lưu vào bộ nhớ trình duyệt), đổi thứ tự điểm chưa tới bằng nút lên / xuống (không ô giờ), "Kết thúc chuyến", "Kết thúc gián
 //   đoạn" (chọn lý do; KHÔNG ô ghi chú — chủ Q1).
 // - Mất mạng: dòng đó "Chưa gửi được" + "Bấm lại" (CÙNG requestId — bấm lại hai lần vẫn một lệnh); máy KHÔNG tự gửi lại (lệnh điều phối, khác câu 5a).
-import { giuTenKhach, ketThucDuoc, chiSuatKhach, soHieuTaiDiemDon, tenNguoiDiKemCuaChuyen, thanDoiThuTu, type BuocDiem } from "../src/shared/tien-do-man";
+import { giuTenKhach, ketThucDuoc, chiSuatKhach, soHieuTaiDiemDon, tenNguoiDiKemCuaChuyen, thanDoiThuTu, viecNguoiDiKem, type BuocDiem } from "../src/shared/tien-do-man";
 import type { CuocChiTietResponse } from "../src/shared/contracts";
 import { coCuocCuaToi } from "../src/shared/start-page";
 import { ApiError, api } from "./api";
@@ -75,6 +75,17 @@ function dongDiKem(): HTMLElement | null {
   return ten.length ? h("div", { class: "dp-cc-di-kem" }, icon("me", 16), h("span", null, `Người đi kèm: ${ten.join(", ")}`)) : null;
 }
 
+/** Người đi kèm cũng phải "Đã lên xe" → "Đã xuống" thì "Kết thúc chuyến" thường mới được (máy chủ đếm như khách): nút theo `viecNguoiDiKem`, chỉ khi xe đang chạy. */
+function khoiDiKem(): HTMLElement | null {
+  const viec = viecNguoiDiKem(duLieu!.suat);
+  if (!viec.length || duLieu!.chuyen.trangThai !== "RUNNING") return null;
+  return h("div", { class: "dp-cc-di-kem-viec" }, ...viec.map((v) => {
+    const nut = v.lenh ? h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary", "data-action": `di-kem-${v.lenh}`, "data-suat": v.id }, v.nhan!) : null;
+    nut?.addEventListener("click", () => void chay(`di-kem:${v.id}`, () => gui(`phan-bo/${encodeURIComponent(v.id)}/${v.lenh}`)));
+    return h("div", { class: "dp-cc-di-kem-dong" }, h("span", null, `${v.ten} — ${v.trangThai === "WAITING" ? "chưa lên xe" : v.trangThai === "BOARDED" ? "đang trên xe" : "đã xuống"}`), nut);
+  }));
+}
+
 function ve(): void {
   const r = duLieu!;
   const c = r.chuyen;
@@ -106,7 +117,7 @@ function ve(): void {
     }
   }
   const diemCho = [...choGui.keys()].filter((k) => k.startsWith("diem:"));
-  const ketThuc = h("button", { type: "button", class: "vc-btn btn btn-accent", disabled: !ketThucDuoc(chiSuatKhach(r.suat)), "data-action": "ket-thuc" }, "Kết thúc chuyến");
+  const ketThuc = h("button", { type: "button", class: "vc-btn btn btn-accent", disabled: !ketThucDuoc(r.suat), "data-action": "ket-thuc" }, "Kết thúc chuyến");
   ketThuc.addEventListener("click", () => void chay("ket-thuc", () => gui("ket-thuc")));
   const gianDoan = h("button", { type: "button", class: "vc-btn vc-btn-stop dp-gian-doan", "data-action": "ket-thuc-gian-doan" }, "Kết thúc gián đoạn"); // bản 1.39: nút viền đỏ, nhỏ hơn — không còn là nút to nhất lúc đang chạy (nút xác nhận trong hộp vẫn đỏ đặc)
   gianDoan.addEventListener("click", () => moGianDoan(gianDoan));
@@ -116,6 +127,7 @@ function ve(): void {
     baoCao,
     dauTrang,
     dongDiKem(),
+    khoiDiKem(),
     c.ketThucThat ? h("div", { class: "dp-ct-moc" }, dongMoc(c.trangThai === "ENDED_INTERRUPTED" ? "Kết thúc gián đoạn" : "Kết thúc", c.ketThucThat, ngay)) : null,
     ...diemCho.map((k) => h("div", { class: "dp-khach-cho" }, "Một lệnh ở điểm chưa gửi được", h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary", "data-action": "bam-lai" }, "Bấm lại"))),
     h("div", { class: "dp-run-list" }, ...diem),
@@ -180,9 +192,8 @@ function lenhDiem(l: LenhDiem): void {
 function moGianDoan(opener: HTMLElement): void {
   const r = duLieu!;
   let lyDo: string | null = null;
-  const khachThat = chiSuatKhach(r.suat);
-  const conTren = khachThat.filter((s) => s.trangThai === "BOARDED").length;
-  const chuaDon = khachThat.filter((s) => s.trangThai === "WAITING").length;
+  const conTren = r.suat.filter((s) => s.trangThai === "BOARDED").length;
+  const chuaDon = r.suat.filter((s) => s.trangThai === "WAITING").length;
   const loi = h("div", { class: "vc-field-error", role: "alert", hidden: true });
   const chinh = h("button", { type: "button", class: "vc-btn vc-btn-danger", disabled: true, "data-action": "gian-doan-gui" }, "Kết thúc gián đoạn");
   const dong = h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary" }, "Đóng");

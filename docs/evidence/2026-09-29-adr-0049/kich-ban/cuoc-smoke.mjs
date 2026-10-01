@@ -28,6 +28,10 @@ assert.ok(hdvParty, `danh sách hướng dẫn viên có ${HDV.name}: ${dsHdv.te
 const v4 = await call(ACCOUNTS.admin, "GET", `/api/van-chuyen/chuyen/${d.T4.id}`);
 const xk = await call(ACCOUNTS.admin, "POST", `/api/van-chuyen/chuyen/${d.T4.id}/phan-bo`, { version: v4.json.chuyen.version, requestId: randomUUID(), nguoiDiKem: [hdvParty.partyId], phaLe: { lyDo: "PHA_LE_SU_CO" } });
 assert.equal(xk.status, 200, xk.text);
+// Cùng HDV đi kèm T1 (chuyến của An mà văn phòng xuất bến thay ở bước 7): bước 8b kiểm văn phòng bấm thay "Đã lên xe" → "Đã xuống".
+const v1 = await call(ACCOUNTS.admin, "GET", `/api/van-chuyen/chuyen/${d.T1.id}`);
+const xk1 = await call(ACCOUNTS.admin, "POST", `/api/van-chuyen/chuyen/${d.T1.id}/phan-bo`, { version: v1.json.chuyen.version, requestId: randomUUID(), nguoiDiKem: [hdvParty.partyId], phaLe: { lyDo: "PHA_LE_SU_CO" } });
+assert.equal(xk1.status, 200, xk1.text);
 const t6 = await call(ACCOUNTS.admin, "POST", "/api/van-chuyen/chuyen", { requestId: randomUUID(), xeId: d.XE_B.id, taiXePartyId: d.AN.partyId, batDau: { ngay: d.NGAY_KHOA, gio: "14:00" }, ketThuc: { ngay: d.NGAY_KHOA, gio: "15:00" } });
 assert.equal(t6.status, 201, t6.text);
 const T6 = t6.json.chuyen;
@@ -155,6 +159,14 @@ try {
     assert.equal(await p.ev(txt(".dp-cc-di-kem")), `Người đi kèm: ${HDV.name}`, "đang chạy: dòng người đi kèm; không SĐT");
     assert.ok(!(await html(p)).includes(HDV.phone.slice(1)));
     assert.equal(await p.ev(`document.querySelectorAll('.dp-khach-ten').length`), 2, "người đi kèm không thành dòng khách");
+    // Ruling 2/10: người đi kèm phải "Đã lên xe" → "Đã xuống" (máy chủ đếm như khách khi kết thúc thường).
+    assert.equal(await p.ev(`document.querySelector('.dp-cc-di-kem-viec').innerText.replace(/\\s+/g, ' ').trim()`), `${HDV.name} — chưa lên xe Đã lên xe`);
+    await p.ev(click('[data-action="di-kem-don"]'));
+    await p.waitFor(`!!document.querySelector('[data-action="di-kem-tra"]')`, "sau 'Đã lên xe' hiện 'Đã xuống'");
+    assert.match(await p.ev(txt(".dp-cc-di-kem-viec")), /đang trên xe/);
+    await p.ev(click('[data-action="di-kem-tra"]'));
+    await p.waitFor(`!document.querySelector('[data-action="di-kem-tra"]') && /đã xuống/.test(document.querySelector('.dp-cc-di-kem-viec').innerText)`, "sau 'Đã xuống' hết nút");
+    assert.equal(await p.ev(noCode), "");
     // Q-L3-B: chuyến ngày mai đã xuất bến sớm — màn tài xế hiện "Khách N", không tên / năm sinh / liên hệ (mở từ 00:00 ngày chạy).
     const k = await p.ev(`[...document.querySelectorAll('.dp-khach-ten')].map((x) => x.innerText)`);
     assert.deepEqual([...k].sort(), ["Khách 1", "Khách 2"], "chuyến NGÀY MAI đã xuất bến sớm: màn tài xế hiện 'Khách N', KHÔNG tên");
@@ -336,6 +348,17 @@ try {
     assert.deepEqual(await s.ev(`[...document.querySelectorAll('.dp-run .dp-thu-tu')].map((x) => x.disabled)`), [true, true], "chỉ còn điểm đón (chờ một mình): hai nút khoá; điểm đã tới hết nút");
     assert.equal(await s.ev(noCode), "");
     await shotFull(s, "b2-doi-thu-tu-409-van-phong.png");
+  });
+  await b.step("8b", "Ruling 2/10 — văn phòng bấm thay người đi kèm (T1 đang chạy): dòng 'chưa lên xe' + nút 'Đã lên xe' → 'đang trên xe' + 'Đã xuống' → 'đã xuống', hết nút; dòng giải thích 'Kết thúc chuyến' nhắc người đi kèm", async () => {
+    assert.equal(await s.ev(`!!document.querySelector('[data-action="di-kem-don"]')`), true);
+    assert.match(await s.ev(txt(".dp-cc-di-kem-viec")), new RegExp(`Người đi kèm ${HDV.name} — chưa lên xe`));
+    await s.ev(click('[data-action="di-kem-don"]'));
+    await s.waitFor(`!!document.querySelector('[data-action="di-kem-tra"]')`, "văn phòng: hiện 'Đã xuống'");
+    assert.match(await s.ev(txt(".dp-cc-di-kem-viec")), /đang trên xe/);
+    await s.ev(click('[data-action="di-kem-tra"]'));
+    await s.waitFor(`!document.querySelector('[data-action="di-kem-tra"]') && /đã xuống/.test(document.querySelector('.dp-cc-di-kem-viec').innerText)`, "văn phòng: xong, hết nút");
+    assert.equal(await s.ev(noCode), "");
+    assert.ok(!(await s.ev(`document.querySelector('main').innerText`)).includes(HDV.phone.slice(1)));
   });
   await b.step("8", `5c 1040 Bán hàng: chuyến đang chạy — "Đã tới" để nguyên giờ → thân KHÔNG có xayRaLuc (I34), mốc MỘT giờ; GA-55: sau lệnh tên khách vẫn hiện đúng`, async () => {
     await s.waitFor(`!!document.querySelector('.dp-run [data-action="da-toi"]')`, "nút đã tới");

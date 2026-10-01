@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  buocDiem, cauConKhach, cauTuChoiKhaiGio, giuTenKhach, goiYKhaiGio, ketThucDuoc, nhomCuoc, soHieuTaiDiemDon, tenNguoiDiKemCuaChuyen, chiSuatKhach, thanDoiThuTu, xayRaLucTu, type DiemVao, type SuatVao,
+  buocDiem, cauConKhach, cauTuChoiKhaiGio, giuTenKhach, goiYKhaiGio, ketThucDuoc, nhomCuoc, soHieuTaiDiemDon, tenNguoiDiKemCuaChuyen, chiSuatKhach, viecNguoiDiKem, thanDoiThuTu, xayRaLucTu, type DiemVao, type SuatVao,
 } from "./tien-do-man.ts";
 import { vnLocalToMs } from "./vn-date.ts";
 
@@ -162,9 +162,28 @@ test("tenNguoiDiKemCuaChuyen: chỉ tên các suất người đi kèm, bỏ tr�
   assert.deepEqual(tenNguoiDiKemCuaChuyen([{ tenNguoiDiKem: "Lan" }, {}, { tenNguoiDiKem: "" }, { tenNguoiDiKem: "Hùng" }, { tenNguoiDiKem: "Lan" }]), ["Lan", "Hùng"]);
 });
 
-test("chiSuatKhach: bỏ suất người đi kèm — không làm 'Kết thúc chuyến' bị khoá, không đếm vào số khách", () => {
-  const suat = [{ id: "k1", trangThai: "DROPPED" as const }, { id: "c1", trangThai: "WAITING" as const, tenNguoiDiKem: "Lan" }];
-  assert.deepEqual(chiSuatKhach(suat).map((x) => x.id), ["k1"]);
-  assert.equal(ketThucDuoc(suat), false, "nếu không lọc, suất người đi kèm WAITING chặn kết thúc");
-  assert.equal(ketThucDuoc(chiSuatKhach(suat)), true);
+test("chiSuatKhach: bỏ suất người đi kèm (theo `loai`) — chỉ để ĐẾM khách; không dùng để xét kết thúc", () => {
+  const suat = [{ id: "k1", loai: "PASSENGER" as const }, { id: "c1", loai: "CREW" as const }, { id: "k2" }];
+  assert.deepEqual(chiSuatKhach(suat).map((x) => x.id), ["k1", "k2"]);
+});
+
+test("ketThucDuoc khớp kiemKetThuc của máy chủ: người đi kèm (CREW) còn WAITING / BOARDED thì CHƯA kết thúc thường được; xuống xe (DROPPED) rồi mới được", () => {
+  const khach = { id: "k1", loai: "PASSENGER" as const, trangThai: "DROPPED" as const };
+  assert.equal(ketThucDuoc([khach, { id: "c1", loai: "CREW" as const, trangThai: "WAITING" as const }]), false, "CREW chưa lên xe");
+  assert.equal(ketThucDuoc([khach, { id: "c1", loai: "CREW" as const, trangThai: "BOARDED" as const }]), false, "CREW đang trên xe");
+  assert.equal(ketThucDuoc([khach, { id: "c1", loai: "CREW" as const, trangThai: "DROPPED" as const }]), true, "CREW đã xuống");
+});
+
+test("viecNguoiDiKem: WAITING → 'Đã lên xe' (don); BOARDED → 'Đã xuống' (tra); xong → không nút; bỏ suất khách", () => {
+  const r = viecNguoiDiKem([
+    { id: "k", loai: "PASSENGER", trangThai: "WAITING" },
+    { id: "a", loai: "CREW", trangThai: "WAITING", tenNguoiDiKem: "Lan" },
+    { id: "b", loai: "CREW", trangThai: "BOARDED", tenNguoiDiKem: "Hùng" },
+    { id: "c", loai: "CREW", trangThai: "DROPPED", tenNguoiDiKem: "Mai" },
+  ]);
+  assert.deepEqual(r, [
+    { id: "a", ten: "Lan", lenh: "don", nhan: "Đã lên xe", trangThai: "WAITING" },
+    { id: "b", ten: "Hùng", lenh: "tra", nhan: "Đã xuống", trangThai: "BOARDED" },
+    { id: "c", ten: "Mai", lenh: null, nhan: null, trangThai: "DROPPED" },
+  ]);
 });

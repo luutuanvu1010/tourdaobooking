@@ -2093,6 +2093,8 @@ body.login-page main.login { display: flex; flex-direction: column; height: 100%
 .dp-cuoc-trong { margin: 0; font-size: var(--fs-label); color: var(--c-text-muted); }
 .dp-cc-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); margin-bottom: var(--s3); font-size: var(--fs-label); }
 .dp-cc-di-kem { display: flex; align-items: center; gap: var(--s2); margin-bottom: var(--s3); font-size: var(--fs-label); color: var(--c-muted); }
+.dp-cc-di-kem-viec { display: flex; flex-direction: column; gap: var(--s2); margin-bottom: var(--s3); }
+.dp-cc-di-kem-dong { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s2); font-size: var(--fs-label); }
 .dp-cc-meta { margin-bottom: var(--s3); font-size: var(--fs-label); }
 .dp-cc-day { display: flex; flex-direction: column; gap: var(--s1); }
 .dp-cc-day .vc-btn { min-height: var(--h-field); }

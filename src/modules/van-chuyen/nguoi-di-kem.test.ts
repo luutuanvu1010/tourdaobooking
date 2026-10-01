@@ -3,10 +3,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
-import { ACC, DRIVER, FIELD, SALES, batDongHo, chiTiet, chuyenSan, setup, uuid } from "../../../tests/audit/dieu-phoi-khung.mjs";
+import { ACC, DRIVER, FIELD, SALES, batDongHo, chiTiet, chuyenSan, denGio, setup, tienDo, uuid } from "../../../tests/audit/dieu-phoi-khung.mjs";
 
 const SDT_HDV = "0900000004"; // seedStaff của khung thử
-const KHOA_SUAT_TAI_XE = ["daDon", "daTra", "diemLen", "diemXuong", "id", "maDon", "soHieuChuyenBay", "trangThai"];
+const KHOA_SUAT_TAI_XE = ["daDon", "daTra", "diemLen", "diemXuong", "id", "loai", "maDon", "soHieuChuyenBay", "trangThai"];
 const xepDiKem = async (w: any, tripId: string, ids: string[], as = SALES) => {
   const c = await chiTiet(w, tripId);
   return w.call("POST", `/api/van-chuyen/chuyen/${tripId}/phan-bo`, { as, body: { version: c.chuyen.version, requestId: uuid(), nguoiDiKem: ids } });
@@ -49,7 +49,7 @@ test("xếp người đi kèm: không phải HDV → 409 nguoi_di_kem_khong_hop_
     assert.equal(tx.status, 200, tx.text);
     const crew = tx.json.suat.filter((s: any) => s.tenNguoiDiKem);
     assert.equal(crew.length, 1);
-    assert.deepEqual(Object.keys(crew[0]).sort(), [...KHOA_SUAT_TAI_XE, "tenNguoiDiKem"].sort(), "bài liệt kê khoá: suất người đi kèm chỉ thêm đúng một khoá");
+    assert.deepEqual(Object.keys(crew[0]).sort(), [...KHOA_SUAT_TAI_XE, "tenNguoiDiKem"].sort(), "bài liệt kê khoá: suất người đi kèm chỉ thêm đúng một khoá (tenNguoiDiKem)");
     assert.ok(!tx.text.includes(SDT_HDV) && !JSON.stringify(ct).includes(SDT_HDV), "không SĐT HDV");
     for (const n of w.q("SELECT detail FROM audit_log WHERE action LIKE 'trip_%'")) assert.ok(!String(n.detail).includes(SDT_HDV), `nhật ký không SĐT: ${n.detail}`);
     assert.equal((await w.call("GET", `/api/van-chuyen/chuyen/${a.id}`, { as: FIELD })).status, 403, "HDV chưa thấy chuyến (ADR-0064 còn proposed)");
@@ -67,6 +67,33 @@ test("HDV bị khoá giữa lúc mở màn và lúc gửi → 409, không mở s
     const x = await xepDiKem(w, a.id, [`pty-${FIELD}`]);
     assert.equal(x.status, 409, x.text);
     assert.equal(soCrew(w, a.id), 0);
+  } finally {
+    tat();
+  }
+});
+
+test("kết thúc thường với người đi kèm: khách đã trả mà HDV còn WAITING / BOARDED → 409 con_khach_chua_xong; HDV 'don' rồi 'tra' (cả hai route, không đòi điểm dừng) → kết thúc thường 200", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const a = await chuyenSan(w, { bd: "12:10", kt: "12:40", gio: "12:15" });
+    assert.equal((await xepDiKem(w, a.id, [`pty-${FIELD}`])).status, 200);
+    const crew = (await chiTiet(w, a.id)).suat.find((s: any) => s.loai === "CREW").id;
+    denGio("12:05");
+    assert.equal((await tienDo(w, "van-phong", a.id, "xuat-ben")).status, 200);
+    denGio("12:15");
+    await tienDo(w, "van-phong", a.id, `diem/${a.diemDon}/da-toi`);
+    for (const s of a.suat) await tienDo(w, "van-phong", a.id, `phan-bo/${s}/don`);
+    await tienDo(w, "van-phong", a.id, `diem/${a.diemTra}/da-toi`);
+    for (const s of a.suat) await tienDo(w, "van-phong", a.id, `phan-bo/${s}/tra`);
+    const chua = await tienDo(w, "tai-xe", a.id, "ket-thuc");
+    assert.equal(chua.status, 409, "CREW còn WAITING chặn kết thúc thường");
+    assert.equal(chua.json.error.code, "con_khach_chua_xong");
+    assert.equal((await tienDo(w, "tai-xe", a.id, `phan-bo/${crew}/don`)).status, 200, "tài xế: Đã lên xe cho người đi kèm");
+    assert.equal((await tienDo(w, "van-phong", a.id, "ket-thuc")).status, 409, "đang BOARDED vẫn chưa được");
+    assert.equal((await tienDo(w, "van-phong", a.id, `phan-bo/${crew}/tra`)).status, 200, "văn phòng: Đã xuống cho người đi kèm");
+    const xong = await tienDo(w, "tai-xe", a.id, "ket-thuc");
+    assert.equal(xong.status, 200, xong.text);
   } finally {
     tat();
   }

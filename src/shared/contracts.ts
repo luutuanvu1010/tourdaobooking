@@ -1468,6 +1468,8 @@ export interface CuocChiTietResponse {
   }[];
   suat: {
     id: string;
+    /** `CREW` = người đi kèm (hướng dẫn viên) — không phải khách, không gắn điểm dừng; vẫn phải "Đã lên xe" → "Đã xuống" mới kết thúc thường được. */
+    loai: "PASSENGER" | "CREW";
     maDon: string | null;
     diemLen: string | null;
     diemXuong: string | null;

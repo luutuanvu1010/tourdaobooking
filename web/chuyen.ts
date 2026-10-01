@@ -19,7 +19,7 @@ import { datCrumb, loiCua } from "./giay-to-ui";
 import { icon } from "./icons";
 import { initShell, setBarTitle, showError } from "./shell";
 import { cauLoiTienDo, dongMoc, moKhaiGio, veDiemChay, type LenhDiem } from "./tien-do-ui";
-import { giuTenKhach, ketThucDuoc, thanDoiThuTu, type BuocDiem } from "../src/shared/tien-do-man";
+import { giuTenKhach, ketThucDuoc, thanDoiThuTu, viecNguoiDiKem, type BuocDiem } from "../src/shared/tien-do-man";
 import type { GioVnDto, GoiBaoChangDto } from "../src/shared/contracts";
 
 const errorEl = byId("error");
@@ -323,8 +323,23 @@ function diemChay(): HTMLElement {
     { class: "dp-run-list", "aria-labelledby": "ct-diem-title" },
     h("div", { class: "dp-card-head dp-run-list-head" }, h("h2", { id: "ct-diem-title", class: "dp-card-title" }, "Điểm dừng"), h("span", { class: "dp-card-note" }, "Tải hiện tại ", h("strong", null, `${c.tai}/${c.xe.soCho}`))),
     ...veDiemChay({ diem: r.diem, suat: r.suat, trangThai: c.trangThai, ngayXem: c.ngayChay, coNut: coTienDo, onLenh: lenhDiemChay, phuDiem: (b) => ({ ben: nutThuTuVanPhong(b) ?? undefined, duoi: goiBaoCua(b.diem.id).map((x) => h("div", { class: "dp-gb-dong" }, x)) }) }),
-    coTienDo ? h("div", { class: "dp-run-end" }, ketThuc, ketThuc.disabled ? h("span", { class: "dp-note" }, "Bấm được khi đã trả hết khách.") : null, gianDoan) : null,
+    ...khoiDiKemVanPhong(),
+    coTienDo ? h("div", { class: "dp-run-end" }, ketThuc, ketThuc.disabled ? h("span", { class: "dp-note" }, "Bấm được khi đã trả hết khách và người đi kèm đã xuống.") : null, gianDoan) : null,
   );
+}
+
+/** Văn phòng bấm thay cho người đi kèm: "Đã lên xe" → "Đã xuống" (cùng lệnh suất của máy chủ; giờ ghi = giờ bấm). Cần "trip.progress"; không có thì chỉ xem. */
+function khoiDiKemVanPhong(): HTMLElement[] {
+  const viec = viecNguoiDiKem(duLieu!.suat);
+  if (!viec.length) return [];
+  return [h("div", { class: "dp-cc-di-kem-viec" }, ...viec.map((v) => {
+    const nut = coTienDo && v.lenh ? h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary", "data-action": `di-kem-${v.lenh}`, "data-suat": v.id }, v.nhan!) : null;
+    nut?.addEventListener("click", () => {
+      nut.disabled = true;
+      void guiTienDo(`phan-bo/${encodeURIComponent(v.id)}/${v.lenh}`, {}).then(() => xong(), (e) => xong(dai("danger", loiCua(e))));
+    });
+    return h("div", { class: "dp-cc-di-kem-dong" }, h("span", null, `Người đi kèm ${v.ten} — ${v.trangThai === "WAITING" ? "chưa lên xe" : v.trangThai === "BOARDED" ? "đang trên xe" : "đã xuống"}`), nut);
+  }))];
 }
 
 function lenhDiemChay(l: LenhDiem, nut: HTMLButtonElement): void {

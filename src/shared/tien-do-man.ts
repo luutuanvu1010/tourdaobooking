@@ -73,7 +73,7 @@ export interface DiemVao {
   soNguoi: number;
   daToi: MocTienDoDto | null;
 }
-/** Khoá chung của suất (văn phòng: `SuatChuyenDto`; tài xế: `CuocChiTietResponse.suat` — không có `loai`, chỉ suất khách). */
+/** Khoá chung của suất (văn phòng: `SuatChuyenDto`; tài xế: `CuocChiTietResponse.suat` — cả hai có `loai`; suất người đi kèm `CREW` không gắn điểm dừng). */
 export interface SuatVao {
   id: string;
   loai?: "PASSENGER" | "CREW";
@@ -182,9 +182,12 @@ export function soHieuTaiDiemDon(suat: readonly { diemLen: string | null; soHieu
   return out;
 }
 
-/** "Kết thúc chuyến" bấm được khi không còn khách chờ đón hay đang trên xe (bản vẽ 5a: "Bấm được khi đã trả hết khách."). Máy chủ vẫn quyết. */
-export function ketThucDuoc(suat: readonly Pick<SuatVao, "trangThai" | "loai">[]): boolean {
-  return !suat.some((x) => (x.loai ?? "PASSENGER") === "PASSENGER" && (x.trangThai === "WAITING" || x.trangThai === "BOARDED"));
+/**
+ * "Kết thúc chuyến" bấm được khi mọi suất MỞ đã có kết quả cuối (Đã trả / Vắng / Khách đã huỷ) — KHỚP `kiemKetThuc` của máy chủ (LC-16 + trigger
+ * vc_trip_end_requires_settled): suất người đi kèm (CREW) tính như khách, phải "Đã lên xe" rồi "Đã xuống". Máy chủ vẫn quyết.
+ */
+export function ketThucDuoc(suat: readonly Pick<SuatVao, "trangThai">[]): boolean {
+  return !suat.some((x) => x.trangThai === "WAITING" || x.trangThai === "BOARDED");
 }
 
 // ---- Cuốc của tôi (bản vẽ 04) -------------------------------------------------------------------------------------------------------------------------------
@@ -235,10 +238,19 @@ export function tenNguoiDiKemCuaChuyen(suat: readonly { tenNguoiDiKem?: string }
   return out;
 }
 
+/** Suất KHÁCH (bỏ người đi kèm `CREW`) — chỉ để ĐẾM / liệt kê khách; xét kết thúc chuyến thì dùng `ketThucDuoc` với MỌI suất. */
+export function chiSuatKhach<T extends { loai?: "PASSENGER" | "CREW" }>(suat: readonly T[]): T[] {
+  return suat.filter((x) => x.loai !== "CREW");
+}
+
 /**
- * Suất KHÁCH của màn tài xế: DTO tài xế không có `loai`, nhưng suất người đi kèm mang `tenNguoiDiKem` — bỏ chúng khi đếm khách / xét "Kết thúc chuyến"
- * (người đi kèm không phải khách: không đón, không trả).
+ * Việc với từng người đi kèm đang trên chuyến (lời chủ 2026-10-01 + ruling 2/10): chưa lên xe → "Đã lên xe" (lệnh `don`), đang trên xe → "Đã xuống" (lệnh
+ * `tra`), xong → không nút. Dùng đúng lệnh suất sẵn có của máy chủ (route 23 / 26, 33 / 36) — chúng đã nhận suất CREW, không đòi điểm dừng.
  */
-export function chiSuatKhach<T extends { tenNguoiDiKem?: string }>(suat: readonly T[]): T[] {
-  return suat.filter((x) => x.tenNguoiDiKem === undefined);
+export function viecNguoiDiKem(suat: readonly { id: string; loai?: "PASSENGER" | "CREW"; trangThai: SuatVao["trangThai"]; tenNguoiDiKem?: string }[]): { id: string; ten: string; lenh: "don" | "tra" | null; nhan: string | null; trangThai: SuatVao["trangThai"] }[] {
+  return suat.filter((x) => x.loai === "CREW").map((x) => ({
+    id: x.id, ten: x.tenNguoiDiKem ?? "Người đi kèm", trangThai: x.trangThai,
+    lenh: x.trangThai === "WAITING" ? "don" : x.trangThai === "BOARDED" ? "tra" : null,
+    nhan: x.trangThai === "WAITING" ? "Đã lên xe" : x.trangThai === "BOARDED" ? "Đã xuống" : null,
+  }));
 }
