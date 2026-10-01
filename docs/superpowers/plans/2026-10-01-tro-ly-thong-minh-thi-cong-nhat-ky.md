@@ -56,6 +56,9 @@ not ok 1 - P1: số kèm đơn vị tiền ⇒ [đã ẩn số tiền]
 - Hoàn nguyên bằng tay đúng dòng đó; chạy lại ⇒ `# pass 4`, `# fail 0`; `grep -c "s => s;" src/shared/tro-ly-loc-tien.ts` = 0. Phần route của hàng rào này quan sát ở Task 5 bước 9.
 - Quyết định ghi lại: phần trăm ("10%") KHÔNG phải tiền ⇒ giữ nguyên (có ca test). Thêm ca "không ẩn": SĐT đã che, năm, số lượng, phiên bản "1.53", thời lượng, km/kg, phân số.
 
+- Vòng sửa 1 (Task 4, theo phán quyết điều phối: Hiến chương 5.15 thắng giả định R7): mở rộng mẫu — nhóm nghìn luôn ẩn (trừ km/m/kg/g/người/khách/chỗ/phòng/%/lượt/đoạn/token/ký tự), tiền ghi trước số (VND/VNĐ/USD/US$/$), viết tắt "1tr2"/"2 triệu 5"/"1 triệu rưỡi", đơn vị tiền thừa ("500 nghìn đồng"), dãy ≥ 6 chữ số trần không sau chữ/"-". Có test ẩn và không ẩn; thử thời gian với chuỗi dị dạng.
+- GIỚI HẠN ĐÃ BIẾT của bộ lọc số tiền: tiền viết bằng CHỮ ("hai trăm nghìn", "5 đô", "3 củ") lọt qua — không xử lý bằng mã; chỉ lời nhắc + kiểm tay chặn. Dãy ≥ 6 chữ số trần (vd SĐT chưa che) cũng bị ẩn như số tiền (nghiêng về ẩn).
+
 ## Kiểm
 
 (điền ở Task 18)

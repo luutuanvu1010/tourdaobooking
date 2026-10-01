@@ -39,9 +39,45 @@ test("KHÔNG ẩn thêm: SĐT đã che, năm, số lượng, phiên bản, thờ
   ]) assert.equal(anSoTien(s), s, s);
 });
 
+test("Vòng sửa 1 — ẨN: số có dấu nhóm nghìn luôn là tiền, tiền ghi TRƯỚC số, viết tắt tiếng Việt, đơn vị thừa, dãy số dài", () => {
+  for (const [vao, ra] of [
+    ["giá vé 350.000", `giá vé ${AN_SO_TIEN}`],
+    ["350.000", AN_SO_TIEN],
+    ["Vé 350.000.", `Vé ${AN_SO_TIEN}.`],
+    ["Tổng 1,500,000 nhé", `Tổng ${AN_SO_TIEN} nhé`],
+    ["VND 500.000", AN_SO_TIEN],
+    ["VNĐ 500.000", AN_SO_TIEN],
+    ["Giá USD 20 một vé", `Giá ${AN_SO_TIEN} một vé`],
+    ["Giá US$20", `Giá ${AN_SO_TIEN}`],
+    ["Giá $5", `Giá ${AN_SO_TIEN}`],
+    ["Cọc 1tr2", `Cọc ${AN_SO_TIEN}`],
+    ["Cọc 2tr5 nhé", `Cọc ${AN_SO_TIEN} nhé`],
+    ["Lãi 1tỷ2", `Lãi ${AN_SO_TIEN}`],
+    ["Giá 2 triệu 5", `Giá ${AN_SO_TIEN}`],
+    ["Giá 2 triệu 500 nghìn", `Giá ${AN_SO_TIEN}`],
+    ["Giá 1 triệu rưỡi", `Giá ${AN_SO_TIEN}`],
+    ["Giá 500 nghìn đồng", `Giá ${AN_SO_TIEN}`],
+    ["Giá 500k đ.", `Giá ${AN_SO_TIEN}.`],
+    ["Giá 1200000", `Giá ${AN_SO_TIEN}`],
+    ["Giá 1200000đ", `Giá ${AN_SO_TIEN}`],
+  ] as const) assert.equal(anSoTien(vao), ra, vao);
+});
+
+test("Vòng sửa 1 — KHÔNG ẩn: nhóm nghìn kèm đơn vị không phải tiền, mã đơn, giờ, [đã che]", () => {
+  for (const s of [
+    "Dài 1.200 km.", "Nặng 2.500 kg.", "Xe 1.000 người?", "Tối đa 3.000 ký tự.", "Còn 1.500 token.", "Giảm 10.000 %", "Có 1.200 lượt xem.", "Cách 1.200 m.",
+    "Mã TD-20261001-001.", "TD-20261001", "Mã đơn TD20261001001.", "Đón 14h30.", "Lúc 08:30.", "[đã che] gọi.", "Bản 1.53.", "Xem 2 trang.", "Có 3 tỉnh.", "Có 2 đơn.",
+  ]) assert.equal(anSoTien(s), s, s);
+});
+
 test("anSoTien: chữ dài chạy nhanh (dưới 50 ms cho 20.000 ký tự)", () => {
   const s = "Bấm 2 lần rồi chờ 3 phút. ".repeat(800);
   const t0 = performance.now();
   anSoTien(s);
   assert.ok(performance.now() - t0 < 50);
+  for (const x of ["9".repeat(20000), "1.234".repeat(4000), "1.1".repeat(8000), "5 tr ".repeat(4000), "$".repeat(20000), "1tr".repeat(6000)]) {
+    const t1 = performance.now();
+    anSoTien(x);
+    assert.ok(performance.now() - t1 < 100, x.slice(0, 12));
+  }
 });
