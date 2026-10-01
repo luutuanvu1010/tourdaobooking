@@ -1,6 +1,6 @@
 # ADR-0072 — Vai "Giám đốc" bớt quyền kỹ thuật (Toàn quyền), theo thông lệ tổ chức
 
-- **Trạng thái:** **proposed** — bản nháp đặt ngoài `docs/adr/` (luật hỏi quyền khi sửa `docs/adr/**`). Số 0072 đã được phiên điều phối xác nhận còn trống (2026-10-01). Lượt duyệt riêng, sau ADR-0071 (CLAUDE.md §9: tối đa 3 quyết định chạm quyền mỗi lượt).
+- **Trạng thái:** **accepted** — chủ dự án 2026-10-01: *"OK ta làm theo đúng khuyến nghị"* (sau khi đối chiếu bốn trục quản trị của Oracle: phân quyền theo chức năng, tách nhiệm vụ, nhân sự là nguồn tạo người dùng, rà quyền định kỳ). Số 0072 do phiên điều phối xác nhận còn trống. Lượt duyệt riêng, sau ADR-0071 (CLAUDE.md §9).
 - **Ngày:** 2026-10-01   **Loại:** **hai chiều** về bảng vai; **một chiều** nếu chạy bước dữ liệu ở điều 3 (gỡ quyền khỏi tài khoản thật — vẫn gán lại được, nhưng có nhật ký).
 - **Lời chủ dự án (chat 2026-10-01):** *"Rà soát để bớt quyền của Giám đốc để phản ánh đúng thông lệ tổ chức thông thường, (nếu muốn Quản trị có thêm quyền của IT thì gán thêm bằng cách thủ công)"*.
 - **Bối cảnh:** `src/shared/roles.ts:27` — vai Giám đốc (`DIRECTOR`) sinh `ADMIN + SUPER_ADMIN`, giống hệt vai IT (`roles.ts:34`, ADR-0044). Báo cáo rà soát 2026-10-01 (`RA-SOAT-VAI-QUYEN.md`, mục A1) chỉ ra hai vai trùng nhau. Theo nguyên tắc chủ đã chốt cùng ngày (ADR-0071): Toàn quyền = việc **kỹ thuật** (cài đặt, bảo trì, gửi thông báo hệ thống, Góp ý, Nhật ký, cấp Quản trị); Quản trị = việc **kinh doanh**.
@@ -26,7 +26,11 @@
 2. **Dòng bản đồ quyền:** không ô MATRIX nào đổi; chỉ đổi bộ quyền mặc định của vai Giám đốc (`ROLES.DIRECTOR.defaults`).
 3. **Cổng:** không đổi. Luật "còn ít nhất một quản trị viên" đếm `ADMIN` — Giám đốc vẫn được đếm.
 
-## Câu hỏi cho chủ khi duyệt
+## Câu hỏi đã được chủ trả lời (2026-10-01, "theo khuyến nghị")
 
-1. Giám đốc có cần **mặc định** xem sổ công nợ và tiền như Kế toán không? Đề xuất: **không**. Thông lệ là người duyệt tách khỏi người ghi sổ; ai cần thì Toàn quyền gán tay.
-2. Vai IT có nên thôi nhận đơn thay (`handles: "substitute"` → `"never"`) không? Đề xuất: **giữ** như hiện nay, vì tài khoản của chủ đang mang vai IT.
+1. Giám đốc **không** mặc định có quyền Kế toán (Kế toán là quyền ghi sổ; tách nhiệm vụ). Cần thì Toàn quyền cộng tay `ACCOUNTING` kèm lý do. Quyền "chỉ xem sổ công nợ" riêng cho lãnh đạo: để lượt sau nếu chủ muốn.
+2. Vai IT giữ nguyên, kể cả nhận đơn thay (tài khoản IT là của chủ doanh nghiệp). Người giữ vai IT vốn làm được mọi việc kế toán qua `SUPER_ADMIN`, không cần cộng `ACCOUNTING`. Nếu sau này giao vai IT cho người ngoài thì xem lại.
+3. Rà người đang giữ vai Giám đốc theo điều 3: đồng ý.
+4. **Kèm cùng lượt thi công** (chủ duyệt "sửa luôn"):
+   - a. Giao diện hỏi bảng quyền bằng `can(...)` thay cho `hasPermission("ADMIN"/"SUPER_ADMIN")`, ở các chỗ của báo cáo rà soát mục B1–B4, B6–B8. Mục B5 đã nằm trong ADR-0071.
+   - b. Trợ lý Hỗ trợ không mô tả các thao tác chưa có route: `task.progress`, `dispatch.guides.view`, `invoice.request`, `invoice.issue` (báo cáo mục 3D).
