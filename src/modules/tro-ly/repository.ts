@@ -3,10 +3,19 @@
 // Module NGHIÊM: mọi câu đi qua defineSql, TĨNH, import đuôi .ts. Mọi bảng CHỈ THÊM (trigger chặn UPDATE/DELETE) — ở đây chỉ có SELECT và INSERT.
 // tl_luot_hoi KHÔNG có cột nội dung (ADR-0066 điều 7); nội dung hỏi đáp ĐÃ CHE nằm ở tl_hoi_dap (ADR-0069 điều 5), chỉ Toàn quyền đọc.
 // Tên người đọc CHỈ qua view công bố v_stf_staff_label (module staff — cạnh tro-ly → staff ở ALLOWED_EDGES).
+// ADR-0084: tên gọi + giới tính của người hỏi CHỈ qua view công bố v_stf_staff_xung_ho (module staff — CÙNG cạnh, không thêm cạnh tro-ly → parties).
 import { defineSql } from "../../shared/sql-registry.ts";
 import { PERMISSION_CODES, type PermissionCode } from "../../shared/permissions.ts";
 import type { CaiDatTroLy, LoiDan, LuotTruoc, NguCanh, NguCanhHienHanh } from "../../shared/tro-ly.ts";
 import type { BanBoNaoLuu, BoNao } from "../../shared/tro-ly-bo-nao.ts";
+
+// ADR-0084 Đ3, Đ4: CHỈ tên gọi + giới tính (view không có họ, tên đệm, SĐT) của MỘT tài khoản — id lấy từ phiên, không từ trình duyệt.
+const XUNG_HO = defineSql("tro-ly", "xung-ho", "SELECT given_name, gender FROM v_stf_staff_xung_ho WHERE id = ?1");
+/** Tên gọi + giới tính của tài khoản đang đăng nhập (không có dòng / chưa có hồ sơ ⇒ null cả hai ⇒ "bạn" / "mình"). */
+export async function docNguoiHoi(db: D1Database, staffId: string): Promise<{ tenGoi: string | null; gioiTinh: string | null }> {
+  const r = await db.prepare(XUNG_HO).bind(staffId).first<{ given_name: string | null; gender: string | null }>();
+  return { tenGoi: r?.given_name ?? null, gioiTinh: r?.gender ?? null };
+}
 
 const CAI_DAT = defineSql(
   "tro-ly",

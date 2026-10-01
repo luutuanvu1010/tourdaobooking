@@ -288,11 +288,11 @@ try {
     await p.ev(`(() => { window.__hoi = []; window.confirm = (m) => { window.__hoi.push(m); return true; }; return true; })()`);
     await p.ev(`[...${q("#tl-bo-nao")}.querySelectorAll('button')].find((b) => b.textContent === 'Khôi phục mặc định').click(), true`);
     assert.equal(await p.ev(`window.__hoi.length`), 1, "có hỏi xác nhận");
-    assert.match(await p.ev(`${q("#tl-loi-nhac")}.value`), /^Bạn là trợ lý "Hỗ trợ"/);
+    assert.match(await p.ev(`${q("#tl-loi-nhac")}.value`), /^Bạn là Mai, trợ lý "Hỗ trợ"/);
     assert.match(await p.ev(`${q("#tl-mac-dinh")}.textContent`), /Đang dùng lời nhắc đã sửa/, "Khôi phục chưa lưu");
     await p.ev(`[...${q("#tl-bo-nao")}.querySelectorAll('button')].find((b) => b.textContent === 'Lưu bộ não').click(), true`);
     await p.waitFor(`/Đang dùng lời nhắc mặc định\\./.test(${q("#tl-bo-nao")}.textContent)`, "đã khôi phục", 10000);
-    assert.match(await p.ev(`${q("#tl-loi-nhac")}.value`), /^Bạn là trợ lý "Hỗ trợ"/);
+    assert.match(await p.ev(`${q("#tl-loi-nhac")}.value`), /^Bạn là Mai, trợ lý "Hỗ trợ"/);
     assert.match(await p.ev(`${q("#tl-bo-nao .tl-cd-bao")}.textContent`), /Đã lưu thành bản mới/);
     await p.shot(join(OUT, "anh/l-khoi-phuc-1040.png"));
   });

@@ -13,6 +13,7 @@ import { viPhamKyThuat } from "./tro-ly-loc-ky-thuat.ts";
 import { MAU_MAC_DINH, timMau, type SoToken } from "./tro-ly-mau.ts";
 export { chiPhiMicroUsd } from "./tro-ly-mau.ts";
 import { chuSach, type BoNao } from "./tro-ly-bo-nao.ts";
+import { dongMai, type XungHo } from "./xung-ho.ts";
 export { CAU_TU_CHOI } from "./tro-ly-bo-nao.ts";
 
 // ---------------------------------------------------------------- hằng (ADR-0066 điều 2, 5, 6)
@@ -226,14 +227,17 @@ export const nhomVai = (perms: readonly PermissionCode[]): string => perms.map((
 export const KHONG_TIM_THAY = "(không tìm thấy đoạn hướng dẫn liên quan)";
 
 /**
- * Lời nhắc gửi đi = lời nhắc của bộ não (Toàn quyền sửa được TOÀN BỘ — ADR-0073 Đ2) + phần MÁY CHỦ luôn nối ở CUỐI: dòng nhóm vai (chỉ tên nhóm —
- * ADR-0066 điều 5) và khối "TÀI LIỆU:" (đoạn đã chọn, hoặc ghi chú không tìm thấy — Đ3, M1). Toàn quyền không chèn / bỏ được khối tài liệu (hàng rào B4,
- * bài tro-ly.test.ts "HÀNG RÀO dungLoiNhac (B4)").
+ * Lời nhắc gửi đi = lời nhắc của bộ não (Toàn quyền sửa được TOÀN BỘ — ADR-0073 Đ2) + phần MÁY CHỦ luôn nối SAU nó: dòng "Tên bạn là Mai…" với cách gọi /
+ * cách xưng của CHÍNH người hỏi (ADR-0084 Đ3 — chỉ tên gọi, không họ / tên đệm / SĐT / id: Đ4; máy chủ đọc hồ sơ theo phiên, không nhận từ trình duyệt),
+ * dòng nhóm vai (chỉ tên nhóm — ADR-0066 điều 5) và khối "TÀI LIỆU:" ở CUỐI (đoạn đã chọn, hoặc ghi chú không tìm thấy — Đ3, M1). Dòng Mai đứng TRƯỚC khối
+ * tài liệu (không lẫn vào tài liệu; khối tài liệu vẫn cuối — hàng rào B4). Toàn quyền không chèn / bỏ được hai dòng này hay khối tài liệu (bài tro-ly.test.ts
+ * "HÀNG RÀO dungLoiNhac (B4)" + "ADR-0084 Đ3: dòng Mai").
  */
-export function dungLoiNhac(loiNhac: string, perms: readonly PermissionCode[], doan: readonly DoanTriThuc[]): string {
+export function dungLoiNhac(loiNhac: string, perms: readonly PermissionCode[], nguoi: XungHo, doan: readonly DoanTriThuc[]): string {
   return [
     loiNhac.trim(),
     "",
+    dongMai(nguoi),
     `Người hỏi thuộc nhóm vai: ${nhomVai(perms)}. Ưu tiên cách làm của nhóm vai này.`,
     "",
     "TÀI LIỆU:",
@@ -245,13 +249,16 @@ export function dungLoiNhac(loiNhac: string, perms: readonly PermissionCode[], d
 export interface LuotTruoc { readonly cauHoi: string; readonly traLoi: string }
 
 /**
- * Thân yêu cầu Responses API (POST /v1/responses) theo bộ não. KHÔNG có `user`, `safety_identifier`, `metadata`, `previous_response_id` (ADR-0066 điều 5);
- * `store: false`. Có lượt trước ⇒ `input` là danh sách lượt user / assistant rồi câu hỏi mới; không có ⇒ chuỗi câu hỏi (như trước).
+ * Thân yêu cầu Responses API (POST /v1/responses) theo bộ não. KHÔNG có `user`, `safety_identifier`, `metadata`, `previous_response_id` (ADR-0066 điều 5,
+ * ADR-0082 G2 — ADR-0084 Đ4 giữ nguyên); `store: false`. `nguoi` BẮT BUỘC (không mặc định — mọi nơi gọi, kể cả kiểm trần, phải truyền cùng người hỏi để
+ * mức trần tính cả dòng Mai). Có lượt trước ⇒ `input` là danh sách lượt user / assistant rồi câu hỏi mới; không có ⇒ chuỗi câu hỏi (như trước).
  */
-export function thanYeuCau(b: BoNao, perms: readonly PermissionCode[], doan: readonly DoanTriThuc[], cauHoiDaChe: string, nho: readonly LuotTruoc[] = []): Record<string, unknown> {
+export function thanYeuCau(
+  b: BoNao, perms: readonly PermissionCode[], nguoi: XungHo, doan: readonly DoanTriThuc[], cauHoiDaChe: string, nho: readonly LuotTruoc[] = [],
+): Record<string, unknown> {
   return {
     model: b.mau,
-    instructions: dungLoiNhac(b.loiNhac, perms, doan),
+    instructions: dungLoiNhac(b.loiNhac, perms, nguoi, doan),
     input: nho.length
       ? [...nho.flatMap((l) => [{ role: "user", content: l.cauHoi }, { role: "assistant", content: l.traLoi }]), { role: "user", content: cauHoiDaChe }]
       : cauHoiDaChe,

@@ -9,6 +9,7 @@ import { cheCauHoi, chiaKho, chonDoan, dinhDangDoan, thanYeuCau, truyVanTim, uoc
 import { chiPhiToiDa } from "../../shared/tro-ly-mau.ts";
 import { MAU_NHUNG, SO_CHIEU_NHUNG, chiPhiNhungMicroUsd, chiaLoNhung, mucTranTren, tienBuUoc } from "../../shared/tro-ly-van-nghia.ts";
 import { xoaBoNhoVanNghia } from "./van-nghia.ts";
+import { xungHo } from "../../shared/xung-ho.ts";
 
 const SALES = "11111111-1111-4111-8111-111111111111";
 const SUP = "77777777-7777-4777-8777-777777777777";
@@ -77,6 +78,8 @@ function batLog(): { dung: () => string[] } {
 }
 const MO = 400; // tiền mẫu nano của máy giả: 4.000 × 0,05 + 500 × 0,40
 const N = chiaKho().length;
+/** ADR-0084: người hỏi của bài này chưa ghi giới tính (seedStaff) ⇒ máy chủ nối dòng Mai với "bạn" / "mình" — mức trần tính CẢ dòng đó. */
+const BAN = xungHo(null, null);
 type BoNaoThu = { mau: string; mucSuyNghi: string; doDai: string; tokenRaToiDa: number; loiNhac: string };
 /**
  * Hai mức kiểm trần của MỘT lượt (không nhớ, câu không có gì để che), tính bằng luật thuần:
@@ -85,8 +88,8 @@ type BoNaoThu = { mau: string; mucSuyNghi: string; doDai: string; tokenRaToiDa: 
  */
 function haiMuc(b: BoNaoThu, perms: string[], cau: string): { tren: number; cu: number } {
   const q = cheCauHoi(cau);
-  const tren = mucTranTren(b.mau, uocTokenVao(thanYeuCau(b as never, perms as never, [], q)), b.tokenRaToiDa, q);
-  const cu = chiPhiToiDa(b.mau, uocTokenVao(thanYeuCau(b as never, perms as never, chonDoan(q, perms as never, chiaKho()), q)), b.tokenRaToiDa);
+  const tren = mucTranTren(b.mau, uocTokenVao(thanYeuCau(b as never, perms as never, BAN, [], q)), b.tokenRaToiDa, q);
+  const cu = chiPhiToiDa(b.mau, uocTokenVao(thanYeuCau(b as never, perms as never, BAN, chonDoan(q, perms as never, chiaKho()), q)), b.tokenRaToiDa);
   return { tren, cu };
 }
 const datTran = (w: W, microUsd: number) => w.call("POST", "/api/tro-ly/cai-dat", { as: SUP, body: { bat: true, tranThangUsd: microUsd / 1_000_000, tranNgay: 30 } });
