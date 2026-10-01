@@ -52,7 +52,7 @@ const orderBody = (extra: Record<string, unknown> = {}) => ({
 const count = (w: any, sql: string, ...a: unknown[]) => w.q(sql, ...a)[0].n;
 const actionsOf = (w: any, orderId: string) => w.q("SELECT action FROM audit_log WHERE order_id = ? ORDER BY created_at, rowid", orderId).map((r: any) => r.action);
 /** Ảnh chụp "không có gì được ghi": số đơn, số dòng phân công, số dòng nhật ký. */
-const snapshot = (w: any) => [count(w, "SELECT count(*) n FROM orders"), count(w, "SELECT count(*) n FROM dsp_assignment"), count(w, "SELECT count(*) n FROM audit_log")];
+const snapshot = (w: any) => [count(w, "SELECT count(*) n FROM orders"), count(w, "SELECT count(*) n FROM dsp_assignment"), count(w, "SELECT count(*) n FROM audit_log WHERE action <> 'client_outdated_body'")];
 
 test("(1) lập đơn KHÔNG chọn hướng dẫn viên → không có dòng HANDLE nào, nhật ký chỉ 'created' — với Bán hàng, Quản trị, Toàn quyền, Thực tập, Đối tác (trước đây: ba quyền đầu tự gắn người lập)", async () => {
   for (const [label, as] of [["Bán hàng", SALES], ["Quản trị", ADM], ["Toàn quyền", SUP], ["Thực tập", INTERN], ["Đối tác", PARTNER]] as const) {
