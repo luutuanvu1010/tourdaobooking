@@ -51,6 +51,22 @@
 - **Sửa lời khuyên ngày 1/10:** "báo tài xế" (Đợt 2) làm được ngay; "tài xế đối tác dùng app" (Đợt 6) phải sau bảng giá + chi phí chuyến (Đợt 4).
 - Đợt 1–3 chạy song song được (khác tệp chính); Đợt 4 song song Đợt 5 A-1.
 
+## Điểm chạm chung giữa các đợt (đối chiếu 1/10 — kế hoạch DÙNG đã sửa theo kế hoạch SỞ HỮU)
+
+| Tên dùng chung | Sở hữu | Dùng | Luật gộp |
+|---|---|---|---|
+| `vc_unavailability` (cột `start_ms/end_ms/start_at/end_at`, `subject`), trigger `vc_unavailability_driver_closed`, `kiemKhungBanMoi` + `KHUNG_XE_TOI_DA_NGAY`, `src/shared/khung-ban.ts`, `KiemTaoSuaChuyenVao.khungBan` | 03 | 06 | 03 trước; 06 mở rộng theo `subject`, không tạo hàm/hằng thứ hai |
+| `ctx.baoThayDoiChuyen({ tripId, requestId })`, `src/shared/tin-chuyen.ts` (`HANH_DONG_TIN_CHUYEN`, `loaiCho`), bài ghim "chỉ Tài xế đối tác không nhận tin" | 02 | 05, 06 | 02 trước; sau nối thêm hành động; 06 sửa bài ghim trong task mở ô |
+| Bài quét "mọi route lệnh chuyến gọi `baoThayDoiChuyen`" | 02 | 04 (ngoại lệ có tên `/chi-phi/`), 05, 06 | mỗi route mới gọi hàm tiêm hoặc vào danh sách ngoại lệ ngay trong task tạo route |
+| `transport.cost.adjust`, `THIEU_GIA`, `keHoachChiPhiKhiDoi`, route `…/chi-phi/chup-lai`, `…/gia-thoa-thuan` | 04 | 05 A-1b, 06 | 04 T2 trước |
+| `MA_GIU`, `MA_LUAT_PHA_LE` (`ly-do-giu.test.ts`), `ChuyenVao` (`thue`, `coNguonGia`) | 04 | 07 | 04 trước; 07 đo lại giá trị ghim |
+| `KetQuaTaoSua = KetQuaKiem & { nhacGioLai }` | 03 | 06, 07 | 03 → 06 → 07 |
+| `vc_dispatch_policy` + `INSERT_DISPATCH_POLICY` + `kiemChinhSachMoi` + bài "câu chèn ghi đủ cột" (`chinh-sach.test.ts`) | 03 | 05, 06 | 03 → 05 → 06, mỗi đợt dựng từ bản đã gộp, không viết bài trùng |
+| Bài ghim nhóm lý do (`dieu-phoi-kieu.test.ts`) | 03 (8 nhóm) | 06 (10 nhóm) | 03 → 06 |
+| `LOAI_SU_KIEN_CHUYEN`; `MAU` của `thu-tu-lo.test.ts` | 05 / chung | 04, 05, 06, 07 | nối thêm theo thứ tự 04 → 05 → 06 → 07 |
+
+Không đợt nào DROP trigger trên `vc_trip` của đợt khác (tên không trùng). **Đợt 1–3 song song chỉ an toàn khi** mỗi đợt nhận việc từ `main` mới nhất và đợt gộp sau đo lại các dòng trên.
+
 ## Tự chốt khi lập kế hoạch (ghi lại, không hỏi chủ)
 
 | # | Điều | Chốt | Vì sao |
@@ -97,13 +113,15 @@
 5. Đợt 1: gắn người đi kèm lúc xếp xe — (A, khuyến nghị) chỉ tài khoản Hướng dẫn viên, tên hiện ở chi tiết chuyến văn phòng + màn tài xế; (B) bất kỳ ai trong Danh bạ; (C) để sau cùng ADR-0064.
 6. Ô quyền chết `task.progress` (hạn 30/11, quá hạn bộ kiểm đỏ): khuyến nghị bỏ khỏi bản đồ quyền (siết) tới khi làm nhiệm vụ đón ADR-0006.
 
-**Lượt III — bề mặt / vận hành (không trả lời thì dùng khuyến nghị):**
-7. Đợt 3: mã giữ riêng "Xe có lịch bận trùng giờ" thay vì dùng lại "trùng giờ chuyến khác" (ADR-0055 ghi không thêm mã — lệch nhỏ, khuyến nghị cho phép).
+**Lượt III — bề mặt / vận hành (không trả lời thì dùng khuyến nghị; RIÊNG câu 7: không trả lời thì theo đúng chữ ADR):**
+7. Đợt 3: mã giữ riêng "Xe có lịch bận trùng giờ" thay vì dùng lại "trùng giờ chuyến khác". ADR-0055 ghi KHÔNG thêm mã ⇒ mặc định (không trả lời) = dùng lại `TRUNG_GIO_XE` theo ADR; khuyến nghị chủ cho phép mã riêng (câu báo đúng hơn).
 8. Đợt 2: duyệt câu chữ 6 loại tin; văn phòng xếp/rút khách trên chuyến thì tài xế KHÔNG nhận chuông (đúng ADR, màn tự tải lại); tách "báo khi giờ hẹn đổi sau xếp" (MQ-07) sang lát riêng sau Đợt 5.
 9. Đợt 8: gộp bộ đếm thân cũ vào Đợt 1 (khuyến nghị có); ngưỡng cắt 7 ngày liền không còn máy cũ (hoặc 14).
 10. Đợt 5: xác nhận bộ ca mẫu xe A/B trước lát chuyển điểm.
 
 **Lúc thi công (không hỏi bây giờ):** tệp đề xuất luật nới bài ghim — Đợt 5 A-1, Đợt 5 A-1b (ô "bổ sung tên", ngoại lệ `GHI_NGOAI`, đổi nghĩa R-ORD-11), Đợt 6 (hàng `DRIVER_PARTNER`, sửa `CLAUDE.md` §10, `web/CLAUDE.md`); Đợt 8 câu mới cho `CLAUDE.md` §10. **Bản vẽ Claude Design** (lệnh vẽ soạn sẵn trong từng kế hoạch con): Đợt 3, 4, 5, 6, 7 — máy chủ các đợt làm trước, không chờ.
+
+**Lệch chữ ADR tiền, không đổi số tiền (người kiểm Đợt 4 soi, điều phối đã xét — không hỏi chủ):** TC-8 khoá ghi chồng đặt ở câu cổng (mạnh hơn chữ ADR C4, vẫn "cả lô hoặc không"); TC-10 câu kiểm `R-VC-COST-3` báo "còn nguồn giá chưa đảo hoặc tổng ≠ 0" thay "có dòng" (chuyến đổi sang xe công ty giữ dòng đã đảo). Người kiểm thấy đổi nghĩa tiền ⇒ quay về chữ ADR và hỏi chủ.
 
 **Tự chốt của người viết kế hoạch đáng soi** (ghi trong từng tệp): Đợt 6 P6-2 (đúng mốc hạn Từ chối: vẫn Từ chối được, chưa thấy khách — siết); Đợt 1 làm luôn mốc nhắc hạn giấy tờ người (bỏ hằng 30); Đợt 4 TC-8/10/11; Đợt 7 C6/C7; Đợt 3 K1–K15.
 

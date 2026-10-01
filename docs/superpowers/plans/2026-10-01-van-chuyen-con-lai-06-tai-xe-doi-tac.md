@@ -20,13 +20,20 @@
 
 | Cần | Từ | Vì sao | Kiểm lúc nhận |
 |---|---|---|---|
-| Cổng `THIEU_GIA`, lô đổi xe/nhà xe/tuyến **tự đảo + chụp lại giá**, ô `transport.cost.*` | **Đợt 4 T2** (ADR-0057 T2) | D8.5a chỉ KIỂM hành vi giá khi giao lại; không tự viết luật giá (ADR-0053:129) | `grep -rn "THIEU_GIA" src/` có; e2e Đợt 4 xanh trên `main` |
-| Bảng `vc_unavailability` (cột `subject`, `driver_party_id`, `start_ms/end_ms/start_at/end_at`, `reason_code`, `withdrawn_at/by`, WHO), trigger chặn ghi `DRIVER` (ADR-0055 A1 :59), hàm chồng giờ LC-03 nhận khung bận xe | **Đợt 3 VK2-A** | D9 dùng CHUNG bảng — **cấm hai bảng khung bận** (ADR-0053 D9.1) | `grep -n "vc_unavailability" migrations/*.sql`; tên trigger chặn `DRIVER` |
-| Ô `trip.transfer`, đề nghị nhờ đón (`vc_transfer_request`, LC-14) | **Đợt 5 A-1** (ADR-0052 D4) | D7.1 mở ô này cho `DRIVER_PARTNER`; D7.4 nhờ đón chéo | `grep -n '"trip.transfer"' src/shared/permissions.ts` |
-| Ô `trip.passenger.add` + route tài xế bổ sung tên | **Đợt 5 A-1b** (ADR-0052 D5b) — **phụ thuộc cứng** cùng A-1 | D7.1 "chỉ mở nếu A-1b đã duyệt" — A-1b đã duyệt; ô và route chưa có thì không mở được. Nếu buộc phát hành trước A-1b: bỏ ô này khỏi Task 4, ghi nợ có hạn, mở ở bản sau A-1b | `grep -n '"trip.passenger.add"' src/shared/permissions.ts` |
-| Hàm người nhận tin chuyến (`can(trip.view,…)` lúc gửi) + hàm tiêm gửi tin | **Đợt 2** (ADR-0052 D6.2) | D7.5 tin tự tới tài xế đối tác; D8.4 bước 5 tin Từ chối | tên hàm thật trong kế hoạch/nhật ký Đợt 2 |
+| Cổng `THIEU_GIA`, lô đổi xe/nhà xe/tuyến **tự đảo + chụp lại giá** (`keHoachChiPhiKhiDoi` + `cauChiPhi`, `src/modules/van-chuyen/tien-xe.ts` — kế hoạch 04 :997, :1002), route `POST …/chuyen/:id/chi-phi/chup-lai`, `…/chi-phi/gia-thoa-thuan` (04 :1071-1072), ô `transport.cost.*` | **Đợt 4 T2** (ADR-0057 T2) | D8.5a chỉ KIỂM hành vi giá khi giao lại; không tự viết luật giá (ADR-0053:129) | `grep -rn "THIEU_GIA\|keHoachChiPhiKhiDoi" src/` có; e2e `tests/e2e/tien-xe-thue.mjs` xanh trên `main` |
+| Bảng `vc_unavailability(id, subject, vehicle_id, driver_party_id, start_ms, end_ms, start_at, end_at, reason_code, withdrawn_at, withdrawn_by, version, WHO)` (kế hoạch 03 :138); trigger chặn ghi `DRIVER` **`vc_unavailability_driver_closed`** (03 :378); trigger chỉ-thêm `vc_unavailability_append_only`; ánh xạ lỗi CSDL `loiRangBuocKhungBan` + thân route `kiemKhungBanMoi`, `KHUNG_XE_TOI_DA_NGAY = 31` (`src/modules/van-chuyen/khung-ban.ts`, 03 :926-933); hàm thuần `chongNuaMo`, `nhanKhoangGio`, `khungTrongNgay` (`src/shared/khung-ban.ts`, 03 :462-467); `KiemTaoSuaChuyenVao.khungBan?: KhungBanVao[]` với `doiTuong: "VEHICLE" \| "DRIVER"` → `TRUNG_GIO_TAI_XE` (03 :469, :568-573); `NHOM_LY_DO` tám nhóm có `BAN_XE` (03 :576); cột chính sách `duty_day_max_minutes`, `trip_no_break_max_minutes` + bài "câu chèn chính sách đủ cột" (03 :878) | **Đợt 3 VK2-A** | D9 dùng CHUNG bảng — **cấm hai bảng khung bận** (ADR-0053 D9.1) | `grep -n "vc_unavailability_driver_closed" migrations/*.sql` |
+| Ô `trip.transfer` (kế hoạch 05 :266 — cột `DRIVER_PARTNER` = `none`), đề nghị nhờ đón (`vc_transfer_request`, LC-14), các sự kiện `TRANSFER_*` đã nối vào `LOAI_SU_KIEN_CHUYEN` (05 :176) | **Đợt 5 A-1** (ADR-0052 D4) | D7.1 mở ô này cho `DRIVER_PARTNER`; D7.4 nhờ đón chéo | `grep -n '"trip.transfer"' src/shared/permissions.ts` |
+| Ô `trip.passenger.add` (05 :472 — `DRIVER_PARTNER` = `none`) + route tài xế bổ sung tên, sự kiện `PASSENGER_NAMED` (05 :470) | **Đợt 5 A-1b** (ADR-0052 D5b) — **phụ thuộc cứng** cùng A-1 | D7.1 "chỉ mở nếu A-1b đã duyệt" — A-1b đã duyệt; ô và route chưa có thì không mở được. Nếu buộc phát hành trước A-1b: bỏ ô này khỏi Task 4, ghi nợ có hạn, mở ở bản sau A-1b | `grep -n '"trip.passenger.add"' src/shared/permissions.ts` |
+| Hàm tiêm `ctx.baoThayDoiChuyen({ tripId, requestId })` (kế hoạch 02 :38, :779); `src/shared/tin-chuyen.ts`: `HANH_DONG_TIN_CHUYEN`, `loaiCho`, `tinChuyenCho`, `LoaiTinChuyen` (02 :97-107, :265-309); bài quét "mọi route POST/PUT lệnh chuyến gọi `baoThayDoiChuyen`" (02 :980-984) | **Đợt 2** (ADR-0052 D6.2) | D7.5 tin tự tới tài xế đối tác; D8.4 bước 5 tin Từ chối | `grep -n "baoThayDoiChuyen" src/router.ts` |
 
-**Kế hoạch con Đợt 3, 4, 5 CHƯA có lúc viết tệp này** (chỉ `00` có). Mọi tên lấy từ chúng ở mục "Consumes" dưới đây là **tên giả định theo ADR** — người thi công đo lại và sửa tên trong tệp này (một commit tài liệu) trước Task 1.
+Tên ở bảng trên và các khối "Consumes" lấy từ kế hoạch con 02, 03, 04, 05 (cùng thư mục, đối chiếu 2026-10-01). Đó là tên **kế hoạch**, chưa phải mã đã gộp: người thi công `grep` lại trên `main` lúc nhận; lệch thì sửa tên trong tệp này (một commit tài liệu) trước Task 1.
+
+**Bài của đợt trước sẽ đổi có chủ đích ở đợt này** (sửa trong CÙNG task, ghi vào tệp đề xuất luật):
+- `dieu-phoi-kieu.test.ts` "đúng tám nhóm" (03 :576) → **mười nhóm** (Task 1).
+- Bài người nhận tin "chỉ `DRIVER_PARTNER` không nhận" (02 :150-153) và "chỉ-`DRIVER_PARTNER` không nhận gì" (05 :390) → tài xế đối tác đang lái **có** nhận (Task 4).
+- Ghim `DRIVER_PARTNER` `trip.transfer`/`trip.passenger.add` = `none` (05 :266, :472) → `assigned` (Task 4).
+- Bài "câu chèn chính sách liệt kê đủ cột" (03 :878, `chinh-sach.test.ts`) — thêm `refuse_lead_minutes` vào `INSERT_DISPATCH_POLICY` + `kiemChinhSachMoi` (Task 2).
+- `MAU` của `thu-tu-lo.test.ts` (dựng lại sau Đợt 4, 5) — thêm mẫu `loTuChoi` và nhánh có `REFUSE_DEADLINE_INSERT` (Task 3, 5).
 
 ## 1. Tự chốt khi lập kế hoạch (ghi lại, không hỏi chủ)
 
@@ -37,7 +44,7 @@
 | P6-3 | Hàng ghim `DRIVER_PARTNER` | Ma trận nay **10 cột** (có `HR`); hàng đã có **4** ngoại lệ (`feedback.submit`, `feedback.view`, `party.document.view`, `assistant.ask`). Ghim mới = **6 ô mở mới + 4 cũ = 10 ô có tên** (ADR ghi "9" vì lúc soạn chưa có `assistant.ask`) | đo mã `permissions.test.ts:336-360` |
 | P6-4 | Hai ô mới `trip.refuse`, `unavailability.self` | Thêm vào **mọi** bài ghim cả hàng: `DRIVER` (= `none`), `DRIVER_PARTNER` (`assigned`/`own`), `HR` (= `none`) | bài ghim liệt kê từng ô — quên là đỏ |
 | P6-5 | Ghi hạn Từ chối cho **mọi** cặp (cả tài xế công ty) | `van-chuyen` không biết quyền của hồ sơ; hàm khung bỏ qua vế hạn với `DRIVER`. Ghi đồng loạt = một luật, migration gieo cũng đồng loạt | đơn giản, đúng G3-7 |
-| P6-6 | Độ dài tối đa một khung bận | **Một** hàm kiểm thân nhận `subject`: `VEHICLE` 31 ngày (ADR-0055), `DRIVER` 14 ngày (ADR-0053 G3-6); không bắt đầu trong quá khứ (`DRIVER`) | một hàm, hai hằng có tên |
+| P6-6 | Độ dài tối đa một khung bận | **Mở rộng** `kiemKhungBanMoi` + hằng của Đợt 3 (`src/modules/van-chuyen/khung-ban.ts`, 03 :929-930, K7 "14 ngày là việc Đợt 6 — sửa hằng") theo `subject`: thêm `KHUNG_TAI_XE_TOI_DA_NGAY = 14` cạnh `KHUNG_XE_TOI_DA_NGAY = 31`; không bắt đầu trong quá khứ. **Không** tạo hàm/hằng thứ hai | một hàm, hai hằng có tên |
 | P6-7 | `EXTERNAL_PERMISSIONS`, trigger LC-1/LC-1b | **KHÔNG đổi** — không thêm mã quyền (ADR-0053 D7.1; CLAUDE.md §10 chỉ áp khi thêm mã quyền bên ngoài) | đọc ADR |
 | P6-8 | Mốc "thấy khách từ …" hiện trên màn | Máy chủ trả khoá `thayKhachTu` (giờ VN) cùng `hanTuChoi`, `tuChoiDuoc` — màn không tự tính | một hàm khung |
 | P6-9 | Giờ hiện tại của trigger B8.3 | Máy chủ là nguồn (một `bayGioMs` mỗi request, so trong câu ghi có điều kiện); trigger so giờ CSDL chỉ là lưới thứ hai | Global Constraints; Task 0 kiểm khả thi |
@@ -76,11 +83,13 @@
 |---|---|
 | Create `migrations/00NN_tai_xe_doi_tac_chuyen.sql` | cột `vc_trip_driver`, `vc_refuse_deadline` + trigger + gieo, `refuse_lead_minutes`, lý do 2 nhóm, bỏ trigger chặn `DRIVER` của Đợt 3, trigger B9.2–B9.4 |
 | Create `src/migrations-tu-choi-ban.test.ts` | bài lớp CSDL (schema thật, `node:sqlite`) |
-| Modify `src/shared/dieu-phoi-kiem.ts` (+ `.test.ts`) | `hanTuChoiMoi`, `trongKhungXemKhach`, `tuChoiDuoc`, `kiemKhungBan`; LC-03 nhận khung bận tài xế |
-| Modify `src/shared/dieu-phoi-kieu.ts` | `NHOM_LY_DO` + `TU_CHOI_CHUYEN`, `BAN_TAI_XE`; `LOAI_SU_KIEN_CHUYEN` + `DRIVER_REFUSED` |
+| Modify `src/shared/dieu-phoi-kiem.ts` (+ `.test.ts`) | `hanTuChoiMoi`, `trongKhungXemKhach`, `tuChoiDuoc`, `mocThayKhach`; `kiemXep` nhận `khungBan` (`doiTuong: "DRIVER"`) |
+| Modify `src/modules/van-chuyen/khung-ban.ts` (Đợt 3) (+ `.test.ts`) | `kiemKhungBanMoi` theo `subject`, `KHUNG_TAI_XE_TOI_DA_NGAY`; nhánh tài xế trong `loiRangBuocKhungBan` |
+| Modify `src/shared/tin-chuyen.ts` (Đợt 2) (+ test) | `trip_driver_refused` vào `HANH_DONG_TIN_CHUYEN`, nhánh `loaiCho`, dòng câu |
+| Modify `src/shared/dieu-phoi-kieu.ts` (+ `dieu-phoi-kieu.test.ts`) | `NHOM_LY_DO` nối thêm `TU_CHOI_CHUYEN`, `BAN_TAI_XE` (mười nhóm); `LOAI_SU_KIEN_CHUYEN` nối thêm `DRIVER_REFUSED` |
 | Modify `src/shared/permissions.ts` (+ `permissions.test.ts`, `cong-quyen.test.ts`) | mở cột `DRIVER_PARTNER` (Task 4); ô `trip.refuse` (Task 5), `unavailability.self` (Task 6) — mỗi ô vào cùng task với route hỏi nó |
 | Modify `src/shared/start-page.ts` (+ test) | `coCuocCuaToi` gồm `DRIVER_PARTNER` |
-| Modify `src/modules/van-chuyen/chuyen-repo.ts`, `dieu-phoi.ts`, `tai-xe-dto.ts`, `index.ts`, `chinh-sach.ts` | ghi hạn ở mọi đường xếp; nạp hạn; DTO; route Từ chối, Báo bận |
+| Modify `src/modules/van-chuyen/chuyen-repo.ts`, `dieu-phoi.ts`, `tai-xe-dto.ts`, `index.ts`, `chinh-sach.ts` | ghi hạn ở mọi đường xếp; nạp hạn; DTO; route Từ chối, Báo bận; `repository.ts` `INSERT_DISPATCH_POLICY` + `chinh-sach.ts` `kiemChinhSachMoi` thêm `refuse_lead_minutes` |
 | Modify `src/shared/contracts.ts` | DTO mới |
 | Modify `src/tai-xe-cong.test.ts`, `src/hanh-khach-khong-lo-ten.test.ts`, `src/giay-to-khong-lo-so.test.ts` | bảng `BANG_STAFF`, regex route, ca `DRIVER_PARTNER` |
 | Modify `scripts/audit-invariants.mjs` (+ test) | 4 câu mới |
@@ -128,13 +137,10 @@ export function trongKhungXemKhach(
 ): boolean;
 // Mốc sớm nhất màn hiện "Thấy danh sách khách từ …" (P6-8): max(hạn+1ms, 00:00 VN ngày chạy) với DOI_TAC; 00:00 VN ngày chạy với CONG_TY. Trả ms.
 export function mocThayKhach(chuyen: { ngayChay: string }, taiXe: { loai: LoaiTaiXe; hanMs: number | null }): number;
-// Một hàm kiểm thân khung bận cho cả xe và tài xế (P6-6).
-export const KHUNG_BAN_TOI_DA_NGAY: Readonly<Record<"VEHICLE" | "DRIVER", number>>; // { VEHICLE: 31, DRIVER: 14 }
-export function kiemKhungBan(v: { subject: "VEHICLE" | "DRIVER"; batDauMs: number; ketThucMs: number; lyDo: string; lyDoHopLe: readonly string[] }, bayGioMs: number):
-  { dat: true } | { dat: false; loi: "KET_THUC_TRUOC_BAT_DAU" | "QUA_DAI" | "BAT_DAU_QUA_KHU" | "LY_DO" };
 ```
+- **Không** viết hàm kiểm khung bận mới ở `dieu-phoi-kiem.ts` — độ dài 14 ngày làm ở Task 6 trong `kiemKhungBanMoi` của Đợt 3 (P6-6). So chồng giờ dùng `chongNuaMo` của `src/shared/khung-ban.ts` (Đợt 3), không viết phép so thứ hai.
 - `trongNgayChay` **giữ nguyên chữ ký** (đang được 10 chỗ gọi ở `index.ts:1046-1230`); `trongKhungXemKhach` gọi nó. Task 4 đổi mọi chỗ gọi sang `trongKhungXemKhach`.
-- `dieu-phoi-kieu.ts`: `NHOM_LY_DO` thêm `"TU_CHOI_CHUYEN"`, `"BAN_TAI_XE"` (+ nhãn lời thường ở `NHAN_NHOM_LY_DO`); `LOAI_SU_KIEN_CHUYEN` thêm `"DRIVER_REFUSED"` (luôn `MAY_CHU` theo luật hai trục giờ). Nếu Đợt 3 đã thêm `BAN_XE` thì giữ.
+- `dieu-phoi-kieu.ts`: `NHOM_LY_DO` **nối thêm cuối** `"TU_CHOI_CHUYEN"`, `"BAN_TAI_XE"` sau `BAN_XE` của Đợt 3 (+ nhãn lời thường ở `NHAN_NHOM_LY_DO`: "Lý do từ chối chuyến", "Lý do tài xế bận"); sửa bài `dieu-phoi-kieu.test.ts` "đúng tám nhóm" → "đúng mười nhóm — TU_CHOI_CHUYEN, BAN_TAI_XE từ ADR-0053" trong cùng task. `LOAI_SU_KIEN_CHUYEN` **nối thêm cuối** `"DRIVER_REFUSED"` sau các phần tử Đợt 5 (`TRANSFER_*`, `PASSENGER_NAMED`; luôn `MAY_CHU` theo luật hai trục giờ) + nhãn "Tài xế từ chối chuyến".
 
 - [ ] **Step 1: Viết bài đỏ** — mốc ms cố định bằng `Date.parse("…+07:00")`, `lead = 720`:
   - `hanTuChoiMoi(06:00 D, 720)` = 18:00 D−1 (VN) — so đúng chuỗi `+07:00`, không lệch 7 giờ.
@@ -143,8 +149,8 @@ export function kiemKhungBan(v: { subject: "VEHICLE" | "DRIVER"; batDauMs: numbe
   - Tài xế công ty: chuyến 06:00 D, xuất bến 18:30 D−1 → vắng tới 00:00 D; chuyến 23:30 `RUNNING` 00:30 D+1 → có; `hanMs` bất kỳ không ảnh hưởng (đột biến "dùng vế hạn cho CONG_TY" → đỏ).
   - `tuChoiDuoc`: `RUNNING`/`ENDED`/`CANCELLED` → false dù còn hạn.
   - `mocThayKhach`: chuyến 06:00 D → 00:00 D; chuyến 14:00 D → 02:00:00.001 D (hiển thị 02:00).
-  - `kiemKhungBan`: kết thúc = bắt đầu → lỗi; `DRIVER` 14 ngày + 1 ms → `QUA_DAI`; `VEHICLE` 31 ngày qua; `DRIVER` bắt đầu < bayGio → `BAT_DAU_QUA_KHU`; lý do ngoài danh sách → `LY_DO`.
-- [ ] **Step 2:** `node --test src/shared/dieu-phoi-kiem.test.ts` → FAIL (hàm chưa có).
+  - `dieu-phoi-kieu.test.ts`: đúng mười nhóm theo thứ tự; `LOAI_SU_KIEN_CHUYEN` chứa `DRIVER_REFUSED` ở cuối, mọi phần tử cũ giữ vị trí.
+- [ ] **Step 2:** `node --test src/shared/dieu-phoi-kiem.test.ts src/shared/dieu-phoi-kieu.test.ts` → FAIL (hàm chưa có, còn tám nhóm).
 - [ ] **Step 3:** Thi công tối thiểu.
 - [ ] **Step 4:** Chạy lại → PASS; đột biến `>` thành `>=` trong vế hạn → đỏ ca biên → hoàn nguyên (ghi nhật ký cho sổ hàng rào).
 - [ ] **Step 5:** Commit `Hàm thuần hạn Từ chối và khung thấy khách của tài xế đối tác (ADR-0053 D7.2, D8.2)`.
@@ -158,7 +164,7 @@ export function kiemKhungBan(v: { subject: "VEHICLE" | "DRIVER"; batDauMs: numbe
 - Create: `src/migrations-tu-choi-ban.test.ts`
 - Modify: `docs/data-dictionary.json` → `npm run dict`
 
-**Interfaces — Consumes (từ Đợt 3, đo lại):** bảng `vc_unavailability` (ADR-0055 A1), tên trigger chặn ghi `DRIVER` (giả định `vc_unavailability_driver_closed`), trigger chồng giờ xe `lc03_unavailable`, `unavailability_overlaps_trip`.
+**Interfaces — Consumes (từ Đợt 3, kế hoạch 03):** bảng `vc_unavailability` (03 :138), trigger chặn ghi `DRIVER` `vc_unavailability_driver_closed` (03 :378), trigger chỉ-thêm `vc_unavailability_append_only` (03 :376), câu báo xe `lc03_unavailable:` (→ `trip_rule` qua `loiRangBuocChuyen`, `src/modules/van-chuyen/rules.ts:148`, regex `lc0[1-9]_`), `unavailability_overlaps_trip:` (→ `khung_ban_chong_chuyen_csdl` qua `loiRangBuocKhungBan`, 03 :1131).
 
 **Produces (schema):**
 - `ALTER TABLE vc_trip_driver ADD COLUMN refuse_reason_code TEXT REFERENCES vc_reason(code)`; `ADD COLUMN closed_by_party_id TEXT REFERENCES pty_party(id)`. Không `CHECK` thêm bằng `ALTER` được ⇒ B8.4 phần "có ⇔ REFUSED" bằng **trigger** `BEFORE INSERT/UPDATE` (`RAISE … 'refuse_reason_iff_refused'`), và lý do phải thuộc nhóm `TU_CHOI_CHUYEN` đang `active`.
@@ -167,19 +173,19 @@ export function kiemKhungBan(v: { subject: "VEHICLE" | "DRIVER"; batDauMs: numbe
 - B8.2 `vc_trip_driver_refused_by_self` (`BEFORE UPDATE … WHEN NEW.close_reason='REFUSED' AND (NEW.closed_by_party_id IS NULL OR NEW.closed_by_party_id <> OLD.driver_party_id)`).
 - B8.3 `vc_trip_driver_refused_in_time` (`… WHEN NEW.close_reason='REFUSED' AND ((SELECT status FROM vc_trip WHERE id=OLD.trip_id) <> 'PLANNED' OR <hạn của cặp> < <giờ CSDL đã chứng ở Task 0>)`).
 - B8.1 có sẵn (`vc_trip_driver_close_once` `0042:285`) — chỉ thêm bài.
-- `ALTER TABLE vc_dispatch_policy ADD COLUMN refuse_lead_minutes INTEGER NOT NULL DEFAULT 720 CHECK (refuse_lead_minutes BETWEEN 0 AND 2880)` (khuôn cột có `DEFAULT` của `0041`).
+- `ALTER TABLE vc_dispatch_policy ADD COLUMN refuse_lead_minutes INTEGER NOT NULL DEFAULT 720 CHECK (refuse_lead_minutes BETWEEN 0 AND 2880)` — `DEFAULT` chỉ để `ALTER` lấp dòng cũ; khuôn I43 "không cột nào sống nhờ DEFAULT" vẫn giữ: **`INSERT_DISPATCH_POLICY` (`repository.ts`) liệt kê thêm cột + bind**, `kiemChinhSachMoi` (`chinh-sach.ts`) bắt buộc `refuseLeadMinutes` (0–2880), bài "câu chèn chính sách liệt kê ĐỦ mọi cột" (03 :878, `src/modules/van-chuyen/chinh-sach.test.ts`) xanh lại. Dựng trên bản đã gộp Đợt 3 **và** Đợt 5 (thứ tự `?N` theo bản cuối).
 - Gieo `vc_reason`: nhóm `TU_CHOI_CHUYEN` ("Bận lịch khác", "Ốm / việc riêng", "Xe không chạy được", "Khác"); nhóm `BAN_TAI_XE` ("Việc riêng", "Ốm", "Khác").
 - Gieo hạn (G3-7): `INSERT INTO vc_refuse_deadline … SELECT … FROM vc_trip_driver d JOIN vc_trip t … WHERE d.valid_to_at IS NULL` với `deadline_ms = t.planned_start_ms − 720×60000`, `lead_minutes = 720`.
-- `DROP TRIGGER <trigger chặn DRIVER của Đợt 3>`; B9.2 `vc_unavailability_driver_overlaps_trip` (`BEFORE INSERT … WHEN NEW.subject='DRIVER' AND EXISTS (dòng lái MỞ của NEW.driver_party_id trên chuyến PLANNED/RUNNING chồng [start_ms,end_ms) nửa mở)` → `RAISE 'unavailability_overlaps_trip'`); B9.3 `vc_trip_driver_unavailable_ins` (`BEFORE INSERT ON vc_trip_driver`) và `vc_trip_driver_unavailable_upd` (`BEFORE UPDATE OF planned_start_ms, planned_end_ms ON vc_trip`, đọc dòng lái mở) → `RAISE 'lc03_driver_unavailable'`; B9.4 dùng trigger "rút một lần / không sửa giờ / không xoá" Đợt 3 đã có — chỉ thêm bài cho `subject='DRIVER'`.
+- `DROP TRIGGER vc_unavailability_driver_closed;` (03 :378). B9.2 `vc_unavailability_driver_overlaps_trip` (`BEFORE INSERT … WHEN NEW.subject='DRIVER' AND EXISTS (dòng lái MỞ của NEW.driver_party_id trên chuyến PLANNED/RUNNING chồng [start_ms,end_ms) nửa mở)` → `RAISE(ABORT, 'unavailability_driver_overlaps_trip: …')` — chữ KHÁC câu xe để `loiRangBuocKhungBan` tách được; regex `\bunavailability_overlaps_trip` của xe không khớp nhầm). B9.3 `vc_trip_driver_unavailable_ins` (`BEFORE INSERT ON vc_trip_driver`) và `vc_trip_driver_unavailable_upd` (`BEFORE UPDATE OF planned_start_ms, planned_end_ms ON vc_trip`, đọc dòng lái mở) → `RAISE(ABORT, 'lc03_driver_unavailable: …')` — **cố ý** khớp regex `lc0[1-9]_` của `loiRangBuocChuyen` ⇒ lớp CSDL trả `trip_rule` như mọi luật lõi chuyến (lớp máy chủ chặn trước bằng `TRUNG_GIO_TAI_XE` — Task 6). B9.4 dùng `vc_unavailability_append_only` + trigger cấm xoá của Đợt 3 — chỉ thêm bài cho `subject='DRIVER'`.
 
 - [ ] **Step 1: Bài đỏ** (`src/migrations-tu-choi-ban.test.ts`, khuôn `src/migrations-tai-xe-doi-tac.test.ts`): tiêu chí 5, 6, 8 ADR ở lớp SQL:
   - `REFUSED` với `closed_by_party_id` ≠ tài xế → `RAISE`; `REFUSED` khi chuyến `RUNNING` → `RAISE`; `REFUSED` sau hạn (gieo tương đối `Date.now()`) → `RAISE`; còn hạn, đúng người → qua; mở lại dòng đã đóng → `RAISE`; `refuse_reason_code` khi `REASSIGNED` → `RAISE`; lý do nhóm khác → `RAISE`.
   - `UPDATE vc_refuse_deadline` tăng / giữ nguyên → `RAISE`; `DELETE` → `RAISE`.
   - `UPDATE vc_trip SET planned_start_ms` **muộn hơn** → câu thành công, hạn không đổi; **sớm hơn** → hạn giảm đúng `planned − lead`; sớm rồi dời lại → hạn giữ mốc sớm.
   - Gieo: chuyến có dòng lái mở lúc áp → đúng một dòng hạn = xuất bến − 720 phút.
-  - Khung `DRIVER` chồng chuyến đang xếp → `RAISE`; chồng chuyến `CANCELLED`/`ENDED` → qua; chèn dòng lái vào chuyến chồng khung còn hiệu lực → `RAISE`; khung đã rút → qua; dời chuyến chồng khung → `RAISE`; hai khung cùng tài xế chồng nhau → **qua** (B9.5); sửa giờ / xoá khung → `RAISE`.
-- [ ] **Step 2:** `node --test src/migrations-tu-choi-ban.test.ts` → FAIL.
-- [ ] **Step 3:** Viết migration; cập nhật `data-dictionary.json` (2 cột, 1 bảng, 1 cột chính sách) + `npm run dict`.
+  - `vc_unavailability_driver_closed` không còn (`sqlite_master`); khung `DRIVER` chồng chuyến đang xếp → `RAISE` chứa `unavailability_driver_overlaps_trip`; chèn dòng lái vào khung → lỗi chứa `lc03_driver_unavailable` **và** `loiRangBuocChuyen(msg)` trả `trip_rule`; chồng chuyến `CANCELLED`/`ENDED` → qua; chèn dòng lái vào chuyến chồng khung còn hiệu lực → `RAISE`; khung đã rút → qua; dời chuyến chồng khung → `RAISE`; hai khung cùng tài xế chồng nhau → **qua** (B9.5); sửa giờ / xoá khung → `RAISE`.
+- [ ] **Step 2:** `node --test src/migrations-tu-choi-ban.test.ts src/modules/van-chuyen/chinh-sach.test.ts` → FAIL.
+- [ ] **Step 3:** Viết migration; sửa `INSERT_DISPATCH_POLICY` + `kiemChinhSachMoi` (+ fixture `GOC` của `chinh-sach.test.ts` thêm `refuseLeadMinutes: 720`, ca 2881 → lỗi); cập nhật `data-dictionary.json` (2 cột, 1 bảng, 1 cột chính sách) + `npm run dict`.
 - [ ] **Step 4:** PASS; `npm run db:migrate:local`; mỗi trigger mới: xoá khối → đỏ → hoàn nguyên (ghi tên bài đỏ cho sổ hàng rào).
 - [ ] **Step 5:** Commit `Migration Từ chối chuyến và Báo bận tài xế: hạn khoá dính theo cặp, trigger hai lớp (ADR-0053 D8.1, D9.1)`.
 
@@ -207,7 +213,7 @@ function loaiTaiXe(staff: StaffProfile): LoaiTaiXe;
 - Câu ghi tên của tài xế (`trip.passenger.add`, Đợt 5) và `lienHeChoTaiXe` cũng hỏi `trongKhungXemKhach` (ADR D7.2 "không nơi nào tự tính khung").
 
 - [ ] **Step 1: Bài đỏ:**
-  - `thu-tu-lo.test.ts`: lô tạo chuyến / đổi tài xế chứa `REFUSE_DEADLINE_INSERT` sau `DRIVER_INSERT` và sau câu sửa giờ chuyến (nếu có), trước câu trạng thái cuối; ca lô "đổi tài xế + dời sớm" ⇒ hạn của tài xế mới = giờ MỚI − lead.
+  - `thu-tu-lo.test.ts` (`MAU` dựng lại trên bản đã gộp Đợt 4, 5; `REFUSE_DEADLINE_INSERT` mang đúng chuỗi lính gác `EXISTS (SELECT 1 FROM vc_trip WHERE id = ?N AND last_cmd_id = ?M)` — `LINH_GAC` 04 :28): lô tạo chuyến / đổi tài xế chứa `REFUSE_DEADLINE_INSERT` sau `DRIVER_INSERT` và sau câu sửa giờ chuyến (nếu có), trước câu trạng thái cuối; ca lô "đổi tài xế + dời sớm" ⇒ hạn của tài xế mới = giờ MỚI − lead.
   - `cuoc-cua-toi.test.ts`: đổi người A→B→A ⇒ đúng một dòng hạn cho (chuyến, A), hạn không đổi; Toàn quyền hạ `refuse_lead_minutes` rồi xếp cặp cũ ⇒ hạn cũ; cặp mới ⇒ hạn mới.
   - `tai-xe-dto.test.ts` (bài liệt kê khoá — gọi `cuocChiTietDto` trực tiếp với `loai: "DOI_TAC"`, vì ô `trip.view` của tài xế đối tác CHƯA mở ở task này): trước hạn ⇒ không khoá `hoTen`, `namSinh`, `lienHe`; có `hanTuChoi`, `tuChoiDuoc: true`, `thayKhachTu`; sau hạn trong ngày chạy ⇒ có ba khoá; không khoá tiền nào; `loai: "CONG_TY"` ⇒ **không** có `hanTuChoi`, `tuChoiDuoc: false`.
   - `mot-ham-khung.test.ts`: quét `src/modules/**/*.ts` (trừ test) — không chuỗi `service_date === ` / `ngayChay ===` / `vnToday(` so ngày chạy ngoài `src/shared/dieu-phoi-kiem.ts`; không gọi `trongNgayChay(` ngoài hàm khung. Đột biến: chép lại một phép so ở `index.ts` → đỏ.
@@ -230,6 +236,7 @@ Chỉ mở các ô **đã có route**: `trip.view`, `trip.progress`, `trip.trans
 - Modify: `src/tai-xe-cong.test.ts:90-99` — `BANG_STAFF` dòng `cuoc-cua-toi*` của `DRIVER_PARTNER`: 403 → như `DRIVER` (200 danh sách rỗng / 404 chuyến lạ); dòng route nhờ đón, bổ sung tên của Đợt 5 tương tự
 - Modify: `src/hanh-khach-khong-lo-ten.test.ts` — thêm ca tài khoản `DRIVER_PARTNER` trong / ngoài khung D7.2 ở `GET …/cuoc-cua-toi/:id`
 - Modify: `tests/e2e/tai-xe-doi-tac.mjs:36` nếu danh sách 403 chứa route `cuoc-cua-toi` (hôm nay không chứa — đo lại)
+- Modify: bài người nhận tin của Đợt 2 "hết quyền: … (hoặc chỉ DRIVER_PARTNER) không nhận dù có dòng lái" (kế hoạch 02 :150-153, tệp test của `src/shared/tin-chuyen.ts`) — tách: mất `DRIVER` vẫn không nhận; **chỉ `DRIVER_PARTNER` đang có dòng lái → NHẬN** (D7.5); và bài Đợt 5 "chỉ-`DRIVER_PARTNER` không nhận gì" (05 :390) → nhận tin đề nghị nhờ đón như tài xế công ty. Hai bài này đỏ ngay khi `trip.view` mở — sửa trong CÙNG task (mục 6 tệp đề xuất luật).
 - Create: `docs/superpowers/plans/<ngày>-adr-0053-de-xuat-luat.md` (khuôn `docs/superpowers/plans/2026-09-29-adr-0049-de-xuat-luat.md`: "Tóm tắt cho chủ" bảng `# | Việc | Loại | Nếu bạn KHÔNG duyệt`, rồi từng mục có diff)
 
 **Produces (cột: SALES, ACCOUNTING, ADMIN, FIELD, PARTNER, SUPER_ADMIN, INTERN, DRIVER, DRIVER_PARTNER, HR):**
@@ -247,9 +254,10 @@ Chỉ mở các ô **đã có route**: `trip.view`, `trip.progress`, `trip.trans
 3. NỚI `start-page` — `homeRedirect(DRIVER_PARTNER)` `/tai-xe` → `/cuoc` (bài `start-page.test.ts:59,68-69`; dòng sổ `:148`) — thi công ở Task 9.
 4. SIẾT (ghi để chủ thấy): ghim `trip.refuse`/`unavailability.self` cột `DRIVER`, `HR` = `none`; regex `src/hanh-khach-khong-lo-ten.test.ts:164` thêm `ban|ban-tai-xe` + ca `DRIVER_PARTNER`; biên P6-2.
 5. `web/CLAUDE.md`: dòng kịch bản Chrome cho màn tài xế đối tác (ADR-0053 "Tài liệu").
-6. `CLAUDE.md` §10 bẫy giấy tờ/`DRIVER`: thêm một câu "tài xế đối tác dùng chuyến (ADR-0053): khung thấy khách = `trongKhungXemKhach`, hạn Từ chối khoá dính theo cặp" — chỉ đề xuất.
+6. NỚI hai bài người nhận tin (02 :150-153, 05 :390): tài xế đối tác đang lái nhận tin chuyến của mình — hệ quả trực tiếp D7.5, không luật mới.
+7. `CLAUDE.md` §10 bẫy giấy tờ/`DRIVER`: thêm một câu "tài xế đối tác dùng chuyến (ADR-0053): khung thấy khách = `trongKhungXemKhach`, hạn Từ chối khoá dính theo cặp" — chỉ đề xuất.
 
-- [ ] **Step 1:** Sửa bài ghim + `BANG_STAFF` + ca `hanh-khach-khong-lo-ten` theo giá trị MỚI → `node --test src/shared/permissions.test.ts src/tai-xe-cong.test.ts src/hanh-khach-khong-lo-ten.test.ts` đỏ.
+- [ ] **Step 1:** Sửa bài ghim (gồm `trip.transfer`/`trip.passenger.add` cột `DRIVER_PARTNER` `none` → `assigned` của 05 :266, :472) + `BANG_STAFF` + ca `hanh-khach-khong-lo-ten` + hai bài người nhận tin theo giá trị MỚI → `node --test src/shared/permissions.test.ts src/tai-xe-cong.test.ts src/hanh-khach-khong-lo-ten.test.ts src/shared/tin-chuyen.test.ts` đỏ (tên tệp bài tin đo lại).
 - [ ] **Step 2:** Sửa `MATRIX` → xanh; đột biến một ô `DRIVER_PARTNER` (vd `money.view` → `own`) → đỏ → hoàn nguyên.
 - [ ] **Step 3:** Ghi chú "CHỜ CHỦ DUYỆT (đề xuất luật mục N)" cạnh từng hàng nới trong mã (khuôn ADR-0049).
 - [ ] **Step 4:** Soạn tệp đề xuất luật. **Không** sửa `CLAUDE.md`, `web/CLAUDE.md`, `docs/adr/`. **Không gộp** khi chủ chưa duyệt.
@@ -260,13 +268,14 @@ Chỉ mở các ô **đã có route**: `trip.view`, `trip.progress`, `trip.trans
 ### Task 5: Route Từ chối chuyến
 
 **Files:**
-- Modify: `src/modules/van-chuyen/index.ts` (cạnh `cuoc-cua-toi/:id/thu-tu` `:1217`), `src/modules/van-chuyen/dieu-phoi.ts` (lô), `src/modules/van-chuyen/chuyen-repo.ts`, `src/modules/van-chuyen/dieu-phoi-than.ts` (kiểm thân)
-- Test: mới `src/modules/van-chuyen/tu-choi.test.ts`; `thu-tu-lo.test.ts`
+- Modify: `src/modules/van-chuyen/index.ts` (cạnh `cuoc-cua-toi/:id/thu-tu` `:1217`), `src/modules/van-chuyen/dieu-phoi.ts` (lô), `src/modules/van-chuyen/chuyen-repo.ts`, `src/modules/van-chuyen/dieu-phoi-than.ts` (kiểm thân), `src/shared/tin-chuyen.ts` (Đợt 2), `src/shared/audit-actions.ts` (`trip_driver_refused`)
+- Test: mới `src/modules/van-chuyen/tu-choi.test.ts`; `thu-tu-lo.test.ts` (`MAU` thêm mẫu `loTuChoi`); bài tin của `tin-chuyen.ts`; bài quét route Đợt 2 (02 :980) tự phủ route mới
 
 **Interfaces:**
 - Route: `POST /api/van-chuyen/cuoc-cua-toi/:id/tu-choi` — cổng `staff`, thân `{ lyDo: string; requestId: string }`, `Origin` cùng site.
 - Thêm ô `"trip.refuse": row("none","none","none","none","none","any","none","none","assigned","none")` CÙNG task này; ghim `DRIVER_PARTNER` (`assigned`), `DRIVER` và `HR` (`none`) trong `permissions.test.ts`; dòng `BANG_STAFF` của route (`DRIVER` 403, `DRIVER_PARTNER` 404 chuyến lạ).
-- Consumes: `tuChoiDuoc` (Task 1), `REFUSE_DEADLINE_GET` (Task 3), hàm tiêm gửi tin của Đợt 2 (giả định `ctx.guiTinChuyen(su_kien, tripId)` — đo lại), người nhận = `trip.dispatch = any` (D8.4 bước 5).
+- Consumes: `tuChoiDuoc` (Task 1), `REFUSE_DEADLINE_GET` (Task 3), `ctx.baoThayDoiChuyen({ tripId, requestId })` (Đợt 2, 02 :38, :779) — gọi **đúng một lần sau 200**, nằm SAU `if (!r.ok) return r.res` (bài quét 02 :980-984 quét mọi `POST /api/van-chuyen/(chuyen|cuoc-cua-toi)…`, không ngoại lệ ⇒ thiếu lời gọi là đỏ); không gọi khi 409.
+- Tin (Đợt 2, `src/shared/tin-chuyen.ts`): nối `"trip_driver_refused"` vào `HANH_DONG_TIN_CHUYEN` (02 :269); `LoaiTinChuyen` thêm `"tu_choi"`; nhánh mới trong `loaiCho` (02 :290): người nhận ⇔ `can(n, "trip.dispatch")` phạm vi `any` (Bán hàng, Quản trị, Toàn quyền — D8.4 bước 5, G3-5), **không** tài xế (kể cả người vừa từ chối); dòng câu "Tài xế từ chối chuyến <mã> — cần xếp người khác" (không tên khách, không biển số).
 - Produces:
 ```ts
 export const DRIVER_REFUSE: Sql; // UPDATE vc_trip_driver SET valid_to_at=?lúc, close_reason='REFUSED', refuse_reason_code=?, closed_by=?staffId, closed_by_party_id=?partyId …
@@ -283,7 +292,7 @@ export function loTuChoi(db: D1Database, v: { tripId: string; partyId: string; s
 - [ ] **Step 1: Bài đỏ** (`tu-choi.test.ts`, khung thử van-chuyen hiện có). **Gieo `planned_start_ms` TƯƠNG ĐỐI `Date.now()` thật** (như Task 0): trigger B8.3 so giờ CSDL, đồng hồ tiêm của khung thử không tới được trigger — gieo theo giờ giả thì cổng máy chủ và trigger lệch nhau:
   - Tiêu chí 4 ADR: lý do ngoài danh sách → 400; sau hạn → 409; `RUNNING` → 409; Toàn quyền không lái → 403; tài xế công ty → 403; chuyến người khác → 404; sau Từ chối mở lại chuyến → 404.
   - Tiêu chí 5: hạn đã qua, văn phòng dời muộn 1 ngày (route dời thật → 200) → Từ chối vẫn 409.
-  - Tiêu chí 7: chuyến bị giữ "chưa có tài xế"; tin tới đúng người có `trip.dispatch = any`, không tới tài xế khác; nội dung tin không tên khách/SĐT/biển số.
+  - Tiêu chí 7: chuyến bị giữ "chưa có tài xế"; `baoThayDoiChuyen` được gọi đúng một lần (gián điệp `ctx`) sau 200, không gọi khi 409; `tinChuyenCho` với hành động `trip_driver_refused`: Bán hàng/Quản trị/Toàn quyền → `tu_choi`, Kế toán → null, tài xế (công ty, đối tác, người từ chối) → null; câu không tên khách/SĐT/biển số.
   - **Review Focus 1 — chen giữa:** tiêm hàm chạy lệnh "văn phòng đổi tài xế" giữa lúc đọc và lô Từ chối ⇒ Từ chối 409 `stale`; đếm `trip_driver_refused` = 0, dòng lái mở = 1 (tài xế mới), dòng hạn của tài xế mới = 1. Ngược lại (Từ chối thắng trước) ⇒ đổi tài xế 409 `stale` theo khuôn có sẵn.
   - `thu-tu-lo.test.ts`: lô Từ chối đúng thứ tự cổng → nhật ký → sự kiện → trạng thái cuối.
 - [ ] **Step 2:** FAIL. **Step 3:** thi công. **Step 4:** PASS + typecheck.
@@ -294,8 +303,8 @@ export function loTuChoi(db: D1Database, v: { tripId: string; partyId: string; s
 ### Task 6: Báo bận — route tài xế, văn phòng xem, LC-03 với tài xế
 
 **Files:**
-- Modify: `src/modules/van-chuyen/index.ts`, `chuyen-repo.ts` (hoặc tệp repo khung bận Đợt 3 tạo), `src/shared/dieu-phoi-kiem.ts` (`kiemTaoSuaChuyen` / `kiemXep` nhận khung bận tài xế), `src/shared/contracts.ts`
-- Test: mới `src/modules/van-chuyen/ban-tai-xe.test.ts`; `src/shared/dieu-phoi-kiem.test.ts`
+- Modify: `src/modules/van-chuyen/index.ts`, `src/modules/van-chuyen/khung-ban.ts` (Đợt 3 — `kiemKhungBanMoi`, `loiRangBuocKhungBan`, hằng), repo khung bận của Đợt 3, `src/shared/dieu-phoi-kiem.ts` (`kiemXep` nhận `khungBan`), nạp khung `DRIVER` ở `dungLichNgay` / nơi dựng `KiemTaoSuaChuyenVao` (03 :13), `src/shared/contracts.ts`
+- Test: mới `src/modules/van-chuyen/ban-tai-xe.test.ts`; `src/modules/van-chuyen/khung-ban.test.ts`; `src/shared/dieu-phoi-kiem.test.ts`
 
 **Interfaces — Produces:**
 ```
@@ -309,12 +318,13 @@ interface KhungBanDto { id: string; batDau: string; ketThuc: string; lyDo: strin
 interface KhungBanTaiXeDto extends KhungBanDto { taiXeId: string; tenTaiXe: string }
 ```
 - Route luôn dùng `staff.partyId` của người gọi (Toàn quyền cũng chỉ ghi cho chính mình — D9.2). Thiếu `partyId` → 403.
-- Ghi chồng chuyến đang xếp → 409 `unavailability_overlaps_trip` "Bạn đang có chuyến <mã> lúc …, hãy Từ chối chuyến (nếu còn hạn) hoặc gọi văn phòng" (mã chuyến + giờ, không tên khách).
-- `kiemTaoSuaChuyen`/`kiemXep` nhận `khungBanTaiXe: readonly {batDauMs, ketThucMs}[]` — **một** hàm cho xe và tài xế; lệnh xếp/dời văn phòng vướng khung → 409 `lc03_driver_unavailable` "Tài xế <tên> báo bận từ … đến …".
+- Thân: `kiemKhungBanMoi` của Đợt 3 mở rộng theo `subject` — chữ ký đề xuất `kiemKhungBanMoi(body, bayGioMs, subject: "VEHICLE" | "DRIVER" = "VEHICLE")`; hằng mới `KHUNG_TAI_XE_TOI_DA_NGAY = 14` cạnh `KHUNG_XE_TOI_DA_NGAY = 31` (P6-6, K7 của 03); `DRIVER` cấm bắt đầu trong quá khứ; lý do thuộc nhóm `BAN_TAI_XE`. Chồng giờ dùng `chongNuaMo`, hiển thị giờ dùng `nhanKhoangGio` (`src/shared/khung-ban.ts`).
+- Ghi chồng chuyến đang xếp — **họ mã `khung_ban_chong_chuyen*`** của Đợt 3 (03 K11): lớp route 409 `khung_ban_chong_chuyen_tai_xe` "Bạn đang có chuyến <mã> lúc …, hãy Từ chối chuyến (nếu còn hạn) hoặc gọi văn phòng" kèm `chuyen: { ma, gio }[]` (không tên khách); lớp CSDL: thêm nhánh vào `loiRangBuocKhungBan` (03 :1130) — `/\bunavailability_driver_overlaps_trip/` → `{ status: 409, code: "khung_ban_chong_chuyen_tai_xe_csdl", message: "Bạn vừa được xếp chuyến trùng giờ này — tải lại để xem chuyến." }`, đặt TRƯỚC nhánh xe; bài `khung-ban.test.ts` thêm ca (khuôn 03 :986-987).
+- Xếp / dời của văn phòng: `kiemXep` (và `kiemTaoSuaChuyen` đã có từ Đợt 3) nhận `KiemTaoSuaChuyenVao.khungBan?: KhungBanVao[]` với phần tử `doiTuong: "DRIVER"`, `taiXePartyId` — Đợt 3 đã viết nhánh `TRUNG_GIO_TAI_XE` (03 :572) trong `kiemTaoSuaChuyen`; đợt này **chỉ** (a) nạp khung `DRIVER` còn hiệu lực vào `khungBan` ở nơi dựng đầu vào, (b) thêm cùng vòng lặp cho `kiemXep`. Không thêm trường `khungBanTaiXe`. Máy chủ trả 409 theo `TRUNG_GIO_TAI_XE` ("lịch tài xế bận: <lý do> <khoảng giờ>"); lớp CSDL `lc03_driver_unavailable:` → `trip_rule` qua `loiRangBuocChuyen` (Task 2).
 - Không thông báo (D9.4).
 - Thêm ô `"unavailability.self": row("none","none","none","none","none","any","none","none","own","none")` CÙNG task này; ghim `DRIVER_PARTNER` (`own`), `DRIVER`, `HR` (`none`); dòng `BANG_STAFF` cho ba route `ban*` (`DRIVER` 403; `DRIVER_PARTNER` 200 / 400 thân rỗng / 404 id lạ) và `ban-tai-xe` (403 cổng office); regex `src/hanh-khach-khong-lo-ten.test.ts:164` thêm `ban|ban-tai-xe`.
 
-- [ ] **Step 1: Bài đỏ** — tiêu chí 8 ADR ở lớp route: chồng chuyến → 409; văn phòng xếp vào khung → 409; dời chuyến vào khung → 409; khung người khác (xem/rút) → 404; tài xế công ty ghi → 403; Kế toán `GET ban-tai-xe` → 403; quá 14 ngày → 400; bắt đầu quá khứ → 400; rút lại cùng `requestId` → trả đúng kết quả lần đầu; rút khung đã rút bằng `requestId` khác → 409.
+- [ ] **Step 1: Bài đỏ** — tiêu chí 8 ADR ở lớp route: chồng chuyến → 409 `khung_ban_chong_chuyen_tai_xe`; `loiRangBuocKhungBan("unavailability_driver_overlaps_trip: …").code` = `khung_ban_chong_chuyen_tai_xe_csdl` và câu xe vẫn ra `khung_ban_chong_chuyen_csdl`; văn phòng xếp vào khung → 409 lý do `TRUNG_GIO_TAI_XE`; dời chuyến vào khung → 409 `TRUNG_GIO_TAI_XE`; `kiemXep` với `khungBan` `DRIVER` chồng → chặn, khung đã rút (không nạp) → qua; `kiemKhungBanMoi(…, "VEHICLE")` 31 ngày vẫn qua (không đổi hành vi Đợt 3); khung người khác (xem/rút) → 404; tài xế công ty ghi → 403; Kế toán `GET ban-tai-xe` → 403; quá 14 ngày → 400; bắt đầu quá khứ → 400; rút lại cùng `requestId` → trả đúng kết quả lần đầu; rút khung đã rút bằng `requestId` khác → 409.
 - [ ] **Step 2–4:** đỏ → thi công → xanh + typecheck.
 - [ ] **Step 5:** Commit `Báo bận của tài xế đối tác: tự ghi, tự rút; văn phòng thấy khi xếp (ADR-0053 D9)`.
 
@@ -343,7 +353,7 @@ interface KhungBanTaiXeDto extends KhungBanDto { taiXeId: string; tenTaiXe: stri
   - Cổng (tiêu chí 11): 403 ở `/api/orders`, `/api/orders/dashboard`, `/api/parties`, `/api/catalog`, `/api/van-chuyen/lich`, `/api/van-chuyen/xe`; `GET /api/van-chuyen/cuoc-cua-toi` → 200 chỉ chuyến mình.
   - IDOR (tiêu chí 2): tài xế đối tác A mở / Từ chối / bổ sung tên / báo bận trên chuyến của B → 404.
   - Từ chối trước hạn → 200; chuyến về "chưa có tài xế"; tin tới Bán hàng.
-  - D8.5a (tiêu chí 4, giá — **dựa Đợt 4 T2**): chuyến xe thuê, tài xế đối tác Từ chối, văn phòng giao lại xe nhà xe khác → nguồn giá cũ đảo, giá bảng chụp lại; nguồn cũ `AGREED` → chuyến `THIEU_GIA` tới khi nhập lại; chỉ đổi tài xế cùng nhà xe cùng xe → giá giữ nguyên. Tài xế đối tác GET chi tiết: không khoá tiền.
+  - D8.5a (tiêu chí 4, giá — **dựa Đợt 4 T2**; luật ở `keHoachChiPhiKhiDoi` + `cauChiPhi` `src/modules/van-chuyen/tien-xe.ts`, kế hoạch 04 :997, :1002 — đợt này KHÔNG viết luật giá): chuyến xe thuê, tài xế đối tác Từ chối, văn phòng giao lại xe nhà xe khác (lệnh sửa chuyến có sẵn) → `GET /api/van-chuyen/chi-phi` (04 :1073) thấy nguồn giá cũ bị đảo (`CPX_DOI_CHUYEN`) và `SNAPSHOT` mới; nguồn cũ `AGREED` → chuyến ở trạng thái `THIEU_GIA`, xuất bến 409, rồi Quản trị `POST …/chuyen/:id/chi-phi/gia-thoa-thuan` (04 :1072) → xuất bến được; nhánh chưa có giá bảng: `POST …/chuyen/:id/chi-phi/chup-lai` (04 :1071) → 409 "Chưa có giá bảng…"; chỉ đổi tài xế cùng nhà xe cùng xe → không dòng chi phí mới. Tài xế đối tác gọi mọi route `…/chi-phi*` → 403; GET chi tiết cuốc: không khoá tiền. (Đo lại đường dẫn route `chi-phi` đầy đủ trong kế hoạch 04 lúc nhận.)
   - Nhờ đón chéo (tiêu chí 9 — **dựa Đợt 5 A-1**): đối tác → xe công ty, công ty → xe nhà xe, xác nhận như nhau.
   - Báo bận: ghi, xem của mình, rút; Kế toán `ban-tai-xe` → 403; Bán hàng thấy.
 - [ ] **Step 2:** `dieu-phoi-chay-dua.mjs` (Review Focus 1): `Promise.all([Từ chối, văn phòng đổi tài xế])` lặp 10 lần trên chuyến mới ⇒ mỗi lần đúng một 2xx, một 409, `audit_log` `trip_driver_refused` ≤ 1, dòng lái mở = 1.
@@ -415,7 +425,8 @@ Máy chủ (Task 5, 6) **không** chờ. Màn chỉ làm khi chủ gửi bản v
 
 ## Chưa chắc (người thi công kiểm lúc nhận)
 
-- Tên thật của bảng/trigger/ô/hàm từ Đợt 2, 3, 4, 5 (mọi "giả định" ở mục 0 và các khối Consumes).
+- Tên lấy từ kế hoạch con 02–05 (mục 0, các khối Consumes) là tên KẾ HOẠCH — `grep` lại trên `main` sau khi các đợt đó gộp; số dòng `0N :xxx` là dòng của tệp kế hoạch con ngày 2026-10-01.
+- Chữ ký mở rộng `kiemKhungBanMoi(body, bayGioMs, subject)` là đề xuất; nếu Đợt 3 đã đổi chữ ký, giữ nguyên tắc "một hàm, hằng theo `subject`".
 - Trigger so giờ CSDL trên D1 local (Task 0).
 - D8.3: Toàn quyền không lái → 403 (ADR) trong khi người khác không lái → 404 — thi công giữ đúng chữ ADR; nếu khung route chung chỉ cho một mã, nêu ở nhật ký.
 - Pháp lý đưa danh sách hành khách cho tài xế nhà xe (ADR "Chưa kiểm") — chưa có người chuyên môn kiểm.

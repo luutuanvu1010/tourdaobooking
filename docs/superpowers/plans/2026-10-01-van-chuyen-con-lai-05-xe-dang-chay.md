@@ -36,7 +36,7 @@
 | P2 | `scope = 'ONBOARD'` ở A-1 | Bảng định trọn tập `STOP`/`ONBOARD` ngay (cửa một chiều, ADR-0052:210), nhưng **route A-1 chỉ nhận `STOP`** (gửi `ONBOARD` → 400) | ADR-0052:135 khuyến nghị cứu hộ thi công sau T2; giữ một đường cứu hộ (lượt 1: Kết thúc gián đoạn) tới A-1b |
 | P3 | Ô `trip.passenger.add` | Chỉ thêm vào `MATRIX` ở bản A-1b, cùng route hỏi nó | Global Constraint lộ trình "mỗi ô mới phải được một route máy chủ hỏi trong cùng bản phát hành" |
 | P4 | Xác nhận đề nghị làm điểm nguồn `MOVED` | Cùng lô: mọi đề nghị `PENDING`/`ESCALATED` KHÁC có cùng `from_stop_id` → `VOID` | áp MQ-09 ("tự huỷ khi hết hợp lệ") cho trường hợp điểm nguồn đã chuyển đi; **người kiểm soi** (chạm logic — nếu người kiểm thấy đây là luật mới thì dừng, hỏi chủ) |
-| P5 | Hai cột chính sách mới có `DEFAULT` (bắt buộc với `ALTER TABLE … ADD COLUMN … NOT NULL`) — lệch khuôn "không DEFAULT" `0041:21-22` | Giữ DEFAULT cho dòng cũ; **siết bù**: bài "câu chèn chính sách ghi ĐỦ mọi cột tường minh" | SQLite không cho thêm cột NOT NULL không DEFAULT |
+| P5 | Hai cột chính sách mới có `DEFAULT` (bắt buộc với `ALTER TABLE … ADD COLUMN … NOT NULL`) — lệch khuôn "không DEFAULT" `0041:21-22` | Giữ DEFAULT cho dòng cũ; bù bằng bài CÓ SẴN của Đợt 3 "bù lệch I43: câu chèn chính sách liệt kê ĐỦ mọi cột" (`…-03-khung-ban-gio-lai.md:878`, `src/modules/van-chuyen/chinh-sach.test.ts`) — bài đó tự đỏ khi thêm cột mà `INSERT_DISPATCH_POLICY` chưa ghi; KHÔNG viết bài trùng | SQLite không cho thêm cột NOT NULL không DEFAULT |
 | P6 | Tên route | Dùng đúng tên ADR-0052:217-220 | ADR "tên đề xuất, kế hoạch chốt" — chốt nguyên |
 | P7 | Câu ghi `ord_passenger` của tài xế (D5b) | Gác bằng id nhật ký (khuôn `legInsertGuarded(db, l, auditId)` — `src/modules/orders/chang-hanh-khach-repo.ts:167`), KHÔNG đọc `vc_trip` | `orders` không đọc `van-chuyen` (`src/architecture.test.ts:840`); hệ quả: cần ngoại lệ có tên ở bài thứ tự lô ⇒ mục đề xuất luật (T15) |
 
@@ -94,7 +94,7 @@
 
 - [ ] **Step 1:** Số migration: `ls migrations` + `git ls-tree --name-only <nhánh> migrations/` cho mọi nhánh/worktree chưa gộp (lộ trình L2). Ghi `N`.
 - [ ] **Step 2:** `0042`, `0043` đã áp remote: `npx wrangler d1 migrations list tourdao-sales-db --remote` (lệnh CHỈ ĐỌC). Nếu `0042` CHƯA áp → dừng, báo điều phối (P1 đổi).
-- [ ] **Step 3:** Đo lại mọi `tệp:dòng` của kế hoạch này ở HEAD nhận việc; ghi bảng "đo lại" vào nhật ký. Ghi rõ Đợt 1 đã đổi gì ở `index.ts` (route văn phòng `…/chuyen/:id/thu-tu` có ở `index.ts:1387` hôm nay), `0042` trigger LC-15 (Đợt 1 có thể đã thêm migration đổi thứ tự điểm khi xe chạy — đọc nó trước khi dựng lại trigger, KHÔNG làm mất luật của nó).
+- [ ] **Step 3:** Đo lại mọi `tệp:dòng` của kế hoạch này ở HEAD nhận việc; ghi bảng "đo lại" vào nhật ký. Ghi rõ Đợt 1–4 đã đổi gì ở `index.ts` (route văn phòng `…/chuyen/:id/thu-tu` có ở `index.ts:1387` hôm nay). Trước khi dựng lại trigger LC-04 / LC-15: đọc migration MỚI NHẤT chạm `vc_trip_allocation`, `vc_trip_stop` (`grep -ln "vc_trip_allocation\|vc_trip_stop" migrations/*.sql`) để bản dựng lại giữ mọi luật đang có.
 - [ ] **Step 4:** Đợt 2 đã CHỐT danh sách hành động nhật ký sinh tin chưa (ADR-0052 D6.1 "chốt trước dòng đầu — một chiều")? Có → dùng ĐÚNG tên đó ở T2–T5. Chưa → T2 chốt tên (danh sách ở Task 2), ghi vào nhật ký Đợt 5 VÀ báo người giữ Đợt 2 trước khi ghi dòng đầu.
 - [ ] **Step 5:** Kiểm trên `node:sqlite`: `ALTER TABLE vc_trip_allocation ADD COLUMN office_cancel_at TEXT CHECK (…ba cột cùng có/vắng…)` có nhận CHECK nhắc cột khác không. Không nhận → luật "ba cột cùng có / cùng vắng" chuyển sang trigger `BEFORE UPDATE` (ghi vào nhật ký).
 - [ ] **Step 6:** Commit nhật ký: `git commit -m "Đợt 5 xe đang chạy: đo nền, chốt số migration"`.
@@ -150,7 +150,7 @@ vc_dispatch_policy: accept_wait_minutes INTEGER NOT NULL DEFAULT 10 CHECK BETWEE
   - LC-15 mới: chèn suất vào RUNNING không cờ → RAISE; đóng `REMOVED` trên RUNNING → RAISE; đóng `STOP_CHANGED` suất `BOARDED` → RAISE; đóng `STOP_CHANGED` không có sự kiện mang dấu lệnh → RAISE; đổi xe / tài xế RUNNING → RAISE (giữ).
   - Câu chốt: lô đúng đóng → mở → `UPDATE vc_trip SET version = version WHERE id=? AND last_cmd_id=?` → được; lô bỏ câu mở → RAISE; đóng ở chuyến A, mở ở chuyến B cùng dấu → RAISE; đóng suất chưa tên, mở suất có tên → RAISE; **câu cổng của mọi lệnh khác (`version = version + 1`) KHÔNG bị câu chốt bắt nhầm** (chạy lại một lô xếp / tiến độ cũ → được); mở trước đóng cùng người → UNIQUE LC-01 (ghi rõ thông điệp).
   - `office_cancel_once`: đặt lần hai → RAISE; đặt trên suất `BOARDED` → RAISE.
-  - Bài `0041`: câu chèn chính sách của máy chủ ghi tường minh MỌI cột của `vc_dispatch_policy` (đọc `PRAGMA table_info`, so với cột trong câu `defineSql`) — siết bù P5.
+  - Chính sách: KHÔNG viết bài "đủ cột" mới — chạy bài có sẵn của Đợt 3 (`03:878`) sau migration → phải ĐỎ (hai cột mới chưa có trong `INSERT_DISPATCH_POLICY`); xanh lại ở Task 4.
 - [ ] **Step 2:** `node --test src/modules/van-chuyen/xe-dang-chay-csdl.test.ts` → ĐỎ (bảng chưa có).
 - [ ] **Step 3:** Viết migration; cập nhật `data-dictionary.json`, `npm run dict`.
 - [ ] **Step 4:** Chạy lại → XANH; `npm test` (bài cũ của `0042` vẫn xanh); `npm run db:migrate:local`.
@@ -249,7 +249,7 @@ export function loBaoHuy(db, l): CauCoNhan[];                         // D5.2 + 
 // loDaToi, loKetThuc, loKetThucGianDoan: thêm `deNghiVoid: string[]` — VOID đề nghị PENDING/ESCALATED liên quan trong cùng lô (MQ-09)
 ```
 
-- [ ] **Step 1: Test đỏ:** thêm vào `MAU` của `thu-tu-lo.test.ts` mẫu cho `loGuiDeNghi`, `loDongDeNghi`, `loXacNhanChuyen` (đủ nhánh: CONFIRMED có điểm mới, đích RUNNING có manifest, có đề nghị khác bị VOID), `loThemDiemDangChay`, `loBaoHuy`, `loCapNhatDiem` nhánh `dangChay`; bài chạy → đỏ vì hàm chưa có. Bài `chuyen-diem.test.ts` (D1 thật trên `node:sqlite`, gieo chuyến A RUNNING, B PLANNED/RUNNING): lô xác nhận → `CONFIRMED`, suất A `TRANSFERRED` + `transfer_id`, suất B mở cùng `transfer_id`, A `MOVED`, `version` hai chuyến tăng, đủ dòng kiểm có `rule_tier`; lô `ESCALATED` → không suất nào đổi; `loDaToi` trên điểm có đề nghị chờ → đề nghị `VOID` cùng lô.
+- [ ] **Step 1: Test đỏ:** dựng trên `MAU` của `thu-tu-lo.test.ts` SAU khi Đợt 4 đã gộp (Đợt 4 T2 đổi `loXuatBen`/`loXep` và mẫu của chúng — đo lại khoá mẫu, không chép mẫu cũ ở HEAD này); thêm mẫu cho `loGuiDeNghi`, `loDongDeNghi`, `loXacNhanChuyen` (đủ nhánh: CONFIRMED có điểm mới, đích RUNNING có manifest, có đề nghị khác bị VOID), `loThemDiemDangChay`, `loBaoHuy`, `loCapNhatDiem` nhánh `dangChay`; bài chạy → đỏ vì hàm chưa có. Bài `chuyen-diem.test.ts` (D1 thật trên `node:sqlite`, gieo chuyến A RUNNING, B PLANNED/RUNNING): lô xác nhận → `CONFIRMED`, suất A `TRANSFERRED` + `transfer_id`, suất B mở cùng `transfer_id`, A `MOVED`, `version` hai chuyến tăng, đủ dòng kiểm có `rule_tier`; lô `ESCALATED` → không suất nào đổi; `loDaToi` trên điểm có đề nghị chờ → đề nghị `VOID` cùng lô.
 - [ ] **Step 2:** `node --test src/modules/van-chuyen/thu-tu-lo.test.ts src/modules/van-chuyen/chuyen-diem.test.ts` → ĐỎ.
 - [ ] **Step 3:** Viết SQL + hàm. Câu chốt `TRIP_CHOT` dùng nhãn `TRANG_THAI_CUOI` (có sẵn :22, luật 4 "đứng cuối, nhiều nhất một") — KHÔNG thêm nhãn mới; nếu bài thứ tự lô từ chối (câu chốt không phải "trạng thái") → DỪNG, ghi mục đề xuất luật (T10), không tự nới bài.
 - [ ] **Step 4:** XANH; `npm test`, `npm run typecheck`.
@@ -259,7 +259,7 @@ export function loBaoHuy(db, l): CauCoNhan[];                         // D5.2 + 
 
 **Files:**
 - Create: `src/modules/van-chuyen/chuyen-diem-lenh.ts`
-- Modify: `src/modules/van-chuyen/dieu-phoi-than.ts` (bộ đọc thân), `src/modules/van-chuyen/index.ts` (khối `cuoc-cua-toi` :1027-1237), `src/modules/van-chuyen/chinh-sach.ts` (+ route `…/chinh-sach-dieu-phoi` :501-529: hai cột mới, `settings.ops`), `src/shared/permissions.ts` (:169-179), `src/shared/permissions.test.ts` (:26-29 bảng; :310-336 ghim DRIVER; :341 ghim DRIVER_PARTNER)
+- Modify: `src/modules/van-chuyen/dieu-phoi-than.ts` (bộ đọc thân), `src/modules/van-chuyen/index.ts` (khối `cuoc-cua-toi` :1027-1237), `src/modules/van-chuyen/chinh-sach.ts` — dựng trên bản ĐÃ GỘP của Đợt 3: mở rộng `kiemChinhSachMoi` (hai trường `acceptWaitMinutes` 1–120, `autoConfirmTransfer` 0/1) và câu `INSERT_DISPATCH_POLICY` (ghi tường minh hai cột) + route `…/chinh-sach-dieu-phoi` (:501-529, `settings.ops`); `src/modules/van-chuyen/chinh-sach.test.ts` (bài của Đợt 3: thêm ca biên sai cho hai trường; bài "đủ cột" `03:878` xanh lại), `src/shared/permissions.ts` (:169-179), `src/shared/permissions.test.ts` (:26-29 bảng; :310-336 ghim DRIVER; :341 ghim DRIVER_PARTNER)
 - Test: `src/modules/van-chuyen/chuyen-diem-route.test.ts` (mới), `tests/e2e/chuyen-diem.mjs` (mới)
 
 **Ô quyền (cột theo thứ tự `row(SALES, ACCOUNTING, ADMIN, FIELD, PARTNER, SUPER_ADMIN, INTERN, DRIVER, DRIVER_PARTNER, HR)`):**
@@ -275,6 +275,8 @@ export function loBaoHuy(db, l): CauCoNhan[];                         // D5.2 + 
 | `POST /api/van-chuyen/de-nghi/:rid/nhan` | chỉ tài xế đích; hết hạn → ghi `EXPIRED` + 409 `de_nghi_het_han`; còn hạn → `kiemChuyen` → `loXacNhanChuyen`; thua cổng `version` → **tự thử lại ĐÚNG MỘT lần** với dữ liệu đọc lại | 200 (`CONFIRMED`/`ESCALATED`) / 404 / 409 |
 | `POST /api/van-chuyen/de-nghi/:rid/khong-nhan` | thân `{ requestId, lyDo }` (nhóm `TU_CHOI_NHAN`) | 200 / 400 / 404 |
 | `GET /api/van-chuyen/de-nghi-gui-toi` | đề nghị `PENDING` gửi tới chuyến mình đang lái: mã chuyến nguồn, tên tài xế A, điểm, `pax_count`, nơi trả, "sau khi nhận x/y chỗ" — **không tên khách** | 200 |
+
+**Tin báo (Đợt 2, bài quét `…-02-tin-bao-chuyen.md:982`):** mỗi route POST mới ở bảng này gọi `ctx.baoThayDoiChuyen({ tripId, requestId })` ngay trong task này, SAU `if (r) return r` / `if (!r.ok) return r.res` — không ngoại lệ; route `/api/van-chuyen/de-nghi/*` nằm ngoài regex `(chuyen|cuoc-cua-toi)` của bài đó ⇒ SIẾT bài: mở regex thêm `de-nghi` (siết, không cần duyệt) để bài bắt cả nhóm này.
 
 ```ts
 // chuyen-diem-lenh.ts
@@ -315,6 +317,8 @@ export async function lenhDuyetDeNghi(db: D1Database, rid: string, b: { requestI
 | `POST /api/van-chuyen/chuyen/:id/them-diem` | `trip.dispatch` (+ `trip.override` khi phá lệ mốc) | chuyến RUNNING; thân như `docXep` (`dieu-phoi-than.ts:95`); mốc 6 giờ đúng dòng "Xếp" ADR-0049 D2: chặng đặt gấp qua; chặng khác → 409 "cần Quản trị" trừ khi `phaLe` + `trip.override` |
 | `POST /api/van-chuyen/chuyen/:id/phan-bo/:aid/bao-huy` | `trip.dispatch` | thân `{ requestId, version, lyDo }` (nhóm `BAO_HUY_DIEM`) |
 | `POST /api/van-chuyen/chuyen/:id/cap-nhat-diem` (có sẵn :975) | `trip.dispatch` | nay chạy cả RUNNING: chỉ suất `WAITING` ở điểm `PENDING`; suất khác lệch → bỏ qua, trả `boQua` (số); không phá lệ thêm |
+
+**Tin báo (Đợt 2, bài quét `…-02-tin-bao-chuyen.md:982`):** mỗi route POST mới ở bảng này gọi `ctx.baoThayDoiChuyen({ tripId, requestId })` ngay trong task này, SAU `if (r) return r` / `if (!r.ok) return r.res` — không ngoại lệ; route `/api/van-chuyen/de-nghi/*` nằm ngoài regex `(chuyen|cuoc-cua-toi)` của bài đó ⇒ SIẾT bài: mở regex thêm `de-nghi` (siết, không cần duyệt) để bài bắt cả nhóm này. (`duyet`, `bac`, `them-diem`, `bao-huy`; `cap-nhat-diem` đã gọi từ Đợt 2.)
 
 ```ts
 export async function lenhThemDiemDangChay(db, nen: NenChuyen, lich: readonly ChangLichChung[], b: XepThan, staff: StaffProfile, bayGioMs: number): Promise<Response | null>;
@@ -374,11 +378,11 @@ Câu mới (ADR-0052:221; mức `fail`):
 
 ### Task 9: Điểm cắm D6 (tin báo — Đợt 2 sở hữu)
 
-**Files:** `src/modules/van-chuyen/index.ts` (route mới T4–T5), hàm người nhận của Đợt 2 (tên đo ở T0 — ADR-0052 D6.2 "một hàm thuần duy nhất"), bài của nó.
+**Files:** `src/shared/tin-chuyen.ts` của Đợt 2 — mảng `HANH_DONG_TIN_CHUYEN` (`…-02-tin-bao-chuyen.md:269`), hàm `loaiCho` (`02:290`; nhánh tài xế `02:293`, nhánh văn phòng sau `02:298`), `tinChuyenCho` (`02:105`) + bảng câu `CAU`; kiểu `LoaiTinChuyen` (`02:271`); bài của nó (`src/shared/tin-chuyen.test.ts`). Route mới đã gọi hàm tiêm ở T4, T5, T15, T16 — task này KHÔNG thêm lời gọi.
 
 **Interfaces (ADR-0052 D6.3, chữ ký theo Đợt 2 — `…-02-tin-bao-chuyen.md` đã đổi, ADR xếp hàm tiêm là hai chiều):** `ctx.baoThayDoiChuyen({ tripId, requestId })` — gọi **sau** lô thành công, bắn-và-quên; không gọi khi 409/lệnh lặp.
 
-Dòng người nhận cần có (ADR-0052:157-160) — thêm vào bảng của Đợt 2 nếu chưa có:
+Nối thêm vào `HANH_DONG_TIN_CHUYEN` các hành động của Đợt 5 (tên chốt ở Task 2): `trip_transfer_proposed`, `trip_transfer_confirmed`, `trip_transfer_rejected`, `trip_transfer_expired`, `trip_transfer_declined`, `trip_transfer_withdrawn`, `trip_transfer_voided`, `trip_transfer_escalated`, `trip_stop_added_running`, `trip_allocation_office_cancelled`, `trip_stops_synced` (chỉ khi chuyến RUNNING — `DongChuyen` cần cờ trạng thái lúc sự kiện, hoặc dùng `laiLucSuKien` + chuyến đã xuất bến; chốt khi nhận); A-1b thêm `trip_passenger_named` (không gửi tin — chỉ ghi, KHÔNG thêm vào mảng). Mỗi hành động: một nhánh trong `loaiCho` + một giá trị `LoaiTinChuyen` mới (vd `de_nghi_toi`, `de_nghi_ket_qua`, `de_nghi_leo_thang`, `xe_chay_doi`) + một dòng `CAU` (khuôn chú thích `02:265`). Người nhận (ADR-0052:157-160):
 
 | Hành động | Người nhận |
 |---|---|
@@ -387,7 +391,7 @@ Dòng người nhận cần có (ADR-0052:157-160) — thêm vào bảng của �
 | `trip_transfer_confirmed` / `_rejected` / `_expired` / `_declined` / `_withdrawn` / `_voided` | tài xế nguồn + đích |
 | `trip_transfer_escalated` | người có `trip.override` |
 
-- [ ] **Step 1:** Test đỏ: hàm người nhận với mọi tập con quyền — leo thang chỉ tới `trip.override`; tài xế bị gỡ không nhận tin sau; chỉ-`DRIVER_PARTNER` không nhận gì; route gọi `baoThayDoiChuyen` đúng một lần sau 200, không gọi khi 409 (gián điệp `ctx`). **Step 2–4:** viết, XANH. **Step 5:** Commit `"Đợt 5: nối tin báo cho đề nghị chuyển và thay đổi khi xe chạy"`.
+- [ ] **Step 1:** Test đỏ trong `tin-chuyen.test.ts` (thêm ca vào bài có sẵn của Đợt 2, không dựng bộ bài mới): mỗi hành động mới → đúng người nhận theo bảng; leo thang chỉ tới `trip.override` (Bán hàng không nhận); tài xế nguồn bị gỡ trước sự kiện không nhận; tin không chứa tên / SĐT. Ca "chỉ `DRIVER_PARTNER` không nhận gì" DÙNG bài có sẵn `02:152` — chỉ thêm `dong({ action: "trip_transfer_proposed" })` vào bài đó, KHÔNG viết bài thứ hai. Lời gọi hàm tiêm đúng một lần / không gọi khi 409 do bài quét Đợt 2 (`02:982`) + bài route của T4/T5 canh. **Step 2–4:** viết, XANH. **Step 5:** Commit `"Đợt 5: nối tin báo cho đề nghị chuyển và thay đổi khi xe chạy"`.
 - Nếu Đợt 2 chưa gộp: dừng task này, ghi nợ có hạn trong nhật ký; A-1 KHÔNG phát hành thiếu tin báo đề nghị (tài xế đích không biết có đề nghị — 10 phút hết hạn) ⇒ báo điều phối.
 
 ### Task 10: Đề xuất luật A-1 + sổ hàng rào + tài liệu + nhật ký phiên bản
@@ -401,7 +405,7 @@ Dòng người nhận cần có (ADR-0052:157-160) — thêm vào bảng của �
 2. Sửa `src/CLAUDE.md:22` ("Quyền `DRIVER` … chỉ có `trip.view`, `trip.progress`") → thêm `trip.transfer`; thêm câu "đề nghị chuyển, thêm điểm, báo huỷ trên xe đang chạy — bốn đường LC-15 có tên".
 3. (Chỉ khi T3 Step 3 / T7 Step 1 buộc phải) ngoại lệ bài thứ tự lô hoặc route thứ ba của `TRA_TEN`. Nếu cả hai cùng cần → vượt trần ⇒ tách lượt, hỏi chủ.
 
-**Sổ hàng rào (mỗi dòng: chặn gì — cơ chế — ngày thấy chặn thật ở T1/T7/T8):** trigger LC-14; LC-15 mới (ba trigger dựng lại); câu chốt D5.3a; `ESCALATED → CONFIRMED`; chỉ-thêm hai bảng; `office_cancel_once`; bài ghim DRIVER (4 ô — 3 ô ở A-1); bài liệt kê khoá `XeNhanDto`; bài chạy đua cổng đôi (T6); sáu câu `R-VC` mới; bài "câu chèn chính sách đủ cột" (P5).
+**Sổ hàng rào (mỗi dòng: chặn gì — cơ chế — ngày thấy chặn thật ở T1/T7/T8):** trigger LC-14; LC-15 mới (ba trigger dựng lại); câu chốt D5.3a; `ESCALATED → CONFIRMED`; chỉ-thêm hai bảng; `office_cancel_once`; bài ghim DRIVER (4 ô — 3 ô ở A-1); bài liệt kê khoá `XeNhanDto`; bài chạy đua cổng đôi (T6); sáu câu `R-VC` mới; bài "câu chèn chính sách đủ cột" đã có dòng từ Đợt 3 — chỉ cập nhật ghi chú (thêm hai cột).
 
 - [ ] **Step 1:** Soạn tệp đề xuất; KHÔNG sửa `src/CLAUDE.md`, ghim DRIVER trước khi chủ duyệt (ghim để nhãn "CHỜ CHỦ DUYỆT" trên nhánh như tiền lệ ADR-0049).
 - [ ] **Step 2:** Dòng sổ hàng rào; `SYSTEM-DESIGN.md` §5/§6/§7; `CHANGE-GUIDE.md` (công thức z3: bốn đường LC-15, thứ tự lô đóng → mở → chốt, bẫy "mở trước đóng = UNIQUE LC-01").
@@ -471,7 +475,7 @@ export function kiemHanhKhachTaiXe(body: unknown, namNay: number): { ok: true; v
 
 **Ô quyền:** `"trip.passenger.add": row("none","none","none","none","none","any","none","assigned","none","none")` — SALES `none` (ĐP13), ADMIN `none` (không route văn phòng). Ghim DRIVER thêm `assigned` (NỚI — chờ duyệt T17); ghim DRIVER_PARTNER `none`.
 
-**Route:** `POST /api/van-chuyen/cuoc-cua-toi/:id/hanh-khach` (cổng `staff`) — thân `{ requestId, suatId, fullName, birthYear, paxCode }`. Thứ tự: `can(trip.passenger.add, {assigned})` → chuyến mình đang lái → `trongNgayChay` → suất chưa tên, mở, đúng chuyến → đơn của chặng. Ngoài phạm vi → 404; suất đã có tên → 409. Phản hồi: chỉ `{ ok, soNguoi }` — KHÔNG tên.
+**Route:** `POST /api/van-chuyen/cuoc-cua-toi/:id/hanh-khach` (cổng `staff`) — thân `{ requestId, suatId, fullName, birthYear, paxCode }`. Thứ tự: `can(trip.passenger.add, {assigned})` → chuyến mình đang lái → `trongNgayChay` → suất chưa tên, mở, đúng chuyến → đơn của chặng. Ngoài phạm vi → 404; suất đã có tên → 409. Phản hồi: chỉ `{ ok, soNguoi }` — KHÔNG tên. Gọi `ctx.baoThayDoiChuyen({ tripId, requestId })` sau lô thành công ngay trong task này (bài quét Đợt 2 `…-02-tin-bao-chuyen.md:982` bắt route `cuoc-cua-toi`).
 
 ```ts
 export interface LenhBoSungTen extends LenhChung { tripId: string; suatId: string; hanhKhach: D1PreparedStatement /* từ cauThemHanhKhachTaiXe */; personKey: string; maDon: string; detail: string }
@@ -492,7 +496,7 @@ export function loBoSungTen(db, l: LenhBoSungTen): CauCoNhan[];
 
 **Route / luật:**
 - `POST /api/van-chuyen/cuoc-cua-toi/:id/de-nghi` nay nhận `scope: "ONBOARD"` (tài xế xe hỏng, `trip.transfer`): mọi suất mở `WAITING` + `BOARDED` của A; nơi gặp `meetLocationId` hoặc `meetPlaceText` (che dãy số khi hiển thị).
-- `POST /api/van-chuyen/chuyen/:id/cuu-ho` (cổng `office`, ô `trip.progress`): CHỈ `ONBOARD`; ghi `proposed_by_staff_id` = người bấm, `proposed_by_party_id` = tài xế đang mở của A. Văn phòng gửi `STOP` → 403; văn phòng bấm Nhận thay → 403 (route `…/nhan` chỉ cổng `staff` + "đang lái đích").
+- `POST /api/van-chuyen/chuyen/:id/cuu-ho` (cổng `office`, ô `trip.progress`): CHỈ `ONBOARD`; ghi `proposed_by_staff_id` = người bấm, `proposed_by_party_id` = tài xế đang mở của A. Văn phòng gửi `STOP` → 403; văn phòng bấm Nhận thay → 403 (route `…/nhan` chỉ cổng `staff` + "đang lái đích"). Gọi `ctx.baoThayDoiChuyen({ tripId, requestId })` sau lô thành công ngay trong task này (bài quét Đợt 2 `:982`).
 - Nhận: MQ-02/03 như D4; suất `BOARDED` sang C vẫn `BOARDED`.
 - Giá: chuyến cứu hộ MỚI bằng xe nhà xe → xuất bến qua cổng `THIEU_GIA` của Đợt 4 (không code mới; chỉ e2e).
 
@@ -525,7 +529,6 @@ export function loBoSungTen(db, l: LenhBoSungTen): CauCoNhan[];
 - **Tên hành động nhật ký** phải trùng danh sách Đợt 2 chốt (một chiều) — T0 Step 4.
 - **Đợt 4 T2 đã lên `main` chưa** — cổng vào A-1b (T13 Step 1).
 - Câu chốt dùng nhãn `TRANG_THAI_CUOI` có qua bài thứ tự lô không — T3 Step 3 (không qua → thêm mục đề xuất).
-- Đợt 1 có thể đã thêm migration chạm trigger LC-15 (đổi thứ tự điểm khi xe chạy) — T0 Step 3 đọc trước khi dựng lại.
 
 ---
 

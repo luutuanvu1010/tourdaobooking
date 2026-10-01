@@ -1085,7 +1085,17 @@ UPDATE vc_trip SET version = version + 1, last_cmd_id = ?3, updated_at = ?4, upd
   - `occurred_date` (tiêu chí 8): `SNAPSHOT`/`AGREED`/đảo tự động = ngày chạy; `ADJUSTMENT` mặc định `vnToday()`, Kế toán chọn được; `date(x) = x`.
   - Nhật ký: mỗi ghi một dòng `audit_log` cùng lô, `detail` có mã chuyến, tên nhà xe, "1.200.000 → 1.350.000", nhãn lý do; không SĐT, không tên khách.
   - Bảng kê: ba chuyến (đã kết thúc 1.200.000; huỷ có phí 300.000; thiếu giá) ⇒ dòng đúng, tổng nhà xe 1.500.000 (lọc `DA_PHAT_SINH` chỉ 1.200.000).
-- [ ] **Bước 2: Đỏ. Bước 3: Mã** (theo Interfaces). **Bước 4:** `npm test`, typecheck xanh; `permission-enforcement` xanh (hai ô mới được hỏi).
+- [ ] **Bước 2: Đỏ. Bước 3: Mã** (theo Interfaces).
+- [ ] **Bước 3b (CHỈ khi Đợt 2 — `…-02-tin-bao-chuyen.md` — đã gộp `main` lúc thi công; chưa gộp thì bỏ qua bước này):** bài quét của Đợt 2 ("MỌI route POST/PUT lệnh chuyến của van-chuyen gọi baoThayDoiChuyen" — regex `/api/van-chuyen/(chuyen|cuoc-cua-toi)…`, trong tệp test của Đợt 2 cạnh `src/modules/van-chuyen/index.ts`) sẽ ĐỎ với bốn route `POST /api/van-chuyen/chuyen/:id/chi-phi/{dieu-chinh,dao,chup-lai,gia-thoa-thuan}`. Thêm vào bài đó một **danh sách ngoại lệ CÓ TÊN** (không lọc chung chung):
+
+```ts
+// Ngoại lệ có tên (kế hoạch Đợt 4, ADR-0057 C9): route chi phí chuyến — Kế toán / Quản trị ghi TIỀN, không đổi chuyến (xe, tài xế, giờ, khách, trạng thái)
+// ⇒ không báo tài xế / Bảng tin. Chụp / đảo giá do đổi chuyến đi trong lô tạo / sửa / huỷ chuyến — các route đó vẫn gọi baoThayDoiChuyen.
+const KHONG_BAO = new Set(["/api/van-chuyen/chuyen/:id/chi-phi/dieu-chinh", "/api/van-chuyen/chuyen/:id/chi-phi/dao", "/api/van-chuyen/chuyen/:id/chi-phi/chup-lai", "/api/van-chuyen/chuyen/:id/chi-phi/gia-thoa-thuan"]);
+const lenh = routes.filter((m) => !/\/chang\//.test(m[2]!) && !KHONG_BAO.has(m[2]!));
+```
+
+  Kèm một khẳng định chống thừa: mỗi đường trong `KHONG_BAO` phải thật sự có trong `routes` (route đổi tên thì đỏ). Ngưỡng `lenh.length >= 27` giữ nguyên. Đây là thêm ngoại lệ vào một bài kiểm (không phải tệp luật) — ghi lý do trên vào thân commit và nhật ký thi công; người kiểm T2 soi rằng không route nào khác lọt vào danh sách. **Bước 4:** `npm test`, typecheck xanh; `permission-enforcement` xanh (hai ô mới được hỏi).
 - [ ] **Bước 5:** e2e bổ sung: Kế toán nhập thoả thuận → xuất bến; bảng kê có chuyến. Commit "Tiền xe thuê T2: ô chi phí chuyến (Quản trị = Kế toán) + điều chỉnh, đảo, chụp lại, giá thoả thuận, bảng kê".
 
 ---

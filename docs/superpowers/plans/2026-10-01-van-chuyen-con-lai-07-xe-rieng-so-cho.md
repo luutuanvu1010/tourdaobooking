@@ -14,6 +14,8 @@
 
 **Spec:** `docs/adr/ADR-0056-van-chuyen-kernel-luot-3.md` (VK3-A, "Câu ADR bị thay", "Hệ quả", "Tiêu chí nghiệm thu", "Hệ quả của ADR-0057"). Kế hoạch mẹ: `docs/superpowers/plans/2026-10-01-van-chuyen-con-lai-00-lo-trinh.md` (L1–L3). Khuôn ô phụ: `docs/superpowers/plans/2026-10-01-may-chu-o-moi-chang-ke-hoach.md`.
 
+**Thứ tự gộp:** Gộp sau Đợt 3, 4 (và 5, 6 nếu đã gộp); đo lại MA_GIU / MA_LUAT_PHA_LE / KetQuaTaoSua / ChuyenVao từ main lúc nhận.
+
 **Mức chi tiết (L3):** chỉ tới **giao diện** — chữ ký, cột, route, mã lỗi, test bắt buộc. Người thi công **đo lại mã thật lúc nhận việc** (Task 0), vì Đợt 1–6 sẽ đổi các tệp này (nhất là Đợt 4 thêm `THIEU_GIA` và cột `rented`/`route_code` trên `vc_trip`).
 
 **Ngoài phạm vi:**
@@ -66,7 +68,7 @@
   - `kiemXep`, `kiemTaoSuaChuyen`, `kiemXuatBen` (`src/shared/dieu-phoi-kiem.ts`), `ChangVao` / `ChuyenVao` / `MA_LUAT_PHA_LE` (`src/shared/dieu-phoi-kieu.ts`), `MA_GIU` (`src/shared/ly-do-giu.ts`);
   - `loiKiem`, `THONG_BAO_409` (`src/modules/van-chuyen/dieu-phoi-route.ts`), `phaLeCua` và năm lệnh (`dieu-phoi-lenh.ts`), `lenhXuatBen` (`dieu-phoi-tien-do.ts`), `TripRow` (`chuyen-repo.ts`), `chuyenVao` / `changVao` (`dieu-phoi-doc.ts`), thân lệnh (`dieu-phoi-than.ts`), route (`index.ts`);
   - phía orders: `ChangHopLe` / `oPhu` (`src/shared/chang-dua-don.ts`), `giaiOPhuNhap` và chặn ô phụ trong `updateTrip` (`src/modules/orders/service-rules.ts`), `planSuaChang` / `moTaVao` (`service.ts`), `LEG_SET_O_PHU` (`chang-hanh-khach-repo.ts`), `chepDatGapNhap` (`dat-gap.ts`), `lichChungChang` / `hanhKhachChoChuyen` (`index.ts`).
-- [ ] Đợt 4 đã gộp chưa? Nếu đã gộp: giá trị ghim `MA_LUAT_PHA_LE` hiện có, `THIEU_GIA` nằm trong `MA_GIU`, và các cột `rented`/`route_code` của `vc_trip`.
+- [ ] Đo từ `main` đã gộp Đợt 3, 4 (và 5, 6 nếu có): giá trị ghim `MA_LUAT_PHA_LE` (Đợt 4 KHÔNG thêm `THIEU_GIA` vào đây), giá trị ghim `MA_GIU` (có `THIEU_GIA` của Đợt 4), kiểu `KetQuaTaoSua` và `KiemTaoSuaChuyenVao.khungBan` (Đợt 3), các trường `ChuyenVao.thue` / `coNguonGia` (Đợt 4), các cột `rented`/`route_code` của `vc_trip`, bảng `MAU` của `thu-tu-lo.test.ts`.
 - [ ] Chốt `<NNNN>` (C1), `R-VC-<NN>` (C2), số phiên bản. Ghi vào nhật ký.
 
 ---
@@ -162,7 +164,7 @@ Luật ghi:
 - Create: `src/shared/cam-ket-xe.ts`, `src/shared/cam-ket-xe.test.ts`
 - Modify: `src/shared/dieu-phoi-kieu.ts` (`ChangVao`, `ChuyenVao`, `MA_LUAT_PHA_LE`), `src/shared/ly-do-giu.ts` (`MA_GIU.CAM_KET`), `src/shared/dieu-phoi-kiem.ts` (`kiemXep`, `kiemTaoSuaChuyen`, `kiemXuatBen`)
 - Modify (nạp dữ liệu, KHÔNG đổi hành vi lệnh): `src/modules/van-chuyen/chuyen-repo.ts` (`TripRow` cộng SELECT hai cột mới), `dieu-phoi-doc.ts` (`changVao` chép `xeRieng`/`choToiThieu` từ `ChangLichChung`; `chuyenVao` điền `camKetPhaLeKhoa` từ `commitment_override_key`), `dieu-phoi-lenh.ts` + `dieu-phoi-tien-do.ts` + nơi dựng đầu vào `dungLichChung` (truyền `changTrenChuyen`, `xeId`, `camKetPhaLeKhoa` thật vào `kiemXep` / `kiemTaoSuaChuyen`; `kiemXuatBen` nhận qua `ChuyenVao`)
-- Test: `src/shared/dieu-phoi-kiem.test.ts`, `src/shared/dieu-phoi-kieu.test.ts`, `src/shared/ly-do-giu.test.ts`, `src/shared/dieu-phoi-lich-chung.test.ts`, và mọi bộ dựng `ChangVao` / `ChuyenVao` trong test (tìm bằng `grep -rln "khoaNoiDon" src --include=*.test.ts`)
+- Test: `src/shared/dieu-phoi-kiem.test.ts`, `src/shared/dieu-phoi-kieu.test.ts`, `src/shared/ly-do-giu.test.ts`, `src/shared/dieu-phoi-lich-chung.test.ts`, và mọi bộ dựng `ChangVao` / `ChuyenVao` trong test (tìm bằng `grep -rln "khoaNoiDon" src --include=*.test.ts`). Mọi bộ dựng mẫu thử `kiemXuatBen` phải có đủ `thue`, `coNguonGia` (Đợt 4) cùng `camKetPhaLeKhoa`
 
 **Interfaces:**
 - Consumes: hai khoá `xeRieng`, `choToiThieu` của `ChangLichChung` (Task 2); cột `vc_trip.commitment_override_key` (Task 1).
@@ -173,7 +175,7 @@ Luật ghi:
 ```ts
 // src/shared/dieu-phoi-kieu.ts
 export interface ChangVao { /* …có sẵn… */ xeRieng: boolean; choToiThieu: number | null }   // BẮT BUỘC
-export interface ChuyenVao { /* …có sẵn… */ camKetPhaLeKhoa: string | null }               // khoá đã phá lệ đang lưu
+export interface ChuyenVao { /* …có sẵn, gồm `thue`, `coNguonGia` của Đợt 4… */ camKetPhaLeKhoa: string | null }   // khoá đã phá lệ đang lưu
 export const MA_LUAT_PHA_LE = ["MOC_TOI_THIEU", "KHOANG_NGHI", "CAM_KET"] as const;
 
 // src/shared/cam-ket-xe.ts — luật thuần, import kèm đuôi .ts, không import modules/
@@ -198,7 +200,7 @@ export function khoaCamKet(xeId: string, viPham: readonly ViPhamCamKet[]): strin
 
 Ba hàm kiểm có sẵn, đổi chữ ký như sau (các khoá cũ giữ nguyên):
 - `KiemXepVao` thêm `changTrenChuyen: ChangVao[]` (chặng có suất khách mở **trước** lệnh), `xeId: string` và `camKetPhaLeKhoa: string | null`. Tập sau lệnh là `changTrenChuyen ∪ them[].chang`. Trả `KetQuaXep & { camKet: KetQuaCamKet }`. Còn vi phạm mà `!daPhaLe` thì đẩy `lyDoGiu("CAM_KET", …)` vào `canPhaLe`.
-- `KiemTaoSuaChuyenVao` thêm `camKet?: { changTrenChuyen: ChangVao[]; khoaDaPhaLe: string | null }`. Chỉ xét khi `lenh === "SUA"` **và** đổi xe (R-CX theo xe mới; R-XR không đổi vì không đổi khách). Trả `KetQuaKiem & { camKet: KetQuaCamKet | null }`.
+- `KiemTaoSuaChuyenVao` thêm `camKet?: { changTrenChuyen: ChangVao[]; khoaDaPhaLe: string | null }`. Chỉ xét khi `lenh === "SUA"` **và** đổi xe (R-CX theo xe mới; R-XR không đổi vì không đổi khách). `KiemTaoSuaChuyenVao` đã có `khungBan` của Đợt 3, giữ nguyên. Trả `KetQuaTaoSua & { camKet: KetQuaCamKet | null }`; `KetQuaTaoSua = KetQuaKiem & { nhacGioLai }` là kiểu của Đợt 3.
 - `kiemXuatBen`: tính `kiemCamKet` trên `v.chang` lọc theo chặng có suất khách mở, `khoaDaPhaLe = v.chuyen.camKetPhaLeKhoa`. Còn vi phạm mà `!daPhaLe` thì đẩy lý do `CAM_KET` vào `lyDo` (giữ chuyến). Trả `KetQuaXuatBen & { camKet: KetQuaCamKet }`.
 
 - [ ] **Bài đỏ trước** (`cam-ket-xe.test.ts`), mỗi ca một `test()`:
@@ -215,8 +217,8 @@ Ba hàm kiểm có sẵn, đổi chữ ký như sau (các khoá cũ giữ nguyê
   - `kiemTaoSuaChuyen`: đổi sang xe 7 chỗ khi chặng trên chuyến ≥ 15 thì `CAM_KET`; không đổi xe thì `camKet === null`;
   - `kiemXuatBen`: tiêu chí 3 (bật xe riêng sau khi ghép) thì `dat = false`, có lý do `CAM_KET`; 3b; 3c (khoá cũ không khớp); khoá khớp thì đạt;
   - bài "MỘT luật hai nơi": cùng trạng thái, `kiemXep(...).camKet.khoa === kiemXuatBen(...).camKet.khoa`.
-- [ ] Sửa bài ghim `dieu-phoi-kieu.test.ts` ("MA_LUAT_PHA_LE: đúng hai luật") thành ba mã, cộng thêm mã `THIEU_GIA` nếu Đợt 4 đã gộp. Đây là **đổi giá trị ghim theo ADR**, không phải nới. Bài vẫn đòi mỗi mã phá lệ cũng có trong `MA_GIU`.
-- [ ] Thêm `CAM_KET` vào `MA_GIU` và bài `ly-do-giu.test.ts` (lời và ai xử lý, C9).
+- [ ] Sửa bài ghim `dieu-phoi-kieu.test.ts` ("MA_LUAT_PHA_LE: đúng hai luật") thành đúng ba mã `MOC_TOI_THIEU`, `KHOANG_NGHI`, `CAM_KET`. `THIEU_GIA` KHÔNG nằm trong `MA_LUAT_PHA_LE`, vì Đợt 4 đã khẳng định không phá lệ được. Đây là **đổi giá trị ghim theo ADR**, không phải nới. Bài vẫn đòi mỗi mã phá lệ cũng có trong `MA_GIU`.
+- [ ] Thêm `CAM_KET` vào `MA_GIU` và bài `ly-do-giu.test.ts` (lời và ai xử lý, C9). Bài ghim phải giữ cả `THIEU_GIA` của Đợt 4; giá trị ghim đo lại từ bản đã gộp, vì Đợt 4 đi trước Đợt 7.
 - [ ] `dieu-phoi-lich-chung.test.ts`: chuyến chưa chạy vi phạm cam kết, không phá lệ, thì lịch chung hiện "giữ" với `CAM_KET` (Review Focus 3).
 - [ ] Chạy `node --test src/shared/` cho **FAIL**. Viết mã. Chạy lại cho **PASS**. Chạy `npm run typecheck` phải 0 lỗi.
 - [ ] Commit: `Luật thuần cam kết xe riêng / số chỗ (kiemCamKet) nối vào xếp, sửa chuyến, cổng xuất bến; nạp cam kết vào đầu vào điều phối`.
@@ -257,7 +259,7 @@ Luật lệnh:
   4. `SALES` gửi `camKetPhaLe` ở **mỗi** route sửa chuyến / xếp / dời thì 403 (tiêu chí 4 vế sau, Review Focus 2, hàng rào 2: ba ca);
   5. đổi xe sang xe 7 chỗ khi chặng ≥ 15 thì 409 (tiêu chí 2); kèm phá lệ thì qua và ghi khoá có id xe mới;
   6. lệnh cần cả mốc lẫn cam kết thì sự kiện mang `MOC_TOI_THIEU`, cột chuyến mang lý do cam kết, `detail` có hai đoạn phá lệ (C6);
-  7. `thu-tu-lo.test.ts`: câu `CAM_KET_PHA_LE` đứng sau câu cổng và sau nhật ký, trước câu trạng thái cuối;
+  7. `thu-tu-lo.test.ts`: câu `CAM_KET_PHA_LE` đứng sau câu cổng và sau nhật ký, trước câu trạng thái cuối. Dựng lại bảng `MAU` từ bản đã gộp Đợt 4, 5, 6, không chép bảng cũ;
   8. `src/orders-cong-bo.test.ts` vẫn xanh với nơi gọi mới `lichChungChang` ở route sửa chuyến.
 - [ ] Chạy cho **FAIL**, viết mã, chạy lại cho **PASS**, `npm run typecheck` 0 lỗi.
 - [ ] Commit: `Điều phối chặn xếp / đổi xe trái cam kết, Quản trị phá lệ kèm lý do (CAM_KET)`.
