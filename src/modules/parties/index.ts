@@ -69,7 +69,7 @@ export async function partySummary(
  * HÀM CÔNG BỐ (ADR-0068 Đ9 — C1, C2) cho module staff: hồ sơ CÁ NHÂN đang dùng, chưa gộp, khớp SĐT liên hệ đang mở (`phone` đã chuẩn hoá) HOẶC tên chuẩn hoá
  * (`chuanHoaTen`, giữ dấu). Kèm tên công việc hôm nay. KHÔNG trả SĐT.
  */
-export async function hoSoCaNhanKhop(db: D1Database, v: { phone: string | null; ten: string | null }): Promise<{ id: string; displayName: string; lyDo: ("PHONE" | "NAME")[]; vai: string[]; maVai: string[] }[]> {
+export async function hoSoCaNhanKhop(db: D1Database, v: { phone: string | null; ten: string | null }): Promise<{ id: string; displayName: string; lyDo: ("PHONE" | "NAME")[]; vai: string[] }[]> {
   const today = vnToday(new Date());
   const tenChuan = v.ten ? chuanHoaTen(v.ten) : "";
   const [nguoi, theoSo, loai] = await Promise.all([
@@ -81,11 +81,12 @@ export async function hoSoCaNhanKhop(db: D1Database, v: { phone: string | null; 
   for (const r of theoSo) if (r.party_kind === "PERSON" && r.active === 1) lyDo.set(r.id, ["PHONE"]);
   for (const p of nguoi) if (chuanHoaTen(p.display_name) === tenChuan) lyDo.set(p.id, [...(lyDo.get(p.id) ?? []), "NAME"]);
   const tenVai = new Map(loai.map((t) => [t.code, t.name]));
-  return (await listPartiesByIds(db, [...lyDo.keys()], today)).map((r) => {
-    const maVai = [...new Set((r.role_codes ?? "").split(",").filter(Boolean))];
-    // `maVai` (mã vai đang mở) chỉ để nơi gọi lọc theo quyền xem (ADR-0071 điều 3b) — nơi gọi KHÔNG đưa nó vào DTO.
-    return { id: r.id, displayName: r.display_name, lyDo: lyDo.get(r.id)!, vai: maVai.map((c) => tenVai.get(c) ?? c), maVai };
-  });
+  return (await listPartiesByIds(db, [...lyDo.keys()], today)).map((r) => ({
+    id: r.id,
+    displayName: r.display_name,
+    lyDo: lyDo.get(r.id)!,
+    vai: [...new Set((r.role_codes ?? "").split(",").filter(Boolean))].map((c) => tenVai.get(c) ?? c),
+  }));
 }
 
 /** Định danh Tour Đảo cho nơi đọc ngoài module (ADR-0024 điều 6 + 6.2). Trường có thể null: dữ liệu hồ sơ tổ chức cho phép trống. */

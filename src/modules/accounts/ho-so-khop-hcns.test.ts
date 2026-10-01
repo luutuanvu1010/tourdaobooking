@@ -80,3 +80,14 @@ test("3b: POST /api/staff của HCNS với partyId của một khách → từ c
   const sup = await voi(SUP, KHACH, "0912000446");
   assert.equal(sup.status, 201, sup.text);
 });
+
+test("3b: MỘT định nghĩa 'HCNS thấy được' cho cả danh sách khớp lẫn partyId — vai tài khoản đã ĐÓNG hôm nay (chưa có tài khoản) không làm hồ sơ hiện ra", async () => {
+  const { w, KHACH } = await nen();
+  const homNay = new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10);
+  w.sqlite.exec(`INSERT INTO pty_party_role (id, party_id, role_type_code, location_id, valid_from_date, valid_to_date, created_at, updated_at)
+    VALUES ('r-dong', '${KHACH}', 'COLLABORATOR', NULL, '2026-01-01', '${homNay}', '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z')`);
+  const r = await w.call("GET", `/api/staff/ho-so-khop?phone=${SO_KHACH}`, { as: HR });
+  assert.deepEqual(r.json, { khop: [], coHoSoKhacTrongDanhBa: true }, "vai đã đóng không phải vai tài khoản đang mở");
+  const khach = await w.call("POST", "/api/staff", { as: HR, body: { roles: ["SALES_STAFF"], partyId: KHACH, phone: "0912000447" } });
+  assert.equal(khach.json.error?.message, "Không tìm thấy hồ sơ đã chọn.", khach.text);
+});

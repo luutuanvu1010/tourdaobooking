@@ -285,13 +285,23 @@ export type CreateWithRoles =
  */
 export async function hoSoKhopKhiTaoTaiKhoan(db: D1Database, v: { phone: string | null; ten: string | null }, xemDanhBa: boolean): Promise<PartyMatchResponse> {
   const khop = await hoSoCaNhanKhop(db, v);
-  const coTaiKhoan = await partiesWithAccount(db, khop.map((k) => k.id));
-  const thayDuoc = (k: (typeof khop)[number]) => xemDanhBa || coTaiKhoan.has(k.id) || k.maVai.some(isRoleCode);
+  const ids = khop.map((k) => k.id);
+  const [coTaiKhoan, vai] = await Promise.all([partiesWithAccount(db, ids), vaiTaiKhoanDangMo(db, ids)]);
+  const thayDuoc = (id: string) => xemDanhBa || laHoSoTaiKhoan(id, coTaiKhoan, vai);
   return {
-    khop: khop.filter(thayDuoc).map(({ maVai, ...k }) => ({ ...k, vaiTaiKhoan: maVai.filter(isRoleCode), coTaiKhoan: coTaiKhoan.has(k.id) })),
-    coHoSoKhacTrongDanhBa: khop.some((k) => !thayDuoc(k)),
+    khop: khop.filter((k) => thayDuoc(k.id)).map((k) => ({ ...k, vaiTaiKhoan: vai.get(k.id) ?? [], coTaiKhoan: coTaiKhoan.has(k.id) })),
+    coHoSoKhacTrongDanhBa: khop.some((k) => !thayDuoc(k.id)),
   };
 }
+
+/** Vai tài khoản (ROLE_CODES) ĐANG MỞ của nhiều hồ sơ — cùng định nghĩa "đang mở" với nguồn sinh quyền (không gắn nơi, chưa đóng; Ruling R1, R26). */
+async function vaiTaiKhoanDangMo(db: D1Database, ids: readonly string[]): Promise<Map<string, RoleCode[]>> {
+  const mo = await openRoleCodesByParty(db, ids);
+  return new Map([...mo].map(([id, codes]) => [id, ROLE_CODES.filter((c) => codes.includes(c))]));
+}
+/** ADR-0071 điều 3b — MỘT luật "hồ sơ người không xem Danh bạ được thấy khi tạo tài khoản": đã có tài khoản, hoặc đang mở vai tài khoản. */
+const laHoSoTaiKhoan = (id: string, coTaiKhoan: ReadonlySet<string>, vai: ReadonlyMap<string, readonly RoleCode[]>): boolean =>
+  coTaiKhoan.has(id) || (vai.get(id)?.length ?? 0) > 0;
 
 /**
  * Tạo tài khoản THEO VAI (ADR-0018): hồ sơ mới mang đúng các vai đã chọn (không thêm vai STAFF cũ), HOẶC dùng lại hồ sơ cá nhân có sẵn (chưa có tài khoản,
@@ -315,8 +325,9 @@ export async function createAccountWithRolesStatements(
     // ADR-0071 điều 3b: người gọi không xem được Danh bạ chỉ dùng được hồ sơ họ được thấy (đang mở vai tài khoản hoặc đã có tài khoản) — hồ sơ khác trả ĐÚNG
     // câu "không tìm thấy" như trên (không lộ hồ sơ tồn tại).
     if (!input.xemDanhBa) {
-      const moVaiTaiKhoan = (await accountRolesOf(db, input.existingPartyId, today)).some((r) => r.validTo === null && isRoleCode(r.roleTypeCode));
-      if (!moVaiTaiKhoan && !(await accountIdOfParty(db, input.existingPartyId))) return { ok: false, message: "Không tìm thấy hồ sơ đã chọn." };
+      const ids = [input.existingPartyId];
+      const [coTaiKhoan, vai] = await Promise.all([partiesWithAccount(db, ids), vaiTaiKhoanDangMo(db, ids)]);
+      if (!laHoSoTaiKhoan(input.existingPartyId, coTaiKhoan, vai)) return { ok: false, message: "Không tìm thấy hồ sơ đã chọn." };
     }
     if (party.kind !== "PERSON") return { ok: false, message: "Tài khoản chung cho công ty làm ở giai đoạn sau — hãy chọn hồ sơ cá nhân." };
     // ADR-0068 G16: hồ sơ đã gộp (luôn ngưng) — mã riêng để người tạo biết mở hồ sơ chính.
