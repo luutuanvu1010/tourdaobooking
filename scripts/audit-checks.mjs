@@ -818,6 +818,25 @@ export const CHECKS = [
     sql: "SELECT count(*) AS n FROM aut_passkey p JOIN staff s ON s.id = p.staff_id WHERE p.valid_to_at IS NULL AND s.active = 0",
     level: "fail",
   },
+  // R-AUT-SESSION-1 (ADR-0075 điều 1–3): tài khoản chịu luật một máy không có HAI phiên sống (chưa kết thúc, còn hạn, single = 1). Chỉ mục duy nhất có điều kiện
+  // `aut_session_one_live` (0061) đã chặn mọi cặp `ended_at IS NULL AND single = 1` bất kể hạn ⇒ kiểm này chỉ đỏ khi chỉ mục bị mất/sửa (SQL tay, migration
+  // sai) — là LƯỚI, không phải đường chặn. Đếm số TÀI KHOẢN vi phạm.
+  {
+    code: "R-AUT-SESSION-1",
+    what: "không tài khoản một máy nào có hơn một phiên đăng nhập sống",
+    sql: `SELECT count(*) FROM (SELECT staff_id FROM aut_session WHERE ended_at IS NULL AND single = 1 AND expires_at > ${BAY_GIO_ISO}
+          GROUP BY staff_id HAVING count(*) > 1)`,
+    level: "fail",
+  },
+  // R-AUT-SESSION-2 (ADR-0075 điều 5): tài khoản đã ngưng không còn dòng phiên chưa kết thúc (kể cả dòng đã quá hạn — lô ngưng kết thúc MỌI dòng chưa kết thúc,
+  // câu `session_end_all_if_suspended` không lọc hạn). Đọc cờ hoạt động qua view công bố `v_stf_staff_label` của staff. Đăng nhập của tài khoản ngưng còn bị
+  // `currentStaff` chặn ở tầng ứng dụng — kiểm này là lưới dữ liệu (vd ngưng bằng SQL tay).
+  {
+    code: "R-AUT-SESSION-2",
+    what: "không có phiên đăng nhập chưa kết thúc của tài khoản đã ngưng",
+    sql: "SELECT count(*) FROM aut_session x JOIN v_stf_staff_label s ON s.id = x.staff_id WHERE x.ended_at IS NULL AND s.active = 0",
+    level: "fail",
+  },
   // R-CTL-1 (ADR-0058, NT-A11): dịch vụ ĐANG HIỆN (in_sheet = 1, không bị catalog_override.hidden = 1) mà CHƯA PHÂN LOẠI — không có dòng gán hiện hành
   // (seq lớn nhất của service_code), hoặc dòng hiện hành có group_code NULL, hoặc trỏ tới nhóm đang TẮT (form đơn hiện nó là "Chưa phân loại"). Mã mới trên
   // Sheet ở lại "Chưa phân loại" cho tới khi Quản trị gán — tình trạng nghiệp vụ hợp lệ, cần người rà soát ⇒ mức warn (in số, không bao giờ đỏ). Chỉ đếm số.

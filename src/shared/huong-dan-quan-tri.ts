@@ -237,7 +237,7 @@ Mở [[Phiên đăng nhập]] (menu máy tính, hoặc trang Tôi trên điện 
 1. Gõ tên vào ô [[Tìm theo tên người]]. Bỏ tick [[Chỉ phiên đang hiệu lực]] để xem cả phiên đã kết thúc.
 2. Bấm [[Gỡ phiên]]: máy đó bị đăng xuất ngay. Người có PIN vẫn đăng nhập lại được.
 3. Nghi lộ PIN hoặc mất máy: bấm [[Gỡ phiên + đặt lại PIN]]. PIN mới hiện một lần ở đầu trang, gửi riêng cho người đó.
-4. Đọc hộp xác nhận rồi bấm [[Xác nhận gỡ]] (hoặc [[Thôi]]).
+4. Đọc hộp xác nhận rồi bấm [[Xác nhận gỡ]] (bước 3 là [[Xác nhận gỡ và đặt lại PIN]]), hoặc [[Thôi]].
 
 ### Nhật ký, Góp ý, hồ sơ công ty
 - [[Nhật ký]]: tìm theo mã đơn, mã dịch vụ hoặc tên nhân viên.

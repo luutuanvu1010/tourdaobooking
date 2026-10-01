@@ -11,6 +11,19 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // ADR-0075 Phần A (sổ phiên đăng nhập, mỗi tài khoản một máy). Có migration 0061. Cookie phiên đổi định dạng ⇒ mọi người đăng nhập lại một lần.
+    // Số "1.54" = số lớn nhất trên nhánh + 1 lúc thi công (2026-10-01); nhánh khác gộp trước thì đánh lại số.
+    version: "1.54",
+    date: "2026-10-01",
+    items: [
+      { kind: "doi", text: "Mỗi tài khoản chỉ đăng nhập trên một máy (trừ IT và Toàn quyền). Đăng nhập máy mới thì máy cũ tự đăng xuất, kèm lời báo lúc nào." },
+      { kind: "doi", text: "Sau bản này mọi người cần đăng nhập lại một lần." },
+      { kind: "moi", text: "Trang Tôi có mục \"Phiên đăng nhập của tôi\": xem mình đã đăng nhập trên máy nào, lúc nào." },
+      { kind: "moi", text: "IT và Toàn quyền có trang \"Phiên đăng nhập\": xem ai đang đăng nhập trên máy nào, gỡ phiên, hoặc gỡ phiên kèm đặt lại PIN." },
+      { kind: "doi", text: "Đổi PIN, đặt lại PIN, gỡ Face ID hay ngưng tài khoản thì các máy khác của tài khoản đó bị đăng xuất ngay." },
+    ],
+  },
+  {
     // Phần máy chủ "ô mới của chặng" (ADR-0054 D10.1/D10.3, ADR-0055 VK2-C, ADR nháp nơi trả mặc định — chủ duyệt Q-D 1/10). Có migration 0058, 0059.
     // Giao diện chưa làm (chờ bản vẽ Claude Design) — người dùng chưa thấy ô mới trên màn hình.
     version: "1.53",
