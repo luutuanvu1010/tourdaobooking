@@ -82,6 +82,15 @@ try {
   assert.deepEqual(p.consoleErrors, [], `lỗi console: ${p.consoleErrors}`);
   ok("đổi vai: xem trước 'Sẽ mất', LC-1/LC-3 ở giao diện, lưu xong danh sách hiện vai mới");
 
+  // ---- B1e (ADR-0083 điều 1e, chủ dự án 2026-10-01 "chặn luôn"): vai NỘI BỘ + cộng tay quyền bên ngoài = tài khoản lai → ô cộng tay "Đối tác" bị tắt;
+  // cộng tay quyền nội bộ khác (Kế toán) vẫn bật. Gương của roleAssignmentProblem (máy chủ trả 400) — cùng hàm thuần laiNoiBoBenNgoaiProblem.
+  await p.ev(`(${box("#add-perms", "role", "SALES_STAFF")}).click(), true`);
+  assert.equal(await p.ev(`${box("#add-perms", "add", "PARTNER")}.disabled`), true, "1e: vai Nhân viên kinh doanh không cộng tay được Đối tác (tài khoản lai)");
+  assert.equal(await p.ev(`${box("#add-perms", "add", "ACCOUNTING")}.disabled`), false, "1e: vai nội bộ vẫn cộng tay được quyền nội bộ khác");
+  await p.ev(`(${box("#add-perms", "role", "SALES_STAFF")}).click(), true`);
+  assert.equal(await p.ev(`${box("#add-perms", "add", "PARTNER")}.disabled`), false, "bỏ vai nội bộ thì ô Đối tác bật lại");
+  ok("1e: vai nội bộ không cộng tay được Đối tác; quyền nội bộ khác vẫn cộng được");
+
   // ---- B2 (ADR-0048 D2, Task B1 — LC-1b ở giao diện): ô "Tài xế đối tác" ở nhóm Bên ngoài; KHOÁ CHÉO với vai bên ngoài khác (một người chọn một);
   // cộng tay quyền khác cho vai đó bị tắt (tài khoản lai); tạo tài khoản "Tài xế taxi" rồi ĐỔI sang "Tài xế đối tác" → lưu được (tiêu chí 5b). Máy chủ vẫn
   // là nơi quyết (Task A2) — đây chỉ là gương ở giao diện, dùng chung hàm thuần vaiTaiXeDoiTacXungDot / taiKhoanLaiProblem của src/shared/roles.ts.
