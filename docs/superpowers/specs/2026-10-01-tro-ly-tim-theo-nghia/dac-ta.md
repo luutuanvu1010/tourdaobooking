@@ -1,6 +1,6 @@
 # Đặc tả — Trợ lý Hỗ trợ: tìm đoạn theo nghĩa trộn từ khoá (lượt 2)
 
-- **Trạng thái:** **đã duyệt** 2026-10-01 cùng ADR-0076 (chủ: "duyệt, lập kế hoạch đi").
+- **Trạng thái:** **đã duyệt** 2026-10-01 cùng ADR-0082 (chủ: "duyệt, lập kế hoạch đi").
 - **Ngày:** 2026-10-01. **Mốc mã:** `origin/main` = `c62ffc6d` (production 1.54). **Nhánh:** `tro-ly-tim-theo-nghia`.
 - **Xây trên lỗ đang hở:** không có.
 - **Ngoài phạm vi:** ô chỉnh cách tìm trong Bảng điều khiển (chủ chọn "đặt sẵn"); đổi lời nhắc; đổi ngân sách 6.000 token.
@@ -77,5 +77,5 @@ Tìm từ khoá kéo đoạn lạc đề khi câu hỏi diễn đạt khác ch�
 
 ## 8. Việc tiếp theo
 
-1. Chủ duyệt ADR-0076 + đặc tả.
+1. Chủ duyệt ADR-0082 + đặc tả.
 2. Kế hoạch thi công → thi công từng phần → kiểm độc lập → `npm run day-len` + `npm run trien-khai` (chủ chạy) → chạy lại 12 câu mẫu.

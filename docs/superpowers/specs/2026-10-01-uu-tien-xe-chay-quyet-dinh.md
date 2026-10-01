@@ -42,3 +42,8 @@ Các ý khác của phiếu Giám đốc → `docs/BACKLOG.md` mục 15 (đã gh
 Lệnh vẽ Claude Design (`2026-10-01-lenh-ve-claude-design-khach-noi-tra.md`) giữ cả hai đoạn tuỳ chọn (khớp Q-A lát sau và Q-D = A).
 
 **Hệ quả:** kế hoạch `docs/superpowers/plans/2026-10-01-may-chu-o-moi-chang-ke-hoach.md` Task 0–7 làm được (Task 7 hết chờ); Task 8 vẫn chờ ADR-0065. Kiểm độc lập: kế hoạch + ADR nháp nơi trả ĐẠT CÓ ĐIỀU KIỆN vòng 2 (đã sửa 3 mục chữ); bộ ADR sổ tiền lượt 2 ĐẠT vòng 3 — 13 câu C1–C13 ở `2026-10-01-de-xuat-adr-so-tien-luot-2/cau-hoi-chu.md` chờ chủ.
+
+## 1/10 tối
+
+- Máy chủ ô mới của chặng **đã lên production bản 1.53** (migration 0058, 0059).
+- Chủ trả lời 13 câu sổ tiền: **"cả 13 theo khuyến nghị"** (C1–C13 = A). Bước tiếp: duyệt lượt 2a → 2d.

@@ -1,3 +1,5 @@
+> **Đã chép sang `docs/adr/ADR-0076-noi-tra-mac-dinh-theo-dich-vu.md`** (accepted 2026-10-01). Tệp này là bản nháp lịch sử.
+
 # ADR-00xx (chốt số lúc gộp) — Nơi trả mặc định theo dịch vụ: một cột trên mẫu chặng `vc_leg_template`, form tự điền, người lập sửa được
 
 - **Trạng thái:** **proposed** — bản nháp do AI soạn ngày 2026-10-01, **chưa có người kiểm độc lập**, chưa trình chủ. AI không tự duyệt (Hiến pháp N3, Điều 7.2). Tệp nằm ngoài `docs/adr/`. Khi chủ duyệt, điều phối chép sang `docs/adr/` và chốt số.

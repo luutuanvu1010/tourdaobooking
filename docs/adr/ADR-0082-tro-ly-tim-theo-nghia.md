@@ -1,9 +1,9 @@
-# ADR-0076 — Trợ lý Hỗ trợ: tìm đoạn hướng dẫn theo nghĩa (embedding OpenAI) trộn với từ khoá
+# ADR-0082 — Trợ lý Hỗ trợ: tìm đoạn hướng dẫn theo nghĩa (embedding OpenAI) trộn với từ khoá
 
-- **Trạng thái:** **accepted** 2026-10-01 — chủ dự án trả lời "duyệt, lập kế hoạch đi" sau khi AI trình ADR-0076 + đặc tả (đã qua 2 lượt kiểm độc lập). AI ghi lại. Chép vào `docs/adr/` ngày 2026-10-01 (Task 0 của `docs/superpowers/plans/2026-10-01-tro-ly-tim-theo-nghia-thi-cong.md`); bản ở thư mục đặc tả là bản nháp gốc.
-- **Ngày:** 2026-10-01. **Số:** 0076 — 0074 (2FA) và 0075 (sổ phiên một máy) đã duyệt ở nhánh đăng nhập.
-- **Mốc mã:** `origin/main` = `c62ffc6d`; production đang chạy **1.54** (GET `/api/auth/config`, 2026-10-01) — đã có ADR-0073 (bộ não tuỳ biến).
-- **Thuộc gói:** lượt duyệt gồm ADR này + đặc tả `dac-ta.md` cùng thư mục (trang ghép §7 của `docs/superpowers/specs/2026-10-01-tro-ly-tim-theo-nghia/dac-ta.md`). Hai quyết định chạm dữ liệu/tiền ≤ trần 3.
+- **Trạng thái:** **accepted** 2026-10-01 — chủ dự án trả lời "duyệt, lập kế hoạch đi" sau khi AI trình ADR + đặc tả (soạn với số 0076; đã qua 2 lượt kiểm độc lập). AI ghi lại. Chép vào `docs/adr/` ngày 2026-10-01 (Task 0 của `docs/superpowers/plans/2026-10-01-tro-ly-tim-theo-nghia-thi-cong.md`); bản ở thư mục đặc tả là bản nháp gốc.
+- **Ngày:** 2026-10-01. **Số:** 0082 — soạn với số 0076, đổi sang 0082 ngày 2026-10-01 vì main đã dùng 0076–0081 (đổi số đăng ký, không đổi nội dung đã duyệt); 0074, 0075 ở nhánh đăng nhập.
+- **Mốc mã:** `origin/main` = `c62ffc6d` lúc soạn (production 1.54); lúc đổi số main = `9cc8e16b` (production 1.55) — đã có ADR-0073 (bộ não tuỳ biến).
+- **Thuộc gói:** lượt duyệt gồm ADR này + đặc tả `docs/superpowers/specs/2026-10-01-tro-ly-tim-theo-nghia/dac-ta.md` (trang ghép §7). Hai quyết định chạm dữ liệu/tiền ≤ trần 3.
 - **Nguồn (lời chủ, chuẩn — không hỏi lại):** ADR-0073 Đ8 để "tìm tài liệu theo nghĩa" sang lượt 2 (chủ chọn "Tìm tài liệu theo nghĩa" trong hộp hỏi 1/10 và đồng ý chia hai lượt). Phiên 2026-10-01, chủ "tiếp tục đi", hộp hỏi gom, nguyên văn lựa chọn:
   - "Dùng dịch vụ nào để tính 'dấu vân nghĩa'?" → **"OpenAI"** (AI khuyến nghị Cloudflare; chủ chọn OpenAI).
   - "Kết hợp với cách tìm từ khoá hiện tại thế nào?" → **"Trộn cả hai"**.

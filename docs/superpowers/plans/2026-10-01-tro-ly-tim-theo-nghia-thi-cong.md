@@ -1,4 +1,4 @@
-# Trợ lý Hỗ trợ tìm đoạn theo nghĩa trộn từ khoá (ADR-0076, lượt 2) — Kế hoạch thi công
+# Trợ lý Hỗ trợ tìm đoạn theo nghĩa trộn từ khoá (ADR-0082, lượt 2) — Kế hoạch thi công
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -8,7 +8,7 @@
 
 **Tech Stack:** TypeScript (Cloudflare Worker), D1/SQLite (BLOB lần đầu trong repo), `node --test` chạy `.ts` trực tiếp (Node 22), esbuild, giao diện thuần `h()`, OpenAI Embeddings API (`POST /v1/embeddings`) + Responses API, e2e trên D1 local tạm với máy OpenAI GIẢ, kịch bản Chrome qua CDP.
 
-**Spec:** `docs/superpowers/specs/2026-10-01-tro-ly-tim-theo-nghia/ADR-0076-tro-ly-tim-theo-nghia.md` (accepted 2026-10-01) + `docs/superpowers/specs/2026-10-01-tro-ly-tim-theo-nghia/dac-ta.md` (đã duyệt 2026-10-01). Đọc CẢ HAI trước Task 0; mã tiêu chí V1–V5, C1–C5, L1–L2, P1–P3, H1, G1–G2 dẫn từ đặc tả §2.
+**Spec:** `docs/superpowers/specs/2026-10-01-tro-ly-tim-theo-nghia/ADR-0082-tro-ly-tim-theo-nghia.md` (accepted 2026-10-01) + `docs/superpowers/specs/2026-10-01-tro-ly-tim-theo-nghia/dac-ta.md` (đã duyệt 2026-10-01). Đọc CẢ HAI trước Task 0; mã tiêu chí V1–V5, C1–C5, L1–L2, P1–P3, H1, G1–G2 dẫn từ đặc tả §2.
 
 **Vai:** phiên thi công không tự nghiệm thu (Hiến pháp N8). Việc lớn (dữ liệu: bảng mới + migration; tiền: chi phí lượt + trần) ⇒ Task 9 bắt buộc người kiểm độc lập `nguoi-kiem-doc-lap` (chỉ đọc).
 
@@ -47,7 +47,7 @@
 - Mẫu embedding là **hằng trong mã** (`text-embedding-3-small`, `dimensions: 512`); cùng khoá `OPENAI_API_KEY`; thân yêu cầu ĐÚNG bốn khoá `model`, `input`, `dimensions`, `encoding_format` — không `user` / định danh (G2).
 - Chỉ gửi OpenAI: câu hỏi ĐÃ CHE (`cheCauHoi`) + câu hỏi trước đã che (`truyVanTim`) hoặc nội dung đoạn kho đã định dạng (`dinhDangDoan`).
 - Hạn giờ embeddings riêng **8 giây** (`HET_GIO_NHUNG_MS`); ngân sách tài liệu **6.000** token, tối đa **12** đoạn, trọng số vai ×1,5 / ×1 / ×0,6 — giữ nguyên.
-- Luật khớp mạnh (ADR-0076 Đ3): khớp ≥ 1 cặp âm tiết liền nhau của câu hỏi, HOẶC (điểm BM25 ≥ **0,7** × điểm cao nhất VÀ khớp ≥ **2** âm tiết đơn khác nhau).
+- Luật khớp mạnh (ADR-0082 Đ3): khớp ≥ 1 cặp âm tiết liền nhau của câu hỏi, HOẶC (điểm BM25 ≥ **0,7** × điểm cao nhất VÀ khớp ≥ **2** âm tiết đơn khác nhau).
 - Log khi lùi: ĐÚNG chuỗi `{"event":"tro_ly_van_nghia_loi"}` — không nội dung, không lý do kèm chữ.
 - Không ô `MATRIX` mới, không cạnh `ALLOWED_EDGES` mới (D5); không route mới; không ô chỉnh cách tìm trong giao diện.
 - Bảng mới chỉ-thêm (trigger chặn `UPDATE` / `DELETE`); ghi chỉ bằng `INSERT … ON CONFLICT(khoa) DO NOTHING` (cấm `OR REPLACE` — `src/architecture.test.ts:389` bắt).
@@ -55,7 +55,7 @@
 - `src/shared/` import nhau KÈM đuôi `.ts`; `src/modules/tro-ly/van-nghia.ts` và `goi-mau.ts` import KÈM đuôi `.ts` để `node --test` nạp thẳng.
 - Giao diện: không `innerHTML`; `web/tro-ly-cai-dat.ts` không import `src/shared/tro-ly-van-nghia.ts` hay `tro-ly.ts` (chỉ kiểu từ `contracts`); không CSS mới.
 - Migration số tạm **`0062_tl_van_nghia.sql`**; bài migration tìm tệp theo ĐUÔI `_tl_van_nghia.sql`.
-- Không sửa `CLAUDE.md`, `.claude/`, `playbook/`, ADR đã duyệt (chép ADR-0076 nguyên văn ở Task 0 là thêm tệp, không sửa ADR khác).
+- Không sửa `CLAUDE.md`, `.claude/`, `playbook/`, ADR đã duyệt (chép ADR-0082 nguyên văn ở Task 0 là thêm tệp, không sửa ADR khác).
 - Commit nhỏ, tiếng Việt, thân nói vì sao, kết thúc bằng đúng hai dòng:
   ```
   Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
@@ -77,7 +77,7 @@
 
 | Tệp | Việc | Task |
 |---|---|---|
-| `docs/adr/ADR-0076-tro-ly-tim-theo-nghia.md` (mới), `docs/adr/README.md` | chép ADR, mục lục, số kế tiếp 0077 | 0 |
+| `docs/adr/ADR-0082-tro-ly-tim-theo-nghia.md` (mới), `docs/adr/README.md` | chép ADR, mục lục, số kế tiếp 0077 | 0 |
 | `docs/superpowers/plans/2026-10-01-tro-ly-tim-theo-nghia-thi-cong-nhat-ky.md` (mới) | nhật ký thi công | 0, 1, 2, 7, 8, 9 |
 | `src/shared/tro-ly-van-nghia.ts` (mới) + `.test.ts` | hằng, khoá, cô-sin, BLOB, lô, phản hồi, mức trần trên, `chonDoanTron` | 1, 2 |
 | `src/shared/tro-ly.ts` (+ `tro-ly.test.ts`) | tách `diemTuKhoa`, `heSoVai`, `layTheoNganSach` | 2 |
@@ -99,7 +99,7 @@
 ### Task 0: Chép ADR vào `docs/adr/`, mục lục, nhật ký thi công
 
 **Files:**
-- Create: `docs/adr/ADR-0076-tro-ly-tim-theo-nghia.md` (bằng công cụ **Write** — KHÔNG `cp`/`mv`: luật `ask Edit(docs/adr/**)` cần chủ bấm, Điểm dừng D2)
+- Create: `docs/adr/ADR-0082-tro-ly-tim-theo-nghia.md` (bằng công cụ **Write** — KHÔNG `cp`/`mv`: luật `ask Edit(docs/adr/**)` cần chủ bấm, Điểm dừng D2)
 - Modify: `docs/adr/README.md` (chèn sau dòng `| [0073]…`; thay dòng "số ADR mới kế tiếp", khoảng dòng 83)
 - Create: `docs/superpowers/plans/2026-10-01-tro-ly-tim-theo-nghia-thi-cong-nhat-ky.md`
 
@@ -112,9 +112,9 @@ ls docs/adr | tail -3
 git log --all --oneline -- 'docs/**/ADR-0074*' 'docs/**/ADR-0075*' | head -5
 ```
 
-Kỳ vọng: `docs/adr/` của nhánh này dừng ở `ADR-0073-…`; 0074 / 0075 chỉ có ở nhánh đăng nhập (không ở `main`). Nếu `ls docs/adr` đã có tệp `ADR-0076-*` khác ⇒ DỪNG, báo điều phối.
+Kỳ vọng: `docs/adr/` của nhánh này dừng ở `ADR-0073-…`; 0074 / 0075 chỉ có ở nhánh đăng nhập (không ở `main`). Nếu `ls docs/adr` đã có tệp `ADR-0082-*` khác ⇒ DỪNG, báo điều phối.
 
-- [ ] **Bước 2: Ghi ADR.** Đọc trọn `docs/superpowers/specs/2026-10-01-tro-ly-tim-theo-nghia/ADR-0076-tro-ly-tim-theo-nghia.md`, dùng Write ghi NGUYÊN VĂN sang `docs/adr/ADR-0076-tro-ly-tim-theo-nghia.md`, chỉ thay câu cuối của dòng "Trạng thái":
+- [ ] **Bước 2: Ghi ADR.** Đọc trọn `docs/superpowers/specs/2026-10-01-tro-ly-tim-theo-nghia/ADR-0082-tro-ly-tim-theo-nghia.md`, dùng Write ghi NGUYÊN VĂN sang `docs/adr/ADR-0082-tro-ly-tim-theo-nghia.md`, chỉ thay câu cuối của dòng "Trạng thái":
   - cũ: ``Văn bản còn ở thư mục nháp; chép vào `docs/adr/` + mục lục ở Task 0 của kế hoạch thi công.``
   - mới: ``Chép vào `docs/adr/` ngày 2026-10-01 (Task 0 của `docs/superpowers/plans/2026-10-01-tro-ly-tim-theo-nghia-thi-cong.md`); bản ở thư mục đặc tả là bản nháp gốc, không sửa tiếp.``
 
@@ -123,7 +123,7 @@ Kỳ vọng: `docs/adr/` của nhánh này dừng ở `ADR-0073-…`; 0074 / 007
 - [ ] **Bước 3: Mục lục.** Trong `docs/adr/README.md`, chèn ngay SAU dòng bắt đầu bằng `| [0073](ADR-0073-tro-ly-tuy-bien-mo-hinh-loi-nhac.md)`:
 
 ```markdown
-| [0076](ADR-0076-tro-ly-tim-theo-nghia.md) | **Trợ lý Hỗ trợ — tìm đoạn theo nghĩa trộn từ khoá:** dấu vân nghĩa OpenAI Embeddings (`text-embedding-3-small`, 512 chiều, hằng trong mã) của mỗi đoạn kho tính một lần, lưu bảng chỉ-thêm `tl_van_nghia` (khoá SHA-256 nội dung + mẫu + số chiều, BLOB float32); chọn đoạn bằng RRF của BM25 và cô-sin, bỏ đoạn dưới ngưỡng trừ đoạn khớp từ khoá mạnh; lỗi / quá giờ 8 giây / tính bù sẽ vượt trần ⇒ lùi về từ khoá; tiền embedding cộng vào lượt và vào kiểm trần trước mọi lần gọi; ô thử hiện "Đoạn đã dùng"; không ô chỉnh. Sửa ADR-0066 điều 3 (cụm "tìm theo từ khoá"); bổ sung ADR-0073 Đ1, Đ7b | hai chiều (cách chọn đoạn); một chiều (bảng `tl_van_nghia`) | **accepted** 2026-10-01 |
+| [0076](ADR-0082-tro-ly-tim-theo-nghia.md) | **Trợ lý Hỗ trợ — tìm đoạn theo nghĩa trộn từ khoá:** dấu vân nghĩa OpenAI Embeddings (`text-embedding-3-small`, 512 chiều, hằng trong mã) của mỗi đoạn kho tính một lần, lưu bảng chỉ-thêm `tl_van_nghia` (khoá SHA-256 nội dung + mẫu + số chiều, BLOB float32); chọn đoạn bằng RRF của BM25 và cô-sin, bỏ đoạn dưới ngưỡng trừ đoạn khớp từ khoá mạnh; lỗi / quá giờ 8 giây / tính bù sẽ vượt trần ⇒ lùi về từ khoá; tiền embedding cộng vào lượt và vào kiểm trần trước mọi lần gọi; ô thử hiện "Đoạn đã dùng"; không ô chỉnh. Sửa ADR-0066 điều 3 (cụm "tìm theo từ khoá"); bổ sung ADR-0073 Đ1, Đ7b | hai chiều (cách chọn đoạn); một chiều (bảng `tl_van_nghia`) | **accepted** 2026-10-01 |
 ```
 
   Thay dòng `| — | (số ADR mới kế tiếp là 0074 — 0069, 0070 ở nhánh trợ lý; 0071 vai Hành chính nhân sự; 0072 vai Giám đốc bớt Toàn quyền; 0073 trợ lý bộ não tuỳ biến) | | |` bằng:
@@ -135,10 +135,10 @@ Kỳ vọng: `docs/adr/` của nhánh này dừng ở `ADR-0073-…`; 0074 / 007
 - [ ] **Bước 4: Nhật ký thi công.** Tạo `docs/superpowers/plans/2026-10-01-tro-ly-tim-theo-nghia-thi-cong-nhat-ky.md`:
 
 ```markdown
-# Nhật ký thi công — Trợ lý Hỗ trợ tìm đoạn theo nghĩa (ADR-0076, lượt 2)
+# Nhật ký thi công — Trợ lý Hỗ trợ tìm đoạn theo nghĩa (ADR-0082, lượt 2)
 
 - **Kế hoạch:** `docs/superpowers/plans/2026-10-01-tro-ly-tim-theo-nghia-thi-cong.md`. **Nhánh:** `tro-ly-tim-theo-nghia`. **Mốc:** `origin/main` `c62ffc6d` (production 1.54).
-- **Lời duyệt (nguyên văn, 2026-10-01):** chủ dự án "duyệt, lập kế hoạch đi" sau khi AI trình ADR-0076 + đặc tả (đã qua 2 lượt kiểm độc lập).
+- **Lời duyệt (nguyên văn, 2026-10-01):** chủ dự án "duyệt, lập kế hoạch đi" sau khi AI trình ADR-0082 + đặc tả (đã qua 2 lượt kiểm độc lập).
 - **Ruling bề mặt của người lập kế hoạch:** R1–R9 ở đầu kế hoạch.
 
 ## Tra cứu OpenAI (Task 1 bước 1)
@@ -165,11 +165,11 @@ Kỳ vọng: `docs/adr/` của nhánh này dừng ở `ADR-0073-…`; 0074 / 007
 - [ ] **Bước 5: Commit**
 
 ```bash
-git add docs/adr/ADR-0076-tro-ly-tim-theo-nghia.md docs/adr/README.md docs/superpowers/plans/2026-10-01-tro-ly-tim-theo-nghia-thi-cong.md docs/superpowers/plans/2026-10-01-tro-ly-tim-theo-nghia-thi-cong-nhat-ky.md
+git add docs/adr/ADR-0082-tro-ly-tim-theo-nghia.md docs/adr/README.md docs/superpowers/plans/2026-10-01-tro-ly-tim-theo-nghia-thi-cong.md docs/superpowers/plans/2026-10-01-tro-ly-tim-theo-nghia-thi-cong-nhat-ky.md
 git commit -F- <<'MSG'
-ADR-0076 vào docs/adr + mục lục; kế hoạch và nhật ký thi công tìm theo nghĩa
+ADR-0082 vào docs/adr + mục lục; kế hoạch và nhật ký thi công tìm theo nghĩa
 
-Chủ đã duyệt ADR-0076 và đặc tả ngày 1/10 ("duyệt, lập kế hoạch đi"); chép văn bản
+Chủ đã duyệt ADR-0082 và đặc tả ngày 1/10 ("duyệt, lập kế hoạch đi"); chép văn bản
 vào thư mục ADR chuẩn để mã và tài liệu sau dẫn đúng chỗ. Số kế tiếp nay là 0077
 vì 0074, 0075 đã duyệt ở nhánh đăng nhập.
 
@@ -209,7 +209,7 @@ MSG
 - [ ] **Bước 2: Viết bài đỏ** — tạo `src/shared/tro-ly-van-nghia.test.ts`:
 
 ```ts
-// Luật thuần tìm theo nghĩa (ADR-0076): khoá đoạn (V1), giá + chi phí embedding (P1), mức trần trên (P2), BLOB float32, chia lô, đọc phản hồi Embeddings.
+// Luật thuần tìm theo nghĩa (ADR-0082): khoá đoạn (V1), giá + chi phí embedding (P1), mức trần trên (P2), BLOB float32, chia lô, đọc phản hồi Embeddings.
 // Review Focus 1 (phản hồi lệch khuôn), 3 (BLOB nhiều dạng). Bài chọn đoạn trộn (C1–C5) thêm ở Task 2 cùng tệp.
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -326,7 +326,7 @@ Expected: FAIL — `Cannot find module …/tro-ly-van-nghia.ts`.
 - [ ] **Bước 4: Viết mã** — tạo `src/shared/tro-ly-van-nghia.ts` (giá điền đúng số đã tra ở bước 1):
 
 ```ts
-// Luật THUẦN tìm đoạn theo nghĩa của trợ lý Hỗ trợ (ADR-0076, accepted 2026-10-01). Không I/O (băm dùng crypto.subtle — có cả ở Worker và Node 22).
+// Luật THUẦN tìm đoạn theo nghĩa của trợ lý Hỗ trợ (ADR-0082, accepted 2026-10-01). Không I/O (băm dùng crypto.subtle — có cả ở Worker và Node 22).
 // Gồm: mẫu + giá embedding (hằng — Đ1), khoá đoạn (Đ2, V1), cô-sin, mã hoá véc-tơ float32 ↔ BLOB, chia lô (API + D1), đọc phản hồi Embeddings,
 // mức trần trên (Đ5(1)), tiền tính bù ước (Đ5(2)), chọn đoạn trộn RRF (Đ3 — Task 2). Máy chủ (src/modules/tro-ly/van-nghia.ts) gọi; giao diện KHÔNG import.
 // Giá tra 2026-10-01 (đã mở được): developers.openai.com/api/docs/models/text-embedding-3-small ($0,02 / 1M token);
@@ -454,7 +454,7 @@ git add src/shared/tro-ly-van-nghia.ts src/shared/tro-ly-van-nghia.test.ts docs/
 git commit -F- <<'MSG'
 Luật thuần tìm theo nghĩa: giá embedding, khoá đoạn, BLOB, lô, mức trần trên
 
-ADR-0076 Đ1, Đ2, Đ5: giá text-embedding-3-small tra trang OpenAI ngày 1/10 và ghi
+ADR-0082 Đ1, Đ2, Đ5: giá text-embedding-3-small tra trang OpenAI ngày 1/10 và ghi
 vào hằng; khoá đoạn là SHA-256 của nội dung + mẫu + số chiều để đổi một chữ thì chỉ
 tính lại đúng đoạn đó; mức trần trên gồm cả tiền embedding câu hỏi để kiểm trần
 trước MỌI lần gọi. Phản hồi lệch khuôn bị coi là lỗi (lùi từ khoá), không ghi rác.
@@ -552,7 +552,7 @@ test("daChonTuKhoa (đường lùi): mọi đoạn cờ khớp từ khoá, khôn
   Và thêm vào cuối `src/shared/tro-ly.test.ts` (bổ sung `diemTuKhoa, heSoVai` vào dòng import từ `./tro-ly.ts`):
 
 ```ts
-test("diemTuKhoa (ADR-0076 Đ3): điểm THÔ cùng thứ tự kho + số âm tiết đơn khớp + có khớp cặp; timDoan = điểm thô × hệ số vai, chỉ đoạn > 0", () => {
+test("diemTuKhoa (ADR-0082 Đ3): điểm THÔ cùng thứ tự kho + số âm tiết đơn khớp + có khớp cặp; timDoan = điểm thô × hệ số vai, chỉ đoạn > 0", () => {
   const kho = chiaKho();
   const d = diemTuKhoa("đổi mã PIN thế nào", kho);
   assert.equal(d.length, kho.length);
@@ -584,7 +584,7 @@ const B = 0.75;
 export const heSoVai = (d: DoanTriThuc, perms: readonly PermissionCode[]): number =>
   d.quyen.length === 0 ? 1 : d.quyen.some((q) => perms.includes(q)) ? 1.5 : 0.6;
 
-/** Điểm từ khoá THÔ (chưa nhân hệ số vai) của MỌI đoạn, cùng thứ tự kho (ADR-0076 Đ3): BM25 + số âm tiết đơn khác nhau khớp + có khớp cặp âm tiết liền nhau. */
+/** Điểm từ khoá THÔ (chưa nhân hệ số vai) của MỌI đoạn, cùng thứ tự kho (ADR-0082 Đ3): BM25 + số âm tiết đơn khác nhau khớp + có khớp cặp âm tiết liền nhau. */
 export interface DiemTuKhoa { readonly diem: number; readonly soTuDon: number; readonly coCap: boolean }
 export function diemTuKhoa(cauHoi: string, kho: readonly DoanTriThuc[]): DiemTuKhoa[] {
   const q = [...new Set(tachTu(cauHoi))];
@@ -626,7 +626,7 @@ export function timDoan(cauHoi: string, perms: readonly PermissionCode[], kho: r
  * Lấy đoạn theo thứ tự điểm tới khi hết ngân sách (ước token); đoạn không vừa phần còn lại thì bỏ qua, xét đoạn sau. Tối đa `toiDa` đoạn.
  * `toiDa` 8 → 12 (ADR-0070, 1/10): kho thêm các đoạn cấu trúc app ngắn (~70–250 token) nên 8 đoạn chỉ dùng ~2.500 / 6.000 token và đẩy đoạn liên quan
  * (vd "Mốc 6 giờ và Đặt gấp" cho câu "vì sao không xác nhận được đơn") ra ngoài; ngân sách token vẫn là trần thật.
- * MỘT vòng ngân sách cho cả chonDoan (từ khoá) và chonDoanTron (ADR-0076).
+ * MỘT vòng ngân sách cho cả chonDoan (từ khoá) và chonDoanTron (ADR-0082).
  */
 export const SO_DOAN_TOI_DA = 12;
 export function layTheoNganSach<T>(ds: readonly T[], doanCua: (x: T) => DoanTriThuc, nganSach = NGAN_SACH_TOKEN, toiDa = SO_DOAN_TOI_DA): T[] {
@@ -724,7 +724,7 @@ git add src/shared/tro-ly.ts src/shared/tro-ly.test.ts src/shared/tro-ly-van-ngh
 git commit -F- <<'MSG'
 Chọn đoạn trộn RRF từ khoá + nghĩa; luật khớp mạnh đo trên kho thật
 
-ADR-0076 Đ3: câu than phiền "sao app khó dùng thế" từng kéo 12 đoạn lạc đề chỉ vì
+ADR-0082 Đ3: câu than phiền "sao app khó dùng thế" từng kéo 12 đoạn lạc đề chỉ vì
 chữ "dùng". Nay đoạn xa nghĩa bị bỏ trừ khi khớp từ khoá mạnh (cặp âm tiết, hoặc
 điểm cao và nhiều từ) — vai Bán hàng còn 1 đoạn. Tách điểm từ khoá và vòng ngân
 sách ra hàm chung để đường cũ (lùi) và đường mới tính cùng một cách.
@@ -758,7 +758,7 @@ Kỳ vọng: nhánh này dừng ở `0060_tl_bo_nao.sql`; nhánh đăng nhập c
 - [ ] **Bước 2: Viết bài đỏ** — tạo `src/migrations-tro-ly-van-nghia.test.ts`:
 
 ```ts
-// Migration *_tl_van_nghia.sql (ADR-0076 Đ2, đặc tả V4): bảng chỉ-thêm dấu vân nghĩa của đoạn kho, trên SQLite thật (node:sqlite) — cùng cách với
+// Migration *_tl_van_nghia.sql (ADR-0082 Đ2, đặc tả V4): bảng chỉ-thêm dấu vân nghĩa của đoạn kho, trên SQLite thật (node:sqlite) — cùng cách với
 // migrations-tro-ly-bo-nao.test.ts. Tìm tệp theo ĐUÔI tên — số tạm 0062 (main tới 0060, 0061 ở nhánh đăng nhập), người gộp đổi số (CHANGE-GUIDE công thức d).
 // Hàng rào: đúng tập cột (không cột câu hỏi / người hỏi — trang ghép §7 đặc tả); vec phải là BLOB đúng so_chieu × 4 byte; chỉ thêm.
 import { test } from "node:test";
@@ -824,7 +824,7 @@ Expected: FAIL — `thiếu migrations/*_tl_van_nghia.sql`.
 - [ ] **Bước 4: Viết migration** — tạo `migrations/0062_tl_van_nghia.sql`:
 
 ```sql
--- Module: tro-ly — dấu vân nghĩa (embedding OpenAI) của đoạn kho tri thức trợ lý Hỗ trợ (ADR-0076 Đ2, accepted 2026-10-01). Expand: MỘT bảng mới chỉ-thêm.
+-- Module: tro-ly — dấu vân nghĩa (embedding OpenAI) của đoạn kho tri thức trợ lý Hỗ trợ (ADR-0082 Đ2, accepted 2026-10-01). Expand: MỘT bảng mới chỉ-thêm.
 -- Số TẠM 0062: main tới 0060_tl_bo_nao, 0061_aut_session ở nhánh đăng nhập ⇒ ai gộp sau đổi tên tệp lên số lớn nhất lúc gộp + 1
 -- (bài src/migrations-tro-ly-van-nghia.test.ts tìm theo đuôi tên).
 --
@@ -859,14 +859,14 @@ BEGIN SELECT RAISE(ABORT, 'tl_append_only: dấu vân nghĩa không xoá'); END;
       "name": "tl_van_nghia",
       "module": "tro-ly",
       "kind": "table",
-      "note": "dấu vân nghĩa (embedding OpenAI, ADR-0076 Đ2) của đoạn kho tri thức trợ lý — CHỈ nội dung kho (hướng dẫn, kiến trúc, sơ đồ trang, ngữ cảnh bổ sung đã lọc), KHÔNG câu hỏi / người hỏi; khoá = SHA-256 của đoạn đã định dạng + mẫu + số chiều; vec = BLOB float32 dài so_chieu × 4 (CHECK); CHỈ-THÊM, ghi bằng ON CONFLICT(khoa) DO NOTHING khi máy chủ tính bù; không route nào đọc / ghi trực tiếp"
+      "note": "dấu vân nghĩa (embedding OpenAI, ADR-0082 Đ2) của đoạn kho tri thức trợ lý — CHỈ nội dung kho (hướng dẫn, kiến trúc, sơ đồ trang, ngữ cảnh bổ sung đã lọc), KHÔNG câu hỏi / người hỏi; khoá = SHA-256 của đoạn đã định dạng + mẫu + số chiều; vec = BLOB float32 dài so_chieu × 4 (CHECK); CHỈ-THÊM, ghi bằng ON CONFLICT(khoa) DO NOTHING khi máy chủ tính bù; không route nào đọc / ghi trực tiếp"
     }
 ```
 
   và nối vào cuối chuỗi `note` của `tl_luot_hoi` (trước dấu `"` đóng):
 
 ```text
-; từ ADR-0076: chi_phi_micro_usd = tiền mẫu trả lời + tiền embedding của lượt (câu hỏi + lô tính bù đoạn nếu có), token_vao / token_ra vẫn CHỈ của mẫu trả lời
+; từ ADR-0082: chi_phi_micro_usd = tiền mẫu trả lời + tiền embedding của lượt (câu hỏi + lô tính bù đoạn nếu có), token_vao / token_ra vẫn CHỈ của mẫu trả lời
 ```
 
   Rồi chạy `npm run dict`.
@@ -883,7 +883,7 @@ git add migrations/0062_tl_van_nghia.sql src/migrations-tro-ly-van-nghia.test.ts
 git commit -F- <<'MSG'
 Migration 0062 (số tạm): bảng chỉ-thêm tl_van_nghia cho dấu vân nghĩa
 
-ADR-0076 Đ2: dấu vân của mỗi đoạn hướng dẫn tính một lần rồi lưu, khoá theo nội
+ADR-0082 Đ2: dấu vân của mỗi đoạn hướng dẫn tính một lần rồi lưu, khoá theo nội
 dung nên đổi chữ chỉ tính lại đúng đoạn đó. CHECK buộc véc-tơ là BLOB đúng độ dài
 để lỗi kiểu dữ liệu lộ ngay thay vì ghi rác. Thêm đủ cột kiểm toán theo ADR-0003.
 Tiền lượt nay gồm cả embedding — ghi chú ở sổ dữ liệu.
@@ -914,7 +914,7 @@ MSG
 - [ ] **Bước 1: Viết bài đỏ** — tạo `src/modules/tro-ly/van-nghia.test.ts`:
 
 ```ts
-// Tầng máy chủ của tìm theo nghĩa (ADR-0076) nạp THẲNG (không qua route): gọi Embeddings (hạn giờ, usage thiếu, thân G2) và repository tl_van_nghia
+// Tầng máy chủ của tìm theo nghĩa (ADR-0082) nạp THẲNG (không qua route): gọi Embeddings (hạn giờ, usage thiếu, thân G2) và repository tl_van_nghia
 // trên D1 giả = SQLite thật (tests/audit/harness.mjs). Bài route (V2, V3, V5, L1, L2, P1–P3, H1, G1) ở van-nghia-route.test.ts.
 import { test, afterEach } from "node:test";
 import assert from "node:assert/strict";
@@ -985,7 +985,7 @@ Expected: FAIL — `Cannot find module …/van-nghia.ts` (hoặc `docVanNghia` k
 - [ ] **Bước 3: Repository** — thêm vào cuối `src/modules/tro-ly/repository.ts`:
 
 ```ts
-// tl_van_nghia (ADR-0076, migration *_tl_van_nghia): CHỈ-THÊM. Đọc theo danh sách khoá bằng MỘT tham số JSON (json_each — câu tĩnh, không đụng trần số tham số
+// tl_van_nghia (ADR-0082, migration *_tl_van_nghia): CHỈ-THÊM. Đọc theo danh sách khoá bằng MỘT tham số JSON (json_each — câu tĩnh, không đụng trần số tham số
 // của D1); ghi MỘT dòng mỗi câu (5 tham số) bằng ON CONFLICT(khoa) DO NOTHING — nhiều câu hỏi đồng thời cùng tính bù không lỗi, không trùng (cấm OR REPLACE).
 const VAN_NGHIA_THEO_KHOA = defineSql(
   "tro-ly",
@@ -1031,7 +1031,7 @@ export const diaChiOpenAi = (env: Env): string => (env.OPENAI_BASE_URL?.trim() |
 - [ ] **Bước 5: `van-nghia.ts`** — tạo `src/modules/tro-ly/van-nghia.ts`:
 
 ```ts
-// Tìm đoạn theo nghĩa cho trợ lý Hỗ trợ (ADR-0076 Đ2–Đ5) — MỘT hàm `timDoanTheoNghia` cho route hỏi VÀ ô thử (không chép khối). Gọi OpenAI Embeddings
+// Tìm đoạn theo nghĩa cho trợ lý Hỗ trợ (ADR-0082 Đ2–Đ5) — MỘT hàm `timDoanTheoNghia` cho route hỏi VÀ ô thử (không chép khối). Gọi OpenAI Embeddings
 // (hạn giờ riêng 8 giây), bộ nhớ isolate, tính bù dấu vân của đoạn kho còn thiếu; lỗi / quá giờ / phản hồi lệch / giải mã hỏng / tính bù sẽ vượt trần ⇒ LÙI về
 // chonDoan (luật cũ) — câu trả lời vẫn chạy; log CHỈ `{"event":"tro_ly_van_nghia_loi"}` (không nội dung).
 // SQL chỉ ở repository.ts (module nghiêm). Import KÈM đuôi .ts để van-nghia.test.ts nạp thẳng tệp này bằng node --test.
@@ -1158,7 +1158,7 @@ export async function timDoanTheoNghia(env: Env, khoa: string, a: DauVaoTim): Pr
   - dòng đầu thân `export function world(tuyChon = {}) {` thêm:
 
 ```js
-  // ADR-0076: bộ nhớ isolate của dấu vân nghĩa sống theo MÔ-ĐUN (ứng dụng nạp một lần mỗi tiến trình thử); mỗi world là một D1 mới ⇒ xoá, kẻo bài sau thấy véc-tơ của bài trước.
+  // ADR-0082: bộ nhớ isolate của dấu vân nghĩa sống theo MÔ-ĐUN (ứng dụng nạp một lần mỗi tiến trình thử); mỗi world là một D1 mới ⇒ xoá, kẻo bài sau thấy véc-tơ của bài trước.
   app.xoaBoNhoVanNghia();
 ```
 
@@ -1177,7 +1177,7 @@ git add src/modules/tro-ly/repository.ts src/modules/tro-ly/goi-mau.ts src/modul
 git commit -F- <<'MSG'
 Máy chủ tìm theo nghĩa: gọi Embeddings, bộ nhớ isolate, tính bù, lùi từ khoá
 
-ADR-0076 Đ2, Đ4, Đ5: một hàm cho cả câu hỏi và ô thử. Đoạn thiếu dấu vân được tính
+ADR-0082 Đ2, Đ4, Đ5: một hàm cho cả câu hỏi và ô thử. Đoạn thiếu dấu vân được tính
 bù theo lô và chỉ ghi khi mọi lô thành công; lỗi, quá 8 giây hay tính bù sắp vượt
 trần đều lùi về tìm từ khoá như hôm nay để câu trả lời không hỏng. Bộ nhớ chỉ nạp
 véc-tơ đọc từ D1 để đường giải mã BLOB thật luôn được chạy.
@@ -1205,7 +1205,7 @@ MSG
   - `tro-ly-route.test.ts` hàm `openAiGia`: ngay sau dòng `const url = String(input instanceof Request ? input.url : input);` thêm:
 
 ```ts
-    // ADR-0076: cửa /v1/embeddings của máy giả TẮT (503) ⇒ máy chủ lùi về chọn đoạn theo từ khoá = đúng luật cũ mà các bài trong tệp này canh;
+    // ADR-0082: cửa /v1/embeddings của máy giả TẮT (503) ⇒ máy chủ lùi về chọn đoạn theo từ khoá = đúng luật cũ mà các bài trong tệp này canh;
     // `goi` chỉ ghi /v1/responses. Đường tìm theo nghĩa được canh ở van-nghia-route.test.ts.
     if (url.endsWith("/v1/embeddings")) return new Response(JSON.stringify({ error: { message: "tắt" } }), { status: 503 });
 ```
@@ -1213,7 +1213,7 @@ MSG
   - `bo-nao-route.test.ts` hàm `openAiGia` (dòng 24) và máy giả riêng của bài "Phòng thủ" (dòng 242), `bang-dieu-khien-route.test.ts` hàm `openAiGia` (dòng 32): đổi tham số đầu `_i` / `_input` thành `i` rồi thêm ở dòng đầu thân hàm:
 
 ```ts
-    // ADR-0076: cửa /v1/embeddings TẮT (503) ⇒ lùi từ khoá = luật cũ; `goi` chỉ ghi /v1/responses (đường mới canh ở van-nghia-route.test.ts).
+    // ADR-0082: cửa /v1/embeddings TẮT (503) ⇒ lùi từ khoá = luật cũ; `goi` chỉ ghi /v1/responses (đường mới canh ở van-nghia-route.test.ts).
     if (String(i instanceof Request ? i.url : i).endsWith("/v1/embeddings")) return new Response(JSON.stringify({ error: { message: "tắt" } }), { status: 503 });
 ```
 
@@ -1230,7 +1230,7 @@ MSG
 - [ ] **Bước 3: Viết bài đỏ** — tạo `src/modules/tro-ly/van-nghia-route.test.ts`:
 
 ```ts
-// Tìm theo nghĩa (ADR-0076) qua route THẬT — CẢ ứng dụng trên SQLite (tests/audit/harness.mjs); OpenAI thay bằng `globalThis.fetch` giả HAI cửa:
+// Tìm theo nghĩa (ADR-0082) qua route THẬT — CẢ ứng dụng trên SQLite (tests/audit/harness.mjs); OpenAI thay bằng `globalThis.fetch` giả HAI cửa:
 // /v1/embeddings (véc-tơ một-nóng: chữ có "pin" ⇒ chiều 0, còn lại ⇒ chiều 1; trả `data` theo thứ tự ĐẢO — máy chủ phải xếp theo index) và /v1/responses.
 // Phủ V2, V3, V5, L1, L2, P1, P2, P3, H1, G1, G2, C5 (route); Review Focus 1, 4, 5. Hàng rào ở docs/SO-HANG-RAO.md (lùi từ khoá; tiền + trần).
 import { test, afterEach } from "node:test";
@@ -1477,7 +1477,7 @@ Expected: FAIL — bài V2 thấy `g.nhung.length` = 0 (route chưa gọi embedd
 - [ ] **Bước 5: Hợp đồng** — `src/shared/contracts.ts`, thay dòng `export interface TroLyThuResponse …` (dòng 1663) bằng:
 
 ```ts
-/** ADR-0076 Đ6 (H1): một đoạn đã gửi kèm câu hỏi thử — cờ khớp nghĩa / khớp từ khoá (đường lùi: chỉ khớp từ khoá). */
+/** ADR-0082 Đ6 (H1): một đoạn đã gửi kèm câu hỏi thử — cờ khớp nghĩa / khớp từ khoá (đường lùi: chỉ khớp từ khoá). */
 export interface TroLyDoanDaChon { ten: string; theoNghia: boolean; theoTuKhoa: boolean }
 /** `chiPhiMicroUsd` / `chiPhiUsd` = tiền MẪU trả lời; `chiPhiVanNghiaMicroUsd` = tiền embedding của lượt thử (R4); dòng tl_luot_hoi = tổng hai phần. */
 export interface TroLyThuResponse {
@@ -1500,7 +1500,7 @@ import { timDoanTheoNghia } from "./van-nghia";
 
 ```ts
 /**
- * ADR-0073 Đ7b + ADR-0076 Đ5(1) — MỘT chỗ kiểm trần tháng TRƯỚC MỌI lần gọi API (Embeddings lẫn mẫu trả lời), cho route hỏi VÀ ô thử.
+ * ADR-0073 Đ7b + ADR-0082 Đ5(1) — MỘT chỗ kiểm trần tháng TRƯỚC MỌI lần gọi API (Embeddings lẫn mẫu trả lời), cho route hỏi VÀ ô thử.
  * Mức trần trên = token ước của thân yêu cầu CHƯA có tài liệu (lời nhắc + phần nhớ + câu mới) + NGAN_SACH_TOKEN (tài liệu tối đa) theo giá vào + token ra tối đa
  * theo giá ra + tiền embedding ước của truy vấn tìm (mucTranTren). `vuot` ⇒ KHÔNG gọi gì. `conLai` = phần trần còn lại sau mức trần trên — trần cho tiền tính bù
  * đoạn (Đ5(2), timDoanTheoNghia). Vượt trần do nhiều lượt song song vẫn có thể xảy ra, chặn trên bởi số lượt song song × mức trần trên (ADR-0073 Đ7b).
@@ -1519,7 +1519,7 @@ export const kiemTranTruocKhiGoi = (
 ```ts
       const luot = (ketQua: LuotHoi["ketQua"], u: SuDung | null, tienNhung = 0): LuotHoi => ({
         id: crypto.randomUUID(), staffId: staff.id, ngayVn, vao: u?.vao ?? 0, vaoDem: u?.vaoDem ?? 0, ra: u?.ra ?? 0,
-        chiPhi: chiPhiMicroUsd(u, boNao.mau) + tienNhung, // ADR-0076 Đ5(3), P1: tiền mẫu + tiền embedding; token chỉ của mẫu
+        chiPhi: chiPhiMicroUsd(u, boNao.mau) + tienNhung, // ADR-0082 Đ5(3), P1: tiền mẫu + tiền embedding; token chỉ của mẫu
         ketQua, mau: ketQua === "het_tran" ? null : boNao.mau, laThu: false, at, // het_tran: không gọi mẫu ⇒ mau null (chú thích LuotHoi)
       });
 ```
@@ -1527,14 +1527,14 @@ export const kiemTranTruocKhiGoi = (
   - Thay từ dòng `// ADR-0069 điều 4: đoạn ngữ cảnh đang bật …` tới hết khối `if (kiemTranTruocKhiGoi(…)) { … }` bằng:
 
 ```ts
-      // N5: tìm bằng câu hiện tại + câu trước gần nhất (đã che). ADR-0076 Đ5(1): kiểm trần bằng MỨC TRẦN TRÊN trước MỌI lần gọi (embeddings lẫn mẫu).
+      // N5: tìm bằng câu hiện tại + câu trước gần nhất (đã che). ADR-0082 Đ5(1): kiểm trần bằng MỨC TRẦN TRÊN trước MỌI lần gọi (embeddings lẫn mẫu).
       const truyVan = truyVanTim(cauHoi, nho.at(-1)?.cauHoi ?? null);
       const tran = kiemTranTruocKhiGoi(boNao, thanYeuCau(boNao, staff.permissions, [], cauHoi, nho), truyVan, thang.tong, caiDat.tranThangMicroUsd);
       if (tran.vuot) {
         await ghiLuot(db, luot("het_tran", null));
         return error(429, "tro_ly_het_tran_thang", CAU_HET_TRAN_THANG);
       }
-      // ADR-0076 Đ2–Đ4 + ADR-0069 điều 4: đoạn ngữ cảnh đang bật vào CÙNG kho; chọn đoạn trộn nghĩa + từ khoá (lỗi / sát trần ⇒ lùi từ khoá).
+      // ADR-0082 Đ2–Đ4 + ADR-0069 điều 4: đoạn ngữ cảnh đang bật vào CÙNG kho; chọn đoạn trộn nghĩa + từ khoá (lỗi / sát trần ⇒ lùi từ khoá).
       const tim = await timDoanTheoNghia(env, khoa, { truyVan, perms: staff.permissions, kho: [...chiaKho(), ...doanNguCanh(nguCanh)], conLaiMicroUsd: tran.conLai });
       const doan = tim.daChon.map((x) => x.doan);
       // `than` = TOÀN BỘ đầu vào (lời nhắc + phần nhớ + câu mới + tài liệu đã chọn).
@@ -1549,14 +1549,14 @@ export const kiemTranTruocKhiGoi = (
 ```ts
       const luot = (ketQua: LuotHoi["ketQua"], u: SuDung | null, tienNhung = 0): LuotHoi => ({
         id: crypto.randomUUID(), staffId: staff.id, ngayVn, vao: u?.vao ?? 0, vaoDem: u?.vaoDem ?? 0, ra: u?.ra ?? 0,
-        chiPhi: chiPhiMicroUsd(u, boNao.mau) + tienNhung, // ADR-0076 P1, P3: tiền mẫu + tiền embedding của lượt thử
+        chiPhi: chiPhiMicroUsd(u, boNao.mau) + tienNhung, // ADR-0082 P1, P3: tiền mẫu + tiền embedding của lượt thử
         ketQua, mau: ketQua === "het_tran" ? null : boNao.mau, laThu: true, at,
       });
 ```
   - Thay từ dòng `const doan = chonDoan(cauHoi, perms, …);` tới hết route bằng:
 
 ```ts
-      // ADR-0076 P3: CÙNG kiểm trần mức trên + CÙNG hàm tìm với route hỏi (không nhớ ⇒ truy vấn = câu hỏi thử).
+      // ADR-0082 P3: CÙNG kiểm trần mức trên + CÙNG hàm tìm với route hỏi (không nhớ ⇒ truy vấn = câu hỏi thử).
       const tran = kiemTranTruocKhiGoi(boNao, thanYeuCau(boNao, perms, [], cauHoi), cauHoi, thang.tong, caiDat.tranThangMicroUsd);
       if (tran.vuot) {
         await ghiLuot(db, luot("het_tran", null));
@@ -1583,7 +1583,7 @@ export const kiemTranTruocKhiGoi = (
     }),
 ```
 
-  - Sửa chú thích ngay trên route ô thử: thêm câu "ADR-0076: cùng `kiemTranTruocKhiGoi` + `timDoanTheoNghia` với route hỏi; trả thêm `doanDaChon` + `chiPhiVanNghiaMicroUsd`."
+  - Sửa chú thích ngay trên route ô thử: thêm câu "ADR-0082: cùng `kiemTranTruocKhiGoi` + `timDoanTheoNghia` với route hỏi; trả thêm `doanDaChon` + `chiPhiVanNghiaMicroUsd`."
 
 - [ ] **Bước 9: Chạy cho xanh**
 
@@ -1600,7 +1600,7 @@ git add src/modules/tro-ly/index.ts src/shared/contracts.ts src/modules/tro-ly/v
 git commit -F- <<'MSG'
 Câu hỏi và ô thử dùng tìm theo nghĩa; kiểm trần mức trên trước mọi lần gọi
 
-ADR-0076 Đ5: trần tháng nay được kiểm bằng mức tối đa của cả lượt (tài liệu tối đa
+ADR-0082 Đ5: trần tháng nay được kiểm bằng mức tối đa của cả lượt (tài liệu tối đa
 6.000 token + token ra + tiền dấu vân của câu hỏi) TRƯỚC khi gọi bất kỳ API nào; tiền
 dấu vân thật cộng vào lượt. Ô thử đi cùng một hàm tìm và trả thêm danh sách đoạn đã
 dùng để Toàn quyền kiểm. Bài cũ cho máy giả tắt cửa dấu vân để tiếp tục canh đường
@@ -1626,7 +1626,7 @@ MSG
   - Sau `let cheDo = "ok";` thêm:
 
 ```js
-/** ADR-0076: cửa /v1/embeddings của máy giả — ghi RIÊNG (`nhan` vẫn chỉ /v1/responses); véc-tơ một-nóng: chữ có "pin" ⇒ chiều 0, còn lại ⇒ chiều 1. */
+/** ADR-0082: cửa /v1/embeddings của máy giả — ghi RIÊNG (`nhan` vẫn chỉ /v1/responses); véc-tơ một-nóng: chữ có "pin" ⇒ chiều 0, còn lại ⇒ chiều 1. */
 const nhung = [];
 let cheDoNhung = "ok";
 ```
@@ -1651,7 +1651,7 @@ let cheDoNhung = "ok";
 - [ ] **Bước 2: Sửa tiền của bước 2 (P1).** Bước 2 cũ ghim `chi_phi_micro_usd` = 450 (chỉ tiền mẫu) — nay lượt có thêm tiền embedding. Ngay TRƯỚC dòng `r = await hoi(SALES, \`đổi mã PIN thế nào ${TRO_LY_DAU}\`);` thêm `const m0 = nhung.length;`; thay dòng `assert.equal(dong.chi_phi_micro_usd, 450); // 4200 × 0,05 + 600 × 0,40` bằng:
 
 ```js
-  // ADR-0076 P1: tiền lượt = mẫu (4200 × 0,05 + 600 × 0,40 = 450) + embedding của MỌI lần gọi /v1/embeddings trong lượt
+  // ADR-0082 P1: tiền lượt = mẫu (4200 × 0,05 + 600 × 0,40 = 450) + embedding của MỌI lần gọi /v1/embeddings trong lượt
   // (máy giả: 10 token / đầu vào; 0,02 USD / 1 triệu token, làm tròn lên từng lần gọi). Kho có thể đã được tính bù bởi kịch bản chạy trước ⇒ đếm theo lần gọi thật.
   const tienNhung = nhung.slice(m0).reduce((a, x) => a + Math.ceil((10 * x.body.input.length * 20_000) / 1_000_000), 0);
   assert.ok(tienNhung >= 1, "lượt có gọi embeddings");
@@ -1664,7 +1664,7 @@ let cheDoNhung = "ok";
 - [ ] **Bước 2b: Thêm bước kiểm.** Ngay sau dòng `console.log` của bước 2 (bước "hỏi thường"), thêm:
 
 ```js
-  // 2b) ADR-0076: dấu vân nghĩa ghi vào D1 THẬT (wrangler dev) dạng BLOB đúng độ dài; thân embeddings ĐÚNG bốn khoá, không SĐT người hỏi;
+  // 2b) ADR-0082: dấu vân nghĩa ghi vào D1 THẬT (wrangler dev) dạng BLOB đúng độ dài; thân embeddings ĐÚNG bốn khoá, không SĐT người hỏi;
   //     câu kế tiếp chỉ tính véc-tơ câu hỏi; ô thử có đoạn "khớp nghĩa" ⇒ véc-tơ đoạn đã được ĐỌC LẠI từ D1 và giải mã đúng (bộ nhớ isolate chỉ nạp từ D1 — R1).
   const vn = (await sqlRows("SELECT count(*) AS n, sum(typeof(vec) = 'blob') AS b, min(length(vec)) AS mn, max(length(vec)) AS mx, min(so_chieu) AS sc FROM tl_van_nghia"))[0];
   assert.ok(vn.n >= 200, JSON.stringify(vn));
@@ -1691,7 +1691,7 @@ let cheDoNhung = "ok";
   Ngay sau `console.log("✓ OpenAI lỗi → 502 câu tiếng Việt");` (bước 4) thêm:
 
 ```js
-  // 4b) ADR-0076 L1: Embeddings lỗi ⇒ vẫn trả lời (lùi về từ khoá), mẫu trả lời vẫn được gọi
+  // 4b) ADR-0082 L1: Embeddings lỗi ⇒ vẫn trả lời (lùi về từ khoá), mẫu trả lời vẫn được gọi
   cheDoNhung = "loi";
   m = nhan.length;
   r = await hoi(SALES, "đổi PIN thế nào");
@@ -1717,7 +1717,7 @@ export const vanNghiaStatement = (db: D1Database, v: VanNghiaMoi, at: string): D
   và trong `tests/audit/harness.mjs`, hàm `fakeD1`, đổi `bind: (...a) => stmt(sql, a),` thành
 
 ```js
-    // node:sqlite không nhận ArrayBuffer — đổi sang Uint8Array (cùng byte) như D1 thật lưu BLOB (ADR-0076, nhánh B Task 6).
+    // node:sqlite không nhận ArrayBuffer — đổi sang Uint8Array (cùng byte) như D1 thật lưu BLOB (ADR-0082, nhánh B Task 6).
     bind: (...a) => stmt(sql, a.map((x) => (x instanceof ArrayBuffer ? new Uint8Array(x) : x))),
 ```
 
@@ -1765,7 +1765,7 @@ const may = createServer((req, res) => {
   req.on("data", (d) => (raw += d));
   req.on("end", () => {
     const body = JSON.parse(raw || "{}");
-    // ADR-0076: cửa dấu vân nghĩa — véc-tơ một-nóng (chữ có "pin" ⇒ chiều 0, còn lại ⇒ chiều 1); `nhan` chỉ ghi /v1/responses như trước.
+    // ADR-0082: cửa dấu vân nghĩa — véc-tơ một-nóng (chữ có "pin" ⇒ chiều 0, còn lại ⇒ chiều 1); `nhan` chỉ ghi /v1/responses như trước.
     if (req.url === "/v1/embeddings") {
       nhung.push(body);
       const dau = Array.isArray(body.input) ? body.input : [];
@@ -1790,7 +1790,7 @@ const may = createServer((req, res) => {
   - Trong bước `k`, ngay trước dòng `await p.ev(\`${q("#tl-thu-kq")}.scrollIntoView(), true\`);` thêm:
 
 ```js
-    // ADR-0076 H1: danh sách "Đoạn đã dùng" dưới kết quả thử, nhãn tiếng Việt; có đoạn khớp nghĩa (máy giả: câu có "PIN")
+    // ADR-0082 H1: danh sách "Đoạn đã dùng" dưới kết quả thử, nhãn tiếng Việt; có đoạn khớp nghĩa (máy giả: câu có "PIN")
     const kqThu = await p.ev(`${q("#tl-thu-kq")}.innerText`);
     assert.match(kqThu, /Đoạn đã dùng:/);
     assert.match(kqThu, /khớp nghĩa/);
@@ -1801,12 +1801,12 @@ const may = createServer((req, res) => {
 
   - Cũng trong bước `k`, XOÁ dòng cũ `assert.match(await p.ev(\`${q("#tl-thu-kq")}.textContent\`), /USD \(tính vào trần tháng\)/);` (khoảng dòng 257): dòng tiền mới chèn "tìm theo nghĩa" giữa "USD" và "(tính…" nên mẫu cũ không còn khớp — dòng `assert.match(kqThu, /tìm theo nghĩa \(tính vào trần tháng\)/)` ở trên thay nó.
 
-  - Sửa dòng chú thích bước `k` ở đầu tệp: thêm "; dưới kết quả có 'Đoạn đã dùng' (nhãn khớp nghĩa / khớp từ khoá — ADR-0076 H1)".
+  - Sửa dòng chú thích bước `k` ở đầu tệp: thêm "; dưới kết quả có 'Đoạn đã dùng' (nhãn khớp nghĩa / khớp từ khoá — ADR-0082 H1)".
 
   - Trong hai kịch bản còn lại (`tro-ly-smoke.mjs`, `khung-tro-ly-smoke.mjs`), ở đầu hàm `req.on("end", () => {` của máy giả, TRƯỚC dòng `nhan.push(…)`, thêm:
 
 ```js
-    // ADR-0076: cửa dấu vân nghĩa TẮT (503) ⇒ máy chủ lùi về từ khoá; `nhan` chỉ ghi /v1/responses như trước (bảng điều khiển canh đường mới).
+    // ADR-0082: cửa dấu vân nghĩa TẮT (503) ⇒ máy chủ lùi về từ khoá; `nhan` chỉ ghi /v1/responses như trước (bảng điều khiển canh đường mới).
     if (req.url === "/v1/embeddings") { res.writeHead(503, { "content-type": "application/json" }); return res.end("{}"); }
 ```
 
@@ -1822,7 +1822,7 @@ Expected: `✗ k) …` với `Đoạn đã dùng:` không khớp (các bước k
   - Thêm gần đầu tệp, cạnh `usdNho`:
 
 ```ts
-/** ADR-0076 H1: nhãn tiếng Việt của một đoạn đã dùng ở ô thử. */
+/** ADR-0082 H1: nhãn tiếng Việt của một đoạn đã dùng ở ô thử. */
 const nhanKhop = (d: Api.TroLyDoanDaChon): string => [d.theoNghia ? "khớp nghĩa" : "", d.theoTuKhoa ? "khớp từ khoá" : ""].filter(Boolean).join(", ");
 ```
 
@@ -1871,7 +1871,7 @@ git add web/tro-ly-cai-dat.ts docs/evidence/2026-09-30-bang-dieu-khien-tro-ly/ki
 git commit -F- <<'MSG'
 Ô thử hiện "Đoạn đã dùng" kèm nhãn khớp nghĩa / khớp từ khoá
 
-ADR-0076 Đ6: Toàn quyền cần thấy trợ lý đã dựa vào đoạn hướng dẫn nào để đánh giá
+ADR-0082 Đ6: Toàn quyền cần thấy trợ lý đã dựa vào đoạn hướng dẫn nào để đánh giá
 cách tìm mới; tiền tìm theo nghĩa hiện tách khỏi tiền trả lời. Máy OpenAI giả của
 kịch bản Chrome thêm cửa dấu vân nghĩa; hai kịch bản khung giữ đường lùi từ khoá.
 
@@ -1908,46 +1908,46 @@ Expected: `not ok … L1 HÀNG RÀO lùi về từ khoá…`, `not ok … L2…`
 - [ ] **Bước 3: Sổ hàng rào.** Trong `docs/SO-HANG-RAO.md`, ngay SAU dòng bắt đầu bằng `| Trần chi phí tháng / trần câu ngày của trợ lý (ADR-0066 điều 6)`, thêm hai dòng (thay `<…>` trong cột "Đã thấy chặn thật" bằng dòng `not ok` THẬT đã chép ở bước 1–2 và ngày chạy):
 
 ```markdown
-| **Lùi về từ khoá khi tìm theo nghĩa hỏng** (ADR-0076 Đ4, L1–L2; **từ 2026-10-01, CHƯA gộp**) — `timDoanTheoNghia` (`src/modules/tro-ly/van-nghia.ts`, hàm `lui`) + bài `src/modules/tro-ly/van-nghia-route.test.ts` ca "L1 HÀNG RÀO lùi về từ khoá", "L2", "P2 + Review Focus 5" + e2e `tests/e2e/tro-ly.mjs` bước 4b | Embeddings lỗi / mạng hỏng / quá 8 giây / phản hồi lệch khuôn / giải mã BLOB hỏng / tính bù sẽ vượt trần làm câu trả lời hỏng (500) hoặc ghi dòng dở | Mọi nhánh lỗi đi về `lui()` = `chonDoan` (luật cũ); bài route soi khối TÀI LIỆU gửi đi bằng đúng `chonDoan`, đếm dòng `tl_van_nghia`, log đúng `{"event":"tro_ly_van_nghia_loi"}` | <ngày>: đột biến thân `lui` thành `throw` → <dòng not ok L1>, <dòng not ok L2>, <dòng not ok P2> → hoàn nguyên → xanh | Không canh chất lượng tìm theo nghĩa thật (ngưỡng 0,3 — đánh giá bằng 12 câu mẫu sau triển khai); máy giả trả véc-tơ một-nóng |
-| **Tiền tìm theo nghĩa vào lượt + kiểm trần trước MỌI lần gọi** (ADR-0076 Đ5, P1–P3; **từ 2026-10-01, CHƯA gộp**) — `mucTranTren` (`src/shared/tro-ly-van-nghia.ts`) trong `kiemTranTruocKhiGoi` (`src/modules/tro-ly/index.ts`, MỘT hàm cho hỏi + ô thử), `luot(…, tienNhung)` cộng tiền embedding, kiểm `tienBuUoc` trước khi tính bù + bài `src/shared/tro-ly-van-nghia.test.ts` ca "P2: mức trần trên", `van-nghia-route.test.ts` ca "V2 + V5 + P1", "P2 + Review Focus 5", "P3 + H1", "P2 ô thử" | Gọi Embeddings hay mẫu khi tháng đã sát trần; tiền embedding không vào `chi_phi_micro_usd` (trần tháng đếm thiếu); tính bù cả kho làm vượt trần | Bài thuần ghim số; bài route đếm lần gọi giả của HAI cửa (`/v1/embeddings`, `/v1/responses`) và soi dòng `tl_luot_hoi` | <ngày>: (1) bỏ phần embedding trong `mucTranTren` → <dòng not ok>; (2) bỏ `+ tienNhung` → <dòng not ok>; (3) bỏ kiểm `tienBuUoc` → <dòng not ok> → hoàn nguyên → xanh | Kiểm-rồi-ghi không nguyên tử như ADR-0073 Đ7b: lượt song song có thể vượt trần một chút; tiền ước (1 token ≈ 3 ký tự) có thể thấp hơn thật — tiền ghi vào lượt là tiền THẬT (usage) |
+| **Lùi về từ khoá khi tìm theo nghĩa hỏng** (ADR-0082 Đ4, L1–L2; **từ 2026-10-01, CHƯA gộp**) — `timDoanTheoNghia` (`src/modules/tro-ly/van-nghia.ts`, hàm `lui`) + bài `src/modules/tro-ly/van-nghia-route.test.ts` ca "L1 HÀNG RÀO lùi về từ khoá", "L2", "P2 + Review Focus 5" + e2e `tests/e2e/tro-ly.mjs` bước 4b | Embeddings lỗi / mạng hỏng / quá 8 giây / phản hồi lệch khuôn / giải mã BLOB hỏng / tính bù sẽ vượt trần làm câu trả lời hỏng (500) hoặc ghi dòng dở | Mọi nhánh lỗi đi về `lui()` = `chonDoan` (luật cũ); bài route soi khối TÀI LIỆU gửi đi bằng đúng `chonDoan`, đếm dòng `tl_van_nghia`, log đúng `{"event":"tro_ly_van_nghia_loi"}` | <ngày>: đột biến thân `lui` thành `throw` → <dòng not ok L1>, <dòng not ok L2>, <dòng not ok P2> → hoàn nguyên → xanh | Không canh chất lượng tìm theo nghĩa thật (ngưỡng 0,3 — đánh giá bằng 12 câu mẫu sau triển khai); máy giả trả véc-tơ một-nóng |
+| **Tiền tìm theo nghĩa vào lượt + kiểm trần trước MỌI lần gọi** (ADR-0082 Đ5, P1–P3; **từ 2026-10-01, CHƯA gộp**) — `mucTranTren` (`src/shared/tro-ly-van-nghia.ts`) trong `kiemTranTruocKhiGoi` (`src/modules/tro-ly/index.ts`, MỘT hàm cho hỏi + ô thử), `luot(…, tienNhung)` cộng tiền embedding, kiểm `tienBuUoc` trước khi tính bù + bài `src/shared/tro-ly-van-nghia.test.ts` ca "P2: mức trần trên", `van-nghia-route.test.ts` ca "V2 + V5 + P1", "P2 + Review Focus 5", "P3 + H1", "P2 ô thử" | Gọi Embeddings hay mẫu khi tháng đã sát trần; tiền embedding không vào `chi_phi_micro_usd` (trần tháng đếm thiếu); tính bù cả kho làm vượt trần | Bài thuần ghim số; bài route đếm lần gọi giả của HAI cửa (`/v1/embeddings`, `/v1/responses`) và soi dòng `tl_luot_hoi` | <ngày>: (1) bỏ phần embedding trong `mucTranTren` → <dòng not ok>; (2) bỏ `+ tienNhung` → <dòng not ok>; (3) bỏ kiểm `tienBuUoc` → <dòng not ok> → hoàn nguyên → xanh | Kiểm-rồi-ghi không nguyên tử như ADR-0073 Đ7b: lượt song song có thể vượt trần một chút; tiền ước (1 token ≈ 3 ký tự) có thể thấp hơn thật — tiền ghi vào lượt là tiền THẬT (usage) |
 ```
 
 - [ ] **Bước 4: CHANGE-GUIDE.**
-  - Dòng bảng §1 (khoảng dòng 79, cột việc bắt đầu `Trợ lý "Hỗ trợ"`): cuối cột việc thêm `; tìm đoạn theo nghĩa trộn từ khoá — ADR-0076`; cột tệp thêm `` `src/shared/tro-ly-van-nghia.ts` (+ `.test.ts`), `src/modules/tro-ly/van-nghia.ts` (+ `van-nghia.test.ts`, `van-nghia-route.test.ts`), `migrations/0062_tl_van_nghia.sql` (số tạm) ``.
-  - Tiêu đề `### z5. Trợ lý "Hỗ trợ" (ADR-0066, ADR-0069, ADR-0070, ADR-0073)` → `### z5. Trợ lý "Hỗ trợ" (ADR-0066, ADR-0069, ADR-0070, ADR-0073, ADR-0076)`.
+  - Dòng bảng §1 (khoảng dòng 79, cột việc bắt đầu `Trợ lý "Hỗ trợ"`): cuối cột việc thêm `; tìm đoạn theo nghĩa trộn từ khoá — ADR-0082`; cột tệp thêm `` `src/shared/tro-ly-van-nghia.ts` (+ `.test.ts`), `src/modules/tro-ly/van-nghia.ts` (+ `van-nghia.test.ts`, `van-nghia-route.test.ts`), `migrations/0062_tl_van_nghia.sql` (số tạm) ``.
+  - Tiêu đề `### z5. Trợ lý "Hỗ trợ" (ADR-0066, ADR-0069, ADR-0070, ADR-0073)` → `### z5. Trợ lý "Hỗ trợ" (ADR-0066, ADR-0069, ADR-0070, ADR-0073, ADR-0082)`.
   - Thay gạch đầu dòng `- Tìm đoạn: \`chonDoan\` lấy tối đa …` bằng:
 
 ```markdown
-- Tìm đoạn (ADR-0076): MỘT hàm `timDoanTheoNghia` (`src/modules/tro-ly/van-nghia.ts`) cho route hỏi VÀ ô thử — đừng chép khối. Chọn bằng `chonDoanTron` (`src/shared/tro-ly-van-nghia.ts`): RRF của hạng BM25 và hạng cô-sin (cả hai nhân hệ số vai), bỏ đoạn cô-sin < `NGUONG_COSIN` (0,3) TRỪ đoạn khớp mạnh (`khopManh`: cặp âm tiết, hoặc điểm ≥ 0,7 × cao nhất và ≥ 2 âm tiết đơn); rồi `layTheoNganSach` (tối đa `SO_DOAN_TOI_DA` = 12 đoạn trong `NGAN_SACH_TOKEN` = 6.000 token ước — chung với `chonDoan`). Mọi lỗi ⇒ lùi `chonDoan` (luật cũ), log đúng `{"event":"tro_ly_van_nghia_loi"}`. Dấu vân của đoạn: khoá SHA-256 (`khoaDoan`) của `dinhDangDoan` + mẫu + số chiều; bảng chỉ-thêm `tl_van_nghia` (BLOB float32, ghi `ON CONFLICT(khoa) DO NOTHING`); bộ nhớ isolate CHỈ nạp véc-tơ đọc từ D1 (khung thử xoá mỗi `world()` qua `xoaBoNhoVanNghia`). Đổi mẫu / số chiều ⇒ mọi khoá đổi ⇒ lần hỏi đầu tính bù cả kho (~0,001 USD). Đổi ngưỡng / hằng RRF: sửa hằng + bài C1–C4. Hướng dẫn đổi chữ làm số khớp mạnh của bài C4 đổi ⇒ đo lại, sửa số kèm lý do (không nới luật).
-- Tiền + trần (ADR-0076 Đ5): `kiemTranTruocKhiGoi` = mức trần trên (`mucTranTren`: thân CHƯA tài liệu + 6.000 token + token ra tối đa + embedding câu hỏi) trước MỌI lần gọi; tính bù vượt phần còn lại ⇒ lùi (không 429); `chi_phi_micro_usd` = tiền mẫu + tiền embedding, `token_vao` / `token_ra` chỉ của mẫu. Giá embedding: `GIA_NHUNG` + ngày tra ở `src/shared/tro-ly-van-nghia.ts`.
+- Tìm đoạn (ADR-0082): MỘT hàm `timDoanTheoNghia` (`src/modules/tro-ly/van-nghia.ts`) cho route hỏi VÀ ô thử — đừng chép khối. Chọn bằng `chonDoanTron` (`src/shared/tro-ly-van-nghia.ts`): RRF của hạng BM25 và hạng cô-sin (cả hai nhân hệ số vai), bỏ đoạn cô-sin < `NGUONG_COSIN` (0,3) TRỪ đoạn khớp mạnh (`khopManh`: cặp âm tiết, hoặc điểm ≥ 0,7 × cao nhất và ≥ 2 âm tiết đơn); rồi `layTheoNganSach` (tối đa `SO_DOAN_TOI_DA` = 12 đoạn trong `NGAN_SACH_TOKEN` = 6.000 token ước — chung với `chonDoan`). Mọi lỗi ⇒ lùi `chonDoan` (luật cũ), log đúng `{"event":"tro_ly_van_nghia_loi"}`. Dấu vân của đoạn: khoá SHA-256 (`khoaDoan`) của `dinhDangDoan` + mẫu + số chiều; bảng chỉ-thêm `tl_van_nghia` (BLOB float32, ghi `ON CONFLICT(khoa) DO NOTHING`); bộ nhớ isolate CHỈ nạp véc-tơ đọc từ D1 (khung thử xoá mỗi `world()` qua `xoaBoNhoVanNghia`). Đổi mẫu / số chiều ⇒ mọi khoá đổi ⇒ lần hỏi đầu tính bù cả kho (~0,001 USD). Đổi ngưỡng / hằng RRF: sửa hằng + bài C1–C4. Hướng dẫn đổi chữ làm số khớp mạnh của bài C4 đổi ⇒ đo lại, sửa số kèm lý do (không nới luật).
+- Tiền + trần (ADR-0082 Đ5): `kiemTranTruocKhiGoi` = mức trần trên (`mucTranTren`: thân CHƯA tài liệu + 6.000 token + token ra tối đa + embedding câu hỏi) trước MỌI lần gọi; tính bù vượt phần còn lại ⇒ lùi (không 429); `chi_phi_micro_usd` = tiền mẫu + tiền embedding, `token_vao` / `token_ra` chỉ của mẫu. Giá embedding: `GIA_NHUNG` + ngày tra ở `src/shared/tro-ly-van-nghia.ts`.
 - Bài route có máy OpenAI giả: máy giả PHẢI tách cửa `/v1/embeddings` khỏi `/v1/responses` (đếm riêng). Bài cũ cho cửa embeddings trả 503 (đường lùi); bài đường mới ở `van-nghia-route.test.ts`.
 ```
 
   - Ở dòng **Kiểm:** của z5, thêm `src/shared/tro-ly-van-nghia.test.ts src/modules/tro-ly/van-nghia.test.ts src/modules/tro-ly/van-nghia-route.test.ts src/migrations-tro-ly-van-nghia.test.ts` vào danh sách `node --test`.
-  - Dòng ma trận §3 (khoảng dòng 833, bắt đầu `| Trợ lý Hỗ trợ:`): cuối cột "Chạy" thêm `; ADR-0076: node --test src/shared/tro-ly-van-nghia.test.ts src/modules/tro-ly/van-nghia*.test.ts, npm run test:e2e -- tro-ly (BLOB trên D1 thật), Chrome bang-dieu-khien-tro-ly-smoke.mjs (bước k "Đoạn đã dùng")`.
+  - Dòng ma trận §3 (khoảng dòng 833, bắt đầu `| Trợ lý Hỗ trợ:`): cuối cột "Chạy" thêm `; ADR-0082: node --test src/shared/tro-ly-van-nghia.test.ts src/modules/tro-ly/van-nghia*.test.ts, npm run test:e2e -- tro-ly (BLOB trên D1 thật), Chrome bang-dieu-khien-tro-ly-smoke.mjs (bước k "Đoạn đã dùng")`.
 
 - [ ] **Bước 4b: SYSTEM-DESIGN (tài liệu mô tả — sửa cùng commit, CLAUDE.md §9).** Trong `docs/SYSTEM-DESIGN.md`:
   - Bảng bảng dữ liệu §5: ngay SAU dòng bắt đầu `| \`tl_bo_nao\` (0060) | tro-ly |` thêm:
 
 ```markdown
-| `tl_van_nghia` (0062, số tạm) | tro-ly | dấu vân nghĩa (embedding OpenAI `text-embedding-3-small`, 512 chiều — ADR-0076 Đ2) của đoạn kho tri thức trợ lý: `khoa` (SHA-256 của đoạn đã định dạng + mẫu + số chiều, 64 ký tự), `mau`, `so_chieu`, `vec` (BLOB float32, CHECK đúng `so_chieu × 4` byte); CHỈ nội dung kho, không câu hỏi / người hỏi; CHỈ THÊM (trigger chặn sửa / xoá), ghi `ON CONFLICT(khoa) DO NOTHING` khi máy chủ tính bù; không route nào đọc / ghi trực tiếp |
+| `tl_van_nghia` (0062, số tạm) | tro-ly | dấu vân nghĩa (embedding OpenAI `text-embedding-3-small`, 512 chiều — ADR-0082 Đ2) của đoạn kho tri thức trợ lý: `khoa` (SHA-256 của đoạn đã định dạng + mẫu + số chiều, 64 ký tự), `mau`, `so_chieu`, `vec` (BLOB float32, CHECK đúng `so_chieu × 4` byte); CHỈ nội dung kho, không câu hỏi / người hỏi; CHỈ THÊM (trigger chặn sửa / xoá), ghi `ON CONFLICT(khoa) DO NOTHING` khi máy chủ tính bù; không route nào đọc / ghi trực tiếp |
 ```
 
-  - Cột ghi chú của dòng `| \`tl_luot_hoi\` (0050) |`: nối thêm `; từ ADR-0076 \`chi_phi_micro_usd\` = tiền mẫu + tiền embedding của lượt, token chỉ của mẫu`.
+  - Cột ghi chú của dòng `| \`tl_luot_hoi\` (0050) |`: nối thêm `; từ ADR-0082 \`chi_phi_micro_usd\` = tiền mẫu + tiền embedding của lượt, token chỉ của mẫu`.
   - Bảng migration: ngay SAU dòng `| 0060 | \`0060_tl_bo_nao.sql\` |` thêm:
 
 ```markdown
-| 0062 | `0062_tl_van_nghia.sql` | ADR-0076 (CHƯA lên production; số TẠM — main tới 0060, `0061_aut_session` ở nhánh đăng nhập; người gộp đổi số): chỉ THÊM `tl_van_nghia` (+ trigger chỉ-thêm, CHECK BLOB). Không gieo — lần hỏi đầu sau triển khai tính bù cả kho (~0,001 USD) |
+| 0062 | `0062_tl_van_nghia.sql` | ADR-0082 (CHƯA lên production; số TẠM — main tới 0060, `0061_aut_session` ở nhánh đăng nhập; người gộp đổi số): chỉ THÊM `tl_van_nghia` (+ trigger chỉ-thêm, CHECK BLOB). Không gieo — lần hỏi đầu sau triển khai tính bù cả kho (~0,001 USD) |
 ```
 
-  - Dòng route `| POST | \`/api/tro-ly/thu\` |`: đổi `→ \`{ traLoi, nguon, tokenVao, tokenRa, chiPhiMicroUsd, chiPhiUsd, mau }\`` thành `→ \`{ traLoi, nguon, tokenVao, tokenRa, chiPhiMicroUsd, chiPhiUsd, chiPhiVanNghiaMicroUsd, mau, doanDaChon: [{ ten, theoNghia, theoTuKhoa }] }\` (ADR-0076 H1: \`chiPhiMicroUsd\` = tiền mẫu, \`chiPhiVanNghiaMicroUsd\` = tiền tìm theo nghĩa; dòng lượt giữ tổng)`; và "tìm đoạn theo vai" → "tìm đoạn trộn nghĩa + từ khoá theo vai (ADR-0076; lỗi ⇒ lùi từ khoá)".
-  - Dòng route `| POST | \`/api/tro-ly/hoi\` |`: nối vào cột mô tả `ADR-0076: chọn đoạn trộn theo nghĩa (OpenAI Embeddings, hạn 8 giây) + từ khoá; kiểm trần bằng mức trần trên TRƯỚC mọi lần gọi; Embeddings lỗi / sát trần ⇒ lùi từ khoá, vẫn 200; tiền embedding vào lượt.`
+  - Dòng route `| POST | \`/api/tro-ly/thu\` |`: đổi `→ \`{ traLoi, nguon, tokenVao, tokenRa, chiPhiMicroUsd, chiPhiUsd, mau }\`` thành `→ \`{ traLoi, nguon, tokenVao, tokenRa, chiPhiMicroUsd, chiPhiUsd, chiPhiVanNghiaMicroUsd, mau, doanDaChon: [{ ten, theoNghia, theoTuKhoa }] }\` (ADR-0082 H1: \`chiPhiMicroUsd\` = tiền mẫu, \`chiPhiVanNghiaMicroUsd\` = tiền tìm theo nghĩa; dòng lượt giữ tổng)`; và "tìm đoạn theo vai" → "tìm đoạn trộn nghĩa + từ khoá theo vai (ADR-0082; lỗi ⇒ lùi từ khoá)".
+  - Dòng route `| POST | \`/api/tro-ly/hoi\` |`: nối vào cột mô tả `ADR-0082: chọn đoạn trộn theo nghĩa (OpenAI Embeddings, hạn 8 giây) + từ khoá; kiểm trần bằng mức trần trên TRƯỚC mọi lần gọi; Embeddings lỗi / sát trần ⇒ lùi từ khoá, vẫn 200; tiền embedding vào lượt.`
 
 - [ ] **Bước 5: Nhật ký thay đổi.** Thêm ở ĐẦU mảng `CHANGELOG` của `src/shared/changelog.ts`:
 
 ```ts
   {
-    // ADR-0076 (trợ lý tìm đoạn hướng dẫn theo nghĩa trộn từ khoá). Số "1.55" = main 1.54 + 1 lúc thi công (2026-10-01); nhánh khác gộp trước thì đánh lại số.
+    // ADR-0082 (trợ lý tìm đoạn hướng dẫn theo nghĩa trộn từ khoá). Số "1.55" = main 1.54 + 1 lúc thi công (2026-10-01); nhánh khác gộp trước thì đánh lại số.
     // Có migration 0062 (số tạm).
     version: "1.55",
     date: "2026-10-01",
@@ -2010,8 +2010,8 @@ Expected: `npm test` thoát 0; typecheck 0 lỗi; build không lỗi; e2e đủ 
 - [ ] **Bước 3: Kiểm độc lập.** Gọi subagent `nguoi-kiem-doc-lap` (chỉ đọc) với lời giao:
 
 ```text
-Kiểm độc lập (chỉ đọc, không sửa) nhánh tro-ly-tim-theo-nghia so với origin/main c62ffc6d — ADR-0076 (tìm đoạn theo nghĩa). Việc lớn: dữ liệu (migration 0062 bảng
-chỉ-thêm tl_van_nghia, BLOB) + tiền (chi phí lượt, kiểm trần). Đọc: docs/superpowers/specs/2026-10-01-tro-ly-tim-theo-nghia/{ADR-0076-tro-ly-tim-theo-nghia.md,dac-ta.md},
+Kiểm độc lập (chỉ đọc, không sửa) nhánh tro-ly-tim-theo-nghia so với origin/main c62ffc6d — ADR-0082 (tìm đoạn theo nghĩa). Việc lớn: dữ liệu (migration 0062 bảng
+chỉ-thêm tl_van_nghia, BLOB) + tiền (chi phí lượt, kiểm trần). Đọc: docs/superpowers/specs/2026-10-01-tro-ly-tim-theo-nghia/{ADR-0082-tro-ly-tim-theo-nghia.md,dac-ta.md},
 docs/superpowers/plans/2026-10-01-tro-ly-tim-theo-nghia-thi-cong.md (R1–R9, bảng tự rà), nhật ký thi công cùng thư mục, rồi mã thật. Tự chạy lại: npm test,
 npm run typecheck, node --test src/shared/tro-ly-van-nghia.test.ts src/modules/tro-ly/van-nghia*.test.ts src/migrations-tro-ly-van-nghia.test.ts, npm run test:e2e -- tro-ly.
 Trả lời có bằng chứng tệp:dòng: (1) mọi tiêu chí V1–V5, C1–C5, L1–L2, P1–P3, H1, G1–G2 có mã + bài thật kiểm đúng hành vi (không kiểm giả); (2) kiểm trần chạy TRƯỚC
