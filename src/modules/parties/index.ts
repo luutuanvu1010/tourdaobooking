@@ -25,7 +25,7 @@ import {
   openRoleCodesFor, ownerCompanyRows, relationshipEnds, renamePersonStatements, reopenRoleStatement, roleRowOf, roleTypeOf, updatePartyStatements,
   type GopDocRow, type PartyListRow, type PartyRow, type ContactRow, type PersonDocFull, type PersonDocRow, type PersonDocValues, type RelationshipRow, type RoleRow,
 } from "./repository";
-import { keHoachGop, type CongViecGop, type GiayToGop, type HoSoGop, type KeHoachGop, type NhomVai } from "./gop";
+import { chanCo, keHoachGop, type CongViecGop, type GiayToGop, type HoSoGop, type KeHoachGop, type NhomVai } from "./gop";
 import { loGop } from "./gop-lo";
 import { MA_HANG_RE, cheSo, chiTietNhatKy, chuanHoaSo, kiemGiaHan, kiemHangMoi, kiemSuaHang, kiemSuaSai, kiemThemGiayTo, type DanhMucGiayTo, type GiayToNhap } from "./giay-to";
 import {
@@ -857,7 +857,13 @@ export const partiesModule: AppModule = {
       } catch (e) {
         // Hợp đồng lỗi của lô (phán quyết điều phối): mọi lệch giữa lúc tính và lúc ghi (lô thua có giấy tờ, dòng mở mới của A, giấy tờ / liên hệ chính đổi
         // trong khe…) làm trigger / chỉ mục / NOT NULL huỷ CẢ lô — không dòng nào đổi. Không bao giờ 500, không lộ câu lỗi CSDL.
-        if ((await findParty(env.DB, id))?.merged_into_id) return MERGE_LOST_RACE();
+        // Phán quyết Task 6 Minor 2 (như kiểm trước ở trên): chỉ "thua cuộc đua" khi A vừa gộp vào ĐÚNG hồ sơ chính này; gộp vào hồ sơ khác → merge_inactive.
+        const daGop = (await findParty(env.DB, id))?.merged_into_id;
+        if (daGop === into) return MERGE_LOST_RACE();
+        if (daGop) {
+          const c = chanCo("merge_inactive");
+          return error(409, c.code, c.message);
+        }
         const m = e instanceof Error ? e.message : "";
         if (/money_invariant/.test(m)) return MERGE_ORDER_INVALID(await ctx.gopHoSo.donNguoiDat(id).then((d) => d.maDoi, () => []));
         console.error(JSON.stringify({ level: "error", event: "merge_batch_failed", constraint: tenRangBuoc(m) }));

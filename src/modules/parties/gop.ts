@@ -57,7 +57,7 @@ const CAU: Record<Exclude<MaChanGop, "merge_source_busy" | "merge_order_invalid"
   merge_source_future_row: "Hồ sơ phụ có liên hệ, công việc hoặc quan hệ bắt đầu sau hôm nay — kết thúc hoặc sửa dòng đó trước khi gộp.",
   merge_source_owns_vehicle: "Hồ sơ phụ đang đứng tên xe — đổi chủ xe ở mục Xe trước khi gộp.",
 };
-const chanCo = (code: keyof typeof CAU): LyDoChan => ({ code, message: CAU[code] });
+export const chanCo = (code: keyof typeof CAU): LyDoChan => ({ code, message: CAU[code] });
 const conMo = (validTo: string | null, homNay: string): boolean => validTo === null || validTo > homNay;
 const cungNoi = (x: string | null, y: string | null): boolean => (x ?? "") === (y ?? "");
 

@@ -328,6 +328,23 @@ test("Vòng sửa 1 (điểm 3): A đã gộp vào C từ trước, yêu cầu g
   assert.equal(w.q("SELECT merged_into_id m FROM pty_party WHERE id = ?", A)[0].m, C);
 });
 
+test("Hợp đồng lỗi lô (phán quyết Task 6 Minor 2, nhánh catch): lô ném sau khi A vừa bị gộp vào hồ sơ KHÁC (C) → 409 merge_inactive, không phải merge_lost_race", async () => {
+  const w = nen();
+  const A = await taoA(w);
+  const B = await taoB(w);
+  const C = (await w.call("POST", "/api/parties", { as: ADM, body: { kind: "PERSON", fullName: "Người Chính Khác", contacts: [] } })).json.party.id as string;
+  chanLoGop(w, async () => {
+    // Người khác vừa gộp A vào C trong khe (trigger không xét dòng mở — chỉ cần đích hợp lệ), rồi lô của mình bị huỷ.
+    w.sqlite.prepare("UPDATE pty_party SET active = 0, merged_into_id = ?, merged_at = ?, updated_at = ? WHERE id = ?").run(C, AT, AT, A);
+    throw new Error("party_merge_target: gộp phải từ hồ sơ cá nhân sang hồ sơ cá nhân đang dùng");
+  });
+  const { kq: r } = await thuLog(() => gop(w, ADM, A, B.partyId));
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "merge_inactive", r.text);
+  assert.equal(w.q("SELECT merged_into_id m FROM pty_party WHERE id = ?", A)[0].m, C);
+  assert.equal(w.q("SELECT count(*) n FROM audit_log WHERE action = 'party_merged'")[0].n, 0);
+});
+
 test("Review Focus 4 + xác nhận: gõ lại tên dạng NFD, chữ hoa, thừa khoảng trắng → được; gõ sai tên → 409 merge_confirm_mismatch, không đổi gì", async () => {
   const w = nen();
   const A = await taoA(w);
