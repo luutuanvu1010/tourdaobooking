@@ -27,7 +27,7 @@ export async function goiOpenAi(env: Env, khoa: string, than: Record<string, unk
     const data: unknown = await res.json().catch(() => null);
     const doc = docPhanHoi(data);
     if (!res.ok) return { loi: `http_${res.status}`, suDung: doc.suDung, status: res.status, maLoi: maLoiOpenAi(data) };
-    if (!doc.chu) return { loi: "rong", suDung: doc.suDung, status: res.status, maLoi: null };
+    if (!doc.chu) return { loi: doc.hetToken ? "het_token_ra" : "rong", suDung: doc.suDung, status: res.status, maLoi: null };
     return doc;
   } catch (e) {
     return { loi: ctl.signal.aborted ? "het_gio" : e instanceof Error ? `mang_${e.name}` : "mang", suDung: null, status: null, maLoi: null };

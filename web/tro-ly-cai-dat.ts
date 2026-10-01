@@ -365,6 +365,8 @@ function veLoiDan(d: Api.TroLyLoiDanResponse, daLuu = false): void {
     { class: "tl-cd-form" },
     h("label", null, "Câu chào", chao),
     h("label", null, `Câu hỏi mẫu (mỗi dòng một câu, tối đa ${G.soCauMau})`, mau),
+    // ADR-0084 Đ5: chỗ thay {ten} — khung chat thay bằng cách gọi của người đang mở (vd "anh Vũ"; chưa ghi giới tính ⇒ "bạn").
+    h("p", { class: "muted", id: "tl-cau-chao-goi-y" }, "Gõ {ten} vào câu chào để chèn cách gọi người dùng, ví dụ “anh Vũ”, “chị Lan” (hồ sơ chưa ghi giới tính: “bạn”); gõ {xung} để chèn cách Mai tự xưng: “em”, hoặc “mình” khi gọi “bạn”."),
     h("p", { class: "muted" }, "Không gõ số điện thoại, email, số tiền. Cách trợ lý trả lời nằm ở mục Bộ não."),
     luu,
     bao.el,

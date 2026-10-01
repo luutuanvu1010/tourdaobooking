@@ -18,6 +18,9 @@ const DAU = "MOC-KHONG-DUOC-LO-7Q"; // dấu nhận diện nội dung câu hỏi
 interface GoiGia { url: string; headers: Record<string, string>; body: Record<string, unknown> }
 const fetchThat = globalThis.fetch;
 afterEach(() => { globalThis.fetch = fetchThat; });
+// Máy giả TẮT /v1/embeddings ⇒ mỗi câu lùi về từ khoá và máy chủ ghi đúng một dòng sự kiện này (ADR-0082 Đ4) — dự kiến, không phải lỗi; nuốt riêng dòng đó cho đầu ra sạch.
+const errGoc = console.error;
+console.error = (...a: unknown[]) => { if (a.length === 1 && a[0] === '{"event":"tro_ly_van_nghia_loi"}') return; errGoc(...a); };
 
 /** OpenAI giả: ghi lại mọi yêu cầu; trả câu trả lời có dòng Nguồn lấy tên đoạn đầu tiên của khối tài liệu (không có đoạn nào ⇒ không dòng Nguồn). */
 function openAiGia(tuyChon: { status?: number; usage?: Record<string, unknown> | null; chu?: string; nem?: boolean } = {}): GoiGia[] {
@@ -300,4 +303,69 @@ test("cài đặt: Toàn quyền xem + lưu bản mới (chỉ thêm), Quản tr
   assert.deepEqual({ ...ban[1] }, { bat: 0, tran_thang_micro_usd: 2_500_000, tran_ngay: 10, created_by: SUP });
   openAiGia();
   assert.equal((await hoi(w, SALES, "đổi PIN")).status, 503, "tắt có hiệu lực ngay, không cần deploy");
+});
+
+// ---- ADR-0084: trợ lý Mai gọi tên + xưng hô. Hàng rào ghi ở docs/SO-HANG-RAO.md: máy chủ đọc tên gọi + giới tính của CHÍNH người hỏi theo phiên — KHÔNG
+// nhận từ thân yêu cầu; gửi OpenAI chỉ tên gọi (không họ, tên đệm, SĐT, id); thân yêu cầu không có `user`.
+const HO = "Phạmxyzz";
+const DEM = "Quỳnhwqv";
+/** Hồ sơ người hỏi có họ + tên đệm ĐẶC BIỆT (không thể trùng chữ trong kho tri thức) để khẳng định "không gửi họ / tên đệm" không đỏ giả. */
+const datHoSo = (w: ReturnType<typeof setup>, staffId: string, gioiTinh: string | null) => {
+  w.sqlite.prepare("UPDATE pty_person SET family_name = ?, middle_name = ?, gender = ? WHERE party_id = ?").run(HO, DEM, gioiTinh, `pty-${staffId}`);
+  // Tên hiển thị đầy đủ (họ + đệm + tên) như hồ sơ thật — để đường đọc nhầm nhãn đầy đủ (v_stf_staff_label) lộ họ và bài đỏ.
+  w.sqlite.prepare("UPDATE pty_party SET display_name = (SELECT family_name || ' ' || middle_name || ' ' || given_name FROM pty_person WHERE party_id = ?1) WHERE id = ?1").run(`pty-${staffId}`);
+};
+const LA = { ten: "Giả Mạo", tenGoi: "Giả Mạo", gioiTinh: "NAM", gender: "NAM", goi: "sếp Tổng", xung: "tôi" };
+const THU_MAI = {
+  boNao: { mau: "gpt-5-nano", mucSuyNghi: "minimal", doDai: "low", tokenRaToiDa: 1200, loiNhac: "Bạn là trợ lý thử nghiệm." }, cauHoi: "đổi mã PIN thế nào", vai: "ACCOUNTING",
+};
+
+test("HÀNG RÀO ADR-0084 (hỏi): dòng Mai theo hồ sơ CHÍNH người hỏi (chị An / em); tên / giới tính / cách gọi trong thân yêu cầu bị BỎ QUA; không họ, tên đệm, SĐT, id; không `user`", async () => {
+  const w = setup();
+  datHoSo(w, SALES, "NU");
+  const goi = openAiGia();
+  const r = await w.call("POST", "/api/tro-ly/hoi", { as: SALES, body: { cauHoi: "đổi mã PIN thế nào", ...LA } });
+  assert.equal(r.status, 200, r.text);
+  assert.equal(goi.length, 1);
+  const ins = String(goi[0]!.body.instructions);
+  assert.ok(ins.includes("Tên bạn là Mai, trợ lý của Tour Đảo. Người đang hỏi: gọi là 'chị An', xưng 'em'."), ins.slice(-400));
+  const than = JSON.stringify(goi[0]!.body);
+  for (const cam of ["Giả Mạo", "sếp Tổng", "anh An", HO, DEM, "0900000001", SALES, `pty-${SALES}`]) assert.ok(!than.includes(cam), `thân yêu cầu không được chứa "${cam}"`);
+  for (const k of ["user", "safety_identifier", "metadata"]) assert.ok(!(k in goi[0]!.body), k);
+});
+
+test("ADR-0084 (hỏi): hồ sơ chưa ghi giới tính ⇒ 'bạn' / 'mình'; NAM ⇒ 'anh <tên gọi>'", async () => {
+  const w = setup();
+  const goi = openAiGia();
+  assert.equal((await hoi(w, SALES, "đổi PIN")).status, 200);
+  assert.ok(String(goi[0]!.body.instructions).includes("Người đang hỏi: gọi là 'bạn', xưng 'mình'."));
+  datHoSo(w, SALES, "NAM");
+  assert.equal((await hoi(w, SALES, "đổi PIN")).status, 200);
+  assert.ok(String(goi[1]!.body.instructions).includes("Người đang hỏi: gọi là 'anh An', xưng 'em'."));
+});
+
+test("HÀNG RÀO ADR-0084 (ô thử): dòng Mai theo hồ sơ của CHÍNH Toàn quyền đang thử (không theo vai giả định, không theo thân yêu cầu)", async () => {
+  const w = setup();
+  datHoSo(w, SUP, "NAM");
+  const goi = openAiGia();
+  const r = await w.call("POST", "/api/tro-ly/thu", { as: SUP, body: { ...THU_MAI, ...LA } });
+  assert.equal(r.status, 200, r.text);
+  const ins = String(goi[0]!.body.instructions);
+  assert.ok(ins.includes("Người đang hỏi: gọi là 'anh Chủ', xưng 'em'."), ins.slice(-400));
+  const than = JSON.stringify(goi[0]!.body);
+  for (const cam of ["Giả Mạo", "sếp Tổng", HO, DEM, "0900000007", SUP]) assert.ok(!than.includes(cam), `thân yêu cầu thử không được chứa "${cam}"`);
+  assert.ok(!("user" in goi[0]!.body));
+});
+
+test("ADR-0084 Đ5 (khung): trả cách gọi / cách xưng ĐÃ TÍNH của người đăng nhập — không trả giới tính thô, không họ", async () => {
+  const w = setup();
+  datHoSo(w, SALES, "NU");
+  const r = await w.call("GET", "/api/tro-ly/khung", { as: SALES });
+  assert.equal(r.status, 200);
+  assert.equal(r.json.goi, "chị An");
+  assert.equal(r.json.xung, "em");
+  const s = JSON.stringify(r.json);
+  for (const cam of ['"NU"', "gender", "gioiTinh", HO, DEM]) assert.ok(!s.includes(cam), cam);
+  const ad = await w.call("GET", "/api/tro-ly/khung", { as: ADM });
+  assert.deepEqual([ad.json.goi, ad.json.xung], ["bạn", "mình"]);
 });

@@ -8,6 +8,7 @@ import assert from "node:assert/strict";
 import { world, seedStaff } from "../../../tests/audit/harness.mjs";
 import { PERMISSION_CODES } from "../../shared/permissions.ts";
 import { LOI_NHAC_MAC_DINH } from "../../shared/tro-ly-bo-nao.ts";
+import { CAU_CHAO_MAC_DINH, dongMai, xungHo } from "../../shared/xung-ho.ts";
 import type { AppModule } from "../../shared/router.ts";
 import * as esbuild from "esbuild";
 
@@ -25,6 +26,9 @@ const KHOA = "sk-proj-THU-abcdefghijklmnopqrstuvwxyz0123456789-QZ7K";
 interface GoiGia { body: Record<string, unknown> }
 const fetchThat = globalThis.fetch;
 afterEach(() => { globalThis.fetch = fetchThat; });
+// Máy giả TẮT /v1/embeddings ⇒ mỗi câu lùi về từ khoá và máy chủ ghi đúng một dòng sự kiện này (ADR-0082 Đ4) — dự kiến, không phải lỗi; nuốt riêng dòng đó cho đầu ra sạch.
+const errGoc = console.error;
+console.error = (...a: unknown[]) => { if (a.length === 1 && a[0] === '{"event":"tro_ly_van_nghia_loi"}') return; errGoc(...a); };
 
 type CheDo = { status?: number; loi?: Record<string, unknown>; nem?: boolean };
 function openAiGia(cheDo: CheDo = {}): GoiGia[] {
@@ -93,7 +97,7 @@ test("HÀNG RÀO vai tắt: tắt Đối tác ⇒ tài khoản chỉ-Đối tác
   assert.equal(goi.length, 0);
   assert.equal(w.q("SELECT count(*) AS n FROM tl_luot_hoi")[0]!.n, 0);
   assert.equal(w.q("SELECT count(*) AS n FROM tl_hoi_dap")[0]!.n, 0);
-  assert.deepEqual((await w.call("GET", "/api/tro-ly/khung", { as: DOITAC })).json, { duocDung: false, cauChao: "", cauHoiMau: [] });
+  assert.deepEqual((await w.call("GET", "/api/tro-ly/khung", { as: DOITAC })).json, { duocDung: false, cauChao: "", cauHoiMau: [], goi: "bạn", xung: "mình" });
   assert.equal((await hoi(w, LAI, "đổi mã PIN thế nào")).status, 200, "ít nhất một quyền bật là được");
   assert.equal((await w.call("GET", "/api/tro-ly/khung", { as: LAI })).json.duocDung, true);
   assert.equal((await datVai(w, tatCa(false))).status, 200);
@@ -131,24 +135,24 @@ test("lời dặn: lưu bản mới (chỉ thêm) → khung hiện câu chào + 
   let r = await w.call("GET", "/api/tro-ly/loi-dan", { as: SUP });
   assert.equal(r.status, 200);
   const goc = r.json.hienHanh;
-  assert.match(goc.cauChao, /^Chào bạn! Hỏi mình cách dùng app/);
+  assert.equal(goc.cauChao, CAU_CHAO_MAC_DINH, "ADR-0084: migration *_pty_person_gender thêm bản câu chào Mai trên bản gieo 0054");
   r = await w.call("POST", "/api/tro-ly/loi-dan", { as: SUP, body: LOI_DAN });
   assert.equal(r.status, 200, r.text);
   assert.deepEqual(r.json.hienHanh, LOI_DAN);
-  assert.equal(r.json.cacBan.length, 2);
+  assert.equal(r.json.cacBan.length, 3, "gieo 0054 + câu chào Mai (ADR-0084) + bản mới");
   assert.equal(r.json.cacBan[0].nguoi !== undefined, true);
-  assert.deepEqual((await w.call("GET", "/api/tro-ly/khung", { as: SALES })).json, { duocDung: true, cauChao: LOI_DAN.cauChao, cauHoiMau: LOI_DAN.cauHoiMau });
+  assert.deepEqual((await w.call("GET", "/api/tro-ly/khung", { as: SALES })).json, { duocDung: true, cauChao: LOI_DAN.cauChao, cauHoiMau: LOI_DAN.cauHoiMau, goi: "bạn", xung: "mình" });
   for (const bad of [{ cauChao: "Gọi hotline 0905 123 456" }, { loiDanThem: "gửi mail lan@vidu.vn" }, { giong: "phí 200.000 đ" }, { cauHoiMau: ["khách 0905123456?"] }]) {
     const x = await w.call("POST", "/api/tro-ly/loi-dan", { as: SUP, body: { ...LOI_DAN, ...bad } });
     assert.equal(x.status, 400, JSON.stringify(bad));
     assert.match(x.json.error.message, /không được chứa/);
   }
-  assert.equal(w.q("SELECT count(*) AS n FROM tl_loi_dan")[0]!.n, 2, "400 không ghi bản");
+  assert.equal(w.q("SELECT count(*) AS n FROM tl_loi_dan")[0]!.n, 3, "400 không ghi bản (gieo 0054 + câu chào Mai + một bản đã lưu)");
   const cu = r.json.cacBan[1];
   r = await w.call("POST", "/api/tro-ly/loi-dan", { as: SUP, body: { cauChao: cu.cauChao, giong: cu.giong, loiDanThem: cu.loiDanThem, cauHoiMau: cu.cauHoiMau } });
   assert.equal(r.status, 200);
   assert.deepEqual(r.json.hienHanh, goc, "quay lại bản cũ");
-  assert.equal(r.json.cacBan.length, 3, "quay lại = thêm bản mới");
+  assert.equal(r.json.cacBan.length, 4, "quay lại = thêm bản mới");
   const nk = w.q("SELECT detail FROM audit_log WHERE action = 'tro_ly_settings_changed'").map((x) => x.detail);
   assert.deepEqual(nk, ["lời dặn", "lời dặn"]);
   assert.ok(!JSON.stringify(w.q("SELECT * FROM audit_log")).includes("Xin chào, cần gì"), "nhật ký không chứa nội dung lời dặn");
@@ -160,7 +164,7 @@ test("B5: chưa có bản bộ não ⇒ lời nhắc gửi đi = bản mặc đ�
   assert.equal((await w.call("POST", "/api/tro-ly/loi-dan", { as: SUP, body: LOI_DAN })).status, 200);
   assert.equal((await hoi(w, SALES, "đổi mã PIN thế nào")).status, 200);
   const ins = String(goi[0]!.body.instructions);
-  assert.ok(ins.startsWith(`${LOI_NHAC_MAC_DINH}\n\nGiọng: ngắn, thân thiện\nLời dặn: Gọi người dùng là bạn.\n\nNgười hỏi thuộc nhóm vai: Bán hàng.`), ins.slice(0, 80));
+  assert.ok(ins.startsWith(`${LOI_NHAC_MAC_DINH}\n\nGiọng: ngắn, thân thiện\nLời dặn: Gọi người dùng là bạn.\n\n${dongMai(xungHo("An", null))}\nNgười hỏi thuộc nhóm vai: Bán hàng.`), ins.slice(0, 80));
   assert.ok(ins.lastIndexOf("TÀI LIỆU:") > ins.indexOf("Lời dặn: Gọi người dùng là bạn."));
   assert.equal(ins.split("TÀI LIỆU:").length, 2, "đúng MỘT khối tài liệu");
   assert.equal(goi[0]!.body.input, "đổi mã PIN thế nào");

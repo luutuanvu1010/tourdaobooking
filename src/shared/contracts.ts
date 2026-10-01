@@ -738,6 +738,8 @@ export interface PartyDto extends PartyListItemDto {
   familyName: string | null;
   middleName: string | null;
   givenName: string | null;
+  /** ADR-0084 Đ1: giới tính của hồ sơ người — 'NAM' | 'NU' | null (chưa ghi; tổ chức luôn null). */
+  gender: "NAM" | "NU" | null;
   legalName: string | null;
   taxCode: string | null;
   address: string | null;
@@ -1667,7 +1669,9 @@ export interface NhapKeToanResponse { hienTai: NhapKeToanDongDto | null; truocDo
 /** Thân `POST /api/orders/:id/nhap-ke-toan`: `truocDo` = id dòng hiện tại người dùng đang thấy (null = chưa có dòng) — khoá lạc quan. */
 export interface NhapKeToanInput { daNhap: boolean; soHoaDon?: string | null; lyDo?: string | null; truocDo: string | null }
 /** `GET /api/tro-ly/khung` (mọi tài khoản đăng nhập): có được dùng trợ lý không (ADR-0069 điều 3 — giao diện ẩn nút) + câu chào, câu hỏi mẫu (điều 4). */
-export interface TroLyKhungResponse { duocDung: boolean; cauChao: string; cauHoiMau: string[] }
+/** ADR-0084 Đ5: `goi` / `xung` = cách gọi / cách xưng ĐÃ TÍNH ở máy chủ của người đăng nhập (vd "anh Vũ" / "em"; chưa ghi giới tính ⇒ "bạn" / "mình") —
+ * khung thay `{ten}` trong câu chào bằng `goi`. KHÔNG trả giới tính thô. */
+export interface TroLyKhungResponse { duocDung: boolean; cauChao: string; cauHoiMau: string[]; goi: string; xung: string }
 /** `POST /api/tro-ly/vai` (Toàn quyền): đủ 9 mã quyền. Trả lại `TroLyCaiDatResponse`. */
 export interface TroLyVaiRequest { vai: Record<PermissionCode, boolean> }
 /** Lời dặn (ADR-0069 điều 4). `POST /api/tro-ly/loi-dan` nhận đúng dạng này; "quay lại bản cũ" = gửi lại nội dung của bản cũ. */

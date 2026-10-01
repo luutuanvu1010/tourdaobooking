@@ -16,6 +16,7 @@ import { normalizePhone } from "../../shared/phone";
 import { route, type AppModule, type Ctx } from "../../shared/router";
 import type { DonCuaNguoiDatTom, PartyAccountVerdict } from "../../shared/router";
 import { vnToday } from "../../shared/vn-date";
+import { gioiTinhHopLe } from "../../shared/xung-ho";
 import {
   accountRolesOf as accountRoleRows, addContactStatements, addRelationshipStatement, addRoleStatement, endContactStatement, endRelationshipStatement, endRoleStatement,
   companyIdentityOf, docsForMerge, driverDocsForDispatch, driversForDispatch, expiringDocumentsOfRoles, findLicenseClass, findParty, findPartiesByPhone, findPersonDocument, findPersonDocumentNumber, findPersonDocumentType, getPartyDetail,
@@ -401,6 +402,7 @@ function toDetail(
     familyName: p.family_name,
     middleName: p.middle_name,
     givenName: p.given_name,
+    gender: gioiTinhHopLe(p.gender),
     legalName: p.legal_name,
     taxCode: p.tax_code,
     address: p.address,
@@ -885,7 +887,7 @@ export const partiesModule: AppModule = {
       const today = vnToday(now);
       const made =
         v.kind === "PERSON"
-          ? newPersonStatements(env.DB, { name: v.name, contacts: v.contacts, contactsFrom: today }, staff.id, at)
+          ? newPersonStatements(env.DB, { name: v.name, gender: v.gender, contacts: v.contacts, contactsFrom: today }, staff.id, at)
           : newOrganizationStatements(env.DB, { org: v.org, contacts: v.contacts, contactsFrom: today }, staff.id, at);
       const name = v.kind === "PERSON" ? composePersonName(v.name) : v.org.displayName;
       // Không ghi SĐT/email/MST vào nhật ký (chỉ tên và loại) — đặc tả N1 §5.
@@ -918,8 +920,14 @@ export const partiesModule: AppModule = {
       // Ruling D17 (b): hồ sơ công ty chủ không ngưng dùng được (kể cả người giữ ô) — muốn thôi dùng thì đổi công ty chủ trước. PUT là đường DUY NHẤT đặt active.
       if (chu && !parsed.value.active) return OWNER_COMPANY_KEEP_ACTIVE();
       const at = new Date().toISOString();
-      const stmts = updatePartyStatements(env.DB, id, parsed.value, staff.id, at);
-      const results = await env.DB.batch([...stmts, auditStatement(env.DB, { staffId: staff.id, action: "party_updated", at, targetType: "party", targetId: id, detail: `${KIND_LABEL[current.party_kind]}` }, "changes() > 0")]);
+      // ADR-0084 Đ1: vắng ô giới tính ⇒ giữ giá trị đang lưu. Nhật ký chỉ ghi "đổi giới tính" — KHÔNG giá trị cũ / mới (cùng lối dữ liệu cá nhân).
+      const pv = parsed.value;
+      const gioiTinhCu = gioiTinhHopLe(current.gender);
+      const v = pv.kind === "PERSON" ? { ...pv, gender: pv.gender === undefined ? gioiTinhCu : pv.gender } : pv;
+      const doiGioiTinh = v.kind === "PERSON" && v.gender !== gioiTinhCu;
+      const stmts = updatePartyStatements(env.DB, id, v, staff.id, at);
+      const detail = `${KIND_LABEL[current.party_kind]}${doiGioiTinh ? " — đổi giới tính" : ""}`;
+      const results = await env.DB.batch([...stmts, auditStatement(env.DB, { staffId: staff.id, action: "party_updated", at, targetType: "party", targetId: id, detail }, "changes() > 0")]);
       if ((results[stmts.length - 1]!.meta.changes ?? 0) === 0) return STALE();
       return respondParty(ctx, id);
     }),
