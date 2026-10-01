@@ -19,7 +19,7 @@ Tìm từ khoá kéo đoạn lạc đề khi câu hỏi diễn đạt khác ch�
 - V5. Véc-tơ đoạn kho đã đọc được giữ trong bộ nhớ isolate theo khoá (véc-tơ câu hỏi không giữ); lần hỏi kế tiếp trong cùng isolate không đọc lại D1 cho khoá đã có (đếm truy vấn trong bài).
 
 **Chọn đoạn trộn (Đ3)**
-- C1. Hàm thuần `chonDoanTron(cauHoi, vecCauHoi, kho, vecDoan, perms)`: RRF của thứ hạng BM25 và thứ hạng cô-sin; bỏ đoạn có cô-sin < ngưỡng **trừ** đoạn khớp từ khoá **mạnh** (khớp cặp âm tiết liền nhau của câu hỏi, hoặc BM25 ≥ tỉ lệ đặt sẵn × điểm cao nhất); giữ trọng số vai, ngân sách 6.000 token, tối đa 12 đoạn — có test với véc-tơ giả đặt tay.
+- C1. Hàm thuần `chonDoanTron(cauHoi, vecCauHoi, kho, vecDoan, perms)`: RRF của thứ hạng BM25 và thứ hạng cô-sin; bỏ đoạn có cô-sin < ngưỡng **trừ** đoạn khớp từ khoá **mạnh** (khớp cặp âm tiết liền nhau của câu hỏi, hoặc BM25 ≥ 0,7 × điểm cao nhất **và** khớp ≥ 2 từ khác nhau của câu hỏi); giữ trọng số vai, ngân sách 6.000 token, tối đa 12 đoạn — có test với véc-tơ giả đặt tay.
 - C2. Đoạn khớp tên nút chính xác (cụm từ khoá, khớp mạnh) vẫn được chọn dù cô-sin thấp; đoạn chỉ khớp lẻ một chữ phổ biến mà cô-sin thấp thì bị bỏ (test).
 - C3. Câu hỏi không khớp từ khoá nào nhưng gần nghĩa một đoạn → đoạn đó được chọn (test).
 - C4. Câu "sao app khó dùng thế" với **kho thật** + véc-tơ giả cho mọi đoạn cô-sin thấp: số đoạn được chọn chỉ còn các đoạn khớp mạnh (đếm trên kho thật, ghi con số vào test) — không còn 12 đoạn chỉ vì chữ "dùng"; không còn đoạn nào thì khối tài liệu ghi "không tìm thấy đoạn liên quan".
@@ -43,7 +43,7 @@ Tìm từ khoá kéo đoạn lạc đề khi câu hỏi diễn đạt khác ch�
 
 ## 3. Dữ liệu
 
-- Migration mới số tạm **`0062`** (main tới `0060`; `0061_aut_session` giữ ở nhánh đăng nhập; gộp sau thì đổi tên): bảng `tl_van_nghia` (`khoa` TEXT PRIMARY KEY, `mau` TEXT NOT NULL, `so_chieu` INTEGER NOT NULL CHECK > 0, `vec` BLOB NOT NULL CHECK `length(vec) = so_chieu * 4`, `created_at`); trigger chỉ-thêm.
+- Migration mới số tạm **`0062`** (main tới `0060`; `0061_aut_session` giữ ở nhánh đăng nhập; gộp sau thì đổi tên): bảng `tl_van_nghia` (`khoa` TEXT PRIMARY KEY, `mau` TEXT NOT NULL, `so_chieu` INTEGER NOT NULL CHECK > 0, `vec` BLOB NOT NULL CHECK `typeof(vec) = 'blob'` và `length(vec) = so_chieu * 4`, `created_at`); trigger chỉ-thêm.
 - `docs/data-dictionary.json` + `npm run dict`.
 - Không đổi `tl_luot_hoi` (tiền embedding cộng vào `chi_phi_micro_usd` sẵn có).
 
