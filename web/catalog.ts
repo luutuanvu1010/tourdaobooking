@@ -3,6 +3,7 @@ import { ApiError, api, type CatalogAdminItem, type CatalogSyncState, type PaxCo
 import { byId, h, replaceChildren } from "./dom";
 import { dateTime, grouped, parseMoney, vnd } from "./format";
 import { PAX_LABEL, PAX_ORDER } from "../src/shared/order-lines";
+import { unitLabel } from "../src/shared/service-form";
 import { CHUA_PHAN_LOAI_TEN, dongLichSuNhom } from "../src/shared/lich-su-nhom";
 import { CHE_DO_DUA_DON, type CheDoDuaDon } from "../src/shared/chang-mac-dinh";
 import { dongLichSuMauChang, nhanCheDoCua } from "../src/shared/lich-su-mau-chang";
@@ -107,7 +108,7 @@ function row(it: CatalogAdminItem): HTMLElement {
     h("td", null, it.code),
     h("td", null, it.name, chipDuaDon(it, "dd-chip-dong"), it.hidden && h("span", { class: "badge badge-cancelled" }, "Đã ẩn"), !it.inSheet && h("span", { class: "badge badge-draft" }, "Không còn trong Sheet"), !it.supported && h("span", { class: "badge badge-draft", title: "Chỉ nhập tay được" }, `Đơn vị ${it.unit} chưa hỗ trợ`), it.conflicts.length > 0 && h("div", { class: "alert warn", style: "margin:6px 0 0" }, `Sheet đã đổi giá kể từ khi ghi đè — ${conflicts}. Giá đang bán vẫn là giá ghi đè.`)),
     h("td", { class: "nhom-o" }, tenNhomCua(it)),
-    h("td", { class: "muted" }, it.unit),
+    h("td", { class: "muted" }, unitLabel(it.unit)),
     ...PAX_ORDER.map((c) => priceCell(it, c)),
     h(
       "td",
@@ -145,7 +146,7 @@ function card(it: CatalogAdminItem): HTMLElement {
   return h(
     "div",
     { class: it.hidden || !it.inSheet ? "card card-col row-off" : "card card-col", "data-code": it.code },
-    h("div", { class: "the-dau" }, oChon(it), h("span", { class: "muted" }, it.code, " · ", it.unit)),
+    h("div", { class: "the-dau" }, oChon(it), h("span", { class: "muted" }, it.code, " · ", unitLabel(it.unit))),
     h("div", { class: "dd-ten-dong" }, h("strong", null, it.name), chipDuaDon(it), it.hidden && h("span", { class: "badge badge-cancelled" }, " Đã ẩn"), !it.inSheet && h("span", { class: "badge badge-draft" }, " Không còn trong Sheet"), !it.supported && h("span", { class: "badge badge-draft", title: "Chỉ nhập tay được" }, ` Đơn vị ${it.unit} chưa hỗ trợ`)),
     h("div", { class: "nhom-o muted" }, `Nhóm: ${tenNhomCua(it)}`),
     h("div", null, priceLine(it), it.overridden.length > 0 && h("span", { class: "mark", style: "color:var(--c-accent);font-weight:700", title: "Có giá ghi đè" }, " ✎")),
