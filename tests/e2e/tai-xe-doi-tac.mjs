@@ -51,7 +51,7 @@ try {
   assert.equal(r.status, 400, JSON.stringify(r.body));
   const cu = await call(TOAN_QUYEN, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Đối Tác Cũ E2E", phone: randomPhone(), permissions: ["PARTNER"] });
   assert.equal(cu.status, 201, JSON.stringify(cu.body));
-  r = await call(ADMIN, "PUT", `/api/staff/${cu.body.staff.id}/permissions`, { permissions: ["PARTNER", "DRIVER_PARTNER"] });
+  r = await call(TOAN_QUYEN, "PUT", `/api/staff/${cu.body.staff.id}/permissions`, { permissions: ["PARTNER", "DRIVER_PARTNER"] }); // ADR-0083 1a: chỉ Toàn quyền
   assert.equal(r.status, 400, JSON.stringify(r.body));
   r = await call(ADMIN, "PUT", `/api/staff/${txId}/roles`, { roles: ["DRIVER_EXTERNAL"], adds: ["PARTNER"], reason: "thử lai" });
   assert.equal(r.status, 400, JSON.stringify(r.body));

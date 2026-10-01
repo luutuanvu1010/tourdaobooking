@@ -52,3 +52,7 @@ Chi tiết từng ô bảng quyền theo mã quyền: xem `src/shared/permission
 ## Kết quả rà tài khoản mang vai Giám đốc (ADR-0072 điều 3) — 2026-10-01
 
 Chủ dự án tự chạy lệnh chỉ đọc trên D1 thật: **1 tài khoản** mang vai Giám đốc, đang hoạt động, quyền hiện có **chỉ `ADMIN`** (không có `SUPER_ADMIN`). Không cần bước gỡ hay cộng tay nào; sau khi áp ADR-0072 quyền của tài khoản này không đổi.
+
+## Kết quả rà tài khoản lai (ADR-0083 điều 1c) — 2026-10-01
+
+Chủ dự án tự chạy lệnh chỉ đọc trên D1 thật (tài khoản giữ đồng thời quyền bên ngoài `PARTNER`/`DRIVER_PARTNER` và quyền nội bộ): **rỗng** — không có tài khoản lai, không cần bước dữ liệu nào.

@@ -24,6 +24,9 @@ function openAiGia(tuyChon: { status?: number; usage?: Record<string, unknown> |
   const goi: GoiGia[] = [];
   globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input instanceof Request ? input.url : input);
+    // ADR-0082: cửa /v1/embeddings của máy giả TẮT (503) ⇒ máy chủ lùi về chọn đoạn theo từ khoá = đúng luật cũ mà các bài trong tệp này canh;
+    // `goi` chỉ ghi /v1/responses. Đường tìm theo nghĩa được canh ở van-nghia-route.test.ts.
+    if (url.endsWith("/v1/embeddings")) return new Response(JSON.stringify({ error: { message: "tắt" } }), { status: 503 });
     const body = JSON.parse(String(init?.body ?? "{}")) as Record<string, unknown>;
     goi.push({ url, headers: Object.fromEntries(new Headers(init?.headers).entries()), body });
     if (tuyChon.nem) throw new TypeError("mạng hỏng");

@@ -13,7 +13,7 @@
 //     giảm" (trần = 0): giảm giá cấp đơn phải bằng 0 ở lập, sửa và xác nhận (xác nhận đọc giảm giá ĐÃ LƯU) → sai 403 forbidden. Nhân viên nội bộ không đổi.
 // Đơn của Đối tác dựng bằng API trực tiếp (từ 1.15 Đối tác đọc được danh mục — ADR-0028; kịch bản không cần giao diện). Dịch vụ nhập tay CŨ dựng bằng SQL trên D1 local tạm (`makeLegacyManual`).
 import assert from "node:assert/strict";
-import { ACCOUNTS, FAKE_CATALOG, call, catalogService, ensureFakeCatalog, login, makeLegacyManual, manualService, orderInput, randomPhone, session, sql, sqlRows, vnDate } from "./lib.mjs";
+import { ACCOUNTS, FAKE_CATALOG, call, catalogService, ensureFakeCatalog, gieoTaiKhoanLai, login, makeLegacyManual, manualService, orderInput, randomPhone, session, sql, sqlRows, vnDate } from "./lib.mjs";
 
 await ensureFakeCatalog();
 const SALES = await session(ACCOUNTS.salesA);
@@ -252,18 +252,17 @@ console.log("✓ R2+R3: nhân viên bán hàng cùng thân yêu cầu (đơn gi�
 
 // 8) Tài khoản CÓ quyền Đối tác kèm quyền nội bộ (gán qua đường quản trị cũ — không kèm vai, nên luật LC-1 của mô hình vai không chạy) vẫn theo luật
 // giá Đối tác (chủ dự án chốt 2026-09-26: "Có quyền Đối tác là áp"). Đường lách do người kiểm độc lập chứng minh 26/9: PARTNER+FIELD lập đơn 1đ → 201.
-const hybridPhone = randomPhone();
-r = await call(SUPER, "POST", "/api/staff", { taoHoSoMoi: true, fullName: `Đối Tác Lai ${tag}`, phone: hybridPhone, permissions: ["PARTNER", "FIELD"] });
-assert.equal(r.status, 201, JSON.stringify(r.body));
-assert.deepEqual([...r.body.staff.permissions].sort(), ["FIELD", "PARTNER"], "đối chứng: đường cũ vẫn cho gán PARTNER kèm quyền nội bộ");
-const PH = (await login(hybridPhone, r.body.pin)).cookie;
+// ADR-0083 điều 1b: đường cũ nay CHẶN tạo tài khoản lai (400); tài khoản lai cũ vẫn có thể còn trong dữ liệu (điều 1c) → gieo SQL để thử luật giá.
+r = await call(SUPER, "POST", "/api/staff", { taoHoSoMoi: true, fullName: `Đối Tác Lai ${tag}`, phone: randomPhone(), permissions: ["PARTNER", "FIELD"] });
+assert.equal(r.status, 400, `ADR-0083 1b: đường cũ không tạo tài khoản lai: ${JSON.stringify(r.body)}`);
+const PH = (await gieoTaiKhoanLai(`Đối Tác Lai ${tag}`, ["PARTNER", "FIELD"])).cookie;
 r = await call(PH, "POST", "/api/orders", orderInput({ customerName: `ĐT lai lệch giá ${tag}`, services: [catalogService({ pax: { adult: 2 }, unitPrices: { adult: 1 } })] }));
 assert.equal(r.status, 403, `Đối tác lai, đơn giá 1đ: ${JSON.stringify(r.body)}`);
 assert.match(r.body.error.message, RETAIL);
 r = await call(PH, "POST", "/api/orders", orderInput({ customerName: `ĐT lai giảm giá ${tag}`, services: [catalogService({ pax: { adult: 2 } })], discount: 1 }));
 assert.equal(r.status, 403, `Đối tác lai, giảm 1đ: ${JSON.stringify(r.body)}`);
 assert.match(r.body.error.message, NO_DISCOUNT);
-console.log("✓ R2+R3: tài khoản có quyền Đối tác KÈM quyền nội bộ (PARTNER+FIELD, gán qua đường cũ) → đơn giá lệch 403, giảm giá 403");
+console.log("✓ R2+R3: tài khoản có quyền Đối tác KÈM quyền nội bộ (PARTNER+FIELD, dữ liệu lai cũ — gieo SQL; API nay chặn 400) → đơn giá lệch 403, giảm giá 403");
 
 // ============================== ADR-0061 — công tắc "Dịch vụ nhập tay" (tiêu chí nghiệm thu 2–5) ==============================
 // Tài khoản thêm cho mục này: Thực tập (INTERN), lai Đối tác + Bán hàng (SALES+PARTNER, gán qua đường quản trị cũ như mục 8).
@@ -274,7 +273,7 @@ const taoTk = async (ten, permissions) => {
   return (await login(ph, x.body.pin)).cookie;
 };
 const INTERN = await taoTk("Thực Tập Nhập Tay", ["INTERN"]);
-const LAI_SALES = await taoTk("Đối Tác Lai Bán", ["SALES", "PARTNER"]);
+const LAI_SALES = (await gieoTaiKhoanLai(`Đối Tác Lai Bán ${tag}`, ["SALES", "PARTNER"])).cookie; // ADR-0083 1b: API không tạo lai nữa — gieo SQL
 const nhapTayBody = (name) => orderInput({ customerName: name, services: [catalogService(), manualService([{ description: "Xe 7 chỗ", quantity: 2, unitPrice: 400000 }], { name: "Xe đưa đón riêng" })] });
 
 // 9a) Quản trị bật công tắc → 403 forbidden, công tắc vẫn TẮT (tiêu chí 4 nửa đầu)

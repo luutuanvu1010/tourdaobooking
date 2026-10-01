@@ -4,8 +4,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
-  CAU_CHUA_CO, CAU_HOI_TOI_DA, CAU_TU_CHOI, CHE, KHONG_TIM_THAY, NGAN_SACH_TOKEN, boDau, cheCauHoi, chiPhiMicroUsd, chiaKho, chonDoan, docPhanHoi,
-  dungLoiNhac, khoangThang, kiemCaiDat, quyetDinhTran, tachNguon, tachTu, thanThuKhoa, thanYeuCau, timDoan, truyVanTim, uocToken, uocTokenVao, viPhamKho, dinhDangDoan,
+  CAU_CHUA_CO, CAU_HOI_TOI_DA, CAU_TU_CHOI, CHE, KHONG_TIM_THAY, NGAN_SACH_TOKEN, boDau, cheCauHoi, chiPhiMicroUsd, chiaKho, chonDoan, diemTuKhoa, docPhanHoi,
+  dungLoiNhac, heSoVai, khoangThang, kiemCaiDat, quyetDinhTran, tachNguon, tachTu, thanThuKhoa, thanYeuCau, timDoan, truyVanTim, uocToken, uocTokenVao, viPhamKho, dinhDangDoan,
   type DoanTriThuc,
 } from "./tro-ly.ts";
 import { LOI_NHAC_MAC_DINH, THONG_SO_MAC_DINH } from "./tro-ly-bo-nao.ts";
@@ -235,4 +235,17 @@ test("truyVanTim (N5): câu hỏi hiện tại + câu hỏi lượt trước g�
   assert.equal(truyVanTim("còn trên điện thoại thì sao", null), "còn trên điện thoại thì sao");
   assert.equal(truyVanTim("còn trên điện thoại thì sao", "đổi mã PIN thế nào"), "còn trên điện thoại thì sao đổi mã PIN thế nào");
   assert.ok(chonDoan(truyVanTim("thế còn cách khác?", "đổi mã PIN thế nào"), ["SALES"]).some((d) => /PIN/.test(d.ten)));
+});
+
+test("diemTuKhoa (ADR-0082 Đ3): điểm THÔ cùng thứ tự kho + số âm tiết đơn khớp + có khớp cặp; timDoan = điểm thô × hệ số vai, chỉ đoạn > 0", () => {
+  const kho = chiaKho();
+  const d = diemTuKhoa("đổi mã PIN thế nào", kho);
+  assert.equal(d.length, kho.length);
+  const i = d.findIndex((x) => x.coCap);
+  assert.ok(i >= 0 && d[i]!.soTuDon >= 1);
+  const t = timDoan("đổi mã PIN thế nào", ["SALES"], kho);
+  assert.equal(t.length, d.filter((x) => x.diem > 0).length);
+  const dau = kho.indexOf(t[0]!.doan);
+  assert.ok(Math.abs(t[0]!.diem - d[dau]!.diem * heSoVai(kho[dau]!, ["SALES"])) < 1e-9);
+  assert.deepEqual(diemTuKhoa("zzqx", kho.slice(0, 2)), [{ diem: 0, soTuDon: 0, coCap: false }, { diem: 0, soTuDon: 0, coCap: false }]);
 });
