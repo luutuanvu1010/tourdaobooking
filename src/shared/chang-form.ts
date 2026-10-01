@@ -187,6 +187,18 @@ export function legInput(l: ChangNhap, guiSoVe: boolean): LegInput {
   };
 }
 
+/**
+ * Đơn nháp: chặng đã đặt gấp mà ngày / giờ / nơi đón / nơi trả GIỮ NGUYÊN → máy chủ chép lại dấu khi lưu (`chepDatGapNhap`, khoá theo nội dung) → hiện nhãn
+ * đặt gấp thay vì cảnh báo dưới mốc. Đổi bất kỳ trường vận hành nào → dấu mất khi lưu. (Chỉ để hiện — máy chủ quyết.)
+ */
+export function giuDatGapNhap(l: ChangNhap): boolean {
+  const g = l.goc;
+  if (!g || g.datGap === null) return false;
+  const m = legInput(l, false);
+  return m.pickupDate === (g.pickupDate ?? "") && m.pickupTime === (g.pickupTime ?? "") && m.pickupLocationId === g.pickupLocationId && m.pickupPlace === (g.pickupPlace ?? "") &&
+    m.dropoffLocationId === g.dropoffLocationId && m.dropoffPlace === (g.dropoffPlace ?? "");
+}
+
 /** Chặng đã sửa so với bản đã lưu (bảng "Sửa đưa đón" chỉ gửi lệnh cho chặng có đổi). Chặng mới luôn "đổi". */
 export function changDaDoi(l: ChangNhap, guiSoVe: boolean): boolean {
   if (!l.goc) return true;

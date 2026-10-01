@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  TU_DO, cauDoiNgay, changDaDoi, changTaoSan, changTuDto, coOSoHieu, doiNgayDi, goiYChang, legInput, loiChang, loiDanhSachChang, suaChang, themChangDi, themChieuVe,
+  TU_DO, cauDoiNgay, giuDatGapNhap, changDaDoi, changTaoSan, changTuDto, coOSoHieu, doiNgayDi, goiYChang, legInput, loiChang, loiDanhSachChang, suaChang, themChangDi, themChieuVe,
 } from "./chang-form.ts";
 import { NOI_DON_CHUA_GHI } from "./chang-dua-don.ts";
 import type { MauChang } from "./chang-mac-dinh.ts";
@@ -123,4 +123,12 @@ test("ô số hiệu chuyến bay: hiện khi nơi đón / nơi trả là sân b
   assert.equal(coOSoHieu(l, sb), false);
   assert.equal(coOSoHieu({ ...l, tra: GA }, sb), true);
   assert.equal(coOSoHieu({ ...l, flightCode: "VN1" }, sb), true);
+});
+
+test("giuDatGapNhap: chặng đã đặt gấp giữ nguyên ngày/giờ/nơi → giữ dấu; đổi giờ → mất; chặng không dấu → false", () => {
+  const l = changTuDto(dto({ datGap: { daDuyet: true } }), k());
+  assert.equal(giuDatGapNhap(l), true);
+  assert.equal(giuDatGapNhap(suaChang([l], 0, { flightCode: "VN1" })[0]!), true, "ô phụ không làm mất dấu");
+  assert.equal(giuDatGapNhap(suaChang([l], 0, { pickupTime: "09:00" })[0]!), false);
+  assert.equal(giuDatGapNhap(changTuDto(dto(), k())), false);
 });

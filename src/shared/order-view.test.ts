@@ -46,7 +46,6 @@ test("serviceView: thông tin chuyến — chưa có ngày → dòng cảnh báo
   const v = serviceView(svc({ departDate: "2026-09-20", departTime: "07:30", pickupTime: "07:00", pickupPlace: "Bến Cầu Đá", checkinTime: "09:00", note: "Đón trước cổng" }));
   assert.deepEqual(v.trip, [
     { label: "Khởi hành", value: "20/09/2026 · 07:30", warn: false },
-    { label: "Đón", value: "07:00 · Bến Cầu Đá", warn: false },
     { label: "Check-in", value: "Cùng ngày khởi hành · 09:00", warn: false },
     { label: "Ghi chú", value: "Đón trước cổng", warn: false },
   ]);
@@ -56,7 +55,6 @@ test("serviceView(s, ngày của đơn) (bản 1.39): dịch vụ cùng ngày v�
   const v = serviceView(svc({ departDate: "2026-09-20", departTime: "07:30", pickupTime: "07:00", pickupPlace: "Bến Cầu Đá" }), "2026-09-20");
   assert.deepEqual(v.trip, [
     { label: "Giờ khởi hành", value: "07:30", warn: false },
-    { label: "Đón", value: "07:00 · Bến Cầu Đá", warn: false },
   ]);
   assert.deepEqual(serviceView(svc(), null).trip, [{ label: "Khởi hành", value: "Chưa có ngày khởi hành", warn: true }]);
 });

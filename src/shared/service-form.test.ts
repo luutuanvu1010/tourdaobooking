@@ -27,14 +27,14 @@ const savedTour: OrderServiceDto = {
     { id: "i2", catalogCode: "TD101", paxCode: "child", description: "Tour 4 đảo Nha Trang — Trẻ em", detail: "Trẻ 5–10 tuổi", quantity: 1, unitPrice: 950000, catalogPrice: 950000, lineTotal: 950000 },
   ],
   catalogStatus: "price_changed",
-  departDate: "2026-09-20", departTime: "07:30", pickupTime: "07:00", pickupPlace: "Khách sạn Sunrise", checkinDate: null, checkinTime: "07:15", checkinPlace: "Cảng Cầu Đá", note: null,
+  departDate: "2026-09-20", departTime: "07:30", pickupTime: "07:00", pickupPlace: "Khách sạn Sunrise", checkinDate: null, checkinTime: "07:15", checkinPlace: "Cảng Cầu Đá", note: null, legs: [],
 };
 const savedManual: OrderServiceDto = {
   id: "svc-3", kind: "manual", catalogCode: null, name: "Xe đưa đón riêng", unit: "manual",
   pax: { adult: 3, child: 0, senior: 0, infant: 0 },
   items: [{ id: "i9", catalogCode: null, paxCode: null, description: "Xe 7 chỗ 2 chiều", detail: null, quantity: 1, unitPrice: 800000, catalogPrice: null, lineTotal: 800000 }],
   catalogStatus: null,
-  departDate: "2026-09-20", departTime: "06:30", pickupTime: null, pickupPlace: null, checkinDate: null, checkinTime: null, checkinPlace: null, note: null,
+  departDate: "2026-09-20", departTime: "06:30", pickupTime: null, pickupPlace: null, checkinDate: null, checkinTime: null, checkinPlace: null, note: null, legs: [],
 };
 
 // ---- tạo thẻ ----
@@ -143,18 +143,30 @@ test("toServiceInput (danh mục): KHÔNG có items/quantity; unitPrices và cat
   assert.equal(input.kind, "catalog");
   assert.ok(!("items" in input) && !("quantity" in input) && !("id" in input));
   assert.deepEqual(input, {
-    kind: "catalog", catalogCode: "TD101", pax: { adult: 2, child: 1, senior: 0, infant: 0 },
+    legs: [], kind: "catalog", catalogCode: "TD101", pax: { adult: 2, child: 1, senior: 0, infant: 0 },
     unitPrices: { adult: 1300000, child: 950000 }, catalogPriceSeen: { adult: 1350000, child: 950000 },
-    departDate: "2026-09-20", departTime: "", pickupTime: "", pickupPlace: "Khách sạn Sunrise", checkinDate: "", checkinTime: "", checkinPlace: "", note: "",
+    departDate: "2026-09-20", departTime: "", checkinDate: "", checkinTime: "", checkinPlace: "", note: "",
   });
+});
+
+test("ADR-0047 Phần B: toServiceInput LUÔN có khoá legs (kể cả []) và KHÔNG có pickupTime/pickupPlace; chặng đã lưu giữ id; lỗi chặng chặn Lưu", () => {
+  const leg = { id: "33333333-3333-4333-8333-333333333333", direction: "OUT" as const, pickupDate: "2026-09-20", pickupTime: "07:00", pickupLocationId: null, pickupPlace: "Sunrise", pickupLabel: "Sunrise",
+    dropoffLocationId: null, dropoffPlace: null, dropoffLabel: null, updatedAt: "t", flightCode: null, paxOverride: null, datGap: null };
+  const d = draftFromDto({ ...savedTour, legs: [leg] }, live, "k1");
+  const input = toServiceInput(d);
+  assert.ok(!("pickupTime" in input) && !("pickupPlace" in input));
+  assert.deepEqual(input.legs, [{ id: leg.id, direction: "OUT", pickupDate: "2026-09-20", pickupTime: "07:00", pickupLocationId: null, pickupPlace: "Sunrise", dropoffLocationId: null, dropoffPlace: "", flightCode: "" }]);
+  assert.deepEqual(toServiceInput(newCatalogDraft(tour, "k2")).legs, []);
+  const loi = { ...d, legs: [{ ...d.legs[0]!, don: "" }] };
+  assert.deepEqual(draftIssues(loi).map((i) => [i.code, i.message]), [["leg", "Chặng 1: chưa có nơi đón."]]);
 });
 
 test("toServiceInput (nhập tay): số khách vận hành ở adult, dòng tiền đã cắt khoảng trắng; dịch vụ đã lưu mang id", () => {
   const d = setManualLine({ ...newManualDraft("k3"), id: "svc-3", name: "  Xe đưa đón riêng ", guests: 3 }, 0, { description: " Xe 7 chỗ 2 chiều ", detail: " ", quantity: 1, unitPrice: 800000 });
   assert.deepEqual(toServiceInput(d), {
-    id: "svc-3", kind: "manual", name: "Xe đưa đón riêng", pax: { adult: 3, child: 0, senior: 0, infant: 0 },
+    id: "svc-3", legs: [], kind: "manual", name: "Xe đưa đón riêng", pax: { adult: 3, child: 0, senior: 0, infant: 0 },
     items: [{ description: "Xe 7 chỗ 2 chiều", detail: "", quantity: 1, unitPrice: 800000 }],
-    departDate: "", departTime: "", pickupTime: "", pickupPlace: "", checkinDate: "", checkinTime: "", checkinPlace: "", note: "",
+    departDate: "", departTime: "", checkinDate: "", checkinTime: "", checkinPlace: "", note: "",
   });
 });
 
@@ -179,9 +191,9 @@ test("draftFromDto (danh mục): giữ bản chụp — đơn giá thương lư�
   assert.ok(p.ok);
   assert.deepEqual(p.lines.map((l) => [l.quantity, l.unitPrice, l.catalogPrice, l.deviation]), [[2, 1300000, 1350000, -50000], [1, 950000, 950000, null]]);
   assert.deepEqual(toServiceInput(d), {
-    id: "svc-1", kind: "catalog", catalogCode: "TD101", pax: { adult: 2, child: 1, senior: 0, infant: 0 },
+    id: "svc-1", legs: [], kind: "catalog", catalogCode: "TD101", pax: { adult: 2, child: 1, senior: 0, infant: 0 },
     unitPrices: { adult: 1300000, child: 950000 }, catalogPriceSeen: { adult: 1350000, child: 950000 },
-    departDate: "2026-09-20", departTime: "07:30", pickupTime: "07:00", pickupPlace: "Khách sạn Sunrise", checkinDate: "", checkinTime: "07:15", checkinPlace: "Cảng Cầu Đá", note: "",
+    departDate: "2026-09-20", departTime: "07:30", checkinDate: "", checkinTime: "07:15", checkinPlace: "Cảng Cầu Đá", note: "",
   });
 });
 
@@ -328,7 +340,7 @@ const noPriceDto: OrderServiceDto = {
   pax: { adult: 2, child: 0, senior: 0, infant: 0 },
   items: [{ id: "i1", catalogCode: "TD101", paxCode: "adult", description: "Tour 4 đảo Nha Trang — Người lớn", detail: null, quantity: 2, unitPrice: 1300000, catalogPrice: null, lineTotal: 2600000 }],
   catalogStatus: null,
-  departDate: null, departTime: null, pickupTime: null, pickupPlace: null, checkinDate: null, checkinTime: null, checkinPlace: null, note: null,
+  departDate: null, departTime: null, pickupTime: null, pickupPlace: null, checkinDate: null, checkinTime: null, checkinPlace: null, note: null, legs: [],
 };
 
 test("orderSummary với giảm giá khác 0: tổng cộng = tạm tính − giảm; trả trước so với TỔNG CỘNG (không phải tạm tính)", () => {

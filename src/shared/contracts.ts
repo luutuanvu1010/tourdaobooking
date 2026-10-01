@@ -255,7 +255,9 @@ export type ServiceInput = {
    * `pickupTime`/`pickupPlace` cũ vào chặng chiều đi đầu (tương thích phát hành 1 — R2b; máy chưa tải bản mới).
    */
   legs?: LegInput[];
-} & TripInput &
+} & Omit<TripInput, "pickupTime" | "pickupPlace"> &
+  /** Hai khoá CŨ (tương thích phát hành 1): form mới KHÔNG gửi (ADR-0047 Phần B); vắng = không đụng chặng. */
+  Partial<Pick<TripInput, "pickupTime" | "pickupPlace">> &
   (
     | {
         kind: "catalog";
@@ -392,7 +394,8 @@ export interface PassengerChangeInput {
 /** `PUT /api/orders/:id/trip` — sửa trường vận hành (đơn nháp hoặc đã xác nhận). */
 export interface TripUpdateInput {
   expectedUpdatedAt: string;
-  services: ({ id: string } & TripInput)[];
+  /** Hai khoá cũ `pickupTime`/`pickupPlace` VẮNG (ADR-0047 Phần B — giờ / nơi đón sửa qua route chặng); có mặt thì máy chủ trộn vào chiều đi đầu (R2c). */
+  services: ({ id: string } & Omit<TripInput, "pickupTime" | "pickupPlace"> & Partial<Pick<TripInput, "pickupTime" | "pickupPlace">>)[];
 }
 
 /** `PUT /api/orders/:id/booker` — đổi khách (hồ sơ người đặt + tên/SĐT chụp trên đơn) của đơn nháp hoặc đã xác nhận (ADR-0011 điều 2). */
