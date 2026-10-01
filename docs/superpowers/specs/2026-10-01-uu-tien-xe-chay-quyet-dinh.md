@@ -29,3 +29,16 @@ Các ý khác của phiếu Giám đốc → `docs/BACKLOG.md` mục 10 (đã gh
 2. ADR nháp "nơi trả mặc định theo dịch vụ" + kế hoạch phần máy chủ cho `pax_override` / `flight_code` / nơi trả mặc định (migration 0057–0059, chốt lúc gộp) — làm được trước khi có bản vẽ.
 3. ADR nháp sổ tiền lượt 2 (đại lý/đối tác, khoá kỳ tháng, đối tác xem sổ) + trang ghép → người kiểm độc lập → chủ duyệt (tối đa 3 quyết định chạm quyền/dữ liệu mỗi lượt duyệt).
 4. Câu tiền còn mở (ai nhập bảng mức, dịch vụ thiếu mức, cộng tác viên, đơn đối tác đang kẹt, nợ nhà xe) → ghi trong ADR nháp với phương án khuyến nghị, **chủ quyết lúc duyệt ADR**, AI không tự chọn.
+
+## Hộp chọn 1/10 lượt 2 (sau khi hai bản nháp qua người kiểm độc lập)
+
+| # | Câu | Chủ chọn |
+|---|---|---|
+| Q-A | Ô "Số khách đi xe" là ô nào | **Làm ô "số người chiều về" trước** (`pax_override`, ADR-0054); ô cả đơn (`ride_pax`, ADR-0065 nháp) làm lát sau khi chủ duyệt ADR-0065 |
+| Q-B | Chỉ sửa số hiệu chuyến bay / số người chiều về trên chặng đã duyệt đặt gấp | **Giữ dấu đặt gấp cũ**; đổi ngày/giờ/nơi thì vẫn bỏ dấu như hiện nay |
+| Q-C | Lệch chữ ADR-0054 D10.3 (CHECK nhiều cột → CHECK một cột + trigger) | **Chấp nhận**; ghi vào `docs/SYSTEM-DESIGN.md` §16 khi thi công |
+| Q-D | Nơi trả gợi ý theo dịch vụ | **Quản trị cài ở Danh mục** (phương án A) — chủ được báo rằng chọn A là duyệt bản nháp `2026-10-01-de-xuat-adr-noi-tra-mac-dinh.md`; số ADR chính thức + chép vào `docs/adr/` làm lúc gộp (cần chủ bấm cho phép sửa `docs/adr/`) |
+
+Lệnh vẽ Claude Design (`2026-10-01-lenh-ve-claude-design-khach-noi-tra.md`) giữ cả hai đoạn tuỳ chọn (khớp Q-A lát sau và Q-D = A).
+
+**Hệ quả:** kế hoạch `docs/superpowers/plans/2026-10-01-may-chu-o-moi-chang-ke-hoach.md` Task 0–7 làm được (Task 7 hết chờ); Task 8 vẫn chờ ADR-0065. Kiểm độc lập: kế hoạch + ADR nháp nơi trả ĐẠT CÓ ĐIỀU KIỆN vòng 2 (đã sửa 3 mục chữ); bộ ADR sổ tiền lượt 2 ĐẠT vòng 3 — 13 câu C1–C13 ở `2026-10-01-de-xuat-adr-so-tien-luot-2/cau-hoi-chu.md` chờ chủ.
