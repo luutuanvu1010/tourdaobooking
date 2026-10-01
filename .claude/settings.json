@@ -40,6 +40,39 @@
             "timeout": 10
           }
         ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/guard-tep.mjs\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/cong-xanh.mjs\"",
+            "timeout": 1200
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "general-purpose|claude",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/cong-xanh.mjs\"",
+            "timeout": 1200
+          }
+        ]
       }
     ]
   }
