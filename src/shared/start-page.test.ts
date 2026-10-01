@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { TRANG_CUOC, TRANG_DAU_TAI_XE, chiTaiXe, coCuocCuaToi, coMucDonHang, coPhanTaiXe, homeRedirect } from "./start-page.ts";
+import { TRANG_CUOC, TRANG_DAU_TAI_XE, TRANG_TAI_KHOAN, chiTaiXe, coCuocCuaToi, coMucDonHang, coPhanTaiXe, homeRedirect } from "./start-page.ts";
 import { MATRIX, PERMISSION_CODES, can, canAccessOrders, seesAllOrders, type PermissionCode } from "./permissions.ts";
 import { PAGES } from "./sw-policy.ts";
 
@@ -75,16 +75,29 @@ test("homeRedirect: chỉ Tài xế đối tác (DRIVER_PARTNER) → /tai-xe; k�
   assert.equal(coPhanTaiXe(who("SALES", "FIELD")), false);
 });
 
-test("homeRedirect: 512 tập con quyền — tập KHÔNG có phần tài xế (DRIVER hoặc DRIVER_PARTNER) cho đúng kết quả cũ; trang đầu tài xế chỉ khi có phần tài xế và không xem đơn nào", () => {
+test("homeRedirect: 1024 tập con quyền — tập KHÔNG có phần tài xế (DRIVER hoặc DRIVER_PARTNER) cho đúng kết quả cũ; trang đầu tài xế chỉ khi có phần tài xế và không xem đơn nào", () => {
   const cu = (w: { id: string; permissions: PermissionCode[] }) => (!seesAllOrders(w) && canAccessOrders(w) ? "/orders" : null); // công thức trước ADR-0040, chép nguyên
   let n = 0;
   for (let mask = 0; mask < 1 << PERMISSION_CODES.length; mask++, n++) {
     const w = who(...PERMISSION_CODES.filter((_, i) => mask & (1 << i)));
     const coTaiXe = coPhanTaiXe(w);
-    const kyVong = !coTaiXe || seesAllOrders(w) || canAccessOrders(w) ? cu(w) : w.permissions.includes("DRIVER") ? TRANG_CUOC : TRANG_DAU_TAI_XE;
+    const truocHr = !coTaiXe || seesAllOrders(w) || canAccessOrders(w) ? cu(w) : w.permissions.includes("DRIVER") ? TRANG_CUOC : TRANG_DAU_TAI_XE;
+    // ADR-0071: tài khoản không có trang đầu nào khác mà xem được Quản lý tài khoản (Hành chính nhân sự) → /staff.
+    const kyVong = truocHr === null && !seesAllOrders(w) && can(w, "account.view") ? TRANG_TAI_KHOAN : truocHr;
     assert.equal(homeRedirect(w), kyVong, w.permissions.join("+") || "(không quyền)");
   }
-  assert.equal(n, 512);
+  assert.equal(n, 1024); // 10 mã (ADR-0071 thêm HR)
+});
+
+// ADR-0071: tài khoản chỉ Hành chính nhân sự (HR) không qua cổng orders — ở lại "/" thì Trang chủ gọi dashboard đơn và nhận 403. Đưa tới trang Quản lý tài khoản.
+test("homeRedirect: chỉ Nhân sự (HR) → /staff (trang có thật); HR kèm văn phòng → Trang chủ; HR kèm FIELD / Đối tác → /orders; HR kèm Tài xế → /cuoc", () => {
+  assert.equal(TRANG_TAI_KHOAN, "/staff");
+  assert.ok(PAGES.includes(TRANG_TAI_KHOAN));
+  assert.equal(homeRedirect(who("HR")), TRANG_TAI_KHOAN);
+  for (const office of ["SALES", "ACCOUNTING", "ADMIN", "SUPER_ADMIN"] as const) assert.equal(homeRedirect(who("HR", office)), null, `HR+${office}`);
+  for (const p of ["FIELD", "PARTNER", "INTERN"] as const) assert.equal(homeRedirect(who(p, "HR")), "/orders", `${p}+HR`);
+  assert.equal(homeRedirect(who("DRIVER", "HR")), TRANG_CUOC);
+  assert.equal(chiTaiXe(who("HR")), false);
 });
 
 // L3 (lỗi báo 30/9): Đối tác, Thực tập trên điện thoại không có đường về danh sách đơn của mình (thanh tab chỉ "Tạo đơn" + "Tôi").

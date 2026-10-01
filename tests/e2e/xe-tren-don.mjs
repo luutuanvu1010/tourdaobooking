@@ -25,7 +25,7 @@ let r;
 /** Tài khoản dùng một lần: `quyen` (mảng mã quyền) hoặc `vai` (mảng mã vai). Trả id, hồ sơ, cookie, SĐT. */
 async function taiKhoan(ten, { quyen, vai }) {
   const phone = randomPhone();
-  const x = await call(ADMIN, "POST", "/api/staff", { taoHoSoMoi: true, fullName: ten, phone, ...(quyen ? { permissions: quyen } : { roles: vai }) });
+  const x = await call(SUP, "POST", "/api/staff", { taoHoSoMoi: true, fullName: ten, phone, ...(quyen ? { permissions: quyen } : { roles: vai }) });
   assert.equal(x.status, 201, JSON.stringify(x.body));
   const cookie = (await login(phone, x.body.pin)).cookie;
   assert.ok(cookie, `đăng nhập ${ten}`);

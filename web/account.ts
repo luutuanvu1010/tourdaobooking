@@ -43,14 +43,14 @@ void feedbackBadge().then((n) => {
 });
 const lienKetDau = [
   isOffice(staff) && h("a", { class: "row-link", href: "/parties" }, "Danh bạ", icon("next", 20)),
-  hasPermission(staff, "ADMIN") && h("a", { class: "row-link", href: "/locations" }, "Địa điểm", icon("next", 20)),
+  can(staff, "admin.manage") && h("a", { class: "row-link", href: "/locations" }, "Địa điểm", icon("next", 20)),
   // Loại giấy tờ người (loại giấy tờ của người + hạng giấy phép lái xe — danh mục chung, giấy tờ thuộc về người). Tách 2026-09-28 khỏi dòng "Danh mục giấy tờ"
   // cũ (ADR-0040 D1, D2; Task A19); "Loại giấy tờ xe" nay ở nhóm VẬN CHUYỂN bên dưới. Ô admin.manage (như dòng cũ).
   can(staff, "admin.manage") && h("a", { class: "row-link", href: "/loai-giay-to-nguoi" }, "Loại giấy tờ người", icon("next", 20)),
 ];
 const lienKetSau = [
   can(staff, "audit.view") && h("a", { class: "row-link", href: "/audit" }, "Nhật ký", icon("next", 20)), // ADR-0038 điều 6: chỉ Toàn quyền
-  hasPermission(staff, "SUPER_ADMIN") && h("a", { class: "row-link", href: "/gui-thong-bao" }, "Gửi thông báo", icon("next", 20)),
+  can(staff, "notice.send") && h("a", { class: "row-link", href: "/gui-thong-bao" }, "Gửi thông báo", icon("next", 20)),
   // ADR-0069 điều 1: cài đặt trợ lý chuyển từ khối ở trang này sang trang riêng — chỉ Toàn quyền (ô settings.ops).
   can(staff, "settings.ops") && h("a", { class: "row-link", href: "/tro-ly-cai-dat" }, "Trợ lý Hỗ trợ", icon("next", 20)),
   h("a", { class: "row-link", href: "/feedback" }, "Góp ý / Báo lỗi", feedbackBadgeEl, icon("next", 20)),
@@ -512,7 +512,7 @@ function renderMaintenance(status: Api.MaintenanceResponse): void {
   replaceChildren(
     maintenanceEl,
     h("h2", { id: "maintenance-heading" }, "Chế độ bảo trì"),
-    h("p", { class: "muted" }, "Khi bật, mọi nhân viên khác bị chặn ngay (kể cả đang mở app); chỉ bạn dùng được."),
+    h("p", { class: "muted" }, "Khi bật, mọi tài khoản không có quyền Toàn quyền bị chặn ngay (kể cả đang mở app, kể cả Quản trị)."),
     h(
       "p",
       { class: "maint-state" },
@@ -526,13 +526,14 @@ function renderMaintenance(status: Api.MaintenanceResponse): void {
   maintenanceEl.hidden = false;
 }
 
+// ADR-0071 điều 3c: mục này theo ô settings.ops (chỉ Toàn quyền — cùng chốt với GET/PUT /api/maintenance); Quản trị không thấy mục, không gọi route.
 async function initMaintenance(): Promise<void> {
-  if (!hasPermission(staff, "ADMIN")) return;
+  if (!can(staff, "settings.ops")) return;
   try {
     const status = await api<Api.MaintenanceResponse>("/api/maintenance");
     if (status.canToggle) renderMaintenance(status);
   } catch {
-    // không phải chủ, hoặc lỗi mạng: mục này ẩn (không ảnh hưởng phần còn lại của trang)
+    // lỗi mạng: mục này ẩn (không ảnh hưởng phần còn lại của trang)
   }
 }
 void initMaintenance();

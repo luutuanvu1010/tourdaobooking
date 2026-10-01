@@ -1,4 +1,13 @@
-# HANDOFF — chế độ bảo trì (chỉ chủ dự án) + cột "Đăng nhập gần nhất" — cho phiên kế tiếp
+# HANDOFF — chế độ bảo trì (chỉ Toàn quyền) + cột "Đăng nhập gần nhất" — cho phiên kế tiếp
+
+> **ĐỔI THEO ADR-0071 (accepted 2026-10-01; thi công trên nhánh `worktree-han-che-quan-tri-hcns`, bản 1.52 — lúc viết CHƯA lên production):** bảo trì miễn trừ theo **quyền
+> Toàn quyền**, KHÔNG theo số điện thoại. Khi bật: mọi tài khoản không giữ `SUPER_ADMIN` (kể cả Quản trị, kể cả phiên đang mở) nhận 503 và thấy màn hình bảo trì + đồng hồ;
+> tài khoản Toàn quyền đang hoạt động dùng bình thường (vẫn thấy dải nhắc "Đang ở chế độ bảo trì"). Đăng nhập: khi bật, máy chủ tra tài khoản theo SĐT TRƯỚC khi kiểm PIN;
+> không phải Toàn quyền đang hoạt động — kể cả SĐT không có tài khoản, SĐT hỏng, tài khoản đã ngưng — nhận CÙNG một thân 503. `GET` và `PUT /api/maintenance` chỉ hỏi
+> ô `settings.ops` (Toàn quyền); mục "Chế độ bảo trì" ở trang Tôi hiện theo cùng ô đó. Cột `mnt_setting.allowed_phones` **thôi được đọc** (giữ cột — expand–contract);
+> luật "không đổi SĐT của người được phép" (`phoneChangeProblem`) đã bỏ. Thông điệp cho người bị chặn GIỮ đúng chữ (số `0989929373` vẫn là số liên hệ trong câu); từ 1 ngày
+> trở lên đồng hồ hiện "3 ngày 5 giờ 10 phút". Rủi ro chủ bị khoá ngoài: chỉ khi tài khoản chủ mất `SUPER_ADMIN` hoặc bị ngưng — tắt bằng SQL ở `docs/HANDOFF-N1.md`;
+> tự tắt khi hết giờ vẫn giữ. Các câu bên dưới nói "SĐT được phép", "chỉ 0989929373 được dùng" là LỊCH SỬ (quyết định 2026-09-21 §2 điều 3 đã được ADR-0071 thay).
 
 Viết 2026-09-21 khi kết thúc phiên. Đọc trước: `CLAUDE.md`, `docs/CHANGE-GUIDE.md`, `docs/SYSTEM-DESIGN.md`, và phân tích ở `docs/superpowers/specs/2026-09-21-che-do-phat-trien-nghien-cuu.md` (đã có dữ kiện + phương án; tệp này chốt quyết định và việc phải làm).
 
@@ -27,7 +36,7 @@ Viết 2026-09-21 khi kết thúc phiên. Đọc trước: `CLAUDE.md`, `docs/CH
 ## 2. Quyết định của chủ dự án (2026-09-21) — đã CHỐT
 1. Chế độ bảo trì/phát triển là của RIÊNG chủ: bật thì **chặn tất cả trừ chủ**.
 2. Chặn **cả phiên đang mở** (hiệu lực ngay khi bật), không chỉ đăng nhập mới.
-3. Chỉ **`0989929373`** được dùng khi bật (tài khoản này tồn tại, đang hoạt động, là ADMIN duy nhất — đã kiểm production).
+3. ~~Chỉ **`0989929373`** được dùng khi bật (tài khoản này tồn tại, đang hoạt động, là ADMIN duy nhất — đã kiểm production).~~ **Thay bởi ADR-0071 điều 3 (2026-10-01):** mọi tài khoản giữ Toàn quyền đang hoạt động được dùng khi bật; không theo số điện thoại.
 4. Thông điệp cho người bị chặn, đúng chữ: **"Hệ thống đang tạm đóng để bảo trì. Thời gian dự kiến hoàn tất là (countdown), liên hệ quản trị viên khi cần hỗ trợ thêm (0989929373)."** — `(countdown)` là đồng hồ đếm ngược sống tới giờ dự kiến hoàn tất.
 5. **Có nút bật/tắt** trong app (không chỉ lệnh CLI).
 6. **Thêm cột "Đăng nhập gần nhất"** (`staff.last_login_at`) để biết khi nào mọi người đã đăng nhập bằng bản mới.

@@ -22,7 +22,7 @@ const TOAN_QUYEN = await session(ACCOUNTS.superAdmin); // ADR-0038 điều 6: tr
 /** Tài khoản dùng một lần (SĐT ngẫu nhiên) — KHÔNG đụng ACCOUNTS.*: kịch bản khác dùng chung D1 và các tài khoản đó. */
 async function mk(name) {
   const phone = randomPhone();
-  const r = await call(ADMIN, "POST", "/api/staff", { taoHoSoMoi: true, fullName: name, phone, permissions: ["SALES"] });
+  const r = await call(TOAN_QUYEN, "POST", "/api/staff", { taoHoSoMoi: true, fullName: name, phone, permissions: ["SALES"] });
   assert.equal(r.status, 201, JSON.stringify(r.body));
   return { id: r.body.staff.id, phone: r.body.staff.phone, pin: r.body.pin };
 }

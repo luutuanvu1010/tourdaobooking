@@ -1,12 +1,13 @@
 // Luật CHẾ ĐỘ BẢO TRÌ dùng ở cả máy chủ (chặn) và giao diện (thông điệp + đếm ngược) — một nguồn duy nhất, thuần, không import module.
-// Quyết định của chủ dự án (docs/HANDOFF-CHE-DO-BAO-TRI.md §2): bật thì chặn TẤT CẢ trừ tài khoản có SĐT trong danh sách được phép (mặc định chỉ 0989929373),
-// kể cả phiên đang mở; thông điệp đúng chữ đã chốt. Nơi ÉP là máy chủ (module `maintenance`, router, đăng nhập); giao diện chỉ hiển thị.
-import { normalizePhone } from "./phone.ts";
+// ADR-0071 điều 3 (thay quyết định cũ "miễn trừ theo SĐT trong danh sách được phép" của docs/HANDOFF-CHE-DO-BAO-TRI.md §2): bật thì chặn MỌI tài khoản không
+// giữ Toàn quyền (SUPER_ADMIN), kể cả Quản trị và phiên đang mở; thông điệp đúng chữ đã chốt. Nơi ÉP là máy chủ (module `maintenance`, router, đăng nhập);
+// giao diện chỉ hiển thị. Cột `mnt_setting.allowed_phones` thôi được đọc (giữ cột — expand–contract).
+import { hasPermission, type PermissionCode } from "./permissions.ts";
 
 /** Mã lỗi (`error.code`) của phản hồi 503 khi bị chặn vì bảo trì. Giao diện nhận ra chế độ bảo trì bằng mã này. */
 export const MAINTENANCE_CODE = "maintenance";
 
-/** SĐT quản trị viên hiện trong thông điệp cho người bị chặn, và là số được phép mặc định (migration 0016 gieo đúng số này). */
+/** SĐT liên hệ hiện trong thông điệp cho người bị chặn (chỉ để gọi — ADR-0071: KHÔNG còn là điều kiện miễn trừ). */
 export const MAINTENANCE_CONTACT_PHONE = "0989929373";
 
 /** Giờ dự kiến hoàn tất tối đa tính từ lúc bật — chặn gõ nhầm năm/ngày làm khoá cả công ty nhiều tuần. */
@@ -16,52 +17,26 @@ export interface MaintenanceState {
   on: boolean;
   /** Giờ dự kiến hoàn tất, ISO UTC; null khi tắt (hoặc bật mà chưa có giờ). */
   endsAt: string | null;
-  /** SĐT đã chuẩn hoá được dùng khi đang bật. */
-  allowedPhones: readonly string[];
-}
-
-/** Chuỗi lưu trong DB (SĐT cách nhau dấu phẩy) → mảng SĐT đã chuẩn hoá; bỏ mục rỗng/hỏng/trùng. */
-export function parseAllowedPhones(raw: string | null | undefined): string[] {
-  const out: string[] = [];
-  for (const part of (raw ?? "").split(",")) {
-    const phone = normalizePhone(part);
-    if (phone && !out.includes(phone)) out.push(phone);
-  }
-  return out;
 }
 
 /**
  * Dòng `mnt_setting` → trạng thái có hiệu lực LÚC `nowMs`. TỰ TẮT: dòng còn bật nhưng đã tới/qua giờ dự kiến hoàn tất thì coi là TẮT (chủ dự án 30/9: hết giờ bảo trì
  * mà hệ thống không tự tắt là lỗi) — không ghi lại dòng, lần bật sau ghi đè. Bật không kèm giờ (chỉ có khi sửa tay bằng SQL; route luôn đòi giờ) thì giữ bật. Chưa có dòng → TẮT.
  */
-export function stateFromRow(row: { enabled: number; ends_at: string | null; allowed_phones: string | null } | null, nowMs: number): MaintenanceState {
-  if (!row) return { on: false, endsAt: null, allowedPhones: [] };
+export function stateFromRow(row: { enabled: number; ends_at: string | null } | null, nowMs: number): MaintenanceState {
+  if (!row) return { on: false, endsAt: null };
   const at = row.ends_at ? Date.parse(row.ends_at) : NaN;
   const on = row.enabled === 1 && !(Number.isFinite(at) && at <= nowMs);
-  return { on, endsAt: on ? row.ends_at : null, allowedPhones: parseAllowedPhones(row.allowed_phones) };
-}
-
-/** SĐT có nằm trong danh sách được phép không (dùng cho cả "được dùng app khi bảo trì" và "được bật/tắt chế độ"), bất kể đang bật hay tắt. */
-export function isAllowedPhone(state: MaintenanceState, rawPhone: string): boolean {
-  const phone = normalizePhone(rawPhone);
-  return phone !== null && state.allowedPhones.includes(phone);
+  return { on, endsAt: on ? row.ends_at : null };
 }
 
 /**
- * Danh sách được phép nhận diện tài khoản chủ theo SĐT, nên đổi SĐT của tài khoản đang trong danh sách làm mất (hoặc chuyển cho người khác nếu số cũ được dùng lại) quyền
- * dùng/bật-tắt chế độ bảo trì — kể cả khi đang bật thì không ai tắt được từ giao diện. Trả thông báo lỗi để `PATCH /api/staff/:id` từ chối (409), hoặc null nếu được đổi.
+ * ADR-0071 điều 3a: tài khoản có bộ quyền `permissions` có bị chặn lúc này không. TẮT → không chặn ai. BẬT → chặn mọi tài khoản không giữ Toàn quyền
+ * (SUPER_ADMIN), kể cả Quản trị. `null` = không có tài khoản đang hoạt động ứng với SĐT đăng nhập (SĐT lạ, hỏng, tài khoản đã ngưng) → bị chặn như mọi người
+ * khác, cùng một kết quả (không lộ ai có tài khoản).
  */
-export function phoneChangeProblem(state: MaintenanceState, currentPhone: string, nextPhone: string): string | null {
-  if (!isAllowedPhone(state, currentPhone) || normalizePhone(nextPhone) === normalizePhone(currentPhone)) return null;
-  return "Số điện thoại này là của chủ dự án dùng chế độ bảo trì nên không đổi được ở đây.";
-}
-
-/**
- * Tài khoản có SĐT `rawPhone` có bị chặn lúc này không. TẮT → không chặn ai. BẬT → chặn mọi SĐT không nằm trong danh sách được phép, kể cả SĐT không
- * chuẩn hoá được hoặc không tồn tại (cùng một kết quả cho mọi người lạ — không lộ ai có tài khoản). Danh sách rỗng khi BẬT = chặn tất cả (không mở toang).
- */
-export function isBlocked(state: MaintenanceState, rawPhone: string): boolean {
-  return state.on && !isAllowedPhone(state, rawPhone);
+export function isBlocked(state: MaintenanceState, permissions: readonly PermissionCode[] | null): boolean {
+  return state.on && !(permissions !== null && hasPermission({ permissions }, "SUPER_ADMIN"));
 }
 
 export type MaintenanceInputResult = { ok: true; on: boolean; endsAt: string | null } | { ok: false; message: string };
@@ -86,9 +61,14 @@ export function checkMaintenanceInput(body: Record<string, unknown> | null, nowM
 
 const pad2 = (n: number): string => String(n).padStart(2, "0");
 
-/** Thời gian còn lại (mili giây, > 0) → "3 giờ 05 phút 09 giây" / "23 phút 10 giây" / "42 giây"; làm tròn LÊN giây để đồng hồ không hiện "0 giây" khi còn chút ít. */
+/** Thời gian còn lại (mili giây, > 0) → "3 ngày 5 giờ 10 phút" (từ 1 ngày: bỏ giây, làm tròn LÊN phút — chủ dự án 2026-10-01) /
+ * "3 giờ 05 phút 09 giây" / "23 phút 10 giây" / "42 giây"; làm tròn LÊN giây để đồng hồ không hiện "0 giây" khi còn chút ít. */
 export function formatCountdown(msLeft: number): string {
   const total = Math.max(1, Math.ceil(msLeft / 1000));
+  if (total >= 86400) {
+    const mins = Math.ceil(total / 60);
+    return `${Math.floor(mins / 1440)} ngày ${Math.floor((mins % 1440) / 60)} giờ ${mins % 60} phút`;
+  }
   const h = Math.floor(total / 3600);
   const m = Math.floor((total % 3600) / 60);
   const s = total % 60;

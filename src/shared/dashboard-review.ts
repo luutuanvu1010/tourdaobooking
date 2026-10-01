@@ -12,7 +12,7 @@
 // này ở phía server cho RIÊNG khối này; việc kiểm lại ở đây làm cho "không phải quản trị không nhận được dữ liệu"
 // là một điều kiểm được bằng test thuần, không chỉ dựa vào kỷ luật gọi API đúng chỗ ở web/.
 import type { CatalogAdminItemDto, FeedbackTicketDto } from "./contracts.ts";
-import { can, hasPermission, type PermissionHolder } from "./permissions.ts";
+import { can, type PermissionHolder } from "./permissions.ts";
 
 export interface ReviewCatalogAlert {
   /** Mã dịch vụ có ghi đè lệch Sheet — dịch vụ ĐẦU TIÊN theo thứ tự `items` truyền vào (đủ cho một dòng tóm tắt; xem đủ chi tiết ở trang Dịch vụ & giá). */
@@ -39,9 +39,9 @@ export interface ReviewAlerts {
   feedbackQueue: ReviewFeedbackAlert | null;
 }
 
-/** Đúng cổng `access === "admin"` của router.ts (ADMIN hoặc SUPER_ADMIN) — KHÔNG chỉ ADMIN như web/shell.ts dùng để
- * vẽ menu (một tài khoản giữ SUPER_ADMIN mà không giữ ADMIN vẫn gọi được hai route trên, xem ADR-0014 điều 2). */
-export const canSeeReviewAlerts = (staff: PermissionHolder): boolean => hasPermission(staff, "ADMIN") || hasPermission(staff, "SUPER_ADMIN");
+/** Hỏi bảng quyền — ô `admin.manage`, CÙNG ô route `GET /api/catalog/admin` hỏi (ADR-0072 mục 4a: giao diện không hỏi thẳng mã quyền). Quản trị và
+ * Toàn quyền (kể cả tài khoản chỉ Toàn quyền, ADR-0014 điều 2) thấy; Nhân sự, Bán hàng, Kế toán… không. Hàng đợi Góp ý trong khối hỏi thêm `feedback.triage`. */
+export const canSeeReviewAlerts = (staff: PermissionHolder): boolean => can(staff, "admin.manage");
 
 function summarizeCatalogConflicts(items: readonly CatalogAdminItemDto[]): ReviewCatalogAlert | null {
   const withConflicts = items.filter((i) => i.conflicts.length > 0);

@@ -8,6 +8,7 @@ await ensureFakeCatalog(); // orderInput() dùng dịch vụ danh mục giả ZE
 const SALES = await session(ACCOUNTS.salesA);
 const SALES_B = await session(ACCOUNTS.salesB);
 const ADMIN = await session(ACCOUNTS.admin);
+const TAO_TK = await session(ACCOUNTS.superAdmin); // ADR-0071: chỉ Hành chính nhân sự / Toàn quyền tạo tài khoản (Quản trị không còn)
 const ACC = await session(ACCOUNTS.accountant);
 const FIELD = await session(ACCOUNTS.field);
 
@@ -56,7 +57,7 @@ console.log("✓ FIELD: danh sách đơn 200 (không có đơn người khác), 
 // Đối tác và Thực tập chỉ thấy đơn của mình ⇒ 403 (không phải 200 với số toàn công ty); Bán hàng vẫn 200.
 for (const [perm, nhan] of [["PARTNER", "Đối tác"], ["INTERN", "Thực tập"]]) {
   const p = randomPhone();
-  r = await call(ADMIN, "POST", "/api/staff", { taoHoSoMoi: true, fullName: `${nhan} Trang Chủ Thử`, phone: p, permissions: [perm] });
+  r = await call(TAO_TK, "POST", "/api/staff", { taoHoSoMoi: true, fullName: `${nhan} Trang Chủ Thử`, phone: p, permissions: [perm] });
   assert.equal(r.status, 201, `${nhan}: ${JSON.stringify(r.body)}`);
   const cookie = (await login(p, r.body.pin)).cookie;
   r = await call(cookie, "GET", "/api/orders/dashboard");
@@ -121,7 +122,7 @@ console.log("✓ người phụ trách: đủ sáu vai (canModify, nhật ký, �
 
 // --- tài khoản nhiều quyền hợp các ô; quyền đổi có hiệu lực NGAY với phiên đang mở
 const phone = randomPhone();
-r = await call(ADMIN, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Nhiều Quyền Thử", phone, permissions: ["FIELD", "ACCOUNTING"] });
+r = await call(TAO_TK, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Nhiều Quyền Thử", phone, permissions: ["FIELD", "ACCOUNTING"] });
 assert.equal(r.status, 201, JSON.stringify(r.body));
 assert.deepEqual(r.body.staff.permissions, ["ACCOUNTING", "FIELD"], "thứ tự chuẩn hoá");
 const M = { id: r.body.staff.id };
@@ -158,12 +159,12 @@ console.log("✓ nhiều quyền + hiệu lực ngay");
   await ensureFakeCatalog();
   const duoi = String(Date.now()).slice(-6);
   const taoTheoQuyen = async (permissions, ten) => {
-    const x = await call(ADMIN, "POST", "/api/staff", { taoHoSoMoi: true, fullName: `${ten} ${duoi}`, phone: randomPhone(), permissions });
+    const x = await call(TAO_TK, "POST", "/api/staff", { taoHoSoMoi: true, fullName: `${ten} ${duoi}`, phone: randomPhone(), permissions });
     assert.equal(x.status, 201, JSON.stringify(x.body));
     return { id: x.body.staff.id, ten: `${ten} ${duoi}`, cookie: (await login(x.body.staff.phone, x.body.pin)).cookie };
   };
   const taoTheoVai = async (roles, ten) => {
-    const x = await call(ADMIN, "POST", "/api/staff", { taoHoSoMoi: true, fullName: `${ten} ${duoi}`, phone: randomPhone(), roles });
+    const x = await call(TAO_TK, "POST", "/api/staff", { taoHoSoMoi: true, fullName: `${ten} ${duoi}`, phone: randomPhone(), roles });
     assert.equal(x.status, 201, JSON.stringify(x.body));
     return { id: x.body.staff.id, cookie: (await login(x.body.staff.phone, x.body.pin)).cookie };
   };

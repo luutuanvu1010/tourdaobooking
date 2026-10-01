@@ -6,9 +6,8 @@
   <h1>Quản lý tài khoản</h1>
   <div id="error" class="alert" role="alert" hidden></div>
   <section id="secret" class="card secret" hidden></section>
-  <section id="sheet" class="card" hidden></section>
   <section id="edit" class="card" hidden></section>
-  <section class="card">
+  <section id="add-card" class="card" hidden>
     <h2>Thêm tài khoản</h2>
     <form id="add-form" class="grid three" autocomplete="off">
       <label>Họ tên<input id="add-name" type="text" maxlength="200" required></label>
@@ -19,7 +18,7 @@
       </div>
       <div><button class="btn btn-primary" type="submit">Tạo tài khoản</button></div>
     </form>
-    <p class="muted">Hệ thống tự sinh PIN 6 số và chỉ hiện một lần. <button id="sheet-pull" class="btn btn-link" type="button">Đồng bộ danh sách từ Google Sheet…</button></p>
+    <p class="muted">Hệ thống tự sinh PIN 6 số và chỉ hiện một lần.</p>
   </section>
   <section class="card table-wrap">
     <table class="items">

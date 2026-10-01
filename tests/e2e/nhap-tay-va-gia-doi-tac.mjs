@@ -135,7 +135,7 @@ console.log("✓ R1: xoá dịch vụ nhập tay cũ khỏi đơn nháp → 200"
 
 // ================================ R2 (giá bán lẻ) + R3 (chưa được giảm giá) — tài khoản Đối tác ====================================
 const phone = randomPhone();
-r = await call(ADMIN, "POST", "/api/staff", { taoHoSoMoi: true, fullName: `Cộng Tác Viên ${tag}`, phone, roles: ["COLLABORATOR"] });
+r = await call(SUPER, "POST", "/api/staff", { taoHoSoMoi: true, fullName: `Cộng Tác Viên ${tag}`, phone, roles: ["COLLABORATOR"] });
 assert.equal(r.status, 201, JSON.stringify(r.body));
 assert.deepEqual(r.body.staff.permissions, ["PARTNER"], "vai Cộng tác viên → chỉ quyền Đối tác");
 const P = (await login(phone, r.body.pin)).cookie;
@@ -253,7 +253,7 @@ console.log("✓ R2+R3: nhân viên bán hàng cùng thân yêu cầu (đơn gi�
 // 8) Tài khoản CÓ quyền Đối tác kèm quyền nội bộ (gán qua đường quản trị cũ — không kèm vai, nên luật LC-1 của mô hình vai không chạy) vẫn theo luật
 // giá Đối tác (chủ dự án chốt 2026-09-26: "Có quyền Đối tác là áp"). Đường lách do người kiểm độc lập chứng minh 26/9: PARTNER+FIELD lập đơn 1đ → 201.
 const hybridPhone = randomPhone();
-r = await call(ADMIN, "POST", "/api/staff", { taoHoSoMoi: true, fullName: `Đối Tác Lai ${tag}`, phone: hybridPhone, permissions: ["PARTNER", "FIELD"] });
+r = await call(SUPER, "POST", "/api/staff", { taoHoSoMoi: true, fullName: `Đối Tác Lai ${tag}`, phone: hybridPhone, permissions: ["PARTNER", "FIELD"] });
 assert.equal(r.status, 201, JSON.stringify(r.body));
 assert.deepEqual([...r.body.staff.permissions].sort(), ["FIELD", "PARTNER"], "đối chứng: đường cũ vẫn cho gán PARTNER kèm quyền nội bộ");
 const PH = (await login(hybridPhone, r.body.pin)).cookie;
@@ -269,7 +269,7 @@ console.log("✓ R2+R3: tài khoản có quyền Đối tác KÈM quyền nội 
 // Tài khoản thêm cho mục này: Thực tập (INTERN), lai Đối tác + Bán hàng (SALES+PARTNER, gán qua đường quản trị cũ như mục 8).
 const taoTk = async (ten, permissions) => {
   const ph = randomPhone();
-  const x = await call(ADMIN, "POST", "/api/staff", { taoHoSoMoi: true, fullName: `${ten} ${tag}`, phone: ph, permissions });
+  const x = await call(SUPER, "POST", "/api/staff", { taoHoSoMoi: true, fullName: `${ten} ${tag}`, phone: ph, permissions });
   assert.equal(x.status, 201, JSON.stringify(x.body));
   return (await login(ph, x.body.pin)).cookie;
 };

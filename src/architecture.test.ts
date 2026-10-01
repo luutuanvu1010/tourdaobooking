@@ -18,7 +18,7 @@ const WEB = join(ROOT, "web");
 
 /** Chiều phụ thuộc cho phép (ADR-0002 + ADR-0008). Module mới PHẢI khai ở đây. Không được có vòng. */
 const ALLOWED_EDGES: Record<string, readonly string[]> = {
-  accounts: ["staff", "auth", "audit", "maintenance"], // maintenance: không cho đổi SĐT của tài khoản chủ dự án (PATCH /api/staff/:id)
+  accounts: ["staff", "auth", "audit"], // ADR-0071: bỏ cạnh → maintenance (luật phoneChangeProblem đã gỡ — bảo trì miễn trừ theo quyền, không theo SĐT)
   audit: [],
   // ADR-0024 điều 2 (sổ tiền lượt 1, accepted 2026-09-29): billing giữ lần thu, phiếu sổ, dòng nợ; lấy câu `UPDATE orders` CHƯA chạy từ orders/index.ts và câu
   // bảo vệ "còn là người phụ trách" từ dispatch/index.ts (cạnh billing → dispatch CHỈ cho câu đó — ADR-0024 đ2); nhãn người qua staff/parties; nhật ký qua audit.

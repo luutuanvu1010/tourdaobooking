@@ -7,7 +7,7 @@
 - Production `https://booking.tourdao.vn`: Cloudflare Worker `tourdao-sales` + D1 `tourdao-sales-db` + Workers Assets; PWA cài lên iPhone ("Tour Đảo Booking").
 - **Độc lập** với repo `tourdaovn` (website công khai): khác Worker, D1, domain. Điểm chạm hiện có: giá trị token màu/font (chỉ sao chép giá trị).
 - TypeScript, giao diện thuần (không React), esbuild, SQLite (D1), Node 22 (chạy `.ts` trực tiếp bằng `node --test`), **không có dependency runtime**.
-- Chín quyền app, một tài khoản có nhiều quyền: `SALES`, `ACCOUNTING`, `ADMIN`, `FIELD`, `PARTNER`, `SUPER_ADMIN`, `INTERN`, `DRIVER` (Tài xế công ty — ADR-0040), `DRIVER_PARTNER` (Tài xế đối tác — ADR-0048; đứng một mình, không kèm quyền nào khác). Từ vựng: `docs/SYSTEM-DESIGN.md` §15.
+- Mười quyền app, một tài khoản có nhiều quyền: `SALES`, `ACCOUNTING`, `ADMIN`, `FIELD`, `PARTNER`, `SUPER_ADMIN`, `INTERN`, `DRIVER` (Tài xế công ty — ADR-0040), `DRIVER_PARTNER` (Tài xế đối tác — ADR-0048; đứng một mình, không kèm quyền nào khác), `HR` (Nhân sự — vai Hành chính nhân sự, ADR-0071; chỉ tạo/xem/sửa tài khoản). Từ vựng: `docs/SYSTEM-DESIGN.md` §15.
 
 ## 2. Thứ tự ưu tiên khi mâu thuẫn (Hiến pháp Điều 3.1)
 Hiến pháp → ràng buộc dự án → ADR → quy trình/playbook → đặc tả → mã. Hiến pháp v2.3.0 nằm ngay trong repo ở `playbook/CONSTITUTION.md` (bản chép chỉ-đọc từ Core, ADR-0012 đã accepted; cách dùng và điều cấm: `playbook/PIN-README.md`). **Không sửa `playbook/`.**
@@ -105,7 +105,7 @@ Chủ dự án không phải lập trình viên. Quy tắc này áp cho **câu t
 - **Việc nhỏ/rõ**: công thức ở `docs/CHANGE-GUIDE.md` → test → commit.
 - **Tính năng mới**: đặc tả ngắn ở `docs/superpowers/specs/` (ghi giả định và điều chưa chắc) → kế hoạch ở `docs/superpowers/plans/` → thi công theo task (mỗi task đỏ→xanh, việc lớn có người kiểm độc lập §3) → cập nhật `SYSTEM-DESIGN.md`/`CHANGE-GUIDE.md`/`data-dictionary.json` nếu đổi cấu trúc.
 - **Việc nhiều bước**: ghi sổ điều phối `docs/superpowers/plans/…-thi-cong-nhat-ky.md` (ruling, nợ). Mỗi việc một phiên; trạng thái sống trong tài liệu, không trong trí nhớ phiên (P19).
-- **Bước ghép khi duyệt** (chủ duyệt 2026-09-24): khi một lượt duyệt gồm ≥ 2 quyết định (ADR/đặc tả), hoặc khi một bảng dùng chung nhận thêm một loại dữ liệu mới, người soạn phải kèm **một trang ghép**: (1) bảng này chứa những loại thực thể nào; (2) từng dòng bản đồ quyền chạm bảng này áp cho loại nào; (3) cổng nào canh cửa nào. Không có trang ghép thì lượt duyệt chưa đủ điều kiện. Mỗi lượt duyệt tối đa **3** quyết định có chạm quyền/dữ liệu. (Bài học 20/9: ba ADR đúng riêng lẻ, ghép lại thành lỗ F-01 vì không ai hỏi "bảng hồ sơ nay chứa ai".)
+- **Bước ghép khi duyệt** (chủ duyệt 2026-09-24): khi một lượt duyệt gồm ≥ 2 quyết định (ADR/đặc tả), hoặc khi một bảng dùng chung nhận thêm một loại dữ liệu mới, người soạn phải kèm **một trang ghép**: (1) bảng này chứa những loại thực thể nào; (2) từng dòng bản đồ quyền chạm bảng này áp cho loại nào; (3) cổng nào canh cửa nào — kể cả **chỗ giao diện ẩn/hiện** theo quyền bị đổi nghĩa, không chỉ route máy chủ (chủ duyệt 2026-10-01). Không có trang ghép thì lượt duyệt chưa đủ điều kiện. Mỗi lượt duyệt tối đa **3** quyết định có chạm quyền/dữ liệu. (Bài học 20/9: ba ADR đúng riêng lẻ, ghép lại thành lỗ F-01 vì không ai hỏi "bảng hồ sơ nay chứa ai".)
 - Yêu cầu chưa rõ: xử lý theo P8 ở §3 (cấu trúc → hỏi chủ; bề mặt đảo ngược được → giả định có ghi). Đừng nở phạm vi ra ngoài điều được giao.
 
 ## 10. Bẫy hay dính (danh sách đầy đủ: `docs/CHANGE-GUIDE.md`)

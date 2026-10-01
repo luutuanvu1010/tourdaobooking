@@ -5,9 +5,9 @@ export const HD_QUAN_TRI: NhomHuongDan = {
   id: "quan-tri",
   tieuDe: "Quản trị",
   quyen: ["ADMIN", "SUPER_ADMIN"],
-  gioiThieu: "Bạn làm mọi việc của văn phòng, cộng thêm: quản lý tài khoản nhân viên, Danh bạ, danh mục dịch vụ, địa điểm, xe và giấy tờ. Bạn duyệt Đặt gấp cho chặng đón sát giờ và phá lệ khi điều xe.",
+  gioiThieu: "Bạn làm mọi việc của văn phòng, cộng thêm: sửa, ngưng, gán vai, hỗ trợ đăng nhập cho tài khoản nhân viên, Danh bạ, danh mục dịch vụ, địa điểm, xe và giấy tờ. Bạn duyệt Đặt gấp cho chặng đón sát giờ và phá lệ khi điều xe.",
   batDauNhanh: `1. Mở [[Quản lý tài khoản]], xem cột [[Đăng nhập gần nhất]] để biết ai đã vào app.
-2. Tạo tài khoản cho nhân viên mới ở khung [[Thêm tài khoản]], gửi riêng PIN cho họ.
+2. Nhân viên mới: Hành chính nhân sự tạo tài khoản; bạn gán vai, đặt lại PIN khi họ cần.
 3. Mở [[Dịch vụ & giá]], xem lần đồng bộ gần nhất với Google Sheet có lỗi không.
 4. Trên Trang chủ, xem khối [[Cần xem lại]].
 5. Mở [[Sắp hết hạn]] trong nhóm Vận chuyển để xem giấy tờ xe, tài xế sắp hết hạn.`,
@@ -25,19 +25,10 @@ export const HD_QUAN_TRI: NhomHuongDan = {
 - Bảng ở trang quản trị có thể phải kéo ngang. Việc nhiều nên làm trên máy tính.`,
     },
     {
-      tieuDe: "Tạo tài khoản cho nhân viên mới",
-      noiDung: `1. Vào [[Quản lý tài khoản]], khung [[Thêm tài khoản]].
-2. Gõ [[Họ tên]] và [[Số điện thoại (tên đăng nhập)]].
-3. Nếu số này đã có hồ sơ trong Danh bạ, bấm nút **Dùng hồ sơ có sẵn** để không tạo trùng.
-4. Ở [[Vai và quyền]], tick vai. Nhóm **Nội bộ**: [[Hướng dẫn viên nội bộ]], [[Nhân viên kinh doanh]], [[Thực tập sinh]], [[Kế toán]], [[Tài xế công ty]]. Nhóm **Bên ngoài**: [[Công ty lữ hành]], [[Hướng dẫn viên độc lập]], [[Lễ tân khách sạn]], [[Tài xế taxi]], [[Cộng tác viên]], [[Tài xế đối tác]].
-5. Đọc dòng **Quyền sẽ có** ngay dưới để chắc chắn đúng.
-6. Bấm [[Tạo tài khoản]].
-7. Bảng PIN hiện **một lần duy nhất**. Bấm [[Sao chép danh sách]] hoặc chép tay, gửi riêng cho người đó, không gửi nhóm chung.
-8. Bấm [[Đã ghi lại, ẩn đi]].
+      tieuDe: "Tài khoản cho nhân viên mới",
+      noiDung: `Tài khoản mới do **Hành chính nhân sự** (hoặc người phụ trách hệ thống) tạo ở khung **Thêm tài khoản**; Quản trị không còn khung này. Sau khi có tài khoản, bạn vẫn đổi vai, sửa tên, ngưng và hỗ trợ đăng nhập như dưới đây.
 
-App tự chặn: một người vừa vai nội bộ vừa vai bên ngoài; vai Tài xế đối tác đi kèm vai khác. Bạn không thấy các vai Giám đốc, Điều hành chung, IT.
-
-> Ví dụ: Công ty nhận bạn Ngọc làm kinh doanh. Tick Nhân viên kinh doanh, thấy "Quyền sẽ có: Bán hàng", bấm Tạo tài khoản, nhắn riêng PIN và dặn đổi PIN khi vào app.`,
+Bạn không thấy các vai quản lý (Giám đốc, Điều hành chung, IT, Hành chính nhân sự).`,
     },
     {
       tieuDe: "Đổi vai, sửa tên hoặc số điện thoại",
@@ -58,7 +49,7 @@ App tự chặn: một người vừa vai nội bộ vừa vai bên ngoài; vai 
 - **Mất điện thoại**: bấm nút **Gỡ Face ID** (số trong ngoặc là số máy đã bật), rồi [[Đặt lại PIN]].
 - **Nghỉ việc**: bấm [[Ngưng]], xác nhận. Họ bị đăng xuất ngay. Quay lại làm thì bấm [[Kích hoạt lại]]. Tài khoản không bao giờ bị xoá.
 
-Bạn không đặt lại PIN của chính mình ở đây; tự đổi ở trang Tôi. Bạn chỉ quản lý được tài khoản **không có quyền Quản trị**; trên dòng của Quản trị khác các nút bị ẩn.
+Bạn không đặt lại PIN của chính mình ở đây; tự đổi ở trang Tôi. Bạn chỉ quản lý được tài khoản **không có quyền Quản trị hoặc Nhân sự**; trên dòng của Quản trị khác và của Hành chính nhân sự các nút bị ẩn.
 
 > Ví dụ: Anh Tuấn gọi báo không vào được app. Dòng của anh có nhãn Bị khoá đăng nhập. Bấm Mở khoá, anh vào lại ngay.`,
     },
@@ -193,7 +184,6 @@ Mở [[Lý do điều phối]]. Lý do chia nhóm, như [[Đổi giờ xe tới]
     {
       tieuDe: "Tình huống hay gặp",
       noiDung: `- **Nhân viên không vào được app**: xem dòng của họ. Bị khoá thì [[Mở khoá]]; có nhãn [[Ngưng]] thì hỏi lý do trước khi kích hoạt lại; quên PIN thì [[Đặt lại PIN]].
-- **Tạo tài khoản báo số đã có tài khoản**: tìm người đó trong danh sách, có thể họ đang bị ngưng.
 - **Trang chủ báo Sheet đã đổi giá**: bấm vào, xem giá mới; đồng ý thì [[Bỏ ghi đè]], không thì [[Giữ ghi đè]].
 - **Đồng bộ báo lỗi**: app vẫn dùng bản đã lưu. Kiểm tra Sheet, thử lại sau; vẫn lỗi thì gửi Góp ý.
 - **Nhân viên không xác nhận được đơn vì giờ đón sát**: duyệt [[Đặt gấp]].
@@ -202,9 +192,9 @@ Mở [[Lý do điều phối]]. Lý do chia nhóm, như [[Đổi giờ xe tới]
     {
       tieuDe: "Điều bạn không làm được — hỏi ai",
       noiDung: `Hỏi **người phụ trách hệ thống** khi cần:
-- Cấp hoặc gỡ quyền Quản trị; gán vai Giám đốc, Điều hành chung, IT.
-- Sửa, đặt lại PIN, ngưng tài khoản của một Quản trị khác.
-- Đồng bộ danh sách nhân viên từ Google Sheet; xem trang Nhật ký.
+- Cấp hoặc gỡ quyền Quản trị, Nhân sự; gán vai Giám đốc, Điều hành chung, IT, Hành chính nhân sự.
+- Sửa, đặt lại PIN, ngưng tài khoản của một Quản trị khác hoặc của Hành chính nhân sự.
+- Tạo tài khoản mới (Hành chính nhân sự cũng làm được); xem trang Nhật ký.
 - Bật, tắt chế độ bảo trì; gửi thông báo cho cả công ty.
 - Đổi chính sách điều phối, điều kiện xuất bến.
 - Sửa tên, mã số thuế, địa chỉ, hotline của công ty; đọc góp ý của người khác.`,
@@ -221,11 +211,11 @@ Mở [[Lý do điều phối]]. Lý do chia nhóm, như [[Đổi giờ xe tới]
       noiDung: `Toàn quyền làm được mọi việc của Quản trị, thêm các việc dưới đây. Menu có thêm [[Chính sách điều phối]], [[Nhật ký]], [[Gửi thông báo]].
 
 ### Tài khoản
-- Gán được vai Giám đốc, Điều hành chung, IT; sửa được cả tài khoản Quản trị.
-- Đồng bộ nhân viên: bấm [[Đồng bộ danh sách từ Google Sheet…]], xem [[Xem trước dữ liệu từ Google Sheet]], tick người mới, bấm [[Tạo tài khoản cho người đã chọn]]. Tài khoản mới mang vai Nhân viên kinh doanh. Sheet không tự ngưng hay xoá ai.
+- Gán được vai Giám đốc, Điều hành chung, IT, Hành chính nhân sự; sửa được cả tài khoản Quản trị và Hành chính nhân sự.
+- Tạo tài khoản ở khung [[Thêm tài khoản]] của trang Quản lý tài khoản, cùng cách Hành chính nhân sự làm.
 
 ### Chế độ bảo trì
-Chỉ hiện ở trang Tôi khi số điện thoại của bạn nằm trong danh sách được phép.
+Chỉ hiện ở trang Tôi của tài khoản Toàn quyền. Khi bật, mọi tài khoản khác (kể cả Quản trị) thấy màn hình bảo trì; tài khoản Toàn quyền vẫn dùng bình thường.
 1. Mục [[Chế độ bảo trì]]: chọn **30 phút**, **60 phút**, **120 phút** hoặc giờ dự kiến hoàn tất.
 2. Bấm [[Bật chế độ bảo trì]], đọc cảnh báo, bấm [[Xác nhận bật]] (hoặc [[Quay lại]]).
 3. Đổi giờ: [[Cập nhật giờ dự kiến]]. Mở lại app: [[Tắt chế độ bảo trì]].

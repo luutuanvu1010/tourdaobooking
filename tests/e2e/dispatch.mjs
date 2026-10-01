@@ -22,7 +22,7 @@ const [a, b, adm, acc, fld] = [await me(A), await me(B), await me(ADMIN), await 
 // Tài khoản dùng một lần: C (SALES, không liên quan tới các đơn), D (SALES nhưng đã ngưng hoạt động), P (CHỈ Đối tác — PARTNER, ADR-0014).
 async function makeStaff(name, active = true, permissions = ["SALES"]) {
   const phone = randomPhone();
-  const r = await call(ADMIN, "POST", "/api/staff", { taoHoSoMoi: true, fullName: name, phone, permissions });
+  const r = await call(SUPER, "POST", "/api/staff", { taoHoSoMoi: true, fullName: name, phone, permissions });
   assert.equal(r.status, 201, JSON.stringify(r.body));
   const cookie = (await login(phone, r.body.pin)).cookie;
   if (!active) assert.equal((await call(ADMIN, "PATCH", `/api/staff/${r.body.staff.id}`, { active: false })).status, 200);
