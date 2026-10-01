@@ -11,6 +11,16 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Trang chủ điện thoại theo bản vẽ "Trang chu dien thoai.dc.html" (Claude Design 2026-09-30, 1a–1g). Không migration, không đổi máy chủ.
+    // Số "1.66": main 1.64, nhánh thanh-sang-chu-manh (chưa gộp) đã giữ "1.65". KIỂM LẠI LÚC GỘP (gộp trước nhánh đó thì đánh lại thành 1.65).
+    version: "1.66",
+    date: "2026-10-02",
+    items: [
+      { kind: "doi", text: "Trang chủ trên điện thoại làm mới: lời chào, ô tìm đơn ở đầu trang và lưới ô vuông mở nhanh mọi chức năng bạn được dùng (nhiều chức năng thì có ô Tất cả)." },
+      { kind: "doi", text: "Bốn con số Còn thiếu, Doanh thu, Chờ xác nhận, Chưa phụ trách gom vào một thẻ; chuyến đón đã trả đủ hiện chữ Đủ tiền. Máy tính giữ nguyên." },
+    ],
+  },
+  {
     // Có migration 0067 (ADR-0085). Số "1.64" = main 1.63 + 1 (đánh lại lúc gộp main 1.63, 2026-10-01; trước ghi 1.62). KIỂM LẠI LÚC GỘP (nhánh khác gộp trước thì đánh lại số).
     version: "1.64",
     date: "2026-10-01",
