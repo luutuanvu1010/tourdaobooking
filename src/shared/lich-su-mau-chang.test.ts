@@ -7,7 +7,7 @@ import { dongLichSuMauChang, lucLichSuMauChang, nhanCheDoCua } from "./lich-su-m
 
 const GA = { id: "11111111-1111-4111-8111-111111111111", ten: "Ga cáp treo Vinpearl", dangDung: true };
 const BEN = { id: "22222222-2222-4222-8222-222222222222", ten: "Bến cảng Vinpearl", dangDung: true };
-const ban = (mode: MauChangBanDto["mode"], v: Partial<MauChangBanDto> = {}): MauChangBanDto => ({ mode, returnTimeHint: null, noiTraMacDinh: null, tuLuc: "2026-09-30T02:12:00.000Z", ...v });
+const ban = (mode: MauChangBanDto["mode"], v: Partial<MauChangBanDto> = {}): MauChangBanDto => ({ mode, returnTimeHint: null, noiTraMacDinh: null, tuLuc: "2026-09-30T02:12:00.000Z", createdBy: null, ...v });
 const doi = (ds: MauChangBanDto[]) => dongLichSuMauChang(ds).map((x) => x.doi);
 
 test("đúng hai câu ví dụ của bản vẽ M7 (mới nhất trước; bản cũ nhất so với 'Không đưa đón')", () => {
@@ -35,4 +35,12 @@ test("cột Lúc: dd/mm/yyyy hh:mm giờ Việt Nam; nhãn chip: chưa cài = Kh
   assert.equal(nhanCheDoCua(undefined), "Không đưa đón");
   assert.equal(nhanCheDoCua("ROUND_TRIP"), "Hai chiều");
   assert.equal(nhanCheDoCua("ONE_WAY"), "Một chiều");
+});
+
+test("cột \"Người đổi\" (bản vẽ M7; nợ nhỏ 2026-10-01): createdBy ghép tên qua danh sách tài khoản như lịch sử nhóm — null → \"Hệ thống\", id lạ → \"Người dùng cũ\"", () => {
+  const LAN = "33333333-3333-4333-8333-333333333333";
+  const ten = new Map([[LAN, "Lan"]]);
+  const ds = [ban("ROUND_TRIP", { createdBy: LAN }), ban("ONE_WAY", { createdBy: "44444444-4444-4444-8444-444444444444" }), ban("NONE")];
+  assert.deepEqual(dongLichSuMauChang(ds, ten).map((x) => x.ai), ["Lan", "Người dùng cũ", "Hệ thống"]);
+  assert.deepEqual(dongLichSuMauChang([ban("ONE_WAY", { createdBy: LAN })]).map((x) => x.ai), ["Người dùng cũ"], "chưa tải được danh sách tài khoản → Map rỗng");
 });

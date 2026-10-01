@@ -40,7 +40,7 @@ let dangHien: CatalogAdminItem[] = [];
 const CHUA = "-";
 let nhomDich = "";
 let chonLoi = "";
-/** Tên người cho lịch sử nhóm: `GET /api/staff` tải MỘT lần khi mở màn (lỗi → Map rỗng → "Người dùng cũ"). */
+/** Tên người cho lịch sử nhóm và lịch sử mẫu đưa đón: `GET /api/staff` tải MỘT lần khi mở màn (lỗi → Map rỗng → "Người dùng cũ"). */
 let tenNguoi: Promise<Map<string, string>> = Promise.resolve(new Map());
 const LO_TOI_DA = 50; // = LO_GAN_TOI_DA của máy chủ (ADR-0058 Đ4)
 
@@ -540,7 +540,7 @@ function renderNhomSua(khoi: HTMLElement, it: CatalogAdminItem): void {
 
 // ---- Khung "Đưa đón" của một dịch vụ (bản vẽ M7). Máy tính (≥900px — cùng mốc bảng ↔ thẻ): khung ở đúng chỗ khung "Sửa giá" (#edit). Hẹp hơn: bảng trượt
 // dùng chung (web/bang-truot.ts). Mỗi lần lưu = MỘT BẢN ĐẦY ĐỦ (thân luôn mang đủ `mode`, `returnTimeHint`, `noiTraMacDinhId` — không dựa vào luật "khoá vắng =
-// chép" của máy chủ dành cho màn cũ). Bản vẽ có cột "Người đổi" — DTO lịch sử chưa mang người ghi nên KHÔNG vẽ (DỪNG, ghi ở nhật ký thi công).
+// chép" của máy chủ dành cho màn cũ). Cột "Người đổi": `createdBy` (id tài khoản) ghép tên qua `GET /api/staff` như lịch sử nhóm (`tenNguoi`).
 const rong = (): boolean => window.matchMedia("(min-width: 900px)").matches;
 const THU_TU_CHE_DO: CheDoDuaDon[] = ["NONE", "ONE_WAY", "ROUND_TRIP"];
 
@@ -609,8 +609,9 @@ function moDuaDon(it: CatalogAdminItem, opener: HTMLElement | null): void {
     truongGio.hidden = mode !== "ROUND_TRIP";
     truongTra.hidden = mode === "NONE";
   }
+  let ten: ReadonlyMap<string, string> = new Map(); // tên người cho cột "Người đổi" — nạp cùng lúc với lịch sử
   function veLichSu(r: Api.MauChangLichSuResponse): void {
-    const dong = dongLichSuMauChang(r.lichSu);
+    const dong = dongLichSuMauChang(r.lichSu, ten);
     if (dong.length === 0) {
       replaceChildren(lichSuEl, h("h3", null, "Lịch sử"), h("p", { class: "muted" }, "Chưa có lần đổi nào."));
       return;
@@ -619,8 +620,9 @@ function moDuaDon(it: CatalogAdminItem, opener: HTMLElement | null): void {
       lichSuEl,
       h("h3", null, "Lịch sử"),
       mayTinh
-        ? h("table", { class: "dd-bang-ls" }, h("thead", null, h("tr", null, h("th", null, "Lúc"), h("th", null, "Cũ → mới"))), h("tbody", null, ...dong.map((d) => h("tr", null, h("td", { class: "dd-luc" }, d.luc), h("td", null, d.doi)))))
-        : h("ul", { class: "dd-ds-ls" }, ...dong.map((d) => h("li", null, h("span", { class: "dd-luc" }, d.luc), h("span", { class: "dd-doi" }, d.doi)))),
+        ? h("table", { class: "dd-bang-ls" }, h("thead", null, h("tr", null, h("th", null, "Lúc"), h("th", null, "Người đổi"), h("th", null, "Cũ → mới"))),
+          h("tbody", null, ...dong.map((d) => h("tr", null, h("td", { class: "dd-luc" }, d.luc), h("td", { class: "dd-ai" }, d.ai), h("td", null, d.doi)))))
+        : h("ul", { class: "dd-ds-ls" }, ...dong.map((d) => h("li", null, h("span", { class: "dd-luc" }, `${d.luc} · ${d.ai}`), h("span", { class: "dd-doi" }, d.doi)))),
     );
   }
   const noiDung: HTMLElement[] = [
@@ -683,8 +685,9 @@ function moDuaDon(it: CatalogAdminItem, opener: HTMLElement | null): void {
   }
   void (async () => {
     try {
-      const [r, ds] = await Promise.all([api<Api.MauChangLichSuResponse>(`/api/van-chuyen/mau-chang/${encodeURIComponent(it.code)}`), taiDiemTra()]);
+      const [r, ds, tenDs] = await Promise.all([api<Api.MauChangLichSuResponse>(`/api/van-chuyen/mau-chang/${encodeURIComponent(it.code)}`), taiDiemTra(), tenNguoi]);
       if (!conMo()) return;
+      ten = tenDs;
       oNoiTra.append(...ds.map((l) => h("option", { value: l.id }, `${l.name} · ${l.locationTypeName.toLocaleLowerCase("vi")}`)));
       dien(r);
       luu.disabled = false;

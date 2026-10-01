@@ -5,6 +5,7 @@
 // định bề mặt — ghi ở docs/superpowers/plans/2026-10-01-danh-muc-dua-don-canh-bao-xep-nhat-ky.md.
 import type { MauChangBanDto } from "./contracts.ts";
 import { CHE_DO_DUA_DON, type CheDoDuaDon } from "./chang-mac-dinh.ts";
+import { tenNguoiGhi } from "./lich-su-nhom.ts";
 
 /** Nhãn chip ở danh sách dịch vụ: mã vắng trong mẫu hiện hành = Không đưa đón. */
 export const nhanCheDoCua = (mode: CheDoDuaDon | undefined): string => CHE_DO_DUA_DON[mode ?? "NONE"];
@@ -43,7 +44,10 @@ function cauDoi(moi: MauChangBanDto, cu: Pick<MauChangBanDto, "mode" | "returnTi
   return cau.charAt(0).toUpperCase() + cau.slice(1);
 }
 
-/** Dòng lịch sử (mới nhất trước): "Lúc" + "Cũ → mới". Bản vẽ còn cột "Người đổi" — DTO chưa mang người ghi (xem nhật ký thi công: DỪNG, không tự thêm). */
-export function dongLichSuMauChang(lichSu: readonly MauChangBanDto[]): { luc: string; doi: string }[] {
-  return lichSu.map((b, i) => ({ luc: lucLichSuMauChang(b.tuLuc), doi: cauDoi(b, lichSu[i + 1] ?? CHUA_CAI) }));
+/**
+ * Dòng lịch sử (mới nhất trước): "Lúc" + "Người đổi" + "Cũ → mới". Người đổi ghép từ `createdBy` (id tài khoản) qua danh sách tài khoản (`GET /api/staff`)
+ * — cùng luật lịch sử nhóm (`tenNguoiGhi`). Chưa tải được danh sách → Map rỗng → "Người dùng cũ".
+ */
+export function dongLichSuMauChang(lichSu: readonly MauChangBanDto[], tenNguoi: ReadonlyMap<string, string> = new Map()): { luc: string; ai: string; doi: string }[] {
+  return lichSu.map((b, i) => ({ luc: lucLichSuMauChang(b.tuLuc), ai: tenNguoiGhi(b.createdBy, tenNguoi), doi: cauDoi(b, lichSu[i + 1] ?? CHUA_CAI) }));
 }

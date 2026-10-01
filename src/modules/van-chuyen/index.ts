@@ -211,6 +211,7 @@ function lichSuMauChang(code: string, rows: readonly LegTemplateRow[]): MauChang
     returnTimeHint: r.return_time_hint,
     noiTraMacDinh: r.default_dropoff_location_id !== null ? { id: r.default_dropoff_location_id, ten: r.noi_tra_ten ?? "", dangDung: r.noi_tra_active === 1 } : null,
     tuLuc: r.valid_from_at,
+    createdBy: r.created_by,
   });
   const now = new Date().toISOString();
   const hien = rows.find((r) => r.valid_from_at <= now);

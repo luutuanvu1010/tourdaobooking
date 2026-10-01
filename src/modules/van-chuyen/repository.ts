@@ -380,8 +380,10 @@ export interface LegTemplateRow {
   /** Điểm còn dùng (1) / đã ngưng (0); null khi không có điểm. */
   noi_tra_active: number | null;
   valid_from_at: string;
+  /** Id tài khoản người ghi bản (null = gieo) — chỉ màn Danh mục (cột "Người đổi"); route form KHÔNG trả. */
+  created_by: string | null;
 }
-const COT_MAU = `t.id, t.code, t.mode, t.return_time_hint, t.default_dropoff_location_id, l.name AS noi_tra_ten, l.active AS noi_tra_active, t.valid_from_at`;
+const COT_MAU = `t.id, t.code, t.mode, t.return_time_hint, t.default_dropoff_location_id, l.name AS noi_tra_ten, l.active AS noi_tra_active, t.valid_from_at, t.created_by`;
 const LEG_TEMPLATE_HISTORY = defineSql(
   "van-chuyen",
   "leg_template_history",

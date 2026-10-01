@@ -19,9 +19,13 @@ export function gioNgayThang(iso: string): string {
   return `${p("day")}/${p("month")} ${p("hour")}:${p("minute")}`;
 }
 
+/** Tên người ghi một bản lịch sử: `null` → "Hệ thống"; id không có trong danh sách tài khoản → "Người dùng cũ". Dùng chung lịch sử nhóm và mẫu đưa đón. */
+export const tenNguoiGhi = (createdBy: string | null, tenNguoi: ReadonlyMap<string, string>): string =>
+  createdBy === null ? "Hệ thống" : (tenNguoi.get(createdBy) ?? "Người dùng cũ");
+
 export function dongLichSuNhom(items: readonly DongLichSuNhom[], tenNguoi: ReadonlyMap<string, string>): string[] {
   return items.map((it, i) => {
-    const nguoi = it.createdBy === null ? "Hệ thống" : (tenNguoi.get(it.createdBy) ?? "Người dùng cũ");
+    const nguoi = tenNguoiGhi(it.createdBy, tenNguoi);
     const tu = items[i + 1]?.nhom ?? CHUA_PHAN_LOAI_TEN;
     return `${gioNgayThang(it.luc)} — ${nguoi}: ${tu} → ${it.nhom ?? CHUA_PHAN_LOAI_TEN}`;
   });

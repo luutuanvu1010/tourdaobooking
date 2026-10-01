@@ -2318,6 +2318,7 @@ label.check > input.o-tick { display: inline; width: auto; margin: 0 var(--s2) 0
 .dd-bang-ls th, .dd-bang-ls td { padding: var(--s2); border-bottom: 1px solid var(--c-border); text-align: left; vertical-align: top; }
 .dd-bang-ls th { font-weight: 600; color: var(--c-text-muted); white-space: nowrap; }
 .dd-luc { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.dd-ai { white-space: nowrap; }
 .dd-ds-ls { margin: 0; padding: 0; list-style: none; }
 .dd-ds-ls li { display: flex; flex-direction: column; gap: var(--s1); padding: var(--s2) 0; border-bottom: 1px solid var(--c-border); font-size: var(--fs-label); }
 .dd-ds-ls .dd-luc { color: var(--c-text-muted); }

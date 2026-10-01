@@ -1478,6 +1478,8 @@ export interface MauChangBanDto {
   returnTimeHint: string | null;
   noiTraMacDinh: { id: string; ten: string; dangDung: boolean } | null;
   tuLuc: string;
+  /** Id TÀI KHOẢN người ghi bản (null = gieo) — màn ghép tên qua `GET /api/staff` (cột "Người đổi", M7); không SĐT. */
+  createdBy: string | null;
 }
 /** `GET/POST /api/van-chuyen/mau-chang/:code` — lịch sử (mới trước) + bản hiện hành (null = chưa cài = không đưa đón). */
 export interface MauChangLichSuResponse {
