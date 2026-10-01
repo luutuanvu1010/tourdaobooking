@@ -6,7 +6,7 @@
 //   `lienHe` của lần GET; không lưu vào bộ nhớ trình duyệt), đổi thứ tự điểm chưa tới bằng nút lên / xuống (không ô giờ), "Kết thúc chuyến", "Kết thúc gián
 //   đoạn" (chọn lý do; KHÔNG ô ghi chú — chủ Q1).
 // - Mất mạng: dòng đó "Chưa gửi được" + "Bấm lại" (CÙNG requestId — bấm lại hai lần vẫn một lệnh); máy KHÔNG tự gửi lại (lệnh điều phối, khác câu 5a).
-import { giuTenKhach, ketThucDuoc, soHieuTaiDiemDon, thanDoiThuTu, type BuocDiem } from "../src/shared/tien-do-man";
+import { giuTenKhach, ketThucDuoc, chiSuatKhach, soHieuTaiDiemDon, tenNguoiDiKemCuaChuyen, thanDoiThuTu, type BuocDiem } from "../src/shared/tien-do-man";
 import type { CuocChiTietResponse } from "../src/shared/contracts";
 import { coCuocCuaToi } from "../src/shared/start-page";
 import { ApiError, api } from "./api";
@@ -69,6 +69,12 @@ async function chay(khoa: string, viec: () => Promise<void>): Promise<void> {
   ve();
 }
 
+/** Dòng "Người đi kèm: <tên>" (hướng dẫn viên; chỉ tên, không SĐT) — ở mọi trạng thái chuyến. */
+function dongDiKem(): HTMLElement | null {
+  const ten = tenNguoiDiKemCuaChuyen(duLieu!.suat);
+  return ten.length ? h("div", { class: "dp-cc-di-kem" }, icon("me", 16), h("span", null, `Người đi kèm: ${ten.join(", ")}`)) : null;
+}
+
 function ve(): void {
   const r = duLieu!;
   const c = r.chuyen;
@@ -100,7 +106,7 @@ function ve(): void {
     }
   }
   const diemCho = [...choGui.keys()].filter((k) => k.startsWith("diem:"));
-  const ketThuc = h("button", { type: "button", class: "vc-btn btn btn-accent", disabled: !ketThucDuoc(r.suat), "data-action": "ket-thuc" }, "Kết thúc chuyến");
+  const ketThuc = h("button", { type: "button", class: "vc-btn btn btn-accent", disabled: !ketThucDuoc(chiSuatKhach(r.suat)), "data-action": "ket-thuc" }, "Kết thúc chuyến");
   ketThuc.addEventListener("click", () => void chay("ket-thuc", () => gui("ket-thuc")));
   const gianDoan = h("button", { type: "button", class: "vc-btn vc-btn-stop dp-gian-doan", "data-action": "ket-thuc-gian-doan" }, "Kết thúc gián đoạn"); // bản 1.39: nút viền đỏ, nhỏ hơn — không còn là nút to nhất lúc đang chạy (nút xác nhận trong hộp vẫn đỏ đặc)
   gianDoan.addEventListener("click", () => moGianDoan(gianDoan));
@@ -109,6 +115,7 @@ function ve(): void {
     dauMang,
     baoCao,
     dauTrang,
+    dongDiKem(),
     c.ketThucThat ? h("div", { class: "dp-ct-moc" }, dongMoc(c.trangThai === "ENDED_INTERRUPTED" ? "Kết thúc gián đoạn" : "Kết thúc", c.ketThucThat, ngay)) : null,
     ...diemCho.map((k) => h("div", { class: "dp-khach-cho" }, "Một lệnh ở điểm chưa gửi được", h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary", "data-action": "bam-lai" }, "Bấm lại"))),
     h("div", { class: "dp-run-list" }, ...diem),
@@ -173,8 +180,9 @@ function lenhDiem(l: LenhDiem): void {
 function moGianDoan(opener: HTMLElement): void {
   const r = duLieu!;
   let lyDo: string | null = null;
-  const conTren = r.suat.filter((s) => s.trangThai === "BOARDED").length;
-  const chuaDon = r.suat.filter((s) => s.trangThai === "WAITING").length;
+  const khachThat = chiSuatKhach(r.suat);
+  const conTren = khachThat.filter((s) => s.trangThai === "BOARDED").length;
+  const chuaDon = khachThat.filter((s) => s.trangThai === "WAITING").length;
   const loi = h("div", { class: "vc-field-error", role: "alert", hidden: true });
   const chinh = h("button", { type: "button", class: "vc-btn vc-btn-danger", disabled: true, "data-action": "gian-doan-gui" }, "Kết thúc gián đoạn");
   const dong = h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary" }, "Đóng");
@@ -235,7 +243,8 @@ function veXuatBen(dauMang: HTMLElement | null): void {
     trangEl,
     dauMang,
     baoCao,
-    h("div", { class: "dp-note dp-cc-meta" }, `${c.bienSo} · ${formatDm(c.gioBatDau.ngay)} ${c.gioBatDau.gio} · ${r.suat.length} khách`),
+    h("div", { class: "dp-note dp-cc-meta" }, `${c.bienSo} · ${formatDm(c.gioBatDau.ngay)} ${c.gioBatDau.gio} · ${chiSuatKhach(r.suat).length} khách`),
+    dongDiKem(),
     // Bản 1.39 (chủ quyết 30/9: "tài xế nên thấy điểm đón từ trước, ngày giờ đón, vị trí và số lượng khách"): các điểm của chuyến TRƯỚC khi xuất bến — thứ tự,
     // loại, tên nơi, giờ hẹn, số người; dùng lại cách vẽ điểm của màn đang chạy, KHÔNG nút tiến độ, KHÔNG khách từng người (`suat: []`) — tên / SĐT khách vẫn
     // chỉ trong ngày chạy (ADR-0053 D7.2). Chỉ vẽ dữ liệu route 20 đã gửi (`diem`), không đổi máy chủ.

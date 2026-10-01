@@ -8,7 +8,7 @@
 import { cauKhoaMoc, chuyenXepDuoc, dieuKienXuatBen, dongBanChup, dongGoiBao, dongNhatKy, gioHien, kieuChuyen, nhanDiem, nhomKhach, type NhomKhach } from "../src/shared/dieu-phoi-man";
 import { NHAN_TU_CHOI_GOI_BAO, type MaTuChoiGoiBao } from "../src/shared/goi-bao";
 import { ApiError } from "./api";
-import type { CapNhatDiemResponse, CapNhatKhachResponse, ChuyenChiTietResponse, LichChungResponse } from "../src/shared/contracts";
+import type { CapNhatDiemResponse, CapNhatKhachResponse, ChuyenChiTietResponse, HuongDanVienListResponse, LichChungResponse } from "../src/shared/contracts";
 import { NUT_CAP_NHAT_KHACH } from "../src/shared/ly-do-giu";
 import { can } from "../src/shared/permissions";
 import { api } from "./api";
@@ -451,13 +451,16 @@ function theKhach(): HTMLElement | null {
   const r = duLieu!;
   const c = r.chuyen;
   const ds = nhomKhach(r.suat, r.diem);
-  if (!ds.length) return null;
   const khoa = c.khoaMoc.dangKhoa;
   const coNut = coDieuPhoi && (!khoa || coPhaLe);
+  // T-7: trong vùng khoá trước giờ xuất bến không có nút (khuôn câu khoá của "Rút khỏi xe").
+  const nutDiKem = coDieuPhoi && !khoa ? (h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary", "data-action": "them-di-kem" }, "Thêm người đi kèm") as HTMLButtonElement) : null;
+  nutDiKem?.addEventListener("click", () => void moThemDiKem(nutDiKem));
+  if (!ds.length && !nutDiKem) return null;
   return h(
     "section",
     { class: "vc-card dp-khach-nhom-the", "aria-labelledby": "ct-khach-title" },
-    h("div", { class: "dp-card-head" }, h("h2", { id: "ct-khach-title", class: "dp-card-title" }, "Khách trong chuyến"), h("span", { class: "dp-card-note" }, `${c.tai} chỗ`)),
+    h("div", { class: "dp-card-head" }, h("h2", { id: "ct-khach-title", class: "dp-card-title" }, "Khách trong chuyến"), h("span", { class: "dp-card-note" }, `${c.tai} chỗ`), nutDiKem),
     khoa && coDieuPhoi && !coPhaLe ? h("div", { class: "dg-lock dp-khach-khoa" }, icon("lock", 14), "Trong vùng khoá trước giờ xuất bến — rút hay chuyển khách cần Quản trị phá lệ.") : null,
     ...ds.map((g) => {
       const nut: HTMLElement[] = [];
@@ -477,6 +480,48 @@ function theKhach(): HTMLElement | null {
       );
     }),
   );
+}
+
+/** Lời chủ 2026-10-01 ("Chỉ hướng dẫn viên"): gắn MỘT hướng dẫn viên làm người đi kèm — chọn từ GET /huong-dan-vien, gửi `nguoiDiKem` qua route xếp. */
+const lenhDiKem = taoLenh();
+async function moThemDiKem(opener: HTMLButtonElement): Promise<void> {
+  let ds: HuongDanVienListResponse["nguoi"];
+  try {
+    ds = (await api<HuongDanVienListResponse>("/api/van-chuyen/huong-dan-vien")).nguoi;
+  } catch (e) {
+    xong(dai("danger", "Chưa tải được danh sách hướng dẫn viên", docLoiLenh(e).dong));
+    return;
+  }
+  let chon: string | null = null;
+  const loi = h("div", { class: "vc-field-error", role: "alert", hidden: true });
+  const gui = h("button", { type: "button", class: "vc-btn btn btn-primary", disabled: true, "data-action": "di-kem-gui" }, "Gắn lên xe") as HTMLButtonElement;
+  const dong = h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary" }, "Đóng");
+  const bang = moBangTruot({
+    title: "Thêm người đi kèm",
+    body: ds.length
+      ? [nhomChon("ct-di-kem", "Hướng dẫn viên", ds.map((x) => ({ code: x.partyId, nhan: x.ten })), (c) => { chon = c; gui.disabled = false; }), loi]
+      : [h("p", { class: "dp-sheet-text" }, "Chưa có tài khoản hướng dẫn viên nào đang hoạt động.")],
+    foot: [dong, gui],
+    footClass: "vc-foot-2",
+    opener,
+  });
+  if (!bang) return;
+  dong.addEventListener("click", () => bang.close());
+  gui.addEventListener("click", async () => {
+    if (!chon) return;
+    bang.setBusy(true);
+    try {
+      const url = `/api/van-chuyen/chuyen/${encodeURIComponent(duLieu!.chuyen.id)}/phan-bo`;
+      duLieu = await docLai(await lenhDiKem.gui<ChuyenChiTietResponse>(url, "POST", { version: duLieu!.chuyen.version, nguoiDiKem: [chon] }));
+      bang.close(false);
+      xong(dai("ok", "Đã gắn người đi kèm"));
+    } catch (e) {
+      bang.setBusy(false);
+      const l = docLoiLenh(e);
+      replaceChildren(loi, [l.tieuDe, ...l.dong].join(" "));
+      loi.hidden = false;
+    }
+  });
 }
 
 const lenhRut = new Map<string, ReturnType<typeof taoLenh>>();

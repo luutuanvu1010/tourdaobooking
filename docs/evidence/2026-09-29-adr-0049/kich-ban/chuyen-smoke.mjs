@@ -11,7 +11,9 @@ import {
   ACCOUNTS, CHU, DESK, MOB, apiCalls, assert, axe, axeNote, boDem, click, dungDuLieuDieuPhoi, dungMoiTruong, noCode, noOverflowX, shotFull, shotView, shown, sleep, txt,
 } from "./dp-lib.mjs";
 
-const { env, call } = await dungMoiTruong([CHU]);
+// Hướng dẫn viên (Task 8 Đợt 1 — người đi kèm): tài khoản FIELD đang hoạt động; tên + SĐT giả để kiểm "tên có, SĐT không".
+const HDV = { name: "Hướng Dẫn Kiểm Thử", phone: "0900000432", pin: "246432", permissions: ["FIELD"] };
+const { env, call } = await dungMoiTruong([CHU, HDV]);
 const b = boDem("CHUYEN SMOKE");
 const d = await dungDuLieuDieuPhoi(env, call);
 // H17: chuyến đang khoá có khách — Quản trị xếp O4 (quá mốc) vào T4 bằng phá lệ (đường thật).
@@ -46,7 +48,7 @@ try {
     assert.match(await p.ev(txt(".dp-ct-when")), new RegExp(`^(Thứ (Hai|Ba|Tư|Năm|Sáu|Bảy)|Chủ nhật) ${d.NGAY_XA.slice(8, 10)}/${d.NGAY_XA.slice(5, 7)} · 14:30–16:30$`));
     assert.equal(await p.ev(`document.querySelector('#ct-back').getAttribute('href')`), `/dieu-phoi?ngay=${d.NGAY_XA}`);
     assert.equal(await p.ev(`document.querySelector('.dp-ct-actions [data-action="sua-chuyen"]').getAttribute('href')`), `/chuyen-sua?id=${d.T3.id}`);
-    assert.deepEqual(await p.ev(nut), ["Sửa chuyến", "Xuất bến thay tài xế", "Huỷ chuyến", "Cập nhật điểm theo đơn", "Rút khỏi xe", "Chuyển sang xe khác"], "vòng 5b: thẻ Khách trong chuyến có hai nút (rut-doi-smoke kiểm hành vi)");
+    assert.deepEqual(await p.ev(nut), ["Sửa chuyến", "Xuất bến thay tài xế", "Huỷ chuyến", "Cập nhật điểm theo đơn", "Thêm người đi kèm", "Rút khỏi xe", "Chuyển sang xe khác"], "vòng 5b: thẻ Khách trong chuyến có hai nút (rut-doi-smoke kiểm hành vi)");
     assert.equal(await p.ev(`document.querySelector('.dp-ct-actions [data-action="xuat-ben-thay"]').disabled`), true, "bị giữ → khoá xuất bến thay (2.7)");
     for (const a of KHONG_CO) assert.equal(await p.ev(`document.querySelector('main').innerText.includes(${JSON.stringify(a)})`), false, `chuyến chưa chạy: không có ${a}`);
     assert.equal(await p.ev(`!!document.querySelector('.dp-ct-lock')`), false, "chưa vào vùng khoá → không dòng khoá");
@@ -72,6 +74,15 @@ try {
     await nutKhoaRo(p, '.dp-ct-actions [data-action="xuat-ben-thay"]');
     await axe(p, "chi tiết chuyến 1040");
     await shotFull(p, "b2-chi-tiet-bi-giu-may-tinh.png");
+    // Task 8 Đợt 1, 1040: bảng "Thêm người đi kèm" mở được, có tên hướng dẫn viên, không SĐT; đóng không gửi lệnh ghi.
+    await p.ev(click('[data-action="them-di-kem"]'));
+    await p.waitFor(`!!document.querySelector('.sheet .vc-reason')`, "bảng chọn hướng dẫn viên (1040)");
+    const chuBang = await p.ev(`document.querySelector('.sheet').innerText`);
+    assert.match(chuBang, /Hướng Dẫn Kiểm Thử/);
+    assert.ok(!chuBang.includes(HDV.phone.slice(1)), "bảng 1040 không lộ SĐT");
+    await shotView(p, "b2-them-di-kem-may-tinh.png");
+    await p.ev(`[...document.querySelectorAll('.sheet button')].find((x) => x.textContent.trim() === 'Đóng').click()`);
+    await p.waitFor(`!document.querySelector('.sheet')`, "đóng bảng");
   });
 
   await b.step("2", "H10: chuyến vừa bị người khác sửa → bấm 'Cập nhật điểm theo đơn' báo câu chung + nút 'Tải lại' (không tên người); tải lại rồi bấm → đã cập nhật, hết 'Lệch đơn', nhật ký thêm dòng", async () => {
@@ -142,6 +153,8 @@ try {
     assert.match(await p.ev(txt(".sheet .vc-field-error")), /cần Quản trị phá lệ/);
     assert.equal(await p.ev(`!!document.querySelector('[data-action="pha-le-gui"]')`), false);
     assert.equal(await p.ev(noCode), "");
+    // Task 8 Đợt 1 (T-7): chuyến trong vùng khoá trước giờ xuất bến — không nút "Thêm người đi kèm" (Bán hàng không phá lệ được).
+    assert.equal(await p.ev(`document.querySelector('main').innerText.includes('Thêm người đi kèm')`), false, "vùng khoá: không nút thêm người đi kèm");
   });
   await p.close();
 
@@ -166,6 +179,27 @@ try {
     await nutKhoaRo(pm, '#ct-bottom [data-action="xuat-ben-thay"]');
     await axe(pm, "chi tiết chuyến 390");
     await shotFull(pm, "b2-chi-tiet-bi-giu-dien-thoai.png");
+  });
+  // Task 8 Đợt 1 — người đi kèm (lời chủ 1/10 "Chỉ hướng dẫn viên"): chuyến ngoài vùng khoá → nút ở thẻ "Khách trong chuyến" → bảng có TÊN hướng dẫn viên, không SĐT.
+  await b.step("5b", `Người đi kèm 390 Bán hàng ${d.T2.ma}: "Thêm người đi kèm" → bảng có tên hướng dẫn viên, KHÔNG SĐT → chọn → "Gắn lên xe" → dải "Đã gắn người đi kèm"; thẻ Khách trong chuyến có "Người đi kèm · 1" + tên${axeNote()}`, async () => {
+    await pm.ev(click('[data-action="them-di-kem"]'));
+    await pm.waitFor(`!!document.querySelector('.sheet .vc-reason')`, "bảng chọn hướng dẫn viên mở");
+    const chu = await pm.ev(`document.querySelector('.sheet').innerText`);
+    assert.match(chu, /Hướng Dẫn Kiểm Thử/);
+    assert.ok(!chu.includes(HDV.phone) && !chu.includes(HDV.phone.slice(1)), "bảng không lộ SĐT");
+    assert.equal(await pm.ev(`document.querySelector('[data-action="di-kem-gui"]').disabled`), true, "chưa chọn → nút Gắn lên xe khoá");
+    assert.ok(await pm.ev(noOverflowX));
+    await axe(pm, "bảng thêm người đi kèm 390");
+    await shotView(pm, "b2-them-di-kem-dien-thoai.png");
+    await pm.ev(click('.sheet .vc-reason'));
+    await pm.ev(click('[data-action="di-kem-gui"]'));
+    await pm.waitFor(`document.querySelector('.banner .banner-title')?.innerText === 'Đã gắn người đi kèm'`, "dải Đã gắn người đi kèm");
+    const nhom = await pm.ev(`[...document.querySelectorAll('.dp-khach-nhom[data-nhom="CREW"]')].map((x) => x.innerText.replace(/\\s+/g, ' ').trim())`);
+    assert.equal(nhom.length, 1);
+    assert.match(nhom[0], /Người đi kèm · 1 Hướng Dẫn Kiểm Thử/);
+    assert.ok(!(await pm.ev(`document.querySelector('main').innerText`)).includes(HDV.phone), "trang không lộ SĐT");
+    assert.equal(await pm.ev(noCode), "");
+    await shotFull(pm, "b2-di-kem-da-gan-dien-thoai.png");
   });
   await pm.close();
 
@@ -204,6 +238,9 @@ try {
     assert.equal(await k.ev(`document.querySelectorAll('.dp-cond[data-dat="false"]').length`), 2);
     assert.ok((await k.ev(nhatKy)).length >= 2);
     assert.equal(ghi(k).length, 0);
+    // Task 8 Đợt 1: thấy nhóm Người đi kèm (bước 5b) nhưng không nút thêm.
+    assert.match(await k.ev(`document.querySelector('main').innerText`), /Người đi kèm · 1/);
+    assert.equal(await k.ev(`!!document.querySelector('[data-action="them-di-kem"]')`), false);
     assert.equal(await k.ev(noCode), "");
     await shotFull(k, "b2-chi-tiet-ke-toan-may-tinh.png");
   });

@@ -11,13 +11,23 @@ import {
   typeInto, LOC_BEN_TAU, vnDate,
 } from "./dp-lib.mjs";
 
-const { env, call } = await dungMoiTruong([CHU]);
+// Task 8 Đợt 1 — người đi kèm: hướng dẫn viên (FIELD) giả; tên hiện ở màn tài xế, SĐT thì không.
+const HDV = { name: "Hướng Dẫn Đi Kèm", phone: "0900000432", pin: "246432", permissions: ["FIELD"] };
+const { env, call } = await dungMoiTruong([CHU, HDV]);
 const b = boDem("CUOC SMOKE");
 const d = await dungDuLieuDieuPhoi(env, call);
 const AN = d.AN.account;
 // Ngày mai của An: T4 (10:00, xe đủ giấy) có O4 (2 khách) — xếp bằng phá lệ vì đã trong mốc 48 giờ; T6 (14:00, xe 79A-222.22 THIẾU Bảo hiểm) trống.
 const x4 = await call(ACCOUNTS.admin, "POST", `/api/van-chuyen/chuyen/${d.T4.id}/phan-bo`, { version: d.T4.version, requestId: randomUUID(), chang: [{ legId: d.O4.legId, soSuat: 2 }], phaLe: { lyDo: "PHA_LE_SU_CO" } });
 assert.equal(x4.status, 200, x4.text);
+// Gắn hướng dẫn viên đi kèm T4 bằng route thật (Quản trị, phá lệ vì T4 trong vùng khoá) — màn tài xế phải hiện tên, không SĐT.
+const dsHdv = await call(ACCOUNTS.admin, "GET", "/api/van-chuyen/huong-dan-vien");
+assert.equal(dsHdv.status, 200, dsHdv.text);
+const hdvParty = dsHdv.json.nguoi.find((x) => x.ten === HDV.name);
+assert.ok(hdvParty, `danh sách hướng dẫn viên có ${HDV.name}: ${dsHdv.text}`);
+const v4 = await call(ACCOUNTS.admin, "GET", `/api/van-chuyen/chuyen/${d.T4.id}`);
+const xk = await call(ACCOUNTS.admin, "POST", `/api/van-chuyen/chuyen/${d.T4.id}/phan-bo`, { version: v4.json.chuyen.version, requestId: randomUUID(), nguoiDiKem: [hdvParty.partyId], phaLe: { lyDo: "PHA_LE_SU_CO" } });
+assert.equal(xk.status, 200, xk.text);
 const t6 = await call(ACCOUNTS.admin, "POST", "/api/van-chuyen/chuyen", { requestId: randomUUID(), xeId: d.XE_B.id, taiXePartyId: d.AN.partyId, batDau: { ngay: d.NGAY_KHOA, gio: "14:00" }, ketThuc: { ngay: d.NGAY_KHOA, gio: "15:00" } });
 assert.equal(t6.status, 201, t6.text);
 const T6 = t6.json.chuyen;
@@ -118,7 +128,8 @@ try {
     assert.match(await p.ev(txt(".dp-cc-foot")), /^Bấm lúc xe lăn bánh — giờ ghi là lúc bấm \(\d\d:\d\d\)\.$/);
     for (const x of TEN_O4) assert.ok(!(await html(p)).includes(x), "trước xuất bến (ngoài ngày chạy) không tên khách");
     // bản 1.39 (chủ quyết 30/9): trước xuất bến tài xế thấy các điểm — thứ tự, loại, tên nơi, giờ hẹn, số người — KHÔNG nút tiến độ, KHÔNG khách từng người
-    const ct4 = (await call(AN, "GET", `/api/van-chuyen/cuoc-cua-toi/${d.T4.id}`)).json;
+    // gọi bằng phiên CỦA TRANG (ADR-0075: mỗi tài khoản một phiên — đăng nhập thêm bằng `call` làm trang bị đá ra)
+    const ct4 = await p.ev(`fetch(${JSON.stringify(`/api/van-chuyen/cuoc-cua-toi/${d.T4.id}`)}).then((r) => r.json())`);
     const diemMan = await p.ev(`[...document.querySelectorAll('.dp-cc-diem .dp-run')].map((x) => x.innerText.replace(/\\s+/g, ' ').trim())`);
     const diemApi = [...ct4.diem].sort((x, y) => x.thuTu - y.thuTu);
     assert.ok(diemApi.length >= 2, `T4 có điểm: ${JSON.stringify(diemApi)}`);
@@ -130,7 +141,9 @@ try {
       assert.ok(diemMan[i].endsWith(`${x.soNguoi} khách`), `số người ${x.soNguoi}: ${diemMan[i]}`);
     });
     assert.ok(diemApi.some((x) => x.loai === "PICKUP" && x.gioHen), "có ít nhất một điểm đón có giờ hẹn");
-    assert.match(await p.ev(txt(".dp-cc-meta")), /^79A-111\.11 · \d\d\/\d\d \d\d:\d\d · \d+ khách$/, "dòng đầu có ngày chạy");
+    assert.match(await p.ev(txt(".dp-cc-meta")), /^79A-111\.11 · \d\d\/\d\d \d\d:\d\d · 2 khách$/, "dòng đầu có ngày chạy; người đi kèm KHÔNG tính vào số khách");
+    assert.equal(await p.ev(txt(".dp-cc-di-kem")), `Người đi kèm: ${HDV.name}`, "trước xuất bến: tên người đi kèm (mọi lúc)");
+    assert.ok(!(await html(p)).includes(HDV.phone.slice(1)), "không lộ SĐT hướng dẫn viên");
     assert.equal(await p.ev("document.querySelectorAll('.dp-cc-diem .dp-run-btn, .dp-cc-diem .dp-khach, .dp-cc-diem .dp-khach-btn').length"), 0, "trước xuất bến: không nút tiến độ, không khách từng người");
     assert.equal(await p.ev("!!document.querySelector('.dp-cc-diem + .dp-side-card')"), true, "điểm nằm TRƯỚC khối điều kiện xuất bến");
     await shotFull(p, "b6-xuat-ben-dat-dien-thoai.png");
@@ -139,6 +152,9 @@ try {
     const body = JSON.parse(posts(p, "/xuat-ben").at(-1).body);
     assert.deepEqual(Object.keys(body), ["requestId"], "tài xế tự bấm: không xayRaLuc");
     assert.match(await p.ev(txt(".dp-cc-head")), /^Đang chạy 79A-111\.11 · xuất bến \d\d:\d\d · trên xe 0\/15$/);
+    assert.equal(await p.ev(txt(".dp-cc-di-kem")), `Người đi kèm: ${HDV.name}`, "đang chạy: dòng người đi kèm; không SĐT");
+    assert.ok(!(await html(p)).includes(HDV.phone.slice(1)));
+    assert.equal(await p.ev(`document.querySelectorAll('.dp-khach-ten').length`), 2, "người đi kèm không thành dòng khách");
     // Q-L3-B: chuyến ngày mai đã xuất bến sớm — màn tài xế hiện "Khách N", không tên / năm sinh / liên hệ (mở từ 00:00 ngày chạy).
     const k = await p.ev(`[...document.querySelectorAll('.dp-khach-ten')].map((x) => x.innerText)`);
     assert.deepEqual([...k].sort(), ["Khách 1", "Khách 2"], "chuyến NGÀY MAI đã xuất bến sớm: màn tài xế hiện 'Khách N', KHÔNG tên");
@@ -148,7 +164,7 @@ try {
     assert.equal(await p.ev(noCode), "");
     await shotFull(p, "b5-xuat-ben-som-khong-ten-dien-thoai.png");
     // Kết thúc T4 (gián đoạn, bằng route tài xế) — trả An về trạng thái không chạy cho bước 7 (văn phòng xuất bến thay T1 của An).
-    const kt = await call(AN, "POST", `/api/van-chuyen/cuoc-cua-toi/${d.T4.id}/ket-thuc-gian-doan`, { requestId: randomUUID(), lyDo: "GIAN_DOAN_KHAC" });
+    const kt = await p.ev(`fetch(${JSON.stringify(`/api/van-chuyen/cuoc-cua-toi/${d.T4.id}/ket-thuc-gian-doan`)}, { method: "POST", headers: { "content-type": "application/json" }, body: ${JSON.stringify(JSON.stringify({ requestId: randomUUID(), lyDo: "GIAN_DOAN_KHAC" }))} }).then(async (r) => ({ status: r.status, text: await r.text() }))`);
     assert.equal(kt.status, 200, `kết thúc T4: ${kt.text}`);
   });
 

@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  buocDiem, cauConKhach, cauTuChoiKhaiGio, giuTenKhach, goiYKhaiGio, ketThucDuoc, nhomCuoc, soHieuTaiDiemDon, thanDoiThuTu, xayRaLucTu, type DiemVao, type SuatVao,
+  buocDiem, cauConKhach, cauTuChoiKhaiGio, giuTenKhach, goiYKhaiGio, ketThucDuoc, nhomCuoc, soHieuTaiDiemDon, tenNguoiDiKemCuaChuyen, chiSuatKhach, thanDoiThuTu, xayRaLucTu, type DiemVao, type SuatVao,
 } from "./tien-do-man.ts";
 import { vnLocalToMs } from "./vn-date.ts";
 
@@ -155,4 +155,16 @@ test("thanDoiThuTu (route 29 / 39): đổi chỗ với điểm CHƯA TỚI liề
   assert.equal(thanDoiThuTu(d, "b", -1), null, "đầu danh sách chờ");
   assert.equal(thanDoiThuTu(d, "f", 1), null, "cuối danh sách chờ");
   assert.equal(thanDoiThuTu(d, "a", 1), null, "điểm đã tới — Review Focus 4: tài xế vừa bấm Đã tới");
+});
+
+test("tenNguoiDiKemCuaChuyen: chỉ tên các suất người đi kèm, bỏ trống, không trùng; chuyến không có thì rỗng", () => {
+  assert.deepEqual(tenNguoiDiKemCuaChuyen([]), []);
+  assert.deepEqual(tenNguoiDiKemCuaChuyen([{ tenNguoiDiKem: "Lan" }, {}, { tenNguoiDiKem: "" }, { tenNguoiDiKem: "Hùng" }, { tenNguoiDiKem: "Lan" }]), ["Lan", "Hùng"]);
+});
+
+test("chiSuatKhach: bỏ suất người đi kèm — không làm 'Kết thúc chuyến' bị khoá, không đếm vào số khách", () => {
+  const suat = [{ id: "k1", trangThai: "DROPPED" as const }, { id: "c1", trangThai: "WAITING" as const, tenNguoiDiKem: "Lan" }];
+  assert.deepEqual(chiSuatKhach(suat).map((x) => x.id), ["k1"]);
+  assert.equal(ketThucDuoc(suat), false, "nếu không lọc, suất người đi kèm WAITING chặn kết thúc");
+  assert.equal(ketThucDuoc(chiSuatKhach(suat)), true);
 });

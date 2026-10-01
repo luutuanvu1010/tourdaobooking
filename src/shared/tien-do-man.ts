@@ -227,3 +227,18 @@ export function nhomCuoc(ds: readonly CuocCuaToiItemDto[], homNay: string): { ti
     { tieuDe: "Ngày kia", ngay: thuNgay(kia), iso: kia, the: theoNgay(kia) },
   ];
 }
+
+/** Tên người đi kèm (hướng dẫn viên) của chuyến, theo thứ tự suất, không trùng, bỏ ô trống — màn tài xế hiện "Người đi kèm: …" (lời chủ 2026-10-01; chỉ tên). */
+export function tenNguoiDiKemCuaChuyen(suat: readonly { tenNguoiDiKem?: string }[]): string[] {
+  const out: string[] = [];
+  for (const x of suat) if (x.tenNguoiDiKem && !out.includes(x.tenNguoiDiKem)) out.push(x.tenNguoiDiKem);
+  return out;
+}
+
+/**
+ * Suất KHÁCH của màn tài xế: DTO tài xế không có `loai`, nhưng suất người đi kèm mang `tenNguoiDiKem` — bỏ chúng khi đếm khách / xét "Kết thúc chuyến"
+ * (người đi kèm không phải khách: không đón, không trả).
+ */
+export function chiSuatKhach<T extends { tenNguoiDiKem?: string }>(suat: readonly T[]): T[] {
+  return suat.filter((x) => x.tenNguoiDiKem === undefined);
+}
