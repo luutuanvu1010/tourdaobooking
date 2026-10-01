@@ -1,6 +1,6 @@
 // Module van-chuyen — phân hệ Vận chuyển, lượt 1a (ADR-0040 D1): xe, giấy tờ xe, danh mục loại giấy tờ xe, ngưỡng "sắp hết hạn", danh sách giấy tờ sắp hết
 // hạn (xe + tài xế). Route: /api/van-chuyen/*. Tiền tố bảng vc_ (module nghiêm — STRICT). Phụ thuộc: parties (hàm công bố ownerCompany — chủ xe;
-// expiringDriverDocuments — giấy tờ tài xế, KHÔNG số; nhaXeDangHopTac — nhà xe đối tác, ADR-0048 D1) và audit (auditStatement). KHÔNG module nào import van-chuyen; ngoài AppModule chỉ xuất hai hàm công bố cho gốc lắp ráp: mocToiThieuHienHanh (ADR-0049 D2) và viecXeCuaNguoi (ADR-0068 Đ2).
+// expiringDriverDocuments — giấy tờ tài xế, KHÔNG số; nhaXeDangHopTac — nhà xe đối tác, ADR-0048 D1) và audit (auditStatement). KHÔNG module nào import van-chuyen; ngoài AppModule chỉ xuất ba hàm công bố cho gốc lắp ráp: mocToiThieuHienHanh (ADR-0049 D2), nguongHetHanHienHanh (ADR-0040 D1) và viecXeCuaNguoi (ADR-0068 Đ2).
 // Ô quyền: vehicle.manage (Quản trị + Toàn quyền) hỏi ở ĐẦU thân mọi route, trước khi đọc thân yêu cầu (403 trước 400).
 import { auditStatement } from "../audit";
 import { expiringDriverDocuments, nhaXeDangHopTac, ownerCompany } from "../parties";
@@ -41,7 +41,7 @@ import {
 
 // ADR-0049 D1–D3 (Task A13): chuyến xe — hàm hẹp của orders (chỉ gọi trong THÂN route, sau can() — bài src/orders-cong-bo.test.ts), đọc / dựng lô / DTO.
 import { hanhKhachChoChuyen, lichChungChang, lienHeChoTaiXe } from "../orders";
-import type { CapNhatDiemResponse, CapNhatKhachResponse, ChuyenChiTietResponse, CuocChiTietResponse, CuocCuaToiResponse, StaffProfile } from "../../shared/contracts";
+import type { CapNhatDiemResponse, HuongDanVienListResponse, CapNhatKhachResponse, ChuyenChiTietResponse, CuocChiTietResponse, CuocCuaToiResponse, StaffProfile } from "../../shared/contracts";
 import { kiemTaoSuaChuyen, trongNgayChay } from "../../shared/dieu-phoi-kiem";
 import { lyDoGiu, type LyDoGiu } from "../../shared/ly-do-giu";
 import { isISODate, msToVnLocal } from "../../shared/vn-date";
@@ -890,7 +890,13 @@ export const vanChuyenModule: AppModule = {
       return json(await chiTietChuyen(env.DB, nen2, lich.chang, hk, false, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), bayGioMs) satisfies ChuyenChiTietResponse);
     }),
 
-    route("POST", "/api/van-chuyen/chuyen/:id/phan-bo", "office", async ({ env, request, params, staff, nhanNhanVien, isAssigned }) => {
+    // Người đi kèm (lời chủ 2026-10-01, phương án A): ai gắn được — tài khoản Hướng dẫn viên đang hoạt động; tên, KHÔNG SĐT. Cùng ô với lệnh xếp.
+    route("GET", "/api/van-chuyen/huong-dan-vien", "office", async ({ staff, huongDanVien }) => {
+      if (!can(staff, "trip.dispatch")) return CAN_DIEU_PHOI();
+      return json({ nguoi: await huongDanVien() } satisfies HuongDanVienListResponse);
+    }),
+
+    route("POST", "/api/van-chuyen/chuyen/:id/phan-bo", "office", async ({ env, request, params, staff, nhanNhanVien, isAssigned, huongDanVien }) => {
       if (!can(staff, "trip.dispatch")) return CAN_DIEU_PHOI();
       const than = docXep(await readJson(request));
       if (!than.ok) return error(400, "invalid_input", than.message);
@@ -901,6 +907,11 @@ export const vanChuyenModule: AppModule = {
       const bayGioMs = Date.now();
       let canhBaoXep: LyDoGiu[] = [];
       if (!(await eventByRequest(env.DB, b.requestId))) {
+        // Lời chủ 2026-10-01: người đi kèm phải là hướng dẫn viên đang có tài khoản (gửi lại cùng requestId không kiểm lại — lô đã chạy).
+        if (b.nguoiDiKem.length > 0) {
+          const duoc = new Set((await huongDanVien()).map((x) => x.partyId));
+          if (!b.nguoiDiKem.every((p) => duoc.has(p))) return error(409, "nguoi_di_kem_khong_hop_le", "Chỉ gắn được hướng dẫn viên đang có tài khoản làm người đi kèm.");
+        }
         const lich = await lichChungChang(env.DB, nen.tu, nen.den);
         const r = await lenhXep(env.DB, nen, lich.chang, b, staff, bayGioMs);
         if (r.loi) return r.loi;

@@ -1248,6 +1248,8 @@ export interface SuatChuyenDto {
   /** Họ tên + năm sinh — CHỈ ở chi tiết chuyến của văn phòng (R-P1; `trip.view = any` ⇒ `contact.view = any`) và DTO tài xế trong ngày chạy (A15). */
   hoTen?: string;
   namSinh?: number;
+  /** Suất người đi kèm (`CREW`): tên hướng dẫn viên (lời chủ 2026-10-01) — chỉ tên, mọi lúc; suất khách không có khoá này. */
+  tenNguoiDiKem?: string;
   daDon: MocTienDoDto | null;
   daTra: MocTienDoDto | null;
 }
@@ -1338,6 +1340,9 @@ export interface SuaChuyenRequest {
   phaLe?: PhaLeRequest;
   nghiPhaLe?: PhaLeRequest;
 }
+/** GET /api/van-chuyen/huong-dan-vien — người gắn được làm "người đi kèm" (lời chủ 2026-10-01: chỉ tài khoản Hướng dẫn viên đang hoạt động). Hồ sơ + tên, KHÔNG SĐT. */
+export interface HuongDanVienListResponse { nguoi: { partyId: string; ten: string }[] }
+
 /** POST /api/van-chuyen/chuyen/:id/phan-bo — xếp khách theo chặng (tách đoàn: `soSuat` < số người) và / hoặc người đi kèm. */
 export interface XepRequest {
   version: number;
@@ -1473,6 +1478,8 @@ export interface CuocChiTietResponse {
     soHieuChuyenBay: string | null;
     hoTen?: string;
     namSinh?: number;
+    /** Suất người đi kèm (`CREW`): tên hướng dẫn viên (lời chủ 2026-10-01) — chỉ tên, mọi lúc; suất khách không có khoá này. */
+    tenNguoiDiKem?: string;
   }[];
   lienHe?: { maDon: string; tenLienHe: string; sdtLienHe: string }[];
   dieuKienConThieu: DieuKienConThieuDto[];

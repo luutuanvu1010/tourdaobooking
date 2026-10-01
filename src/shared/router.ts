@@ -135,6 +135,11 @@ export interface Ctx<A extends Access = Access> {
    */
   nguongHetHan: () => Promise<number>;
   /**
+   * NGƯỜI ĐI KÈM gắn được (lời chủ 2026-10-01): tài khoản quyền `FIELD` đang hoạt động, có hồ sơ — hồ sơ + tên hiển thị, KHÔNG SĐT. Do gốc lắp ráp tiêm
+   * (`staff`; `van-chuyen` không có cạnh tới `staff`). Không tiêm (khung thử cố ý) → `[]` ⇒ mọi người đi kèm bị từ chối (mặc định từ chối).
+   */
+  huongDanVien: () => Promise<{ partyId: string; ten: string }[]>;
+  /**
    * NHÃN NGƯỜI BẤM (ruling R-P20 của điều phối, ADR-0049 kế hoạch mục 1.8 / R-P11) — do gốc lắp ráp tiêm (`staff`, view `v_stf_staff_label`; `van-chuyen`
    * KHÔNG import `staff`, không nới ALLOWED_EDGES — khuôn `mocToiThieu`, `giaoLoDay`). Trả TÊN HIỂN THỊ theo id tài khoản (không SĐT, không email, không
    * quyền). Route gọi MỘT lần mỗi request cho CẢ danh sách id (mảng rỗng: không truy vấn). `null` = môi trường không tiêm (khung thử cố ý) ⇒ route để trống
@@ -243,6 +248,8 @@ export interface AppOptions {
     mocToiThieu: (env: Env) => Promise<MocToiThieu | null>;
     /** Mốc sắp hết hạn (ADR-0040 D1). BẮT BUỘC trong mã chạy thật (`src/index.ts`: `nguongHetHanHienHanh(env.DB)`). */
     nguongHetHan: (env: Env) => Promise<number>;
+    /** Người đi kèm gắn được. BẮT BUỘC trong mã chạy thật (src/index.ts). */
+    huongDanVien: (env: Env) => Promise<{ partyId: string; ten: string }[]>;
     /** R-P20. BẮT BUỘC trong mã chạy thật (`src/index.ts`: `nhanNhanVienTheoId` của staff); thiếu (khung thử cố ý) → router trả `null` (route để trống nhãn). */
     nhanNhanVien: (env: Env, ids: readonly string[]) => Promise<Map<string, string>>;
     /** GỘP HỒ SƠ (ADR-0068). BẮT BUỘC trong mã chạy thật (`src/index.ts`). */
@@ -320,6 +327,7 @@ export function createApp(opts: AppOptions) {
       // Thiếu hàm tiêm (khung thử cố ý) → null: route chặn, không đoán (I25). Kiểm lúc GỌI, không lúc dựng app (typeof — JS không kiểm kiểu).
       mocToiThieu: () => (typeof opts.injected.mocToiThieu === "function" ? opts.injected.mocToiThieu(env) : Promise.resolve(null)),
       nguongHetHan: () => (typeof opts.injected.nguongHetHan === "function" ? opts.injected.nguongHetHan(env) : Promise.resolve(NGUONG_MAC_DINH)),
+      huongDanVien: () => (typeof opts.injected.huongDanVien === "function" ? opts.injected.huongDanVien(env) : Promise.resolve([])),
       nhanNhanVien: (ids) =>
         typeof opts.injected.nhanNhanVien !== "function" ? Promise.resolve(null) : ids.length === 0 ? Promise.resolve(new Map()) : opts.injected.nhanNhanVien(env, ids),
       // Lười (kế hoạch R9): gọi opts.injected.gopHoSo(env) trong từng phương thức — app dựng bằng injected cũ (src/shared/router.test.ts) không vỡ ở route khác.

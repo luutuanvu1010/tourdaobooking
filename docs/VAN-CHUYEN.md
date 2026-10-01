@@ -76,6 +76,8 @@ Trên máy tính, các mục nằm ở thanh bên, nhóm **QUẢN TRỊ › Vậ
 |---|---|---|---|---|---|---|---|---|---|
 | Xem Điều phối xe, chi tiết chuyến | có | có | có | có | không | không | không | chỉ chuyến mình lái (ở "Cuốc của tôi") | không |
 | Tạo / sửa / xếp / rút / chuyển / huỷ chuyến; "Cập nhật điểm theo đơn", "Cập nhật khách theo đơn" | có | không | có | có | không | không | không | không | không |
+| Gắn người đi kèm (hướng dẫn viên) — chỉ chọn được tài khoản Hướng dẫn viên đang hoạt động | có | không | có | có | không | không | không | không | không |
+| Xem chuyến (Hướng dẫn viên) | — | — | — | — | không (chờ ADR-0064) | — | — | — | — |
 | Phá lệ (mốc 6 giờ, khoảng nghỉ) | không | không | có | có | không | không | không | không | không |
 | Bấm tiến độ (Xuất bến, Đã đón, …) | bấm thay | không | bấm thay | bấm thay | không | không | không | tự bấm, chuyến mình lái | không |
 | "Đã gọi báo" | đơn mình lập hoặc đang phụ trách | không | mọi chặng | mọi chặng | không | không | không | không | không |

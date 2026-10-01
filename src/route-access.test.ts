@@ -266,6 +266,7 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   // ADR-0049 D1–D3 (Task A13, kế hoạch mục 1.7 route 1–8, 40): chuyến xe — văn phòng lập kế hoạch. Thân hỏi trip.view / trip.dispatch (+ trip.override khi
   // gửi phá lệ) TRƯỚC mọi đọc; hàm hẹp của orders chỉ gọi sau can() (src/orders-cong-bo.test.ts).
   { method: "GET", path: "/api/van-chuyen/lich", access: "office" },
+  { method: "GET", path: "/api/van-chuyen/huong-dan-vien", access: "office" }, // người đi kèm gắn được (lời chủ 2026-10-01) — ô trip.dispatch
   { method: "GET", path: "/api/van-chuyen/chuyen/:id", access: "office" },
   { method: "POST", path: "/api/van-chuyen/chuyen", access: "office" },
   { method: "PUT", path: "/api/van-chuyen/chuyen/:id", access: "office" },
@@ -329,7 +330,7 @@ test("MODULES liệt kê ĐỦ mọi thư mục module có khai `...Module: AppM
   assert.deepEqual(routedDirs, listed, "có thư mục module khai AppModule nhưng chưa có trong MODULES của bài kiểm route-access này — thêm vào MODULES và SNAPSHOT");
 });
 
-test("mức truy cập của 212 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
+test("mức truy cập của 213 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
   const actual = await collectRealRoutes();
   // deepEqual TRƯỚC: khi có route mới/bị xoá, thông báo của nó chỉ ra ĐÚNG route lệch — hai assert.equal độ dài bên dưới chỉ để phòng hờ
   // (không bao giờ tự chạy tới nếu deepEqual đã trượt) và tài liệu hoá con số 86 để đối chiếu nhanh bằng mắt.
@@ -382,7 +383,8 @@ test("mức truy cập của 212 route hiện có khớp ảnh chụp đã duy�
   // 2026-10-01 (ADR-0073 Đ5): + POST /api/tro-ly/thu (office, settings.ops) = 205.
   // 2026-10-01 (ADR-0075 Task 4 + điều 7–8): + POST /api/auth/session-ended (public), GET /api/account/sessions (staff), GET /api/sessions, POST /api/sessions/:id/revoke (admin) = 209 (gộp main 1.57: nhánh ghi 205 trên nền 201, main lên 205 ⇒ 201 + 4 + 4).
   // 2026-10-01 (ADR-0085): + 3 route chính sách đăng nhập (GET/PUT /api/sessions/policy, GET /api/sessions/policy/preview — admin) = 212.
+  // 2026-10-02 (Đợt 1 Task 7): + GET /api/van-chuyen/huong-dan-vien (office; người đi kèm, lời chủ 1/10) = 213.
   assert.deepEqual(actual, SNAPSHOT);
-  assert.equal(actual.length, 212, "số route thực tế lệch 212 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 212, "SNAPSHOT phải có đúng 212 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  assert.equal(actual.length, 213, "số route thực tế lệch 213 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 213, "SNAPSHOT phải có đúng 213 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });
