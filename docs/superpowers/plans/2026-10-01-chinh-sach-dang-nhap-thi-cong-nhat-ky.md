@@ -25,3 +25,6 @@
 - Task 2 (luật thuần, isSingleDevice có chính sách), quan sát chặn thật 2026-10-01, đột biến "bỏ vế `permissions.some((p) => nhieuMay.has(p))` khỏi isSingleDevice" (khôi phục từ bản sao, xanh 9/9 sau đó):
   `not ok 2 - được nhiều máy (ADR-0085 Q1 điều 2): SUPER_ADMIN hoặc vai IT (khoá cứng) hoặc một quyền mà chính sách đặt Nhiều máy; bảng trống = như bản 1.58`
 - Task 2, tồn đọng có chủ ý: `npm test` đỏ bài `hàng rào 1: mọi ô của MATRIX được máy chủ hỏi…` vì ô `auth.session.policy` chưa có route hỏi `can()` — Task 4 thêm route (KHÔNG thêm mục vào docs/quyen-hoan.json, theo kế hoạch).
+- Task 3 (SQL chính sách + siết theo tập), quan sát chặn thật 2026-10-01, đột biến "bỏ vế `AND id <> <phiên mới nhất>` khỏi SS_SIET_THEO_TAP (thay bằng `AND 1`)" (khôi phục từ bản sao, xanh 6/6 sau đó):
+  `not ok 3 - siết theo tập: tài khoản một máy theo chính sách TRONG BẢNG còn đúng phiên còn hạn mới nhất (single=1); Toàn quyền, vai IT, quyền Nhiều máy không đụng`
+- Task 3, đột biến phụ "changes() > 0 → changes() > 99" trong POL_INSERT_AFTER_CLOSE (chứng minh changes() đọc câu đóng ngay trước trên SQLite): `not ok 1 - lưu có kiểm phiên bản: đóng đúng id + chèn; id cũ (người khác vừa lưu) → lỗi ràng buộc, CẢ lô lùi (không dòng nào đổi, không phiên nào kết thúc)`

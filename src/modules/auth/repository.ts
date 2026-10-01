@@ -175,3 +175,57 @@ export async function listSessions(db: D1Database, staffId: string | null, liveO
   return (await db.prepare(SS_LIST_ALL).bind(staffId, liveOnly ? 1 : 0, nowIso).all<SessionRow>()).results;
 }
 export const getSession = (db: D1Database, id: string): Promise<SessionRow | null> => db.prepare(SS_GET).bind(id).first<SessionRow>();
+
+// ---- Chính sách đăng nhập `aut_session_policy` (ADR-0085, migration 0067) ----------------------------------------------------------------
+// MỘT mẩu điều kiện "tài khoản <cột> được nhiều máy" cho ba câu (siết, đánh dấu, đếm xem trước) và cho bất biến R-AUT-SESSION-3 (scripts/audit-checks.mjs chép
+// nguyên văn — bài đối chiếu ở src/audit-invariants.test.ts). Nguồn chính sách: bảng (khi lưu — đọc SAU các câu ghi chính sách cùng lô) hoặc tham số JSON
+// (xem trước). Quyền / vai IT đọc qua view công bố của staff (v_stf_*), không JOIN bảng stf_/pty_. Bản TypeScript: isSingleDevice (session-ledger.ts).
+const nhieuMayDieuKien = (cotStaff: string, nguonQuyen: string): string =>
+  `(EXISTS (SELECT 1 FROM v_stf_nhieu_may_co_dinh f WHERE f.staff_id = ${cotStaff}) OR EXISTS (SELECT 1 FROM v_stf_quyen_mo q WHERE q.staff_id = ${cotStaff} AND q.permission_code IN (${nguonQuyen})))`;
+const NGUON_BANG = "SELECT p.permission_code FROM aut_session_policy p WHERE p.valid_to_at IS NULL AND p.multi = 1";
+const moiNhatConSong = (cotStaff: string, locHan: string) =>
+  `(SELECT n.id FROM aut_session n WHERE n.staff_id = ${cotStaff} AND n.ended_at IS NULL${locHan} ORDER BY n.created_at DESC, n.id DESC LIMIT 1)`;
+
+export interface PolicyRow { id: string; permission_code: string; multi: number }
+const POL_LIST = defineSql("auth", "policy_list", "SELECT id, permission_code, multi FROM aut_session_policy WHERE valid_to_at IS NULL ORDER BY permission_code");
+const POL_CLOSE = defineSql("auth", "policy_close",
+  "UPDATE aut_session_policy SET valid_to_at = ?3, updated_at = ?3, updated_by = ?4 WHERE id = ?1 AND permission_code = ?2 AND valid_to_at IS NULL");
+// Chèn SAU câu đóng: câu đóng thua (id đang xem đã không còn là dòng hiện hành) ⇒ permission_code NULL ⇒ lỗi NOT NULL ⇒ CẢ lô lùi (all-or-nothing, đặc tả §4.2
+// bước 3.1 — lần lưu nhiều quyền không được ghi một nửa). changes() là của câu hoàn tất ngay trước (câu đóng).
+const POL_INSERT_AFTER_CLOSE = defineSql("auth", "policy_insert_after_close",
+  "INSERT INTO aut_session_policy (id, permission_code, multi, valid_from_at, valid_to_at, created_at, created_by, updated_at, updated_by) " +
+    "SELECT ?1, CASE WHEN changes() > 0 THEN ?2 END, ?3, ?4, NULL, ?4, ?5, ?4, ?5");
+// Chèn khi bản đang xem CHƯA có dòng: dòng hiện hành đã có (người khác vừa đặt) ⇒ chỉ mục aut_session_policy_one_current vỡ ⇒ cả lô lùi.
+const POL_INSERT_NEW = defineSql("auth", "policy_insert_new",
+  "INSERT INTO aut_session_policy (id, permission_code, multi, valid_from_at, valid_to_at, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?4, NULL, ?4, ?5, ?4, ?5)");
+// Siết theo tập (đặc tả §4.2 bước 3.3): dọn hạn MỌI tài khoản → kết thúc mọi phiên trừ phiên mới nhất của tài khoản nay một máy → đánh dấu single = 1.
+// Số câu cố định, không phụ thuộc số người. Câu ghi không mở đầu bằng WITH (khung thử coi WITH là câu đọc).
+const SS_END_EXPIRED_ALL = defineSql("auth", "session_end_expired_all",
+  "UPDATE aut_session SET ended_at = ?1, end_reason = 'het_han', updated_at = ?1, updated_by = NULL WHERE ended_at IS NULL AND expires_at <= ?1");
+const SS_SIET_THEO_TAP = defineSql("auth", "session_siet_theo_tap",
+  "UPDATE aut_session SET ended_at = ?1, end_reason = 'mat_mien', ended_by = ?2, updated_at = ?1, updated_by = ?2 WHERE ended_at IS NULL " +
+    `AND NOT ${nhieuMayDieuKien("aut_session.staff_id", NGUON_BANG)} AND id <> ${moiNhatConSong("aut_session.staff_id", "")} RETURNING id, staff_id`);
+const SS_DANH_DAU_MOT_MAY = defineSql("auth", "session_danh_dau_mot_may_theo_tap",
+  `UPDATE aut_session SET single = 1, updated_at = ?1, updated_by = ?2 WHERE ended_at IS NULL AND single = 0 AND NOT ${nhieuMayDieuKien("aut_session.staff_id", NGUON_BANG)}`);
+// Xem trước (đặc tả §4.3): cùng mẩu điều kiện, nguồn = tập đề xuất (JSON ?1); phiên còn hạn tại ?2 (lô thật dọn hạn trước nên tương đương).
+const SS_DEM_SIET = defineSql("auth", "session_dem_siet_theo_tap",
+  "SELECT count(*) AS so_phien, count(DISTINCT s.staff_id) AS so_nguoi FROM aut_session s WHERE s.ended_at IS NULL AND s.expires_at > ?2 " +
+    `AND NOT ${nhieuMayDieuKien("s.staff_id", "SELECT value FROM json_each(?1)")} AND s.id <> ${moiNhatConSong("s.staff_id", " AND n.expires_at > ?2")}`);
+export async function listPolicyRows(db: D1Database): Promise<PolicyRow[]> {
+  return (await db.prepare(POL_LIST).all<PolicyRow>()).results;
+}
+export const closePolicyStatement = (db: D1Database, v: { id: string; code: string; at: string; by: string }): D1PreparedStatement =>
+  db.prepare(POL_CLOSE).bind(v.id, v.code, v.at, v.by);
+export const insertPolicyAfterCloseStatement = (db: D1Database, v: { id: string; code: string; multi: boolean; at: string; by: string }): D1PreparedStatement =>
+  db.prepare(POL_INSERT_AFTER_CLOSE).bind(v.id, v.code, v.multi ? 1 : 0, v.at, v.by);
+export const insertPolicyNewStatement = (db: D1Database, v: { id: string; code: string; multi: boolean; at: string; by: string }): D1PreparedStatement =>
+  db.prepare(POL_INSERT_NEW).bind(v.id, v.code, v.multi ? 1 : 0, v.at, v.by);
+/** Lỗi ràng buộc do lần lưu dựa trên bản chính sách cũ (NOT NULL của câu chèn sau đóng, hoặc UNIQUE dòng hiện hành). */
+export const laLoiChinhSachCu = (e: unknown): boolean => e instanceof Error && /aut_session_policy\.permission_code/.test(e.message);
+export const endExpiredAllStatement = (db: D1Database, at: string): D1PreparedStatement => db.prepare(SS_END_EXPIRED_ALL).bind(at);
+export const sietTheoTapStatement = (db: D1Database, at: string, by: string): D1PreparedStatement => db.prepare(SS_SIET_THEO_TAP).bind(at, by);
+export const danhDauMotMayTheoTapStatement = (db: D1Database, at: string, by: string): D1PreparedStatement => db.prepare(SS_DANH_DAU_MOT_MAY).bind(at, by);
+export async function demSietTheoTap(db: D1Database, nhieuMay: readonly string[], nowIso: string): Promise<{ soPhien: number; soNguoi: number }> {
+  const r = await db.prepare(SS_DEM_SIET).bind(JSON.stringify(nhieuMay), nowIso).first<{ so_phien: number; so_nguoi: number }>();
+  return { soPhien: r?.so_phien ?? 0, soNguoi: r?.so_nguoi ?? 0 };
+}
