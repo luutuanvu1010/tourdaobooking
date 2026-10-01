@@ -11,6 +11,17 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // ADR-0073 (trợ lý bộ não tuỳ biến, ô thử, nhớ 3 lượt, ẩn số tiền). Số "1.53" = main 1.52 + 1 lúc thi công (2026-10-01); nhánh khác gộp trước thì ai gộp sau đánh lại số và ngày. Có migration 0060 (số tạm).
+    version: "1.53",
+    date: "2026-10-01",
+    items: [
+      { kind: "moi", text: "Trợ lý Hỗ trợ nhớ vài câu vừa hỏi trong cùng cuộc trò chuyện, nên hỏi tiếp \"còn trên điện thoại thì sao\" vẫn hiểu. Bấm \"Cuộc trò chuyện mới\" để bắt đầu lại." },
+      { kind: "doi", text: "Trợ lý trả lời tự nhiên hơn: câu chưa rõ thì hỏi lại; việc hướng dẫn chưa nói thì nói thật, chỉ chỗ gần nhất hoặc mời gửi Góp ý." },
+      { kind: "doi", text: "Trợ lý không nêu số tiền trong câu trả lời — chỗ có số tiền hiện \"[đã ẩn số tiền]\"." },
+      { kind: "moi", text: "Toàn quyền: trang Trợ lý Hỗ trợ có mục Bộ não — chọn mẫu AI kèm giá, sửa lời nhắc, xem lịch sử bản, thử câu hỏi trước khi lưu." },
+    ],
+  },
+  {
     // ADR-0071 (vai Hành chính nhân sự, gỡ đồng bộ nhân viên từ Sheet, bảo trì miễn trừ theo Toàn quyền) + đồng hồ bảo trì theo ngày (commit 3de1435f).
     // Số "1.52" = số lớn nhất trên nhánh + 1 lúc thi công (2026-10-01); nhánh khác gộp trước thì đánh lại số. Có migration 0057.
     version: "1.52",
