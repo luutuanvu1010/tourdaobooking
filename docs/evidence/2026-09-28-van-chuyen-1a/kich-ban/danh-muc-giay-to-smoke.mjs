@@ -4,8 +4,8 @@
 //                         "Địa điểm" ở trang Tôi);
 //   /loai-giay-to-xe    — loại giấy tờ xe: mục con của "Vận chuyển" (điện thoại: dòng trong nhóm VẬN CHUYỂN của trang Tôi).
 // Giữ TÊN tệp cũ: bảng "Sửa tệp nào → chạy kịch bản Chrome nào" của web/CLAUDE.md đang trỏ tới tên này (đổi bảng đó phải chờ chủ duyệt). Kiểm:
-// (a) Quản trị 390: trang Tôi — thẻ đầu Danh bạ / Địa điểm / Loại giấy tờ người (không còn "Danh mục giấy tờ"); bấm → hai khối 4 / 8 thẻ, không khối xe.
-// (b) Quản trị 1040: thanh bên — "Loại giấy tờ người" ngay sau "Địa điểm", trước "Vận chuyển"; bấm → mục sáng; breadcrumb; hai khối 4 / 8 dòng bảng.
+// (a) Quản trị 390: trang Tôi — thẻ đầu Danh bạ / Địa điểm / Loại giấy tờ cá nhân (không còn "Danh mục giấy tờ"); bấm → hai khối 4 / 8 thẻ, không khối xe.
+// (b) Quản trị 1040: thanh bên — "Loại giấy tờ cá nhân" ngay sau "Địa điểm", trước "Vận chuyển"; bấm → mục sáng; breadcrumb; hai khối 4 / 8 dòng bảng.
 // (c) Quản trị 390: nhóm VẬN CHUYỂN — Xe / Giấy tờ sắp hết hạn / Loại giấy tờ xe; bấm → MỘT khối 6 thẻ (không khối người / hạng); tiêu đề thanh đầu; tab Tôi sáng.
 // (d) Quản trị 1040: dưới "Vận chuyển" — Xe / Sắp hết hạn / Loại giấy tờ xe; bấm → mục con sáng, mục cha chữ trắng; breadcrumb "Vận chuyển › Loại giấy tờ xe".
 // (e) thêm loại giấy tờ người "Thẻ hướng dẫn viên" → hiện ngay.  (f) sửa tên một hạng → Lưu, tải lại vẫn đúng.
@@ -36,43 +36,43 @@ try {
     p.ev(`[...document.querySelectorAll('#sidebar .sidebar-group')].map((g) => ({ title: g.querySelector('.sidebar-group-title').textContent.trim(), items: [...g.querySelectorAll('.sidebar-item')].map((a) => ({ label: a.querySelector('.sidebar-item-label').textContent.trim(), href: a.getAttribute('href'), sub: a.classList.contains('sidebar-sub'), parent: a.classList.contains('sidebar-parent'), open: a.classList.contains('is-open-parent'), current: a.getAttribute('aria-current') })) }))`);
   const coLienKet = (p, hrefs) => p.ev(`[...document.querySelectorAll('a')].filter((a) => ${JSON.stringify(hrefs)}.includes(a.getAttribute('href'))).map((a) => a.getAttribute('href'))`);
 
-  await dem.step("a", "(a) Quản trị 390: trang Tôi — Danh bạ / Địa điểm / Loại giấy tờ người (không còn “Danh mục giấy tờ”); bấm → hai khối 4 / 8 thẻ, không khối xe" + axeNote(), async () => {
+  await dem.step("a", "(a) Quản trị 390: trang Tôi — Danh bạ / Địa điểm / Loại giấy tờ cá nhân (không còn “Danh mục giấy tờ”); bấm → hai khối 4 / 8 thẻ, không khối xe" + axeNote(), async () => {
     const p = await env.as(ADMIN, "/account", MOB);
     try {
-      await p.waitFor(`!!document.querySelector('#links-top a[href="${NGUOI}"]')`, "dòng Loại giấy tờ người", 10000);
-      assert.deepEqual(await dongToi(p, "#links-top"), [{ href: "/parties", text: "Danh bạ" }, { href: "/locations", text: "Địa điểm" }, { href: NGUOI, text: "Loại giấy tờ người" }]);
+      await p.waitFor(`!!document.querySelector('#links-top a[href="${NGUOI}"]')`, "dòng Loại giấy tờ cá nhân", 10000);
+      assert.deepEqual(await dongToi(p, "#links-top"), [{ href: "/parties", text: "Danh bạ" }, { href: "/locations", text: "Địa điểm" }, { href: NGUOI, text: "Loại giấy tờ cá nhân" }]);
       assert.deepEqual(await coLienKet(p, [CU]), [], "không còn dòng Danh mục giấy tờ");
-      assert.ok(await p.ev(clickVisible("#links-top", "Loại giấy tờ người")));
-      await p.waitFor(`location.pathname === '${NGUOI}' && !document.querySelector('#dm-hang').hidden`, "trang Loại giấy tờ người", 10000);
+      assert.ok(await p.ev(clickVisible("#links-top", "Loại giấy tờ cá nhân")));
+      await p.waitFor(`location.pathname === '${NGUOI}' && !document.querySelector('#dm-hang').hidden`, "trang Loại giấy tờ cá nhân", 10000);
       assert.deepEqual(await soDong(p, ["#dm-xe", "#dm-nguoi", "#dm-hang"], ".card-list > .card"), [null, 4, 8]);
       assert.deepEqual(await tieuDe(p, "#dm-nguoi", "h2"), ["Loại giấy tờ của người"]);
       assert.deepEqual(await tieuDe(p, "#dm-nguoi", "h3"), ["Thêm loại giấy tờ của người"]);
       assert.deepEqual(await tieuDe(p, "#dm-hang", "h2"), ["Hạng giấy phép lái xe"]);
-      assert.equal(await p.ev(txt("#bar-title")), "Loại giấy tờ người");
+      assert.equal(await p.ev(txt("#bar-title")), "Loại giấy tờ cá nhân");
       assert.equal(await p.ev(`document.querySelector('#tabbar a[href="/account"]').getAttribute('aria-current')`), "page", "tab Tôi sáng");
-      await axe(p, "Loại giấy tờ người 390");
+      await axe(p, "Loại giấy tờ cá nhân 390");
       await shotFull(p, "loai-giay-to-nguoi-390.png");
     } finally {
       p.close();
     }
   });
 
-  await dem.step("b", "(b) Quản trị 1040: thanh bên — “Loại giấy tờ người” ngay sau “Địa điểm”, trước “Vận chuyển”; bấm → mục sáng, breadcrumb; hai khối 4 / 8 dòng" + axeNote(), async () => {
+  await dem.step("b", "(b) Quản trị 1040: thanh bên — “Loại giấy tờ cá nhân” ngay sau “Địa điểm”, trước “Vận chuyển”; bấm → mục sáng, breadcrumb; hai khối 4 / 8 dòng" + axeNote(), async () => {
     const p = await env.as(ADMIN, "/account", DESK);
     try {
-      await p.waitFor(`!!document.querySelector('#sidebar a[href="${NGUOI}"]')`, "mục Loại giấy tờ người", 10000);
+      await p.waitFor(`!!document.querySelector('#sidebar a[href="${NGUOI}"]')`, "mục Loại giấy tờ cá nhân", 10000);
       const qt = (await thanhBen(p)).find((g) => g.title === "QUẢN TRỊ");
       const nhan = qt.items.map((i) => i.label);
       const at = nhan.indexOf("Địa điểm");
-      assert.deepEqual(nhan.slice(at, at + 3), ["Địa điểm", "Loại giấy tờ người", "Vận chuyển"], JSON.stringify(nhan));
+      assert.deepEqual(nhan.slice(at, at + 3), ["Địa điểm", "Loại giấy tờ cá nhân", "Vận chuyển"], JSON.stringify(nhan));
       assert.deepEqual([qt.items[at + 1].href, qt.items[at + 1].sub], [NGUOI, false]);
-      assert.ok(await p.ev(clickVisible("#sidebar", "Loại giấy tờ người")));
-      await p.waitFor(`location.pathname === '${NGUOI}' && !document.querySelector('#dm-hang').hidden`, "trang Loại giấy tờ người", 10000);
+      assert.ok(await p.ev(clickVisible("#sidebar", "Loại giấy tờ cá nhân")));
+      await p.waitFor(`location.pathname === '${NGUOI}' && !document.querySelector('#dm-hang').hidden`, "trang Loại giấy tờ cá nhân", 10000);
       const moi = (await thanhBen(p)).find((g) => g.title === "QUẢN TRỊ").items.find((i) => i.href === NGUOI);
       assert.equal(moi.current, "page", "mục đang mở sáng");
-      assert.equal(await p.ev(txt("#bar-title")), "Loại giấy tờ người");
+      assert.equal(await p.ev(txt("#bar-title")), "Loại giấy tờ cá nhân");
       assert.deepEqual(await soDong(p, ["#dm-xe", "#dm-nguoi", "#dm-hang"], "table.items tbody tr"), [null, 4, 8]);
-      await axe(p, "Loại giấy tờ người 1040");
+      await axe(p, "Loại giấy tờ cá nhân 1040");
       await shotFull(p, "loai-giay-to-nguoi-1040.png");
     } finally {
       p.close();
@@ -192,7 +192,7 @@ try {
   await dem.step("i", "(i) đường dẫn cũ /danh-muc-giay-to → tự chuyển sang /loai-giay-to-nguoi, trang hiện đủ hai khối (không 404)", async () => {
     const p = await env.as(ADMIN, CU, MOB);
     try {
-      await p.waitFor(`location.pathname === '${NGUOI}' && !document.querySelector('#dm-hang').hidden`, "chuyển sang Loại giấy tờ người", 10000);
+      await p.waitFor(`location.pathname === '${NGUOI}' && !document.querySelector('#dm-hang').hidden`, "chuyển sang Loại giấy tờ cá nhân", 10000);
       assert.deepEqual(await soDong(p, ["#dm-xe", "#dm-nguoi", "#dm-hang"], ".card-list > .card"), [null, 5, 8], "THE_HDV thêm ở (e)");
       console.log(`    (ghi nhận, không khẳng định: history.length sau chuyển hướng = ${await p.ev("history.length")})`);
     } finally {

@@ -539,7 +539,7 @@ try {
   // Vận chuyển 1a (ADR-0040, bản vẽ 00; Ruling R23 của điều phối 2026-09-28): nhóm QUẢN TRỊ thêm mục cha "Vận chuyển" + hai mục con "Xe", "Sắp hết hạn"
   // (ô vehicle.manage) ⇒ +3. CHỈ cộng phần 1a: từ ADR-0038 mục "Nhật ký" chỉ còn ở Toàn quyền nên Quản trị thiếu 1 mục so với số 11 cũ — ĐỎ SẴN trên main,
   // không do 1a, chưa sửa ở đây (kịch bản còn đỏ sẵn ở :450 trước dòng này).
-  // Tách "Danh mục giấy tờ" theo chủ dữ liệu (chủ dự án 2026-09-28; ô admin.manage): thêm "Loại giấy tờ người" (sau "Địa điểm") + mục con "Loại giấy tờ xe" (dưới
+  // Tách "Danh mục giấy tờ" theo chủ dữ liệu (chủ dự án 2026-09-28; ô admin.manage): thêm "Loại giấy tờ cá nhân" (sau "Địa điểm") + mục con "Loại giấy tờ xe" (dưới
   // "Vận chuyển") ⇒ +2 ⇒ 16. Cũng CHỈ cộng phần của việc này: số THẬT của Quản trị nay là 15 (= 13 + 2) — con số 16 còn giữ nợ "Nhật ký" (ADR-0038, đỏ sẵn).
   // ADR-0049 B8 (bản vẽ Bảng điều phối vo-may-tinh, 2026-09-29): mục con "Lý do điều phối" (ô admin.manage) ⇒ +1. "Chính sách điều phối" chỉ Toàn quyền (ô
   // settings.ops) — Quản trị không có. B1 (vòng 3, Q-B-4): mục con "Điều phối xe" (ô trip.view) đứng đầu dưới "Vận chuyển" ⇒ +1 ⇒ 17.
@@ -547,7 +547,7 @@ try {
   // đếm số THẬT (16) và so ĐÚNG danh sách nhãn, thay cho con số 17 giữ chỗ nợ.
   const ADMIN_NAV = [
     "Trang chủ", "Đơn hàng", "Tạo đơn", "Danh bạ",
-    "Dịch vụ & giá", "Quản lý tài khoản", "Địa điểm", "Loại giấy tờ người", "Vận chuyển", "Điều phối xe", "Xe", "Sắp hết hạn", "Loại giấy tờ xe", "Lý do điều phối",
+    "Dịch vụ & giá", "Quản lý tài khoản", "Địa điểm", "Loại giấy tờ cá nhân", "Vận chuyển", "Điều phối xe", "Xe", "Sắp hết hạn", "Loại giấy tờ xe", "Lý do điều phối",
     "Của tôi", "Góp ý / Báo lỗi", "Trợ giúp",
   ];
   const navMeasure = await p.ev(`(() => {

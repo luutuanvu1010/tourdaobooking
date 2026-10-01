@@ -11,6 +11,14 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Chủ dự án 2026-10-01: đổi tên trang "Loại giấy tờ người" → "Loại giấy tờ cá nhân" (chỉ đổi chữ; đường dẫn /loai-giay-to-nguoi giữ nguyên). Không migration.
+    version: "1.58",
+    date: "2026-10-01",
+    items: [
+      { kind: "doi", text: "Trang \"Loại giấy tờ người\" đổi tên thành \"Loại giấy tờ cá nhân\" (căn cước, bằng lái, khám sức khoẻ, tập huấn). Nội dung không đổi." },
+    ],
+  },
+  {
     // ADR-0083 (nợ rà soát vai ↔ quyền): gán quyền kiểu cũ chỉ Toàn quyền + chặn tài khoản lai; xem đủ số giấy tờ chỉ Toàn quyền; đổi tên vai Tài xế taxi.
     // Có migration 0063. Số "1.57" = main 1.56 + 1 (đánh lại lúc gộp main 1.56 — trợ lý tìm theo nghĩa, 2026-10-01; thi công ghi 1.56).
     version: "1.57",

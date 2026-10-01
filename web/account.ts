@@ -44,9 +44,9 @@ void feedbackBadge().then((n) => {
 const lienKetDau = [
   isOffice(staff) && h("a", { class: "row-link", href: "/parties" }, "Danh bạ", icon("next", 20)),
   can(staff, "admin.manage") && h("a", { class: "row-link", href: "/locations" }, "Địa điểm", icon("next", 20)),
-  // Loại giấy tờ người (loại giấy tờ của người + hạng giấy phép lái xe — danh mục chung, giấy tờ thuộc về người). Tách 2026-09-28 khỏi dòng "Danh mục giấy tờ"
+  // Loại giấy tờ cá nhân (loại giấy tờ của người + hạng giấy phép lái xe — danh mục chung, giấy tờ thuộc về người). Tách 2026-09-28 khỏi dòng "Danh mục giấy tờ"
   // cũ (ADR-0040 D1, D2; Task A19); "Loại giấy tờ xe" nay ở nhóm VẬN CHUYỂN bên dưới. Ô admin.manage (như dòng cũ).
-  can(staff, "admin.manage") && h("a", { class: "row-link", href: "/loai-giay-to-nguoi" }, "Loại giấy tờ người", icon("next", 20)),
+  can(staff, "admin.manage") && h("a", { class: "row-link", href: "/loai-giay-to-nguoi" }, "Loại giấy tờ cá nhân", icon("next", 20)),
 ];
 const lienKetSau = [
   can(staff, "audit.view") && h("a", { class: "row-link", href: "/audit" }, "Nhật ký", icon("next", 20)), // ADR-0038 điều 6: chỉ Toàn quyền
@@ -59,7 +59,7 @@ const lienKetSau = [
 ];
 const quanLyXe = can(staff, "vehicle.manage");
 if (quanLyXe || thayDieuPhoiXe(staff)) {
-  // Vận chuyển (ADR-0040 D1; bản vẽ 00, điện thoại): Danh bạ / Địa điểm / Loại giấy tờ người → nhãn "VẬN CHUYỂN" → Điều phối xe (ô trip.view — Q-B-4, cả Bán
+  // Vận chuyển (ADR-0040 D1; bản vẽ 00, điện thoại): Danh bạ / Địa điểm / Loại giấy tờ cá nhân → nhãn "VẬN CHUYỂN" → Điều phối xe (ô trip.view — Q-B-4, cả Bán
   // hàng, Kế toán) / Xe / Giấy tờ sắp hết hạn (huy hiệu cát) / Loại giấy tờ xe (tách 2026-09-28; thêm ô admin.manage — route sửa danh mục hỏi ô này) → phần còn lại.
   // `#links` giữ phần còn lại (Góp ý, Trợ giúp, Đăng xuất…) để mọi chỗ đang tìm các dòng đó trong #links vẫn đúng; tài khoản không có ô nào của nhóm: DOM như cũ.
   const soSapHet = h("span", { class: "vc-badge", hidden: true });
