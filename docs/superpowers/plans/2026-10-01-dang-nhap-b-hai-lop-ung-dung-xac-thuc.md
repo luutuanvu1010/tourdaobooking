@@ -10,7 +10,7 @@
 
 **Spec:** `docs/superpowers/specs/2026-10-01-xac-thuc-hai-lop-dac-ta.md` (§3, §4, §5, §6, §7, §11 mục 1–14, §13) + `docs/adr/ADR-0074-xac-thuc-hai-lop.md`.
 
-**Điều kiện bắt đầu:** Phần A (`docs/superpowers/plans/2026-10-01-dang-nhap-a-so-phien-mot-may.md`) đã gộp vào nhánh và kiểm độc lập ĐẠT. **Task 6 (ân hạn) chỉ bắt đầu khi chủ đã xác nhận** điểm bổ sung "tài khoản nội bộ tạo sau phát hành / mới được cấp quyền nội bộ có 14 ngày từ lúc đó" (ADR-0074 điều 1, mục bổ sung sau duyệt).
+**Điều kiện bắt đầu:** Phần A (`docs/superpowers/plans/2026-10-01-dang-nhap-a-so-phien-mot-may.md`) đã gộp vào nhánh và kiểm độc lập ĐẠT. Điểm bổ sung "tài khoản nội bộ tạo sau phát hành / mới được cấp quyền nội bộ có 14 ngày từ lúc đó" (ADR-0074 điều 1) **chủ đã xác nhận 2026-10-01**. Cách thi công chủ chọn: subagent-driven (từng bước có người kiểm riêng).
 
 ## Global Constraints
 
@@ -370,7 +370,7 @@ route("POST", "/api/auth/mfa/verify", "public", async ({ request, env }) => {
 
 ### Task 6: Ân hạn 14 ngày + Quản trị/Toàn quyền tắt lớp hai + cửa sổ 24 giờ
 
-> **Chờ chủ xác nhận** điểm bổ sung sau duyệt (ADR-0074 điều 1). Không bắt đầu khi chưa có câu trả lời.
+> Điểm bổ sung sau duyệt (ADR-0074 điều 1) chủ đã xác nhận 2026-10-01.
 
 **Files:** Modify `src/modules/staff/repository.ts`, `src/modules/staff/index.ts` (đặt `mfa_grace_until` trong lô tạo tài khoản và lô đổi quyền), `src/modules/accounts/index.ts` (route mới + nhãn danh sách), `src/modules/auth/index.ts` (`startEnrollStep`, route `/api/auth/mfa/enroll/*`), `src/shared/audit-actions.ts` (`mfa_reset` — thêm vào `SILENT_AUDIT_ACTIONS` cùng loại `pin_reset`), `tests/e2e/lib.mjs` (`datHanAnHan(account, iso)` bằng `sql()`)
 
