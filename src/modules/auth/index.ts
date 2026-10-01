@@ -4,13 +4,14 @@ import { getMaintenanceState, maintenanceBlock, toStatus } from "../maintenance"
 import { ownerCompany } from "../parties";
 import { accountRoleCodesOf, authenticate, findStaffByPhone, getActiveStaff, isValidPin, normalizePhone, recordLogin, type StaffProfile } from "../staff";
 import { APP_VERSION } from "../../shared/app-info";
-import type { AuthConfigResponse, MeResponse, PasskeyRequestOptionsResponse } from "../../shared/contracts";
+import type { AuthConfigResponse, MeResponse, PasskeyRequestOptionsResponse, SessionPolicyChange } from "../../shared/contracts";
 import { error, getCookie, json, readJson } from "../../shared/http";
 import { route, type AppModule } from "../../shared/router";
 import { PASSKEY_ERRORS, checkPasskeyAssertion, clearChallengeCookie, issuePasskeyChallenge, limitChallenge, passkeyRp, readPasskeyChallenge } from "./passkey";
 import {
   endAllButNewestStatement, endAllSessionsIfSuspendedStatement as endAllIfSuspendedRow, endExpiredSessionsStatement, endOtherSessionsStatement, endSessionStatement, findLiveSession,
   getSession, insertSessionStatement, listPolicyRows, markSessionReissuedStatement, markSingleStatement, touchSessionStatement,
+  closePolicyStatement, danhDauMotMayTheoTapStatement, endExpiredAllStatement, insertPolicyAfterCloseStatement, insertPolicyNewStatement, sietTheoTapStatement,
 } from "./repository";
 import { isQuyenDatDuoc, type QuyenDatDuoc } from "../../shared/chinh-sach-dang-nhap";
 import type { PermissionCode } from "../../shared/permissions";
@@ -137,6 +138,29 @@ export async function docChinhSachPhien(db: D1Database): Promise<{ id: string; p
 export const docTapNhieuMay = async (db: D1Database): Promise<TapNhieuMay> =>
   new Set((await docChinhSachPhien(db)).filter((r) => r.multi).map((r) => r.permissionCode));
 export type { TapNhieuMay };
+/**
+ * Lô ghi chính sách (ADR-0085 đặc tả §4.2 bước 3.1): mỗi quyền đổi — có bản đang xem: [đóng đúng id → chèn sau đóng]; chưa có dòng: [chèn mới]. Lần lưu dựa
+ * trên bản cũ làm CẢ lô lùi (laLoiChinhSachCu) — người gọi trả 409. Chưa chạy.
+ */
+export function luuChinhSachStatements(db: D1Database, v: { thayDoi: readonly SessionPolicyChange[]; at: string; by: string }): D1PreparedStatement[] {
+  return v.thayDoi.flatMap((t) => {
+    const moi = { id: crypto.randomUUID(), code: t.permissionCode, multi: t.multi, at: v.at, by: v.by };
+    return t.banDangXem === null
+      ? [insertPolicyNewStatement(db, moi)]
+      : [closePolicyStatement(db, { id: t.banDangXem, code: t.permissionCode, at: v.at, by: v.by }), insertPolicyAfterCloseStatement(db, moi)];
+  });
+}
+/** Siết theo tập (đặc tả §4.2 bước 3.3): [dọn hạn → siết (RETURNING id, staff_id) → đánh dấu một máy]. Nối SAU các câu ghi chính sách cùng lô. */
+export function sietTheoTapStatements(db: D1Database, at: string, by: string): { statements: D1PreparedStatement[]; ketQua: (r: readonly D1Result[]) => { sessionIds: string[]; staffIds: string[] } } {
+  return {
+    statements: [endExpiredAllStatement(db, at), sietTheoTapStatement(db, at, by), danhDauMotMayTheoTapStatement(db, at, by)],
+    ketQua: (r) => {
+      const rows = (r.at(-2)?.results ?? []) as { id: string; staff_id: string }[];
+      return { sessionIds: rows.map((x) => x.id), staffIds: [...new Set(rows.map((x) => x.staff_id))] };
+    },
+  };
+}
+export { demSietTheoTap, laLoiChinhSachCu } from "./repository";
 
 /**
  * ADR-0085 Q2 điều 7 (thay ADR-0075 điều 3): đổi quyền / vai làm đổi "được nhiều máy" (`isSingleDevice` với chính sách `nhieuMay` — Toàn quyền, vai IT, hoặc
