@@ -6,7 +6,7 @@
 //   `lienHe` của lần GET; không lưu vào bộ nhớ trình duyệt), đổi thứ tự điểm chưa tới bằng nút lên / xuống (không ô giờ), "Kết thúc chuyến", "Kết thúc gián
 //   đoạn" (chọn lý do; KHÔNG ô ghi chú — chủ Q1).
 // - Mất mạng: dòng đó "Chưa gửi được" + "Bấm lại" (CÙNG requestId — bấm lại hai lần vẫn một lệnh); máy KHÔNG tự gửi lại (lệnh điều phối, khác câu 5a).
-import { giuTenKhach, ketThucDuoc, type BuocDiem } from "../src/shared/tien-do-man";
+import { giuTenKhach, ketThucDuoc, soHieuTaiDiemDon, type BuocDiem } from "../src/shared/tien-do-man";
 import type { CuocChiTietResponse } from "../src/shared/contracts";
 import { coCuocCuaToi } from "../src/shared/start-page";
 import { ApiError, api } from "./api";
@@ -88,7 +88,7 @@ function ve(): void {
   const diem = veDiemChay({
     diem: r.diem, suat: r.suat, trangThai: c.trangThai, ngayXem: ngay, coNut: chayDuoc, onLenh: lenhDiem,
     choGui: new Set([...choGui.keys()]),
-    phuDiem: (b) => ({ ben: nutThuTu(b), duoi: lienHeCua(b) }),
+    phuDiem: (b) => ({ ben: nutThuTu(b), duoi: [...bayCua(b), ...lienHeCua(b)] }),
   });
   // "Bấm lại" ở dòng khách chưa gửi được.
   for (const el of diem) {
@@ -123,6 +123,13 @@ function ve(): void {
     });
   });
   dayEl.hidden = true;
+}
+
+/** Số hiệu chuyến bay của khách lên ở điểm đón này (ADR-0055 C3 — có mọi lúc, không chỉ ra người). */
+function bayCua(b: BuocDiem): Child[] {
+  if (b.diem.loai !== "PICKUP") return [];
+  const ds = soHieuTaiDiemDon(duLieu!.suat, b.diem.id);
+  return ds.length ? [h("div", { class: "dp-run-bay" }, ...ds.map((x) => h("span", { class: "chip chip-code" }, `✈︎ ${x}`)))] : [];
 }
 
 /** Liên hệ của đơn có khách lên ở điểm đón này (chỉ trong ngày chạy — DTO có `lienHe`). */

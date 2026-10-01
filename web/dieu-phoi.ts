@@ -161,7 +161,8 @@ function veChuaXep(): void {
 }
 function theChang(c: ChangLichDto, conLai: number): HTMLElement {
   const noiDung: Child[] = [
-    h("span", { class: "dp-leg-top" }, h("span", { class: "dp-leg-gio" }, c.gioDon ?? "Chưa chốt giờ"), ...chipChang(c).map((x) => chip(x.nhan, x.tone))),
+    h("span", { class: "dp-leg-top" }, h("span", { class: "dp-leg-gio" }, c.gioDon ?? "Chưa chốt giờ"), ...chipChang(c).map((x) => chip(x.nhan, x.tone)),
+      c.soHieuChuyenBay ? h("span", { class: "chip chip-code" }, `✈︎ ${c.soHieuChuyenBay}`) : null),
     h("span", { class: "dp-leg-tuyen" }, `${c.noiDon} → ${c.noiTra ?? "nơi trả chưa chốt"}`),
     h("span", { class: "dp-leg-meta" }, `${c.maDon} · ${conLai < c.soNguoi ? `còn ${conLai}/${c.soNguoi}` : conLai} khách`),
   ];

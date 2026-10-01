@@ -1176,6 +1176,8 @@ export interface ChangLichDto {
   soNguoi: number;
   /** Số người đã có tên = min(số người, số hành khách hiện hành của đơn) — I12. */
   soNguoiCoTen: number;
+  /** Số hiệu chuyến bay của chặng (ADR-0055 C3 — không chỉ ra người); null = chưa có. Bảng điều phối hiện "✈︎ VN1553". */
+  soHieuChuyenBay: string | null;
   datGap: boolean;
   trangThai: string;
   trangThaiNhan: string;

@@ -158,6 +158,16 @@ export function giuTenKhach<T extends { suat: readonly SuatVao[] }>(moi: T, cu: 
   return { ...moi, suat: moi.suat.map((x) => (x.hoTen || !ten.has(x.id) ? x : { ...x, hoTen: ten.get(x.id)!.hoTen, namSinh: ten.get(x.id)!.namSinh })) };
 }
 
+/**
+ * Số hiệu chuyến bay của các suất LÊN xe ở điểm `diemId` (thẻ chuyến tài xế hiện "✈︎ VN1553" dưới điểm đón) — không trùng, theo thứ tự suất. Số hiệu
+ * không chỉ ra người (ADR-0055 C3, G-C1) nên hiện cả ngoài ngày chạy như giờ, nơi hẹn.
+ */
+export function soHieuTaiDiemDon(suat: readonly { diemLen: string | null; soHieuChuyenBay: string | null }[], diemId: string): string[] {
+  const out: string[] = [];
+  for (const x of suat) if (x.diemLen === diemId && x.soHieuChuyenBay && !out.includes(x.soHieuChuyenBay)) out.push(x.soHieuChuyenBay);
+  return out;
+}
+
 /** "Kết thúc chuyến" bấm được khi không còn khách chờ đón hay đang trên xe (bản vẽ 5a: "Bấm được khi đã trả hết khách."). Máy chủ vẫn quyết. */
 export function ketThucDuoc(suat: readonly Pick<SuatVao, "trangThai" | "loai">[]): boolean {
   return !suat.some((x) => (x.loai ?? "PASSENGER") === "PASSENGER" && (x.trangThai === "WAITING" || x.trangThai === "BOARDED"));
