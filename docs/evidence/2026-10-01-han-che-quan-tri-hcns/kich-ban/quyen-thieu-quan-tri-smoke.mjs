@@ -7,6 +7,8 @@
 //      /staff không lỗi; /catalog, /locations, /audit, /gui-thong-bao hiện câu từ chối tiếng Việt (đọc "không lỗi đỏ" = trang được phép không có dòng báo lỗi;
 //      trang không được phép hiện câu từ chối, không lỗi JS); trang Tôi không có mục bảo trì, không dòng Địa điểm / Gửi thông báo / Nhật ký; C2: gõ SĐT của một
 //      khách → chỉ câu "đã có trong Danh bạ", không tên (ADR-0071 điều 3b), tick "Vẫn tạo hồ sơ mới" rồi tạo được.
+//   D. ADR-0083 điều 1d: màn Sửa tài khoản của một tài khoản CHƯA gán vai (quyền kiểu cũ) — Quản trị thấy dòng báo "đang dùng quyền cũ" nhưng KHÔNG có khối
+//      "Quyền cũ"; tài khoản chỉ Toàn quyền thấy khối đó (hỏi can(admin.manage.superadmin) — cùng bảng với máy chủ).
 // Các trang dùng CHUNG kho cookie (CLAUDE.md §10): làm XONG một tài khoản (đóng mọi trang) rồi mới đăng nhập tài khoản sau.
 // Chạy từ GỐC repo, sau `npm run build:web` (không cần mạng ngoài):
 //   CHROME_BIN=$PWD/docs/evidence/2026-09-20-a2/kich-ban/chrome-wrap.sh node docs/evidence/2026-10-01-han-che-quan-tri-hcns/kich-ban/quyen-thieu-quan-tri-smoke.mjs
@@ -19,13 +21,14 @@ const DESK = { width: 1040, height: 800, mobile: false };
 const MOB = { width: 390, height: 844, mobile: true };
 const CHI_TOAN_QUYEN = { name: "Chỉ Toàn Quyền", phone: "0900000291", pin: "246891", permissions: ["SUPER_ADMIN"] };
 const CHI_NHAN_SU = { name: "Chỉ Nhân Sự", phone: "0900000292", pin: "246892", permissions: ["HR"] };
+const KIEU_CU = { name: "Bán Hàng Kiểu Cũ", phone: "0900000294", pin: "246894", permissions: ["SALES"] }; // insertStaffSql: không gán vai = quyền kiểu cũ
 
 const env = await startEnv();
 let loi = 0;
 try {
   const { insertStaffSql } = await import(pathToFileURL(join(process.cwd(), "scripts", "staff-lib.mjs")).href);
-  for (const a of [CHI_TOAN_QUYEN, CHI_NHAN_SU]) for (const stmt of (await insertStaffSql(a)).split("\n").filter(Boolean)) env.sql(stmt);
-  ok("dựng thêm hai tài khoản trên D1 tạm: chỉ Toàn quyền, chỉ Nhân sự");
+  for (const a of [CHI_TOAN_QUYEN, CHI_NHAN_SU, KIEU_CU]) for (const stmt of (await insertStaffSql(a)).split("\n").filter(Boolean)) env.sql(stmt);
+  ok("dựng thêm ba tài khoản trên D1 tạm: chỉ Toàn quyền, chỉ Nhân sự, Bán hàng kiểu cũ (chưa gán vai)");
 
   /** Mở trang, chờ khung thật (thanh bên / thanh tab có mục) và hết "đang tải", trả trang. */
   const mo = async (acc, path, vp) => {
@@ -145,6 +148,30 @@ try {
     p.close();
     ok(`C. ${path}: câu từ chối "${cau}", không lỗi JS`);
   }
+
+  // ---- D. ADR-0083 điều 1d: khối "Quyền cũ" chỉ người hỏi được ô admin.manage.superadmin. Quản trị trước, chỉ Toàn quyền SAU CÙNG (chung kho cookie).
+  const moSua = async (acc) => {
+    const p = await mo(acc, "/staff", DESK);
+    await p.waitFor(`[...document.querySelectorAll('#list tr')].some((tr) => tr.textContent.includes(${JSON.stringify(KIEU_CU.name)}))`, "D. dòng tài khoản kiểu cũ", 8000);
+    await p.ev(`([...[...document.querySelectorAll('#list tr')].find((tr) => tr.textContent.includes(${JSON.stringify(KIEU_CU.name)})).querySelectorAll('button')].find((b) => b.textContent.trim() === 'Sửa').click(), true)`);
+    await p.waitFor("!document.querySelector('#edit').hidden && !!document.querySelector('#edit h2')", "D. hộp Sửa mở", 8000);
+    return p;
+  };
+  const khoiQuyenCu = (p) => p.ev(`(() => { const e = document.querySelector('#edit'); return { baoCu: e.textContent.includes('đang dùng quyền cũ'), quyenCu: [...e.querySelectorAll('details summary')].some((x) => x.textContent.includes('Quyền cũ')), oTick: [...e.querySelectorAll('details')].filter((d) => d.querySelector('summary')?.textContent.includes('Quyền cũ')).reduce((n, d) => n + d.querySelectorAll('input[type=checkbox]').length, 0) }; })()`); // chỉ đếm ô của khối "Quyền cũ" (khối Vai và quyền cũng có <details>)
+  p = await moSua(ACCOUNTS.admin);
+  const qt = await khoiQuyenCu(p);
+  assert.deepEqual(qt, { baoCu: true, quyenCu: false, oTick: 0 }, `D. Quản trị: ${JSON.stringify(qt)}`);
+  assert.deepEqual(p.consoleErrors, [], "D. Quản trị: không lỗi JS");
+  p.close();
+  ok("D. Quản trị mở Sửa tài khoản kiểu cũ: có dòng báo 'đang dùng quyền cũ', KHÔNG có khối 'Quyền cũ'");
+  p = await moSua(CHI_TOAN_QUYEN);
+  const tq = await khoiQuyenCu(p);
+  assert.equal(tq.baoCu, true, `D. Toàn quyền: ${JSON.stringify(tq)}`);
+  assert.equal(tq.quyenCu, true, `D. Toàn quyền thấy khối 'Quyền cũ': ${JSON.stringify(tq)}`);
+  assert.ok(tq.oTick > 0, "D. khối 'Quyền cũ' có ô tick quyền");
+  assert.deepEqual(p.consoleErrors, [], "D. Toàn quyền: không lỗi JS");
+  p.close();
+  ok(`D. chỉ Toàn quyền mở Sửa tài khoản kiểu cũ: thấy khối 'Quyền cũ' (${tq.oTick} ô tick)`);
 } catch (e) {
   loi = 1;
   console.error(`✗ ${e.message}`);

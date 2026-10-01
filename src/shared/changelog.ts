@@ -13,8 +13,8 @@ export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // Khung Hỗ trợ: biểu tượng đổi cỡ, bong bóng "đang trả lời", chữ gợi ý; ô thử báo riêng khi mẫu AI hết token cho phần suy nghĩ.
     // ADR-0084 (trợ lý Mai gọi tên, ô Giới tính): có migration 0064 (số tạm — 0061, 0063 ở nhánh khác).
-    // Số "1.57" = 1.56 + 1 lúc thi công (2026-10-01); nhánh khác gộp trước thì đánh lại số.
-    version: "1.57",
+    // Số "1.58" = main 1.57 (ADR-0083) + 1 — đánh lại lúc gộp main 99d0d2fb (2026-10-01; thi công ghi 1.57). Nhánh khác gộp trước thì đánh lại số.
+    version: "1.58",
     date: "2026-10-01",
     items: [
       { kind: "moi", text: "Trợ lý tên Mai: gọi bạn là \"anh/chị + tên\" theo ô Giới tính mới trong hồ sơ người và xưng \"em\"; chưa ghi giới tính thì gọi \"bạn\"." },
@@ -22,6 +22,18 @@ export const CHANGELOG: readonly ReleaseNote[] = [
       { kind: "doi", text: "Khung Hỗ trợ: nút đổi cỡ đổi sang biểu tượng hai mũi tên chéo, ô gõ ghi \"Hãy hỏi Mai tại đây nhé!\"." },
       { kind: "doi", text: "Khung Hỗ trợ bỏ hai dòng nhắc nhỏ (vẫn có ở Trợ giúp). Nút \"Về góc\" trả cả vị trí lẫn cỡ về mặc định và nháy viền để biết đã nhận." },
       { kind: "sua", text: "Toàn quyền: khi mẫu AI dùng hết số token cho phần suy nghĩ nên chưa viết được câu trả lời, ô thử nói rõ và chỉ cách chỉnh." },
+    ],
+  },
+  {
+    // ADR-0083 (nợ rà soát vai ↔ quyền): gán quyền kiểu cũ chỉ Toàn quyền + chặn tài khoản lai; xem đủ số giấy tờ chỉ Toàn quyền; đổi tên vai Tài xế taxi.
+    // Có migration 0063. Số "1.57" = main 1.56 + 1 (đánh lại lúc gộp main 1.56 — trợ lý tìm theo nghĩa, 2026-10-01; thi công ghi 1.56).
+    version: "1.57",
+    date: "2026-10-01",
+    items: [
+      { kind: "doi", text: "Quản trị không còn xem đủ số giấy tờ (căn cước, bằng lái): vẫn thấy số đã che, vẫn thêm, gia hạn, sửa sai. Cần số đầy đủ thì nhờ người phụ trách hệ thống." },
+      { kind: "doi", text: "Vai \"Tài xế taxi\" đổi tên thành \"Tài xế taxi (giới thiệu khách)\" cho khỏi nhầm với \"Tài xế đối tác\" (người lái chuyến). Quyền không đổi." },
+      { kind: "doi", text: "Màn Sửa tài khoản: khối \"Quyền cũ\" (tài khoản chưa gán vai) chỉ người phụ trách hệ thống thấy. Quản trị và Hành chính nhân sự đổi quyền bằng cách gán vai." },
+      { kind: "doi", text: "Một tài khoản không còn giữ cùng lúc quyền nội bộ và quyền đối tác, dù gán theo vai hay theo cách cũ: ô cộng tay tạo kiểu lai này bị khoá." },
     ],
   },
   {

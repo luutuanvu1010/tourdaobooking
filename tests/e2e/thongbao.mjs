@@ -400,7 +400,7 @@ console.log("✓ Web Push: thiếu khoá VAPID → gửi tin / lập đơn vẫn
     assert.equal(r.status, 200, JSON.stringify(r.body));
   }
   assert.equal(await soMayCua(V.id), 2);
-  const doiQuyen = await call(ADMIN, "PUT", `/api/staff/${V.id}/permissions`, { permissions: ["SALES", "ACCOUNTING"] });
+  const doiQuyen = await call(TQ, "PUT", `/api/staff/${V.id}/permissions`, { permissions: ["SALES", "ACCOUNTING"] }); // ADR-0083 1a: chỉ Toàn quyền
   assert.equal(doiQuyen.status, 200, JSON.stringify(doiQuyen.body));
   await new Promise((r) => setTimeout(r, 500)); // dongBangTin là bắn-và-quên — cho nó chạy xong trước khi đếm
   assert.equal(await soMayCua(V.id), 2, "ADR-0046: đổi quyền KHÔNG tắt máy");

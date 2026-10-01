@@ -14,7 +14,7 @@
 // S20-9) — CA 4 đếm cả tin đó và khoá thêm: văn phòng sửa/xác nhận/huỷ đơn HDV khác đang phụ trách thì field không nhận thêm khung nào.
 import assert from "node:assert/strict";
 import { laSuKienHopLe } from "../../src/shared/bang-tin.ts";
-import { ACCOUNTS, BASE, batTay, call, cho, ensureFakeCatalog, moBangTin, orderInput, randomPhone, session, sql } from "./lib.mjs";
+import { ACCOUNTS, BASE, batTay, call, cho, ensureFakeCatalog, gieoTaiKhoanLai, moBangTin, orderInput, randomPhone, session, sql } from "./lib.mjs";
 
 await ensureFakeCatalog(); // "catalog" (Sheet thật) chạy trước "bangtin" trong ALL và đặt in_sheet = 0 cho mã giả — orderInput() dùng ZE1.
 const ADMIN = await session(ACCOUNTS.admin);
@@ -489,7 +489,7 @@ const P2 = await taoTaiKhoanDungMotLan("Đối Tác Bảng Tin 2 (test)", ["PART
 // Ngoại lệ DUY NHẤT (S20-9): một đơn CHƯA có người (chờ nhận) — lúc salesB Nhận nó (rời hàng chờ), fieldB phải nhận ĐÚNG một tin qua nhãn
 // cho-nhan (thayDoi 'nhan') để gỡ đơn khỏi danh sách chờ nhận; tài khoản lai vẫn KHÔNG nhận (S20-8: !holdsPartner chặn cho-nhan của lai). =====
 {
-  const lai = await taoTaiKhoanDungMotLan("Lai Đối Tác + HDV Bảng Tin (test)", ["PARTNER", "FIELD"]);
+  const lai = await gieoTaiKhoanLai("Lai Đối Tác + HDV Bảng Tin (test)", ["PARTNER", "FIELD"]); // ADR-0083 1b: API không tạo lai nữa — gieo SQL
 
   // --- Phần 1: đơn ĐÃ có người phụ trách (field = "HDV B") — fieldB ("HDV A") và tài khoản lai không nhận tin nào của đơn này. ---
   {

@@ -181,7 +181,9 @@ function card(s: StaffAccount): HTMLElement {
 }
 
 async function openEdit(s: StaffAccount): Promise<void> {
-  const legacy = s.roles.length === 0; // chưa gán vai: còn sửa được quyền cũ
+  const legacy = s.roles.length === 0; // chưa gán vai: đang dùng quyền cũ
+  // ADR-0083 điều 1a, 1d: sửa quyền kiểu cũ (PUT …/permissions) chỉ người hỏi được ô gán/gỡ Toàn quyền — cùng bảng với máy chủ; người khác chuyển sang vai.
+  const quyenCu = legacy && meSuper;
   let saved = EMPTY;
   if (!legacy) {
     const r = await act(() => api<Api.StaffRolesResponse>(`/api/staff/${s.id}/roles`));
@@ -205,7 +207,7 @@ async function openEdit(s: StaffAccount): Promise<void> {
     const chosen = picker.value();
     const legacyPerms = PERMISSION_CODES.filter((code) => boxes.get(code)!.checked);
     if (!legacy && chosen.roles.length === 0) return showError(errorEl, "Chọn ít nhất một vai.");
-    if (legacy && chosen.roles.length === 0 && !isMe && legacyPerms.length === 0) return showError(errorEl, "Chọn ít nhất một vai (hoặc một quyền cũ).");
+    if (quyenCu && chosen.roles.length === 0 && !isMe && legacyPerms.length === 0) return showError(errorEl, "Chọn ít nhất một vai (hoặc một quyền cũ).");
     // Chủ dự án 2026-10-01: báo TRƯỚC khi lưu (không lưu nửa chừng) khi vai vừa chọn làm đổi quyền của chính mình.
     if (isMe && chosen.roles.length > 0 && !sameAssignment(chosen, saved) && tuDoiQuyenCuaMinh(s.permissions, chosen)) {
       return showError(errorEl, meSuper ? TU_DOI_QUYEN_TOAN_QUYEN : TU_DOI_QUYEN);
@@ -216,7 +218,7 @@ async function openEdit(s: StaffAccount): Promise<void> {
       if (chosen.roles.length > 0 && !sameAssignment(chosen, saved)) {
         const body: Api.StaffRolesRequest = { roles: chosen.roles, adds: chosen.adds, removes: chosen.removes, reason: chosen.reason };
         await api(`/api/staff/${s.id}/roles`, { method: "PUT", body });
-      } else if (legacy && chosen.roles.length === 0 && !isMe && !sameSet(legacyPerms, s.permissions)) {
+      } else if (quyenCu && chosen.roles.length === 0 && !isMe && !sameSet(legacyPerms, s.permissions)) {
         const body: Api.StaffPermissionsRequest = { permissions: legacyPerms };
         await api(`/api/staff/${s.id}/permissions`, { method: "PUT", body });
       }
@@ -236,7 +238,7 @@ async function openEdit(s: StaffAccount): Promise<void> {
     legacy && h("p", { class: "alert warn" }, `Tài khoản này chưa gán vai, đang dùng quyền cũ: ${permissionsLabel(s.permissions)}. Chọn vai để chuyển sang cách mới — xem dòng "Sẽ mất" trước khi lưu.`),
     isMe && h("p", { class: "muted" }, meSuper ? "Bạn chỉ đổi được vai của chính mình khi quyền không đổi. Toàn quyền đã làm được mọi việc của mọi vai — không cần tự gán thêm vai." : "Bạn chỉ đổi được vai của chính mình khi quyền không đổi (xem dòng xem trước)."),
     picker.el,
-    legacy && h("details", null, h("summary", null, "Quyền cũ (chỉ dùng khi chưa gán vai)"), ...permissionBoxes),
+    quyenCu && h("details", null, h("summary", null, "Quyền cũ (chỉ dùng khi chưa gán vai)"), ...permissionBoxes),
     h("p", { class: "muted" }, "Đổi số điện thoại sẽ đổi tên đăng nhập của người này. Phiên đang đăng nhập vẫn giữ nguyên."),
     h("div", { class: "actions" }, save, cancel),
   );

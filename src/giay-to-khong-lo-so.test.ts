@@ -91,7 +91,7 @@ test("số giấy tờ của người chỉ rời máy chủ ở 'xem đủ số
     },
     "POST /api/parties/:id/documents/:did/reveal": async () => {
       const r = await w.call("GET", `/api/parties/${P}/documents`, { as: ADM });
-      for (const as of [ADM, SUP]) {
+      for (const as of [SUP]) { // ADR-0083 điều 2: chỉ Toàn quyền xem đủ số
         const x = await w.call("POST", `/api/parties/${P}/documents/${idCua(r, "CCCD")}/reveal`, { as });
         assert.equal(x.status, 200, x.text);
         lanXemSo += x.text; // KHÔNG đưa vào `than` — thân "xem đủ số" là nơi DUY NHẤT được có số

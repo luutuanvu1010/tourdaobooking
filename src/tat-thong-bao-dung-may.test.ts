@@ -49,10 +49,10 @@ test("ADR-0046 điểm 1: đăng xuất không đụng máy của NGƯỜI KHÁC
   assert.equal(dong(w, mayAdm).revoked_at, null, "địa chỉ thuộc tài khoản khác → không đổi");
 });
 
-test("ADR-0046 điểm 2: Quản trị ĐỔI QUYỀN của một tài khoản có máy bật → máy vẫn bật", async () => {
+test("ADR-0046 điểm 2: Toàn quyền ĐỔI QUYỀN kiểu cũ (từ ADR-0083 chỉ Toàn quyền dùng đường này) của một tài khoản có máy bật → máy vẫn bật", async () => {
   const w = setup();
   const may = await batMay(w, SALES);
-  const r = await w.call("PUT", `/api/staff/${SALES}/permissions`, { as: ADM, body: { permissions: ["SALES", "ACCOUNTING"] } });
+  const r = await w.call("PUT", `/api/staff/${SALES}/permissions`, { as: SUP, body: { permissions: ["SALES", "ACCOUNTING"] } });
   assert.equal(r.status, 200, r.text);
   await choMotNhip();
   assert.equal(dong(w, may).revoked_at, null, "đổi quyền KHÔNG tắt máy");

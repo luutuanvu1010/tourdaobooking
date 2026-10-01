@@ -129,7 +129,7 @@ const M = { id: r.body.staff.id };
 const MC = (await login(phone, r.body.pin)).cookie;
 assert.equal((await call(MC, "GET", "/api/orders")).status, 200, "FIELD + ACCOUNTING = văn phòng");
 assert.equal((await call(MC, "POST", "/api/orders", orderInput())).status, 403);
-assert.equal((await call(ADMIN, "PUT", `/api/staff/${M.id}/permissions`, { permissions: ["FIELD"] })).status, 200);
+assert.equal((await call(TAO_TK, "PUT", `/api/staff/${M.id}/permissions`, { permissions: ["FIELD"] })).status, 200); // ADR-0083 1a: đường kiểu cũ chỉ Toàn quyền
 // Bỏ ACCOUNTING → còn CHỈ FIELD: mất quyền xem mọi đơn NGAY (phiên đang mở). Từ ADR-0030 S23-4 tài khoản chỉ-FIELD nhận 200 với danh sách CHỈ đơn mình
 // phụ trách (M chưa phụ trách đơn nào → RỖNG), và chi tiết đơn người khác → 404 — không còn 403. Khẳng định CẢ HAI vế.
 r = await call(MC, "GET", "/api/orders?limit=100");
@@ -137,7 +137,7 @@ assert.equal(r.status, 200, `bỏ ACCOUNTING → chỉ-FIELD: ${r.status}`);
 assert.deepEqual([r.body.orders, r.body.hasMore], [[], false], "bỏ ACCOUNTING → mất quyền xem đơn ngay: danh sách rỗng (chưa phụ trách đơn nào)");
 r = await call(MC, "GET", `/api/orders/${order.id}`);
 assert.equal(r.status, 404, `bỏ ACCOUNTING → mở đơn người khác 404 (không phải 200 như lúc còn ACCOUNTING): ${r.status}`);
-assert.equal((await call(ADMIN, "PUT", `/api/staff/${M.id}/permissions`, { permissions: ["SALES", "FIELD"] })).status, 200);
+assert.equal((await call(TAO_TK, "PUT", `/api/staff/${M.id}/permissions`, { permissions: ["SALES", "FIELD"] })).status, 200);
 // Các lần đọc /api/catalog ở trên có thể là lần đồng bộ Sheet ĐẦU TIÊN của D1 này (khi catalog.mjs không chạy trước) — lần đó ẩn mã giả ZE*; bật lại.
 await ensureFakeCatalog();
 // Lập kèm CHÍNH MÌNH làm người phụ trách (ADR-0030 S20-4 — đơn mới không tự gắn người lập) để ca "người phụ trách đã nghỉ" ở dưới giữ đúng nghĩa.

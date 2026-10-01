@@ -6,7 +6,7 @@
 // (tự nhiên, không cần SQL); mục nào cần đơn ĐÃ có người thì Nhận/Giao tường minh ngay sau khi lập. Hướng dẫn viên (ADR-0030 lượt 1): nhận đơn chờ nhận,
 // đua hai HDV, hàng chờ phần hẹp, tách ba đường xem đơn — mục 15 cuối tệp.
 import assert from "node:assert/strict";
-import { ACCOUNTS, call, catalogService, ensureFakeCatalog, login, makeLegacyManual, orderInput, randomPhone, session, sql, sqlRows, vnDate } from "./lib.mjs";
+import { ACCOUNTS, call, catalogService, ensureFakeCatalog, gieoTaiKhoanLai, login, makeLegacyManual, orderInput, randomPhone, session, sql, sqlRows, vnDate } from "./lib.mjs";
 
 // Chạy SAU catalog.mjs (lần đồng bộ Sheet thật đặt in_sheet = 0 cho mã giả) → phải bật lại danh mục giả ZE* mà orderInput() mặc định dùng.
 await ensureFakeCatalog();
@@ -1087,7 +1087,7 @@ try {
   const FIELDB = await session(ACCOUNTS.fieldB);
   const fldB = await me(FIELDB);
   const INTERN = await makeStaff(`Thực Tập Nhận ${tag}`, true, ["INTERN"]);
-  const LAI = await makeStaff(`Lai Đối Tác HDV ${tag}`, true, ["PARTNER", "FIELD"]);
+  const LAI = await gieoTaiKhoanLai(`Lai Đối Tác HDV ${tag}`, ["PARTNER", "FIELD"]); // ADR-0083 1b: API không tạo lai nữa — gieo SQL
   const pool = async (cookie) => {
     const res = await call(cookie, "GET", "/api/orders/pool");
     assert.equal(res.status, 200, JSON.stringify(res.body));

@@ -3,7 +3,7 @@
 //   #1 POST /api/staff có `roles`            → roleAssignmentProblem
 //   #2 POST /api/staff đường cũ (permissions) → taiKhoanLaiProblem sau cleanPermissions
 //   #3 POST /api/staff/sheet/apply            → vai cố định SALES_STAFF, không bao giờ sinh DRIVER_PARTNER (roles.test.ts khẳng định)
-//   #4 PUT /api/staff/:id/permissions        → taiKhoanLaiProblem sau cleanPermissions
+//   #4 PUT /api/staff/:id/permissions        → taiKhoanLaiProblem sau cleanPermissions (từ ADR-0083 điều 1a chỉ Toàn quyền gọi được — ca dùng SUP)
 //   #5 PUT /api/staff/:id/roles              → roleAssignmentProblem
 // và ca 5b: đổi vai HỢP LỆ (Tài xế taxi ↔ Tài xế đối tác; Điều hành chung → Tài xế đối tác qua lô gỡ Quản trị) không bị LC-1b chặn nhầm.
 // Chạy CẢ ứng dụng trên SQLite thật (có trigger LC-1, LC-1b) qua khung tests/audit/harness.mjs.
@@ -71,7 +71,7 @@ test("#2 POST /api/staff đường cũ: permissions Tài xế đối tác + Bán
 test("#4 PUT /api/staff/:id/permissions (tài khoản chưa gán vai): Đối tác + Tài xế đối tác → 400, quyền giữ nguyên, không nhật ký", async () => {
   const w = setup();
   const [perms, logs] = [permRows(w), logRows(w)];
-  const r = await w.call("PUT", `/api/staff/${CU}/permissions`, { as: ADM, body: { permissions: ["PARTNER", "DRIVER_PARTNER"] } });
+  const r = await w.call("PUT", `/api/staff/${CU}/permissions`, { as: SUP, body: { permissions: ["PARTNER", "DRIVER_PARTNER"] } });
   assert.equal(r.status, 400, r.text);
   assert.equal(r.json.error.code, "invalid_input");
   assert.equal(r.json.error.message, LAI);
@@ -79,7 +79,7 @@ test("#4 PUT /api/staff/:id/permissions (tài khoản chưa gán vai): Đối t�
   assert.equal(permRows(w), perms);
   assert.equal(logRows(w), logs);
   // Đổi HẲN sang chỉ Tài xế đối tác qua đường cũ được: setPermissionStatements đóng PARTNER TRƯỚC rồi mới chèn DRIVER_PARTNER (LC-1b chỉ đếm dòng mở).
-  const ok = await w.call("PUT", `/api/staff/${CU}/permissions`, { as: ADM, body: { permissions: ["DRIVER_PARTNER"] } });
+  const ok = await w.call("PUT", `/api/staff/${CU}/permissions`, { as: SUP, body: { permissions: ["DRIVER_PARTNER"] } });
   assert.equal(ok.status, 200, ok.text);
   assert.deepEqual(openPerms(w, CU), ["DRIVER_PARTNER"]);
 });
@@ -138,7 +138,7 @@ test("không đường ghi quyền nào ra 500 với tổ hợp lai (năm đư�
   const ca = [
     await w.call("POST", "/api/staff", { as: SUP, body: { fullName: "Lai Một", phone: "0911000309", roles: ["COLLABORATOR", "DRIVER_EXTERNAL"] } }),
     await w.call("POST", "/api/staff", { as: SUP, body: { fullName: "Lai Hai", phone: "0911000310", permissions: ["DRIVER", "DRIVER_PARTNER"] } }),
-    await w.call("PUT", `/api/staff/${CU}/permissions`, { as: ADM, body: { permissions: ["DRIVER_PARTNER", "SALES"] } }),
+    await w.call("PUT", `/api/staff/${CU}/permissions`, { as: SUP, body: { permissions: ["DRIVER_PARTNER", "SALES"] } }),
     await w.call("PUT", `/api/staff/${id}/roles`, { as: ADM, body: { roles: ["DRIVER_EXTERNAL"], adds: ["PARTNER"], reason: "lai" } }),
   ];
   for (const r of ca) assert.equal(r.status, 400, r.text);
