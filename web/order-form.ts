@@ -570,7 +570,17 @@ function dungKhoiKhach(rows: DongKhach[]): void {
   hk = taoKhoiHanhKhach({ rows, che: "form", soKhach: soKhachForm, today, bang: () => wideQuery.matches, newKey, ma: "hk", onChange: () => recompute() });
   replaceChildren(hkCard, h("h2", null, "Hành khách"), hk.root);
   hkCard.hidden = false;
-  wideQuery.addEventListener("change", () => hk?.refresh(true));
+  datViTriKhoiKhach();
+  wideQuery.addEventListener("change", () => {
+    datViTriKhoiKhach();
+    hk?.refresh(true);
+  });
+}
+
+/** ≥ 960px: khối trải ngang SAU lưới 2 cột (cột Tóm tắt dính không đè lên); dưới 960px: ngay sau thẻ "Dịch vụ" (bản vẽ điện thoại M2). Chỉ DỜI nút, không dựng lại. */
+function datViTriKhoiKhach(): void {
+  if (wideQuery.matches) formEl.querySelector(".form-cols")?.after(hkCard);
+  else servicesEl.closest("section")?.after(hkCard);
 }
 
 // ---- khởi động ----

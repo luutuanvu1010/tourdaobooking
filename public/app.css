@@ -888,12 +888,13 @@ body.login-page::before { content: ""; display: block; height: env(safe-area-ins
 .pay-note { margin-top: var(--s3); }
 #use-mine { margin-bottom: var(--s3); }
 .summary-note { margin: 0; }
+.form-cols { display: contents; } /* dưới 960px: như không có lớp bọc — thanh Lưu vẫn dính đáy theo form */
 .form-side { display: contents; } /* điện thoại: các khối của cột phải nằm xen kẽ trong luồng; thanh Lưu vẫn là con trực tiếp của form để dính đáy */
 .form-actions { background: var(--c-bg); border-top: 1px solid var(--c-line); } /* khổ 641–959px (iPad dọc): thanh dính đáy phải có nền, không chồng chữ lên nội dung */
 /* .mobile-actions-summary mặc định display:none đã khai gần đầu tệp (trước khối @media (max-width: 640px)) — không lặp lại ở đây để tránh nó đứng SAU rule display:block và luôn thắng */
 @media (min-width: 960px) {
   main.form-page { max-width: var(--w-form); }
-  #order-form { display: grid; grid-template-columns: minmax(0, 1fr) var(--w-side); gap: var(--s4); align-items: start; }
+  #order-form > .form-cols { display: grid; grid-template-columns: minmax(0, 1fr) var(--w-side); gap: var(--s4); align-items: start; } /* ADR-0047 Phần B: lưới 2 cột nằm trong .form-cols để cột Tóm tắt dính (sticky) không trượt đè khối Hành khách trải ngang bên dưới */
   .form-side { display: block; position: sticky; top: var(--s4); }
   .form-side .form-actions { position: static; padding: 0; background: none; border-top: 0; }
   .form-side .form-actions .btn-primary { flex: 1; }
@@ -2204,7 +2205,7 @@ label.check > input.o-tick { display: inline; width: auto; margin: 0 var(--s2) 0
 .dd-cot { display: flex; flex-direction: column; gap: var(--s2); min-width: 0; }
 .dd-chang label, .hk label { min-width: 0; }
 .dd-gio { position: relative; display: block; }
-.dd-gio-mo { position: absolute; top: var(--s1); bottom: 0; left: 0; right: var(--tap-min); display: flex; align-items: center; padding-left: var(--s3); font-size: var(--fs-ui); color: var(--c-text-muted); background: var(--c-surface); border-radius: var(--radius-sm); pointer-events: none; margin: 1px; }
+.dd-gio-mo { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; position: absolute; top: var(--s1); bottom: 0; left: 0; right: var(--tap-min); display: flex; align-items: center; padding-left: var(--s3); font-size: var(--fs-ui); color: var(--c-text-muted); background: var(--c-surface); border-radius: var(--radius-sm); pointer-events: none; margin: 1px; }
 .dd-gio:focus-within .dd-gio-mo { display: none; }
 .dd-gio-mo[hidden] { display: none; }
 .dd-xem { display: flex; flex-direction: column; gap: var(--s1); }
@@ -2269,9 +2270,5 @@ label.check > input.o-tick { display: inline; width: auto; margin: 0 var(--s2) 0
 .sheet-foot.dd-sheet-foot { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s2); }
 .sheet-foot.dd-sheet-foot .btn { min-height: var(--tap-min); }
 @media (min-width: 641px) { .sheet.hk-sheet { width: var(--w-sheet-hk); } }
-/* Form đơn ≥ 960px: khối Hành khách trải hết bề ngang dưới hàng "thẻ dịch vụ | Tóm tắt" (bản vẽ M2 — cột chính không đủ cho bốn ô) */
-@media (min-width: 960px) {
-  #order-form > .form-main { grid-column: 1; grid-row: 1; }
-  #order-form > .form-side { grid-column: 2; grid-row: 1; }
-  #order-form > .hk-card { grid-column: 1 / -1; grid-row: 2; margin-top: 0; }
-}
+/* Form đơn ≥ 960px: khối Hành khách trải hết bề ngang dưới hàng "thẻ dịch vụ | Tóm tắt" (bản vẽ M2 — cột chính không đủ cho bốn ô): web/order-form.ts đặt #hk-card
+   SAU .form-cols; dưới 960px đặt ngay sau thẻ "Dịch vụ" (bản vẽ điện thoại). */

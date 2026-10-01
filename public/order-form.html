@@ -6,6 +6,7 @@
   <h1 id="form-title">Tạo đơn</h1>
   <div id="error" class="banner" role="alert" hidden></div>
   <form id="order-form" novalidate>
+    <div class="form-cols">
     <div class="form-main">
       <section class="card">
         <h2>Chọn ngày</h2>
@@ -44,7 +45,6 @@
         <div id="booker-slot"></div>
       </section>
     </div>
-    <section class="card hk-card" id="hk-card" aria-label="Hành khách" hidden></section>
     <div class="form-side">
       <section class="card summary-card">
         <h2>Tóm tắt</h2>
@@ -67,6 +67,8 @@
         <a class="btn" href="/orders">Quay lại</a>
       </div>
     </div>
+    </div>
+    <section class="card hk-card" id="hk-card" aria-label="Hành khách" hidden></section>
   </form>
 </main>
 <script type="module" src="/js/order-form.js"></script>
