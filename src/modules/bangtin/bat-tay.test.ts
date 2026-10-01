@@ -53,10 +53,11 @@ function tramGia(): { binding: unknown; ghi: GhiLai } {
 const staff = (id: string, permissions: PermissionCode[]) => ({ id, permissions, phone: "0900000000", name: "Người thử" });
 
 const route = bangtinModule.routes[0]!;
-async function goi(headers: Record<string, string>, env: Record<string, unknown>, s = staff("s-ban-hang", ["SALES"])): Promise<unknown> {
+const PHIEN = "phien-thu-1";
+async function goi(headers: Record<string, string>, env: Record<string, unknown>, s = staff("s-ban-hang", ["SALES"]), sessionId: string | null = PHIEN): Promise<unknown> {
   const url = new URL(`${APP}/api/bang-tin`);
   const request = new Request(url, { headers });
-  return route.handler({ request, env, url, staff: s, params: {} } as never);
+  return route.handler({ request, env, url, staff: s, sessionId, params: {} } as never);
 }
 const DU_HEADER = { upgrade: "websocket", connection: "Upgrade", origin: APP };
 
@@ -111,8 +112,19 @@ test("BT-2: yêu cầu gửi trạm được DỰNG MỚI — chỉ 3 header má
     assert.deepEqual([...req.headers.keys()].sort(), ["upgrade", "x-bang-tin-nguoi", "x-bang-tin-nhan"], "chỉ đúng 3 header, không cookie/origin");
     assert.equal(req.headers.get("upgrade"), "websocket");
     assert.equal(req.headers.get("x-bang-tin-nguoi"), s.id);
-    assert.deepEqual(JSON.parse(req.headers.get("x-bang-tin-nhan")!), nhanKetNoi(s), `nhãn của ${s.id} tính ở máy chủ`);
+    assert.deepEqual(JSON.parse(req.headers.get("x-bang-tin-nhan")!), [...nhanKetNoi(s), `phien:${PHIEN}`], `nhãn của ${s.id} tính ở máy chủ, kèm mã phiên (ADR-0075 điều 6a)`);
   }
+});
+
+test("ADR-0075 điều 6a: nhãn phiên lấy từ ctx.sessionId của máy chủ — mỗi phiên một nhãn riêng; thiếu mã phiên → 401, không đụng trạm", async () => {
+  const { binding, ghi } = tramGia();
+  await goi(DU_HEADER, { BANG_TIN: binding }, staff("s-ban-hang", ["SALES"]), "phien-A");
+  await goi(DU_HEADER, { BANG_TIN: binding }, staff("s-ban-hang", ["SALES"]), "phien-B");
+  assert.deepEqual(ghi.yeuCau.map((r) => JSON.parse(r.headers.get("x-bang-tin-nhan")!).filter((x: string) => x.startsWith("phien:"))), [["phien:phien-A"], ["phien:phien-B"]]);
+  const g2 = tramGia();
+  const res = (await goi(DU_HEADER, { BANG_TIN: g2.binding }, staff("s-ban-hang", ["SALES"]), null)) as Response;
+  assert.equal(res.status, 401);
+  assert.equal(g2.ghi.tenTram.length + g2.ghi.yeuCau.length, 0);
 });
 
 test("phatDon/dongCua: không có trạm → không làm gì, không ném; có trạm → gọi đúng RPC của trạm 'cong-ty'", async () => {
@@ -124,7 +136,9 @@ test("phatDon/dongCua: không có trạm → không làm gì, không ném; có t
   await phatDon(env, suKien, ["tat-ca", "nguoi:s-a"]);
   await dongCua(env, { staffId: "s-a" });
   await dongCua(env, "tat-ca");
-  assert.deepEqual(ghi.tenTram, ["cong-ty", "cong-ty", "cong-ty"]);
+  await dongCua(env, { sessionIds: ["p-1", "p-2"] });
+  await dongCua(env, { sessionIds: [] }); // không có phiên nào bị thay → không gọi trạm
+  assert.deepEqual(ghi.tenTram, ["cong-ty", "cong-ty", "cong-ty", "cong-ty"]);
   assert.deepEqual(ghi.phat, [[suKien, ["tat-ca", "nguoi:s-a"]]]);
-  assert.deepEqual(ghi.dongCua, [{ staffId: "s-a" }, "tat-ca"]);
+  assert.deepEqual(ghi.dongCua, [{ staffId: "s-a" }, "tat-ca", { sessionIds: ["p-1", "p-2"] }]);
 });

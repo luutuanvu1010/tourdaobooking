@@ -11,6 +11,7 @@ import { layKhungNho, luuKhungNho, xoaKhungNho } from "./khung-nho";
 import { demSapHetHan } from "./vc-dem";
 import { registerServiceWorker } from "./pwa";
 import { ganThongBao } from "./thong-bao-ui";
+import { KHOA_GAN_PHIEN_THONG_BAO, thietBiTu } from "./push-ui";
 import { ganTroLy } from "./tro-ly";
 
 /** Trang của phân hệ Vận chuyển (ADR-0040 D1): mục con "Xe" sáng ở cả ba trang xe; ở điện thoại các trang này mở từ trang Tôi nên tab "Tôi" sáng. */
@@ -123,6 +124,25 @@ export async function logout(): Promise<void> {
   await Promise.race([tatThongBaoMayNay(), new Promise((resolve) => setTimeout(resolve, 2000))]);
   await api("/api/auth/logout", { method: "POST" }).catch(() => undefined);
   location.assign("/login");
+}
+
+/**
+ * ADR-0075 điều 6b: sau đăng nhập, gửi lại địa chỉ nhận thông báo của MÁY NÀY (nếu đã cho phép và đang có đăng ký) để đăng ký mang mã phiên mới — lần đăng nhập
+ * máy khác sau đó tắt mọi đăng ký trừ đăng ký của phiên mới nhất. Tối đa một lần mỗi phiên của thẻ (cờ sessionStorage; trang /login xoá cờ). Mọi lỗi bị nuốt —
+ * không chặn trang. Không xin quyền, không tạo đăng ký mới (việc đó chỉ ở mục Thông báo của trang Tài khoản).
+ */
+async function ganPhienThongBaoMayNay(): Promise<void> {
+  try {
+    if (sessionStorage.getItem(KHOA_GAN_PHIEN_THONG_BAO) === "1") return;
+    if (!("Notification" in window) || Notification.permission !== "granted" || !("serviceWorker" in navigator)) return;
+    const reg = await navigator.serviceWorker.getRegistration();
+    const sub = await reg?.pushManager.getSubscription();
+    if (!sub) return;
+    await api("/api/account/thong-bao/may", { method: "POST", body: { endpoint: sub.endpoint, thietBi: thietBiTu(navigator.userAgent) } });
+    sessionStorage.setItem(KHOA_GAN_PHIEN_THONG_BAO, "1");
+  } catch {
+    // mạng, trình duyệt lạ, sessionStorage bị chặn: bỏ qua — lần tải trang sau thử lại
+  }
 }
 
 /** Số mục chưa đọc của Góp ý (phản hồi mới cho tôi + yêu cầu chờ admin). Lỗi mạng → 0, không làm hỏng khung. */
@@ -489,6 +509,7 @@ export async function initShell(): Promise<Staff> {
   // khung THẬT biết (bản nhớ khung chỉ 5 trường đã duyệt, ADR-0035).
   addNav(admin, seesAll, office, canCreate, staff, null, can(staff, "audit.view"), chiTaiXe(staff), can(staff, "vehicle.manage"), can(staff, "admin.manage"), can(staff, "settings.ops"), thayDieuPhoiXe(staff), coCuocCuaToi(staff), can(staff, "account.view"), can(staff, "notice.send"));
   batDauBangTin(staff); // Bảng tin (ADR-0022): MỘT kết nối mỗi trang đã đăng nhập; nhánh mất mạng ở trên không tới đây (chưa có `staff`)
+  void ganPhienThongBaoMayNay(); // ADR-0075 điều 6b: đăng ký thông báo của máy này mang mã phiên mới
   // Trợ lý Hỗ trợ (ADR-0066 điều 9): nút nổi ở mọi trang đã đăng nhập (initShell không chạy ở /login). CẢ khi đang bảo trì: lúc đó chỉ tài khoản Toàn quyền
   // mới qua được máy chủ (ADR-0071), đúng những người đang dùng app — ẩn trợ lý với họ là sai (chủ báo 30/9 "chưa thấy trợ lý bật lên" khi bảo trì đang bật).
   // ADR-0069 điều 3: nút chỉ dựng khi máy chủ báo tài khoản được dùng (vai đang bật) — hỏi không chặn khung trang.

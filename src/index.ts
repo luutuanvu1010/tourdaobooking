@@ -26,7 +26,7 @@ import { maintenanceBlock, maintenanceModule } from "./modules/maintenance";
 import { partiesModule } from "./modules/parties";
 import { cauDoiNguoiDat, donCuaNguoiDat, findOrderRef, ordersModule } from "./modules/orders";
 import { accountOfParty, nhanNhanVienTheoId, soDangNhapTheoHoSo } from "./modules/staff";
-import { dayGoCua, tatMayStatement, thongbaoModule } from "./modules/thongbao";
+import { dayGoCua, tatMayStatement, tatMayTruPhienStatement, thongbaoModule } from "./modules/thongbao";
 import { troLyModule } from "./modules/tro-ly";
 import { mocToiThieuHienHanh, vanChuyenModule, viecXeCuaNguoi } from "./modules/van-chuyen";
 import { HANDLER_TRUOC_KHONG_BIET, nhanSuKien } from "./shared/bang-tin";
@@ -95,7 +95,16 @@ const APP_OPTIONS: AppOptions = {
     },
     // Đóng kết nối Bảng tin (mọi lần gọi) + tắt mọi máy nhận thông báo điện thoại của tài khoản đó CHỈ khi `tatThongBao` (ADR-0046: thao tác bảo
     // mật; đổi vai/quyền không tắt — thay ADR-0036 điều 6). Chạy cả khi không có trạm. "tat-ca" (bật bảo trì) KHÔNG tắt máy.
+    // Nhánh theo PHIÊN (ADR-0075 điều 6, đăng nhập tài khoản một máy): trạm chỉ nhận `{ sessionIds }` — KHÔNG kèm staffId (trạm đóng theo staffId là đóng
+    // luôn máy mới); tắt mọi máy nhận của tài khoản trừ máy mang phiên mới (`giuPhien`), lý do bi-thay. Hai việc độc lập.
     dongBangTin: async (env, muc) => {
+      if (typeof muc === "object" && "sessionIds" in muc) {
+        await nemNeuLoi([
+          ["tram", dongCua(env, { sessionIds: muc.sessionIds })],
+          ["tat-may", tatMayTruPhienStatement(env.DB, muc.staffId, muc.giuPhien, new Date().toISOString()).run()],
+        ]);
+        return;
+      }
       await nemNeuLoi([
         ["tram", dongCua(env, muc)],
         // updated_by = NULL (hệ thống): tắt kèm khi tài khoản đổi — người làm thay đổi đó có trong audit_log của chính thao tác.

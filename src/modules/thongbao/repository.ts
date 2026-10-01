@@ -121,11 +121,17 @@ const MAY_NAY = defineSql("thongbao", "may_nay", `SELECT 1 FROM ntf_push_sub WHE
 const THU_HOI_MAY_NGUOI_KHAC = defineSql("thongbao", "thu_hoi_may_nguoi_khac", `
   UPDATE ntf_push_sub SET revoked_at = ?2, revoke_reason = 'doi-tai-khoan', updated_at = ?2, updated_by = ?3
   WHERE endpoint = ?1 AND staff_id != ?3 AND revoked_at IS NULL`);
-// Bật lại cùng máy (cùng người, cùng endpoint) = không đổi gì: WHERE NOT EXISTS chỉ chèn khi CHƯA có dòng đang bật với endpoint này
-// (dòng của người khác đã bị câu trên huỷ ngay trước, trong cùng batch()).
+// Đăng ký lại cùng máy (cùng người, cùng endpoint, dòng đang bật) bằng phiên KHÁC (ADR-0075 điều 6b — web/shell.ts gửi lại sau mỗi lần đăng nhập): chỉ gắn
+// mã phiên mới (?2); cùng phiên thì không ghi gì. Máy đã bị tắt (vd `bi-thay`) KHÔNG mở lại dòng cũ: câu BAT_MAY dưới chèn dòng mới (dòng cũ giữ làm lịch sử;
+// chỉ mục duy nhất ntf_push_sub_endpoint_uq chỉ xét dòng đang bật).
+const GAN_PHIEN_MAY = defineSql("thongbao", "gan_phien_may", `
+  UPDATE ntf_push_sub SET session_id = ?2, updated_at = ?4, updated_by = ?3
+  WHERE endpoint = ?1 AND staff_id = ?3 AND revoked_at IS NULL AND session_id IS NOT ?2`);
+// Bật lại cùng máy (cùng người, cùng endpoint) = không chèn thêm: WHERE NOT EXISTS chỉ chèn khi CHƯA có dòng đang bật với endpoint này
+// (dòng của người khác đã bị câu THU_HOI huỷ ngay trước, trong cùng batch()). `session_id` (?6) = phiên đang đăng ký (ADR-0075 điều 6b).
 const BAT_MAY = defineSql("thongbao", "bat_may", `
-  INSERT INTO ntf_push_sub (id, staff_id, endpoint, thiet_bi, created_at, created_by, updated_at, updated_by)
-  SELECT ?1, ?2, ?3, ?4, ?5, ?2, ?5, ?2
+  INSERT INTO ntf_push_sub (id, staff_id, endpoint, thiet_bi, created_at, created_by, updated_at, updated_by, session_id)
+  SELECT ?1, ?2, ?3, ?4, ?5, ?2, ?5, ?2, ?6
   WHERE NOT EXISTS (SELECT 1 FROM ntf_push_sub WHERE endpoint = ?3 AND revoked_at IS NULL)`);
 // Tắt máy của staffId: `endpoint = NULL` (tham số ?2) = mọi máy của người đó; câu SQL tĩnh theo khuôn `?N IS NULL OR …`.
 // `updated_by` (?5) = người thao tác: chính chủ máy (tu-tat, dang-xuat) hoặc NULL = hệ thống (tai-khoan-doi — tắt kèm khi tài khoản đổi;
@@ -133,6 +139,11 @@ const BAT_MAY = defineSql("thongbao", "bat_may", `
 const TAT_MAY = defineSql("thongbao", "tat_may", `
   UPDATE ntf_push_sub SET revoked_at = ?4, revoke_reason = ?3, updated_at = ?4, updated_by = ?5
   WHERE staff_id = ?1 AND revoked_at IS NULL AND (?2 IS NULL OR endpoint = ?2)`);
+// Máy bị đăng xuất vì đăng nhập máy khác (ADR-0075 điều 6b): tắt MỌI đăng ký đang bật của tài khoản trừ đăng ký mang đúng phiên mới (?2) — kể cả đăng ký
+// cũ session_id NULL (trước phát hành). ?2 NULL = tắt hết. updated_by = NULL (hệ thống — lần đăng nhập đã có dòng aut_session của chính nó).
+const TAT_MAY_TRU_PHIEN = defineSql("thongbao", "tat_may_tru_phien", `
+  UPDATE ntf_push_sub SET revoked_at = ?3, revoke_reason = 'bi-thay', updated_at = ?3, updated_by = NULL
+  WHERE staff_id = ?1 AND revoked_at IS NULL AND (session_id IS NULL OR ?2 IS NULL OR session_id <> ?2)`);
 // Hết hiệu lực (dịch vụ đẩy trả 410) — không phải hành động của một người, updated_by = NULL ("hệ thống", theo khuôn migrations-dispatch).
 const HET_HAN = defineSql("thongbao", "het_han_may", `
   UPDATE ntf_push_sub SET revoked_at = ?2, revoke_reason = 'het-han', updated_at = ?2, updated_by = NULL
@@ -145,12 +156,16 @@ export const demMay = async (db: D1Database, staffId: string): Promise<number> =
   (await db.prepare(DEM_MAY).bind(staffId).first<{ n: number }>())?.n ?? 0;
 export const mayDangBat = async (db: D1Database, staffId: string, endpoint: string): Promise<boolean> =>
   (await db.prepare(MAY_NAY).bind(staffId, endpoint).first()) !== null;
-export function batMayStatements(db: D1Database, a: { id: string; staffId: string; endpoint: string; thietBi: string; at: string }): D1PreparedStatement[] {
+export function batMayStatements(db: D1Database, a: { id: string; staffId: string; endpoint: string; thietBi: string; at: string; sessionId: string | null }): D1PreparedStatement[] {
   return [
     db.prepare(THU_HOI_MAY_NGUOI_KHAC).bind(a.endpoint, a.at, a.staffId),
-    db.prepare(BAT_MAY).bind(a.id, a.staffId, a.endpoint, a.thietBi, a.at),
+    db.prepare(GAN_PHIEN_MAY).bind(a.endpoint, a.sessionId, a.staffId, a.at),
+    db.prepare(BAT_MAY).bind(a.id, a.staffId, a.endpoint, a.thietBi, a.at, a.sessionId),
   ];
 }
+/** Tắt mọi máy nhận của tài khoản trừ máy mang phiên `giuPhien` (ADR-0075 điều 6b). Chưa chạy. */
+export const tatMayTruPhienStatement = (db: D1Database, staffId: string, giuPhien: string | null, at: string): D1PreparedStatement =>
+  db.prepare(TAT_MAY_TRU_PHIEN).bind(staffId, giuPhien, at);
 export const tatMayStatement = (db: D1Database, staffId: string, endpoint: string | null, lyDo: string, at: string, by: string | null): D1PreparedStatement =>
   db.prepare(TAT_MAY).bind(staffId, endpoint, lyDo, at, by);
 export const hetHanStatement = (db: D1Database, endpoints: string[], at: string): D1PreparedStatement =>

@@ -92,8 +92,9 @@ test("ADR-0046 điểm 2–3: MỌI route gọi dongBangTin khai cờ tatThongBa
   const goc = new URL("./modules/", import.meta.url);
   const tep = (readdirSync(goc, { recursive: true }) as string[]).filter((f) => f.endsWith(".ts") && !f.endsWith(".test.ts"));
   const coGoi = tep.filter((f) => readFileSync(new URL(f, goc), "utf8").includes("dongBangTin("));
-  assert.deepEqual(coGoi.sort(), ["accounts/index.ts", "maintenance/index.ts"], "module mới gọi dongBangTin → thêm vào bảng dưới, xếp loại theo ADR-0046");
-  const src = coGoi.filter((f) => f !== "maintenance/index.ts").map((f) => readFileSync(new URL(f, goc), "utf8")).join("\n");
+  assert.deepEqual(coGoi.sort(), ["accounts/index.ts", "auth/index.ts", "maintenance/index.ts"], "module mới gọi dongBangTin → thêm vào bảng dưới, xếp loại theo ADR-0046");
+  // auth (ADR-0075 điều 6) chỉ dùng nhánh theo PHIÊN (kiểm riêng ở bài dưới) — không thuộc bảng cờ tatThongBao.
+  const src = coGoi.filter((f) => f === "accounts/index.ts").map((f) => readFileSync(new URL(f, goc), "utf8")).join("\n");
   const RE_ROUTE = /route\("(GET|POST|PUT|PATCH|DELETE)", "([^"]+)"/g;
   const moc = [...src.matchAll(RE_ROUTE)].map((m) => ({ ten: `${m[1]} ${m[2]}`, tu: m.index ?? 0 }));
   const thay: Record<string, boolean[]> = {};
@@ -120,10 +121,39 @@ test("ADR-0046 điểm 2–3: MỌI route gọi dongBangTin khai cờ tatThongBa
   assert.deepEqual([...bt.matchAll(/dongBangTin\(([^)]*)\)/g)].map((m) => m[1]), ['"tat-ca"']);
 });
 
+test("ADR-0075 điều 6: auth gọi dongBangTin ĐÚNG hai lần — đăng nhập PIN và Face ID — và chỉ ở dạng theo phiên { staffId, sessionIds, giuPhien }", () => {
+  const src = readFileSync(new URL("./modules/auth/index.ts", import.meta.url), "utf8");
+  const RE_ROUTE = /route\("(GET|POST|PUT|PATCH|DELETE)", "([^"]+)"/g;
+  const moc = [...src.matchAll(RE_ROUTE)].map((m) => ({ ten: `${m[1]} ${m[2]}`, tu: m.index ?? 0 }));
+  const thay: Record<string, number> = {};
+  moc.forEach((r, i) => {
+    const than = src.slice(r.tu, i + 1 < moc.length ? moc[i + 1]!.tu : src.length);
+    const dung = [...than.matchAll(/dongBangTin\(\{\s*staffId:[^}]*?sessionIds:[^}]*?giuPhien:[^}]*\}\)/g)].length;
+    const goi = (than.match(/dongBangTin\(/g) ?? []).length;
+    assert.equal(dung, goi, `${r.ten}: lời gọi dongBangTin ở auth phải đúng dạng theo phiên`);
+    if (goi > 0) thay[r.ten] = goi;
+  });
+  assert.deepEqual(thay, { "POST /api/auth/login": 1, "POST /api/auth/passkey/login": 1 });
+  assert.equal((src.match(/dongBangTin\(/g) ?? []).length, 2, "không lời gọi nào ngoài thân hai route đăng nhập");
+});
+
 test("ADR-0046 tiêu chí 4: web/shell.ts — đăng xuất gửi địa chỉ CỦA MÁY NÀY kèm dangXuat, không còn gửi tatCa: true", () => {
   const src = readFileSync(new URL("../web/shell.ts", import.meta.url), "utf8");
   const than = src.slice(src.indexOf("async function tatThongBaoMayNay"), src.indexOf("export async function logout"));
   assert.ok(than.length > 0, "không tìm thấy hàm tatThongBaoMayNay");
   assert.doesNotMatch(than, /tatCa\s*:\s*true/, "đăng xuất không được tắt mọi máy của tài khoản");
   assert.match(than, /dangXuat\s*:\s*true/, "đăng xuất phải gửi cờ dangXuat cho đúng máy này");
+});
+
+test("ADR-0075 điều 6b: web/shell.ts gửi lại địa chỉ nhận của máy này sau đăng nhập (một lần, cờ sessionStorage); trang /login xoá cờ", () => {
+  const shell = readFileSync(new URL("../web/shell.ts", import.meta.url), "utf8");
+  const than = shell.slice(shell.indexOf("async function ganPhienThongBaoMayNay"), shell.indexOf("/** Số mục chưa đọc của Góp ý"));
+  assert.match(than, /Notification\.permission !== "granted"/, "chỉ khi đã cho phép — không tự xin quyền");
+  assert.match(than, /getSubscription\(\)/);
+  assert.doesNotMatch(than, /\.subscribe\(/, "không tạo đăng ký mới");
+  assert.match(than, /api\("\/api\/account\/thong-bao\/may", \{ method: "POST"/);
+  assert.match(than, /sessionStorage\.setItem\(KHOA_GAN_PHIEN_THONG_BAO, "1"\)/);
+  assert.match(shell, /void ganPhienThongBaoMayNay\(\);/, "initShell phải gọi (sau khi /api/auth/me xác nhận đăng nhập)");
+  const login = readFileSync(new URL("../web/login.ts", import.meta.url), "utf8");
+  assert.match(login, /sessionStorage\.removeItem\(KHOA_GAN_PHIEN_THONG_BAO\)/);
 });

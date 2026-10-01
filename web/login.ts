@@ -9,6 +9,7 @@ import { SESSION_ENDED_KEY, parseSessionEnded, sessionEndedMessage } from "../sr
 import { endsAtFrom, renderMaintenanceMessage } from "./maintenance-screen";
 import { icon } from "./icons";
 import { xoaKhungNho } from "./khung-nho";
+import { KHOA_GAN_PHIEN_THONG_BAO } from "./push-ui";
 import { datCoTuMo } from "./tro-ly-co";
 import { enableFlow, getAssertion, passkeyErrorMessage, passkeySupported, platformAuthenticatorAvailable } from "./passkey";
 
@@ -111,6 +112,14 @@ pinToggle?.addEventListener("click", () => {
   pinToggle.setAttribute("aria-pressed", String(show));
   pinToggle.setAttribute("aria-label", show ? "Ẩn mã PIN" : "Hiện mã PIN");
 });
+
+// ADR-0075 điều 6b: mở trang đăng nhập = phiên sắp đổi → xoá cờ để trang đầu tiên sau đăng nhập gắn lại đăng ký thông báo của máy này với phiên mới
+// (một chỗ duy nhất, không phải mỗi nhánh thành công — PIN, Face ID, bật Face ID…). sessionStorage bị chặn → bỏ qua.
+try {
+  sessionStorage.removeItem(KHOA_GAN_PHIEN_THONG_BAO);
+} catch {
+  // bỏ qua
+}
 
 // ---- Lời báo "vì sao vừa bị đăng xuất" (ADR-0075) ----
 // web/api.ts lưu lý do vào sessionStorage trước khi đưa về đây (chỉ khi máy chủ nhận ra phiên cũ). Đọc MỘT lần rồi xoá để tải lại trang không báo lại. Mọi lỗi (sessionStorage bị chặn) bị nuốt.

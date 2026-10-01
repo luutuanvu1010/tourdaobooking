@@ -23,6 +23,14 @@ export type PartyAccountVerdict = { linked: false } | { linked: true; manageable
  * thử lại khi trùng mã) — không tự đọc đồng hồ: dòng `HANDLE` mở và dòng nhật ký mang ĐÚNG mốc của dòng nhật ký `created` cùng lô. Không đạt → `message`
  * (lời báo cho người dùng, route trả 400 `invalid_assignee` và KHÔNG tạo đơn).
  */
+/**
+ * Việc đóng Bảng tin (+ tắt máy nhận thông báo) gửi cho hàm tiêm `dongBangTin`: theo tài khoản (khi tài khoản đổi — `tatThongBao` bắt buộc, ADR-0046), theo
+ * PHIÊN (đăng nhập máy khác — ADR-0075 điều 6), hoặc mọi kết nối (`"tat-ca"`, bật bảo trì).
+ */
+export type MucDongBangTin =
+  | { staffId: string; tatThongBao: boolean }
+  | { staffId: string; sessionIds: string[]; giuPhien: string | null }
+  | "tat-ca";
 export type NewOrderHandler = { ok: true; statements: (orderId: string, at: string) => D1PreparedStatement[] } | { ok: false; message: string };
 
 /**
@@ -96,8 +104,10 @@ export interface Ctx<A extends Access = Access> {
    * nối (`"tat-ca"`, khi bật chế độ bảo trì). Không phụ thuộc người đang gọi (không cần ai đăng nhập) — bắn-và-quên như `baoThayDoi`.
    * `tatThongBao` (BẮT BUỘC, ADR-0046): có tắt luôn mọi máy nhận thông báo điện thoại của tài khoản không — `true` CHỈ cho thao tác bảo mật
    * (đổi/đặt lại PIN, gỡ Face ID, ngưng tài khoản, đổi SĐT đăng nhập); `false` cho đổi vai/quyền (người nhận tính lúc gửi theo quyền hiện tại).
+   * Nhánh theo PHIÊN (ADR-0075 điều 6, chỉ route đăng nhập gọi): `{ staffId, sessionIds, giuPhien }` — đóng kết nối của đúng các phiên vừa bị thay và tắt
+   * mọi máy nhận thông báo của `staffId` trừ máy mang phiên `giuPhien` (máy mới).
    */
-  dongBangTin: (muc: { staffId: string; tatThongBao: boolean } | "tat-ca") => void;
+  dongBangTin: (muc: MucDongBangTin) => void;
   /**
    * WEB PUSH (ADR-0036) — giao một danh sách địa chỉ nhận cho trạm `BangTin` chia lô ≤ 40 bằng báo thức (khi > 40 máy). Hàm tiêm để `thongbao` không
    * import `bangtin` (không nới ALLOWED_EDGES). Trả địa chỉ đã nhận 410 ở các lượt trước của trạm (người gọi đánh dấu hết hiệu lực). Không có trạm → `[]`.
@@ -209,7 +219,7 @@ export interface AppOptions {
     /** BẢNG TIN (ADR-0022). BẮT BUỘC: router gọi cho MỌI route có đăng nhập gọi `ctx.baoThayDoi`. Bản thật ở `src/index.ts` (trạm `BangTin` đã có); chỉ là no-op khi môi trường không có binding `BANG_TIN` (khung thử). */
     baoThayDoi: (env: Env, actor: StaffProfile, e: { orderId: string; thayDoi: ThayDoiDon; handlerTruoc?: TrangThaiPhuTrach }) => Promise<void>;
     /** BẢNG TIN (ADR-0022). BẮT BUỘC. Bản thật ở `src/index.ts` (`dongCua` của module `bangtin`); chỉ là no-op khi môi trường không có binding `BANG_TIN`. */
-    dongBangTin: (env: Env, muc: { staffId: string; tatThongBao: boolean } | "tat-ca") => Promise<void>;
+    dongBangTin: (env: Env, muc: MucDongBangTin) => Promise<void>;
     /** WEB PUSH (ADR-0036). BẮT BUỘC. Bản thật ở `src/index.ts` (`xepHangDay` của module `bangtin`); `[]` khi môi trường không có binding `BANG_TIN`. */
     giaoLoDay: (env: Env, ds: string[]) => Promise<string[]>;
     /**

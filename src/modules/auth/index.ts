@@ -8,7 +8,7 @@ import type { AuthConfigResponse, MeResponse, PasskeyRequestOptionsResponse } fr
 import { error, getCookie, json, readJson } from "../../shared/http";
 import { route, type AppModule } from "../../shared/router";
 import { PASSKEY_ERRORS, checkPasskeyAssertion, clearChallengeCookie, issuePasskeyChallenge, limitChallenge, passkeyRp, readPasskeyChallenge } from "./passkey";
-import { endAllSessionsIfSuspendedStatement as endAllIfSuspendedRow, endExpiredSessionsStatement, endOtherSessionsStatement, endSessionStatement, findLiveSession, getSession, insertSessionStatement, liveSessionIds, markSessionReissuedStatement, touchSessionStatement } from "./repository";
+import { endAllSessionsIfSuspendedStatement as endAllIfSuspendedRow, endExpiredSessionsStatement, endOtherSessionsStatement, endSessionStatement, findLiveSession, getSession, insertSessionStatement, markSessionReissuedStatement, touchSessionStatement } from "./repository";
 import { SESSION_COOKIE, SESSION_TTL_SECONDS, clearedSessionCookie, createSessionToken, isSecure, sessionCookie, verifySessionToken } from "./session";
 import { SESSION_TOUCH_MS, isSingleDevice, sessionDeviceLabel, trimIp, trimUserAgent, END_REASON_LABEL, type EndReason } from "./session-ledger";
 import { IP_LIMIT, PHONE_LIMIT, clearAttempts, ipKey, lockedPhones, phoneKey, reserveAttempts, unlockPhone } from "./throttle";
@@ -59,21 +59,22 @@ export async function currentStaff(request: Request, env: Env): Promise<{ staff:
 /**
  * NƠI DUY NHẤT cấp phiên MỚI (ADR-0075 điều 2; đặc tả §6 quy tắc 4). Một lô: dọn phiên hết hạn → (tài khoản một máy) kết thúc phiên còn sống,
  * lý do "bi_thay" → chèn phiên mới. Chỉ mục aut_session_one_live là lưới khi hai lần đăng nhập chạy đua: lần thua nhận 409 sạch.
- * `endedSessionIds` = các phiên vừa bị thay (đọc ngay trước lô) — để đóng Bảng tin / thông báo của đúng máy cũ (Task 6).
+ * `endedSessionIds` = các phiên câu "bị thay" của CHÍNH lô này vừa kết thúc (RETURNING id; không gồm phiên hết hạn do câu dọn) — để đóng Bảng tin của đúng
+ * máy cũ (ADR-0075 điều 6a). `single` = tài khoản chịu luật một máy (route đăng nhập dùng để tắt thông báo của máy cũ — điều 6b).
  */
 export async function issueLoginSession(
   request: Request, env: Env, profile: StaffProfile, method: "PIN" | "PIN_MFA" | "PIN_TRUSTED" | "PASSKEY",
   opts: { trustedDeviceId?: string | null; now?: number } = {},
-): Promise<{ cookie: string; sessionId: string; endedSessionIds: string[] } | { conflict: Response }> {
+): Promise<{ cookie: string; sessionId: string; endedSessionIds: string[]; single: boolean } | { conflict: Response }> {
   const now = opts.now ?? Date.now();
   const at = new Date(now).toISOString();
   const roles = await accountRoleCodesOf(env.DB, profile.id);
   const single = isSingleDevice(profile.permissions, roles);
-  const ended = single ? await liveSessionIds(env.DB, profile.id) : [];
   const id = crypto.randomUUID();
   const ua = request.headers.get("user-agent");
+  let ended: string[] = [];
   try {
-    await env.DB.batch([
+    const kq = await env.DB.batch([
       endExpiredSessionsStatement(env.DB, profile.id, at),
       ...(single ? [endOtherSessionsStatement(env.DB, profile.id, null, "bi_thay", at, null)] : []),
       insertSessionStatement(env.DB, {
@@ -82,11 +83,13 @@ export async function issueLoginSession(
         at, expiresAt: new Date(now + SESSION_TTL_SECONDS * 1000).toISOString(),
       }),
     ]);
+    // Thứ tự lô cố định: [0] dọn hạn, [1] bị thay (chỉ khi single), cuối là chèn — kết quả RETURNING của câu [1] là danh sách phiên vừa bị thay.
+    if (single) ended = ((kq[1]?.results ?? []) as { id: string }[]).map((r) => r.id);
   } catch (e) {
     if (e instanceof Error && /UNIQUE/i.test(e.message)) return { conflict: error(409, "session_race", "Tài khoản đang đăng nhập ở máy khác cùng lúc. Thử lại sau vài giây.") };
     throw e;
   }
-  return { cookie: sessionCookie(await createSessionToken(env.SESSION_SECRET, profile.id, id, now), isSecure(request)), sessionId: id, endedSessionIds: ended };
+  return { cookie: sessionCookie(await createSessionToken(env.SESSION_SECRET, profile.id, id, now), isSecure(request)), sessionId: id, endedSessionIds: ended, single };
 }
 
 /**
@@ -97,7 +100,7 @@ export async function reissueSessionCookie(request: Request, env: Env, staffId: 
   return sessionCookie(await createSessionToken(env.SESSION_SECRET, staffId, sessionId, issuedAt), isSecure(request));
 }
 
-export { endOtherSessionsStatement, liveSessionIds };
+export { endOtherSessionsStatement };
 export type { EndReason };
 /** Kết thúc MỌI phiên còn sống của tài khoản (đặt lại PIN, ngưng, tắt lớp hai…). Chưa chạy — gộp vào lô của module gọi. */
 export const endAllSessionsStatement = (db: D1Database, staffId: string, reason: EndReason, at: string, by: string | null): D1PreparedStatement =>
@@ -177,7 +180,7 @@ export const authModule: AppModule = {
       } satisfies AuthConfigResponse);
     }),
 
-    route("POST", "/api/auth/login", "public", async ({ request, env }) => {
+    route("POST", "/api/auth/login", "public", async ({ request, env, dongBangTin }) => {
       const body = await readJson(request);
       const phone = typeof body?.phone === "string" ? body.phone : "";
       const pin = body?.pin;
@@ -200,6 +203,9 @@ export const authModule: AppModule = {
       );
       const issued = await issueLoginSession(request, env, result.profile, "PIN");
       if ("conflict" in issued) return issued.conflict;
+      // ADR-0075 điều 6: máy cũ bị thay tắt hẳn — đóng Bảng tin của đúng phiên bị thay; tắt thông báo của mọi máy trừ máy mang phiên mới. Gọi cả khi không
+      // phiên nào bị thay (đăng ký thông báo cũ có session_id NULL, hoặc của phiên đã đăng xuất/hết hạn, vẫn phải tắt — Review Focus 3).
+      if (issued.single) dongBangTin({ staffId: result.profile.id, sessionIds: issued.endedSessionIds, giuPhien: issued.sessionId });
       return json({ staff: result.profile } satisfies MeResponse, 200, { "set-cookie": issued.cookie });
     }),
 
@@ -217,7 +223,7 @@ export const authModule: AppModule = {
       );
     }),
 
-    route("POST", "/api/auth/passkey/login", "public", async ({ request, env }) => {
+    route("POST", "/api/auth/passkey/login", "public", async ({ request, env, dongBangTin }) => {
       const rp = passkeyRp(env);
       if (!rp) return PASSKEY_ERRORS.off();
       const credential = (await readJson(request))?.credential;
@@ -243,6 +249,7 @@ export const authModule: AppModule = {
       );
       const issued = await issueLoginSession(request, env, profile, "PASSKEY", { now: phatHanh });
       if ("conflict" in issued) return issued.conflict;
+      if (issued.single) dongBangTin({ staffId: profile.id, sessionIds: issued.endedSessionIds, giuPhien: issued.sessionId }); // ADR-0075 điều 6 (như đăng nhập PIN)
       const res = json({ staff: profile } satisfies MeResponse, 200, { "set-cookie": issued.cookie });
       res.headers.append("set-cookie", clearChallengeCookie(request));
       return res;

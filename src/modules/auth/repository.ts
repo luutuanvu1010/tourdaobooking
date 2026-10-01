@@ -103,9 +103,10 @@ const SS_COLS = "id, staff_id, method, single, trusted_device_id, device_label, 
 // (1) dọn phiên đã quá hạn mà chưa kết thúc — PHẢI đứng trước (2)/(3): dòng hết hạn chưa kết thúc vẫn nằm trong chỉ mục duy nhất aut_session_one_live.
 const SS_END_EXPIRED = defineSql("auth", "session_end_expired",
   "UPDATE aut_session SET ended_at = ?2, end_reason = 'het_han', updated_at = ?2, updated_by = NULL WHERE staff_id = ?1 AND ended_at IS NULL AND expires_at <= ?2");
-// (2) kết thúc mọi phiên còn sống của tài khoản (trừ ?2 nếu có) — dùng cho "bị thay", đổi PIN, gỡ, ngưng…
+// (2) kết thúc mọi phiên còn sống của tài khoản (trừ ?2 nếu có) — dùng cho "bị thay", đổi PIN, gỡ, ngưng… RETURNING id: lô đăng nhập lấy ĐÚNG các phiên
+// câu này vừa kết thúc (không đọc trước lô — tránh khe giữa lúc đọc và lúc ghi) để đóng Bảng tin của chúng (ADR-0075 điều 6a).
 const SS_END_OTHERS = defineSql("auth", "session_end_others",
-  "UPDATE aut_session SET ended_at = ?4, end_reason = ?3, ended_by = ?5, updated_at = ?4, updated_by = ?5 WHERE staff_id = ?1 AND ended_at IS NULL AND (?2 IS NULL OR id <> ?2)");
+  "UPDATE aut_session SET ended_at = ?4, end_reason = ?3, ended_by = ?5, updated_at = ?4, updated_by = ?5 WHERE staff_id = ?1 AND ended_at IS NULL AND (?2 IS NULL OR id <> ?2) RETURNING id");
 // (2b) ngưng tài khoản (ADR-0075 điều 4): kết thúc mọi phiên CHỈ KHI tài khoản đã thật sự ngưng lúc câu chạy — khuôn PK_REVOKE_ALL_IF_SUSPENDED: nối CUỐI lô
 // của `PATCH /api/staff/:id` (active:false); câu chốt "còn quản trị viên khác" thua thì active vẫn = 1, EXISTS sai, không kết thúc phiên nào.
 const SS_END_ALL_IF_SUSPENDED = defineSql("auth", "session_end_all_if_suspended",

@@ -4,6 +4,7 @@
 import assert from "node:assert/strict";
 import { ACCOUNTS, BASE, call, freshIp, login, session, sessionMoi, sqlRows } from "./lib.mjs";
 import { createFakeAuthenticator } from "./fake-authenticator.mjs";
+import { randomUUID } from "node:crypto";
 
 const A = ACCOUNTS.salesA;
 const IPHONE = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1";
@@ -220,6 +221,64 @@ try {
     assert.equal(back.status, 200, `trả PIN gốc superAdmin: ${JSON.stringify(back.body)}`);
   }
 }
+// ---- Task 6 (ADR-0075 điều 6b): máy bị thay không còn nhận thông báo màn hình khoá -----------------------------------------------------------
+// Tắt máy chạy bắn-và-quên (waitUntil) sau phản hồi đăng nhập → đợi dòng đổi (tối đa vài giây), không assert ngay.
+const diaChiGia = () => `https://fcm.googleapis.com/fcm/send/e2e-phien-${randomUUID()}`;
+const dongMay = async (ep) => (await sqlRows(`SELECT session_id, revoked_at, revoke_reason FROM ntf_push_sub WHERE endpoint = '${ep}' ORDER BY created_at DESC, rowid DESC`))[0];
+async function doiTat(ep, ms = 5000) {
+  const het = Date.now() + ms;
+  for (;;) {
+    const d = await dongMay(ep);
+    if (d?.revoked_at) return d;
+    if (Date.now() > het) return d;
+    await new Promise((res) => setTimeout(res, 100));
+  }
+}
+const batMay = async (ck, ep) => assert.equal((await call(ck, "POST", "/api/account/thong-bao/may", { endpoint: ep, thietBi: "Máy thử" })).status, 200);
+{
+  // 12. salesA đăng ký máy 1 → đăng ký mang mã phiên; máy 2 đăng nhập → đăng ký của máy 1 tắt, lý do bi-thay
+  const c1 = await dangNhapMay(IPHONE);
+  const ep1 = diaChiGia();
+  await batMay(c1, ep1);
+  assert.equal((await dongMay(ep1)).session_id, maPhien(c1), "đăng ký máy ghi mã phiên đang đăng nhập");
+  const c2 = await dangNhapMay(WINDOWS);
+  let d = await doiTat(ep1);
+  assert.ok(d.revoked_at, "máy 1 bị thay → đăng ký thông báo của nó phải tắt");
+  assert.equal(d.revoke_reason, "bi-thay");
+  console.log("✓ máy 2 đăng nhập → đăng ký thông báo của máy 1 tắt (bi-thay)");
+
+  // 13. KHÔNG phiên nào bị thay (máy 2 đã đăng xuất, không gọi /huy) → lần đăng nhập sau vẫn tắt đăng ký cũ của tài khoản
+  const ep2 = diaChiGia();
+  await batMay(c2, ep2);
+  assert.equal((await call(c2, "POST", "/api/auth/logout")).status, 200);
+  assert.equal((await dongMay(ep2)).revoked_at, null, "đăng xuất (route công khai) không đụng đăng ký thông báo");
+  const c3 = await dangNhapMay(IPHONE);
+  d = await doiTat(ep2);
+  assert.ok(d.revoked_at, "đăng nhập khi không còn phiên sống vẫn phải tắt đăng ký cũ của tài khoản");
+  assert.equal(d.revoke_reason, "bi-thay");
+  // Máy mới đăng ký lại cùng địa chỉ (web/shell.ts làm sau đăng nhập) → dòng đang bật mang phiên mới
+  await batMay(c3, ep2);
+  const moi = await dongMay(ep2);
+  assert.equal(moi.revoked_at, null);
+  assert.equal(moi.session_id, maPhien(c3));
+  console.log("✓ đăng nhập khi không phiên nào bị thay vẫn tắt đăng ký cũ; đăng ký lại → dòng mới mang phiên mới");
+
+  // 14. Toàn quyền (miễn một máy): đăng ký cùng máy bằng phiên mới → cập nhật mã phiên, không thêm máy; đăng nhập máy khác không tắt gì
+  const s1 = await dangNhapMay(IPHONE, undefined, SA);
+  const ep3 = diaChiGia();
+  await batMay(s1, ep3);
+  const soMay = (await call(s1, "GET", "/api/account/thong-bao/may")).body.soMay;
+  const s2 = await dangNhapMay(WINDOWS, undefined, SA);
+  await batMay(s2, ep3);
+  assert.equal((await call(s2, "GET", "/api/account/thong-bao/may")).body.soMay, soMay, "đăng ký lại cùng máy không thêm máy");
+  await new Promise((res) => setTimeout(res, 500));
+  const d3 = await dongMay(ep3);
+  assert.equal(d3.revoked_at, null, "Toàn quyền đăng nhập máy khác không tắt thông báo");
+  assert.equal(d3.session_id, maPhien(s2), "đăng ký lại bằng phiên mới cập nhật mã phiên");
+  await call(s2, "POST", "/api/account/thong-bao/may/huy", { endpoint: ep3 }); // dọn
+  console.log("✓ Toàn quyền: đăng ký lại cùng máy bằng phiên mới cập nhật mã phiên, không tắt máy nào");
+}
+
 await sessionMoi(SA);
 await sessionMoi(A);
 console.log("phien.mjs: xong");

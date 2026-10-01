@@ -27,7 +27,14 @@ function fakeD1(sqlite: DatabaseSync): D1Database {
     batch: async (stmts: { sql: string; args: SupportedValueType[] }[]) => {
       sqlite.exec("BEGIN");
       try {
-        const out = stmts.map((s) => ({ results: [], meta: { changes: Number(sqlite.prepare(s.sql).run(...s.args).changes) } }));
+        // Câu có RETURNING trả các dòng trong `results` (như D1 thật) — lô đăng nhập đọc mã phiên vừa bị thay từ đó (ADR-0075 điều 6).
+        const out = stmts.map((s) => {
+          if (/\bRETURNING\b/i.test(s.sql)) {
+            const rows = sqlite.prepare(s.sql).all(...s.args).map((r) => ({ ...r }));
+            return { results: rows, meta: { changes: rows.length } };
+          }
+          return { results: [], meta: { changes: Number(sqlite.prepare(s.sql).run(...s.args).changes) } };
+        });
         sqlite.exec("COMMIT");
         return out;
       } catch (e) {
@@ -59,11 +66,13 @@ test("lô đăng nhập một máy: kết thúc phiên hết hạn → kết th�
   // p1 hết hạn nhưng chưa kết thúc (single = 0 để chèn được cùng lúc với p2 — dữ liệu cũ trước luật), p2 sống single = 1.
   await insertSessionStatement(db, row("p1", 0, "2026-09-20T00:00:00.000Z", EXPIRED)).run();
   await insertSessionStatement(db, row("p2", 1, "2026-10-01T12:00:00.000Z", LATER)).run();
-  await db.batch([
+  const kq = await db.batch([
     endExpiredSessionsStatement(db, "s1", NOW),
     endOtherSessionsStatement(db, "s1", null, "bi_thay", NOW, null),
     insertSessionStatement(db, row("p3", 1, NOW, LATER)),
   ]);
+  // ADR-0075 điều 6: câu "kết thúc phiên còn sống" trả mã phiên vừa bị thay (RETURNING id) — CHỈ p2; p1 hết hạn đã bị câu (1) kết thúc trước.
+  assert.deepEqual(kq[1]!.results, [{ id: "p2" }]);
   const [p1, p2, p3] = await Promise.all([getSession(db, "p1"), getSession(db, "p2"), getSession(db, "p3")]);
   assert.equal(p1!.end_reason, "het_han");
   assert.equal(p1!.ended_at, NOW);

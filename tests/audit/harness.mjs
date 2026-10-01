@@ -49,7 +49,12 @@ export function fakeD1(sqlite) {
     raw: async () => sqlite.prepare(sql).all(...args).map((r) => Object.values(r)),
     run: async () => ({ results: [], meta: { changes: Number(sqlite.prepare(sql).run(...args).changes) } }),
   });
-  const exec1 = (s) => (isRead(s.sql) ? { results: sqlite.prepare(s.sql).all(...s.args).map((r) => ({ ...r })), meta: { changes: 0 } } : { results: [], meta: { changes: Number(sqlite.prepare(s.sql).run(...s.args).changes) } });
+  // Câu ghi có RETURNING trả dòng trong `results` như D1 thật (lô đăng nhập đọc mã phiên vừa bị thay — ADR-0075 điều 6).
+  const exec1 = (s) => {
+    if (isRead(s.sql)) return { results: sqlite.prepare(s.sql).all(...s.args).map((r) => ({ ...r })), meta: { changes: 0 } };
+    if (/\bRETURNING\b/i.test(s.sql)) { const rows = sqlite.prepare(s.sql).all(...s.args).map((r) => ({ ...r })); return { results: rows, meta: { changes: rows.length } }; }
+    return { results: [], meta: { changes: Number(sqlite.prepare(s.sql).run(...s.args).changes) } };
+  };
   return {
     prepare: (sql) => stmt(sql),
     batch: async (stmts) => {
@@ -81,6 +86,7 @@ export const MOC_GIA_POLICY_ID = "moc-gia-khung-thu";
  *   định (`policyId` = MOC_GIA_POLICY_ID). Bài kiểm luật mốc / đặt gấp KHÔNG được dùng (bài canh ở src/modules/orders/dat-gap.test.ts).
  * - `khongTiemMoc: true` — bỏ hàm tiêm mốc (TC-26: route phải trả 503, không đoán con số).
  * - `demMoc: true` — mốc giả 360 phút có ĐẾM số lần gọi (`w.soLanGoiMoc()`) — TC-26 "đúng một lần mỗi request".
+ * - `ghiDe: { <hàm tiêm>: … }` — ghi đè hàm tiêm tuỳ ý (chỉ để ghi lại lời gọi; không dùng để nới luật).
  * - `khongTiemNhan: true` — bỏ hàm tiêm nhãn người bấm (ruling R-P20: route để trống nhãn, không đoán). `demNhan: true` — nhãn GIẢ có ĐẾM số lần gọi
  *   (`w.soLanGoiNhan()`, mỗi lần một mảng id) — "một lần mỗi request cho cả danh sách".
  */
@@ -98,6 +104,8 @@ export function world(tuyChon = {}) {
     ungDung = app.taoAppChoKhungThu({ mocToiThieu: async () => (soLanGoiMoc++, { phut: 360, policyId: MOC_GIA_POLICY_ID, canhBaoPhut: 120 }) });
   } else if (tuyChon.khongTiemNhan) {
     ungDung = app.taoAppChoKhungThu({ nhanNhanVien: undefined });
+  } else if (tuyChon.ghiDe) {
+    ungDung = app.taoAppChoKhungThu(tuyChon.ghiDe); // bài cần NHÌN lời gọi hàm tiêm (vd dongBangTin lúc đăng nhập — ADR-0075 điều 6)
   } else if (tuyChon.demNhan) {
     ungDung = app.taoAppChoKhungThu({ nhanNhanVien: async (_env, ids) => (goiNhan.push([...ids]), new Map(ids.map((id) => [id, `Nhãn ${id.slice(0, 4)}`]))) });
   }

@@ -143,7 +143,7 @@
 | `ntf_notice_target` | bảng |  |
 | `ntf_ack` | bảng |  |
 | `ntf_read_mark` | bảng |  |
-| `ntf_push_sub` | bảng | session_id (0061, ADR-0075 điều 6b): phiên đã đăng ký máy này; NULL = đăng ký trước phát hành |
+| `ntf_push_sub` | bảng | session_id (0061, ADR-0075 điều 6b): phiên đã đăng ký máy này; NULL = đăng ký trước phát hành. revoke_reason thêm bi-thay: tài khoản một máy đăng nhập máy khác — tắt mọi đăng ký trừ đăng ký của phiên mới |
 
 ## van-chuyen
 
