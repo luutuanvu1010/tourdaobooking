@@ -196,10 +196,35 @@ export interface KiemXepVao {
   bayGioMs: number;
 }
 
-/** Kiểm lệnh xếp: LC-09 (chặng mở của đơn đã xác nhận, chưa huỷ), I13 (có giờ), L-D1, LC-02, LC-10, LC-01 theo tên, mốc lúc xếp (đặt gấp qua). */
-export function kiemXep(v: KiemXepVao): KetQuaKiem {
+// ---- Nơi trả, đủ tên: MỘT luật cho cổng xuất bến (giữ) và cảnh báo sớm lúc xếp (lời chủ 1/10 "chỉ cảnh báo, không chặn") ----------------------------
+/** CHUA_CO_NOI_TRA: chặng chưa có nơi trả (không điểm danh mục, không địa chỉ gõ tự do — `coNoiTra`). */
+// Kiểu vào là `Pick` (chỉ các trường luật đọc) để cảnh báo LÚC XÁC NHẬN ĐƠN ở trang đơn (src/shared/canh-bao-xac-nhan.ts — Người 1, kế hoạch 2026-10-01) gọi
+// CHÍNH hai hàm này từ chặng của chi tiết đơn, không viết luật thứ hai.
+export const lyDoNoiTra = (ch: Pick<ChangVao, "coNoiTra" | "orderCode">): LyDoGiu | null => (ch.coNoiTra ? null : lyDoGiu("CHUA_CO_NOI_TRA", ch.orderCode));
+/** Số tên còn thiếu của chặng (vế của THIEU_TEN — dùng ở `lyDoThieuTen` và câu "Còn N khách chưa có tên" lúc xác nhận đơn). */
+export const soTenThieu = (ch: Pick<ChangVao, "soNguoi" | "nguoiCuaDon">, trenChuyen: { chuaTen: number; ranh: number } = { chuaTen: 0, ranh: 0 }): number =>
+  Math.max(ch.soNguoi - ch.nguoiCuaDon.length, trenChuyen.chuaTen - trenChuyen.ranh, 0);
+/**
+ * THIEU_TEN (I12, I19b): số tên còn thiếu = max(số người − hành khách hiện hành của đơn, suất chưa tên trên chuyến − khoá người rảnh, 0) — CHỈ khi chính sách
+ * bắt danh sách (`requireManifest`). Lúc xếp không có vế thứ hai (`trenChuyen` mặc định 0/0): khi mọi khoá đã gắn thuộc đơn, vế hai không vượt vế một (bài
+ * "MỘT luật hai nơi" ở dieu-phoi-kiem.test.ts so cảnh báo lúc xếp với lý do giữ của cổng xuất bến trên trạng thái sau khi xếp).
+ */
+export function lyDoThieuTen(ch: Pick<ChangVao, "orderCode" | "soNguoi" | "nguoiCuaDon">, requireManifest: boolean, trenChuyen: { chuaTen: number; ranh: number } = { chuaTen: 0, ranh: 0 }): LyDoGiu | null {
+  const thieu = soTenThieu(ch, trenChuyen);
+  return requireManifest && thieu > 0 ? lyDoGiu("THIEU_TEN", `${ch.orderCode} thiếu ${thieu} tên`) : null;
+}
+
+/** Kết quả kiểm lệnh xếp: như `KetQuaKiem` + `canhBao` (CHUA_CO_NOI_TRA, THIEU_TEN của chặng được xếp) — CHỈ nhắc, không vào `chan` / `canPhaLe`, không đổi `ok`. */
+export type KetQuaXep = KetQuaKiem & { canhBao: LyDoGiu[] };
+
+/**
+ * Kiểm lệnh xếp: LC-09 (chặng mở của đơn đã xác nhận, chưa huỷ), I13 (có giờ), L-D1, LC-02, LC-10, LC-01 theo tên, mốc lúc xếp (đặt gấp qua). Cảnh báo
+ * sớm: chặng chưa có nơi trả / chưa đủ tên (cùng hàm với cổng xuất bến) — lệnh vẫn chạy.
+ */
+export function kiemXep(v: KiemXepVao): KetQuaXep {
   const chan: LyDoGiu[] = [];
   const canPhaLe: LyDoGiu[] = [];
+  const canhBao: LyDoGiu[] = [];
   if (!v.chinhSach) chan.push(lyDoGiu("CHINH_SACH_RONG"));
   if (v.chuyen.trangThai !== "PLANNED") chan.push(lyDoGiu("CHUYEN_KHONG_CON_LEN_KE_HOACH", v.chuyen.ma));
   let moi = v.soNguoiDiKemMoi ?? 0;
@@ -219,9 +244,10 @@ export function kiemXep(v: KiemXepVao): KetQuaKiem {
     if (v.chinhSach && kiemMocXep(v.chuyen, v.bayGioMs, v.chinhSach.minLeadMinutes, { loai: v.lenh ?? "XEP", datGap: c.datGap }).canPhaLe) {
       canPhaLe.push(lyDoGiu("MOC_TOI_THIEU", c.orderCode));
     }
+    for (const x of [lyDoNoiTra(c), lyDoThieuTen(c, v.chinhSach?.requireManifest ?? false)]) if (x) canhBao.push(x);
   }
   if (v.chuyen.tai + moi > v.chuyen.soCho) chan.push(lyDoGiu("VUOT_SO_CHO", `${v.chuyen.tai + moi}/${v.chuyen.soCho}`));
-  return ketQua(khongTrung(chan), khongTrung(canPhaLe));
+  return { ...ketQua(khongTrung(chan), khongTrung(canPhaLe)), canhBao: khongTrung(canhBao) };
 }
 
 // ---- So nơi hẹn (ADR-0050 VK1-B; I41, I47) ----------------------------------------------------------------------------------------------------------------
@@ -323,7 +349,8 @@ export function kiemXuatBen(v: KiemXuatBenVao): KetQuaXuatBen {
     if (ch.donDaHuy) lyDo.push(lyDoGiu("DON_DA_HUY", ch.orderCode));
     else if (!ch.donDaXacNhan) lyDo.push(lyDoGiu("CHANG_KHONG_HOP_LE", ch.orderCode));
     if (!ch.changMo) lyDo.push(lyDoGiu("CHANG_DA_DONG", ch.orderCode));
-    if (!ch.coNoiTra) lyDo.push(lyDoGiu("CHUA_CO_NOI_TRA", ch.orderCode));
+    const noiTra = lyDoNoiTra(ch);
+    if (noiTra) lyDo.push(noiTra);
     if (ch.ngayDon === null || ch.gioDon === null) lyDo.push(lyDoGiu("CHUA_CO_GIO", ch.orderCode));
     // ADR-0050 VK1-B: nơi hẹn đổi sau khi xếp (chuyến CHƯA chạy) → giữ tới khi văn phòng "cập nhật điểm theo đơn". Một lý do mỗi chặng.
     // Đơn huỷ / chặng bỏ / đơn chưa xác nhận: lý do riêng ở trên đã đủ — không bắt văn phòng "cập nhật điểm" cho khách không còn đi (I38).
@@ -347,8 +374,8 @@ export function kiemXuatBen(v: KiemXuatBenVao): KetQuaXuatBen {
       const p = ranh[i];
       if (p !== undefined) ganTen.push({ suatId: s.id, personKey: p });
     });
-    const thieu = Math.max(ch.soNguoi - ch.nguoiCuaDon.length, chuaTen.length - ranh.length, 0);
-    if (cs?.requireManifest && thieu > 0) lyDo.push(lyDoGiu("THIEU_TEN", `${ch.orderCode} thiếu ${thieu} tên`));
+    const thieuTen = lyDoThieuTen(ch, cs?.requireManifest ?? false, { chuaTen: chuaTen.length, ranh: ranh.length });
+    if (thieuTen) lyDo.push(thieuTen);
   }
   // Xe / tài xế đang chạy chuyến khác (LC-03 "một chuyến đang chạy mỗi xe, mỗi tài xế"); nghỉ đủ từ giờ kết thúc THẬT của chuyến trước (CH-02).
   for (const k of v.chuyenKhac) {

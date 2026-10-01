@@ -293,7 +293,9 @@ export type ServiceInput = {
    * `pickupTime`/`pickupPlace` cũ vào chặng chiều đi đầu (tương thích phát hành 1 — R2b; máy chưa tải bản mới).
    */
   legs?: LegInput[];
-} & TripInput &
+} & Omit<TripInput, "pickupTime" | "pickupPlace"> &
+  /** Hai khoá CŨ (tương thích phát hành 1): form mới KHÔNG gửi (ADR-0047 Phần B); vắng = không đụng chặng. */
+  Partial<Pick<TripInput, "pickupTime" | "pickupPlace">> &
   (
     | {
         kind: "catalog";
@@ -430,7 +432,8 @@ export interface PassengerChangeInput {
 /** `PUT /api/orders/:id/trip` — sửa trường vận hành (đơn nháp hoặc đã xác nhận). */
 export interface TripUpdateInput {
   expectedUpdatedAt: string;
-  services: ({ id: string } & TripInput)[];
+  /** Hai khoá cũ `pickupTime`/`pickupPlace` VẮNG (ADR-0047 Phần B — giờ / nơi đón sửa qua route chặng); có mặt thì máy chủ trộn vào chiều đi đầu (R2c). */
+  services: ({ id: string } & Omit<TripInput, "pickupTime" | "pickupPlace"> & Partial<Pick<TripInput, "pickupTime" | "pickupPlace">>)[];
 }
 
 /** `PUT /api/orders/:id/booker` — đổi khách (hồ sơ người đặt + tên/SĐT chụp trên đơn) của đơn nháp hoặc đã xác nhận (ADR-0011 điều 2). */
@@ -1182,6 +1185,8 @@ export interface ChangLichDto {
   soNguoi: number;
   /** Số người đã có tên = min(số người, số hành khách hiện hành của đơn) — I12. */
   soNguoiCoTen: number;
+  /** Số hiệu chuyến bay của chặng (ADR-0055 C3 — không chỉ ra người); null = chưa có. Bảng điều phối hiện "✈︎ VN1553". */
+  soHieuChuyenBay: string | null;
   datGap: boolean;
   trangThai: string;
   trangThaiNhan: string;
@@ -1285,6 +1290,11 @@ export interface ChuyenChiTietResponse {
   gioSomNhatKhai: GioSomNhatKhaiDto;
   /** ADR-0051 (A-GB): mỗi chặng có suất trên chuyến mà còn mục "Giờ hẹn đổi — gọi báo khách" hoặc đang mang dấu "đã gọi báo". */
   goiBao: GoiBaoChangDto[];
+  /**
+   * CHỈ ở phản hồi lệnh xếp (`POST …/chuyen/:id/phan-bo`) khi có: cảnh báo sớm CHUA_CO_NOI_TRA / THIEU_TEN của chặng vừa xếp (cùng luật cổng xuất bến —
+   * `lyDoNoiTra` / `lyDoThieuTen` ở src/shared/dieu-phoi-kiem.ts). Chỉ nhắc — lệnh đã chạy. Mã đơn + số tên thiếu, không tên khách.
+   */
+  canhBaoXep?: LyDoGiuDto[];
 }
 
 // ---- Nhắc "gọi báo khách" khi giờ hẹn đổi (ADR-0051 GB1, GB2 — Task A-GB) --------------------------------------------------------------------------------
@@ -1477,6 +1487,8 @@ export interface MauChangBanDto {
   returnTimeHint: string | null;
   noiTraMacDinh: { id: string; ten: string; dangDung: boolean } | null;
   tuLuc: string;
+  /** Id TÀI KHOẢN người ghi bản (null = gieo) — màn ghép tên qua `GET /api/staff` (cột "Người đổi", M7); không SĐT. */
+  createdBy: string | null;
 }
 /** `GET/POST /api/van-chuyen/mau-chang/:code` — lịch sử (mới trước) + bản hiện hành (null = chưa cài = không đưa đón). */
 export interface MauChangLichSuResponse {

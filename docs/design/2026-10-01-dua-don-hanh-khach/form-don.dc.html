@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/tour-o-booking-design-system-34f284df-c97a-4672-bb66-d7df03a0d97a/styles.css">
+<script src="_ds/tour-o-booking-design-system-34f284df-c97a-4672-bb66-d7df03a0d97a/_ds_bundle.js"></script>
+</helmet>
+<sc-if value="{{ mayTinh }}" hint-placeholder-val="{{ true }}">
+  <div style="display:flex;flex-direction:column;gap:var(--s4);font-family:var(--font);color:var(--c-text);font-size:var(--fs-ui);">
+    <sc-if value="{{ coDv }}" hint-placeholder-val="{{ true }}">
+      <h1 style="margin:0;font-family:var(--font-display);font-weight:800;font-size:26px;color:var(--c-primary);">{{ tieuDe }}</h1>
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:var(--s4);align-items:start;">
+        <div style="display:flex;flex-direction:column;gap:var(--s4);min-width:0;">
+          <sc-if value="{{ chonNgay }}" hint-placeholder-val="{{ false }}">
+            <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Card" title="Chọn ngày" hint-size="100%,170px">
+              <div style="display:flex;flex-direction:column;gap:var(--s2);max-width:280px;">
+                <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Field" label="Ngày khởi hành" input-mode="numeric" default-value="30/09/2026" hint-size="100%,72px"></x-import>
+                <span style="font-size:var(--fs-label);color:var(--c-text-muted);">Ngày này áp cho mọi dịch vụ trong đơn.</span>
+              </div>
+              <sc-if value="{{ doiNgay }}" hint-placeholder-val="{{ false }}">
+                <div style="margin-top:var(--s3);"><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Note" tone="info" hint-size="100%,40px">Đã dời ngày đón của 2 chặng theo ngày đi mới</x-import></div>
+              </sc-if>
+            </x-import>
+          </sc-if>
+          <dc-import name="the-dua-don" kb="{{ kbDv }}" vai="{{ vai }}" che="form" hint-size="100%,640px"></dc-import>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:var(--s3);padding:var(--s4);background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-md);box-shadow:var(--shadow-card);">
+          <span style="font-family:var(--font-display);font-weight:700;color:var(--c-primary);font-size:1.1rem;">Tóm tắt</span>
+          <div style="display:flex;justify-content:space-between;gap:var(--s2);font-size:var(--fs-label);"><span>{{ tenDv }}</span><strong style="white-space:nowrap;">{{ tien }}</strong></div>
+          <div style="display:flex;justify-content:space-between;font-weight:700;"><span>Còn thu</span><span style="color:var(--c-accent-strong);font-weight:800;">{{ tien }}</span></div>
+          <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="primary" block="{{ true }}" hint-size="100%,44px">Lưu đơn nháp</x-import>
+          <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="accent" block="{{ true }}" disabled="{{ khoa }}" hint-size="100%,44px">Xác nhận đơn</x-import>
+          <sc-if value="{{ khoaAdmin }}" hint-placeholder-val="{{ false }}">
+            <span style="font-size:var(--fs-badge);color:var(--c-text-muted);">Duyệt đặt gấp xong thì xác nhận được.</span>
+          </sc-if>
+          <sc-if value="{{ khoaSales }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;align-items:center;gap:var(--s1);font-size:var(--fs-label);font-weight:700;color:var(--c-sand-text);"><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Icon" name="lock" size="{{ 16 }}" hint-size="16px,16px"></x-import>Cần Quản trị duyệt đặt gấp</div>
+          </sc-if>
+        </div>
+      </div>
+    </sc-if>
+    <sc-if value="{{ coHk }}" hint-placeholder-val="{{ true }}">
+      <dc-import name="khoi-hanh-khach" kb="{{ kbHk }}" vai="{{ vai }}" hep="{{ false }}" che="form" so-khach-di-xe="{{ soKhachDiXe }}" khach-dv="{{ khachDv }}" hint-size="100%,420px"></dc-import>
+    </sc-if>
+  </div>
+</sc-if>
+<sc-if value="{{ dienThoai }}" hint-placeholder-val="{{ false }}">
+  <div style="display:flex;flex-direction:column;min-height:{{ minH }};font-family:var(--font);color:var(--c-text);font-size:var(--fs-ui);">
+    <div style="flex:1;padding:var(--s4);display:flex;flex-direction:column;gap:var(--s3);">
+      <sc-if value="{{ chonNgay }}" hint-placeholder-val="{{ false }}">
+        <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Card" title="Chọn ngày" hint-size="100%,170px">
+          <div style="display:flex;flex-direction:column;gap:var(--s2);">
+            <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Field" label="Ngày khởi hành" input-mode="numeric" default-value="30/09/2026" hint-size="100%,72px"></x-import>
+            <span style="font-size:var(--fs-label);color:var(--c-text-muted);">Ngày này áp cho mọi dịch vụ trong đơn.</span>
+          </div>
+          <sc-if value="{{ doiNgay }}" hint-placeholder-val="{{ false }}">
+            <div style="margin-top:var(--s3);"><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Note" tone="info" hint-size="100%,40px">Đã dời ngày đón của 2 chặng theo ngày đi mới</x-import></div>
+          </sc-if>
+        </x-import>
+      </sc-if>
+      <sc-if value="{{ coDv }}" hint-placeholder-val="{{ true }}">
+        <dc-import name="the-dua-don" kb="{{ kbDv }}" vai="{{ vai }}" che="form" hint-size="100%,900px"></dc-import>
+      </sc-if>
+      <sc-if value="{{ coHk }}" hint-placeholder-val="{{ false }}">
+        <dc-import name="khoi-hanh-khach" kb="{{ kbHk }}" vai="{{ vai }}" hep="{{ true }}" che="form" so-khach-di-xe="{{ soKhachDiXe }}" khach-dv="{{ khachDv }}" hint-size="100%,600px"></dc-import>
+      </sc-if>
+    </div>
+    <div style="position:sticky;bottom:0;z-index:2;display:flex;flex-direction:column;gap:var(--s2);padding:var(--s3) var(--s4) 34px;background:var(--c-surface);border-top:1px solid var(--c-border);">
+      <div style="display:flex;justify-content:space-between;"><span>Còn thu</span><strong style="color:var(--c-accent);">{{ tien }}</strong></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--s2);">
+        <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="primary" hint-size="100%,44px">Lưu đơn nháp</x-import>
+        <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="accent" disabled="{{ khoa }}" hint-size="100%,44px">Xác nhận đơn</x-import>
+      </div>
+      <sc-if value="{{ khoa }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;align-items:center;gap:var(--s1);font-size:var(--fs-label);font-weight:700;color:var(--c-sand-text);"><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Icon" name="lock" size="{{ 16 }}" hint-size="16px,16px"></x-import>Cần Quản trị duyệt đặt gấp</div>
+      </sc-if>
+    </div>
+  </div>
+</sc-if>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:800,&quot;height&quot;:1000},&quot;kb&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;don1&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;hk&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;vai&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;sales&quot;,&quot;admin&quot;,&quot;partner&quot;],&quot;default&quot;:&quot;sales&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;hep&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;tieuDe&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Tạo đơn&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;chonNgay&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;doiNgay&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;khoa&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;soKhachDiXe&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;khachDv&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:4,&quot;tsType&quot;:&quot;number&quot;},&quot;minH&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;737px&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+const DV = {
+  cap: { ten: 'Vé cáp treo Vinpearl', tien: '3.400.000 ₫', khach: 4 },
+  tour4: { ten: 'Tour 4 đảo', tien: '1.300.000 ₫', khach: 2 },
+  sanbay: { ten: 'Đưa đón sân bay', tien: '350.000 ₫', khach: 2 },
+  moto: { ten: 'Thuê mô tô', tien: '300.000 ₫', khach: 2 },
+};
+const KB_DV = { trong: 'moto', don1: 'cap', loi: 'cap', don3: 'sanbay', moc6: 'cap', haichieu: 'cap', haichieuChon: 'cap', motchieu: 'tour4', boChang: 'cap' };
+
+class Component extends DCLogic {
+  renderVals() {
+    const kbDv = this.props.kb ?? 'don1';
+    const dv = DV[KB_DV[kbDv] ?? 'cap'];
+    const vai = this.props.vai ?? 'sales';
+    const hep = this.props.hep ?? false;
+    const khoa = this.props.khoa ?? false;
+    return {
+      mayTinh: !hep, dienThoai: hep,
+      coDv: kbDv !== '', kbDv,
+      coHk: !!this.props.hk, kbHk: this.props.hk,
+      vai, tieuDe: this.props.tieuDe ?? 'Tạo đơn',
+      chonNgay: this.props.chonNgay ?? false, doiNgay: this.props.doiNgay ?? false,
+      tenDv: dv.ten, tien: dv.tien, khachDv: this.props.khachDv ?? dv.khach,
+      khoa, khoaAdmin: khoa && vai === 'admin', khoaSales: khoa && vai !== 'admin',
+      soKhachDiXe: this.props.soKhachDiXe ?? true,
+      minH: this.props.minH ?? '737px',
+    };
+  }
+}
+</script>
+</body>
+</html>

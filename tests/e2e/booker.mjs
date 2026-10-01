@@ -104,9 +104,10 @@ assert.equal(r.status, 409, JSON.stringify(r.body));
 assert.equal(r.body.error.code, "stale");
 const after6b = (await call(SALES, "GET", `/api/orders/${draft6b.id}`)).body.order;
 assert.equal(after6b.bookerPartyId, withNew6b.bookerPartyId, "thua khoá lạc quan thì KHÔNG đổi người đặt trên đơn");
-// Giới hạn đã biết (ghi trong repository.ts): hồ sơ MỚI trong booker.before không mang điều kiện thắng của khoá lạc quan,
-// nên khi UPDATE đơn thua vẫn để lại MỘT hồ sơ thừa — không phải lỗi của lượt sửa này, chỉ ghi nhận.
-assert.equal((await sqlRows(`SELECT count(*) AS n FROM pty_party WHERE display_name = 'Khách Mốc Cũ ${tag}'`))[0].n, 1, "giới hạn đã biết: hồ sơ thừa vẫn được tạo dù UPDATE đơn thua");
+// Giới hạn đã biết (ghi trong repository.ts): hồ sơ MỚI trong booker.before không mang điều kiện thắng của khoá lạc quan —
+// còn đúng khi hai lượt lưu ĐUA NHAU thật. Từ 1.63 (PM-1), mốc cũ đến SAU bị bắt 409 ở route TRƯỚC khi dựng lô ⇒ ca này
+// (lưu tuần tự bằng mốc cũ) không còn tạo hồ sơ thừa nào.
+assert.equal((await sqlRows(`SELECT count(*) AS n FROM pty_party WHERE display_name = 'Khách Mốc Cũ ${tag}'`))[0].n, 0, "mốc cũ bị bắt sớm (PM-1) ⇒ không tạo hồ sơ thừa");
 console.log("✓ sửa nháp kèm tạo hồ sơ mới; mốc cũ + hồ sơ mới khác → 409 stale, không ghi đè người đặt");
 
 // 6c) sửa nháp mà thân yêu cầu KHÔNG có cả hai khoá bookerPartyId/newBooker (client cũ chưa biết trường người đặt) → GIỮ NGUYÊN người đặt, không bỏ gắn

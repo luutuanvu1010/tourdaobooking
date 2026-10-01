@@ -361,6 +361,22 @@ test("R-P12: GET /lich trả mocToiThieuPhut, canhBaoPhut của chính sách hi�
   assert.equal((await w.call("GET", "/api/van-chuyen/lich?ngay=2026-13-40", { as: SALES })).status, 400);
 });
 
+// Danh sách trắng khoá của chặng trên lịch chung (ChangLichDto) — thêm khoá phải sửa ĐÚNG chỗ này, có chủ đích. `soHieuChuyenBay` (nợ nhỏ 2026-10-01,
+// ADR-0055 C3: số hiệu chuyến bay không chỉ ra người) thêm để bảng điều phối hiện "✈︎ VN1553" trên thẻ chặng. Không tên, năm sinh, liên hệ, khoá nơi.
+test("GET /lich: chặng có ĐÚNG các khoá trong danh sách trắng; soHieuChuyenBay = số hiệu đã lưu của chặng (null khi chưa có)", async () => {
+  const w = setup();
+  const d = await don(w, { ngay: inDays(2), gio: "06:30" });
+  const doc = async () => (await w.call("GET", `/api/van-chuyen/lich?ngay=${inDays(2)}`, { as: SALES })).json.chang[0];
+  const c0 = await doc();
+  assert.deepEqual(Object.keys(c0).sort(), [
+    "chieu", "chuyen", "datGap", "gioDon", "legId", "maDon", "ngayDon", "nhan", "noiDon", "noiTra", "orderId", "soDaDon", "soDaTra", "soDaXep", "soHieuChuyenBay",
+    "soKhachHuy", "soNguoi", "soNguoiCoTen", "soVang", "tenDichVu", "trangThai", "trangThaiNhan",
+  ]);
+  assert.equal(c0.soHieuChuyenBay, null);
+  w.sqlite.prepare("UPDATE ord_transfer_leg SET flight_code = 'VN1553' WHERE id = ?").run(d.legId);
+  assert.equal((await doc()).soHieuChuyenBay, "VN1553");
+});
+
 test("R-P20: nhật ký chuyến có nhãn người bấm (tên hiển thị) qua hàm tiêm — gọi MỘT lần mỗi request; khung thử không tiêm → nhãn trống (null), không đoán", async () => {
   const w = setup({ demNhan: true });
   const t = (await taoChuyen(w, SALES, { xe: xe(w), taiXe: taiXe(w, "Tài Xế An"), batDau: { ngay: inDays(2), gio: "07:00" } })).json;

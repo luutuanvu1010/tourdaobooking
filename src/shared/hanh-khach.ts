@@ -82,7 +82,7 @@ export interface DongHanhKhach {
 
 /**
  * Dòng HIỆN HÀNH của từng người (chưa huỷ, không có dòng thay thế chưa huỷ), theo thứ tự xuất hiện của người trong `rows` (nơi gọi sắp `rows` theo
- * `created_at`, `id`). Người đã huỷ hết không có mặt.
+ * `created_at`, `rowid` — thứ tự nhập, PM-2). Người đã huỷ hết không có mặt.
  */
 export function dongHienHanh(rows: readonly DongHanhKhach[]): DongHanhKhach[] {
   const superseded = new Set(rows.filter((r) => !r.voided && r.previousId !== null).map((r) => r.previousId!));

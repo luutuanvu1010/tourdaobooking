@@ -285,6 +285,17 @@
   --fs-dp-run-so: var(--fs-step-3);
   --h-dp-khach: 32px;          /* dòng tên khách (05) */
   --w-dp-khai-gio: 260px;      /* ô "Xảy ra lúc" (06, khung 6d) */
+  /* — Riêng: đưa đón / hành khách — trang đơn (ADR-0047 Phần B, bản vẽ docs/design/2026-10-01-dua-don-hanh-khach — mục lục "Kích thước ngoài token"; D9) — */
+  --w-dd-noi: 200px;           /* cột tối thiểu ô Nơi đón / Nơi trả (tự xuống một cột ở 390) */
+  --w-dd-phu: 140px;           /* cột tối thiểu ô Số hiệu chuyến bay / Số người chiều về */
+  --w-hk-so: 28px;             /* bảng hành khách máy tính: cột # */
+  --w-hk-nam: 112px;           /* cột Năm sinh */
+  --w-hk-loai: 176px;          /* cột Loại khách */
+  --w-hk-xoa: 96px;            /* cột nút Xoá */
+  --w-sheet-hk: 640px;         /* bảng trượt "Sửa danh sách hành khách" ở máy tính (bản vẽ M5) */
+  /* Đưa đón — danh mục (bản vẽ M7 docs/design/2026-10-01-dua-don-hanh-khach/) */
+  --w-dd-che-do: 150px;        /* bề rộng gốc một thẻ chọn "Không / Một / Hai chiều" (xuống dòng khi hẹp) */
+  --w-dd-o: 220px;             /* cột tối thiểu của lưới "Giờ về gợi ý" / "Nơi trả gợi ý" */
 }
 * { box-sizing: border-box; }
 button, input, select, textarea { font-family: inherit; } /* nút/ô của trình duyệt KHÔNG kế thừa phông: Windows vẽ bằng Arial/Segoe UI giữa chữ Be Vietnam Pro (rà soát 2026-09-30) */
@@ -883,12 +894,13 @@ body.login-page::before { content: ""; display: block; height: env(safe-area-ins
 .pay-note { margin-top: var(--s3); }
 #use-mine { margin-bottom: var(--s3); }
 .summary-note { margin: 0; }
+.form-cols { display: contents; } /* dưới 960px: như không có lớp bọc — thanh Lưu vẫn dính đáy theo form */
 .form-side { display: contents; } /* điện thoại: các khối của cột phải nằm xen kẽ trong luồng; thanh Lưu vẫn là con trực tiếp của form để dính đáy */
 .form-actions { background: var(--c-bg); border-top: 1px solid var(--c-line); } /* khổ 641–959px (iPad dọc): thanh dính đáy phải có nền, không chồng chữ lên nội dung */
 /* .mobile-actions-summary mặc định display:none đã khai gần đầu tệp (trước khối @media (max-width: 640px)) — không lặp lại ở đây để tránh nó đứng SAU rule display:block và luôn thắng */
 @media (min-width: 960px) {
   main.form-page { max-width: var(--w-form); }
-  #order-form { display: grid; grid-template-columns: minmax(0, 1fr) var(--w-side); gap: var(--s4); align-items: start; }
+  #order-form > .form-cols { display: grid; grid-template-columns: minmax(0, 1fr) var(--w-side); gap: var(--s4); align-items: start; } /* ADR-0047 Phần B: lưới 2 cột nằm trong .form-cols để cột Tóm tắt dính (sticky) không trượt đè khối Hành khách trải ngang bên dưới */
   .form-side { display: block; position: sticky; top: var(--s4); }
   .form-side .form-actions { position: static; padding: 0; background: none; border-top: 0; }
   .form-side .form-actions .btn-primary { flex: 1; }
@@ -2034,6 +2046,7 @@ body.login-page main.login { display: flex; flex-direction: column; height: 100%
 .dp-run-bo { font-size: var(--fs-label); }
 .dp-run-lien-he { display: flex; align-items: center; gap: var(--s2); padding: 0 var(--s4); font-size: var(--fs-label); border-bottom: 1px solid var(--c-border); }
 .dp-run-lien-he a { display: flex; align-items: center; min-height: var(--tap-min); margin-left: auto; font-weight: 700; white-space: nowrap; }
+.dp-run-bay { display: flex; flex-wrap: wrap; gap: var(--s2); padding: 0 var(--s4) var(--s2) calc(var(--s4) + var(--dp-run-so) + var(--s3)); } /* số hiệu chuyến bay dưới điểm đón — thẳng cột với tên nơi */
 .dp-run-foot { display: flex; flex-direction: column; gap: var(--s2); padding: var(--s3) var(--s4); }
 .dp-run-foot .dp-run-btn { width: 100%; min-height: var(--h-field); font-size: var(--fs-vc-md); }
 .dp-khach { display: flex; flex-direction: column; gap: var(--s2); padding: var(--s2) var(--s4); border-bottom: 1px solid var(--c-border); }
@@ -2195,3 +2208,121 @@ label.check > input.o-tick { display: inline; width: auto; margin: 0 var(--s2) 0
 .phien-bang .badge { white-space: nowrap; }
 .phien-bang .row-actions { white-space: normal; }
 .phien-bang .row-actions .btn-link { display: flex; }
+/* ---------- đưa đón / hành khách — trang đơn (ADR-0047 Phần B; bản vẽ docs/design/2026-10-01-dua-don-hanh-khach M1–M6; Người 1). Chỉ token. ---------- */
+/* Khối "Đưa đón" trong thẻ dịch vụ (web/khoi-dua-don.ts — the-dua-don.dc.html) */
+.dd { display: flex; flex-direction: column; gap: var(--s3); margin-top: var(--s4); }
+.dd-nhan { font-size: var(--fs-label); font-weight: 600; color: var(--c-text-muted); }
+.dd-ghi-tao { margin: 0; padding: var(--s2) var(--s3); font-size: var(--fs-label); font-weight: 600; color: var(--c-primary); background: var(--c-primary-soft); border-radius: var(--radius-sm); }
+.dd-trong { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s2) var(--s3); padding: var(--s2) var(--s3); font-weight: 600; color: var(--c-text-muted); border: 1px solid var(--c-border); border-radius: var(--radius-sm); }
+.dd-chang { display: flex; flex-direction: column; gap: var(--s3); padding: var(--s3); border: 1px solid var(--c-border); border-radius: var(--radius-sm); }
+.dd-chang-dau, .dg-chang-dau { display: flex; align-items: center; gap: var(--s2); }
+.dd-chang-so { font-size: var(--fs-label); font-weight: 700; color: var(--c-text); }
+.dd-bo-nut { margin-left: auto; white-space: nowrap; }
+.dd-luoi2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--s3); }
+.dd-luoi-noi { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--w-dd-noi), 1fr)); gap: var(--s3); }
+.dd-luoi-phu { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--w-dd-phu), 1fr)); gap: var(--s3); }
+.dd-cot { display: flex; flex-direction: column; gap: var(--s2); min-width: 0; }
+.dd-chang label, .hk label { min-width: 0; }
+.dd-gio { position: relative; display: block; }
+.dd-gio-mo { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; position: absolute; top: var(--s1); bottom: 0; left: 0; right: var(--tap-min); display: flex; align-items: center; padding-left: var(--s3); font-size: var(--fs-label); color: var(--c-text-muted); background: var(--c-surface); border-radius: var(--radius-sm); pointer-events: none; margin: 1px; } /* chữ mờ (không phải ô gõ) — cỡ nhãn để "Chưa chốt giờ" vừa ô giờ ở cột chính máy tính */
+.dd-gio:focus-within .dd-gio-mo { display: none; }
+.dd-gio-mo[hidden] { display: none; }
+.dd-xem { display: flex; flex-direction: column; gap: var(--s1); }
+.dd-xem-gt { display: flex; align-items: center; min-height: var(--tap-min); padding: 0 var(--s3); font-weight: 700; color: var(--c-text); background: var(--c-surface-alt); border: 1px solid var(--c-border); border-radius: var(--radius-sm); }
+.dd-xem-khoa { display: flex; align-items: flex-start; gap: var(--s1); font-size: var(--fs-label); color: var(--c-text-muted); }
+.dd-nut { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.dd-nut .pill-btn, .dd-trong .pill-btn { white-space: nowrap; }
+.dd-chang [aria-invalid="true"], .hk [aria-invalid="true"] { border-color: var(--c-danger); }
+.dd-chang .field-error[hidden], .hk .field-error[hidden] { display: none; }
+/* Hộp "Bỏ chặng" (bảng Sửa đưa đón, M4) — lý do bắt buộc */
+.dd-bo { display: flex; flex-direction: column; gap: var(--s2); padding: var(--s3); background: var(--c-surface-alt); border-radius: var(--radius-sm); }
+.dd-bo-tieu { font-family: var(--font-display); font-weight: 700; color: var(--c-text); }
+.dd-radio-ds { display: flex; flex-direction: column; gap: var(--s2); }
+.dd-radio { position: relative; display: flex; align-items: center; gap: var(--s3); min-height: var(--row-h); padding: var(--s2) var(--s3); font-size: var(--fs-ui); color: var(--c-text); background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius-sm); cursor: pointer; }
+.dd-radio-chon { font-weight: 600; background: var(--c-primary-soft); border-color: var(--c-primary); }
+.dd-radio-o { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; padding: 0; opacity: 0; cursor: pointer; }
+.dd-radio-vong { flex: none; width: var(--s5); height: var(--s5); box-sizing: border-box; border: var(--focus-ring) solid var(--c-text-muted); border-radius: var(--radius-pill); background: var(--c-surface); }
+.dd-radio-chon .dd-radio-vong { border-color: var(--c-primary); box-shadow: inset 0 0 0 var(--s1) var(--c-surface); background: var(--c-primary); }
+.dd-radio:focus-within { outline: var(--focus-ring) solid var(--c-primary); outline-offset: var(--focus-ring); }
+.dg-leg { display: flex; flex-direction: column; gap: var(--s2); margin-top: var(--s3); }
+/* Khối "Hành khách" (web/khoi-hanh-khach.ts — khoi-hanh-khach.dc.html) */
+.hk { display: flex; flex-direction: column; gap: var(--s3); }
+.hk .banner { margin: 0; }
+.hk .banner[hidden] { display: none; }
+.hk-dem { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); }
+.hk-dem-icon { display: inline-flex; color: var(--c-primary); }
+.hk-dem-so { font-family: var(--font-display); font-weight: 800; font-size: var(--fs-stat-sm); color: var(--c-primary); font-variant-numeric: tabular-nums; }
+.hk-dem-chu { font-weight: 700; color: var(--c-text); }
+.hk-trong { margin: 0; padding: var(--s3) 0; }
+.hk-luoi { display: grid; grid-template-columns: var(--w-hk-so) minmax(0, 1fr) var(--w-hk-nam) var(--w-hk-loai) var(--w-hk-xoa); gap: var(--s2); align-items: center; }
+.hk-luoi input, .hk-luoi select { margin-top: 0; }
+.hk-dau-cot { padding-bottom: var(--s1); font-size: var(--fs-label); font-weight: 600; color: var(--c-text-muted); }
+.hk-hang { display: flex; flex-direction: column; gap: var(--s2); padding: var(--s2) 0; border-top: 1px solid var(--c-border); }
+.hk-hang .hk-loi { margin: 0; padding-left: calc(var(--w-hk-so) + var(--s2)); }
+.hk-so { font-weight: 700; color: var(--c-text-muted); font-variant-numeric: tabular-nums; }
+.hk-ds { display: flex; flex-direction: column; gap: var(--s2); }
+.hk-the { display: flex; flex-direction: column; gap: var(--s2); padding: var(--s3); border: 1px solid var(--c-border); border-radius: var(--radius-sm); }
+.hk-the-dau { display: flex; align-items: center; gap: var(--s2); }
+.hk-the-ten { font-weight: 700; color: var(--c-text); }
+.hk-the-luoi { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: var(--s3); }
+.hk-xoa { min-width: var(--tap-min); margin-left: auto; color: var(--c-danger); white-space: nowrap; }
+.hk-card { margin-top: var(--s4); }
+/* Trang đơn (M3): khối "Đưa đón" + "Hành khách" sau "Khách hàng"; câu cảnh báo sớm dưới nút "Xác nhận đơn" */
+.dd-dv { display: flex; flex-direction: column; }
+.dd-dv + .dd-dv { margin-top: var(--s3); }
+.dd-dv-ten { padding-bottom: var(--s1); font-family: var(--font-display); font-weight: 700; color: var(--c-text); }
+.dd-dong { display: flex; flex-direction: column; gap: var(--s1); padding: var(--s3) 0; border-bottom: 1px solid var(--c-border); }
+.dd-dong-dau { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s1) var(--s2); }
+.dd-dong-gio { font-family: var(--font-display); font-weight: 700; font-variant-numeric: tabular-nums; color: var(--c-text); }
+.dd-dong-noi { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--s2); font-weight: 600; color: var(--c-text); overflow-wrap: anywhere; }
+.dd-canh { display: inline-flex; align-items: center; gap: var(--s1); font-weight: 700; color: var(--c-sand-text); }
+.dd-nhac { font-size: var(--fs-label); color: var(--c-sand-text); }
+.dd-card .dd-nut, .hk-card-don .dd-nut { margin-top: var(--s3); align-items: center; }
+.dd-nut-nhap .hint { margin: 0; }
+.hk-card-don .hk-dem { margin-bottom: var(--s2); }
+.hk-nhac-don { display: flex; align-items: center; gap: var(--s1); margin: 0 0 var(--s2); font-size: var(--fs-label); font-weight: 600; }
+.hk-xem { margin: 0; padding: 0; list-style: none; }
+.hk-xem li { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s1) var(--s3); padding: var(--s2) 0; border-bottom: 1px solid var(--c-border); }
+.hk-xem-ten { flex: 1 1 var(--w-dd-noi); min-width: 0; font-weight: 700; color: var(--c-text); overflow-wrap: anywhere; }
+.dd-canh-xn { display: flex; align-items: center; gap: var(--s1); flex-basis: 100%; margin: 0; font-size: var(--fs-label); font-weight: 700; color: var(--c-sand-text); }
+/* Hai bảng trượt (M4, M5): chân "Huỷ | Lưu" hai cột bằng nhau */
+.sheet-foot.dd-sheet-foot { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s2); }
+.sheet-foot.dd-sheet-foot .btn { min-height: var(--tap-min); }
+@media (min-width: 641px) { .sheet.hk-sheet { width: var(--w-sheet-hk); } }
+/* Form đơn ≥ 960px: khối Hành khách trải hết bề ngang dưới hàng "thẻ dịch vụ | Tóm tắt" (bản vẽ M2 — cột chính không đủ cho bốn ô): web/order-form.ts đặt #hk-card
+   SAU .form-cols; dưới 960px đặt ngay sau thẻ "Dịch vụ" (bản vẽ điện thoại). */
+/* ---------- Đưa đón — danh mục / điều phối (bản vẽ M7 docs/design/2026-10-01-dua-don-hanh-khach/; web/catalog.ts khung "Đưa đón"). Chỉ token. ---------- */
+.dd-chip-dong { margin-top: var(--s1); }
+.dd-ten-dong { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s1) var(--s2); }
+.dd-ten-dong .badge { margin-left: 0; }
+.dd-nhom { display: flex; flex-direction: column; gap: var(--s2); margin-bottom: var(--s4); }
+.dd-nhan { font-size: var(--fs-label); font-weight: 600; color: var(--c-text-muted); }
+.dd-che-do-ds { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.dd-che-do { position: relative; flex: 1 1 var(--w-dd-che-do); display: flex; align-items: center; gap: var(--s3); min-height: var(--row-h); padding: var(--s2) var(--s3); box-sizing: border-box; font-size: var(--fs-ui); color: var(--c-text); background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius-sm); cursor: pointer; }
+.dd-che-do > input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; padding: 0; opacity: 0; cursor: pointer; }
+.dd-che-do-cham { flex: none; width: var(--s5); height: var(--s5); box-sizing: border-box; border: var(--focus-ring) solid var(--c-text-muted); border-radius: var(--radius-pill); background: var(--c-surface); }
+.dd-che-do.dd-chon { font-weight: 600; background: var(--c-primary-soft); border-color: var(--c-primary); }
+.dd-che-do.dd-chon .dd-che-do-cham { border: var(--vc-radio-on) solid var(--c-primary); }
+.dd-che-do:has(input:focus-visible) { outline: var(--focus-ring) solid var(--c-primary); outline-offset: var(--focus-ring); }
+.dd-o-luoi { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--w-dd-o), 1fr)); gap: var(--s3); margin-bottom: var(--s3); }
+.dd-o[hidden] { display: none; }
+.dd-o label { font-size: var(--fs-label); font-weight: 600; color: var(--c-text-muted); }
+.dd-goi-y { margin-top: var(--s1); font-size: var(--fs-label); color: var(--c-text-muted); }
+.dd-ghi { margin: var(--s1) 0 0; font-size: var(--fs-label); }
+.dd-hanh-dong .actions { margin-bottom: var(--s1); }
+.dd-xong { margin: var(--s2) 0 0; font-size: var(--fs-label); color: var(--c-green-text); }
+.dd-xong:empty { display: none; }
+.dd-lich-su { margin-top: var(--s4); }
+.dd-lich-su h3 { margin: 0 0 var(--s2); font-family: var(--font-display); font-size: var(--fs-ui); color: var(--c-text); }
+.dd-bang-ls { width: 100%; border-collapse: collapse; font-size: var(--fs-label); }
+.dd-bang-ls th, .dd-bang-ls td { padding: var(--s2); border-bottom: 1px solid var(--c-border); text-align: left; vertical-align: top; }
+.dd-bang-ls th { font-weight: 600; color: var(--c-text-muted); white-space: nowrap; }
+.dd-luc { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.dd-ai { white-space: nowrap; }
+.dd-ds-ls { margin: 0; padding: 0; list-style: none; }
+.dd-ds-ls li { display: flex; flex-direction: column; gap: var(--s1); padding: var(--s2) 0; border-bottom: 1px solid var(--c-border); font-size: var(--fs-label); }
+.dd-ds-ls .dd-luc { color: var(--c-text-muted); }
+.dd-ds-ls .dd-doi { font-weight: 600; }
+.dd-sheet .dd-che-do-ds { flex-direction: column; }
+.dd-sheet .dd-che-do { flex: none; } /* bản vẽ M7 390: ba thẻ chọn xếp dọc trong bảng trượt */
+.dd-sheet .sheet-foot .dd-luu-day { width: 100%; }

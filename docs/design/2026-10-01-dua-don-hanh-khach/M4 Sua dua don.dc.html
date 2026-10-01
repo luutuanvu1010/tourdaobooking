@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="_ds/tour-o-booking-design-system-34f284df-c97a-4672-bb66-d7df03a0d97a/styles.css">
+<script src="_ds/tour-o-booking-design-system-34f284df-c97a-4672-bb66-d7df03a0d97a/_ds_bundle.js"></script>
+<style>body{margin:0;background:#dfe7ee;font-family:var(--font);color:var(--c-text)}a{color:var(--c-primary)}a:hover{color:var(--c-primary-strong)}</style>
+</helmet>
+<section style="padding:var(--s7);display:flex;flex-direction:column;gap:var(--s5);">
+  <nav style="display:flex;flex-wrap:wrap;gap:var(--s2);font-size:var(--fs-label);font-weight:700;">
+    <a href="00 Muc luc va cau chu.dc.html">00 Mục lục &amp; câu chữ</a><span>·</span><a href="M1 Dua don - form don.dc.html">M1 Đưa đón trong form</a><span>·</span><a href="M2 Hanh khach - form don.dc.html">M2 Hành khách</a><span>·</span><a href="M3 Chi tiet don.dc.html">M3 Chi tiết đơn</a><span>·</span><strong>M4 Sửa đưa đón</strong><span>·</span><a href="M5 Sua danh sach hanh khach.dc.html">M5 Sửa danh sách</a><span>·</span><a href="M6 Dich vu hai chieu.dc.html">M6 Hai chiều</a><span>·</span><a href="M7 Danh muc - dua don.dc.html">M7 Danh mục</a><span>·</span><a href="07 Bieu mau don - chang don.dc.html">07 (giữ nguyên)</a>
+  </nav>
+  <div style="display:flex;flex-direction:column;gap:var(--s2);max-width:900px;">
+    <h1 style="margin:0;font-family:var(--font-display);font-weight:800;font-size:28px;color:var(--c-primary);">M4 · Bảng trượt “Sửa đưa đón” — đơn đã xác nhận</h1>
+    <div style="font-size:15px;line-height:1.6;text-wrap:pretty;">Cùng khuôn bảng trượt của “Sửa thông tin chuyến” (điện thoại trượt từ đáy, máy tính hộp giữa màn). Thay hai ô cũ “Giờ đón / Điểm đón”: “Sửa thông tin chuyến” còn lại Ngày khởi hành, Giờ khởi hành, Check-in, Ghi chú. Chỉ Bán hàng (đơn mình / đang phụ trách), Quản trị, Toàn quyền mở được. Đổi chặng dưới mốc 6 giờ: giữ hành vi đặt gấp của 07 (máy chủ trả “cần đặt gấp” → hiện khung “Đặt gấp” trong bảng) — không vẽ lại.</div>
+  </div>
+  <div style="display:flex;gap:var(--s6);flex-wrap:wrap;align-items:flex-start;">
+    <div id="M4-1040" style="display:flex;flex-direction:column;gap:var(--s3);">
+      <div style="font-size:var(--fs-label);font-weight:800;">M4 · 1040 · Bán hàng · bỏ chiều về — bắt chọn lý do</div>
+      <dc-import name="vo-may-tinh" role="sales" active="don" crumb="TD-20260928-0011" height="1640px" hint-size="1040px,1640px">
+        <dc-import name="trang-don" don="1" vai="sales" hint-size="100%,1600px"></dc-import>
+        <div style="position:absolute;inset:0;z-index:5;display:flex;align-items:center;justify-content:center;padding:var(--s4);background:var(--c-scrim);">
+          <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Sheet" inline="{{ true }}" title="Sửa đưa đón" footer="{{ footer }}" on-close="{{ noop }}" hint-size="520px,1500px">
+            <div style="display:flex;flex-direction:column;gap:var(--s4);">
+              <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Note" tone="warn" hint-size="100%,56px"><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Icon" name="alert" size="{{ 18 }}" style="flex:none;" hint-size="18px,18px"></x-import>Bản xác nhận đã gửi khách trước đó có thể lỗi thời — cần gửi lại.</x-import>
+              <dc-import name="the-dua-don" kb="boChang" vai="sales" che="bang" hint-size="100%,1200px"></dc-import>
+            </div>
+          </x-import>
+        </div>
+      </dc-import>
+    </div>
+    <div id="M4-390" style="display:flex;flex-direction:column;gap:var(--s3);">
+      <div style="font-size:var(--fs-label);font-weight:800;">M4 · 390 · Bán hàng · người khác vừa sửa (kéo dài)</div>
+      <dc-import name="vo-dien-thoai" role="sales" title="TD-20260928-0011" tab="don" height="1640px" hint-size="390px,1640px">
+        <div style="padding:var(--s4);"><dc-import name="trang-don" don="1" vai="sales" hep="{{ true }}" hint-size="100%,2400px"></dc-import></div>
+        <div style="position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;justify-content:flex-end;background:var(--c-scrim);">
+          <div style="background:var(--c-surface);border-radius:var(--radius-lg) var(--radius-lg) 0 0;overflow:hidden;padding-bottom:34px;">
+            <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Sheet" inline="{{ true }}" title="Sửa đưa đón" footer="{{ footer }}" on-close="{{ noop }}" hint-size="390px,1500px">
+              <div style="display:flex;flex-direction:column;gap:var(--s4);">
+                <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Banner" tone="danger" title="Đơn vừa được người khác cập nhật — tải lại để xem bản mới." hint-size="100%,110px">
+                  <div style="display:flex;margin-top:var(--s3);"><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" hint-size="120px,44px">Tải lại đơn</x-import></div>
+                </x-import>
+                <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Note" tone="warn" hint-size="100%,56px"><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Icon" name="alert" size="{{ 18 }}" style="flex:none;" hint-size="18px,18px"></x-import>Bản xác nhận đã gửi khách trước đó có thể lỗi thời — cần gửi lại.</x-import>
+                <dc-import name="the-dua-don" kb="don1" vai="sales" che="bang" hint-size="100%,1000px"></dc-import>
+              </div>
+            </x-import>
+          </div>
+        </div>
+      </dc-import>
+    </div>
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const NS = window.TourOBookingDesignSystem_34f284;
+    const h = React.createElement;
+    return {
+      noop: () => {},
+      footer: NS ? h('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--s2)' } }, h(NS.Button, null, 'Huỷ'), h(NS.Button, { variant: 'primary' }, 'Lưu')) : null,
+    };
+  }
+}
+</script>
+</body>
+</html>

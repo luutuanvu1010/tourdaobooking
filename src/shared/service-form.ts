@@ -7,6 +7,8 @@ import {
 } from "./order-lines.ts";
 import { MAX_LINES_PER_ORDER, MAX_SERVICES } from "./trip-rules.ts";
 import { emptyTrip, tripFromDto } from "./trip-form.ts";
+import { changTuDto, legInput, loiDanhSachChang, type ChangNhap } from "./chang-form.ts";
+import { tongKhach } from "./so-nguoi-chang.ts";
 
 export interface ManualLine {
   description: string;
@@ -21,6 +23,10 @@ interface DraftBase {
   /** id dịch vụ đã lưu của CHÍNH đơn đang sửa; null = thẻ mới. */
   id: string | null;
   trip: TripInput;
+  /** Chặng đưa đón của dịch vụ (ADR-0047 Phần B, bản vẽ M1) — gửi lên ở `legs` (luôn có khoá, kể cả []). */
+  legs: ChangNhap[];
+  /** Câu "Đã tạo sẵn … theo dịch vụ" khi chặng vừa được tạo theo mẫu (M6); null = không. */
+  taoSan: string | null;
 }
 
 export interface CatalogDraft extends DraftBase {
@@ -118,11 +124,11 @@ export function paxSummary(pax: PaxCounts, unit: string): string {
 export function newCatalogDraft(item: CatalogService, key: string): CatalogDraft {
   const pax = zeroPax();
   pax.adult = 1;
-  return { kind: "catalog", key, id: null, trip: emptyTrip(), code: item.code, name: item.name, unit: item.unit, source: "live", item, live: item, pax, unitPrices: defaultPrices(item), catalogStatus: null, repick: false, saved: null };
+  return { kind: "catalog", key, id: null, trip: emptyTrip(), legs: [], taoSan: null, code: item.code, name: item.name, unit: item.unit, source: "live", item, live: item, pax, unitPrices: defaultPrices(item), catalogStatus: null, repick: false, saved: null };
 }
 
 export function newManualDraft(key: string): ManualDraft {
-  return { kind: "manual", key, id: null, trip: emptyTrip(), name: "", guests: 0, lines: [emptyLine()] };
+  return { kind: "manual", key, id: null, trip: emptyTrip(), legs: [], taoSan: null, name: "", guests: 0, lines: [emptyLine()] };
 }
 
 /** Dựng lại bảng giá từ dòng đã lưu (giống `snapshotService` của máy chủ); thiếu loại khách/giá danh mục → null. */
@@ -143,7 +149,7 @@ export function snapshotItem(dto: Pick<OrderServiceDto, "catalogCode" | "name" |
  * Có bản chụp → giữ giá đã lưu (nhãn theo `catalogStatus`); danh mục không còn → thẻ khoá (`isLocked`).
  */
 export function draftFromDto(dto: OrderServiceDto, live: ReadonlyMap<string, CatalogService>, key: string): ServiceDraft {
-  const base = { key, id: dto.id, trip: tripFromDto(dto) };
+  const base = { key, id: dto.id, trip: tripFromDto(dto), legs: dto.legs.map((l, i) => changTuDto(l, `${key}-l${i}`)), taoSan: null };
   if (dto.kind === "manual" || dto.catalogCode === null) {
     return {
       ...base, kind: "manual", name: dto.name, guests: paxTotal(dto.pax),
@@ -303,11 +309,18 @@ export function groupInfo(d: CatalogDraft): { size: number; guests: number; trip
 // ---- lỗi chặn Lưu (giảm vòng máy chủ; máy chủ vẫn là nơi quyết định) --------------------------------------------------
 
 export interface DraftIssue {
-  code: "repick" | "no_guests" | "no_paying_guests" | "too_many_guests" | "preview" | "amount" | "name" | "no_lines" | "line_description" | "line_quantity" | "too_many_lines";
+  code: "leg" | "repick" | "no_guests" | "no_paying_guests" | "too_many_guests" | "preview" | "amount" | "name" | "no_lines" | "line_description" | "line_quantity" | "too_many_lines";
   message: string;
 }
 
+/** Số khách của dịch vụ đang nhập (mẫu số "Số người chiều về không được quá N", mẫu số hành khách). */
+export const soKhachNhap = (d: ServiceDraft): number => (d.kind === "catalog" ? tongKhach(d.pax) : d.guests);
+
 export function draftIssues(d: ServiceDraft): DraftIssue[] {
+  return [...draftIssuesTien(d), ...loiDanhSachChang(d.legs, soKhachNhap(d)).map((message) => ({ code: "leg" as const, message }))];
+}
+
+function draftIssuesTien(d: ServiceDraft): DraftIssue[] {
   const out: DraftIssue[] = [];
   if (d.kind === "catalog") {
     if (d.repick) return [{ code: "repick", message: "Dịch vụ này không còn trong danh mục — chọn lại từ danh mục." }];
@@ -354,14 +367,19 @@ export function orderIssues(drafts: readonly ServiceDraft[]): string[] {
 
 // ---- thân gửi lên máy chủ ----------------------------------------------------------------------------------------------
 
-/** `ServiceInput`: KHÔNG gửi số lượng dòng của dịch vụ danh mục (máy chủ tự sinh); chỉ gửi đơn giá và giá danh mục ĐÃ XEM của loại có khách. */
-export function toServiceInput(d: ServiceDraft): ServiceInput {
-  const id = d.id === null ? {} : { id: d.id };
+/**
+ * `ServiceInput`: KHÔNG gửi số lượng dòng của dịch vụ danh mục (máy chủ tự sinh); chỉ gửi đơn giá và giá danh mục ĐÃ XEM của loại có khách.
+ * Chặng: LUÔN gửi khoá `legs` (kể cả []) — máy chủ đòi mọi dịch vụ cùng có khoá; KHÔNG gửi hai khoá cũ `pickupTime`/`pickupPlace` (ADR-0047 Phần B).
+ * `guiSoVe` = người dùng có ô `order.trip.edit` (mới gửi số người chiều về — `legInput`).
+ */
+export function toServiceInput(d: ServiceDraft, guiSoVe = false): ServiceInput {
+  const { pickupTime: _gio, pickupPlace: _noi, ...chuyen } = d.trip;
+  const id = { ...(d.id === null ? {} : { id: d.id }), legs: d.legs.map((l) => legInput(l, guiSoVe)) };
   if (d.kind === "manual") {
     return {
       ...id, kind: "manual", name: d.name.trim(), pax: { ...zeroPax(), adult: d.guests },
       items: d.lines.map((l) => ({ description: l.description.trim(), detail: l.detail.trim(), quantity: l.quantity, unitPrice: l.unitPrice })),
-      ...d.trip,
+      ...chuyen,
     };
   }
   const unitPrices: Partial<Record<PaxCode, number>> = {};
@@ -372,7 +390,7 @@ export function toServiceInput(d: ServiceDraft): ServiceInput {
     if (seen !== null) catalogPriceSeen[c] = seen;
     unitPrices[c] = d.unitPrices[c] ?? seen ?? 0;
   }
-  return { ...id, kind: "catalog", catalogCode: d.code, pax: { ...d.pax }, unitPrices, catalogPriceSeen, ...d.trip };
+  return { ...id, kind: "catalog", catalogCode: d.code, pax: { ...d.pax }, unitPrices, catalogPriceSeen, ...chuyen };
 }
 
 // ---- tóm tắt tiền ---------------------------------------------------------------------------------------------------------

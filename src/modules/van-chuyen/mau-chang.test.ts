@@ -62,6 +62,20 @@ test("TC-M2: Quản trị / Toàn quyền thêm bản mẫu → 201, bản cũ c
   assert.equal((await doc(w, ADM)).status, 200);
 });
 
+// Danh sách trắng khoá của MỘT bản mẫu ở màn Danh mục (MauChangBanDto, route admin.manage). `createdBy` (nợ nhỏ 2026-10-01 — cột "Người đổi" của lịch sử
+// M7) = id TÀI KHOẢN người ghi (màn ghép tên qua GET /api/staff như lịch sử nhóm dịch vụ), KHÔNG SĐT, không tên. Route form vẫn đúng ba khoá (TC-M3).
+test("lịch sử mẫu: mỗi bản ĐÚNG các khoá trong danh sách trắng; createdBy = id tài khoản người ghi; không SĐT", async () => {
+  const w = setup();
+  assert.equal((await ghi(w, ADM, { mode: "ROUND_TRIP", returnTimeHint: "16:00", noiTraMacDinhId: BEN })).status, 201);
+  const b = await ghi(w, SUP, { mode: "ONE_WAY", returnTimeHint: null });
+  assert.equal(b.status, 201, b.text);
+  for (const ban of [b.json.hienHanh, ...b.json.lichSu]) assert.deepEqual(Object.keys(ban).sort(), ["createdBy", "mode", "noiTraMacDinh", "returnTimeHint", "tuLuc"]);
+  assert.deepEqual(b.json.lichSu.map((x: any) => x.createdBy), [SUP, ADM]);
+  const g = await doc(w, ADM);
+  assert.deepEqual(g.json.lichSu.map((x: any) => x.createdBy), [SUP, ADM]);
+  assert.doesNotMatch(g.text, /090000000\d/);
+});
+
 test("TC-M2: thân sai → 400 (thiếu mode, mode lạ, thiếu khoá returnTimeHint, giờ gợi ý khi không hai chiều, giờ sai khuôn, mang ngày hiệu lực); mã dịch vụ sai khuôn → 400", async () => {
   const w = setup();
   for (const body of [{}, { mode: "BOTH", returnTimeHint: null }, { mode: "ROUND_TRIP" }, { mode: "ONE_WAY", returnTimeHint: "16:00" }, { mode: "ROUND_TRIP", returnTimeHint: "4pm" },

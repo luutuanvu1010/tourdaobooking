@@ -43,7 +43,7 @@ import {
 import { hanhKhachChoChuyen, lichChungChang, lienHeChoTaiXe } from "../orders";
 import type { CapNhatDiemResponse, CapNhatKhachResponse, ChuyenChiTietResponse, CuocChiTietResponse, CuocCuaToiResponse, StaffProfile } from "../../shared/contracts";
 import { kiemTaoSuaChuyen, trongNgayChay } from "../../shared/dieu-phoi-kiem";
-import { lyDoGiu } from "../../shared/ly-do-giu";
+import { lyDoGiu, type LyDoGiu } from "../../shared/ly-do-giu";
 import { isISODate, msToVnLocal } from "../../shared/vn-date";
 import { eventByRequest, eventsByTrips, tripCountByDate, tripsByDate, tripsCuaTaiXe, tripsTouching } from "./chuyen-repo";
 import { loTaoChuyen } from "./dieu-phoi";
@@ -70,7 +70,7 @@ import { danhSachNhac, docGoiBao, phanHoiLenhLap, xuLyMoc, type QuyenGoiBao } fr
 // ADR-0059: xe trên chi tiết đơn — route đọc, danh sách trắng.
 import type { XeCuaDonResponse } from "../../shared/contracts";
 import { changMoCuaDon, donTonTai, xeCuaDon } from "./chuyen-repo";
-import { xeCuaDonDto } from "./dieu-phoi-dto";
+import { lyDoGiuDto, xeCuaDonDto } from "./dieu-phoi-dto";
 const CAN_XEM_XE_DON = () => error(403, "forbidden", "Tài khoản này không xem được xe đón khách của đơn.");
 const CAN_XEM_CUOC = () => error(403, "forbidden", "Tài khoản này không có cuốc xe.");
 const CAN_BAM_THAY = () => error(403, "forbidden", "Tài khoản này không bấm thay tiến độ chuyến được.");
@@ -211,6 +211,7 @@ function lichSuMauChang(code: string, rows: readonly LegTemplateRow[]): MauChang
     returnTimeHint: r.return_time_hint,
     noiTraMacDinh: r.default_dropoff_location_id !== null ? { id: r.default_dropoff_location_id, ten: r.noi_tra_ten ?? "", dangDung: r.noi_tra_active === 1 } : null,
     tuLuc: r.valid_from_at,
+    createdBy: r.created_by,
   });
   const now = new Date().toISOString();
   const hien = rows.find((r) => r.valid_from_at <= now);
@@ -892,15 +893,19 @@ export const vanChuyenModule: AppModule = {
       const nen = await docNen(env.DB, params.id ?? "");
       if (!nen) return KHONG_CO_CHUYEN();
       const bayGioMs = Date.now();
+      let canhBaoXep: LyDoGiu[] = [];
       if (!(await eventByRequest(env.DB, b.requestId))) {
         const lich = await lichChungChang(env.DB, nen.tu, nen.den);
         const r = await lenhXep(env.DB, nen, lich.chang, b, staff, bayGioMs);
-        if (r) return r;
+        if (r.loi) return r.loi;
+        canhBaoXep = r.canhBao;
       }
       const nen2 = (await docNen(env.DB, nen.trip.id))!;
       const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
       const hk = await hanhKhachChoChuyen(env.DB, nen2.legIds);
-      return json(await chiTietChuyen(env.DB, nen2, lich2.chang, hk, false, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), bayGioMs) satisfies ChuyenChiTietResponse);
+      // Cảnh báo sớm (chỉ nhắc): chặng chưa có nơi trả / chưa đủ tên — xe sẽ bị giữ ở xuất bến nếu chưa bổ sung.
+      const ct = await chiTietChuyen(env.DB, nen2, lich2.chang, hk, false, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), bayGioMs);
+      return json({ ...ct, ...(canhBaoXep.length > 0 ? { canhBaoXep: canhBaoXep.map(lyDoGiuDto) } : {}) } satisfies ChuyenChiTietResponse);
     }),
 
     route("POST", "/api/van-chuyen/chuyen/:id/rut", "office", async ({ env, request, params, staff, nhanNhanVien, isAssigned }) => {

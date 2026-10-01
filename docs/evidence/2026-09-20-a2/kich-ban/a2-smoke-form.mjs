@@ -105,9 +105,9 @@ try {
 
   // ---- 6) khối thông tin chuyến: thu gọn (bản 1.39: mọi khổ), tóm tắt, cảnh báo ----
   assert.equal(await p.ev(`${card(1)}.querySelector('details.trip').open`), false, "≤ 640px: thu gọn");
-  // bản 1.39: dòng tóm tắt không ghi ngày (cả đơn một ngày) — thiếu giờ/nơi đón → "Chưa có giờ / nơi đón" (trước: "Chưa có ngày khởi hành")
-  assert.equal(await p.ev(`${card(1)}.querySelector('.trip-summary').textContent`), "Chưa có giờ / nơi đón");
-  assert.equal(await p.ev(`${card(1)}.querySelector('.trip-summary').classList.contains('warn')`), true);
+  // ADR-0047 Phần B (2026-10-01, bản vẽ M1): giờ / nơi đón sang khối "Đưa đón" của thẻ — dòng tóm tắt chỉ còn giờ khởi hành, check-in; trống thì rỗng, không cảnh báo.
+  assert.equal(await p.ev(`${card(1)}.querySelector('.trip-summary').textContent`), "");
+  assert.equal(await p.ev(`${card(1)}.querySelector('.trip-summary').classList.contains('warn')`), false);
   await p.ev(`${card(1)}.querySelector('details.trip > summary').click(); true`);
   await p.waitFor(`${card(1)}.querySelector('details.trip').open`, "mở khối chuyến");
   assert.equal(await p.ev(`(() => { const t = ${card(1)}.querySelector('details.trip').getBoundingClientRect(); return [...${card(1)}.querySelectorAll('.trip-body input, .trip-body textarea')].every((el) => { const r = el.getBoundingClientRect(); return r.left >= t.left && r.right <= t.right; }); })()`), true, "ô của khối chuyến nằm gọn trong khung (không thò ra ngoài)");
@@ -116,11 +116,17 @@ try {
   await p.waitFor(`/Ngày khởi hành đã qua — vẫn lưu được, nhưng chưa thể xác nhận\\./.test(${card(1)}.querySelector('.svc-warnings').textContent)`, "cảnh báo ngày đã qua");
   await p.ev(setInput("document.getElementById('orderDate')", vnDate(7)));
   await p.ev(setInput(dateIn("departTime"), "07:30"));
-  await p.ev(setInput(dateIn("pickupTime"), "08:00"));
+  assert.equal(await p.ev(`${dateIn("pickupTime")} === null && ${dateIn("pickupPlace")} === null`), true, "khối chuyến không còn ô Giờ đón / Điểm đón (D4)");
+  await p.waitFor(`${card(1)}.querySelector('.trip-summary').textContent === 'Khởi hành 07:30'`, "dòng tóm tắt của khối chuyến");
+  // Giờ / nơi đón nay ở chặng đưa đón (TD101 không có mẫu chặng → "Không đưa đón" + "+ Thêm đưa đón").
+  await p.ev(`${card(1)}.querySelector('[data-action="them-dua-don"]').click(); true`);
+  await p.waitFor(`!!${card(1)}.querySelector('.dd-chang [data-o$=":gio"]')`, "chặng đưa đón mới");
+  await p.ev(setInput(`${card(1)}.querySelector('.dd-chang [data-o$=":gio"]')`, "08:00"));
   await p.waitFor(`/Giờ đón sau giờ khởi hành/.test(${card(1)}.querySelector('.svc-warnings').textContent)`, "cảnh báo giờ đón sau giờ khởi hành");
-  await p.ev(setInput(dateIn("pickupTime"), "07:00"));
-  await p.ev(setInput(dateIn("pickupPlace"), "Khách sạn Sunrise"));
-  await p.waitFor(`${card(1)}.querySelector('.trip-summary').textContent === 'Đón 07:00 · Khách sạn Sunrise'`, "dòng tóm tắt của khối chuyến");
+  await p.ev(setInput(`${card(1)}.querySelector('.dd-chang [data-o$=":gio"]')`, "07:00"));
+  await p.ev(setInput(`${card(1)}.querySelector('.dd-chang [data-o$=":don"]')`, "tudo"));
+  await p.waitFor(`!!${card(1)}.querySelector('.dd-chang [data-o$=":don-chu"]')`, "ô Địa chỉ đón");
+  await p.ev(setInput(`${card(1)}.querySelector('.dd-chang [data-o$=":don-chu"]')`, "Khách sạn Sunrise"));
   assert.match(await p.ev(`${card(1)}.querySelector('label:has([data-trip="checkinDate"])').textContent`), /Để trống = cùng ngày khởi hành\./);
   ok("khối chuyến: thu gọn kèm dòng cảnh báo, cảnh báo ngày đã qua / giờ đón, dòng tóm tắt, nhắc 'cùng ngày'");
 
@@ -184,7 +190,7 @@ try {
   // (a) người khác sửa đơn trong lúc form đang mở
   const other = await env.as(ACCOUNTS.salesA, "/order-form"); // cùng người lập, phiên khác
   const upd = await other.ev(`(async () => { const d = await fetch('/api/orders/' + ${JSON.stringify(orderId)}).then((r) => r.json());
-    const r = await fetch('/api/orders/' + ${JSON.stringify(orderId)} + '/trip', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ expectedUpdatedAt: d.order.updatedAt, services: d.order.services.map((s) => ({ id: s.id, departDate: s.departDate || '', departTime: '', pickupTime: '', pickupPlace: '', checkinDate: '', checkinTime: '', checkinPlace: '', note: 'người khác vừa sửa' })) }) });
+    const r = await fetch('/api/orders/' + ${JSON.stringify(orderId)} + '/trip', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ expectedUpdatedAt: d.order.updatedAt, services: d.order.services.map((s) => ({ id: s.id, departDate: s.departDate || '', departTime: '', checkinDate: '', checkinTime: '', checkinPlace: '', note: 'người khác vừa sửa' })) }) });
     return r.status; })()`);
   assert.equal(upd, 200);
   other.close();

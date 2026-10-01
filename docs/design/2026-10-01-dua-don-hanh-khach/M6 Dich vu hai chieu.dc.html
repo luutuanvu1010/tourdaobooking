@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="_ds/tour-o-booking-design-system-34f284df-c97a-4672-bb66-d7df03a0d97a/styles.css">
+<script src="_ds/tour-o-booking-design-system-34f284df-c97a-4672-bb66-d7df03a0d97a/_ds_bundle.js"></script>
+<style>body{margin:0;background:#dfe7ee;font-family:var(--font);color:var(--c-text)}a{color:var(--c-primary)}a:hover{color:var(--c-primary-strong)}</style>
+</helmet>
+<section style="padding:var(--s7);display:flex;flex-direction:column;gap:var(--s5);">
+  <nav style="display:flex;flex-wrap:wrap;gap:var(--s2);font-size:var(--fs-label);font-weight:700;">
+    <a href="00 Muc luc va cau chu.dc.html">00 Mục lục &amp; câu chữ</a><span>·</span><a href="M1 Dua don - form don.dc.html">M1 Đưa đón trong form</a><span>·</span><a href="M2 Hanh khach - form don.dc.html">M2 Hành khách</a><span>·</span><a href="M3 Chi tiet don.dc.html">M3 Chi tiết đơn</a><span>·</span><a href="M4 Sua dua don.dc.html">M4 Sửa đưa đón</a><span>·</span><a href="M5 Sua danh sach hanh khach.dc.html">M5 Sửa danh sách</a><span>·</span><strong>M6 Hai chiều</strong><span>·</span><a href="M7 Danh muc - dua don.dc.html">M7 Danh mục</a><span>·</span><a href="07 Bieu mau don - chang don.dc.html">07 (giữ nguyên)</a>
+  </nav>
+  <div style="display:flex;flex-direction:column;gap:var(--s2);max-width:900px;">
+    <h1 style="margin:0;font-family:var(--font-display);font-weight:800;font-size:28px;color:var(--c-primary);">M6 · Form lập đơn — dịch vụ “hai chiều” tạo sẵn chặng</h1>
+    <div style="font-size:15px;line-height:1.6;text-wrap:pretty;">“Vé cáp treo Vinpearl” (Danh mục: Hai chiều, giờ về gợi ý 16:30, nơi trả gợi ý Ga cáp treo Vinpearl) → thẻ hiện sẵn hai chặng. Chiều về lấy nơi đón = nơi trả chiều đi, nơi trả = nơi đón chiều đi và tự đảo khi người lập chọn nơi đón chiều đi (nhãn nhỏ “theo nơi … chiều đi”); người lập sửa ô nào của chiều về thì ô đó thôi đi theo. Dịch vụ “Một chiều” chỉ tạo chặng đi; “Không đưa đón” như <a href="M1 Dua don - form don.dc.html#M1-a-1040">M1 trạng thái a</a>. Bỏ chặng về rồi lưu: máy không tự tạo lại. Bấm thử: chọn nơi đón chiều đi ở khung 1040.</div>
+  </div>
+  <div style="display:flex;gap:var(--s6);flex-wrap:wrap;align-items:flex-start;">
+    <div id="M6-1040" style="display:flex;flex-direction:column;gap:var(--s3);">
+      <div style="font-size:var(--fs-label);font-weight:800;">M6 · 1040 · Bán hàng · vừa chọn dịch vụ (chưa có nơi đón)</div>
+      <dc-import name="vo-may-tinh" role="sales" active="tao" crumb="Bán hàng › Tạo đơn" height="1420px" hint-size="1040px,1420px">
+        <dc-import name="form-don" kb="haichieu" vai="sales" chon-ngay="{{ true }}" hint-size="100%,1300px"></dc-import>
+      </dc-import>
+    </div>
+    <div id="M6-390-hai" style="display:flex;flex-direction:column;gap:var(--s3);">
+      <div style="font-size:var(--fs-label);font-weight:800;">M6 · 390 · Bán hàng · đã chọn nơi đón → chiều về tự đảo (kéo dài)</div>
+      <dc-import name="vo-dien-thoai" role="sales" title="Tạo đơn" tabs="{{ false }}" height="1640px" hint-size="390px,1640px">
+        <dc-import name="form-don" kb="haichieuChon" vai="sales" hep="{{ true }}" min-h="1533px" hint-size="100%,1533px"></dc-import>
+      </dc-import>
+    </div>
+    <div id="M6-390-mot" style="display:flex;flex-direction:column;gap:var(--s3);">
+      <div style="font-size:var(--fs-label);font-weight:800;">M6 · 390 · Bán hàng · “Tour 4 đảo” một chiều</div>
+      <dc-import name="vo-dien-thoai" role="sales" title="Tạo đơn" tabs="{{ false }}" hint-size="390px,844px">
+        <dc-import name="form-don" kb="motchieu" vai="sales" hep="{{ true }}" hint-size="100%,737px"></dc-import>
+      </dc-import>
+    </div>
+  </div>
+</section>
+</x-dc>
+</body>
+</html>

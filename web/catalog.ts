@@ -3,7 +3,11 @@ import { ApiError, api, type CatalogAdminItem, type CatalogSyncState, type PaxCo
 import { byId, h, replaceChildren } from "./dom";
 import { dateTime, grouped, parseMoney, vnd } from "./format";
 import { PAX_LABEL, PAX_ORDER } from "../src/shared/order-lines";
+import { unitLabel } from "../src/shared/service-form";
 import { CHUA_PHAN_LOAI_TEN, dongLichSuNhom } from "../src/shared/lich-su-nhom";
+import { CHE_DO_DUA_DON, type CheDoDuaDon } from "../src/shared/chang-mac-dinh";
+import { dongLichSuMauChang, nhanCheDoCua } from "../src/shared/lich-su-mau-chang";
+import { moBangTruot } from "./bang-truot";
 import { initShell, showError } from "./shell";
 
 const errorEl = byId("error");
@@ -37,9 +41,15 @@ let dangHien: CatalogAdminItem[] = [];
 const CHUA = "-";
 let nhomDich = "";
 let chonLoi = "";
-/** Tên người cho lịch sử nhóm: `GET /api/staff` tải MỘT lần khi mở màn (lỗi → Map rỗng → "Người dùng cũ"). */
+/** Tên người cho lịch sử nhóm và lịch sử mẫu đưa đón: `GET /api/staff` tải MỘT lần khi mở màn (lỗi → Map rỗng → "Người dùng cũ"). */
 let tenNguoi: Promise<Map<string, string>> = Promise.resolve(new Map());
 const LO_TOI_DA = 50; // = LO_GAN_TOI_DA của máy chủ (ADR-0058 Đ4)
+
+// ---- Đưa đón theo dịch vụ (bản vẽ M7 docs/design/2026-10-01-dua-don-hanh-khach/; ADR-0054 D10.1, ADR-0076) ----
+/** Mẫu HIỆN HÀNH theo mã (`GET /api/van-chuyen/mau-chang`); mã vắng = Không đưa đón. `null` = chưa tải được → không vẽ chip (không đoán). */
+let mauChang: Api.MauChangFormResponse["mauChang"] | null = null;
+/** Nút "Đưa đón" chỉ cho người giữ `admin.manage` (Quản trị, Toàn quyền) — máy chủ kiểm lại ở `/api/van-chuyen/mau-chang/:code`. */
+let duocSuaDuaDon = false;
 
 const tenNhomCua = (it: CatalogAdminItem): string => (it.groupCode === null ? CHUA_PHAN_LOAI_TEN : (nhoms.find((g) => g.code === it.groupCode)?.name ?? CHUA_PHAN_LOAI_TEN));
 const nhomDangDung = (): Nhom[] => nhoms.filter((g) => g.active);
@@ -96,14 +106,15 @@ function row(it: CatalogAdminItem): HTMLElement {
     { class: it.hidden || !it.inSheet ? "row-off" : "", "data-code": it.code },
     h("td", { class: "chon-td" }, oChon(it)),
     h("td", null, it.code),
-    h("td", null, it.name, it.hidden && h("span", { class: "badge badge-cancelled" }, "Đã ẩn"), !it.inSheet && h("span", { class: "badge badge-draft" }, "Không còn trong Sheet"), !it.supported && h("span", { class: "badge badge-draft", title: "Chỉ nhập tay được" }, `Đơn vị ${it.unit} chưa hỗ trợ`), it.conflicts.length > 0 && h("div", { class: "alert warn", style: "margin:6px 0 0" }, `Sheet đã đổi giá kể từ khi ghi đè — ${conflicts}. Giá đang bán vẫn là giá ghi đè.`)),
+    h("td", null, it.name, chipDuaDon(it, "dd-chip-dong"), it.hidden && h("span", { class: "badge badge-cancelled" }, "Đã ẩn"), !it.inSheet && h("span", { class: "badge badge-draft" }, "Không còn trong Sheet"), !it.supported && h("span", { class: "badge badge-draft", title: "Chỉ nhập tay được" }, `Đơn vị ${it.unit} chưa hỗ trợ`), it.conflicts.length > 0 && h("div", { class: "alert warn", style: "margin:6px 0 0" }, `Sheet đã đổi giá kể từ khi ghi đè — ${conflicts}. Giá đang bán vẫn là giá ghi đè.`)),
     h("td", { class: "nhom-o" }, tenNhomCua(it)),
-    h("td", { class: "muted" }, it.unit),
+    h("td", { class: "muted" }, unitLabel(it.unit)),
     ...PAX_ORDER.map((c) => priceCell(it, c)),
     h(
       "td",
       { class: "row-actions" },
       btn("Sửa giá", () => openEdit(it)),
+      duocSuaDuaDon && nutDuaDon(btn("Đưa đón", () => moDuaDon(it, nutDuaDonCua(it.code, "bang"))), it.code, "bang"),
       it.conflicts.length > 0 && btn("Giữ ghi đè", () => update(`/api/catalog/${encodeURIComponent(it.code)}/ack`, { method: "POST" })),
       it.overridden.length > 0 && btn("Bỏ ghi đè", () => confirm(`Quay ${it.code} về giá theo Sheet?`) && update(`/api/catalog/${encodeURIComponent(it.code)}/override`, { method: "DELETE" })),
       btn(it.hidden ? "Hiện lại" : "Ẩn", () => update(`/api/catalog/${encodeURIComponent(it.code)}`, { method: "PATCH", body: { hidden: !it.hidden } }), it.hidden ? "btn btn-link" : "btn btn-link danger"),
@@ -135,8 +146,8 @@ function card(it: CatalogAdminItem): HTMLElement {
   return h(
     "div",
     { class: it.hidden || !it.inSheet ? "card card-col row-off" : "card card-col", "data-code": it.code },
-    h("div", { class: "the-dau" }, oChon(it), h("span", { class: "muted" }, it.code, " · ", it.unit)),
-    h("div", null, h("strong", null, it.name), it.hidden && h("span", { class: "badge badge-cancelled" }, " Đã ẩn"), !it.inSheet && h("span", { class: "badge badge-draft" }, " Không còn trong Sheet"), !it.supported && h("span", { class: "badge badge-draft", title: "Chỉ nhập tay được" }, ` Đơn vị ${it.unit} chưa hỗ trợ`)),
+    h("div", { class: "the-dau" }, oChon(it), h("span", { class: "muted" }, it.code, " · ", unitLabel(it.unit))),
+    h("div", { class: "dd-ten-dong" }, h("strong", null, it.name), chipDuaDon(it), it.hidden && h("span", { class: "badge badge-cancelled" }, " Đã ẩn"), !it.inSheet && h("span", { class: "badge badge-draft" }, " Không còn trong Sheet"), !it.supported && h("span", { class: "badge badge-draft", title: "Chỉ nhập tay được" }, ` Đơn vị ${it.unit} chưa hỗ trợ`)),
     h("div", { class: "nhom-o muted" }, `Nhóm: ${tenNhomCua(it)}`),
     h("div", null, priceLine(it), it.overridden.length > 0 && h("span", { class: "mark", style: "color:var(--c-accent);font-weight:700", title: "Có giá ghi đè" }, " ✎")),
     it.conflicts.length > 0 && h("div", { class: "alert warn" }, `Sheet đã đổi giá kể từ khi ghi đè — ${conflicts}. Giá đang bán vẫn là giá ghi đè.`),
@@ -144,6 +155,7 @@ function card(it: CatalogAdminItem): HTMLElement {
       "div",
       { style: "display:flex;flex-wrap:wrap;gap:var(--s2);margin-top:var(--s1)" },
       btn("Sửa giá", () => openEdit(it)),
+      duocSuaDuaDon && nutDuaDon(btn("Đưa đón", () => moDuaDon(it, nutDuaDonCua(it.code, "the"))), it.code, "the"),
       it.conflicts.length > 0 && btn("Giữ ghi đè", () => update(`/api/catalog/${encodeURIComponent(it.code)}/ack`, { method: "POST" })),
       it.overridden.length > 0 && btn("Bỏ ghi đè", () => confirm(`Quay ${it.code} về giá theo Sheet?`) && update(`/api/catalog/${encodeURIComponent(it.code)}/override`, { method: "DELETE" })),
       btn(it.hidden ? "Hiện lại" : "Ẩn", () => update(`/api/catalog/${encodeURIComponent(it.code)}`, { method: "PATCH", body: { hidden: !it.hidden } }), !it.hidden),
@@ -527,10 +539,194 @@ function renderNhomSua(khoi: HTMLElement, it: CatalogAdminItem): void {
   })();
 }
 
+// ---- Khung "Đưa đón" của một dịch vụ (bản vẽ M7). Máy tính (≥900px — cùng mốc bảng ↔ thẻ): khung ở đúng chỗ khung "Sửa giá" (#edit). Hẹp hơn: bảng trượt
+// dùng chung (web/bang-truot.ts). Mỗi lần lưu = MỘT BẢN ĐẦY ĐỦ (thân luôn mang đủ `mode`, `returnTimeHint`, `noiTraMacDinhId` — không dựa vào luật "khoá vắng =
+// chép" của máy chủ dành cho màn cũ). Cột "Người đổi": `createdBy` (id tài khoản) ghép tên qua `GET /api/staff` như lịch sử nhóm (`tenNguoi`).
+const rong = (): boolean => window.matchMedia("(min-width: 900px)").matches;
+const THU_TU_CHE_DO: CheDoDuaDon[] = ["NONE", "ONE_WAY", "ROUND_TRIP"];
+
+/** Chip chế độ ở dòng / thẻ dịch vụ: Hai chiều, Một chiều (nền xanh nhạt) / Không đưa đón (xám). Chưa tải được mẫu → không chip. */
+function chipDuaDon(it: CatalogAdminItem, boc?: string): HTMLElement | null {
+  if (mauChang === null) return null;
+  const mode = mauChang[it.code]?.mode;
+  const chip = h("span", { class: `chip ${mode && mode !== "NONE" ? "chip-unit" : "chip-muted"} dd-chip`, "data-dua-don-chip": it.code }, nhanCheDoCua(mode));
+  return boc ? h("div", { class: boc }, chip) : chip;
+}
+function nutDuaDon(b: HTMLButtonElement, code: string, noi: "bang" | "the"): HTMLButtonElement {
+  b.dataset.duaDon = code;
+  b.dataset.noi = noi;
+  return b;
+}
+const nutDuaDonCua = (code: string, noi: "bang" | "the"): HTMLElement | null =>
+  [...document.querySelectorAll<HTMLElement>("[data-dua-don]")].find((x) => x.dataset.duaDon === code && x.dataset.noi === noi) ?? null;
+
+/** Điểm danh mục ĐANG DÙNG cho ô "Nơi trả gợi ý" ("Tên · loại" như bản vẽ) — tải một lần khi mở khung đầu tiên. */
+let diemTra: Promise<Api.LocationDto[]> | null = null;
+const taiDiemTra = (): Promise<Api.LocationDto[]> =>
+  (diemTra ??= api<Api.LocationListResponse>("/api/locations")
+    .then((r) => r.locations.filter((l) => l.active).sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name, "vi"))));
+
+/** "1630" / "930" → "16:30" / "09:30" (bàn phím số của iPhone không có dấu hai chấm); chữ khác giữ nguyên để máy chủ báo lỗi bằng câu của nó. */
+function chuanGio(raw: string): string {
+  const v = raw.trim();
+  const m = /^(\d{1,2})(\d{2})$/.exec(v);
+  return m ? `${m[1]!.padStart(2, "0")}:${m[2]}` : v;
+}
+
+let luotDuaDon = 0;
+
+function moDuaDon(it: CatalogAdminItem, opener: HTMLElement | null): void {
+  const luot = ++luotDuaDon;
+  const mayTinh = rong();
+  let mode: CheDoDuaDon = mauChang?.[it.code]?.mode ?? "NONE";
+  const loi = h("div", { class: "alert", role: "alert", hidden: true });
+  const xong = h("p", { class: "dd-xong", role: "status" });
+  // Ba lựa chọn — radio thật (bàn phím, trình đọc màn hình), cả thẻ là vùng bấm.
+  const radio = new Map<CheDoDuaDon, HTMLInputElement>();
+  const theCheDo = THU_TU_CHE_DO.map((m) => {
+    const o = h("input", { type: "radio", name: `dd-che-do-${luot}`, value: m, "data-che-do": m });
+    radio.set(m, o);
+    o.addEventListener("change", () => {
+      if (!o.checked) return;
+      mode = m;
+      ve();
+    });
+    return h("label", { class: "dd-che-do" }, o, h("span", { class: "dd-che-do-cham", "aria-hidden": "true" }), h("span", null, CHE_DO_DUA_DON[m]));
+  });
+  const idNhom = `dd-nhom-${luot}`;
+  const oGio = h("input", { id: `dd-gio-${luot}`, type: "text", inputMode: "numeric", autocomplete: "off", placeholder: "Để trống nếu không có", "aria-describedby": `dd-gio-${luot}-goi-y` });
+  const oNoiTra = h("select", { id: `dd-tra-${luot}`, "aria-describedby": `dd-tra-${luot}-goi-y` }, h("option", { value: "" }, "Không gợi ý"));
+  const ghiNgung = h("p", { class: "muted dd-ghi", hidden: true });
+  const truongGio = h("div", { class: "dd-o" }, h("label", { for: oGio.id }, "Giờ về gợi ý"), oGio, h("div", { id: `dd-gio-${luot}-goi-y`, class: "dd-goi-y" }, "Chỉ dùng khi Hai chiều"));
+  const truongTra = h("div", { class: "dd-o" }, h("label", { for: oNoiTra.id }, "Nơi trả gợi ý"), oNoiTra, h("div", { id: `dd-tra-${luot}-goi-y`, class: "dd-goi-y" }, "Để trống nếu không gợi ý"), ghiNgung);
+  const apDung = h("p", { class: "dd-ghi muted" }, "Áp dụng cho đơn lập từ bây giờ; đơn đã có không đổi.");
+  const lichSuEl = h("div", { class: "dd-lich-su" }, h("p", { class: "muted" }, "Đang tải…"));
+  const luu = h("button", { type: "button", class: mayTinh ? "btn btn-primary" : "btn btn-primary dd-luu-day", "data-action": "dd-luu", disabled: true }, "Lưu bản mới");
+  function ve(): void {
+    for (const [m, o] of radio) {
+      o.checked = m === mode;
+      o.closest("label")!.classList.toggle("dd-chon", m === mode);
+    }
+    truongGio.hidden = mode !== "ROUND_TRIP";
+    truongTra.hidden = mode === "NONE";
+  }
+  let ten: ReadonlyMap<string, string> = new Map(); // tên người cho cột "Người đổi" — nạp cùng lúc với lịch sử
+  function veLichSu(r: Api.MauChangLichSuResponse): void {
+    const dong = dongLichSuMauChang(r.lichSu, ten);
+    if (dong.length === 0) {
+      replaceChildren(lichSuEl, h("h3", null, "Lịch sử"), h("p", { class: "muted" }, "Chưa có lần đổi nào."));
+      return;
+    }
+    replaceChildren(
+      lichSuEl,
+      h("h3", null, "Lịch sử"),
+      mayTinh
+        ? h("table", { class: "dd-bang-ls" }, h("thead", null, h("tr", null, h("th", null, "Lúc"), h("th", null, "Người đổi"), h("th", null, "Cũ → mới"))),
+          h("tbody", null, ...dong.map((d) => h("tr", null, h("td", { class: "dd-luc" }, d.luc), h("td", { class: "dd-ai" }, d.ai), h("td", null, d.doi)))))
+        : h("ul", { class: "dd-ds-ls" }, ...dong.map((d) => h("li", null, h("span", { class: "dd-luc" }, `${d.luc} · ${d.ai}`), h("span", { class: "dd-doi" }, d.doi)))),
+    );
+  }
+  const noiDung: HTMLElement[] = [
+    h("div", { class: "dd-nhom" }, h("span", { id: idNhom, class: "dd-nhan" }, "Khi lập đơn có dịch vụ này (chọn một)"), h("div", { class: "dd-che-do-ds", role: "radiogroup", "aria-labelledby": idNhom }, ...theCheDo)),
+    h("div", { class: "dd-o-luoi" }, truongGio, truongTra),
+  ];
+  ve();
+  luu.addEventListener("click", () => void guiLuu());
+  let bang: ReturnType<typeof moBangTruot> = null;
+  if (mayTinh) {
+    const dong = h("button", { type: "button", class: "btn", "data-action": "dd-dong" }, "Đóng");
+    dong.addEventListener("click", () => {
+      editEl.hidden = true;
+      opener?.focus();
+    });
+    replaceChildren(editEl, h("h2", null, `Đưa đón: ${it.code} — ${it.name}`), loi, ...noiDung, h("div", { class: "dd-hanh-dong" }, h("div", { class: "actions" }, luu, dong), apDung), xong, lichSuEl);
+    editEl.hidden = false;
+    editEl.scrollIntoView({ block: "nearest" });
+  } else {
+    bang = moBangTruot({ title: `Đưa đón: ${it.name}`, body: [loi, ...noiDung, apDung, xong, lichSuEl], foot: [luu], opener });
+    if (!bang) return;
+    bang.dialog.classList.add("dd-sheet");
+  }
+  const conMo = () => luot === luotDuaDon && (mayTinh ? !editEl.hidden : !!bang?.dialog.isConnected);
+  async function guiLuu(): Promise<void> {
+    showError(loi, null);
+    xong.textContent = "";
+    const gio = chuanGio(oGio.value);
+    const body = {
+      mode,
+      returnTimeHint: mode === "ROUND_TRIP" && gio !== "" ? gio : null,
+      noiTraMacDinhId: mode === "NONE" || oNoiTra.value === "" ? null : oNoiTra.value,
+    };
+    luu.disabled = true;
+    bang?.setBusy(true);
+    try {
+      const r = await api<Api.MauChangLichSuResponse>(`/api/van-chuyen/mau-chang/${encodeURIComponent(it.code)}`, { method: "POST", body });
+      capNhatMau(it.code, r);
+      if (!conMo()) return;
+      dien(r);
+      xong.textContent = "Đã lưu bản mới.";
+    } catch (err) {
+      if (conMo()) showError(loi, loiChu(err));
+    } finally {
+      bang?.setBusy(false);
+      luu.disabled = false;
+    }
+  }
+  function dien(r: Api.MauChangLichSuResponse): void {
+    const hien = r.hienHanh;
+    mode = hien?.mode ?? "NONE";
+    oGio.value = hien?.returnTimeHint ?? "";
+    const id = hien?.noiTraMacDinh?.dangDung ? hien.noiTraMacDinh.id : "";
+    oNoiTra.value = [...oNoiTra.options].some((o) => o.value === id) ? id : "";
+    const ngung = hien?.noiTraMacDinh && !hien.noiTraMacDinh.dangDung ? hien.noiTraMacDinh.ten : null;
+    ghiNgung.hidden = ngung === null;
+    ghiNgung.textContent = ngung === null ? "" : `Nơi trả gợi ý đang là “${ngung}” — điểm này đã ngưng dùng. Chọn điểm khác hoặc để trống.`;
+    ve();
+    veLichSu(r);
+  }
+  void (async () => {
+    try {
+      const [r, ds, tenDs] = await Promise.all([api<Api.MauChangLichSuResponse>(`/api/van-chuyen/mau-chang/${encodeURIComponent(it.code)}`), taiDiemTra(), tenNguoi]);
+      if (!conMo()) return;
+      ten = tenDs;
+      oNoiTra.append(...ds.map((l) => h("option", { value: l.id }, `${l.name} · ${l.locationTypeName.toLocaleLowerCase("vi")}`)));
+      dien(r);
+      luu.disabled = false;
+    } catch (err) {
+      diemTra = null;
+      if (conMo()) {
+        replaceChildren(lichSuEl);
+        showError(loi, `Chưa tải được mẫu đưa đón: ${loiChu(err)}`);
+      }
+    }
+  })();
+}
+
+/** Sau khi lưu: chip của dòng / thẻ đổi theo bản hiện hành (không tải lại cả danh mục). */
+function capNhatMau(code: string, r: Api.MauChangLichSuResponse): void {
+  if (mauChang === null) return;
+  const hien = r.hienHanh;
+  if (hien === null || hien.mode === "NONE") delete mauChang[code];
+  else mauChang[code] = { mode: hien.mode, returnTimeHint: hien.returnTimeHint, noiTraMacDinh: hien.noiTraMacDinh?.dangDung ? { id: hien.noiTraMacDinh.id, ten: hien.noiTraMacDinh.ten } : null };
+  for (const chip of document.querySelectorAll<HTMLElement>("[data-dua-don-chip]")) {
+    if (chip.dataset.duaDonChip !== code) continue;
+    const mode = mauChang[code]?.mode;
+    chip.textContent = nhanCheDoCua(mode);
+    chip.classList.toggle("chip-unit", !!mode && mode !== "NONE");
+    chip.classList.toggle("chip-muted", !mode || mode === "NONE");
+  }
+}
+
 async function load(): Promise<void> {
-  const r = await act(() => Promise.all([api<Api.CatalogAdminResponse>("/api/catalog/admin"), api<Api.CatalogGroupsResponse>("/api/catalog/groups")]));
+  const r = await act(() => Promise.all([
+    api<Api.CatalogAdminResponse>("/api/catalog/admin"),
+    api<Api.CatalogGroupsResponse>("/api/catalog/groups"),
+    // Chip chế độ đưa đón: lỗi riêng phần này không chặn danh mục — chỉ không vẽ chip.
+    duocSuaDuaDon ? api<Api.MauChangFormResponse>("/api/van-chuyen/mau-chang").then((x) => x.mauChang).catch(() => null) : Promise.resolve(null),
+  ]));
   if (!r) return;
-  const [dm, nh] = r;
+  const [dm, nh, mc] = r;
+  mauChang = mc;
   items = dm.items;
   sync = dm.sync;
   nhoms = [...nh.groups].sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name, "vi"));
@@ -569,6 +765,7 @@ filterEl.addEventListener("change", render);
 const staff = await initShell();
 if (!can(staff, "admin.manage")) showError(errorEl, "Chỉ quản trị viên được vào trang này.");
 else {
+  duocSuaDuaDon = can(staff, "admin.manage");
   tenNguoi = api<Api.StaffListResponse>("/api/staff")
     .then((r) => new Map(r.staff.map((s) => [s.id, s.fullName])))
     .catch(() => new Map<string, string>());

@@ -5,7 +5,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { ChangVao, ChinhSachVao, ChuyenVao, DiemVao, DieuKienVao, HangBangVao, KhungChuyen, SuatVao, TaiXeVao, XeVao } from "./dieu-phoi-kieu.ts";
-import { changXetTheoDon, khoaNguoiRanh, kiemKetThuc, kiemTaoSuaChuyen, kiemXep, kiemXuatBen, noiLechCuaSuat, suatKhachDaDoi, tenLucXep, trongNgayChay, type KiemTaoSuaChuyenVao, type KiemXuatBenVao } from "./dieu-phoi-kiem.ts";
+import { changXetTheoDon, khoaNguoiRanh, kiemKetThuc, lyDoNoiTra, lyDoThieuTen, kiemTaoSuaChuyen, kiemXep, kiemXuatBen, noiLechCuaSuat, suatKhachDaDoi, tenLucXep, trongNgayChay, type KiemTaoSuaChuyenVao, type KiemXuatBenVao } from "./dieu-phoi-kiem.ts";
 import { NUT_CAP_NHAT_KHACH, type LyDoGiu } from "./ly-do-giu.ts";
 import { batDauSomNhatSauDoiGio } from "./moc-toi-thieu.ts";
 import { vnLocalToMs } from "./vn-date.ts";
@@ -137,7 +137,7 @@ const CX = { id: "cx-07", ma: "CX-3009-07", trangThai: "PLANNED" as const, batDa
 const xep = (them: Parameters<typeof kiemXep>[0]["them"], v: Partial<Parameters<typeof kiemXep>[0]> = {}) => kiemXep({ chuyen: CX, them, chinhSach: CS, bayGioMs: HOM_TRUOC, ...v });
 
 test("kiemXep: xếp 4 người (2 có tên, 2 chưa tên) của chặng đã xác nhận vào xe 15 chỗ → đạt", () => {
-  assert.deepEqual(xep([{ chang: chang(), soSuatMoi: 4, personKeys: ["p1", "p2"], suatMoCuaChang: [] }]), { ok: true, chan: [], canPhaLe: [] });
+  assert.deepEqual(xep([{ chang: chang(), soSuatMoi: 4, personKeys: ["p1", "p2"], suatMoCuaChang: [] }]), { ok: true, chan: [], canPhaLe: [], canhBao: [] });
 });
 
 test("TC-17 kiemXep LC-09: đơn đã huỷ, đơn nháp, chặng đã bỏ → chặn; I13 chặng chưa có giờ → chặn", () => {
@@ -455,4 +455,56 @@ test("R-P29 kiemXuatBen: suất mang khoá không còn trong đơn → giữ KHA
   // Chuyến đang chạy → không giữ theo đơn (bản chốt đã trỏ dòng lúc xuất bến).
   assert.ok(!ma(kiemXuatBen(xb({ chuyen: chuyenVao({ trangThai: "RUNNING" }), chang: [chang({ nguoiCuaDon: ["p1", "p3", "p4", "p5"] })] })).lyDo).includes("KHACH_DA_DOI"));
   assert.equal(kiemXuatBen(xb()).dat, true, "khoá còn trong đơn → không giữ");
+});
+
+// ---- Cảnh báo sớm lúc xếp (lời chủ 1/10 "có cảnh báo sớm, chỉ cảnh báo, không chặn" — kế hoạch 2026-10-01-giao-dien-dua-don-hanh-khach.md) -------------
+test("kiemXep cảnh báo: chặng chưa có nơi trả / thiếu tên → XẾP ĐƯỢC (ok, không vào chan, không vào canPhaLe) và có canhBao đúng mã + câu", () => {
+  const khongNoiTra = xep([{ chang: chang({ coNoiTra: false, khoaNoiTra: null }), soSuatMoi: 4, personKeys: [], suatMoCuaChang: [] }]);
+  assert.equal(khongNoiTra.ok, true);
+  assert.deepEqual(khongNoiTra.chan, []);
+  assert.deepEqual(khongNoiTra.canPhaLe, []);
+  assert.deepEqual(khongNoiTra.canhBao.map((x) => `${x.ma}:${x.loiNhan}`), ["CHUA_CO_NOI_TRA:Chặng chưa có nơi trả: ĐH-1024"]);
+  const thieuTen = xep([{ chang: chang({ nguoiCuaDon: ["p1"] }), soSuatMoi: 4, personKeys: [], suatMoCuaChang: [] }]);
+  assert.equal(thieuTen.ok, true);
+  assert.deepEqual(thieuTen.canhBao.map((x) => `${x.ma}:${x.loiNhan}`), ["THIEU_TEN:Chưa đủ tên khách: ĐH-1024 thiếu 3 tên"]);
+  const ca2 = xep([{ chang: chang({ coNoiTra: false, khoaNoiTra: null, nguoiCuaDon: [] }), soSuatMoi: 2, personKeys: [], suatMoCuaChang: [] }]);
+  assert.deepEqual(ma(ca2.canhBao), ["CHUA_CO_NOI_TRA", "THIEU_TEN"]);
+  // Cùng nghĩa cổng xuất bến: chính sách KHÔNG bắt danh sách → không cảnh báo tên (xe vẫn chạy được); nơi trả vẫn cảnh báo.
+  assert.deepEqual(ma(xep([{ chang: chang({ coNoiTra: false, khoaNoiTra: null, nguoiCuaDon: [] }), soSuatMoi: 2, personKeys: [], suatMoCuaChang: [] }], { chinhSach: { ...CS, requireManifest: false } }).canhBao), ["CHUA_CO_NOI_TRA"]);
+  // Đủ nơi trả + đủ tên → không cảnh báo; cảnh báo không làm đổi chan của lệnh bị chặn.
+  assert.deepEqual(xep([{ chang: chang(), soSuatMoi: 1, personKeys: [], suatMoCuaChang: [] }]).canhBao, []);
+  const biChan = xep([{ chang: chang({ gioDon: null, coNoiTra: false, khoaNoiTra: null }), soSuatMoi: 1, personKeys: [], suatMoCuaChang: [] }]);
+  assert.deepEqual(ma(biChan.chan), ["CHUA_CO_GIO"]);
+  assert.deepEqual(ma(biChan.canhBao), ["CHUA_CO_NOI_TRA"]);
+});
+
+test("MỘT luật hai nơi: cảnh báo lúc xếp TRÙNG ĐÚNG lý do CHUA_CO_NOI_TRA / THIEU_TEN mà cổng xuất bến sẽ giữ cho cùng chặng sau khi xếp", () => {
+  const ca: [string, Partial<ChangVao>, { soSuat: number; personKeys: string[] }, ChinhSachVao][] = [
+    ["chưa có nơi trả, đủ tên", { coNoiTra: false, khoaNoiTra: null }, { soSuat: 4, personKeys: [] }, CS],
+    ["đủ nơi trả, đơn có 1 tên cho 4 người", { nguoiCuaDon: ["p1"] }, { soSuat: 4, personKeys: [] }, CS],
+    ["đơn chưa có tên nào, gửi kèm 0 khoá", { nguoiCuaDon: [] }, { soSuat: 4, personKeys: [] }, CS],
+    ["2 tên, gửi kèm 1 khoá, chưa nơi trả", { nguoiCuaDon: ["p1", "p2"], coNoiTra: false, khoaNoiTra: null }, { soSuat: 4, personKeys: ["p2"] }, CS],
+    ["thiếu tên nhưng chính sách không bắt danh sách", { nguoiCuaDon: ["p1"] }, { soSuat: 4, personKeys: [] }, { ...CS, requireManifest: false }],
+    ["đủ hết", {}, { soSuat: 4, personKeys: ["p1", "p2"] }, CS],
+  ];
+  const haiMa = (xs: LyDoGiu[]) => xs.filter((x) => x.ma === "CHUA_CO_NOI_TRA" || x.ma === "THIEU_TEN").map((x) => `${x.ma}:${x.loiNhan}`);
+  for (const [ten, c, lenh, cs] of ca) {
+    const ch = chang(c);
+    const kq = xep([{ chang: ch, soSuatMoi: lenh.soSuat, personKeys: lenh.personKeys, suatMoCuaChang: [] }], { chinhSach: cs });
+    assert.equal(kq.ok, true, ten);
+    // Trạng thái SAU khi xếp — đúng như route: tên gắn lúc xếp = tenLucXep(khoá gửi kèm + khoá rảnh).
+    const ranh = khoaNguoiRanh({ legId: ch.legId, nguoiCuaDon: ch.nguoiCuaDon, suatMoCuaChang: [] });
+    const sau = tenLucXep({ soSuat: lenh.soSuat, personKeys: lenh.personKeys, ranh }).map((p, i) => suat({ id: `m${i}`, personKey: p, alightStopId: ch.coNoiTra ? "d-9" : null }));
+    const xb2 = kiemXuatBen(xb({ chang: [ch], suat: sau, suatMoCuaChang: sau, chinhSach: cs }));
+    assert.deepEqual(haiMa(kq.canhBao), haiMa(xb2.lyDo), ten);
+  }
+});
+
+test("lyDoNoiTra / lyDoThieuTen — hai hàm dùng chung của cổng xuất bến và cảnh báo lúc xếp", () => {
+  assert.equal(lyDoNoiTra(chang()), null);
+  assert.deepEqual(lyDoNoiTra(chang({ coNoiTra: false })), { ma: "CHUA_CO_NOI_TRA", loiNhan: "Chặng chưa có nơi trả: ĐH-1024", aiXuLy: "VAN_PHONG" });
+  assert.equal(lyDoThieuTen(chang(), true), null);
+  assert.equal(lyDoThieuTen(chang({ nguoiCuaDon: [] }), false), null, "chính sách không bắt danh sách");
+  assert.equal(lyDoThieuTen(chang({ nguoiCuaDon: ["p1", "p2"] }), true)?.loiNhan, "Chưa đủ tên khách: ĐH-1024 thiếu 2 tên");
+  assert.equal(lyDoThieuTen(chang(), true, { chuaTen: 3, ranh: 1 })?.loiNhan, "Chưa đủ tên khách: ĐH-1024 thiếu 2 tên", "suất chưa tên trên chuyến nhiều hơn khoá rảnh");
 });

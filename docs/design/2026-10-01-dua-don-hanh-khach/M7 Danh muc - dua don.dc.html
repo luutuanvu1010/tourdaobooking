@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="_ds/tour-o-booking-design-system-34f284df-c97a-4672-bb66-d7df03a0d97a/styles.css">
+<script src="_ds/tour-o-booking-design-system-34f284df-c97a-4672-bb66-d7df03a0d97a/_ds_bundle.js"></script>
+<style>body{margin:0;background:#dfe7ee;font-family:var(--font);color:var(--c-text)}a{color:var(--c-primary)}a:hover{color:var(--c-primary-strong)}</style>
+</helmet>
+<section style="padding:var(--s7);display:flex;flex-direction:column;gap:var(--s5);">
+  <nav style="display:flex;flex-wrap:wrap;gap:var(--s2);font-size:var(--fs-label);font-weight:700;">
+    <a href="00 Muc luc va cau chu.dc.html">00 Mục lục &amp; câu chữ</a><span>·</span><a href="M1 Dua don - form don.dc.html">M1 Đưa đón trong form</a><span>·</span><a href="M2 Hanh khach - form don.dc.html">M2 Hành khách</a><span>·</span><a href="M3 Chi tiet don.dc.html">M3 Chi tiết đơn</a><span>·</span><a href="M4 Sua dua don.dc.html">M4 Sửa đưa đón</a><span>·</span><a href="M5 Sua danh sach hanh khach.dc.html">M5 Sửa danh sách</a><span>·</span><a href="M6 Dich vu hai chieu.dc.html">M6 Hai chiều</a><span>·</span><strong>M7 Danh mục</strong><span>·</span><a href="07 Bieu mau don - chang don.dc.html">07 (giữ nguyên)</a>
+  </nav>
+  <div style="display:flex;flex-direction:column;gap:var(--s2);max-width:900px;">
+    <h1 style="margin:0;font-family:var(--font-display);font-weight:800;font-size:28px;color:var(--c-primary);">M7 · Danh mục — ô “Đưa đón” của một dịch vụ (chỉ Quản trị, Toàn quyền)</h1>
+    <div style="font-size:15px;line-height:1.6;text-wrap:pretty;">Thêm nút “Đưa đón” cạnh “Sửa giá” và chip chế độ ở mỗi dòng. Máy tính: khung mở ở đúng chỗ khung “Sửa giá” (thẻ trên ô tìm). Điện thoại: bảng trượt từ đáy. Hai khung đã cuộn tới danh sách (bỏ qua thẻ đồng bộ Google Sheet và thẻ Nhóm dịch vụ, không đổi). Bảng ở 1040 vốn cuộn ngang trong app thật (chữ 16px) — khung vẽ chữ bảng 14px và xếp ba nút dọc để thấy đủ cột nút; giữ 16px khi làm thật. Bán hàng, Kế toán, Đối tác không vào được trang này. “Nơi trả gợi ý” chỉ có khi câu 2 = A (tắt ở Tweaks).</div>
+  </div>
+  <div style="display:flex;gap:var(--s6);flex-wrap:wrap;align-items:flex-start;">
+    <div id="M7-1040" style="display:flex;flex-direction:column;gap:var(--s3);">
+      <div style="font-size:var(--fs-label);font-weight:800;">M7 · 1040 · Quản trị · khung “Đưa đón” của Vé cáp treo Vinpearl</div>
+      <dc-import name="vo-may-tinh" role="admin" active="dv" crumb="Dịch vụ" height="1360px" hint-size="1040px,1360px">
+        <h1 style="margin:0;font-family:var(--font-display);color:var(--c-primary);font-size:1.5rem;">Danh mục dịch vụ &amp; giá</h1>
+        <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Card" title="Đưa đón: CT-VP-01 — Vé cáp treo Vinpearl" hint-size="100%,520px">
+          <div style="display:flex;flex-direction:column;gap:var(--s4);">
+            <div style="display:flex;flex-direction:column;gap:var(--s2);">
+              <span style="font-size:var(--fs-label);font-weight:600;color:var(--c-text-muted);">Khi lập đơn có dịch vụ này (chọn một)</span>
+              <div style="display:flex;flex-wrap:wrap;gap:var(--s2);">
+                <sc-for list="{{ cheDoA }}" as="o" hint-placeholder-count="3">
+                  <sc-if value="{{ o.chon }}" hint-placeholder-val="{{ false }}">
+                    <label style="position:relative;flex:1 1 150px;display:flex;align-items:center;gap:var(--s3);min-height:var(--row-h);padding:var(--s2) var(--s3);box-sizing:border-box;background:var(--c-primary-soft);border:1px solid var(--c-primary);border-radius:var(--radius-sm);cursor:pointer;">
+                      <input type="radio" name="che-do-a" checked="{{ true }}" onChange="{{ o.onChon }}" style="position:absolute;inset:0;width:100%;height:100%;margin:0;padding:0;opacity:0;cursor:pointer;">
+                      <span style="flex:none;width:var(--s5);height:var(--s5);box-sizing:border-box;border:var(--focus-ring) solid var(--c-primary);border-radius:50%;background:radial-gradient(circle, var(--c-primary) 45%, transparent 50%);"></span>
+                      <span style="font-weight:600;">{{ o.nhan }}</span>
+                    </label>
+                  </sc-if>
+                  <sc-if value="{{ o.khong }}" hint-placeholder-val="{{ true }}">
+                    <label style="position:relative;flex:1 1 150px;display:flex;align-items:center;gap:var(--s3);min-height:var(--row-h);padding:var(--s2) var(--s3);box-sizing:border-box;background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm);cursor:pointer;">
+                      <input type="radio" name="che-do-a" checked="{{ false }}" onChange="{{ o.onChon }}" style="position:absolute;inset:0;width:100%;height:100%;margin:0;padding:0;opacity:0;cursor:pointer;">
+                      <span style="flex:none;width:var(--s5);height:var(--s5);box-sizing:border-box;border:var(--focus-ring) solid var(--c-text-muted);border-radius:50%;background:var(--c-surface);"></span>
+                      <span>{{ o.nhan }}</span>
+                    </label>
+                  </sc-if>
+                </sc-for>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:var(--s3);">
+              <sc-if value="{{ haiA }}" hint-placeholder-val="{{ true }}">
+                <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Field" label="Giờ về gợi ý" input-mode="numeric" placeholder="Để trống nếu không có" default-value="16:30" hint="Chỉ dùng khi Hai chiều" hint-size="100%,96px"></x-import>
+              </sc-if>
+              <sc-if value="{{ traA }}" hint-placeholder-val="{{ true }}">
+                <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Field" as="select" label="Nơi trả gợi ý" options="{{ optTra }}" default-value="gacap" hint="Để trống nếu không gợi ý" hint-size="100%,96px"></x-import>
+              </sc-if>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:var(--s2);">
+              <div style="display:flex;flex-wrap:wrap;gap:var(--s3);">
+                <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="primary" dc-props="{{ nw }}" hint-size="140px,44px">Lưu bản mới</x-import>
+                <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" dc-props="{{ nw }}" hint-size="80px,44px">Đóng</x-import>
+              </div>
+              <span style="font-size:var(--fs-label);color:var(--c-text-muted);">Áp dụng cho đơn lập từ bây giờ; đơn đã có không đổi.</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:var(--s2);">
+              <h3 style="margin:0;font-family:var(--font-display);font-size:var(--fs-ui);color:var(--c-text);">Lịch sử</h3>
+              <table style="width:100%;border-collapse:collapse;font-size:var(--fs-label);">
+                <thead>
+                  <tr>
+                    <th style="padding:var(--s2);border-bottom:1px solid var(--c-border);text-align:left;font-weight:600;color:var(--c-text-muted);white-space:nowrap;">Lúc</th>
+                    <th style="padding:var(--s2);border-bottom:1px solid var(--c-border);text-align:left;font-weight:600;color:var(--c-text-muted);white-space:nowrap;">Người đổi</th>
+                    <th style="padding:var(--s2);border-bottom:1px solid var(--c-border);text-align:left;font-weight:600;color:var(--c-text-muted);">Cũ → mới</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <sc-for list="{{ lichSu }}" as="r" hint-placeholder-count="2">
+                    <tr>
+                      <td style="padding:var(--s2);border-bottom:1px solid var(--c-border);vertical-align:top;white-space:nowrap;font-variant-numeric:tabular-nums;">{{ r.luc }}</td>
+                      <td style="padding:var(--s2);border-bottom:1px solid var(--c-border);vertical-align:top;white-space:nowrap;">{{ r.ai }}</td>
+                      <td style="padding:var(--s2);border-bottom:1px solid var(--c-border);vertical-align:top;">{{ r.doi }}</td>
+                    </tr>
+                  </sc-for>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </x-import>
+        <div style="display:flex;gap:var(--s2);align-items:center;">
+          <div style="flex:1 1 220px;"><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Field" type="search" aria-label="Tìm dịch vụ" placeholder="Tìm theo mã hoặc tên dịch vụ…" hint-size="100%,48px"></x-import></div>
+          <div style="flex:0 0 220px;"><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Field" as="select" aria-label="Lọc" options="{{ optLoc }}" hint-size="100%,48px"></x-import></div>
+        </div>
+        <label style="display:flex;align-items:center;gap:var(--s2);min-height:var(--tap-min);font-size:var(--fs-label);cursor:pointer;"><input type="checkbox" style="width:18px;height:18px;margin:0;">Chọn tất cả đang hiện (4)</label>
+        <div style="overflow-x:auto;background:var(--c-card);border-radius:var(--radius-md);padding:var(--s4);">
+          <table style="width:100%;border-collapse:collapse;font-size:var(--fs-label);">
+            <thead>
+              <tr>
+                <th style="padding:var(--s2);border-bottom:1px solid var(--c-border);text-align:left;">Chọn</th>
+                <th style="padding:var(--s2);border-bottom:1px solid var(--c-border);text-align:left;">Mã</th>
+                <th style="padding:var(--s2);border-bottom:1px solid var(--c-border);text-align:left;">Dịch vụ</th>
+                <th style="padding:var(--s2);border-bottom:1px solid var(--c-border);text-align:left;">Nhóm</th>
+                <th style="padding:var(--s2);border-bottom:1px solid var(--c-border);text-align:left;">Đơn vị</th>
+                <th style="padding:var(--s2);border-bottom:1px solid var(--c-border);text-align:left;">Người lớn</th>
+                <th style="padding:var(--s2);border-bottom:1px solid var(--c-border);text-align:left;">Trẻ em</th>
+                <th style="padding:var(--s2);border-bottom:1px solid var(--c-border);text-align:left;">Người cao tuổi</th>
+                <th style="padding:var(--s2);border-bottom:1px solid var(--c-border);text-align:left;">Em bé</th>
+                <th style="padding:var(--s2);border-bottom:1px solid var(--c-border);"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <sc-for list="{{ dv }}" as="d" hint-placeholder-count="4">
+                <tr>
+                  <td style="padding:var(--s2);border-bottom:1px solid var(--c-border);vertical-align:top;"><label style="display:flex;align-items:center;justify-content:center;min-width:var(--tap-min);min-height:var(--tap-min);"><input type="checkbox" aria-label="{{ d.nhanChon }}" style="width:18px;height:18px;margin:0;"></label></td>
+                  <td style="padding:var(--s2);border-bottom:1px solid var(--c-border);vertical-align:top;white-space:nowrap;">{{ d.ma }}</td>
+                  <td style="padding:var(--s2);border-bottom:1px solid var(--c-border);vertical-align:top;"><div style="display:flex;flex-direction:column;align-items:flex-start;gap:var(--s1);"><span>{{ d.ten }}</span><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Chip" tone="{{ d.tone }}" hint-size="70px,18px">{{ d.cheDo }}</x-import></div></td>
+                  <td style="padding:var(--s2);border-bottom:1px solid var(--c-border);vertical-align:top;">{{ d.nhom }}</td>
+                  <td style="padding:var(--s2);border-bottom:1px solid var(--c-border);vertical-align:top;color:var(--c-text-muted);">{{ d.donVi }}</td>
+                  <td style="padding:var(--s2);border-bottom:1px solid var(--c-border);vertical-align:top;white-space:nowrap;">{{ d.nl }}</td>
+                  <td style="padding:var(--s2);border-bottom:1px solid var(--c-border);vertical-align:top;white-space:nowrap;">{{ d.te }}</td>
+                  <td style="padding:var(--s2);border-bottom:1px solid var(--c-border);vertical-align:top;color:var(--c-text-muted);">—</td>
+                  <td style="padding:var(--s2);border-bottom:1px solid var(--c-border);vertical-align:top;color:var(--c-text-muted);">—</td>
+                  <td style="padding:var(--s2);border-bottom:1px solid var(--c-border);vertical-align:top;text-align:right;">
+                    <div style="display:flex;flex-direction:column;align-items:flex-end;">
+                      <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="link" dc-props="{{ linkNut }}" hint-size="70px,44px">Sửa giá</x-import>
+                      <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="link" dc-props="{{ linkNut }}" hint-size="80px,44px">Đưa đón</x-import>
+                      <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="link" dc-props="{{ linkNguyHiem }}" hint-size="40px,44px">Ẩn</x-import>
+                    </div>
+                  </td>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table>
+        </div>
+      </dc-import>
+    </div>
+    <div id="M7-390" style="display:flex;flex-direction:column;gap:var(--s3);">
+      <div style="font-size:var(--fs-label);font-weight:800;">M7 · 390 · Quản trị · bảng trượt “Đưa đón” (kéo dài)</div>
+      <dc-import name="vo-dien-thoai" role="admin" title="Dịch vụ" back="{{ false }}" tab="dv" height="1240px" hint-size="390px,1240px">
+        <div style="padding:var(--s4);display:flex;flex-direction:column;gap:var(--s2);">
+          <sc-for list="{{ dv }}" as="d" hint-placeholder-count="4">
+            <div style="display:flex;flex-direction:column;gap:var(--s1);padding:var(--s4);background:var(--c-card);border-radius:var(--radius-md);">
+              <div style="display:flex;align-items:center;gap:var(--s2);"><label style="display:flex;align-items:center;justify-content:center;min-width:var(--tap-min);min-height:var(--tap-min);margin-left:calc(-1 * var(--s3));"><input type="checkbox" aria-label="{{ d.nhanChon }}" style="width:18px;height:18px;margin:0;"></label><span style="color:var(--c-text-muted);font-size:.9rem;">{{ d.ma }} · {{ d.donVi }}</span></div>
+              <div style="display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2);"><strong>{{ d.ten }}</strong><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Chip" tone="{{ d.tone }}" hint-size="70px,18px">{{ d.cheDo }}</x-import></div>
+              <div style="color:var(--c-text-muted);font-size:.9rem;">Nhóm: {{ d.nhom }}</div>
+              <div>{{ d.giaNgan }}</div>
+              <div style="display:flex;flex-wrap:wrap;gap:var(--s2);margin-top:var(--s1);">
+                <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="pill" dc-props="{{ nw }}" hint-size="80px,44px">Sửa giá</x-import>
+                <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="pill" dc-props="{{ nw }}" hint-size="90px,44px">Đưa đón</x-import>
+                <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="pill-danger" dc-props="{{ nw }}" hint-size="50px,44px">Ẩn</x-import>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;justify-content:flex-end;background:var(--c-scrim);">
+          <div style="background:var(--c-surface);border-radius:var(--radius-lg) var(--radius-lg) 0 0;overflow:hidden;padding-bottom:34px;">
+            <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Sheet" inline="{{ true }}" title="Đưa đón: Vé cáp treo Vinpearl" footer="{{ footer }}" on-close="{{ noop }}" hint-size="390px,900px">
+              <div style="display:flex;flex-direction:column;gap:var(--s4);">
+                <div style="display:flex;flex-direction:column;gap:var(--s2);">
+                  <span style="font-size:var(--fs-label);font-weight:600;color:var(--c-text-muted);">Khi lập đơn có dịch vụ này (chọn một)</span>
+                  <sc-for list="{{ cheDoB }}" as="o" hint-placeholder-count="3">
+                    <sc-if value="{{ o.chon }}" hint-placeholder-val="{{ false }}">
+                      <label style="position:relative;display:flex;align-items:center;gap:var(--s3);min-height:var(--row-h);padding:var(--s2) var(--s3);box-sizing:border-box;background:var(--c-primary-soft);border:1px solid var(--c-primary);border-radius:var(--radius-sm);cursor:pointer;">
+                        <input type="radio" name="che-do-b" checked="{{ true }}" onChange="{{ o.onChon }}" style="position:absolute;inset:0;width:100%;height:100%;margin:0;padding:0;opacity:0;cursor:pointer;">
+                        <span style="flex:none;width:var(--s5);height:var(--s5);box-sizing:border-box;border:var(--focus-ring) solid var(--c-primary);border-radius:50%;background:radial-gradient(circle, var(--c-primary) 45%, transparent 50%);"></span>
+                        <span style="font-weight:600;">{{ o.nhan }}</span>
+                      </label>
+                    </sc-if>
+                    <sc-if value="{{ o.khong }}" hint-placeholder-val="{{ true }}">
+                      <label style="position:relative;display:flex;align-items:center;gap:var(--s3);min-height:var(--row-h);padding:var(--s2) var(--s3);box-sizing:border-box;background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm);cursor:pointer;">
+                        <input type="radio" name="che-do-b" checked="{{ false }}" onChange="{{ o.onChon }}" style="position:absolute;inset:0;width:100%;height:100%;margin:0;padding:0;opacity:0;cursor:pointer;">
+                        <span style="flex:none;width:var(--s5);height:var(--s5);box-sizing:border-box;border:var(--focus-ring) solid var(--c-text-muted);border-radius:50%;background:var(--c-surface);"></span>
+                        <span>{{ o.nhan }}</span>
+                      </label>
+                    </sc-if>
+                  </sc-for>
+                </div>
+                <sc-if value="{{ haiB }}" hint-placeholder-val="{{ true }}">
+                  <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Field" label="Giờ về gợi ý" input-mode="numeric" placeholder="Để trống nếu không có" default-value="16:30" hint="Chỉ dùng khi Hai chiều" hint-size="100%,96px"></x-import>
+                </sc-if>
+                <sc-if value="{{ traB }}" hint-placeholder-val="{{ true }}">
+                  <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Field" as="select" label="Nơi trả gợi ý" options="{{ optTra }}" default-value="gacap" hint="Để trống nếu không gợi ý" hint-size="100%,96px"></x-import>
+                </sc-if>
+                <span style="font-size:var(--fs-label);color:var(--c-text-muted);">Áp dụng cho đơn lập từ bây giờ; đơn đã có không đổi.</span>
+                <div style="display:flex;flex-direction:column;gap:var(--s2);">
+                  <h3 style="margin:0;font-family:var(--font-display);font-size:var(--fs-ui);color:var(--c-text);">Lịch sử</h3>
+                  <sc-for list="{{ lichSu }}" as="r" hint-placeholder-count="2">
+                    <div style="display:flex;flex-direction:column;gap:2px;padding:var(--s2) 0;border-bottom:1px solid var(--c-border);font-size:var(--fs-label);">
+                      <span style="color:var(--c-text-muted);">{{ r.luc }} · {{ r.ai }}</span>
+                      <span style="font-weight:600;">{{ r.doi }}</span>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </x-import>
+          </div>
+        </div>
+      </dc-import>
+    </div>
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;noiTraGoiY&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Câu 2 = A: có “Nơi trả gợi ý”&quot;}}">
+const CHE_DO = [
+  { v: 'khong', t: 'Không đưa đón' },
+  { v: 'mot', t: 'Một chiều' },
+  { v: 'hai', t: 'Hai chiều' },
+];
+const DIEM = [
+  ['muongthanh', 'Khách sạn Mường Thanh Luxury Nha Trang · khách sạn'],
+  ['sheraton', 'Khách sạn Sheraton Nha Trang · khách sạn'],
+  ['camranh', 'Sân bay Cam Ranh · sân bay'],
+  ['gacap', 'Ga cáp treo Vinpearl · ga cáp treo'],
+  ['caucda', 'Cảng Cầu Đá · bến cảng'],
+  ['benvp', 'Bến cảng Vinpearl · bến cảng'],
+  ['vanphong', 'Văn phòng Tour Đảo · văn phòng'],
+];
+
+class Component extends DCLogic {
+  state = { a: 'hai', b: 'hai' };
+  renderVals() {
+    const coTra = this.props.noiTraGoiY ?? true;
+    const NS = window.TourOBookingDesignSystem_34f284;
+    const h = React.createElement;
+    const ds = (k) => CHE_DO.map((o) => ({ nhan: o.t, chon: this.state[k] === o.v, khong: this.state[k] !== o.v, onChon: () => this.setState({ [k]: o.v }) }));
+    return {
+      cheDoA: ds('a'), cheDoB: ds('b'),
+      haiA: this.state.a === 'hai', haiB: this.state.b === 'hai',
+      traA: coTra && this.state.a !== 'khong', traB: coTra && this.state.b !== 'khong',
+      optTra: [{ value: '', label: 'Không gợi ý' }, ...DIEM.map(([value, label]) => ({ value, label }))],
+      optLoc: ['Tất cả', 'Đang ghi đè giá', 'Sheet đã đổi giá (cần xem)', 'Đã ẩn', 'Không còn trong Sheet'],
+      lichSu: [
+        { luc: '30/09/2026 09:12', ai: 'Phạm Thu Hoa', doi: 'Một chiều → Hai chiều, giờ về 16:30' },
+        { luc: '12/09/2026 14:30', ai: 'Phạm Thu Hoa', doi: coTra ? 'Không đưa đón → Một chiều, nơi trả gợi ý Ga cáp treo Vinpearl' : 'Không đưa đón → Một chiều' },
+      ],
+      dv: [
+        { ma: 'CT-VP-01', ten: 'Vé cáp treo Vinpearl', cheDo: 'Hai chiều', tone: 'unit', nhom: 'Vé tham quan', donVi: 'khách', nl: '950.000 ₫', te: '550.000 ₫', giaNgan: 'NL 950.000 · TE 550.000', nhanChon: 'Chọn CT-VP-01' },
+        { ma: 'TD-4D-01', ten: 'Tour 4 đảo', cheDo: 'Một chiều', tone: 'unit', nhom: 'Tour đảo', donVi: 'khách', nl: '650.000 ₫', te: '450.000 ₫', giaNgan: 'NL 650.000 · TE 450.000', nhanChon: 'Chọn TD-4D-01' },
+        { ma: 'DD-SB-01', ten: 'Đưa đón sân bay', cheDo: 'Một chiều', tone: 'unit', nhom: 'Đưa đón', donVi: 'lượt', nl: '350.000 ₫', te: '—', giaNgan: 'NL 350.000', nhanChon: 'Chọn DD-SB-01' },
+        { ma: 'MT-01', ten: 'Thuê mô tô', cheDo: 'Không đưa đón', tone: 'muted', nhom: 'Thuê xe', donVi: 'xe', nl: '150.000 ₫', te: '—', giaNgan: 'NL 150.000', nhanChon: 'Chọn MT-01' },
+      ],
+      nw: { style: { whiteSpace: 'nowrap' } },
+      linkNut: { style: { minHeight: 'var(--tap-min)', padding: '4px 6px', whiteSpace: 'nowrap' } },
+      linkNguyHiem: { style: { minHeight: 'var(--tap-min)', padding: '4px 6px', whiteSpace: 'nowrap', color: 'var(--c-danger)' } },
+      noop: () => {},
+      footer: NS ? h(NS.Button, { variant: 'primary', block: true }, 'Lưu bản mới') : null,
+    };
+  }
+}
+</script>
+</body>
+</html>

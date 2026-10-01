@@ -2,13 +2,18 @@
 // Trang chỉ NỐI: luật ở src/shared (service-form, trip-form, order-errors), DOM ở các khối web/ (service-card, catalog-picker, banner).
 import { mayPickHandlerOnCreate } from "../src/shared/assignee-pick";
 import type { SuKienDon } from "../src/shared/bang-tin";
-import type { AssigneeDto, CatalogServiceDto, LegDto } from "../src/shared/contracts";
-import { canhBaoChangForm, datGapGiuTrenForm } from "../src/shared/dat-gap-hien-thi";
-import type { LyDoDatGap } from "../src/shared/chang-dua-don";
+import type { AssigneeDto, CatalogServiceDto } from "../src/shared/contracts";
+import { canhBaoChangForm } from "../src/shared/dat-gap-hien-thi";
+import { CHIEU_LABEL, type LyDoDatGap } from "../src/shared/chang-dua-don";
+import { cauDoiNgay, changTaoSan, doiNgayDi, giuDatGapNhap, type ChangNhap } from "../src/shared/chang-form";
+import type { MauChang } from "../src/shared/chang-mac-dinh";
+import { dongTuDto, loiDanhSachKhach, passengersNhap, type DongKhach } from "../src/shared/hanh-khach-form";
+import { soKhachDoan } from "../src/shared/hanh-khach";
+import { suaChuyenDuoc, suaKhachDuoc } from "../src/shared/order-view";
 import { NETWORK_BANNER, banner, classifyOrderError, type Banner } from "../src/shared/order-errors";
 import { can, holdsPartner } from "../src/shared/permissions";
 import {
-  canAddService, draftFromDto, draftIssues, newCatalogDraft, newManualDraft, orderIssues, orderSummary, refreshFromCatalog, toServiceInput, totalLines,
+  canAddService, draftFromDto, draftIssues, soKhachNhap, newCatalogDraft, newManualDraft, orderIssues, orderSummary, refreshFromCatalog, toServiceInput, totalLines,
   type ServiceDraft,
 } from "../src/shared/service-form";
 import { MAX_LINES_PER_ORDER, MAX_SERVICES } from "../src/shared/trip-rules";
@@ -25,6 +30,8 @@ import { regroupMoney } from "./money-input";
 import { createServiceCard, type ServiceCard } from "./service-card";
 import { hienBaoNgan } from "./toast";
 import { khoiCanhBaoMoc, khoiNhanDatGap } from "./dat-gap-ui";
+import type { DiemChon } from "./khoi-dua-don";
+import { taoKhoiHanhKhach, type KhoiHanhKhach } from "./khoi-hanh-khach";
 import { goiSom } from "./goi-som";
 import { icon } from "./icons";
 import { layKhungNho } from "./khung-nho";
@@ -55,10 +62,12 @@ byId("booker-slot").append(bookerPicker.root);
 interface Entry {
   draft: ServiceDraft;
   card: ServiceCard;
-  /** ADR-0049 V12: chỗ của nhãn đặt gấp / dải cảnh báo dưới mốc, cuối thẻ dịch vụ (dưới "Thông tin chuyến"). */
+  /** ADR-0049 V12: chỗ của nhãn đặt gấp / dải cảnh báo dưới mốc của TỪNG chặng, cuối thẻ dịch vụ (dưới "Thông tin chuyến"). */
   mocEl: HTMLElement;
-  /** Dải cảnh báo đang hiện (giữ lại giữa các lần gõ để khung "Đặt gấp" đang mở không mất chữ); null = không cảnh báo. */
-  canhBao: { datCau(cau: string): void; root: HTMLElement } | null;
+  /** Dải cảnh báo đang hiện theo khoá chặng (giữ lại giữa các lần gõ để khung "Đặt gấp" đang mở không mất chữ). */
+  canhBao: Map<string, { datCau(cau: string): void; root: HTMLElement }>;
+  /** Chữ ký nội dung `mocEl` lần vẽ trước — chỉ dựng lại khi đổi (không cướp focus của khung "Đặt gấp"). */
+  mocKy: string;
 }
 const entries: Entry[] = [];
 let seq = 0;
@@ -72,8 +81,20 @@ let saving = false;
 // Người có ô order.leg.short_notice (Quản trị, Toàn quyền) có nút "Đặt gấp": "Duyệt đặt gấp" = LƯU NHÁP rồi gọi lệnh đặt gấp cho chặng chiều đi của dịch vụ đó.
 let mocPhut: number | null = null;
 let duocDatGap = false;
-/** Sửa đơn nháp: chặng chiều đi SỚM NHẤT đã lưu của từng dịch vụ (chặng mà ô giờ / nơi đón của thẻ ghi vào — `tronChangCu`) — để biết dấu đặt gấp có giữ không. */
-const changCu = new Map<string, LegDto>();
+// ---- khối Đưa đón + Hành khách (ADR-0047 Phần B; bản vẽ docs/design/2026-10-01-dua-don-hanh-khach M1, M2, M6) ----
+/** Điểm danh mục đang dùng (GET /api/locations, cổng staff) cho ô Nơi đón / Nơi trả. Lỗi → rỗng (vẫn gõ tự do được). */
+let diem: DiemChon[] = [];
+/** Mẫu chặng hiện hành theo mã dịch vụ (GET /api/van-chuyen/mau-chang — chỉ người lập đơn). Lỗi → không tạo sẵn chặng. */
+let mauChang = new Map<string, MauChang>();
+/** Văn phòng (ô `order.trip.edit`) sửa / gửi "Số người chiều về"; Đối tác, Thực tập chỉ xem (gửi khoá này sẽ bị 403). Đặt trước khi dựng thẻ. */
+let suaSoVe = false;
+const newKey = () => `k${++seq}`;
+const mauCua = (d: ServiceDraft): MauChang | null => (d.kind === "catalog" ? (mauChang.get(d.code) ?? null) : null);
+const hkCard = byId("hk-card");
+const dateMovedEl = byId("orderDate-moved");
+/** Khối hành khách; null = không dựng (không có ô order.passenger.write, hoặc sửa nháp mà không tải được danh sách — khi đó KHÔNG gửi khoá `passengers`). */
+let hk: KhoiHanhKhach | null = null;
+const wideQuery = window.matchMedia("(min-width: 960px)");
 
 const drafts = () => entries.map((e) => e.draft);
 const nameOf = (d: ServiceDraft, i: number) => d.name.trim() || `Dịch vụ ${i + 1}`;
@@ -84,18 +105,25 @@ const nameOf = (d: ServiceDraft, i: number) => d.name.trim() || `Dịch vụ ${i
 let orderDate = "";
 const withOrderDate = <D extends ServiceDraft>(d: D): D => ({ ...d, trip: { ...d.trip, departDate: orderDate } });
 orderDateEl.addEventListener("input", () => {
+  const cu = orderDate;
   orderDate = orderDateEl.value;
+  let soDoi = 0;
   for (const en of entries) {
-    en.draft = withOrderDate(en.draft);
+    const r = doiNgayDi(en.draft.legs, cu, orderDate); // dời ngày đón mọi chặng cùng số ngày (Ruling R4e)
+    soDoi += r.soDoi;
+    en.draft = { ...withOrderDate(en.draft), legs: r.legs };
     en.card.update(en.draft);
   }
+  dateMovedEl.textContent = soDoi > 0 ? cauDoiNgay(soDoi) : "";
+  dateMovedEl.hidden = soDoi === 0;
   recompute();
 });
 
 // ---- ô chọn danh mục và danh sách thẻ ----
 const picker = createCatalogPicker({
   onPick: (item) => {
-    const entry = mount(withOrderDate(newCatalogDraft(item, `k${++seq}`)));
+    const tao = changTaoSan(mauChang.get(item.code) ?? null, orderDate, newKey); // M6: dịch vụ có mẫu Một / Hai chiều → tạo sẵn chặng (sửa / bỏ được)
+    const entry = mount({ ...withOrderDate(newCatalogDraft(item, newKey())), legs: tao.legs, taoSan: tao.taoSan });
     entry.card.root.scrollIntoView({ block: "nearest" });
     hienBaoNgan(`Đã thêm ${item.name} — đơn có ${entries.length} dịch vụ`); // bản 1.39: sau khi chọn, ô tìm đóng và thẻ mới ở cuối — báo ngắn để biết đã thêm
   },
@@ -109,7 +137,7 @@ let retailOnly = false;
 let duocNhapTay = false;
 
 function mount(d: ServiceDraft, open?: boolean): Entry {
-  const entry = { draft: d, mocEl: h("div", { class: "dg-form-slot" }), canhBao: null as Entry["canhBao"] } as Omit<Entry, "card"> as Entry;
+  const entry = { draft: d, mocEl: h("div", { class: "dg-form-slot" }), canhBao: new Map(), mocKy: "" } as Omit<Entry, "card"> as Entry;
   entry.card = createServiceCard({
     draft: d,
     today,
@@ -117,6 +145,7 @@ function mount(d: ServiceDraft, open?: boolean): Entry {
     canAddLine: () => totalLines(drafts()) < MAX_LINES_PER_ORDER,
     retailOnly,
     duocNhapTay,
+    duaDon: { ngayDi: () => orderDate, mau: () => mauCua(entry.draft), diem: () => diem, suaSoVe, newKey },
     onChange: (next) => {
       entry.draft = next;
       recompute();
@@ -134,27 +163,38 @@ function mount(d: ServiceDraft, open?: boolean): Entry {
   return entry;
 }
 
-/** Nhãn đặt gấp (dấu còn giữ khi lưu lại) hoặc dải cảnh báo dưới mốc của một thẻ; không có gì → trống. */
+/**
+ * Nhãn đặt gấp (dấu còn giữ khi lưu lại) hoặc dải cảnh báo dưới mốc của TỪNG chặng của một thẻ (bản vẽ 07 ghép M1 hàng 1f); không có gì → trống.
+ * Giờ đón nay ở chặng (ADR-0047 Phần B) — mỗi chặng có giờ xét mốc riêng; "Duyệt đặt gấp" = lưu nháp rồi đặt gấp ĐÚNG chặng đó.
+ */
 function capNhatMoc(entry: Entry): void {
   const d = entry.draft;
-  const cu = d.id ? changCu.get(d.id) : undefined;
-  const giu = datGapGiuTrenForm(cu, { departDate: orderDate, pickupTime: d.trip.pickupTime, pickupPlace: d.trip.pickupPlace });
-  if (giu && cu?.datGap) {
-    entry.canhBao = null;
-    replaceChildren(entry.mocEl, khoiNhanDatGap(cu.datGap));
-    return;
-  }
-  const cau = canhBaoChangForm({ ngayDon: orderDate, gioDon: d.trip.pickupTime, datGap: false }, mocPhut, Date.now());
-  if (!cau) {
-    entry.canhBao = null;
-    replaceChildren(entry.mocEl);
-    return;
-  }
-  if (entry.canhBao) entry.canhBao.datCau(cau);
-  else {
-    entry.canhBao = khoiCanhBaoMoc({ cau, duocDatGap, onDuyet: (than) => luu({ entry, than }) });
-    replaceChildren(entry.mocEl, entry.canhBao.root);
-  }
+  const khoi: { ky: string; el: () => HTMLElement }[] = [];
+  const conKhoa = new Set<string>();
+  d.legs.forEach((l, i) => {
+    const dau = () => h("div", { class: "dg-chang-dau" }, h("span", { class: "chip chip-unit" }, CHIEU_LABEL[l.direction]), h("span", { class: "dd-chang-so" }, `Chặng ${i + 1}`));
+    if (giuDatGapNhap(l) && l.goc?.datGap) {
+      const dg = l.goc.datGap;
+      khoi.push({ ky: `${l.key}:giu:${i}`, el: () => h("div", { class: "dg-leg", "data-leg-key": l.key }, dau(), khoiNhanDatGap(dg)) });
+      return;
+    }
+    const cau = canhBaoChangForm({ ngayDon: l.pickupDate || orderDate, gioDon: l.pickupTime, datGap: false }, mocPhut, Date.now());
+    if (!cau) return;
+    conKhoa.add(l.key);
+    let w = entry.canhBao.get(l.key);
+    if (w) w.datCau(cau);
+    else {
+      w = khoiCanhBaoMoc({ cau, duocDatGap, onDuyet: (than) => luu({ entry, legKey: l.key, than }) });
+      entry.canhBao.set(l.key, w);
+    }
+    const widget = w;
+    khoi.push({ ky: `${l.key}:moc:${i}`, el: () => h("div", { class: "dg-leg", "data-leg-key": l.key }, dau(), widget.root) });
+  });
+  for (const k of [...entry.canhBao.keys()]) if (!conKhoa.has(k)) entry.canhBao.delete(k);
+  const ky = khoi.map((x) => x.ky).join("|");
+  if (ky === entry.mocKy) return;
+  entry.mocKy = ky;
+  replaceChildren(entry.mocEl, ...khoi.map((x) => x.el()));
 }
 
 function unmount(entry: Entry): void {
@@ -164,7 +204,7 @@ function unmount(entry: Entry): void {
 }
 
 addManualBtn.addEventListener("click", () => {
-  const entry = mount(withOrderDate(newManualDraft(`k${++seq}`)));
+  const entry = mount(withOrderDate(newManualDraft(newKey())));
   entry.card.root.scrollIntoView({ block: "nearest" });
 });
 
@@ -244,6 +284,7 @@ function recompute(): void {
   limitEl.textContent = full ? `Đơn đã đủ ${MAX_SERVICES} dịch vụ — không thêm được nữa.` : "";
   for (const e of entries) e.card.refreshLimits(); // trần 50 dòng tính trên CẢ ĐƠN: nút "+ Thêm dòng" của mọi thẻ nhập tay bật/khoá đúng ngay
   for (const e of entries) capNhatMoc(e);
+  hk?.refresh(); // mẫu số "N/M khách đã có tên" theo số khách dịch vụ
   const tooMany = ds.some((d) => draftIssues(d).some((i) => i.code === "too_many_guests")); // vượt 50 khách khoá nút Lưu (đặc tả 5.1)
   saveBtn.disabled = formLocked || saving || tooMany;
   saveBtn.textContent = saving ? "Đang lưu…" : editId ? "Lưu thay đổi" : "Lưu, chờ xác nhận";
@@ -276,6 +317,11 @@ function validate(): { banner: Banner; focus: HTMLElement } | null {
     }
   });
   lines.push(...orderIssues(drafts()));
+  if (hk) {
+    const loiKhach = loiDanhSachKhach(hk.rows(), today);
+    lines.push(...loiKhach);
+    if (loiKhach.length) focusables.push(hkCard);
+  }
   if (new Set(entries.map((e) => e.draft.trip.departDate)).size > 1) {
     lines.push("Các dịch vụ đang khác ngày — chọn một ngày cho cả đơn.");
     focusables.push(orderDateEl);
@@ -298,7 +344,9 @@ function collect(): OrderInput {
     customerPhone: field("customerPhone").value,
     customerEmail: field("customerEmail").value,
     customerNote: field("customerNote").value,
-    services: entries.map((e) => toServiceInput(e.draft)),
+    services: entries.map((e) => toServiceInput(e.draft, suaSoVe)),
+    // ADR-0047 R1: khoá `passengers` CHỈ khi khối hành khách đang dựng (có ô + đã tải được danh sách) — vắng = máy chủ giữ danh sách đang lưu.
+    ...(hk ? { passengers: passengersNhap(hk.rows()) } : {}),
     discount: num("discount"),
     paymentNote: field("paymentNote").value,
     ...bookerPicker.payload(),
@@ -372,11 +420,12 @@ formEl.addEventListener("submit", (e) => {
  * Lưu đơn nháp. `datGap` (ADR-0049 R-P15 — nút "Duyệt đặt gấp" của Quản trị trên thẻ): lưu xong gọi lệnh đặt gấp cho chặng chiều đi của đúng dịch vụ đó (thứ tự
  * dịch vụ trong phản hồi = thứ tự thẻ). Lệnh đặt gấp hỏng thì đơn VẪN đã lưu → vẫn chuyển sang trang đơn, kèm `datgap=loi` để trang đơn báo và cho duyệt lại.
  */
-async function luu(datGap?: { entry: Entry; than: { lyDo: LyDoDatGap; ghiChu: string | null } }): Promise<void> {
+async function luu(datGap?: { entry: Entry; legKey: string; than: { lyDo: LyDoDatGap; ghiChu: string | null } }): Promise<void> {
   if (formLocked || saving) return;
   renderBanner(saveErrorEl, null);
   assigneeErrorShown = false;
   for (const en of entries) en.card.showIssues(true);
+  hk?.showIssues(true);
   const invalid = validate();
   if (invalid) {
     renderBanner(saveErrorEl, invalid.banner);
@@ -395,7 +444,7 @@ async function luu(datGap?: { entry: Entry; than: { lyDo: LyDoDatGap; ghiChu: st
       : await api<Api.OrderResponse>("/api/orders", { method: "POST", body: collect() });
     let datGapLoi = "";
     if (datGap) {
-      const chang = order.services[entries.indexOf(datGap.entry)]?.legs.filter((l) => l.direction === "OUT").sort((a, b) => `${a.pickupDate} ${a.pickupTime}`.localeCompare(`${b.pickupDate} ${b.pickupTime}`))[0];
+      const chang = changDaLuu(order.services[entries.indexOf(datGap.entry)]?.legs ?? [], datGap.entry.draft.legs, datGap.legKey);
       try {
         if (!chang) throw new Error("không thấy chặng");
         await api(`/api/orders/${encodeURIComponent(order.id)}/legs/${encodeURIComponent(chang.id)}/short-notice`, { method: "POST", body: datGap.than });
@@ -424,6 +473,18 @@ async function luu(datGap?: { entry: Entry; than: { lyDo: LyDoDatGap; ghiChu: st
     setSaving(false);
     await onSaveError(err);
   }
+}
+
+/**
+ * Chặng ĐÃ LƯU ứng với chặng `legKey` của thẻ (sau lưu nháp, chặng mới mới có id): cùng id nếu chặng đã có id; chặng mới → chặng đã lưu chưa có trong thẻ, cùng
+ * chiều, ngày (trống = ngày đi), giờ — lấy cái đầu.
+ */
+function changDaLuu(saved: readonly Api.LegDto[], draftLegs: readonly ChangNhap[], legKey: string): Api.LegDto | undefined {
+  const l = draftLegs.find((x) => x.key === legKey);
+  if (!l) return undefined;
+  if (l.id) return saved.find((x) => x.id === l.id);
+  const cu = new Set(draftLegs.flatMap((x) => (x.id ? [x.id] : [])));
+  return saved.find((x) => !cu.has(x.id) && x.direction === l.direction && (x.pickupDate ?? "") === (l.pickupDate || orderDate) && (x.pickupTime ?? "") === l.pickupTime);
 }
 
 // Sau khi lưu thành công `saving` không bao giờ về false (trang sắp bị thay). iOS đưa trang này vào bộ nhớ đệm (bfcache) và KHÔI PHỤC nguyên trạng khi người dùng vuốt Back từ /order
@@ -463,13 +524,8 @@ function fill(o: Api.OrderDetailDto): void {
   field("paymentNote").value = o.paymentNote ?? "";
   for (const en of [...entries]) unmount(en);
   orderUpdatedAt = o.updatedAt;
-  changCu.clear();
   for (const s of o.services) {
-    const dau = s.legs.filter((l) => l.direction === "OUT").sort((a, b) => `${a.pickupDate} ${a.pickupTime}`.localeCompare(`${b.pickupDate} ${b.pickupTime}`))[0];
-    if (dau) changCu.set(s.id, dau);
-  }
-  for (const s of o.services) {
-    const entry = mount(draftFromDto(s, live, `k${++seq}`), s.id === focusId ? true : undefined);
+    const entry = mount(draftFromDto(s, live, newKey()), s.id === focusId ? true : undefined);
     if (s.id === focusId) entry.card.reveal(); // liên kết "Sửa" của banner incomplete_trip: mở khối chuyến và cuộn tới thẻ
   }
   // Đơn cũ (trước ADR-0021) có thể mỗi dịch vụ một ngày: khi đó ô để trống và Lưu báo "chọn một ngày cho cả đơn" (không đoán hộ).
@@ -489,10 +545,47 @@ async function loadOrder(): Promise<void> {
     if (order.status !== "draft") return lockForm(banner("danger", "Chỉ sửa được đơn đang chờ xác nhận."));
     byId("form-title").textContent = `Sửa đơn ${order.orderCode}`;
     setBarTitle(`Sửa đơn ${order.orderCode}`);
+    suaSoVe = suaChuyenDuoc(staff, order.staffId, canModify); // trước fill: thẻ dựng ô "Số người chiều về" theo cờ này
     fill(order);
+    // Hành khách của nháp: chỉ người có ô order.passenger.write; tải hỏng → KHÔNG dựng khối và KHÔNG gửi khoá `passengers` (máy chủ giữ danh sách đang lưu —
+    // không bao giờ gửi [] khi chưa biết danh sách thật).
+    // Tải lại đơn (sau 409 stale): bỏ khối cũ TRƯỚC — tải danh sách hỏng thì không được gửi lại danh sách cũ đè lên bản người khác vừa sửa (R6).
+    hk = null;
+    hkCard.hidden = true;
+    if (suaKhachDuoc(staff, order.staffId, canModify)) {
+      try {
+        const ds = await api<Api.PassengerListResponse>(`/api/orders/${encodeURIComponent(order.id)}/passengers`);
+        dungKhoiKhach(ds.passengers.map((x) => dongTuDto(x, newKey(), false)));
+      } catch {
+        /* để trống khối: lưu nháp không đụng danh sách hành khách */
+      }
+    }
   } catch (err) {
     lockForm(banner("danger", err instanceof ApiError ? err.message : "Không tải được đơn."));
   }
+}
+
+/** Số khách của cả đoàn (mẫu số "N/M khách đã có tên") = số khách dịch vụ đông nhất (R9, cùng luật máy chủ `soKhachDoan`). */
+const soKhachForm = (): number => soKhachDoan(drafts().map((d) => (d.kind === "catalog" ? d.pax : { adult: soKhachNhap(d), child: 0, senior: 0, infant: 0 })));
+
+/** Dựng khối "Hành khách" (M2) ở `#hk-card`; máy tính (≥ 960px) dạng bảng trải hết bề ngang dưới hàng "thẻ dịch vụ | Tóm tắt". */
+function dungKhoiKhach(rows: DongKhach[]): void {
+  hk = taoKhoiHanhKhach({ rows, che: "form", soKhach: soKhachForm, today, bang: () => wideQuery.matches, newKey, ma: "hk", onChange: () => recompute() });
+  replaceChildren(hkCard, h("h2", null, "Hành khách"), hk.root);
+  hkCard.hidden = false;
+  datViTriKhoiKhach();
+}
+// Đổi khổ màn hình: dời khối + đổi bảng ↔ thẻ (một listener cho cả trang, không gắn lại mỗi lần dựng khối).
+wideQuery.addEventListener("change", () => {
+  if (!hk) return;
+  datViTriKhoiKhach();
+  hk.refresh(true);
+});
+
+/** ≥ 960px: khối trải ngang SAU lưới 2 cột (cột Tóm tắt dính không đè lên); dưới 960px: ngay sau thẻ "Dịch vụ" (bản vẽ điện thoại M2). Chỉ DỜI nút, không dựng lại. */
+function datViTriKhoiKhach(): void {
+  if (wideQuery.matches) formEl.querySelector(".form-cols")?.after(hkCard);
+  else servicesEl.closest("section")?.after(hkCard);
 }
 
 // ---- khởi động ----
@@ -523,6 +616,14 @@ byId("use-mine").addEventListener("click", () => {
     el.dispatchEvent(new Event("input", { bubbles: true }));
   }
 });
+// ADR-0047 Phần B: điểm danh mục cho ô Nơi đón / Nơi trả (cổng staff — mọi tài khoản) và mẫu chặng theo dịch vụ (chỉ người lập đơn). Lỗi → rỗng.
+const layDiem = api<Api.LocationListResponse>("/api/locations").then(
+  (r) => r.locations.filter((l) => l.active).map((l): DiemChon => ({ id: l.id, nhan: `${l.name} · ${l.locationTypeName.toLowerCase()}`, sanBay: l.locationTypeCode === "AIRPORT" })),
+  () => [] as DiemChon[],
+);
+const layMau = can(staff, "order.create")
+  ? api<Api.MauChangFormResponse>("/api/van-chuyen/mau-chang").then((r) => new Map(Object.entries(r.mauChang)), () => new Map<string, MauChang>())
+  : Promise.resolve(new Map<string, MauChang>());
 // ADR-0061: công tắc nhập tay — chỉ người lập đơn hỏi (máy chủ hỏi order.create; Kế toán, chỉ-HDV không gọi). Trước loadOrder: thẻ nhập tay đã lưu dựng theo cờ này.
 // Gọi song song với danh mục; chờ kết quả ngay sau danh mục (vẫn trước loadOrder).
 const layNhapTay = can(staff, "order.create")
@@ -531,6 +632,8 @@ const layNhapTay = can(staff, "order.create")
 // ADR-0033: danh mục cho form chỉ dành cho người được lập đơn — máy chủ trả 403 cho tài khoản không có `order.create` (Kế toán), nên không gọi
 // (gọi thì hiện thêm "Không tải được danh mục dịch vụ — tải lại trang…", lời khuyên sai vì tải lại không giúp gì). Hôm nay mọi mã có `order.modify`
 // đều có `order.create`; ai sửa đơn mà không được lập đơn thì thẻ đã lưu hiện ở dạng khoá như khi mất danh mục (xem `loadCatalog`).
+// Điểm + mẫu chặng TRƯỚC khi danh mục hiện ra ô chọn: chọn dịch vụ sớm mà mẫu chưa về thì mất chặng tạo sẵn (M6) — kịch bản 9b bắt được.
+[diem, mauChang] = await Promise.all([layDiem, layMau]);
 if (can(staff, "order.create")) await loadCatalog(); // trước loadOrder: thẻ đã lưu cần danh mục hiện tại để biết còn đổi số khách được không
 duocNhapTay = await layNhapTay;
 addManualBtn.hidden = !duocNhapTay;
@@ -547,6 +650,10 @@ if (editId) {
 } else if (!can(staff, "order.create")) {
   // ADR-0007: kế toán xem được đơn nhưng không lập đơn; nút "Đơn mới" đã ẩn, đây là lớp chặn khi mở thẳng đường dẫn.
   lockForm(banner("danger", "Tài khoản này không được lập đơn."));
+} else {
+  // Lập đơn mới: người lập là chủ đơn (phạm vi "own").
+  suaSoVe = can(staff, "order.trip.edit", { ownerId: staff.id, assigned: false });
+  if (can(staff, "order.passenger.write", { ownerId: staff.id, assigned: false })) dungKhoiKhach([]);
 }
 mocPhut = await layMoc;
 if (retailOnly) {

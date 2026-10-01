@@ -8,13 +8,13 @@
 
 - Gộp `main` (`24d52d69`, bản 1.61 in đậm) vào nhánh: không xung đột.
 - **Số migration:** lớn nhất mọi nhánh = `0066_pty_person_gender.sql` ⇒ bản này **`0067_aut_session_policy.sql`** (đúng kế hoạch).
-- **Số bản: 1.62** (KHÔNG phải 1.60 như kế hoạch — `main` đã có 1.60 đổi tên Loại giấy tờ và 1.61 in đậm). **PHẢI KIỂM LẠI LÚC GỘP.**
+- **Số bản: 1.64** (đánh lại lúc gộp main 1.63 ở đợt sửa cuối; trước ghi 1.62; KHÔNG phải 1.60 như kế hoạch — `main` đã có 1.60 đổi tên Loại giấy tờ và 1.61 in đậm). **PHẢI KIỂM LẠI LÚC GỘP.**
 - Nền trước khi đụng mã: `npm run typecheck` 0 lỗi; `npm test` 2615/2615 + bài đo giờ 1/1.
 - Chỗ đụng (khớp kế hoạch): `auth/repository.ts:124` `KHONG_TOAN_QUYEN`, `:127-129` hai câu siết/đánh dấu, `:160` `markMultiStatement`; `auth/index.ts:77` (`issueLoginSession`), `:139-158` (`exemptionChangeStatements`); `accounts/index.ts:542` (route đổi quyền), `:602` (route đổi vai); `tests/audit/harness.mjs:39, :136`; `session-ledger.ts:24`.
 
 ## Ruling của điều phối
 
-- Ruling: số bản 1.62 thay 1.60 — main đã dùng 1.60/1.61 — sai thì chỉ đổi một chuỗi lúc gộp.
+- Ruling (ĐÃ THAY ở đợt sửa cuối: nay **1.64**, main đã dùng 1.62/1.63): số bản 1.62 thay 1.60 — main đã dùng 1.60/1.61 — sai thì chỉ đổi một chuỗi lúc gộp.
 
 ## Tiến độ, số liệu, quan sát chặn thật
 
@@ -83,6 +83,6 @@
 ```diff
 +| Mục "Chính sách đăng nhập" ở /sessions: web/chinh-sach-dang-nhap-ui.ts, src/shared/chinh-sach-dang-nhap.ts, khung #policy-card của public/sessions.html | chinh-sach.mjs ở docs/evidence/2026-10-01-chinh-sach-dang-nhap/kich-ban/ + phien.mjs ở docs/evidence/2026-10-01-dang-nhap-a/kich-ban/ |
 ```
-2. **Số bản 1.62 + migration 0067**: kiểm lại lúc gộp (main có thể đã đi tiếp).
+2. **Số bản 1.64 (trước 1.62) + migration 0067**: kiểm lại lúc gộp (main có thể đã đi tiếp).
 3. **Số "đăng xuất N máy của M người" trong nhật ký**: hiện là số ước lượng đếm NGAY TRƯỚC lô (nhật ký nhận chuỗi cố định, lệch số thật chỉ khi có đăng nhập chen giữa → log `session_policy_count_drift`); đặc tả §4.2 bước 2 nói số THỰC. Lựa chọn bề mặt đổi được; chủ quyết giữ hay đổi.
 4. **Hai hở có tên đã ghi ở sổ hàng rào, chờ chủ biết:** (a) chỗ giao diện `can(staff, "auth.session.policy")` ở `web/sessions.ts` chỉ có kịch bản Chrome canh, không có bài máy; (b) route đổi vai (`PUT /api/staff/:id/roles`) chưa có bài đua riêng cho thứ tự lô; (c) lớp hai `CASE WHEN changes() > 0` chưa có bài chỉ đỏ khi riêng nó mất.

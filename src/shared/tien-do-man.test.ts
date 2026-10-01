@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  buocDiem, cauConKhach, cauTuChoiKhaiGio, giuTenKhach, goiYKhaiGio, ketThucDuoc, nhomCuoc, xayRaLucTu, type DiemVao, type SuatVao,
+  buocDiem, cauConKhach, cauTuChoiKhaiGio, giuTenKhach, goiYKhaiGio, ketThucDuoc, nhomCuoc, soHieuTaiDiemDon, xayRaLucTu, type DiemVao, type SuatVao,
 } from "./tien-do-man.ts";
 import { vnLocalToMs } from "./vn-date.ts";
 
@@ -131,4 +131,13 @@ test("nhomCuoc: 'Hôm nay' + 'Ngày mai' + 'Ngày kia' (luôn có ba nhóm, tr�
     ["06:40", "CX-a", "Đang chạy", "79B-123.45 · 9 khách · 2 điểm đón · 1 điểm trả", [], true],
     ["09:00", "CX-b", "Bị giữ", "79B-123.45 · 9 khách · 2 điểm đón · 1 điểm trả", ["Chưa đủ tên khách: TD-1 thiếu 2 tên (văn phòng lo)"], false],
   ]);
+});
+
+test("soHieuTaiDiemDon (nợ nhỏ 2026-10-01, ADR-0055 C3): số hiệu chuyến bay của các suất LÊN xe ở điểm — không trùng, theo thứ tự suất; bỏ null, bỏ suất lên điểm khác", () => {
+  const s = (id: string, diemLen: string | null, soHieuChuyenBay: string | null) => ({ id, maDon: "TD1", diemLen, diemXuong: "D9", trangThai: "WAITING" as const, daDon: null, daTra: null, soHieuChuyenBay });
+  const ds = [s("1", "P1", "VN1553"), s("2", "P1", null), s("3", "P1", "VN1553"), s("4", "P2", "QH201"), s("5", "P1", "VJ778")];
+  assert.deepEqual(soHieuTaiDiemDon(ds, "P1"), ["VN1553", "VJ778"]);
+  assert.deepEqual(soHieuTaiDiemDon(ds, "P2"), ["QH201"]);
+  assert.deepEqual(soHieuTaiDiemDon(ds, "D9"), []);
+  assert.deepEqual(soHieuTaiDiemDon([], "P1"), []);
 });

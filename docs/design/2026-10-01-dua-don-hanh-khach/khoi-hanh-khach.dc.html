@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/tour-o-booking-design-system-34f284df-c97a-4672-bb66-d7df03a0d97a/styles.css">
+<script src="_ds/tour-o-booking-design-system-34f284df-c97a-4672-bb66-d7df03a0d97a/_ds_bundle.js"></script>
+</helmet>
+<div style="display:flex;flex-direction:column;gap:var(--s4);font-family:var(--font);color:var(--c-text);font-size:var(--fs-ui);">
+  <sc-if value="{{ coSoXe }}" hint-placeholder-val="{{ true }}">
+    <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Card" title="Số khách đi xe" hint-size="100%,150px">
+      <div style="display:flex;flex-wrap:wrap;align-items:flex-start;gap:var(--s3) var(--s4);">
+        <p style="flex:1 1 220px;margin:0;font-size:var(--fs-label);color:var(--c-text-muted);text-wrap:pretty;">Cả đơn — số người thật lên xe. Khác số khách tính tiền của từng dịch vụ.</p>
+        <sc-if value="{{ suaSoXe }}" hint-placeholder-val="{{ true }}">
+          <div style="flex:0 0 168px;">
+            <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Field" aria-label="Số khách đi xe" input-mode="numeric" max-length="{{ 3 }}" value="{{ soXe }}" on-change="{{ onSoXe }}" hint="{{ hintSoXe }}" hint-size="100%,72px"></x-import>
+          </div>
+        </sc-if>
+        <sc-if value="{{ xemSoXe }}" hint-placeholder-val="{{ false }}">
+          <div style="flex:0 1 220px;display:flex;flex-direction:column;gap:var(--s1);">
+            <span style="display:flex;align-items:center;min-height:var(--tap-min);padding:0 12px;box-sizing:border-box;font-weight:700;background:var(--c-surface-alt);border:1px solid var(--c-border);border-radius:var(--radius-sm);">{{ soXe }} khách</span>
+            <span style="display:flex;align-items:flex-start;gap:var(--s1);font-size:var(--fs-label);color:var(--c-text-muted);"><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Icon" name="lock" size="{{ 16 }}" style="margin-top:2px;" hint-size="16px,16px"></x-import>Văn phòng điều chỉnh số khách đi xe</span>
+          </div>
+        </sc-if>
+      </div>
+    </x-import>
+  </sc-if>
+  <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Card" title="{{ tieuDe }}" padding="{{ pad }}" hint-size="100%,260px">
+    <div style="display:flex;flex-direction:column;gap:var(--s3);">
+      <sc-if value="{{ laBang }}" hint-placeholder-val="{{ false }}">
+        <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Note" tone="info" hint-size="100%,40px">Không xoá hẳn; mọi lần sửa đều được lưu lại.</x-import>
+      </sc-if>
+      <div style="display:flex;align-items:center;gap:var(--s2);flex-wrap:wrap;">
+        <span style="display:inline-flex;color:var(--c-primary);"><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Icon" name="guests" size="{{ 18 }}" hint-size="18px,18px"></x-import></span>
+        <span style="font-family:var(--font-display);font-weight:800;font-size:var(--fs-stat-sm);color:var(--c-primary);font-variant-numeric:tabular-nums;">{{ dem }}</span>
+        <span style="font-weight:700;">khách đã có tên</span>
+      </div>
+      <sc-if value="{{ coThieu }}" hint-placeholder-val="{{ false }}">
+        <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Banner" tone="warning" title="{{ cauThieu }}" hint-size="100%,48px"></x-import>
+      </sc-if>
+      <sc-if value="{{ coQua }}" hint-placeholder-val="{{ false }}">
+        <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Banner" tone="warning" title="{{ cauQua }}" hint-size="100%,48px"><div style="margin-top:var(--s1);font-size:var(--fs-label);">Vẫn lưu được.</div></x-import>
+      </sc-if>
+      <sc-if value="{{ trong }}" hint-placeholder-val="{{ false }}">
+        <p style="margin:0;padding:var(--s3) 0;color:var(--c-text-muted);">Chưa có hành khách nào.</p>
+      </sc-if>
+      <sc-if value="{{ dangBang }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;">
+          <div style="display:grid;grid-template-columns:28px minmax(0,1fr) 112px 176px 96px;gap:var(--s2);padding-bottom:var(--s1);font-size:var(--fs-label);font-weight:600;color:var(--c-text-muted);">
+            <span>#</span><span>Họ tên</span><span>Năm sinh</span><span>Loại khách (tuỳ chọn)</span><span></span>
+          </div>
+          <sc-for list="{{ dong }}" as="r" hint-placeholder-count="3">
+            <div style="display:flex;flex-direction:column;gap:var(--s2);padding:var(--s2) 0;border-top:1px solid var(--c-border);">
+              <div style="display:grid;grid-template-columns:28px minmax(0,1fr) 112px 176px 96px;gap:var(--s2);align-items:center;">
+                <span style="font-weight:700;color:var(--c-text-muted);font-variant-numeric:tabular-nums;">{{ r.so }}</span>
+                <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Field" aria-label="{{ r.nhanTen }}" placeholder="Như trên giấy tờ" max-length="{{ 120 }}" value="{{ r.ten }}" on-change="{{ r.onTen }}" error="{{ r.loiTenCo }}" hint-size="100%,48px"></x-import>
+                <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Field" aria-label="{{ r.nhanNam }}" input-mode="numeric" placeholder="VD: 1985" max-length="{{ 4 }}" value="{{ r.nam }}" on-change="{{ r.onNam }}" error="{{ r.loiNamCo }}" hint-size="100%,48px"></x-import>
+                <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Field" as="select" aria-label="{{ r.nhanLoai }}" options="{{ optLoai }}" value="{{ r.loai }}" on-change="{{ r.onLoai }}" hint-size="100%,48px"></x-import>
+                <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="link" on-click="{{ r.onXoa }}" dc-props="{{ nutXoa }}" hint-size="80px,44px">{{ nhanXoa }}</x-import>
+              </div>
+              <sc-if value="{{ r.coLoi }}" hint-placeholder-val="{{ false }}">
+                <span style="display:flex;align-items:center;gap:var(--s1);padding-left:36px;font-size:var(--fs-label);font-weight:600;color:var(--c-danger-text);"><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Icon" name="alert" size="{{ 16 }}" hint-size="16px,16px"></x-import>{{ r.loi }}</span>
+              </sc-if>
+              <sc-if value="{{ r.huyMo }}" hint-placeholder-val="{{ false }}">
+                <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Banner" tone="danger" title="{{ r.cauHuy }}" hint-size="100%,100px">
+                  <div style="display:flex;flex-wrap:wrap;gap:var(--s2);margin-top:var(--s3);">
+                    <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="danger" on-click="{{ r.onHuyChac }}" dc-props="{{ nw }}" hint-size="110px,44px">Huỷ người</x-import>
+                    <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" on-click="{{ r.onThoi }}" dc-props="{{ nw }}" hint-size="70px,44px">Thôi</x-import>
+                  </div>
+                </x-import>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+      <sc-if value="{{ dangThe }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;flex-direction:column;gap:var(--s2);">
+          <sc-for list="{{ dong }}" as="r" hint-placeholder-count="3">
+            <div style="display:flex;flex-direction:column;gap:var(--s2);padding:var(--s3);border:1px solid var(--c-border);border-radius:var(--radius-sm);">
+              <div style="display:flex;align-items:center;gap:var(--s2);">
+                <span style="font-weight:700;">Khách {{ r.so }}</span>
+                <div style="margin-left:auto;display:flex;"><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="link" on-click="{{ r.onXoa }}" dc-props="{{ nutXoa }}" hint-size="80px,44px">{{ nhanXoa }}</x-import></div>
+              </div>
+              <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Field" label="Họ tên" placeholder="Như trên giấy tờ" max-length="{{ 120 }}" value="{{ r.ten }}" on-change="{{ r.onTen }}" error="{{ r.loiTenCo }}" hint-size="100%,72px"></x-import>
+              <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:var(--s3);">
+                <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Field" label="Năm sinh" input-mode="numeric" placeholder="VD: 1985" max-length="{{ 4 }}" value="{{ r.nam }}" on-change="{{ r.onNam }}" error="{{ r.loiNamCo }}" hint-size="100%,72px"></x-import>
+                <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Field" as="select" label="Loại khách" options="{{ optLoai }}" value="{{ r.loai }}" on-change="{{ r.onLoai }}" hint-size="100%,72px"></x-import>
+              </div>
+              <sc-if value="{{ r.coLoi }}" hint-placeholder-val="{{ false }}">
+                <span style="display:flex;align-items:center;gap:var(--s1);font-size:var(--fs-label);font-weight:600;color:var(--c-danger-text);"><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Icon" name="alert" size="{{ 16 }}" hint-size="16px,16px"></x-import>{{ r.loi }}</span>
+              </sc-if>
+              <sc-if value="{{ r.huyMo }}" hint-placeholder-val="{{ false }}">
+                <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Banner" tone="danger" title="{{ r.cauHuy }}" hint-size="100%,100px">
+                  <div style="display:flex;flex-wrap:wrap;gap:var(--s2);margin-top:var(--s3);">
+                    <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="danger" on-click="{{ r.onHuyChac }}" dc-props="{{ nw }}" hint-size="110px,44px">Huỷ người</x-import>
+                    <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" on-click="{{ r.onThoi }}" dc-props="{{ nw }}" hint-size="70px,44px">Thôi</x-import>
+                  </div>
+                </x-import>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+      <div style="display:flex;">
+        <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="pill" on-click="{{ them }}" dc-props="{{ nw }}" hint-size="170px,44px">+ Thêm hành khách</x-import>
+      </div>
+    </div>
+  </x-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:760,&quot;height&quot;:700},&quot;kb&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;trong&quot;,&quot;dang&quot;,&quot;loiThieu&quot;,&quot;loiSai&quot;,&quot;qua&quot;,&quot;du&quot;,&quot;bangHuy&quot;,&quot;bangLoi&quot;],&quot;default&quot;:&quot;dang&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;hep&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;che&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;form&quot;,&quot;bang&quot;],&quot;default&quot;:&quot;form&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;vai&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;sales&quot;,&quot;partner&quot;],&quot;default&quot;:&quot;sales&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;soKhachDiXe&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;khachDv&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:4,&quot;tsType&quot;:&quot;number&quot;}}">
+const OPT_LOAI = [
+  { value: '', label: 'Chưa chọn' },
+  { value: 'nl', label: 'Người lớn' },
+  { value: 'te', label: 'Trẻ em' },
+  { value: 'nct', label: 'Người cao tuổi' },
+  { value: 'eb', label: 'Em bé' },
+];
+const R = (ten, nam, loai) => ({ ten, nam, loai });
+const AN = () => R('Nguyễn Văn An', '1985', 'nl');
+const BINH = () => R('Trần Thị Bình', '1988', 'nl');
+const KHOI = () => R('Nguyễn Minh Khôi', '2015', 'te');
+const HONG = () => R('Lê Thị Hồng', '1952', 'nct');
+const KB = {
+  trong: { rows: () => [] },
+  dang: { rows: () => [AN(), BINH(), KHOI()] },
+  loiThieu: { loi: true, rows: () => [AN(), BINH(), R('Nguyễn Minh Khôi', '', 'te')] },
+  loiSai: { loi: true, rows: () => [AN(), BINH(), R('Nguyễn Minh Khôi', '2051', 'te')] },
+  qua: { rows: () => [AN(), BINH(), KHOI(), HONG(), R('Trần Văn Nam', '1990', 'nl')] },
+  du: { rows: () => [AN(), BINH(), KHOI(), HONG()] },
+  bangHuy: { rows: () => [AN(), BINH(), KHOI(), HONG()], huy: 1 },
+  bangLoi: { loi: true, rows: () => [AN(), BINH(), R('Nguyễn Minh Khôi', '', 'te'), HONG()] },
+};
+const namHopLe = (n) => /^\d{4}$/.test(n) && Number(n) >= 1906 && Number(n) <= 2026;
+
+class Component extends DCLogic {
+  state = { rows: null, soXe: null, suaSoXe: false, huy: undefined };
+  kb() { return KB[this.props.kb] ?? KB.dang; }
+  rows() { return this.state.rows ?? this.kb().rows(); }
+  componentDidUpdate(prev) { if (prev.kb !== this.props.kb) this.setState({ rows: null, huy: undefined }); }
+  sua(i, patch) { const rs = this.rows().map((x) => ({ ...x })); rs[i] = { ...rs[i], ...patch }; this.setState({ rows: rs }); }
+  xoa(i) { this.setState({ rows: this.rows().filter((_, j) => j !== i), huy: null }); }
+  renderVals() {
+    const kb = this.kb();
+    const bang = this.props.che === 'bang';
+    const hep = this.props.hep ?? false;
+    const doiTac = this.props.vai === 'partner';
+    const khachDv = this.props.khachDv ?? 4;
+    const coSoXe = (this.props.soKhachDiXe ?? true) && !bang;
+    const soXe = this.state.soXe ?? String(khachDv);
+    const mau = (this.props.soKhachDiXe ?? true) ? (Number(soXe) || khachDv) : khachDv;
+    const rows = this.rows();
+    const huy = this.state.huy === undefined ? kb.huy : this.state.huy;
+    const dong = rows.map((r, i) => {
+      const so = i + 1;
+      const ten = r.ten.trim();
+      let loi = '';
+      if (ten && !r.nam) loi = kb.loi ? `Dòng ${so}: năm sinh là bắt buộc.` : '';
+      else if (r.nam && (r.nam.length === 4 || kb.loi) && !namHopLe(r.nam)) loi = `Dòng ${so}: năm sinh phải từ 1906 đến 2026.`;
+      else if (!ten && r.nam) loi = `Dòng ${so}: họ tên là bắt buộc.`;
+      return {
+        ...r, so, loi, coLoi: !!loi,
+        loiNamCo: !!loi && !loi.includes('họ tên'), loiTenCo: !!loi && loi.includes('họ tên'),
+        nhanTen: `Họ tên khách ${so}`, nhanNam: `Năm sinh khách ${so}`, nhanLoai: `Loại khách ${so}`,
+        huyMo: bang && huy === i, cauHuy: `Huỷ ${ten || `khách ${so}`} khỏi danh sách? (dùng khi nhập nhầm)`,
+        onTen: (e) => this.sua(i, { ten: e.target.value }),
+        onNam: (e) => this.sua(i, { nam: e.target.value.replace(/\D/g, '').slice(0, 4) }),
+        onLoai: (e) => this.sua(i, { loai: e.target.value }),
+        onXoa: () => (bang ? this.setState({ huy: i }) : this.xoa(i)),
+        onHuyChac: () => this.xoa(i),
+        onThoi: () => this.setState({ huy: null }),
+      };
+    });
+    const du = rows.filter((r) => r.ten.trim() && namHopLe(r.nam)).length;
+    const thieu = mau - du;
+    return {
+      coSoXe, suaSoXe: coSoXe && !doiTac, xemSoXe: coSoXe && doiTac,
+      soXe, hintSoXe: this.state.suaSoXe ? '' : 'gợi ý — sửa nếu khác',
+      onSoXe: (e) => this.setState({ soXe: e.target.value.replace(/\D/g, ''), suaSoXe: true }),
+      tieuDe: bang ? undefined : 'Hành khách', pad: bang ? '0' : undefined, laBang: bang,
+      dem: `${du}/${mau}`,
+      coQua: rows.length > mau, cauQua: `Danh sách có ${rows.length} người, đơn có ${mau} khách`,
+      coThieu: rows.length > 0 && rows.length <= mau && thieu > 0, cauThieu: `Còn ${thieu} khách chưa có tên — cần đủ trước khi xe chạy`,
+      trong: rows.length === 0,
+      dangBang: rows.length > 0 && !hep && !bang, dangThe: rows.length > 0 && (hep || bang),
+      dong, optLoai: OPT_LOAI,
+      nhanXoa: bang ? 'Huỷ người' : 'Xoá',
+      nutXoa: { style: { minHeight: 'var(--tap-min)', minWidth: 'var(--tap-min)', color: 'var(--c-danger)', whiteSpace: 'nowrap' } },
+      nw: { style: { whiteSpace: 'nowrap' } },
+      them: () => this.setState({ rows: [...rows, R('', '', '')] }),
+    };
+  }
+}
+</script>
+</body>
+</html>

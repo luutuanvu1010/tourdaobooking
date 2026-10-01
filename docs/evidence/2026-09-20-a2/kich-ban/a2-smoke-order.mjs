@@ -48,7 +48,7 @@ try {
   assert.deepEqual(await p.ev(`[...${svc(0)}.querySelectorAll('.chip')].map((c) => c.textContent)`), ["theo người", "TD101"]);
   assert.deepEqual(await p.ev(pairs(svc(0), ".svc-facts .kv")), [
     // bản 1.39: cùng ngày với đơn (dải đầu trang) → không lặp dòng "Khởi hành", chỉ còn "Giờ khởi hành"
-    ["Số khách", "2 người lớn · 1 trẻ em"], ["Giờ khởi hành", "07:30"], ["Đón", "07:00 · Bến Cầu Đá"], ["Check-in", "Cùng ngày khởi hành · 09:00"],
+    ["Số khách", "2 người lớn · 1 trẻ em"], ["Giờ khởi hành", "07:30"], ["Check-in", "Cùng ngày khởi hành · 09:00"],
   ]);
   const lines0 = await p.ev(`[...${svc(0)}.querySelectorAll('.line-view')].map((l) => [l.querySelector('.line-name').textContent, l.querySelector('.line-calc').textContent, l.querySelector('.line-total').textContent, !!l.querySelector('.tag-price'), l.querySelector('.price-old')?.textContent ?? null])`);
   assert.match(lines0[0][0], /^Tour 4 đảo Nha Trang/);
@@ -91,8 +91,8 @@ try {
   // 2026-09-26 (DK-T3-01): dịch vụ nhập tay ĐÃ LƯU hiện CHỈ XEM — không ô tên/mô tả/đơn giá, không "+ Thêm dòng"/"Xoá dòng"; vẫn có bộ đếm số khách,
   // khối chuyến và nút "Xoá" dịch vụ; có dòng chú thích. Thẻ danh mục cạnh nó không đổi (vẫn có ô đơn giá).
   const frozen = await p.ev(`(() => { const c = document.querySelectorAll('#services .svc')[1];
-    return { inputs: [...c.querySelectorAll('input:not(.counter-field)')].filter((i) => !i.closest('details.trip')).length, priceFields: c.querySelectorAll('.price-field').length,
-      buttons: [...c.querySelectorAll('button')].filter((b) => !b.closest('details.trip') && !b.closest('.counter')).map((b) => b.textContent.trim()),
+    return { inputs: [...c.querySelectorAll('input:not(.counter-field)')].filter((i) => !i.closest('details.trip') && !i.closest('.dd')).length, priceFields: c.querySelectorAll('.price-field').length,
+      buttons: [...c.querySelectorAll('button')].filter((b) => !b.closest('details.trip') && !b.closest('.dd') && !b.closest('.counter')).map((b) => b.textContent.trim()),
       counter: !!c.querySelector('.counter-field[aria-label="Số khách (chỉ để vận hành)"]'), note: c.querySelector('.svc-locked')?.textContent ?? null,
       name: c.querySelector('.svc-name').textContent, line: c.querySelector('.mline')?.textContent ?? null, total: c.querySelector('.svc-total-amount').textContent,
       catalogPriceFields: document.querySelectorAll('#services .svc')[0].querySelectorAll('.price-field').length }; })()`);
@@ -135,7 +135,7 @@ try {
   await p.ev("window.confirm = () => true; true");
   await p.ev(clickText("#actions", "Xác nhận đơn"));
   await p.waitFor("document.querySelector('#order .badge')?.textContent === 'Đã xác nhận'", "đã xác nhận");
-  assert.match(await p.ev("document.querySelector('.lock-note').textContent"), /Đơn đã xác nhận: dịch vụ, số khách và tiền đã khoá\. Chỉ sửa được thông tin chuyến\./);
+  assert.match(await p.ev("document.querySelector('.lock-note').textContent"), /Đơn đã xác nhận: dịch vụ, số khách và tiền đã khoá\. Chỉ sửa được thông tin chuyến, đưa đón và danh sách hành khách\./); // D5 (bản vẽ M3, 2026-10-01)
   assert.equal(await p.ev("document.querySelectorAll('#order .svc-view .lock').length"), 4, "mỗi dịch vụ: khoá ở Số khách và ở Tổng dịch vụ");
   const confirmedBtns = await p.ev("[...document.querySelectorAll('#actions .btn')].map((b) => b.textContent)");
   assert.ok(confirmedBtns.includes("Huỷ đơn") && !confirmedBtns.includes("Sửa") && !confirmedBtns.includes("Xác nhận đơn"), `đơn đã xác nhận: có 'Huỷ đơn', không còn 'Sửa'/'Xác nhận đơn' (từ Task 9 có thêm 'Sửa thông tin chuyến'): ${confirmedBtns}`);
@@ -143,7 +143,8 @@ try {
   const band = await p.ev("({ pax: [...document.querySelectorAll('.order-summary-band .grid4 > div')][2].querySelector('.value').textContent, over: document.documentElement.scrollWidth - innerWidth })");
   assert.match(band.pax, /^\d+ người lớn, \d+ trẻ em$/, `dải đầu: ${band.pax}`);
   assert.ok(band.over <= 0, `tràn ngang ${band.over}px`);
-  assert.equal(await p.ev("document.getElementById('error').hidden"), true);
+  // 2026-10-01 (ADR-0047 Phần B, cảnh báo sớm): chặng đón chưa có nơi trả → sau khi xác nhận hiện dải vàng "Đã xác nhận đơn." (không chặn), không phải dải lỗi.
+  assert.match(await p.ev("document.getElementById('error').hidden ? '' : document.getElementById('error').className + ' ' + document.getElementById('error').textContent"), /^(|banner banner-warning Đã xác nhận đơn\..*Cần nơi trả trước khi xếp xe.*)$/);
   assert.deepEqual(await p.ev(pairs(svc(1), ".svc-facts .kv")), [["Số khách", "3 khách"]]); // bản 1.39: cùng ngày với đơn, không giờ → không còn dòng "Khởi hành"
   p.close();
   ok("đơn đã xác nhận: dòng nhắc khoá, 4 biểu tượng khoá, hết nút 'Sửa'/'Xác nhận đơn', còn 'Huỷ đơn'; dịch vụ nhập tay đã có ngày");

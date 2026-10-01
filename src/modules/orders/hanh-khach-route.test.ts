@@ -173,3 +173,25 @@ test("khoá văn bản (Review Focus 6): POST /api/orders và PUT /api/orders h�
     assert.match(body(m, p), /can\(\s*staff\s*,\s*"order\.passenger\.write"/, `${m} ${p}: thiếu lời hỏi ô order.passenger.write khi thân có khoá passengers`);
   }
 });
+
+// PM-2 (nợ nhỏ 2026-10-01): GET /passengers trả người THEO THỨ TỰ NHẬP. Cả lô cùng `created_at` ⇒ trước đây hoà giờ sắp theo `id` (UUID ngẫu nhiên) ⇒
+// thứ tự lộn. Nay hoà giờ sắp theo `rowid` (thứ tự chèn trong lô). Người đã sửa tên (dòng thay thế) GIỮ chỗ của người đó; người thêm sau đứng cuối.
+test("PM-2: danh sách theo thứ tự nhập — nháp 8 người đúng thứ tự; lưu nháp đảo thứ tự → theo thứ tự mới; sau xác nhận sửa tên người đầu vẫn đứng đầu, thêm người đứng cuối", async () => {
+  const w = setup();
+  const names = (r: any) => r.json.passengers.map((p: any) => p.fullName);
+  const nhap = [1, 2, 3, 4, 5, 6, 7, 8].map((n) => P(n));
+  const o = await draft(w, SALES, { passengers: nhap });
+  assert.deepEqual(names(await list(w, o.id)), nhap.map((p) => p.fullName));
+  const dao = [...nhap].reverse();
+  const put = await w.call("PUT", `/api/orders/${o.id}`, { as: SALES, body: body({ expectedUpdatedAt: o.updatedAt, services: [{ ...body().services[0], id: o.services[0].id }], passengers: dao }) });
+  assert.equal(put.status, 200, put.text);
+  assert.deepEqual(names(await list(w, o.id)), dao.map((p) => p.fullName));
+  assert.equal((await w.call("POST", `/api/orders/${o.id}/status`, { as: SALES, body: { status: "confirmed" } })).status, 200);
+  const g = (await list(w, o.id)).json;
+  const dau = g.passengers[0];
+  const r1 = await change(w, o.id, SALES, g.orderUpdatedAt, { sua: [{ personKey: dau.personKey, fullName: "Khách Dò Tìm Đầu Sửa", birthYear: 1911, paxCode: null }] });
+  assert.equal(r1.status, 200, r1.text);
+  const r2 = await change(w, o.id, SALES, r1.json.orderUpdatedAt, { them: [P(9), P(10)] });
+  assert.equal(r2.status, 200, r2.text);
+  assert.deepEqual(names(await list(w, o.id)), ["Khách Dò Tìm Đầu Sửa", ...dao.slice(1).map((p) => p.fullName), "Khách Dò Tìm 9", "Khách Dò Tìm 10"]);
+});

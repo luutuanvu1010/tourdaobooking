@@ -58,6 +58,9 @@ r = await call(SALES, "POST", `/api/van-chuyen/chuyen/${tripId}/phan-bo`, {
 });
 assert.equal(r.status, 200, JSON.stringify(r.body));
 assert.ok(r.body.chuyen.lyDoGiu.some((l) => l.ma === "THIEU_TEN" && l.aiXuLy === "VAN_PHONG"), JSON.stringify(r.body.chuyen.lyDoGiu));
+// Cảnh báo sớm lúc xếp (lời chủ 1/10 — chỉ nhắc, không chặn): B thiếu 1 tên → `canhBaoXep` THIEU_TEN đúng mã đơn B; A đủ tên, có nơi trả → không cảnh báo.
+assert.deepEqual((r.body.canhBaoXep ?? []).map((x) => `${x.ma}:${x.loiNhan}`), [`THIEU_TEN:Chưa đủ tên khách: ${b.orderCode} thiếu 1 tên`], JSON.stringify(r.body.canhBaoXep));
+assert.doesNotMatch(JSON.stringify(r.body.canhBaoXep), /Khách Điều Phối/, "cảnh báo không mang tên khách");
 assert.equal((await call(ACC, "GET", `/api/van-chuyen/chuyen/${tripId}`)).status, 200, "Kế toán xem chi tiết");
 let ds = (await call(SALES, "GET", `/api/orders/${b.id}/passengers`)).body;
 r = await call(SALES, "POST", `/api/orders/${b.id}/passengers`, { expectedUpdatedAt: ds.orderUpdatedAt, them: [P(4)], sua: [], huy: [] });
@@ -223,3 +226,24 @@ try {
   assert.match(String(err.message ?? err), /gb_chain/);
 }
 console.log("✓ (6c) D1 thật: chuỗi mốc với giờ NULL ('chưa chốt giờ') — IS NULL nối đúng; lệch → gb_chain");
+
+// --- (7) Cảnh báo sớm lúc xếp: chặng CHƯA CÓ NƠI TRẢ vẫn xếp được (200) + `canhBaoXep` CHUA_CO_NOI_TRA; gửi lại cùng requestId → 200, không tính lại cảnh báo ---
+const xe3 = uuid();
+await sql(`INSERT INTO vc_vehicle (id, plate_number, plate_key, chassis_number, chassis_key, name, model_year, passenger_capacity, owner_party_id, status, valid_from_date, created_at, updated_at)
+  VALUES ('${xe3}', '79F-${duoi.slice(0, 3)}.${duoi.slice(3)}8', '79F${duoi}8', 'E2ECB${duoi}', 'E2ECB${duoi}', 'Xe cảnh báo E2E', 2021, 15, '${chu}', 'active', '2026-09-01', '${AT}', '${AT}')`);
+const kNoiTra = await call(SALES, "POST", "/api/orders", orderInput({
+  services: [catalogService({ pax: { adult: 2 }, departDate: D, legs: [{ ...leg(`Khách sạn Cảnh Báo E2E ${duoi}`), dropoffLocationId: null, dropoffPlace: "" }] })], passengers: [P(11), P(12)],
+}));
+assert.equal(kNoiTra.status, 201, JSON.stringify(kNoiTra.body));
+assert.equal((await call(SALES, "POST", `/api/orders/${kNoiTra.body.order.id}/status`, { status: "confirmed" })).status, 200, "xác nhận đơn thiếu nơi trả vẫn được");
+r = await call(SALES, "POST", "/api/van-chuyen/chuyen", { requestId: uuid(), xeId: xe3, taiXePartyId: txParty, batDau: { ngay: D, gio: "17:00" }, ketThuc: { ngay: D, gio: "19:00" } });
+assert.equal(r.status, 201, JSON.stringify(r.body));
+const xepK = { version: r.body.chuyen.version, requestId: uuid(), chang: [{ legId: kNoiTra.body.order.services[0].legs[0].id, soSuat: 2 }] };
+r = await call(SALES, "POST", `/api/van-chuyen/chuyen/${r.body.chuyen.id}/phan-bo`, xepK);
+assert.equal(r.status, 200, JSON.stringify(r.body));
+assert.deepEqual((r.body.canhBaoXep ?? []).map((x) => [x.ma, x.aiXuLyNhan.length > 0]), [["CHUA_CO_NOI_TRA", true]], JSON.stringify(r.body.canhBaoXep));
+assert.equal(r.body.suat.filter((s) => s.loai === "PASSENGER").length, 2, "đã xếp 2 khách");
+const lai = await call(SALES, "POST", `/api/van-chuyen/chuyen/${r.body.chuyen.id}/phan-bo`, xepK);
+assert.equal(lai.status, 200, JSON.stringify(lai.body));
+assert.equal(lai.body.canhBaoXep, undefined, "gửi lại cùng requestId: lô không chạy lại, không cảnh báo");
+console.log("✓ (7) cảnh báo sớm lúc xếp: thiếu nơi trả → xếp được + canhBaoXep CHUA_CO_NOI_TRA; gửi lại cùng requestId → 200 không cảnh báo");

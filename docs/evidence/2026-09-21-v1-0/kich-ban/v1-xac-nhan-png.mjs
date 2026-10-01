@@ -331,8 +331,13 @@ function getUi() {
     const trip = (k, v) => p.ev(setInput(`${card(0)}.querySelector('[data-trip="${k}"]')`, v));
     await p.ev(setInput("document.getElementById('orderDate')", vnDate(7))); // ADR-0021: một ngày cho cả đơn
     await trip("departTime", "07:30");
-    await trip("pickupTime", "07:00");
-    await trip("pickupPlace", "Khách sạn Sunrise");
+    // ADR-0047 Phần B (2026-10-01): giờ / nơi đón nhập ở khối "Đưa đón" của thẻ (TD101 không có mẫu chặng → "+ Thêm đưa đón", "Gõ tự do…").
+    await p.ev(`${card(0)}.querySelector('[data-action="them-dua-don"]').click(); true`);
+    await p.waitFor(`!!${card(0)}.querySelector('.dd-chang [data-o$=":don"]')`, "chặng đưa đón");
+    await p.ev(setInput(`${card(0)}.querySelector('.dd-chang [data-o$=":don"]')`, "tudo"));
+    await p.waitFor(`!!${card(0)}.querySelector('.dd-chang [data-o$=":don-chu"]')`, "ô Địa chỉ đón");
+    await p.ev(setInput(`${card(0)}.querySelector('.dd-chang [data-o$=":don-chu"]')`, "Khách sạn Sunrise"));
+    await p.ev(setInput(`${card(0)}.querySelector('.dd-chang [data-o$=":gio"]')`, "07:00"));
     // 2026-09-26 (DK-T3-01 R1, chủ dự án "loại bỏ hoàn toàn dịch vụ nhập tay"): trước đây dịch vụ thứ hai là thẻ nhập tay (nút ẩn "+ Dịch vụ nhập tay",
     // "Xe đưa đón riêng" 3 khách × 800.000) — máy chủ nay trả 400 khi Lưu, nên dịch vụ thứ hai là thẻ DANH MỤC TTB06, 3 người lớn. Ảnh vẽ dịch vụ nhập
     // tay (dữ liệu cũ) vẫn được kiểm ở các đơn dựng sẵn `f.multi`/`f.long`/`f.confirmed` (bước b, h, k).

@@ -50,15 +50,12 @@ export function tripWarnings(trip: TripInput, today: string): TripWarning[] {
 // ---- Hiển thị ----------------------------------------------------------------------------------------------------
 
 /**
- * Dòng tóm tắt của khối "Thông tin chuyến" khi thu gọn (bản 1.39): "Đón 07:30 · KS Mường Thanh Luxury · Check-in 08:15". KHÔNG ghi ngày — cả đơn một ngày,
- * đã chọn ở đầu form (ADR-0021). Chỉ có giờ → "Đón 07:30"; chỉ có nơi → "Đón tại <nơi>". Thiếu cả giờ lẫn nơi đón → "Chưa có giờ / nơi đón", `warn`
- * (hiện kiểu cảnh báo). Có giờ check-in thì thêm "Check-in <giờ>".
+ * Dòng tóm tắt của khối "Thông tin chuyến" khi thu gọn. ADR-0047 Phần B (bản vẽ M1, D4): giờ / nơi đón đã sang khối "Đưa đón" của thẻ — dòng này chỉ còn
+ * "Khởi hành <giờ> · Check-in <giờ>" (không ghi ngày — cả đơn một ngày, ADR-0021); không có gì → "". Không còn cảnh báo (`warn` luôn false).
  */
 export function tripSummaryLine(trip: TripInput): { text: string; warn: boolean } {
-  const { pickupTime: t, pickupPlace: p } = trip;
-  const warn = t === "" && p === "";
-  const pickup = warn ? "Chưa có giờ / nơi đón" : t !== "" ? [`Đón ${t}`, p].filter(Boolean).join(" · ") : `Đón tại ${p}`;
-  return { text: [pickup, trip.checkinTime !== "" ? `Check-in ${trip.checkinTime}` : ""].filter(Boolean).join(" · "), warn };
+  const text = [trip.departTime !== "" ? `Khởi hành ${trip.departTime}` : "", trip.checkinTime !== "" ? `Check-in ${trip.checkinTime}` : ""].filter(Boolean).join(" · ");
+  return { text, warn: false };
 }
 
 export interface TripRow {
@@ -81,8 +78,7 @@ export function tripRows(t: TripInfoDto, orderDate: string | null = null): TripR
       ? { label: "Khởi hành", value: "Chưa có ngày khởi hành", warn: true }
       : { label: "Khởi hành", value: [formatDmy(t.departDate), t.departTime].filter(Boolean).join(" · "), warn: false },
   );
-  const pickup = [t.pickupTime, t.pickupPlace].filter(Boolean).join(" · ");
-  if (pickup) rows.push({ label: "Đón", value: pickup, warn: false });
+  // D4 (bản vẽ M3): KHÔNG còn dòng "Đón" — giờ / nơi đón hiện ở khối "Đưa đón" của trang đơn.
   if (t.checkinDate !== null || t.checkinTime !== null || t.checkinPlace !== null) {
     const day = t.checkinDate === null ? "Cùng ngày khởi hành" : formatDmy(t.checkinDate);
     rows.push({ label: "Check-in", value: [day, t.checkinTime, t.checkinPlace].filter(Boolean).join(" · "), warn: false });
@@ -110,7 +106,16 @@ export function tripSheetDateIssues(orderDate: string, savedDates: readonly (str
 /** Ngày gửi lên cho một dịch vụ: ô cả đơn có ngày → ngày đó; ô trống (chỉ gặp ở đơn cũ lệch ngày) → giữ ngày đã lưu. */
 export const tripSheetRowDate = (orderDate: string, savedDepartDate: string | null): string => orderDate || (savedDepartDate ?? "");
 
-/** Thân `PUT /api/orders/:id/trip`: MỌI dịch vụ, MỌI trường (máy chủ thay toàn bộ — trường vắng = xoá). */
+/**
+ * Thân `PUT /api/orders/:id/trip`: MỌI dịch vụ, MỌI trường (máy chủ thay toàn bộ — trường vắng = xoá) TRỪ hai khoá cũ `pickupTime`/`pickupPlace`: ADR-0047
+ * Phần B — giờ / nơi đón sửa ở bảng "Sửa đưa đón" (route chặng); khoá vắng = máy chủ không đụng chặng (R2c).
+ */
 export function tripPayload(services: readonly { id: string; trip: TripInput }[], expectedUpdatedAt: string): TripUpdateInput {
-  return { expectedUpdatedAt, services: services.map((s) => ({ id: s.id, ...s.trip })) };
+  return {
+    expectedUpdatedAt,
+    services: services.map((s) => {
+      const { pickupTime: _gio, pickupPlace: _noi, ...con } = s.trip;
+      return { id: s.id, ...con };
+    }),
+  };
 }

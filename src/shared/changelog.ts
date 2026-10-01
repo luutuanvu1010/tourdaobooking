@@ -11,12 +11,39 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
-    // Có migration 0067 (ADR-0085). Số "1.62" = main 1.61 + 1 — điều phối đã chốt; KIỂM LẠI LÚC GỘP (nhánh khác gộp trước thì đánh lại số).
-    version: "1.62",
+    // Có migration 0067 (ADR-0085). Số "1.64" = main 1.63 + 1 (đánh lại lúc gộp main 1.63, 2026-10-01; trước ghi 1.62). KIỂM LẠI LÚC GỘP (nhánh khác gộp trước thì đánh lại số).
+    version: "1.64",
     date: "2026-10-01",
     items: [
       { kind: "moi", text: "Toàn quyền đặt được quyền nào chỉ đăng nhập một máy, quyền nào được nhiều máy, ở trang Phiên đăng nhập → Chính sách đăng nhập." },
       { kind: "doi", text: "Chuyển một quyền về Một máy thì các máy thừa đăng xuất ngay, giữ máy đăng nhập gần nhất. Đổi vai của một người cũng có thể đăng xuất máy thừa của họ." },
+    ],
+  },
+  {
+    // Nợ nhỏ sau 1.62 (Đưa đón + Hành khách): PM-1, PM-2, số hiệu chuyến bay trên điều phối / thẻ tài xế, "Người đổi" ở lịch sử mẫu chặng, đơn vị bằng chữ ở Danh mục.
+    // Không migration. Số "1.63" = main 1.62 + 1 (2026-10-01).
+    version: "1.63",
+    date: "2026-10-01",
+    items: [
+      { kind: "sua", text: "Danh sách hành khách hiện đúng thứ tự đã nhập." },
+      { kind: "sua", text: "Hai người cùng sửa một đơn nháp: người lưu sau được báo \"đơn vừa được cập nhật — tải lại\" thay vì báo lỗi khó hiểu." },
+      { kind: "moi", text: "Bảng điều phối và thẻ chuyến của tài xế hiện số hiệu chuyến bay (✈︎) ở chặng đón." },
+      { kind: "moi", text: "Danh mục: lịch sử cài đưa đón có cột \"Người đổi\"." },
+      { kind: "sua", text: "Danh mục hiện đơn vị bằng chữ (\"theo người\", \"theo nhóm 5 khách\") thay cho mã kỹ thuật." },
+    ],
+  },
+  {
+    // ADR-0047 Phần B (giao diện Đưa đón + Hành khách theo bản vẽ Claude Design của chủ 1/10) + màn mẫu chặng ADR-0054/0076 + cảnh báo sớm (chủ "2 — Có").
+    // Không migration. Số "1.62" = main 1.61 + 1 (đánh lại lần năm lúc gộp main 1.61 — Mai in đậm, 2026-10-01; trước ghi 1.57–1.61).
+    version: "1.62",
+    date: "2026-10-01",
+    items: [
+      { kind: "moi", text: "Form đơn có khối \"Đưa đón\": chiều đi, chiều về, ngày giờ đón, nơi đón, nơi trả, số hiệu chuyến bay, số người chiều về." },
+      { kind: "moi", text: "Form đơn có khối \"Hành khách\": họ tên và năm sinh từng người — cần đủ trước khi xe chạy." },
+      { kind: "moi", text: "Dịch vụ có đưa đón tự tạo sẵn chiều đi, chiều về và nơi trả gợi ý; sửa hoặc bỏ được." },
+      { kind: "moi", text: "Chi tiết đơn có \"Sửa đưa đón\" và \"Sửa danh sách\" cho đơn đã xác nhận." },
+      { kind: "moi", text: "Danh mục: Quản trị cài mỗi dịch vụ đưa đón mấy chiều, giờ về và nơi trả gợi ý." },
+      { kind: "moi", text: "Nhắc sớm khi xác nhận đơn và khi xếp xe nếu còn thiếu nơi trả hoặc tên khách; vẫn làm tiếp được." },
     ],
   },
   {
