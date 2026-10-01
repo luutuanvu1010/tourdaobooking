@@ -20,7 +20,6 @@ export const CHANGELOG: readonly ReleaseNote[] = [
       { kind: "doi", text: "Sau bản này mọi người cần đăng nhập lại một lần." },
       { kind: "moi", text: "Trang Tôi có mục \"Phiên đăng nhập của tôi\": xem mình đã đăng nhập trên máy nào, lúc nào." },
       { kind: "moi", text: "IT và Toàn quyền có trang \"Phiên đăng nhập\": xem ai đang đăng nhập trên máy nào, gỡ phiên, hoặc gỡ phiên kèm đặt lại PIN." },
-      { kind: "doi", text: "Đổi PIN, đặt lại PIN, gỡ Face ID hay ngưng tài khoản thì các máy khác của tài khoản đó bị đăng xuất ngay." },
     ],
   },
   {
