@@ -14,6 +14,9 @@
 //   j  320: kéo sang phải quá mép ⇒ không tràn ngang
 //   l  320 (ADR-0073 Đ4): nút "Cuộc trò chuyện mới" ở chân khung, không tràn ngang; câu thứ hai mang nhớ (input là danh sách 3 mục);
 //      bấm nút ⇒ xoá đoạn trên màn hình, câu kế KHÔNG mang nhớ (mã cuộc trò chuyện mới). Ảnh 320.
+//   m  390 (bản 1.57, ghi vào docs/evidence/2026-10-01-tro-ly-mai/): placeholder "Hãy hỏi Mai tại đây nhé!"; nút đổi cỡ vẽ biểu tượng SVG (không còn góc CSS);
+//      gửi câu (máy giả chậm 1,5 giây) ⇒ NGAY hiện bong bóng của trợ lý "Mai đang trả lời…" với ba chấm đang chạy animation, không còn dòng trạng thái riêng;
+//      có trả lời ⇒ bong bóng mất; có lỗi (máy giả 500) ⇒ bong bóng mất, hiện tin lỗi; prefers-reduced-motion ⇒ ba chấm ẩn, còn chữ
 //   k  console sạch
 import assert from "node:assert/strict";
 import { mkdirSync } from "node:fs";
@@ -43,8 +46,12 @@ const may = createServer((req, res) => {
     // ADR-0082: cửa dấu vân nghĩa TẮT (503) ⇒ máy chủ lùi về từ khoá; `nhan` chỉ ghi /v1/responses như trước (bảng điều khiển canh đường mới).
     if (req.url === "/v1/embeddings") { res.writeHead(503, { "content-type": "application/json" }); return res.end("{}"); }
     nhan.push(JSON.parse(raw || "{}"));
+    const cau = JSON.stringify(nhan.at(-1).input ?? "");
+    if (cau.includes("gây lỗi")) { res.writeHead(500, { "content-type": "application/json" }); return res.end("{}"); }
+    setTimeout(() => {
     res.writeHead(200, { "content-type": "application/json" });
     res.end(JSON.stringify({ status: "completed", output: [{ type: "message", content: [{ type: "output_text", text: "Được." }] }], usage: { input_tokens: 1, input_tokens_details: { cached_tokens: 0 }, output_tokens: 1 } }));
+    }, cau.includes("chờ lâu") ? 1500 : 0);
   });
 });
 await new Promise((r) => may.listen(0, "127.0.0.1", r));
@@ -121,6 +128,8 @@ try {
         assert.ok(!tab || k.bottom <= tab.top, "không che thanh tab");
       }
       assert.equal(await p.ev(`getComputedStyle(${q(".tl-o")}).fontSize`), "16px");
+      assert.equal(await p.ev(`${q(".tl-o")}.getAttribute('placeholder')`), "Hãy hỏi Mai tại đây nhé!");
+      assert.equal(await p.ev(`!!${q(".tl-co svg")}`), true, "nút đổi cỡ vẽ biểu tượng");
       assert.equal(await p.ev(`document.activeElement === ${q(".tl-o")}`), true, "tiêu điểm ở ô gõ");
       assert.equal(await p.ev(`${q("#tl-khung")}.getAttribute('role')`), "dialog");
       assert.equal(await p.ev(`${q("#tl-khung")}.hasAttribute('aria-modal')`), false, "không modal");
@@ -270,9 +279,9 @@ try {
     assert.equal(await p.ev(`${q(".tl-cuoc-moi")}.textContent`), "Cuộc trò chuyện mới");
     assert.equal(await p.ev("document.documentElement.scrollWidth - innerWidth"), 0);
     const gui = async (c) => {
-      const truoc = await p.ev(`document.querySelectorAll('.tl-tin-tro-ly').length`);
+      const truoc = await p.ev(`document.querySelectorAll('.tl-tin-tro-ly:not(.tl-dang-tra)').length`);
       await p.ev(`(() => { ${q(".tl-o")}.value = ${JSON.stringify(c)}; ${q(".tl-form")}.requestSubmit(); return true; })()`);
-      await p.waitFor(`document.querySelectorAll('.tl-tin-tro-ly').length > ${truoc}`, "có trả lời", 15000);
+      await p.waitFor(`document.querySelectorAll('.tl-tin-tro-ly:not(.tl-dang-tra)').length > ${truoc}`, "có trả lời", 15000);
     };
     await gui("đổi mã PIN thế nào");
     assert.equal(nhan.at(-1).input, "đổi mã PIN thế nào", "câu đầu không có nhớ");
@@ -285,6 +294,37 @@ try {
     await gui("lập đơn mới ra sao");
     assert.equal(nhan.at(-1).input, "lập đơn mới ra sao", "cuộc trò chuyện mới không mang nhớ");
     await p.shot(join(OUT, "anh/l-cuoc-moi-320.png"));
+  });
+
+  await step("m", "390: placeholder mới; bong bóng 'Mai đang trả lời…' ba chấm chạy ngay khi gửi, mất khi có trả lời / lỗi; giảm chuyển động ⇒ chỉ còn chữ", async () => {
+    const p = await moKhung(M);
+    await p.shot(join(OUT, "anh/m-placeholder-390.png"));
+    const gui = (c) => p.ev(`(() => { ${q(".tl-o")}.value = ${JSON.stringify(c)}; ${q(".tl-form")}.requestSubmit(); return true; })()`);
+    await gui("đổi mã PIN, chờ lâu");
+    await p.waitFor(`!!${q(".tl-dang-tra")}`, "bong bóng đang trả lời hiện ngay", 1000);
+    assert.equal(await p.ev(`${q(".tl-dang-tra")}.classList.contains('tl-tin-tro-ly')`), true, "là bong bóng của trợ lý");
+    assert.equal(await p.ev(`${q(".tl-dang-tra-chu")}.textContent`), "Mai đang trả lời…");
+    assert.equal(await p.ev(`document.querySelectorAll('.tl-dang-tra .tl-cham i').length`), 3);
+    assert.equal(await p.ev(`document.querySelectorAll('.tl-dang-tra').length`), 1, "chỉ MỘT bong bóng");
+    assert.equal(await p.ev(`!!${q(".tl-trang-thai")}`), false, "không còn dòng trạng thái riêng (khỏi hiện hai lần)");
+    assert.equal(await p.ev(`getComputedStyle(${q(".tl-cham i")}).animationName`), "tl-cham-nhay");
+    assert.equal(await p.ev("document.documentElement.scrollWidth - innerWidth"), 0);
+    await p.shot(join(OUT, "anh/m-dang-tra-loi-390.png"));
+    await p.waitFor(`!${q(".tl-dang-tra")}`, "bong bóng mất khi có trả lời", 10000);
+    assert.equal(await p.ev(`document.querySelectorAll('.tl-tin-tro-ly').length`), 2, "câu chào + câu trả lời");
+    await gui("gây lỗi");
+    await p.waitFor(`!!${q(".tl-tin-loi")}`, "có tin lỗi", 10000);
+    assert.equal(await p.ev(`!!${q(".tl-dang-tra")}`), false, "lỗi ⇒ bong bóng mất");
+    await p.shot(join(OUT, "anh/m-loi-390.png"));
+    // giảm chuyển động
+    await p.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
+    await gui("đổi mã PIN, chờ lâu");
+    await p.waitFor(`!!${q(".tl-dang-tra")}`, "bong bóng hiện (giảm chuyển động)", 1000);
+    assert.equal(await p.ev(`getComputedStyle(${q(".tl-cham")}).display`), "none", "không nhấp nháy");
+    assert.equal(await p.ev(`${q(".tl-dang-tra-chu")}.offsetParent !== null`), true, "vẫn thấy chữ");
+    await p.shot(join(OUT, "anh/m-giam-chuyen-dong-390.png"));
+    await p.waitFor(`!${q(".tl-dang-tra")}`, "bong bóng mất", 10000);
+    await p.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "no-preference" }] });
   });
 
   await step("k", "console sạch ở mọi trang đã mở", async () => {

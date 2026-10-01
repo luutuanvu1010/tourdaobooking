@@ -118,6 +118,8 @@ const SHAPES = {
   truck: [["path", { d: "M3 16V6h11v10M14 9h4l3 4v3h-2M3 16h1M10 16h5M7 18a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM17 18a2 2 0 1 0 0-4 2 2 0 0 0 0 4z" }]],
   eye: [["path", { d: "M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" }]],
   "chevron-down": [["path", { d: "M6 9l6 6 6-6" }]],
+  // Nút đổi cỡ khung Hỗ trợ: hai mũi tên ngược chiều theo đường chéo (↖↘), cùng khuôn 24×24, nét 1.8 như cả bộ.
+  resize: [["path", { d: "M10 4H4v6M4 4l6.5 6.5M14 20h6v-6M20 20l-6.5-6.5" }]],
 } as const satisfies Record<string, readonly Shape[]>;
 
 export type IconName = keyof typeof SHAPES;
