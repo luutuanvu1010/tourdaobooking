@@ -110,6 +110,17 @@ try {
   const SALES2 = await session(ACCOUNTS.salesA);
   BLOCKED[0] = ["salesA", SALES2];
 
+  // --- 2c) Tài khoản Toàn quyền đã NGƯNG (ADR-0071 điều 3a: miễn trừ chỉ cho Toàn quyền ĐANG HOẠT ĐỘNG): tạo bằng vai IT (Quản trị + Toàn quyền) rồi ngưng.
+  // Bước 5 khẳng định đăng nhập đúng PIN của tài khoản này nhận ĐÚNG cùng thân 503 như mọi người bị chặn.
+  const TQ_NGUNG_PHONE = randomPhone();
+  r = await call(OWNER, "POST", "/api/staff", { roles: ["IT"], fullName: "Toàn Quyền Đã Ngưng (test)", phone: TQ_NGUNG_PHONE, taoHoSoMoi: true });
+  assert.equal(r.status, 201, JSON.stringify(r.body));
+  assert.ok(r.body.staff.permissions.includes("SUPER_ADMIN"), `vai IT phải sinh Toàn quyền: ${JSON.stringify(r.body.staff.permissions)}`);
+  const TQ_NGUNG_PIN = r.body.pin;
+  r = await call(OWNER, "PATCH", `/api/staff/${r.body.staff.id}`, { active: false });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  console.log("✓ dựng tài khoản Toàn quyền đã ngưng (vai IT)");
+
   // --- 3) BẬT (chủ)
   // Mốc TRƯỚC lần bật/tắt CỦA CHÍNH kịch bản này: nhật ký `audit_log` chỉ-thêm (trigger `audit_append_only` chặn DELETE, không riêng gì tài
   // liệu) và DÙNG CHUNG một D1 tạm cho cả lượt chạy — `bangtin.mjs` (Task 6, chạy TRƯỚC kịch bản này ở tests/e2e/run.mjs) cũng tự bật/tắt
@@ -150,6 +161,7 @@ try {
     ["SĐT không tồn tại", randomPhone(), "999888"],
     ["SĐT hỏng", "abc", "999888"],
     ["SĐT Quản trị (trong danh sách cũ), đúng PIN", ADMIN_PHONE, ACCOUNTS.admin.pin],
+    ["Toàn quyền đã NGƯNG, đúng PIN", TQ_NGUNG_PHONE, TQ_NGUNG_PIN],
   ]) {
     for (let i = 0; i < (label === "sai PIN" ? 8 : 1); i++) {
       // 8 lần sai PIN: nhiều hơn giới hạn 5 lần/SĐT — nếu bị đếm thì salesA sẽ bị khoá và bước 9 hỏng.
@@ -164,7 +176,7 @@ try {
   r = await call(null, "POST", "/api/auth/login", { phone: ACCOUNTS.salesA.phone, pin: ACCOUNTS.salesA.pin }); // thiếu token Turnstile
   assert.equal(r.status, 403, "Turnstile chạy TRƯỚC cổng bảo trì");
   assert.equal(r.body.error.code, "turnstile_failed");
-  console.log("✓ BẬT: đăng nhập → 503 cùng thân cho đúng PIN/sai PIN/SĐT lạ/SĐT Quản trị, không tiêu hao lượt PIN, không ghi lastLoginAt; thiếu token Turnstile vẫn 403");
+  console.log("✓ BẬT: đăng nhập → 503 cùng thân cho đúng PIN/sai PIN/SĐT lạ/SĐT Quản trị/Toàn quyền đã ngưng, không tiêu hao lượt PIN, không ghi lastLoginAt; thiếu token Turnstile vẫn 403");
 
   // --- 6) BẬT: chủ dùng bình thường (phiên cũ, phiên thứ hai, đăng nhập mới)
   for (const [name, cookie] of [["chủ (phiên cũ)", OWNER], ["chủ (phiên thứ hai)", OWNER2]]) {

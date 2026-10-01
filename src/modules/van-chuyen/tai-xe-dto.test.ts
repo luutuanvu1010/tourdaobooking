@@ -4,11 +4,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
-import { DRIVER, NGAY, NGAY_SAU, batDongHo, chuyenSan, denGio, setup, tienDo } from "../../../tests/audit/dieu-phoi-khung.mjs";
+import { DRIVER, NGAY, NGAY_SAU, batDongHo, chiTiet, chuyenSan, denGio, setup, tienDo } from "../../../tests/audit/dieu-phoi-khung.mjs";
 
 const KHOA_CHUYEN = ["bienSo", "gioBatDau", "gioKetThuc", "id", "ketThucThat", "ma", "soCho", "trangThai", "trangThaiNhan", "xuatBen"];
 const KHOA_DIEM = ["daToi", "gioHen", "gioXeToi", "id", "loai", "soNguoi", "tenNoi", "thuTu", "trangThai"];
-const KHOA_SUAT = ["daDon", "daTra", "diemLen", "diemXuong", "id", "maDon", "trangThai"];
+const KHOA_SUAT = ["daDon", "daTra", "diemLen", "diemXuong", "id", "maDon", "soHieuChuyenBay", "trangThai"];
 const KHOA_GOC = ["chuyen", "diem", "dieuKienConThieu", "lyDo", "suat", "trongNgayChay"];
 /** Chuỗi KHÔNG BAO GIỜ được thấy trong DTO tài xế: tiền, ghi chú đơn, ghi chú thanh toán, người lập (tên Bán hàng), số / nơi cấp GPLX, khoá nơi, SĐT người bấm. */
 const CAM = /777000|Ghi chú đơn Dò Tìm|Thanh toán Dò Tìm|"An"|7911000000|Nơi cấp Dò Tìm|2030-12-31|\b[LT]:[0-9a-f-]{8,}|0900000001/;
@@ -134,6 +134,26 @@ test("TC-39 (R-P11): mốc văn phòng KHAI giờ → vanPhongKhai true + nguoiB
     }
     assert.equal(moc.filter((m: any) => m.vanPhongKhai).length, 1);
     assert.doesNotMatch(r.text, /0900000001|11111111-1111/, "không SĐT, không id người bấm");
+  } finally {
+    tat();
+  }
+});
+
+test("kế hoạch ô mới TC-F7 (ADR-0055 C3, G-C1): số hiệu chuyến bay của chặng có trên SUẤT của DTO tài xế CẢ NGOÀI ngày chạy (tên khách vẫn vắng); chi tiết chuyến văn phòng cũng có", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const a = await chuyenSan(w, { ngay: NGAY_SAU });
+    w.sqlite.prepare("UPDATE ord_transfer_leg SET flight_code = 'VN1553' WHERE id = ?").run(a.don.legId);
+    const r = await w.call("GET", `/api/van-chuyen/cuoc-cua-toi/${a.id}`, { as: DRIVER });
+    assert.equal(r.status, 200, r.text);
+    assert.equal(r.json.trongNgayChay, false);
+    ghim(r.json, { lienHe: false, ten: false });
+    assert.ok(r.json.suat.length > 0);
+    for (const s of r.json.suat) assert.equal(s.soHieuChuyenBay, "VN1553");
+    assert.doesNotMatch(r.text, /Dò Tìm \d|0912345678|Khách Liên Hệ/, "không tên khách, không liên hệ");
+    const vp = await chiTiet(w, a.id);
+    for (const s of vp.suat.filter((x: any) => x.loai === "PASSENGER")) assert.equal(s.soHieuChuyenBay, "VN1553");
   } finally {
     tat();
   }

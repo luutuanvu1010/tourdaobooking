@@ -11,14 +11,24 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
-    // ADR-0073 (trợ lý bộ não tuỳ biến, ô thử, nhớ 3 lượt, ẩn số tiền). Số "1.53" = main 1.52 + 1 lúc thi công (2026-10-01); nhánh khác gộp trước thì ai gộp sau đánh lại số và ngày. Có migration 0060 (số tạm).
-    version: "1.53",
+    // ADR-0073 (trợ lý bộ não tuỳ biến, ô thử, nhớ 3 lượt, ẩn số tiền). Số "1.54" = main 1.53 + 1 (đánh lại lúc gộp main 1.53, 2026-10-01; thi công ghi 1.53). Có migration 0060.
+    version: "1.54",
     date: "2026-10-01",
     items: [
       { kind: "moi", text: "Trợ lý Hỗ trợ nhớ vài câu vừa hỏi trong cùng cuộc trò chuyện, nên hỏi tiếp \"còn trên điện thoại thì sao\" vẫn hiểu. Bấm \"Cuộc trò chuyện mới\" để bắt đầu lại." },
       { kind: "doi", text: "Trợ lý trả lời tự nhiên hơn: câu chưa rõ thì hỏi lại; việc hướng dẫn chưa nói thì nói thật, chỉ chỗ gần nhất hoặc mời gửi Góp ý." },
       { kind: "doi", text: "Trợ lý không nêu số tiền trong câu trả lời — chỗ có số tiền hiện \"[đã ẩn số tiền]\"." },
       { kind: "moi", text: "Toàn quyền: trang Trợ lý Hỗ trợ có mục Bộ não — chọn mẫu AI kèm giá, sửa lời nhắc, xem lịch sử bản, thử câu hỏi trước khi lưu." },
+    ],
+  },
+  {
+    // Phần máy chủ "ô mới của chặng" (ADR-0054 D10.1/D10.3, ADR-0055 VK2-C, ADR nháp nơi trả mặc định — chủ duyệt Q-D 1/10). Có migration 0058, 0059.
+    // Giao diện chưa làm (chờ bản vẽ Claude Design) — người dùng chưa thấy ô mới trên màn hình.
+    version: "1.53",
+    date: "2026-10-01",
+    items: [
+      { kind: "moi", text: "Chuẩn bị cho màn nhập khách: mỗi chặng đưa đón lưu được số hiệu chuyến bay và số người chiều về; màn nhập sẽ có ở bản sau." },
+      { kind: "moi", text: "Chuẩn bị cho Danh mục: Quản trị sẽ cài được chiều đón và nơi trả gợi ý theo từng dịch vụ đưa đón." },
     ],
   },
   {

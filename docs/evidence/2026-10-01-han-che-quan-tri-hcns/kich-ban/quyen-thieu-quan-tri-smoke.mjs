@@ -5,14 +5,15 @@
 //      Gửi thông báo; vào /staff, /catalog, /locations, /audit, /gui-thong-bao, /account (mục bảo trì hiện) — không dòng báo lỗi nào, không lỗi JS.
 //   C. Tài khoản CHỈ Nhân sự (HR): thanh bên ĐÚNG [Quản lý tài khoản] + [Của tôi, Góp ý / Báo lỗi, Trợ giúp]; thanh tab [Tài khoản, Tôi]; "/" → /staff;
 //      /staff không lỗi; /catalog, /locations, /audit, /gui-thong-bao hiện câu từ chối tiếng Việt (đọc "không lỗi đỏ" = trang được phép không có dòng báo lỗi;
-//      trang không được phép hiện câu từ chối, không lỗi JS); trang Tôi không có mục bảo trì, không dòng Địa điểm / Gửi thông báo / Nhật ký.
+//      trang không được phép hiện câu từ chối, không lỗi JS); trang Tôi không có mục bảo trì, không dòng Địa điểm / Gửi thông báo / Nhật ký; C2: gõ SĐT của một
+//      khách → chỉ câu "đã có trong Danh bạ", không tên (ADR-0071 điều 3b), tick "Vẫn tạo hồ sơ mới" rồi tạo được.
 // Các trang dùng CHUNG kho cookie (CLAUDE.md §10): làm XONG một tài khoản (đóng mọi trang) rồi mới đăng nhập tài khoản sau.
 // Chạy từ GỐC repo, sau `npm run build:web` (không cần mạng ngoài):
 //   CHROME_BIN=$PWD/docs/evidence/2026-09-20-a2/kich-ban/chrome-wrap.sh node docs/evidence/2026-10-01-han-che-quan-tri-hcns/kich-ban/quyen-thieu-quan-tri-smoke.mjs
 import assert from "node:assert/strict";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
-import { ACCOUNTS, ok, sleep, startEnv } from "../../2026-09-20-a2/kich-ban/a2-cdp.mjs";
+import { ACCOUNTS, ok, setInput, sleep, startEnv } from "../../2026-09-20-a2/kich-ban/a2-cdp.mjs";
 
 const DESK = { width: 1040, height: 800, mobile: false };
 const MOB = { width: 390, height: 844, mobile: true };
@@ -96,6 +97,41 @@ try {
   assert.deepEqual(p.consoleErrors, [], "C. /staff không lỗi JS");
   p.close();
   ok("C. /staff: không dòng báo lỗi, không lỗi JS");
+
+  // C2. ADR-0071 điều 3b: Nhân sự gõ đúng SĐT của một KHÁCH trong Danh bạ → khối hồ sơ khớp chỉ có câu "đã có trong Danh bạ", không tên khách, không danh sách;
+  // nút Tạo tắt tới khi tick "Vẫn tạo hồ sơ mới"; tick rồi tạo được. Khách dựng bằng phiên Quản trị gọi thẳng API (không qua trang — kho cookie giữ nguyên).
+  const TEN_KHACH = "Khách Bí Mật Chrome";
+  const SO_KHACH = "0912777888";
+  const ckQT = await env.login(ACCOUNTS.admin);
+  const taoKhach = await fetch(`${env.base}/api/parties`, { method: "POST", headers: { "content-type": "application/json", origin: env.base, cookie: `${ckQT.name}=${ckQT.value}` }, body: JSON.stringify({ kind: "PERSON", fullName: TEN_KHACH, contacts: [{ kind: "PHONE", value: SO_KHACH }] }) });
+  assert.equal(taoKhach.status, 201, `tạo khách: ${taoKhach.status}`);
+  p = await mo(CHI_NHAN_SU, "/staff", DESK);
+  await p.waitFor("!!document.querySelector('#add-perms input[data-kind=role][value=SALES_STAFF]')", "C2. form Thêm tài khoản có khối vai");
+  await p.ev(setInput("document.querySelector('#add-name')", "Người Mới Hoàn Toàn"));
+  await p.ev(setInput("document.querySelector('#add-phone')", SO_KHACH));
+  await p.waitFor("!document.querySelector('#add-khop').hidden", "C2. khối hồ sơ khớp hiện", 8000);
+  const khoi = await p.ev(`(() => { const k = document.querySelector('#add-khop'); const nut = document.querySelector('#add-form button[type=submit]'); return { chu: k.textContent, li: k.querySelectorAll('li').length, tat: nut.disabled }; })()`);
+  assert.ok(khoi.chu.includes("Số hoặc tên này đã có trong Danh bạ. Vẫn tạo được hồ sơ mới; sau đó nhờ Quản trị gộp hồ sơ trùng."), `C2. câu báo: ${khoi.chu}`);
+  assert.ok(!khoi.chu.includes("Bí Mật"), `C2. không lộ tên khách: ${khoi.chu}`);
+  assert.equal(khoi.li, 0, "C2. không có danh sách hồ sơ (không id/tên)");
+  assert.equal(khoi.tat, true, "C2. nút Tạo tắt khi chưa tick 'Vẫn tạo hồ sơ mới'");
+  // Gửi khi chưa tick (requestSubmit bỏ qua nút tắt) → 409. Chủ dự án 2026-10-01: câu "đã có trong Danh bạ" hiện ĐÚNG MỘT lần (ở khối hồ sơ khớp), #error không
+  // lặp lại. Đếm phản hồi 409 bằng bọc fetch để biết máy chủ đã trả (không còn chờ #error hiện được).
+  await p.ev("(window.__so409 = 0, window.fetch = ((f) => async (...a) => { const r = await f(...a); if (r.status === 409) window.__so409++; return r; })(window.fetch), true)");
+  await p.ev("(document.querySelector('#add-perms input[data-kind=role][value=SALES_STAFF]').click(), document.querySelector('#add-form').requestSubmit(), true)");
+  await p.waitFor("window.__so409 > 0", "C2. máy chủ trả 409", 8000);
+  await sleep(300);
+  const sau409 = await p.ev(`(() => { const t = document.body.innerText; const cau = 'đã có trong Danh bạ'; return { lan: t.split(cau).length - 1, loiAn: document.getElementById('error').hidden || !document.getElementById('error').textContent.trim(), khoi: !document.querySelector('#add-khop').hidden && document.querySelector('#add-khop').textContent.includes(cau) }; })()`);
+  assert.equal(sau409.lan, 1, `C2. sau 409 câu "đã có trong Danh bạ" phải hiện đúng một lần: ${JSON.stringify(sau409)}`);
+  assert.equal(sau409.khoi, true, "C2. câu ở khối hồ sơ khớp");
+  assert.equal(sau409.loiAn, true, "C2. ô báo lỗi không lặp câu");
+  await p.ev("(document.querySelector('#add-khop label.check input').click(), true)");
+  assert.equal(await p.ev("document.querySelector('#add-form button[type=submit]').disabled"), false, "C2. tick xong nút Tạo mở");
+  await p.ev("(document.querySelector('#add-form').requestSubmit(), true)");
+  await p.waitFor("!document.querySelector('#secret').hidden && !!document.querySelector('#secret td.pin')", "C2. tạo xong, hiện PIN", 8000);
+  assert.deepEqual(p.consoleErrors, [], "C2. không lỗi JS");
+  p.close();
+  ok("C2. Nhân sự gõ SĐT của khách: chỉ câu 'đã có trong Danh bạ' (sau 409 vẫn đúng một lần), không tên, không danh sách, nút Tạo tắt; tick 'Vẫn tạo hồ sơ mới' → tạo được");
   const TU_CHOI = {
     "/catalog": "Chỉ quản trị viên được vào trang này.",
     "/locations": "Chỉ quản trị viên được vào trang này.",

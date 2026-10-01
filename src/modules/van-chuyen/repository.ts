@@ -366,3 +366,49 @@ export const insertTripReasonStatement = (db: D1Database, v: { code: string; gro
 export const updateTripReasonStatement = (
   db: D1Database, code: string, v: { label: string; sortOrder: number; active: boolean; expectedUpdatedAt: string }, at: string, actorId: string,
 ): D1PreparedStatement => db.prepare(UPDATE_TRIP_REASON).bind(code, v.label, v.sortOrder, v.active ? 1 : 0, at, actorId, v.expectedUpdatedAt);
+
+// ---- Mẫu đưa đón theo dịch vụ `vc_leg_template` (ADR-0054 D10.1; ADR nháp nơi trả mặc định — 0058) --------------------------------------------------------
+// Chỉ thêm; dòng hiện hành của một mã = valid_from_at lớn nhất ≤ bây giờ. Tên điểm qua view công bố của locations (cạnh van-chuyen → locations đã khai).
+export interface LegTemplateRow {
+  id: string;
+  code: string;
+  mode: "NONE" | "ONE_WAY" | "ROUND_TRIP";
+  return_time_hint: string | null;
+  default_dropoff_location_id: string | null;
+  /** Tên điểm nơi trả mặc định (view công bố) — null khi không có điểm. */
+  noi_tra_ten: string | null;
+  /** Điểm còn dùng (1) / đã ngưng (0); null khi không có điểm. */
+  noi_tra_active: number | null;
+  valid_from_at: string;
+}
+const COT_MAU = `t.id, t.code, t.mode, t.return_time_hint, t.default_dropoff_location_id, l.name AS noi_tra_ten, l.active AS noi_tra_active, t.valid_from_at`;
+const LEG_TEMPLATE_HISTORY = defineSql(
+  "van-chuyen",
+  "leg_template_history",
+  `SELECT ${COT_MAU} FROM vc_leg_template t LEFT JOIN v_loc_location_label l ON l.id = t.default_dropoff_location_id WHERE t.code = ?1 ORDER BY t.valid_from_at DESC, t.id`,
+);
+const LEG_TEMPLATE_CURRENT_ALL = defineSql(
+  "van-chuyen",
+  "leg_template_current_all",
+  `SELECT ${COT_MAU} FROM vc_leg_template t LEFT JOIN v_loc_location_label l ON l.id = t.default_dropoff_location_id
+   WHERE t.valid_from_at = (SELECT max(m.valid_from_at) FROM vc_leg_template m WHERE m.code = t.code AND m.valid_from_at <= ?1) ORDER BY t.code`,
+);
+const INSERT_LEG_TEMPLATE = defineSql(
+  "van-chuyen",
+  "insert_leg_template",
+  `INSERT INTO vc_leg_template (id, code, mode, return_time_hint, default_dropoff_location_id, valid_from_at, created_at, created_by, updated_at, updated_by)
+   VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?6, ?7, ?6, ?7)`,
+);
+/** Điểm danh mục theo id (tên + còn dùng) — kiểm "điểm đang dùng lúc ghi" (NT-D3). */
+const LOCATION_LABEL = defineSql("van-chuyen", "location_label_by_id", `SELECT id, name, active FROM v_loc_location_label WHERE id = ?1`);
+export async function legTemplateHistory(db: D1Database, code: string): Promise<LegTemplateRow[]> {
+  return (await db.prepare(LEG_TEMPLATE_HISTORY).bind(code).all<LegTemplateRow>()).results;
+}
+export async function legTemplatesCurrent(db: D1Database, nowIso: string): Promise<LegTemplateRow[]> {
+  return (await db.prepare(LEG_TEMPLATE_CURRENT_ALL).bind(nowIso).all<LegTemplateRow>()).results;
+}
+export const locationLabel = (db: D1Database, id: string): Promise<{ id: string; name: string; active: number } | null> =>
+  db.prepare(LOCATION_LABEL).bind(id).first<{ id: string; name: string; active: number }>();
+export const insertLegTemplateStatement = (
+  db: D1Database, id: string, code: string, v: { mode: string; returnTimeHint: string | null; noiTraMacDinhId: string | null }, at: string, actorId: string,
+): D1PreparedStatement => db.prepare(INSERT_LEG_TEMPLATE).bind(id, code, v.mode, v.returnTimeHint, v.noiTraMacDinhId, at, actorId);

@@ -28,7 +28,7 @@ test("C2: tên khớp (chữ thường, khoảng trắng thừa) → 409 kèm da
   const r = await tao(w, { fullName: "  nguyễn   phú HẢI ", phone: "0900000050" });
   assert.equal(r.status, 409, r.text);
   assert.equal(r.json.error.code, "party_match_exists");
-  assert.deepEqual(r.json.error.khop, [{ id: P, displayName: "Nguyễn Phú Hải", lyDo: ["NAME"], vai: ["Lái cano"], coTaiKhoan: false }]);
+  assert.deepEqual(r.json.error.khop, [{ id: P, displayName: "Nguyễn Phú Hải", lyDo: ["NAME"], vai: ["Lái cano"], vaiTaiKhoan: [], coTaiKhoan: false }]);
   assert.ok(!r.text.includes(SO), "không lộ SĐT của hồ sơ khác");
   assert.equal(w.q("SELECT count(*) n FROM staff")[0].n, truoc);
 });

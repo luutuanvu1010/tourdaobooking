@@ -153,6 +153,7 @@
 | `vc_vehicle_document_type` | bảng |  |
 | `vc_expiry_policy` | bảng |  |
 | `vc_dispatch_policy` | bảng |  |
+| `vc_leg_template` | bảng | MẪU ĐƯA ĐÓN theo dịch vụ (ADR-0054 D10.1, 0058): chỉ thêm (trigger cấm sửa/xoá), dòng valid_from_at lớn nhất đã tới là hiện hành, không dòng = không đưa đón. code = mã dịch vụ của Danh mục — tham chiếu LOGIC, KHÔNG khoá ngoại, KHÔNG khai logicalRefs (catalog chưa có view công bố cho mã; ruling 0.5 của nhật ký thi công 2026-10-01-may-chu-o-moi-chang); van-chuyen không đọc bảng catalog. default_dropoff_location_id = nơi trả mặc định (ADR nháp nơi trả mặc định, đã duyệt 1/10) — điểm danh mục, chỉ khi có đưa đón. Chỉ là GỢI Ý ở form (hàm thuần changMacDinh): máy chủ không tự tạo chặng, không tự điền nơi trả |
 | `vc_departure_rule` | bảng |  |
 | `vc_license_capacity` | bảng |  |
 | `vc_reason` | bảng tra cứu |  |

@@ -313,6 +313,16 @@ export interface LegInput {
   pickupPlace: string;
   dropoffLocationId: string | null;
   dropoffPlace: string;
+  /**
+   * Số hiệu chuyến bay (ADR-0055 VK2-C): máy chủ bỏ khoảng trắng + chữ HOA, khuôn `^[A-Z0-9]{2}[0-9]{1,4}[A-Z]?$`; `""` = xoá. VẮNG khoá = GIỮ giá trị đang lưu
+   * (lưu nháp, sửa chặng). Ghi theo ô của route chứa chặng (nháp `order.modify`, sau xác nhận `order.trip.edit`); không xét mốc 6 giờ.
+   */
+  flightCode?: string;
+  /**
+   * Số người RIÊNG của chặng VỀ (ADR-0054 D10.3): số nguyên ≥ 1, ≤ số khách hiệu lực của dịch vụ (L-R1); `null` = theo số khách dịch vụ. Chỉ chặng `RETURN`.
+   * Chỉ văn phòng ghi (`order.trip.edit`) — lưu nháp gửi giá trị KHÁC bản đang lưu mà không có ô → 403; VẮNG khoá = giữ. Không xét mốc 6 giờ.
+   */
+  paxOverride?: number | null;
 }
 /** `PUT /api/orders/:id/legs/:legId` — sửa trường vận hành của chặng (không đổi chiều, không đổi dịch vụ). */
 export type LegEditInput = Omit<LegInput, "id" | "direction">;
@@ -330,6 +340,10 @@ export interface LegDto {
   dropoffPlace: string | null;
   dropoffLabel: string | null;
   updatedAt: string;
+  /** Số hiệu chuyến bay (ADR-0055 VK2-C C3 — ai xem được chặng thì thấy); null = chưa có. */
+  flightCode: string | null;
+  /** Số người riêng của chặng VỀ (ADR-0054 D10.3); null = theo số khách dịch vụ. */
+  paxOverride: number | null;
   /**
    * Dấu ĐẶT GẤP của chặng (ADR-0049 D2; chủ H4 / N-14, 29/9): `null` = chặng không đặt gấp. Văn phòng (ô `order.leg.short_notice.view`) nhận ĐỦ
    * (`DatGapDayDuDto`); Đối tác, HDV, Thực tập CHỈ nhận cờ `{ daDuyet: true }` — khoá lý do, người, lúc, ghi chú VẮNG MẶT.
@@ -744,7 +758,9 @@ export type LyDoKhopDto = "PHONE" | "NAME" | "LOGIN_PHONE";
 export interface PartyDuplicatePairDto { a: PartyListItemDto; b: PartyListItemDto; lyDo: LyDoKhopDto[]; aCoTaiKhoan: boolean; bCoTaiKhoan: boolean }
 export interface PartyDuplicatesResponse { pairs: PartyDuplicatePairDto[]; conNua: boolean }
 /** Hồ sơ cá nhân khớp khi Thêm tài khoản (ADR-0068 Đ9) — không SĐT của hồ sơ. */
-export interface PartyMatchDto { id: string; displayName: string; lyDo: ("PHONE" | "NAME")[]; vai: string[]; coTaiKhoan: boolean }
+/** `vaiTaiKhoan`: mã các vai tài khoản (ROLE_CODES) hồ sơ đang mở — để form Thêm tài khoản chọn sẵn (Ruling R26) mà không phải đọc hồ sơ qua Danh bạ (Hành chính
+ * nhân sự không xem Danh bạ, ADR-0071). Cùng thông tin với `vai` (tên), chỉ ở dạng mã. */
+export interface PartyMatchDto { id: string; displayName: string; lyDo: ("PHONE" | "NAME")[]; vai: string[]; vaiTaiKhoan: RoleCode[]; coTaiKhoan: boolean }
 /** ADR-0071 điều 3b: `coHoSoKhacTrongDanhBa` = có hồ sơ trùng mà người gọi không được thấy (không xem Danh bạ — Hành chính nhân sự): khách, hồ sơ không vai tài
  * khoản. Không kèm id, tên, vai. Người xem được Danh bạ thấy mọi hồ sơ trùng trong `khop` nên cờ luôn false. */
 export interface PartyMatchResponse { khop: PartyMatchDto[]; coHoSoKhacTrongDanhBa: boolean }
@@ -1179,6 +1195,8 @@ export interface SuatChuyenDto {
   diemLen: string | null;
   diemXuong: string | null;
   trangThai: "WAITING" | "BOARDED" | "NO_SHOW" | "CANCELLED_AT_STOP" | "DROPPED";
+  /** Số hiệu chuyến bay của CHẶNG của suất (ADR-0055 VK2-C C3; gắn vào suất, không vào điểm dừng — ruling T1); null = chưa có / suất người đi kèm. */
+  soHieuChuyenBay: string | null;
   /** Có tên khách chưa (khoá người đã gắn). */
   coTen: boolean;
   /** Họ tên + năm sinh — CHỈ ở chi tiết chuyến của văn phòng (R-P1; `trip.view = any` ⇒ `contact.view = any`) và DTO tài xế trong ngày chạy (A15). */
@@ -1400,6 +1418,8 @@ export interface CuocChiTietResponse {
     trangThai: "WAITING" | "BOARDED" | "NO_SHOW" | "CANCELLED_AT_STOP" | "DROPPED";
     daDon: MocTienDoDto | null;
     daTra: MocTienDoDto | null;
+    /** Số hiệu chuyến bay của chặng — CÓ MỌI LÚC như giờ, nơi hẹn (ADR-0055 C3, G-C1: không kèm tên không chỉ ra một người). */
+    soHieuChuyenBay: string | null;
     hoTen?: string;
     namSinh?: number;
   }[];
@@ -1408,6 +1428,28 @@ export interface CuocChiTietResponse {
   /** Lý do kết thúc gián đoạn đang dùng (I5). */
   lyDo: { code: string; nhan: string }[];
   trongNgayChay: boolean;
+}
+
+// ---- Mẫu đưa đón theo dịch vụ (ADR-0054 D10.1–D10.2; ADR nháp nơi trả mặc định docs/superpowers/specs/2026-10-01-de-xuat-adr-noi-tra-mac-dinh.md) ------------
+/** Một BẢN mẫu (màn Danh mục, cổng admin): chế độ, giờ gợi ý chiều về, nơi trả mặc định (tên + còn dùng), lúc hiệu lực (ISO UTC). */
+export interface MauChangBanDto {
+  mode: "NONE" | "ONE_WAY" | "ROUND_TRIP";
+  returnTimeHint: string | null;
+  noiTraMacDinh: { id: string; ten: string; dangDung: boolean } | null;
+  tuLuc: string;
+}
+/** `GET/POST /api/van-chuyen/mau-chang/:code` — lịch sử (mới trước) + bản hiện hành (null = chưa cài = không đưa đón). */
+export interface MauChangLichSuResponse {
+  code: string;
+  hienHanh: MauChangBanDto | null;
+  lichSu: MauChangBanDto[];
+}
+/**
+ * `GET /api/van-chuyen/mau-chang` (cổng orders + `order.create`) — mẫu HIỆN HÀNH theo mã dịch vụ, ĐÚNG ba khoá mỗi mã (danh sách trắng): chế độ, giờ gợi ý, nơi trả
+ * mặc định `{ id, ten }` hoặc null (chưa cài / điểm đã ngưng). Mã vắng = không đưa đón. Form đưa vào `changMacDinh` (src/shared/chang-mac-dinh.ts).
+ */
+export interface MauChangFormResponse {
+  mauChang: Record<string, { mode: "NONE" | "ONE_WAY" | "ROUND_TRIP"; returnTimeHint: string | null; noiTraMacDinh: { id: string; ten: string } | null }>;
 }
 
 // ---- Sổ tiền lượt 1 (module billing — ADR-0024, ADR-0025, ADR-0026) -----------------------------------------------------------------------------
