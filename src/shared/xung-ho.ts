@@ -27,6 +27,13 @@ export function xungHo(tenGoi: string | null | undefined, gioiTinh: string | nul
 export const dongMai = (x: XungHo): string => `Tên bạn là Mai, trợ lý của Tour Đảo. Người đang hỏi: gọi là '${x.goi}', xưng '${x.xung}'.`;
 
 /**
+ * Yêu cầu chủ 2026-10-01: dòng ĐỊNH DẠNG do MÁY CHỦ nối ngay sau dòng Mai (cùng chỗ, cùng hàng rào: Toàn quyền không sửa được). Lý do: Toàn quyền có thể đã lưu bản
+ * lời nhắc riêng còn câu cấm dấu sao cũ — dòng này đứng SAU nên thắng. Hiển thị: `tachInDam` (in-dam.ts). Một dòng, không phụ thuộc người hỏi.
+ */
+export const DONG_DINH_DANG =
+  "Định dạng: in đậm tên nút, mục menu, màn hình và đường điều hướng bằng cặp ** (ví dụ **Danh bạ › Hồ sơ mới**); ngoài cặp ** không dùng định dạng nào khác; dòng Nguồn không in đậm. Luật này thay mọi câu cấm dấu sao ở trên.";
+
+/**
  * ADR-0084 Đ5 + Đ2: câu chào mặc định (chỗ thay `{ten}` = cách gọi, `{xung}` = cách xưng). Phán quyết điều phối 2026-10-01 (sau kiểm độc lập TB-2): văn bản
  * Đ5 ("… em là Mai …") mâu thuẫn Đ2 ("bạn" thì xưng "mình") — chủ đã chốt cặp "bạn / mình", nên câu chào xưng theo `{xung}`.
  */

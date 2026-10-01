@@ -8,6 +8,7 @@ import { uocMotCauMicroUsd } from "../src/shared/tro-ly-mau";
 import { PERMISSION_CODES, PERMISSION_LABEL, can, type PermissionCode } from "../src/shared/permissions";
 import { ApiError, api, type Api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
+import { chuInDam } from "./tro-ly-in-dam";
 import { dateTime } from "./format";
 import { initShell, showError } from "./shell";
 
@@ -311,7 +312,7 @@ function dungBoNao(): void {
         const tenMau = dsMau.find((m) => m.ma === r.mau)?.ten ?? "Mẫu không còn trong danh sách";
         replaceChildren(
           ketQua,
-          h("p", { class: "tl-chu" }, r.traLoi),
+          h("p", { class: "tl-chu" }, ...chuInDam(r.traLoi)),
           r.nguon.length ? h("p", { class: "tl-nguon" }, `Nguồn: ${r.nguon.join("; ")}`) : null,
           h(
             "div",
@@ -521,7 +522,7 @@ function veLichSu(): void {
               { class: "tl-cd-ban-dong" },
               h("p", { class: "muted" }, `${dateTime(d.luc)} · ${d.nguoi} · ${d.vai.join(", ")} · ${d.ketQua} · ${usd(d.chiPhiUsd)}`),
               h("p", { class: "tl-chu" }, h("strong", null, "Hỏi: "), d.cauHoi),
-              h("p", { class: "tl-chu" }, h("strong", null, "Đáp: "), d.traLoi),
+              h("p", { class: "tl-chu" }, h("strong", null, "Đáp: "), ...chuInDam(d.traLoi)),
               d.nguon.length ? h("p", { class: "tl-nguon" }, `Nguồn: ${d.nguon.join("; ")}`) : null,
             ))
           : [h("li", { class: "muted" }, "Không có câu hỏi nào khớp.")]),

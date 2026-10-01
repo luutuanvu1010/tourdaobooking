@@ -12,7 +12,8 @@ import { LOI_NHAC_MAC_DINH, THONG_SO_MAC_DINH } from "./tro-ly-bo-nao.ts";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { sinhTep, DICH } from "../../scripts/sinh-so-do-trang.mjs";
 import { TOKEN_VAO_UOC_MOT_CAU } from "./tro-ly-mau.ts";
-import { dongMai, xungHo } from "./xung-ho.ts";
+import { DONG_DINH_DANG, dongMai, xungHo } from "./xung-ho.ts";
+import { AN_SO_TIEN, anSoTien } from "./tro-ly-loc-tien.ts";
 
 // ---- che (ADR-0066 điều 5)
 
@@ -103,7 +104,7 @@ const MAC_DINH = { ...THONG_SO_MAC_DINH, loiNhac: LOI_NHAC_MAC_DINH };
 const DOAN1: DoanTriThuc[] = [{ ten: "Chung › Đổi PIN", quyen: [], chu: "Vào Tôi, bấm Đổi PIN." }];
 /** ADR-0084: người hỏi trong các bài thuần — chưa ghi giới tính ⇒ "bạn" / "mình". */
 const BAN = xungHo("Vũ", null);
-const MAI_BAN = dongMai(BAN);
+const MAI_BAN = `${dongMai(BAN)}\n${DONG_DINH_DANG}`;
 
 test("thanYeuCau: theo BỘ NÃO (mẫu, mức suy nghĩ, độ dài, token ra), store false; KHÔNG gửi id / tên / SĐT người hỏi (G1)", () => {
   const than = thanYeuCau(MAC_DINH, ["SALES"], BAN, chonDoan("đổi PIN", ["SALES"]), "đổi PIN thế nào");
@@ -171,6 +172,17 @@ test("ADR-0084 Đ3: kiểm trần tính CẢ dòng Mai — tên gọi dài hơn 
   assert.ok(String(than.instructions).includes(MAI_BAN));
 });
 
+test("Dòng định dạng (yêu cầu chủ 2026-10-01): dungLoiNhac nối NGAY SAU dòng Mai kể cả khi Toàn quyền lưu bản riêng còn câu cấm dấu sao; kiểm trần tính cả dòng này", () => {
+  const cu = { ...MAC_DINH, loiNhac: "9. Không dùng định dạng markdown như dấu sao, dấu thăng." };
+  const s = dungLoiNhac(cu.loiNhac, ["SALES"], BAN, []);
+  assert.ok(s.includes(`${dongMai(BAN)}\n${DONG_DINH_DANG}\nNgười hỏi thuộc nhóm vai:`));
+  assert.equal(s.split(DONG_DINH_DANG).length, 2, "đúng MỘT dòng định dạng");
+  assert.ok(s.indexOf(DONG_DINH_DANG) > s.indexOf("dấu sao") && s.indexOf(DONG_DINH_DANG) < s.indexOf("TÀI LIỆU:"));
+  const than = thanYeuCau(cu, ["SALES"], BAN, [], "đổi PIN");
+  assert.ok(String(than.instructions).includes(DONG_DINH_DANG));
+  assert.equal(uocTokenVao(than), uocToken(String(than.instructions)) + uocToken(JSON.stringify("đổi PIN")), "ước token vào tính cả dòng định dạng");
+});
+
 test("lời nhắc mặc định nhắc đúng chữ che của máy chủ (luật 11 ↔ CHE)", () => {
   assert.equal(CHE, "[đã che]");
   assert.ok(LOI_NHAC_MAC_DINH.includes(`Chữ ${CHE} là thông tin đã được che`));
@@ -235,6 +247,26 @@ test("tachNguon — ví dụ của chủ (ADR-0073 'Chẩn đoán'): câu 'chưa
     { traLoi: `"${CAU_CHUA_CO}"`, nguon: ["Quản trị › Dịch vụ & giá (Google Sheet)", "Quản trị › Tình huống hay gặp"] },
   );
   assert.deepEqual(tachNguon(`"${CAU_CHUA_CO}"`, gui), { traLoi: `"${CAU_CHUA_CO}"`, nguon: [] }, "không dòng Nguồn ⇒ không nguồn (trước đây: đoạn đầu)");
+});
+
+test("tachNguon với ** (yêu cầu chủ 2026-10-01): dòng Nguồn mà mẫu lỡ in đậm vẫn tách được; ** của câu trả lời giữ nguyên", () => {
+  const gui: DoanTriThuc[] = [{ ten: "Phần chung › Đăng nhập", quyen: [], chu: "" }, { ten: "Bán hàng › Lập đơn mới", quyen: ["SALES"], chu: "" }];
+  const ket = { traLoi: "1. Bấm **Đăng nhập**.", nguon: ["Phần chung › Đăng nhập"] };
+  for (const dongNguon of [
+    "**Nguồn:** [Phần chung › Đăng nhập]", "**Nguồn: [Phần chung › Đăng nhập]**", "Nguồn: **[Phần chung › Đăng nhập]**", "**Nguồn**: [Phần chung › Đăng nhập]",
+    "Nguồn: [**Phần chung › Đăng nhập**]", "Nguồn: [Phần chung › Đăng nhập], [Mục bịa]",
+  ]) assert.deepEqual(tachNguon(`1. Bấm **Đăng nhập**.\n${dongNguon}`, gui), ket, dongNguon);
+  assert.deepEqual(tachNguon("Vào **Danh bạ › Hồ sơ mới**.\n**Nguồn:** [Bán hàng › Lập đơn mới], [Phần chung › Đăng nhập]\n\n", gui),
+    { traLoi: "Vào **Danh bạ › Hồ sơ mới**.", nguon: ["Bán hàng › Lập đơn mới", "Phần chung › Đăng nhập"] });
+  assert.deepEqual(tachNguon("**Nguồn:** [Mục bịa]", gui), { traLoi: "", nguon: [] }, "tên không được gửi ⇒ bỏ dòng, không nguồn");
+  // Câu cố định của máy chủ: có hay không bị bọc ** thì vẫn không có dòng Nguồn ⇒ không nguồn, giữ nguyên văn.
+  for (const c of [CAU_TU_CHOI, CAU_CHUA_CO, `**${CAU_CHUA_CO}**`]) assert.deepEqual(tachNguon(c, gui), { traLoi: c, nguon: [] });
+});
+
+test("anSoTien với ** (yêu cầu chủ 2026-10-01): số tiền nằm trong cặp ** vẫn bị ẩn, dấu ** giữ nguyên; tên nút / số bước / giờ không bị ẩn nhầm", () => {
+  assert.equal(anSoTien("Giá **350.000 đ** mỗi khách"), `Giá **${AN_SO_TIEN}** mỗi khách`);
+  assert.equal(anSoTien("Cọc **300k**, còn **1,2 triệu**."), `Cọc **${AN_SO_TIEN}**, còn **${AN_SO_TIEN}**.`);
+  assert.equal(anSoTien("Bấm **Lưu thông tin** lúc **08:30**, bước **2**."), "Bấm **Lưu thông tin** lúc **08:30**, bước **2**.");
 });
 
 // ---- chi phí + trần (ADR-0066 điều 6)

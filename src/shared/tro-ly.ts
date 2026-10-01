@@ -13,7 +13,7 @@ import { viPhamKyThuat } from "./tro-ly-loc-ky-thuat.ts";
 import { MAU_MAC_DINH, timMau, type SoToken } from "./tro-ly-mau.ts";
 export { chiPhiMicroUsd } from "./tro-ly-mau.ts";
 import { chuSach, type BoNao } from "./tro-ly-bo-nao.ts";
-import { dongMai, type XungHo } from "./xung-ho.ts";
+import { DONG_DINH_DANG, dongMai, type XungHo } from "./xung-ho.ts";
 export { CAU_TU_CHOI } from "./tro-ly-bo-nao.ts";
 
 // ---------------------------------------------------------------- hằng (ADR-0066 điều 2, 5, 6)
@@ -238,6 +238,7 @@ export function dungLoiNhac(loiNhac: string, perms: readonly PermissionCode[], n
     loiNhac.trim(),
     "",
     dongMai(nguoi),
+    DONG_DINH_DANG,
     `Người hỏi thuộc nhóm vai: ${nhomVai(perms)}. Ưu tiên cách làm của nhóm vai này.`,
     "",
     "TÀI LIỆU:",
@@ -320,7 +321,8 @@ export function tachNguon(chu: string, daGui: readonly DoanTriThuc[]): { traLoi:
   let nguon: string[] = [];
   if (i >= 0 && /^\s*\**\s*nguồn\s*\**\s*:/iu.test(dong[i]!)) {
     const ten = new Set(daGui.map((d) => d.ten));
-    nguon = [...new Set([...dong[i]!.matchAll(/\[([^\]]+)\]/g)].map((m) => m[1]!.trim()).filter((t) => ten.has(t)))];
+    // Mẫu có thể lỡ in đậm dòng Nguồn (cặp ** — lời nhắc cấm nhưng không tin): bỏ ** trước khi đọc tên trong ngoặc vuông.
+    nguon = [...new Set([...dong[i]!.replaceAll("**", "").matchAll(/\[([^\]]+)\]/g)].map((m) => m[1]!.trim()).filter((t) => ten.has(t)))];
     dong.splice(i, 1);
   }
   return { traLoi: dong.join("\n").trim(), nguon };

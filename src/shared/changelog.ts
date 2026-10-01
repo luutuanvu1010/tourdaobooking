@@ -11,6 +11,24 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Yêu cầu chủ 2026-10-01: Mai in đậm tên nút / đường điều hướng bằng cặp ** (luật 9 mới + dòng định dạng máy chủ nối); khung chat, ô thử, lịch sử hiện chữ đậm.
+    // Số "1.61" = main 1.60 (đổi tên Loại giấy tờ cá nhân) + 1 — đánh lại lúc gộp main b8032a45 (thi công ghi 1.60).
+    version: "1.61",
+    date: "2026-10-01",
+    items: [
+      { kind: "moi", text: "Mai in đậm đúng tên nút và đường đi trong app, ví dụ: bấm Lưu thông tin; vào Danh bạ › Hồ sơ mới, để bạn dễ nhìn từng bước." },
+      { kind: "doi", text: "Toàn quyền: bản lời nhắc tự lưu vẫn dùng được, máy chủ tự thêm một dòng cho phép Mai in đậm tên nút." },
+    ],
+  },
+  {
+    // Chủ dự án 2026-10-01: đổi tên trang "Loại giấy tờ người" → "Loại giấy tờ cá nhân" (chỉ đổi chữ; đường dẫn /loai-giay-to-nguoi giữ nguyên). Không migration. Số "1.60" = main 1.59 + 1 (đánh lại lúc gộp main 1.59 — trợ lý Mai, 2026-10-01).
+    version: "1.60",
+    date: "2026-10-01",
+    items: [
+      { kind: "doi", text: "Trang \"Loại giấy tờ người\" đổi tên thành \"Loại giấy tờ cá nhân\" (căn cước, bằng lái, khám sức khoẻ, tập huấn). Nội dung không đổi." },
+    ],
+  },
+  {
     // Khung Hỗ trợ: biểu tượng đổi cỡ, bong bóng "đang trả lời", chữ gợi ý; ô thử báo riêng khi mẫu AI hết token cho phần suy nghĩ.
     // ADR-0084 (trợ lý Mai gọi tên, ô Giới tính): có migration 0066 (main đã có 0065_aut_session).
     // Số "1.59" = main 1.58 (ADR-0075 sổ phiên) + 1 — đánh lại lúc gộp main fe3d73f4 (2026-10-01; thi công ghi 1.57, rồi 1.58). Nhánh khác gộp trước thì đánh lại số.
