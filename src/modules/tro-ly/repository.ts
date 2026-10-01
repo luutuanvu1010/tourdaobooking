@@ -38,7 +38,7 @@ const THEO_VAI = defineSql(
 const GHI_LUOT = defineSql(
   "tro-ly",
   "ghi-luot",
-  "INSERT INTO tl_luot_hoi (id, staff_id, ngay_vn, token_vao, token_vao_dem, token_ra, chi_phi_micro_usd, ket_qua, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?2, ?9, ?2)",
+  "INSERT INTO tl_luot_hoi (id, staff_id, ngay_vn, token_vao, token_vao_dem, token_ra, chi_phi_micro_usd, ket_qua, mau, la_thu, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?10, ?11, ?9, ?2, ?9, ?2)",
 );
 const THEM_CAI_DAT = defineSql(
   "tro-ly",
@@ -134,11 +134,15 @@ export interface LuotHoi {
   ra: number;
   chiPhi: number;
   ketQua: "ok" | "het_tran" | "loi";
+  /** Mã mẫu của lượt (chi phí theo giá mẫu này — B8); null khi chưa gọi được mẫu nào. */
+  mau: string | null;
+  /** Lượt "Thử key" / ô thử của Toàn quyền (T3). */
+  laThu: boolean;
   at: string;
 }
 
 export const luotStatement = (db: D1Database, l: LuotHoi): D1PreparedStatement =>
-  db.prepare(GHI_LUOT).bind(l.id, l.staffId, l.ngayVn, l.vao, l.vaoDem, l.ra, l.chiPhi, l.ketQua, l.at);
+  db.prepare(GHI_LUOT).bind(l.id, l.staffId, l.ngayVn, l.vao, l.vaoDem, l.ra, l.chiPhi, l.ketQua, l.at, l.mau, l.laThu ? 1 : 0);
 
 export async function ghiLuot(db: D1Database, l: LuotHoi): Promise<void> {
   await luotStatement(db, l).run();

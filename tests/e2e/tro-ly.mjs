@@ -12,7 +12,7 @@ import { ACCOUNTS, TRO_LY_DAU, TRO_LY_KHOA, call, login, randomPhone, session, s
 const PORT = Number(process.env.E2E_OPENAI_PORT);
 if (!PORT) throw new Error("Thiếu E2E_OPENAI_PORT (chạy qua npm run test:e2e -- tro-ly)");
 
-/** Máy OpenAI giả: trả lời theo khuôn Responses API; dòng Nguồn lấy tên đoạn đầu tiên trong lời nhắc. */
+/** Máy OpenAI giả: trả lời theo khuôn Responses API; dòng Nguồn lấy tên đoạn đầu tiên của khối tài liệu (không đoạn nào ⇒ không dòng Nguồn). */
 const nhan = [];
 let cheDo = "ok";
 const may = createServer((req, res) => {
@@ -30,11 +30,13 @@ const may = createServer((req, res) => {
       res.writeHead(cheDo === "401" ? 401 : 429, { "content-type": "application/json" });
       return res.end(JSON.stringify({ error: { message: `Incorrect API key provided: ${TRO_LY_KHOA.slice(0, 10)}***${TRO_LY_KHOA.slice(-4)}`, code: cheDo === "401" ? "invalid_api_key" : "insufficient_quota" } }));
     }
-    const ten = /\[([^\]]+)\]/.exec(String(body.instructions ?? ""))?.[1] ?? "";
+    // Tên đoạn ĐẦU TIÊN của khối "TÀI LIỆU:" CUỐI (máy chủ luôn nối khối này sau lời nhắc — ADR-0073 B4); lời nhắc có "[tên mục]" ở luật Nguồn không tính.
+    const ins = String(body.instructions ?? "");
+    const ten = /\[([^\]]+)\]/.exec(ins.slice(ins.lastIndexOf("TÀI LIỆU:")))?.[1] ?? "";
     res.writeHead(200, { "content-type": "application/json" });
     res.end(JSON.stringify({
       status: "completed",
-      output: [{ type: "reasoning", summary: [] }, { type: "message", content: [{ type: "output_text", text: `1. Vào trang Tôi.\n2. Bấm Đổi PIN.\nNguồn: [${ten}]` }] }],
+      output: [{ type: "reasoning", summary: [] }, { type: "message", content: [{ type: "output_text", text: `1. Vào trang Tôi.\n2. Bấm Đổi PIN.${ten ? `\nNguồn: [${ten}]` : ""}` }] }],
       usage: { input_tokens: 4200, input_tokens_details: { cached_tokens: 0 }, output_tokens: 600, output_tokens_details: { reasoning_tokens: 100 } },
     }));
   });
@@ -80,8 +82,10 @@ try {
   for (const lo of [ACCOUNTS.salesA.phone, ACCOUNTS.salesA.name]) assert.ok(!JSON.stringify(nhan[0].body).includes(lo), `thân gửi đi lộ ${lo}`);
   assert.equal(await soDong(), truoc + 1);
   const dong = (await sqlRows("SELECT * FROM tl_luot_hoi ORDER BY created_at DESC LIMIT 1"))[0];
-  assert.deepEqual(Object.keys(dong).sort(), ["chi_phi_micro_usd", "created_at", "created_by", "id", "ket_qua", "ngay_vn", "staff_id", "token_ra", "token_vao", "token_vao_dem", "updated_at", "updated_by"]);
+  assert.deepEqual(Object.keys(dong).sort(), ["chi_phi_micro_usd", "created_at", "created_by", "id", "ket_qua", "la_thu", "mau", "ngay_vn", "staff_id", "token_ra", "token_vao", "token_vao_dem", "updated_at", "updated_by"]);
   assert.equal(dong.ket_qua, "ok");
+  assert.equal(dong.mau, "gpt-5-nano");
+  assert.equal(dong.la_thu, 0);
   assert.equal(dong.chi_phi_micro_usd, 450); // 4200 × 0,05 + 600 × 0,40
   assert.ok(!JSON.stringify(await sqlRows("SELECT * FROM tl_luot_hoi")).includes(TRO_LY_DAU), "nội dung câu hỏi lọt vào CSDL");
   console.log("✓ hỏi thường → 200 + nguồn; một dòng tl_luot_hoi không nội dung, chi phí 450 micro-USD");

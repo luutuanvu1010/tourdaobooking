@@ -34,7 +34,9 @@ const may = createServer((req, res) => {
   req.on("end", () => {
     const body = JSON.parse(raw || "{}");
     nhan.push(body);
-    const ten = /\[([^\]]+)\]/.exec(String(body.instructions ?? ""))?.[1] ?? "";
+    // Tên đoạn ĐẦU TIÊN của khối "TÀI LIỆU:" CUỐI (máy chủ luôn nối khối này sau lời nhắc — ADR-0073 B4); lời nhắc có "[tên mục]" ở luật Nguồn không tính.
+    const ins = String(body.instructions ?? "");
+    const ten = /\[([^\]]+)\]/.exec(ins.slice(ins.lastIndexOf("TÀI LIỆU:")))?.[1] ?? "";
     res.writeHead(200, { "content-type": "application/json" });
     res.end(JSON.stringify({
       status: "completed",

@@ -6,6 +6,7 @@
 // ĐÃ CHE — đúng chuỗi đã gửi OpenAI, câu trả lời, nguồn) trong CÙNG một lô. Lịch sử chỉ Toàn quyền đọc (ô settings.ops).
 // KHÔNG BAO GIỜ ghi nội dung câu hỏi / câu trả lời ra console hay nhật ký kiểm toán — dòng log lỗi chỉ có MÃ lý do (bài tro-ly-route.test.ts + run.mjs của e2e canh).
 // Khoá OpenAI chỉ qua secret; route quản lý chỉ trả tối đa 4 ký tự cuối (`khoaCuoi`); "Thử key" không chuyển tiếp chữ lỗi của OpenAI (có thể lặp lại khoá).
+// ADR-0073: bộ não tuỳ biến (tl_bo_nao), ô thử, nhớ 3 lượt, lọc số tiền + kiểm trần trước khi gọi. Gọi mẫu + làm sạch câu trả lời ở goi-mau.ts.
 import { auditStatement } from "../audit";
 import type {
   TroLyCaiDatResponse, TroLyHoiResponse, TroLyKhungResponse, TroLyLichSuResponse, TroLyLoiDanResponse, TroLyNguCanhResponse, TroLyThuKhoaResponse,
@@ -14,10 +15,13 @@ import { error, escapeLike, intParam, json, readJson, UUID_RE } from "../../shar
 import { can, PERMISSION_CODES, PERMISSION_LABEL, type PermissionCode } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
 import {
-  CAU_CHUA_BAT, CAU_CHUA_CO, CAU_HET_TRAN_THANG, CAU_HOI_THO_TOI_DA, CAU_LOI, CAU_QUA_DAI, CAU_VAI_TAT, HET_GIO_MS, cauHetTranNgay, cheCauHoi, chiPhiMicroUsd,
-  chiaKho, chonDoan, docPhanHoi, doanNguCanh, duocDungTroLy, ketQuaThuKhoa, khoaCuoi, khoangThang, kiemCaiDat, kiemLoiDan, kiemNguCanh, kiemVai, maLoiOpenAi,
-  quyetDinhTran, tachNguon, thanThuKhoa, thanYeuCau, type SuDung,
+  CAU_CHUA_BAT, CAU_HET_TRAN_THANG, CAU_HOI_THO_TOI_DA, CAU_LOI, CAU_QUA_DAI, CAU_VAI_TAT, cauHetTranNgay, cheCauHoi, chiPhiMicroUsd, chiaKho, chonDoan,
+  doanNguCanh, duocDungTroLy, ketQuaThuKhoa, khoaCuoi, khoangThang, kiemCaiDat, kiemLoiDan, kiemNguCanh, kiemVai, quyetDinhTran, thanThuKhoa, thanYeuCau,
+  type SuDung,
 } from "../../shared/tro-ly";
+import { boNaoHieuLuc } from "../../shared/tro-ly-bo-nao";
+import { MAU_MAC_DINH } from "../../shared/tro-ly-mau";
+import { goiOpenAi, traLoiMotCau } from "./goi-mau";
 import { GIOI_HAN_TRO_LY as G } from "../../shared/tro-ly-gioi-han";
 import { vnToday } from "../../shared/vn-date";
 import {
@@ -25,40 +29,11 @@ import {
   loiDanStatement, luotStatement, nguCanhStatement, nguoiDaHoi, theoVai, tongThang, vaiStatement, type LuotHoi,
 } from "./repository";
 
-const OPENAI_MAC_DINH = "https://api.openai.com";
-
 /** Khoá OpenAI đang đặt (secret `OPENAI_API_KEY`); rỗng / chỉ khoảng trắng = chưa có. */
 const khoaCua = (env: Env): string | null => env.OPENAI_API_KEY?.trim() || null;
 
 /** Chỉ MÃ lý do — không nội dung, không thân phản hồi của OpenAI. */
 const logLoi = (lyDo: string): void => console.error(JSON.stringify({ event: "tro_ly_loi", ly_do: lyDo }));
-
-type KetQuaGoi =
-  | { chu: string; suDung: SuDung | null }
-  | { loi: string; suDung: SuDung | null; status: number | null; maLoi: string | null };
-
-async function goiOpenAi(env: Env, khoa: string, than: Record<string, unknown>): Promise<KetQuaGoi> {
-  const goc = (env.OPENAI_BASE_URL?.trim() || OPENAI_MAC_DINH).replace(/\/+$/, "");
-  const ctl = new AbortController();
-  const hen = setTimeout(() => ctl.abort(), HET_GIO_MS);
-  try {
-    const res = await fetch(`${goc}/v1/responses`, {
-      method: "POST",
-      headers: { authorization: `Bearer ${khoa}`, "content-type": "application/json" },
-      body: JSON.stringify(than),
-      signal: ctl.signal,
-    });
-    const data: unknown = await res.json().catch(() => null);
-    const doc = docPhanHoi(data);
-    if (!res.ok) return { loi: `http_${res.status}`, suDung: doc.suDung, status: res.status, maLoi: maLoiOpenAi(data) };
-    if (!doc.chu) return { loi: "rong", suDung: doc.suDung, status: res.status, maLoi: null };
-    return doc;
-  } catch (e) {
-    return { loi: ctl.signal.aborted ? "het_gio" : e instanceof Error ? `mang_${e.name}` : "mang", suDung: null, status: null, maLoi: null };
-  } finally {
-    clearTimeout(hen);
-  }
-}
 
 const usd = (micro: number): number => micro / 1_000_000;
 const duVai = (v: Partial<Record<PermissionCode, boolean>>): Record<PermissionCode, boolean> =>
@@ -115,6 +90,7 @@ export const troLyModule: AppModule = {
     }),
 
     // ADR-0066 điều 1 + ADR-0069 điều 3: mọi tài khoản đăng nhập (cổng staff) + ô assistant.ask + ÍT NHẤT một quyền đang bật ở bảng điều khiển.
+    // ADR-0073: bộ não hiệu lực (mẫu, mức suy nghĩ, độ dài, token ra, lời nhắc); không khớp đoạn nào VẪN gọi mẫu (M1); câu trả lời qua traLoiMotCau (nguồn + ẩn tiền).
     route("POST", "/api/tro-ly/hoi", "staff", async ({ env, request, staff }) => {
       if (!can(staff, "assistant.ask")) return error(403, "forbidden", "Tài khoản này chưa dùng được trợ lý.");
       const body = await readJson(request);
@@ -134,9 +110,14 @@ export const troLyModule: AppModule = {
       const at = now.toISOString();
       const ngayVn = vnToday(now);
       const { tu, den } = khoangThang(ngayVn);
-      const [soCauHomNay, thang] = await Promise.all([demCauHomNay(db, staff.id, ngayVn), tongThang(db, tu, den)]);
+      const [soCauHomNay, thang, loiDan, nguCanh] = await Promise.all([
+        demCauHomNay(db, staff.id, ngayVn), tongThang(db, tu, den), docLoiDan(db), docNguCanh(db),
+      ]);
+      // ADR-0073 Đ2: bộ não hiệu lực. Task 6 thay `null` bằng bản đã lưu (docBoNao); chưa có bản ⇒ mặc định + giọng / lời dặn cũ (B5).
+      const { boNao } = boNaoHieuLuc(null, loiDan);
       const luot = (ketQua: LuotHoi["ketQua"], u: SuDung | null): LuotHoi => ({
-        id: crypto.randomUUID(), staffId: staff.id, ngayVn, vao: u?.vao ?? 0, vaoDem: u?.vaoDem ?? 0, ra: u?.ra ?? 0, chiPhi: chiPhiMicroUsd(u), ketQua, at,
+        id: crypto.randomUUID(), staffId: staff.id, ngayVn, vao: u?.vao ?? 0, vaoDem: u?.vaoDem ?? 0, ra: u?.ra ?? 0, chiPhi: chiPhiMicroUsd(u, boNao.mau),
+        ketQua, mau: boNao.mau, laThu: false, at,
       });
       // ADR-0066 điều 6: trần kiểm TRƯỚC khi dựng lời nhắc / gọi mạng. Kiểm-rồi-ghi không nguyên tử: vài câu gửi cùng lúc có thể vượt trần một chút
       // (mỗi câu ~0,001 USD) — chấp nhận, ghi ở đặc tả; lớp hai là giới hạn ngân sách ở bảng điều khiển OpenAI.
@@ -152,7 +133,6 @@ export const troLyModule: AppModule = {
       // ADR-0069 điều 5: lịch sử lưu ĐÚNG biến `cauHoi` này (bản đã che) — không bao giờ `raw`.
       const cauHoi = cheCauHoi(raw);
       if (!cauHoi) return error(400, "invalid_input", "Gõ câu hỏi trước khi gửi.");
-      const [loiDan, nguCanh] = await Promise.all([docLoiDan(db), docNguCanh(db)]);
       const ghi = async (l: LuotHoi, traLoi: string, nguon: readonly string[]): Promise<void> => {
         await db.batch([
           luotStatement(db, l),
@@ -164,19 +144,15 @@ export const troLyModule: AppModule = {
       };
       // ADR-0069 điều 4: đoạn ngữ cảnh đang bật vào CÙNG kho tìm đoạn (cùng ngân sách token) với hướng dẫn.
       const doan = chonDoan(cauHoi, staff.permissions, [...chiaKho(), ...doanNguCanh(nguCanh)]);
-      if (!doan.length) {
-        await ghi(luot("ok", null), CAU_CHUA_CO, []);
-        return json({ traLoi: CAU_CHUA_CO, nguon: [] } satisfies TroLyHoiResponse);
-      }
-      const kq = await goiOpenAi(env, khoa, thanYeuCau(staff.permissions, doan, cauHoi, { giong: loiDan.giong, loiDanThem: loiDan.loiDanThem }));
-      if ("loi" in kq) {
+      // P1 (Đ7a): kq.traLoi đã qua anSoTien trong traLoiMotCau — biến này là thứ DUY NHẤT được trả và được lưu (bài route "HÀNG RÀO lọc số tiền").
+      const kq = await traLoiMotCau(env, khoa, thanYeuCau(boNao, staff.permissions, doan, cauHoi), doan);
+      if (!kq.ok) {
         logLoi(kq.loi);
         await ghi(luot("loi", kq.suDung), CAU_LOI, []);
         return error(502, "tro_ly_loi", CAU_LOI);
       }
-      const ra = tachNguon(kq.chu, doan);
-      await ghi(luot("ok", kq.suDung), ra.traLoi, ra.nguon);
-      return json(ra satisfies TroLyHoiResponse);
+      await ghi(luot("ok", kq.suDung), kq.traLoi, kq.nguon);
+      return json({ traLoi: kq.traLoi, nguon: kq.nguon } satisfies TroLyHoiResponse);
     }),
 
     // ---- Bảng điều khiển (ADR-0069 điều 1): chỉ Toàn quyền — cổng office + ô settings.ops ở MỌI route dưới đây ----
@@ -211,14 +187,14 @@ export const troLyModule: AppModule = {
       if (!can(staff, "settings.ops")) return error(403, "forbidden", "Chỉ Toàn quyền thử được key.");
       const khoa = khoaCua(env);
       if (!khoa) return json(ketQuaThuKhoa({ chuaDat: true }) satisfies TroLyThuKhoaResponse);
-      const kq = await goiOpenAi(env, khoa, thanThuKhoa());
+      const kq = await goiOpenAi(env, khoa, thanThuKhoa(MAU_MAC_DINH));
       const now = new Date();
       const at = now.toISOString();
       // ADR-0069 điều 2: lượt thử ghi vào sổ lượt hỏi với chi phí thật (usage) — không nội dung, không dòng lịch sử (không phải câu của người dùng).
       const u = kq.suDung;
       await ghiLuot(env.DB, {
-        id: crypto.randomUUID(), staffId: staff.id, ngayVn: vnToday(now), vao: u?.vao ?? 0, vaoDem: u?.vaoDem ?? 0, ra: u?.ra ?? 0, chiPhi: chiPhiMicroUsd(u),
-        ketQua: "loi" in kq ? "loi" : "ok", at,
+        id: crypto.randomUUID(), staffId: staff.id, ngayVn: vnToday(now), vao: u?.vao ?? 0, vaoDem: u?.vaoDem ?? 0, ra: u?.ra ?? 0, chiPhi: chiPhiMicroUsd(u, MAU_MAC_DINH),
+        ketQua: "loi" in kq ? "loi" : "ok", mau: MAU_MAC_DINH, laThu: false, at,
       });
       if (!("loi" in kq)) return json(ketQuaThuKhoa({ ok: true }) satisfies TroLyThuKhoaResponse);
       logLoi(`thu_khoa_${kq.loi}`);
