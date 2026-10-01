@@ -15,11 +15,25 @@ if (!PORT) throw new Error("Thiếu E2E_OPENAI_PORT (chạy qua npm run test:e2e
 /** Máy OpenAI giả: trả lời theo khuôn Responses API; dòng Nguồn lấy tên đoạn đầu tiên của khối tài liệu (không đoạn nào ⇒ không dòng Nguồn). */
 const nhan = [];
 let cheDo = "ok";
+/** ADR-0082: cửa /v1/embeddings của máy giả — ghi RIÊNG (`nhan` vẫn chỉ /v1/responses); véc-tơ một-nóng: chữ có "pin" ⇒ chiều 0, còn lại ⇒ chiều 1. */
+const nhung = [];
+let cheDoNhung = "ok";
 const may = createServer((req, res) => {
   let raw = "";
   req.on("data", (d) => (raw += d));
   req.on("end", () => {
     const body = JSON.parse(raw || "{}");
+    if (req.url === "/v1/embeddings") {
+      nhung.push({ auth: req.headers.authorization, body });
+      if (cheDoNhung === "loi") {
+        res.writeHead(500, { "content-type": "application/json" });
+        return res.end(JSON.stringify({ error: { message: "Embeddings down (English)" } }));
+      }
+      const dau = Array.isArray(body.input) ? body.input : [];
+      const data = dau.map((s, index) => { const e = new Array(body.dimensions).fill(0); e[/pin/i.test(String(s)) ? 0 : 1] = 1; return { object: "embedding", index, embedding: e }; });
+      res.writeHead(200, { "content-type": "application/json" });
+      return res.end(JSON.stringify({ object: "list", data, model: body.model, usage: { prompt_tokens: 10 * dau.length, total_tokens: 10 * dau.length } }));
+    }
     nhan.push({ url: req.url, auth: req.headers.authorization, body });
     if (cheDo === "loi") {
       res.writeHead(500, { "content-type": "application/json" });
@@ -77,6 +91,7 @@ try {
 
   // 2) hỏi thường → 200 + nguồn; đúng MỘT dòng tl_luot_hoi, không nội dung; máy giả nhận đúng mẫu + khoá + không id/SĐT người hỏi
   const truoc = await soDong();
+  const m0 = nhung.length;
   r = await hoi(SALES, `đổi mã PIN thế nào ${TRO_LY_DAU}`);
   assert.equal(r.status, 200, JSON.stringify(r.body));
   assert.equal(r.body.traLoi, "1. Vào trang Tôi.\n2. Bấm Đổi PIN.");
@@ -93,9 +108,41 @@ try {
   assert.equal(dong.ket_qua, "ok");
   assert.equal(dong.mau, "gpt-5-nano");
   assert.equal(dong.la_thu, 0);
-  assert.equal(dong.chi_phi_micro_usd, 450); // 4200 × 0,05 + 600 × 0,40
+  // ADR-0082 P1: tiền lượt = mẫu (4200 × 0,05 + 600 × 0,40 = 450) + embedding của MỌI lần gọi /v1/embeddings trong lượt
+  // (máy giả: 10 token / đầu vào; 0,02 USD / 1 triệu token, làm tròn lên từng lần gọi). Kho có thể đã được tính bù bởi kịch bản chạy trước ⇒ đếm theo lần gọi thật.
+  const tienGoi = (ds) => ds.reduce((a, x) => a + Math.ceil((10 * x.body.input.length * 20_000) / 1_000_000), 0);
+  const tienNhung = tienGoi(nhung.slice(m0));
+  assert.ok(tienNhung >= 1, "lượt có gọi embeddings");
+  assert.equal(dong.chi_phi_micro_usd, 450 + tienNhung);
+  assert.deepEqual([dong.token_vao, dong.token_ra], [4200, 600], "token chỉ của mẫu trả lời");
   assert.ok(!JSON.stringify(await sqlRows("SELECT * FROM tl_luot_hoi")).includes(TRO_LY_DAU), "nội dung câu hỏi lọt vào CSDL");
-  console.log("✓ hỏi thường → 200 + nguồn; một dòng tl_luot_hoi không nội dung, chi phí 450 micro-USD");
+  console.log("✓ hỏi thường → 200 + nguồn; một dòng tl_luot_hoi không nội dung, chi phí = mẫu 450 + embedding micro-USD");
+
+  // 2b) ADR-0082: dấu vân nghĩa ghi vào D1 THẬT (wrangler dev) dạng BLOB đúng độ dài; thân embeddings ĐÚNG bốn khoá, không SĐT người hỏi;
+  //     câu kế tiếp chỉ tính véc-tơ câu hỏi; ô thử có đoạn "khớp nghĩa" ⇒ đoạn "khớp nghĩa" có véc-tơ giải mã đúng (từ D1 hoặc từ bộ nhớ isolate đã nạp từ D1 — e2e không phân biệt được hai nguồn; kiểu BLOB và độ dài đã khoá ở trên).
+  const vn = (await sqlRows("SELECT count(*) AS n, sum(typeof(vec) = 'blob') AS b, min(length(vec)) AS mn, max(length(vec)) AS mx, min(so_chieu) AS sc FROM tl_van_nghia"))[0];
+  console.log("  vn =", JSON.stringify(vn), "| lần gọi embeddings:", nhung.length, "| tiền embeddings lượt đầu:", tienNhung, "| chi phí lượt:", dong.chi_phi_micro_usd);
+  assert.ok(vn.n >= 200, JSON.stringify(vn));
+  assert.equal(vn.b, vn.n, "mọi véc-tơ là BLOB");
+  assert.deepEqual([vn.mn, vn.mx], [vn.sc * 4, vn.sc * 4]);
+  assert.ok(nhung.length >= 1);
+  for (const x of nhung) {
+    assert.equal(x.auth, `Bearer ${TRO_LY_KHOA}`);
+    assert.deepEqual(Object.keys(x.body).sort(), ["dimensions", "encoding_format", "input", "model"]);
+    for (const lo of [ACCOUNTS.salesA.phone, ACCOUNTS.salesA.name]) assert.ok(!JSON.stringify(x.body).includes(lo), `thân embeddings lộ ${lo}`);
+  }
+  let m = nhung.length;
+  r = await hoi(SALES, "đổi mã PIN thế nào");
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.equal(nhung.length, m + 1, "câu kế tiếp chỉ tính véc-tơ câu hỏi");
+  assert.equal(nhung.at(-1).body.input.length, 1);
+  const m2 = nhung.length;
+  r = await call(OWNER, "POST", "/api/tro-ly/thu", { boNao: boNaoDau, cauHoi: "đổi mã PIN thế nào", vai: "SALES" });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.ok(r.body.doanDaChon.some((d) => d.theoNghia), JSON.stringify(r.body.doanDaChon));
+  assert.equal(r.body.chiPhiVanNghiaMicroUsd, tienGoi(nhung.slice(m2)), "tiền nghĩa của ô thử = đúng các lần gọi máy giả trong ô thử");
+  console.log("  ô thử: lần gọi embeddings", nhung.length - m2, "| chiPhiVanNghiaMicroUsd", r.body.chiPhiVanNghiaMicroUsd);
+  console.log("✓ dấu vân nghĩa: BLOB trên D1 thật, câu sau không tính lại đoạn, ô thử có đoạn khớp nghĩa (véc-tơ giải mã đúng)");
 
   // 3) SĐT / email trong câu hỏi bị che TRƯỚC khi tới máy giả
   r = await hoi(SALES, "khách 0905 123 456 và lan@vidu.vn hỏi đổi PIN thế nào");
@@ -113,6 +160,22 @@ try {
   assert.ok(!r.body.error.message.includes("English"));
   cheDo = "ok";
   console.log("✓ OpenAI lỗi → 502 câu tiếng Việt");
+
+  // 4b) ADR-0082 L1: Embeddings lỗi ⇒ vẫn trả lời (lùi về từ khoá), mẫu trả lời vẫn được gọi
+  cheDoNhung = "loi";
+  m = nhan.length;
+  const e4 = nhung.length;
+  r = await hoi(SALES, "đổi PIN thế nào");
+  cheDoNhung = "ok";
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.equal(nhan.length, m + 1);
+  assert.equal(nhung.length, e4 + 1, "máy giả embeddings thật sự nhận lời gọi trong ca này (và trả 500)");
+  assert.ok(Array.isArray(r.body.nguon), JSON.stringify(r.body));
+  const dong4 = (await sqlRows("SELECT * FROM tl_luot_hoi ORDER BY created_at DESC, rowid DESC LIMIT 1"))[0];
+  assert.equal(dong4.ket_qua, "ok");
+  assert.deepEqual([dong4.token_vao, dong4.token_ra], [4200, 600]);
+  assert.equal(dong4.chi_phi_micro_usd, 450, "lượt lỗi embeddings chỉ tính tiền mẫu");
+  console.log("✓ Embeddings lỗi → vẫn trả lời (lùi về từ khoá)");
 
   // 5) Toàn quyền đổi cài đặt; Quản trị, Bán hàng bị từ chối
   r = await call(OWNER, "GET", "/api/tro-ly/cai-dat");

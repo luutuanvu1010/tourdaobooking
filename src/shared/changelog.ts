@@ -12,14 +12,24 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // ADR-0083 (nợ rà soát vai ↔ quyền): gán quyền kiểu cũ chỉ Toàn quyền + chặn tài khoản lai; xem đủ số giấy tờ chỉ Toàn quyền; đổi tên vai Tài xế taxi.
-    // Có migration 0063. Số tạm "1.56" = main 1.55 + 1 — nhánh khác gộp trước thì đổi.
-    version: "1.56",
+    // Có migration 0063. Số "1.57" = main 1.56 + 1 (đánh lại lúc gộp main 1.56 — trợ lý tìm theo nghĩa, 2026-10-01; thi công ghi 1.56).
+    version: "1.57",
     date: "2026-10-01",
     items: [
       { kind: "doi", text: "Quản trị không còn xem đủ số giấy tờ (căn cước, bằng lái): vẫn thấy số đã che, vẫn thêm, gia hạn, sửa sai. Cần số đầy đủ thì nhờ người phụ trách hệ thống." },
       { kind: "doi", text: "Vai \"Tài xế taxi\" đổi tên thành \"Tài xế taxi (giới thiệu khách)\" cho khỏi nhầm với \"Tài xế đối tác\" (người lái chuyến). Quyền không đổi." },
       { kind: "doi", text: "Màn Sửa tài khoản: khối \"Quyền cũ\" (tài khoản chưa gán vai) chỉ người phụ trách hệ thống thấy. Quản trị và Hành chính nhân sự đổi quyền bằng cách gán vai." },
       { kind: "doi", text: "Một tài khoản không còn giữ cùng lúc quyền nội bộ và quyền đối tác, dù gán theo vai hay theo cách cũ: ô cộng tay tạo kiểu lai này bị khoá." },
+    ],
+  },
+  {
+    // ADR-0082 (trợ lý tìm đoạn hướng dẫn theo nghĩa trộn từ khoá). Số "1.56" = main 1.55 + 1 lúc thi công (2026-10-01); nhánh khác gộp trước thì đánh lại số.
+    // Có migration 0062 (số tạm).
+    version: "1.56",
+    date: "2026-10-01",
+    items: [
+      { kind: "doi", text: "Trợ lý Hỗ trợ tìm đúng phần hướng dẫn hơn khi bạn hỏi bằng lời của mình, không cần gõ đúng tên nút hay tên mục." },
+      { kind: "moi", text: "Toàn quyền: ô thử ở trang Trợ lý Hỗ trợ cho xem trợ lý đã dùng những đoạn hướng dẫn nào để trả lời." },
     ],
   },
   {

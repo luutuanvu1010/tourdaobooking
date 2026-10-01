@@ -1660,4 +1660,10 @@ export interface TroLyBoNaoLichSuResponse { cacBan: (TroLyBoNao & { id: string; 
 /** `POST /api/tro-ly/thu` (Toàn quyền — ADR-0073 Đ5): cấu hình CHƯA lưu + câu hỏi + MỘT vai giả định. Chạy đúng đường ống thật; tính vào trần TIỀN tháng,
  *  không tính trần lượt ngày; không ghi lịch sử hỏi đáp; chạy được khi trợ lý đang tắt. Mẫu từ chối cấu hình (OpenAI 400) ⇒ 502 mã `mau_tu_choi`, câu lời thường. */
 export interface TroLyThuRequest { boNao: TroLyBoNao; cauHoi: string; vai: PermissionCode }
-export interface TroLyThuResponse { traLoi: string; nguon: string[]; tokenVao: number; tokenRa: number; chiPhiMicroUsd: number; chiPhiUsd: number; mau: string }
+/** ADR-0082 Đ6 (H1): một đoạn đã gửi kèm câu hỏi thử — cờ khớp nghĩa / khớp từ khoá (đường lùi: chỉ khớp từ khoá). */
+export interface TroLyDoanDaChon { ten: string; theoNghia: boolean; theoTuKhoa: boolean }
+/** `chiPhiMicroUsd` / `chiPhiUsd` = tiền MẪU trả lời; `chiPhiVanNghiaMicroUsd` = tiền embedding của lượt thử (R4); dòng tl_luot_hoi = tổng hai phần. */
+export interface TroLyThuResponse {
+  traLoi: string; nguon: string[]; tokenVao: number; tokenRa: number; chiPhiMicroUsd: number; chiPhiUsd: number; chiPhiVanNghiaMicroUsd: number; mau: string;
+  doanDaChon: TroLyDoanDaChon[];
+}
