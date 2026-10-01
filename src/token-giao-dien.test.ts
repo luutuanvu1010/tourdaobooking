@@ -62,6 +62,14 @@ test("màu theo vai: thanh, nút chính, mảng đậm không trỏ thẳng màu
   assert.deepEqual(loi, [], "luật thanh/nút trỏ thẳng --c-primary/--c-primary-strong/--c-on-dark/#fff — dùng token vai");
 });
 
+test("màu chữ liên kết của thanh trên không đè màu chữ của nút nằm trên thanh", () => {
+  // Bộ chọn có id (#topbar a) thắng .btn-accent/.btn-primary: nút san hô "Tạo đơn" ở thanh trên máy tính từng thành chữ xanh trên nền đỏ (1,73:1, axe 2026-10-02).
+  const loi = [...luat.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+    .filter((m) => /(?:^|,)\s*#topbar a\s*(?:,|$)/.test(m[1]!.trim().split("\n").pop()!.trim()) && /(?:^|[\s;{])color:/.test(m[2]!))
+    .map((m) => m[1]!.trim());
+  assert.deepEqual(loi, [], "đặt màu chữ cho `#topbar a` phải loại nút: `#topbar a:not(.btn)`");
+});
+
 // Tương phản chữ/nền của các cặp token vai (chủ dự án 2026-10-02: chữ mảnh cần màu đủ tối). Dò chuỗi var() về hex rồi đo theo WCAG 2.x.
 const tokens = new Map([...root.matchAll(/\n\s*(--[\w-]+):\s*([^;]+);/g)].map((m) => [m[1]!, m[2]!.trim()] as const));
 function hex(v: string, sau = 0): string {

@@ -341,7 +341,7 @@ a { color: var(--c-primary); }
 .num { text-align: right; white-space: nowrap; }
 
 #topbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s3) var(--s5); padding: calc(var(--s3) + env(safe-area-inset-top)) max(var(--s4), env(safe-area-inset-right)) var(--s3) max(var(--s4), env(safe-area-inset-left)); background: var(--c-bar-bg); color: var(--c-on-bar); }
-#topbar a { color: var(--c-on-bar); text-decoration: none; }
+#topbar a:not(.btn) { color: var(--c-on-bar); text-decoration: none; } /* :not(.btn): luật theo id thắng màu chữ của nút — từng làm nút san hô "Tạo đơn" ở thanh trên máy tính chữ xanh trên nền đỏ (1,73:1, axe 2026-10-02) */
 .brand { display: flex; align-items: center; gap: var(--s2); font-weight: var(--fw-heavy); font-size: var(--fs-h2); } .brand span { font-weight: var(--fw-regular); opacity: .8; }
 .brand .brand-name { min-width: 0; font-weight: inherit; line-height: 1.25; opacity: 1; } /* chữ tên app là MỘT khối: "Island Booking System" hẹp chỗ thì ngắt dòng như câu (sidebar máy tính), không tách "System" thành cột riêng */
 .brand-logo { width: var(--logo-bar); height: var(--logo-bar); border-radius: var(--radius-pill); display: block; } /* Đợt D Task 7: sửa cho khớp bản mẫu 00 Trang chu v2.dc.html (dòng 44 VÀ 280 đều vẽ logo tròn hết cỡ) — luật gốc trước đây bo góc nhẹ (--radius-sm), chỉ thanh bên máy tính được sửa tròn riêng (:310), bỏ sót thanh đầu trang điện thoại */
