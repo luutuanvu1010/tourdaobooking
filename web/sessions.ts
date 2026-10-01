@@ -52,8 +52,6 @@ if (!can(staff, "auth.session.viewAll")) {
   showError(errorEl, "Trang Phiên đăng nhập chỉ người phụ trách hệ thống (IT, Toàn quyền) xem được.");
 } else {
   const goDuoc = can(staff, "auth.session.revoke");
-  // Đặt lại PIN: cùng hai ô route reset-pin hỏi (admin.manage + account.access.manage). Không hiện trên phiên của chính mình — máy chủ chặn tự đặt lại PIN.
-  const datLaiPinDuoc = can(staff, "admin.manage") && can(staff, "account.access.manage");
 
   let sessions: Api.StaffSessionDto[] = [];
   /** Phiên đang mở hộp xác nhận: mã phiên → có kèm đặt lại PIN không. Chỉ một hộp mở một lúc. */
@@ -132,7 +130,8 @@ if (!can(staff, "auth.session.viewAll")) {
       xacNhan = { id: s.id, datLaiPin: false };
       render();
     }, cls)];
-    if (datLaiPinDuoc && s.staffId !== staff.id) {
+    // Đặt lại PIN: máy chủ tính `datLaiPinDuoc` cho từng dòng bằng CÙNG luật route reset-pin (hai ô, không phải chính mình, cấp bậc) — trang không chép luật.
+    if (s.datLaiPinDuoc) {
       out.push(nut("Gỡ phiên + đặt lại PIN", () => {
         xacNhan = { id: s.id, datLaiPin: true };
         render();

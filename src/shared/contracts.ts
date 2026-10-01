@@ -89,8 +89,11 @@ export interface SessionDto {
   endedAt: string | null;
   thisDevice: boolean;
 }
-/** Dòng sổ phiên ở màn IT/Toàn quyền (GET /api/sessions): kèm tài khoản. */
-export interface StaffSessionDto extends SessionDto { staffId: string; staffName: string }
+/**
+ * Dòng sổ phiên ở màn IT/Toàn quyền (GET /api/sessions): kèm tài khoản. `datLaiPinDuoc` = người xem đặt lại được PIN của chủ phiên (máy chủ tính bằng
+ * cùng luật route POST /api/staff/:id/reset-pin: hai ô, không phải chính mình, cấp bậc) — giao diện chỉ hiện nút gộp khi true.
+ */
+export interface StaffSessionDto extends SessionDto { staffId: string; staffName: string; datLaiPinDuoc: boolean }
 /** GET /api/account/sessions — 30 phiên gần nhất của chính mình. */
 export interface SessionListResponse { sessions: SessionDto[] }
 /** GET /api/sessions — tối đa 200 phiên mới nhất (lọc theo tài khoản / đang hiệu lực). */

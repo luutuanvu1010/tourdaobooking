@@ -85,7 +85,7 @@ function ruleViolation(e: unknown): Response | null {
  * Riêng tự ĐẶT LẠI PIN của chính mình thì bị chặn ngay trong route reset-pin (DK-T3-02, `SELF_RESET_PIN`), không ở hàm này — unlock và
  * passkeys/remove-all vẫn dùng hàm này nguyên như cũ.
  */
-const mayManage = (actor: { id: string; permissions: readonly PermissionCode[] }, target: StaffAccount): boolean => actor.id === target.id || canManageAccount(actor.permissions, target.permissions);
+const mayManage = (actor: { id: string; permissions: readonly PermissionCode[] }, target: { id: string; permissions: readonly PermissionCode[] }): boolean => actor.id === target.id || canManageAccount(actor.permissions, target.permissions);
 
 // Giới hạn độ dài do module parties giữ (khớp CHECK của pty_person): kiểm Ở ĐÂY để tên quá dài thành 400, không làm vỡ db.batch() thành 500.
 function cleanName(v: unknown): { value?: string; error?: string } {
@@ -704,9 +704,13 @@ export const accountsModule: AppModule = {
       const nowIso = new Date().toISOString();
       const rows = await listSessions(env.DB, staffId, liveOnly, nowIso);
       const owners = await chuPhienTheoId(env.DB, [...new Set(rows.map((r) => r.staff_id))]);
+      // Nút "Gỡ phiên + đặt lại PIN" chỉ hiện khi route reset-pin sẽ nhận: CÙNG thứ tự cổng của route đó — hai ô, không phải chính mình (SELF_RESET_PIN),
+      // mayManage (NOT_MANAGER). Máy chủ tính để giao diện không chép luật cấp bậc.
+      const haiO = can(staff, "admin.manage") && can(staff, "account.access.manage");
       const sessions = rows.map((r) => {
         const o = owners.get(r.staff_id);
-        return { ...toSessionDto(r, o?.credentialsChangedAt ?? null, nowIso, sessionId), staffId: r.staff_id, staffName: o?.label ?? "" };
+        const datLaiPinDuoc = haiO && !!o && r.staff_id !== staff.id && mayManage(staff, { id: r.staff_id, permissions: o.permissions });
+        return { ...toSessionDto(r, o?.credentialsChangedAt ?? null, nowIso, sessionId), staffId: r.staff_id, staffName: o?.label ?? "", datLaiPinDuoc };
       });
       return json({ sessions: liveOnly ? sessions.filter((s) => s.live) : sessions } satisfies StaffSessionListResponse);
     }),

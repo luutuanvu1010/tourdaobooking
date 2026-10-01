@@ -170,6 +170,14 @@ test("GET /api/sessions (Toàn quyền): tên người, lọc theo tài khoản 
   assert.equal(an.staffName, "An");
   assert.equal(an.live, true);
   assert.ok(!all.text.includes("UA-THO-BI-MAT"), "không trả User-Agent thô");
+  // datLaiPinDuoc (máy chủ tính, cùng luật route reset-pin: hai ô + không phải chính mình + mayManage) — nút "Gỡ phiên + đặt lại PIN" chỉ hiện khi true.
+  // Hôm nay chỉ Toàn quyền xem được trang và Toàn quyền quản lý được mọi tài khoản ⇒ false CHỈ ở phiên của chính mình (canh trước cho khi ô xem mở rộng).
+  const cuaToi = await w.token(SUP);
+  const all2 = await w.call("GET", "/api/sessions", { as: SUP });
+  const by2 = new Map(all2.json.sessions.map((s: any) => [s.id, s]));
+  assert.equal((by2.get(maPhien(cuaToi)) as any).datLaiPinDuoc, false, "phiên của chính mình: máy chủ chặn tự đặt lại PIN");
+  assert.equal((by2.get(maPhien(tkAn)) as any).datLaiPinDuoc, true, "Bán hàng: Toàn quyền đặt lại PIN được");
+  assert.equal((by2.get("chet-theo-luoi") as any).datLaiPinDuoc, true, "Toàn quyền khác: Toàn quyền đặt lại PIN được (cùng cấp)");
 
   const loc = await w.call("GET", `/api/sessions?staffId=${SALES}&live=1`, { as: SUP });
   assert.equal(loc.status, 200);
