@@ -245,9 +245,13 @@ function veBoNao(d: Api.TroLyBoNaoResponse, daLuu = false): void {
       } catch (e) {
         replaceChildren(ketQua);
         throw e;
+      } finally {
+        // Lượt thử lỗi vẫn có thể đã tính tiền (mẫu đã chạy) ⇒ luôn đọc lại Tình trạng; lỗi đọc lại không che lỗi của lượt thử.
+        try {
+          caiDat = await api<Api.TroLyCaiDatResponse>("/api/tro-ly/cai-dat");
+          veTinhTrang();
+        } catch { /* giữ số cũ tới lần nạp sau */ }
       }
-      caiDat = await api<Api.TroLyCaiDatResponse>("/api/tro-ly/cai-dat");
-      veTinhTrang();
     }),
   );
 
