@@ -106,7 +106,7 @@
 - **TC-P10 (L-R1 chỉ chặn giá trị MỚI — phát hiện V2).** `pax_override = 2` đã lưu. Số khách dịch vụ sau đó giảm còn 1 (đường sửa số khách sẵn có).
   - Đối tác / Thực tập lưu nháp **không** gửi khoá, hoặc gửi **bằng** giá trị cũ (2) → **200**. Không 400, vì họ không sửa được ô này; trả 400 là bế tắc.
   - Đọc: `soNguoiChang` = 1 (kẹp lúc đọc); cột vẫn 2 (máy không tự sửa — ADR-0054 D10.3); kiểm định kỳ L-R1 cảnh báo.
-  - Người có `order.trip.edit` gửi giá trị **mới** 3 → 400 (L-R1); gửi giá trị **đổi** xuống 1 → 200.
+  - Người có `order.trip.edit` gửi giá trị **khác bản cũ**: **vượt** số khách hiện hành (3 > 1) → 400 (L-R1); **bằng hoặc dưới** số khách hiện hành (1) → 200.
 - **TC-P8.** `soNguoiChang` là **nơi duy nhất** tính số người chặng:
   - `lichChungChang.soNguoi` = 2 cho chặng về `pax_override = 2` của dịch vụ 4 khách;
   - `hanhKhachChoChuyen.soNguoi` cũng 2;
@@ -162,7 +162,7 @@
   - `src/modules/orders/index.ts`: `ChangChoChuyen` `:177`, `hanhKhachChoChuyen` `:201`, `lichChungChang` `:276`, route `PUT /api/orders/:id` `:660` (`legMeta` `:689`), `POST /legs` `:751`, `PUT /legs/:legId` `:776` (đo 1/10);
   - `src/modules/orders/service.ts:121-:213` (`planAddLeg`, `planEditLeg`);
   - `src/shared/chang-dua-don.ts:62-:156` (`ChangHopLe`, `kiemChang`), `:266` (`moTaChang`);
-  - `src/modules/orders/chang-hanh-khach-repo.ts:140-:190` (câu chèn / sửa chặng). `LEG_SET` `:170` và `LEG_SET_DAT_GAP` `:175` là đoạn **dùng chung**; `LegFields` `:195-202` hiện có 6 trường;
+  - `src/modules/orders/chang-hanh-khach-repo.ts:140-:190` (câu chèn / sửa chặng). `LEG_SET` `:170` và `LEG_SET_DAT_GAP` `:175` là đoạn **dùng chung**; `LegFields` `:195-202` hiện có 6 trường; câu đầu lô `leg_update_checked` (`~:186-190`, điều kiện `status = 'confirmed'` — dùng ở Task 3.5) đo lại số dòng;
   - **mọi nơi gọi câu chèn / sửa chặng** (phát hiện C1, đo 1/10 ở `src/modules/orders/repository.ts`):
     - `:888` `legInsert` (tạo đơn);
     - `:971` `legInsertGuarded` (lưu nháp xoá–chèn lại);
@@ -267,7 +267,7 @@
   - **Dấu đặt gấp cũ khi chỉ đổi ô phụ (phát hiện V1 — CHỜ Q-B):**
     - Hôm nay `LEG_SET_DAT_GAP` (`chang-hanh-khach-repo.ts:175`) **luôn ghi lại** năm cột đặt gấp: dấu mới, hoặc `NULL` cả năm khi `datGap = null`. Luật I16: "nội dung chặng đổi thì dấu cũ không còn duyệt nội dung mới". Vì vậy nếu không làm gì, sửa chỉ số hiệu cũng **xoá** dấu đặt gấp.
     - ADR-0055 C2 chỉ nói "không kiểm mốc", không nói giữ dấu. ADR-0054 D10.3 cũng vậy.
-    - **Q-B = giữ (khuyến nghị):** thêm cờ "giữ dấu" cho năm cột, cùng khuôn `CASE` của 3.2 (`short_notice_reason = CASE WHEN ?21 = 1 THEN short_notice_reason ELSE ?12 END`, …). Route truyền 1 khi `chiDoiOPhu`. Đây là sửa chữ câu có sẵn, không câu mới. Chú thích I16 ở `:171-174` sửa theo: "nội dung **vận hành** (ngày, giờ, nơi) đổi thì bỏ dấu".
+    - **Q-B = giữ (khuyến nghị):** thêm cờ "giữ dấu" cho năm cột, cùng khuôn `CASE` của 3.2 (`short_notice_reason = CASE WHEN ?21 = 1 THEN short_notice_reason ELSE ?12 END`, …). Route truyền 1 khi `chiDoiOPhu` **và thân không có khoá `datGap`**; thân có `datGap` (Quản trị vừa duyệt đặt gấp) thì cờ giữ = 0 để ghi dấu mới (phát hiện V6, kiểm độc lập vòng 2). `/trip` luôn truyền 0 (Task 3.5b). Đây là sửa chữ câu có sẵn, không câu mới. Chú thích I16 ở `:171-174` sửa theo: "nội dung **vận hành** (ngày, giờ, nơi) đổi thì bỏ dấu".
     - **Q-B = bỏ:** không đổi SQL. TC-F5, TC-P7 ghim "dấu cũ bị bỏ".
 - [ ] **3.5 Nhánh nháp cho `pax_override`** (ADR-0054 D10.3 "đường mới cho đơn nháp"):
   - `PUT /api/orders/:id/legs/:legId` với đơn **nháp**: thân chỉ được có `paxOverride` + `expectedUpdatedAt` → đi tiếp; có khoá khác → giữ 409 `use_order_form` như hôm nay.
