@@ -7,7 +7,7 @@ import { changXetTheoDon, khoaNguoiRanh, kiemTaoSuaChuyen, kiemXep, moLaiSauDoiK
 import type { ChangVao, KetQuaKiem } from "../../shared/dieu-phoi-kieu";
 import { dungLichChung } from "../../shared/dieu-phoi-lich-chung";
 import { error } from "../../shared/http";
-import { lyDoGiu } from "../../shared/ly-do-giu";
+import { lyDoGiu, type LyDoGiu } from "../../shared/ly-do-giu";
 import { batDauSomNhatSauDoiGio, kiemMocXep } from "../../shared/moc-toi-thieu";
 import { msToVnLocal } from "../../shared/vn-date";
 import type { LichChungResponse } from "../../shared/contracts";
@@ -93,7 +93,17 @@ export async function lenhSuaChuyen(db: D1Database, nen: NenChuyen, b: SuaChuyen
 }
 
 // ---- Xếp (route 5) ---------------------------------------------------------------------------------------------------------------------------------------
-export async function lenhXep(db: D1Database, nen: NenChuyen, lich: readonly ChangLichChung[], b: XepThan, staff: StaffProfile, bayGioMs: number): Promise<Response | null> {
+/**
+ * `loi` null = đã xếp. `canhBao` = cảnh báo sớm của `kiemXep` (chặng chưa có nơi trả / chưa đủ tên — lời chủ 1/10 "chỉ cảnh báo, không chặn"): lệnh VẪN chạy,
+ * route gắn vào phản hồi (`canhBaoXep`). Lần gửi lại cùng `requestId` (lô đã chạy) không tính lại — phản hồi không có cảnh báo.
+ */
+export async function lenhXep(
+  db: D1Database, nen: NenChuyen, lich: readonly ChangLichChung[], b: XepThan, staff: StaffProfile, bayGioMs: number,
+): Promise<{ loi: Response | null; canhBao: LyDoGiu[] }> {
+  const ra = await lenhXepLo(db, nen, lich, b, staff, bayGioMs);
+  return ra instanceof Response || ra === null ? { loi: ra, canhBao: [] } : ra;
+}
+async function lenhXepLo(db: D1Database, nen: NenChuyen, lich: readonly ChangLichChung[], b: XepThan, staff: StaffProfile, bayGioMs: number): Promise<Response | null | { loi: Response | null; canhBao: LyDoGiu[] }> {
   const t = nen.trip;
   const dung = khongConKeHoach(t);
   if (dung) return dung;
@@ -145,7 +155,7 @@ export async function lenhXep(db: D1Database, nen: NenChuyen, lich: readonly Cha
   });
   try {
     const r = await chayLo(db, lo, b.requestId);
-    return r.ok ? null : r.res;
+    return { loi: r.ok ? null : r.res, canhBao: r.ok ? kq.canhBao : [] };
   } catch (e) {
     if (e instanceof Error && /FOREIGN KEY constraint failed/.test(e.message)) return error(400, "invalid_input", "Người đi kèm không có trong hồ sơ.");
     throw e;
