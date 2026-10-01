@@ -1,5 +1,5 @@
--- Migration 0055 — ADR-0068 Đ3 (gộp hồ sơ cá nhân trùng; accepted — xem docs/adr/ADR-0068-gop-ho-so-ca-nhan.md). CHỈ THÊM. Số 0055 là số GIỮ CHỖ — xác nhận
--- với phiên điều phối chung trước khi gộp main; test tìm tệp theo ĐUÔI tên. Trigger chỉ đọc bảng của chính module parties (Hiến chương 5.3); tên bắt đầu
+-- Migration 0056 — ADR-0068 Đ3 (gộp hồ sơ cá nhân trùng; accepted — xem docs/adr/ADR-0068-gop-ho-so-ca-nhan.md). CHỈ THÊM. Số 0056 = số lớn nhất của main
+-- (0055_nhom_dich_vu, bản 1.48) + 1, đổi từ 0055 lúc gộp main 1.49 (2026-10-01) — luật 1.46: nhánh gộp sau tự đổi tên; test tìm tệp theo ĐUÔI tên. Trigger chỉ đọc bảng của chính module parties (Hiến chương 5.3); tên bắt đầu
 -- pty_ (không staff_/stf_ — src/migrations-n1.test.ts coi đó là trigger siết B5). REFERENCES chỉ được khi mặc định NULL (SQLite ADD COLUMN).
 ALTER TABLE pty_party ADD COLUMN merged_into_id TEXT REFERENCES pty_party(id);
 ALTER TABLE pty_party ADD COLUMN merged_at TEXT;

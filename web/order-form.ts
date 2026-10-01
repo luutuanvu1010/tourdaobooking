@@ -325,7 +325,7 @@ function setSaving(value: boolean): void {
 async function refreshCatalogAfterConflict(): Promise<void> {
   try {
     const res = await api<Api.CatalogPublicResponse>("/api/catalog/for-order"); // ADR-0033: route cho người lập đơn (cả Đối tác, Thực tập)
-    setCatalog(res.items);
+    setCatalog(res);
     for (const en of entries) {
       const d = en.draft;
       if (d.kind !== "catalog") continue;
@@ -435,15 +435,16 @@ window.addEventListener("pageshow", (e) => {
 });
 
 // ---- danh mục và đơn ----
-function setCatalog(items: CatalogServiceDto[]): void {
-  live = new Map(items.filter((c) => c.supported).map((c) => [c.code, c]));
-  picker.setItems(items);
+function setCatalog(res: Api.CatalogPublicResponse): void {
+  live = new Map(res.items.filter((c) => c.supported).map((c) => [c.code, c]));
+  picker.setItems(res.items);
+  picker.setGroups(res.groups); // ADR-0058 Đ8: hàng chip "Nhóm dịch vụ"
 }
 
 async function loadCatalog(): Promise<void> {
   try {
     const res = await layDanhMuc(); // ADR-0033: route cho người lập đơn (cả Đối tác, Thực tập)
-    setCatalog(res.items);
+    setCatalog(res);
     if (res.items.length === 0) picker.setNotice("Danh mục dịch vụ đang trống — báo quản trị viên.");
     else if (res.sync.error) picker.setNotice(`Chưa cập nhật được giá mới từ Google Sheet (${res.sync.error.replace(/[.\s]+$/, "")}). Đang dùng bản đã lưu — hãy kiểm tra lại giá trước khi gửi khách.`);
   } catch {
@@ -500,6 +501,7 @@ async function loadOrder(): Promise<void> {
 const layDanhMuc = layKhungNho()?.canCreate === true ? goiSom(() => api<Api.CatalogPublicResponse>("/api/catalog/for-order")) : () => api<Api.CatalogPublicResponse>("/api/catalog/for-order");
 const layDon = editId ? goiSom(() => api<Api.OrderDetailResponse>(`/api/orders/${encodeURIComponent(editId)}`)) : null;
 const staff = await initShell();
+picker.setTaiKhoan(staff.id); // ADR-0058 Đ8: chip nhóm nhớ THEO TÀI KHOẢN trên máy — bộ chọn dựng trước khi biết tài khoản, trước dòng này không đọc / ghi bộ nhớ
 retailOnly = holdsPartner(staff); // trước loadCatalog/loadOrder: thẻ dịch vụ dựng sau dòng này
 duocDatGap = can(staff, "order.leg.short_notice");
 // R-P15: mốc cho biểu mẫu chưa lưu — chỉ người được lập đơn (máy chủ hỏi order.create). Lỗi / chưa có chính sách (503) → không cảnh báo; máy chủ vẫn chặn lúc xác nhận.

@@ -36,6 +36,11 @@ Kế hoạch: `docs/superpowers/plans/2026-09-30-gop-ho-so-thi-cong.md`. Nhánh:
 - Lần in 2 (đã đóng liên hệ): `✓ R-PTY-MERGE-2`; còn `R-N1-3` (gieo) và `R-N1-5` (có sẵn). Sau đó khôi phục tệp sqlite local từ bản sao trước gieo → chỉ còn `R-N1-5`, 0 hồ sơ `pty-thu-gop*`.
 - Bước 6: `if (false)` ở đường vai của `POST /api/staff` → `tao-trung.test.ts` đỏ `expected: 409 / actual: 201` (pass 3, fail 3) → hoàn nguyên → pass 6.
 
+## Vòng sửa cuối + gộp main 1.49 (2026-10-01)
+
+- Sau kiểm độc lập: thêm bài cấp bậc bên thứ ba (403, đỏ khi bỏ cổng), bài vế `from_party_id` của câu lật (Sửa 2), nhánh catch của lô chỉ trả `merge_lost_race` khi A vừa gộp vào ĐÚNG hồ sơ chính (khác → `merge_inactive`); ghi các lần quan sát chặn thật vào `docs/SO-HANG-RAO.md`.
+- Gộp `main` 35448ab3 (bản 1.49). Migration đổi tên `0055_gop_ho_so.sql` → **`0056_gop_ho_so.sql`** (`0055_nhom_dich_vu` của main đã lên production; không thấy `0056` ở nhánh nào lúc gộp). Nhật ký phiên bản: mục của nhánh nay là **1.51** (nhánh `phat-hanh-1-50` đã nhận 1.50 — ai gộp sau đánh lại số). Số route: 196 (main) + 4 của nhánh = **200**. Backlog: mục của nhánh đánh lại 10–14 (main đã có mục 9).
+
 ## Đề xuất sửa luật — chờ chủ duyệt (N9: AI không tự sửa)
 
 Thêm một dòng vào bảng Chrome của `web/CLAUDE.md`:

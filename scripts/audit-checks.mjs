@@ -784,6 +784,22 @@ export const CHECKS = [
     sql: "SELECT count(*) AS n FROM aut_passkey p JOIN staff s ON s.id = p.staff_id WHERE p.valid_to_at IS NULL AND s.active = 0",
     level: "fail",
   },
+  // R-CTL-1 (ADR-0058, NT-A11): dịch vụ ĐANG HIỆN (in_sheet = 1, không bị catalog_override.hidden = 1) mà CHƯA PHÂN LOẠI — không có dòng gán hiện hành
+  // (seq lớn nhất của service_code), hoặc dòng hiện hành có group_code NULL, hoặc trỏ tới nhóm đang TẮT (form đơn hiện nó là "Chưa phân loại"). Mã mới trên
+  // Sheet ở lại "Chưa phân loại" cho tới khi Quản trị gán — tình trạng nghiệp vụ hợp lệ, cần người rà soát ⇒ mức warn (in số, không bao giờ đỏ). Chỉ đếm số.
+  {
+    code: "R-CTL-1",
+    what: "dịch vụ đang hiện mà chưa phân loại nhóm (Quản trị gán nhóm ở màn Danh mục)",
+    sql: `SELECT count(*) FROM catalog_item i
+      WHERE i.in_sheet = 1
+        AND NOT EXISTS (SELECT 1 FROM catalog_override o WHERE o.code = i.code AND o.hidden = 1)
+        AND NOT EXISTS (
+          SELECT 1 FROM ctl_service_group sg JOIN ctl_group g ON g.code = sg.group_code AND g.active = 1
+          WHERE sg.service_code = i.code
+            AND sg.seq = (SELECT max(m.seq) FROM ctl_service_group m WHERE m.service_code = i.code))`,
+    level: "warn",
+    note: "cảnh báo (không chặn phát hành): Quản trị gán nhóm cho các dịch vụ này ở màn Danh mục",
+  },
 ];
 
 /**

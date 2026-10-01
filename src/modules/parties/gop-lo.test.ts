@@ -156,7 +156,7 @@ test("Đ7: danh sách và tra SĐT không trả hồ sơ đã gộp, kể cả k
 });
 
 // ---- Vòng sửa 1: MỌI lệch giữa lúc tính kế hoạch và lúc ghi → HỎNG CẢ LÔ (cùng hợp đồng với lô thua cuộc đua; route đọc lại A). Không so chữ lỗi,
-// trừ bài Sửa 2 (khẳng định đúng trigger party_merge_target của 0055 là thứ chặn).
+// trừ bài Sửa 2 (khẳng định đúng trigger party_merge_target của 0056 là thứ chặn).
 const anh = (db: DatabaseSync) => ({
   party: q(db, "SELECT id, active, merged_into_id, merged_at, updated_at FROM pty_party ORDER BY id").map((r) => ({ ...r })),
   lh: q(db, "SELECT id, party_id, is_primary, valid_to_date, updated_at FROM pty_contact_point ORDER BY id").map((r) => ({ ...r })),

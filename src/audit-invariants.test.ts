@@ -1567,6 +1567,42 @@ test("R-BIL-M1/M2 (ADR-0025 NT 8): Hoàn thành mà chưa Đã giao; Đã giao m
 });
 
 // ---------------------------------------------------------------------------------------------------------------------
+// ADR-0058 (NT-A11, Task A4): R-CTL-1 — dịch vụ ĐANG HIỆN mà chưa phân loại nhóm. Mức warn: in số, không chặn.
+test("R-CTL-1 (ADR-0058 NT-A11): dịch vụ đang hiện chưa có nhóm hiện hành → 1; có nhóm → 0; dòng hiện hành group_code NULL / nhóm đã tắt → vẫn 1; ẩn / rời Sheet → không đếm", () => {
+  const c = one("R-CTL-1");
+  assert.equal(c.level, "warn");
+  assert.ok(c.note, "mức warn có ghi chú");
+  const db = build();
+  const dv = (code: string, inSheet = 1) =>
+    db.prepare(`INSERT INTO catalog_item (code, name, unit, price_adult, in_sheet, first_seen_at, updated_at) VALUES (?, 'Dịch vụ thử', 'perPax', 100000, ?, ?, ?)`).run(code, inSheet, T1, T1);
+  const gan = (code: string, seq: number, nhom: string | null) =>
+    db.prepare(`INSERT INTO ctl_service_group (id, service_code, group_code, seq, valid_from_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)`).run(`g-${code}-${seq}`, code, nhom, seq, T1, T1, T1);
+  assert.equal(violations(db, c), 0, "danh mục trống → 0");
+  dv("X1"); // đang hiện, không dòng gán
+  assert.equal(violations(db, c), 1, "không dòng gán → 1");
+  gan("X1", 1, "TDA");
+  assert.equal(violations(db, c), 0, "có nhóm hiện hành → 0");
+  gan("X1", 2, null); // đưa về "Chưa phân loại": dòng hiện hành group_code NULL
+  assert.equal(violations(db, c), 1, "dòng hiện hành group_code NULL → vẫn đếm 1 (dòng cũ seq 1 không tính)");
+  gan("X1", 3, "TDA");
+  assert.equal(violations(db, c), 0, "gán lại → 0");
+  // nhóm bị tắt SAU khi đã gán (trigger chỉ chặn GÁN vào nhóm tắt) → form đơn hiện "Chưa phân loại" → đếm
+  db.prepare("UPDATE ctl_group SET active = 0 WHERE code = 'TDA'").run();
+  assert.equal(violations(db, c), 1, "dòng hiện hành trỏ nhóm đang tắt → đếm 1");
+  db.prepare("UPDATE ctl_group SET active = 1 WHERE code = 'TDA'").run();
+  assert.equal(violations(db, c), 0);
+  // ẩn / rời Sheet: không đếm
+  dv("X2");
+  assert.equal(violations(db, c), 1);
+  db.prepare("INSERT INTO catalog_override (code, hidden, updated_at) VALUES ('X2', 1, ?)").run(T1);
+  assert.equal(violations(db, c), 0, "dịch vụ bị ẩn → không đếm");
+  db.prepare("UPDATE catalog_override SET hidden = 0 WHERE code = 'X2'").run();
+  assert.equal(violations(db, c), 1, "override không ẩn → vẫn đếm");
+  dv("X3", 0);
+  assert.equal(violations(db, c), 1, "đã rời Sheet (in_sheet = 0) → không đếm");
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
 // R-ORD-NT1 (ADR-0061 điều 8, A-9 — lớp bù cho lệch 5.1 thu hẹp): đơn có dịch vụ nhập tay (order_service.catalog_code NULL) mà người lập (orders.staff_id)
 // đang giữ quyền PARTNER còn hiệu lực, và đơn tạo SAU mốc phát hành ADR-0061 (= created_at của dòng đầu bảng ord_manual_service_policy — dòng gieo 0052).
 // Mức "warn": máy chủ đã chặn (duocNhapTay — Đối tác trước); đây là lưới cho SQL chạy tay / đường ghi quên priceGuard. Đơn cũ trước mốc không bị xét.

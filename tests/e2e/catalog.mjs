@@ -116,6 +116,98 @@ assert.equal(partnerLine.unitPrice, partnerTd101.prices.adult, "giá dòng = gi�
 assert.equal(partnerLine.lineTotal, partnerTd101.prices.adult * 2);
 console.log("✓ Đối tác + Thực tập đọc danh mục qua /api/catalog/for-order (200, cùng nội dung, không thấy lỗi đồng bộ), /api/catalog 403; Kế toán + Hướng dẫn viên 403 ở route mới; Đối tác lập đơn từ danh mục đúng giá");
 
+// --- ADR-0058 (Task A3): nhóm dịch vụ — năm route quản trị, nhóm trong DTO danh mục, nhật ký mỗi dịch vụ một dòng, khoá ngoại × đồng bộ Sheet.
+// D1 e2e mới: migration 0055 chạy khi catalog_item còn RỖNG → 14 nhóm, 0 dòng gán. Không ghim 23 mã TTB: lấy giao của danh sách gieo (chép từ
+// migrations/0055_nhom_dich_vu.sql) với danh mục vừa đồng bộ — Sheet thật đã từng bỏ mã (TTB03). Không gán mã giả ZZ*/ZT*/ZH* (kịch bản khác xoá cứng chúng).
+const TTB_GIEO = ["TTBSNO", "TTBPC", "TTBDD2", "TTBFLY", "TTBL215", "TTBSW", "TTBSD", "TTBDD1", "TTBL230", "TTBL260", "TTBL115", "TTBL130", "TTBL160", "TTBPP5", "TTBPR5", "TTBPR8", "TTBPB", "TTBLV", "TTBS30", "TTBS60", "TTBS90", "TTBTD30", "TTBTD60"];
+const dsAdmin = (await call(ADMIN, "GET", "/api/catalog/admin")).body;
+const coTrongDanhMuc = new Set(dsAdmin.items.map((i) => i.code));
+const ttbCodes = TTB_GIEO.filter((c) => coTrongDanhMuc.has(c));
+assert.ok(ttbCodes.length >= 5, `Sheet thật còn quá ít mã Thể thao biển của bảng gieo (${ttbCodes.length}) — kịch bản cần xem lại`);
+assert.equal(dsAdmin.groups.length >= 14, true, "GET /api/catalog/admin trả đủ nhóm (kể cả tắt)");
+const ttb0 = dsAdmin.groups.find((g) => g.code === "TTB");
+assert.ok(ttb0 && ttb0.name === "Thể thao biển" && ttb0.active === true, JSON.stringify(ttb0));
+// NT-A6: năm vai không phải quản trị → 403 ở mọi route nhóm (thân sai / mã lạ vẫn 403: quyền hỏi trước khi đọc thân)
+const ROUTE_NHOM = [
+  ["GET", "/api/catalog/groups", undefined],
+  ["POST", "/api/catalog/groups", { name: "" }],
+  ["PATCH", "/api/catalog/groups/TTB", { expectedUpdatedAt: ttb0.updatedAt, active: false }],
+  ["PUT", "/api/catalog/group-assignments", { codes: Array.from({ length: 51 }, (_, i) => `TD${i}`), groupCode: "TTB" }],
+  ["GET", `/api/catalog/${ttbCodes[0]}/group-history`, undefined],
+];
+for (const [who, label] of [[SALES, "Bán hàng"], [ACCOUNTANT, "Kế toán"], [FIELD_ONLY, "Hướng dẫn viên"], [PARTNER, "Đối tác"], [INTERN, "Thực tập"]]) {
+  for (const [m, p, body] of ROUTE_NHOM) assert.equal((await call(who, m, p, body)).status, 403, `${label}: ${m} ${p} phải 403`);
+}
+console.log("✓ NT-A6: Bán hàng, Kế toán, Hướng dẫn viên, Đối tác, Thực tập → 403 ở cả năm route nhóm");
+// Gán các mã TTB vào nhóm TTB (một lô) → mỗi dịch vụ đổi một dòng nhật ký catalog_group_assigned
+const [{ n: nhatKyTruoc }] = await sqlRows("SELECT count(*) AS n FROM audit_log WHERE action = 'catalog_group_assigned'");
+r = await call(ADMIN, "PUT", "/api/catalog/group-assignments", { codes: ttbCodes, groupCode: "TTB" });
+assert.equal(r.status, 200, JSON.stringify(r.body));
+assert.equal(r.body.doi + r.body.boQua, ttbCodes.length);
+const daDoi = r.body.doi;
+const [{ n: nhatKySau }] = await sqlRows("SELECT count(*) AS n FROM audit_log WHERE action = 'catalog_group_assigned'");
+assert.equal(nhatKySau - nhatKyTruoc, daDoi, "NT-A8: số dòng nhật ký = số mã đổi thật");
+const dongNhatKy = await sqlRows("SELECT target_type, target_id, detail, order_id FROM audit_log WHERE action = 'catalog_group_assigned'");
+for (const l of dongNhatKy) {
+  assert.equal(l.target_type, "catalog");
+  assert.ok(coTrongDanhMuc.has(l.target_id), `targetId là mã dịch vụ: ${l.target_id}`);
+  assert.equal(l.order_id, null);
+  assert.doesNotMatch(l.detail, /\d{9,}|@/, "không SĐT, không email");
+  assert.match(l.detail, / → /);
+}
+if (daDoi > 0) assert.ok(dongNhatKy.some((l) => l.detail === "Chưa phân loại → Thể thao biển"), "detail bằng TÊN nhóm");
+// mã đã đúng nhóm → bỏ qua, không dòng mới, không nhật ký
+r = await call(ADMIN, "PUT", "/api/catalog/group-assignments", { codes: ttbCodes.slice(0, 2), groupCode: "TTB" });
+assert.deepEqual(r.body, { doi: 0, boQua: 2 });
+assert.equal((await sqlRows("SELECT count(*) AS n FROM audit_log WHERE action = 'catalog_group_assigned'"))[0].n, nhatKySau);
+console.log(`✓ NT-A8: gán ${ttbCodes.length} mã Thể thao biển (đổi ${daDoi}), nhật ký mỗi dịch vụ một dòng, lần lặp bỏ qua`);
+// NT-A9: groupCode + groups ở cả hai route danh mục; Đối tác thấy cùng nhóm
+const formSales = (await call(SALES, "GET", "/api/catalog/for-order")).body;
+const formVp = (await call(SALES, "GET", "/api/catalog")).body;
+assert.deepEqual(formSales.items, formVp.items);
+assert.deepEqual(formSales.groups, formVp.groups);
+for (const c of ttbCodes) {
+  const it = formSales.items.find((i) => i.code === c);
+  if (it) assert.equal(it.groupCode, "TTB", `${c} phải thuộc nhóm TTB ở form đơn`);
+}
+assert.ok(formSales.groups.some((g) => g.code === "TTB" && g.name === "Thể thao biển"), JSON.stringify(formSales.groups));
+for (const g of formSales.groups) assert.deepEqual(Object.keys(g).sort(), ["code", "name"]);
+assert.deepEqual((await call(PARTNER, "GET", "/api/catalog/for-order")).body.groups, formSales.groups, "Đối tác thấy đúng danh sách nhóm như Bán hàng");
+console.log("✓ NT-A9: groupCode + groups ở /api/catalog và /api/catalog/for-order, Đối tác cùng nội dung");
+// NT-A7: 51 mã → 400; tắt nhóm còn dịch vụ → 409; trùng tên → 409; bật lại trùng tên → 409; gán vào nhóm tắt → 409; sai mốc → 409
+assert.equal((await call(ADMIN, "PUT", "/api/catalog/group-assignments", { codes: Array.from({ length: 51 }, (_, i) => `TD${i}`), groupCode: "TTB" })).status, 400);
+const ttb1 = (await call(ADMIN, "GET", "/api/catalog/groups")).body.groups.find((g) => g.code === "TTB");
+r = await call(ADMIN, "PATCH", "/api/catalog/groups/TTB", { expectedUpdatedAt: ttb1.updatedAt, active: false });
+assert.equal(r.status, 409, JSON.stringify(r.body));
+assert.equal(r.body.error.message, `Nhóm còn ${ttb1.soDichVu} dịch vụ, chuyển chúng sang nhóm khác trước.`);
+assert.equal((await call(ADMIN, "PATCH", "/api/catalog/groups/TTB", { expectedUpdatedAt: ttb1.updatedAt, name: "Tour đảo" })).status, 409, "trùng tên nhóm đang dùng");
+assert.equal((await call(ADMIN, "PATCH", "/api/catalog/groups/TTB", { expectedUpdatedAt: "2020-01-01T00:00:00.000Z", sortOrder: 7 })).status, 409, "sai mốc");
+assert.equal((await call(ADMIN, "PATCH", "/api/catalog/groups/KHONGCO", { expectedUpdatedAt: ttb1.updatedAt, sortOrder: 7 })).status, 404);
+const tenTam = `E2E nhóm ${randomPhone().slice(-6)}`;
+const tam = await call(ADMIN, "POST", "/api/catalog/groups", { name: tenTam });
+assert.equal(tam.status, 201, JSON.stringify(tam.body));
+assert.equal((await call(ADMIN, "POST", "/api/catalog/groups", { name: tenTam })).status, 409, "thêm trùng tên nhóm đang dùng");
+r = await call(ADMIN, "PATCH", `/api/catalog/groups/${tam.body.group.code}`, { expectedUpdatedAt: tam.body.group.updatedAt, active: false });
+assert.equal(r.status, 200, JSON.stringify(r.body));
+assert.equal((await call(ADMIN, "PUT", "/api/catalog/group-assignments", { codes: [ttbCodes[0]], groupCode: tam.body.group.code })).status, 409, "gán vào nhóm tắt");
+assert.equal((await call(ADMIN, "POST", "/api/catalog/groups", { name: tenTam })).status, 201, "tên của nhóm đã tắt dùng lại được");
+r = await call(ADMIN, "PATCH", `/api/catalog/groups/${tam.body.group.code}`, { expectedUpdatedAt: r.body.group.updatedAt, active: true });
+assert.equal(r.status, 409, `bật lại nhóm tắt trùng tên nhóm đang dùng: ${JSON.stringify(r.body)}`);
+const [{ n: nhatKyNhom }] = await sqlRows("SELECT count(*) AS n FROM audit_log WHERE action IN ('catalog_group_created', 'catalog_group_updated') AND detail LIKE '%E2E nhóm%'");
+assert.equal(nhatKyNhom, 3, "hai lần thêm + một lần tắt; các lần 409 không ghi");
+const ls = await call(ADMIN, "GET", `/api/catalog/${ttbCodes[0]}/group-history`);
+assert.equal(ls.status, 200, JSON.stringify(ls.body));
+assert.equal(ls.body.items[0].nhom, "Thể thao biển");
+console.log("✓ NT-A7: 400 lô 51 mã; 409 tắt nhóm còn dịch vụ / trùng tên / bật lại trùng tên / nhóm tắt / sai mốc; 404 nhóm lạ; lịch sử nhóm");
+// Review Focus 6: khoá ngoại ctl_service_group → catalog_item không làm đồng bộ Sheet (force) lỗi; dòng gán không đổi
+const [{ n: soGanTruoc }] = await sqlRows("SELECT count(*) AS n FROM ctl_service_group");
+r = await call(ADMIN, "POST", "/api/catalog/sync", { force: true });
+assert.equal(r.status, 200, `đồng bộ ép sau khi gán nhóm: ${JSON.stringify(r.body)}`);
+const [{ n: soGanSau }] = await sqlRows("SELECT count(*) AS n FROM ctl_service_group");
+assert.equal(soGanSau, soGanTruoc, "đồng bộ Sheet không thêm/bớt dòng gán");
+assert.equal((await call(ADMIN, "GET", "/api/catalog/admin")).body.items.find((i) => i.code === ttbCodes[0]).groupCode, "TTB", "nhóm hiện hành giữ nguyên sau đồng bộ");
+console.log("✓ gán nhóm → đồng bộ lại (force) → 200, dòng gán không đổi");
+
 // --- kéo lại: idempotent
 r = await call(ADMIN, "POST", "/api/catalog/sync", {});
 assert.equal(r.status, 200, JSON.stringify(r.body));

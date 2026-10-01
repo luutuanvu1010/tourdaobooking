@@ -30,7 +30,8 @@ function setup() {
   return { w, log };
 }
 
-const ids = (r: any): string[] => r.json.entries.map((e: any) => e.id).sort();
+// bỏ dòng gieo của migration 0055 (id gieo-nhom-dich-vu, ADR-0058) — không phải dòng do bài này ghi
+const ids = (r: any): string[] => r.json.entries.map((e: any) => e.id).filter((id: string) => id !== "gieo-nhom-dich-vu").sort();
 /** Truy vấn của trang Nhật ký như người KHÔNG giữ Toàn quyền nhận (hideSilent = true), trả dạng giống kết quả route cho `ids()`. */
 async function asNonSuper(w: any, opts: { action?: string; q?: string; limit?: number } = {}) {
   const json = await app.listAll(fakeD1(w.sqlite), { action: (opts.action ?? null) as any, q: opts.q ?? "", limit: opts.limit ?? 100, offset: 0, hideSilent: true });

@@ -64,3 +64,14 @@ test("thiếu cột bắt buộc", () => {
   assert.ok(!r.ok);
   assert.deepEqual(r.missing, ["Đơn vị", "Giá người lớn"]);
 });
+
+test("ADR-0058 Đ7 (NT-A10): bộ đọc Sheet KHÔNG đọc nhóm — cột 'Ghi chú nội bộ' ghi tên nhóm và cột 14 ghi mã nhóm vẫn không sinh trường nào ngoài danh sách cũ", () => {
+  const r = parseCatalogSheet(
+    [`${HEADER},Nhóm`, "TD1,Tour đảo 1,k,d,perPax,500000,300000,,,,,,Tour đảo,TDA", "TTBPC,Phao chuối,k,d,per5Pax,1000000,,,,,,,Thể thao biển,TTB"].join("\n"),
+  );
+  assert.ok(r.ok);
+  assert.deepEqual(r.items.map((i) => i.code), ["TD1", "TTBPC"]);
+  for (const item of r.items) assert.deepEqual(Object.keys(item).sort(), ["code", "name", "notes", "prices", "row", "unit"], item.code);
+  const json = JSON.stringify(r.items);
+  for (const s of ["Tour đảo\"", "TDA", "Thể thao biển", "\"TTB\"", "group"]) assert.ok(!json.includes(s), `lọt chữ nhóm: ${s}`);
+});

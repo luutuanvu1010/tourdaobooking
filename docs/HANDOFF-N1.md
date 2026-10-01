@@ -2,7 +2,22 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 1.42 (sổ tiền lượt 1 = "Hoàn tất đơn" + giao diện theo góp ý người dùng 30/9) ĐÃ LÊN PRODUCTION; hiện production chạy **1.43** (bảo trì tự tắt — phiên khác, chồng lên 1.42) — migration `0044`, `0045` đã áp (2026-09-30 tối, chủ tự chạy `npm run day-len -- worktree-agent-a70eb0a16a8dbebb3` rồi `npm run trien-khai`)
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 1.48 (nhóm dịch vụ, ADR-0058) ĐÃ LÊN PRODUCTION — migration `0055_nhom_dich_vu` đã áp (2026-10-01 sáng giờ VN)
+
+AI (phiên điều phối chung) kiểm bằng lệnh chỉ đọc sau khi chủ báo đã `day-len` + `trien-khai` (1/10):
+
+- **Phiên bản:** `node scripts/kiem-phien-ban.mjs --sau-deploy` → "ĐẠT: production đang chạy đúng bản 1.48." `origin/main` = 1a92a1cb (nhánh `thi-cong-luot-1-adr-0058-0062`, đã gộp main 1.47).
+- **1.48 gồm:** hai bảng `ctl_group`, `ctl_service_group` (module `catalog`, tiền tố `ctl_`), gieo 14 nhóm / 110 dịch vụ (ATV → Kong Forest) + một dòng nhật ký `catalog_groups_seeded`; năm route Quản trị `/api/catalog/groups…`, `/group-assignments`, `/:code/group-history` (`admin.manage`); DTO danh mục thêm `groupCode` / `groups`; form đơn có hàng chip "Nhóm dịch vụ" (chủ chọn cách 1, chip "Theo nhóm" đổi chữ "Giá theo nhóm"), nhớ theo tài khoản trên máy; màn Dịch vụ & giá có khối "Nhóm dịch vụ" (thêm, đổi tên, Lên/Xuống, Tắt/Bật, chuyển nhiều ≤ 50, lịch sử); kiểm định kỳ R-CTL-1 (cảnh báo); hướng dẫn Quản trị / Bán hàng / Đối tác có đoạn nhóm; bốn dòng luật mục A (chủ duyệt 1/10).
+- **Worker** (`wrangler deployments list`): mới nhất **66cb9e73-c9b0-459e-b12e-91cd9089fda7** (2026-09-30T23:19:51Z — nhiều khả năng 1.48, chưa đối chiếu số bản theo từng Worker); trước đó 0bdb5da2-5e41-4842-826d-9bdf6ea5f119 (23:00Z) và cc0ce43e-9faf-4cc2-ad5c-eca2660614d1 (22:48Z). **Lùi Worker:** mã 1.47 không đọc `ctl_*`, bảng mới chỉ thêm ⇒ lùi an toàn về dữ liệu; bảng `ctl_*` ở lại (không xoá cứng).
+- **Migration:** `wrangler d1 migrations list --remote` → "No migrations to apply!". Trước phát hành chủ chạy hai câu đếm chỉ-đọc: `co_mat` 110, `dang_tren_sheet` 110, `ngoai_bang_gieo` 0.
+- **Route mới:** `GET /api/catalog/groups` và `GET /api/catalog/for-order` chưa đăng nhập → 401.
+- **Dữ liệu:** `audit-invariants --db remote` → "Mọi bất biến đạt, 4 cảnh báo": R-CTL-1 ✓ (0 dịch vụ đang hiện mà chưa phân loại ⇒ gieo đủ); cảnh báo cũ: 22 lần thu người thu chưa rõ (Kế toán), R-VC-7 = 2, R-VC-14 = 7, R-ORD-8 = 6.
+- **Kiểm độc lập:** K2A hai vòng ĐẠT (nhật ký `docs/superpowers/plans/2026-09-30-luot-1-adr-0058-0062-thi-cong-nhat-ky.md` §5).
+- **Chưa kiểm:** thao tác thật bằng tài khoản đăng nhập (Quản trị thấy 14 nhóm; lập đơn bấm "Thể thao biển" thấy 23 dịch vụ; tải lại vẫn nhớ); iPhone thật.
+- **Nợ (không chặn):** hướng dẫn Quản trị 3145/3150 chữ sát trần 30 phút; màn Danh mục tải `/api/staff` (có SĐT) chỉ để lấy tên; thứ tự `can()` trong thân route dựa vào kỷ luật; lịch sử nhóm hiện tên nhóm hiện tại.
+- **Kế tiếp:** Phần B lượt 1 — ADR-0062 báo tin khi đơn đổi sau xác nhận (nhánh mới từ `main`, số migration = lớn nhất + 1 lúc gộp).
+
+## TRẠNG THÁI TRIỂN KHAI (cũ) — Phiên bản 1.42 (sổ tiền lượt 1 = "Hoàn tất đơn" + giao diện theo góp ý người dùng 30/9) ĐÃ LÊN PRODUCTION; hiện production chạy **1.43** (bảo trì tự tắt — phiên khác, chồng lên 1.42) — migration `0044`, `0045` đã áp (2026-09-30 tối, chủ tự chạy `npm run day-len -- worktree-agent-a70eb0a16a8dbebb3` rồi `npm run trien-khai`)
 
 AI (phiên "phân tích góp ý 30/9") kiểm bằng lệnh chỉ đọc 30/9 ~21:30 giờ VN:
 

@@ -780,7 +780,7 @@ const GOP_CHEP_GIAY_TO = defineSql(
 );
 // Câu LẬT hồ sơ phụ — đứng SAU mọi câu chuyển và câu đổi người đặt đơn, NGAY TRƯỚC hai dòng nhật ký `changes() > 0`. ?1 phụ, ?2 chính, ?3 lúc, ?4 người,
 // ?5 hôm nay. Vòng sửa 1 (Đ3): A còn liên hệ / công việc / quan hệ MỞ (valid_to_date NULL hoặc > hôm nay — câu đóng gặp 0 dòng, hoặc dòng thêm trong khe) →
-// merged_into_id NULL cùng merged_at khác NULL → trigger party_merge_target (0055) ABORT → CẢ LÔ huỷ. Lính gác trạng thái sai → 0 dòng (lô thua), không lỗi.
+// merged_into_id NULL cùng merged_at khác NULL → trigger party_merge_target (0056) ABORT → CẢ LÔ huỷ. Lính gác trạng thái sai → 0 dòng (lô thua), không lỗi.
 const GOP_LAT = defineSql(
   "parties",
   "gop_lat",

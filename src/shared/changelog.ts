@@ -11,13 +11,32 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
-    // Gộp hồ sơ cá nhân trùng (ADR-0068). Số "1.48" theo main 1.47; người gộp chốt số trống kế tiếp + ngày LÚC GỘP. Có migration 0055 (giữ chỗ).
-    version: "1.48",
+    // Gộp hồ sơ cá nhân trùng (ADR-0068). Số "1.51" chốt lúc gộp main 1.49 (nhánh phat-hanh-1-50 đã nhận 1.50 — ai gộp sau đánh lại số). Có migration 0056.
+    version: "1.51",
     date: "2026-10-01",
     items: [
       { kind: "moi", text: "Danh bạ: Quản trị gộp được hai hồ sơ của cùng một người — xem trước phần chuyển sang, gõ lại tên rồi gộp. Không tách lại được." },
       { kind: "moi", text: "Danh bạ có mục \"Hồ sơ nghi trùng\": các cặp trùng số điện thoại hoặc họ tên để Quản trị rà và gộp." },
       { kind: "doi", text: "Thêm tài khoản: nếu đã có hồ sơ trùng số hoặc tên, app liệt kê để chọn dùng hồ sơ có sẵn thay vì tạo hồ sơ mới." },
+    ],
+  },
+  {
+    // Sửa góp ý của chủ 1/10: màn Góp ý khổ máy tính — danh sách bên trái không nạp lại sau khi đổi trạng thái nên vẫn ghi "Mới".
+    version: "1.49",
+    date: "2026-10-01",
+    items: [
+      { kind: "sua", text: "Góp ý / Báo lỗi trên máy tính: đổi trạng thái hay trả lời xong thì danh sách bên trái cập nhật ngay, không còn ghi \"Mới\" cho yêu cầu đã xong." },
+    ],
+  },
+  {
+    // Nhóm dịch vụ (ADR-0058, lượt 1a, migration 0055). Số 1.48 chốt lúc gộp main 1.47 (bảng điều khiển trợ lý) — 2026-10-01.
+    // Chip cũ "Theo nhóm" (giá tính theo nhóm khách) đổi chữ thành "Giá theo nhóm" cho khỏi nhầm (chủ chọn cách 1).
+    version: "1.48",
+    date: "2026-10-01",
+    items: [
+      { kind: "moi", text: "Chọn dịch vụ khi lập đơn: bấm chip ở hàng Nhóm dịch vụ (Tour đảo, Thể thao biển…) để chỉ thấy dịch vụ nhóm đó; app nhớ lựa chọn trên máy này." },
+      { kind: "moi", text: "Quản trị sửa nhóm dịch vụ ở màn Dịch vụ & giá: thêm, đổi tên, sắp thứ tự, tắt nhóm, chuyển nhiều dịch vụ cùng lúc và xem lịch sử đổi nhóm." },
+      { kind: "doi", text: "Nút lọc \"Theo nhóm\" đổi tên thành \"Giá theo nhóm\" cho khỏi nhầm với nhóm dịch vụ." },
     ],
   },
   {

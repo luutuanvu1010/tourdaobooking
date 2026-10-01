@@ -84,9 +84,16 @@ const STRICT: readonly { module: string; file: string }[] = [
 /**
  * NGOẠI LỆ CÓ HẠN (ADR-0002 điều 8(b)): SQL của module cũ chưa đăng ký — còn JOIN thẳng bảng module khác.
  * Hạn: `audit` và `orders` đã bỏ JOIN thẳng bảng (đọc qua view công bố) ở N1-B nhưng SQL của chúng chưa đăng ký — chuyển STRICT khi được chạm ở N2;
- * `wonGuard` của orders (đọc audit_log) ở lại tới N2; `accounts`, `catalog` chưa có SQL riêng đáng kể — chuyển STRICT khi có SQL mới.
+ * `wonGuard` của orders (đọc audit_log) ở lại tới N2; `accounts` chưa có SQL riêng đáng kể — chuyển STRICT khi có SQL mới. `catalog`: SQL mới (nhóm dịch vụ) đã ở tệp nửa nghiêm `nhom-repo.ts`; SQL cũ của `repository.ts` còn LEGACY tới hạn CATALOG_LEGACY_HAN (ADR-0058 Đ6).
  */
 const LEGACY = ["accounts", "audit", "catalog", "orders"] as const;
+
+/** ADR-0058 Đ6 (lệch có hạn, chủ chốt hạn 2027-03-31): `catalog` còn LEGACY; SQL mới chỉ ở tệp nửa nghiêm. Quá hạn → đỏ. Gỡ: đổi SQL cũ sang defineSql, bỏ xoá cứng catalog_override, đưa catalog lên STRICT. */
+const CATALOG_LEGACY_HAN = "2027-03-31";
+test("ADR-0058 Đ6: lệch có hạn — catalog còn LEGACY tới hạn", () => {
+  if (!(LEGACY as readonly string[]).includes("catalog")) return; // đã lên STRICT: bài tự hết việc (bỏ hằng cùng lúc)
+  assert.ok(CATALOG_LEGACY_HAN >= vnToday(new Date()), `catalog quá hạn LEGACY ${CATALOG_LEGACY_HAN} — lên STRICT hoặc chủ dự án gia hạn`);
+});
 
 /**
  * Hạng "module không dùng cơ sở dữ liệu" (KHONG_DB, ADR-0022, chủ duyệt 2026-09-25 — kế hoạch Bảng tin): nghiêm hơn
@@ -132,6 +139,8 @@ const NUA_NGHIEM: readonly { module: string; file: string }[] = [
   { module: "orders", file: "modules/orders/hoan-tat-repo.ts" },
   // ADR-0068 Đ1 bước 5 (SIẾT): đọc đơn theo người đặt + câu đổi người đặt khi gộp hồ sơ — mọi câu qua defineSql + EXPLAIN.
   { module: "orders", file: "modules/orders/nguoi-dat-gop-repo.ts" },
+  // ADR-0058 Đ6: SQL MỚI của `catalog` (hai bảng `ctl_`) chỉ ở tệp này; `repository.ts` cũ còn LEGACY tới CATALOG_LEGACY_HAN.
+  { module: "catalog", file: "modules/catalog/nhom-repo.ts" },
 ];
 
 /**
@@ -163,7 +172,8 @@ const DOC_AUDIT_LOG_WONGUARD = {
 // ord_: ADR-0047 A3 (bảng mới của orders; bảng cũ orders/order_item/order_service/order_money_adjustment giữ tên) — NỚI hàng rào đã duyệt (Điều 9.4),
 // ĐÃ DUYỆT 2026-09-29 (lần 5) ở docs/superpowers/plans/2026-09-29-adr-0047-de-xuat-luat.md mục 1.
 // prc_/prc: ADR-0024 điều 1 (module pricing, bảng ở lượt 2).
-const TABLE_PREFIX: Record<string, string> = { prc_: "pricing", pty_: "parties", loc_: "locations", stf_: "staff", fbk_: "feedback", dsp_: "dispatch", bil_: "billing", mnt_: "maintenance", aut_: "auth", ntf_: "thongbao", vc_: "van-chuyen", ord_: "orders", tl_: "tro-ly" };
+// ctl_/catalog: ADR-0058 điều 1 (nhóm dịch vụ; bảng cũ catalog_* giữ tên) — NỚI hàng rào đã duyệt (Điều 9.4), chủ duyệt ADR-0058 ngày 2026-09-30 (lượt 1a).
+const TABLE_PREFIX: Record<string, string> = { ctl_: "catalog", prc_: "pricing", pty_: "parties", loc_: "locations", stf_: "staff", fbk_: "feedback", dsp_: "dispatch", bil_: "billing", mnt_: "maintenance", aut_: "auth", ntf_: "thongbao", vc_: "van-chuyen", ord_: "orders", tl_: "tro-ly" };
 const VIEW_PREFIX: Record<string, string> = { prc: "pricing", pty: "parties", loc: "locations", stf: "staff", ord: "orders", dsp: "dispatch", bil: "billing", aud: "audit", vc: "van-chuyen" };
 
 // ---------------------------------------------------------------------------------------------------------------------
