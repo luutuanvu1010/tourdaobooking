@@ -36,6 +36,7 @@ Trợ lý bị trói bởi lời nhắc cứng (chỉ ba ngả trả lời) và 
 - N2. Máy chủ lấy ≤ 3 lượt gần nhất từ `tl_hoi_dap` với cùng `staff_id`, cùng `cuoc_tro_chuyen`, `ket_qua = 'ok'`, trong 2 giờ; đưa vào `input` thành các lượt user / assistant trước câu hỏi mới (nội dung đã che sẵn khi lưu).
 - N3. Người B gửi mã cuộc trò chuyện của người A → không nhận lượt nào của A (test).
 - N4. Mã cuộc trò chuyện sai dạng → 400; thiếu → hỏi như câu đầu (không nhớ).
+- N6. Các lượt trước giữ nguyên chữ "[đã che]" như khi lưu (chấp nhận).
 - N5. Truy vấn tìm đoạn = câu hỏi hiện tại + câu hỏi lượt trước gần nhất (nếu có).
 
 **Ô thử (Đ5)**
@@ -44,6 +45,7 @@ Trợ lý bị trói bởi lời nhắc cứng (chỉ ba ngả trả lời) và 
 - T3. Lượt thử ghi `tl_luot_hoi` (`la_thu = 1`, có `mau`); tính vào trần **tiền tháng**; **không** tính vào trần lượt ngày (`demCauHomNay` chỉ đếm `la_thu = 0`); **không** ghi `tl_hoi_dap`. Hết trần tháng → 429 `tro_ly_het_tran_thang`.
 - T4. Thử chạy được khi trợ lý đang tắt; thiếu khoá → 503 như hỏi thường.
 - T5. Thử không đổi cấu hình đang dùng (đếm bản trước/sau).
+- T6. Thống kê Bảng điều khiển: tiền tháng **gồm** lượt thử; số câu hôm nay của công ty và số câu tháng **không gồm** lượt thử (`DEM_HOM_NAY_CONG_TY`, `TONG_THANG.so` lọc `la_thu = 0`); có dòng riêng "lượt thử tháng này".
 
 **Nguồn (Đ6)**
 - S1. Câu trả lời không có dòng "Nguồn:" → không gắn nguồn.
@@ -51,7 +53,7 @@ Trợ lý bị trói bởi lời nhắc cứng (chỉ ba ngả trả lời) và 
 - S3. Câu cố định lỗi không bao giờ có nguồn.
 
 **Tiền và trần (Đ7)**
-- P1. Câu trả lời của mẫu có số tiền (ví dụ "500.000 đ", "1,2 triệu", "300k") → phần đó thành "[đã ẩn số tiền]" trước khi trả và trước khi lưu `tl_hoi_dap` (test với phản hồi giả). Mã đơn (TD-…), giờ (08:30), số bước (1., 2.) **không** bị ẩn (test).
+- P1. (Mẫu nhận diện riêng của Đ7a, không dùng lại mẫu `viPhamChu`.) Câu trả lời của mẫu có số tiền (ví dụ "500.000 đ", "1,2 triệu", "300k") → phần đó thành "[đã ẩn số tiền]" trước khi trả và trước khi lưu `tl_hoi_dap` (test với phản hồi giả). Mã đơn (TD-…), giờ (08:30), số bước (1., 2.) **không** bị ẩn (test).
 - P2. `đã dùng tháng + chi phí tối đa của lượt` > trần → 429 `tro_ly_het_tran_thang`, **không** gọi mẫu (test với mẫu đắt + trần thấp). Chi phí tối đa = token vào ước tính × giá vào + token ra tối đa × giá ra.
 
 **Giữ nguyên (hồi quy)**
@@ -61,7 +63,7 @@ Trợ lý bị trói bởi lời nhắc cứng (chỉ ba ngả trả lời) và 
 
 ## 3. Dữ liệu
 
-- Migration mới — số tạm = số lớn nhất của `main` + 1 = **`0057`** (luật 1.46; nhánh gộp sau đổi tên):
+- Migration mới — số tạm = số lớn nhất của `main` + 1 = **`0057`** (luật 1.46; nhánh gộp sau đổi tên). **Lưu ý:** `0057` đang được ít nhất hai nhánh chưa gộp giữ (`0057_chang_so_nguoi_chuyen_bay.sql` ở worktree `agent-ac140680b0b1947b2` commit `4fce28f6`; `0057_hanh_chinh_nhan_su.sql` ở worktree `han-che-quan-tri-hcns`) — trước khi gộp, đổi sang số lớn nhất của `main` lúc đó + 1:
   - bảng `tl_bo_nao` chỉ-thêm (`id`, `mau`, `muc_suy_nghi`, `do_dai`, `token_ra_toi_da` INTEGER CHECK 800–4000, `loi_nhac` TEXT CHECK độ dài 1–12000, `valid_from_at`, `created_*`, `updated_*`; trigger cấm UPDATE / DELETE như các bảng `tl_*`);
   - `tl_luot_hoi`: `ADD COLUMN mau TEXT` (NULL = lượt cũ) và `ADD COLUMN la_thu INTEGER NOT NULL DEFAULT 0 CHECK (la_thu IN (0,1))` (đã thử hợp lệ trên `node:sqlite`; **chưa thử trên D1**);
   - `tl_hoi_dap`: `ADD COLUMN cuoc_tro_chuyen TEXT` (NULL = lượt cũ) + chỉ mục `(staff_id, cuoc_tro_chuyen, created_at)`.
