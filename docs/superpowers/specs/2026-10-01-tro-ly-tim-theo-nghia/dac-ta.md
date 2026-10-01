@@ -13,29 +13,29 @@ Tìm từ khoá kéo đoạn lạc đề khi câu hỏi diễn đạt khác ch�
 
 **Dấu vân nghĩa của đoạn (Đ2)**
 - V1. Khoá đoạn = SHA-256 hex của (nội dung đoạn đã định dạng + "|" + mã mẫu + "|" + số chiều) — hàm thuần, có test (cùng nội dung → cùng khoá; đổi 1 ký tự → khoá khác; đổi mẫu → khoá khác).
-- V2. Câu hỏi đầu tiên khi bảng rỗng: máy chủ gọi Embeddings **một lần** cho mọi đoạn thiếu (lô ≤ giới hạn của API; quá thì chia lô) + một lần cho câu hỏi; ghi đủ dòng `tl_van_nghia`. Câu hỏi thứ hai: **không** gọi lại cho đoạn (chỉ gọi cho câu hỏi) — đếm lần gọi API giả.
+- V2. Câu hỏi đầu tiên khi bảng rỗng: máy chủ gọi Embeddings theo lô cho mọi đoạn thiếu (chia lô theo giới hạn API và giới hạn tham số D1) + một lần cho câu hỏi; ghi đủ dòng `tl_van_nghia`. Câu hỏi thứ hai: **không** gọi lại cho đoạn (chỉ gọi cho câu hỏi) — đếm lần gọi API giả.
 - V3. Thêm / sửa một đoạn "Ngữ cảnh bổ sung" → câu hỏi kế tiếp chỉ tính bù **đúng** đoạn đó.
-- V4. `tl_van_nghia` chỉ-thêm: trigger cấm UPDATE / DELETE; CHECK số chiều > 0, độ dài BLOB = số chiều × 4.
-- V5. Véc-tơ đã đọc được giữ trong bộ nhớ isolate theo khoá; lần hỏi kế tiếp trong cùng isolate không đọc lại D1 cho khoá đã có (đếm truy vấn trong bài).
+- V4. `tl_van_nghia` chỉ-thêm: trigger cấm UPDATE / DELETE; CHECK `typeof(vec) = 'blob'`, số chiều > 0, độ dài BLOB = số chiều × 4. Ghi bằng `INSERT … ON CONFLICT(khoa) DO NOTHING`; hai lô ghi cùng khoá không lỗi, không trùng (test).
+- V5. Véc-tơ đoạn kho đã đọc được giữ trong bộ nhớ isolate theo khoá (véc-tơ câu hỏi không giữ); lần hỏi kế tiếp trong cùng isolate không đọc lại D1 cho khoá đã có (đếm truy vấn trong bài).
 
 **Chọn đoạn trộn (Đ3)**
-- C1. Hàm thuần `chonDoanTron(cauHoi, vecCauHoi, kho, vecDoan, perms)`: RRF của thứ hạng BM25 và thứ hạng cô-sin; bỏ đoạn có cô-sin < ngưỡng **và** không khớp từ khoá; giữ trọng số vai, ngân sách 6.000 token, tối đa 12 đoạn — có test với véc-tơ giả đặt tay.
-- C2. Đoạn khớp tên nút chính xác (từ khoá) vẫn được chọn dù cô-sin thấp (test).
+- C1. Hàm thuần `chonDoanTron(cauHoi, vecCauHoi, kho, vecDoan, perms)`: RRF của thứ hạng BM25 và thứ hạng cô-sin; bỏ đoạn có cô-sin < ngưỡng **trừ** đoạn khớp từ khoá **mạnh** (khớp cặp âm tiết liền nhau của câu hỏi, hoặc BM25 ≥ tỉ lệ đặt sẵn × điểm cao nhất); giữ trọng số vai, ngân sách 6.000 token, tối đa 12 đoạn — có test với véc-tơ giả đặt tay.
+- C2. Đoạn khớp tên nút chính xác (cụm từ khoá, khớp mạnh) vẫn được chọn dù cô-sin thấp; đoạn chỉ khớp lẻ một chữ phổ biến mà cô-sin thấp thì bị bỏ (test).
 - C3. Câu hỏi không khớp từ khoá nào nhưng gần nghĩa một đoạn → đoạn đó được chọn (test).
-- C4. Câu "sao app khó dùng thế" với kho thật + véc-tơ giả mô phỏng: không còn chọn đủ 12 đoạn chỉ vì chữ "dùng" (bài thuần chứng minh ngưỡng cô-sin cắt đoạn lạc đề).
+- C4. Câu "sao app khó dùng thế" với **kho thật** + véc-tơ giả cho mọi đoạn cô-sin thấp: số đoạn được chọn chỉ còn các đoạn khớp mạnh (đếm trên kho thật, ghi con số vào test) — không còn 12 đoạn chỉ vì chữ "dùng"; không còn đoạn nào thì khối tài liệu ghi "không tìm thấy đoạn liên quan".
 - C5. Truy vấn tìm = câu hỏi hiện tại + câu hỏi lượt trước gần nhất (giữ ADR-0073 N5); embedding tính trên chuỗi đã che.
 
 **Lùi về từ khoá (Đ4)**
-- L1. Embeddings trả lỗi / quá giờ / thiếu khoá → chọn đoạn bằng từ khoá như hôm nay; câu trả lời vẫn 200; log chỉ `{"event":"tro_ly_van_nghia_loi"}` (không nội dung).
+- L1. Embeddings trả lỗi / quá giờ (8 giây) / thiếu khoá / tính bù sẽ vượt trần → chọn đoạn bằng từ khoá như hôm nay (luật cũ); câu trả lời vẫn 200; log chỉ `{"event":"tro_ly_van_nghia_loi"}` (không nội dung).
 - L2. Lỗi khi đang tính bù đoạn → không ghi dòng dở; lần sau tính lại.
 
 **Tiền và trần (Đ5)**
-- P1. `chi_phi_micro_usd` của lượt = tiền mẫu trả lời + tiền embedding (câu hỏi + lô bù nếu có), làm tròn lên micro-USD; có test số.
-- P2. Kiểm trần trước khi gọi cộng chi phí tối đa embedding (câu hỏi + số đoạn thiếu × token ước) — hết trần → 429 như hiện nay, không gọi API nào.
+- P1. `chi_phi_micro_usd` của lượt = tiền mẫu trả lời + tiền embedding (câu hỏi + lô bù nếu có), làm tròn lên micro-USD; `token_vao`/`token_ra` vẫn chỉ của mẫu trả lời (ghi chú ở `docs/data-dictionary.json`); có test số.
+- P2. Trước mọi lần gọi API: kiểm trần bằng mức trần trên (lời nhắc + nhớ + câu hỏi + `NGAN_SACH_TOKEN` + token ra tối đa + embedding câu hỏi) — vượt → 429, **không gọi API nào** (đếm lần gọi giả = 0). Qua (1) nhưng cộng tính bù đoạn thì vượt → bỏ tính bù, lùi về từ khoá, câu trả lời vẫn 200 (test).
 - P3. Ô thử (`POST /api/tro-ly/thu`) dùng cùng đường tìm, tiền tính như P1, `la_thu = 1`.
 
 **Hiển thị (Đ6)**
-- H1. Phản hồi ô thử thêm `doanDaChon: [{ ten, theoNghia: boolean, theoTuKhoa: boolean }]`; Bảng điều khiển hiện danh sách này dưới kết quả thử (tiếng Việt: "Đoạn đã dùng", nhãn "khớp nghĩa" / "khớp từ khoá").
+- H1. Phản hồi ô thử thêm `doanDaChon: [{ ten, theoNghia: boolean, theoTuKhoa: boolean }]` và `chiPhiVanNghiaMicroUsd` (tiền embedding của lượt thử, tách khỏi tiền mẫu); Bảng điều khiển hiện danh sách này dưới kết quả thử (tiếng Việt: "Đoạn đã dùng", nhãn "khớp nghĩa" / "khớp từ khoá").
 
 **Giữ nguyên (hồi quy)**
 - G1. Mọi hàng rào ADR-0073 (che câu hỏi, chữ người dùng chỉ ở `input`, lọc số tiền, nhớ theo `staff_id`, kiểm trần trước khi gọi, `settings.ops`) vẫn xanh.
