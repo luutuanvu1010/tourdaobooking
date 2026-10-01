@@ -11,6 +11,20 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // ADR-0047 Phần B (giao diện Đưa đón + Hành khách theo bản vẽ Claude Design của chủ 1/10) + màn mẫu chặng ADR-0054/0076 + cảnh báo sớm (chủ "2 — Có").
+    // Không migration. Số "1.57" = lớn nhất trên main + 1 lúc gộp (2026-10-01).
+    version: "1.57",
+    date: "2026-10-01",
+    items: [
+      { kind: "moi", text: "Form đơn có khối \"Đưa đón\": chiều đi, chiều về, ngày giờ đón, nơi đón, nơi trả, số hiệu chuyến bay, số người chiều về." },
+      { kind: "moi", text: "Form đơn có khối \"Hành khách\": họ tên và năm sinh từng người — cần đủ trước khi xe chạy." },
+      { kind: "moi", text: "Dịch vụ có đưa đón tự tạo sẵn chiều đi, chiều về và nơi trả gợi ý; sửa hoặc bỏ được." },
+      { kind: "moi", text: "Chi tiết đơn có \"Sửa đưa đón\" và \"Sửa danh sách\" cho đơn đã xác nhận." },
+      { kind: "moi", text: "Danh mục: Quản trị cài mỗi dịch vụ đưa đón mấy chiều, giờ về và nơi trả gợi ý." },
+      { kind: "moi", text: "Nhắc sớm khi xác nhận đơn và khi xếp xe nếu còn thiếu nơi trả hoặc tên khách; vẫn làm tiếp được." },
+    ],
+  },
+  {
     // ADR-0082 (trợ lý tìm đoạn hướng dẫn theo nghĩa trộn từ khoá). Số "1.56" = main 1.55 + 1 lúc thi công (2026-10-01); nhánh khác gộp trước thì đánh lại số.
     // Có migration 0062 (số tạm).
     version: "1.56",
