@@ -78,10 +78,18 @@ async function nguCanhPhanHoi(db: D1Database): Promise<TroLyNguCanhResponse> {
 const GHI_CHU_UOC_TINH = "Ước tính thô một câu: 6.000 token vào + số token trả lời tối đa — chưa tính token suy nghĩ và phần nhớ.";
 const TRANG_BAN_BO_NAO = 30;
 
+/**
+ * Bộ não hiệu lực — MỘT chỗ đọc cho mọi nơi dùng (câu hỏi, Thử key, PUT tính phần đổi, GET; ruling F8/F12): bản đã lưu + lời dặn (giọng / lời dặn cũ khi
+ * chưa có bản — B5) qua boNaoHieuLuc (bản trỏ mẫu đã bỏ ⇒ thông số mặc định, giữ lời nhắc — R1).
+ */
+async function boNaoHienHanh(db: D1Database): Promise<ReturnType<typeof boNaoHieuLuc>> {
+  const [ban, loiDan] = await Promise.all([docBoNao(db), docLoiDan(db)]);
+  return boNaoHieuLuc(ban, loiDan);
+}
+
 /** Bộ não hiện hành + danh sách mẫu (giá, mức, ước tính) + bản mặc định cho nút "Xem / Khôi phục mặc định" (B1). */
 async function boNaoPhanHoi(db: D1Database): Promise<TroLyBoNaoResponse> {
-  const [ban, loiDan] = await Promise.all([docBoNao(db), docLoiDan(db)]);
-  const { boNao, macDinh } = boNaoHieuLuc(ban, loiDan);
+  const { boNao, macDinh } = await boNaoHienHanh(db);
   return {
     hienHanh: { ...boNao },
     macDinh,
@@ -131,11 +139,10 @@ export const troLyModule: AppModule = {
       const at = now.toISOString();
       const ngayVn = vnToday(now);
       const { tu, den } = khoangThang(ngayVn);
-      const [soCauHomNay, thang, loiDan, nguCanh, ban] = await Promise.all([
-        demCauHomNay(db, staff.id, ngayVn), tongThang(db, tu, den), docLoiDan(db), docNguCanh(db), docBoNao(db),
+      const [soCauHomNay, thang, nguCanh, { boNao }] = await Promise.all([
+        demCauHomNay(db, staff.id, ngayVn), tongThang(db, tu, den), docNguCanh(db), boNaoHienHanh(db),
       ]);
       // ADR-0073 Đ2: bộ não hiệu lực = bản đã lưu; chưa có bản ⇒ mặc định + giọng / lời dặn cũ (B5); bản trỏ mẫu đã bỏ ⇒ thông số mặc định, giữ lời nhắc (R1).
-      const { boNao } = boNaoHieuLuc(ban, loiDan);
       const luot = (ketQua: LuotHoi["ketQua"], u: SuDung | null): LuotHoi => ({
         id: crypto.randomUUID(), staffId: staff.id, ngayVn, vao: u?.vao ?? 0, vaoDem: u?.vaoDem ?? 0, ra: u?.ra ?? 0, chiPhi: chiPhiMicroUsd(u, boNao.mau),
         ketQua, mau: ketQua === "het_tran" ? null : boNao.mau, laThu: false, at, // het_tran: không gọi mẫu ⇒ mau null (chú thích LuotHoi)
@@ -209,8 +216,7 @@ export const troLyModule: AppModule = {
       const khoa = khoaCua(env);
       if (!khoa) return json(ketQuaThuKhoa({ chuaDat: true }) satisfies TroLyThuKhoaResponse);
       // ADR-0073 B10: thử với MẪU ĐANG CHỌN; lượt ghi la_thu = 1 (tính tiền tháng, không tính trần ngày).
-      const [ban, loiDan] = await Promise.all([docBoNao(env.DB), docLoiDan(env.DB)]);
-      const { boNao } = boNaoHieuLuc(ban, loiDan);
+      const { boNao } = await boNaoHienHanh(env.DB);
       const kq = await goiOpenAi(env, khoa, thanThuKhoa(boNao.mau));
       const now = new Date();
       const at = now.toISOString();
@@ -282,8 +288,7 @@ export const troLyModule: AppModule = {
       const input = kiemBoNao(await readJson(request));
       if (!input.ok) return error(400, "invalid_input", input.message);
       const db = env.DB;
-      const [ban, loiDan] = await Promise.all([docBoNao(db), docLoiDan(db)]);
-      const cu = boNaoHieuLuc(ban, loiDan).boNao;
+      const cu = (await boNaoHienHanh(db)).boNao;
       const at = new Date().toISOString();
       await db.batch([boNaoStatement(db, input.value, at, staff.id), nhatKy(db, staff.id, at, `bộ não: ${phanDoi(cu, input.value)}`)]);
       return json(await boNaoPhanHoi(db) satisfies TroLyBoNaoResponse);

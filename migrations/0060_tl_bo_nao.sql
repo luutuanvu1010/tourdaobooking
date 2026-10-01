@@ -2,7 +2,8 @@
 -- (tl_loi_dan.giong / loi_dan_them thôi hiện trên giao diện nhưng GIỮ dữ liệu — bỏ cột là việc sau, expand–contract).
 -- Số TẠM 0060: main đã có 0057_hanh_chinh_nhan_su, nhánh khác giữ 0058–0059 ⇒ ai gộp sau đổi tên tệp lên số lớn nhất lúc gộp + 1 (bài src/migrations-tro-ly-bo-nao.test.ts tìm theo đuôi tên).
 --
--- tl_bo_nao — "bộ não" của trợ lý (ADR-0073 Đ1, Đ2), bản có hiệu lực CHỈ-THÊM: bản hiện hành = valid_from_at lớn nhất (hoà thì created_at, id).
+-- tl_bo_nao — "bộ não" của trợ lý (ADR-0073 Đ1, Đ2), bản có hiệu lực CHỈ-THÊM: bản hiện hành = valid_from_at lớn nhất (hoà thì created_at, rowid = thứ tự chèn;
+--   id là UUID ngẫu nhiên nên không dùng để xếp — src/modules/tro-ly/repository.ts).
 --   mau             mã mẫu OpenAI trong danh sách đóng DANH_SACH_MAU (src/shared/tro-ly-mau.ts) — tập đổi theo thời gian ⇒ kiểm ở MÃ, không CHECK liệt kê.
 --   muc_suy_nghi    reasoning.effort, trong tập mẫu đó hỗ trợ — kiểm ở mã.
 --   do_dai          text.verbosity (low | medium | high) — kiểm ở mã.
