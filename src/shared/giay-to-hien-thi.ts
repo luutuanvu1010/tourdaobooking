@@ -24,9 +24,7 @@ export interface Chip {
 }
 
 /**
- * Ngưỡng "sắp hết hạn" dùng khi API KHÔNG đưa ngưỡng: danh sách giấy tờ của NGƯỜI (`GET /api/parties/documents/mine`, `GET /api/parties/:id/documents`) chưa
- * trả `warnDays`, và nhân viên thường không gọi được `/api/van-chuyen/meta` (ô vehicle.manage). Bằng dòng gieo của `vc_expiry_policy` (migration 0033).
- * Đã báo điều phối là trường còn thiếu (nhật ký thi công Phần B) — khi API có `warnDays` thì thay hằng này bằng giá trị của API.
+ * Mốc dự phòng của router khi môi trường không tiêm `nguongHetHan`; giao diện đọc `warnDays` của API. Bằng dòng gieo của `vc_expiry_policy` (migration 0033).
  */
 export const NGUONG_MAC_DINH = 30;
 
