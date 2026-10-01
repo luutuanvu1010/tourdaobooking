@@ -6,7 +6,9 @@
 
 ## Tra cứu OpenAI (Task 1)
 
-(điền: URL, ngày tra, giá, `dimensions`, giới hạn lô)
+Ngày tra: 2026-10-01 (người thi công mở lại bằng WebFetch; khớp số kỳ vọng).
+- `https://developers.openai.com/api/docs/models/text-embedding-3-small`: giá 0,02 USD / 1 triệu token (không phân biệt batch) ⇒ `GIA_NHUNG` = 20.000 micro-USD.
+- `https://developers.openai.com/api/reference/resources/embeddings/methods/create`: mảng `input` ≤ 2048 phần tử; ≤ 8192 token mỗi đầu vào; ≤ 300.000 token tổng mỗi yêu cầu; không nhận chuỗi rỗng; `dimensions` chỉ có ở `text-embedding-3` trở lên; `encoding_format` `float` | `base64`; phản hồi `data[].index` + `embedding`, `usage.prompt_tokens`.
 
 ## Đột biến hàng rào (sửa cố ý → đỏ → hoàn nguyên → xanh)
 
