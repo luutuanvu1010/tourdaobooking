@@ -97,6 +97,7 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "GET", path: "/api/bang-tin", access: "staff" }, // bắt tay WebSocket Bảng tin (ADR-0022) — mọi tài khoản đăng nhập; nhãn nhận tin tính ở máy chủ bằng can()
   { method: "POST", path: "/api/auth/login", access: "public" },
   { method: "POST", path: "/api/auth/logout", access: "public" },
+  { method: "POST", path: "/api/auth/session-ended", access: "public" }, // lý do máy này vừa bị đăng xuất (ADR-0075) — chỉ trả khi chữ ký token đúng
   { method: "GET", path: "/api/auth/me", access: "staff" },
   { method: "POST", path: "/api/auth/passkey/login", access: "public" }, // đăng nhập bằng Face ID (ADR-0016) — tự gọi maintenanceBlock, không qua cổng bảo trì của router
   { method: "POST", path: "/api/auth/passkey/options", access: "public" }, // xin thách thức WebAuthn để đăng nhập
@@ -318,7 +319,7 @@ test("MODULES liệt kê ĐỦ mọi thư mục module có khai `...Module: AppM
   assert.deepEqual(routedDirs, listed, "có thư mục module khai AppModule nhưng chưa có trong MODULES của bài kiểm route-access này — thêm vào MODULES và SNAPSHOT");
 });
 
-test("mức truy cập của 201 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
+test("mức truy cập của 202 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
   const actual = await collectRealRoutes();
   // deepEqual TRƯỚC: khi có route mới/bị xoá, thông báo của nó chỉ ra ĐÚNG route lệch — hai assert.equal độ dài bên dưới chỉ để phòng hờ
   // (không bao giờ tự chạy tới nếu deepEqual đã trượt) và tài liệu hoá con số 86 để đối chiếu nhanh bằng mắt.
@@ -367,7 +368,8 @@ test("mức truy cập của 201 route hiện có khớp ảnh chụp đã duy�
   // 2026-10-01 (ADR-0068 Đ9): + GET /api/staff/ho-so-khop = 200.
   // 2026-10-01 (ADR-0071 điều 2): − GET /api/staff/sheet, − POST /api/staff/sheet/apply (gỡ đồng bộ nhân viên từ Google Sheet) = 198.
   // 2026-10-01 (ADR-0054 D10.1 + nơi trả mặc định — kế hoạch ô mới của chặng Task 6): + GET /api/van-chuyen/mau-chang (orders), GET/POST …/mau-chang/:code (admin) = 201.
+  // 2026-10-01 (ADR-0075 Task 4): + POST /api/auth/session-ended (public) = 202.
   assert.deepEqual(actual, SNAPSHOT);
-  assert.equal(actual.length, 201, "số route thực tế lệch 201 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 201, "SNAPSHOT phải có đúng 201 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  assert.equal(actual.length, 202, "số route thực tế lệch 202 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 202, "SNAPSHOT phải có đúng 202 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

@@ -1,8 +1,8 @@
 // Luật thuần sổ phiên (ADR-0075) + token phiên 4 phần mang mã phiên (điều 1).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { END_REASON_LABEL, isSingleDevice, sessionDeviceLabel, sessionStatus, trimUserAgent } from "./session-ledger.ts";
-import { createSessionToken, verifySessionToken } from "./session.ts";
+import { END_REASON_LABEL, isSingleDevice, sessionDeviceLabel, sessionStatus, trimIp, trimUserAgent } from "./session-ledger.ts";
+import { SESSION_TTL_SECONDS, createSessionToken, verifySessionToken } from "./session.ts";
 
 const S = "x".repeat(40);
 
@@ -43,4 +43,22 @@ test("trạng thái hiển thị: kết thúc theo dòng, theo hạn, theo lư�
   assert.deepEqual(sessionStatus(base, null, "2026-10-10T00:00:00.000Z"), { live: false, label: END_REASON_LABEL.het_han });
   assert.deepEqual(sessionStatus(base, Date.parse("2026-10-02T05:00:00.000Z"), "2026-10-03T00:00:00.000Z"), { live: false, label: "Đã đổi thông tin đăng nhập" });
   assert.deepEqual(sessionStatus({ ...base, ended_at: "2026-10-02T01:00:00.000Z", end_reason: "bi_thay" }, null, "2026-10-03T00:00:00.000Z"), { live: false, label: "Bị thay bởi máy khác" });
+});
+
+test("verifySessionToken ignoreExpiry: vẫn kiểm chữ ký; hết hạn chỉ qua khi có cờ; iat ở tương lai vẫn bị từ chối", async () => {
+  const t = await createSessionToken(S, "staff-1", "phien-1", 1_000);
+  const sauHan = 1_000 + SESSION_TTL_SECONDS * 1000 + 5_000;
+  assert.equal(await verifySessionToken(S, t, sauHan), null, "không cờ: hết hạn bị từ chối");
+  assert.deepEqual(await verifySessionToken(S, t, sauHan, { ignoreExpiry: true }), { staffId: "staff-1", sessionId: "phien-1", issuedAt: 1_000 });
+  assert.equal(await verifySessionToken(S, t.replace("phien-1", "phien-2"), sauHan, { ignoreExpiry: true }), null, "chữ ký sai vẫn bị từ chối dù có cờ");
+  assert.equal(await verifySessionToken("y".repeat(40), t, sauHan, { ignoreExpiry: true }), null, "khoá khác vẫn bị từ chối");
+  const tuongLai = await createSessionToken(S, "staff-1", "phien-1", 10_000_000);
+  assert.equal(await verifySessionToken(S, tuongLai, 1_000, { ignoreExpiry: true }), null, "iat ở tương lai vẫn bị từ chối");
+});
+
+test("trimIp: tối đa 64 ký tự (CHECK của aut_session), rỗng hoặc thiếu → null", () => {
+  assert.equal(trimIp(null), null);
+  assert.equal(trimIp(""), null);
+  assert.equal(trimIp("10.0.0.1"), "10.0.0.1");
+  assert.equal(trimIp("x".repeat(500))?.length, 64);
 });

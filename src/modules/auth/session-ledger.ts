@@ -1,11 +1,12 @@
 // Luật THUẦN của sổ phiên (ADR-0075): lý do kết thúc, miễn luật một máy, tên máy, trạng thái hiển thị. Không đọc CSDL.
+import { LY_DO_BI_THAY } from "../../shared/session-ended.ts";
 import type { PermissionCode } from "../../shared/permissions.ts";
 import type { RoleCode } from "../../shared/roles.ts";
 
 export type EndReason = "dang_xuat" | "bi_thay" | "bi_go" | "doi_pin" | "dat_lai_pin" | "tat_hai_lop" | "ngung" | "het_han" | "mat_mien" | "doi_face_id";
 export const END_REASON_LABEL: Record<EndReason, string> = {
   dang_xuat: "Đã đăng xuất",
-  bi_thay: "Bị thay bởi máy khác",
+  bi_thay: LY_DO_BI_THAY,
   bi_go: "Bị IT/Toàn quyền gỡ",
   doi_pin: "Đã đổi PIN",
   dat_lai_pin: "Bị đặt lại PIN",
@@ -35,6 +36,9 @@ export function sessionDeviceLabel(userAgent: string | null): string {
 
 /** User-Agent lưu tối đa 200 ký tự (CHECK của bảng aut_session). */
 export const trimUserAgent = (ua: string | null): string | null => (ua === null ? null : ua.slice(0, 200));
+
+/** IP lưu tối đa 64 ký tự (CHECK của aut_session); thiếu/rỗng → NULL. Header quá dài không được làm đăng nhập lỗi 500. */
+export const trimIp = (ip: string | null): string | null => (ip === null || ip === "" ? null : ip.slice(0, 64));
 
 /** Trạng thái hiển thị của một dòng phiên: theo dòng (đã kết thúc), theo hạn, rồi theo lưới `credentials_changed_at` (đổi PIN/gỡ Face ID sau lúc cấp phiên). */
 export function sessionStatus(

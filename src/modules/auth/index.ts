@@ -8,9 +8,9 @@ import type { AuthConfigResponse, MeResponse, PasskeyRequestOptionsResponse } fr
 import { error, getCookie, json, readJson } from "../../shared/http";
 import { route, type AppModule } from "../../shared/router";
 import { PASSKEY_ERRORS, checkPasskeyAssertion, clearChallengeCookie, issuePasskeyChallenge, limitChallenge, passkeyRp, readPasskeyChallenge } from "./passkey";
-import { endExpiredSessionsStatement, endOtherSessionsStatement, findLiveSession, insertSessionStatement, liveSessionIds, touchSessionStatement } from "./repository";
+import { endExpiredSessionsStatement, endOtherSessionsStatement, endSessionStatement, findLiveSession, getSession, insertSessionStatement, liveSessionIds, touchSessionStatement } from "./repository";
 import { SESSION_COOKIE, SESSION_TTL_SECONDS, clearedSessionCookie, createSessionToken, isSecure, sessionCookie, verifySessionToken } from "./session";
-import { SESSION_TOUCH_MS, isSingleDevice, sessionDeviceLabel, trimUserAgent, type EndReason } from "./session-ledger";
+import { SESSION_TOUCH_MS, isSingleDevice, sessionDeviceLabel, trimIp, trimUserAgent, END_REASON_LABEL, type EndReason } from "./session-ledger";
 import { IP_LIMIT, PHONE_LIMIT, clearAttempts, ipKey, lockedPhones, phoneKey, reserveAttempts, unlockPhone } from "./throttle";
 import { turnstileGate, turnstileLog, turnstileSiteKey } from "./turnstile";
 import { passkeyRelyingParty } from "./webauthn";
@@ -78,7 +78,7 @@ export async function issueLoginSession(
       ...(single ? [endOtherSessionsStatement(env.DB, profile.id, null, "bi_thay", at, null)] : []),
       insertSessionStatement(env.DB, {
         id, staffId: profile.id, method, single: single ? 1 : 0, trustedDeviceId: opts.trustedDeviceId ?? null,
-        deviceLabel: sessionDeviceLabel(ua), userAgent: trimUserAgent(ua), ip: request.headers.get("cf-connecting-ip"),
+        deviceLabel: sessionDeviceLabel(ua), userAgent: trimUserAgent(ua), ip: trimIp(request.headers.get("cf-connecting-ip")),
         at, expiresAt: new Date(now + SESSION_TTL_SECONDS * 1000).toISOString(),
       }),
     ]);
@@ -243,6 +243,21 @@ export const authModule: AppModule = {
     // `maintenance` ở đây chỉ tới được Toàn quyền khi đang bảo trì (router chặn người khác trước — ADR-0071) — giao diện dùng để hiện dải "Đang ở chế độ bảo trì".
     route("GET", "/api/auth/me", "staff", async ({ env, staff }) => json({ staff, maintenance: toStatus(await getMaintenanceState(env.DB)) } satisfies MeResponse)),
 
-    route("POST", "/api/auth/logout", "public", async ({ request }) => json({ ok: true }, 200, { "set-cookie": clearedSessionCookie(isSecure(request)) })),
+    // Đăng xuất kết thúc dòng phiên (ADR-0075): cookie bị xoá VÀ cookie đã chép đi nơi khác cũng hết dùng được. Token rác/hết hạn → chỉ xoá cookie.
+    route("POST", "/api/auth/logout", "public", async ({ request, env }) => {
+      const token = getCookie(request, SESSION_COOKIE);
+      const t = token ? await verifySessionToken(env.SESSION_SECRET, token) : null;
+      if (t) await endSessionStatement(env.DB, t.sessionId, "dang_xuat", new Date().toISOString(), t.staffId).run();
+      return json({ ok: true }, 200, { "set-cookie": clearedSessionCookie(isSecure(request)) });
+    }),
+
+    // Trang đăng nhập hỏi vì sao máy này vừa bị đăng xuất. Chỉ trả khi chữ ký token đúng (cookie của chính máy này; hết hạn vẫn được) — token rác không lộ gì.
+    route("POST", "/api/auth/session-ended", "public", async ({ request, env }) => {
+      const token = getCookie(request, SESSION_COOKIE);
+      const t = token ? await verifySessionToken(env.SESSION_SECRET, token, Date.now(), { ignoreExpiry: true }) : null;
+      const row = t ? await getSession(env.DB, t.sessionId) : null;
+      const reason = t && row && row.staff_id === t.staffId && row.end_reason ? (END_REASON_LABEL[row.end_reason as EndReason] ?? null) : null;
+      return json({ reason, endedAt: reason && row ? row.ended_at : null });
+    }),
   ],
 };
