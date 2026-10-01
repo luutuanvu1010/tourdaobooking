@@ -26,9 +26,9 @@ const mau = (d: DatabaseSync, o: { code?: string; mode?: string; hint?: string |
      VALUES (?, ?, ?, ?, ?, ?, ?, 's1', ?, 's1')`,
   ).run(`m-${++n}`, o.code ?? "TD101", o.mode ?? "ROUND_TRIP", o.hint === undefined ? "16:00" : o.hint, o.loc ?? null, o.at ?? `2026-10-01T03:00:${String(n).padStart(2, "0")}.000Z`, AT, AT);
 
-test("migration mẫu chặng: đúng MỘT tệp `*_mau_chang.sql`, sau 0057; chỉ tạo bảng mới (không đụng bảng cũ)", () => {
+test("migration mẫu chặng: đúng MỘT tệp `*_mau_chang.sql`, sau 0058; chỉ tạo bảng mới (không đụng bảng cũ)", () => {
   assert.equal(MATCHES.length, 1, `cần đúng một tệp, có ${MATCHES.length}`);
-  assert.ok(MATCHES[0]! > "0057", MATCHES[0]);
+  assert.ok(MATCHES[0]! > "0058", MATCHES[0]);
   assert.doesNotMatch(sqlOf(MATCHES[0]!), /ALTER TABLE|DROP /i);
 });
 

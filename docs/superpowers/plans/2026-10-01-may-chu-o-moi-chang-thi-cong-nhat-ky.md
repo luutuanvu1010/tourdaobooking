@@ -218,3 +218,7 @@ Còn lọc `status = 'confirmed'`; lô `changeLeg` đẩy mốc đơn (`orderTou
   bỏ nhánh `RETURN` của `soNguoiChang` → CẢ HAI bài đỏ (2/2) → hoàn nguyên → 2/2 xanh.
 - ADR-0055 tiêu chí 7: thêm khẳng định Đối tác / Thực tập lưu nháp số hiệu trên nháp của NGƯỜI KHÁC → 403, số hiệu không đổi (`o-moi-chang.test.ts` TC-F3 nháp).
 - `node --test src/modules/van-chuyen/so-nguoi-chang-ve.test.ts src/modules/orders/o-moi-chang.test.ts` → 20/20.
+
+## Đổi số migration sau kiểm độc lập (2026-10-01)
+- Người kiểm độc lập (ĐẠT CÓ ĐIỀU KIỆN, mục V1): `0057` trùng `0057_hanh_chinh_nhan_su.sql` của nhánh chưa gộp `worktree-han-che-quan-tri-hcns` (ADR-0071).
+- Chủ quyết 1/10: nhánh Hành chính nhân sự gộp TRƯỚC, nhánh này sau ⇒ `0057_chang_so_nguoi_chuyen_bay` → **`0058`**, `0058_mau_chang` → **`0059`**. Nội dung SQL không đổi; bài tìm theo đuôi tên. Các mục cũ ở trên giữ số cũ (lịch sử).

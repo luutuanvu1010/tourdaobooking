@@ -1,4 +1,4 @@
--- Migration 0058 — MẪU CHẶNG THEO DỊCH VỤ ("dịch vụ đưa đón mấy chiều", ADR-0054 D10.1 — đã duyệt; chủ trả lời lần 17 Q-L4-A "Phần Vận chuyển") + NƠI TRẢ
+-- Migration 0059 — MẪU CHẶNG THEO DỊCH VỤ ("dịch vụ đưa đón mấy chiều", ADR-0054 D10.1 — đã duyệt; chủ trả lời lần 17 Q-L4-A "Phần Vận chuyển") + NƠI TRẢ
 -- MẶC ĐỊNH (ADR nháp docs/superpowers/specs/2026-10-01-de-xuat-adr-noi-tra-mac-dinh.md D1 — chủ duyệt 1/10 Q-D = A; số ADR chốt lúc gộp). Module van-chuyen
 -- (bảng của nó). Kế hoạch docs/superpowers/plans/2026-10-01-may-chu-o-moi-chang-ke-hoach.md Task 6 + 7.2 (bảng chưa lên `main` ⇒ cột nơi trả vào CÙNG
 -- `CREATE TABLE`, viết bằng `CHECK` bảng).

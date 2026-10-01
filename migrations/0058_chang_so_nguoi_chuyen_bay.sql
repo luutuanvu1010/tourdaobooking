@@ -1,4 +1,4 @@
--- Migration 0057 — Ô MỚI CỦA CHẶNG ĐƯA ĐÓN (module orders, bảng của nó). Kế hoạch docs/superpowers/plans/2026-10-01-may-chu-o-moi-chang-ke-hoach.md Task 1.
+-- Migration 0058 — Ô MỚI CỦA CHẶNG ĐƯA ĐÓN (module orders, bảng của nó). Kế hoạch docs/superpowers/plans/2026-10-01-may-chu-o-moi-chang-ke-hoach.md Task 1.
 -- CHỈ THÊM hai cột vào `ord_transfer_leg` (0034), không dựng lại bảng, không chạm trigger cũ (trigger khoá "Đã giao" của 0044 không liệt kê cột ⇒ tự phủ cột mới).
 --
 -- 1) `flight_code` — số hiệu chuyến bay (ADR-0055 VK2-C C1, nguyên văn CHECK của ADR). Máy chủ chuẩn hoá (bỏ khoảng trắng, chữ HOA) và khớp khuôn
