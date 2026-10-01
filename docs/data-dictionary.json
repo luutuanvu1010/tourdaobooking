@@ -126,6 +126,12 @@
       "kind": "table"
     },
     {
+      "name": "aut_session",
+      "module": "auth",
+      "kind": "table",
+      "note": "sổ phiên đăng nhập (ADR-0075, migration 0061): mỗi lần cấp phiên là một dòng, KHÔNG xoá (kết thúc = ended_at + end_reason đi cặp). single = 1: tài khoản chịu luật một máy, chỉ mục duy nhất aut_session_one_live chặn hai phiên sống cùng lúc. ip và user_agent là DỮ LIỆU CÁ NHÂN, giữ vô hạn, chỉ IT/Toàn quyền và chính chủ tài khoản xem, KHÔNG vào nhật ký"
+    },
+    {
       "name": "order_item",
       "module": "orders",
       "kind": "table",
@@ -281,7 +287,8 @@
     {
       "name": "ntf_push_sub",
       "module": "thongbao",
-      "kind": "table"
+      "kind": "table",
+      "note": "session_id (0061, ADR-0075 điều 6b): phiên đã đăng ký máy này; NULL = đăng ký trước phát hành"
     },
     {
       "name": "vc_vehicle",

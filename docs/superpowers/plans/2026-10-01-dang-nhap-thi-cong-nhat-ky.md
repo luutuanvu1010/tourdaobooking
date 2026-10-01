@@ -18,3 +18,10 @@ Cách thi công: subagent-driven (chủ chọn 2026-10-01) — mỗi task một 
 - Task 2 + Task 3 giao một phiên phụ, một commit (kế hoạch Task 2 Step 4 đòi).
 - Chuyển Task 9 Step 1 (`session()` e2e nhớ cookie + `sessionMoi()`) lên Task 3 và chạy **toàn bộ** e2e ở Task 3: từ lúc cấp phiên một máy, kịch bản đăng nhập lại cùng tài khoản sẽ đá cookie cũ — để e2e xanh ngay từ thay đổi hành vi đầu tiên.
 - Không đặt chỗ giữ `ctxDongMayCu` ở Task 3; Task 6 nối `dongBangTin`.
+
+### Task 1 — migration sổ phiên (2026-10-01)
+
+- Tệp `migrations/0061_aut_session.sql` (không phải 0058 như kế hoạch, theo ruling Task 0). Bảng `aut_session` + chỉ mục duy nhất có điều kiện + cột `ntf_push_sub.session_id`.
+- Ruling bề mặt: thêm mã kết thúc `doi_face_id` (ngoài danh sách đổi PIN/đặt lại PIN/…): gỡ Face ID cũng làm đổi `credentials_changed_at`, cùng loại thao tác bảo mật với đổi PIN, cần mã riêng để màn IT hiện đúng. Đảo ngược được (migration chưa áp remote).
+- `staff` cần các cột NOT NULL `full_name, phone, pin_hash, role, created_at` khi chèn thẳng trong bài thử (cột chết `full_name`/`role` vẫn bắt buộc).
+- Thêm vào bảng ba cột kiểm toán `created_by`, `updated_at` (NOT NULL, không mặc định), `updated_by`: ngoài brief nhưng `architecture.test.ts` (ADR-0003) đòi cho mọi bảng mới không legacy, và danh sách legacy bị khoá. Task sau chèn `aut_session` phải điền `updated_at`.

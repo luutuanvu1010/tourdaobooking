@@ -15,6 +15,7 @@
 |---|---|---|
 | `login_attempt` | bảng | tên cũ, giữ nguyên (ADR-0002 điều 2) |
 | `aut_passkey` | bảng |  |
+| `aut_session` | bảng | sổ phiên đăng nhập (ADR-0075, migration 0061): mỗi lần cấp phiên là một dòng, KHÔNG xoá (kết thúc = ended_at + end_reason đi cặp). single = 1: tài khoản chịu luật một máy, chỉ mục duy nhất aut_session_one_live chặn hai phiên sống cùng lúc. ip và user_agent là DỮ LIỆU CÁ NHÂN, giữ vô hạn, chỉ IT/Toàn quyền và chính chủ tài khoản xem, KHÔNG vào nhật ký |
 
 ## billing
 
@@ -142,7 +143,7 @@
 | `ntf_notice_target` | bảng |  |
 | `ntf_ack` | bảng |  |
 | `ntf_read_mark` | bảng |  |
-| `ntf_push_sub` | bảng |  |
+| `ntf_push_sub` | bảng | session_id (0061, ADR-0075 điều 6b): phiên đã đăng ký máy này; NULL = đăng ký trước phát hành |
 
 ## van-chuyen
 
