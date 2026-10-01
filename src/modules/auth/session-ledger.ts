@@ -40,14 +40,22 @@ export const trimUserAgent = (ua: string | null): string | null => (ua === null 
 /** IP lưu tối đa 64 ký tự (CHECK của aut_session); thiếu/rỗng → NULL. Header quá dài không được làm đăng nhập lỗi 500. */
 export const trimIp = (ip: string | null): string | null => (ip === null || ip === "" ? null : ip.slice(0, 64));
 
-/** Trạng thái hiển thị của một dòng phiên: theo dòng (đã kết thúc), theo hạn, rồi theo lưới `credentials_changed_at` (đổi PIN/gỡ Face ID sau lúc cấp phiên). */
+/**
+ * Trạng thái hiển thị của một dòng phiên: theo dòng (đã kết thúc), theo hạn, rồi theo lưới `credentials_changed_at` (đổi PIN/gỡ Face ID sau lần cuối phiên
+ * được cấp/cấp lại). Mốc so = max(created_at, last_seen_at): bốn route tự phục vụ GIỮ phiên hiện tại và đặt last_seen_at = đúng mốc đổi
+ * (markSessionReissuedStatement) — nếu chỉ so created_at, phiên đang dùng bị gắn nhầm "Đã đổi thông tin đăng nhập". Phiên đã bị lưới giết không thể
+ * chạm last_seen_at sau mốc đổi: currentStaff từ chối nó (getActiveStaff) TRƯỚC khi ghi last_seen_at. last_seen_at hỏng → chỉ dùng created_at (không mở cửa).
+ */
 export function sessionStatus(
-  row: { ended_at: string | null; end_reason: EndReason | null; expires_at: string; created_at: string },
+  row: { ended_at: string | null; end_reason: EndReason | null; expires_at: string; created_at: string; last_seen_at: string },
   credentialsChangedAtMs: number | null,
   nowIso: string,
 ): { live: boolean; label: string } {
   if (row.ended_at !== null && row.end_reason !== null) return { live: false, label: END_REASON_LABEL[row.end_reason] };
   if (row.expires_at <= nowIso) return { live: false, label: END_REASON_LABEL.het_han };
-  if (credentialsChangedAtMs !== null && credentialsChangedAtMs > Date.parse(row.created_at)) return { live: false, label: "Đã đổi thông tin đăng nhập" };
+  const created = Date.parse(row.created_at);
+  const seen = Date.parse(row.last_seen_at);
+  const moc = Number.isNaN(seen) ? created : Math.max(created, seen);
+  if (credentialsChangedAtMs !== null && !(credentialsChangedAtMs <= moc)) return { live: false, label: "Đã đổi thông tin đăng nhập" };
   return { live: true, label: "Đang hiệu lực" };
 }

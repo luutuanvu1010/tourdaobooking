@@ -4,9 +4,10 @@
 // Quyền trong app (ADR-0005) là tập SALES/ACCOUNTING/ADMIN/FIELD của tài khoản; KHÔNG phải vai trò hồ sơ (HDV, tài xế… — module parties).
 import { auditStatement, type AuditAction } from "../audit";
 import {
-  PASSKEY_ERRORS, checkPasskeyAssertion, clearChallengeCookie, countActivePasskeys, deviceLabel, firstUserHandle, insertPasskeyStatement, issuePasskeyChallenge,
-  limitChallenge, listActivePasskeys, lockedPhones, logPasskeyRejected, passkeyRp, readPasskeyChallenge, revokeAllPasskeysIfSuspendedStatement,
-  reissueSessionCookie, revokeAllPasskeysStatement, revokePasskeyStatement, toPasskeyDto, unlockPhone, verifyPinThrottled, verifyRegistration,
+  PASSKEY_ERRORS, checkPasskeyAssertion, clearChallengeCookie, countActivePasskeys, deviceLabel, endAllSessionsIfSuspendedStatement, endAllSessionsStatement,
+  endOtherSessionsStatement, firstUserHandle, insertPasskeyStatement, issuePasskeyChallenge, limitChallenge, listActivePasskeys, lockedPhones, logPasskeyRejected,
+  markSessionReissuedStatement, passkeyRp, readPasskeyChallenge, revokeAllPasskeysIfSuspendedStatement, reissueSessionCookie, revokeAllPasskeysStatement,
+  revokePasskeyStatement, toPasskeyDto, unlockPhone, verifyPinThrottled, verifyRegistration,
 } from "../auth";
 import {
   accountRoleCodes, canManageAccount, checkAccountChange, checkStaffName, countActiveAdmins, createAccountStatements, createAccountWithRolesStatements, findStaffByPhone, hoSoKhopKhiTaoTaiKhoan,
@@ -170,6 +171,8 @@ export function patchStaffStatements(
       revokeAllPasskeysIfSuspendedStatement(db, t.id, at, adminId),
       touchCredentialsStatement(db, t.id, Date.parse(at), true),
       adminAudit(db, adminId, "passkey_removed", t.id, "gỡ khi ngưng tài khoản", "changes() > 0"),
+      // ADR-0075 điều 4: CUỐI lô (sau câu chốt "còn quản trị viên khác" và sau chuỗi changes() ở trên) — chỉ kết thúc phiên khi tài khoản đã thật sự ngưng.
+      endAllSessionsIfSuspendedStatement(db, t.id, at, adminId),
     );
   }
   return { statements: stmts, guardIndex: needsUpdate ? 0 : -1 };
@@ -192,15 +195,18 @@ export const accountsModule: AppModule = {
       // Cùng bộ đếm chống dò với đăng nhập: đổi PIN không được thành đường vòng để dò PIN hiện tại.
       const check = await verifyPinThrottled(request, env, staff.phone, currentPin);
       if (!check.ok) return check.response.status === 401 ? error(403, "invalid_credentials", "PIN hiện tại không đúng.") : check.response;
-      const at = new Date().toISOString();
+      const now = Date.now(); // MỘT mốc: credentials_changed_at = now, at = ISO của now (last_seen_at của phiên giữ lại), cookie cấp lại cũng mốc now
+      const at = new Date(now).toISOString();
       await env.DB.batch([
-        await setPinStatement(env.DB, staff.id, body!.newPin as string),
+        await setPinStatement(env.DB, staff.id, body!.newPin as string, now),
         auditStatement(env.DB, { staffId: staff.id, action: "pin_changed", at, targetType: "staff", targetId: staff.id }),
+        endOtherSessionsStatement(env.DB, staff.id, sessionId, "doi_pin", at, staff.id), // ADR-0075 điều 5: máy khác bị đăng xuất trong cùng lô
+        markSessionReissuedStatement(env.DB, sessionId, at, staff.id),
       ]);
       // BẢNG TIN (KN-2): PIN vừa đổi — đóng các kết nối cũ của chính tài khoản này (thiết bị khác sẽ phải đăng nhập lại rồi mới nối lại được).
       dongBangTin({ staffId: staff.id, tatThongBao: true });
-      // Mọi phiên cũ (kể cả thiết bị khác) đã bị thu hồi (lưới credentials_changed_at); cấp lại cookie cho phiên đang dùng (giữ mã phiên — ADR-0075 điều 5) để thiết bị này không phải đăng nhập lại.
-      return json({ ok: true }, 200, { "set-cookie": await reissueSessionCookie(request, env, staff.id, sessionId, Date.now()) });
+      // Phiên khác đã kết thúc trong lô (credentials_changed_at giữ làm lưới); cấp lại cookie cho phiên đang dùng (giữ mã phiên — ADR-0075 điều 5) để thiết bị này không phải đăng nhập lại.
+      return json({ ok: true }, 200, { "set-cookie": await reissueSessionCookie(request, env, staff.id, sessionId, now) });
     }),
 
     // ---- Đăng nhập bằng Face ID (passkey, ADR-0016) — của chính mình ------------------------------------------
@@ -280,9 +286,12 @@ export const accountsModule: AppModule = {
         revokeAllPasskeysStatement(env.DB, staff.id, at, staff.id),
         touchCredentialsStatement(env.DB, staff.id, now, true),
         auditStatement(env.DB, { staffId: staff.id, action: "passkey_removed", at, targetType: "staff", targetId: staff.id, detail: "gỡ tất cả" }, "changes() > 0"),
+        // ADR-0075 điều 5: CUỐI lô (không chen vào chuỗi changes() ở trên). Kết thúc phiên khác kể cả khi không còn Face ID nào để gỡ (bảng điều 5 của ADR).
+        endOtherSessionsStatement(env.DB, staff.id, sessionId, "doi_face_id", at, staff.id),
+        markSessionReissuedStatement(env.DB, sessionId, at, staff.id),
       ]);
       const removed = revoked!.meta.changes ?? 0;
-      // BẢNG TIN (KN-2): credentials_changed_at luôn được "touch" ở trên dù không còn Face ID nào — đóng kết nối cũ theo đúng nhịp đó.
+      // BẢNG TIN (KN-2): phiên khác vừa kết thúc trong lô (credentials_changed_at chỉ "touch" khi có Face ID bị gỡ) — đóng kết nối cũ.
       dongBangTin({ staffId: staff.id, tatThongBao: true });
       return json({ removed }, 200, removed > 0 ? { "set-cookie": await reissueSessionCookie(request, env, staff.id, sessionId, now) } : {});
     }),
@@ -292,12 +301,17 @@ export const accountsModule: AppModule = {
       if (!sessionId) return NO_SESSION();
       const id = params.id!;
       if (!UUID_RE.test(id)) return error(404, "not_found", "Không tìm thấy Face ID này.");
+      // Kiểm TRƯỚC lô: mã khoá sai / không phải của mình không được đăng xuất máy khác (lô dưới kết thúc phiên khác vô điều kiện).
+      if (!(await listActivePasskeys(env.DB, staff.id)).some((k) => k.id === id)) return error(404, "not_found", "Không tìm thấy Face ID này.");
       const now = Date.now();
       const at = new Date(now).toISOString();
       const [revoked] = await env.DB.batch([
         revokePasskeyStatement(env.DB, id, staff.id, at, staff.id),
         touchCredentialsStatement(env.DB, staff.id, now, true),
         auditStatement(env.DB, { staffId: staff.id, action: "passkey_removed", at, targetType: "staff", targetId: staff.id }, "changes() > 0"),
+        // ADR-0075 điều 5 — CUỐI lô (không chen vào chuỗi changes() ở trên).
+        endOtherSessionsStatement(env.DB, staff.id, sessionId, "doi_face_id", at, staff.id),
+        markSessionReissuedStatement(env.DB, sessionId, at, staff.id),
       ]);
       if ((revoked!.meta.changes ?? 0) === 0) return error(404, "not_found", "Không tìm thấy Face ID này.");
       dongBangTin({ staffId: staff.id, tatThongBao: true }); // BẢNG TIN (KN-2): gỡ thành công — đóng kết nối cũ.
@@ -336,6 +350,8 @@ export const accountsModule: AppModule = {
       await env.DB.batch([
         await setPinStatement(env.DB, staff.id, body!.newPin as string, now),
         auditStatement(env.DB, { staffId: staff.id, action: "pin_set_by_passkey", at, targetType: "staff", targetId: staff.id }),
+        endOtherSessionsStatement(env.DB, staff.id, sessionId, "doi_pin", at, staff.id), // ADR-0075 điều 5
+        markSessionReissuedStatement(env.DB, sessionId, at, staff.id),
       ]);
       await unlockPhone(env.DB, staff.phone); // chủ quyết 2026-09-23: có PIN mới thì gỡ khoá "sai PIN quá nhiều", như admin reset-pin
       dongBangTin({ staffId: staff.id, tatThongBao: true }); // BẢNG TIN (KN-2): PIN vừa đổi.
@@ -606,6 +622,7 @@ export const accountsModule: AppModule = {
         adminAudit(db, ctx.staff.id, "pin_reset", t.id), // nhật ký KHÔNG chứa PIN
         revokeAllPasskeysStatement(db, t.id, at, ctx.staff.id), // ADR-0016 điều 6: đặt lại PIN gỡ mọi Face ID
         adminAudit(db, ctx.staff.id, "passkey_removed", t.id, "gỡ khi đặt lại PIN", "changes() > 0"),
+        endAllSessionsStatement(db, t.id, "dat_lai_pin", at, ctx.staff.id), // ADR-0075 điều 4: mọi máy của tài khoản bị đăng xuất trong cùng lô
       ]);
       await unlockPhone(db, t.phone);
       ctx.dongBangTin({ staffId: t.id, tatThongBao: true }); // BẢNG TIN (KN-2): PIN vừa được đặt lại.
@@ -627,6 +644,7 @@ export const accountsModule: AppModule = {
         revokeAllPasskeysStatement(db, t.id, at, ctx.staff.id),
         touchCredentialsStatement(db, t.id, now, true),
         adminAudit(db, ctx.staff.id, "passkey_removed", t.id, "quản trị viên gỡ", "changes() > 0"),
+        endAllSessionsStatement(db, t.id, "doi_face_id", at, ctx.staff.id), // ADR-0075 điều 4 — CUỐI lô (không chen vào chuỗi changes() ở trên)
       ]);
       ctx.dongBangTin({ staffId: t.id, tatThongBao: true }); // BẢNG TIN (KN-2): credentials_changed_at vừa được "touch".
       return json({ staff: await one(db, t.id) } satisfies StaffResponse);

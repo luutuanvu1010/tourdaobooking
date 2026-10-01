@@ -227,6 +227,9 @@ assert.equal(r.status, 401);
 assert.equal(r.body.error.code, "passkey_unknown");
 // Gỡ khoá đẩy credentials_changed_at (A-3) nên phiên cũ SO của field đã bị thu hồi, kể cả sau khi kích hoạt lại.
 assert.equal((await call(SO, "GET", "/api/auth/me")).status, 401);
+// ADR-0075 điều 4: ngưng tài khoản kết thúc dòng phiên trong cùng lô (không chỉ nhờ lưới credentials_changed_at)
+const endReasonOf = async (ck) => (await sqlRows(`SELECT end_reason FROM aut_session WHERE id = '${ck.split("=")[1].split(".")[2]}'`))[0].end_reason;
+assert.equal(await endReasonOf(SO), "ngung");
 const SOr = await session(ACCOUNTS.field);
 console.log("✓ ngưng tài khoản chặn đăng nhập Face ID ngay (kể cả khi thách thức đã lấy trước), gỡ mọi Face ID + một dòng nhật ký; kích hoạt lại không làm khoá cũ sống lại");
 
@@ -257,6 +260,8 @@ assert.equal(staffRow.passkeyCount, 1, JSON.stringify(staffRow));
 r = await call(TOAN_QUYEN, "POST", `/api/staff/${fieldId}/passkeys/remove-all`, {});
 assert.equal(r.status, 200, JSON.stringify(r.body));
 assert.equal(r.body.staff.passkeyCount, 0);
+assert.equal((await call(SO2, "GET", "/api/auth/me")).status, 401, "quản trị viên gỡ Face ID đăng xuất mọi máy của tài khoản");
+assert.equal(await endReasonOf(SO2), "doi_face_id");
 r = (await passkeyLogin(other3)).r;
 assert.equal(r.status, 401);
 assert.equal(r.body.error.code, "passkey_unknown");

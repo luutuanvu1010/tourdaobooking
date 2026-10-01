@@ -60,7 +60,7 @@ const THOI_GIAN = {
   platform: 1.4, pwa: 0.3, orders: 13.1, trip: 27.7, "chang-hanh-khach": 22.4, "nhap-tay-va-gia-doi-tac": 15.2, admin: 10.4, turnstile: 5.8,
   catalog: 28.6, dispatch: 165.8, "admin-race": 0.5, locations: 0.5, parties: 1, "gop-ho-so": 8, booker: 20.2, permissions: 5.2, feedback: 1.3, company: 28.8,
   bangtin: 59.1, thongbao: 67.1, "tro-ly": 8.9, maintenance: 32.8, roles: 5.8, "van-chuyen": 14.4, "tai-xe-doi-tac": 27.9, "chinh-sach-dieu-phoi": 19.3,
-  "dieu-phoi": 53.1, "tai-xe-cuoc": 32, "dieu-phoi-chay-dua": 8.2, "so-tien": 24.7, phien: 6, passkey: 24.2,
+  "dieu-phoi": 53.1, "tai-xe-cuoc": 32, "dieu-phoi-chay-dua": 8.2, "so-tien": 24.7, phien: 19.4, passkey: 24.2,
 };
 const nang = (name) => THOI_GIAN[name] ?? 15;
 

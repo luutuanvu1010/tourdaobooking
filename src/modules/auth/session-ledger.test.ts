@@ -38,11 +38,23 @@ test("User-Agent cắt còn 200 ký tự", () => {
 });
 
 test("trạng thái hiển thị: kết thúc theo dòng, theo hạn, theo lưới credentials_changed_at", () => {
-  const base = { ended_at: null, end_reason: null, expires_at: "2026-10-09T00:00:00.000Z", created_at: "2026-10-02T00:00:00.000Z" } as const;
+  const base = { ended_at: null, end_reason: null, expires_at: "2026-10-09T00:00:00.000Z", created_at: "2026-10-02T00:00:00.000Z", last_seen_at: "2026-10-02T00:00:00.000Z" } as const;
   assert.deepEqual(sessionStatus(base, null, "2026-10-03T00:00:00.000Z"), { live: true, label: "Đang hiệu lực" });
   assert.deepEqual(sessionStatus(base, null, "2026-10-10T00:00:00.000Z"), { live: false, label: END_REASON_LABEL.het_han });
   assert.deepEqual(sessionStatus(base, Date.parse("2026-10-02T05:00:00.000Z"), "2026-10-03T00:00:00.000Z"), { live: false, label: "Đã đổi thông tin đăng nhập" });
   assert.deepEqual(sessionStatus({ ...base, ended_at: "2026-10-02T01:00:00.000Z", end_reason: "bi_thay" }, null, "2026-10-03T00:00:00.000Z"), { live: false, label: "Bị thay bởi máy khác" });
+});
+
+test("trạng thái: phiên được giữ và cấp lại khi đổi PIN/gỡ Face ID (last_seen_at = mốc đổi) vẫn 'Đang hiệu lực'; phiên chạm lần cuối TRƯỚC mốc đổi thì chết", () => {
+  const doi = Date.parse("2026-10-02T05:00:00.123Z");
+  const now = "2026-10-03T00:00:00.000Z";
+  const base = { ended_at: null, end_reason: null, expires_at: "2026-10-09T00:00:00.000Z", created_at: "2026-10-02T00:00:00.000Z" } as const;
+  // markSessionReissuedStatement đặt last_seen_at = ISO của ĐÚNG mốc ms ghi vào credentials_changed_at → so bằng, không lệch 1 ms
+  assert.deepEqual(sessionStatus({ ...base, last_seen_at: new Date(doi).toISOString() }, doi, now), { live: true, label: "Đang hiệu lực" });
+  assert.deepEqual(sessionStatus({ ...base, last_seen_at: "2026-10-02T06:00:00.000Z" }, doi, now), { live: true, label: "Đang hiệu lực" });
+  assert.deepEqual(sessionStatus({ ...base, last_seen_at: "2026-10-02T05:00:00.122Z" }, doi, now), { live: false, label: "Đã đổi thông tin đăng nhập" });
+  // last_seen_at hỏng (không parse được) → coi như created_at, KHÔNG được mở cửa (NaN làm mọi phép so sai)
+  assert.deepEqual(sessionStatus({ ...base, last_seen_at: "rac" }, doi, now), { live: false, label: "Đã đổi thông tin đăng nhập" });
 });
 
 test("verifySessionToken ignoreExpiry: vẫn kiểm chữ ký; hết hạn chỉ qua khi có cờ; iat ở tương lai vẫn bị từ chối", async () => {

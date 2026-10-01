@@ -8,7 +8,7 @@ import type { AuthConfigResponse, MeResponse, PasskeyRequestOptionsResponse } fr
 import { error, getCookie, json, readJson } from "../../shared/http";
 import { route, type AppModule } from "../../shared/router";
 import { PASSKEY_ERRORS, checkPasskeyAssertion, clearChallengeCookie, issuePasskeyChallenge, limitChallenge, passkeyRp, readPasskeyChallenge } from "./passkey";
-import { endExpiredSessionsStatement, endOtherSessionsStatement, endSessionStatement, findLiveSession, getSession, insertSessionStatement, liveSessionIds, touchSessionStatement } from "./repository";
+import { endAllSessionsIfSuspendedStatement as endAllIfSuspendedRow, endExpiredSessionsStatement, endOtherSessionsStatement, endSessionStatement, findLiveSession, getSession, insertSessionStatement, liveSessionIds, markSessionReissuedStatement, touchSessionStatement } from "./repository";
 import { SESSION_COOKIE, SESSION_TTL_SECONDS, clearedSessionCookie, createSessionToken, isSecure, sessionCookie, verifySessionToken } from "./session";
 import { SESSION_TOUCH_MS, isSingleDevice, sessionDeviceLabel, trimIp, trimUserAgent, END_REASON_LABEL, type EndReason } from "./session-ledger";
 import { IP_LIMIT, PHONE_LIMIT, clearAttempts, ipKey, lockedPhones, phoneKey, reserveAttempts, unlockPhone } from "./throttle";
@@ -102,6 +102,14 @@ export type { EndReason };
 /** Kết thúc MỌI phiên còn sống của tài khoản (đặt lại PIN, ngưng, tắt lớp hai…). Chưa chạy — gộp vào lô của module gọi. */
 export const endAllSessionsStatement = (db: D1Database, staffId: string, reason: EndReason, at: string, by: string | null): D1PreparedStatement =>
   endOtherSessionsStatement(db, staffId, null, reason, at, by);
+/** Kết thúc mọi phiên của tài khoản CHỈ KHI nó đã ngưng lúc câu chạy (đặt CUỐI lô ngưng tài khoản, sau câu chốt). Chưa chạy. */
+export const endAllSessionsIfSuspendedStatement = (db: D1Database, staffId: string, at: string, by: string | null): D1PreparedStatement =>
+  endAllIfSuspendedRow(db, staffId, "ngung" satisfies EndReason, at, by);
+/**
+ * Đánh dấu phiên được GIỮ và cấp lại cookie khi tự đổi PIN / gỡ Face ID: `at` PHẢI là ISO của đúng mốc ms ghi vào credentials_changed_at. Chưa chạy —
+ * gộp vào cùng lô với endOtherSessionsStatement.
+ */
+export { markSessionReissuedStatement };
 
 export type PinAttemptResult =
   | { ok: true; profile: StaffProfile }

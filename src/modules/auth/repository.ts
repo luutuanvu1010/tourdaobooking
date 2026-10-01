@@ -106,6 +106,15 @@ const SS_END_EXPIRED = defineSql("auth", "session_end_expired",
 // (2) kết thúc mọi phiên còn sống của tài khoản (trừ ?2 nếu có) — dùng cho "bị thay", đổi PIN, gỡ, ngưng…
 const SS_END_OTHERS = defineSql("auth", "session_end_others",
   "UPDATE aut_session SET ended_at = ?4, end_reason = ?3, ended_by = ?5, updated_at = ?4, updated_by = ?5 WHERE staff_id = ?1 AND ended_at IS NULL AND (?2 IS NULL OR id <> ?2)");
+// (2b) ngưng tài khoản (ADR-0075 điều 4): kết thúc mọi phiên CHỈ KHI tài khoản đã thật sự ngưng lúc câu chạy — khuôn PK_REVOKE_ALL_IF_SUSPENDED: nối CUỐI lô
+// của `PATCH /api/staff/:id` (active:false); câu chốt "còn quản trị viên khác" thua thì active vẫn = 1, EXISTS sai, không kết thúc phiên nào.
+const SS_END_ALL_IF_SUSPENDED = defineSql("auth", "session_end_all_if_suspended",
+  "UPDATE aut_session SET ended_at = ?3, end_reason = ?2, ended_by = ?4, updated_at = ?3, updated_by = ?4 WHERE staff_id = ?1 AND ended_at IS NULL " +
+    "AND EXISTS (SELECT 1 FROM v_stf_staff_label WHERE id = ?1 AND active = 0)");
+// (2c) phiên được GIỮ khi người dùng tự đổi PIN / gỡ Face ID (ADR-0075 điều 5): last_seen_at = đúng mốc ghi vào credentials_changed_at, để màn sổ phiên
+// (sessionStatus, so max(created_at, last_seen_at)) không coi phiên đang dùng là "Đã đổi thông tin đăng nhập".
+const SS_MARK_REISSUED = defineSql("auth", "session_mark_reissued",
+  "UPDATE aut_session SET last_seen_at = ?2, updated_at = ?2, updated_by = ?3 WHERE id = ?1 AND ended_at IS NULL");
 const SS_END_ONE = defineSql("auth", "session_end_one",
   "UPDATE aut_session SET ended_at = ?3, end_reason = ?2, ended_by = ?4, updated_at = ?3, updated_by = ?4 WHERE id = ?1 AND ended_at IS NULL");
 // (3) chèn phiên mới: last_seen_at = updated_at = created_at; created_by = chính tài khoản đăng nhập (như aut_passkey).
@@ -126,6 +135,10 @@ const SS_GET = defineSql("auth", "session_get", `SELECT ${SS_COLS} FROM aut_sess
 export const endExpiredSessionsStatement = (db: D1Database, staffId: string, at: string): D1PreparedStatement => db.prepare(SS_END_EXPIRED).bind(staffId, at);
 export const endOtherSessionsStatement = (db: D1Database, staffId: string, keep: string | null, reason: string, at: string, by: string | null): D1PreparedStatement =>
   db.prepare(SS_END_OTHERS).bind(staffId, keep, reason, at, by);
+export const endAllSessionsIfSuspendedStatement = (db: D1Database, staffId: string, reason: string, at: string, by: string | null): D1PreparedStatement =>
+  db.prepare(SS_END_ALL_IF_SUSPENDED).bind(staffId, reason, at, by);
+export const markSessionReissuedStatement = (db: D1Database, id: string, at: string, by: string | null): D1PreparedStatement =>
+  db.prepare(SS_MARK_REISSUED).bind(id, at, by);
 export const endSessionStatement = (db: D1Database, id: string, reason: string, at: string, by: string | null): D1PreparedStatement =>
   db.prepare(SS_END_ONE).bind(id, reason, at, by);
 export const insertSessionStatement = (db: D1Database, v: {
