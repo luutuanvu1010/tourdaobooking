@@ -3,6 +3,9 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { world, seedStaff } from "../../../tests/audit/harness.mjs";
 
+const INTERN = "22222222-2222-4222-8222-222222222222";
+const PARTNER = "33333333-3333-4333-8333-333333333333";
+const FIELD = "44444444-4444-4444-8444-444444444444";
 const SALES = "11111111-1111-4111-8111-111111111111";
 const inDays = (n: number) => new Date(Date.now() + 7 * 3600e3 + n * 86400e3).toISOString().slice(0, 10);
 const D = inDays(3);
@@ -12,6 +15,9 @@ const SVC = { kind: "catalog", catalogCode: "ZA1", pax: { adult: 2, child: 0, se
 function setup() {
   const w = world();
   seedStaff(w.sqlite, { id: SALES, phone: "0900000001", name: "An", perms: ["SALES"] });
+  seedStaff(w.sqlite, { id: INTERN, phone: "0900000002", name: "Thực Tập", perms: ["INTERN"] });
+  seedStaff(w.sqlite, { id: PARTNER, phone: "0900000003", name: "Đối Tác", perms: ["PARTNER"] });
+  seedStaff(w.sqlite, { id: FIELD, phone: "0900000004", name: "Hướng Dẫn", perms: ["FIELD"] });
   w.sqlite.exec("INSERT INTO catalog_item (code, name, unit, price_adult, in_sheet, first_seen_at, updated_at) VALUES ('ZA1', 'Tour đảo', 'perPax', 500000, 1, '2026-01-01', '2026-01-01')");
   return w;
 }
@@ -36,9 +42,9 @@ test("Lần A: PUT /trip có pickupTime → đếm 'Sửa thông tin chuyến'; 
   const o = (await w.call("POST", "/api/orders", { as: SALES, body: { customerName: "Khách Thử", customerPhone: "0912345678", services: [{ ...SVC, legs: [OUT] }] } })).json.order;
   const sid = o.services[0].id;
   const trip = { id: sid, departDate: D, departTime: "", checkinDate: "", checkinTime: "", checkinPlace: "", note: "", pickupTime: "07:15", pickupPlace: "Khách sạn B" };
-  await w.call("PUT", `/api/orders/${o.id}/trip`, { as: SALES, body: { expectedUpdatedAt: o.updatedAt, services: [trip] } });
+  assert.equal((await w.call("PUT", `/api/orders/${o.id}/trip`, { as: SALES, body: { expectedUpdatedAt: o.updatedAt, services: [trip] } })).status, 200);
   const o2 = (await w.call("GET", `/api/orders/${o.id}`, { as: SALES })).json.order;
-  await w.call("PUT", `/api/orders/${o.id}`, { as: SALES, body: { expectedUpdatedAt: o2.updatedAt, customerName: "Khách Thử", customerPhone: "0912345678", services: [{ ...SVC, id: sid }] } });
+  assert.equal((await w.call("PUT", `/api/orders/${o.id}`, { as: SALES, body: { expectedUpdatedAt: o2.updatedAt, customerName: "Khách Thử", customerPhone: "0912345678", services: [{ ...SVC, id: sid }] } })).status, 200);
   assert.deepEqual(dem(w).map((x: any) => x.detail), ["Sửa thông tin chuyến", "Lưu nháp"]);
 });
 
@@ -48,3 +54,15 @@ test("Review Focus 3: chèn dòng đếm lỗi → yêu cầu vẫn chạy như 
   const r = await w.call("POST", "/api/orders", { as: SALES, body: { customerName: "Khách Thử", customerPhone: "0912345678", services: [{ ...SVC, pickupTime: "07:00" }] } });
   assert.equal(r.status, 201, r.text); // Task 4: 409 client_outdated (không phải 500)
 });
+
+// Luật thứ tự (chú thích route POST /api/orders): 403 đứng TRƯỚC mọi thứ — bộ đếm đứng SAU các cổng 403, thân cũ bị từ chối 403 KHÔNG được đếm.
+test("thân cũ + handlerStaffId do Thực tập / Đối tác gửi → 403 và KHÔNG có dòng đếm (bộ đếm đứng sau cổng 403)", async () => {
+  for (const as of [INTERN, PARTNER]) {
+    const w = setup();
+    const r = await w.call("POST", "/api/orders", { as, body: { customerName: "Khách Thử", customerPhone: "0912345678", handlerStaffId: FIELD, services: [{ ...SVC, pickupTime: "07:00" }] } });
+    assert.equal(r.status, 403, `${as}: ${r.text}`);
+    assert.deepEqual(dem(w), [], as);
+  }
+});
+// Cổng CANNOT_WRITE_PASSENGERS không có ca 403 chạm được hôm nay: ô order.passenger.write có CÙNG phạm vi với order.create / order.modify (permissions.ts) nên không
+// tài khoản nào qua cổng trước mà vấp cổng này. Nếu sau này ô tách phạm vi, thêm ca ở đây (cổng đứng TRƯỚC bộ đếm).

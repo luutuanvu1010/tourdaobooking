@@ -52,7 +52,9 @@ const orderBody = (extra: Record<string, unknown> = {}) => ({
 const count = (w: any, sql: string, ...a: unknown[]) => w.q(sql, ...a)[0].n;
 const actionsOf = (w: any, orderId: string) => w.q("SELECT action FROM audit_log WHERE order_id = ? ORDER BY created_at, rowid", orderId).map((r: any) => r.action);
 /** Ảnh chụp "không có gì được ghi": số đơn, số dòng phân công, số dòng nhật ký. */
-const snapshot = (w: any) => [count(w, "SELECT count(*) n FROM orders"), count(w, "SELECT count(*) n FROM dsp_assignment"), count(w, "SELECT count(*) n FROM audit_log WHERE action <> 'client_outdated_body'")];
+const snapshot = (w: any) => [count(w, "SELECT count(*) n FROM orders"), count(w, "SELECT count(*) n FROM dsp_assignment"), count(w, "SELECT count(*) n FROM audit_log")];
+/** Như `snapshot` nhưng bỏ dòng đếm thân cũ (ADR-0047 §6): chỉ dùng ở ca 400, nơi thân thử là thân cũ nên bộ đếm ghi một dòng. Ca 403 dùng `snapshot` đủ — bộ đếm đứng SAU cổng 403, không được ghi gì. */
+const snapshotKhongDem = (w: any) => [count(w, "SELECT count(*) n FROM orders"), count(w, "SELECT count(*) n FROM dsp_assignment"), count(w, "SELECT count(*) n FROM audit_log WHERE action <> 'client_outdated_body'")];
 
 test("(1) lập đơn KHÔNG chọn hướng dẫn viên → không có dòng HANDLE nào, nhật ký chỉ 'created' — với Bán hàng, Quản trị, Toàn quyền, Thực tập, Đối tác (trước đây: ba quyền đầu tự gắn người lập)", async () => {
   for (const [label, as] of [["Bán hàng", SALES], ["Quản trị", ADM], ["Toàn quyền", SUP], ["Thực tập", INTERN], ["Đối tác", PARTNER]] as const) {
@@ -109,22 +111,22 @@ test("(2b) Quản trị, Toàn quyền lập kèm HDV; Bán hàng chọn CHÍNH 
 test("(3) chọn người KHÔNG đủ điều kiện (đã ngưng, chưa có hồ sơ, tài khoản lai, kế toán, không tồn tại) → 400 invalid_assignee, KHÔNG có đơn nào được tạo", async () => {
   for (const [label, pick] of [["đã ngưng", NGHI], ["chưa có hồ sơ", KHONG_HO_SO], ["tài khoản lai FIELD+PARTNER", LAI], ["kế toán", ACC], ["không tồn tại", KHONG_CO]] as const) {
     const w = setup();
-    const before = snapshot(w);
+    const before = snapshotKhongDem(w);
     const r = await w.call("POST", "/api/orders", { as: SALES, body: orderBody({ handlerStaffId: pick }) });
     assert.equal(r.status, 400, `${label}: ${r.text}`);
     assert.equal(r.json.error.code, "invalid_assignee", label);
-    assert.deepEqual(snapshot(w), before, `${label}: số đơn / dòng phân công / dòng nhật ký không đổi`);
+    assert.deepEqual(snapshotKhongDem(w), before, `${label}: số đơn / dòng phân công / dòng nhật ký không đổi`);
   }
 });
 
 test("(3b) handlerStaffId sai dạng (không phải mã tài khoản) → 400 invalid_input, không tạo đơn", async () => {
   for (const bad of ["", "không phải id", 7, true, { id: FIELD }]) {
     const w = setup();
-    const before = snapshot(w);
+    const before = snapshotKhongDem(w);
     const r = await w.call("POST", "/api/orders", { as: SALES, body: orderBody({ handlerStaffId: bad }) });
     assert.equal(r.status, 400, `${JSON.stringify(bad)}: ${r.text}`);
     assert.equal(r.json.error.code, "invalid_input", JSON.stringify(bad));
-    assert.deepEqual(snapshot(w), before, JSON.stringify(bad));
+    assert.deepEqual(snapshotKhongDem(w), before, JSON.stringify(bad));
   }
 });
 
