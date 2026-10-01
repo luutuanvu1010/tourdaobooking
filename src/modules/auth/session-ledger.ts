@@ -69,7 +69,7 @@ const isEndReason = (v: string | null): v is EndReason => v !== null && Object.h
 /**
  * Dòng `aut_session` → DTO (ADR-0075 điều 7, 9). KHÔNG đưa `user_agent` ra ngoài (chỉ `deviceLabel`). Trạng thái tính bằng `sessionStatus` (dòng → hạn → lưới
  * `credentials_changed_at` của CHỦ phiên) — phiên đã chết theo lưới không hiện "Đang hiệu lực" (Review Focus 2). Mã cách đăng nhập / lý do kết thúc lạ (CHECK của
- * migration 0061 không cho có) thì không đoán: nhãn "Không rõ" / "Đã kết thúc".
+ * migration 0065 không cho có) thì không đoán: nhãn "Không rõ" / "Đã kết thúc".
  */
 export function toSessionDto(
   row: { id: string; method: string; device_label: string; ip: string | null; created_at: string; last_seen_at: string; expires_at: string; ended_at: string | null; end_reason: string | null },

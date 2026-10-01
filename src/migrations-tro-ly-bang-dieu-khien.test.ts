@@ -38,8 +38,8 @@ test("HÀNG RÀO không cột khoá: ĐÚNG tập cột của bốn bảng mới
   assert.deepEqual(cols(db, "tl_vai"), ["id", "ma_quyen", "bat", "valid_from_at", ...AUDIT]);
   assert.deepEqual(cols(db, "tl_loi_dan"), ["id", "cau_chao", "giong", "loi_dan_them", "cau_hoi_mau", "valid_from_at", ...AUDIT]);
   assert.deepEqual(cols(db, "tl_ngu_canh"), ["id", "doan_id", "tieu_de", "noi_dung", "bat", "valid_from_at", ...AUDIT]);
-  assert.deepEqual(cols(db, "tl_hoi_dap"), ["id", "luot_id", "staff_id", "vai", "ngay_vn", "cau_hoi", "tra_loi", "nguon", "chi_phi_micro_usd", "ket_qua", ...AUDIT]);
-  const all = ["tl_vai", "tl_loi_dan", "tl_ngu_canh", "tl_hoi_dap", "tl_cai_dat", "tl_luot_hoi"].flatMap((t) => cols(db, t));
+  assert.deepEqual(cols(db, "tl_hoi_dap"), ["id", "luot_id", "staff_id", "vai", "ngay_vn", "cau_hoi", "tra_loi", "nguon", "chi_phi_micro_usd", "ket_qua", ...AUDIT, "cuoc_tro_chuyen"]);
+  const all = ["tl_vai", "tl_loi_dan", "tl_ngu_canh", "tl_hoi_dap", "tl_cai_dat", "tl_luot_hoi", "tl_bo_nao"].flatMap((t) => cols(db, t));
   for (const c of all) assert.ok(!/khoa|key|secret|token_api/i.test(c), `cột nghi chứa khoá: ${c}`);
 });
 

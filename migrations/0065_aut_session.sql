@@ -1,4 +1,4 @@
--- Migration 0061 — ADR-0075 (accepted 2026-10-01): SỔ PHIÊN ĐĂNG NHẬP. Mỗi lần cấp phiên mới (PIN hoặc Face ID) là một dòng; không xoá dòng (lịch sử).
+-- Migration 0065 (thi công ghi 0061; đánh lại lúc gộp main 1.57) — ADR-0075 (accepted 2026-10-01): SỔ PHIÊN ĐĂNG NHẬP. Mỗi lần cấp phiên mới (PIN hoặc Face ID) là một dòng; không xoá dòng (lịch sử).
 -- Kết thúc = đặt ended_at + end_reason (cặp đi cùng nhau). single = 1: tài khoản chịu luật một máy — CSDL chặn hai phiên sống cùng lúc bằng chỉ mục
 -- duy nhất có điều kiện (máy chủ cũng kết thúc phiên cũ trong cùng lô; chỉ mục là lưới khi hai lần đăng nhập chạy đua).
 -- ip, user_agent là dữ liệu cá nhân: chỉ IT/Toàn quyền và chính chủ tài khoản xem; KHÔNG ghi vào nhật ký.

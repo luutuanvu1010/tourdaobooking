@@ -2,7 +2,21 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 1.48 (nhóm dịch vụ, ADR-0058) ĐÃ LÊN PRODUCTION — migration `0055_nhom_dich_vu` đã áp (2026-10-01 sáng giờ VN)
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 1.53 ĐÃ LÊN PRODUCTION (gộp 1.49–1.53: gộp hồ sơ ADR-0068, HCNS + hạn chế Quản trị ADR-0071/0072, ô mới của chặng) — migration `0056`–`0059` đã áp (2026-10-01 12:12 giờ VN)
+
+AI (phiên "restrict admin permissions") kiểm bằng lệnh chỉ đọc sau khi chủ báo đã `day-len` + `trien-khai` (1/10; lần `trien-khai` đầu không triển khai gì — chủ chạy lại):
+
+- **Phiên bản:** `GET /api/auth/config` → `"version":"1.53"`. `kiem-phien-ban.mjs --sau-deploy` báo "CHƯA ĐẠT: production 1.53, bản ở máy 1.54" — vì `main` cục bộ đã gộp thêm 1.54 (trợ lý thông minh, migration `0060_tl_bo_nao`) SAU lần triển khai này; 1.53 là đúng bản đã triển khai (`origin/main` lúc đó = 446c64a4).
+- **Worker** (`wrangler deployments list`): **53a302c1-e7e8-4c57-b953-815e221d2252** (2026-10-01T05:12:19Z). Trước đó 66cb9e73-c9b0-459e-b12e-91cd9089fda7 (1.48). **Lùi Worker:** chưa đánh giá kỹ — 0056 thêm cột `pty_party.merged_into_id`, 0057 chỉ thêm dòng mã quyền/vai, 0058/0059 thêm cột/bảng chặng; hỏi trước khi lùi.
+- **Migration:** `wrangler d1 migrations list --remote` → 0056–0059 đã áp; còn chờ `0060_tl_bo_nao.sql` (thuộc 1.54, chưa triển khai).
+- **Dữ liệu:** `audit-invariants --db remote` → "Mọi bất biến đạt, 3 cảnh báo (D1 remote)", thoát 0.
+- **Route:** `GET /api/staff` chưa đăng nhập → 401.
+- **Bảo trì:** đang BẬT tới 2026-10-05 12:00 giờ VN (`endsAt` 05:00Z). Từ 1.53 bảo trì miễn trừ theo **quyền Toàn quyền**, không còn theo danh sách SĐT (ADR-0071 điều 3).
+- **Kiểm độc lập:** ADR-0071/0072 hai vòng ĐẠT; phòng ngừa 7403 (`phong-ngua-wrangler-7403`) ĐẠT.
+- **Việc chủ cần làm sau 1.53:** gán vai **Hành chính nhân sự** cho người phụ trách nhân sự (chỉ Toàn quyền gán) — từ 1.53 Quản trị không tạo được tài khoản.
+- **Chưa kiểm:** thao tác thật bằng tài khoản HCNS / Quản trị trên production; iPhone thật.
+
+## TRẠNG THÁI TRIỂN KHAI (cũ) — Phiên bản 1.48 (nhóm dịch vụ, ADR-0058) ĐÃ LÊN PRODUCTION — migration `0055_nhom_dich_vu` đã áp (2026-10-01 sáng giờ VN)
 
 AI (phiên điều phối chung) kiểm bằng lệnh chỉ đọc sau khi chủ báo đã `day-len` + `trien-khai` (1/10):
 
@@ -712,7 +726,7 @@ Cách xử lý dòng ra: sửa `staff.full_name` cho sạch TRƯỚC khi áp (ch
 ### 2. Số câu trong một `db.batch()` — kiểm TRƯỚC lần nạp nhân viên đầu tiên qua Sheet
 - Tạo một tài khoản = **6 câu** trong một batch: hồ sơ (`pty_party`), cá nhân (`pty_person`), vai trò STAFF (`pty_party_role`), tài khoản (`staff`), quyền (`stf_permission`), nhật ký (`audit_log`) — với một quyền (SALES); mỗi quyền thêm là thêm một câu.
 - `POST /api/staff/sheet/apply` gộp TẤT CẢ ứng viên vào MỘT `db.batch()`: **6N + 1 câu** (N tài khoản + một dòng nhật ký `staff_synced`); 9 nhân viên ≈ 55 câu. Cùng request còn thêm khoảng N câu tra SĐT trùng và các truy vấn xác thực nằm NGOÀI batch.
-- Đối chiếu con số 6N + 1 này với giới hạn HIỆN HÀNH của D1 và của gói Workers đang dùng (số truy vấn D1 mỗi lần gọi Worker; kích thước/số tham số của một câu và một batch) trên trang giới hạn D1 của Cloudflare TRƯỚC lần nạp đầu tiên — các con số đổi theo gói và theo thời gian, và tài liệu này không chép lại con số nào để tránh tin nhầm. Nếu vượt: nạp từng phần (API nhận danh sách `phones`, chọn một phần ứng viên mỗi lần) hoặc dùng `scripts/import-staff.mjs`.
+- Đối chiếu con số 6N + 1 này với giới hạn HIỆN HÀNH của D1 và của gói Workers đang dùng (số truy vấn D1 mỗi lần gọi Worker; kích thước/số tham số của một câu và một batch) trên trang giới hạn D1 của Cloudflare TRƯỚC lần nạp đầu tiên — các con số đổi theo gói và theo thời gian, và tài liệu này không chép lại con số nào để tránh tin nhầm. Nếu vượt: nạp từng phần (API nhận danh sách `phones`, chọn một phần ứng viên mỗi lần). (Kịch bản `scripts/import-staff.mjs` từng nêu ở đây và cả đường đồng bộ nhân viên từ Sheet đã gỡ ở ADR-0071 — mục này nay chỉ còn giá trị lịch sử.)
 
 ### 3. Sau khi áp lần 1 trên remote — kiểm nhanh bằng một lượt gọi API thật
 Các câu SQL của module `parties` dùng tham số đánh số `?NNN` và mới chỉ được kiểm trên D1 cục bộ; cần một lượt gọi thật trên remote:

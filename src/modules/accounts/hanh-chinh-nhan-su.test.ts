@@ -90,6 +90,7 @@ test("điều 1b, 1c: HCNS xem danh sách, sửa / ngưng cấp dưới; KHÔNG 
   }
   assert.equal((await w.call("PATCH", `/api/staff/${HR}`, { as: ADM, body: { active: false } })).status, 403, "Quản trị không sửa HCNS");
   assert.equal((await w.call("GET", `/api/staff/${HR}/roles`, { as: ADM })).status, 403);
+  // Từ ADR-0083 điều 1a, 403 này đến SỚM hơn luật cấp bậc (đường kiểu cũ chỉ Toàn quyền); cấp bậc vẫn khoá ở PATCH và …/roles ngay trên.
   assert.equal((await w.call("PUT", `/api/staff/${HR}/permissions`, { as: ADM, body: { permissions: ["SALES"] } })).status, 403);
   // Quản trị GIỮ sửa / ngưng cấp dưới (ADR-0071 Hệ quả).
   assert.equal((await w.call("PATCH", `/api/staff/${SALES}`, { as: ADM, body: { fullName: "An Lần Hai" } })).status, 200);

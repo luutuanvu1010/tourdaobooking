@@ -12,14 +12,28 @@ import { ACCOUNTS, TRO_LY_DAU, TRO_LY_KHOA, call, login, randomPhone, session, s
 const PORT = Number(process.env.E2E_OPENAI_PORT);
 if (!PORT) throw new Error("Thiếu E2E_OPENAI_PORT (chạy qua npm run test:e2e -- tro-ly)");
 
-/** Máy OpenAI giả: trả lời theo khuôn Responses API; dòng Nguồn lấy tên đoạn đầu tiên trong lời nhắc. */
+/** Máy OpenAI giả: trả lời theo khuôn Responses API; dòng Nguồn lấy tên đoạn đầu tiên của khối tài liệu (không đoạn nào ⇒ không dòng Nguồn). */
 const nhan = [];
 let cheDo = "ok";
+/** ADR-0082: cửa /v1/embeddings của máy giả — ghi RIÊNG (`nhan` vẫn chỉ /v1/responses); véc-tơ một-nóng: chữ có "pin" ⇒ chiều 0, còn lại ⇒ chiều 1. */
+const nhung = [];
+let cheDoNhung = "ok";
 const may = createServer((req, res) => {
   let raw = "";
   req.on("data", (d) => (raw += d));
   req.on("end", () => {
     const body = JSON.parse(raw || "{}");
+    if (req.url === "/v1/embeddings") {
+      nhung.push({ auth: req.headers.authorization, body });
+      if (cheDoNhung === "loi") {
+        res.writeHead(500, { "content-type": "application/json" });
+        return res.end(JSON.stringify({ error: { message: "Embeddings down (English)" } }));
+      }
+      const dau = Array.isArray(body.input) ? body.input : [];
+      const data = dau.map((s, index) => { const e = new Array(body.dimensions).fill(0); e[/pin/i.test(String(s)) ? 0 : 1] = 1; return { object: "embedding", index, embedding: e }; });
+      res.writeHead(200, { "content-type": "application/json" });
+      return res.end(JSON.stringify({ object: "list", data, model: body.model, usage: { prompt_tokens: 10 * dau.length, total_tokens: 10 * dau.length } }));
+    }
     nhan.push({ url: req.url, auth: req.headers.authorization, body });
     if (cheDo === "loi") {
       res.writeHead(500, { "content-type": "application/json" });
@@ -30,11 +44,18 @@ const may = createServer((req, res) => {
       res.writeHead(cheDo === "401" ? 401 : 429, { "content-type": "application/json" });
       return res.end(JSON.stringify({ error: { message: `Incorrect API key provided: ${TRO_LY_KHOA.slice(0, 10)}***${TRO_LY_KHOA.slice(-4)}`, code: cheDo === "401" ? "invalid_api_key" : "insufficient_quota" } }));
     }
-    const ten = /\[([^\]]+)\]/.exec(String(body.instructions ?? ""))?.[1] ?? "";
+    // Tên đoạn ĐẦU TIÊN của khối "TÀI LIỆU:" CUỐI (máy chủ luôn nối khối này sau lời nhắc — ADR-0073 B4); lời nhắc có "[tên mục]" ở luật Nguồn không tính.
+    // ADR-0073 Đ7a: câu trả lời có số tiền — máy chủ phải ẩn trước khi trả / lưu.
+    if (cheDo === "tien") {
+      res.writeHead(200, { "content-type": "application/json" });
+      return res.end(JSON.stringify({ status: "completed", output: [{ type: "message", content: [{ type: "output_text", text: "Giá tour 500.000 đ, phụ thu 300k. Mã đơn TD-2026." }] }], usage: { input_tokens: 100, output_tokens: 20 } }));
+    }
+    const ins = String(body.instructions ?? "");
+    const ten = /\[([^\]]+)\]/.exec(ins.slice(ins.lastIndexOf("TÀI LIỆU:")))?.[1] ?? "";
     res.writeHead(200, { "content-type": "application/json" });
     res.end(JSON.stringify({
       status: "completed",
-      output: [{ type: "reasoning", summary: [] }, { type: "message", content: [{ type: "output_text", text: `1. Vào trang Tôi.\n2. Bấm Đổi PIN.\nNguồn: [${ten}]` }] }],
+      output: [{ type: "reasoning", summary: [] }, { type: "message", content: [{ type: "output_text", text: `1. Vào trang Tôi.\n2. Bấm Đổi PIN.${ten ? `\nNguồn: [${ten}]` : ""}` }] }],
       usage: { input_tokens: 4200, input_tokens_details: { cached_tokens: 0 }, output_tokens: 600, output_tokens_details: { reasoning_tokens: 100 } },
     }));
   });
@@ -53,6 +74,8 @@ const tatCaVai = (bat) => Object.fromEntries(PERMS.map((p) => [p, bat]));
 const datVai = (vai) => call(OWNER, "POST", "/api/tro-ly/vai", { vai });
 const loiDanDau = (await call(OWNER, "GET", "/api/tro-ly/loi-dan")).body.hienHanh;
 assert.ok(loiDanDau?.cauChao, "đọc được lời dặn đầu kịch bản (để khôi phục)");
+const boNaoDau = (await call(OWNER, "GET", "/api/tro-ly/bo-nao")).body.hienHanh;
+assert.ok(boNaoDau?.loiNhac, "đọc được bộ não đầu kịch bản (để khôi phục)");
 
 // Route quản lý lấy từ CHÍNH module (esbuild như src/tai-xe-cong.test.ts) — không danh sách viết tay.
 const built = await esbuild.build({ entryPoints: [new URL("../../src/modules/tro-ly/index.ts", import.meta.url).pathname], bundle: true, format: "esm", platform: "neutral", target: "es2022", write: false, logLevel: "silent" });
@@ -68,6 +91,7 @@ try {
 
   // 2) hỏi thường → 200 + nguồn; đúng MỘT dòng tl_luot_hoi, không nội dung; máy giả nhận đúng mẫu + khoá + không id/SĐT người hỏi
   const truoc = await soDong();
+  const m0 = nhung.length;
   r = await hoi(SALES, `đổi mã PIN thế nào ${TRO_LY_DAU}`);
   assert.equal(r.status, 200, JSON.stringify(r.body));
   assert.equal(r.body.traLoi, "1. Vào trang Tôi.\n2. Bấm Đổi PIN.");
@@ -80,11 +104,45 @@ try {
   for (const lo of [ACCOUNTS.salesA.phone, ACCOUNTS.salesA.name]) assert.ok(!JSON.stringify(nhan[0].body).includes(lo), `thân gửi đi lộ ${lo}`);
   assert.equal(await soDong(), truoc + 1);
   const dong = (await sqlRows("SELECT * FROM tl_luot_hoi ORDER BY created_at DESC LIMIT 1"))[0];
-  assert.deepEqual(Object.keys(dong).sort(), ["chi_phi_micro_usd", "created_at", "created_by", "id", "ket_qua", "ngay_vn", "staff_id", "token_ra", "token_vao", "token_vao_dem", "updated_at", "updated_by"]);
+  assert.deepEqual(Object.keys(dong).sort(), ["chi_phi_micro_usd", "created_at", "created_by", "id", "ket_qua", "la_thu", "mau", "ngay_vn", "staff_id", "token_ra", "token_vao", "token_vao_dem", "updated_at", "updated_by"]);
   assert.equal(dong.ket_qua, "ok");
-  assert.equal(dong.chi_phi_micro_usd, 450); // 4200 × 0,05 + 600 × 0,40
+  assert.equal(dong.mau, "gpt-5-nano");
+  assert.equal(dong.la_thu, 0);
+  // ADR-0082 P1: tiền lượt = mẫu (4200 × 0,05 + 600 × 0,40 = 450) + embedding của MỌI lần gọi /v1/embeddings trong lượt
+  // (máy giả: 10 token / đầu vào; 0,02 USD / 1 triệu token, làm tròn lên từng lần gọi). Kho có thể đã được tính bù bởi kịch bản chạy trước ⇒ đếm theo lần gọi thật.
+  const tienGoi = (ds) => ds.reduce((a, x) => a + Math.ceil((10 * x.body.input.length * 20_000) / 1_000_000), 0);
+  const tienNhung = tienGoi(nhung.slice(m0));
+  assert.ok(tienNhung >= 1, "lượt có gọi embeddings");
+  assert.equal(dong.chi_phi_micro_usd, 450 + tienNhung);
+  assert.deepEqual([dong.token_vao, dong.token_ra], [4200, 600], "token chỉ của mẫu trả lời");
   assert.ok(!JSON.stringify(await sqlRows("SELECT * FROM tl_luot_hoi")).includes(TRO_LY_DAU), "nội dung câu hỏi lọt vào CSDL");
-  console.log("✓ hỏi thường → 200 + nguồn; một dòng tl_luot_hoi không nội dung, chi phí 450 micro-USD");
+  console.log("✓ hỏi thường → 200 + nguồn; một dòng tl_luot_hoi không nội dung, chi phí = mẫu 450 + embedding micro-USD");
+
+  // 2b) ADR-0082: dấu vân nghĩa ghi vào D1 THẬT (wrangler dev) dạng BLOB đúng độ dài; thân embeddings ĐÚNG bốn khoá, không SĐT người hỏi;
+  //     câu kế tiếp chỉ tính véc-tơ câu hỏi; ô thử có đoạn "khớp nghĩa" ⇒ đoạn "khớp nghĩa" có véc-tơ giải mã đúng (từ D1 hoặc từ bộ nhớ isolate đã nạp từ D1 — e2e không phân biệt được hai nguồn; kiểu BLOB và độ dài đã khoá ở trên).
+  const vn = (await sqlRows("SELECT count(*) AS n, sum(typeof(vec) = 'blob') AS b, min(length(vec)) AS mn, max(length(vec)) AS mx, min(so_chieu) AS sc FROM tl_van_nghia"))[0];
+  console.log("  vn =", JSON.stringify(vn), "| lần gọi embeddings:", nhung.length, "| tiền embeddings lượt đầu:", tienNhung, "| chi phí lượt:", dong.chi_phi_micro_usd);
+  assert.ok(vn.n >= 200, JSON.stringify(vn));
+  assert.equal(vn.b, vn.n, "mọi véc-tơ là BLOB");
+  assert.deepEqual([vn.mn, vn.mx], [vn.sc * 4, vn.sc * 4]);
+  assert.ok(nhung.length >= 1);
+  for (const x of nhung) {
+    assert.equal(x.auth, `Bearer ${TRO_LY_KHOA}`);
+    assert.deepEqual(Object.keys(x.body).sort(), ["dimensions", "encoding_format", "input", "model"]);
+    for (const lo of [ACCOUNTS.salesA.phone, ACCOUNTS.salesA.name]) assert.ok(!JSON.stringify(x.body).includes(lo), `thân embeddings lộ ${lo}`);
+  }
+  let m = nhung.length;
+  r = await hoi(SALES, "đổi mã PIN thế nào");
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.equal(nhung.length, m + 1, "câu kế tiếp chỉ tính véc-tơ câu hỏi");
+  assert.equal(nhung.at(-1).body.input.length, 1);
+  const m2 = nhung.length;
+  r = await call(OWNER, "POST", "/api/tro-ly/thu", { boNao: boNaoDau, cauHoi: "đổi mã PIN thế nào", vai: "SALES" });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.ok(r.body.doanDaChon.some((d) => d.theoNghia), JSON.stringify(r.body.doanDaChon));
+  assert.equal(r.body.chiPhiVanNghiaMicroUsd, tienGoi(nhung.slice(m2)), "tiền nghĩa của ô thử = đúng các lần gọi máy giả trong ô thử");
+  console.log("  ô thử: lần gọi embeddings", nhung.length - m2, "| chiPhiVanNghiaMicroUsd", r.body.chiPhiVanNghiaMicroUsd);
+  console.log("✓ dấu vân nghĩa: BLOB trên D1 thật, câu sau không tính lại đoạn, ô thử có đoạn khớp nghĩa (véc-tơ giải mã đúng)");
 
   // 3) SĐT / email trong câu hỏi bị che TRƯỚC khi tới máy giả
   r = await hoi(SALES, "khách 0905 123 456 và lan@vidu.vn hỏi đổi PIN thế nào");
@@ -102,6 +160,22 @@ try {
   assert.ok(!r.body.error.message.includes("English"));
   cheDo = "ok";
   console.log("✓ OpenAI lỗi → 502 câu tiếng Việt");
+
+  // 4b) ADR-0082 L1: Embeddings lỗi ⇒ vẫn trả lời (lùi về từ khoá), mẫu trả lời vẫn được gọi
+  cheDoNhung = "loi";
+  m = nhan.length;
+  const e4 = nhung.length;
+  r = await hoi(SALES, "đổi PIN thế nào");
+  cheDoNhung = "ok";
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.equal(nhan.length, m + 1);
+  assert.equal(nhung.length, e4 + 1, "máy giả embeddings thật sự nhận lời gọi trong ca này (và trả 500)");
+  assert.ok(Array.isArray(r.body.nguon), JSON.stringify(r.body));
+  const dong4 = (await sqlRows("SELECT * FROM tl_luot_hoi ORDER BY created_at DESC, rowid DESC LIMIT 1"))[0];
+  assert.equal(dong4.ket_qua, "ok");
+  assert.deepEqual([dong4.token_vao, dong4.token_ra], [4200, 600]);
+  assert.equal(dong4.chi_phi_micro_usd, 450, "lượt lỗi embeddings chỉ tính tiền mẫu");
+  console.log("✓ Embeddings lỗi → vẫn trả lời (lùi về từ khoá)");
 
   // 5) Toàn quyền đổi cài đặt; Quản trị, Bán hàng bị từ chối
   r = await call(OWNER, "GET", "/api/tro-ly/cai-dat");
@@ -134,7 +208,7 @@ try {
   console.log("✓ trần tháng → 429, không gọi OpenAI");
 
   // 8) trần ngày: đặt trần = số câu salesA đã hỏi hôm nay ⇒ câu kế → 429; người khác vẫn hỏi được
-  const daHoi = (await sqlRows(`SELECT count(*) AS n FROM tl_luot_hoi t JOIN staff s ON s.id = t.staff_id WHERE s.phone = '${ACCOUNTS.salesA.phone}' AND t.ket_qua <> 'het_tran'`))[0].n;
+  const daHoi = (await sqlRows(`SELECT count(*) AS n FROM tl_luot_hoi t JOIN staff s ON s.id = t.staff_id WHERE s.phone = '${ACCOUNTS.salesA.phone}' AND t.ket_qua <> 'het_tran' AND t.la_thu = 0`))[0].n;
   assert.equal((await caiDat(OWNER, { ...MAC_DINH, tranNgay: daHoi })).status, 200);
   n = nhan.length;
   r = await hoi(SALES, "đổi PIN");
@@ -232,9 +306,96 @@ try {
   const tat = chu.join("\n");
   for (let i = 0; i + 5 <= TRO_LY_KHOA.length; i++) assert.ok(!tat.includes(TRO_LY_KHOA.slice(i, i + 5)), `lộ "${TRO_LY_KHOA.slice(i, i + 5)}"`);
   console.log("✓ key chỉ lộ 4 ký tự cuối; Thử key: sai key (401), hết tiền (429), được");
+  // ---- ADR-0073: bộ não, nhớ, ô thử, ẩn tiền, trần trước khi gọi ----
+
+  // 15) B1: GET bộ não — danh sách 3 mẫu có giá; B2: PUT sai ⇒ 400; B3: PUT đúng ⇒ câu hỏi kế tiếp gửi đúng mẫu / mức / độ dài / token / lời nhắc
+  r = await call(OWNER, "GET", "/api/tro-ly/bo-nao");
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.deepEqual(r.body.danhSachMau.map((m) => m.ma), ["gpt-5-nano", "gpt-5-mini", "gpt-5"]);
+  const MINI = { mau: "gpt-5-mini", mucSuyNghi: "low", doDai: "medium", tokenRaToiDa: 1500, loiNhac: "Lời nhắc e2e.\nTrả lời ngắn." };
+  r = await call(OWNER, "PUT", "/api/tro-ly/bo-nao", { ...MINI, mau: "gpt-4o" });
+  assert.equal(r.status, 400, JSON.stringify(r.body));
+  r = await call(OWNER, "PUT", "/api/tro-ly/bo-nao", MINI);
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  r = await hoi(SALES, "đổi mã PIN thế nào");
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  const b15 = nhan.at(-1).body;
+  assert.deepEqual([b15.model, b15.reasoning, b15.text, b15.max_output_tokens], ["gpt-5-mini", { effort: "low" }, { verbosity: "medium" }, 1500]);
+  assert.ok(String(b15.instructions).startsWith(MINI.loiNhac));
+  assert.equal((await sqlRows(`SELECT t.mau FROM tl_luot_hoi t JOIN staff s ON s.id = t.staff_id WHERE s.phone = '${ACCOUNTS.salesA.phone}' AND t.la_thu = 0 ORDER BY t.created_at DESC, t.rowid DESC LIMIT 1`))[0].mau, "gpt-5-mini");
+  console.log("✓ bộ não: danh sách mẫu, PUT sai 400, PUT đúng ⇒ câu hỏi dùng đúng cấu hình");
+
+  // 16) N1–N4: nhớ 3 lượt cùng người cùng mã; người khác cùng mã không nhận; mã sai ⇒ 400
+  const CUOC = crypto.randomUUID();
+  assert.equal((await call(SALES, "POST", "/api/tro-ly/hoi", { cauHoi: "đổi mã PIN thế nào E2E-NHO", cuocTroChuyen: CUOC })).status, 200);
+  assert.equal((await call(SALES, "POST", "/api/tro-ly/hoi", { cauHoi: "còn trên điện thoại thì sao", cuocTroChuyen: CUOC })).status, 200);
+  const inp = nhan.at(-1).body.input;
+  assert.ok(Array.isArray(inp) && inp.length === 3, JSON.stringify(inp));
+  assert.deepEqual(inp.map((x) => x.role), ["user", "assistant", "user"], JSON.stringify(inp));
+  assert.ok(inp[0].content.includes("E2E-NHO"), "mục 1 = câu hỏi đầu");
+  assert.ok(inp[1].content.includes("Bấm Đổi PIN"), "mục 2 = câu trả lời đầu");
+  assert.ok(inp[2].content.includes("còn trên điện thoại thì sao"), "mục 3 = câu hỏi thứ hai");
+  assert.equal((await call(ADMIN, "POST", "/api/tro-ly/hoi", { cauHoi: "còn cách khác không", cuocTroChuyen: CUOC })).status, 200);
+  assert.equal(nhan.at(-1).body.input, "còn cách khác không", "người khác cùng mã KHÔNG nhận lượt của người trước");
+  assert.equal((await call(SALES, "POST", "/api/tro-ly/hoi", { cauHoi: "x", cuocTroChuyen: "khong-phai-ma" })).status, 400);
+  console.log("✓ nhớ 3 lượt: cùng người cùng mã có nhớ; người khác không; mã sai 400");
+
+  // 17) T1–T5: ô thử — cấu hình chưa lưu, vai giả định; la_thu = 1; không ghi lịch sử; không đổi cấu hình đang dùng
+  const soHoiDap = (await sqlRows("SELECT count(*) AS n FROM tl_hoi_dap"))[0].n;
+  const soBan = (await sqlRows("SELECT count(*) AS n FROM tl_bo_nao"))[0].n;
+  r = await call(OWNER, "POST", "/api/tro-ly/thu", { boNao: { ...MINI, mau: "gpt-5", loiNhac: "Lời nhắc đang soạn e2e." }, cauHoi: "đổi mã PIN thế nào", vai: "ACCOUNTING" });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.equal(r.body.mau, "gpt-5");
+  assert.ok(r.body.chiPhiMicroUsd > 0);
+  assert.equal(nhan.at(-1).body.model, "gpt-5");
+  assert.match(String(nhan.at(-1).body.instructions), /Người hỏi thuộc nhóm vai: Kế toán\./);
+  assert.equal((await sqlRows(`SELECT t.la_thu FROM tl_luot_hoi t JOIN staff s ON s.id = t.staff_id WHERE s.phone = '${ACCOUNTS.superAdmin.phone}' AND t.mau = 'gpt-5' ORDER BY t.created_at DESC, t.rowid DESC LIMIT 1`))[0].la_thu, 1);
+  assert.ok(String(nhan.at(-1).body.instructions).startsWith("Lời nhắc đang soạn e2e."), "ô thử dùng lời nhắc chưa lưu");
+  assert.equal((await sqlRows("SELECT count(*) AS n FROM tl_hoi_dap"))[0].n, soHoiDap, "thử không ghi lịch sử");
+  assert.equal((await sqlRows("SELECT count(*) AS n FROM tl_bo_nao"))[0].n, soBan, "thử không đổi cấu hình");
+  console.log("✓ ô thử: cấu hình chưa lưu, la_thu = 1, không lịch sử, không đổi cấu hình");
+
+  // 18) P1: câu trả lời có số tiền ⇒ ẩn trước khi trả VÀ trong CSDL
+  cheDo = "tien";
+  r = await hoi(SALES, "đổi mã PIN thế nào E2E-TIEN");
+  cheDo = "ok";
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.equal(r.body.traLoi, "Giá tour [đã ẩn số tiền], phụ thu [đã ẩn số tiền]. Mã đơn TD-2026.");
+  const luuTien = await sqlRows("SELECT tra_loi FROM tl_hoi_dap WHERE cau_hoi LIKE '%E2E-TIEN%'");
+  assert.ok(luuTien.length === 1 && !/500\.000|300k/.test(luuTien[0].tra_loi), JSON.stringify(luuTien));
+  console.log("✓ số tiền bị ẩn ở câu trả lời và lịch sử");
+
+  // 19) P2: mẫu đắt + trần thấp ⇒ 429 TRƯỚC khi gọi mẫu
+  assert.equal((await call(OWNER, "PUT", "/api/tro-ly/bo-nao", { ...MINI, mau: "gpt-5", mucSuyNghi: "high", tokenRaToiDa: 4000 })).status, 200);
+  const daDungThang = (await call(OWNER, "GET", "/api/tro-ly/cai-dat")).body.chiPhiThangUsd;
+  assert.equal((await caiDat(OWNER, { ...MAC_DINH, tranThangUsd: Math.round((daDungThang + 0.01) * 1e6) / 1e6 })).status, 200);
+  n = nhan.length;
+  r = await hoi(SALES, "đổi mã PIN thế nào");
+  assert.equal(r.status, 429, JSON.stringify(r.body));
+  assert.equal(r.body.error.code, "tro_ly_het_tran_thang");
+  assert.equal(nhan.length, n, "không gọi mẫu");
+  // đối chứng: cùng trần thấp, mẫu rẻ + token nhỏ ⇒ qua (429 ở trên đến từ chi phí tối đa của mẫu đắt)
+  assert.equal((await call(OWNER, "PUT", "/api/tro-ly/bo-nao", { ...MINI, mau: "gpt-5-nano", mucSuyNghi: "minimal", tokenRaToiDa: 1200 })).status, 200);
+  n = nhan.length;
+  r = await hoi(SALES, "đổi mã PIN thế nào");
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.equal(nhan.length, n + 1, "mẫu rẻ được gọi");
+  assert.equal((await caiDat(OWNER, MAC_DINH)).status, 200);
+  console.log("✓ trần tháng kiểm bằng chi phí tối đa trước khi gọi mẫu");
+
+  // 20) B6: lịch sử bản có phần đổi; chỉ Toàn quyền
+  r = await call(OWNER, "GET", "/api/tro-ly/bo-nao/lich-su");
+  assert.equal(r.status, 200);
+  assert.ok(r.body.cacBan.length >= 2 && typeof r.body.cacBan[0].phanDoi === "string", JSON.stringify(r.body).slice(0, 200));
+  console.log("✓ lịch sử bản bộ não");
 } finally {
-  await caiDat(OWNER, MAC_DINH).catch(() => undefined);
-  await datVai(tatCaVai(true)).catch(() => undefined);
-  await call(OWNER, "POST", "/api/tro-ly/loi-dan", loiDanDau).catch(() => undefined);
+  // Khôi phục D1 dùng chung: bước nào không trả 200 thì báo to và làm kịch bản đỏ (không để cấu hình đắt / trần thấp nằm lại).
+  const loiKhoiPhuc = [];
+  const khoiPhuc = async (ten, p) => { const x = await p.catch((e) => ({ status: String(e) })); if (x.status !== 200) loiKhoiPhuc.push(`${ten}: ${x.status}`); };
+  await khoiPhuc("cài đặt", caiDat(OWNER, MAC_DINH));
+  await khoiPhuc("vai", datVai(tatCaVai(true)));
+  await khoiPhuc("lời dặn", call(OWNER, "POST", "/api/tro-ly/loi-dan", loiDanDau));
+  if (boNaoDau) await khoiPhuc("bộ não", call(OWNER, "PUT", "/api/tro-ly/bo-nao", boNaoDau));
+  if (loiKhoiPhuc.length) { console.error(`KHÔI PHỤC THẤT BẠI — D1 có thể còn cấu hình thử: ${loiKhoiPhuc.join("; ")}`); process.exitCode = 1; }
   may.close();
 }

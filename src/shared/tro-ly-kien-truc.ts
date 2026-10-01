@@ -38,7 +38,7 @@ Tiền của đơn (thành tiền, tổng, còn lại) do máy chủ tự tính 
   },
   {
     tieuDe: "Giấy tờ của người và của xe",
-    noiDung: `Giấy tờ (căn cước, giấy phép lái xe, khám sức khoẻ, đăng ký xe, kiểm định, bảo hiểm…) được ghi trong hồ sơ người ở Danh bạ hoặc ở chi tiết xe. Số giấy tờ luôn bị che; chỉ Quản trị hoặc Toàn quyền bấm Xem đủ số, số hiện trong chốc lát rồi tự che, và mỗi lần xem đều được ghi lại. Gia hạn là thêm một dòng mới, bản cũ giữ làm lịch sử; ghi sai thì dùng Sửa sai kèm lý do. Mỗi người xem giấy tờ của chính mình ở trang Tôi, mục Giấy tờ của tôi. Danh sách Sắp hết hạn gom giấy tờ sắp hết hoặc đã hết.`,
+    noiDung: `Giấy tờ (căn cước, giấy phép lái xe, khám sức khoẻ, đăng ký xe, kiểm định, bảo hiểm…) được ghi trong hồ sơ người ở Danh bạ hoặc ở chi tiết xe. Số giấy tờ luôn bị che; chỉ người phụ trách hệ thống bấm Xem đủ số, số hiện trong chốc lát rồi tự che, và mỗi lần xem đều được ghi lại. Quản trị chỉ thấy số đã che, vẫn ghi và sửa giấy tờ. Gia hạn là thêm một dòng mới, bản cũ giữ làm lịch sử; ghi sai thì dùng Sửa sai kèm lý do. Mỗi người xem giấy tờ của chính mình ở trang Tôi, mục Giấy tờ của tôi. Danh sách Sắp hết hạn gom giấy tờ sắp hết hoặc đã hết.`,
   },
   {
     tieuDe: "Dữ liệu không bị xoá, chỉ ngưng hoặc đóng",
@@ -46,7 +46,7 @@ Tiền của đơn (thành tiền, tổng, còn lại) do máy chủ tự tính 
   },
   {
     tieuDe: "Trợ lý Hỗ trợ trả lời được gì",
-    noiDung: `Trợ lý Hỗ trợ chỉ hướng dẫn cách dùng app, dựa trên bộ hướng dẫn trong Trợ giúp, sơ đồ các phần của app và danh sách trang, mục, nút của app (tự cập nhật mỗi lần app được cập nhật). Trợ lý không xem được đơn, khách, tiền hay dữ liệu thật của công ty, không làm thay thao tác nào, và có thể trả lời sai: luôn đối chiếu với màn hình. Câu nào chưa có trong hướng dẫn thì hỏi Quản trị hoặc gửi Góp ý.
-Câu hỏi (đã che số điện thoại, email, số giấy tờ) và câu trả lời được lưu để cải thiện trợ lý; chỉ người phụ trách hệ thống đọc được, không ai xoá được. Người phụ trách hệ thống bật hoặc tắt trợ lý theo từng vai, đặt câu chào, câu hỏi mẫu và thêm đoạn ngữ cảnh ở trang Trợ lý Hỗ trợ; vai đang tắt thì không thấy nút Hỗ trợ.`,
+    noiDung: `Trợ lý Hỗ trợ chỉ hướng dẫn cách dùng app, dựa trên bộ hướng dẫn trong Trợ giúp, sơ đồ các phần của app và danh sách trang, mục, nút của app (tự cập nhật mỗi lần app được cập nhật). Trợ lý không xem được đơn, khách, tiền hay dữ liệu thật của công ty, không làm thay thao tác nào, và có thể trả lời sai: luôn đối chiếu với màn hình. Việc hướng dẫn chưa nói thì trợ lý nói thật và gợi hỏi Quản trị hoặc gửi Góp ý. Trợ lý nhớ tối đa ba câu vừa hỏi của chính người hỏi trong cùng cuộc trò chuyện, và không bao giờ nêu số tiền.
+Câu hỏi (đã che số điện thoại, email, số giấy tờ) và câu trả lời được lưu để cải thiện trợ lý; chỉ người phụ trách hệ thống đọc được, không ai xoá được. Người phụ trách hệ thống bật hoặc tắt trợ lý theo từng vai, đặt câu chào, câu hỏi mẫu, chọn mẫu AI, sửa lời nhắc và thêm đoạn ngữ cảnh ở trang Trợ lý Hỗ trợ; vai đang tắt thì không thấy nút Hỗ trợ.`,
   },
 ];

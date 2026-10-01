@@ -6,7 +6,7 @@ import { test, afterEach } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { world, seedStaff } from "../../../tests/audit/harness.mjs";
-import { CAU_CHUA_CO, CAU_HET_TRAN_THANG, MAU_AI } from "../../shared/tro-ly.ts";
+import { CAU_HET_TRAN_THANG } from "../../shared/tro-ly.ts";
 import { PERMISSION_CODES } from "../../shared/permissions.ts";
 import { vnToday } from "../../shared/vn-date.ts";
 
@@ -19,19 +19,24 @@ interface GoiGia { url: string; headers: Record<string, string>; body: Record<st
 const fetchThat = globalThis.fetch;
 afterEach(() => { globalThis.fetch = fetchThat; });
 
-/** OpenAI giả: ghi lại mọi yêu cầu; trả câu trả lời có dòng Nguồn lấy tên đoạn đầu tiên trong lời nhắc. */
+/** OpenAI giả: ghi lại mọi yêu cầu; trả câu trả lời có dòng Nguồn lấy tên đoạn đầu tiên của khối tài liệu (không có đoạn nào ⇒ không dòng Nguồn). */
 function openAiGia(tuyChon: { status?: number; usage?: Record<string, unknown> | null; chu?: string; nem?: boolean } = {}): GoiGia[] {
   const goi: GoiGia[] = [];
   globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input instanceof Request ? input.url : input);
+    // ADR-0082: cửa /v1/embeddings của máy giả TẮT (503) ⇒ máy chủ lùi về chọn đoạn theo từ khoá = đúng luật cũ mà các bài trong tệp này canh;
+    // `goi` chỉ ghi /v1/responses. Đường tìm theo nghĩa được canh ở van-nghia-route.test.ts.
+    if (url.endsWith("/v1/embeddings")) return new Response(JSON.stringify({ error: { message: "tắt" } }), { status: 503 });
     const body = JSON.parse(String(init?.body ?? "{}")) as Record<string, unknown>;
     goi.push({ url, headers: Object.fromEntries(new Headers(init?.headers).entries()), body });
     if (tuyChon.nem) throw new TypeError("mạng hỏng");
-    const ten = /\[([^\]]+)\]/.exec(String(body.instructions ?? ""))?.[1] ?? "";
+    // Tên đoạn ĐẦU TIÊN của khối "TÀI LIỆU:" CUỐI (máy chủ luôn nối khối này sau lời nhắc — ADR-0073 B4); lời nhắc có "[tên mục]" ở luật Nguồn không tính.
+    const ins = String(body.instructions ?? "");
+    const ten = /\[([^\]]+)\]/.exec(ins.slice(ins.lastIndexOf("TÀI LIỆU:")))?.[1] ?? "";
     const usage = tuyChon.usage === undefined ? { input_tokens: 4000, input_tokens_details: { cached_tokens: 0 }, output_tokens: 500 } : tuyChon.usage;
     const payload = {
       status: "completed",
-      output: [{ type: "message", content: [{ type: "output_text", text: tuyChon.chu ?? `1. Vào trang Tôi.\n2. Bấm Đổi PIN.\nNguồn: [${ten}]` }] }],
+      output: [{ type: "message", content: [{ type: "output_text", text: tuyChon.chu ?? `1. Vào trang Tôi.\n2. Bấm Đổi PIN.${ten ? `\nNguồn: [${ten}]` : ""}` }] }],
       ...(usage ? { usage } : {}),
     };
     return new Response(JSON.stringify(payload), { status: tuyChon.status ?? 200, headers: { "content-type": "application/json" } });
@@ -87,18 +92,20 @@ test("hỏi thường → 200 { traLoi, nguon }; gửi đúng Responses API (m�
   const r = await hoi(w, SALES, `đổi mã PIN thế nào ${DAU}`);
   assert.equal(r.status, 200, r.text);
   assert.equal(r.json.traLoi, "1. Vào trang Tôi.\n2. Bấm Đổi PIN.");
-  assert.equal(r.json.nguon.length, 1);
   assert.equal(goi.length, 1);
+  const ins = String(goi[0]!.body.instructions);
+  const dau = /\[([^\]]+)\]/.exec(ins.slice(ins.lastIndexOf("TÀI LIỆU:")))![1]!;
+  assert.deepEqual(r.json.nguon, [dau], "nguồn = đúng đoạn mẫu ghi ở dòng Nguồn");
   assert.equal(goi[0]!.url, "https://api.openai.com/v1/responses");
   assert.equal(goi[0]!.headers.authorization, "Bearer khoa-gia");
-  assert.equal(goi[0]!.body.model, MAU_AI);
+  assert.equal(goi[0]!.body.model, "gpt-5-nano");
   const than = JSON.stringify(goi[0]!.body);
   for (const lo of [SALES, "0900000001", '"An"', "pty-"]) assert.ok(!than.includes(lo), `thân gửi OpenAI lộ ${lo}`);
   const rows = luot(w);
   assert.equal(rows.length, 1);
   assert.deepEqual(
     { ...rows[0], id: "-", created_at: "-", updated_at: "-" },
-    { id: "-", staff_id: SALES, ngay_vn: vnToday(new Date()), token_vao: 5000, token_vao_dem: 1000, token_ra: 700, chi_phi_micro_usd: 485, ket_qua: "ok", created_at: "-", created_by: SALES, updated_at: "-", updated_by: SALES },
+    { id: "-", staff_id: SALES, ngay_vn: vnToday(new Date()), token_vao: 5000, token_vao_dem: 1000, token_ra: 700, chi_phi_micro_usd: 485, ket_qua: "ok", mau: "gpt-5-nano", la_thu: 0, created_at: "-", created_by: SALES, updated_at: "-", updated_by: SALES },
   );
   assert.ok(!JSON.stringify(w.q("SELECT * FROM tl_luot_hoi")).includes(DAU));
 });
@@ -159,14 +166,43 @@ test("OpenAI lỗi / mạng hỏng → 502 câu tiếng Việt (không lộ ch�
   assert.deepEqual(luot(w).map((x) => [x.ket_qua, x.chi_phi_micro_usd]), [["loi", 0], ["loi", 630]]);
 });
 
-test("không đoạn tài liệu nào khớp → trả câu 'chưa có' ngay, KHÔNG gọi OpenAI, dòng ok chi phí 0", async () => {
+test("M1: không đoạn tài liệu nào khớp → VẪN gọi mẫu, khối tài liệu ghi '(không tìm thấy …)'; không trả thẳng câu 'chưa có'; không nguồn", async () => {
   const w = setup();
-  const goi = openAiGia();
+  const goi = openAiGia({ chu: "Bạn muốn hỏi về việc gì trong app?" });
   const r = await hoi(w, SALES, "zzqx wqpv");
-  assert.equal(r.status, 200);
-  assert.deepEqual(r.json, { traLoi: CAU_CHUA_CO, nguon: [] });
-  assert.equal(goi.length, 0);
-  assert.deepEqual(luot(w).map((x) => [x.ket_qua, x.chi_phi_micro_usd]), [["ok", 0]]);
+  assert.equal(r.status, 200, r.text);
+  assert.deepEqual(r.json, { traLoi: "Bạn muốn hỏi về việc gì trong app?", nguon: [] });
+  assert.equal(goi.length, 1);
+  assert.ok(String(goi[0]!.body.instructions).endsWith("TÀI LIỆU:\n(không tìm thấy đoạn hướng dẫn liên quan)"));
+  assert.equal(String(goi[0]!.body.instructions).split("TÀI LIỆU:").length, 2);
+  assert.deepEqual(luot(w).map((x) => [x.ket_qua, x.chi_phi_micro_usd]), [["ok", 400]]);
+});
+
+test("S1–S3: mẫu không ghi 'Nguồn:' ⇒ không nguồn; ghi tên không được gửi ⇒ bỏ; câu lỗi (502) không có nguồn", async () => {
+  const w = setup();
+  openAiGia({ chu: "1. Vào trang Tôi." });
+  assert.deepEqual((await hoi(w, SALES, "đổi mã PIN thế nào")).json, { traLoi: "1. Vào trang Tôi.", nguon: [] });
+  openAiGia({ chu: "1. Vào trang Tôi.\nNguồn: [Mục bịa ra]" });
+  assert.deepEqual((await hoi(w, SALES, "đổi mã PIN thế nào")).json, { traLoi: "1. Vào trang Tôi.", nguon: [] });
+  openAiGia({ status: 500 });
+  const r = await hoi(w, SALES, "đổi mã PIN thế nào");
+  assert.equal(r.status, 502);
+  assert.equal(r.json.nguon, undefined);
+  assert.deepEqual(Object.keys(r.json), ["error"]);
+  const loi = w.q("SELECT nguon FROM tl_hoi_dap WHERE ket_qua = 'loi'");
+  assert.equal(loi.length, 1);
+  assert.deepEqual(JSON.parse(String(loi[0]!.nguon)), []);
+  assert.deepEqual(w.q("SELECT nguon FROM tl_hoi_dap WHERE ket_qua = 'ok'").map((x) => JSON.parse(String(x.nguon))), [[], []]);
+});
+
+test("HÀNG RÀO lọc số tiền (P1, Hiến chương 5.15): câu trả lời có số tiền ⇒ ẩn TRƯỚC khi trả VÀ trước khi lưu tl_hoi_dap; mã đơn, giờ giữ nguyên", async () => {
+  const w = setup();
+  openAiGia({ chu: "Giá tour 500.000 đ, phụ thu 300k. Mã đơn TD-2026 đón 08:30." });
+  const r = await hoi(w, SALES, "đổi mã PIN thế nào");
+  assert.equal(r.status, 200, r.text);
+  assert.equal(r.json.traLoi, "Giá tour [đã ẩn số tiền], phụ thu [đã ẩn số tiền]. Mã đơn TD-2026 đón 08:30.");
+  assert.equal(w.q("SELECT tra_loi FROM tl_hoi_dap")[0]!.tra_loi, r.json.traLoi);
+  assert.ok(!/500\.000|300k/.test(JSON.stringify(w.q("SELECT * FROM tl_hoi_dap"))));
 });
 
 // HÀNG RÀO cỡ câu hỏi (kiểm độc lập I-1, 30/9): biểu thức che email từng chạy bậc hai với chuỗi dài không có "@" (100k ký tự ≈ 4,4 s) — máy chủ phải từ chối
@@ -207,7 +243,8 @@ test("HÀNG RÀO trần ngày: đủ 30 câu hôm nay → 429, dòng het_tran; d
   assert.equal(r.json.error.code, "tro_ly_het_tran_ngay");
   assert.match(r.json.error.message, /30 câu/);
   assert.equal(goi.length, 1);
-  assert.equal(luot(w).filter((x) => x.created_at !== "x").at(-1)!.ket_qua, "het_tran");
+  const cuoi = luot(w).filter((x) => x.created_at !== "x").at(-1)!;
+  assert.deepEqual([cuoi.ket_qua, cuoi.mau, cuoi.chi_phi_micro_usd], ["het_tran", null, 0], "het_tran: không gọi mẫu ⇒ mau null");
   assert.equal((await hoi(w, ADM, "đổi PIN")).status, 200, "trần ngày là của TỪNG người");
 });
 
@@ -246,7 +283,7 @@ test("cài đặt: Toàn quyền xem + lưu bản mới (chỉ thêm), Quản tr
   assert.equal(r.status, 200, r.text);
   assert.deepEqual(
     { ...r.json, vai: undefined, theoVai: undefined },
-    { bat: true, tranThangUsd: 5, tranNgay: 30, coKhoa: true, khoaCuoi: null, thang: ngay.slice(0, 7), chiPhiThangUsd: 1.234567, soCauThang: 1, soCauHomNay: 1, vai: undefined, theoVai: undefined },
+    { bat: true, tranThangUsd: 5, tranNgay: 30, coKhoa: true, khoaCuoi: null, thang: ngay.slice(0, 7), chiPhiThangUsd: 1.234567, soCauThang: 1, soCauHomNay: 1, soLuotThuThang: 0, vai: undefined, theoVai: undefined },
   );
   assert.deepEqual(Object.values(r.json.vai), PERMISSION_CODES.map(() => true), "gieo 0054: bật cả 9 vai");
   for (const as of [ADM, SALES]) {

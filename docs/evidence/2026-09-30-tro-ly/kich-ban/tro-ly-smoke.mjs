@@ -30,12 +30,16 @@ const may = createServer((req, res) => {
   req.on("data", (d) => (raw += d));
   req.on("end", () => {
     const body = JSON.parse(raw || "{}");
+    // ADR-0082: cửa dấu vân nghĩa TẮT (503) ⇒ máy chủ lùi về từ khoá; `nhan` chỉ ghi /v1/responses như trước (bảng điều khiển canh đường mới).
+    if (req.url === "/v1/embeddings") { res.writeHead(503, { "content-type": "application/json" }); return res.end("{}"); }
     nhan.push(body);
-    const ten = /\[([^\]]+)\]/.exec(String(body.instructions ?? ""))?.[1] ?? "";
+    // Tên đoạn ĐẦU TIÊN của khối "TÀI LIỆU:" CUỐI (máy chủ luôn nối khối này sau lời nhắc — ADR-0073 B4); lời nhắc có "[tên mục]" ở luật Nguồn không tính.
+    const ins = String(body.instructions ?? "");
+    const ten = /\[([^\]]+)\]/.exec(ins.slice(ins.lastIndexOf("TÀI LIỆU:")))?.[1] ?? "";
     res.writeHead(200, { "content-type": "application/json" });
     res.end(JSON.stringify({
       status: "completed",
-      output: [{ type: "message", content: [{ type: "output_text", text: `1. Vào trang Tôi.\n2. Ở mục Đổi mã PIN, gõ PIN hiện tại và PIN mới.\n3. Bấm Đổi PIN.\nNguồn: [${ten}]` }] }],
+      output: [{ type: "message", content: [{ type: "output_text", text: `1. Vào trang Tôi.\n2. Ở mục Đổi mã PIN, gõ PIN hiện tại và PIN mới.\n3. Bấm Đổi PIN.${ten ? `\nNguồn: [${ten}]` : ""}` }] }],
       usage: { input_tokens: 4000, input_tokens_details: { cached_tokens: 0 }, output_tokens: 500 },
     }));
   });

@@ -101,3 +101,16 @@ export function docViTri(raw: string | null): ViTri | null {
 export function ghiViTri(v: ViTri): string {
   return JSON.stringify({ phai: v.phai, day: v.day, w: v.w, h: v.h });
 }
+
+/**
+ * Mã cuộc trò chuyện (ADR-0073 N1): UUID v4 dựng từ ĐÚNG 16 byte ngẫu nhiên do nơi gọi đưa (crypto.getRandomValues) — dùng được cả trang mở bằng http://<IP LAN>
+ * khi thử iPhone (crypto.randomUUID chỉ có trong ngữ cảnh an toàn — R5). Máy chủ kiểm bằng UUID_RE (src/shared/http.ts). Không sửa mảng đầu vào.
+ */
+export function taoMaCuoc(b: Uint8Array): string {
+  if (b.length !== 16) throw new Error("Cần đúng 16 byte ngẫu nhiên.");
+  const x = Uint8Array.from(b);
+  x[6] = (x[6]! & 0x0f) | 0x40;
+  x[8] = (x[8]! & 0x3f) | 0x80;
+  const hex = [...x].map((v) => v.toString(16).padStart(2, "0")).join("");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}

@@ -1,8 +1,9 @@
 // Luật thuần vị trí / cỡ khung "Hỗ trợ" (kế hoạch docs/superpowers/plans/2026-10-01-khung-tro-ly-keo-doi-co.md, tiêu chí 7).
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { UUID_RE } from "./http.ts";
 import {
-  CO_NHO, LE, docViTri, doiCo, ghiViTri, hopTuViTri, kep, keo, macDinh, viTriTuHop, type Hop, type KhungNhin, type VungAnToan,
+  CO_NHO, LE, docViTri, doiCo, ghiViTri, hopTuViTri, kep, keo, macDinh, taoMaCuoc, viTriTuHop, type Hop, type KhungNhin, type VungAnToan,
 } from "./tro-ly-khung.ts";
 
 const AT0: VungAnToan = { tren: 0, phai: 0, duoi: 0, trai: 0 };
@@ -122,4 +123,15 @@ test("lưu rồi đọc lại được đúng; giá trị hỏng ⇒ null (dùng
     '{"phai":1,"day":1,"w":1e9,"h":300}', '{"phai":NaN}', '{"phai":-9999,"day":1,"w":300,"h":300}']) {
     assert.equal(docViTri(hong), null, String(hong));
   }
+});
+
+test("Review Focus 5 — taoMaCuoc: 16 byte ⇒ UUID v4 hợp lệ với máy chủ (UUID_RE); cùng byte ⇒ cùng mã; khác byte ⇒ khác mã; sai số byte ⇒ ném lỗi", () => {
+  const a = new Uint8Array(16).map((_, i) => i * 17);
+  const ma = taoMaCuoc(a);
+  assert.match(ma, /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+  assert.ok(UUID_RE.test(ma));
+  assert.equal(taoMaCuoc(a), ma);
+  assert.notEqual(taoMaCuoc(new Uint8Array(16).fill(255)), ma);
+  assert.throws(() => taoMaCuoc(new Uint8Array(15)));
+  assert.deepEqual([...a], [...new Uint8Array(16).map((_, i) => i * 17)], "không sửa mảng đầu vào");
 });

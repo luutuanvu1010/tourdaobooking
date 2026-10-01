@@ -1,4 +1,4 @@
-// SQL của các bảng module auth sở hữu: `login_attempt` (bảng cũ, giữ tên — ADR-0002 điều 2), `aut_passkey` (ADR-0016, migration 0023) và `aut_session` (sổ phiên, ADR-0075, migration 0061).
+// SQL của các bảng module auth sở hữu: `login_attempt` (bảng cũ, giữ tên — ADR-0002 điều 2), `aut_passkey` (ADR-0016, migration 0023) và `aut_session` (sổ phiên, ADR-0075, migration 0065).
 // Mọi câu đi qua defineSql (ADR-0002 điều 8(b)), import bằng đuôi .ts để bài kiểm kiến trúc nạp được tệp này. SQL TĨNH, liệt kê cột tường minh.
 import { defineSql } from "../../shared/sql-registry.ts";
 
@@ -92,7 +92,7 @@ export async function lockedPhoneKeys(db: D1Database, since: number, limit: numb
   return results.map((r) => r.key);
 }
 
-// ---- Sổ phiên đăng nhập `aut_session` (ADR-0075, migration 0061) ----------------------------------------------------------------------
+// ---- Sổ phiên đăng nhập `aut_session` (ADR-0075, migration 0065) ----------------------------------------------------------------------
 // Không xoá dòng: kết thúc = đặt ended_at + end_reason (+ ended_by khi do người gỡ). Mọi câu ghi đặt cả cột kiểm toán updated_at/updated_by.
 export interface SessionRow {
   id: string; staff_id: string; method: string; single: number; trusted_device_id: string | null; device_label: string;

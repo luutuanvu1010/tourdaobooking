@@ -82,6 +82,15 @@ try {
   assert.deepEqual(p.consoleErrors, [], `lỗi console: ${p.consoleErrors}`);
   ok("đổi vai: xem trước 'Sẽ mất', LC-1/LC-3 ở giao diện, lưu xong danh sách hiện vai mới");
 
+  // ---- B1e (ADR-0083 điều 1e, chủ dự án 2026-10-01 "chặn luôn"): vai NỘI BỘ + cộng tay quyền bên ngoài = tài khoản lai → ô cộng tay "Đối tác" bị tắt;
+  // cộng tay quyền nội bộ khác (Kế toán) vẫn bật. Gương của roleAssignmentProblem (máy chủ trả 400) — cùng hàm thuần laiNoiBoBenNgoaiProblem.
+  await p.ev(`(${box("#add-perms", "role", "SALES_STAFF")}).click(), true`);
+  assert.equal(await p.ev(`${box("#add-perms", "add", "PARTNER")}.disabled`), true, "1e: vai Nhân viên kinh doanh không cộng tay được Đối tác (tài khoản lai)");
+  assert.equal(await p.ev(`${box("#add-perms", "add", "ACCOUNTING")}.disabled`), false, "1e: vai nội bộ vẫn cộng tay được quyền nội bộ khác");
+  await p.ev(`(${box("#add-perms", "role", "SALES_STAFF")}).click(), true`);
+  assert.equal(await p.ev(`${box("#add-perms", "add", "PARTNER")}.disabled`), false, "bỏ vai nội bộ thì ô Đối tác bật lại");
+  ok("1e: vai nội bộ không cộng tay được Đối tác; quyền nội bộ khác vẫn cộng được");
+
   // ---- B2 (ADR-0048 D2, Task B1 — LC-1b ở giao diện): ô "Tài xế đối tác" ở nhóm Bên ngoài; KHOÁ CHÉO với vai bên ngoài khác (một người chọn một);
   // cộng tay quyền khác cho vai đó bị tắt (tài khoản lai); tạo tài khoản "Tài xế taxi" rồi ĐỔI sang "Tài xế đối tác" → lưu được (tiêu chí 5b). Máy chủ vẫn
   // là nơi quyết (Task A2) — đây chỉ là gương ở giao diện, dùng chung hàm thuần vaiTaiXeDoiTacXungDot / taiKhoanLaiProblem của src/shared/roles.ts.
@@ -102,7 +111,7 @@ try {
   await p.ev(setInput("document.querySelector('#add-name')", TX_NAME));
   await p.ev(setInput("document.querySelector('#add-phone')", "0912345681"));
   await guiThem(p);
-  await p.waitFor(`[...document.querySelectorAll('#list tr')].some((tr) => tr.textContent.includes(${JSON.stringify(TX_NAME)}) && tr.textContent.includes('Tài xế taxi'))`, "dòng mới hiện vai Tài xế taxi");
+  await p.waitFor(`[...document.querySelectorAll('#list tr')].some((tr) => tr.textContent.includes(${JSON.stringify(TX_NAME)}) && tr.textContent.includes('Tài xế taxi (giới thiệu khách)'))`, "dòng mới hiện vai Tài xế taxi (giới thiệu khách) — tên ADR-0083 điều 3");
   assert.equal(await p.ev(clickText("#secret", "Đã ghi lại, ẩn đi")), true);
   await p.ev(`[...document.querySelectorAll('#list tr')].find((tr) => tr.textContent.includes(${JSON.stringify(TX_NAME)})).querySelector('button').click(), true`);
   await p.waitFor(`!!${box("#edit", "role", "TAXI_DRIVER")} && ${box("#edit", "role", "TAXI_DRIVER")}.checked`, "hộp sửa mở với vai Tài xế taxi");
@@ -173,7 +182,7 @@ try {
   const addRoleOptions = `[...document.querySelectorAll('#detail h3')].find((h) => h.textContent.trim() === 'Công việc tại đâu').nextElementSibling.nextElementSibling.querySelector('select').querySelectorAll('option')`;
   const options = await p.ev(`[...${addRoleOptions}].map((o) => o.textContent.trim())`);
   assert.ok(options.includes("Khách hàng"), `ô thêm vai trò thiếu mục nhóm khác (vd Khách hàng): ${JSON.stringify(options)}`);
-  const ACCOUNT_ROLE_NAMES = ["Giám đốc", "Điều hành chung", "Hướng dẫn viên nội bộ", "Nhân viên kinh doanh", "Thực tập sinh", "Kế toán", "Tài xế công ty", "Công ty lữ hành", "Hướng dẫn viên độc lập", "Lễ tân khách sạn", "Tài xế taxi", "Cộng tác viên", "Tài xế đối tác"];
+  const ACCOUNT_ROLE_NAMES = ["Giám đốc", "Điều hành chung", "Hướng dẫn viên nội bộ", "Nhân viên kinh doanh", "Thực tập sinh", "Kế toán", "Tài xế công ty", "Công ty lữ hành", "Hướng dẫn viên độc lập", "Lễ tân khách sạn", "Tài xế taxi (giới thiệu khách)", "Cộng tác viên", "Tài xế đối tác"];
   assert.deepEqual(options.filter((o) => ACCOUNT_ROLE_NAMES.includes(o)), [], `R18: ô thêm vai trò không được có mục Nội bộ/Bên ngoài, thấy: ${JSON.stringify(options)}`);
   // T2b (ADR-0024 6.5; chủ 2026-09-28): "Công ty chủ" không phải vai gán thường — chỉ người giữ ô company.legal.write thấy, trên hồ sơ tổ chức (t2b-danh-ba-smoke.mjs).
   assert.ok(!options.includes("Công ty chủ"), `ô thêm vai trò của Quản trị không được có "Công ty chủ", thấy: ${JSON.stringify(options)}`);

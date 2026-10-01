@@ -11,15 +11,56 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
-    // ADR-0075 Phần A (sổ phiên đăng nhập, mỗi tài khoản một máy). Có migration 0061. Cookie phiên đổi định dạng ⇒ mọi người đăng nhập lại một lần.
-    // Số "1.54" = số lớn nhất trên nhánh + 1 lúc thi công (2026-10-01); nhánh khác gộp trước thì đánh lại số.
-    version: "1.54",
+    // ADR-0075 Phần A (sổ phiên đăng nhập, mỗi tài khoản một máy). Có migration 0065. Cookie phiên đổi định dạng ⇒ mọi người đăng nhập lại một lần.
+    // Số "1.58" = main 1.57 + 1 (đánh lại lúc gộp main 1.57, 2026-10-01; thi công ghi 1.54, migration thi công ghi 0061).
+    version: "1.58",
     date: "2026-10-01",
     items: [
       { kind: "doi", text: "Mỗi tài khoản chỉ đăng nhập trên một máy (trừ IT và Toàn quyền). Đăng nhập máy mới thì máy cũ tự đăng xuất, kèm lời báo lúc nào." },
       { kind: "doi", text: "Sau bản này mọi người cần đăng nhập lại một lần." },
       { kind: "moi", text: "Trang Tôi có mục \"Phiên đăng nhập của tôi\": xem mình đã đăng nhập trên máy nào, lúc nào." },
       { kind: "moi", text: "IT và Toàn quyền có trang \"Phiên đăng nhập\": xem ai đang đăng nhập trên máy nào, gỡ phiên, hoặc gỡ phiên kèm đặt lại PIN." },
+    ],
+  },
+  {
+    // ADR-0083 (nợ rà soát vai ↔ quyền): gán quyền kiểu cũ chỉ Toàn quyền + chặn tài khoản lai; xem đủ số giấy tờ chỉ Toàn quyền; đổi tên vai Tài xế taxi.
+    // Có migration 0063. Số "1.57" = main 1.56 + 1 (đánh lại lúc gộp main 1.56 — trợ lý tìm theo nghĩa, 2026-10-01; thi công ghi 1.56).
+    version: "1.57",
+    date: "2026-10-01",
+    items: [
+      { kind: "doi", text: "Quản trị không còn xem đủ số giấy tờ (căn cước, bằng lái): vẫn thấy số đã che, vẫn thêm, gia hạn, sửa sai. Cần số đầy đủ thì nhờ người phụ trách hệ thống." },
+      { kind: "doi", text: "Vai \"Tài xế taxi\" đổi tên thành \"Tài xế taxi (giới thiệu khách)\" cho khỏi nhầm với \"Tài xế đối tác\" (người lái chuyến). Quyền không đổi." },
+      { kind: "doi", text: "Màn Sửa tài khoản: khối \"Quyền cũ\" (tài khoản chưa gán vai) chỉ người phụ trách hệ thống thấy. Quản trị và Hành chính nhân sự đổi quyền bằng cách gán vai." },
+      { kind: "doi", text: "Một tài khoản không còn giữ cùng lúc quyền nội bộ và quyền đối tác, dù gán theo vai hay theo cách cũ: ô cộng tay tạo kiểu lai này bị khoá." },
+    ],
+  },
+  {
+    // ADR-0082 (trợ lý tìm đoạn hướng dẫn theo nghĩa trộn từ khoá). Số "1.56" = main 1.55 + 1 lúc thi công (2026-10-01); nhánh khác gộp trước thì đánh lại số.
+    // Có migration 0062 (số tạm).
+    version: "1.56",
+    date: "2026-10-01",
+    items: [
+      { kind: "doi", text: "Trợ lý Hỗ trợ tìm đúng phần hướng dẫn hơn khi bạn hỏi bằng lời của mình, không cần gõ đúng tên nút hay tên mục." },
+      { kind: "moi", text: "Toàn quyền: ô thử ở trang Trợ lý Hỗ trợ cho xem trợ lý đã dùng những đoạn hướng dẫn nào để trả lời." },
+    ],
+  },
+  {
+    // Chủ dự án 2026-10-01: giữ luật "không tự đổi quyền của chính mình", sửa màn hình báo trước, không lưu nửa chừng. Không migration. Số tạm — nhánh khác gộp trước thì đổi.
+    version: "1.55",
+    date: "2026-10-01",
+    items: [
+      { kind: "sua", text: "Sửa tài khoản của chính mình: nếu vai vừa chọn làm đổi quyền của bạn, app báo ngay và không lưu gì, thay vì lưu tên rồi mới báo lỗi." },
+    ],
+  },
+  {
+    // ADR-0073 (trợ lý bộ não tuỳ biến, ô thử, nhớ 3 lượt, ẩn số tiền). Số "1.54" = main 1.53 + 1 (đánh lại lúc gộp main 1.53, 2026-10-01; thi công ghi 1.53). Có migration 0060.
+    version: "1.54",
+    date: "2026-10-01",
+    items: [
+      { kind: "moi", text: "Trợ lý Hỗ trợ nhớ vài câu vừa hỏi trong cùng cuộc trò chuyện, nên hỏi tiếp \"còn trên điện thoại thì sao\" vẫn hiểu. Bấm \"Cuộc trò chuyện mới\" để bắt đầu lại." },
+      { kind: "doi", text: "Trợ lý trả lời tự nhiên hơn: câu chưa rõ thì hỏi lại; việc hướng dẫn chưa nói thì nói thật, chỉ chỗ gần nhất hoặc mời gửi Góp ý." },
+      { kind: "doi", text: "Trợ lý không nêu số tiền trong câu trả lời — chỗ có số tiền hiện \"[đã ẩn số tiền]\"." },
+      { kind: "moi", text: "Toàn quyền: trang Trợ lý Hỗ trợ có mục Bộ não — chọn mẫu AI kèm giá, sửa lời nhắc, xem lịch sử bản, thử câu hỏi trước khi lưu." },
     ],
   },
   {

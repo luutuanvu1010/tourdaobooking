@@ -1,6 +1,6 @@
 # ADR-0029 — Lệch có chủ ý, tạm thời, khỏi Hiến chương 5.1 và 5.8 cho các luật của ADR-0027
 
-- **Trạng thái:** **accepted** — chủ dự án trả lời "ok" trong phiên chat 2026-09-26 cho khuyến nghị dưới đây. AI ghi lại, không tự quyết (Hiến chương `docs/ARCHITECTURE.md` dòng "Cách dùng", mục (b): muốn lệch khỏi một điều khoản phải có ADR ghi "lệch có chủ ý" + chủ duyệt).
+- **Trạng thái:** **accepted** — chủ dự án trả lời "ok" trong phiên chat 2026-09-26 cho khuyến nghị dưới đây. AI ghi lại, không tự quyết (Hiến chương `docs/ARCHITECTURE.md` dòng "Cách dùng", mục (b): muốn lệch khỏi một điều khoản phải có ADR ghi "lệch có chủ ý" + chủ duyệt). **Điều 2 (lệch 5.8, vế trần giảm giá) bị sửa và gia hạn có điều kiện bởi [ADR-0079](ADR-0079-phieu-da-giao-thuong-mai.md)** (duyệt 2026-10-01, câu C11 = A): giữ ở máy chủ, thêm kiểm định kỳ báo lỗi, xét lại cùng lệch L-C1.
 - **Ngày:** 2026-09-26   **Loại:** cửa **hai chiều** — không đổi mã, không đổi dữ liệu; chỉ ghi lại hiện trạng của bản 1.14 và điều kiện gỡ lệch.
 - **Nguồn:** rà lại yêu cầu đầu phiên vá ba phát hiện kiểm toán (DK-T3-01, DK-T3-02, DK-T4-02). Yêu cầu có dặn đọc Hiến chương 5.1 và 5.8; người thi công **không đọc trước khi làm**, chỉ đối chiếu sau khi bản 1.14 đã lên production (tự nhận, ghi ở `docs/superpowers/plans/2026-09-26-va-3-loi-kiem-toan-nhat-ky.md`).
 

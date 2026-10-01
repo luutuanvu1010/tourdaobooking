@@ -111,7 +111,8 @@ Chỉ bạn và người phụ trách hệ thống đọc được yêu cầu c�
       noiDung: `Nút [[Hỗ trợ]] nằm ở góc dưới bên phải mọi trang. Khung này tự mở một lần sau mỗi lần đăng nhập. Không thấy nút: trợ lý đang tắt với vai của bạn.
 
 1. Bấm [[Hỗ trợ]], gõ câu hỏi về cách dùng app, bấm [[Gửi]]. Có câu hỏi mẫu thì chạm vào để gửi luôn.
-2. Đọc câu trả lời. Dòng **Nguồn** cho biết mục hướng dẫn trợ lý đã dựa vào.
+2. Đọc câu trả lời. Có dòng **Nguồn** thì đó là mục hướng dẫn trợ lý đã dựa vào.
+3. Hỏi tiếp trong cùng khung: trợ lý nhớ vài câu vừa hỏi. Bấm [[Cuộc trò chuyện mới]] để bắt đầu lại.
 
 - Trợ lý chỉ biết hướng dẫn và các trang của app. Nó không xem được đơn, khách hay tiền, và không làm thay bạn.
 - Trả lời do AI, có thể sai: luôn đối chiếu với màn hình.
@@ -130,7 +131,7 @@ Phần đang gõ chưa lưu có thể mất, nên lưu việc trước giờ b�
     },
     {
       tieuDe: "Câu hỏi thường gặp",
-      noiDung: `- **Đăng nhập hai máy được không?** Không, máy mới vào thì máy cũ tự đăng xuất (trừ IT, Toàn quyền).
+      noiDung: `- **Đăng nhập hai máy được không?** Không, xem mục Mỗi tài khoản một máy.
 - **Sao tôi không thấy mục mà đồng nghiệp thấy?** Mỗi người thấy menu theo quyền. Cần thêm thì hỏi Quản trị.
 - **Mất mạng có dùng được không?** Mở được khung app nhưng không có dữ liệu.`,
     },

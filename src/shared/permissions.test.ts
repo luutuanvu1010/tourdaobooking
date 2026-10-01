@@ -71,7 +71,7 @@ const ADR: Record<string, [Scope, Scope, Scope, Scope, Scope, Scope, Scope, Scop
   "company.legal.write": ["none", "none", "none", "none", "none", "any", "none", "none", "none", "none"], // ADR-0038 điều 7 + ADR-0024 6.4: chỉ Toàn quyền sửa hồ sơ công ty chủ (và đổi công ty chủ — chủ trả lời 2026-09-28)
   "party.document.view": ["own", "own", "own", "own", "none", "any", "own", "own", "own", "own"], // ADR-0040 D2 + R5 (chủ 28/9: "Mọi nhân viên"): giấy tờ của CHÍNH MÌNH, số che; Đối tác không
   "party.document.write": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "none"], // ADR-0040 D2: ghi giấy tờ của người + xem danh sách (số che) của người khác — Quản trị + Toàn quyền
-  "party.document.reveal": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "none"], // ADR-0040 D2: "xem đủ số" — Quản trị + Toàn quyền; mỗi lần một dòng nhật ký không kèm số
+  "party.document.reveal": ["none", "none", "none", "none", "none", "any", "none", "none", "none", "none"], // ADR-0040 D2 sửa bởi ADR-0083 điều 2: "xem đủ số" — CHỈ Toàn quyền; mỗi lần một dòng nhật ký không kèm số
   "vehicle.manage": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "none"], // ADR-0040 D1: xe, giấy tờ xe, danh sách sắp hết hạn — Quản trị + Toàn quyền (ADR-0038 điều 6)
   "assistant.ask": ["any", "any", "any", "any", "any", "any", "any", "any", "any", "any"], // ADR-0066 điều 1: hỏi trợ lý Hỗ trợ — mọi tài khoản đăng nhập
   "auth.session.viewAll": ["none", "none", "none", "none", "none", "any", "none", "none", "none", "none"], // ADR-0075 điều 7: xem sổ phiên của MỌI tài khoản — chỉ Toàn quyền (vai IT mang Toàn quyền)
@@ -244,6 +244,7 @@ const ADMIN_NONE_OPS: readonly OperationCode[] = [
   "ledger.view", // ADMIN "own" — chỉ sổ của chính mình (ngữ cảnh ownerId người khác → không)
   "accounting.entry.mark", // ADR-0060: ghi dấu "đã nhập phần mềm kế toán" chỉ Kế toán, Toàn quyền (lời chủ)
   "auth.session.viewAll", "auth.session.revoke", // ADR-0075 điều 7: sổ phiên của mọi người, gỡ phiên — chỉ Toàn quyền (Quản trị không giữ Toàn quyền → 403)
+  "party.document.reveal", // ADR-0083 điều 2: xem đủ số giấy tờ chỉ Toàn quyền — Quản trị chỉ thấy số đã che
 ];
 
 test("FIELD không xem đơn/tiền/nhật ký của đơn KHÔNG được giao; ADMIN làm mọi thao tác của bản đồ TRỪ các thao tác hẹp cố ý không mở (ADMIN_NONE_OPS)", () => {

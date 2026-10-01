@@ -1631,19 +1631,21 @@ export interface ReceiptDto {
 export interface ReceiptResponse { receipt: ReceiptDto }
 
 // ---- Trợ lý Hỗ trợ (ADR-0066, module tro-ly) ----
-/** Thân `POST /api/tro-ly/hoi`. Máy chủ che SĐT / email / số giấy tờ và cắt 500 ký tự trước khi gửi đi. */
-export interface TroLyHoiRequest { cauHoi: string }
+/** Thân `POST /api/tro-ly/hoi`. Máy chủ che SĐT / email / số giấy tờ và cắt 500 ký tự trước khi gửi đi. `cuocTroChuyen` (ADR-0073 Đ4): mã ngẫu nhiên khung sinh —
+ *  máy chủ tự lấy ≤ 3 lượt trước của CHÍNH người hỏi cùng mã; trình duyệt KHÔNG gửi nội dung lượt trước. Sai dạng ⇒ 400; thiếu / null ⇒ không nhớ. */
+export interface TroLyHoiRequest { cauHoi: string; cuocTroChuyen?: string | null }
 /** Phản hồi 200 của `POST /api/tro-ly/hoi`: câu trả lời (chữ thường) + tên các mục hướng dẫn đã dùng. Lỗi: 503 `tro_ly_chua_bat`, 429 `tro_ly_het_tran_ngay` /
  *  `tro_ly_het_tran_thang`, 502 `tro_ly_loi` — `error.message` là câu tiếng Việt hiện thẳng cho người dùng. */
 export interface TroLyHoiResponse { traLoi: string; nguon: string[] }
 /**
  * `GET`/`POST /api/tro-ly/cai-dat` (chỉ Toàn quyền — ô settings.ops; ADR-0069 điều 1, 2, 3, 6). `coKhoa`: máy chủ đã có khoá OpenAI chưa; `khoaCuoi`: TỐI ĐA
  * 4 ký tự cuối của khoá (null khi chưa có hoặc khoá ngắn) — không bao giờ trả đủ khoá. `vai`: công tắc hiện hành của 9 mã quyền. `theoVai`: tháng này, đọc
- * từ lịch sử hỏi đáp (một câu của tài khoản nhiều quyền tính cho mỗi quyền của nó).
+ * từ lịch sử hỏi đáp (một câu của tài khoản nhiều quyền tính cho mỗi quyền của nó). `soLuotThuThang`: số lượt Thử key / ô thử tháng này (ADR-0073 T6) —
+ * không nằm trong soCauThang, soCauHomNay; chiPhiThangUsd GỒM chúng.
  */
 export interface TroLyCaiDatResponse {
   bat: boolean; tranThangUsd: number; tranNgay: number; coKhoa: boolean; khoaCuoi: string | null; thang: string; chiPhiThangUsd: number; soCauThang: number;
-  soCauHomNay: number; vai: Record<PermissionCode, boolean>; theoVai: { vai: PermissionCode; soCau: number; chiPhiUsd: number }[];
+  soCauHomNay: number; soLuotThuThang: number; vai: Record<PermissionCode, boolean>; theoVai: { vai: PermissionCode; soCau: number; chiPhiUsd: number }[];
 }
 export interface TroLyCaiDatRequest { bat: boolean; tranThangUsd: number; tranNgay: number }
 
@@ -1673,4 +1675,24 @@ export interface TroLyLichSuResponse {
   nguoi: { staffId: string; ten: string }[];
 }
 /** `POST /api/tro-ly/thu-khoa` (Toàn quyền): kết quả lời thường. */
-export interface TroLyThuKhoaResponse { ma: "duoc" | "sai_khoa" | "het_tien" | "gioi_han" | "loi_mang" | "loi_khac" | "chua_dat"; cau: string }
+export interface TroLyThuKhoaResponse { ma: "duoc" | "sai_khoa" | "het_tien" | "gioi_han" | "mau_tu_choi" | "loi_mang" | "loi_khac" | "chua_dat"; cau: string }
+/** ADR-0073: một mẫu của danh sách đóng. `gia` = micro-USD cho 1 triệu token; `mucSuyNghi` có nhãn tiếng Việt; `uocMotCauUsd` = ước tính thô một câu với số token ra của bộ não hiện hành. */
+export interface TroLyMauDto { ma: string; ten: string; gia: { vao: number; vaoDem: number; ra: number }; mucSuyNghi: { ma: string; nhan: string }[]; ngayTraGia: string; uocMotCauUsd: number }
+/** Bộ não (ADR-0073 Đ1, Đ2) — thân `PUT /api/tro-ly/bo-nao` và `boNao` của `POST /api/tro-ly/thu`. */
+export interface TroLyBoNao { mau: string; mucSuyNghi: string; doDai: string; tokenRaToiDa: number; loiNhac: string }
+/** `GET`/`PUT /api/tro-ly/bo-nao` (Toàn quyền). `macDinh` = chưa có bản nào hoặc lời nhắc đang đúng bản mặc định. */
+export interface TroLyBoNaoResponse {
+  hienHanh: TroLyBoNao; macDinh: boolean; loiNhacMacDinh: string; danhSachMau: TroLyMauDto[]; doDai: { ma: string; nhan: string }[]; ghiChuUocTinh: string;
+}
+/** `GET /api/tro-ly/bo-nao/lich-su` (Toàn quyền): 30 bản mới nhất; `phanDoi` = phần đổi so với bản trước (lời thường, không nội dung). */
+export interface TroLyBoNaoLichSuResponse { cacBan: (TroLyBoNao & { id: string; luc: string; nguoi: string | null; phanDoi: string })[] }
+/** `POST /api/tro-ly/thu` (Toàn quyền — ADR-0073 Đ5): cấu hình CHƯA lưu + câu hỏi + MỘT vai giả định. Chạy đúng đường ống thật; tính vào trần TIỀN tháng,
+ *  không tính trần lượt ngày; không ghi lịch sử hỏi đáp; chạy được khi trợ lý đang tắt. Mẫu từ chối cấu hình (OpenAI 400) ⇒ 502 mã `mau_tu_choi`, câu lời thường. */
+export interface TroLyThuRequest { boNao: TroLyBoNao; cauHoi: string; vai: PermissionCode }
+/** ADR-0082 Đ6 (H1): một đoạn đã gửi kèm câu hỏi thử — cờ khớp nghĩa / khớp từ khoá (đường lùi: chỉ khớp từ khoá). */
+export interface TroLyDoanDaChon { ten: string; theoNghia: boolean; theoTuKhoa: boolean }
+/** `chiPhiMicroUsd` / `chiPhiUsd` = tiền MẪU trả lời; `chiPhiVanNghiaMicroUsd` = tiền embedding của lượt thử (R4); dòng tl_luot_hoi = tổng hai phần. */
+export interface TroLyThuResponse {
+  traLoi: string; nguon: string[]; tokenVao: number; tokenRa: number; chiPhiMicroUsd: number; chiPhiUsd: number; chiPhiVanNghiaMicroUsd: number; mau: string;
+  doanDaChon: TroLyDoanDaChon[];
+}

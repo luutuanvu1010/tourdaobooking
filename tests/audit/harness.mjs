@@ -35,7 +35,7 @@ async function bundle(entry) {
 }
 // listAll: bộ lọc thao tác im lặng (ADR-0038) chỉ kiểm được ở tầng truy vấn — trang Nhật ký nay chỉ Toàn quyền gọi được.
 export const app = (await bundle(
-  'export { default, taoAppChoKhungThu } from "./index"; export { createSessionToken } from "./modules/auth/session"; export { listAll } from "./modules/audit/repository";' +
+  'export { default, taoAppChoKhungThu } from "./index"; export { createSessionToken } from "./modules/auth/session"; export { listAll } from "./modules/audit/repository"; export { xoaBoNhoVanNghia } from "./modules/tro-ly/van-nghia";' +
     ' export { isSingleDevice } from "./modules/auth/session-ledger"; export { accountRoleCodesOf, getActiveStaff } from "./modules/staff";',
 ));
 
@@ -99,6 +99,8 @@ export function world(tuyChon = {}) {
     const khac = Object.keys(tuyChon).filter((k) => k !== "ghiDe" && tuyChon[k] !== undefined);
     if (khac.length) throw new Error(`world({ ghiDe }): không dùng chung với tuỳ chọn khác (${khac.join(", ")})`);
   }
+  // ADR-0082: bộ nhớ isolate của dấu vân nghĩa sống theo MÔ-ĐUN (ứng dụng nạp một lần mỗi tiến trình thử); mỗi world là một D1 mới ⇒ xoá, kẻo bài sau thấy véc-tơ của bài trước.
+  app.xoaBoNhoVanNghia();
   const sqlite = openDb();
   let soLanGoiMoc = 0;
   const goiNhan = [];

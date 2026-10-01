@@ -1,7 +1,7 @@
 import { ApiError, api, type StaffAccount, type Api } from "./api";
 import { NHAN_LY_DO_KHOP } from "../src/shared/ho-so-trung";
 import { PERMISSION_CODES, PERMISSION_LABEL, can, type PermissionCode } from "../src/shared/permissions";
-import { ROLE_CODES, canManageAccount, rolesLabel } from "../src/shared/roles";
+import { ROLE_CODES, canManageAccount, rolesLabel, tuDoiQuyenCuaMinh } from "../src/shared/roles";
 import { byId, h, replaceChildren } from "./dom";
 import { dateTime } from "./format";
 import { rolePicker, type RolePicker, type RolePickerValue } from "./role-picker";
@@ -18,6 +18,9 @@ const sameSet = (a: readonly string[], b: readonly string[]): boolean => a.lengt
 /** Tài khoản đã gán vai → tên vai; chưa gán → quyền cũ kèm ghi chú (chờ chuyển sang cách mới, đặc tả §14). */
 const accessLabel = (s: StaffAccount): string => (s.roles.length ? rolesLabel(s.roles) : `${permissionsLabel(s.permissions)} (chưa gán vai)`);
 const EMPTY: RolePickerValue = { roles: [], adds: [], removes: [], reason: "" };
+const TU_DOI_QUYEN = "Vai vừa chọn làm đổi quyền của chính bạn — không ai tự đổi quyền của mình được (chống tự khoá). Hãy nhờ người quản trị khác. Chưa lưu gì.";
+const TU_DOI_QUYEN_TOAN_QUYEN =
+  "Vai vừa chọn làm đổi quyền của chính bạn — không ai tự đổi quyền của mình được (chống tự khoá). Toàn quyền đã làm được mọi việc của mọi vai, nên không cần tự gán thêm. Chưa lưu gì.";
 const sameAssignment = (a: RolePickerValue, b: RolePickerValue): boolean => sameSet(a.roles, b.roles) && sameSet(a.adds, b.adds) && sameSet(a.removes, b.removes);
 let meSuper = false;
 // ADR-0042 + ADR-0071 điều 1e: đặt lại PIN, gỡ Face ID, mở khoá — Quản trị + Toàn quyền (ô account.access.manage); HCNS không thấy nút (máy chủ vẫn chặn 403).
@@ -178,7 +181,9 @@ function card(s: StaffAccount): HTMLElement {
 }
 
 async function openEdit(s: StaffAccount): Promise<void> {
-  const legacy = s.roles.length === 0; // chưa gán vai: còn sửa được quyền cũ
+  const legacy = s.roles.length === 0; // chưa gán vai: đang dùng quyền cũ
+  // ADR-0083 điều 1a, 1d: sửa quyền kiểu cũ (PUT …/permissions) chỉ người hỏi được ô gán/gỡ Toàn quyền — cùng bảng với máy chủ; người khác chuyển sang vai.
+  const quyenCu = legacy && meSuper;
   let saved = EMPTY;
   if (!legacy) {
     const r = await act(() => api<Api.StaffRolesResponse>(`/api/staff/${s.id}/roles`));
@@ -202,20 +207,25 @@ async function openEdit(s: StaffAccount): Promise<void> {
     const chosen = picker.value();
     const legacyPerms = PERMISSION_CODES.filter((code) => boxes.get(code)!.checked);
     if (!legacy && chosen.roles.length === 0) return showError(errorEl, "Chọn ít nhất một vai.");
-    if (legacy && chosen.roles.length === 0 && !isMe && legacyPerms.length === 0) return showError(errorEl, "Chọn ít nhất một vai (hoặc một quyền cũ).");
+    if (quyenCu && chosen.roles.length === 0 && !isMe && legacyPerms.length === 0) return showError(errorEl, "Chọn ít nhất một vai (hoặc một quyền cũ).");
+    // Chủ dự án 2026-10-01: báo TRƯỚC khi lưu (không lưu nửa chừng) khi vai vừa chọn làm đổi quyền của chính mình.
+    if (isMe && chosen.roles.length > 0 && !sameAssignment(chosen, saved) && tuDoiQuyenCuaMinh(s.permissions, chosen)) {
+      return showError(errorEl, meSuper ? TU_DOI_QUYEN_TOAN_QUYEN : TU_DOI_QUYEN);
+    }
+    const doiTenSo = name.value.trim() !== s.fullName || phone.value.trim() !== s.phone;
     if (!(await act(() => api(`/api/staff/${s.id}`, { method: "PATCH", body: { fullName: name.value, phone: phone.value } })))) return;
     try {
       if (chosen.roles.length > 0 && !sameAssignment(chosen, saved)) {
         const body: Api.StaffRolesRequest = { roles: chosen.roles, adds: chosen.adds, removes: chosen.removes, reason: chosen.reason };
         await api(`/api/staff/${s.id}/roles`, { method: "PUT", body });
-      } else if (legacy && chosen.roles.length === 0 && !isMe && !sameSet(legacyPerms, s.permissions)) {
+      } else if (quyenCu && chosen.roles.length === 0 && !isMe && !sameSet(legacyPerms, s.permissions)) {
         const body: Api.StaffPermissionsRequest = { permissions: legacyPerms };
         await api(`/api/staff/${s.id}/permissions`, { method: "PUT", body });
       }
     } catch (err) {
       // Tên/số điện thoại đã lưu ở lời gọi trên. load() xoá thông báo lỗi (act mở đầu bằng showError(null)), nên nạp lại TRƯỚC rồi mới hiện lý do.
       await load();
-      return showError(errorEl, `Đã lưu tên/số điện thoại nhưng chưa đổi được vai/quyền: ${reasonOf(err)}`);
+      return showError(errorEl, doiTenSo ? `Đã lưu tên/số điện thoại nhưng chưa đổi được vai/quyền: ${reasonOf(err)}` : `Chưa đổi được vai/quyền: ${reasonOf(err)}`);
     }
     editEl.hidden = true;
     await load();
@@ -226,9 +236,9 @@ async function openEdit(s: StaffAccount): Promise<void> {
     h("div", { class: "grid two" }, h("label", null, "Họ tên", name), h("label", null, "Số điện thoại đăng nhập", phone)),
     h("h3", null, "Vai và quyền"),
     legacy && h("p", { class: "alert warn" }, `Tài khoản này chưa gán vai, đang dùng quyền cũ: ${permissionsLabel(s.permissions)}. Chọn vai để chuyển sang cách mới — xem dòng "Sẽ mất" trước khi lưu.`),
-    isMe && h("p", { class: "muted" }, "Bạn chỉ đổi được vai của chính mình khi quyền không đổi (xem dòng xem trước)."),
+    isMe && h("p", { class: "muted" }, meSuper ? "Bạn chỉ đổi được vai của chính mình khi quyền không đổi. Toàn quyền đã làm được mọi việc của mọi vai — không cần tự gán thêm vai." : "Bạn chỉ đổi được vai của chính mình khi quyền không đổi (xem dòng xem trước)."),
     picker.el,
-    legacy && h("details", null, h("summary", null, "Quyền cũ (chỉ dùng khi chưa gán vai)"), ...permissionBoxes),
+    quyenCu && h("details", null, h("summary", null, "Quyền cũ (chỉ dùng khi chưa gán vai)"), ...permissionBoxes),
     h("p", { class: "muted" }, "Đổi số điện thoại sẽ đổi tên đăng nhập của người này. Phiên đang đăng nhập vẫn giữ nguyên."),
     h("div", { class: "actions" }, save, cancel),
   );

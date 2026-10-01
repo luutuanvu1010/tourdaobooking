@@ -61,13 +61,16 @@ r = await call(TX, "GET", "/api/parties/documents/mine");
 assert.deepEqual(r.body.documents.map((d) => [d.typeCode, d.maskedNumber, d.current]), [["GPLX", `••••${SO_GPLX.slice(-4)}`, true], ["CCCD", `••••${SO_CCCD.slice(-4)}`, true]]);
 console.log("✓ giấy tờ của người: thêm 201 (số che), Bán hàng 403, tài xế thấy của mình (GPLX gần hạn trước)");
 
-// --- 5. Xem đủ số: đúng số, một dòng nhật ký KHÔNG số ---
+// --- 5. Xem đủ số (ADR-0083 điều 2: chỉ Toàn quyền): Quản trị 403 không số; Toàn quyền đúng số, một dòng nhật ký KHÔNG số ---
 r = await call(ADMIN, "POST", `/api/parties/${txParty}/documents/${cccd.id}/reveal`);
+assert.equal(r.status, 403, JSON.stringify(r.body));
+assert.ok(!JSON.stringify(r.body).includes(SO_CCCD.slice(-6)), "403 không lộ số");
+r = await call(TOAN_QUYEN, "POST", `/api/parties/${txParty}/documents/${cccd.id}/reveal`);
 assert.equal(r.status, 200, JSON.stringify(r.body));
 assert.deepEqual(r.body, { number: SO_CCCD });
 const [nk] = await sqlRows(`SELECT detail FROM audit_log WHERE action = 'party_document_number_viewed' AND target_id = '${txParty}' ORDER BY rowid DESC LIMIT 1`);
 assert.equal(nk.detail, "Căn cước công dân (CCCD)");
-console.log("✓ xem đủ số: đúng số; nhật ký chỉ tên loại");
+console.log("✓ xem đủ số: Quản trị 403; Toàn quyền đúng số; nhật ký chỉ tên loại");
 
 // --- 6. CCCD trùng, gia hạn (không gửi số), sửa sai dòng cũ ---
 r = await call(ADMIN, "POST", `/api/parties/${khac}/documents`, { typeCode: "CCCD", number: SO_CCCD });

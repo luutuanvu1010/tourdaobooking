@@ -819,7 +819,7 @@ export const CHECKS = [
     level: "fail",
   },
   // R-AUT-SESSION-1 (ADR-0075 điều 1–3): tài khoản chịu luật một máy không có HAI phiên sống (chưa kết thúc, còn hạn, single = 1). Chỉ mục duy nhất có điều kiện
-  // `aut_session_one_live` (0061) đã chặn mọi cặp `ended_at IS NULL AND single = 1` bất kể hạn ⇒ kiểm này chỉ đỏ khi chỉ mục bị mất/sửa (SQL tay, migration
+  // `aut_session_one_live` (0065) đã chặn mọi cặp `ended_at IS NULL AND single = 1` bất kể hạn ⇒ kiểm này chỉ đỏ khi chỉ mục bị mất/sửa (SQL tay, migration
   // sai) — là LƯỚI, không phải đường chặn. Đếm số TÀI KHOẢN vi phạm.
   {
     code: "R-AUT-SESSION-1",

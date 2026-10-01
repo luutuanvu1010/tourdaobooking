@@ -2135,6 +2135,7 @@ body.sheet-open .tl-fab { visibility: hidden; }
 .tl-than { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: var(--s3); }
 .tl-chan { flex: none; padding: var(--s2) var(--s3) var(--s2); background: var(--c-surface); border-top: 1px solid var(--c-border); }
 .tl-chan .tl-luu-y { margin-top: var(--s1); }
+.tl-chan .tl-cuoc-moi { margin-top: var(--s1); padding-left: 0; font-size: var(--fs-badge); }
 .tl-ds { display: flex; flex-direction: column; gap: var(--s3); margin: 0; padding: 0; list-style: none; }
 .tl-tin { max-width: var(--w-tl-tin); padding: var(--s2) var(--s3); border-radius: var(--radius-md); }
 .tl-tin-nguoi { align-self: flex-end; background: var(--c-primary-soft); }

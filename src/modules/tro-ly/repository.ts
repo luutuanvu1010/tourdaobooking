@@ -1,33 +1,35 @@
-// SQL của module tro-ly (bảng tl_luot_hoi, tl_cai_dat — migration 0050, ADR-0066; tl_vai, tl_loi_dan, tl_ngu_canh, tl_hoi_dap — migration 0054, ADR-0069).
+// SQL của module tro-ly (bảng tl_luot_hoi, tl_cai_dat — migration 0050, ADR-0066; tl_vai, tl_loi_dan, tl_ngu_canh, tl_hoi_dap — migration 0054, ADR-0069;
+// tl_bo_nao — migration *_tl_bo_nao, ADR-0073).
 // Module NGHIÊM: mọi câu đi qua defineSql, TĨNH, import đuôi .ts. Mọi bảng CHỈ THÊM (trigger chặn UPDATE/DELETE) — ở đây chỉ có SELECT và INSERT.
 // tl_luot_hoi KHÔNG có cột nội dung (ADR-0066 điều 7); nội dung hỏi đáp ĐÃ CHE nằm ở tl_hoi_dap (ADR-0069 điều 5), chỉ Toàn quyền đọc.
 // Tên người đọc CHỈ qua view công bố v_stf_staff_label (module staff — cạnh tro-ly → staff ở ALLOWED_EDGES).
 import { defineSql } from "../../shared/sql-registry.ts";
 import { PERMISSION_CODES, type PermissionCode } from "../../shared/permissions.ts";
-import type { CaiDatTroLy, LoiDan, NguCanh, NguCanhHienHanh } from "../../shared/tro-ly.ts";
+import type { CaiDatTroLy, LoiDan, LuotTruoc, NguCanh, NguCanhHienHanh } from "../../shared/tro-ly.ts";
+import type { BanBoNaoLuu, BoNao } from "../../shared/tro-ly-bo-nao.ts";
 
 const CAI_DAT = defineSql(
   "tro-ly",
   "cai-dat-hien-hanh",
   "SELECT bat, tran_thang_micro_usd, tran_ngay FROM tl_cai_dat ORDER BY valid_from_at DESC, created_at DESC, id DESC LIMIT 1",
 );
-// Trần ngày đếm câu đã tới bước hỏi (ok, loi) của NGƯỜI đó trong ngày VN; dòng het_tran (bị chặn) không tính.
+// Trần ngày đếm câu THẬT đã tới bước hỏi (ok, loi) của NGƯỜI đó trong ngày VN; dòng het_tran (bị chặn) và lượt thử (la_thu = 1 — ADR-0073 T3) không tính.
 const DEM_HOM_NAY = defineSql(
   "tro-ly",
   "dem-hom-nay",
-  "SELECT count(*) AS n FROM tl_luot_hoi WHERE staff_id = ?1 AND ngay_vn = ?2 AND ket_qua <> 'het_tran'",
+  "SELECT count(*) AS n FROM tl_luot_hoi WHERE staff_id = ?1 AND ngay_vn = ?2 AND ket_qua <> 'het_tran' AND la_thu = 0",
 );
-// Số câu hôm nay của CẢ công ty (trang Trợ lý Hỗ trợ — ADR-0069 điều 6).
+// Số câu THẬT hôm nay của CẢ công ty (ADR-0069 điều 6; ADR-0073 T6 — không gồm lượt thử).
 const DEM_HOM_NAY_CONG_TY = defineSql(
   "tro-ly",
   "dem-hom-nay-cong-ty",
-  "SELECT count(*) AS n FROM tl_luot_hoi WHERE ngay_vn = ?1 AND ket_qua <> 'het_tran'",
+  "SELECT count(*) AS n FROM tl_luot_hoi WHERE ngay_vn = ?1 AND ket_qua <> 'het_tran' AND la_thu = 0",
 );
-// Trần tháng: tổng chi phí của CẢ công ty trong tháng dương lịch VN (khoảng ngày theo chuỗi YYYY-MM-DD).
+// Trần tháng: tổng chi phí của CẢ công ty trong tháng dương lịch VN, GỒM lượt thử (ADR-0073 T3); số câu thật và số lượt thử đếm riêng (T6).
 const TONG_THANG = defineSql(
   "tro-ly",
   "tong-thang",
-  "SELECT COALESCE(SUM(chi_phi_micro_usd), 0) AS tong, COALESCE(SUM(CASE WHEN ket_qua <> 'het_tran' THEN 1 ELSE 0 END), 0) AS so FROM tl_luot_hoi WHERE ngay_vn >= ?1 AND ngay_vn <= ?2",
+  "SELECT COALESCE(SUM(chi_phi_micro_usd), 0) AS tong, COALESCE(SUM(CASE WHEN ket_qua <> 'het_tran' AND la_thu = 0 THEN 1 ELSE 0 END), 0) AS so, COALESCE(SUM(CASE WHEN ket_qua <> 'het_tran' AND la_thu = 1 THEN 1 ELSE 0 END), 0) AS so_thu FROM tl_luot_hoi WHERE ngay_vn >= ?1 AND ngay_vn <= ?2",
 );
 // Chi phí + số câu THEO VAI trong khoảng ngày — đọc từ lịch sử (tl_hoi_dap có vai); lượt "Thử key" không có ở đây (không phải câu của một vai).
 const THEO_VAI = defineSql(
@@ -38,7 +40,7 @@ const THEO_VAI = defineSql(
 const GHI_LUOT = defineSql(
   "tro-ly",
   "ghi-luot",
-  "INSERT INTO tl_luot_hoi (id, staff_id, ngay_vn, token_vao, token_vao_dem, token_ra, chi_phi_micro_usd, ket_qua, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?2, ?9, ?2)",
+  "INSERT INTO tl_luot_hoi (id, staff_id, ngay_vn, token_vao, token_vao_dem, token_ra, chi_phi_micro_usd, ket_qua, mau, la_thu, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?10, ?11, ?9, ?2, ?9, ?2)",
 );
 const THEM_CAI_DAT = defineSql(
   "tro-ly",
@@ -86,7 +88,15 @@ const THEM_NGU_CANH = defineSql(
 const GHI_HOI_DAP = defineSql(
   "tro-ly",
   "ghi-hoi-dap",
-  "INSERT INTO tl_hoi_dap (id, luot_id, staff_id, vai, ngay_vn, cau_hoi, tra_loi, nguon, chi_phi_micro_usd, ket_qua, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?3, ?11, ?3)",
+  "INSERT INTO tl_hoi_dap (id, luot_id, staff_id, vai, ngay_vn, cau_hoi, tra_loi, nguon, chi_phi_micro_usd, ket_qua, cuoc_tro_chuyen, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?12, ?11, ?3, ?11, ?3)",
+);
+
+// Phần nhớ (ADR-0073 Đ4): ≤ 3 lượt GẦN NHẤT của CHÍNH người hỏi (staff_id), CÙNG mã cuộc trò chuyện, kết quả ok, từ mốc `tuLuc` (2 giờ trước). Chỉ mục
+// tl_hoi_dap_cuoc (staff_id, cuoc_tro_chuyen, created_at). Hoà created_at (cùng mili giây) ⇒ rowid (thứ tự chèn) quyết.
+const NHO_LUOT = defineSql(
+  "tro-ly",
+  "nho-luot",
+  "SELECT cau_hoi, tra_loi FROM tl_hoi_dap WHERE staff_id = ?1 AND cuoc_tro_chuyen = ?2 AND ket_qua = 'ok' AND created_at >= ?3 ORDER BY created_at DESC, rowid DESC LIMIT 3",
 );
 // Lịch sử hỏi đáp (chỉ Toàn quyền): lọc tuỳ chọn ngày từ / đến, người, vai (json_each), tìm chữ (LIKE có ESCAPE ở câu hỏi hoặc câu trả lời). Mới trước.
 const LICH_SU = defineSql(
@@ -98,6 +108,23 @@ const NGUOI_DA_HOI = defineSql(
   "tro-ly",
   "nguoi-da-hoi",
   "SELECT DISTINCT h.staff_id, s.label AS nguoi FROM tl_hoi_dap h LEFT JOIN v_stf_staff_label s ON s.id = h.staff_id ORDER BY s.label, h.staff_id",
+);
+// Bộ não (ADR-0073 Đ1, Đ2): bản hiện hành = valid_from_at lớn nhất (hoà thì created_at, rowid — thứ tự chèn: hai lần lưu cùng mili-giây vẫn đúng thứ tự,
+// id là UUID ngẫu nhiên nên không dùng để phân thứ tự; tiền lệ module audit); lịch sử 31 bản mới nhất (bản thứ 31 chỉ để tính "phần đổi" của bản 30).
+const BO_NAO_HIEN_HANH = defineSql(
+  "tro-ly",
+  "bo-nao-hien-hanh",
+  "SELECT mau, muc_suy_nghi, do_dai, token_ra_toi_da, loi_nhac FROM tl_bo_nao ORDER BY valid_from_at DESC, created_at DESC, rowid DESC LIMIT 1",
+);
+const BO_NAO_CAC_BAN = defineSql(
+  "tro-ly",
+  "bo-nao-cac-ban",
+  "SELECT b.id, b.mau, b.muc_suy_nghi, b.do_dai, b.token_ra_toi_da, b.loi_nhac, b.created_at, s.label AS nguoi FROM tl_bo_nao b LEFT JOIN v_stf_staff_label s ON s.id = b.created_by ORDER BY b.valid_from_at DESC, b.created_at DESC, b.rowid DESC LIMIT 31",
+);
+const THEM_BO_NAO = defineSql(
+  "tro-ly",
+  "them-bo-nao",
+  "INSERT INTO tl_bo_nao (id, mau, muc_suy_nghi, do_dai, token_ra_toi_da, loi_nhac, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?7, ?8, ?7, ?8)",
 );
 
 /** Bản cài đặt hiện hành. Không có dòng nào (ai đó xoá tay — trigger chặn) ⇒ coi như TẮT. */
@@ -115,9 +142,9 @@ export async function demCauHomNayCongTy(db: D1Database, ngayVn: string): Promis
   return (await db.prepare(DEM_HOM_NAY_CONG_TY).bind(ngayVn).first<{ n: number }>())?.n ?? 0;
 }
 
-export async function tongThang(db: D1Database, tu: string, den: string): Promise<{ tong: number; so: number }> {
-  const r = await db.prepare(TONG_THANG).bind(tu, den).first<{ tong: number; so: number }>();
-  return { tong: r?.tong ?? 0, so: r?.so ?? 0 };
+export async function tongThang(db: D1Database, tu: string, den: string): Promise<{ tong: number; so: number; soThu: number }> {
+  const r = await db.prepare(TONG_THANG).bind(tu, den).first<{ tong: number; so: number; so_thu: number }>();
+  return { tong: r?.tong ?? 0, so: r?.so ?? 0, soThu: r?.so_thu ?? 0 };
 }
 
 export async function theoVai(db: D1Database, tu: string, den: string): Promise<{ vai: string; so: number; chiPhi: number }[]> {
@@ -134,11 +161,15 @@ export interface LuotHoi {
   ra: number;
   chiPhi: number;
   ketQua: "ok" | "het_tran" | "loi";
+  /** Mã mẫu của lượt (chi phí theo giá mẫu này — B8); null khi KHÔNG gọi mẫu nào (dòng het_tran). */
+  mau: string | null;
+  /** Lượt "Thử key" / ô thử của Toàn quyền (T3). */
+  laThu: boolean;
   at: string;
 }
 
 export const luotStatement = (db: D1Database, l: LuotHoi): D1PreparedStatement =>
-  db.prepare(GHI_LUOT).bind(l.id, l.staffId, l.ngayVn, l.vao, l.vaoDem, l.ra, l.chiPhi, l.ketQua, l.at);
+  db.prepare(GHI_LUOT).bind(l.id, l.staffId, l.ngayVn, l.vao, l.vaoDem, l.ra, l.chiPhi, l.ketQua, l.at, l.mau, l.laThu ? 1 : 0);
 
 export async function ghiLuot(db: D1Database, l: LuotHoi): Promise<void> {
   await luotStatement(db, l).run();
@@ -211,12 +242,14 @@ export interface HoiDap {
   chiPhi: number;
   ketQua: "ok" | "loi";
   at: string;
+  /** Mã cuộc trò chuyện (ADR-0073 Đ4); null = không gửi mã. */
+  cuocTroChuyen: string | null;
 }
 
 export const hoiDapStatement = (db: D1Database, h: HoiDap): D1PreparedStatement =>
   db
     .prepare(GHI_HOI_DAP)
-    .bind(crypto.randomUUID(), h.luotId, h.staffId, JSON.stringify(h.vai), h.ngayVn, h.cauHoiDaChe, h.traLoi, JSON.stringify(h.nguon), h.chiPhi, h.ketQua, h.at);
+    .bind(crypto.randomUUID(), h.luotId, h.staffId, JSON.stringify(h.vai), h.ngayVn, h.cauHoiDaChe, h.traLoi, JSON.stringify(h.nguon), h.chiPhi, h.ketQua, h.at, h.cuocTroChuyen);
 
 /** `mauTim`: mẫu LIKE đã thoát ký tự đặc biệt (`escapeLike` ở src/shared/http.ts) và bọc `%…%`, hoặc null. */
 export interface LocLichSu { tu: string | null; den: string | null; nguoi: string | null; vai: string | null; mauTim: string | null; gioiHan: number; boQua: number }
@@ -238,4 +271,59 @@ export async function lichSu(db: D1Database, l: LocLichSu): Promise<DongLichSu[]
 export async function nguoiDaHoi(db: D1Database): Promise<{ staffId: string; nguoi: string | null }[]> {
   const { results } = await db.prepare(NGUOI_DA_HOI).all<{ staff_id: string; nguoi: string | null }>();
   return results.map((r) => ({ staffId: r.staff_id, nguoi: r.nguoi }));
+}
+
+type DongBoNao = { mau: string; muc_suy_nghi: string; do_dai: string; token_ra_toi_da: number; loi_nhac: string };
+const banTuDong = (r: DongBoNao): BanBoNaoLuu => ({ mau: r.mau, mucSuyNghi: r.muc_suy_nghi, doDai: r.do_dai, tokenRaToiDa: r.token_ra_toi_da, loiNhac: r.loi_nhac });
+
+/** Bản bộ não hiện hành CHƯA kiểm (boNaoHieuLuc lo bản hỏng); không có bản ⇒ null (dùng bản mặc định — B5). */
+export async function docBoNao(db: D1Database): Promise<BanBoNaoLuu | null> {
+  const r = await db.prepare(BO_NAO_HIEN_HANH).first<DongBoNao>();
+  return r ? banTuDong(r) : null;
+}
+
+export interface BanBoNaoDong extends BanBoNaoLuu { id: string; luc: string; nguoi: string | null }
+export async function cacBanBoNao(db: D1Database): Promise<BanBoNaoDong[]> {
+  const { results } = await db.prepare(BO_NAO_CAC_BAN).all<DongBoNao & { id: string; created_at: string; nguoi: string | null }>();
+  return results.map((r) => ({ ...banTuDong(r), id: r.id, luc: r.created_at, nguoi: r.nguoi }));
+}
+
+export const boNaoStatement = (db: D1Database, b: BoNao, at: string, by: string): D1PreparedStatement =>
+  db.prepare(THEM_BO_NAO).bind(crypto.randomUUID(), b.mau, b.mucSuyNghi, b.doDai, b.tokenRaToiDa, b.loiNhac, at, by);
+
+/** Lượt trước cho phần nhớ, CŨ → MỚI (thứ tự hội thoại). Nội dung đã che sẵn khi lưu (chữ "[đã che]" giữ nguyên — N6). */
+export async function nhoLuot(db: D1Database, staffId: string, cuocTroChuyen: string, tuLuc: string): Promise<LuotTruoc[]> {
+  const { results } = await db.prepare(NHO_LUOT).bind(staffId, cuocTroChuyen, tuLuc).all<{ cau_hoi: string; tra_loi: string }>();
+  return results.map((r) => ({ cauHoi: r.cau_hoi, traLoi: r.tra_loi })).reverse();
+}
+
+// tl_van_nghia (ADR-0082, migration *_tl_van_nghia): CHỈ-THÊM. Đọc theo danh sách khoá bằng MỘT tham số JSON (json_each — câu tĩnh, không đụng trần số tham số
+// của D1); ghi MỘT dòng mỗi câu (5 tham số) bằng ON CONFLICT(khoa) DO NOTHING — nhiều câu hỏi đồng thời cùng tính bù không lỗi, không trùng (cấm OR REPLACE:
+// REPLACE xoá dòng xung đột mà không chạy trigger chặn DELETE — hàng rào ở van-nghia.test.ts).
+const VAN_NGHIA_THEO_KHOA = defineSql(
+  "tro-ly",
+  "van-nghia-theo-khoa",
+  "SELECT khoa, so_chieu, vec FROM tl_van_nghia WHERE khoa IN (SELECT value FROM json_each(?1))",
+);
+const THEM_VAN_NGHIA = defineSql(
+  "tro-ly",
+  "them-van-nghia",
+  "INSERT INTO tl_van_nghia (khoa, mau, so_chieu, vec, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?4, ?5, NULL, ?5, NULL) ON CONFLICT(khoa) DO NOTHING",
+);
+
+/** `vec` giữ NGUYÊN dạng D1 trả (ArrayBuffer / Uint8Array / mảng số) — giải mã ở blobSangVec. */
+export interface DongVanNghia { readonly khoa: string; readonly soChieu: number; readonly vec: unknown }
+export async function docVanNghia(db: D1Database, khoa: readonly string[]): Promise<DongVanNghia[]> {
+  if (!khoa.length) return [];
+  const r = await db.prepare(VAN_NGHIA_THEO_KHOA).bind(JSON.stringify(khoa)).all<{ khoa: string; so_chieu: number; vec: unknown }>();
+  return r.results.map((x) => ({ khoa: x.khoa, soChieu: x.so_chieu, vec: x.vec }));
+}
+
+/** `vec` là byte float32 do vecSangBlob (src/shared/tro-ly-van-nghia.ts) dựng — MỘT chỗ đổi dạng bind (Uint8Array ↔ ArrayBuffer) nếu e2e D1 thật đòi. */
+export interface VanNghiaMoi { readonly khoa: string; readonly mau: string; readonly soChieu: number; readonly vec: Uint8Array }
+export const vanNghiaStatement = (db: D1Database, v: VanNghiaMoi, at: string): D1PreparedStatement =>
+  db.prepare(THEM_VAN_NGHIA).bind(v.khoa, v.mau, v.soChieu, v.vec, at);
+/** Gom `lo` câu một db.batch (mỗi lô nguyên tử; dòng nào cũng trọn vẹn — không có "dòng dở"). */
+export async function ghiVanNghia(db: D1Database, ds: readonly VanNghiaMoi[], at: string, lo: number): Promise<void> {
+  for (let i = 0; i < ds.length; i += lo) await db.batch(ds.slice(i, i + lo).map((v) => vanNghiaStatement(db, v, at)));
 }

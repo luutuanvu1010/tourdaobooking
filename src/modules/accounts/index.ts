@@ -24,7 +24,7 @@ import { PARTY_ID_RE } from "../../shared/party-id";
 import { PERMISSION_CODES, can, isPermissionCode, type PermissionCode, quyenHienThi } from "../../shared/permissions";
 import { route, type AppModule, type Ctx } from "../../shared/router";
 import {
-  highPermissionProblem, parseRoleAssignment, permissionsLabel, roleAssignmentProblem, rolesLabel, taiKhoanLaiProblem, type RoleCode, type RoleProblem,
+  highPermissionProblem, parseRoleAssignment, permissionsLabel, roleAssignmentProblem, rolesLabel, taiKhoanLaiProblem, laiNoiBoBenNgoaiProblem, type RoleCode, type RoleProblem,
 } from "../../shared/roles";
 import { vnToday } from "../../shared/vn-date";
 
@@ -424,7 +424,8 @@ export const accountsModule: AppModule = {
       // LC-4 (ADR-0018 điều 5): chỉ Toàn quyền cấp Quản trị/Toàn quyền — thay luật cũ chỉ chặn SUPER_ADMIN (trước đây Quản trị cấp được Quản trị).
       const high = highPermissionProblem(actorIsSuper, [], perms.value!);
       if (high) return problemResponse(high);
-      const lai = taiKhoanLaiProblem(perms.value!); // LC-1b (ADR-0048 B2.2): đường cũ không qua roleAssignmentProblem
+      // LC-1b (ADR-0048 B2.2) rồi chặn lai nội bộ + bên ngoài (ADR-0083 điều 1b): đường cũ không qua roleAssignmentProblem.
+      const lai = taiKhoanLaiProblem(perms.value!) ?? laiNoiBoBenNgoaiProblem(perms.value!);
       if (lai) return problemResponse(lai);
       if (await findStaffByPhone(db, phone)) return PHONE_TAKEN();
       if (body?.taoHoSoMoi !== true) {
@@ -510,7 +511,10 @@ export const accountsModule: AppModule = {
     route("PUT", "/api/staff/:id/permissions", "accounts", async (ctx) => {
       const { request, env, staff: admin } = ctx;
       if (!can(admin, "account.edit")) return NOT_ACCOUNT_VIEW();
-      const actorIsSuper = can(admin, "admin.manage.superadmin");
+      // ADR-0083 điều 1a: đường gán quyền kiểu cũ (tài khoản chưa gán vai) chỉ Toàn quyền — Quản trị, HCNS đổi quyền bằng cách gán vai. Câu không lộ chữ
+      // "Toàn quyền" (ADR-0042: vai ẩn).
+      if (!can(admin, "admin.manage.superadmin")) return error(403, "forbidden", "Chỉ người phụ trách hệ thống mới đổi quyền theo cách cũ. Hãy gán vai cho tài khoản này.");
+      const actorIsSuper = can(admin, "admin.manage.superadmin"); // luôn true sau dòng trên; LC-4 bên dưới giữ làm lưới phòng thủ
       const db = env.DB;
       const t = await target(ctx);
       if (!t) return NOT_FOUND();
@@ -525,7 +529,7 @@ export const accountsModule: AppModule = {
       if (problem) return error(409, "account_rule", problem);
       const high = highPermissionProblem(actorIsSuper, t.permissions, next); // LC-4 (ADR-0018 điều 5), thay luật riêng cho SUPER_ADMIN
       if (high) return problemResponse(high);
-      const lai = taiKhoanLaiProblem(next); // LC-1b (ADR-0048 B2.2): tài khoản chưa gán vai đổi quyền bằng đường cũ
+      const lai = taiKhoanLaiProblem(next) ?? laiNoiBoBenNgoaiProblem(next); // LC-1b (ADR-0048 B2.2) rồi chặn lai nội bộ + bên ngoài (ADR-0083 điều 1b)
       if (lai) return problemResponse(lai);
 
       const at = new Date().toISOString();

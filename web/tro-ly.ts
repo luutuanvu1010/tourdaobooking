@@ -5,6 +5,7 @@
 // của Toàn quyền. Tệp này nạp ở MỌI trang: KHÔNG import src/shared/tro-ly.ts / huong-dan.ts (kéo cả kho tri thức vào bundle) — máy chủ gửi chữ sẵn.
 // Không innerHTML: câu trả lời hiện bằng textContent (xuống dòng giữ bằng CSS). Đoạn hội thoại trên màn hình chỉ nằm trong bộ nhớ của trang (không lưu máy);
 // máy chủ lưu câu hỏi ĐÃ CHE + câu trả lời vào lịch sử chỉ Toàn quyền xem (ADR-0069 điều 5) — khung ghi rõ cho người dùng.
+// ADR-0073 Đ4: gửi kèm mã cuộc trò chuyện (KHÔNG gửi nội dung lượt trước; mã chỉ trong bộ nhớ trang, mở khung lúc chưa có tin ⇒ mã mới); "Cuộc trò chuyện mới" xoá đoạn trên màn hình và sinh mã mới.
 // Vị trí nút: góc phải dưới, trên thanh tab điện thoại; khi thanh nút dính đáy của trang (`.form-actions`, `.vc-bottom-bar`) đè vùng của nút thì nút nâng
 // lên khỏi thanh đó (đo lúc chạy — giả định bề mặt ghi ở đặc tả, đảo ngược được).
 import { ApiError, api, type Api, type Staff } from "./api";
@@ -12,7 +13,7 @@ import { h, replaceChildren } from "./dom";
 import { icon } from "./icons";
 import { layCoTuMo } from "./tro-ly-co";
 import {
-  LE, docViTri, doiCo, ghiViTri, hopTuViTri, keo, macDinh, viTriTuHop, type Hop, type KhungNhin, type ViTri, type VungAnToan,
+  LE, docViTri, doiCo, ghiViTri, hopTuViTri, keo, macDinh, taoMaCuoc, viTriTuHop, type Hop, type KhungNhin, type ViTri, type VungAnToan,
 } from "../src/shared/tro-ly-khung";
 
 type Tin = { ai: "nguoi"; chu: string } | { ai: "tro-ly"; chu: string; nguon: string[] } | { ai: "loi"; chu: string };
@@ -24,6 +25,10 @@ const CHAO = "Chào bạn! Hỏi mình cách dùng app, ví dụ: “Đổi mã 
 const CAU_LUU = "Câu hỏi được lưu để cải thiện trợ lý — đừng gõ thông tin khách";
 const tin: Tin[] = [];
 let dangHoi = false;
+
+/** Mã cuộc trò chuyện (ADR-0073 Đ4, R5): sinh mới mỗi lần mở khung lúc chưa có tin và khi bấm "Cuộc trò chuyện mới"; chỉ nằm trong bộ nhớ trang (không lưu máy) để điều người dùng thấy = điều máy chủ nhớ. Khung KHÔNG gửi nội dung lượt trước. */
+let cuocTroChuyen: string | null = null;
+const maMoi = (): string => taoMaCuoc(crypto.getRandomValues(new Uint8Array(16)));
 
 function dongTin(t: Tin): HTMLElement {
   if (t.ai === "nguoi") return h("li", { class: "tl-tin tl-tin-nguoi" }, h("p", { class: "tl-chu" }, t.chu));
@@ -82,6 +87,7 @@ let kepKhungDangMo: (() => void) | null = null;
  */
 function moKhung(fab: HTMLElement, khung: Api.TroLyKhungResponse): void {
   if (dongKhungDangMo) return;
+  if (!tin.length || !cuocTroChuyen) cuocTroChuyen = maMoi();
   const ds = h("ol", { class: "tl-ds", "aria-live": "polite", "aria-label": "Hỏi đáp" });
   const trangThai = h("p", { class: "tl-trang-thai", role: "status" });
   const o = h("textarea", { class: "tl-o", rows: 2, maxlength: 500, placeholder: "Gõ câu hỏi về cách dùng app…", "aria-label": "Câu hỏi" });
@@ -117,13 +123,14 @@ function moKhung(fab: HTMLElement, khung: Api.TroLyKhungResponse): void {
   );
   const veGoc = h("button", { class: "btn btn-link tl-ve-goc", type: "button" }, "Về góc");
   const dong = h("button", { class: "btn btn-link tl-dong", type: "button", "aria-label": "Đóng" }, icon("close", 20));
+  const nutMoi = h("button", { class: "btn btn-link tl-cuoc-moi", type: "button" }, "Cuộc trò chuyện mới");
   const dau = h("div", { class: "tl-dau" }, co, keoThanh, veGoc, dong);
   const hop = h(
     "div",
     { id: "tl-khung", class: "tl-khung", role: "dialog", "aria-labelledby": "tl-khung-tieu-de" },
     dau,
     h("div", { class: "tl-than" }, ds, trangThai, h("p", { class: "tl-luu-y" }, "Trả lời do AI, có thể sai — đối chiếu màn hình.")),
-    h("div", { class: "tl-chan" }, form, h("p", { class: "tl-luu-y" }, CAU_LUU)),
+    h("div", { class: "tl-chan" }, form, h("p", { class: "tl-luu-y" }, CAU_LUU), nutMoi),
   );
   const doAnToan = h("div", { class: "tl-do-an-toan", "aria-hidden": "true" });
 
@@ -202,6 +209,13 @@ function moKhung(fab: HTMLElement, khung: Api.TroLyKhungResponse): void {
     ghiLuu(null);
     kepLai();
   });
+  nutMoi.addEventListener("click", () => {
+    if (dangHoi) return;
+    tin.length = 0;
+    cuocTroChuyen = maMoi();
+    veLai();
+    o.focus();
+  });
 
   const vv = window.visualViewport;
   let moi: (() => void) | null = veLai;
@@ -244,7 +258,7 @@ function moKhung(fab: HTMLElement, khung: Api.TroLyKhungResponse): void {
     dangHoi = true;
     moi?.();
     try {
-      const r = await api<Api.TroLyHoiResponse>("/api/tro-ly/hoi", { method: "POST", body: { cauHoi } satisfies Api.TroLyHoiRequest });
+      const r = await api<Api.TroLyHoiResponse>("/api/tro-ly/hoi", { method: "POST", body: { cauHoi, cuocTroChuyen } satisfies Api.TroLyHoiRequest });
       tin.push({ ai: "tro-ly", chu: r.traLoi, nguon: r.nguon });
     } catch (err) {
       // 503 chưa bật, 429 hết trần, 502 lỗi: máy chủ đã soạn câu tiếng Việt cho người dùng.

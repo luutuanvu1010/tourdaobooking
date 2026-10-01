@@ -42,7 +42,7 @@ export const ROLES: Readonly<Record<RoleCode, RoleDef>> = {
   TRAVEL_AGENCY: { name: "Công ty lữ hành", group: "EXTERNAL", defaults: ["PARTNER"], handles: "never", superAdminOnly: false },
   GUIDE_FREELANCE: { name: "Hướng dẫn viên độc lập", group: "EXTERNAL", defaults: ["PARTNER"], handles: "never", superAdminOnly: false },
   HOTEL_RECEPTION: { name: "Lễ tân khách sạn", group: "EXTERNAL", defaults: ["PARTNER"], handles: "never", superAdminOnly: false },
-  TAXI_DRIVER: { name: "Tài xế taxi", group: "EXTERNAL", defaults: ["PARTNER"], handles: "never", superAdminOnly: false },
+  TAXI_DRIVER: { name: "Tài xế taxi (giới thiệu khách)", group: "EXTERNAL", defaults: ["PARTNER"], handles: "never", superAdminOnly: false },
   COLLABORATOR: { name: "Cộng tác viên", group: "EXTERNAL", defaults: ["PARTNER"], handles: "never", superAdminOnly: false },
   // ADR-0048 D2: tài xế của nhà xe đối tác — người lái chuyến, KHÔNG phải bên đặt (ADR-0018 điều 9 sửa bởi ADR-0048): sinh DRIVER_PARTNER, không PARTNER.
   // Không đi cùng vai bên ngoài khác (LC-1b — roleAssignmentProblem). Quản trị gán được.
@@ -107,6 +107,16 @@ export function effectivePermissions(roles: readonly RoleCode[], adj: Adjustment
   const ordered = PERMISSION_CODES.filter((p) => want.has(p));
   if (groupOf(roles) !== "EXTERNAL") return { permissions: ordered, dropped: [] };
   return { permissions: ordered.filter(isExternalPermission), dropped: ordered.filter((p) => !isExternalPermission(p)) };
+}
+
+/**
+ * Chủ dự án 2026-10-01 (giữ luật "không tự đổi quyền của chính mình" — `checkAccountChange` ở máy chủ): màn Sửa tài khoản hỏi hàm này TRƯỚC khi lưu
+ * tài khoản của chính người dùng, để báo rõ và không lưu gì (trước đây tên/SĐT lưu xong rồi vai mới bị máy chủ từ chối). Đổi vai mà quyền giữ nguyên
+ * (ví dụ chuyển sang vai IT — ADR-0044) vẫn được. Máy chủ vẫn là chốt chặn.
+ */
+export function tuDoiQuyenCuaMinh(current: readonly PermissionCode[], next: Adjustments & { readonly roles: readonly RoleCode[] }): boolean {
+  const sau = effectivePermissions(next.roles, next).permissions;
+  return sau.length !== current.length || sau.some((p) => !current.includes(p));
 }
 
 export interface RoleAssignment extends Adjustments {
@@ -187,7 +197,8 @@ export function roleAssignmentProblem(a: {
   const next = effectivePermissions(a.next.roles, a.next).permissions;
   const high = highPermissionProblem(a.actorIsSuper, a.currentPermissions, next);
   if (high) return high;
-  const lai = taiKhoanLaiProblem(next);
+  // LC-1b, rồi ADR-0083 điều 1e (chủ dự án 2026-10-01 "chặn luôn"): vai nội bộ + cộng tay quyền bên ngoài = tài khoản lai — cùng câu với đường quyền cũ.
+  const lai = taiKhoanLaiProblem(next) ?? laiNoiBoBenNgoaiProblem(next);
   if (lai) return lai;
   if (next.length === 0) return { forbidden: false, message: "Tài khoản phải còn ít nhất một quyền." };
   return null;
@@ -200,6 +211,17 @@ export function roleAssignmentProblem(a: {
  */
 export function taiKhoanLaiProblem(perms: readonly PermissionCode[]): RoleProblem | null {
   return perms.includes("DRIVER_PARTNER") && perms.length > 1 ? { forbidden: false, message: "Tài khoản Tài xế đối tác không giữ thêm quyền nào khác." } : null;
+}
+
+/**
+ * ADR-0083 điều 1b — MỘT hàm thuần cho MỌI đường ghi quyền KHÔNG qua vai (PUT /api/staff/:id/permissions, POST /api/staff không vai): tập quyền không vừa có
+ * quyền bên ngoài (isExternalPermission: Đối tác, Tài xế đối tác) vừa có quyền nội bộ. Đường gán vai đã có LC-3/LC-1 riêng (roleAssignmentProblem). Máy chủ
+ * gọi SAU taiKhoanLaiProblem (LC-1b giữ câu riêng của nó). Không sửa dữ liệu đã có (điều 1c).
+ */
+export function laiNoiBoBenNgoaiProblem(perms: readonly PermissionCode[]): RoleProblem | null {
+  return perms.some(isExternalPermission) && perms.some((p) => !isExternalPermission(p))
+    ? { forbidden: false, message: "Một tài khoản không giữ cùng lúc quyền nội bộ và quyền bên ngoài (Đối tác, Tài xế đối tác) — chọn một phía." }
+    : null;
 }
 
 /** Nhãn lời thường — dùng cho nhật ký và giao diện. */

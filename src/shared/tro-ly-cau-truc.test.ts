@@ -8,6 +8,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { CAU_TU_CHOI, chiaKho, chonDoan, dinhDangDoan, dungLoiNhac, uocToken, viPhamKho, NGAN_SACH_TOKEN, type DoanTriThuc } from "./tro-ly.ts";
 import { viPhamKyThuat } from "./tro-ly-loc-ky-thuat.ts";
+import { LOI_NHAC_MAC_DINH } from "./tro-ly-bo-nao.ts";
 import { LUONG_CHINH, TEN_PHAN_HE, TEN_THAO_TAC } from "./tro-ly-cau-truc-ten.ts";
 import { MATRIX, PERMISSION_CODES, PERMISSION_LABEL } from "./permissions.ts";
 import { CAU_TRUC } from "./tro-ly-cau-truc.ts";
@@ -199,13 +200,21 @@ test("Đ5: viPhamKho áp bộ lọc tên kỹ thuật cho MỌI đoạn của kh
 // ---------------------------------------------------------------- Đ4 luật lõi số 2
 
 test("Đ4 dungLoiNhac luật 2: ĐƯỢC giải thích mức khái niệm; VẪN từ chối từng mục của ADR-0070 điều 4 bằng câu từ chối nguyên văn", () => {
-  const p = dungLoiNhac(["SALES"], []);
+  // Lời nhắc THẬT gửi đi khi chưa có bản bộ não nào = bản mặc định qua dungLoiNhac (ADR-0073 B4, B5) — sửa luật từ chối của bản mặc định ⇒ đỏ.
+  const p = dungLoiNhac(LOI_NHAC_MAC_DINH, ["SALES"], []);
+  assert.ok(p.startsWith(LOI_NHAC_MAC_DINH));
+  assert.equal(p.split("\n").filter((d) => d.startsWith("2. ")).length, 1, "đúng một luật 2");
   const luat2 = p.split("\n").find((d) => d.startsWith("2. "))!;
   for (const duoc of ["phân hệ nào lo việc gì", "vì sao phải làm bước này trước bước kia", "vì sao một vai không thấy một nút"]) assert.ok(luat2.includes(duoc), duoc);
   for (const cam of [
     "mã nguồn", "tên bảng", "cột", "hàm", "tệp", "đường dẫn API", "máy chủ", "hạ tầng", "cơ sở dữ liệu", "bí mật", "mật khẩu", "mã PIN", "khoá", "cấu hình",
     "lách quyền", "giá", "số tiền của một đơn cụ thể", "khách", "luật nội bộ",
+    "chính sách hay quy định công ty (lương, thưởng, hoa hồng, kỷ luật)",
   ]) assert.ok(luat2.includes(cam), `luật 2 thiếu "${cam}"`);
+  // Ruling điều phối 1/10: câu cách-dùng-app ngoài tài liệu đi luật 5 (mềm), KHÔNG nằm trong danh sách từ chối của luật 2 (luật 2 luôn thắng).
+  assert.ok(!luat2.includes("quy trình ngoài tài liệu"), "luật 2 không được từ chối 'quy trình ngoài tài liệu'");
+  // Fix vòng 1 (1/10): điều 2 luôn thắng ⇒ phải tự loại trừ câu cách dùng app (câu mẫu "Đổi mã PIN thế nào?" không bị từ chối). Câu này ở CUỐI điều 2.
+  assert.ok(luat2.endsWith(`"${CAU_TU_CHOI}". Danh sách này không gồm câu hỏi cách dùng app, như cách đổi mã PIN của chính mình hay xem bảng giá ở đâu trong app — trả lời theo điều 1 hoặc 5.`), luat2.slice(-200));
   assert.ok(luat2.includes(`"${CAU_TU_CHOI}"`));
   assert.equal(CAU_TU_CHOI, "Mình chỉ hướng dẫn cách dùng app, không trả lời được câu này — hỏi Quản trị nếu cần.");
 });
@@ -235,7 +244,7 @@ test("Đ6: 'Nút Lưu nháp ở đâu?' ⇒ chọn bước Lập đơn (nút th�
 test("Đ6: 'App dùng cơ sở dữ liệu gì?' ⇒ không đoạn kỹ thuật nào được chọn; lời nhắc có luật từ chối cơ sở dữ liệu", () => {
   const ds = chonDoan("App dùng cơ sở dữ liệu gì?", ["SUPER_ADMIN"]);
   for (const d of ds) assert.equal(viPhamKyThuat(`${d.ten}\n${d.chu}`), null, d.ten);
-  assert.match(dungLoiNhac(["SUPER_ADMIN"], ds), /máy chủ, hạ tầng, cơ sở dữ liệu/);
+  assert.match(dungLoiNhac(LOI_NHAC_MAC_DINH, ["SUPER_ADMIN"], ds), /máy chủ, hạ tầng, cơ sở dữ liệu/);
 });
 
 test("Đ6: kho có (d) và (e); tổng kho lớn hơn ngân sách nhưng mỗi câu chỉ gửi ≤ 6.000 token", () => {

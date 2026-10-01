@@ -51,7 +51,7 @@ Bạn không thấy các vai quản lý (Giám đốc, Điều hành chung, IT, 
 
 Bạn không đặt lại PIN của chính mình ở đây; tự đổi ở trang Tôi. Bạn chỉ quản lý được tài khoản **không có quyền Quản trị hoặc Nhân sự**; trên dòng của Quản trị khác và của Hành chính nhân sự các nút bị ẩn.
 
-> Ví dụ: Anh Tuấn gọi báo không vào được app. Dòng của anh có nhãn Bị khoá đăng nhập. Bấm Mở khoá, anh vào lại ngay.`,
+> Ví dụ: Anh Tuấn không vào được app, dòng có nhãn Bị khoá đăng nhập: bấm Mở khoá.`,
     },
     {
       tieuDe: "Danh bạ: thêm và tìm hồ sơ",
@@ -88,7 +88,8 @@ Tìm: gõ tên hoặc số điện thoại, lọc theo loại, công việc, nơ
 
 - Được cấp giấy mới: bấm [[Gia hạn]], dòng cũ giữ làm lịch sử, bấm [[Lưu gia hạn]].
 - Ghi sai: bấm [[Sửa sai]], chọn lý do, bấm [[Lưu sửa sai]].
-- Số luôn bị che. Cần xem: bấm [[Xem đủ số]] và xác nhận. Số hiện vài giây rồi tự che, hoặc bấm [[Che lại]].
+- Số luôn bị che. Chỉ người phụ trách hệ thống xem được số đầy đủ: bấm [[Xem đủ số]] và xác nhận. Số hiện vài giây rồi tự che, hoặc bấm [[Che lại]].
+- Quản trị chỉ thấy số đã che (ví dụ ••••6789), vẫn thêm, gia hạn, sửa sai được. Cần số đầy đủ (ví dụ kiểm bằng lái thật) thì nhờ người phụ trách hệ thống, hoặc xem bản giấy.
 
 > Lưu ý: mỗi lần xem đủ số đều được ghi nhật ký. Hồ sơ của Quản trị khác bạn chỉ xem, không sửa.`,
     },
@@ -166,14 +167,15 @@ Mở [[Sắp hết hạn]] (điện thoại: [[Giấy tờ sắp hết hạn]] �
 Mở [[Loại giấy tờ người]] (có cả [[Hạng giấy phép lái xe]]) hoặc [[Loại giấy tờ xe]]. Thêm: gõ mã, tên, tick [[Có ngày hết hạn]] nếu cần, thứ tự, [[Thêm]]. Sửa: [[Sửa]], [[Lưu]]. Không xoá, chỉ ngưng dùng.
 
 ### Trợ lý Hỗ trợ (chỉ Toàn quyền)
-Mở [[Trợ lý Hỗ trợ]] ở nhóm QUẢN TRỊ (điện thoại: trang **Tôi**). Năm phần, mỗi phần có [[Lưu]] riêng, hiệu lực ngay:
-1. **Tình trạng**: bật / tắt cả công ty, trần chi phí tháng, chi phí và số câu. Key chỉ hiện đã đặt hay chưa và bốn ký tự cuối; [[Thử key]] cho biết key còn dùng được, sai hay hết tiền. Đổi key làm ngoài app, không nhập trong app.
-2. **Ai được dùng**: bật / tắt theo từng vai và số câu mỗi người mỗi ngày. Tài khoản nhiều vai: dùng được khi có một vai đang bật.
-3. **Lời dặn**: câu chào, giọng trả lời, lời dặn thêm, câu hỏi mẫu. Bấm [[Lưu thành bản mới]]; trở lại bản trước: mở lịch sử bản, [[Quay lại bản này]].
-4. **Ngữ cảnh bổ sung**: gõ tiêu đề và nội dung, [[Thêm đoạn]]; bỏ tick **Đang dùng** để tắt một đoạn.
-5. **Lịch sử hỏi đáp**: lọc theo ngày, người, vai hoặc tìm chữ, [[Lọc]]. Lịch sử không xoá được.
+Mở [[Trợ lý Hỗ trợ]] ở nhóm QUẢN TRỊ (điện thoại: trang **Tôi**). Sáu phần, mỗi phần có nút lưu riêng, hiệu lực ngay:
+1. **Tình trạng**: bật / tắt cả công ty, trần chi phí tháng, chi phí, số câu, lượt thử. Key chỉ hiện đã đặt hay chưa và bốn ký tự cuối; [[Thử key]] cho biết key còn dùng được, sai hay hết tiền. Đổi key làm ngoài app.
+2. **Ai được dùng**: bật / tắt theo từng vai và số câu mỗi người mỗi ngày, [[Lưu]]. Tài khoản nhiều vai: dùng được khi có một vai đang bật.
+3. **Bộ não**: chọn mẫu AI (có giá ước tính), mức suy nghĩ, độ dài; sửa lời nhắc, [[Lưu bộ não]]. [[Khôi phục mặc định]] chỉ đưa lời nhắc gốc vào ô soạn, phải bấm [[Lưu bộ não]] thì mới có hiệu lực; mở Lịch sử bản, [[Quay lại bản này]]. Thử trước: chọn vai, gõ câu hỏi, [[Thử với cấu hình đang soạn]]; lượt thử tính vào trần chi phí tháng nhưng không tính vào số câu mỗi người mỗi ngày.
+4. **Lời dặn**: câu chào, câu hỏi mẫu, [[Lưu thành bản mới]].
+5. **Ngữ cảnh bổ sung**: gõ tiêu đề và nội dung, [[Thêm đoạn]]; bỏ tick **Đang dùng** để tắt một đoạn.
+6. **Lịch sử hỏi đáp**: lọc theo ngày, người, vai hoặc tìm chữ, [[Lọc]]. Không xoá được.
 
-Chữ tuỳ chỉnh không được có số điện thoại, email, số tiền (lưu sẽ báo lỗi). Trợ lý luôn từ chối bí mật, tiền, thông tin khách, lời dặn không bỏ được luật này.
+Chữ tuỳ chỉnh không được có số điện thoại, email, số tiền. Dù lời nhắc bị sửa, máy vẫn che số điện thoại, ẩn số tiền, giữ trần tiền và quyền xem.
 
 ### Dịch vụ nhập tay (chỉ Toàn quyền bật / tắt)
 Trang **Tôi**, khối **Dịch vụ nhập tay**: [[Bật dịch vụ nhập tay]] hoặc [[Tắt dịch vụ nhập tay]]. Mặc định tắt. Khi bật: Bán hàng, Quản trị, Toàn quyền thêm được dịch vụ gõ tên và giá tay ở form lập đơn ([[+ Dịch vụ nhập tay]]). Tài khoản có quyền Đối tác luôn không dùng được. Khi tắt: dịch vụ nhập tay đã có trên đơn vẫn giữ, chỉ xem. Văn phòng thêm dịch vụ nhập tay vào đơn nháp của Đối tác thì Đối tác không tự xác nhận được — văn phòng xác nhận thay.
@@ -233,11 +235,9 @@ Chỉ hiện ở trang Tôi của tài khoản Toàn quyền. Khi bật, mọi t
 Mở [[Chính sách điều phối]], sửa [[Mốc tối thiểu (giờ)]], [[Cảnh báo sát mốc (giờ)]], [[Khoảng nghỉ tài xế (phút)]], [[Khai lùi tối đa (phút)]], công tắc [[Phải đủ danh sách khách]]. Bấm [[Lưu thành bản mới]], có hiệu lực ngay; bản cũ vào [[Lịch sử bản]]. Liên kết [[Điều kiện theo cỡ xe, hạng bằng ›]] mở trang Điều kiện xuất bến.
 
 ### Phiên đăng nhập
-Mở [[Phiên đăng nhập]] (menu máy tính, hoặc trang Tôi trên điện thoại) để xem ai đang đăng nhập trên máy nào, cách đăng nhập, lần hoạt động gần nhất.
-1. Gõ tên vào ô [[Tìm theo tên người]]. Bỏ tick [[Chỉ phiên đang hiệu lực]] để xem cả phiên đã kết thúc.
-2. Bấm [[Gỡ phiên]]: máy đó bị đăng xuất ngay. Người có PIN vẫn đăng nhập lại được.
-3. Nghi lộ PIN hoặc mất máy: bấm [[Gỡ phiên + đặt lại PIN]]. PIN mới hiện một lần ở đầu trang, gửi riêng cho người đó.
-4. Đọc hộp xác nhận rồi bấm [[Xác nhận gỡ]] (bước 3 là [[Xác nhận gỡ và đặt lại PIN]]), hoặc [[Thôi]].
+Mở [[Phiên đăng nhập]] (điện thoại: trang **Tôi**) xem ai đang đăng nhập trên máy nào.
+- [[Gỡ phiên]]: máy đó đăng xuất ngay.
+- Nghi lộ PIN, mất máy: [[Gỡ phiên + đặt lại PIN]]; PIN mới hiện một lần, gửi riêng cho người đó.
 
 ### Nhật ký, Góp ý, hồ sơ công ty
 - [[Nhật ký]]: tìm theo mã đơn, mã dịch vụ hoặc tên nhân viên.
