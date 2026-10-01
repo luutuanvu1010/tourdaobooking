@@ -2,7 +2,9 @@
 //   AXE_JS=<…/axe/package/axe.min.js> CHROME_BIN=<…/kich-ban/chrome-wrap.sh> [OUT=<thư mục ghi ảnh>] node docs/evidence/2026-09-21-v1-0/kich-ban/v1-bao-tri.mjs
 // Phủ: mục bật/tắt ở /account (xác nhận hai bước trong trang, không window.confirm), dải "Đang ở chế độ bảo trì", lớp phủ toàn trang + đếm ngược sống + nút Đăng xuất + tự nhận ra khi chủ tắt,
 // banner ở /login, đăng nhập bị 503, tự tắt khi hết giờ dự kiến, nhật ký không chứa SĐT, axe-core. Sửa web/maintenance-screen.ts, web/api.ts (phần bảo trì), web/account.ts (mục bảo trì), web/shell.ts (dải) thì chạy lại.
-// Môi trường của A2 (D1 tạm + wrangler dev Turnstile TẮT + Chrome CDP). "Chủ" = tài khoản Toàn quyền thử `chu` (ADR-0019; được đặt vào mnt_setting.allowed_phones), "nhân viên" = salesA.
+// Môi trường của A2 (D1 tạm + wrangler dev Turnstile TẮT + Chrome CDP). "Chủ" = tài khoản Toàn quyền thử `chu`, "nhân viên" = salesA. ADR-0071 điều 3: miễn trừ bảo trì
+// theo quyền Toàn quyền, KHÔNG theo SĐT — kịch bản cố ý đặt SĐT của nhân viên (không phải của chủ) vào cột cũ mnt_setting.allowed_phones; các bước "nhân viên bị
+// chặn" vẫn phải đúng (danh sách SĐT không còn tác dụng), "chủ dùng bình thường" đúng nhờ Toàn quyền.
 import assert from "node:assert/strict";
 import { mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -50,7 +52,8 @@ const axeViolations = async (page) => {
 
 try {
   const OWNER = ACCOUNTS.chu;
-  env.sql(`UPDATE mnt_setting SET allowed_phones = '${OWNER.phone}' WHERE id = 'default'`); // chủ thử = Toàn quyền thử (ADR-0019: ô settings.ops)
+  // ADR-0071 điều 3: SĐT trong danh sách cũ KHÔNG còn được miễn — đặt số của nhân viên vào đó; các bước dưới vẫn đòi nhân viên bị chặn.
+  env.sql(`UPDATE mnt_setting SET allowed_phones = '${ACCOUNTS.salesA.phone}' WHERE id = 'default'`);
 
   // Nhân viên mở sẵn trang Tôi và gõ dở PIN — để thử "dữ liệu đang gõ không mất khi lớp phủ hiện".
   const staffPage = await asCookie(salesCookie, "/account");
