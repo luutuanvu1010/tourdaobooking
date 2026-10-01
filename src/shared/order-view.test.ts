@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { OrderItemDto, OrderServiceDto } from "./contracts.ts";
-import { catalogTag, khongQuyenSuaText, orderActions, paxFullText, serviceView, suaChuyenDuoc, type OrderActions } from "./order-view.ts";
+import { catalogTag, cauKhoaXacNhan, khongQuyenSuaText, orderActions, paxFullText, serviceView, suaChuyenDuoc, suaKhachDuoc, type OrderActions } from "./order-view.ts";
 import { can, PERMISSION_CODES, type PermissionCode } from "./permissions.ts";
 
 const NO_TRIP = { departDate: null, departTime: null, pickupTime: null, pickupPlace: null, checkinDate: null, checkinTime: null, checkinPlace: null, note: null };
@@ -148,4 +148,29 @@ test("suaChuyenDuoc khớp máy chủ ở mọi tổ hợp quyền × người l
     }
   }
   assert.equal(lech, 0);
+});
+
+// ADR-0047 Phần B (bản vẽ M3, M5): nút "Sửa danh sách" theo ô order.passenger.write — cùng cách suy phạm vi với suaChuyenDuoc; khớp máy chủ (route
+// GET/POST …/passengers, PUT /api/orders có khoá passengers) ở mọi tổ hợp.
+test("suaKhachDuoc khớp máy chủ (order.passenger.write) ở mọi tổ hợp quyền × người lập × đang phụ trách", () => {
+  let lech = 0;
+  for (let mask = 0; mask < 1 << PERMISSION_CODES.length; mask++) {
+    const permissions = PERMISSION_CODES.filter((_, i) => mask & (1 << i));
+    const viewer = { id: "toi", permissions };
+    for (const ownerId of ["toi", "khac"]) {
+      for (const assigned of [true, false]) {
+        const scope = { ownerId, assigned };
+        if (suaKhachDuoc(viewer, ownerId, can(viewer, "order.modify", scope)) !== can(viewer, "order.passenger.write", scope)) lech++;
+      }
+    }
+  }
+  assert.equal(lech, 0);
+  assert.equal(suaKhachDuoc({ id: "p", permissions: ["PARTNER"] }, "p", true), true, "Đối tác, đơn mình lập");
+  assert.equal(suaKhachDuoc({ id: "k", permissions: ["ACCOUNTING"] }, "x", false), false, "Kế toán");
+});
+
+test("cauKhoaXacNhan (D5, bản vẽ M3): câu khoá đơn đã xác nhận theo những gì người xem còn sửa được", () => {
+  assert.equal(cauKhoaXacNhan(true, true), "Đơn đã xác nhận: dịch vụ, số khách và tiền đã khoá. Chỉ sửa được thông tin chuyến, đưa đón và danh sách hành khách.");
+  assert.equal(cauKhoaXacNhan(false, true), "Đơn đã xác nhận: dịch vụ, số khách và tiền đã khoá. Chỉ sửa được danh sách hành khách.");
+  assert.equal(cauKhoaXacNhan(false, false), "Đơn đã xác nhận: dịch vụ, số khách và tiền đã khoá.");
 });

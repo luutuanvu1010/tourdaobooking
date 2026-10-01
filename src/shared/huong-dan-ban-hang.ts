@@ -41,7 +41,7 @@ Bốn tab: [[Trang chủ]], [[Đơn hàng]], [[Tạo đơn]], [[Tôi]]. Trong tr
    - Dịch vụ tính theo nhóm chỉ có một ô [[Số khách]]; app tự tính số lượt.
    - Mỗi dịch vụ tối đa 50 khách, phải có ít nhất 1 khách không phải em bé.
    - Sửa được đơn giá; dòng khác giá danh mục hiện nhãn [[Khác giá danh mục]].
-5. Bấm dòng [[Thông tin chuyến]] trên thẻ để mở ra, điền [[Giờ khởi hành]], [[Giờ đón]], [[Điểm đón]], và nếu có thì [[Ngày check-in]], [[Giờ check-in]], [[Nơi check-in]], [[Ghi chú dịch vụ]]. Khi thu gọn, dòng tóm tắt ghi giờ đón, nơi đón và giờ check-in.
+5. Phần [[Đưa đón]] trên thẻ: mỗi chặng có [[Ngày đón]], [[Giờ đón]], [[Nơi đón]], [[Nơi trả]] (chọn điểm có sẵn hoặc [[Gõ tự do…]]). Dịch vụ có mẫu đưa đón thì app tạo sẵn chiều đi (và chiều về) — sửa hoặc bỏ nếu khác; không có thì bấm [[+ Thêm đưa đón]]. Bấm dòng [[Thông tin chuyến]] để điền [[Giờ khởi hành]] và nếu có thì [[Ngày check-in]], [[Giờ check-in]], [[Nơi check-in]], [[Ghi chú dịch vụ]].
 6. Cần thêm dịch vụ khác thì lặp lại bước 3 đến 5 (tối đa 20 dịch vụ). Bấm [[Xoá]] trên thẻ để bỏ một dịch vụ.
 7. Khối [[Thanh toán]]: [[Giảm giá (₫)]], [[Thanh toán trước (₫)]], [[Hình thức]] ([[Chuyển khoản]] — mặc định, [[Tiền mặt]], [[Khác]]), [[Người nhận tiền]], [[Ghi chú thanh toán]]. Tiền trả trước được ghi vào sổ ngay sau khi lưu đơn.
 8. Khối [[Thông tin khách hàng]]: điền **Tên khách**, [[Số điện thoại]] (bắt buộc), [[Email]], [[Ghi chú / yêu cầu đặc biệt]].
@@ -128,9 +128,9 @@ Khi được dùng (sau này): cột [[Cần xử lý]] có mục "Giờ hẹn �
 
 > Ví dụ: chị Lan báo đổi đón từ 7:30 sang 8:00.
 
-1. Mở đơn → bấm [[Sửa thông tin chuyến]].
-2. Sửa [[Giờ đón]] (hoặc [[Điểm đón]], ngày khởi hành của cả đơn…).
-3. Bấm [[Lưu thông tin chuyến]].
+1. Mở đơn → ở khối [[Đưa đón]] bấm [[Sửa đưa đón]].
+2. Sửa [[Giờ đón]] (hoặc [[Nơi đón]], [[Nơi trả]] của chặng). Ngày khởi hành của cả đơn đổi ở [[Sửa thông tin chuyến]].
+3. Bấm [[Lưu]].
 4. App nhắc bản xác nhận đã gửi khách có thể lỗi thời → bấm [[Xem biên nhận]] và gửi lại ảnh mới.
 5. Tự gọi hoặc nhắn hướng dẫn viên phụ trách: app chưa tự báo cho họ khi giờ hoặc nơi đón đổi (chưa có ở bản này).
 
@@ -154,7 +154,7 @@ Sau xác nhận, dịch vụ, số khách và tiền **bị khoá** với Bán h
 
 ### Thiếu thông tin chuyến
 
-- Chưa biết giờ đón: vẫn lưu được; thẻ dịch vụ ghi "Chưa có giờ / nơi đón". Bổ sung sau bằng [[Sửa]] (đơn chờ xác nhận) hoặc [[Sửa thông tin chuyến]] (đơn đã xác nhận).
+- Chưa biết giờ đón: vẫn lưu được; chặng ghi "Chưa chốt giờ". Bổ sung sau bằng [[Sửa]] (đơn chờ xác nhận) hoặc [[Sửa đưa đón]] (đơn đã xác nhận).
 - Ngày khởi hành đã qua hoặc quá 365 ngày: app cho lưu nhưng báo chưa thể xác nhận.
 - Giờ đón sau giờ khởi hành: app nhắc kiểm tra lại.
 

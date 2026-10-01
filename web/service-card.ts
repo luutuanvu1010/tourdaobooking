@@ -3,7 +3,7 @@
 // và không ghi đè ô đang có focus (gõ tiếng Việt kiểu Telex/VNI không bị ngắt).
 import { PAX_LABEL, type PaxCode } from "../src/shared/order-lines";
 import {
-  addManualLine, cardCodes, draftIssues, draftSubtotal, groupInfo, guestDetail, isFrozenManual, isLocked, previewLines, removeManualLine, setGuests, setManualLine, setPax, setUnitPrice, unitLabel,
+  addManualLine, cardCodes, draftIssues, soKhachNhap, draftSubtotal, groupInfo, guestDetail, isFrozenManual, isLocked, previewLines, removeManualLine, setGuests, setManualLine, setPax, setUnitPrice, unitLabel,
   type CatalogDraft, type ManualDraft, type ServiceDraft,
 } from "../src/shared/service-form";
 import { tripSummaryLine, tripWarnings } from "../src/shared/trip-form";
@@ -14,6 +14,8 @@ import { parseMoney, vnd } from "./format";
 import { icon } from "./icons";
 import { moneyInput, setMoneyValue } from "./money-input";
 import { tripFields } from "./trip-fields";
+import { taoKhoiDuaDon, type DiemChon } from "./khoi-dua-don";
+import type { MauChang } from "../src/shared/chang-mac-dinh";
 
 export interface CardOptions {
   draft: ServiceDraft;
@@ -32,6 +34,8 @@ export interface CardOptions {
   retailOnly?: boolean;
   /** ADR-0061: người dùng ĐƯỢC nhập tay (`duocDung` của máy chủ) — thẻ nhập tay đã lưu sửa được tên/giá; vắng/false = chỉ xem (máy chủ vẫn kiểm lại). */
   duocNhapTay?: boolean;
+  /** Khối "Đưa đón" (ADR-0047 Phần B, bản vẽ M1/M6): ngày đi của cả đơn, mẫu chặng của dịch vụ, điểm danh mục, ô số người chiều về (văn phòng). */
+  duaDon: { ngayDi: () => string; mau: () => MauChang | null; diem: () => readonly DiemChon[]; suaSoVe: boolean; newKey: () => string };
 }
 
 export interface ServiceCard {
@@ -86,6 +90,11 @@ export function createServiceCard(o: CardOptions): ServiceCard {
   const remove = h("button", { type: "button", class: "btn btn-link danger svc-remove", "aria-label": "Xoá dịch vụ" }, "Xoá");
   remove.addEventListener("click", () => o.onRemove());
 
+  const duaDon = taoKhoiDuaDon({
+    legs: draft.legs, taoSan: draft.taoSan, che: "form", ma: draft.key, ...o.duaDon, soKhach: () => soKhachNhap(draft),
+    onChange: (legs, taoSan) => commit({ ...draft, legs, taoSan }),
+  });
+
   const summaryEl = h("span", { class: "trip-summary" });
   const fields = tripFields({ trip: draft.trip, onChange: (trip) => commit({ ...draft, trip }), noDepartDate: true }); // ngày khởi hành chọn một lần cho cả đơn (ADR-0021)
   const tripDetails = h("details", { class: "trip" }, h("summary", null, h("span", { class: "trip-title" }, "Thông tin chuyến"), summaryEl), fields.root);
@@ -98,6 +107,7 @@ export function createServiceCard(o: CardOptions): ServiceCard {
     body,
     h("div", { class: "svc-sum" }, h("span", null, "Tổng dịch vụ"), totalEl),
     issuesEl,
+    duaDon.root,
     tripDetails,
     warningsEl,
   );
@@ -305,13 +315,16 @@ export function createServiceCard(o: CardOptions): ServiceCard {
     const tooMany = issues.some((i) => i.code === "too_many_guests");
     counters.forEach((c) => c.setInvalid(tooMany));
     guestCounter?.setInvalid(tooMany);
-    const shown = issuesVisible ? issues : issues.filter((i) => i.code === "too_many_guests");
+    // Lỗi chặng hiện ngay dưới ô của chặng (khối Đưa đón) — không lặp ở dải lỗi của thẻ.
+    const shown = (issuesVisible ? issues : issues.filter((i) => i.code === "too_many_guests")).filter((i) => i.code !== "leg");
     replaceChildren(issuesEl, ...shown.map((i) => h("p", { class: "field-error" }, icon("alert", 16), i.message)));
 
     const s = tripSummaryLine(d.trip);
     summaryEl.textContent = s.text;
     summaryEl.classList.toggle("warn", s.warn);
-    replaceChildren(warningsEl, ...tripWarnings(d.trip, o.today).map((w) => h("p", { class: "svc-warn" }, icon("alert", 16), w.message)));
+    // "Giờ đón sau giờ khởi hành": giờ đón nay ở chặng — so giờ của chiều đi sớm nhất có giờ.
+    const gioDi = d.legs.filter((l) => l.direction === "OUT" && l.pickupTime !== "").map((l) => l.pickupTime).sort()[0] ?? "";
+    replaceChildren(warningsEl, ...tripWarnings({ ...d.trip, pickupTime: gioDi }, o.today).map((w) => h("p", { class: "svc-warn" }, icon("alert", 16), w.message)));
     fields.sync(d.trip);
   }
 
@@ -338,14 +351,17 @@ export function createServiceCard(o: CardOptions): ServiceCard {
     root,
     update(d) {
       const before = structKey(draft, o.duocNhapTay === true);
+      const legsDoi = d.legs !== draft.legs || d.taoSan !== draft.taoSan;
       draft = d;
       if (structKey(d, o.duocNhapTay === true) !== before) rebuildBody();
+      if (legsDoi) duaDon.update(d.legs, d.taoSan);
       refresh();
       refreshLimits(); // thân có thể vừa được dựng lại: nút "+ Thêm dòng" mới mặc định bật
     },
     refreshLimits,
     showIssues(show) {
       issuesVisible = show;
+      duaDon.showIssues(show);
       refresh();
     },
     reveal() {

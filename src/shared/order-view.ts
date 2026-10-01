@@ -126,3 +126,20 @@ export function suaChuyenDuoc(viewer: PermissionHolder, ownerId: string, canModi
   if (!canModify) return false;
   return can(viewer, "order.trip.edit", { ownerId, assigned: ownerId !== viewer.id });
 }
+
+/**
+ * ADR-0047 Phần B (bản vẽ M3, M5): người xem có nhập / sửa / huỷ được DANH SÁCH HÀNH KHÁCH của đơn này không (ô `order.passenger.write`). Cùng cách suy phạm vi
+ * với `suaChuyenDuoc` (từ `canModify` của máy chủ); bài order-view.test.ts thử mọi tổ hợp quyền để ghim rằng bằng đúng điều máy chủ quyết.
+ */
+export function suaKhachDuoc(viewer: PermissionHolder, ownerId: string, canModify: boolean): boolean {
+  if (!canModify) return false;
+  return can(viewer, "order.passenger.write", { ownerId, assigned: ownerId !== viewer.id });
+}
+
+/** Câu khoá của đơn đã xác nhận theo những gì người xem còn sửa được (D5 — bản vẽ M3: câu cũ hứa "chỉ sửa được thông tin chuyến"). */
+export function cauKhoaXacNhan(suaChuyen: boolean, suaKhach: boolean): string {
+  const goc = "Đơn đã xác nhận: dịch vụ, số khách và tiền đã khoá.";
+  if (suaChuyen) return `${goc} Chỉ sửa được thông tin chuyến, đưa đón và danh sách hành khách.`;
+  if (suaKhach) return `${goc} Chỉ sửa được danh sách hành khách.`;
+  return goc;
+}

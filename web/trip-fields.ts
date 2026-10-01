@@ -1,4 +1,4 @@
-// Tám ô thông tin chuyến của MỘT dịch vụ (đặc tả 5.1/5.3): dùng ở thẻ dịch vụ của form và ở bảng "Sửa thông tin chuyến" của trang đơn.
+// Các ô thông tin chuyến của MỘT dịch vụ (khởi hành, check-in, ghi chú) (đặc tả 5.1/5.3): dùng ở thẻ dịch vụ của form và ở bảng "Sửa thông tin chuyến" của trang đơn.
 import type { TripInput } from "../src/shared/contracts";
 import { h } from "./dom";
 
@@ -32,10 +32,7 @@ export function tripFields(o: { trip: TripInput; onChange: (next: TripInput) => 
     h("p", { class: "trip-group" }, "Khởi hành"),
     !o.noDepartDate && field("departDate", "date", o.dateLabel ?? "Ngày khởi hành"),
     field("departTime", "time", "Giờ khởi hành"),
-    h("p", { class: "trip-group" }, "Đón khách"),
-    field("pickupTime", "time", "Giờ đón"),
-    h("span", null),
-    field("pickupPlace", "text", "Điểm đón", { wide: true }),
+    // ADR-0047 Phần B (bản vẽ M1, M4; D4): "Giờ đón / Điểm đón" bỏ khỏi đây — giờ, nơi đón / trả nay ở khối "Đưa đón" (từng chặng).
     h("p", { class: "trip-group" }, "Check-in"),
     field("checkinDate", "date", "Ngày check-in", { hint: "Để trống = cùng ngày khởi hành." }),
     field("checkinTime", "time", "Giờ check-in"),
