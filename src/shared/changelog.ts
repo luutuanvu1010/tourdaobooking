@@ -11,11 +11,13 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
-    // Khung Hỗ trợ: biểu tượng đổi cỡ, bong bóng "đang trả lời", chữ gợi ý; ô thử báo riêng khi mẫu AI hết token cho phần suy nghĩ. Không migration.
+    // Khung Hỗ trợ: biểu tượng đổi cỡ, bong bóng "đang trả lời", chữ gợi ý; ô thử báo riêng khi mẫu AI hết token cho phần suy nghĩ.
+    // ADR-0084 (trợ lý Mai gọi tên, ô Giới tính): có migration 0064 (số tạm — 0061, 0063 ở nhánh khác).
     // Số "1.57" = 1.56 + 1 lúc thi công (2026-10-01); nhánh khác gộp trước thì đánh lại số.
     version: "1.57",
     date: "2026-10-01",
     items: [
+      { kind: "moi", text: "Trợ lý tên Mai: chào và gọi bạn theo tên, xưng \"anh/chị\" theo ô Giới tính mới trong hồ sơ người (chưa ghi thì gọi \"bạn\")." },
       { kind: "moi", text: "Khung Hỗ trợ: khi bạn gửi câu hỏi, hiện ngay ba chấm nhấp nháy kèm chữ \"Mai đang trả lời…\" cho đến khi có câu trả lời." },
       { kind: "doi", text: "Khung Hỗ trợ: nút đổi cỡ đổi sang biểu tượng hai mũi tên chéo, ô gõ ghi \"Hãy hỏi Mai tại đây nhé!\"." },
       { kind: "doi", text: "Khung Hỗ trợ bỏ hai dòng nhắc nhỏ (vẫn có ở Trợ giúp). Nút \"Về góc\" trả cả vị trí lẫn cỡ về mặc định và nháy viền để biết đã nhận." },
