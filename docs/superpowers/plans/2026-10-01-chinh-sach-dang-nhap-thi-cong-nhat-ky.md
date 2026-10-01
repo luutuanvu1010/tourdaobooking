@@ -73,6 +73,15 @@
   Sổ hàng rào: viết lại dòng "Mất nhiều máy khi đổi quyền/vai…" (cơ chế = thứ tự lô; ghi chú: chỉ route permissions có bài đua + đột biến, route đổi vai dựa vào kỷ luật + đọc mã; lô hai không nguyên tử, R-AUT-SESSION-3 thấy); thêm đoạn ADR-0085 Q3 vào dòng ADR-0046; thêm bốn dòng mới: ô `auth.session.policy` (+ chỗ giao diện "dựa vào kỷ luật / kịch bản Chrome", KHÔNG có ngày chặn bằng máy), lưu all-or-nothing (lưới chính = chỉ mục; `CASE changes() > 0` là lớp hai, bỏ riêng nó vẫn xanh), khôi phục `finally` của e2e, `R-AUT-SESSION-3` (cảnh báo, không chặn).
 - Task 10, chạy đủ (máy rảnh sau khi một lượt e2e của phiên khác ở checkout gốc kết thúc): `npm run typecheck` 0 lỗi; `npm test` 2646/2646 + bài đo giờ hook 1/1 xanh (thoát 0); `npm run build:web` xong; `npm run test:e2e` đủ bộ **38/38 xanh** (339 giây, 3 nhóm; ba nhóm audit-invariants có R-AUT-SESSION-3); `node scripts/audit-invariants.mjs --db local` **KHÔNG chạy được (thoát 2)** — D1 local chung của máy đã áp dở (`npm run db:migrate:local` báo `table aut_session already exists`, nhãn số cũ 0061→0065), không phải dữ liệu sạch; bất biến đã được kiểm trên ba D1 tạm của e2e (đuôi `audit-invariants` xanh). Không sửa D1 local.
 
+### Đợt sửa sau kiểm độc lập cuối (2026-10-01)
+
+**Kết luận kiểm độc lập cuối: ĐẠT CÓ ĐIỀU KIỆN — I1, I2, M1 + đợt sửa** (các mục nhỏ M2, chú thích repository/auth/accounts, `catch` của `xacNhan`). Không làm: M3, M4, M6 (trình chủ).
+
+- I2 (gộp `main`): gộp `main` vào nhánh (main đi trước 45 commit, đã có 1.62 + 1.63); xung đột 4 tệp (`docs/SO-HANG-RAO.md`, `src/shared/app-info.test.ts`, `src/shared/changelog.ts`, `tests/e2e/run.mjs`) giải bằng giữ cả hai phía; `chinh-sach-phien` ngay trước `phien`; **số bản mới 1.64** (= main 1.63 + 1). `main` chưa có `0067_*` ⇒ `0067_aut_session_policy.sql` giữ số. Trần Trợ giúp A4 đo lại: Quản trị 3148/3150 (không đổi), Bán hàng 3027. Sau gộp: `npm run typecheck` 0 lỗi; `npm test` 2684/2684 + bài đo giờ 1/1.
+- I1 (bài đua route đổi vai): bài mới "AC8, route đổi vai" ở `src/modules/accounts/mat-mien-route.test.ts` (cùng khuôn `ngungGiuaChung`). Quan sát chặn thật **2026-10-01**, đột biến "câu phiên vào lô ĐẦU ở route đổi vai" (nhánh có câu chốt: `...phien.statements` nối cuối lô quyền, `cuoi = results`, lô vai sau chỉ còn `roleStatements`) ⇒
+  `not ok 8 - ADR-0085 §6 quy tắc 4 (AC8, route đổi vai): 'ADMIN = Nhiều máy', đổi vai làm mất ADMIN mà câu chốt TRONG LÔ thua → 409, KHÔNG phiên nào kết thúc`
+  (lỗi: `ended_at` của phiên ADM khác `null`). Khôi phục từ bản sao `/Users/tuanbao/.claude/jobs/d451e7d2/tmp/final-fix-I1-accounts-index.ts.bak` → xanh 8/8.
+
 ## Câu chờ chủ (Task 10 Step 4 — KHÔNG tự quyết)
 
 1. **Đề xuất dòng bẫy cho `CLAUDE.md` §10 (N9 — chỉ đề xuất, chưa sửa tệp luật):**
@@ -85,4 +94,4 @@
 ```
 2. **Số bản 1.64 (trước 1.62) + migration 0067**: kiểm lại lúc gộp (main có thể đã đi tiếp).
 3. **Số "đăng xuất N máy của M người" trong nhật ký**: hiện là số ước lượng đếm NGAY TRƯỚC lô (nhật ký nhận chuỗi cố định, lệch số thật chỉ khi có đăng nhập chen giữa → log `session_policy_count_drift`); đặc tả §4.2 bước 2 nói số THỰC. Lựa chọn bề mặt đổi được; chủ quyết giữ hay đổi.
-4. **Hai hở có tên đã ghi ở sổ hàng rào, chờ chủ biết:** (a) chỗ giao diện `can(staff, "auth.session.policy")` ở `web/sessions.ts` chỉ có kịch bản Chrome canh, không có bài máy; (b) route đổi vai (`PUT /api/staff/:id/roles`) chưa có bài đua riêng cho thứ tự lô; (c) lớp hai `CASE WHEN changes() > 0` chưa có bài chỉ đỏ khi riêng nó mất.
+4. **Hai hở có tên đã ghi ở sổ hàng rào, chờ chủ biết:** (a) chỗ giao diện `can(staff, "auth.session.policy")` ở `web/sessions.ts` chỉ có kịch bản Chrome canh, không có bài máy; (b) ~~route đổi vai (`PUT /api/staff/:id/roles`) chưa có bài đua riêng cho thứ tự lô~~ — ĐÃ ĐÓNG ở đợt sửa sau kiểm độc lập cuối (I1, bài `not ok 8`); (c) lớp hai `CASE WHEN changes() > 0` chưa có bài chỉ đỏ khi riêng nó mất.

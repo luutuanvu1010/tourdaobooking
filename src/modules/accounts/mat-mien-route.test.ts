@@ -176,3 +176,25 @@ test("ADR-0085 Q2 điều 7: bỏ Toàn quyền + ADMIN bị câu chốt TRONG L
   assert.deepEqual(w.q("SELECT id, single, ended_at, updated_at FROM aut_session WHERE staff_id = ? ORDER BY id", SUP2), truoc);
   assert.equal((await callWith(w, tk, "GET", "/api/auth/me")).status, 200);
 });
+
+// Kiểm độc lập cuối I1: route ĐỔI VAI cũng có câu chốt "quản trị viên cuối" (gỡ ADMIN) — câu phiên đi cùng lô vai (lô thứ hai), chỉ khi câu chốt đã thắng.
+// Cùng kỹ thuật bài AC8: quản trị viên kia bị ngưng GIỮA lời kiểm trước và lô ⇒ câu chốt trong lô thua ⇒ 409, không phiên nào kết thúc.
+test("ADR-0085 §6 quy tắc 4 (AC8, route đổi vai): 'ADMIN = Nhiều máy', đổi vai làm mất ADMIN mà câu chốt TRONG LÔ thua → 409, KHÔNG phiên nào kết thúc", async () => {
+  const { w } = setup();
+  datChinhSach(w, "ADMIN", 1);
+  seedStaff(w.sqlite, { id: ADM2, phone: "0900000004", name: "Quản trị Hai", perms: ["ADMIN"] });
+  const tk = await w.token(ADM);
+  assert.equal(w.q("SELECT single FROM aut_session WHERE id = ?", maPhien(tk))[0].single, 0, "Quản trị nhiều máy theo chính sách");
+  mayKhac(w, "may-hai", ADM, 0);
+  await w.token(SUP); // phiên của người gọi cấp TRƯỚC khi bọc lô
+  const truoc = w.q("SELECT id, single, ended_at, updated_at FROM aut_session WHERE staff_id = ? ORDER BY id", ADM);
+  assert.equal(truoc.length, 2);
+  const chen = ngungGiuaChung(w, ADM2);
+  const r = await w.call("PUT", `/api/staff/${ADM}/roles`, { as: SUP, body: { roles: ["SALES_STAFF"] } });
+  chen.traLai();
+  assert.equal(r.status, 409, r.text);
+  assert.ok(chen.st.daChen, "lô đổi quyền của route đổi vai đã chạy (chèn ngưng giữa chừng có tác dụng)");
+  assert.ok(!coLoPhien(chen.st.loSau), `lô phiên không được chạy khi câu chốt thua: ${JSON.stringify(chen.st.loSau)}`);
+  assert.deepEqual(w.q("SELECT id, single, ended_at, updated_at FROM aut_session WHERE staff_id = ? ORDER BY id", ADM), truoc);
+  assert.equal((await callWith(w, tk, "GET", "/api/auth/me")).status, 200);
+});
