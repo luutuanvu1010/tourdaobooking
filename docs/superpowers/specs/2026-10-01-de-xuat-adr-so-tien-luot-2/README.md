@@ -4,7 +4,7 @@
 - **Trạng thái:** bản nháp đã commit ở `a434dc08`; **người kiểm độc lập vòng 1: ĐẠT CÓ ĐIỀU KIỆN** (4 CAO, 11 VỪA, 6 THẤP) — **đã sửa theo cả 21 mục** (bản sửa chưa commit, **chưa được kiểm lại**). Bước tiếp: người kiểm vòng 2 → trình chủ theo bốn lượt dưới đây.
 - **Vì sao có:** chủ 1/10 xếp "phân hệ theo dõi tiền (đại lý đối tác và HDV tại cảng nợ công ty và/hoặc ngược lại)" vào phần **bắt buộc để xe chạy**, và chọn **U3** (ghi nợ từng đơn, chốt tháng, bù trừ, khoá sổ tháng) + **U4** (đối tác xem sổ của mình) — `docs/superpowers/specs/2026-10-01-uu-tien-xe-chay-quyet-dinh.md`. Hôm nay đơn của đại lý **bị chặn "Đã giao"** ở **hai lớp**: mã (`src/modules/billing/rules.ts:179-181`) và câu SQL của `orders` (`src/modules/orders/hoan-tat-repo.ts:16`, `:76`) — ADR-0026 M1 = A.
 - **Mốc mã:** nhánh `worktree-doi-chieu-phieu-giam-doc` @`8f647226`; `main` @`0c4309cd` (bản 1.50).
-- **Cập nhật 2026-10-01 tối:** người kiểm ĐẠT vòng 3; chủ trả lời **C1–C13 = A** ("cả 13 theo khuyến nghị" — `cau-hoi-chu.md`). Bước tiếp: trình **lượt 2a**. Số ADR dự kiến (chốt lúc gộp): **0077–0081** cho A–E (0073 trợ lý, 0074–0075 đã có nhánh khác giữ, 0076 dành cho ADR nơi trả mặc định); migration từ **0060**.
+- **Cập nhật 2026-10-01 tối:** người kiểm ĐẠT vòng 3; chủ trả lời **C1–C13 = A** ("cả 13 theo khuyến nghị" — `cau-hoi-chu.md`). **Lượt 2a (ADR-A) CHỦ ĐÃ DUYỆT 2026-10-01** (hộp chọn "Duyệt lượt 2a"). Bước tiếp: trình **lượt 2b**. Số ADR dự kiến (chốt lúc gộp): **0077–0081** cho A–E (0073 trợ lý, 0074–0075 đã có nhánh khác giữ, 0076 dành cho ADR nơi trả mặc định); migration từ **0060**.
 - **Xây trên lỗ đang hở:** **không** (`docs/quyen-hoan.json` `phat_hien = []` ở `main` @`0c4309cd`, đọc 1/10).
 
 ## Số hiệu
