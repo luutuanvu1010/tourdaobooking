@@ -4,7 +4,7 @@
 - **Ngày:** 2026-10-01 (soạn và duyệt).
 - **Thuộc gói:** đặc tả `docs/superpowers/specs/2026-10-01-xac-thuc-hai-lop-dac-ta.md` (§5b, trang ghép §13) + ADR-0074 + ADR này (trần 3).
 - **Số:** 0075 (bản nháp viết 0072, đổi số khi gộp main 1.52 — xem ADR-0074).
-- **Mốc mã:** `main` = `4fb2c320` (bản 1.52). Cùng migration số tạm `0058` với ADR-0074 — khi thi công Phần A (2026-10-01) thành `0061_aut_session.sql` (0058/0059 đã dùng ở `main`, 0060 ở nhánh trợ lý).
+- **Mốc mã:** `main` = `4fb2c320` (bản 1.52). Cùng migration số tạm `0058` với ADR-0074 — khi thi công Phần A (2026-10-01) thành `0061_aut_session.sql` (0058/0059 đã dùng ở `main`, 0060 ở nhánh trợ lý); khi gộp `main` 1.57 đổi lần nữa thành **`0065_aut_session.sql`** (`main` đã tới 0063, 0064 do nhánh `tro-ly-mai` giữ).
 - **Xây trên lỗ đang hở:** **không có** (`docs/quyen-hoan.json` `phat_hien` = `[]`, 2026-10-01).
 - **Liên quan:** ADR-0074 (lớp hai), ADR-0016 (Face ID), ADR-0036/0046 (thông báo màn hình khoá, tắt khi thao tác bảo mật), ADR-0038/0044 (Toàn quyền, vai IT, nhật ký im lặng), ADR-0072 điều 2 (vai IT giữ Quản trị + Toàn quyền), ADR-0042 (đặt lại PIN), Hiến chương K1, 5.12.
 
