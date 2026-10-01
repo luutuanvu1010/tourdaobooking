@@ -619,7 +619,7 @@ test("trien-khai (7403): cổng chỉ-đọc gặp 7403 MỘT lần → chờ r�
   const h = harness(tkScript({ [LIST]: [LOI_7403, out(LIST_0023)] }), ["c", "c"]);
   assert.equal(await lib.trienKhai({ ...h.deps, now: NOW, sleep: async (ms: number) => void slept.push(ms) }), 0);
   assert.equal(h.calls.filter((c) => c === LIST).length, 2);
-  assert.equal(slept.length >= 1, true);
+  assert.deepEqual(slept.filter((ms) => ms === 5_000).length, 1, `chờ đúng 5 giây một lần: ${slept.join(",")}`);
   assert.match(h.text(), /7403/);
 });
 
@@ -636,4 +636,22 @@ test("trien-khai (7403): gặp 7403 HAI lần → DỪNG, câu tiếng Việt ch
   const h2 = harness(tkScript({ [LIST]: FAIL }));
   assert.notEqual(await lib.trienKhai({ ...h2.deps, now: NOW, sleep: async () => {} }), 0);
   assert.equal(h2.calls.filter((c) => c === LIST).length, 1, "lỗi không phải 7403 (mất mạng…) → không thử lại");
+});
+
+test("trien-khai (7403): lỗi 7403 có chèn mã màu ANSI vẫn được nhận ra và thử lại", async () => {
+  const mau: RunResult = { code: 1, stdout: "", stderr: "\x1b[31m✘ [ERROR]\x1b[0m The given account is not valid or is not \x1b[1mauthorized\x1b[0m to access this service [code: \x1b[1m7403\x1b[0m]\n" };
+  const h = harness(tkScript({ [LIST]: [mau, out(LIST_0023)] }), ["c", "c"]);
+  assert.equal(await lib.trienKhai({ ...h.deps, now: NOW, sleep: async () => {} }), 0);
+  assert.equal(h.calls.filter((c) => c === LIST).length, 2);
+});
+
+test("trien-khai (7403): bước GHI gặp 7403 (áp migration, deploy) → KHÔNG BAO GIỜ tự thử lại, dừng", async () => {
+  const h = harness(tkScript({ [APPLY]: LOI_7403 }), ["c"]);
+  assert.notEqual(await lib.trienKhai({ ...h.deps, now: NOW, sleep: async () => {} }), 0);
+  assert.equal(h.calls.filter((c) => c === APPLY).length, 1);
+  assert.ok(!h.calls.includes(DEPLOY));
+
+  const h2 = harness(tkScript({ [DEPLOY]: LOI_7403 }), ["c", "c"]);
+  assert.notEqual(await lib.trienKhai({ ...h2.deps, now: NOW, sleep: async () => {} }), 0);
+  assert.equal(h2.calls.filter((c) => c === DEPLOY).length, 1);
 });

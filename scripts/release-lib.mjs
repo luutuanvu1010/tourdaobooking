@@ -207,7 +207,7 @@ const POST_GATE_RETRY_MS = 20_000;
 const realSleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 /** Lỗi Cloudflare 7403 ("The given account is not valid or is not authorized to access this service"). */
 const LOI_7403 = /\[code: 7403\]|not authorized to access this service/i;
-const is7403 = (r) => LOI_7403.test(`${r.stdout ?? ""}\n${r.stderr ?? ""}`);
+const is7403 = (r) => LOI_7403.test(`${r.stdout ?? ""}\n${r.stderr ?? ""}`.replace(ANSI, ""));
 /** Chờ trước khi thử lại cổng chỉ-đọc gặp 7403. */
 const RETRY_7403_MS = 5_000;
 
