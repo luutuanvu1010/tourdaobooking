@@ -17,6 +17,9 @@ const SU_KIEN = '{"event":"tro_ly_van_nghia_loi"}';
 const fetchThat = globalThis.fetch;
 // Bộ nhớ isolate sống theo tiến trình — mỗi bài một CSDL mới nên phải xoá, kẻo bài sau thấy véc-tơ của bài trước và không tính bù.
 afterEach(() => { globalThis.fetch = fetchThat; xoaBoNhoVanNghia(); });
+// Bài cố ý làm Embeddings lỗi mà không thu log (vd. L2) ⇒ nuốt riêng dòng sự kiện dự kiến; bài cần soi log thì thu bằng `batLog()` (thay console.error tạm thời).
+const errGoc = console.error;
+console.error = (...a: unknown[]) => { if (a.length === 1 && a[0] === '{"event":"tro_ly_van_nghia_loi"}') return; errGoc(...a); };
 
 interface Goi { url: string; body: Record<string, unknown> }
 interface TuyChon { nhung?: "ok" | "loi" | "nem" | "sai_chieu" | "lo_loi"; usageNhung?: number | null; chu?: string }

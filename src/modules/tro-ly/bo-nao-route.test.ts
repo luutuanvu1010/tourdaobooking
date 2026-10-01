@@ -18,6 +18,9 @@ const CUOC2 = "9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d";
 interface GoiGia { body: Record<string, unknown> }
 const fetchThat = globalThis.fetch;
 afterEach(() => { globalThis.fetch = fetchThat; });
+// Máy giả TẮT /v1/embeddings ⇒ mỗi câu lùi về từ khoá và máy chủ ghi đúng một dòng sự kiện này (ADR-0082 Đ4) — dự kiến, không phải lỗi; nuốt riêng dòng đó cho đầu ra sạch.
+const errGoc = console.error;
+console.error = (...a: unknown[]) => { if (a.length === 1 && a[0] === '{"event":"tro_ly_van_nghia_loi"}') return; errGoc(...a); };
 
 /** OpenAI giả: ghi thân mọi yêu cầu; trả `chu` (mặc định: câu có dòng Nguồn = đoạn đầu của khối TÀI LIỆU cuối). */
 function openAiGia(tuyChon: { chu?: string; usage?: Record<string, unknown>; status?: number } = {}): GoiGia[] {

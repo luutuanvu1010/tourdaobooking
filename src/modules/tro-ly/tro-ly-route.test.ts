@@ -18,6 +18,9 @@ const DAU = "MOC-KHONG-DUOC-LO-7Q"; // dấu nhận diện nội dung câu hỏi
 interface GoiGia { url: string; headers: Record<string, string>; body: Record<string, unknown> }
 const fetchThat = globalThis.fetch;
 afterEach(() => { globalThis.fetch = fetchThat; });
+// Máy giả TẮT /v1/embeddings ⇒ mỗi câu lùi về từ khoá và máy chủ ghi đúng một dòng sự kiện này (ADR-0082 Đ4) — dự kiến, không phải lỗi; nuốt riêng dòng đó cho đầu ra sạch.
+const errGoc = console.error;
+console.error = (...a: unknown[]) => { if (a.length === 1 && a[0] === '{"event":"tro_ly_van_nghia_loi"}') return; errGoc(...a); };
 
 /** OpenAI giả: ghi lại mọi yêu cầu; trả câu trả lời có dòng Nguồn lấy tên đoạn đầu tiên của khối tài liệu (không có đoạn nào ⇒ không dòng Nguồn). */
 function openAiGia(tuyChon: { status?: number; usage?: Record<string, unknown> | null; chu?: string; nem?: boolean } = {}): GoiGia[] {
