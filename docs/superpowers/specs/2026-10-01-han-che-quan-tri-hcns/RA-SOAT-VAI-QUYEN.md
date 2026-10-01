@@ -48,3 +48,7 @@ Báo cáo của trợ lý chỉ-đọc, đọc trên `main` 0c4309cd. Chủ dự
 | Tài xế đối tác | DRIVER_PARTNER |
 
 Chi tiết từng ô bảng quyền theo mã quyền: xem `src/shared/permissions.ts` MATRIX.
+
+## Kết quả rà tài khoản mang vai Giám đốc (ADR-0072 điều 3) — 2026-10-01
+
+Chủ dự án tự chạy lệnh chỉ đọc trên D1 thật: **1 tài khoản** mang vai Giám đốc, đang hoạt động, quyền hiện có **chỉ `ADMIN`** (không có `SUPER_ADMIN`). Không cần bước gỡ hay cộng tay nào; sau khi áp ADR-0072 quyền của tài khoản này không đổi.
