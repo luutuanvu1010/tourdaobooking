@@ -125,8 +125,6 @@ const SS_FIND_LIVE = defineSql("auth", "session_find_live",
   `SELECT ${SS_COLS} FROM aut_session WHERE id = ?1 AND staff_id = ?2 AND ended_at IS NULL AND expires_at > ?3`);
 const SS_TOUCH = defineSql("auth", "session_touch",
   "UPDATE aut_session SET last_seen_at = ?2, updated_at = ?2 WHERE id = ?1 AND ended_at IS NULL AND last_seen_at < ?3");
-const SS_LIVE_IDS = defineSql("auth", "session_live_ids",
-  "SELECT id FROM aut_session WHERE staff_id = ?1 AND ended_at IS NULL");
 const SS_LIST_MINE = defineSql("auth", "session_list_mine",
   `SELECT ${SS_COLS} FROM aut_session WHERE staff_id = ?1 ORDER BY created_at DESC LIMIT 30`);
 const SS_LIST_ALL = defineSql("auth", "session_list_all",
@@ -149,9 +147,6 @@ export const findLiveSession = (db: D1Database, id: string, staffId: string, now
   db.prepare(SS_FIND_LIVE).bind(id, staffId, nowIso).first<SessionRow>();
 export const touchSessionStatement = (db: D1Database, id: string, nowIso: string, staleBeforeIso: string): D1PreparedStatement =>
   db.prepare(SS_TOUCH).bind(id, nowIso, staleBeforeIso);
-export async function liveSessionIds(db: D1Database, staffId: string): Promise<string[]> {
-  return (await db.prepare(SS_LIVE_IDS).bind(staffId).all<{ id: string }>()).results.map((r) => r.id);
-}
 export async function listMySessions(db: D1Database, staffId: string): Promise<SessionRow[]> {
   return (await db.prepare(SS_LIST_MINE).bind(staffId).all<SessionRow>()).results;
 }

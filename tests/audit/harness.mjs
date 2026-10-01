@@ -86,11 +86,19 @@ export const MOC_GIA_POLICY_ID = "moc-gia-khung-thu";
  *   định (`policyId` = MOC_GIA_POLICY_ID). Bài kiểm luật mốc / đặt gấp KHÔNG được dùng (bài canh ở src/modules/orders/dat-gap.test.ts).
  * - `khongTiemMoc: true` — bỏ hàm tiêm mốc (TC-26: route phải trả 503, không đoán con số).
  * - `demMoc: true` — mốc giả 360 phút có ĐẾM số lần gọi (`w.soLanGoiMoc()`) — TC-26 "đúng một lần mỗi request".
- * - `ghiDe: { <hàm tiêm>: … }` — ghi đè hàm tiêm tuỳ ý (chỉ để ghi lại lời gọi; không dùng để nới luật).
+ * - `ghiDe: { dongBangTin }` — CHỈ để GHI LẠI lời gọi `dongBangTin` (ADR-0075 điều 6). Danh sách khoá được phép đóng (`GHI_DE_DUOC_PHEP`): khoá khác (vd
+ *   `mocToiThieu` — lách hàng rào N-9) → ném lỗi; dùng chung với tuỳ chọn khác → ném lỗi (không lặng lẽ bỏ). Không nới luật cho môi trường thử.
  * - `khongTiemNhan: true` — bỏ hàm tiêm nhãn người bấm (ruling R-P20: route để trống nhãn, không đoán). `demNhan: true` — nhãn GIẢ có ĐẾM số lần gọi
  *   (`w.soLanGoiNhan()`, mỗi lần một mảng id) — "một lần mỗi request cho cả danh sách".
  */
+const GHI_DE_DUOC_PHEP = ["dongBangTin"];
 export function world(tuyChon = {}) {
+  if (tuyChon.ghiDe !== undefined) {
+    const la = Object.keys(tuyChon.ghiDe).filter((k) => !GHI_DE_DUOC_PHEP.includes(k));
+    if (la.length) throw new Error(`world({ ghiDe }): chỉ được ghi đè ${GHI_DE_DUOC_PHEP.join(", ")} — không được ghi đè ${la.join(", ")} (không nới luật cho khung thử)`);
+    const khac = Object.keys(tuyChon).filter((k) => k !== "ghiDe" && tuyChon[k] !== undefined);
+    if (khac.length) throw new Error(`world({ ghiDe }): không dùng chung với tuỳ chọn khác (${khac.join(", ")})`);
+  }
   const sqlite = openDb();
   let soLanGoiMoc = 0;
   const goiNhan = [];

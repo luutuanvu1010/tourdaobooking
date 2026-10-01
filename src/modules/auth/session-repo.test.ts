@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { DatabaseSync, type SupportedValueType } from "node:sqlite";
 import { readFileSync, readdirSync } from "node:fs";
 import {
-  endExpiredSessionsStatement, endOtherSessionsStatement, getSession, insertSessionStatement, liveSessionIds, touchSessionStatement,
+  endExpiredSessionsStatement, endOtherSessionsStatement, getSession, insertSessionStatement, touchSessionStatement,
 } from "./repository.ts";
 
 const DIR = new URL("../../../migrations/", import.meta.url);
@@ -54,6 +54,10 @@ function setup(): { sqlite: DatabaseSync; db: D1Database } {
   return { sqlite, db: fakeD1(sqlite) };
 }
 
+/** Mã các phiên còn sống (chưa kết thúc) của một tài khoản — đọc thẳng bảng (hàm repo cũ đã gỡ vì mã chạy thật không dùng). */
+const phienSong = (sqlite: DatabaseSync, staffId: string): string[] =>
+  sqlite.prepare("SELECT id FROM aut_session WHERE staff_id = ? AND ended_at IS NULL ORDER BY id").all(staffId).map((r) => String(r.id));
+
 const NOW = "2026-10-02T00:00:00.000Z";
 const EXPIRED = "2026-10-01T00:00:00.000Z"; // hạn đã qua so với NOW
 const LATER = "2026-10-09T00:00:00.000Z"; // còn hạn
@@ -62,7 +66,7 @@ const row = (id: string, single: 0 | 1, at: string, expiresAt: string) => ({
 });
 
 test("lô đăng nhập một máy: kết thúc phiên hết hạn → kết thúc phiên sống (bi_thay) → chèn", async () => {
-  const { db } = setup();
+  const { db, sqlite } = setup();
   // p1 hết hạn nhưng chưa kết thúc (single = 0 để chèn được cùng lúc với p2 — dữ liệu cũ trước luật), p2 sống single = 1.
   await insertSessionStatement(db, row("p1", 0, "2026-09-20T00:00:00.000Z", EXPIRED)).run();
   await insertSessionStatement(db, row("p2", 1, "2026-10-01T12:00:00.000Z", LATER)).run();
@@ -82,7 +86,7 @@ test("lô đăng nhập một máy: kết thúc phiên hết hạn → kết th�
   assert.equal(p3!.ended_at, null);
   assert.equal(p3!.single, 1);
   assert.equal(p3!.last_seen_at, NOW);
-  assert.deepEqual(await liveSessionIds(db, "s1"), ["p3"]);
+  assert.deepEqual(phienSong(sqlite, "s1"), ["p3"]);
 });
 
 test("phiên hết hạn chưa kết thúc KHÔNG chặn lần đăng nhập sau", async () => {
@@ -108,7 +112,7 @@ test("hai lô đăng nhập cùng lúc (mô phỏng: lô 2 bỏ bước kết th
 });
 
 test("endOtherSessions giữ đúng phiên được giữ", async () => {
-  const { db } = setup();
+  const { db, sqlite } = setup();
   await insertSessionStatement(db, row("p1", 0, "2026-10-01T10:00:00.000Z", LATER)).run();
   await insertSessionStatement(db, row("p2", 0, "2026-10-01T11:00:00.000Z", LATER)).run();
   const r = await endOtherSessionsStatement(db, "s1", "p2", "doi_pin", NOW, "s1").run();
@@ -117,7 +121,7 @@ test("endOtherSessions giữ đúng phiên được giữ", async () => {
   assert.equal(p1!.end_reason, "doi_pin");
   assert.equal(p1!.ended_by, "s1");
   assert.equal(p2!.ended_at, null);
-  assert.deepEqual(await liveSessionIds(db, "s1"), ["p2"]);
+  assert.deepEqual(phienSong(sqlite, "s1"), ["p2"]);
 });
 
 test("touch chỉ ghi khi last_seen_at cũ hơn 5 phút", async () => {

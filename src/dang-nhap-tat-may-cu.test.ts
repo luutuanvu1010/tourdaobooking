@@ -103,3 +103,10 @@ test("trạm Bảng tin chỉ nhận { sessionIds } của phiên bị thay — K
   await choMotNhip();
   assert.deepEqual(goiTram, []);
 });
+
+test("khung thử: ghiDe chỉ nhận dongBangTin — khoá khác (vd mocToiThieu, lách hàng rào N-9) hoặc dùng chung với tuỳ chọn khác → ném lỗi", () => {
+  assert.throws(() => world({ ghiDe: { mocToiThieu: async () => null } }), /không được ghi đè mocToiThieu/);
+  assert.throws(() => world({ ghiDe: { dongBangTin: async () => {}, isAssigned: async () => true } }), /không được ghi đè isAssigned/);
+  assert.throws(() => world({ ghiDe: { dongBangTin: async () => {} }, demMoc: true }), /không dùng chung/);
+  assert.doesNotThrow(() => world({ ghiDe: { dongBangTin: async () => {} } }));
+});

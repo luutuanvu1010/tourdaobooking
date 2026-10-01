@@ -121,20 +121,26 @@ test("ADR-0046 điểm 2–3: MỌI route gọi dongBangTin khai cờ tatThongBa
   assert.deepEqual([...bt.matchAll(/dongBangTin\(([^)]*)\)/g)].map((m) => m[1]), ['"tat-ca"']);
 });
 
-test("ADR-0075 điều 6: auth gọi dongBangTin ĐÚNG hai lần — đăng nhập PIN và Face ID — và chỉ ở dạng theo phiên { staffId, sessionIds, giuPhien }", () => {
+test("ADR-0075 điều 6: MỌI route của auth cấp phiên (issueLoginSession) phải gọi dongBangTin dạng theo phiên { staffId, sessionIds, giuPhien }; không lời gọi nào ngoài các route đó", () => {
+  // Không ghim tên route: route đăng nhập mới (Phần B: PIN_MFA, PIN_TRUSTED…) gọi issueLoginSession mà quên dongBangTin sẽ đỏ.
   const src = readFileSync(new URL("./modules/auth/index.ts", import.meta.url), "utf8");
   const RE_ROUTE = /route\("(GET|POST|PUT|PATCH|DELETE)", "([^"]+)"/g;
   const moc = [...src.matchAll(RE_ROUTE)].map((m) => ({ ten: `${m[1]} ${m[2]}`, tu: m.index ?? 0 }));
-  const thay: Record<string, number> = {};
+  let soRouteCapPhien = 0;
+  let soGoiTrongRoute = 0;
   moc.forEach((r, i) => {
     const than = src.slice(r.tu, i + 1 < moc.length ? moc[i + 1]!.tu : src.length);
     const dung = [...than.matchAll(/dongBangTin\(\{\s*staffId:[^}]*?sessionIds:[^}]*?giuPhien:[^}]*\}\)/g)].length;
     const goi = (than.match(/dongBangTin\(/g) ?? []).length;
     assert.equal(dung, goi, `${r.ten}: lời gọi dongBangTin ở auth phải đúng dạng theo phiên`);
-    if (goi > 0) thay[r.ten] = goi;
+    if (than.includes("issueLoginSession(")) {
+      soRouteCapPhien++;
+      assert.ok(dung >= 1, `${r.ten}: cấp phiên (issueLoginSession) mà không gọi dongBangTin theo phiên — máy cũ bị thay không tắt hẳn (ADR-0075 điều 6)`);
+    } else assert.equal(goi, 0, `${r.ten}: không cấp phiên thì không gọi dongBangTin`);
+    soGoiTrongRoute += goi;
   });
-  assert.deepEqual(thay, { "POST /api/auth/login": 1, "POST /api/auth/passkey/login": 1 });
-  assert.equal((src.match(/dongBangTin\(/g) ?? []).length, 2, "không lời gọi nào ngoài thân hai route đăng nhập");
+  assert.ok(soRouteCapPhien >= 2, `phải thấy ít nhất 2 route cấp phiên (PIN, Face ID) — thấy ${soRouteCapPhien}`);
+  assert.equal((src.match(/dongBangTin\(/g) ?? []).length, soGoiTrongRoute, "không lời gọi nào ngoài thân route");
 });
 
 test("ADR-0046 tiêu chí 4: web/shell.ts — đăng xuất gửi địa chỉ CỦA MÁY NÀY kèm dangXuat, không còn gửi tatCa: true", () => {
