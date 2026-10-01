@@ -11,31 +11,35 @@ async function hmac(secret: string, data: string): Promise<Uint8Array> {
   return new Uint8Array(await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(data)));
 }
 
-/** Token = `staffId.<thời điểm phát hành, mili-giây>.<chữ ký>`; hết hạn = phát hành + SESSION_TTL. */
-export async function createSessionToken(secret: string, staffId: string, now = Date.now()): Promise<string> {
-  const payload = `${staffId}.${now}`;
+/**
+ * Token = `staffId.<phát hành, mili-giây>.<mã phiên>.<chữ ký>` (ADR-0075 điều 1); hết hạn = phát hành + SESSION_TTL. Token kiểu cũ 3 phần bị từ chối
+ * → đăng nhập lại một lần. Mã phiên do máy chủ sinh bằng `crypto.randomUUID()` (không chứa dấu chấm).
+ */
+export async function createSessionToken(secret: string, staffId: string, sessionId: string, now = Date.now()): Promise<string> {
+  const payload = `${staffId}.${now}.${sessionId}`;
   return `${payload}.${toBase64Url(await hmac(secret, payload))}`;
 }
 
-/** Trả staffId + thời điểm phát hành (mili-giây) nếu token hợp lệ và chưa hết hạn. */
+/** Trả staffId + mã phiên + thời điểm phát hành (mili-giây) nếu token hợp lệ và chưa hết hạn (`ignoreExpiry`: bỏ qua hạn, vẫn kiểm chữ ký và đồng hồ lạ — cho route báo lý do đăng xuất). Dòng `aut_session` do người gọi kiểm. */
 export async function verifySessionToken(
   secret: string,
   token: string,
   now = Date.now(),
-): Promise<{ staffId: string; issuedAt: number } | null> {
+  opts: { ignoreExpiry?: boolean } = {},
+): Promise<{ staffId: string; sessionId: string; issuedAt: number } | null> {
   const parts = token.split(".");
-  if (parts.length !== 3) return null;
-  const [staffId, iat, sig] = parts as [string, string, string];
+  if (parts.length !== 4) return null;
+  const [staffId, iat, sessionId, sig] = parts as [string, string, string, string];
   let given: Uint8Array;
   try {
     given = fromBase64Url(sig);
   } catch {
     return null;
   }
-  if (!timingSafeEqual(await hmac(secret, `${staffId}.${iat}`), given)) return null;
+  if (!timingSafeEqual(await hmac(secret, `${staffId}.${iat}.${sessionId}`), given)) return null;
   const issuedAt = Number(iat);
   if (!Number.isFinite(issuedAt) || issuedAt > now + 60_000) return null; // chữ ký đúng nhưng đồng hồ lạ: từ chối
-  return now < issuedAt + SESSION_TTL_SECONDS * 1000 ? { staffId, issuedAt } : null;
+  return opts.ignoreExpiry || now < issuedAt + SESSION_TTL_SECONDS * 1000 ? { staffId, sessionId, issuedAt } : null;
 }
 
 export function sessionCookie(token: string, secure: boolean): string {

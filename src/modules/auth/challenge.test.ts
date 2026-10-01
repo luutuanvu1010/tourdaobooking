@@ -82,7 +82,7 @@ test("token thách thức KHÔNG BAO GIỜ được nhận làm phiên đăng nh
   assert.equal(await verifySessionToken(SECRET, c.token, NOW), null);
   const withStaff = await issueChallenge(SECRET, "pin", STAFF, null, NOW);
   assert.equal(await verifySessionToken(SECRET, withStaff.token, NOW), null);
-  const session = await createSessionToken(SECRET, STAFF, NOW);
+  const session = await createSessionToken(SECRET, STAFF, "phien-thu", NOW);
   assert.equal(await readChallenge(SECRET, session, "login", null, NOW), null);
 });
 

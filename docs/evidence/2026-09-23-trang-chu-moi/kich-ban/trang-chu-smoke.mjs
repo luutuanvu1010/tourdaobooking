@@ -887,7 +887,7 @@ try {
         ready: `document.querySelector('.toolbar select option[value]:not([value=""])') !== null`,
         mainCap: () => CSS_W_MAIN,
         account: TOAN_QUYEN,
-        sidebar: 21,
+        sidebar: 22, // 1/10 (ADR-0075 điều 7, Task 9): + "Phiên đăng nhập" (ô auth.session.viewAll) = 22
       },
     ];
 
@@ -999,7 +999,7 @@ try {
         assert.equal(f.newBtnShown, false, `${at}: nút "Tạo đơn" trên thanh công việc chỉ từ 641px (điện thoại đã có tab "Tạo đơn") — ${JSON.stringify(f)}`);
       } else {
         assert.equal(f.sidebarShown, true, `${at}: thanh bên PHẢI hiện từ 641px (quyết định 9 của chủ dự án) — ${JSON.stringify(f)}`);
-        assert.equal(f.sidebarLinks, spec.sidebar, `${at}: thanh bên phải đủ ${spec.sidebar} mục của tài khoản mở trang (Quản trị 17 — ADR-0038 không "Nhật ký", ADR-0049 B8 có "Lý do điều phối", B1 có "Điều phối xe"; Toàn quyền 21 — ADR-0069 thêm "Trợ lý Hỗ trợ") — ${JSON.stringify(f)}`);
+        assert.equal(f.sidebarLinks, spec.sidebar, `${at}: thanh bên phải đủ ${spec.sidebar} mục của tài khoản mở trang (Quản trị 17 — ADR-0038 không "Nhật ký", ADR-0049 B8 có "Lý do điều phối", B1 có "Điều phối xe"; Toàn quyền 22 — ADR-0069 thêm "Trợ lý Hỗ trợ", ADR-0075 thêm "Phiên đăng nhập") — ${JSON.stringify(f)}`);
         assert.equal(f.tabbarLinks, 0, `${at}: thanh tab dưới đáy KHÔNG được hiện cùng thanh bên — ${JSON.stringify(f)}`);
         assert.equal(f.logoutShown, true, `${at}: "Đăng xuất" phải hiển thị thật trong thanh bên — ${JSON.stringify(f)}`);
         assert.equal(f.sidebarWidth, f.sidebarToken, `${at}: thanh bên phải rộng đúng token --w-sidebar (${f.sidebarToken}px) — ${JSON.stringify(f)}`);

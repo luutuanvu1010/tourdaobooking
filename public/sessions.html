@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"><meta name="robots" content="noindex"><meta name="theme-color" content="#0c4a6e"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><title>Phiên đăng nhập — Island Booking System</title></head>
+<body data-title="Phiên đăng nhập" data-back="/account">
+<header id="topbar"></header>
+<main>
+  <h1>Phiên đăng nhập</h1>
+  <p class="muted">Ai đang đăng nhập trên máy nào. Gỡ phiên thì máy đó bị đăng xuất ngay; người có PIN vẫn đăng nhập lại được.</p>
+  <div id="error" class="alert" role="alert" hidden></div>
+  <div id="ok" class="alert ok" role="status" hidden></div>
+  <section id="secret" class="card secret" hidden></section>
+  <!-- web/sessions.ts dựng ô lọc, bảng (máy tính) và thẻ (điện thoại) chỉ khi máy chủ nói có ô auth.session.viewAll (ADR-0075 điều 7). -->
+  <div id="filters" class="toolbar" hidden></div>
+  <section id="table-card" class="card table-wrap phien-bang" hidden>
+    <table class="items">
+      <thead><tr><th>Người</th><th>Máy</th><th>IP</th><th>Cách đăng nhập</th><th>Đăng nhập lúc</th><th>Hoạt động gần nhất</th><th>Trạng thái</th><th></th></tr></thead>
+      <tbody id="list"></tbody>
+    </table>
+  </section>
+  <div id="list-cards" class="card-list"></div>
+</main>
+<script type="module" src="/js/sessions.js"></script>
+</body></html>

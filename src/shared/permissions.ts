@@ -180,6 +180,10 @@ export const MATRIX = {
   // ADR-0066 điều 1 (accepted 2026-09-30): hỏi trợ lý AI "Hỗ trợ" cách dùng app — MỌI tài khoản đăng nhập (cả 9 mã quyền). Route POST /api/tro-ly/hoi
   // (module tro-ly, cổng staff). Trợ lý không đọc dữ liệu nghiệp vụ nên ô này không mở gì ngoài kho hướng dẫn (ngoại lệ có tên ở ba bài ghim hàng tài xế / Nhân sự).
   "assistant.ask": row("any", "any", "any", "any", "any", "any", "any", "any", "any", "any"),
+  // ADR-0075 điều 7: sổ phiên đăng nhập. Xem phiên của MỌI tài khoản (GET /api/sessions) và gỡ một phiên (POST /api/sessions/:id/revoke) — chỉ Toàn quyền
+  // (vai IT mặc định mang Toàn quyền). Toàn quyền gỡ được phiên của Toàn quyền khác (cùng cấp). Lịch sử phiên của CHÍNH MÌNH là tự phục vụ, không qua ô.
+  "auth.session.viewAll": row("none", "none", "none", "none", "none", "any", "none", "none", "none", "none"),
+  "auth.session.revoke": row("none", "none", "none", "none", "none", "any", "none", "none", "none", "none"),
 } as const satisfies Record<string, Row>;
 
 export type OperationCode = keyof typeof MATRIX;

@@ -14,7 +14,7 @@
 // S20-9) — CA 4 đếm cả tin đó và khoá thêm: văn phòng sửa/xác nhận/huỷ đơn HDV khác đang phụ trách thì field không nhận thêm khung nào.
 import assert from "node:assert/strict";
 import { laSuKienHopLe } from "../../src/shared/bang-tin.ts";
-import { ACCOUNTS, BASE, batTay, call, cho, ensureFakeCatalog, gieoTaiKhoanLai, moBangTin, orderInput, randomPhone, session, sql } from "./lib.mjs";
+import { ACCOUNTS, BASE, batTay, call, cho, ensureFakeCatalog, gieoTaiKhoanLai, login, moBangTin, orderInput, randomPhone, session, sql } from "./lib.mjs";
 
 await ensureFakeCatalog(); // "catalog" (Sheet thật) chạy trước "bangtin" trong ALL và đặt in_sheet = 0 cho mã giả — orderInput() dùng ZE1.
 const ADMIN = await session(ACCOUNTS.admin);
@@ -57,7 +57,7 @@ async function taoTaiKhoanDungMotLan(name, permissions = ["SALES"]) {
   const r = await call(TAO_TK, "POST", "/api/staff", { taoHoSoMoi: true, fullName: name, phone, permissions });
   assert.equal(r.status, 201, JSON.stringify(r.body));
   const cookie = await session({ phone, pin: r.body.pin });
-  return { id: r.body.staff.id, phone, cookie };
+  return { id: r.body.staff.id, phone, pin: r.body.pin, cookie };
 }
 
 // === CA 1 (BT-1): bắt tay — không cookie → 401; Origin lạ / vắng → 403 cross_origin; thiếu Upgrade: websocket → 426; đúng → mở (101). ======
@@ -549,4 +549,26 @@ const P2 = await taoTaiKhoanDungMotLan("Đối Tác Bảng Tin 2 (test)", ["PART
   console.log("✓ ca 11b: đơn vừa rời hàng chờ (được Nhận) → HDV khác nhận đúng một tin 'nhan' qua cho-nhan; tài khoản lai không nhận (S20-8, S20-9)");
 }
 
-console.log("E2E BANG TIN (ca 1–11) OK");
+// === CA 12 (ADR-0075 điều 6a): tài khoản một máy (dùng một lần) đăng nhập máy 2 → kết nối của máy 1 đóng 4003 lý do "dang-nhap-may-khac" trong 2 giây
+// (đóng theo nhãn phien:<mã phiên> — mã phiên lấy từ RETURNING của lô đăng nhập trên D1 thật); kết nối của máy 2 và của người khác vẫn mở. ======
+{
+  const E = await taoTaiKhoanDungMotLan("Hai Máy Bảng Tin (test)");
+  const [pE1, pAdmin] = await moiPhien(E.cookie, ADMIN);
+  let pE2 = null;
+  try {
+    const r = await login(E.phone, E.pin);
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+    pE2 = (await moiPhien(r.cookie))[0];
+    const d1 = await doiToiDa(pE1.dong, 2000);
+    assert.ok(d1, "ca 12: kết nối của máy bị thay phải đóng trong 2 giây");
+    assert.equal(d1.code, 4003);
+    assert.equal(d1.reason, "dang-nhap-may-khac");
+    assert.equal(await doiToiDa(pE2.dong, 500), null, "ca 12: kết nối của máy mới KHÔNG được đóng");
+    assert.equal(await doiToiDa(pAdmin.dong, 100), null, "ca 12: kết nối của người khác KHÔNG được đóng");
+  } finally {
+    dongHet(pE1, pAdmin, ...(pE2 ? [pE2] : []));
+  }
+  console.log("✓ ca 12: đăng nhập máy 2 → kết nối máy 1 đóng 4003 'dang-nhap-may-khac'; máy 2 và người khác vẫn mở");
+}
+
+console.log("E2E BANG TIN (ca 1–12) OK");

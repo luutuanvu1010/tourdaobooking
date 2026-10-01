@@ -23,7 +23,7 @@ const DANG_MO = 1;
 /** Mã đóng: quá hạn sống (KN-1) / tài khoản vừa đổi hoặc bật bảo trì (KN-2). Trình duyệt tự nối lại; kết nối lại của người bị chặn nhận 401/503. */
 const MA_QUA_HAN = 4001;
 const MA_CAP_NHAT = 4003;
-/** Giới hạn của `acceptWebSocket` (tài liệu Cloudflare `api/state`): tối đa 10 nhãn, mỗi nhãn tối đa 256 ký tự. Hôm nay mỗi kết nối có ≤ 3 nhãn. */
+/** Giới hạn của `acceptWebSocket` (tài liệu Cloudflare `api/state`): tối đa 10 nhãn, mỗi nhãn tối đa 256 ký tự. Hôm nay mỗi kết nối có ≤ 4 nhãn (thêm `phien:<id>` — ADR-0075). */
 const TOI_DA_NHAN = 10;
 const DAI_TOI_DA_NHAN = 256;
 
@@ -95,12 +95,19 @@ export class BangTin extends DurableObject<Env> {
     for (const i of keHoach.gui) gui(ds[i]!, tin);
   }
 
-  /** RPC (gốc lắp ráp): đóng (4003) mọi kết nối của một tài khoản, hoặc mọi kết nối (`"tat-ca"`). */
-  async dongCua(muc: { staffId: string } | "tat-ca"): Promise<void> {
+  /**
+   * RPC (gốc lắp ráp): đóng (4003) mọi kết nối của một tài khoản, mọi kết nối (`"tat-ca"`), hoặc kết nối của ĐÚNG các phiên bị thay (`{ sessionIds }`,
+   * nhãn `phien:<id>` — ADR-0075 điều 6a; lý do `dang-nhap-may-khac`). Nhánh phiên xét TRƯỚC nhánh tài khoản: không bao giờ đóng kết nối của máy mới.
+   */
+  async dongCua(muc: { staffId: string } | { sessionIds: string[] } | "tat-ca"): Promise<void> {
     let ds: WebSocket[] = [];
+    let lyDo = "cap-nhat-tai-khoan";
     if (muc === "tat-ca") ds = this.ctx.getWebSockets();
-    else if (typeof muc === "object" && muc !== null && typeof muc.staffId === "string") ds = this.ctx.getWebSockets(`nguoi:${muc.staffId}`);
-    for (const ws of ds) dong(ws, MA_CAP_NHAT, "cap-nhat-tai-khoan");
+    else if (typeof muc === "object" && muc !== null && "sessionIds" in muc && Array.isArray(muc.sessionIds)) {
+      ds = muc.sessionIds.filter((id) => typeof id === "string" && id.length > 0).flatMap((id) => this.ctx.getWebSockets(`phien:${id}`));
+      lyDo = "dang-nhap-may-khac";
+    } else if (typeof muc === "object" && muc !== null && "staffId" in muc && typeof muc.staffId === "string") ds = this.ctx.getWebSockets(`nguoi:${muc.staffId}`);
+    for (const ws of ds) dong(ws, MA_CAP_NHAT, lyDo);
   }
 
   /**

@@ -11,11 +11,23 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
-    // Chủ dự án 2026-10-01: đổi tên trang "Loại giấy tờ người" → "Loại giấy tờ cá nhân" (chỉ đổi chữ; đường dẫn /loai-giay-to-nguoi giữ nguyên). Không migration.
-    version: "1.58",
+    // Chủ dự án 2026-10-01: đổi tên trang "Loại giấy tờ người" → "Loại giấy tờ cá nhân" (chỉ đổi chữ; đường dẫn /loai-giay-to-nguoi giữ nguyên). Không migration. Số "1.59" = main 1.58 + 1 (đánh lại lúc gộp main, 2026-10-01).
+    version: "1.59",
     date: "2026-10-01",
     items: [
       { kind: "doi", text: "Trang \"Loại giấy tờ người\" đổi tên thành \"Loại giấy tờ cá nhân\" (căn cước, bằng lái, khám sức khoẻ, tập huấn). Nội dung không đổi." },
+    ],
+  },
+  {
+    // ADR-0075 Phần A (sổ phiên đăng nhập, mỗi tài khoản một máy). Có migration 0065. Cookie phiên đổi định dạng ⇒ mọi người đăng nhập lại một lần.
+    // Số "1.58" = main 1.57 + 1 (đánh lại lúc gộp main 1.57, 2026-10-01; thi công ghi 1.54, migration thi công ghi 0061).
+    version: "1.58",
+    date: "2026-10-01",
+    items: [
+      { kind: "doi", text: "Mỗi tài khoản chỉ đăng nhập trên một máy (trừ IT và Toàn quyền). Đăng nhập máy mới thì máy cũ tự đăng xuất, kèm lời báo lúc nào." },
+      { kind: "doi", text: "Sau bản này mọi người cần đăng nhập lại một lần." },
+      { kind: "moi", text: "Trang Tôi có mục \"Phiên đăng nhập của tôi\": xem mình đã đăng nhập trên máy nào, lúc nào." },
+      { kind: "moi", text: "IT và Toàn quyền có trang \"Phiên đăng nhập\": xem ai đang đăng nhập trên máy nào, gỡ phiên, hoặc gỡ phiên kèm đặt lại PIN." },
     ],
   },
   {

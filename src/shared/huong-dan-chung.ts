@@ -86,6 +86,12 @@ Khi đang mở app, danh sách đơn tự cập nhật, không cần tải lại
 Bấm [[Đăng xuất]] ở trang Tôi hoặc dưới cùng menu máy tính. Máy dùng chung thì luôn đăng xuất khi xong việc.`,
     },
     {
+      tieuDe: "Mỗi tài khoản một máy",
+      noiDung: `- Đăng nhập máy mới thì máy cũ tự đăng xuất (trừ IT, Toàn quyền). Máy cũ báo **Tài khoản vừa đăng nhập trên máy khác lúc** kèm giờ.
+- Ứng dụng đã cài và Safari trên cùng một iPhone tính là hai máy.
+- [[Phiên đăng nhập của tôi]] ở trang Tôi ghi các lần đăng nhập gần đây; dòng **Máy này** là máy đang cầm. Thấy lạ thì đổi PIN ngay.`,
+    },
+    {
       tieuDe: "Trợ giúp và Góp ý",
       noiDung: `### Trợ giúp
 Mở [[Trợ giúp]] để đọc hướng dẫn và [[Nhật ký thay đổi]] của từng phiên bản. Khi có bản mới chưa đọc, tab Tôi và mục Trợ giúp có chấm đỏ, bản đó có nhãn [[Mới cập nhật]].
@@ -125,7 +131,7 @@ Phần đang gõ chưa lưu có thể mất, nên lưu việc trước giờ b�
     },
     {
       tieuDe: "Câu hỏi thường gặp",
-      noiDung: `- **Đăng nhập hai máy được không?** Được. Đổi PIN thì máy kia bị đăng xuất.
+      noiDung: `- **Đăng nhập hai máy được không?** Không, xem mục Mỗi tài khoản một máy.
 - **Sao tôi không thấy mục mà đồng nghiệp thấy?** Mỗi người thấy menu theo quyền. Cần thêm thì hỏi Quản trị.
 - **Mất mạng có dùng được không?** Mở được khung app nhưng không có dữ liệu.`,
     },
