@@ -303,7 +303,8 @@ try {
       tabs: [...document.querySelectorAll('#tabbar .tab')].map((a) => [a.querySelector(':scope > span:last-child').textContent.trim(), a.getAttribute('href'), a.getAttribute('aria-current')]),
       side: [...document.querySelectorAll('#sidebar .sidebar-item')].map((a) => [a.querySelector('.sidebar-item-label')?.textContent.trim(), a.querySelector('.sidebar-item-badge')?.textContent ?? null]),
     }))()`);
-  const LOCK_KHONG_SUA_CHUYEN = "Đơn đã xác nhận: dịch vụ, số khách và tiền đã khoá.";
+  // D5 (bản vẽ M3, ADR-0047 Phần B 2026-10-01): Đối tác, Thực tập (đơn mình lập) còn sửa được danh sách hành khách — câu khoá nói đúng điều đó, vẫn không hứa sửa chuyến.
+  const LOCK_KHONG_SUA_CHUYEN = "Đơn đã xác nhận: dịch vụ, số khách và tiền đã khoá. Chỉ sửa được danh sách hành khách.";
   const TABS = [["Đơn hàng", "/orders", "page"], ["Tạo đơn", "/order-form", null], ["Tôi", "/account", null]];
   const goiHandlers = (p) => p.requests.filter((r) => r.url.includes("/api/dispatch/handlers")).map((r) => r.url);
   const goiDashboard = (p) => p.requests.filter((r) => r.url.includes("/api/orders/dashboard")).map((r) => r.url);
