@@ -54,11 +54,10 @@ const row = (
  * "Của mình" = người lập đơn (với `feedback.view` là người GỬI yêu cầu); "được giao" = người phụ trách đang mở của đơn
  * (do `dispatch` cung cấp hàm `isOrderHandler`, gốc lắp ráp `src/index.ts` tiêm vào `ctx.isAssigned` — ADR-0007 điều 4(b); route nào cần thì gọi và truyền kết quả vào
  * `can(who, op, { ownerId, assigned })`). Route KHÔNG truyền `assigned` thì ô `ownOrAssigned` chạy như `own`.
- * Có route dùng: order.create/history.view/modify/trip.edit/money.edit/pool.view (module orders), dispatch.assign/claim/cancel (module dispatch),
- * feedback.submit/view/triage (module feedback), party.view/write/staff.write (module parties).
- * `SUPER_ADMIN` = `any` ở MỌI thao tác, không ngoại lệ (ADR-0014 điều 2) — kể cả các thao tác dưới đây chưa có route dùng.
- * Thao tác của N2/N3 (task.progress, payment.*, invoice.*) và ADR-0014 Phase C (dispatch.guides.view) có mặt để test khoá bản
- * đồ; CHƯA có route dùng (thi công ở phiên sau). `order.cancel`/`order.money.edit` (FIELD) đã có route thật (`POST /api/orders/:id/handler-cancel`,
+ * Route dùng ô nào: tra `"<thao tác>"` trong src/modules (danh sách chép tay ở đây từng lệch mã — bỏ). Mọi thao tác đều có route dùng, TRỪ bốn ô giữ chỗ
+ * (đếm lại 2026-10-01, rà soát vai↔quyền mục 3D): task.progress (N2), invoice.request, invoice.issue (N3), dispatch.guides.view (ADR-0014 Phase C) — có
+ * mặt để test khoá bản đồ, thi công ở phiên sau.
+ * `SUPER_ADMIN` = `any` ở MỌI thao tác, không ngoại lệ (ADR-0014 điều 2) — kể cả bốn ô giữ chỗ trên. `order.cancel`/`order.money.edit` (FIELD) đã có route thật (`POST /api/orders/:id/handler-cancel`,
  * `POST /api/orders/:id/handler-money-edit`, module dispatch — ADR-0014 điều 11/6, Phase B; `order.money.edit` ghi qua "dòng điều chỉnh" chỉ-thêm
  * ở bảng `order_money_adjustment`, không sửa đè `order_service`/`order_item`/cột tiền của `orders`).
  * ADR-0018 giai đoạn 1: cột INTERN TẠM HẸP (lập đơn; xem/sửa đơn của mình); giai đoạn 2 đổi sang giá trị đích của đặc tả §5.
