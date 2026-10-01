@@ -150,7 +150,7 @@ export function world(tuyChon = {}) {
     const res = await ungDung.fetch(new Request(`https://booking.tourdao.vn${path}`, { method, headers: h, body: body === undefined ? undefined : JSON.stringify(body) }), env, exec);
     const text = await res.text();
     let json = null; try { json = JSON.parse(text); } catch {}
-    return { status: res.status, json, text };
+    return { status: res.status, json, text, headers: res.headers };
   }
   return { sqlite, env, call, token, q: (sql, ...a) => sqlite.prepare(sql).all(...a), soLanGoiMoc: () => soLanGoiMoc, soLanGoiNhan: () => goiNhan.length, goiNhan: () => goiNhan };
 }

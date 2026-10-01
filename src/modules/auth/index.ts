@@ -307,7 +307,14 @@ export const authModule: AppModule = {
     route("POST", "/api/auth/logout", "public", async ({ request, env }) => {
       const token = getCookie(request, SESSION_COOKIE);
       const t = token ? await verifySessionToken(env.SESSION_SECRET, token) : null;
-      if (t) await endSessionStatement(env.DB, t.sessionId, "dang_xuat", new Date().toISOString(), t.staffId).run();
+      // Ghi CSDL hỏng vẫn xoá cookie và trả 200 (người dùng bấm Đăng xuất phải ra khỏi máy này): log một dòng CHỈ có câu lỗi — không token, mã phiên, IP, UA.
+      if (t) {
+        try {
+          await endSessionStatement(env.DB, t.sessionId, "dang_xuat", new Date().toISOString(), t.staffId).run();
+        } catch (e) {
+          console.error(JSON.stringify({ level: "error", event: "logout_end_failed", message: e instanceof Error ? e.message : String(e) }));
+        }
+      }
       return json({ ok: true }, 200, { "set-cookie": clearedSessionCookie(isSecure(request)) });
     }),
 
