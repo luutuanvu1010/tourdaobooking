@@ -101,3 +101,20 @@
 2. **Số bản 1.64 (trước 1.62) + migration 0067**: kiểm lại lúc gộp (main có thể đã đi tiếp).
 3. **Số "đăng xuất N máy của M người" trong nhật ký**: hiện là số ước lượng đếm NGAY TRƯỚC lô (nhật ký nhận chuỗi cố định, lệch số thật chỉ khi có đăng nhập chen giữa → log `session_policy_count_drift`); đặc tả §4.2 bước 2 nói số THỰC. Lựa chọn bề mặt đổi được; chủ quyết giữ hay đổi.
 4. **Hai hở có tên đã ghi ở sổ hàng rào, chờ chủ biết:** (a) chỗ giao diện `can(staff, "auth.session.policy")` ở `web/sessions.ts` chỉ có kịch bản Chrome canh, không có bài máy; (b) ~~route đổi vai (`PUT /api/staff/:id/roles`) chưa có bài đua riêng cho thứ tự lô~~ — ĐÃ ĐÓNG ở đợt sửa sau kiểm độc lập cuối (I1, bài `not ok 8`); (c) lớp hai `CASE WHEN changes() > 0` chưa có bài chỉ đỏ khi riêng nó mất.
+
+## Quyết định của điều phối trong lúc thi công (chép từ sổ điều phối trước khi xoá)
+
+- Số bản 1.62 thay 1.60 (main đã có 1.60/1.61) — **sau đó thay bằng 1.64** khi gộp main có 1.62/1.63. Sai thì đổi một chuỗi lúc gộp.
+- e2e AC7 đua từ `banId` KHÁC null (SALES sau bước 4) thay vì HR chưa có dòng — để đường `changes()`/NOT NULL được chứng minh trên D1 thật (workerd). Sai thì chỉ mất phủ đường UNIQUE trên e2e (đã có ở bài thuần).
+- Bài AC8: làm nóng phiên Toàn quyền trước khi bọc lô; móc chỉ nổ ở lô đổi quyền; đột biến phải đỏ. Sai thì bài rỗng nghĩa.
+- Task 11 gộp làm một ghế: người kiểm độc lập (nguoi-kiem-doc-lap) = vòng kiểm toàn nhánh cuối. Sai thì thiếu một góc nhìn chất lượng mã chung.
+- Bản sao đột biến đặt ở thư mục riêng của phiên (không `$TMPDIR`).
+- Bài "hàng rào 1: mọi ô của MATRIX được máy chủ hỏi" ĐỎ có chủ đích từ Task 2 tới Task 6 (route đầu tiên hỏi `auth.session.policy`); không thêm mục hoãn vào `docs/quyen-hoan.json`. Sai thì 4 commit giữa nhánh có bộ kiểm đỏ một bài (không lên main riêng lẻ).
+- Đột biến Task 6 (c) đổi thành `changes() > 99` vì bỏ riêng `CASE` vẫn xanh (chỉ mục UNIQUE là lưới chính, `CASE` là lớp hai). Sai thì sổ hàng rào ghi nhầm cơ chế.
+- Sau kiểm cuối: một đợt sửa gồm I1, I2, M1 + mục rẻ (M2, chú thích, bọc lỗi giao diện); M3/M4/M6 để sau hoặc trình chủ. Sai thì còn hở bề mặt nhỏ.
+
+## Kết luận kiểm độc lập (2026-10-01)
+
+- Vòng 1 (toàn nhánh): **ĐẠT CÓ ĐIỀU KIỆN** — I1 route đổi vai thiếu bài đua; I2 gộp main/số bản; M1 CHANGE-GUIDE còn chữ cũ.
+- Vòng 2 (đợt sửa `d83a3554..159fc031`): **ĐẠT** — người kiểm tự chạy: typecheck 0, `npm test` 2685/2685, e2e `chinh-sach-phien phien passkey admin` 5/5; đột biến route đổi vai → `not ok 8`; đột biến danh sách im lặng → `not ok 2`. Người thi công chạy e2e đủ bộ 40/40.
+- Nợ để sau (không chặn gộp): xem trước báo "N máy" khi chỉ nới (M3); view `v_stf_nhieu_may_co_dinh` đọc thẳng `pty_party_role` thay vì qua view `v_pty_*` (M4); chỗ hỏi quyền ở `web/sessions.ts` không có bài máy; bài `src/modules/tro-ly/bang-dieu-khien-route.test.ts` chập chờn một lần (ngoài nhánh); chữ "bên dưới" ở dòng "Mất nhiều máy" của sổ hàng rào nên là "ở cột trước".
