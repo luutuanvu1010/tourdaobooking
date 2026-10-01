@@ -39,8 +39,13 @@ const themDichVuTrenForm = async (p, gio = "10:00") => {
   await p.ev("document.querySelector('#catalog-list .catalog-pick').click(); true");
   await p.waitFor(`document.querySelectorAll('#services .svc').length === 1`, "thẻ dịch vụ");
   await p.ev(typeInto("#orderDate", MAI));
-  await p.ev(typeInto(`#services .svc [data-trip="pickupPlace"]`, "Sheraton Nha Trang"));
-  await p.ev(typeInto(`#services .svc [data-trip="pickupTime"]`, gio));
+  // ADR-0047 Phần B (2026-10-01): giờ / nơi đón nhập ở khối "Đưa đón" của thẻ (TD101 không có mẫu chặng → "+ Thêm đưa đón").
+  await p.ev(click('#services .svc [data-action="them-dua-don"]'));
+  await p.waitFor(`!!document.querySelector('#services .svc .dd-chang [data-o$=":don"]')`, "chặng đưa đón");
+  await p.ev(typeInto(`#services .svc .dd-chang [data-o$=":don"]`, "tudo"));
+  await p.waitFor(`!!document.querySelector('#services .svc .dd-chang [data-o$=":don-chu"]')`, "ô Địa chỉ đón");
+  await p.ev(typeInto(`#services .svc .dd-chang [data-o$=":don-chu"]`, "Sheraton Nha Trang"));
+  await p.ev(typeInto(`#services .svc .dd-chang [data-o$=":gio"]`, gio));
   await p.ev(typeInto("#customerName", "Khách Lập Trên Form"));
   await p.ev(typeInto("#customerPhone", "0903 222 333"));
 };
@@ -112,10 +117,11 @@ try {
     await s.waitFor(shown("#order .dg-mark"), "nhãn đặt gấp");
     assert.equal(await s.ev(`document.querySelector('#order .dg-mark').dataset.datGap`), "du");
     assert.match(await s.ev(txt("#order .dg-mark")), /^Đặt gấp — Đơn bù cho khách bị lỡ chuyến — Quản Trị duyệt \d\d:\d\d “Bù chuyến 29\/9”$/);
-    await s.ev(click('[data-action="edit-trip"]'));
-    await s.waitFor(shown('.sheet [data-trip="pickupTime"]'), "bảng sửa chuyến");
-    await s.ev(typeInto('.sheet [data-trip="pickupTime"]', "11:00"));
-    await s.ev(`[...document.querySelectorAll('.sheet .sheet-foot button')].find((x) => x.textContent === 'Lưu thông tin chuyến').click(); true`);
+    // ADR-0047 Phần B (2026-10-01): giờ đón sửa ở bảng "Sửa đưa đón" (lệnh PUT …/legs/:id), không còn ở "Sửa thông tin chuyến".
+    await s.ev(click('[data-action="sua-dua-don"]'));
+    await s.waitFor(shown('.sheet .dd-chang [data-o$=":gio"]'), "bảng sửa đưa đón");
+    await s.ev(typeInto('.sheet .dd-chang [data-o$=":gio"]', "11:00"));
+    await s.ev(click('.sheet [data-action="luu-dua-don"]'));
     await s.waitFor(`${txt(".sheet .banner .banner-title")} === 'Chặng dưới mốc tối thiểu trước giờ đón — chỉ Quản trị hoặc Toàn quyền sửa được, kèm lý do đặt gấp.'`, "câu 409 trong bảng");
     assert.equal(await s.ev(`!!document.querySelector('.sheet .dg-panel')`), false, "Bán hàng không có khung Đặt gấp");
     await sleep(600); // bảng ở ≥ 641px hiện dần (opacity, --m-base): chờ xong chuyển động rồi mới đo tương phản
@@ -169,21 +175,21 @@ try {
     await a.waitFor(`${txt("#order .badge")} === 'Đã xác nhận'`, "đơn đã xác nhận");
   });
 
-  await b.step("8", "Sửa thông tin chuyến đơn đã xác nhận dưới mốc (Quản trị, I14): 409 → khung 'Đặt gấp' trong bảng → 'Duyệt đặt gấp' gửi lại kèm datGap → lưu được, dấu MỚI theo lý do vừa chọn", async () => {
+  await b.step("8", "Sửa đưa đón đơn đã xác nhận dưới mốc (Quản trị, I14; bảng mới ADR-0047 Phần B): 409 → khung 'Đặt gấp' trong bảng → 'Duyệt đặt gấp' gửi lại kèm datGap → lưu được, dấu MỚI theo lý do vừa chọn", async () => {
     await a.send("Page.navigate", { url: `${env.base}/order?id=${o3.id}` });
     await a.waitFor(shown('[data-action="edit-trip"]'), "trang đơn O3");
-    await a.ev(click('[data-action="edit-trip"]'));
-    await a.waitFor(shown('.sheet [data-trip="pickupTime"]'), "bảng sửa chuyến");
-    await a.ev(typeInto('.sheet [data-trip="pickupTime"]', "11:30"));
-    await a.ev(`[...document.querySelectorAll('.sheet .sheet-foot button')].find((x) => x.textContent === 'Lưu thông tin chuyến').click(); true`);
+    await a.ev(click('[data-action="sua-dua-don"]'));
+    await a.waitFor(shown('.sheet .dd-chang [data-o$=":gio"]'), "bảng sửa đưa đón");
+    await a.ev(typeInto('.sheet .dd-chang [data-o$=":gio"]', "11:30"));
+    await a.ev(click('.sheet [data-action="luu-dua-don"]'));
     await a.waitFor(shown(".sheet .dg-panel"), "khung Đặt gấp trong bảng sau 409");
     await a.ev(`(() => { const s = document.querySelector('.sheet .dg-panel [data-dg="ly-do"]'); s.value = 'CHUYEN_BAY_DOI_GIO'; s.dispatchEvent(new Event('change')); return true; })()`);
     await sleep(600); // như bước 4: chờ bảng hiện hẳn
     await axe(a, "bảng sửa chuyến có khung đặt gấp");
     await shotView(a, "b7-sua-chuyen-dat-gap-may-tinh.png");
     await a.ev(click('.sheet [data-action="duyet-dat-gap"]'));
-    await a.waitFor(`!document.querySelector('.sheet') && ${txt("#error .banner-title")} === 'Đã lưu thông tin chuyến.'`, "lưu xong, bảng đóng");
-    const put = apiCalls(a).filter((c) => c.method === "PUT" && c.path.endsWith("/trip"));
+    await a.waitFor(`!document.querySelector('.sheet') && ${txt("#error .banner-title")} === 'Đã lưu đưa đón.'`, "lưu xong, bảng đóng");
+    const put = apiCalls(a).filter((c) => c.method === "PUT" && /\/legs\/[^/]+$/.test(c.path));
     assert.equal(put.length, 2, "hai lần gửi: lần đầu không datGap (409), lần sau có");
     assert.equal(JSON.parse(put[0].body).datGap, undefined);
     assert.deepEqual(JSON.parse(put[1].body).datGap, { lyDo: "CHUYEN_BAY_DOI_GIO", ghiChu: null });
