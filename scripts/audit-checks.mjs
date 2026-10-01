@@ -555,6 +555,17 @@ export const CHECKS = [
           + (SELECT count(*) FROM vc_leg_appt_ack m WHERE NOT EXISTS (SELECT 1 FROM ord_transfer_leg l WHERE l.id = m.leg_id))`,
     level: "fail",
   },
+  // R-VC-20 (NT-D4 — ADR nháp nơi trả mặc định docs/superpowers/specs/2026-10-01-de-xuat-adr-noi-tra-mac-dinh.md, đã duyệt 1/10; 0058): mẫu đưa đón HIỆN HÀNH
+  // (valid_from_at lớn nhất đã tới) của một dịch vụ trỏ điểm danh mục đã NGƯNG — form nhận `noiTraMacDinh: null` (ô trống), Quản trị cài lại. Tình trạng nghiệp
+  // vụ hợp lệ ⇒ warn. Chỉ đếm số dịch vụ.
+  {
+    code: "R-VC-20",
+    what: "dịch vụ có mẫu đưa đón hiện hành trỏ nơi trả mặc định đã ngưng dùng (Quản trị cài lại ở màn Danh mục)",
+    sql: `SELECT count(*) FROM vc_leg_template t JOIN loc_location l ON l.id = t.default_dropoff_location_id
+          WHERE l.active = 0 AND t.valid_from_at = (SELECT max(m.valid_from_at) FROM vc_leg_template m WHERE m.code = t.code AND m.valid_from_at <= ${BAY_GIO_ISO})`,
+    level: "warn",
+    note: "cảnh báo (không chặn phát hành): form lập đơn để trống nơi trả cho các dịch vụ này — Quản trị chọn lại nơi trả mặc định",
+  },
 
   // ---- Người phụ trách đơn (ADR-0006 điều 3, ADR-0009). Migration 0014 trở lên: trên D1 chưa có 0014 các câu dưới lỗi "no such table" → script thoát mã 2. ----
   // R-DSP-1: chỉ mục duy nhất một phần đã chặn ở CSDL; kiểm này bắt trường hợp chỉ mục bị gỡ/sửa nhầm.

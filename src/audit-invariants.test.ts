@@ -1773,3 +1773,26 @@ test("R-VC-3 / R-VC-7 dùng số người CỦA CHẶNG: chặng về 1 người
   suatTho(db, { trip: t, leg: d.leg });
   assert.equal(violations(db, c3), 1, "2 suất > 1 người của chặng về");
 });
+
+// ---------------------------------------------------------------------------------------------------------------------
+// NT-D4 (ADR nháp nơi trả mặc định, đã duyệt 1/10 — kế hoạch ô mới Task 7.5): R-VC-20 — mẫu đưa đón HIỆN HÀNH trỏ điểm đã ngưng (warn).
+// ---------------------------------------------------------------------------------------------------------------------
+test("R-VC-20 (NT-D4): mẫu hiện hành trỏ điểm đang dùng → 0; điểm đã ngưng → 1 (warn); bản CŨ trỏ điểm ngưng (đã có bản mới) → không đếm; không điểm → 0", () => {
+  const c = one("R-VC-20");
+  assert.equal(c.level, "warn");
+  const db = build();
+  const BEN = "a941dd7d-faab-4098-9ab9-1df7fa6dd551";
+  const VIN = "ec67ff94-bb00-4546-842a-aedb5f916b0a";
+  const mau = (id: string, code: string, loc: string | null, at: string) =>
+    db.prepare(`INSERT INTO vc_leg_template (id, code, mode, return_time_hint, default_dropoff_location_id, valid_from_at, created_at, updated_at) VALUES (?, ?, 'ONE_WAY', NULL, ?, ?, ?, ?)`)
+      .run(id, code, loc, at, at, at);
+  mau("m1", "TD101", BEN, T1);
+  mau("m2", "TD102", null, T1);
+  mau("m3", "TD103", VIN, T1);
+  mau("m4", "TD103", BEN, T2);
+  assert.equal(violations(db, c), 0);
+  db.prepare("UPDATE loc_location SET active = 0 WHERE id = ?").run(VIN);
+  assert.equal(violations(db, c), 0, "TD103 bản hiện hành đã đổi sang điểm khác");
+  db.prepare("UPDATE loc_location SET active = 0 WHERE id = ?").run(BEN);
+  assert.equal(violations(db, c), 2, "TD101 + TD103 (bản hiện hành) trỏ điểm đã ngưng");
+});

@@ -207,6 +207,18 @@ const [{ n: soGanSau }] = await sqlRows("SELECT count(*) AS n FROM ctl_service_g
 assert.equal(soGanSau, soGanTruoc, "đồng bộ Sheet không thêm/bớt dòng gán");
 assert.equal((await call(ADMIN, "GET", "/api/catalog/admin")).body.items.find((i) => i.code === ttbCodes[0]).groupCode, "TTB", "nhóm hiện hành giữ nguyên sau đồng bộ");
 console.log("✓ gán nhóm → đồng bộ lại (force) → 200, dòng gán không đổi");
+// TC-M7 + NT-D6 (kế hoạch ô mới của chặng Task 7.7; ADR-0054 D10.1, ADR nháp nơi trả mặc định D7): gieo mẫu đưa đón có nơi trả mặc định cho một mã THẬT của
+// Sheet (không mã giả ZZ*) → đồng bộ ép → mẫu y nguyên (bảng vc_leg_template không thuộc đồng bộ Sheet).
+const BEN_TAU = "a941dd7d-faab-4098-9ab9-1df7fa6dd551"; // Bến tàu du lịch Nha Trang (0010)
+r = await call(ADMIN, "POST", `/api/van-chuyen/mau-chang/${ttbCodes[0]}`, { mode: "ROUND_TRIP", returnTimeHint: "16:00", noiTraMacDinhId: BEN_TAU });
+assert.equal(r.status, 201, `gieo mẫu đưa đón: ${JSON.stringify(r.body)}`);
+const mauTruoc = await sqlRows(`SELECT id, mode, return_time_hint, default_dropoff_location_id, valid_from_at FROM vc_leg_template WHERE code = '${ttbCodes[0]}'`);
+r = await call(ADMIN, "POST", "/api/catalog/sync", { force: true });
+assert.equal(r.status, 200, `đồng bộ ép sau khi gieo mẫu: ${JSON.stringify(r.body)}`);
+assert.deepEqual(await sqlRows(`SELECT id, mode, return_time_hint, default_dropoff_location_id, valid_from_at FROM vc_leg_template WHERE code = '${ttbCodes[0]}'`), mauTruoc);
+const mauForm = (await call(SALES, "GET", "/api/van-chuyen/mau-chang")).body.mauChang[ttbCodes[0]];
+assert.deepEqual(mauForm, { mode: "ROUND_TRIP", returnTimeHint: "16:00", noiTraMacDinh: { id: BEN_TAU, ten: "Bến tàu du lịch Nha Trang" } });
+console.log("✓ gieo mẫu đưa đón (có nơi trả mặc định) → đồng bộ lại (force) → mẫu y nguyên; form đọc đúng");
 
 // --- kéo lại: idempotent
 r = await call(ADMIN, "POST", "/api/catalog/sync", {});

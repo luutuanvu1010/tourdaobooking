@@ -158,3 +158,29 @@ Còn lọc `status = 'confirmed'`; lô `changeLeg` đẩy mốc đơn (`orderTou
 - Bài `src/audit-invariants.test.ts` (+3): R-ORD-13 (ca xanh, ca đỏ qua `PRAGMA ignore_check_constraints`), R-ORD-14 (ca xanh, vượt, điều chỉnh `after_json`
   được tính, đơn huỷ không đếm), R-VC-3/R-VC-7 dùng số người của chặng. Dữ liệu khoẻ ⇒ 0 (bài "dữ liệu khoẻ" có sẵn phủ mọi câu). 94/94.
 - **Thấy chặn thật (2026-10-01):** vô hiệu nhánh `RETURN` của `soNguoiChangSql` → bài R-VC-3/R-VC-7 đỏ → hoàn nguyên → xanh.
+
+## Task 6 — mẫu chặng `vc_leg_template` (migration 0058) (2026-10-01; commit 629f9ff2)
+
+- **Gộp với Task 7.2–7.4 trong cùng commit (ruling):** `0058` chưa lên `main` ⇒ theo đúng Task 7.2 cột `default_dropoff_location_id` vào CÙNG `CREATE TABLE` (CHECK bảng
+  NT-D1, khoá ngoại `loc_location` NT-D2); route ghi nhận `noiTraMacDinhId`; `changMacDinh` điền nơi trả. Tách commit theo task không có ích vì cùng một bảng / route.
+- Đỏ trước: `src/migrations-mau-chang.test.ts` (4 bài TC-M1 + NT-D1/D2) → 4 đỏ; `src/modules/van-chuyen/mau-chang.test.ts` (6 bài: TC-M2 ×2, TC-M3, NT tiêu chí 2,
+  TC-M5 + NT-D5, TC-M6 + NT tiêu chí 6) → 6 đỏ. `src/shared/chang-mac-dinh.test.ts` (4 bài TC-M4 + NT tiêu chí 4) viết TRƯỚC tệp hàm nhưng chạy lần đầu sau khi có
+  hàm (không quan sát đỏ — ghi thật).
+- Xanh: bảng + 2 trigger chỉ-thêm; `docs/data-dictionary.json` (`note`, KHÔNG `logicalRefs` — ruling 0.5) + `npm run dict`; ba route (GET form cổng `orders` +
+  `order.create`; GET/POST `:code` cổng `admin` + `admin.manage`); nhật ký `transfer_template_set` ("Mẫu đưa đón <mã>: <cũ> → <mới>; giờ về …[; nơi trả mặc định
+  <tên> → <tên>]"); SNAPSHOT route 200 → 203; `src/hanh-khach-khong-lo-ten.test.ts` regex + `mau-chang` và 3 ca (ADR-0054 "Hệ quả").
+- Bài: `migrations-mau-chang` 4/4, `chang-mac-dinh` 4/4, `mau-chang` 6/6, `route-access` 2/2, `hanh-khach-khong-lo-ten` 3/3, `architecture` xanh (sau khi khai sổ dữ liệu —
+  trước đó đỏ 2 bài "bảng chưa có trong sổ"). `npm run db:migrate:local` áp 0058 ✅.
+- **Thấy chặn thật (2026-10-01):** bỏ hai trigger chỉ-thêm → TC-M1 đỏ; đổi CHECK NT-D1 thành `CHECK (1)` → bài NT-D1 đỏ; bỏ `can(order.create)` → TC-M3 đỏ; mỗi lần
+  hoàn nguyên bằng bản sao → 10/10 xanh.
+- **Ruling (bề mặt):** hai lần ghi cùng mili-giây → 409 `stale` (UNIQUE `(code, valid_from_at)`, khuôn chính sách điều phối) — bài chờ 2 ms giữa các lần ghi.
+- **Ruling (dữ liệu, chặt hơn):** thân VẮNG `noiTraMacDinhId` mà bản hiện hành trỏ điểm ĐÃ NGƯNG → 400 (NT-D3 "điểm đang dùng lúc ghi" áp cả giá trị chép), không
+  lặng lẽ ghi lại điểm ngưng. Quản trị gửi `null` hoặc điểm khác là qua. Có bài.
+
+## Task 7 — nơi trả mặc định (2026-10-01)
+
+- 7.2–7.4: xem Task 6 (cùng commit). 7.6 (NT-D5): bài TC-M5 + NT-D5 ở `mau-chang.test.ts` (lưu chặng đi không nơi trả cho dịch vụ có mặc định → CSDL trống).
+- 7.5 (NT-D4): **R-VC-20** (warn) "mẫu đưa đón hiện hành trỏ nơi trả mặc định đã ngưng" + bài ở `src/audit-invariants.test.ts` (ca xanh, bản cũ không đếm, hai ca
+  đỏ) — đỏ trước (95: 1 đỏ) → xanh 95/95.
+- 7.7: `tests/e2e/catalog.mjs` thêm "gieo mẫu có nơi trả cho mã THẬT của Sheet (`ttbCodes[0]`) → `sync force` → dòng mẫu y nguyên; form đọc đúng" (TC-M7, NT-D6).
+- 7.8: không cạnh module mới (`van-chuyen → locations` đã có); sổ dữ liệu đã khai bảng ở Task 6.
