@@ -1,6 +1,6 @@
 # ADR-0073 — Trợ lý Hỗ trợ: Toàn quyền chọn mô hình, sửa toàn bộ lời nhắc, thử trước khi lưu; trả lời mềm ngoài hướng dẫn; nhớ 3 lượt trước
 
-- **Trạng thái:** **proposed** — bản nháp chờ chủ dự án duyệt. Nháp đặt ngoài `docs/adr/` (luật hỏi quyền khi sửa `docs/adr/**`); duyệt xong mới chép vào `docs/adr/` + dòng mục lục (và sửa dòng "số ADR kế tiếp" đã cũ ở `docs/adr/README.md`).
+- **Trạng thái:** **accepted** 2026-10-01 — chủ dự án trả lời "duyệt, lập kế hoạch đi" sau khi AI trình ADR-0073 + đặc tả, nêu rõ duyệt gồm: bỏ hàng rào "luật lõi luôn đứng trước phần tuỳ chỉnh" (sổ hàng rào dòng 285 + hai ca test) và cập nhật bảng thi hành Hiến chương 5.15. AI ghi lại. Văn bản còn ở thư mục nháp; chép vào `docs/adr/` + mục lục ở Task 0 của kế hoạch thi công.
 - **Ngày:** 2026-10-01. **Số:** 0073 — 0071 (vai Hành chính nhân sự, `10347cce`) và 0072 (giữ chỗ ở nhánh `worktree-han-che-quan-tri-hcns`, `1a614a0c`) đã dùng.
 - **Mốc mã:** `main` = `fd77987a` (1.50 + gộp hồ sơ 1.51). Production đang chạy 1.48 (GET `/api/auth/config`, 2026-10-01) — 1.49–1.51 chưa triển khai; production còn lời nhắc cũ hơn và trần 8 đoạn.
 - **Thuộc gói:** một lượt duyệt gồm ADR này + đặc tả `dac-ta.md` cùng thư mục (trang ghép §8 đặc tả). Hai quyết định chạm dữ liệu/quyền/tiền ≤ trần 3.

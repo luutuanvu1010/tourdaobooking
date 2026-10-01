@@ -1,6 +1,6 @@
 # Đặc tả — Trợ lý Hỗ trợ thông minh hơn: chọn mô hình, sửa lời nhắc, ô thử, trả lời mềm, nhớ 3 lượt (lượt 1)
 
-- **Trạng thái:** bản nháp, chờ chủ dự án duyệt **cùng** ADR-0073 (cùng thư mục). Chưa duyệt thì không lập kế hoạch thi công.
+- **Trạng thái:** **đã duyệt** 2026-10-01 cùng ADR-0073 (chủ: "duyệt, lập kế hoạch đi").
 - **Ngày:** 2026-10-01. **Mốc mã:** `main` = `fd77987a`. **Nhánh:** `tro-ly-thong-minh`.
 - **Quyết định gốc:** ADR-0073 (nháp). Đặc tả chỉ chi tiết hoá trong khung ADR.
 - **Xây trên lỗ đang hở:** không có.
