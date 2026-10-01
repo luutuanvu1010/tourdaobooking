@@ -46,14 +46,12 @@ interface Tab {
  * (`cuoc`, Q5 — bản vẽ Bảng điều phối) thêm "Cuốc của tôi" (/cuoc, trang mở đầu) ở giữa. Tài khoản vừa tài xế công ty vừa văn phòng (kiểm độc lập K2b T2,
  * điều phối chốt — giả định bề mặt GA-K2b-T2): KHÔNG thêm tab (thanh tab văn phòng đã đủ chỗ), mở /cuoc từ trang Tôi; thanh bên có mục "Cuốc của tôi" ở nhóm TÔI.
  */
-function tabsFor(admin: boolean, seesAll: boolean, canCreate: boolean, taiXe = false, cuoc = false): Tab[] {
-  const adminTabs: Tab[] =
-    admin
-      ? [
-          { href: "/catalog", label: "Dịch vụ", icon: "services", active: (p) => p === "/catalog" },
-          { href: "/staff", label: "Tài khoản", icon: "staff", active: (p) => p === "/staff" },
-        ]
-      : [];
+function tabsFor(admin: boolean, seesAll: boolean, canCreate: boolean, taiXe = false, cuoc = false, taiKhoan = admin): Tab[] {
+  // ADR-0071: tab "Tài khoản" theo ô account.view (`taiKhoan`) — Quản trị như cũ, thêm Hành chính nhân sự (và tài khoản chỉ Toàn quyền); "Dịch vụ" giữ theo quyền Quản trị.
+  const adminTabs: Tab[] = [
+    ...(admin ? [{ href: "/catalog", label: "Dịch vụ", icon: "services" as const, active: (p: string) => p === "/catalog" }] : []),
+    ...(taiKhoan ? [{ href: "/staff", label: "Tài khoản", icon: "staff" as const, active: (p: string) => p === "/staff" }] : []),
+  ];
   const officeTabs: Tab[] = [];
   // Đợt D Task 5 (ADR-0015 điều 4): trang mặc định đổi chỗ — "/" nay là Trang chủ, "/orders" là Đơn hàng.
   // active() của "/" phải khớp CHÍNH XÁC "/" (không dùng startsWith/prefix) để không lỡ sáng đèn cho mọi đường dẫn.
@@ -70,11 +68,11 @@ function tabsFor(admin: boolean, seesAll: boolean, canCreate: boolean, taiXe = f
   ];
 }
 
-function tabBar(admin: boolean, seesAll: boolean, canCreate: boolean, path: string, taiXe = false, cuoc = false): HTMLElement {
+function tabBar(admin: boolean, seesAll: boolean, canCreate: boolean, path: string, taiXe = false, cuoc = false, taiKhoan = admin): HTMLElement {
   return h(
     "nav",
     { id: "tabbar", "aria-label": "Điều hướng chính" },
-    ...tabsFor(admin, seesAll, canCreate, taiXe, cuoc).map((t) =>
+    ...tabsFor(admin, seesAll, canCreate, taiXe, cuoc, taiKhoan).map((t) =>
       h("a", { href: t.href, class: t.icon === "plus" ? "tab tab-new" : "tab", "aria-current": t.active(path) ? "page" : false }, h("span", { class: "tab-icon" }, icon(t.icon), t.href === "/account" && helpHasNews() && newDot()), h("span", null, t.label)),
     ),
   );
@@ -82,7 +80,7 @@ function tabBar(admin: boolean, seesAll: boolean, canCreate: boolean, path: stri
 
 const MAINTENANCE_STRIP_ID = "maint-strip";
 /**
- * Dải mảnh dưới thanh đầu trang: "Đang ở chế độ bảo trì — chỉ bạn dùng được" (liên kết tới trang Tôi, nơi tắt). Chỉ người ĐƯỢC PHÉP tới được app lúc bảo trì nên chỉ họ thấy dải này;
+ * Dải mảnh dưới thanh đầu trang: "Đang ở chế độ bảo trì — chỉ bạn dùng được" (liên kết tới trang Tôi, nơi tắt). Chỉ tài khoản Toàn quyền (ADR-0071) tới được app lúc bảo trì nên chỉ họ thấy dải này;
  * gọi lại với `on = false` để gỡ (trang Tôi gọi ngay sau khi bật/tắt, khỏi phải tải lại trang).
  */
 /** `#strips` (dải mảnh dưới thanh đầu trang, dùng chung với `.ntf-strip` của Thông báo — ADR-0034) — tạo lười, cái nào chạy trước tạo (R7). */
@@ -193,7 +191,7 @@ interface NavGroup {
  * tabsFor()/nav ngang cũ (office/admin/canCreate) — KHÔNG tự đổi bản đồ quyền (đặc tả §3.1). Nhóm rỗng bị lọc ở
  * sidebar() (ẩn cả tiêu đề, đặc tả §3.1).
  */
-function navGroups(admin: boolean, seesAll: boolean, office: boolean, canCreate: boolean, superAdmin: boolean, path: string, taiXe = false, vehicle = false, danhMuc = false, chinhSach = false, dieuPhoi = false, cuoc = false): NavGroup[] {
+function navGroups(admin: boolean, seesAll: boolean, office: boolean, canCreate: boolean, superAdmin: boolean, path: string, taiXe = false, vehicle = false, danhMuc = false, chinhSach = false, dieuPhoi = false, cuoc = false, taiKhoan = admin): NavGroup[] {
   const sales: NavItem[] = [];
   // Đợt D Task 5 (ADR-0015 điều 4): "/" nay là Trang chủ, "/orders" là Đơn hàng — active() của "/" phải khớp
   // CHÍNH XÁC "/" (không phải mọi đường dẫn bắt đầu bằng "/").
@@ -204,13 +202,12 @@ function navGroups(admin: boolean, seesAll: boolean, office: boolean, canCreate:
   if (canCreate) sales.push({ href: "/order-form", label: "Tạo đơn", icon: "plus", active: (p) => p === "/order-form" });
   if (office) sales.push({ href: "/parties", label: "Danh bạ", icon: "contact-card", active: (p) => p === "/parties" });
 
-  const management: NavItem[] = admin
-    ? [
-        { href: "/catalog", label: "Dịch vụ & giá", icon: "services", badge: catalogConflictBadge, badgeClass: "sidebar-item-badge-sand", active: (p) => p === "/catalog" },
-        { href: "/staff", label: "Quản lý tài khoản", icon: "staff", active: (p) => p === "/staff" },
-        { href: "/locations", label: "Địa điểm", icon: "pin", active: (p) => p === "/locations" },
-      ]
-    : [];
+  // ADR-0071: "Quản lý tài khoản" theo ô account.view (`taiKhoan`) — Quản trị giữ đúng ba mục như cũ; Hành chính nhân sự chỉ có mục này trong nhóm QUẢN TRỊ.
+  const management: NavItem[] = [
+    ...(admin ? [{ href: "/catalog", label: "Dịch vụ & giá", icon: "services" as const, badge: catalogConflictBadge, badgeClass: "sidebar-item-badge-sand", active: (p: string) => p === "/catalog" }] : []),
+    ...(taiKhoan ? [{ href: "/staff", label: "Quản lý tài khoản", icon: "staff" as const, active: (p: string) => p === "/staff" }] : []),
+    ...(admin ? [{ href: "/locations", label: "Địa điểm", icon: "pin" as const, active: (p: string) => p === "/locations" }] : []),
+  ];
   // Loại giấy tờ người (danh mục chung — giấy tờ thuộc về người; tách 2026-09-28): ngay sau "Địa điểm", trước "Vận chuyển". Ô admin.manage.
   if (danhMuc) management.push({ href: TRANG_LOAI_GIAY_TO_NGUOI, label: "Loại giấy tờ người", icon: "doc-check", active: (p) => p === TRANG_LOAI_GIAY_TO_NGUOI });
   // Vận chuyển (ADR-0040 D1, ô vehicle.manage; bản vẽ 00): mục cha sau Địa điểm, luôn mở các mục con; huy hiệu cát ở "Sắp hết hạn" = số giấy đã hết + sắp hết.
@@ -300,8 +297,8 @@ function sidebarGroup(group: NavGroup, path: string, loaders: (() => void)[]): H
  * Đăng xuất: bản mẫu không vẽ (ảnh chỉ là một phần khung), nhưng đây là thao tác BẮT BUỘC PHẢI CÒN (trang Tôi
  * cũng có "Đăng xuất" riêng, `web/account.ts`) — thêm một liên kết nhỏ, không đổi khối nào bản mẫu đã vẽ.
  */
-function sidebar(admin: boolean, seesAll: boolean, office: boolean, canCreate: boolean, path: string, staff: Staff | null, loaders: (() => void)[], tat = "", superAdmin = false, taiXe = false, vehicle = false, danhMuc = false, chinhSach = false, dieuPhoi = false, cuoc = false): HTMLElement {
-  const groups = navGroups(admin, seesAll, office, canCreate, superAdmin, path, taiXe, vehicle, danhMuc, chinhSach, dieuPhoi, cuoc)
+function sidebar(admin: boolean, seesAll: boolean, office: boolean, canCreate: boolean, path: string, staff: Staff | null, loaders: (() => void)[], tat = "", superAdmin = false, taiXe = false, vehicle = false, danhMuc = false, chinhSach = false, dieuPhoi = false, cuoc = false, taiKhoan = admin): HTMLElement {
+  const groups = navGroups(admin, seesAll, office, canCreate, superAdmin, path, taiXe, vehicle, danhMuc, chinhSach, dieuPhoi, cuoc, taiKhoan)
     .map((g) => sidebarGroup(g, path, loaders))
     .filter((g): g is HTMLElement => g !== null);
   // `staff` null = khung tạm từ bản nhớ (ADR-0035): chân thanh chỉ có chữ cái đầu, tên/vai điền khi /api/auth/me về.
@@ -396,10 +393,12 @@ export async function initShell(): Promise<Staff> {
   // `tatTam` khác null = vẽ KHUNG TẠM từ bản nhớ (ADR-0035): đánh dấu `data-khung-tam` để gỡ khi /api/auth/me về; chưa nạp huy hiệu.
   // `taiXe` (ADR-0040 D3) không có trong bản nhớ khung (5 trường đã duyệt, ADR-0035 — thêm trường cần ADR): khung tạm của tài xế thiếu tab "Trang chủ" một
   // nhịp, khung thật (sau /api/auth/me) vẽ đủ.
-  const addNav = (admin: boolean, seesAll = true, office = seesAll, canCreate = seesAll, staff: Staff | null = null, tatTam: string | null = null, superAdmin = false, taiXe = false, vehicle = false, danhMuc = false, chinhSach = false, dieuPhoi = false, cuoc = false) => {
+  // `taiKhoan` (ADR-0071, ô account.view) không có trong bản nhớ khung (5 trường đã duyệt, ADR-0035): khung tạm dùng `admin` thay — tài khoản Hành chính nhân sự
+  // thiếu mục "Quản lý tài khoản" một nhịp, khung thật vẽ đủ (như tiền lệ `taiXe`).
+  const addNav = (admin: boolean, seesAll = true, office = seesAll, canCreate = seesAll, staff: Staff | null = null, tatTam: string | null = null, superAdmin = false, taiXe = false, vehicle = false, danhMuc = false, chinhSach = false, dieuPhoi = false, cuoc = false, taiKhoan = admin) => {
     if (staff || tatTam !== null) {
       const badgeLoaders: (() => void)[] = [];
-      const nav = sidebar(admin, seesAll, office, canCreate, path, staff, badgeLoaders, tatTam ?? "", superAdmin, taiXe, vehicle, danhMuc, chinhSach, dieuPhoi, cuoc);
+      const nav = sidebar(admin, seesAll, office, canCreate, path, staff, badgeLoaders, tatTam ?? "", superAdmin, taiXe, vehicle, danhMuc, chinhSach, dieuPhoi, cuoc, taiKhoan);
       document.body.prepend(nav);
       document.body.classList.add("has-sidebar");
       // Huy hiệu chỉ nạp khi thanh bên ĐANG HIỂN THỊ THẬT (`offsetParent` null khi CSS ẩn nó ở khổ hẹp). Hỏi chính
@@ -423,7 +422,7 @@ export async function initShell(): Promise<Staff> {
     }
     if (tabbar === "off") return;
     // Tab "Cuốc của tôi" CHỈ cho tài khoản "chỉ tài xế"; tài khoản vừa tài xế vừa văn phòng (K2b T2) mở /cuoc từ trang Tôi (tab "Tôi" sáng).
-    const tabs = tabBar(admin, seesAll, canCreate, path, taiXe, taiXe && cuoc);
+    const tabs = tabBar(admin, seesAll, canCreate, path, taiXe, taiXe && cuoc, taiKhoan);
     if (tatTam !== null) tabs.dataset.khungTam = "1";
     document.body.append(tabs);
     document.body.classList.add("has-tabbar");
@@ -487,10 +486,10 @@ export async function initShell(): Promise<Staff> {
 
   // `danhMuc` (ô admin.manage — hai trang Loại giấy tờ xe / người, Lý do điều phối) và `chinhSach` (ô settings.ops — Chính sách điều phối) như `vehicle`: chỉ
   // khung THẬT biết (bản nhớ khung chỉ 5 trường đã duyệt, ADR-0035).
-  addNav(admin, seesAll, office, canCreate, staff, null, hasPermission(staff, "SUPER_ADMIN"), chiTaiXe(staff), can(staff, "vehicle.manage"), can(staff, "admin.manage"), can(staff, "settings.ops"), thayDieuPhoiXe(staff), coCuocCuaToi(staff));
+  addNav(admin, seesAll, office, canCreate, staff, null, hasPermission(staff, "SUPER_ADMIN"), chiTaiXe(staff), can(staff, "vehicle.manage"), can(staff, "admin.manage"), can(staff, "settings.ops"), thayDieuPhoiXe(staff), coCuocCuaToi(staff), can(staff, "account.view"));
   batDauBangTin(staff); // Bảng tin (ADR-0022): MỘT kết nối mỗi trang đã đăng nhập; nhánh mất mạng ở trên không tới đây (chưa có `staff`)
-  // Trợ lý Hỗ trợ (ADR-0066 điều 9): nút nổi ở mọi trang đã đăng nhập (initShell không chạy ở /login). CẢ khi đang bảo trì: lúc đó chỉ số điện thoại
-  // được phép mới qua được máy chủ, đúng những người đang dùng app — ẩn trợ lý với họ là sai (chủ báo 30/9 "chưa thấy trợ lý bật lên" khi bảo trì đang bật).
+  // Trợ lý Hỗ trợ (ADR-0066 điều 9): nút nổi ở mọi trang đã đăng nhập (initShell không chạy ở /login). CẢ khi đang bảo trì: lúc đó chỉ tài khoản Toàn quyền
+  // mới qua được máy chủ (ADR-0071), đúng những người đang dùng app — ẩn trợ lý với họ là sai (chủ báo 30/9 "chưa thấy trợ lý bật lên" khi bảo trì đang bật).
   // ADR-0069 điều 3: nút chỉ dựng khi máy chủ báo tài khoản được dùng (vai đang bật) — hỏi không chặn khung trang.
   void ganTroLy(staff);
   return staff;

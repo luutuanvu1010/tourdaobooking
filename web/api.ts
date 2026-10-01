@@ -20,7 +20,6 @@ export type {
   Prices,
   StaffAccountDto as StaffAccount,
   StaffProfile as Staff,
-  StaffSheetCandidateDto as SheetCandidate,
 } from "../src/shared/contracts";
 export type * as Api from "../src/shared/contracts";
 

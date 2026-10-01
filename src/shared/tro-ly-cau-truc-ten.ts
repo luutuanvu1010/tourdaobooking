@@ -18,7 +18,7 @@ export interface TenLoiThuong {
 
 /** Mỗi module của `src/modules/*` và mỗi nút của `ALLOWED_EDGES` (kể cả phân hệ đã khai ranh giới mà chưa có thư mục). */
 export const TEN_PHAN_HE: Readonly<Record<string, TenLoiThuong>> = {
-  accounts: { ten: "Quản lý tài khoản", moTa: "Tạo tài khoản đăng nhập cho nhân viên, đối tác, tài xế; gán quyền; đặt lại PIN, gỡ Face ID, mở khoá; ngưng tài khoản khi nghỉ việc. Quản trị làm ở trang Quản lý tài khoản." },
+  accounts: { ten: "Quản lý tài khoản", moTa: "Tạo tài khoản đăng nhập cho nhân viên, đối tác, tài xế (Hành chính nhân sự hoặc người phụ trách hệ thống); gán vai; ngưng tài khoản khi nghỉ việc; đặt lại PIN, gỡ Face ID, mở khoá (Quản trị). Làm ở trang Quản lý tài khoản." },
   audit: { ten: "Nhật ký", moTa: "Ghi dấu vết ai làm gì, lúc nào, cho mọi thay đổi quan trọng của mọi phân hệ. Lịch sử của một đơn lấy từ đây; trang Nhật ký toàn hệ thống chỉ Toàn quyền xem." },
   auth: { ten: "Đăng nhập", moTa: "Đăng nhập bằng số điện thoại và mã PIN hoặc Face ID, giữ phiên đăng nhập, tạm khoá khi nhập sai nhiều lần." },
   bangtin: { ten: "Bảng tin", moTa: "Báo tức thì cho mọi màn hình đang mở khi một đơn vừa đổi, nên danh sách đơn tự cập nhật mà không cần tải lại trang." },
@@ -28,7 +28,7 @@ export const TEN_PHAN_HE: Readonly<Record<string, TenLoiThuong>> = {
   dispatch: { ten: "Người phụ trách đơn", moTa: "Giao, nhận, đổi người phụ trách một đơn; hàng chờ nhận cho đơn chưa có ai phụ trách; hướng dẫn viên huỷ hoặc sửa số khách đơn mình phụ trách." },
   feedback: { ten: "Góp ý / Báo lỗi", moTa: "Mọi tài khoản gửi góp ý hoặc báo lỗi và theo dõi yêu cầu của mình; Toàn quyền tiếp nhận và trả lời." },
   locations: { ten: "Địa điểm", moTa: "Danh sách nơi đón, nơi trả dùng chung khi lập đơn và xếp chuyến; Quản trị thêm, sửa ở trang Địa điểm." },
-  maintenance: { ten: "Chế độ bảo trì", moTa: "Khi bật, chỉ vài người được chỉ định còn dùng được app; người khác thấy màn hình bảo trì. Chỉ người phụ trách hệ thống bật, tắt." },
+  maintenance: { ten: "Chế độ bảo trì", moTa: "Khi bật, chỉ người phụ trách hệ thống còn dùng được app; mọi người khác, kể cả Quản trị, thấy màn hình bảo trì. Chỉ người phụ trách hệ thống bật, tắt." },
   orders: { ten: "Đơn hàng", moTa: "Lập, sửa, xác nhận, huỷ đơn; dịch vụ của đơn, chặng đưa đón (giờ, nơi đón), danh sách hành khách. Tiền của đơn do app tự tính từ giá danh mục và số khách." },
   parties: { ten: "Danh bạ", moTa: "Hồ sơ khách, đại lý, nhân viên, hướng dẫn viên, tài xế, nhà xe đối tác và công ty chủ; liên hệ, công việc, giấy tờ của người (số giấy tờ luôn bị che)." },
   pricing: { ten: "Chính sách giá", moTa: "Chiết khấu, hoa hồng theo ngày — đang chuẩn bị, app chưa dùng." },

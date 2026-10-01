@@ -84,6 +84,7 @@ test("A5: nhomCuaToi — mỗi tài khoản thấy Phần chung + đúng nhóm c
   assert.deepEqual(ids(["DRIVER"]), ["chung", "tai-xe"]);
   assert.deepEqual(ids(["DRIVER_PARTNER"]), ["chung", "tai-xe"]);
   assert.deepEqual(ids(["PARTNER"]), ["chung", "doi-tac"]);
+  assert.deepEqual(ids(["HR"]), ["chung", "nhan-su"], "ADR-0071: Hành chính nhân sự");
   assert.ok(!ids(["SALES"]).includes("quan-tri"));
   assert.ok(ids(["SALES", "ADMIN"]).includes("quan-tri"));
   assert.ok(ids(["SUPER_ADMIN"]).includes("quan-tri"));

@@ -512,7 +512,7 @@ function renderMaintenance(status: Api.MaintenanceResponse): void {
   replaceChildren(
     maintenanceEl,
     h("h2", { id: "maintenance-heading" }, "Chế độ bảo trì"),
-    h("p", { class: "muted" }, "Khi bật, mọi nhân viên khác bị chặn ngay (kể cả đang mở app); chỉ bạn dùng được."),
+    h("p", { class: "muted" }, "Khi bật, mọi tài khoản không có quyền Toàn quyền bị chặn ngay (kể cả đang mở app, kể cả Quản trị)."),
     h(
       "p",
       { class: "maint-state" },
@@ -526,13 +526,14 @@ function renderMaintenance(status: Api.MaintenanceResponse): void {
   maintenanceEl.hidden = false;
 }
 
+// ADR-0071 điều 3c: mục này theo ô settings.ops (chỉ Toàn quyền — cùng chốt với GET/PUT /api/maintenance); Quản trị không thấy mục, không gọi route.
 async function initMaintenance(): Promise<void> {
-  if (!hasPermission(staff, "ADMIN")) return;
+  if (!can(staff, "settings.ops")) return;
   try {
     const status = await api<Api.MaintenanceResponse>("/api/maintenance");
     if (status.canToggle) renderMaintenance(status);
   } catch {
-    // không phải chủ, hoặc lỗi mạng: mục này ẩn (không ảnh hưởng phần còn lại của trang)
+    // lỗi mạng: mục này ẩn (không ảnh hưởng phần còn lại của trang)
   }
 }
 void initMaintenance();
