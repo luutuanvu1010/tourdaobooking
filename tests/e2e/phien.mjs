@@ -311,9 +311,30 @@ const batMay = async (ck, ep) => assert.equal((await call(ck, "POST", "/api/acco
   assert.deepEqual(r.body.sessions.map((s) => s.id), [sidA], "salesA có đúng một phiên sống");
   assert.equal(r.body.sessions[0].staffName, A.name);
   assert.equal(r.body.sessions[0].statusLabel, "Đang hiệu lực");
+  // ADR-0075 điều 6b: máy bị gỡ có đăng ký thông báo → đăng ký đó tắt (bi-go). Máy Toàn quyền của `sa` (tài khoản khác) không đụng.
+  const epA = diaChiGia();
+  await batMay(cA, epA);
+  const epSa = diaChiGia();
+  await batMay(sa, epSa);
   r = await call(sa, "POST", `/api/sessions/${sidA}/revoke`, {});
   assert.equal(r.status, 200, JSON.stringify(r.body));
   assert.equal((await call(cA, "GET", "/api/auth/me")).status, 401, "máy bị gỡ → 401");
+  const dgA = await doiTat(epA);
+  assert.ok(dgA.revoked_at, "máy bị gỡ → đăng ký thông báo của nó phải tắt");
+  assert.equal(dgA.revoke_reason, "bi-go");
+  assert.equal((await dongMay(epSa)).revoked_at, null, "đăng ký của tài khoản khác không đụng");
+  // Cùng tài khoản nhiều máy (Toàn quyền miễn một máy): gỡ phiên máy thứ hai của superAdmin → chỉ đăng ký của máy đó tắt; máy `sa` vẫn bật, vẫn đăng nhập.
+  const saMay2 = await dangNhapMay(IPHONE, undefined, SA);
+  const epSa2 = diaChiGia();
+  await batMay(saMay2, epSa2);
+  r = await call(sa, "POST", `/api/sessions/${maPhien(saMay2)}/revoke`, {});
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  const dgSa2 = await doiTat(epSa2);
+  assert.equal(dgSa2.revoke_reason, "bi-go", "máy bị gỡ → đăng ký tắt, lý do bi-go");
+  await new Promise((res) => setTimeout(res, 300));
+  assert.equal((await dongMay(epSa)).revoked_at, null, "máy kia của CÙNG tài khoản vẫn nhận thông báo (ADR-0075 điều 6b — chỉ máy bị gỡ)");
+  assert.equal((await call(sa, "GET", "/api/auth/me")).status, 200, "máy kia vẫn đăng nhập");
+  await call(sa, "POST", "/api/account/thong-bao/may/huy", { endpoint: epSa }); // dọn
   assert.equal((await call(cA, "POST", "/api/auth/session-ended")).body.reason, "Bị IT/Toàn quyền gỡ");
   const dg = await dongCua(sidA);
   assert.equal(dg.end_reason, "bi_go");
@@ -322,7 +343,7 @@ const batMay = async (ck, ep) => assert.equal((await call(ck, "POST", "/api/acco
   r = await call(sa, "POST", `/api/sessions/${maPhien(sa)}/revoke`, {});
   assert.equal(r.status, 409, "tự gỡ phiên của mình → 409");
   assert.equal(r.body.error.code, "self_session");
-  console.log("✓ Toàn quyền gỡ phiên salesA: 401 + 'Bị IT/Toàn quyền gỡ'; gỡ lại / tự gỡ → 409");
+  console.log("✓ Toàn quyền gỡ phiên salesA: 401 + 'Bị IT/Toàn quyền gỡ'; gỡ lại / tự gỡ → 409; chỉ đăng ký thông báo của máy bị gỡ tắt (bi-go)");
 
   // 18. Nhật ký im lặng: một dòng session_revoked không IP; Quản trị không mở được trang Nhật ký (audit.view chỉ Toàn quyền — ADR-0038 điều 6, nên
   // lớp lọc im lặng không có người xem không-Toàn-quyền nào ở e2e; bộ lọc được kiểm ở src/modules/audit/an-toan-quyen.test.ts); Toàn quyền thấy dòng.

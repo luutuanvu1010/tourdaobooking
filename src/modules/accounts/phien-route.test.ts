@@ -77,7 +77,7 @@ test("ADR-0075 điều 7–8: Toàn quyền gỡ phiên của Bán hàng → má
   assert.ok(String(logs[0].detail).includes(sid), "nhật ký ghi mã phiên");
   assert.ok(!/\d+\.\d+\.\d+\.\d+|Mozilla/.test(String(logs[0].detail)), "nhật ký không có IP / User-Agent");
   assert.equal(logs[0].created_at, d.ended_at, "MỘT mốc giờ cho cả lô");
-  assert.deepEqual(goi, [{ staffId: SALES, sessionIds: [sid], giuPhien: null }]);
+  assert.deepEqual(goi, [{ staffId: SALES, sessionIds: [sid], chiPhien: true }], "dạng CHỈ phiên bị gỡ (ADR-0075 điều 6b) — không tắt máy khác của tài khoản");
 
   // Gỡ lần nữa → 409, không thêm nhật ký; mã không tồn tại → 404
   const lai = await w.call("POST", `/api/sessions/${sid}/revoke`, { as: SUP, body: {} });
@@ -85,6 +85,32 @@ test("ADR-0075 điều 7–8: Toàn quyền gỡ phiên của Bán hàng → má
   assert.equal(lai.json.error.code, "already_ended");
   assert.equal(w.q("SELECT count(*) n FROM audit_log WHERE action = 'session_revoked'")[0].n, 1);
   assert.equal((await w.call("POST", "/api/sessions/khong-co/revoke", { as: SUP, body: {} })).status, 404);
+});
+
+test("ADR-0075 điều 6b: gỡ một phiên CHỈ tắt thông báo màn hình khoá của ĐÚNG máy đó (bi-go) — máy kia (phiên khác) của cùng tài khoản vẫn bật (nối dây thật ở gốc lắp ráp)", async () => {
+  const w = setup(); // không ghiDe: dongBangTin thật của src/index.ts
+  // SUP2 miễn một máy (Toàn quyền) → giữ được hai phiên sống cùng lúc. w.token dùng lại phiên sống MỚI NHẤT ⇒ chèn phiên B (mới hơn) rồi mới lấy token B.
+  const tkA = await w.token(SUP2);
+  themPhien(w, { id: "phien-may-b", staff: SUP2, single: 0, createdAt: new Date(Date.now() + 1000).toISOString() });
+  const tkB = await w.token(SUP2);
+  assert.notEqual(maPhien(tkA), maPhien(tkB), "hai máy phải là hai phiên khác nhau");
+  const epA = "https://fcm.googleapis.com/fcm/send/may-a";
+  const epB = "https://fcm.googleapis.com/fcm/send/may-b";
+  for (const [tk, ep] of [[tkA, epA], [tkB, epB]] as const) {
+    const r = await callWith(w, tk, "POST", "/api/account/thong-bao/may", { endpoint: ep, thietBi: "Máy thử" });
+    assert.equal(r.status, 200, r.text);
+  }
+  const dong = (ep: string) => w.q("SELECT session_id, revoked_at, revoke_reason FROM ntf_push_sub WHERE endpoint = ?", ep)[0];
+  assert.equal(dong(epA).session_id, maPhien(tkA));
+  assert.equal(dong(epB).session_id, maPhien(tkB));
+  const r = await w.call("POST", `/api/sessions/${maPhien(tkA)}/revoke`, { as: SUP, body: {} });
+  assert.equal(r.status, 200, r.text);
+  // dongBangTin là bắn-và-quên → đợi tới khi máy A đổi (cùng MỘT câu UPDATE quyết cả hai dòng: A đổi xong thì B đã ở trạng thái cuối)
+  for (let i = 0; i < 100 && !dong(epA).revoked_at; i++) await new Promise((res) => setTimeout(res, 10));
+  assert.ok(dong(epA).revoked_at, "máy bị gỡ phải tắt thông báo");
+  assert.equal(dong(epA).revoke_reason, "bi-go");
+  assert.equal(dong(epB).revoked_at, null, "máy kia của cùng tài khoản KHÔNG bị tắt");
+  assert.equal((await callWith(w, tkB, "GET", "/api/auth/me")).status, 200, "máy kia vẫn đăng nhập");
 });
 
 test("ADR-0075 điều 7: Toàn quyền tự gỡ phiên của chính mình → 409 'Dùng nút Đăng xuất'; gỡ được phiên của Toàn quyền khác (cùng cấp)", async () => {

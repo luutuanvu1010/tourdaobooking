@@ -9,7 +9,7 @@
 // (`dispatch`), tính nhãn người nhận (`nhanSuKien`) rồi đưa cho `phatDon`. Đây cũng là NƠI DUY NHẤT nạp lớp Durable Object `BangTin` (`tram.ts`) —
 // wrangler cần lớp đó được export từ tệp chính.
 // WEB PUSH (ADR-0036): cũng ở `baoThayDoi` gốc lắp ráp gõ cửa màn hình khoá (`dayGoCua` của `thongbao`) độc lập với phát Bảng tin; `thongbao` giao lô
-// cho trạm qua hàm tiêm `giaoLoDay` (không cạnh thongbao → bangtin); `dongBangTin` còn tắt mọi máy nhận của tài khoản vừa đổi.
+// cho trạm qua hàm tiêm `giaoLoDay` (không cạnh thongbao → bangtin); `dongBangTin` còn tắt máy nhận của tài khoản vừa đổi (mọi máy / trừ máy mới / chỉ máy của phiên bị gỡ).
 
 import { accountsModule } from "./modules/accounts";
 import { auditModule } from "./modules/audit";
@@ -26,7 +26,7 @@ import { maintenanceBlock, maintenanceModule } from "./modules/maintenance";
 import { partiesModule } from "./modules/parties";
 import { cauDoiNguoiDat, donCuaNguoiDat, findOrderRef, ordersModule } from "./modules/orders";
 import { accountOfParty, nhanNhanVienTheoId, soDangNhapTheoHoSo } from "./modules/staff";
-import { dayGoCua, tatMayStatement, tatMayTruPhienStatement, thongbaoModule } from "./modules/thongbao";
+import { dayGoCua, tatMayCuaPhienStatement, tatMayStatement, tatMayTruPhienStatement, thongbaoModule } from "./modules/thongbao";
 import { troLyModule } from "./modules/tro-ly";
 import { mocToiThieuHienHanh, vanChuyenModule, viecXeCuaNguoi } from "./modules/van-chuyen";
 import { HANDLER_TRUOC_KHONG_BIET, nhanSuKien } from "./shared/bang-tin";
@@ -97,7 +97,16 @@ const APP_OPTIONS: AppOptions = {
     // mật; đổi vai/quyền không tắt — thay ADR-0036 điều 6). Chạy cả khi không có trạm. "tat-ca" (bật bảo trì) KHÔNG tắt máy.
     // Nhánh theo PHIÊN (ADR-0075 điều 6, đăng nhập tài khoản một máy): trạm chỉ nhận `{ sessionIds }` — KHÔNG kèm staffId (trạm đóng theo staffId là đóng
     // luôn máy mới); tắt mọi máy nhận của tài khoản trừ máy mang phiên mới (`giuPhien`), lý do bi-thay. Hai việc độc lập.
+    // Nhánh CHỈ PHIÊN (ADR-0075 điều 6b, IT/Toàn quyền gỡ phiên): trạm chỉ nhận `{ sessionIds }`; tắt CHỈ máy nhận mang đúng các phiên đó, lý do bi-go.
+    // Phải xét TRƯỚC nhánh "sessionIds" (dạng này cũng có sessionIds; lọt xuống dưới là giuPhien undefined ⇒ tắt mọi máy).
     dongBangTin: async (env, muc) => {
+      if (typeof muc === "object" && "chiPhien" in muc) {
+        await nemNeuLoi([
+          ["tram", dongCua(env, { sessionIds: muc.sessionIds })],
+          ["tat-may", tatMayCuaPhienStatement(env.DB, muc.staffId, muc.sessionIds, new Date().toISOString()).run()],
+        ]);
+        return;
+      }
       if (typeof muc === "object" && "sessionIds" in muc) {
         await nemNeuLoi([
           ["tram", dongCua(env, { sessionIds: muc.sessionIds })],

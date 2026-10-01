@@ -5,7 +5,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { DatabaseSync, type SupportedValueType } from "node:sqlite";
 import { readFileSync, readdirSync } from "node:fs";
-import { batMayStatements, tatMayTruPhienStatement } from "./repository.ts";
+import { batMayStatements, tatMayCuaPhienStatement, tatMayTruPhienStatement } from "./repository.ts";
 
 const DIR = new URL("../../../migrations/", import.meta.url);
 
@@ -72,6 +72,26 @@ test("TAT_MAY_TRU_PHIEN: không ghi đè dòng đã tắt trước đó (giữ l
     { id: "a", revoked_at: T0, revoke_reason: "tu-tat" },
     { id: "b", revoked_at: T1, revoke_reason: "bi-thay" },
   ]);
+});
+
+test("TAT_MAY_CUA_PHIEN (IT/Toàn quyền gỡ phiên — ADR-0075 điều 6b): chỉ tắt đăng ký mang ĐÚNG phiên bị gỡ, lý do bi-go, updated_by NULL; phiên khác, dòng session_id NULL, tài khoản khác và dòng đã tắt không đụng", async () => {
+  const { sqlite, db } = setup();
+  chen(sqlite, "a", "s1", ep("a"), "A");
+  chen(sqlite, "b", "s1", ep("b"), "B");
+  chen(sqlite, "n", "s1", ep("n"), null);
+  chen(sqlite, "z", "s2", ep("z"), "A"); // mã phiên trùng nhưng tài khoản khác (không xảy ra thật — canh điều kiện staff_id)
+  chen(sqlite, "c", "s1", ep("c"), "A");
+  sqlite.exec(`UPDATE ntf_push_sub SET revoked_at = '${T0}', revoke_reason = 'tu-tat' WHERE id = 'c'`);
+  const r = await tatMayCuaPhienStatement(db, "s1", ["A"], T1).run();
+  assert.equal(r.meta.changes, 1);
+  assert.deepEqual(dong(sqlite, "SELECT id, revoked_at, revoke_reason, updated_at, updated_by FROM ntf_push_sub ORDER BY id"), [
+    { id: "a", revoked_at: T1, revoke_reason: "bi-go", updated_at: T1, updated_by: null },
+    { id: "b", revoked_at: null, revoke_reason: null, updated_at: T0, updated_by: null },
+    { id: "c", revoked_at: T0, revoke_reason: "tu-tat", updated_at: T0, updated_by: null },
+    { id: "n", revoked_at: null, revoke_reason: null, updated_at: T0, updated_by: null },
+    { id: "z", revoked_at: null, revoke_reason: null, updated_at: T0, updated_by: null },
+  ]);
+  assert.equal((await tatMayCuaPhienStatement(db, "s1", [], T2).run()).meta.changes, 0, "danh sách phiên rỗng → không tắt gì");
 });
 
 test("đăng ký máy ghi session_id; đăng ký lại CÙNG máy (cùng người) bằng phiên mới → cập nhật session_id, không thêm dòng", async () => {

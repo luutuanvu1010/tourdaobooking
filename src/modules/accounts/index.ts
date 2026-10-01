@@ -732,9 +732,10 @@ export const accountsModule: AppModule = {
       ]);
       if ((res[0]?.meta.changes ?? 0) === 0) return error(409, "already_ended", "Phiên này đã kết thúc.");
       // Phần B: bỏ máy được tin gắn với row.trusted_device_id (ADR-0075 điều 6c).
-      // Đóng Bảng tin của đúng phiên bị gỡ. `giuPhien: null` tắt MỌI máy nhận thông báo của tài khoản đó (không chỉ máy bị gỡ) — chấp nhận: gỡ phiên là thao
-      // tác bảo mật (ADR-0046: thay đổi bảo mật tắt thông báo điện thoại); máy còn đăng nhập tự đăng ký lại khi mở app.
-      ctx.dongBangTin({ staffId: row.staff_id, sessionIds: [row.id], giuPhien: null });
+      // ADR-0075 điều 6(a)(b): đóng Bảng tin và tắt thông báo màn hình khoá CHỈ của đúng máy bị gỡ (đăng ký mang mã phiên này, lý do bi-go) — máy khác của
+      // tài khoản (Toàn quyền nhiều máy) không đụng. Đăng ký cũ session_id NULL (trước phát hành) không biết thuộc máy nào → không tắt ở đây (lần đăng nhập
+      // sau của tài khoản một máy tắt nó — tat_may_tru_phien).
+      ctx.dongBangTin({ staffId: row.staff_id, sessionIds: [row.id], chiPhien: true });
       return json({ ok: true });
     }),
   ],

@@ -19,7 +19,7 @@ import {
 } from "./repository";
 
 /** Gốc lắp ráp (src/index.ts) tắt mọi máy của một tài khoản ở cùng chỗ đóng Bảng tin (đổi PIN/quyền/SĐT, ngưng… — ADR-0036). */
-export { tatMayStatement, tatMayTruPhienStatement } from "./repository";
+export { tatMayCuaPhienStatement, tatMayStatement, tatMayTruPhienStatement } from "./repository";
 
 const NOT_FOUND = () => error(404, "not_found", "Không tìm thấy thông báo.");
 const FORBIDDEN = () => error(403, "forbidden", "Chỉ người phụ trách hệ thống được gửi và quản lý thông báo.");

@@ -25,11 +25,13 @@ export type PartyAccountVerdict = { linked: false } | { linked: true; manageable
  */
 /**
  * Việc đóng Bảng tin (+ tắt máy nhận thông báo) gửi cho hàm tiêm `dongBangTin`: theo tài khoản (khi tài khoản đổi — `tatThongBao` bắt buộc, ADR-0046), theo
- * PHIÊN (đăng nhập máy khác — ADR-0075 điều 6), hoặc mọi kết nối (`"tat-ca"`, bật bảo trì).
+ * PHIÊN (đăng nhập máy khác / mất miễn — ADR-0075 điều 6: tắt mọi máy trừ `giuPhien`), CHỈ các phiên đó (IT/Toàn quyền gỡ phiên — ADR-0075 điều 6b:
+ * `chiPhien: true`, tắt đúng máy của các phiên đó), hoặc mọi kết nối (`"tat-ca"`, bật bảo trì).
  */
 export type MucDongBangTin =
   | { staffId: string; tatThongBao: boolean }
   | { staffId: string; sessionIds: string[]; giuPhien: string | null }
+  | { staffId: string; sessionIds: string[]; chiPhien: true }
   | "tat-ca";
 export type NewOrderHandler = { ok: true; statements: (orderId: string, at: string) => D1PreparedStatement[] } | { ok: false; message: string };
 
@@ -106,6 +108,8 @@ export interface Ctx<A extends Access = Access> {
    * (đổi/đặt lại PIN, gỡ Face ID, ngưng tài khoản, đổi SĐT đăng nhập); `false` cho đổi vai/quyền (người nhận tính lúc gửi theo quyền hiện tại).
    * Nhánh theo PHIÊN (ADR-0075 điều 6, chỉ route đăng nhập gọi): `{ staffId, sessionIds, giuPhien }` — đóng kết nối của đúng các phiên vừa bị thay và tắt
    * mọi máy nhận thông báo của `staffId` trừ máy mang phiên `giuPhien` (máy mới).
+   * Nhánh CHỈ PHIÊN (ADR-0075 điều 6b, route gỡ phiên): `{ staffId, sessionIds, chiPhien: true }` — đóng kết nối và tắt máy nhận thông báo của ĐÚNG các
+   * phiên đó; máy khác của tài khoản không đụng.
    */
   dongBangTin: (muc: MucDongBangTin) => void;
   /**
