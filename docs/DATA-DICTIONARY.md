@@ -170,12 +170,13 @@
 
 | Đối tượng | Loại | Ghi chú |
 |---|---|---|
-| `tl_luot_hoi` | bảng | một dòng / câu hỏi trợ lý Hỗ trợ (ADR-0066 điều 7), CHỈ-THÊM; KHÔNG cột nội dung hỏi/đáp; staff_id không khoá ngoại (tro-ly là lá); chi phí micro-USD (ngoại lệ có tên với luật tiền VNĐ) |
+| `tl_luot_hoi` | bảng | một dòng / câu hỏi trợ lý Hỗ trợ (ADR-0066 điều 7), CHỈ-THÊM; KHÔNG cột nội dung hỏi/đáp; staff_id không khoá ngoại (tro-ly là lá); chi phí micro-USD (ngoại lệ có tên với luật tiền VNĐ); cột mau (mã mẫu của lượt, NULL = lượt cũ hiểu là gpt-5-nano) và la_thu (1 = Thử key / ô thử: tính trần tiền tháng, không tính trần ngày, không vào số câu — ADR-0073) |
 | `tl_cai_dat` | bảng | bật/tắt + trần tháng (micro-USD) + trần ngày của trợ lý (ADR-0066), bản có hiệu lực CHỈ-THÊM (bản hiện hành = valid_from_at lớn nhất); chỉ Toàn quyền thêm bản mới (settings.ops) |
 | `tl_vai` | bảng | công tắc trợ lý theo MÃ QUYỀN (ADR-0069 điều 3), bản có hiệu lực CHỈ-THÊM theo từng mã; mã không có dòng = tắt; người hỏi được dùng khi ít nhất một quyền đang bật; chỉ Toàn quyền thêm bản (settings.ops) |
-| `tl_loi_dan` | bảng | lời dặn của Toàn quyền (câu chào, giọng, lời dặn thêm, câu hỏi mẫu — ADR-0069 điều 4), bản có hiệu lực CHỈ-THÊM; mọi bản là lịch sử bản; chữ đã qua luật nội dung trước khi ghi; luật lõi của lời nhắc luôn đứng trước |
+| `tl_loi_dan` | bảng | lời dặn của Toàn quyền (câu chào, giọng, lời dặn thêm, câu hỏi mẫu — ADR-0069 điều 4), bản có hiệu lực CHỈ-THÊM; mọi bản là lịch sử bản; chữ đã qua luật nội dung trước khi ghi; giọng / lời dặn thêm thôi dùng từ ADR-0073 (giữ dữ liệu; chỉ nối vào lời nhắc mặc định khi chưa có bản tl_bo_nao nào) |
 | `tl_ngu_canh` | bảng | đoạn ngữ cảnh bổ sung cho kho tìm đoạn của trợ lý (ADR-0069 điều 4), bản có hiệu lực CHỈ-THÊM theo doan_id; sửa / bật / tắt = bản mới |
-| `tl_hoi_dap` | bảng | lịch sử hỏi đáp (ADR-0069 điều 5, sửa ADR-0066 điều 7), CHỈ-THÊM, ghi cùng lô với tl_luot_hoi (luot_id); câu hỏi ĐÃ CHE (CHECK chặn dãy 8 chữ số); chỉ Toàn quyền đọc (settings.ops); không xoá |
+| `tl_hoi_dap` | bảng | lịch sử hỏi đáp (ADR-0069 điều 5, sửa ADR-0066 điều 7), CHỈ-THÊM, ghi cùng lô với tl_luot_hoi (luot_id); câu hỏi ĐÃ CHE (CHECK chặn dãy 8 chữ số); chỉ Toàn quyền đọc (settings.ops); không xoá; cuoc_tro_chuyen = mã cuộc trò chuyện để máy chủ lấy ≤ 3 lượt trước của CHÍNH người hỏi (ADR-0073 Đ4); câu trả lời lưu SAU khi đã ẩn số tiền |
+| `tl_bo_nao` | bảng | bộ não trợ lý Hỗ trợ (ADR-0073 Đ1, Đ2): mẫu AI (danh sách đóng trong mã), mức suy nghĩ, độ dài, token ra 800–4000, TOÀN BỘ lời nhắc 1–12.000 ký tự; bản có hiệu lực CHỈ-THÊM (bản hiện hành = valid_from_at lớn nhất); không gieo — chưa có bản thì dùng bản mặc định trong mã; chỉ Toàn quyền thêm bản (settings.ops) |
 
 ## Cạnh toàn vẹn (khoá ngoại có sẵn, không phải phụ thuộc mã — ADR-0002 điều 6)
 

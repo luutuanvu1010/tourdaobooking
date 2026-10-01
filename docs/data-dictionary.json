@@ -436,7 +436,7 @@
       "name": "tl_luot_hoi",
       "module": "tro-ly",
       "kind": "table",
-      "note": "một dòng / câu hỏi trợ lý Hỗ trợ (ADR-0066 điều 7), CHỈ-THÊM; KHÔNG cột nội dung hỏi/đáp; staff_id không khoá ngoại (tro-ly là lá); chi phí micro-USD (ngoại lệ có tên với luật tiền VNĐ)"
+      "note": "một dòng / câu hỏi trợ lý Hỗ trợ (ADR-0066 điều 7), CHỈ-THÊM; KHÔNG cột nội dung hỏi/đáp; staff_id không khoá ngoại (tro-ly là lá); chi phí micro-USD (ngoại lệ có tên với luật tiền VNĐ); cột mau (mã mẫu của lượt, NULL = lượt cũ hiểu là gpt-5-nano) và la_thu (1 = Thử key / ô thử: tính trần tiền tháng, không tính trần ngày, không vào số câu — ADR-0073)"
     },
     {
       "name": "tl_cai_dat",
@@ -454,7 +454,7 @@
       "name": "tl_loi_dan",
       "module": "tro-ly",
       "kind": "table",
-      "note": "lời dặn của Toàn quyền (câu chào, giọng, lời dặn thêm, câu hỏi mẫu — ADR-0069 điều 4), bản có hiệu lực CHỈ-THÊM; mọi bản là lịch sử bản; chữ đã qua luật nội dung trước khi ghi; luật lõi của lời nhắc luôn đứng trước"
+      "note": "lời dặn của Toàn quyền (câu chào, giọng, lời dặn thêm, câu hỏi mẫu — ADR-0069 điều 4), bản có hiệu lực CHỈ-THÊM; mọi bản là lịch sử bản; chữ đã qua luật nội dung trước khi ghi; giọng / lời dặn thêm thôi dùng từ ADR-0073 (giữ dữ liệu; chỉ nối vào lời nhắc mặc định khi chưa có bản tl_bo_nao nào)"
     },
     {
       "name": "tl_ngu_canh",
@@ -466,7 +466,13 @@
       "name": "tl_hoi_dap",
       "module": "tro-ly",
       "kind": "table",
-      "note": "lịch sử hỏi đáp (ADR-0069 điều 5, sửa ADR-0066 điều 7), CHỈ-THÊM, ghi cùng lô với tl_luot_hoi (luot_id); câu hỏi ĐÃ CHE (CHECK chặn dãy 8 chữ số); chỉ Toàn quyền đọc (settings.ops); không xoá"
+      "note": "lịch sử hỏi đáp (ADR-0069 điều 5, sửa ADR-0066 điều 7), CHỈ-THÊM, ghi cùng lô với tl_luot_hoi (luot_id); câu hỏi ĐÃ CHE (CHECK chặn dãy 8 chữ số); chỉ Toàn quyền đọc (settings.ops); không xoá; cuoc_tro_chuyen = mã cuộc trò chuyện để máy chủ lấy ≤ 3 lượt trước của CHÍNH người hỏi (ADR-0073 Đ4); câu trả lời lưu SAU khi đã ẩn số tiền"
+    },
+    {
+      "name": "tl_bo_nao",
+      "module": "tro-ly",
+      "kind": "table",
+      "note": "bộ não trợ lý Hỗ trợ (ADR-0073 Đ1, Đ2): mẫu AI (danh sách đóng trong mã), mức suy nghĩ, độ dài, token ra 800–4000, TOÀN BỘ lời nhắc 1–12.000 ký tự; bản có hiệu lực CHỈ-THÊM (bản hiện hành = valid_from_at lớn nhất); không gieo — chưa có bản thì dùng bản mặc định trong mã; chỉ Toàn quyền thêm bản (settings.ops)"
     }
   ],
   "views": [

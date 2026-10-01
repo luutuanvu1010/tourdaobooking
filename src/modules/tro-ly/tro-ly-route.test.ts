@@ -98,7 +98,7 @@ test("hỏi thường → 200 { traLoi, nguon }; gửi đúng Responses API (m�
   assert.equal(rows.length, 1);
   assert.deepEqual(
     { ...rows[0], id: "-", created_at: "-", updated_at: "-" },
-    { id: "-", staff_id: SALES, ngay_vn: vnToday(new Date()), token_vao: 5000, token_vao_dem: 1000, token_ra: 700, chi_phi_micro_usd: 485, ket_qua: "ok", created_at: "-", created_by: SALES, updated_at: "-", updated_by: SALES },
+    { id: "-", staff_id: SALES, ngay_vn: vnToday(new Date()), token_vao: 5000, token_vao_dem: 1000, token_ra: 700, chi_phi_micro_usd: 485, ket_qua: "ok", mau: null, la_thu: 0, created_at: "-", created_by: SALES, updated_at: "-", updated_by: SALES },
   );
   assert.ok(!JSON.stringify(w.q("SELECT * FROM tl_luot_hoi")).includes(DAU));
 });

@@ -33,6 +33,7 @@ test("tl_luot_hoi: ĐÚNG tập cột — không có cột nội dung câu hỏi
   assert.deepEqual(cols(db, "tl_luot_hoi"), [
     "id", "staff_id", "ngay_vn", "token_vao", "token_vao_dem", "token_ra", "chi_phi_micro_usd", "ket_qua",
     "created_at", "created_by", "updated_at", "updated_by",
+    "mau", "la_thu", // ADR-0073 (migration *_tl_bo_nao): mã mẫu + cờ lượt thử — không phải nội dung
   ]);
 });
 
