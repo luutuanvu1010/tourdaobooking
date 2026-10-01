@@ -143,6 +143,17 @@ const ACCOUNT_OF_PARTY = defineSql("staff", "account_of_party", "SELECT id FROM 
 export async function openAdjustments(db: D1Database, staffId: string): Promise<AdjustmentRow[]> {
   return (await db.prepare(OPEN_ADJUSTMENTS).bind(staffId).all<AdjustmentRow>()).results;
 }
+
+// ADR-0068 Đ8 (lý do LOGIN_PHONE) + Đ9 (hồ sơ khớp có tài khoản?): SĐT đăng nhập của mọi tài khoản có hồ sơ; tài khoản của một tập hồ sơ (mảng JSON ?1).
+const PHONES_BY_PARTY = defineSql("staff", "phones_by_party", "SELECT party_id, phone FROM staff WHERE party_id IS NOT NULL");
+const ACCOUNTS_OF_PARTIES = defineSql("staff", "accounts_of_parties", "SELECT party_id FROM staff WHERE party_id IN (SELECT value FROM json_each(?1))");
+export async function phonesByParty(db: D1Database): Promise<{ partyId: string; phone: string }[]> {
+  return (await db.prepare(PHONES_BY_PARTY).all<{ party_id: string; phone: string }>()).results.map((r) => ({ partyId: r.party_id, phone: r.phone }));
+}
+export async function partiesWithAccount(db: D1Database, partyIds: readonly string[]): Promise<Set<string>> {
+  if (partyIds.length === 0) return new Set();
+  return new Set((await db.prepare(ACCOUNTS_OF_PARTIES).bind(JSON.stringify(partyIds)).all<{ party_id: string }>()).results.map((r) => r.party_id));
+}
 export const insertAdjustmentStatement = (
   db: D1Database,
   v: { staffId: string; code: PermissionCode; direction: "ADD" | "REMOVE"; reason: string; at: string; actorId: string; guarded: boolean },

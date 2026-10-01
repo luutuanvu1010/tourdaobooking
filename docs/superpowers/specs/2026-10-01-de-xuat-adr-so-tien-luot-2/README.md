@@ -8,7 +8,7 @@
 
 ## Số hiệu
 
-- **ADR:** số giữ chỗ `ADR-00xx-A` … `ADR-00xx-E` để tham chiếu chéo không vỡ. Số thật dự kiến từ **0071**, chốt lúc gộp — trên các nhánh đã có ADR-0068 (`gop-ho-so-ca-nhan`), 0069, 0070 (trợ lý); `docs/adr/README.md` trên `main` còn ghi "kế tiếp là 0068" (cũ); một phiên khác có thể đang soạn ADR "nơi trả mặc định".
+- **ADR:** số giữ chỗ `ADR-00xx-A` … `ADR-00xx-E` để tham chiếu chéo không vỡ. Số thật dự kiến từ **0073** (0071, 0072 đã có phiên khác giữ — cập nhật 1/10 chiều), chốt lúc gộp — trên các nhánh đã có ADR-0068 (`gop-ho-so-ca-nhan`), 0069, 0070 (trợ lý); `docs/adr/README.md` trên `main` còn ghi "kế tiếp là 0068" (cũ); một phiên khác có thể đang soạn ADR "nơi trả mặc định".
 - **Migration:** dự kiến từ **0060**, chốt lúc gộp — `0056` là `0056_gop_ho_so` (nhánh `worktree-gop-ho-so`), `0057`–`0059` đã dùng ở kế hoạch máy chủ ô chặng; người gộp rà mọi nhánh chưa gộp trước khi đặt số.
 
 ## Mục lục

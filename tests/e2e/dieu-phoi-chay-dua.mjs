@@ -24,7 +24,7 @@ if (process.env.CHAY_DUA_BO_TRIGGER === "1") {
 }
 
 // Nền: tài xế công ty, xe 3 chỗ, 10 đơn một khách đã xác nhận (ngày kìa — xếp không vướng mốc 6 giờ).
-let r = await call(ADMIN, "POST", "/api/staff", { fullName: `Tài Xế Chạy Đua ${duoi}`, phone: randomPhone(), roles: ["DRIVER_INTERNAL"] });
+let r = await call(ADMIN, "POST", "/api/staff", { taoHoSoMoi: true, fullName: `Tài Xế Chạy Đua ${duoi}`, phone: randomPhone(), roles: ["DRIVER_INTERNAL"] });
 assert.equal(r.status, 201, JSON.stringify(r.body));
 const [{ party_id: tx }] = await sqlRows(`SELECT party_id FROM staff WHERE id = '${r.body.staff.id}'`);
 r = await call(ADMIN, "POST", `/api/parties/${tx}/documents`, { typeCode: "GPLX", number: `77${String(Date.now()).slice(-10)}`, classCode: "D1", expiryDate: vnDate(400) });

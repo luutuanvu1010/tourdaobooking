@@ -17,7 +17,7 @@ import { can, hasPermission, holdsPartner, MATRIX } from "../../shared/permissio
 import { route, type AppModule, type NewOrderHandler } from "../../shared/router";
 import { tripDeparted } from "../../shared/trip-rules";
 import { vnToday } from "../../shared/vn-date";
-import { findHandledOrderIds, findHandlerOf, findHandlersOf, guardHandlerStatement, isHandler, orderDelivered, type HandlerRow } from "./repository";
+import { findHandledOrderIds, findHandlerOf, findHandlersOf, guardHandlerStatement, isHandler, orderDelivered, soDonDangPhuTrach, type HandlerRow } from "./repository";
 import {
   CANCEL_REASON_LABEL, checkAssignee, handlerChangeVerdict, isOpenHandlerCollision, parseCancelReason, parseOrderIds, parseSetHandler,
 } from "./rules";
@@ -95,6 +95,9 @@ export async function newOrderHandler(db: D1Database, actorId: string, staffId: 
  * của đơn", gộp vào lô "Đã giao" của billing, đứng NGAY TRƯỚC câu `orders` (câu đó có `AND changes() > 0`).
  */
 export const cauBaoVeNguoiPhuTrach = (db: D1Database, orderId: string, partyId: string): D1PreparedStatement => guardHandlerStatement(db, orderId, partyId);
+/** ADR-0068 Đ2 — CHỈ gốc lắp ráp gọi (ctx.gopHoSo): hồ sơ `partyId` đang phụ trách bao nhiêu đơn chưa xong. Không có câu bảo vệ trong lô gộp: hồ sơ phụ không có
+ * tài khoản nên không được giao mới (checkAssignee đòi tài khoản) — khe giữa kiểm và ghi chấp nhận được, R-PTY-MERGE-4 bắt nếu lọt. */
+export const soDonDangPhuTrachCua = (db: D1Database, partyId: string): Promise<number> => soDonDangPhuTrach(db, partyId);
 
 export const dispatchModule: AppModule = {
   name: "dispatch",

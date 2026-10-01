@@ -1,8 +1,11 @@
 // Kho tri thức (b) của trợ lý Hỗ trợ (ADR-0066 điều 3): hệ thống vận hành thế nào, viết lại bằng LỜI THƯỜNG cho NGƯỜI DÙNG.
 // Rút từ docs/SYSTEM-DESIGN.md §6, §8 và docs/VAN-CHUYEN.md (bản 1.38–1.42). Luật viết: KHÔNG tên bảng, hàm, tệp, đường dẫn API; không số liệu thật
-// (đơn, khách, tiền); không bí mật, cấu hình; không kể cách hệ thống được xây. Chỉ ghi điều người dùng THẤY và LÀM được trên màn hình.
-// Chữ này rời máy chủ (gửi OpenAI) nên qua luật nội dung `viPhamChu` (src/shared/huong-dan.ts) — bài kiểm ở tro-ly.test.ts.
-// Đổi tri thức: sửa đoạn ở đây → `node --test src/shared/tro-ly.test.ts` (docs/CHANGE-GUIDE.md công thức "trợ lý Hỗ trợ").
+// (đơn, khách, tiền); không bí mật, cấu hình, máy chủ, hạ tầng. Chỉ ghi điều người dùng THẤY và LÀM được trên màn hình.
+// ADR-0070 (1/10): phần "các phân hệ, phụ thuộc, luồng chính, vai làm được gì" nay TỰ SINH ở kho (d) `src/shared/tro-ly-cau-truc.ts` (từ bảng quyền và ranh giới
+// module, dịch qua `src/shared/tro-ly-cau-truc-ten.ts`). Đừng chép danh sách "vai X làm được Y" vào đây — viết tay sẽ lệch bảng quyền; chỉ giữ giải thích mà
+// bảng quyền không nói được (vì sao, trường hợp đặc biệt).
+// Chữ này rời máy chủ (gửi OpenAI) nên qua `viPhamChu` + bộ lọc tên kỹ thuật `viPhamKyThuat` — bài `viPhamKho` ở tro-ly.test.ts / tro-ly-cau-truc.test.ts.
+// Đổi tri thức: sửa đoạn ở đây → `node --test src/shared/tro-ly.test.ts` (docs/CHANGE-GUIDE.md công thức z5 "trợ lý Hỗ trợ").
 
 export interface DoanKienTruc { readonly tieuDe: string; readonly noiDung: string }
 
@@ -10,7 +13,7 @@ export const KIEN_TRUC: readonly DoanKienTruc[] = [
   {
     tieuDe: "Vai và quyền: vì sao mỗi người thấy menu khác nhau",
     noiDung: `Mỗi tài khoản có một hoặc vài quyền: Bán hàng, Kế toán, Quản trị, Toàn quyền, Hướng dẫn viên, Đối tác, Thực tập, Tài xế, Tài xế đối tác. Menu, nút và dữ liệu hiện theo quyền: không thấy một mục nghĩa là tài khoản chưa có quyền đó, không phải lỗi. Dù giao diện có hiện nút, máy chủ vẫn kiểm lại quyền; bị từ chối thì app báo "không có quyền".
-Bán hàng lập và lo đơn của mình. Kế toán xem mọi đơn và tiền, ghi sổ, không lập đơn. Quản trị quản lý tài khoản, danh mục, địa điểm, xe. Toàn quyền là người phụ trách hệ thống: cài đặt, nhật ký, góp ý. Hướng dẫn viên chỉ thấy đơn mình đang phụ trách và hàng chờ nhận. Đối tác và Thực tập chỉ thấy đơn mình lập. Tài xế chỉ thấy chuyến mình lái và giấy tờ của mình. Muốn thêm quyền thì hỏi Quản trị.`,
+Vai nào làm được việc gì, phạm vi tới đâu (của mình, đang được giao hay tất cả): xem các đoạn "Vai … làm được gì" và "Việc: …" của phần Cấu trúc app — lấy thẳng từ bảng quyền của app nên luôn đúng. Muốn thêm quyền thì hỏi Quản trị.`,
   },
   {
     tieuDe: "Vòng đời một đơn: nháp, xác nhận, huỷ",
@@ -43,7 +46,7 @@ Tiền của đơn (thành tiền, tổng, còn lại) do máy chủ tự tính 
   },
   {
     tieuDe: "Trợ lý Hỗ trợ trả lời được gì",
-    noiDung: `Trợ lý Hỗ trợ chỉ hướng dẫn cách dùng app, dựa trên bộ hướng dẫn trong Trợ giúp và danh sách trang, nút của app. Trợ lý không xem được đơn, khách, tiền hay dữ liệu thật của công ty, không làm thay thao tác nào, và có thể trả lời sai: luôn đối chiếu với màn hình. Câu nào chưa có trong hướng dẫn thì hỏi Quản trị hoặc gửi Góp ý.
+    noiDung: `Trợ lý Hỗ trợ chỉ hướng dẫn cách dùng app, dựa trên bộ hướng dẫn trong Trợ giúp, sơ đồ các phần của app và danh sách trang, mục, nút của app (tự cập nhật mỗi lần app được cập nhật). Trợ lý không xem được đơn, khách, tiền hay dữ liệu thật của công ty, không làm thay thao tác nào, và có thể trả lời sai: luôn đối chiếu với màn hình. Câu nào chưa có trong hướng dẫn thì hỏi Quản trị hoặc gửi Góp ý.
 Câu hỏi (đã che số điện thoại, email, số giấy tờ) và câu trả lời được lưu để cải thiện trợ lý; chỉ người phụ trách hệ thống đọc được, không ai xoá được. Người phụ trách hệ thống bật hoặc tắt trợ lý theo từng vai, đặt câu chào, câu hỏi mẫu và thêm đoạn ngữ cảnh ở trang Trợ lý Hỗ trợ; vai đang tắt thì không thấy nút Hỗ trợ.`,
   },
 ];

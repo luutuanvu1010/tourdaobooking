@@ -104,3 +104,14 @@ const ORDER_DELIVERED = defineSql("dispatch", "order_delivered", `SELECT deliver
 export async function orderDelivered(db: D1Database, orderId: string): Promise<boolean> {
   return ((await db.prepare(ORDER_DELIVERED).bind(orderId).first<{ delivered_at: string | null }>())?.delivered_at ?? null) !== null;
 }
+
+/** ADR-0068 Đ2: số đơn CHƯA XONG (chưa huỷ, chưa Đã giao) mà hồ sơ ?1 đang là người phụ trách (HANDLE đang mở). Đọc trạng thái đơn qua view công bố của orders. */
+const SO_DON_DANG_PHU_TRACH = defineSql(
+  "dispatch",
+  "so_don_dang_phu_trach",
+  `SELECT count(*) AS n FROM dsp_assignment a JOIN v_ord_order_state o ON o.id = a.order_id
+   WHERE a.party_id = ?1 AND a.task_kind_code = 'HANDLE' AND a.valid_to_at IS NULL AND o.status <> 'cancelled' AND o.delivered_at IS NULL`,
+);
+export async function soDonDangPhuTrach(db: D1Database, partyId: string): Promise<number> {
+  return (await db.prepare(SO_DON_DANG_PHU_TRACH).bind(partyId).first<{ n: number }>())?.n ?? 0;
+}

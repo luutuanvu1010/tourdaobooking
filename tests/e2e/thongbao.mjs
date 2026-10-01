@@ -128,7 +128,7 @@ await revoke(tin1);
 const ADMIN = await session(ACCOUNTS.admin);
 // Tài khoản CHỈ Đối tác: tạo thẳng bằng permissions ["PARTNER"] (thay cách đổi vai — rà soát trước thi công, mục R6).
 const dtPhone = randomPhone();
-let rr = await call(ADMIN, "POST", "/api/staff", { fullName: `Đối Tác ${Date.now().toString(36)}`, phone: dtPhone, permissions: ["PARTNER"] });
+let rr = await call(ADMIN, "POST", "/api/staff", { taoHoSoMoi: true, fullName: `Đối Tác ${Date.now().toString(36)}`, phone: dtPhone, permissions: ["PARTNER"] });
 assert.equal(rr.status, 201, JSON.stringify(rr.body));
 const DT = (await login(dtPhone, rr.body.pin)).cookie;
 const than = (o = {}) => ({
@@ -198,7 +198,7 @@ console.log("✓ đã hiểu (kể cả bấm lại), ai đã hiểu, người n
 // I-1 (Important, người kiểm độc lập, lượt sửa cuối): da-gui/nguoi-da-hieu phải loại NGƯỜI GỬI khỏi nhóm nhận, KHÔNG phải người
 // đang XEM. Ca trên (TQ vừa gửi vừa xem) không bắt được lỗi này vì hai id trùng nhau — cần Toàn quyền THỨ HAI (Y) gửi, TQ (X) xem.
 const yPhone = randomPhone();
-let ry = await call(TQ, "POST", "/api/staff", { fullName: `Toàn Quyền Y ${Date.now().toString(36)}`, phone: yPhone, permissions: ["SUPER_ADMIN"] });
+let ry = await call(TQ, "POST", "/api/staff", { taoHoSoMoi: true, fullName: `Toàn Quyền Y ${Date.now().toString(36)}`, phone: yPhone, permissions: ["SUPER_ADMIN"] });
 assert.equal(ry.status, 201, JSON.stringify(ry.body));
 const Y = (await login(yPhone, ry.body.pin)).cookie;
 const guiY = await call(Y, "POST", "/api/thong-bao", than({ tieuDe: "Tin của Y", quanTrong: false, clientRequestId: randomUUID() }));
@@ -321,7 +321,7 @@ const choSoMay = async (id, muon) => {
 };
 const taoTaiKhoan = async (permissions) => {
   const phone = randomPhone();
-  const r = await call(ADMIN, "POST", "/api/staff", { fullName: `Máy ${Date.now().toString(36)}`, phone, permissions });
+  const r = await call(ADMIN, "POST", "/api/staff", { taoHoSoMoi: true, fullName: `Máy ${Date.now().toString(36)}`, phone, permissions });
   assert.equal(r.status, 201, JSON.stringify(r.body));
   return { id: await idOf(phone), pin: r.body.pin, cookie: (await login(phone, r.body.pin)).cookie };
 };

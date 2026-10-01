@@ -29,8 +29,12 @@ export interface PartyRow {
   tax_code: string | null;
   address: string | null;
   invoice_email: string | null;
+  /** ADR-0068: hồ sơ chính mà hồ sơ này đã gộp vào (NULL = chưa gộp), mốc gộp, tên hồ sơ chính. */
+  merged_into_id: string | null;
+  merged_at: string | null;
+  merged_into_name: string | null;
 }
-export interface ContactRow { id: string; contact_kind_code: string; value: string; label: string | null; is_primary: number; valid_from_date: string; valid_to_date: string | null }
+export interface ContactRow { id: string; contact_kind_code: string; value: string; value_normalized: string; label: string | null; is_primary: number; valid_from_date: string; valid_to_date: string | null }
 export interface RoleRow { id: string; role_type_code: string; role_name: string; location_id: string | null; location_name: string | null; valid_from_date: string; valid_to_date: string | null }
 export interface RelationshipRow {
   id: string;
@@ -64,6 +68,7 @@ const LIST = defineSql(
      AND ((?5 IS NULL AND ?6 IS NULL)
           OR EXISTS (SELECT 1 FROM pty_party_role r WHERE r.party_id = p.id AND (?5 IS NULL OR r.role_type_code = ?5) AND (?6 IS NULL OR r.location_id = ?6)
                        AND r.valid_from_date <= ?1 AND (r.valid_to_date IS NULL OR r.valid_to_date >= ?1)))
+     AND NOT EXISTS (SELECT 1 FROM pty_party m WHERE m.id = p.id AND m.merged_into_id IS NOT NULL)
      AND (?7 = 1 OR p.active = 1)
    ORDER BY p.sort_key COLLATE NOCASE, p.id LIMIT ?8 OFFSET ?9`,
 );
@@ -74,6 +79,7 @@ const LOOKUP = defineSql(
   "lookup_phone",
   `${LIST_SELECT}
    WHERE p.id IN (SELECT c.party_id FROM pty_contact_point c WHERE c.contact_kind_code = 'PHONE' AND c.value_normalized = ?2 AND c.valid_to_date IS NULL)
+     AND NOT EXISTS (SELECT 1 FROM pty_party m WHERE m.id = p.id AND m.merged_into_id IS NOT NULL)
    ORDER BY p.sort_key COLLATE NOCASE, p.id LIMIT 20`,
 );
 
@@ -81,13 +87,14 @@ const FIND = defineSql(
   "parties",
   "find",
   `SELECT p.id, p.party_kind, p.display_name, p.active, p.created_at, p.updated_at, pe.family_name, pe.middle_name, pe.given_name,
-          o.legal_name, o.tax_code, o.address, o.invoice_email
-   FROM pty_party p LEFT JOIN pty_person pe ON pe.party_id = p.id LEFT JOIN pty_organization o ON o.party_id = p.id WHERE p.id = ?1`,
+          o.legal_name, o.tax_code, o.address, o.invoice_email, p.merged_into_id, p.merged_at, t.display_name AS merged_into_name
+   FROM pty_party p LEFT JOIN pty_person pe ON pe.party_id = p.id LEFT JOIN pty_organization o ON o.party_id = p.id LEFT JOIN pty_party t ON t.id = p.merged_into_id
+   WHERE p.id = ?1`,
 );
 const CONTACTS_OF = defineSql(
   "parties",
   "contacts_of",
-  `SELECT id, contact_kind_code, value, label, is_primary, valid_from_date, valid_to_date FROM pty_contact_point WHERE party_id = ?1
+  `SELECT id, contact_kind_code, value, value_normalized, label, is_primary, valid_from_date, valid_to_date FROM pty_contact_point WHERE party_id = ?1
    ORDER BY (valid_to_date IS NOT NULL), contact_kind_code, is_primary DESC, valid_from_date DESC`,
 );
 const ROLES_OF = defineSql(
@@ -695,3 +702,154 @@ export const updatePersonDocStatement = (db: D1Database, id: string, partyId: st
   db.prepare(UPDATE_PERSON_DOC).bind(id, partyId, expectedUpdatedAt, v.number, v.numberKey, v.classCode, v.issuedDate, v.issuedPlace, v.expiryDate, at, actorId);
 export const voidPersonDocStatement = (db: D1Database, id: string, partyId: string, expectedUpdatedAt: string, actorId: string, at: string): D1PreparedStatement =>
   db.prepare(VOID_PERSON_DOC).bind(id, partyId, expectedUpdatedAt, at, actorId);
+
+// ---- Gộp hồ sơ cá nhân (ADR-0068) -----------------------------------------------------------------------------------------------------------------------
+// Lính gác TRẠNG THÁI (kế hoạch R1): hai hồ sơ còn đang dùng và chưa gộp. parties là module nghiêm, không đọc audit_log nên KHÔNG dùng wonGuard; lô thua cuộc
+// đua (hồ sơ phụ đã bị lật ở lô khác) → mọi câu thành không-làm-gì, câu lật changes = 0 — TRỪ câu chép giấy tờ (GOP_CHEP_GIAY_TO): lô thua có giấy tờ cần
+// chép thì HỎNG CẢ LÔ (không đổi gì) thay vì changes = 0. Ngoài ra MỌI lệch giữa lúc tính kế hoạch và lúc ghi (giấy tờ A đổi, B vừa có giấy tờ cùng loại,
+// A còn dòng mở) cũng HỎNG CẢ LÔ (xem GOP_CHEP_GIAY_TO, GOP_LAT). Route: lỗi lô = đọc lại A rồi báo. Đoạn chữ tĩnh (không nhận đầu vào).
+const LINH_GAC = (a: string, b: string): string => `(SELECT count(*) FROM pty_party g WHERE g.id IN (${a}, ${b}) AND g.active = 1 AND g.merged_into_id IS NULL) = 2`;
+
+// ?1 id liên hệ, ?2 hồ sơ phụ, ?3 ngày đóng (hôm nay VN), ?4 lúc, ?5 người, ?6 hồ sơ chính
+const GOP_DONG_LIEN_HE = defineSql(
+  "parties",
+  "gop_dong_lien_he",
+  `UPDATE pty_contact_point SET valid_to_date = ?3, updated_at = ?4, updated_by = ?5
+   WHERE id = ?1 AND party_id = ?2 AND (valid_to_date IS NULL OR valid_to_date > ?3) AND ?3 >= valid_from_date AND ${LINH_GAC("?2", "?6")}`,
+);
+// ?1 id mới, ?2 hồ sơ chính, ?3 loại, ?4 giá trị, ?5 chuẩn hoá, ?6 ghi chú, ?7 chính, ?8 từ ngày, ?9 lúc, ?10 người, ?11 hồ sơ phụ
+const GOP_MO_LIEN_HE = defineSql(
+  "parties",
+  "gop_mo_lien_he",
+  `INSERT INTO pty_contact_point (id, party_id, contact_kind_code, value, value_normalized, label, is_primary, valid_from_date, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?9, ?10 WHERE ${LINH_GAC("?11", "?2")}`,
+);
+// ?1 id vai, ?2 hồ sơ phụ, ?3 ngày đóng, ?4 lúc, ?5 người, ?6 hồ sơ chính
+const GOP_DONG_VAI = defineSql(
+  "parties",
+  "gop_dong_vai",
+  `UPDATE pty_party_role SET valid_to_date = ?3, updated_at = ?4, updated_by = ?5
+   WHERE id = ?1 AND party_id = ?2 AND (valid_to_date IS NULL OR valid_to_date > ?3) AND ?3 >= valid_from_date AND ${LINH_GAC("?2", "?6")}`,
+);
+// ?1 id mới, ?2 hồ sơ chính, ?3 mã vai, ?4 nơi, ?5 từ ngày, ?6 đến ngày, ?7 lúc, ?8 người, ?9 hồ sơ phụ
+const GOP_MO_VAI = defineSql(
+  "parties",
+  "gop_mo_vai",
+  `INSERT INTO pty_party_role (id, party_id, role_type_code, location_id, valid_from_date, valid_to_date, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?7, ?8 WHERE ${LINH_GAC("?9", "?2")}`,
+);
+// ?1 id quan hệ, ?2 hồ sơ phụ, ?3 ngày đóng, ?4 lúc, ?5 người, ?6 hồ sơ chính
+const GOP_DONG_QUAN_HE = defineSql(
+  "parties",
+  "gop_dong_quan_he",
+  `UPDATE pty_party_relationship SET valid_to_date = ?3, updated_at = ?4, updated_by = ?5
+   WHERE id = ?1 AND (from_party_id = ?2 OR to_party_id = ?2) AND (valid_to_date IS NULL OR valid_to_date > ?3) AND ?3 >= valid_from_date AND ${LINH_GAC("?2", "?6")}`,
+);
+// ?1 id mới, ?2 từ, ?3 tới, ?4 loại, ?5 từ ngày, ?6 đến ngày, ?7 lúc, ?8 người, ?9 hồ sơ phụ, ?10 hồ sơ chính
+const GOP_MO_QUAN_HE = defineSql(
+  "parties",
+  "gop_mo_quan_he",
+  `INSERT INTO pty_party_relationship (id, from_party_id, to_party_id, relationship_type_code, valid_from_date, valid_to_date, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?7, ?8 WHERE ${LINH_GAC("?9", "?10")}`,
+);
+// Huỷ một dòng giấy tờ của hồ sơ phụ (khoá lạc quan updated_at đã đọc). ?1 id, ?2 hồ sơ phụ, ?3 mốc đã đọc, ?4 lúc, ?5 người, ?6 hồ sơ chính
+const GOP_HUY_GIAY_TO = defineSql(
+  "parties",
+  "gop_huy_giay_to",
+  `UPDATE pty_person_document SET voided_at = ?4, updated_at = ?4, updated_by = ?5
+   WHERE id = ?1 AND party_id = ?2 AND updated_at = ?3 AND voided_at IS NULL AND ${LINH_GAC("?2", "?6")}`,
+);
+// Chép nội dung một dòng hiện hành sang hồ sơ chính (dòng MỚI, không dòng trước). Số CHỈ đi trong câu lệnh — không bao giờ vào DTO, nhật ký, câu lỗi.
+// Dạng VALUES một dòng (KHÔNG `INSERT … SELECT … WHERE`): dạng SELECT làm SQLite quét bảng con trỏ tới pty_person_document (vc_trip_departure_check_item
+// của van-chuyen) để kiểm khoá ngoại — bài ranh giới ADR-0002 điều 8(b) chặn. Lính gác nằm ở cột party_id (NOT NULL): thua cuộc đua → party_id NULL → lỗi
+// NOT NULL (hoặc trigger BEFORE INSERT báo trước) → CẢ LÔ huỷ, không dòng nào đổi. Đừng dùng INSERT OR IGNORE (nuốt cả lỗi duy nhất/CHECK → mất giấy tờ).
+// Cùng ô party_id còn hai điều kiện (vòng sửa 1 — mọi lệch giữa lúc tính kế hoạch và lúc ghi HỎNG CẢ LÔ): (a) dòng nguồn ?13 VỪA bị chính lô này huỷ
+// (voided_at = mốc lô) — khoá lạc quan của câu huỷ làm 0 dòng khi A sửa giấy tờ trong khe thì không chép bản cũ; (b) B chưa có dòng HIỆN HÀNH cùng loại (Đ4)
+// ngoài các dòng chính lô này vừa chép (created_at = mốc lô, created_by = người gộp — A có thể có nhiều chuỗi cùng loại).
+// ?1 id mới, ?2 hồ sơ chính, ?3 loại, ?4 số, ?5 khoá số, ?6 hạng, ?7 ngày cấp, ?8 nơi cấp, ?9 hết hạn, ?10 lúc, ?11 người, ?12 hồ sơ phụ, ?13 dòng nguồn
+const GOP_CHEP_GIAY_TO = defineSql(
+  "parties",
+  "gop_chep_giay_to",
+  `INSERT INTO pty_person_document (id, party_id, document_type_code, document_number, number_key, license_class_code, issued_date, issued_place, expiry_date,
+     previous_id, created_at, created_by, updated_at, updated_by)
+   VALUES (?1, (SELECT ?2 WHERE ${LINH_GAC("?12", "?2")}
+       AND EXISTS (SELECT 1 FROM pty_person_document s WHERE s.id = ?13 AND s.party_id = ?12 AND s.voided_at = ?10)
+       AND NOT EXISTS (SELECT 1 FROM pty_person_document d WHERE d.party_id = ?2 AND d.document_type_code = ?3 AND NOT (d.created_at = ?10 AND d.created_by IS ?11)
+                         AND ${HIEN_HANH})),
+     ?3, ?4, ?5, ?6, ?7, ?8, ?9, NULL, ?10, ?11, ?10, ?11)`,
+);
+// Câu LẬT hồ sơ phụ — đứng SAU mọi câu chuyển và câu đổi người đặt đơn, NGAY TRƯỚC hai dòng nhật ký `changes() > 0`. ?1 phụ, ?2 chính, ?3 lúc, ?4 người,
+// ?5 hôm nay. Vòng sửa 1 (Đ3): A còn liên hệ / công việc / quan hệ MỞ (valid_to_date NULL hoặc > hôm nay — câu đóng gặp 0 dòng, hoặc dòng thêm trong khe) →
+// merged_into_id NULL cùng merged_at khác NULL → trigger party_merge_target (0056) ABORT → CẢ LÔ huỷ. Lính gác trạng thái sai → 0 dòng (lô thua), không lỗi.
+const GOP_LAT = defineSql(
+  "parties",
+  "gop_lat",
+  `UPDATE pty_party SET active = 0,
+     merged_into_id = (SELECT ?2 WHERE NOT EXISTS (SELECT 1 FROM pty_contact_point c WHERE c.party_id = ?1 AND (c.valid_to_date IS NULL OR c.valid_to_date > ?5))
+       AND NOT EXISTS (SELECT 1 FROM pty_party_role r WHERE r.party_id = ?1 AND (r.valid_to_date IS NULL OR r.valid_to_date > ?5))
+       AND NOT EXISTS (SELECT 1 FROM pty_party_relationship x WHERE (x.from_party_id = ?1 OR x.to_party_id = ?1) AND (x.valid_to_date IS NULL OR x.valid_to_date > ?5))),
+     merged_at = ?3, updated_at = ?3, updated_by = ?4
+   WHERE id = ?1 AND ${LINH_GAC("?1", "?2")}`,
+);
+
+export interface GopDocRow extends PersonDocFull { type_name: string; class_name: string | null }
+// MỌI dòng giấy tờ của hồ sơ (kể cả số — CHỈ để chép trong lô gộp; không bao giờ ra DTO). Thứ tự tạo.
+const DOCS_FOR_MERGE = defineSql(
+  "parties",
+  "docs_for_merge",
+  `SELECT d.id, d.party_id, d.document_type_code, t.name AS type_name, c.name AS class_name, d.document_number, d.number_key, d.license_class_code, d.issued_date,
+          d.issued_place, d.expiry_date, d.previous_id, d.voided_at, d.updated_at, ${HIEN_HANH} AS is_current
+   FROM pty_person_document d JOIN pty_person_document_type t ON t.code = d.document_type_code LEFT JOIN pty_license_class c ON c.code = d.license_class_code
+   WHERE d.party_id = ?1 ORDER BY d.created_at, d.id`,
+);
+const MERGED_FROM = defineSql("parties", "merged_from", "SELECT id, display_name, merged_at FROM pty_party WHERE merged_into_id = ?1 ORDER BY merged_at, id");
+// Hồ sơ nghi trùng (Đ8) + hồ sơ khớp khi tạo tài khoản (Đ9): hồ sơ cá nhân đang dùng, chưa gộp; SĐT liên hệ đang mở của chúng.
+const PERSONS_FOR_MATCH = defineSql("parties", "persons_for_match", "SELECT id, display_name FROM pty_party WHERE party_kind = 'PERSON' AND active = 1 AND merged_into_id IS NULL");
+const OPEN_PERSON_PHONES = defineSql(
+  "parties",
+  "open_person_phones",
+  `SELECT c.party_id, c.value_normalized FROM pty_contact_point c JOIN pty_party p ON p.id = c.party_id
+   WHERE c.contact_kind_code = 'PHONE' AND c.valid_to_date IS NULL AND p.party_kind = 'PERSON' AND p.active = 1 AND p.merged_into_id IS NULL`,
+);
+// ?1 hôm nay, ?2 mảng JSON id hồ sơ — dòng danh sách (tên, SĐT chính, công việc hôm nay) cho các id đã biết.
+const LIST_BY_IDS = defineSql("parties", "list_by_ids", `${LIST_SELECT} WHERE p.id IN (SELECT value FROM json_each(?2)) ORDER BY p.sort_key COLLATE NOCASE, p.id`);
+
+export async function docsForMerge(db: D1Database, partyId: string): Promise<GopDocRow[]> {
+  return (await db.prepare(DOCS_FOR_MERGE).bind(partyId).all<GopDocRow>()).results;
+}
+export async function mergedFromOf(db: D1Database, partyId: string): Promise<{ id: string; display_name: string; merged_at: string }[]> {
+  return (await db.prepare(MERGED_FROM).bind(partyId).all<{ id: string; display_name: string; merged_at: string }>()).results;
+}
+export async function personsForMatch(db: D1Database): Promise<{ id: string; display_name: string }[]> {
+  return (await db.prepare(PERSONS_FOR_MATCH).all<{ id: string; display_name: string }>()).results;
+}
+export async function openPersonPhones(db: D1Database): Promise<{ party_id: string; value_normalized: string }[]> {
+  return (await db.prepare(OPEN_PERSON_PHONES).all<{ party_id: string; value_normalized: string }>()).results;
+}
+export async function listPartiesByIds(db: D1Database, ids: readonly string[], today: string): Promise<PartyListRow[]> {
+  if (ids.length === 0) return [];
+  return (await db.prepare(LIST_BY_IDS).bind(today, JSON.stringify(ids)).all<PartyListRow>()).results;
+}
+
+type Nguoi = { a: string; b: string; at: string; actorId: string };
+export const gopDongLienHeStatement = (db: D1Database, v: Nguoi & { id: string; homNay: string }): D1PreparedStatement =>
+  db.prepare(GOP_DONG_LIEN_HE).bind(v.id, v.a, v.homNay, v.at, v.actorId, v.b);
+export const gopMoLienHeStatement = (
+  db: D1Database, v: Nguoi & { kind: string; value: string; valueNormalized: string; label: string | null; isPrimary: boolean; from: string },
+): D1PreparedStatement => db.prepare(GOP_MO_LIEN_HE).bind(crypto.randomUUID(), v.b, v.kind, v.value, v.valueNormalized, v.label, v.isPrimary ? 1 : 0, v.from, v.at, v.actorId, v.a);
+export const gopDongVaiStatement = (db: D1Database, v: Nguoi & { id: string; homNay: string }): D1PreparedStatement =>
+  db.prepare(GOP_DONG_VAI).bind(v.id, v.a, v.homNay, v.at, v.actorId, v.b);
+export const gopMoVaiStatement = (db: D1Database, v: Nguoi & { code: string; locationId: string | null; from: string; to: string | null }): D1PreparedStatement =>
+  db.prepare(GOP_MO_VAI).bind(crypto.randomUUID(), v.b, v.code, v.locationId, v.from, v.to, v.at, v.actorId, v.a);
+export const gopDongQuanHeStatement = (db: D1Database, v: Nguoi & { id: string; homNay: string }): D1PreparedStatement =>
+  db.prepare(GOP_DONG_QUAN_HE).bind(v.id, v.a, v.homNay, v.at, v.actorId, v.b);
+export const gopMoQuanHeStatement = (db: D1Database, v: Nguoi & { fromId: string; toId: string; typeCode: string; from: string; to: string | null }): D1PreparedStatement =>
+  db.prepare(GOP_MO_QUAN_HE).bind(crypto.randomUUID(), v.fromId, v.toId, v.typeCode, v.from, v.to, v.at, v.actorId, v.a, v.b);
+export const gopHuyGiayToStatement = (db: D1Database, v: Nguoi & { id: string; expectedUpdatedAt: string }): D1PreparedStatement =>
+  db.prepare(GOP_HUY_GIAY_TO).bind(v.id, v.a, v.expectedUpdatedAt, v.at, v.actorId, v.b);
+export const gopChepGiayToStatement = (db: D1Database, v: Nguoi & { du: GopDocRow }): D1PreparedStatement =>
+  db.prepare(GOP_CHEP_GIAY_TO).bind(
+    crypto.randomUUID(), v.b, v.du.document_type_code, v.du.document_number, v.du.number_key, v.du.license_class_code, v.du.issued_date, v.du.issued_place, v.du.expiry_date,
+    v.at, v.actorId, v.a, v.du.id,
+  );
+export const gopLatStatement = (db: D1Database, v: Nguoi & { homNay: string }): D1PreparedStatement => db.prepare(GOP_LAT).bind(v.a, v.b, v.at, v.actorId, v.homNay);

@@ -6,7 +6,7 @@
 
 > *"ghi nợ vào trong backlog để làm sau. Trước hết là làm những phần bắt buộc để xe chạy được mà còn thiếu: màn hình nhập danh sách khách, điểm trả khách và phân hệ theo dõi tiền (đại lý đối tác và hdv tại cảng nợ công ty và/hoặc ngược lại)"*
 
-Các ý khác của phiếu Giám đốc → `docs/BACKLOG.md` mục 10 (đã ghi).
+Các ý khác của phiếu Giám đốc → `docs/BACKLOG.md` mục 15 (đã ghi).
 
 ## Hộp chọn 1/10 (phương án chủ chọn)
 

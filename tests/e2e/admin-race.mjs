@@ -7,7 +7,7 @@ import { ACCOUNTS, call, login, randomPhone as rnd, session } from "./lib.mjs";
 const SUPER = await session(ACCOUNTS.superAdmin);
 const mk = async (name) => {
   const p = rnd();
-  const r = await call(SUPER, "POST", "/api/staff", { fullName: name, phone: p, permissions: ["ADMIN"] });
+  const r = await call(SUPER, "POST", "/api/staff", { taoHoSoMoi: true, fullName: name, phone: p, permissions: ["ADMIN"] });
   return { id: r.body.staff.id, phone: p, pin: r.body.pin };
 };
 const X = await mk("Race X"), Y = await mk("Race Y");

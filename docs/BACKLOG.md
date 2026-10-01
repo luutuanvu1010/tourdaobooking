@@ -80,7 +80,36 @@
 - **Nếu muốn sạch:** chỉ gọi sớm khi bản nhớ khớp tài khoản.
 - **Đã có:** kịch bản Chrome đã tự xoá bản nhớ trước khi mở form của Kế toán; mã app chưa sửa.
 
-## 10. Phiếu ý kiến Giám đốc 30/9 — việc để sau
+## 10. Chặn hồ sơ trùng khi đồng bộ nhân viên từ Google Sheet
+
+- **Ngày:** 2026-10-01 · **Nguồn:** ADR-0068 / đặc tả gộp hồ sơ C3 · **Trạng thái:** `ý tưởng`.
+- **Hiện tại:** "Đồng bộ danh sách từ Google Sheet" tạo tài khoản + hồ sơ mới như trước, KHÔNG kiểm hồ sơ khớp tên / SĐT (chỉ `POST /api/staff` thủ công bị chặn — C2). Đồng bộ Sheet vẫn có thể tạo hồ sơ trùng.
+- **Còn vướng:** màn xem trước đồng bộ cần cột "hồ sơ khớp" và lựa chọn dùng hồ sơ có sẵn cho từng dòng; hàm dùng chung `createAccountWithRolesStatements` không được đổi hành vi ngầm.
+
+## 11. Báo cáo theo khách / sổ công nợ theo người gom qua hồ sơ đã gộp
+
+- **Ngày:** 2026-10-01 · **Nguồn:** ADR-0068 mục Hệ quả · **Trạng thái:** `ý tưởng` (nợ cho module báo cáo / billing lượt sau).
+- **Hiện tại:** sau khi gộp, đơn đã giao, chuyến, phiếu thu, công nợ, nhật ký vẫn trỏ hồ sơ phụ; sổ "theo người" của hồ sơ chính không thấy chúng. Xem trước gộp hiện số dòng công nợ giữ lại.
+- **Cần:** mọi báo cáo / sổ "theo người" đi theo `merged_into_id` một bước (không chuỗi — trigger bảo đảm).
+
+## 12. Thêm tài khoản: hai hồ sơ cùng tên, chưa có vai nhìn như nhau
+
+- **Ngày:** 2026-10-01 · **Nguồn:** ADR-0068 C1 · **Trạng thái:** `ý tưởng`.
+- **Hiện tại:** danh sách hồ sơ khớp ở "Thêm tài khoản" hiện tên, lý do khớp, vai. Hai hồ sơ cùng tên mà đều chưa có vai thì nhìn y hệt nhau, khó chọn đúng.
+- **Cần:** thêm liên kết "Xem hồ sơ" (mở Danh bạ ở hồ sơ đó) cạnh nút "Dùng hồ sơ này".
+
+## 13. Gộp hồ sơ tổ chức (đại lý, nhà xe)
+
+- **Ngày:** 2026-10-01 · **Nguồn:** ADR-0068 (ngoài phạm vi bản đầu, chủ đồng ý) · **Trạng thái:** `tạm gác`.
+- **Còn vướng:** tổ chức chạm xe (`vc_vehicle.owner_party_id`), công ty chủ, công nợ đại lý — cần ADR riêng.
+
+## 14. Nút "Không phải trùng" ở màn Hồ sơ nghi trùng
+
+- **Ngày:** 2026-10-01 · **Nguồn:** ADR-0068 (ngoài phạm vi bản đầu) · **Trạng thái:** `tạm gác`.
+- **Hiện tại:** cặp trùng tên thật sự là hai người khác nhau vẫn hiện mãi trong danh sách nghi trùng.
+- **Cần:** bảng ghi cặp đã xác nhận khác người (không gộp) để màn nghi trùng bỏ qua.
+
+## 15. Phiếu ý kiến Giám đốc 30/9 — việc để sau
 
 - **Ngày:** 2026-10-01 · **Nguồn:** phiếu Google Form Giám đốc trả lời 30/9; đối chiếu ở `docs/superpowers/specs/2026-10-01-doi-chieu-phieu-giam-doc.md` (số câu dưới đây = số câu hỏi ở mục 6 tài liệu đó) · **Chủ nói (1/10):** *"ghi nợ vào trong backlog để làm sau. Trước hết là làm những phần bắt buộc để xe chạy được"* · **Trạng thái:** `ý tưởng` — mọi câu **chưa được chủ quyết**; ADR đã duyệt và lời chủ §10 sổ câu hỏi Vận chuyển vẫn có hiệu lực.
 - **Đang làm trước (KHÔNG thuộc mục này):** màn nhập danh sách khách + điểm trả khách (ADR-0047 Phần B, kèm câu 14 nơi trả mặc định theo dịch vụ và câu 17 nhắc thiếu tên nếu chủ chọn); sổ tiền đối tác/đại lý và HDV tại cảng (câu 10, có thể kéo theo 11–13).

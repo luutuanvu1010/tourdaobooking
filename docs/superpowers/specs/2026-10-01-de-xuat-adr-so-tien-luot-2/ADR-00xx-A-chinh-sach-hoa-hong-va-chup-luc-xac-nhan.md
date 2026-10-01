@@ -1,7 +1,7 @@
 # ADR-00xx-A — Sổ tiền lượt 2 (D4): bảng mức hoa hồng theo vai bên ngoài × nhóm dịch vụ, mức riêng từng đối tác; chụp vào đơn **lúc Xác nhận**
 
 - **Trạng thái:** **proposed** — bản nháp của người soạn (AI, vai lập kế hoạch), 2026-10-01; **sửa vòng 1 theo người kiểm độc lập** (ĐẠT CÓ ĐIỀU KIỆN), bản sửa chưa được kiểm lại. AI không tự duyệt (Hiến pháp N3, Điều 7.2).
-- **Số hiệu:** giữ chỗ `ADR-00xx-A`. Số thật lấy lúc gộp (dự kiến từ 0071; trên các nhánh đã có 0068, 0069, 0070; một phiên khác có thể đang soạn ADR "nơi trả mặc định theo dịch vụ").
+- **Số hiệu:** giữ chỗ `ADR-00xx-A`. Số thật lấy lúc gộp (dự kiến từ 0073 — 0071, 0072 đã có phiên khác giữ; trên các nhánh đã có 0068, 0069, 0070; một phiên khác có thể đang soạn ADR "nơi trả mặc định theo dịch vụ").
 - **Ngày:** 2026-10-01.
 - **Thuộc gói:** lượt duyệt **2a** (ADR này một mình — **3** quyết định chạm dữ liệu/quyền: (1) bảng mức + ô; (2) **đổi cách suy người hưởng** từ "vai nhóm `EXTERNAL`" sang danh sách được hưởng — đổi hành vi lượt 1 và chỗ hở kiểu F-01; (3) chụp lúc Xác nhận + ô; trang ghép `trang-ghep.md` §0, §2a). **Phát hành chung một bản** với B, C, D, E (xem `README.md` — hạn khoá kỳ của ADR-0026 và L-T1 của ADR-0057).
 - **Mốc đo mã:** nhánh `worktree-doi-chieu-phieu-giam-doc` @`8f647226`; `main` @`0c4309cd` (bản 1.50) có cùng các tệp trích dẫn ở đây (không kiểm từng dòng trên `main`).

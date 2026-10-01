@@ -16,7 +16,7 @@ const BIEN = `79E-${duoi.slice(0, 3)}.${duoi.slice(3)}`;
 const KHUNG = `E2EKHUNG${duoi}`;
 
 // --- 1. Tài khoản tài xế (đường thật: tạo theo vai) ---
-let r = await call(ADMIN, "POST", "/api/staff", { fullName: "Tài Xế E2E", phone: randomPhone(), roles: ["DRIVER_INTERNAL"] });
+let r = await call(ADMIN, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Tài Xế E2E", phone: randomPhone(), roles: ["DRIVER_INTERNAL"] });
 assert.equal(r.status, 201, JSON.stringify(r.body));
 assert.deepEqual(r.body.staff.permissions, ["DRIVER"], "vai 'Tài xế công ty' sinh đúng một quyền Tài xế");
 assert.match(r.body.pin, /^\d{6}$/);

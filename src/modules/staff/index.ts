@@ -3,19 +3,19 @@
 // audit vào một db.batch() — đổi tài khoản và ghi dấu vết thành công/thất bại cùng nhau. Tên người thuộc hồ sơ (module parties):
 // tạo/đổi tên tài khoản gọi hàm của parties (cạnh staff → parties, ADR-0002); staff.full_name/role là cột chết (ADR-0005).
 import {
-  accountRolesOf, closeAccountRoleStatement, newPersonStatements, openAccountRoleStatement, openRoleCodesByParty, partySummary, renamePersonStatements,
+  accountRolesOf, closeAccountRoleStatement, hoSoCaNhanKhop, newPersonStatements, openAccountRoleStatement, openRoleCodesByParty, partySummary, renamePersonStatements,
   reopenAccountRoleStatement, splitPersonName, validatePersonFullName, type AccountRole,
 } from "../parties";
 import { hashPin, verifyDummy, verifyPin } from "./password";
 import { isValidPin, normalizePhone } from "./phone";
 import {
   accountIdOfParty, closeAdjustmentStatement, closePermissionStatement, countActiveAdmins, findById, findByPhone, insertAdjustmentStatement, insertPermissionStatement,
-  insertStaffStatement, labelsByIds, listAll, openAdjustments, parsePermissions, recordLoginRow, setPinStatement as setPinRow, touchCredentialsStatement, updateStaffStatement,
+  insertStaffStatement, labelsByIds, listAll, openAdjustments, parsePermissions, partiesWithAccount, phonesByParty, recordLoginRow, setPinStatement as setPinRow, touchCredentialsStatement, updateStaffStatement,
   type AdjustmentRow, type StaffRow,
 } from "./repository";
 import { canManageAccount, checkAccountChange, generatePin, isWeakPin, partyAccountVerdict, validateFreshPin } from "./rules";
 import { parseStaffSheet as parseSheetRows, type StaffCandidate, type StaffSheetParse } from "./sheet";
-import type { StaffAccount, StaffProfile } from "../../shared/contracts";
+import type { PartyMatchDto, StaffAccount, StaffProfile } from "../../shared/contracts";
 import { PERMISSION_CODES, type PermissionCode } from "../../shared/permissions";
 import { ROLES, ROLE_CODES, effectivePermissions, groupOf, isRoleCode, type RoleAssignment, type RoleCode } from "../../shared/roles";
 import { addDays, vnToday } from "../../shared/vn-date";
@@ -31,6 +31,9 @@ export {
  * của van-chuyen. CHỈ gốc lắp ráp gọi (tiêm `ctx.nhanNhanVien`) — van-chuyen không import staff. Chỉ tên (view `v_stf_staff_label`): không SĐT, email, quyền.
  */
 export const nhanNhanVienTheoId = (db: D1Database, ids: readonly string[]): Promise<Map<string, string>> => labelsByIds(db, ids);
+
+/** HÀM CÔNG BỐ (ADR-0068 Đ8) — CHỈ gốc lắp ráp gọi (ctx.gopHoSo.soDangNhap): SĐT đăng nhập theo hồ sơ, cho lý do "số đăng nhập trùng số liên hệ". */
+export const soDangNhapTheoHoSo = (db: D1Database): Promise<{ partyId: string; phone: string }[]> => phonesByParty(db);
 
 /**
  * Kiểm họ tên của tài khoản theo đúng giới hạn sẽ ghi vào hồ sơ (`pty_person`, CHECK của migration 0011) — trả thông báo lỗi hoặc null.
@@ -277,7 +280,14 @@ export function roleChangeStatements(
 
 export type CreateWithRoles =
   | { ok: true; id: string; partyId: string; pin: string; statements: D1PreparedStatement[]; permissions: PermissionCode[] }
-  | { ok: false; message: string };
+  | { ok: false; message: string; code?: "party_merged" };
+
+/** ADR-0068 Đ9: hồ sơ cá nhân khớp khi Thêm tài khoản — MỘT nguồn cho 409 party_match_exists và route đọc của màn Quản lý tài khoản. Không SĐT của hồ sơ. */
+export async function hoSoKhopKhiTaoTaiKhoan(db: D1Database, v: { phone: string | null; ten: string | null }): Promise<PartyMatchDto[]> {
+  const khop = await hoSoCaNhanKhop(db, v);
+  const coTaiKhoan = await partiesWithAccount(db, khop.map((k) => k.id));
+  return khop.map((k) => ({ ...k, coTaiKhoan: coTaiKhoan.has(k.id) }));
+}
 
 /**
  * Tạo tài khoản THEO VAI (ADR-0018): hồ sơ mới mang đúng các vai đã chọn (không thêm vai STAFF cũ), HOẶC dùng lại hồ sơ cá nhân có sẵn (chưa có tài khoản,
@@ -299,6 +309,8 @@ export async function createAccountWithRolesStatements(
     const party = await partySummary(db, input.existingPartyId);
     if (!party) return { ok: false, message: "Không tìm thấy hồ sơ đã chọn." };
     if (party.kind !== "PERSON") return { ok: false, message: "Tài khoản chung cho công ty làm ở giai đoạn sau — hãy chọn hồ sơ cá nhân." };
+    // ADR-0068 G16: hồ sơ đã gộp (luôn ngưng) — mã riêng để người tạo biết mở hồ sơ chính.
+    if (party.mergedIntoId) return { ok: false, code: "party_merged", message: "Hồ sơ này đã gộp vào hồ sơ khác — chọn hồ sơ chính." };
     if (!party.active) return { ok: false, message: "Hồ sơ đã chọn đang ngưng hoạt động." };
     if (await accountIdOfParty(db, input.existingPartyId)) return { ok: false, message: "Hồ sơ này đã có tài khoản." };
     const open = (await accountRolesOf(db, input.existingPartyId, today)).filter((r) => r.validTo === null).map((r) => r.roleTypeCode).filter(isRoleCode);

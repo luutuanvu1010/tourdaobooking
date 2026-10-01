@@ -57,7 +57,7 @@ async function step(id, name, fn) {
   }
 }
 const q = (sel) => `document.querySelector(${JSON.stringify(sel)})`;
-const khungMo = `!!${q(".sheet-root .tl-khung")}`;
+const khungMo = `!!${q("#tl-khung.tl-khung")}`;
 const tatCa = [];
 const trangDung = `!${q("#tl-trang")}.hidden && !!${q("#tl-lich-su .tl-ls-ds")}`;
 const env = await startEnv({ vars: { OPENAI_API_KEY: KHOA, OPENAI_BASE_URL: `http://127.0.0.1:${PORT}` } });

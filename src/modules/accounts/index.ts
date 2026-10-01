@@ -9,12 +9,12 @@ import {
 } from "../auth";
 import { getMaintenanceState } from "../maintenance";
 import {
-  accountRoleCodes, canManageAccount, checkAccountChange, checkStaffName, countActiveAdmins, createAccountStatements, createAccountWithRolesStatements, findStaffByPhone,
+  accountRoleCodes, canManageAccount, checkAccountChange, checkStaffName, countActiveAdmins, createAccountStatements, createAccountWithRolesStatements, findStaffByPhone, hoSoKhopKhiTaoTaiKhoan,
   generatePin, getAccountRoleState, getStaffAccount, isValidPin, listStaffAccounts, normalizePhone, parseStaffSheet, renameAccountStatements, roleChangeStatements,
   setPermissionStatements, setPinStatement, touchCredentialsStatement, updateStaffStatement, validateFreshPin, validateNewPin, type StaffAccount,
 } from "../staff";
 import type {
-  PasskeyCreationOptionsResponse, PasskeyListResponse, PasskeyResponse, PasskeyRequestOptionsResponse, StaffAccountDto, StaffListResponse, StaffResponse,
+  PartyMatchDto, PartyMatchResponse, PasskeyCreationOptionsResponse, PasskeyListResponse, PasskeyResponse, PasskeyRequestOptionsResponse, StaffAccountDto, StaffListResponse, StaffResponse,
   StaffRolesResponse, StaffSheetApplyResponse, StaffSheetPreviewResponse, StaffWithPinResponse,
 } from "../../shared/contracts";
 import { toBase64Url } from "../../shared/encoding";
@@ -43,6 +43,9 @@ const NOT_MANAGER = () => error(403, "forbidden", "Chỉ quản lý được tà
 const SELF_RESET_PIN = () => error(403, "forbidden", "Không tự đặt lại PIN của chính mình ở đây. Để đổi PIN, vào trang Tôi, mục “Đổi mã PIN”, rồi nhập PIN hiện tại.");
 const NO_PARTY = () => error(409, "no_party", "Tài khoản này chưa có hồ sơ (đang di trú dữ liệu). Thử lại sau ít phút.");
 const ROLE_MANAGED = () => error(409, "role_managed", "Tài khoản đã gán vai — đổi quyền bằng cách chọn vai hoặc chỉnh riêng ở mục Vai và quyền.");
+// ADR-0068 Đ9 (C2): chặn tạo hồ sơ trùng ở MÁY CHỦ — không đặt trong createAccountWithRolesStatements (dùng chung với đồng bộ Sheet, C3 giữ nguyên).
+const MATCH_EXISTS = (khop: PartyMatchDto[]) =>
+  json({ error: { code: "party_match_exists", message: "Đã có hồ sơ cá nhân trùng số điện thoại hoặc họ tên. Chọn “Dùng hồ sơ này”, hoặc đánh dấu “Vẫn tạo hồ sơ mới” nếu là người khác.", khop } }, 409);
 const problemResponse = (p: RoleProblem): Response => error(p.forbidden ? 403 : 400, p.forbidden ? "forbidden" : "invalid_input", p.message);
 /** Lỗi trigger luật cứng / ràng buộc duy nhất → phản hồi rõ nghĩa (lưới cuối — kiểm thuần đã chặn trước). */
 function ruleViolation(e: unknown): Response | null {
@@ -354,8 +357,12 @@ export const accountsModule: AppModule = {
         const problem = roleAssignmentProblem({ actorIsSuper, currentRoles: [], currentPermissions: [], currentAdjustments: { adds: [], removes: [] }, next: parsed.value });
         if (problem) return problemResponse(problem);
         if (await findStaffByPhone(db, phone)) return PHONE_TAKEN();
+        if (!existingPartyId && body.taoHoSoMoi !== true) {
+          const khop = await hoSoKhopKhiTaoTaiKhoan(db, { phone, ten: name.value ?? null });
+          if (khop.length > 0) return MATCH_EXISTS(khop);
+        }
         const created = await createAccountWithRolesStatements(db, { fullName: name.value ?? null, phone, assignment: parsed.value, existingPartyId }, admin.id);
-        if (!created.ok) return error(409, "account_rule", created.message);
+        if (!created.ok) return error(409, created.code ?? "account_rule", created.message);
         const detail = [
           `vai: ${rolesLabel(parsed.value.roles)}`,
           `quyền: ${permissionsLabel(created.permissions)}`,
@@ -386,6 +393,10 @@ export const accountsModule: AppModule = {
       const lai = taiKhoanLaiProblem(perms.value!); // LC-1b (ADR-0048 B2.2): đường cũ không qua roleAssignmentProblem
       if (lai) return problemResponse(lai);
       if (await findStaffByPhone(db, phone)) return PHONE_TAKEN();
+      if (body?.taoHoSoMoi !== true) {
+        const khop = await hoSoKhopKhiTaoTaiKhoan(db, { phone, ten: name.value! });
+        if (khop.length > 0) return MATCH_EXISTS(khop);
+      }
       const created = await createAccountStatements(db, { fullName: name.value!, phone, permissions: perms.value! }, admin.id);
       try {
         await db.batch([...created.statements, adminAudit(db, admin.id, "staff_created", created.id, `quyền: ${permissionsLabel(perms.value!)}`)]);
@@ -396,6 +407,15 @@ export const accountsModule: AppModule = {
         throw e;
       }
       return json({ staff: await one(db, created.id), pin: created.pin } satisfies StaffWithPinResponse, 201);
+    }),
+
+    // ADR-0068 Đ9 (C1): giao diện Thêm tài khoản hỏi "có hồ sơ khớp không" TRONG LÚC GÕ — cùng một hàm với 409 party_match_exists (không hai luật).
+    route("GET", "/api/staff/ho-so-khop", "admin", async ({ env, url, staff: admin }) => {
+      if (!can(admin, "admin.manage")) return NOT_ADMIN();
+      const phone = normalizePhone(url.searchParams.get("phone") ?? "");
+      const ten = (url.searchParams.get("ten") ?? "").trim().slice(0, 200);
+      if (!phone && !ten) return json({ khop: [] } satisfies PartyMatchResponse);
+      return json({ khop: await hoSoKhopKhiTaoTaiKhoan(env.DB, { phone, ten: ten || null }) } satisfies PartyMatchResponse);
     }),
 
     // ---- Đồng bộ từ Google Sheet: xem trước rồi áp dụng --------------------------

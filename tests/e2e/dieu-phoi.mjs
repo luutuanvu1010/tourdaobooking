@@ -24,7 +24,7 @@ const leg = (noi) => ({ direction: "OUT", pickupDate: D, pickupTime: "10:00", pi
 let r;
 
 // --- Nền: tài xế công ty (tài khoản thật, vai DRIVER_INTERNAL + GPLX D1), xe 15 chỗ có Kiểm định + Bảo hiểm ---
-r = await call(ADMIN, "POST", "/api/staff", { fullName: "Tài Xế Điều Phối E2E", phone: randomPhone(), roles: ["DRIVER_INTERNAL"] });
+r = await call(ADMIN, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Tài Xế Điều Phối E2E", phone: randomPhone(), roles: ["DRIVER_INTERNAL"] });
 assert.equal(r.status, 201, JSON.stringify(r.body));
 const [{ party_id: txParty }] = await sqlRows(`SELECT party_id FROM staff WHERE id = '${r.body.staff.id}'`);
 r = await call(ADMIN, "POST", `/api/parties/${txParty}/documents`, { typeCode: "GPLX", number: `79${String(Date.now()).slice(-10)}`, classCode: "D1", expiryDate: vnDate(400) });

@@ -6,7 +6,7 @@
   - `0069` đã dùng (bảng điều khiển trợ lý, đặc tả `2026-09-30-adr-0069-*`);
   - `0070` đã dùng trên một nhánh (commit `47a4a530` "ADR-0070 + đặc tả: trợ lý hiểu cấu trúc app");
   - `0063`–`0065` là các bản nháp đã giữ số (`2026-09-30-de-xuat-adr-ra-soat/`);
-  - **số trống nhỏ nhất hôm nay là 0071**, nhưng phiên đang soạn ADR sổ tiền lượt 2 có thể lấy trước.
+  - **số trống nhỏ nhất (cập nhật 1/10 chiều): 0073** — 0071 (vai Hành chính nhân sự), 0072 (bớt quyền Giám đốc) đã có phiên khác giữ, nhưng phiên đang soạn ADR sổ tiền lượt 2 có thể lấy trước.
 - **Ngày:** 2026-10-01.
 - **Loại:** bổ sung ADR-0054 D10.1–D10.2 (đã duyệt). Thay ba câu của ADR-0054 (bảng cột D10.1, bài khoá route form, nghĩa thân route ghi mẫu) — xem mục "Câu ADR bị thay". Phần cửa một chiều / hai chiều ở dưới.
 - **Nguồn (lời chủ và Giám đốc, chuẩn — không hỏi lại):**
@@ -120,7 +120,7 @@
   - (ii) cờ "trong / ngoài nội thành" trên Địa điểm để tính phụ phí hoặc cảnh báo;
   - (iii) vùng địa lý để xếp xe theo khu.
   Mỗi cách đụng một chỗ khác (danh mục Địa điểm, tiền, xếp xe). Không cách nào bắt buộc để xe chạy được hôm nay.
-- Chủ đã chọn 1/10: "trước hết làm những phần **bắt buộc để xe chạy**". Vì vậy **khuyến nghị:** ghi vế (2) vào `docs/BACKLOG.md` mục 10 (phiếu Giám đốc), kèm câu hỏi lại Giám đốc "nội thành dùng để làm gì". ADR này **không** sửa `docs/BACKLOG.md` (ngoài phạm vi tệp được giao); điều phối ghi khi chủ đồng ý.
+- Chủ đã chọn 1/10: "trước hết làm những phần **bắt buộc để xe chạy**". Vì vậy **khuyến nghị:** ghi vế (2) vào `docs/BACKLOG.md` mục 15 (phiếu Giám đốc), kèm câu hỏi lại Giám đốc "nội thành dùng để làm gì". ADR này **không** sửa `docs/BACKLOG.md` (ngoài phạm vi tệp được giao); điều phối ghi khi chủ đồng ý.
 
 ### D7. Google Sheet và đồng bộ danh mục — không chạm
 

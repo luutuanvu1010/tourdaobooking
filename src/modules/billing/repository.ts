@@ -80,6 +80,18 @@ export const linesOfReceipt = async (db: D1Database, receiptId: string): Promise
 export const lineById = (db: D1Database, id: string): Promise<LineDbRow | null> => db.prepare(LINE_BY_ID).bind(id).first<LineDbRow>();
 export const lineReversed = async (db: D1Database, id: string): Promise<boolean> => (await db.prepare(LINE_REVERSED).bind(id).first()) !== null;
 
+// ADR-0068 G10 (gộp hồ sơ): số dòng nợ CÒN HIỆU LỰC (không phải dòng đảo, chưa bị đảo) có hồ sơ ?1 ở một chân. Chỉ đếm — không số tiền.
+const SO_DONG_NO_CUA_NGUOI = defineSql(
+  "billing",
+  "so_dong_no_cua_nguoi",
+  `SELECT count(*) AS n FROM bil_debt_line l
+   WHERE (l.debtor_party_id = ?1 OR l.creditor_party_id = ?1) AND l.reverses_line_id IS NULL
+     AND NOT EXISTS (SELECT 1 FROM bil_debt_line x WHERE x.reverses_line_id = l.id)`,
+);
+export async function soDongNoCuaNguoiRow(db: D1Database, partyId: string): Promise<number> {
+  return (await db.prepare(SO_DONG_NO_CUA_NGUOI).bind(partyId).first<{ n: number }>())?.n ?? 0;
+}
+
 /** Số dư mọi bên với công ty chủ (dương = bên đó đang giữ tiền của công ty) — màn sổ của Kế toán. */
 const BALANCES_WITH_OWNER = defineSql(
   "billing",
