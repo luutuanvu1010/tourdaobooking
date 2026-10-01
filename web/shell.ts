@@ -31,6 +31,8 @@ const TRANG_CUOC_CAC = [TRANG_CUOC, "/cuoc-chuyen"];
 const TRANG_CHINH_SACH = ["/chinh-sach-dieu-phoi", "/dieu-kien-xuat-ben"];
 const TRANG_LY_DO = "/ly-do-dieu-phoi";
 const TRANG_TRO_LY = "/tro-ly-cai-dat"; // ADR-0069: bảng điều khiển trợ lý Hỗ trợ (chỉ Toàn quyền)
+/** ADR-0075 điều 7: sổ phiên đăng nhập của mọi tài khoản — chỉ IT/Toàn quyền (ô auth.session.viewAll). Ở điện thoại mở từ trang Tôi nên tab "Tôi" sáng. */
+const TRANG_PHIEN = "/sessions";
 
 interface Tab {
   href: string;
@@ -65,7 +67,7 @@ function tabsFor(admin: boolean, seesAll: boolean, canCreate: boolean, taiXe = f
   return [
     ...officeTabs,
     ...adminTabs,
-    { href: "/account", label: "Tôi", icon: "me", active: (p) => p === "/account" || p === "/audit" || p === "/help" || p === "/gui-thong-bao" || TRANG_XE.includes(p) || p === TRANG_SAP_HET_HAN || p === TRANG_LOAI_GIAY_TO_XE || p === TRANG_LOAI_GIAY_TO_NGUOI || TRANG_CHINH_SACH.includes(p) || p === TRANG_LY_DO || TRANG_DIEU_PHOI.includes(p) || p === TRANG_TRO_LY || (!cuoc && TRANG_CUOC_CAC.includes(p)) },
+    { href: "/account", label: "Tôi", icon: "me", active: (p) => p === "/account" || p === "/audit" || p === "/help" || p === "/gui-thong-bao" || TRANG_XE.includes(p) || p === TRANG_SAP_HET_HAN || p === TRANG_LOAI_GIAY_TO_XE || p === TRANG_LOAI_GIAY_TO_NGUOI || TRANG_CHINH_SACH.includes(p) || p === TRANG_LY_DO || TRANG_DIEU_PHOI.includes(p) || p === TRANG_TRO_LY || p === TRANG_PHIEN || (!cuoc && TRANG_CUOC_CAC.includes(p)) },
   ];
 }
 
@@ -211,7 +213,7 @@ interface NavGroup {
  * tabsFor()/nav ngang cũ (office/admin/canCreate) — KHÔNG tự đổi bản đồ quyền (đặc tả §3.1). Nhóm rỗng bị lọc ở
  * sidebar() (ẩn cả tiêu đề, đặc tả §3.1).
  */
-function navGroups(admin: boolean, seesAll: boolean, office: boolean, canCreate: boolean, nhatKy: boolean, path: string, taiXe = false, vehicle = false, danhMuc = false, chinhSach = false, dieuPhoi = false, cuoc = false, taiKhoan = admin, guiThongBao = false): NavGroup[] {
+function navGroups(admin: boolean, seesAll: boolean, office: boolean, canCreate: boolean, nhatKy: boolean, path: string, taiXe = false, vehicle = false, danhMuc = false, chinhSach = false, dieuPhoi = false, cuoc = false, taiKhoan = admin, guiThongBao = false, phien = false): NavGroup[] {
   const sales: NavItem[] = [];
   // Đợt D Task 5 (ADR-0015 điều 4): "/" nay là Trang chủ, "/orders" là Đơn hàng — active() của "/" phải khớp
   // CHÍNH XÁC "/" (không phải mọi đường dẫn bắt đầu bằng "/").
@@ -226,6 +228,8 @@ function navGroups(admin: boolean, seesAll: boolean, office: boolean, canCreate:
   const management: NavItem[] = [
     ...(admin ? [{ href: "/catalog", label: "Dịch vụ & giá", icon: "services" as const, badge: catalogConflictBadge, badgeClass: "sidebar-item-badge-sand", active: (p: string) => p === "/catalog" }] : []),
     ...(taiKhoan ? [{ href: "/staff", label: "Quản lý tài khoản", icon: "staff" as const, active: (p: string) => p === "/staff" }] : []),
+    // ADR-0075 điều 7 (đặc tả §5b: "trong Quản lý tài khoản"): ngay sau "Quản lý tài khoản" — ô auth.session.viewAll (cờ `phien`, chỉ Toàn quyền).
+    ...(phien ? [{ href: TRANG_PHIEN, label: "Phiên đăng nhập", icon: "lock" as const, active: (p: string) => p === TRANG_PHIEN }] : []),
     ...(admin ? [{ href: "/locations", label: "Địa điểm", icon: "pin" as const, active: (p: string) => p === "/locations" }] : []),
   ];
   // Loại giấy tờ người (danh mục chung — giấy tờ thuộc về người; tách 2026-09-28): ngay sau "Địa điểm", trước "Vận chuyển". Ô admin.manage.
@@ -317,8 +321,8 @@ function sidebarGroup(group: NavGroup, path: string, loaders: (() => void)[]): H
  * Đăng xuất: bản mẫu không vẽ (ảnh chỉ là một phần khung), nhưng đây là thao tác BẮT BUỘC PHẢI CÒN (trang Tôi
  * cũng có "Đăng xuất" riêng, `web/account.ts`) — thêm một liên kết nhỏ, không đổi khối nào bản mẫu đã vẽ.
  */
-function sidebar(admin: boolean, seesAll: boolean, office: boolean, canCreate: boolean, path: string, staff: Staff | null, loaders: (() => void)[], tat = "", nhatKy = false, taiXe = false, vehicle = false, danhMuc = false, chinhSach = false, dieuPhoi = false, cuoc = false, taiKhoan = admin, guiThongBao = false): HTMLElement {
-  const groups = navGroups(admin, seesAll, office, canCreate, nhatKy, path, taiXe, vehicle, danhMuc, chinhSach, dieuPhoi, cuoc, taiKhoan, guiThongBao)
+function sidebar(admin: boolean, seesAll: boolean, office: boolean, canCreate: boolean, path: string, staff: Staff | null, loaders: (() => void)[], tat = "", nhatKy = false, taiXe = false, vehicle = false, danhMuc = false, chinhSach = false, dieuPhoi = false, cuoc = false, taiKhoan = admin, guiThongBao = false, phien = false): HTMLElement {
+  const groups = navGroups(admin, seesAll, office, canCreate, nhatKy, path, taiXe, vehicle, danhMuc, chinhSach, dieuPhoi, cuoc, taiKhoan, guiThongBao, phien)
     .map((g) => sidebarGroup(g, path, loaders))
     .filter((g): g is HTMLElement => g !== null);
   // `staff` null = khung tạm từ bản nhớ (ADR-0035): chân thanh chỉ có chữ cái đầu, tên/vai điền khi /api/auth/me về.
@@ -415,10 +419,10 @@ export async function initShell(): Promise<Staff> {
   // nhịp, khung thật (sau /api/auth/me) vẽ đủ.
   // `taiKhoan` (ADR-0071, ô account.view) không có trong bản nhớ khung (5 trường đã duyệt, ADR-0035): khung tạm dùng `admin` thay — tài khoản Hành chính nhân sự
   // thiếu mục "Quản lý tài khoản" một nhịp, khung thật vẽ đủ (như tiền lệ `taiXe`).
-  const addNav = (admin: boolean, seesAll = true, office = seesAll, canCreate = seesAll, staff: Staff | null = null, tatTam: string | null = null, nhatKy = false, taiXe = false, vehicle = false, danhMuc = false, chinhSach = false, dieuPhoi = false, cuoc = false, taiKhoan = admin, guiThongBao = false) => {
+  const addNav = (admin: boolean, seesAll = true, office = seesAll, canCreate = seesAll, staff: Staff | null = null, tatTam: string | null = null, nhatKy = false, taiXe = false, vehicle = false, danhMuc = false, chinhSach = false, dieuPhoi = false, cuoc = false, taiKhoan = admin, guiThongBao = false, phien = false) => {
     if (staff || tatTam !== null) {
       const badgeLoaders: (() => void)[] = [];
-      const nav = sidebar(admin, seesAll, office, canCreate, path, staff, badgeLoaders, tatTam ?? "", nhatKy, taiXe, vehicle, danhMuc, chinhSach, dieuPhoi, cuoc, taiKhoan, guiThongBao);
+      const nav = sidebar(admin, seesAll, office, canCreate, path, staff, badgeLoaders, tatTam ?? "", nhatKy, taiXe, vehicle, danhMuc, chinhSach, dieuPhoi, cuoc, taiKhoan, guiThongBao, phien);
       document.body.prepend(nav);
       document.body.classList.add("has-sidebar");
       // Huy hiệu chỉ nạp khi thanh bên ĐANG HIỂN THỊ THẬT (`offsetParent` null khi CSS ẩn nó ở khổ hẹp). Hỏi chính
@@ -507,7 +511,7 @@ export async function initShell(): Promise<Staff> {
 
   // `danhMuc` (ô admin.manage — hai trang Loại giấy tờ xe / người, Lý do điều phối) và `chinhSach` (ô settings.ops — Chính sách điều phối) như `vehicle`: chỉ
   // khung THẬT biết (bản nhớ khung chỉ 5 trường đã duyệt, ADR-0035).
-  addNav(admin, seesAll, office, canCreate, staff, null, can(staff, "audit.view"), chiTaiXe(staff), can(staff, "vehicle.manage"), can(staff, "admin.manage"), can(staff, "settings.ops"), thayDieuPhoiXe(staff), coCuocCuaToi(staff), can(staff, "account.view"), can(staff, "notice.send"));
+  addNav(admin, seesAll, office, canCreate, staff, null, can(staff, "audit.view"), chiTaiXe(staff), can(staff, "vehicle.manage"), can(staff, "admin.manage"), can(staff, "settings.ops"), thayDieuPhoiXe(staff), coCuocCuaToi(staff), can(staff, "account.view"), can(staff, "notice.send"), can(staff, "auth.session.viewAll"));
   batDauBangTin(staff); // Bảng tin (ADR-0022): MỘT kết nối mỗi trang đã đăng nhập; nhánh mất mạng ở trên không tới đây (chưa có `staff`)
   void ganPhienThongBaoMayNay(); // ADR-0075 điều 6b: đăng ký thông báo của máy này mang mã phiên mới
   // Trợ lý Hỗ trợ (ADR-0066 điều 9): nút nổi ở mọi trang đã đăng nhập (initShell không chạy ở /login). CẢ khi đang bảo trì: lúc đó chỉ tài khoản Toàn quyền

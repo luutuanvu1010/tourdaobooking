@@ -208,7 +208,7 @@ Mở [[Lý do điều phối]]. Lý do chia nhóm, như [[Đổi giờ xe tới]
     },
     {
       tieuDe: "Chỉ tài khoản Toàn quyền",
-      noiDung: `Toàn quyền làm được mọi việc của Quản trị, thêm các việc dưới đây. Menu có thêm [[Chính sách điều phối]], [[Nhật ký]], [[Gửi thông báo]].
+      noiDung: `Toàn quyền làm được mọi việc của Quản trị, thêm các việc dưới đây. Menu có thêm [[Chính sách điều phối]], [[Nhật ký]], [[Gửi thông báo]], [[Phiên đăng nhập]].
 
 ### Tài khoản
 - Gán được vai Giám đốc, Điều hành chung, IT, Hành chính nhân sự; sửa được cả tài khoản Quản trị và Hành chính nhân sự.
@@ -231,6 +231,13 @@ Chỉ hiện ở trang Tôi của tài khoản Toàn quyền. Khi bật, mọi t
 
 ### Chính sách điều phối
 Mở [[Chính sách điều phối]], sửa [[Mốc tối thiểu (giờ)]], [[Cảnh báo sát mốc (giờ)]], [[Khoảng nghỉ tài xế (phút)]], [[Khai lùi tối đa (phút)]], công tắc [[Phải đủ danh sách khách]]. Bấm [[Lưu thành bản mới]], có hiệu lực ngay; bản cũ vào [[Lịch sử bản]]. Liên kết [[Điều kiện theo cỡ xe, hạng bằng ›]] mở trang Điều kiện xuất bến.
+
+### Phiên đăng nhập
+Mở [[Phiên đăng nhập]] (menu máy tính, hoặc trang Tôi trên điện thoại) để xem ai đang đăng nhập trên máy nào, cách đăng nhập, lần hoạt động gần nhất.
+1. Gõ tên vào ô [[Tìm theo tên người]]. Bỏ tick [[Chỉ phiên đang hiệu lực]] để xem cả phiên đã kết thúc.
+2. Bấm [[Gỡ phiên]]: máy đó bị đăng xuất ngay. Người có PIN vẫn đăng nhập lại được.
+3. Nghi lộ PIN hoặc mất máy: bấm [[Gỡ phiên + đặt lại PIN]]. PIN mới hiện một lần ở đầu trang, gửi riêng cho người đó.
+4. Đọc hộp xác nhận rồi bấm [[Xác nhận gỡ]] (hoặc [[Thôi]]).
 
 ### Nhật ký, Góp ý, hồ sơ công ty
 - [[Nhật ký]]: tìm theo mã đơn, mã dịch vụ hoặc tên nhân viên.

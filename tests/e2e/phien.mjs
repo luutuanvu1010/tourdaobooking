@@ -370,6 +370,38 @@ const batMay = async (ck, ep) => assert.equal((await call(ck, "POST", "/api/acco
   console.log("✓ bỏ Toàn quyền của tài khoản đang mở 2 máy → còn phiên mới nhất (single=1), máy cũ 401 'Không còn quyền dùng nhiều máy'; máy sau đá máy trước");
 }
 
+// ---- Task 9 (Review Focus 4): hai lần đăng nhập ĐỒNG THỜI cùng tài khoản thường → đúng MỘT phiên sống, lần thua lỗi sạch (không 500) --------------------
+// Tài khoản SALES THỬ riêng (không đụng salesA dùng chung với nhóm e2e khác). Không đòi phải có 409: D1 xếp hàng các lô nên thường cả hai đều 200 (lần sau đá
+// lần trước) — điều phải giữ là sau mỗi vòng còn đúng một dòng `ended_at IS NULL`, và không lần nào 500.
+{
+  const sa = await dangNhapMay(WINDOWS, undefined, SA);
+  const phone = randomPhone();
+  r = await call(sa, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Bán Hàng Thử Chạy Đua", phone, permissions: ["SALES"] });
+  assert.equal(r.status, 201, JSON.stringify(r.body));
+  const tk = { phone, pin: r.body.pin };
+  const tid = r.body.staff.id;
+  const trangThai = [];
+  for (let vong = 0; vong < 5; vong++) {
+    const kq = await Promise.all([0, 1].map((k) =>
+      fetch(`${BASE}/api/auth/login`, {
+        method: "POST",
+        headers: { "content-type": "application/json", origin: BASE, "user-agent": k ? IPHONE : WINDOWS, "cf-connecting-ip": freshIp() },
+        body: JSON.stringify({ phone: tk.phone, pin: tk.pin, turnstileToken: "XXXX.DUMMY.TOKEN.XXXX" }),
+      }).then(async (x) => ({ status: x.status, body: await x.json().catch(() => null), cookie: x.headers.get("set-cookie")?.split(";")[0] ?? null }))));
+    for (const x of kq) {
+      trangThai.push(x.status);
+      assert.ok(x.status === 200 || x.status === 409, `vòng ${vong}: trạng thái ${x.status} ${JSON.stringify(x.body)} (không được 500)`);
+    }
+    assert.ok(kq.some((x) => x.status === 200), `vòng ${vong}: ít nhất một lần đăng nhập thành công`);
+    const song = await sqlRows(`SELECT id FROM aut_session WHERE staff_id = '${tid}' AND ended_at IS NULL`);
+    assert.equal(song.length, 1, `vòng ${vong}: đúng một phiên sống, có ${song.length}`);
+    const meSong = await Promise.all(kq.filter((x) => x.cookie).map((x) => call(x.cookie, "GET", "/api/auth/me").then((m) => m.status)));
+    assert.equal(meSong.filter((s) => s === 200).length, 1, `vòng ${vong}: đúng một cookie còn dùng được (${JSON.stringify(meSong)})`);
+  }
+  assert.equal((await call(sa, "PATCH", `/api/staff/${tid}`, { active: false })).status, 200);
+  console.log(`✓ chạy đua: 5 vòng × 2 lần đăng nhập đồng thời cùng tài khoản thường → mỗi vòng đúng một phiên sống, một cookie dùng được; trạng thái ${JSON.stringify(trangThai)} (không 500)`);
+}
+
 await sessionMoi(SA);
 await sessionMoi(A);
 console.log("phien.mjs: xong");
