@@ -209,7 +209,10 @@ test("Đ4 dungLoiNhac luật 2: ĐƯỢC giải thích mức khái niệm; VẪN
   for (const cam of [
     "mã nguồn", "tên bảng", "cột", "hàm", "tệp", "đường dẫn API", "máy chủ", "hạ tầng", "cơ sở dữ liệu", "bí mật", "mật khẩu", "mã PIN", "khoá", "cấu hình",
     "lách quyền", "giá", "số tiền của một đơn cụ thể", "khách", "luật nội bộ",
+    "chính sách hay quy định công ty (lương, thưởng, hoa hồng, kỷ luật)",
   ]) assert.ok(luat2.includes(cam), `luật 2 thiếu "${cam}"`);
+  // Ruling điều phối 1/10: câu cách-dùng-app ngoài tài liệu đi luật 5 (mềm), KHÔNG nằm trong danh sách từ chối của luật 2 (luật 2 luôn thắng).
+  assert.ok(!luat2.includes("quy trình ngoài tài liệu"), "luật 2 không được từ chối 'quy trình ngoài tài liệu'");
   assert.ok(luat2.includes(`"${CAU_TU_CHOI}"`));
   assert.equal(CAU_TU_CHOI, "Mình chỉ hướng dẫn cách dùng app, không trả lời được câu này — hỏi Quản trị nếu cần.");
 });
