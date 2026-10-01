@@ -1,7 +1,7 @@
 import { ApiError, api, type Api, type OrderSummary, type Staff } from "./api";
 import { moBangTruot } from "./bang-truot";
 import { byId, h, replaceChildren, type Child } from "./dom";
-import { dayMonth, paxCounts, vnd, vndShort } from "./format";
+import { dayMonth, paxCounts, paxCountsShort, vnd, vndShort } from "./format";
 import { helpHasNews } from "./help-seen";
 import { icon, type IconName } from "./icons";
 import { taoBoLamMoi } from "./lam-moi-logic";
@@ -137,8 +137,8 @@ function todayRow(o: OrderSummary, tien: { conLai: number } | undefined): HTMLEl
     h(
       "span",
       { class: "dash-today-main" },
-      // Số khách trong span riêng: bản vẽ điện thoại cho chữ nhỏ, nhạt hơn tên (máy tính không đặt kiểu riêng — nhìn như cũ).
-      h("span", { class: "dash-today-name" }, o.customerName, pax ? h("span", { class: "dash-today-pax" }, ` · ${pax}`) : false),
+      // Số khách trong span riêng: bản vẽ điện thoại cho chữ nhỏ, nhạt hơn tên, dạng rút gọn "2NL 1TE" (máy tính giữ "02 NL · 01 TE", nhìn như cũ).
+      h("span", { class: "dash-today-name" }, o.customerName, pax ? h("span", { class: "dash-today-pax" }, h("span", { class: "lbl-full" }, ` · ${pax}`), h("span", { class: "lbl-short" }, ` · ${paxCountsShort(o.pax)}`)) : false),
       h("span", { class: "muted dash-today-sub" }, ...sub),
     ),
     h(
