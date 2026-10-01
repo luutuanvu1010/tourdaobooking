@@ -3,9 +3,9 @@
 > Tài liệu **mô tả** (không phải lời duyệt; khi lệch mã thì mã đúng, sửa tài liệu này). Viết cho người không lập trình.
 > Mọi tên menu, trang, nút dưới đây lấy từ mã thật của bản 1.38. Điều chưa đối chiếu được với mã hay với thao tác thật ghi rõ **"chưa kiểm"**.
 > Lộ trình, trạng thái từng lượt, việc đang chặn: `docs/superpowers/specs/2026-09-29-van-chuyen-lo-trinh.md`.
-> Cập nhật 2/10: mục 2.3 và danh sách việc đã đối chiếu bản <số phiên bản — điền lúc gộp>; các mục khác vẫn theo bản 1.38 — chưa rà lại.
+> Cập nhật 2/10: mục 2.3 và danh sách việc đã đối chiếu bản 1.65; các mục khác vẫn theo bản 1.38 — chưa rà lại.
 
-**Điều quan trọng nhất:** bản 1.38 đã chạy trên mạng thật, nhưng **chủ đã quyết chưa dùng Bảng điều phối cho chuyến thật** cho tới khi có màn nhập tên khách. Văn phòng vẫn điều xe như cũ. Riêng **quy tắc 6 giờ đã có hiệu lực ngay** với việc xác nhận đơn.
+**Điều quan trọng nhất:** bản 1.38 đã chạy trên mạng thật, nhưng **chủ đã quyết chưa dùng Bảng điều phối cho chuyến thật** cho tới khi có màn nhập tên khách. Màn đó đã có từ bản 1.62; việc dùng Bảng điều phối cho chuyến thật đang chờ chủ quyết. Văn phòng vẫn điều xe như cũ. Riêng **quy tắc 6 giờ đã có hiệu lực ngay** với việc xác nhận đơn.
 
 ## Mục lục
 
@@ -87,7 +87,7 @@ Trên máy tính, các mục nằm ở thanh bên, nhóm **QUẢN TRỊ › Vậ
 | Lý do điều phối, loại giấy tờ | không | không | có | có | không | không | không | không | không |
 | Xem tên + năm sinh khách trên chuyến | có (chi tiết chuyến) | có | có | có | không | không | không | chỉ trong ngày chạy | không |
 
-### 2.3 Cái gì CHƯA có (cập nhật bản <số phiên bản — điền lúc gộp>)
+### 2.3 Cái gì CHƯA có (cập nhật bản 1.65)
 
 - ~~**Màn nhập tên hành khách** và **màn nhập / sửa chặng đưa đón mới** (chiều về, nơi trả, …) — ADR-0047 Phần B, chờ chủ vẽ. Hệ quả: chuyến có khách luôn bị giữ "Chưa đủ tên khách". Ngoài ra, theo mã, **không màn nào ghi được nơi trả**: đơn lập bằng màn hiện tại tạo chặng chiều đi **không có nơi trả** (chỉ đơn cũ trước 1.38 được chép "Nơi check-in" sang làm nơi trả). Chặng thiếu nơi trả vẫn **xếp được** lên xe, nhưng chuyến bị giữ "Chặng chưa có nơi trả" và không xuất bến. Chặng chưa có giờ đón thì **không xếp được**.~~ — **đã có từ 1.62** (khối Đưa đón + Hành khách ở form đơn; "Sửa đưa đón" / "Sửa danh sách" ở chi tiết đơn). Chiều về: form gợi ý theo dịch vụ, máy chủ không tự tạo.
 - **Tài xế đối tác dùng app cho chuyến**, Từ chối chuyến, Báo bận (ADR-0053, lượt 3).
