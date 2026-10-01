@@ -42,7 +42,7 @@ export const ROLES: Readonly<Record<RoleCode, RoleDef>> = {
   TRAVEL_AGENCY: { name: "Công ty lữ hành", group: "EXTERNAL", defaults: ["PARTNER"], handles: "never", superAdminOnly: false },
   GUIDE_FREELANCE: { name: "Hướng dẫn viên độc lập", group: "EXTERNAL", defaults: ["PARTNER"], handles: "never", superAdminOnly: false },
   HOTEL_RECEPTION: { name: "Lễ tân khách sạn", group: "EXTERNAL", defaults: ["PARTNER"], handles: "never", superAdminOnly: false },
-  TAXI_DRIVER: { name: "Tài xế taxi", group: "EXTERNAL", defaults: ["PARTNER"], handles: "never", superAdminOnly: false },
+  TAXI_DRIVER: { name: "Tài xế taxi (giới thiệu khách)", group: "EXTERNAL", defaults: ["PARTNER"], handles: "never", superAdminOnly: false },
   COLLABORATOR: { name: "Cộng tác viên", group: "EXTERNAL", defaults: ["PARTNER"], handles: "never", superAdminOnly: false },
   // ADR-0048 D2: tài xế của nhà xe đối tác — người lái chuyến, KHÔNG phải bên đặt (ADR-0018 điều 9 sửa bởi ADR-0048): sinh DRIVER_PARTNER, không PARTNER.
   // Không đi cùng vai bên ngoài khác (LC-1b — roleAssignmentProblem). Quản trị gán được.
