@@ -96,3 +96,32 @@ Còn lọc `status = 'confirmed'`; lô `changeLeg` đẩy mốc đơn (`orderTou
 - Kết quả: 26/26 bài thuần; `src/modules/orders/*.test.ts` + thuần 317/317; typecheck 0 lỗi.
 - **Ruling (bề mặt):** TC-P2 ghi "số người chiều về 4 → 2" — bài viết từ số 4 tường minh; trống thì nhãn "theo số khách dịch vụ" (Task 2.2). Thêm chặng kèm CẢ số người
   chiều về khi có (kế hoạch chỉ nêu số hiệu) — giá trị số, không dữ liệu cá nhân.
+
+## Task 3 — đường ghi (2026-10-01)
+
+- Đỏ trước: `src/modules/orders/o-moi-chang.test.ts` (17 bài: TC-F3 nháp/sau xác nhận, F4 thân mới + thân CŨ, F5 + Q-B, F6, F8, P2, P3, P4 (a)–(e), P5, P6, P7,
+  P10, ca "đổi chiều cùng id", ca "số hiệu + dấu đặt gấp chép cùng chặng") → 16 đỏ, 1 xanh sẵn (TC-P6: chặng mới vốn NULL — bài canh hồi quy, ghi rõ).
+- Xanh (17/17). Thay đổi:
+  - **SQL (`chang-hanh-khach-repo.ts`) — không câu GÁC mới:** `LEG_INSERT_COLS` + `flight_code, pax_override` (?15, ?16); `leg_insert_guarded` đánh số lại
+    (?17 = id nhật ký, ?18–?22 = đặt gấp — bẫy vị trí tham số, có bài vòng tròn "số hiệu + dấu chép"); đoạn SET RIÊNG `LEG_SET_O_PHU` (cờ ghi ?17/?19) gắn vào
+    hai câu `leg_update_guarded` / `leg_update_checked` có sẵn; `LEG_SET_DAT_GAP` thêm cờ GIỮ ?21 (Q-B). `legUpdateGuarded` (`PUT /trip`) luôn cờ 0. Câu ĐẦU LÔ
+    mới duy nhất `leg_pax_override_checked` (không đọc `audit_log`, không vào `DOC_AUDIT_LOG_WONGUARD`; `architecture.test.ts` xanh không cần khai gì).
+  - **Lưu nháp / lập (`service-rules.ts:giaiOPhuNhap`, `index.ts:oPhuNhap`):** khoá vắng → chép giá trị đang lưu của chặng cùng id; số người chiều về ĐỔI (kể
+    cả null để xoá, kể cả chặng mới có số) → hỏi `order.trip.edit` (403 "Chỉ văn phòng đổi được số người chiều về."); L-R1 chỉ cho giá trị mới / đổi, so số
+    khách dịch vụ TRONG THÂN.
+  - **Sau xác nhận (`service.ts`):** `planAddLeg` L-R1; `planEditLeg` trả `oPhu` (chỉ khoá có), `chiOPhu`, L-R1 khi mới/đổi (số khách HIỆU LỰC qua
+    `effectivePax`), `detail` có số hiệu / số người. Route: `chiOPhu && !datGap` → không hỏi mốc, cờ giữ dấu = 1; có `datGap` → nhánh cũ ghi dấu mới.
+  - **Nhánh nháp `PUT /legs/:legId`:** thân chỉ `paxOverride` (+ `expectedUpdatedAt` của CHẶNG) → `planPaxOverrideNhap` → `changeLeg` kind `paxNhap`; khoá khác →
+    409 `use_order_form`; chiều đi → 400; L-R1 → 400; mốc cũ → 409 `stale`. Thứ tự: 404 → 403 → Đã giao → (nháp: kiểm thân) → huỷ → 400.
+  - **`PUT /trip`:** thân (gốc hoặc từng dịch vụ) có `flightCode` / `paxOverride` → 400 "sửa ở từng chặng" (`validateTripUpdate`).
+  - Route `PUT /legs/:legId` tách hai hàm `lenhSoNguoiVeNhap` / `lenhSuaChang` để giữ ĐÚNG MỘT lời gọi `baoThayDoi` (bài khoá văn bản
+    `src/hanh-khach-khong-lo-ten.test.ts` đỏ khi để hai lời gọi — đã thấy, đã sửa).
+- **Thấy chặn thật (2026-10-01), mỗi lần hoàn nguyên bằng bản sao rồi chạy lại 17/17:**
+  - cờ ghi ô phụ của `legUpdateGuarded` = 1 với NULL → TC-F8 đỏ;
+  - bỏ dòng 403 trong `oPhuNhap` → TC-P4 (c) đỏ;
+  - bỏ nhánh chép trong `giaiOPhuNhap` → TC-F4, bài vòng tròn, TC-P4 (c)(d), TC-P5, TC-P10 đỏ (thân CŨ vẫn xanh — đi `tronChangCu`, có bài riêng ở Task 2);
+  - cờ giữ dấu luôn 0 → TC-F5, TC-P7 đỏ.
+- `node --test src/modules/orders/*.test.ts src/*.test.ts` → 958/958; typecheck 0.
+- **Ruling (dữ liệu, có bài):** lưu nháp gửi CÙNG id chặng về đang có số người nhưng chiều ĐI (không khoá) → số người NULL, không 403 (chặng về coi như bỏ — ADR-0054
+  D10.3 "bỏ rồi thêm lại → mất"; Đối tác vốn bỏ được chặng). Nếu chép sẽ vỡ CHECK (500).
+- **Ruling (bề mặt):** câu 400 của `PUT /trip` khi có ô phụ: "Số hiệu chuyến bay và số người chiều về sửa ở từng chặng đưa đón, không sửa ở đây."

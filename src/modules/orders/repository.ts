@@ -4,9 +4,9 @@ import type { LegDto, OrderDetailDto, OrderDto, OrderItemDto, OrderServiceDto, O
 import { escapeLike } from "../../shared/http";
 import { moTaDanhSachNhap, type HanhKhachHopLe } from "../../shared/hanh-khach";
 import {
-  legCloseChecked, legCloseGuarded, legDeleteDraft, legFillDateOnConfirm, legInsert, legInsertGuarded, legUpdateChecked, legUpdateGuarded, openLegsByOrders,
+  legCloseChecked, legCloseGuarded, legDeleteDraft, legFillDateOnConfirm, legInsert, legInsertGuarded, legPaxOverrideChecked, legUpdateChecked, legUpdateGuarded, openLegsByOrders,
   openLegsStatement, orderConfirm, orderTouch, orderTouchGuarded, passengerDeleteDraft, passengerInsert, passengerInsertGuarded, passengerVoidGuarded,
-  serviceMirrorUpdateGuarded, type DatGapWrite, type LegFields, type LegRow, type LegWrite, type PassengerWrite, type ServicePaxRow,
+  serviceMirrorUpdateGuarded, type DatGapWrite, type LegFields, type LegRow, type LegWrite, type OPhuGhi, type PassengerWrite, type ServicePaxRow,
 } from "./chang-hanh-khach-repo";
 import type { LocDon } from "../../shared/loc-don";
 import type { PaxCode, PaxCounts } from "../../shared/order-lines";
@@ -838,6 +838,8 @@ function legWriteOf(
   return {
     id, orderId, serviceId, direction: l.direction, pickupDate: l.pickupDate, pickupTime: l.pickupTime, pickupLocationId: l.pickupLocationId,
     pickupPlace: l.pickupPlace, dropoffLocationId: l.dropoffLocationId, dropoffPlace: l.dropoffPlace,
+    // Ô phụ (0057): route đã GIẢI khoá vắng (lưu nháp: chép giá trị đang lưu; thêm chặng / chặng mới của `/trip`: NULL) — ở đây vắng = NULL.
+    flightCode: l.flightCode ?? null, paxOverride: l.paxOverride ?? null,
     createdAt: m?.createdAt ?? at, createdBy: m ? m.createdBy : staffId, updatedAt: at, updatedBy: staffId, datGap,
   };
 }
@@ -1313,7 +1315,10 @@ export async function addLeg(
   return (results[0]!.meta.changes ?? 0) > 0;
 }
 
-/** Sửa / đóng chặng — khoá lạc quan theo `updated_at` CỦA CHẶNG (câu đầu `leg_update_checked` / `leg_close_checked`); đẩy mốc đơn nếu mốc đơn còn đúng. */
+/**
+ * Sửa / đóng chặng — khoá lạc quan theo `updated_at` CỦA CHẶNG (câu đầu `leg_update_checked` / `leg_close_checked`); đẩy mốc đơn nếu mốc đơn còn đúng.
+ * `paxNhap` (kế hoạch ô mới Task 3.5): nhánh NHÁP chỉ ghi số người chiều về — câu đầu `leg_pax_override_checked`, phần còn lại của lô y như sửa chặng.
+ */
 export async function changeLeg(
   db: D1Database,
   orderId: string,
@@ -1324,18 +1329,25 @@ export async function changeLeg(
       kind: "update"; legId: string; serviceId: string; fields: LegFields; expected: string; detail: string; mirror: { pickupTime: string | null; pickupPlace: string | null };
       /** Dấu đặt gấp MỚI (nhánh `datGap`) hoặc null = bỏ dấu cũ (nội dung chặng đổi — I16). */
       datGap: DatGapWrite | null;
+      /** Hai ô phụ sẽ ghi (khoá vắng = giữ). */
+      oPhu?: OPhuGhi;
+      /** Q-B (chủ 1/10): chỉ đổi ô phụ, thân không có `datGap` → GIỮ năm cột đặt gấp đang lưu. */
+      giuDatGap?: boolean;
     }
+    | { kind: "paxNhap"; legId: string; serviceId: string; paxOverride: number | null; expected: string; detail: string; mirror: { pickupTime: string | null; pickupPlace: string | null } }
     | { kind: "close"; legId: string; serviceId: string; reason: LyDoDongChang; expected: string; detail: string; mirror: { pickupTime: string | null; pickupPlace: string | null } },
 ): Promise<boolean> {
   const at = nextStamp(later(plan.expected, orderUpdatedAt));
   const auditId = crypto.randomUUID();
   const first =
     plan.kind === "update"
-      ? legUpdateChecked(db, plan.legId, orderId, plan.fields, at, staffId, plan.expected, plan.datGap)
-      : legCloseChecked(db, plan.legId, orderId, plan.reason, at, staffId, plan.expected);
+      ? legUpdateChecked(db, plan.legId, orderId, plan.fields, at, staffId, plan.expected, plan.datGap, plan.oPhu ?? {}, plan.giuDatGap ?? false)
+      : plan.kind === "paxNhap"
+        ? legPaxOverrideChecked(db, plan.legId, orderId, plan.paxOverride, at, staffId, plan.expected)
+        : legCloseChecked(db, plan.legId, orderId, plan.reason, at, staffId, plan.expected);
   const results = await db.batch([
     first,
-    auditStatement(db, { id: auditId, orderId, staffId, action: plan.kind === "update" ? "order_leg_updated" : "order_leg_closed", at, detail: plan.detail }, "changes() > 0"),
+    auditStatement(db, { id: auditId, orderId, staffId, action: plan.kind === "close" ? "order_leg_closed" : "order_leg_updated", at, detail: plan.detail }, "changes() > 0"),
     orderTouchGuarded(db, orderId, at, orderUpdatedAt, auditId),
     serviceMirrorUpdateGuarded(db, plan.serviceId, orderId, plan.mirror, auditId),
   ]);

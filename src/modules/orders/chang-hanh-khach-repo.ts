@@ -128,6 +128,10 @@ export interface LegWrite {
   createdBy: string | null;
   updatedAt: string;
   updatedBy: string | null;
+  /** Số hiệu chuyến bay (0057) — giá trị ĐÃ GIẢI ở route (khoá vắng → giá trị đang lưu / NULL). */
+  flightCode: string | null;
+  /** Số người riêng của chặng VỀ (0057) — giá trị ĐÃ GIẢI ở route (quyền + L-R1 đã kiểm). */
+  paxOverride: number | null;
   /**
    * Dấu ĐẶT GẤP (ADR-0049 D2) ghi cùng dòng — CHỈ từ: nhánh `datGap` của lệnh sửa / thêm chặng (Quản trị, Toàn quyền), hoặc dấu CŨ của chính chặng khớp
    * đúng một-một khi lưu lại đơn nháp (Q1 = (a) — giá trị đọc từ CSDL). Không bao giờ từ thân trình duyệt của lập / sửa nháp (I16). null = không dấu.
@@ -136,25 +140,28 @@ export interface LegWrite {
 }
 
 const LEG_INSERT_COLS = `id, order_id, order_service_id, direction, pickup_date, pickup_time, pickup_location_id, pickup_place, dropoff_location_id, dropoff_place,
-  closed_at, close_reason_code, created_at, created_by, updated_at, updated_by`;
+  closed_at, close_reason_code, created_at, created_by, updated_at, updated_by, flight_code, pax_override`;
 /** Chèn chặng KHÔNG lính gác — chỉ dùng khi LẬP đơn (lô mới hoàn toàn, không có câu thắng/thua). */
 const LEG_INSERT = defineSql(
   "orders",
   "leg_insert",
-  `INSERT INTO ord_transfer_leg (${LEG_INSERT_COLS}) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, NULL, NULL, ?11, ?12, ?13, ?14)`,
+  `INSERT INTO ord_transfer_leg (${LEG_INSERT_COLS}) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, NULL, NULL, ?11, ?12, ?13, ?14, ?15, ?16)`,
 );
-/** Chèn chặng CÓ lính gác (lưu nháp, route thêm chặng, `PUT /trip` tương thích): chỉ chạy khi dòng nhật ký ?15 của lô này đã được chèn. */
+/**
+ * Chèn chặng CÓ lính gác (lưu nháp, route thêm chặng, `PUT /trip` tương thích): chỉ chạy khi dòng nhật ký ?17 của lô này đã được chèn. Thứ tự tham số: 1–16 = cột
+ * của `LEG_INSERT_COLS` (15, 16 = hai ô phụ 0057), ?17 = id nhật ký, ?18–?22 = năm cột đặt gấp.
+ */
 const LEG_INSERT_GUARDED = defineSql(
   "orders",
   "leg_insert_guarded",
   `INSERT INTO ord_transfer_leg (${LEG_INSERT_COLS}, short_notice_reason, short_notice_note, short_notice_by, short_notice_at, short_notice_lead_minutes)
-   SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, NULL, NULL, ?11, ?12, ?13, ?14, ?16, ?17, ?18, ?19, ?20 WHERE EXISTS (SELECT 1 FROM audit_log WHERE id = ?15)`,
+   SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, NULL, NULL, ?11, ?12, ?13, ?14, ?15, ?16, ?18, ?19, ?20, ?21, ?22 WHERE EXISTS (SELECT 1 FROM audit_log WHERE id = ?17)`,
 );
 /** Năm giá trị cột đặt gấp (null cả năm = không dấu / bỏ dấu). */
 const datGapBinds = (d: DatGapWrite | null | undefined) => (d ? [d.lyDo, d.ghiChu, d.by, d.at, d.phut] : [null, null, null, null, null]);
 const legBinds = (l: LegWrite) => [
   l.id, l.orderId, l.serviceId, l.direction, l.pickupDate, l.pickupTime, l.pickupLocationId, l.pickupPlace, l.dropoffLocationId, l.dropoffPlace,
-  l.createdAt, l.createdBy, l.updatedAt, l.updatedBy,
+  l.createdAt, l.createdBy, l.updatedAt, l.updatedBy, l.flightCode, l.paxOverride,
 ];
 export const legInsert = (db: D1Database, l: LegWrite): D1PreparedStatement => db.prepare(LEG_INSERT).bind(...legBinds(l));
 export const legInsertGuarded = (db: D1Database, l: LegWrite, auditId: string): D1PreparedStatement =>
@@ -173,15 +180,25 @@ export const legDeleteDraft = (db: D1Database, orderId: string, auditId: string)
 
 const LEG_SET = `pickup_date = ?1, pickup_time = ?2, pickup_location_id = ?3, pickup_place = ?4, dropoff_location_id = ?5, dropoff_place = ?6, updated_at = ?7, updated_by = ?8`;
 /**
- * Nội dung chặng đổi thì dấu ĐẶT GẤP cũ không còn duyệt nội dung mới (I16 — "dấu duyệt nội dung cũ"; cùng luật Q1 = (a) của lưu nháp): mọi câu sửa trường vận
- * hành GHI LẠI năm cột đặt gấp — dấu MỚI (nhánh `datGap` của Quản trị / Toàn quyền) hoặc NULL cả năm (bỏ dấu).
+ * Nội dung VẬN HÀNH của chặng (ngày, giờ, nơi) đổi thì dấu ĐẶT GẤP cũ không còn duyệt nội dung mới (I16 — "dấu duyệt nội dung cũ"; cùng luật Q1 = (a) của lưu
+ * nháp): câu sửa GHI LẠI năm cột đặt gấp — dấu MỚI (nhánh `datGap` của Quản trị / Toàn quyền) hoặc NULL cả năm (bỏ dấu). NGOẠI LỆ (chủ Q-B 1/10 "Giữ dấu đặt
+ * gấp cũ"): lệnh CHỈ đổi ô phụ (số hiệu chuyến bay / số người chiều về — `chiDoiOPhu`) mà thân không có `datGap` → cờ ?21 = 1 GIỮ năm cột đang lưu. `PUT /trip`
+ * luôn truyền 0.
  */
-const LEG_SET_DAT_GAP = `short_notice_reason = ?12, short_notice_note = ?13, short_notice_by = ?14, short_notice_at = ?15, short_notice_lead_minutes = ?16`;
+const LEG_SET_DAT_GAP = `short_notice_reason = CASE WHEN ?21 = 1 THEN short_notice_reason ELSE ?12 END,
+  short_notice_note = CASE WHEN ?21 = 1 THEN short_notice_note ELSE ?13 END, short_notice_by = CASE WHEN ?21 = 1 THEN short_notice_by ELSE ?14 END,
+  short_notice_at = CASE WHEN ?21 = 1 THEN short_notice_at ELSE ?15 END, short_notice_lead_minutes = CASE WHEN ?21 = 1 THEN short_notice_lead_minutes ELSE ?16 END`;
+/**
+ * Hai ô PHỤ (0057) — đoạn SET RIÊNG có cờ "ghi" (kế hoạch Task 3.2, phát hiện C1): cờ = 0 GIỮ giá trị đang lưu. Chỉ route sửa chặng truyền 1 khi thân CÓ khoá;
+ * `PUT /trip` (`legUpdateGuarded`) luôn 0 — dời ngày / đổi giờ không bao giờ xoá số hiệu, số người. KHÔNG nhét vào `LEG_SET` dùng chung.
+ */
+const LEG_SET_O_PHU = `flight_code = CASE WHEN ?17 = 1 THEN ?18 ELSE flight_code END, pax_override = CASE WHEN ?19 = 1 THEN ?20 ELSE pax_override END`;
 /** Sửa trường vận hành của chặng MỞ, CÓ lính gác (`PUT /trip`: dời ngày, trộn giờ/nơi cũ). */
 const LEG_UPDATE_GUARDED = defineSql(
   "orders",
   "leg_update_guarded",
-  `UPDATE ord_transfer_leg SET ${LEG_SET}, ${LEG_SET_DAT_GAP} WHERE id = ?9 AND order_id = ?10 AND closed_at IS NULL AND EXISTS (SELECT 1 FROM audit_log WHERE id = ?11)`,
+  `UPDATE ord_transfer_leg SET ${LEG_SET}, ${LEG_SET_DAT_GAP}, ${LEG_SET_O_PHU}
+   WHERE id = ?9 AND order_id = ?10 AND closed_at IS NULL AND EXISTS (SELECT 1 FROM audit_log WHERE id = ?11)`,
 );
 /**
  * Sửa trường vận hành của chặng MỞ, CÂU ĐẦU LÔ của route sửa chặng (khoá lạc quan theo `updated_at` CỦA CHẶNG — ADR A1): chỉ khi đơn đã xác nhận, chặng
@@ -190,7 +207,7 @@ const LEG_UPDATE_GUARDED = defineSql(
 const LEG_UPDATE_CHECKED = defineSql(
   "orders",
   "leg_update_checked",
-  `UPDATE ord_transfer_leg SET ${LEG_SET}, ${LEG_SET_DAT_GAP}
+  `UPDATE ord_transfer_leg SET ${LEG_SET}, ${LEG_SET_DAT_GAP}, ${LEG_SET_O_PHU}
    WHERE id = ?9 AND order_id = ?10 AND closed_at IS NULL AND updated_at = ?11 AND EXISTS (SELECT 1 FROM orders WHERE id = ?10 AND status = 'confirmed')`,
 );
 export interface LegFields {
@@ -202,11 +219,36 @@ export interface LegFields {
   dropoffPlace: string | null;
 }
 const fieldBinds = (f: LegFields, at: string, by: string | null) => [f.pickupDate, f.pickupTime, f.pickupLocationId, f.pickupPlace, f.dropoffLocationId, f.dropoffPlace, at, by];
+/** Hai ô phụ sẽ GHI (khoá vắng = giữ giá trị đang lưu). */
+export interface OPhuGhi {
+  flightCode?: string | null;
+  paxOverride?: number | null;
+}
+/** ?17–?21: cờ ghi + giá trị số hiệu, cờ ghi + giá trị số người, cờ GIỮ dấu đặt gấp. */
+const oPhuBinds = (o: OPhuGhi, giuDatGap: boolean) => [
+  o.flightCode !== undefined ? 1 : 0, o.flightCode ?? null, o.paxOverride !== undefined ? 1 : 0, o.paxOverride ?? null, giuDatGap ? 1 : 0,
+];
+/** `PUT /trip`: cờ ô phụ = 0 (giữ), cờ giữ dấu = 0 (luật I16 cũ). */
 export const legUpdateGuarded = (db: D1Database, legId: string, orderId: string, f: LegFields, at: string, by: string, auditId: string, datGap: DatGapWrite | null = null): D1PreparedStatement =>
-  db.prepare(LEG_UPDATE_GUARDED).bind(...fieldBinds(f, at, by), legId, orderId, auditId, ...datGapBinds(datGap));
+  db.prepare(LEG_UPDATE_GUARDED).bind(...fieldBinds(f, at, by), legId, orderId, auditId, ...datGapBinds(datGap), ...oPhuBinds({}, false));
 export const legUpdateChecked = (
   db: D1Database, legId: string, orderId: string, f: LegFields, at: string, by: string, expectedLegUpdatedAt: string, datGap: DatGapWrite | null = null,
-): D1PreparedStatement => db.prepare(LEG_UPDATE_CHECKED).bind(...fieldBinds(f, at, by), legId, orderId, expectedLegUpdatedAt, ...datGapBinds(datGap));
+  oPhu: OPhuGhi = {}, giuDatGap = false,
+): D1PreparedStatement => db.prepare(LEG_UPDATE_CHECKED).bind(...fieldBinds(f, at, by), legId, orderId, expectedLegUpdatedAt, ...datGapBinds(datGap), ...oPhuBinds(oPhu, giuDatGap));
+
+/**
+ * NHÁNH NHÁP của `PUT /api/orders/:id/legs/:legId` (ADR-0054 D10.3 "đường mới cho đơn nháp"; kế hoạch Task 3.5): CHỈ ghi `pax_override` của chặng VỀ còn mở
+ * của ĐƠN NHÁP, khoá lạc quan theo `updated_at` CỦA CHẶNG. CÂU ĐẦU LÔ (tự quyết thắng / thua, không đọc `audit_log`, không lính gác — không vào
+ * `DOC_AUDIT_LOG_WONGUARD`); nhật ký theo sau bằng `changes() > 0`.
+ */
+const LEG_PAX_OVERRIDE_CHECKED = defineSql(
+  "orders",
+  "leg_pax_override_checked",
+  `UPDATE ord_transfer_leg SET pax_override = ?1, updated_at = ?2, updated_by = ?3
+   WHERE id = ?4 AND order_id = ?5 AND closed_at IS NULL AND updated_at = ?6 AND direction = 'RETURN' AND EXISTS (SELECT 1 FROM orders WHERE id = ?5 AND status = 'draft')`,
+);
+export const legPaxOverrideChecked = (db: D1Database, legId: string, orderId: string, pax: number | null, at: string, by: string, expectedLegUpdatedAt: string): D1PreparedStatement =>
+  db.prepare(LEG_PAX_OVERRIDE_CHECKED).bind(pax, at, by, legId, orderId, expectedLegUpdatedAt);
 
 /** Đóng chặng (bỏ chặng = đóng dòng có lý do — không xoá), CÓ lính gác (`PUT /trip` tương thích: giờ + nơi cũ đều rỗng → đóng chiều đi, lý do NOT_NEEDED). */
 const LEG_CLOSE_GUARDED = defineSql(

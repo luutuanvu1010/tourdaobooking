@@ -111,13 +111,19 @@ function oPhu(r: Record<string, unknown>, direction: LegDirection, at: string): 
     out.flightCode = f.value;
   }
   if ("paxOverride" in r) {
-    const p = r.paxOverride;
-    if (p === null || p === "") out.paxOverride = null;
-    else if (typeof p !== "number" || !Number.isInteger(p) || p < 1) return { ok: false, message: `${at}: số người chiều về phải là số nguyên từ 1 trở lên (0 người thì bỏ chặng).` };
-    else if (direction !== "RETURN") return { ok: false, message: `${at}: chỉ chiều về mới có số người chiều về riêng.` };
-    else out.paxOverride = p;
+    const p = docSoNguoiVe(r.paxOverride, direction, at);
+    if (!p.ok) return p;
+    out.paxOverride = p.value;
   }
   return { ok: true, value: out };
+}
+
+/** Đọc MỘT giá trị số người chiều về (khoá CÓ mặt): `null` / "" → null (xoá); số nguyên ≥ 1; chỉ chặng VỀ. Dùng chung cho `kiemChang` và nhánh nháp của route sửa chặng. */
+export function docSoNguoiVe(p: unknown, direction: LegDirection, at: string): { ok: true; value: number | null } | { ok: false; message: string } {
+  if (p === null || p === "") return { ok: true, value: null };
+  if (typeof p !== "number" || !Number.isInteger(p) || p < 1) return { ok: false, message: `${at}: số người chiều về phải là số nguyên từ 1 trở lên (0 người thì bỏ chặng).` };
+  if (direction !== "RETURN") return { ok: false, message: `${at}: chỉ chiều về mới có số người chiều về riêng.` };
+  return { ok: true, value: p };
 }
 
 /**
