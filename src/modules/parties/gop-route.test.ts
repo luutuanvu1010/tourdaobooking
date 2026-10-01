@@ -187,6 +187,32 @@ test("G12: Bán hàng / Kế toán / HDV / Đối tác / Thực tập / Tài x�
   assert.equal((await gop(w, SUP, A, `pty-${ADM2}`)).status, 200);
 });
 
+test("Kế hoạch R4 (bên thứ ba): A có quan hệ với hồ sơ C gắn tài khoản Quản trị KHÁC → Quản trị gộp A → 403 ở cả xem trước lẫn gộp, không dòng nào đổi; Toàn quyền → được", async () => {
+  const w = nen();
+  const A = await taoA(w);
+  const B = await taoB(w);
+  const C = `pty-${ADM2}`;
+  // Chèn thẳng: route quan hệ tự chặn Quản trị nối tới hồ sơ của Quản trị khác — ở đây cần dòng có sẵn (như do Toàn quyền tạo).
+  w.sqlite.prepare("INSERT INTO pty_party_relationship (id, from_party_id, to_party_id, relationship_type_code, valid_from_date, created_at, updated_at) VALUES ('ptr-ben3', ?, ?, 'CONTACT_OF', '2026-09-01', ?, ?)")
+    .run(A, C, AT, AT);
+  const anh = () => JSON.stringify([
+    w.q("SELECT * FROM pty_party WHERE id IN (?, ?, ?) ORDER BY id", A, B.partyId, C),
+    w.q("SELECT * FROM pty_party_relationship ORDER BY id"),
+    w.q("SELECT * FROM pty_contact_point ORDER BY id"),
+    w.q("SELECT * FROM pty_party_role ORDER BY id"),
+    w.q("SELECT count(*) n FROM audit_log WHERE action = 'party_merged'"),
+  ]);
+  const truoc = anh();
+  const xt = await xemTruoc(w, ADM, A, B.partyId);
+  assert.equal(xt.status, 403, xt.text);
+  const r = await gop(w, ADM, A, B.partyId);
+  assert.equal(r.status, 403, r.text);
+  assert.equal(anh(), truoc, "không dòng nào đổi");
+  // Đối chứng: Toàn quyền quản được Quản trị → gộp được, quan hệ chuyển sang B.
+  assert.equal((await gop(w, SUP, A, B.partyId)).status, 200);
+  assert.equal(w.q("SELECT count(*) n FROM pty_party_relationship WHERE from_party_id = ? AND to_party_id = ? AND valid_to_date IS NULL", B.partyId, C)[0].n, 1);
+});
+
 test("G13 qua route: hai yêu cầu gộp cùng A cùng lúc → đúng một 200, một 409 merge_lost_race; B chỉ có MỘT dòng SĐT X", async () => {
   const w = nen();
   const A = await taoA(w);
