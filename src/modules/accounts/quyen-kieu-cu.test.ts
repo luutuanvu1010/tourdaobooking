@@ -102,3 +102,14 @@ test("1b: POST /api/staff không vai (đường quyền cũ) — tập lai → 4
   assert.equal(ok.status, 201, ok.text);
   assert.deepEqual(openPerms(w, ok.json.staff.id), ["PARTNER"]);
 });
+
+test("1e (ADR-0083 bổ sung): POST /api/staff gán VAI nội bộ + cộng tay Đối tác → 400, không tạo tài khoản", async () => {
+  const w = setup();
+  const r = await w.call("POST", "/api/staff", {
+    as: SUP,
+    body: { fullName: "Người Lai Qua Vai", phone: "0911000777", roles: ["SALES_STAFF"], adds: ["PARTNER"], removes: [], reason: "thử", taoHoSoMoi: true },
+  });
+  assert.equal(r.status, 400, r.text);
+  assert.equal(r.json.error.message, LAI_NOI_NGOAI);
+  assert.equal(staffByPhone(w, "0911000777"), 0);
+});

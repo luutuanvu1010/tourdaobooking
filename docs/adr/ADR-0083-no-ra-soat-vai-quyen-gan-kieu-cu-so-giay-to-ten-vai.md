@@ -36,6 +36,12 @@
      - `pty_role_type.name`, qua migration mới: một câu UPDATE, số tạm 0063, vì 0061 và 0062 đã có nhánh khác giữ.
    - Sửa các hướng dẫn trong app có nhắc tên cũ.
 
+1e. **Bổ sung — đường gán VAI cũng chặn lai** (chủ dự án 2026-10-01 trả lời "Chặn luôn" sau khi người thi công và người kiểm độc lập cùng xác nhận chỗ hở: `POST /api/staff {roles:["SALES_STAFF"], adds:["PARTNER"]}` → 201 tạo tài khoản lai):
+   - `roleAssignmentProblem` (`src/shared/roles.ts`) kiểm quyền hiệu lực sau khi gán bằng `taiKhoanLaiProblem ?? laiNoiBoBenNgoaiProblem`.
+   - Vì là cùng một hàm, luật áp cho cả POST /api/staff có vai lẫn `PUT /api/staff/:id/roles`. Vi phạm thì trả 400 với cùng câu như đường cũ.
+   - Màn chọn vai (`web/role-picker.ts`) khoá ô cộng tay nào sẽ tạo tài khoản lai.
+   - Chủ rà D1 thật 2026-10-01: không có tài khoản lai nào, nên không cần bước dữ liệu.
+
 ## Trang ghép (CLAUDE.md §9)
 
 1. **Bảng:**

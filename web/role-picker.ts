@@ -3,7 +3,7 @@
 // Ô vai mang data-kind="role", ô chỉnh tay data-kind="add"/"remove": mã INTERN vừa là mã vai vừa là mã quyền, chọn phần tử phải kèm data-kind.
 import { PERMISSION_CODES, PERMISSION_LABEL, isExternalPermission, type PermissionCode } from "../src/shared/permissions";
 import {
-  ROLES, ROLE_CODES, ROLE_GROUP_LABEL, SUPER_ADMIN_GRANTED, effectivePermissions, groupOf, permissionsLabel, taiKhoanLaiProblem, vaiTaiXeDoiTacXungDot,
+  ROLES, ROLE_CODES, ROLE_GROUP_LABEL, SUPER_ADMIN_GRANTED, effectivePermissions, groupOf, laiNoiBoBenNgoaiProblem, permissionsLabel, taiKhoanLaiProblem, vaiTaiXeDoiTacXungDot,
   type RoleCode, type RoleGroup,
 } from "../src/shared/roles";
 import { h } from "./dom";
@@ -36,7 +36,10 @@ export function rolePicker(opts: { initial: RolePickerValue; actorIsSuperAdmin: 
     // (Tài xế đối tác kèm quyền khác). Ô ĐANG chọn không bao giờ bị tắt vì luật này, để người dùng bỏ chọn được.
     const vaiXungDot = (c: RoleCode): boolean => !v.roles.includes(c) && vaiTaiXeDoiTacXungDot([...v.roles, c]);
     const congTayLai = (p: PermissionCode): boolean =>
-      !v.adds.includes(p) && taiKhoanLaiProblem(effectivePermissions(v.roles, { adds: [...v.adds, p], removes: v.removes }).permissions) !== null;
+      !v.adds.includes(p) && (() => {
+        const sau = effectivePermissions(v.roles, { adds: [...v.adds, p], removes: v.removes }).permissions;
+        return (taiKhoanLaiProblem(sau) ?? laiNoiBoBenNgoaiProblem(sau)) !== null; // LC-1b + ADR-0083 điều 1e (nội bộ + bên ngoài)
+      })();
     for (const c of ROLE_CODES) {
       roleBoxes.get(c)!.disabled = roleLocked(c) || ((group === "INTERNAL" || group === "EXTERNAL") && ROLES[c].group !== group) || vaiXungDot(c); // LC-3, LC-1b
     }

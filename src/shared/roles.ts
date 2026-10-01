@@ -197,7 +197,8 @@ export function roleAssignmentProblem(a: {
   const next = effectivePermissions(a.next.roles, a.next).permissions;
   const high = highPermissionProblem(a.actorIsSuper, a.currentPermissions, next);
   if (high) return high;
-  const lai = taiKhoanLaiProblem(next);
+  // LC-1b, rồi ADR-0083 điều 1e (chủ dự án 2026-10-01 "chặn luôn"): vai nội bộ + cộng tay quyền bên ngoài = tài khoản lai — cùng câu với đường quyền cũ.
+  const lai = taiKhoanLaiProblem(next) ?? laiNoiBoBenNgoaiProblem(next);
   if (lai) return lai;
   if (next.length === 0) return { forbidden: false, message: "Tài khoản phải còn ít nhất một quyền." };
   return null;

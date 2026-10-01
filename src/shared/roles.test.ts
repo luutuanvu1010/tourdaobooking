@@ -308,3 +308,12 @@ test("tuDoiQuyenCuaMinh (chủ dự án 2026-10-01): tự gán vai làm đổi q
   // Cộng/bớt tay cũng tính.
   assert.equal(tuDoiQuyenCuaMinh(["ADMIN", "SUPER_ADMIN"], assignment(["IT"], { removes: ["ADMIN"], reason: "thử" })), true);
 });
+
+test("ADR-0083 điều 1e (chủ dự án 2026-10-01 \"chặn luôn\"): gán VAI nội bộ + cộng tay quyền bên ngoài (Đối tác) → 400 tài khoản lai; vai nội bộ thuần vẫn được", () => {
+  const base = { actorIsSuper: true, currentRoles: [] as RoleCode[], currentPermissions: [] as PermissionCode[], currentAdjustments: { adds: [], removes: [] } };
+  const lai = roleAssignmentProblem({ ...base, next: assignment(["SALES_STAFF"], { adds: ["PARTNER"], reason: "thử" }) });
+  assert.equal(lai?.forbidden, false);
+  assert.match(lai?.message ?? "", /quyền nội bộ và quyền bên ngoài/);
+  assert.equal(roleAssignmentProblem({ ...base, next: assignment(["IT"], { adds: ["DRIVER_PARTNER"], reason: "thử" }) }) !== null, true);
+  assert.equal(roleAssignmentProblem({ ...base, next: assignment(["SALES_STAFF"], { adds: ["ACCOUNTING"], reason: "thử" }) }), null);
+});
