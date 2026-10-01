@@ -70,11 +70,16 @@ const KHO = [
   { ten: "Lập đơn", quyen: [], chu: "Bấm nút Lập đơn mới ở Trang chủ." },
   { ten: "Lập đơn", quyen: [], chu: "Bấm nút Lập đơn mới ở Trang chủ." },
 ] as const;
-function moiTruong(tuyChon: { hongLanThu?: number } = {}) {
+function moiTruong(tuyChon: { hongLanThu?: number; ghiHong?: boolean } = {}) {
   const sqlite = openDb();
   const d1 = fakeD1(sqlite);
   let docVan = 0;
-  const db = { ...d1, prepare: (sql: string) => { if (/FROM tl_van_nghia/.test(sql)) docVan++; return d1.prepare(sql); } };
+  const db = {
+    ...d1,
+    prepare: (sql: string) => { if (/FROM tl_van_nghia/.test(sql)) docVan++; return d1.prepare(sql); },
+    // ghiHong: D1 từ chối mọi lô ghi (giả lập D4 — CHECK typeof(vec)='blob' từ chối trên D1 thật)
+    batch: tuyChon.ghiHong ? async () => { throw new Error("CHECK constraint failed"); } : d1.batch,
+  };
   const goi: number[] = [];
   globalThis.fetch = (async (i: RequestInfo | URL, init?: RequestInit) => {
     assert.ok(String(i).endsWith("/v1/embeddings"));
@@ -87,6 +92,16 @@ function moiTruong(tuyChon: { hongLanThu?: number } = {}) {
   return { sqlite, env, goi, docVan: () => docVan, soDong: () => Number(sqlite.prepare("SELECT count(*) AS n FROM tl_van_nghia").get().n) };
 }
 const DAU_VAO = { truyVan: "đổi mã PIN", perms: ["SALES"] as PermissionCode[], kho: KHO, conLaiMicroUsd: 1_000_000 };
+/** Chạy `f` với console.error bị bắt; trả các dòng log. */
+async function batLog(f: () => Promise<void>): Promise<string[]> {
+  const loiCu = console.error;
+  const log: string[] = [];
+  console.error = (s: string) => { log.push(s); };
+  try { await f(); } finally { console.error = loiCu; }
+  return log;
+}
+const LOG_LOI = '{"event":"tro_ly_van_nghia_loi"}';
+type KQ = Awaited<ReturnType<typeof timDoanTheoNghia>>;
 
 test("V2 + Review Focus 4: lần đầu tính bù MỌI đoạn thiếu (hai đoạn cùng chữ = một đầu vào) + một lần cho câu hỏi; lần hai chỉ gọi cho câu hỏi", async () => {
   xoaBoNhoVanNghia();
@@ -133,19 +148,64 @@ test("L2: một lô tính bù hỏng ⇒ lùi về từ khoá, KHÔNG ghi dòng 
   assert.equal(m.soDong(), 2);
 });
 
-test("Đ5(2): tiền tính bù ước vượt phần còn lại ⇒ lùi, KHÔNG gọi API nào; khoá thiếu ⇒ lùi, không gọi", async () => {
+test("Đ5(2): tiền tính bù ước vượt phần còn lại ⇒ lùi về từ khoá, KHÔNG gọi API nào, tiền 0, log sự kiện", async () => {
   xoaBoNhoVanNghia();
   const m = moiTruong();
-  const loiCu = console.error;
-  console.error = () => {};
-  try {
-    const kq = await timDoanTheoNghia(m.env, "k", { ...DAU_VAO, conLaiMicroUsd: 0 });
-    assert.deepEqual(m.goi, []);
-    assert.equal(kq.tienNhungMicroUsd, 0);
-    assert.ok(kq.daChon.every((d) => !d.theoNghia));
-  } finally {
-    console.error = loiCu;
-  }
+  let kq: KQ | undefined;
+  const log = await batLog(async () => { kq = await timDoanTheoNghia(m.env, "k", { ...DAU_VAO, conLaiMicroUsd: 0 }); });
+  assert.deepEqual(m.goi, []);
+  assert.equal(kq!.tienNhungMicroUsd, 0);
+  assert.ok(kq!.daChon.every((d) => !d.theoNghia));
+  assert.deepEqual(log, [LOG_LOI]);
+});
+
+test("Đ4: khoá OpenAI thiếu / rỗng ⇒ lùi về từ khoá, KHÔNG gọi API nào, log sự kiện", async () => {
+  xoaBoNhoVanNghia();
+  const m = moiTruong();
+  let kq: KQ | undefined;
+  const log = await batLog(async () => { kq = await timDoanTheoNghia(m.env, "  ", DAU_VAO); });
+  assert.deepEqual(m.goi, []);
+  assert.equal(kq!.tienNhungMicroUsd, 0);
+  assert.ok(kq!.daChon.every((d) => !d.theoNghia && d.theoTuKhoa));
+  assert.deepEqual(log, [LOG_LOI]);
+});
+
+test("Câu hỏi rỗng (sau khi che) ⇒ lùi về từ khoá, KHÔNG gọi API, KHÔNG log lỗi (không phải lỗi)", async () => {
+  xoaBoNhoVanNghia();
+  const m = moiTruong();
+  let kq: KQ | undefined;
+  const log = await batLog(async () => { kq = await timDoanTheoNghia(m.env, "k", { ...DAU_VAO, truyVan: "   " }); });
+  assert.deepEqual(m.goi, []);
+  assert.deepEqual(log, []);
+  assert.equal(kq!.tienNhungMicroUsd, 0);
+  assert.ok(kq!.daChon.every((d) => !d.theoNghia));
+});
+
+test("Kho rỗng ⇒ không gọi API nào (kể cả câu hỏi), không log, không đoạn nào", async () => {
+  xoaBoNhoVanNghia();
+  const m = moiTruong();
+  let kq: KQ | undefined;
+  const log = await batLog(async () => { kq = await timDoanTheoNghia(m.env, "k", { ...DAU_VAO, kho: [] }); });
+  assert.deepEqual(m.goi, []);
+  assert.deepEqual(log, []);
+  assert.deepEqual(kq, { daChon: [], tienNhungMicroUsd: 0 });
+});
+
+test("I1: Embeddings thành công nhưng GHI D1 hỏng ⇒ lượt này VẪN chọn theo nghĩa, tiền tính bù vẫn cộng, log sự kiện; câu sau cùng isolate KHÔNG tính bù lại", async () => {
+  xoaBoNhoVanNghia();
+  const m = moiTruong({ ghiHong: true });
+  let kq: KQ | undefined;
+  const log = await batLog(async () => { kq = await timDoanTheoNghia(m.env, "k", DAU_VAO); });
+  assert.deepEqual(m.goi, [1, 2]);
+  assert.equal(m.soDong(), 0);
+  assert.ok(kq!.daChon.some((d) => d.theoNghia), "dùng véc-tơ vừa tính, không lùi");
+  assert.equal(kq!.tienNhungMicroUsd, 2 * chiPhiNhungMicroUsd(10));
+  assert.deepEqual(log, [LOG_LOI]);
+  const log2 = await batLog(async () => { kq = await timDoanTheoNghia(m.env, "k", DAU_VAO); });
+  assert.deepEqual(m.goi, [1, 2, 1], "câu hai chỉ gọi cho câu hỏi — đoạn đã nằm trong bộ nhớ isolate");
+  assert.deepEqual(log2, []);
+  assert.ok(kq!.daChon.some((d) => d.theoNghia));
+  assert.equal(kq!.tienNhungMicroUsd, chiPhiNhungMicroUsd(10));
 });
 
 /*

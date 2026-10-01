@@ -13,7 +13,7 @@ import { docVanNghia, ghiVanNghia, type VanNghiaMoi } from "./repository.ts";
 
 /**
  * Bộ nhớ isolate (V5): khoá → véc-tơ ĐỌC ĐƯỢC TỪ D1. Véc-tơ vừa tính bù KHÔNG vào đây (R1 của kế hoạch — để lần sau đường đọc + giải mã BLOB thật chạy);
- * véc-tơ CÂU HỎI không bao giờ vào đây. `khoaTheoChu` nhớ băm SHA-256 của chữ đoạn (chữ kho ít đổi).
+ * ngoại lệ: ghi D1 hỏng sau khi tính bù thành công thì nạp véc-tơ vừa tính (I1 — không trả tiền tính bù lại). Véc-tơ CÂU HỎI không bao giờ vào đây. `khoaTheoChu` nhớ băm SHA-256 của chữ đoạn (chữ kho ít đổi).
  */
 const boNho = new Map<string, Float32Array>();
 const khoaTheoChu = new Map<string, string>();
@@ -71,12 +71,17 @@ async function khoaCuaChu(s: string): Promise<string> {
  */
 export async function timDoanTheoNghia(env: Env, khoa: string, a: DauVaoTim): Promise<KetQuaTimDoan> {
   let tien = 0;
+  const tuKhoa = (): KetQuaTimDoan => ({ daChon: daChonTuKhoa(chonDoan(a.truyVan, a.perms, a.kho)), tienNhungMicroUsd: tien });
+  const ghiLog = (): void => console.error(JSON.stringify({ event: "tro_ly_van_nghia_loi" }));
   const lui = (): KetQuaTimDoan => {
-    console.error(JSON.stringify({ event: "tro_ly_van_nghia_loi" }));
-    return { daChon: daChonTuKhoa(chonDoan(a.truyVan, a.perms, a.kho)), tienNhungMicroUsd: tien };
+    ghiLog();
+    return tuKhoa();
   };
+  // Không phải lỗi ⇒ không log, không gọi API: kho rỗng (không có gì để chọn), câu hỏi rỗng sau khi che (Embeddings không nhận chuỗi rỗng).
+  if (!a.kho.length) return { daChon: [], tienNhungMicroUsd: 0 };
+  if (!a.truyVan.trim()) return tuKhoa();
+  if (!khoa.trim()) return lui(); // Đ4: không có khoá ⇒ lùi (route vốn đã 503 trước khi tới đây)
   try {
-    if (!a.truyVan.trim()) return lui(); // Embeddings không nhận chuỗi rỗng
     const chu = a.kho.map(dinhDangDoan);
     const khoaDs = await Promise.all(chu.map(khoaCuaChu));
     const vec = new Map<string, Float32Array>();
@@ -112,7 +117,14 @@ export async function timDoanTheoNghia(env: Env, khoa: string, a: DauVaoTim): Pr
           moi.push({ khoa: k, mau: MAU_NHUNG, soChieu: SO_CHIEU_NHUNG, vec: vecSangBlob(v) });
         }
       }
-      await ghiVanNghia(env.DB, moi, new Date().toISOString(), LO_GHI_D1);
+      try {
+        await ghiVanNghia(env.DB, moi, new Date().toISOString(), LO_GHI_D1);
+      } catch {
+        // I1 (vòng sửa 1): tiền đã trả, véc-tơ đúng ⇒ dùng ngay cho lượt này (không lùi) VÀ nạp bộ nhớ isolate theo khoá để câu sau không tính bù /
+        // trả tiền lại (ngoại lệ duy nhất của "bộ nhớ chỉ nạp véc-tơ đọc từ D1"). Log cùng tên sự kiện — chỉ tên, không nội dung lỗi.
+        ghiLog();
+        for (const v of moi) boNho.set(v.khoa, vec.get(v.khoa)!);
+      }
     }
     return { daChon: chonDoanTron(a.truyVan, q.vec[0]!, a.kho, khoaDs.map((k) => vec.get(k) ?? null), a.perms), tienNhungMicroUsd: tien };
   } catch {

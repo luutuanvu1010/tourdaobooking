@@ -45,7 +45,11 @@ export function cosin(a: Float32Array, b: Float32Array): number {
   return na && nb ? t / Math.sqrt(na * nb) : -1;
 }
 
-/** float32 → byte (thứ tự byte của máy — Worker và Node đều little-endian). Chép ra bộ đệm riêng: véc-tơ con (byteOffset ≠ 0) vẫn đúng. */
+/**
+ * float32 → byte. Float32Array dùng thứ tự byte CỦA MÁY; Cloudflare Workers và Node (x86-64 / arm64) đều chạy little-endian nên BLOB là float32 LE đúng như
+ * migration ghi (bài thuần khoá byte của 1.0 = 00 00 80 3f — chạy trên máy big-endian thì bài đỏ, khi đó đổi sang DataView setFloat32(…, true)).
+ * Chép ra bộ đệm riêng: véc-tơ con (byteOffset ≠ 0) vẫn đúng.
+ */
 export const vecSangBlob = (v: Float32Array): Uint8Array => new Uint8Array(v.buffer.slice(v.byteOffset, v.byteOffset + v.byteLength));
 
 /** BLOB do D1 / node:sqlite trả (ArrayBuffer, Uint8Array / view khác, hoặc mảng số 0–255) → float32; sai độ dài / dạng lạ ⇒ null (Review Focus 3). */

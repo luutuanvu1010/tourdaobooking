@@ -68,6 +68,8 @@ test("Review Focus 3: BLOB float32 — vecSangBlob ↔ blobSangVec khứ hồi; 
   // véc-tơ con (byteOffset ≠ 0) vẫn mã hoá đúng
   const con = new Float32Array(Float32Array.from([9, 0.5, -1.25, 3]).buffer, 4, 3);
   assert.deepEqual([...blobSangVec(vecSangBlob(con), 3)!], [0.5, -1.25, 3]);
+  // thứ tự byte khoá cứng: float32 LITTLE-ENDIAN như migration ghi (1.0 = 0x3f800000 ⇒ 00 00 80 3f)
+  assert.deepEqual([...vecSangBlob(Float32Array.from([1]))], [0x00, 0x00, 0x80, 0x3f]);
 });
 
 test("chiaLo / chiaLoNhung: theo số đầu vào và theo token ước; một đầu vào lớn hơn trần token vẫn đi riêng một lô", () => {
