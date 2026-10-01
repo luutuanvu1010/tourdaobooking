@@ -102,6 +102,15 @@ export async function reissueSessionCookie(request: Request, env: Env, staffId: 
 
 export { endOtherSessionsStatement };
 export type { EndReason };
+/**
+ * Sổ phiên cho route xem / gỡ phiên (ADR-0075 điều 7–8). Route nằm ở module `accounts` (cạnh accounts → auth, audit, staff đã có): gỡ phiên phải ghi nhật ký
+ * `session_revoked` trong CÙNG lô, mà `auth` không import `audit` (ALLOWED_EDGES của src/architecture.test.ts — không nới hàng rào).
+ */
+export { getSession, listMySessions, listSessions, type SessionRow } from "./repository";
+export { toSessionDto } from "./session-ledger";
+/** Kết thúc MỘT phiên (đăng xuất, bị gỡ). Chưa chạy; `changes` = 0 khi phiên đã kết thúc từ trước. */
+export const endOneSessionStatement = (db: D1Database, id: string, reason: EndReason, at: string, by: string | null): D1PreparedStatement =>
+  endSessionStatement(db, id, reason, at, by);
 /** Kết thúc MỌI phiên còn sống của tài khoản (đặt lại PIN, ngưng, tắt lớp hai…). Chưa chạy — gộp vào lô của module gọi. */
 export const endAllSessionsStatement = (db: D1Database, staffId: string, reason: EndReason, at: string, by: string | null): D1PreparedStatement =>
   endOtherSessionsStatement(db, staffId, null, reason, at, by);

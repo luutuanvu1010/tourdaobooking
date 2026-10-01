@@ -279,6 +279,65 @@ const batMay = async (ck, ep) => assert.equal((await call(ck, "POST", "/api/acco
   console.log("✓ Toàn quyền: đăng ký lại cùng máy bằng phiên mới cập nhật mã phiên, không tắt máy nào");
 }
 
+// ---- Task 7 (ADR-0075 điều 7–8): xem / gỡ phiên — chỉ Toàn quyền; nhật ký im lặng session_revoked ----------------------------------------------
+{
+  const sa = await dangNhapMay(WINDOWS, undefined, SA); // Toàn quyền miễn một máy: không đá phiên Toàn quyền nào khác
+  const adm = await session(ACCOUNTS.admin);
+  const hr = await session(ACCOUNTS.hr);
+  const cA = await dangNhapMay(IPHONE); // salesA — máy sẽ bị gỡ; cookie lấy TƯỜNG MINH
+  const sidA = maPhien(cA);
+  assert.equal((await call(cA, "GET", "/api/auth/me")).status, 200);
+
+  // 15. Quản trị (không Toàn quyền) và Nhân sự → 403 ở cả hai route; phiên không bị đụng
+  for (const [ten, ck] of [["Quản trị", adm], ["Nhân sự", hr]]) {
+    assert.equal((await call(ck, "GET", "/api/sessions")).status, 403, `${ten} xem sổ phiên → 403`);
+    assert.equal((await call(ck, "POST", `/api/sessions/${sidA}/revoke`, {})).status, 403, `${ten} gỡ phiên → 403`);
+  }
+  assert.equal((await call(cA, "GET", "/api/auth/me")).status, 200, "403 không đá máy nào");
+  console.log("✓ Quản trị / Nhân sự: GET /api/sessions và POST …/revoke → 403");
+
+  // 16. Lịch sử của chính mình: chỉ dòng của mình, máy này có thisDevice, không User-Agent thô
+  r = await call(cA, "GET", "/api/account/sessions");
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  const ids = new Set((await sqlRows(`SELECT id FROM aut_session WHERE staff_id = '${id}'`)).map((x) => x.id));
+  assert.ok(r.body.sessions.length > 0 && r.body.sessions.every((s) => ids.has(s.id)), "chỉ phiên của salesA");
+  assert.equal(r.body.sessions.filter((s) => s.thisDevice).map((s) => s.id).join(), sidA);
+  assert.ok(!JSON.stringify(r.body).includes("Mozilla"), "không trả User-Agent thô");
+  console.log("✓ GET /api/account/sessions: chỉ phiên của mình, đánh dấu máy này, không User-Agent thô");
+
+  // 17. Toàn quyền xem sổ phiên lọc theo salesA + đang hiệu lực, rồi gỡ → salesA 401, lý do 'Bị IT/Toàn quyền gỡ'
+  r = await call(sa, "GET", `/api/sessions?staffId=${id}&live=1`);
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.deepEqual(r.body.sessions.map((s) => s.id), [sidA], "salesA có đúng một phiên sống");
+  assert.equal(r.body.sessions[0].staffName, A.name);
+  assert.equal(r.body.sessions[0].statusLabel, "Đang hiệu lực");
+  r = await call(sa, "POST", `/api/sessions/${sidA}/revoke`, {});
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.equal((await call(cA, "GET", "/api/auth/me")).status, 401, "máy bị gỡ → 401");
+  assert.equal((await call(cA, "POST", "/api/auth/session-ended")).body.reason, "Bị IT/Toàn quyền gỡ");
+  const dg = await dongCua(sidA);
+  assert.equal(dg.end_reason, "bi_go");
+  assert.equal(dg.ended_by, saId);
+  assert.equal((await call(sa, "POST", `/api/sessions/${sidA}/revoke`, {})).status, 409, "gỡ lần nữa → 409");
+  r = await call(sa, "POST", `/api/sessions/${maPhien(sa)}/revoke`, {});
+  assert.equal(r.status, 409, "tự gỡ phiên của mình → 409");
+  assert.equal(r.body.error.code, "self_session");
+  console.log("✓ Toàn quyền gỡ phiên salesA: 401 + 'Bị IT/Toàn quyền gỡ'; gỡ lại / tự gỡ → 409");
+
+  // 18. Nhật ký im lặng: một dòng session_revoked không IP; Quản trị không mở được trang Nhật ký (audit.view chỉ Toàn quyền — ADR-0038 điều 6, nên
+  // lớp lọc im lặng không có người xem không-Toàn-quyền nào ở e2e; bộ lọc được kiểm ở src/modules/audit/an-toan-quyen.test.ts); Toàn quyền thấy dòng.
+  const nk = await sqlRows(`SELECT staff_id, target_id, detail FROM audit_log WHERE action = 'session_revoked' AND detail LIKE '%${sidA}%'`);
+  assert.equal(nk.length, 1);
+  assert.equal(nk[0].staff_id, saId);
+  assert.equal(nk[0].target_id, id);
+  assert.ok(!/\d+\.\d+\.\d+\.\d+|Mozilla/.test(nk[0].detail), "nhật ký không có IP / User-Agent");
+  assert.equal((await call(adm, "GET", "/api/audit?action=session_revoked&limit=50")).status, 403, "Quản trị không xem được Nhật ký");
+  r = await call(sa, "GET", "/api/audit?action=session_revoked&limit=50");
+  assert.equal(r.status, 200);
+  assert.ok(r.body.entries.some((e) => e.targetId === id), "Toàn quyền thấy dòng session_revoked");
+  console.log("✓ nhật ký session_revoked: một dòng, không IP; Quản trị 403 ở trang Nhật ký, Toàn quyền thấy");
+}
+
 await sessionMoi(SA);
 await sessionMoi(A);
 console.log("phien.mjs: xong");

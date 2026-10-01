@@ -69,6 +69,32 @@ export interface AuthConfigResponse {
 export interface PasskeyDto { id: string; label: string; createdAt: string; lastUsedAt: string | null }
 export interface PasskeyListResponse { passkeys: PasskeyDto[] }
 export interface PasskeyResponse { passkey: PasskeyDto }
+
+// ---- Sổ phiên đăng nhập (ADR-0075 điều 7, 9) ----
+export type SessionMethod = "PIN" | "PIN_MFA" | "PIN_TRUSTED" | "PASSKEY";
+/**
+ * Một dòng sổ phiên. KHÔNG có User-Agent thô (chỉ `deviceLabel`); `ip` chỉ tới chính chủ tài khoản và IT/Toàn quyền (từ điển dữ liệu `aut_session`).
+ * `live`/`statusLabel` tính ở máy chủ theo dòng → hạn → lưới `credentials_changed_at` (sessionStatus). `thisDevice` = phiên của chính request này.
+ */
+export interface SessionDto {
+  id: string;
+  deviceLabel: string;
+  ip: string | null;
+  method: SessionMethod;
+  methodLabel: string;
+  createdAt: string;
+  lastSeenAt: string;
+  live: boolean;
+  statusLabel: string;
+  endedAt: string | null;
+  thisDevice: boolean;
+}
+/** Dòng sổ phiên ở màn IT/Toàn quyền (GET /api/sessions): kèm tài khoản. */
+export interface StaffSessionDto extends SessionDto { staffId: string; staffName: string }
+/** GET /api/account/sessions — 30 phiên gần nhất của chính mình. */
+export interface SessionListResponse { sessions: SessionDto[] }
+/** GET /api/sessions — tối đa 200 phiên mới nhất (lọc theo tài khoản / đang hiệu lực). */
+export interface StaffSessionListResponse { sessions: StaffSessionDto[] }
 export interface PasskeyDescriptorJson { type: "public-key"; id: string }
 /** Cho navigator.credentials.get — mọi trường nhị phân là base64url. */
 export interface PasskeyRequestOptionsResponse {

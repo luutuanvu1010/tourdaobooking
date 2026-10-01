@@ -1,22 +1,22 @@
-// Module accounts — Quản lý tài khoản (cổng "accounts": Quản trị, Toàn quyền, Hành chính nhân sự — ADR-0071) và đổi PIN cá nhân. Route: /api/staff*, /api/account/*.
+// Module accounts — Quản lý tài khoản (cổng "accounts": Quản trị, Toàn quyền, Hành chính nhân sự — ADR-0071) và đổi PIN cá nhân. Route: /api/staff*, /api/account/*, /api/sessions* (sổ phiên — ADR-0075 điều 7–8).
 // ADR-0071 điều 1b: TẠO tài khoản = ô account.create (HCNS + Toàn quyền, Quản trị KHÔNG); xem / sửa = account.view / account.edit; hỗ trợ đăng nhập (đặt lại PIN,
 // mở khoá, gỡ Face ID) giữ cổng "admin" + admin.manage + account.access.manage. Đồng bộ nhân viên từ Google Sheet đã GỠ HẲN (ADR-0071 điều 2).
 // Quyền trong app (ADR-0005) là tập SALES/ACCOUNTING/ADMIN/FIELD của tài khoản; KHÔNG phải vai trò hồ sơ (HDV, tài xế… — module parties).
 import { auditStatement, type AuditAction } from "../audit";
 import {
   PASSKEY_ERRORS, checkPasskeyAssertion, clearChallengeCookie, countActivePasskeys, deviceLabel, endAllSessionsIfSuspendedStatement, endAllSessionsStatement,
-  endOtherSessionsStatement, firstUserHandle, insertPasskeyStatement, issuePasskeyChallenge, limitChallenge, listActivePasskeys, lockedPhones, logPasskeyRejected,
+  endOneSessionStatement, endOtherSessionsStatement, getSession, listMySessions, listSessions, toSessionDto, firstUserHandle, insertPasskeyStatement, issuePasskeyChallenge, limitChallenge, listActivePasskeys, lockedPhones, logPasskeyRejected,
   markSessionReissuedStatement, passkeyRp, readPasskeyChallenge, revokeAllPasskeysIfSuspendedStatement, reissueSessionCookie, revokeAllPasskeysStatement,
   revokePasskeyStatement, toPasskeyDto, unlockPhone, verifyPinThrottled, verifyRegistration,
 } from "../auth";
 import {
-  accountRoleCodes, canManageAccount, checkAccountChange, checkStaffName, countActiveAdmins, createAccountStatements, createAccountWithRolesStatements, findStaffByPhone, hoSoKhopKhiTaoTaiKhoan,
+  accountRoleCodes, canManageAccount, checkAccountChange, chuPhienTheoId, checkStaffName, countActiveAdmins, createAccountStatements, createAccountWithRolesStatements, findStaffByPhone, hoSoKhopKhiTaoTaiKhoan,
   generatePin, getAccountRoleState, getStaffAccount, isValidPin, listStaffAccounts, normalizePhone, renameAccountStatements, roleChangeStatements,
   setPermissionStatements, setPinStatement, touchCredentialsStatement, updateStaffStatement, validateFreshPin, validateNewPin, type StaffAccount,
 } from "../staff";
 import type {
-  PartyMatchResponse, PasskeyCreationOptionsResponse, PasskeyListResponse, PasskeyResponse, PasskeyRequestOptionsResponse, StaffAccountDto, StaffListResponse, StaffResponse,
-  StaffRolesResponse, StaffWithPinResponse,
+  PartyMatchResponse, PasskeyCreationOptionsResponse, PasskeyListResponse, PasskeyResponse, PasskeyRequestOptionsResponse, SessionListResponse, StaffAccountDto, StaffListResponse, StaffResponse,
+  StaffRolesResponse, StaffSessionListResponse, StaffWithPinResponse,
 } from "../../shared/contracts";
 import { toBase64Url } from "../../shared/encoding";
 import { UUID_RE, error, json, readJson } from "../../shared/http";
@@ -39,6 +39,8 @@ const NOT_ADMIN = () => error(403, "forbidden", "Chỉ quản trị viên đư�
 // ADR-0071 điều 1b: lời từ chối của ba ô Quản lý tài khoản (cổng "accounts").
 const NOT_ACCOUNT_VIEW = () => error(403, "forbidden", "Tài khoản này không quản lý được tài khoản.");
 const NOT_ACCOUNT_CREATE = () => error(403, "forbidden", "Chỉ Hành chính nhân sự hoặc người phụ trách hệ thống được thêm tài khoản.");
+// ADR-0075 điều 7: xem sổ phiên của mọi người / gỡ phiên — chỉ IT/Toàn quyền.
+const NOT_SESSION_ADMIN = () => error(403, "forbidden", "Chỉ IT/Toàn quyền xem và gỡ được phiên đăng nhập.");
 const NOT_SUPER_ONLY = () => error(403, "forbidden", "Việc này chỉ người phụ trách hệ thống làm được.");
 const NOT_MANAGER = () => error(403, "forbidden", "Chỉ quản lý được tài khoản cấp dưới.");
 // DK-T3-02: đặt lại PIN ở đây KHÔNG hỏi PIN cũ — áp lên chính mình thì một phiên bỏ quên đủ để chiếm hẳn tài khoản (vượt ADR-0016 điều 2a).
@@ -661,6 +663,54 @@ export const accountsModule: AppModule = {
       if (!mayManage(ctx.staff, t)) return NOT_MANAGER();
       await unlockPhone(db, t.phone);
       await adminAudit(db, ctx.staff.id, "login_unlocked", t.id).run();
+      return json({ ok: true });
+    }),
+
+    // ---- Sổ phiên đăng nhập (ADR-0075 điều 7–8). Ở module accounts vì gỡ phiên ghi nhật ký trong cùng lô (auth không import audit). ----
+    // Tự phục vụ: 30 phiên gần nhất của CHÍNH MÌNH (id lấy từ phiên, không nhận tham số) — IP của chính mình được xem (từ điển dữ liệu aut_session).
+    route("GET", "/api/account/sessions", "staff", async ({ env, staff, sessionId }) => {
+      const nowIso = new Date().toISOString();
+      const [rows, owners] = await Promise.all([listMySessions(env.DB, staff.id), chuPhienTheoId(env.DB, [staff.id])]);
+      const cred = owners.get(staff.id)?.credentialsChangedAt ?? null;
+      return json({ sessions: rows.map((r) => toSessionDto(r, cred, nowIso, sessionId)) } satisfies SessionListResponse);
+    }),
+
+    // IT/Toàn quyền: sổ phiên của mọi tài khoản (tối đa 200 dòng mới nhất), lọc `staffId` và `live=1` (đang hiệu lực — kể cả lưới credentials_changed_at).
+    route("GET", "/api/sessions", "admin", async ({ env, url, staff, sessionId }) => {
+      if (!can(staff, "auth.session.viewAll")) return NOT_SESSION_ADMIN();
+      const staffId = url.searchParams.get("staffId") || null;
+      if (staffId !== null && !UUID_RE.test(staffId)) return error(400, "invalid_input", "Mã tài khoản không hợp lệ.");
+      const liveOnly = url.searchParams.get("live") === "1";
+      const nowIso = new Date().toISOString();
+      const rows = await listSessions(env.DB, staffId, liveOnly, nowIso);
+      const owners = await chuPhienTheoId(env.DB, [...new Set(rows.map((r) => r.staff_id))]);
+      const sessions = rows.map((r) => {
+        const o = owners.get(r.staff_id);
+        return { ...toSessionDto(r, o?.credentialsChangedAt ?? null, nowIso, sessionId), staffId: r.staff_id, staffName: o?.label ?? "" };
+      });
+      return json({ sessions: liveOnly ? sessions.filter((s) => s.live) : sessions } satisfies StaffSessionListResponse);
+    }),
+
+    // IT/Toàn quyền gỡ MỘT phiên (máy đó bị đăng xuất ngay). Gỡ được phiên của Toàn quyền khác (cùng cấp — ADR-0075 điều 7); phiên của chính mình → dùng
+    // Đăng xuất. Nút "Gỡ phiên + đặt lại PIN" của giao diện gọi tuần tự route này rồi POST /api/staff/:id/reset-pin — không có route gộp; thân yêu cầu
+    // (`alsoResetPin`) không được đọc ở đây.
+    route("POST", "/api/sessions/:id/revoke", "admin", async (ctx) => {
+      if (!can(ctx.staff, "auth.session.revoke")) return NOT_SESSION_ADMIN();
+      const db = ctx.env.DB;
+      const row = await getSession(db, ctx.params.id!);
+      if (!row) return error(404, "not_found", "Không tìm thấy phiên.");
+      if (row.id === ctx.sessionId) return error(409, "self_session", "Đây là phiên của chính bạn — dùng nút Đăng xuất.");
+      const at = new Date().toISOString(); // MỘT mốc giờ cho dòng phiên và dòng nhật ký
+      const res = await db.batch([
+        endOneSessionStatement(db, row.id, "bi_go", at, ctx.staff.id),
+        // ADR-0075 điều 8: ai gỡ (staff_id), tài khoản bị gỡ (target), mã phiên (detail) — KHÔNG IP/User-Agent. Chỉ ghi khi câu trên thật sự kết thúc phiên.
+        auditStatement(db, { staffId: ctx.staff.id, action: "session_revoked", at, targetType: "staff", targetId: row.staff_id, detail: `phiên ${row.id}` }, "changes() > 0"),
+      ]);
+      if ((res[0]?.meta.changes ?? 0) === 0) return error(409, "already_ended", "Phiên này đã kết thúc.");
+      // Phần B: bỏ máy được tin gắn với row.trusted_device_id (ADR-0075 điều 6c).
+      // Đóng Bảng tin của đúng phiên bị gỡ. `giuPhien: null` tắt MỌI máy nhận thông báo của tài khoản đó (không chỉ máy bị gỡ) — chấp nhận: gỡ phiên là thao
+      // tác bảo mật (ADR-0046: thay đổi bảo mật tắt thông báo điện thoại); máy còn đăng nhập tự đăng ký lại khi mở app.
+      ctx.dongBangTin({ staffId: row.staff_id, sessionIds: [row.id], giuPhien: null });
       return json({ ok: true });
     }),
   ],

@@ -146,6 +146,7 @@ export const AUDIT_ACTIONS = {
   notice_sent: { label: "Gửi thông báo", group: "notice" },
   notice_revoked: { label: "Thu hồi thông báo", group: "notice" },
   notice_acknowledged: { label: "Xác nhận đã hiểu thông báo", group: "notice" },
+  session_revoked: { label: "Gỡ phiên đăng nhập", group: "staff" }, // ADR-0075 điều 8: ai gỡ, tài khoản bị gỡ (target), mã phiên (detail) — KHÔNG IP/User-Agent
 } as const satisfies Record<string, { label: string; group: AuditGroup }>;
 
 export type AuditAction = keyof typeof AUDIT_ACTIONS;
@@ -164,6 +165,7 @@ export const SILENT_AUDIT_ACTIONS = [
   "maintenance_changed",
   "pin_reset",
   "passkey_removed",
+  "session_revoked", // ADR-0075 điều 8: cùng loại với pin_reset, passkey_removed
 ] as const satisfies readonly AuditAction[];
 
 export const isAuditAction = (v: unknown): v is AuditAction => typeof v === "string" && Object.hasOwn(AUDIT_ACTIONS, v);

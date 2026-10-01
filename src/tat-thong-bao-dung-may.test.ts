@@ -84,7 +84,7 @@ test("ADR-0046 điểm 3: thao tác bảo mật vẫn tắt MỌI máy (lý do t
   assert.equal(dong(w, b).revoke_reason, "tai-khoan-doi", "ngưng tài khoản → mọi máy tắt");
 });
 
-test("ADR-0046 điểm 2–3: MỌI route gọi dongBangTin khai cờ tatThongBao đúng loại — 7 thao tác bảo mật true, đổi quyền/vai false; route mới gọi dongBangTin phải được xếp loại ở đây", () => {
+test("ADR-0046 điểm 2–3: MỌI route gọi dongBangTin khai cờ tatThongBao đúng loại — 8 thao tác bảo mật true (kể cả gỡ phiên — ADR-0075), đổi quyền/vai false; route mới gọi dongBangTin phải được xếp loại ở đây", () => {
   // Kiểm người kiểm độc lập 28/9 (VỪA): bài chạy-app ở trên chỉ phủ đổi SĐT/ngưng + đổi quyền/vai; 5 route bảo mật còn lại (gỡ Face ID, đổi PIN
   // bằng Face ID, quản trị đặt lại PIN / gỡ Face ID) cần giả lập WebAuthn/PIN thật — bài QUÉT NGUỒN này canh cờ của TỪNG route (tách theo `route(`).
   // Quét MỌI tệp .ts (không phải test) dưới src/modules/ — người kiểm cuối 28/9 (VỪA): bản trước chỉ đọc accounts + maintenance, route mới ở
@@ -101,6 +101,9 @@ test("ADR-0046 điểm 2–3: MỌI route gọi dongBangTin khai cờ tatThongBa
   moc.forEach((r, i) => {
     const than = src.slice(r.tu, i + 1 < moc.length ? moc[i + 1]!.tu : src.length);
     const co = [...than.matchAll(/dongBangTin\(\{\s*staffId:[^}]*?tatThongBao:\s*(true|false)\s*\}\)/g)].map((m) => m[1] === "true");
+    // ADR-0075 điều 6: dạng THEO PHIÊN với `giuPhien: null` tắt MỌI máy của tài khoản — tính là `true` (thao tác bảo mật). Dạng theo phiên giữ một máy
+    // (`giuPhien: <biến>`) KHÔNG được nhận ở đây: route accounts dùng nó sẽ đỏ (phải xếp loại lại có chủ đích).
+    co.push(...[...than.matchAll(/dongBangTin\(\{\s*staffId:[^}]*?sessionIds:[^}]*?giuPhien:\s*null\s*\}\)/g)].map(() => true));
     const goi = (than.match(/dongBangTin\(/g) ?? []).length;
     assert.equal(co.length, goi, `${r.ten}: mọi lời gọi dongBangTin phải khai rõ tatThongBao: true|false`);
     if (goi > 0) thay[r.ten] = co;
@@ -115,6 +118,7 @@ test("ADR-0046 điểm 2–3: MỌI route gọi dongBangTin khai cờ tatThongBa
     "PUT /api/staff/:id/roles": [false], // đổi vai — ADR-0046 điểm 2: KHÔNG tắt
     "POST /api/staff/:id/reset-pin": [true], // quản trị đặt lại PIN
     "POST /api/staff/:id/passkeys/remove-all": [true], // quản trị gỡ mọi Face ID
+    "POST /api/sessions/:id/revoke": [true], // ADR-0075 điều 7: IT/Toàn quyền gỡ phiên — theo phiên, giuPhien null ⇒ tắt mọi máy (thao tác bảo mật)
   });
   // Chế độ bảo trì chỉ đóng Bảng tin ("tat-ca"), không tắt máy (ADR-0036/0046 điểm 4).
   const bt = readFileSync(new URL("./modules/maintenance/index.ts", import.meta.url), "utf8");

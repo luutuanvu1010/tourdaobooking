@@ -1,7 +1,7 @@
 // Luật thuần sổ phiên (ADR-0075) + token phiên 4 phần mang mã phiên (điều 1).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { END_REASON_LABEL, isSingleDevice, sessionDeviceLabel, sessionStatus, trimIp, trimUserAgent } from "./session-ledger.ts";
+import { END_REASON_LABEL, isSingleDevice, sessionDeviceLabel, sessionStatus, toSessionDto, trimIp, trimUserAgent } from "./session-ledger.ts";
 import { SESSION_TTL_SECONDS, createSessionToken, verifySessionToken } from "./session.ts";
 
 const S = "x".repeat(40);
@@ -73,4 +73,21 @@ test("trimIp: tối đa 64 ký tự (CHECK của aut_session), rỗng hoặc thi
   assert.equal(trimIp(""), null);
   assert.equal(trimIp("10.0.0.1"), "10.0.0.1");
   assert.equal(trimIp("x".repeat(500))?.length, 64);
+});
+
+test("toSessionDto (ADR-0075 điều 7): không có User-Agent; nhãn cách đăng nhập; mã lạ không bị đoán thành trạng thái sống", () => {
+  const now = "2026-10-01T10:00:00.000Z";
+  const base = {
+    id: "p1", method: "PIN_TRUSTED", device_label: "iPhone · Safari", ip: "1.2.3.4", user_agent: "Mozilla/5.0 BI-MAT", created_at: "2026-10-01T09:00:00.000Z",
+    last_seen_at: "2026-10-01T09:30:00.000Z", expires_at: "2026-10-08T09:00:00.000Z", ended_at: null as string | null, end_reason: null as string | null,
+  };
+  const d = toSessionDto(base, null, now, "p1");
+  assert.equal(d.methodLabel, "PIN máy tin");
+  assert.equal(d.thisDevice, true);
+  assert.equal(d.live, true);
+  assert.ok(!JSON.stringify(d).includes("BI-MAT"), "không lộ User-Agent thô");
+  assert.equal(toSessionDto({ ...base, method: "LA" }, null, now, null).methodLabel, "Không rõ");
+  const la = toSessionDto({ ...base, ended_at: "2026-10-01T09:40:00.000Z", end_reason: "ly_do_la" }, null, now, null);
+  assert.deepEqual([la.live, la.statusLabel], [false, "Đã kết thúc"], "đã kết thúc với lý do lạ không được hiện Đang hiệu lực");
+  assert.equal(toSessionDto(base, Date.parse("2026-10-01T09:45:00.000Z"), now, null).statusLabel, "Đã đổi thông tin đăng nhập");
 });

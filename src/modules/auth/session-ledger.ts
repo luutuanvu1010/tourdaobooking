@@ -1,5 +1,6 @@
 // Luật THUẦN của sổ phiên (ADR-0075): lý do kết thúc, miễn luật một máy, tên máy, trạng thái hiển thị. Không đọc CSDL.
 import { LY_DO_BI_THAY } from "../../shared/session-ended.ts";
+import type { SessionDto, SessionMethod } from "../../shared/contracts.ts";
 import type { PermissionCode } from "../../shared/permissions.ts";
 import type { RoleCode } from "../../shared/roles.ts";
 
@@ -58,4 +59,38 @@ export function sessionStatus(
   const moc = Number.isNaN(seen) ? created : Math.max(created, seen);
   if (credentialsChangedAtMs !== null && !(credentialsChangedAtMs <= moc)) return { live: false, label: "Đã đổi thông tin đăng nhập" };
   return { live: true, label: "Đang hiệu lực" };
+}
+
+/** Nhãn cách đăng nhập hiển thị (đặc tả §5b màn "Phiên đăng nhập": PIN + mã / PIN máy tin / Face ID). */
+export const METHOD_LABEL: Record<SessionMethod, string> = { PIN: "PIN", PIN_MFA: "PIN + mã", PIN_TRUSTED: "PIN máy tin", PASSKEY: "Face ID" };
+const isSessionMethod = (v: string): v is SessionMethod => Object.hasOwn(METHOD_LABEL, v);
+const isEndReason = (v: string | null): v is EndReason => v !== null && Object.hasOwn(END_REASON_LABEL, v);
+
+/**
+ * Dòng `aut_session` → DTO (ADR-0075 điều 7, 9). KHÔNG đưa `user_agent` ra ngoài (chỉ `deviceLabel`). Trạng thái tính bằng `sessionStatus` (dòng → hạn → lưới
+ * `credentials_changed_at` của CHỦ phiên) — phiên đã chết theo lưới không hiện "Đang hiệu lực" (Review Focus 2). Mã cách đăng nhập / lý do kết thúc lạ (CHECK của
+ * migration 0061 không cho có) thì không đoán: nhãn "Không rõ" / "Đã kết thúc".
+ */
+export function toSessionDto(
+  row: { id: string; method: string; device_label: string; ip: string | null; created_at: string; last_seen_at: string; expires_at: string; ended_at: string | null; end_reason: string | null },
+  credentialsChangedAtMs: number | null,
+  nowIso: string,
+  currentSessionId: string | null,
+): SessionDto {
+  const st = row.ended_at !== null && !isEndReason(row.end_reason)
+    ? { live: false, label: "Đã kết thúc" }
+    : sessionStatus({ ...row, end_reason: isEndReason(row.end_reason) ? row.end_reason : null }, credentialsChangedAtMs, nowIso);
+  return {
+    id: row.id,
+    deviceLabel: row.device_label,
+    ip: row.ip,
+    method: isSessionMethod(row.method) ? row.method : "PIN",
+    methodLabel: isSessionMethod(row.method) ? METHOD_LABEL[row.method] : "Không rõ",
+    createdAt: row.created_at,
+    lastSeenAt: row.last_seen_at,
+    live: st.live,
+    statusLabel: st.label,
+    endedAt: row.ended_at,
+    thisDevice: row.id === currentSessionId,
+  };
 }
