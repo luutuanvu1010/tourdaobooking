@@ -1,0 +1,12 @@
+/* Layout + component sizes — "Riêng của Tour Đảo Booking" group of app.css */
+:root {
+  --w-main: 1200px; --w-form: 1120px; --w-side: 340px; --w-sidebar: 236px; --w-search: 280px;
+  --w-sheet: 520px; --w-confirm: 640px; --w-login: 400px; --w-narrow: 420px; --w-toast: 360px;
+  --tap-min: 44px; --bar-h: 60px; --tabbar-h: 56px; --tab-icon: 36px; --row-h: 48px;
+  --h-field: 52px; --h-field-wide: 52px; --h-chart: 56px; --h-order-skeleton: 76px; --h-turnstile: 65px;
+  --avatar: 48px; --logo-bar: 30px; --logo-login: 72px; --logo-login-phone: 48px;
+  --counter-btn: 44px; --counter-field: 48px; --price-field: 112px;
+  --icon-badge: 30px; --dot-size: 8px; --w-time-col: 76px;
+  --spinner: 16px; --spinner-bar: 2px; --pin-toggle-space: 88px;
+  --login-side: 20px; --login-body-bottom: 16px;
+}

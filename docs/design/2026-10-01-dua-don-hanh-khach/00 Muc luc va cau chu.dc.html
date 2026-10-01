@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="_ds/tour-o-booking-design-system-34f284df-c97a-4672-bb66-d7df03a0d97a/styles.css">
+<script src="_ds/tour-o-booking-design-system-34f284df-c97a-4672-bb66-d7df03a0d97a/_ds_bundle.js"></script>
+<style>body{margin:0;background:#dfe7ee;font-family:var(--font);color:var(--c-text)}a{color:var(--c-primary)}a:hover{color:var(--c-primary-strong)}</style>
+</helmet>
+<section style="padding:var(--s7);display:flex;flex-direction:column;gap:var(--s5);max-width:1180px;">
+  <nav style="display:flex;flex-wrap:wrap;gap:var(--s2);font-size:var(--fs-label);font-weight:700;">
+    <strong>00 Mục lục &amp; câu chữ</strong><span>·</span><a href="M1 Dua don - form don.dc.html">M1 Đưa đón trong form</a><span>·</span><a href="M2 Hanh khach - form don.dc.html">M2 Hành khách</a><span>·</span><a href="M3 Chi tiet don.dc.html">M3 Chi tiết đơn</a><span>·</span><a href="M4 Sua dua don.dc.html">M4 Sửa đưa đón</a><span>·</span><a href="M5 Sua danh sach hanh khach.dc.html">M5 Sửa danh sách</a><span>·</span><a href="M6 Dich vu hai chieu.dc.html">M6 Hai chiều</a><span>·</span><a href="M7 Danh muc - dua don.dc.html">M7 Danh mục</a><span>·</span><a href="07 Bieu mau don - chang don.dc.html">07 (giữ nguyên)</a>
+  </nav>
+  <div style="display:flex;flex-direction:column;gap:var(--s2);">
+    <h1 style="margin:0;font-family:var(--font-display);font-weight:800;font-size:28px;color:var(--c-primary);">Đưa đón &amp; Hành khách — mục lục, quyết định, câu chữ</h1>
+    <div style="font-size:15px;line-height:1.6;max-width:860px;text-wrap:pretty;">Island Booking System · bản vẽ M1–M7, mỗi màn có khung 390 và 1040 đặt cạnh nhau, tên khung “M· · cỡ · vai”. Dùng nguyên hệ thiết kế Tour Đảo Booking và vỏ thật của app (<code>web/shell.ts</code>); màn 07 chép nguyên văn từ repo, không sửa.</div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:var(--s4);">
+    <div style="display:flex;flex-direction:column;gap:var(--s2);padding:var(--s4);background:var(--c-card);border-radius:var(--radius-md);">
+      <h2 style="margin:0;font-family:var(--font-display);color:var(--c-primary);font-size:1.1rem;">Màn và khung</h2>
+      <ul style="margin:0;padding-left:var(--s5);display:flex;flex-direction:column;gap:var(--s1);font-size:var(--fs-label);line-height:1.5;">
+        <li><a href="M1 Dua don - form don.dc.html">M1</a> Đưa đón trong thẻ dịch vụ — a trống · b Đơn 1 · c lỗi · d Đơn 3 · e Đối tác · f ghép 07 (12 khung)</li>
+        <li><a href="M2 Hanh khach - form don.dc.html">M2</a> Hành khách trong form — a trống · b 3/4 · c lỗi dòng · d 5/4 · e Đối tác (10 khung)</li>
+        <li><a href="M3 Chi tiet don.dc.html">M3</a> Chi tiết đơn — Bán hàng 1040 + 390, Kế toán 390 + 1040, Hướng dẫn viên 390, Đơn 2 nháp 390 + 1040</li>
+        <li><a href="M4 Sua dua don.dc.html">M4</a> Bảng trượt Sửa đưa đón — bỏ chặng có lý do (1040), người khác vừa sửa (390)</li>
+        <li><a href="M5 Sua danh sach hanh khach.dc.html">M5</a> Bảng trượt Sửa danh sách — huỷ người (1040), lỗi dòng Đối tác (390), người khác vừa sửa (390)</li>
+        <li><a href="M6 Dich vu hai chieu.dc.html">M6</a> Dịch vụ hai chiều tạo sẵn chặng — 1040, 390 đã chọn nơi đón, 390 một chiều</li>
+        <li><a href="M7 Danh muc - dua don.dc.html">M7</a> Danh mục: khung Đưa đón — 1040 khung + bảng, 390 bảng trượt</li>
+      </ul>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:var(--s2);padding:var(--s4);background:var(--c-card);border-radius:var(--radius-md);">
+      <h2 style="margin:0;font-family:var(--font-display);color:var(--c-primary);font-size:1.1rem;">Quyết định cần chủ duyệt</h2>
+      <ul style="margin:0;padding-left:var(--s5);display:flex;flex-direction:column;gap:var(--s1);font-size:var(--fs-label);line-height:1.5;">
+        <li><strong>Câu 2 = A</strong> (có “Nơi trả gợi ý”) — vì M1, M6 đã dựa vào nơi trả gợi ý. Tắt ở Tweaks của M7.</li>
+        <li><strong>Đoạn tuỳ chọn “Số khách đi xe”</strong> đã vẽ (M1b, M2, M3, M5). Tắt ở Tweaks: mẫu số trở về số khách dịch vụ, dải đầu trang trở về số cộng dồn.</li>
+        <li>Form đơn trên điện thoại <strong>ẩn thanh tab</strong>, thay bằng thanh lưu dính đáy — đúng app thật (<code>data-tabbar="off"</code>) và 07. Trang đơn, danh mục có thanh tab.</li>
+        <li>Chi tiết đơn: hai khối mới đặt sau “Khách hàng”; thẻ dịch vụ bỏ dòng Giờ đón / Điểm đón; nút “Sửa thông tin chuyến” còn cho Giờ khởi hành, Check-in, Ghi chú.</li>
+        <li>Câu khoá đơn đã xác nhận đổi theo vai (xem M3) — câu cũ hứa “chỉ sửa được thông tin chuyến”.</li>
+        <li>Địa chỉ gõ tự do chỉ hiện trong trang đơn (form, chi tiết, hai bảng trượt). Thẻ danh sách đơn, biên nhận, điều phối nên hiện chữ “Nhà riêng” — không vẽ, chờ duyệt.</li>
+        <li>Trên máy tính, bảng hành khách trải hết bề ngang dưới hàng “thẻ dịch vụ | Tóm tắt”; trong bảng trượt M5 dùng thẻ.</li>
+      </ul>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:var(--s2);padding:var(--s4);background:var(--c-card);border-radius:var(--radius-md);">
+      <h2 style="margin:0;font-family:var(--font-display);color:var(--c-primary);font-size:1.1rem;">Kích thước / giá trị ngoài token</h2>
+      <ul style="margin:0;padding-left:var(--s5);display:flex;flex-direction:column;gap:var(--s1);font-size:var(--fs-label);line-height:1.5;">
+        <li>Không thêm màu. “Chữ vàng” dùng <code>--c-sand-text</code> để đủ tương phản trên nền trắng.</li>
+        <li>34px đệm đáy điện thoại (vùng thanh home iOS) — như 07; làm thật dùng <code>env(safe-area-inset-bottom)</code>.</li>
+        <li>Lưới ô chặng: <code>minmax(200px,1fr)</code> cho Nơi đón / Nơi trả, <code>minmax(140px,1fr)</code> cho Số hiệu chuyến bay / Số người chiều về — tự xuống một cột ở 390. Đề xuất thêm token nhóm “Riêng”.</li>
+        <li>Bảng hành khách máy tính: cột 28 / 1fr / 112 / 176 / 96px. Ô “Số khách đi xe” rộng 168px.</li>
+        <li>Cột Tóm tắt 260px theo 07a (app thật <code>--w-side</code> 340px). Vòng chọn 24px = <code>--s5</code> như <code>.pick-mark</code>. Ô đánh dấu 18px trong vùng bấm 44px.</li>
+        <li>Bảng danh mục ở khung 1040 vẽ chữ 14px để thấy cột nút; app thật 16px, cuộn ngang.</li>
+        <li>Ô ngày / giờ vẽ dạng chữ (30/09/2026, 07:30); làm thật dùng ô ngày / giờ của máy, chữ mờ “Chưa chốt giờ” đặt chồng khi trống. Ô nhập 16px (<code>--fs-ui</code>).</li>
+        <li>Khung điện thoại kéo dài hơn 844px, khung máy tính cao hơn 820px để thấy hết; nền bản vẽ #dfe7ee như 07.</li>
+        <li>Dữ liệu hư cấu thêm: Hướng dẫn viên “Phan Văn Hải”, khách thứ 5 “Trần Văn Nam” (M2d), mã đơn TD-2026…, mã dịch vụ, giá mẫu, SĐT “09xx xxx xxx”.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:var(--s3);">
+    <h2 style="margin:0;font-family:var(--font-display);color:var(--c-primary);font-size:1.4rem;">Danh sách câu chữ</h2>
+    <div style="display:flex;flex-wrap:wrap;gap:var(--s3);align-items:center;font-size:var(--fs-label);">
+      <span>Không đánh dấu = theo đề bài.</span>
+      <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Chip" tone="code" hint-size="60px,18px">có sẵn</x-import><span>chữ của app / 07, giữ nguyên</span>
+      <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Chip" tone="warn" hint-size="60px,18px">đề xuất</x-import><span>chữ mới do bản vẽ thêm — cần duyệt</span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:var(--s4);align-items:start;">
+      <div style="display:flex;flex-direction:column;gap:var(--s2);padding:var(--s4);background:var(--c-card);border-radius:var(--radius-md);">
+        <h3 style="margin:0;font-family:var(--font-display);font-size:var(--fs-ui);">Khối chặng (M1, M4, M6)</h3>
+        <ul style="margin:0;padding-left:var(--s5);display:flex;flex-direction:column;gap:4px;font-size:var(--fs-label);line-height:1.5;">
+          <li>Đưa đón</li>
+          <li>Chiều đi · Chiều về (chip)</li>
+          <li>Chặng 1 · Chặng 2 …</li>
+          <li>Ngày đón · Giờ đón · Nơi đón · Nơi trả</li>
+          <li>Chưa chốt giờ (chữ mờ trong ô giờ)</li>
+          <li>Chọn nơi đón… (lựa chọn đầu ô nơi đón) <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Chip" tone="warn" hint-size="50px,18px">đề xuất</x-import></li>
+          <li>Chưa chốt (lựa chọn đầu ô nơi trả) · Gõ tự do… (lựa chọn cuối)</li>
+          <li>“Khách sạn Mường Thanh Luxury Nha Trang · khách sạn” … (tên điểm · loại)</li>
+          <li>Địa chỉ đón · Địa chỉ trả · “Số nhà, đường, phường…” · Chỉ hiện trong trang đơn. <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Chip" tone="warn" hint-size="50px,18px">đề xuất</x-import></li>
+          <li>gợi ý theo dịch vụ</li>
+          <li>Bằng ngày đi <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Chip" tone="code" hint-size="50px,18px">có sẵn</x-import> · Khác ngày đi (30/09) <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Chip" tone="warn" hint-size="50px,18px">đề xuất</x-import></li>
+          <li>theo nơi trả chiều đi · theo nơi đón chiều đi <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Chip" tone="warn" hint-size="50px,18px">đề xuất</x-import></li>
+          <li>Số hiệu chuyến bay · VD: VN1553 · Tài xế tự tra giờ bay</li>
+          <li>Số người chiều về · Cả đoàn · Để trống nếu cả đoàn cùng về · “2 người” (chỉ xem)</li>
+          <li>Văn phòng điều chỉnh số người về</li>
+          <li>Bỏ chặng · + Thêm chiều về · + Thêm chặng</li>
+          <li>Không đưa đón · + Thêm đưa đón</li>
+          <li>Đã dời ngày đón của 2 chặng theo ngày đi mới</li>
+          <li>Đã tạo sẵn chiều đi và chiều về theo dịch vụ — sửa hoặc bỏ nếu khác.</li>
+          <li>Đã tạo sẵn chiều đi theo dịch vụ — sửa hoặc bỏ nếu khác. <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Chip" tone="warn" hint-size="50px,18px">đề xuất</x-import></li>
+          <li>Lỗi: Chặng 1: chưa có nơi đón. · Số người chiều về không được quá 4.</li>
+          <li>Lỗi: Chặng 1: chưa ghi địa chỉ đón. <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Chip" tone="warn" hint-size="50px,18px">đề xuất</x-import></li>
+        </ul>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:var(--s2);padding:var(--s4);background:var(--c-card);border-radius:var(--radius-md);">
+        <h3 style="margin:0;font-family:var(--font-display);font-size:var(--fs-ui);">Khung form &amp; phần ghép 07</h3>
+        <ul style="margin:0;padding-left:var(--s5);display:flex;flex-direction:column;gap:4px;font-size:var(--fs-label);line-height:1.5;">
+          <li>Tạo đơn · Chọn ngày · Ngày khởi hành · Ngày này áp cho mọi dịch vụ trong đơn. <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Chip" tone="code" hint-size="50px,18px">có sẵn</x-import></li>
+          <li>Tóm tắt · Còn thu · Lưu đơn nháp · Xác nhận đơn <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Chip" tone="code" hint-size="50px,18px">có sẵn</x-import></li>
+          <li>Giờ đón cách bây giờ 4 giờ 10 phút — dưới mốc 6 giờ <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Chip" tone="code" hint-size="50px,18px">có sẵn</x-import></li>
+          <li>Xếp xe gấp cần Quản trị duyệt đặt gấp. · Lưu nháp được. Xác nhận cần Quản trị duyệt đặt gấp. <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Chip" tone="code" hint-size="50px,18px">có sẵn</x-import></li>
+          <li>Đặt gấp · Lý do · Ghi chú ngắn · Duyệt đặt gấp · Đóng <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Chip" tone="code" hint-size="50px,18px">có sẵn</x-import></li>
+          <li>Duyệt đặt gấp xong thì xác nhận được. · Cần Quản trị duyệt đặt gấp <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Chip" tone="code" hint-size="50px,18px">có sẵn</x-import></li>
+          <li>Đặt gấp — Khách đoàn gọi gấp — Phạm Thu Hoa duyệt 03:25 <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Chip" tone="code" hint-size="50px,18px">có sẵn</x-import></li>
+        </ul>
+        <h3 style="margin:var(--s3) 0 0;font-family:var(--font-display);font-size:var(--fs-ui);">Hành khách trong form (M2)</h3>
+        <ul style="margin:0;padding-left:var(--s5);display:flex;flex-direction:column;gap:4px;font-size:var(--fs-label);line-height:1.5;">
+          <li>Số khách đi xe · gợi ý — sửa nếu khác</li>
+          <li>Cả đơn — số người thật lên xe. Khác số khách tính tiền của từng dịch vụ. <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Chip" tone="warn" hint-size="50px,18px">đề xuất</x-import></li>
+          <li>“4 khách” (chỉ xem) · Văn phòng điều chỉnh số khách đi xe <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Chip" tone="warn" hint-size="50px,18px">đề xuất</x-import></li>
+          <li>Hành khách · 3/4 khách đã có tên</li>
+          <li>Còn 1 khách chưa có tên — cần đủ trước khi xe chạy</li>
+          <li>Danh sách có 5 người, đơn có 4 khách · Vẫn lưu được. <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Chip" tone="warn" hint-size="50px,18px">đề xuất</x-import></li>
+          <li>Chưa có hành khách nào.</li>
+          <li># · Họ tên · Năm sinh · Loại khách (tuỳ chọn) · Khách 1 (điện thoại)</li>
+          <li>Như trên giấy tờ · VD: 1985 (chữ mờ) <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Chip" tone="warn" hint-size="50px,18px">đề xuất</x-import></li>
+          <li>Chưa chọn <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Chip" tone="warn" hint-size="50px,18px">đề xuất</x-import> · Người lớn · Trẻ em · Người cao tuổi · Em bé</li>
+          <li>Xoá · + Thêm hành khách</li>
+          <li>Lỗi: Dòng 3: năm sinh là bắt buộc. · Dòng 3: năm sinh phải từ 1906 đến 2026.</li>
+          <li>Lỗi: Dòng 3: họ tên là bắt buộc. <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Chip" tone="warn" hint-size="50px,18px">đề xuất</x-import></li>
+        </ul>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:var(--s2);padding:var(--s4);background:var(--c-card);border-radius:var(--radius-md);">
+        <h3 style="margin:0;font-family:var(--font-display);font-size:var(--fs-ui);">Chi tiết đơn (M3)</h3>
+        <ul style="margin:0;padding-left:var(--s5);display:flex;flex-direction:column;gap:4px;font-size:var(--fs-label);line-height:1.5;">
+          <li>Đưa đón · Hành khách · Sửa đưa đón · Sửa danh sách</li>
+          <li>“30/09 · 07:30” · “✈︎ VN1553” · “2 người về”</li>
+          <li>Chưa chốt giờ · Chưa chốt nơi trả · Cần nơi trả trước khi xếp xe</li>
+          <li>Cần giờ đón trước khi xếp xe <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Chip" tone="warn" hint-size="50px,18px">đề xuất</x-import></li>
+          <li>Đơn nháp — sửa trong biểu mẫu đơn. <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Chip" tone="warn" hint-size="50px,18px">đề xuất</x-import></li>
+          <li>SỐ KHÁCH: “4 khách đi xe”</li>
+          <li>Đơn đã xác nhận: dịch vụ, số khách và tiền đã khoá. Chỉ sửa được thông tin chuyến, đưa đón và danh sách hành khách. <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Chip" tone="warn" hint-size="50px,18px">đề xuất</x-import></li>
+          <li>Đơn đã xác nhận: dịch vụ, số khách và tiền đã khoá. Chỉ sửa được danh sách hành khách. <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Chip" tone="warn" hint-size="50px,18px">đề xuất</x-import></li>
+          <li>Đơn đã xác nhận: dịch vụ, số khách và tiền đã khoá. <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Chip" tone="code" hint-size="50px,18px">có sẵn</x-import></li>
+          <li>Sửa thông tin chuyến · Huỷ đơn · Xem biên nhận · Người phụ trách · Đổi người phụ trách · Khách hàng · Đổi khách · Dịch vụ · Tổng dịch vụ · Thanh toán · Ghi lần thu <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Chip" tone="code" hint-size="50px,18px">có sẵn</x-import></li>
+        </ul>
+        <h3 style="margin:var(--s3) 0 0;font-family:var(--font-display);font-size:var(--fs-ui);">Bảng trượt Sửa đưa đón (M4)</h3>
+        <ul style="margin:0;padding-left:var(--s5);display:flex;flex-direction:column;gap:4px;font-size:var(--fs-label);line-height:1.5;">
+          <li>Sửa đưa đón (tiêu đề) · Huỷ · Lưu</li>
+          <li>Bản xác nhận đã gửi khách trước đó có thể lỗi thời — cần gửi lại. <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Chip" tone="code" hint-size="50px,18px">có sẵn</x-import></li>
+          <li>Bỏ chặng 2 · Chiều về · Lý do (bắt buộc, chọn một) <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Chip" tone="warn" hint-size="50px,18px">đề xuất</x-import></li>
+          <li>Khách không cần đưa đón nữa · Nhập nhầm · Đổi sang chặng khác</li>
+          <li>Chặng đã bỏ không mất — xem trong lịch sử đơn.</li>
+          <li>Chọn lý do bỏ chặng. <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Chip" tone="warn" hint-size="50px,18px">đề xuất</x-import> · Thôi <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Chip" tone="code" hint-size="50px,18px">có sẵn</x-import></li>
+          <li>Đơn vừa được người khác cập nhật — tải lại để xem bản mới. · Tải lại đơn <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Chip" tone="code" hint-size="50px,18px">có sẵn</x-import></li>
+        </ul>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:var(--s2);padding:var(--s4);background:var(--c-card);border-radius:var(--radius-md);">
+        <h3 style="margin:0;font-family:var(--font-display);font-size:var(--fs-ui);">Bảng trượt Sửa danh sách (M5)</h3>
+        <ul style="margin:0;padding-left:var(--s5);display:flex;flex-direction:column;gap:4px;font-size:var(--fs-label);line-height:1.5;">
+          <li>Sửa danh sách hành khách (tiêu đề) · Huỷ · Lưu</li>
+          <li>Không xoá hẳn; mọi lần sửa đều được lưu lại.</li>
+          <li>Huỷ người · Huỷ Trần Thị Bình khỏi danh sách? (dùng khi nhập nhầm) · Thôi</li>
+          <li>4/4 khách đã có tên · + Thêm hành khách · lỗi dòng như M2</li>
+        </ul>
+        <h3 style="margin:var(--s3) 0 0;font-family:var(--font-display);font-size:var(--fs-ui);">Danh mục (M7)</h3>
+        <ul style="margin:0;padding-left:var(--s5);display:flex;flex-direction:column;gap:4px;font-size:var(--fs-label);line-height:1.5;">
+          <li>Đưa đón (nút cạnh “Sửa giá”) · chip Hai chiều / Một chiều / Không đưa đón</li>
+          <li>Đưa đón: CT-VP-01 — Vé cáp treo Vinpearl (theo khuôn “Sửa giá: …”) · Đưa đón: Vé cáp treo Vinpearl (điện thoại) <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Chip" tone="warn" hint-size="50px,18px">đề xuất</x-import></li>
+          <li>Khi lập đơn có dịch vụ này (chọn một) <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Chip" tone="warn" hint-size="50px,18px">đề xuất</x-import></li>
+          <li>Không đưa đón · Một chiều · Hai chiều</li>
+          <li>Giờ về gợi ý · Nơi trả gợi ý</li>
+          <li>Để trống nếu không có · Chỉ dùng khi Hai chiều · Không gợi ý · Để trống nếu không gợi ý <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Chip" tone="warn" hint-size="50px,18px">đề xuất</x-import></li>
+          <li>Lưu bản mới · Áp dụng cho đơn lập từ bây giờ; đơn đã có không đổi.</li>
+          <li>Đóng <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Chip" tone="code" hint-size="50px,18px">có sẵn</x-import></li>
+          <li>Lịch sử · Lúc · Người đổi · Cũ → mới</li>
+          <li>Một chiều → Hai chiều, giờ về 16:30 · Không đưa đón → Một chiều, nơi trả gợi ý Ga cáp treo Vinpearl</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+</x-dc>
+</body>
+</html>

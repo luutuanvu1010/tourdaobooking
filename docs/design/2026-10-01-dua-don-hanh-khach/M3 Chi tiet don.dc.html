@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="_ds/tour-o-booking-design-system-34f284df-c97a-4672-bb66-d7df03a0d97a/styles.css">
+<script src="_ds/tour-o-booking-design-system-34f284df-c97a-4672-bb66-d7df03a0d97a/_ds_bundle.js"></script>
+<style>body{margin:0;background:#dfe7ee;font-family:var(--font);color:var(--c-text)}a{color:var(--c-primary)}a:hover{color:var(--c-primary-strong)}</style>
+</helmet>
+<section style="padding:var(--s7);display:flex;flex-direction:column;gap:var(--s5);">
+  <nav style="display:flex;flex-wrap:wrap;gap:var(--s2);font-size:var(--fs-label);font-weight:700;">
+    <a href="00 Muc luc va cau chu.dc.html">00 Mục lục &amp; câu chữ</a><span>·</span><a href="M1 Dua don - form don.dc.html">M1 Đưa đón trong form</a><span>·</span><a href="M2 Hanh khach - form don.dc.html">M2 Hành khách</a><span>·</span><strong>M3 Chi tiết đơn</strong><span>·</span><a href="M4 Sua dua don.dc.html">M4 Sửa đưa đón</a><span>·</span><a href="M5 Sua danh sach hanh khach.dc.html">M5 Sửa danh sách</a><span>·</span><a href="M6 Dich vu hai chieu.dc.html">M6 Hai chiều</a><span>·</span><a href="M7 Danh muc - dua don.dc.html">M7 Danh mục</a><span>·</span><a href="07 Bieu mau don - chang don.dc.html">07 (giữ nguyên)</a>
+  </nav>
+  <div style="display:flex;flex-direction:column;gap:var(--s2);max-width:900px;">
+    <h1 style="margin:0;font-family:var(--font-display);font-weight:800;font-size:28px;color:var(--c-primary);">M3 · Trang chi tiết đơn — khối “Đưa đón” và “Hành khách”</h1>
+    <div style="font-size:15px;line-height:1.6;text-wrap:pretty;">Hai khối mới đặt sau “Khách hàng”, trước “Dịch vụ”. Thẻ dịch vụ bỏ dòng “Giờ đón / Điểm đón” cũ (đã chuyển vào khối Đưa đón); nhãn “Đặt gấp — lý do — người duyệt” của 07 giữ nguyên dưới dịch vụ. Dải đầu trang hiện “4 khách đi xe” (đoạn tuỳ chọn; tắt ở Tweaks thì trở lại số cộng dồn). Đơn đã xác nhận: “Sửa đưa đón” mở <a href="M4 Sua dua don.dc.html">M4</a>, “Sửa danh sách” mở <a href="M5 Sua danh sach hanh khach.dc.html">M5</a>. Đơn nháp: hai nút dẫn về form đơn (M1, M2). Khung điện thoại kéo dài để thấy hai khối mới.</div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:var(--s3);">
+    <div style="font-family:var(--font-display);font-weight:800;font-size:18px;color:var(--c-primary);">Đơn 1 đã xác nhận — Bán hàng (đơn mình): có “Sửa đưa đón” và “Sửa danh sách”</div>
+    <div style="display:flex;gap:var(--s6);flex-wrap:wrap;align-items:flex-start;">
+      <div id="M3-banhang-1040" style="display:flex;flex-direction:column;gap:var(--s3);">
+        <div style="font-size:var(--fs-label);font-weight:800;">M3 · 1040 · Bán hàng · Đơn 1</div>
+        <dc-import name="vo-may-tinh" role="sales" active="don" crumb="TD-20260928-0011" height="1900px" hint-size="1040px,1900px">
+          <dc-import name="trang-don" don="1" vai="sales" so-khach-di-xe="{{ soKhachDiXe }}" hint-size="100%,1800px"></dc-import>
+        </dc-import>
+      </div>
+      <div id="M3-banhang-390" style="display:flex;flex-direction:column;gap:var(--s3);">
+        <div style="font-size:var(--fs-label);font-weight:800;">M3 · 390 · Bán hàng · Đơn 1 (kéo dài)</div>
+        <dc-import name="vo-dien-thoai" role="sales" title="TD-20260928-0011" tab="don" height="2000px" hint-size="390px,2000px">
+          <div style="padding:var(--s4);"><dc-import name="trang-don" don="1" vai="sales" hep="{{ true }}" so-khach-di-xe="{{ soKhachDiXe }}" hint-size="100%,2400px"></dc-import></div>
+        </dc-import>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:var(--s3);">
+    <div style="font-family:var(--font-display);font-weight:800;font-size:18px;color:var(--c-primary);">Kế toán — xem đủ, không có nút sửa nào · Hướng dẫn viên — đơn mình phụ trách, không nút sửa</div>
+    <div style="display:flex;gap:var(--s6);flex-wrap:wrap;align-items:flex-start;">
+      <div id="M3-ketoan-390" style="display:flex;flex-direction:column;gap:var(--s3);">
+        <div style="font-size:var(--fs-label);font-weight:800;">M3 · 390 · Kế toán · Đơn 1 (kéo dài)</div>
+        <dc-import name="vo-dien-thoai" role="accountant" title="TD-20260928-0011" tab="don" height="1820px" hint-size="390px,1820px">
+          <div style="padding:var(--s4);"><dc-import name="trang-don" don="1" vai="accountant" hep="{{ true }}" so-khach-di-xe="{{ soKhachDiXe }}" hint-size="100%,2200px"></dc-import></div>
+        </dc-import>
+      </div>
+      <div id="M3-hdv-390" style="display:flex;flex-direction:column;gap:var(--s3);">
+        <div style="font-size:var(--fs-label);font-weight:800;">M3 · 390 · Hướng dẫn viên · Đơn 3 (kéo dài)</div>
+        <dc-import name="vo-dien-thoai" role="guide" title="TD-20260929-0003" tab="toi" height="1820px" hint-size="390px,1820px">
+          <div style="padding:var(--s4);"><dc-import name="trang-don" don="3" vai="guide" hep="{{ true }}" so-khach-di-xe="{{ soKhachDiXe }}" hint-size="100%,2100px"></dc-import></div>
+        </dc-import>
+      </div>
+      <div id="M3-ketoan-1040" style="display:flex;flex-direction:column;gap:var(--s3);">
+        <div style="font-size:var(--fs-label);font-weight:800;">M3 · 1040 · Kế toán · Đơn 1</div>
+        <dc-import name="vo-may-tinh" role="accountant" active="don" crumb="TD-20260928-0011" height="1700px" hint-size="1040px,1700px">
+          <dc-import name="trang-don" don="1" vai="accountant" so-khach-di-xe="{{ soKhachDiXe }}" hint-size="100%,1600px"></dc-import>
+        </dc-import>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:var(--s3);">
+    <div style="font-family:var(--font-display);font-weight:800;font-size:18px;color:var(--c-primary);">Đơn 2 nháp — chiều về “Chưa chốt giờ”, “Chưa chốt nơi trả” (văn phòng thấy câu nhắc); nút sửa dẫn về form đơn</div>
+    <div style="display:flex;gap:var(--s6);flex-wrap:wrap;align-items:flex-start;">
+      <div id="M3-nhap-390" style="display:flex;flex-direction:column;gap:var(--s3);">
+        <div style="font-size:var(--fs-label);font-weight:800;">M3 · 390 · Bán hàng · Đơn 2 nháp (kéo dài)</div>
+        <dc-import name="vo-dien-thoai" role="sales" title="TD-20260929-0004" tab="don" height="1900px" hint-size="390px,1900px">
+          <div style="padding:var(--s4);"><dc-import name="trang-don" don="2" vai="sales" hep="{{ true }}" so-khach-di-xe="{{ soKhachDiXe }}" hint-size="100%,2200px"></dc-import></div>
+        </dc-import>
+      </div>
+      <div id="M3-nhap-1040" style="display:flex;flex-direction:column;gap:var(--s3);">
+        <div style="font-size:var(--fs-label);font-weight:800;">M3 · 1040 · Bán hàng · Đơn 2 nháp</div>
+        <dc-import name="vo-may-tinh" role="sales" active="don" crumb="TD-20260929-0004" height="1700px" hint-size="1040px,1700px">
+          <dc-import name="trang-don" don="2" vai="sales" so-khach-di-xe="{{ soKhachDiXe }}" hint-size="100%,1600px"></dc-import>
+        </dc-import>
+      </div>
+    </div>
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;soKhachDiXe&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Đoạn tuỳ chọn&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    return { soKhachDiXe: this.props.soKhachDiXe ?? true };
+  }
+}
+</script>
+</body>
+</html>

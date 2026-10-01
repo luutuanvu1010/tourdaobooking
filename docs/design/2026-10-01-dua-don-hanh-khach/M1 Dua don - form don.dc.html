@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="_ds/tour-o-booking-design-system-34f284df-c97a-4672-bb66-d7df03a0d97a/styles.css">
+<script src="_ds/tour-o-booking-design-system-34f284df-c97a-4672-bb66-d7df03a0d97a/_ds_bundle.js"></script>
+<style>body{margin:0;background:#dfe7ee;font-family:var(--font);color:var(--c-text)}a{color:var(--c-primary)}a:hover{color:var(--c-primary-strong)}</style>
+</helmet>
+<section style="padding:var(--s7);display:flex;flex-direction:column;gap:var(--s5);">
+  <nav style="display:flex;flex-wrap:wrap;gap:var(--s2);font-size:var(--fs-label);font-weight:700;">
+    <a href="00 Muc luc va cau chu.dc.html">00 Mục lục &amp; câu chữ</a><span>·</span><strong>M1 Đưa đón trong form</strong><span>·</span><a href="M2 Hanh khach - form don.dc.html">M2 Hành khách</a><span>·</span><a href="M3 Chi tiet don.dc.html">M3 Chi tiết đơn</a><span>·</span><a href="M4 Sua dua don.dc.html">M4 Sửa đưa đón</a><span>·</span><a href="M5 Sua danh sach hanh khach.dc.html">M5 Sửa danh sách</a><span>·</span><a href="M6 Dich vu hai chieu.dc.html">M6 Hai chiều</a><span>·</span><a href="M7 Danh muc - dua don.dc.html">M7 Danh mục</a><span>·</span><a href="07 Bieu mau don - chang don.dc.html">07 (giữ nguyên)</a>
+  </nav>
+  <div style="display:flex;flex-direction:column;gap:var(--s2);max-width:900px;">
+    <h1 style="margin:0;font-family:var(--font-display);font-weight:800;font-size:28px;color:var(--c-primary);">M1 · Form lập / sửa đơn — phần “Đưa đón” trong thẻ dịch vụ</h1>
+    <div style="font-size:15px;line-height:1.6;text-wrap:pretty;">Mỗi dịch vụ có danh sách chặng. Khung giữ khuôn thẻ dịch vụ của <a href="07 Bieu mau don - chang don.dc.html">07</a>; dải cảnh báo mốc 6 giờ vẫn nằm cuối thẻ (hàng 1f). Ô ngày/giờ vẽ bằng chữ để hiện đúng “30/09/2026”, “07:30” — làm thật dùng ô ngày/giờ của máy. Các khung bấm thử được: đổi nơi đón/nơi trả, chọn “Gõ tự do…”, chọn Sân bay Cam Ranh để hiện ô số hiệu chuyến bay, bỏ / thêm chặng.</div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:var(--s3);">
+    <div style="font-family:var(--font-display);font-weight:800;font-size:18px;color:var(--c-primary);">a) Trống — dịch vụ mới chọn, “Không đưa đón”</div>
+    <div style="display:flex;gap:var(--s6);flex-wrap:wrap;align-items:flex-start;">
+      <div id="M1-a-1040" style="display:flex;flex-direction:column;gap:var(--s3);">
+        <div style="font-size:var(--fs-label);font-weight:800;">M1 · 1040 · Bán hàng · trống</div>
+        <dc-import name="vo-may-tinh" role="sales" active="tao" crumb="Bán hàng › Tạo đơn" height="620px" hint-size="1040px,620px">
+          <dc-import name="form-don" kb="trong" vai="sales" hint-size="100%,420px"></dc-import>
+        </dc-import>
+      </div>
+      <div id="M1-a-390" style="display:flex;flex-direction:column;gap:var(--s3);">
+        <div style="font-size:var(--fs-label);font-weight:800;">M1 · 390 · Bán hàng · trống</div>
+        <dc-import name="vo-dien-thoai" role="sales" title="Tạo đơn" tabs="{{ false }}" hint-size="390px,844px">
+          <dc-import name="form-don" kb="trong" vai="sales" hep="{{ true }}" hk="trong" so-khach-di-xe="{{ soKhachDiXe }}" khach-dv="{{ 2 }}" hint-size="100%,737px"></dc-import>
+        </dc-import>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:var(--s3);">
+    <div style="font-family:var(--font-display);font-weight:800;font-size:18px;color:var(--c-primary);">b) Đang nhập — Đơn 1: chiều đi + chiều về 2 người (vừa đổi ngày đi → nhắc dời ngày)</div>
+    <div style="display:flex;gap:var(--s6);flex-wrap:wrap;align-items:flex-start;">
+      <div id="M1-b-1040" style="display:flex;flex-direction:column;gap:var(--s3);">
+        <div style="font-size:var(--fs-label);font-weight:800;">M1 · 1040 · Bán hàng · Đơn 1 · cả trang (kéo dài)</div>
+        <dc-import name="vo-may-tinh" role="sales" active="tao" crumb="Bán hàng › Tạo đơn" height="2060px" hint-size="1040px,2060px">
+          <dc-import name="form-don" kb="don1" vai="sales" chon-ngay="{{ true }}" doi-ngay="{{ true }}" hk="dang" so-khach-di-xe="{{ soKhachDiXe }}" hint-size="100%,1900px"></dc-import>
+        </dc-import>
+      </div>
+      <div id="M1-b-390" style="display:flex;flex-direction:column;gap:var(--s3);">
+        <div style="font-size:var(--fs-label);font-weight:800;">M1 · 390 · Bán hàng · Đơn 1 (kéo dài)</div>
+        <dc-import name="vo-dien-thoai" role="sales" title="Tạo đơn" tabs="{{ false }}" height="1560px" hint-size="390px,1560px">
+          <dc-import name="form-don" kb="don1" vai="sales" hep="{{ true }}" min-h="1453px" hint-size="100%,1453px"></dc-import>
+        </dc-import>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:var(--s3);">
+    <div style="font-family:var(--font-display);font-weight:800;font-size:18px;color:var(--c-primary);">c) Lỗi — chặng chưa có nơi đón; số người chiều về quá số khách (sau khi bấm Lưu)</div>
+    <div style="display:flex;gap:var(--s6);flex-wrap:wrap;align-items:flex-start;">
+      <div id="M1-c-1040" style="display:flex;flex-direction:column;gap:var(--s3);">
+        <div style="font-size:var(--fs-label);font-weight:800;">M1 · 1040 · Bán hàng · lỗi</div>
+        <dc-import name="vo-may-tinh" role="sales" active="tao" crumb="Bán hàng › Tạo đơn" height="1240px" hint-size="1040px,1240px">
+          <dc-import name="form-don" kb="loi" vai="sales" hint-size="100%,1100px"></dc-import>
+        </dc-import>
+      </div>
+      <div id="M1-c-390" style="display:flex;flex-direction:column;gap:var(--s3);">
+        <div style="font-size:var(--fs-label);font-weight:800;">M1 · 390 · Bán hàng · lỗi (kéo dài)</div>
+        <dc-import name="vo-dien-thoai" role="sales" title="Tạo đơn" tabs="{{ false }}" height="1620px" hint-size="390px,1620px">
+          <dc-import name="form-don" kb="loi" vai="sales" hep="{{ true }}" min-h="1513px" hint-size="100%,1513px"></dc-import>
+        </dc-import>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:var(--s3);">
+    <div style="font-family:var(--font-display);font-weight:800;font-size:18px;color:var(--c-primary);">d) Đơn 3 — đón sân bay tối hôm trước, nơi đón gõ tự do, có ô số hiệu chuyến bay</div>
+    <div style="display:flex;gap:var(--s6);flex-wrap:wrap;align-items:flex-start;">
+      <div id="M1-d-390" style="display:flex;flex-direction:column;gap:var(--s3);">
+        <div style="font-size:var(--fs-label);font-weight:800;">M1 · 390 · Bán hàng · Đơn 3</div>
+        <dc-import name="vo-dien-thoai" role="sales" title="Tạo đơn" tabs="{{ false }}" height="1080px" hint-size="390px,1080px">
+          <dc-import name="form-don" kb="don3" vai="sales" hep="{{ true }}" min-h="973px" hint-size="100%,973px"></dc-import>
+        </dc-import>
+      </div>
+      <div id="M1-d-1040" style="display:flex;flex-direction:column;gap:var(--s3);">
+        <div style="font-size:var(--fs-label);font-weight:800;">M1 · 1040 · Bán hàng · Đơn 3</div>
+        <dc-import name="vo-may-tinh" role="sales" active="tao" crumb="Bán hàng › Tạo đơn" height="860px" hint-size="1040px,860px">
+          <dc-import name="form-don" kb="don3" vai="sales" hint-size="100%,700px"></dc-import>
+        </dc-import>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:var(--s3);">
+    <div style="font-family:var(--font-display);font-weight:800;font-size:18px;color:var(--c-primary);">e) Đối tác (đơn của mình) — “Số người chiều về” chỉ xem</div>
+    <div style="display:flex;gap:var(--s6);flex-wrap:wrap;align-items:flex-start;">
+      <div id="M1-e-390" style="display:flex;flex-direction:column;gap:var(--s3);">
+        <div style="font-size:var(--fs-label);font-weight:800;">M1 · 390 · Đối tác · Khách sạn Biển Xanh (kéo dài)</div>
+        <dc-import name="vo-dien-thoai" role="partner" title="Tạo đơn" tabs="{{ false }}" height="1560px" hint-size="390px,1560px">
+          <dc-import name="form-don" kb="don1" vai="partner" hep="{{ true }}" min-h="1453px" hint-size="100%,1453px"></dc-import>
+        </dc-import>
+      </div>
+      <div id="M1-e-1040" style="display:flex;flex-direction:column;gap:var(--s3);">
+        <div style="font-size:var(--fs-label);font-weight:800;">M1 · 1040 · Đối tác</div>
+        <dc-import name="vo-may-tinh" role="partner" active="tao" crumb="Tạo đơn" height="1200px" hint-size="1040px,1200px">
+          <dc-import name="form-don" kb="don1" vai="partner" hint-size="100%,1050px"></dc-import>
+        </dc-import>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:var(--s3);">
+    <div style="font-family:var(--font-display);font-weight:800;font-size:18px;color:var(--c-primary);">f) Ghép với 07 — chiều đi dưới mốc 6 giờ (bây giờ 03:20, đón 07:30): dải cảnh báo + “Đặt gấp” vẫn ở cuối thẻ</div>
+    <div style="display:flex;gap:var(--s6);flex-wrap:wrap;align-items:flex-start;">
+      <div id="M1-f-1040" style="display:flex;flex-direction:column;gap:var(--s3);">
+        <div style="font-size:var(--fs-label);font-weight:800;">M1 · 1040 · Quản trị · mở “Đặt gấp”</div>
+        <dc-import name="vo-may-tinh" role="admin" active="tao" crumb="Bán hàng › Tạo đơn" height="1600px" hint-size="1040px,1600px">
+          <dc-import name="form-don" kb="moc6" vai="admin" khoa="{{ true }}" hint-size="100%,1450px"></dc-import>
+        </dc-import>
+      </div>
+      <div id="M1-f-390" style="display:flex;flex-direction:column;gap:var(--s3);">
+        <div style="font-size:var(--fs-label);font-weight:800;">M1 · 390 · Bán hàng · “Xác nhận đơn” khoá (kéo dài)</div>
+        <dc-import name="vo-dien-thoai" role="sales" title="Tạo đơn" tabs="{{ false }}" clock="3:20" height="1700px" hint-size="390px,1700px">
+          <dc-import name="form-don" kb="moc6" vai="sales" hep="{{ true }}" khoa="{{ true }}" min-h="1593px" hint-size="100%,1593px"></dc-import>
+        </dc-import>
+      </div>
+    </div>
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;soKhachDiXe&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Đoạn tuỳ chọn&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    return { soKhachDiXe: this.props.soKhachDiXe ?? true };
+  }
+}
+</script>
+</body>
+</html>

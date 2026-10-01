@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="_ds/tour-o-booking-design-system-34f284df-c97a-4672-bb66-d7df03a0d97a/styles.css">
+<script src="_ds/tour-o-booking-design-system-34f284df-c97a-4672-bb66-d7df03a0d97a/_ds_bundle.js"></script>
+<style>body{margin:0;background:#dfe7ee;font-family:var(--font);color:var(--c-text)}a{color:var(--c-primary)}a:hover{color:var(--c-primary-strong)}</style>
+</helmet>
+<section style="padding:var(--s7);display:flex;flex-direction:column;gap:var(--s5);">
+  <nav style="display:flex;flex-wrap:wrap;gap:var(--s2);font-size:var(--fs-label);font-weight:700;">
+    <a href="00 Muc luc va cau chu.dc.html">00 Mục lục &amp; câu chữ</a><span>·</span><a href="M1 Dua don - form don.dc.html">M1 Đưa đón trong form</a><span>·</span><a href="M2 Hanh khach - form don.dc.html">M2 Hành khách</a><span>·</span><a href="M3 Chi tiet don.dc.html">M3 Chi tiết đơn</a><span>·</span><a href="M4 Sua dua don.dc.html">M4 Sửa đưa đón</a><span>·</span><strong>M5 Sửa danh sách</strong><span>·</span><a href="M6 Dich vu hai chieu.dc.html">M6 Hai chiều</a><span>·</span><a href="M7 Danh muc - dua don.dc.html">M7 Danh mục</a><span>·</span><a href="07 Bieu mau don - chang don.dc.html">07 (giữ nguyên)</a>
+  </nav>
+  <div style="display:flex;flex-direction:column;gap:var(--s2);max-width:900px;">
+    <h1 style="margin:0;font-family:var(--font-display);font-weight:800;font-size:28px;color:var(--c-primary);">M5 · Bảng trượt “Sửa danh sách hành khách” — đơn đã xác nhận</h1>
+    <div style="font-size:15px;line-height:1.6;text-wrap:pretty;">Mỗi người một thẻ (cả máy tính — bảng trượt rộng 640px không đủ cho bảng bốn cột). Sửa tên / năm sinh / loại khách: máy giữ bản cũ làm lịch sử. “Huỷ người” mở hộp xác nhận ngay trong thẻ, không có ô lý do. Ai mở được: Bán hàng (đơn mình / đang phụ trách), Quản trị, Toàn quyền, Đối tác và Thực tập (đơn mình lập).</div>
+  </div>
+  <div style="display:flex;gap:var(--s6);flex-wrap:wrap;align-items:flex-start;">
+    <div id="M5-1040" style="display:flex;flex-direction:column;gap:var(--s3);">
+      <div style="font-size:var(--fs-label);font-weight:800;">M5 · 1040 · Bán hàng · vừa thêm Lê Thị Hồng (4/4) · hỏi huỷ Trần Thị Bình</div>
+      <dc-import name="vo-may-tinh" role="sales" active="don" crumb="TD-20260928-0011" height="1420px" hint-size="1040px,1420px">
+        <dc-import name="trang-don" don="1" vai="sales" so-khach-di-xe="{{ soKhachDiXe }}" hint-size="100%,1400px"></dc-import>
+        <div style="position:absolute;inset:0;z-index:5;display:flex;align-items:center;justify-content:center;padding:var(--s4);background:var(--c-scrim);">
+          <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Sheet" inline="{{ true }}" wide="{{ true }}" title="Sửa danh sách hành khách" footer="{{ footer }}" on-close="{{ noop }}" hint-size="640px,1300px">
+            <dc-import name="khoi-hanh-khach" kb="bangHuy" che="bang" vai="sales" so-khach-di-xe="{{ soKhachDiXe }}" hint-size="100%,1150px"></dc-import>
+          </x-import>
+        </div>
+      </dc-import>
+    </div>
+    <div id="M5-390-doitac" style="display:flex;flex-direction:column;gap:var(--s3);">
+      <div style="font-size:var(--fs-label);font-weight:800;">M5 · 390 · Đối tác · lỗi dòng (kéo dài)</div>
+      <dc-import name="vo-dien-thoai" role="partner" title="TD-20260928-0011" tab="don" height="1500px" hint-size="390px,1500px">
+        <div style="padding:var(--s4);"><dc-import name="trang-don" don="1" vai="partner" hep="{{ true }}" so-khach-di-xe="{{ soKhachDiXe }}" hint-size="100%,2000px"></dc-import></div>
+        <div style="position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;justify-content:flex-end;background:var(--c-scrim);">
+          <div style="background:var(--c-surface);border-radius:var(--radius-lg) var(--radius-lg) 0 0;overflow:hidden;padding-bottom:34px;">
+            <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Sheet" inline="{{ true }}" title="Sửa danh sách hành khách" footer="{{ footer }}" on-close="{{ noop }}" hint-size="390px,1340px">
+              <dc-import name="khoi-hanh-khach" kb="bangLoi" che="bang" vai="partner" hep="{{ true }}" so-khach-di-xe="{{ soKhachDiXe }}" hint-size="100%,1200px"></dc-import>
+            </x-import>
+          </div>
+        </div>
+      </dc-import>
+    </div>
+    <div id="M5-390-cu" style="display:flex;flex-direction:column;gap:var(--s3);">
+      <div style="font-size:var(--fs-label);font-weight:800;">M5 · 390 · Bán hàng · người khác vừa sửa (kéo dài)</div>
+      <dc-import name="vo-dien-thoai" role="sales" title="TD-20260928-0011" tab="don" height="1500px" hint-size="390px,1500px">
+        <div style="padding:var(--s4);"><dc-import name="trang-don" don="1" vai="sales" hep="{{ true }}" so-khach-di-xe="{{ soKhachDiXe }}" hint-size="100%,2400px"></dc-import></div>
+        <div style="position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;justify-content:flex-end;background:var(--c-scrim);">
+          <div style="background:var(--c-surface);border-radius:var(--radius-lg) var(--radius-lg) 0 0;overflow:hidden;padding-bottom:34px;">
+            <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Sheet" inline="{{ true }}" title="Sửa danh sách hành khách" footer="{{ footer }}" on-close="{{ noop }}" hint-size="390px,1340px">
+              <div style="display:flex;flex-direction:column;gap:var(--s4);">
+                <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Banner" tone="danger" title="Đơn vừa được người khác cập nhật — tải lại để xem bản mới." hint-size="100%,110px">
+                  <div style="display:flex;margin-top:var(--s3);"><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" dc-props="{{ nw }}" hint-size="120px,44px">Tải lại đơn</x-import></div>
+                </x-import>
+                <dc-import name="khoi-hanh-khach" kb="du" che="bang" vai="sales" hep="{{ true }}" so-khach-di-xe="{{ soKhachDiXe }}" hint-size="100%,1100px"></dc-import>
+              </div>
+            </x-import>
+          </div>
+        </div>
+      </dc-import>
+    </div>
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;soKhachDiXe&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Đoạn tuỳ chọn&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const NS = window.TourOBookingDesignSystem_34f284;
+    const h = React.createElement;
+    return {
+      soKhachDiXe: this.props.soKhachDiXe ?? true,
+      nw: { style: { whiteSpace: 'nowrap' } },
+      noop: () => {},
+      footer: NS ? h('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--s2)' } }, h(NS.Button, null, 'Huỷ'), h(NS.Button, { variant: 'primary' }, 'Lưu')) : null,
+    };
+  }
+}
+</script>
+</body>
+</html>

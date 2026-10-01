@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="_ds/tour-o-booking-design-system-34f284df-c97a-4672-bb66-d7df03a0d97a/styles.css">
+<script src="_ds/tour-o-booking-design-system-34f284df-c97a-4672-bb66-d7df03a0d97a/_ds_bundle.js"></script>
+<style>body{margin:0;background:#dfe7ee;font-family:var(--font);color:var(--c-text)}a{color:var(--c-primary)}a:hover{color:var(--c-primary-strong)}</style>
+</helmet>
+<section style="padding:var(--s7);display:flex;flex-direction:column;gap:var(--s5);">
+  <nav style="display:flex;flex-wrap:wrap;gap:var(--s2);font-size:var(--fs-label);font-weight:700;">
+    <a href="01 Dieu phoi xe.dc.html">01 Điều phối xe</a><span>·</span><a href="02 Chi tiet chuyen.dc.html">02 Chi tiết chuyến</a><span>·</span><a href="03 Tao sua chuyen.dc.html">03 Tạo / sửa chuyến</a><span>·</span><a href="04 Cuoc cua toi.dc.html">04 Cuốc của tôi</a><span>·</span><a href="05 Chuyen dang chay.dc.html">05 Chuyến đang chạy</a><span>·</span><a href="06 Xuat ben.dc.html">06 Xuất bến</a><span>·</span><strong>07 Biểu mẫu đơn — chặng đón</strong><span>·</span><a href="08 Chinh sach dieu phoi.dc.html">08 Chính sách &amp; lý do</a>
+  </nav>
+  <div style="display:flex;flex-direction:column;gap:var(--s2);max-width:860px;">
+    <h1 style="margin:0;font-family:var(--font-display);font-weight:800;font-size:28px;color:var(--c-primary);">07 · Biểu mẫu đơn — phần chặng đón</h1>
+    <div style="font-size:15px;line-height:1.6;text-wrap:pretty;">Bây giờ 07:50, giờ đón 12:00 → dưới mốc 6 giờ. Quản trị thấy nút “Đặt gấp” (chọn lý do + ghi chú ngắn). Bán hàng vẫn “Lưu đơn nháp” bình thường, nhưng “Xác nhận đơn” khoá với câu “Cần Quản trị duyệt đặt gấp”. Chặng đã duyệt mang nhãn “Đặt gấp — lý do — người duyệt”.</div>
+  </div>
+  <div style="display:flex;gap:var(--s6);flex-wrap:wrap;align-items:flex-start;">
+    <div id="7a" style="display:flex;flex-direction:column;gap:var(--s3);">
+      <div style="font-size:var(--fs-label);font-weight:800;">7a · Tạo đơn · 1040 · Quản trị · mở “Đặt gấp”</div>
+      <dc-import name="vo-may-tinh" role="admin" active="tao" crumb="Bán hàng › Tạo đơn" height="1080px" hint-size="1040px,1080px">
+        <h1 style="margin:0;font-family:var(--font-display);font-weight:800;font-size:26px;color:var(--c-primary);">Tạo đơn</h1>
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:var(--s4);align-items:start;">
+          <div style="display:flex;flex-direction:column;gap:var(--s3);padding:var(--s4);background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-md);box-shadow:var(--shadow-card);">
+            <div style="display:flex;flex-direction:column;gap:var(--s1);">
+              <span style="font-family:var(--font-display);font-weight:700;font-size:16px;">Vé cáp treo Vinpearl</span>
+              <span style="font-size:var(--fs-label);color:var(--c-text-muted);">Ngày đi 30/09 · 4 khách · 03 NL · 01 TE</span>
+            </div>
+            <div style="font-size:var(--fs-label);font-weight:600;color:var(--c-text-muted);">Đưa đón</div>
+            <div style="display:flex;flex-direction:column;gap:var(--s3);padding:var(--s3);border:1px solid var(--c-border);border-radius:var(--radius-sm);">
+              <div style="display:flex;align-items:center;gap:var(--s2);"><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Chip" tone="unit" hint-size="60px,18px">Chiều đi</x-import><span style="font-size:var(--fs-label);font-weight:700;">Chặng 1</span><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="link" style="margin-left:auto;" hint-size="80px,28px">Bỏ chặng</x-import></div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--s3);">
+                <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Field" type="date" label="Ngày đón" default-value="2026-09-30" hint="Bằng ngày đi" hint-size="100%,96px"></x-import>
+                <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Field" type="time" label="Giờ đón" default-value="12:00" hint-size="100%,72px"></x-import>
+                <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Field" as="select" label="Nơi đón" options="{{ places }}" default-value="sheraton" hint-size="100%,72px"></x-import>
+                <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Field" as="select" label="Nơi trả" options="{{ drops }}" default-value="gacap" hint-size="100%,72px"></x-import>
+              </div>
+              <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Banner" tone="warning" title="Giờ đón cách bây giờ 4 giờ 10 phút — dưới mốc 6 giờ" hint-size="100%,80px"><div style="margin-top:var(--s1);font-size:var(--fs-label);">Xếp xe gấp cần Quản trị duyệt đặt gấp.</div></x-import>
+              <div style="display:flex;flex-direction:column;gap:var(--s3);padding:var(--s3);background:var(--c-surface-alt);border-radius:var(--radius-sm);">
+                <span style="font-family:var(--font-display);font-weight:700;">Đặt gấp</span>
+                <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Field" as="select" label="Lý do" options="{{ rushReasons }}" default-value="doan" hint-size="100%,72px"></x-import>
+                <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Field" label="Ghi chú ngắn" default-value="Khách đoàn gọi lúc 07:40" count="24/80" hint-size="100%,72px"></x-import>
+                <div style="display:flex;gap:var(--s2);">
+                  <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="primary" dc-props="{{ nw }}" hint-size="150px,44px">Duyệt đặt gấp</x-import>
+                  <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" dc-props="{{ nw }}" hint-size="80px,44px">Đóng</x-import>
+                </div>
+              </div>
+            </div>
+            <div style="display:flex;gap:var(--s2);flex-wrap:wrap;">
+              <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="pill" dc-props="{{ nw }}" hint-size="130px,44px">+ Thêm chiều về</x-import>
+              <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="pill" dc-props="{{ nw }}" hint-size="120px,44px">+ Thêm chặng</x-import>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:var(--s3);padding:var(--s4);background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-md);box-shadow:var(--shadow-card);">
+            <span style="font-family:var(--font-display);font-weight:700;color:var(--c-primary);font-size:1.1rem;">Tóm tắt</span>
+            <div style="display:flex;justify-content:space-between;font-size:var(--fs-label);"><span>Vé cáp treo Vinpearl</span><strong>3.400.000 ₫</strong></div>
+            <div style="display:flex;justify-content:space-between;font-weight:700;"><span>Còn thu</span><span style="color:var(--c-accent-strong);font-weight:800;">3.400.000 ₫</span></div>
+            <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="primary" block="{{ true }}" hint-size="100%,44px">Lưu đơn nháp</x-import>
+            <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="accent" block="{{ true }}" disabled="{{ true }}" hint-size="100%,44px">Xác nhận đơn</x-import>
+            <span style="font-size:var(--fs-badge);color:var(--c-text-muted);">Duyệt đặt gấp xong thì xác nhận được.</span>
+          </div>
+        </div>
+      </dc-import>
+    </div>
+    <div id="7b" style="display:flex;flex-direction:column;gap:var(--s3);">
+      <div style="font-size:var(--fs-label);font-weight:800;">7b · Tạo đơn · 390 · Bán hàng</div>
+      <dc-import name="vo-dien-thoai" role="sales" title="Tạo đơn" tabs="{{ false }}" hint-size="390px,844px">
+        <div style="flex:1;padding:var(--s4);display:flex;flex-direction:column;gap:var(--s3);">
+          <div style="display:flex;flex-direction:column;gap:var(--s3);padding:var(--s4);background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-md);">
+            <span style="font-family:var(--font-display);font-weight:700;">Vé cáp treo Vinpearl</span>
+            <div style="display:flex;align-items:center;gap:var(--s2);"><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Chip" tone="unit" hint-size="60px,18px">Chiều đi</x-import><span style="font-size:var(--fs-label);font-weight:700;">Chặng 1</span></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--s3);">
+              <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Field" type="date" label="Ngày đón" default-value="2026-09-30" hint-size="100%,72px"></x-import>
+              <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Field" type="time" label="Giờ đón" default-value="12:00" hint-size="100%,72px"></x-import>
+            </div>
+            <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Field" as="select" label="Nơi đón" options="{{ places }}" default-value="sheraton" hint-size="100%,72px"></x-import>
+            <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Field" as="select" label="Nơi trả" options="{{ drops }}" default-value="gacap" hint-size="100%,72px"></x-import>
+            <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Banner" tone="warning" title="Giờ đón cách bây giờ 4 giờ 10 phút — dưới mốc 6 giờ" hint-size="100%,100px"><div style="margin-top:var(--s1);font-size:var(--fs-label);">Lưu nháp được. Xác nhận cần Quản trị duyệt đặt gấp.</div></x-import>
+          </div>
+        </div>
+        <div style="position:sticky;bottom:0;display:flex;flex-direction:column;gap:var(--s2);padding:var(--s3) var(--s4) 34px;background:var(--c-surface);border-top:1px solid var(--c-border);">
+          <div style="display:flex;justify-content:space-between;"><span>Còn thu</span><strong style="color:var(--c-accent);">3.400.000 ₫</strong></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--s2);">
+            <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="primary" hint-size="100%,44px">Lưu đơn nháp</x-import>
+            <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="accent" disabled="{{ true }}" hint-size="100%,44px">Xác nhận đơn</x-import>
+          </div>
+          <div style="display:flex;align-items:center;gap:var(--s1);font-size:var(--fs-label);font-weight:700;color:var(--c-sand-text);"><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Icon" name="lock" size="{{ 16 }}" hint-size="16px,16px"></x-import>Cần Quản trị duyệt đặt gấp</div>
+        </div>
+      </dc-import>
+    </div>
+    <div id="7c" style="display:flex;flex-direction:column;gap:var(--s3);">
+      <div style="font-size:var(--fs-label);font-weight:800;">7c · Chặng đã duyệt đặt gấp · 390</div>
+      <dc-import name="vo-dien-thoai" role="sales" title="TD-20260930-0019" tabs="{{ false }}" hint-size="390px,844px">
+        <div style="flex:1;padding:var(--s4);display:flex;flex-direction:column;gap:var(--s3);">
+          <div style="display:flex;flex-direction:column;gap:var(--s3);padding:var(--s4);background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-md);">
+            <span style="font-family:var(--font-display);font-weight:700;">Vé cáp treo Vinpearl</span>
+            <div style="display:flex;align-items:center;gap:var(--s2);flex-wrap:wrap;"><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Chip" tone="unit" hint-size="60px,18px">Chiều đi</x-import><span style="font-size:var(--fs-label);font-weight:700;">30/09 · 12:00</span></div>
+            <div style="font-size:var(--fs-label);font-weight:600;">Sheraton Nha Trang → Ga cáp treo Vinpearl</div>
+            <div style="display:flex;align-items:flex-start;gap:var(--s2);padding:var(--s2) var(--s3);border-radius:var(--radius-sm);background:var(--c-primary-soft);color:var(--c-primary);font-size:var(--fs-label);font-weight:700;line-height:1.45;">
+              <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Icon" name="doc-check" size="{{ 16 }}" style="margin-top:2px;" hint-size="16px,16px"></x-import>
+              <span>Đặt gấp — Khách đoàn gọi gấp — Phạm Thu Hoa duyệt 07:55<br><span style="font-weight:500;">“Khách đoàn gọi lúc 07:40”</span></span>
+            </div>
+          </div>
+        </div>
+        <div style="position:sticky;bottom:0;display:flex;flex-direction:column;gap:var(--s2);padding:var(--s3) var(--s4) 34px;background:var(--c-surface);border-top:1px solid var(--c-border);">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--s2);">
+            <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="primary" hint-size="100%,44px">Lưu đơn nháp</x-import>
+            <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="accent" hint-size="100%,44px">Xác nhận đơn</x-import>
+          </div>
+        </div>
+      </dc-import>
+    </div>
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      nw: { style: { whiteSpace: 'nowrap' } },
+      places: [
+        { value: 'sheraton', label: 'Sheraton Nha Trang · khách sạn' },
+        { value: 'camranh', label: 'Sân bay Cam Ranh · sân bay' },
+        { value: 'gacap', label: 'Ga cáp treo Vinpearl · ga cáp treo' },
+        { value: 'cang', label: 'Bến cảng Vinpearl · bến' },
+        { value: 'tu-do', label: 'Gõ tự do…' },
+      ],
+      drops: [
+        { value: '', label: 'Chưa chốt' },
+        { value: 'gacap', label: 'Ga cáp treo Vinpearl · ga cáp treo' },
+        { value: 'cang', label: 'Bến cảng Vinpearl · bến' },
+        { value: 'sheraton', label: 'Sheraton Nha Trang · khách sạn' },
+      ],
+      rushReasons: [
+        { value: 'doan', label: 'Khách đoàn gọi gấp' },
+        { value: 'bay', label: 'Chuyến bay đổi giờ' },
+        { value: 'bu', label: 'Đơn bù cho khách bị lỡ chuyến' },
+        { value: 'khac', label: 'Lý do khác' },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

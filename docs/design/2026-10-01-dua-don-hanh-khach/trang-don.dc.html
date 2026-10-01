@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/tour-o-booking-design-system-34f284df-c97a-4672-bb66-d7df03a0d97a/styles.css">
+<script src="_ds/tour-o-booking-design-system-34f284df-c97a-4672-bb66-d7df03a0d97a/_ds_bundle.js"></script>
+</helmet>
+<div style="display:flex;flex-direction:column;gap:var(--s4);font-family:var(--font);color:var(--c-text);font-size:var(--fs-ui);">
+  <sc-if value="{{ coNut }}" hint-placeholder-val="{{ true }}">
+    <div style="display:flex;flex-wrap:wrap;gap:var(--s3);">
+      <sc-if value="{{ nutSua }}" hint-placeholder-val="{{ false }}"><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" dc-props="{{ nw }}" href="#" hint-size="70px,44px">Sửa</x-import></sc-if>
+      <sc-if value="{{ nutXacNhan }}" hint-placeholder-val="{{ false }}"><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" dc-props="{{ nw }}" variant="accent" hint-size="130px,44px">Xác nhận đơn</x-import></sc-if>
+      <sc-if value="{{ nutSuaChuyen }}" hint-placeholder-val="{{ true }}"><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" dc-props="{{ nw }}" variant="primary" hint-size="190px,44px">Sửa thông tin chuyến</x-import></sc-if>
+      <sc-if value="{{ nutHuy }}" hint-placeholder-val="{{ true }}"><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" dc-props="{{ nw }}" variant="danger" hint-size="100px,44px">Huỷ đơn</x-import></sc-if>
+    </div>
+  </sc-if>
+  <div style="display:flex;">
+    <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" dc-props="{{ nw }}" variant="primary" hint-size="140px,44px">Xem biên nhận</x-import>
+  </div>
+  <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.SummaryBand" code="{{ ma }}" status="{{ trangThai }}" items="{{ dai }}" stacked="{{ hep }}" hint-size="100%,150px"></x-import>
+  <p style="margin:0;color:var(--c-text-muted);font-size:.9rem;">{{ lap }}</p>
+  <sc-if value="{{ coKhoa }}" hint-placeholder-val="{{ true }}">
+    <p style="display:flex;align-items:center;gap:var(--s2);margin:0;padding:var(--s3);font-size:var(--fs-label);font-weight:600;color:var(--c-primary);background:var(--c-primary-soft);border-radius:var(--radius-sm);"><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Icon" name="lock" size="{{ 18 }}" style="flex:none;" hint-size="18px,18px"></x-import>{{ cauKhoa }}</p>
+  </sc-if>
+  <div style="display:grid;grid-template-columns:{{ cot }};gap:var(--s5);align-items:start;">
+    <div style="display:flex;flex-direction:column;gap:var(--s4);min-width:0;">
+      <sc-if value="{{ coPhuTrach }}" hint-placeholder-val="{{ true }}">
+        <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Card" title="Người phụ trách" hint-size="100%,120px">
+          <p style="margin:0;font-size:var(--fs-title);font-weight:800;overflow-wrap:anywhere;">{{ phuTrach }}</p>
+          <sc-if value="{{ nutPhuTrach }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;margin-top:var(--s3);"><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" dc-props="{{ nw }}" hint-size="190px,44px">Đổi người phụ trách</x-import></div>
+          </sc-if>
+        </x-import>
+      </sc-if>
+      <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Card" title="Khách hàng" hint-size="100%,220px">
+        <div style="display:flex;justify-content:space-between;gap:var(--s4);padding:4px 0;"><span style="flex:none;color:var(--c-text-muted);font-size:.9rem;">Tên</span><span style="text-align:right;overflow-wrap:anywhere;">{{ khach }}</span></div>
+        <div style="display:flex;justify-content:space-between;gap:var(--s4);padding:4px 0;"><span style="flex:none;color:var(--c-text-muted);font-size:.9rem;">Số điện thoại</span><span style="text-align:right;">{{ sdt }}</span></div>
+        <div style="display:flex;justify-content:space-between;gap:var(--s4);padding:4px 0;"><span style="flex:none;color:var(--c-text-muted);font-size:.9rem;">Email</span><span>—</span></div>
+        <div style="display:flex;justify-content:space-between;gap:var(--s4);padding:4px 0;"><span style="flex:none;color:var(--c-text-muted);font-size:.9rem;">Ghi chú</span><span>—</span></div>
+        <div style="display:flex;justify-content:space-between;gap:var(--s4);padding:4px 0;"><span style="flex:none;color:var(--c-text-muted);font-size:.9rem;">Hồ sơ khách</span><span>—</span></div>
+        <sc-if value="{{ nutDoiKhach }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;margin-top:var(--s3);"><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" dc-props="{{ nw }}" hint-size="110px,44px">Đổi khách</x-import></div>
+        </sc-if>
+      </x-import>
+      <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Card" title="Đưa đón" hint-size="100%,260px">
+        <div style="display:flex;flex-direction:column;gap:var(--s3);">
+          <sc-for list="{{ dvs }}" as="d" hint-placeholder-count="1">
+            <div style="display:flex;flex-direction:column;">
+              <span style="font-family:var(--font-display);font-weight:700;padding-bottom:var(--s1);">{{ d.ten }}</span>
+              <sc-for list="{{ d.legs }}" as="l" hint-placeholder-count="2">
+                <div style="display:flex;flex-direction:column;gap:var(--s1);padding:var(--s3) 0;border-bottom:1px solid var(--c-border);">
+                  <div style="display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2);">
+                    <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Chip" tone="unit" hint-size="60px,18px">{{ l.chieu }}</x-import>
+                    <span style="font-family:var(--font-display);font-weight:700;font-variant-numeric:tabular-nums;">{{ l.ngayGio }}</span>
+                    <sc-if value="{{ l.chuaGio }}" hint-placeholder-val="{{ false }}">
+                      <span style="display:inline-flex;align-items:center;gap:var(--s1);font-weight:700;color:var(--c-sand-text);"><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Icon" name="alert" size="{{ 16 }}" hint-size="16px,16px"></x-import>Chưa chốt giờ</span>
+                    </sc-if>
+                    <sc-if value="{{ l.coBay }}" hint-placeholder-val="{{ false }}">
+                      <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Chip" tone="code" hint-size="70px,18px">{{ l.bay }}</x-import>
+                    </sc-if>
+                    <sc-if value="{{ l.coSoVe }}" hint-placeholder-val="{{ false }}">
+                      <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Chip" tone="muted" hint-size="70px,18px">{{ l.soVe }}</x-import>
+                    </sc-if>
+                  </div>
+                  <div style="display:flex;flex-wrap:wrap;align-items:baseline;gap:0 var(--s2);font-weight:600;overflow-wrap:anywhere;">
+                    <span>{{ l.tu }}</span>
+                    <span style="color:var(--c-text-muted);">→</span>
+                    <sc-if value="{{ l.coTra }}" hint-placeholder-val="{{ true }}"><span>{{ l.den }}</span></sc-if>
+                    <sc-if value="{{ l.chuaTra }}" hint-placeholder-val="{{ false }}">
+                      <span style="display:inline-flex;align-items:center;gap:var(--s1);font-weight:700;color:var(--c-sand-text);"><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Icon" name="alert" size="{{ 16 }}" hint-size="16px,16px"></x-import>Chưa chốt nơi trả</span>
+                    </sc-if>
+                  </div>
+                  <sc-if value="{{ l.nhacGio }}" hint-placeholder-val="{{ false }}"><span style="font-size:var(--fs-label);color:var(--c-sand-text);">Cần giờ đón trước khi xếp xe</span></sc-if>
+                  <sc-if value="{{ l.nhacTra }}" hint-placeholder-val="{{ false }}"><span style="font-size:var(--fs-label);color:var(--c-sand-text);">Cần nơi trả trước khi xếp xe</span></sc-if>
+                </div>
+              </sc-for>
+            </div>
+          </sc-for>
+          <sc-if value="{{ nutDuaDon }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s3);">
+              <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" dc-props="{{ nw }}" href="{{ linkSua }}" hint-size="140px,44px">Sửa đưa đón</x-import>
+              <sc-if value="{{ laNhap }}" hint-placeholder-val="{{ false }}"><span style="font-size:var(--fs-label);color:var(--c-text-muted);">Đơn nháp — sửa trong biểu mẫu đơn.</span></sc-if>
+            </div>
+          </sc-if>
+        </div>
+      </x-import>
+      <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Card" title="Hành khách" hint-size="100%,260px">
+        <div style="display:flex;flex-direction:column;gap:var(--s3);">
+          <div style="display:flex;align-items:center;gap:var(--s2);flex-wrap:wrap;">
+            <span style="display:inline-flex;color:var(--c-primary);"><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Icon" name="guests" size="{{ 18 }}" hint-size="18px,18px"></x-import></span>
+            <span style="font-family:var(--font-display);font-weight:800;font-size:var(--fs-stat-sm);color:var(--c-primary);font-variant-numeric:tabular-nums;">{{ dem }}</span>
+            <span style="font-weight:700;">khách đã có tên</span>
+          </div>
+          <sc-if value="{{ coThieu }}" hint-placeholder-val="{{ false }}">
+            <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Note" tone="warn" hint-size="100%,40px"><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Icon" name="alert" size="{{ 16 }}" style="flex:none;" hint-size="16px,16px"></x-import>{{ cauThieu }}</x-import>
+          </sc-if>
+          <sc-if value="{{ trongHk }}" hint-placeholder-val="{{ false }}">
+            <p style="margin:0;color:var(--c-text-muted);">Chưa có hành khách nào.</p>
+          </sc-if>
+          <div style="display:flex;flex-direction:column;">
+            <sc-for list="{{ hk }}" as="h" hint-placeholder-count="3">
+              <div style="display:flex;flex-wrap:wrap;align-items:baseline;gap:var(--s1) var(--s3);padding:var(--s2) 0;border-bottom:1px solid var(--c-border);">
+                <span style="flex:1 1 180px;min-width:0;font-weight:700;overflow-wrap:anywhere;"><span style="color:var(--c-text-muted);font-weight:600;font-variant-numeric:tabular-nums;">{{ h.so }}.</span> {{ h.ten }}</span>
+                <span style="color:var(--c-text-muted);font-variant-numeric:tabular-nums;">{{ h.nam }} · {{ h.loai }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <sc-if value="{{ nutDs }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;"><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" dc-props="{{ nw }}" href="{{ linkSuaDs }}" hint-size="150px,44px">Sửa danh sách</x-import></div>
+          </sc-if>
+        </div>
+      </x-import>
+      <div style="display:flex;flex-direction:column;gap:var(--s3);">
+        <h2 style="margin:0;font-family:var(--font-display);color:var(--c-primary);font-size:1.1rem;">Dịch vụ</h2>
+        <sc-for list="{{ dvs }}" as="d" hint-placeholder-count="1">
+          <article style="display:flex;flex-direction:column;gap:var(--s3);padding:var(--s4);background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-md);box-shadow:var(--shadow-card);">
+            <div>
+              <h3 style="margin:0;font-family:var(--font-display);font-size:var(--fs-ui);font-weight:700;line-height:1.3;text-wrap:pretty;">{{ d.ten }}</h3>
+              <div style="display:flex;flex-wrap:wrap;gap:var(--s1);margin-top:var(--s1);">
+                <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Chip" tone="unit" hint-size="50px,18px">{{ d.unit }}</x-import>
+                <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Chip" tone="code" hint-size="70px,18px">{{ d.ma }}</x-import>
+              </div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;gap:var(--s4);padding:4px 0;"><span style="color:var(--c-text-muted);font-size:.9rem;">Số khách</span><span style="display:inline-flex;align-items:center;gap:var(--s1);text-align:right;"><sc-if value="{{ khoa }}" hint-placeholder-val="{{ true }}"><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Icon" name="lock" size="{{ 16 }}" hint-size="16px,16px"></x-import></sc-if>{{ d.soKhach }}</span></div>
+              <div style="display:flex;justify-content:space-between;gap:var(--s4);padding:4px 0;"><span style="color:var(--c-text-muted);font-size:.9rem;">Khởi hành</span><span>{{ d.khoiHanh }}</span></div>
+            </div>
+            <sc-if value="{{ d.datGap }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;gap:var(--s2);">
+                <div style="display:flex;"><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Chip" tone="unit" hint-size="60px,18px">Chiều đi</x-import></div>
+                <div style="display:flex;align-items:flex-start;gap:var(--s2);padding:var(--s2) var(--s3);border-radius:var(--radius-sm);background:var(--c-primary-soft);color:var(--c-primary);font-size:var(--fs-label);font-weight:700;line-height:1.45;">
+                  <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Icon" name="doc-check" size="{{ 16 }}" style="margin-top:2px;" hint-size="16px,16px"></x-import>
+                  <span>Đặt gấp — Khách đoàn gọi gấp — Phạm Thu Hoa duyệt 03:25<br><span style="font-weight:500;">“Khách đoàn gọi lúc 03:10”</span></span>
+                </div>
+              </div>
+            </sc-if>
+            <div>
+              <sc-for list="{{ d.dong }}" as="x" hint-placeholder-count="2">
+                <div style="display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:var(--s3);row-gap:var(--s1);padding:var(--s2) 0;border-bottom:1px solid var(--c-border);">
+                  <span style="font-weight:600;">{{ x.n }}</span>
+                  <span style="font-weight:800;font-variant-numeric:tabular-nums;text-align:right;">{{ x.t }}</span>
+                  <span style="grid-column:1 / -1;color:var(--c-text-muted);font-size:var(--fs-label);">{{ x.c }}</span>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;font-weight:700;"><span style="display:inline-flex;align-items:center;gap:var(--s1);"><sc-if value="{{ khoa }}" hint-placeholder-val="{{ true }}"><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Icon" name="lock" size="{{ 16 }}" hint-size="16px,16px"></x-import></sc-if>Tổng dịch vụ</span><span>{{ d.tong }}</span></div>
+          </article>
+        </sc-for>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:var(--s4);min-width:0;">
+      <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Card" title="Thanh toán" hint-size="100%,260px">
+        <div style="display:flex;justify-content:space-between;gap:var(--s4);padding:4px 0;"><span style="color:var(--c-text-muted);font-size:.9rem;">Tạm tính</span><span>{{ tien.tam }}</span></div>
+        <div style="display:flex;justify-content:space-between;gap:var(--s4);padding:4px 0;"><span style="color:var(--c-text-muted);font-size:.9rem;">Giảm giá</span><span>{{ tien.giam }}</span></div>
+        <div style="display:flex;justify-content:space-between;gap:var(--s4);padding:4px 0;font-weight:800;color:var(--c-accent);font-size:1.1rem;"><span>Tổng cộng</span><span>{{ tien.tong }}</span></div>
+        <div style="display:flex;justify-content:space-between;gap:var(--s4);padding:4px 0;"><span style="color:var(--c-text-muted);font-size:.9rem;">Đã thu</span><span>{{ tien.thu }}</span></div>
+        <div style="display:flex;justify-content:space-between;gap:var(--s4);padding:4px 0;font-weight:800;color:var(--c-accent);font-size:1.1rem;"><span>Còn lại</span><span>{{ tien.con }}</span></div>
+        <div style="display:flex;justify-content:space-between;gap:var(--s4);padding:4px 0;"><span style="color:var(--c-text-muted);font-size:.9rem;">Ghi chú thanh toán</span><span>—</span></div>
+        <sc-if value="{{ nutGhiThu }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;margin-top:var(--s3);"><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" dc-props="{{ nw }}" hint-size="120px,44px">Ghi lần thu</x-import></div>
+        </sc-if>
+      </x-import>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:760,&quot;height&quot;:1600},&quot;don&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;1&quot;,&quot;2&quot;,&quot;3&quot;],&quot;default&quot;:&quot;1&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;vai&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;sales&quot;,&quot;admin&quot;,&quot;accountant&quot;,&quot;guide&quot;,&quot;partner&quot;],&quot;default&quot;:&quot;sales&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;hep&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;soKhachDiXe&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+const DON = {
+  '1': {
+    ma: 'TD-20260928-0011', tt: 'confirmed', lap: 'Lập 28/09/2026 15:40 bởi Lê Thị Trang · Xác nhận 28/09/2026 16:05',
+    khach: 'Nguyễn Văn An', sdt: '09xx xxx xxx', phuTrach: 'Lê Thị Trang',
+    don: { ngay: '30/09 · 07:30', noi: 'Khách sạn Mường Thanh Luxury Nha Trang' }, soKhachCong: '3 người lớn, 1 trẻ em', diXe: 4,
+    dv: [{
+      ten: 'Vé cáp treo Vinpearl', unit: '/ khách', ma: 'CT-VP-01', soKhach: '3 người lớn, 1 trẻ em', khoiHanh: '30/09', datGap: true,
+      dong: [{ n: 'Người lớn', t: '2.850.000 ₫', c: '3 × 950.000 ₫' }, { n: 'Trẻ em', t: '550.000 ₫', c: '1 × 550.000 ₫' }], tong: '3.400.000 ₫',
+      legs: [
+        { chieu: 'Chiều đi', ngay: '30/09', gio: '07:30', tu: 'Khách sạn Mường Thanh Luxury Nha Trang', den: 'Ga cáp treo Vinpearl' },
+        { chieu: 'Chiều về', ngay: '30/09', gio: '16:30', tu: 'Ga cáp treo Vinpearl', den: 'Khách sạn Mường Thanh Luxury Nha Trang', soVe: 2 },
+      ],
+    }],
+    hk: [['Nguyễn Văn An', '1985', 'Người lớn'], ['Trần Thị Bình', '1988', 'Người lớn'], ['Nguyễn Minh Khôi', '2015', 'Trẻ em']],
+    tien: { tam: '3.400.000 ₫', giam: '0 ₫', tong: '3.400.000 ₫', thu: '1.000.000 ₫', con: '2.400.000 ₫', conSo: 2400000, tongSo: '3.400.000 ₫', thuSo: '1.000.000 ₫' },
+  },
+  '2': {
+    ma: 'TD-20260929-0004', tt: 'draft', lap: 'Lập 29/09/2026 10:15 bởi Lê Thị Trang',
+    khach: 'Trần Thị Bình', sdt: '09xx xxx xxx', phuTrach: 'Lê Thị Trang',
+    don: { ngay: '30/09 · 08:00', noi: 'Khách sạn Sheraton Nha Trang' }, soKhachCong: '2 người lớn', diXe: 2,
+    dv: [{
+      ten: 'Tour 4 đảo', unit: '/ khách', ma: 'TD-4D-01', soKhach: '2 người lớn', khoiHanh: '30/09',
+      dong: [{ n: 'Người lớn', t: '1.300.000 ₫', c: '2 × 650.000 ₫' }], tong: '1.300.000 ₫',
+      legs: [
+        { chieu: 'Chiều đi', ngay: '30/09', gio: '08:00', tu: 'Khách sạn Sheraton Nha Trang', den: 'Cảng Cầu Đá' },
+        { chieu: 'Chiều về', ngay: '30/09', gio: '', tu: 'Cảng Cầu Đá', den: '' },
+      ],
+    }],
+    hk: [],
+    tien: { tam: '1.300.000 ₫', giam: '0 ₫', tong: '1.300.000 ₫', thu: '0 ₫', con: '1.300.000 ₫', conSo: 1300000, tongSo: '1.300.000 ₫', thuSo: '0 ₫' },
+  },
+  '3': {
+    ma: 'TD-20260929-0003', tt: 'confirmed', lap: 'Lập 29/09/2026 09:20 bởi Lê Thị Trang · Xác nhận 29/09/2026 09:35',
+    khach: 'Lê Thị Hồng', sdt: '09xx xxx xxx', phuTrach: 'Phan Văn Hải',
+    don: { ngay: '29/09 · 22:30', noi: 'Nhà riêng — 12 đường Số 5, phường Ví Dụ' }, soKhachCong: '2 người lớn', diXe: 2,
+    dv: [{
+      ten: 'Đưa đón sân bay', unit: '/ lượt', ma: 'DD-SB-01', soKhach: '2 người lớn', khoiHanh: '30/09',
+      dong: [{ n: 'Giá mỗi lượt', t: '350.000 ₫', c: '1 × 350.000 ₫' }], tong: '350.000 ₫',
+      legs: [{ chieu: 'Chiều đi', ngay: '29/09', gio: '22:30', tu: 'Nhà riêng — 12 đường Số 5, phường Ví Dụ', den: 'Sân bay Cam Ranh', bay: 'VN1553' }],
+    }],
+    hk: [['Lê Thị Hồng', '1952', 'Người cao tuổi'], ['Trần Thị Bình', '1988', 'Người lớn']],
+    tien: { tam: '350.000 ₫', giam: '0 ₫', tong: '350.000 ₫', thu: '350.000 ₫', con: '0 ₫', conSo: 0, tongSo: '350.000 ₫', thuSo: '350.000 ₫' },
+  },
+};
+
+class Component extends DCLogic {
+  renderVals() {
+    const d = DON[this.props.don ?? '1'] ?? DON['1'];
+    const vai = this.props.vai ?? 'sales';
+    const hep = this.props.hep ?? false;
+    const diXe = this.props.soKhachDiXe ?? true;
+    const vp = vai === 'sales' || vai === 'admin' || vai === 'owner';
+    const tuLap = vai === 'partner' || vai === 'intern';
+    const daXN = d.tt === 'confirmed';
+    const NS = window.TourOBookingDesignSystem_34f284;
+    const mau = diXe ? d.diXe : d.dv.reduce((s, x) => s + Number(x.soKhach.match(/\d+/g).reduce((a, b) => a + Number(b), 0)), 0);
+    const du = d.hk.length;
+    const cauKhoa = vp ? 'Đơn đã xác nhận: dịch vụ, số khách và tiền đã khoá. Chỉ sửa được thông tin chuyến, đưa đón và danh sách hành khách.'
+      : tuLap ? 'Đơn đã xác nhận: dịch vụ, số khách và tiền đã khoá. Chỉ sửa được danh sách hành khách.'
+      : 'Đơn đã xác nhận: dịch vụ, số khách và tiền đã khoá.';
+    const nutSua = vp && !daXN, nutXacNhan = vp && !daXN, nutSuaChuyen = vp && daXN, nutHuy = vp;
+    return {
+      hep, khoa: daXN, nw: { style: { whiteSpace: 'nowrap' } },
+      coNut: nutSua || nutXacNhan || nutSuaChuyen || nutHuy, nutSua, nutXacNhan, nutSuaChuyen, nutHuy,
+      ma: d.ma,
+      trangThai: NS ? React.createElement('span', null, React.createElement(NS.Badge, { status: d.tt })) : null,
+      dai: [
+        { label: 'ĐÓN', value: d.don.ngay, sub: d.don.noi },
+        { label: 'KHÁCH', value: d.khach, sub: d.sdt },
+        { label: 'SỐ KHÁCH', value: diXe ? `${d.diXe} khách đi xe` : d.soKhachCong, sub: d.dv.map((x) => x.ten).join(', ') },
+        { label: 'CÒN LẠI', value: d.tien.con, sub: `Tổng ${d.tien.tongSo} · đã thu ${d.tien.thuSo}`, due: d.tien.conSo > 0 },
+      ],
+      lap: d.lap, coKhoa: daXN, cauKhoa,
+      cot: hep ? 'minmax(0,1fr)' : 'minmax(0,1fr) var(--w-side)',
+      coPhuTrach: !tuLap, phuTrach: d.phuTrach, nutPhuTrach: vp,
+      khach: d.khach, sdt: d.sdt, nutDoiKhach: vp && daXN,
+      dvs: d.dv.map((x) => ({
+        ...x,
+        legs: x.legs.map((l) => ({
+          ...l,
+          ngayGio: l.gio ? `${l.ngay} · ${l.gio}` : l.ngay,
+          chuaGio: !l.gio, coTra: !!l.den, chuaTra: !l.den,
+          nhacGio: vp && !l.gio, nhacTra: vp && !l.den,
+          coBay: !!l.bay, bay: l.bay ? `✈\uFE0E ${l.bay}` : '',
+          coSoVe: !!l.soVe, soVe: l.soVe ? `${l.soVe} người về` : '',
+        })),
+      })),
+      nutDuaDon: vp, laNhap: !daXN, linkSua: '#', linkSuaDs: '#',
+      nutDs: vp || tuLap,
+      dem: `${du}/${mau}`, coThieu: du > 0 && du < mau, cauThieu: `Còn ${mau - du} khách chưa có tên — cần đủ trước khi xe chạy`,
+      trongHk: du === 0,
+      hk: d.hk.map((h, i) => ({ so: i + 1, ten: h[0], nam: h[1], loai: h[2] })),
+      tien: d.tien, nutGhiThu: vp && daXN,
+    };
+  }
+}
+</script>
+</body>
+</html>
