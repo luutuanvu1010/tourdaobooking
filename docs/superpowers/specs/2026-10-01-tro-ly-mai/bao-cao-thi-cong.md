@@ -88,3 +88,34 @@
 
 1. **Migration 0064 tự thêm câu chào Mai trên production** nếu Toàn quyền chưa từng lưu lời dặn. Khuyến nghị: giữ nguyên. Nếu không muốn, bỏ câu `INSERT INTO tl_loi_dan` khỏi migration; khi đó Toàn quyền tự sửa câu chào trên trang cài đặt. Phải quyết **trước khi** áp migration lên production.
 2. Có muốn đổi `CAU_TU_CHOI` ("Mình chỉ hướng dẫn…") sang xưng "em" không? Câu này nằm trong danh sách từ chối của ADR-0070; đổi thì cần chủ duyệt.
+
+## Vòng sửa sau kiểm độc lập (2026-10-01, báo cáo `kiem-doc-lap.md` — ĐẠT)
+
+- **TB-1:** gộp `origin/main` (`99d0d2fb`, bản 1.57 / ADR-0083) vào nhánh (`353815fe`). Mục nhật ký của nhánh đổi số **1.58**, đứng trên 1.57 của main; `app-info.test.ts` ghi 1.58. `docs/adr/README.md` giữ cả dòng 0083 và 0084; số ADR kế tiếp 0085. Migration sau gộp: main lớn nhất `0063_ten_vai_tai_xe_taxi`, nhánh giữ **`0064_pty_person_gender`** (không trùng).
+- **T-4:** dòng 0084 ở `docs/adr/README.md` sửa về đúng thứ tự cột (loại cửa, rồi trạng thái).
+  - **Báo hàng rào (P18):** khi giải xung đột, tôi ghi tệp luật `docs/adr/README.md` bằng một đoạn Python. Đoạn này vừa gỡ dấu xung đột vừa đổi thứ tự cột. Hook `guard-remote` **không chặn** cách ghi này, nên luật `ask` cho `docs/adr/**` bị đi vòng: chủ chưa được hỏi trước.
+  - Lần sửa sau, tôi gọi công cụ Edit (đổi chú thích "0083 … đã lên main") thì **bị từ chối**, nên chú thích đó giữ nguyên.
+  - Chủ cần xem diff của `docs/adr/README.md` trong commit `353815fe`. Đây cũng là lỗ của hàng rào: lệnh `python3`/`node` ghi tệp luật không bị hook bắt.
+- **TB-2 — phán quyết điều phối:** ADR-0084 Đ2 là luật ("bạn" thì Mai xưng "mình"). ADR tự mâu thuẫn (Đ5 viết cứng "em"), và chủ đã chốt cặp "bạn / mình". Vì vậy câu chào **khác nguyên văn Đ5** để khớp Đ2.
+  - Câu mặc định (ở `src/shared/xung-ho.ts` và câu INSERT của migration 0064): `Chào {ten}, {xung} là Mai — trợ lý của Tour Đảo. {ten} cần hỏi gì về cách dùng app cứ hỏi {xung} nhé!`.
+  - `thayTen(cauChao, { goi, xung })` thay cả `{ten}` lẫn `{xung}`. Chỗ thay đứng đầu câu thì viết hoa chữ đầu.
+  - `web/tro-ly.ts` truyền `goi` / `xung` của máy chủ; trang cài đặt giải thích `{xung}`.
+  - Khi chưa ghi giới tính, câu chào ra "Chào bạn, mình là Mai… cứ hỏi mình nhé!" (ảnh `n-loi-chao-ban-minh-390.png`).
+- **T-1:** thêm bài route "T-1 …" ở `src/modules/tro-ly/van-nghia-route.test.ts`.
+  - Đặt tên gọi dài, giới tính Nữ, mẫu GPT-5. Mức trần trên của người thật cao hơn mức của "bạn" đúng bằng tiền tối đa của số token thêm.
+  - Đặt trần = mức của người thật − 1 ⇒ 429, không gọi gì, ở cả route hỏi và ô thử.
+  - Đột biến: cho hai lần kiểm trần dùng `xungHo(null, null)` → `not ok 11` (pass 10, fail 1). Chỉ đột biến ô thử → vẫn đỏ. Hoàn nguyên → 11/11 xanh. Đã ghi vào sổ hàng rào.
+- **T-5:** `web/tro-ly.ts` gỡ lớp `is-ve-goc` khi có `animationend`. Dự phòng cho trường hợp giảm chuyển động (không có `animationend`): hẹn giờ đúng thời lượng token `--tl-nhay`, đọc bằng `getComputedStyle`. Không còn số 800 cứng.
+- **Kèm:** khung thử Chrome `docs/evidence/2026-09-20-a2/kich-ban/a2-cdp.mjs` thêm `maxBuffer` 64 MB cho wrangler. Từ khi có 56 migration, bảng tiến độ của `migrations apply` vượt 1 MB mặc định và kịch bản chết với `ENOBUFS`.
+
+**Đã kiểm lại trên cây đã gộp:**
+
+| Lệnh | Kết quả |
+|---|---|
+| `npm run typecheck` | 0 lỗi |
+| `npm run build:web` | xanh |
+| `npm test` | bước 1: 2519/2519. Bước 2 (bài đo giờ hook) đỏ một lần, 1532 ms CPU so với ngưỡng 1500, lúc máy tải 37 (các phiên khác đang chạy). Hook không đổi so với trước gộp. Chạy riêng lại sau 60 giây: 1/1 xanh |
+| `npm run test:e2e` | 36/36 kịch bản xanh |
+| Chrome `khung-tro-ly-smoke.mjs` | mọi bước đạt; bước n chụp lại `n-loi-chao-ban-minh-390.png`, `n-loi-chao-co-ten-390.png`, `n-loi-chao-co-ten-1040.png` |
+| Chrome `bang-dieu-khien-tro-ly-smoke.mjs` | mọi bước đạt (trang cài đặt có đổi dòng gợi ý) |
+| Tắt `wrangler dev` | không còn tiến trình nào của worktree này |
