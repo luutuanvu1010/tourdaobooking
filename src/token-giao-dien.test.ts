@@ -61,3 +61,43 @@ test("màu theo vai: thanh, nút chính, mảng đậm không trỏ thẳng màu
   }
   assert.deepEqual(loi, [], "luật thanh/nút trỏ thẳng --c-primary/--c-primary-strong/--c-on-dark/#fff — dùng token vai");
 });
+
+// Tương phản chữ/nền của các cặp token vai (chủ dự án 2026-10-02: chữ mảnh cần màu đủ tối). Dò chuỗi var() về hex rồi đo theo WCAG 2.x.
+const tokens = new Map([...root.matchAll(/\n\s*(--[\w-]+):\s*([^;]+);/g)].map((m) => [m[1]!, m[2]!.trim()] as const));
+function hex(v: string, sau = 0): string {
+  const m = /^var\((--[\w-]+)\)$/.exec(v);
+  if (m) {
+    assert.ok(sau < 10, `chuỗi var() quá sâu ở ${v}`);
+    const tiep = tokens.get(m[1]!);
+    assert.ok(tiep, `${m[1]} chưa khai ở :root`);
+    return hex(tiep, sau + 1);
+  }
+  assert.match(v, /^#[0-9a-fA-F]{6}$/, `giá trị ${v} không dò được về hex 6 chữ số`);
+  return v.toLowerCase();
+}
+function doSang(h: string): number {
+  const kenh = [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255).map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
+  return 0.2126 * kenh[0]! + 0.7152 * kenh[1]! + 0.0722 * kenh[2]!;
+}
+function tuongPhan(chu: string, nen: string): number {
+  const [x, y] = [doSang(hex(`var(${chu})`)), doSang(hex(`var(${nen})`))].sort((p, q) => q - p);
+  return (x! + 0.05) / (y! + 0.05);
+}
+
+test("màu theo vai: mọi cặp chữ/nền của thanh, nút chính, mục đang chọn đạt ≥ 4,5:1", () => {
+  const cap: [string, string][] = [
+    ["--c-on-bar", "--c-bar-bg"],
+    ["--c-sidebar-item", "--c-sidebar-bg"],
+    ["--c-sidebar-title", "--c-sidebar-bg"],
+    ["--c-sidebar-text-on", "--c-sidebar-bg"],
+    ["--c-sidebar-text-on", "--c-sidebar-active"],
+    ["--c-sidebar-badge-text", "--c-sidebar-badge"],
+    ["--c-btn-primary-text", "--c-btn-primary-bg"],
+    ["--c-btn-primary-text", "--c-btn-primary-hover-bg"],
+    ["--c-selected-text", "--c-selected-bg"],
+    ["--c-tab-new-icon", "--c-tab-new-bg"],
+    ["--c-on-band", "--c-band-bg"],
+  ];
+  const loi = cap.map(([chu, nen]) => `${chu} trên ${nen}: ${tuongPhan(chu, nen).toFixed(2)}:1`).filter((_, i) => tuongPhan(...cap[i]!) < 4.5);
+  assert.deepEqual(loi, []);
+});

@@ -304,7 +304,9 @@ route("PUT", "/api/foo/:id", "office", async ({ env, request, params, staff }) =
 - Đổi giá trị ở `:root` của `public/app.css` (nhóm "Riêng của Island Booking System" dành cho token mới).
 - Khối SAU dấu mốc `/* ---------- app iPhone (PWA)` CHỈ dùng token: không hex, `rgb()`/`hsl()`, `px` (trừ `1px`), `rem`/`em`; `@media (…)` được phép. `tests/e2e/pwa.mjs` quét khối đó sau khi bỏ chú thích và `@media`.
 - Cổng đó KHÔNG bắt: tên màu (`red`), `%`, `vw`/`vh`/`ch`, `color-mix()` — tự kiểm.
-- Đổi `--c-primary` phải đổi KHỚP `theme_color` của `public/manifest.webmanifest` và `<meta name="theme-color">` trong từng `public/*.html` (`pwa.mjs` bắt lệch ở mọi trang của `PAGES`).
+- **Token theo VAI (2026-10-02):** thanh, nút chính, mục đang chọn, mảng đậm, nút tròn Tạo đơn trỏ token vai ở khối "MÀU THEO VAI" của `:root` (`--c-bar-*`, `--c-sidebar-*`, `--c-btn-primary-*`, `--c-selected-*`, `--c-tab-new-*`, `--c-band-*`, `--c-maint-bg`). Màn mới lấy nền/chữ của nút và thanh từ đây, KHÔNG viết `var(--c-primary)` làm nền. Đổi cả app = đổi giá trị token vai. `src/token-giao-dien.test.ts` chặn trỏ thẳng màu thương hiệu ở các bộ chọn đó và đo tương phản mọi cặp chữ/nền vai (≥ 4,5:1).
+- **Độ đậm chữ** chỉ qua năm mức `--fw-regular/medium/semibold/bold/heavy` (từ 1.65: 400/500/500/500/500 — chủ dự án muốn chữ mảnh). Luật CSS và kiểu viết thẳng ở `web/*.ts`/`public/*.html` không viết số (cùng bài kiểm).
+- Thanh trạng thái iPhone: `--c-status-bar` (hex) phải KHỚP `theme_color` của `public/manifest.webmanifest` và `<meta name="theme-color">` trong từng `public/*.html`; kiểu thanh trạng thái là `default` (chữ đen). Thanh đầu nền trắng nên `black-translucent` (chữ trắng) sẽ làm giờ/pin biến mất. `pwa.mjs` bắt lệch ở mọi trang của `PAGES`.
 - Ô gõ 16px (chống zoom iOS). Không `innerHTML` (dựng bằng `h()` ở `web/dom.ts`).
 
 **CSP (`public/_headers`, một chính sách chung cho MỌI trang tĩnh):**

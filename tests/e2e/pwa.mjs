@@ -25,8 +25,8 @@ assert.ok(manifest.name.startsWith(manifest.short_name) && manifest.name.length 
 const NAME = manifest.name;
 const SHORT = manifest.short_name;
 const css = await (await get("/app.css")).text();
-const PRIMARY = css.match(/--c-primary:\s*(#[0-9a-fA-F]{6})/)?.[1]?.toLowerCase();
-assert.ok(PRIMARY, "không đọc được --c-primary trong app.css");
+const STATUS = css.match(/--c-status-bar:\s*(#[0-9a-fA-F]{6})/)?.[1]?.toLowerCase();
+assert.ok(STATUS, "không đọc được --c-status-bar trong app.css");
 // Luật cứng tầng giao diện của tourdaovn (CLAUDE.md §8): giá trị giao diện đi vào token, không viết cứng trong luật. Quét khối PWA của app.css.
 // Quét: màu hex, rgb()/hsl(), số px, và cỡ rem/em (cỡ chữ, chiều cao, khoảng cách). Ngoại lệ có lý do: điểm gãy trong @media (CSS không cho dùng biến ở đó) và viền/ẩn-khỏi-mắt 1px.
 const MARK = "/* ---------- app iPhone (PWA)";
@@ -36,7 +36,7 @@ const hardcoded = pwaCss.match(/#[0-9a-fA-F]{3,8}\b|\b(?:rgb|hsl)a?\(|(?<![\w.-]
 assert.deepEqual(hardcoded, [], `khối PWA của app.css còn giá trị viết cứng (đưa vào token ở :root): ${hardcoded.join(", ")}`);
 assert.equal(manifest.display, "standalone");
 assert.equal(manifest.start_url, "/");
-assert.equal(manifest.theme_color, PRIMARY, "theme_color của manifest phải bằng token --c-primary");
+assert.equal(manifest.theme_color, STATUS, "theme_color của manifest phải bằng token --c-status-bar");
 for (const icon of manifest.icons) {
   const size = Number(icon.sizes.split("x")[0]);
   const p = await png(icon.src);
@@ -94,9 +94,9 @@ const NEEDLES = [
   'rel="manifest"',
   'rel="apple-touch-icon"',
   'name="apple-mobile-web-app-capable" content="yes"',
-  'content="black-translucent"',
+  'name="apple-mobile-web-app-status-bar-style" content="default"',
   `name="apple-mobile-web-app-title" content="${SHORT}"`,
-  `<meta name="theme-color" content="${PRIMARY}">`,
+  `<meta name="theme-color" content="${STATUS}">`,
   `— ${NAME}</title>`,
 ];
 for (const path of PAGES) {

@@ -134,7 +134,7 @@
   --m-spin: 700ms;
   --c-soft-hover: #f0f7fc;  /* nền nút số hỗ trợ, nền khi rê chuột nút phụ — MÀU MỚI theo bản thiết kế */
   --c-placeholder: #94a3b8; /* chữ gợi ý trong ô gõ — MÀU MỚI theo bản thiết kế */
-  --c-spinner-track: rgba(255, 255, 255, 0.4); /* vòng mờ của vòng quay trên nút navy */
+  --c-spinner-track: rgba(12, 74, 110, 0.25); /* vòng mờ của vòng quay trên nút navy */
   --radius-icon: 22.37%;    /* độ bo góc icon iOS */
   --w-narrow: 420px;        /* bề rộng tối đa của thẻ hẹp (trang Tôi) */
   --fs-name: var(--fs-h2);        /* tên và chữ viết tắt trong thẻ hồ sơ (trang Tôi) */
@@ -151,10 +151,10 @@
      mặt đảo ngược được), ghi lại ở đây thay vì chép tay rgba() rải rác trong luật. */
   --w-sidebar: 236px;          /* bề rộng thanh điều hướng dọc */
   --w-search: 280px;           /* bề rộng tối đa ô tìm kiếm trên thanh công việc */
-  --c-sidebar-item: rgba(255, 255, 255, .72);   /* chữ mục sidebar CHƯA chọn */
-  --c-sidebar-active: rgba(255, 255, 255, .14); /* nền mục sidebar ĐANG chọn */
-  --c-sidebar-border: rgba(255, 255, 255, .12); /* viền mảnh trong sidebar (đầu/chân, không phải giữa các mục) */
-  --c-sidebar-badge: rgba(255, 255, 255, .18);  /* nền mặc định huy hiệu số đếm trên sidebar */
+  --c-sidebar-item: var(--c-text-muted);   /* chữ mục sidebar CHƯA chọn */
+  --c-sidebar-active: var(--c-primary-soft); /* nền mục sidebar ĐANG chọn */
+  --c-sidebar-border: var(--c-border); /* viền mảnh trong sidebar (đầu/chân, không phải giữa các mục) */
+  --c-sidebar-badge: var(--c-primary-soft);  /* nền mặc định huy hiệu số đếm trên sidebar */
   --ls-eyebrow: .08em;         /* giãn chữ tiêu đề nhóm viết hoa (BÁN HÀNG/QUẢN TRỊ/TÔI) */
   --w-toast: 360px;
   --fb-line: 2px;             /* nét nối + viền chấm của thanh bước Góp ý */
@@ -298,34 +298,36 @@
   --w-dd-o: 220px;             /* cột tối thiểu của lưới "Giờ về gợi ý" / "Nơi trả gợi ý" */
   /* — MÀU THEO VAI (2026-10-02, chủ dự án): thanh, nút chính, mục đang chọn, mảng đậm — luật trỏ VAI, không trỏ thẳng màu thương hiệu,
      để đổi giao diện = đổi giá trị ở đây (src/token-giao-dien.test.ts). Màn mới: nền thanh/nút lấy từ đây, đừng viết var(--c-primary). — */
-  --c-bar-bg: var(--c-primary);          /* thanh đầu trang ở điện thoại (+ dải vùng an toàn trang Đăng nhập) */
-  --c-on-bar: var(--c-on-dark);          /* chữ, biểu tượng, chuông, nút quay lại trên thanh đầu điện thoại */
-  --c-bar-border: transparent;           /* đường mảnh dưới thanh đầu điện thoại (vẽ bằng bóng trong — không đổi chiều cao) */
-  --c-icon-hover-on-bar: rgba(255, 255, 255, .14); /* nền rê chuột nút biểu tượng trên mảng đậm (đầu bảng thông báo ở điện thoại) */
-  --c-sidebar-bg: var(--c-primary-strong); /* nền thanh bên máy tính */
-  --c-sidebar-text-on: var(--c-on-dark); /* chữ mục đang chọn, đầu thanh, tên người ở chân thanh bên */
-  --c-sidebar-title: var(--c-sidebar-item); /* tiêu đề nhóm (BÁN HÀNG, QUẢN TRỊ, TÔI) */
-  --c-sidebar-badge-text: var(--c-on-dark); /* chữ huy hiệu số đếm mặc định trên thanh bên */
-  --c-btn-primary-bg: var(--c-primary);  /* nút chính (.btn-primary, nút Đăng nhập) */
-  --c-btn-primary-text: var(--c-on-dark);
-  --c-btn-primary-border: var(--c-primary);
-  --c-btn-primary-hover-bg: var(--c-primary-strong);
-  --c-selected-bg: var(--c-primary);     /* nút lọc / ngày / lựa chọn nhanh ĐANG chọn */
-  --c-selected-text: var(--c-on-dark);
-  --c-selected-border: var(--c-primary);
-  --c-tab-new-bg: var(--c-accent);       /* nút tròn "Tạo đơn" ở thanh dưới điện thoại */
-  --c-tab-new-icon: var(--c-on-dark);
-  --c-band-bg: var(--c-primary);         /* mảng đậm: dải tóm tắt đơn, đầu bảng thông báo ở điện thoại */
-  --c-on-band: var(--c-on-dark);
-  --c-maint-bg: var(--c-primary-strong); /* nền màn che bảo trì (chữ nằm trên thẻ trắng, không cần màu chữ riêng) */
+  --c-bar-bg: var(--c-surface);          /* thanh đầu trang ở điện thoại (+ dải vùng an toàn trang Đăng nhập) */
+  --c-on-bar: var(--c-primary);          /* chữ, biểu tượng, chuông, nút quay lại trên thanh đầu điện thoại */
+  --c-bar-border: var(--c-border);           /* đường mảnh dưới thanh đầu điện thoại (vẽ bằng bóng trong — không đổi chiều cao) */
+  --c-icon-hover-on-bar: var(--c-soft-hover); /* nền rê chuột nút biểu tượng trên mảng đậm (đầu bảng thông báo ở điện thoại) */
+  --c-sidebar-bg: var(--c-surface); /* nền thanh bên máy tính */
+  --c-sidebar-text-on: var(--c-primary); /* chữ mục đang chọn, đầu thanh, tên người ở chân thanh bên */
+  --c-sidebar-title: var(--c-text-muted); /* tiêu đề nhóm (BÁN HÀNG, QUẢN TRỊ, TÔI) */
+  --c-sidebar-badge-text: var(--c-primary); /* chữ huy hiệu số đếm mặc định trên thanh bên */
+  --c-btn-primary-bg: var(--c-primary-soft);  /* nút chính (.btn-primary, nút Đăng nhập) */
+  --c-btn-primary-text: var(--c-primary);
+  --c-btn-primary-border: var(--c-primary-soft);
+  --c-btn-primary-hover-bg: var(--c-primary-soft-hover);
+  --c-selected-bg: var(--c-primary-soft);     /* nút lọc / ngày / lựa chọn nhanh ĐANG chọn */
+  --c-selected-text: var(--c-primary);
+  --c-selected-border: var(--c-primary-soft);
+  --c-tab-new-bg: var(--c-accent-soft);       /* nút tròn "Tạo đơn" ở thanh dưới điện thoại */
+  --c-tab-new-icon: var(--c-accent);
+  --c-band-bg: var(--c-primary-soft);         /* mảng đậm: dải tóm tắt đơn, đầu bảng thông báo ở điện thoại */
+  --c-on-band: var(--c-primary);
+  --c-maint-bg: var(--c-surface-alt);
+  --c-primary-soft-hover: #c9def0;       /* rê chuột nút chính nền nhạt — đậm hơn --c-primary-soft một bậc (chữ --c-primary trên nền này ≥ 4,5:1 — src/token-giao-dien.test.ts) */
+  --c-status-bar: #ffffff;               /* thanh trạng thái iPhone (giờ, pin): PHẢI là hex — khớp <meta name="theme-color"> ở mọi public/*.html và theme_color của manifest (tests/e2e/pwa.mjs) */ /* nền màn che bảo trì (chữ nằm trên thẻ trắng, không cần màu chữ riêng) */
   /* — ĐỘ ĐẬM CHỮ (2026-10-02, chủ dự án): mọi độ đậm của app đi qua năm mức dưới đây — luật không viết số (src/token-giao-dien.test.ts).
      Tên mức là VAI trong thứ bậc chữ (thường → nhấn nhất), không phải độ đậm thật: đổi cảm giác chữ cả app = đổi giá trị ở đây. Mỗi giá trị
      phải có tệp phông riêng ở @font-face đầu tệp (src/phong-chu.test.ts). — */
   --fw-regular: 400;   /* chữ nội dung */
   --fw-medium: 500;
-  --fw-semibold: 600;  /* nhãn, chữ phụ cần nhấn nhẹ */
-  --fw-bold: 700;      /* tiêu đề, tên, nút; cũng là độ đậm mặc định của h1–h6, b, strong, th (luật nền bên dưới) */
-  --fw-heavy: 800;     /* số lớn, tiêu đề nổi nhất */
+  --fw-semibold: 500;  /* nhãn, chữ phụ cần nhấn nhẹ */
+  --fw-bold: 500;      /* tiêu đề, tên, nút; cũng là độ đậm mặc định của h1–h6, b, strong, th (luật nền bên dưới) */
+  --fw-heavy: 500;     /* số lớn, tiêu đề nổi nhất */
 }
 * { box-sizing: border-box; }
 h1, h2, h3, h4, h5, h6, b, strong, th { font-weight: var(--fw-bold); } /* trình duyệt mặc định tô đậm các thẻ này bằng "bold" (700) — kéo về token để đổi một chỗ */
