@@ -8,7 +8,7 @@ import assert from "node:assert/strict";
 import { world, seedStaff } from "../../../tests/audit/harness.mjs";
 import { PERMISSION_CODES } from "../../shared/permissions.ts";
 import { LOI_NHAC_MAC_DINH } from "../../shared/tro-ly-bo-nao.ts";
-import { CAU_CHAO_MAC_DINH, dongMai, xungHo } from "../../shared/xung-ho.ts";
+import { CAU_CHAO_MAC_DINH, DONG_DINH_DANG, dongMai, xungHo } from "../../shared/xung-ho.ts";
 import type { AppModule } from "../../shared/router.ts";
 import * as esbuild from "esbuild";
 
@@ -164,7 +164,7 @@ test("B5: chưa có bản bộ não ⇒ lời nhắc gửi đi = bản mặc đ�
   assert.equal((await w.call("POST", "/api/tro-ly/loi-dan", { as: SUP, body: LOI_DAN })).status, 200);
   assert.equal((await hoi(w, SALES, "đổi mã PIN thế nào")).status, 200);
   const ins = String(goi[0]!.body.instructions);
-  assert.ok(ins.startsWith(`${LOI_NHAC_MAC_DINH}\n\nGiọng: ngắn, thân thiện\nLời dặn: Gọi người dùng là bạn.\n\n${dongMai(xungHo("An", null))}\nNgười hỏi thuộc nhóm vai: Bán hàng.`), ins.slice(0, 80));
+  assert.ok(ins.startsWith(`${LOI_NHAC_MAC_DINH}\n\nGiọng: ngắn, thân thiện\nLời dặn: Gọi người dùng là bạn.\n\n${dongMai(xungHo("An", null))}\n${DONG_DINH_DANG}\nNgười hỏi thuộc nhóm vai: Bán hàng.`), ins.slice(0, 80));
   assert.ok(ins.lastIndexOf("TÀI LIỆU:") > ins.indexOf("Lời dặn: Gọi người dùng là bạn."));
   assert.equal(ins.split("TÀI LIỆU:").length, 2, "đúng MỘT khối tài liệu");
   assert.equal(goi[0]!.body.input, "đổi mã PIN thế nào");
