@@ -88,6 +88,20 @@ export async function sql(q) {
   }
 }
 
+/**
+ * ADR-0083 điều 1b: API không còn tạo tài khoản LAI (quyền bên ngoài — Đối tác, Tài xế đối tác — kèm quyền nội bộ) ở mọi đường không qua vai. Dữ liệu lai
+ * cũ vẫn có thể còn (điều 1c: không sửa dữ liệu đã có), nên ca thử HÀNH VI của tài khoản lai gieo thẳng vào D1 local tạm bằng `insertStaffSql` (cùng hàm
+ * run.mjs gieo tài khoản dùng chung) rồi đăng nhập thật. Trả `{ id, partyId, phone, pin, cookie }`.
+ */
+export async function gieoTaiKhoanLai(name, permissions) {
+  const { insertStaffSql } = await import("../../scripts/staff-lib.mjs");
+  const phone = randomPhone();
+  const pin = String(100000 + Math.floor(Math.random() * 900000));
+  await sql((await insertStaffSql({ name, phone, pin, permissions })).replace(/\n/g, " "));
+  const [row] = await sqlRows(`SELECT id, party_id FROM staff WHERE phone = '${phone}'`);
+  return { id: row.id, partyId: row.party_id, phone, pin, cookie: await session({ phone, pin }) };
+}
+
 /** Như sql() nhưng trả các dòng kết quả của câu SELECT (wrangler --json). */
 export async function sqlRows(q) {
   const args = ["wrangler", "d1", "execute", "tourdao-sales-db", "--local", "--json", "--command", q];

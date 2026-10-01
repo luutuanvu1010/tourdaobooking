@@ -2,7 +2,7 @@
 // tài khoản lai SALES + PARTNER (thấy, không ghi) và PARTNER + FIELD (theo ô FIELD — đơn tự lập qua ô PARTNER: không thấy), lọc danh sách "chưa nhập" /
 // "đã nhập" kèm khoảng ngày, bỏ dấu có lý do → quay lại. Đơn dùng NGÀY ĐI riêng (hôm nay + 41) để bộ lọc không lẫn đơn của kịch bản khác.
 import assert from "node:assert/strict";
-import { ACCOUNTS, call, catalogService, ensureFakeCatalog, login, orderInput, randomPhone, session, vnDate } from "./lib.mjs";
+import { ACCOUNTS, call, catalogService, ensureFakeCatalog, gieoTaiKhoanLai, login, orderInput, randomPhone, session, vnDate } from "./lib.mjs";
 
 await ensureFakeCatalog();
 const SALES = await session(ACCOUNTS.salesA);
@@ -19,8 +19,9 @@ async function taiKhoanCookie(ten, perms) {
   return (await login(phone, r.body.pin)).cookie;
 }
 const PARTNER = await taiKhoanCookie("Đối Tác Nhập KT", ["PARTNER"]);
-const SP = await taiKhoanCookie("Lai Bán Đối Tác KT", ["SALES", "PARTNER"]);
-const PF = await taiKhoanCookie("Lai Đối Tác HDV KT", ["PARTNER", "FIELD"]);
+// ADR-0083 1b: API không tạo tài khoản lai nữa — dữ liệu lai cũ vẫn có thể còn (điều 1c), gieo SQL để thử luật.
+const SP = (await gieoTaiKhoanLai("Lai Bán Đối Tác KT", ["SALES", "PARTNER"])).cookie;
+const PF = (await gieoTaiKhoanLai("Lai Đối Tác HDV KT", ["PARTNER", "FIELD"])).cookie;
 const INTERN = await taiKhoanCookie("Thực Tập Nhập KT", ["INTERN"]);
 
 async function donXacNhan(cookie) {
