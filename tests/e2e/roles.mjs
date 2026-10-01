@@ -71,9 +71,13 @@ assert.equal(r.body.error.code, "role_managed");
 const legacy = await call(SUPER, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Tài Khoản Cũ", phone: rnd(), permissions: ["SALES"] });
 assert.equal(legacy.status, 201);
 assert.deepEqual(legacy.body.staff.roles, []);
-assert.equal((await call(ADMIN, "PUT", `/api/staff/${legacy.body.staff.id}/permissions`, { permissions: ["SALES", "ACCOUNTING"] })).status, 200);
-assert.equal((await call(ADMIN, "PUT", `/api/staff/${legacy.body.staff.id}/permissions`, { permissions: ["SALES", "ADMIN"] })).status, 403, "LC-4 cả ở route cũ");
-console.log("✓ route cũ: khoá với tài khoản đã gán vai; LC-4 áp mọi tài khoản");
+// ADR-0083 điều 1a: route cũ nay CHỈ Toàn quyền — Quản trị nhận 403 kể cả với tài khoản cấp dưới chưa gán vai (trước đây LC-4 mới chặn).
+assert.equal((await call(ADMIN, "PUT", `/api/staff/${legacy.body.staff.id}/permissions`, { permissions: ["SALES", "ACCOUNTING"] })).status, 403, "ADR-0083 1a");
+assert.equal((await call(SUPER, "PUT", `/api/staff/${legacy.body.staff.id}/permissions`, { permissions: ["SALES", "ACCOUNTING"] })).status, 200);
+r = await call(SUPER, "PUT", `/api/staff/${legacy.body.staff.id}/permissions`, { permissions: ["SALES", "PARTNER"] });
+assert.equal(r.status, 400, "ADR-0083 1b: lai nội bộ + bên ngoài");
+assert.equal(r.body.error.code, "invalid_input");
+console.log("✓ route cũ: khoá với tài khoản đã gán vai; chỉ Toàn quyền dùng; chặn lai nội bộ + bên ngoài");
 
 // ---- 5. Toàn quyền tự gán vai cho chính mình (Review Focus 5)
 const me = (await call(SUPER, "GET", "/api/auth/me")).body.staff;

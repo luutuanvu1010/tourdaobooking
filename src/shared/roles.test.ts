@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { EXTERNAL_PERMISSIONS, PERMISSION_CODES, type PermissionCode } from "./permissions.ts";
 import {
-  ROLES, ROLE_CODES, SUPER_ADMIN_GRANTED, canManageAccount, defaultPermissions, effectivePermissions, groupOf, highPermissionProblem, isRoleCode, parseRoleAssignment,
+  ROLES, ROLE_CODES, SUPER_ADMIN_GRANTED, canManageAccount, defaultPermissions, effectivePermissions, groupOf, highPermissionProblem, isRoleCode, laiNoiBoBenNgoaiProblem, parseRoleAssignment,
   permissionsLabel, roleAssignmentProblem, rolesLabel, taiKhoanLaiProblem, tuDoiQuyenCuaMinh, vaiTaiXeDoiTacXungDot, type RoleAssignment, type RoleCode,
 } from "./roles.ts";
 
@@ -237,6 +237,22 @@ test("taiKhoanLaiProblem (LC-1b): DRIVER_PARTNER đứng một mình; kèm bất
   assert.equal(taiKhoanLaiProblem(["PARTNER"]), null);
   assert.equal(taiKhoanLaiProblem(["SALES", "ADMIN"]), null);
   assert.equal(taiKhoanLaiProblem([]), null, "không quyền nào — việc của lời kiểm 'còn ít nhất một quyền'");
+});
+
+// ADR-0083 điều 1b: đường ghi quyền KHÔNG qua vai (PUT /api/staff/:id/permissions, POST /api/staff không vai) — tập quyền không vừa có quyền bên ngoài
+// (isExternalPermission: Đối tác, Tài xế đối tác) vừa có quyền nội bộ. LC-1b (taiKhoanLaiProblem) giữ nguyên, đứng trước.
+test("laiNoiBoBenNgoaiProblem (ADR-0083 1b): quyền bên ngoài + quyền nội bộ → 400 câu dễ hiểu; thuần một phía → null", () => {
+  const CAU = { forbidden: false, message: "Một tài khoản không giữ cùng lúc quyền nội bộ và quyền bên ngoài (Đối tác, Tài xế đối tác) — chọn một phía." };
+  for (const lai of [["PARTNER", "SALES"], ["SALES", "PARTNER"], ["FIELD", "PARTNER"], ["ADMIN", "PARTNER"], ["DRIVER", "DRIVER_PARTNER"], ["HR", "PARTNER"], ["INTERN", "PARTNER", "SALES"]] as PermissionCode[][]) {
+    assert.deepEqual(laiNoiBoBenNgoaiProblem(lai), CAU, lai.join("+"));
+  }
+  for (const ok of [["PARTNER"], ["DRIVER_PARTNER"], ["PARTNER", "DRIVER_PARTNER"], ["SALES"], ["SALES", "ADMIN", "SUPER_ADMIN"], []] as PermissionCode[][]) {
+    assert.equal(laiNoiBoBenNgoaiProblem(ok), null, ok.join("+") || "rỗng");
+  }
+  // Mọi quyền nội bộ (mọi mã KHÔNG thuộc EXTERNAL_PERMISSIONS) đi cùng PARTNER đều bị chặn — không danh sách chép tay.
+  for (const p of PERMISSION_CODES.filter((c) => !(EXTERNAL_PERMISSIONS as readonly PermissionCode[]).includes(c))) {
+    assert.ok(laiNoiBoBenNgoaiProblem(["PARTNER", p]), `PARTNER+${p}`);
+  }
 });
 
 // ADR-0048 B2.2 — MỘT hàm thuần cho máy chủ (roleAssignmentProblem) và giao diện (web/role-picker.ts khoá chéo ô vai, Task B1).

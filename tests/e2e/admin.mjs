@@ -77,26 +77,32 @@ r = await raw(ADMIN, "PATCH", `/api/staff/${A.id}`, { fullName: "Nguyễn Test H
 assert.equal(r.status, 200); assert.equal(r.body.staff.fullName, "Nguyễn Test Hai");
 assert.equal((await raw(ADMIN, "GET", `/api/parties/${r.body.staff.partyId}`)).body.party.displayName, "Nguyễn Test Hai", "đổi tên tài khoản = đổi tên hồ sơ");
 // LC-4 (ADR-0018 điều 5): Quản trị KHÔNG còn cấp được quyền Quản trị — chỉ Toàn quyền. Sau khi A giữ ADMIN, Quản trị cũng không quản lý được A nữa (ADR-0014 điều 8).
+// ADR-0083 điều 1a: đường gán quyền kiểu cũ nay CHỈ Toàn quyền — Quản trị nhận 403 trước cả LC-4 / cấp bậc.
 assert.equal((await raw(ADMIN, "PUT", `/api/staff/${A.id}/permissions`, { permissions: ["ADMIN", "SALES"] })).status, 403, "Quản trị không cấp quyền Quản trị");
 r = await raw(SUPER_ADMIN, "PUT", `/api/staff/${A.id}/permissions`, { permissions: ["ADMIN", "SALES"] });
 assert.equal(r.status, 200, JSON.stringify(r.body)); assert.deepEqual(r.body.staff.permissions, ["SALES", "ADMIN"]);
 assert.equal((await raw(ADMIN, "PUT", `/api/staff/${A.id}/permissions`, { permissions: ["SALES"] })).status, 403, "Admin không còn quản lý được A sau khi A thành Admin");
 r = await raw(SUPER_ADMIN, "PUT", `/api/staff/${A.id}/permissions`, { permissions: ["SALES"] });
 assert.equal(r.status, 200, JSON.stringify(r.body)); assert.deepEqual(r.body.staff.permissions, ["SALES"]);
-for (const bad of [[], ["BOSS"], "ADMIN", null]) assert.equal((await raw(ADMIN, "PUT", `/api/staff/${A.id}/permissions`, { permissions: bad })).status, 400, JSON.stringify(bad));
-assert.equal((await raw(ADMIN, "PUT", "/api/staff/khong-phai-id/permissions", { permissions: ["SALES"] })).status, 404);
+for (const bad of [[], ["BOSS"], "ADMIN", null]) assert.equal((await raw(SUPER_ADMIN, "PUT", `/api/staff/${A.id}/permissions`, { permissions: bad })).status, 400, JSON.stringify(bad));
+assert.equal((await raw(SUPER_ADMIN, "PUT", "/api/staff/khong-phai-id/permissions", { permissions: ["SALES"] })).status, 404);
+r = await raw(ADMIN, "PUT", `/api/staff/${A.id}/permissions`, { permissions: ["SALES", "ACCOUNTING"] });
+assert.equal(r.status, 403, "ADR-0083 1a: Quản trị không dùng đường kiểu cũ kể cả với cấp dưới");
+assert.match(r.body.error.message, /người phụ trách hệ thống/);
 // quyền có hiệu lực NGAY với phiên đang mở (getActiveStaff đọc quyền ở mỗi request)
 assert.deepEqual((await raw(A_COOKIE, "GET", "/api/auth/me")).body.staff.permissions, ["SALES"]);
-assert.equal((await raw(ADMIN, "PUT", `/api/staff/${A.id}/permissions`, { permissions: ["SALES", "ACCOUNTING"] })).status, 200);
+assert.equal((await raw(SUPER_ADMIN, "PUT", `/api/staff/${A.id}/permissions`, { permissions: ["SALES", "ACCOUNTING"] })).status, 200);
 assert.deepEqual((await raw(A_COOKIE, "GET", "/api/auth/me")).body.staff.permissions, ["SALES", "ACCOUNTING"]);
-assert.equal((await raw(ADMIN, "PUT", `/api/staff/${A.id}/permissions`, { permissions: ["SALES"] })).status, 200);
+assert.equal((await raw(SUPER_ADMIN, "PUT", `/api/staff/${A.id}/permissions`, { permissions: ["SALES"] })).status, 200);
 r = await raw(ADMIN, "PATCH", `/api/staff/${A.id}`, { phone: "0900000002" });
 assert.equal(r.status, 409); // trùng SĐT người khác
 // tự ngưng / tự hạ quyền bị chặn
 const me = (await raw(ADMIN, "GET", "/api/auth/me")).body.staff;
 assert.equal((await raw(ADMIN, "PATCH", `/api/staff/${me.id}`, { active: false })).status, 409);
-assert.equal((await raw(ADMIN, "PUT", `/api/staff/${me.id}/permissions`, { permissions: ["SALES"] })).status, 409);
-assert.equal((await raw(ADMIN, "PUT", `/api/staff/${me.id}/permissions`, { permissions: ["ADMIN", "SALES"] })).status, 409, "cũng không tự thêm quyền cho mình");
+// ADR-0083 1a: đường kiểu cũ chỉ Toàn quyền — luật "không tự đổi quyền của mình" kiểm bằng tài khoản Toàn quyền.
+const meSuper = (await raw(SUPER_ADMIN, "GET", "/api/auth/me")).body.staff;
+assert.equal((await raw(SUPER_ADMIN, "PUT", `/api/staff/${meSuper.id}/permissions`, { permissions: ["SALES"] })).status, 409);
+assert.equal((await raw(SUPER_ADMIN, "PUT", `/api/staff/${meSuper.id}/permissions`, { permissions: ["SUPER_ADMIN", "SALES"] })).status, 409, "cũng không tự thêm quyền cho mình");
 // ngưng → hiệu lực NGAY với phiên đang mở
 assert.equal((await raw(A_COOKIE, "GET", "/api/auth/me")).status, 200);
 // đổi tên + ngưng trong CÙNG một PATCH: đường thắng phải đổi đủ (chuỗi điều kiện `changes() > 0` chạy trên D1 thật, không chỉ SQLite trong bộ nhớ)

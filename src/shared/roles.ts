@@ -212,6 +212,17 @@ export function taiKhoanLaiProblem(perms: readonly PermissionCode[]): RoleProble
   return perms.includes("DRIVER_PARTNER") && perms.length > 1 ? { forbidden: false, message: "Tài khoản Tài xế đối tác không giữ thêm quyền nào khác." } : null;
 }
 
+/**
+ * ADR-0083 điều 1b — MỘT hàm thuần cho MỌI đường ghi quyền KHÔNG qua vai (PUT /api/staff/:id/permissions, POST /api/staff không vai): tập quyền không vừa có
+ * quyền bên ngoài (isExternalPermission: Đối tác, Tài xế đối tác) vừa có quyền nội bộ. Đường gán vai đã có LC-3/LC-1 riêng (roleAssignmentProblem). Máy chủ
+ * gọi SAU taiKhoanLaiProblem (LC-1b giữ câu riêng của nó). Không sửa dữ liệu đã có (điều 1c).
+ */
+export function laiNoiBoBenNgoaiProblem(perms: readonly PermissionCode[]): RoleProblem | null {
+  return perms.some(isExternalPermission) && perms.some((p) => !isExternalPermission(p))
+    ? { forbidden: false, message: "Một tài khoản không giữ cùng lúc quyền nội bộ và quyền bên ngoài (Đối tác, Tài xế đối tác) — chọn một phía." }
+    : null;
+}
+
 /** Nhãn lời thường — dùng cho nhật ký và giao diện. */
 export const rolesLabel = (roles: readonly RoleCode[]): string => (roles.length ? roles.map((r) => ROLES[r].name).join(", ") : "chưa gán vai");
 export const permissionsLabel = (list: readonly PermissionCode[]): string => (list.length ? list.map((p) => PERMISSION_LABEL[p]).join(", ") : "không có quyền");
