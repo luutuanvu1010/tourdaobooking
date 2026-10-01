@@ -5,6 +5,7 @@
 // chỉ hiện với người giữ ô đó, trên hồ sơ tổ chức, kèm câu xác nhận. Giao diện chỉ ẩn/hiện, máy chủ luôn kiểm lại.
 import { OWNER_COMPANY_ROLE } from "../src/shared/cong-ty-chu";
 import { NGUONG_MAC_DINH, chipHan, lichSuCua, ngayVN, tenGiayTo, xepTheoHan } from "../src/shared/giay-to-hien-thi";
+import { NHAN_LY_DO_KHOP, chuanHoaTen } from "../src/shared/ho-so-trung";
 import { can } from "../src/shared/permissions";
 import { ApiError, api, type Api, type Staff } from "./api";
 import { byId, h, replaceChildren, type Child } from "./dom";
@@ -18,6 +19,8 @@ const listEl = byId("list");
 const listCardsEl = byId("list-cards");
 const detailEl = byId("detail");
 const createEl = byId("create");
+const mergeEl = byId("merge");
+const dupsEl = byId("dups");
 const PAGE = 30;
 
 let me: Staff;
@@ -202,6 +205,14 @@ function openCreate(): void {
   createEl.scrollIntoView({ block: "nearest" });
 }
 
+/** Ngày (giờ VN) của một mốc ISO UTC, dạng dd/mm/yyyy. */
+const ngayCuaMoc = (iso: string) => ngayVN(new Date(Date.parse(iso) + 7 * 3600e3).toISOString().slice(0, 10));
+const lienKetHoSo = (id: string, ten: string) => {
+  const a = h("a", { href: `/parties?id=${encodeURIComponent(id)}` }, ten);
+  a.addEventListener("click", (e) => { e.preventDefault(); void openDetail(id); });
+  return a;
+};
+
 // ---- Chi tiết ----------------------------------------------------------------------------------------------------------
 async function reload(): Promise<void> {
   if (openId) await openDetail(openId);
@@ -212,9 +223,14 @@ async function openDetail(id: string): Promise<void> {
   const r = await act(() => api<Api.PartyResponse>(`/api/parties/${id}`));
   if (!r) return;
   boCheSo.che(); // hồ sơ trước đang hiện đủ số → che trước khi dựng lại
-  if (openId !== id) moLichSuGiayTo.clear();
+  if (openId !== id) {
+    moLichSuGiayTo.clear();
+    mergeEl.hidden = true; // hộp gộp của hồ sơ trước
+  }
   openId = id;
   const p = r.party;
+  const daGop = p.mergedInto !== null;
+  const quanTri = admin && !daGop; // hồ sơ đã gộp: ẩn mọi nút sửa (máy chủ vẫn trả 409 party_merged)
 
   // -- thông tin + sửa
   const person = p.kind === "PERSON";
@@ -276,7 +292,7 @@ async function openDetail(id: string): Promise<void> {
 
   // -- vai trò theo nơi
   const roleRows = p.roles.map((r2) =>
-    h("tr", { class: r2.validTo ? "row-off" : "" }, h("td", null, r2.roleName), h("td", null, r2.locationName ?? "(mọi nơi)"), h("td", { class: "muted" }, period(r2.validFrom, r2.validTo)), h("td", null, admin && !r2.validTo && (isAccountRole(r2.roleTypeCode) ? h("span", { class: "muted" }, "Đổi ở màn Quản lý tài khoản") : button("Kết thúc", (b) => void act(async () => { await api(`/api/parties/${id}/roles/${r2.id}/end`, { method: "POST", body: {} }); await reload(); }, b))))),
+    h("tr", { class: r2.validTo ? "row-off" : "" }, h("td", null, r2.roleName), h("td", null, r2.locationName ?? "(mọi nơi)"), h("td", { class: "muted" }, period(r2.validFrom, r2.validTo)), h("td", null, quanTri && !r2.validTo && (isAccountRole(r2.roleTypeCode) ? h("span", { class: "muted" }, "Đổi ở màn Quản lý tài khoản") : button("Kết thúc", (b) => void act(async () => { await api(`/api/parties/${id}/roles/${r2.id}/end`, { method: "POST", body: {} }); await reload(); }, b))))),
   );
   // Vai "Công ty chủ" gieo "ngưng gán thường" (active = false) nên không có trong danh sách chung; chỉ người giữ ô company.legal.write thấy nó, trên hồ sơ tổ
   // chức chưa phải công ty chủ — gán = ĐỔI công ty chủ (chủ dự án 2026-09-28).
@@ -295,7 +311,7 @@ async function openDetail(id: string): Promise<void> {
 
   // -- quan hệ
   const relRows = p.relationships.map((x) =>
-    h("tr", { class: x.validTo ? "row-off" : "" }, h("td", null, `${x.fromPartyName} — ${x.typeName} — ${x.toPartyName}`), h("td", { class: "muted" }, period(x.validFrom, x.validTo)), h("td", null, admin && !x.validTo && button("Kết thúc", (b) => void act(async () => { await api(`/api/parties/${id}/relationships/${x.id}/end`, { method: "POST", body: {} }); await reload(); }, b)))),
+    h("tr", { class: x.validTo ? "row-off" : "" }, h("td", null, `${x.fromPartyName} — ${x.typeName} — ${x.toPartyName}`), h("td", { class: "muted" }, period(x.validFrom, x.validTo)), h("td", null, quanTri && !x.validTo && button("Kết thúc", (b) => void act(async () => { await api(`/api/parties/${id}/relationships/${x.id}/end`, { method: "POST", body: {} }); await reload(); }, b)))),
   );
   const relQ = input("", { placeholder: "Gõ tên hồ sơ cần liên kết…" });
   const relPick = h("select", null);
@@ -330,9 +346,23 @@ async function openDetail(id: string): Promise<void> {
   const giayTo = can(me, "party.document.write") && p.kind === "PERSON" ? h("section", { id: "giay-to", class: "vc-gt-section", "aria-labelledby": "giay-to-title" }) : null;
   if (giayTo) void veGiayTo(giayTo, p);
 
+  // -- gộp hồ sơ (ADR-0068; đặc tả §5)
+  const khoiGop: Child[] = [];
+  if (p.mergedInto) {
+    khoiGop.push(h("div", { class: "alert warn", role: "status" }, "Đã gộp vào ", lienKetHoSo(p.mergedInto.id, p.mergedInto.displayName),
+      ` ngày ${ngayCuaMoc(p.mergedInto.mergedAt)}. Hồ sơ này chỉ còn để xem lịch sử.`));
+  }
+  const nutGop = quanTri && p.kind === "PERSON" && p.active && !p.accountLinked
+    ? button("Gộp vào hồ sơ khác…", () => moHopGop({ id: p.id, displayName: p.displayName }, null), "btn btn-danger")
+    : null;
+  const mucDaGop = p.mergedFrom.length > 0
+    ? [h("h3", null, "Hồ sơ đã gộp vào đây"), h("ul", null, ...p.mergedFrom.map((x) => h("li", null, lienKetHoSo(x.id, x.displayName), ` — gộp ngày ${ngayCuaMoc(x.mergedAt)}`)))]
+    : [];
+
   replaceChildren(
     detailEl,
     h("h2", null, p.displayName, " ", h("span", { class: "muted" }, KIND_LABEL[p.kind])),
+    ...khoiGop,
     info,
     h("h3", null, "Liên hệ"),
     h("table", { class: "items" }, h("tbody", null, ...contactRows)),
@@ -340,17 +370,134 @@ async function openDetail(id: string): Promise<void> {
     p.editable ? h("div", { class: "actions" }, addContact) : null,
     h("h3", null, "Công việc tại đâu"),
     h("table", { class: "items" }, h("tbody", null, ...roleRows)),
-    admin
+    quanTri
       ? h("div", null, h("div", { class: "grid three" }, field("Công việc", rType), field("Nơi làm", rLoc), field("Từ ngày (mặc định hôm nay)", rFrom)), h("div", { class: "actions" }, addRole))
-      : h("p", { class: "muted" }, "Chỉ quản trị viên thêm hoặc kết thúc công việc."),
+      : daGop ? null : h("p", { class: "muted" }, "Chỉ quản trị viên thêm hoặc kết thúc công việc."),
     h("h3", null, "Người liên hệ, tài xế"), // G3 (ADR-0048): mục này nay gồm cả quan hệ "Tài xế của"
     h("table", { class: "items" }, h("tbody", null, ...relRows)),
-    admin ? h("div", null, h("div", { class: "grid three" }, field("Loại", relDir), field("Tìm hồ sơ", relQ), field("Chọn", relPick)), h("div", { class: "actions" }, addRel)) : null,
+    quanTri ? h("div", null, h("div", { class: "grid three" }, field("Loại", relDir), field("Tìm hồ sơ", relQ), field("Chọn", relPick)), h("div", { class: "actions" }, addRel)) : null,
+    ...mucDaGop,
     giayTo,
-    h("div", { class: "actions", style: "margin-top:12px" }, button("Đóng", () => { boCheSo.che(); detailEl.hidden = true; openId = null; }, "btn")),
+    h("div", { class: "actions", style: "margin-top:12px" }, nutGop, button("Đóng", () => { boCheSo.che(); detailEl.hidden = true; openId = null; }, "btn")),
   );
   detailEl.hidden = false;
   detailEl.scrollIntoView({ block: "nearest" });
+}
+
+// ---- Gộp hồ sơ (ADR-0068; đặc tả §5): chọn hồ sơ chính → xem trước ba cột → gõ lại tên hồ sơ phụ → Gộp. Lý do chặn hiện trên bảng, nút Gộp tắt. -------------
+// Xem trước KHÔNG có số giấy tờ (máy chủ không gửi). Gộp thất bại (vừa đổi dữ liệu, thua cuộc đua, lý do chặn mới) → xem trước lại để nút về đúng trạng thái.
+function moHopGop(nguon: { id: string; displayName: string }, dichSan: { id: string; displayName: string } | null): void {
+  let dich = dichSan;
+  const tim = input("", { placeholder: "Tên hoặc số điện thoại…", "aria-label": "Tìm hồ sơ chính" });
+  const chon = h("select", { "aria-label": "Hồ sơ chính" });
+  const bang = h("div", { "aria-live": "polite" });
+  const xacNhan = input("", { placeholder: nguon.displayName, "aria-label": "Gõ lại tên hồ sơ phụ để xác nhận", autocomplete: "off" });
+  const nutGop = h("button", { type: "button", class: "btn btn-danger", disabled: true }, "Gộp");
+  let chan = true;
+  let lanXem = 0; // chỉ nhận kết quả xem trước MỚI NHẤT (đổi hồ sơ chính nhanh)
+  const capNhatNut = () => { nutGop.disabled = chan || !dich || chuanHoaTen(xacNhan.value) !== chuanHoaTen(nguon.displayName); };
+  const cot = (tieuDe: string, ds: Api.MergeItemDto[]) =>
+    h("div", null, h("h4", null, `${tieuDe} (${ds.length})`), ds.length
+      ? h("ul", null, ...ds.map((x) => h("li", null, x.nhan, x.ghiChu ? h("span", { class: "muted" }, ` — ${x.ghiChu}`) : null)))
+      : h("p", { class: "muted" }, "Không có."));
+  const xemTruoc = async () => {
+    if (!dich) return;
+    const lan = ++lanXem;
+    chan = true;
+    capNhatNut();
+    const r = await act(() => api<Api.MergePreviewResponse>(`/api/parties/${nguon.id}/merge/preview`, { method: "POST", body: { intoPartyId: dich!.id } }));
+    if (lan !== lanXem || !r) return;
+    chan = r.chan.length > 0;
+    replaceChildren(
+      bang,
+      ...r.chan.map((c) => h("div", { class: "alert", role: "alert" }, c.message)),
+      h("div", { class: "grid three" }, cot("Chuyển sang hồ sơ chính", r.chuyen), cot("Giữ ở hồ sơ này", r.giu), cot("Bỏ vì đã có", r.bo)),
+      h("p", { class: "muted" }, `Đơn đổi người đặt sang hồ sơ chính: ${r.donDoi}. Đơn giữ ở hồ sơ này (đã giao, đã huỷ): ${r.donGiu}. Dòng công nợ giữ ở hồ sơ này: ${r.dongNoGiu}.`),
+    );
+    capNhatNut();
+  };
+  let hen: number | undefined;
+  let lanTim = 0;
+  tim.addEventListener("input", () => {
+    window.clearTimeout(hen);
+    hen = window.setTimeout(async () => {
+      const q = tim.value.trim();
+      const lan = ++lanTim;
+      if (q.length < 2) return replaceChildren(chon);
+      const found = await act(() => api<Api.PartyListResponse>(`/api/parties?limit=10&kind=PERSON&q=${encodeURIComponent(q)}`));
+      if (lan !== lanTim) return;
+      const ds = found?.parties.filter((x) => x.id !== nguon.id && x.active) ?? [];
+      replaceChildren(chon, h("option", { value: "" }, ds.length ? "— chọn —" : "Không thấy hồ sơ nào"), ...ds.map((x) => h("option", { value: x.id }, x.displayName)));
+    }, 300);
+  });
+  chon.addEventListener("change", () => {
+    const o = chon.selectedOptions[0];
+    dich = chon.value && o ? { id: chon.value, displayName: o.textContent ?? "" } : null;
+    lanXem++; // bỏ kết quả xem trước của hồ sơ chính cũ
+    chan = true;
+    replaceChildren(bang);
+    capNhatNut();
+    void xemTruoc();
+  });
+  xacNhan.addEventListener("input", capNhatNut);
+  nutGop.addEventListener("click", () => {
+    if (!dich) return;
+    const dichId = dich.id;
+    void (async () => {
+      const r = await act(async () => {
+        const kq = await api<Api.PartyResponse>(`/api/parties/${nguon.id}/merge`, { method: "POST", body: { intoPartyId: dichId, xacNhan: xacNhan.value } });
+        mergeEl.hidden = true;
+        await search();
+        await openDetail(kq.party.id);
+        return kq;
+      }, nutGop);
+      if (r) return;
+      // act() mở lại nút ở finally: tính lại nút theo bản xem trước mới; giữ câu lỗi của lần gộp (xem trước gọi act() nên xoá lỗi ở đầu).
+      const loi = errorEl.hidden ? null : errorEl.textContent;
+      await xemTruoc();
+      if (loi && errorEl.hidden) showError(errorEl, loi);
+    })();
+  });
+  replaceChildren(
+    mergeEl,
+    h("h2", { id: "merge-title" }, `Gộp “${nguon.displayName}” vào hồ sơ khác`),
+    h("p", { class: "muted" }, "Hồ sơ này sẽ ẩn khỏi Danh bạ; liên hệ, công việc, quan hệ, giấy tờ còn hiệu lực và đơn chưa giao chuyển sang hồ sơ chính. Không tách lại được."),
+    dichSan ? h("p", null, "Hồ sơ chính: ", h("strong", null, dichSan.displayName)) : h("div", { class: "grid three" }, field("Tìm hồ sơ chính", tim), field("Hồ sơ chính", chon)),
+    bang,
+    field(`Gõ lại tên “${nguon.displayName}” để xác nhận`, xacNhan),
+    h("div", { class: "actions" }, nutGop, button("Huỷ", () => { mergeEl.hidden = true; }, "btn")),
+  );
+  mergeEl.hidden = false;
+  mergeEl.scrollIntoView({ block: "nearest" });
+  if (dichSan) void xemTruoc();
+}
+
+// ---- Hồ sơ nghi trùng (ADR-0068 Đ8; T1–T3): chỉ người giữ admin.manage thấy nút; mỗi cặp có "Gộp…" (bên có tài khoản điền sẵn làm hồ sơ chính — T2; cả hai có
+// tài khoản thì không gộp được). Danh sách (không bảng) để đọc được cả ở điện thoại — `.table-wrap` ẩn dưới 900px.
+async function moNghiTrung(): Promise<void> {
+  const r = await act(() => api<Api.PartyDuplicatesResponse>("/api/parties/duplicates"));
+  if (!r) return;
+  const ten = (x: Api.PartyListItemDto, coTaiKhoan: boolean) => h("span", null, lienKetHoSo(x.id, x.displayName), coTaiKhoan ? h("span", { class: "badge" }, "có tài khoản") : null);
+  const dong = (x: Api.PartyDuplicatePairDto) => {
+    const [phu, chinh] = x.aCoTaiKhoan ? [x.b, x.a] : [x.a, x.b];
+    const caHai = x.aCoTaiKhoan && x.bCoTaiKhoan;
+    return h("li", null,
+      h("div", null, ten(x.a, x.aCoTaiKhoan), " — ", ten(x.b, x.bCoTaiKhoan)),
+      h("div", { class: "muted" }, x.lyDo.map((l) => NHAN_LY_DO_KHOP[l]).join("; ")),
+      caHai
+        ? h("div", { class: "muted" }, "Cả hai đều có tài khoản — không gộp được.")
+        : h("div", null, button("Gộp…", () => moHopGop({ id: phu.id, displayName: phu.displayName }, { id: chinh.id, displayName: chinh.displayName }), "btn")));
+  };
+  replaceChildren(
+    dupsEl,
+    h("h2", { id: "dups-title" }, `Hồ sơ nghi trùng (${r.pairs.length}${r.conNua ? "+" : ""})`),
+    r.pairs.length === 0
+      ? h("p", { class: "empty" }, "Không thấy hồ sơ nghi trùng.")
+      : h("ul", { class: "history" }, ...r.pairs.map(dong)),
+    h("div", { class: "actions" }, button("Đóng", () => { dupsEl.hidden = true; }, "btn")),
+  );
+  dupsEl.hidden = false;
+  dupsEl.scrollIntoView({ block: "nearest" });
 }
 
 // ---- Giấy tờ của người (ADR-0040 D2; bản vẽ docs/design/van-chuyen-1a/project/04 Giay to cua mot nguoi.dc.html) ---------------------------------------
@@ -543,6 +690,9 @@ byId("more").addEventListener("click", () => void search(false));
 
 me = await initShell();
 admin = can(me, "admin.manage"); // Quản trị hoặc Toàn quyền (như cổng quản trị của máy chủ) — tài khoản chỉ giữ Toàn quyền cũng thấy khối công việc (Ruling T7, T2b)
+const dupBtn = byId<HTMLButtonElement>("dup-btn");
+dupBtn.hidden = !admin;
+dupBtn.addEventListener("click", () => void moNghiTrung());
 const [m, l] = await Promise.all([act(() => api<Api.PartyMetaResponse>("/api/parties/meta")), act(() => api<Api.LocationListResponse>("/api/locations"))]);
 if (m) meta = m;
 if (l) locations = l.locations;

@@ -19,3 +19,11 @@ Kế hoạch: `docs/superpowers/plans/2026-09-30-gop-ho-so-thi-cong.md`. Nhánh:
 
 - Task 0 do điều phối làm trực tiếp (chỉ tài liệu; ghi `docs/adr/**` bật hộp hỏi quyền của chủ — trợ lý phụ sẽ kẹt ở hộp hỏi).
 - Ruling: migration số tạm **0055_gop_ho_so.sql** theo luật 1.46 của `docs/adr/README.md` (không giữ chỗ; số lớn nhất main + 1 = 0055; nhánh gộp sau đổi tên — `0055_nhom_dich_vu` của nhánh thi-cong-luot-1 cũng đang dùng 0055, ai gộp sau đổi) — nếu sai: đổi tên tệp, test tìm theo đuôi.
+
+## Task 9 — giao diện (2026-10-01)
+
+- Làm: hộp gộp (xem trước ba cột, gõ lại tên, nút Gộp tắt khi có lý do chặn), dải "Đã gộp vào …" + ẩn mọi nút sửa trên hồ sơ đã gộp, mục "Hồ sơ đã gộp vào đây", màn "Hồ sơ nghi trùng", khối C1 ở Thêm tài khoản (tra khi gõ, 300 ms; bắt 409 `party_match_exists`).
+- Lệch khỏi brief (có chủ đích): Q4 = đồng ý → GIỮ tra-khi-gõ; F14 → ô tích dùng lớp `o-tick` (CSS token ở cuối `public/app.css`) thay chuỗi style; F18 → submit giữ `showError(errorEl, null)` + `fail(err)`; chống kết quả cũ đè mới (bộ đếm lần tra/xem trước); gộp thất bại → xem trước lại (vì `act()` mở lại nút); màn nghi trùng là DANH SÁCH, không bảng (`.table-wrap` ẩn dưới 900px → ở 390 sẽ không thấy cặp nào); kịch bản thêm `dem.xong()`.
+- `src/shared/so-do-trang.ts` sinh lại (`node scripts/sinh-so-do-trang.mjs`) — bài sơ đồ trang đỏ vì nút mới.
+- Kịch bản Chrome (D1 tạm, axe-core 4.13.0 tải về `.superpowers/axe/`): `gop-ho-so-smoke.mjs` 5/5 ✓ (kèm axe); `vai-smoke.mjs` OK (đã sửa: helper `guiThem` tick "Vẫn tạo hồ sơ mới" khi có khối; C2 bấm "Dùng hồ sơ này" trong `#add-khop`); `t2b-danh-ba-smoke.mjs` OK; `giay-to-nguoi-smoke.mjs` OK (7); `nha-xe-danh-ba-smoke.mjs` OK (5); `va3-smoke.mjs` OK; `passkey-smoke.mjs` OK; `dot-a-smoke.mjs` 8 ✓ rồi đỏ ở "nhat-ky: thẻ đã dựng xong" — ĐỎ SẴN đã ghi ở `web/CLAUDE.md` (ADR-0038), các bước nhân viên + hồ sơ đều ✓.
+- Nợ nhỏ: hồ sơ đã gộp vẫn hiện câu giấy tờ "Tài khoản cấp trên: chỉ xem" (lý do sai, dải "Đã gộp vào" đã nói đúng). Kịch bản Task 8 Step 7 (cuoc-smoke, dp-lib, nhap-ke-toan-smoke, doi-tac-lap-don-smoke, danh-muc-lap-don-smoke) CHƯA chạy lại ở Task 9.

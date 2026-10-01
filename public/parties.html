@@ -13,11 +13,13 @@
       <label>Công việc (đang hiệu lực hôm nay)<select id="role"><option value="">Tất cả</option></select></label>
       <label>Nơi làm<select id="location"><option value="">Tất cả</option></select></label>
       <label class="check"><input id="inactive" type="checkbox" style="width:auto;display:inline;margin:0 6px 0 0">Gồm cả hồ sơ đã ngưng</label>
-      <div><button class="btn btn-primary" type="submit">Tìm</button> <button id="new" class="btn" type="button">+ Hồ sơ mới</button></div>
+      <div><button class="btn btn-primary" type="submit">Tìm</button> <button id="new" class="btn" type="button">+ Hồ sơ mới</button> <button id="dup-btn" class="btn" type="button" hidden>Hồ sơ nghi trùng</button></div>
     </form>
   </section>
   <section id="create" class="card" hidden></section>
   <section id="detail" class="card" hidden></section>
+  <section id="merge" class="card" hidden aria-labelledby="merge-title"></section>
+  <section id="dups" class="card" hidden aria-labelledby="dups-title"></section>
   <section class="card table-wrap">
     <table class="items">
       <thead><tr><th>Tên</th><th>Loại</th><th>Điện thoại chính</th><th>Công việc hôm nay</th></tr></thead>
