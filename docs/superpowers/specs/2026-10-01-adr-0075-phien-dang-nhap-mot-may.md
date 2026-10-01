@@ -1,9 +1,9 @@
-# ADR-0072 (BẢN NHÁP): Phiên đăng nhập có sổ — mỗi tài khoản một máy, IT/Toàn quyền gỡ phiên
+# ADR-0075 (BẢN NHÁP): Phiên đăng nhập có sổ — mỗi tài khoản một máy, IT/Toàn quyền gỡ phiên
 
-- **Trạng thái:** proposed — bản nháp ở `docs/superpowers/specs/`; chủ duyệt thì chép sang `docs/adr/ADR-0072-phien-dang-nhap-mot-may.md` + dòng `docs/adr/README.md`.
+- **Trạng thái:** đã duyệt 2026-10-01 — văn bản chính thức ở `docs/adr/`; tệp này là bản nháp gốc, không sửa tiếp.
 - **Ngày:** 2026-10-01
 - **Đặc tả:** `docs/superpowers/specs/2026-10-01-xac-thuc-hai-lop-dac-ta.md` (§5b, §13 trang ghép).
-- **Liên quan:** ADR-0071 (lớp hai), ADR-0016 (Face ID), ADR-0036/0046 (thông báo màn hình khoá, tắt khi thao tác bảo mật), ADR-0038/0044 (Toàn quyền, vai IT, nhật ký im lặng), ADR-0042 (đặt lại PIN), Hiến chương K1, 5.12.
+- **Liên quan:** ADR-0074 (lớp hai), ADR-0016 (Face ID), ADR-0036/0046 (thông báo màn hình khoá, tắt khi thao tác bảo mật), ADR-0038/0044 (Toàn quyền, vai IT, nhật ký im lặng), ADR-0042 (đặt lại PIN), Hiến chương K1, 5.12.
 
 ## Bối cảnh
 
@@ -11,7 +11,7 @@ Phiên hôm nay là cookie ký, **không có sổ ở máy chủ**: không biế
 
 ## Quyết định
 
-1. **Sổ phiên.** Bảng `aut_session` (module `auth`): một dòng mỗi lần cấp phiên mới (đăng nhập PIN hoặc Face ID). Token cookie mang thêm **mã phiên**; mỗi request kiểm dòng phiên còn hiệu lực (chưa kết thúc, chưa hết hạn) cùng lúc với kiểm tài khoản. Token kiểu cũ (không có mã phiên) bị từ chối → **mọi người đăng nhập lại một lần** khi phát hành (thay câu Q3 của ADR-0071: phiên cũ không được sống tiếp).
+1. **Sổ phiên.** Bảng `aut_session` (module `auth`): một dòng mỗi lần cấp phiên mới (đăng nhập PIN hoặc Face ID). Token cookie mang thêm **mã phiên**; mỗi request kiểm dòng phiên còn hiệu lực (chưa kết thúc, chưa hết hạn) cùng lúc với kiểm tài khoản. Token kiểu cũ (không có mã phiên) bị từ chối → **mọi người đăng nhập lại một lần** khi phát hành (thay câu Q3 của ADR-0074: phiên cũ không được sống tiếp).
 2. **Mỗi tài khoản một máy.** Cấp phiên mới cho tài khoản **không được miễn** → trong **cùng một lô ghi**: kết thúc mọi phiên đang hiệu lực của tài khoản đó (lý do "bị thay bởi máy khác") rồi chèn phiên mới. Cơ sở dữ liệu cũng chặn: cột `single` + chỉ mục duy nhất có điều kiện `(staff_id) WHERE ended_at IS NULL AND single = 1` — hai lần đăng nhập chạy đua không thể cùng sống. `audit-invariants` thêm kiểm luật này.
 3. **Miễn luật một máy** = tài khoản đang giữ quyền `SUPER_ADMIN` **hoặc** vai `IT` còn hiệu lực, máy chủ đọc lúc cấp phiên (`single = 0`). **Mất miễn** (bị bỏ Toàn quyền/vai IT) → trong cùng lô đổi quyền/vai: kết thúc mọi phiên trừ phiên mới nhất, lý do "mất quyền nhiều máy".
 4. **Lý do kết thúc** (cố định): đăng xuất · bị thay bởi máy khác · bị IT/Toàn quyền gỡ · đổi PIN · bị đặt lại PIN · bị tắt lớp hai · tài khoản ngưng · hết hạn · mất quyền nhiều máy. Mỗi dòng giữ người gỡ (khi do IT/Toàn quyền).
@@ -27,7 +27,7 @@ Phiên hôm nay là cookie ký, **không có sổ ở máy chủ**: không biế
 - **Gỡ phiên không phải khoá tài khoản**: người có PIN (+ lớp hai) đăng nhập lại được ngay. Muốn đuổi hẳn kẻ gian: gỡ phiên **và** đặt lại PIN/tắt lớp hai — màn gỡ phiên có nút gộp "Gỡ phiên + đặt lại PIN".
 - Ứng dụng đã cài và Safari trên **cùng một iPhone** là **hai máy** (hai kho cookie): đăng nhập Safari sẽ đá ứng dụng ra. Lời báo trên máy bị đá: "Tài khoản vừa đăng nhập trên máy khác lúc HH:MM"; ghi trong Trợ giúp.
 - Lịch sử chỉ có từ lúc phát hành.
-- Phát hành **cùng bản hoặc trước** lớp hai (ADR-0071) để chỉ phải đăng nhập lại một lần; 14 ngày ân hạn lớp hai chạy trong các phiên mới này.
+- Phát hành **cùng bản hoặc trước** lớp hai (ADR-0074) để chỉ phải đăng nhập lại một lần; 14 ngày ân hạn lớp hai chạy trong các phiên mới này.
 - Bài kiểm e2e chạy song song đang dùng chung tài khoản → sẽ đá nhau; kế hoạch phải cho mỗi tài khoản test một phiên dùng chung giữa các nhóm hoặc tách tài khoản theo nhóm (không được nới luật cho môi trường test).
 
 ## Phương án đã cân nhắc
