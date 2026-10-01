@@ -11,6 +11,19 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Nợ nhỏ sau 1.62 (Đưa đón + Hành khách): PM-1, PM-2, số hiệu chuyến bay trên điều phối / thẻ tài xế, "Người đổi" ở lịch sử mẫu chặng, đơn vị bằng chữ ở Danh mục.
+    // Không migration. Số "1.63" = main 1.62 + 1 (2026-10-01).
+    version: "1.63",
+    date: "2026-10-01",
+    items: [
+      { kind: "sua", text: "Danh sách hành khách hiện đúng thứ tự đã nhập." },
+      { kind: "sua", text: "Hai người cùng sửa một đơn nháp: người lưu sau được báo \"đơn vừa được cập nhật — tải lại\" thay vì báo lỗi khó hiểu." },
+      { kind: "moi", text: "Bảng điều phối và thẻ chuyến của tài xế hiện số hiệu chuyến bay (✈︎) ở chặng đón." },
+      { kind: "moi", text: "Danh mục: lịch sử cài đưa đón có cột \"Người đổi\"." },
+      { kind: "sua", text: "Danh mục hiện đơn vị bằng chữ (\"theo người\", \"theo nhóm 5 khách\") thay cho mã kỹ thuật." },
+    ],
+  },
+  {
     // ADR-0047 Phần B (giao diện Đưa đón + Hành khách theo bản vẽ Claude Design của chủ 1/10) + màn mẫu chặng ADR-0054/0076 + cảnh báo sớm (chủ "2 — Có").
     // Không migration. Số "1.62" = main 1.61 + 1 (đánh lại lần năm lúc gộp main 1.61 — Mai in đậm, 2026-10-01; trước ghi 1.57–1.61).
     version: "1.62",
