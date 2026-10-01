@@ -171,3 +171,10 @@ Người kiểm độc lập toàn nhánh trả "ĐẠT CÓ ĐIỀU KIỆN"; đ�
 - **Điều chỉnh do gộp (không đổi luật):** bài A4 của `huong-dan.test.ts` đỏ sau gộp — Phần chung + Quản trị = 10 + 22 phút > 30 (mỗi phía riêng đều qua). Rút gọn chữ hướng dẫn (bề mặt, đảo ngược được): mục "Phiên đăng nhập" của Quản trị còn 3 dòng (bỏ bước tìm theo tên, bỏ tick lọc, bước hộp xác nhận); câu ví dụ "Anh Tuấn" ở mục Quên PIN ngắn lại; câu hỏi thường gặp "Đăng nhập hai máy được không?" ở Phần chung trỏ về mục "Mỗi tài khoản một máy". Kết quả 9 + 21 phút (Quản trị đúng 3150 chữ — sát trần, thêm chữ là đỏ lại). Lần rút đầu xoá hẳn câu ví dụ làm bài C4 của `tro-ly-van-nghia.test.ts` đổi số (BM25 đổi trọng số chữ "app") ⇒ giữ câu ví dụ có chữ "app", C4 giữ số 1/10/41. Không đổi ngưỡng bài nào.
 - **e2e không cần điều chỉnh** theo luật ADR-0083: `phien.mjs`, `bangtin.mjs` (ca 12), `mat-mien-route.test.ts` xanh nguyên.
 - **Kiểm:** `npm run build:web` OK; `npm run typecheck` 0 lỗi; `npm test` 2556/2556 + đo giờ hook 1/1; `node --test src/migrations-aut-session.test.ts src/migrations-n1.test.ts` 22/22; `npm run test:e2e` **37/37** (311 giây, kể cả `audit-invariants`). Chưa có người kiểm độc lập cho lần gộp này.
+
+### Gộp main lần 2 (sau 1.57, 6 commit hàng rào hook) — 2026-10-01
+
+- Kiểm độc lập lần gộp 1.57 (`aedf34ee`): **ĐẠT** (typecheck 0, `npm test` 2556 + đo giờ 1/1, e2e 37/37; so dòng thêm/xoá hai phía + `--remerge-diff`; hai lần phá trên bản sao đều đỏ). Ghi chú cũ: ADR-0075 dòng 7 ĐÃ sửa ở `2051ea9f` (số 0065); số bản của tính năng này là **1.58** (các dòng "1.54" phía trên là số lúc thi công).
+- `main` có thêm 6 commit (ba hook mới) → gộp lần 2, không xung đột.
+- Sửa ghi chú cũ phía main ở `SYSTEM-DESIGN.md` (dòng 0062 nhắc `0061_aut_session` → nay 0065). Không sửa tiêu đề `migrations/0062_*`, `0063_*` (tệp của main).
+- Số ADR kế tiếp ở `docs/adr/README.md`: nhánh `tro-ly-mai` đã giữ ADR-0084 → ghi **0085**.
