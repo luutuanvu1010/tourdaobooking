@@ -63,7 +63,7 @@ Trợ lý bị trói bởi lời nhắc cứng (chỉ ba ngả trả lời) và 
 
 ## 3. Dữ liệu
 
-- Migration mới — số tạm = số lớn nhất của `main` + 1 = **`0058`** (main đã có `0057_hanh_chinh_nhan_su` — đổi 1/10) (luật 1.46; nhánh gộp sau đổi tên). **Lưu ý:** `0057` đang được ít nhất hai nhánh chưa gộp giữ (`0057_chang_so_nguoi_chuyen_bay.sql` ở worktree `agent-ac140680b0b1947b2` commit `4fce28f6`; `0057_hanh_chinh_nhan_su.sql` ở worktree `han-che-quan-tri-hcns`) — trước khi gộp, đổi sang số lớn nhất của `main` lúc đó + 1:
+- Migration mới — số tạm = số lớn nhất của `main` + 1 = **`0060`** (main đã có `0057_hanh_chinh_nhan_su`; `0058`, `0059` giữ ở nhánh `worktree-doi-chieu-phieu-giam-doc` — đổi 1/10) (luật 1.46; nhánh gộp sau đổi tên). **Lưu ý:** `0057` đang được ít nhất hai nhánh chưa gộp giữ (`0057_chang_so_nguoi_chuyen_bay.sql` ở worktree `agent-ac140680b0b1947b2` commit `4fce28f6`; `0057_hanh_chinh_nhan_su.sql` ở worktree `han-che-quan-tri-hcns`) — trước khi gộp, đổi sang số lớn nhất của `main` lúc đó + 1:
   - bảng `tl_bo_nao` chỉ-thêm (`id`, `mau`, `muc_suy_nghi`, `do_dai`, `token_ra_toi_da` INTEGER CHECK 800–4000, `loi_nhac` TEXT CHECK độ dài 1–12000, `valid_from_at`, `created_*`, `updated_*`; trigger cấm UPDATE / DELETE như các bảng `tl_*`);
   - `tl_luot_hoi`: `ADD COLUMN mau TEXT` (NULL = lượt cũ) và `ADD COLUMN la_thu INTEGER NOT NULL DEFAULT 0 CHECK (la_thu IN (0,1))` (đã thử hợp lệ trên `node:sqlite`; **chưa thử trên D1**);
   - `tl_hoi_dap`: `ADD COLUMN cuoc_tro_chuyen TEXT` (NULL = lượt cũ) + chỉ mục `(staff_id, cuoc_tro_chuyen, created_at)`.
