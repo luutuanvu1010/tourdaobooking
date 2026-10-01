@@ -133,7 +133,7 @@ export function world(tuyChon = {}) {
     let id = sqlite.prepare("SELECT id FROM aut_session WHERE staff_id = ? AND ended_at IS NULL AND expires_at > ? ORDER BY created_at DESC LIMIT 1").get(as, at)?.id;
     if (!id) {
       const prof = await app.getActiveStaff(env.DB, as);
-      const single = prof && !app.isSingleDevice(prof.permissions, await app.accountRoleCodesOf(env.DB, as)) ? 0 : 1;
+      const single = prof && !app.isSingleDevice(prof.permissions, await app.accountRoleCodesOf(env.DB, as), new Set() /* Task 4: đọc chính sách thật */) ? 0 : 1;
       id = crypto.randomUUID();
       sqlite.prepare("UPDATE aut_session SET ended_at = ?2, end_reason = 'het_han', updated_at = ?2 WHERE staff_id = ?1 AND ended_at IS NULL AND expires_at <= ?2").run(as, at);
       sqlite.prepare(

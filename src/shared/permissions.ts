@@ -184,6 +184,9 @@ export const MATRIX = {
   // (vai IT mặc định mang Toàn quyền). Toàn quyền gỡ được phiên của Toàn quyền khác (cùng cấp). Lịch sử phiên của CHÍNH MÌNH là tự phục vụ, không qua ô.
   "auth.session.viewAll": row("none", "none", "none", "none", "none", "any", "none", "none", "none", "none"),
   "auth.session.revoke": row("none", "none", "none", "none", "none", "any", "none", "none", "none", "none"),
+  // ADR-0085 Q1 điều 3: đặt chính sách đăng nhập (quyền nào Một máy / Nhiều máy) — chỉ Toàn quyền. Route GET/PUT /api/sessions/policy (+ xem trước) hỏi ô này
+  // trong handler; giao diện hỏi đúng ô này (không dùng chung auth.session.viewAll — luật 1.52).
+  "auth.session.policy": row("none", "none", "none", "none", "none", "any", "none", "none", "none", "none"),
 } as const satisfies Record<string, Row>;
 
 export type OperationCode = keyof typeof MATRIX;

@@ -22,3 +22,6 @@
 
 - Task 1 (migration 0067), quan sát chặn thật 2026-10-01, đột biến "thêm 'SUPER_ADMIN' vào CHECK permission_code của aut_session_policy" (khôi phục từ bản sao, xanh 4/4 sau đó):
   `not ok 2 - (b) 9 mã đặt được nhận; SUPER_ADMIN, mã lạ, multi ngoài 0/1, permission_code NULL bị CSDL chặn`
+- Task 2 (luật thuần, isSingleDevice có chính sách), quan sát chặn thật 2026-10-01, đột biến "bỏ vế `permissions.some((p) => nhieuMay.has(p))` khỏi isSingleDevice" (khôi phục từ bản sao, xanh 9/9 sau đó):
+  `not ok 2 - được nhiều máy (ADR-0085 Q1 điều 2): SUPER_ADMIN hoặc vai IT (khoá cứng) hoặc một quyền mà chính sách đặt Nhiều máy; bảng trống = như bản 1.58`
+- Task 2, tồn đọng có chủ ý: `npm test` đỏ bài `hàng rào 1: mọi ô của MATRIX được máy chủ hỏi…` vì ô `auth.session.policy` chưa có route hỏi `can()` — Task 4 thêm route (KHÔNG thêm mục vào docs/quyen-hoan.json, theo kế hoạch).

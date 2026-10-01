@@ -2,6 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { END_REASON_LABEL, isSingleDevice, sessionDeviceLabel, sessionStatus, toSessionDto, trimIp, trimUserAgent } from "./session-ledger.ts";
+import type { PermissionCode } from "../../shared/permissions.ts";
 import { SESSION_TTL_SECONDS, createSessionToken, verifySessionToken } from "./session.ts";
 
 const S = "x".repeat(40);
@@ -14,12 +15,18 @@ test("token mới mang mã phiên; token kiểu cũ (3 phần) bị từ chối"
   assert.equal(await verifySessionToken(S, t.replace("phien-1", "phien-2"), 2_000), null, "đổi mã phiên làm hỏng chữ ký");
 });
 
-test("miễn một máy: giữ SUPER_ADMIN hoặc vai IT", () => {
-  assert.equal(isSingleDevice(["SUPER_ADMIN"], []), false);
-  assert.equal(isSingleDevice(["ADMIN"], ["IT"]), false);
-  assert.equal(isSingleDevice(["ADMIN"], ["DIRECTOR"]), true);
-  assert.equal(isSingleDevice(["PARTNER"], []), true);
-  assert.equal(isSingleDevice(["HR"], ["HR_STAFF"]), true);
+test("được nhiều máy (ADR-0085 Q1 điều 2): SUPER_ADMIN hoặc vai IT (khoá cứng) hoặc một quyền mà chính sách đặt Nhiều máy; bảng trống = như bản 1.58", () => {
+  const TRONG = new Set<PermissionCode>();
+  assert.equal(isSingleDevice(["SUPER_ADMIN"], [], TRONG), false);
+  assert.equal(isSingleDevice(["ADMIN"], ["IT"], TRONG), false);
+  assert.equal(isSingleDevice(["ADMIN"], ["DIRECTOR"], TRONG), true);
+  assert.equal(isSingleDevice(["PARTNER"], [], TRONG), true);
+  assert.equal(isSingleDevice(["HR"], ["HR_STAFF"], TRONG), true);
+  // Một quyền Nhiều máy là đủ (chủ chọn 2026-10-01).
+  assert.equal(isSingleDevice(["SALES", "ACCOUNTING"], [], new Set<PermissionCode>(["ACCOUNTING"])), false);
+  assert.equal(isSingleDevice(["SALES"], [], new Set<PermissionCode>(["ACCOUNTING"])), true);
+  // Toàn quyền / IT khoá cứng: chính sách không làm họ thành một máy (chính sách không có mã SUPER_ADMIN để đặt).
+  assert.equal(isSingleDevice(["SUPER_ADMIN"], [], new Set<PermissionCode>(["SALES"])), false);
 });
 
 test("tên máy: loại máy + trình duyệt / ứng dụng đã cài, không SĐT", () => {

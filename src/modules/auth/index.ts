@@ -74,7 +74,7 @@ export async function issueLoginSession(
   const now = opts.now ?? Date.now();
   const at = new Date(now).toISOString();
   const roles = await accountRoleCodesOf(env.DB, profile.id);
-  const single = isSingleDevice(profile.permissions, roles);
+  const single = isSingleDevice(profile.permissions, roles, new Set()); // Task 4: đọc chính sách thật
   const id = crypto.randomUUID();
   const ua = request.headers.get("user-agent");
   let ended: string[] = [];
@@ -143,8 +143,8 @@ export function exemptionChangeStatements(
     before: { permissions: readonly PermissionCode[]; roles: readonly RoleCode[] }; after: { permissions: readonly PermissionCode[]; roles: readonly RoleCode[] };
   },
 ): { statements: D1PreparedStatement[]; ketQua: (results: readonly D1Result[]) => { endedSessionIds: string[]; keptSessionId: string | null } } {
-  const truoc = isSingleDevice(v.before.permissions, v.before.roles);
-  const sau = isSingleDevice(v.after.permissions, v.after.roles);
+  const truoc = isSingleDevice(v.before.permissions, v.before.roles, new Set()); // Task 4: đọc chính sách thật
+  const sau = isSingleDevice(v.after.permissions, v.after.roles, new Set()); // Task 4: đọc chính sách thật
   if (!truoc && sau) {
     return {
       statements: [endExpiredSessionsStatement(db, v.staffId, v.at), endAllButNewestStatement(db, v.staffId, v.at, v.by), markSingleStatement(db, v.staffId, v.at, v.by)],

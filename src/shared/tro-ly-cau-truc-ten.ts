@@ -119,6 +119,7 @@ export const TEN_THAO_TAC: Readonly<Record<OperationCode, TenLoiThuong>> = {
   "assistant.ask": { ten: "hỏi trợ lý Hỗ trợ", moTa: "Hỏi cách dùng app qua nút Hỗ trợ." },
   "auth.session.viewAll": { ten: "xem phiên đăng nhập của mọi người", moTa: "Xem ai đang đăng nhập trên máy nào, lúc nào, bằng cách nào." },
   "auth.session.revoke": { ten: "gỡ phiên đăng nhập", moTa: "Đăng xuất ngay một máy đang đăng nhập của tài khoản khác." },
+  "auth.session.policy": { ten: "đặt chính sách đăng nhập", moTa: "Chọn quyền nào chỉ đăng nhập một máy, quyền nào được nhiều máy." },
 };
 
 /**

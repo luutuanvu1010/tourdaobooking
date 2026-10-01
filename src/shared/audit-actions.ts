@@ -146,6 +146,7 @@ export const AUDIT_ACTIONS = {
   notice_sent: { label: "Gửi thông báo", group: "notice" },
   notice_revoked: { label: "Thu hồi thông báo", group: "notice" },
   notice_acknowledged: { label: "Xác nhận đã hiểu thông báo", group: "notice" },
+  session_policy_changed: { label: "Đổi chính sách đăng nhập", group: "staff" }, // ADR-0085 điều 9: quyền đổi + giá trị mới + số máy/số người — KHÔNG tên, SĐT, IP
   session_revoked: { label: "Gỡ phiên đăng nhập", group: "staff" }, // ADR-0075 điều 8: ai gỡ, tài khoản bị gỡ (target), mã phiên (detail) — KHÔNG IP/User-Agent
 } as const satisfies Record<string, { label: string; group: AuditGroup }>;
 
@@ -165,6 +166,7 @@ export const SILENT_AUDIT_ACTIONS = [
   "maintenance_changed",
   "pin_reset",
   "passkey_removed",
+  "session_policy_changed", // ADR-0085 điều 9
   "session_revoked", // ADR-0075 điều 8: cùng loại với pin_reset, passkey_removed
 ] as const satisfies readonly AuditAction[];
 

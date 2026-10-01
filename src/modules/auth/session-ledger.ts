@@ -20,9 +20,16 @@ export const END_REASON_LABEL: Record<EndReason, string> = {
 /** `last_seen_at` ghi tối đa một lần mỗi 5 phút (ADR-0075 điều 9). */
 export const SESSION_TOUCH_MS = 5 * 60 * 1000;
 
-/** ADR-0075 điều 3: miễn luật một máy = giữ quyền SUPER_ADMIN hoặc vai IT còn hiệu lực. */
-export const isSingleDevice = (permissions: readonly PermissionCode[], roles: readonly RoleCode[]): boolean =>
-  !(permissions.includes("SUPER_ADMIN") || roles.includes("IT"));
+/** Tập quyền mà chính sách đăng nhập hiện hành đặt "Nhiều máy" (ADR-0085). Tập rỗng = bảng chính sách trống = hành vi bản 1.58. */
+export type TapNhieuMay = ReadonlySet<PermissionCode>;
+
+/**
+ * ADR-0085 Q1 điều 2 (thay ADR-0075 điều 3): tài khoản chịu luật MỘT máy trừ khi giữ SUPER_ADMIN, hoặc vai IT còn hiệu lực (hai điều khoá cứng), hoặc ít nhất
+ * một quyền hiệu lực mà chính sách đặt Nhiều máy. Bản TypeScript của mẩu SQL `nhieuMayDieuKien` (auth/repository.ts) — bài đối chiếu ở chinh-sach-repo.test.ts.
+ * Tham số `nhieuMay` BẮT BUỘC: quên chính sách là lỗi typecheck (tệp test và khung thử không qua typecheck — tự rà).
+ */
+export const isSingleDevice = (permissions: readonly PermissionCode[], roles: readonly RoleCode[], nhieuMay: TapNhieuMay): boolean =>
+  !(permissions.includes("SUPER_ADMIN") || roles.includes("IT") || permissions.some((p) => nhieuMay.has(p)));
 
 /** Tên máy hiển thị = loại máy + trình duyệt rút gọn từ User-Agent (ADR-0075 điều 9). Ứng dụng đã cài trên iPhone/iPad không có `Version/… Safari`. */
 export function sessionDeviceLabel(userAgent: string | null): string {
