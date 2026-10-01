@@ -37,7 +37,9 @@
 - **R10 — Lựa chọn ô nơi**: "<tên> · <loại viết thường>" (khuôn bản vẽ); điểm đã ngưng mà chặng đang trỏ vẫn hiện với nhãn đã lưu. Chữ tạm "(chưa ghi nơi đón)" (dữ liệu cũ) hiện như CHƯA CHỌN.
 - **R11 — Trang đơn**: khối Đưa đón khi đơn không có chặng ghi "Không đưa đón" (chữ có trong danh sách); dòng nhắc "Cần giờ đón / nơi trả trước khi xếp xe" chỉ cho người có `order.trip.edit` (bản vẽ: văn phòng). Đơn nháp: "Sửa đưa đón" / "Sửa danh sách" là liên kết về form.
 - **R12 — Lớp CSS `.dd-ghi` trùng với Người 2** (kiểu khác) → lớp của trang đơn đổi tên `.dd-ghi-tao`. `.dd-nhan` hai bên cùng giá trị — giữ.
-- **R13 — Ô giờ**: ô giờ của máy + chữ mờ "Chưa chốt giờ" đặt chồng khi trống (bản vẽ); ở cột chính hẹp (~180px ô) chữ bị cắt "Chưa chốt g…".
+- **R13 — Ô giờ**: ô giờ của máy + chữ mờ "Chưa chốt giờ" đặt chồng khi trống (bản vẽ); chữ mờ dùng cỡ nhãn (không phải ô gõ) để vừa ô ở cột chính 1040 (trước đó bị cắt "Chưa chốt g…").
+- **R14 — Chữ MỚI không có trong danh sách câu chữ**: "Đã xác nhận đơn." (dải sau xác nhận), "Đã lưu đưa đón.", "Đã lưu danh sách hành khách." (dải sau lưu hai bảng), "Điểm đã ngưng" (nhãn dự phòng khi điểm đang trỏ đã ngưng mà không có nhãn đã lưu), và các dòng Trợ giúp Bán hàng viết lại (`src/shared/huong-dan-ban-hang.ts`).
+- **R15 — Giới hạn còn lại M4**: lệnh dưới mốc lần lượt — mỗi lệnh dưới mốc mở lại khung Đặt gấp một lần (Quản trị duyệt từng chặng).
 
 ## Lệch bản vẽ (ghi để chủ xem)
 
@@ -56,9 +58,10 @@
 - `npm run typecheck`: 0 lỗi.
 - `npm test`: bước 1 **2460/2460**, bước 2 **1/1** (lần cuối, sau khi gộp nhánh Người 2).
 - `npm run build:web`: xong, không lỗi.
-- `npm run test:e2e -- pwa orders chang-hanh-khach dieu-phoi dua-don-dau-cuoi`: **6/6 kịch bản xanh** (gồm bước kiểm "không có day_loi"), 143 giây, 3 nhóm.
+- `npm run test:e2e -- pwa orders chang-hanh-khach dieu-phoi dua-don-dau-cuoi`: **6/6 kịch bản xanh** (gồm bước "không có day_loi"), 143 giây, 3 nhóm.
+- `npm run test:e2e -- tai-xe-cuoc xe-tren-don dieu-phoi-chay-dua dua-don-dau-cuoi` (vì đã sửa `dieu-phoi-kiem.ts` máy chủ dùng): **5/5 xanh**, 50 giây.
 - Kịch bản Chrome (`AXE_JS=/private/tmp/axe-xe-don/package/axe.min.js`, `CHROME_BIN=…/chrome-wrap.sh`):
-  - `dua-don-smoke.mjs` (mới): **12/12** (lần chạy đầu sau khi viết: 6/12 — 3 lỗi của chính kịch bản, 1 lỗi bố cục thật R2; sau sửa 12/12, chạy lại 3 lần xanh).
+  - `dua-don-smoke.mjs` (mới): **15/15** lần cuối. Lịch sử: lần đầu 6/12 (3 lỗi của kịch bản, 1 lỗi bố cục thật — R2); thêm M4 390, M5 1040, M6 390, khách thứ 4, Đối tác đơn đã xác nhận → 14/15 (M6 390 đỏ: chọn dịch vụ khi mẫu chặng chưa nạp → mất chặng tạo sẵn; sửa thứ tự nạp) → 15/15.
   - `a2-smoke-form.mjs` 25 ✓ OK; `a2-smoke-order.mjs` 11 ✓ OK; `a2-smoke-sheet.mjs` 14 ✓ OK; `dat-gap-smoke.mjs` 12/12 OK; `doi-tac-lap-don-smoke.mjs` 8/8 OK.
   - `v1-xac-nhan-png.mjs` 11 ✓ / 2 ✗ (b: "hai họ phông phải đã nạp", j: axe `meta-viewport`) — **đỏ y hệt trên commit gốc 34db1b5c** (đã chạy bản gốc ở `/tmp/base-dd`: cùng 2 ✗).
   - `v1-nguoi-phu-trach.mjs` 14 ✓ / 3 ✗ (h, j: axe `meta-viewport`; l: 403 `/api/dispatch/handlers` ở /orders) — **đỏ y hệt trên commit gốc** (bản gốc: cùng h, j, l). Một lần chạy riêng có thêm k ✗ do lệnh `wrangler d1 execute` lỗi (máy bận), chạy lại thì hết.
@@ -69,3 +72,9 @@
 
 Thêm dòng vào bảng "Sửa tệp nào thì chạy lại kịch bản Chrome nào":
 `web/khoi-dua-don.ts`, `web/khoi-hanh-khach.ts`, `web/sheet-dua-don.ts`, `web/sheet-hanh-khach.ts`, phần Đưa đón / Hành khách của `web/order-form.ts`, `web/order.ts`, `web/service-card.ts`, `src/shared/chang-form.ts`, `src/shared/hanh-khach-form.ts`, `src/shared/canh-bao-xac-nhan.ts`, khối "đưa đón / hành khách — trang đơn" của `public/app.css` → `dua-don-smoke.mjs` ở `docs/evidence/2026-10-01-dua-don-hanh-khach/kich-ban/` (12 bước, 1040 + 390, không cần mạng ngoài; Bán hàng → Kế toán → Đối tác) + ba `a2-smoke-*.mjs` + `dat-gap-smoke.mjs`.
+
+## Đỏ trước / xanh sau — khai đúng từng phần
+
+- `canh-bao-xac-nhan`, `order-view` (suaKhachDuoc, cauKhoaXacNhan), `trip-form`, `service-form`: thấy ĐỎ trước khi sửa mã.
+- `chang-form`, `hanh-khach-form`: test viết CÙNG lúc với mã (không có lần đỏ thật); có một phép thử đột biến (tắt liên kết chiều về → 1 bài đỏ → hoàn nguyên).
+- Giao diện (commit d045311f) vào TRƯỚC khi có kịch bản Chrome; kịch bản chạy lần đầu 6/12 rồi sửa.
