@@ -200,6 +200,13 @@ try {
     assert.ok(!(await pm.ev(`document.querySelector('main').innerText`)).includes(HDV.phone), "trang không lộ SĐT");
     assert.equal(await pm.ev(noCode), "");
     await shotFull(pm, "b2-di-kem-da-gan-dien-thoai.png");
+    // Vá cuối Đợt 1 (M9): người đã gắn không còn trong bảng chọn; hết người thì có câu ghi chú thay vì danh sách rỗng.
+    await pm.ev(click('[data-action="them-di-kem"]'));
+    await pm.waitFor(`!!document.querySelector('.sheet .dp-sheet-text')`, "bảng báo hết hướng dẫn viên để thêm");
+    const hetNguoi = await pm.ev(`document.querySelector('.sheet').innerText`);
+    assert.match(hetNguoi, /Không còn hướng dẫn viên nào để thêm/);
+    assert.ok(!hetNguoi.includes("Hướng Dẫn Kiểm Thử"), "người đã gắn bị ẩn khỏi bảng chọn");
+    await pm.ev(`[...document.querySelectorAll('.sheet button')].find((x) => x.textContent.trim() === 'Đóng').click()`);
   });
   await pm.close();
 

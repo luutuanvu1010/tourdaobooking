@@ -608,3 +608,26 @@ test("ctx.nguongHetHan: khung thử không tiêm → 30 (NGUONG_MAC_DINH, chỉ 
   assert.equal(await doc(goc), 30);
   assert.equal(await doc({ ...goc, nguongHetHan: async () => 7 }), 7);
 });
+
+test("ctx.huongDanVien: khung thử không tiêm → [] (mặc định TỪ CHỐI — không ai là người đi kèm hợp lệ); có tiêm → đúng danh sách tiêm", async () => {
+  const s = staffOf(["SALES"]);
+  const mod: AppModule = { name: "giả", routes: [route("GET", "/api/hdv", "staff", async ({ huongDanVien }) => json({ ds: await huongDanVien() }))] };
+  const goc = {
+    isAssigned: async () => false,
+    newOrderHandler: async () => ({ ok: false as const, message: "không dùng" }),
+    ordersWithHandler: async () => new Set<string>(),
+    handledOrderIdsOf: async () => [],
+    maintenanceBlock: async () => null,
+    partyAccount: async () => ({ linked: false }),
+    baoThayDoi: async () => {},
+    dongBangTin: async () => {},
+    giaoLoDay: async () => [],
+    mocToiThieu: async () => ({ phut: 360, policyId: "moc-gia-router", canhBaoPhut: 120 }),
+  };
+  const doc = async (injected: any) => {
+    const app = createApp({ modules: [mod], currentStaff: async () => phien(s), injected });
+    return (await (await app.fetch(new Request("http://x/api/hdv"), {} as Env, {} as ExecutionContext)).json()).ds;
+  };
+  assert.deepEqual(await doc(goc), []);
+  assert.deepEqual(await doc({ ...goc, huongDanVien: async () => [{ partyId: "p1", ten: "A" }] }), [{ partyId: "p1", ten: "A" }]);
+});

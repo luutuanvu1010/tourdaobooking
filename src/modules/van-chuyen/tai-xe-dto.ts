@@ -1,7 +1,7 @@
 // DTO TÀI XẾ (ADR-0049 D3; kế hoạch mục 1.8; ruling R-P11, R-P17 — Task A15). Dựng MỚI TỪNG KHOÁ (khuôn `pool.ts` — không trải đối tượng nguồn): danh sách
 // trắng. Họ tên + năm sinh khách, liên hệ (tên + SĐT người liên hệ của đơn) CHỈ trong ngày chạy — ngoài ngày chạy các khoá đó VẮNG MẶT. KHÔNG BAO GIỜ: tiền,
-// Tên người đi kèm (HDV — nhân viên, không phải khách): mọi lúc, chỉ tên.
 // dịch vụ khác, ghi chú đơn, người lập, người phụ trách, số giấy tờ, hạn GPLX, khoá so sánh nơi (`L:…` / `T:…`), id người bấm, SĐT người bấm.
+// Tên người đi kèm (HDV — nhân viên, không phải khách): mọi lúc, chỉ tên.
 import type { LienHeTaiXe } from "../orders";
 import type { CuocChiTietResponse, CuocCuaToiItemDto, DieuKienConThieuDto, DiemChuyenDto, SuatChuyenDto } from "../../shared/contracts";
 import type { LyDoGiu } from "../../shared/ly-do-giu";

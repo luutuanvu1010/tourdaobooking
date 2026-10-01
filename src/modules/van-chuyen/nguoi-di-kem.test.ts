@@ -98,3 +98,20 @@ test("kết thúc thường với người đi kèm: khách đã trả mà HDV c
     tat();
   }
 });
+
+test("quyền FIELD của HDV bị ĐÓNG (valid_to_at) giữa lúc mở màn và lúc gửi → 409 nguoi_di_kem_khong_hop_le, không mở suất; danh sách HDV không còn người đó", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const a = await chuyenSan(w);
+    assert.equal((await w.call("GET", "/api/van-chuyen/huong-dan-vien", { as: SALES })).json.nguoi.length, 1);
+    w.sqlite.exec(`UPDATE stf_permission SET valid_to_at = valid_from_at WHERE staff_id = '${FIELD}' AND permission_type_code = 'FIELD'`);
+    const x = await xepDiKem(w, a.id, [`pty-${FIELD}`]);
+    assert.equal(x.status, 409, x.text);
+    assert.equal(x.json.error.code, "nguoi_di_kem_khong_hop_le");
+    assert.equal(soCrew(w, a.id), 0);
+    assert.deepEqual((await w.call("GET", "/api/van-chuyen/huong-dan-vien", { as: SALES })).json.nguoi, []);
+  } finally {
+    tat();
+  }
+});

@@ -131,7 +131,7 @@ function ve(): void {
     c.ketThucThat ? h("div", { class: "dp-ct-moc" }, dongMoc(c.trangThai === "ENDED_INTERRUPTED" ? "Kết thúc gián đoạn" : "Kết thúc", c.ketThucThat, ngay)) : null,
     ...diemCho.map((k) => h("div", { class: "dp-khach-cho" }, "Một lệnh ở điểm chưa gửi được", h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary", "data-action": "bam-lai" }, "Bấm lại"))),
     h("div", { class: "dp-run-list" }, ...diem),
-    chayDuoc ? h("div", { class: "dp-run-end" }, ketThuc, ketThuc.disabled ? h("span", { class: "dp-note" }, "Bấm được khi đã trả hết khách.") : null, gianDoan) : null,
+    chayDuoc ? h("div", { class: "dp-run-end" }, ketThuc, ketThuc.disabled ? h("span", { class: "dp-note" }, "Bấm được khi đã trả hết khách và người đi kèm đã xuống.") : null, gianDoan) : null,
   );
   // Nút "Bấm lại" của lệnh ở điểm (Đã tới / Đã trả).
   trangEl.querySelectorAll<HTMLButtonElement>(':scope > .dp-khach-cho [data-action="bam-lai"]').forEach((nut, i) => {
@@ -192,8 +192,8 @@ function lenhDiem(l: LenhDiem): void {
 function moGianDoan(opener: HTMLElement): void {
   const r = duLieu!;
   let lyDo: string | null = null;
-  const conTren = r.suat.filter((s) => s.trangThai === "BOARDED").length;
-  const chuaDon = r.suat.filter((s) => s.trangThai === "WAITING").length;
+  const conTren = chiSuatKhach(r.suat).filter((s) => s.trangThai === "BOARDED").length;
+  const chuaDon = chiSuatKhach(r.suat).filter((s) => s.trangThai === "WAITING").length;
   const loi = h("div", { class: "vc-field-error", role: "alert", hidden: true });
   const chinh = h("button", { type: "button", class: "vc-btn vc-btn-danger", disabled: true, "data-action": "gian-doan-gui" }, "Kết thúc gián đoạn");
   const dong = h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary" }, "Đóng");

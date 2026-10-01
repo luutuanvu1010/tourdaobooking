@@ -240,7 +240,6 @@ const LY_DO_DANG_DUNG = defineSql("van-chuyen", "ly_do_dang_dung", "SELECT code,
 export async function lyDoDangDung(db: D1Database): Promise<{ code: string; reason_group: string; label: string }[]> {
   return (await db.prepare(LY_DO_DANG_DUNG).all<{ code: string; reason_group: string; label: string }>()).results;
 }
-/** Tên điểm danh mục (view công bố của locations) — nhãn nơi trong nhật ký `trip_stops_synced` (ADR-0050: tên danh mục hoặc "nơi tự do"). */
 // Lời chủ 2026-10-01: TÊN người đi kèm (suất CREW) của một chuyến — qua view công bố v_pty_party_label (cạnh van-chuyen → parties đã khai). Chỉ tên.
 const TEN_NGUOI_DI_KEM = defineSql(
   "van-chuyen",
@@ -251,6 +250,7 @@ const TEN_NGUOI_DI_KEM = defineSql(
 export async function tenNguoiDiKem(db: D1Database, tripId: string): Promise<Map<string, string>> {
   return new Map((await db.prepare(TEN_NGUOI_DI_KEM).bind(tripId).all<{ id: string; display_name: string }>()).results.map((x) => [x.id, x.display_name]));
 }
+/** Tên điểm danh mục (view công bố của locations) — nhãn nơi trong nhật ký `trip_stops_synced` (ADR-0050: tên danh mục hoặc "nơi tự do"). */
 const TEN_DIEM = defineSql("van-chuyen", "ten_diem", "SELECT id, name FROM v_loc_location_label WHERE id IN (SELECT value FROM json_each(?1))");
 export async function tenDiem(db: D1Database, ids: readonly string[]): Promise<Map<string, string>> {
   if (ids.length === 0) return new Map();

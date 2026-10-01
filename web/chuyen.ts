@@ -502,7 +502,9 @@ const lenhDiKem = taoLenh();
 async function moThemDiKem(opener: HTMLButtonElement): Promise<void> {
   let ds: HuongDanVienListResponse["nguoi"];
   try {
-    ds = (await api<HuongDanVienListResponse>("/api/van-chuyen/huong-dan-vien")).nguoi;
+    // Ẩn người ĐÃ gắn vào chuyến này (suất CREW đang mở) — danh sách chuyến chỉ có tên nên so theo tên (chỉ bề mặt; máy chủ giữ nguyên luật).
+    const daGan = new Set(duLieu!.suat.filter((x) => x.loai === "CREW" && x.tenNguoiDiKem).map((x) => x.tenNguoiDiKem));
+    ds = (await api<HuongDanVienListResponse>("/api/van-chuyen/huong-dan-vien")).nguoi.filter((x) => !daGan.has(x.ten));
   } catch (e) {
     xong(dai("danger", "Chưa tải được danh sách hướng dẫn viên", docLoiLenh(e).dong));
     return;
@@ -515,7 +517,7 @@ async function moThemDiKem(opener: HTMLButtonElement): Promise<void> {
     title: "Thêm người đi kèm",
     body: ds.length
       ? [nhomChon("ct-di-kem", "Hướng dẫn viên", ds.map((x) => ({ code: x.partyId, nhan: x.ten })), (c) => { chon = c; gui.disabled = false; }), loi]
-      : [h("p", { class: "dp-sheet-text" }, "Chưa có tài khoản hướng dẫn viên nào đang hoạt động.")],
+      : [h("p", { class: "dp-sheet-text" }, "Không còn hướng dẫn viên nào để thêm: mọi hướng dẫn viên đang hoạt động đã đi kèm chuyến này.")],
     foot: [dong, gui],
     footClass: "vc-foot-2",
     opener,
