@@ -648,6 +648,7 @@ export async function xeCuaDon(db: D1Database, orderId: string): Promise<XeCuaDo
 
 // ---- ADR-0068 Đ2 (gộp hồ sơ): việc xe đang mở của MỘT hồ sơ — CHỈ gốc lắp ráp gọi qua hàm công bố viecXeCuaNguoi ----------------------------------------
 // "Chưa chốt" = chuyến PLANNED hoặc RUNNING. ?1 = hồ sơ. Chỉ đếm, không trả chuyến / xe.
+// Luật đếm này được chép ở scripts/audit-checks.mjs (R-PTY-MERGE-4): sửa một nơi thì sửa nơi kia.
 const VIEC_XE_CUA_NGUOI = defineSql(
   "van-chuyen",
   "viec_xe_cua_nguoi",

@@ -27,3 +27,11 @@ Kế hoạch: `docs/superpowers/plans/2026-09-30-gop-ho-so-thi-cong.md`. Nhánh:
 - `src/shared/so-do-trang.ts` sinh lại (`node scripts/sinh-so-do-trang.mjs`) — bài sơ đồ trang đỏ vì nút mới.
 - Kịch bản Chrome (D1 tạm, axe-core 4.13.0 tải về `.superpowers/axe/`): `gop-ho-so-smoke.mjs` 5/5 ✓ (kèm axe); `vai-smoke.mjs` OK (đã sửa: helper `guiThem` tick "Vẫn tạo hồ sơ mới" khi có khối; C2 bấm "Dùng hồ sơ này" trong `#add-khop`); `t2b-danh-ba-smoke.mjs` OK; `giay-to-nguoi-smoke.mjs` OK (7); `nha-xe-danh-ba-smoke.mjs` OK (5); `va3-smoke.mjs` OK; `passkey-smoke.mjs` OK; `dot-a-smoke.mjs` 8 ✓ rồi đỏ ở "nhat-ky: thẻ đã dựng xong" — ĐỎ SẴN đã ghi ở `web/CLAUDE.md` (ADR-0038), các bước nhân viên + hồ sơ đều ✓.
 - Nợ nhỏ: hồ sơ đã gộp vẫn hiện câu giấy tờ "Tài khoản cấp trên: chỉ xem" (lý do sai, dải "Đã gộp vào" đã nói đúng). Kịch bản Task 8 Step 7 (cuoc-smoke, dp-lib, nhap-ke-toan-smoke, doi-tac-lap-don-smoke, danh-muc-lap-don-smoke) CHƯA chạy lại ở Task 9.
+
+## Task 10 — bất biến R-PTY-MERGE-1..5 + quan sát chặn thật (2026-10-01)
+- Đỏ đầu tiên: `node --test src/audit-invariants.test.ts` → bài danh sách kiểm đỏ ở deepEqual (chưa có kiểm R-PTY-MERGE nào). Xanh sau khi thêm 5 kiểm: pass 90.
+- R-PTY-MERGE-4 thêm vế "đang đứng tên xe" (`vc_vehicle.status <> 'retired'`) cùng luật `viecXeCuaNguoi`; chú thích "sửa một nơi thì sửa nơi kia" ở cả hai nơi.
+- D1 local TRƯỚC khi gieo: `R-N1-5` đã vi phạm (không có quản trị viên đang hoạt động trên D1 local — có sẵn, không do việc này).
+- Lần in 1 (đã gieo hồ sơ gộp + `pty_person` + liên hệ mở): `✗ R-PTY-MERGE-2 … — 1 vi phạm`, thoát 1 (kèm `R-N1-3` 2 vi phạm do hồ sơ gieo có display_name lệch họ-tên: lỗi của dữ liệu gieo, không phải hàng rào).
+- Lần in 2 (đã đóng liên hệ): `✓ R-PTY-MERGE-2`; còn `R-N1-3` (gieo) và `R-N1-5` (có sẵn). Sau đó khôi phục tệp sqlite local từ bản sao trước gieo → chỉ còn `R-N1-5`, 0 hồ sơ `pty-thu-gop*`.
+- Bước 6: `if (false)` ở đường vai của `POST /api/staff` → `tao-trung.test.ts` đỏ `expected: 409 / actual: 201` (pass 3, fail 3) → hoàn nguyên → pass 6.

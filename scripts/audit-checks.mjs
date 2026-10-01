@@ -166,6 +166,53 @@ export const CHECKS = [
     sql: "SELECT CASE WHEN count(*) = 1 THEN 0 ELSE 1 END FROM pty_party_role WHERE role_type_code = 'OWNER_COMPANY' AND valid_to_date IS NULL",
     level: "fail",
   },
+  // ---- Gộp hồ sơ cá nhân (ADR-0068 Đ3, G15). Trigger pty_party_merge_* (migration *_gop_ho_so) là đường chặn thứ nhất; đây là lưới cho SQL chạy tay (P21) và
+  // cho khe giữa lúc kiểm và lúc ghi (R-PTY-MERGE-4, -5). "Ngày gộp" = ngày giờ VN của merged_at.
+  {
+    code: "R-PTY-MERGE-1",
+    what: "không chuỗi gộp: hồ sơ đích của một lần gộp không tự gộp tiếp; hai đầu đều là hồ sơ cá nhân",
+    sql: `SELECT count(*) FROM pty_party a JOIN pty_party b ON b.id = a.merged_into_id
+     WHERE b.merged_into_id IS NOT NULL OR a.party_kind <> 'PERSON' OR b.party_kind <> 'PERSON'`,
+    level: "fail",
+  },
+  {
+    code: "R-PTY-MERGE-2",
+    what: "hồ sơ đã gộp: ngưng dùng, có mốc gộp, không còn liên hệ / công việc / quan hệ mở sau ngày gộp",
+    sql: `SELECT count(*) FROM pty_party a WHERE a.merged_into_id IS NOT NULL AND (a.active <> 0 OR a.merged_at IS NULL
+       OR EXISTS (SELECT 1 FROM pty_contact_point c WHERE c.party_id = a.id AND (c.valid_to_date IS NULL OR c.valid_to_date > date(a.merged_at, '+7 hours')))
+       OR EXISTS (SELECT 1 FROM pty_party_role r WHERE r.party_id = a.id AND (r.valid_to_date IS NULL OR r.valid_to_date > date(a.merged_at, '+7 hours')))
+       OR EXISTS (SELECT 1 FROM pty_party_relationship x WHERE (x.from_party_id = a.id OR x.to_party_id = a.id)
+                    AND (x.valid_to_date IS NULL OR x.valid_to_date > date(a.merged_at, '+7 hours'))))`,
+    level: "fail",
+  },
+  {
+    code: "R-PTY-MERGE-3",
+    what: "hồ sơ đã gộp không gắn tài khoản",
+    sql: "SELECT count(*) FROM staff s JOIN pty_party a ON a.id = s.party_id WHERE a.merged_into_id IS NOT NULL",
+    level: "fail",
+  },
+  // R-PTY-MERGE-4 chép luật đếm của VIEC_XE_CUA_NGUOI (src/modules/van-chuyen/chuyen-repo.ts): sửa một nơi thì sửa nơi kia (F19).
+  // Hồ sơ ĐÍCH có thể ngưng dùng SAU khi gộp — các kiểm này không canh việc đó (ADR chỉ ràng buộc lúc gộp).
+  {
+    code: "R-PTY-MERGE-4",
+    what: "hồ sơ đã gộp không còn là người phụ trách đơn chưa xong, tài xế / người đi kèm / nhà xe của chuyến chưa chốt, chủ xe chưa ngừng",
+    sql: `SELECT count(*) FROM pty_party a WHERE a.merged_into_id IS NOT NULL AND (
+       EXISTS (SELECT 1 FROM dsp_assignment d JOIN orders o ON o.id = d.order_id WHERE d.party_id = a.id AND d.task_kind_code = 'HANDLE' AND d.valid_to_at IS NULL
+                 AND o.status <> 'cancelled' AND o.delivered_at IS NULL)
+       OR EXISTS (SELECT 1 FROM vc_trip_driver v JOIN vc_trip t ON t.id = v.trip_id WHERE v.driver_party_id = a.id AND v.valid_to_at IS NULL AND t.status IN ('PLANNED', 'RUNNING'))
+       OR EXISTS (SELECT 1 FROM vc_trip_allocation x JOIN vc_trip t ON t.id = x.trip_id WHERE x.kind = 'CREW' AND x.crew_party_id = a.id AND x.valid_to_at IS NULL
+                    AND t.status IN ('PLANNED', 'RUNNING'))
+       OR EXISTS (SELECT 1 FROM vc_trip t WHERE t.carrier_party_id = a.id AND t.status IN ('PLANNED', 'RUNNING'))
+       OR EXISTS (SELECT 1 FROM vc_vehicle v WHERE v.owner_party_id = a.id AND v.status <> 'retired'))`,
+    level: "fail",
+  },
+  {
+    code: "R-PTY-MERGE-5",
+    what: "đơn chưa giao, chưa huỷ không còn người đặt là hồ sơ đã gộp",
+    sql: `SELECT count(*) FROM orders o JOIN pty_party a ON a.id = o.booker_party_id
+     WHERE a.merged_into_id IS NOT NULL AND o.status IN ('draft', 'confirmed') AND o.delivered_at IS NULL`,
+    level: "fail",
+  },
 
   // ---- Sổ tiền lượt 1 (ADR-0026 điều 7 — R-BIL-*; ADR-0025 NT 8 — hai bất biến mốc; NT-S9; kế hoạch Task 9, NT-A1). Trigger của migration 0044/0045 là
   // đường chặn thứ nhất; các kiểm này là LƯỚI THỨ HAI cho SQL chạy tay (P21). Chỉ đếm, không in số tiền / tên. "Còn hiệu lực" = không phải dòng đảo và
