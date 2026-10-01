@@ -9,6 +9,12 @@
 | 2c (ADR-C) | C1, C8, C10, C11 |
 | 2d (ADR-D + E) | C7, C12 |
 
+## Lời chủ (2026-10-01)
+
+> *"cả 13 theo khuyến nghị"* — chủ trả lời sau khi đọc bản giải nghĩa lời thường từng câu (có nhắc riêng C1: B khớp lời 25/9 + số VAT; C6: HDV có thể thấy "đang nợ" tới khi Kế toán đối chiếu).
+
+**C1–C13 = A.** Các ADR nháp đã viết theo phương án A ⇒ không đổi nội dung. Câu trả lời **chưa** là duyệt ADR: mỗi lượt 2a → 2d vẫn trình chủ duyệt riêng (≤ 3 quyết định mỗi lượt, `CLAUDE.md` §9). C12 = A là lời duyệt nới đúng ba điểm ở `de-xuat-luat.md` mục 1–3 (Điều 9.4), có hiệu lực khi ADR-D được duyệt.
+
 ---
 
 ## C1 — Sổ ghi đơn của đại lý theo kiểu nào? *(ADR-00xx-C điều 2 — nên hỏi thêm Kế toán)*
