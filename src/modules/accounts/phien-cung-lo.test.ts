@@ -5,6 +5,7 @@
 //   (2) Nhóm có `endOtherSessionsStatement` (bốn route tự phục vụ giữ phiên hiện tại) phải có `markSessionReissuedStatement` — phiên giữ lại không bị
 //       màn sổ phiên coi là "Đã đổi thông tin đăng nhập" (quyết định của điều phối, Task 5).
 //   (3) Không còn `newSessionCookie` ở đâu trong src (cấp phiên mới chỉ qua issueLoginSession; cấp lại cookie qua reissueSessionCookie).
+//   (5) Trong nhóm đó, câu kết thúc phiên đứng SAU mọi chuỗi "changes() > 0" (không chen vào chuỗi changes() — `changes()` đọc câu ngay trước).
 //   (4) Chống bài rỗng: đếm đúng số chỗ đổi thông tin đăng nhập; thêm chỗ mới → đỏ, xem lại rồi mới sửa con số.
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -122,6 +123,21 @@ test("phân tích được mọi chỗ đổi thông tin đăng nhập (không b
 test("mỗi lô đổi PIN / đổi Face ID / ngưng tài khoản có câu kết thúc phiên (ADR-0075 điều 4–5)", () => {
   const thieu = sites.filter((s) => !ENDS.test(s.group)).map((s) => `${s.file} (${s.fn})`);
   assert.deepEqual(thieu, [], "lô đổi thông tin đăng nhập thiếu endOtherSessionsStatement / endAllSessionsStatement / endAllSessionsIfSuspendedStatement");
+});
+
+test("câu kết thúc phiên đứng SAU mọi câu điều kiện `changes() > 0` của cùng lô (không chen vào chuỗi changes() — ADR-0075 điều 4–5)", () => {
+  // `changes()` của SQLite đọc số dòng của câu NGAY TRƯỚC: chèn câu kết thúc phiên vào giữa chuỗi thì câu nhật ký / touch phía sau đọc nhầm số dòng của nó.
+  // So vị trí trong văn bản nhóm: vị trí NHỎ NHẤT của câu kết thúc phiên phải lớn hơn vị trí LỚN NHẤT của chuỗi "changes() > 0".
+  const ENDS_ALL = new RegExp(ENDS.source, "g");
+  const sai = sites.flatMap((s) => {
+    const ends = [...s.group.matchAll(ENDS_ALL)].map((m) => m.index!);
+    const conds = [...s.group.matchAll(/changes\(\) > 0/g)].map((m) => m.index!);
+    if (ends.length === 0 || conds.length === 0) return [];
+    return Math.min(...ends) > Math.max(...conds) ? [] : [`${s.file} (${s.fn})`];
+  });
+  assert.deepEqual(sai, [], "câu kết thúc phiên đứng trước một câu changes() > 0 trong cùng lô — chuyển nó xuống CUỐI lô");
+  // chống bài rỗng: phải có lô thật sự mang cả hai (hôm nay 4 lô có nhật ký passkey_removed "changes() > 0")
+  assert.ok(sites.filter((s) => /changes\(\) > 0/.test(s.group) && ENDS.test(s.group)).length >= 4, "không thấy lô nào có cả changes() > 0 lẫn câu kết thúc phiên");
 });
 
 test("ngưng tài khoản (patchStaffStatements) chỉ kết thúc phiên CÓ ĐIỀU KIỆN 'đã ngưng' — không dùng câu vô điều kiện", () => {
