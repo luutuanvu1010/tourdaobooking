@@ -1,6 +1,6 @@
 import { ApiError, api, type StaffAccount, type Api } from "./api";
 import { NHAN_LY_DO_KHOP } from "../src/shared/ho-so-trung";
-import { PERMISSION_CODES, PERMISSION_LABEL, can, hasPermission, type PermissionCode } from "../src/shared/permissions";
+import { PERMISSION_CODES, PERMISSION_LABEL, can, type PermissionCode } from "../src/shared/permissions";
 import { ROLE_CODES, canManageAccount, rolesLabel } from "../src/shared/roles";
 import { byId, h, replaceChildren } from "./dom";
 import { dateTime } from "./format";
@@ -384,7 +384,7 @@ byId<HTMLFormElement>("add-form").addEventListener("submit", async (e) => {
 
 const staff = await initShell();
 me = staff;
-meSuper = hasPermission(staff, "SUPER_ADMIN");
+meSuper = can(staff, "admin.manage.superadmin"); // ADR-0072 mục 4a: hỏi bảng quyền (ô gán/gỡ Toàn quyền), không hỏi mã
 canAccessManage = can(staff, "account.access.manage");
 // ADR-0071 điều 1b: cổng trang theo ô account.view (Quản trị, Toàn quyền, Hành chính nhân sự — cùng đối tượng với cổng "accounts" của API); khung "Thêm tài khoản"
 // theo ô account.create (Hành chính nhân sự, Toàn quyền — Quản trị KHÔNG).

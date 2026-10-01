@@ -43,14 +43,14 @@ void feedbackBadge().then((n) => {
 });
 const lienKetDau = [
   isOffice(staff) && h("a", { class: "row-link", href: "/parties" }, "Danh bạ", icon("next", 20)),
-  hasPermission(staff, "ADMIN") && h("a", { class: "row-link", href: "/locations" }, "Địa điểm", icon("next", 20)),
+  can(staff, "admin.manage") && h("a", { class: "row-link", href: "/locations" }, "Địa điểm", icon("next", 20)),
   // Loại giấy tờ người (loại giấy tờ của người + hạng giấy phép lái xe — danh mục chung, giấy tờ thuộc về người). Tách 2026-09-28 khỏi dòng "Danh mục giấy tờ"
   // cũ (ADR-0040 D1, D2; Task A19); "Loại giấy tờ xe" nay ở nhóm VẬN CHUYỂN bên dưới. Ô admin.manage (như dòng cũ).
   can(staff, "admin.manage") && h("a", { class: "row-link", href: "/loai-giay-to-nguoi" }, "Loại giấy tờ người", icon("next", 20)),
 ];
 const lienKetSau = [
   can(staff, "audit.view") && h("a", { class: "row-link", href: "/audit" }, "Nhật ký", icon("next", 20)), // ADR-0038 điều 6: chỉ Toàn quyền
-  hasPermission(staff, "SUPER_ADMIN") && h("a", { class: "row-link", href: "/gui-thong-bao" }, "Gửi thông báo", icon("next", 20)),
+  can(staff, "notice.send") && h("a", { class: "row-link", href: "/gui-thong-bao" }, "Gửi thông báo", icon("next", 20)),
   // ADR-0069 điều 1: cài đặt trợ lý chuyển từ khối ở trang này sang trang riêng — chỉ Toàn quyền (ô settings.ops).
   can(staff, "settings.ops") && h("a", { class: "row-link", href: "/tro-ly-cai-dat" }, "Trợ lý Hỗ trợ", icon("next", 20)),
   h("a", { class: "row-link", href: "/feedback" }, "Góp ý / Báo lỗi", feedbackBadgeEl, icon("next", 20)),
