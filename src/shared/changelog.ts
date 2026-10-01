@@ -21,6 +21,10 @@ export const CHANGELOG: readonly ReleaseNote[] = [
       { kind: "doi", text: "Bỏ nạp danh sách nhân viên từ Google Sheet; tài khoản mới chỉ tạo trong app. Danh mục dịch vụ vẫn đồng bộ từ Sheet như cũ." },
       { kind: "doi", text: "Chế độ bảo trì: khi bật, mọi người trừ tài khoản Toàn quyền đều thấy màn hình bảo trì, kể cả Quản trị." },
       { kind: "doi", text: "Đồng hồ bảo trì còn từ một ngày trở lên hiện dạng \"3 ngày 5 giờ 10 phút\"." },
+      { kind: "doi", text: "Dải nhắc bảo trì đổi chữ: \"Đang ở chế độ bảo trì — chỉ tài khoản Toàn quyền dùng được\"." },
+      { kind: "doi", text: "Vai Giám đốc nay chỉ có quyền Quản trị, không còn mặc định Toàn quyền. Giám đốc cần thêm việc kỹ thuật hay kế toán thì người phụ trách hệ thống cộng tay quyền đó kèm lý do. Tài khoản đang có vai này giữ nguyên quyền cho tới khi được lưu lại vai." },
+      { kind: "sua", text: "Menu, trang và nút ẩn/hiện theo cùng bảng quyền với máy chủ: tài khoản chỉ có Toàn quyền hoặc chỉ có Nhân sự thấy đúng mục mình làm được." },
+      { kind: "doi", text: "Thêm tài khoản: khi số hoặc tên đã có trong Danh bạ mà bạn không xem được Danh bạ, app chỉ báo \"đã có trong Danh bạ\", không hiện tên; vẫn tạo được hồ sơ mới rồi nhờ Quản trị gộp." },
     ],
   },
   {
