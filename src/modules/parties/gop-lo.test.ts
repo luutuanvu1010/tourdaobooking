@@ -186,11 +186,13 @@ test("Sửa 1: giấy tờ của A đổi SAU khi đọc (khoá lạc quan làm 
   assert.deepEqual(anh(db), truoc);
 });
 
-test("Sửa 2: A có thêm liên hệ / công việc / quan hệ mở SAU khi tính kế hoạch → câu lật hỏng CẢ lô (không để A đã gộp mà còn dòng mở)", async () => {
+test("Sửa 2: A có thêm liên hệ / công việc / quan hệ mở (A ở đầu đến hoặc đầu đi) SAU khi tính kế hoạch → câu lật hỏng CẢ lô (không để A đã gộp mà còn dòng mở)", async () => {
   for (const them of [
     (db: DatabaseSync) => lienHe(db, "c9", "pa", "0913000999", 0),
     (db: DatabaseSync) => vai(db, "r9", "pa", "BOAT_CAPTAIN"),
     (db: DatabaseSync) => { nguoi(db, "pc"); quanHe(db, "q9", "pc", "pa", "CONTACT_OF"); },
+    // A là đầu FROM của quan hệ mới (vế x.from_party_id của câu lật).
+    (db: DatabaseSync) => { nguoi(db, "pc"); quanHe(db, "q8", "pa", "pc", "CONTACT_OF"); },
   ]) {
     const db = openDb();
     const D = fakeD1(db);
