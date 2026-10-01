@@ -1,8 +1,8 @@
-# Đặc tả: Xác thực hai lớp (2FA) khi đăng nhập
+# Đặc tả: Xác thực hai lớp (2FA) + sổ phiên đăng nhập một máy
 
 - **Trạng thái:** BẢN NHÁP — chờ chủ dự án duyệt. Chưa viết mã.
 - **Ngày:** 2026-10-01 · **Gốc nhánh:** `main` @ `fd77987a` (đã có `0056_gop_ho_so`) · **Nhánh:** `worktree-dac-ta-2fa`
-- **Quyết định kiến trúc đi kèm:** bản nháp ADR-0071 ở `docs/superpowers/specs/2026-10-01-adr-0071-xac-thuc-hai-lop.md` (chưa đưa vào `docs/adr/`).
+- **Quyết định kiến trúc đi kèm:** bản nháp ADR-0071 (lớp hai) `docs/superpowers/specs/2026-10-01-adr-0071-xac-thuc-hai-lop.md` và ADR-0072 (sổ phiên, một máy) `docs/superpowers/specs/2026-10-01-adr-0072-phien-dang-nhap-mot-may.md` (chưa đưa vào `docs/adr/`).
 - **Xây trên lỗ đang hở:** không — `docs/quyen-hoan.json` mục `phat_hien` rỗng ngày 2026-10-01.
 - **Loại việc:** việc lớn (quyền truy cập + dữ liệu + bí mật + chi phí gửi tin) → thi công xong phải có người kiểm độc lập chỉ đọc (CLAUDE.md §3).
 
@@ -14,6 +14,13 @@
 | Hỏi mã lúc nào | **Chỉ khi đăng nhập bằng PIN trên máy chưa được tin**; máy được tin **30 ngày**; **Face ID được miễn** |
 | Kênh | **Đợt 1: ứng dụng xác thực (Google Authenticator và tương tự) + Email; Đợt 2: Zalo ZNS** |
 | Khôi phục | **10 mã dự phòng dùng một lần + Quản trị/Toàn quyền tắt lớp hai cho người đó** (có nhật ký) |
+| Q1 Đưa vào dùng | **A** — ân hạn 14 ngày tự bật trong phiên; sau hạn chặn, nhờ Quản trị |
+| Q2 Ai tắt lớp hai của ai | **A** — Quản trị tắt cho người không giữ Quản trị/Toàn quyền; chỉ Toàn quyền tắt cho Quản trị và Toàn quyền |
+| Q3 Phiên đang mở lúc phát hành | Ban đầu chọn A (giữ tới 7 ngày); **đổi thành: mọi người đăng nhập lại một lần khi phát hành** (do sổ phiên, ADR-0072) |
+| Q4 Email cho vai lớn | **A** — Quản trị, Toàn quyền, Kế toán chỉ dùng ứng dụng xác thực |
+| Sổ phiên — máy thứ hai | **Máy mới vào, máy cũ bị đăng xuất** |
+| Sổ phiên — phạm vi | **Mọi tài khoản, trừ IT và Toàn quyền** (được nhiều máy) |
+| Sổ phiên — ai xem/gỡ | **IT + Toàn quyền xem và gỡ của mọi người; mỗi người xem được lịch sử của mình và tự đăng xuất** |
 
 ## 2. Hiện trạng (đọc mã 2026-10-01)
 
@@ -47,15 +54,16 @@ Không đổi, không hỏi lớp hai (đã là hai yếu tố). **Bật Face ID
 - **TOTP**: máy chủ sinh khoá bí mật → hiện mã QR (dựng phía trình duyệt từ chuỗi `otpauth://`, không gọi dịch vụ ngoài) + chuỗi để gõ tay → người dùng nhập mã đúng một lần mới lưu.
 - **Email**: người dùng gõ địa chỉ → máy chủ gửi mã → nhập đúng mới lưu. Địa chỉ này thuộc module `auth`, **không** đọc từ liên hệ hồ sơ (xem ADR-0071 điều 4).
 - Bật yếu tố đầu tiên → hiện **10 mã dự phòng một lần duy nhất** (nút Chép / Tải tệp .txt); có nút "Tạo bộ mới" (huỷ bộ cũ).
+- **Q4 = A:** tài khoản giữ `ADMIN`, `SUPER_ADMIN` hoặc `ACCOUNTING` **không bật được yếu tố email** (máy chủ chặn 409, lời thường); nếu được cấp các quyền này khi đang có yếu tố email → yếu tố email hết hiệu lực trong cùng lô đổi quyền, người đó phải có TOTP (không có thì vào ân hạn 14 ngày).
 - Đổi hoặc gỡ một yếu tố khi đã có yếu tố khác → phải nhập mã của một yếu tố hiện có. Nhân viên nội bộ không gỡ được yếu tố cuối cùng.
 
-### 4.4 Đưa vào dùng (nhân viên đang chạy app) — **chờ chủ chọn (Q1)**
-Khuyến nghị: **ân hạn 14 ngày**. Trong ân hạn, nhân viên đã đăng nhập thấy dải nhắc ở Trang chủ và tự bật khi **đang trong phiên cũ** (không ai cầm PIN lạ chen vào được). Sau hạn, nhân viên chưa bật mà đăng nhập PIN → bị chặn, lời nhắn "Liên hệ Quản trị để bật bảo mật đăng nhập"; Quản trị bật giúp bằng luồng §4.5 (người đó ngồi cạnh, quét QR trên máy mình).
+### 4.4 Đưa vào dùng (Q1 = A, chủ chốt 2026-10-01)
+**Ân hạn 14 ngày**, tính từ lúc phát hành (sau lần đăng nhập lại bắt buộc của ADR-0072). Trong ân hạn, nhân viên đã đăng nhập thấy dải nhắc ở Trang chủ và tự bật khi **đang trong phiên cũ** (không ai cầm PIN lạ chen vào được). Sau hạn, nhân viên chưa bật mà đăng nhập PIN → bị chặn, lời nhắn "Liên hệ Quản trị để bật bảo mật đăng nhập"; Quản trị bật giúp bằng luồng §4.5 (người đó ngồi cạnh, quét QR trên máy mình).
 
 ### 4.5 Quản trị tắt / khởi tạo lại lớp hai cho người khác
 - Mở rộng màn đặt lại PIN hiện có (ADR-0042): nút "Tắt bảo mật hai lớp" → huỷ mọi yếu tố, mã dự phòng, máy được tin của người đó; đặt `credentials_changed_at` (đá mọi phiên); ghi nhật ký `mfa_reset` (chỉ id người làm, id người bị đặt lại — không email, không mã).
 - Sau khi bị tắt, nhân viên nội bộ có **24 giờ** để bật lại ở lần đăng nhập PIN kế tiếp (chỉ được vào trang bật lớp hai, không vào app); quá 24 giờ phải nhờ Quản trị lần nữa.
-- **Ai được tắt của ai — chờ chủ chọn (Q2).**
+- **Ai được tắt của ai (Q2 = A):** Quản trị tắt cho tài khoản không giữ `ADMIN`/`SUPER_ADMIN`; chỉ Toàn quyền tắt cho Quản trị và Toàn quyền khác; không ai tắt của chính mình qua đường này. Kiểm thật bằng `can()` + điều kiện người bị tắt; test 403.
 
 ## 5. Dữ liệu (migration `0057_aut_xac_thuc_hai_lop.sql`, chỉ thêm bảng)
 
@@ -70,12 +78,27 @@ Khuyến nghị: **ân hạn 14 ngày**. Trong ân hạn, nhân viên đã đăn
 - Bí mật mới: `MFA_ENCRYPTION_KEY` (32 byte, base64) — chủ tự đặt bằng `npx wrangler secret put MFA_ENCRYPTION_KEY`; local ở `.dev.vars`. Thiếu khoá → máy chủ **từ chối bật TOTP** (503 lời thường), không lưu khoá thô.
 - Cập nhật `docs/data-dictionary.json` + `npm run dict`.
 
+## 5b. Sổ phiên đăng nhập — mỗi tài khoản một máy (ADR-0072)
+
+**Bảng `aut_session`** (cùng migration `0057`): `id` (ngẫu nhiên), `staff_id`, `method` (`PIN`, `PIN_MFA`, `PIN_TRUSTED`, `PASSKEY`), `single` (1 = chịu luật một máy), `trusted_device_id` (null), `device_label`, `user_agent` (rút gọn, ≤ 200 ký tự), `ip`, `created_at`, `last_seen_at`, `expires_at`, `ended_at`, `end_reason` (CHECK theo danh sách ADR-0072 điều 4), `ended_by_staff_id`. Chỉ mục duy nhất có điều kiện `(staff_id) WHERE ended_at IS NULL AND single = 1`. Không xoá dòng.
+
+**Luồng:**
+- Cấp phiên mới (PIN qua cổng lớp hai, hoặc Face ID): một lô = kết thúc phiên cũ (nếu `single`) → chèn phiên mới → ghi `last_login_at`. Token = `staffId.iat.sessionId.HMAC`.
+- Mỗi request: truy vấn tài khoản hiện có gộp thêm điều kiện dòng phiên chưa kết thúc, chưa hết hạn. Phiên bị kết thúc → 401 `session_ended` kèm lý do lời thường; trang đăng nhập hiện "Tài khoản vừa đăng nhập trên máy khác lúc HH:MM" / "Phiên đã bị IT gỡ" / "Phiên đã hết hạn".
+- Đăng xuất: kết thúc dòng phiên (hôm nay chỉ xoá cookie).
+- Đổi quyền/vai làm mất miễn: cùng lô, kết thúc mọi phiên trừ phiên mới nhất.
+- Kết thúc phiên (mọi lý do trừ hết hạn) → đóng kết nối Bảng tin của đúng phiên; tắt địa chỉ thông báo màn hình khoá của đúng máy (đăng ký thông báo ghi kèm `session_id`, tắt qua `index.ts` module thông báo).
+
+**Màn hình:**
+- **"Phiên đăng nhập"** (chỉ Toàn quyền/IT, trong Quản lý tài khoản): lọc theo tài khoản / "đang hiệu lực"; mỗi dòng: tên người, tên máy, IP, lúc đăng nhập, lần cuối hoạt động, cách đăng nhập (PIN + mã / PIN máy tin / Face ID), trạng thái (Đang hiệu lực / Đã đăng xuất / Bị thay bởi máy khác / Bị gỡ bởi … / Hết hạn …). Nút **"Gỡ phiên"** và **"Gỡ phiên + đặt lại PIN"** (hộp xác nhận trong trang, không dùng hộp thoại trình duyệt).
+- **"Tài khoản của tôi → Bảo mật đăng nhập"**: lịch sử phiên của chính mình (30 dòng gần nhất), dòng "máy này", nút "Đăng xuất".
+
 ## 6. Quy tắc an toàn (bắt buộc, có test)
 
 1. **Cookie chờ không phải phiên.** `td_mfa_pending` ký bằng khoá dẫn xuất riêng (HMAC với nhãn mục đích `"mfa-pending"`), định dạng khác `td_session`; `verifySessionToken` phải từ chối nó (test). TTL 5 phút. Chỉ mở được `/api/auth/mfa/*`.
 2. **Hạn mức theo tài khoản, không theo cookie chờ** (người có PIN tự tạo được cookie chờ mới): dùng `login_attempt` với khoá `mfa:<staffId>` — 5 lần sai/15 phút thì 429; khoá `mfa-mail:<staffId>` — tối đa 3 email/15 phút. Mã TOTP đã dùng (≤ `last_totp_step`) bị từ chối.
 3. **Máy được tin bị thu hồi** khi: đổi PIN, Quản trị đặt lại PIN, Quản trị tắt lớp hai, người dùng bấm "Quên mọi máy", hoặc hết 30 ngày. Kiểm cả `credentials_changed_at > created_at`.
-4. **Hai nơi cấp phiên mới** (PIN, Face ID) đi qua một hàm duy nhất `issueLoginSession(...)` có cổng lớp hai; test kiến trúc quét `src/` để mọi lời gọi `newSessionCookie` mới ngoài danh sách cho phép (4 nơi cấp lại đã có phiên + Face ID + hàm cổng) làm đỏ — kiểu `src/giay-to-khong-lo-so.test.ts`.
+4. **Hai nơi cấp phiên mới** (PIN, Face ID) đi qua một hàm duy nhất `issueLoginSession(...)` có cổng lớp hai và ghi sổ phiên; test kiến trúc quét `src/` để mọi lời gọi `newSessionCookie` mới ngoài danh sách cho phép (4 nơi cấp lại đã có phiên + Face ID + hàm cổng) làm đỏ — kiểu `src/giay-to-khong-lo-so.test.ts`.
 5. **Không lộ:** mã, khoá TOTP, email đầy đủ, mã dự phòng không vào nhật ký, câu báo lỗi, DTO (email chỉ hiện dạng che `t***@gmail.com`). Thêm ca vào test không-lộ.
 6. **Bảo trì:** `/api/auth/mfa/verify` và `/api/auth/mfa/email` là route công khai → tự gọi `maintenanceBlock` như Face ID.
 7. **Chống dò tài khoản:** câu trả lời của bước lớp hai giống nhau cho mọi lỗi mã (không nói "mã email hết hạn" khác "mã sai" ra ngoài ý cần thiết cho người dùng — chấp nhận nói "Mã đã hết hạn, gửi lại mã mới" vì người hỏi đã qua PIN).
@@ -103,16 +126,17 @@ Lưu ý thiết kế cho đợt 2: SĐT đăng nhập **có thể không phải*
 
 - **R1 — Email có gửi tới địa chỉ bất kỳ không: CHƯA KIỂM.** Binding Cloudflare kiểu cũ chỉ gửi tới địa chỉ đã xác minh trong Email Routing; Email Service mới gửi rộng sau khi xác minh tên miền. Kế hoạch phải có **task 0** kiểm điều này (trên máy local/staging, không ghi production). Để email không chặn cả đợt, **thứ tự phát hành: TOTP + mã dự phòng trước, email sau** (cùng đợt 1, có thể khác bản).
 - **R2 — Mạnh bằng yếu tố yếu nhất:** ai bật cả TOTP lẫn email thì kẻ chiếm được hộp thư là đủ. Câu Q4.
-- **R3 — Phiên cũ 7 ngày** vẫn sống sau phát hành, không qua lớp hai. Câu Q3.
+- **R3 — Phiên cũ:** đã xử lý — token kiểu cũ bị từ chối, mọi người đăng nhập lại một lần (ADR-0072).
+- **R6 — Gỡ phiên không phải khoá:** người có PIN (+ lớp hai) vào lại được ngay; đuổi kẻ gian phải gỡ phiên + đặt lại PIN (nút gộp).
+- **R7 — Ứng dụng đã cài và Safari trên cùng iPhone là hai máy:** đăng nhập ở Safari đá ứng dụng ra. Ghi Trợ giúp + lời báo.
+- **R8 — Bài kiểm e2e song song dùng chung tài khoản** (`tests/e2e/lib.mjs`, 3 nhóm) sẽ đá nhau: kế hoạch phải cho các nhóm dùng chung một phiên mỗi tài khoản hoặc tách tài khoản; **không nới luật** cho test.
+- **R9 — Dữ liệu cá nhân:** IP + User-Agent lưu vô hạn trong sổ phiên; chỉ IT/Toàn quyền và chính chủ xem.
 - **R4 — Lệch đồng hồ điện thoại:** cho ±1 bước (±30 giây); lời nhắc "kiểm giờ tự động trên điện thoại" khi sai nhiều lần.
-- **R5 — Quản trị vừa đặt lại PIN vừa tắt lớp hai** = chiếm được tài khoản người khác (đã đúng với PIN hôm nay). Câu Q2.
+- **R5 — Quản trị vừa đặt lại PIN vừa tắt lớp hai** = chiếm được tài khoản cấp dưới (đã đúng với PIN hôm nay); Q2 = A chặn việc này với Quản trị/Toàn quyền.
 
-## 10. Câu hỏi chờ chủ (đụng quyền truy cập — không tự chọn)
+## 10. Câu hỏi chờ chủ
 
-- **Q1 — Đưa vào dùng:** (A, khuyến nghị) ân hạn 14 ngày tự bật trong phiên, sau hạn chặn và nhờ Quản trị · (B) bắt bật ngay ở lần đăng nhập PIN kế tiếp (nhanh, nhưng ai cầm PIN lúc đó sẽ bật được Authenticator của họ) · (C) chỉ Quản trị bật giúp từng người.
-- **Q2 — Ai tắt lớp hai của ai:** (A, khuyến nghị) Quản trị tắt cho người không giữ Quản trị/Toàn quyền; chỉ Toàn quyền tắt cho Quản trị và Toàn quyền khác; không ai tự tắt của mình qua đường này · (B) Quản trị và Toàn quyền tắt cho mọi người (giống đặt lại PIN hôm nay).
-- **Q3 — Phiên đang mở lúc phát hành:** (A, khuyến nghị) giữ nguyên, hết 7 ngày tự đăng nhập lại (kèm ân hạn Q1) · (B) đá mọi phiên nhân viên nội bộ ngay khi hết ân hạn.
-- **Q4 — Email cho Quản trị/Toàn quyền:** (A, khuyến nghị) Quản trị, Toàn quyền, Kế toán chỉ dùng ứng dụng xác thực (email không được làm yếu tố của họ) · (B) ai cũng được dùng email.
+- **Q5 — Nhật ký gỡ phiên có "im lặng" không** (ADR-0072 điều 8): (A, khuyến nghị) có — như đặt lại PIN/gỡ Face ID, Quản trị không thấy dòng do Toàn quyền làm · (B) không — Quản trị thấy mọi lần gỡ phiên. Chủ chốt khi duyệt ADR-0072.
 
 ## 11. Tiêu chí nghiệm thu (hành vi kiểm được)
 
@@ -130,20 +154,28 @@ Lưu ý thiết kế cho đợt 2: SĐT đăng nhập **có thể không phải*
 12. Bảo trì bật → `/api/auth/mfa/verify` trả 503 cho SĐT ngoài danh sách. (e2e)
 13. `docs/SO-HANG-RAO.md` có dòng cho hàng rào lớp hai và hàng rào "nơi cấp phiên", kèm ngày quan sát chặn thật.
 14. `npm test`, `npm run typecheck` (0 lỗi), `npm run test:e2e` xanh; kịch bản Chrome: bật TOTP, đăng nhập 2 bước, mã dự phòng.
-15. Người kiểm độc lập (chỉ đọc) báo ĐẠT.
+15. Đăng nhập tài khoản thường trên máy B → phiên máy A trả 401 `session_ended` ở request kế tiếp; kết nối Bảng tin của A đóng, thông báo màn hình khoá của A tắt, của B vẫn chạy. (e2e)
+16. Hai lần đăng nhập đồng thời cùng tài khoản thường → đúng một phiên sống (CSDL chặn). (e2e chạy đua + `audit-invariants`)
+17. Tài khoản Toàn quyền / vai IT đăng nhập 2 máy → cả hai sống; bỏ Toàn quyền → chỉ còn phiên mới nhất. (e2e)
+18. Quản trị không giữ Toàn quyền gọi route xem/gỡ phiên người khác → 403; Toàn quyền gỡ → phiên kết thúc, nhật ký `session_revoked`, máy được tin của phiên đó bị bỏ. (e2e)
+19. Token kiểu cũ (không mã phiên) → 401. (thuần)
+20. Mỗi người xem được lịch sử phiên của mình, không xem được của người khác. (e2e)
+21. Người kiểm độc lập (chỉ đọc) báo ĐẠT.
 
 ## 12. Ngoài phạm vi
 
-Zalo ZNS (đợt 2), SMS, khoá bảo mật phần cứng riêng (đã có passkey), đăng nhập Google (ADR-0016 lát 2 — chỉ ghi luật áp dụng trong ADR-0071 điều 6), tự khôi phục PIN.
+Zalo ZNS (đợt 2), SMS, định vị theo IP (tên thành phố), tên thật của điện thoại, khoá bảo mật phần cứng riêng (đã có passkey), đăng nhập Google (ADR-0016 lát 2 — chỉ ghi luật áp dụng trong ADR-0071 điều 6), tự khôi phục PIN.
 
 ## 13. Trang ghép (CLAUDE.md §9 — lượt duyệt này có 3 quyết định chạm quyền/dữ liệu)
 
-**Các quyết định trong lượt:** (1) ADR-0071 luật lớp hai + yếu tố + máy được tin; (2) mở rộng ADR-0042: đặt lại có thêm "tắt lớp hai"; (3) ghi luật cho ADR-0016 lát 2: đăng nhập Google chịu lớp hai như PIN.
+**Các quyết định trong lượt (3 — đúng hạn mức):** (1) đặc tả này; (2) ADR-0071 — lớp hai (gộp trong đó: mở rộng ADR-0042 "tắt lớp hai", luật cho ADR-0016 lát 2 Google); (3) ADR-0072 — sổ phiên một máy (gộp trong đó: tắt thông báo từng máy theo nguyên tắc ADR-0046).
 
 **(1) Bảng nào chứa gì:**
 | Bảng | Loại thực thể |
 |---|---|
 | `aut_mfa_factor`, `aut_mfa_recovery_code`, `aut_mfa_email_code`, `aut_trusted_device` | Chỉ thuộc **tài khoản đăng nhập** (`staff`), cả nội bộ lẫn bên ngoài. Không chứa hồ sơ khách/đối tác. |
+| `aut_session` | Phiên đăng nhập của **tài khoản** (nội bộ + bên ngoài); chứa IP + User-Agent (dữ liệu cá nhân). |
+| Bảng đăng ký thông báo màn hình khoá (module thông báo, +`session_id`) | Máy nhận thông báo của tài khoản (như cũ, thêm liên kết phiên). |
 | `staff` (+`mfa_grace_until`) | Tài khoản đăng nhập (như cũ). |
 | `login_attempt` (+khoá `mfa:`, `mfa-mail:`) | Bộ đếm lần thử (như cũ, thêm tiền tố). |
 
@@ -152,14 +184,18 @@ Zalo ZNS (đợt 2), SMS, khoá bảo mật phần cứng riêng (đã có passk
 |---|---|---|
 | Bật/gỡ yếu tố, tạo mã dự phòng, quên máy — **của chính mình** | Mọi tài khoản có phiên (tự phục vụ, ngoại lệ có ghi trong `docs/quyen-hoan.json` như các route `/api/account/*` hiện có) | Nội bộ + bên ngoài |
 | Xem trạng thái "đã bật/chưa bật" của người khác | Người có quyền xem quản lý tài khoản hiện nay | Theo phạm vi màn quản lý tài khoản hiện có |
-| Tắt lớp hai của người khác | Theo Q2 | Theo Q2 |
+| Tắt lớp hai của người khác | Quản trị (người bị tắt không giữ ADMIN/SUPER_ADMIN); Toàn quyền (mọi người trừ chính mình) | Nội bộ + bên ngoài |
+| Xem mọi phiên / gỡ phiên người khác (`auth.session.viewAll`, `auth.session.revoke`) | Chỉ `SUPER_ADMIN` (vai IT mặc định có) | Mọi tài khoản, kể cả Toàn quyền khác |
+| Xem lịch sử phiên + đăng xuất — của chính mình | Mọi tài khoản có phiên (tự phục vụ, ngoại lệ có ghi) | Nội bộ + bên ngoài |
 | Xác minh mã lúc đăng nhập | Công khai (có cookie chờ) | Mọi tài khoản đang ở bước 2 |
 
 **(3) Cổng nào canh cửa nào:**
 | Cửa | Cổng |
 |---|---|
-| Cấp phiên mới bằng PIN | Turnstile → bảo trì → chống dò PIN → **cổng lớp hai** (máy được tin hoặc mã) |
-| Cấp phiên mới bằng Face ID | bảo trì → hạn mức thách thức → passkey `userVerification: required` (không cổng lớp hai) |
+| Cấp phiên mới bằng PIN | Turnstile → bảo trì → chống dò PIN → **cổng lớp hai** (máy được tin hoặc mã) → ghi sổ phiên (đá phiên cũ nếu chịu luật một máy) |
+| Cấp phiên mới bằng Face ID | bảo trì → hạn mức thách thức → passkey `userVerification: required` (không cổng lớp hai) → ghi sổ phiên |
 | Cấp lại phiên (đổi PIN, gỡ Face ID, đặt PIN bằng Face ID) | Phiên hiện có (đã qua lớp hai hoặc Face ID) |
 | Bước 2 (`/api/auth/mfa/*`) | bảo trì → cookie chờ (khoá riêng, 5 phút) → hạn mức theo tài khoản |
-| Đăng nhập Google (tương lai) | như PIN: **cổng lớp hai** |
+| Đăng nhập Google (tương lai) | như PIN: **cổng lớp hai** + sổ phiên |
+| Mọi request có phiên | chữ ký token → dòng `aut_session` chưa kết thúc/chưa hết hạn → tài khoản còn hoạt động (`credentials_changed_at` giữ làm lưới) |
+| Phiên thứ hai của tài khoản thường | máy chủ kết thúc phiên cũ trong cùng lô + chỉ mục duy nhất có điều kiện ở CSDL |
