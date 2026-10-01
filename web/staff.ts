@@ -1,7 +1,7 @@
-import { ApiError, api, type SheetCandidate, type StaffAccount, type Api } from "./api";
+import { ApiError, api, type StaffAccount, type Api } from "./api";
 import { NHAN_LY_DO_KHOP } from "../src/shared/ho-so-trung";
-import { PERMISSION_CODES, PERMISSION_LABEL, can, hasPermission, type PermissionCode } from "../src/shared/permissions";
-import { ROLE_CODES, rolesLabel } from "../src/shared/roles";
+import { PERMISSION_CODES, PERMISSION_LABEL, can, type PermissionCode } from "../src/shared/permissions";
+import { ROLE_CODES, canManageAccount, rolesLabel } from "../src/shared/roles";
 import { byId, h, replaceChildren } from "./dom";
 import { dateTime } from "./format";
 import { rolePicker, type RolePicker, type RolePickerValue } from "./role-picker";
@@ -11,7 +11,6 @@ const errorEl = byId("error");
 const listEl = byId("list");
 const listCardsEl = byId("list-cards");
 const secretEl = byId("secret");
-const sheetEl = byId("sheet");
 const editEl = byId("edit");
 const permissionsLabel = (list: readonly PermissionCode[]): string => (list.length ? list.map((p) => PERMISSION_LABEL[p]).join(", ") : "—");
 const sameSet = (a: readonly string[], b: readonly string[]): boolean => a.length === b.length && a.every((x) => b.includes(x));
@@ -21,10 +20,10 @@ const accessLabel = (s: StaffAccount): string => (s.roles.length ? rolesLabel(s.
 const EMPTY: RolePickerValue = { roles: [], adds: [], removes: [], reason: "" };
 const sameAssignment = (a: RolePickerValue, b: RolePickerValue): boolean => sameSet(a.roles, b.roles) && sameSet(a.adds, b.adds) && sameSet(a.removes, b.removes);
 let meSuper = false;
-// ADR-0038 điều 6: đặt lại PIN, gỡ Face ID, mở khoá, đồng bộ từ Sheet chỉ Toàn quyền — Quản trị không thấy nút (máy chủ vẫn chặn 403).
+// ADR-0042 + ADR-0071 điều 1e: đặt lại PIN, gỡ Face ID, mở khoá — Quản trị + Toàn quyền (ô account.access.manage); HCNS không thấy nút (máy chủ vẫn chặn 403).
 let canAccessManage = false;
 
-let me: { id: string };
+let me: { id: string; permissions: readonly PermissionCode[] };
 let accounts: StaffAccount[] = [];
 
 const reasonOf = (err: unknown): string => (err instanceof ApiError ? err.message : "Không kết nối được máy chủ.");
@@ -64,9 +63,9 @@ async function act<T>(fn: () => Promise<T>): Promise<T | undefined> {
   }
 }
 
-// ADR-0042: Quản trị chỉ tác động được tài khoản cấp dưới (luật mayManage của máy chủ) — ẩn nút trên tài khoản Quản trị khác và tài khoản
-// Toàn quyền (máy chủ trả tài khoản Toàn quyền như Quản trị thường cho người không giữ Toàn quyền, nên chỉ cần xét ADMIN).
-const quanDuoc = (s: StaffAccount): boolean => meSuper || s.id === me.id || !s.permissions.includes("ADMIN");
+// ADR-0042 + ADR-0071 điều 1c: Quản trị / HCNS chỉ tác động được tài khoản cấp dưới (CÙNG luật mayManage của máy chủ — canManageAccount ở src/shared/roles.ts)
+// — ẩn nút trên tài khoản giữ Quản trị / Toàn quyền / Nhân sự (máy chủ trả tài khoản Toàn quyền như Quản trị thường cho người không giữ Toàn quyền).
+const quanDuoc = (s: StaffAccount): boolean => s.id === me.id || canManageAccount(me.permissions, s.permissions);
 
 function row(s: StaffAccount): HTMLElement {
   const btn = (label: string, onclick: () => void, cls = "btn btn-link") => {
@@ -271,20 +270,23 @@ function clearExisting(): void {
 // ADR-0068 Đ9 (C1): gõ SĐT hoặc tên → liệt kê MỌI hồ sơ cá nhân khớp; phải chọn "Dùng hồ sơ này" hoặc tick "Vẫn tạo hồ sơ mới" thì nút Tạo mở. Máy chủ kiểm lại
 // (409 party_match_exists — cùng một hàm với route đọc). Tra sau 300 ms ngừng gõ; chỉ nhận kết quả của lần tra MỚI NHẤT (`lanKhop`).
 let khop: Api.PartyMatchDto[] = [];
+// ADR-0071 điều 3b: có hồ sơ trùng mà tài khoản này không được thấy (không xem Danh bạ — Hành chính nhân sự): máy chủ chỉ báo cờ, không tên.
+let khopAn = false;
+const CAU_KHOP_AN = "Số hoặc tên này đã có trong Danh bạ. Vẫn tạo được hồ sơ mới; sau đó nhờ Quản trị gộp hồ sơ trùng.";
 const taoMoi = h("input", { type: "checkbox", class: "o-tick" });
 const nutTao = byId<HTMLFormElement>("add-form").querySelector<HTMLButtonElement>('button[type="submit"]')!;
-const capNhatNutTao = () => { nutTao.disabled = khop.length > 0 && !existingPartyId && !taoMoi.checked; };
+const capNhatNutTao = () => { nutTao.disabled = (khop.length > 0 || khopAn) && !existingPartyId && !taoMoi.checked; };
 taoMoi.addEventListener("change", capNhatNutTao);
 function veKhop(): void {
-  if (khop.length === 0 || existingPartyId) {
+  if ((khop.length === 0 && !khopAn) || existingPartyId) {
     if (!existingPartyId) existingNote.hidden = true;
     capNhatNutTao();
     return;
   }
   replaceChildren(
     existingNote,
-    h("p", null, "Đã có hồ sơ khớp — chọn một hồ sơ, hoặc tạo hồ sơ mới nếu là người khác:"),
-    h("ul", null, ...khop.map((k) => {
+    khop.length > 0 && h("p", null, "Đã có hồ sơ khớp — chọn một hồ sơ, hoặc tạo hồ sơ mới nếu là người khác:"),
+    khop.length > 0 && h("ul", null, ...khop.map((k) => {
       const dung = h("button", { type: "button", class: "btn btn-link" }, "Dùng hồ sơ này");
       dung.addEventListener("click", () => {
         existingPartyId = k.id;
@@ -298,6 +300,7 @@ function veKhop(): void {
       return h("li", null, h("strong", null, k.displayName), ` — ${lyDo}`, k.vai.length ? ` — ${k.vai.join(", ")}` : "", " ",
         k.coTaiKhoan ? h("span", { class: "muted" }, "(đã có tài khoản)") : dung);
     })),
+    khopAn && h("p", null, CAU_KHOP_AN),
     h("label", { class: "check" }, taoMoi, "Vẫn tạo hồ sơ mới (người khác trùng tên/số)"),
   );
   existingNote.hidden = false;
@@ -313,16 +316,17 @@ const traKhop = () => {
     const lan = ++lanKhop;
     const phone = addPhone.value.trim();
     const ten = addName.value.trim();
-    let ds: Api.PartyMatchDto[] = [];
+    let ds: Api.PartyMatchResponse = { khop: [], coHoSoKhacTrongDanhBa: false };
     if (phone || ten) {
       try {
-        ds = (await api<Api.PartyMatchResponse>(`/api/staff/ho-so-khop?${new URLSearchParams({ phone, ten })}`)).khop;
+        ds = await api<Api.PartyMatchResponse>(`/api/staff/ho-so-khop?${new URLSearchParams({ phone, ten })}`);
       } catch {
-        ds = []; // SĐT chưa đúng dạng hay mất mạng giữa lúc gõ: không chặn, không báo lỗi — máy chủ vẫn trả 409 khi bấm Tạo
+        // SĐT chưa đúng dạng hay mất mạng giữa lúc gõ: không chặn, không báo lỗi — máy chủ vẫn trả 409 khi bấm Tạo
       }
     }
     if (lan !== lanKhop) return;
-    khop = ds;
+    khop = ds.khop;
+    khopAn = ds.coHoSoKhacTrongDanhBa === true;
     veKhop();
   }, 300);
 };
@@ -366,7 +370,9 @@ byId<HTMLFormElement>("add-form").addEventListener("submit", async (e) => {
     // Máy chủ thấy hồ sơ khớp mà lần tra lúc gõ chưa kịp trả (hoặc vừa có hồ sơ mới): hiện khối với danh sách của máy chủ, kèm câu báo của máy chủ.
     if (err instanceof ApiError && err.code === "party_match_exists") {
       huyTraKhop();
-      khop = (err.details as { khop?: Api.PartyMatchDto[] } | undefined)?.khop ?? [];
+      const ct = err.details as Partial<Api.PartyMatchResponse> | undefined;
+      khop = ct?.khop ?? [];
+      khopAn = ct?.coHoSoKhacTrongDanhBa === true;
       veKhop();
       return showError(errorEl, err.message);
     }
@@ -378,69 +384,23 @@ byId<HTMLFormElement>("add-form").addEventListener("submit", async (e) => {
   addName.value = addPhone.value = "";
   addPicker.reset(EMPTY);
   khop = [];
+  khopAn = false;
   taoMoi.checked = false;
   veKhop();
   await load();
 });
 
-// ---- Đồng bộ từ Google Sheet: xem trước rồi mới xác nhận
-byId("sheet-pull").addEventListener("click", async () => {
-  const r = await act(() =>
-    api<Api.StaffSheetPreviewResponse>("/api/staff/sheet"),
-  );
-  if (!r) return;
-  const fresh = r.candidates.filter((c) => c.status === "new");
-  const boxes = new Map<string, HTMLInputElement>();
-  const apply = h("button", { type: "button", class: "btn btn-accent" }, "Tạo tài khoản cho người đã chọn");
-  const refresh = () => {
-    const n = [...boxes.values()].filter((b) => b.checked).length;
-    apply.disabled = n === 0;
-    apply.textContent = n ? `Tạo ${n} tài khoản` : "Tạo tài khoản cho người đã chọn";
-  };
-  for (const c of fresh) {
-    const box = h("input", { type: "checkbox", checked: true, style: "width:auto;display:inline;margin:0 8px 0 0" });
-    box.addEventListener("change", refresh);
-    boxes.set(c.phone, box);
-  }
-  apply.addEventListener("click", async () => {
-    const phones = [...boxes].filter(([, b]) => b.checked).map(([p]) => p);
-    const res = await act(() => api<Api.StaffSheetApplyResponse>("/api/staff/sheet/apply", { method: "POST", body: { phones } }));
-    if (res) {
-      sheetEl.hidden = true;
-      showSecrets(`Đã tạo ${res.created.length} tài khoản`, res.created.map((c) => ({ name: c.fullName, phone: c.phone, pin: c.pin })));
-      await load();
-    }
-  });
-  const close = h("button", { type: "button", class: "btn" }, "Đóng");
-  close.addEventListener("click", () => (sheetEl.hidden = true));
-  replaceChildren(
-    sheetEl,
-    h("h2", null, "Xem trước dữ liệu từ Google Sheet"),
-    h("p", { class: "muted" }, "Sheet chỉ là nguồn đề xuất. Mọi tài khoản mới mang vai Nhân viên kinh doanh (đổi vai ở nút Sửa). Sheet không tự ngưng hay xoá ai."),
-    fresh.length === 0
-      ? h("p", { class: "alert warn" }, r.candidates.length === 0 && r.problems.length > 0
-          ? "Sheet chưa có ai kèm số điện thoại hợp lệ. Hãy điền số điện thoại vào Sheet rồi đồng bộ lại."
-          : "Không có ai mới để thêm — mọi người trong Sheet đều đã có tài khoản.")
-      : h("div", null, h("h3", null, `Người mới (${fresh.length})`), ...fresh.map((c) => h("label", { class: "check" }, boxes.get(c.phone)!, `${c.name} — ${c.phone}`))),
-    r.candidates.some((c) => c.status !== "new") &&
-      h("div", null, h("h3", null, "Đã có tài khoản"), h("ul", { class: "history" }, ...r.candidates.filter((c) => c.status !== "new").map((c) => h("li", null, `${c.phone}: `, c.status === "name_differs" ? `Sheet ghi "${c.name}", hệ thống đang là "${c.currentName}" (sửa tên ở nút Sửa nếu cần)` : `${c.name} — không đổi`)))),
-    r.problems.length > 0 && h("div", null, h("h3", null, `Dòng bị bỏ qua (${r.problems.length})`), h("ul", { class: "history" }, ...r.problems.map((p) => h("li", null, `Dòng ${p.row}: ${p.message}`)))),
-    r.notInSheet.length > 0 && h("details", null, h("summary", { class: "muted" }, `${r.notInSheet.length} tài khoản có trong hệ thống nhưng không có trong Sheet (không bị đụng tới)`), h("ul", { class: "history" }, ...r.notInSheet.map((s) => h("li", null, `${s.fullName} — ${s.phone}${s.active ? "" : " (đã ngưng)"}`)))),
-    h("div", { class: "actions", style: "margin-top:12px" }, fresh.length > 0 && apply, close),
-  );
-  refresh();
-  sheetEl.hidden = false;
-  sheetEl.scrollIntoView({ block: "nearest" });
-});
-
 const staff = await initShell();
 me = staff;
-meSuper = hasPermission(staff, "SUPER_ADMIN");
+meSuper = can(staff, "admin.manage.superadmin"); // ADR-0072 mục 4a: hỏi bảng quyền (ô gán/gỡ Toàn quyền), không hỏi mã
 canAccessManage = can(staff, "account.access.manage");
-byId("sheet-pull").hidden = !can(staff, "staff.sheet.sync");
-// Cổng trang theo ô admin.manage (Quản trị HOẶC Toàn quyền — cùng đối tượng với access "admin" của API), không riêng quyền ADMIN.
-if (!can(staff, "admin.manage")) showError(errorEl, "Chỉ quản trị viên được vào trang này.");
+// ADR-0071 điều 1b: cổng trang theo ô account.view (Quản trị, Toàn quyền, Hành chính nhân sự — cùng đối tượng với cổng "accounts" của API); khung "Thêm tài khoản"
+// theo ô account.create (Hành chính nhân sự, Toàn quyền — Quản trị KHÔNG).
+if (!can(staff, "account.view")) showError(errorEl, "Tài khoản này không quản lý được tài khoản.");
 else {
-  setupAddForm();
+  if (can(staff, "account.create")) {
+    byId("add-card").hidden = false;
+    setupAddForm();
+  }
   await load();
 }

@@ -5,10 +5,10 @@ import { defineSql } from "../../shared/sql-registry.ts";
 export interface SettingRow {
   enabled: number;
   ends_at: string | null;
-  allowed_phones: string;
 }
 
-const FIND = defineSql("maintenance", "find", "SELECT enabled, ends_at, allowed_phones FROM mnt_setting WHERE id = 'default'");
+// ADR-0071 điều 3d: cột allowed_phones THÔI được đọc (giữ cột — expand–contract; miễn trừ nay theo quyền Toàn quyền, không theo SĐT).
+const FIND = defineSql("maintenance", "find", "SELECT enabled, ends_at FROM mnt_setting WHERE id = 'default'");
 const UPDATE = defineSql(
   "maintenance",
   "update",

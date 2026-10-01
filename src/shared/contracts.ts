@@ -46,15 +46,7 @@ export interface StaffRolesRequest { roles: RoleCode[]; adds?: PermissionCode[];
 /** Vai + chỉnh tay đang có; `reason` = lý do của lần chỉnh tay gần nhất (giao diện điền sẵn), null khi không chỉnh tay. */
 export interface StaffRolesResponse { roles: RoleCode[]; adds: PermissionCode[]; removes: PermissionCode[]; reason: string | null }
 
-export interface StaffSheetCandidateDto {
-  row: number;
-  name: string;
-  phone: string;
-  status: "new" | "same" | "name_differs";
-  currentName: string | null;
-}
-
-/** `maintenance` chỉ có ở `GET /api/auth/me` (không có ở phản hồi đăng nhập): chế độ bảo trì đang BẬT thì chỉ người được phép mới tới được đây, để giao diện hiện dải "Đang ở chế độ bảo trì". */
+/** `maintenance` chỉ có ở `GET /api/auth/me` (không có ở phản hồi đăng nhập): chế độ bảo trì đang BẬT thì chỉ Toàn quyền mới tới được đây (ADR-0071), để giao diện hiện dải "Đang ở chế độ bảo trì". */
 export interface MeResponse { staff: StaffProfile; maintenance?: MaintenanceStatusDto }
 /**
  * `GET /api/auth/config` (công khai): khoá site để trang đăng nhập dựng widget Turnstile; null = máy chủ không bật Turnstile (đừng dựng widget, đăng nhập không cần token).
@@ -109,7 +101,7 @@ export interface MaintenanceStatusDto {
   /** Giờ dự kiến hoàn tất (ISO UTC); null khi tắt hoặc bật mà chưa có giờ. */
   endsAt: string | null;
 }
-/** `GET`/`PUT /api/maintenance` (chỉ ADMIN): `canToggle` = chính người gọi có nằm trong danh sách được phép bật/tắt không (không lộ danh sách). */
+/** `GET`/`PUT /api/maintenance` (chỉ Toàn quyền — ô settings.ops, ADR-0071 điều 3c): `canToggle` luôn true khi qua chốt (giữ trường cho giao diện). */
 export interface MaintenanceResponse extends MaintenanceStatusDto { canToggle: boolean }
 
 // ---- Công tắc "Dịch vụ nhập tay" (ADR-0061 điều 6; module `orders`) ----
@@ -127,12 +119,6 @@ export interface MaintenanceErrorBody { code: "maintenance"; message: string; en
 export interface StaffListResponse { staff: StaffAccountDto[] }
 export interface StaffResponse { staff: StaffAccountDto }
 export interface StaffWithPinResponse { staff: StaffAccountDto; pin: string }
-export interface StaffSheetPreviewResponse {
-  candidates: StaffSheetCandidateDto[];
-  problems: { row: number; message: string }[];
-  notInSheet: { fullName: string; phone: string; active: boolean }[];
-}
-export interface StaffSheetApplyResponse { created: { id: string; fullName: string; phone: string; pin: string }[] }
 
 // ---- Đơn hàng ----------------------------------------------------------------
 export type OrderStatus = "draft" | "confirmed" | "cancelled";
@@ -773,7 +759,9 @@ export interface PartyDuplicatePairDto { a: PartyListItemDto; b: PartyListItemDt
 export interface PartyDuplicatesResponse { pairs: PartyDuplicatePairDto[]; conNua: boolean }
 /** Hồ sơ cá nhân khớp khi Thêm tài khoản (ADR-0068 Đ9) — không SĐT của hồ sơ. */
 export interface PartyMatchDto { id: string; displayName: string; lyDo: ("PHONE" | "NAME")[]; vai: string[]; coTaiKhoan: boolean }
-export interface PartyMatchResponse { khop: PartyMatchDto[] }
+/** ADR-0071 điều 3b: `coHoSoKhacTrongDanhBa` = có hồ sơ trùng mà người gọi không được thấy (không xem Danh bạ — Hành chính nhân sự): khách, hồ sơ không vai tài
+ * khoản. Không kèm id, tên, vai. Người xem được Danh bạ thấy mọi hồ sơ trùng trong `khop` nên cờ luôn false. */
+export interface PartyMatchResponse { khop: PartyMatchDto[]; coHoSoKhacTrongDanhBa: boolean }
 
 // ---- Giấy tờ của người (ADR-0040 D2; module parties) — số LUÔN che ở mọi DTO dưới đây; số đầy đủ CHỈ có ở PersonDocumentRevealResponse. ----
 export interface PersonDocumentDto {

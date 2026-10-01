@@ -11,6 +11,23 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // ADR-0071 (vai Hành chính nhân sự, gỡ đồng bộ nhân viên từ Sheet, bảo trì miễn trừ theo Toàn quyền) + đồng hồ bảo trì theo ngày (commit 3de1435f).
+    // Số "1.52" = số lớn nhất trên nhánh + 1 lúc thi công (2026-10-01); nhánh khác gộp trước thì đánh lại số. Có migration 0057.
+    version: "1.52",
+    date: "2026-10-01",
+    items: [
+      { kind: "moi", text: "Vai mới \"Hành chính nhân sự\": người giữ vai này tạo tài khoản cho nhân viên, đối tác, tài xế đối tác ở trang Quản lý tài khoản." },
+      { kind: "doi", text: "Quản trị không còn nút \"Thêm tài khoản\"; vẫn sửa, ngưng, gán vai, đặt lại PIN, mở khoá cho tài khoản cấp dưới." },
+      { kind: "doi", text: "Bỏ nạp danh sách nhân viên từ Google Sheet; tài khoản mới chỉ tạo trong app. Danh mục dịch vụ vẫn đồng bộ từ Sheet như cũ." },
+      { kind: "doi", text: "Chế độ bảo trì: khi bật, mọi người trừ tài khoản Toàn quyền đều thấy màn hình bảo trì, kể cả Quản trị." },
+      { kind: "doi", text: "Đồng hồ bảo trì còn từ một ngày trở lên hiện dạng \"3 ngày 5 giờ 10 phút\"." },
+      { kind: "doi", text: "Dải nhắc bảo trì đổi chữ: \"Đang ở chế độ bảo trì — chỉ tài khoản Toàn quyền dùng được\"." },
+      { kind: "doi", text: "Vai Giám đốc nay chỉ có quyền Quản trị, không còn mặc định Toàn quyền. Cần thêm việc kỹ thuật hay kế toán thì người phụ trách hệ thống cộng tay, kèm lý do." },
+      { kind: "sua", text: "Menu, trang và nút ẩn/hiện theo cùng bảng quyền với máy chủ: tài khoản chỉ có Toàn quyền hoặc chỉ có Nhân sự thấy đúng mục mình làm được." },
+      { kind: "doi", text: "Thêm tài khoản: nếu bạn không xem được Danh bạ, hồ sơ trùng chỉ báo \"đã có trong Danh bạ\", không hiện tên; vẫn tạo được hồ sơ mới." },
+    ],
+  },
+  {
     // Gộp hồ sơ cá nhân trùng (ADR-0068). Số "1.51" chốt lúc gộp main 1.49 (nhánh phat-hanh-1-50 đã nhận 1.50 — ai gộp sau đánh lại số). Có migration 0056.
     version: "1.51",
     date: "2026-10-01",

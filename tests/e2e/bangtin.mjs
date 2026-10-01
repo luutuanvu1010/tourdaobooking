@@ -18,6 +18,7 @@ import { ACCOUNTS, BASE, batTay, call, cho, ensureFakeCatalog, moBangTin, orderI
 
 await ensureFakeCatalog(); // "catalog" (Sheet thật) chạy trước "bangtin" trong ALL và đặt in_sheet = 0 cho mã giả — orderInput() dùng ZE1.
 const ADMIN = await session(ACCOUNTS.admin);
+const TAO_TK = await session(ACCOUNTS.superAdmin); // ADR-0071: chỉ Hành chính nhân sự / Toàn quyền tạo tài khoản (Quản trị không còn)
 const adminId = (await call(ADMIN, "GET", "/api/auth/me")).body.staff.id;
 
 /**
@@ -53,7 +54,7 @@ function doiToiDa(promise, ms) {
  * các kịch bản khác (đặc biệt `passkey.mjs`, chạy cuối cùng) cần giữ nguyên trạng. */
 async function taoTaiKhoanDungMotLan(name, permissions = ["SALES"]) {
   const phone = randomPhone();
-  const r = await call(ADMIN, "POST", "/api/staff", { taoHoSoMoi: true, fullName: name, phone, permissions });
+  const r = await call(TAO_TK, "POST", "/api/staff", { taoHoSoMoi: true, fullName: name, phone, permissions });
   assert.equal(r.status, 201, JSON.stringify(r.body));
   const cookie = await session({ phone, pin: r.body.pin });
   return { id: r.body.staff.id, phone, cookie };

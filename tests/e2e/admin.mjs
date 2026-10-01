@@ -6,37 +6,39 @@ const cookieOf = (r) => r.cookie;
 const ADMIN = await session(ACCOUNTS.admin);
 const SALES = await session(ACCOUNTS.salesA);
 const SUPER_ADMIN = await session(ACCOUNTS.superAdmin);
+// ADR-0071: Hành chính nhân sự tạo tài khoản; Quản trị chỉ sửa / ngưng / hỗ trợ đăng nhập cho cấp dưới.
+const HR = await session(ACCOUNTS.hr);
 
 // --- phân quyền API
 assert.equal((await raw(null, "GET", "/api/staff")).status, 401);
 assert.equal((await raw(SALES, "GET", "/api/staff")).status, 403);
 assert.equal((await raw(SALES, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "X", phone: rnd() })).status, 403);
 assert.equal((await raw(SALES, "PUT", "/api/staff/00000000-0000-0000-0000-000000000000/permissions", { permissions: ["ADMIN"] })).status, 403, "sales không tự cấp quyền");
-assert.equal((await raw(SALES, "GET", "/api/staff/sheet")).status, 403);
+assert.equal((await raw(ADMIN, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Quản Trị Tạo", phone: rnd(), roles: ["SALES_STAFF"] })).status, 403, "ADR-0071 điều 1b: Quản trị không tạo tài khoản");
 
 // --- tạo nhân viên
 // D-02 (ADR-0014 điều 7): trường permissions HOÀN TOÀN VẮNG MẶT → không quyền nào (trước đây tự động Bán hàng).
 const noPermsPhone = rnd();
-const noPerms = await raw(ADMIN, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Không Quyền", phone: noPermsPhone });
+const noPerms = await raw(HR, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Không Quyền", phone: noPermsPhone });
 assert.equal(noPerms.status, 201, JSON.stringify(noPerms.body));
 assert.deepEqual(noPerms.body.staff.permissions, []);
 // Không để tài khoản không quyền nằm lại "đang hoạt động" cho hết bài kiểm (audit-invariants --strict coi đó là điều cần rà soát, đúng ý — không phải lỗi ở đây, chỉ là dữ liệu thử).
 assert.equal((await raw(ADMIN, "PATCH", `/api/staff/${noPerms.body.staff.id}`, { active: false })).status, 200);
 
 const phoneA = rnd();
-let r = await raw(ADMIN, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "  Nguyễn   Test Một ", phone: phoneA.replace(/^0/, "+84 "), permissions: ["SALES"] });
+let r = await raw(HR, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "  Nguyễn   Test Một ", phone: phoneA.replace(/^0/, "+84 "), permissions: ["SALES"] });
 assert.equal(r.status, 201, JSON.stringify(r.body));
 assert.equal(r.body.staff.phone, phoneA); assert.equal(r.body.staff.fullName, "Nguyễn Test Một"); assert.deepEqual(r.body.staff.permissions, ["SALES"]);
 assert.ok(r.body.staff.partyId, "tài khoản mới phải có hồ sơ");
 assert.match(r.body.pin, /^\d{6}$/);
 const A = { id: r.body.staff.id, pin: r.body.pin, phone: phoneA, partyId: r.body.staff.partyId };
-assert.equal((await raw(ADMIN, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Trùng", phone: phoneA })).status, 409);
-assert.equal((await raw(ADMIN, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Sai", phone: "123" })).status, 400);
+assert.equal((await raw(HR, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Trùng", phone: phoneA })).status, 409);
+assert.equal((await raw(HR, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Sai", phone: "123" })).status, 400);
 // Tên vượt giới hạn của hồ sơ (CHECK pty_person 60/100/60) phải bị chặn ở ĐẦU VÀO = 400, không để db.batch() vỡ = 500.
-assert.equal((await raw(ADMIN, "POST", "/api/staff", { taoHoSoMoi: true, fullName: `${"A".repeat(65)} Văn Nam`, phone: rnd() })).status, 400, "từ đầu 65 ký tự → 400 chứ không 500");
-assert.equal((await raw(ADMIN, "POST", "/api/staff", { taoHoSoMoi: true, fullName: Array(25).fill("Nguyen").join(" "), phone: rnd() })).status, 400, "nhiều từ dồn vào tên đệm → 400 chứ không 500");
+assert.equal((await raw(HR, "POST", "/api/staff", { taoHoSoMoi: true, fullName: `${"A".repeat(65)} Văn Nam`, phone: rnd() })).status, 400, "từ đầu 65 ký tự → 400 chứ không 500");
+assert.equal((await raw(HR, "POST", "/api/staff", { taoHoSoMoi: true, fullName: Array(25).fill("Nguyen").join(" "), phone: rnd() })).status, 400, "nhiều từ dồn vào tên đệm → 400 chứ không 500");
 assert.equal((await raw(ADMIN, "PATCH", `/api/staff/${A.id}`, { fullName: `Nguyễn Văn ${"A".repeat(65)}` })).status, 400, "đổi tên quá dài → 400 chứ không 500");
-for (const bad of [["BOSS"], [], "SALES", ["SALES", "sales"], [1]]) assert.equal((await raw(ADMIN, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Sai quyền", phone: rnd(), permissions: bad })).status, 400, JSON.stringify(bad));
+for (const bad of [["BOSS"], [], "SALES", ["SALES", "sales"], [1]]) assert.equal((await raw(HR, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Sai quyền", phone: rnd(), permissions: bad })).status, 400, JSON.stringify(bad));
 // "Đăng nhập gần nhất" (staff.last_login_at, migration 0015): NULL cho tới lần đăng nhập THÀNH CÔNG đầu tiên
 const ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/;
 const lastLoginOf = async (id) => (await raw(ADMIN, "GET", "/api/staff")).body.staff.find((s) => s.id === id).lastLoginAt;
@@ -175,7 +177,7 @@ console.log("✓ khoá sau 5 lần sai, admin mở khoá được");
 
 // bắn song song 40 lần dò vào một SĐT: tối đa 5 lần được kiểm PIN
 const victim2 = rnd();
-await raw(ADMIN, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Nạn nhân 2", phone: victim2, permissions: ["SALES"] });
+await raw(HR, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Nạn nhân 2", phone: victim2, permissions: ["SALES"] });
 const burst = await Promise.all(Array.from({ length: 40 }, (_, i) => login(victim2, String(100000 + i * 7), fresh())));
 const checked = burst.filter((b) => b.status === 401).length, blocked = burst.filter((b) => b.status === 429).length;
 console.log(`  song song 40: ${checked} lần được kiểm, ${blocked} bị chặn`);
@@ -183,7 +185,7 @@ assert.ok(checked <= 5, `chỉ được kiểm tối đa 5 lần, thực tế ${
 assert.equal(checked + blocked, 40);
 // đăng nhập đúng xoá bộ đếm
 const okPhone = rnd();
-r = await raw(ADMIN, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Đúng sai", phone: okPhone, permissions: ["SALES"] });
+r = await raw(HR, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Đúng sai", phone: okPhone, permissions: ["SALES"] });
 const okPin = r.body.pin;
 for (let i = 0; i < 4; i++) await login(okPhone, "999888", fresh());
 assert.equal((await login(okPhone, okPin, fresh())).status, 200);
@@ -196,8 +198,6 @@ for (let i = 0; i < 34 && !ipBlocked; i++) ipBlocked = (await login(rnd(), "9998
 assert.ok(ipBlocked, "cùng IP dò nhiều SĐT phải bị chặn");
 console.log("✓ giới hạn theo IP");
 
-// --- kéo từ Sheet (Sheet nhân viên thật, chưa có SĐT)
-assert.equal((await raw(ADMIN, "GET", "/api/staff/sheet")).status, 403, "ADR-0038 điều 6: Quản trị không đồng bộ nhân viên từ Sheet");
 { // ADR-0042: Toàn quyền là vai ẩn — danh sách tài khoản Quản trị nhận không có SUPER_ADMIN; tài khoản Toàn quyền không bị Quản trị tác động
   const list = await raw(ADMIN, "GET", "/api/staff");
   assert.ok(!JSON.stringify(list.body).includes("SUPER_ADMIN"), "Quản trị không thấy mã Toàn quyền");
@@ -206,13 +206,26 @@ assert.equal((await raw(ADMIN, "GET", "/api/staff/sheet")).status, 403, "ADR-003
   assert.equal(denied.status, 403);
   assert.doesNotMatch(JSON.stringify(denied.body), /Toàn quyền|Super Admin/i);
 }
-assert.equal((await raw(ADMIN, "POST", "/api/staff/sheet/apply", { phones: ["0999999999"] })).status, 403);
-r = await raw(SUPER_ADMIN, "GET", "/api/staff/sheet");
-assert.equal(r.status, 200, JSON.stringify(r.body));
-console.log(`  Sheet: ${r.body.candidates.length} ứng viên, ${r.body.problems.length} vấn đề, ${r.body.notInSheet.length} có trong hệ thống nhưng không có trong Sheet`);
-assert.ok(Array.isArray(r.body.candidates) && Array.isArray(r.body.problems) && Array.isArray(r.body.notInSheet));
-assert.equal((await raw(SUPER_ADMIN, "POST", "/api/staff/sheet/apply", { phones: [] })).status, 400);
-assert.equal((await raw(SUPER_ADMIN, "POST", "/api/staff/sheet/apply", { phones: ["0999999999"] })).status, 409); // không có trong Sheet → không tạo
-assert.equal((await raw(SALES, "POST", "/api/staff/sheet/apply", { phones: ["0999999999"] })).status, 403);
-console.log("✓ kéo từ Sheet: xem trước + chỉ tin dữ liệu Sheet");
+// --- ADR-0071 điều 2: đồng bộ nhân viên từ Google Sheet đã GỠ — không còn route (GET trùng khuôn PATCH /api/staff/:id nên 405; POST …/apply 404).
+for (const who of [SUPER_ADMIN, ADMIN]) {
+  r = await raw(who, "GET", "/api/staff/sheet");
+  assert.ok(r.status === 404 || r.status === 405, `GET /api/staff/sheet: ${r.status}`);
+  assert.equal((await raw(who, "POST", "/api/staff/sheet/apply", { phones: ["0999999999"] })).status, 404);
+}
+console.log("✓ đồng bộ nhân viên từ Sheet đã gỡ");
+
+// --- ADR-0071 điều 1: Hành chính nhân sự — tạo được (đã dùng ở trên), không gán vai quản lý, không sửa Quản trị, không hỗ trợ đăng nhập, không xem đơn / bảo trì.
+for (const roles of [["DIRECTOR"], ["OPERATIONS_MANAGER"], ["HR_STAFF"]]) {
+  assert.equal((await raw(HR, "PUT", `/api/staff/${A.id}/roles`, { roles })).status, 403, `HCNS gán ${roles}`);
+}
+assert.equal((await raw(HR, "PUT", `/api/staff/${A.id}/roles`, { roles: ["GUIDE_INTERNAL"] })).status, 200, "HCNS gán vai thường");
+const quanTriId = (await raw(ADMIN, "GET", "/api/auth/me")).body.staff.id;
+const hrId = (await raw(HR, "GET", "/api/auth/me")).body.staff.id;
+assert.equal((await raw(HR, "PATCH", `/api/staff/${quanTriId}`, { fullName: "Đổi Tên Quản Trị" })).status, 403, "HCNS không sửa Quản trị");
+assert.equal((await raw(ADMIN, "PATCH", `/api/staff/${hrId}`, { active: false })).status, 403, "Quản trị không sửa HCNS");
+for (const path of [`/api/staff/${A.id}/reset-pin`, `/api/staff/${A.id}/unlock`]) assert.equal((await raw(HR, "POST", path)).status, 403, path);
+for (const path of ["/api/orders", "/api/orders/dashboard", "/api/parties", "/api/catalog", "/api/maintenance", "/api/audit"]) assert.equal((await raw(HR, "GET", path)).status, 403, path);
+assert.equal((await raw(ADMIN, "GET", "/api/maintenance")).status, 403, "ADR-0071 điều 3c: bảo trì chỉ Toàn quyền");
+assert.equal((await raw(SUPER_ADMIN, "GET", "/api/maintenance")).status, 200);
+console.log("✓ Hành chính nhân sự: tạo tài khoản, giới hạn vai và hỗ trợ đăng nhập");
 console.log("E2E ADMIN OK");

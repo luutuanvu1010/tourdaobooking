@@ -7,6 +7,7 @@ import { world, seedStaff } from "../../../tests/audit/harness.mjs";
 
 const SALES = "11111111-1111-4111-8111-111111111111";
 const ADM = "33333333-3333-4333-8333-333333333333";
+const SUP = "77777777-7777-4777-8777-777777777777"; // ADR-0071: người tạo tài khoản trong bài (Quản trị không tạo nữa)
 const nguoi = async (w: any, fullName: string, so?: string) => {
   const r = await w.call("POST", "/api/parties", { as: ADM, body: { kind: "PERSON", fullName, contacts: so ? [{ kind: "PHONE", value: so }] : [] } });
   assert.equal(r.status, 201, r.text);
@@ -18,10 +19,11 @@ test("T1: PHONE, NAME (NFD), LOGIN_PHONE; một cặp một lần; hồ sơ ngư
   const w = world();
   seedStaff(w.sqlite, { id: SALES, phone: "0900000001", name: "Bán Hàng", perms: ["SALES"] });
   seedStaff(w.sqlite, { id: ADM, phone: "0900000003", name: "Quản Trị", perms: ["ADMIN"] });
+  seedStaff(w.sqlite, { id: SUP, phone: "0900000007", name: "Chủ", perms: ["SUPER_ADMIN"] });
   const p1 = await nguoi(w, "Nguyễn Phú Hải", "0912000111");
   const p2 = await nguoi(w, "Nguyễn Phú Hải".normalize("NFD"));
   const p3 = await nguoi(w, "Trần Văn Cường", "0912000111");
-  const tk = await w.call("POST", "/api/staff", { as: ADM, body: { fullName: "Lê Đăng Nhập", phone: "0900000088", roles: ["SALES_STAFF"], taoHoSoMoi: true } });
+  const tk = await w.call("POST", "/api/staff", { as: SUP, body: { fullName: "Lê Đăng Nhập", phone: "0900000088", roles: ["SALES_STAFF"], taoHoSoMoi: true } });
   assert.equal(tk.status, 201, tk.text);
   const pL = tk.json.staff.partyId as string;
   const p4 = await nguoi(w, "Người Giữ Số", "0900000088");

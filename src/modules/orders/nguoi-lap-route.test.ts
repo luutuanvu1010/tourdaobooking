@@ -122,7 +122,7 @@ test("ADR-0067: route khớp trước /api/orders/:id — chưa ai lập đơn t
   assert.deepEqual(r.json, { nguoiLap: [] }, "chưa ai lập đơn → danh sách rỗng");
 });
 
-test("ADR-0067 bài ghim hành vi: trên cả 512 tập con quyền — /api/orders/nguoi-lap 200 ⇔ GET /api/orders đi nhánh 'xem mọi đơn'", async () => {
+test("ADR-0067 bài ghim hành vi: trên cả 1024 tập con quyền — /api/orders/nguoi-lap 200 ⇔ GET /api/orders đi nhánh 'xem mọi đơn'", async () => {
   const w = world();
   // Tập con của HÀM THUẦN, không phải tài khoản hợp lệ: LC-1b (ADR-0048) cấm DRIVER_PARTNER đi cùng quyền khác ở tầng CSDL — gỡ trigger trên SQLite TẠM
   // của bài này để đi được mọi tập (đúng khuôn bài 512 tập ở src/shared/permissions.test.ts).
@@ -150,6 +150,6 @@ test("ADR-0067 bài ghim hành vi: trên cả 512 tập con quyền — /api/ord
       assert.deepEqual(nl.json.nguoiLap.map((x: any) => x.id), [LAP], `${ten}: danh sách người lập`);
     } else soKhong++;
   }
-  assert.equal(soXemMoi + soKhong, 512);
+  assert.equal(soXemMoi + soKhong, 1024); // 10 mã quyền (ADR-0071 thêm HR)
   assert.ok(soXemMoi > 0 && soKhong > 0, `bài không rỗng hai vế (xem mọi: ${soXemMoi}, không: ${soKhong})`);
 });

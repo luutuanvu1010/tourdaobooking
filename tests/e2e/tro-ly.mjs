@@ -48,7 +48,7 @@ const hoi = (cookie, cauHoi) => call(cookie, "POST", "/api/tro-ly/hoi", { cauHoi
 const caiDat = (cookie, body) => call(cookie, "POST", "/api/tro-ly/cai-dat", body);
 const soDong = async () => (await sqlRows("SELECT count(*) AS n FROM tl_luot_hoi"))[0].n;
 const MAC_DINH = { bat: true, tranThangUsd: 5, tranNgay: 30 };
-const PERMS = ["SALES", "ACCOUNTING", "ADMIN", "FIELD", "PARTNER", "SUPER_ADMIN", "INTERN", "DRIVER", "DRIVER_PARTNER"];
+const PERMS = ["SALES", "ACCOUNTING", "ADMIN", "FIELD", "PARTNER", "SUPER_ADMIN", "INTERN", "DRIVER", "DRIVER_PARTNER", "HR"]; // HR: ADR-0071
 const tatCaVai = (bat) => Object.fromEntries(PERMS.map((p) => [p, bat]));
 const datVai = (vai) => call(OWNER, "POST", "/api/tro-ly/vai", { vai });
 const loiDanDau = (await call(OWNER, "GET", "/api/tro-ly/loi-dan")).body.hienHanh;

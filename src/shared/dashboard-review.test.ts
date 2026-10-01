@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { CatalogAdminItemDto, FeedbackTicketDto } from "./contracts.ts";
-import { reviewAlerts } from "./dashboard-review.ts";
+import { canSeeReviewAlerts, reviewAlerts } from "./dashboard-review.ts";
 import type { PermissionCode } from "./permissions.ts";
 
 const who = (...permissions: PermissionCode[]) => ({ id: "w", permissions });
@@ -62,10 +62,16 @@ test("reviewAlerts: Toàn quyền + dữ liệu có cả hai cảnh báo → tr�
   });
 });
 
-test("reviewAlerts: SUPER_ADMIN (không giữ ADMIN) cũng thấy — đúng cổng access:\"admin\" của router.ts, không phải cách web/shell.ts vẽ menu (chỉ ADMIN)", () => {
+test("reviewAlerts: SUPER_ADMIN (không giữ ADMIN) cũng thấy — hỏi ô admin.manage như route GET /api/catalog/admin (ADR-0072 mục 4a)", () => {
   const items = [catalogItem("X", [{ code: "adult", base: 1, current: 2, override: 1 }])];
   const r = reviewAlerts(SUPER_ADMIN, { catalogItems: items, tickets: [] });
   assert.ok(r?.catalogConflict, "SUPER_ADMIN phải thấy khối, giống hệt ADMIN");
+});
+
+test("canSeeReviewAlerts: Nhân sự (HR, ADR-0071) không thấy khối — ô admin.manage không cho HR; Quản trị, Toàn quyền thấy", () => {
+  assert.equal(canSeeReviewAlerts(who("HR")), false);
+  assert.equal(canSeeReviewAlerts(ADMIN), true);
+  assert.equal(canSeeReviewAlerts(SUPER_ADMIN), true);
 });
 
 test("reviewAlerts: KHÔNG phải quản trị (SALES/ACCOUNTING) → null DÙ dữ liệu có cảnh báo thật — TUYỆT ĐỐI KHÔNG mở quyền đọc cảnh báo giá cho nhân viên (quyết định chủ dự án)", () => {

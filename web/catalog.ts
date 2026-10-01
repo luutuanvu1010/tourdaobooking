@@ -1,4 +1,4 @@
-import { hasPermission } from "../src/shared/permissions";
+import { can } from "../src/shared/permissions";
 import { ApiError, api, type CatalogAdminItem, type CatalogSyncState, type PaxCode, type Api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
 import { dateTime, grouped, parseMoney, vnd } from "./format";
@@ -567,7 +567,7 @@ qEl.addEventListener("input", render);
 filterEl.addEventListener("change", render);
 
 const staff = await initShell();
-if (!hasPermission(staff, "ADMIN")) showError(errorEl, "Chỉ quản trị viên được vào trang này.");
+if (!can(staff, "admin.manage")) showError(errorEl, "Chỉ quản trị viên được vào trang này.");
 else {
   tenNguoi = api<Api.StaffListResponse>("/api/staff")
     .then((r) => new Map(r.staff.map((s) => [s.id, s.fullName])))

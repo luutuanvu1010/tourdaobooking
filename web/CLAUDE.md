@@ -15,6 +15,7 @@
 - **Không `innerHTML`.** Dựng DOM bằng `h()` ở `web/dom.ts`.
 - `web/` import `src/shared` **không đuôi**; **không** import `src/modules/`. Luật dùng ở cả server và giao diện là tệp thuần ở `src/shared/`, không chép tay sang đây.
 - Giao diện chỉ **ẩn/hiện** theo quyền; máy chủ luôn kiểm lại. Thông báo, nhãn, lỗi: tiếng Việt có dấu, không lộ chữ Anh hay mã thô (vd `cancelled`).
+- **Ẩn/hiện phải hỏi bảng quyền:** `can(staff, "<thao tác>")` — cùng bảng với máy chủ. `hasPermission` chỉ để hỏi **danh tính** ("người này là hướng dẫn viên / tài xế / đối tác"), không để hỏi "được làm việc gì" (chủ duyệt 2026-10-01; bài học: trang hỏi "có phải Quản trị" lệch máy chủ từ khi có Toàn quyền — `docs/superpowers/specs/2026-10-01-han-che-quan-tri-hcns/NGUYEN-NHAN-GOC-GIAO-DIEN-HOI-MA-QUYEN.md`). Ép bằng `src/giao-dien-hoi-bang-quyen.test.ts`.
 - **CSS:** giá trị đi vào token ở `:root` của `public/app.css`. Khối **sau** dấu mốc `/* ---------- app iPhone (PWA)` chỉ dùng token: không hex, `rgb()`, `hsl()`, `px` ngoài `1px`, `rem`, `em` (`tests/e2e/pwa.mjs` quét). Script **không** bắt tên màu (`red`), `%`, `vw/vh/ch`, `color-mix()` — tự kiểm khi viết CSS mới.
 - **Ô gõ 16px** (chống zoom iOS).
 - **Trang mới:** làm theo `docs/CHANGE-GUIDE.md` công thức c. Tối thiểu: `public/<trang>.html` (kèm phần `<head>` iOS), khai ở `PAGES` trong `src/shared/sw-policy.ts` (`src/shared/sw-policy.test.ts` đỏ nếu thiếu), thêm tệp vào script `build:web` trong `package.json`, gọi `initShell()`, thêm điều hướng ở `web/shell.ts`, rồi `npm run test:e2e -- pwa`.

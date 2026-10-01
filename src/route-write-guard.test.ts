@@ -57,7 +57,7 @@ const GUARDS: { name: string; file: string; hoiBang: boolean }[] = [
   { name: "canRead", file: "src/modules/feedback/index.ts", hoiBang: true },
   { name: "handlerChangeVerdict", file: "src/modules/dispatch/rules.ts", hoiBang: true },
   { name: "mayManage", file: "src/modules/accounts/index.ts", hoiBang: false },
-  { name: "canManageAccount", file: "src/modules/staff/rules.ts", hoiBang: false },
+  { name: "canManageAccount", file: "src/shared/roles.ts", hoiBang: false }, // ADR-0071: chuyển về src/shared (một nguồn cho máy chủ và giao diện)
 ];
 const GUARD_CALL_RE = new RegExp(`\\b(?:${GUARDS.map((g) => g.name).join("|")})\\s*\\(|\\bMATRIX\\[`, "g");
 
@@ -98,10 +98,12 @@ export function isGuardedBody(body: string): boolean {
 
 /** Luật (4): ô quản trị được công nhận ở route cổng "admin" (ADR-0019 điều 2). Thêm ô = sửa hàng rào (người rà phải thấy). */
 const ADMIN_OPS = ["admin.manage", "admin.manage.superadmin", "feedback.triage", "settings.ops", "notice.send"];
-const ADMIN_DENIAL_RE = new RegExp(
-  `!\\s*can\\s*\\(\\s*[A-Za-z_$][\\w$]*(?:\\s*\\.\\s*[A-Za-z_$][\\w$]*)*\\s*,\\s*"(?:${ADMIN_OPS.map((o) => o.replace(/\./g, "\\.")).join("|")})"\\s*\\)`,
-  "g",
-);
+/** Luật (4b) — ADR-0071: ô Quản lý tài khoản được công nhận ở route cổng "accounts". Thêm ô = sửa hàng rào. */
+const ACCOUNTS_OPS = ["account.create", "account.view", "account.edit"];
+const denialRe = (ops: readonly string[]) =>
+  new RegExp(`!\\s*can\\s*\\(\\s*[A-Za-z_$][\\w$]*(?:\\s*\\.\\s*[A-Za-z_$][\\w$]*)*\\s*,\\s*"(?:${ops.map((o) => o.replace(/\./g, "\\.")).join("|")})"\\s*\\)`, "g");
+const ADMIN_DENIAL_RE = denialRe(ADMIN_OPS);
+const ACCOUNTS_DENIAL_RE = denialRe(ACCOUNTS_OPS);
 
 /**
  * Luật (4): thân handler NGUYÊN VĂN có một câu `if (… !can(<biến>, "<ô quản trị>") …) return …` (cho phép `{ return`) đứng ở CẤP THÂN handler
@@ -110,10 +112,10 @@ const ADMIN_DENIAL_RE = new RegExp(
  * return`, lời gọi trong chú thích/chuỗi/khuôn mẫu, `if (!can(…)) {}`. Che hai lần trên chính đoạn thân: giữ chuỗi để đọc tên ô, che cả
  * chuỗi để đếm ngoặc và biết lời gọi là MÃ (đoạn thân mở/đóng bằng ngoặc của mã nên che riêng cho cùng kết quả như che cả tệp).
  */
-export function hasAdminDenial(rawBody: string): boolean {
+export function hasAdminDenial(rawBody: string, re: RegExp = ADMIN_DENIAL_RE): boolean {
   const code = maskSource(rawBody, { strings: false, comments: true });
   const masked = maskSource(rawBody);
-  for (const m of code.matchAll(ADMIN_DENIAL_RE)) {
+  for (const m of code.matchAll(re)) {
     const at = m.index!;
     const end = at + m[0].length;
     if (!/^!\s*can\s*\(/.test(masked.slice(at))) continue; // chữ trong chuỗi/khuôn mẫu, không phải mã
@@ -202,7 +204,7 @@ test("hàng rào 2: mọi đường ghi (access ≠ public) hỏi bảng quyền
 });
 
 /** Cổng chỉ lọc thô (ADR-0019 điều 1–2): sau ba cổng này, route đọc lẫn ghi phải tự hỏi ô của MATRIX. Cổng "staff" (tự phục vụ) và "public" ngoài phạm vi. */
-const GATED = new Set(["office", "orders", "admin"]);
+const GATED = new Set(["office", "orders", "admin", "accounts"]); // "accounts" — ADR-0071 (Quản lý tài khoản)
 
 test("hàng rào 2 (ADR-0019): mọi route — đọc lẫn ghi — sau cổng office/orders/admin hỏi bảng quyền trong thân handler; route đọc không có mục hoãn", () => {
   const unguarded = routes
@@ -311,8 +313,20 @@ test("hàng rào cổng quản trị: bộ đánh giá nhận đúng khuôn, t�
   assert.equal(hasAdminDenial(`{ if (x) return y; const v = !can(staff, "admin.manage"); return v; }`), false, "lời gọi sau câu if, không nằm trong điều kiện");
 });
 
+// ---- Luật (4b) — ADR-0071: hàng rào cổng Quản lý tài khoản, cùng khuôn luật (4) với ba ô account.*. Không có mục hoãn nào. ----
+test("hàng rào cổng accounts (ADR-0071): mọi route cổng accounts có `if (!can(<người gọi>, \"account.*\")) return …` ở cấp thân handler", () => {
+  const thuoc = routes.filter((r) => r.access === "accounts");
+  const known = ["GET /api/staff", "POST /api/staff", "GET /api/staff/ho-so-khop", "PATCH /api/staff/:id", "PUT /api/staff/:id/permissions", "GET /api/staff/:id/roles", "PUT /api/staff/:id/roles"];
+  assert.deepEqual(thuoc.map((r) => key(r.method, r.path)).sort(), [...known].sort(), "đúng bảy route Quản lý tài khoản ở cổng accounts");
+  const missing = thuoc.filter((r) => !hasAdminDenial(r.body, ACCOUNTS_DENIAL_RE)).map((r) => `${r.method} ${r.path} (${r.module})`);
+  assert.deepEqual(missing, [], `Route cổng accounts không hỏi ô tài khoản: ${missing.join("; ")}. Đầu thân: if (!can(staff, "<ô>")) return …; ô thuộc ${ACCOUNTS_OPS.join(", ")}.`);
+  assert.equal(hasAdminDenial(`{ if (!can(actor, "account.create")) return F(); }`, ACCOUNTS_DENIAL_RE), true);
+  assert.equal(hasAdminDenial(`{ if (!can(actor, "admin.manage")) return F(); }`, ACCOUNTS_DENIAL_RE), false, "ô quản trị không thay ô tài khoản");
+  assert.equal(hasAdminDenial(`{ if (!can(actor, "account.create")) return F(); }`), false, "ô tài khoản không thay ô quản trị ở cổng admin");
+});
+
 test("hàng rào cổng quản trị: bộ bóc thấy các route cổng admin đã biết và nhận chúng là có ô quản trị (chống bài kiểm rỗng)", () => {
-  const known = ["PATCH /api/staff/:id", "PUT /api/staff/:id/roles", "GET /api/maintenance", "PUT /api/maintenance", "PATCH /api/feedback/:id", "POST /api/parties/:id/roles", "GET /api/audit"];
+  const known = ["POST /api/staff/:id/reset-pin", "POST /api/staff/:id/unlock", "GET /api/maintenance", "PUT /api/maintenance", "PATCH /api/feedback/:id", "POST /api/parties/:id/roles", "GET /api/audit"];
   for (const k of known) {
     const r = routes.find((x) => key(x.method, x.path) === k);
     assert.ok(r, `không bóc được ${k} — bộ bóc route hỏng?`);

@@ -39,7 +39,7 @@ async function taoA(w: any, ten = TEN, so = SO_X): Promise<string> {
 }
 /** Hồ sơ chính B: tài khoản "Nhân viên kinh doanh" không SĐT liên hệ. Trả { staffId, partyId }. */
 async function taoB(w: any, ten = TEN, phone = "0900000055"): Promise<{ staffId: string; partyId: string }> {
-  const r = await w.call("POST", "/api/staff", { as: ADM, body: { fullName: ten, phone, roles: ["SALES_STAFF"], taoHoSoMoi: true } });
+  const r = await w.call("POST", "/api/staff", { as: SUP, body: { fullName: ten, phone, roles: ["SALES_STAFF"], taoHoSoMoi: true } });
   assert.equal(r.status, 201, r.text);
   return { staffId: r.json.staff.id, partyId: r.json.staff.partyId };
 }
@@ -401,7 +401,7 @@ test("G16: sau gộp, mọi route ghi của parties trên hồ sơ phụ → 409
     assert.equal(r.status, 409, `${m} ${path}: ${r.text}`);
     assert.equal(r.json.error.code, "party_merged", `${m} ${path}`);
   }
-  const tk = await w.call("POST", "/api/staff", { as: ADM, body: { partyId: A, phone: "0900000077", roles: ["SALES_STAFF"] } });
+  const tk = await w.call("POST", "/api/staff", { as: SUP, body: { partyId: A, phone: "0900000077", roles: ["SALES_STAFF"] } });
   assert.equal(tk.status, 409, tk.text);
   assert.equal(tk.json.error.code, "party_merged", tk.text);
   assert.deepEqual({ ...w.q("SELECT active, merged_into_id m FROM pty_party WHERE id = ?", A)[0] }, { active: 0, m: B.partyId });

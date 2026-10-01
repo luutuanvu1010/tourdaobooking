@@ -16,7 +16,7 @@ const KHUNG = `E2ENHAXE${duoi}`;
 const AT = "2026-09-29T00:00:00.000Z";
 const openPerms = async (staffId) =>
   (await sqlRows(`SELECT permission_type_code AS c FROM stf_permission WHERE staff_id = '${staffId}' AND valid_to_at IS NULL ORDER BY c`)).map((x) => x.c);
-const taoTheoVai = async (roles, as = ADMIN) => {
+const taoTheoVai = async (roles, as = TOAN_QUYEN) => { // ADR-0071: Quản trị không tạo tài khoản nữa
   const r = await call(as, "POST", "/api/staff", { taoHoSoMoi: true, fullName: `E2E ${roles.join(" ")} ${duoi}`, phone: randomPhone(), roles });
   assert.equal(r.status, 201, JSON.stringify(r.body));
   return r.body;
@@ -44,12 +44,12 @@ try {
   console.log("✓ tài khoản Tài xế đối tác: 201, quyền đúng [DRIVER_PARTNER]; 403 ở đơn, Trang chủ, Danh bạ, danh mục lập đơn, xe, nhà xe; giấy tờ của mình 200; góp ý 201");
 
   // --- 2. Tài khoản lai (tiêu chí 5): bốn đường ghi quyền → 400 invalid_input, không 500 ---
-  r = await call(ADMIN, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Lai Một E2E", phone: randomPhone(), roles: ["TAXI_DRIVER", "DRIVER_EXTERNAL"] });
+  r = await call(TOAN_QUYEN, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Lai Một E2E", phone: randomPhone(), roles: ["TAXI_DRIVER", "DRIVER_EXTERNAL"] });
   assert.equal(r.status, 400, JSON.stringify(r.body));
   assert.match(r.body.error.message, /một người chọn một/);
-  r = await call(ADMIN, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Lai Hai E2E", phone: randomPhone(), permissions: ["DRIVER_PARTNER", "SALES"] });
+  r = await call(TOAN_QUYEN, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Lai Hai E2E", phone: randomPhone(), permissions: ["DRIVER_PARTNER", "SALES"] });
   assert.equal(r.status, 400, JSON.stringify(r.body));
-  const cu = await call(ADMIN, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Đối Tác Cũ E2E", phone: randomPhone(), permissions: ["PARTNER"] });
+  const cu = await call(TOAN_QUYEN, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Đối Tác Cũ E2E", phone: randomPhone(), permissions: ["PARTNER"] });
   assert.equal(cu.status, 201, JSON.stringify(cu.body));
   r = await call(ADMIN, "PUT", `/api/staff/${cu.body.staff.id}/permissions`, { permissions: ["PARTNER", "DRIVER_PARTNER"] });
   assert.equal(r.status, 400, JSON.stringify(r.body));
@@ -75,7 +75,7 @@ try {
   await assert.rejects(grant(txId, "PARTNER"), /lc1b_driver_partner_alone/, "(b) đang giữ DRIVER_PARTNER, chèn PARTNER");
   const [{ id: salesId }] = await sqlRows(`SELECT id FROM staff WHERE phone = '${ACCOUNTS.salesA.phone}'`);
   await assert.rejects(grant(salesId, "DRIVER_PARTNER"), /lc1b_driver_partner_alone/, "(c) SALES có trước, chèn DRIVER_PARTNER");
-  const chiDt = await call(ADMIN, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Chỉ Tài Xế Đối Tác E2E", phone: randomPhone(), permissions: ["DRIVER_PARTNER"] });
+  const chiDt = await call(TOAN_QUYEN, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Chỉ Tài Xế Đối Tác E2E", phone: randomPhone(), permissions: ["DRIVER_PARTNER"] });
   assert.equal(chiDt.status, 201, JSON.stringify(chiDt.body));
   await assert.rejects(grant(chiDt.body.staff.id, "SALES"), /lc1b_driver_partner_alone/, "(c) DRIVER_PARTNER có trước (không vai), chèn SALES");
   // (d)(e)(f): tài khoản vai bên ngoài MỚI, CHƯA có quyền nào — dựng bằng SQL (tiêu chí 4, dòng cuối: tránh vướng cả LC-1 lẫn LC-1b).

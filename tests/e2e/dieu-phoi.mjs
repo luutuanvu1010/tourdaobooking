@@ -13,6 +13,7 @@ import { ACCOUNTS, call, catalogService, ensureFakeCatalog, orderInput, randomPh
 
 await ensureFakeCatalog();
 const ADMIN = await session(ACCOUNTS.admin);
+const TAO_TK = await session(ACCOUNTS.superAdmin); // ADR-0071: chỉ Hành chính nhân sự / Toàn quyền tạo tài khoản (Quản trị không còn)
 const SALES = await session(ACCOUNTS.salesA);
 const ACC = await session(ACCOUNTS.accountant);
 const LOC = "a941dd7d-faab-4098-9ab9-1df7fa6dd551"; // Bến tàu du lịch Nha Trang (0010)
@@ -24,7 +25,7 @@ const leg = (noi) => ({ direction: "OUT", pickupDate: D, pickupTime: "10:00", pi
 let r;
 
 // --- Nền: tài xế công ty (tài khoản thật, vai DRIVER_INTERNAL + GPLX D1), xe 15 chỗ có Kiểm định + Bảo hiểm ---
-r = await call(ADMIN, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Tài Xế Điều Phối E2E", phone: randomPhone(), roles: ["DRIVER_INTERNAL"] });
+r = await call(TAO_TK, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Tài Xế Điều Phối E2E", phone: randomPhone(), roles: ["DRIVER_INTERNAL"] });
 assert.equal(r.status, 201, JSON.stringify(r.body));
 const [{ party_id: txParty }] = await sqlRows(`SELECT party_id FROM staff WHERE id = '${r.body.staff.id}'`);
 r = await call(ADMIN, "POST", `/api/parties/${txParty}/documents`, { typeCode: "GPLX", number: `79${String(Date.now()).slice(-10)}`, classCode: "D1", expiryDate: vnDate(400) });

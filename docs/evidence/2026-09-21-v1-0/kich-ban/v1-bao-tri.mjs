@@ -110,7 +110,7 @@ try {
     await sleep(2200);
     const b = await text(owner, "#maint-preview .maint-count");
     assert.notEqual(a, b, "đồng hồ phải chạy");
-    assert.match(await text(owner, "#maint-strip"), /^Đang ở chế độ bảo trì — chỉ bạn dùng được$/);
+    assert.match(await text(owner, "#maint-strip"), /^Đang ở chế độ bảo trì — chỉ tài khoản Toàn quyền dùng được$/);
     assert.equal(await owner.ev(`${q("#maint-strip")}.getAttribute('href')`), "/account");
     assert.equal(await owner.ev(`${q("#maint-strip")}.getBoundingClientRect().height >= 44`), true, "dải cao ≥ 44px");
     assert.deepEqual(await owner.ev(`[...document.querySelectorAll('#maintenance button')].map((b) => b.textContent.trim()).filter((t) => t.startsWith('Tắt') || t.startsWith('Cập nhật'))`), ["Cập nhật giờ dự kiến", "Tắt chế độ bảo trì"]);

@@ -49,7 +49,7 @@ test("Đ1: bộ sinh NÉM LỖI (câu tiếng Việt nêu đúng mã) khi thiế
 
 // ---------------------------------------------------------------- Đ2 kho (d) và (e)
 
-test("Đ2 kho (d): có tổng quan phân hệ, mỗi phân hệ một đoạn (dựa vào ai), luồng chính 6 bước, 9 vai, mỗi việc một đoạn", () => {
+test("Đ2 kho (d): có tổng quan phân hệ, mỗi phân hệ một đoạn (dựa vào ai), luồng chính 6 bước, 10 vai, mỗi việc một đoạn", () => {
   const ten = CAU_TRUC.map((d) => d.tieuDe);
   assert.ok(ten.includes("Các phân hệ của app"));
   for (const p of Object.values(TEN_PHAN_HE)) assert.ok(ten.includes(`Phân hệ ${p.ten}`), p.ten);

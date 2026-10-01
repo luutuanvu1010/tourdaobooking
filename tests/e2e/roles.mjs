@@ -10,7 +10,7 @@ const SUPER = await session(ACCOUNTS.superAdmin);
 const SALES = await session(ACCOUNTS.salesA);
 
 // ---- 1. Tạo theo vai: quyền = bộ mặc định; hồ sơ mang đúng vai (không còn vai STAFF cũ)
-let r = await call(ADMIN, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Kế Toán Vai", phone: rnd(), roles: ["ACCOUNTANT"] });
+let r = await call(SUPER, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Kế Toán Vai", phone: rnd(), roles: ["ACCOUNTANT"] });
 assert.equal(r.status, 201, JSON.stringify(r.body));
 assert.deepEqual(r.body.staff.permissions, ["ACCOUNTING"]);
 assert.deepEqual(r.body.staff.roles, ["ACCOUNTANT"]);
@@ -51,8 +51,12 @@ assert.equal(r.status, 200, JSON.stringify(r.body));
 assert.deepEqual(r.body.staff.permissions, ["PARTNER"], "đổi sang vai bên ngoài trong một lần lưu: chỉ còn Đối tác (Review Focus 1)");
 assert.equal((await call(ADMIN, "PUT", `/api/staff/${K.id}/roles`, { roles: ["OPERATIONS_MANAGER"] })).status, 403, "LC-4: Quản trị không gán vai Điều hành");
 assert.equal((await call(ADMIN, "PUT", `/api/staff/${K.id}/roles`, { roles: ["SALES_STAFF"], adds: ["ADMIN"], reason: "x" })).status, 403, "LC-4: cộng tay Quản trị");
-assert.equal((await call(ADMIN, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Quản Trị Mới", phone: rnd(), permissions: ["ADMIN"] })).status, 403, "LC-4: tạo tài khoản có Quản trị (đường cũ)");
-assert.equal((await call(ADMIN, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Điều Hành Mới", phone: rnd(), roles: ["OPERATIONS_MANAGER"] })).status, 403, "LC-4: tạo tài khoản vai Điều hành");
+// ADR-0071: người tạo tài khoản là Hành chính nhân sự (Quản trị không tạo nữa — 403 ở ô account.create); HCNS vẫn bị LC-4 chặn.
+const HCNS = await session(ACCOUNTS.hr);
+assert.equal((await call(ADMIN, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Quản Trị Tạo", phone: rnd(), roles: ["SALES_STAFF"] })).status, 403, "ADR-0071: Quản trị không tạo tài khoản");
+assert.equal((await call(HCNS, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Quản Trị Mới", phone: rnd(), permissions: ["ADMIN"] })).status, 403, "LC-4: tạo tài khoản có Quản trị (đường cũ)");
+assert.equal((await call(HCNS, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Điều Hành Mới", phone: rnd(), roles: ["OPERATIONS_MANAGER"] })).status, 403, "LC-4: tạo tài khoản vai Điều hành");
+assert.equal((await call(HCNS, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Nhân Sự Mới", phone: rnd(), roles: ["HR_STAFF"] })).status, 403, "ADR-0071 điều 1d: chỉ Toàn quyền gán vai HCNS");
 r = await call(SUPER, "PUT", `/api/staff/${K.id}/roles`, { roles: ["OPERATIONS_MANAGER"] });
 assert.equal(r.status, 200, JSON.stringify(r.body));
 assert.deepEqual(r.body.staff.permissions, ["ADMIN"]);
@@ -64,7 +68,7 @@ console.log("✓ luật cứng LC-1, LC-3, LC-4 ở API thật");
 r = await call(SUPER, "PUT", `/api/staff/${K.id}/permissions`, { permissions: ["SALES"] });
 assert.equal(r.status, 409);
 assert.equal(r.body.error.code, "role_managed");
-const legacy = await call(ADMIN, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Tài Khoản Cũ", phone: rnd(), permissions: ["SALES"] });
+const legacy = await call(SUPER, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Tài Khoản Cũ", phone: rnd(), permissions: ["SALES"] });
 assert.equal(legacy.status, 201);
 assert.deepEqual(legacy.body.staff.roles, []);
 assert.equal((await call(ADMIN, "PUT", `/api/staff/${legacy.body.staff.id}/permissions`, { permissions: ["SALES", "ACCOUNTING"] })).status, 200);
@@ -73,22 +77,24 @@ console.log("✓ route cũ: khoá với tài khoản đã gán vai; LC-4 áp m�
 
 // ---- 5. Toàn quyền tự gán vai cho chính mình (Review Focus 5)
 const me = (await call(SUPER, "GET", "/api/auth/me")).body.staff;
-assert.equal((await call(SUPER, "PUT", `/api/staff/${me.id}/roles`, { roles: ["DIRECTOR"] })).status, 409, "quyền đổi (thêm Quản trị) → không tự đổi quyền");
-r = await call(SUPER, "PUT", `/api/staff/${me.id}/roles`, { roles: ["DIRECTOR"], removes: ["ADMIN"], reason: "tài khoản thử chỉ giữ Toàn quyền" });
+// ADR-0072 điều 1: vai Giám đốc nay chỉ sinh Quản trị — dùng vai IT (Quản trị + Toàn quyền, ADR-0044) để có "bớt tay Quản trị → còn đúng Toàn quyền".
+assert.equal((await call(SUPER, "PUT", `/api/staff/${me.id}/roles`, { roles: ["IT"] })).status, 409, "quyền đổi (thêm Quản trị) → không tự đổi quyền");
+assert.equal((await call(SUPER, "PUT", `/api/staff/${me.id}/roles`, { roles: ["DIRECTOR"] })).status, 409, "ADR-0072: Giám đốc = chỉ Quản trị → mất Toàn quyền → không tự đổi quyền");
+r = await call(SUPER, "PUT", `/api/staff/${me.id}/roles`, { roles: ["IT"], removes: ["ADMIN"], reason: "tài khoản thử chỉ giữ Toàn quyền" });
 assert.equal(r.status, 200, JSON.stringify(r.body));
 assert.deepEqual(r.body.staff.permissions, ["SUPER_ADMIN"]);
-assert.deepEqual(r.body.staff.roles, ["DIRECTOR"]);
+assert.deepEqual(r.body.staff.roles, ["IT"]);
 console.log("✓ tự gán vai: quyền không đổi thì cho, đổi thì 409");
 
 // ---- 6. Tạo tài khoản trên hồ sơ có sẵn
 const kh = await call(ADMIN, "POST", "/api/parties", { kind: "PERSON", fullName: "Lễ Tân Có Sẵn", contacts: [] });
 assert.equal(kh.status, 201, JSON.stringify(kh.body));
-r = await call(ADMIN, "POST", "/api/staff", { phone: rnd(), roles: ["HOTEL_RECEPTION"], partyId: kh.body.party.id });
+r = await call(SUPER, "POST", "/api/staff", { phone: rnd(), roles: ["HOTEL_RECEPTION"], partyId: kh.body.party.id });
 assert.equal(r.status, 201, JSON.stringify(r.body));
 assert.equal(r.body.staff.partyId, kh.body.party.id);
 assert.equal(r.body.staff.fullName, "Lễ Tân Có Sẵn");
 assert.deepEqual(r.body.staff.permissions, ["PARTNER"]);
-assert.equal((await call(ADMIN, "POST", "/api/staff", { phone: rnd(), roles: ["HOTEL_RECEPTION"], partyId: kh.body.party.id })).status, 409, "hồ sơ đã có tài khoản");
+assert.equal((await call(SUPER, "POST", "/api/staff", { phone: rnd(), roles: ["HOTEL_RECEPTION"], partyId: kh.body.party.id })).status, 409, "hồ sơ đã có tài khoản");
 console.log("✓ tạo tài khoản trên hồ sơ có sẵn, không tạo hồ sơ trùng");
 
 // ---- 6b (Ruling R26): hồ sơ có sẵn đang giữ vai tài khoản (dữ liệu cũ — trang Hồ sơ nay không gán được) → phải chọn cả vai đó; quyền = hợp các vai.
@@ -96,11 +102,11 @@ const kt = await call(ADMIN, "POST", "/api/parties", { kind: "PERSON", fullName:
 assert.equal(kt.status, 201, JSON.stringify(kt.body));
 const ktId = kt.body.party.id;
 await sql(`INSERT INTO pty_party_role (id, party_id, role_type_code, location_id, valid_from_date, created_at, updated_at) VALUES ('e2e-r26-${ktId}', '${ktId}', 'ACCOUNTANT', NULL, '2026-09-01', '2026-09-01T00:00:00.000Z', '2026-09-01T00:00:00.000Z')`);
-r = await call(ADMIN, "POST", "/api/staff", { phone: rnd(), roles: ["SALES_STAFF"], partyId: ktId });
+r = await call(SUPER, "POST", "/api/staff", { phone: rnd(), roles: ["SALES_STAFF"], partyId: ktId });
 assert.equal(r.status, 409, JSON.stringify(r.body));
 assert.equal(r.body.error.code, "account_rule");
 assert.equal(r.body.error.message, "Hồ sơ này đang giữ vai Kế toán: chọn cả vai này (hoặc đổi vai sau khi tạo).");
-r = await call(ADMIN, "POST", "/api/staff", { phone: rnd(), roles: ["SALES_STAFF", "ACCOUNTANT"], partyId: ktId });
+r = await call(SUPER, "POST", "/api/staff", { phone: rnd(), roles: ["SALES_STAFF", "ACCOUNTANT"], partyId: ktId });
 assert.equal(r.status, 201, JSON.stringify(r.body));
 assert.deepEqual(r.body.staff.permissions, ["SALES", "ACCOUNTING"]);
 assert.deepEqual(r.body.staff.roles, ["SALES_STAFF", "ACCOUNTANT"]);
@@ -110,7 +116,7 @@ console.log("✓ hồ sơ có sẵn giữ vai tài khoản: thiếu vai → 409 
 
 // ---- 7. Thực tập sinh: lập đơn, chỉ thấy đơn của mình
 const ttsPhone = rnd();
-r = await call(ADMIN, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Thực Tập Sinh", phone: ttsPhone, roles: ["INTERN"] });
+r = await call(SUPER, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Thực Tập Sinh", phone: ttsPhone, roles: ["INTERN"] });
 assert.equal(r.status, 201, JSON.stringify(r.body));
 assert.deepEqual(r.body.staff.permissions, ["INTERN"]);
 const TTS = (await login(ttsPhone, r.body.pin)).cookie;

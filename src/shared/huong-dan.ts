@@ -11,6 +11,7 @@ import { HD_KE_TOAN } from "./huong-dan-ke-toan.ts";
 import { HD_HDV } from "./huong-dan-hdv.ts";
 import { HD_DOI_TAC } from "./huong-dan-doi-tac.ts";
 import { HD_TAI_XE } from "./huong-dan-tai-xe.ts";
+import { HD_NHAN_SU } from "./huong-dan-nhan-su.ts";
 
 export interface MucHuongDan { readonly tieuDe: string; readonly noiDung: string }
 export interface NhomHuongDan {
@@ -26,7 +27,7 @@ export interface NhomHuongDan {
 }
 
 /** Thứ tự trong bản đọc ngoài app (Phần chung đầu). Trang Trợ giúp đặt nhóm vai của người xem trước Phần chung (web/help.ts). */
-export const HUONG_DAN: readonly NhomHuongDan[] = [HD_CHUNG, HD_BAN_HANG, HD_HDV, HD_KE_TOAN, HD_DOI_TAC, HD_TAI_XE, HD_QUAN_TRI];
+export const HUONG_DAN: readonly NhomHuongDan[] = [HD_CHUNG, HD_BAN_HANG, HD_HDV, HD_KE_TOAN, HD_DOI_TAC, HD_TAI_XE, HD_NHAN_SU, HD_QUAN_TRI];
 
 /** Các nhóm tài khoản này thấy (Phần chung + nhóm có quyền giao nhau), đúng thứ tự HUONG_DAN. */
 export function nhomCuaToi(perms: readonly PermissionCode[]): NhomHuongDan[] {

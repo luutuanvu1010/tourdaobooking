@@ -53,7 +53,7 @@ Mục lục: §1 Bảng tra nhanh · §2 Công thức a1–a3, b–v · §3 Ma t
 | Thêm biến môi trường / bí mật | `wrangler.jsonc` (`vars`), `.dev.vars`, `worker-configuration.d.ts` | l |
 | Đổi cách đồng bộ Sheet / danh mục / ghi đè admin | `src/modules/catalog/*`, `src/shared/sheets.ts` | k |
 | Nhóm dịch vụ (thêm / đổi tên / sắp thứ tự / tắt nhóm, chuyển nhóm dịch vụ, `groupCode` / `groups` trong DTO danh mục) — ADR-0058 | `src/modules/catalog/{nhom-repo,nhom-rules,index}.ts`, `migrations/0055_nhom_dich_vu.sql`, `src/modules/catalog/{nhom-route,danh-muc-lap-don}.test.ts`, `tests/e2e/catalog.mjs`; giao diện quản trị nhóm: `web/catalog.ts`, `public/catalog.html`, `src/shared/lich-su-nhom.ts` (§3) | k |
-| Đổi cột Sheet nhân viên / cách nạp nhân viên | `src/modules/staff/sheet.ts`, `src/modules/accounts/index.ts` | k |
+| Đổi ai tạo / xem / sửa tài khoản (vai Hành chính nhân sự, ô `account.*`, cổng `accounts`) | `src/shared/permissions.ts` (MATRIX, `ACCOUNTS_GATE`), `src/shared/roles.ts` (`canManageAccount`, `SUPER_ADMIN_GRANTED`), `src/modules/accounts/index.ts` — ADR-0071; nạp nhân viên từ Google Sheet đã GỠ | a |
 | Thêm bước vào Cron | `src/index.ts` (`scheduled`), `wrangler.jsonc` (`triggers.crons`) | k |
 | Thêm cột vào danh sách đơn | `src/modules/orders/repository.ts` (`listOrders`), `src/shared/contracts.ts`, `web/orders.ts` | n |
 | Thêm ô lọc / tìm ở danh sách đơn | `src/modules/orders/index.ts`, `public/orders.html`, `web/orders.ts` | n |
@@ -288,7 +288,7 @@ route("PUT", "/api/foo/:id", "office", async ({ env, request, params, staff }) =
 
 **Phép tính số câu D1 (làm TRƯỚC khi nâng `MAX_SERVICES`/`MAX_LINES_PER_ORDER`)** — S = số dịch vụ, L = số dòng tiền:
 - Batch `createOrder` = `2 + S + L`; `updateDraftOrder` = `4 + S + L`; `updateTrip` = `2 + S`; `confirmOrder` = 2.
-- Tạo tài khoản = 6; `POST /api/staff/sheet/apply` = `6N + 1` (N tài khoản).
+- Tạo tài khoản = 6 (đường nạp từ Sheet `6N + 1` đã gỡ — ADR-0071).
 - Ngoài batch còn các truy vấn đọc của cùng request: xác thực phiên (1), `getMeta` (1, chỉ khi sửa), `validationContext` (1 khi tạo, 3 khi sửa), `loadOrderView` (4). Tính cả request: `POST /api/orders` = `8 + S + L`; `PUT /api/orders/:id` = `13 + S + L`.
 - Với S = 20, L = 50: batch 72 (tạo) / 74 (sửa); cả request 78 / 83 (khớp `docs/HANDOFF-N1.md` "còn mở" mục 5).
 - Đối chiếu với giới hạn D1/gói Workers HIỆN HÀNH theo cách đếm của HANDOFF-N1; không chép con số giới hạn vào tài liệu (`docs/HANDOFF-N1.md` "Cổng bổ sung" §2).
@@ -375,18 +375,16 @@ route("PUT", "/api/foo/:id", "office", async ({ env, request, params, staff }) =
 
 **Ghi đè của admin:** bảng `catalog_override` (`hidden`, `prices_json`, `base_json` = giá Sheet lúc ghi đè, để phát hiện Sheet đổi giá sau ghi đè).
 
-**Nhân viên từ Sheet:**
-- `src/modules/staff/sheet.ts` `parseStaffSheet(csv, checkName)`; cột "Tên người dùng", "Số điện thoại"; mọi ứng viên chỉ có quyền `SALES`.
-- Route ở `src/modules/accounts/index.ts`: `GET /api/staff/sheet` (xem trước), `POST /api/staff/sheet/apply` (gộp MỘT batch). Script dự phòng: `scripts/import-staff.mjs`.
+**Nhân viên từ Sheet: ĐÃ GỠ (ADR-0071 điều 2).** Không còn `src/modules/staff/sheet.ts`, route `/api/staff/sheet*`, `scripts/import-staff.mjs`, biến `STAFF_SHEET_ID`. Tài khoản chỉ tạo trong app (`POST /api/staff`, ô `account.create`).
 
 **Cron:**
-- Lịch ở `wrangler.jsonc` `triggers.crons` (hiện `*/15 * * * *`); ID Sheet ở `vars.SERVICES_SHEET_ID`, `vars.STAFF_SHEET_ID`.
+- Lịch ở `wrangler.jsonc` `triggers.crons` (hiện `*/15 * * * *`); ID Sheet ở `vars.SERVICES_SHEET_ID`.
 - `src/index.ts` `scheduled(_event, env, ctx)` gọi `ctx.waitUntil(runScheduledSync(env))`.
 - Thêm bước: export `runXxx(env)` từ `index.ts` của module (tự bắt lỗi, không ném — như `runScheduledSync`); gọi bằng `ctx.waitUntil` RIÊNG để một bước lỗi không huỷ bước khác; nhiều lịch → phân biệt bằng `event.cron`.
 - Người thao tác `null` → nhật ký hiện "Hệ thống (tự động)" (`SYSTEM_ACTOR_NAME`).
 - Thử: e2e bật `--test-scheduled`; `tests/e2e/catalog.mjs` gọi `/__scheduled?cron=*/15+*+*+*+*`.
 
-**Kiểm:** `node --test src/modules/catalog/sheet.test.ts src/modules/catalog/rules.test.ts` (nhân viên: `src/modules/staff/sheet.test.ts`) → `npm test` → `npm run test:e2e -- catalog admin`.
+**Kiểm:** `node --test src/modules/catalog/sheet.test.ts src/modules/catalog/rules.test.ts` → `npm test` → `npm run test:e2e -- catalog admin`.
 
 **Bẫy:** e2e đọc Google Sheet THẬT (cần mạng); đổi dữ liệu Sheet thì sửa assertion `TD101`, `TD103` ở `catalog.mjs`. Sheet phải để chế độ "Bất kỳ ai có liên kết – Người xem"; app không bao giờ ghi ngược vào Sheet.
 
@@ -494,26 +492,26 @@ Ba lớp, đổi đúng lớp:
 
 **Bẫy:** ảnh có "₫" trông như "đ" gạch chân — đó là dáng chữ ₫ của phông (Nunito trước 30/9, Be Vietnam Pro từ 30/9), không phải lỗi. Test giả lập lỗi phải đặt SAU lần mở thành công đầu tiên nếu lỗi nằm ở dữ liệu đã được nhớ (hồ sơ công ty được nhớ trong trang). `Runtime.evaluate` của CDP không bị CSP chặn nên kịch bản đóng gói bộ vẽ bằng esbuild và nạp thẳng vào trang; đó là công cụ kiểm, không phải mã chạy thật.
 
-### q. Chế độ bảo trì (chỉ chủ dự án dùng được) / cột "Đăng nhập gần nhất"
+### q. Chế độ bảo trì (chỉ Toàn quyền dùng được) / cột "Đăng nhập gần nhất"
 
-Quyết định của chủ dự án (nguồn: `docs/HANDOFF-CHE-DO-BAO-TRI.md` §2): bật thì chặn TẤT CẢ trừ SĐT được phép (hiện chỉ `0989929373`), kể cả phiên đang mở; thông điệp đúng chữ đã chốt; có nút bật/tắt trong app; có cột "Đăng nhập gần nhất". Ghi chú thi công và các ruling: `docs/superpowers/plans/2026-09-21-che-do-bao-tri-thi-cong-nhat-ky.md`.
+Quyết định của chủ dự án (nguồn: `docs/HANDOFF-CHE-DO-BAO-TRI.md` §2, sửa bởi ADR-0071 điều 3): bật thì chặn MỌI tài khoản không giữ Toàn quyền (kể cả Quản trị), kể cả phiên đang mở; thông điệp đúng chữ đã chốt; có nút bật/tắt trong app; có cột "Đăng nhập gần nhất". Ghi chú thi công và các ruling: `docs/superpowers/plans/2026-09-21-che-do-bao-tri-thi-cong-nhat-ky.md`.
 
 **Luật — MỘT nguồn `src/shared/maintenance.ts` (thuần, `maintenance.test.ts`):**
-- **Ai được phép:** cột `mnt_setting.allowed_phones` (SĐT đã chuẩn hoá, cách nhau dấu phẩy; `migrations/0016_maintenance.sql` gieo `0989929373`). Đổi danh sách = SQL `UPDATE mnt_setting SET allowed_phones = '…' WHERE id = 'default'` hoặc migration mới; app KHÔNG có màn hình sửa danh sách (chủ ý). Số gieo phải đi qua `normalizePhone` ra chính nó — `src/migrations-maintenance.test.ts` kiểm; sai số = tự khoá mình.
+- **Ai được phép (ADR-0071 điều 3a):** `isBlocked(state, permissions)` — tài khoản giữ `SUPER_ADMIN` qua, mọi tài khoản khác (kể cả `null` = không có tài khoản đang hoạt động) bị chặn. Cột `mnt_setting.allowed_phones` THÔI được đọc (giữ cột — expand–contract; câu `find` không SELECT nó). Muốn ai dùng được app lúc bảo trì thì người đó phải giữ Toàn quyền.
 - **Tự tắt khi hết giờ:** `stateFromRow` (dùng trong `getMaintenanceState`) coi dòng `enabled = 1` đã tới/qua `ends_at` là TẮT — không Cron, không ghi lại dòng; lần bật sau ghi đè. `ends_at` NULL khi bật (chỉ có khi sửa tay SQL) thì giữ bật. Giao diện: `renderMaintenanceMessage(…, onEnded)` gọi lại khi đồng hồ về 0 (đăng nhập ẩn banner, lớp phủ hỏi lại cấu hình).
 - **Giờ dự kiến tối đa:** `MAX_MAINTENANCE_MS` (7 ngày) và "phải ở tương lai" — `checkMaintenanceInput` (đổi hằng thì sửa câu lỗi "quá 7 ngày" cùng chỗ + test).
-- **Thông điệp:** `maintenanceMessageParts` / `maintenanceMessage` — ba biến thể (còn giờ = câu chủ dự án đã chốt kèm đồng hồ; hết giờ = "…bảo trì và sắp hoàn tất, …" — chỉ còn thấy thoáng qua ở giao diện lúc đồng hồ về 0, vì máy chủ đã tự tắt; chưa có giờ). Test khoá từng chữ. `MAINTENANCE_CONTACT_PHONE` (số in trong thông điệp) là hằng RIÊNG, không tự đồng bộ với `allowed_phones`: đổi số liên hệ thì sửa hằng + test + câu ở `docs/HANDOFF-CHE-DO-BAO-TRI.md`.
+- **Thông điệp:** `maintenanceMessageParts` / `maintenanceMessage` — ba biến thể (còn giờ = câu chủ dự án đã chốt kèm đồng hồ; hết giờ = "…bảo trì và sắp hoàn tất, …" — chỉ còn thấy thoáng qua ở giao diện lúc đồng hồ về 0, vì máy chủ đã tự tắt; chưa có giờ). Test khoá từng chữ. `MAINTENANCE_CONTACT_PHONE` (số in trong thông điệp) chỉ là số liên hệ, không quyết ai được qua: đổi số liên hệ thì sửa hằng + test + câu ở `docs/HANDOFF-CHE-DO-BAO-TRI.md`.
 
 **Nơi ÉP (máy chủ mới là nơi quyết định; giao diện chỉ hiển thị):**
-1. **Router** — `AppOptions.injected.maintenanceBlock` (`src/shared/router.ts`), nối ở `src/index.ts` (`maintenanceBlock(env.DB, staff.phone)` của module `maintenance`). Chạy cho mọi route KHÔNG public, sau `currentStaff` và TRƯỚC kiểm `admin`/`office` (người bị chặn thấy 503, không phải 403). Test `src/shared/router.test.ts` (module giả, không cần D1).
-2. **Đăng nhập** — `POST /api/auth/login` (`src/modules/auth/index.ts`), thứ tự: 400 đầu vào → Turnstile → cổng bảo trì → `verifyPinThrottled` → `recordLogin`. Đừng dời cổng xuống sau PIN: sẽ tiêu hao lượt thử PIN và lộ SĐT nào tồn tại.
-3. **Trạng thái công khai** — `GET /api/auth/config` (`maintenance: { on, endsAt }`, KHÔNG lộ danh sách) và `GET /api/auth/me` (cùng trường, chỉ người được phép tới được khi đang bảo trì).
-4. **Bật/tắt** — `PUT /api/maintenance` (`src/modules/maintenance/index.ts`): `access: "admin"`, rồi trong thân đòi `can(staff, "settings.ops")` (chỉ Toàn quyền, ADR-0019; 403 nếu không, đứng trước đọc thân) RỒI MỚI kiểm SĐT nằm trong `allowed_phones` (403 nếu không) — cả hai điều kiện phải đúng. `GET` chặn bằng `admin.manage`; cờ `canToggle` trong phản hồi = `settings.ops` VÀ SĐT trong danh sách, chỉ để giao diện ẩn/hiện nút (KHÔNG phải chốt chặn; chốt chặn là `PUT`). Ghi nhật ký `maintenance_changed` (nhóm `system` "Hệ thống"; `detail` KHÔNG có SĐT) cùng một `db.batch()`.
+1. **Router** — `AppOptions.injected.maintenanceBlock` (`src/shared/router.ts`), nối ở `src/index.ts` (`maintenanceBlock(env.DB, () => staff.permissions)` của module `maintenance` — theo QUYỀN của phiên, ADR-0071). Chạy cho mọi route KHÔNG public, sau `currentStaff` và TRƯỚC kiểm `admin`/`office` (người bị chặn thấy 503, không phải 403). Test `src/shared/router.test.ts` (module giả, không cần D1).
+2. **Đăng nhập** — `POST /api/auth/login` (`src/modules/auth/index.ts`), thứ tự: 400 đầu vào → Turnstile → cổng bảo trì (khi BẬT: tra tài khoản theo SĐT bằng `findStaffByPhone`, đưa bộ quyền của tài khoản ĐANG HOẠT ĐỘNG — hoặc `null` — vào `maintenanceBlock`; cùng một thân 503 cho mọi người không phải Toàn quyền) → `verifyPinThrottled` → `recordLogin`. Đừng dời cổng xuống sau PIN: sẽ tiêu hao lượt thử PIN và lộ SĐT nào tồn tại.
+3. **Trạng thái công khai** — `GET /api/auth/config` (`maintenance: { on, endsAt }`, KHÔNG lộ danh sách) và `GET /api/auth/me` (cùng trường, chỉ Toàn quyền tới được khi đang bảo trì).
+4. **Bật/tắt** — `PUT /api/maintenance` (`src/modules/maintenance/index.ts`): `access: "admin"`, rồi trong thân đòi `can(staff, "settings.ops")` (chỉ Toàn quyền; 403 nếu không, đứng trước đọc thân). `GET` chặn bằng CÙNG ô `settings.ops` (ADR-0071 điều 3c — trước đây `admin.manage` + SĐT); `canToggle` luôn true khi qua chốt. Ghi nhật ký `maintenance_changed` (nhóm `system` "Hệ thống"; `detail` KHÔNG có SĐT) cùng một `db.batch()`.
 
 **Giao diện (đọc kỹ trước khi sửa):**
 - **Màn hình toàn trang + đếm ngược sống:** `web/api.ts` bắt `error.code === MAINTENANCE_CODE` TRƯỚC khi ném `ApiError` rồi gọi `showMaintenanceScreen` (`web/maintenance-screen.ts`; `endsAt` lấy từ thân `error`), giữ lời gọi treo như `goLogin()`. KHÔNG áp dụng ở `/login` (chủ vẫn cần đăng nhập được). Lớp phủ không xoá DOM bên dưới (dữ liệu đang gõ vẫn còn trong trang).
 - **Banner ở `/login`:** `web/login.ts` từ `GET /api/auth/config` và khi `POST /api/auth/login` trả 503 `maintenance` (khối HTML ở `public/login.html`) — phải phân biệt với 503 `turnstile_unavailable` bằng `error.code`.
-- **Dải "Đang ở chế độ bảo trì":** `web/shell.ts` (`setMaintenanceStrip`, từ `me.maintenance.on`); **nút bật/tắt** ở `/account` (`web/account.ts`, `public/account.html`; chỉ hiện khi `GET /api/maintenance` trả `canToggle`; nút nhanh 30/60/120 phút + chọn giờ, giờ nhập hiểu là GIỜ VIỆT NAM — `vnLocalToIso` ở `src/shared/vn-date.ts`).
+- **Dải "Đang ở chế độ bảo trì":** `web/shell.ts` (`setMaintenanceStrip`, từ `me.maintenance.on`); **nút bật/tắt** ở `/account` (`web/account.ts`, `public/account.html`; mục chỉ dựng khi `can(staff, "settings.ops")` — Quản trị không gọi route, không có 403 lộ ra; nút nhanh 30/60/120 phút + chọn giờ, giờ nhập hiểu là GIỜ VIỆT NAM — `vnLocalToIso` ở `src/shared/vn-date.ts`).
 - Chữ thông điệp và đồng hồ đếm ngược dùng `maintenanceMessageParts`/`formatCountdown` của `src/shared/maintenance.ts` — KHÔNG chép chữ sang `web/`.
 - CSS mới nằm SAU dấu mốc PWA của `public/app.css` nên chỉ token (`tests/e2e/pwa.mjs` quét).
 
@@ -522,14 +520,14 @@ Quyết định của chủ dự án (nguồn: `docs/HANDOFF-CHE-DO-BAO-TRI.md` 
 **Kiểm:** `node --test src/shared/maintenance.test.ts src/shared/router.test.ts src/shared/vn-date.test.ts src/migrations-maintenance.test.ts` → `npm test` → `npm run typecheck` → `npm run build:web` → `npm run test:e2e -- maintenance turnstile` (bật → nhân viên 503 ở đăng nhập VÀ ở API bằng phiên có sẵn; chủ dùng bình thường; tắt → trở lại) → `npm run test:e2e -- pwa` nếu chạm CSS → kịch bản Chrome `v1-dang-nhap.mjs` (vì chạm `web/login.ts`/`public/login.html`) và `v1-bao-tri.mjs` (cùng thư mục; màn hình bảo trì, nút bật/tắt, dải, Đăng xuất, tự nhận ra khi mở lại, axe; không cần mạng ngoài).
 
 **Bẫy:**
-- **Không đổi SĐT của tài khoản trong `allowed_phones`:** chế độ nhận diện chủ theo SĐT; `PATCH /api/staff/:id` trả 409 `account_rule` (`phoneChangeProblem`, cạnh `accounts → maintenance`). Muốn đổi số chủ: SQL/migration sửa `mnt_setting.allowed_phones` TRƯỚC, rồi mới đổi SĐT tài khoản.
+- **Luật "không đổi SĐT của tài khoản trong `allowed_phones`" (`phoneChangeProblem`) ĐÃ BỎ (ADR-0071 điều 3d)** cùng cạnh `accounts → maintenance`: SĐT không còn quyết ai được qua bảo trì. Chủ bị khoá ngoài chỉ khi tài khoản chủ mất `SUPER_ADMIN` hoặc bị ngưng — tắt bằng SQL ở `docs/HANDOFF-N1.md`.
 - **`endsAt` chỉ nhận ISO UTC có `Z`** (`checkMaintenanceInput`): chuỗi không múi giờ bị `Date.parse` hiểu theo giờ máy và ngày không có thật (30/02) bị lăn sang tháng sau, nên bị từ chối; giao diện luôn gửi `toISOString()`.
 - **Đừng ghi `last_login_at` trong `verifyPinThrottled`:** hàm đó dùng chung với `POST /api/account/change-pin`; ghi ở đó thì mỗi lần đổi PIN thành "một lần đăng nhập".
 - **Cổng ở router tốn MỘT truy vấn D1 mỗi request cần đăng nhập** (`getMaintenanceState`) và cố ý KHÔNG đệm trong isolate — đệm là mất "hiệu lực ngay khi bật" (chủ đã chốt). Đừng thêm `maintenanceBlock` vào từng route: cổng ở `createApp` đã phủ hết; route `public` cố ý không qua cổng (trang đăng nhập cần `config`).
 - **`503 maintenance` ≠ `503 turnstile_unavailable`:** cùng mã HTTP, khác `error.code` và khác cách hiển thị. `web/login.ts` xử lý `turnstile_unavailable` bằng nút Thử lại/hỏi lại cấu hình; bảo trì thì hiện banner — đừng gộp.
 - **Nhóm nhật ký mới `system` ("Hệ thống"):** thêm ở `AUDIT_GROUPS`; `maintenance_changed` mang `targetType: "system"`, `targetId: "maintenance"`; `listAll` (`audit/repository.ts`) không có JOIN nhãn cho nhóm này nên `targetLabel` = null ở `/audit` — muốn hiện nhãn thì thêm nhánh (công thức f).
 - **`src/shared/router.ts` nay import `./http.ts` KÈM đuôi** (như bẫy 1) để `router.test.ts` chạy bằng Node; import runtime mới thêm vào router cũng phải có `.ts` (`import type` thì không cần).
-- **e2e `maintenance` bật chế độ trên server DÙNG CHUNG của `run.mjs`:** phải đặt `mnt_setting.allowed_phones` bằng SQL (`sql()` ở `lib.mjs`) cho tài khoản thử vì tài khoản test không có SĐT `0989929373`, và LUÔN khôi phục + tắt chế độ trong `finally` — bật mà quên tắt là mọi kịch bản chạy sau nhận 503.
+- **e2e `maintenance` bật chế độ trên server DÙNG CHUNG của `run.mjs`:** tài khoản `superAdmin` của `lib.mjs` là người được qua; kịch bản cố ý đặt `mnt_setting.allowed_phones` = SĐT Quản trị / Bán hàng để chứng minh cột không còn được đọc, và LUÔN khôi phục + tắt chế độ trong `finally` — bật mà quên tắt là mọi kịch bản chạy sau nhận 503.
 - **Đường thoát khẩn khi chủ bị khoá** là SQL trực tiếp trên D1 (`UPDATE mnt_setting SET enabled = 0 WHERE id = 'default'`): lệnh đầy đủ ở `docs/HANDOFF-N1.md` mục "Chế độ bảo trì — đường thoát khẩn". Bảng cố ý KHÔNG có CHECK chéo cột (tắt mà còn `ends_at` vẫn hợp lệ) để lệnh đó không vướng ràng buộc lúc khẩn cấp.
 - **Người được phép nhập sai PIN nhận 401/429, người khác nhận 503:** về lý thuyết phân biệt được số của chủ (chấp nhận — thông điệp đã hiện chính số đó).
 
