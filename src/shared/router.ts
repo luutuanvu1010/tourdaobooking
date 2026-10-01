@@ -3,6 +3,7 @@
 // Router KHÔNG import module nào: cách xác định "ai đang đăng nhập" do gốc lắp ráp (src/index.ts) truyền vào.
 import type { StaffProfile } from "./contracts";
 import type { ThayDoiDon, TrangThaiPhuTrach } from "./bang-tin.ts";
+import { NGUONG_MAC_DINH } from "./giay-to-hien-thi.ts";
 import { error, json } from "./http.ts";
 import type { MocToiThieu } from "./moc-toi-thieu.ts";
 import { canAccessOrders, isOffice, passesAccountsGate, passesAdminGate } from "./permissions.ts";
@@ -128,6 +129,12 @@ export interface Ctx<A extends Access = Access> {
    */
   mocToiThieu: () => Promise<MocToiThieu | null>;
   /**
+   * MỐC "SẮP HẾT HẠN" đang hiệu lực (ADR-0040 D1 — MỘT mốc cho giấy tờ xe lẫn giấy tờ người; GB2/R23) — do gốc lắp ráp tiêm (`van-chuyen.nguongHetHanHienHanh`;
+   * `parties` không đọc bảng `vc_`, không import `van-chuyen` — khuôn `mocToiThieu`). Một truy vấn mỗi lần gọi; route gọi đúng một lần mỗi request. Môi
+   * trường không tiêm (khung thử cố ý) → `NGUONG_MAC_DINH` (30 — bằng dòng gieo 0033; chỉ dùng để hiển thị nhãn hạn).
+   */
+  nguongHetHan: () => Promise<number>;
+  /**
    * NHÃN NGƯỜI BẤM (ruling R-P20 của điều phối, ADR-0049 kế hoạch mục 1.8 / R-P11) — do gốc lắp ráp tiêm (`staff`, view `v_stf_staff_label`; `van-chuyen`
    * KHÔNG import `staff`, không nới ALLOWED_EDGES — khuôn `mocToiThieu`, `giaoLoDay`). Trả TÊN HIỂN THỊ theo id tài khoản (không SĐT, không email, không
    * quyền). Route gọi MỘT lần mỗi request cho CẢ danh sách id (mảng rỗng: không truy vấn). `null` = môi trường không tiêm (khung thử cố ý) ⇒ route để trống
@@ -234,6 +241,8 @@ export interface AppOptions {
      * router trả `null` ⇒ `orders` chặn lệnh cần mốc (khuôn `isAssigned`: không bao giờ lặng lẽ "không có mốc").
      */
     mocToiThieu: (env: Env) => Promise<MocToiThieu | null>;
+    /** Mốc sắp hết hạn (ADR-0040 D1). BẮT BUỘC trong mã chạy thật (`src/index.ts`: `nguongHetHanHienHanh(env.DB)`). */
+    nguongHetHan: (env: Env) => Promise<number>;
     /** R-P20. BẮT BUỘC trong mã chạy thật (`src/index.ts`: `nhanNhanVienTheoId` của staff); thiếu (khung thử cố ý) → router trả `null` (route để trống nhãn). */
     nhanNhanVien: (env: Env, ids: readonly string[]) => Promise<Map<string, string>>;
     /** GỘP HỒ SƠ (ADR-0068). BẮT BUỘC trong mã chạy thật (`src/index.ts`). */
@@ -310,6 +319,7 @@ export function createApp(opts: AppOptions) {
       giaoLoDay: (ds) => opts.injected.giaoLoDay(env, ds),
       // Thiếu hàm tiêm (khung thử cố ý) → null: route chặn, không đoán (I25). Kiểm lúc GỌI, không lúc dựng app (typeof — JS không kiểm kiểu).
       mocToiThieu: () => (typeof opts.injected.mocToiThieu === "function" ? opts.injected.mocToiThieu(env) : Promise.resolve(null)),
+      nguongHetHan: () => (typeof opts.injected.nguongHetHan === "function" ? opts.injected.nguongHetHan(env) : Promise.resolve(NGUONG_MAC_DINH)),
       nhanNhanVien: (ids) =>
         typeof opts.injected.nhanNhanVien !== "function" ? Promise.resolve(null) : ids.length === 0 ? Promise.resolve(new Map()) : opts.injected.nhanNhanVien(env, ids),
       // Lười (kế hoạch R9): gọi opts.injected.gopHoSo(env) trong từng phương thức — app dựng bằng injected cũ (src/shared/router.test.ts) không vỡ ở route khác.

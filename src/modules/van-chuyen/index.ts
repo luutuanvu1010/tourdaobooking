@@ -117,6 +117,9 @@ export async function mocToiThieuHienHanh(db: D1Database): Promise<MocToiThieu |
   return r ? { phut: r.min_lead_minutes, policyId: r.id, canhBaoPhut: r.warn_lead_minutes } : null;
 }
 
+/** HÀM CÔNG BỐ (ADR-0040 D1; GB2/R23): mốc "sắp hết hạn" đang hiệu lực — CHỈ gốc lắp ráp gọi, để tiêm `ctx.nguongHetHan` cho parties (không import van-chuyen). */
+export const nguongHetHanHienHanh = (db: D1Database): Promise<number> => currentWarnDays(db, new Date().toISOString());
+
 /** HÀM CÔNG BỐ (ADR-0068 Đ2) — CHỈ gốc lắp ráp gọi (ctx.gopHoSo của route gộp hồ sơ ở parties). Khe giữa kiểm và ghi chấp nhận được, R-PTY-MERGE-4 bắt nếu lọt. */
 export { viecXeCuaNguoi } from "./chuyen-repo";
 

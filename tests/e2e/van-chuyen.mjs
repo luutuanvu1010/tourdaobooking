@@ -124,6 +124,8 @@ try {
   r = await call(ADMIN, "GET", "/api/van-chuyen/sap-het-han");
   assert.equal(r.body.warnDays, 7);
   assert.deepEqual(cua(r.body.items), [["vehicle", "Kiểm định"]]);
+  r = await call(TX, "GET", "/api/parties/documents/mine");
+  assert.equal(r.body.warnDays, 7, "giấy tờ của tài xế dùng CÙNG mốc (ADR-0040 D1)");
 } finally {
   await new Promise((res) => setTimeout(res, 5)); // valid_from_at duy nhất theo mili-giây
   const kp = await call(TOAN_QUYEN, "POST", "/api/van-chuyen/nguong-het-han", { warnDays: 30 });

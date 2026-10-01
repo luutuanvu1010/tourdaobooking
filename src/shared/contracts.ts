@@ -831,7 +831,8 @@ export interface PersonDocumentDto {
   /** Khoá lạc quan của sửa sai (`expectedUpdatedAt`). */
   updatedAt: string;
 }
-export interface PersonDocumentListResponse { documents: PersonDocumentDto[] }
+/** `warnDays` = mốc "sắp hết hạn" đang hiệu lực (ADR-0040 D1) — nhãn hạn ở giao diện so với số này, không hằng 30. */
+export interface PersonDocumentListResponse { documents: PersonDocumentDto[]; warnDays: number }
 /** Chỉ ở POST /api/parties/:id/documents/:did/reveal ("Xem đủ số", ô party.document.reveal; mỗi lần một dòng nhật ký KHÔNG kèm số). */
 export interface PersonDocumentRevealResponse { number: string }
 export interface DocumentTypeDto { code: string; name: string; hasExpiry: boolean; sortOrder: number; active: boolean; updatedAt: string }
