@@ -95,6 +95,30 @@ test("sửa hồ sơ: bắt buộc expectedUpdatedAt và active; loại lấy t�
   assert.equal(validatePartyUpdate({ displayName: "", active: false, expectedUpdatedAt: "x" }, "ORGANIZATION").ok, false);
 });
 
+test("ADR-0084 Đ1: ô giới tính của hồ sơ người — tạo và sửa nhận NAM / NU / trống; vắng khi sửa = giữ nguyên; giá trị lạ ⇒ lỗi lời thường", () => {
+  const sua = { fullName: "Lưu Tuấn Vũ", active: true, expectedUpdatedAt: "2026-10-01T00:00:00.000Z" };
+  const g = (r: ReturnType<typeof validatePartyUpdate>) => (r.ok && r.value.kind === "PERSON" ? r.value.gender : "LỖI");
+  assert.equal(g(validatePartyUpdate(sua, "PERSON")), undefined, "vắng ⇒ giữ nguyên");
+  assert.equal(g(validatePartyUpdate({ ...sua, gender: "NAM" }, "PERSON")), "NAM");
+  assert.equal(g(validatePartyUpdate({ ...sua, gender: "NU" }, "PERSON")), "NU");
+  assert.equal(g(validatePartyUpdate({ ...sua, gender: "" }, "PERSON")), null);
+  assert.equal(g(validatePartyUpdate({ ...sua, gender: null }, "PERSON")), null);
+  for (const bad of ["nam", "Nữ", "KHAC", 1]) {
+    const r = validatePartyUpdate({ ...sua, gender: bad }, "PERSON");
+    assert.deepEqual(r, { ok: false, message: "Giới tính chỉ nhận Nam, Nữ hoặc để trống." }, String(bad));
+  }
+  const tao = (gender: unknown) => validatePartyCreate({ kind: "PERSON", fullName: "Lưu Tuấn Vũ", gender });
+  const gt = (r: ReturnType<typeof validatePartyCreate>) => (r.ok && r.value.kind === "PERSON" ? r.value.gender : "LỖI");
+  assert.equal(gt(tao(undefined)), null);
+  assert.equal(gt(tao("NU")), "NU");
+  assert.equal(gt(tao("")), null);
+  assert.equal(tao("X").ok, false);
+  // Tổ chức không có giới tính: gửi giá trị ⇒ lỗi; trống / vắng ⇒ bỏ qua.
+  assert.equal(validatePartyUpdate({ displayName: "A", active: true, expectedUpdatedAt: "x", gender: "NAM" }, "ORGANIZATION").ok, false);
+  assert.equal(validatePartyUpdate({ displayName: "A", active: true, expectedUpdatedAt: "x", gender: "" }, "ORGANIZATION").ok, true);
+  assert.equal(validatePartyCreate({ kind: "ORGANIZATION", displayName: "A", gender: "NU" }).ok, false);
+});
+
 test("vai trò: mã hợp lệ, nơi tuỳ chọn, thời hạn", () => {
   assert.deepEqual(validateRole({ roleTypeCode: "GUIDE", locationId: U1 }, TODAY), { ok: true, value: { roleTypeCode: "GUIDE", locationId: U1, from: TODAY, to: null } });
   assert.deepEqual(validateRole({ roleTypeCode: "STAFF", validFrom: "2026-01-01", validTo: "2026-12-31" }, TODAY), { ok: true, value: { roleTypeCode: "STAFF", locationId: null, from: "2026-01-01", to: "2026-12-31" } });

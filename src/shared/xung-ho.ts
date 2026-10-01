@@ -38,6 +38,9 @@ export function thayTen(cauChao: string, goi: string): string {
   return cauChao.replace(/\{ten\}/g, (_m, i: number, s: string) => (/(^|[.!?…]\s+)$/.test(s.slice(0, i)) ? hoa : goi));
 }
 
+/** Giá trị đọc từ CSDL → giới tính hợp lệ hoặc NULL (giá trị lạ — chỉ có thể lọt bằng SQL tay — coi như chưa ghi). */
+export const gioiTinhHopLe = (v: unknown): GioiTinh | null => (typeof v === "string" && (GIOI_TINH as readonly string[]).includes(v) ? (v as GioiTinh) : null);
+
 type Kiem<T> = { ok: true; value: T } | { ok: false; message: string };
 /** Ô giới tính trong thân sửa / tạo hồ sơ người: vắng (`undefined`) = giữ nguyên; `null` / `""` = xoá (chưa ghi); NAM / NU; còn lại ⇒ lỗi lời thường. */
 export function kiemGioiTinh(v: unknown): Kiem<GioiTinh | null | undefined> {

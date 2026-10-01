@@ -1,7 +1,7 @@
 // ADR-0084 Đ2, Đ3, Đ5: luật thuần xưng hô của trợ lý Mai + dòng nối lời nhắc + thay {ten} trong câu chào + kiểm giá trị giới tính.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { CAU_CHAO_MAC_DINH, dongMai, kiemGioiTinh, thayTen, xungHo } from "./xung-ho.ts";
+import { CAU_CHAO_MAC_DINH, dongMai, gioiTinhHopLe, kiemGioiTinh, thayTen, xungHo } from "./xung-ho.ts";
 
 test("Đ2: NAM → anh {tên} / em; NU → chị {tên} / em", () => {
   assert.deepEqual(xungHo("Vũ", "NAM"), { goi: "anh Vũ", xung: "em" });
@@ -38,6 +38,12 @@ test("Đ5: thayTen thay MỌI {ten}; đầu câu viết hoa chữ đầu; câu k
 
 test("Đ5: câu chào mặc định đúng văn bản ADR", () => {
   assert.equal(CAU_CHAO_MAC_DINH, "Chào {ten}, em là Mai — trợ lý của Tour Đảo. {ten} cần hỏi gì về cách dùng app cứ hỏi em nhé!");
+});
+
+test("Đ1: gioiTinhHopLe — chỉ NAM / NU; còn lại NULL", () => {
+  assert.equal(gioiTinhHopLe("NAM"), "NAM");
+  assert.equal(gioiTinhHopLe("NU"), "NU");
+  for (const x of [null, undefined, "", "KHAC", "nam", 1]) assert.equal(gioiTinhHopLe(x), null);
 });
 
 test("Đ1: kiemGioiTinh — vắng = giữ nguyên; null/'' = xoá; NAM/NU nhận; còn lại lỗi lời thường", () => {

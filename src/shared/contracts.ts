@@ -706,6 +706,8 @@ export interface PartyDto extends PartyListItemDto {
   familyName: string | null;
   middleName: string | null;
   givenName: string | null;
+  /** ADR-0084 Đ1: giới tính của hồ sơ người — 'NAM' | 'NU' | null (chưa ghi; tổ chức luôn null). */
+  gender: "NAM" | "NU" | null;
   legalName: string | null;
   taxCode: string | null;
   address: string | null;
