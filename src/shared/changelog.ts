@@ -11,6 +11,14 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Chủ dự án 2026-10-01: giữ luật "không tự đổi quyền của chính mình", sửa màn hình báo trước, không lưu nửa chừng. Không migration. Số tạm — nhánh khác gộp trước thì đổi.
+    version: "1.55",
+    date: "2026-10-01",
+    items: [
+      { kind: "sua", text: "Sửa tài khoản của chính mình: nếu vai vừa chọn làm đổi quyền của bạn, app báo ngay và không lưu gì, thay vì lưu tên rồi mới báo lỗi." },
+    ],
+  },
+  {
     // ADR-0073 (trợ lý bộ não tuỳ biến, ô thử, nhớ 3 lượt, ẩn số tiền). Số "1.54" = main 1.53 + 1 (đánh lại lúc gộp main 1.53, 2026-10-01; thi công ghi 1.53). Có migration 0060.
     version: "1.54",
     date: "2026-10-01",
