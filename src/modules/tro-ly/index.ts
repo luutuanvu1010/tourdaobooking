@@ -51,6 +51,16 @@ export const kiemTranTruocKhiGoi = (
 };
 
 const usd = (micro: number): number => micro / 1_000_000;
+/**
+ * MỘT hàm dựng dòng tl_luot_hoi cho route hỏi VÀ ô thử (ruling F6). ADR-0082 Đ5(3), P1, P3: chi_phi = tiền mẫu + tiền embedding; token chỉ của mẫu.
+ * het_tran: không gọi mẫu ⇒ mau null (chú thích LuotHoi).
+ */
+const dungLuot = (
+  c: { staffId: string; ngayVn: string; at: string; mau: string; laThu: boolean }, ketQua: LuotHoi["ketQua"], u: SuDung | null, tienNhung = 0,
+): LuotHoi => ({
+  id: crypto.randomUUID(), staffId: c.staffId, ngayVn: c.ngayVn, vao: u?.vao ?? 0, vaoDem: u?.vaoDem ?? 0, ra: u?.ra ?? 0,
+  chiPhi: chiPhiMicroUsd(u, c.mau) + tienNhung, ketQua, mau: ketQua === "het_tran" ? null : c.mau, laThu: c.laThu, at: c.at,
+});
 /** Cộng mức dùng hai lần gọi (phòng thủ gọi lại không nhớ); cả hai null ⇒ null. */
 const congSuDung = (a: SuDung | null, b: SuDung | null): SuDung | null =>
   a && b ? { vao: a.vao + b.vao, vaoDem: a.vaoDem + b.vaoDem, ra: a.ra + b.ra } : (a ?? b);
@@ -167,11 +177,8 @@ export const troLyModule: AppModule = {
         demCauHomNay(db, staff.id, ngayVn), tongThang(db, tu, den), docNguCanh(db), boNaoHienHanh(db),
       ]);
       // ADR-0073 Đ2: bộ não hiệu lực = bản đã lưu; chưa có bản ⇒ mặc định + giọng / lời dặn cũ (B5); bản trỏ mẫu đã bỏ ⇒ thông số mặc định, giữ lời nhắc (R1).
-      const luot = (ketQua: LuotHoi["ketQua"], u: SuDung | null, tienNhung = 0): LuotHoi => ({
-        id: crypto.randomUUID(), staffId: staff.id, ngayVn, vao: u?.vao ?? 0, vaoDem: u?.vaoDem ?? 0, ra: u?.ra ?? 0,
-        chiPhi: chiPhiMicroUsd(u, boNao.mau) + tienNhung, // ADR-0082 Đ5(3), P1: tiền mẫu + tiền embedding; token chỉ của mẫu
-        ketQua, mau: ketQua === "het_tran" ? null : boNao.mau, laThu: false, at, // het_tran: không gọi mẫu ⇒ mau null (chú thích LuotHoi)
-      });
+      const luot = (ketQua: LuotHoi["ketQua"], u: SuDung | null, tienNhung = 0): LuotHoi =>
+        dungLuot({ staffId: staff.id, ngayVn, at, mau: boNao.mau, laThu: false }, ketQua, u, tienNhung);
       // ADR-0066 điều 6: trần kiểm TRƯỚC khi dựng lời nhắc (lớp một: đã chạm trần); lớp hai (chi phí tối đa của lượt — ADR-0073 Đ7b) kiểm sau khi dựng thân yêu cầu, trước khi gọi. Kiểm-rồi-ghi không nguyên tử: vài câu gửi cùng lúc có thể vượt trần một chút
       // (mỗi câu ~0,001 USD) — chấp nhận, ghi ở đặc tả; lớp hai là giới hạn ngân sách ở bảng điều khiển OpenAI.
       const qd = quyetDinhTran(caiDat, { soCauHomNay, chiPhiThang: thang.tong });
@@ -380,11 +387,8 @@ export const troLyModule: AppModule = {
       const { tu, den } = khoangThang(ngayVn);
       // Tổng tháng đọc MỚI trong request này (gồm lượt thử — T3).
       const [caiDat, thang, nguCanh] = await Promise.all([docCaiDat(db), tongThang(db, tu, den), docNguCanh(db)]);
-      const luot = (ketQua: LuotHoi["ketQua"], u: SuDung | null, tienNhung = 0): LuotHoi => ({
-        id: crypto.randomUUID(), staffId: staff.id, ngayVn, vao: u?.vao ?? 0, vaoDem: u?.vaoDem ?? 0, ra: u?.ra ?? 0,
-        chiPhi: chiPhiMicroUsd(u, boNao.mau) + tienNhung, // ADR-0082 P1, P3: tiền mẫu + tiền embedding của lượt thử
-        ketQua, mau: ketQua === "het_tran" ? null : boNao.mau, laThu: true, at,
-      });
+      const luot = (ketQua: LuotHoi["ketQua"], u: SuDung | null, tienNhung = 0): LuotHoi =>
+        dungLuot({ staffId: staff.id, ngayVn, at, mau: boNao.mau, laThu: true }, ketQua, u, tienNhung);
       // ADR-0082 P3: CÙNG kiểm trần mức trên + CÙNG hàm tìm với route hỏi (không nhớ ⇒ truy vấn = câu hỏi thử).
       const tran = kiemTranTruocKhiGoi(boNao, thanYeuCau(boNao, perms, [], cauHoi), cauHoi, thang.tong, caiDat.tranThangMicroUsd);
       if (tran.vuot) {
