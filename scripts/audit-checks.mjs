@@ -780,7 +780,7 @@ export const CHECKS = [
       + (SELECT count(*) FROM ord_passenger WHERE source = 'DRIVER')`,
     level: "fail",
   },
-  // R-ORD-12 (ADR-0047 A1, câu hỏi Q1 (a) — GIẢ ĐỊNH chờ chủ chạy truy vấn đếm): chặng mở của đơn chưa huỷ còn chữ tạm "(chưa ghi nơi đón)" (dịch vụ cũ có
+  // R-ORD-12 (ADR-0047 A1, câu hỏi Q1 (a) — ĐÓNG 2026-09-29: chủ chạy truy vấn chỉ đọc, 2 dịch vụ giờ-không-nơi đều thuộc đơn đã huỷ (`docs/superpowers/plans/2026-09-29-adr-0047-thi-cong-nhat-ky.md:37`)): chặng mở của đơn chưa huỷ còn chữ tạm "(chưa ghi nơi đón)" (dịch vụ cũ có
   // giờ đón mà không có điểm đón, hoặc thân cũ gửi giờ mà trống điểm) — văn phòng bổ sung nơi đón. Cảnh báo.
   {
     code: "R-ORD-12",

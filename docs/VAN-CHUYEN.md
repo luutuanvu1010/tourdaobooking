@@ -3,6 +3,7 @@
 > Tài liệu **mô tả** (không phải lời duyệt; khi lệch mã thì mã đúng, sửa tài liệu này). Viết cho người không lập trình.
 > Mọi tên menu, trang, nút dưới đây lấy từ mã thật của bản 1.38. Điều chưa đối chiếu được với mã hay với thao tác thật ghi rõ **"chưa kiểm"**.
 > Lộ trình, trạng thái từng lượt, việc đang chặn: `docs/superpowers/specs/2026-09-29-van-chuyen-lo-trinh.md`.
+> Cập nhật 2/10: mục 2.3 và danh sách việc đã đối chiếu bản <số phiên bản — điền lúc gộp>; các mục khác vẫn theo bản 1.38 — chưa rà lại.
 
 **Điều quan trọng nhất:** bản 1.38 đã chạy trên mạng thật, nhưng **chủ đã quyết chưa dùng Bảng điều phối cho chuyến thật** cho tới khi có màn nhập tên khách. Văn phòng vẫn điều xe như cũ. Riêng **quy tắc 6 giờ đã có hiệu lực ngay** với việc xác nhận đơn.
 
@@ -32,7 +33,7 @@ Phân hệ Vận chuyển giúp công ty quản lý **xe và giấy tờ xe**, *
 | **Tài xế đối tác** | Người của một nhà xe đối tác, có tài khoản riêng (vai "Tài xế đối tác"). Bản 1.38 mới cho họ **xem giấy tờ của mình**; chưa dùng app cho chuyến. |
 | **Nhà xe đối tác** | Một hồ sơ tổ chức trong Danh bạ mang vai "Nhà xe đối tác". Tài xế gắn với nhà xe bằng quan hệ "Tài xế của"; xe của nhà xe ghi ở ô "Chủ xe". |
 | **Chặng đưa đón** | Một lượt đón của một dịch vụ trong đơn: chiều đi hoặc chiều về, ngày giờ đón, nơi đón, nơi trả. Từ 1.38 thông tin đưa đón được lưu theo từng chặng (màn nhập đơn vẫn như cũ). |
-| **Hành khách** | Danh sách họ tên + năm sinh của đơn. Máy đã có chỗ lưu, **nhưng chưa có màn để nhân viên nhập** (ADR-0047 Phần B, chờ chủ vẽ). |
+| **Hành khách** | Danh sách họ tên + năm sinh của đơn. Nhân viên nhập ở khối "Hành khách" của form đơn và "Sửa danh sách" ở chi tiết đơn (từ bản 1.62). |
 | **Chuyến** | Một lần chạy của một xe với một tài xế trong một khung giờ (giờ bắt đầu, giờ kết thúc). Mã chuyến dạng "CX-…". Trạng thái: lên kế hoạch → đang chạy → kết thúc (hoặc kết thúc gián đoạn, hoặc huỷ). Chuyến huỷ không bị xoá. |
 | **Suất** | Chỗ của một khách trên chuyến. Xếp một chặng có 4 khách lên xe là mở 4 suất. |
 | **Điểm dừng** | Các nơi xe dừng đón / trả khách của chuyến, theo thứ tự. Máy tự tạo từ nơi đón / nơi trả của các chặng được xếp. |
@@ -84,9 +85,9 @@ Trên máy tính, các mục nằm ở thanh bên, nhóm **QUẢN TRỊ › Vậ
 | Lý do điều phối, loại giấy tờ | không | không | có | có | không | không | không | không | không |
 | Xem tên + năm sinh khách trên chuyến | có (chi tiết chuyến) | có | có | có | không | không | không | chỉ trong ngày chạy | không |
 
-### 2.3 Cái gì CHƯA có (bản 1.38)
+### 2.3 Cái gì CHƯA có (cập nhật bản <số phiên bản — điền lúc gộp>)
 
-- **Màn nhập tên hành khách** và **màn nhập / sửa chặng đưa đón mới** (chiều về, nơi trả, …) — ADR-0047 Phần B, chờ chủ vẽ. Hệ quả: chuyến có khách luôn bị giữ "Chưa đủ tên khách". Ngoài ra, theo mã, **không màn nào ghi được nơi trả**: đơn lập bằng màn hiện tại tạo chặng chiều đi **không có nơi trả** (chỉ đơn cũ trước 1.38 được chép "Nơi check-in" sang làm nơi trả). Chặng thiếu nơi trả vẫn **xếp được** lên xe, nhưng chuyến bị giữ "Chặng chưa có nơi trả" và không xuất bến. Chặng chưa có giờ đón thì **không xếp được**.
+- ~~**Màn nhập tên hành khách** và **màn nhập / sửa chặng đưa đón mới** (chiều về, nơi trả, …) — ADR-0047 Phần B, chờ chủ vẽ. Hệ quả: chuyến có khách luôn bị giữ "Chưa đủ tên khách". Ngoài ra, theo mã, **không màn nào ghi được nơi trả**: đơn lập bằng màn hiện tại tạo chặng chiều đi **không có nơi trả** (chỉ đơn cũ trước 1.38 được chép "Nơi check-in" sang làm nơi trả). Chặng thiếu nơi trả vẫn **xếp được** lên xe, nhưng chuyến bị giữ "Chặng chưa có nơi trả" và không xuất bến. Chặng chưa có giờ đón thì **không xếp được**.~~ — **đã có từ 1.62** (khối Đưa đón + Hành khách ở form đơn; "Sửa đưa đón" / "Sửa danh sách" ở chi tiết đơn). Chiều về: form gợi ý theo dịch vụ, máy chủ không tự tạo.
 - **Tài xế đối tác dùng app cho chuyến**, Từ chối chuyến, Báo bận (ADR-0053, lượt 3).
 - **Chuyển điểm đón giữa hai xe**, việc văn phòng làm khi xe đang chạy, **cứu hộ** xe hỏng (ADR-0052, lượt 2).
 - **Chiều về tự tạo theo dịch vụ** (ADR-0054).
@@ -182,7 +183,7 @@ Trên máy tính, các mục nằm ở thanh bên, nhóm **QUẢN TRỊ › Vậ
 
 **Dữ liệu**
 - [ ] Quản trị nhập **Kiểm định** và **Bảo hiểm trách nhiệm dân sự** (còn hạn) cho **6 xe** đang thiếu (kiểm tra dữ liệu ngày 30/9 đếm 12 giấy thiếu = 6 xe × 2 loại). Thiếu thì xe bị giữ, không xuất bến.
-- [ ] Bổ sung **nơi trả** cho **2 chặng** đơn đã xác nhận (kiểm tra 30/9). **Lưu ý:** theo mã bản 1.38, chưa có màn nào ghi nơi trả — việc này thực tế phải chờ màn Phần B (hoặc người kỹ thuật làm qua đường máy chủ). Và **mọi đơn mới lập từ 1.38** cũng thiếu nơi trả, nên con số 2 sẽ tăng dần cho tới khi có Phần B.
+- [ ] Bổ sung **nơi trả** cho **2 chặng** đơn đã xác nhận (kiểm tra 30/9). **Lưu ý:** màn "Sửa đưa đón" đã có từ bản 1.62; dữ liệu các đơn cũ còn thiếu nơi trả.
 - [ ] Mỗi tài xế công ty: có tài khoản vai "Tài xế công ty"; hồ sơ người trong Danh bạ có **Giấy phép lái xe có hạng, còn hạn**, hạng đủ chở số chỗ của xe sẽ lái.
 - [ ] Mỗi xe: đúng "Số người được chở (không kể tài xế)", trạng thái "Đang dùng".
 - [ ] Nhờ người chuyên môn xác nhận bảng hạng bằng ↔ số khách và danh sách giấy tờ xe bắt buộc (hiện chỉ Kiểm định + Bảo hiểm).
@@ -197,7 +198,7 @@ Trên máy tính, các mục nằm ở thanh bên, nhóm **QUẢN TRỊ › Vậ
 - [ ] **Chế độ bảo trì đang BẬT tới 13:21 ngày 4/10**: chỉ số điện thoại trong danh sách cho phép vào được app. Người thử phải có trong danh sách, hoặc chủ tắt bảo trì trước.
 
 **Điều kiện chặn dùng thật**
-- [ ] Có **màn nhập tên khách** (ADR-0047 Phần B — chủ vẽ 5 màn). Chưa có thì mọi chuyến có khách bị giữ "Chưa đủ tên khách".
+- [x] ~~Có **màn nhập tên khách** (ADR-0047 Phần B — chủ vẽ 5 màn). Chưa có thì mọi chuyến có khách bị giữ "Chưa đủ tên khách".~~ — **đã có từ 1.62** (khối Hành khách ở form đơn và "Sửa danh sách" ở chi tiết đơn).
 - [ ] Thử màn tài xế trên **iPhone thật**.
 - [ ] (Pháp lý) hỏi luật sư về danh sách hành khách xe hợp đồng; hạng bằng; giờ lái.
 
