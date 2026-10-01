@@ -34,3 +34,30 @@ test("độ đậm chữ: kiểu viết thẳng trong web/*.ts và public/*.html
   }
   assert.deepEqual(loi, []);
 });
+
+const VAI = [
+  "--c-bar-bg", "--c-on-bar", "--c-bar-border", "--c-icon-hover-on-bar",
+  "--c-sidebar-bg", "--c-sidebar-text-on", "--c-sidebar-title", "--c-sidebar-badge-text", "--c-sidebar-item", "--c-sidebar-active", "--c-sidebar-border", "--c-sidebar-badge",
+  "--c-btn-primary-bg", "--c-btn-primary-text", "--c-btn-primary-border", "--c-btn-primary-hover-bg",
+  "--c-selected-bg", "--c-selected-text", "--c-selected-border",
+  "--c-tab-new-bg", "--c-tab-new-icon", "--c-band-bg", "--c-on-band", "--c-maint-bg",
+];
+
+test("màu theo vai: mọi token vai khai ở :root", () => {
+  for (const t of VAI) assert.match(root, new RegExp(`\\n\\s*${t}:\\s*[^;]+;`), `${t} chưa khai ở :root`);
+});
+
+test("màu theo vai: thanh, nút chính, mảng đậm không trỏ thẳng màu thương hiệu", () => {
+  const boChon = ["#topbar", "#sidebar", ".btn-primary", ".login-submit", ".ntf-panel-head", ".order-summary-band", "#tabbar .tab-new .tab-icon", ".bar-back", ".sidebar-"];
+  const cam = /(?:^|[\s;{])(?:color|background|background-color|border-color|border-top-color):\s*(?:var\(--c-(?:primary|primary-strong|on-dark)\)|#fff\b|#ffffff\b)/;
+  const loi: string[] = [];
+  for (const m of luat.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+    const sel = m[1]!.trim().split("\n").pop()!.trim();
+    if (sel.startsWith("body.has-sidebar")) continue; // thanh trên máy tính: đã nền trắng theo token mặt (--c-surface)
+    if (sel === ".sidebar-item-badge-accent") continue; // huy hiệu san hô "Góp ý / Báo lỗi": chữ trắng trên san hô cố định, giữ có chủ đích
+    if (sel === ".ntf-panel-head h3" && m[2]!.includes("var(--c-primary)")) continue; // khối @media ≥641px: đầu bảng thông báo nền trắng, tiêu đề chữ xanh
+    if (!boChon.some((b) => sel.includes(b))) continue;
+    if (cam.test(m[2]!)) loi.push(sel);
+  }
+  assert.deepEqual(loi, [], "luật thanh/nút trỏ thẳng --c-primary/--c-primary-strong/--c-on-dark/#fff — dùng token vai");
+});
