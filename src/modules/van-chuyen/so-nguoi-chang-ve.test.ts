@@ -24,7 +24,7 @@ async function donVe(w: any) {
   return { id: r.json.order.id, legId: r.json.order.services[0].legs[0].id };
 }
 
-test("TC-P8: chặng về 2 người của dịch vụ 4 khách — xếp 3 suất → 409 vượt số người chặng (L-D1); xếp 2 → được; 2/4 khách có tên → cổng xuất bến KHÔNG giữ 'thiếu tên' (L-B1)", async () => {
+test("TC-P8 (L-D1): chặng về 2 người của dịch vụ 4 khách — xếp 3 suất → 409 vượt số người chặng", async () => {
   const tat = batDongHo();
   try {
     const w = setup();
@@ -35,6 +35,18 @@ test("TC-P8: chặng về 2 người của dịch vụ 4 khách — xếp 3 su�
     const ba = await w.call("POST", `/api/van-chuyen/chuyen/${c.chuyen.id}/phan-bo`, { as: SALES, body: { version: ct.chuyen.version, requestId: uuid(), chang: [{ legId: d.legId, soSuat: 3 }] } });
     assert.equal(ba.status, 409, ba.text);
     assert.equal(ba.json.error.code, "vuot_so_nguoi_chang");
+  } finally {
+    tat();
+  }
+});
+
+test("TC-P8 (L-B1): xếp đủ 2 suất cho chặng về 2 người; 2/4 khách có tên → cổng xuất bến KHÔNG giữ 'thiếu tên' (xuất bến 200)", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const d = await donVe(w);
+    const c = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER}` });
+    const ct = await chiTiet(w, c.chuyen.id);
     const hai = await w.call("POST", `/api/van-chuyen/chuyen/${c.chuyen.id}/phan-bo`, { as: SALES, body: { version: ct.chuyen.version, requestId: uuid(), chang: [{ legId: d.legId, soSuat: 2 }] } });
     assert.equal(hai.status, 200, hai.text);
     denGio("12:40");

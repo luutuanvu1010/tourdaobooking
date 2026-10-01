@@ -88,6 +88,9 @@ test("TC-F3 nháp: Bán hàng / Đối tác / Thực tập (đơn mình) ghi s�
   }
   const o = await lap(w, SALES, [{ ...OUT, flightCode: "VN1553" }]);
   assert.equal((await luuNhap(w, o, ACC, [legBody(di(o), { flightCode: "VJ123" })])).status, 403);
+  // ADR-0055 tiêu chí 7: Đối tác sửa số hiệu trên nháp của NGƯỜI KHÁC → 403 (ô order.modify phạm vi own); Thực tập cũng vậy.
+  for (const as of [PARTNER, INTERN]) assert.equal((await luuNhap(w, o, as, [legBody(di(o), { flightCode: "VJ123" })])).status, 403, as);
+  assert.equal(cot(w, di(o).id).flight_code, "VN1553");
 });
 
 test("TC-F4 khoá vắng = giữ: lưu nháp thân MỚI không có khoá flightCode / paxOverride → hai ô còn nguyên (chặng cùng id)", async () => {

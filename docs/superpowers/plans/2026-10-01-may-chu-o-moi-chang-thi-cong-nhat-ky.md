@@ -211,3 +211,10 @@ Còn lọc `status = 'confirmed'`; lô `changeLeg` đẩy mốc đơn (`orderTou
   ghi "nhánh thi công, CHƯA gộp" dù mã ở `main` từ 1.38 — không sửa lần này.
 - Task K: người kiểm độc lập chỉ-đọc — chưa gọi (người thi công không tự nghiệm thu).
 - Chép ADR nháp nơi trả mặc định sang `docs/adr/` + chốt số (từ 0073) + bỏ nhánh "nếu ALTER → trigger" ở D1 của bản nháp: việc lúc gộp (cần chủ cho phép sửa `docs/adr/`).
+
+## Bổ sung sau tự soát (2026-10-01)
+
+- Tách bài tích hợp TC-P8 phía xe thành hai (L-D1: 3 suất → 409; L-B1: 2 suất → xuất bến 200) — trước đó phép đột biến chỉ chứng minh vế L-D1. **Thấy chặn thật:**
+  bỏ nhánh `RETURN` của `soNguoiChang` → CẢ HAI bài đỏ (2/2) → hoàn nguyên → 2/2 xanh.
+- ADR-0055 tiêu chí 7: thêm khẳng định Đối tác / Thực tập lưu nháp số hiệu trên nháp của NGƯỜI KHÁC → 403, số hiệu không đổi (`o-moi-chang.test.ts` TC-F3 nháp).
+- `node --test src/modules/van-chuyen/so-nguoi-chang-ve.test.ts src/modules/orders/o-moi-chang.test.ts` → 20/20.
