@@ -12,6 +12,8 @@
 //   h  390 cảm ứng (Input.dispatchTouchEvent) kéo thanh tiêu đề: khung dời, trang không cuộn
 //   i  Esc đóng + tiêu điểm về nút; bấm nút khi đang mở = đóng (aria-expanded); trang phía sau vẫn bấm được khi khung mở (không modal)
 //   j  320: kéo sang phải quá mép ⇒ không tràn ngang
+//   l  320 (ADR-0073 Đ4): nút "Cuộc trò chuyện mới" ở chân khung, không tràn ngang; câu thứ hai mang nhớ (input là danh sách 3 mục);
+//      bấm nút ⇒ xoá đoạn trên màn hình, câu kế KHÔNG mang nhớ (mã cuộc trò chuyện mới). Ảnh 320.
 //   k  console sạch
 import assert from "node:assert/strict";
 import { mkdirSync } from "node:fs";
@@ -32,10 +34,13 @@ const KHO = [
 ];
 const LE = 8;
 
-// ---- máy OpenAI giả (khung chỉ cần trợ lý "được dùng"; không hỏi thật ở kịch bản này)
+// ---- máy OpenAI giả: ghi thân yêu cầu (bước l đọc "input" để biết câu có mang nhớ hay không)
+const nhan = [];
 const may = createServer((req, res) => {
-  req.resume();
+  let raw = "";
+  req.on("data", (d) => (raw += d));
   req.on("end", () => {
+    nhan.push(JSON.parse(raw || "{}"));
     res.writeHead(200, { "content-type": "application/json" });
     res.end(JSON.stringify({ status: "completed", output: [{ type: "message", content: [{ type: "output_text", text: "Được." }] }], usage: { input_tokens: 1, input_tokens_details: { cached_tokens: 0 }, output_tokens: 1 } }));
   });
@@ -255,6 +260,29 @@ try {
     assert.equal(await p.ev("document.documentElement.scrollWidth - innerWidth"), 0);
     await p.shot(join(OUT, "anh/j-320.png"));
     await p.ev(`${q(".tl-ve-goc")}.click(), true`);
+  });
+
+  await step("l", "320: nút 'Cuộc trò chuyện mới' ở chân khung, không tràn ngang; câu thứ hai mang nhớ (input là danh sách); bấm nút ⇒ xoá đoạn trên màn hình, câu kế không nhớ", async () => {
+    const p = await moKhung(KHO[0]);
+    assert.equal(await p.ev(`!!document.querySelector('.tl-chan .tl-cuoc-moi')`), true);
+    assert.equal(await p.ev(`${q(".tl-cuoc-moi")}.textContent`), "Cuộc trò chuyện mới");
+    assert.equal(await p.ev("document.documentElement.scrollWidth - innerWidth"), 0);
+    const gui = async (c) => {
+      const truoc = await p.ev(`document.querySelectorAll('.tl-tin-tro-ly').length`);
+      await p.ev(`(() => { ${q(".tl-o")}.value = ${JSON.stringify(c)}; ${q(".tl-form")}.requestSubmit(); return true; })()`);
+      await p.waitFor(`document.querySelectorAll('.tl-tin-tro-ly').length > ${truoc}`, "có trả lời", 15000);
+    };
+    await gui("đổi mã PIN thế nào");
+    assert.equal(nhan.at(-1).input, "đổi mã PIN thế nào", "câu đầu không có nhớ");
+    await gui("còn trên điện thoại thì sao");
+    assert.ok(Array.isArray(nhan.at(-1).input) && nhan.at(-1).input.length === 3, JSON.stringify(nhan.at(-1).input));
+    assert.equal(await p.ev("document.documentElement.scrollWidth - innerWidth"), 0, "có tin vẫn không tràn ngang");
+    await p.shot(join(OUT, "anh/l-hai-cau-320.png"));
+    await p.ev(`${q(".tl-cuoc-moi")}.click(), true`);
+    assert.equal(await p.ev(`document.querySelectorAll('.tl-tin-nguoi').length`), 0);
+    await gui("lập đơn mới ra sao");
+    assert.equal(nhan.at(-1).input, "lập đơn mới ra sao", "cuộc trò chuyện mới không mang nhớ");
+    await p.shot(join(OUT, "anh/l-cuoc-moi-320.png"));
   });
 
   await step("k", "console sạch ở mọi trang đã mở", async () => {

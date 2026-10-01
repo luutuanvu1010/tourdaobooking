@@ -2,14 +2,17 @@
 // máy OpenAI GIẢ chạy ngay trong kịch bản, wrangler dev trỏ vào nó bằng --var OPENAI_BASE_URL + khoá giả đủ dài (≥ 16 ký tự ⇒ hiện 4 ký tự cuối).
 // Chạy từ GỐC repo: npm run build:web && CHROME_BIN=docs/evidence/2026-09-20-a2/kich-ban/chrome-wrap.sh node docs/evidence/2026-09-30-bang-dieu-khien-tro-ly/kich-ban/bang-dieu-khien-tro-ly-smoke.mjs
 // Làm ĐÚNG mục 6 "Cách kiểm" của đặc tả (docs/superpowers/specs/2026-09-30-bang-dieu-khien-tro-ly-dac-ta.md):
-//   a  1040: Toàn quyền thấy mục "Trợ lý Hỗ trợ" ở nhóm QUẢN TRỊ; trang có đủ 5 phần; key "đã đặt (…QZ7K)" — không lộ thêm ký tự; Thử key ⇒ "Key dùng được"
+//   a  1040: Toàn quyền thấy mục "Trợ lý Hỗ trợ" ở nhóm QUẢN TRỊ; trang có đủ 6 phần (thêm Bộ não — ADR-0073); key "đã đặt (…QZ7K)" — không lộ thêm ký tự; Thử key ⇒ "Key dùng được"
 //   b  tắt vai Đối tác trên trang ⇒ tài khoản Đối tác KHÔNG có nút Hỗ trợ; Bán hàng vẫn có
 //   c  sửa câu chào + câu hỏi mẫu trên trang ⇒ khung Hỗ trợ của Bán hàng hiện câu mới + nút câu mẫu (chạm để gửi) + dòng "Câu hỏi được lưu…"
-//   d  lời dặn có số điện thoại ⇒ câu lỗi lời thường trên trang, không lưu
+//   d  câu chào có số điện thoại ⇒ câu lỗi lời thường trên trang, không lưu (ô "Lời dặn thêm" đã bỏ — ADR-0073 R3)
 //   e  hỏi một câu có SĐT ⇒ phần Lịch sử hỏi đáp có dòng đã che, không có số gốc
 //   f  thêm đoạn ngữ cảnh ⇒ đoạn hiện trong danh sách, "Đang dùng" được tick
 //   g  390 + 320: trang không tràn ngang; ô gõ 16px
 //   h  Bán hàng: không có mục ở thanh bên / trang Tôi; mở thẳng trang ⇒ câu từ chối tiếng Việt
+//   j  Bộ não: chọn GPT-5 mini, mức Thấp, độ dài Vừa, lưu ⇒ "Đã lưu thành bản mới"; câu hỏi của Bán hàng gửi đúng mẫu; lịch sử bản có 1 bản
+//   k  ô thử: vai Kế toán + câu hỏi ⇒ kết quả (câu trả lời, token, tiền); máy giả nhận cấu hình ĐANG SOẠN (chưa lưu), nhóm vai Kế toán
+//   l  cảnh báo cố định có mặt; "Khôi phục mặc định" chỉ đưa bản mặc định vào ô (hỏi xác nhận khi ô có chỗ sửa) ⇒ "Lưu bộ não" ⇒ "Đang dùng lời nhắc mặc định."
 //   i  console sạch ở mọi trang đã mở
 // Các trang dùng CHUNG kho cookie: mỗi bước mở trang của tài khoản cần dùng ngay trước khi thao tác.
 import assert from "node:assert/strict";
@@ -73,12 +76,12 @@ const moTrang = async (vp = DESK) => {
 const go = (sel, v) => `(() => { const el = ${q(sel)}; el.value = ${JSON.stringify(v)}; el.dispatchEvent(new Event('input', { bubbles: true })); return true; })()`;
 
 try {
-  await step("a", "1040: mục ở nhóm QUẢN TRỊ; đủ 5 phần; key chỉ hiện 4 ký tự cuối; Thử key ⇒ dùng được", async () => {
+  await step("a", "1040: mục ở nhóm QUẢN TRỊ; đủ 6 phần; key chỉ hiện 4 ký tự cuối; Thử key ⇒ dùng được", async () => {
     const p = await moTrang();
     const nhom = await p.ev(`[...document.querySelectorAll('#sidebar a')].map((a) => a.textContent.trim())`);
     assert.ok(nhom.some((t) => t.includes("Trợ lý Hỗ trợ")), nhom.join(" | "));
     const h2 = await p.ev(`[...document.querySelectorAll('#tl-trang h2')].map((x) => x.textContent)`);
-    assert.deepEqual(h2, ["Tình trạng", "Ai được dùng", "Lời dặn", "Ngữ cảnh bổ sung", "Lịch sử hỏi đáp"]);
+    assert.deepEqual(h2, ["Tình trạng", "Ai được dùng", "Bộ não", "Lời dặn", "Ngữ cảnh bổ sung", "Lịch sử hỏi đáp"]);
     const chu = await p.ev(`${q("#tl-tinh-trang")}.innerText`);
     assert.match(chu, /Key: đã đặt \(kết thúc bằng …QZ7K\)/);
     const html = await p.ev("document.documentElement.outerHTML");
@@ -132,12 +135,12 @@ try {
     assert.equal(await s.ev(`!!${q(".tl-mau-nut")}`), false, "câu mẫu ẩn sau khi đã hỏi");
   });
 
-  await step("d", "lời dặn có số điện thoại ⇒ câu lỗi lời thường, không thêm bản", async () => {
+  await step("d", "câu chào có số điện thoại ⇒ câu lỗi lời thường, không thêm bản", async () => {
     const p = await moTrang();
-    await p.ev(go("#tl-loi-dan-them", "Khách cần gấp thì gọi 0905 123 456."));
+    await p.ev(go("#tl-cau-chao", "Khách cần gấp thì gọi 0905 123 456."));
     await p.ev(`${q("#tl-loi-dan form")}.requestSubmit(), true`);
     await p.waitFor(`!!${q("#tl-loi-dan .tl-cd-loi")} && !${q("#tl-loi-dan .tl-cd-loi")}.hidden`, "có câu lỗi", 10000);
-    assert.match(await p.ev(`${q("#tl-loi-dan .tl-cd-loi")}.textContent`), /^Lời dặn thêm không được chứa chuỗi số dài/);
+    assert.match(await p.ev(`${q("#tl-loi-dan .tl-cd-loi")}.textContent`), /^Câu chào không được chứa chuỗi số dài/);
     assert.match(await p.ev(`${q("#tl-loi-dan summary")}.textContent`), /Lịch sử bản \(2\)/, "không thêm bản");
     await p.shot(join(OUT, "anh/d-loi-sdt-1040.png"));
   });
@@ -183,6 +186,16 @@ try {
       const co = await p.ev(`[...document.querySelectorAll('#tl-trang input:not([type=checkbox]), #tl-trang textarea, #tl-trang select')].map((x) => getComputedStyle(x).fontSize)`);
       assert.ok(co.length >= 8 && co.every((c) => c === "16px"), co.join(","));
       await p.shot(join(OUT, `anh/g-trang-${vp.width}.png`));
+      // Chữ lựa chọn mẫu dài ("tên — khoảng X USD một câu"): ô chọn và mục Bộ não nằm gọn trong khung nhìn, trang không tràn ngang.
+      const chuMau = await p.ev(`[...${q("#tl-mau")}.options].map((o) => o.textContent)`);
+      assert.ok(chuMau.length >= 2 && chuMau.every((t) => / — khoảng .+ một câu$/.test(t)), chuMau.join(" | "));
+      const hop = await p.ev(`(() => { const r = ${q("#tl-mau")}.getBoundingClientRect(); return { left: r.left, right: r.right }; })()`);
+      assert.ok(hop.left >= 0 && hop.right <= vp.width, `${vp.width}: ô chọn mẫu tràn ${JSON.stringify(hop)}`);
+      assert.equal(await p.ev(`${q("#tl-bo-nao")}.scrollWidth <= ${q("#tl-bo-nao")}.clientWidth`), true, `${vp.width}: mục Bộ não tràn ngang`);
+      await p.ev(`${q("#tl-bo-nao")}.scrollIntoView(), true`);
+      await sleep(200);
+      assert.equal(await p.ev("document.documentElement.scrollWidth - innerWidth"), 0, `${vp.width}: trang tràn ngang ở mục Bộ não`);
+      await p.shot(join(OUT, `anh/g-bo-nao-${vp.width}.png`));
     }
   });
 
@@ -200,6 +213,73 @@ try {
     tatCa.push(o);
     await o.waitFor(`[...document.querySelectorAll('#links a')].some((a) => a.getAttribute('href') === '/tro-ly-cai-dat')`, "Toàn quyền có dòng ở trang Tôi", 10000);
     assert.equal(await o.ev(`!!document.getElementById('tro-ly-cai-dat')`), false, "khối cài đặt cũ ở trang Tôi đã bỏ");
+  });
+
+  await step("j", "Bộ não: chọn GPT-5 mini, mức Thấp, độ dài Vừa, lưu ⇒ 'Đã lưu thành bản mới'; câu hỏi của Bán hàng gửi đúng mẫu; lịch sử bản có 1 bản", async () => {
+    const p = await moTrang();
+    assert.match(await p.ev(`${q("#tl-gia")}.textContent`), /GPT-5 nano.*1 triệu token.*Một câu khoảng/);
+    await p.ev(`(() => { const s = ${q("#tl-mau")}; s.value = 'gpt-5-mini'; s.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
+    assert.match(await p.ev(`${q("#tl-gia")}.textContent`), /GPT-5 mini/);
+    await p.ev(`(() => { ${q("#tl-muc")}.value = 'low'; ${q("#tl-do-dai")}.value = 'medium'; return true; })()`);
+    await p.ev(`${q("#tl-bo-nao form")}.requestSubmit(), true`);
+    await p.waitFor(`!!${q("#tl-bo-nao .tl-cd-bao")} && /Đã lưu thành bản mới/.test(${q("#tl-bo-nao .tl-cd-bao")}.textContent)`, "đã lưu bộ não", 10000);
+    assert.equal(await p.ev(`${q("#tl-mau")}.value`), "gpt-5-mini");
+    assert.equal(await p.ev(`${q("#tl-muc")}.value`), "low");
+    assert.equal(await p.ev(`${q("#tl-do-dai")}.value`), "medium");
+    await p.ev(`(() => { const d = [...document.querySelectorAll('#tl-bo-nao details')].find((x) => /Lịch sử bản/.test(x.querySelector('summary').textContent)); d.open = true; return true; })()`);
+    await p.waitFor(`[...document.querySelectorAll('#tl-bo-nao .tl-cd-ban-dong')].length === 1`, "lịch sử 1 bản", 10000);
+    await p.shot(join(OUT, "anh/j-bo-nao-1040.png"));
+    const s = await env.as(ACCOUNTS.salesA, "/orders", M);
+    tatCa.push(s);
+    await s.waitFor(`!!${q("#tl-fab")}`, "có nút", 10000);
+    await s.ev(`${q("#tl-fab")}.click(), true`);
+    await s.waitFor(khungMo, "mở khung");
+    const n = nhan.length;
+    await s.ev(`(() => { ${q(".tl-o")}.value = 'đổi mã PIN thế nào'; ${q(".tl-form")}.requestSubmit(); return true; })()`);
+    await s.waitFor(`document.querySelectorAll('.tl-tin-tro-ly').length >= 2`, "có trả lời", 15000);
+    assert.equal(nhan.length, n + 1);
+    assert.equal(nhan.at(-1).model, "gpt-5-mini");
+  });
+
+  await step("k", "ô thử: vai Kế toán + câu hỏi ⇒ kết quả hiện (câu trả lời, token, tiền); máy giả nhận cấu hình ĐANG SOẠN (chưa lưu), nhóm vai Kế toán", async () => {
+    const p = await moTrang();
+    await p.ev(`(() => { const s = ${q("#tl-mau")}; s.value = 'gpt-5'; s.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
+    await p.ev(go("#tl-loi-nhac", "Lời nhắc đang soạn trên Chrome."));
+    await p.ev(`(() => { ${q("#tl-thu-vai")}.value = 'ACCOUNTING'; return true; })()`);
+    await p.ev(go("#tl-thu-cau", "đổi mã PIN thế nào"));
+    const n = nhan.length;
+    await p.ev(`[...${q("#tl-bo-nao")}.querySelectorAll('button')].find((b) => b.textContent === 'Thử với cấu hình đang soạn').click(), true`);
+    await p.waitFor(`/token vào/.test(${q("#tl-thu-kq")}.textContent)`, "có kết quả thử", 15000);
+    assert.equal(nhan.length, n + 1);
+    assert.equal(nhan.at(-1).model, "gpt-5");
+    assert.ok(String(nhan.at(-1).instructions).startsWith("Lời nhắc đang soạn trên Chrome."));
+    assert.match(String(nhan.at(-1).instructions), /nhóm vai: Kế toán\./);
+    assert.match(await p.ev(`${q("#tl-thu-kq")}.textContent`), /USD \(tính vào trần tháng\)/);
+    assert.match(await p.ev(`${q("#tl-tinh-trang")}.innerText`), /[1-9]\d* lượt thử/, "Thử key ở bước a cũng là lượt thử");
+    assert.equal(await p.ev(`${q("#tl-mau")}.value`), "gpt-5", "thử không lưu, ô vẫn giữ cấu hình đang soạn");
+    await p.ev(`${q("#tl-thu-kq")}.scrollIntoView(), true`);
+    await p.shot(join(OUT, "anh/k-o-thu-1040.png"));
+  });
+
+  await step("l", "cảnh báo cố định có mặt; lưu lời nhắc đã sửa ⇒ 'đã sửa'; 'Khôi phục mặc định' (hỏi xác nhận khi ô có chỗ sửa) chỉ đưa bản mặc định vào ô ⇒ 'Lưu bộ não' ⇒ 'Đang dùng lời nhắc mặc định.'", async () => {
+    const p = await moTrang();
+    assert.match(await p.ev(`${q("#tl-bo-nao .alert")}.textContent`), /^Xoá các luật an toàn trong lời nhắc/);
+    // Bước j lưu đúng bản mặc định ⇒ trước hết lưu một bản đã sửa để bước khôi phục có ý nghĩa.
+    await p.ev(go("#tl-loi-nhac", "Bạn là trợ lý thử của Chrome — bản đã sửa."));
+    await p.ev(`${q("#tl-bo-nao form")}.requestSubmit(), true`);
+    await p.waitFor(`/Đang dùng lời nhắc đã sửa/.test(${q("#tl-mac-dinh")}.textContent)`, "đã lưu bản sửa", 10000);
+    // Ô có chỗ sửa chưa lưu ⇒ nút hỏi xác nhận (confirm); kịch bản thay confirm để đếm và đồng ý.
+    await p.ev(go("#tl-loi-nhac", "Chỗ sửa chưa lưu."));
+    await p.ev(`(() => { window.__hoi = []; window.confirm = (m) => { window.__hoi.push(m); return true; }; return true; })()`);
+    await p.ev(`[...${q("#tl-bo-nao")}.querySelectorAll('button')].find((b) => b.textContent === 'Khôi phục mặc định').click(), true`);
+    assert.equal(await p.ev(`window.__hoi.length`), 1, "có hỏi xác nhận");
+    assert.match(await p.ev(`${q("#tl-loi-nhac")}.value`), /^Bạn là trợ lý "Hỗ trợ"/);
+    assert.match(await p.ev(`${q("#tl-mac-dinh")}.textContent`), /Đang dùng lời nhắc đã sửa/, "Khôi phục chưa lưu");
+    await p.ev(`[...${q("#tl-bo-nao")}.querySelectorAll('button')].find((b) => b.textContent === 'Lưu bộ não').click(), true`);
+    await p.waitFor(`/Đang dùng lời nhắc mặc định\\./.test(${q("#tl-bo-nao")}.textContent)`, "đã khôi phục", 10000);
+    assert.match(await p.ev(`${q("#tl-loi-nhac")}.value`), /^Bạn là trợ lý "Hỗ trợ"/);
+    assert.match(await p.ev(`${q("#tl-bo-nao .tl-cd-bao")}.textContent`), /Đã lưu thành bản mới/);
+    await p.shot(join(OUT, "anh/l-khoi-phuc-1040.png"));
   });
 
   await step("i", "console sạch ở mọi trang đã mở", async () => {
