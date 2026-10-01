@@ -129,23 +129,61 @@ function veAiDung(daLuu = false): void {
 const CANH_BAO =
   "Xoá các luật an toàn trong lời nhắc có thể khiến trợ lý trả lời điều không nên nói. Che số điện thoại, ẩn số tiền, giới hạn tiền và quyền xem vẫn do máy chủ giữ.";
 
+// Mục Bộ não = phần cấu hình (dựng lại sau mỗi lần lưu) + ô thử (dựng MỘT lần, giữ câu hỏi và kết quả thử qua các lần lưu).
+const vungCauHinh = h("div", { class: "tl-cd-form" });
+let layCauHinh: () => Api.TroLyBoNao;
+let dsMau: Api.TroLyMauDto[] = [];
+/** Đang chạy một việc của mục Bộ não (Lưu, Khôi phục, Quay lại bản, Thử) ⇒ mọi nút của mục bị khoá, kể cả nút dựng ra giữa chừng. */
+let boNaoBan = false;
+const nutBoNao = (): HTMLButtonElement[] => Array.from(byId("tl-bo-nao").querySelectorAll("button"));
+
+async function bamBoNao(bao: ReturnType<typeof dongBao>, viec: () => Promise<string | void>): Promise<void> {
+  if (boNaoBan) return;
+  bao.xoa();
+  boNaoBan = true;
+  for (const b of nutBoNao()) b.disabled = true;
+  try {
+    const s = await viec();
+    if (s) bao.ok(s);
+  } catch (e) {
+    bao.loi(loiCua(e));
+  } finally {
+    boNaoBan = false;
+    for (const b of nutBoNao()) b.disabled = false;
+  }
+}
+
 function veBoNao(d: Api.TroLyBoNaoResponse, daLuu = false): void {
   const hh = d.hienHanh;
+  dsMau = d.danhSachMau;
+  const mauMat = !d.danhSachMau.some((m) => m.ma === hh.mau);
   const mau = h("select", { id: "tl-mau" }, ...d.danhSachMau.map((m) => h("option", { value: m.ma }, m.ten)));
   mau.value = hh.mau;
+  if (mauMat) mau.selectedIndex = -1;
+  const baoMauMat = h("p", { class: "tl-cd-loi", id: "tl-mau-mat", hidden: !mauMat }, "Mẫu đã lưu không còn trong danh sách — chọn mẫu khác rồi Lưu.");
   const muc = h("select", { id: "tl-muc" });
   const doDai = h("select", { id: "tl-do-dai" }, ...d.doDai.map((x) => h("option", { value: x.ma }, x.nhan)));
   doDai.value = hh.doDai;
-  const token = h("input", { type: "number", id: "tl-token-ra", min: G.tokenRaThap, max: G.tokenRaCao, step: 100, value: String(hh.tokenRaToiDa), inputmode: "numeric" });
+  const goiYCao = h("p", { class: "muted", id: "tl-token-goi-y", hidden: true }, `Mức Cao cần ít nhất ${G.tokenRaKhiCao.toLocaleString("vi-VN")} token trả lời.`);
+  const token = h("input", {
+    type: "number", id: "tl-token-ra", min: G.tokenRaThap, max: G.tokenRaCao, step: 100, value: String(hh.tokenRaToiDa), inputmode: "numeric", "aria-describedby": "tl-token-goi-y",
+  });
   const gia = h("p", { class: "muted", id: "tl-gia" });
-  const loiNhac = oVung({ id: "tl-loi-nhac", rows: 14, maxlength: G.loiNhac, value: hh.loiNhac });
+  const loiNhac = oVung({ id: "tl-loi-nhac", rows: 14, maxlength: G.loiNhac, value: hh.loiNhac, "aria-describedby": "tl-dem" });
   const dem = h("p", { class: "muted", id: "tl-dem" });
-  const mauChon = (): Api.TroLyMauDto => d.danhSachMau.find((m) => m.ma === mau.value) ?? d.danhSachMau[0]!;
+  const mauChon = (): Api.TroLyMauDto | null => d.danhSachMau.find((m) => m.ma === mau.value) ?? null;
   const motCau = (ma: string): string => usdNho(uocMotCauMicroUsd(ma, Number(token.value) || hh.tokenRaToiDa) / 1_000_000);
+  // Mức Cao cần token ra ≥ tokenRaKhiCao (máy chủ cũng chặn): nâng min và hiện gợi ý, KHÔNG tự đổi số người dùng đã gõ.
+  const veGoiYCao = (): void => {
+    const cao = muc.value === "high";
+    goiYCao.hidden = !cao;
+    token.min = String(cao ? G.tokenRaKhiCao : G.tokenRaThap);
+  };
   const veMuc = (giu: string): void => {
-    const m = mauChon();
+    const m = mauChon() ?? d.danhSachMau[0]!;
     replaceChildren(muc, ...m.mucSuyNghi.map((x) => h("option", { value: x.ma }, x.nhan)));
     muc.value = m.mucSuyNghi.some((x) => x.ma === giu) ? giu : m.mucSuyNghi[0]!.ma;
+    veGoiYCao();
   };
   // Đặc tả §5 "ô chọn mẫu (tên + giá ước tính)": chữ của từng lựa chọn kèm giá một câu, tính lại khi đổi số token trả lời.
   const veGia = (): void => {
@@ -154,24 +192,35 @@ function veBoNao(d: Api.TroLyBoNaoResponse, daLuu = false): void {
       if (m) o.textContent = `${m.ten} — khoảng ${motCau(m.ma)} một câu`;
     }
     const m = mauChon();
-    gia.textContent = `${m.ten}: vào ${usdNho(m.gia.vao / 1_000_000)}, ra ${usdNho(m.gia.ra / 1_000_000)} cho mỗi 1 triệu token (giá tra ngày ${ngayVn(m.ngayTraGia)}). Một câu khoảng ${motCau(m.ma)}. ${d.ghiChuUocTinh}`;
+    gia.textContent = m
+      ? `${m.ten}: vào ${usdNho(m.gia.vao / 1_000_000)}, ra ${usdNho(m.gia.ra / 1_000_000)} cho mỗi 1 triệu token (giá tra ngày ${ngayVn(m.ngayTraGia)}). Một câu khoảng ${motCau(m.ma)}. ${d.ghiChuUocTinh}`
+      : "";
   };
   const veDem = (): void => {
-    dem.textContent = `${loiNhac.value.length.toLocaleString("vi-VN")} / ${G.loiNhac.toLocaleString("vi-VN")} ký tự`;
+    const v = loiNhac.value;
+    dem.textContent = `${v.length.toLocaleString("vi-VN")} / ${G.loiNhac.toLocaleString("vi-VN")} ký tự · ${v === d.loiNhacMacDinh ? "giống" : "khác"} bản mặc định${v === hh.loiNhac ? "" : " · chưa lưu"}`;
   };
   veMuc(hh.mucSuyNghi);
   veGia();
   veDem();
-  mau.addEventListener("change", () => { veMuc(muc.value); veGia(); });
+  mau.addEventListener("change", () => { baoMauMat.hidden = !!mauChon(); veMuc(muc.value); veGia(); });
+  muc.addEventListener("change", veGoiYCao);
   token.addEventListener("input", veGia);
   loiNhac.addEventListener("input", veDem);
-  const cauHinh = (): Api.TroLyBoNao => ({ mau: mau.value, mucSuyNghi: muc.value, doDai: doDai.value, tokenRaToiDa: Number(token.value), loiNhac: loiNhac.value });
+  layCauHinh = () => ({ mau: mau.value, mucSuyNghi: muc.value, doDai: doDai.value, tokenRaToiDa: Number(token.value), loiNhac: loiNhac.value });
 
   const luu = h("button", { class: "btn btn-primary", type: "submit" }, "Lưu bộ não");
   const khoiPhuc = h("button", { class: "btn", type: "button" }, "Khôi phục mặc định");
   const bao = dongBao();
   const gui = async (body: Api.TroLyBoNao): Promise<void> => veBoNao(await api<Api.TroLyBoNaoResponse>("/api/tro-ly/bo-nao", { method: "PUT", body }), true);
-  khoiPhuc.addEventListener("click", () => void bam(khoiPhuc, bao, () => gui({ ...cauHinh(), loiNhac: d.loiNhacMacDinh })));
+  // Khôi phục chỉ đưa bản mặc định vào Ô LỜI NHẮC (không lưu, không đụng mẫu / mức / độ dài); người dùng bấm "Lưu bộ não" để dùng.
+  khoiPhuc.addEventListener("click", () => {
+    if (boNaoBan) return;
+    if (loiNhac.value !== hh.loiNhac && !confirm("Lời nhắc trong ô đang có chỗ sửa chưa lưu. Thay bằng bản mặc định?")) return;
+    loiNhac.value = d.loiNhacMacDinh;
+    veDem();
+    bao.ok("Đã đưa bản mặc định vào ô lời nhắc — bấm “Lưu bộ não” để dùng.");
+  });
 
   const dsBan = h("ol", { class: "tl-cd-ds" });
   const lichSuBan = h("details", { class: "tl-cd-ban" }, h("summary", null, "Lịch sử bản"), dsBan);
@@ -184,9 +233,9 @@ function veBoNao(d: Api.TroLyBoNaoResponse, daLuu = false): void {
           dsBan,
           ...(r.cacBan.length
             ? r.cacBan.map((b, i) => {
-              const nut = h("button", { class: "btn", type: "button" }, "Quay lại bản này");
+              const nut = h("button", { class: "btn", type: "button", disabled: boNaoBan }, "Quay lại bản này");
               const baoBan = dongBao();
-              nut.addEventListener("click", () => void bam(nut, baoBan, () => gui({ mau: b.mau, mucSuyNghi: b.mucSuyNghi, doDai: b.doDai, tokenRaToiDa: b.tokenRaToiDa, loiNhac: b.loiNhac })));
+              nut.addEventListener("click", () => void bamBoNao(baoBan, () => gui({ mau: b.mau, mucSuyNghi: b.mucSuyNghi, doDai: b.doDai, tokenRaToiDa: b.tokenRaToiDa, loiNhac: b.loiNhac })));
               return h(
                 "li",
                 { class: "tl-cd-ban-dong" },
@@ -206,10 +255,12 @@ function veBoNao(d: Api.TroLyBoNaoResponse, daLuu = false): void {
     "form",
     { class: "tl-cd-form" },
     h("label", null, "Mẫu AI", mau),
+    baoMauMat,
     gia,
     h("label", null, "Mức suy nghĩ", muc),
     h("label", null, "Độ dài trả lời", doDai),
     h("label", null, `Số token trả lời tối đa (${G.tokenRaThap}–${G.tokenRaCao})`, token),
+    goiYCao,
     h("label", null, "Lời nhắc (trợ lý đọc trước mọi câu hỏi)", loiNhac),
     dem,
     h("p", { class: "alert warn", role: "note" }, CANH_BAO),
@@ -218,24 +269,44 @@ function veBoNao(d: Api.TroLyBoNaoResponse, daLuu = false): void {
   );
   form.addEventListener("submit", (e) => {
     e.preventDefault();
-    void bam(luu, bao, () => gui(cauHinh()));
+    void bamBoNao(bao, () => gui(layCauHinh()));
   });
 
-  // Ô thử (ADR-0073 Đ5): cấu hình ĐANG SOẠN (chưa lưu) + vai giả định; lượt thử tính vào trần tiền tháng. Lỗi: hiện câu tiếng Việt của máy chủ (bam → loiCua).
+  if (daLuu) bao.ok("Đã lưu thành bản mới.");
+  // Cờ của máy chủ: macDinh = chưa có bản nào (lời nhắc = mặc định + giọng / lời dặn cũ nếu có — B5) HOẶC chữ đúng bằng bản mặc định HIỆN TẠI. Bản "Khôi phục
+  // mặc định" lưu thành chữ, nên khi bản mặc định đổi ở lần phát hành sau thì cờ thành "đã sửa" — câu dưới nói rõ là so với bản mặc định hiện tại.
+  const kemCu = d.macDinh && hh.loiNhac !== d.loiNhacMacDinh;
+  replaceChildren(
+    vungCauHinh,
+    h(
+      "p",
+      { class: "muted", id: "tl-mac-dinh" },
+      d.macDinh
+        ? `Đang dùng lời nhắc mặc định.${kemCu ? " Cuối lời nhắc có kèm giọng / lời dặn thêm của mục Lời dặn cũ." : ""}`
+        : "Đang dùng lời nhắc đã sửa (khác bản mặc định hiện tại).",
+    ),
+    form,
+    h("details", { class: "tl-cd-ban" }, h("summary", null, "Xem bản mặc định"), h("p", { class: "tl-chu" }, d.loiNhacMacDinh)),
+    lichSuBan,
+  );
+}
+
+/** Dựng khung mục Bộ não + ô thử MỘT lần (ADR-0073 Đ5): cấu hình ĐANG SOẠN (chưa lưu) + vai giả định; lượt thử tính vào trần tiền tháng. */
+function dungBoNao(): void {
   const vaiThu = h("select", { id: "tl-thu-vai" }, ...PERMISSION_CODES.map((p) => h("option", { value: p }, PERMISSION_LABEL[p])));
   const cauThu = oVung({ id: "tl-thu-cau", rows: 2, maxlength: 500, placeholder: "Gõ câu hỏi để thử" });
   const nutThu = h("button", { class: "btn", type: "button" }, "Thử với cấu hình đang soạn");
   const ketQua = h("div", { id: "tl-thu-kq", "aria-live": "polite" });
   const baoThu = dongBao();
   nutThu.addEventListener("click", () =>
-    void bam(nutThu, baoThu, async () => {
+    void bamBoNao(baoThu, async () => {
       replaceChildren(ketQua, h("p", { class: "muted" }, "Đang thử…"));
       try {
         const r = await api<Api.TroLyThuResponse>("/api/tro-ly/thu", {
           method: "POST",
-          body: { boNao: cauHinh(), cauHoi: cauThu.value, vai: vaiThu.value as PermissionCode } satisfies Api.TroLyThuRequest,
+          body: { boNao: layCauHinh(), cauHoi: cauThu.value, vai: vaiThu.value as PermissionCode } satisfies Api.TroLyThuRequest,
         });
-        const tenMau = d.danhSachMau.find((m) => m.ma === r.mau)?.ten ?? "Mẫu không còn trong danh sách";
+        const tenMau = dsMau.find((m) => m.ma === r.mau)?.ten ?? "Mẫu không còn trong danh sách";
         replaceChildren(
           ketQua,
           h("p", { class: "tl-chu" }, r.traLoi),
@@ -254,24 +325,10 @@ function veBoNao(d: Api.TroLyBoNaoResponse, daLuu = false): void {
       }
     }),
   );
-
-  if (daLuu) bao.ok("Đã lưu thành bản mới.");
-  // Cờ của máy chủ: macDinh = chưa có bản nào (lời nhắc = mặc định + giọng / lời dặn cũ nếu có — B5) HOẶC chữ đúng bằng bản mặc định HIỆN TẠI. Bản "Khôi phục
-  // mặc định" lưu thành chữ, nên khi bản mặc định đổi ở lần phát hành sau thì cờ thành "đã sửa" — câu dưới nói rõ là so với bản mặc định hiện tại.
-  const kemCu = d.macDinh && hh.loiNhac !== d.loiNhacMacDinh;
   replaceChildren(
     byId("tl-bo-nao"),
     h("h2", { id: "tl-bo-nao-h" }, "Bộ não"),
-    h(
-      "p",
-      { class: "muted", id: "tl-mac-dinh" },
-      d.macDinh
-        ? `Đang dùng lời nhắc mặc định.${kemCu ? " Cuối lời nhắc có kèm giọng / lời dặn thêm của mục Lời dặn cũ." : ""}`
-        : "Đang dùng lời nhắc đã sửa (khác bản mặc định hiện tại).",
-    ),
-    form,
-    h("details", { class: "tl-cd-ban" }, h("summary", null, "Xem bản mặc định"), h("p", { class: "tl-chu" }, d.loiNhacMacDinh)),
-    lichSuBan,
+    vungCauHinh,
     h("h3", { class: "tl-cd-tieu-de" }, "Thử trước khi lưu"),
     h("p", { class: "muted" }, "Chạy câu hỏi với cấu hình đang soạn ở trên (chưa cần lưu). Lượt thử tính vào trần tiền tháng, không tính vào số câu mỗi ngày."),
     h("label", null, "Vai giả định", vaiThu),
@@ -505,6 +562,7 @@ if (!can(staff, "settings.ops")) {
     caiDat = c;
     veTinhTrang();
     veAiDung();
+    dungBoNao();
     veBoNao(bn);
     veLoiDan(ld);
     veNguCanh(nc);
