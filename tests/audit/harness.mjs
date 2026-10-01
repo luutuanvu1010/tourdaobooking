@@ -36,7 +36,7 @@ async function bundle(entry) {
 // listAll: bộ lọc thao tác im lặng (ADR-0038) chỉ kiểm được ở tầng truy vấn — trang Nhật ký nay chỉ Toàn quyền gọi được.
 export const app = (await bundle(
   'export { default, taoAppChoKhungThu } from "./index"; export { createSessionToken } from "./modules/auth/session"; export { listAll } from "./modules/audit/repository"; export { xoaBoNhoVanNghia } from "./modules/tro-ly/van-nghia";' +
-    ' export { isSingleDevice } from "./modules/auth/session-ledger"; export { accountRoleCodesOf, getActiveStaff } from "./modules/staff";',
+    ' export { isSingleDevice } from "./modules/auth/session-ledger"; export { accountRoleCodesOf, getActiveStaff } from "./modules/staff"; export { docTapNhieuMay } from "./modules/auth";',
 ));
 
 const isRead = (sql) => /^\s*(SELECT|WITH|PRAGMA|EXPLAIN)\b/i.test(sql);
@@ -133,7 +133,9 @@ export function world(tuyChon = {}) {
     let id = sqlite.prepare("SELECT id FROM aut_session WHERE staff_id = ? AND ended_at IS NULL AND expires_at > ? ORDER BY created_at DESC LIMIT 1").get(as, at)?.id;
     if (!id) {
       const prof = await app.getActiveStaff(env.DB, as);
-      const single = prof && !app.isSingleDevice(prof.permissions, await app.accountRoleCodesOf(env.DB, as), new Set() /* Task 4: đọc chính sách thật */) ? 0 : 1;
+      // single theo ĐÚNG luật thật (ADR-0085): quyền + vai + chính sách đọc từ bảng — không nới luật cho khung thử; quên tham số chính sách là lỗi (không mặc định).
+      const nhieuMay = await app.docTapNhieuMay(env.DB);
+      const single = prof && !app.isSingleDevice(prof.permissions, await app.accountRoleCodesOf(env.DB, as), nhieuMay) ? 0 : 1;
       id = crypto.randomUUID();
       sqlite.prepare("UPDATE aut_session SET ended_at = ?2, end_reason = 'het_han', updated_at = ?2 WHERE staff_id = ?1 AND ended_at IS NULL AND expires_at <= ?2").run(as, at);
       sqlite.prepare(

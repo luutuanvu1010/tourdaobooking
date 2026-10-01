@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { DatabaseSync, type SupportedValueType } from "node:sqlite";
 import { readFileSync, readdirSync } from "node:fs";
 import {
-  endAllButNewestStatement, endExpiredSessionsStatement, endOtherSessionsStatement, getSession, insertSessionStatement, markMultiStatement, markSingleStatement,
+  endAllButNewestStatement, endExpiredSessionsStatement, endOtherSessionsStatement, getSession, insertSessionStatement, markSingleStatement,
   touchSessionStatement,
 } from "./repository.ts";
 
@@ -183,26 +183,21 @@ test("mất miễn: phiên hết hạn chưa kết thúc (kể cả phiên có c
   assert.equal(dong(sqlite, "p3").single, 1);
 });
 
-test("mất miễn: tài khoản VẪN giữ Toàn quyền lúc câu chạy (vd câu chốt quản trị viên cuối thua) → không kết thúc, không đánh dấu phiên nào", async () => {
+// ADR-0085 Q2 điều 7: hai câu KHÔNG còn tự kiểm "không giữ Toàn quyền" trong SQL — điều kiện chuyển sang thứ tự lô (lô THỨ HAI, sau câu chốt "quản trị viên
+// cuối"); bài route AC8 ở accounts/mat-mien-route.test.ts giữ nó. Ở tầng SQL chỉ còn khẳng định: chạy theo ĐÚNG staff_id, không đụng tài khoản khác.
+test("mất nhiều máy: hai câu chạy theo đúng staff_id (kể cả khi tài khoản giữ Toàn quyền — điều kiện nay ở thứ tự lô), không đụng phiên của tài khoản khác", async () => {
   const { db, sqlite } = setup();
+  themNguoi(sqlite, "s2", "0900000008");
   sqlite.exec("INSERT INTO stf_permission (id, staff_id, permission_type_code, valid_from_at, created_at, updated_at) VALUES ('sp', 's1', 'SUPER_ADMIN', '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')");
   await insertSessionStatement(db, row("p1", 0, "2026-10-01T10:00:00.000Z", LATER)).run();
   await insertSessionStatement(db, row("p2", 0, "2026-10-01T11:00:00.000Z", LATER)).run();
+  await insertSessionStatement(db, { ...row("k1", 0, "2026-10-01T09:00:00.000Z", LATER), staffId: "s2" }).run();
+  await insertSessionStatement(db, { ...row("k2", 0, "2026-10-01T12:00:00.000Z", LATER), staffId: "s2" }).run();
   const kq = await db.batch(loMatMien(db, NOW, "s1"));
-  assert.deepEqual(kq[1]!.results, []);
-  assert.deepEqual(kq[2]!.results, []);
-  assert.deepEqual(phienSong(sqlite, "s1"), ["p1", "p2"]);
-  assert.equal(dong(sqlite, "p2").single, 0);
-});
-
-test("được miễn: phiên sống single=1 → single=0 (cột kiểm toán); requireToanQuyen = true mà tài khoản không giữ Toàn quyền → không đổi", async () => {
-  const { db, sqlite } = setup();
-  themNguoi(sqlite, "adm", "0900000009");
-  await insertSessionStatement(db, row("p1", 1, "2026-10-01T10:00:00.000Z", LATER)).run();
-  const khong = await markMultiStatement(db, "s1", NOW, "adm", true).run();
-  assert.equal(khong.meta.changes, 0);
-  assert.equal(dong(sqlite, "p1").single, 1);
-  const co = await markMultiStatement(db, "s1", NOW, "adm", false).run();
-  assert.equal(co.meta.changes, 1);
-  assert.deepEqual(dong(sqlite, "p1"), { single: 0, ended_at: null, end_reason: null, ended_by: null, updated_at: NOW, updated_by: "adm" });
+  assert.deepEqual(kq[1]!.results, [{ id: "p1" }]);
+  assert.deepEqual(kq[2]!.results, [{ id: "p2" }]);
+  assert.deepEqual(phienSong(sqlite, "s1"), ["p2"]);
+  assert.equal(dong(sqlite, "p2").single, 1);
+  assert.deepEqual(phienSong(sqlite, "s2"), ["k1", "k2"], "tài khoản khác không bị kết thúc phiên");
+  for (const id of ["k1", "k2"]) assert.deepEqual(dong(sqlite, id), { single: 0, ended_at: null, end_reason: null, ended_by: null, updated_at: "2026-10-01T" + (id === "k1" ? "09" : "12") + ":00:00.000Z", updated_by: null });
 });

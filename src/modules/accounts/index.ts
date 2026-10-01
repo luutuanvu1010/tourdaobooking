@@ -5,7 +5,7 @@
 import { auditStatement, type AuditAction } from "../audit";
 import {
   PASSKEY_ERRORS, checkPasskeyAssertion, clearChallengeCookie, countActivePasskeys, deviceLabel, endAllSessionsIfSuspendedStatement, endAllSessionsStatement,
-  endOneSessionStatement, endOtherSessionsStatement, exemptionChangeStatements, getSession, listMySessions, listSessions, toSessionDto, firstUserHandle, insertPasskeyStatement, issuePasskeyChallenge, limitChallenge, listActivePasskeys, lockedPhones, logPasskeyRejected,
+  docTapNhieuMay, endOneSessionStatement, endOtherSessionsStatement, exemptionChangeStatements, getSession, listMySessions, listSessions, toSessionDto, firstUserHandle, insertPasskeyStatement, issuePasskeyChallenge, limitChallenge, listActivePasskeys, lockedPhones, logPasskeyRejected,
   markSessionReissuedStatement, passkeyRp, readPasskeyChallenge, revokeAllPasskeysIfSuspendedStatement, reissueSessionCookie, revokeAllPasskeysStatement,
   revokePasskeyStatement, toPasskeyDto, unlockPhone, verifyPinThrottled, verifyRegistration,
 } from "../auth";
@@ -537,22 +537,26 @@ export const accountsModule: AppModule = {
       if (!plan.changed) return json({ staff: await one(db, t.id) } satisfies StaffResponse);
       const detail = `${permissionsLabel(t.permissions)} → ${permissionsLabel(next)}`;
       // Khi bỏ ADMIN: câu đóng ADMIN có điều kiện đứng đầu; nhật ký chỉ ghi nếu nó thắng (changes() > 0); các câu còn lại mang cùng điều kiện.
-      // ADR-0075 điều 3: tài khoản ở route này không có vai (ROLE_MANAGED ở trên) → miễn luật một máy ⇔ giữ Toàn quyền; câu phiên nối CUỐI cùng lô, tự kiểm
-      // Toàn quyền lúc chạy (requireToanQuyen) nên câu chốt thua thì không đụng phiên nào.
-      const phien = exemptionChangeStatements(db, { staffId: t.id, at, by: admin.id, requireToanQuyen: true, before: { permissions: t.permissions, roles: [] }, after: { permissions: next, roles: [] } });
+      // ADR-0085 Q2 điều 7: chính sách đọc ĐẦU request; "được nhiều máy" TRƯỚC/SAU tính bằng cùng một bản. Câu phiên KHÔNG tự kiểm quyền trong SQL: có câu chốt
+      // (gỡ ADMIN) thì câu phiên chạy ở lô THỨ HAI, chỉ khi lô quyền đã thắng câu chốt; không có câu chốt thì nối cuối lô duy nhất (nguyên tử).
+      const nhieuMay = await docTapNhieuMay(db);
+      const phien = exemptionChangeStatements(db, { staffId: t.id, at, by: admin.id, nhieuMay, before: { permissions: t.permissions, roles: [] }, after: { permissions: next, roles: [] } });
       const stmts = [
-        ...(plan.guarded ? [plan.guarded] : []), adminAudit(db, admin.id, "permission_changed", t.id, detail, plan.guarded ? "changes() > 0" : undefined), ...plan.rest, ...phien.statements,
+        ...(plan.guarded ? [plan.guarded] : []), adminAudit(db, admin.id, "permission_changed", t.id, detail, plan.guarded ? "changes() > 0" : undefined), ...plan.rest,
+        ...(plan.guarded ? [] : phien.statements),
       ];
       let results: D1Result[];
+      let loPhien: D1Result[] = [];
       try {
         results = await db.batch(stmts);
+        if (plan.guarded && (results[0]!.meta.changes ?? 0) === 0) return LAST_ADMIN();
+        loPhien = plan.guarded ? (phien.statements.length ? await db.batch(phien.statements) : []) : results;
       } catch (e) {
         const rule = ruleViolation(e); // lưới cuối: lỗi trigger (LC-1b…) thành 409, không 500
         if (rule) return rule;
         throw e;
       }
-      if (plan.guarded && (results[0]!.meta.changes ?? 0) === 0) return LAST_ADMIN();
-      const matMien = phien.ketQua(results);
+      const matMien = phien.ketQua(loPhien);
       // ADR-0075 điều 6: máy vừa mất phiên vì mất miễn — đóng Bảng tin của đúng các phiên đó, tắt thông báo của tài khoản trừ máy được giữ.
       if (matMien.endedSessionIds.length) ctx.dongBangTin({ staffId: t.id, sessionIds: matMien.endedSessionIds, giuPhien: matMien.keptSessionId });
       ctx.dongBangTin({ staffId: t.id, tatThongBao: false }); // BẢNG TIN (KN-2): quyền vừa đổi. ADR-0046: đổi quyền KHÔNG tắt thông báo điện thoại.
@@ -597,10 +601,11 @@ export const accountsModule: AppModule = {
         change.dropped.length ? `luật cứng gạt: ${permissionsLabel(change.dropped)}` : "",
         parsed.value.reason ? `lý do: ${parsed.value.reason}` : "",
       ].filter(Boolean).join("; ");
-      // ADR-0075 điều 3: miễn luật một máy tính trên quyền + vai TRƯỚC và SAU. Câu phiên nối CUỐI lô ghi vai — lô đó chỉ chạy khi câu chốt (nếu có) đã thắng,
-      // nên không cần tự kiểm Toàn quyền khi được miễn (miễn có thể do vai IT).
+      // ADR-0085 Q2 điều 7: "được nhiều máy" tính trên quyền + vai TRƯỚC và SAU, cùng MỘT bản chính sách đọc ở đây. Câu phiên đi cùng lô vai (lô thứ hai) —
+      // chỉ chạy khi câu chốt thắng; không câu chốt: cuối lô duy nhất.
+      const nhieuMay = await docTapNhieuMay(db);
       const phien = exemptionChangeStatements(db, {
-        staffId: t.id, at, by: admin.id, requireToanQuyen: false,
+        staffId: t.id, at, by: admin.id, nhieuMay,
         before: { permissions: t.permissions, roles: state.roles }, after: { permissions: change.next, roles: parsed.value.roles },
       });
       let cuoi: D1Result[] = [];
