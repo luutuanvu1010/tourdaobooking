@@ -108,6 +108,11 @@ Không đợt nào DROP trigger trên `vc_trip` của đợt khác (tên không 
 - Bộ đếm thân cũ: **"Có, cài sớm (Recommended)"** ⇒ Đợt 8 Task 1 chuyển vào Đợt 1. Câu 9 (phần gộp) ĐÃ TRẢ LỜI; ngưỡng 7 ngày theo khuyến nghị.
 - Thời điểm T2: **"Chờ có màn nhập giá (Recommended)"** ⇒ T1 lên khi xong; T2 giữ trên nhánh tới khi có màn bảng giá + ô giá thoả thuận; Đợt 5 A-1b và Đợt 6 chờ theo. Câu 2 ĐÃ TRẢ LỜI.
 
+- Lượt I câu 1 (chủ, chat 1/10): *"Trống, hiện chỉ có nhà xe là chính cty Tour Đảo và 1 xe demo thôi"* ⇒ không có chuyến xe thuê cũ; Đợt 4 Task 0 vẫn chạy lại lệnh đếm ngay trước phát hành T2 (dữ liệu có thể đổi).
+- Lượt I câu 3 (chủ, chat 1/10 "Tính lại giá theo thời điểm chốt (như vé máy bay)", rồi hộp hỏi ví dụ 800.000đ/900.000đ → **"900.000đ — giá ngày chạy"**) ⇒ giữ đúng ADR-0057 B2: giá = dòng hiệu lực vào **ngày chạy**, đọc bảng giá lúc chụp; dời ngày chạy ⇒ đảo + chụp lại theo bảng giá của ngày mới (phương án A của Đợt 4; ca RF1-g thành bài thật).
+- Lượt II câu 4 (chủ: *"Đồng ý"*) ⇒ Đợt 5 P4 chốt: một đề nghị được nhận ⇒ các đề nghị khác cùng điểm thành `VOID` trong cùng lô.
+- Lượt II câu 6 (chủ: *"Bỏ, ghi ADR vì tôi chưa thấy thấu đáo, bỏ nếu bạn khuyến nghị như vậy"*) ⇒ soạn **ADR-0086** (proposed) bỏ `task.progress` + `dispatch.guides.view` (cùng hạn 30/11); AI đã báo ADR-0019 điều 5 từng chủ ý giữ (P18). Thi công sau khi chủ duyệt ADR-0086.
+
 ## Cần chủ (gom từ 8 kế hoạch con; mỗi lượt tối đa 3 câu chạm dữ liệu/quyền/tiền)
 
 **Lượt I — tiền xe thuê (Đợt 4, hỏi trước khi nhận Đợt 4):**
