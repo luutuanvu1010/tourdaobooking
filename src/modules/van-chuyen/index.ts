@@ -14,7 +14,7 @@ import { can } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
 import { addDays, vnToday } from "../../shared/vn-date";
 import {
-  chassisHolder, currentWarnDays, expiringVehicleDocuments, findVehicle, findVehicleDocument, findVehicleDocumentType, insertPolicyStatement, insertVehicleDocStatement,
+  chassisHolder, currentWarnDays, expiringVehicleDocuments, findVehicle, findVehicleDocument, findVehicleDocumentType, hasCurrentVehicleDocOfType, insertPolicyStatement, insertVehicleDocStatement,
   insertVehicleDocTypeStatement, insertVehicleStatement, listVehicleDocumentTypes, listVehicleDocuments, listVehicles, listVehiclesOfOwner, plateHolder,
   updateVehicleDocStatement, updateVehicleDocTypeStatement, updateVehicleStatement, vehicleCountByOwner, voidVehicleDocStatement, type VehicleDocRow, type VehicleRow,
 } from "./repository";
@@ -102,6 +102,8 @@ const BAD_OWNER_FILTER = () => error(400, "invalid_input", "Bộ lọc chủ xe 
 
 const RETIRED = () => error(409, "vehicle_retired", "Xe đã ngừng dùng.");
 const DOC_NOT_FOUND = () => error(404, "not_found", "Không tìm thấy giấy tờ này của xe.");
+// ADR-0056 VK3-B lớp ROUTE — lớp CSDL (trigger) trả document_type_conflict (loiRangBuocXe).
+const DOC_TYPE_EXISTS = (ten: string) => error(409, "document_type_exists", `Xe đã có ${ten} đang dùng — bấm Gia hạn hoặc Sửa sai.`);
 const DOC_NOT_CURRENT = () => error(409, "document_not_current", "Dòng này đã được gia hạn hoặc đã huỷ — chỉ dòng hiện hành mới gia hạn hay sửa sai được.");
 const DOC_STALE = () => error(409, "stale", "Giấy tờ vừa được người khác sửa, hãy tải lại rồi sửa tiếp.");
 
@@ -396,7 +398,7 @@ export const vanChuyenModule: AppModule = {
       return respondVehicle(env.DB, id);
     }),
 
-    // ---- Giấy tờ xe (Task A14): thứ tự 403 ô → 404 xe → 409 xe đã ngừng (thêm, gia hạn) → 404 dòng → 400 thân → 409 dòng hiện hành → ghi + nhật ký cùng lô
+    // ---- Giấy tờ xe (Task A14): thứ tự 403 ô → 404 xe → 409 xe đã ngừng (thêm, gia hạn) → 404 dòng → 400 thân → 409 loại đã có dòng hiện hành (thêm — ADR-0056 VK3-B, `document_type_exists`; lớp CSDL `document_type_conflict`) → 409 dòng hiện hành (gia hạn, sửa sai) → ghi + nhật ký cùng lô
     // (chi tiết mở đầu bằng biển số, KHÔNG số) → 409 stale. Lớp CSDL (trigger) trả document_changed — khác document_not_current của lớp route.
     route("POST", "/api/van-chuyen/xe/:id/giay-to", "office", async ({ request, env, params, staff }) => {
       if (!can(staff, "vehicle.manage")) return FORBIDDEN();
@@ -409,6 +411,7 @@ export const vanChuyenModule: AppModule = {
       const parsed = kiemThemGiayToXe(await readJson(request), d.dm);
       if (!parsed.ok) return error(400, "invalid_input", parsed.message);
       const v = parsed.value;
+      if (await hasCurrentVehicleDocOfType(env.DB, id, v.typeCode)) return DOC_TYPE_EXISTS(d.tenLoai(v.typeCode));
       const at = now.toISOString();
       try {
         await env.DB.batch([
