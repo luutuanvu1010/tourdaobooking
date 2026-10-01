@@ -177,3 +177,24 @@ test("C5: truy vấn = câu hiện tại + câu trước gần nhất — câu n
 test("daChonTuKhoa (đường lùi): mọi đoạn cờ khớp từ khoá, không khớp nghĩa", () => {
   assert.deepEqual(tom(daChonTuKhoa([KHO[2]!])), [["Đổi PIN", false, true]]);
 });
+
+test("biên: đoạn vecDoan null nhưng khớp từ khoá mạnh vẫn được giữ — cờ [không nghĩa, có từ khoá]", () => {
+  assert.deepEqual(tom(chonDoanTron("cách dùng nút đặt gấp", mot(0), KHO, [null, null, null, null], ["SALES"])), [["Đặt gấp", false, true]]);
+});
+
+test("biên: véc-tơ toàn 0 (câu hỏi hoặc đoạn) và vecDoan ngắn hơn kho ⇒ không lỗi, coi như không có tín hiệu nghĩa", () => {
+  const khong = new Float32Array(SO_CHIEU_NHUNG);
+  assert.deepEqual(tom(chonDoanTron("đổi PIN", mot(0), KHO, [khong, khong, khong, khong], ["SALES"])), [["Đổi PIN", false, true]]);
+  assert.deepEqual(tom(chonDoanTron("đổi PIN", khong, KHO, KHO.map(() => mot(0)), ["SALES"])), [["Đổi PIN", false, true]]);
+  assert.deepEqual(tom(chonDoanTron("đổi PIN", mot(0), KHO, [mot(1)], ["SALES"])), [["Đổi PIN", false, true]]);
+  assert.deepEqual(chonDoanTron("quên mật khẩu", mot(0), KHO, [], ["SALES"]), []);
+});
+
+test("khớp mạnh nhánh CẶP âm tiết: đoạn chỉ khớp một cặp liền nhau + một âm tiết đơn (không đủ nhánh điểm cao) vẫn được giữ; đoạn khớp lẻ âm tiết bị bỏ", () => {
+  const kho: DoanTriThuc[] = [
+    { ten: "Kho", quyen: [], chu: "Xe có hàng sẵn ở bến." },
+    { ten: "Khác", quyen: [], chu: "Hàng mới về kho hôm qua." },
+  ];
+  assert.deepEqual(khopManh("có hàng", kho, ["SALES"]), [true, false]);
+  assert.deepEqual(tom(chonDoanTron("có hàng", mot(0), kho, [mot(1), mot(1)], ["SALES"])), [["Kho", false, true]]);
+});

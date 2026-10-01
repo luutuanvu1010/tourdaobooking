@@ -177,11 +177,16 @@ export function diemTuKhoa(cauHoi: string, kho: readonly DoanTriThuc[]): DiemTuK
   });
 }
 
+/** Như diemTuKhoa nhưng `diem` ĐÃ NHÂN hệ số vai — chỗ DUY NHẤT nhân điểm từ khoá với vai (timDoan và chonDoanTron / khopManh cùng dùng). */
+export function diemTuKhoaTheoVai(cauHoi: string, kho: readonly DoanTriThuc[], perms: readonly PermissionCode[]): DiemTuKhoa[] {
+  return diemTuKhoa(cauHoi, kho).map((x, i) => ({ ...x, diem: x.diem * heSoVai(kho[i]!, perms) }));
+}
+
 /** Xếp hạng mọi đoạn theo câu hỏi (BM25 trên tên mục + nội dung, nhân hệ số vai); chỉ trả đoạn có điểm > 0, điểm cao trước (hoà: giữ thứ tự kho). */
 export function timDoan(cauHoi: string, perms: readonly PermissionCode[], kho: readonly DoanTriThuc[] = chiaKho()): KetQuaTim[] {
   const out: KetQuaTim[] = [];
-  diemTuKhoa(cauHoi, kho).forEach((x, i) => {
-    if (x.diem > 0) out.push({ doan: kho[i]!, diem: x.diem * heSoVai(kho[i]!, perms) });
+  diemTuKhoaTheoVai(cauHoi, kho, perms).forEach((x, i) => {
+    if (x.diem > 0) out.push({ doan: kho[i]!, diem: x.diem });
   });
   return out.map((x, i) => ({ x, i })).sort((a, b) => b.x.diem - a.x.diem || a.i - b.i).map(({ x }) => x);
 }

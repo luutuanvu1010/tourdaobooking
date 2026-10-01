@@ -5,7 +5,7 @@
 // developers.openai.com/api/reference/resources/embeddings/methods/create (≤ 2.048 đầu vào, ≤ 8.192 token / đầu vào, ≤ 300.000 token / yêu cầu; `dimensions` cho text-embedding-3).
 import { chiPhiToiDa } from "./tro-ly-mau.ts";
 import type { PermissionCode } from "./permissions.ts";
-import { NGAN_SACH_TOKEN, SO_DOAN_TOI_DA, diemTuKhoa, heSoVai, layTheoNganSach, uocToken, type DiemTuKhoa, type DoanTriThuc } from "./tro-ly.ts";
+import { NGAN_SACH_TOKEN, SO_DOAN_TOI_DA, diemTuKhoaTheoVai, heSoVai, layTheoNganSach, uocToken, type DoanTriThuc } from "./tro-ly.ts";
 
 export const MAU_NHUNG = "text-embedding-3-small";
 /** Số chiều rút gọn qua tham số `dimensions` (giả định bề mặt của đặc tả §6 — đổi số = mọi khoá đổi = tính lại cả kho một lần). */
@@ -126,11 +126,12 @@ export const SO_TU_MANH = 2;
 
 export interface DoanDaChon { readonly doan: DoanTriThuc; readonly theoNghia: boolean; readonly theoTuKhoa: boolean }
 
-/** Điểm từ khoá đã nhân vai + cờ khớp mạnh, từ MỘT lần tính BM25 (diemTuKhoa) — dùng chung cho khopManh và chonDoanTron. */
-function tuKhoaVaManh(tk: readonly DiemTuKhoa[], kho: readonly DoanTriThuc[], perms: readonly PermissionCode[]): { bm: number[]; manh: boolean[] } {
-  const bm = tk.map((x, i) => x.diem * heSoVai(kho[i]!, perms));
+/** Điểm từ khoá đã nhân vai (diemTuKhoaTheoVai — MỘT lần BM25) + cờ khớp mạnh — dùng chung cho khopManh và chonDoanTron. */
+function tuKhoaVaManh(cauHoi: string, kho: readonly DoanTriThuc[], perms: readonly PermissionCode[]): { bm: number[]; manh: boolean[] } {
+  const tk = diemTuKhoaTheoVai(cauHoi, kho, perms);
+  const bm = tk.map((x) => x.diem);
   const max = Math.max(0, ...bm);
-  const manh = tk.map((x, i) => x.coCap || (max > 0 && bm[i]! >= TY_LE_DIEM_MANH * max && x.soTuDon >= SO_TU_MANH));
+  const manh = tk.map((x) => x.coCap || (max > 0 && x.diem >= TY_LE_DIEM_MANH * max && x.soTuDon >= SO_TU_MANH));
   return { bm, manh };
 }
 
@@ -139,7 +140,7 @@ function tuKhoaVaManh(tk: readonly DiemTuKhoa[], kho: readonly DoanTriThuc[], pe
  * Khớp lẻ một chữ phổ biến ("dùng", "app") không đủ.
  */
 export function khopManh(cauHoi: string, kho: readonly DoanTriThuc[], perms: readonly PermissionCode[]): boolean[] {
-  return tuKhoaVaManh(diemTuKhoa(cauHoi, kho), kho, perms).manh;
+  return tuKhoaVaManh(cauHoi, kho, perms).manh;
 }
 
 /**
@@ -151,7 +152,7 @@ export function chonDoanTron(
   cauHoi: string, vecCauHoi: Float32Array, kho: readonly DoanTriThuc[], vecDoan: readonly (Float32Array | null)[], perms: readonly PermissionCode[],
   nganSach = NGAN_SACH_TOKEN, toiDa = SO_DOAN_TOI_DA,
 ): DoanDaChon[] {
-  const { bm, manh } = tuKhoaVaManh(diemTuKhoa(cauHoi, kho), kho, perms);
+  const { bm, manh } = tuKhoaVaManh(cauHoi, kho, perms);
   const cs = kho.map((_, i) => { const v = vecDoan[i]; return v ? cosin(vecCauHoi, v) : -1; });
   const hang = (diem: readonly number[], co: (i: number) => boolean): Map<number, number> => {
     const ds = kho.map((_, i) => i).filter(co).sort((a, b) => diem[b]! - diem[a]! || a - b);
