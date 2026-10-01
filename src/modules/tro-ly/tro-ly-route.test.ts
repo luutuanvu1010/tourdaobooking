@@ -310,8 +310,11 @@ test("cài đặt: Toàn quyền xem + lưu bản mới (chỉ thêm), Quản tr
 const HO = "Phạmxyzz";
 const DEM = "Quỳnhwqv";
 /** Hồ sơ người hỏi có họ + tên đệm ĐẶC BIỆT (không thể trùng chữ trong kho tri thức) để khẳng định "không gửi họ / tên đệm" không đỏ giả. */
-const datHoSo = (w: ReturnType<typeof setup>, staffId: string, gioiTinh: string | null) =>
+const datHoSo = (w: ReturnType<typeof setup>, staffId: string, gioiTinh: string | null) => {
   w.sqlite.prepare("UPDATE pty_person SET family_name = ?, middle_name = ?, gender = ? WHERE party_id = ?").run(HO, DEM, gioiTinh, `pty-${staffId}`);
+  // Tên hiển thị đầy đủ (họ + đệm + tên) như hồ sơ thật — để đường đọc nhầm nhãn đầy đủ (v_stf_staff_label) lộ họ và bài đỏ.
+  w.sqlite.prepare("UPDATE pty_party SET display_name = (SELECT family_name || ' ' || middle_name || ' ' || given_name FROM pty_person WHERE party_id = ?1) WHERE id = ?1").run(`pty-${staffId}`);
+};
 const LA = { ten: "Giả Mạo", tenGoi: "Giả Mạo", gioiTinh: "NAM", gender: "NAM", goi: "sếp Tổng", xung: "tôi" };
 const THU_MAI = {
   boNao: { mau: "gpt-5-nano", mucSuyNghi: "minimal", doDai: "low", tokenRaToiDa: 1200, loiNhac: "Bạn là trợ lý thử nghiệm." }, cauHoi: "đổi mã PIN thế nào", vai: "ACCOUNTING",
