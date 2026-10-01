@@ -1,9 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { EXTERNAL_PERMISSIONS, PERMISSION_CODES } from "./permissions.ts";
+import { EXTERNAL_PERMISSIONS, PERMISSION_CODES, type PermissionCode } from "./permissions.ts";
 import {
   ROLES, ROLE_CODES, SUPER_ADMIN_GRANTED, canManageAccount, defaultPermissions, effectivePermissions, groupOf, highPermissionProblem, isRoleCode, parseRoleAssignment,
-  permissionsLabel, roleAssignmentProblem, rolesLabel, taiKhoanLaiProblem, vaiTaiXeDoiTacXungDot, type RoleAssignment,
+  permissionsLabel, roleAssignmentProblem, rolesLabel, taiKhoanLaiProblem, vaiTaiXeDoiTacXungDot, type RoleAssignment, type RoleCode,
 } from "./roles.ts";
 
 const VAI_QUAN_LY = "Chỉ người phụ trách hệ thống mới gán hoặc gỡ vai Giám đốc, Điều hành chung, IT, Hành chính nhân sự.";
@@ -67,10 +67,11 @@ test("ADR-0048 D2: vai 'Tài xế đối tác' — bên ngoài, bộ quyền m�
   assert.equal(ROLE_CODES[ROLE_CODES.length - 1], "DRIVER_EXTERNAL", "thêm CUỐI — không xê dịch vai nào đang có");
 });
 
-test("bộ mặc định đúng đặc tả §4 + ADR-0018 điều 4 (Giám đốc = Toàn quyền kèm Quản trị; Điều hành = Quản trị)", () => {
-  assert.deepEqual(defaultPermissions(["DIRECTOR"]), ["ADMIN", "SUPER_ADMIN"]);
+test("bộ mặc định đúng đặc tả §4 + ADR-0072 điều 1 (Giám đốc = Quản trị, KHÔNG Toàn quyền; Điều hành = Quản trị; IT = Quản trị + Toàn quyền)", () => {
+  assert.deepEqual(defaultPermissions(["DIRECTOR"]), ["ADMIN"], "ADR-0072 điều 1: Giám đốc làm việc kinh doanh, không việc kỹ thuật");
+  assert.equal(ROLES.DIRECTOR.superAdminOnly, true, "ADR-0072 điều 1: vẫn chỉ Toàn quyền gán / gỡ vai Giám đốc");
   assert.deepEqual(defaultPermissions(["OPERATIONS_MANAGER"]), ["ADMIN"]);
-  assert.deepEqual(defaultPermissions(["IT"]), ["ADMIN", "SUPER_ADMIN"], "ADR-0044: vai IT = cùng bộ quyền Giám đốc, chỉ khác tên hiện ra");
+  assert.deepEqual(defaultPermissions(["IT"]), ["ADMIN", "SUPER_ADMIN"], "ADR-0044 + ADR-0072 điều 2: vai IT giữ nguyên Quản trị + Toàn quyền");
   assert.equal(ROLES.IT.name, "IT");
   assert.deepEqual(defaultPermissions(["GUIDE_INTERNAL"]), ["FIELD"]);
   assert.deepEqual(defaultPermissions(["SALES_STAFF"]), ["SALES"]);
@@ -90,7 +91,7 @@ test("groupOf: NONE / INTERNAL / EXTERNAL / MIXED", () => {
 
 test("effectivePermissions: mặc định + cộng − bớt; nhóm bên ngoài bị lọc về quyền bên ngoài (LC-1, ADR-0048 B2.1)", () => {
   assert.deepEqual(effectivePermissions(["SALES_STAFF"], { adds: ["ACCOUNTING"], removes: [] }), { permissions: ["SALES", "ACCOUNTING"], dropped: [] });
-  assert.deepEqual(effectivePermissions(["DIRECTOR"], { adds: [], removes: ["ADMIN"] }), { permissions: ["SUPER_ADMIN"], dropped: [] });
+  assert.deepEqual(effectivePermissions(["IT"], { adds: [], removes: ["ADMIN"] }), { permissions: ["SUPER_ADMIN"], dropped: [] });
   assert.deepEqual(effectivePermissions(["COLLABORATOR"], { adds: ["SALES"], removes: [] }), { permissions: ["PARTNER"], dropped: ["SALES"] });
   assert.deepEqual(effectivePermissions([], { adds: ["SALES"], removes: [] }), { permissions: ["SALES"], dropped: [] });
   // ADR-0048 D2: vai Tài xế đối tác sinh DRIVER_PARTNER — quyền bên ngoài, không bị LC-1 gạt; quyền nội bộ cộng tay vẫn bị gạt (Tài xế công ty DRIVER cũng vậy).
@@ -139,13 +140,13 @@ test("roleAssignmentProblem: LC-3, LC-1 (cộng tay), LC-4, còn ít nhất mộ
   assert.equal(roleAssignmentProblem({ ...base, next: assignment(["ACCOUNTANT"]) }), null);
 });
 
-test("roleAssignmentProblem (I-1, kiểm độc lập vòng 1): chặn cộng tay Toàn quyền dù Giám đốc đã có sẵn qua mặc định (chỉnh tay 'ngủ')", () => {
+test("roleAssignmentProblem (I-1, kiểm độc lập vòng 1): chặn cộng tay Toàn quyền dù vai IT đã có sẵn qua mặc định (chỉnh tay 'ngủ')", () => {
   const problem = roleAssignmentProblem({
     actorIsSuper: false,
-    currentRoles: ["DIRECTOR"],
+    currentRoles: ["IT"],
     currentPermissions: ["ADMIN", "SUPER_ADMIN"],
     currentAdjustments: { adds: [], removes: [] },
-    next: assignment(["DIRECTOR"], { adds: ["SUPER_ADMIN"], reason: "x" }),
+    next: assignment(["IT"], { adds: ["SUPER_ADMIN"], reason: "x" }),
   });
   assert.deepEqual(problem, { forbidden: true, message: "Chỉ người phụ trách hệ thống mới cấp hoặc gỡ quyền Quản trị." });
 });
@@ -190,13 +191,13 @@ test("highPermissionProblem (I-2, kiểm độc lập vòng 1): chặn cả chi�
   });
 });
 
-test("roleAssignmentProblem (I-1 vòng 2, kiểm độc lập): chặn BỎ dòng cộng tay Toàn quyền đã có dù Giám đốc mặc định vẫn giữ nguyên quyền đó", () => {
+test("roleAssignmentProblem (I-1 vòng 2, kiểm độc lập): chặn BỎ dòng cộng tay Toàn quyền đã có dù vai IT mặc định vẫn giữ nguyên quyền đó", () => {
   const problem = roleAssignmentProblem({
     actorIsSuper: false,
-    currentRoles: ["DIRECTOR"],
+    currentRoles: ["IT"],
     currentPermissions: ["ADMIN", "SUPER_ADMIN"],
     currentAdjustments: { adds: ["SUPER_ADMIN"], removes: [] },
-    next: assignment(["DIRECTOR"]),
+    next: assignment(["IT"]),
   });
   assert.deepEqual(problem, { forbidden: true, message: "Chỉ người phụ trách hệ thống mới cấp hoặc gỡ quyền Quản trị." });
 });
@@ -210,6 +211,21 @@ test("roleAssignmentProblem (I-1 vòng 2, kiểm độc lập): chặn BỎ dòn
     next: assignment(["SALES_STAFF"]),
   });
   assert.deepEqual(problem, { forbidden: true, message: "Chỉ người phụ trách hệ thống mới cấp hoặc gỡ quyền Quản trị." });
+});
+
+test("ADR-0072 điều 1: Giám đốc cần việc kỹ thuật → Toàn quyền cộng tay Toàn quyền (có lý do) được; Quản trị cộng thì bị chặn", () => {
+  const vao = (actorIsSuper: boolean) => ({
+    actorIsSuper,
+    currentRoles: ["DIRECTOR"] as RoleCode[],
+    currentPermissions: ["ADMIN"] as PermissionCode[],
+    currentAdjustments: { adds: [], removes: [] },
+    next: assignment(["DIRECTOR"], { adds: ["SUPER_ADMIN"], reason: "Giám đốc kiêm phụ trách hệ thống" }),
+  });
+  assert.equal(roleAssignmentProblem(vao(true)), null);
+  assert.deepEqual(effectivePermissions(["DIRECTOR"], { adds: ["SUPER_ADMIN"], removes: [] }), { permissions: ["ADMIN", "SUPER_ADMIN"], dropped: [] });
+  assert.deepEqual(roleAssignmentProblem(vao(false)), { forbidden: true, message: "Chỉ người phụ trách hệ thống mới cấp hoặc gỡ quyền Quản trị." });
+  // Cộng Kế toán (ADR-0072 điều 1, câu hỏi 1): quyền thường — không thuộc nhóm chỉ Toàn quyền cấp.
+  assert.deepEqual(effectivePermissions(["DIRECTOR"], { adds: ["ACCOUNTING"], removes: [] }), { permissions: ["ACCOUNTING", "ADMIN"], dropped: [] });
 });
 
 // ADR-0048 B2.2 (LC-1b, Q4 = (a)): MỘT hàm thuần cho mọi đường ghi quyền — tài khoản giữ DRIVER_PARTNER không giữ quyền nào khác.

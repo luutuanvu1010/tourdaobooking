@@ -77,11 +77,13 @@ console.log("✓ route cũ: khoá với tài khoản đã gán vai; LC-4 áp m�
 
 // ---- 5. Toàn quyền tự gán vai cho chính mình (Review Focus 5)
 const me = (await call(SUPER, "GET", "/api/auth/me")).body.staff;
-assert.equal((await call(SUPER, "PUT", `/api/staff/${me.id}/roles`, { roles: ["DIRECTOR"] })).status, 409, "quyền đổi (thêm Quản trị) → không tự đổi quyền");
-r = await call(SUPER, "PUT", `/api/staff/${me.id}/roles`, { roles: ["DIRECTOR"], removes: ["ADMIN"], reason: "tài khoản thử chỉ giữ Toàn quyền" });
+// ADR-0072 điều 1: vai Giám đốc nay chỉ sinh Quản trị — dùng vai IT (Quản trị + Toàn quyền, ADR-0044) để có "bớt tay Quản trị → còn đúng Toàn quyền".
+assert.equal((await call(SUPER, "PUT", `/api/staff/${me.id}/roles`, { roles: ["IT"] })).status, 409, "quyền đổi (thêm Quản trị) → không tự đổi quyền");
+assert.equal((await call(SUPER, "PUT", `/api/staff/${me.id}/roles`, { roles: ["DIRECTOR"] })).status, 409, "ADR-0072: Giám đốc = chỉ Quản trị → mất Toàn quyền → không tự đổi quyền");
+r = await call(SUPER, "PUT", `/api/staff/${me.id}/roles`, { roles: ["IT"], removes: ["ADMIN"], reason: "tài khoản thử chỉ giữ Toàn quyền" });
 assert.equal(r.status, 200, JSON.stringify(r.body));
 assert.deepEqual(r.body.staff.permissions, ["SUPER_ADMIN"]);
-assert.deepEqual(r.body.staff.roles, ["DIRECTOR"]);
+assert.deepEqual(r.body.staff.roles, ["IT"]);
 console.log("✓ tự gán vai: quyền không đổi thì cho, đổi thì 409");
 
 // ---- 6. Tạo tài khoản trên hồ sơ có sẵn

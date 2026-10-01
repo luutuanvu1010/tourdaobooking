@@ -23,14 +23,15 @@ export interface RoleDef {
 }
 
 export const ROLES: Readonly<Record<RoleCode, RoleDef>> = {
-  // Giám đốc = Toàn quyền; kèm Quản trị để các chốt "còn ít nhất một quản trị viên" (đếm quyền ADMIN) vẫn đếm đúng (ADR-0018 điều 4).
-  DIRECTOR: { name: "Giám đốc", group: "INTERNAL", defaults: ["ADMIN", "SUPER_ADMIN"], handles: "substitute", superAdminOnly: true },
+  // ADR-0072 điều 1 (sửa ADR-0018 điều 4): Giám đốc = Quản trị (việc kinh doanh), KHÔNG Toàn quyền (việc kỹ thuật); vẫn chỉ Toàn quyền gán / gỡ vai. Cần thêm thì
+  // Toàn quyền cộng tay có lý do (Kế toán, hoặc Toàn quyền). Quyền tính lúc gán vai rồi lưu: đổi dòng này KHÔNG tự bớt quyền người đang giữ vai (điều 3).
+  DIRECTOR: { name: "Giám đốc", group: "INTERNAL", defaults: ["ADMIN"], handles: "substitute", superAdminOnly: true },
   OPERATIONS_MANAGER: { name: "Điều hành chung", group: "INTERNAL", defaults: ["ADMIN"], handles: "substitute", superAdminOnly: true },
   GUIDE_INTERNAL: { name: "Hướng dẫn viên nội bộ", group: "INTERNAL", defaults: ["FIELD"], handles: "primary", superAdminOnly: false },
   SALES_STAFF: { name: "Nhân viên kinh doanh", group: "INTERNAL", defaults: ["SALES"], handles: "substitute", superAdminOnly: false },
   INTERN: { name: "Thực tập sinh", group: "INTERNAL", defaults: ["INTERN"], handles: "ownOrGiven", superAdminOnly: false },
   ACCOUNTANT: { name: "Kế toán", group: "INTERNAL", defaults: ["ACCOUNTING"], handles: "ownOrGiven", superAdminOnly: false },
-  // ADR-0044: vai hiện ra của tài khoản chủ (Toàn quyền là vai ẩn — người khác thấy "IT"); cùng bộ quyền Giám đốc, chỉ Toàn quyền gán.
+  // ADR-0044: vai hiện ra của tài khoản chủ (Toàn quyền là vai ẩn — người khác thấy "IT"); Quản trị + Toàn quyền (ADR-0072 điều 2: giữ nguyên), chỉ Toàn quyền gán.
   IT: { name: "IT", group: "INTERNAL", defaults: ["ADMIN", "SUPER_ADMIN"], handles: "substitute", superAdminOnly: true },
   // ADR-0040 D3 (Ruling R1, R12): tài xế là NHÂN VIÊN có tài khoản; không nhận đơn (không phải người phụ trách đơn). Mã vai hồ sơ cũ DRIVER (nhóm OTHER,
   // đã ngưng) KHÔNG phải vai này — không bao giờ sinh quyền. Quản trị gán được như "Hướng dẫn viên nội bộ".
