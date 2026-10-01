@@ -43,6 +43,11 @@
    - e. Dải nhắc "Đang ở chế độ bảo trì" cho Toàn quyền **giữ** (để chủ biết chế độ đang bật — giả định bề mặt, đảo ngược được).
    - f. Kèm (bề mặt, đã làm ở commit riêng): đồng hồ đếm lùi từ 1 ngày trở lên hiện "3 ngày 5 giờ 10 phút".
    - g. Rủi ro đã cân: chủ bị khoá ngoài khi bảo trì chỉ xảy ra nếu tài khoản chủ mất `SUPER_ADMIN`/bị ngưng — khi đó tắt bằng SQL như `docs/HANDOFF-N1.md` đã ghi; tự tắt khi hết giờ (đã có) vẫn giữ.
+3b. **Hồ sơ trùng khi tạo tài khoản — thu hẹp theo quyền xem Danh bạ** (chủ chọn 2026-10-01, phương án "Thu hẹp", sau khi rà `GET /api/staff/ho-so-khop`)
+   - Người gọi hỏi được `party.view` (xem Danh bạ — Toàn quyền, Quản trị…): giữ như cũ (tên, vai, có tài khoản).
+   - Người gọi **không** có `party.view` (HCNS): chỉ thấy tên + vai của hồ sơ trùng đang mở **vai tài khoản** (một vai trong `ROLE_CODES` — nhân viên, đối tác, tài xế) hoặc đã có tài khoản. Hồ sơ trùng chỉ là khách/không vai tài khoản: không trả id, tên, vai — chỉ một cờ "đã có trong Danh bạ". Giao diện báo: *"Số hoặc tên này đã có trong Danh bạ. Vẫn tạo được hồ sơ mới; sau đó nhờ Quản trị gộp hồ sơ trùng."*
+   - Áp **cùng một hàm** cho route đọc và lỗi 409 `party_match_exists` của `POST /api/staff` (không hai luật). `POST /api/staff` với `existingPartyId` trỏ tới hồ sơ người gọi không được thấy → từ chối như "không tìm thấy hồ sơ".
+   - Lý do: HCNS không xem Danh bạ (điều 1e); khớp đúng SĐT trả tên khách = dò được "số này là khách tên gì".
 4. **Ghi nhận, không đổi:** chỉ Toàn quyền cấp quyền Quản trị (LC-4, đã có — chủ xác nhận 2026-10-01).
 
 ## Trang ghép (CLAUDE.md §9)
