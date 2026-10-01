@@ -51,13 +51,17 @@
 ## Kiểm đã chạy (số liệu thật, máy của phiên)
 
 - `npm run typecheck`: 0 lỗi.
-- `npm test`: bộ chính 2432/2432 (lần chạy sau phần B) — lần cuối ghi ở báo cáo.
+- `npm test`: bộ chính 2435/2435 + bài đo giờ 1/1 (lần chạy cuối, sau phần A).
 - `npm run build:web`: xanh.
 - `npm run test:e2e -- catalog dieu-phoi van-chuyen pwa`: 5/5 xanh (144 giây; `dieu-phoi` có ca (1) `canhBaoXep` THIEU_TEN đúng mã đơn, không tên khách; ca (7) thiếu nơi trả → 200 + CHUA_CO_NOI_TRA, gửi lại cùng `requestId` → 200 không cảnh báo; `pwa` quét CSS sau dấu mốc PWA — khối mới chỉ token).
 - Kịch bản Chrome:
   - `danh-muc-dua-don-smoke.mjs`: 9/9 (1040 Quản trị, 390 Quản trị + Toàn quyền, Bán hàng bị từ chối; axe quét khung mới 0 critical/serious). Ảnh `m7-1040-khung-dua-don.png`, `m7-390-the-dich-vu.png`, `m7-390-bang-truot.png`.
   - `canh-bao-xep-smoke.mjs`: 2/2 (390 + 1040). Ảnh `canh-bao-xep-390.png`, `canh-bao-xep-1040.png`.
-  - Hồi quy theo bảng `web/CLAUDE.md`: `danh-muc-nhom-smoke.mjs` 10/10; `quyen-thieu-quan-tri-smoke.mjs` thoát 0 (tài khoản chỉ Toàn quyền vào `/catalog` không lỗi — chip đọc `GET /api/van-chuyen/mau-chang` qua cổng `orders`, SUPER_ADMIN có trong `ORDERS_GATE`); `dot-a-smoke.mjs` dich-vu 1040 + 390 (axe) xanh, đỏ SẴN ở `nhat-ky` (ADR-0038, ghi sẵn ở bảng); `dieu-phoi-smoke.mjs` 9 ✓ / 2 ✗ — hai bước đỏ là axe `color-contrast` ở `.sidebar-head > .brand > .brand-name > span` (chữ thương hiệu thanh bên khi trang cuộn — không do việc này: `web/shell.ts` và khối CSS thanh bên không đổi); bước 3–4 (xếp → dải cảnh báo) xanh.
+  - Hồi quy theo bảng `web/CLAUDE.md`: `danh-muc-nhom-smoke.mjs` 10/10; `quyen-thieu-quan-tri-smoke.mjs` thoát 0 (tài khoản chỉ Toàn quyền vào `/catalog` không lỗi — chip đọc `GET /api/van-chuyen/mau-chang` qua cổng `orders`, SUPER_ADMIN có trong `ORDERS_GATE`); `dot-a-smoke.mjs` dich-vu 1040 + 390 (axe) xanh, đỏ SẴN ở `nhat-ky` (ADR-0038, ghi sẵn ở bảng); `dieu-phoi-smoke.mjs` 9 ✓ / 2 ✗ — hai bước đỏ là axe `color-contrast` ở `.sidebar-head > .brand > .brand-name > span` (chữ thương hiệu thanh bên). CHƯA so trên commit gốc 34db1b5c (ở gốc `dp-lib` không dựng được dữ liệu nên kịch bản không chạy tới đó) — chỉ SUY RA không do việc này vì `web/shell.ts` và khối CSS thanh bên không đổi. Bước 3–4 (xếp → dải cảnh báo) xanh.
+
+- `npm run test:e2e` (TOÀN BỘ, vì đổi phản hồi route xếp): 36/36 xanh (639 giây). Lần chạy trước đó 27/34 đỏ do cả ba `wrangler dev` của bộ chạy chết giữa chừng (ECONNREFUSED / "other side closed" — máy đang chạy nhiều phiên khác); chạy lại không đổi mã → xanh.
+- `trang-chu-smoke.mjs` (bảng `web/CLAUDE.md` dòng 61, 68): 11 ✓ rồi dừng ở axe `color-contrast` (1 nút) của **Trang chủ** — trang không bị việc này đụng; cùng kiểu lỗi chữ thương hiệu thanh bên như trên. Kịch bản bắt buộc `AXE_JS` nên không chạy được phần sau (đếm mục thanh bên) để đối chiếu. CHƯA so trên commit gốc — chỉ suy ra (khối CSS mới chỉ thêm lớp `.dd-*` và hai token).
+- CHƯA chạy: `xe-smoke`, `danh-muc-giay-to-smoke`, `chinh-sach-dieu-phoi-smoke` (dòng 68 — đếm mục thanh bên; việc này chỉ đổi dải kết quả xếp); `chuyen-smoke` (giao diện không import `dieu-phoi-kiem`); các kịch bản điều phối khác vừa được `dp-lib` gỡ chặn (`chuyen-sua`, `rut-doi`, `cap-nhat-khach`, `goi-bao`, `cuoc-smoke`).
 
 ## Đề xuất cho tệp luật (KHÔNG tự sửa — N9)
 
