@@ -148,7 +148,7 @@
 | `ntf_notice_target` | bảng |  |
 | `ntf_ack` | bảng |  |
 | `ntf_read_mark` | bảng |  |
-| `ntf_push_sub` | bảng | session_id (0065, ADR-0075 điều 6b): phiên đã đăng ký máy này; NULL = đăng ký trước phát hành. revoke_reason thêm bi-thay: tài khoản một máy đăng nhập máy khác — tắt mọi đăng ký trừ đăng ký của phiên mới; bi-go: IT/Toàn quyền gỡ một phiên — tắt CHỈ đăng ký mang đúng mã phiên đó (đăng ký session_id NULL không đụng) |
+| `ntf_push_sub` | bảng | session_id (0065, ADR-0075 điều 6b): phiên đã đăng ký máy này; NULL = đăng ký trước phát hành. revoke_reason thêm bi-thay: tài khoản một máy đăng nhập máy khác — tắt mọi đăng ký trừ đăng ký của phiên mới; bi-go: IT/Toàn quyền gỡ một phiên — tắt CHỈ đăng ký mang đúng mã phiên đó (đăng ký session_id NULL không đụng). mat-mien (0067, ADR-0085 Q3): Toàn quyền lưu chính sách đăng nhập chuyển quyền sang Một máy — tắt CHỈ đăng ký mang đúng mã các phiên vừa bị kết thúc (máy giữ lại và đăng ký session_id NULL không đụng) |
 
 ## van-chuyen
 
