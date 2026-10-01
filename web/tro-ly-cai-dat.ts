@@ -16,6 +16,8 @@ const loiCua = (e: unknown): string => (e instanceof ApiError ? e.message : LOI_
 const usd = (n: number): string => `${n.toLocaleString("vi-VN", { maximumFractionDigits: 4 })} USD`;
 /** Số tiền rất nhỏ (giá một câu ~ 0,0008 USD): tới 6 chữ số lẻ. */
 const usdNho = (n: number): string => `${n.toLocaleString("vi-VN", { maximumFractionDigits: 6 })} USD`;
+/** ADR-0082 H1: nhãn tiếng Việt của một đoạn đã dùng ở ô thử. */
+const nhanKhop = (d: Api.TroLyDoanDaChon): string => [d.theoNghia ? "khớp nghĩa" : "", d.theoTuKhoa ? "khớp từ khoá" : ""].filter(Boolean).join(", ");
 const ngayVn = (iso: string): string => iso.split("-").reverse().join("/");
 
 const errorEl = byId("error");
@@ -311,7 +313,17 @@ function dungBoNao(): void {
           ketQua,
           h("p", { class: "tl-chu" }, r.traLoi),
           r.nguon.length ? h("p", { class: "tl-nguon" }, `Nguồn: ${r.nguon.join("; ")}`) : null,
-          h("p", { class: "muted" }, `${tenMau} · ${r.tokenVao} token vào, ${r.tokenRa} token ra · ${usdNho(r.chiPhiUsd)} (tính vào trần tháng)`),
+          h(
+            "div",
+            { id: "tl-thu-doan" },
+            h("p", { class: "muted" }, r.doanDaChon.length ? "Đoạn đã dùng:" : "Đoạn đã dùng: không có đoạn nào — trợ lý trả lời không kèm đoạn hướng dẫn."),
+            r.doanDaChon.length ? h("ul", { class: "tl-cd-ds" }, ...r.doanDaChon.map((d) => h("li", null, `${d.ten} — ${nhanKhop(d)}`))) : null,
+          ),
+          h(
+            "p",
+            { class: "muted" },
+            `${tenMau} · ${r.tokenVao} token vào, ${r.tokenRa} token ra · ${usdNho(r.chiPhiUsd)} trả lời + ${usdNho(r.chiPhiVanNghiaMicroUsd / 1_000_000)} tìm theo nghĩa (tính vào trần tháng)`,
+          ),
         );
       } catch (e) {
         replaceChildren(ketQua);
