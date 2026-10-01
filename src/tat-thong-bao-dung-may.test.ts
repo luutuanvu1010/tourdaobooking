@@ -109,6 +109,8 @@ test("ADR-0046 điểm 2–3: MỌI route gọi dongBangTin khai cờ tatThongBa
     // Dạng CHỈ PHIÊN (`chiPhien: true`, ADR-0075 điều 6b) — tắt thông báo CHỈ máy của các phiên được nêu: xếp loại riêng "chỉ-phiên"; route gỡ phiên PHẢI dùng
     // dạng này (đợt sửa sau kiểm độc lập 2026-10-01: dạng `giuPhien: null` cũ tắt MỌI máy của tài khoản — sai "của đúng máy đó").
     co.push(...[...than.matchAll(/dongBangTin\(\{\s*staffId:[^}]*?sessionIds:[^}]*?chiPhien:\s*true\s*\}\)/g)].map(() => "chỉ-phiên"));
+    // ADR-0085 Q3 (NỚI có chủ đích, chủ duyệt 2026-10-01 — sổ hàng rào): dạng "danh sách phiên, chỉ-phiên" KHÔNG có staffId — CHỈ route lưu chính sách được dùng.
+    co.push(...[...than.matchAll(/dongBangTin\(\{\s*phienKetThuc:[^}]*\}\)/g)].map(() => "chỉ-phiên danh sách"));
     const goi = (than.match(/dongBangTin\(/g) ?? []).length;
     assert.equal(co.length, goi, `${r.ten}: mọi lời gọi dongBangTin phải khai rõ tatThongBao: true|false`);
     if (goi > 0) thay[r.ten] = co;

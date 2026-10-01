@@ -33,3 +33,6 @@
   (cùng lần: `not ok 7 - ADR-0085 Q2 điều 7: bỏ Toàn quyền + ADMIN bị câu chốt TRONG LÔ từ chối (quản trị viên kia bị ngưng giữa chừng, 409) → không phiên nào đổi`)
 - Task 4, đột biến phụ 2026-10-01 "giữ lô thứ hai nhưng chạy nó TRƯỚC khi kiểm câu chốt (đổi chỗ dòng `return LAST_ADMIN()` xuống sau `loPhien = …`)": cùng hai dòng `not ok 6 - ADR-0085 §6 quy tắc 4 (AC8): …` và `not ok 7 - …` như trên; khôi phục → xanh 7/7.
 - Task 4, ghi chú: dòng sổ hàng rào "Mất miễn một máy …" (docs/SO-HANG-RAO.md, cơ chế cũ "câu SQL tự kiểm NOT EXISTS v_stf_toan_quyen") nay lỗi thời — cơ chế mới là thứ tự lô (lô thứ hai sau câu chốt); để task sổ hàng rào/tài liệu cập nhật.
+- Task 5 (dạng `dongBangTin` `{ phienKetThuc }`, SQL tắt máy theo danh sách phiên), quan sát chặn thật 2026-10-01, đột biến "bỏ `revoked_at IS NULL AND` khỏi câu TAT_MAY_CUA_CAC_PHIEN" — dòng đã tắt trước đó (lý do tu-tat) bị ghi đè (khôi phục từ bản sao, xanh 7/7 sau đó):
+  `not ok 7 - ADR-0085 Q3: TAT_MAY_CUA_CAC_PHIEN — chỉ tắt đăng ký mang ĐÚNG các phiên trong danh sách (nhiều tài khoản), lý do mat-mien; máy giữ lại, đăng ký session_id NULL, phiên ngoài danh sách, dòng đã tắt không đụng; danh sách rỗng → 0 dòng`
+- Task 5, ghi chú: nhánh `phienKetThuc` ở `src/index.ts` chưa có bài dây thật (Task 6 Step 1 + đột biến Task 6 Step 6 (d)); bảng ghim hàng rào (b) cũng để Task 6.

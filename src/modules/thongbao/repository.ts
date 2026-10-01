@@ -150,6 +150,11 @@ const TAT_MAY_TRU_PHIEN = defineSql("thongbao", "tat_may_tru_phien", `
 const TAT_MAY_CUA_PHIEN = defineSql("thongbao", "tat_may_cua_phien", `
   UPDATE ntf_push_sub SET revoked_at = ?3, revoke_reason = 'bi-go', updated_at = ?3, updated_by = NULL
   WHERE staff_id = ?1 AND revoked_at IS NULL AND session_id IN (SELECT value FROM json_each(?2))`);
+// ADR-0085 Q3: máy bị kết thúc vì Toàn quyền LƯU CHÍNH SÁCH (siết theo tập, nhiều tài khoản một lúc) — tắt CHỈ đăng ký mang đúng các phiên đó, lý do mat-mien.
+// Không lọc theo tài khoản (danh sách phiên đã đủ hẹp — phiên thuộc đúng một tài khoản); không tắt máy được giữ, không tắt đăng ký chưa gắn phiên (session_id NULL).
+const TAT_MAY_CUA_CAC_PHIEN = defineSql("thongbao", "tat_may_cua_cac_phien", `
+  UPDATE ntf_push_sub SET revoked_at = ?2, revoke_reason = 'mat-mien', updated_at = ?2, updated_by = NULL
+  WHERE revoked_at IS NULL AND session_id IN (SELECT value FROM json_each(?1))`);
 // Hết hiệu lực (dịch vụ đẩy trả 410) — không phải hành động của một người, updated_by = NULL ("hệ thống", theo khuôn migrations-dispatch).
 const HET_HAN = defineSql("thongbao", "het_han_may", `
   UPDATE ntf_push_sub SET revoked_at = ?2, revoke_reason = 'het-han', updated_at = ?2, updated_by = NULL
@@ -173,6 +178,8 @@ export function batMayStatements(db: D1Database, a: { id: string; staffId: strin
 export const tatMayTruPhienStatement = (db: D1Database, staffId: string, giuPhien: string | null, at: string): D1PreparedStatement =>
   db.prepare(TAT_MAY_TRU_PHIEN).bind(staffId, giuPhien, at);
 /** Tắt CHỈ các máy nhận mang đúng các phiên `sessionIds` của tài khoản (IT/Toàn quyền gỡ phiên — ADR-0075 điều 6b). Chưa chạy. */
+export const tatMayCuaCacPhienStatement = (db: D1Database, sessionIds: readonly string[], at: string): D1PreparedStatement =>
+  db.prepare(TAT_MAY_CUA_CAC_PHIEN).bind(JSON.stringify(sessionIds), at);
 export const tatMayCuaPhienStatement = (db: D1Database, staffId: string, sessionIds: readonly string[], at: string): D1PreparedStatement =>
   db.prepare(TAT_MAY_CUA_PHIEN).bind(staffId, JSON.stringify(sessionIds), at);
 export const tatMayStatement = (db: D1Database, staffId: string, endpoint: string | null, lyDo: string, at: string, by: string | null): D1PreparedStatement =>
