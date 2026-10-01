@@ -8,6 +8,8 @@
 3. **Mẫu chặng theo dịch vụ** `vc_leg_template` + hàm gợi ý `changMacDinh` (ADR-0054 D10.1–D10.2, **đã duyệt**). Đây là **tiền đề** của nơi trả mặc định.
 4. **Nơi trả mặc định theo dịch vụ** (ADR nháp `docs/superpowers/specs/2026-10-01-de-xuat-adr-noi-tra-mac-dinh.md`, **CHƯA duyệt**): chỉ lên lịch ở Task 7, **chờ chủ**.
 
+**KHÔNG gồm** ô "Số khách đi xe" **cấp đơn** (`orders.ride_pax`, ADR-0065 — proposed, câu 7 và câu 8 còn chờ). Lời chủ 1/10 (U2) gọi ô đó là `pax_override`, nhưng `pax_override` của ADR-0054 chỉ là số người riêng của **chặng về**. Đây là câu hỏi Q-A, đứng đầu mục "Câu hỏi và mâu thuẫn cần chủ" cuối tệp. Task 8 chỉ chừa chỗ móc.
+
 **Nguồn chuẩn tắc (đã duyệt, không hỏi lại):**
 - `docs/adr/ADR-0054-dieu-phoi-luot-4-chieu-ve-theo-dich-vu.md` (D10.1, D10.2, D10.3, L-R1, mục "Hệ quả", tiêu chí 1–9);
 - `docs/adr/ADR-0055-van-chuyen-kernel-luot-2.md` **chỉ VK2-C** (C1–C4, G-C1, G-C2). **Không làm** VK2-A (khung bận của xe) và VK2-B (giờ lái tối đa): ngoài phạm vi, lên kế hoạch riêng;
@@ -67,7 +69,11 @@
   - **đơn nháp** (`PUT /api/orders/:id`, ô `order.modify`): Bán hàng đơn mình → 200; Đối tác đơn mình → 200; Thực tập đơn mình → 200; Kế toán → 403;
   - **sau xác nhận** (`POST /legs`, `PUT /legs/:legId`, ô `order.trip.edit`): Bán hàng đơn mình → 200, đơn người khác → 403; Quản trị → 200; Đối tác / Thực tập / HDV → 403.
 - **TC-F4.** **Khoá vắng = giữ:** lưu nháp với thân chặng **không có** khoá `flightCode` (bản PWA cũ) → giá trị đang lưu của chặng cùng id còn nguyên sau lần xoá–chèn lại.
-- **TC-F5.** Sửa **chỉ** số hiệu chuyến bay của chặng đã xác nhận đang **dưới mốc 6 giờ** → 200, **không** đòi `datGap`, không dấu đặt gấp mới, dấu cũ không bị bỏ (C2: "Sửa số hiệu không kiểm mốc 6 giờ").
+- **TC-F5.** Sửa **chỉ** số hiệu chuyến bay của chặng đã xác nhận đang **dưới mốc 6 giờ** → 200, **không** đòi `datGap`, không dấu đặt gấp mới (C2: "Sửa số hiệu không kiểm mốc 6 giờ"). Dấu đặt gấp **cũ** giữ hay bỏ: theo câu trả lời **Q-B** của chủ (khuyến nghị: giữ). Bài viết theo câu trả lời; trước khi có câu trả lời, viết bài khuyến nghị và đánh dấu "chờ Q-B".
+- **TC-F8 (`PUT /trip` không xoá ô phụ — phát hiện C1 của người kiểm).** Chặng có `flight_code = 'VN1553'` và chặng về có `pax_override = 2`:
+  - đơn **nháp**: `PUT /api/orders/:id/trip` dời ngày đi / đổi giờ đón → hai ô còn nguyên;
+  - đơn **đã xác nhận**: như trên → còn nguyên;
+  - `PUT /trip` tạo chặng chiều đi mới (op `insert` của `keHoachChangTrip`, khi dịch vụ chưa có chiều đi) → chặng mới có hai ô `NULL`, chặng khác không đổi.
 - **TC-F6.** Nhật ký `order_leg_updated`: `detail` có "số hiệu chuyến bay VN1553 → VJ123" (G-C2: ghi giá trị); thêm chặng có số hiệu → đoạn "số hiệu chuyến bay VN1553".
 - **TC-F7.** Đọc:
   - chi tiết đơn `LegDto.flightCode` có giá trị;
@@ -96,7 +102,11 @@
   - (e) gửi **bằng** bản cũ → 200.
 - **TC-P5.** **Không mất khi lưu nháp:** Quản trị đặt `pax_override = 2` qua nhánh nháp. Lệnh này đẩy mốc `orders.updated_at` (`changeLeg` có `orderTouchGuarded` — `src/modules/orders/repository.ts:1315-1340`), nên form đang mở của Đối tác sẽ nhận 409 `stale` — đúng. Đối tác (người lập) **tải lại** rồi lưu nháp bằng thân **không có** khoá `paxOverride` (bản PWA cũ) → vẫn `2`.
 - **TC-P6.** Chặng về bị **bỏ** rồi thêm lại → chặng mới `pax_override = NULL` (D10.3).
-- **TC-P7.** Đổi `pax_override` trên chặng đã xác nhận dưới mốc 6 giờ → **không** đòi `datGap` (D10.3: không phải một trong bốn trường).
+- **TC-P7.** Đổi `pax_override` trên chặng đã xác nhận dưới mốc 6 giờ → **không** đòi `datGap` (D10.3: không phải một trong bốn trường). Dấu cũ: theo **Q-B** như TC-F5.
+- **TC-P10 (L-R1 chỉ chặn giá trị MỚI — phát hiện V2).** `pax_override = 2` đã lưu. Số khách dịch vụ sau đó giảm còn 1 (đường sửa số khách sẵn có).
+  - Đối tác / Thực tập lưu nháp **không** gửi khoá, hoặc gửi **bằng** giá trị cũ (2) → **200**. Không 400, vì họ không sửa được ô này; trả 400 là bế tắc.
+  - Đọc: `soNguoiChang` = 1 (kẹp lúc đọc); cột vẫn 2 (máy không tự sửa — ADR-0054 D10.3); kiểm định kỳ L-R1 cảnh báo.
+  - Người có `order.trip.edit` gửi giá trị **mới** 3 → 400 (L-R1); gửi giá trị **đổi** xuống 1 → 200.
 - **TC-P8.** `soNguoiChang` là **nơi duy nhất** tính số người chặng:
   - `lichChungChang.soNguoi` = 2 cho chặng về `pax_override = 2` của dịch vụ 4 khách;
   - `hanhKhachChoChuyen.soNguoi` cũng 2;
@@ -134,9 +144,9 @@
 ## Ràng buộc chung (mọi task)
 
 - Tiếng Việt có dấu ở mọi câu lỗi, nhật ký, tài liệu. Không lộ mã thô (`RETURN`, `pax_override`).
-- **SQL mới của `orders` chỉ ở `src/modules/orders/chang-hanh-khach-repo.ts`** (`defineSql`, câu tĩnh, EXPLAIN). Ưu tiên **mở rộng** câu chèn / sửa chặng có sẵn (`LEG_INSERT_COLS`, `LEG_SET` — `:140-:190`) thay vì thêm câu mới.
+- **SQL mới của `orders` chỉ ở `src/modules/orders/chang-hanh-khach-repo.ts`** (`defineSql`, câu tĩnh, EXPLAIN). Ưu tiên **mở rộng** câu chèn / sửa chặng có sẵn (`LEG_INSERT_COLS`, đoạn SET riêng `LEG_SET_O_PHU` có cờ "giữ" — Task 3.2; **không** đụng `LEG_SET` dùng chung) thay vì thêm câu mới. Câu mới duy nhất: câu đầu lô `leg_pax_override_checked` (Task 3.5).
   - Thêm câu có lính gác mới ⇒ phải vào `DOC_AUDIT_LOG_WONGUARD` = **nới hàng rào** ⇒ dừng, đề xuất cho chủ (N9).
-  - Kế hoạch này được thiết kế để **không cần** câu gác mới.
+  - Kế hoạch này được thiết kế để **không cần** câu **gác** mới. Câu `leg_pax_override_checked` là câu đầu lô, không gác, không vào danh sách đó.
 - `orders` **không** import `van-chuyen`; `van-chuyen` không đọc bảng `catalog`. Mẫu chặng chỉ đi qua route `van-chuyen` (ADR-0054 D10.1).
 - Hàm hẹp của `orders` (`lichChungChang`, `hanhKhachChoChuyen`) chỉ gọi trong thân route SAU `can(` (`src/orders-cong-bo.test.ts`).
 - DTO dựng **từng khoá** (không trải `...chang`). Khoá so sánh nơi không bao giờ vào DTO (bẫy 53 (3)).
@@ -152,7 +162,14 @@
   - `src/modules/orders/index.ts`: `ChangChoChuyen` `:177`, `hanhKhachChoChuyen` `:201`, `lichChungChang` `:276`, route `PUT /api/orders/:id` `:660` (`legMeta` `:689`), `POST /legs` `:751`, `PUT /legs/:legId` `:776` (đo 1/10);
   - `src/modules/orders/service.ts:121-:213` (`planAddLeg`, `planEditLeg`);
   - `src/shared/chang-dua-don.ts:62-:156` (`ChangHopLe`, `kiemChang`), `:266` (`moTaChang`);
-  - `src/modules/orders/chang-hanh-khach-repo.ts:140-:190` (câu chèn / sửa chặng);
+  - `src/modules/orders/chang-hanh-khach-repo.ts:140-:190` (câu chèn / sửa chặng). `LEG_SET` `:170` và `LEG_SET_DAT_GAP` `:175` là đoạn **dùng chung**; `LegFields` `:195-202` hiện có 6 trường;
+  - **mọi nơi gọi câu chèn / sửa chặng** (phát hiện C1, đo 1/10 ở `src/modules/orders/repository.ts`):
+    - `:888` `legInsert` (tạo đơn);
+    - `:971` `legInsertGuarded` (lưu nháp xoá–chèn lại);
+    - `:1247` `legUpdateGuarded` và `:1249` `legInsertGuarded` (`updateTrip` của `PUT /api/orders/:id/trip`, cả đơn nháp lẫn đã xác nhận);
+    - `:1308` `legInsertGuarded` (`addLeg`);
+    - `changeLeg` `:1315-1340` (`legUpdateChecked`, `legCloseChecked`).
+    Đo lại bằng `grep -n "legInsert\|legUpdate\|LEG_SET" src/modules/orders/*.ts`. Bảng "nơi gọi → ghi hai ô mới thế nào" vào sổ thi công;
   - `src/shared/dieu-phoi-kiem.ts:315-:350` (`kiemXuatBen`);
   - `src/modules/van-chuyen/tai-xe-dto.ts:38-:79` (`cuocChiTietDto`), `dieu-phoi-dto.ts:135-:145` (suất).
 - [ ] **0.2** Liệt kê migration mọi nhánh:
@@ -224,27 +241,45 @@
 
 **Tệp:** `src/modules/orders/chang-hanh-khach-repo.ts`, `service.ts`, `index.ts`, `repository.ts` (chỉ chỗ gọi), bài `src/modules/orders/chang-route.test.ts`, `luu-nhap-chang.test.ts`, `dat-gap.test.ts`.
 
-- [ ] **3.1 Đỏ:** bài route cho TC-F3, TC-F4, TC-F5, TC-P2, TC-P3, TC-P4 (a)–(e), TC-P5, TC-P6, TC-P7 trên khung `world()` (khuôn `chang-route.test.ts`, `luu-nhap-chang.test.ts`).
-- [ ] **3.2 SQL:** thêm `flight_code`, `pax_override` vào `LEG_INSERT_COLS` và `LEG_SET` (cùng câu có sẵn — **không câu mới, không tên gác mới**). Bài EXPLAIN (`NUA_NGHIEM`) xanh.
+- [ ] **3.1 Đỏ:** bài route cho TC-F3, TC-F4, TC-F5, TC-F8, TC-P2, TC-P3, TC-P4 (a)–(e), TC-P5, TC-P6, TC-P7, TC-P10 trên khung `world()` (khuôn `chang-route.test.ts`, `luu-nhap-chang.test.ts`, `trip-chang.test.ts`).
+- [ ] **3.2 SQL — KHÔNG thêm hai cột vào `LEG_SET` dùng chung** (phát hiện C1). `LEG_SET` đang được `updateTrip` (`PUT /trip`) dùng qua `legUpdateGuarded`. Nếu nhét hai cột vào, mỗi lần văn phòng dời ngày / giờ qua `/trip` sẽ ghi `NULL` đè số hiệu và số người.
+  - **Chèn:** thêm `flight_code`, `pax_override` vào `LEG_INSERT_COLS`. `legWriteOf` / `legWrites` nhận hai giá trị, **mặc định `NULL`**. Đúng cho chặng mới: `addLeg`, op `insert` của `/trip`, tạo đơn. Lưu nháp (`:971`) truyền giá trị đã giữ / chép ở 3.3.
+  - **Sửa:** đoạn SET **riêng** `LEG_SET_O_PHU`, gắn vào hai câu `leg_update_guarded` / `leg_update_checked` có sẵn. Mỗi cột có cờ "giữ":
+    ```sql
+    flight_code  = CASE WHEN ?17 = 1 THEN ?18 ELSE flight_code END,
+    pax_override = CASE WHEN ?19 = 1 THEN ?20 ELSE pax_override END
+    ```
+    - Cờ = 0 (mặc định ở hàm bind) = giữ giá trị đang lưu. `updateTrip` **luôn** truyền 0. Chỉ route chặng truyền 1 khi thân **có** khoá.
+    - Đây là sửa **chữ** của hai câu đã có, không phải câu mới, không tên mới, không vào `DOC_AUDIT_LOG_WONGUARD`.
+    - Bài EXPLAIN (`NUA_NGHIEM`) và bài chuỗi thô xanh.
+  - (Cách thay thế, nếu chủ của luật SQL không muốn `CASE`: chép giá trị đang lưu vào `fields` ở **mọi** nơi gọi trong bảng Task 0.1. Dễ sót, nên không khuyến nghị.)
 - [ ] **3.3 Lưu nháp `PUT /api/orders/:id`** (và `POST /api/orders` cho đơn mới):
   - `flightCode`: khoá có → dùng (ô `order.modify` đã hỏi); khoá vắng → chép giá trị đang lưu của chặng **cùng id** (khuôn `legMeta` `index.ts:689`, `chepDatGapNhap`).
   - `paxOverride`: khoá vắng → chép giá trị đang lưu cùng id; khoá có và **khác** bản đang lưu → cần `can(order.trip.edit, { ownerId, assigned })`, không có → **403** (câu tiếng Việt "Chỉ văn phòng đổi được số người chiều về"), hỏi **trước** khi ghi; bằng bản cũ → được.
   - Chặng mới (id null) có `paxOverride` → cũng cần `order.trip.edit`.
-  - L-R1: `paxOverride` ≤ số khách **của dịch vụ trong thân** (nháp chưa có điều chỉnh tiền) → vượt = 400.
+  - L-R1: **chỉ khi** giá trị được gửi **mới hoặc đổi** so với bản đang lưu (phát hiện V2): `paxOverride` ≤ số khách **của dịch vụ trong thân** (nháp chưa có điều chỉnh tiền) → vượt = 400.
+    - Giá trị **chép lại** (khoá vắng) hoặc gửi **bằng** bản cũ thì **không** kiểm L-R1, kể cả khi số khách vừa giảm dưới nó. Đối tác / Thực tập không sửa được ô này, nên trả 400 là bế tắc (TC-P10).
+    - Phần vượt do `soNguoiChang` kẹp lúc đọc và kiểm định kỳ báo (ADR-0054 D10.3, L-R1).
 - [ ] **3.4 Sau xác nhận `POST /legs`, `PUT /legs/:legId`:**
   - nhận hai khoá; khoá vắng ở `PUT` = giữ;
-  - L-R1 so với **số khách hiệu lực** (`soKhachHieuLuc`/`effectivePax` — một nguồn, bài học Đợt E);
-  - **bẫy mốc (Task 0.4):** nếu ngày, giờ, nơi đón, nơi trả **không đổi** (chỉ số hiệu / số người) thì **không** gọi `xetDatGapSua` và **không** bỏ dấu đặt gấp cũ (TC-F5, TC-P7). Viết điều kiện bằng một hàm thuần `chiDoiOPhu(cu, moi)` ở `chang-dua-don.ts` (có bài), không rải `if` trong route.
+  - L-R1 so với **số khách hiệu lực** (`soKhachHieuLuc`/`effectivePax` — một nguồn, bài học Đợt E), cũng **chỉ khi giá trị mới / đổi** (như 3.3);
+  - **bẫy mốc (Task 0.4):** nếu ngày, giờ, nơi đón, nơi trả **không đổi** (chỉ số hiệu / số người) thì **không** gọi `xetDatGapSua` (TC-F5, TC-P7). Viết điều kiện bằng một hàm thuần `chiDoiOPhu(cu, moi)` ở `chang-dua-don.ts` (có bài), không rải `if` trong route.
+  - **Dấu đặt gấp cũ khi chỉ đổi ô phụ (phát hiện V1 — CHỜ Q-B):**
+    - Hôm nay `LEG_SET_DAT_GAP` (`chang-hanh-khach-repo.ts:175`) **luôn ghi lại** năm cột đặt gấp: dấu mới, hoặc `NULL` cả năm khi `datGap = null`. Luật I16: "nội dung chặng đổi thì dấu cũ không còn duyệt nội dung mới". Vì vậy nếu không làm gì, sửa chỉ số hiệu cũng **xoá** dấu đặt gấp.
+    - ADR-0055 C2 chỉ nói "không kiểm mốc", không nói giữ dấu. ADR-0054 D10.3 cũng vậy.
+    - **Q-B = giữ (khuyến nghị):** thêm cờ "giữ dấu" cho năm cột, cùng khuôn `CASE` của 3.2 (`short_notice_reason = CASE WHEN ?21 = 1 THEN short_notice_reason ELSE ?12 END`, …). Route truyền 1 khi `chiDoiOPhu`. Đây là sửa chữ câu có sẵn, không câu mới. Chú thích I16 ở `:171-174` sửa theo: "nội dung **vận hành** (ngày, giờ, nơi) đổi thì bỏ dấu".
+    - **Q-B = bỏ:** không đổi SQL. TC-F5, TC-P7 ghim "dấu cũ bị bỏ".
 - [ ] **3.5 Nhánh nháp cho `pax_override`** (ADR-0054 D10.3 "đường mới cho đơn nháp"):
   - `PUT /api/orders/:id/legs/:legId` với đơn **nháp**: thân chỉ được có `paxOverride` + `expectedUpdatedAt` → đi tiếp; có khoá khác → giữ 409 `use_order_form` như hôm nay.
   - Ô vẫn là `order.trip.edit` (đã hỏi ở đầu route).
-  - **Câu ghi (đã đọc 1/10):** câu đầu lô hiện có `leg_update_checked` (`chang-hanh-khach-repo.ts:~186-190`) có điều kiện `status = 'confirmed'`. Dùng lại cho đơn nháp sẽ **luôn** trả 0 dòng → 409 `stale`. Vì vậy nhánh nháp cần **một câu đầu lô mới** (vd `leg_pax_override_draft_checked`):
+  - **Câu ghi (đã đọc 1/10):** câu đầu lô hiện có `leg_update_checked` (`chang-hanh-khach-repo.ts:~186-190`) có điều kiện `status = 'confirmed'`. Dùng lại cho đơn nháp sẽ **luôn** trả 0 dòng → 409 `stale`. Vì vậy nhánh nháp cần **một câu đầu lô mới** tên `leg_pax_override_checked` (không mang chữ `draft`, để khỏi lẫn với quy ước đuôi `_draft` = câu có lính gác):
     - `UPDATE ord_transfer_leg SET pax_override = ?, updated_at = ?, updated_by = ? WHERE id = ? AND order_id = ? AND closed_at IS NULL AND updated_at = ? AND direction = 'RETURN' AND EXISTS (SELECT 1 FROM orders WHERE id = ? AND status = 'draft')`;
     - đây là câu đầu lô, **tự quyết thắng / thua**, nên tên **không** mang đuôi `_guarded` / `_draft` và **không** vào `DOC_AUDIT_LOG_WONGUARD` (`docs/CHANGE-GUIDE.md` công thức z). Phần còn lại của lô dùng lại `changeLeg`: nhật ký `changes() > 0`, `orderTouchGuarded`, `serviceMirrorUpdateGuarded`.
     - Nếu bài nào đòi khai câu này vào một danh sách mà việc khai là **nới** hàng rào (vd danh sách ngoại lệ) → **dừng**, đề xuất cho chủ (N9), không tự khai.
   - Nhật ký `order_leg_updated`; Bảng tin `chuyen` đúng một lần.
   - Thứ tự trả lỗi giữ khuôn route: 404 → 403 → Đã giao → (nháp: kiểm thân) → hủy → 400.
-- [ ] **3.6** Thấy chặn thật: bỏ tạm kiểm 403 ở 3.3 → TC-P4 (c) đỏ → hoàn nguyên. Bỏ tạm nhánh chép ở 3.3 → TC-F4, TC-P5 đỏ → hoàn nguyên. Ghi ngày.
+- [ ] **3.5b `PUT /api/orders/:id/trip`** (phát hiện C1): không nhận khoá `flightCode` / `paxOverride` (thân có → 400 "sửa ở chặng"). `updateTrip` truyền cờ "giữ" = 0 cho mọi op `update`; op `insert` truyền `NULL`. Bài TC-F8.
+- [ ] **3.6** Thấy chặn thật: đổi tạm cờ "giữ" của `updateTrip` thành 1 với giá trị `NULL` → TC-F8 đỏ → hoàn nguyên. Bỏ tạm kiểm 403 ở 3.3 → TC-P4 (c) đỏ → hoàn nguyên. Bỏ tạm nhánh chép ở 3.3 → TC-F4, TC-P5 đỏ → hoàn nguyên. Ghi ngày.
 - [ ] **3.7** `node --test src/modules/orders/*.test.ts src/route-write-guard.test.ts src/route-access.test.ts` xanh.
 
 ## Task 4 — Đường đọc (làm ngay)
@@ -257,6 +292,7 @@
   - `ChangLichChung` thêm `soHieuChuyenBay`. `soNguoi` = `soNguoiChang(...)` (thay chỗ cộng tay).
   - `ChangChoChuyen.soNguoi` = `soNguoiChang(...)`. **Không** thêm số hiệu vào `ChangChoChuyen` (ADR-0055 không nêu; giữ hẹp).
   - Suất của DTO văn phòng (`dieu-phoi-dto.ts` quanh `:138-:142`) thêm `soHieuChuyenBay` lấy từ `changLich`. DTO tài xế (`cuocChiTietDto`) chọn thêm khoá này **ngoài** nhánh `trongNgay` (G-C1: có mọi lúc).
+    - **Ruling (phát hiện T1):** số hiệu gắn vào **suất** (`suat[]`, theo `legId`), **không** vào điểm dừng (`diem[]`). ADR-0055 C3 nói "mục điểm dừng / chặng". Một điểm dừng có thể gom suất của nhiều chặng, mỗi chặng một chuyến bay, nên gắn vào điểm sẽ phải gộp hoặc chọn một số. Ghi ruling vào sổ thi công.
   - Áp cho `DRIVER`; `DRIVER_PARTNER` theo đúng ADR-0053 khi lượt 3 mở — không mở sớm.
   - Biên nhận / ảnh xác nhận: **không đổi** (`src/shared/order-confirmation.ts` không đọc khoá mới; thêm một ca ghim).
 - [ ] **4.3** `src/giay-to-khong-lo-so.test.ts` **không** cần ca mới: bài đó canh **số giấy tờ** trên route `/documents|/giay-to`; số hiệu chuyến bay không phải giấy tờ, không đi route đó. Hàng rào thật là các bài liệt kê khoá ở 4.1. Ghi ruling.
@@ -312,14 +348,14 @@ Nếu chủ chọn **A** (khuyến nghị):
 - [ ] **7.5 Kiểm định kỳ:** NT-D4 "mẫu hiện hành trỏ điểm đã ngưng" (`level: "warn"`) + bài.
 - [ ] **7.6 Bài NT-D5:** lưu nháp chặng đi không nơi trả cho dịch vụ có mặc định → CSDL vẫn trống (máy chủ không tự điền).
 - [ ] **7.7 e2e:** `catalog.mjs` thêm "gieo mẫu có nơi trả → `sync force` → mẫu y nguyên".
-- [ ] **7.8** `docs/data-dictionary.json`: theo tiền lệ. Mở mục `integrityEdges`; nếu khoá ngoại `vc_trip_stop → loc_location` đã được liệt kê thì thêm `vc_leg_template → loc_location` cùng khuôn, nếu không thì thôi → `npm run dict`.
+- [ ] **7.8** Không thêm cạnh module: `van-chuyen → locations` đã có ở `ALLOWED_EDGES` (`src/architecture.test.ts:60`). `docs/data-dictionary.json` không đổi (chỉ thêm cột vào bảng đã khai ở Task 6).
 
 ## Task 8 — "Số khách đi xe" cấp ĐƠN (`orders.ride_pax`) — **CHỜ ADR-0065** (không làm trong kế hoạch này)
 
 - Lời chủ 1/10 (U2) gọi ô "Số khách đi xe" là `pax_override`. Nhưng:
   - `pax_override` của ADR-0054 là số người **riêng của một chặng về** (chỉ `RETURN`);
   - "Số khách đi xe" của **cả đơn** (lời chủ 30/9: "Bán hàng nhập một ô riêng, gợi ý bằng số khách lớn nhất; xe và đầu trang đơn dùng số này") là cột `orders.ride_pax` của **ADR-0065 — proposed**, câu 7 và câu 8 còn chờ chủ (`docs/superpowers/specs/2026-09-30-de-xuat-adr-ra-soat/cau-hoi-chu.md:49-77`).
-  - Xem mục "Mâu thuẫn cần chủ" cuối tệp.
+  - Xem câu Q-A ở mục "Câu hỏi và mâu thuẫn cần chủ" cuối tệp.
 - Móc đã chừa: tham số thứ ba `them.soKhachDiXe` của `soNguoiChang` (Task 2). ADR-0065 thay công thức trong **một** hàm, không sửa nơi gọi.
 - Khi ADR-0065 được duyệt, kế hoạch riêng của nó phải:
   - tạo lại trigger `orders_delivered_lock` (`0044`) có thêm cột;
@@ -358,7 +394,8 @@ Nếu chủ chọn **A** (khuyến nghị):
   - bài một luật số người;
   - bài khoá route form mẫu chặng;
   - 403 lưu nháp `paxOverride`.
-- [ ] Sổ thi công: ruling 0.2 (số migration), 0.5 (`logicalRefs`), 1.2 (lệch chữ `CHECK` → trigger), 4.3 (`giay-to-khong-lo-so` không áp).
+- [ ] `docs/SYSTEM-DESIGN.md` §16 (lệch có chủ ý — phát hiện V3): một dòng "ADR-0054 D10.3 viết `CHECK (pax_override IS NULL OR (pax_override >= 1 AND direction = 'RETURN'))`; mã thi công `CHECK` một cột + trigger INSERT/UPDATE (SQLite không thêm `CHECK` nhiều cột bằng `ALTER`); chặn tương đương; trình chủ ra dòng lịch sử". Chủ trả lời Q-C thì cập nhật dòng đó.
+- [ ] Sổ thi công: ruling 0.2 (số migration), 0.5 (`logicalRefs`), 1.2 (lệch chữ `CHECK` → trigger), 3.2 (đoạn SET riêng có cờ "giữ"), 4.2 (số hiệu gắn suất, không gắn điểm), 4.3 (`giay-to-khong-lo-so` không áp).
 - [ ] **Không** tự sửa `CLAUDE.md`, `src/CLAUDE.md`, ADR. Đề xuất diff nếu cần. CHANGE-GUIDE z / z3 còn ghi "nhánh thi công, CHƯA gộp" dù mã đã ở `main` từ 1.38: đây là tài liệu mô tả nên sửa được, ghi lại.
 
 ## Task K — Kiểm độc lập (bắt buộc — việc lớn: dữ liệu)
@@ -377,14 +414,25 @@ Nếu chủ chọn **A** (khuyến nghị):
 
 ---
 
-## Mâu thuẫn cần chủ (ghi để điều phối trình một lần — không chặn Task 0–6, 9, 10)
+## Câu hỏi và mâu thuẫn cần chủ (điều phối trình một lần — không chặn Task 0–6, 9, 10)
 
-1. **"Số khách đi xe" là ô nào?**
-   - U2 (1/10) ghi "Số khách đi xe" (`pax_override`, ADR-0054). Thực ra:
-     - ADR-0054 = số người riêng của **chiều về** của từng chặng;
-     - "Số khách đi xe" cấp **đơn** (Bán hàng nhập, gợi ý bằng số khách đông nhất) là `ride_pax` của **ADR-0065 — chưa duyệt**, còn câu 7, 8.
-   - Kế hoạch làm đúng ADR-0054 đã duyệt và để ADR-0065 chờ (Task 8).
-   - Nếu ý chủ là ô cấp đơn thì cần duyệt ADR-0065 (lượt 2b). Khi đó ADR-0065 sửa công thức `soNguoiChang` và L-R1.
-2. **Ai nhập.** ADR-0054: "chỉ văn phòng" (`order.trip.edit`: Bán hàng đơn mình / phụ trách, Quản trị, Toàn quyền). ADR-0065 nháp: "Bán hàng nhập", theo cùng ô. Hai ADR khớp về người ghi; Đối tác / Thực tập lập nháp không sửa được cả hai số. Nếu chủ muốn Đối tác tự ghi "khách về ít hơn" thì phải có ADR mới (nới quyền).
-3. **Số migration 0056 trong tài liệu quyết định 1/10 đã cũ** (nhánh gộp hồ sơ giữ `0056`). Không cần chủ quyết, chỉ ghi.
-4. **Nơi trả mặc định:** Q1 của ADR nháp (A cột mẫu — khuyến nghị / B chép nơi check-in) + xin đồng ý ghi "điểm đón nội thành" vào sổ việc để sau.
+**Q-A (hỏi trước tiên). "Số khách đi xe" bạn chọn ở U2 là ô nào?**
+- U2 (1/10) ghi "Số khách đi xe" (`pax_override`, ADR-0054). Thực ra:
+  - ADR-0054 = số người riêng của **chiều về** của từng chặng;
+  - "Số khách đi xe" cấp **đơn** (Bán hàng nhập, gợi ý bằng số khách đông nhất) là `ride_pax` của **ADR-0065 — chưa duyệt**, còn câu 7, 8.
+- Phương án:
+  - **(a) Khuyến nghị:** làm cả hai theo thứ tự. Đợt này làm số người chiều về (ADR-0054, đã duyệt). Bạn duyệt ADR-0065 (lượt 2b, trả lời câu 7, 8) để làm ô cấp đơn ở lát sau. Ô cấp đơn sửa công thức `soNguoiChang` và L-R1 tại một chỗ.
+  - **(b)** Chỉ cần ô cấp đơn: hoãn `pax_override`, ưu tiên ADR-0065.
+- **Ai nhập:** hai ADR khớp nhau. Chỉ văn phòng ghi (`order.trip.edit`: Bán hàng đơn mình / phụ trách, Quản trị, Toàn quyền). Đối tác / Thực tập không sửa được số nào. Muốn Đối tác tự ghi thì phải có ADR mới (nới quyền).
+
+**Q-B. Chặng đã "đặt gấp" mà chỉ sửa số hiệu chuyến bay hoặc số người chiều về: giữ dấu đặt gấp cũ hay bỏ?** (Task 3.4; ADR-0055 C2 và ADR-0054 D10.3 không nói.)
+- **(a) Khuyến nghị — giữ:** dấu duyệt ngày, giờ, nơi; các thứ đó không đổi. Bỏ dấu thì chặng tụt xuống "cần đặt gấp lại" chỉ vì gõ số hiệu.
+- **(b) Bỏ:** đúng chữ luật hôm nay ("mọi lần sửa chặng ghi lại dấu"). Quản trị / Toàn quyền phải bấm đặt gấp lại.
+
+**Q-C. Chấp nhận lệch chữ ở ADR-0054 D10.3** (`CHECK` nhiều cột → `CHECK` một cột + trigger, chặn tương đương; ghi §16 SYSTEM-DESIGN — Task 10)?
+- **(a) Khuyến nghị — chấp nhận:** ghi một dòng lịch sử cho ADR-0054.
+- **(b) Không:** phải dựng lại bảng `ord_transfer_leg` (expand–contract, hai lần phát hành), nặng hơn nhiều.
+
+**Q-D. Nơi trả mặc định:** Q1 của ADR nháp (A cột mẫu — khuyến nghị / B chép nơi check-in) + xin đồng ý ghi "điểm đón nội thành" vào sổ việc để sau.
+
+**Ghi chú, không cần chủ quyết:** số migration 0056 trong tài liệu quyết định 1/10 đã cũ (nhánh gộp hồ sơ giữ `0056`).

@@ -8,7 +8,7 @@
   - `0063`–`0065` là các bản nháp đã giữ số (`2026-09-30-de-xuat-adr-ra-soat/`);
   - **số trống nhỏ nhất hôm nay là 0071**, nhưng phiên đang soạn ADR sổ tiền lượt 2 có thể lấy trước.
 - **Ngày:** 2026-10-01.
-- **Loại:** bổ sung ADR-0054 D10.1–D10.2 (đã duyệt). Không thay câu nào của ADR-0054, chỉ thêm một cột và một khoá DTO. Phần cửa một chiều / hai chiều ở dưới.
+- **Loại:** bổ sung ADR-0054 D10.1–D10.2 (đã duyệt). Thay ba câu của ADR-0054 (bảng cột D10.1, bài khoá route form, nghĩa thân route ghi mẫu) — xem mục "Câu ADR bị thay". Phần cửa một chiều / hai chiều ở dưới.
 - **Nguồn (lời chủ và Giám đốc, chuẩn — không hỏi lại):**
   - Chủ, 1/10, hộp chọn U2 (`docs/superpowers/specs/2026-10-01-uu-tien-xe-chay-quyet-dinh.md`): "Thêm cả các ô mới: … **nơi trả tự điền theo dịch vụ** (chưa có ADR — cần ADR mới)". Ví dụ đã nêu: tour đảo → "Cảng Cầu Đá"; người lập sửa được.
   - Giám đốc, phiếu 30/9, điều muốn sửa nhất (c): "Điểm đón khách nội thành Nha Trang, điểm trả theo gói dịch vụ". Đối chiếu ở `docs/superpowers/specs/2026-10-01-doi-chieu-phieu-giam-doc.md` §2.1(c), dòng B2 (`:87`, `:109`), câu 14 (`:169`). Câu 14 có phương án (a) do AI khuyến nghị: "thêm cột 'nơi trả mặc định' vào mẫu chặng theo dịch vụ (ADR-0054), Quản trị cài trong app".
@@ -81,6 +81,7 @@
   - điểm phải đang dùng, đọc qua `v_loc_location_label.active = 1` (sai → 400, câu tiếng Việt);
   - `mode = 'NONE'` mà có điểm → 400 (lớp CSDL D1 là lưới thứ hai).
 - **Nhật ký:** hành động có sẵn của ADR-0054 `transfer_template_set`. `detail` thêm "nơi trả mặc định <tên điểm cũ> → <tên điểm mới>" (tên điểm danh mục, không id). Không dữ liệu cá nhân.
+- **`mode` và `returnTimeHint` vẫn bắt buộc** trong thân như ADR-0054 D10.1 (mỗi dòng là một bản đầy đủ). Thiếu `mode` → 400. `returnTimeHint` gửi `null` khi không gợi ý. Chỉ `noiTraMacDinhId` mới có luật "vắng = giữ" (để màn Danh mục cũ, chưa biết ô này, không vô tình xoá nơi trả).
 - **Không thêm ô quyền.** Đọc lịch sử: `GET /api/van-chuyen/mau-chang/:code` (cổng `admin`).
 
 ### D3. Lúc nào máy điền: chỉ ở form, qua hàm thuần dùng chung — đã chốt ở ADR-0054 D10.2, áp dụng, không hỏi lại
@@ -180,6 +181,17 @@ Mỗi hàng rào mới có một dòng ở `docs/SO-HANG-RAO.md`, kèm ngày th�
 4. Hôm sau Quản trị đổi nơi trả mặc định của `TD101`. Đơn ở ví dụ 2 **không** đổi. Đơn lập sau đó nhận điểm mới.
 5. Dịch vụ `MOTO01` không cài nơi trả. Form để trống, chuyến xe chở khách dịch vụ này bị giữ "Chưa có nơi trả" tới khi văn phòng điền.
 6. Quản trị ngưng điểm "Bến tàu du lịch Nha Trang". Form lập đơn nhận `noiTraMacDinh: null` (ô trống). Kiểm định kỳ NT-D4 báo "mẫu TD101 trỏ điểm đã ngưng".
+
+## Câu ADR bị thay (nguyên văn → mới)
+
+Tệp ADR cũ **không** sửa; `docs/adr/README.md` do điều phối cập nhật.
+
+| ADR | Nguyên văn | Mới |
+|---|---|---|
+| ADR-0054 D10.1, bảng cột `vc_leg_template` | `id`, `code`, `mode`, `return_time_hint`, `valid_from_at`, bốn cột WHO | thêm `default_dropoff_location_id` (TEXT NULL, khoá ngoại `loc_location`; chỉ khi `mode <> 'NONE'` — ADR-00xx D1) |
+| ADR-0054 "Hệ quả", hàng rào "bài liệt kê khoá của route đọc mẫu cho form (chỉ mã, chế độ, giờ gợi ý)" | "chỉ mã, chế độ, giờ gợi ý" | "chỉ mã, chế độ, giờ gợi ý, **nơi trả mặc định** (`{ id, ten }` hoặc `null` khi điểm đã ngưng)" |
+| ADR-0054 "Hệ quả", route `POST /api/van-chuyen/mau-chang/:code` — "thêm bản mới" (thân là bản đầy đủ) | thân mang đủ `mode`, `returnTimeHint` | thân thêm `noiTraMacDinhId`. Khoá **vắng** = chép điểm của bản hiện hành, trừ khi `mode = 'NONE'` thì `NULL`. `mode`, `returnTimeHint` vẫn bắt buộc (D2) |
+| ADR-0054 D10.2, `changMacDinh` | "chặng về: nơi đón = nơi trả chiều đi, nơi trả = nơi đón chiều đi" | **không đổi câu**. Hàm nhận thêm nơi trả mặc định để điền nơi trả chiều đi; chiều về tự đảo theo câu cũ |
 
 ## Cửa một chiều / hai chiều
 
