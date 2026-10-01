@@ -1,6 +1,6 @@
 # Đặc tả — Trợ lý Hỗ trợ: tìm đoạn theo nghĩa trộn từ khoá (lượt 2)
 
-- **Trạng thái:** bản nháp, chờ chủ dự án duyệt **cùng** ADR-0076 (cùng thư mục).
+- **Trạng thái:** **đã duyệt** 2026-10-01 cùng ADR-0076 (chủ: "duyệt, lập kế hoạch đi").
 - **Ngày:** 2026-10-01. **Mốc mã:** `origin/main` = `c62ffc6d` (production 1.54). **Nhánh:** `tro-ly-tim-theo-nghia`.
 - **Xây trên lỗ đang hở:** không có.
 - **Ngoài phạm vi:** ô chỉnh cách tìm trong Bảng điều khiển (chủ chọn "đặt sẵn"); đổi lời nhắc; đổi ngân sách 6.000 token.

@@ -1,6 +1,6 @@
 # ADR-0076 — Trợ lý Hỗ trợ: tìm đoạn hướng dẫn theo nghĩa (embedding OpenAI) trộn với từ khoá
 
-- **Trạng thái:** **proposed** — bản nháp chờ chủ dự án duyệt. Nháp ngoài `docs/adr/` (luật hỏi quyền khi sửa `docs/adr/**`).
+- **Trạng thái:** **accepted** 2026-10-01 — chủ dự án trả lời "duyệt, lập kế hoạch đi" sau khi AI trình ADR-0076 + đặc tả (đã qua 2 lượt kiểm độc lập). AI ghi lại. Văn bản còn ở thư mục nháp; chép vào `docs/adr/` + mục lục ở Task 0 của kế hoạch thi công.
 - **Ngày:** 2026-10-01. **Số:** 0076 — 0074 (2FA) và 0075 (sổ phiên một máy) đã duyệt ở nhánh đăng nhập.
 - **Mốc mã:** `origin/main` = `c62ffc6d`; production đang chạy **1.54** (GET `/api/auth/config`, 2026-10-01) — đã có ADR-0073 (bộ não tuỳ biến).
 - **Thuộc gói:** lượt duyệt gồm ADR này + đặc tả `dac-ta.md` cùng thư mục (trang ghép §7 đặc tả). Hai quyết định chạm dữ liệu/tiền ≤ trần 3.
