@@ -1,8 +1,10 @@
 // Trang "Trợ lý Hỗ trợ" (/tro-ly-cai-dat — ADR-0069): bảng điều khiển trợ lý AI của Toàn quyền (ô settings.ops; máy chủ kiểm lại ở MỌI route).
-// Năm phần theo đặc tả mục 2: Tình trạng (bật / tắt, key đã đặt + 4 ký tự cuối, Thử key, chi phí), Ai được dùng (9 công tắc + trần ngày), Lời dặn (+ lịch sử
-// bản, quay lại), Ngữ cảnh bổ sung, Lịch sử hỏi đáp (lọc ngày / người / vai, tìm chữ). Không innerHTML; chữ người dùng hiện bằng textContent.
+// Sáu phần: Tình trạng (bật / tắt, key đã đặt + 4 ký tự cuối, Thử key, chi phí, lượt thử), Ai được dùng (9 công tắc + trần ngày), Bộ não (ADR-0073: mẫu,
+// mức suy nghĩ, độ dài, token ra, lời nhắc, lịch sử bản, ô thử), Lời dặn (câu chào, câu hỏi mẫu), Ngữ cảnh bổ sung, Lịch sử hỏi đáp (lọc ngày / người / vai,
+// tìm chữ). Không innerHTML; chữ người dùng hiện bằng textContent. Ước tính giá lấy từ src/shared/tro-ly-mau.ts (không import gì).
 // Không import src/shared/tro-ly.ts (kéo cả kho tri thức vào bundle): giới hạn độ dài lấy từ tệp riêng tro-ly-gioi-han.ts; câu lỗi lời thường do máy chủ soạn.
 import { GIOI_HAN_TRO_LY as G } from "../src/shared/tro-ly-gioi-han";
+import { uocMotCauMicroUsd } from "../src/shared/tro-ly-mau";
 import { PERMISSION_CODES, PERMISSION_LABEL, can, type PermissionCode } from "../src/shared/permissions";
 import { ApiError, api, type Api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
@@ -12,6 +14,9 @@ import { initShell, showError } from "./shell";
 const LOI_MANG = "Không kết nối được. Kiểm tra mạng rồi thử lại.";
 const loiCua = (e: unknown): string => (e instanceof ApiError ? e.message : LOI_MANG);
 const usd = (n: number): string => `${n.toLocaleString("vi-VN", { maximumFractionDigits: 4 })} USD`;
+/** Số tiền rất nhỏ (giá một câu ~ 0,0008 USD): tới 6 chữ số lẻ. */
+const usdNho = (n: number): string => `${n.toLocaleString("vi-VN", { maximumFractionDigits: 6 })} USD`;
+const ngayVn = (iso: string): string => iso.split("-").reverse().join("/");
 
 const errorEl = byId("error");
 const trang = byId("tl-trang");
@@ -77,6 +82,7 @@ function veTinhTrang(daLuu = false): void {
     h("div", { class: "tl-cd-hang" }, thu),
     baoThu.el,
     h("p", null, `Tháng ${thang}/${nam}: đã dùng ${usd(s.chiPhiThangUsd)} trên trần ${usd(s.tranThangUsd)} · ${s.soCauThang} câu. Hôm nay: ${s.soCauHomNay} câu.`),
+    h("p", { id: "tl-luot-thu" }, `Lượt thử tháng này: ${s.soLuotThuThang} lượt thử (Thử key và ô thử) — tiền tháng ở trên đã gồm cả lượt thử.`),
     s.theoVai.length
       ? h("ul", { class: "tl-cd-ds" }, ...s.theoVai.map((v) => h("li", null, `${PERMISSION_LABEL[v.vai]}: ${v.soCau} câu · ${usd(v.chiPhiUsd)}`)))
       : h("p", { class: "muted" }, "Tháng này chưa có câu hỏi nào theo vai."),
@@ -118,13 +124,165 @@ function veAiDung(daLuu = false): void {
   replaceChildren(byId("tl-ai-dung"), h("h2", { id: "tl-ai-dung-h" }, "Ai được dùng"), form);
 }
 
-// ---- 3. Lời dặn ------------------------------------------------------------------------------------------------------------------------------------------
+// ---- 3. Bộ não (ADR-0073 Đ1, Đ2, Đ5) ---------------------------------------------------------------------------------------------------------------------
+
+const CANH_BAO =
+  "Xoá các luật an toàn trong lời nhắc có thể khiến trợ lý trả lời điều không nên nói. Che số điện thoại, ẩn số tiền, giới hạn tiền và quyền xem vẫn do máy chủ giữ.";
+
+function veBoNao(d: Api.TroLyBoNaoResponse, daLuu = false): void {
+  const hh = d.hienHanh;
+  const mau = h("select", { id: "tl-mau" }, ...d.danhSachMau.map((m) => h("option", { value: m.ma }, m.ten)));
+  mau.value = hh.mau;
+  const muc = h("select", { id: "tl-muc" });
+  const doDai = h("select", { id: "tl-do-dai" }, ...d.doDai.map((x) => h("option", { value: x.ma }, x.nhan)));
+  doDai.value = hh.doDai;
+  const token = h("input", { type: "number", id: "tl-token-ra", min: G.tokenRaThap, max: G.tokenRaCao, step: 100, value: String(hh.tokenRaToiDa), inputmode: "numeric" });
+  const gia = h("p", { class: "muted", id: "tl-gia" });
+  const loiNhac = oVung({ id: "tl-loi-nhac", rows: 14, maxlength: G.loiNhac, value: hh.loiNhac });
+  const dem = h("p", { class: "muted", id: "tl-dem" });
+  const mauChon = (): Api.TroLyMauDto => d.danhSachMau.find((m) => m.ma === mau.value) ?? d.danhSachMau[0]!;
+  const motCau = (ma: string): string => usdNho(uocMotCauMicroUsd(ma, Number(token.value) || hh.tokenRaToiDa) / 1_000_000);
+  const veMuc = (giu: string): void => {
+    const m = mauChon();
+    replaceChildren(muc, ...m.mucSuyNghi.map((x) => h("option", { value: x.ma }, x.nhan)));
+    muc.value = m.mucSuyNghi.some((x) => x.ma === giu) ? giu : m.mucSuyNghi[0]!.ma;
+  };
+  // Đặc tả §5 "ô chọn mẫu (tên + giá ước tính)": chữ của từng lựa chọn kèm giá một câu, tính lại khi đổi số token trả lời.
+  const veGia = (): void => {
+    for (const o of Array.from(mau.options)) {
+      const m = d.danhSachMau.find((x) => x.ma === o.value);
+      if (m) o.textContent = `${m.ten} — khoảng ${motCau(m.ma)} một câu`;
+    }
+    const m = mauChon();
+    gia.textContent = `${m.ten}: vào ${usdNho(m.gia.vao / 1_000_000)}, ra ${usdNho(m.gia.ra / 1_000_000)} cho mỗi 1 triệu token (giá tra ngày ${ngayVn(m.ngayTraGia)}). Một câu khoảng ${motCau(m.ma)}. ${d.ghiChuUocTinh}`;
+  };
+  const veDem = (): void => {
+    dem.textContent = `${loiNhac.value.length.toLocaleString("vi-VN")} / ${G.loiNhac.toLocaleString("vi-VN")} ký tự`;
+  };
+  veMuc(hh.mucSuyNghi);
+  veGia();
+  veDem();
+  mau.addEventListener("change", () => { veMuc(muc.value); veGia(); });
+  token.addEventListener("input", veGia);
+  loiNhac.addEventListener("input", veDem);
+  const cauHinh = (): Api.TroLyBoNao => ({ mau: mau.value, mucSuyNghi: muc.value, doDai: doDai.value, tokenRaToiDa: Number(token.value), loiNhac: loiNhac.value });
+
+  const luu = h("button", { class: "btn btn-primary", type: "submit" }, "Lưu bộ não");
+  const khoiPhuc = h("button", { class: "btn", type: "button" }, "Khôi phục mặc định");
+  const bao = dongBao();
+  const gui = async (body: Api.TroLyBoNao): Promise<void> => veBoNao(await api<Api.TroLyBoNaoResponse>("/api/tro-ly/bo-nao", { method: "PUT", body }), true);
+  khoiPhuc.addEventListener("click", () => void bam(khoiPhuc, bao, () => gui({ ...cauHinh(), loiNhac: d.loiNhacMacDinh })));
+
+  const dsBan = h("ol", { class: "tl-cd-ds" });
+  const lichSuBan = h("details", { class: "tl-cd-ban" }, h("summary", null, "Lịch sử bản"), dsBan);
+  lichSuBan.addEventListener("toggle", () => {
+    if (!lichSuBan.open) return;
+    api<Api.TroLyBoNaoLichSuResponse>("/api/tro-ly/bo-nao/lich-su")
+      .then((r) => {
+        const tenMau = (ma: string): string => d.danhSachMau.find((m) => m.ma === ma)?.ten ?? "Mẫu không còn trong danh sách";
+        replaceChildren(
+          dsBan,
+          ...(r.cacBan.length
+            ? r.cacBan.map((b, i) => {
+              const nut = h("button", { class: "btn", type: "button" }, "Quay lại bản này");
+              const baoBan = dongBao();
+              nut.addEventListener("click", () => void bam(nut, baoBan, () => gui({ mau: b.mau, mucSuyNghi: b.mucSuyNghi, doDai: b.doDai, tokenRaToiDa: b.tokenRaToiDa, loiNhac: b.loiNhac })));
+              return h(
+                "li",
+                { class: "tl-cd-ban-dong" },
+                h("p", { class: "muted" }, `${dateTime(b.luc)} · ${b.nguoi ?? "Hệ thống"} · đổi: ${b.phanDoi}${i === 0 ? " · đang dùng" : ""}`),
+                h("p", { class: "tl-chu" }, `${tenMau(b.mau)} · ${b.tokenRaToiDa} token trả lời · lời nhắc ${b.loiNhac.length.toLocaleString("vi-VN")} ký tự`),
+                i === 0 ? null : nut,
+                baoBan.el,
+              );
+            })
+            : [h("li", { class: "muted" }, "Chưa lưu bản nào — đang dùng bản mặc định.")]),
+        );
+      })
+      .catch((e) => replaceChildren(dsBan, h("li", { class: "tl-cd-loi" }, loiCua(e))));
+  });
+
+  const form = h(
+    "form",
+    { class: "tl-cd-form" },
+    h("label", null, "Mẫu AI", mau),
+    gia,
+    h("label", null, "Mức suy nghĩ", muc),
+    h("label", null, "Độ dài trả lời", doDai),
+    h("label", null, `Số token trả lời tối đa (${G.tokenRaThap}–${G.tokenRaCao})`, token),
+    h("label", null, "Lời nhắc (trợ lý đọc trước mọi câu hỏi)", loiNhac),
+    dem,
+    h("p", { class: "alert warn", role: "note" }, CANH_BAO),
+    h("div", { class: "tl-cd-hang" }, luu, khoiPhuc),
+    bao.el,
+  );
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    void bam(luu, bao, () => gui(cauHinh()));
+  });
+
+  // Ô thử (ADR-0073 Đ5): cấu hình ĐANG SOẠN (chưa lưu) + vai giả định; lượt thử tính vào trần tiền tháng. Lỗi: hiện câu tiếng Việt của máy chủ (bam → loiCua).
+  const vaiThu = h("select", { id: "tl-thu-vai" }, ...PERMISSION_CODES.map((p) => h("option", { value: p }, PERMISSION_LABEL[p])));
+  const cauThu = oVung({ id: "tl-thu-cau", rows: 2, maxlength: 500, placeholder: "Gõ câu hỏi để thử" });
+  const nutThu = h("button", { class: "btn", type: "button" }, "Thử với cấu hình đang soạn");
+  const ketQua = h("div", { id: "tl-thu-kq", "aria-live": "polite" });
+  const baoThu = dongBao();
+  nutThu.addEventListener("click", () =>
+    void bam(nutThu, baoThu, async () => {
+      replaceChildren(ketQua, h("p", { class: "muted" }, "Đang thử…"));
+      try {
+        const r = await api<Api.TroLyThuResponse>("/api/tro-ly/thu", {
+          method: "POST",
+          body: { boNao: cauHinh(), cauHoi: cauThu.value, vai: vaiThu.value as PermissionCode } satisfies Api.TroLyThuRequest,
+        });
+        const tenMau = d.danhSachMau.find((m) => m.ma === r.mau)?.ten ?? "Mẫu không còn trong danh sách";
+        replaceChildren(
+          ketQua,
+          h("p", { class: "tl-chu" }, r.traLoi),
+          r.nguon.length ? h("p", { class: "tl-nguon" }, `Nguồn: ${r.nguon.join("; ")}`) : null,
+          h("p", { class: "muted" }, `${tenMau} · ${r.tokenVao} token vào, ${r.tokenRa} token ra · ${usdNho(r.chiPhiUsd)} (tính vào trần tháng)`),
+        );
+      } catch (e) {
+        replaceChildren(ketQua);
+        throw e;
+      }
+      caiDat = await api<Api.TroLyCaiDatResponse>("/api/tro-ly/cai-dat");
+      veTinhTrang();
+    }),
+  );
+
+  if (daLuu) bao.ok("Đã lưu thành bản mới.");
+  // Cờ của máy chủ: macDinh = chưa có bản nào (lời nhắc = mặc định + giọng / lời dặn cũ nếu có — B5) HOẶC chữ đúng bằng bản mặc định HIỆN TẠI. Bản "Khôi phục
+  // mặc định" lưu thành chữ, nên khi bản mặc định đổi ở lần phát hành sau thì cờ thành "đã sửa" — câu dưới nói rõ là so với bản mặc định hiện tại.
+  const kemCu = d.macDinh && hh.loiNhac !== d.loiNhacMacDinh;
+  replaceChildren(
+    byId("tl-bo-nao"),
+    h("h2", { id: "tl-bo-nao-h" }, "Bộ não"),
+    h(
+      "p",
+      { class: "muted", id: "tl-mac-dinh" },
+      d.macDinh
+        ? `Đang dùng lời nhắc mặc định.${kemCu ? " Cuối lời nhắc có kèm giọng / lời dặn thêm của mục Lời dặn cũ." : ""}`
+        : "Đang dùng lời nhắc đã sửa (khác bản mặc định hiện tại).",
+    ),
+    form,
+    h("details", { class: "tl-cd-ban" }, h("summary", null, "Xem bản mặc định"), h("p", { class: "tl-chu" }, d.loiNhacMacDinh)),
+    lichSuBan,
+    h("h3", { class: "tl-cd-tieu-de" }, "Thử trước khi lưu"),
+    h("p", { class: "muted" }, "Chạy câu hỏi với cấu hình đang soạn ở trên (chưa cần lưu). Lượt thử tính vào trần tiền tháng, không tính vào số câu mỗi ngày."),
+    h("label", null, "Vai giả định", vaiThu),
+    h("label", null, "Câu hỏi thử", cauThu),
+    h("div", { class: "tl-cd-hang" }, nutThu),
+    baoThu.el,
+    ketQua,
+  );
+}
+
+// ---- 4. Lời dặn ------------------------------------------------------------------------------------------------------------------------------------------
 
 function veLoiDan(d: Api.TroLyLoiDanResponse, daLuu = false): void {
   const hh = d.hienHanh;
   const chao = oVung({ id: "tl-cau-chao", maxlength: G.cauChao, rows: 2, value: hh.cauChao });
-  const giong = oChu({ id: "tl-giong", maxlength: G.giong, value: hh.giong, placeholder: "Ví dụ: thân thiện, ngắn gọn" });
-  const dan = oVung({ id: "tl-loi-dan-them", maxlength: G.loiDanThem, rows: 4, value: hh.loiDanThem });
   const mau = oVung({ id: "tl-cau-mau", rows: 4, value: hh.cauHoiMau.join("\n"), placeholder: "Mỗi dòng một câu hỏi" });
   const luu = h("button", { class: "btn btn-primary", type: "submit" }, "Lưu thành bản mới");
   const bao = dongBao();
@@ -133,17 +291,15 @@ function veLoiDan(d: Api.TroLyLoiDanResponse, daLuu = false): void {
     "form",
     { class: "tl-cd-form" },
     h("label", null, "Câu chào", chao),
-    h("label", null, "Giọng trả lời", giong),
-    h("label", null, "Lời dặn thêm", dan),
     h("label", null, `Câu hỏi mẫu (mỗi dòng một câu, tối đa ${G.soCauMau})`, mau),
-    h("p", { class: "muted" }, "Không gõ số điện thoại, email, số tiền. Luật cốt lõi của trợ lý (từ chối bí mật, tiền, thông tin khách) luôn đứng trước lời dặn này."),
+    h("p", { class: "muted" }, "Không gõ số điện thoại, email, số tiền. Cách trợ lý trả lời nằm ở mục Bộ não."),
     luu,
     bao.el,
   );
   form.addEventListener("submit", (e) => {
     e.preventDefault();
     void bam(luu, bao, () =>
-      gui({ cauChao: chao.value, giong: giong.value, loiDanThem: dan.value, cauHoiMau: mau.value.split("\n").map((x) => x.trim()).filter(Boolean) }),
+      gui({ cauChao: chao.value, giong: hh.giong, loiDanThem: hh.loiDanThem, cauHoiMau: mau.value.split("\n").map((x) => x.trim()).filter(Boolean) }),
     );
   });
   const lichSu = h(
@@ -162,8 +318,6 @@ function veLoiDan(d: Api.TroLyLoiDanResponse, daLuu = false): void {
           { class: "tl-cd-ban-dong" },
           h("p", { class: "muted" }, `${dateTime(b.luc)} · ${b.nguoi ?? "Hệ thống"}${i === 0 ? " · đang dùng" : ""}`),
           h("p", { class: "tl-chu" }, b.cauChao),
-          b.giong ? h("p", { class: "tl-chu" }, `Giọng: ${b.giong}`) : null,
-          b.loiDanThem ? h("p", { class: "tl-chu" }, `Lời dặn: ${b.loiDanThem}`) : null,
           b.cauHoiMau.length ? h("p", { class: "tl-chu" }, `Câu mẫu: ${b.cauHoiMau.join(" · ")}`) : null,
           i === 0 ? null : nut,
           baoBan.el,
@@ -175,7 +329,7 @@ function veLoiDan(d: Api.TroLyLoiDanResponse, daLuu = false): void {
   replaceChildren(byId("tl-loi-dan"), h("h2", { id: "tl-loi-dan-h" }, "Lời dặn"), form, lichSu);
 }
 
-// ---- 4. Ngữ cảnh bổ sung ---------------------------------------------------------------------------------------------------------------------------------
+// ---- 5. Ngữ cảnh bổ sung ---------------------------------------------------------------------------------------------------------------------------------
 
 function veNguCanh(d: Api.TroLyNguCanhResponse, daLuu = false): void {
   const tieuDe = oChu({ id: "tl-nc-tieu-de", maxlength: G.tieuDeNguCanh, placeholder: "Ví dụ: Giờ làm việc văn phòng" });
@@ -253,7 +407,7 @@ function veNguCanh(d: Api.TroLyNguCanhResponse, daLuu = false): void {
   );
 }
 
-// ---- 5. Lịch sử hỏi đáp ----------------------------------------------------------------------------------------------------------------------------------
+// ---- 6. Lịch sử hỏi đáp ----------------------------------------------------------------------------------------------------------------------------------
 
 function veLichSu(): void {
   const tu = h("input", { type: "date", id: "tl-ls-tu" });
@@ -338,14 +492,16 @@ if (!can(staff, "settings.ops")) {
   showError(errorEl, "Chỉ người phụ trách hệ thống (Toàn quyền) mở được trang này.");
 } else {
   try {
-    const [c, ld, nc] = await Promise.all([
+    const [c, bn, ld, nc] = await Promise.all([
       api<Api.TroLyCaiDatResponse>("/api/tro-ly/cai-dat"),
+      api<Api.TroLyBoNaoResponse>("/api/tro-ly/bo-nao"),
       api<Api.TroLyLoiDanResponse>("/api/tro-ly/loi-dan"),
       api<Api.TroLyNguCanhResponse>("/api/tro-ly/ngu-canh"),
     ]);
     caiDat = c;
     veTinhTrang();
     veAiDung();
+    veBoNao(bn);
     veLoiDan(ld);
     veNguCanh(nc);
     veLichSu();
