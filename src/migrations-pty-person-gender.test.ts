@@ -1,4 +1,4 @@
-// Migration *_pty_person_gender.sql (ADR-0084 Đ1, Đ3, Đ5) trên SQLite thật (node:sqlite), dựng từ migrations/*.sql; tìm tệp theo ĐUÔI tên (số 0064 là TẠM —
+// Migration *_pty_person_gender.sql (ADR-0084 Đ1, Đ3, Đ5) trên SQLite thật (node:sqlite), dựng từ migrations/*.sql; tìm tệp theo ĐUÔI tên (số 0066, thi công ghi 0064 —
 // đổi số chỉ đổi tên tệp, docs/CHANGE-GUIDE.md công thức d).
 // (a) cột `pty_person.gender` NULL, KHÔNG CHECK liệt kê (giá trị kiểm ở mã — Hiến chương); không thêm / đổi trigger nào; trigger gộp hồ sơ (ADR-0068) vẫn chặn.
 // (b) hai view công bố: v_pty_person_xung_ho (parties) và v_stf_staff_xung_ho (staff — để `tro-ly` đọc qua cạnh tro-ly → staff sẵn có, không thêm cạnh).

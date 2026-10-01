@@ -1,4 +1,4 @@
--- ADR-0084 (accepted 2026-10-01): trợ lý "Mai" gọi tên + xưng hô theo giới tính. Số 0064 là TẠM (0061, 0063 ở nhánh khác chưa gộp — người gộp đánh lại nếu cần).
+-- ADR-0084 (accepted 2026-10-01): trợ lý "Mai" gọi tên + xưng hô theo giới tính. Số 0066 = lớn nhất trên main (0065_aut_session) + 1 lúc gộp 2026-10-01; thi công ghi 0064.
 -- Bài kiểm: src/migrations-pty-person-gender.test.ts (tìm tệp theo ĐUÔI tên).
 
 -- Đ1: giới tính của hồ sơ NGƯỜI (module parties sở hữu). 'NAM' | 'NU' | NULL (= chưa ghi). Danh sách mở kiểm ở MÃ (src/shared/xung-ho.ts kiemGioiTinh),
