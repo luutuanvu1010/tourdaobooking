@@ -280,7 +280,7 @@ test("cài đặt: Toàn quyền xem + lưu bản mới (chỉ thêm), Quản tr
   assert.equal(r.status, 200, r.text);
   assert.deepEqual(
     { ...r.json, vai: undefined, theoVai: undefined },
-    { bat: true, tranThangUsd: 5, tranNgay: 30, coKhoa: true, khoaCuoi: null, thang: ngay.slice(0, 7), chiPhiThangUsd: 1.234567, soCauThang: 1, soCauHomNay: 1, vai: undefined, theoVai: undefined },
+    { bat: true, tranThangUsd: 5, tranNgay: 30, coKhoa: true, khoaCuoi: null, thang: ngay.slice(0, 7), chiPhiThangUsd: 1.234567, soCauThang: 1, soCauHomNay: 1, soLuotThuThang: 0, vai: undefined, theoVai: undefined },
   );
   assert.deepEqual(Object.values(r.json.vai), PERMISSION_CODES.map(() => true), "gieo 0054: bật cả 9 vai");
   for (const as of [ADM, SALES]) {

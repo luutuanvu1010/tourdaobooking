@@ -111,7 +111,9 @@ test("ketQuaThuKhoa: được / sai key (401) / hết tiền (429 insufficient_q
   assert.equal(ketQuaThuKhoa({ status: 429, maLoi: null }).ma, "gioi_han");
   assert.equal(ketQuaThuKhoa({ mang: true }).ma, "loi_mang");
   assert.equal(ketQuaThuKhoa({ status: 500, maLoi: null }).ma, "loi_khac");
-  for (const k of [{ ok: true }, { status: 401, maLoi: null }, { status: 429, maLoi: "insufficient_quota" }, { mang: true }, { status: 503, maLoi: null }] as const) {
+  assert.equal(ketQuaThuKhoa({ status: 400, maLoi: null }).ma, "mau_tu_choi", "ADR-0073 B10: mẫu đang chọn không nhận tham số thử (vd. mức suy nghĩ)");
+  assert.match(ketQuaThuKhoa({ status: 400, maLoi: null }).cau, /^Mẫu AI đang chọn không nhận/);
+  for (const k of [{ ok: true }, { status: 401, maLoi: null }, { status: 429, maLoi: "insufficient_quota" }, { mang: true }, { status: 503, maLoi: null }, { status: 400, maLoi: null }] as const) {
     const c = ketQuaThuKhoa(k).cau;
     assert.ok(c.length > 5 && !/_|http|error|invalid/i.test(c), c);
   }

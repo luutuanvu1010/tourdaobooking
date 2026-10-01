@@ -9,7 +9,7 @@
 // ADR-0073: bộ não tuỳ biến (tl_bo_nao), ô thử, nhớ 3 lượt, lọc số tiền + kiểm trần trước khi gọi. Gọi mẫu + làm sạch câu trả lời ở goi-mau.ts.
 import { auditStatement } from "../audit";
 import type {
-  TroLyCaiDatResponse, TroLyHoiResponse, TroLyKhungResponse, TroLyLichSuResponse, TroLyLoiDanResponse, TroLyNguCanhResponse, TroLyThuKhoaResponse,
+  TroLyBoNaoLichSuResponse, TroLyBoNaoResponse, TroLyCaiDatResponse, TroLyHoiResponse, TroLyKhungResponse, TroLyLichSuResponse, TroLyLoiDanResponse, TroLyNguCanhResponse, TroLyThuKhoaResponse,
 } from "../../shared/contracts";
 import { error, escapeLike, intParam, json, readJson, UUID_RE } from "../../shared/http";
 import { can, PERMISSION_CODES, PERMISSION_LABEL, type PermissionCode } from "../../shared/permissions";
@@ -19,13 +19,13 @@ import {
   doanNguCanh, duocDungTroLy, ketQuaThuKhoa, khoaCuoi, khoangThang, kiemCaiDat, kiemLoiDan, kiemNguCanh, kiemVai, quyetDinhTran, thanThuKhoa, thanYeuCau,
   type SuDung,
 } from "../../shared/tro-ly";
-import { boNaoHieuLuc } from "../../shared/tro-ly-bo-nao";
-import { MAU_MAC_DINH } from "../../shared/tro-ly-mau";
+import { LOI_NHAC_MAC_DINH, boNaoHieuLuc, kiemBoNao, phanDoi } from "../../shared/tro-ly-bo-nao";
+import { DANH_SACH_MAU, DO_DAI, DO_DAI_NHAN, MUC_NHAN, uocMotCauMicroUsd } from "../../shared/tro-ly-mau";
 import { goiOpenAi, traLoiMotCau } from "./goi-mau";
 import { GIOI_HAN_TRO_LY as G } from "../../shared/tro-ly-gioi-han";
 import { vnToday } from "../../shared/vn-date";
 import {
-  cacBanLoiDan, caiDatStatement, coNguCanh, demCauHomNay, demCauHomNayCongTy, docCaiDat, docLoiDan, docNguCanh, docVai, ghiLuot, hoiDapStatement, lichSu,
+  boNaoStatement, cacBanBoNao, cacBanLoiDan, caiDatStatement, coNguCanh, demCauHomNay, demCauHomNayCongTy, docBoNao, docCaiDat, docLoiDan, docNguCanh, docVai, ghiLuot, hoiDapStatement, lichSu,
   loiDanStatement, luotStatement, nguCanhStatement, nguoiDaHoi, theoVai, tongThang, vaiStatement, type LuotHoi,
 } from "./repository";
 
@@ -54,6 +54,7 @@ async function trangThaiCaiDat(env: Env): Promise<TroLyCaiDatResponse> {
     chiPhiThangUsd: usd(t.tong),
     soCauThang: t.so,
     soCauHomNay: homNay,
+    soLuotThuThang: t.soThu,
     vai: duVai(vai),
     theoVai: tv
       .filter((x): x is typeof x & { vai: PermissionCode } => (PERMISSION_CODES as readonly string[]).includes(x.vai))
@@ -72,6 +73,26 @@ async function loiDanPhanHoi(db: D1Database): Promise<TroLyLoiDanResponse> {
 
 async function nguCanhPhanHoi(db: D1Database): Promise<TroLyNguCanhResponse> {
   return { doan: (await docNguCanh(db)).map((d) => ({ doanId: d.doanId, tieuDe: d.tieuDe, noiDung: d.noiDung, bat: d.bat, luc: d.luc })) };
+}
+
+const GHI_CHU_UOC_TINH = "Ước tính thô một câu: 6.000 token vào + số token trả lời tối đa — chưa tính token suy nghĩ và phần nhớ.";
+const TRANG_BAN_BO_NAO = 30;
+
+/** Bộ não hiện hành + danh sách mẫu (giá, mức, ước tính) + bản mặc định cho nút "Xem / Khôi phục mặc định" (B1). */
+async function boNaoPhanHoi(db: D1Database): Promise<TroLyBoNaoResponse> {
+  const [ban, loiDan] = await Promise.all([docBoNao(db), docLoiDan(db)]);
+  const { boNao, macDinh } = boNaoHieuLuc(ban, loiDan);
+  return {
+    hienHanh: { ...boNao },
+    macDinh,
+    loiNhacMacDinh: LOI_NHAC_MAC_DINH,
+    danhSachMau: DANH_SACH_MAU.map((m) => ({
+      ma: m.ma, ten: m.ten, gia: { ...m.gia }, mucSuyNghi: m.mucSuyNghi.map((x) => ({ ma: x, nhan: MUC_NHAN[x] })), ngayTraGia: m.ngayTraGia,
+      uocMotCauUsd: usd(uocMotCauMicroUsd(m.ma, boNao.tokenRaToiDa)),
+    })),
+    doDai: DO_DAI.map((x) => ({ ma: x, nhan: DO_DAI_NHAN[x] })),
+    ghiChuUocTinh: GHI_CHU_UOC_TINH,
+  };
 }
 
 const NGAY_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -110,11 +131,11 @@ export const troLyModule: AppModule = {
       const at = now.toISOString();
       const ngayVn = vnToday(now);
       const { tu, den } = khoangThang(ngayVn);
-      const [soCauHomNay, thang, loiDan, nguCanh] = await Promise.all([
-        demCauHomNay(db, staff.id, ngayVn), tongThang(db, tu, den), docLoiDan(db), docNguCanh(db),
+      const [soCauHomNay, thang, loiDan, nguCanh, ban] = await Promise.all([
+        demCauHomNay(db, staff.id, ngayVn), tongThang(db, tu, den), docLoiDan(db), docNguCanh(db), docBoNao(db),
       ]);
-      // ADR-0073 Đ2: bộ não hiệu lực. Task 6 thay `null` bằng bản đã lưu (docBoNao); chưa có bản ⇒ mặc định + giọng / lời dặn cũ (B5).
-      const { boNao } = boNaoHieuLuc(null, loiDan);
+      // ADR-0073 Đ2: bộ não hiệu lực = bản đã lưu; chưa có bản ⇒ mặc định + giọng / lời dặn cũ (B5); bản trỏ mẫu đã bỏ ⇒ thông số mặc định, giữ lời nhắc (R1).
+      const { boNao } = boNaoHieuLuc(ban, loiDan);
       const luot = (ketQua: LuotHoi["ketQua"], u: SuDung | null): LuotHoi => ({
         id: crypto.randomUUID(), staffId: staff.id, ngayVn, vao: u?.vao ?? 0, vaoDem: u?.vaoDem ?? 0, ra: u?.ra ?? 0, chiPhi: chiPhiMicroUsd(u, boNao.mau),
         ketQua, mau: ketQua === "het_tran" ? null : boNao.mau, laThu: false, at, // het_tran: không gọi mẫu ⇒ mau null (chú thích LuotHoi)
@@ -187,14 +208,17 @@ export const troLyModule: AppModule = {
       if (!can(staff, "settings.ops")) return error(403, "forbidden", "Chỉ Toàn quyền thử được key.");
       const khoa = khoaCua(env);
       if (!khoa) return json(ketQuaThuKhoa({ chuaDat: true }) satisfies TroLyThuKhoaResponse);
-      const kq = await goiOpenAi(env, khoa, thanThuKhoa(MAU_MAC_DINH));
+      // ADR-0073 B10: thử với MẪU ĐANG CHỌN; lượt ghi la_thu = 1 (tính tiền tháng, không tính trần ngày).
+      const [ban, loiDan] = await Promise.all([docBoNao(env.DB), docLoiDan(env.DB)]);
+      const { boNao } = boNaoHieuLuc(ban, loiDan);
+      const kq = await goiOpenAi(env, khoa, thanThuKhoa(boNao.mau));
       const now = new Date();
       const at = now.toISOString();
       // ADR-0069 điều 2: lượt thử ghi vào sổ lượt hỏi với chi phí thật (usage) — không nội dung, không dòng lịch sử (không phải câu của người dùng).
       const u = kq.suDung;
       await ghiLuot(env.DB, {
-        id: crypto.randomUUID(), staffId: staff.id, ngayVn: vnToday(now), vao: u?.vao ?? 0, vaoDem: u?.vaoDem ?? 0, ra: u?.ra ?? 0, chiPhi: chiPhiMicroUsd(u, MAU_MAC_DINH),
-        ketQua: "loi" in kq ? "loi" : "ok", mau: MAU_MAC_DINH, laThu: false, at,
+        id: crypto.randomUUID(), staffId: staff.id, ngayVn: vnToday(now), vao: u?.vao ?? 0, vaoDem: u?.vaoDem ?? 0, ra: u?.ra ?? 0, chiPhi: chiPhiMicroUsd(u, boNao.mau),
+        ketQua: "loi" in kq ? "loi" : "ok", mau: boNao.mau, laThu: true, at,
       });
       if (!("loi" in kq)) return json(ketQuaThuKhoa({ ok: true }) satisfies TroLyThuKhoaResponse);
       logLoi(`thu_khoa_${kq.loi}`);
@@ -244,6 +268,36 @@ export const troLyModule: AppModule = {
       const at = new Date().toISOString();
       await db.batch([nguCanhStatement(db, id, input.value, at, staff.id), nhatKy(db, staff.id, at, "ngữ cảnh: sửa hoặc bật / tắt đoạn")]);
       return json(await nguCanhPhanHoi(db) satisfies TroLyNguCanhResponse);
+    }),
+
+    // ADR-0073 Đ1, Đ2: bộ não (mẫu, mức suy nghĩ, độ dài, token ra, TOÀN BỘ lời nhắc) — chỉ Toàn quyền. Lưu = thêm bản (chỉ-thêm); "quay lại" / "khôi phục mặc
+    // định" = giao diện gửi lại nội dung qua CHÍNH route này (kiemBoNao chạy lại). Nhật ký chỉ ghi PHẦN đổi (B7), không nội dung.
+    route("GET", "/api/tro-ly/bo-nao", "office", async ({ env, staff }) => {
+      if (!can(staff, "settings.ops")) return error(403, "forbidden", "Chỉ Toàn quyền xem được bộ não trợ lý.");
+      return json(await boNaoPhanHoi(env.DB) satisfies TroLyBoNaoResponse);
+    }),
+
+    route("PUT", "/api/tro-ly/bo-nao", "office", async ({ env, request, staff }) => {
+      if (!can(staff, "settings.ops")) return error(403, "forbidden", "Chỉ Toàn quyền đổi được bộ não trợ lý.");
+      const input = kiemBoNao(await readJson(request));
+      if (!input.ok) return error(400, "invalid_input", input.message);
+      const db = env.DB;
+      const [ban, loiDan] = await Promise.all([docBoNao(db), docLoiDan(db)]);
+      const cu = boNaoHieuLuc(ban, loiDan).boNao;
+      const at = new Date().toISOString();
+      await db.batch([boNaoStatement(db, input.value, at, staff.id), nhatKy(db, staff.id, at, `bộ não: ${phanDoi(cu, input.value)}`)]);
+      return json(await boNaoPhanHoi(db) satisfies TroLyBoNaoResponse);
+    }),
+
+    route("GET", "/api/tro-ly/bo-nao/lich-su", "office", async ({ env, staff }) => {
+      if (!can(staff, "settings.ops")) return error(403, "forbidden", "Chỉ Toàn quyền xem được lịch sử bộ não.");
+      const ds = await cacBanBoNao(env.DB);
+      return json({
+        cacBan: ds.slice(0, TRANG_BAN_BO_NAO).map((b, i) => ({
+          id: b.id, luc: b.luc, nguoi: b.nguoi, mau: b.mau, mucSuyNghi: b.mucSuyNghi, doDai: b.doDai, tokenRaToiDa: b.tokenRaToiDa, loiNhac: b.loiNhac,
+          phanDoi: phanDoi(ds[i + 1] ?? null, b),
+        })),
+      } satisfies TroLyBoNaoLichSuResponse);
     }),
 
     // ADR-0069 điều 5: lịch sử hỏi đáp — chỉ Toàn quyền; lọc ngày (YYYY-MM-DD, giờ VN), người, vai; tìm chữ; 30 dòng mỗi trang. Không route xoá.

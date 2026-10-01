@@ -299,6 +299,9 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/tro-ly/ngu-canh", access: "office" }, // như trên
   { method: "PUT", path: "/api/tro-ly/ngu-canh/:id", access: "office" }, // như trên
   { method: "GET", path: "/api/tro-ly/lich-su", access: "office" }, // ADR-0069 điều 5 — như trên
+  { method: "GET", path: "/api/tro-ly/bo-nao", access: "office" }, // ADR-0073 Đ1, Đ2 — chỉ Toàn quyền (settings.ops trong thân)
+  { method: "PUT", path: "/api/tro-ly/bo-nao", access: "office" }, // như trên
+  { method: "GET", path: "/api/tro-ly/bo-nao/lich-su", access: "office" }, // ADR-0073 B6 — như trên
 ]);
 
 // Lưới cho chính danh sách MODULES ở trên: nếu ai thêm một module mới có khai `export const xModule: AppModule` (tức có route) mà quên
@@ -361,7 +364,8 @@ test("mức truy cập của 198 route hiện có khớp ảnh chụp đã duy�
   // 2026-10-01 (ADR-0068 Đ8): + GET /api/parties/duplicates = 199.
   // 2026-10-01 (ADR-0068 Đ9): + GET /api/staff/ho-so-khop = 200.
   // 2026-10-01 (ADR-0071 điều 2): − GET /api/staff/sheet, − POST /api/staff/sheet/apply (gỡ đồng bộ nhân viên từ Google Sheet) = 198.
+  // 2026-10-01 (ADR-0073, bộ não trợ lý): + GET/PUT /api/tro-ly/bo-nao, GET /api/tro-ly/bo-nao/lich-su (office, settings.ops) = 201.
   assert.deepEqual(actual, SNAPSHOT);
-  assert.equal(actual.length, 198, "số route thực tế lệch 198 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 198, "SNAPSHOT phải có đúng 198 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  assert.equal(actual.length, 201, "số route thực tế lệch 201 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 201, "SNAPSHOT phải có đúng 201 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

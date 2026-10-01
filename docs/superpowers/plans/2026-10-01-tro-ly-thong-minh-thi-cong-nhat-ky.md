@@ -89,6 +89,22 @@ not ok 11 - HÀNG RÀO lọc số tiền (P1, Hiến chương 5.15): câu trả 
   - G. Máy OpenAI giả nhặt tên đoạn đầu của khối "TÀI LIỆU:" CUỐI và chỉ ghi dòng Nguồn khi có tên: 2 bài route, `tests/e2e/tro-ly.mjs`, 2 kịch bản Chrome (`docs/evidence/2026-09-30-tro-ly/…/tro-ly-smoke.mjs`, `docs/evidence/2026-09-30-bang-dieu-khien-tro-ly/…/bang-dieu-khien-tro-ly-smoke.mjs`). Chưa chạy e2e / Chrome ở task này.
 - Hằng `CAU_CHUA_CO` vẫn export (bài ví dụ của chủ dùng) nhưng máy chủ không còn tự trả (M1).
 
+### Task 6 — hàng rào "chỉ Toàn quyền" ở route bộ não (`settings.ops` trong thân `PUT /api/tro-ly/bo-nao`, B7) — 2026-10-01
+
+- Đột biến: trong `src/modules/tro-ly/index.ts` xoá dòng `if (!can(staff, "settings.ops")) return error(403, "forbidden", "Chỉ Toàn quyền đổi được bộ não trợ lý.");` của route `PUT /api/tro-ly/bo-nao`.
+- Lệnh: `node --test src/modules/tro-ly/bang-dieu-khien-route.test.ts src/modules/tro-ly/bo-nao-route.test.ts src/permission-enforcement.test.ts` ⇒ `# pass 22`, `# fail 1`:
+
+```
+not ok 1 - chỉ Toàn quyền: Quản trị, Bán hàng nhận 403 ở MỌI route cổng office của module (lặp troLyModule.routes); Đối tác bị cổng chặn
+    PUT /api/tro-ly/bo-nao as 33333333-3333-4333-8333-333333333333: {"error":{"code":"invalid_input","message":"Mẫu AI không có trong danh sách — chọn một mẫu trong danh sách."}}
+```
+
+- Hoàn nguyên (chép lại bản sao tệp trước đột biến); chạy lại ⇒ `# pass 23`, `# fail 0`. Bài lặp `troLyModule.routes` tự phủ cả 3 route mới (không phải viết riêng).
+- Quyết định thi công Task 6 (ghi để người kiểm xem):
+  - Số route: main hiện 198 (không phải 200 như bản kế hoạch ghi — ADR-0071 đã gỡ 2 route) ⇒ SNAPSHOT `src/route-access.test.ts` thành **201**, `docs/SYSTEM-DESIGN.md` §7 sửa số đếm 200 (cũ, đã lệch) → 201.
+  - Thứ tự bản bộ não: `valid_from_at DESC, created_at DESC, rowid DESC` (kế hoạch ghi `id DESC`). `id` là UUID ngẫu nhiên ⇒ hai lần lưu cùng mili-giây có thứ tự ngẫu nhiên (bài B6 có thể chập chờn, "bản hiện hành" có thể sai). `rowid` = thứ tự chèn, tiền lệ module `audit`. Chú thích migration 0060 ("hoà thì created_at, id") KHÔNG sửa (tệp migration chỉ thêm) — lệch mô tả nhỏ, chờ điều phối viên quyết có cần ghi lại.
+  - Ruling "Thử key 400 ⇒ câu dễ hiểu": thêm mã `mau_tu_choi` vào `MaThuKhoa` / `TroLyThuKhoaResponse.ma` (status 400 ⇒ "Mẫu AI đang chọn không nhận cấu hình thử (ví dụ mức suy nghĩ) — chọn mẫu hoặc mức khác ở phần Bộ não rồi thử lại."); route vẫn 200, lượt ghi `ket_qua = 'loi'`, `la_thu = 1`. Giao diện chỉ hiện `cau` nên không phải sửa `web/`. Bài: `tro-ly-bang-dieu-khien.test.ts` (thuần) + bài "B10: OpenAI trả 400 …" ở `bo-nao-route.test.ts` (đỏ trước, xanh sau).
+
 ## Kiểm
 
 (điền ở Task 18)

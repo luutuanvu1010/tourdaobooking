@@ -287,6 +287,7 @@ test("Thử key: được / sai key (401) / hết tiền (429 insufficient_quota
   const rows = w.q("SELECT staff_id, ket_qua, chi_phi_micro_usd FROM tl_luot_hoi ORDER BY created_at, rowid");
   assert.deepEqual(rows.map((x) => [x.staff_id, x.ket_qua]), [[SUP, "ok"], [SUP, "loi"], [SUP, "loi"], [SUP, "loi"], [SUP, "loi"]]);
   assert.equal(rows[0]!.chi_phi_micro_usd, 90, "1000 × 0,05 + 100 × 0,40");
+  assert.ok(w.q("SELECT la_thu, mau FROM tl_luot_hoi").every((x) => x.la_thu === 1 && x.mau === "gpt-5-nano"), "B10: lượt Thử key là lượt thử, mẫu đang chọn (mặc định nano)");
   assert.equal(w.q("SELECT count(*) AS n FROM tl_hoi_dap")[0]!.n, 0);
 });
 

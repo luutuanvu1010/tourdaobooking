@@ -437,12 +437,14 @@ export function maLoiOpenAi(json: unknown): string | null {
   return typeof c === "string" && MA_LOI_BIET.has(c) ? c : null;
 }
 
-export type MaThuKhoa = "duoc" | "sai_khoa" | "het_tien" | "gioi_han" | "loi_mang" | "loi_khac" | "chua_dat";
+export type MaThuKhoa = "duoc" | "sai_khoa" | "het_tien" | "gioi_han" | "mau_tu_choi" | "loi_mang" | "loi_khac" | "chua_dat";
 const CAU_THU_KHOA: Record<MaThuKhoa, string> = {
   duoc: "Key dùng được — trợ lý gọi được máy AI.",
   sai_khoa: "Sai key — máy AI từ chối key này. Đặt lại key trên Cloudflare.",
   het_tien: "Hết tiền — tài khoản máy AI đã hết hạn mức. Nạp thêm ở trang quản lý của máy AI.",
   gioi_han: "Máy AI đang giới hạn số lần gọi. Thử lại sau ít phút.",
+  // ADR-0073 B10: Thử key gọi MẪU ĐANG CHỌN — 400 thường là mẫu không nhận một tham số (mức suy nghĩ, độ dài); khoá vẫn có thể đúng.
+  mau_tu_choi: "Mẫu AI đang chọn không nhận cấu hình thử (ví dụ mức suy nghĩ) — chọn mẫu hoặc mức khác ở phần Bộ não rồi thử lại.",
   loi_mang: "Không kết nối được tới máy AI (lỗi mạng hoặc hết giờ chờ). Thử lại sau.",
   loi_khac: "Máy AI báo lỗi khác. Thử lại sau ít phút.",
   chua_dat: "Chưa đặt key — đặt key trên Cloudflare rồi thử lại.",
@@ -456,6 +458,7 @@ export function ketQuaThuKhoa(k: { ok: true } | { mang: true } | { chuaDat: true
     : k.status === 401 ? "sai_khoa"
     : k.status === 429 && k.maLoi === "insufficient_quota" ? "het_tien"
     : k.status === 429 ? "gioi_han"
+    : k.status === 400 ? "mau_tu_choi"
     : "loi_khac";
   return { ma, cau: CAU_THU_KHOA[ma] };
 }
