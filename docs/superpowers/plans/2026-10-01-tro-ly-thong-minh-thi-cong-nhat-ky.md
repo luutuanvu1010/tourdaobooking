@@ -40,6 +40,22 @@ not ok 2 - HÀNG RÀO kiemBoNao (B2): mẫu ngoài danh sách / mức mẫu khô
 - Hoàn nguyên bằng tay đúng dòng đó (tệp mới chưa commit); chạy lại ⇒ `# pass 8`, `# fail 0`; `grep -c 'timMau("gpt-5-nano")' src/shared/tro-ly-bo-nao.ts` = 0.
 - Ghi chú Task 3: ca B4 (lời nhắc chứa "TÀI LIỆU:" không làm mất / nhân đôi khối thật) thuộc Task 5 (`dungLoiNhac` nhận lời nhắc) theo kế hoạch; Task 3 chỉ ghim bản mặc định KHÔNG chứa "TÀI LIỆU:".
 
+### Task 4 — hàng rào (e) "lọc số tiền ở câu trả lời" (`anSoTien`, Đ7a, phần thuần) — 2026-10-01
+
+- Đột biến: trong `src/shared/tro-ly-loc-tien.ts` đổi `export const anSoTien = (s: string): string => s.replace(TIEN, AN_SO_TIEN);` thành `export const anSoTien = (s: string): string => s;`.
+- Lệnh: `node --test src/shared/tro-ly-loc-tien.test.ts` ⇒ `# pass 3`, `# fail 1`. Thông báo đỏ:
+
+```
+not ok 1 - P1: số kèm đơn vị tiền ⇒ [đã ẩn số tiền]
+  location: '…/src/shared/tro-ly-loc-tien.test.ts:8:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Giá 500.000 đ mỗi khách.
+```
+
+- Hoàn nguyên bằng tay đúng dòng đó; chạy lại ⇒ `# pass 4`, `# fail 0`; `grep -c "s => s;" src/shared/tro-ly-loc-tien.ts` = 0. Phần route của hàng rào này quan sát ở Task 5 bước 9.
+- Quyết định ghi lại: phần trăm ("10%") KHÔNG phải tiền ⇒ giữ nguyên (có ca test). Thêm ca "không ẩn": SĐT đã che, năm, số lượng, phiên bản "1.53", thời lượng, km/kg, phân số.
+
 ## Kiểm
 
 (điền ở Task 18)
