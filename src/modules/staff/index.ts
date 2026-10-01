@@ -281,15 +281,17 @@ export type CreateWithRoles =
 /**
  * ADR-0068 Đ9: hồ sơ cá nhân khớp khi Thêm tài khoản — MỘT nguồn cho 409 party_match_exists và route đọc của màn Quản lý tài khoản. Không SĐT của hồ sơ.
  * ADR-0071 điều 3b: thu hẹp theo người gọi. `xemDanhBa` (ô party.view) → như cũ. Không (Hành chính nhân sự) → chỉ hồ sơ đang mở vai tài khoản (ROLE_CODES) hoặc
- * đã có tài khoản; phần còn lại (khách, hồ sơ không vai tài khoản) gộp thành cờ `coHoSoKhacTrongDanhBa` — không id, tên, vai.
+ * đã có tài khoản, và trường `vai` chỉ gồm tên vai tài khoản; phần còn lại (khách, hồ sơ không vai tài khoản) gộp thành cờ `coHoSoKhacTrongDanhBa` — không id, tên, vai.
  */
 export async function hoSoKhopKhiTaoTaiKhoan(db: D1Database, v: { phone: string | null; ten: string | null }, xemDanhBa: boolean): Promise<PartyMatchResponse> {
   const khop = await hoSoCaNhanKhop(db, v);
   const ids = khop.map((k) => k.id);
   const [coTaiKhoan, vai] = await Promise.all([partiesWithAccount(db, ids), vaiTaiKhoanDangMo(db, ids)]);
   const thayDuoc = (id: string) => xemDanhBa || laHoSoTaiKhoan(id, coTaiKhoan, vai);
+  // Chủ dự án 2026-10-01: người không xem Danh bạ chỉ thấy tên VAI TÀI KHOẢN của hồ sơ (bỏ "Khách hàng", "Lái cano"… — vai đó là dữ liệu Danh bạ).
+  const tenVai = (k: (typeof khop)[number]) => (xemDanhBa ? k.vai : (vai.get(k.id) ?? []).map((c) => ROLES[c].name));
   return {
-    khop: khop.filter((k) => thayDuoc(k.id)).map((k) => ({ ...k, vaiTaiKhoan: vai.get(k.id) ?? [], coTaiKhoan: coTaiKhoan.has(k.id) })),
+    khop: khop.filter((k) => thayDuoc(k.id)).map((k) => ({ ...k, vai: tenVai(k), vaiTaiKhoan: vai.get(k.id) ?? [], coTaiKhoan: coTaiKhoan.has(k.id) })),
     coHoSoKhacTrongDanhBa: khop.some((k) => !thayDuoc(k.id)),
   };
 }

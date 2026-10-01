@@ -91,3 +91,18 @@ test("3b: MỘT định nghĩa 'HCNS thấy được' cho cả danh sách khớp
   const khach = await w.call("POST", "/api/staff", { as: HR, body: { roles: ["SALES_STAFF"], partyId: KHACH, phone: "0912000447" } });
   assert.equal(khach.json.error?.message, "Không tìm thấy hồ sơ đã chọn.", khach.text);
 });
+
+test("3b: hồ sơ vừa giữ vai tài khoản vừa mở vai khác (Khách hàng) → HCNS thấy tên + CHỈ vai tài khoản; Toàn quyền thấy đủ vai — cả route đọc lẫn 409", async () => {
+  const { w, CTV } = await nen();
+  assert.equal((await w.call("POST", `/api/parties/${CTV}/roles`, { as: SUP, body: { roleTypeCode: "CUSTOMER" } })).status, 201);
+  const hr = await w.call("GET", `/api/staff/ho-so-khop?ten=${encodeURIComponent(TEN_CTV)}`, { as: HR });
+  assert.equal(hr.status, 200, hr.text);
+  assert.deepEqual(hr.json.khop.map((x: any) => [x.id, x.displayName, x.vai]), [[CTV, TEN_CTV, ["Cộng tác viên"]]]);
+  assert.ok(!hr.text.includes("Khách hàng"), hr.text);
+  const post = await w.call("POST", "/api/staff", { as: HR, body: { roles: ["SALES_STAFF"], fullName: TEN_CTV, phone: "0912000999" } });
+  assert.equal(post.status, 409, post.text);
+  assert.deepEqual(post.json.error.khop.map((x: any) => x.vai), [["Cộng tác viên"]]);
+  assert.ok(!post.text.includes("Khách hàng"), post.text);
+  const sup = await w.call("GET", `/api/staff/ho-so-khop?ten=${encodeURIComponent(TEN_CTV)}`, { as: SUP });
+  assert.deepEqual([...sup.json.khop[0].vai].sort(), ["Cộng tác viên", "Khách hàng"].sort(), sup.text);
+});
