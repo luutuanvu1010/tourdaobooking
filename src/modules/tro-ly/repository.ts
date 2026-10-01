@@ -296,3 +296,34 @@ export async function nhoLuot(db: D1Database, staffId: string, cuocTroChuyen: st
   const { results } = await db.prepare(NHO_LUOT).bind(staffId, cuocTroChuyen, tuLuc).all<{ cau_hoi: string; tra_loi: string }>();
   return results.map((r) => ({ cauHoi: r.cau_hoi, traLoi: r.tra_loi })).reverse();
 }
+
+// tl_van_nghia (ADR-0082, migration *_tl_van_nghia): CHỈ-THÊM. Đọc theo danh sách khoá bằng MỘT tham số JSON (json_each — câu tĩnh, không đụng trần số tham số
+// của D1); ghi MỘT dòng mỗi câu (5 tham số) bằng ON CONFLICT(khoa) DO NOTHING — nhiều câu hỏi đồng thời cùng tính bù không lỗi, không trùng (cấm OR REPLACE:
+// REPLACE xoá dòng xung đột mà không chạy trigger chặn DELETE — hàng rào ở van-nghia.test.ts).
+const VAN_NGHIA_THEO_KHOA = defineSql(
+  "tro-ly",
+  "van-nghia-theo-khoa",
+  "SELECT khoa, so_chieu, vec FROM tl_van_nghia WHERE khoa IN (SELECT value FROM json_each(?1))",
+);
+const THEM_VAN_NGHIA = defineSql(
+  "tro-ly",
+  "them-van-nghia",
+  "INSERT INTO tl_van_nghia (khoa, mau, so_chieu, vec, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?4, ?5, NULL, ?5, NULL) ON CONFLICT(khoa) DO NOTHING",
+);
+
+/** `vec` giữ NGUYÊN dạng D1 trả (ArrayBuffer / Uint8Array / mảng số) — giải mã ở blobSangVec. */
+export interface DongVanNghia { readonly khoa: string; readonly soChieu: number; readonly vec: unknown }
+export async function docVanNghia(db: D1Database, khoa: readonly string[]): Promise<DongVanNghia[]> {
+  if (!khoa.length) return [];
+  const r = await db.prepare(VAN_NGHIA_THEO_KHOA).bind(JSON.stringify(khoa)).all<{ khoa: string; so_chieu: number; vec: unknown }>();
+  return r.results.map((x) => ({ khoa: x.khoa, soChieu: x.so_chieu, vec: x.vec }));
+}
+
+/** `vec` là byte float32 do vecSangBlob (src/shared/tro-ly-van-nghia.ts) dựng — MỘT chỗ đổi dạng bind (Uint8Array ↔ ArrayBuffer) nếu e2e D1 thật đòi. */
+export interface VanNghiaMoi { readonly khoa: string; readonly mau: string; readonly soChieu: number; readonly vec: Uint8Array }
+export const vanNghiaStatement = (db: D1Database, v: VanNghiaMoi, at: string): D1PreparedStatement =>
+  db.prepare(THEM_VAN_NGHIA).bind(v.khoa, v.mau, v.soChieu, v.vec, at);
+/** Gom `lo` câu một db.batch (mỗi lô nguyên tử; dòng nào cũng trọn vẹn — không có "dòng dở"). */
+export async function ghiVanNghia(db: D1Database, ds: readonly VanNghiaMoi[], at: string, lo: number): Promise<void> {
+  for (let i = 0; i < ds.length; i += lo) await db.batch(ds.slice(i, i + lo).map((v) => vanNghiaStatement(db, v, at)));
+}

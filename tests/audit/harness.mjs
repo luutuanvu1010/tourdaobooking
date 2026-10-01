@@ -35,7 +35,7 @@ async function bundle(entry) {
 }
 // listAll: bộ lọc thao tác im lặng (ADR-0038) chỉ kiểm được ở tầng truy vấn — trang Nhật ký nay chỉ Toàn quyền gọi được.
 export const app = (await bundle(
-  'export { default, taoAppChoKhungThu } from "./index"; export { createSessionToken } from "./modules/auth/session"; export { listAll } from "./modules/audit/repository";',
+  'export { default, taoAppChoKhungThu } from "./index"; export { createSessionToken } from "./modules/auth/session"; export { listAll } from "./modules/audit/repository"; export { xoaBoNhoVanNghia } from "./modules/tro-ly/van-nghia";',
 ));
 
 const isRead = (sql) => /^\s*(SELECT|WITH|PRAGMA|EXPLAIN)\b/i.test(sql);
@@ -84,6 +84,8 @@ export const MOC_GIA_POLICY_ID = "moc-gia-khung-thu";
  *   (`w.soLanGoiNhan()`, mỗi lần một mảng id) — "một lần mỗi request cho cả danh sách".
  */
 export function world(tuyChon = {}) {
+  // ADR-0082: bộ nhớ isolate của dấu vân nghĩa sống theo MÔ-ĐUN (ứng dụng nạp một lần mỗi tiến trình thử); mỗi world là một D1 mới ⇒ xoá, kẻo bài sau thấy véc-tơ của bài trước.
+  app.xoaBoNhoVanNghia();
   const sqlite = openDb();
   let soLanGoiMoc = 0;
   const goiNhan = [];

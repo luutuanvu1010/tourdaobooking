@@ -23,6 +23,7 @@ Ngày tra: 2026-10-01 (người thi công mở lại bằng WebFetch; khớp s�
 
 - Task 2, 2026-10-01: bỏ nhánh `x.coCap ||` trong luật khớp mạnh → C4 đỏ; hạ `TY_LE_DIEM_MANH * max` thành `0.3 * max` → C4 đỏ; hoàn nguyên → 45/45 xanh (`tro-ly-van-nghia.test.ts` + `tro-ly.test.ts`).
 - Task 2 vòng sửa 1, 2026-10-01: điểm × vai nay chỉ ở `diemTuKhoaTheoVai` (`src/shared/tro-ly.ts`), `timDoan` và `tuKhoaVaManh` cùng gọi. Thêm bài biên (vecDoan null + khớp mạnh; véc-tơ toàn 0; vecDoan ngắn hơn kho) và bài nhánh cặp âm tiết riêng ("có hàng"). Bỏ `x.coCap ||` → C4 VÀ bài nhánh cặp đỏ; hoàn nguyên → 22/22 xanh.
+- Task 4, 2026-10-01 (ruling điều phối: cấm `OR REPLACE` trên `tl_van_nghia` — REPLACE của SQLite xoá dòng xung đột mà không chạy trigger chặn DELETE): hàng rào quét chuỗi trong `src/**/*.ts` (trừ `*.test.ts`, bỏ dòng chú thích) ở `src/modules/tro-ly/van-nghia.test.ts`. Đổi câu `them-van-nghia` ở `src/modules/tro-ly/repository.ts` thành `INSERT OR REPLACE INTO tl_van_nghia …` → bài "HÀNG RÀO: không câu SQL nào…" đỏ (9/10); hoàn nguyên → 10/10 xanh (`node --test src/modules/tro-ly/van-nghia.test.ts`).
 
 ## Kiểm
 
