@@ -1,6 +1,6 @@
 # ADR-00xx-A — Sổ tiền lượt 2 (D4): bảng mức hoa hồng theo vai bên ngoài × nhóm dịch vụ, mức riêng từng đối tác; chụp vào đơn **lúc Xác nhận**
 
-- **Trạng thái:** **proposed** — bản nháp của người soạn (AI, vai lập kế hoạch), 2026-10-01. **Chưa qua người kiểm độc lập.** AI không tự duyệt (Hiến pháp N3, Điều 7.2).
+- **Trạng thái:** **proposed** — bản nháp của người soạn (AI, vai lập kế hoạch), 2026-10-01; **sửa vòng 1 theo người kiểm độc lập** (ĐẠT CÓ ĐIỀU KIỆN), bản sửa chưa được kiểm lại. AI không tự duyệt (Hiến pháp N3, Điều 7.2).
 - **Số hiệu:** giữ chỗ `ADR-00xx-A`. Số thật lấy lúc gộp (dự kiến từ 0071; trên các nhánh đã có 0068, 0069, 0070; một phiên khác có thể đang soạn ADR "nơi trả mặc định theo dịch vụ").
 - **Ngày:** 2026-10-01.
 - **Thuộc gói:** lượt duyệt **2a** (ADR này một mình — **3** quyết định chạm dữ liệu/quyền: (1) bảng mức + ô; (2) **đổi cách suy người hưởng** từ "vai nhóm `EXTERNAL`" sang danh sách được hưởng — đổi hành vi lượt 1 và chỗ hở kiểu F-01; (3) chụp lúc Xác nhận + ô; trang ghép `trang-ghep.md` §0, §2a). **Phát hành chung một bản** với B, C, D, E (xem `README.md` — hạn khoá kỳ của ADR-0026 và L-T1 của ADR-0057).
@@ -47,19 +47,21 @@
 1. **Tạo module `pricing`** đúng như ADR-0024 điều 1 (hạng `STRICT` từ ngày đầu; `repository.ts` nghiêm; `index.ts` công bố hàm đọc + hàm thuần). Không đặt số nào lên bảng `catalog_*` (Sheet ghi đè) và không phục vụ qua route danh mục.
 2. **Danh sách vai được hưởng** — bảng tra cứu `prc_beneficiary_role` (`role_type_code` khoá ngoại `pty_role_type`, `active`). Gieo **5 mã**: `TRAVEL_AGENCY`, `GUIDE_FREELANCE`, `HOTEL_RECEPTION`, `TAXI_DRIVER`, `COLLABORATOR` (dòng `COLLABORATOR` theo câu C3; chủ chọn "không" thì gieo `active = 0`). **Không** gieo `DRIVER_EXTERNAL`, `CARRIER`, vai nội bộ.
    - Lý do: nhóm `EXTERNAL` hôm nay chứa cả Tài xế đối tác (`0037`). Suy "người hưởng = bên đặt có vai nhóm bên ngoài" như lượt 1 sẽ biến một tài xế đối tác được chọn làm bên đặt thành người hưởng hoa hồng. Đây đúng là khuôn lỗi F-01 (bảng dùng chung nhận thêm loại thực thể) — xem `trang-ghep.md` §1.
-3. **Người hưởng của đơn** (H1, ADR-0018 điều 9) = **bên đặt** (`orders.booker_party_id`) khi hồ sơ đó đang mở **ít nhất một** vai trong `prc_beneficiary_role` (đọc qua view công bố của `parties` + bảng của `pricing`). Thay cách suy của lượt 1 ("vai nhóm `EXTERNAL`", ADR-0026 điều 1) **cho mục đích hoa hồng**. Ba trường hợp lạ:
-   - Bên đặt mang vai `EXTERNAL` **không** thuộc danh sách (vd Tài xế đối tác) ⇒ đơn bị **giữ** ở "Đã giao", lý do "bên đặt là … — không thuộc danh sách được hưởng; sửa bên đặt hoặc cài mức tay" (5.7 — không đoán là khách lẻ).
+3. **Người hưởng của đơn** (H1, ADR-0018 điều 9) = **bên đặt** (`orders.booker_party_id`) khi hồ sơ đó đang mở **ít nhất một** vai trong `prc_beneficiary_role`. Đọc vai qua **view công bố mới của `parties`** `v_pty_open_role (party_id, role_type_code)` — view có sẵn `v_pty_open_role_group` (`migrations/0024:26`) chỉ trả **nhóm**, không phân biệt được Tài xế đối tác hay Nhà cung cấp. Thay cách suy của lượt 1 ("vai nhóm `EXTERNAL`", ADR-0026 điều 1) **cho mục đích hoa hồng**. Bốn trường hợp lạ:
+   - Bên đặt mang vai `EXTERNAL` **không** thuộc danh sách (vd Tài xế đối tác) ⇒ bản chụp mọi dòng ghi `commission_status = MISSING`, `missing_reason = BOOKER_NOT_BENEFICIARY` (điều 8) ⇒ view `v_ord_terms_missing` bắt được ⇒ đơn bị **giữ** ở "Đã giao" bởi **cả hai lớp** (điều kiện trong câu ghi "Đã giao" của `orders` + trigger của `billing` — ADR-00xx-C điều 5), lý do "bên đặt là … — không thuộc danh sách được hưởng; sửa bên đặt hoặc Kế toán ghi mức tay" (5.7 — không đoán là khách lẻ).
    - Bên đặt mang **hai** vai được hưởng khác nhau (vd vừa Lễ tân vừa Cộng tác viên) mà bậc 4–6 cho ra hai mức khác nhau ⇒ dòng đó **thiếu mức (xung đột)**, giữ như điều 8. Bậc 1–3 (mức riêng đối tác) thắng nên không xung đột.
    - Bên đặt là nội bộ, khách lẻ, công ty chủ ⇒ không người hưởng, không hoa hồng (không phải "thiếu mức").
+   - Bên đặt **cũng là nhà cung cấp** của một dòng trên chính đơn đó (hồ sơ mở cả vai được hưởng lẫn `SUPPLIER`) ⇒ dòng đó `MISSING`, `missing_reason = RULE_CONFLICT`; Kế toán quyết bằng mức tay. Lý do: tránh một đơn mà sổ của đối tác lẫn dòng giá vốn (ADR-00xx-E điều 3 — không lộ giá vốn).
+   - **Đường để đại lý thành bên đặt — hiện chưa có (đo 1/10):** `resolveBooker` (`src/modules/orders/service.ts:310-325`) chỉ nhận hồ sơ **cá nhân** (hồ sơ tổ chức bị từ chối "Chưa gắn được đại lý vào đơn ở bản này"), và đơn do tài khoản Đối tác tự lập **không** tự lấy hồ sơ của tài khoản làm bên đặt (bên đặt do form gửi). Lượt 2 phải: (i) đơn do tài khoản có quyền Đối tác lập ⇒ máy chủ **đặt bên đặt = hồ sơ gắn tài khoản** (công ty lữ hành: hồ sơ công ty), bỏ qua giá trị trình duyệt gửi; khách đi tour vẫn là "khách của <đối tác>" (ADR-0018 điều 10); (ii) nội bộ lập hộ được chọn **hồ sơ tổ chức** mang vai được hưởng làm bên đặt (`resolveBooker` nhận `ORGANIZATION` khi hồ sơ mở một vai trong danh sách). **Chưa kiểm** hết các đường lập/sửa đơn và đơn cũ của Đối tác đang có bên đặt là khách — kế hoạch phải rà, có ca e2e; thiếu đường này thì đơn đại lý bị tính như khách lẻ (không hoa hồng) một cách lặng lẽ. Việc (i), (ii) thuộc quyết định (2) của lượt 2a (đổi cách xác định người hưởng).
 4. **Bảng mức** `prc_commission_rule` (tên đề xuất, chốt ở kế hoạch) — mỗi dòng:
-   - **áp cho:** đúng một trong (`target_party_id` — một đối tác cụ thể) hoặc (`target_role_code` — một vai trong `prc_beneficiary_role`) — `CHECK` đúng một;
+   - **áp cho:** đúng một trong (`target_party_id` — một đối tác cụ thể) hoặc (`target_role_code` — một vai trong `prc_beneficiary_role`) — `CHECK` đúng một; trigger lúc thêm dòng: `target_party_id` phải **đang mở ít nhất một vai được hưởng** (đọc `v_pty_open_role` + `prc_beneficiary_role`) — không đặt mức riêng cho tài xế đối tác, nhà xe, nhân viên;
    - **phạm vi dịch vụ:** `scope` ∈ (`SERVICE` + `catalog_code`) / (`GROUP` + `group_code` của `ctl_group`) / (`ALL`) — `CHECK` khớp cột;
    - **kiểu:** `kind` ∈ `RATE` (`rate_bp` INTEGER phần vạn, 0…10000; 1000 = 10%) / `PER_PAX` (`per_pax_amount` INTEGER VNĐ ≥ 0) — `CHECK` đúng một cột có số (Q5);
    - `valid_from_date` (bắt buộc), `valid_to_date` (trống = còn hiệu lực), `note`, đủ bốn cột WHO.
    - **Không xoá cứng; không sửa số:** trigger chặn `DELETE` và mọi `UPDATE` trừ **đóng hiệu lực** (đặt `valid_to_date` từ trống thành một ngày ≥ `valid_from_date`). Đổi mức = đóng dòng cũ + mở dòng mới (5.2, 5.5).
    - **Không chồng:** trigger chặn hai dòng cùng (áp cho, phạm vi, mã) có khoảng hiệu lực giao nhau (LC-5 của đặc tả mô hình vai). Trigger chỉ đọc bảng `prc_` + view công bố (ADR-0024 điều 5).
    - **Mức 0% / 0 đ là hợp lệ** khi được **ghi rõ** thành một dòng (vd đại lý chỉ đặt hộ, không hưởng). "Không có dòng" khác "dòng 0".
-5. **"Loại dịch vụ" = nhóm dịch vụ của ADR-0058**, không phải tiền tố mã (không làm được — bảng Bối cảnh). `pricing → catalog` (cạnh đã có) đọc nhóm hiện hành của một mã qua view công bố của `catalog` (tên chốt ở kế hoạch; hôm nay `catalog` là `LEGACY`, view mới đặt theo khuôn "nửa nghiêm"). Dịch vụ ở "Chưa phân loại" chỉ khớp bậc `SERVICE` hoặc `ALL`. Quản trị đổi nhóm của một dịch vụ ⇒ chỉ ảnh hưởng đơn **xác nhận sau** đó (đơn cũ đã chụp).
+5. **"Loại dịch vụ" = nhóm dịch vụ của ADR-0058**, không phải tiền tố mã (không làm được — bảng Bối cảnh). `pricing → catalog` (cạnh đã có) đọc nhóm hiện hành của một mã qua **view công bố mới** `v_ctl_service_group (catalog_code, group_code)` của `catalog`. ADR-0058 ghi "module khác cần nhóm thì thêm view `v_ctl_*` bằng ADR" — ADR này là ADR đó. Phải **nới** `VIEW_PREFIX` (`src/architecture.test.ts:175`, hôm nay chưa có `ctl`) — Điều 9.4, xem `de-xuat-luat.md`. Dịch vụ ở "Chưa phân loại" chỉ khớp bậc `SERVICE` hoặc `ALL`. Quản trị đổi nhóm của một dịch vụ ⇒ chỉ ảnh hưởng đơn **xác nhận sau** đó (đơn cũ đã chụp).
 6. **Chọn mức — ô cụ thể nhất thắng** (6 bậc, đúng đặc tả §11), chỉ xét dòng **đang hiệu lực ở ngày chụp** (`vnToday()` lúc Xác nhận): (1) đối tác + dịch vụ, (2) đối tác + nhóm, (3) đối tác + mọi dịch vụ, (4) vai + dịch vụ, (5) vai + nhóm, (6) vai + mọi dịch vụ. Hàm thuần **duy nhất** `chonMuc` trong `pricing/rules.ts` (5.4), có test bảng ca.
 7. **Dịch vụ nhập tay** (không mã danh mục, ADR-0061) **không khớp dòng mức nào, kể cả dòng "mọi dịch vụ"**: theo ADR-0061 A-14 dòng nhập tay **không có nguồn** ⇒ trên đơn có người hưởng luôn `MISSING`, giữ ở "Đã giao" tới khi Kế toán ghi mức tay cho dòng đó. (Đối tác không tạo được dòng nhập tay — ADR-0061; trường hợp này chỉ xảy ra khi nội bộ thêm dòng nhập tay vào đơn có người hưởng.)
 
@@ -67,13 +69,13 @@
 
 8. **Mốc chụp = lúc Xác nhận** (H5). **Đây là sửa câu của ADR-0018 điều 11 đã duyệt** ("chụp theo từng dòng dịch vụ lúc **gửi đơn**") — chủ duyệt ADR này là duyệt việc thay câu đó (Hiến chương 5.6). Bảng "Sửa câu" dưới đây.
    - Lô ghi Xác nhận (`POST /api/orders/:id/status` → `confirmed`, module `orders`) chèn **một bản chụp mỗi dòng dịch vụ** của đơn vào bảng mới `ord_service_terms` (module `orders`, tệp "nửa nghiêm" như `chang-hanh-khach-repo.ts`) **trong cùng `db.batch()`** — không có lúc "đã xác nhận mà chưa chụp".
-   - Mỗi bản chụp: `order_id`, `order_service_id`, `beneficiary_party_id` (trống = không người hưởng), `commission_status` ∈ `NONE` (không người hưởng) / `SET` / `MISSING`, `commission_kind`, `commission_rate_bp` **hoặc** `commission_per_pax`, `commission_rule_id` (nguồn — dòng nào của bảng thắng; Kế toán tra lại), `source` ∈ `AUTO` / `MANUAL`, `reason` (bắt buộc khi `MANUAL`), `supersedes_id` (dòng chụp bị thay; `UNIQUE`), `captured_date` (ngày dân sự VN), đủ bốn cột WHO. Các cột phần cung ứng (người bán, nhà cung cấp, a%) **do ADR-00xx-B thêm vào cùng bảng, cùng migration**.
+   - Mỗi bản chụp: `order_id`, `order_service_id`, `beneficiary_party_id` (trống = không người hưởng), `commission_status` ∈ `NONE` (không người hưởng) / `SET` / `MISSING`, `missing_reason` ∈ `NO_RULE` / `RULE_CONFLICT` / `MANUAL_LINE` / `BOOKER_NOT_BENEFICIARY` / `NOT_CAPTURED` (đơn xác nhận trước bản — ADR-00xx-C điều 7b2) — có ⇔ `MISSING`, `commission_kind`, `commission_rate_bp` **hoặc** `commission_per_pax`, `commission_rule_id` (nguồn — dòng nào của bảng thắng; Kế toán tra lại), `source` ∈ `AUTO` / `MANUAL`, `reason` (bắt buộc khi `MANUAL`), `supersedes_id` (dòng chụp bị thay; `UNIQUE`), `captured_date` (ngày dân sự VN), đủ bốn cột WHO. Các cột phần cung ứng (người bán, nhà cung cấp, a%) **do ADR-00xx-B thêm vào cùng bảng, cùng migration**.
    - **Chỉ-thêm:** trigger chặn `UPDATE`/`DELETE`. Bản chụp **hiện hành** của một dòng = dòng không bị dòng nào `supersedes_id` trỏ tới. `CHECK`/trigger: mỗi `order_service_id` tối đa một bản hiện hành.
    - Trigger khoá sau "Đã giao" (khuôn `0044`): chặn chèn bản chụp mới cho đơn đã "Đã giao" (đọc cột `delivered_at` của chính `orders` — cùng module).
 9. **Khi nào chụp lại** (dòng mới thay dòng cũ, cùng lô với thao tác gây ra, có nhật ký):
    - **thêm dịch vụ** sau xác nhận (nếu có đường đó — ADR-0063 còn proposed): chụp dòng mới;
    - **đổi bên đặt** của đơn đã xác nhận (ADR-0011): chụp lại **mọi** dòng theo bên đặt mới, theo bảng ở **ngày đổi** (người hưởng đổi thì hoa hồng phải theo người mới);
-   - **Kế toán / Quản trị / Toàn quyền ghi mức tay** cho một dòng (ô `order.terms.override`, lý do bắt buộc, `source = MANUAL`): dùng để thả đơn "thiếu mức" hoặc sửa sai trước "Đã giao". Sau "Đã giao" không chụp lại được — sai sót sửa bằng phiếu điều chỉnh trong sổ (ADR-0025 điều 10).
+   - **Kế toán / Quản trị / Toàn quyền ghi mức tay** cho một dòng (ô **mới đề xuất** `order.terms.override`, lý do bắt buộc, `source = MANUAL`): dùng để thả đơn "thiếu mức" hoặc sửa sai trước "Đã giao". Sau "Đã giao" không chụp lại được — sai sót sửa bằng phiếu điều chỉnh trong sổ (ADR-0025 điều 10).
    - **Không** chụp lại khi: đổi số khách / sửa tiền qua dòng điều chỉnh (ADR-0014 điều 6), đổi giờ, đổi người phụ trách. Số khách mới áp lên **mức đã chụp** (điều 10).
 10. **Số tiền hoa hồng không chụp — mức mới chụp.** Hoa hồng của một dòng = hàm thuần **duy nhất** `hoaHongDong` (`pricing/rules.ts`), gọi lúc cần số (màn đơn, trần giảm giá, phiếu "Đã giao"):
     - `RATE`: làm tròn tới đồng của (`rate_bp` × **thành tiền dòng hiện hành trước giảm giá cấp đơn**) / 10000 (đặc tả §11; "hiện hành" = sau điều chỉnh số khách — như ADR-0017 điều 5). Cách làm tròn (nửa lên) là **giả định của AI**, sổ vàng xác nhận.
@@ -81,7 +83,7 @@
     - `orders/index.ts` công bố **một** hàm `phanThuongMaiCuaDon(db, orderId)` trả từng dòng: thành tiền trước giảm, bản chụp hiện hành, hoa hồng (đã tính bằng hàm của `pricing`), cờ thiếu. `billing` lấy số **chỉ** qua hàm này (cạnh `billing → orders` đã có) — **không** thêm cạnh `billing → pricing`.
 11. **Ai thấy phần thương mại của đơn** — route đọc riêng của `orders` (vd `GET /api/orders/:id/thuong-mai`, tên chốt ở kế hoạch), **không** nhét vào `OrderDetailDto` (ADR-0026 điều 11):
     - người có `order.terms.view` thấy người hưởng, mức (tỷ lệ hoặc số mỗi khách), số hoa hồng từng dòng, tổng, cờ "thiếu mức" + lý do + ai xử lý (5.7);
-    - Đối tác (`own`) chỉ thấy phần của **đơn mình**, qua **DTO danh sách trắng riêng**: tên dịch vụ, thành tiền trước giảm, **số tiền** hoa hồng của mình từng dòng, tổng, cờ "đang chờ Công ty cài mức". **Không** tỷ lệ / số mỗi khách (cùng luật với ADR-00xx-E điều 3 — U4 "không thấy tỷ lệ nội bộ"; giả định bề mặt, đảo được ở cả hai nơi cùng lúc), **không** `commission_rule_id`, nguồn bản chụp, người hưởng của đơn khác, a%, giá vốn, người bán là nhà cung cấp kèm a%. **a% và giá vốn không bao giờ** đi qua route này với ai thiếu ô `supply.terms.view` (ADR-00xx-B);
+    - Đối tác (`own`) chỉ thấy phần của **đơn mình**, qua **DTO danh sách trắng riêng**: tên dịch vụ, thành tiền trước giảm, **số tiền** hoa hồng của mình từng dòng, tổng, cờ "đang chờ Công ty cài mức". **Không** tỷ lệ / số mỗi khách — **mặc định ẩn, chủ quyết ở câu C9** (Q35 cho đối tác "thấy của mình", U4 cấm "tỷ lệ nội bộ"; từ giá bán lẻ và số hoa hồng đối tác **tự tính ngược** được tỷ lệ của mình, nên ẩn chỉ bớt hiển thị, không giữ được bí mật); cùng luật ở ADR-00xx-E điều 3, **không** `commission_rule_id`, nguồn bản chụp, người hưởng của đơn khác, a%, giá vốn, người bán là nhà cung cấp kèm a%. **a% và giá vốn không bao giờ** đi qua route này với ai thiếu ô `supply.terms.view` (ADR-00xx-B);
     - "Đơn mình" của Đối tác ở route này = đơn **mình lập** (ô `order.view` / `order.terms.view` `own` = người lập). Đơn **nhân viên lập** với bên đặt là đối tác đó: đối tác **không** mở được đơn / route này, nhưng **thấy trên sổ** của mình (ADR-00xx-E điều 1 — `own` của sổ = hồ sơ bên đặt). Hai nghĩa "của mình" khác nhau là **có chủ ý** — ghi ở `trang-ghep.md` §2;
     - biên nhận (`ReceiptDto`) **không bao giờ** có hoa hồng/tỷ lệ (ADR-0026 điều 11 — giữ).
 12. **Nhật ký (5.12):** `prc_commission_rule_added`, `_closed`; `order_terms_captured` (lúc xác nhận — một dòng cho cả đơn), `order_terms_recaptured` (đổi bên đặt), `order_terms_manual` (mức tay — kèm lý do). Không SĐT; số tiền chỉ ở nhật ký mức tay (trước → sau của **mức**, không phải tiền khách).
@@ -91,16 +93,17 @@
 | Ô (mới) | SALES | ACC | ADMIN | FIELD | PARTNER | SUPER | INTERN | DRIVER | DRV_P | Route hỏi ô (cùng bản phát hành) |
 |---|---|---|---|---|---|---|---|---|---|---|
 | `partner.commission.view` (xem bảng mức, thử tra) | any | any | any | none | none | any | none | none | none | `GET /api/pricing/hoa-hong`, `GET /api/pricing/thu-tra` |
-| `partner.commission.write` (thêm / đóng dòng mức) — **đã chốt** đặc tả §11 | none | any | any | none | none | any | none | none | none | `POST /api/pricing/hoa-hong`, `POST /api/pricing/hoa-hong/:id/dong` |
+| `partner.commission.write` (thêm / đóng dòng mức) — **đã chốt**: ô có tên ở đặc tả mô hình vai §5 / LC-5 (`:161`, `:189`), người sửa ở §11 | none | any | any | none | none | any | none | none | none | `POST /api/pricing/hoa-hong`, `POST /api/pricing/hoa-hong/:id/dong` |
 | `order.terms.view` (phần thương mại của đơn) | any | any | any | assigned | own | any | own | none | none | `GET /api/orders/:id/thuong-mai` |
-| `order.terms.override` (ghi mức tay một dòng, lý do) — **đã chốt** đặc tả §11 | none | any | any | none | none | any | none | none | none | `POST /api/orders/:id/thuong-mai/:serviceId` |
+| `order.terms.override` (ghi mức tay một dòng, lý do) — **ô mới đề xuất** (ghi chú dưới) | none | any | any | none | none | any | none | none | none | `POST /api/orders/:id/thuong-mai/:serviceId` |
 
 - `order.terms.view` = đúng hàng `money.view` hôm nay (Q35: ai xem được tiền đơn thì thấy chiết khấu; HDV đơn mình phụ trách — ADR-0030 S23-5). **Bài khoá giá trị mới:** `order.terms.view` ⊆ `money.view` ở mọi cột.
+- `order.terms.override` **không phải điều đã chốt**: đặc tả §11 nói bằng lời "Kế toán / Quản trị / Toàn quyền sửa tỷ lệ của một dòng trên một đơn", nhưng bảng ô (§5, LC-5) chỉ có **một** ô `partner.commission.write`. ADR này đề xuất **tách ô riêng** (sửa một đơn khác sửa bảng chung), cùng giá trị cột; câu bị thay ở bảng dưới. Muốn dùng chung `partner.commission.write` thì bỏ ô này (hai chiều).
 - `SALES` xem bảng mức (`partner.commission.view = any`): **giả định bề mặt của AI** — Bán hàng báo giá cho đại lý cần biết mức; đổi một ô là hai chiều.
 - Mọi ô phải có route hỏi nó **trong cùng bản phát hành** (bài "mỗi ô được máy chủ hỏi"); không thêm mục hoãn vào `docs/quyen-hoan.json`.
 - Không đổi ô nào hiện có.
 
-### Dữ liệu (một migration, chỉ thêm; số từ `0057`, chốt lúc gộp)
+### Dữ liệu (một migration, chỉ thêm; số dự kiến từ `0060`, chốt lúc gộp — `0056` là `0056_gop_ho_so`, `0057`–`0059` đã dùng ở kế hoạch máy chủ ô chặng)
 
 | Bảng / view | Module | Ghi chú |
 |---|---|---|
@@ -109,7 +112,8 @@
 | `v_prc_commission_rule` (view công bố) | `pricing` | chỉ cột cần cho `chonMuc` (không ghi chú) |
 | `ord_service_terms` | `orders` | điều 8 (phần hoa hồng); chỉ-thêm; khoá sau Đã giao |
 | `v_ord_terms_missing` (view công bố) | `orders` | đơn nào còn dòng hiện hành `MISSING` — `billing` đọc trong trigger "Đã giao" (ADR-00xx-C) |
-| view nhóm hiện hành của dịch vụ | `catalog` | điều 5; tên chốt ở kế hoạch |
+| `v_ctl_service_group` (view công bố **mới**) | `catalog` | điều 5; nhóm hiện hành của từng mã; nới `VIEW_PREFIX` thêm `ctl` |
+| `v_pty_open_role` (view công bố **mới**) | `parties` | điều 3–4; `(party_id, role_type_code)` các vai đang mở; không tên / SĐT |
 
 Mục mới ở `docs/data-dictionary.json` + `npm run dict`. `src/architecture.test.ts`: thêm `pricing` vào `STRICT`; bảng `ord_service_terms` vào danh sách tệp nửa nghiêm của `orders`.
 
@@ -117,6 +121,7 @@ Mục mới ở `docs/data-dictionary.json` + `npm run dict`. `src/architecture.
 
 - `R-PRC-1` (error): không hai dòng `prc_commission_rule` cùng (áp cho, phạm vi, mã) có hiệu lực giao nhau.
 - `R-PRC-2` (error): mọi `target_role_code` thuộc `prc_beneficiary_role` đang bật.
+- `R-PRC-5` (warn): dòng mức còn hiệu lực có `target_party_id` mà hồ sơ đó **không còn** mở vai được hưởng nào — Kế toán đóng dòng.
 - `R-ORD-T1` (error, chỉ đơn **xác nhận sau mốc phát hành**): mỗi dòng dịch vụ của đơn `confirmed` có **đúng một** bản chụp hiện hành. Đơn xác nhận trước mốc **chưa "Đã giao"**: đơn **không người hưởng và không dòng nhập tay** được **chụp bù tự động lúc phát hành** (ADR-00xx-C điều 7b — tất định: người bán lấy từ dòng điều khoản ghi rõ, hoa hồng `NONE`); phần còn lại (đơn có người hưởng, dòng nhập tay) mức `warn` + danh sách cho Kế toán (câu C4) — để `audit-invariants --db remote` của runbook không đỏ ngay sau triển khai.
 - `R-ORD-T2` (error): bản chụp `MANUAL` luôn có `reason`; `commission_status = SET` luôn có đúng một trong `rate_bp` / `per_pax`.
 
@@ -137,6 +142,8 @@ Mục mới ở `docs/data-dictionary.json` + `npm run dict`. `src/architecture.
 
 **Ví dụ A-3 — đổi bảng sau xác nhận.** Đơn xác nhận 10/10 chụp 10% (bậc 6). Ngày 15/10 Kế toán đóng dòng 10% (đến 14/10) và mở dòng 12% (từ 15/10). Đơn 10/10 "Đã giao" ngày 20/10 vẫn tính **10%**; đơn xác nhận 16/10 tính 12%.
 
+**Ví dụ A-5 — làm tròn ra số lẻ (ca sổ vàng bắt buộc).** Mức riêng 12,5% (`rate_bp` = 1250) cho dòng thành tiền 999.999 (3 × 333.333) ⇒ 999.999 × 1250 / 10000 = 124.999,875 ⇒ **125.000** (nửa lên, theo dòng); làm tròn xuống sẽ ra **124.999**. Sổ vàng chốt một cách trước khi nhận mã.
+
 **Ví dụ A-4 — thiếu mức.** Bảng chỉ có dòng cho Công ty lữ hành. CTV Lan đặt vé Hòn Tằm 1.000.000, xác nhận 10/10 ⇒ bản chụp `MISSING` (C3 = có, nhưng chưa có dòng cho vai CTV). HDV bấm "Đã giao" ⇒ bị giữ: "Thiếu mức hoa hồng cho vé Hòn Tằm (Cộng tác viên) — Kế toán cài mức hoặc ghi mức tay". Kế toán ghi tay 15% cho dòng đó (lý do "thoả thuận miệng với CTV Lan, chờ cài bảng") ⇒ thả; hoa hồng 150.000.
 
 ---
@@ -148,6 +155,8 @@ Mục mới ở `docs/data-dictionary.json` + `npm run dict`. `src/architecture.
 | **ADR-0018 điều 11** | "…bảng cấu hình có nhóm đối tác, loại dịch vụ (**theo tiền tố mã danh mục**)…; **chụp theo từng dòng dịch vụ lúc gửi đơn**…" | "…nhóm đối tác = **vai bên ngoài trong danh sách được hưởng** (H9); loại dịch vụ = **nhóm dịch vụ của ADR-0058**; **chụp theo từng dòng dịch vụ lúc Xác nhận** (và khi thêm dịch vụ, đổi bên đặt)…" (H5; Hiến chương 5.6) |
 | Đặc tả mô hình vai §11 "Chọn tỷ lệ" | "Không khớp ô nào → **0%** và đơn hiện cảnh báo 'chưa có chiết khấu' cho Kế toán." | "Không khớp ô nào → dòng **thiếu mức**; đơn xác nhận được nhưng **giữ ở 'Đã giao'** tới khi có mức (Hiến chương 5.7, ADR-0061 A-14). Mức 0% chỉ khi có dòng ghi rõ 0%." (cách xử lý cụ thể: câu C2) |
 | Đặc tả mô hình vai §11 "Chụp tỷ lệ vào đơn" | "Đơn đối tác lập: mọi dòng chụp lúc 'Gửi đơn hàng'…; Đơn nội bộ lập cho đối tác: chụp lúc chọn đối tác làm bên đặt…" | Một mốc cho mọi đơn: **lúc Xác nhận**; đổi bên đặt sau xác nhận ⇒ chụp lại. Trước Xác nhận màn đơn chỉ hiện **số dự kiến** (tính theo bảng hôm nay, không lưu). |
+| Đặc tả mô hình vai §5 / LC-5 (bảng ô) | một ô `partner.commission.write`; việc "sửa tỷ lệ của một dòng trên một đơn" (§11, lời) không có ô riêng | tách ô `order.terms.override` (cùng giá trị cột) |
+| ADR-0058 "Hệ quả — Kiến trúc" | "không module khác đọc bảng `ctl_` (không cần view công bố). Sau này module khác cần nhóm… thì thêm view `v_ctl_*` bằng ADR." | thêm `v_ctl_service_group` cho `pricing` (ADR này) + nới `VIEW_PREFIX` |
 | Đặc tả mô hình vai §11 "Loại dịch vụ" | "mỗi dịch vụ thuộc một loại, ánh xạ theo tiền tố mã danh mục (sửa được); mã không khớp → 'Khác'" | Thay bằng nhóm của ADR-0058; dịch vụ "Chưa phân loại" chỉ khớp bậc dịch vụ hoặc mọi dịch vụ. |
 | ADR-0026 điều 1 (cách suy người hưởng) | "**Người hưởng** suy ra: bên đặt của đơn có vai nhóm `EXTERNAL` đang mở" | "…bên đặt đang mở một vai thuộc **danh sách được hưởng** (`prc_beneficiary_role`); vai `EXTERNAL` ngoài danh sách ⇒ giữ đơn (điều 3)." |
 
@@ -178,5 +187,5 @@ Mục mới ở `docs/data-dictionary.json` + `npm run dict`. `src/architecture.
 
 ## Xung đột / điều chưa chắc (trình chủ, không tự hoà giải)
 
-- **Câu C2** (thiếu mức: giữ ở "Đã giao" hay chặn từ Xác nhận), **C3** (Cộng tác viên có hưởng không), **C4** (đơn đã xác nhận trước khi lượt 2 lên) — `cau-hoi-chu.md`.
+- **Câu C2** (thiếu mức: giữ ở "Đã giao" hay chặn từ Xác nhận), **C3** (Cộng tác viên có hưởng không), **C4** (đơn đại lý đã xác nhận trước khi lượt 2 lên), **C9** (đối tác thấy mức % của mình) — `cau-hoi-chu.md`.
 - `SALES` xem bảng mức: giả định bề mặt (trên).

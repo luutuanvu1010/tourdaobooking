@@ -1,6 +1,6 @@
 # ADR-00xx-B — Sổ tiền lượt 2 (D5): điều khoản cung ứng theo dịch vụ (người bán, nhà cung cấp, a% giá vốn), bật vai "Nhà cung cấp", người thu là bên đặt / nhà cung cấp, biên nhận chia phần theo người bán
 
-- **Trạng thái:** **proposed** — bản nháp của người soạn (AI), 2026-10-01. **Chưa qua người kiểm độc lập.** AI không tự duyệt (N3, Điều 7.2).
+- **Trạng thái:** **proposed** — bản nháp của người soạn (AI), 2026-10-01; **sửa vòng 1 theo người kiểm độc lập** (ĐẠT CÓ ĐIỀU KIỆN), bản sửa chưa được kiểm lại. AI không tự duyệt (N3, Điều 7.2).
 - **Số hiệu:** giữ chỗ `ADR-00xx-B` (số thật chốt lúc gộp).
 - **Ngày:** 2026-10-01.
 - **Thuộc gói:** lượt duyệt **2b** (ADR này một mình — 2 quyết định chạm dữ liệu/quyền; `trang-ghep.md` §2b). Phát hành chung một bản với A, C, D, E.
@@ -31,7 +31,7 @@
 
 | Nơi | Hiện trạng | Nguồn |
 |---|---|---|
-| Vai người thu | Bảng tra `bil_collector_role` có `BOOKER`, `SUPPLIER` (`active = 0`); mã chỉ cho ghi mới `COMPANY`, `STAFF` | `migrations/0045:22-31`; `src/modules/billing/rules.ts:16` |
+| Vai người thu | Bảng tra `bil_collector_role` có `BOOKER` (`active = 1`) và `SUPPLIER` (`active = 0`); **mã** chỉ cho ghi mới `COMPANY`, `STAFF` | `migrations/0045:22-31`; `src/modules/billing/rules.ts:16` |
 | "Thu cho ai" | `bil_payment_receipt.collected_for_party_id` luôn là công ty chủ (lượt 1) | `0045:79-81` |
 | Ai ghi tên người khác làm người thu | Chỉ Kế toán / Toàn quyền; người khác chỉ ghi **chính mình** hoặc **Công ty** | ADR-0026 điều 2 |
 | Vai "Nhà cung cấp" | **Chưa có** trong `pty_role_type` (có `CARRIER` — nhà xe, ADR-0048, nhóm `OTHER`) | `migrations/0038:4` |
@@ -50,7 +50,7 @@
    - `seller_party_id` (người bán trên biên nhận; **bắt buộc**): hồ sơ công ty chủ **hoặc** một hồ sơ đang mở vai `SUPPLIER`;
    - `supplier_party_id` + `cost_rate_bp` (a%, phần vạn 0…10000): **có** ⇔ người bán ≠ công ty chủ ("Tour Đảo làm đại lý" — mua lại của chính người bán đó); **trống** ⇔ người bán = công ty chủ. (Dạng "Tour Đảo bán nhưng mua đầu vào của nhà cung cấp" **không** làm ở lượt này — xem "Ngoài phạm vi".)
    - `valid_from_date`, `valid_to_date`, ghi chú, bốn cột WHO; không xoá; chỉ đóng hiệu lực; không chồng (cùng khuôn A).
-   - Trigger: người bán ≠ công ty chủ phải đang mở vai `SUPPLIER` lúc thêm dòng (đọc view công bố của `parties` — cạnh `pricing → parties` đã có).
+   - Trigger: người bán ≠ công ty chủ phải đang mở vai `SUPPLIER` lúc thêm dòng (đọc view công bố **mới** `v_pty_open_role` của ADR-00xx-A — `v_pty_open_role_group` chỉ có nhóm, mà `SUPPLIER` thuộc nhóm `OTHER` nên view cũ lọc mất; cạnh `pricing → parties` đã có).
 3. **Một dòng `ALL` gieo sẵn: "mọi dịch vụ — người bán: Tour Đảo"**, **ngày bắt đầu lùi về trước đơn đầu tiên** (ngày tạo đơn sớm nhất trên CSDL lúc migration chạy, hoặc một mốc cố định sớm hơn — chốt ở kế hoạch), để việc chụp bù đơn đã xác nhận trước ngày phát hành (ADR-00xx-C điều 7b) tìm được dòng có hiệu lực ở **ngày xác nhận** của đơn. Đây là **dữ liệu ghi rõ**, không phải đoán (5.7): tới nay mọi dịch vụ đều do Tour Đảo đứng tên bán trên biên nhận. Kế toán thêm dòng `SERVICE` cho dịch vụ nhà cung cấp bán (vd vé tắm bùn i-resort, a = 80%). Ô cụ thể nhất thắng: `SERVICE` > `GROUP` > `ALL`.
 4. **Ràng buộc X3 (ADR-0057, đã chốt):** dịch vụ thuộc nhóm đưa đón do Tour Đảo điều xe **không** được có `supplier_party_id`/`cost_rate_bp`. Cách nhận biết "dịch vụ đưa đón" chốt ở kế hoạch (dịch vụ có mẫu chặng `vc_leg_template` của ADR-0054 hoặc nhóm "Đưa đón"); lớp CSDL: trigger trên `prc_supply_term` từ chối dòng có a% cho mã thuộc tập đó (đọc view công bố của `catalog` / `van-chuyen` — **nếu** cần đọc `van-chuyen` thì là cạnh mới `pricing → van-chuyen`, trái ADR-0040 D1 "không module nào import `van-chuyen`" ⇒ dùng nhóm dịch vụ của `catalog`; chốt ở kế hoạch, không mở cạnh mới).
 5. **Chụp lúc Xác nhận** — cùng lô, cùng bảng `ord_service_terms` của ADR-00xx-A, thêm cột: `seller_party_id`, `supplier_party_id`, `cost_rate_bp`, `supply_term_id` (nguồn), `supply_status` ∈ `SET` / `MISSING`. Không khớp dòng nào (dòng `ALL` bị đóng; dịch vụ **nhập tay** — ADR-0061 A-14) ⇒ `MISSING` ⇒ giữ ở "Đã giao" tới khi Kế toán ghi tay người bán (và a% nếu có) cho dòng đó (ô `order.terms.override` của A).
@@ -64,7 +64,10 @@
    - `SUPPLIER`: người thu = **nhà cung cấp của một dòng "làm đại lý" trên chính đơn đó** (bản chụp hiện hành); số ≤ phần thành tiền các dòng của nhà cung cấp đó còn chưa thu.
 8. **Ai được ghi tên người khác làm người thu** — ADR-0026 điều 2 chỉ cho Kế toán/Toàn quyền. **Mở hẹp** (câu C6 — chủ quyết):
    - tài khoản **Đối tác** ghi được người thu = **chính hồ sơ của mình** (là `BOOKER`) trên đơn mình — đúng khuôn "ghi chính mình" của điều 2, chỉ đổi nhãn vai (`payment.receive` PARTNER `own` đã có);
-   - **khuyến nghị C6 (A):** người có `payment.receive` trên đơn (HDV đang phụ trách, Bán hàng của mình, Quản trị…) ghi được người thu = **nhà cung cấp của dòng làm đại lý** trên đơn (giới hạn điều 7) **hoặc = bên đặt (đại lý) của đơn** (vd HDV tới cảng, khách nói "đã trả hết cho đại lý"), lần thu mang cờ **"chờ Kế toán đối chiếu"**; Kế toán đảo nếu bên đó không xác nhận. Lý do: khoản này **tăng** nợ của bên kia, không giảm nợ của người khai (khác H3); nhưng nó **giảm số HDV còn phải thu** ⇒ có cờ đối chiếu. Không có đường này thì đơn có phần khách trả tại quầy / trả cho đại lý **không "Đã giao" được** tới khi Kế toán tự ghi.
+   - **khuyến nghị C6 (A) — "nợ ở người khai tới khi Kế toán xác nhận", song song H3:** người có `payment.receive` trên đơn (HDV đang phụ trách, Bán hàng của mình, Quản trị…) khai được "khách đã trả cho **bên đặt (đại lý) của đơn**" hoặc "khách trả tại quầy **nhà cung cấp của một dòng làm đại lý** trên đơn" (giới hạn điều 7). Lần thu ghi người thu như khai (để tính "đã thu = phải thu" — đơn "Đã giao" được ngay), **nhưng dòng giữ hộ nằm trên NGƯỜI KHAI** (người khai nợ công ty số đó) cho tới khi Kế toán bấm **"Bên kia đã xác nhận"** (phiếu loại mới `COUNTERPARTY_CONFIRMED` = dòng đảo của dòng trên người khai + dòng giữ hộ trên đại lý / nhà cung cấp). Kế toán đảo cả lần thu nếu bên kia không nhận. Đúng khuôn "Công ty thu – CK do HDV khai" (H3, chủ đã chọn): khoản làm **giảm số người khai phải thu** chỉ có hiệu lực khi Kế toán xác nhận. Rủi ro còn lại: HDV mang nợ treo vài ngày tới khi Kế toán đối chiếu (màn "Bạn đang giữ" hiện rõ "chờ Kế toán xác nhận").
+   - (B) cho khai, **nợ ghi ngay trên bên kia**, chỉ kèm cờ "chờ đối chiếu". Nhanh cho HDV, nhưng **HDV khai sai "khách đã trả đại lý" là qua được cổng "Đã giao"** và nợ treo ở đại lý / nhà cung cấp — người khai không chịu gì.
+   - (C) giữ như ADR-0026 điều 2: chỉ Kế toán ghi. Đơn có phần khách trả cho đại lý / tại quầy **không "Đã giao" được** tới khi Kế toán vào ghi.
+   - (D) không ghi tiền tại quầy nhà cung cấp; coi phần đó ngoài "phải thu" của HDV — đổi ADR-0025 điều 3d (đã duyệt).
 9. **"Thu cho ai"** (`collected_for_party_id`) = **người bán** của phần tiền (ADR-0026 điều 2 đã dành sẵn cho lượt 2): người thu `SUPPLIER` ⇒ thu cho nhà cung cấp đó; người thu khác ⇒ mặc định thu cho Tour Đảo; người ghi chọn được phần nhà cung cấp khi khách trả trước cả phần đó. Cột này **chỉ** dùng để chia "đã trả / còn lại" trên biên nhận; sổ nợ dùng **người thu** (điều 7). `R-BIL-*` lượt 1 "luôn là công ty chủ" (NT-S9) đổi thành "là công ty chủ hoặc người bán của một dòng trên đơn".
 10. **Biên nhận chia phần theo người bán** (Q7; ADR-0026 điều 11 đã dành sẵn): `ReceiptDto` thêm mảng `phan[]`, mỗi phần: tên người bán (Tour Đảo hiện "người bán"; nhà cung cấp hiện "người bán", Tour Đảo hiện "đối tác đặt vé"), các dịch vụ của phần, tổng phần, đã trả, còn lại, và câu "thanh toán tại quầy <người bán>" cho phần nhà cung cấp. **Danh sách trắng giữ nguyên:** không a%, giá vốn, hoa hồng, tên người thu, hình thức thu. Bài số lạ `480.017` (`src/modules/receipt/bien-nhan.test.ts`) mở rộng: gieo vào `cost_rate_bp`, giá vốn, hoa hồng.
 
@@ -87,8 +90,9 @@
 | `pty_role_type` | `parties` | + dòng `SUPPLIER` (nhóm `OTHER`) |
 | `prc_supply_term` (+ view công bố) | `pricing` | mới; gieo dòng `ALL` → công ty chủ |
 | `ord_service_terms` | `orders` | + cột cung ứng (điều 5) |
-| `bil_collector_role` | `billing` | `SUPPLIER.active` 0 → 1 (`UPDATE` một dòng tra cứu — bảng tra cứu không chỉ-thêm) |
-| `bil_payment_receipt` | `billing` | + cột cờ `needs_supplier_check` (0/1) nếu C6 = A; không đổi cột cũ |
+| `bil_collector_role` | `billing` | `SUPPLIER.active` 0 → 1 (`UPDATE` một dòng tra cứu — bảng tra cứu không chỉ-thêm). `BOOKER` **đã** `active = 1` từ `0045:26`; chỉ mã (`COLLECTOR_ROLES_GHI_MOI`, `rules.ts:16`) đang chặn ghi mới |
+| `bil_posting_kind` | `billing` | + `COUNTERPARTY_CONFIRMED` ("Bên kia đã xác nhận") nếu C6 = A |
+| `bil_payment_receipt` | `billing` | không cột mới (C6 = A suy "chờ xác nhận" từ dòng giữ hộ còn nằm trên người khai — như H3 lượt 1); C6 = B cần cột cờ `needs_counterparty_check` |
 
 ### Bất biến
 
@@ -101,7 +105,7 @@
 
 ## Ví dụ bằng số (ca sổ vàng có sẵn `golden/hoan-tat-cong-no.json`, đang `cho_xac_nhan`)
 
-**Ví dụ B-1 — SV-HT-03 (lễ tân thu trước).** Vé tắm bùn i-resort: người bán i-resort, a = 80%. 2 vé × 300.000 = **600.000**; giá vốn = 80% × 600.000 = **480.000**. Lễ tân Hương (bên đặt) thu trước 200.000 (người thu `BOOKER`) ⇒ dòng giữ hộ: Hương nợ Tour Đảo 200.000. Khách trả 400.000 tại quầy i-resort (người thu `SUPPLIER`, thu cho i-resort) ⇒ i-resort nợ Tour Đảo 400.000. Lúc "Đã giao" (ADR-00xx-C): Tour Đảo nợ i-resort giá vốn 480.000; Tour Đảo nợ Hương hoa hồng 100.000. Số dư: **Hương nợ 100.000**; **Tour Đảo nợ i-resort 80.000**; Tour Đảo giữ 20.000 = 600.000 − 480.000 − 100.000 ✓ (khớp đáp án SV-HT-03).
+**Ví dụ B-1 — SV-HT-03 (lễ tân thu trước).** Vé tắm bùn i-resort: người bán i-resort, a = 80%. 2 vé × 300.000 = **600.000**; giá vốn = 80% × 600.000 = **480.000**. Lễ tân Hương (bên đặt) thu trước 200.000 (người thu `BOOKER`) ⇒ dòng giữ hộ: Hương nợ Tour Đảo 200.000. Khách trả 400.000 tại quầy i-resort (người thu `SUPPLIER`, thu cho i-resort; HDV khai) ⇒ trước khi Kế toán xác nhận: **HDV** nợ Tour Đảo 400.000 (C6 = A); sau "Bên kia đã xác nhận": i-resort nợ Tour Đảo 400.000, HDV về 0. Số dư cuối dưới đây là **sau** xác nhận. Lúc "Đã giao" (ADR-00xx-C): Tour Đảo nợ i-resort giá vốn 480.000; Tour Đảo nợ Hương hoa hồng 100.000. Số dư: **Hương nợ 100.000**; **Tour Đảo nợ i-resort 80.000**; Tour Đảo giữ 20.000 = 600.000 − 480.000 − 100.000 ✓ (khớp đáp án SV-HT-03).
 
 **Ví dụ B-2 — SV-HT-05 (khách trả đủ tại quầy).** Như B-1, không ai thu trước; i-resort thu 600.000 ⇒ i-resort nợ Tour Đảo 600.000 − 480.000 = **120.000**; Tour Đảo nợ Hương 100.000; Tour Đảo giữ 20.000 ✓.
 
@@ -115,7 +119,8 @@
 
 | Nguồn | Câu hiện hành | Sau ADR này |
 |---|---|---|
-| ADR-0026 điều 2, "Ai được ghi tên ai làm người thu" | "người không phải Kế toán/Toàn quyền chỉ ghi được **chính mình** hoặc **Công ty** làm người thu" | "…chính mình (với Đối tác: vai bên đặt), Công ty, **hoặc bên đặt / nhà cung cấp của một dòng làm đại lý trên chính đơn đó** (giới hạn số, cờ chờ đối chiếu — câu C6)" |
+| ADR-0026 điều 2, "Ai được ghi tên ai làm người thu" | "người không phải Kế toán/Toàn quyền chỉ ghi được **chính mình** hoặc **Công ty** làm người thu" | "…chính mình (với Đối tác: vai bên đặt), Công ty, **hoặc bên đặt / nhà cung cấp của một dòng làm đại lý trên chính đơn đó** — khi đó dòng giữ hộ nằm trên **người khai** tới khi Kế toán xác nhận (câu C6 = A)" |
+| ADR-0026 điều 4 gạch 2 (H3) | "Người thu = Công ty, do người không phải Kế toán khai ⇒ dòng giữ hộ trên người khai…" | mở rộng cùng khuôn cho người thu = bên đặt / nhà cung cấp do người khác khai (C6 = A) |
 | ADR-0026 điều 2, "thu cho ai" | "lượt 1 luôn là hồ sơ Tour Đảo" | "người bán của phần tiền (Tour Đảo hoặc nhà cung cấp của dòng)" |
 | ADR-0026 điều 12 gạch 2 | "Vai người thu *Nhà cung cấp* chưa dùng được…" | Hết hiệu lực khi ADR này lên. |
 | Đặc tả mô hình vai §16 "Ngoài phạm vi: vai nhà cung cấp" | ngoài phạm vi | Trong phạm vi (đã báo ở đặc tả Hoàn tất §1 "chủ đang đảo"). |

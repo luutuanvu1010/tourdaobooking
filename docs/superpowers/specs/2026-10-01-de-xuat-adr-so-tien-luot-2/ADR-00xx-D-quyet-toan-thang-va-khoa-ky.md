@@ -1,9 +1,9 @@
 # ADR-00xx-D — Sổ tiền lượt 2: quyết toán theo tháng (một phiếu bù trừ nhiều đơn, hai chiều) và khoá kỳ tháng (module nhỏ `ky-so` dùng chung cho sổ công nợ và chi phí chuyến)
 
-- **Trạng thái:** **proposed** — bản nháp của người soạn (AI), 2026-10-01. **Chưa qua người kiểm độc lập.** AI không tự duyệt.
+- **Trạng thái:** **proposed** — bản nháp của người soạn (AI), 2026-10-01; **sửa vòng 1 theo người kiểm độc lập** (ĐẠT CÓ ĐIỀU KIỆN), bản sửa chưa được kiểm lại. AI không tự duyệt.
 - **Số hiệu:** giữ chỗ `ADR-00xx-D` (số thật chốt lúc gộp).
 - **Ngày:** 2026-10-01.
-- **Thuộc gói:** lượt duyệt **2d** (ADR này một mình — 2 quyết định chạm dữ liệu/quyền; `trang-ghep.md` §2d). Phát hành chung một bản với A, B, C, E.
+- **Thuộc gói:** lượt duyệt **2d** (ADR này — 2 quyết định — cùng ADR-00xx-E — 1 quyết định; E đọc bảng kê tháng và cờ "tháng đã khoá" của ADR này; `trang-ghep.md` §0). Phát hành chung một bản với A, B, C, E.
 - **Mốc đo mã:** `8f647226`; `main` @`0c4309cd`.
 - **Nguồn — lời chủ đã chốt:**
   - **U3 (1/10):** "Kế toán đối chiếu và **trả/thu gộp nhiều đơn mỗi tháng**, **bù trừ hoa hồng với tiền đại lý đang giữ**; **khoá sổ tháng**".
@@ -14,7 +14,11 @@
 - **Hiến chương áp dụng:** **5.14** (gỡ lệch vế khoá kỳ), 5.1, 5.3, 5.5, 5.12.
 - **Xây trên lỗ đang hở:** **không** (`phat_hien = []`, `main` @`0c4309cd`).
 - **Loại quyết định:** **một chiều** — kỳ đã khoá không mở lại (5.14); module mới + cạnh mới khó gỡ khi đã có dữ liệu. Ô quyền hai chiều.
-- **Nới hàng rào đã duyệt (Điều 9.4) — chủ duyệt ADR này là duyệt việc nới:** (a) `ALLOWED_EDGES` thêm ba cạnh (`billing → ky-so`, `van-chuyen → ky-so`, `ky-so → audit`); (b) danh sách view mà thân trigger `vc_` được đọc (bài "thân trigger `vc_` chỉ đọc `vc_` + view công bố", ADR-0049, `src/architecture.test.ts`) thêm `v_ky_closed_period`; (c) tương tự cho thân trigger `bil_` (luật ADR-0024 điều 5 — view của module được phép phụ thuộc). Không nới hàng rào nào khác; bài "không module nào import `van-chuyen`" (ADR-0040 D1) **giữ nguyên**.
+- **Nới hàng rào đã duyệt (Điều 9.4) — chủ duyệt ADR này là duyệt việc nới** (diff đề xuất: `de-xuat-luat.md` mục 1–3; lời thường cho chủ: câu **C12**):
+  - (a) `ALLOWED_EDGES` (`src/architecture.test.ts:33-58`): thêm module `"ky-so": ["audit"]`, thêm `ky-so` vào danh sách của `billing` và `"van-chuyen"`;
+  - (b) `TABLE_PREFIX` / `VIEW_PREFIX` (`:174-175`): thêm `ky_` → `ky-so`, `ky` → `ky-so`;
+  - (c) `VIEW_CHO_TRIGGER_VC` (`:855-857`): thêm `v_ky_closed_period` (thân trigger `vc_` được đọc thêm một view).
+  - **Không** phải nới cho thân trigger `bil_`: luật ADR-0024 điều 5 đã cho đọc view công bố của module được phép phụ thuộc — có cạnh (a) là đủ. Bài "không module nào import `van-chuyen`" (ADR-0040 D1) **giữ nguyên**.
 
 ---
 
@@ -56,8 +60,9 @@
    - **Mã:** mọi route ghi tiền kiểm trước và trả 409 tiếng Việt: "Tháng 10/2026 đã khoá sổ — ghi vào tháng đang mở (điều chỉnh, có lý do)".
    - **L-T1 (ADR-0057):** nếu ADR-0057 T2 gộp `main` **trước** lượt 2, migration lượt 2 thêm trigger cho `vc_trip_cost_line`; nếu **sau**, migration của T2 phải có sẵn trigger này (ghi vào kế hoạch T2). Cả hai trường hợp: bản phát hành lượt 2 không lên khi chưa có lớp khoá cho mọi bảng tiền có ngày phát sinh đang tồn tại.
 4. **Luật khoá:**
-   - Ô mới `ledger.period.close` (Kế toán, Toàn quyền — U3 "Kế toán khoá"). Route `POST /api/ky-so/:period/khoa` (module `ky-so`, cổng `office`), lý do/ghi chú tuỳ chọn, nhật ký `ledger_period_closed`.
-   - Chỉ khoá **tháng đã qua** (`period` < tháng hiện tại theo `vnToday()`); **theo thứ tự** — muốn khoá tháng 11 thì tháng 10 phải đã khoá (trigger: không có kỳ trước nào còn mở mà có dòng); tháng đầu tiên = tháng của dòng sổ sớm nhất.
+   - Ô mới `ledger.period.close` (Kế toán, Toàn quyền — U3 "Kế toán khoá"). Route `POST /api/ledger/ky/:period/khoa` đặt ở **module `billing`** (cổng `office`) — vì điều kiện "tháng đầu tiên" cần đọc bảng `bil_`; route gọi **câu chưa chạy** `khoaKyStatement` do `ky-so/index.ts` công bố (ADR-0002 quy tắc 3), cùng lô với nhật ký `ledger_period_closed`; lý do/ghi chú tuỳ chọn.
+   - **Ở mã (route của `billing`):** chỉ khoá **tháng đã qua** (`period` < tháng hiện tại theo `vnToday()`); tháng **đầu tiên** được khoá phải ≤ tháng của dòng sổ `bil_` sớm nhất (không để sót tháng có dòng ở trước). Dòng chi phí chuyến (`vc_`) không vào điều kiện này — `billing` không đọc `vc_` (ADR-0040 D1); kế hoạch ghi rủi ro "tháng có chi phí chuyến nhưng không có dòng sổ".
+   - **Ở CSDL (trigger của `ky-so`, chỉ đọc `ky_period_close`):** khoá **liền kề** — bảng rỗng thì tháng nào cũng được (tháng đầu); bảng có dòng thì `NEW.period` phải đúng **tháng ngay sau** tháng lớn nhất đã khoá; khoá trùng bị khoá chính chặn. Trigger **không** đọc `bil_`/`vc_` (giữ `ky-so` chỉ phụ thuộc `audit` — Hiến chương 5.3, bài thân trigger `src/architecture.test.ts:930-1000`).
    - **Không mở lại** (5.14: "kỳ đã khoá thì không ghi thêm vào kỳ đó"). Muốn có đường mở lại = ADR mới do chủ duyệt.
    - **Trước khi khoá**, màn khoá hiện **bảng kiểm** (không chặn, Kế toán quyết): khoản "Công ty thu – CK" chờ xác nhận có ngày trong tháng; lần thu "chưa rõ người thu"; đơn "Đã giao" thiếu dòng giá vốn (R-BIL-2 cảnh báo); số dư từng bên cuối tháng.
 5. **Sau khoá:** sai sót ghi **phiếu điều chỉnh / đảo** (ADR-0026 điều 8) với **ngày phát sinh trong tháng đang mở** + lý do bắt buộc + trỏ phiếu gốc (khi đảo). Dòng đảo của một dòng thuộc tháng đã khoá **được phép** (dòng đảo mang ngày mới, không phải ngày của dòng gốc).
@@ -78,9 +83,9 @@
 
 | Ô | SALES | ACC | ADMIN | FIELD | PARTNER | SUPER | INTERN | DRIVER | DRV_P | Route |
 |---|---|---|---|---|---|---|---|---|---|---|
-| `ledger.period.close` (**mới**) | none | any | none | none | none | any | none | none | none | `POST /api/ky-so/:period/khoa` |
+| `ledger.period.close` (**mới**) | none | any | none | none | none | any | none | none | none | `POST /api/ledger/ky/:period/khoa` (module `billing`) |
 | `ledger.write` (có sẵn, không đổi) | none | any | none | none | none | any | none | none | none | `POST /api/ledger/settlements` (thêm `bu_tru`) |
-| `ledger.view` (có sẵn; cột PARTNER đổi ở ADR-00xx-E) | own | any | own | own | none→own (E) | any | own | none | none | bảng kê tháng (`any`); `GET /api/ky-so` (danh sách tháng đã khoá — `any`) |
+| `ledger.view` (có sẵn, **không đổi** — PARTNER vẫn `none`; Đối tác đọc qua ô riêng của ADR-00xx-E) | own | any | own | own | none | any | own | none | none | bảng kê tháng (`any`); `GET /api/ledger/ky` (danh sách tháng đã khoá — `any`) |
 
 - `ADMIN` = `none` ở `ledger.period.close`: theo H4/U3 "Kế toán"; cùng khuôn `ledger.write`, `order.complete` (Quản trị không). Đổi một ô là hai chiều.
 
@@ -114,7 +119,7 @@ Ngày 05/11 Kế toán ghi một phiếu `bu_tru` cho A: TD-1001 **+2.750.000** 
 
 **Ví dụ D-2 — bù trừ, công ty trả chênh lệch.** CTV Lan, tháng 10: TD-1004 khách CK công ty 2.000.000, mức 15% ⇒ TĐ nợ Lan 300.000; TD-1005 HDV thu 1.000.000, 15% ⇒ TĐ nợ Lan 150.000; TD-1006 Lan giữ cọc 300.000 trên đơn 1.000.000 (15%), HDV thu 700.000 ⇒ Lan nợ TĐ 150.000. Phiếu `bu_tru`: −300.000, −150.000, +150.000 ⇒ **công ty chuyển Lan 300.000**.
 
-**Ví dụ D-3 — khoá tháng rồi phát hiện sai.** Ngày 06/11 Kế toán khoá tháng 10 (bảng kiểm sạch). Ngày 08/11 phát hiện TD-1002 lẽ ra 10% (100.000) chứ không 12% (120.000) — đơn đã "Đã giao" (khoá). Kế toán ghi phiếu **điều chỉnh** ngày **08/11**, lý do "mức Hòn Tằm của A là 10% theo hợp đồng", dòng **A → TĐ 20.000** loại *hoa hồng*. Nếu chọn ngày 31/10 ⇒ máy từ chối "Tháng 10/2026 đã khoá sổ". Bảng kê tháng 11 của A: đầu kỳ 0 (đã quyết toán), phát sinh +20.000 ⇒ A nợ 20.000, trừ vào kỳ quyết toán tháng 11.
+**Ví dụ D-3 — khoá tháng rồi phát hiện sai.** Ngày 06/11 Kế toán khoá tháng 10 (bảng kiểm sạch). Ngày 08/11 phát hiện TD-1002 lẽ ra 10% (100.000) chứ không 12% (120.000) — đơn đã "Đã giao" (khoá). Kế toán ghi phiếu **điều chỉnh** ngày **08/11**, lý do "mức Hòn Tằm của A là 10% theo hợp đồng", dòng **A → TĐ 20.000** loại *hoa hồng*. Nếu chọn ngày 31/10 ⇒ máy từ chối "Tháng 10/2026 đã khoá sổ". Bảng kê tháng 11 của A: **đầu kỳ 1.840.000** (A nợ — số cuối tháng 10, vì phiếu bù trừ ghi ngày 05/11), phát sinh −1.840.000 (bù trừ 05/11) + 20.000 (điều chỉnh 08/11) ⇒ **cuối kỳ: A nợ 20.000**, trả trong lần quyết toán tháng 11.
 
 **Ví dụ D-4 — tiền thật về trước khi khoá nhưng ghi trễ.** HDV Nam nộp 1.750.000 ngày 31/10, Kế toán quên ghi, khoá tháng 10 ngày 06/11, ghi ngày 07/11 ⇒ phải để ngày phát sinh **07/11** (ghi chú "nộp thực tế 31/10"). Bài học vận hành ⇒ bảng kiểm trước khi khoá (điều 4) có dòng "người đang giữ tiền công ty cuối tháng" để Kế toán đối chiếu trước khi bấm.
 
@@ -140,7 +145,7 @@ Ngày 05/11 Kế toán ghi một phiếu `bu_tru` cho A: TD-1001 **+2.750.000** 
 
 ## Hệ quả
 
-- **Mã:** `src/modules/ky-so/` mới (repository nghiêm, route khoá, danh sách tháng); `billing` (trigger, kiểm 409, kiểu `bu_tru`, bảng kê tháng, bảng kiểm trước khoá); `van-chuyen` (trigger khi T2 có); `src/architecture.test.ts`; `src/shared/permissions.ts` (1 ô — việc lớn); `web/` màn "Quyết toán" + "Khoá tháng" (chờ bản vẽ của chủ — nợ N-4).
+- **Mã:** `src/modules/ky-so/` mới (repository nghiêm, **câu chưa chạy** `khoaKyStatement` + hàm đọc danh sách tháng; không route); `billing` (route khoá tháng + danh sách tháng, trigger, kiểm 409, kiểu `bu_tru`, bảng kê tháng, bảng kiểm trước khoá); `van-chuyen` (trigger khi T2 có); `src/architecture.test.ts`; `src/shared/permissions.ts` (1 ô — việc lớn); `web/` màn "Quyết toán" + "Khoá tháng" (chờ bản vẽ của chủ — nợ N-4).
 - **Tệp luật** (`docs/ARCHITECTURE.md` danh sách module, bảng thi hành 5.14; `CLAUDE.md` §7 nếu cần): AI chỉ đề xuất diff (N9).
 - **Việc lớn** (dữ liệu + tiền + quyền + luật kiến trúc): người kiểm độc lập chỉ-đọc.
 
@@ -148,7 +153,7 @@ Ngày 05/11 Kế toán ghi một phiếu `bu_tru` cho A: TD-1001 **+2.750.000** 
 
 1. D-1…D-4 thành test; khớp từng đồng; sau D-1, "Hoàn thành" từng đơn thành công khi người giữ tiền đã nộp.
 2. Khoá tháng 10 ⇒ chèn tay (SQL) lần thu / phiếu ngày 2026-10-xx ⇒ trigger chặn (thấy chặn thật một lần); route ⇒ 409 tiếng Việt.
-3. Khoá tháng hiện tại / tương lai ⇒ 400; khoá tháng 11 khi tháng 10 còn mở ⇒ 409; khoá lần hai ⇒ 409; `UPDATE`/`DELETE` `ky_period_close` ⇒ chặn.
+3. Khoá tháng hiện tại / tương lai ⇒ 400 (mã); tháng đầu sau dòng sổ sớm nhất ⇒ 409 (mã); khoá tháng 12 khi tháng lớn nhất đã khoá là 10 ⇒ trigger `ky-so` chặn (SQL chạy tay cũng chặn); khoá lần hai ⇒ khoá chính chặn; `UPDATE`/`DELETE` `ky_period_close` ⇒ chặn. Bài thân trigger: trigger `ky-so` không nhắc bảng nào ngoài `ky_` (thấy đỏ một lần khi cài tạm trigger đọc `bil_posting`).
 4. `bu_tru` vượt số dư một đơn ⇒ 400; Quản trị / Bán hàng gọi ⇒ 403; Đối tác ⇒ 403.
 5. Bài kiến trúc: `ky-so` không import module nào ngoài `audit`; không có cạnh `billing ↔ van-chuyen`; thân trigger khoá kỳ chỉ đọc bảng cùng module + `v_ky_closed_period` — thấy đỏ một lần khi cài tạm trigger `vc_` đọc `v_bil_*`.
 6. `audit-invariants`: chèn dòng vào tháng đã khoá bằng cách tắt trigger trên bản sao ⇒ `R-KY-1` thoát 1.

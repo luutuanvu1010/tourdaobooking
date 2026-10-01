@@ -1,9 +1,9 @@
 # ADR-00xx-C — Sổ tiền lượt 2: phiếu "Đã giao" sinh dòng thương mại (hoa hồng, giảm giá bên đặt chịu, giá vốn); mở "Đã giao" cho đơn của đại lý; trần giảm giá theo bên đặt
 
-- **Trạng thái:** **proposed** — bản nháp của người soạn (AI), 2026-10-01. **Chưa qua người kiểm độc lập.** AI không tự duyệt.
+- **Trạng thái:** **proposed** — bản nháp của người soạn (AI), 2026-10-01; **sửa vòng 1 theo người kiểm độc lập** (ĐẠT CÓ ĐIỀU KIỆN), bản sửa chưa được kiểm lại. AI không tự duyệt.
 - **Số hiệu:** giữ chỗ `ADR-00xx-C` (số thật chốt lúc gộp).
 - **Ngày:** 2026-10-01.
-- **Thuộc gói:** lượt duyệt **2c** (ADR này — 2 quyết định — cùng ADR-00xx-E — 1 quyết định; `trang-ghep.md` §2c). Phát hành chung một bản với A, B, D, E.
+- **Thuộc gói:** lượt duyệt **2c** (ADR này một mình — **3** quyết định: (5) dòng thương mại + mở "Đã giao" cho đơn đại lý; (6) trần giảm giá theo người hưởng; (7) lệch có chủ ý **L-C1**, đếm riêng vì là lệch Hiến chương; `trang-ghep.md` §0). Phát hành chung một bản với A, B, D, E.
 - **Phụ thuộc:** ADR-00xx-A (bản chụp hoa hồng, hàm `phanThuongMaiCuaDon`), ADR-00xx-B (người bán, giá vốn, người thu bên đặt / nhà cung cấp). Không duyệt C trước A, B.
 - **Mốc đo mã:** `8f647226`; `main` @`0c4309cd`.
 - **Nguồn — lời chủ đã chốt:**
@@ -36,7 +36,7 @@
 
 1. **Mở "Đã giao" cho đơn có người hưởng.** Bỏ lý do giữ `booker_partner` (`src/modules/billing/rules.ts:179-181`). Thay bằng hai lý do giữ mới (5.7 — `LyDoGiu`, nói rõ ai xử lý):
    - `terms_missing` — có dòng dịch vụ **chưa có bản chụp**, hoặc bản chụp hiện hành **thiếu mức hoa hồng** / **thiếu người bán** (ADR-00xx-A điều 8, ADR-00xx-B điều 5): "Thiếu mức hoa hồng cho <dịch vụ> (<vai/đối tác>) — Kế toán cài mức hoặc ghi mức tay." Ai xử lý: **Kế toán**.
-   - `booker_not_beneficiary` — bên đặt mang vai bên ngoài ngoài danh sách được hưởng (ADR-00xx-A điều 3). Ai xử lý: **Văn phòng**.
+   - `booker_not_beneficiary` — bên đặt mang vai bên ngoài ngoài danh sách được hưởng (ADR-00xx-A điều 3). Ai xử lý: **Văn phòng** (sửa bên đặt) hoặc **Kế toán** (mức tay). Không chỉ là câu báo ở mã: bản chụp ghi `MISSING` + `missing_reason = BOOKER_NOT_BENEFICIARY` nên **hai lớp CSDL ở điều 5 cùng bắt** (giữ 5.1 như lượt 1 đang có).
    - Thứ tự kiểm giữ như lượt 1; hai lý do mới đứng **ở chỗ** của `booker_partner` (sau "trước ngày đi", trước "chưa rõ người thu").
 2. **Loại dòng nợ mới** (bảng tra cứu `bil_debt_kind`, tập mở — ADR-0003 điều 3). **Khuyến nghị (câu C1 — phương án A "gọn"):**
    - `HOA_HONG` — *Hoa hồng*: **Tour Đảo nợ người hưởng**; một dòng mỗi dòng dịch vụ có hoa hồng > 0 (`order_service_id` có giá trị).
@@ -45,8 +45,17 @@
    - Phương án B (câu C1): dùng đúng hai loại ADR-0026 điều 3 đã liệt kê dự kiến — `MUA_GIA_DAI_LY` (người hưởng nợ Tour Đảo = Σ giá lẻ trước giảm − hoa hồng) + `THU_HO` (Tour Đảo nợ người hưởng = tổng khách đã trả). **Số dư mỗi bên như nhau đến từng đồng** (bảng đối chiếu ở ví dụ C-1). Khác ở cách Kế toán đọc sổ.
 3. **"Thu hộ" trong luật lượt 1 (không đổi):** mọi đồng khách trả, ai cầm thì người đó có dòng *tiền đang giữ hộ* **nợ Tour Đảo** (ADR-0026 điều 4) — kể cả HDV thu tại cảng cho đơn của đại lý, đại lý tự thu cọc (`BOOKER`), quầy nhà cung cấp (`SUPPLIER` — ADR-00xx-B). **Không** có dòng "HDV nợ đại lý". Công ty là đầu mối: thu từ người cầm tiền, trả hoa hồng cho người hưởng. Đây là cách hiểu câu chủ "HDV thu tiền hộ đại lý" trong khuôn sổ đã duyệt: số đại lý được nhận cuối cùng như nhau.
 4. **Một nguồn tính** (5.4): số của mọi dòng ở điều 2 lấy từ `phanThuongMaiCuaDon` của `orders` (ADR-00xx-A điều 10) — hàm thuần `hoaHongDong`, `giaVonDong` của `pricing` trên **bản chụp hiện hành** và **thành tiền dòng tại mốc "Đã giao"** (đơn đã khoá nên "hiện hành" = "tại mốc"). Luật sinh dòng thuần `sinhPhieuDaGiao` (`billing/rules.ts`) nhận số, không tra cài đặt (ADR-0026 điều 4 gạch 4).
-5. **Lô ghi "Đã giao"** (ADR-0025 điều 4) thêm các dòng trên vào phiếu "Đã giao" trong **cùng `db.batch()`**. Lưới CSDL thứ hai (5.1): trigger `bil_posting_delivered_terms` trên `bil_posting` (loại `DELIVERED`) đọc view công bố `v_ord_terms_missing` của `orders` (cạnh `billing → orders` đã có) ⇒ còn dòng thiếu ⇒ `RAISE 'terms_missing: …'` ⇒ cả lô huỷ.
-6. **Lệch có chủ ý L-C1 (Hiến chương 5.1):** *số tiền* của dòng hoa hồng / giá vốn / giảm giá **đúng công thức** chỉ được giữ ở mã (hàm duy nhất + sổ vàng 5.17) và kiểm định kỳ `R-BIL-2`; CSDL chỉ canh "đủ bản chụp" (điều 5) và "dòng chỉ-thêm". Lý do: công thức (tỷ lệ phần vạn, làm tròn theo dòng, đếm khách theo H7) viết lại bằng SQL trong trigger là **đường tính thứ hai** — trái 5.4. Điều kiện gỡ: không có (lệch vĩnh viễn có tên), trừ khi chủ chọn lưu số tiền dòng vào bản chụp (đổi A điều 10). **Chỉ hợp lệ khi chủ duyệt.**
+5. **Lô ghi "Đã giao"** (ADR-0025 điều 4) thêm các dòng trên vào phiếu "Đã giao" trong **cùng `db.batch()`**. Hai lớp CSDL (5.1) cho "đủ bản chụp":
+   - **Lớp 1 — câu ghi của `orders`** (lượt 1 đang chặn đơn đại lý ở đây, **phải sửa cùng lúc**): `src/modules/orders/hoan-tat-repo.ts:76` (`DAT_GIAO_DIEU_KIEN`) có `AND NOT EXISTS (SELECT 1 FROM v_pty_open_role_group g WHERE g.party_id = orders.booker_party_id AND g.role_group = 'EXTERNAL')` — **thay** bằng "không dòng dịch vụ nào của đơn thiếu bản chụp hiện hành hoặc có bản chụp `MISSING`" (đọc `ord_service_terms` — bảng cùng module, đúng luật tệp nửa nghiêm). Và `:16` (`GIAO_STATE`, cột `co_nguoi_huong` suy từ nhóm `EXTERNAL`) đổi sang đọc người hưởng từ bản chụp (`beneficiary_party_id`). Không sửa lớp này thì bỏ lý do giữ ở mã vẫn **không** mở được đơn đại lý (câu `UPDATE orders` không áp ⇒ 409).
+   - **Lớp 2 — trigger của `billing`:** `bil_posting_delivered_terms` trên `bil_posting` (loại `DELIVERED`) đọc view công bố `v_ord_terms_missing` của `orders` (cạnh `billing → orders` đã có) ⇒ còn dòng thiếu ⇒ `RAISE 'terms_missing: …'` ⇒ cả lô huỷ.
+6. **Lệch có chủ ý L-C1 (Hiến chương 5.1) — thu hẹp bằng lớp CSDL một phần, có hạn** (chủ quyết ở câu **C10**):
+   - **Phần CSDL canh được (khuyến nghị thêm — C10 = A):** phiếu "Đã giao" chụp thêm `gross_snapshot` = Σ thành tiền các dòng **trước giảm** tại mốc (cùng khuôn `due_snapshot` chủ đã đồng ý lưu ở Q4 30/9; tính bằng hàm duy nhất). Trigger trên `bil_debt_line` (chỉ đọc bảng `bil_`, view `v_pty_owner_company`):
+     - (i) dòng `HOA_HONG`, `GIA_VON` **bắt buộc** `order_service_id`; mỗi (phiếu, dòng dịch vụ) tối đa **một** `HOA_HONG` và **một** `GIA_VON` (chỉ mục duy nhất một phần);
+     - (ii) chiều đúng: `HOA_HONG`, `GIA_VON` có bên nợ = công ty chủ; `GIAM_GIA_BEN_DAT` có bên được nợ = công ty chủ;
+     - (iii) cộng dồn `HOA_HONG` + `GIA_VON` trên một phiếu ≤ `gross_snapshot`;
+     - (iv) `GIAM_GIA_BEN_DAT` (nếu có) = `gross_snapshot` − `due_snapshot` **đúng từng đồng** (giảm giá cấp đơn là phần chênh duy nhất giữa hai số).
+   - **Phần chỉ ở mã:** số hoa hồng / giá vốn **đúng tỷ lệ** của từng dòng (phần vạn, làm tròn, đếm khách H7) và "mỗi dòng ≤ thành tiền **dòng đó**" — viết công thức trong trigger là đường tính thứ hai (trái 5.4); còn thành tiền từng dòng sau điều chỉnh số khách hôm nay nằm trong JSON của `order_money_adjustment` nên không có view đọc được. Lớp bù: hàm duy nhất + sổ vàng (5.17) + `R-BIL-2` định kỳ.
+   - **Điều kiện / hạn gỡ phần còn lại:** khi thành tiền dòng sau điều chỉnh có **cột** (không còn chỉ ở JSON — vd ADR nào sửa `order_money_adjustment`, hoặc chủ chọn lưu số tiền dòng vào bản chụp) thì thêm view + trigger "mỗi dòng ≤ thành tiền dòng"; **xét lại muộn nhất** ở ADR "nợ nhà xe vào sổ" (lượt sổ kế tiếp). **Chỉ hợp lệ khi chủ duyệt** (Hiến chương 6.1).
 7. **Đơn đã có số liệu cũ khi lượt 2 lên** — ba nhóm, mỗi nhóm một cách:
    - (a) **Đơn khách lẻ đã "Đã giao" ở lượt 1 có dịch vụ "làm đại lý"** (vd i-resort): **đã chốt M1 = A** — Kế toán bổ sung dòng giá vốn bằng phiếu điều chỉnh có lý do. `R-BIL-2`/`R-BIL-5` với đơn "Đã giao" **trước mốc phát hành** chạy mức **`warn`** + danh sách (để `audit-invariants --db remote` của runbook không thoát 1 ngay sau triển khai); sau mốc: `error`.
    - (b) **Đơn đã xác nhận, chưa "Đã giao"** lúc lượt 2 lên — **không có bản chụp**. Chia hai:
@@ -60,9 +69,9 @@
    - trước Xác nhận (lập / sửa nháp): theo **bảng mức hôm nay** cho bên đặt của đơn (số dự kiến, không lưu); dòng thiếu mức tính 0 vào trần (thận trọng — trần chỉ thấp hơn, không cao hơn);
    - lúc Xác nhận: theo **bản chụp** vừa chèn trong cùng lô — vượt ⇒ từ chối xác nhận;
    - sau Xác nhận, HDV / văn phòng **giảm số khách** làm hoa hồng giảm dưới số giảm giá đã cho: **không chặn** (tinh thần 5.9 — không chặn thao tác phản ánh thực tế); màn đơn hiện cảnh báo "Giảm giá đang lớn hơn hoa hồng X ₫ — đại lý chịu phần này". Dòng `GIAM_GIA_BEN_DAT` vẫn ghi đúng số giảm giá.
-9. **Xét theo vai trên đơn, không theo loại tài khoản** — **khuyến nghị câu C8 (A):** trần áp cho **mọi người** sửa giảm giá của đơn **có người hưởng** (kể cả Bán hàng, Quản trị), vì giảm giá đó **do đại lý chịu** (điều 2) — nhân viên không được làm đại lý chịu thêm quá hoa hồng của họ. Đơn khách lẻ: không đổi (nội bộ giảm tự do, có nhật ký — trần giảm giá nhân viên là ý A4 của Giám đốc, **đã vào sổ tồn đọng**, ngoài phạm vi).
+9. **Ai chịu giảm giá trên đơn có người hưởng, và trần xét theo gì** — **câu C8** (chưa có lời chủ cho trường hợp **nhân viên** nhập giảm giá trên đơn đại lý: ADR-0018 §11 nói "giảm giá cho khách do đối tác chịu", H8 nói "đối tác **tự** giảm thì đối tác chịu"; dòng `GIAM_GIA_BEN_DAT` **không được** tự gán phần nhân viên giảm cho đại lý mà không hỏi). Khuyến nghị **C8 (A):** mọi giảm giá cấp đơn trên đơn có người hưởng **là giảm giá của đại lý** (nhân viên nhập thay theo lời đại lý) ⇒ đại lý chịu, **trần áp cho mọi người** sửa (kể cả Bán hàng, Quản trị). Muốn Tour Đảo tặng thêm cho khách của đại lý thì không đi đường "giảm giá" ở lượt này (trần giảm giá nhân viên — ý A4 của Giám đốc — đã vào sổ tồn đọng). Phương án khác ở `cau-hoi-chu.md` C8 (tách "giảm giá Tour Đảo chịu" thành ô riêng — cần cột mới; hoặc giữ như nay). Đơn khách lẻ: không đổi.
    - Hệ quả: **gỡ lệch 5.8** của ADR-0029 (luật giá Đối tác xét theo `holdsPartner(staff)`); vế **giá danh mục** (ADR-0027 điều 2a) giữ theo người thao tác như cũ (ngoài phạm vi ADR này).
-   - Lệch **5.1** của ADR-0029 cho trần giảm giá **còn** (trần cần hàm tính tiền ⇒ không đặt được trong trigger — cùng lý do L-C1); lớp bù: kiểm định kỳ `R-ORD-DC1` (warn) "đơn có người hưởng, xác nhận sau mốc, giảm giá > tổng hoa hồng chụp lúc xác nhận".
+   - **Kéo dài lệch 5.1 của ADR-0029** cho trần giảm giá — ADR-0029 hẹn "xem lại cùng lúc với bảng chiết khấu", nay là lúc đó; **chủ quyết ở câu C11**. Khuyến nghị (A): kéo dài **có hạn** — trần cần hàm tính tiền nên không đặt nguyên trong trigger được; lớp bù kiểm định kỳ `R-ORD-DC1` (warn → **error** sau mốc phát hành) "đơn có người hưởng, xác nhận sau mốc, giảm giá > tổng hoa hồng chụp lúc xác nhận"; hạn xét lại = cùng điều kiện gỡ L-C1 (khi thành tiền dòng có cột thì trigger lúc Xác nhận so `orders.discount` với tổng bản chụp được). (B): thêm ngay lớp CSDL **xấp xỉ** — chỉ được khi tỷ lệ là `RATE` (trigger tính lại ⇒ đường tính thứ hai, không khuyến nghị).
 
 ### Bảng quyền (9 quyền app)
 
@@ -73,7 +82,9 @@
 | Bảng | Đổi |
 |---|---|
 | `bil_debt_kind` | + `HOA_HONG`, `GIAM_GIA_BEN_DAT`, `GIA_VON` (phương án A) — hoặc `MUA_GIA_DAI_LY`, `THU_HO`, `GIA_VON` (B) |
-| `bil_posting` | + trigger `bil_posting_delivered_terms` (điều 5) |
+| `bil_posting` | + trigger `bil_posting_delivered_terms` (điều 5); + cột `gross_snapshot INTEGER NULL` (có ⇔ phiếu `DELIVERED` tạo sau mốc — `ALTER TABLE ADD COLUMN`, nếu C10 = A) |
+| `bil_debt_line` | + chỉ mục duy nhất một phần và trigger (i)–(iv) của điều 6 (nếu C10 = A) |
+| `orders` (tệp `hoan-tat-repo.ts`) | đổi điều kiện câu "Đã giao" (điều 5 lớp 1) — không đổi bảng |
 | `bil_debt_line` | không đổi cột; dòng `HOA_HONG`/`GIA_VON` mang `order_service_id` |
 
 ### Bất biến (`scripts/audit-invariants.mjs`)
@@ -130,7 +141,9 @@ Số dư: **Đại lý A nợ 3.000.000 + 250.000 − 500.000 = 2.750.000** ✓ 
 
 ## Hệ quả
 
-- **Mã:** `billing/rules.ts` (`lyDoChuaGiaoDuoc`, `sinhPhieuDaGiao` có dòng thương mại), `billing/service.ts` (lô "Đã giao"), `orders` (trần giảm giá theo người hưởng — `price-guards.ts`, `discountWithinCap`), `scripts/audit-checks.mjs` (bỏ R-BIL-2/5 khỏi danh sách "chưa áp dụng"), `golden/so-cong-no-luot-2.json` (ca mới, `cho_xac_nhan`), `src/so-vang.test.ts` (chạy SV-HT-01…05 trên mã sổ — hôm nay "chưa áp dụng").
+- **Lớp chặn SQL lượt 1 phải đổi cùng bản:** `src/modules/orders/hoan-tat-repo.ts:76` (điều kiện `NOT EXISTS … role_group = 'EXTERNAL'` trong câu "Đã giao") và `:16` (`co_nguoi_huong` trong `GIAO_STATE`) — điều 5 lớp 1. Bài test ghim hai câu này đảo có chủ đích (đỏ → xanh).
+- **Sổ vàng / bài kiểm:** `src/so-vang.test.ts` kiểm "nhất quán nội tại" với luật **tổng thu = giá bán** (bảng thi hành `docs/ARCHITECTURE.md:160`) — **lệch khi có giảm giá do bên đặt chịu** (tổng thu < giá bán lẻ). Phải đổi luật kiểm sang công thức khái quát của `R-BIL-2` (điều trong mục Bất biến); dòng bảng thi hành ở `ARCHITECTURE.md` là tệp luật ⇒ AI chỉ đề xuất diff (`de-xuat-luat.md` mục 4).
+- **Mã:** `billing/rules.ts` (`lyDoChuaGiaoDuoc`, `sinhPhieuDaGiao` có dòng thương mại), `billing/service.ts` (lô "Đã giao"; `gross_snapshot` nếu C10 = A), `orders` (trần giảm giá theo người hưởng — `price-guards.ts`, `discountWithinCap`), `scripts/audit-checks.mjs` (bỏ R-BIL-2/5 khỏi danh sách "chưa áp dụng"), `golden/so-cong-no-luot-2.json` (ca mới, `cho_xac_nhan`), `src/so-vang.test.ts` (chạy SV-HT-01…05 trên mã sổ — hôm nay "chưa áp dụng").
 - **Sổ vàng (5.17):** mã sổ lượt 2 chỉ được nhận khi chủ/Kế toán **xác nhận** SV-HT-01…05 và các ca C-1…C-5 (đang `cho_xac_nhan`). AI không tự xác nhận.
 - **Bảng tin / thông báo:** không loại tin mới; "Đã giao" vẫn chỉ làm mới màn hình (ADR-0045).
 - **Việc lớn** (tiền + dữ liệu): người kiểm độc lập chỉ-đọc.
@@ -146,6 +159,6 @@ Số dư: **Đại lý A nợ 3.000.000 + 250.000 − 500.000 = 2.750.000** ✓ 
 
 ## Xung đột / điều chưa chắc
 
-- Câu **C1** (kiểu dòng), **C4** (đơn kẹt), **C8** (trần áp cho nhân viên) — `cau-hoi-chu.md`.
+- Câu **C1** (kiểu dòng), **C4** (đơn kẹt), **C8** (ai chịu giảm giá / trần áp cho nhân viên), **C10** (L-C1), **C11** (kéo dài lệch 5.1 của ADR-0029) — `cau-hoi-chu.md`.
 - L-C1 là lệch có chủ ý mới — chỉ hợp lệ khi chủ duyệt.
 - Cách làm tròn (nửa lên, theo dòng) — giả định, sổ vàng xác nhận.
