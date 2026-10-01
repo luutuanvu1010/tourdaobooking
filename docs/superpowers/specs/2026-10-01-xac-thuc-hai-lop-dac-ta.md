@@ -20,6 +20,7 @@
 | Q4 Email cho vai lớn | **A** — Quản trị, Toàn quyền, Kế toán chỉ dùng ứng dụng xác thực |
 | Sổ phiên — máy thứ hai | **Máy mới vào, máy cũ bị đăng xuất** |
 | Sổ phiên — phạm vi | **Mọi tài khoản, trừ IT và Toàn quyền** (được nhiều máy) |
+| Q5 Nhật ký gỡ phiên | **A** — im lặng như đặt lại PIN (Quản trị không thấy dòng do Toàn quyền làm) |
 | Sổ phiên — ai xem/gỡ | **IT + Toàn quyền xem và gỡ của mọi người; mỗi người xem được lịch sử của mình và tự đăng xuất** |
 
 ## 2. Hiện trạng (đọc mã 2026-10-01)
@@ -136,7 +137,7 @@ Lưu ý thiết kế cho đợt 2: SĐT đăng nhập **có thể không phải*
 
 ## 10. Câu hỏi chờ chủ
 
-- **Q5 — Nhật ký gỡ phiên có "im lặng" không** (ADR-0072 điều 8): (A, khuyến nghị) có — như đặt lại PIN/gỡ Face ID, Quản trị không thấy dòng do Toàn quyền làm · (B) không — Quản trị thấy mọi lần gỡ phiên. Chủ chốt khi duyệt ADR-0072.
+Không còn câu mở. Q5 (nhật ký gỡ phiên im lặng) = **A**, chủ chốt 2026-10-01: `session_revoked` vào `SILENT_AUDIT_ACTIONS`. Bước kế tiếp: chủ duyệt đặc tả + ADR-0071 + ADR-0072.
 
 ## 11. Tiêu chí nghiệm thu (hành vi kiểm được)
 
@@ -157,7 +158,7 @@ Lưu ý thiết kế cho đợt 2: SĐT đăng nhập **có thể không phải*
 15. Đăng nhập tài khoản thường trên máy B → phiên máy A trả 401 `session_ended` ở request kế tiếp; kết nối Bảng tin của A đóng, thông báo màn hình khoá của A tắt, của B vẫn chạy. (e2e)
 16. Hai lần đăng nhập đồng thời cùng tài khoản thường → đúng một phiên sống (CSDL chặn). (e2e chạy đua + `audit-invariants`)
 17. Tài khoản Toàn quyền / vai IT đăng nhập 2 máy → cả hai sống; bỏ Toàn quyền → chỉ còn phiên mới nhất. (e2e)
-18. Quản trị không giữ Toàn quyền gọi route xem/gỡ phiên người khác → 403; Toàn quyền gỡ → phiên kết thúc, nhật ký `session_revoked`, máy được tin của phiên đó bị bỏ. (e2e)
+18. Quản trị không giữ Toàn quyền gọi route xem/gỡ phiên người khác → 403; Toàn quyền gỡ → phiên kết thúc, nhật ký `session_revoked` (Quản trị xem nhật ký không thấy dòng này), máy được tin của phiên đó bị bỏ. (e2e)
 19. Token kiểu cũ (không mã phiên) → 401. (thuần)
 20. Mỗi người xem được lịch sử phiên của mình, không xem được của người khác. (e2e)
 21. Người kiểm độc lập (chỉ đọc) báo ĐẠT.
