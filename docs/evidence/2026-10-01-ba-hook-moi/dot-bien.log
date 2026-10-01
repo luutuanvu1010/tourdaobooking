@@ -1,3 +1,4 @@
+Trước đột biến (bản sao nguyên vẹn): thoát 0, đỏ 0
 ĐỎ đúng — H3: tepLuat luôn trả null (không tệp nào là luật)
       not ok: guard-luat: sửa/xoá/ghi đè tệp luật bằng dòng lệnh bị chặn, lý do trỏ về công cụ sửa tệp
       not ok: guard-luat: kho ca cho-qua của guard-remote (người kiểm D soạn) không bị hàng rào mới chặn nhầm — trừ đúng MỘT
@@ -5,6 +6,8 @@
 ĐỎ đúng — H3: bỏ canh đích chuyển hướng `>`
       not ok: guard-luat: sửa/xoá/ghi đè tệp luật bằng dòng lệnh bị chặn, lý do trỏ về công cụ sửa tệp
       not ok: guard-remote: script móc thật chặn sửa tệp luật bằng dòng lệnh, vẫn chặn lệnh cấm cũ, im lặng với lệnh đọc
+ĐỎ đúng — H3: bỏ ngoại lệ cờ nạp thư viện của perl (-M/-m/-I) ⇒ chặn nhầm lệnh đọc
+      not ok: guard-luat: đọc, commit, chép RA ngoài, dọn worktree, tệp ngoài kho đều cho qua (chặn nhầm là lỗi)
 ĐỎ đúng — H3: móc guard-remote không gọi hàng rào luật
       not ok: guard-remote: script móc thật chặn sửa tệp luật bằng dòng lệnh, vẫn chặn lệnh cấm cũ, im lặng với lệnh đọc
 ĐỎ đúng — H2: bỏ luật tệp bí mật
@@ -13,6 +16,8 @@
 ĐỎ đúng — H2: bỏ luật migration đã lên main
       not ok: guard-tep: migration đã có trên main bị chặn; migration mới của nhánh thì sửa được
       not ok: guard-tep: script móc thật — chặn bằng JSON deny, im lặng khi cho qua / công cụ khác / đầu vào hỏng / tệp của 
+ĐỎ đúng — H2: bỏ vế origin/main của luật migration
+      not ok: guard-tep: migration đã có trên main bị chặn; migration mới của nhánh thì sửa được
 ĐỎ đúng — H2: bỏ luật checkout gốc
       not ok: guard-tep: sửa thẳng ở checkout gốc bị chặn (tệp có sẵn, tệp mới, thư mục chưa tồn tại); trong worktree thì ch
       not ok: guard-tep: script móc thật — chặn bằng JSON deny, im lặng khi cho qua / công cụ khác / đầu vào hỏng / tệp của 
@@ -28,6 +33,8 @@
       not ok: cổng xanh: chưa xanh mà câu trả lời cuối KHAI nguyên văn thì cho dừng; không khai thì không; thiếu câu trả lời
       not ok: cổng xanh: xanh thì cho dừng và nhớ kết quả; commit riêng trên nhánh (cây sạch) vẫn tính là khác main; checkou
       not ok: cổng xanh: script móc thật — đỏ thì in JSON block, khai đúng câu / xanh / sự kiện khác / đầu vào hỏng thì im l
+ĐỎ đúng — H1: câu trả lời rỗng không được coi là thiếu (khoá phiên khi không đọc được câu trả lời)
+      not ok: cổng xanh: chưa xanh mà câu trả lời cuối KHAI nguyên văn thì cho dừng; không khai thì không; thiếu câu trả lời
 ĐỎ đúng — H1: không nhớ theo dấu vân (bỏ so dấu vân ⇒ dùng kết quả cũ cho mã mới)
       not ok: cổng xanh: có thay đổi + bộ kiểm ĐỎ ⇒ giữ lại, lý do có tên bài đỏ và câu phải khai; cùng trạng thái thì không
       not ok: cổng xanh: script móc thật — đỏ thì in JSON block, khai đúng câu / xanh / sự kiện khác / đầu vào hỏng thì im l
@@ -39,7 +46,11 @@
 ĐỎ đúng — H1: cổng chạy cả bài đo giờ
       not ok: cổng xanh: bộ chạy THẬT — xanh khi kiểm kiểu và bài kiểm đạt (bỏ qua bài đo giờ); đỏ kèm tên bài / dòng lỗi ki
       not ok: cổng xanh: script móc thật — đỏ thì in JSON block, khai đúng câu / xanh / sự kiện khác / đầu vào hỏng thì im l
+ĐỎ đúng — H1: móc nhận cả SubagentStop (trợ lý con bị giữ mà không khai được)
+      not ok: cổng xanh: script móc thật — đỏ thì in JSON block, khai đúng câu / xanh / sự kiện khác / đầu vào hỏng thì im l
 ĐỎ đúng — H1: gỡ đăng ký Stop khỏi settings.json
-      not ok: settings.json: khai cổng xanh cho Stop và SubagentStop (trợ lý thi công), hạn chờ đủ dài
+      not ok: settings.json: khai cổng xanh cho Stop (hạn chờ đủ dài); KHÔNG khai cho SubagentStop
+ĐỎ đúng — H1: đăng ký thêm cổng cho SubagentStop
+      not ok: settings.json: khai cổng xanh cho Stop (hạn chờ đủ dài); KHÔNG khai cho SubagentStop
 Sau hoàn nguyên: thoát 0, đỏ 0
-KẾT QUẢ: mọi đột biến đều bị bắt, hoàn nguyên xanh.
+KẾT QUẢ: cả 19 đột biến đều bị bắt, hoàn nguyên xanh.

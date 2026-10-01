@@ -7,8 +7,10 @@
 //   root = thư mục checkout GỐC của kho (xem gocKho); cwd = thư mục hiện tại của phiên (trường `cwd` trong đầu vào của móc). Thiếu một trong hai ⇒ không phán.
 //
 // GIỚI HẠN (nói thẳng): khớp mẫu chuỗi lệnh — chặn NHẦM/QUÊN, không chống người cố ý lách. KHÔNG thấy: đường dẫn nằm trong biến (`rm "$f"`), tệp đi qua
-// `xargs`, chương trình tự viết (`node -e`, `python -c`), `git apply`/`git am`/`git stash pop`, `git checkout .` / `git restore .` (trả cả cây về bản đã
-// commit), `cd` có điều kiện. Chỉ canh tệp NẰM TRONG kho này (kể cả mọi worktree dưới .claude/worktrees/) — tệp ở /tmp hay kho khác không bị đụng.
+// `xargs`, chương trình tự viết (`node -e`, `python -c`), `awk -i inplace`, `cp -t <thư mục>`, `find . -name CLAUDE.md -delete` (thư mục xuất phát không
+// phải tệp luật), `git apply`/`git am`/`git stash`/`git reset --hard`, `git checkout .` / `git restore .` (trả cả cây về bản đã commit), `cd` có điều
+// kiện, lệnh dài quá 200 000 ký tự hoặc quá 2000 đoạn (phần đuôi không được xét). Chỉ canh tệp NẰM DƯỚI thư mục gốc kho (kể cả mọi worktree dưới
+// .claude/worktrees/) — tệp ở /tmp, kho khác, hay một worktree đặt NGOÀI thư mục gốc kho thì không bị đụng.
 import { basename, resolve } from "node:path";
 import { candidates } from "./guard-remote-lib.mjs";
 
@@ -133,7 +135,8 @@ function tachDoan(s) {
 const BOC = new Set(["sudo", "command", "builtin", "exec", "env", "nohup", "time", "nice", "{", "then", "do", "else", "if", "while", "!"]);
 const XOA_GHI = new Set(["tee", "rm", "unlink", "rmdir", "truncate", "shred", "patch"]);
 const CHEP = new Set(["cp", "mv", "install", "ln", "rsync", "ditto"]);
-const coSuaTaiCho = (lenh, co) => (lenh === "sed" || lenh === "gsed" ? co.some((f) => /^-[a-zA-Z]*i/.test(f) || f.startsWith("--in-place")) : co.some((f) => /^-[a-zA-Z0-9]*i/.test(f)));
+// perl/ruby: cờ `-M…`/`-m…`/`-I…` là nạp thư viện (vd `-MList::Util`), không phải sửa tại chỗ — không tính chữ `i` trong đó.
+const coSuaTaiCho = (lenh, co) => (lenh === "sed" || lenh === "gsed" ? co.some((f) => /^-[a-zA-Z]*i/.test(f) || f.startsWith("--in-place")) : co.some((f) => !/^-[MmI]/.test(f) && /^-[a-zA-Z0-9]*i/.test(f)));
 
 /** Một đoạn lệnh có ghi/xoá/ghi đè tệp luật không → trả đường dẫn tệp luật bị đụng, hoặc null. `nc.cwd` đổi theo `cd` (để đoạn sau tính đúng). */
 function dungTepLuat({ tu, ghi }, nc, root) {

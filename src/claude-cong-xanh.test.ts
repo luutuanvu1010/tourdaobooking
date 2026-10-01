@@ -1,4 +1,4 @@
-// Bộ kiểm cho "cổng xanh" (.claude/hooks/cong-xanh-lib.mjs + móc cong-xanh.mjs, sự kiện Stop / SubagentStop) — CLAUDE.md §4 "Không nói xong khi
+// Bộ kiểm cho "cổng xanh" (.claude/hooks/cong-xanh-lib.mjs + móc cong-xanh.mjs, sự kiện Stop của phiên chính) — CLAUDE.md §4 "Không nói xong khi
 // test/typecheck chưa chạy hoặc đỏ". Trước đây bộ kiểm chỉ chạy khi AI nhớ chạy (kho không có CI, không có git hook). Cổng: cây làm việc KHÁC main (có
 // commit riêng hoặc thay đổi chưa commit) thì lúc AI định dừng, máy tự chạy kiểm kiểu + bộ kiểm chính; đỏ ⇒ giữ AI lại kèm tên bài đỏ. Lối ra duy nhất khi
 // chưa xanh: câu trả lời cuối ghi nguyên văn "BỘ KIỂM CHƯA XANH" (chủ dự án luôn biết sự thật). Mỗi bài dựng một kho git GIẢ ở thư mục tạm.
@@ -98,9 +98,13 @@ test("cổng xanh: chưa xanh mà câu trả lời cuối KHAI nguyên văn thì
     assert.equal(hoi({ last_assistant_message: "bộ  kiểm chưa\nxanh — bài giả A" }).chan, false, "không phân biệt hoa thường và khoảng trắng");
     assert.equal(hoi({ last_assistant_message: "bộ kiểm chưa xanh".normalize("NFD") }).chan, false, "không phân biệt dạng tổ hợp dấu");
     assert.equal(hoi({}).chan, true, "thiếu câu trả lời, chưa lặp ⇒ vẫn giữ");
-    const v = hoi({ stop_hook_active: true });
-    assert.equal(v.chan, false, "thiếu câu trả lời + đang lặp ⇒ cho qua (không khoá phiên)");
-    assert.match((v as { ghiChu?: string }).ghiChu ?? "", /cho qua có khai/);
+    assert.equal(hoi({ last_assistant_message: "  \n" }).chan, true, "câu trả lời rỗng, chưa lặp ⇒ vẫn giữ");
+    for (const thieu of [{}, { last_assistant_message: "" }, { last_assistant_message: " \n " }]) {
+      const v = hoi({ ...thieu, stop_hook_active: true });
+      assert.equal(v.chan, false, "thiếu/rỗng câu trả lời + đang lặp ⇒ cho qua (không khoá phiên)");
+      assert.match((v as { ghiChu?: string }).ghiChu ?? "", /cho qua có khai/);
+    }
+    assert.equal(hoi({ last_assistant_message: "Xong.", stop_hook_active: true }).chan, true, "CÓ câu trả lời mà không khai thì đang lặp vẫn giữ");
   } finally {
     k.don();
   }
@@ -114,7 +118,7 @@ test("cổng xanh: xanh thì cho dừng và nhớ kết quả; commit riêng tr�
     gitO(k.wt, "commit", "-q", "-m", "thêm b");
     assert.equal(trangThaiCay(k.wt).khac, true, "có commit đi trước main");
     const g = chayGia(XANH);
-    const hoi = (cwd: string) => canhCong({ hook_event_name: "SubagentStop", cwd, last_assistant_message: "Xong." }, { khoChung: k.khoChung, chay: g.chay });
+    const hoi = (cwd: string) => canhCong({ hook_event_name: "Stop", cwd, last_assistant_message: "Xong." }, { khoChung: k.khoChung, chay: g.chay });
     assert.deepEqual(hoi(k.wt), { chan: false });
     assert.deepEqual(hoi(k.wt), { chan: false });
     assert.equal(g.dem.lan, 1, "đã xanh với đúng trạng thái này thì không chạy lại");
@@ -186,9 +190,8 @@ test("cổng xanh: script móc thật — đỏ thì in JSON block, khai đúng 
     assert.equal(out.decision, "block");
     assert.match(out.reason, /bài giả A/);
     assert.ok(out.reason.includes(CAU_KHAI));
-    const sub = run(vao({ hook_event_name: "SubagentStop" }));
-    assert.equal(JSON.parse(sub.stdout).decision, "block", "trợ lý con cũng bị giữ");
-    for (const stdin of [vao({ last_assistant_message: `${CAU_KHAI}: bài giả A.` }), vao({ hook_event_name: "PreToolUse" }), "không phải JSON", ""]) {
+    // Trợ lý con (SubagentStop) cố ý KHÔNG bị canh: báo cáo của nó đi qua SubagentHandback, câu khai không tới được cổng (kiểm độc lập I-1).
+    for (const stdin of [vao({ last_assistant_message: `${CAU_KHAI}: bài giả A.` }), vao({ hook_event_name: "SubagentStop" }), vao({ hook_event_name: "PreToolUse" }), "không phải JSON", ""]) {
       const q = run(stdin);
       assert.equal(q.status, 0, q.stderr);
       assert.equal(q.stdout, "", `phải im lặng với: ${stdin.slice(0, 60)}`);
@@ -210,16 +213,14 @@ test("cổng xanh: bài đo giờ bị loại khỏi cổng là ĐÚNG tệp mà
   assert.doesNotMatch(lib, /process\.env\.(?!CLAUDE_PROJECT_DIR\b)\w+/, "cổng không có công tắc bằng biến môi trường (chỉ đọc CLAUDE_PROJECT_DIR)");
 });
 
-test("settings.json: khai cổng xanh cho Stop và SubagentStop (trợ lý thi công), hạn chờ đủ dài", () => {
+test("settings.json: khai cổng xanh cho Stop (hạn chờ đủ dài); KHÔNG khai cho SubagentStop", () => {
   const s = JSON.parse(read(".claude/settings.json"));
-  for (const suKien of ["Stop", "SubagentStop"]) {
-    const moc = (s.hooks?.[suKien] ?? []).flatMap((n: { matcher?: string; hooks: { command: string; timeout?: number }[] }) => n.hooks.map((h) => ({ ...h, matcher: n.matcher })));
-    const cong = moc.filter((h: { command: string }) => h.command.includes(".claude/hooks/cong-xanh.mjs"));
-    assert.equal(cong.length, 1, `${suKien}: phải có đúng một móc cổng xanh`);
-    assert.ok((cong[0].timeout ?? 0) >= 900, `${suKien}: hạn chờ của móc phải ≥ 900 giây (bộ kiểm chạy cả phút)`);
-    if (suKien === "SubagentStop") {
-      for (const loai of ["general-purpose", "claude"]) assert.match(loai, new RegExp(`^(?:${cong[0].matcher})$`), `phải canh trợ lý ${loai}`);
-      for (const loai of ["Explore", "Plan", "nguoi-kiem-doc-lap"]) assert.doesNotMatch(loai, new RegExp(`^(?:${cong[0].matcher})$`), `không canh trợ lý chỉ-đọc ${loai}`);
-    }
-  }
+  const mocCua = (suKien: string) =>
+    (s.hooks?.[suKien] ?? []).flatMap((n: { matcher?: string; hooks: { command: string; timeout?: number }[] }) => n.hooks.map((h) => ({ ...h, matcher: n.matcher }))).filter((h: { command: string }) => h.command.includes(".claude/hooks/cong-xanh.mjs"));
+  const cong = mocCua("Stop");
+  assert.equal(cong.length, 1, "Stop: phải có đúng một móc cổng xanh");
+  assert.ok(!cong[0].matcher, "Stop không dùng matcher (móc phải chạy ở mọi lần dừng)");
+  assert.ok((cong[0].timeout ?? 0) >= 1200, "hạn chờ của móc phải ≥ 1200 giây (kiểm kiểu tối đa 5 phút + bộ kiểm tối đa 12 phút)");
+  // Bật cổng cho trợ lý con thì phải giải được I-1 trước (câu khai nằm trong báo cáo SubagentHandback, móc SubagentStop không đọc được).
+  assert.equal(mocCua("SubagentStop").length, 0, "chưa canh trợ lý con — xem đặc tả mục Giới hạn");
 });

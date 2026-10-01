@@ -1,4 +1,4 @@
-// "Cổng xanh" — móc Stop / SubagentStop (`cong-xanh.mjs`). CLAUDE.md §4: "Không nói 'xong' khi test/typecheck chưa chạy hoặc đỏ". Trước đây bộ kiểm chỉ
+// "Cổng xanh" — móc Stop của phiên chính (`cong-xanh.mjs`). CLAUDE.md §4: "Không nói 'xong' khi test/typecheck chưa chạy hoặc đỏ". Trước đây bộ kiểm chỉ
 // chạy khi AI nhớ chạy (kho không có CI, không có git hook). Cổng làm việc đó thành việc của MÁY:
 //   • Cây làm việc nơi phiên đang đứng (`cwd`) GIỐNG main và sạch ⇒ không chạy gì (phiên hỏi đáp không bị chậm).
 //   • KHÁC main (có commit riêng, hoặc có thay đổi chưa commit) ⇒ chạy `npm run typecheck` + bộ kiểm chính (src/**/*.test.ts TRỪ bài đo giờ của hook —
@@ -8,10 +8,12 @@
 //   • Kết quả được nhớ theo "dấu vân" của mã (cây HEAD + thay đổi chưa commit + tệp mới): mã không đổi thì không chạy lại.
 // canhCong(input, { khoChung, chay }) → { chan: false, ghiChu? } | { chan: true, lyDo }. `chay` tiêm được để bài kiểm không phải chạy bộ kiểm thật.
 //
-// GIỚI HẠN (nói thẳng): (1) chỉ nhìn cây làm việc ở `cwd` của phiên — phiên điều phối đứng ở checkout gốc còn trợ lý con sửa ở worktree khác thì cổng của
-// phiên chính không thấy (trợ lý thi công có cổng riêng ở SubagentStop). (2) KHÔNG chạy e2e, bài đo giờ, bước sinh kho trợ lý của `npm test` — `npm test`
+// GIỚI HẠN (nói thẳng): (1) chỉ nhìn cây làm việc ở `cwd` của PHIÊN CHÍNH — phiên điều phối đứng ở checkout gốc còn trợ lý con sửa ở worktree khác thì
+// cổng không thấy; trợ lý con KHÔNG có cổng (xem cong-xanh.mjs). (2) KHÔNG chạy e2e, bài đo giờ, bước sinh kho trợ lý của `npm test` — `npm test`
 // đầy đủ vẫn là điều kiện của lệnh đẩy/triển khai. (3) Tệp dấu nằm trong thư mục .git, AI ghi được: chặn QUÊN, không chống cố ý lách. (4) Claude Code tự
 // gỡ cổng sau 8 lần giữ liên tiếp. (5) Phiên mở ở thư mục cha của kho: lớp chuyển tiếp cấp máy không biết phiên thuộc kho nào ⇒ cổng không chạy.
+// (6) Hai phiên cùng dừng trong MỘT worktree thì hai lượt kiểm chạy chồng (chung tệp nhật ký) — có thể đỏ giả; mỗi worktree một phiên.
+// (7) Kho không có tệp `src/**/*.test.ts` nào thì bước bài kiểm coi như đạt (không xảy ra ở kho này).
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { closeSync, globSync, openSync, readFileSync, statSync, writeFileSync } from "node:fs";
@@ -112,7 +114,7 @@ export function canhCong(input, { khoChung = null, chay = chayBoKiem } = {}) {
   }
   if (kq.xanh) return { chan: false };
 
-  const cau = typeof input.last_assistant_message === "string" ? input.last_assistant_message : null;
+  const cau = typeof input.last_assistant_message === "string" && input.last_assistant_message.trim() !== "" ? input.last_assistant_message : null; // rỗng = không đọc được
   if (cau !== null && chuan(cau).includes(CAU_KHAI)) return { chan: false };
   if (cau === null && input.stop_hook_active === true) return { chan: false, ghiChu: `cổng xanh: bộ kiểm chưa xanh ở ${top} nhưng không đọc được câu trả lời cuối — cho qua có khai.` };
   return {

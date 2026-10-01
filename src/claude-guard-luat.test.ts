@@ -20,6 +20,7 @@ const PHAI_CHAN: [string, string?][] = [
   ["sed -i.bak -e 's/a/b/' src/CLAUDE.md"],
   ["sed -E -i '' 's/a/b/' \"web/CLAUDE.md\""],
   ["perl -pi -e 's/a/b/' CLAUDE.md"],
+  ["perl -MList::Util=sum -pi -e 's/a/b/' CLAUDE.md"],
   ["echo x >> CLAUDE.md"],
   ["echo x >CLAUDE.md"],
   ["cat > CLAUDE.md <<'EOF'\nluật mới\nEOF"],
@@ -67,6 +68,8 @@ const PHAI_CHO_QUA: [string, string?][] = [
   ["cat CLAUDE.md"],
   ["sed -n 1,40p CLAUDE.md"],
   ["sed -n '/Điều/p' playbook/CONSTITUTION.md"],
+  ["perl -MList::Util=sum -ne 'print' CLAUDE.md"], // -M… là nạp thư viện, không phải sửa tại chỗ (kiểm độc lập L-2)
+  ["perl -Ilib -ne 'print if /hook/' CLAUDE.md"],
   ['grep -n "git push" CLAUDE.md'],
   ["grep -rn hook docs/adr | tee /tmp/out.txt"],
   ["cat CLAUDE.md > /tmp/a.md"],

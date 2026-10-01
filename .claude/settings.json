@@ -62,18 +62,6 @@
           }
         ]
       }
-    ],
-    "SubagentStop": [
-      {
-        "matcher": "general-purpose|claude",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/cong-xanh.mjs\"",
-            "timeout": 1200
-          }
-        ]
-      }
     ]
   }
 }

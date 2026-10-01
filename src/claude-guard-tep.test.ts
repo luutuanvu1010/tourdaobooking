@@ -20,9 +20,10 @@ function ghi(tep: string, noiDung = "x\n") {
 }
 
 /** Kho giả: checkout gốc ở nhánh main (có migrations/0001_a.sql, src/a.ts, .gitignore) + một worktree `.claude/worktrees/x` trên nhánh khác. */
+const git = (cwd: string, ...a: string[]) => execFileSync("git", ["-c", "user.name=thu", "-c", "user.email=thu@example.com", "-c", "commit.gpgsign=false", ...a], { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+
 function khoGia() {
   const goc = mkdtempSync(join(tmpdir(), "td-guard-tep-"));
-  const git = (cwd: string, ...a: string[]) => execFileSync("git", ["-c", "user.name=thu", "-c", "user.email=thu@example.com", "-c", "commit.gpgsign=false", ...a], { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
   git(goc, "init", "-q", "-b", "main");
   ghi(join(goc, "migrations/0001_a.sql"), "CREATE TABLE a (id INTEGER);\n");
   ghi(join(goc, "src/a.ts"), "export const a = 1;\n");
@@ -49,6 +50,14 @@ test("guard-tep: migration đã có trên main bị chặn; migration mới củ
       }
     }
     for (const p of [join(k.wt, "migrations/0002_b.sql"), join(k.wt, "migrations/0003_chua-co.sql"), join(k.wt, "migrations/README.md")]) assert.equal(hoi(p).deny, false, `phải CHO QUA: ${p}`);
+    // Migration CHỈ có trên origin/main (main cục bộ còn chậm — vừa gộp trên mạng): cũng coi như đã áp.
+    git(k.wt, "add", "migrations/0002_b.sql");
+    git(k.wt, "commit", "-q", "-m", "thêm 0002");
+    git(k.wt, "update-ref", "refs/remotes/origin/main", "HEAD");
+    assert.equal(danhGiaSuaTep(join(k.goc, "migrations/0002_b.sql"), { cwd: k.goc, khoChung: k.khoChung }).deny, true, "ở gốc: tệp chưa có nhưng vẫn bị chặn (checkout gốc)");
+    const v = hoi(join(k.wt, "migrations/0002_b.sql"));
+    assert.equal(v.deny, true, "migration chỉ có trên origin/main phải bị CHẶN");
+    if (v.deny) assert.equal(v.rule, "migration-da-len-main");
   } finally {
     k.don();
   }

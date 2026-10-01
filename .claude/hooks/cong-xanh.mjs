@@ -1,6 +1,8 @@
 #!/usr/bin/env node
-// Móc Stop / SubagentStop — "cổng xanh" (đăng ký ở .claude/settings.json). Đọc JSON từ stdin, hỏi cong-xanh-lib.mjs: cây làm việc khác main mà kiểm kiểu
+// Móc Stop — "cổng xanh" (đăng ký ở .claude/settings.json). Đọc JSON từ stdin, hỏi cong-xanh-lib.mjs: cây làm việc khác main mà kiểm kiểu
 // hoặc bộ kiểm chính chưa xanh thì trả {"decision":"block"} để Claude Code giữ AI lại (kèm tên bài đỏ). Xanh / không có gì đổi / đã khai → im lặng.
+// CHỈ sự kiện Stop của phiên chính. SubagentStop (trợ lý con) cố ý KHÔNG canh: trợ lý con nộp báo cáo qua SubagentHandback nên `last_assistant_message`
+// không phải bản báo cáo — câu khai không tới được cổng, trợ lý sẽ bị giữ vô ích tới 8 vòng (người kiểm độc lập, I-1, 2026-10-01).
 // Đầu vào hỏng hoặc sự kiện khác → im lặng cho qua. Lỗi nội bộ → cho qua CÓ KHAI (thoát 1 + một dòng stderr) — hàng rào hỏng thì phải kêu (P16).
 // Không có công tắc tạm, không đọc biến môi trường nào ngoài CLAUDE_PROJECT_DIR (để biết kho của mình).
 import { readFileSync } from "node:fs";
@@ -15,7 +17,7 @@ try {
 } catch {
   process.exit(0);
 }
-if (input?.hook_event_name !== "Stop" && input?.hook_event_name !== "SubagentStop") process.exit(0);
+if (input?.hook_event_name !== "Stop") process.exit(0);
 
 try {
   const khoChung = khoChungCua(process.env.CLAUDE_PROJECT_DIR || dirname(fileURLToPath(import.meta.url)));
