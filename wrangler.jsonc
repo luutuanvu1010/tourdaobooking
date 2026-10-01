@@ -10,7 +10,6 @@
   "triggers": { "crons": ["*/15 * * * *"] },
   // ID Google Sheet (không phải bí mật; Sheet chỉ được ĐỌC công khai). Xem spec §2.4-6.
   "vars": {
-    "STAFF_SHEET_ID": "16K3b1CtqjJqXR_CkfSSdLyK0t6j0pYq_OuskF0VFaw4",
     "SERVICES_SHEET_ID": "1XPx1g0JVTdevdX35MeCpt6Cc6Dgxdmfer6okEWleD3s",
     // Đăng nhập bằng Face ID (passkey, ADR-0016): KHÔNG dùng tourdao.vn (website công khai là Worker khác).
     "PASSKEY_RP_ID": "booking.tourdao.vn",

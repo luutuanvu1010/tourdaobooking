@@ -3,13 +3,28 @@
 // phần B KHÔNG đổi hành vi với bất kỳ tổ hợp quyền nào (so với công thức cũ, chép nguyên văn vào đây).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { ADMIN_GATE, MATRIX, OFFICE_GATE, ORDERS_GATE, PERMISSION_CODES, can, canAccessOrders, isOffice, passesAdminGate, seesAllOrders, type PermissionCode } from "./permissions.ts";
+import {
+  ACCOUNTS_GATE, ADMIN_GATE, MATRIX, OFFICE_GATE, ORDERS_GATE, PERMISSION_CODES, can, canAccessOrders, isOffice, passesAccountsGate, passesAdminGate, seesAllOrders, type PermissionCode,
+} from "./permissions.ts";
 
 test("ADR-0019: ba danh sách cổng khai tường minh (khoá giá trị)", () => {
   assert.deepEqual([...ADMIN_GATE], ["ADMIN", "SUPER_ADMIN"]);
   assert.deepEqual([...OFFICE_GATE], ["SALES", "ACCOUNTING", "ADMIN", "SUPER_ADMIN"]);
   // ADR-0030 S23-5 (sửa ADR-0019 điều 1): FIELD vào cổng orders cùng lần phát hành với phần xem của ADR-0023 — đúng thứ tự PERMISSION_CODES.
   assert.deepEqual([...ORDERS_GATE], ["SALES", "ACCOUNTING", "ADMIN", "FIELD", "PARTNER", "SUPER_ADMIN", "INTERN"]);
+  // ADR-0071 điều 1b: cổng MỚI "accounts" (Quản lý tài khoản) — Quản trị, Toàn quyền, Nhân sự.
+  assert.deepEqual([...ACCOUNTS_GATE], ["ADMIN", "SUPER_ADMIN", "HR"]);
+});
+
+test("ADR-0071: cổng accounts gồm ĐÚNG các mã có account.view ≠ none; Nhân sự KHÔNG qua cổng admin / office / orders (không hỗ trợ đăng nhập, không đơn, không Danh bạ)", () => {
+  assert.deepEqual(PERMISSION_CODES.filter((c) => MATRIX["account.view"][c] !== "none"), [...ACCOUNTS_GATE].sort((a, b) => PERMISSION_CODES.indexOf(a) - PERMISSION_CODES.indexOf(b)));
+  for (const c of ACCOUNTS_GATE) assert.notEqual(MATRIX["account.edit"][c], "none", `${c} qua cổng accounts nhưng account.edit = none`);
+  const hr = { id: "h", permissions: ["HR"] as PermissionCode[] };
+  assert.equal(passesAccountsGate(hr), true);
+  assert.equal(passesAdminGate(hr), false);
+  assert.equal(isOffice(hr), false);
+  assert.equal(canAccessOrders(hr), false);
+  for (const c of PERMISSION_CODES.filter((x) => !["ADMIN", "SUPER_ADMIN", "HR"].includes(x))) assert.equal(passesAccountsGate({ id: "x", permissions: [c] }), false, c);
 });
 
 test("ADR-0019: đối chiếu danh sách với bảng — cổng orders chỉ gồm mã xem được ít nhất một đơn; cổng office chỉ gồm mã xem mọi hồ sơ", () => {
@@ -50,9 +65,10 @@ test("ADR-0019 + ADR-0033: GET /api/catalog/for-order hỏi money.view phạm vi
 // Liệt kê TƯỜNG MINH, không suy. FIELD+DRIVER (ADR-0040 D3): qua cổng orders NHỜ FIELD (ADR-0030 S23-5); DRIVER không thêm gì (không nằm trong cổng nào).
 // Hai tổ hợp có DRIVER_PARTNER (ADR-0048 D2): cũng qua NHỜ FIELD — DRIVER_PARTNER không nằm trong cổng nào. Hai tổ hợp này BẤT HỢP LỆ về dữ liệu (LC-1b:
 // tài khoản giữ DRIVER_PARTNER không giữ quyền nào khác — trigger + lời kiểm máy chủ) nhưng hàm cổng thuần không biết luật đó nên vẫn liệt kê.
-const DOI_CO_CHU_Y_CANH_CUA_DON = new Set(["FIELD", "FIELD+DRIVER", "FIELD+DRIVER_PARTNER", "FIELD+DRIVER+DRIVER_PARTNER"]);
+// ADR-0071: HR (Nhân sự) không nằm trong cổng orders — bốn tổ hợp trên ghép thêm HR cũng qua NHỜ FIELD (tám tổ hợp).
+const DOI_CO_CHU_Y_CANH_CUA_DON = new Set(["FIELD", "FIELD+DRIVER", "FIELD+DRIVER_PARTNER", "FIELD+DRIVER+DRIVER_PARTNER"].flatMap((x) => [x, `${x}+HR`]));
 
-test("ADR-0019 phần B không đổi hành vi: với mọi tổ hợp 9 mã quyền, isOffice/canAccessOrders mới = công thức cũ — trừ đúng các tổ hợp liệt kê ở ADR-0030 S23-5 (bốn tổ hợp chỉ có FIELD trong cổng cũ)", () => {
+test("ADR-0019 phần B không đổi hành vi: với mọi tổ hợp 10 mã quyền, isOffice/canAccessOrders mới = công thức cũ — trừ đúng các tổ hợp liệt kê ở ADR-0030 S23-5 (bốn tổ hợp chỉ có FIELD trong cổng cũ)", () => {
   const oldIsOffice = (w: { id: string; permissions: readonly PermissionCode[] }) => can(w, "order.view");
   const oldCanAccessOrders = (w: { id: string; permissions: readonly PermissionCode[] }) => oldIsOffice(w) || can(w, "order.view", { ownerId: w.id });
   const seen = new Set<string>();

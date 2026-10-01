@@ -2,7 +2,7 @@
 // Kiểm quyền từng route KHÔNG nằm ở đây: router (src/shared/router.ts) dùng `currentStaff` do gốc lắp ráp truyền vào.
 import { getMaintenanceState, maintenanceBlock, toStatus } from "../maintenance";
 import { ownerCompany } from "../parties";
-import { authenticate, getActiveStaff, isValidPin, normalizePhone, recordLogin, type StaffProfile } from "../staff";
+import { authenticate, findStaffByPhone, getActiveStaff, isValidPin, normalizePhone, recordLogin, type StaffProfile } from "../staff";
 import { APP_VERSION } from "../../shared/app-info";
 import type { AuthConfigResponse, MeResponse, PasskeyRequestOptionsResponse } from "../../shared/contracts";
 import { error, getCookie, json, readJson } from "../../shared/http";
@@ -124,8 +124,13 @@ export const authModule: AppModule = {
       if (!phone || !isValidPin(pin)) return error(400, "invalid_input", "Cần số điện thoại và mã PIN 6 số.");
       const blocked = await turnstileBlockResponse(request, env, body?.turnstileToken);
       if (blocked) return blocked;
-      // Chế độ bảo trì: SĐT không được phép → 503 `maintenance`, cùng một thân cho MỌI SĐT (kể cả không tồn tại). Đặt sau Turnstile và TRƯỚC PIN: không tiêu hao lượt thử PIN.
-      const inMaintenance = await maintenanceBlock(env.DB, phone);
+      // Chế độ bảo trì (ADR-0071 điều 3b): khi BẬT, tra tài khoản theo SĐT; không phải Toàn quyền ĐANG HOẠT ĐỘNG — kể cả SĐT không có tài khoản, SĐT hỏng, tài khoản
+      // đã ngưng — nhận 503 `maintenance`, CÙNG một thân. Đặt sau Turnstile và TRƯỚC PIN: không tiêu hao lượt thử PIN. Lúc TẮT không tra gì thêm (hàm lười).
+      const inMaintenance = await maintenanceBlock(env.DB, async () => {
+        const norm = normalizePhone(phone);
+        const acct = norm ? await findStaffByPhone(env.DB, norm) : null;
+        return acct?.active ? acct.permissions : null;
+      });
       if (inMaintenance) return inMaintenance;
       const result = await verifyPinThrottled(request, env, phone, pin);
       if (!result.ok) return result.response;
@@ -156,7 +161,7 @@ export const authModule: AppModule = {
       const credential = (await readJson(request))?.credential;
       const ch = await readPasskeyChallenge(request, env, "login", null);
       if (!ch) return PASSKEY_ERRORS.expired();
-      // Thứ tự đặc tả §2.6: kiểm chữ ký/bộ đếm (trong checkPasskeyAssertion) → cổng bảo trì theo SĐT (gate, TRƯỚC dùng một lần) → dùng một lần → recordLogin → td_session.
+      // Thứ tự đặc tả §2.6: kiểm chữ ký/bộ đếm (trong checkPasskeyAssertion) → cổng bảo trì theo quyền của chủ khoá (gate, TRƯỚC dùng một lần) → dùng một lần → recordLogin → td_session.
       // Mốc phiên lấy TRƯỚC khi kiểm (rà soát cuối M-1): khoá bị gỡ trước lúc đánh dấu dùng thì markPasskeyUsed thua (valid_to_at IS NULL); bị gỡ
       // SAU mốc này thì credentials_changed_at > issuedAt nên getActiveStaff thu hồi phiên — phiên không thể "mới hơn" lần gỡ khoá đã sinh ra nó.
       // Còn lại đúng một ca biên: lần gỡ rơi vào CÙNG mili-giây với mốc này (phép so là `>`), cửa sổ 1 ms.
@@ -164,7 +169,7 @@ export const authModule: AppModule = {
       const checked = await checkPasskeyAssertion(env, rp, ch, credential, null, async (pk) => {
         const owner = await getActiveStaff(env.DB, pk.staff_id);
         if (!owner) return PASSKEY_ERRORS.unknown();
-        return maintenanceBlock(env.DB, owner.phone);
+        return maintenanceBlock(env.DB, () => owner.permissions); // ADR-0071 điều 3a: theo quyền của chủ khoá
       });
       if (!checked.ok) return checked.response;
       // Gate ở trên đã xác nhận tài khoản đang hoạt động; đọc lại để có kiểu StaffProfile cho phản hồi (tránh giả định trạng thái không đổi giữa hai lần đọc).
@@ -178,7 +183,7 @@ export const authModule: AppModule = {
       return res;
     }),
 
-    // `maintenance` ở đây chỉ tới được người ĐƯỢC PHÉP khi đang bảo trì (router chặn người khác trước) — giao diện dùng để hiện dải "Đang ở chế độ bảo trì".
+    // `maintenance` ở đây chỉ tới được Toàn quyền khi đang bảo trì (router chặn người khác trước — ADR-0071) — giao diện dùng để hiện dải "Đang ở chế độ bảo trì".
     route("GET", "/api/auth/me", "staff", async ({ env, staff }) => json({ staff, maintenance: toStatus(await getMaintenanceState(env.DB)) } satisfies MeResponse)),
 
     route("POST", "/api/auth/logout", "public", async ({ request }) => json({ ok: true }, 200, { "set-cookie": clearedSessionCookie(isSecure(request)) })),

@@ -5,10 +5,13 @@ import type { StaffProfile } from "./contracts";
 import type { ThayDoiDon, TrangThaiPhuTrach } from "./bang-tin.ts";
 import { error, json } from "./http.ts";
 import type { MocToiThieu } from "./moc-toi-thieu.ts";
-import { canAccessOrders, isOffice, passesAdminGate } from "./permissions.ts";
+import { canAccessOrders, isOffice, passesAccountsGate, passesAdminGate } from "./permissions.ts";
 
-/** public: không cần đăng nhập; staff: mọi tài khoản đăng nhập; office: nhân sự văn phòng (mọi quyền trừ chỉ-FIELD — ADR-0007); orders: văn phòng HOẶC Đối tác (ADR-0014); admin: quyền ADMIN. */
-export type Access = "public" | "staff" | "office" | "orders" | "admin";
+/**
+ * public: không cần đăng nhập; staff: mọi tài khoản đăng nhập; office: nhân sự văn phòng (mọi quyền trừ chỉ-FIELD — ADR-0007); orders: văn phòng HOẶC Đối tác (ADR-0014);
+ * admin: quyền ADMIN/SUPER_ADMIN; accounts: Quản lý tài khoản — ADMIN/SUPER_ADMIN/HR (ADR-0071, ACCOUNTS_GATE).
+ */
+export type Access = "public" | "staff" | "office" | "orders" | "admin" | "accounts";
 
 /** ADR-0013 điều 4: hồ sơ có gắn tài khoản không, và người đang đăng nhập có quản được tài khoản đó không (luật cấp bậc ADR-0014 điều 8, module `staff` tính). */
 /** `vaiAn` (ADR-0044): tài khoản gắn hồ sơ đang giữ Toàn quyền — vai ẩn; người xem không giữ Toàn quyền chỉ thấy vai đang mở của hồ sơ đó. */
@@ -193,7 +196,8 @@ export interface AppOptions {
     /** ADR-0030. BẮT BUỘC. Router luôn truyền `staffId` = người đang đăng nhập (`ctx.myHandledOrderIds`). */
     handledOrderIdsOf: (env: Env, staffId: string) => Promise<string[]>;
     /**
-     * Cổng CHẾ ĐỘ BẢO TRÌ (module `maintenance`, gốc lắp ráp tiêm — router không biết module đó): Response 503 nếu tài khoản này bị chặn LÚC NÀY, hoặc null để cho qua.
+     * Cổng CHẾ ĐỘ BẢO TRÌ (module `maintenance`, gốc lắp ráp tiêm — router không biết module đó): Response 503 nếu tài khoản này bị chặn LÚC NÀY (ADR-0071 điều 3:
+     * theo QUYỀN của phiên — không giữ Toàn quyền thì bị chặn), hoặc null để cho qua.
      * Chạy cho mọi route cần đăng nhập, ngay sau khi biết ai đang đăng nhập và TRƯỚC kiểm quyền admin/văn phòng (người bị chặn thấy "đang bảo trì", không phải "không đủ quyền").
      * Route công khai (`/api/auth/*` trừ `/me`, `/api/company`) không qua cổng. BẮT BUỘC: thiếu là chế độ bảo trì lặng lẽ không còn hiệu lực với phiên đang mở.
      */
@@ -262,6 +266,7 @@ export function createApp(opts: AppOptions) {
       // ADR-0014 điều 2: SUPER_ADMIN = any ở mọi thao tác, kể cả admin.manage — không thay thế ADMIN, nên tài khoản chỉ giữ SUPER_ADMIN (không giữ ADMIN)
       // vẫn phải dùng được route access "admin" (bản đồ quyền — MATRIX — đã cho phép; cổng thô này chỉ đi theo, không siết chặt hơn).
       if (hit.r.access === "admin" && !passesAdminGate(staff)) return error(403, "forbidden", "Chỉ quản trị viên được thực hiện thao tác này.");
+      if (hit.r.access === "accounts" && !passesAccountsGate(staff)) return error(403, "forbidden", "Tài khoản này không quản lý được tài khoản.");
       if (hit.r.access === "office" && !isOffice(staff)) return error(403, "forbidden", "Tài khoản này chỉ dùng cho việc được giao, không dùng màn hình này.");
       if (hit.r.access === "orders" && !canAccessOrders(staff)) return error(403, "forbidden", "Tài khoản này không dùng được màn hình đơn.");
     }

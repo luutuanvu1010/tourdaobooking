@@ -1,7 +1,7 @@
 import { APP_NAME, APP_VERSION, formatLongDate, formatReleaseLine } from "../src/shared/app-info";
 import { CHANGELOG, CHANGE_KIND_LABEL, isNewForViewer, type ChangeKind } from "../src/shared/changelog";
 import { HUONG_DAN, nhomCuaToi, phanTich, phutDoc, type DoanChu, type Khoi, type NhomHuongDan } from "../src/shared/huong-dan";
-import { hasPermission } from "../src/shared/permissions";
+import { can } from "../src/shared/permissions";
 import { byId, h, replaceChildren, type Child } from "./dom";
 import { markHelpSeen, readHelpSeen } from "./help-seen";
 import { initShell } from "./shell";
@@ -56,7 +56,7 @@ const cuaToi = nhomCuaToi(staff.permissions);
 const nhomVai = cuaToi.filter((n) => n.quyen.length > 0);
 // Nhóm vai của mình đứng TRƯỚC Phần chung (người mới cần "Bắt đầu nhanh" của vai mình mở sẵn); tài khoản chưa có vai thì Phần chung mở sẵn.
 // Quản trị cần đọc hướng dẫn của mọi vai để kèm nhân viên mới (chủ chấp nhận 30/9: chữ hướng dẫn không chứa gì nhạy cảm).
-const vaiKhac = hasPermission(staff, "ADMIN") || hasPermission(staff, "SUPER_ADMIN") ? HUONG_DAN.filter((n) => !cuaToi.includes(n)) : [];
+const vaiKhac = can(staff, "admin.manage") ? HUONG_DAN.filter((n) => !cuaToi.includes(n)) : [];
 replaceChildren(
   byId("huong-dan"),
   h("p", { class: "muted" }, "Đọc \"Bắt đầu nhanh\" của vai bạn trước, rồi mở từng mục khi cần. Chữ trong khung xám là tên nút hoặc chữ đúng như trên màn hình."),

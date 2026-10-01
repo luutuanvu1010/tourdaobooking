@@ -186,7 +186,7 @@ test("I-1 Case B: hết quản trị viên khác GIỮA CHỪNG (chạy đua) �
 test("tạo tài khoản theo vai: hồ sơ mới mang đúng vai (không STAFF), quyền = mặc định, dòng chỉnh tay có lý do", async () => {
   const { sqlite, db } = seed();
   const made = await staff.createAccountWithRolesStatements(db, {
-    fullName: "Trần Văn Hướng", phone: "0911111111", existingPartyId: null,
+    fullName: "Trần Văn Hướng", phone: "0911111111", existingPartyId: null, xemDanhBa: true,
     assignment: { roles: ["GUIDE_INTERNAL"], adds: ["SALES"], removes: [], reason: "kiêm bán vé" },
   }, "s-adm");
   assert.ok(made.ok);
@@ -202,7 +202,7 @@ test("tạo tài khoản trên hồ sơ có sẵn: dùng lại hồ sơ, thêm v
   sqlite.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES ('p-khach', 'PERSON', 'Khách Cũ', 1, ?, ?)").run(AT, AT);
   sqlite.prepare("INSERT INTO pty_person (party_id, given_name, created_at, updated_at) VALUES ('p-khach', 'Khách', ?, ?)").run(AT, AT);
   sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, location_id, valid_from_date, created_at, updated_at) VALUES ('r-k', 'p-khach', 'CUSTOMER', NULL, '2026-09-01', ?, ?)").run(AT, AT);
-  const input = (existingPartyId: string, roles: string[]) => ({ fullName: null, phone: "0922222222", existingPartyId, assignment: { roles: roles as never, adds: [], removes: [], reason: null } });
+  const input = (existingPartyId: string, roles: string[]) => ({ fullName: null, phone: "0922222222", existingPartyId, xemDanhBa: true, assignment: { roles: roles as never, adds: [], removes: [], reason: null } });
   const made = await staff.createAccountWithRolesStatements(db, input("p-khach", ["HOTEL_RECEPTION"]), "s-adm");
   assert.ok(made.ok);
   if (!made.ok) return;
@@ -223,7 +223,7 @@ test("Ruling R26: hồ sơ có sẵn đang giữ vai Kế toán — chỉ chọn
   sqlite.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES ('p-kt', 'PERSON', 'Kế Toán Cũ', 1, ?, ?)").run(AT, AT);
   sqlite.prepare("INSERT INTO pty_person (party_id, given_name, created_at, updated_at) VALUES ('p-kt', 'Kế', ?, ?)").run(AT, AT);
   sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, location_id, valid_from_date, created_at, updated_at) VALUES ('r-kt', 'p-kt', 'ACCOUNTANT', NULL, '2026-09-01', ?, ?)").run(AT, AT);
-  const input = (roles: string[]) => ({ fullName: null, phone: "0933333333", existingPartyId: "p-kt", assignment: { roles: roles as never, adds: [], removes: [], reason: null } });
+  const input = (roles: string[]) => ({ fullName: null, phone: "0933333333", existingPartyId: "p-kt", xemDanhBa: true, assignment: { roles: roles as never, adds: [], removes: [], reason: null } });
   assert.deepEqual(await staff.createAccountWithRolesStatements(db, input(["SALES_STAFF"]), "s-adm"), {
     ok: false,
     message: "Hồ sơ này đang giữ vai Kế toán: chọn cả vai này (hoặc đổi vai sau khi tạo).",

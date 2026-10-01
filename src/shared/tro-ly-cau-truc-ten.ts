@@ -18,7 +18,7 @@ export interface TenLoiThuong {
 
 /** Mỗi module của `src/modules/*` và mỗi nút của `ALLOWED_EDGES` (kể cả phân hệ đã khai ranh giới mà chưa có thư mục). */
 export const TEN_PHAN_HE: Readonly<Record<string, TenLoiThuong>> = {
-  accounts: { ten: "Quản lý tài khoản", moTa: "Tạo tài khoản đăng nhập cho nhân viên, đối tác, tài xế; gán quyền; đặt lại PIN, gỡ Face ID, mở khoá; ngưng tài khoản khi nghỉ việc. Quản trị làm ở trang Quản lý tài khoản." },
+  accounts: { ten: "Quản lý tài khoản", moTa: "Tạo tài khoản đăng nhập cho nhân viên, đối tác, tài xế (Hành chính nhân sự hoặc người phụ trách hệ thống); gán vai; ngưng tài khoản khi nghỉ việc; đặt lại PIN, gỡ Face ID, mở khoá (Quản trị). Làm ở trang Quản lý tài khoản." },
   audit: { ten: "Nhật ký", moTa: "Ghi dấu vết ai làm gì, lúc nào, cho mọi thay đổi quan trọng của mọi phân hệ. Lịch sử của một đơn lấy từ đây; trang Nhật ký toàn hệ thống chỉ Toàn quyền xem." },
   auth: { ten: "Đăng nhập", moTa: "Đăng nhập bằng số điện thoại và mã PIN hoặc Face ID, giữ phiên đăng nhập, tạm khoá khi nhập sai nhiều lần." },
   bangtin: { ten: "Bảng tin", moTa: "Báo tức thì cho mọi màn hình đang mở khi một đơn vừa đổi, nên danh sách đơn tự cập nhật mà không cần tải lại trang." },
@@ -28,7 +28,7 @@ export const TEN_PHAN_HE: Readonly<Record<string, TenLoiThuong>> = {
   dispatch: { ten: "Người phụ trách đơn", moTa: "Giao, nhận, đổi người phụ trách một đơn; hàng chờ nhận cho đơn chưa có ai phụ trách; hướng dẫn viên huỷ hoặc sửa số khách đơn mình phụ trách." },
   feedback: { ten: "Góp ý / Báo lỗi", moTa: "Mọi tài khoản gửi góp ý hoặc báo lỗi và theo dõi yêu cầu của mình; Toàn quyền tiếp nhận và trả lời." },
   locations: { ten: "Địa điểm", moTa: "Danh sách nơi đón, nơi trả dùng chung khi lập đơn và xếp chuyến; Quản trị thêm, sửa ở trang Địa điểm." },
-  maintenance: { ten: "Chế độ bảo trì", moTa: "Khi bật, chỉ vài người được chỉ định còn dùng được app; người khác thấy màn hình bảo trì. Chỉ người phụ trách hệ thống bật, tắt." },
+  maintenance: { ten: "Chế độ bảo trì", moTa: "Khi bật, chỉ người phụ trách hệ thống còn dùng được app; mọi người khác, kể cả Quản trị, thấy màn hình bảo trì. Chỉ người phụ trách hệ thống bật, tắt." },
   orders: { ten: "Đơn hàng", moTa: "Lập, sửa, xác nhận, huỷ đơn; dịch vụ của đơn, chặng đưa đón (giờ, nơi đón), danh sách hành khách. Tiền của đơn do app tự tính từ giá danh mục và số khách." },
   parties: { ten: "Danh bạ", moTa: "Hồ sơ khách, đại lý, nhân viên, hướng dẫn viên, tài xế, nhà xe đối tác và công ty chủ; liên hệ, công việc, giấy tờ của người (số giấy tờ luôn bị che)." },
   pricing: { ten: "Chính sách giá", moTa: "Chiết khấu, hoa hồng theo ngày — đang chuẩn bị, app chưa dùng." },
@@ -93,10 +93,12 @@ export const TEN_THAO_TAC: Readonly<Record<OperationCode, TenLoiThuong>> = {
   "party.view": { ten: "xem Danh bạ", moTa: "Xem hồ sơ khách, đại lý và người trong Danh bạ." },
   "party.write": { ten: "thêm, sửa hồ sơ trong Danh bạ", moTa: "Tạo, sửa hồ sơ khách, đại lý, người chưa có tài khoản." },
   "party.staff.write": { ten: "sửa hồ sơ người có tài khoản", moTa: "Sửa tên, liên hệ của hồ sơ gắn với một tài khoản." },
-  "admin.manage": { ten: "quản trị tài khoản và danh mục", moTa: "Quản lý tài khoản, quyền, địa điểm, dịch vụ và giá, các danh mục cài đặt." },
+  "admin.manage": { ten: "quản trị danh mục", moTa: "Quản lý địa điểm, dịch vụ và giá, các danh mục cài đặt, vai trong Danh bạ." },
   "admin.manage.superadmin": { ten: "gán, gỡ quyền Toàn quyền", moTa: "Cấp hoặc bỏ quyền Toàn quyền của một tài khoản." },
   "account.access.manage": { ten: "đặt lại PIN, gỡ Face ID, mở khoá", moTa: "Giúp tài khoản khác đăng nhập lại." },
-  "staff.sheet.sync": { ten: "đồng bộ nhân viên từ bảng tính", moTa: "Xem trước rồi áp danh sách nhân viên từ bảng tính Google." },
+  "account.create": { ten: "thêm tài khoản", moTa: "Tạo tài khoản mới (nhân viên, đối tác, tài xế đối tác) ở trang Quản lý tài khoản." },
+  "account.view": { ten: "xem danh sách tài khoản", moTa: "Mở trang Quản lý tài khoản." },
+  "account.edit": { ten: "sửa tài khoản", moTa: "Sửa tên, số điện thoại, ngưng hoặc mở lại, gán vai cho tài khoản cấp dưới." },
   "audit.view": { ten: "xem trang Nhật ký", moTa: "Xem nhật ký toàn hệ thống." },
   "feedback.submit": { ten: "gửi góp ý, báo lỗi", moTa: "Gửi góp ý hoặc báo lỗi từ mục Góp ý / Báo lỗi." },
   "feedback.view": { ten: "xem góp ý", moTa: "Xem yêu cầu góp ý mình đã gửi (Toàn quyền xem mọi yêu cầu)." },

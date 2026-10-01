@@ -13,7 +13,7 @@
 // Tài xế (ADR-0040 D3; Ruling R3, R10 của điều phối 2026-09-28): quyền DRIVER không qua cổng orders — ở lại "/" thì Trang chủ gọi dashboard đơn và nhận 403.
 // Tài khoản không xem đơn nào mà có DRIVER được đưa sang trang đầu của tài xế. web/home.ts gọi hàm này và `location.replace` TRƯỚC khi tải dashboard
 // (web/home.ts:255-258), nên tài khoản đó không bao giờ gọi route dashboard (trừ lời gọi sớm theo bản nhớ khung trên máy dùng chung — kết quả 403 bị bỏ).
-import { canAccessOrders, hasPermission, seesAllOrders, type PermissionHolder } from "./permissions.ts";
+import { can, canAccessOrders, hasPermission, seesAllOrders, type PermissionHolder } from "./permissions.ts";
 
 /**
  * Trang đầu của tài khoản chỉ có phần Tài xế (ADR-0040 D3, Ruling R3): màn "/tai-xe" (màn 07 của bản vẽ docs/design/van-chuyen-1a/ — public/tai-xe.html,
@@ -26,6 +26,11 @@ export const TRANG_DAU_TAI_XE = "/tai-xe";
  * (tab "Trang chủ" của tài xế). Thanh tab / menu của tài xế (web/shell.ts) dựa vào hằng này.
  */
 export const TRANG_CUOC = "/cuoc";
+/**
+ * Quản lý tài khoản (ADR-0071): trang đầu của tài khoản Hành chính nhân sự — quyền HR không qua cổng orders (ở lại "/" thì Trang chủ gọi dashboard đơn và
+ * nhận 403). Chỉ dùng khi không có trang đầu nào khác (văn phòng, đơn, tài xế).
+ */
+export const TRANG_TAI_KHOAN = "/staff";
 /** Tài xế công ty (DRIVER — ô trip.view / trip.progress "assigned") có "Cuốc của tôi"; tài xế đối tác (DRIVER_PARTNER) chưa dùng chuyến (ADR-0049 D3 × ADR-0048 D2). */
 export const coCuocCuaToi = (who: Pick<PermissionHolder, "permissions">): boolean => hasPermission(who, "DRIVER");
 
@@ -50,6 +55,7 @@ export function homeRedirect(who: PermissionHolder): string | null {
   if (canAccessOrders(who)) return "/orders";
   if (coCuocCuaToi(who)) return TRANG_CUOC;
   if (coPhanTaiXe(who)) return TRANG_DAU_TAI_XE;
+  if (can(who, "account.view")) return TRANG_TAI_KHOAN; // ADR-0071: Hành chính nhân sự
   return null;
 }
 

@@ -3,7 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
-import { MAINTENANCE_CONTACT_PHONE, parseAllowedPhones } from "./shared/maintenance.ts";
+import { MAINTENANCE_CONTACT_PHONE } from "./shared/maintenance.ts";
 
 const DIR = new URL("../migrations/", import.meta.url);
 const files = readdirSync(DIR).filter((f) => f.endsWith(".sql")).sort();
@@ -42,9 +42,8 @@ test("0016: mnt_setting là singleton, gieo TẮT với đúng SĐT được ph�
   assert.equal(row.ends_at, null);
   assert.equal(row.created_by, null);
   assert.equal(row.updated_by, null);
-  // Giá trị gieo phải đi qua normalizePhone ra ĐÚNG số của chủ — sai số = khoá chính người duy nhất mở khoá được.
-  assert.deepEqual(parseAllowedPhones(String(row.allowed_phones)), [MAINTENANCE_CONTACT_PHONE]);
-  assert.equal(String(row.allowed_phones), "0989929373");
+  // Ảnh chụp dữ liệu gieo của 0016 (cột GIỮ — expand–contract). ADR-0071 điều 3d: máy chủ THÔI đọc cột này (miễn trừ theo quyền Toàn quyền).
+  assert.equal(String(row.allowed_phones), MAINTENANCE_CONTACT_PHONE);
 });
 
 test("0016: ràng buộc — chỉ một dòng 'default', cờ enabled chỉ 0/1, allowed_phones và mốc thời gian bắt buộc", () => {

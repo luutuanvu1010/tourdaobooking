@@ -5,6 +5,7 @@ import { ACCOUNTS, call, ensureFakeCatalog, orderInput, randomPhone, session, sq
 
 await ensureFakeCatalog(); // orderInput() dùng danh mục giả ZE1 (không cần Sheet thật).
 const ADMIN = await session(ACCOUNTS.admin);
+const TAO_TK = await session(ACCOUNTS.superAdmin); // ADR-0071: chỉ Hành chính nhân sự / Toàn quyền tạo tài khoản (Quản trị không còn)
 const SALES = await session(ACCOUNTS.salesA);
 const tag = String(Date.now()).slice(-6);
 const TEN = `Gộp Thử ${tag} Phương`;
@@ -16,12 +17,12 @@ const A = r.body.party.id;
 assert.equal((await call(ADMIN, "POST", `/api/parties/${A}/roles`, { roleTypeCode: "BOAT_CAPTAIN" })).status, 201);
 
 // C2: tạo tài khoản cùng tên, không cờ → 409 kèm A, không lộ SĐT của A; có cờ → 201
-r = await call(ADMIN, "POST", "/api/staff", { fullName: TEN, phone: randomPhone(), roles: ["SALES_STAFF"] });
+r = await call(TAO_TK, "POST", "/api/staff", { fullName: TEN, phone: randomPhone(), roles: ["SALES_STAFF"] });
 assert.equal(r.status, 409, JSON.stringify(r.body));
 assert.equal(r.body.error.code, "party_match_exists");
 assert.ok(r.body.error.khop.some((k) => k.id === A));
 assert.ok(!JSON.stringify(r.body).includes(soX));
-r = await call(ADMIN, "POST", "/api/staff", { fullName: TEN, phone: randomPhone(), roles: ["SALES_STAFF"], taoHoSoMoi: true });
+r = await call(TAO_TK, "POST", "/api/staff", { fullName: TEN, phone: randomPhone(), roles: ["SALES_STAFF"], taoHoSoMoi: true });
 assert.equal(r.status, 201, JSON.stringify(r.body));
 const B = r.body.staff.partyId;
 console.log("✓ C2: chặn tạo trùng; cờ “vẫn tạo hồ sơ mới”");

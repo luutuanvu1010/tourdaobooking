@@ -2,16 +2,13 @@
 import type { PermissionCode } from "../../shared/permissions.ts";
 import { isValidPin } from "./phone.ts";
 
+import { canManageAccount } from "../../shared/roles.ts";
+
 /**
- * ADR-0014 điều 8 (đính chính trực tiếp của chủ dự án): `ADMIN` chỉ quản lý được tài khoản "cấp dưới" — KHÔNG giữ `ADMIN` hay `SUPER_ADMIN`.
- * `SUPER_ADMIN` quản lý được mọi tài khoản, kể cả `ADMIN`/`SUPER_ADMIN` khác. Không phải một ô của MATRIX (Scope không diễn đạt được
- * "so cấp bậc mục tiêu"). Dùng cho: mở/đình chỉ/sửa/khôi phục tài khoản, đặt lại mã/mở khoá, đổi tập quyền (`accounts/index.ts`).
+ * Cấp bậc quản lý tài khoản (ADR-0014 điều 8 + ADR-0071 điều 1c) — luật ở `src/shared/roles.ts` (MỘT nguồn cho máy chủ và giao diện). Dùng cho:
+ * mở/đình chỉ/sửa/khôi phục tài khoản, đặt lại mã/mở khoá, đổi tập quyền (`accounts/index.ts`).
  */
-export function canManageAccount(actor: readonly PermissionCode[], target: readonly PermissionCode[]): boolean {
-  if (actor.includes("SUPER_ADMIN")) return true;
-  if (!actor.includes("ADMIN")) return false;
-  return !target.includes("ADMIN") && !target.includes("SUPER_ADMIN");
-}
+export { canManageAccount };
 
 /** PIN quá dễ đoán: cả 6 số giống nhau hoặc chạy liên tiếp tăng/giảm, kể cả cuộn vòng (000000, 123456, 654321, 890123…). */
 export function isWeakPin(pin: string): boolean {

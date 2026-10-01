@@ -39,7 +39,7 @@ const untouchableDb = new Proxy(
   },
 );
 
-// ADR-0038 điều 6: gỡ Face ID của người khác chỉ Toàn quyền — người gọi mang ADMIN + SUPER_ADMIN (như vai Giám đốc) để đi tới kiểm cấu hình Face ID.
+// ADR-0038 điều 6: gỡ Face ID của người khác chỉ Toàn quyền — người gọi mang ADMIN + SUPER_ADMIN (như vai IT) để đi tới kiểm cấu hình Face ID.
 const ADMIN = { id: "00000000-0000-4000-8000-000000000001", phone: "0900000001", fullName: "Toàn quyền", permissions: ["ADMIN", "SUPER_ADMIN"] };
 
 async function callOff(r: Route, env: Record<string, unknown>): Promise<Response> {

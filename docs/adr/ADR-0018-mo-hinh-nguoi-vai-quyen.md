@@ -1,6 +1,7 @@
 # ADR-0018 — Mô hình người – vai – quyền: vai sinh bộ quyền mặc định, luật cứng theo nhóm, người nhận đơn có hạn, đối tác là bên đặt có chiết khấu
 
 - **Trạng thái:** **accepted** — chủ dự án duyệt trực tiếp trong phiên chat 2026-09-24 ("duyệt ADR-0018, chọn A, bỏ HDV theo bến"). Soạn từ đặc tả **đã được chủ duyệt** (`docs/superpowers/specs/2026-09-24-mo-hinh-nguoi-vai-quyen-design.md`, 2026-09-24). Thay đổi nội dung sau mốc này = ADR mới trỏ về ADR này.
+- **Sửa bởi:** [ADR-0072](ADR-0072-giam-doc-bot-quyen-ky-thuat.md) — điều 4: vai Giám đốc sinh `ADMIN`, bỏ `SUPER_ADMIN`; [ADR-0071](ADR-0071-vai-hanh-chinh-nhan-su-go-dong-bo-sheet-bao-tri-theo-toan-quyen.md) — thêm vai Hành chính nhân sự (`HR_STAFF` → `HR`, chỉ Toàn quyền gán).
 - **Ghi chú số hiệu:** tài liệu hàng rào quyền trên `main` (`docs/quyen-hoan.json`, `docs/superpowers/plans/2026-09-24-hang-rao-quyen-va-va-lo-hong-ho-so.md`) dùng tên "ADR-0018" cho một quyết định KHÁC chưa viết (tách cổng `office`, route quản trị hỏi bảng quyền). Số 0018 thuộc tệp này; quyết định kia cần số mới khi được soạn.
 - **Ngày:** 2026-09-24   **Người phê chuẩn:** chủ dự án (chưa duyệt)
 - **Loại quyết định:** **hỗn hợp.** Hai chiều: mã, bảng vai → quyền, cấu hình (thời hạn, giờ làm việc, bảng chiết khấu). **Một chiều:** (1) số đã **chụp vào đơn** (hạn nhận, tỷ lệ chiết khấu theo dòng) — đổi cài đặt sau không sửa đơn cũ, và không nên sửa; (2) **đối tác đã thấy SĐT công việc của hướng dẫn viên** thì không thu lại được.

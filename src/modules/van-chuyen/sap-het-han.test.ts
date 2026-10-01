@@ -16,7 +16,7 @@ const doiMiliGiay = () => new Promise((r) => setTimeout(r, 5));
 const uuid = () => `00000000-0000-4000-8000-${String(++n).padStart(12, "0")}`;
 
 async function taoTaiKhoan(w: any, fullName: string, phone: string, roles: string[]): Promise<string> {
-  const r = await w.call("POST", "/api/staff", { as: ADM, body: { fullName, phone, roles } });
+  const r = await w.call("POST", "/api/staff", { as: SUP, body: { fullName, phone, roles } });
   assert.equal(r.status, 201, r.text);
   return w.q("SELECT party_id FROM staff WHERE id = ?", r.json.staff.id)[0].party_id;
 }
