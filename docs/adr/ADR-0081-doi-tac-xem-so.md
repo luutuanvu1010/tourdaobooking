@@ -69,7 +69,7 @@
 
 ## Ví dụ bằng số
 
-**Ví dụ E-1 — đại lý A xem tháng 10 (số ở ADR-0079/D).** Trước quyết toán (31/10):
+**Ví dụ E-1 — đại lý A xem tháng 10 (số ở ADR-0079 / ADR-0080).** Trước quyết toán (31/10):
 
 | Đơn | Giá bán lẻ | Hoa hồng của bạn | Giảm giá bạn chịu | Bạn đã thu | Khách trả nơi khác | Còn lại |
 |---|---|---|---|---|---|---|
