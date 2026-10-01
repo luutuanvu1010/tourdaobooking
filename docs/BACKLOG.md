@@ -108,3 +108,9 @@
 - **Ngày:** 2026-10-01 · **Nguồn:** ADR-0068 (ngoài phạm vi bản đầu) · **Trạng thái:** `tạm gác`.
 - **Hiện tại:** cặp trùng tên thật sự là hai người khác nhau vẫn hiện mãi trong danh sách nghi trùng.
 - **Cần:** bảng ghi cặp đã xác nhận khác người (không gộp) để màn nghi trùng bỏ qua.
+
+## 15. Bảo mật hai lớp — đợt 2: gửi mã qua Zalo ZNS
+
+- **Ngày:** 2026-10-01 · **Chủ nêu:** *"tăng cường lớp bảo mật 2 lớp 2FA cho phần đăng nhập … Gửi về Zalo qua ZNS, Ứng dụng Google Authenticator, gửi về email"*; chủ chọn đợt 1 = ứng dụng xác thực + email, đợt 2 = Zalo ZNS · **Trạng thái:** `ý tưởng` (đợt 1 đang ở bản nháp đặc tả).
+- **Đã có:** đặc tả `docs/superpowers/specs/2026-10-01-xac-thuc-hai-lop-dac-ta.md` §8; ADR-0071 bản nháp điều 8.
+- **Còn vướng (phía chủ):** Zalo OA của công ty đã xác minh doanh nghiệp; đăng ký ZNS + mẫu tin OTP được Zalo duyệt; phí mỗi tin; khoá truy cập ứng dụng Zalo. Sau đó cần ADR/sửa đổi riêng.
