@@ -39,3 +39,5 @@ Cách thi công: subagent-driven (chủ chọn 2026-10-01) — mỗi task một 
   - Lượt hai toàn bộ: 36/36 xanh, `audit-invariants` cả ba nhóm đạt.
 - Tài liệu mô tả: `docs/SYSTEM-DESIGN.md` (cookie phiên 4 phần, sổ phiên, thu hồi phiên, token thách thức "khác 4 phần") sửa cùng commit.
 - Lưu ý cho Task 5/7 (Review Focus 2): bốn chỗ cấp lại cookie giữ `created_at` cũ của dòng phiên trong khi `credentials_changed_at` nhảy lên ⇒ `sessionStatus` sẽ báo "Đã đổi thông tin đăng nhập" cho chính phiên được giữ. Task 5/7 phải xử lý (vd so lưới với mốc phát hành cookie, hoặc ghi mốc mới lên dòng).
+- Bẫy cho Task 4–8: `w.call({ as })` của khung thử tự tạo lại phiên khi phiên trước đã kết thúc, nên che mọi khẳng định "bị đá → 401". Bài kiểm đăng xuất / kết thúc phiên khác / gỡ / mất miễn phải lấy `w.token(A)` (hoặc cookie đăng nhập) TRƯỚC thao tác rồi gửi cookie đó tường minh.
+- Cho Task 9: D1 tuần tự hoá các lô và lô đăng nhập luôn có bước "bị thay" ⇒ hai lần đăng nhập đồng thời thường đều 200 (lần sau đá lần trước); 409 `session_race` chỉ là lưới. Bài chạy đua khẳng định "đúng một dòng sống; phản hồi 200 hoặc 409, không 500", không đòi phải có 409.
