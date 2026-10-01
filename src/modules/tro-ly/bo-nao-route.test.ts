@@ -21,7 +21,9 @@ afterEach(() => { globalThis.fetch = fetchThat; });
 /** OpenAI giả: ghi thân mọi yêu cầu; trả `chu` (mặc định: câu có dòng Nguồn = đoạn đầu của khối TÀI LIỆU cuối). */
 function openAiGia(tuyChon: { chu?: string; usage?: Record<string, unknown>; status?: number } = {}): GoiGia[] {
   const goi: GoiGia[] = [];
-  globalThis.fetch = (async (_i: RequestInfo | URL, init?: RequestInit) => {
+  globalThis.fetch = (async (i: RequestInfo | URL, init?: RequestInit) => {
+    // ADR-0082: cửa /v1/embeddings TẮT (503) ⇒ lùi từ khoá = luật cũ; `goi` chỉ ghi /v1/responses (đường mới canh ở van-nghia-route.test.ts).
+    if (String(i instanceof Request ? i.url : i).endsWith("/v1/embeddings")) return new Response(JSON.stringify({ error: { message: "tắt" } }), { status: 503 });
     const body = JSON.parse(String(init?.body ?? "{}")) as Record<string, unknown>;
     goi.push({ body });
     if (tuyChon.status && tuyChon.status >= 400) return new Response(JSON.stringify({ error: { message: "lỗi" } }), { status: tuyChon.status });
@@ -239,7 +241,9 @@ test("Phòng thủ (ADR-0073 Đ4, điểm OpenAI chưa kiểm): OpenAI trả 400
   openAiGia();
   assert.equal((await hoi(w, SALES, "đổi mã PIN thế nào", CUOC)).status, 200);
   const goi: GoiGia[] = [];
-  globalThis.fetch = (async (_i: RequestInfo | URL, init?: RequestInit) => {
+  globalThis.fetch = (async (i: RequestInfo | URL, init?: RequestInit) => {
+    // ADR-0082: cửa /v1/embeddings TẮT (503) ⇒ lùi từ khoá = luật cũ; `goi` chỉ ghi /v1/responses (đường mới canh ở van-nghia-route.test.ts).
+    if (String(i instanceof Request ? i.url : i).endsWith("/v1/embeddings")) return new Response(JSON.stringify({ error: { message: "tắt" } }), { status: 503 });
     const body = JSON.parse(String(init?.body ?? "{}")) as Record<string, unknown>;
     goi.push({ body });
     if (Array.isArray(body.input)) return new Response(JSON.stringify({ error: { message: "input lạ" } }), { status: 400 });
@@ -291,7 +295,11 @@ test("T1 + T5: ô thử chạy đúng đường ống thật với cấu hình C
   assert.ok(String(goi[0]!.body.instructions).startsWith("Lời nhắc ĐANG SOẠN."));
   assert.match(String(goi[0]!.body.instructions), /Người hỏi thuộc nhóm vai: Kế toán\./);
   assert.equal(goi[0]!.body.input, "khách [đã che] hỏi đổi mã PIN thế nào", "che như hỏi thật");
-  assert.deepEqual({ ...r.json, traLoi: "-", nguon: "-" }, { traLoi: "-", nguon: "-", tokenVao: 3000, tokenRa: 400, chiPhiMicroUsd: 1550, chiPhiUsd: 0.00155, mau: "gpt-5-mini" }); // 3000 × 0,25 + 400 × 2
+  assert.deepEqual(
+    { ...r.json, traLoi: "-", nguon: "-", doanDaChon: "-" },
+    { traLoi: "-", nguon: "-", doanDaChon: "-", tokenVao: 3000, tokenRa: 400, chiPhiMicroUsd: 1550, chiPhiUsd: 0.00155, chiPhiVanNghiaMicroUsd: 0, mau: "gpt-5-mini" },
+  ); // 3000 × 0,25 + 400 × 2; embeddings của máy giả tắt ⇒ 0 tiền tìm theo nghĩa
+  assert.ok(r.json.doanDaChon.length > 0 && r.json.doanDaChon.every((d: { theoNghia: boolean; theoTuKhoa: boolean }) => d.theoTuKhoa && !d.theoNghia), "lùi từ khoá");
   assert.equal(r.json.nguon.length, 1);
   assert.equal(w.q("SELECT count(*) AS n FROM tl_bo_nao")[0]!.n, truoc, "T5: thử không thêm bản");
   assert.equal((await boNao(w)).json.hienHanh.mau, "gpt-5-nano");

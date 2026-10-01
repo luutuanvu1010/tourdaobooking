@@ -15,13 +15,15 @@ import { error, escapeLike, intParam, json, readJson, UUID_RE } from "../../shar
 import { can, PERMISSION_CODES, PERMISSION_LABEL, type PermissionCode } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
 import {
-  CAU_CHUA_BAT, CAU_HET_TRAN_THANG, CAU_HOI_THO_TOI_DA, CAU_LOI, CAU_QUA_DAI, CAU_VAI_TAT, cauHetTranNgay, cheCauHoi, chiPhiMicroUsd, chiaKho, chonDoan,
+  CAU_CHUA_BAT, CAU_HET_TRAN_THANG, CAU_HOI_THO_TOI_DA, CAU_LOI, CAU_QUA_DAI, CAU_VAI_TAT, cauHetTranNgay, cheCauHoi, chiPhiMicroUsd, chiaKho,
   doanNguCanh, duocDungTroLy, ketQuaThuKhoa, khoaCuoi, khoangThang, kiemCaiDat, kiemLoiDan, kiemNguCanh, kiemVai, NHO_TRONG_MS, quyetDinhTran, thanThuKhoa, thanYeuCau,
   truyVanTim, uocTokenVao, type SuDung,
 } from "../../shared/tro-ly";
 import { LOI_NHAC_MAC_DINH, boNaoHieuLuc, kiemBoNao, phanDoi } from "../../shared/tro-ly-bo-nao";
-import { DANH_SACH_MAU, DO_DAI, DO_DAI_NHAN, MUC_NHAN, chiPhiToiDa, uocMotCauMicroUsd, vuotTranThang } from "../../shared/tro-ly-mau";
+import { DANH_SACH_MAU, DO_DAI, DO_DAI_NHAN, MUC_NHAN, uocMotCauMicroUsd, vuotTranThang } from "../../shared/tro-ly-mau";
 import { goiOpenAi, traLoiMotCau } from "./goi-mau";
+import { mucTranTren } from "../../shared/tro-ly-van-nghia";
+import { timDoanTheoNghia } from "./van-nghia";
 import { GIOI_HAN_TRO_LY as G } from "../../shared/tro-ly-gioi-han";
 import { vnToday } from "../../shared/vn-date";
 import {
@@ -36,12 +38,17 @@ const khoaCua = (env: Env): string | null => env.OPENAI_API_KEY?.trim() || null;
 const logLoi = (lyDo: string): void => console.error(JSON.stringify({ event: "tro_ly_loi", ly_do: lyDo }));
 
 /**
- * ADR-0073 Đ7b (P2) — MỘT chỗ kiểm trần tháng bằng chi phí TỐI ĐA của lượt, dùng cho mọi đường gọi mẫu có tính tiền (câu hỏi; ô thử ở Task 9).
- * Ước = token vào ước của TOÀN BỘ yêu cầu `than` (lời nhắc + phần nhớ + câu mới + đoạn tài liệu) × giá vào + token ra tối đa × giá ra.
- * true ⇒ KHÔNG gọi. Vượt trần do nhiều lượt song song vẫn có thể xảy ra, chặn trên bởi số lượt song song × chi phí tối đa (ADR-0073 Đ7b).
+ * ADR-0073 Đ7b + ADR-0082 Đ5(1) — MỘT chỗ kiểm trần tháng TRƯỚC MỌI lần gọi API (Embeddings lẫn mẫu trả lời), cho route hỏi VÀ ô thử.
+ * Mức trần trên = token ước của thân yêu cầu CHƯA có tài liệu (lời nhắc + phần nhớ + câu mới) + NGAN_SACH_TOKEN (tài liệu tối đa) theo giá vào + token ra tối đa
+ * theo giá ra + tiền embedding ước của truy vấn tìm (mucTranTren). `vuot` ⇒ KHÔNG gọi gì. `conLai` = phần trần còn lại sau mức trần trên — trần cho tiền tính bù
+ * đoạn (Đ5(2), timDoanTheoNghia). Vượt trần do nhiều lượt song song vẫn có thể xảy ra, chặn trên bởi số lượt song song × mức trần trên (ADR-0073 Đ7b).
  */
-export const kiemTranTruocKhiGoi = (boNao: { mau: string; tokenRaToiDa: number }, than: Record<string, unknown>, daDungThang: number, tranThang: number): boolean =>
-  vuotTranThang(daDungThang, chiPhiToiDa(boNao.mau, uocTokenVao(than), boNao.tokenRaToiDa), tranThang);
+export const kiemTranTruocKhiGoi = (
+  boNao: { mau: string; tokenRaToiDa: number }, thanKhongTaiLieu: Record<string, unknown>, truyVan: string, daDungThang: number, tranThang: number,
+): { vuot: boolean; conLai: number } => {
+  const toiDa = mucTranTren(boNao.mau, uocTokenVao(thanKhongTaiLieu), boNao.tokenRaToiDa, truyVan);
+  return { vuot: vuotTranThang(daDungThang, toiDa, tranThang), conLai: tranThang - daDungThang - toiDa };
+};
 
 const usd = (micro: number): number => micro / 1_000_000;
 /** Cộng mức dùng hai lần gọi (phòng thủ gọi lại không nhớ); cả hai null ⇒ null. */
@@ -160,8 +167,9 @@ export const troLyModule: AppModule = {
         demCauHomNay(db, staff.id, ngayVn), tongThang(db, tu, den), docNguCanh(db), boNaoHienHanh(db),
       ]);
       // ADR-0073 Đ2: bộ não hiệu lực = bản đã lưu; chưa có bản ⇒ mặc định + giọng / lời dặn cũ (B5); bản trỏ mẫu đã bỏ ⇒ thông số mặc định, giữ lời nhắc (R1).
-      const luot = (ketQua: LuotHoi["ketQua"], u: SuDung | null): LuotHoi => ({
-        id: crypto.randomUUID(), staffId: staff.id, ngayVn, vao: u?.vao ?? 0, vaoDem: u?.vaoDem ?? 0, ra: u?.ra ?? 0, chiPhi: chiPhiMicroUsd(u, boNao.mau),
+      const luot = (ketQua: LuotHoi["ketQua"], u: SuDung | null, tienNhung = 0): LuotHoi => ({
+        id: crypto.randomUUID(), staffId: staff.id, ngayVn, vao: u?.vao ?? 0, vaoDem: u?.vaoDem ?? 0, ra: u?.ra ?? 0,
+        chiPhi: chiPhiMicroUsd(u, boNao.mau) + tienNhung, // ADR-0082 Đ5(3), P1: tiền mẫu + tiền embedding; token chỉ của mẫu
         ketQua, mau: ketQua === "het_tran" ? null : boNao.mau, laThu: false, at, // het_tran: không gọi mẫu ⇒ mau null (chú thích LuotHoi)
       });
       // ADR-0066 điều 6: trần kiểm TRƯỚC khi dựng lời nhắc (lớp một: đã chạm trần); lớp hai (chi phí tối đa của lượt — ADR-0073 Đ7b) kiểm sau khi dựng thân yêu cầu, trước khi gọi. Kiểm-rồi-ghi không nguyên tử: vài câu gửi cùng lúc có thể vượt trần một chút
@@ -189,14 +197,18 @@ export const troLyModule: AppModule = {
       };
       // ADR-0073 Đ4 (N2, N3): ≤ 3 lượt gần nhất của CHÍNH người hỏi, CÙNG mã, kết quả ok, trong 2 giờ — MÁY CHỦ đọc tl_hoi_dap (đã che khi lưu).
       const nho = cuocTroChuyen ? await nhoLuot(db, staff.id, cuocTroChuyen, new Date(now.getTime() - NHO_TRONG_MS).toISOString()) : [];
-      // ADR-0069 điều 4: đoạn ngữ cảnh đang bật vào CÙNG kho tìm đoạn (cùng ngân sách token) với hướng dẫn. N5: tìm bằng câu hiện tại + câu trước gần nhất.
-      const doan = chonDoan(truyVanTim(cauHoi, nho.at(-1)?.cauHoi ?? null), staff.permissions, [...chiaKho(), ...doanNguCanh(nguCanh)]);
-      // `than` = TOÀN BỘ đầu vào (lời nhắc + phần nhớ + câu mới): ước token trước khi gọi (Task 8) phải dùng uocTokenVao(than), không chỉ câu mới.
-      const than = thanYeuCau(boNao, staff.permissions, doan, cauHoi, nho);
-      if (kiemTranTruocKhiGoi(boNao, than, thang.tong, caiDat.tranThangMicroUsd)) {
+      // N5: tìm bằng câu hiện tại + câu trước gần nhất (đã che). ADR-0082 Đ5(1): kiểm trần bằng MỨC TRẦN TRÊN trước MỌI lần gọi (embeddings lẫn mẫu).
+      const truyVan = truyVanTim(cauHoi, nho.at(-1)?.cauHoi ?? null);
+      const tran = kiemTranTruocKhiGoi(boNao, thanYeuCau(boNao, staff.permissions, [], cauHoi, nho), truyVan, thang.tong, caiDat.tranThangMicroUsd);
+      if (tran.vuot) {
         await ghiLuot(db, luot("het_tran", null));
         return error(429, "tro_ly_het_tran_thang", CAU_HET_TRAN_THANG);
       }
+      // ADR-0082 Đ2–Đ4 + ADR-0069 điều 4: đoạn ngữ cảnh đang bật vào CÙNG kho; chọn đoạn trộn nghĩa + từ khoá (lỗi / sát trần ⇒ lùi từ khoá).
+      const tim = await timDoanTheoNghia(env, khoa, { truyVan, perms: staff.permissions, kho: [...chiaKho(), ...doanNguCanh(nguCanh)], conLaiMicroUsd: tran.conLai });
+      const doan = tim.daChon.map((x) => x.doan);
+      // `than` = TOÀN BỘ đầu vào (lời nhắc + phần nhớ + câu mới + tài liệu đã chọn).
+      const than = thanYeuCau(boNao, staff.permissions, doan, cauHoi, nho);
       // P1 (Đ7a): kq.traLoi đã qua anSoTien trong traLoiMotCau — biến này là thứ DUY NHẤT được trả và được lưu (bài route "HÀNG RÀO lọc số tiền").
       let kq = await traLoiMotCau(env, khoa, than, doan);
       // Phòng thủ (nhật ký thi công: chưa kiểm được OpenAI nhận `input` nhiều lượt cùng `instructions`): 400 cho yêu cầu CÓ phần nhớ ⇒ gọi lại ĐÚNG MỘT lần
@@ -209,10 +221,10 @@ export const troLyModule: AppModule = {
       }
       if (!kq.ok) {
         logLoi(kq.loi);
-        await ghi(luot("loi", kq.suDung), CAU_LOI, []);
+        await ghi(luot("loi", kq.suDung, tim.tienNhungMicroUsd), CAU_LOI, []);
         return error(502, "tro_ly_loi", CAU_LOI);
       }
-      await ghi(luot("ok", kq.suDung), kq.traLoi, kq.nguon);
+      await ghi(luot("ok", kq.suDung, tim.tienNhungMicroUsd), kq.traLoi, kq.nguon);
       return json({ traLoi: kq.traLoi, nguon: kq.nguon } satisfies TroLyHoiResponse);
     }),
 
@@ -342,6 +354,7 @@ export const troLyModule: AppModule = {
     // ống thật (che, tìm đoạn theo vai, gọi, nguồn, ẩn tiền — traLoiMotCau). Chạy được khi trợ lý TẮT (T4 — thử trước khi bật) nhưng KHÔNG miễn trần tiền tháng
     // (T3; kiemTranTruocKhiGoi — MỘT hàm với route hỏi, ruling F7); không trần ngày (la_thu = 1); không nhớ; không ghi tl_hoi_dap; không đổi bộ não đã lưu (T5).
     // Không ghi audit_log: lượt thử không đổi cấu hình; dấu vết là dòng tl_luot_hoi (người, ngày, mẫu, tiền — không nội dung).
+    // ADR-0082: cùng `kiemTranTruocKhiGoi` + `timDoanTheoNghia` với route hỏi; trả thêm `doanDaChon` + `chiPhiVanNghiaMicroUsd`.
     route("POST", "/api/tro-ly/thu", "office", async ({ env, request, staff }) => {
       if (!can(staff, "settings.ops")) return error(403, "forbidden", "Chỉ Toàn quyền thử được trợ lý.");
       const body = await readJson(request);
@@ -367,18 +380,21 @@ export const troLyModule: AppModule = {
       const { tu, den } = khoangThang(ngayVn);
       // Tổng tháng đọc MỚI trong request này (gồm lượt thử — T3).
       const [caiDat, thang, nguCanh] = await Promise.all([docCaiDat(db), tongThang(db, tu, den), docNguCanh(db)]);
-      const luot = (ketQua: LuotHoi["ketQua"], u: SuDung | null): LuotHoi => ({
-        id: crypto.randomUUID(), staffId: staff.id, ngayVn, vao: u?.vao ?? 0, vaoDem: u?.vaoDem ?? 0, ra: u?.ra ?? 0, chiPhi: chiPhiMicroUsd(u, boNao.mau),
+      const luot = (ketQua: LuotHoi["ketQua"], u: SuDung | null, tienNhung = 0): LuotHoi => ({
+        id: crypto.randomUUID(), staffId: staff.id, ngayVn, vao: u?.vao ?? 0, vaoDem: u?.vaoDem ?? 0, ra: u?.ra ?? 0,
+        chiPhi: chiPhiMicroUsd(u, boNao.mau) + tienNhung, // ADR-0082 P1, P3: tiền mẫu + tiền embedding của lượt thử
         ketQua, mau: ketQua === "het_tran" ? null : boNao.mau, laThu: true, at,
       });
-      const doan = chonDoan(cauHoi, perms, [...chiaKho(), ...doanNguCanh(nguCanh)]);
-      const than = thanYeuCau(boNao, perms, doan, cauHoi);
-      if (kiemTranTruocKhiGoi(boNao, than, thang.tong, caiDat.tranThangMicroUsd)) {
+      // ADR-0082 P3: CÙNG kiểm trần mức trên + CÙNG hàm tìm với route hỏi (không nhớ ⇒ truy vấn = câu hỏi thử).
+      const tran = kiemTranTruocKhiGoi(boNao, thanYeuCau(boNao, perms, [], cauHoi), cauHoi, thang.tong, caiDat.tranThangMicroUsd);
+      if (tran.vuot) {
         await ghiLuot(db, luot("het_tran", null));
         return error(429, "tro_ly_het_tran_thang", CAU_HET_TRAN_THANG);
       }
-      const kq = await traLoiMotCau(env, khoa, than, doan);
-      const l = luot(kq.ok ? "ok" : "loi", kq.suDung);
+      const tim = await timDoanTheoNghia(env, khoa, { truyVan: cauHoi, perms, kho: [...chiaKho(), ...doanNguCanh(nguCanh)], conLaiMicroUsd: tran.conLai });
+      const doan = tim.daChon.map((x) => x.doan);
+      const kq = await traLoiMotCau(env, khoa, thanYeuCau(boNao, perms, doan, cauHoi), doan);
+      const l = luot(kq.ok ? "ok" : "loi", kq.suDung, tim.tienNhungMicroUsd);
       await ghiLuot(db, l);
       if (!kq.ok) {
         logLoi(`thu_${kq.loi}`);
@@ -387,8 +403,11 @@ export const troLyModule: AppModule = {
         const tk = ketQuaThuKhoa(kq.status === null ? { mang: true } : { status: kq.status, maLoi: kq.maLoi });
         return error(502, tk.ma, tk.cau);
       }
+      const tienMau = l.chiPhi - tim.tienNhungMicroUsd; // R4: phản hồi tách tiền mẫu và tiền tìm theo nghĩa; dòng lượt giữ tổng
       return json({
-        traLoi: kq.traLoi, nguon: kq.nguon, tokenVao: l.vao, tokenRa: l.ra, chiPhiMicroUsd: l.chiPhi, chiPhiUsd: usd(l.chiPhi), mau: boNao.mau,
+        traLoi: kq.traLoi, nguon: kq.nguon, tokenVao: l.vao, tokenRa: l.ra, chiPhiMicroUsd: tienMau, chiPhiUsd: usd(tienMau),
+        chiPhiVanNghiaMicroUsd: tim.tienNhungMicroUsd, mau: boNao.mau,
+        doanDaChon: tim.daChon.map((x) => ({ ten: x.doan.ten, theoNghia: x.theoNghia, theoTuKhoa: x.theoTuKhoa })),
       } satisfies TroLyThuResponse);
     }),
 

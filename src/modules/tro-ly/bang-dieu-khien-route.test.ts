@@ -29,7 +29,9 @@ afterEach(() => { globalThis.fetch = fetchThat; });
 type CheDo = { status?: number; loi?: Record<string, unknown>; nem?: boolean };
 function openAiGia(cheDo: CheDo = {}): GoiGia[] {
   const goi: GoiGia[] = [];
-  globalThis.fetch = (async (_input: RequestInfo | URL, init?: RequestInit) => {
+  globalThis.fetch = (async (i: RequestInfo | URL, init?: RequestInit) => {
+    // ADR-0082: cửa /v1/embeddings TẮT (503) ⇒ lùi từ khoá = luật cũ; `goi` chỉ ghi /v1/responses (đường mới canh ở van-nghia-route.test.ts).
+    if (String(i instanceof Request ? i.url : i).endsWith("/v1/embeddings")) return new Response(JSON.stringify({ error: { message: "tắt" } }), { status: 503 });
     const body = JSON.parse(String(init?.body ?? "{}")) as Record<string, unknown>;
     goi.push({ body });
     if (cheDo.nem) throw new TypeError("mạng hỏng");
