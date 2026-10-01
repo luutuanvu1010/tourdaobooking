@@ -155,3 +155,9 @@ Người kiểm độc lập toàn nhánh trả "ĐẠT CÓ ĐIỀU KIỆN"; đ�
 - **R-AUT-SESSION-2** trỏ ADR-0075 điều 4 (lý do "tài khoản ngưng"), không phải điều 5.
 - **Không đổi (chờ chủ):** mã `doi_face_id` + CHECK của 0061; ngoại lệ "giữ-phiên"; ADR / CLAUDE.md / `.claude/`.
 - **Số liệu:** `npm run typecheck` 0 lỗi. `npm test` lần 1: bộ chính **2442/2442**, bước đo giờ hook ĐỎ `1919 ms CPU` (load average 55, máy quá tải; không đụng hook); lúc load ~8 chạy lại: bài đo giờ xanh, `npm test` đủ hai bước thoát 0 (2442/2442 + 1/1). `npm run test:e2e` đủ bộ: **37/37 xanh**, thoát 0, ba nhóm `audit-invariants` có `✓ R-AUT-SESSION-1/2` (chỉ cảnh báo `R-CTL-1` không chặn) — `$TMPDIR/e2e-sua-sau-kiem.log`.
+
+### Kết thúc Phần A — lời chủ (2026-10-01)
+
+- Kiểm độc lập toàn nhánh (`nguoi-kiem-doc-lap`): **ĐẠT CÓ ĐIỀU KIỆN** (typecheck 0, `npm test` 2437 + đo giờ hook, e2e 37/37, 5 lần phá đều đỏ); đợt sửa sau kiểm (gỡ phiên chỉ tắt thông báo của đúng máy, kiểm vị trí câu kết thúc phiên, nút gộp theo `datLaiPinDuoc`, đăng xuất luôn xoá cookie, chú thích e2e) — kiểm lại độc lập **ĐẠT** (2442/2442, e2e `phien admin passkey` 4/4, 6 lần phá đều đỏ).
+- Chủ trả lời hộp hỏi gom (cả ba phương án khuyến nghị): (1) thêm lý do kết thúc **"Đã gỡ Face ID"** (`doi_face_id`) vào ADR-0075 điều 4; (2) **đồng ý** ngoại lệ "giữ-phiên" của hàng rào ADR-0046 (mất miễn → tắt thông báo máy bị kết thúc) — `docs/SO-HANG-RAO.md` đổi "CHỜ CHỦ DUYỆT" thành "CHỦ ĐÃ DUYỆT 2026-10-01"; (3) **cho sửa chữ** ADR-0075 điều 7 (sổ `quyen-hoan.json` chỉ cổng ghi). Đã ghi vào ADR-0075 dưới dạng bổ sung có ngày, kèm số migration thật 0061.
+- Còn mở (không chặn gộp): dòng bẫy đề xuất cho CLAUDE.md §10 (trên) chờ chủ; số bản 1.54 / công thức z8 / bẫy 57 kiểm lại lúc gộp; thử iPhone thật đường gắn lại thông báo sau đăng nhập; vai IT hết hạn theo ngày không đá phiên cũ tới lần đăng nhập sau.
