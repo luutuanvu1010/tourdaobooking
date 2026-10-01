@@ -59,7 +59,7 @@
 | `node --test src/modules/tro-ly/*.test.ts src/shared/tro-ly*.test.ts src/architecture.test.ts` | xanh (bài route ADR-0084 đỏ trước khi sửa) |
 | `npm run typecheck` | 0 lỗi |
 | `npm run build:web` | xanh |
-| `npm test` | 2507/2507 + bài đo giờ 1/1, thoát 0 |
+| `npm test` | 2508/2508 + bài đo giờ 1/1, thoát 0 (lần chạy cuối, sau commit `6dfef241`) |
 | `npm run test:e2e` (toàn bộ) | 36/36 kịch bản xanh (gồm `tro-ly` bước 12b, `parties`, `gop-ho-so`, `audit-invariants`); không nội dung câu hỏi trong log Worker |
 | `npm run db:migrate:local` | không chạy — e2e và kịch bản Chrome tự áp migration lên D1 tạm |
 | Chrome `khung-tro-ly-smoke.mjs` (OUT=`docs/evidence/2026-10-01-tro-ly-mai`) | mọi bước đạt, gồm bước n mới (ảnh `n-loi-chao-co-ten-390.png`, `-1040.png`) |
