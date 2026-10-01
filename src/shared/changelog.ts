@@ -11,6 +11,16 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // ADR-0082 (trợ lý tìm đoạn hướng dẫn theo nghĩa trộn từ khoá). Số "1.56" = main 1.55 + 1 lúc thi công (2026-10-01); nhánh khác gộp trước thì đánh lại số.
+    // Có migration 0062 (số tạm).
+    version: "1.56",
+    date: "2026-10-01",
+    items: [
+      { kind: "doi", text: "Trợ lý Hỗ trợ tìm đúng phần hướng dẫn hơn khi bạn hỏi bằng lời của mình, không cần gõ đúng tên nút hay tên mục." },
+      { kind: "moi", text: "Toàn quyền: ô thử ở trang Trợ lý Hỗ trợ cho xem trợ lý đã dùng những đoạn hướng dẫn nào để trả lời." },
+    ],
+  },
+  {
     // Chủ dự án 2026-10-01: giữ luật "không tự đổi quyền của chính mình", sửa màn hình báo trước, không lưu nửa chừng. Không migration. Số tạm — nhánh khác gộp trước thì đổi.
     version: "1.55",
     date: "2026-10-01",
