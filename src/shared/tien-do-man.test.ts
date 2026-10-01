@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  buocDiem, cauConKhach, cauTuChoiKhaiGio, giuTenKhach, goiYKhaiGio, ketThucDuoc, nhomCuoc, soHieuTaiDiemDon, xayRaLucTu, type DiemVao, type SuatVao,
+  buocDiem, cauConKhach, cauTuChoiKhaiGio, giuTenKhach, goiYKhaiGio, ketThucDuoc, nhomCuoc, soHieuTaiDiemDon, thanDoiThuTu, xayRaLucTu, type DiemVao, type SuatVao,
 } from "./tien-do-man.ts";
 import { vnLocalToMs } from "./vn-date.ts";
 
@@ -140,4 +140,19 @@ test("soHieuTaiDiemDon (nợ nhỏ 2026-10-01, ADR-0055 C3): số hiệu chuyế
   assert.deepEqual(soHieuTaiDiemDon(ds, "P2"), ["QH201"]);
   assert.deepEqual(soHieuTaiDiemDon(ds, "D9"), []);
   assert.deepEqual(soHieuTaiDiemDon([], "P1"), []);
+});
+
+test("thanDoiThuTu (route 29 / 39): đổi chỗ với điểm CHƯA TỚI liền kề, giữ tập số thứ tự cũ; điểm đã tới bị bỏ qua; đầu / cuối / điểm không chờ → null", () => {
+  const d = [
+    { id: "a", thuTu: 1, trangThai: "ARRIVED" as const },
+    { id: "b", thuTu: 2, trangThai: "PENDING" as const },
+    { id: "c", thuTu: 4, trangThai: "PENDING" as const },
+    { id: "e", thuTu: 3, trangThai: "SKIPPED" as const },
+    { id: "f", thuTu: 5, trangThai: "PENDING" as const },
+  ];
+  assert.deepEqual(thanDoiThuTu(d, "c", 1), { diem: [{ id: "b", thuTu: 2 }, { id: "f", thuTu: 4 }, { id: "c", thuTu: 5 }] });
+  assert.deepEqual(thanDoiThuTu(d, "c", -1), { diem: [{ id: "c", thuTu: 2 }, { id: "b", thuTu: 4 }, { id: "f", thuTu: 5 }] });
+  assert.equal(thanDoiThuTu(d, "b", -1), null, "đầu danh sách chờ");
+  assert.equal(thanDoiThuTu(d, "f", 1), null, "cuối danh sách chờ");
+  assert.equal(thanDoiThuTu(d, "a", 1), null, "điểm đã tới — Review Focus 4: tài xế vừa bấm Đã tới");
 });

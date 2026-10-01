@@ -86,6 +86,20 @@ export interface SuatVao {
   daDon: MocTienDoDto | null;
   daTra: MocTienDoDto | null;
 }
+/**
+ * Thân lệnh "đổi thứ tự" (route 29 của tài xế ↔ 39 của văn phòng — CÙNG một hàm xử lý): đổi chỗ điểm `diemId` với điểm CHƯA TỚI liền trước (-1) / liền sau (+1),
+ * gửi đủ các điểm chưa tới với tập số thứ tự cũ (máy chủ chỉ ghi điểm đổi số). `null` = không đổi được (đầu / cuối, hoặc điểm không còn chờ).
+ */
+export function thanDoiThuTu(diem: readonly Pick<DiemVao, "id" | "thuTu" | "trangThai">[], diemId: string, huong: -1 | 1): { diem: { id: string; thuTu: number }[] } | null {
+  const cho = diem.filter((d) => d.trangThai === "PENDING").sort((x, y) => x.thuTu - y.thuTu);
+  const i = cho.findIndex((d) => d.id === diemId);
+  const j = i + huong;
+  if (i < 0 || j < 0 || j >= cho.length) return null;
+  const moi = [...cho];
+  [moi[i], moi[j]] = [moi[j]!, moi[i]!];
+  return { diem: moi.map((d, k) => ({ id: d.id, thuTu: cho[k]!.thuTu })) };
+}
+
 export type LenhSuat = "don" | "vang" | "khach-huy";
 export const NHAN_LENH_SUAT: Readonly<Record<LenhSuat, string>> = { don: "Đã đón", vang: "Vắng", "khach-huy": "Khách đã huỷ" };
 const KET_QUA: Readonly<Record<SuatVao["trangThai"], string | null>> = { WAITING: null, BOARDED: "Đã đón", NO_SHOW: "Vắng", CANCELLED_AT_STOP: "Khách đã huỷ", DROPPED: "Đã trả" };

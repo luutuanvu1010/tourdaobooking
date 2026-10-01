@@ -57,7 +57,7 @@
 ## 7. Việc nhỏ còn lại của Bảng điều phối lượt 1 (người kiểm K2b xếp "để lượt sau")
 
 - **Ngày:** 2026-09-30 · **Trạng thái:** `để lượt sau`. Nguồn: nhật ký giao diện `docs/superpowers/plans/2026-09-29-adr-0049-giao-dien-nhat-ky.md`.
-- Q-B-15: văn phòng sắp lại thứ tự điểm dừng khi chuyến đang chạy (route 39). Bản vẽ chưa vẽ.
+- ~~Q-B-15: văn phòng sắp lại thứ tự điểm dừng khi chuyến đang chạy~~ — **xong bản <số phiên bản — điền lúc gộp>** (nút lên / xuống ở Chi tiết chuyến, khuôn màn tài xế).
 - Q-B-7: ô chọn tài xế chưa hiện hạng bằng lái (DTO thiếu trường).
 - Q-B-10: huy hiệu số ở mục menu "Điều phối xe" (chưa có nguồn số).
 - Q-B-12: danh sách cuốc của tài xế chưa có giờ kết thúc dự kiến.

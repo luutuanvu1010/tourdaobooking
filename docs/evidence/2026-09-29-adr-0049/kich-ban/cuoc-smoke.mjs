@@ -280,6 +280,47 @@ try {
     assert.match(await s.ev(txt(".dp-ct-moc")), new RegExp(`^Xuất bến ${som}( \\d\\d/\\d\\d)? · ghi lúc \\d\\d:\\d\\d( \\d\\d/\\d\\d)? — Sales Một giờ do văn phòng khai$`));
   });
 
+  // Bước 7b (Task 3 Đợt 1, Q-B-15): văn phòng đổi thứ tự điểm CHƯA TỚI khi xe đang chạy (route 39). T1 vừa xuất bến: 2 điểm chưa tới (đón, trả).
+  const tenDiem = `[...document.querySelectorAll('.dp-run .dp-run-noi')].map((x) => x.innerText.trim())`;
+  await b.step("7b", `5c 1040 Bán hàng: nút ↑/↓ ở điểm chưa tới (4 nút, ↑ điểm đầu + ↓ điểm cuối khoá); bấm ↓ điểm đầu → POST /thu-tu thân chỉ requestId + diem (không xayRaLuc), thứ tự đảo, dải báo; bấm ↑ trả lại${axeNote()}`, async () => {
+    await s.waitFor(`document.querySelectorAll('.dp-run .dp-thu-tu').length === 4`, "4 nút đổi thứ tự");
+    assert.equal(await s.ev(`document.querySelector('.dp-run .dp-thu-tu[data-action="len"]').disabled`), true, "↑ của điểm đầu khoá");
+    assert.equal(await s.ev(`[...document.querySelectorAll('.dp-run .dp-thu-tu[data-action="xuong"]')].at(-1).disabled`), true, "↓ của điểm cuối khoá");
+    const truoc = await s.ev(tenDiem);
+    assert.equal(truoc.length, 2);
+    await s.ev(`document.querySelector('.dp-run .dp-thu-tu[data-action="xuong"]').click()`);
+    await s.waitFor(`/^(Đã đổi thứ tự điểm|Chưa đổi được thứ tự điểm)$/.test(document.querySelector('.banner .banner-title')?.innerText ?? '')`, "dải báo sau khi đổi thứ tự");
+    const tieuDe = await s.ev(txt(".banner .banner-title"));
+    console.log(`   [7b] dải sau ↓ điểm đầu: "${tieuDe}" — ${await s.ev(txt(".banner"))}`);
+    const thanTT = posts(s, "/thu-tu").map((r) => Object.keys(JSON.parse(r.body)).sort());
+    assert.deepEqual(thanTT[0], ["diem", "requestId"], "thân route 39 không có xayRaLuc");
+    assert.equal(await s.ev(noCode), "");
+    // Đo thật (Task 3 Đợt 1): máy chủ KHÔNG cấm "trả trước đón" khi đổi thứ tự (route 39 / trigger không có luật đó) → ↓ điểm đón được chấp nhận.
+    assert.equal(tieuDe, "Đã đổi thứ tự điểm");
+    assert.deepEqual(await s.ev(tenDiem), [truoc[1], truoc[0]], "thứ tự chữ đảo");
+    await shotFull(s, "b2-doi-thu-tu-van-phong.png");
+    await s.ev(`[...document.querySelectorAll('.dp-run .dp-thu-tu[data-action="len"]')].at(-1).click()`);
+    await s.waitFor(`${tenDiem}[0] === ${JSON.stringify(truoc[0])} && document.querySelector('.banner .banner-title')?.innerText === 'Đã đổi thứ tự điểm'`, "đã trả lại thứ tự cũ");
+    assert.equal(posts(s, "/thu-tu").length, 2);
+  });
+  // Bước 7c (Review Focus 4): tài xế vừa "Đã tới" điểm đầu (ghi bằng API) mà trang văn phòng chưa tải lại → bấm ↓ điểm đó → 409 → dải "Chưa đổi được…" +
+  // câu của máy chủ; màn đọc lại → điểm đó hết nút. T1 chỉ có 2 điểm chưa tới nên API ghi "Đã tới" điểm CUỐI (điểm trả — máy chủ không bắt thứ tự tới) để bước 8
+  // vẫn bấm "Đã tới" ở điểm đón như cũ; trang chưa tải lại bấm ↓ ở điểm đón (đổi chỗ với điểm trả vừa tới) → 409.
+  await b.step("7c", `5c 1040: điểm trả vừa được ghi "Đã tới" bằng API, trang chưa tải lại → bấm ↓ ở điểm đón → "Chưa đổi được thứ tự điểm" + "Điểm đã tới hoặc đã bỏ qua…"; sau đó điểm đã tới không còn nút, điểm đón còn hai nút khoá`, async () => {
+    const r = await call(ACCOUNTS.admin, "GET", `/api/van-chuyen/chuyen/${d.T1.id}`);
+    assert.equal(r.status, 200, r.text);
+    const idDiemCuoi = [...r.json.diem].sort((x, y) => x.thuTu - y.thuTu).filter((x) => x.trangThai === "PENDING").at(-1).id;
+    const da = await call(ACCOUNTS.admin, "POST", `/api/van-chuyen/chuyen/${d.T1.id}/diem/${idDiemCuoi}/da-toi`, { requestId: randomUUID() });
+    assert.equal(da.status, 200, da.text);
+    const soTruoc = posts(s, "/thu-tu").length;
+    await s.ev(`document.querySelector('.dp-run .dp-thu-tu[data-action="xuong"]').click()`);
+    await s.waitFor(`document.querySelector('.banner .banner-title')?.innerText === 'Chưa đổi được thứ tự điểm'`, "dải 'Chưa đổi được…'");
+    assert.equal(posts(s, "/thu-tu").length, soTruoc + 1, "có gửi lệnh");
+    assert.match(await s.ev(txt(".banner li")), /^Điểm đã tới hoặc đã bỏ qua/);
+    assert.deepEqual(await s.ev(`[...document.querySelectorAll('.dp-run .dp-thu-tu')].map((x) => x.disabled)`), [true, true], "chỉ còn điểm đón (chờ một mình): hai nút khoá; điểm đã tới hết nút");
+    assert.equal(await s.ev(noCode), "");
+    await shotFull(s, "b2-doi-thu-tu-409-van-phong.png");
+  });
   await b.step("8", `5c 1040 Bán hàng: chuyến đang chạy — "Đã tới" để nguyên giờ → thân KHÔNG có xayRaLuc (I34), mốc MỘT giờ; GA-55: sau lệnh tên khách vẫn hiện đúng`, async () => {
     await s.waitFor(`!!document.querySelector('.dp-run [data-action="da-toi"]')`, "nút đã tới");
     await s.ev(click('.dp-run [data-action="da-toi"]'));
@@ -330,7 +371,7 @@ try {
   const k = await env.as(ACCOUNTS.accounting, `/chuyen?id=${d.T1.id}`, DESK);
   await b.step("9", "Kế toán mở chuyến đang chạy: thấy điểm, mốc; KHÔNG nút bấm thay nào (ô trip.progress)", async () => {
     await k.waitFor(`!!document.querySelector('.dp-run')`, "điểm dừng đang chạy");
-    assert.equal(await k.ev(`document.querySelectorAll('.dp-run-btn, .dp-khach-btn, [data-action="ket-thuc"], [data-action="ket-thuc-gian-doan"], [data-action="xuat-ben-thay"]').length`), 0);
+    assert.equal(await k.ev(`document.querySelectorAll('.dp-run-btn, .dp-khach-btn, .dp-thu-tu, [data-action="ket-thuc"], [data-action="ket-thuc-gian-doan"], [data-action="xuat-ben-thay"]').length`), 0);
     assert.equal(apiCalls(k).filter((r) => r.method === "POST").length, 0);
   });
   await k.close();

@@ -18,8 +18,8 @@ import { moBangTruot } from "./bang-truot";
 import { datCrumb, loiCua } from "./giay-to-ui";
 import { icon } from "./icons";
 import { initShell, setBarTitle, showError } from "./shell";
-import { dongMoc, moKhaiGio, veDiemChay, type LenhDiem } from "./tien-do-ui";
-import { giuTenKhach, ketThucDuoc } from "../src/shared/tien-do-man";
+import { cauLoiTienDo, dongMoc, moKhaiGio, veDiemChay, type LenhDiem } from "./tien-do-ui";
+import { giuTenKhach, ketThucDuoc, thanDoiThuTu, type BuocDiem } from "../src/shared/tien-do-man";
 import type { GioVnDto, GoiBaoChangDto } from "../src/shared/contracts";
 
 const errorEl = byId("error");
@@ -266,6 +266,34 @@ function xuatBenThay(nut: HTMLButtonElement): void {
   });
 }
 
+/** Văn phòng đổi thứ tự điểm CHƯA TỚI khi xe đang chạy (route 39 ↔ 29, ADR-0049 D3): nút lên / xuống như màn tài xế; không ô giờ (route không nhận xayRaLuc). */
+function nutThuTuVanPhong(b: BuocDiem): HTMLElement | null {
+  const r = duLieu!;
+  if (!coTienDo || r.chuyen.trangThai !== "RUNNING" || b.diem.trangThai !== "PENDING") return null;
+  const nut = (huong: -1 | 1, kyHieu: string, nhan: string, action: string) => {
+    const than = thanDoiThuTu(r.diem, b.diem.id, huong);
+    const x = h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary dp-thu-tu", disabled: !than, "aria-label": nhan, "data-action": action }, kyHieu);
+    x.addEventListener("click", async () => {
+      if (!than) return;
+      x.disabled = true;
+      try {
+        await guiTienDo("thu-tu", than);
+        xong(dai("ok", "Đã đổi thứ tự điểm"));
+      } catch (e) {
+        const cau = cauLoiTienDo(e, Date.now(), r.chuyen.ngayChay).cau;
+        try {
+          await nap(); // 409 (vd tài xế vừa "Đã tới" điểm này): đọc lại chuyến để nút lên / xuống theo trạng thái mới
+        } catch {
+          /* mất mạng: giữ dữ liệu cũ, dải báo vẫn hiện */
+        }
+        xong(dai("danger", "Chưa đổi được thứ tự điểm", [cau]));
+      }
+    });
+    return x;
+  };
+  return h("span", { class: "dp-thu-tu-nhom" }, nut(-1, "↑", `Đưa ${b.diem.tenNoi} lên trước`, "len"), nut(1, "↓", `Đưa ${b.diem.tenNoi} xuống sau`, "xuong"));
+}
+
 function diemChay(): HTMLElement {
   const r = duLieu!;
   const c = r.chuyen;
@@ -294,7 +322,7 @@ function diemChay(): HTMLElement {
     "section",
     { class: "dp-run-list", "aria-labelledby": "ct-diem-title" },
     h("div", { class: "dp-card-head dp-run-list-head" }, h("h2", { id: "ct-diem-title", class: "dp-card-title" }, "Điểm dừng"), h("span", { class: "dp-card-note" }, "Tải hiện tại ", h("strong", null, `${c.tai}/${c.xe.soCho}`))),
-    ...veDiemChay({ diem: r.diem, suat: r.suat, trangThai: c.trangThai, ngayXem: c.ngayChay, coNut: coTienDo, onLenh: lenhDiemChay, phuDiem: (b) => ({ duoi: goiBaoCua(b.diem.id).map((x) => h("div", { class: "dp-gb-dong" }, x)) }) }),
+    ...veDiemChay({ diem: r.diem, suat: r.suat, trangThai: c.trangThai, ngayXem: c.ngayChay, coNut: coTienDo, onLenh: lenhDiemChay, phuDiem: (b) => ({ ben: nutThuTuVanPhong(b) ?? undefined, duoi: goiBaoCua(b.diem.id).map((x) => h("div", { class: "dp-gb-dong" }, x)) }) }),
     coTienDo ? h("div", { class: "dp-run-end" }, ketThuc, ketThuc.disabled ? h("span", { class: "dp-note" }, "Bấm được khi đã trả hết khách.") : null, gianDoan) : null,
   );
 }

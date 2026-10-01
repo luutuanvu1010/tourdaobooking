@@ -6,7 +6,7 @@
 //   `lienHe` của lần GET; không lưu vào bộ nhớ trình duyệt), đổi thứ tự điểm chưa tới bằng nút lên / xuống (không ô giờ), "Kết thúc chuyến", "Kết thúc gián
 //   đoạn" (chọn lý do; KHÔNG ô ghi chú — chủ Q1).
 // - Mất mạng: dòng đó "Chưa gửi được" + "Bấm lại" (CÙNG requestId — bấm lại hai lần vẫn một lệnh); máy KHÔNG tự gửi lại (lệnh điều phối, khác câu 5a).
-import { giuTenKhach, ketThucDuoc, soHieuTaiDiemDon, type BuocDiem } from "../src/shared/tien-do-man";
+import { giuTenKhach, ketThucDuoc, soHieuTaiDiemDon, thanDoiThuTu, type BuocDiem } from "../src/shared/tien-do-man";
 import type { CuocChiTietResponse } from "../src/shared/contracts";
 import { coCuocCuaToi } from "../src/shared/start-page";
 import { ApiError, api } from "./api";
@@ -144,19 +144,13 @@ function lienHeCua(b: BuocDiem): Child[] {
 function nutThuTu(b: BuocDiem): HTMLElement | null {
   const r = duLieu!;
   if (r.chuyen.trangThai !== "RUNNING" || b.diem.trangThai !== "PENDING") return null;
-  const cho = r.diem.filter((d) => d.trangThai === "PENDING").sort((x, y) => x.thuTu - y.thuTu);
-  const i = cho.findIndex((d) => d.id === b.diem.id);
-  const doi = (j: number) => {
-    const moi = [...cho];
-    [moi[i], moi[j]] = [moi[j]!, moi[i]!];
-    const so = cho.map((d) => d.thuTu);
-    void chay(`thu-tu`, () => gui("thu-tu", { diem: moi.map((d, k) => ({ id: d.id, thuTu: so[k]! })) }));
+  const nut = (huong: -1 | 1, kyHieu: string, nhan: string, action: string) => {
+    const than = thanDoiThuTu(r.diem, b.diem.id, huong);
+    const x = h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary dp-thu-tu", disabled: !than, "aria-label": nhan, "data-action": action }, kyHieu);
+    x.addEventListener("click", () => { if (than) void chay("thu-tu", () => gui("thu-tu", than)); });
+    return x;
   };
-  const len = h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary dp-thu-tu", disabled: i <= 0, "aria-label": `Đưa ${b.diem.tenNoi} lên trước`, "data-action": "len" }, "↑");
-  const xuong = h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary dp-thu-tu", disabled: i >= cho.length - 1, "aria-label": `Đưa ${b.diem.tenNoi} xuống sau`, "data-action": "xuong" }, "↓");
-  len.addEventListener("click", () => doi(i - 1));
-  xuong.addEventListener("click", () => doi(i + 1));
-  return h("span", { class: "dp-thu-tu-nhom" }, len, xuong);
+  return h("span", { class: "dp-thu-tu-nhom" }, nut(-1, "↑", `Đưa ${b.diem.tenNoi} lên trước`, "len"), nut(1, "↓", `Đưa ${b.diem.tenNoi} xuống sau`, "xuong"));
 }
 
 function lenhDiem(l: LenhDiem): void {
