@@ -184,3 +184,30 @@ Còn lọc `status = 'confirmed'`; lô `changeLeg` đẩy mốc đơn (`orderTou
   đỏ) — đỏ trước (95: 1 đỏ) → xanh 95/95.
 - 7.7: `tests/e2e/catalog.mjs` thêm "gieo mẫu có nơi trả cho mã THẬT của Sheet (`ttbCodes[0]`) → `sync force` → dòng mẫu y nguyên; form đọc đúng" (TC-M7, NT-D6).
 - 7.8: không cạnh module mới (`van-chuyen → locations` đã có); sổ dữ liệu đã khai bảng ở Task 6.
+
+## Tài liệu + kiểm cuối (2026-10-01)
+
+- `docs/SO-HANG-RAO.md`: 8 dòng mới (CHECK `pax_override`, CHECK `flight_code`, ô phụ không bị `/trip` / lưu nháp xoá, 403 lưu nháp số người, giữ dấu đặt gấp Q-B,
+  bài một luật, trigger + CHECK `vc_leg_template`, route form mẫu) — mỗi dòng có ngày + phép đột biến đã thấy đỏ.
+- `docs/SYSTEM-DESIGN.md`: §5 (`ord_transfer_leg` + 0057, bảng `vc_leg_template`, migration 0057/0058), §7 (`PUT /legs/:legId` ô mới + nhánh nháp, ba route
+  `mau-chang`). **§16 KHÔNG thêm dòng:** không còn lệch (ruling Task 1).
+- `docs/CHANGE-GUIDE.md` công thức z: bước 4 sửa câu sai về CHECK + ALTER; hai gạch luật (ô phụ, mẫu đưa đón) + lệnh kiểm.
+- **Lệnh + kết quả (2026-10-01):**
+  - `npm run typecheck` → thoát 0.
+  - `npm test` → bộ chính 2348/2348, bài đo giờ 1/1, thoát 0.
+  - `npm run test:e2e -- catalog chang-hanh-khach trip orders dieu-phoi tai-xe-cuoc van-chuyen` → 8/8 (chạy lẻ — không có đuôi audit).
+  - `npm run test:e2e` (đủ bộ, 3 nhóm, 223 s) → **36/36 xanh**, `audit-invariants --strict` mỗi nhóm ✔ (R-CTL-1 cảnh báo có sẵn).
+  - `node scripts/audit-invariants.mjs --db local` (D1 local của worktree) → thoát 1 vì **R-N1-5 "còn ít nhất một quản trị viên"** — D1 local của worktree
+    RỖNG (0 tài khoản), không liên quan việc này; các câu mới R-ORD-13/14, R-VC-20 không vi phạm. Bản đủ dữ liệu là audit của e2e (xanh).
+- Không chạy: kịch bản Chrome (không làm giao diện).
+
+## Nợ / chưa làm (ngoài Task 0–7 được giao)
+
+- Task 8 (`orders.ride_pax`, ADR-0065) — chờ chủ; móc `them.soKhachDiXe` đã chừa.
+- Task 9 e2e mới: 9.1 (`chang-hanh-khach.mjs`: lưu nháp số hiệu, Đối tác 403, nhánh nháp Quản trị, sửa số hiệu dưới mốc, L-R1), 9.2 (`tai-xe-cuoc.mjs`: số hiệu ngoài
+  ngày chạy), 9.3 (`mau-chang.mjs` riêng). Phần 9.3 phía `catalog.mjs` (TC-M7) ĐÃ làm ở Task 7.7. Các hành vi này đã có bài khung thử SQLite thật (o-moi-chang,
+  tai-xe-dto, mau-chang) nhưng chưa có kịch bản e2e trên `wrangler dev`.
+- Task 10 còn thiếu: SYSTEM-DESIGN §6 (luồng chặng), bảng §3 của CHANGE-GUIDE, công thức RIÊNG "mẫu chặng" (mới có gạch trong công thức z). CHANGE-GUIDE z / z3 vẫn
+  ghi "nhánh thi công, CHƯA gộp" dù mã ở `main` từ 1.38 — không sửa lần này.
+- Task K: người kiểm độc lập chỉ-đọc — chưa gọi (người thi công không tự nghiệm thu).
+- Chép ADR nháp nơi trả mặc định sang `docs/adr/` + chốt số (từ 0073) + bỏ nhánh "nếu ALTER → trigger" ở D1 của bản nháp: việc lúc gộp (cần chủ cho phép sửa `docs/adr/`).
