@@ -35,11 +35,19 @@
 - Thêm `nguoiGhiSdt: null` vào bản mẫu → `not ok 1 - lịch sử mẫu: mỗi bản ĐÚNG các khoá…` (`+ 'nguoiGhiSdt'`); hoàn nguyên → xanh, sạch.
 - Đổi ô "Đơn vị" về `it.unit` → `not ok 1 - web/catalog.ts: mọi chỗ hiện it.unit…`; hoàn nguyên → xanh, sạch.
 - Ba dòng mới ở `docs/SO-HANG-RAO.md`.
-- E2E `mau-chang`: xem "Kiểm đã chạy".
+- E2E `mau-chang`: đổi `createdBy: r.created_by` → `createdBy: null` → `npm run test:e2e -- mau-chang`: `AssertionError: người đổi = id tài khoản Quản trị`, `E2E: 1/2 kịch bản LỖI`; hoàn nguyên → tệp sạch → xanh.
 
-## Kiểm đã chạy (số liệu thật — điền ở cuối phiên)
+## Kiểm đã chạy (số liệu thật, máy của phiên, mã ở HEAD `44ca5b0f` — các commit sau chỉ tài liệu / ảnh)
 
-(xem mục cuối)
+- `npm run typecheck`: 0 lỗi. `npm run build:web`: xong.
+- `npm test`: bước 1 **2653/2653**, bước 2 (bài đo giờ hook) **1/1**.
+- `npm run test:e2e -- orders chang-hanh-khach dieu-phoi tai-xe-cuoc catalog mau-chang dua-don-dau-cuoi pwa`: **9/9 xanh** (gồm "không có day_loi"), 91 giây, 3 nhóm. (Lần chạy trước ở `ce56036d`+e2e: 9/9, 84 giây.)
+- Kịch bản Chrome (`AXE_JS=/private/tmp/axe-xe-don/package/axe.min.js`, `CHROME_BIN=…/chrome-wrap.sh`):
+  - `so-hieu-chuyen-bay-smoke.mjs` (MỚI): **3/3** (390 + 1040 điều phối, 390 tài xế; axe vùng đổi 0 critical/serious). Ảnh `so-hieu-dieu-phoi-390.png`, `so-hieu-dieu-phoi-1040.png`, `so-hieu-tai-xe-390.png`.
+  - `danh-muc-dua-don-smoke.mjs` (sửa theo cột "Người đổi" + đơn vị): **9/9**. Ảnh M7 chụp lại.
+  - `canh-bao-xep-smoke.mjs` 2/2; `dieu-phoi-smoke.mjs` **11/11**; `quyen-thieu-quan-tri-smoke.mjs` mọi bước ✓ (thoát 0); `dot-a-smoke.mjs` dịch vụ 1040 + 390 ✓, dừng ở `nhat-ky` (đỏ sẵn, ghi ở bảng `web/CLAUDE.md`).
+  - ĐỎ — **đã so trên gốc `f0ed3ff3`** (bản sao `git archive` ở `/tmp/base-ad7b`, cùng lệnh): `danh-muc-nhom-smoke.mjs` dừng bước 2 `/api/catalog/groups: 401` — **y hệt trên gốc**; `cuoc-smoke.mjs` 4 ✓ / 5 ✗ (bước 3, 3b, 4, 5, 6; lỗi dựng dữ liệu "tạo tài khoản lai … Chỉ Hành chính nhân sự…" — ADR-0071/0083) — **y hệt trên gốc**; `danh-muc-dua-don-smoke.mjs` bản CŨ trên gốc dừng bước 3 `Cannot read properties of undefined (reading 'mode')` — đã sửa kịch bản (đọc API bằng phiên của trang; nguyên nhân SUY RA là luật một máy đá cookie cũ, chưa chứng minh riêng). Hai kịch bản kia KHÔNG sửa (ngoài phạm vi).
+- `audit-invariants`: kịch bản mới gieo `catalog_item` ZMC1 (chưa phân loại) + một `loc_location` đã ngưng (không mẫu nào trỏ tới) — chỉ chạm R-CTL-1 / R-VC-20 mức `warn`.
 
 ## Đề xuất cho tệp luật (KHÔNG tự sửa — N9)
 
