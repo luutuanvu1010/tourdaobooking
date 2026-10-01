@@ -49,3 +49,60 @@ Thêm một dòng vào bảng Chrome của `web/CLAUDE.md`:
 | Gộp hồ sơ, hồ sơ nghi trùng, khối hồ sơ khớp khi Thêm tài khoản (ADR-0068): hộp gộp / dải "đã gộp" / màn nghi trùng của `web/parties.ts`, `#merge` / `#dups` / `#dup-btn` của `public/parties.html`, khối `#add-khop` của `web/staff.ts`, `src/shared/ho-so-trung.ts` | `gop-ho-so-smoke.mjs` ở `docs/evidence/2026-09-30-gop-ho-so/kich-ban/` (5 bước, 1040 + 390) + `t2b-danh-ba-smoke.mjs` + `vai-smoke.mjs` |
 ```
 
+
+## Sổ điều phối thi công (chép từ sổ tạm .superpowers/, 2026-10-01)
+
+- Ruling: rà trước kế hoạch giao cho subagent (kế hoạch 3.566 dòng) thay vì điều phối tự đọc — giữ ngữ cảnh điều phối — nếu sai: sót mâu thuẫn, lưới là rà từng task.
+- Task 0: complete (commits 5a9f56e..a1ae701, điều phối làm trực tiếp — chỉ tài liệu, cần hộp hỏi quyền docs/adr)
+- Ruling: migration số tạm 0055_gop_ho_so.sql (luật 1.46: không giữ chỗ; main tới 0054) — kế hoạch viết 0054 ở mọi chỗ; mọi task dùng 0055 — nếu sai: đổi tên tệp.
+- Ruling F1: đã gộp main (a15aa83), migration 0055_gop_ho_so.sql, không dòng giữ chỗ; mỗi task tự tính lại số route / số bản changelog / số công thức CHANGE-GUIDE / vị trí R-PTY theo main hiện tại — nếu sai: test đếm route đỏ, sửa số.
+- Ruling F2 (Task 4): mã huỷ chuyến dùng 'HUY_KHAC', bỏ dòng xoá trigger vc_trip_status_transition (không tồn tại) — nếu sai: test van-chuyen lỗi khoá ngoại, đọc vc_reason.
+- Ruling F3 (Task 5 Step 7): quan sát hàng rào phải gieo liên hệ PHỤ để đỏ vì lính gác, không vì chỉ mục liên hệ chính — nếu sai: quan sát giả (P16).
+- Ruling F4 (Task 10 Step 5): gieo hồ sơ cá nhân kèm pty_person, hoàn nguyên sạch D1 local — nếu sai: D1 local bẩn.
+- Ruling F5 (Task 11): e2e gọi ensureFakeCatalog() như kịch bản khác.
+- Ruling F6 (Task 6 G16): bài POST /api/staff {partyId: A} phải khẳng định mã lỗi party_merged (không chỉ 409).
+- Ruling F7 (G13): khẳng định merge_lost_race đúng đặc tả; nếu lô thua chỉ trả được merge_inactive thì đặc tả thắng — ánh xạ về merge_lost_race.
+- Ruling F8–F22 (thấp): chuyển vào dispatch của task sở hữu (xem preflight.md); đặc tả: cập nhật trạng thái "đã duyệt" + 4 mã lỗi mới ở Task 11 (tài liệu).
+- Task 1: complete (commits a15aa83..cd06855, review clean)
+- Task 1: minor (deferred): repository.ts:300 sửa hồ sơ đã gộp gửi active=1 → trigger no_reopen ABORT thô — MANG VÀO Task 6 (G16 chặn 409 party_merged trước).
+- Task 1: minor (deferred): bài (d) thiếu ca đích không tồn tại.
+- Task 1: minor (deferred): trigger không cấm B bị ngưng sau khi gộp — đọc gom theo merged_into_id phải chịu được đích đã ngưng.
+- Ruling (Task 2, plan-mandated Important): bỏ qua khoá rỗng (tên/SĐT chuẩn hoá rỗng) khi ghép cặp — đặc tả T1 chỉ nói cặp cùng tên/SĐT thật; CSDL đã CHECK độ dài nhưng luật thuần tự bảo vệ — nếu sai: không mất gì (chỉ bớt cặp giả).
+- Task 2: complete (commits cd06855..aea4a86, review clean after 1 round)
+- Task 2: minor (deferred): thứ tự NFC trước lowercase (rủi ro thấp); khoá a|b tách bằng split (id UUID vô hại).
+- Task 3: complete (commits aea4a86..61e3901, review clean)
+- Ruling (Task 3 minor 1 → Task 5): liên hệ A bắt đầu sau hôm nay cũng tính vào merge_source_future_row (mở rộng quyết định Q5 của chủ cho cùng loại 'dòng tương lai'; tránh 500 do CHECK valid_to>=valid_from) — sửa trong gop.ts + 1 test ở Task 5 — nếu sai: chủ muốn chuyển nguyên liên hệ tương lai, sửa lại dễ.
+- Task 3: minor → Task 5: dựng current giấy tờ = chưa huỷ && không có dòng gia hạn chưa huỷ; ghi chú ở kiểu GiayToGop.
+- Task 3: minor (deferred): liên hệ chính A trùng liên hệ thường B → B không có liên hệ chính (hành vi đã biết); G11 test dùng includes + thiếu ca đối xứng.
+- Ruling (Task 4 concern 1): LECH_TIEN không đọc cột cọc cũ (NT-R9 cấm; không nới hàng rào) — đơn lệch chỉ ở cột cũ không báo trước, trigger 0007 vẫn huỷ trọn lô → Task 6 phải ánh xạ lỗi money_invariant của lô thành 409 merge_order_invalid (không 500) — nếu sai: người gộp thấy câu chung không nêu mã đơn.
+- Ruling (Task 4 minor 2, load-bearing): 'đang đứng tên xe' = xe status <> 'retired' (0033: retired ⇔ valid_to_date NOT NULL) — chủ chọn chữ 'đang'; Task 10 R-PTY-MERGE-4 chép SQL này phải dùng cùng điều kiện — nếu sai: người từng có xe đã thanh lý bị chặn gộp.
+- Ruling (Task 4 minor 1): thiếu bài CREW là ruling F12 chưa làm → vào fix round.
+- Task 4: complete (commits 61e3901..b25861a, review clean after 1 round)
+- Task 4: minor (deferred): router gopHoSo thiếu hàm tiêm → TypeError 500 trong khung thử cố ý (R9 chấp nhận).
+- Ruling (Task 5 concern): KHÔNG nới hàng rào ADR-0002 8(b) (cần chủ duyệt, Điều 9.4). Giữ cách VALUES (SELECT ?2 WHERE guard): lô thua có giấy tờ → huỷ trọn lô (nguyên tử). Task 6: mọi lỗi lô → đọc lại A; A đã gộp → 409 merge_lost_race; lỗi money_invariant → 409 merge_order_invalid; khác → 500 — nếu sai: người thua đua thấy 500 thay vì 409 (dữ liệu vẫn nguyên).
+- Ruling (Task 5 review): vá Important 1 (chép giấy tờ phải gắn với việc dòng nguồn vừa bị chính lô huỷ) + Minor 2 (câu lật: merged_into_id = (SELECT B WHERE guard AND NOT EXISTS dòng mở của A) → NULL kèm merged_at → trigger merge_target ABORT cả lô) + Minor 3 (chép giấy tờ: NOT EXISTS giấy tờ hiện hành cùng loại của B) — mọi khe kiểm–ghi thành huỷ trọn lô — nếu sai: lô hiếm khi bị huỷ oan, người gộp thử lại.
+- Task 5: minor (deferred): LIST/LOOKUP tự nối bảng thay vì p.merged_into_id IS NULL (phong cách).
+- Task 5: minor → Task 6: docsForMerge/GopDocRow mang document_number → thêm ca vào src/giay-to-khong-lo-so.test.ts; lý do huỷ giấy tờ ghi ở detail nhật ký; ô chọn khách trên đơn (Đ7) kiểm lại.
+- Ruling (hợp đồng lỗi cho Task 6, cập nhật): lat.changes=0 → 409 merge_lost_race; lô ném lỗi → đọc lại A: đã gộp → 409 merge_lost_race; lỗi money_invariant → 409 merge_order_invalid; còn lại → 409 merge_stale ('dữ liệu vừa đổi, hãy xem trước lại') — không 500 — nếu sai: lỗi thật khác bị gắn nhãn 'xem trước lại'.
+- Task 5: complete (commits b25861a..8eb7ca5, review clean after 1 round)
+- Task 5: minor (deferred): quan hệ phía A là from_party chưa có test ở Sửa 2; P16 từng điều kiện chép giấy tờ chưa quan sát bằng gỡ thật → Task 12 người kiểm độc lập làm.
+- Ruling (Task 6 review): sửa Important 1 (câu merge_order_invalid nhánh lô nêu mã đơn — ADR Đ1 bước 5 thắng mã) + Minor 1 (console.error tên ràng buộc, không giá trị) + Minor 2 (merge_lost_race chỉ khi A đã gộp vào đúng intoPartyId; còn lại merge_inactive). Minor 3 (thứ tự 409 trước 403 đầu kia quan hệ) để nguyên — chỉ lộ cho người giữ admin.manage.
+- Task 6: complete (commits 8eb7ca5..53976b9, review clean after 1 round)
+- Task 6: minor (deferred): 409 party_merged trước 403 ở đầu kia quan hệ (:1035); regex tenRangBuoc có thể bắt từ có gạch dưới.
+- Task 7: complete (commits 53976b9..ce6efa1, review clean)
+- Task 7: minor (deferred): soDangNhap tính cả tài khoản ngưng; cặp bị bỏ im lặng nếu hồ sơ biến mất giữa truy vấn; chưa test conNua=true.
+- Task 8: complete (commits ce6efa1..796c9d3, review clean; người rà tự quan sát đỏ khi gỡ C2 — bù P16)
+- Task 8: minor (deferred): điều kiện !existingPartyId đường vai chưa có test bảo vệ; personsForMatch đọc mọi hồ sơ mỗi lần gọi (Task 9 debounce); LOOKUP LIMIT 20.
+- Ruling (Task 9 review): sửa Important 1 (đích cũ còn khi ô tìm đổi → reset dich/chan/bảng; bảng xem trước ghi rõ tên hồ sơ chính) + Minor 2, 4, 5 (rẻ). Minor 3 (hai hồ sơ cùng tên không vai trông giống nhau ở C1) → ghi backlog ở Task 11. Minor 6 (8px vs 6px) để nguyên.
+- Task 9: complete (commits 796c9d3..b8e0819, review clean after 1 round)
+- Task 9: minor (deferred): handler input không tăng lanTim (vô hại, dich vẫn null); moNghiTrung ném lỗi sau gộp thì bỏ openDetail; hai hồ sơ cùng tên không vai giống nhau ở C1 → backlog.
+- Task 10: complete (commits b8e0819..0bca576, review clean)
+- Task 10: minor (deferred): chưa có bài khoá ca 'B ngưng dùng sau gộp → 0 vi phạm'; local D1 vốn vi phạm R-N1-5 (không có admin) từ trước.
+- Task 11: complete (commits 0bca576..2deac58)
+- Task 11: minor (deferred): e2e chưa khẳng định vai BOAT_CAPTAIN chuyển sang B (có ở bài đơn vị).
+- Task 12: kiểm độc lập toàn nhánh — ĐẠT CÓ ĐIỀU KIỆN (npm test 2215/2215, typecheck/build 0, e2e gop-ho-so+parties 3/3; P16: 6 điều kiện thấy đỏ thật, 2 không đỏ).
+- Ruling (final): MỘT lần sửa: (1) gộp main 1.49, migration → 0056_gop_ho_so.sql (main có 0055_nhom_dich_vu đã lên production), bản → 1.51 (phat-hanh-1-50 đã nhận 1.50; ai gộp sau đánh lại), đếm lại route, giải 7 xung đột; (2) bài cấp bậc bên thứ ba 403; (3) bài vế from_party_id ở Sửa 2; (4) catch index.ts:860 chỉ lost_race khi đích khớp; (5) ghi 6 lần chặn thật vào SO-HANG-RAO 2026-10-01; rồi npm test + typecheck + e2e đủ bộ + kiểm độc lập ngắn commit gộp — nếu sai số bản/migration: người gộp sau đổi tên.
+- Final fix wave: 1a/1b/1c/1d done (d6cad824, b3a63073, 2baf07e5, ffb183cc); merge main 1.49 → migration 0056_gop_ho_so.sql, changelog 1.51, 200 route, backlog 10–14.
+- Final fix: commits 2deac58..908e372 (1a d6cad82, 1b b3a6307, 1c 2baf07e, 1d ffb183c, merge main 1.49 908e372; migration 0056; bản 1.51; route 200). npm test 2264/2264, typecheck 0, build ok, e2e đủ bộ 36/36 (lần 2; lần 1 catalog+thongbao hỏng do chạy song song, mỗi bài chạy riêng xanh), audit --strict đạt.
+- Task 12: minor (deferred): nhánh lat.changes=0 vẫn trả merge_lost_race kể cả khi A vừa gộp vào hồ sơ KHÁC (chỉ sai chữ, dữ liệu nguyên) — Ruling: để nợ.
+- Ghi chú cho chủ: ADR-0068 (accepted) + docs/adr/README.md bị sửa chỉ số migration 0055→0056 cho khớp mã.
