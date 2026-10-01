@@ -149,11 +149,11 @@ try {
   const cacMa = [["SALES"], ["ACCOUNTING"], ["ADMIN"], ["FIELD"], ["PARTNER"], ["SUPER_ADMIN"], ["INTERN"], ["DRIVER"]];
   const taiKhoan = [];
   for (const permissions of cacMa) {
-    const t = await call(OWNER, "POST", "/api/staff", { fullName: `Trợ Lý ${permissions[0]} E2E`, phone: randomPhone(), permissions });
+    const t = await call(OWNER, "POST", "/api/staff", { taoHoSoMoi: true, fullName: `Trợ Lý ${permissions[0]} E2E`, phone: randomPhone(), permissions });
     assert.equal(t.status, 201, `${permissions}: ${JSON.stringify(t.body)}`);
     taiKhoan.push([permissions[0], t.body]);
   }
-  const tx = await call(OWNER, "POST", "/api/staff", { fullName: "Trợ Lý Tài Xế Đối Tác E2E", phone: randomPhone(), roles: ["DRIVER_EXTERNAL"] });
+  const tx = await call(OWNER, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Trợ Lý Tài Xế Đối Tác E2E", phone: randomPhone(), roles: ["DRIVER_EXTERNAL"] });
   assert.equal(tx.status, 201, JSON.stringify(tx.body));
   taiKhoan.push(["DRIVER_PARTNER", tx.body]);
   for (const [ma, t] of taiKhoan) {
@@ -175,7 +175,7 @@ try {
   console.log(`✓ Quản trị, Bán hàng 403 ở cả ${QUAN_LY.length} route quản lý`);
 
   // 11) vai tắt ⇒ 403 lời thường, KHÔNG gọi máy giả; khung báo không dùng; tài khoản lai (Bán hàng + Kế toán) vẫn hỏi được khi chỉ Kế toán bật
-  const lai = await call(OWNER, "POST", "/api/staff", { fullName: "Trợ Lý Lai E2E", phone: randomPhone(), permissions: ["SALES", "ACCOUNTING"] });
+  const lai = await call(OWNER, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Trợ Lý Lai E2E", phone: randomPhone(), permissions: ["SALES", "ACCOUNTING"] });
   assert.equal(lai.status, 201, JSON.stringify(lai.body));
   const laiCookie = (await login(lai.body.staff.phone, lai.body.pin)).cookie;
   assert.equal((await datVai({ ...tatCaVai(true), SALES: false })).status, 200);

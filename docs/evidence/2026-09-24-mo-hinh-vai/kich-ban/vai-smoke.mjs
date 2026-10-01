@@ -18,6 +18,13 @@ const NAME = "Kế Toán Chrome";
 const INTERN_PHONE = "0912345679";
 
 const box = (scope, kind, code) => `document.querySelector(${JSON.stringify(`${scope} input[type=checkbox][data-kind=${kind}][value=${code}]`)})`;
+// ADR-0068 Đ9 (C1): form Thêm tài khoản tra hồ sơ khớp sau 300 ms ngừng gõ; có hồ sơ khớp thì nút Tạo tắt tới khi chọn hồ sơ hoặc tick "Vẫn tạo hồ sơ mới".
+// requestSubmit() bỏ qua nút tắt → máy chủ trả 409 → kịch bản treo. Nên: chờ lần tra xong, có khối thì tick ô (tên/số ở đây là người MỚI), rồi mới gửi.
+const guiThem = async (p) => {
+  await new Promise((r) => setTimeout(r, 900));
+  await p.ev("(() => { const k = document.querySelector('#add-khop'); const c = k && !k.hidden ? k.querySelector('label.check input') : null; if (c && !c.checked) c.click(); return true; })()");
+  await p.ev("document.querySelector('#add-form').requestSubmit(), true");
+};
 const preview = (scope) => `document.querySelector(${JSON.stringify(`${scope} [data-role-preview]`)}).textContent`;
 
 const env = await startEnv();
@@ -48,7 +55,7 @@ try {
   await p.ev(setInput("document.querySelector('#add-name')", NAME));
   await p.ev(setInput("document.querySelector('#add-phone')", "0912345678"));
   await p.shot(join(OUT, "anh", "vai-them-may-tinh.png"));
-  await p.ev("document.querySelector('#add-form').requestSubmit(), true");
+  await guiThem(p);
   await p.waitFor(`[...document.querySelectorAll('#list tr')].some((tr) => tr.textContent.includes(${JSON.stringify(NAME)}) && tr.textContent.includes('Kế toán'))`, "dòng mới hiện vai Kế toán");
   ok("thêm tài khoản theo vai: LC-4 + LC-3 ở giao diện, xem trước đúng, danh sách hiện vai");
   // Đóng hộp "Tài khoản mới" trước khi qua bước B/C: hộp này dùng lại ở bước C cho Thực tập sinh — để mở sẽ khiến điều kiện chờ PIN ở bước C
@@ -89,7 +96,7 @@ try {
   await p.ev(`(${box("#add-perms", "role", "DRIVER_EXTERNAL")}).click(), (${box("#add-perms", "role", "TAXI_DRIVER")}).click(), true`);
   await p.ev(setInput("document.querySelector('#add-name')", TX_NAME));
   await p.ev(setInput("document.querySelector('#add-phone')", "0912345681"));
-  await p.ev("document.querySelector('#add-form').requestSubmit(), true");
+  await guiThem(p);
   await p.waitFor(`[...document.querySelectorAll('#list tr')].some((tr) => tr.textContent.includes(${JSON.stringify(TX_NAME)}) && tr.textContent.includes('Tài xế taxi'))`, "dòng mới hiện vai Tài xế taxi");
   assert.equal(await p.ev(clickText("#secret", "Đã ghi lại, ẩn đi")), true);
   await p.ev(`[...document.querySelectorAll('#list tr')].find((tr) => tr.textContent.includes(${JSON.stringify(TX_NAME)})).querySelector('button').click(), true`);
@@ -109,7 +116,7 @@ try {
   await p.ev(`(${box("#add-perms", "role", "INTERN")}).click(), true`);
   await p.ev(setInput("document.querySelector('#add-name')", "Thực Tập Chrome"));
   await p.ev(setInput("document.querySelector('#add-phone')", INTERN_PHONE));
-  await p.ev("document.querySelector('#add-form').requestSubmit(), true");
+  await guiThem(p);
   await p.waitFor(`!document.querySelector('#secret').hidden && !!document.querySelector('#secret td.pin')`, "hiện PIN tài khoản mới");
   const internPin = await p.ev(`document.querySelector('#secret td.pin').textContent.trim()`);
 
@@ -121,8 +128,9 @@ try {
   env.sql(`INSERT INTO pty_party_role (id, party_id, role_type_code, location_id, valid_from_date, created_at, updated_at) VALUES ('chrome-r26', '${ktParty}', 'ACCOUNTANT', NULL, '2026-09-01', '2026-09-01T00:00:00.000Z', '2026-09-01T00:00:00.000Z')`);
   await p.ev(`(${box("#add-perms", "role", "SALES_STAFF")}).click(), true`);
   await p.ev(setInput("document.querySelector('#add-phone')", KT_PHONE));
-  await p.waitFor(`[...document.querySelectorAll('#add-perms button')].some((b) => b.textContent.includes('Dùng hồ sơ có sẵn'))`, "gợi ý dùng hồ sơ có sẵn");
-  await p.ev(clickText("#add-perms", `Dùng hồ sơ có sẵn: ${KT_NAME}`));
+  // ADR-0068 C1: khối #add-khop liệt kê mọi hồ sơ khớp; bấm "Dùng hồ sơ này" ở đúng dòng của hồ sơ có sẵn.
+  await p.waitFor(`[...document.querySelectorAll('#add-khop li')].some((li) => li.textContent.includes(${JSON.stringify(KT_NAME)}))`, "khối hồ sơ khớp có hồ sơ có sẵn");
+  assert.equal(await p.ev(`(() => { const li = [...document.querySelectorAll('#add-khop li')].find((x) => x.textContent.includes(${JSON.stringify(KT_NAME)})); const b = [...li.querySelectorAll('button')].find((x) => x.textContent.trim() === 'Dùng hồ sơ này'); if (!b) return false; b.click(); return true; })()`), true, "nút Dùng hồ sơ này");
   await p.waitFor(`${box("#add-perms", "role", "ACCOUNTANT")}.checked`, "R26: vai Kế toán hồ sơ đang giữ được chọn sẵn");
   assert.equal(await p.ev(`${box("#add-perms", "role", "SALES_STAFF")}.checked`), true, "R26: vai người dùng đã tích vẫn giữ");
   assert.match(await p.ev(preview("#add-perms")), /Kế toán/);

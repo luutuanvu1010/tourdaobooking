@@ -960,3 +960,5 @@ export const ordersModule: AppModule = {
     }),
   ],
 };
+// ADR-0068 Đ1 bước 5: CHỈ gốc lắp ráp gọi (ctx.gopHoSo của route gộp hồ sơ) — bài siết ở src/architecture.test.ts.
+export { cauDoiNguoiDat, donCuaNguoiDat } from "./nguoi-dat-gop-repo";

@@ -14,7 +14,7 @@ const NGAY = vnDate(41);
 
 async function taiKhoanCookie(ten, perms) {
   const phone = randomPhone();
-  const r = await call(ADMIN, "POST", "/api/staff", { fullName: ten, phone, permissions: perms });
+  const r = await call(ADMIN, "POST", "/api/staff", { taoHoSoMoi: true, fullName: ten, phone, permissions: perms });
   assert.equal(r.status, 201, `${ten}: ${JSON.stringify(r.body)}`);
   return (await login(phone, r.body.pin)).cookie;
 }

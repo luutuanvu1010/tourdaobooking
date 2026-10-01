@@ -2175,3 +2175,6 @@ body.sheet-open .tl-fab { visibility: hidden; }
   .tl-cd-loc-tim { grid-column: span 3; }
   .tl-cd-vai { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
+
+/* Gộp hồ sơ (ADR-0068 C1): ô tích trong label.check (thay chuỗi style nội dòng cũ "width:auto;display:inline;margin:0 6px 0 0") — web/staff.ts khối #add-khop. */
+label.check > input.o-tick { display: inline; width: auto; margin: 0 var(--s2) 0 0; }

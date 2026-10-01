@@ -231,7 +231,7 @@ console.log("✓ thao tác thua khi tranh chấp không ghi nhật ký");
 const me = async (cookie) => (await call(cookie, "GET", "/api/auth/me")).body.staff;
 const bId = (await me(Bc)).id;
 const cPhone = randomPhone();
-r = await call(ADMIN, "POST", "/api/staff", { fullName: `Người Ngoài ${Date.now().toString(36)}`, phone: cPhone, permissions: ["SALES"] });
+r = await call(ADMIN, "POST", "/api/staff", { taoHoSoMoi: true, fullName: `Người Ngoài ${Date.now().toString(36)}`, phone: cPhone, permissions: ["SALES"] });
 assert.equal(r.status, 201, JSON.stringify(r.body));
 const Cx = (await login(cPhone, r.body.pin)).cookie; // SALES không liên quan tới đơn nào ở dưới (trừ ca đổi người phụ trách)
 const cId = r.body.staff.id;

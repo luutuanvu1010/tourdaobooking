@@ -10,7 +10,7 @@ import { can, seesOnlyAssignedOrders, type PermissionHolder } from "../../shared
 import { route, type AppModule } from "../../shared/router";
 import { donDangThuTien, thongTinGiaoDon } from "../orders";
 import { donChoNhapKeToan, docNhapKeToan, ghiNhapKeToan } from "./nhap-ke-toan";
-import { accountingEnteredAmong, orderOwners } from "./repository";
+import { accountingEnteredAmong, orderOwners, soDongNoCuaNguoiRow } from "./repository";
 import {
   daGiao, ghiDieuChinh, ghiHoanKhach, ghiLanThu, ghiQuyetToan, hoanThanh, soCongNo, soCuaToi, tienCuaDon, tienNhieuDon, xacNhanCongTyNhan, type NguoiGoi,
 } from "./service";
@@ -30,6 +30,9 @@ const nguoiGoi = (staff: PermissionHolder & { partyId: string | null }): NguoiGo
   partyId: staff.partyId,
   laKeToan: can(staff, "ledger.write"),
 });
+
+/** HÀM CÔNG BỐ (ADR-0068 G10) — CHỈ gốc lắp ráp gọi (ctx.gopHoSo): số dòng công nợ còn hiệu lực của một hồ sơ (dòng ở lại hồ sơ phụ khi gộp). */
+export const soDongNoCuaNguoi = (db: D1Database, partyId: string): Promise<number> => soDongNoCuaNguoiRow(db, partyId);
 
 export const billingModule: AppModule = {
   name: "billing",

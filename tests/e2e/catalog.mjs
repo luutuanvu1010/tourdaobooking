@@ -79,7 +79,7 @@ console.log("✓ giá đúng, không rò Khoá giá/Đường dẫn/Ghi chú n�
 // trị danh mục. GET /api/catalog về cổng "office" (ADR-0019 điều 1): Đối tác/Thực tập nay 403 ở đó — ĐẢO CÓ CHỦ ĐÍCH so với bản 1.15.
 // Kế toán và Hướng dẫn viên thuần (không có order.create) → 403 ở route mới.
 const newAccount = async (body) => {
-  const res = await call(ADMIN, "POST", "/api/staff", { fullName: `Xem danh mục ${randomPhone().slice(-4)}`, phone: randomPhone(), ...body });
+  const res = await call(ADMIN, "POST", "/api/staff", { taoHoSoMoi: true, fullName: `Xem danh mục ${randomPhone().slice(-4)}`, phone: randomPhone(), ...body });
   assert.equal(res.status, 201, JSON.stringify(res.body));
   return (await login(res.body.staff.phone, res.body.pin)).cookie;
 };

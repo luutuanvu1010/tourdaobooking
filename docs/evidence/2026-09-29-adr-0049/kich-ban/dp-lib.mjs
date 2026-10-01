@@ -133,7 +133,7 @@ export async function dungDuLieuDieuPhoi(env, call) {
   dung(await call(ACCOUNTS.admin, "PUT", `/api/van-chuyen/xe/${XE_C.id}`, { plateNumber: cMoi.plateNumber, chassisNumber: cMoi.chassisNumber, name: cMoi.name, modelYear: null, passengerCapacity: 15, status: "maintenance", expectedUpdatedAt: cMoi.updatedAt }), 200, "xe C bảo dưỡng");
   let soDt = 0;
   const taiXe = async (fullName, classCode) => {
-    const r = await call(ACCOUNTS.admin, "POST", "/api/staff", { fullName, phone: `09000004${String(50 + ++soDt).padStart(2, "0")}`, roles: ["DRIVER_INTERNAL"] });
+    const r = await call(ACCOUNTS.admin, "POST", "/api/staff", { taoHoSoMoi: true, fullName, phone: `09000004${String(50 + ++soDt).padStart(2, "0")}`, roles: ["DRIVER_INTERNAL"] });
     dung(r, 201, `tài xế ${fullName}`);
     const [{ party_id: partyId }] = env.sql(`SELECT party_id FROM staff WHERE id = '${r.json.staff.id}'`);
     dung(await call(ACCOUNTS.admin, "POST", `/api/parties/${partyId}/documents`, { typeCode: "GPLX", number: `79${String(1e9 + soDt)}`, classCode, expiryDate: han }), 201, `GPLX ${fullName}`);

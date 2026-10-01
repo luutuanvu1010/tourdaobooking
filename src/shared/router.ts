@@ -22,6 +22,22 @@ export type PartyAccountVerdict = { linked: false } | { linked: true; manageable
  */
 export type NewOrderHandler = { ok: true; statements: (orderId: string, at: string) => D1PreparedStatement[] } | { ok: false; message: string };
 
+/**
+ * GỘP HỒ SƠ (ADR-0068 Đ2, Đ6, Đ8) — phần của module KHÁC mà route gộp / nghi trùng của `parties` cần. `parties` không import orders / dispatch / van-chuyen /
+ * billing / staff và không đọc bảng của chúng: gốc lắp ráp nối (khuôn `isAssigned`, `mocToiThieu`). Mỗi phương thức là MỘT truy vấn D1 (trừ `cauDoiDon`:
+ * câu CHƯA chạy, route gộp đặt nó TRƯỚC câu lật hồ sơ phụ trong cùng `db.batch()`).
+ */
+export interface ViecCuaHoSo { phuTrachDon: number; laiChuyen: number; toLaiChuyen: number; chuXeChuyen: number; soXe: number }
+/** `maDoi` = mã các đơn sẽ đổi người đặt (nháp + đã xác nhận chưa giao) — route gộp nêu tên khi lô bị trigger tiền của đơn huỷ (ADR-0068 Đ1 bước 5). */
+export interface DonCuaNguoiDatTom { doi: number; giuDaGiao: number; giuDaHuy: number; lechTien: string[]; maDoi: string[] }
+export interface GopHoSoNoi {
+  viecCua: (partyId: string) => Promise<ViecCuaHoSo>;
+  donNguoiDat: (partyId: string) => Promise<DonCuaNguoiDatTom>;
+  cauDoiDon: (tuPartyId: string, sangPartyId: string, at: string) => D1PreparedStatement;
+  soDongNo: (partyId: string) => Promise<number>;
+  soDangNhap: () => Promise<{ partyId: string; phone: string }[]>;
+}
+
 export interface Ctx<A extends Access = Access> {
   request: Request;
   env: Env;
@@ -96,6 +112,8 @@ export interface Ctx<A extends Access = Access> {
    * nhãn — KHÔNG đoán tên (nhãn chỉ để hiển thị, không quyết quyền).
    */
   nhanNhanVien: (ids: readonly string[]) => Promise<Map<string, string> | null>;
+  /** GỘP HỒ SƠ (ADR-0068) — do gốc lắp ráp tiêm; xem `GopHoSoNoi`. Lười: chỉ gọi hàm tiêm khi route dùng (khung thử cũ không có hàm này vẫn chạy route khác). */
+  gopHoSo: GopHoSoNoi;
   /**
    * DẤU "ĐÃ NHẬP PHẦN MỀM KẾ TOÁN" (ADR-0060 điều 5) — do gốc lắp ráp tiêm (`billing.nhapKeToanCuaDon`; `orders` KHÔNG đọc bảng `bil_`, không import `billing` —
    * khuôn `ordersWithHandler`): trong các đơn `orderIds`, đơn nào có trạng thái hiện tại = đã nhập. KHÔNG phụ thuộc người gọi và KHÔNG tự kiểm quyền — route
@@ -195,6 +213,8 @@ export interface AppOptions {
     mocToiThieu: (env: Env) => Promise<MocToiThieu | null>;
     /** R-P20. BẮT BUỘC trong mã chạy thật (`src/index.ts`: `nhanNhanVienTheoId` của staff); thiếu (khung thử cố ý) → router trả `null` (route để trống nhãn). */
     nhanNhanVien: (env: Env, ids: readonly string[]) => Promise<Map<string, string>>;
+    /** GỘP HỒ SƠ (ADR-0068). BẮT BUỘC trong mã chạy thật (`src/index.ts`). */
+    gopHoSo: (env: Env) => GopHoSoNoi;
     /** ADR-0060 điều 5. BẮT BUỘC trong mã chạy thật (`src/index.ts`: `nhapKeToanCuaDon` của billing); thiếu (khung thử cố ý) → router trả `null`. */
     nhapKeToanCuaDon: (env: Env, orderIds: readonly string[]) => Promise<Set<string>>;
   };
@@ -265,6 +285,14 @@ export function createApp(opts: AppOptions) {
       mocToiThieu: () => (typeof opts.injected.mocToiThieu === "function" ? opts.injected.mocToiThieu(env) : Promise.resolve(null)),
       nhanNhanVien: (ids) =>
         typeof opts.injected.nhanNhanVien !== "function" ? Promise.resolve(null) : ids.length === 0 ? Promise.resolve(new Map()) : opts.injected.nhanNhanVien(env, ids),
+      // Lười (kế hoạch R9): gọi opts.injected.gopHoSo(env) trong từng phương thức — app dựng bằng injected cũ (src/shared/router.test.ts) không vỡ ở route khác.
+      gopHoSo: {
+        viecCua: (id) => opts.injected.gopHoSo(env).viecCua(id),
+        donNguoiDat: (id) => opts.injected.gopHoSo(env).donNguoiDat(id),
+        cauDoiDon: (tu, sang, at) => opts.injected.gopHoSo(env).cauDoiDon(tu, sang, at),
+        soDongNo: (id) => opts.injected.gopHoSo(env).soDongNo(id),
+        soDangNhap: () => opts.injected.gopHoSo(env).soDangNhap(),
+      },
       nhapKeToanCuaDon: (ids) =>
         typeof opts.injected.nhapKeToanCuaDon !== "function" ? Promise.resolve(null) : ids.length === 0 ? Promise.resolve(new Set<string>()) : opts.injected.nhapKeToanCuaDon(env, ids),
     } as Ctx);

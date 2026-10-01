@@ -1632,3 +1632,84 @@ test("R-ORD-NT1: đơn có dịch vụ nhập tay do tài khoản có quyền Đ
   db.exec(`UPDATE stf_permission SET valid_to_at = '${sau}' WHERE staff_id = 's-lai' AND permission_type_code = 'PARTNER'`);
   assert.equal(violations(db, nt1), 0, "quyền PARTNER đã đóng → không còn 'đang giữ'");
 });
+
+// ---------------------------------------------------------------------------------------------------------------------
+// ADR-0068 G15: R-PTY-MERGE-1..5 (gộp hồ sơ). Trigger của migration *_gop_ho_so là đường chặn thứ nhất; các kiểm này là lưới cho SQL chạy tay và cho khe
+// giữa lúc kiểm và lúc ghi (việc điều phối / vận chuyển giao cho hồ sơ phụ ngay trước khi gộp).
+function nguoiGop(db: DatabaseSync, id: string): void {
+  db.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES (?, 'PERSON', ?, 1, ?, ?)").run(id, id, T1, T1);
+}
+/** Gộp `a` vào `b` bằng SQL (mốc T2 → ngày gộp giờ VN 2026-09-21). */
+const gopThang = (db: DatabaseSync, a: string, b: string) =>
+  db.prepare("UPDATE pty_party SET active = 0, merged_into_id = ?, merged_at = ? WHERE id = ?").run(b, T2, a);
+const MERGE = ["R-PTY-MERGE-1", "R-PTY-MERGE-2", "R-PTY-MERGE-3", "R-PTY-MERGE-4", "R-PTY-MERGE-5"];
+
+test("R-PTY-MERGE: đúng năm kiểm mức fail; gộp khoẻ (liên hệ, vai, quan hệ đóng ĐÚNG ngày gộp) → 0 vi phạm", () => {
+  assert.deepEqual(CHECKS.filter((c) => c.code.startsWith("R-PTY-MERGE")).map((c) => [c.code, c.level]), MERGE.map((c) => [c, "fail"]));
+  const db = build();
+  nguoiGop(db, "pa"); nguoiGop(db, "pb");
+  db.prepare(`INSERT INTO pty_contact_point (id, party_id, contact_kind_code, value, value_normalized, is_primary, valid_from_date, valid_to_date, created_at, updated_at)
+    VALUES ('c1', 'pa', 'PHONE', '0912', '0912', 1, '2026-09-01', '2026-09-21', ?, ?)`).run(T1, T1);
+  db.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, valid_to_date, created_at, updated_at) VALUES ('r1', 'pa', 'GUIDE', '2026-09-01', '2026-09-21', ?, ?)").run(T1, T1);
+  gopThang(db, "pa", "pb");
+  for (const code of MERGE) assert.equal(violations(db, one(code)), 0, code);
+});
+
+test("R-PTY-MERGE-2: hồ sơ đã gộp còn liên hệ / công việc / quan hệ mở → mỗi hồ sơ một vi phạm", () => {
+  const db = build();
+  for (const id of ["pa", "pb", "pc", "pd", "pe", "pf"]) nguoiGop(db, id);
+  db.prepare(`INSERT INTO pty_contact_point (id, party_id, contact_kind_code, value, value_normalized, is_primary, valid_from_date, created_at, updated_at)
+    VALUES ('c1', 'pa', 'PHONE', '0912', '0912', 1, '2026-09-01', ?, ?)`).run(T1, T1);
+  db.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES ('r1', 'pc', 'GUIDE', '2026-09-01', ?, ?)").run(T1, T1);
+  db.prepare("INSERT INTO pty_party_relationship (id, from_party_id, to_party_id, relationship_type_code, valid_from_date, created_at, updated_at) VALUES ('q1', 'pe', 'pd', 'CONTACT_OF', '2026-09-01', ?, ?)").run(T1, T1);
+  gopThang(db, "pa", "pb");
+  gopThang(db, "pc", "pb");
+  gopThang(db, "pe", "pf");
+  assert.equal(violations(db, one("R-PTY-MERGE-2")), 3);
+});
+
+test("R-PTY-MERGE-3: hồ sơ đã gộp gắn tài khoản → 1", () => {
+  const db = build();
+  nguoiGop(db, "pb");
+  const cuaAn = (db.prepare("SELECT party_id p FROM staff WHERE id = 's-an'").get() as { p: string }).p;
+  gopThang(db, cuaAn, "pb");
+  assert.equal(violations(db, one("R-PTY-MERGE-3")), 1);
+});
+
+test("R-PTY-MERGE-1: chuỗi gộp (chỉ tạo được khi gỡ trigger pty_party_merge_target) → 1", () => {
+  const db = build();
+  for (const id of ["pa", "pb", "pc"]) nguoiGop(db, id);
+  db.exec("DROP TRIGGER pty_party_merge_target");
+  gopThang(db, "pa", "pb");
+  gopThang(db, "pb", "pc");
+  assert.equal(violations(db, one("R-PTY-MERGE-1")), 1);
+});
+
+test("R-PTY-MERGE-4 + 5: hồ sơ đã gộp còn phụ trách đơn chưa xong / còn là người đặt của đơn nháp → mỗi kiểm 1; đơn đã huỷ không tính", () => {
+  const db = build();
+  nguoiGop(db, "pa"); nguoiGop(db, "pb");
+  withHandler(db, "pa", "o-1");
+  db.prepare("UPDATE orders SET booker_party_id = 'pa' WHERE id = 'o-1'").run();
+  addOrder(db, "o-2");
+  db.prepare("UPDATE orders SET booker_party_id = 'pa' WHERE id = 'o-2'").run();
+  db.prepare("UPDATE orders SET status = 'cancelled' WHERE id = 'o-2'").run();
+  gopThang(db, "pa", "pb");
+  assert.equal(violations(db, one("R-PTY-MERGE-4")), 1);
+  assert.equal(violations(db, one("R-PTY-MERGE-5")), 1);
+});
+
+test("R-PTY-MERGE-4: hồ sơ đã gộp còn đứng tên xe chưa ngừng → 1; xe đã ngừng không tính (cùng luật viecXeCuaNguoi ở van-chuyen/chuyen-repo.ts)", () => {
+  const db = build();
+  nguoiGop(db, "pa"); nguoiGop(db, "pb");
+  db.exec("DROP TRIGGER IF EXISTS vc_vehicle_owner_ins"); // gieo nhanh: bài này chỉ canh luật đếm xe, không canh luật chủ xe
+  const xe = (id: string, status: string, to: string | null) =>
+    db.prepare(
+      `INSERT INTO vc_vehicle (id, plate_number, plate_key, name, passenger_capacity, owner_party_id, status, valid_from_date, valid_to_date, created_at, updated_at)
+       VALUES (?, ?, ?, 'Xe', 16, 'pa', ?, '2026-09-01', ?, ?, ?)`,
+    ).run(id, id.toUpperCase(), id.toUpperCase(), status, to, T1, T1);
+  xe("xe-ngung", "retired", "2026-09-10");
+  gopThang(db, "pa", "pb");
+  assert.equal(violations(db, one("R-PTY-MERGE-4")), 0, "xe đã ngừng: không tính");
+  xe("xe-chay", "active", null);
+  assert.equal(violations(db, one("R-PTY-MERGE-4")), 1);
+});

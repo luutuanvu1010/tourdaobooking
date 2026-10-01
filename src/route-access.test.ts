@@ -179,7 +179,10 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/parties/:id/relationships/:rid/end", access: "admin" },
   { method: "POST", path: "/api/parties/:id/roles", access: "admin" },
   { method: "POST", path: "/api/parties/:id/roles/:rid/end", access: "admin" },
+  { method: "POST", path: "/api/parties/:id/merge/preview", access: "admin" }, // ADR-0068: xem trước gộp hồ sơ — admin.manage viết thẳng + cấp bậc
+  { method: "POST", path: "/api/parties/:id/merge", access: "admin" }, // ADR-0068: gộp hồ sơ cá nhân — admin.manage + cấp bậc, một db.batch()
   { method: "GET", path: "/api/parties/lookup", access: "office" },
+  { method: "GET", path: "/api/parties/duplicates", access: "admin" }, // ADR-0068 Đ8: hồ sơ nghi trùng — admin.manage, chỉ đọc
   { method: "GET", path: "/api/parties/meta", access: "office" },
   { method: "GET", path: "/api/parties/documents/mine", access: "staff" }, // ADR-0040 D2 (Ruling R4, R5): giấy tờ của CHÍNH MÌNH, số che — mọi nhân viên nội bộ; thân hỏi party.document.view (Đối tác 403)
   { method: "GET", path: "/api/parties/documents/meta", access: "office" }, // ADR-0040 D2: danh mục loại giấy tờ của người + hạng GPLX; thân hỏi party.document.write / admin.manage
@@ -201,6 +204,7 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/staff/:id/passkeys/remove-all", access: "admin" }, // quản trị viên gỡ mọi Face ID của một tài khoản (ADR-0016 điều 6/8)
   { method: "POST", path: "/api/staff/:id/reset-pin", access: "admin" },
   { method: "POST", path: "/api/staff/:id/unlock", access: "admin" },
+  { method: "GET", path: "/api/staff/ho-so-khop", access: "admin" }, // ADR-0068 Đ9 (C1): hồ sơ khớp khi Thêm tài khoản — admin.manage
   { method: "GET", path: "/api/staff/sheet", access: "admin" },
   { method: "POST", path: "/api/staff/sheet/apply", access: "admin" },
   { method: "GET", path: "/api/account/passkeys", access: "staff" }, // danh sách Face ID của chính mình
@@ -309,7 +313,7 @@ test("MODULES liệt kê ĐỦ mọi thư mục module có khai `...Module: AppM
   assert.deepEqual(routedDirs, listed, "có thư mục module khai AppModule nhưng chưa có trong MODULES của bài kiểm route-access này — thêm vào MODULES và SNAPSHOT");
 });
 
-test("mức truy cập của 196 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
+test("mức truy cập của 200 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
   const actual = await collectRealRoutes();
   // deepEqual TRƯỚC: khi có route mới/bị xoá, thông báo của nó chỉ ra ĐÚNG route lệch — hai assert.equal độ dài bên dưới chỉ để phòng hờ
   // (không bao giờ tự chạy tới nếu deepEqual đã trượt) và tài liệu hoá con số 86 để đối chiếu nhanh bằng mắt.
@@ -353,7 +357,10 @@ test("mức truy cập của 196 route hiện có khớp ảnh chụp đã duy�
   // 2026-10-01 (ADR-0069, bảng điều khiển trợ lý): + GET /api/tro-ly/khung (staff) + 8 route quản lý (office, settings.ops) = 191 (gộp 1.47: nhánh ghi 185 trên nền 176).
   // 2026-09-30 (ADR-0058 Đ4, Task A3): + 5 route nhóm dịch vụ (GET/POST /api/catalog/groups, PATCH …/groups/:code, PUT …/group-assignments,
   // GET /api/catalog/:code/group-history — cổng admin) = 187 (gộp main 1.46: nhánh ghi 181 trên nền 176, main thêm 6); gộp main 1.47 (+ 9 route ADR-0069) = 196.
+  // 2026-10-01 (ADR-0068, gộp hồ sơ): + 2 route (POST /api/parties/:id/merge/preview, …/merge — admin) = 198 (gộp main 1.49: nhánh ghi 193 trên nền 191).
+  // 2026-10-01 (ADR-0068 Đ8): + GET /api/parties/duplicates = 199.
+  // 2026-10-01 (ADR-0068 Đ9): + GET /api/staff/ho-so-khop = 200.
   assert.deepEqual(actual, SNAPSHOT);
-  assert.equal(actual.length, 196, "số route thực tế lệch 196 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 196, "SNAPSHOT phải có đúng 196 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  assert.equal(actual.length, 200, "số route thực tế lệch 200 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 200, "SNAPSHOT phải có đúng 200 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });
