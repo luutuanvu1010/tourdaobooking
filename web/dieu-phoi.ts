@@ -167,7 +167,7 @@ function theChang(c: ChangLichDto, conLai: number): HTMLElement {
     h("span", { class: "dp-leg-meta" }, `${c.maDon} · ${conLai < c.soNguoi ? `còn ${conLai}/${c.soNguoi}` : conLai} khách`),
   ];
   if (!co.dieuPhoi) return h("div", { class: "dp-leg", "data-leg": c.legId }, ...noiDung);
-  const b = h("button", { type: "button", class: "dp-leg is-xep", draggable: "true", "data-leg": c.legId, "aria-label": `Xếp chặng ${c.gioDon ?? ""} ${c.noiDon}, ${c.maDon}, ${conLai} khách vào chuyến` },
+  const b = h("button", { type: "button", class: "dp-leg is-xep", draggable: "true", "data-leg": c.legId, "aria-label": `Xếp chặng ${c.gioDon ?? ""} ${c.noiDon}, ${c.maDon}, ${conLai} khách${c.soHieuChuyenBay ? `, chuyến bay ${c.soHieuChuyenBay}` : ""} vào chuyến` },
     ...noiDung, h("span", { class: "dp-leg-pill", "aria-hidden": "true" }, "Xếp vào chuyến…"));
   b.addEventListener("click", () => moXep(c, conLai, null, b));
   b.addEventListener("dragstart", (e) => {
