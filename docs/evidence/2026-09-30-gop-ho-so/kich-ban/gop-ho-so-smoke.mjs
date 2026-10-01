@@ -38,6 +38,9 @@ try {
   const chinh = await taoHoSo({ kind: "PERSON", fullName: TEN, contacts: [] });
   await taoHoSo({ kind: "PERSON", fullName: TEN_NGHI, contacts: [{ kind: "PHONE", value: "0912777222" }] });
   await taoHoSo({ kind: "PERSON", fullName: TEN_NGHI, contacts: [] });
+  // Cặp thứ ba: còn lại cho bước 5 (390) sau khi bước 3b gộp cặp TEN_NGHI.
+  await taoHoSo({ kind: "PERSON", fullName: "Lê Thử Ba Chrome", contacts: [{ kind: "PHONE", value: "0912777333" }] });
+  await taoHoSo({ kind: "PERSON", fullName: "Lê Thử Ba Chrome", contacts: [] });
 
   const p = await env.as(ADMIN, "/parties", DESK);
   try {
@@ -58,6 +61,19 @@ try {
       assert.equal(await nutGopTat(p), true, "gõ thiếu tên → vẫn tắt");
       await go(p, '#merge input[aria-label="Gõ lại tên hồ sơ phụ để xác nhận"]', `  ${TEN.toUpperCase()} `);
       assert.equal(await nutGopTat(p), false, "gõ đúng tên (khác hoa thường, thừa khoảng trắng) → mở");
+      assert.equal(await p.ev("document.querySelector('#merge strong')?.textContent"), TEN, "bảng xem trước nêu tên hồ sơ chính");
+      // Sửa ô tìm sau khi đã chọn + gõ tên → bỏ hồ sơ chính + bản xem trước, nút Gộp tắt NGAY (không gộp vào hồ sơ không còn trên màn).
+      await go(p, '#merge input[aria-label="Tìm hồ sơ chính"]', "Phú Hải Chrom");
+      assert.equal(await nutGopTat(p), true, "sửa ô tìm → Gộp tắt");
+      assert.equal(await p.ev("document.querySelectorAll('#merge select option').length"), 0, "ô chọn không còn hiện hồ sơ cũ");
+      assert.equal(await p.ev("document.querySelectorAll('#merge h4').length"), 0, "bản xem trước cũ đã xoá");
+      await p.waitFor(`[...document.querySelectorAll('#merge select option')].some((o) => o.value === ${JSON.stringify(chinh)})`, "danh sách dựng lại", 10000);
+      await sleep(200);
+      assert.equal(await p.ev("document.querySelector('#merge select').value"), "", "ô chọn về — chọn —");
+      assert.equal(await nutGopTat(p), true, "danh sách dựng lại → Gộp vẫn tắt");
+      await p.ev(`(() => { const s = document.querySelector('#merge select'); s.value = ${JSON.stringify(chinh)}; s.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
+      await p.waitFor("[...document.querySelectorAll('#merge h4')].length === 3", "xem trước lại", 10000);
+      assert.equal(await nutGopTat(p), false, "chọn lại → Gộp mở");
       assert.equal(await p.ev(clickVisible("#merge", "Gộp")), true);
       await p.waitFor("[...document.querySelectorAll('#detail h3')].some((x) => x.textContent.trim() === 'Hồ sơ đã gộp vào đây')", "mục đã gộp vào đây", 10000);
       assert.equal(await p.ev("document.querySelector('#merge').hidden"), true, "hộp gộp đóng");
@@ -71,6 +87,7 @@ try {
       const s = await p.ev(`({ dai: document.querySelector('#detail .alert.warn')?.textContent ?? '', nut: [...document.querySelectorAll('#detail button')].map((b) => b.textContent.trim()) })`);
       assert.match(s.dai, /^Đã gộp vào Nguyễn Phú Hải Chrome ngày \d\d\/\d\d\/\d{4}\. Hồ sơ này chỉ còn để xem lịch sử\.$/);
       for (const n of ["Lưu thông tin", "Thêm liên hệ", "Gộp vào hồ sơ khác…", "Thêm công việc", "Kết thúc"]) assert.ok(!s.nut.includes(n), `còn nút ${n}`);
+      await p.waitFor("document.querySelector('#giay-to .vc-readonly-note')?.textContent === 'Hồ sơ đã gộp: chỉ xem.'", "mục Giấy tờ nói đúng lý do chỉ xem", 10000);
       // Liên kết trong dải mở hồ sơ chính.
       await p.ev("document.querySelector('#detail .alert.warn a').click(), true");
       await p.waitFor("[...document.querySelectorAll('#detail h3')].some((x) => x.textContent.trim() === 'Hồ sơ đã gộp vào đây')", "liên kết mở hồ sơ chính", 10000);
@@ -91,10 +108,29 @@ try {
       assert.equal(await p.ev(clickVisible("#merge", "Huỷ")), true);
     });
 
+    await dem.step("3b", "1040: gộp từ màn nghi trùng → màn nghi trùng nạp lại (cặp vừa gộp biến mất); “Đóng” hồ sơ đóng cả hộp gộp", async () => {
+      const truoc = await p.ev("document.querySelectorAll('#dups li').length");
+      // Đúng dòng của cặp TEN_NGHI (thứ tự cặp phụ thuộc id ngẫu nhiên).
+      assert.equal(await p.ev(`(() => { const li = [...document.querySelectorAll('#dups li')].find((x) => x.textContent.includes(${JSON.stringify(TEN_NGHI)})); const b = li && [...li.querySelectorAll('button')].find((x) => x.textContent.trim() === 'Gộp…'); if (!b) return false; b.click(); return true; })()`), true);
+      await p.waitFor("[...document.querySelectorAll('#merge h4')].length === 3", "xem trước", 10000);
+      assert.equal(await p.ev("document.querySelector('#merge strong')?.textContent"), TEN_NGHI);
+      await go(p, '#merge input[aria-label="Gõ lại tên hồ sơ phụ để xác nhận"]', TEN_NGHI);
+      assert.equal(await nutGopTat(p), false);
+      assert.equal(await p.ev(clickVisible("#merge", "Gộp")), true);
+      await p.waitFor(`document.querySelectorAll('#dups li').length === ${truoc - 1} && !document.querySelector('#detail').hidden`, "màn nghi trùng nạp lại, hồ sơ chính mở", 10000);
+      assert.ok(!(await p.ev(`document.querySelector('#dups').textContent.includes(${JSON.stringify(TEN_NGHI)})`)), "cặp vừa gộp không còn");
+      // Mở hộp gộp trên hồ sơ chính (đang mở) rồi bấm "Đóng" của hồ sơ → hộp gộp cũng đóng.
+      assert.equal(await p.ev(clickVisible("#detail", "Gộp vào hồ sơ khác…")), true);
+      await p.waitFor("!document.querySelector('#merge').hidden", "hộp gộp mở", 10000);
+      // Nút "Đóng" CUỐI của #detail là nút đóng hồ sơ (nút "Đóng" ở dòng liên hệ là kết thúc liên hệ).
+      assert.equal(await p.ev("(() => { const b = [...document.querySelectorAll('#detail .actions > button')].filter((x) => x.textContent.trim() === 'Đóng').at(-1); if (!b) return false; b.click(); return true; })()"), true);
+      assert.equal(await p.ev("document.querySelector('#merge').hidden"), true, "Đóng hồ sơ đóng cả hộp gộp");
+    });
+
     await dem.step("4", "1040 Quản lý tài khoản: gõ tên trùng → khối hồ sơ khớp, nút Tạo tắt; tick “Vẫn tạo hồ sơ mới” → mở", async () => {
       await di(p, "/staff");
       await p.waitFor("!!document.querySelector('#add-perms input')", "form thêm đã dựng", 10000);
-      await go(p, "#add-name", TEN_NGHI);
+      await go(p, "#add-name", "Lê Thử Ba Chrome");
       await p.waitFor("[...document.querySelectorAll('#add-khop li')].length >= 2", "khối hồ sơ khớp", 10000);
       assert.ok(await p.ev("document.querySelector('#add-khop').textContent.includes('Cùng họ tên')"), "lý do bằng lời");
       assert.equal(await p.ev("document.querySelector('#add-form button[type=submit]').disabled"), true);

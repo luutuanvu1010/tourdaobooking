@@ -378,7 +378,7 @@ async function openDetail(id: string): Promise<void> {
     quanTri ? h("div", null, h("div", { class: "grid three" }, field("Loại", relDir), field("Tìm hồ sơ", relQ), field("Chọn", relPick)), h("div", { class: "actions" }, addRel)) : null,
     ...mucDaGop,
     giayTo,
-    h("div", { class: "actions", style: "margin-top:12px" }, nutGop, button("Đóng", () => { boCheSo.che(); detailEl.hidden = true; openId = null; }, "btn")),
+    h("div", { class: "actions", style: "margin-top:12px" }, nutGop, button("Đóng", () => { boCheSo.che(); detailEl.hidden = true; mergeEl.hidden = true; openId = null; }, "btn")),
   );
   detailEl.hidden = false;
   detailEl.scrollIntoView({ block: "nearest" });
@@ -410,6 +410,7 @@ function moHopGop(nguon: { id: string; displayName: string }, dichSan: { id: str
     chan = r.chan.length > 0;
     replaceChildren(
       bang,
+      h("p", null, "Hồ sơ chính: ", h("strong", null, r.target.displayName)), // luôn nêu tên hồ sơ sẽ gộp vào, ngay trên bảng
       ...r.chan.map((c) => h("div", { class: "alert", role: "alert" }, c.message)),
       h("div", { class: "grid three" }, cot("Chuyển sang hồ sơ chính", r.chuyen), cot("Giữ ở hồ sơ này", r.giu), cot("Bỏ vì đã có", r.bo)),
       h("p", { class: "muted" }, `Đơn đổi người đặt sang hồ sơ chính: ${r.donDoi}. Đơn giữ ở hồ sơ này (đã giao, đã huỷ): ${r.donGiu}. Dòng công nợ giữ ở hồ sơ này: ${r.dongNoGiu}.`),
@@ -418,16 +419,30 @@ function moHopGop(nguon: { id: string; displayName: string }, dichSan: { id: str
   };
   let hen: number | undefined;
   let lanTim = 0;
+  /** Bỏ hồ sơ chính đang chọn + bản xem trước của nó (ô tìm đổi → danh sách chọn sẽ dựng lại, không bắn `change`): không bao giờ gộp vào hồ sơ không còn trên màn. */
+  const boChon = () => {
+    dich = null;
+    lanXem++;
+    chan = true;
+    replaceChildren(bang);
+    capNhatNut();
+  };
   tim.addEventListener("input", () => {
+    replaceChildren(chon); // ô chọn không còn hiện hồ sơ cũ trong lúc chờ tìm
+    boChon();
     window.clearTimeout(hen);
     hen = window.setTimeout(async () => {
       const q = tim.value.trim();
       const lan = ++lanTim;
-      if (q.length < 2) return replaceChildren(chon);
+      if (q.length < 2) {
+        replaceChildren(chon);
+        return boChon();
+      }
       const found = await act(() => api<Api.PartyListResponse>(`/api/parties?limit=10&kind=PERSON&q=${encodeURIComponent(q)}`));
       if (lan !== lanTim) return;
       const ds = found?.parties.filter((x) => x.id !== nguon.id && x.active) ?? [];
       replaceChildren(chon, h("option", { value: "" }, ds.length ? "— chọn —" : "Không thấy hồ sơ nào"), ...ds.map((x) => h("option", { value: x.id }, x.displayName)));
+      boChon(); // ô chọn vừa dựng lại về "— chọn —"
     }, 300);
   });
   chon.addEventListener("change", () => {
@@ -448,6 +463,7 @@ function moHopGop(nguon: { id: string; displayName: string }, dichSan: { id: str
         const kq = await api<Api.PartyResponse>(`/api/parties/${nguon.id}/merge`, { method: "POST", body: { intoPartyId: dichId, xacNhan: xacNhan.value } });
         mergeEl.hidden = true;
         await search();
+        if (!dupsEl.hidden) await moNghiTrung(); // màn nghi trùng đang mở: nạp lại (cặp vừa gộp biến mất)
         await openDetail(kq.party.id);
         return kq;
       }, nutGop);
@@ -462,7 +478,7 @@ function moHopGop(nguon: { id: string; displayName: string }, dichSan: { id: str
     mergeEl,
     h("h2", { id: "merge-title" }, `Gộp “${nguon.displayName}” vào hồ sơ khác`),
     h("p", { class: "muted" }, "Hồ sơ này sẽ ẩn khỏi Danh bạ; liên hệ, công việc, quan hệ, giấy tờ còn hiệu lực và đơn chưa giao chuyển sang hồ sơ chính. Không tách lại được."),
-    dichSan ? h("p", null, "Hồ sơ chính: ", h("strong", null, dichSan.displayName)) : h("div", { class: "grid three" }, field("Tìm hồ sơ chính", tim), field("Hồ sơ chính", chon)),
+    dichSan ? null : h("div", { class: "grid three" }, field("Tìm hồ sơ chính", tim), field("Hồ sơ chính", chon)), // điền sẵn: tên hồ sơ chính hiện ở đầu bảng xem trước
     bang,
     field(`Gõ lại tên “${nguon.displayName}” để xác nhận`, xacNhan),
     h("div", { class: "actions" }, nutGop, button("Huỷ", () => { mergeEl.hidden = true; }, "btn")),
@@ -666,7 +682,7 @@ async function veGiayTo(sec: HTMLElement, p: Api.PartyDto): Promise<void> {
     replaceChildren(
       sec,
       h("div", { class: "vc-gt-head" }, h("h3", { id: "giay-to-title", tabindex: -1 }, "Giấy tờ"), themTren),
-      ghi ? null : h("p", { class: "vc-readonly-note" }, "Tài khoản cấp trên: chỉ xem — không thêm, gia hạn, sửa hay xem đủ số."),
+      ghi ? null : h("p", { class: "vc-readonly-note" }, p.mergedInto ? "Hồ sơ đã gộp: chỉ xem." : "Tài khoản cấp trên: chỉ xem — không thêm, gia hạn, sửa hay xem đủ số."),
       loi,
       h("div", { class: "vc-docs-list vc-narrow" }, ...(khoi.length ? khoi : [trong()])),
       h(
