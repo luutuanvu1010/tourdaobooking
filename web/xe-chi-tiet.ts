@@ -3,7 +3,7 @@
 // dòng mới, "Sửa sai" = lý do bắt buộc (danh sách đóng của máy chủ, chỉ lý do dùng cho xe). Điện thoại: danh sách + "Thêm giấy tờ" dính đáy; máy tính (≥900px):
 // bảng, nút ở đầu thẻ. Xe đã ngừng: không thêm, không gia hạn (máy chủ trả 409 vehicle_retired) — vẫn sửa sai được. Số giấy tờ XE hiện đủ (không phải dữ liệu
 // cá nhân — giả định G4 của kế hoạch). GET /api/van-chuyen/xe/:id + /api/van-chuyen/meta (loại giấy tờ, mốc nhắc).
-import { chipHan, lichSuCua, ngayVN, tenXe, tomTatGiayToXe, xepTheoHan } from "../src/shared/giay-to-hien-thi";
+import { chipHan, lichSuCua, loaiThemDuocChoXe, ngayVN, tenXe, tomTatGiayToXe, xepTheoHan } from "../src/shared/giay-to-hien-thi";
 import { ApiError, api, type Api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
 import { alertEl, chipEl, chipTrangThaiXe, datCrumb, loiCua, moFormGiayTo, type GiayToDong } from "./giay-to-ui";
@@ -17,6 +17,7 @@ const wrapEl = byId("docs-wrap");
 const listEl = byId("docs-list");
 const tableEl = byId("docs-table");
 const bottomEl = byId("xe-bottom");
+const themDay = byId<HTMLButtonElement>("add-doc-bottom");
 const id = new URLSearchParams(location.search).get("id") ?? "";
 const url = `/api/van-chuyen/xe/${encodeURIComponent(id)}`;
 
@@ -36,7 +37,7 @@ function moBang(kind: "add" | "renew" | "fix", opener: HTMLElement, d?: Api.Vehi
     kind,
     cho: "xe",
     opener,
-    types: meta.documentTypes,
+    types: kind === "add" ? loaiThemDuocChoXe(meta.documentTypes, docs) : meta.documentTypes,
     doc: d ? dongCua(d) : undefined,
     gui: async (body) => {
       try {
@@ -79,6 +80,13 @@ function ve(): void {
   const sua = `/xe-sua?id=${encodeURIComponent(xe.id)}`;
   const themTren = nut("Thêm giấy tờ", "btn btn-primary", (b) => moBang("add", b));
   themTren.prepend(icon("plus", 18));
+  // ADR-0056 VK3-B: xe đã có đủ các loại đang dùng thì không còn gì để "Thêm" — nút tắt, chữ nói rõ phải làm gì (máy chủ vẫn chặn 409).
+  const duLoai = loaiThemDuocChoXe(meta.documentTypes, docs).length === 0;
+  const ghiChuDu = "Xe đã có đủ các loại giấy tờ — dùng Gia hạn hoặc Sửa sai.";
+  themTren.disabled = duLoai;
+  themDay.disabled = duLoai;
+  bottomEl.querySelector(".dp-note")?.remove();
+  if (duLoai) bottomEl.append(h("span", { class: "dp-note" }, ghiChuDu));
   replaceChildren(
     headEl,
     h(
@@ -89,7 +97,7 @@ function ve(): void {
       h("div", { class: "vc-xe-sub" }, `Chủ xe: ${xe.ownerName}`), // ADR-0048 D1 (Task B3): công ty chủ hoặc nhà xe đối tác
       h("a", { class: "vc-link-edit", href: sua }, "Sửa thông tin xe"),
     ),
-    h("div", { class: "vc-xe-head-actions" }, h("a", { class: "vc-btn vc-btn-ghost-primary", href: sua }, "Sửa thông tin xe"), ngung ? null : themTren),
+    h("div", { class: "vc-xe-head-actions" }, h("a", { class: "vc-btn vc-btn-ghost-primary", href: sua }, "Sửa thông tin xe"), ngung ? null : themTren, ngung || !duLoai ? null : h("span", { class: "dp-note" }, ghiChuDu)),
     alertEl(tomTat.tone, tomTat.text),
   );
   headEl.hidden = false;
@@ -183,7 +191,6 @@ async function napLai(): Promise<void> {
 }
 
 await initShell();
-const themDay = byId("add-doc-bottom");
 themDay.prepend(icon("plus", 20));
 themDay.addEventListener("click", () => moBang("add", themDay));
 try {

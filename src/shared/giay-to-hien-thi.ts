@@ -209,3 +209,9 @@ export function loiChao(fullName: string): string {
   const words = fullName.trim().split(/\s+/).filter(Boolean);
   return `Chào ${words[words.length - 1] ?? fullName.trim()}`;
 }
+
+/** ADR-0056 VK3-B: loại giấy tờ XE còn "Thêm" được = đang dùng và xe CHƯA có dòng hiện hành của loại đó (có rồi thì Gia hạn / Sửa sai). Máy chủ luôn kiểm lại. */
+export function loaiThemDuocChoXe<T extends { code: string; active: boolean }>(types: readonly T[], docs: readonly { typeCode: string; current: boolean }[]): T[] {
+  const daCo = new Set(docs.filter((d) => d.current).map((d) => d.typeCode));
+  return types.filter((t) => t.active && !daCo.has(t.code));
+}
