@@ -173,8 +173,27 @@ try {
   saPin = "592648";
   await kiemGiuMotMay(m1, cookieOf(res, "td_session"), m2, "doi_pin");
   m1 = cookieOf(res, "td_session");
-  assert.equal((await call(m1, "POST", "/api/account/passkeys/remove-all", {})).status, 200); // dọn khoá thử
+  r = await call(m1, "POST", "/api/account/passkeys/remove-all", {}); // dọn khoá thử — gỡ được 1 khoá nên cookie được cấp lại (mốc mới), dùng tiếp cookie đó
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  m1 = r.cookie;
   console.log("✓ đặt PIN bằng Face ID: máy kia kết thúc 'doi_pin', máy đang thao tác giữ phiên");
+
+  // 10b. Ruling Task 5: gỡ mọi Face ID khi KHÔNG còn khoá nào → không đổi gì, KHÔNG kết thúc phiên nào (tự phục vụ lẫn Quản trị)
+  m2 = await dangNhapMay(WINDOWS, undefined, { phone: SA.phone, pin: saPin });
+  r = await call(m1, "POST", "/api/account/passkeys/remove-all", {});
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.equal(r.body.removed, 0);
+  assert.equal(r.cookie, null, "không gỡ gì thì không cấp lại cookie");
+  assert.equal((await call(m2, "GET", "/api/auth/me")).status, 200, "không còn khoá: máy khác vẫn sống");
+  assert.equal((await dongCua(maPhien(m2))).ended_at, null);
+  assert.equal((await call(m1, "GET", "/api/auth/me")).status, 200);
+  const ADMIN0 = await session(ACCOUNTS.admin);
+  const sA0 = await dangNhapMay(IPHONE);
+  r = await call(ADMIN0, "POST", `/api/staff/${id}/passkeys/remove-all`, {});
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.equal((await call(sA0, "GET", "/api/auth/me")).status, 200, "Quản trị gỡ Face ID của tài khoản không có khoá: phiên vẫn sống");
+  assert.equal((await dongCua(maPhien(sA0))).ended_at, null);
+  console.log("✓ gỡ mọi Face ID khi không còn khoá nào (tự phục vụ / Quản trị): không phiên nào bị kết thúc");
 
   // 11. Quản trị đặt lại PIN cho salesA → mọi phiên của salesA kết thúc 'dat_lai_pin', ended_by = Quản trị
   const ADMIN = await session(ACCOUNTS.admin);

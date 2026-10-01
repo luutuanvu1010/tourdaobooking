@@ -83,13 +83,16 @@ function groupsOf(src: string, file: string): Group[] {
 }
 
 const files = walk(join(SRC, "modules")).filter((f) => !f.endsWith(".test.ts"));
-const sites: { file: string; fn: string; group: string }[] = [];
+const sites: { file: string; fn: string; group: string; inPatchStaff: boolean }[] = [];
 const loi: string[] = [];
 for (const file of files) {
   const src = readFileSync(file, "utf8");
   if (!CALLS.test(src)) continue;
   CALLS.lastIndex = 0;
   const groups = groupsOf(src, relative(SRC, file));
+  // thân `patchStaffStatements` (ngưng tài khoản): từ dòng khai tới khai báo cấp tệp kế tiếp (dòng bắt đầu bằng chữ, không thụt lề)
+  const psStart = src.indexOf("function patchStaffStatements(");
+  const psEnd = psStart < 0 ? -1 : (() => { const m = /\n(?=[A-Za-z/])/g; m.lastIndex = src.indexOf("\n}", psStart) + 1; return m.exec(src)?.index ?? src.length; })();
   for (const m of src.matchAll(CALLS)) {
     const at = m.index!;
     const lineStart = src.lastIndexOf("\n", at) + 1;
@@ -107,7 +110,7 @@ for (const file of files) {
       loi.push(`${where}: ${m[1]} không ở trong mảng [ … ] hay .push( … ) — bài không phân tích được lô này, viết lại để câu lệnh nằm thẳng trong lô`);
       continue;
     }
-    sites.push({ file: where, fn: m[1]!, group: src.slice(inner.start, inner.end + 1) });
+    sites.push({ file: where, fn: m[1]!, group: src.slice(inner.start, inner.end + 1), inPatchStaff: psStart >= 0 && at > psStart && at < psEnd });
   }
 }
 
@@ -119,6 +122,14 @@ test("phân tích được mọi chỗ đổi thông tin đăng nhập (không b
 test("mỗi lô đổi PIN / đổi Face ID / ngưng tài khoản có câu kết thúc phiên (ADR-0075 điều 4–5)", () => {
   const thieu = sites.filter((s) => !ENDS.test(s.group)).map((s) => `${s.file} (${s.fn})`);
   assert.deepEqual(thieu, [], "lô đổi thông tin đăng nhập thiếu endOtherSessionsStatement / endAllSessionsStatement / endAllSessionsIfSuspendedStatement");
+});
+
+test("ngưng tài khoản (patchStaffStatements) chỉ kết thúc phiên CÓ ĐIỀU KIỆN 'đã ngưng' — không dùng câu vô điều kiện", () => {
+  const ngung = sites.filter((s) => s.inPatchStaff && s.fn === "touchCredentialsStatement");
+  assert.equal(ngung.length, 1, `phải tìm thấy đúng một chỗ touchCredentialsStatement trong patchStaffStatements: ${ngung.map((s) => s.file).join(", ")}`);
+  const g = ngung[0]!.group;
+  assert.match(g, /\bendAllSessionsIfSuspendedStatement\s*\(/, "lô ngưng tài khoản phải dùng endAllSessionsIfSuspendedStatement");
+  assert.doesNotMatch(g, /\bend(All|Other)SessionsStatement\s*\(/, "lô ngưng tài khoản KHÔNG được dùng câu kết thúc phiên vô điều kiện (câu chốt thua vẫn đăng xuất)");
 });
 
 test("lô giữ phiên hiện tại (endOtherSessionsStatement) đánh dấu phiên được cấp lại (markSessionReissuedStatement)", () => {

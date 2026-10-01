@@ -280,18 +280,19 @@ export const accountsModule: AppModule = {
     route("POST", "/api/account/passkeys/remove-all", "staff", async ({ request, env, staff, sessionId, dongBangTin }) => {
       if (!passkeyRp(env)) return PASSKEY_ERRORS.off();
       if (!sessionId) return NO_SESSION();
+      // Ruling điều phối (Task 5): không còn Face ID nào thì không có gì đổi — KHÔNG kết thúc phiên khác (bản ghi "Đã gỡ Face ID" sẽ sai). Đếm TRƯỚC lô.
+      const coKhoa = (await listActivePasskeys(env.DB, staff.id)).length > 0;
       const now = Date.now();
       const at = new Date(now).toISOString();
       const [revoked] = await env.DB.batch([
         revokeAllPasskeysStatement(env.DB, staff.id, at, staff.id),
         touchCredentialsStatement(env.DB, staff.id, now, true),
         auditStatement(env.DB, { staffId: staff.id, action: "passkey_removed", at, targetType: "staff", targetId: staff.id, detail: "gỡ tất cả" }, "changes() > 0"),
-        // ADR-0075 điều 5: CUỐI lô (không chen vào chuỗi changes() ở trên). Kết thúc phiên khác kể cả khi không còn Face ID nào để gỡ (bảng điều 5 của ADR).
-        endOtherSessionsStatement(env.DB, staff.id, sessionId, "doi_face_id", at, staff.id),
-        markSessionReissuedStatement(env.DB, sessionId, at, staff.id),
+        // ADR-0075 điều 5: CUỐI lô (không chen vào chuỗi changes() ở trên); chỉ khi có khoá để gỡ.
+        ...(coKhoa ? [endOtherSessionsStatement(env.DB, staff.id, sessionId, "doi_face_id", at, staff.id), markSessionReissuedStatement(env.DB, sessionId, at, staff.id)] : []),
       ]);
       const removed = revoked!.meta.changes ?? 0;
-      // BẢNG TIN (KN-2): phiên khác vừa kết thúc trong lô (credentials_changed_at chỉ "touch" khi có Face ID bị gỡ) — đóng kết nối cũ.
+      // BẢNG TIN (KN-2): có khoá bị gỡ thì phiên khác vừa kết thúc trong lô — đóng kết nối cũ (giữ hành vi cũ: gọi cả khi không gỡ được khoá nào).
       dongBangTin({ staffId: staff.id, tatThongBao: true });
       return json({ removed }, 200, removed > 0 ? { "set-cookie": await reissueSessionCookie(request, env, staff.id, sessionId, now) } : {});
     }),
@@ -638,13 +639,14 @@ export const accountsModule: AppModule = {
       const t = await target(ctx);
       if (!t) return NOT_FOUND();
       if (!mayManage(ctx.staff, t)) return NOT_MANAGER();
+      const coKhoa = (await listActivePasskeys(db, t.id)).length > 0; // ruling Task 5: không còn khoá nào → không kết thúc phiên
       const now = Date.now();
       const at = new Date(now).toISOString();
       await db.batch([
         revokeAllPasskeysStatement(db, t.id, at, ctx.staff.id),
         touchCredentialsStatement(db, t.id, now, true),
         adminAudit(db, ctx.staff.id, "passkey_removed", t.id, "quản trị viên gỡ", "changes() > 0"),
-        endAllSessionsStatement(db, t.id, "doi_face_id", at, ctx.staff.id), // ADR-0075 điều 4 — CUỐI lô (không chen vào chuỗi changes() ở trên)
+        ...(coKhoa ? [endAllSessionsStatement(db, t.id, "doi_face_id", at, ctx.staff.id)] : []), // ADR-0075 điều 4 — CUỐI lô (không chen vào chuỗi changes() ở trên)
       ]);
       ctx.dongBangTin({ staffId: t.id, tatThongBao: true }); // BẢNG TIN (KN-2): credentials_changed_at vừa được "touch".
       return json({ staff: await one(db, t.id) } satisfies StaffResponse);
