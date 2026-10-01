@@ -50,7 +50,7 @@ test("3b: HCNS thấy tên + vai của hồ sơ trùng là đối tác / nhân v
   const { w, CTV } = await nen();
   const r = await w.call("GET", `/api/staff/ho-so-khop?ten=${encodeURIComponent(TEN_CTV)}`, { as: HR });
   assert.equal(r.status, 200, r.text);
-  assert.deepEqual(r.json.khop, [{ id: CTV, displayName: TEN_CTV, lyDo: ["NAME"], vai: ["Cộng tác viên"], coTaiKhoan: true }]);
+  assert.deepEqual(r.json.khop, [{ id: CTV, displayName: TEN_CTV, lyDo: ["NAME"], vai: ["Cộng tác viên"], vaiTaiKhoan: ["COLLABORATOR"], coTaiKhoan: true }]);
   assert.equal(r.json.coHoSoKhacTrongDanhBa, false);
 });
 
@@ -79,4 +79,30 @@ test("3b: POST /api/staff của HCNS với partyId của một khách → từ c
   assert.equal(w.q("SELECT count(*) n FROM staff WHERE party_id = ?", KHACH)[0].n, 0);
   const sup = await voi(SUP, KHACH, "0912000446");
   assert.equal(sup.status, 201, sup.text);
+});
+
+test("3b: MỘT định nghĩa 'HCNS thấy được' cho cả danh sách khớp lẫn partyId — vai tài khoản đã ĐÓNG hôm nay (chưa có tài khoản) không làm hồ sơ hiện ra", async () => {
+  const { w, KHACH } = await nen();
+  const homNay = new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10);
+  w.sqlite.exec(`INSERT INTO pty_party_role (id, party_id, role_type_code, location_id, valid_from_date, valid_to_date, created_at, updated_at)
+    VALUES ('r-dong', '${KHACH}', 'COLLABORATOR', NULL, '2026-01-01', '${homNay}', '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z')`);
+  const r = await w.call("GET", `/api/staff/ho-so-khop?phone=${SO_KHACH}`, { as: HR });
+  assert.deepEqual(r.json, { khop: [], coHoSoKhacTrongDanhBa: true }, "vai đã đóng không phải vai tài khoản đang mở");
+  const khach = await w.call("POST", "/api/staff", { as: HR, body: { roles: ["SALES_STAFF"], partyId: KHACH, phone: "0912000447" } });
+  assert.equal(khach.json.error?.message, "Không tìm thấy hồ sơ đã chọn.", khach.text);
+});
+
+test("3b: hồ sơ vừa giữ vai tài khoản vừa mở vai khác (Khách hàng) → HCNS thấy tên + CHỈ vai tài khoản; Toàn quyền thấy đủ vai — cả route đọc lẫn 409", async () => {
+  const { w, CTV } = await nen();
+  assert.equal((await w.call("POST", `/api/parties/${CTV}/roles`, { as: SUP, body: { roleTypeCode: "CUSTOMER" } })).status, 201);
+  const hr = await w.call("GET", `/api/staff/ho-so-khop?ten=${encodeURIComponent(TEN_CTV)}`, { as: HR });
+  assert.equal(hr.status, 200, hr.text);
+  assert.deepEqual(hr.json.khop.map((x: any) => [x.id, x.displayName, x.vai]), [[CTV, TEN_CTV, ["Cộng tác viên"]]]);
+  assert.ok(!hr.text.includes("Khách hàng"), hr.text);
+  const post = await w.call("POST", "/api/staff", { as: HR, body: { roles: ["SALES_STAFF"], fullName: TEN_CTV, phone: "0912000999" } });
+  assert.equal(post.status, 409, post.text);
+  assert.deepEqual(post.json.error.khop.map((x: any) => x.vai), [["Cộng tác viên"]]);
+  assert.ok(!post.text.includes("Khách hàng"), post.text);
+  const sup = await w.call("GET", `/api/staff/ho-so-khop?ten=${encodeURIComponent(TEN_CTV)}`, { as: SUP });
+  assert.deepEqual([...sup.json.khop[0].vai].sort(), ["Cộng tác viên", "Khách hàng"].sort(), sup.text);
 });

@@ -5,14 +5,14 @@
 // 2) Gửi thông báo (Toàn quyền, 1040 + 390): ô nhóm "Tài xế" nằm cùng các nhóm quyền khác; không chữ thô "DRIVER".
 // Chạy từ GỐC repo, sau `npm run build:web`:
 //   AXE_JS=<…/axe.min.js> CHROME_BIN=docs/evidence/2026-09-20-a2/kich-ban/chrome-wrap.sh OUT=<thư mục ảnh> node docs/evidence/2026-09-28-van-chuyen-1a/kich-ban/nhan-tai-xe-smoke.mjs
-import { ACCOUNTS, DESK, MOB, SUPER, assert, boDem, dungMoiTruong, shotFull } from "./vc-lib.mjs";
+import { DESK, MOB, SUPER, assert, boDem, dungMoiTruong, shotFull } from "./vc-lib.mjs";
 
 const dem = boDem("NHAN TAI XE SMOKE");
 const { env } = await dungMoiTruong([SUPER]);
 try {
   for (const [id, ten, vp] of [["1a", "1040", DESK], ["1b", "390", MOB]]) {
     await dem.step(id, `Quản lý tài khoản (${ten}): vai “Tài xế công ty” ở nhóm Nội bộ → xem trước “Tài xế”; ô chỉnh riêng “Tài xế”; không lộ mã DRIVER`, async () => {
-      const p = await env.as(ACCOUNTS.admin, "/staff", vp);
+      const p = await env.as(SUPER, "/staff", vp); // ADR-0071 điều 1b: Quản trị không còn form Thêm tài khoản — mở bằng Toàn quyền
       try {
         await p.waitFor("!!document.querySelector('#add-perms [data-kind=role]')", "khối vai của form thêm tài khoản", 10000);
         const s = await p.ev(`(() => {

@@ -64,7 +64,7 @@ export function cuocChiTietDto(v: {
       id: d.id, thuTu: d.thuTu, loai: d.loai, tenNoi: d.tenNoi, gioHen: d.gioHen, gioXeToi: d.gioXeToi, trangThai: d.trangThai, soNguoi: d.soNguoi, daToi: d.daToi,
     })),
     suat: v.suat.map((s) => ({
-      id: s.id, maDon: s.maDon, diemLen: s.diemLen, diemXuong: s.diemXuong, trangThai: s.trangThai, daDon: s.daDon, daTra: s.daTra,
+      id: s.id, maDon: s.maDon, diemLen: s.diemLen, diemXuong: s.diemXuong, trangThai: s.trangThai, daDon: s.daDon, daTra: s.daTra, soHieuChuyenBay: s.soHieuChuyenBay,
       ...(v.trongNgay && s.hoTen !== undefined && s.namSinh !== undefined ? { hoTen: s.hoTen, namSinh: s.namSinh } : {}),
     })),
     ...(v.trongNgay && v.lienHe !== null

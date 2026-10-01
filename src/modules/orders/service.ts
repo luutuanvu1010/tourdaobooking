@@ -12,9 +12,12 @@ import { datGapTheoVai } from "./dat-gap";
 import { getEffectiveServices } from "../catalog";
 import { composePersonName, newPersonStatements, validatePersonFullName, type ContactInput, type RoleInput } from "../parties";
 import {
-  MAX_CHANG_MOI_DICH_VU, chieuDiDau, doiNgayChang, isLyDoDongChang, kiemChang, moTaChang, tronChangCu, type ChangHopLe, type LyDoDongChang,
+  MAX_CHANG_MOI_DICH_VU, chiDoiOPhu, chieuDiDau, docSoNguoiVe, doiNgayChang, isLyDoDongChang, kiemChang, moTaChang, tronChangCu, type ChangHopLe, type LyDoDongChang,
 } from "../../shared/chang-dua-don";
-import { activeLocations, legById, passengerRowsByOrders, servicePaxByOrder, type LegFields, type PassengerRow } from "./chang-hanh-khach-repo";
+import { tongKhach } from "../../shared/so-nguoi-chang";
+import {
+  activeLocations, legById, passengerRowsByOrders, servicePaxByIds, servicePaxByOrder, type LegFields, type OPhuGhi, type PassengerRow,
+} from "./chang-hanh-khach-repo";
 import { applyAdjustmentToOrder } from "./money-adjustment";
 import {
   effectivePax, findOrder, getLatestAdjustment, getMeta, getStoredServices, type BookerWrite, type LegOp, type StoredLeg, type StoredServiceRow,
@@ -94,7 +97,17 @@ function noiCua(l: LegFields, names: ReadonlyMap<string, string>): { noiDon: str
     noiTra: l.dropoffLocationId ? (names.get(l.dropoffLocationId) ?? null) : l.dropoffPlace,
   };
 }
-const moTaVao = (l: LegFields & { direction: "OUT" | "RETURN" }, names: ReadonlyMap<string, string>) => ({ direction: l.direction, pickupDate: l.pickupDate, pickupTime: l.pickupTime, ...noiCua(l, names) });
+const moTaVao = (l: LegFields & { direction: "OUT" | "RETURN"; flightCode?: string | null; paxOverride?: number | null }, names: ReadonlyMap<string, string>) =>
+  ({ direction: l.direction, pickupDate: l.pickupDate, pickupTime: l.pickupTime, ...noiCua(l, names), soHieu: l.flightCode ?? null, soNguoiVe: l.paxOverride ?? null });
+
+/** Số khách HIỆU LỰC của một dịch vụ (L-R1 — ADR-0054 D10.3): `effectivePax` (một nguồn với `soKhachHieuLuc`, bài học Đợt E). */
+async function soKhachDichVu(db: D1Database, serviceId: string): Promise<number> {
+  const p = (await effectivePax(db, await servicePaxByIds(db, [serviceId]))).get(serviceId);
+  return p ? tongKhach(p) : 0;
+}
+/** L-R1: số người chiều về MỚI / ĐỔI vượt số khách hiệu lực của dịch vụ → câu lỗi; null = đạt. */
+const vuotLR1 = (so: number | null, soKhach: number): string | null =>
+  so !== null && so > soKhach ? `Số người chiều về (${so}) không được nhiều hơn số khách của dịch vụ (${soKhach}).` : null;
 
 /** Tên điểm đã biết từ chặng đang lưu của dịch vụ + điểm ĐANG DÙNG của những id mới (R7). Thiếu một id mới → lỗi. */
 async function tenDiem(db: D1Database, stored: readonly StoredLeg[], ids: readonly (string | null)[], keep: ReadonlySet<string>): Promise<{ ok: true; names: Map<string, string> } | Failed> {
@@ -131,6 +144,11 @@ export async function planAddLeg(db: D1Database, orderId: string, body: Record<s
   if (!k.ok) return { ok: false, code: "invalid_input", message: k.message };
   const named = await tenDiem(db, svc.legs, [k.value.pickupLocationId, k.value.dropoffLocationId], new Set());
   if (!named.ok) return named;
+  // L-R1 (ADR-0054 D10.3): chặng mới có số người chiều về → ≤ số khách hiệu lực của dịch vụ.
+  if (k.value.paxOverride != null) {
+    const vuot = vuotLR1(k.value.paxOverride, await soKhachDichVu(db, svc.id));
+    if (vuot) return { ok: false, code: "invalid_input", message: vuot };
+  }
   const detail = moTaChang(svc.name, null, moTaVao(k.value, named.names))!;
   const mirror = dauSau([...svc.legs, { ...k.value, id: "~moi" }], named.names);
   return { ok: true, value: { serviceId: svc.id, leg: k.value, expected, detail, mirror } };
@@ -145,6 +163,10 @@ export interface EditLegPlan {
   mirror: Pickup;
   /** Ngày / giờ đón ĐANG LƯU — xét "sửa dưới mốc" theo min(giờ cũ, giờ mới) (ADR-0049 I14). */
   cu: { pickupDate: string | null; pickupTime: string | null };
+  /** Hai ô phụ sẽ ghi — CHỈ khoá có trong thân (vắng = giữ). */
+  oPhu: OPhuGhi;
+  /** Ngày, giờ, nơi đón, nơi trả y nguyên (`chiDoiOPhu`) — route không xét mốc, giữ dấu đặt gấp nếu thân không có `datGap` (chủ Q-B 1/10). */
+  chiOPhu: boolean;
 }
 /** `PUT /api/orders/:id/legs/:legId` — thân `{ expectedUpdatedAt (của CHẶNG), leg }`; không đổi chiều; điểm mới phải đang dùng; ngày đón đổi không được đã qua. */
 export async function planEditLeg(db: D1Database, orderId: string, legId: string, body: Record<string, unknown> | null, today: string): Promise<{ ok: true; value: EditLegPlan } | Failed> {
@@ -165,9 +187,51 @@ export async function planEditLeg(db: D1Database, orderId: string, legId: string
     pickupDate: k.value.pickupDate, pickupTime: k.value.pickupTime, pickupLocationId: k.value.pickupLocationId, pickupPlace: k.value.pickupPlace,
     dropoffLocationId: k.value.dropoffLocationId, dropoffPlace: k.value.dropoffPlace,
   };
-  const detail = moTaChang(svc.name, moTaVao(old, named.names), moTaVao({ ...fields, direction: old.direction }, named.names));
+  const oPhu: OPhuGhi = {
+    ...(k.value.flightCode !== undefined ? { flightCode: k.value.flightCode } : {}),
+    ...(k.value.paxOverride !== undefined ? { paxOverride: k.value.paxOverride } : {}),
+  };
+  // L-R1 CHỈ cho giá trị MỚI / ĐỔI (TC-P10): so số khách HIỆU LỰC (có điều chỉnh) của dịch vụ.
+  if (oPhu.paxOverride != null && oPhu.paxOverride !== old.paxOverride) {
+    const vuot = vuotLR1(oPhu.paxOverride, await soKhachDichVu(db, svc.id));
+    if (vuot) return { ok: false, code: "invalid_input", message: vuot };
+  }
+  const sau = { ...fields, direction: old.direction, flightCode: oPhu.flightCode !== undefined ? oPhu.flightCode : old.flightCode, paxOverride: oPhu.paxOverride !== undefined ? oPhu.paxOverride : old.paxOverride };
+  const detail = moTaChang(svc.name, moTaVao(old, named.names), moTaVao(sau, named.names));
   const mirror = dauSau(svc.legs.map((l) => (l.id === legId ? { ...l, ...fields } : l)), named.names);
-  return { ok: true, value: { legId, serviceId: svc.id, fields, expected, detail, mirror, cu: { pickupDate: old.pickupDate, pickupTime: old.pickupTime } } };
+  return {
+    ok: true,
+    value: { legId, serviceId: svc.id, fields, expected, detail, mirror, cu: { pickupDate: old.pickupDate, pickupTime: old.pickupTime }, oPhu, chiOPhu: chiDoiOPhu(old, fields) },
+  };
+}
+
+export interface PaxNhapPlan { legId: string; serviceId: string; paxOverride: number | null; expected: string; detail: string | null; mirror: Pickup }
+/**
+ * NHÁNH NHÁP của `PUT /api/orders/:id/legs/:legId` (ADR-0054 D10.3 "đường mới cho đơn nháp"; kế hoạch ô mới Task 3.5): thân CHỈ `{ expectedUpdatedAt (của CHẶNG),
+ * paxOverride }` (route đã kiểm tập khoá). Chặng phải là chiều VỀ còn mở; L-R1 cho giá trị mới / đổi; `detail` null = không đổi gì. Ghi kép hai cột cũ không đổi.
+ */
+export async function planPaxOverrideNhap(db: D1Database, orderId: string, legId: string, body: Record<string, unknown>): Promise<{ ok: true; value: PaxNhapPlan } | Failed> {
+  const row = await legById(db, legId, orderId);
+  if (!row) return { ok: false, code: "leg_not_found", message: "Không tìm thấy chặng đưa đón của đơn này." };
+  if (row.closed_at !== null) return { ok: false, code: "leg_closed", message: "Chặng đưa đón này đã bỏ — không sửa được." };
+  const expected = expectedOf(body);
+  if (!expected) return { ok: false, code: "invalid_input", message: "Thiếu expectedUpdatedAt (mốc cập nhật của chặng mà trang đã đọc)." };
+  if (row.direction !== "RETURN") return { ok: false, code: "invalid_input", message: "Chặng đưa đón: chỉ chiều về mới có số người chiều về riêng." };
+  const p = docSoNguoiVe(body.paxOverride, "RETURN", "Chặng đưa đón");
+  if (!p.ok) return { ok: false, code: "invalid_input", message: p.message };
+  const svc = (await getStoredServices(db, orderId)).find((s) => s.id === row.order_service_id)!;
+  const old = svc.legs.find((l) => l.id === legId)!;
+  if (p.value !== null && p.value !== old.paxOverride) {
+    const vuot = vuotLR1(p.value, await soKhachDichVu(db, svc.id));
+    if (vuot) return { ok: false, code: "invalid_input", message: vuot };
+  }
+  const names = new Map<string, string>();
+  for (const l of svc.legs) {
+    if (l.pickupLocationId) names.set(l.pickupLocationId, l.pickupLabel);
+    if (l.dropoffLocationId && l.dropoffLabel !== null) names.set(l.dropoffLocationId, l.dropoffLabel);
+  }
+  const detail = moTaChang(svc.name, moTaVao(old, names), moTaVao({ ...old, paxOverride: p.value }, names));
+  return { ok: true, value: { legId, serviceId: svc.id, paxOverride: p.value, expected, detail, mirror: dauSau(svc.legs, names) } };
 }
 
 export interface CloseLegPlan { legId: string; serviceId: string; reason: LyDoDongChang; expected: string; detail: string; mirror: Pickup }

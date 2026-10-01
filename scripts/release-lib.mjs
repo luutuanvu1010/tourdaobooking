@@ -205,6 +205,11 @@ const GATE_PRE_Q =
 /** Chờ trước khi thử lại cổng sau (Cloudflare cần vài giây để bản mới tới mọi nơi). */
 const POST_GATE_RETRY_MS = 20_000;
 const realSleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+/** Lỗi Cloudflare 7403 ("The given account is not valid or is not authorized to access this service"). */
+const LOI_7403 = /\[code: 7403\]|not authorized to access this service/i;
+const is7403 = (r) => LOI_7403.test(`${r.stdout ?? ""}\n${r.stderr ?? ""}`.replace(ANSI, ""));
+/** Chờ trước khi thử lại cổng chỉ-đọc gặp 7403. */
+const RETRY_7403_MS = 5_000;
 
 /**
  * @param version số phiên bản ở máy (mục đầu CHANGELOG) — vỏ scripts/trien-khai.mjs truyền vào; lib không tự import mã ứng dụng.
@@ -224,9 +229,30 @@ export async function trienKhai({ run, ask, isTTY, log, now = () => new Date(), 
   }
   const commit = trimOut(await run("git", ["log", "-1", "--oneline", "--no-decorate", "main"]));
 
-  // 2. cổng chỉ-đọc: migration nào chưa áp
+  // 1b. đăng nhập Cloudflare — phòng ngừa lỗi 7403 (chủ dự án 2026-10-01: "lỗi này tôi bị nhiều lần rồi"; đã gặp 26/9, 29/9, 1/10).
+  // Vé đăng nhập OAuth của wrangler sống 1 giờ; lời gọi D1 ĐẦU TIÊN sau khi vé hết hạn từng bị Cloudflare từ chối 7403 thay vì tự làm mới,
+  // chạy lại là qua (giả thuyết mạnh, chưa tái hiện được chính lỗi). `wrangler whoami` chỉ đọc, làm mới vé trước khi chạm D1.
+  log("\n▶ Kiểm đăng nhập Cloudflare (làm mới vé đăng nhập)");
+  const who = await run("npx", ["wrangler", "whoami"], { env: CI });
+  if (who.code !== 0 || !/You are logged in/i.test(`${who.stdout}\n${who.stderr ?? ""}`)) {
+    return stop("chưa đăng nhập Cloudflare (hoặc vé đăng nhập hỏng).", "Chạy `npx wrangler login` (chọn đúng tài khoản Lưu Tuấn Vũ) rồi chạy lại `npm run trien-khai`.");
+  }
+
+  // 2. cổng chỉ-đọc: migration nào chưa áp. Lỗi 7403 ở bước CHỈ ĐỌC này được thử lại đúng MỘT lần; bước ghi (áp migration, deploy) không bao giờ tự thử lại.
   log("\n▶ Cổng chỉ-đọc: migration nào chưa áp trên production");
-  const list = await run("npx", ["wrangler", "d1", "migrations", "list", DB, "--remote"], { env: CI });
+  const LIST_ARGS = ["wrangler", "d1", "migrations", "list", DB, "--remote"];
+  let list = await run("npx", LIST_ARGS, { env: CI });
+  if (list.code !== 0 && is7403(list)) {
+    log("Cloudflare trả lỗi 7403 (thường do vé đăng nhập vừa hết hạn) — chờ 5 giây rồi thử lại một lần.");
+    await sleep(RETRY_7403_MS);
+    list = await run("npx", LIST_ARGS, { env: CI });
+  }
+  if (list.code !== 0 && is7403(list)) {
+    return stop(
+      "Cloudflare vẫn trả lỗi 7403 (\"tài khoản không hợp lệ hoặc không có quyền\") sau một lần thử lại. CHƯA có gì bị đổi trên production.",
+      "Làm lần lượt: (1) chạy lại `npm run trien-khai`; (2) nếu vẫn lỗi: `npx wrangler logout` rồi `npx wrangler login` (chọn đúng tài khoản Lưu Tuấn Vũ), rồi chạy lại.\n" + String(list.stderr ?? "").trim().slice(0, 400),
+    );
+  }
   if (list.code !== 0) return stop("`wrangler d1 migrations list --remote` lỗi (chưa đăng nhập wrangler? mất mạng?).", String(list.stderr ?? "").trim().slice(0, 600));
   const parsed = parsePendingMigrations(`${list.stdout}\n${list.stderr ?? ""}`);
   if (!parsed.ok) return stop(`đầu ra \`migrations list\` ${parsed.reason}.`, String(list.stdout ?? "").slice(0, 800));
