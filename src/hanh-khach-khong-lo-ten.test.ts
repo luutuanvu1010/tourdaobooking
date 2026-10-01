@@ -22,7 +22,7 @@ import { maskSource } from "../scripts/source-mask-lib.mjs";
 import type { AppModule } from "./shared/router.ts";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { world, seedStaff } from "../tests/audit/harness.mjs";
-import { DRIVER, DRIVER2, NGAY, NGAY_SAU, batDongHo, denGio, don, setup, thanhTaiXe, uuid, xe } from "../tests/audit/dieu-phoi-khung.mjs";
+import { ADM, DRIVER, DRIVER2, NGAY, NGAY_SAU, batDongHo, denGio, don, setup, thanhTaiXe, uuid, xe } from "../tests/audit/dieu-phoi-khung.mjs";
 
 async function routesOf(entry: string, exportName: string): Promise<string[]> {
   const built = await esbuild.build({ entryPoints: [new URL(entry, import.meta.url).pathname], bundle: true, format: "esm", platform: "neutral", target: "es2022", write: false });
@@ -161,7 +161,7 @@ test("họ tên, năm sinh hành khách chỉ rời máy chủ ở GET/POST /pas
 //       chốt không có cột khoá nơi. DTO tài xế không có khoá gọi báo (`gioHenDoi`, `daGoiBao`, `phienBan`).
 // SALES, SUP ở trên trùng giá trị với khung thử điều phối (tests/audit/dieu-phoi-khung.mjs).
 const TUYEN_VC_THAT = (await routesOf("./modules/van-chuyen/index.ts", "vanChuyenModule"))
-  .filter((k) => /^\/api\/van-chuyen\/(lich|chuyen|cuoc-cua-toi|chang|nhac-goi-khach|chinh-sach-dieu-phoi|xe-cua-don)(\/|$)/.test(k.split(" ")[1]!))
+  .filter((k) => /^\/api\/van-chuyen\/(lich|chuyen|cuoc-cua-toi|chang|nhac-goi-khach|chinh-sach-dieu-phoi|xe-cua-don|mau-chang)(\/|$)/.test(k.split(" ")[1]!))
   .sort();
 const TRA_TEN = ["GET /api/van-chuyen/chuyen/:id", "GET /api/van-chuyen/cuoc-cua-toi/:id"];
 const TEN_VC = ["Khách Dò Tìm 1", "Khách Dò Tìm 2", "Khách Dò Tìm 3"];
@@ -211,6 +211,16 @@ test("khối van-chuyen: đủ tuyến; tên hành khách chỉ ở GET /chuyen/
     const V = "POST /api/van-chuyen/chuyen/:id"; // tiền tố route văn phòng bấm thay
 
     const TUYEN_VC: Record<string, () => Promise<void>> = {
+      // ADR-0054 "Hệ quả" (hàng rào): route mẫu đưa đón không mang tên khách, năm sinh, tiền (chỉ mã, chế độ, giờ gợi ý, nơi trả mặc định).
+      "POST /api/van-chuyen/mau-chang/:code": async () => {
+        await goi("POST /api/van-chuyen/mau-chang/:code", "ghi mẫu đưa đón", "POST", "/api/van-chuyen/mau-chang/ZA1", ADM, { mode: "ROUND_TRIP", returnTimeHint: "16:00", noiTraMacDinhId: LOC }, 201);
+      },
+      "GET /api/van-chuyen/mau-chang/:code": async () => {
+        await goi("GET /api/van-chuyen/mau-chang/:code", "lịch sử mẫu đưa đón", "GET", "/api/van-chuyen/mau-chang/ZA1", ADM);
+      },
+      "GET /api/van-chuyen/mau-chang": async () => {
+        await goi("GET /api/van-chuyen/mau-chang", "mẫu đưa đón cho form", "GET", "/api/van-chuyen/mau-chang", SALES);
+      },
       "GET /api/van-chuyen/chinh-sach-dieu-phoi": async () => {
         await goi("GET /api/van-chuyen/chinh-sach-dieu-phoi", "đọc chính sách", "GET", "/api/van-chuyen/chinh-sach-dieu-phoi", SUP);
       },

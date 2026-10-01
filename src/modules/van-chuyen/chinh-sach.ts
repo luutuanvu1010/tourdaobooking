@@ -7,6 +7,9 @@
 // - Nhật ký: chỉ mã, con số, nhãn danh mục (`chiTiet*` dưới đây) — không dữ liệu cá nhân.
 import { NHAN_NHOM_LY_DO, isNhomLyDo, type NhomLyDo } from "../../shared/dieu-phoi-kieu.ts";
 import { MA_LOAI_GIAY_TO_RE, kiemTenDanhMuc, kiemThuTu } from "../../shared/giay-to.ts";
+import { CHE_DO_DUA_DON, isCheDoDuaDon, type CheDoDuaDon } from "../../shared/chang-mac-dinh.ts";
+import { UUID_RE } from "../../shared/http.ts";
+import { isHHMM } from "../../shared/vn-date.ts";
 
 export type Result<T> = { ok: true; value: T } | { ok: false; message: string };
 const fail = (message: string): { ok: false; message: string } => ({ ok: false, message });
@@ -125,3 +128,51 @@ export function kiemSuaLyDo(body: Record<string, unknown> | null): Result<LyDoSu
 }
 export const chiTietLyDo = (code: string, group: NhomLyDo, label: string, active = true): string =>
   `lý do ${code} (${NHAN_NHOM_LY_DO[group]}): ${label}${active ? "" : " — ngưng dùng"}`;
+
+// ---- Mẫu đưa đón theo dịch vụ (ADR-0054 D10.1; ADR nháp nơi trả mặc định D2 — docs/superpowers/specs/2026-10-01-de-xuat-adr-noi-tra-mac-dinh.md) -------------
+export interface MauChangMoi {
+  mode: CheDoDuaDon;
+  returnTimeHint: string | null;
+  /** `undefined` = thân VẮNG khoá (màn cũ chưa biết ô này) → route chép điểm của bản hiện hành (trừ khi NONE); `null` = bỏ mặc định. */
+  noiTraMacDinhId: string | null | undefined;
+}
+/**
+ * Thân `POST /api/van-chuyen/mau-chang/:code`: mỗi dòng là một BẢN ĐẦY ĐỦ — `mode` và khoá `returnTimeHint` BẮT BUỘC (null = không gợi ý; chỉ hai chiều mới có
+ * giờ); `noiTraMacDinhId` tuỳ chọn (uuid / null). Không nhận ngày hiệu lực (khuôn chính sách — hiệu lực ngay). NONE + điểm → 400 (lớp CSDL NT-D1 là lưới).
+ */
+export function kiemMauChangMoi(body: Record<string, unknown> | null): Result<MauChangMoi> {
+  if (!body) return fail("Dữ liệu không hợp lệ.");
+  if (coNgayHieuLuc(body)) return fail(CAU_HIEU_LUC);
+  if (!isCheDoDuaDon(body.mode)) return fail("Chọn cách đưa đón: không đưa đón, một chiều hoặc hai chiều.");
+  if (!("returnTimeHint" in body)) return fail("Thiếu giờ đón gợi ý chiều về (gửi trống nếu không gợi ý).");
+  const h = body.returnTimeHint;
+  let returnTimeHint: string | null = null;
+  if (h !== null && h !== "") {
+    if (typeof h !== "string" || !isHHMM(h.trim())) return fail("Giờ đón gợi ý chiều về không hợp lệ (định dạng HH:MM).");
+    returnTimeHint = h.trim();
+  }
+  if (returnTimeHint !== null && body.mode !== "ROUND_TRIP") return fail("Chỉ dịch vụ đưa đón hai chiều mới có giờ đón gợi ý chiều về.");
+  let noiTraMacDinhId: string | null | undefined;
+  if ("noiTraMacDinhId" in body) {
+    const n = body.noiTraMacDinhId;
+    if (n === null || n === "") noiTraMacDinhId = null;
+    else if (typeof n !== "string" || !UUID_RE.test(n)) return fail("Nơi trả mặc định không hợp lệ — chọn một điểm trong danh mục Địa điểm.");
+    else noiTraMacDinhId = n;
+  }
+  if (body.mode === "NONE" && typeof noiTraMacDinhId === "string") return fail("Dịch vụ không đưa đón thì không có nơi trả mặc định.");
+  return { ok: true, value: { mode: body.mode, returnTimeHint, noiTraMacDinhId } };
+}
+/** Nhãn chế độ cho nhật ký (null = chưa cài). */
+const nhanCheDo = (m: CheDoDuaDon | null) => (m === null ? "(chưa cài)" : CHE_DO_DUA_DON[m]);
+/**
+ * `detail` của `transfer_template_set`: "Mẫu đưa đón <mã>: <chế độ cũ> → <chế độ mới>; giờ về <HH:MM | (không gợi ý)>[; nơi trả mặc định <tên cũ> → <tên mới>]" —
+ * đoạn nơi trả CHỈ khi đổi; TÊN điểm danh mục (không id), không dữ liệu cá nhân.
+ */
+export function chiTietMauChang(
+  code: string, cu: { mode: CheDoDuaDon; noiTra: { id: string; ten: string } | null } | null, moi: { mode: CheDoDuaDon; returnTimeHint: string | null; noiTra: { id: string; ten: string } | null },
+): string {
+  const parts = [`Mẫu đưa đón ${code}: ${nhanCheDo(cu?.mode ?? null)} → ${nhanCheDo(moi.mode)}`, `giờ về ${moi.returnTimeHint ?? "(không gợi ý)"}`];
+  const truoc = cu?.noiTra ?? null;
+  if ((truoc?.id ?? null) !== (moi.noiTra?.id ?? null)) parts.push(`nơi trả mặc định ${truoc?.ten ?? "(trống)"} → ${moi.noiTra?.ten ?? "(trống)"}`);
+  return parts.join("; ");
+}

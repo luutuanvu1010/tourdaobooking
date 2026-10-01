@@ -1440,6 +1440,28 @@ export interface CuocChiTietResponse {
   trongNgayChay: boolean;
 }
 
+// ---- Mẫu đưa đón theo dịch vụ (ADR-0054 D10.1–D10.2; ADR nháp nơi trả mặc định docs/superpowers/specs/2026-10-01-de-xuat-adr-noi-tra-mac-dinh.md) ------------
+/** Một BẢN mẫu (màn Danh mục, cổng admin): chế độ, giờ gợi ý chiều về, nơi trả mặc định (tên + còn dùng), lúc hiệu lực (ISO UTC). */
+export interface MauChangBanDto {
+  mode: "NONE" | "ONE_WAY" | "ROUND_TRIP";
+  returnTimeHint: string | null;
+  noiTraMacDinh: { id: string; ten: string; dangDung: boolean } | null;
+  tuLuc: string;
+}
+/** `GET/POST /api/van-chuyen/mau-chang/:code` — lịch sử (mới trước) + bản hiện hành (null = chưa cài = không đưa đón). */
+export interface MauChangLichSuResponse {
+  code: string;
+  hienHanh: MauChangBanDto | null;
+  lichSu: MauChangBanDto[];
+}
+/**
+ * `GET /api/van-chuyen/mau-chang` (cổng orders + `order.create`) — mẫu HIỆN HÀNH theo mã dịch vụ, ĐÚNG ba khoá mỗi mã (danh sách trắng): chế độ, giờ gợi ý, nơi trả
+ * mặc định `{ id, ten }` hoặc null (chưa cài / điểm đã ngưng). Mã vắng = không đưa đón. Form đưa vào `changMacDinh` (src/shared/chang-mac-dinh.ts).
+ */
+export interface MauChangFormResponse {
+  mauChang: Record<string, { mode: "NONE" | "ONE_WAY" | "ROUND_TRIP"; returnTimeHint: string | null; noiTraMacDinh: { id: string; ten: string } | null }>;
+}
+
 // ---- Sổ tiền lượt 1 (module billing — ADR-0024, ADR-0025, ADR-0026) -----------------------------------------------------------------------------
 // Số "đã thu / còn lại / dư" LUÔN do máy chủ tính (billing/rules.ts `conLai` — một hàm); trình duyệt chỉ vẽ. Không SĐT, không tên khách ở sổ.
 
