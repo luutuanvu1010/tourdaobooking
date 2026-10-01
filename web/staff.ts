@@ -368,6 +368,8 @@ byId<HTMLFormElement>("add-form").addEventListener("submit", async (e) => {
       khop = ct?.khop ?? [];
       khopAn = ct?.coHoSoKhacTrongDanhBa === true;
       veKhop();
+      // Câu "đã có trong Danh bạ" khối hồ sơ khớp đã hiện — không lặp lại ở ô báo lỗi (chủ dự án 2026-10-01).
+      if (khopAn && err.message === CAU_KHOP_AN) return;
       return showError(errorEl, err.message);
     }
     return fail(err);

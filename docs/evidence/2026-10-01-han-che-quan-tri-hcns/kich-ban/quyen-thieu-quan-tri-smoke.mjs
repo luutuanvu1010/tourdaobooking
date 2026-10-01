@@ -115,18 +115,23 @@ try {
   assert.ok(!khoi.chu.includes("Bí Mật"), `C2. không lộ tên khách: ${khoi.chu}`);
   assert.equal(khoi.li, 0, "C2. không có danh sách hồ sơ (không id/tên)");
   assert.equal(khoi.tat, true, "C2. nút Tạo tắt khi chưa tick 'Vẫn tạo hồ sơ mới'");
-  // Ghi nhận (không khẳng định): gửi khi chưa tick (requestSubmit bỏ qua nút tắt) → 409 — câu có hiện hai lần (#error + khối) không.
+  // Gửi khi chưa tick (requestSubmit bỏ qua nút tắt) → 409. Chủ dự án 2026-10-01: câu "đã có trong Danh bạ" hiện ĐÚNG MỘT lần (ở khối hồ sơ khớp), #error không
+  // lặp lại. Đếm phản hồi 409 bằng bọc fetch để biết máy chủ đã trả (không còn chờ #error hiện được).
+  await p.ev("(window.__so409 = 0, window.fetch = ((f) => async (...a) => { const r = await f(...a); if (r.status === 409) window.__so409++; return r; })(window.fetch), true)");
   await p.ev("(document.querySelector('#add-perms input[data-kind=role][value=SALES_STAFF]').click(), document.querySelector('#add-form').requestSubmit(), true)");
-  await p.waitFor("!document.getElementById('error').hidden", "C2. 409 hiện câu ở #error", 8000);
-  const lap = await p.ev("[...document.querySelectorAll('#error, #add-khop')].filter((e) => !e.hidden && e.textContent.includes('đã có trong Danh bạ')).length");
-  console.log(`· C2 ghi nhận: sau 409, câu "đã có trong Danh bạ" hiện ở ${lap} chỗ (#error và khối hồ sơ khớp)`);
+  await p.waitFor("window.__so409 > 0", "C2. máy chủ trả 409", 8000);
+  await sleep(300);
+  const sau409 = await p.ev(`(() => { const t = document.body.innerText; const cau = 'đã có trong Danh bạ'; return { lan: t.split(cau).length - 1, loiAn: document.getElementById('error').hidden || !document.getElementById('error').textContent.trim(), khoi: !document.querySelector('#add-khop').hidden && document.querySelector('#add-khop').textContent.includes(cau) }; })()`);
+  assert.equal(sau409.lan, 1, `C2. sau 409 câu "đã có trong Danh bạ" phải hiện đúng một lần: ${JSON.stringify(sau409)}`);
+  assert.equal(sau409.khoi, true, "C2. câu ở khối hồ sơ khớp");
+  assert.equal(sau409.loiAn, true, "C2. ô báo lỗi không lặp câu");
   await p.ev("(document.querySelector('#add-khop label.check input').click(), true)");
   assert.equal(await p.ev("document.querySelector('#add-form button[type=submit]').disabled"), false, "C2. tick xong nút Tạo mở");
   await p.ev("(document.querySelector('#add-form').requestSubmit(), true)");
   await p.waitFor("!document.querySelector('#secret').hidden && !!document.querySelector('#secret td.pin')", "C2. tạo xong, hiện PIN", 8000);
   assert.deepEqual(p.consoleErrors, [], "C2. không lỗi JS");
   p.close();
-  ok("C2. Nhân sự gõ SĐT của khách: chỉ câu 'đã có trong Danh bạ', không tên, không danh sách, nút Tạo tắt; tick 'Vẫn tạo hồ sơ mới' → tạo được");
+  ok("C2. Nhân sự gõ SĐT của khách: chỉ câu 'đã có trong Danh bạ' (sau 409 vẫn đúng một lần), không tên, không danh sách, nút Tạo tắt; tick 'Vẫn tạo hồ sơ mới' → tạo được");
   const TU_CHOI = {
     "/catalog": "Chỉ quản trị viên được vào trang này.",
     "/locations": "Chỉ quản trị viên được vào trang này.",
