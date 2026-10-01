@@ -15,12 +15,13 @@ import { layCoTuMo } from "./tro-ly-co";
 import {
   LE, docViTri, doiCo, ghiViTri, hopTuViTri, keo, macDinh, taoMaCuoc, viTriTuHop, type Hop, type KhungNhin, type ViTri, type VungAnToan,
 } from "../src/shared/tro-ly-khung";
+import { CAU_CHAO_MAC_DINH, thayTen } from "../src/shared/xung-ho";
 
 type Tin = { ai: "nguoi"; chu: string } | { ai: "tro-ly"; chu: string; nguon: string[] } | { ai: "loi"; chu: string };
 
 const LOI_MANG = "Không kết nối được. Kiểm tra mạng rồi thử lại.";
-/** Dự phòng khi lời dặn chưa có câu chào (không xảy ra với dữ liệu gieo 0054). */
-const CHAO = "Chào bạn! Hỏi mình cách dùng app, ví dụ: “Đổi mã PIN thế nào?” hoặc “Lập đơn mới ra sao?”.";
+/** Dự phòng khi lời dặn chưa có câu chào (không xảy ra với dữ liệu gieo 0054) = câu chào mặc định Mai (ADR-0084 Đ5). */
+const CHAO = CAU_CHAO_MAC_DINH;
 const tin: Tin[] = [];
 let dangHoi = false;
 
@@ -115,8 +116,10 @@ function moKhung(fab: HTMLElement, khung: Api.TroLyKhungResponse): void {
           return b;
         }),
       );
+  // ADR-0084 Đ5: lời chào dựng ngay ở trình duyệt (không gọi AI) — thay MỌI {ten} bằng cách gọi máy chủ đã tính; câu không có {ten} giữ nguyên văn.
+  const loiChao = thayTen(khung.cauChao || CHAO, khung.goi || "bạn");
   const veLai = (): void => {
-    replaceChildren(ds, h("li", { class: "tl-tin tl-tin-tro-ly" }, h("p", { class: "tl-chu" }, khung.cauChao || CHAO)), mau(), ...tin.map(dongTin), dangHoi ? bongBongDangTra() : null);
+    replaceChildren(ds, h("li", { class: "tl-tin tl-tin-tro-ly", "data-tl": "loi-chao" }, h("p", { class: "tl-chu" }, loiChao)), mau(), ...tin.map(dongTin), dangHoi ? bongBongDangTra() : null);
     gui.disabled = dangHoi;
     ds.lastElementChild?.scrollIntoView({ block: "nearest" });
   };
