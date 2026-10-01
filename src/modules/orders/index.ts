@@ -26,6 +26,7 @@ import { CHIEU_LABEL, LY_DO_DAT_GAP } from "../../shared/chang-dua-don";
 import { nguongMocVn, type MocToiThieu } from "../../shared/moc-toi-thieu";
 import { canhBaoMocCua, chepDatGapNhap, docDatGap, duoiMocKhiSua, ghiDatGapNhatKy, lichSuTheoVai } from "./dat-gap";
 import { dongHienHanh } from "../../shared/hanh-khach";
+import { soNguoiChang, tongKhach } from "../../shared/so-nguoi-chang";
 import { maskLongDigits } from "../../shared/text-guards";
 import { toPoolOrders } from "./pool";
 import {
@@ -34,10 +35,10 @@ import {
 } from "./price-guards";
 import { canTransition, hasHandlerPick, parseHandlerPick, validateBookerChange, validateOrder, type Failure, type OrderStatus, type ValidOrder } from "./rules";
 import {
-  keHoachChangTrip, loadOrderView, passengerList, planAddLeg, planCloseLeg, planEditLeg, planPassengerChange, resolveBooker, resolveLegPlaces, validationContext,
+  keHoachChangTrip, loadOrderView, passengerList, planAddLeg, planCloseLeg, planEditLeg, planPassengerChange, planPaxOverrideNhap, resolveBooker, resolveLegPlaces, validationContext,
   type OrderValidationContext,
 } from "./service";
-import { confirmGaps, describeTripUpdates, summarizeDeviations, validateTripUpdate } from "./service-rules";
+import { confirmGaps, describeTripUpdates, giaiOPhuNhap, summarizeDeviations, validateTripUpdate } from "./service-rules";
 
 const FORBIDDEN = () => error(403, "forbidden", "Chỉ người lập đơn, người phụ trách đơn hoặc quản trị viên mới được thay đổi đơn này.");
 const CANNOT_CREATE = () => error(403, "forbidden", "Tài khoản này không được lập đơn.");
@@ -59,6 +60,21 @@ const USE_ORDER_FORM = () => error(409, "use_order_form", "Đơn nháp: sửa đ
 const LEG_NOT_FOUND = () => error(404, "leg_not_found", "Không tìm thấy chặng đưa đón của đơn này.");
 const LEG_CLOSED = (message = "Chặng đưa đón này đã bỏ — không sửa được.") => error(409, "leg_closed", message);
 const CANNOT_WRITE_PASSENGERS = () => error(403, "forbidden", "Tài khoản này không được nhập danh sách hành khách của đơn này.");
+/** ADR-0054 D10.3 (Q-L4-B "Chỉ văn phòng"): số người chiều về chỉ người qua ô `order.trip.edit` đổi — kể cả khi lập / lưu nháp. */
+const CANNOT_PAX_OVERRIDE = () => error(403, "forbidden", "Chỉ văn phòng đổi được số người chiều về.");
+
+/**
+ * Lập / lưu nháp (kế hoạch ô mới Task 3.3): giải hai ô phụ của chặng (`giaiOPhuNhap` — khoá vắng = chép giá trị đang lưu) rồi hỏi `order.trip.edit` khi số người
+ * chiều về ĐỔI (403, trước khi ghi) và L-R1 (400). Trả dịch vụ đã giải.
+ */
+function oPhuNhap(
+  staff: PermissionHolder, scope: { ownerId: string; assigned: boolean }, order: ValidOrder, storedLegs: readonly { id: string; flightCode: string | null; paxOverride: number | null }[],
+): { ok: true; value: ValidOrder } | { ok: false; res: Response } {
+  const g = giaiOPhuNhap(order.services, storedLegs);
+  if (g.doiSoNguoi && !can(staff, "order.trip.edit", scope)) return { ok: false, res: CANNOT_PAX_OVERRIDE() };
+  if (g.vuot) return { ok: false, res: error(400, "invalid_input", g.vuot) };
+  return { ok: true, value: { ...order, services: g.services } };
+}
 /** ADR-0049 D3: đặt gấp chặng dưới mốc — chỉ Quản trị, Toàn quyền (ô `order.leg.short_notice`). */
 const CANNOT_SHORT_NOTICE = () => error(403, "forbidden", "Chỉ Quản trị hoặc Toàn quyền được đặt gấp chặng đưa đón.");
 /** Mốc tối thiểu chưa có (bảng chính sách rỗng / môi trường không tiêm) — CHẶN lệnh cần mốc, không đoán con số (I25). */
@@ -99,6 +115,50 @@ function legFailure(f: { code: "invalid_input" | "leg_not_found" | "leg_closed";
   if (f.code === "leg_not_found") return LEG_NOT_FOUND();
   if (f.code === "leg_closed") return LEG_CLOSED(f.message);
   return error(400, "invalid_input", f.message);
+}
+
+type LenhChang = { res: Response } | { sua: Parameters<typeof changeLeg>[4] | null };
+
+/**
+ * NHÁNH NHÁP của `PUT /api/orders/:id/legs/:legId` (ADR-0054 D10.3 "đường mới cho đơn nháp"; kế hoạch ô mới Task 3.5): thân CHỈ `paxOverride` +
+ * `expectedUpdatedAt` (mốc CỦA CHẶNG); có khoá khác → 409 `use_order_form` như cũ (giờ, nơi của nháp đi trong thân PUT /api/orders). Ô `order.trip.edit` đã
+ * hỏi ở route. Không xét mốc 6 giờ. `sua` null = không đổi gì.
+ */
+async function lenhSoNguoiVeNhap(db: D1Database, id: string, legId: string, request: Request): Promise<LenhChang> {
+  const nhap = await readJson(request);
+  const khoa = nhap && typeof nhap === "object" && !Array.isArray(nhap) ? Object.keys(nhap) : [];
+  if (!khoa.includes("paxOverride") || khoa.some((k) => k !== "paxOverride" && k !== "expectedUpdatedAt")) return { res: USE_ORDER_FORM() };
+  if (!UUID_RE.test(legId)) return { res: LEG_NOT_FOUND() };
+  const pn = await planPaxOverrideNhap(db, id, legId, nhap!);
+  if (!pn.ok) return { res: legFailure(pn) };
+  return { sua: pn.value.detail === null ? null : { kind: "paxNhap", ...pn.value, detail: pn.value.detail } };
+}
+
+/**
+ * Sửa chặng đơn ĐÃ XÁC NHẬN (ADR-0047 A1). ADR-0049 I14 (Q3 chủ): min(giờ cũ, giờ mới) dưới mốc → Quản trị, Toàn quyền + `datGap`; dấu cũ KHÔNG miễn. Không dấu
+ * mới → dấu cũ bỏ (I16). Kế hoạch ô mới Task 3.4 (ADR-0055 C2, ADR-0054 D10.3): CHỈ đổi số hiệu / số người (`chiOPhu`) → không xét mốc; thân không có `datGap`
+ * → GIỮ dấu đặt gấp cũ (chủ Q-B 1/10); thân có `datGap` (Quản trị vừa duyệt) → ghi dấu mới.
+ */
+async function lenhSuaChang(
+  db: D1Database, id: string, legId: string, request: Request, staff: PermissionHolder & { id: string }, status: OrderStatus, mocToiThieu: () => Promise<MocToiThieu | null>,
+): Promise<LenhChang> {
+  if (status === "cancelled") return { res: CANCELLED() };
+  if (!UUID_RE.test(legId)) return { res: LEG_NOT_FOUND() };
+  const body = await readJson(request);
+  const plan = await planEditLeg(db, id, legId, body, vnToday(new Date()));
+  if (!plan.ok) return { res: legFailure(plan) };
+  if (plan.value.detail === null) return { sua: null };
+  const coDatGap = body !== null && typeof body === "object" && body.datGap !== undefined && body.datGap !== null;
+  const giuDatGap = plan.value.chiOPhu && !coDatGap;
+  let datGapMoi: DatGapWrite | null = null;
+  if (!giuDatGap) {
+    const moc = await mocToiThieu();
+    if (!moc) return { res: MOC_CHUA_CO() };
+    const x = xetDatGapSua(staff, body, !plan.value.chiOPhu && duoiMocKhiSua(plan.value.cu, plan.value.fields, Date.now(), moc.phut), moc);
+    if (!x.ok) return { res: x.res };
+    datGapMoi = x.value;
+  }
+  return { sua: { kind: "update", ...plan.value, detail: kemDatGap(plan.value.detail, datGapMoi), datGap: datGapMoi, giuDatGap } };
 }
 
 /** Câu đầu lô sửa/đóng chặng không áp dụng: vì chặng vừa bị bỏ, đơn vừa huỷ, hay vì mốc chặng đã cũ? Đọc lại để trả đúng lý do. */
@@ -186,7 +246,7 @@ export interface ChangChoChuyen {
   /** Tên điểm danh mục hoặc chữ tự do — đã che dãy số. */
   noiDon: string;
   noiTra: string | null;
-  /** Số khách HIỆU LỰC của dịch vụ (chờ lượt 2 nếu có `pax_override`). */
+  /** Số người HIỆU LỰC của CHẶNG (`soNguoiChang` — ADR-0054 D10.3: chặng về có số riêng → min(số riêng, số khách hiệu lực của dịch vụ)). */
   soNguoi: number;
   /** Người có tên (dòng hiện hành): khoá bền `personKey`, bản tên đã dùng `rowId`. */
   nguoi: { personKey: string; rowId: string; fullName: string; birthYear: number }[];
@@ -223,7 +283,7 @@ export async function hanhKhachChoChuyen(db: D1Database, legIds: readonly string
       pickupTime: l.pickup_time,
       noiDon: maskLongDigits(l.noi_don),
       noiTra: maskLongDigits(l.noi_tra),
-      soNguoi: p ? p.adult + p.child + p.senior + p.infant : 0,
+      soNguoi: soNguoiChang({ direction: l.direction, paxOverride: l.pax_override }, p ? tongKhach(p) : 0),
       nguoi: (current.get(l.order_id) ?? []).map((n) => ({ personKey: n.personKey, rowId: n.rowId, fullName: n.fullName, birthYear: n.birthYear })),
     };
   });
@@ -244,8 +304,10 @@ export interface ChangLichChung {
   noiDonDiemId: string | null;
   noiTra: string | null;
   noiTraDiemId: string | null;
-  /** Số khách HIỆU LỰC của dịch vụ (cả bốn loại tuổi — LC-02). */
+  /** Số người HIỆU LỰC của CHẶNG (`soNguoiChang` — ADR-0054 D10.3; số khách dịch vụ = cả bốn loại tuổi — LC-02). */
   soNguoi: number;
+  /** Số hiệu chuyến bay của chặng (ADR-0055 VK2-C C3); null = chưa có. */
+  soHieuChuyenBay: string | null;
   /** Khoá người (`person_key`) của hành khách HIỆN HÀNH của đơn — chỉ khoá, không tên (I12). */
   nguoiCuaDon: string[];
   /** Chặng mang dấu đặt gấp. */
@@ -299,7 +361,8 @@ export async function lichChungChang(db: D1Database, tuNgay: string, denNgay: st
       noiDonDiemId: l.pickup_location_id,
       noiTra: maskLongDigits(l.noi_tra),
       noiTraDiemId: l.dropoff_location_id,
-      soNguoi: p ? p.adult + p.child + p.senior + p.infant : 0,
+      soNguoi: soNguoiChang({ direction: l.direction, paxOverride: l.pax_override }, p ? tongKhach(p) : 0),
+      soHieuChuyenBay: l.flight_code,
       nguoiCuaDon: [...(khoaNguoi.get(l.order_id) ?? [])],
       datGap: l.dat_gap === 1,
       khoaNoiDon: (await khoaNoi({ locationId: l.pickup_location_id, placeText: l.pickup_place }))!,
@@ -613,8 +676,10 @@ export const ordersModule: AppModule = {
       const guard = priceGuard(staff, parsed.value, ctx, (await manualPolicy(env.DB, new Date().toISOString())).bat); // ADR-0061: công tắc đọc một lần
       if (guard) return guard;
       // ADR-0047 (R7, R3): điểm danh mục của chặng phải đang dùng; đặt hai khoá cũ = dẫn xuất từ chặng (ghi kép vào cột cũ).
-      const placed = await resolveLegPlaces(env.DB, parsed.value, ctx);
-      if (!placed.ok) return error(400, "invalid_input", placed.message);
+      const placed0 = await resolveLegPlaces(env.DB, parsed.value, ctx);
+      if (!placed0.ok) return error(400, "invalid_input", placed0.message);
+      const placed = oPhuNhap(staff, { ownerId: staff.id, assigned: false }, placed0.value, []); // kế hoạch ô mới Task 3.3
+      if (!placed.ok) return placed.res;
       const booker = await resolveBooker(env.DB, placed.value.booker, staff.id, new Date());
       if (!booker.ok) return error(400, "invalid_input", booker.message);
       // ADR-0049 D2 (I25, I27): nháp CÓ chặng cần mốc tối thiểu để cảnh báo (không chặn lưu) — gọi ĐÚNG MỘT lần; chưa có mốc → 503 (không đoán).
@@ -673,8 +738,11 @@ export const ordersModule: AppModule = {
       if (!parsed.ok) return failure(parsed);
       const guard = priceGuard(staff, parsed.value, ctx, (await manualPolicy(env.DB, new Date().toISOString())).bat); // ADR-0061: công tắc đọc một lần
       if (guard) return guard;
-      const placed = await resolveLegPlaces(env.DB, parsed.value, ctx); // ADR-0047 (R7, R3)
-      if (!placed.ok) return error(400, "invalid_input", placed.message);
+      const placed0 = await resolveLegPlaces(env.DB, parsed.value, ctx); // ADR-0047 (R7, R3)
+      if (!placed0.ok) return error(400, "invalid_input", placed0.message);
+      // Kế hoạch ô mới Task 3.3: số hiệu chuyến bay / số người chiều về — khoá vắng = chép giá trị đang lưu của chặng cùng id; đổi số người cần order.trip.edit.
+      const placed = oPhuNhap(staff, { ownerId: meta.staffId, assigned }, placed0.value, ctx.stored.flatMap((s) => s.legs));
+      if (!placed.ok) return placed.res;
       const expected = placed.value.expectedUpdatedAt;
       if (!expected) return error(400, "invalid_input", "Thiếu expectedUpdatedAt (mốc cập nhật của đơn mà form đã đọc).");
       // Thân yêu cầu không có CẢ HAI khoá `bookerPartyId`/`newBooker` (một `order-form.js` PWA cũ trong bộ nhớ đệm chưa biết trường người đặt) → GIỮ NGUYÊN
@@ -781,20 +849,12 @@ export const ordersModule: AppModule = {
       if (!meta) return NOT_FOUND();
       if (!can(staff, "order.trip.edit", { ownerId: meta.staffId, assigned })) return FORBIDDEN();
       if (meta.deliveredAt) return DA_GIAO();
-      if (meta.status === "draft") return USE_ORDER_FORM();
-      if (meta.status === "cancelled") return CANCELLED();
-      if (!UUID_RE.test(legId)) return LEG_NOT_FOUND();
-      const body = await readJson(request);
-      const plan = await planEditLeg(env.DB, id, legId, body, vnToday(new Date()));
-      if (!plan.ok) return legFailure(plan);
-      if (plan.value.detail === null) return json({ order: (await loadOrderView(env.DB, id, xemDuDatGap(staff)))! } satisfies OrderResponse); // không đổi gì
-      // ADR-0049 I14 (Q3 chủ): min(giờ cũ, giờ mới) dưới mốc → Quản trị, Toàn quyền + `datGap`; dấu cũ KHÔNG miễn. Không dấu mới → dấu cũ bỏ (I16).
-      const moc = await mocToiThieu();
-      if (!moc) return MOC_CHUA_CO();
-      const x = xetDatGapSua(staff, body, duoiMocKhiSua(plan.value.cu, plan.value.fields, Date.now(), moc.phut), moc);
-      if (!x.ok) return x.res;
-      const sua = { kind: "update" as const, ...plan.value, detail: kemDatGap(plan.value.detail, x.value), datGap: x.value };
-      if (!(await changeLeg(env.DB, id, staff.id, meta.updatedAt, sua))) return legRaced(env.DB, id, legId);
+      // NHÁNH NHÁP (ADR-0054 D10.3 "đường mới cho đơn nháp"; kế hoạch ô mới Task 3.5) — `lenhNhap` (dưới đây); đơn đã xác nhận đi đường cũ. Cả hai về MỘT chỗ
+      // ghi + một lời gọi Bảng tin.
+      const lenh = meta.status === "draft" ? await lenhSoNguoiVeNhap(env.DB, id, legId, request) : await lenhSuaChang(env.DB, id, legId, request, staff, meta.status, mocToiThieu);
+      if ("res" in lenh) return lenh.res;
+      if (lenh.sua === null) return json({ order: (await loadOrderView(env.DB, id, xemDuDatGap(staff)))! } satisfies OrderResponse); // không đổi gì
+      if (!(await changeLeg(env.DB, id, staff.id, meta.updatedAt, lenh.sua))) return legRaced(env.DB, id, legId);
       baoThayDoi({ orderId: id, thayDoi: "chuyen" });
       return json({ order: (await loadOrderView(env.DB, id, xemDuDatGap(staff)))! } satisfies OrderResponse);
     }),

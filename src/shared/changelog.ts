@@ -11,6 +11,16 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Phần máy chủ "ô mới của chặng" (ADR-0054 D10.1/D10.3, ADR-0055 VK2-C, ADR nháp nơi trả mặc định — chủ duyệt Q-D 1/10). Có migration 0058, 0059.
+    // Giao diện chưa làm (chờ bản vẽ Claude Design) — người dùng chưa thấy ô mới trên màn hình.
+    version: "1.53",
+    date: "2026-10-01",
+    items: [
+      { kind: "moi", text: "Chuẩn bị cho màn nhập khách: mỗi chặng đưa đón lưu được số hiệu chuyến bay và số người chiều về; màn nhập sẽ có ở bản sau." },
+      { kind: "moi", text: "Chuẩn bị cho Danh mục: Quản trị sẽ cài được chiều đón và nơi trả gợi ý theo từng dịch vụ đưa đón." },
+    ],
+  },
+  {
     // ADR-0071 (vai Hành chính nhân sự, gỡ đồng bộ nhân viên từ Sheet, bảo trì miễn trừ theo Toàn quyền) + đồng hồ bảo trì theo ngày (commit 3de1435f).
     // Số "1.52" = số lớn nhất trên nhánh + 1 lúc thi công (2026-10-01); nhánh khác gộp trước thì đánh lại số. Có migration 0057.
     version: "1.52",

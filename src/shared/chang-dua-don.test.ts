@@ -3,7 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   CHIEU_LABEL, GHI_CHU_DAT_GAP_TOI_DA, LY_DO_DAT_GAP, LY_DO_DONG_CHANG, MAX_CHANG_MOI_DICH_VU, NGAY_DON_SAU_NGAY_DI, NGAY_DON_TRUOC_NGAY_DI, NOI_DON_CHUA_GHI, chieuDiDau, doiNgayChang, isLyDoDongChang,
-  isLyDoDatGap, khoangNgayDon, kiemChang, moTaChang, tronChangCu, type ChangDaLuu,
+  isLyDoDatGap, khoangNgayDon, kiemChang, moTaChang, tronChangCu, type ChangDaLuu, chuanHoaSoHieuChuyenBay, chiDoiOPhu,
 } from "./chang-dua-don.ts";
 
 test("R-P18 (điều phối 29/9, theo bản vẽ của chủ 07:140-145): LY_DO_DAT_GAP đúng bốn mã + nhãn, thứ tự như bản vẽ; ghi chú tối đa 120 (khớp 0040)", () => {
@@ -214,3 +214,90 @@ function strip(l: ChangDaLuu) {
   const { pickupLabel: _a, dropoffLabel: _b, ...rest } = l;
   return rest;
 }
+
+// ---- Ô mới của chặng (kế hoạch 2026-10-01-may-chu-o-moi-chang Task 2; ADR-0055 VK2-C C1, ADR-0054 D10.3) ------------------------------------------
+
+test("TC-F2: chuanHoaSoHieuChuyenBay — bỏ khoảng trắng + chữ HOA; khuôn ^[A-Z0-9]{2}[0-9]{1,4}[A-Z]?$; rỗng / null → null; sai → câu tiếng Việt", () => {
+  assert.deepEqual(chuanHoaSoHieuChuyenBay(" vn 1553 "), { ok: true, value: "VN1553" });
+  assert.deepEqual(chuanHoaSoHieuChuyenBay("vj123"), { ok: true, value: "VJ123" });
+  assert.deepEqual(chuanHoaSoHieuChuyenBay("QH1520A"), { ok: true, value: "QH1520A" });
+  assert.deepEqual(chuanHoaSoHieuChuyenBay("1553"), { ok: true, value: "1553" }, "'15' + '53' khớp khuôn — không phải ca sai");
+  for (const v of ["", "   ", null]) assert.deepEqual(chuanHoaSoHieuChuyenBay(v), { ok: true, value: null }, String(v));
+  for (const bad of ["VN-1553", "VNA1553", "VN15530", "ABCDEFGH", "V", 1553]) {
+    const r = chuanHoaSoHieuChuyenBay(bad);
+    assert.equal(r.ok, false, String(bad));
+    if (!r.ok) assert.match(r.message, /^Số hiệu chuyến bay/);
+  }
+});
+
+test("kiemChang + ô mới: khoá VẮNG → không có khoá trong kết quả (nơi gọi phân biệt 'không gửi' với 'gửi null'); có khoá → chuẩn hoá", () => {
+  const vang = kiemChang({ ...base, pickupPlace: "KS A" }, ctx);
+  assert.ok(vang.ok);
+  assert.equal("flightCode" in vang.value, false);
+  assert.equal("paxOverride" in vang.value, false);
+  const co = kiemChang({ ...base, direction: "RETURN", pickupPlace: "KS A", flightCode: " vn 1553 ", paxOverride: 2 }, ctx);
+  assert.ok(co.ok, JSON.stringify(co));
+  assert.equal(co.value.flightCode, "VN1553");
+  assert.equal(co.value.paxOverride, 2);
+  const xoa = kiemChang({ ...base, direction: "RETURN", pickupPlace: "KS A", flightCode: "", paxOverride: null }, ctx);
+  assert.ok(xoa.ok);
+  assert.equal(xoa.value.flightCode, null, "chuỗi rỗng = xoá về NULL");
+  assert.equal(xoa.value.paxOverride, null);
+  const rongSo = kiemChang({ ...base, direction: "RETURN", pickupPlace: "KS A", paxOverride: "" }, ctx);
+  assert.ok(rongSo.ok);
+  assert.equal(rongSo.value.paxOverride, null);
+});
+
+test("TC-P2 (phần hình thức): paxOverride trên chiều ĐI → lỗi; 0, âm, số lẻ, chữ → lỗi; số hiệu sai khuôn → lỗi (câu có tiền tố chặng)", () => {
+  const out = kiemChang({ ...base, pickupPlace: "KS A", paxOverride: 2 }, ctx);
+  assert.equal(out.ok, false);
+  if (!out.ok) assert.match(out.message, /^Dịch vụ 1, chặng 1: chỉ chiều về/);
+  for (const bad of [0, -1, 1.5, "2", true]) {
+    const r = kiemChang({ ...base, direction: "RETURN", pickupPlace: "KS A", paxOverride: bad }, ctx);
+    assert.equal(r.ok, false, String(bad));
+    if (!r.ok) assert.match(r.message, /số người chiều về/);
+  }
+  const fc = kiemChang({ ...base, pickupPlace: "KS A", flightCode: "VN-1553" }, ctx);
+  assert.equal(fc.ok, false);
+  if (!fc.ok) assert.match(fc.message, /^Dịch vụ 1, chặng 1: Số hiệu chuyến bay/);
+  // Chiều cố định từ ngữ cảnh (route sửa chặng): chặng đi + số → lỗi dù thân ghi RETURN.
+  const fixed = kiemChang({ ...base, direction: "RETURN", pickupPlace: "KS A", paxOverride: 2 }, { ...ctx, direction: "OUT" });
+  assert.equal(fixed.ok, false);
+});
+
+test("chiDoiOPhu: ngày, giờ, nơi đón, nơi trả y nguyên → true (chỉ đổi số hiệu / số người); đổi một trong bốn trường vận hành → false", () => {
+  const cu = { pickupDate: "2026-10-10", pickupTime: "06:30", pickupLocationId: null, pickupPlace: "KS A", dropoffLocationId: LOC, dropoffPlace: null };
+  assert.equal(chiDoiOPhu(cu, { ...cu }), true);
+  assert.equal(chiDoiOPhu(cu, { ...cu, pickupTime: "07:00" }), false);
+  assert.equal(chiDoiOPhu(cu, { ...cu, pickupDate: "2026-10-11" }), false);
+  assert.equal(chiDoiOPhu(cu, { ...cu, pickupPlace: "KS B" }), false);
+  assert.equal(chiDoiOPhu(cu, { ...cu, dropoffLocationId: LOC2 }), false);
+  assert.equal(chiDoiOPhu(cu, { ...cu, dropoffLocationId: null, dropoffPlace: "Bến" }), false);
+});
+
+test("TC-F6 + 'số người chiều về': moTaChang ghi GIÁ TRỊ số hiệu (G-C2) và số người (trống = 'theo số khách dịch vụ'); thêm chặng kèm số hiệu", () => {
+  const truoc = { direction: "RETURN" as const, pickupDate: "2026-10-12", pickupTime: "16:00", noiDon: "Bến", noiTra: "KS A", soHieu: "VN1553", soNguoiVe: 4 };
+  assert.equal(moTaChang("Tour", truoc, { ...truoc, soHieu: "VJ123" }), "Chiều về · Tour: số hiệu chuyến bay VN1553 → VJ123");
+  assert.equal(moTaChang("Tour", truoc, { ...truoc, soNguoiVe: 2 }), "Chiều về · Tour: số người chiều về 4 → 2");
+  assert.equal(moTaChang("Tour", { ...truoc, soNguoiVe: null }, truoc), "Chiều về · Tour: số người chiều về theo số khách dịch vụ → 4");
+  assert.equal(moTaChang("Tour", truoc, { ...truoc, soHieu: null, soNguoiVe: null }), "Chiều về · Tour: số hiệu chuyến bay VN1553 → (trống); số người chiều về 4 → theo số khách dịch vụ");
+  assert.equal(moTaChang("Tour", truoc, { ...truoc, pickupTime: "17:00", soHieu: "VJ123" }), "Chiều về · Tour: giờ đón 16:00 → 17:00; số hiệu chuyến bay VN1553 → VJ123");
+  assert.equal(moTaChang("Tour", truoc, { ...truoc }), null, "không đổi gì → null");
+  const them = moTaChang("Tour", null, { direction: "OUT", pickupDate: "2026-10-10", pickupTime: null, noiDon: "Sân bay", noiTra: null, soHieu: "VN1553" })!;
+  assert.equal(them, "Chiều đi · Tour: thêm — ngày đón 2026-10-10, giờ đón (chưa chốt), nơi đón Sân bay, nơi trả (chưa chốt), số hiệu chuyến bay VN1553");
+  const themVe = moTaChang("Tour", null, { ...truoc, soHieu: null, soNguoiVe: 2 })!;
+  assert.match(themVe, /nơi trả KS A, số người chiều về 2$/);
+  // Khoá vắng ở cả hai phía (nơi gọi cũ) = không đổi.
+  const cu = { direction: "OUT" as const, pickupDate: "2026-10-10", pickupTime: "06:30", noiDon: "A", noiTra: null };
+  assert.equal(moTaChang("Tour", cu, { ...cu }), null);
+});
+
+test("tronChangCu (thân CŨ, PWA chưa tải bản mới): ô mới của chặng đang lưu được CHÉP sang dạng ghi (khoá vắng = giữ)", () => {
+  const stored: ChangDaLuu[] = [
+    { id: LEG, direction: "RETURN", pickupDate: "2026-10-12", pickupTime: "16:00", pickupLocationId: LOC, pickupPlace: null, dropoffLocationId: null, dropoffPlace: "KS A",
+      pickupLabel: "Bến", dropoffLabel: "KS A", flightCode: "VN1553", paxOverride: 2 },
+  ];
+  const r = tronChangCu(stored, {}, "2026-10-10");
+  assert.equal(r.legs[0]!.flightCode, "VN1553");
+  assert.equal(r.legs[0]!.paxOverride, 2);
+});

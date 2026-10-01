@@ -8,6 +8,7 @@ import {
 } from "../../shared/order-lines.ts";
 import { MAX_LINES_PER_ORDER, MAX_SERVICES, ONE_DATE_MESSAGE, confirmWindow, tripUpdateKeepsOneDate } from "../../shared/trip-rules.ts";
 import { cleanText, dateField, int, text, timeField } from "./fields.ts";
+import { tongKhach } from "../../shared/so-nguoi-chang.ts";
 
 export type { CatalogChangeDto as CatalogChange, CatalogStatus, MissingReason, TripGapDto as TripGap };
 
@@ -322,6 +323,12 @@ export function validateTripUpdate(
   if (typeof b.expectedUpdatedAt !== "string" || !b.expectedUpdatedAt) return { ok: false, message: "Thiếu expectedUpdatedAt." };
   if (!Array.isArray(b.services) || b.services.length === 0) return { ok: false, message: "Cần ít nhất một dịch vụ để cập nhật." };
   if (b.services.length > MAX_SERVICES) return { ok: false, message: `Tối đa ${MAX_SERVICES} dịch vụ.` };
+  // Kế hoạch ô mới Task 3.5b (phát hiện C1): số hiệu chuyến bay / số người chiều về là của TỪNG CHẶNG — đường "Sửa thông tin chuyến" cũ không nhận (không
+  // đoán chặng nào), để `updateTrip` luôn giữ hai ô (cờ ghi = 0).
+  const oPhu = (o: Record<string, unknown>) => "flightCode" in o || "paxOverride" in o;
+  if (oPhu(b) || b.services.some((x) => !!x && typeof x === "object" && oPhu(x as Record<string, unknown>))) {
+    return { ok: false, message: "Số hiệu chuyến bay và số người chiều về sửa ở từng chặng đưa đón, không sửa ở đây." };
+  }
   const { from, to } = confirmWindow(today);
   const seen = new Set<string>();
   const updates: TripUpdate["updates"] = [];
@@ -385,4 +392,43 @@ export function describeTripUpdates(stored: readonly { id: string; name: string;
     return d ? [d] : [];
   });
   return lines.length ? lines.join(" | ") : null;
+}
+
+/**
+ * GIẢI hai ô PHỤ của chặng khi LẬP / LƯU NHÁP (kế hoạch ô mới Task 3.3; ADR-0055 C2, ADR-0054 D10.3) — luật thuần, nơi gọi là route `POST/PUT /api/orders`:
+ * - `flightCode`: khoá có → dùng (ô `order.modify` đã hỏi); vắng → CHÉP giá trị đang lưu của chặng CÙNG id (thân cũ / PWA cũ không xoá); chặng mới vắng → NULL.
+ * - `paxOverride`: vắng → chép giá trị đang lưu của chặng cùng id NẾU chặng vẫn là chiều VỀ (đổi chiều = chặng về coi như bỏ → NULL, không 403 — ruling nhật ký
+ *   thi công); có khoá mà KHÁC bản đang lưu (kể cả `null` để xoá, kể cả chặng mới có số) → `doiSoNguoi` (route hỏi `order.trip.edit`, không có → 403).
+ * - L-R1 CHỈ cho giá trị gửi MỚI / ĐỔI: ≤ số khách của dịch vụ TRONG THÂN (nháp chưa có điều chỉnh tiền) — vượt → `vuot` (400). Giá trị chép lại hoặc gửi bằng
+ *   bản cũ KHÔNG kiểm (Đối tác / Thực tập không sửa được ô này — trả 400 là bế tắc; phần vượt do `soNguoiChang` kẹp lúc đọc + kiểm định kỳ báo — TC-P10).
+ * Trả dịch vụ MỚI với mọi chặng mang ĐỦ hai ô (không còn `undefined`).
+ */
+export function giaiOPhuNhap(
+  services: readonly ValidService[],
+  storedLegs: readonly { id: string; flightCode: string | null; paxOverride: number | null }[],
+): { services: ValidService[]; doiSoNguoi: boolean; vuot: string | null } {
+  const cu = new Map(storedLegs.map((l) => [l.id, l] as const));
+  let doiSoNguoi = false;
+  let vuot: string | null = null;
+  const out = services.map((sv, i) => ({
+    ...sv,
+    legs: sv.legs.map((l, j) => {
+      const old = l.id !== null ? cu.get(l.id) : undefined;
+      const flightCode = l.flightCode !== undefined ? l.flightCode : (old?.flightCode ?? null);
+      const giuSo = old !== undefined && l.direction === "RETURN" ? old.paxOverride : null;
+      let paxOverride = giuSo;
+      if (l.paxOverride !== undefined) {
+        paxOverride = l.paxOverride;
+        if (l.paxOverride !== (old?.paxOverride ?? null)) {
+          doiSoNguoi = true;
+          const n = tongKhach(sv.pax);
+          if (l.paxOverride !== null && l.paxOverride > n && vuot === null) {
+            vuot = `Dịch vụ ${i + 1}, chặng ${j + 1}: số người chiều về (${l.paxOverride}) không được nhiều hơn số khách của dịch vụ (${n}).`;
+          }
+        }
+      }
+      return { ...l, flightCode, paxOverride };
+    }),
+  }));
+  return { services: out, doiSoNguoi, vuot };
 }

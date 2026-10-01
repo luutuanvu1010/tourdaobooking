@@ -58,6 +58,11 @@ import {
   lenhDaDon, lenhDaToi, lenhDaTra, lenhDoiThuTu, lenhKetThuc, lenhKetThucGianDoan, lenhKhachHuy, lenhVang, lenhXuatBen, type NguoiBam,
 } from "./dieu-phoi-tien-do";
 import type { GoiBaoChangDto, NhacGoiKhachResponse } from "../../shared/contracts";
+// Mẫu đưa đón theo dịch vụ (ADR-0054 D10.1; ADR nháp nơi trả mặc định — kế hoạch 2026-10-01-may-chu-o-moi-chang Task 6, 7).
+import type { MauChangBanDto, MauChangFormResponse, MauChangLichSuResponse } from "../../shared/contracts";
+import { CATALOG_CODE_RE } from "../../shared/order-lines";
+import { chiTietMauChang, kiemMauChangMoi } from "./chinh-sach";
+import { insertLegTemplateStatement, legTemplateHistory, legTemplatesCurrent, locationLabel, type LegTemplateRow } from "./repository";
 import { NHAC_GOI_SO_NGAY } from "../../shared/goi-bao";
 import { changChoTrongKhoang, changChuDon, mocByRequest } from "./chuyen-repo";
 import { docBoDanhDauGoiBao, docDaGoiBao } from "./dieu-phoi-than";
@@ -198,6 +203,20 @@ async function danhMucXe(db: D1Database, homNay: string): Promise<{ dm: DanhMucG
 }
 
 const ADMIN_ONLY = () => error(403, "forbidden", "Chỉ quản trị viên được thực hiện thao tác này.");
+
+/** Lịch sử mẫu đưa đón (mới trước) → DTO từng KHOÁ; bản hiện hành = bản mới nhất đã tới. */
+function lichSuMauChang(code: string, rows: readonly LegTemplateRow[]): MauChangLichSuResponse {
+  const ban = (r: LegTemplateRow): MauChangBanDto => ({
+    mode: r.mode,
+    returnTimeHint: r.return_time_hint,
+    noiTraMacDinh: r.default_dropoff_location_id !== null ? { id: r.default_dropoff_location_id, ten: r.noi_tra_ten ?? "", dangDung: r.noi_tra_active === 1 } : null,
+    tuLuc: r.valid_from_at,
+  });
+  const now = new Date().toISOString();
+  const hien = rows.find((r) => r.valid_from_at <= now);
+  return { code, hienHanh: hien ? ban(hien) : null, lichSu: rows.map(ban) };
+}
+
 /** Danh mục loại giấy tờ xe (cả loại đã ngưng) + ngưỡng đang hiệu lực. */
 async function respondMeta(db: D1Database, status = 200): Promise<Response> {
   const [types, warnDays] = await Promise.all([listVehicleDocumentTypes(db), currentWarnDays(db, new Date().toISOString())]);
@@ -616,6 +635,64 @@ export const vanChuyenModule: AppModule = {
       ]);
       if ((results[0]!.meta.changes ?? 0) === 0) return error(409, "stale", "Danh mục lý do vừa được người khác sửa, hãy tải lại rồi sửa tiếp.");
       return respondLyDo(env.DB);
+    }),
+
+    // ---- MẪU ĐƯA ĐÓN THEO DỊCH VỤ (ADR-0054 D10.1–D10.2; nơi trả mặc định — ADR nháp docs/superpowers/specs/2026-10-01-de-xuat-adr-noi-tra-mac-dinh.md, chủ duyệt
+    // 1/10 Q-D = A). Màn Danh mục (Quản trị, Toàn quyền): cổng admin + `admin.manage` ĐẦU thân (luật (4) hàng rào 2) — xem lịch sử, thêm bản mới (hiệu lực ngay).
+    // Form lập đơn: cổng orders + `order.create` ĐẦU thân — CHỈ mẫu hiện hành, ba khoá mỗi mã. van-chuyen KHÔNG đọc bảng catalog (mã dịch vụ = tham chiếu logic).
+    route("GET", "/api/van-chuyen/mau-chang", "orders", async ({ env, staff }) => {
+      if (!can(staff, "order.create")) return error(403, "forbidden", "Tài khoản này không lập đơn nên không cần mẫu đưa đón.");
+      const mauChang: MauChangFormResponse["mauChang"] = {};
+      for (const r of await legTemplatesCurrent(env.DB, new Date().toISOString())) {
+        mauChang[r.code] = {
+          mode: r.mode, returnTimeHint: r.return_time_hint,
+          // Điểm đã ngưng → null (form gửi id điểm ngưng thì lưu đơn sẽ 400 — ADR nháp D3).
+          noiTraMacDinh: r.default_dropoff_location_id !== null && r.noi_tra_active === 1 && r.noi_tra_ten !== null ? { id: r.default_dropoff_location_id, ten: r.noi_tra_ten } : null,
+        };
+      }
+      return json({ mauChang } satisfies MauChangFormResponse);
+    }),
+
+    route("GET", "/api/van-chuyen/mau-chang/:code", "admin", async ({ env, params, staff }) => {
+      if (!can(staff, "admin.manage")) return ADMIN_ONLY();
+      const code = params.code ?? "";
+      if (!CATALOG_CODE_RE.test(code)) return error(400, "invalid_input", "Mã dịch vụ không hợp lệ.");
+      return json(lichSuMauChang(code, await legTemplateHistory(env.DB, code)) satisfies MauChangLichSuResponse);
+    }),
+
+    route("POST", "/api/van-chuyen/mau-chang/:code", "admin", async ({ request, env, params, staff }) => {
+      if (!can(staff, "admin.manage")) return ADMIN_ONLY();
+      const code = params.code ?? "";
+      if (!CATALOG_CODE_RE.test(code)) return error(400, "invalid_input", "Mã dịch vụ không hợp lệ.");
+      const parsed = kiemMauChangMoi(await readJson(request));
+      if (!parsed.ok) return error(400, "invalid_input", parsed.message);
+      const v = parsed.value;
+      const at = new Date().toISOString();
+      const lichSu = await legTemplateHistory(env.DB, code);
+      const cu = lichSu.find((r) => r.valid_from_at <= at) ?? null;
+      // ADR nháp D2: khoá VẮNG = chép điểm của bản hiện hành, TRỪ khi bản mới không đưa đón (chép sẽ vi phạm NT-D1 — 400 bất ngờ) → NULL; null tường minh = bỏ.
+      const noiTraId = v.noiTraMacDinhId !== undefined ? v.noiTraMacDinhId : v.mode === "NONE" ? null : (cu?.default_dropoff_location_id ?? null);
+      // NT-D3: điểm phải ĐANG DÙNG lúc ghi (cả khi chép từ bản cũ — ruling nhật ký thi công: không ghi bản mới trỏ điểm đã ngưng).
+      let noiTra: { id: string; ten: string } | null = null;
+      if (noiTraId !== null) {
+        const diem = await locationLabel(env.DB, noiTraId);
+        if (!diem) return error(400, "invalid_input", "Nơi trả mặc định không có trong danh mục Địa điểm — chọn lại.");
+        if (diem.active !== 1) return error(400, "invalid_input", "Nơi trả mặc định là điểm đã ngưng dùng — chọn điểm khác hoặc bỏ nơi trả mặc định.");
+        noiTra = { id: diem.id, ten: diem.name };
+      }
+      const truoc = cu ? { mode: cu.mode, noiTra: cu.default_dropoff_location_id !== null ? { id: cu.default_dropoff_location_id, ten: cu.noi_tra_ten ?? "(điểm không rõ)" } : null } : null;
+      try {
+        await env.DB.batch([
+          insertLegTemplateStatement(env.DB, crypto.randomUUID(), code, { mode: v.mode, returnTimeHint: v.returnTimeHint, noiTraMacDinhId: noiTraId }, at, staff.id),
+          auditStatement(env.DB, { staffId: staff.id, action: "transfer_template_set", at, detail: chiTietMauChang(code, truoc, { mode: v.mode, returnTimeHint: v.returnTimeHint, noiTra }) }),
+        ]);
+      } catch (e) {
+        if (e instanceof Error && /UNIQUE constraint failed: vc_leg_template\.code, vc_leg_template\.valid_from_at/.test(e.message)) {
+          return error(409, "stale", "Vừa có người đổi mẫu đưa đón của dịch vụ này, tải lại rồi thử lại.");
+        }
+        throw e;
+      }
+      return json(lichSuMauChang(code, await legTemplateHistory(env.DB, code)) satisfies MauChangLichSuResponse, 201);
     }),
 
     // ---- Danh mục loại giấy tờ xe + ngưỡng "sắp hết hạn" + danh sách giấy tờ sắp hết hạn (Task A15) ---------------------------------------------------------

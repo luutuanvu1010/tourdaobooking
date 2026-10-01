@@ -251,6 +251,11 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "GET", path: "/api/van-chuyen/ly-do", access: "admin" }, // danh mục lý do điều phối — admin.manage viết thẳng (luật 4)
   { method: "POST", path: "/api/van-chuyen/ly-do", access: "admin" }, // thêm lý do; như trên
   { method: "PUT", path: "/api/van-chuyen/ly-do/:code", access: "admin" }, // sửa nhãn / thứ tự / ngưng (khoá lạc quan); như trên
+  // ADR-0054 D10.1 (+ ADR nháp nơi trả mặc định, đã duyệt 1/10): mẫu đưa đón theo dịch vụ. Màn Danh mục: cổng admin + admin.manage đầu thân; form lập đơn: cổng orders
+  // (tiền lệ /api/catalog/for-order) + can(order.create) đầu thân — chỉ mẫu hiện hành, ba khoá mỗi mã.
+  { method: "GET", path: "/api/van-chuyen/mau-chang", access: "orders" },
+  { method: "GET", path: "/api/van-chuyen/mau-chang/:code", access: "admin" },
+  { method: "POST", path: "/api/van-chuyen/mau-chang/:code", access: "admin" },
   // ADR-0049 D1–D3 (Task A13, kế hoạch mục 1.7 route 1–8, 40): chuyến xe — văn phòng lập kế hoạch. Thân hỏi trip.view / trip.dispatch (+ trip.override khi
   // gửi phá lệ) TRƯỚC mọi đọc; hàm hẹp của orders chỉ gọi sau can() (src/orders-cong-bo.test.ts).
   { method: "GET", path: "/api/van-chuyen/lich", access: "office" },
@@ -313,7 +318,7 @@ test("MODULES liệt kê ĐỦ mọi thư mục module có khai `...Module: AppM
   assert.deepEqual(routedDirs, listed, "có thư mục module khai AppModule nhưng chưa có trong MODULES của bài kiểm route-access này — thêm vào MODULES và SNAPSHOT");
 });
 
-test("mức truy cập của 198 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
+test("mức truy cập của 201 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
   const actual = await collectRealRoutes();
   // deepEqual TRƯỚC: khi có route mới/bị xoá, thông báo của nó chỉ ra ĐÚNG route lệch — hai assert.equal độ dài bên dưới chỉ để phòng hờ
   // (không bao giờ tự chạy tới nếu deepEqual đã trượt) và tài liệu hoá con số 86 để đối chiếu nhanh bằng mắt.
@@ -361,7 +366,8 @@ test("mức truy cập của 198 route hiện có khớp ảnh chụp đã duy�
   // 2026-10-01 (ADR-0068 Đ8): + GET /api/parties/duplicates = 199.
   // 2026-10-01 (ADR-0068 Đ9): + GET /api/staff/ho-so-khop = 200.
   // 2026-10-01 (ADR-0071 điều 2): − GET /api/staff/sheet, − POST /api/staff/sheet/apply (gỡ đồng bộ nhân viên từ Google Sheet) = 198.
+  // 2026-10-01 (ADR-0054 D10.1 + nơi trả mặc định — kế hoạch ô mới của chặng Task 6): + GET /api/van-chuyen/mau-chang (orders), GET/POST …/mau-chang/:code (admin) = 201.
   assert.deepEqual(actual, SNAPSHOT);
-  assert.equal(actual.length, 198, "số route thực tế lệch 198 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 198, "SNAPSHOT phải có đúng 198 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  assert.equal(actual.length, 201, "số route thực tế lệch 201 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 201, "SNAPSHOT phải có đúng 201 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });
