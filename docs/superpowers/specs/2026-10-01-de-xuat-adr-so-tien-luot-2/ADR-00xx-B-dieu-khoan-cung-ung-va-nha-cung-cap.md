@@ -113,6 +113,9 @@
 
 **Ví dụ B-4 — biên nhận đơn trộn.** Đơn: vé Hòn Tằm 1.000.000 (Tour Đảo bán) + vé i-resort 600.000 (i-resort bán). Khách chuyển khoản trước 500.000 cho công ty (thu cho Tour Đảo). Biên nhận: *Phần 1 — người bán Công ty TNHH Tour Đảo: 1.000.000; đã trả 500.000; còn lại 500.000.* *Phần 2 — người bán i-resort (Tour Đảo là đối tác đặt vé): 600.000; còn lại 600.000 thanh toán tại quầy i-resort.* Không có 480.000, 80%, hay hoa hồng.
 
+
+**Ví dụ B-5 — chủ hỏi 2026-10-01: như B-1/B-2, Hương tự giảm cho khách 20.000** (luật giảm giá ở ADR-00xx-C điều 9, C8 = A). Khách trả 580.000; giá vốn vẫn 80% × 600.000 = 480.000 (trước giảm, H8 = A); hoa hồng 100.000 (trước giảm); Hương chịu 20.000 (`GIAM_GIA_BEN_DAT`). (a) Khách trả đủ 580.000 tại quầy: i-resort nợ Tour Đảo 100.000; Tour Đảo nợ Hương 100.000 − 20.000 = **80.000**; Tour Đảo giữ 20.000 ✓. (b) Hương thu trước 200.000, quầy thu 380.000 (sau xác nhận): Hương nợ Tour Đảo 200.000 − 100.000 + 20.000 = **120.000**; Tour Đảo nợ i-resort 480.000 − 380.000 = **100.000**; Tour Đảo giữ 20.000 ✓. Hương giảm 150.000 (> hoa hồng 100.000) ⇒ 400. Biên nhận: "giảm 20.000, còn 580.000 thanh toán tại quầy i-resort" — không a%, giá vốn, hoa hồng. **Phải thành test khi thi công.**
+
 ---
 
 ## Sửa câu nào của quyết định đã duyệt
