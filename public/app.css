@@ -2208,7 +2208,7 @@ label.check > input.o-tick { display: inline; width: auto; margin: 0 var(--s2) 0
 .dd-cot { display: flex; flex-direction: column; gap: var(--s2); min-width: 0; }
 .dd-chang label, .hk label { min-width: 0; }
 .dd-gio { position: relative; display: block; }
-.dd-gio-mo { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; position: absolute; top: var(--s1); bottom: 0; left: 0; right: var(--tap-min); display: flex; align-items: center; padding-left: var(--s3); font-size: var(--fs-ui); color: var(--c-text-muted); background: var(--c-surface); border-radius: var(--radius-sm); pointer-events: none; margin: 1px; }
+.dd-gio-mo { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; position: absolute; top: var(--s1); bottom: 0; left: 0; right: var(--tap-min); display: flex; align-items: center; padding-left: var(--s3); font-size: var(--fs-label); color: var(--c-text-muted); background: var(--c-surface); border-radius: var(--radius-sm); pointer-events: none; margin: 1px; } /* chữ mờ (không phải ô gõ) — cỡ nhãn để "Chưa chốt giờ" vừa ô giờ ở cột chính máy tính */
 .dd-gio:focus-within .dd-gio-mo { display: none; }
 .dd-gio-mo[hidden] { display: none; }
 .dd-xem { display: flex; flex-direction: column; gap: var(--s1); }

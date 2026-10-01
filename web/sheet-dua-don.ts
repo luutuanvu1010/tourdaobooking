@@ -115,7 +115,8 @@ export function openSheetDuaDon(o: SheetDuaDonOptions, opener: HTMLElement): voi
         if (daLuuSo > 0 && !(err instanceof ApiError && err.code === "short_notice_required" && khungDatGap)) luu.disabled = true;
         renderBanner(bannerEl, loiBanner(err, daLuuSo), { reloadOrder: () => { bt!.close(false); o.onReload(); }, reloadPage: () => location.reload() });
         bannerEl.scrollIntoView({ block: "nearest" });
-        if (khungDatGap && err instanceof ApiError && err.code === "short_notice_required" && !datGap) {
+        // Lệnh đầu của lần gửi lại đã mang dấu đặt gấp; lệnh SAU mà cũng dưới mốc (chặng khác) → mở lại khung cho đúng lệnh đó.
+        if (khungDatGap && err instanceof ApiError && err.code === "short_notice_required" && (i > 0 || !datGap)) {
           cho = { lenh: ds[i]!, order: cur, conLai: ds.slice(i + 1) };
           replaceChildren(datGapEl, khungDatGap.root);
           datGapEl.hidden = false;

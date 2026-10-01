@@ -549,6 +549,9 @@ async function loadOrder(): Promise<void> {
     fill(order);
     // Hành khách của nháp: chỉ người có ô order.passenger.write; tải hỏng → KHÔNG dựng khối và KHÔNG gửi khoá `passengers` (máy chủ giữ danh sách đang lưu —
     // không bao giờ gửi [] khi chưa biết danh sách thật).
+    // Tải lại đơn (sau 409 stale): bỏ khối cũ TRƯỚC — tải danh sách hỏng thì không được gửi lại danh sách cũ đè lên bản người khác vừa sửa (R6).
+    hk = null;
+    hkCard.hidden = true;
     if (suaKhachDuoc(staff, order.staffId, canModify)) {
       try {
         const ds = await api<Api.PassengerListResponse>(`/api/orders/${encodeURIComponent(order.id)}/passengers`);
@@ -571,11 +574,13 @@ function dungKhoiKhach(rows: DongKhach[]): void {
   replaceChildren(hkCard, h("h2", null, "Hành khách"), hk.root);
   hkCard.hidden = false;
   datViTriKhoiKhach();
-  wideQuery.addEventListener("change", () => {
-    datViTriKhoiKhach();
-    hk?.refresh(true);
-  });
 }
+// Đổi khổ màn hình: dời khối + đổi bảng ↔ thẻ (một listener cho cả trang, không gắn lại mỗi lần dựng khối).
+wideQuery.addEventListener("change", () => {
+  if (!hk) return;
+  datViTriKhoiKhach();
+  hk.refresh(true);
+});
 
 /** ≥ 960px: khối trải ngang SAU lưới 2 cột (cột Tóm tắt dính không đè lên); dưới 960px: ngay sau thẻ "Dịch vụ" (bản vẽ điện thoại M2). Chỉ DỜI nút, không dựng lại. */
 function datViTriKhoiKhach(): void {
@@ -627,9 +632,10 @@ const layNhapTay = can(staff, "order.create")
 // ADR-0033: danh mục cho form chỉ dành cho người được lập đơn — máy chủ trả 403 cho tài khoản không có `order.create` (Kế toán), nên không gọi
 // (gọi thì hiện thêm "Không tải được danh mục dịch vụ — tải lại trang…", lời khuyên sai vì tải lại không giúp gì). Hôm nay mọi mã có `order.modify`
 // đều có `order.create`; ai sửa đơn mà không được lập đơn thì thẻ đã lưu hiện ở dạng khoá như khi mất danh mục (xem `loadCatalog`).
+// Điểm + mẫu chặng TRƯỚC khi danh mục hiện ra ô chọn: chọn dịch vụ sớm mà mẫu chưa về thì mất chặng tạo sẵn (M6) — kịch bản 9b bắt được.
+[diem, mauChang] = await Promise.all([layDiem, layMau]);
 if (can(staff, "order.create")) await loadCatalog(); // trước loadOrder: thẻ đã lưu cần danh mục hiện tại để biết còn đổi số khách được không
 duocNhapTay = await layNhapTay;
-[diem, mauChang] = await Promise.all([layDiem, layMau]);
 addManualBtn.hidden = !duocNhapTay;
 picker.setNhapTay(duocNhapTay);
 // Sửa đơn nháp: tiền trả trước là LẦN THU ở trang đơn (mục Thanh toán), không nhập lại ở form (sổ tiền lượt 1).

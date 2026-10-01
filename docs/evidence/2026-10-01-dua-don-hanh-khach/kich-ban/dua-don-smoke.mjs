@@ -94,7 +94,7 @@ try {
     await f.ev(typeInto(`${chang("OUT")} [data-o$=":tra"]`, GA));
   });
 
-  await b.step("3", `M2 (1040): khối Hành khách dạng bảng trải ngang dưới hàng 'thẻ dịch vụ | Tóm tắt'; 4 khách; dòng năm sinh sai → 'Dòng 3: năm sinh phải từ 1906 đến 2026.'; 3/4 nhắc vàng${axeNote()}`, async () => {
+  await b.step("3", `M2 (1040): khối Hành khách dạng bảng trải ngang dưới hàng 'thẻ dịch vụ | Tóm tắt'; 4 khách; dòng năm sinh sai → 'Dòng 3: năm sinh phải từ 1906 đến 2026.'; 3/4 nhắc vàng; nhập khách thứ 4 → 4/4${axeNote()}`, async () => {
     for (let i = 0; i < 3; i++) await f.ev(`document.querySelector('${card} .counter-btn[aria-label^="Tăng"]').click(); true`);
     await f.waitFor(shown("#hk-card"), "khối hành khách");
     assert.equal(await f.ev(txt("#hk-card .hk-trong")), "Chưa có hành khách nào.");
@@ -115,12 +115,19 @@ try {
     assert.equal(await f.ev(txt("#hk-card .hk-dem")), "3/4 khách đã có tên");
     assert.equal(await f.ev(txt("#hk-card .hk-nhac:not([hidden])")), "Còn 1 khách chưa có tên — cần đủ trước khi xe chạy");
     assert.deepEqual(await f.ev(`[...document.querySelectorAll('#hk-card .hk-dau-cot span')].map((s) => s.textContent)`), ["#", "Họ tên", "Năm sinh", "Loại khách (tuỳ chọn)", ""]);
+    await shotFull(f, "m2-form-3-tren-4-1040.png");
+    // Khách thứ 4 → 4/4, hết câu nhắc (tiêu chí 3: nhập 4 hành khách).
+    await f.ev(click("#hk-card [data-action='them-khach']"));
+    await f.waitFor(`document.querySelectorAll('#hk-card .hk-hang').length === 4`, "dòng 4");
+    await f.ev(`(() => { const r = document.querySelectorAll('#hk-card .hk-hang')[3]; for (const [s, v] of [['[data-o$=":ten"]', 'Lê Thị Hồng'], ['[data-o$=":nam"]', '1952']]) { const el = r.querySelector(s); el.value = v; el.dispatchEvent(new Event('input', { bubbles: true })); } const l = r.querySelector('select'); l.value = 'senior'; l.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
+    assert.equal(await f.ev(txt("#hk-card .hk-dem")), "4/4 khách đã có tên");
+    assert.equal(await f.ev(`!!document.querySelector('#hk-card .hk-nhac:not([hidden])')`), false, "đủ tên → không nhắc");
     assert.ok(await f.ev(noOverflowX));
     await axe(f, "form M2");
     await shotFull(f, "m1-m2-form-day-du-1040.png");
   });
 
-  await b.step("4", "Lưu nháp: POST /api/orders có legs (không pickupTime/pickupPlace) và passengers; GET /api/orders/:id có 2 chặng đúng nơi; GET /passengers trả 3 (tiêu chí 1, 2, 3)", async () => {
+  await b.step("4", "Lưu nháp: POST /api/orders có legs (không pickupTime/pickupPlace) và passengers; GET /api/orders/:id có 2 chặng đúng nơi; GET /passengers trả 4 (tiêu chí 1, 2, 3)", async () => {
     await f.ev(click("#save"));
     await f.waitFor("location.pathname === '/order'", "sang trang đơn", 15000);
     const post = apiCalls(f).filter((c) => c.method === "POST" && c.path === "/api/orders").at(-1);
@@ -128,7 +135,7 @@ try {
     const s0 = than.services[0];
     assert.ok(!("pickupTime" in s0) && !("pickupPlace" in s0), "không gửi hai khoá cũ");
     assert.equal(s0.legs.length, 2);
-    assert.equal(than.passengers.length, 3);
+    assert.equal(than.passengers.length, 4);
     donId = new URL(await f.ev("location.href")).searchParams.get("id");
     const o = (await call(ACCOUNTS.salesA, "GET", `/api/orders/${donId}`)).json.order;
     const legs = [...o.services[0].legs].sort((a, b) => (a.direction < b.direction ? -1 : 1));
@@ -137,12 +144,12 @@ try {
       ["RETURN", NGAY, "16:30", "Ga cáp treo Vinpearl", "Khách sạn Mường Thanh Luxury Nha Trang", null],
     ], JSON.stringify(legs));
     const p = (await call(ACCOUNTS.salesA, "GET", `/api/orders/${donId}/passengers`)).json;
-    assert.equal(p.passengers.length, 3);
+    assert.equal(p.passengers.length, 4);
     // Mở lại form sửa nháp: còn đủ chặng + hành khách.
     await f.ev(`document.querySelector('.sheet[role=dialog] .sheet-close')?.click(); true`);
   });
 
-  await b.step("5", `M3 (1040, Bán hàng, đơn nháp): hai khối mới sau 'Khách hàng'; chặng không giờ → 'Chưa chốt giờ' + 'Cần giờ đón trước khi xếp xe'; 'Đơn nháp — sửa trong biểu mẫu đơn.'; thẻ dịch vụ KHÔNG còn dòng 'Đón'; dưới nút Xác nhận: 'Còn 1 khách chưa có tên — cần đủ trước khi xe chạy'${axeNote()}`, async () => {
+  await b.step("5", `M3 (1040, Bán hàng, đơn nháp): hai khối mới sau 'Khách hàng'; chặng không giờ → 'Chưa chốt giờ' + 'Cần giờ đón trước khi xếp xe'; 'Đơn nháp — sửa trong biểu mẫu đơn.'; thẻ dịch vụ KHÔNG còn dòng 'Đón'; 4/4 khách đã có tên; đủ nơi trả + đủ tên → KHÔNG cảnh báo dưới nút Xác nhận${axeNote()}`, async () => {
     await f.waitFor(shown('[data-khoi="dua-don"]'), "khối Đưa đón");
     const thuTu = await f.ev(`[...document.querySelectorAll('.order-layout > div:first-child > section > h2, .order-layout > div:first-child > .services > h2')].map((x) => x.textContent)`);
     assert.deepEqual(thuTu.filter((x) => ["Khách hàng", "Đưa đón", "Hành khách", "Dịch vụ"].includes(x)), ["Khách hàng", "Đưa đón", "Hành khách", "Dịch vụ"]);
@@ -150,9 +157,9 @@ try {
     assert.match(dd, /Chiều đi .* Chưa chốt giờ .*✈︎ VN1553/);
     assert.match(dd, /Cần giờ đón trước khi xếp xe/);
     assert.match(dd, /Đơn nháp — sửa trong biểu mẫu đơn\./);
-    assert.match(await f.ev(txt('[data-khoi="hanh-khach"]')), /3\/4 khách đã có tên .*Còn 1 khách chưa có tên — cần đủ trước khi xe chạy.*1\. .*Nguyễn Văn An 1985.*/);
+    assert.match(await f.ev(txt('[data-khoi="hanh-khach"]')), /^Hành khách 4\/4 khách đã có tên 1\. .*Lê Thị Hồng 1952 · Người cao tuổi.*Sửa danh sách$/);
     assert.equal(await f.ev(`[...document.querySelectorAll('.svc-view .kv .muted')].some((x) => x.textContent === 'Đón')`), false, "D4: thẻ dịch vụ bỏ dòng Đón");
-    assert.equal(await f.ev(txt('[data-canh-bao="xac-nhan"]')), "Còn 1 khách chưa có tên — cần đủ trước khi xe chạy");
+    assert.equal(await f.ev(`!!document.querySelector('[data-canh-bao="xac-nhan"]')`), false, "đủ nơi trả, đủ tên → không cảnh báo dưới nút Xác nhận");
     assert.equal(await f.ev(noCode), "");
     await axe(f, "trang đơn nháp");
     await shotFull(f, "m3-don-nhap-1040.png");
@@ -224,9 +231,35 @@ try {
     assert.ok(!("pickupTime" in s0) && !("pickupPlace" in s0), put.body);
     assert.equal(s0.note, "Ghi chú mới");
   });
+
+  await b.step("8b", `M5 (1040): bảng 'Sửa danh sách hành khách' rộng 640px (token --w-sheet-hk), mỗi người một thẻ; 'Huỷ' đóng không gửi${axeNote()}`, async () => {
+    await m.ev(click('[data-action="sua-danh-sach"]'));
+    await m.waitFor(shown(".sheet[role=dialog] .hk-the"), "bảng thẻ");
+    await sleep(600);
+    assert.equal(await m.ev(`Math.round(document.querySelector('.sheet[role=dialog]').getBoundingClientRect().width)`), 640);
+    assert.equal(await m.ev(`document.querySelectorAll('.sheet .hk-the').length`), 3);
+    await axe(m, "bảng Sửa danh sách 1040");
+    await shotView(m, "m5-sua-danh-sach-1040.png");
+    const truoc = apiCalls(m).filter((c) => c.method === "POST" && c.path.endsWith("/passengers")).length;
+    await m.ev(`[...document.querySelectorAll('.sheet .sheet-foot button')].find((x) => x.textContent === 'Huỷ').click(); true`);
+    await m.waitFor(`!document.querySelector('.sheet[role=dialog]')`, "đóng bảng");
+    assert.equal(apiCalls(m).filter((c) => c.method === "POST" && c.path.endsWith("/passengers")).length, truoc);
+  });
   m.close();
 
   const m5 = await env.as(ACCOUNTS.salesA, `/order?id=${o2.id}`, MOB);
+  await b.step("8c", `M4 (390): bảng 'Sửa đưa đón' trượt từ đáy, không tràn ngang, chân 'Huỷ | Lưu'${axeNote()}`, async () => {
+    await m5.waitFor(shown('[data-action="sua-dua-don"]'), "nút Sửa đưa đón");
+    await m5.ev(click('[data-action="sua-dua-don"]'));
+    await m5.waitFor(shown(".sheet[role=dialog] .dd-chang"), "bảng Sửa đưa đón");
+    await sleep(600);
+    assert.ok(await m5.ev(`document.querySelector('.sheet').scrollWidth <= document.querySelector('.sheet').clientWidth + 1`), "bảng không tràn ngang");
+    assert.deepEqual(await m5.ev(`[...document.querySelectorAll('.sheet .sheet-foot button')].map((x) => x.textContent)`), ["Huỷ", "Lưu"]);
+    await axe(m5, "bảng Sửa đưa đón 390");
+    await shotView(m5, "m4-sua-dua-don-390.png");
+    await m5.ev(`[...document.querySelectorAll('.sheet .sheet-foot button')].find((x) => x.textContent === 'Huỷ').click(); true`);
+    await m5.waitFor(`!document.querySelector('.sheet[role=dialog]')`, "đóng bảng");
+  });
   await b.step("9", `M5 (390, Bán hàng): 'Sửa danh sách' mở bảng thẻ; 'Huỷ người' hỏi lại trong thẻ; thêm Lê Thị Hồng; Lưu → POST /passengers {them 1, huy 1}; 390 không tràn ngang${axeNote()}`, async () => {
     await m5.waitFor(shown('[data-action="sua-danh-sach"]'), "nút Sửa danh sách");
     assert.ok(await m5.ev(noOverflowX), "trang đơn 390 không tràn ngang");
@@ -257,9 +290,29 @@ try {
   });
   m5.close();
 
-  await b.step("10", "Form 390 (Bán hàng, sửa nháp): mở lại đơn nháp còn đủ chặng + 3 hành khách (dạng thẻ); thanh lưu dính đáy; không tràn ngang", async () => {
+  await b.step("9b", `M6 (390): dịch vụ 'Một chiều' (mẫu TTB06) → chỉ tạo sẵn chiều đi, câu 'Đã tạo sẵn chiều đi theo dịch vụ — sửa hoặc bỏ nếu khác.'; thanh lưu dính đáy; không tràn ngang${axeNote()}`, async () => {
+    const rm = await call(ACCOUNTS.admin, "POST", "/api/van-chuyen/mau-chang/TTB06", { mode: "ONE_WAY", returnTimeHint: null, noiTraMacDinhId: GA });
+    assert.ok(rm.status === 200 || rm.status === 201, rm.text);
+    const p = await env.as(ACCOUNTS.salesA, "/order-form", MOB);
+    await p.waitFor(`!!document.getElementById('catalog-q')`, "ô tìm danh mục");
+    await p.ev(typeInto("#orderDate", NGAY));
+    await p.ev("document.getElementById('catalog-q').focus(); true");
+    await p.ev(typeInto("#catalog-q", "TTB06"));
+    await p.waitFor("document.querySelectorAll('#catalog-list .catalog-pick').length === 1", "TTB06 trong danh mục");
+    await p.ev("document.querySelector('#catalog-list .catalog-pick').click(); true");
+    await p.waitFor(`document.querySelectorAll('${card} .dd-chang').length === 1`, "một chặng tạo sẵn");
+    assert.equal(await p.ev(txt(`${card} .dd .dd-ghi-tao`)), "Đã tạo sẵn chiều đi theo dịch vụ — sửa hoặc bỏ nếu khác.");
+    assert.equal(await p.ev(`document.querySelector('${chang("OUT")} [data-o$=":tra"]').value`), GA);
+    assert.ok(await p.ev(noOverflowX), "form 390 không tràn ngang");
+    assert.equal(await p.ev(`getComputedStyle(document.querySelector('.form-actions')).position`), "sticky", "thanh lưu dính đáy");
+    await axe(p, "form M6 390");
+    await shotFull(p, "m6-form-mot-chieu-390.png");
+    p.close();
+  });
+
+  await b.step("10", "Form 390 (Bán hàng, sửa nháp): mở lại đơn nháp còn đủ chặng + 4 hành khách (dạng thẻ); thanh lưu dính đáy; không tràn ngang", async () => {
     const p = await env.as(ACCOUNTS.salesA, `/order-form?id=${donId}`, MOB);
-    await p.waitFor(`document.querySelectorAll('${card} .dd-chang').length === 2 && document.querySelectorAll('#hk-card .hk-the').length === 3`, "nháp mở lại đủ");
+    await p.waitFor(`document.querySelectorAll('${card} .dd-chang').length === 2 && document.querySelectorAll('#hk-card .hk-the').length === 4`, "nháp mở lại đủ");
     assert.equal(await p.ev(`document.querySelector('${chang("OUT")} [data-o$=":bay"]').value`), "VN1553");
     assert.ok(await p.ev(noOverflowX), "form 390 không tràn ngang");
     await shotFull(p, "m1-m2-form-sua-nhap-390.png");
@@ -278,7 +331,7 @@ try {
   });
 
   // ---- Đối tác (mở SAU CÙNG): Số người chiều về chỉ xem; gửi khoá này → 403 (tiêu chí 7) ---------------------------------------------------------------------------
-  await b.step("12", `Tiêu chí 7 (390, Đối tác): form có chiều về → 'Số người chiều về' chỉ xem ('Cả đoàn' + 'Văn phòng điều chỉnh số người về'); khối Hành khách nhập được; API gửi paxOverride khác → 403${axeNote()}`, async () => {
+  await b.step("12", `Tiêu chí 7 (390, Đối tác): form có chiều về → 'Số người chiều về' chỉ xem ('Cả đoàn' + 'Văn phòng điều chỉnh số người về'); khối Hành khách nhập được; API gửi paxOverride khác → 403; đơn đã xác nhận: có 'Sửa danh sách', KHÔNG 'Sửa đưa đón', câu khoá D5${axeNote()}`, async () => {
     const od = await donApi(DOI_TAC, "Khách Đối Tác", 2, [leg({ dropoffLocationId: GA }), leg({ direction: "RETURN", pickupTime: "16:30", pickupLocationId: GA, dropoffLocationId: KS })]);
     const p = await env.as(DOI_TAC, `/order-form?id=${od.id}`, MOB);
     await p.waitFor(shown(`${chang("RETURN")} .dd-xem`), "ô chỉ xem");
@@ -297,6 +350,18 @@ try {
     const legs = cur.services[0].legs.map((l) => ({ id: l.id, direction: l.direction, pickupDate: l.pickupDate, pickupTime: l.pickupTime ?? "", pickupLocationId: l.pickupLocationId, pickupPlace: "", dropoffLocationId: l.dropoffLocationId, dropoffPlace: "", ...(l.direction === "RETURN" ? { paxOverride: 1 } : {}) }));
     const r403 = await call(DOI_TAC, "PUT", `/api/orders/${od.id}`, { ...base, customerName: "Khách Đối Tác", customerPhone: "0903 111 222", services: [{ ...svc(2, legs), id: cur.services[0].id }], expectedUpdatedAt: cur.updatedAt });
     assert.equal(r403.status, 403, r403.text);
+    // Đơn đã xác nhận: Đối tác thấy 'Sửa danh sách' (order.passenger.write own) nhưng KHÔNG 'Sửa đưa đón' (order.trip.edit none); câu khoá D5.
+    const cur2 = (await call(DOI_TAC, "GET", `/api/orders/${od.id}`)).json.order;
+    const xn = await call(DOI_TAC, "POST", `/api/orders/${od.id}/status`, { status: "confirmed" });
+    assert.equal(xn.status, 200, xn.text);
+    void cur2;
+    await p.send("Page.navigate", { url: `${env.base}/order?id=${od.id}` });
+    await p.waitFor(shown('[data-khoi="hanh-khach"]'), "khối Hành khách");
+    assert.equal(await p.ev(`!!document.querySelector('[data-action="sua-danh-sach"]')`), true, "Đối tác có Sửa danh sách");
+    assert.equal(await p.ev(`!!document.querySelector('[data-action="sua-dua-don"]')`), false, "Đối tác không có Sửa đưa đón");
+    assert.equal(await p.ev(txt(".lock-note")), "Đơn đã xác nhận: dịch vụ, số khách và tiền đã khoá. Chỉ sửa được danh sách hành khách.");
+    assert.ok(await p.ev(noOverflowX));
+    await shotFull(p, "tc7-doi-tac-don-xac-nhan-390.png");
     p.close();
   });
 } finally {
