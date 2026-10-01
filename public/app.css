@@ -282,6 +282,9 @@
   --fs-dp-run-so: var(--fs-step-3);
   --h-dp-khach: 32px;          /* dòng tên khách (05) */
   --w-dp-khai-gio: 260px;      /* ô "Xảy ra lúc" (06, khung 6d) */
+  /* Đưa đón — danh mục (bản vẽ M7 docs/design/2026-10-01-dua-don-hanh-khach/) */
+  --w-dd-che-do: 150px;        /* bề rộng gốc một thẻ chọn "Không / Một / Hai chiều" (xuống dòng khi hẹp) */
+  --w-dd-o: 220px;             /* cột tối thiểu của lưới "Giờ về gợi ý" / "Nơi trả gợi ý" */
 }
 * { box-sizing: border-box; }
 button, input, select, textarea { font-family: inherit; } /* nút/ô của trình duyệt KHÔNG kế thừa phông: Windows vẽ bằng Arial/Segoe UI giữa chữ Be Vietnam Pro (rà soát 2026-09-30) */
@@ -2179,3 +2182,38 @@ body.sheet-open .tl-fab { visibility: hidden; }
 
 /* Gộp hồ sơ (ADR-0068 C1): ô tích trong label.check (thay chuỗi style nội dòng cũ "width:auto;display:inline;margin:0 6px 0 0") — web/staff.ts khối #add-khop. */
 label.check > input.o-tick { display: inline; width: auto; margin: 0 var(--s2) 0 0; }
+
+/* ---------- Đưa đón — danh mục / điều phối (bản vẽ M7 docs/design/2026-10-01-dua-don-hanh-khach/; web/catalog.ts khung "Đưa đón"). Chỉ token. ---------- */
+.dd-chip-dong { margin-top: var(--s1); }
+.dd-ten-dong { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s1) var(--s2); }
+.dd-ten-dong .badge { margin-left: 0; }
+.dd-nhom { display: flex; flex-direction: column; gap: var(--s2); margin-bottom: var(--s4); }
+.dd-nhan { font-size: var(--fs-label); font-weight: 600; color: var(--c-text-muted); }
+.dd-che-do-ds { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.dd-che-do { position: relative; flex: 1 1 var(--w-dd-che-do); display: flex; align-items: center; gap: var(--s3); min-height: var(--row-h); padding: var(--s2) var(--s3); box-sizing: border-box; font-size: var(--fs-ui); color: var(--c-text); background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius-sm); cursor: pointer; }
+.dd-che-do > input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; padding: 0; opacity: 0; cursor: pointer; }
+.dd-che-do-cham { flex: none; width: var(--s5); height: var(--s5); box-sizing: border-box; border: var(--focus-ring) solid var(--c-text-muted); border-radius: var(--radius-pill); background: var(--c-surface); }
+.dd-che-do.dd-chon { font-weight: 600; background: var(--c-primary-soft); border-color: var(--c-primary); }
+.dd-che-do.dd-chon .dd-che-do-cham { border: var(--vc-radio-on) solid var(--c-primary); }
+.dd-che-do:has(input:focus-visible) { outline: var(--focus-ring) solid var(--c-primary); outline-offset: var(--focus-ring); }
+.dd-o-luoi { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--w-dd-o), 1fr)); gap: var(--s3); margin-bottom: var(--s3); }
+.dd-o[hidden] { display: none; }
+.dd-o label { font-size: var(--fs-label); font-weight: 600; color: var(--c-text-muted); }
+.dd-goi-y { margin-top: var(--s1); font-size: var(--fs-label); color: var(--c-text-muted); }
+.dd-ghi { margin: var(--s1) 0 0; font-size: var(--fs-label); }
+.dd-hanh-dong .actions { margin-bottom: var(--s1); }
+.dd-xong { margin: var(--s2) 0 0; font-size: var(--fs-label); color: var(--c-green-text); }
+.dd-xong:empty { display: none; }
+.dd-lich-su { margin-top: var(--s4); }
+.dd-lich-su h3 { margin: 0 0 var(--s2); font-family: var(--font-display); font-size: var(--fs-ui); color: var(--c-text); }
+.dd-bang-ls { width: 100%; border-collapse: collapse; font-size: var(--fs-label); }
+.dd-bang-ls th, .dd-bang-ls td { padding: var(--s2); border-bottom: 1px solid var(--c-border); text-align: left; vertical-align: top; }
+.dd-bang-ls th { font-weight: 600; color: var(--c-text-muted); white-space: nowrap; }
+.dd-luc { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.dd-ds-ls { margin: 0; padding: 0; list-style: none; }
+.dd-ds-ls li { display: flex; flex-direction: column; gap: var(--s1); padding: var(--s2) 0; border-bottom: 1px solid var(--c-border); font-size: var(--fs-label); }
+.dd-ds-ls .dd-luc { color: var(--c-text-muted); }
+.dd-ds-ls .dd-doi { font-weight: 600; }
+.dd-sheet .dd-che-do-ds { flex-direction: column; }
+.dd-sheet .dd-che-do { flex: none; } /* bản vẽ M7 390: ba thẻ chọn xếp dọc trong bảng trượt */
+.dd-sheet .sheet-foot .dd-luu-day { width: 100%; }
