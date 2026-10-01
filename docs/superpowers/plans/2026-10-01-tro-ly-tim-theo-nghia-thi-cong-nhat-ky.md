@@ -42,7 +42,28 @@ Ngày tra: 2026-10-01 (người thi công mở lại bằng WebFetch; khớp s�
 - `vn` = `{"n":214,"b":214,"mn":2048,"mx":2048,"sc":512}` (214 dòng, cả 214 là blob, độ dài 2048 = 512 × 4).
 - Lượt hỏi đầu: 2 lần gọi `/v1/embeddings`, tiền embedding 44 micro-USD, chi phí lượt 494 = 450 + 44.
 
+## Ruling của điều phối (chép từ sổ SDD trước khi xoá)
+
+- F1: đổi số ADR 0076 → 0082 (main đã dùng 0076–0081); nội dung đã duyệt không đổi.
+- F2: mục nhật ký phiên bản = 1.56 (main 1.55 lúc thi công); sửa `app-info.test.ts`.
+- F3: sửa dòng (f) sổ hàng rào + câu "Route hỏi" CHANGE-GUIDE z5 theo cách kiểm trần mới.
+- F4: thiếu khoá OpenAI → giữ 503 như cũ (cả trợ lý cần khoá); không tách nhánh lùi riêng cho embedding.
+- F5/F6: điểm từ khoá × vai một hàm; BM25 một lần mỗi câu; dòng lượt dựng bằng một hàm chung `dungLuot` cho hỏi + thử.
+- F7: assert phải khẳng định giá trị cụ thể (áp ở C4, Review Focus 2, T1, P2 ô thử, e2e 4b).
+- Task 3: `OR REPLACE` lọt trigger chỉ-thêm (`recursive_triggers` tắt) ⇒ hàng rào quét mã cấm `OR REPLACE` trên `tl_van_nghia`.
+- Task 4 I1: chỉ bước ghi D1 hỏng ⇒ vẫn dùng véc-tơ vừa tính và nạp bộ nhớ isolate (trả tiền lặp tối đa một lần mỗi isolate); e2e khẳng định có dòng `tl_van_nghia` (D4 — đã giải ở Task 6: D1 local nhận `Uint8Array` là BLOB).
+- Task 4 minor: câu hỏi rỗng / kho rỗng không gọi API, không log lỗi. **Gác lại**: bộ nhớ isolate không giới hạn (kho ~214 đoạn); ước token thô (kiểm trần dùng mức trần trên).
+- Task 7 gác lại (Thấp): kịch bản Chrome chưa phủ ca `doanDaChon` rỗng / nhãn riêng lẻ; `nhanKhop` ra đuôi trống nếu cả hai cờ sai (máy chủ không sinh ca này).
+
 ## Kiểm
 
-(điền ở Task 9)
+- Mỗi Task 1–8: người rà riêng (spec + chất lượng) + vòng sửa + rà lại đến sạch (Task 8 điều phối đọc diff tài liệu, phủ thêm ở kiểm độc lập).
+- **Kiểm độc lập toàn nhánh 2026-10-01 (người kiểm chỉ đọc, HEAD `a4aae0c0`): ĐẠT** — Cao 0, Trung bình 0, Thấp 3.
+  - `npm test` 2480/2480 + bài đo giờ xanh; `npm run typecheck` 0 lỗi; `npm run build:web` đạt; `npm run test:e2e -- tro-ly` 3/3 (214 dòng BLOB × 2048 byte; lượt 494 = 450 mẫu + 44 embedding); `npm run test:e2e` đủ bộ 36/36 + audit-invariants đạt; `npm run dict` khớp.
+  - 8 đột biến trên bản sao tạm đều đỏ thật: cổng trần route hỏi (2 đỏ) và ô thử (4 đỏ), thứ tự kiểm tiền tính bù, làm tròn lên, khoá `user` trong thân Embeddings, trigger chỉ-thêm, CHECK BLOB, bộ nhớ V5.
+  - T1 (đã xử lý): ghi lần quan sát cổng `tran.vuot` mới vào dòng (f) sổ hàng rào.
+  - T2 (để người gộp): số ADR kế tiếp 0083 đã bị nhánh khác dùng; migration `0062` và bản `1.56` là số tạm (nhánh khác giữ 0061, 0063).
+  - T3: bộ nhớ isolate không giới hạn — đã gác có lý do.
+- **Chưa kiểm**: kịch bản Chrome bước k lúc kiểm độc lập (người thi công Task 7 đã chạy xanh); OpenAI thật (giá, độ trễ); BLOB trên D1 remote; bộ 12 câu mẫu (sau triển khai); tính bù đồng thời thật.
+- **Rủi ro theo dõi sau triển khai**: lô tính bù đầu tiên ~214 đoạn trong một yêu cầu, hạn giờ 8 giây — nếu luôn quá giờ thì kho không bao giờ bù xong và mọi câu lùi về từ khoá (log `tro_ly_van_nghia_loi` sẽ hiện liên tục; bảng `tl_van_nghia` trống).
 - Đổi số ADR 0076 → 0082 ngày 2026-10-01 (main đã dùng 0076–0081); nội dung đã duyệt không đổi.
