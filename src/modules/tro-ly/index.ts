@@ -17,10 +17,10 @@ import { route, type AppModule } from "../../shared/router";
 import {
   CAU_CHUA_BAT, CAU_HET_TRAN_THANG, CAU_HOI_THO_TOI_DA, CAU_LOI, CAU_QUA_DAI, CAU_VAI_TAT, cauHetTranNgay, cheCauHoi, chiPhiMicroUsd, chiaKho, chonDoan,
   doanNguCanh, duocDungTroLy, ketQuaThuKhoa, khoaCuoi, khoangThang, kiemCaiDat, kiemLoiDan, kiemNguCanh, kiemVai, NHO_TRONG_MS, quyetDinhTran, thanThuKhoa, thanYeuCau,
-  truyVanTim, type SuDung,
+  truyVanTim, uocTokenVao, type SuDung,
 } from "../../shared/tro-ly";
 import { LOI_NHAC_MAC_DINH, boNaoHieuLuc, kiemBoNao, phanDoi } from "../../shared/tro-ly-bo-nao";
-import { DANH_SACH_MAU, DO_DAI, DO_DAI_NHAN, MUC_NHAN, uocMotCauMicroUsd } from "../../shared/tro-ly-mau";
+import { DANH_SACH_MAU, DO_DAI, DO_DAI_NHAN, MUC_NHAN, chiPhiToiDa, uocMotCauMicroUsd, vuotTranThang } from "../../shared/tro-ly-mau";
 import { goiOpenAi, traLoiMotCau } from "./goi-mau";
 import { GIOI_HAN_TRO_LY as G } from "../../shared/tro-ly-gioi-han";
 import { vnToday } from "../../shared/vn-date";
@@ -34,6 +34,14 @@ const khoaCua = (env: Env): string | null => env.OPENAI_API_KEY?.trim() || null;
 
 /** Chỉ MÃ lý do — không nội dung, không thân phản hồi của OpenAI. */
 const logLoi = (lyDo: string): void => console.error(JSON.stringify({ event: "tro_ly_loi", ly_do: lyDo }));
+
+/**
+ * ADR-0073 Đ7b (P2) — MỘT chỗ kiểm trần tháng bằng chi phí TỐI ĐA của lượt, dùng cho mọi đường gọi mẫu có tính tiền (câu hỏi; ô thử ở Task 9).
+ * Ước = token vào ước của TOÀN BỘ yêu cầu `than` (lời nhắc + phần nhớ + câu mới + đoạn tài liệu) × giá vào + token ra tối đa × giá ra.
+ * true ⇒ KHÔNG gọi. Vượt trần do nhiều lượt song song vẫn có thể xảy ra, chặn trên bởi số lượt song song × chi phí tối đa (ADR-0073 Đ7b).
+ */
+export const kiemTranTruocKhiGoi = (boNao: { mau: string; tokenRaToiDa: number }, than: Record<string, unknown>, daDungThang: number, tranThang: number): boolean =>
+  vuotTranThang(daDungThang, chiPhiToiDa(boNao.mau, uocTokenVao(than), boNao.tokenRaToiDa), tranThang);
 
 const usd = (micro: number): number => micro / 1_000_000;
 /** Cộng mức dùng hai lần gọi (phòng thủ gọi lại không nhớ); cả hai null ⇒ null. */
@@ -156,7 +164,7 @@ export const troLyModule: AppModule = {
         id: crypto.randomUUID(), staffId: staff.id, ngayVn, vao: u?.vao ?? 0, vaoDem: u?.vaoDem ?? 0, ra: u?.ra ?? 0, chiPhi: chiPhiMicroUsd(u, boNao.mau),
         ketQua, mau: ketQua === "het_tran" ? null : boNao.mau, laThu: false, at, // het_tran: không gọi mẫu ⇒ mau null (chú thích LuotHoi)
       });
-      // ADR-0066 điều 6: trần kiểm TRƯỚC khi dựng lời nhắc / gọi mạng. Kiểm-rồi-ghi không nguyên tử: vài câu gửi cùng lúc có thể vượt trần một chút
+      // ADR-0066 điều 6: trần kiểm TRƯỚC khi dựng lời nhắc (lớp một: đã chạm trần); lớp hai (chi phí tối đa của lượt — ADR-0073 Đ7b) kiểm sau khi dựng thân yêu cầu, trước khi gọi. Kiểm-rồi-ghi không nguyên tử: vài câu gửi cùng lúc có thể vượt trần một chút
       // (mỗi câu ~0,001 USD) — chấp nhận, ghi ở đặc tả; lớp hai là giới hạn ngân sách ở bảng điều khiển OpenAI.
       const qd = quyetDinhTran(caiDat, { soCauHomNay, chiPhiThang: thang.tong });
       if (qd === "het_tran_thang" || qd === "het_tran_ngay") {
@@ -185,6 +193,10 @@ export const troLyModule: AppModule = {
       const doan = chonDoan(truyVanTim(cauHoi, nho.at(-1)?.cauHoi ?? null), staff.permissions, [...chiaKho(), ...doanNguCanh(nguCanh)]);
       // `than` = TOÀN BỘ đầu vào (lời nhắc + phần nhớ + câu mới): ước token trước khi gọi (Task 8) phải dùng uocTokenVao(than), không chỉ câu mới.
       const than = thanYeuCau(boNao, staff.permissions, doan, cauHoi, nho);
+      if (kiemTranTruocKhiGoi(boNao, than, thang.tong, caiDat.tranThangMicroUsd)) {
+        await ghiLuot(db, luot("het_tran", null));
+        return error(429, "tro_ly_het_tran_thang", CAU_HET_TRAN_THANG);
+      }
       // P1 (Đ7a): kq.traLoi đã qua anSoTien trong traLoiMotCau — biến này là thứ DUY NHẤT được trả và được lưu (bài route "HÀNG RÀO lọc số tiền").
       let kq = await traLoiMotCau(env, khoa, than, doan);
       // Phòng thủ (nhật ký thi công: chưa kiểm được OpenAI nhận `input` nhiều lượt cùng `instructions`): 400 cho yêu cầu CÓ phần nhớ ⇒ gọi lại ĐÚNG MỘT lần

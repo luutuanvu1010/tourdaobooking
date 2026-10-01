@@ -260,3 +260,18 @@ test("Phòng thủ (ADR-0073 Đ4, điểm OpenAI chưa kiểm): OpenAI trả 400
   const l = w.q("SELECT ket_qua FROM tl_luot_hoi ORDER BY created_at DESC, rowid DESC LIMIT 1")[0]!;
   assert.equal(l.ket_qua, "ok");
 });
+
+test("HÀNG RÀO kiểm trần trước khi gọi (P2): đã dùng + chi phí TỐI ĐA của lượt > trần ⇒ 429 het_tran_thang, KHÔNG gọi mẫu, ghi dòng het_tran; mẫu rẻ cùng trần vẫn được", async () => {
+  const w = setup();
+  const goi = openAiGia();
+  assert.equal((await w.call("POST", "/api/tro-ly/cai-dat", { as: SUP, body: { bat: true, tranThangUsd: 0.04, tranNgay: 30 } })).status, 200);
+  assert.equal((await luuBoNao(w, { ...MINI, mau: "gpt-5", mucSuyNghi: "high", tokenRaToiDa: 4000 })).status, 200);
+  const r = await hoi(w, SALES, "đổi mã PIN thế nào");
+  assert.equal(r.status, 429, r.text);
+  assert.equal(r.json.error.code, "tro_ly_het_tran_thang");
+  assert.equal(goi.length, 0, "không được gọi mẫu");
+  assert.deepEqual(w.q("SELECT ket_qua, chi_phi_micro_usd FROM tl_luot_hoi").map((x) => [x.ket_qua, x.chi_phi_micro_usd]), [["het_tran", 0]]);
+  assert.equal((await luuBoNao(w, { ...MINI, mau: "gpt-5-nano", mucSuyNghi: "minimal", tokenRaToiDa: 1200 })).status, 200);
+  assert.equal((await hoi(w, SALES, "đổi mã PIN thế nào")).status, 200, "nano: tối đa < 0,04 USD");
+  assert.equal(goi.length, 1);
+});

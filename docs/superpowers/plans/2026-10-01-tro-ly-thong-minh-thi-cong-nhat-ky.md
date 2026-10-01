@@ -124,6 +124,19 @@ not ok 10 - HÀNG RÀO nhớ chỉ cùng người (N3): người B gửi mã cu�
 - Cho Task 8 (kiểm trần trước khi gọi): route dựng `than` (lời nhắc + phần nhớ + câu mới) THÀNH MỘT BIẾN trước khi gọi — ước token phải là `uocTokenVao(than)` (đã gồm `input` dạng mảng), không chỉ câu mới. Lưu ý: đường phòng thủ là lần gọi thứ hai — Task 8 nên coi trần kiểm cho lần đầu là đủ (lần hai nhỏ hơn).
 - Mã cuộc trò chuyện kiểm bằng `UUID_RE` có sẵn (`/^[0-9a-f-]{36}$/`, chữ thường) — lỏng (nhận 36 dấu gạch) nhưng an toàn vì mã chỉ là khoá tra trong phạm vi `staff_id` của chính người hỏi. Khung (task giao diện) phải sinh mã bằng `crypto.randomUUID()` (chữ thường).
 
+### Task 8 — hàng rào (f) "kiểm trần tháng bằng chi phí TỐI ĐA của lượt trước khi gọi mẫu" (P2, Đ7b) — 2026-10-01
+
+- Đột biến: trong `src/modules/tro-ly/index.ts` đổi `if (kiemTranTruocKhiGoi(boNao, than, …))` thành `if (false && kiemTranTruocKhiGoi(boNao, than, …))`.
+- Lệnh: `node --test src/modules/tro-ly/bo-nao-route.test.ts` ⇒ `# pass 14`, `# fail 1`:
+
+```
+not ok 15 - HÀNG RÀO kiểm trần trước khi gọi (P2): đã dùng + chi phí TỐI ĐA của lượt > trần ⇒ 429 het_tran_thang, KHÔNG gọi mẫu, ghi dòng het_tran; mẫu rẻ cùng trần vẫn được
+```
+
+- Hoàn nguyên bằng python; `grep -c "false &&" src/modules/tro-ly/index.ts` = 0; chạy lại ⇒ `# pass 15`, `# fail 0`.
+- Ước dùng `uocTokenVao(than)` (toàn bộ `instructions` + `input`, gồm phần nhớ và đoạn tài liệu), không riêng ngân sách 6.000 token tài liệu. MỘT hàm `kiemTranTruocKhiGoi` (export ở `src/modules/tro-ly/index.ts`) — Task 9 (ô thử) dùng lại, không chép khối.
+- Đường phòng thủ (gọi lại không nhớ) không kiểm lại: lần hai nhỏ hơn lần đầu đã qua kiểm.
+
 ## Kiểm
 
 (điền ở Task 18)
