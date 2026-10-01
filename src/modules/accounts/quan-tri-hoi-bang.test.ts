@@ -63,6 +63,7 @@ test("LC-4 qua bảng quyền: Hành chính nhân sự cấp Quản trị cho t�
 test("LC-4 qua bảng quyền: quản trị cấp Quản trị cho cấp dưới bằng route cũ PUT …/permissions → 403; toàn quyền → 200", async () => {
   const w = setup();
   const body = { permissions: ["SALES", "ADMIN"] };
+  // Từ ADR-0083 điều 1a, 403 này đến SỚM hơn (đường kiểu cũ chỉ Toàn quyền) — LC-4 của Quản trị ở đường này không còn tới được; LC-4 vẫn khoá ở PUT …/roles.
   assert.equal((await w.call("PUT", `/api/staff/${SALES}/permissions`, { as: ADM, body })).status, 403);
   assert.deepEqual(w.q("SELECT permission_type_code p FROM stf_permission WHERE staff_id = ? AND valid_to_at IS NULL ORDER BY 1", SALES).map((r: any) => r.p), ["SALES"]);
   assert.equal((await w.call("PUT", `/api/staff/${SALES}/permissions`, { as: SUP, body })).status, 200);

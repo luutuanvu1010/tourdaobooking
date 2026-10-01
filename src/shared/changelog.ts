@@ -12,8 +12,8 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // ADR-0047 Phần B (giao diện Đưa đón + Hành khách theo bản vẽ Claude Design của chủ 1/10) + màn mẫu chặng ADR-0054/0076 + cảnh báo sớm (chủ "2 — Có").
-    // Không migration. Số "1.57" = lớn nhất trên main + 1 lúc gộp (2026-10-01).
-    version: "1.57",
+    // Không migration. Số "1.58" = main 1.57 + 1 (đánh lại lúc gộp main 1.57 — ADR-0083, 2026-10-01; trước ghi 1.57).
+    version: "1.58",
     date: "2026-10-01",
     items: [
       { kind: "moi", text: "Form đơn có khối \"Đưa đón\": chiều đi, chiều về, ngày giờ đón, nơi đón, nơi trả, số hiệu chuyến bay, số người chiều về." },
@@ -22,6 +22,18 @@ export const CHANGELOG: readonly ReleaseNote[] = [
       { kind: "moi", text: "Chi tiết đơn có \"Sửa đưa đón\" và \"Sửa danh sách\" cho đơn đã xác nhận." },
       { kind: "moi", text: "Danh mục: Quản trị cài mỗi dịch vụ đưa đón mấy chiều, giờ về và nơi trả gợi ý." },
       { kind: "moi", text: "Nhắc sớm khi xác nhận đơn và khi xếp xe nếu còn thiếu nơi trả hoặc tên khách; vẫn làm tiếp được." },
+    ],
+  },
+  {
+    // ADR-0083 (nợ rà soát vai ↔ quyền): gán quyền kiểu cũ chỉ Toàn quyền + chặn tài khoản lai; xem đủ số giấy tờ chỉ Toàn quyền; đổi tên vai Tài xế taxi.
+    // Có migration 0063. Số "1.57" = main 1.56 + 1 (đánh lại lúc gộp main 1.56 — trợ lý tìm theo nghĩa, 2026-10-01; thi công ghi 1.56).
+    version: "1.57",
+    date: "2026-10-01",
+    items: [
+      { kind: "doi", text: "Quản trị không còn xem đủ số giấy tờ (căn cước, bằng lái): vẫn thấy số đã che, vẫn thêm, gia hạn, sửa sai. Cần số đầy đủ thì nhờ người phụ trách hệ thống." },
+      { kind: "doi", text: "Vai \"Tài xế taxi\" đổi tên thành \"Tài xế taxi (giới thiệu khách)\" cho khỏi nhầm với \"Tài xế đối tác\" (người lái chuyến). Quyền không đổi." },
+      { kind: "doi", text: "Màn Sửa tài khoản: khối \"Quyền cũ\" (tài khoản chưa gán vai) chỉ người phụ trách hệ thống thấy. Quản trị và Hành chính nhân sự đổi quyền bằng cách gán vai." },
+      { kind: "doi", text: "Một tài khoản không còn giữ cùng lúc quyền nội bộ và quyền đối tác, dù gán theo vai hay theo cách cũ: ô cộng tay tạo kiểu lai này bị khoá." },
     ],
   },
   {

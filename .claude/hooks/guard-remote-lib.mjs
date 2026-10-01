@@ -185,7 +185,7 @@ function normalise(raw) {
 }
 
 /** Mọi chuỗi lệnh cần kiểm: lệnh gốc (đã bỏ nháy) + lệnh lồng trong $(...), `...`, bash -c "...", eval "...". */
-function candidates(raw0, depth = 0, seen = new Set()) {
+export function candidates(raw0, depth = 0, seen = new Set()) {
   if (depth > 3 || seen.has(raw0)) return [];
   seen.add(raw0);
   const raw = normalise(stripHeredocs(raw0));

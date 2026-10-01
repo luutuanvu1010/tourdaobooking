@@ -88,7 +88,8 @@ Tìm: gõ tên hoặc số điện thoại, lọc theo loại, công việc, nơ
 
 - Được cấp giấy mới: bấm [[Gia hạn]], dòng cũ giữ làm lịch sử, bấm [[Lưu gia hạn]].
 - Ghi sai: bấm [[Sửa sai]], chọn lý do, bấm [[Lưu sửa sai]].
-- Số luôn bị che. Cần xem: bấm [[Xem đủ số]] và xác nhận. Số hiện vài giây rồi tự che, hoặc bấm [[Che lại]].
+- Số luôn bị che. Chỉ người phụ trách hệ thống xem được số đầy đủ: bấm [[Xem đủ số]] và xác nhận. Số hiện vài giây rồi tự che, hoặc bấm [[Che lại]].
+- Quản trị chỉ thấy số đã che (ví dụ ••••6789), vẫn thêm, gia hạn, sửa sai được. Cần số đầy đủ (ví dụ kiểm bằng lái thật) thì nhờ người phụ trách hệ thống, hoặc xem bản giấy.
 
 > Lưu ý: mỗi lần xem đủ số đều được ghi nhật ký. Hồ sơ của Quản trị khác bạn chỉ xem, không sửa.`,
     },

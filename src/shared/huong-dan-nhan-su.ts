@@ -21,7 +21,7 @@ export const HD_NHAN_SU: NhomHuongDan = {
       noiDung: `1. Vào [[Quản lý tài khoản]], khung [[Thêm tài khoản]].
 2. Gõ [[Họ tên]] và [[Số điện thoại (tên đăng nhập)]].
 3. Nếu app hiện hồ sơ khớp (người đã có tài khoản, đối tác, nhân viên), bấm **Dùng hồ sơ này** để không tạo trùng. Nếu app chỉ báo "Số hoặc tên này đã có trong Danh bạ" mà không hiện tên: tick **Vẫn tạo hồ sơ mới**, tạo xong nhờ Quản trị gộp hồ sơ trùng.
-4. Ở [[Vai và quyền]], tick vai. Nhóm **Nội bộ**: [[Hướng dẫn viên nội bộ]], [[Nhân viên kinh doanh]], [[Thực tập sinh]], [[Kế toán]], [[Tài xế công ty]]. Nhóm **Bên ngoài**: [[Công ty lữ hành]], [[Hướng dẫn viên độc lập]], [[Lễ tân khách sạn]], [[Tài xế taxi]], [[Cộng tác viên]], [[Tài xế đối tác]].
+4. Ở [[Vai và quyền]], tick vai. Nhóm **Nội bộ**: [[Hướng dẫn viên nội bộ]], [[Nhân viên kinh doanh]], [[Thực tập sinh]], [[Kế toán]], [[Tài xế công ty]]. Nhóm **Bên ngoài**: [[Công ty lữ hành]], [[Hướng dẫn viên độc lập]], [[Lễ tân khách sạn]], [[Tài xế taxi (giới thiệu khách)]], [[Cộng tác viên]], [[Tài xế đối tác]].
 5. Đọc dòng **Quyền sẽ có** ngay dưới để chắc chắn đúng.
 6. Bấm [[Tạo tài khoản]].
 7. Bảng PIN hiện **một lần duy nhất**. Bấm [[Sao chép danh sách]] hoặc chép tay, gửi riêng cho người đó, không gửi nhóm chung.
