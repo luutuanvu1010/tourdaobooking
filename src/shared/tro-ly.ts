@@ -13,6 +13,7 @@ import { viPhamKyThuat } from "./tro-ly-loc-ky-thuat.ts";
 import { MAU_MAC_DINH, timMau, type SoToken } from "./tro-ly-mau.ts";
 export { chiPhiMicroUsd } from "./tro-ly-mau.ts";
 import { chuSach, type BoNao } from "./tro-ly-bo-nao.ts";
+import { dongMai, type XungHo } from "./xung-ho.ts";
 export { CAU_TU_CHOI } from "./tro-ly-bo-nao.ts";
 
 // ---------------------------------------------------------------- hằng (ADR-0066 điều 2, 5, 6)
@@ -43,7 +44,9 @@ export const CHE = "[đã che]";
 export const CAU_CHUA_BAT = "Trợ lý chưa bật. Xem hướng dẫn ở Trợ giúp hoặc hỏi Quản trị.";
 /** ADR-0066 điều 6 — nguyên văn. */
 export const CAU_HET_TRAN_THANG = "Trợ lý tạm nghỉ tới tháng sau — xem Trợ giúp";
-export const cauHetTranNgay = (tran: number): string => `Bạn đã hỏi đủ ${tran} câu hôm nay. Mai hỏi tiếp, hoặc xem hướng dẫn ở Trợ giúp.`;
+export const cauHetTranNgay = (tran: number): string => `Bạn đã hỏi đủ ${tran} câu hôm nay. Ngày mai hỏi tiếp, hoặc xem hướng dẫn ở Trợ giúp.`;
+/** Chỉ ô thử của Toàn quyền (khung nhân viên giữ CAU_LOI): mẫu suy nghĩ đã dùng hết token ra mà chưa viết được chữ nào. */
+export const CAU_HET_TOKEN_RA = "Mẫu AI đã dùng hết số token trả lời cho phần suy nghĩ trước khi kịp viết câu trả lời. Tăng \"Số token trả lời tối đa\" hoặc giảm \"Mức suy nghĩ\" rồi thử lại.";
 export const CAU_LOI = "Trợ lý đang bận hoặc gặp lỗi. Thử lại sau ít phút, hoặc xem hướng dẫn ở Trợ giúp.";
 /** ADR-0066 điều 4 — nguyên văn. Từ ADR-0073 (M1) máy chủ KHÔNG còn tự trả câu này (không khớp vẫn gọi mẫu); giữ hằng cho bài kiểm ví dụ cũ của chủ. */
 export const CAU_CHUA_CO = "Chưa có trong hướng dẫn — hỏi Quản trị hoặc gửi Góp ý";
@@ -224,14 +227,17 @@ export const nhomVai = (perms: readonly PermissionCode[]): string => perms.map((
 export const KHONG_TIM_THAY = "(không tìm thấy đoạn hướng dẫn liên quan)";
 
 /**
- * Lời nhắc gửi đi = lời nhắc của bộ não (Toàn quyền sửa được TOÀN BỘ — ADR-0073 Đ2) + phần MÁY CHỦ luôn nối ở CUỐI: dòng nhóm vai (chỉ tên nhóm —
- * ADR-0066 điều 5) và khối "TÀI LIỆU:" (đoạn đã chọn, hoặc ghi chú không tìm thấy — Đ3, M1). Toàn quyền không chèn / bỏ được khối tài liệu (hàng rào B4,
- * bài tro-ly.test.ts "HÀNG RÀO dungLoiNhac (B4)").
+ * Lời nhắc gửi đi = lời nhắc của bộ não (Toàn quyền sửa được TOÀN BỘ — ADR-0073 Đ2) + phần MÁY CHỦ luôn nối SAU nó: dòng "Tên bạn là Mai…" với cách gọi /
+ * cách xưng của CHÍNH người hỏi (ADR-0084 Đ3 — chỉ tên gọi, không họ / tên đệm / SĐT / id: Đ4; máy chủ đọc hồ sơ theo phiên, không nhận từ trình duyệt),
+ * dòng nhóm vai (chỉ tên nhóm — ADR-0066 điều 5) và khối "TÀI LIỆU:" ở CUỐI (đoạn đã chọn, hoặc ghi chú không tìm thấy — Đ3, M1). Dòng Mai đứng TRƯỚC khối
+ * tài liệu (không lẫn vào tài liệu; khối tài liệu vẫn cuối — hàng rào B4). Toàn quyền không chèn / bỏ được hai dòng này hay khối tài liệu (bài tro-ly.test.ts
+ * "HÀNG RÀO dungLoiNhac (B4)" + "ADR-0084 Đ3: dòng Mai").
  */
-export function dungLoiNhac(loiNhac: string, perms: readonly PermissionCode[], doan: readonly DoanTriThuc[]): string {
+export function dungLoiNhac(loiNhac: string, perms: readonly PermissionCode[], nguoi: XungHo, doan: readonly DoanTriThuc[]): string {
   return [
     loiNhac.trim(),
     "",
+    dongMai(nguoi),
     `Người hỏi thuộc nhóm vai: ${nhomVai(perms)}. Ưu tiên cách làm của nhóm vai này.`,
     "",
     "TÀI LIỆU:",
@@ -243,13 +249,16 @@ export function dungLoiNhac(loiNhac: string, perms: readonly PermissionCode[], d
 export interface LuotTruoc { readonly cauHoi: string; readonly traLoi: string }
 
 /**
- * Thân yêu cầu Responses API (POST /v1/responses) theo bộ não. KHÔNG có `user`, `safety_identifier`, `metadata`, `previous_response_id` (ADR-0066 điều 5);
- * `store: false`. Có lượt trước ⇒ `input` là danh sách lượt user / assistant rồi câu hỏi mới; không có ⇒ chuỗi câu hỏi (như trước).
+ * Thân yêu cầu Responses API (POST /v1/responses) theo bộ não. KHÔNG có `user`, `safety_identifier`, `metadata`, `previous_response_id` (ADR-0066 điều 5,
+ * ADR-0082 G2 — ADR-0084 Đ4 giữ nguyên); `store: false`. `nguoi` BẮT BUỘC (không mặc định — mọi nơi gọi, kể cả kiểm trần, phải truyền cùng người hỏi để
+ * mức trần tính cả dòng Mai). Có lượt trước ⇒ `input` là danh sách lượt user / assistant rồi câu hỏi mới; không có ⇒ chuỗi câu hỏi (như trước).
  */
-export function thanYeuCau(b: BoNao, perms: readonly PermissionCode[], doan: readonly DoanTriThuc[], cauHoiDaChe: string, nho: readonly LuotTruoc[] = []): Record<string, unknown> {
+export function thanYeuCau(
+  b: BoNao, perms: readonly PermissionCode[], nguoi: XungHo, doan: readonly DoanTriThuc[], cauHoiDaChe: string, nho: readonly LuotTruoc[] = [],
+): Record<string, unknown> {
   return {
     model: b.mau,
-    instructions: dungLoiNhac(b.loiNhac, perms, doan),
+    instructions: dungLoiNhac(b.loiNhac, perms, nguoi, doan),
     input: nho.length
       ? [...nho.flatMap((l) => [{ role: "user", content: l.cauHoi }, { role: "assistant", content: l.traLoi }]), { role: "user", content: cauHoiDaChe }]
       : cauHoiDaChe,
@@ -272,7 +281,8 @@ export const truyVanTim = (cauHoi: string, cauTruoc: string | null): string => (
 // ---------------------------------------------------------------- đọc phản hồi + nguồn
 
 export type SuDung = SoToken;
-export interface PhanHoiDoc { readonly chu: string; readonly suDung: SuDung | null }
+/** `hetToken` chỉ có (= true) khi mẫu trả `status: "incomplete"` + `incomplete_details.reason: "max_output_tokens"` MÀ không có chữ nào: mẫu suy nghĩ đã dùng hết token ra. */
+export interface PhanHoiDoc { readonly chu: string; readonly suDung: SuDung | null; readonly hetToken?: true }
 
 const soKhongAm = (v: unknown): number => (typeof v === "number" && Number.isFinite(v) && v > 0 ? Math.floor(v) : 0);
 
@@ -281,7 +291,7 @@ const soKhongAm = (v: unknown): number => (typeof v === "number" && Number.isFin
  * không có trong JSON thô). `usage` đọc kể cả khi `status` = "incomplete" (vẫn tính tiền — ADR-0066 điều 6). Thân lạ → chữ rỗng, `suDung` null.
  */
 export function docPhanHoi(json: unknown): PhanHoiDoc {
-  const j = (json ?? {}) as { output?: unknown; usage?: { input_tokens?: unknown; output_tokens?: unknown; input_tokens_details?: { cached_tokens?: unknown } } };
+  const j = (json ?? {}) as { status?: unknown; incomplete_details?: { reason?: unknown } | null; output?: unknown; usage?: { input_tokens?: unknown; output_tokens?: unknown; input_tokens_details?: { cached_tokens?: unknown } } };
   const phan: string[] = [];
   if (Array.isArray(j.output)) {
     for (const o of j.output as { type?: unknown; content?: unknown }[]) {
@@ -293,7 +303,9 @@ export function docPhanHoi(json: unknown): PhanHoiDoc {
   const suDung = u && typeof u === "object"
     ? { vao: soKhongAm(u.input_tokens), vaoDem: Math.min(soKhongAm(u.input_tokens_details?.cached_tokens), soKhongAm(u.input_tokens)), ra: soKhongAm(u.output_tokens) }
     : null;
-  return { chu: phan.join("").trim(), suDung };
+  const chu = phan.join("").trim();
+  const het = !chu && j.status === "incomplete" && j.incomplete_details?.reason === "max_output_tokens";
+  return het ? { chu, suDung, hetToken: true } : { chu, suDung };
 }
 
 /**

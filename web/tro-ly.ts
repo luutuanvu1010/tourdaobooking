@@ -15,20 +15,29 @@ import { layCoTuMo } from "./tro-ly-co";
 import {
   LE, docViTri, doiCo, ghiViTri, hopTuViTri, keo, macDinh, taoMaCuoc, viTriTuHop, type Hop, type KhungNhin, type ViTri, type VungAnToan,
 } from "../src/shared/tro-ly-khung";
+import { CAU_CHAO_MAC_DINH, thayTen } from "../src/shared/xung-ho";
 
 type Tin = { ai: "nguoi"; chu: string } | { ai: "tro-ly"; chu: string; nguon: string[] } | { ai: "loi"; chu: string };
 
 const LOI_MANG = "Không kết nối được. Kiểm tra mạng rồi thử lại.";
-/** Dự phòng khi lời dặn chưa có câu chào (không xảy ra với dữ liệu gieo 0054). */
-const CHAO = "Chào bạn! Hỏi mình cách dùng app, ví dụ: “Đổi mã PIN thế nào?” hoặc “Lập đơn mới ra sao?”.";
-/** ADR-0069 điều 5 — nguyên văn. */
-const CAU_LUU = "Câu hỏi được lưu để cải thiện trợ lý — đừng gõ thông tin khách";
+/** Dự phòng khi lời dặn chưa có câu chào (không xảy ra với dữ liệu gieo 0054) = câu chào mặc định Mai (ADR-0084 Đ5). */
+const CHAO = CAU_CHAO_MAC_DINH;
 const tin: Tin[] = [];
 let dangHoi = false;
 
 /** Mã cuộc trò chuyện (ADR-0073 Đ4, R5): sinh mới mỗi lần mở khung lúc chưa có tin và khi bấm "Cuộc trò chuyện mới"; chỉ nằm trong bộ nhớ trang (không lưu máy) để điều người dùng thấy = điều máy chủ nhớ. Khung KHÔNG gửi nội dung lượt trước. */
 let cuocTroChuyen: string | null = null;
 const maMoi = (): string => taoMaCuoc(crypto.getRandomValues(new Uint8Array(16)));
+
+/** Bong bóng "đang trả lời" của trợ lý (ba chấm nhấp nháy + chữ nhỏ; người bật giảm chuyển động chỉ thấy chữ — CSS). Dựng lại mỗi lần vẽ, bỏ đi khi có trả lời hoặc lỗi. */
+function bongBongDangTra(): HTMLElement {
+  return h(
+    "li",
+    { class: "tl-tin tl-tin-tro-ly tl-dang-tra", "data-tl": "dang-tra" },
+    h("span", { class: "tl-cham", "aria-hidden": "true" }, h("i", null), h("i", null), h("i", null)),
+    h("span", { class: "tl-dang-tra-chu" }, "Mai đang trả lời…"),
+  );
+}
 
 function dongTin(t: Tin): HTMLElement {
   if (t.ai === "nguoi") return h("li", { class: "tl-tin tl-tin-nguoi" }, h("p", { class: "tl-chu" }, t.chu));
@@ -89,8 +98,7 @@ function moKhung(fab: HTMLElement, khung: Api.TroLyKhungResponse): void {
   if (dongKhungDangMo) return;
   if (!tin.length || !cuocTroChuyen) cuocTroChuyen = maMoi();
   const ds = h("ol", { class: "tl-ds", "aria-live": "polite", "aria-label": "Hỏi đáp" });
-  const trangThai = h("p", { class: "tl-trang-thai", role: "status" });
-  const o = h("textarea", { class: "tl-o", rows: 2, maxlength: 500, placeholder: "Gõ câu hỏi về cách dùng app…", "aria-label": "Câu hỏi" });
+  const o = h("textarea", { class: "tl-o", rows: 2, maxlength: 500, placeholder: "Hãy hỏi Mai tại đây nhé!", "aria-label": "Câu hỏi" });
   const gui = h("button", { class: "btn btn-primary tl-gui", type: "submit" }, "Gửi");
   const form = h("form", { class: "tl-form" }, o, gui);
   const mau = (): HTMLElement | null =>
@@ -108,14 +116,16 @@ function moKhung(fab: HTMLElement, khung: Api.TroLyKhungResponse): void {
           return b;
         }),
       );
+  // ADR-0084 Đ5 (+ Đ2): lời chào dựng ngay ở trình duyệt (không gọi AI) — thay MỌI {ten} / {xung} bằng cách gọi / cách xưng máy chủ đã tính;
+  // câu không có chỗ thay giữ nguyên văn.
+  const loiChao = thayTen(khung.cauChao || CHAO, { goi: khung.goi || "bạn", xung: khung.xung || "mình" });
   const veLai = (): void => {
-    replaceChildren(ds, h("li", { class: "tl-tin tl-tin-tro-ly" }, h("p", { class: "tl-chu" }, khung.cauChao || CHAO)), mau(), ...tin.map(dongTin));
-    trangThai.textContent = dangHoi ? "Đang trả lời…" : "";
+    replaceChildren(ds, h("li", { class: "tl-tin tl-tin-tro-ly", "data-tl": "loi-chao" }, h("p", { class: "tl-chu" }, loiChao)), mau(), ...tin.map(dongTin), dangHoi ? bongBongDangTra() : null);
     gui.disabled = dangHoi;
     ds.lastElementChild?.scrollIntoView({ block: "nearest" });
   };
 
-  const co = h("button", { class: "tl-co", type: "button", "aria-label": "Đổi cỡ khung Hỗ trợ: kéo góc này, hoặc dùng phím mũi tên" });
+  const co = h("button", { class: "tl-co", type: "button", "aria-label": "Đổi cỡ khung Hỗ trợ: kéo góc này, hoặc dùng phím mũi tên" }, icon("resize", 16));
   const keoThanh = h(
     "div",
     { class: "tl-keo", role: "button", tabindex: 0, "aria-label": "Di chuyển khung Hỗ trợ: kéo thanh này, hoặc dùng phím mũi tên" },
@@ -129,8 +139,8 @@ function moKhung(fab: HTMLElement, khung: Api.TroLyKhungResponse): void {
     "div",
     { id: "tl-khung", class: "tl-khung", role: "dialog", "aria-labelledby": "tl-khung-tieu-de" },
     dau,
-    h("div", { class: "tl-than" }, ds, trangThai, h("p", { class: "tl-luu-y" }, "Trả lời do AI, có thể sai — đối chiếu màn hình.")),
-    h("div", { class: "tl-chan" }, form, h("p", { class: "tl-luu-y" }, CAU_LUU), nutMoi),
+    h("div", { class: "tl-than" }, ds),
+    h("div", { class: "tl-chan" }, form, nutMoi),
   );
   const doAnToan = h("div", { class: "tl-do-an-toan", "aria-hidden": "true" });
 
@@ -204,10 +214,32 @@ function moKhung(fab: HTMLElement, khung: Api.TroLyKhungResponse): void {
   };
   keoThanh.addEventListener("keydown", phim(keo));
   co.addEventListener("keydown", phim(doiCo));
+  // Điều tra 1/10: bấm thật (chuột và chạm, 1040 + 390) đã về đúng vị trí + cỡ mặc định và xoá bộ nhớ; chỗ "bấm không thấy gì" còn lại là khung ĐANG ở mặc định
+  // (mở khung luôn ở mặc định) ⇒ không có gì dời. Nên mỗi lần bấm khung nháy viền một nhịp: luôn thấy nút đã nhận.
+  // Gỡ lớp nháy khi hiệu ứng chạy xong (`animationend`); dự phòng (giảm chuyển động tắt hiệu ứng ⇒ không có animationend) hẹn đúng thời lượng token
+  // `--tl-nhay` của public/app.css — không số cứng (kiểm độc lập T-5).
+  let henNhay = 0;
+  const thoiNhayMs = (): number => {
+    const v = getComputedStyle(hop).getPropertyValue("--tl-nhay").trim();
+    const n = parseFloat(v);
+    return Number.isFinite(n) ? (v.endsWith("ms") ? n : n * 1000) : 0;
+  };
+  const tatNhay = (): void => {
+    clearTimeout(henNhay);
+    hop.classList.remove("is-ve-goc");
+  };
+  hop.addEventListener("animationend", (e) => {
+    if (e.animationName === "tl-ve-goc-nhay") tatNhay();
+  });
   veGoc.addEventListener("click", () => {
     luu = null;
     ghiLuu(null);
     kepLai();
+    hop.classList.remove("is-ve-goc");
+    void hop.offsetWidth; // khởi động lại hiệu ứng khi bấm liên tiếp
+    hop.classList.add("is-ve-goc");
+    clearTimeout(henNhay);
+    henNhay = window.setTimeout(tatNhay, thoiNhayMs());
   });
   nutMoi.addEventListener("click", () => {
     if (dangHoi) return;

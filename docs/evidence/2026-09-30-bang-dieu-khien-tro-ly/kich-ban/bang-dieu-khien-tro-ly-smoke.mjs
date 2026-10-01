@@ -4,7 +4,8 @@
 // Làm ĐÚNG mục 6 "Cách kiểm" của đặc tả (docs/superpowers/specs/2026-09-30-bang-dieu-khien-tro-ly-dac-ta.md):
 //   a  1040: Toàn quyền thấy mục "Trợ lý Hỗ trợ" ở nhóm QUẢN TRỊ; trang có đủ 6 phần (thêm Bộ não — ADR-0073); key "đã đặt (…QZ7K)" — không lộ thêm ký tự; Thử key ⇒ "Key dùng được"
 //   b  tắt vai Đối tác trên trang ⇒ tài khoản Đối tác KHÔNG có nút Hỗ trợ; Bán hàng vẫn có
-//   c  sửa câu chào + câu hỏi mẫu trên trang ⇒ khung Hỗ trợ của Bán hàng hiện câu mới + nút câu mẫu (chạm để gửi) + dòng "Câu hỏi được lưu…"
+//   c  sửa câu chào + câu hỏi mẫu trên trang ⇒ khung Hỗ trợ của Bán hàng hiện câu mới + nút câu mẫu (chạm để gửi); KHÔNG còn dòng "Câu hỏi được lưu…"
+//      (ADR-0084 Đ6). Lịch sử bản = 3: gieo 0054 + câu chào Mai (migration *_pty_person_gender) + bản vừa lưu.
 //   d  câu chào có số điện thoại ⇒ câu lỗi lời thường trên trang, không lưu (ô "Lời dặn thêm" đã bỏ — ADR-0073 R3)
 //   e  hỏi một câu có SĐT ⇒ phần Lịch sử hỏi đáp có dòng đã che, không có số gốc
 //   f  thêm đoạn ngữ cảnh ⇒ đoạn hiện trong danh sách, "Đang dùng" được tick
@@ -119,13 +120,13 @@ try {
     await s.waitFor(`!!${q("#tl-fab")}`, "Bán hàng vẫn có nút", 10000);
   });
 
-  await step("c", "sửa câu chào + câu hỏi mẫu ⇒ khung của Bán hàng hiện câu mới, nút câu mẫu gửi được, có dòng 'Câu hỏi được lưu…'", async () => {
+  await step("c", "sửa câu chào + câu hỏi mẫu ⇒ khung của Bán hàng hiện câu mới, nút câu mẫu gửi được, KHÔNG còn dòng 'Câu hỏi được lưu…' (ADR-0084 Đ6)", async () => {
     const p = await moTrang();
     await p.ev(go("#tl-cau-chao", "Chào bạn, mình là trợ lý của Tour Đảo. Hỏi gì cứ hỏi nhé."));
     await p.ev(go("#tl-cau-mau", "Đổi mã PIN thế nào?\nLập đơn mới ra sao?"));
     await p.ev(`${q("#tl-loi-dan form")}.requestSubmit(), true`);
     await p.waitFor(`!!${q("#tl-loi-dan .tl-cd-bao")} && /Đã lưu/.test(${q("#tl-loi-dan .tl-cd-bao")}.textContent)`, "đã lưu lời dặn", 10000);
-    assert.match(await p.ev(`${q("#tl-loi-dan summary")}.textContent`), /Lịch sử bản \(2\)/);
+    assert.match(await p.ev(`${q("#tl-loi-dan summary")}.textContent`), /Lịch sử bản \(3\)/);
     const s = await env.as(ACCOUNTS.salesA, "/orders", M);
     tatCa.push(s);
     await s.waitFor(`!!${q("#tl-fab")}`, "có nút", 10000);
@@ -133,12 +134,11 @@ try {
     await s.waitFor(khungMo, "mở khung");
     assert.equal(await s.ev(`${q(".tl-khung .tl-tin-tro-ly .tl-chu")}.textContent`), "Chào bạn, mình là trợ lý của Tour Đảo. Hỏi gì cứ hỏi nhé.");
     assert.deepEqual(await s.ev(`[...document.querySelectorAll('.tl-mau-nut')].map((b) => b.textContent)`), ["Đổi mã PIN thế nào?", "Lập đơn mới ra sao?"]);
-    const luuY = await s.ev(`[...document.querySelectorAll('.tl-khung .tl-luu-y')].map((x) => x.textContent)`);
-    assert.ok(luuY.includes("Câu hỏi được lưu để cải thiện trợ lý — đừng gõ thông tin khách"), luuY.join(" | "));
+    assert.equal(await s.ev(`${q(".tl-khung")}.textContent.includes("Câu hỏi được lưu")`), false, "ADR-0084 Đ6: khung không còn dòng nhắc");
     await s.shot(join(OUT, "anh/c-khung-cau-chao-390.png"));
     const n = nhan.length;
     await s.ev(`${q(".tl-mau-nut")}.click(), true`);
-    await s.waitFor(`document.querySelectorAll('.tl-tin-tro-ly').length >= 2`, "câu mẫu gửi được, có trả lời", 15000);
+    await s.waitFor(`!${q(".tl-dang-tra")} && document.querySelectorAll('.tl-tin-tro-ly').length >= 2`, "câu mẫu gửi được, có trả lời", 15000);
     assert.equal(nhan.length, n + 1);
     assert.equal(nhan.at(-1).input, "Đổi mã PIN thế nào?");
     assert.equal(await s.ev(`!!${q(".tl-mau-nut")}`), false, "câu mẫu ẩn sau khi đã hỏi");
@@ -150,7 +150,7 @@ try {
     await p.ev(`${q("#tl-loi-dan form")}.requestSubmit(), true`);
     await p.waitFor(`!!${q("#tl-loi-dan .tl-cd-loi")} && !${q("#tl-loi-dan .tl-cd-loi")}.hidden`, "có câu lỗi", 10000);
     assert.match(await p.ev(`${q("#tl-loi-dan .tl-cd-loi")}.textContent`), /^Câu chào không được chứa chuỗi số dài/);
-    assert.match(await p.ev(`${q("#tl-loi-dan summary")}.textContent`), /Lịch sử bản \(2\)/, "không thêm bản");
+    assert.match(await p.ev(`${q("#tl-loi-dan summary")}.textContent`), /Lịch sử bản \(3\)/, "không thêm bản");
     await p.shot(join(OUT, "anh/d-loi-sdt-1040.png"));
   });
 
@@ -161,7 +161,7 @@ try {
     await s.ev(`${q("#tl-fab")}.click(), true`);
     await s.waitFor(khungMo, "mở khung");
     await s.ev(`(() => { ${q(".tl-o")}.value = 'Khách 0905 777 888 hỏi đổi mã PIN thế nào CHROME-LS'; ${q(".tl-gui")}.click(); return true; })()`);
-    await s.waitFor(`document.querySelectorAll('.tl-tin-tro-ly').length >= 2`, "có trả lời", 15000);
+    await s.waitFor(`!${q(".tl-dang-tra")} && document.querySelectorAll('.tl-tin-tro-ly').length >= 2`, "có trả lời", 15000);
     const p = await moTrang();
     await p.ev(go("#tl-ls-q", "CHROME-LS"));
     await p.ev(`${q("#tl-lich-su form")}.requestSubmit(), true`);
@@ -245,7 +245,7 @@ try {
     await s.waitFor(khungMo, "mở khung");
     const n = nhan.length;
     await s.ev(`(() => { ${q(".tl-o")}.value = 'đổi mã PIN thế nào'; ${q(".tl-form")}.requestSubmit(); return true; })()`);
-    await s.waitFor(`document.querySelectorAll('.tl-tin-tro-ly').length >= 2`, "có trả lời", 15000);
+    await s.waitFor(`!${q(".tl-dang-tra")} && document.querySelectorAll('.tl-tin-tro-ly').length >= 2`, "có trả lời", 15000);
     assert.equal(nhan.length, n + 1);
     assert.equal(nhan.at(-1).model, "gpt-5-mini");
   });
@@ -288,11 +288,11 @@ try {
     await p.ev(`(() => { window.__hoi = []; window.confirm = (m) => { window.__hoi.push(m); return true; }; return true; })()`);
     await p.ev(`[...${q("#tl-bo-nao")}.querySelectorAll('button')].find((b) => b.textContent === 'Khôi phục mặc định').click(), true`);
     assert.equal(await p.ev(`window.__hoi.length`), 1, "có hỏi xác nhận");
-    assert.match(await p.ev(`${q("#tl-loi-nhac")}.value`), /^Bạn là trợ lý "Hỗ trợ"/);
+    assert.match(await p.ev(`${q("#tl-loi-nhac")}.value`), /^Bạn là Mai, trợ lý "Hỗ trợ"/);
     assert.match(await p.ev(`${q("#tl-mac-dinh")}.textContent`), /Đang dùng lời nhắc đã sửa/, "Khôi phục chưa lưu");
     await p.ev(`[...${q("#tl-bo-nao")}.querySelectorAll('button')].find((b) => b.textContent === 'Lưu bộ não').click(), true`);
     await p.waitFor(`/Đang dùng lời nhắc mặc định\\./.test(${q("#tl-bo-nao")}.textContent)`, "đã khôi phục", 10000);
-    assert.match(await p.ev(`${q("#tl-loi-nhac")}.value`), /^Bạn là trợ lý "Hỗ trợ"/);
+    assert.match(await p.ev(`${q("#tl-loi-nhac")}.value`), /^Bạn là Mai, trợ lý "Hỗ trợ"/);
     assert.match(await p.ev(`${q("#tl-bo-nao .tl-cd-bao")}.textContent`), /Đã lưu thành bản mới/);
     await p.shot(join(OUT, "anh/l-khoi-phuc-1040.png"));
   });

@@ -5,10 +5,11 @@ import { test, afterEach } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { world, seedStaff } from "../../../tests/audit/harness.mjs";
-import { cheCauHoi, chiaKho, chonDoan, dinhDangDoan, thanYeuCau, truyVanTim, uocToken, uocTokenVao } from "../../shared/tro-ly.ts";
-import { chiPhiToiDa } from "../../shared/tro-ly-mau.ts";
+import { NGAN_SACH_TOKEN as NGAN, cheCauHoi, chiaKho, chonDoan, dinhDangDoan, thanYeuCau, truyVanTim, uocToken, uocTokenVao } from "../../shared/tro-ly.ts";
+import { chiPhiToiDa, timMau } from "../../shared/tro-ly-mau.ts";
 import { MAU_NHUNG, SO_CHIEU_NHUNG, chiPhiNhungMicroUsd, chiaLoNhung, mucTranTren, tienBuUoc } from "../../shared/tro-ly-van-nghia.ts";
 import { xoaBoNhoVanNghia } from "./van-nghia.ts";
+import { xungHo } from "../../shared/xung-ho.ts";
 
 const SALES = "11111111-1111-4111-8111-111111111111";
 const SUP = "77777777-7777-4777-8777-777777777777";
@@ -17,6 +18,9 @@ const SU_KIEN = '{"event":"tro_ly_van_nghia_loi"}';
 const fetchThat = globalThis.fetch;
 // Bộ nhớ isolate sống theo tiến trình — mỗi bài một CSDL mới nên phải xoá, kẻo bài sau thấy véc-tơ của bài trước và không tính bù.
 afterEach(() => { globalThis.fetch = fetchThat; xoaBoNhoVanNghia(); });
+// Bài cố ý làm Embeddings lỗi mà không thu log (vd. L2) ⇒ nuốt riêng dòng sự kiện dự kiến; bài cần soi log thì thu bằng `batLog()` (thay console.error tạm thời).
+const errGoc = console.error;
+console.error = (...a: unknown[]) => { if (a.length === 1 && a[0] === '{"event":"tro_ly_van_nghia_loi"}') return; errGoc(...a); };
 
 interface Goi { url: string; body: Record<string, unknown> }
 interface TuyChon { nhung?: "ok" | "loi" | "nem" | "sai_chieu" | "lo_loi"; usageNhung?: number | null; chu?: string }
@@ -74,6 +78,8 @@ function batLog(): { dung: () => string[] } {
 }
 const MO = 400; // tiền mẫu nano của máy giả: 4.000 × 0,05 + 500 × 0,40
 const N = chiaKho().length;
+/** ADR-0084: người hỏi của bài này chưa ghi giới tính (seedStaff) ⇒ máy chủ nối dòng Mai với "bạn" / "mình" — mức trần tính CẢ dòng đó. */
+const BAN = xungHo(null, null);
 type BoNaoThu = { mau: string; mucSuyNghi: string; doDai: string; tokenRaToiDa: number; loiNhac: string };
 /**
  * Hai mức kiểm trần của MỘT lượt (không nhớ, câu không có gì để che), tính bằng luật thuần:
@@ -82,8 +88,8 @@ type BoNaoThu = { mau: string; mucSuyNghi: string; doDai: string; tokenRaToiDa: 
  */
 function haiMuc(b: BoNaoThu, perms: string[], cau: string): { tren: number; cu: number } {
   const q = cheCauHoi(cau);
-  const tren = mucTranTren(b.mau, uocTokenVao(thanYeuCau(b as never, perms as never, [], q)), b.tokenRaToiDa, q);
-  const cu = chiPhiToiDa(b.mau, uocTokenVao(thanYeuCau(b as never, perms as never, chonDoan(q, perms as never, chiaKho()), q)), b.tokenRaToiDa);
+  const tren = mucTranTren(b.mau, uocTokenVao(thanYeuCau(b as never, perms as never, BAN, [], q)), b.tokenRaToiDa, q);
+  const cu = chiPhiToiDa(b.mau, uocTokenVao(thanYeuCau(b as never, perms as never, BAN, chonDoan(q, perms as never, chiaKho()), q)), b.tokenRaToiDa);
   return { tren, cu };
 }
 const datTran = (w: W, microUsd: number) => w.call("POST", "/api/tro-ly/cai-dat", { as: SUP, body: { bat: true, tranThangUsd: microUsd / 1_000_000, tranNgay: 30 } });
@@ -265,4 +271,33 @@ test("Review Focus 2 (route): phản hồi embeddings KHÔNG có usage ⇒ tiề
   // Kho nằm trong MỘT lô (tiền đề) ⇒ tiền ước lô = tienBuUoc(kho); câu hỏi không có gì để che ⇒ ước bằng uocToken(câu).
   assert.equal(chiaLoNhung(chiaKho().map(dinhDangDoan)).length, 1, "tiền đề: kho một lô");
   assert.equal(luot(w)[0]![0], MO + chiPhiNhungMicroUsd(uocToken("đổi mã PIN thế nào")) + TIEN_BU_KHO);
+});
+
+test("T-1 (kiểm độc lập 1/10) HÀNG RÀO ADR-0084: mức trần trên tính CẢ dòng Mai của CHÍNH người hỏi — trần = mức của người thật − 1 ⇒ 429 (hỏi VÀ ô thử); kiểm bằng 'bạn' sẽ lọt", async () => {
+  // Tên gọi dài + mẫu GPT-5 (giá vào cao) để phần chữ thêm của dòng Mai đổi mức trần trên ít nhất vài micro-USD — đủ để bài phân biệt người thật với "bạn".
+  const TEN = "Ánhnguyệtthiênhươngngọcdiệpkimchiphươngthảo";
+  const g5 = timMau("gpt-5")!;
+  const q = "đổi mã PIN thế nào";
+  for (const duong of ["hoi", "thu"] as const) {
+    const w = setup();
+    const g = openAiGia();
+    const ai = duong === "hoi" ? SALES : SUP;
+    w.sqlite.prepare("UPDATE pty_person SET given_name = ?, gender = 'NU' WHERE party_id = ?").run(TEN, `pty-${ai}`);
+    const mac = (await w.call("GET", "/api/tro-ly/bo-nao", { as: SUP })).json.hienHanh as BoNaoThu;
+    const bn: BoNaoThu = { mau: "gpt-5", mucSuyNghi: g5.mucSuyNghi[0]!, doDai: "low", tokenRaToiDa: 1200, loiNhac: mac.loiNhac };
+    const perms = duong === "hoi" ? ["SALES"] : ["ACCOUNTING"];
+    const muc = (nguoi: ReturnType<typeof xungHo>) => mucTranTren(bn.mau, uocTokenVao(thanYeuCau(bn as never, perms as never, nguoi, [], q)), bn.tokenRaToiDa, q);
+    const that = muc(xungHo(TEN, "NU"));
+    const ban = muc(BAN);
+    // Phần chữ thêm của dòng Mai ("chị <tên>" / "em" thay "bạn" / "mình") ⇒ mức trần tăng ĐÚNG bằng tiền tối đa của số token thêm.
+    const tokThem = uocTokenVao(thanYeuCau(bn as never, perms as never, xungHo(TEN, "NU"), [], q)) - uocTokenVao(thanYeuCau(bn as never, perms as never, BAN, [], q));
+    assert.ok(tokThem > 0, `tokThem ${tokThem}`);
+    assert.equal(that - ban, chiPhiToiDa(bn.mau, uocTokenVao(thanYeuCau(bn as never, perms as never, BAN, [], q)) + NGAN + tokThem, bn.tokenRaToiDa) - chiPhiToiDa(bn.mau, uocTokenVao(thanYeuCau(bn as never, perms as never, BAN, [], q)) + NGAN, bn.tokenRaToiDa));
+    assert.ok(that - ban >= 2, `tiền đề: mức người thật ${that} cao hơn mức "bạn" ${ban} ít nhất 2 micro-USD`);
+    if (duong === "hoi") assert.equal((await w.call("PUT", "/api/tro-ly/bo-nao", { as: SUP, body: bn })).status, 200);
+    assert.equal((await datTran(w, that - 1)).status, 200);
+    const r = duong === "hoi" ? await hoi(w, q) : await w.call("POST", "/api/tro-ly/thu", { as: SUP, body: { boNao: bn, cauHoi: q, vai: "ACCOUNTING" } });
+    assert.equal(r.status, 429, `${duong}: ${r.text}`);
+    assert.deepEqual([g.nhung.length, g.traLoi.length], [0, 0], duong);
+  }
 });

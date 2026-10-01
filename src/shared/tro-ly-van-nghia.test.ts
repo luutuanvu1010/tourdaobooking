@@ -9,6 +9,7 @@ import {
 } from "./tro-ly-van-nghia.ts";
 import { KHONG_TIM_THAY, SO_DOAN_TOI_DA, chiaKho, dinhDangDoan, dungLoiNhac, truyVanTim, uocToken, type DoanTriThuc } from "./tro-ly.ts";
 import { GIOI_HAN_TRO_LY as G } from "./tro-ly-gioi-han.ts";
+import { xungHo } from "./xung-ho.ts";
 
 test("hằng embedding: mẫu text-embedding-3-small, 512 chiều, 0,02 USD / 1 triệu token = 20.000 micro-USD, có ngày tra + nguồn; hạn giờ riêng 8 giây", () => {
   assert.equal(MAU_NHUNG, "text-embedding-3-small");
@@ -167,7 +168,7 @@ test("C4: kho THẬT + mọi véc-tơ đoạn trực giao câu hỏi ⇒ chỉ c
   assert.equal(doiPin.length, 10);
   assert.ok(doiPin.includes("Phần chung › Trang Tôi, đổi PIN, đăng xuất"), JSON.stringify(doiPin));
   assert.deepEqual(chonDoanTron("zzqx wqpv", mot(0), kho, vec, ["SALES"]), []);
-  assert.ok(dungLoiNhac("Bạn là trợ lý.", ["SALES"], []).endsWith(`TÀI LIỆU:\n${KHONG_TIM_THAY}`));
+  assert.ok(dungLoiNhac("Bạn là trợ lý.", ["SALES"], xungHo(null, null), []).endsWith(`TÀI LIỆU:\n${KHONG_TIM_THAY}`));
 });
 
 test("C5: truy vấn = câu hiện tại + câu trước gần nhất — câu nối tiếp không khớp gì vẫn ra đoạn nhờ câu trước", () => {

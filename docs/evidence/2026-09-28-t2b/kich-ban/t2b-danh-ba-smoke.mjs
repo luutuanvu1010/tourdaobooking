@@ -77,6 +77,55 @@ try {
   assert.deepEqual(openOwner(env).map((r) => r.display_name), [TEN_CT], "Quản trị không đổi được gì");
   ok("A. Quản trị: không nút sửa, không có lựa chọn 'Công ty chủ', 'Kết thúc' bị từ chối bằng câu tiếng Việt (không 'Toàn quyền', không mã thô), axe sạch");
 
+  // ---- A2. ADR-0084 Đ1 (bản 1.57): ô "Giới tính" của hồ sơ người — cạnh ô Họ và tên, ba lựa chọn, 16px; lưu được; tổ chức không có ô; form "Hồ sơ mới" có ô
+  //      khi chọn Cá nhân. Ảnh vào docs/evidence/2026-10-01-tro-ly-mai/anh/. Quản trị mở trước Toàn quyền (chung kho cookie).
+  {
+    const MAI = "docs/evidence/2026-10-01-tro-ly-mai/anh";
+    mkdirSync(MAI, { recursive: true });
+    p = await env.as(ACCOUNTS.admin, "/parties", DESK);
+    await p.waitFor(`!!document.querySelector('#search-form')`, "trang Danh bạ dựng xong");
+    await moHoSo(p, TEN_CN);
+    const O = "document.querySelector('#sua-gioi-tinh')";
+    assert.equal(await p.ev(`!!${O}`), true, "hồ sơ người có ô Giới tính");
+    assert.deepEqual(await p.ev(`[...${O}.options].map((o) => o.textContent)`), ["(để trống)", "Nam", "Nữ"]);
+    assert.equal(await p.ev(`${O}.value`), "", "chưa ghi ⇒ để trống");
+    assert.equal(await p.ev(`${O}.closest('label').textContent.startsWith('Giới tính')`), true, "nhãn tiếng Việt");
+    assert.equal(await p.ev(`getComputedStyle(${O}).fontSize`), "16px", "ô 16px");
+    assert.equal(await p.ev(`${O}.closest('.grid') === document.querySelector('#detail input[type=text]').closest('.grid')`), true, "cùng khối với ô Họ và tên");
+    await p.ev(`(() => { ${O}.value = 'NU'; ${O}.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
+    await p.shot(join(MAI, "danh-ba-gioi-tinh-chon-1040.png"));
+    await p.ev(`[...document.querySelectorAll('#detail button')].find((b) => b.textContent.trim() === 'Lưu thông tin').click(), true`);
+    await p.waitFor(`!!document.querySelector('#sua-gioi-tinh') && document.querySelector('#sua-gioi-tinh').value === 'NU'`, "lưu xong, ô giữ Nữ sau khi nạp lại", 10000);
+    const dong = env.sql(`SELECT pe.gender FROM pty_person pe JOIN pty_party p ON p.id = pe.party_id WHERE p.display_name = '${TEN_CN}'`);
+    assert.deepEqual(dong.map((r) => r.gender), ["NU"], "D1 lưu NU");
+    const nk = env.sql(`SELECT a.detail FROM audit_log a JOIN pty_party p ON p.id = a.target_id WHERE a.action = 'party_updated' AND p.display_name = '${TEN_CN}'`);
+    assert.deepEqual(nk.map((r) => r.detail), ["cá nhân — đổi giới tính"], "nhật ký chỉ 'đổi giới tính', không giá trị");
+    await moHoSo(p, TEN_TC);
+    assert.equal(await p.ev(`!!document.querySelector('#sua-gioi-tinh')`), false, "hồ sơ tổ chức không có ô Giới tính");
+    await p.ev("document.querySelector('#new').click(), true");
+    await p.waitFor("!document.querySelector('#create').hidden", "form Hồ sơ mới mở");
+    assert.equal(await p.ev("document.querySelector('#tao-gioi-tinh').closest('.grid').hidden"), false, "Cá nhân: ô Giới tính hiện");
+    await p.ev(`(() => { const s = document.querySelector('#create select'); s.value = 'ORGANIZATION'; s.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
+    assert.equal(await p.ev("document.querySelector('#tao-gioi-tinh').closest('.grid').hidden"), true, "Tổ chức: ô Giới tính ẩn");
+    await axe(p, "Quản trị — ô Giới tính");
+    assert.deepEqual(p.consoleErrors, [], `lỗi console (Giới tính): ${p.consoleErrors}`);
+    p.close();
+    p = await env.as(ACCOUNTS.admin, "/parties", MOB);
+    await p.waitFor(`!!document.querySelector('#search-form')`, "trang Danh bạ (điện thoại)");
+    await p.ev(setInput("document.querySelector('#q')", TEN_CN));
+    await p.ev("document.querySelector('#search-form').requestSubmit(), true");
+    await p.waitFor(`[...document.querySelectorAll('.card-list .card')].some((c) => c.textContent.includes(${JSON.stringify(TEN_CN)}))`, "thẻ hồ sơ người (điện thoại)");
+    await p.ev(`[...document.querySelectorAll('.card-list .card')].find((c) => c.textContent.includes(${JSON.stringify(TEN_CN)})).click(), true`);
+    await p.waitFor(`!document.querySelector('#detail').hidden && !!document.querySelector('#sua-gioi-tinh')`, "hồ sơ người mở (điện thoại)");
+    assert.equal(await p.ev("document.querySelector('#sua-gioi-tinh').value"), "NU");
+    assert.equal(await p.ev("document.documentElement.scrollWidth - innerWidth"), 0, "không tràn ngang 390");
+    await p.ev("document.querySelector('#sua-gioi-tinh').scrollIntoView({ block: 'center' }), true");
+    await p.shot(join(MAI, "danh-ba-gioi-tinh-390.png"));
+    assert.deepEqual(p.consoleErrors, [], `lỗi console (Giới tính 390): ${p.consoleErrors}`);
+    p.close();
+    ok("A2. ADR-0084: ô Giới tính cạnh Họ và tên (3 lựa chọn, 16px), lưu Nữ → D1 NU, nhật ký không giá trị; tổ chức không có ô; form mới ẩn/hiện theo loại; axe sạch (1040 + 390)");
+  }
+
   // ---- B. Người giữ ô company.legal.write (chỉ quyền Toàn quyền) — mở SAU CÙNG
   p = await env.as(CHU, "/parties", DESK);
   await p.waitFor(`!!document.querySelector('#search-form')`, "trang Danh bạ dựng xong");

@@ -7,6 +7,7 @@ import { OWNER_COMPANY_ROLE } from "../src/shared/cong-ty-chu";
 import { NGUONG_MAC_DINH, chipHan, lichSuCua, ngayVN, tenGiayTo, xepTheoHan } from "../src/shared/giay-to-hien-thi";
 import { NHAN_LY_DO_KHOP, chuanHoaTen } from "../src/shared/ho-so-trung";
 import { can } from "../src/shared/permissions";
+import { GIOI_TINH, GIOI_TINH_NHAN } from "../src/shared/xung-ho";
 import { ApiError, api, type Api, type Staff } from "./api";
 import { byId, h, replaceChildren, type Child } from "./dom";
 import { initials } from "./format";
@@ -77,6 +78,9 @@ const select = (options: { value: string; label: string }[], selected = options[
   s.value = selected;
   return s;
 };
+/** ADR-0084 Đ1: ô "Giới tính" của hồ sơ người — trống (chưa ghi) / Nam / Nữ. Gửi "" khi trống (máy chủ hiểu là xoá). */
+const oGioiTinh = (hienTai: string | null = null) =>
+  select([{ value: "", label: "(để trống)" }, ...GIOI_TINH.map((g) => ({ value: g, label: GIOI_TINH_NHAN[g] }))], hienTai ?? "");
 const period = (from: string, to: string | null) => (to ? `${from} → ${to}` : `từ ${from}`);
 const checkbox = (checked: boolean) => h("input", { type: "checkbox", checked, style: "width:auto;display:inline;margin:0 6px 0 0" });
 const roleLabel = (code: string) => meta.roleTypes.find((t) => t.code === code)?.name ?? code;
@@ -140,6 +144,8 @@ async function search(reset = true): Promise<void> {
 function openCreate(): void {
   const kind = select([{ value: "PERSON", label: "Cá nhân" }, { value: "ORGANIZATION", label: "Tổ chức (đại lý, công ty)" }]);
   const fullName = input("", { maxLength: 200 });
+  const gender = oGioiTinh();
+  gender.id = "tao-gioi-tinh";
   const displayName = input("", { maxLength: 200 });
   const legalName = input("", { maxLength: 300 });
   const taxCode = input("", { maxLength: 14 });
@@ -148,7 +154,7 @@ function openCreate(): void {
   const phone = input("", { type: "tel", maxLength: 30 });
   const email = input("", { type: "email", maxLength: 200 });
   const dupBox = h("div", { class: "alert warn", hidden: true });
-  const personFields = h("div", { class: "grid three" }, field("Họ và tên", fullName));
+  const personFields = h("div", { class: "grid three" }, field("Họ và tên", fullName), field("Giới tính", gender));
   const orgFields = h("div", { class: "grid three" }, field("Tên gọi", displayName), field("Tên pháp lý", legalName), field("Mã số thuế", taxCode), field("Địa chỉ", address), field("Email nhận hoá đơn", invoiceEmail));
   const sync = () => {
     personFields.hidden = kind.value !== "PERSON";
@@ -181,7 +187,7 @@ function openCreate(): void {
     if (email.value.trim()) contacts.push({ kind: "EMAIL", value: email.value });
     const body =
       kind.value === "PERSON"
-        ? { kind: "PERSON", fullName: fullName.value, contacts }
+        ? { kind: "PERSON", fullName: fullName.value, gender: gender.value, contacts }
         : { kind: "ORGANIZATION", displayName: displayName.value, legalName: legalName.value, taxCode: taxCode.value, address: address.value, invoiceEmail: invoiceEmail.value, contacts };
     await act(async () => {
       const r = await api<Api.PartyResponse>("/api/parties", { method: "POST", body });
@@ -235,6 +241,8 @@ async function openDetail(id: string): Promise<void> {
   // -- thông tin + sửa
   const person = p.kind === "PERSON";
   const fullName = input(p.displayName, { maxLength: 200 });
+  const gender = oGioiTinh(p.gender);
+  gender.id = "sua-gioi-tinh";
   const displayName = input(p.displayName, { maxLength: 200 });
   const legalName = input(p.legalName ?? "", { maxLength: 300 });
   const taxCode = input(p.taxCode ?? "", { maxLength: 14 });
@@ -244,6 +252,7 @@ async function openDetail(id: string): Promise<void> {
   active.disabled = p.accountLinked;
   if (!p.editable) {
     fullName.disabled = true;
+    gender.disabled = true;
     displayName.disabled = true;
     legalName.disabled = true;
     taxCode.disabled = true;
@@ -254,7 +263,7 @@ async function openDetail(id: string): Promise<void> {
     "Lưu thông tin",
     async (b) => {
       const body = person
-        ? { fullName: fullName.value, active: active.checked, expectedUpdatedAt: p.updatedAt }
+        ? { fullName: fullName.value, gender: gender.value, active: active.checked, expectedUpdatedAt: p.updatedAt }
         : { displayName: displayName.value, legalName: legalName.value, taxCode: taxCode.value, address: address.value, invoiceEmail: invoiceEmail.value, active: active.checked, expectedUpdatedAt: p.updatedAt };
       // 409 stale: `p.updatedAt` đã cũ → reload() nạp lại chi tiết (updatedAt mới) và danh sách, rồi hiện thông báo.
       await act(async () => {
@@ -270,7 +279,7 @@ async function openDetail(id: string): Promise<void> {
     h(
       "div",
       { class: "grid three" },
-      ...(person ? [field("Họ và tên (tên = từ cuối)", fullName)] : [field("Tên gọi", displayName), field("Tên pháp lý", legalName), field("Mã số thuế", taxCode), field("Địa chỉ", address), field("Email nhận hoá đơn", invoiceEmail)]),
+      ...(person ? [field("Họ và tên (tên = từ cuối)", fullName), field("Giới tính", gender)] : [field("Tên gọi", displayName), field("Tên pháp lý", legalName), field("Mã số thuế", taxCode), field("Địa chỉ", address), field("Email nhận hoá đơn", invoiceEmail)]),
       h("label", { class: "check" }, active, "Đang dùng"),
     ),
     p.accountLinked ? h("p", { class: "muted" }, "Người này có tài khoản: tạm khoá hoặc cho nghỉ việc ở màn Quản lý tài khoản.") : null,

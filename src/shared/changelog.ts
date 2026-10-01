@@ -11,11 +11,25 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
-    // Chủ dự án 2026-10-01: đổi tên trang "Loại giấy tờ người" → "Loại giấy tờ cá nhân" (chỉ đổi chữ; đường dẫn /loai-giay-to-nguoi giữ nguyên). Không migration. Số "1.59" = main 1.58 + 1 (đánh lại lúc gộp main, 2026-10-01).
-    version: "1.59",
+    // Chủ dự án 2026-10-01: đổi tên trang "Loại giấy tờ người" → "Loại giấy tờ cá nhân" (chỉ đổi chữ; đường dẫn /loai-giay-to-nguoi giữ nguyên). Không migration. Số "1.60" = main 1.59 + 1 (đánh lại lúc gộp main 1.59 — trợ lý Mai, 2026-10-01).
+    version: "1.60",
     date: "2026-10-01",
     items: [
       { kind: "doi", text: "Trang \"Loại giấy tờ người\" đổi tên thành \"Loại giấy tờ cá nhân\" (căn cước, bằng lái, khám sức khoẻ, tập huấn). Nội dung không đổi." },
+    ],
+  },
+  {
+    // Khung Hỗ trợ: biểu tượng đổi cỡ, bong bóng "đang trả lời", chữ gợi ý; ô thử báo riêng khi mẫu AI hết token cho phần suy nghĩ.
+    // ADR-0084 (trợ lý Mai gọi tên, ô Giới tính): có migration 0066 (main đã có 0065_aut_session).
+    // Số "1.59" = main 1.58 (ADR-0075 sổ phiên) + 1 — đánh lại lúc gộp main fe3d73f4 (2026-10-01; thi công ghi 1.57, rồi 1.58). Nhánh khác gộp trước thì đánh lại số.
+    version: "1.59",
+    date: "2026-10-01",
+    items: [
+      { kind: "moi", text: "Trợ lý tên Mai: gọi bạn là \"anh/chị + tên\" theo ô Giới tính mới trong hồ sơ người và xưng \"em\"; chưa ghi giới tính thì gọi \"bạn\"." },
+      { kind: "moi", text: "Khung Hỗ trợ: khi bạn gửi câu hỏi, hiện ngay ba chấm nhấp nháy kèm chữ \"Mai đang trả lời…\" cho đến khi có câu trả lời." },
+      { kind: "doi", text: "Khung Hỗ trợ: nút đổi cỡ đổi sang biểu tượng hai mũi tên chéo, ô gõ ghi \"Hãy hỏi Mai tại đây nhé!\"." },
+      { kind: "doi", text: "Khung Hỗ trợ bỏ hai dòng nhắc nhỏ (vẫn có ở Trợ giúp). Nút \"Về góc\" trả cả vị trí lẫn cỡ về mặc định và nháy viền để biết đã nhận." },
+      { kind: "sua", text: "Toàn quyền: khi mẫu AI dùng hết số token cho phần suy nghĩ nên chưa viết được câu trả lời, ô thử nói rõ và chỉ cách chỉnh." },
     ],
   },
   {
