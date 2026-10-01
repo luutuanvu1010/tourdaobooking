@@ -114,7 +114,7 @@ Trợ lý bị trói bởi lời nhắc cứng (chỉ ba ngả trả lời) và 
 | `assistant.ask` (như cũ) | các vai được bật | đọc gián tiếp (bản hiện hành) | ghi lượt của mình | ghi lượt của mình; đọc gián tiếp ≤ 3 lượt của **chính mình** cùng cuộc trò chuyện (Đ4) |
 | `settings.ops` (chỉ Toàn quyền) | Toàn quyền | đọc + ghi bản mới; thử | đọc tổng hợp; ghi lượt thử | đọc (như ADR-0069) |
 
-**(3) Cổng canh cửa:** route bộ não / thử → `office` + `can(settings.ops)`; route hỏi → `assistant.ask` + công tắc vai + trần (kiểm trước khi gọi); phần nhớ → lọc `staff_id` + mã cuộc trò chuyện ở máy chủ; che SĐT / email → trước khi gửi; số tiền → lọc câu trả lời; mẫu → danh sách đóng; CSDL → trigger chỉ-thêm + CHECK.
+**(3) Cổng canh cửa** (kể cả chỗ giao diện ẩn/hiện — luật trang ghép bổ sung 2026-10-01): **giao diện** — trang `/tro-ly-cai-dat` (mục "Bộ não", ô thử, lịch sử bản) chỉ hiện với người giữ `settings.ops` (như trang hiện nay; máy chủ vẫn chặn); khung trò chuyện + nút "Cuộc trò chuyện mới" hiện với người giữ `assistant.ask` khi công tắc vai bật — không đổi nghĩa ẩn/hiện nào hiện có; **máy chủ** — route bộ não / thử → `office` + `can(settings.ops)`; route hỏi → `assistant.ask` + công tắc vai + trần (kiểm trước khi gọi); phần nhớ → lọc `staff_id` + mã cuộc trò chuyện ở máy chủ; che SĐT / email → trước khi gửi; số tiền → lọc câu trả lời; mẫu → danh sách đóng; CSDL → trigger chỉ-thêm + CHECK.
 
 ## 9. Việc tiếp theo
 
