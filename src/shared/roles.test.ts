@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { EXTERNAL_PERMISSIONS, PERMISSION_CODES, type PermissionCode } from "./permissions.ts";
 import {
   ROLES, ROLE_CODES, SUPER_ADMIN_GRANTED, canManageAccount, defaultPermissions, effectivePermissions, groupOf, highPermissionProblem, isRoleCode, parseRoleAssignment,
-  permissionsLabel, roleAssignmentProblem, rolesLabel, taiKhoanLaiProblem, vaiTaiXeDoiTacXungDot, type RoleAssignment, type RoleCode,
+  permissionsLabel, roleAssignmentProblem, rolesLabel, taiKhoanLaiProblem, tuDoiQuyenCuaMinh, vaiTaiXeDoiTacXungDot, type RoleAssignment, type RoleCode,
 } from "./roles.ts";
 
 const VAI_QUAN_LY = "Chỉ người phụ trách hệ thống mới gán hoặc gỡ vai Giám đốc, Điều hành chung, IT, Hành chính nhân sự.";
@@ -280,4 +280,15 @@ test("canManageAccount (ADR-0014 điều 8 + ADR-0071 điều 1c): Quản trị 
   assert.equal(canManageAccount(["SUPER_ADMIN"], ["HR"]), true);
   assert.equal(canManageAccount(["SUPER_ADMIN"], ["ADMIN", "SUPER_ADMIN"]), true);
   for (const p of PERMISSION_CODES.filter((x) => !["ADMIN", "HR", "SUPER_ADMIN"].includes(x))) assert.equal(canManageAccount([p], ["SALES"]), false, `${p} không quản ai`);
+});
+
+test("tuDoiQuyenCuaMinh (chủ dự án 2026-10-01): tự gán vai làm đổi quyền của chính mình → true (màn hình báo trước, không lưu gì); đổi vai mà quyền giữ nguyên → false", () => {
+  // Toàn quyền (vai IT: ADMIN + SUPER_ADMIN) tự thêm vai Hành chính nhân sự → thêm HR → đổi quyền.
+  assert.equal(tuDoiQuyenCuaMinh(["ADMIN", "SUPER_ADMIN"], assignment(["IT", "HR_STAFF"])), true);
+  // Đổi từ Giám đốc + cộng tay Toàn quyền sang IT (cùng ADMIN + SUPER_ADMIN) → quyền không đổi (ADR-0044) → được.
+  assert.equal(tuDoiQuyenCuaMinh(["ADMIN", "SUPER_ADMIN"], assignment(["IT"])), false);
+  // Thứ tự không quan trọng.
+  assert.equal(tuDoiQuyenCuaMinh(["SUPER_ADMIN", "ADMIN"], assignment(["IT"])), false);
+  // Cộng/bớt tay cũng tính.
+  assert.equal(tuDoiQuyenCuaMinh(["ADMIN", "SUPER_ADMIN"], assignment(["IT"], { removes: ["ADMIN"], reason: "thử" })), true);
 });

@@ -109,6 +109,16 @@ export function effectivePermissions(roles: readonly RoleCode[], adj: Adjustment
   return { permissions: ordered.filter(isExternalPermission), dropped: ordered.filter((p) => !isExternalPermission(p)) };
 }
 
+/**
+ * Chủ dự án 2026-10-01 (giữ luật "không tự đổi quyền của chính mình" — `checkAccountChange` ở máy chủ): màn Sửa tài khoản hỏi hàm này TRƯỚC khi lưu
+ * tài khoản của chính người dùng, để báo rõ và không lưu gì (trước đây tên/SĐT lưu xong rồi vai mới bị máy chủ từ chối). Đổi vai mà quyền giữ nguyên
+ * (ví dụ chuyển sang vai IT — ADR-0044) vẫn được. Máy chủ vẫn là chốt chặn.
+ */
+export function tuDoiQuyenCuaMinh(current: readonly PermissionCode[], next: Adjustments & { readonly roles: readonly RoleCode[] }): boolean {
+  const sau = effectivePermissions(next.roles, next).permissions;
+  return sau.length !== current.length || sau.some((p) => !current.includes(p));
+}
+
 export interface RoleAssignment extends Adjustments {
   readonly roles: readonly RoleCode[];
   /** Bắt buộc khi có cộng/bớt tay (LC-6: nhật ký ghi lý do); null khi không chỉnh tay. */
