@@ -50,7 +50,7 @@ test("3b: HCNS thấy tên + vai của hồ sơ trùng là đối tác / nhân v
   const { w, CTV } = await nen();
   const r = await w.call("GET", `/api/staff/ho-so-khop?ten=${encodeURIComponent(TEN_CTV)}`, { as: HR });
   assert.equal(r.status, 200, r.text);
-  assert.deepEqual(r.json.khop, [{ id: CTV, displayName: TEN_CTV, lyDo: ["NAME"], vai: ["Cộng tác viên"], coTaiKhoan: true }]);
+  assert.deepEqual(r.json.khop, [{ id: CTV, displayName: TEN_CTV, lyDo: ["NAME"], vai: ["Cộng tác viên"], vaiTaiKhoan: ["COLLABORATOR"], coTaiKhoan: true }]);
   assert.equal(r.json.coHoSoKhacTrongDanhBa, false);
 });
 

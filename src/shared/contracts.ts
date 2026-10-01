@@ -744,7 +744,9 @@ export type LyDoKhopDto = "PHONE" | "NAME" | "LOGIN_PHONE";
 export interface PartyDuplicatePairDto { a: PartyListItemDto; b: PartyListItemDto; lyDo: LyDoKhopDto[]; aCoTaiKhoan: boolean; bCoTaiKhoan: boolean }
 export interface PartyDuplicatesResponse { pairs: PartyDuplicatePairDto[]; conNua: boolean }
 /** Hồ sơ cá nhân khớp khi Thêm tài khoản (ADR-0068 Đ9) — không SĐT của hồ sơ. */
-export interface PartyMatchDto { id: string; displayName: string; lyDo: ("PHONE" | "NAME")[]; vai: string[]; coTaiKhoan: boolean }
+/** `vaiTaiKhoan`: mã các vai tài khoản (ROLE_CODES) hồ sơ đang mở — để form Thêm tài khoản chọn sẵn (Ruling R26) mà không phải đọc hồ sơ qua Danh bạ (Hành chính
+ * nhân sự không xem Danh bạ, ADR-0071). Cùng thông tin với `vai` (tên), chỉ ở dạng mã. */
+export interface PartyMatchDto { id: string; displayName: string; lyDo: ("PHONE" | "NAME")[]; vai: string[]; vaiTaiKhoan: RoleCode[]; coTaiKhoan: boolean }
 /** ADR-0071 điều 3b: `coHoSoKhacTrongDanhBa` = có hồ sơ trùng mà người gọi không được thấy (không xem Danh bạ — Hành chính nhân sự): khách, hồ sơ không vai tài
  * khoản. Không kèm id, tên, vai. Người xem được Danh bạ thấy mọi hồ sơ trùng trong `khop` nên cờ luôn false. */
 export interface PartyMatchResponse { khop: PartyMatchDto[]; coHoSoKhacTrongDanhBa: boolean }

@@ -288,7 +288,7 @@ export async function hoSoKhopKhiTaoTaiKhoan(db: D1Database, v: { phone: string 
   const coTaiKhoan = await partiesWithAccount(db, khop.map((k) => k.id));
   const thayDuoc = (k: (typeof khop)[number]) => xemDanhBa || coTaiKhoan.has(k.id) || k.maVai.some(isRoleCode);
   return {
-    khop: khop.filter(thayDuoc).map(({ maVai: _maVai, ...k }) => ({ ...k, coTaiKhoan: coTaiKhoan.has(k.id) })),
+    khop: khop.filter(thayDuoc).map(({ maVai, ...k }) => ({ ...k, vaiTaiKhoan: maVai.filter(isRoleCode), coTaiKhoan: coTaiKhoan.has(k.id) })),
     coHoSoKhacTrongDanhBa: khop.some((k) => !thayDuoc(k)),
   };
 }

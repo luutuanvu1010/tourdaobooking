@@ -294,7 +294,7 @@ function veKhop(): void {
         addName.readOnly = true;
         replaceChildren(existingNote, `Sẽ tạo tài khoản cho hồ sơ có sẵn "${k.displayName}" (không tạo hồ sơ mới). Đổi số điện thoại để bỏ chọn.`);
         capNhatNutTao();
-        void preselectRoles(k.id);
+        preselectRoles(k);
       });
       const lyDo = k.lyDo.map((l) => NHAN_LY_DO_KHOP[l]).join(", ");
       return h("li", null, h("strong", null, k.displayName), ` — ${lyDo}`, k.vai.length ? ` — ${k.vai.join(", ")}` : "", " ",
@@ -339,20 +339,14 @@ addPhone.addEventListener("input", traKhop);
 addName.addEventListener("input", () => { if (!existingPartyId) traKhop(); });
 
 /**
- * Ruling R26: hồ sơ có sẵn đang giữ vai tài khoản (không gắn nơi, chưa đóng — cùng định nghĩa "đang mở" với máy chủ) thì máy chủ bắt chọn cả vai đó.
- * Chọn sẵn các vai này (hợp với vai người dùng đã tích, giữ chỉnh tay + lý do). Không đọc được thì im lặng — máy chủ vẫn kiểm.
+ * Ruling R26: hồ sơ có sẵn đang giữ vai tài khoản (chưa đóng — cùng định nghĩa "đang mở" với máy chủ) thì máy chủ bắt chọn cả vai đó. Chọn sẵn các vai này
+ * (hợp với vai người dùng đã tích, giữ chỉnh tay + lý do). Lấy từ chính kết quả hồ sơ khớp (`vaiTaiKhoan`), không đọc hồ sơ qua Danh bạ: Hành chính nhân sự
+ * không xem Danh bạ (ADR-0071) nên lời gọi cũ `GET /api/parties/:id` bị 403 và bước chọn sẵn im lặng không chạy. Máy chủ vẫn kiểm.
  */
-async function preselectRoles(partyId: string): Promise<void> {
-  let party: Api.PartyDto;
-  try {
-    party = (await api<Api.PartyResponse>(`/api/parties/${encodeURIComponent(partyId)}`)).party;
-  } catch {
-    return;
-  }
-  if (existingPartyId !== partyId || !addPicker) return; // người dùng đã đổi số/bỏ chọn trong lúc chờ
-  const open = party.roles.filter((r) => r.locationId === null && r.validTo === null).map((r) => r.roleTypeCode);
+function preselectRoles(k: Api.PartyMatchDto): void {
+  if (!addPicker) return;
   const v = addPicker.value();
-  addPicker.reset({ ...v, roles: ROLE_CODES.filter((c) => v.roles.includes(c) || open.includes(c)) });
+  addPicker.reset({ ...v, roles: ROLE_CODES.filter((c) => v.roles.includes(c) || k.vaiTaiKhoan.includes(c)) });
 }
 
 byId<HTMLFormElement>("add-form").addEventListener("submit", async (e) => {
