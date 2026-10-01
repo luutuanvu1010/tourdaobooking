@@ -560,6 +560,15 @@
       ]
     },
     {
+      "name": "v_pty_person_xung_ho",
+      "module": "parties",
+      "columns": [
+        "party_id",
+        "given_name",
+        "gender"
+      ]
+    },
+    {
       "name": "v_stf_staff_label",
       "module": "staff",
       "columns": [
@@ -574,6 +583,15 @@
       "module": "staff",
       "columns": [
         "staff_id"
+      ]
+    },
+    {
+      "name": "v_stf_staff_xung_ho",
+      "module": "staff",
+      "columns": [
+        "id",
+        "given_name",
+        "gender"
       ]
     },
     {
