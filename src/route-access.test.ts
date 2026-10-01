@@ -97,6 +97,7 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "GET", path: "/api/bang-tin", access: "staff" }, // bắt tay WebSocket Bảng tin (ADR-0022) — mọi tài khoản đăng nhập; nhãn nhận tin tính ở máy chủ bằng can()
   { method: "POST", path: "/api/auth/login", access: "public" },
   { method: "POST", path: "/api/auth/logout", access: "public" },
+  { method: "POST", path: "/api/auth/session-ended", access: "public" }, // lý do máy này vừa bị đăng xuất (ADR-0075) — chỉ trả khi chữ ký token đúng
   { method: "GET", path: "/api/auth/me", access: "staff" },
   { method: "POST", path: "/api/auth/passkey/login", access: "public" }, // đăng nhập bằng Face ID (ADR-0016) — tự gọi maintenanceBlock, không qua cổng bảo trì của router
   { method: "POST", path: "/api/auth/passkey/options", access: "public" }, // xin thách thức WebAuthn để đăng nhập
@@ -205,6 +206,9 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/staff/:id/passkeys/remove-all", access: "admin" }, // quản trị viên gỡ mọi Face ID của một tài khoản (ADR-0016 điều 6/8) — GIỮ cổng admin (ADR-0071 điều 1e: HCNS không)
   { method: "POST", path: "/api/staff/:id/reset-pin", access: "admin" },
   { method: "POST", path: "/api/staff/:id/unlock", access: "admin" },
+  { method: "GET", path: "/api/account/sessions", access: "staff" }, // ADR-0075 điều 7: lịch sử phiên của CHÍNH MÌNH (tự phục vụ)
+  { method: "GET", path: "/api/sessions", access: "admin" }, // ADR-0075 điều 7: sổ phiên của mọi tài khoản — thân hỏi auth.session.viewAll (chỉ Toàn quyền)
+  { method: "POST", path: "/api/sessions/:id/revoke", access: "admin" }, // ADR-0075 điều 7–8: gỡ một phiên — thân hỏi auth.session.revoke (chỉ Toàn quyền), nhật ký im lặng session_revoked
   { method: "GET", path: "/api/staff/ho-so-khop", access: "accounts" }, // ADR-0068 Đ9 (C1): hồ sơ khớp khi Thêm tài khoản — account.create (ADR-0071)
   // ADR-0071 điều 2: GET /api/staff/sheet, POST /api/staff/sheet/apply (đồng bộ nhân viên từ Google Sheet) ĐÃ GỠ.
   { method: "GET", path: "/api/account/passkeys", access: "staff" }, // danh sách Face ID của chính mình
@@ -322,7 +326,7 @@ test("MODULES liệt kê ĐỦ mọi thư mục module có khai `...Module: AppM
   assert.deepEqual(routedDirs, listed, "có thư mục module khai AppModule nhưng chưa có trong MODULES của bài kiểm route-access này — thêm vào MODULES và SNAPSHOT");
 });
 
-test("mức truy cập của 201 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
+test("mức truy cập của 209 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
   const actual = await collectRealRoutes();
   // deepEqual TRƯỚC: khi có route mới/bị xoá, thông báo của nó chỉ ra ĐÚNG route lệch — hai assert.equal độ dài bên dưới chỉ để phòng hờ
   // (không bao giờ tự chạy tới nếu deepEqual đã trượt) và tài liệu hoá con số 86 để đối chiếu nhanh bằng mắt.
@@ -373,7 +377,8 @@ test("mức truy cập của 201 route hiện có khớp ảnh chụp đã duy�
   // 2026-10-01 (ADR-0054 D10.1 + nơi trả mặc định — kế hoạch ô mới của chặng Task 6): + GET /api/van-chuyen/mau-chang (orders), GET/POST …/mau-chang/:code (admin) = 201.
   // 2026-10-01 (ADR-0073, bộ não trợ lý): + GET/PUT /api/tro-ly/bo-nao, GET /api/tro-ly/bo-nao/lich-su (office, settings.ops) = 204 (gộp main 1.53: nhánh ghi 201 trên nền 198, main thêm 3).
   // 2026-10-01 (ADR-0073 Đ5): + POST /api/tro-ly/thu (office, settings.ops) = 205.
+  // 2026-10-01 (ADR-0075 Task 4 + điều 7–8): + POST /api/auth/session-ended (public), GET /api/account/sessions (staff), GET /api/sessions, POST /api/sessions/:id/revoke (admin) = 209 (gộp main 1.57: nhánh ghi 205 trên nền 201, main lên 205 ⇒ 201 + 4 + 4).
   assert.deepEqual(actual, SNAPSHOT);
-  assert.equal(actual.length, 205, "số route thực tế lệch 205 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 205, "SNAPSHOT phải có đúng 205 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  assert.equal(actual.length, 209, "số route thực tế lệch 209 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 209, "SNAPSHOT phải có đúng 209 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

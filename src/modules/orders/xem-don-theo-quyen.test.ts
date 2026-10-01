@@ -292,6 +292,7 @@ test("ADR-0030 L1-12: MỌI ô của Đối tác (PARTNER) giữ nguyên — ghi
     "order.service.manual": "none", // ADR-0061 điều 2: Đối tác không bao giờ nhập tay (máy chủ còn chặn mọi tài khoản có quyền Đối tác — holdsPartner)
     "trip.view": "none", "trip.dispatch": "none", "trip.override": "none", "trip.progress": "none", "trip.call_ack": "none", // ADR-0049 D3: Đối tác không thấy lịch xe (C1)
     "assistant.ask": "any", // ADR-0066 điều 1: hỏi trợ lý Hỗ trợ — mọi tài khoản đăng nhập
+    "auth.session.viewAll": "none", "auth.session.revoke": "none", // ADR-0075 điều 7: sổ phiên chỉ Toàn quyền
   };
   const actual = Object.fromEntries((Object.keys(MATRIX) as OperationCode[]).map((op) => [op, MATRIX[op].PARTNER]));
   assert.deepEqual(actual, PARTNER_ROW);

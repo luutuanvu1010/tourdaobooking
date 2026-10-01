@@ -51,7 +51,7 @@ Bạn không thấy các vai quản lý (Giám đốc, Điều hành chung, IT, 
 
 Bạn không đặt lại PIN của chính mình ở đây; tự đổi ở trang Tôi. Bạn chỉ quản lý được tài khoản **không có quyền Quản trị hoặc Nhân sự**; trên dòng của Quản trị khác và của Hành chính nhân sự các nút bị ẩn.
 
-> Ví dụ: Anh Tuấn gọi báo không vào được app. Dòng của anh có nhãn Bị khoá đăng nhập. Bấm Mở khoá, anh vào lại ngay.`,
+> Ví dụ: Anh Tuấn không vào được app, dòng có nhãn Bị khoá đăng nhập: bấm Mở khoá.`,
     },
     {
       tieuDe: "Danh bạ: thêm và tìm hồ sơ",
@@ -210,7 +210,7 @@ Mở [[Lý do điều phối]]. Lý do chia nhóm, như [[Đổi giờ xe tới]
     },
     {
       tieuDe: "Chỉ tài khoản Toàn quyền",
-      noiDung: `Toàn quyền làm được mọi việc của Quản trị, thêm các việc dưới đây. Menu có thêm [[Chính sách điều phối]], [[Nhật ký]], [[Gửi thông báo]].
+      noiDung: `Toàn quyền làm được mọi việc của Quản trị, thêm các việc dưới đây. Menu có thêm [[Chính sách điều phối]], [[Nhật ký]], [[Gửi thông báo]], [[Phiên đăng nhập]].
 
 ### Tài khoản
 - Gán được vai Giám đốc, Điều hành chung, IT, Hành chính nhân sự; sửa được cả tài khoản Quản trị và Hành chính nhân sự.
@@ -233,6 +233,11 @@ Chỉ hiện ở trang Tôi của tài khoản Toàn quyền. Khi bật, mọi t
 
 ### Chính sách điều phối
 Mở [[Chính sách điều phối]], sửa [[Mốc tối thiểu (giờ)]], [[Cảnh báo sát mốc (giờ)]], [[Khoảng nghỉ tài xế (phút)]], [[Khai lùi tối đa (phút)]], công tắc [[Phải đủ danh sách khách]]. Bấm [[Lưu thành bản mới]], có hiệu lực ngay; bản cũ vào [[Lịch sử bản]]. Liên kết [[Điều kiện theo cỡ xe, hạng bằng ›]] mở trang Điều kiện xuất bến.
+
+### Phiên đăng nhập
+Mở [[Phiên đăng nhập]] (điện thoại: trang **Tôi**) xem ai đang đăng nhập trên máy nào.
+- [[Gỡ phiên]]: máy đó đăng xuất ngay.
+- Nghi lộ PIN, mất máy: [[Gỡ phiên + đặt lại PIN]]; PIN mới hiện một lần, gửi riêng cho người đó.
 
 ### Nhật ký, Góp ý, hồ sơ công ty
 - [[Nhật ký]]: tìm theo mã đơn, mã dịch vụ hoặc tên nhân viên.

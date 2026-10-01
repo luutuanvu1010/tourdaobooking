@@ -50,6 +50,8 @@ const lienKetDau = [
 ];
 const lienKetSau = [
   can(staff, "audit.view") && h("a", { class: "row-link", href: "/audit" }, "Nhật ký", icon("next", 20)), // ADR-0038 điều 6: chỉ Toàn quyền
+  // ADR-0075 điều 7: sổ phiên đăng nhập của mọi tài khoản — chỉ IT/Toàn quyền (ô auth.session.viewAll); lối vào ở điện thoại (thanh bên máy tính có mục riêng).
+  can(staff, "auth.session.viewAll") && h("a", { class: "row-link", href: "/sessions" }, "Phiên đăng nhập", icon("next", 20)),
   can(staff, "notice.send") && h("a", { class: "row-link", href: "/gui-thong-bao" }, "Gửi thông báo", icon("next", 20)),
   // ADR-0069 điều 1: cài đặt trợ lý chuyển từ khối ở trang này sang trang riêng — chỉ Toàn quyền (ô settings.ops).
   can(staff, "settings.ops") && h("a", { class: "row-link", href: "/tro-ly-cai-dat" }, "Trợ lý Hỗ trợ", icon("next", 20)),
@@ -401,6 +403,38 @@ async function renderPush(): Promise<void> {
   pushEl.hidden = false;
 }
 void renderPush();
+
+// ---- Phiên đăng nhập của tôi (ADR-0075 điều 9; đặc tả §5b "Bảo mật đăng nhập"): 30 phiên gần nhất của CHÍNH MÌNH, dòng máy đang dùng ghi "Máy này", nút Đăng xuất.
+// Trạng thái, cách đăng nhập: nhãn lời thường do máy chủ tính (không lộ mã thô). Lỗi mạng: mục giữ ẩn, không ảnh hưởng phần còn lại của trang.
+const mySessionsEl = byId("my-sessions");
+async function renderMySessions(): Promise<void> {
+  let list: Api.SessionDto[];
+  try {
+    list = (await api<Api.SessionListResponse>("/api/account/sessions")).sessions;
+  } catch {
+    return;
+  }
+  const dong = (s: Api.SessionDto): HTMLElement =>
+    h(
+      "div",
+      { class: "passkey-row", "data-phien": s.id },
+      h("strong", null, s.deviceLabel, s.thisDevice && h("span", { class: "badge badge-draft" }, "Máy này")),
+      h("div", { class: "muted" }, `${s.methodLabel} · IP ${s.ip ?? "không rõ"}`),
+      h("div", { class: "muted" }, `Đăng nhập ${vnDateTimeText(s.createdAt)} · Hoạt động gần nhất ${vnDateTimeText(s.lastSeenAt)}`),
+      h("div", null, h("span", { class: s.live ? "badge badge-confirmed" : "muted" }, s.statusLabel, !s.live && s.endedAt ? ` lúc ${vnDateTimeText(s.endedAt)}` : "")),
+    );
+  const out = h("button", { id: "my-sessions-logout", class: "btn btn-link danger", type: "button" }, "Đăng xuất");
+  out.addEventListener("click", () => void logout());
+  replaceChildren(
+    mySessionsEl,
+    h("h2", { id: "my-sessions-heading" }, "Phiên đăng nhập của tôi"),
+    h("p", { class: "muted" }, "Mỗi tài khoản (trừ IT và Toàn quyền) chỉ đăng nhập trên một máy: đăng nhập máy mới thì máy cũ tự đăng xuất. Ứng dụng đã cài và Safari trên cùng một iPhone tính là hai máy."),
+    list.length === 0 ? h("p", { class: "muted" }, "Chưa có phiên nào.") : h("div", { class: "passkey-list" }, ...list.map(dong)),
+    out,
+  );
+  mySessionsEl.hidden = false;
+}
+void renderMySessions();
 
 // ---- Chế độ bảo trì (chỉ chủ dự án: GET /api/maintenance trả canToggle = true) ----
 // Bật = mọi tài khoản khác bị chặn NGAY (kể cả phiên đang mở) — nên bật phải qua bước xác nhận thứ hai ngay trong trang (không dùng confirm() của trình duyệt). Máy chủ mới là nơi kiểm quyền và giờ hợp lệ.

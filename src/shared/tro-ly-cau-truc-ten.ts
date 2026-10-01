@@ -117,6 +117,8 @@ export const TEN_THAO_TAC: Readonly<Record<OperationCode, TenLoiThuong>> = {
   "trip.progress": { ten: "bấm tiến độ chuyến", moTa: "Xuất bến, đã đón, đã trả, kết thúc chuyến (văn phòng bấm thay được)." },
   "trip.call_ack": { ten: "ghi đã gọi báo khách", moTa: "Đánh dấu đã gọi báo khách giờ hẹn mới của chặng." },
   "assistant.ask": { ten: "hỏi trợ lý Hỗ trợ", moTa: "Hỏi cách dùng app qua nút Hỗ trợ." },
+  "auth.session.viewAll": { ten: "xem phiên đăng nhập của mọi người", moTa: "Xem ai đang đăng nhập trên máy nào, lúc nào, bằng cách nào." },
+  "auth.session.revoke": { ten: "gỡ phiên đăng nhập", moTa: "Đăng xuất ngay một máy đang đăng nhập của tài khoản khác." },
 };
 
 /**

@@ -45,6 +45,7 @@ try {
   const ADMIN = await session(ACCOUNTS.admin);
   const OWNER = await session(ACCOUNTS.superAdmin); // chủ dự án = Toàn quyền (ADR-0019: ô settings.ops)
   const OWNER2 = await session(ACCOUNTS.superAdmin);
+  const NGUOI_DANG_XUAT = await session(ACCOUNTS.hr); // ADR-0075: đăng xuất NAY kết thúc dòng phiên → dùng phiên riêng của Nhân sự (cũng bị chặn lúc bảo trì), không đụng phiên của BLOCKED
   // ADR-0071 điều 3a: Quản trị cũng bị chặn (trước đây miễn trừ theo SĐT).
   const BLOCKED = [["salesA", SALES], ["accountant", ACCOUNTANT], ["field", FIELD], ["admin", ADMIN]];
 
@@ -198,7 +199,8 @@ try {
   assert.deepEqual(r.body.maintenance, { on: true, endsAt: ENDS });
   assert.doesNotMatch(JSON.stringify(r.body), /allowed|0900000004|0989929373|phone/i, "config công khai không được lộ danh sách được phép");
   assert.equal((await call(null, "GET", "/api/company")).status, 200);
-  r = await call(BLOCKED[0][1], "POST", "/api/auth/logout");
+  assertBlocked(await call(NGUOI_DANG_XUAT, "GET", "/api/auth/me"), ENDS, "Nhân sự bị chặn như mọi tài khoản không phải Toàn quyền");
+  r = await call(NGUOI_DANG_XUAT, "POST", "/api/auth/logout");
   assert.equal(r.status, 200, "người bị chặn vẫn đăng xuất được");
   console.log("✓ BẬT: /api/auth/config (on + giờ dự kiến, không lộ danh sách), /api/company, logout vẫn chạy");
 

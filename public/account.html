@@ -19,6 +19,8 @@
     <section id="passkeys" class="card" aria-labelledby="passkeys-heading" hidden></section>
     <!-- Thông báo màn hình khoá (ADR-0036): web/account.ts chỉ hiện khi máy chủ có khoá công khai VAPID (GET /api/account/thong-bao/may → khoa). -->
     <section id="push" class="card" aria-labelledby="push-heading" hidden></section>
+    <!-- Phiên đăng nhập của tôi (ADR-0075 điều 9): web/account.ts hiện sau khi GET /api/account/sessions về. -->
+    <section id="my-sessions" class="card" aria-labelledby="my-sessions-heading" hidden></section>
     <form id="pin-form" class="card" autocomplete="off">
       <h2>Đổi mã PIN</h2>
       <label>PIN hiện tại<input id="current" type="password" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required></label>

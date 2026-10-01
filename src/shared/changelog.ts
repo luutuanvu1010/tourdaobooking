@@ -12,9 +12,9 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // Khung Hỗ trợ: biểu tượng đổi cỡ, bong bóng "đang trả lời", chữ gợi ý; ô thử báo riêng khi mẫu AI hết token cho phần suy nghĩ.
-    // ADR-0084 (trợ lý Mai gọi tên, ô Giới tính): có migration 0064 (số tạm — 0061, 0063 ở nhánh khác).
-    // Số "1.58" = main 1.57 (ADR-0083) + 1 — đánh lại lúc gộp main 99d0d2fb (2026-10-01; thi công ghi 1.57). Nhánh khác gộp trước thì đánh lại số.
-    version: "1.58",
+    // ADR-0084 (trợ lý Mai gọi tên, ô Giới tính): có migration 0066 (main đã có 0065_aut_session).
+    // Số "1.59" = main 1.58 (ADR-0075 sổ phiên) + 1 — đánh lại lúc gộp main fe3d73f4 (2026-10-01; thi công ghi 1.57, rồi 1.58). Nhánh khác gộp trước thì đánh lại số.
+    version: "1.59",
     date: "2026-10-01",
     items: [
       { kind: "moi", text: "Trợ lý tên Mai: gọi bạn là \"anh/chị + tên\" theo ô Giới tính mới trong hồ sơ người và xưng \"em\"; chưa ghi giới tính thì gọi \"bạn\"." },
@@ -22,6 +22,18 @@ export const CHANGELOG: readonly ReleaseNote[] = [
       { kind: "doi", text: "Khung Hỗ trợ: nút đổi cỡ đổi sang biểu tượng hai mũi tên chéo, ô gõ ghi \"Hãy hỏi Mai tại đây nhé!\"." },
       { kind: "doi", text: "Khung Hỗ trợ bỏ hai dòng nhắc nhỏ (vẫn có ở Trợ giúp). Nút \"Về góc\" trả cả vị trí lẫn cỡ về mặc định và nháy viền để biết đã nhận." },
       { kind: "sua", text: "Toàn quyền: khi mẫu AI dùng hết số token cho phần suy nghĩ nên chưa viết được câu trả lời, ô thử nói rõ và chỉ cách chỉnh." },
+    ],
+  },
+  {
+    // ADR-0075 Phần A (sổ phiên đăng nhập, mỗi tài khoản một máy). Có migration 0065. Cookie phiên đổi định dạng ⇒ mọi người đăng nhập lại một lần.
+    // Số "1.58" = main 1.57 + 1 (đánh lại lúc gộp main 1.57, 2026-10-01; thi công ghi 1.54, migration thi công ghi 0061).
+    version: "1.58",
+    date: "2026-10-01",
+    items: [
+      { kind: "doi", text: "Mỗi tài khoản chỉ đăng nhập trên một máy (trừ IT và Toàn quyền). Đăng nhập máy mới thì máy cũ tự đăng xuất, kèm lời báo lúc nào." },
+      { kind: "doi", text: "Sau bản này mọi người cần đăng nhập lại một lần." },
+      { kind: "moi", text: "Trang Tôi có mục \"Phiên đăng nhập của tôi\": xem mình đã đăng nhập trên máy nào, lúc nào." },
+      { kind: "moi", text: "IT và Toàn quyền có trang \"Phiên đăng nhập\": xem ai đang đăng nhập trên máy nào, gỡ phiên, hoặc gỡ phiên kèm đặt lại PIN." },
     ],
   },
   {

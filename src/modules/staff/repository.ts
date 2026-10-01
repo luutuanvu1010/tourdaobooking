@@ -70,6 +70,22 @@ export async function labelsByIds(db: D1Database, ids: readonly string[]): Promi
   if (ids.length === 0) return new Map();
   return new Map((await db.prepare(LABELS_BY_IDS).bind(JSON.stringify(ids)).all<{ id: string; label: string }>()).results.map((r) => [r.id, r.label]));
 }
+// ADR-0075 điều 7: chủ của các dòng sổ phiên — tên hiển thị + mốc lưới credentials_changed_at (để màn sổ phiên tính trạng thái theo lưới). Không SĐT, không quyền.
+const SESSION_OWNERS = defineSql(
+  "staff",
+  "session_owners_by_ids",
+  `SELECT s.id, COALESCE(pl.display_name, '${NO_PARTY_LABEL}') AS label, s.credentials_changed_at,
+    (SELECT group_concat(p.permission_type_code) FROM stf_permission p WHERE p.staff_id = s.id AND p.valid_to_at IS NULL) AS permissions
+   ${FROM} WHERE s.id IN (SELECT value FROM json_each(?1))`,
+);
+export async function sessionOwnersByIds(
+  db: D1Database,
+  ids: readonly string[],
+): Promise<Map<string, { label: string; credentialsChangedAt: number | null; permissions: PermissionCode[] }>> {
+  if (ids.length === 0) return new Map();
+  const { results } = await db.prepare(SESSION_OWNERS).bind(JSON.stringify(ids)).all<{ id: string; label: string; credentials_changed_at: number | null; permissions: string | null }>();
+  return new Map(results.map((r) => [r.id, { label: r.label, credentialsChangedAt: r.credentials_changed_at, permissions: parsePermissions(r.permissions) }]));
+}
 const SET_PIN = defineSql("staff", "set_pin", "UPDATE staff SET pin_hash = ?2, credentials_changed_at = ?3 WHERE id = ?1");
 const TOUCH_CREDENTIALS = defineSql("staff", "touch_credentials", "UPDATE staff SET credentials_changed_at = ?2 WHERE id = ?1");
 // Chỉ đẩy khi câu NGAY TRƯỚC trong cùng batch có đổi dòng (gỡ passkey): changes() trong WHERE nhìn thấy câu đã hoàn tất trước đó — cùng cơ chế với nhật ký `onlyIf`.

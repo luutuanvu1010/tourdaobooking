@@ -1,4 +1,5 @@
 import { MAINTENANCE_CODE } from "../src/shared/maintenance";
+import { SESSION_ENDED_KEY, parseSessionEnded } from "../src/shared/session-ended";
 import { donTuDuongDan, laTaoDonMoi, taoSoTuLam } from "./bangtin-logic";
 import { xoaKhungNho } from "./khung-nho";
 import { endsAtFrom, showMaintenanceScreen } from "./maintenance-screen";
@@ -38,8 +39,24 @@ export class ApiError extends Error {
 /** Chỉ cho phép quay lại đường dẫn nội bộ (chặn open redirect) — logic + test ở src/shared/safe-next.ts. */
 export { safeNext } from "../src/shared/safe-next";
 
+/**
+ * Hỏi máy chủ vì sao phiên này vừa kết thúc (ADR-0075) và để lại cho trang đăng nhập hiện lời báo. Cookie cũ vẫn còn lúc này. Hạn chờ ngắn; mọi lỗi (mạng, sessionStorage bị chặn) bị nuốt —
+ * không bao giờ được cản việc đưa người dùng về đăng nhập.
+ */
+async function ghiNhoLyDoDangXuat(): Promise<void> {
+  try {
+    const res = await fetch("/api/auth/session-ended", { method: "POST", credentials: "same-origin", signal: AbortSignal.timeout(3000) });
+    const notice = parseSessionEnded(await res.json());
+    if (notice) sessionStorage.setItem(SESSION_ENDED_KEY, JSON.stringify(notice));
+    else sessionStorage.removeItem(SESSION_ENDED_KEY);
+  } catch {
+    // bỏ qua
+  }
+}
+
 /** Chuyển về trang đăng nhập rồi giữ lời gọi treo (trang sắp bị thay), tránh chạy tiếp code giả định đã đăng nhập. */
-export function goLogin(): Promise<never> {
+export async function goLogin(): Promise<never> {
+  await ghiNhoLyDoDangXuat();
   xoaKhungNho(); // ADR-0035: hết phiên → người đăng nhập kế tiếp (có thể là người khác) không thấy khung của phiên cũ
   const next = location.pathname + location.search;
   location.replace(`/login?next=${encodeURIComponent(next)}`);

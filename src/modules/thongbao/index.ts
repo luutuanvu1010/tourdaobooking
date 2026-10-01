@@ -19,7 +19,7 @@ import {
 } from "./repository";
 
 /** Gốc lắp ráp (src/index.ts) tắt mọi máy của một tài khoản ở cùng chỗ đóng Bảng tin (đổi PIN/quyền/SĐT, ngưng… — ADR-0036). */
-export { tatMayStatement } from "./repository";
+export { tatMayCuaPhienStatement, tatMayStatement, tatMayTruPhienStatement } from "./repository";
 
 const NOT_FOUND = () => error(404, "not_found", "Không tìm thấy thông báo.");
 const FORBIDDEN = () => error(403, "forbidden", "Chỉ người phụ trách hệ thống được gửi và quản lý thông báo.");
@@ -114,7 +114,7 @@ export const thongbaoModule: AppModule = {
       const mayNay = endpoint !== null && endpoint.length >= 1 && endpoint.length <= 1024 && (await mayDangBat(env.DB, staff.id, endpoint));
       return json({ khoa, soMay, mayNay } satisfies MayThongBaoResponse);
     }),
-    route("POST", "/api/account/thong-bao/may", "staff", async ({ env, staff, request }) => {
+    route("POST", "/api/account/thong-bao/may", "staff", async ({ env, staff, sessionId, request }) => {
       const body = await readJson(request);
       const endpoint = body?.endpoint;
       const thietBi = typeof body?.thietBi === "string" ? body.thietBi.trim() : "";
@@ -122,7 +122,8 @@ export const thongbaoModule: AppModule = {
         return error(400, "invalid_input", "Địa chỉ máy hoặc tên máy không hợp lệ.");
       }
       const at = new Date().toISOString();
-      await env.DB.batch(batMayStatements(env.DB, { id: crypto.randomUUID(), staffId: staff.id, endpoint, thietBi, at }));
+      // ADR-0075 điều 6b: đăng ký mang mã phiên đang đăng nhập — lần đăng nhập máy khác tắt mọi đăng ký trừ đăng ký của phiên mới.
+      await env.DB.batch(batMayStatements(env.DB, { id: crypto.randomUUID(), staffId: staff.id, endpoint, thietBi, at, sessionId }));
       return json({ ok: true });
     }),
     route("POST", "/api/account/thong-bao/may/huy", "staff", async ({ env, staff, request }) => {

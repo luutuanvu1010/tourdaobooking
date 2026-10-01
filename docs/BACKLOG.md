@@ -122,3 +122,9 @@
 - **Thứ tự / mâu thuẫn trong phiếu:** câu 1 tiền xe thuê "Để sau" (chủ đã chọn "Làm trước"); câu 3 xe hỏng giữa đường (hiếm vs tháng tới); câu 15 chiều về tự tạo vs nhân viên tự ghi.
 - **Chưa có trong kế hoạch:** câu 11 trần giảm giá nhân viên (vượt thì Quản trị duyệt); câu 12 nghĩa "giá riêng từng đại lý"; câu 13 giá theo mùa; câu 16 chặn đơn trùng (chủ 22/9 chọn chỉ cảnh báo — đặc tả ở nhánh `canh-bao-don-trung`, chưa gộp); câu 18 giờ lái tối đa 10 giờ (ADR-0055 đang 8 giờ, chỉ cảnh báo); câu 19 nhiên liệu + số km xe công ty; câu 20 máy tự xếp thứ tự điểm đón (chờ hỏi pháp lý ghép khách xe hợp đồng).
 - **Giao diện:** câu 21 thẻ đơn hiện mã đơn + tổng tiền ở phần luôn thấy, màu chuyến gộp về 3 màu đỏ/vàng/xanh, Bảng điều phối 3 cột trên iPad dựng đứng, biển số trên thẻ danh sách (cần ADR mở rộng ADR-0059); câu 22 trang bị + thử iPad thật cho điều phối (Phần D — CSV phiếu không có câu nào của Phần D).
+
+## 16. Bảo mật hai lớp — đợt 2: gửi mã qua Zalo ZNS
+
+- **Ngày:** 2026-10-01 · **Chủ nêu:** *"tăng cường lớp bảo mật 2 lớp 2FA cho phần đăng nhập … Gửi về Zalo qua ZNS, Ứng dụng Google Authenticator, gửi về email"*; chủ chọn đợt 1 = ứng dụng xác thực + email, đợt 2 = Zalo ZNS · **Trạng thái:** `ý tưởng` (đợt 1 đang ở bản nháp đặc tả).
+- **Đã có:** đặc tả `docs/superpowers/specs/2026-10-01-xac-thuc-hai-lop-dac-ta.md` §8; ADR-0074 bản nháp điều 8.
+- **Còn vướng (phía chủ):** Zalo OA của công ty đã xác minh doanh nghiệp; đăng ký ZNS + mẫu tin OTP được Zalo duyệt; phí mỗi tin; khoá truy cập ứng dụng Zalo. Sau đó cần ADR/sửa đổi riêng.

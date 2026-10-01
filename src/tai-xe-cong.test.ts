@@ -64,6 +64,7 @@ const BANG_STAFF: Record<string, MucBang | { DRIVER: MucBang; DRIVER_PARTNER: Mu
   "POST /api/account/pin-by-passkey/options": { ma: 503, ly_do: "như trên" },
   "POST /api/account/thong-bao/da-doc": { ma: 200, ly_do: "tự phục vụ: mốc đã đọc thông báo của chính mình (nhận thông báo gửi cho mình — D3)" },
   "POST /api/account/thong-bao/:id/da-hieu": { ma: 404, ly_do: "tự phục vụ: xác nhận đã hiểu tin của mình; tin lạ → 404" },
+  "GET /api/account/sessions": { ma: 200, ly_do: "tự phục vụ: lịch sử phiên đăng nhập của CHÍNH MÌNH (ADR-0075 điều 7) — không dữ liệu đơn" },
   "GET /api/account/thong-bao/may": { ma: 200, ly_do: "tự phục vụ: máy nhận thông báo của chính mình" },
   "POST /api/account/thong-bao/may": { ma: 400, ly_do: "như trên; thân rỗng → 400" },
   "POST /api/account/thong-bao/may/huy": { ma: 400, ly_do: "như trên; thân rỗng → 400" },
