@@ -32,7 +32,7 @@ test("tệp phông khai trong CSS có thật, đủ lớn để chứa chữ Vi�
 
 test("mọi độ đậm CSS dùng đều có tệp phông riêng (không để trình duyệt tự tô đậm giả)", () => {
   const khai = new Set(faces.map((f) => /font-weight:\s*(\d+)/.exec(f)?.[1]));
-  const dung = new Set([...css.matchAll(/font-weight:\s*(\d{3})/g), ...css.matchAll(/font:\s*(\d{3})\s/g)].map((m) => m[1]));
+  const dung = new Set([...css.matchAll(/font-weight:\s*(\d{3})/g), ...css.matchAll(/font:\s*(\d{3})\s/g), ...root.matchAll(/--fw-[\w-]+:\s*(\d{3});/g)].map((m) => m[1]));
   dung.add("400"); // chữ thường của body
   for (const w of dung) assert.ok(khai.has(w), `độ đậm ${w} được dùng nhưng không có @font-face`);
 });

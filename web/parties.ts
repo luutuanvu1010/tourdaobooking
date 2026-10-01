@@ -105,7 +105,7 @@ function card(p: Api.PartyListItemDto): HTMLElement {
   const el = h(
     "div",
     { class: p.active ? "card" : "card row-off", style: "cursor:pointer" },
-    h("div", { style: "width:40px;height:40px;border-radius:var(--radius-pill);background:var(--c-primary-soft);color:var(--c-primary);display:flex;align-items:center;justify-content:center;font-weight:800;flex:none" }, initials(p.displayName)),
+    h("div", { style: "width:40px;height:40px;border-radius:var(--radius-pill);background:var(--c-primary-soft);color:var(--c-primary);display:flex;align-items:center;justify-content:center;font-weight:var(--fw-heavy);flex:none" }, initials(p.displayName)),
     h(
       "div",
       { style: "flex:1" },
