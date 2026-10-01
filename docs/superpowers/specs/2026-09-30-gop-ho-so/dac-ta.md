@@ -1,6 +1,6 @@
 # Đặc tả — Gộp hồ sơ cá nhân trùng + danh sách nghi trùng + chặn tạo trùng khi thêm tài khoản
 
-- **Trạng thái:** bản nháp, chờ chủ dự án duyệt **cùng** ADR-0068 (cùng thư mục). Chưa duyệt thì không lập kế hoạch thi công.
+- **Trạng thái:** đã duyệt 2026-10-01 cùng ADR-0068.
 - **Ngày:** 2026-09-30. **Mốc mã:** `main` = `5f6fcbc2` (bản 1.44). **Nhánh:** `worktree-gop-ho-so`.
 - **Quyết định gốc:** ADR-0068 (nháp) — đặc tả này không thêm quyết định mới; chỗ nào đặc tả chi tiết hoá thì ghi "chi tiết" và vẫn nằm trong khung ADR.
 - **Xây trên lỗ đang hở:** không có (`docs/quyen-hoan.json` `phat_hien` = `[]`).
@@ -64,7 +64,7 @@ Ký hiệu: A = hồ sơ phụ, B = hồ sơ chính. "409" = máy chủ từ ch�
 | `POST /api/staff` | như cũ | thêm luật C2 |
 
 - `xacNhan` phải đúng tên hiện tại của A (so sau chuẩn hoá như T1) — chống bấm nhầm.
-- Mã lỗi (chữ hiển thị tiếng Việt): `merge_same`, `merge_not_person`, `merge_inactive`, `merge_source_has_account`, `merge_both_accounts`, `merge_source_account_role`, `merge_role_group_conflict`, `merge_source_busy`, `merge_owner_company`, `merge_confirm_mismatch`, `merge_lost_race`, `party_merged`, `party_match_exists`.
+- Mã lỗi (chữ hiển thị tiếng Việt): `merge_same`, `merge_not_person`, `merge_inactive`, `merge_source_has_account`, `merge_both_accounts`, `merge_source_account_role`, `merge_role_group_conflict`, `merge_source_busy`, `merge_owner_company`, `merge_confirm_mismatch`, `merge_lost_race`, `party_merged`, `party_match_exists`; thêm trong lúc thi công: `merge_stale` (khoá lạc quan — hồ sơ đổi từ lúc xem trước), `merge_source_is_target` (hồ sơ phụ đang là hồ sơ chính của hồ sơ khác đã gộp vào — không gộp chuỗi), `merge_order_invalid` (đơn của hồ sơ phụ đang lệch số tiền — sửa đơn trước), `merge_source_future_row` (hồ sơ phụ còn dòng bắt đầu ở tương lai), `merge_source_owns_vehicle` (hồ sơ phụ đang đứng tên xe).
 
 ## 5. Giao diện
 

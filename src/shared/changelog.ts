@@ -11,6 +11,16 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Gộp hồ sơ cá nhân trùng (ADR-0068). Số "1.48" theo main 1.47; người gộp chốt số trống kế tiếp + ngày LÚC GỘP. Có migration 0055 (giữ chỗ).
+    version: "1.48",
+    date: "2026-10-01",
+    items: [
+      { kind: "moi", text: "Danh bạ: Quản trị gộp được hai hồ sơ của cùng một người — xem trước phần chuyển sang, gõ lại tên rồi gộp. Không tách lại được." },
+      { kind: "moi", text: "Danh bạ có mục \"Hồ sơ nghi trùng\": các cặp trùng số điện thoại hoặc họ tên để Quản trị rà và gộp." },
+      { kind: "doi", text: "Thêm tài khoản: nếu đã có hồ sơ trùng số hoặc tên, app liệt kê để chọn dùng hồ sơ có sẵn thay vì tạo hồ sơ mới." },
+    ],
+  },
+  {
     // Bản 1.47 = bảng điều khiển trợ lý (ADR-0069, migration 0054, kiểm độc lập + 4 đột biến 30/9) + khoá phóng to (chủ quyết 30/9) + e2e chạy
     // song song (chỉ bộ kiểm, không đổi app). Số 1.47 vì main đã có 1.46 (chưa deploy lúc gộp).
     version: "1.47",

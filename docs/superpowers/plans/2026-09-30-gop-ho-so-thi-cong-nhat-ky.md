@@ -35,3 +35,12 @@ Kế hoạch: `docs/superpowers/plans/2026-09-30-gop-ho-so-thi-cong.md`. Nhánh:
 - Lần in 1 (đã gieo hồ sơ gộp + `pty_person` + liên hệ mở): `✗ R-PTY-MERGE-2 … — 1 vi phạm`, thoát 1 (kèm `R-N1-3` 2 vi phạm do hồ sơ gieo có display_name lệch họ-tên: lỗi của dữ liệu gieo, không phải hàng rào).
 - Lần in 2 (đã đóng liên hệ): `✓ R-PTY-MERGE-2`; còn `R-N1-3` (gieo) và `R-N1-5` (có sẵn). Sau đó khôi phục tệp sqlite local từ bản sao trước gieo → chỉ còn `R-N1-5`, 0 hồ sơ `pty-thu-gop*`.
 - Bước 6: `if (false)` ở đường vai của `POST /api/staff` → `tao-trung.test.ts` đỏ `expected: 409 / actual: 201` (pass 3, fail 3) → hoàn nguyên → pass 6.
+
+## Đề xuất sửa luật — chờ chủ duyệt (N9: AI không tự sửa)
+
+Thêm một dòng vào bảng Chrome của `web/CLAUDE.md`:
+
+```markdown
+| Gộp hồ sơ, hồ sơ nghi trùng, khối hồ sơ khớp khi Thêm tài khoản (ADR-0068): hộp gộp / dải "đã gộp" / màn nghi trùng của `web/parties.ts`, `#merge` / `#dups` / `#dup-btn` của `public/parties.html`, khối `#add-khop` của `web/staff.ts`, `src/shared/ho-so-trung.ts` | `gop-ho-so-smoke.mjs` ở `docs/evidence/2026-09-30-gop-ho-so/kich-ban/` (5 bước, 1040 + 390) + `t2b-danh-ba-smoke.mjs` + `vai-smoke.mjs` |
+```
+
