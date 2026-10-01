@@ -84,7 +84,7 @@ test("ADR-0046 điểm 3: thao tác bảo mật vẫn tắt MỌI máy (lý do t
   assert.equal(dong(w, b).revoke_reason, "tai-khoan-doi", "ngưng tài khoản → mọi máy tắt");
 });
 
-test("ADR-0046 điểm 2–3: MỌI route gọi dongBangTin khai cờ tatThongBao đúng loại — 8 thao tác bảo mật true, gỡ phiên chỉ-phiên (ADR-0075 điều 6b), đổi quyền/vai false; route mới gọi dongBangTin phải được xếp loại ở đây", () => {
+test("ADR-0046 điểm 2–3: MỌI route gọi dongBangTin khai cờ tatThongBao đúng loại — 7 thao tác bảo mật true, gỡ phiên chỉ-phiên (ADR-0075 điều 6b), đổi quyền/vai false; route mới gọi dongBangTin phải được xếp loại ở đây", () => {
   // Kiểm người kiểm độc lập 28/9 (VỪA): bài chạy-app ở trên chỉ phủ đổi SĐT/ngưng + đổi quyền/vai; 5 route bảo mật còn lại (gỡ Face ID, đổi PIN
   // bằng Face ID, quản trị đặt lại PIN / gỡ Face ID) cần giả lập WebAuthn/PIN thật — bài QUÉT NGUỒN này canh cờ của TỪNG route (tách theo `route(`).
   // Quét MỌI tệp .ts (không phải test) dưới src/modules/ — người kiểm cuối 28/9 (VỪA): bản trước chỉ đọc accounts + maintenance, route mới ở
