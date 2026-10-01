@@ -101,6 +101,13 @@ Không đợt nào DROP trigger trên `vc_trip` của đợt khác (tên không 
 4. **Tin báo không lộ dữ liệu cá nhân** (tên khách, SĐT) và không tới người hết quyền xem chuyến (tài xế bị rút) ⇒ người nhận tính bằng `can(trip.view)` lúc gửi. Sở hữu: Đợt 2.
 5. **Thân cũ từ PWA chưa cập nhật** (còn gửi `pickupTime`) sau Phần C ⇒ 409/400 câu "cập nhật app", không ghi đè chặng mới. Sở hữu: Đợt 8.
 
+## Lời chủ (chat 2026-10-01, hộp hỏi — nguyên văn nhãn)
+
+- Cách thi công: **"Mỗi bước một trợ lý (Recommended)"** ⇒ superpowers:subagent-driven-development, người kiểm từng task + kiểm cả nhánh.
+- Người đi kèm lúc xếp: **"Chỉ hướng dẫn viên (Recommended)"** ⇒ Đợt 1 có task (chỉ tài khoản FIELD; tên hiện ở chi tiết chuyến văn phòng + màn tài xế; HDV chưa thấy chuyến). Câu 5 bên dưới ĐÃ TRẢ LỜI.
+- Bộ đếm thân cũ: **"Có, cài sớm (Recommended)"** ⇒ Đợt 8 Task 1 chuyển vào Đợt 1. Câu 9 (phần gộp) ĐÃ TRẢ LỜI; ngưỡng 7 ngày theo khuyến nghị.
+- Thời điểm T2: **"Chờ có màn nhập giá (Recommended)"** ⇒ T1 lên khi xong; T2 giữ trên nhánh tới khi có màn bảng giá + ô giá thoả thuận; Đợt 5 A-1b và Đợt 6 chờ theo. Câu 2 ĐÃ TRẢ LỜI.
+
 ## Cần chủ (gom từ 8 kế hoạch con; mỗi lượt tối đa 3 câu chạm dữ liệu/quyền/tiền)
 
 **Lượt I — tiền xe thuê (Đợt 4, hỏi trước khi nhận Đợt 4):**

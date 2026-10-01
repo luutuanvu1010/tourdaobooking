@@ -2,7 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Một bản phát hành gồm: chặn "Thêm" giấy tờ xe trùng loại đang dùng (ADR-0056 VK3-B), văn phòng đổi thứ tự điểm khi xe đang chạy, Toàn quyền đổi mốc nhắc giấy tờ sắp hết hạn (kèm nhãn hạn giấy tờ cá nhân theo đúng mốc), sửa tài liệu mô tả cũ.
+**Goal:** Một bản phát hành gồm: chặn "Thêm" giấy tờ xe trùng loại đang dùng (ADR-0056 VK3-B), văn phòng đổi thứ tự điểm khi xe đang chạy, Toàn quyền đổi mốc nhắc giấy tờ sắp hết hạn (kèm nhãn hạn giấy tờ cá nhân theo đúng mốc), gắn hướng dẫn viên đi kèm lên xe, bộ đếm máy còn gửi thân đơn kiểu cũ (Lần A của Đợt 8), sửa tài liệu mô tả cũ.
+
+**Lời chủ (chat 2026-10-01, nguyên văn nhãn — không hỏi lại):**
+- Người đi kèm: **"Chỉ hướng dẫn viên (Recommended)"** — chỉ chọn người có tài khoản quyền Hướng dẫn viên (`FIELD`) đang hoạt động; tên hiện ở Chi tiết chuyến của văn phòng và màn tài xế (chỉ tên, không SĐT); hướng dẫn viên CHƯA thấy chuyến (không mở `trip.view` cho `FIELD` — ADR-0064 còn proposed); máy chủ kiểm người được gắn có quyền `FIELD`; nhật ký không ghi SĐT. ⇒ Task 7, 8.
+- Bộ đếm thân cũ: **"Có, cài sớm (Recommended)"** — chép Task 1 "Lần A — đo" của `…-08-bo-duong-ghi-cu.md` vào đợt này. ⇒ Task 9. Kế hoạch Đợt 8 không sửa (điều phối ghi chú).
 
 **Architecture:** VK3-B hai lớp: route 409 `document_type_exists` trước, trigger mới 409 `document_type_conflict` sau, cùng đoạn "hiện hành" `HIEN_HANH`. Mốc nhắc tới `parties` qua hàm tiêm của gốc lắp ráp (khuôn `mocToiThieu`, ADR-0049 D2). Nút đổi thứ tự dùng route 39 đã có; luật dựng thân lệnh nằm ở MỘT hàm thuần `src/shared/tien-do-man.ts`, dùng chung cho hai màn.
 
@@ -31,7 +35,10 @@ Giữ nguyên mục Global Constraints của lộ trình mẹ. Thêm cho đợt 
 | T-1 | Màn đổi mốc nhắc làm luôn phần "nhãn hạn giấy tờ cá nhân theo mốc" | **Có** — Task 4 (máy chủ) + Task 5 (giao diện). Bỏ Task 4 thì bỏ cả ô đổi mốc | Ruling R23 (`docs/superpowers/plans/2026-09-28-van-chuyen-1a-thi-cong-nhat-ky.md:129`, GB2 `:302`) bỏ ô đổi mốc CHỈ vì nhãn hạn giấy tờ người cố định 30 ⇒ đổi mốc làm hai nơi lệch; `src/shared/giay-to-hien-thi.ts:26-30` ghi "khi API có `warnDays` thì thay hằng". ADR-0040 D1 đã định một mốc chung |
 | T-2 | Cách đưa mốc tới `parties` | hàm tiêm `ctx.nguongHetHan` của gốc lắp ráp | `parties` không import `van-chuyen`; khuôn sẵn `mocToiThieu` (`src/shared/router.ts:121-126`, `src/index.ts:125`) |
 | T-3 | `R-VC-11` sau trigger | giữ mức `warn`, chỉ sửa ghi chú | trigger không quét dữ liệu cũ; ADR-0056 không đòi đổi mức; bài `src/audit-invariants.test.ts:834` ghim `warn` |
-| T-4 | Ô "Người đi kèm" lúc xếp | **không làm đợt này** — chuyển "Cần chủ" | không ADR nào định ai được chọn / tên hiện ở đâu (xem cuối tệp) |
+| T-4 | Người đi kèm: lưu ở đâu | **không bảng / cột mới** — suất `CREW` của `vc_trip_allocation` (`crew_party_id`, có từ `0042`), thân xếp `nguoiDiKem` (`src/shared/contracts.ts:1336`, `src/modules/van-chuyen/dieu-phoi-than.ts:95-121`, `dieu-phoi-lenh.ts:145`) | đường lưu đã có; chỉ thiếu kiểm "là HDV" + tên + màn |
+| T-5 | Tên người đi kèm ở DTO tài xế: lúc nào | **mọi lúc** (khoá mới `tenNguoiDiKem`), không theo luật "trong ngày chạy" của tên KHÁCH | tên nhân viên công ty, không phải dữ liệu khách; đảo ngược được (bề mặt) |
+| T-6 | Kiểm "là HDV" | hàm tiêm `ctx.huongDanVien` của gốc lắp ráp (đọc `staff`) | `van-chuyen` không có cạnh tới `staff` (`src/architecture.test.ts:60`); khuôn `nhanNhanVien` |
+| T-7 | Nút "Thêm người đi kèm" trong vùng khoá trước giờ xuất bến | **không hiện** (khuôn câu khoá của "Rút khỏi xe") | tránh hộp phá lệ thứ hai; Quản trị phá lệ được bổ sung sau nếu cần |
 
 ## Review Focus
 
@@ -621,7 +628,553 @@ function moDoiMoc(opener: HTMLElement, hienTai: number): void {
 
 ---
 
-### Task 7: Nhật ký phiên bản, kiểm toàn bộ, người kiểm độc lập
+### Task 7: Người đi kèm — máy chủ (việc lớn: dữ liệu + DTO tài xế)
+
+**Files:**
+- Modify: `src/shared/contracts.ts` (sau `XepRequest` ~:1338: DTO mới; `SuatChuyenDto` ~:1240 và phần tử `CuocChiTietResponse.suat` ~:1465: khoá `tenNguoiDiKem?`), `src/shared/router.ts` (ctx + injected + dựng ctx — cạnh `mocToiThieu` / `nguongHetHan` của Task 4), `src/index.ts` (tiêm), `src/modules/van-chuyen/chuyen-repo.ts` (câu tên), `src/modules/van-chuyen/dieu-phoi-dto.ts:133-149` (`suatChuyenDto`), `src/modules/van-chuyen/dieu-phoi-route.ts:169`, `:214` (truyền tên), `src/modules/van-chuyen/tai-xe-dto.ts:84-87` (khoá mới), `src/modules/van-chuyen/index.ts:887-901` (route xếp) + route mới, `src/shared/dieu-phoi-man.ts:429-449` (`nhomKhach`)
+- Test: `src/modules/van-chuyen/nguoi-di-kem.test.ts` (Create), `src/shared/dieu-phoi-man.test.ts:309-332`, `tests/e2e/dieu-phoi.mjs` (cuối tệp), `src/route-access.test.ts` (nếu bài liệt kê route đòi khai route mới)
+- Docs: `docs/SYSTEM-DESIGN.md` §7, `docs/VAN-CHUYEN.md` bảng quyền, `docs/SO-HANG-RAO.md`
+
+**Interfaces:**
+- Consumes: suất `CREW` của `vc_trip_allocation` (`crew_party_id`, khoá ngoại tới hồ sơ — có từ `0042`), thân `XepRequest.nguoiDiKem` (tối đa 10 — `docXep`), `listStaffAccounts` + `nhanNhanVienTheoId` của `staff` (CHỈ gốc lắp ráp gọi), view `v_pty_party_label` (`id`, `display_name`).
+- Produces: `GET /api/van-chuyen/huong-dan-vien` → `HuongDanVienListResponse { nguoi: { partyId: string; ten: string }[] }` (ô `trip.dispatch`); `ctx.huongDanVien: () => Promise<{ partyId: string; ten: string }[]>`; 409 `nguoi_di_kem_khong_hop_le`; khoá `tenNguoiDiKem?: string` trên suất `CREW` (DTO văn phòng và DTO tài xế); `tenNguoiDiKem(db: D1Database, tripId: string): Promise<Map<string, string>>` (chuyen-repo).
+- **Không migration, không ô MATRIX mới, không đổi hàng `FIELD` / `DRIVER` của bản đồ quyền.**
+
+- [ ] **Bước 1: Test đỏ** — `src/modules/van-chuyen/nguoi-di-kem.test.ts`:
+
+```ts
+// Người đi kèm (lời chủ 2026-10-01, "Chỉ hướng dẫn viên (Recommended)"): chỉ tài khoản quyền FIELD đang hoạt động; tên ở chi tiết chuyến văn phòng + DTO tài
+// xế (chỉ tên, không SĐT); HDV KHÔNG thấy chuyến. Chạy cả ứng dụng trên SQLite thật, đồng hồ giả (tests/audit/dieu-phoi-khung.mjs).
+import { test } from "node:test";
+import assert from "node:assert/strict";
+// tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
+import { ACC, DRIVER, FIELD, SALES, batDongHo, chiTiet, chuyenSan, setup, uuid } from "../../../tests/audit/dieu-phoi-khung.mjs";
+
+const SDT_HDV = "0900000004"; // seedStaff của khung thử
+const KHOA_SUAT_TAI_XE = ["daDon", "daTra", "diemLen", "diemXuong", "id", "maDon", "soHieuChuyenBay", "trangThai"];
+const xepDiKem = async (w: any, tripId: string, ids: string[], as = SALES) => {
+  const c = await chiTiet(w, tripId);
+  return w.call("POST", `/api/van-chuyen/chuyen/${tripId}/phan-bo`, { as, body: { version: c.chuyen.version, requestId: uuid(), nguoiDiKem: ids } });
+};
+const soCrew = (w: any, tripId: string): number => w.q("SELECT count(*) n FROM vc_trip_allocation WHERE trip_id = ? AND kind = 'CREW' AND valid_to_at IS NULL", tripId)[0].n;
+
+test("danh sách người đi kèm: CHỈ tài khoản FIELD đang hoạt động, tên + hồ sơ, không SĐT; Kế toán 403; HDV bị khoá → biến mất", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const r = await w.call("GET", "/api/van-chuyen/huong-dan-vien", { as: SALES });
+    assert.equal(r.status, 200, r.text);
+    assert.deepEqual(r.json.nguoi, [{ partyId: `pty-${FIELD}`, ten: "Hướng Dẫn" }]);
+    assert.ok(!r.text.includes(SDT_HDV), "không SĐT");
+    assert.equal((await w.call("GET", "/api/van-chuyen/huong-dan-vien", { as: ACC })).status, 403);
+    w.sqlite.exec(`UPDATE staff SET active = 0 WHERE id = '${FIELD}'`);
+    assert.deepEqual((await w.call("GET", "/api/van-chuyen/huong-dan-vien", { as: SALES })).json.nguoi, []);
+  } finally {
+    tat();
+  }
+});
+
+test("xếp người đi kèm: không phải HDV → 409 nguoi_di_kem_khong_hop_le, không mở suất; HDV → 200, văn phòng + tài xế thấy tên, không SĐT; nhật ký không SĐT; HDV không mở được chuyến", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const a = await chuyenSan(w);
+    for (const sai of [`pty-${SALES}`, `pty-${DRIVER}`, "pty-khong-co"]) {
+      const x = await xepDiKem(w, a.id, [sai]);
+      assert.equal(x.status, 409, `${sai}: ${x.text}`);
+      assert.equal(x.json.error.code, "nguoi_di_kem_khong_hop_le");
+      assert.equal(x.json.error.message, "Chỉ gắn được hướng dẫn viên đang có tài khoản làm người đi kèm.");
+    }
+    assert.equal(soCrew(w, a.id), 0);
+    const r = await xepDiKem(w, a.id, [`pty-${FIELD}`]);
+    assert.equal(r.status, 200, r.text);
+    const ct = await chiTiet(w, a.id);
+    assert.deepEqual(ct.suat.filter((s: any) => s.loai === "CREW").map((s: any) => s.tenNguoiDiKem), ["Hướng Dẫn"]);
+    const tx = await w.call("GET", `/api/van-chuyen/cuoc-cua-toi/${a.id}`, { as: DRIVER });
+    assert.equal(tx.status, 200, tx.text);
+    const crew = tx.json.suat.filter((s: any) => s.tenNguoiDiKem);
+    assert.equal(crew.length, 1);
+    assert.deepEqual(Object.keys(crew[0]).sort(), [...KHOA_SUAT_TAI_XE, "tenNguoiDiKem"].sort(), "bài liệt kê khoá: suất người đi kèm chỉ thêm đúng một khoá");
+    assert.ok(!tx.text.includes(SDT_HDV) && !JSON.stringify(ct).includes(SDT_HDV), "không SĐT HDV");
+    for (const n of w.q("SELECT detail FROM audit_log WHERE action LIKE 'trip_%'")) assert.ok(!String(n.detail).includes(SDT_HDV), `nhật ký không SĐT: ${n.detail}`);
+    assert.equal((await w.call("GET", `/api/van-chuyen/chuyen/${a.id}`, { as: FIELD })).status, 403, "HDV chưa thấy chuyến (ADR-0064 còn proposed)");
+  } finally {
+    tat();
+  }
+});
+
+test("HDV bị khoá giữa lúc mở màn và lúc gửi → 409, không mở suất", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const a = await chuyenSan(w);
+    w.sqlite.exec(`UPDATE staff SET active = 0 WHERE id = '${FIELD}'`);
+    const x = await xepDiKem(w, a.id, [`pty-${FIELD}`]);
+    assert.equal(x.status, 409, x.text);
+    assert.equal(soCrew(w, a.id), 0);
+  } finally {
+    tat();
+  }
+});
+```
+
+`src/shared/dieu-phoi-man.test.ts` (ca `nhomKhach`, `:309-332`): thêm `tenNguoiDiKem: string` vào kiểu tham số `x` của hàm dựng `s` và trải `...(x.tenNguoiDiKem ? { tenNguoiDiKem: x.tenNguoiDiKem } : {})`; suất `e` đổi thành `s("e", null, null, null, null, { loai: "CREW", tenNguoiDiKem: "Trần Văn Phụ" })`; kỳ vọng dòng `CREW` thành `["CREW", "Người đi kèm · 1", "", "Trần Văn Phụ", ["e"]]`.
+
+- [ ] **Bước 2: Đỏ** — `node --test src/modules/van-chuyen/nguoi-di-kem.test.ts src/shared/dieu-phoi-man.test.ts` → FAIL: `huong-dan-vien` 404; xếp `pty-SALES` → 200; thiếu `tenNguoiDiKem`.
+
+- [ ] **Bước 3: Hợp đồng** — `src/shared/contracts.ts`, sau `XepRequest`:
+
+```ts
+/** GET /api/van-chuyen/huong-dan-vien — người gắn được làm "người đi kèm" (lời chủ 2026-10-01: chỉ tài khoản Hướng dẫn viên đang hoạt động). Hồ sơ + tên, KHÔNG SĐT. */
+export interface HuongDanVienListResponse { nguoi: { partyId: string; ten: string }[] }
+```
+
+Trong `SuatChuyenDto` và trong phần tử `CuocChiTietResponse.suat`, sau `namSinh?: number;`:
+
+```ts
+  /** Suất người đi kèm (`CREW`): tên hướng dẫn viên (lời chủ 2026-10-01) — chỉ tên, mọi lúc; suất khách không có khoá này. */
+  tenNguoiDiKem?: string;
+```
+
+- [ ] **Bước 4: Hàm tiêm** — `src/shared/router.ts`, kiểu ctx:
+
+```ts
+  /**
+   * NGƯỜI ĐI KÈM gắn được (lời chủ 2026-10-01): tài khoản quyền `FIELD` đang hoạt động, có hồ sơ — hồ sơ + tên hiển thị, KHÔNG SĐT. Do gốc lắp ráp tiêm
+   * (`staff`; `van-chuyen` không có cạnh tới `staff`). Không tiêm (khung thử cố ý) → `[]` ⇒ mọi người đi kèm bị từ chối (mặc định từ chối).
+   */
+  huongDanVien: () => Promise<{ partyId: string; ten: string }[]>;
+```
+
+kiểu `injected`: `/** Người đi kèm gắn được. BẮT BUỘC trong mã chạy thật (src/index.ts). */ huongDanVien: (env: Env) => Promise<{ partyId: string; ten: string }[]>;` — dựng ctx:
+
+```ts
+      huongDanVien: () => (typeof opts.injected.huongDanVien === "function" ? opts.injected.huongDanVien(env) : Promise.resolve([])),
+```
+
+`src/index.ts` (import thêm `listStaffAccounts` từ `./modules/staff`; `nhanNhanVienTheoId` đã có), cạnh `nhanNhanVien:`:
+
+```ts
+    // NGƯỜI ĐI KÈM (lời chủ 2026-10-01 — "Chỉ hướng dẫn viên"): van-chuyen không import staff — gốc lắp ráp đọc tài khoản FIELD đang hoạt động, chỉ tên.
+    huongDanVien: async (env) => {
+      const ds = (await listStaffAccounts(env.DB)).filter((a) => a.active && a.partyId !== null && a.permissions.includes("FIELD"));
+      const nhan = await nhanNhanVienTheoId(env.DB, ds.map((a) => a.id));
+      return ds.map((a) => ({ partyId: a.partyId!, ten: nhan.get(a.id) ?? "" })).sort((x, y) => x.ten.localeCompare(y.ten, "vi"));
+    },
+```
+
+Đọc `toAccount` ở `src/modules/staff/` trước: `permissions` phải là quyền ĐANG hiệu lực. Nếu gồm cả dòng đã hết hiệu lực thì dùng hàm công bố khác của `staff` trả quyền hiện hành và ghi nhật ký thi công.
+
+- [ ] **Bước 5: Route** — `src/modules/van-chuyen/index.ts` (import `type HuongDanVienListResponse`):
+
+```ts
+    // Người đi kèm (lời chủ 2026-10-01, phương án A): ai gắn được — tài khoản Hướng dẫn viên đang hoạt động; tên, KHÔNG SĐT. Cùng ô với lệnh xếp.
+    route("GET", "/api/van-chuyen/huong-dan-vien", "office", async ({ staff, huongDanVien }) => {
+      if (!can(staff, "trip.dispatch")) return CAN_DIEU_PHOI();
+      return json({ nguoi: await huongDanVien() } satisfies HuongDanVienListResponse);
+    }),
+```
+
+Route xếp (`:887`): thêm `huongDanVien` vào tham số; trong khối `if (!(await eventByRequest(env.DB, b.requestId))) {`, TRƯỚC `const lich = …`:
+
+```ts
+        // Lời chủ 2026-10-01: người đi kèm phải là hướng dẫn viên đang có tài khoản (gửi lại cùng requestId không kiểm lại — lô đã chạy).
+        if (b.nguoiDiKem.length > 0) {
+          const duoc = new Set((await huongDanVien()).map((x) => x.partyId));
+          if (!b.nguoiDiKem.every((p) => duoc.has(p))) return error(409, "nguoi_di_kem_khong_hop_le", "Chỉ gắn được hướng dẫn viên đang có tài khoản làm người đi kèm.");
+        }
+```
+
+- [ ] **Bước 6: Tên trên DTO** — `src/modules/van-chuyen/chuyen-repo.ts`, cạnh các câu đọc suất:
+
+```ts
+// Lời chủ 2026-10-01: TÊN người đi kèm (suất CREW) của một chuyến — qua view công bố v_pty_party_label (cạnh van-chuyen → parties đã khai). Chỉ tên.
+const TEN_NGUOI_DI_KEM = defineSql(
+  "van-chuyen",
+  "ten_nguoi_di_kem",
+  `SELECT l.id, l.display_name FROM v_pty_party_label l
+   WHERE l.id IN (SELECT a.crew_party_id FROM vc_trip_allocation a WHERE a.trip_id = ?1 AND a.kind = 'CREW')`,
+);
+export async function tenNguoiDiKem(db: D1Database, tripId: string): Promise<Map<string, string>> {
+  return new Map((await db.prepare(TEN_NGUOI_DI_KEM).bind(tripId).all<{ id: string; display_name: string }>()).results.map((x) => [x.id, x.display_name]));
+}
+```
+
+`src/modules/van-chuyen/dieu-phoi-dto.ts` `suatChuyenDto`: thêm `tenDiKem?: ReadonlyMap<string, string>` vào kiểu `v`; sau dòng `...(nguoi ? { hoTen: …, namSinh: … } : {}),`:
+
+```ts
+    ...(a.kind === "CREW" && a.crew_party_id !== null && v.tenDiKem?.has(a.crew_party_id) ? { tenNguoiDiKem: v.tenDiKem.get(a.crew_party_id)! } : {}),
+```
+
+`src/modules/van-chuyen/dieu-phoi-route.ts` (`:169` chi tiết văn phòng, `:214` `cuocChiTiet`): trước lời gọi dựng DTO tính
+
+```ts
+  const tenDiKem = nen.allocs.some((a) => a.kind === "CREW" && a.valid_to_at === null) ? await tenNguoiDiKem(db, nen.trip.id) : undefined;
+```
+
+(import `tenNguoiDiKem` từ `./chuyen-repo`) và thêm `tenDiKem` vào đối số thứ hai của `suatChuyenDto`.
+
+`src/modules/van-chuyen/tai-xe-dto.ts` (map `suat`), sau dòng `...(v.trongNgay && s.hoTen !== undefined …)`:
+
+```ts
+      ...(s.tenNguoiDiKem !== undefined ? { tenNguoiDiKem: s.tenNguoiDiKem } : {}), // tên HDV đi kèm — mọi lúc, chỉ tên (lời chủ 2026-10-01; T-5)
+```
+
+và thêm vào chú thích đầu tệp: "Tên người đi kèm (HDV — nhân viên, không phải khách): mọi lúc, chỉ tên."
+
+`src/shared/dieu-phoi-man.ts` `nhomKhach`: thêm `tenNguoiDiKem?: string` vào kiểu phần tử `suat`; dòng `if (khoa === "CREW") …` đổi thành
+
+```ts
+    if (khoa === "CREW") return { khoa, tieuDe: `Người đi kèm · ${s.length}`, tuyen: "", ten: s.map((x) => x.tenNguoiDiKem ?? "").filter(Boolean).join(" · "), suatIds: s.map((x) => x.id) };
+```
+
+- [ ] **Bước 7: Xanh**
+
+```bash
+node --test src/modules/van-chuyen/nguoi-di-kem.test.ts src/shared/dieu-phoi-man.test.ts src/modules/van-chuyen/tai-xe-dto.test.ts src/hanh-khach-khong-lo-ten.test.ts
+npm run typecheck && npm test
+```
+
+Expected: PASS, 0 lỗi. `route-access.test.ts` (hoặc bài "mỗi route hỏi can()") đòi khai route mới thì thêm dòng theo khuôn `GET /api/van-chuyen/lich`.
+
+- [ ] **Bước 8: e2e** — cuối `tests/e2e/dieu-phoi.mjs` (sau khối (7)); chuyến riêng trên `xe2` của khối (6), sau khung 14:00–16:00:
+
+```js
+// Người đi kèm (lời chủ 2026-10-01, "Chỉ hướng dẫn viên"): danh sách không SĐT; tài xế không phải HDV → 409; HDV cố định → 200, có tên.
+r = await call(SALES, "GET", "/api/van-chuyen/huong-dan-vien");
+assert.equal(r.status, 200, JSON.stringify(r.body));
+const hdvE2e = r.body.nguoi.find((x) => x.ten === ACCOUNTS.field.name);
+assert.ok(hdvE2e, "tài khoản HDV cố định có trong danh sách");
+assert.ok(!JSON.stringify(r.body).includes(ACCOUNTS.field.phone), "không SĐT");
+r = await call(SALES, "POST", "/api/van-chuyen/chuyen", { requestId: uuid(), xeId: xe2, taiXePartyId: txParty, batDau: { ngay: D, gio: "18:30" }, ketThuc: { ngay: D, gio: "19:30" } });
+assert.equal(r.status, 201, JSON.stringify(r.body));
+const tripK = r.body.chuyen.id;
+const vK = r.body.chuyen.version;
+r = await call(SALES, "POST", `/api/van-chuyen/chuyen/${tripK}/phan-bo`, { version: vK, requestId: uuid(), nguoiDiKem: [txParty] });
+assert.equal(r.status, 409, JSON.stringify(r.body));
+assert.equal(r.body.error.code, "nguoi_di_kem_khong_hop_le");
+r = await call(SALES, "POST", `/api/van-chuyen/chuyen/${tripK}/phan-bo`, { version: vK, requestId: uuid(), nguoiDiKem: [hdvE2e.partyId] });
+assert.equal(r.status, 200, JSON.stringify(r.body));
+r = await call(SALES, "GET", `/api/van-chuyen/chuyen/${tripK}`);
+assert.deepEqual(r.body.suat.filter((s) => s.loai === "CREW").map((s) => s.tenNguoiDiKem), [ACCOUNTS.field.name]);
+console.log("✓ (8) người đi kèm: chỉ HDV đang hoạt động, không SĐT; người khác 409; HDV 200 có tên");
+```
+
+Run: `npm run test:e2e -- dieu-phoi` → PASS. (Tên hiển thị của tài khoản cố định khác `ACCOUNTS.field.name` thì so theo `nhanNhanVien` thật và ghi nhật ký thi công.)
+
+- [ ] **Bước 9: P16 + sổ hàng rào** — (a) bỏ khối `if (b.nguoiDiKem.length > 0) { … }` ⇒ kỳ vọng đỏ ca "xếp người đi kèm" (`200 !== 409`); (b) bỏ `a.active &&` ở `src/index.ts` ⇒ kỳ vọng đỏ hai ca "bị khoá". Hoàn nguyên → xanh. Dòng `docs/SO-HANG-RAO.md`: "Người đi kèm chỉ là HDV đang hoạt động (route xếp 409 `nguoi_di_kem_khong_hop_le`, hàm tiêm `huongDanVien`) — **một lớp (máy chủ)**: CSDL chỉ có khoá ngoại tới hồ sơ, không trigger (quyền tài khoản thuộc `staff`)" + ngày + dòng `not ok`.
+
+- [ ] **Bước 10: Tài liệu** — `docs/SYSTEM-DESIGN.md` §7: dòng route `GET /api/van-chuyen/huong-dan-vien`; dòng `…/phan-bo` thêm "người đi kèm chỉ HDV đang hoạt động (409 `nguoi_di_kem_khong_hop_le`)". `docs/VAN-CHUYEN.md` bảng quyền: dòng "Gắn người đi kèm (hướng dẫn viên)" — như cột "xếp" (Bán hàng, Quản trị, Toàn quyền); "Hướng dẫn viên xem chuyến: không (chờ ADR-0064)".
+
+- [ ] **Bước 11: Commit**
+
+```bash
+git add src/shared/contracts.ts src/shared/router.ts src/shared/dieu-phoi-man.ts src/shared/dieu-phoi-man.test.ts src/index.ts \
+  src/modules/van-chuyen/index.ts src/modules/van-chuyen/chuyen-repo.ts src/modules/van-chuyen/dieu-phoi-dto.ts src/modules/van-chuyen/dieu-phoi-route.ts \
+  src/modules/van-chuyen/tai-xe-dto.ts src/modules/van-chuyen/nguoi-di-kem.test.ts tests/e2e/dieu-phoi.mjs docs/SO-HANG-RAO.md docs/SYSTEM-DESIGN.md docs/VAN-CHUYEN.md
+git commit -m "Người đi kèm: chỉ gắn hướng dẫn viên đang có tài khoản; tên hiện cho văn phòng và tài xế" -m "Lời chủ 1/10 'Chỉ hướng dẫn viên': máy chủ trước đây nhận bất kỳ hồ sơ nào. Chỉ tên, không SĐT; HDV chưa thấy chuyến (ADR-0064 còn chờ)."
+```
+
+---
+
+### Task 8: Người đi kèm — giao diện (Chi tiết chuyến + màn tài xế)
+
+**Files:**
+- Modify: `web/chuyen.ts:422-452` (`theKhach` + hộp mới), `web/cuoc-chuyen.ts` (dòng "Người đi kèm" ở đầu trang), `public/app.css` (nếu cần một lớp — chỉ token)
+- Test: Chrome `docs/evidence/2026-09-29-adr-0049/kich-ban/chuyen-smoke.mjs` (bước mới), `cuoc-smoke.mjs` (tên ở màn tài xế), chạy lại `rut-doi-smoke.mjs`
+
+**Interfaces:**
+- Consumes (Task 7): `GET /api/van-chuyen/huong-dan-vien` → `HuongDanVienListResponse`; `POST …/phan-bo` thân `{ version, requestId, nguoiDiKem: [partyId] }`; khoá `tenNguoiDiKem` trên suất. Sẵn có: `nhomChon`, `taoLenh`, `docLoiLenh`, `dai` (`web/dieu-phoi-ui.ts`), `moBangTruot` (`web/bang-truot.ts:19`), `docLai`, `xong` (`web/chuyen.ts`).
+
+- [ ] **Bước 1: Hộp "Thêm người đi kèm"** — `web/chuyen.ts` (import `HuongDanVienListResponse` từ `../src/shared/contracts`, `moBangTruot` từ `./bang-truot`, `api` từ `./api` nếu chưa có):
+
+```ts
+/** Lời chủ 2026-10-01 ("Chỉ hướng dẫn viên"): gắn MỘT hướng dẫn viên làm người đi kèm — chọn từ GET /huong-dan-vien, gửi `nguoiDiKem` qua route xếp. */
+const lenhDiKem = taoLenh();
+async function moThemDiKem(opener: HTMLButtonElement): Promise<void> {
+  let ds: HuongDanVienListResponse["nguoi"];
+  try {
+    ds = (await api<HuongDanVienListResponse>("/api/van-chuyen/huong-dan-vien")).nguoi;
+  } catch (e) {
+    xong(dai("danger", "Chưa tải được danh sách hướng dẫn viên", docLoiLenh(e).dong));
+    return;
+  }
+  let chon: string | null = null;
+  const loi = h("div", { class: "vc-field-error", role: "alert", hidden: true });
+  const gui = h("button", { type: "button", class: "vc-btn btn btn-primary", disabled: true, "data-action": "di-kem-gui" }, "Gắn lên xe") as HTMLButtonElement;
+  const dong = h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary" }, "Đóng");
+  const bang = moBangTruot({
+    title: "Thêm người đi kèm",
+    body: ds.length
+      ? [nhomChon("ct-di-kem", "Hướng dẫn viên", ds.map((x) => ({ code: x.partyId, nhan: x.ten })), (c) => { chon = c; gui.disabled = false; }), loi]
+      : [h("p", { class: "dp-sheet-text" }, "Chưa có tài khoản hướng dẫn viên nào đang hoạt động.")],
+    foot: [dong, gui],
+    footClass: "vc-foot-2",
+    opener,
+  });
+  if (!bang) return;
+  dong.addEventListener("click", () => bang.close());
+  gui.addEventListener("click", async () => {
+    if (!chon) return;
+    bang.setBusy(true);
+    try {
+      const url = `/api/van-chuyen/chuyen/${encodeURIComponent(duLieu!.chuyen.id)}/phan-bo`;
+      duLieu = await docLai(await lenhDiKem.gui<ChuyenChiTietResponse>(url, "POST", { version: duLieu!.chuyen.version, nguoiDiKem: [chon] }));
+      bang.close(false);
+      xong(dai("ok", "Đã gắn người đi kèm"));
+    } catch (e) {
+      bang.setBusy(false);
+      const l = docLoiLenh(e);
+      replaceChildren(loi, [l.tieuDe, ...l.dong].join(" "));
+      loi.hidden = false;
+    }
+  });
+}
+```
+
+Trong `theKhach()`: dời `if (!ds.length) return null;` xuống SAU `const coNut = …` và đổi thành:
+
+```ts
+  // T-7: trong vùng khoá trước giờ xuất bến không có nút (khuôn câu khoá của "Rút khỏi xe").
+  const nutDiKem = coDieuPhoi && !khoa ? (h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary", "data-action": "them-di-kem" }, "Thêm người đi kèm") as HTMLButtonElement) : null;
+  nutDiKem?.addEventListener("click", () => void moThemDiKem(nutDiKem));
+  if (!ds.length && !nutDiKem) return null;
+```
+
+và nối `nutDiKem` vào cuối `h("div", { class: "dp-card-head" }, …)`.
+
+- [ ] **Bước 2: Màn tài xế** — `web/cuoc-chuyen.ts`, nơi dựng `dauTrang` (dùng ở cả trước xuất bến lẫn đang chạy):
+
+```ts
+  const diKem = r.suat.flatMap((s) => (s.tenNguoiDiKem ? [s.tenNguoiDiKem] : []));
+  const dongDiKem = diKem.length ? h("div", { class: "dp-cc-di-kem" }, icon("me", 16), h("span", null, `Người đi kèm: ${diKem.join(", ")}`)) : null;
+```
+
+đưa `dongDiKem` vào ngay sau phần đầu (biển số / giờ) của `dauTrang` ở mọi nhánh. `giuTenKhach` không cần sửa (tên người đi kèm có trong mọi phản hồi). Lớp `.dp-cc-di-kem` nếu cần: khối `.dp-cc*` của `public/app.css`, chỉ token.
+
+- [ ] **Bước 3: typecheck + build** — `npm run typecheck && npm run build:web` → 0 lỗi.
+
+- [ ] **Bước 4: Chrome** (1040 + 390; trang tài khoản nào mở SAU CÙNG):
+  - `chuyen-smoke.mjs` bước mới: Bán hàng mở chuyến lên kế hoạch ngoài vùng khoá → "Thêm người đi kèm" → bảng có tên HDV (`ACCOUNTS.field`, `tests/e2e/lib.mjs:19`; môi trường kịch bản chưa gieo thì tạo bằng `POST /api/staff` như `cuoc-smoke.mjs:302`), `document.body.innerText` không chứa SĐT HDV → chọn → "Gắn lên xe" → dải "Đã gắn người đi kèm"; thẻ "Khách trong chuyến" có "Người đi kèm · 1" + tên. Kế toán: không nút. Chuyến trong vùng khoá: không nút.
+  - `cuoc-smoke.mjs`: gắn HDV vào chuyến của tài xế bằng API trước bước 1 → màn tài xế có "Người đi kèm: <tên>", không SĐT HDV.
+  - Chạy lại `rut-doi-smoke.mjs` (nhóm người đi kèm).
+
+- [ ] **Bước 5: Commit** — `git commit -m "Chi tiết chuyến: thêm hướng dẫn viên đi kèm; màn tài xế hiện tên người đi kèm" -m "Lời chủ 1/10. Nút theo khuôn sẵn (bảng trượt + nhóm chọn), không cần bản vẽ mới; trong vùng khoá không có nút."`
+
+---
+
+### Task 9: Bộ đếm thân cũ (nguồn: Đợt 8 Task 1 — "Lần A — đo", chép nguyên văn)
+
+> Lời chủ 2026-10-01 "Có, cài sớm (Recommended)": cài ở Đợt 1 để đồng hồ 7 ngày của cổng Đợt 8 chạy sớm. Phần dưới chép NGUYÊN VĂN `docs/superpowers/plans/2026-10-01-van-chuyen-con-lai-08-bo-duong-ghi-cu.md` Task 1 (bỏ đoạn "Đề xuất" — chủ đã chọn). Step 11 (nhật ký phiên bản) gộp vào mục của Task 10. Không migration. Người kiểm độc lập của Task 10 xem cả task này (ghi nhật ký `audit_log`).
+
+**Files:**
+- Create: `src/modules/orders/than-cu.ts`
+- Create: `src/modules/orders/than-cu.test.ts`
+- Create: `src/modules/orders/than-cu-route.test.ts`
+- Modify: `src/shared/audit-actions.ts` (thêm một hành động, nhóm `system`)
+- Modify: `src/modules/orders/index.ts` (route `POST /api/orders` ~:667, `PUT /api/orders/:id` ~:733, `PUT /api/orders/:id/trip` ~:791)
+- Modify: `docs/SO-HANG-RAO.md` (dòng bộ đếm — Step 10b)
+
+**Interfaces:**
+- Produces: `laThanDonCu(body: unknown): boolean`, `laThanTripCu(body: unknown): boolean`, `demThanCu(db: D1Database, staffId: string, loai: LoaiThanCu): Promise<void>`, `type LoaiThanCu = "lap_don" | "luu_nhap" | "sua_chuyen"`, `CAU_CAP_NHAT_APP: string` (dùng ở Task 4); hành động nhật ký `client_outdated_body`.
+
+**Tập được đếm = đúng tập sẽ bị cắt ở Task 4:** thân đơn có ≥1 dịch vụ **không có khoá `legs`** (dù có hay không `pickupTime` — thân cũ nào cũng thiếu `legs`), và thân `PUT /trip` có dịch vụ mang khoá `pickupTime` hoặc `pickupPlace`.
+
+- [ ] **Step 1: Viết bài đỏ cho hàm nhận diện** — `src/modules/orders/than-cu.test.ts`
+
+```ts
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { laThanDonCu, laThanTripCu } from "./than-cu.ts";
+import { newManualDraft, toServiceInput } from "../../shared/service-form.ts";
+import { emptyTrip, tripPayload } from "../../shared/trip-form.ts";
+
+const svcCu = { kind: "catalog", catalogCode: "ZA1", pax: { adult: 1 }, departDate: "2026-10-10", pickupTime: "07:00", pickupPlace: "Khách sạn A" };
+
+test("thân đơn cũ: có dịch vụ thiếu khoá legs (kể cả không có pickupTime) → cũ; mọi dịch vụ có legs → không", () => {
+  assert.equal(laThanDonCu({ services: [svcCu] }), true);
+  const { pickupTime: _a, pickupPlace: _b, ...khongGio } = svcCu;
+  assert.equal(laThanDonCu({ services: [khongGio] }), true);
+  assert.equal(laThanDonCu({ services: [{ ...khongGio, legs: [] }, khongGio] }), true);
+  assert.equal(laThanDonCu({ services: [{ ...khongGio, legs: [] }] }), false);
+  for (const rac of [null, undefined, "x", 1, [], {}, { services: "x" }, { services: [null, 1] }]) assert.equal(laThanDonCu(rac), false, JSON.stringify(rac));
+});
+
+test("thân PUT /trip cũ: dịch vụ có khoá pickupTime HOẶC pickupPlace (kể cả rỗng) → cũ", () => {
+  const base = { id: "s1", departDate: "2026-10-10", departTime: "", checkinDate: "", checkinTime: "", checkinPlace: "", note: "" };
+  assert.equal(laThanTripCu({ expectedUpdatedAt: "x", services: [{ ...base, pickupTime: "" }] }), true);
+  assert.equal(laThanTripCu({ expectedUpdatedAt: "x", services: [{ ...base, pickupPlace: "A" }] }), true);
+  assert.equal(laThanTripCu({ expectedUpdatedAt: "x", services: [base] }), false);
+  for (const rac of [null, {}, { services: {} }]) assert.equal(laThanTripCu(rac), false);
+});
+
+test("Review Focus 2: thân do giao diện HIỆN TẠI dựng (toServiceInput, tripPayload) KHÔNG bị nhận là cũ", () => {
+  const d = newManualDraft("k1");
+  const tripCoGio = { ...emptyTrip(), departDate: "2026-10-10", pickupTime: "07:00", pickupPlace: "Khách sạn A" };
+  assert.equal(laThanDonCu({ services: [toServiceInput({ ...d, trip: tripCoGio })] }), false);
+  assert.equal(laThanTripCu(tripPayload([{ id: "s1", trip: tripCoGio }], "2026-10-01T00:00:00.000Z")), false);
+});
+```
+
+(Nếu `newManualDraft` không có trường `trip`/`legs` đúng tên thì sửa bước dựng nháp theo `src/shared/service-form.test.ts:152` — bài "Phần B: toServiceInput LUÔN có khoá legs". Ý giữ nguyên: dựng bằng hàm thật của giao diện, nháp CÓ giờ đón trong `trip`.)
+
+- [ ] **Step 2: Chạy, thấy đỏ** — `node --test src/modules/orders/than-cu.test.ts` → FAIL "Cannot find module './than-cu.ts'".
+
+- [ ] **Step 3: Viết `src/modules/orders/than-cu.ts`**
+
+```ts
+// ADR-0047 §6 (Phần C — Đợt 8 lộ trình Vận chuyển): nhận diện thân yêu cầu KIỂU CŨ (PWA chưa tải bản ≥ 1.62) và ĐẾM mỗi lần nhận, để chủ dự án biết
+// lúc nào không còn máy cũ (cổng trước khi cắt). Dòng đếm = một dòng audit_log `client_outdated_body`: người thao tác + nhãn màn hình, KHÔNG gắn đơn,
+// KHÔNG nội dung thân. Đếm hỏng KHÔNG được làm hỏng yêu cầu (nuốt lỗi, một dòng log không dữ liệu cá nhân).
+import { auditStatement } from "../audit";
+
+export type LoaiThanCu = "lap_don" | "luu_nhap" | "sua_chuyen";
+const NHAN: Record<LoaiThanCu, string> = { lap_don: "Lập đơn", luu_nhap: "Lưu nháp", sua_chuyen: "Sửa thông tin chuyến" };
+
+/** Câu trả về máy cũ khi đã cắt (Task 4). Máy cũ hiện băng riêng của nó ("Trang đã cũ…"); câu này cho máy khác / nhật ký Worker. */
+export const CAU_CAP_NHAT_APP =
+  "Ứng dụng trên máy này là bản cũ nên chưa lưu được giờ đón, nơi đón kiểu mới. Hãy đóng hẳn ứng dụng rồi mở lại (hoặc tải lại trang) để cập nhật, rồi làm lại.";
+
+const laDoiTuong = (x: unknown): x is Record<string, unknown> => !!x && typeof x === "object" && !Array.isArray(x);
+const dichVu = (body: unknown): Record<string, unknown>[] =>
+  laDoiTuong(body) && Array.isArray(body.services) ? body.services.filter(laDoiTuong) : [];
+
+/** Thân `POST /api/orders` / `PUT /api/orders/:id` kiểu cũ: có dịch vụ KHÔNG có khoá `legs`. */
+export const laThanDonCu = (body: unknown): boolean => dichVu(body).some((s) => !("legs" in s));
+
+/** Thân `PUT /api/orders/:id/trip` kiểu cũ: có dịch vụ mang khoá `pickupTime` hoặc `pickupPlace`. */
+export const laThanTripCu = (body: unknown): boolean => dichVu(body).some((s) => "pickupTime" in s || "pickupPlace" in s);
+
+/** Ghi MỘT dòng đếm. Không ném lỗi. */
+export async function demThanCu(db: D1Database, staffId: string, loai: LoaiThanCu): Promise<void> {
+  try {
+    await auditStatement(db, { staffId, action: "client_outdated_body", at: new Date().toISOString(), targetType: "system", detail: NHAN[loai] }).run();
+  } catch {
+    console.log(JSON.stringify({ level: "warn", event: "dem_than_cu_loi", loai }));
+  }
+}
+```
+
+- [ ] **Step 4: Thêm hành động nhật ký** — `src/shared/audit-actions.ts`, trong nhóm `system` (sau `tro_ly_settings_changed`):
+
+```ts
+  // ADR-0047 §6 (Đợt 8): máy còn gửi thân đơn / thông tin chuyến KIỂU CŨ — dòng ĐẾM cho cổng cắt; order_id NULL, detail = nhãn màn hình, không nội dung thân.
+  client_outdated_body: { label: "Máy dùng app bản cũ", group: "system" },
+```
+
+Chạy `node --test src/shared/audit-actions.test.ts` (bài này có thể đòi mọi hành động có nhãn/nhóm hợp lệ — xanh là đủ).
+
+- [ ] **Step 5: Chạy bài Step 1** → PASS.
+
+- [ ] **Step 6: Bài đỏ cho route (đếm, không đổi hành vi)** — `src/modules/orders/than-cu-route.test.ts`
+
+```ts
+// ADR-0047 §6 (Đợt 8) — bộ đếm thân cũ ở ba route ghi đơn; Lần A KHÔNG đổi hành vi (thân cũ vẫn được nhận). Chạy cả ứng dụng trên SQLite thật.
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { world, seedStaff } from "../../../tests/audit/harness.mjs";
+
+const SALES = "11111111-1111-4111-8111-111111111111";
+const inDays = (n: number) => new Date(Date.now() + 7 * 3600e3 + n * 86400e3).toISOString().slice(0, 10);
+const D = inDays(3);
+const OUT = { direction: "OUT", pickupDate: "", pickupTime: "06:30", pickupLocationId: null, pickupPlace: "Khách sạn Dò Tìm", dropoffLocationId: null, dropoffPlace: "" };
+const SVC = { kind: "catalog", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: D };
+
+function setup() {
+  const w = world();
+  seedStaff(w.sqlite, { id: SALES, phone: "0900000001", name: "An", perms: ["SALES"] });
+  w.sqlite.exec("INSERT INTO catalog_item (code, name, unit, price_adult, in_sheet, first_seen_at, updated_at) VALUES ('ZA1', 'Tour đảo', 'perPax', 500000, 1, '2026-01-01', '2026-01-01')");
+  return w;
+}
+const dem = (w: any) => w.sqlite.prepare("SELECT staff_id, order_id, target_type, detail FROM audit_log WHERE action = 'client_outdated_body' ORDER BY created_at").all();
+
+test("thân mới (có legs) → không đếm", async () => {
+  const w = setup();
+  const r = await w.call("POST", "/api/orders", { as: SALES, body: { customerName: "Khách Thử", customerPhone: "0912345678", services: [{ ...SVC, legs: [OUT] }] } });
+  assert.equal(r.status, 201, r.text);
+  assert.deepEqual(dem(w), []);
+});
+
+test("Lần A: thân đơn cũ (không legs) → vẫn 201 như trước, ghi ĐÚNG một dòng đếm 'Lập đơn', không gắn đơn", async () => {
+  const w = setup();
+  const r = await w.call("POST", "/api/orders", { as: SALES, body: { customerName: "Khách Thử", customerPhone: "0912345678", services: [{ ...SVC, pickupTime: "07:00", pickupPlace: "Khách sạn A" }] } });
+  assert.equal(r.status, 201, r.text); // Task 4 đổi dòng này thành 409
+  assert.deepEqual(dem(w), [{ staff_id: SALES, order_id: null, target_type: "system", detail: "Lập đơn" }]);
+});
+
+test("Lần A: PUT /trip có pickupTime → đếm 'Sửa thông tin chuyến'; PUT /api/orders/:id nháp không legs → đếm 'Lưu nháp'", async () => {
+  const w = setup();
+  const o = (await w.call("POST", "/api/orders", { as: SALES, body: { customerName: "Khách Thử", customerPhone: "0912345678", services: [{ ...SVC, legs: [OUT] }] } })).json.order;
+  const sid = o.services[0].id;
+  const trip = { id: sid, departDate: D, departTime: "", checkinDate: "", checkinTime: "", checkinPlace: "", note: "", pickupTime: "07:15", pickupPlace: "Khách sạn B" };
+  await w.call("PUT", `/api/orders/${o.id}/trip`, { as: SALES, body: { expectedUpdatedAt: o.updatedAt, services: [trip] } });
+  const o2 = (await w.call("GET", `/api/orders/${o.id}`, { as: SALES })).json.order;
+  await w.call("PUT", `/api/orders/${o.id}`, { as: SALES, body: { expectedUpdatedAt: o2.updatedAt, customerName: "Khách Thử", customerPhone: "0912345678", services: [{ ...SVC, id: sid }] } });
+  assert.deepEqual(dem(w).map((x: any) => x.detail), ["Sửa thông tin chuyến", "Lưu nháp"]);
+});
+
+test("Review Focus 3: chèn dòng đếm lỗi → yêu cầu vẫn chạy như không có bộ đếm", async () => {
+  const w = setup();
+  w.sqlite.exec(`CREATE TRIGGER tam_chan_dem BEFORE INSERT ON audit_log WHEN NEW.action = 'client_outdated_body' BEGIN SELECT RAISE(ABORT, 'thử hỏng'); END`);
+  const r = await w.call("POST", "/api/orders", { as: SALES, body: { customerName: "Khách Thử", customerPhone: "0912345678", services: [{ ...SVC, pickupTime: "07:00" }] } });
+  assert.equal(r.status, 201, r.text); // Task 4: 409 client_outdated (không phải 500)
+});
+```
+
+- [ ] **Step 7: Chạy** `node --test src/modules/orders/than-cu-route.test.ts` → FAIL (chưa có dòng đếm: `[] !== [...]`).
+
+- [ ] **Step 8: Gắn vào ba route** — `src/modules/orders/index.ts`. Thêm import `import { demThanCu, laThanDonCu, laThanTripCu } from "./than-cu";`. Vị trí: **SAU mọi cổng 403 (kể cả 403 phụ thuộc thân: `CANNOT_WRITE_PASSENGERS`, `CANNOT_PICK_HANDLER`)**, TRƯỚC mọi 400, PM-1, `validateOrder` — giữ luật thứ tự đã ghi ở chú thích route `POST /api/orders` ("403 … đứng TRƯỚC mọi 400 và mọi đọc CSDL"):
+
+```ts
+// POST /api/orders (~:667-671)
+      const body = await readJson(request);
+      if (hasPassengersKey(body) && !can(staff, "order.passenger.write", { ownerId: staff.id })) return CANNOT_WRITE_PASSENGERS();
+      if (hasHandlerPick(body) && !can(staff, "dispatch.assign", { ownerId: staff.id })) return CANNOT_PICK_HANDLER();
+      if (laThanDonCu(body)) await demThanCu(env.DB, staff.id, "lap_don"); // ADR-0047 §6 — đếm máy cũ (cổng Đợt 8); sau 403, trước 400
+      const pick = parseHandlerPick(body);
+
+// PUT /api/orders/:id (~:733-739)
+      const body = await readJson(request);
+      if (hasPassengersKey(body) && !can(staff, "order.passenger.write", { ownerId: meta.staffId, assigned })) return CANNOT_WRITE_PASSENGERS();
+      if (laThanDonCu(body)) await demThanCu(env.DB, staff.id, "luu_nhap"); // trước PM-1
+      const mocGui = body?.expectedUpdatedAt;
+
+// PUT /api/orders/:id/trip (~:791)
+      const tripBody = await readJson(request);
+      if (laThanTripCu(tripBody)) await demThanCu(env.DB, staff.id, "sua_chuyen");
+```
+
+  Sau khi gắn: `grep -n "403\|thứ tự" src/modules/orders/don-moi-chon-hdv.test.ts src/modules/orders/hanh-khach-route.test.ts` — bài nào canh "403 trước mọi đọc/ghi CSDL" phải còn xanh (bộ đếm đứng sau các 403 đó).
+
+- [ ] **Step 9: Chạy** bài Step 6 → PASS; `npm test`; `npm run typecheck` 0 lỗi; `npm run test:e2e` (e2e còn thân cũ ⇒ D1 tạm có dòng đếm — đúng, không bài nào đếm nhật ký toàn hệ thống theo số; nếu có bài đỏ vì thế, ghi nhật ký thi công và sửa bài đó cho lọc theo hành động).
+
+- [ ] **Step 10: P16** — tạm đổi `laThanDonCu` thành `() => false` → bài Step 6 ca "Lần A: thân đơn cũ" đỏ; hoàn nguyên → xanh. Ghi kết quả vào nhật ký thi công.
+
+- [ ] **Step 10b: Sổ hàng rào** — cổng "an toàn để cắt" dựa vào bộ đếm, nên bộ đếm phải có dòng ở `docs/SO-HANG-RAO.md` (CLAUDE.md §3):
+
+```
+| Bộ đếm máy còn gửi thân đơn kiểu cũ (`src/modules/orders/than-cu.ts`, dòng nhật ký `client_outdated_body`; **ADR-0047 §6**, từ <ngày>, Đợt 8) | Cắt thân cũ khi còn máy dùng PWA cũ (phiền: 409 "tải lại") | Ba route ghi đơn gọi `laThanDonCu`/`laThanTripCu` sau các cổng 403; mỗi lần nhận thân cũ ghi một dòng (không gắn đơn, không nội dung thân); chủ đếm bằng `wrangler d1 execute --remote --command` chỉ-đọc (kế hoạch Đợt 8 Task 2) | **<ngày>:** `laThanDonCu` tạm thành `() => false` → `<dòng not ok của Step 10>` → hoàn nguyên → xanh | Đếm = 0 ngay từ ngày đầu KHÔNG chứng minh không còn máy cũ (có thể bộ đếm không chạy trên production — AI không được gửi thân thử lên production) |
+```
+
+- [ ] **Step 11: Nhật ký phiên bản** (nếu phát hành riêng; gộp Đợt 1 thì thêm vào mục của Đợt 1) — `src/shared/changelog.ts`, mục `<1.NN>`:
+
+```ts
+      { kind: "doi", text: "Chuẩn bị cho bản sau: máy chủ ghi nhận máy nào còn dùng ứng dụng bản cũ khi lưu đơn (không ghi thông tin khách)." },
+```
+
+- [ ] **Step 12: Commit**
+
+```bash
+git add src/modules/orders/than-cu.ts src/modules/orders/than-cu.test.ts src/modules/orders/than-cu-route.test.ts src/shared/audit-actions.ts src/modules/orders/index.ts src/shared/changelog.ts docs/SO-HANG-RAO.md
+git commit -m "Đếm thân yêu cầu kiểu cũ (giờ đón trên dịch vụ, không chặng) trước khi cắt — ADR-0047 §6
+
+Cổng của Đợt 8: chỉ ngừng nhận thân cũ khi production không còn máy gửi.
+Mỗi lần nhận ghi một dòng nhật ký không gắn đơn, không nội dung thân; đếm hỏng không làm hỏng yêu cầu."
+```
+
+---
+
+### Task 10: Nhật ký phiên bản, kiểm toàn bộ, người kiểm độc lập
 
 **Files:**
 - Modify: `src/shared/changelog.ts:12` (mục mới ở ĐẦU), `src/shared/app-info.test.ts:21`; nhật ký thi công `docs/superpowers/plans/<ngày>-van-chuyen-dot-1-nhat-ky.md` (Create)
@@ -638,6 +1191,8 @@ function moDoiMoc(opener: HTMLElement, hienTai: number): void {
       { kind: "moi", text: "Xe đã có một loại giấy tờ đang dùng thì không \"Thêm\" loại đó nữa — bấm \"Gia hạn\" hoặc \"Sửa sai\"." },
       { kind: "moi", text: "Chi tiết chuyến: văn phòng đổi được thứ tự các điểm chưa tới khi xe đang chạy (nút lên / xuống)." },
       { kind: "moi", text: "Giấy tờ sắp hết hạn: người phụ trách hệ thống đổi được số ngày nhắc trước; nhãn hạn giấy tờ cá nhân theo đúng số này." },
+      { kind: "moi", text: "Chi tiết chuyến: gắn hướng dẫn viên đi kèm lên xe; tài xế thấy tên người đi kèm." },
+      { kind: "doi", text: "Chuẩn bị cho bản sau: máy chủ ghi nhận máy nào còn dùng ứng dụng bản cũ khi lưu đơn (không ghi thông tin khách)." },
     ],
   },
 ```
@@ -652,11 +1207,11 @@ npm test && npm run typecheck && npm run test:e2e && node scripts/audit-invarian
 
 Expected: tất cả xanh; typecheck 0 lỗi; `audit-invariants` thoát 0 (thoát 2 = KHÔNG chạy được, không phải sạch). Chạy `help-smoke.mjs` (`docs/evidence/2026-09-23-nhat-ky-thay-doi/kich-ban/`) vì `changelog.ts` đổi.
 
-- [ ] **Bước 3: Người kiểm độc lập** (subagent `nguoi-kiem-doc-lap`, chỉ đọc) cho Task 1 và Task 4 (dữ liệu + hợp đồng giữa module), kèm xem nhanh Task 2, 3, 5: đọc mã thật, chạy lại bước 2, tự làm lại các phép sửa cố ý ở Task 1 bước 9, kiểm `parties` không import `van-chuyen`, kiểm `grep -rn NGUONG_MAC_DINH web src` chỉ còn định nghĩa (`src/shared/giay-to-hien-thi.ts`), router và test. Chỉ báo "đạt" dựa trên báo cáo đó.
+- [ ] **Bước 3: Người kiểm độc lập** (subagent `nguoi-kiem-doc-lap`, chỉ đọc) cho Task 1, 4, 7, 9 (dữ liệu, hợp đồng giữa module, DTO tài xế, nhật ký), kèm xem nhanh Task 2, 3, 5, 8: kiểm DTO tài xế chỉ thêm khoá `tenNguoiDiKem`, không SĐT HDV ở bất kỳ phản hồi / nhật ký nào, `FIELD` vẫn 403 ở chi tiết chuyến; đọc mã thật, chạy lại bước 2, tự làm lại các phép sửa cố ý ở Task 1 bước 9, kiểm `parties` không import `van-chuyen`, kiểm `grep -rn NGUONG_MAC_DINH web src` chỉ còn định nghĩa (`src/shared/giay-to-hien-thi.ts`), router và test. Chỉ báo "đạt" dựa trên báo cáo đó.
 
 - [ ] **Bước 4: Nhật ký thi công** — ghi: số migration và lệnh đã dùng để chọn, số phiên bản, từng phép sửa cố ý + dòng `not ok`, chỗ test phải sửa vì thêm trùng loại (Task 1 bước 7), kết quả kịch bản Chrome + đường dẫn ảnh, kết luận người kiểm.
 
-- [ ] **Bước 5: Commit** — `git commit -m "Nhật ký phiên bản 1.N: Vận chuyển đợt 1" -m "Ba thay đổi nhân viên thấy; migration <NNNN> chỉ thêm một trigger."`
+- [ ] **Bước 5: Commit** — `git commit -m "Nhật ký phiên bản 1.N: Vận chuyển đợt 1" -m "Bốn thay đổi nhân viên thấy + bộ đếm máy cũ; migration <NNNN> chỉ thêm một trigger."`
 
 - [ ] **Bước 6: Bàn giao chủ** (AI không chạy remote — CLAUDE.md §8):
   1. **Trước khi phát hành, chủ chạy (chỉ đọc)** ở thư mục repo gốc:
@@ -668,17 +1223,10 @@ Expected: tất cả xanh; typecheck 0 lỗi; `audit-invariants` thoát 0 (thoá
 
 ---
 
-## Cần chủ (một câu, đợt này)
-
-**Gắn người đi kèm (hướng dẫn viên, phụ xe) lên xe lúc xếp.** Máy chủ đã nhận sẵn nhưng chưa ADR nào nói ai được chọn và tên hiện ở đâu; việc này chạm quyền xem chuyến (gần ADR-0064 đang chờ duyệt), nên chưa làm ở đợt này.
-- **A (khuyến nghị):** chỉ chọn người có tài khoản Hướng dẫn viên; tên hiện ở Chi tiết chuyến của văn phòng và màn tài xế; hướng dẫn viên CHƯA thấy chuyến (chờ ADR-0064). Được: gọn, không mở quyền mới. Mất: phụ xe không tài khoản chưa gắn được.
-- **B:** chọn bất kỳ người nào trong Danh bạ (kể cả phụ xe không tài khoản). Được: đủ người. Mất: dễ chọn nhầm; máy chủ phải thêm luật lọc.
-- **C:** để sau, làm cùng ADR-0064.
-
-Chủ chọn xong ⇒ người lập kế hoạch thêm một task (máy chủ kiểm "ai được chọn" + ô chọn ở màn xếp xe + người kiểm độc lập).
-
 ## Chưa chắc (người thi công đo lại)
 
 - Máy chủ có cấm "trả trước đón" khi đổi thứ tự không: route 39 không thấy luật đó (`dieu-phoi-tien-do.ts:210-233`), trigger chưa đọc — Task 3 bước 7 đã ghi cách xử lý cả hai trường hợp.
 - Có kịch bản Chrome / e2e / khung thử nào khác thêm cùng loại giấy tờ hai lần cho một xe (Task 1 bước 7 dò bằng `npm test` + grep; e2e và kịch bản Chrome chỉ lộ khi chạy).
+- Người đi kèm: chưa có luật "một HDV gắn hai lần trên cùng chuyến" hay "một HDV trên hai chuyến chồng giờ" — lời chủ không nói, kế hoạch không thêm; tài khoản vừa `FIELD` vừa `PARTNER` (lai) vẫn vào danh sách. Gặp thì hỏi chủ, không tự đặt luật.
+- `listStaffAccounts().permissions` có phải quyền ĐANG hiệu lực không — Task 7 bước 4 bắt đọc `toAccount` trước.
 - Ca router ở Task 4 bước 1 chép bộ `injected` của `build()` (`src/shared/router.test.ts:30-45`); kiểu `injected` có thể đòi thêm trường mới hơn mốc đo — `*.test.ts` không qua typecheck, chạy thấy lỗi thì bổ sung trường giả.
