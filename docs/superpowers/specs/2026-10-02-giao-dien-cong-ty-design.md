@@ -1,6 +1,6 @@
 # Giao diện công ty — Toàn quyền tự chỉnh màu, phông, cỡ chữ, độ đậm
 
-- **Ngày:** 2026-10-02. **Trạng thái:** đặc tả **chờ chủ duyệt**; kèm bản nháp **ADR-0087** (mục 9) — chưa thi công.
+- **Ngày:** 2026-10-02. **Trạng thái:** **ĐÃ DUYỆT** 2026-10-02 (chủ dự án: "1- duyet"); bản nháp mục 9 đã chép thành `docs/adr/ADR-0087-giao-dien-cong-ty.md` (accepted) — chưa thi công.
 - **Lời giao việc (chủ dự án, 2026-10-02):** "đổi trong token design luôn để sau này có tạo những giao diện mới thì mặc định đã tham chiếu đến những giá trị mong muốn theo đúng cách, nhưng tôi đang nghĩ là cho tôi tuỳ biến trong bảng điều khiển của Super Admin đi, từ màu nền, thanh tác vụ, nút hành động, cỡ chữ, độ đậm, phông chữ, các heading, body…"
 - **Chủ đã chốt (2026-10-02, qua câu hỏi):**
   1. **Một bộ giao diện chung** cho cả công ty, Toàn quyền chỉnh. Tuỳ chọn từng người (kế hoạch "3 tông" 1/10) để sau — bảng điều khiển này dùng lại được cho nó.
