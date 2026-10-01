@@ -157,7 +157,7 @@ try {
     await p.waitFor("!document.querySelector('#edit').hidden && !!document.querySelector('#edit h2')", "D. hộp Sửa mở", 8000);
     return p;
   };
-  const khoiQuyenCu = (p) => p.ev(`(() => { const e = document.querySelector('#edit'); return { baoCu: e.textContent.includes('đang dùng quyền cũ'), quyenCu: [...e.querySelectorAll('details summary')].some((x) => x.textContent.includes('Quyền cũ')), oTick: e.querySelectorAll('details input[type=checkbox]').length }; })()`);
+  const khoiQuyenCu = (p) => p.ev(`(() => { const e = document.querySelector('#edit'); return { baoCu: e.textContent.includes('đang dùng quyền cũ'), quyenCu: [...e.querySelectorAll('details summary')].some((x) => x.textContent.includes('Quyền cũ')), oTick: [...e.querySelectorAll('details')].filter((d) => d.querySelector('summary')?.textContent.includes('Quyền cũ')).reduce((n, d) => n + d.querySelectorAll('input[type=checkbox]').length, 0) }; })()`); // chỉ đếm ô của khối "Quyền cũ" (khối Vai và quyền cũng có <details>)
   p = await moSua(ACCOUNTS.admin);
   const qt = await khoiQuyenCu(p);
   assert.deepEqual(qt, { baoCu: true, quyenCu: false, oTick: 0 }, `D. Quản trị: ${JSON.stringify(qt)}`);
