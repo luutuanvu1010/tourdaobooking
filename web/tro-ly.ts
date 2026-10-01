@@ -5,7 +5,7 @@
 // của Toàn quyền. Tệp này nạp ở MỌI trang: KHÔNG import src/shared/tro-ly.ts / huong-dan.ts (kéo cả kho tri thức vào bundle) — máy chủ gửi chữ sẵn.
 // Không innerHTML: câu trả lời hiện bằng textContent (xuống dòng giữ bằng CSS). Đoạn hội thoại trên màn hình chỉ nằm trong bộ nhớ của trang (không lưu máy);
 // máy chủ lưu câu hỏi ĐÃ CHE + câu trả lời vào lịch sử chỉ Toàn quyền xem (ADR-0069 điều 5) — khung ghi rõ cho người dùng.
-// ADR-0073 Đ4: gửi kèm mã cuộc trò chuyện (KHÔNG gửi nội dung lượt trước); "Cuộc trò chuyện mới" xoá đoạn trên màn hình và sinh mã mới.
+// ADR-0073 Đ4: gửi kèm mã cuộc trò chuyện (KHÔNG gửi nội dung lượt trước; mã chỉ trong bộ nhớ trang, mở khung lúc chưa có tin ⇒ mã mới); "Cuộc trò chuyện mới" xoá đoạn trên màn hình và sinh mã mới.
 // Vị trí nút: góc phải dưới, trên thanh tab điện thoại; khi thanh nút dính đáy của trang (`.form-actions`, `.vc-bottom-bar`) đè vùng của nút thì nút nâng
 // lên khỏi thanh đó (đo lúc chạy — giả định bề mặt ghi ở đặc tả, đảo ngược được).
 import { ApiError, api, type Api, type Staff } from "./api";
@@ -26,26 +26,9 @@ const CAU_LUU = "Câu hỏi được lưu để cải thiện trợ lý — đ�
 const tin: Tin[] = [];
 let dangHoi = false;
 
-/** Mã cuộc trò chuyện (ADR-0073 Đ4): sinh khi mở khung lúc chưa có tin / khi bấm "Cuộc trò chuyện mới"; giữ trong sessionStorage (R4). Máy chủ tự lấy ≤ 3 lượt trước của CHÍNH người hỏi theo mã; khung KHÔNG gửi nội dung lượt trước. */
-const KHOA_CUOC = "td_tro_ly_cuoc";
+/** Mã cuộc trò chuyện (ADR-0073 Đ4, R5): sinh mới mỗi lần mở khung lúc chưa có tin và khi bấm "Cuộc trò chuyện mới"; chỉ nằm trong bộ nhớ trang (không lưu máy) để điều người dùng thấy = điều máy chủ nhớ. Khung KHÔNG gửi nội dung lượt trước. */
 let cuocTroChuyen: string | null = null;
 const maMoi = (): string => taoMaCuoc(crypto.getRandomValues(new Uint8Array(16)));
-function docCuoc(): string | null {
-  try {
-    const v = sessionStorage.getItem(KHOA_CUOC);
-    return v && /^[0-9a-f-]{36}$/.test(v) ? v : null;
-  } catch {
-    return null;
-  }
-}
-function datCuoc(ma: string): void {
-  cuocTroChuyen = ma;
-  try {
-    sessionStorage.setItem(KHOA_CUOC, ma);
-  } catch {
-    // không có bộ nhớ phiên: chỉ nhớ trong trang đang mở
-  }
-}
 
 function dongTin(t: Tin): HTMLElement {
   if (t.ai === "nguoi") return h("li", { class: "tl-tin tl-tin-nguoi" }, h("p", { class: "tl-chu" }, t.chu));
@@ -104,7 +87,7 @@ let kepKhungDangMo: (() => void) | null = null;
  */
 function moKhung(fab: HTMLElement, khung: Api.TroLyKhungResponse): void {
   if (dongKhungDangMo) return;
-  if (!cuocTroChuyen) datCuoc(docCuoc() ?? maMoi());
+  if (!tin.length || !cuocTroChuyen) cuocTroChuyen = maMoi();
   const ds = h("ol", { class: "tl-ds", "aria-live": "polite", "aria-label": "Hỏi đáp" });
   const trangThai = h("p", { class: "tl-trang-thai", role: "status" });
   const o = h("textarea", { class: "tl-o", rows: 2, maxlength: 500, placeholder: "Gõ câu hỏi về cách dùng app…", "aria-label": "Câu hỏi" });
@@ -229,7 +212,7 @@ function moKhung(fab: HTMLElement, khung: Api.TroLyKhungResponse): void {
   nutMoi.addEventListener("click", () => {
     if (dangHoi) return;
     tin.length = 0;
-    datCuoc(maMoi());
+    cuocTroChuyen = maMoi();
     veLai();
     o.focus();
   });
