@@ -11,6 +11,16 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Yêu cầu chủ 2026-10-01: Mai in đậm tên nút / đường điều hướng bằng cặp ** (luật 9 mới + dòng định dạng máy chủ nối); khung chat, ô thử, lịch sử hiện chữ đậm.
+    // Số "1.60" = bản lớn nhất trong nhánh (1.59) + 1; nhánh khác gộp trước thì đánh lại số.
+    version: "1.60",
+    date: "2026-10-01",
+    items: [
+      { kind: "moi", text: "Mai in đậm đúng tên nút và đường đi trong app, ví dụ: bấm Lưu thông tin; vào Danh bạ › Hồ sơ mới, để bạn dễ nhìn từng bước." },
+      { kind: "doi", text: "Toàn quyền: bản lời nhắc tự lưu vẫn dùng được, máy chủ tự thêm một dòng cho phép Mai in đậm tên nút." },
+    ],
+  },
+  {
     // Khung Hỗ trợ: biểu tượng đổi cỡ, bong bóng "đang trả lời", chữ gợi ý; ô thử báo riêng khi mẫu AI hết token cho phần suy nghĩ.
     // ADR-0084 (trợ lý Mai gọi tên, ô Giới tính): có migration 0066 (main đã có 0065_aut_session).
     // Số "1.59" = main 1.58 (ADR-0075 sổ phiên) + 1 — đánh lại lúc gộp main fe3d73f4 (2026-10-01; thi công ghi 1.57, rồi 1.58). Nhánh khác gộp trước thì đánh lại số.

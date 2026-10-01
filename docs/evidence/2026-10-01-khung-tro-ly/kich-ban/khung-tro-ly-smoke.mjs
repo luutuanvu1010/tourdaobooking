@@ -22,6 +22,9 @@
 //      cứ hỏi mình nhé!" (phán quyết điều phối 1/10: câu chào xưng theo {xung}, khớp Đ2);
 //      đặt giới tính Nữ (SQL trên D1 tạm) ⇒ mở lại khung: "Chào chị Một, em là Mai — … Chị Một cần hỏi gì…", không còn chữ {ten}; 390 + 1040;
 //      câu hỏi gửi máy giả mang dòng Mai "gọi là 'chị Một', xưng 'em'"
+//   o  (yêu cầu chủ 2026-10-01, ảnh vào docs/evidence/2026-10-01-tro-ly-in-dam/anh/) máy giả trả câu có **Danh bạ › Hồ sơ mới** và **Lưu thông tin**, thêm một ** lẻ ⇒
+//      bong bóng có thẻ <strong> mang đúng chữ đó, không còn dấu ** của cặp (** lẻ hiện nguyên văn, không vỡ câu), không tràn ngang; 390 + 1040;
+//      thân gửi máy giả mang dòng "Định dạng:" ngay sau dòng Mai
 //   k  console sạch
 import assert from "node:assert/strict";
 import { mkdirSync } from "node:fs";
@@ -53,9 +56,10 @@ const may = createServer((req, res) => {
     nhan.push(JSON.parse(raw || "{}"));
     const cau = JSON.stringify(nhan.at(-1).input ?? "");
     if (cau.includes("gây lỗi")) { res.writeHead(500, { "content-type": "application/json" }); return res.end("{}"); }
+    const traLoi = cau.includes("in đậm") ? "1. Vào **Danh bạ › Hồ sơ mới**.\n2. Nhập tên rồi bấm **Lưu thông tin**.\nMột dấu ** lẻ giữ nguyên." : "Được.";
     setTimeout(() => {
     res.writeHead(200, { "content-type": "application/json" });
-    res.end(JSON.stringify({ status: "completed", output: [{ type: "message", content: [{ type: "output_text", text: "Được." }] }], usage: { input_tokens: 1, input_tokens_details: { cached_tokens: 0 }, output_tokens: 1 } }));
+    res.end(JSON.stringify({ status: "completed", output: [{ type: "message", content: [{ type: "output_text", text: traLoi }] }], usage: { input_tokens: 1, input_tokens_details: { cached_tokens: 0 }, output_tokens: 1 } }));
     }, cau.includes("chờ lâu") ? 1500 : 0);
   });
 });
@@ -386,6 +390,29 @@ try {
     await p.waitFor(`!${q(".tl-dang-tra")} && document.querySelectorAll('.tl-tin-tro-ly').length >= 2`, "có trả lời (bong bóng đang trả lời đã mất)", 10000);
     assert.equal(nhan.length, truoc + 1);
     assert.ok(String(nhan.at(-1).instructions).includes("Người đang hỏi: gọi là 'chị Một', xưng 'em'."));
+  });
+
+  await step("o", "yêu cầu chủ 1/10: cặp ** thành thẻ <strong>, ** lẻ giữ nguyên văn; thân gửi máy giả có dòng Định dạng sau dòng Mai", async () => {
+    const IN_DAM = "docs/evidence/2026-10-01-tro-ly-in-dam/anh";
+    mkdirSync(IN_DAM, { recursive: true });
+    for (const vp of [M, DESK]) {
+      const p = await moKhung(vp);
+      const truoc = nhan.length;
+      const soTin = await p.ev("document.querySelectorAll('.tl-tin-tro-ly').length");
+      await p.ev(`(() => { ${q(".tl-o")}.value = "hướng dẫn tạo hồ sơ in đậm"; ${q(".tl-form")}.requestSubmit(); return true; })()`);
+      await p.waitFor(`!${q(".tl-dang-tra")} && document.querySelectorAll('.tl-tin-tro-ly').length > ${soTin}`, "có trả lời", 10000);
+      assert.equal(nhan.length, truoc + 1);
+      const ins = String(nhan.at(-1).instructions);
+      assert.ok(/Người đang hỏi: [^\n]*\nĐịnh dạng: in đậm tên nút[^\n]*\nNgười hỏi thuộc nhóm vai:/.test(ins), ins.slice(-700));
+      const dam = await p.ev(`[...document.querySelectorAll('.tl-tin-tro-ly:last-child .tl-chu strong')].map((e) => e.textContent)`);
+      assert.deepEqual(dam, ["Danh bạ › Hồ sơ mới", "Lưu thông tin"]);
+      const chu = await p.ev(`${q(".tl-tin-tro-ly:last-child .tl-chu")}.textContent`);
+      assert.ok(chu.includes("Vào Danh bạ › Hồ sơ mới.") && chu.includes("bấm Lưu thông tin."), chu);
+      assert.equal((chu.match(/\*\*/g) ?? []).length, 1, "chỉ còn đúng một ** lẻ nguyên văn");
+      assert.ok(await p.ev(`getComputedStyle(${q(".tl-tin-tro-ly:last-child .tl-chu strong")}).fontWeight >= 600`), "chữ đậm thật");
+      assert.equal(await p.ev("document.documentElement.scrollWidth - innerWidth"), 0);
+      await p.shot(join(IN_DAM, `o-chu-dam-${vp.width}.png`));
+    }
   });
 
   await step("k", "console sạch ở mọi trang đã mở", async () => {

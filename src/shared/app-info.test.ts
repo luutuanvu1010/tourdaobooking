@@ -18,7 +18,7 @@ test("APP_NAME trùng tên ứng dụng khai ở manifest (nguồn khai của t�
 });
 
 test("formatReleaseLine: dòng phiên bản của bản mới nhất", () => {
-  assert.equal(formatReleaseLine(), "Phiên bản 1.59 · ngày 1 tháng 10 năm 2026");
+  assert.equal(formatReleaseLine(), "Phiên bản 1.60 · ngày 1 tháng 10 năm 2026");
 });
 
 test("formatReleaseLine: nhận số phiên bản và ngày khác (kể cả số 1 chữ số và 2 chữ số)", () => {
