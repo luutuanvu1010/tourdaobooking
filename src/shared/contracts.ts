@@ -1248,6 +1248,11 @@ export interface ChuyenChiTietResponse {
   gioSomNhatKhai: GioSomNhatKhaiDto;
   /** ADR-0051 (A-GB): mỗi chặng có suất trên chuyến mà còn mục "Giờ hẹn đổi — gọi báo khách" hoặc đang mang dấu "đã gọi báo". */
   goiBao: GoiBaoChangDto[];
+  /**
+   * CHỈ ở phản hồi lệnh xếp (`POST …/chuyen/:id/phan-bo`) khi có: cảnh báo sớm CHUA_CO_NOI_TRA / THIEU_TEN của chặng vừa xếp (cùng luật cổng xuất bến —
+   * `lyDoNoiTra` / `lyDoThieuTen` ở src/shared/dieu-phoi-kiem.ts). Chỉ nhắc — lệnh đã chạy. Mã đơn + số tên thiếu, không tên khách.
+   */
+  canhBaoXep?: LyDoGiuDto[];
 }
 
 // ---- Nhắc "gọi báo khách" khi giờ hẹn đổi (ADR-0051 GB1, GB2 — Task A-GB) --------------------------------------------------------------------------------

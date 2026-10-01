@@ -124,8 +124,13 @@ try {
     await p.ev(typeInto("#dp-xep-so", "3"));
     await shotView(p, "b1-xep-vao-chuyen-may-tinh.png");
     await p.ev(click('[data-action="xep-gui"]'));
-    await p.waitFor(`${txt("#dp-banner .dp-banner-ok .banner-title")} === 'Đã xếp 3 khách vào ${T5.ma}'`, "dải đã xếp");
-    assert.equal(await p.ev(txt("#dp-banner .dp-banner-ok li")), `Còn 2 khách của ${d.O5.ma} ở cột “Chưa xếp”.`);
+    // Cảnh báo sớm lúc xếp (kế hoạch 2026-10-01 — chỉ nhắc, không chặn): O5 chưa chốt nơi trả → dải VÀNG "Đã xếp…" kèm câu nhắc, không dải xanh.
+    await p.waitFor(`${txt("#dp-banner .banner-warning .banner-title")} === 'Đã xếp 3 khách vào ${T5.ma}'`, "dải đã xếp (cảnh báo)");
+    assert.deepEqual(await p.ev(`[...document.querySelectorAll('#dp-banner .banner-warning li')].map((x) => x.innerText.trim())`), [
+      `Chặng chưa có nơi trả: ${d.O5.ma} — cần bổ sung ở đơn trước khi xe chạy.`, `Còn 2 khách của ${d.O5.ma} ở cột “Chưa xếp”.`,
+    ]);
+    assert.equal(await p.ev(`!!document.querySelector('#dp-banner .dp-banner-ok')`), false, "không dải xanh khi có cảnh báo");
+    await shotView(p, "b1-xep-canh-bao-noi-tra-may-tinh.png");
     assert.match((await p.ev(the))[0].text, new RegExp(`${d.O5.ma} · còn 2/5 khách$`));
     const body = JSON.parse(ghi(p).at(-1).body);
     assert.deepEqual({ ...body, requestId: "x" }, { requestId: "x", version: T5.version, chang: [{ legId: d.O5.legId, soSuat: 3 }] });
@@ -141,7 +146,8 @@ try {
     assert.equal(await p.ev(`document.querySelector('[data-action="xep-gui"]').disabled`), false);
     assert.equal(await p.ev(`document.querySelector('#dp-xep-so').value`), "2");
     await p.ev(click('[data-action="xep-gui"]'));
-    await p.waitFor(`${txt("#dp-banner .dp-banner-ok .banner-title")} === 'Đã xếp 2 khách vào ${T5.ma}'`, "dải đã xếp");
+    await p.waitFor(`${txt("#dp-banner .banner-warning .banner-title")} === 'Đã xếp 2 khách vào ${T5.ma}'`, "dải đã xếp (cảnh báo)");
+    assert.deepEqual(await p.ev(`[...document.querySelectorAll('#dp-banner .banner-warning li')].map((x) => x.innerText.trim())`), [`Chặng chưa có nơi trả: ${d.O5.ma} — cần bổ sung ở đơn trước khi xe chạy.`]);
     assert.equal(await p.ev(txt("#dp-cot-chua-xep .dp-col-empty")), "Không còn chặng nào chưa xếp.");
     assert.equal((await p.ev(soLieu))[2], "CHƯA XẾP 0");
   });

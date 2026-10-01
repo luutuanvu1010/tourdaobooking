@@ -117,7 +117,7 @@ export function taoKhoiHanhKhach(o: KhoiHanhKhachOptions): KhoiHanhKhach {
     const ds = rows.map((r, i) => dongEl(r, i, dangBang));
     replaceChildren(
       root,
-      bangMo ? h("p", { class: "dd-ghi" }, "Không xoá hẳn; mọi lần sửa đều được lưu lại.") : null,
+      bangMo ? h("p", { class: "dd-ghi-tao" }, "Không xoá hẳn; mọi lần sửa đều được lưu lại.") : null,
       h("div", { class: "hk-dem" }, h("span", { class: "hk-dem-icon" }, icon("guests", 18)), demEl, h("span", { class: "hk-dem-chu" }, "khách đã có tên")),
       thieuEl,
       quaEl,

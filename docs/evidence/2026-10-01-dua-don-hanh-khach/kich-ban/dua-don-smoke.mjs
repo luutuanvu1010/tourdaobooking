@@ -48,7 +48,7 @@ try {
     await f.waitFor("document.querySelectorAll('#catalog-list .catalog-pick').length === 1", "TD101 trong danh mục");
     await f.ev("document.querySelector('#catalog-list .catalog-pick').click(); true");
     await f.waitFor(`document.querySelectorAll('${card} .dd-chang').length === 2`, "hai chặng tạo sẵn");
-    assert.equal(await f.ev(txt(`${card} .dd .dd-ghi`)), "Đã tạo sẵn chiều đi và chiều về theo dịch vụ — sửa hoặc bỏ nếu khác.");
+    assert.equal(await f.ev(txt(`${card} .dd .dd-ghi-tao`)), "Đã tạo sẵn chiều đi và chiều về theo dịch vụ — sửa hoặc bỏ nếu khác.");
     assert.equal(await f.ev(txt(`${chang("OUT")} .chip`)), "Chiều đi");
     assert.equal(await f.ev(txt(`${chang("RETURN")} .chip`)), "Chiều về");
     assert.equal(await f.ev(`document.querySelector('${chang("OUT")} [data-o$=":tra"]').value`), GA);

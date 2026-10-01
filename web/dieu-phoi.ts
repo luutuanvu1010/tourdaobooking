@@ -448,7 +448,10 @@ function moXep(c: ChangLichDto, conLai: number, chuyenId: string | null, opener:
   };
   const xong = async (r: ChuyenChiTietResponse) => {
     chon = r.chuyen.id;
-    baoKetQua(dai("ok", `Đã xếp ${so} khách vào ${r.chuyen.ma}`, so < conLai ? [`Còn ${conLai - so} khách của ${c.maDon} ở cột “Chưa xếp”.`] : []));
+    const conDong = so < conLai ? [`Còn ${conLai - so} khách của ${c.maDon} ở cột “Chưa xếp”.`] : [];
+    // Cảnh báo sớm (lời chủ 1/10 — chỉ nhắc, không chặn): máy chủ đã xếp; chặng chưa có nơi trả / chưa đủ tên thì xe sẽ bị giữ lúc xuất bến.
+    const canhBao = (r.canhBaoXep ?? []).map((x) => `${x.loiNhan} — cần bổ sung ở đơn trước khi xe chạy.`);
+    baoKetQua(dai(canhBao.length > 0 ? "warning" : "ok", `Đã xếp ${so} khách vào ${r.chuyen.ma}`, [...canhBao, ...conDong]));
     await nap();
   };
   chinh.addEventListener("click", async () => {

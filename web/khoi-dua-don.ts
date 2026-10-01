@@ -224,7 +224,7 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
     const focused = document.activeElement instanceof HTMLElement && root.contains(document.activeElement) ? document.activeElement.getAttribute("data-o") : null;
     refs = [];
     const items: HTMLElement[] = [h("div", { class: "dd-nhan" }, "Đưa đón")];
-    if (taoSan && legs.length > 0) items.push(h("p", { class: "dd-ghi" }, taoSan));
+    if (taoSan && legs.length > 0) items.push(h("p", { class: "dd-ghi-tao" }, taoSan));
     if (legs.length === 0) {
       const them = h("button", { type: "button", class: "pill-btn", "data-action": "them-dua-don" }, "+ Thêm đưa đón");
       them.addEventListener("click", () => commit([themChangDi(o.mau(), o.ngayDi(), o.newKey())], true));
