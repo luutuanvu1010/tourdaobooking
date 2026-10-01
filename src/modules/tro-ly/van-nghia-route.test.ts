@@ -5,8 +5,9 @@ import { test, afterEach } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { world, seedStaff } from "../../../tests/audit/harness.mjs";
-import { chiaKho, chonDoan, dinhDangDoan, truyVanTim } from "../../shared/tro-ly.ts";
-import { MAU_NHUNG, SO_CHIEU_NHUNG, chiPhiNhungMicroUsd, tienBuUoc } from "../../shared/tro-ly-van-nghia.ts";
+import { cheCauHoi, chiaKho, chonDoan, dinhDangDoan, thanYeuCau, truyVanTim, uocToken, uocTokenVao } from "../../shared/tro-ly.ts";
+import { chiPhiToiDa } from "../../shared/tro-ly-mau.ts";
+import { MAU_NHUNG, SO_CHIEU_NHUNG, chiPhiNhungMicroUsd, chiaLoNhung, mucTranTren, tienBuUoc } from "../../shared/tro-ly-van-nghia.ts";
 import { xoaBoNhoVanNghia } from "./van-nghia.ts";
 
 const SALES = "11111111-1111-4111-8111-111111111111";
@@ -73,6 +74,20 @@ function batLog(): { dung: () => string[] } {
 }
 const MO = 400; // tiền mẫu nano của máy giả: 4.000 × 0,05 + 500 × 0,40
 const N = chiaKho().length;
+type BoNaoThu = { mau: string; mucSuyNghi: string; doDai: string; tokenRaToiDa: number; loiNhac: string };
+/**
+ * Hai mức kiểm trần của MỘT lượt (không nhớ, câu không có gì để che), tính bằng luật thuần:
+ * `tren` = mức trần trên ADR-0082 Đ5(1) (thân KHÔNG tài liệu + NGAN_SACH_TOKEN + token ra + embedding truy vấn);
+ * `cu` = mức kiểm CŨ (ADR-0073: thân CÓ đoạn từ khoá đã chọn + token ra). Bài P2 đặt trần GIỮA hai mức để phân biệt.
+ */
+function haiMuc(b: BoNaoThu, perms: string[], cau: string): { tren: number; cu: number } {
+  const q = cheCauHoi(cau);
+  const tren = mucTranTren(b.mau, uocTokenVao(thanYeuCau(b as never, perms as never, [], q)), b.tokenRaToiDa, q);
+  const cu = chiPhiToiDa(b.mau, uocTokenVao(thanYeuCau(b as never, perms as never, chonDoan(q, perms as never, chiaKho()), q)), b.tokenRaToiDa);
+  return { tren, cu };
+}
+const datTran = (w: W, microUsd: number) => w.call("POST", "/api/tro-ly/cai-dat", { as: SUP, body: { bat: true, tranThangUsd: microUsd / 1_000_000, tranNgay: 30 } });
+const TIEN_BU_KHO = tienBuUoc(chiaKho().map(dinhDangDoan));
 
 test("V2 + V5 + P1: câu 1 tính bù MỌI đoạn (một lô) + câu hỏi; câu 2 chỉ câu hỏi, đọc D1 MỘT lần; câu 3 không đọc D1; tiền lượt = mẫu + embedding, token chỉ của mẫu", async () => {
   const w = setup();
@@ -144,20 +159,23 @@ test("L2: lô tính bù lỗi (câu hỏi đã tính được) ⇒ 0 dòng ghi; 
   assert.equal(soDong(w), N);
 });
 
-test("P2 + Review Focus 5 HÀNG RÀO trần trước MỌI lần gọi: (1) mức trần trên vượt ⇒ 429, 0 lần embeddings, 0 lần mẫu; (2) qua (1) nhưng tính bù vượt phần còn lại ⇒ 200, lùi từ khoá, 0 lần embeddings", async () => {
+test("P2 + Review Focus 5 HÀNG RÀO trần trước MỌI lần gọi: (1) trần = mức trần trên − 1 (cao hơn mức kiểm cũ) ⇒ 429, 0 lần embeddings, 0 lần mẫu; (2) trần = mức trần trên + tiền tính bù − 1 ⇒ 200, lùi từ khoá, 0 lần embeddings", async () => {
   const w = setup();
   const g = openAiGia();
-  assert.equal((await w.call("POST", "/api/tro-ly/cai-dat", { as: SUP, body: { bat: true, tranThangUsd: 0.0005, tranNgay: 30 } })).status, 200);
+  // Bộ não hiện hành của route hỏi (mặc định) — đọc qua route, không chép giá trị.
+  const bn = (await w.call("GET", "/api/tro-ly/bo-nao", { as: SUP })).json.hienHanh as BoNaoThu;
+  const { tren, cu } = haiMuc(bn, ["SALES"], "đổi mã PIN thế nào");
+  assert.ok(cu < tren - 1, `tiền đề: mức cũ ${cu} < trần ${tren - 1} — bài phân biệt được mức cũ với mức trần trên (khoá NGAN_SACH_TOKEN)`);
+  assert.equal((await datTran(w, tren - 1)).status, 200);
   const r = await hoi(w, "đổi mã PIN thế nào");
   assert.equal(r.status, 429, r.text);
   assert.equal(r.json.error.code, "tro_ly_het_tran_thang");
   assert.deepEqual([g.nhung.length, g.traLoi.length], [0, 0]);
 
-  // Trần 1.000 micro-USD: mức trần trên nano ≥ 6.000 × 0,05 + 1.200 × 0,40 = 780 ⇒ phần còn lại ≤ 220 < tiền tính bù cả kho.
-  assert.ok(tienBuUoc(chiaKho().map(dinhDangDoan)) > 220, "tiền đề: tính bù cả kho vượt phần còn lại");
+  // Trần = mức trần trên + tiền tính bù cả kho − 1 ⇒ qua (1), phần còn lại (conLai) = tiền tính bù − 1 < tiền tính bù ⇒ lùi, KHÔNG gọi embeddings.
   const w2 = setup();
   const g2 = openAiGia();
-  assert.equal((await w2.call("POST", "/api/tro-ly/cai-dat", { as: SUP, body: { bat: true, tranThangUsd: 0.001, tranNgay: 30 } })).status, 200);
+  assert.equal((await datTran(w2, tren + TIEN_BU_KHO - 1)).status, 200);
   const log = batLog();
   let r2;
   try { r2 = await hoi(w2, "đổi mã PIN thế nào"); } finally { log.dung(); }
@@ -202,14 +220,11 @@ test("P3 + H1: ô thử đi CÙNG đường tìm; lượt la_thu = 1 có tiền 
   assert.ok(ds.length > 0 && ds.length <= 12);
   for (const d of ds) assert.deepEqual(Object.keys(d).sort(), ["ten", "theoNghia", "theoTuKhoa"]);
   assert.ok(ds.some((d) => d.theoNghia), "có đoạn khớp nghĩa");
-  // mỗi `[tên]\n` có trong khối TÀI LIỆU đã gửi, ĐÚNG thứ tự (so bằng vị trí — dòng "[…]" trong nội dung đoạn không làm lệch)
+  // khối TÀI LIỆU đã gửi = ĐÚNG và ĐỦ các đoạn trong doanDaChon, cùng thứ tự (dựng lại từ kho theo tên rồi so đuôi lời nhắc — như bài L1)
   const ins = String(g.traLoi[0]!.body.instructions);
-  let tu = ins.lastIndexOf("TÀI LIỆU:");
-  for (const d of ds) {
-    const o = ins.indexOf(`\n[${d.ten}]\n`, tu);
-    assert.ok(o > tu, `thiếu hoặc sai thứ tự: ${d.ten}`);
-    tu = o + 1;
-  }
+  const theoTen = new Map(chiaKho().map((d) => [d.ten, d]));
+  assert.ok(ds.every((d) => theoTen.has(d.ten)), "tên đoạn có trong kho");
+  assert.ok(ins.endsWith(["TÀI LIỆU:", ...ds.map((d) => dinhDangDoan(theoTen.get(d.ten)!))].join("\n")), "doanDaChon khớp đúng và đủ khối TÀI LIỆU");
 });
 
 test("P3 + L1: ô thử khi embeddings lỗi ⇒ 200, mọi đoạn cờ khớp từ khoá, chiPhiVanNghiaMicroUsd 0", async () => {
@@ -223,17 +238,31 @@ test("P3 + L1: ô thử khi embeddings lỗi ⇒ 200, mọi đoạn cờ khớp 
   assert.ok(r.json.doanDaChon.every((d: { theoNghia: boolean; theoTuKhoa: boolean }) => d.theoTuKhoa && !d.theoNghia));
 });
 
-test("P2 ô thử: trần thấp hơn mức trần trên ⇒ 429, 0 lần gọi bất kỳ (MỘT hàm kiểm trần với route hỏi)", async () => {
+test("P2 ô thử HÀNG RÀO: trần = mức trần trên − 1 (cao hơn mức kiểm cũ) ⇒ 429, 0 lần gọi; trần = mức trần trên + tiền tính bù ⇒ 200, tính bù đủ (conLai = trần − mức trần trên)", async () => {
+  const { tren, cu } = haiMuc(NANO, ["SALES"], "đổi mã PIN thế nào");
+  assert.ok(cu < tren - 1, `tiền đề: mức cũ ${cu} < trần ${tren - 1} — bài phân biệt được mức cũ với mức trần trên`);
   const w = setup();
   const g = openAiGia();
-  assert.equal((await w.call("POST", "/api/tro-ly/cai-dat", { as: SUP, body: { bat: true, tranThangUsd: 0.0005, tranNgay: 30 } })).status, 200);
-  assert.equal((await thu(w)).status, 429);
+  assert.equal((await datTran(w, tren - 1)).status, 200);
+  const r = await thu(w);
+  assert.equal(r.status, 429, r.text);
+  assert.equal(r.json.error.code, "tro_ly_het_tran_thang");
   assert.deepEqual([g.nhung.length, g.traLoi.length], [0, 0]);
+
+  const w2 = setup();
+  const g2 = openAiGia();
+  assert.equal((await datTran(w2, tren + TIEN_BU_KHO)).status, 200);
+  const r2 = await thu(w2);
+  assert.equal(r2.status, 200, r2.text);
+  assert.deepEqual([g2.nhung.length, g2.traLoi.length], [2, 1], "conLai = tiền tính bù ⇒ không lùi: câu hỏi + một lô kho");
+  assert.equal(soDong(w2), N);
 });
 
 test("Review Focus 2 (route): phản hồi embeddings KHÔNG có usage ⇒ tiền lượt tính theo ƯỚC, không 0", async () => {
   const w = setup();
   openAiGia({ usageNhung: null });
   assert.equal((await hoi(w, "đổi mã PIN thế nào")).status, 200);
-  assert.ok((luot(w)[0]![0] as number) > MO + tienBuUoc(chiaKho().map(dinhDangDoan)) - 1);
+  // Kho nằm trong MỘT lô (tiền đề) ⇒ tiền ước lô = tienBuUoc(kho); câu hỏi không có gì để che ⇒ ước bằng uocToken(câu).
+  assert.equal(chiaLoNhung(chiaKho().map(dinhDangDoan)).length, 1, "tiền đề: kho một lô");
+  assert.equal(luot(w)[0]![0], MO + chiPhiNhungMicroUsd(uocToken("đổi mã PIN thế nào")) + TIEN_BU_KHO);
 });

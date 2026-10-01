@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { world, seedStaff } from "../../../tests/audit/harness.mjs";
 import { LOI_NHAC_MAC_DINH } from "../../shared/tro-ly-bo-nao.ts";
+import { cheCauHoi, chiaKho, chonDoan } from "../../shared/tro-ly.ts";
 import { vnToday } from "../../shared/vn-date.ts";
 
 const SALES = "11111111-1111-4111-8111-111111111111";
@@ -299,7 +300,10 @@ test("T1 + T5: ô thử chạy đúng đường ống thật với cấu hình C
     { ...r.json, traLoi: "-", nguon: "-", doanDaChon: "-" },
     { traLoi: "-", nguon: "-", doanDaChon: "-", tokenVao: 3000, tokenRa: 400, chiPhiMicroUsd: 1550, chiPhiUsd: 0.00155, chiPhiVanNghiaMicroUsd: 0, mau: "gpt-5-mini" },
   ); // 3000 × 0,25 + 400 × 2; embeddings của máy giả tắt ⇒ 0 tiền tìm theo nghĩa
-  assert.ok(r.json.doanDaChon.length > 0 && r.json.doanDaChon.every((d: { theoNghia: boolean; theoTuKhoa: boolean }) => d.theoTuKhoa && !d.theoNghia), "lùi từ khoá");
+  // Đường lùi xác định: ĐÚNG chonDoan(câu ĐÃ CHE, VAI GIẢ ĐỊNH, kho) — không vai người gọi, không câu thô; mọi đoạn cờ khớp từ khoá.
+  const ky = chonDoan(cheCauHoi(THU.cauHoi), ["ACCOUNTING"], chiaKho());
+  assert.ok(ky.length > 0, "tiền đề: câu thử khớp đoạn");
+  assert.deepEqual(r.json.doanDaChon, ky.map((d) => ({ ten: d.ten, theoNghia: false, theoTuKhoa: true })), "lùi từ khoá");
   assert.equal(r.json.nguon.length, 1);
   assert.equal(w.q("SELECT count(*) AS n FROM tl_bo_nao")[0]!.n, truoc, "T5: thử không thêm bản");
   assert.equal((await boNao(w)).json.hienHanh.mau, "gpt-5-nano");

@@ -42,6 +42,7 @@ const logLoi = (lyDo: string): void => console.error(JSON.stringify({ event: "tr
  * Mức trần trên = token ước của thân yêu cầu CHƯA có tài liệu (lời nhắc + phần nhớ + câu mới) + NGAN_SACH_TOKEN (tài liệu tối đa) theo giá vào + token ra tối đa
  * theo giá ra + tiền embedding ước của truy vấn tìm (mucTranTren). `vuot` ⇒ KHÔNG gọi gì. `conLai` = phần trần còn lại sau mức trần trên — trần cho tiền tính bù
  * đoạn (Đ5(2), timDoanTheoNghia). Vượt trần do nhiều lượt song song vẫn có thể xảy ra, chặn trên bởi số lượt song song × mức trần trên (ADR-0073 Đ7b).
+ * Mức trần trên chỉ phủ MỘT lần gọi mẫu: nhánh gọi lại "phòng thủ" của route hỏi (mẫu từ chối thân có nhớ ⇒ gọi lại không nhớ) có thể vượt thêm tối đa một lần gọi mẫu.
  */
 export const kiemTranTruocKhiGoi = (
   boNao: { mau: string; tokenRaToiDa: number }, thanKhongTaiLieu: Record<string, unknown>, truyVan: string, daDungThang: number, tranThang: number,
