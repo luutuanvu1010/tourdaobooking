@@ -397,12 +397,17 @@ export const orderTouchGuarded = (db: D1Database, orderId: string, at: string, e
 
 // ---- Hành khách ---------------------------------------------------------------------------------------------------------------------------------
 
-/** Mọi dòng hành khách của các đơn (mảng JSON ở ?1), theo thứ tự tạo. Họ tên đọc dưới bí danh `ten`. */
+/**
+ * Mọi dòng hành khách của các đơn (mảng JSON ở ?1), theo thứ tự NHẬP. Họ tên đọc dưới bí danh `ten`.
+ * Cả lô chèn cùng `created_at` ⇒ hoà giờ sắp theo `rowid` (thứ tự câu INSERT trong lô — nơi chèn đi theo thứ tự mảng), KHÔNG theo `id` (UUID ngẫu
+ * nhiên — PM-2). `created_at` vẫn đứng trước để thứ tự không lệ thuộc riêng `rowid` (VACUUM có thể đánh số lại, nhưng giữ thứ tự tương đối).
+ * Dòng thay thế (sửa tên) chèn sau dòng đầu chuỗi ⇒ `dongHienHanh` xếp người theo dòng đầu ⇒ người sửa tên giữ chỗ.
+ */
 const PASSENGER_ROWS_BY_ORDERS = defineSql(
   "orders",
   "passenger_rows_by_orders",
   `SELECT id, order_id, person_key, previous_id, voided_at IS NOT NULL AS voided, full_name AS ten, birth_year, pax_code, updated_at
-   FROM ord_passenger WHERE order_id IN (SELECT value FROM json_each(?1)) ORDER BY order_id, created_at, id`,
+   FROM ord_passenger WHERE order_id IN (SELECT value FROM json_each(?1)) ORDER BY order_id, created_at, rowid`,
 );
 export interface PassengerRow {
   id: string;
