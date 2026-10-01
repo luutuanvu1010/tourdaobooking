@@ -168,13 +168,14 @@ test("R8 PASS (đã vá — sổ tiền lượt 1) money: đơn đã HUỶ — c
   assert.equal(w.q("SELECT count(*) AS n FROM bil_payment_receipt WHERE order_id = ?", o.id)[0].n, 1);
 });
 
-test("R9 FINDING session: đăng xuất không thu hồi token; cookie cũ còn dùng được 7 ngày", async () => {
+test("R9 PASS session: đăng xuất kết thúc dòng phiên; cookie đã chép đi nơi khác bị từ chối (ADR-0075, trước đây còn dùng được 7 ngày)", async () => {
   const w = setup();
-  const { app, SECRET } = await import("./harness.mjs");
-  const token = await app.createSessionToken(SECRET, A);
+  const { app } = await import("./harness.mjs");
+  const token = await w.token(A);
   await w.call("POST", "/api/auth/logout", { headers: { cookie: `td_session=${token}` }, body: {} });
   const me = await app.default.fetch(new Request("https://booking.tourdao.vn/api/auth/me", { headers: { cookie: `td_session=${token}` } }), w.env, { waitUntil() {} });
-  assert.equal(me.status, 200);
+  assert.equal(me.status, 401);
+  assert.equal(w.q("SELECT end_reason FROM aut_session WHERE staff_id = ? ORDER BY created_at DESC LIMIT 1", A)[0].end_reason, "dang_xuat");
 });
 
 test("R10 PASS session: tài khoản bị ngưng → phiên đang mở bị từ chối ngay", async () => {

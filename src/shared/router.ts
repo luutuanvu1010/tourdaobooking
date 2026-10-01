@@ -23,6 +23,16 @@ export type PartyAccountVerdict = { linked: false } | { linked: true; manageable
  * thử lại khi trùng mã) — không tự đọc đồng hồ: dòng `HANDLE` mở và dòng nhật ký mang ĐÚNG mốc của dòng nhật ký `created` cùng lô. Không đạt → `message`
  * (lời báo cho người dùng, route trả 400 `invalid_assignee` và KHÔNG tạo đơn).
  */
+/**
+ * Việc đóng Bảng tin (+ tắt máy nhận thông báo) gửi cho hàm tiêm `dongBangTin`: theo tài khoản (khi tài khoản đổi — `tatThongBao` bắt buộc, ADR-0046), theo
+ * PHIÊN (đăng nhập máy khác / mất miễn — ADR-0075 điều 6: tắt mọi máy trừ `giuPhien`), CHỈ các phiên đó (IT/Toàn quyền gỡ phiên — ADR-0075 điều 6b:
+ * `chiPhien: true`, tắt đúng máy của các phiên đó), hoặc mọi kết nối (`"tat-ca"`, bật bảo trì).
+ */
+export type MucDongBangTin =
+  | { staffId: string; tatThongBao: boolean }
+  | { staffId: string; sessionIds: string[]; giuPhien: string | null }
+  | { staffId: string; sessionIds: string[]; chiPhien: true }
+  | "tat-ca";
 export type NewOrderHandler = { ok: true; statements: (orderId: string, at: string) => D1PreparedStatement[] } | { ok: false; message: string };
 
 /**
@@ -50,6 +60,8 @@ export interface Ctx<A extends Access = Access> {
   params: Record<string, string>;
   /** Nhân viên đang đăng nhập — luôn có với route "staff"/"admin". */
   staff: A extends "public" ? StaffProfile | null : StaffProfile;
+  /** Mã phiên đăng nhập của request (dòng `aut_session`, ADR-0075) — có với mọi route cần đăng nhập; route công khai luôn `null` (router không đọc cookie ở đó). */
+  sessionId: string | null;
   /**
    * Người đang đăng nhập có phải người phụ trách ĐANG MỞ của đơn `orderId` không — kết quả điền vào `can(staff, op, { ownerId, assigned })` cho các ô
    * `ownOrAssigned`/`assigned` (ADR-0007 điều 4(b), ADR-0009 điều 3). Do gốc lắp ráp tiêm (module `orders` không import `dispatch`). Là một HÀM (không phải giá trị
@@ -94,8 +106,12 @@ export interface Ctx<A extends Access = Access> {
    * nối (`"tat-ca"`, khi bật chế độ bảo trì). Không phụ thuộc người đang gọi (không cần ai đăng nhập) — bắn-và-quên như `baoThayDoi`.
    * `tatThongBao` (BẮT BUỘC, ADR-0046): có tắt luôn mọi máy nhận thông báo điện thoại của tài khoản không — `true` CHỈ cho thao tác bảo mật
    * (đổi/đặt lại PIN, gỡ Face ID, ngưng tài khoản, đổi SĐT đăng nhập); `false` cho đổi vai/quyền (người nhận tính lúc gửi theo quyền hiện tại).
+   * Nhánh theo PHIÊN (ADR-0075 điều 6, chỉ route đăng nhập gọi): `{ staffId, sessionIds, giuPhien }` — đóng kết nối của đúng các phiên vừa bị thay và tắt
+   * mọi máy nhận thông báo của `staffId` trừ máy mang phiên `giuPhien` (máy mới).
+   * Nhánh CHỈ PHIÊN (ADR-0075 điều 6b, route gỡ phiên): `{ staffId, sessionIds, chiPhien: true }` — đóng kết nối và tắt máy nhận thông báo của ĐÚNG các
+   * phiên đó; máy khác của tài khoản không đụng.
    */
-  dongBangTin: (muc: { staffId: string; tatThongBao: boolean } | "tat-ca") => void;
+  dongBangTin: (muc: MucDongBangTin) => void;
   /**
    * WEB PUSH (ADR-0036) — giao một danh sách địa chỉ nhận cho trạm `BangTin` chia lô ≤ 40 bằng báo thức (khi > 40 máy). Hàm tiêm để `thongbao` không
    * import `bangtin` (không nới ALLOWED_EDGES). Trả địa chỉ đã nhận 410 ở các lượt trước của trạm (người gọi đánh dấu hết hiệu lực). Không có trạm → `[]`.
@@ -179,8 +195,8 @@ function checkWriteRequest(request: Request, url: URL): Response | null {
 
 export interface AppOptions {
   modules: AppModule[];
-  /** Nhân viên đang đăng nhập ứng với request (đọc cookie phiên), hoặc null. */
-  currentStaff: (request: Request, env: Env) => Promise<StaffProfile | null>;
+  /** Nhân viên đang đăng nhập + mã phiên (sổ phiên ADR-0075) ứng với request (đọc cookie phiên), hoặc null. */
+  currentStaff: (request: Request, env: Env) => Promise<{ staff: StaffProfile; sessionId: string } | null>;
   /** Kiểm cấu hình bắt buộc trước khi xử lý; trả thông báo lỗi (→ 500) hoặc null. */
   checkConfig?: (env: Env) => string | null;
   /**
@@ -207,7 +223,7 @@ export interface AppOptions {
     /** BẢNG TIN (ADR-0022). BẮT BUỘC: router gọi cho MỌI route có đăng nhập gọi `ctx.baoThayDoi`. Bản thật ở `src/index.ts` (trạm `BangTin` đã có); chỉ là no-op khi môi trường không có binding `BANG_TIN` (khung thử). */
     baoThayDoi: (env: Env, actor: StaffProfile, e: { orderId: string; thayDoi: ThayDoiDon; handlerTruoc?: TrangThaiPhuTrach }) => Promise<void>;
     /** BẢNG TIN (ADR-0022). BẮT BUỘC. Bản thật ở `src/index.ts` (`dongCua` của module `bangtin`); chỉ là no-op khi môi trường không có binding `BANG_TIN`. */
-    dongBangTin: (env: Env, muc: { staffId: string; tatThongBao: boolean } | "tat-ca") => Promise<void>;
+    dongBangTin: (env: Env, muc: MucDongBangTin) => Promise<void>;
     /** WEB PUSH (ADR-0036). BẮT BUỘC. Bản thật ở `src/index.ts` (`xepHangDay` của module `bangtin`); `[]` khi môi trường không có binding `BANG_TIN`. */
     giaoLoDay: (env: Env, ds: string[]) => Promise<string[]>;
     /**
@@ -258,9 +274,12 @@ export function createApp(opts: AppOptions) {
     if (blocked) return blocked;
 
     let staff: StaffProfile | null = null;
+    let sessionId: string | null = null;
     if (hit.r.access !== "public") {
-      staff = await opts.currentStaff(request, env);
-      if (!staff) return error(401, "unauthenticated", "Chưa đăng nhập hoặc phiên đã hết hạn.");
+      const cur = await opts.currentStaff(request, env);
+      if (!cur) return error(401, "unauthenticated", "Chưa đăng nhập hoặc phiên đã hết hạn.");
+      staff = cur.staff;
+      sessionId = cur.sessionId;
       const maintenance = await opts.injected.maintenanceBlock(env, staff);
       if (maintenance) return maintenance;
       // ADR-0014 điều 2: SUPER_ADMIN = any ở mọi thao tác, kể cả admin.manage — không thay thế ADMIN, nên tài khoản chỉ giữ SUPER_ADMIN (không giữ ADMIN)
@@ -272,7 +291,7 @@ export function createApp(opts: AppOptions) {
     }
     const who = staff;
     return hit.r.handler({
-      request, env, exec, url, params: hit.params, staff,
+      request, env, exec, url, params: hit.params, staff, sessionId,
       isAssigned: (orderId) => (who ? opts.injected.isAssigned(env, who.id, orderId) : Promise.resolve(false)),
       newOrderHandler: (staffId) => (who ? opts.injected.newOrderHandler(env, who, staffId) : Promise.resolve(NOT_SIGNED_IN)),
       ordersWithHandler: (orderIds) => opts.injected.ordersWithHandler(env, orderIds),

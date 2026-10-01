@@ -10,7 +10,7 @@ import { hashPin, verifyDummy, verifyPin } from "./password";
 import { isValidPin, normalizePhone } from "./phone";
 import {
   accountIdOfParty, closeAdjustmentStatement, closePermissionStatement, countActiveAdmins, findById, findByPhone, insertAdjustmentStatement, insertPermissionStatement,
-  insertStaffStatement, labelsByIds, listAll, openAdjustments, parsePermissions, partiesWithAccount, phonesByParty, recordLoginRow, setPinStatement as setPinRow, touchCredentialsStatement, updateStaffStatement,
+  insertStaffStatement, labelsByIds, listAll, openAdjustments, parsePermissions, partiesWithAccount, phonesByParty, recordLoginRow, sessionOwnersByIds, setPinStatement as setPinRow, touchCredentialsStatement, updateStaffStatement,
   type AdjustmentRow, type StaffRow,
 } from "./repository";
 import { canManageAccount, checkAccountChange, generatePin, isWeakPin, partyAccountVerdict, validateFreshPin } from "./rules";
@@ -30,6 +30,17 @@ export {
  * của van-chuyen. CHỈ gốc lắp ráp gọi (tiêm `ctx.nhanNhanVien`) — van-chuyen không import staff. Chỉ tên (view `v_stf_staff_label`): không SĐT, email, quyền.
  */
 export const nhanNhanVienTheoId = (db: D1Database, ids: readonly string[]): Promise<Map<string, string>> => labelsByIds(db, ids);
+
+/**
+ * HÀM CÔNG BỐ (ADR-0075 điều 7) — `accounts` gọi cho route xem sổ phiên: tên hiển thị + mốc `credentials_changed_at` (mili-giây) của các tài khoản theo id,
+ * để trạng thái phiên tính cả theo lưới (phiên cấp trước lần đổi PIN/gỡ Face ID không hiện "Đang hiệu lực"), và mã quyền đang mở — để route tính
+ * "đặt lại PIN được không" bằng CÙNG luật cấp bậc với route reset-pin (canManageAccount). Không SĐT.
+ */
+export const chuPhienTheoId = (
+  db: D1Database,
+  ids: readonly string[],
+): Promise<Map<string, { label: string; credentialsChangedAt: number | null; permissions: PermissionCode[] }>> =>
+  sessionOwnersByIds(db, ids);
 
 /** HÀM CÔNG BỐ (ADR-0068 Đ8) — CHỈ gốc lắp ráp gọi (ctx.gopHoSo.soDangNhap): SĐT đăng nhập theo hồ sơ, cho lý do "số đăng nhập trùng số liên hệ". */
 export const soDangNhapTheoHoSo = (db: D1Database): Promise<{ partyId: string; phone: string }[]> => phonesByParty(db);
@@ -367,4 +378,11 @@ export async function createAccountWithRolesStatements(
 export async function accountRoleCodes(db: D1Database, accounts: readonly StaffAccount[]): Promise<Map<string, RoleCode[]>> {
   const byParty = await openRoleCodesByParty(db, accounts.flatMap((a) => (a.partyId ? [a.partyId] : [])));
   return new Map(accounts.map((a) => [a.id, ROLE_CODES.filter((c) => (a.partyId ? (byParty.get(a.partyId) ?? []) : []).includes(c))]));
+}
+
+/** Mã vai tài khoản còn hiệu lực của MỘT tài khoản (ADR-0075 điều 3: auth hỏi vai IT lúc cấp phiên). */
+export async function accountRoleCodesOf(db: D1Database, staffId: string): Promise<RoleCode[]> {
+  const acct = await getStaffAccount(db, staffId);
+  if (!acct) return [];
+  return (await accountRoleCodes(db, [acct])).get(staffId) ?? [];
 }

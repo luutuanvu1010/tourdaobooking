@@ -2192,6 +2192,13 @@ body.sheet-open .tl-fab { visibility: hidden; }
 /* Gộp hồ sơ (ADR-0068 C1): ô tích trong label.check (thay chuỗi style nội dòng cũ "width:auto;display:inline;margin:0 6px 0 0") — web/staff.ts khối #add-khop. */
 label.check > input.o-tick { display: inline; width: auto; margin: 0 var(--s2) 0 0; }
 
+/* Phiên đăng nhập (ADR-0075 điều 7; web/sessions.ts): ô tích "Chỉ phiên đang hiệu lực" không giãn theo luật `.toolbar input`; nhãn trạng thái không gãy dòng;
+   hai nút gỡ xếp dọc trong ô cuối bảng (8 cột ở khổ 1040 không đủ chỗ cho hai nút nằm ngang). Chỉ từ khoá, không giá trị — luật token của khối PWA. */
+.toolbar input.o-tick { flex: none; }
+.toolbar label.check { flex: none; }
+.phien-bang .badge { white-space: nowrap; }
+.phien-bang .row-actions { white-space: normal; }
+.phien-bang .row-actions .btn-link { display: flex; }
 /* ---------- đưa đón / hành khách — trang đơn (ADR-0047 Phần B; bản vẽ docs/design/2026-10-01-dua-don-hanh-khach M1–M6; Người 1). Chỉ token. ---------- */
 /* Khối "Đưa đón" trong thẻ dịch vụ (web/khoi-dua-don.ts — the-dua-don.dc.html) */
 .dd { display: flex; flex-direction: column; gap: var(--s3); margin-top: var(--s4); }

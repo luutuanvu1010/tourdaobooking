@@ -35,7 +35,8 @@ async function bundle(entry) {
 }
 // listAll: bộ lọc thao tác im lặng (ADR-0038) chỉ kiểm được ở tầng truy vấn — trang Nhật ký nay chỉ Toàn quyền gọi được.
 export const app = (await bundle(
-  'export { default, taoAppChoKhungThu } from "./index"; export { createSessionToken } from "./modules/auth/session"; export { listAll } from "./modules/audit/repository"; export { xoaBoNhoVanNghia } from "./modules/tro-ly/van-nghia";',
+  'export { default, taoAppChoKhungThu } from "./index"; export { createSessionToken } from "./modules/auth/session"; export { listAll } from "./modules/audit/repository"; export { xoaBoNhoVanNghia } from "./modules/tro-ly/van-nghia";' +
+    ' export { isSingleDevice } from "./modules/auth/session-ledger"; export { accountRoleCodesOf, getActiveStaff } from "./modules/staff";',
 ));
 
 const isRead = (sql) => /^\s*(SELECT|WITH|PRAGMA|EXPLAIN)\b/i.test(sql);
@@ -48,7 +49,12 @@ export function fakeD1(sqlite) {
     raw: async () => sqlite.prepare(sql).all(...args).map((r) => Object.values(r)),
     run: async () => ({ results: [], meta: { changes: Number(sqlite.prepare(sql).run(...args).changes) } }),
   });
-  const exec1 = (s) => (isRead(s.sql) ? { results: sqlite.prepare(s.sql).all(...s.args).map((r) => ({ ...r })), meta: { changes: 0 } } : { results: [], meta: { changes: Number(sqlite.prepare(s.sql).run(...s.args).changes) } });
+  // Câu ghi có RETURNING trả dòng trong `results` như D1 thật (lô đăng nhập đọc mã phiên vừa bị thay — ADR-0075 điều 6).
+  const exec1 = (s) => {
+    if (isRead(s.sql)) return { results: sqlite.prepare(s.sql).all(...s.args).map((r) => ({ ...r })), meta: { changes: 0 } };
+    if (/\bRETURNING\b/i.test(s.sql)) { const rows = sqlite.prepare(s.sql).all(...s.args).map((r) => ({ ...r })); return { results: rows, meta: { changes: rows.length } }; }
+    return { results: [], meta: { changes: Number(sqlite.prepare(s.sql).run(...s.args).changes) } };
+  };
   return {
     prepare: (sql) => stmt(sql),
     batch: async (stmts) => {
@@ -80,10 +86,19 @@ export const MOC_GIA_POLICY_ID = "moc-gia-khung-thu";
  *   định (`policyId` = MOC_GIA_POLICY_ID). Bài kiểm luật mốc / đặt gấp KHÔNG được dùng (bài canh ở src/modules/orders/dat-gap.test.ts).
  * - `khongTiemMoc: true` — bỏ hàm tiêm mốc (TC-26: route phải trả 503, không đoán con số).
  * - `demMoc: true` — mốc giả 360 phút có ĐẾM số lần gọi (`w.soLanGoiMoc()`) — TC-26 "đúng một lần mỗi request".
+ * - `ghiDe: { dongBangTin }` — CHỈ để GHI LẠI lời gọi `dongBangTin` (ADR-0075 điều 6). Danh sách khoá được phép đóng (`GHI_DE_DUOC_PHEP`): khoá khác (vd
+ *   `mocToiThieu` — lách hàng rào N-9) → ném lỗi; dùng chung với tuỳ chọn khác → ném lỗi (không lặng lẽ bỏ). Không nới luật cho môi trường thử.
  * - `khongTiemNhan: true` — bỏ hàm tiêm nhãn người bấm (ruling R-P20: route để trống nhãn, không đoán). `demNhan: true` — nhãn GIẢ có ĐẾM số lần gọi
  *   (`w.soLanGoiNhan()`, mỗi lần một mảng id) — "một lần mỗi request cho cả danh sách".
  */
+const GHI_DE_DUOC_PHEP = ["dongBangTin"];
 export function world(tuyChon = {}) {
+  if (tuyChon.ghiDe !== undefined) {
+    const la = Object.keys(tuyChon.ghiDe).filter((k) => !GHI_DE_DUOC_PHEP.includes(k));
+    if (la.length) throw new Error(`world({ ghiDe }): chỉ được ghi đè ${GHI_DE_DUOC_PHEP.join(", ")} — không được ghi đè ${la.join(", ")} (không nới luật cho khung thử)`);
+    const khac = Object.keys(tuyChon).filter((k) => k !== "ghiDe" && tuyChon[k] !== undefined);
+    if (khac.length) throw new Error(`world({ ghiDe }): không dùng chung với tuỳ chọn khác (${khac.join(", ")})`);
+  }
   // ADR-0082: bộ nhớ isolate của dấu vân nghĩa sống theo MÔ-ĐUN (ứng dụng nạp một lần mỗi tiến trình thử); mỗi world là một D1 mới ⇒ xoá, kẻo bài sau thấy véc-tơ của bài trước.
   app.xoaBoNhoVanNghia();
   const sqlite = openDb();
@@ -99,6 +114,8 @@ export function world(tuyChon = {}) {
     ungDung = app.taoAppChoKhungThu({ mocToiThieu: async () => (soLanGoiMoc++, { phut: 360, policyId: MOC_GIA_POLICY_ID, canhBaoPhut: 120 }) });
   } else if (tuyChon.khongTiemNhan) {
     ungDung = app.taoAppChoKhungThu({ nhanNhanVien: undefined });
+  } else if (tuyChon.ghiDe) {
+    ungDung = app.taoAppChoKhungThu(tuyChon.ghiDe); // bài cần NHÌN lời gọi hàm tiêm (vd dongBangTin lúc đăng nhập — ADR-0075 điều 6)
   } else if (tuyChon.demNhan) {
     ungDung = app.taoAppChoKhungThu({ nhanNhanVien: async (_env, ids) => (goiNhan.push([...ids]), new Map(ids.map((id) => [id, `Nhãn ${id.slice(0, 4)}`]))) });
   }
@@ -106,16 +123,36 @@ export function world(tuyChon = {}) {
   // Danh mục đã đồng bộ gần đây để POST /api/orders không đi gọi Google Sheet.
   sqlite.exec(`UPDATE catalog_sync SET last_attempt_at = '${new Date().toISOString()}', last_success_at = '${new Date().toISOString()}' WHERE id = 'default'`);
   const exec = { waitUntil: () => {}, passThroughOnException: () => {} };
+  /**
+   * Token phiên của `as` (sổ phiên ADR-0075): dùng lại phiên CÒN SỐNG mới nhất của tài khoản (kể cả phiên do route đăng nhập vừa cấp); không có thì
+   * chèn một dòng phiên như lô đăng nhập thật (dọn phiên hết hạn trước; `single` theo ĐÚNG luật miễn một máy — không nới luật cho khung thử).
+   */
+  async function token(as) {
+    const now = Date.now();
+    const at = new Date(now).toISOString();
+    let id = sqlite.prepare("SELECT id FROM aut_session WHERE staff_id = ? AND ended_at IS NULL AND expires_at > ? ORDER BY created_at DESC LIMIT 1").get(as, at)?.id;
+    if (!id) {
+      const prof = await app.getActiveStaff(env.DB, as);
+      const single = prof && !app.isSingleDevice(prof.permissions, await app.accountRoleCodesOf(env.DB, as)) ? 0 : 1;
+      id = crypto.randomUUID();
+      sqlite.prepare("UPDATE aut_session SET ended_at = ?2, end_reason = 'het_han', updated_at = ?2 WHERE staff_id = ?1 AND ended_at IS NULL AND expires_at <= ?2").run(as, at);
+      sqlite.prepare(
+        "INSERT INTO aut_session (id, staff_id, method, single, trusted_device_id, device_label, user_agent, ip, created_at, last_seen_at, expires_at, ended_at, end_reason, ended_by, created_by, updated_at, updated_by) " +
+          "VALUES (?1, ?2, 'PIN', ?3, NULL, 'Khung thử', NULL, NULL, ?4, ?4, ?5, NULL, NULL, NULL, ?2, ?4, NULL)",
+      ).run(id, as, single, at, new Date(now + 7 * 24 * 3600 * 1000).toISOString());
+    }
+    return app.createSessionToken(SECRET, as, id, now);
+  }
   async function call(method, path, { as, body, headers = {} } = {}) {
     const h = { ...headers };
-    if (as) h.cookie = `td_session=${await app.createSessionToken(SECRET, as)}`;
+    if (as) h.cookie = `td_session=${await token(as)}`;
     if (body !== undefined && h["content-type"] === undefined) h["content-type"] = "application/json";
     if (method !== "GET" && h.origin === undefined) h.origin = "https://booking.tourdao.vn";
     if (h.origin === null) delete h.origin;
     const res = await ungDung.fetch(new Request(`https://booking.tourdao.vn${path}`, { method, headers: h, body: body === undefined ? undefined : JSON.stringify(body) }), env, exec);
     const text = await res.text();
     let json = null; try { json = JSON.parse(text); } catch {}
-    return { status: res.status, json, text };
+    return { status: res.status, json, text, headers: res.headers };
   }
-  return { sqlite, env, call, q: (sql, ...a) => sqlite.prepare(sql).all(...a), soLanGoiMoc: () => soLanGoiMoc, soLanGoiNhan: () => goiNhan.length, goiNhan: () => goiNhan };
+  return { sqlite, env, call, token, q: (sql, ...a) => sqlite.prepare(sql).all(...a), soLanGoiMoc: () => soLanGoiMoc, soLanGoiNhan: () => goiNhan.length, goiNhan: () => goiNhan };
 }

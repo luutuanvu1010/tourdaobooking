@@ -19,13 +19,15 @@ export const bangtinModule: AppModule = {
     // (cùng mã + câu với cổng chống ghi chéo trang của router); trạm chưa có (khung thử không có binding) → 503. Rồi dựng MỚI yêu cầu gửi trạm chỉ
     // với ba header do máy chủ đặt — nhãn tính bằng can() ở máy chủ (NT-1), id người — KHÔNG chép header nào của trình duyệt (BT-2: header
     // `x-bang-tin-*` trình duyệt gửi lên bị bỏ). Trả NGUYÊN phản hồi của trạm (101 kèm đầu `webSocket`): bọc lại/dựng lại Response là mất kết nối.
-    route("GET", "/api/bang-tin", "staff", async ({ request, env, url, staff }) => {
+    // ADR-0075 điều 6a: thêm nhãn `phien:<mã phiên>` (từ ctx.sessionId của máy chủ) — máy bị đăng nhập máy khác thay chỉ đóng ĐÚNG kết nối của phiên đó.
+    route("GET", "/api/bang-tin", "staff", async ({ request, env, url, staff, sessionId }) => {
+      if (!sessionId) return error(401, "unauthenticated", "Chưa đăng nhập hoặc phiên đã hết hạn.");
       if (request.headers.get("upgrade")?.toLowerCase() !== "websocket") {
         return json({ error: { code: "upgrade_required", message: "Đường này chỉ dùng để mở kết nối nhận tin tức thì." } }, 426, { upgrade: "websocket" });
       }
       if (!kiemOrigin(request, url)) return error(403, "cross_origin", "Yêu cầu không đến từ trang của hệ thống.");
       if (!env.BANG_TIN) return error(503, "unavailable", "Bảng tin tạm thời chưa dùng được.");
-      const nhan = nhanKetNoi(staff);
+      const nhan = [...nhanKetNoi(staff), `phien:${sessionId}`];
       const yeuCau = new Request("https://bang-tin/ket-noi", {
         headers: { upgrade: "websocket", "x-bang-tin-nhan": JSON.stringify(nhan), "x-bang-tin-nguoi": staff.id },
       });
@@ -43,9 +45,13 @@ export async function phatDon(env: Env, suKien: SuKienDon, nhan: string[]): Prom
   await env.BANG_TIN.getByName(TEN_TRAM).phat(suKien, nhan);
 }
 
-/** Đóng (mã 4003) các kết nối của một tài khoản (`{ staffId }`) hoặc MỌI kết nối (`"tat-ca"`, bật bảo trì) — KN-2. Không có trạm → không làm gì. */
-export async function dongCua(env: Env, muc: { staffId: string } | "tat-ca"): Promise<void> {
+/**
+ * Đóng (mã 4003) các kết nối của một tài khoản (`{ staffId }`), của ĐÚNG các phiên bị thay (`{ sessionIds }`, ADR-0075 điều 6a — không đụng kết nối của
+ * máy mới) hoặc MỌI kết nối (`"tat-ca"`, bật bảo trì) — KN-2. Không có trạm, hoặc danh sách phiên rỗng → không làm gì.
+ */
+export async function dongCua(env: Env, muc: { staffId: string } | { sessionIds: string[] } | "tat-ca"): Promise<void> {
   if (!env.BANG_TIN) return;
+  if (typeof muc === "object" && "sessionIds" in muc && muc.sessionIds.length === 0) return;
   await env.BANG_TIN.getByName(TEN_TRAM).dongCua(muc);
 }
 

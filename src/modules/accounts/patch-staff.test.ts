@@ -178,6 +178,17 @@ function addPasskey(sqlite: DatabaseSync, id: string, staffId: string): void {
 }
 const activeKeys = (sqlite: DatabaseSync, staffId: string): number =>
   Number(one(sqlite, `SELECT count(*) FROM aut_passkey WHERE staff_id = '${staffId}' AND valid_to_at IS NULL`));
+/** Một dòng phiên còn sống (ADR-0075) cho tài khoản — để kiểm ngưng tài khoản kết thúc / KHÔNG kết thúc phiên. */
+function addSession(sqlite: DatabaseSync, id: string, staffId: string): void {
+  sqlite
+    .prepare(
+      `INSERT INTO aut_session (id, staff_id, method, single, trusted_device_id, device_label, user_agent, ip, created_at, last_seen_at, expires_at, ended_at, end_reason, ended_by, created_by, updated_at, updated_by)
+       VALUES (?, ?, 'PIN', 1, NULL, 'iPhone · Safari', NULL, NULL, '2026-09-19T06:00:00.000Z', '2026-09-19T06:00:00.000Z', '2099-01-01T00:00:00.000Z', NULL, NULL, NULL, ?, '2026-09-19T06:00:00.000Z', NULL)`,
+    )
+    .run(id, staffId, staffId);
+}
+const sessionRow = (sqlite: DatabaseSync, id: string) =>
+  sqlite.prepare("SELECT ended_at, end_reason, ended_by, updated_at, updated_by FROM aut_session WHERE id = ?").get(id) as Record<string, unknown>;
 const credentialsChangedAt = (sqlite: DatabaseSync, staffId: string): unknown => one(sqlite, `SELECT credentials_changed_at FROM staff WHERE id = '${staffId}'`);
 
 test("8b (a) ngưng tài khoản có 2 Face ID: gỡ cả 2, đẩy credentials_changed_at, ĐÚNG một dòng nhật ký passkey_removed", async () => {
@@ -185,7 +196,12 @@ test("8b (a) ngưng tài khoản có 2 Face ID: gỡ cả 2, đẩy credentials_
   addPasskey(sqlite, "pk-1", "s-adm");
   addPasskey(sqlite, "pk-2", "s-adm");
   addPasskey(sqlite, "pk-other", "s-two"); // khoá của người khác: không được đụng
+  addSession(sqlite, "ss-adm", "s-adm");
+  addSession(sqlite, "ss-two", "s-two");
   const changes = await run(sqlite, account("s-adm", "Nguyễn Tuyên Phong", "0845256256"), { active: false }, true);
+  // ADR-0075 điều 4: phiên của tài khoản bị ngưng kết thúc trong cùng lô; phiên của người khác còn nguyên
+  assert.deepEqual({ ...sessionRow(sqlite, "ss-adm") }, { ended_at: NOW, end_reason: "ngung", ended_by: "s-two", updated_at: NOW, updated_by: "s-two" });
+  assert.equal(sessionRow(sqlite, "ss-two").ended_at, null);
   assert.equal(changes, 1, "câu chốt thắng");
   assert.equal(one(sqlite, "SELECT active FROM staff WHERE id = 's-adm'"), 0);
   assert.equal(activeKeys(sqlite, "s-adm"), 0, "mọi Face ID của tài khoản bị ngưng phải bị gỡ");
@@ -205,11 +221,13 @@ test("8b (a) ngưng tài khoản có 2 Face ID: gỡ cả 2, đẩy credentials_
 
 test("8b (b) ngưng tài khoản KHÔNG có Face ID (kèm đổi tên): không nhật ký passkey_removed, không đẩy mốc, đổi tên + nhật ký cũ vẫn chạy", async () => {
   const sqlite = seed();
+  addSession(sqlite, "ss-adm", "s-adm");
   const changes = await run(sqlite, account("s-adm", "Nguyễn Tuyên Phong", "0845256256"), { fullName: "Nguyễn Đổi Tên", active: false }, true);
   assert.equal(changes, 1);
   assert.equal(one(sqlite, "SELECT active FROM staff WHERE id = 's-adm'"), 0);
   assert.equal(one(sqlite, "SELECT display_name FROM pty_party WHERE id = 'pty-s-adm'"), "Nguyễn Đổi Tên", "đổi tên vẫn chạy");
-  assert.equal(credentialsChangedAt(sqlite, "s-adm"), null, "không có khoá nào bị gỡ thì không thu hồi phiên");
+  assert.equal(credentialsChangedAt(sqlite, "s-adm"), null, "không có khoá nào bị gỡ thì không đẩy mốc");
+  assert.equal(sessionRow(sqlite, "ss-adm").end_reason, "ngung", "không có Face ID vẫn kết thúc phiên (ADR-0075 điều 4)");
   assert.deepEqual(auditActions(sqlite), ["staff_updated", "staff_suspended"]);
 });
 
@@ -218,8 +236,10 @@ test("8b (c) ngưng quản trị viên CUỐI (câu chốt thua): Face ID còn n
   sqlite.exec("UPDATE stf_permission SET valid_to_at = '2099-01-01T00:00:00.000Z' WHERE staff_id = 's-two'");
   addPasskey(sqlite, "pk-1", "s-adm");
   addPasskey(sqlite, "pk-2", "s-adm");
+  addSession(sqlite, "ss-adm", "s-adm");
   const changes = await run(sqlite, account("s-adm", "Nguyễn Tuyên Phong", "0845256256"), { fullName: "Nguyễn Đổi Tên", active: false }, true);
   assert.equal(changes, 0, "câu chốt phải thua");
+  assert.equal(sessionRow(sqlite, "ss-adm").ended_at, null, "không ngưng được thì KHÔNG được kết thúc phiên (session_end_all_if_suspended)");
   assert.equal(one(sqlite, "SELECT active FROM staff WHERE id = 's-adm'"), 1);
   assert.equal(activeKeys(sqlite, "s-adm"), 2, "không ngưng được thì KHÔNG được gỡ Face ID");
   assert.equal(credentialsChangedAt(sqlite, "s-adm"), null);

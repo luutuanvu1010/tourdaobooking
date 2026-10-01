@@ -16,3 +16,9 @@ export function b64uSangBytes(s: string): Uint8Array {
   const bin = atob(b64);
   return Uint8Array.from(bin, (c) => c.charCodeAt(0));
 }
+
+/**
+ * Cờ sessionStorage "máy này đã gắn đăng ký thông báo với phiên đăng nhập hiện tại" (ADR-0075 điều 6b): web/shell.ts gửi lại địa chỉ nhận MỘT lần sau đăng nhập
+ * (để đăng ký mang mã phiên mới, không bị lần đăng nhập sau coi là của máy cũ); trang /login xoá cờ mỗi lần mở — đăng nhập xong là gắn lại.
+ */
+export const KHOA_GAN_PHIEN_THONG_BAO = "td_push_gan_phien";

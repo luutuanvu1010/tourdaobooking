@@ -12,8 +12,8 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // ADR-0047 Phần B (giao diện Đưa đón + Hành khách theo bản vẽ Claude Design của chủ 1/10) + màn mẫu chặng ADR-0054/0076 + cảnh báo sớm (chủ "2 — Có").
-    // Không migration. Số "1.58" = main 1.57 + 1 (đánh lại lúc gộp main 1.57 — ADR-0083, 2026-10-01; trước ghi 1.57).
-    version: "1.58",
+    // Không migration. Số "1.59" = main 1.58 + 1 (đánh lại lần hai lúc gộp main 1.58 — xác thực hai lớp / phiên một máy, 2026-10-01; trước ghi 1.57, 1.58).
+    version: "1.59",
     date: "2026-10-01",
     items: [
       { kind: "moi", text: "Form đơn có khối \"Đưa đón\": chiều đi, chiều về, ngày giờ đón, nơi đón, nơi trả, số hiệu chuyến bay, số người chiều về." },
@@ -22,6 +22,18 @@ export const CHANGELOG: readonly ReleaseNote[] = [
       { kind: "moi", text: "Chi tiết đơn có \"Sửa đưa đón\" và \"Sửa danh sách\" cho đơn đã xác nhận." },
       { kind: "moi", text: "Danh mục: Quản trị cài mỗi dịch vụ đưa đón mấy chiều, giờ về và nơi trả gợi ý." },
       { kind: "moi", text: "Nhắc sớm khi xác nhận đơn và khi xếp xe nếu còn thiếu nơi trả hoặc tên khách; vẫn làm tiếp được." },
+    ],
+  },
+  {
+    // ADR-0075 Phần A (sổ phiên đăng nhập, mỗi tài khoản một máy). Có migration 0065. Cookie phiên đổi định dạng ⇒ mọi người đăng nhập lại một lần.
+    // Số "1.58" = main 1.57 + 1 (đánh lại lúc gộp main 1.57, 2026-10-01; thi công ghi 1.54, migration thi công ghi 0061).
+    version: "1.58",
+    date: "2026-10-01",
+    items: [
+      { kind: "doi", text: "Mỗi tài khoản chỉ đăng nhập trên một máy (trừ IT và Toàn quyền). Đăng nhập máy mới thì máy cũ tự đăng xuất, kèm lời báo lúc nào." },
+      { kind: "doi", text: "Sau bản này mọi người cần đăng nhập lại một lần." },
+      { kind: "moi", text: "Trang Tôi có mục \"Phiên đăng nhập của tôi\": xem mình đã đăng nhập trên máy nào, lúc nào." },
+      { kind: "moi", text: "IT và Toàn quyền có trang \"Phiên đăng nhập\": xem ai đang đăng nhập trên máy nào, gỡ phiên, hoặc gỡ phiên kèm đặt lại PIN." },
     ],
   },
   {

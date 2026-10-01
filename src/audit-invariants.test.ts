@@ -529,6 +529,57 @@ test("R-AUT-1: Face ID còn hiệu lực của tài khoản ĐANG hoạt động
 });
 
 // ---------------------------------------------------------------------------------------------------------------------
+// R-AUT-SESSION-1/2 (ADR-0075): lưới dữ liệu của sổ phiên. SESSION-1 không thể đỏ khi còn chỉ mục `aut_session_one_live` ⇒ ca đỏ phải bỏ chỉ mục trước.
+// ---------------------------------------------------------------------------------------------------------------------
+const XA = "2099-01-01T00:00:00.000Z"; // hạn còn xa (phiên còn hạn)
+function addSession(db: DatabaseSync, o: { id: string; staffId: string; single?: 0 | 1; expires?: string; ended?: boolean }): void {
+  db.prepare(
+    `INSERT INTO aut_session (id, staff_id, method, single, device_label, created_at, last_seen_at, expires_at, ended_at, end_reason, updated_at)
+     VALUES (?, ?, 'PIN', ?, 'Máy thử', ?, ?, ?, ?, ?, ?)`,
+  ).run(o.id, o.staffId, o.single ?? 1, T1, T1, o.expires ?? XA, o.ended ? T2 : null, o.ended ? "dang_xuat" : null, T1);
+}
+
+test("R-AUT-SESSION-1/2: đúng một kiểm mỗi mã, mức fail", () => {
+  assert.equal(one("R-AUT-SESSION-1").level, "fail");
+  assert.equal(one("R-AUT-SESSION-2").level, "fail");
+});
+
+test("R-AUT-SESSION-1: hai phiên sống single = 1 cùng tài khoản (chỉ mục đã mất) là MỘT vi phạm", () => {
+  const db = build();
+  db.exec("DROP INDEX aut_session_one_live");
+  addSession(db, { id: "ss-1", staffId: "s-an" });
+  addSession(db, { id: "ss-2", staffId: "s-an" });
+  addSession(db, { id: "ss-3", staffId: "s-an" });
+  assert.equal(violations(db, one("R-AUT-SESSION-1")), 1, "đếm theo tài khoản, không theo dòng");
+});
+
+test("R-AUT-SESSION-1: phiên đã kết thúc, phiên quá hạn, phiên miễn (single = 0) không tính", () => {
+  const db = build();
+  db.exec("DROP INDEX aut_session_one_live");
+  addSession(db, { id: "ss-1", staffId: "s-an" });
+  addSession(db, { id: "ss-2", staffId: "s-an", ended: true });
+  addSession(db, { id: "ss-3", staffId: "s-an", expires: T2 });
+  addSession(db, { id: "ss-4", staffId: "s-admin", single: 0 });
+  addSession(db, { id: "ss-5", staffId: "s-admin", single: 0 });
+  assert.equal(violations(db, one("R-AUT-SESSION-1")), 0);
+});
+
+test("R-AUT-SESSION-2: phiên chưa kết thúc của tài khoản đã ngưng là vi phạm — kể cả phiên đã quá hạn", () => {
+  const db = build();
+  addSession(db, { id: "ss-binh", staffId: "s-binh" }); // s-binh: active = 0 trong build()
+  assert.equal(violations(db, one("R-AUT-SESSION-2")), 1);
+  db.exec("UPDATE aut_session SET expires_at = '2026-09-21T02:00:00.000Z' WHERE id = 'ss-binh'");
+  assert.equal(violations(db, one("R-AUT-SESSION-2")), 1, "lô ngưng kết thúc mọi dòng chưa kết thúc, không lọc hạn");
+});
+
+test("R-AUT-SESSION-2: phiên đã kết thúc của tài khoản ngưng, phiên sống của tài khoản đang hoạt động không tính", () => {
+  const db = build();
+  addSession(db, { id: "ss-binh", staffId: "s-binh", ended: true });
+  addSession(db, { id: "ss-an", staffId: "s-an" });
+  assert.equal(violations(db, one("R-AUT-SESSION-2")), 0);
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
 // R-ADR13-1 (ADR-0013 điều 5, chủ dự án chọn B 2026-09-24): tài khoản đang hoạt động ⇒ hồ sơ của nó đang hoạt động. Chiều ngược lại hợp lệ ("tạm khoá").
 // ---------------------------------------------------------------------------------------------------------------------
 test("R-ADR13-1: tài khoản đang hoạt động mà hồ sơ bị ngưng là vi phạm (fail); tài khoản ngưng + hồ sơ hoạt động thì không", () => {

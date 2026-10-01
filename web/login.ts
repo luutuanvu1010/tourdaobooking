@@ -5,9 +5,11 @@ import { showError } from "./shell";
 import { APP_RELEASE_DATE, APP_VERSION } from "../src/shared/app-info";
 import { chanTrangCongTy } from "../src/shared/cong-ty-chu";
 import { MAINTENANCE_CODE } from "../src/shared/maintenance";
+import { SESSION_ENDED_KEY, parseSessionEnded, sessionEndedMessage } from "../src/shared/session-ended";
 import { endsAtFrom, renderMaintenanceMessage } from "./maintenance-screen";
 import { icon } from "./icons";
 import { xoaKhungNho } from "./khung-nho";
+import { KHOA_GAN_PHIEN_THONG_BAO } from "./push-ui";
 import { datCoTuMo } from "./tro-ly-co";
 import { enableFlow, getAssertion, passkeyErrorMessage, passkeySupported, platformAuthenticatorAvailable } from "./passkey";
 
@@ -110,6 +112,32 @@ pinToggle?.addEventListener("click", () => {
   pinToggle.setAttribute("aria-pressed", String(show));
   pinToggle.setAttribute("aria-label", show ? "Ẩn mã PIN" : "Hiện mã PIN");
 });
+
+// ADR-0075 điều 6b: mở trang đăng nhập = phiên sắp đổi → xoá cờ để trang đầu tiên sau đăng nhập gắn lại đăng ký thông báo của máy này với phiên mới
+// (một chỗ duy nhất, không phải mỗi nhánh thành công — PIN, Face ID, bật Face ID…). sessionStorage bị chặn → bỏ qua.
+try {
+  sessionStorage.removeItem(KHOA_GAN_PHIEN_THONG_BAO);
+} catch {
+  // bỏ qua
+}
+
+// ---- Lời báo "vì sao vừa bị đăng xuất" (ADR-0075) ----
+// web/api.ts lưu lý do vào sessionStorage trước khi đưa về đây (chỉ khi máy chủ nhận ra phiên cũ). Đọc MỘT lần rồi xoá để tải lại trang không báo lại. Mọi lỗi (sessionStorage bị chặn) bị nuốt.
+(function hienLyDoDangXuat(): void {
+  try {
+    const raw = sessionStorage.getItem(SESSION_ENDED_KEY);
+    if (raw === null) return;
+    sessionStorage.removeItem(SESSION_ENDED_KEY);
+    const notice = parseSessionEnded(JSON.parse(raw));
+    const box = document.getElementById("session-ended-banner");
+    const text = document.getElementById("session-ended-text");
+    if (!notice || !box || !text) return;
+    text.textContent = sessionEndedMessage(notice);
+    box.hidden = false;
+  } catch {
+    // bỏ qua
+  }
+})();
 
 // ---- Banner chế độ bảo trì ----
 // Chỉ HIỂN THỊ (máy chủ mới là nơi chặn): thông điệp + đồng hồ đếm ngược sống, dùng chung với lớp phủ ở web/maintenance-screen.ts. Không che form vì chủ dự án vẫn phải đăng nhập được.
