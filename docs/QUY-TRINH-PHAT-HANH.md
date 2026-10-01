@@ -98,6 +98,7 @@ Lệnh chạy vài phút, vì nó tự chạy toàn bộ kiểm thử, kể cả
 | # | Lệnh làm gì | Vì sao |
 |---|---|---|
 | 1 | Kiểm `main` trên máy trùng với GitHub | Chỉ phát hành mã đã đẩy |
+| 1b | **Kiểm đăng nhập Cloudflare** và làm mới vé đăng nhập | Phòng lỗi 7403 (xem dưới) |
 | 2 | Đọc xem hệ thống thật còn **thay đổi dữ liệu** nào chưa áp | Phát hành mã cần dữ liệu mới khi dữ liệu chưa có là hỏng app |
 | 2b | **So số phiên bản**: bản trên máy phải **mới hơn** bản đang chạy | Bắt lỗi quên ghi nhật ký |
 | 3 | Chạy test, kiểm lỗi, dựng giao diện | Không phát hành mã hỏng |
@@ -118,6 +119,14 @@ Lệnh chạy vài phút, vì nó tự chạy toàn bộ kiểm thử, kể cả
 | "Triển khai Worker lên production? (c/k)" | Gõ `c`. (Nếu vừa áp thay đổi dữ liệu thì **phải** gõ `c` ngay, vì mã cũ không chạy đúng trên dữ liệu mới.) |
 
 **Nếu lệnh dừng giữa chừng** ở bước 1–3b: chưa có gì bị đổi trên hệ thống thật. Chép thông báo gửi AI. Hay gặp nhất: một test đo tốc độ báo đỏ khi máy đang bận. Khi đó đóng bớt ứng dụng nặng rồi chạy lại `npm run trien-khai`.
+
+**Nếu gặp lỗi Cloudflare 7403** ("The given account is not valid or is not authorized to access this service"), đã gặp 26/9, 29/9, 1/10:
+- **Nguyên nhân rất có thể:** vé đăng nhập Cloudflare của máy chỉ sống 1 giờ. Lời gọi đầu tiên sau khi vé hết hạn bị từ chối; chạy lại thì qua. Tài khoản và quyền vẫn đúng.
+- **Phòng ngừa, lệnh tự làm từ 1/10:** kiểm đăng nhập trước (bước 1b). Nếu vẫn gặp 7403 ở bước đọc thì tự chờ 5 giây và thử lại **một lần**. Các bước ghi (áp dữ liệu, phát hành) không bao giờ tự thử lại.
+- **Nếu lệnh vẫn dừng vì 7403:** chưa có gì bị đổi trên hệ thống thật. Làm lần lượt:
+  1. Chạy lại `npm run trien-khai`.
+  2. Vẫn lỗi thì chạy `npx wrangler logout`, rồi `npx wrangler login`, chọn đúng tài khoản **Lưu Tuấn Vũ**, rồi chạy lại.
+  3. Vẫn lỗi thì chép thông báo gửi AI.
 
 **Nếu không thấy chữ nào hiện ra** sau câu hỏi kiểm thử đầu-cuối (đã từng xảy ra): cứ chờ lệnh chạy xong. Sau đó AI sẽ kiểm lại bằng lệnh chỉ đọc.
 

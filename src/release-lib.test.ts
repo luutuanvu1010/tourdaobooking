@@ -50,7 +50,7 @@ const key = (cmd: string, args: string[], opts?: RunOpts) =>
   `${opts?.env ? Object.entries(opts.env).map(([k, v]) => `${k}=${v} `).join("") : ""}${cmd} ${args.join(" ")}`.trim();
 
 /** Bộ chạy lệnh giả: kịch bản = bảng "chuỗi lệnh → kết quả"; lệnh lạ → ném lỗi (không cho lọt lệnh chưa lường). */
-function harness(script: Record<string, RunResult>, answers: string[] = [], isTTY = true) {
+function harness(script: Record<string, RunResult | RunResult[]>, answers: string[] = [], isTTY = true) {
   const calls: string[] = [];
   const lines: string[] = [];
   const questions: string[] = [];
@@ -65,7 +65,9 @@ function harness(script: Record<string, RunResult>, answers: string[] = [], isTT
     run: (cmd, args, opts) => {
       const k = key(cmd, args, opts);
       calls.push(k);
-      const r = script[k];
+      const v = script[k];
+      // Mảng = chuỗi kết quả cho các lần gọi liên tiếp (ca thử lại); phần tử cuối dùng cho mọi lần sau.
+      const r = Array.isArray(v) ? (v.length > 1 ? v.shift() : v[0]) : v;
       if (!r) throw new Error(`lệnh ngoài kịch bản: ${k}`);
       return r;
     },
@@ -252,7 +254,11 @@ test("day-len: push lỗi → thoát khác 0, báo rõ", async () => {
 // ─────────────────────────── trien-khai ───────────────────────────
 
 const HEAD = "c".repeat(40);
+const WHOAMI = "CI=1 npx wrangler whoami";
+const WHOAMI_OK = out("👋 You are logged in with an OAuth Token, associated with the email x@y.z.\n");
 const LIST = "CI=1 npx wrangler d1 migrations list tourdao-sales-db --remote";
+/** Lỗi THẬT chủ dự án gặp 2026-10-01 (cũng 26/9, 29/9): lần gọi đầu bị từ chối, chạy lại là qua. */
+const LOI_7403: RunResult = { code: 1, stdout: "", stderr: "✘ [ERROR] A request to the Cloudflare API (/accounts/381557e4e08091d31a3235baf2513df6/d1/database/bcd4c0ac/query) failed.\n\n  The given account is not valid or is not authorized to access this service [code: 7403]\n" };
 const TT = "CI=1 npx wrangler d1 time-travel info tourdao-sales-db --json";
 const APPLY = "CI=1 npx wrangler d1 migrations apply tourdao-sales-db --remote";
 const DEPLOY = "CI=1 npx wrangler deploy";
@@ -260,7 +266,7 @@ const AUDIT = "node scripts/audit-invariants.mjs --db remote";
 const E2E = "npm run test:e2e";
 const GATE_PRE = "node scripts/kiem-phien-ban.mjs";
 const GATE_POST = "node scripts/kiem-phien-ban.mjs --sau-deploy";
-function tkScript(over: Record<string, RunResult> = {}): Record<string, RunResult> {
+function tkScript(over: Record<string, RunResult | RunResult[]> = {}): Record<string, RunResult | RunResult[]> {
   return {
     "git rev-parse --abbrev-ref HEAD": out("main\n"),
     "git status --porcelain": out(""),
@@ -268,6 +274,7 @@ function tkScript(over: Record<string, RunResult> = {}): Record<string, RunResul
     "git rev-parse main": out(`${HEAD}\n`),
     "git rev-parse origin/main": out(`${HEAD}\n`),
     "git log -1 --oneline --no-decorate main": out("ccccccc Thêm Face ID\n"),
+    [WHOAMI]: WHOAMI_OK,
     [LIST]: out(LIST_0023),
     [GATE_PRE]: out("ĐẠT: bản ở máy 1.4 mới hơn production 1.3.\n"),
     "npm test": OK,
@@ -282,7 +289,7 @@ function tkScript(over: Record<string, RunResult> = {}): Record<string, RunResul
     ...over,
   };
 }
-const TK_PREFIX = ["git rev-parse --abbrev-ref HEAD", "git status --porcelain", "git fetch origin", "git rev-parse main", "git rev-parse origin/main", "git log -1 --oneline --no-decorate main", LIST, GATE_PRE, "npm test", "npm run typecheck", "npm run build:web", E2E];
+const TK_PREFIX = ["git rev-parse --abbrev-ref HEAD", "git status --porcelain", "git fetch origin", "git rev-parse main", "git rev-parse origin/main", "git log -1 --oneline --no-decorate main", WHOAMI, LIST, GATE_PRE, "npm test", "npm run typecheck", "npm run build:web", E2E];
 const NOW = () => new Date("2026-09-23T03:04:05.000Z");
 
 test("trien-khai (tiêu chí 4): còn migration + trả lời c, c → áp migration → deploy → kiểm dữ liệu, đúng thứ tự", async () => {
@@ -587,4 +594,46 @@ test("trien-khai (cổng sau): sleep NÉM LỖI → vẫn thử lại, vẫn in 
   assert.ok(t.includes("- Cổng phiên bản sau deploy: KHÔNG ĐẠT"), t);
   assert.match(t, /- Phiên bản: 1\.4/);
   assert.match(t, /- Kiểm dữ liệu \(audit-invariants --db remote\): ĐẠT/);
+});
+
+// ─────────── phòng ngừa lỗi Cloudflare 7403 (chủ dự án 2026-10-01: "lỗi này tôi bị nhiều lần rồi") ───────────
+
+test("trien-khai (7403): kiểm đăng nhập Cloudflare (wrangler whoami — làm mới vé đăng nhập) TRƯỚC lời gọi D1 đầu tiên", async () => {
+  const h = harness(tkScript(), ["c", "c"]);
+  assert.equal(await lib.trienKhai({ ...h.deps, now: NOW, sleep: async () => {} }), 0);
+  assert.ok(h.calls.indexOf(WHOAMI) >= 0 && h.calls.indexOf(WHOAMI) < h.calls.indexOf(LIST), h.calls.join(" | "));
+});
+
+test("trien-khai (7403): chưa đăng nhập (whoami lỗi hoặc không thấy 'You are logged in') → DỪNG trước D1, chỉ cách wrangler login", async () => {
+  for (const who of [FAIL, out("You are not authenticated. Please run `wrangler login`.\n")]) {
+    const h = harness(tkScript({ [WHOAMI]: who }));
+    assert.notEqual(await lib.trienKhai({ ...h.deps, now: NOW, sleep: async () => {} }), 0);
+    assert.ok(!h.calls.includes(LIST), "không gọi D1 khi chưa đăng nhập");
+    assertNothingDangerous(h.calls);
+    assert.match(h.text(), /npx wrangler login/);
+  }
+});
+
+test("trien-khai (7403): cổng chỉ-đọc gặp 7403 MỘT lần → chờ rồi tự thử lại đúng một lần, đi tiếp bình thường", async () => {
+  const slept: number[] = [];
+  const h = harness(tkScript({ [LIST]: [LOI_7403, out(LIST_0023)] }), ["c", "c"]);
+  assert.equal(await lib.trienKhai({ ...h.deps, now: NOW, sleep: async (ms: number) => void slept.push(ms) }), 0);
+  assert.equal(h.calls.filter((c) => c === LIST).length, 2);
+  assert.equal(slept.length >= 1, true);
+  assert.match(h.text(), /7403/);
+});
+
+test("trien-khai (7403): gặp 7403 HAI lần → DỪNG, câu tiếng Việt chỉ cách xử lý; lỗi khác 7403 KHÔNG thử lại; không bước ghi nào chạy", async () => {
+  const h = harness(tkScript({ [LIST]: [LOI_7403, LOI_7403] }));
+  assert.notEqual(await lib.trienKhai({ ...h.deps, now: NOW, sleep: async () => {} }), 0);
+  assert.equal(h.calls.filter((c) => c === LIST).length, 2);
+  assertNothingDangerous(h.calls);
+  const t = h.text();
+  assert.match(t, /7403/);
+  assert.match(t, /npm run trien-khai/);
+  assert.match(t, /npx wrangler login/);
+
+  const h2 = harness(tkScript({ [LIST]: FAIL }));
+  assert.notEqual(await lib.trienKhai({ ...h2.deps, now: NOW, sleep: async () => {} }), 0);
+  assert.equal(h2.calls.filter((c) => c === LIST).length, 1, "lỗi không phải 7403 (mất mạng…) → không thử lại");
 });
