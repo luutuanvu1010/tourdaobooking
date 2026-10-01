@@ -1,7 +1,7 @@
 // ADR-0084 Đ2, Đ3, Đ5: luật thuần xưng hô của trợ lý Mai + dòng nối lời nhắc + thay {ten} trong câu chào + kiểm giá trị giới tính.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { CAU_CHAO_MAC_DINH, dongMai, gioiTinhHopLe, kiemGioiTinh, thayTen, xungHo } from "./xung-ho.ts";
+import { CAU_CHAO_MAC_DINH, DONG_DINH_DANG, dongMai, gioiTinhHopLe, kiemGioiTinh, thayTen, xungHo } from "./xung-ho.ts";
 
 test("Đ2: NAM → anh {tên} / em; NU → chị {tên} / em", () => {
   assert.deepEqual(xungHo("Vũ", "NAM"), { goi: "anh Vũ", xung: "em" });
@@ -62,4 +62,12 @@ test("Đ1: kiemGioiTinh — vắng = giữ nguyên; null/'' = xoá; NAM/NU nhậ
     assert.equal(r.ok, false, String(x));
     if (!r.ok) assert.equal(r.message, "Giới tính chỉ nhận Nam, Nữ hoặc để trống.");
   }
+});
+
+test("Dòng định dạng do máy chủ nối (yêu cầu chủ 2026-10-01): đúng văn bản, một dòng, thay mọi câu cấm dấu sao của lời nhắc tự lưu", () => {
+  assert.equal(
+    DONG_DINH_DANG,
+    "Định dạng: in đậm tên nút, mục menu, màn hình và đường điều hướng bằng cặp ** (ví dụ **Danh bạ › Hồ sơ mới**); ngoài cặp ** không dùng định dạng nào khác; dòng Nguồn không in đậm. Luật này thay mọi câu cấm dấu sao ở trên.",
+  );
+  assert.ok(!DONG_DINH_DANG.includes("\n"));
 });

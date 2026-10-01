@@ -12,8 +12,8 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // ADR-0047 Phần B (giao diện Đưa đón + Hành khách theo bản vẽ Claude Design của chủ 1/10) + màn mẫu chặng ADR-0054/0076 + cảnh báo sớm (chủ "2 — Có").
-    // Không migration. Số "1.61" = main 1.60 + 1 (đánh lại lần bốn lúc gộp main 1.60 — đổi tên Loại giấy tờ cá nhân, 2026-10-01; trước ghi 1.57–1.60).
-    version: "1.61",
+    // Không migration. Số "1.62" = main 1.61 + 1 (đánh lại lần năm lúc gộp main 1.61 — Mai in đậm, 2026-10-01; trước ghi 1.57–1.61).
+    version: "1.62",
     date: "2026-10-01",
     items: [
       { kind: "moi", text: "Form đơn có khối \"Đưa đón\": chiều đi, chiều về, ngày giờ đón, nơi đón, nơi trả, số hiệu chuyến bay, số người chiều về." },
@@ -22,6 +22,16 @@ export const CHANGELOG: readonly ReleaseNote[] = [
       { kind: "moi", text: "Chi tiết đơn có \"Sửa đưa đón\" và \"Sửa danh sách\" cho đơn đã xác nhận." },
       { kind: "moi", text: "Danh mục: Quản trị cài mỗi dịch vụ đưa đón mấy chiều, giờ về và nơi trả gợi ý." },
       { kind: "moi", text: "Nhắc sớm khi xác nhận đơn và khi xếp xe nếu còn thiếu nơi trả hoặc tên khách; vẫn làm tiếp được." },
+    ],
+  },
+  {
+    // Yêu cầu chủ 2026-10-01: Mai in đậm tên nút / đường điều hướng bằng cặp ** (luật 9 mới + dòng định dạng máy chủ nối); khung chat, ô thử, lịch sử hiện chữ đậm.
+    // Số "1.61" = main 1.60 (đổi tên Loại giấy tờ cá nhân) + 1 — đánh lại lúc gộp main b8032a45 (thi công ghi 1.60).
+    version: "1.61",
+    date: "2026-10-01",
+    items: [
+      { kind: "moi", text: "Mai in đậm đúng tên nút và đường đi trong app, ví dụ: bấm Lưu thông tin; vào Danh bạ › Hồ sơ mới, để bạn dễ nhìn từng bước." },
+      { kind: "doi", text: "Toàn quyền: bản lời nhắc tự lưu vẫn dùng được, máy chủ tự thêm một dòng cho phép Mai in đậm tên nút." },
     ],
   },
   {

@@ -3,7 +3,7 @@
 // của Toàn quyền ở trang riêng /tro-ly-cai-dat (ADR-0069).
 // ADR-0069: nút chỉ dựng khi `GET /api/tro-ly/khung` báo tài khoản được dùng (vai đang bật — máy chủ vẫn chặn lại); câu chào + câu hỏi mẫu theo lời dặn
 // của Toàn quyền. Tệp này nạp ở MỌI trang: KHÔNG import src/shared/tro-ly.ts / huong-dan.ts (kéo cả kho tri thức vào bundle) — máy chủ gửi chữ sẵn.
-// Không innerHTML: câu trả lời hiện bằng textContent (xuống dòng giữ bằng CSS). Đoạn hội thoại trên màn hình chỉ nằm trong bộ nhớ của trang (không lưu máy);
+// Không innerHTML: câu trả lời hiện bằng nút chữ / h("strong") qua chuInDam (cặp ** → in đậm; xuống dòng giữ bằng CSS). Đoạn hội thoại trên màn hình chỉ nằm trong bộ nhớ của trang (không lưu máy);
 // máy chủ lưu câu hỏi ĐÃ CHE + câu trả lời vào lịch sử chỉ Toàn quyền xem (ADR-0069 điều 5) — khung ghi rõ cho người dùng.
 // ADR-0073 Đ4: gửi kèm mã cuộc trò chuyện (KHÔNG gửi nội dung lượt trước; mã chỉ trong bộ nhớ trang, mở khung lúc chưa có tin ⇒ mã mới); "Cuộc trò chuyện mới" xoá đoạn trên màn hình và sinh mã mới.
 // Vị trí nút: góc phải dưới, trên thanh tab điện thoại; khi thanh nút dính đáy của trang (`.form-actions`, `.vc-bottom-bar`) đè vùng của nút thì nút nâng
@@ -12,6 +12,7 @@ import { ApiError, api, type Api, type Staff } from "./api";
 import { h, replaceChildren } from "./dom";
 import { icon } from "./icons";
 import { layCoTuMo } from "./tro-ly-co";
+import { chuInDam } from "./tro-ly-in-dam";
 import {
   LE, docViTri, doiCo, ghiViTri, hopTuViTri, keo, macDinh, taoMaCuoc, viTriTuHop, type Hop, type KhungNhin, type ViTri, type VungAnToan,
 } from "../src/shared/tro-ly-khung";
@@ -45,7 +46,7 @@ function dongTin(t: Tin): HTMLElement {
   return h(
     "li",
     { class: "tl-tin tl-tin-tro-ly" },
-    h("p", { class: "tl-chu" }, t.chu),
+    h("p", { class: "tl-chu" }, ...chuInDam(t.chu)),
     t.nguon.length ? h("p", { class: "tl-nguon" }, `Nguồn: ${t.nguon.join("; ")}`) : null,
   );
 }
