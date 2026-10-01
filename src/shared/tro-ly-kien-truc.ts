@@ -38,7 +38,7 @@ Tiền của đơn (thành tiền, tổng, còn lại) do máy chủ tự tính 
   },
   {
     tieuDe: "Giấy tờ của người và của xe",
-    noiDung: `Giấy tờ (căn cước, giấy phép lái xe, khám sức khoẻ, đăng ký xe, kiểm định, bảo hiểm…) được ghi trong hồ sơ người ở Danh bạ hoặc ở chi tiết xe. Số giấy tờ luôn bị che; chỉ Quản trị hoặc Toàn quyền bấm Xem đủ số, số hiện trong chốc lát rồi tự che, và mỗi lần xem đều được ghi lại. Gia hạn là thêm một dòng mới, bản cũ giữ làm lịch sử; ghi sai thì dùng Sửa sai kèm lý do. Mỗi người xem giấy tờ của chính mình ở trang Tôi, mục Giấy tờ của tôi. Danh sách Sắp hết hạn gom giấy tờ sắp hết hoặc đã hết.`,
+    noiDung: `Giấy tờ (căn cước, giấy phép lái xe, khám sức khoẻ, đăng ký xe, kiểm định, bảo hiểm…) được ghi trong hồ sơ người ở Danh bạ hoặc ở chi tiết xe. Số giấy tờ luôn bị che; chỉ người phụ trách hệ thống bấm Xem đủ số, số hiện trong chốc lát rồi tự che, và mỗi lần xem đều được ghi lại. Quản trị chỉ thấy số đã che, vẫn ghi và sửa giấy tờ. Gia hạn là thêm một dòng mới, bản cũ giữ làm lịch sử; ghi sai thì dùng Sửa sai kèm lý do. Mỗi người xem giấy tờ của chính mình ở trang Tôi, mục Giấy tờ của tôi. Danh sách Sắp hết hạn gom giấy tờ sắp hết hoặc đã hết.`,
   },
   {
     tieuDe: "Dữ liệu không bị xoá, chỉ ngưng hoặc đóng",

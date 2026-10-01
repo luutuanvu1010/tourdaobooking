@@ -156,9 +156,10 @@ export const MATRIX = {
   // ghi giấy tờ của người (thêm, gia hạn, sửa sai) + xem danh sách giấy tờ (số che) của người khác — Quản trị + Toàn quyền; Quản trị còn theo luật cấp bậc
   // khi hồ sơ gắn tài khoản (Ruling R8). Route: GET/POST /api/parties/:id/documents…, GET /api/parties/documents/meta.
   "party.document.write": row("none", "none", "any", "none", "none", "any", "none", "none", "none", "none"),
-  // "xem đủ số" giấy tờ của người — Quản trị + Toàn quyền (+ cấp bậc, Ruling R8); mỗi lần xem một dòng nhật ký KHÔNG kèm số, ghi TRƯỚC khi trả số.
-  // Route DUY NHẤT trả số đầy đủ: POST /api/parties/:id/documents/:did/reveal.
-  "party.document.reveal": row("none", "none", "any", "none", "none", "any", "none", "none", "none", "none"),
+  // "xem đủ số" giấy tờ của người — CHỈ Toàn quyền (ADR-0083 điều 2 sửa ADR-0040 D2: Quản trị chỉ thấy số đã che, vẫn ghi/sửa giấy tờ qua
+  // party.document.write); mỗi lần xem một dòng nhật ký KHÔNG kèm số, ghi TRƯỚC khi trả số. Route DUY NHẤT trả số đầy đủ: POST /api/parties/:id/documents/:did/reveal
+  // (route còn giữ luật cấp bậc R8 — lưới phòng thủ, Toàn quyền quản lý mọi tài khoản).
+  "party.document.reveal": row("none", "none", "none", "none", "none", "any", "none", "none", "none", "none"),
   // ADR-0040 D1: quản lý xe, giấy tờ xe, xem danh sách giấy tờ sắp hết hạn (xe + tài xế, không số) — Quản trị + Toàn quyền (việc kinh doanh, ADR-0038
   // điều 6). Route: /api/van-chuyen/* (module van-chuyen, cổng office). Danh mục loại giấy tờ xe: admin.manage; ngưỡng sắp hết hạn: settings.ops.
   "vehicle.manage": row("none", "none", "any", "none", "none", "any", "none", "none", "none", "none"),

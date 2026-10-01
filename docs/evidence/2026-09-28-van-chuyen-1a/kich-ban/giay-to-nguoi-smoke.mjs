@@ -1,7 +1,8 @@
 // Kịch bản Chrome — màn 04 Giấy tờ của một người (mục "Giấy tờ" trong hồ sơ ở Danh bạ, dưới "Người liên hệ, tài xế" — tên mục từ ADR-0048) — ADR-0040 D2;
 // docs/design/van-chuyen-1a/project/04 Giay to cua mot nguoi.dc.html.
 // 1) Quản trị mở hồ sơ tài xế thẳng theo id (/parties?id=…): mục "Giấy tờ" viền nhấn, bốn dòng xếp theo hạn, số CHE (••••0412), số đủ KHÔNG có trong DOM,
-//    "Xem đủ số" chỉ ở dòng có số, "Thêm giấy tờ", Gia hạn / Sửa sai.  2) "Xem đủ số" → hộp xác nhận (ghi nhật ký, tự che sau 10 giây) → số hiện đủ + đếm ngược +
+//    "Thêm giấy tờ", Gia hạn / Sửa sai, KHÔNG có "Xem đủ số" ở dòng nào (ADR-0083 điều 2: xem đủ số chỉ Toàn quyền).
+//    2) Toàn quyền (tài khoản SUPER của vc-lib): "Xem đủ số" chỉ ở dòng có số → hộp xác nhận (ghi nhật ký, tự che sau 10 giây) → số hiện đủ + đếm ngược +
 //    "Che lại"; nhật ký có MỘT dòng xem số, KHÔNG kèm số; "Che lại" → số đủ rời DOM.  3) Điện thoại: xem đủ số rồi CHỜ → tự che sau đúng thời gian token --t-reveal.
 //    Bước 2 và 3: số đủ KHÔNG nằm trong localStorage / sessionStorage, bộ nhớ đệm service worker không có phản hồi /api/, không có IndexedDB (lúc số hiện và sau khi che).
 // 4) Bán hàng (party.view nhưng không party.document.write): không có mục, không gọi /api/parties/:id/documents.
@@ -57,7 +58,7 @@ try {
     assert.deepEqual(k.idb, [], `${luc}: có cơ sở dữ liệu IndexedDB`);
   };
 
-  await dem.step("1", "04 máy tính (Quản trị, hồ sơ tài xế): mục “Giấy tờ” dưới “Người liên hệ, tài xế”, bốn dòng theo hạn, số che, số đủ không trong DOM, nút đúng" + axeNote(), async () => {
+  await dem.step("1", "04 máy tính (Quản trị, hồ sơ tài xế): mục “Giấy tờ” dưới “Người liên hệ, tài xế”, bốn dòng theo hạn, số che, số đủ không trong DOM, nút đúng — KHÔNG “Xem đủ số” (ADR-0083)" + axeNote(), async () => {
     const p = await open(ADMIN, hung, DESK);
     try {
       await p.waitFor("document.querySelectorAll('#giay-to .vc-docs-table .vc-dt-row').length === 4", "bốn giấy tờ", 10000);
@@ -71,10 +72,10 @@ try {
         ["Tập huấn nghiệp vụ vận tải", "Còn 154 ngày"],
         ["Căn cước công dân (CCCD)", "Còn hạn"],
       ]);
-      assert.equal(s.rows[1].no, "••••0412 Xem đủ số");
+      assert.equal(s.rows[1].no, "••••0412", "ADR-0083 điều 2: Quản trị chỉ thấy số che, không có lối “Xem đủ số”");
       assert.equal(s.rows[0].no, "—", "giấy không số");
-      assert.deepEqual(s.rows[0].buttons, ["Sửa sai", "Gia hạn"]);
-      assert.deepEqual(s.rows[1].buttons, ["Xem đủ số", "Sửa sai", "Gia hạn"]);
+      for (const r of s.rows) assert.deepEqual(r.buttons, ["Sửa sai", "Gia hạn"], `${r.title}: Quản trị vẫn ghi/sửa, không “Xem đủ số”`);
+      assert.equal(await p.ev("document.querySelectorAll('#giay-to [data-reveal-for]').length"), 0, "không nút “Xem đủ số” nào (kể cả ẩn)");
       assert.equal(s.add, true);
       for (const so of [SO.cccd, SO.gplx]) assert.ok(!s.html.includes(so), `số đủ ${so} không được có trong DOM`);
       await axe(p, "04 máy tính");
@@ -84,10 +85,14 @@ try {
     }
   });
 
-  await dem.step("2", "04 “Xem đủ số” (1040): hộp xác nhận → số đủ + “Tự che sau N giây · lần xem này đã ghi nhật ký” + “Che lại”; nhật ký 1 dòng KHÔNG số; Che lại → số rời DOM", async () => {
-    const p = await open(ADMIN, hung, DESK);
+  await dem.step("2", "04 “Xem đủ số” (Toàn quyền, 1040): nút chỉ ở dòng có số; hộp xác nhận → số đủ + “Tự che sau N giây · lần xem này đã ghi nhật ký” + “Che lại”; nhật ký 1 dòng KHÔNG số; Che lại → số rời DOM", async () => {
+    const p = await open(SUPER, hung, DESK);
     try {
       await p.waitFor("document.querySelectorAll('#giay-to .vc-docs-table .vc-dt-row').length === 4", "giấy tờ", 10000);
+      const s0 = await sec(p, "desk");
+      assert.equal(s0.rows[1].no, "••••0412 Xem đủ số");
+      assert.deepEqual(s0.rows[0].buttons, ["Sửa sai", "Gia hạn"], "giấy không số: không “Xem đủ số”");
+      assert.deepEqual(s0.rows[1].buttons, ["Xem đủ số", "Sửa sai", "Gia hạn"]);
       assert.ok(await p.ev(`(() => { const r = [...document.querySelectorAll('#giay-to .vc-docs-table .vc-dt-row')].find((x) => x.querySelector('.vc-doc-title').innerText.includes('CCCD')); [...r.querySelectorAll('button')].find((b) => b.innerText.trim() === 'Xem đủ số').click(); return true; })()`));
       await p.waitFor("document.querySelector('.sheet-root.open')", "hộp xác nhận", 5000);
       assert.equal(await p.ev(txt(".sheet-title")), "Xem đủ số?");
@@ -115,8 +120,8 @@ try {
     }
   });
 
-  await dem.step("3", "04 điện thoại: xem đủ số GPLX rồi chờ → tự che đúng thời gian token --t-reveal, số rời DOM" + axeNote(), async () => {
-    const p = await open(ADMIN, hung, MOB);
+  await dem.step("3", "04 điện thoại (Toàn quyền): xem đủ số GPLX rồi chờ → tự che đúng thời gian token --t-reveal, số rời DOM" + axeNote(), async () => {
+    const p = await open(SUPER, hung, MOB);
     try {
       await p.waitFor("document.querySelectorAll('#giay-to .vc-docs-list .vc-doc').length === 4", "giấy tờ", 10000);
       const ms = await p.ev(`(() => { const v = getComputedStyle(document.documentElement).getPropertyValue('--t-reveal').trim(); return v.endsWith('ms') ? parseFloat(v) : parseFloat(v) * 1000; })()`);
