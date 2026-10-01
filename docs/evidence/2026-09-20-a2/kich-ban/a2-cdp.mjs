@@ -64,7 +64,7 @@ export async function startEnv({ turnstile = false, passkey = false, vapid = fal
   const persist = mkdtempSync(join(tmpdir(), "tourdao-a2-"));
   const profile = mkdtempSync(join(tmpdir(), "tourdao-a2-chrome-"));
   const logs = [];
-  const wrangler = (args) => execFileSync("npx", ["wrangler", ...args], { cwd: ROOT, stdio: ["ignore", "pipe", "pipe"], encoding: "utf8", env: { ...process.env, CI: "1" } });
+  const wrangler = (args) => execFileSync("npx", ["wrangler", ...args], { cwd: ROOT, stdio: ["ignore", "pipe", "pipe"], encoding: "utf8", maxBuffer: 256 * 1024 * 1024, env: { ...process.env, CI: "1" } }); // maxBuffer: migration 0062 (tl_van_nghia) làm đầu ra apply vượt 1 MB mặc định → ENOBUFS (2026-10-01)
   wrangler(["d1", "migrations", "apply", "tourdao-sales-db", "--local", "--persist-to", persist]);
   const seed = join(persist, "seed.sql");
   writeFileSync(seed, [...(await Promise.all(Object.values(ACCOUNTS).map((a) => insertStaffSql(a)))), CATALOG_SQL].join("\n"));
