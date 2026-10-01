@@ -9,6 +9,7 @@ import { ACCOUNTS, call, catalogService, ensureFakeCatalog, orderInput, randomPh
 
 await ensureFakeCatalog();
 const ADMIN = await session(ACCOUNTS.admin);
+const TAO_TK = await session(ACCOUNTS.superAdmin); // ADR-0071: chỉ Hành chính nhân sự / Toàn quyền tạo tài khoản (Quản trị không còn)
 const SALES = await session(ACCOUNTS.salesA);
 const LOC = "a941dd7d-faab-4098-9ab9-1df7fa6dd551";
 const D = vnDate(3);
@@ -24,7 +25,7 @@ if (process.env.CHAY_DUA_BO_TRIGGER === "1") {
 }
 
 // Nền: tài xế công ty, xe 3 chỗ, 10 đơn một khách đã xác nhận (ngày kìa — xếp không vướng mốc 6 giờ).
-let r = await call(ADMIN, "POST", "/api/staff", { taoHoSoMoi: true, fullName: `Tài Xế Chạy Đua ${duoi}`, phone: randomPhone(), roles: ["DRIVER_INTERNAL"] });
+let r = await call(TAO_TK, "POST", "/api/staff", { taoHoSoMoi: true, fullName: `Tài Xế Chạy Đua ${duoi}`, phone: randomPhone(), roles: ["DRIVER_INTERNAL"] });
 assert.equal(r.status, 201, JSON.stringify(r.body));
 const [{ party_id: tx }] = await sqlRows(`SELECT party_id FROM staff WHERE id = '${r.body.staff.id}'`);
 r = await call(ADMIN, "POST", `/api/parties/${tx}/documents`, { typeCode: "GPLX", number: `77${String(Date.now()).slice(-10)}`, classCode: "D1", expiryDate: vnDate(400) });

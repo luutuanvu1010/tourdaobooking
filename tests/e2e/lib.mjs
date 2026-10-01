@@ -21,6 +21,8 @@ export const ACCOUNTS = {
   // Hai HDV cố định (ADR-0030 S20-8/9, Bảng tin `tests/e2e/bangtin.mjs` CA 11): cần PHÂN BIỆT hai tài khoản HDV để kiểm "HDV A không nhận
   // tin về đơn HDV B đang phụ trách" — một tài khoản dùng một lần không đủ vì cả hai đầu của phép thử phải SỐNG SUỐT kịch bản.
   fieldB: { name: "Hiện Trường B Test", phone: "0900000008", pin: "667788", permissions: ["FIELD"] },
+  // ADR-0071: Hành chính nhân sự — người tạo tài khoản (Quản trị không tạo nữa). Kịch bản admin.mjs dùng tài khoản này để tạo và kiểm giới hạn của vai.
+  hr: { name: "Nhân Sự Test", phone: "0900000009", pin: "778899", permissions: ["HR"] },
 };
 
 /**
