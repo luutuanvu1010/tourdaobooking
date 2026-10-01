@@ -11,6 +11,18 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // ADR-0083 (nợ rà soát vai ↔ quyền): gán quyền kiểu cũ chỉ Toàn quyền + chặn tài khoản lai; xem đủ số giấy tờ chỉ Toàn quyền; đổi tên vai Tài xế taxi.
+    // Có migration 0063. Số tạm "1.56" = main 1.55 + 1 — nhánh khác gộp trước thì đổi.
+    version: "1.56",
+    date: "2026-10-01",
+    items: [
+      { kind: "doi", text: "Quản trị không còn xem đủ số giấy tờ (căn cước, bằng lái): vẫn thấy số đã che, vẫn thêm, gia hạn, sửa sai. Cần số đầy đủ thì nhờ người phụ trách hệ thống." },
+      { kind: "doi", text: "Vai \"Tài xế taxi\" đổi tên thành \"Tài xế taxi (giới thiệu khách)\" cho khỏi nhầm với \"Tài xế đối tác\" (người lái chuyến). Quyền không đổi." },
+      { kind: "doi", text: "Màn Sửa tài khoản: khối \"Quyền cũ\" (tài khoản chưa gán vai) chỉ người phụ trách hệ thống thấy. Quản trị và Hành chính nhân sự đổi quyền bằng cách gán vai." },
+      { kind: "doi", text: "App chặn tạo hoặc sửa một tài khoản vừa có quyền nội bộ vừa có quyền đối tác." },
+    ],
+  },
+  {
     // Chủ dự án 2026-10-01: giữ luật "không tự đổi quyền của chính mình", sửa màn hình báo trước, không lưu nửa chừng. Không migration. Số tạm — nhánh khác gộp trước thì đổi.
     version: "1.55",
     date: "2026-10-01",
