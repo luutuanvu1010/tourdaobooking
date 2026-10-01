@@ -11,7 +11,7 @@
 //   g  390 + 320: trang không tràn ngang; ô gõ 16px
 //   h  Bán hàng: không có mục ở thanh bên / trang Tôi; mở thẳng trang ⇒ câu từ chối tiếng Việt
 //   j  Bộ não: chọn GPT-5 mini, mức Thấp, độ dài Vừa, lưu ⇒ "Đã lưu thành bản mới"; câu hỏi của Bán hàng gửi đúng mẫu; lịch sử bản có 1 bản
-//   k  ô thử: vai Kế toán + câu hỏi ⇒ kết quả (câu trả lời, token, tiền); máy giả nhận cấu hình ĐANG SOẠN (chưa lưu), nhóm vai Kế toán
+//   k  ô thử: vai Kế toán + câu hỏi ⇒ kết quả (câu trả lời, token, tiền); máy giả nhận cấu hình ĐANG SOẠN (chưa lưu), nhóm vai Kế toán; dưới kết quả có 'Đoạn đã dùng' (nhãn khớp nghĩa / khớp từ khoá — ADR-0082 H1)
 //   l  cảnh báo cố định có mặt; "Khôi phục mặc định" chỉ đưa bản mặc định vào ô (hỏi xác nhận khi ô có chỗ sửa) ⇒ "Lưu bộ não" ⇒ "Đang dùng lời nhắc mặc định."
 //   i  console sạch ở mọi trang đã mở
 // Các trang dùng CHUNG kho cookie: mỗi bước mở trang của tài khoản cần dùng ngay trước khi thao tác.
@@ -31,11 +31,20 @@ ACCOUNTS.owner = { name: "Chủ Hệ Thống", phone: "0900000299", pin: "135246
 ACCOUNTS.partner = { name: "Đối Tác Thử", phone: "0900000298", pin: "135247", permissions: ["PARTNER"] };
 
 const nhan = [];
+const nhung = [];
 const may = createServer((req, res) => {
   let raw = "";
   req.on("data", (d) => (raw += d));
   req.on("end", () => {
     const body = JSON.parse(raw || "{}");
+    // ADR-0082: cửa dấu vân nghĩa — véc-tơ một-nóng (chữ có "pin" ⇒ chiều 0, còn lại ⇒ chiều 1); `nhan` chỉ ghi /v1/responses như trước.
+    if (req.url === "/v1/embeddings") {
+      nhung.push(body);
+      const dau = Array.isArray(body.input) ? body.input : [];
+      const data = dau.map((s, index) => { const e = new Array(body.dimensions).fill(0); e[/pin/i.test(String(s)) ? 0 : 1] = 1; return { object: "embedding", index, embedding: e }; });
+      res.writeHead(200, { "content-type": "application/json" });
+      return res.end(JSON.stringify({ object: "list", data, model: body.model, usage: { prompt_tokens: 10 * dau.length, total_tokens: 10 * dau.length } }));
+    }
     nhan.push(body);
     // Tên đoạn ĐẦU TIÊN của khối "TÀI LIỆU:" CUỐI (máy chủ luôn nối khối này sau lời nhắc — ADR-0073 B4); lời nhắc có "[tên mục]" ở luật Nguồn không tính.
     const ins = String(body.instructions ?? "");
@@ -254,9 +263,15 @@ try {
     assert.equal(nhan.at(-1).model, "gpt-5");
     assert.ok(String(nhan.at(-1).instructions).startsWith("Lời nhắc đang soạn trên Chrome."));
     assert.match(String(nhan.at(-1).instructions), /nhóm vai: Kế toán\./);
-    assert.match(await p.ev(`${q("#tl-thu-kq")}.textContent`), /USD \(tính vào trần tháng\)/);
     assert.match(await p.ev(`${q("#tl-tinh-trang")}.innerText`), /[1-9]\d* lượt thử/, "Thử key ở bước a cũng là lượt thử");
     assert.equal(await p.ev(`${q("#tl-mau")}.value`), "gpt-5", "thử không lưu, ô vẫn giữ cấu hình đang soạn");
+    // ADR-0082 H1: danh sách "Đoạn đã dùng" dưới kết quả thử, nhãn tiếng Việt; có đoạn khớp nghĩa (máy giả: câu có "PIN")
+    const kqThu = await p.ev(`${q("#tl-thu-kq")}.innerText`);
+    assert.match(kqThu, /Đoạn đã dùng:/);
+    assert.match(kqThu, /khớp nghĩa/);
+    assert.ok(!/theoNghia|theoTuKhoa|embedding/i.test(kqThu), "không lộ mã thô / chữ Anh");
+    assert.ok((await p.ev(`${q("#tl-thu-doan")}.querySelectorAll('li').length`)) >= 1);
+    assert.match(kqThu, /tìm theo nghĩa \(tính vào trần tháng\)/);
     await p.ev(`${q("#tl-thu-kq")}.scrollIntoView(), true`);
     await p.shot(join(OUT, "anh/k-o-thu-1040.png"));
   });

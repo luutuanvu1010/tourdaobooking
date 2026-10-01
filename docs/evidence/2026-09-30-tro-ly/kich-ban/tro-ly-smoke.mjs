@@ -30,6 +30,8 @@ const may = createServer((req, res) => {
   req.on("data", (d) => (raw += d));
   req.on("end", () => {
     const body = JSON.parse(raw || "{}");
+    // ADR-0082: cửa dấu vân nghĩa TẮT (503) ⇒ máy chủ lùi về từ khoá; `nhan` chỉ ghi /v1/responses như trước (bảng điều khiển canh đường mới).
+    if (req.url === "/v1/embeddings") { res.writeHead(503, { "content-type": "application/json" }); return res.end("{}"); }
     nhan.push(body);
     // Tên đoạn ĐẦU TIÊN của khối "TÀI LIỆU:" CUỐI (máy chủ luôn nối khối này sau lời nhắc — ADR-0073 B4); lời nhắc có "[tên mục]" ở luật Nguồn không tính.
     const ins = String(body.instructions ?? "");

@@ -1,17 +1,20 @@
 // Gọi OpenAI Responses API + đường ống trả lời DÙNG CHUNG cho câu hỏi thật (POST /api/tro-ly/hoi) và ô thử (POST /api/tro-ly/thu — ADR-0073 Đ5 "chạy đúng
 // đường ống thật"): gọi → tách nguồn (danh sách trắng, Đ6) → ẩn số tiền (Đ7a, Hiến chương 5.15). Không SQL (module nghiêm: SQL chỉ ở repository.ts).
 // KHÔNG BAO GIỜ ghi nội dung ra console; chữ lỗi của OpenAI không đọc (có thể lặp lại khoá) — chỉ mã đã lọc (maLoiOpenAi).
-import { HET_GIO_MS, docPhanHoi, maLoiOpenAi, tachNguon, type DoanTriThuc, type SuDung } from "../../shared/tro-ly";
-import { anSoTien } from "../../shared/tro-ly-loc-tien";
+// Import KÈM đuôi .ts: van-nghia.ts (nạp thẳng bằng node --test) import tệp này.
+import { HET_GIO_MS, docPhanHoi, maLoiOpenAi, tachNguon, type DoanTriThuc, type SuDung } from "../../shared/tro-ly.ts";
+import { anSoTien } from "../../shared/tro-ly-loc-tien.ts";
 
 const OPENAI_MAC_DINH = "https://api.openai.com";
+/** Gốc địa chỉ OpenAI (OPENAI_BASE_URL chỉ cho e2e / máy giả), bỏ dấu / cuối — MỘT chỗ cho Responses và Embeddings (van-nghia.ts). */
+export const diaChiOpenAi = (env: Env): string => (env.OPENAI_BASE_URL?.trim() || OPENAI_MAC_DINH).replace(/\/+$/, "");
 
 export type KetQuaGoi =
   | { chu: string; suDung: SuDung | null }
   | { loi: string; suDung: SuDung | null; status: number | null; maLoi: string | null };
 
 export async function goiOpenAi(env: Env, khoa: string, than: Record<string, unknown>): Promise<KetQuaGoi> {
-  const goc = (env.OPENAI_BASE_URL?.trim() || OPENAI_MAC_DINH).replace(/\/+$/, "");
+  const goc = diaChiOpenAi(env);
   const ctl = new AbortController();
   const hen = setTimeout(() => ctl.abort(), HET_GIO_MS);
   try {

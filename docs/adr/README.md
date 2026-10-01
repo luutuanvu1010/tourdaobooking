@@ -75,6 +75,7 @@ Theo Hiến pháp: P5 (mọi quyết định để lại dấu vết), N3 (khôn
 | [0079](ADR-0079-phieu-da-giao-thuong-mai.md) | **Sổ tiền lượt 2 — phiếu "Đã giao" thương mại:** sinh dòng hoa hồng / giảm giá bên đặt chịu / giá vốn; **mở "Đã giao" cho đơn đại lý**; đơn cũ Kế toán chụp bù; giảm giá trên đơn có người hưởng do bên đặt chịu, trần = hoa hồng (áp cả nhân viên); lệch có tên **L-C1** (CSDL kiểm một phần, có hạn xét lại). Sửa ADR-0026 điều 3, 4, 12, 13; ADR-0027 điều 2b; ADR-0029 điều 2 | một chiều (dòng sổ) | **accepted** 2026-10-01 (chủ, lượt 2c) |
 | [0080](ADR-0080-quyet-toan-thang-va-khoa-ky.md) | **Sổ tiền lượt 2 — quyết toán tháng + khoá kỳ:** một phiếu bù trừ nhiều đơn hai chiều; khoá tháng ở module nhỏ `ky-so` dùng chung cho sổ và chi phí xe thuê, tháng khoá không mở lại; **nới ba hàng rào kiến trúc** (câu C12); nợ nhà xe để đợt sau. Sửa ADR-0002 / ADR-0024 đồ thị, ADR-0026 điều 5 + 5.14, gỡ ADR-0057 L-T1 | một chiều (khoá tháng) | **accepted** 2026-10-01 (chủ, lượt 2d) |
 | [0081](ADR-0081-doi-tac-xem-so.md) | **Sổ tiền lượt 2 — đối tác xem sổ:** ô mới `ledger.partner.view`; "Sổ của tôi" cho đại lý: số dư theo tháng + từng đơn, hoa hồng chỉ số tiền (không %), không giá vốn / sổ người khác; nhân viên không vào. Sửa ADR-0026 điều 7, 10 | hai chiều (ô quyền); một chiều về thông tin | **accepted** 2026-10-01 (chủ, lượt 2d) |
+| [0082](ADR-0082-tro-ly-tim-theo-nghia.md) | **Trợ lý Hỗ trợ — tìm đoạn theo nghĩa:** dấu vân nghĩa (embedding OpenAI, mẫu hằng trong mã) của từng đoạn kho tính lười ở máy chủ, lưu bảng chỉ-thêm `tl_van_nghia` (khoá = băm nội dung + mẫu + số chiều, `ON CONFLICT DO NOTHING`); chọn đoạn trộn RRF từ khoá + cô-sin, bỏ đoạn xa nghĩa trừ khớp từ khoá mạnh (cặp âm tiết, hoặc ≥ 0,7 điểm cao nhất và ≥ 2 từ); lỗi / sát trần → lùi về từ khoá; tiền embedding cộng vào lượt, kiểm trần bằng mức trần trên trước mọi lần gọi; ô thử hiện đoạn đã dùng; không ô chỉnh. Sửa ADR-0066 điều 3; bổ sung ADR-0073 Đ1, Đ7b | hai chiều (cách chọn đoạn); một chiều (bảng) | **accepted** 2026-10-01 |
 
 Thứ tự tài liệu (Điều 3.1): Hiến pháp → ràng buộc dự án → **ADR** → quy trình/playbook → đặc tả từng bước → mã. Đặc tả mô hình dữ liệu N1 (`docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md`) viết sau khi ADR-0001…0007 được duyệt và **đã được chủ dự án duyệt cùng ADR-0008 (2026-09-20)**.
 
@@ -86,7 +87,7 @@ Thứ tự tài liệu (Điều 3.1): Hiến pháp → ràng buộc dự án →
 | 0064 | HDV thấy thêm: ghi chú đơn; biển số + tài xế của đơn mình phụ trách (bổ sung ADR-0059) | `…/ADR-0064-hdv-thay-ghi-chu-don.md` | proposed — lượt duyệt 2b |
 | 0065 | Số khách đi xe (ô riêng do Bán hàng nhập) | `…/ADR-0065-so-khach-di-xe.md` | proposed — lượt duyệt 2b |
 | 0066 | Trợ lý AI "Hỗ trợ" | đặc tả `docs/superpowers/specs/2026-09-30-adr-0066-tro-ly-ai-ho-tro.md` (phiên khác) | accepted 2026-09-30 — văn bản ở đặc tả, chưa có tệp trong `docs/adr/` |
-| — | (số ADR mới kế tiếp là 0074 — 0069, 0070 ở nhánh trợ lý; 0071 vai Hành chính nhân sự; 0072 vai Giám đốc bớt Toàn quyền; 0073 trợ lý bộ não tuỳ biến) | | |
+| — | (số ADR mới kế tiếp là 0083 — 0074, 0075 đăng nhập 2FA / sổ phiên ở nhánh đăng nhập; 0076–0081 đã dùng trên main; 0082 trợ lý tìm theo nghĩa) | | |
 
 (0040, 0041, 0042, 0044, 0049, 0050, 0051, 0052–0057, 0058, 0059–0061, 0062 và 0067 đã có văn bản thật ở bảng trên nên bỏ khỏi bảng giữ chỗ.)
 
