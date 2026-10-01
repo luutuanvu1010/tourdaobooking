@@ -145,9 +145,12 @@ assert.ok(!JSON.stringify(r.body).includes(A.pin));
 console.log("✓ đặt lại PIN thu hồi phiên cũ, nhật ký không lộ PIN");
 
 // --- đổi PIN của chính mình
-// Luật một máy (ADR-0075): A chịu luật nên đăng nhập `sess` (SAU) đã đá `other` (bị thay); vế "đổi PIN đăng xuất máy khác" vẫn đúng.
+// Luật một máy (ADR-0075): A chịu luật nên đăng nhập `sess` (SAU) đã đá `other` (bị thay) NGAY LÚC ĐĂNG NHẬP — vế "thiết bị khác 401" dưới đây
+// không còn chứng minh "đổi PIN đăng xuất máy khác" (nó đã 401 từ trước). Hành vi đó được kiểm thật ở tests/e2e/phien.mjs mục 7–10 bằng tài khoản
+// Toàn quyền (miễn một máy, hai máy cùng sống trước khi đổi PIN / gỡ Face ID). Ở đây ghim rằng `other` đã 401 TRƯỚC khi đổi PIN.
 const other = cookieOf(await login(A.phone, A.pin)); // thiết bị khác
 let sess = cookieOf(await login(A.phone, A.pin));
+assert.equal((await raw(other, "GET", "/api/auth/me")).status, 401, "luật một máy: thiết bị khác đã bị thay khi `sess` đăng nhập");
 const beforePinChange = await lastLoginOf(A.id);
 assert.equal((await raw(sess, "POST", "/api/account/change-pin", { currentPin: "000000", newPin: "482915" })).status, 403);
 assert.equal((await raw(sess, "POST", "/api/account/change-pin", { currentPin: A.pin, newPin: "123456" })).status, 400);
@@ -155,7 +158,7 @@ assert.equal((await raw(sess, "POST", "/api/account/change-pin", { currentPin: A
 r = await raw(sess, "POST", "/api/account/change-pin", { currentPin: A.pin, newPin: "482915" });
 assert.equal(r.status, 200);
 assert.equal((await raw(cookieOf(r), "GET", "/api/auth/me")).status, 200, "thiết bị đổi PIN giữ phiên mới");
-assert.equal((await raw(other, "GET", "/api/auth/me")).status, 401, "thiết bị khác bị đăng xuất");
+assert.equal((await raw(other, "GET", "/api/auth/me")).status, 401, "thiết bị khác vẫn 401 (đã bị thay từ lúc đăng nhập — xem phien.mjs 7–10 cho đổi PIN đá máy khác)");
 assert.equal(await lastLoginOf(A.id), beforePinChange, "ĐỔI PIN không phải đăng nhập: lastLoginAt giữ nguyên");
 assert.equal((await login(A.phone, "482915")).status, 200);
 assert.ok((await lastLoginOf(A.id)) > beforePinChange, "đăng nhập lại thì lastLoginAt không lùi (mới hơn)");

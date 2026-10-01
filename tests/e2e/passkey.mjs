@@ -151,10 +151,13 @@ console.log("✓ không dùng Face ID của người khác");
 
 // 12. Gỡ một passkey: máy khác 401, máy đang thao tác nhận phiên mới 200; đăng nhập bằng khoá đã gỡ → 401 passkey_unknown
 // Luật một máy (ADR-0075): "máy khác" S4 đăng nhập TRƯỚC, rồi máy đang thao tác đăng nhập lại (đá S4 — bị thay) — hai phiên của salesB không cùng sống được.
+// Vì vậy vế "S4 401" sau khi gỡ KHÔNG còn chứng minh "gỡ Face ID đăng xuất máy khác" (S4 đã 401 từ lúc đăng nhập — ghim ngay dưới); hành vi đó được kiểm
+// thật ở tests/e2e/phien.mjs mục 8–9 bằng tài khoản Toàn quyền (miễn một máy, hai máy cùng sống trước khi gỡ).
 const S4 = sessionCookie((await passkeyLogin(auth)).r);
 r = await login(A.phone, "583920", freshIp());
 assert.equal(r.status, 200);
 HIEN = r.cookie;
+assert.equal((await call(S4, "GET", "/api/auth/me")).status, 401, "luật một máy: S4 đã bị thay khi máy đang thao tác đăng nhập");
 r = await call(HIEN, "DELETE", `/api/account/passkeys/${pkId}`);
 assert.equal(r.status, 200);
 const S3c = sessionCookie(r) ?? HIEN;
@@ -163,7 +166,7 @@ assert.equal((await call(S4, "GET", "/api/auth/me")).status, 401);
 r = (await passkeyLogin(auth)).r;
 assert.equal(r.status, 401);
 assert.equal(r.body.error.code, "passkey_unknown");
-console.log("✓ gỡ Face ID đăng xuất máy khác; khoá đã gỡ bị từ chối rõ ràng");
+console.log("✓ gỡ Face ID: máy đang thao tác nhận phiên mới; khoá đã gỡ bị từ chối rõ ràng (đá máy khác: phien.mjs 8–9)");
 
 // 12b. (kiểm độc lập Task 8) Gỡ passkey của NGƯỜI KHÁC bằng route tự phục vụ → 404, passkey đó vẫn còn nguyên
 r = await call(S3c, "DELETE", `/api/account/passkeys/${otherPkId}`);
@@ -189,10 +192,12 @@ console.log("✓ tài khoản ngưng bằng SQL (passkey chưa gỡ) → Face ID
 // 12d. Tự gỡ hết Face ID của CHÍNH MÌNH (không phải admin) khi đang có ≥1 khoá còn hiệu lực (authB2): đăng xuất máy khác, máy hiện tại nhận phiên mới
 const S5 = sessionCookie((await passkeyLogin(authB2)).r); // "máy khác" đăng nhập bằng khoá còn hiệu lực
 assert.ok(S5);
-// Luật một máy (ADR-0075): S5 đã đá S3c; máy đang thao tác đăng nhập lại bằng PIN (đá S5 — bị thay) rồi mới gỡ.
+// Luật một máy (ADR-0075): S5 đã đá S3c; máy đang thao tác đăng nhập lại bằng PIN (đá S5 — bị thay) rồi mới gỡ. Vế "S5 401" dưới đây vì thế không chứng
+// minh "gỡ mọi Face ID đăng xuất máy khác" (S5 đã 401 từ lúc đăng nhập — ghim ngay dưới); hành vi đó: tests/e2e/phien.mjs mục 9 (Toàn quyền, hai máy).
 r = await login(A.phone, "583920", freshIp());
 assert.equal(r.status, 200);
 HIEN = r.cookie;
+assert.equal((await call(S5, "GET", "/api/auth/me")).status, 401, "luật một máy: S5 đã bị thay khi máy đang thao tác đăng nhập");
 r = await call(HIEN, "POST", "/api/account/passkeys/remove-all", {});
 assert.equal(r.status, 200, JSON.stringify(r.body));
 assert.ok(r.body.removed >= 1, JSON.stringify(r.body));
@@ -200,7 +205,7 @@ const S3d = sessionCookie(r);
 assert.ok(S3d);
 assert.equal((await call(S5, "GET", "/api/auth/me")).status, 401);
 assert.equal((await call(S3d, "GET", "/api/auth/me")).status, 200);
-console.log("✓ tự gỡ hết Face ID (còn ≥1 khoá): đăng xuất máy khác, máy hiện tại nhận phiên mới");
+console.log("✓ tự gỡ hết Face ID (còn ≥1 khoá): máy hiện tại nhận phiên mới (đá máy khác: phien.mjs 9)");
 
 // 13. Admin: ngưng tài khoản giữa lúc lấy thách thức và gửi → từ chối; nút admin gỡ
 const ADMIN = await session(ACCOUNTS.admin);

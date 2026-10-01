@@ -828,7 +828,7 @@ export const CHECKS = [
           GROUP BY staff_id HAVING count(*) > 1)`,
     level: "fail",
   },
-  // R-AUT-SESSION-2 (ADR-0075 điều 5): tài khoản đã ngưng không còn dòng phiên chưa kết thúc (kể cả dòng đã quá hạn — lô ngưng kết thúc MỌI dòng chưa kết thúc,
+  // R-AUT-SESSION-2 (ADR-0075 điều 4 — lý do "tài khoản ngưng"): tài khoản đã ngưng không còn dòng phiên chưa kết thúc (kể cả dòng đã quá hạn — lô ngưng kết thúc MỌI dòng chưa kết thúc,
   // câu `session_end_all_if_suspended` không lọc hạn). Đọc cờ hoạt động qua view công bố `v_stf_staff_label` của staff. Đăng nhập của tài khoản ngưng còn bị
   // `currentStaff` chặn ở tầng ứng dụng — kiểm này là lưới dữ liệu (vd ngưng bằng SQL tay).
   {
