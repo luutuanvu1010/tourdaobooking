@@ -12,7 +12,7 @@ const ADM = "33333333-3333-4333-8333-333333333333";
 const SUP = "77777777-7777-4777-8777-777777777777";
 const DIR = "99999999-9999-4999-8999-999999999999"; // giống vai IT: giữ cả ADMIN và SUPER_ADMIN (ADR-0072: vai Giám đốc nay chỉ ADMIN)
 
-const SILENT = ["account_roles_changed", "permission_changed", "staff_role_changed", "maintenance_changed", "pin_reset", "passkey_removed", "session_revoked"]; // ADR-0075 điều 8: thêm session_revoked
+const SILENT = ["account_roles_changed", "permission_changed", "staff_role_changed", "maintenance_changed", "pin_reset", "passkey_removed", "session_policy_changed", "session_revoked"]; // ADR-0075 điều 8: thêm session_revoked; ADR-0085 điều 9: thêm session_policy_changed. Gõ tay CÓ CHỦ Ý (không lấy từ SILENT_AUDIT_ACTIONS) để bỏ sót ở nguồn thì bài đỏ
 
 function setup() {
   const w = world();

@@ -81,6 +81,11 @@
 - I1 (bài đua route đổi vai): bài mới "AC8, route đổi vai" ở `src/modules/accounts/mat-mien-route.test.ts` (cùng khuôn `ngungGiuaChung`). Quan sát chặn thật **2026-10-01**, đột biến "câu phiên vào lô ĐẦU ở route đổi vai" (nhánh có câu chốt: `...phien.statements` nối cuối lô quyền, `cuoi = results`, lô vai sau chỉ còn `roleStatements`) ⇒
   `not ok 8 - ADR-0085 §6 quy tắc 4 (AC8, route đổi vai): 'ADMIN = Nhiều máy', đổi vai làm mất ADMIN mà câu chốt TRONG LÔ thua → 409, KHÔNG phiên nào kết thúc`
   (lỗi: `ended_at` của phiên ADM khác `null`). Khôi phục từ bản sao `/Users/tuanbao/.claude/jobs/d451e7d2/tmp/final-fix-I1-accounts-index.ts.bak` → xanh 8/8.
+- M1: `docs/CHANGE-GUIDE.md` công thức z8 (cấp phiên) và bẫy 57 mục 5 thêm vế "có một quyền mà chính sách đặt Nhiều máy" (khớp `isSingleDevice`).
+- M2: mảng `SILENT` gõ tay ở `src/modules/audit/an-toan-quyen.test.ts` thêm `session_policy_changed` (giữ gõ tay có chủ ý để bỏ sót ở nguồn thì đỏ). Quan sát chặn thật **2026-10-01**, đột biến "bỏ `session_policy_changed` khỏi `SILENT_AUDIT_ACTIONS`" (`src/shared/audit-actions.ts`) ⇒
+  `not ok 2 - ADR-0038: người không giữ Toàn quyền KHÔNG nhận 8 thao tác im lặng do Toàn quyền làm (kể cả tài khoản giữ cả Quản trị lẫn Toàn quyền); nhận thao tác thường của Toàn quyền và mọi thao tác của Quản trị`
+  Khôi phục từ bản sao `/Users/tuanbao/.claude/jobs/d451e7d2/tmp/final-fix-M2-audit-actions.ts.bak` → xanh 6/6.
+- Chú thích / sửa nhỏ: JSDoc `tatMayCuaPhienStatement` dời về đúng hàm, `tatMayCuaCacPhienStatement` có JSDoc riêng (`thongbao/repository.ts`); `sietTheoTapStatements` ghi "PHẢI đứng cuối lô" (`auth/index.ts`); chú thích lô hai ở `catch` của route đổi quyền và đổi vai (`accounts/index.ts`); `web/chinh-sach-dang-nhap-ui.ts` `xacNhan`: nhánh `policy_stale` đặt `bao` trước rồi bọc `await tai()` riêng. Kịch bản Chrome `chinh-sach.mjs` KHÔNG chạy lại (nhánh lỗi tải lại không có trong kịch bản; typecheck 0 lỗi).
 
 ## Câu chờ chủ (Task 10 Step 4 — KHÔNG tự quyết)
 
