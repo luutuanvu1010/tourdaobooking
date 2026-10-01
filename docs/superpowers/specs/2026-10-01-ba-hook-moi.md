@@ -87,7 +87,11 @@ Người kiểm tự chạy lại: typecheck 0 lỗi; 33/33 bài hàng rào; b�
 | L-2 `perl -MList::Util … CLAUDE.md` (chỉ đọc) bị chặn nhầm | Sửa: cờ `-M`/`-m`/`-I` không tính là sửa tại chỗ; có ca cho-qua và ca chặn |
 | L-3 Câu ở `CLAUDE.md` §8 thiếu ngoại lệ tệp bị gitignore | Sửa câu |
 
-Sau khi sửa: 33/33 bài hàng rào; 19/19 đột biến đều đỏ rồi hoàn nguyên xanh (`docs/evidence/2026-10-01-ba-hook-moi/dot-bien.log`). Người kiểm KHÔNG kiểm được: hành vi thật của Claude Code khi nạp các móc này từ `settings.json` (cần một phiên mới sau khi gộp) và bài đo giờ lúc máy rảnh.
+Sau khi sửa: 33/33 bài hàng rào; 19/19 đột biến đều đỏ rồi hoàn nguyên xanh (`docs/evidence/2026-10-01-ba-hook-moi/dot-bien.log`); `npm test` thoát 0 (2451 bài + bài đo giờ).
+
+**Vòng hai** (một người kiểm khác, chỉ đọc, kiểm riêng phần sửa): **ĐẠT** — không có phát hiện mức cao hay trung; tự chạy lại typecheck 0 lỗi, 33/33, 19/19 đột biến; 17 ca perl/ruby phải chặn + 8 ca phải cho qua đều đúng; `settings.json` chỉ THÊM so với main; không bài cũ nào bị làm yếu.
+
+Cả hai vòng KHÔNG kiểm được: hành vi thật của Claude Code khi nạp các móc này từ `settings.json` (cần một phiên mới sau khi gộp) và bài đo giờ lúc máy rảnh.
 
 ## 8. Tệp
 
