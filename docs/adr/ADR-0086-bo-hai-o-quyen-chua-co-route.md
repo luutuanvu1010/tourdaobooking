@@ -1,6 +1,6 @@
 # ADR-0086 — Bỏ hai ô quyền chưa có route (`task.progress`, `dispatch.guides.view`) khỏi bản đồ quyền; thêm lại cùng route khi làm
 
-- **Trạng thái:** **proposed** — chờ chủ dự án duyệt.
+- **Trạng thái:** **rejected** 2026-10-01 — chủ dự án, chat: *"giữ lại đi, tiếp"* (sau khi AI báo ADR-0019 điều 5 từng chủ ý giữ hai ô). Hai ô ở lại `MATRIX`; ADR-0019 điều 5 giữ nguyên. Hạn hoãn 2026-11-30 ở `docs/quyen-hoan.json` **không đổi** — gia hạn chỉ khi chủ ra ngày (quá hạn ⇒ `npm test` đỏ).
 - **Ngày:** 2026-10-01. **Số:** 0086 (0085 đã dùng ở nhánh `chinh-sach-dang-nhap`; đếm mọi nhánh lúc soạn). **Migration:** không.
 - **Mốc mã:** nhánh `worktree-doi-chieu-phieu-giam-doc` @`c2570533` (= `origin/main` 1.62 + bản 1.63 chưa đẩy).
 - **Nguồn (lời chủ, chat 2026-10-01):** trả lời câu "Có bỏ ô quyền 'nhiệm vụ đón' chưa dùng không — để nguyên thì từ 30/11 bộ kiểm báo đỏ": *"Bỏ, ghi ADR vì tôi chưa thấy thấu đáo, bỏ nếu bạn khuyến nghị như vậy."*
