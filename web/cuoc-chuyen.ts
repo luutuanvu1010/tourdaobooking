@@ -88,7 +88,7 @@ function ve(): void {
   const diem = veDiemChay({
     diem: r.diem, suat: r.suat, trangThai: c.trangThai, ngayXem: ngay, coNut: chayDuoc, onLenh: lenhDiem,
     choGui: new Set([...choGui.keys()]),
-    phuDiem: (b) => ({ ben: nutThuTu(b), duoi: [...bayCua(b), ...lienHeCua(b)] }),
+    phuDiem: (b) => ({ ben: nutThuTu(b), duoi: [...bayCua(b, r.suat), ...lienHeCua(b)] }),
   });
   // "Bấm lại" ở dòng khách chưa gửi được.
   for (const el of diem) {
@@ -125,10 +125,10 @@ function ve(): void {
   dayEl.hidden = true;
 }
 
-/** Số hiệu chuyến bay của khách lên ở điểm đón này (ADR-0055 C3 — có mọi lúc, không chỉ ra người). */
-function bayCua(b: BuocDiem): Child[] {
+/** Số hiệu chuyến bay của khách lên ở điểm đón này (ADR-0055 C3 — có mọi lúc, không chỉ ra người): cả trước xuất bến lẫn lúc chạy. */
+function bayCua(b: BuocDiem, suat: CuocChiTietResponse["suat"]): Child[] {
   if (b.diem.loai !== "PICKUP") return [];
-  const ds = soHieuTaiDiemDon(duLieu!.suat, b.diem.id);
+  const ds = soHieuTaiDiemDon(suat, b.diem.id);
   return ds.length ? [h("div", { class: "dp-run-bay" }, ...ds.map((x) => h("span", { class: "chip chip-code" }, `✈︎ ${x}`)))] : [];
 }
 
@@ -227,7 +227,7 @@ function veDiemTruoc(r: CuocChiTietResponse): HTMLElement[] {
     phuDiem: (b) => {
       const d = theoId.get(b.diem.id)!;
       const hen = d.loai === "DROPOFF" && d.gioHen ? `Hẹn ${d.gioHen.gio} · ` : "";
-      return { duoi: [h("div", { class: "dp-note dp-cc-so-nguoi" }, `${hen}${d.soNguoi} khách`)] };
+      return { duoi: [...bayCua(b, r.suat), h("div", { class: "dp-note dp-cc-so-nguoi" }, `${hen}${d.soNguoi} khách`)] };
     },
   });
 }

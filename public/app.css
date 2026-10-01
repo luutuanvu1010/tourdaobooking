@@ -2046,7 +2046,7 @@ body.login-page main.login { display: flex; flex-direction: column; height: 100%
 .dp-run-bo { font-size: var(--fs-label); }
 .dp-run-lien-he { display: flex; align-items: center; gap: var(--s2); padding: 0 var(--s4); font-size: var(--fs-label); border-bottom: 1px solid var(--c-border); }
 .dp-run-lien-he a { display: flex; align-items: center; min-height: var(--tap-min); margin-left: auto; font-weight: 700; white-space: nowrap; }
-.dp-run-bay { display: flex; flex-wrap: wrap; gap: var(--s2); padding: var(--s2) var(--s4); border-bottom: 1px solid var(--c-border); }
+.dp-run-bay { display: flex; flex-wrap: wrap; gap: var(--s2); padding: 0 var(--s4) var(--s2) calc(var(--s4) + var(--dp-run-so) + var(--s3)); } /* số hiệu chuyến bay dưới điểm đón — thẳng cột với tên nơi */
 .dp-run-foot { display: flex; flex-direction: column; gap: var(--s2); padding: var(--s3) var(--s4); }
 .dp-run-foot .dp-run-btn { width: 100%; min-height: var(--h-field); font-size: var(--fs-vc-md); }
 .dp-khach { display: flex; flex-direction: column; gap: var(--s2); padding: var(--s2) var(--s4); border-bottom: 1px solid var(--c-border); }
