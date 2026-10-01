@@ -160,6 +160,16 @@ test("thanThuKhoa (B10): dùng mẫu được truyền, mức suy nghĩ THẤP N
 
 // ---- đọc phản hồi, nguồn
 
+test("docPhanHoi: status incomplete + max_output_tokens mà KHÔNG chữ ⇒ hetToken (dùng hết token cho phần suy nghĩ); có chữ, hoặc lý do khác ⇒ không cờ", () => {
+  const usage = { input_tokens: 100, output_tokens: 1200 };
+  const het = docPhanHoi({ status: "incomplete", incomplete_details: { reason: "max_output_tokens" }, output: [{ type: "reasoning", summary: [] }], usage });
+  assert.deepEqual(het, { chu: "", suDung: { vao: 100, vaoDem: 0, ra: 1200 }, hetToken: true });
+  assert.equal(docPhanHoi({ status: "incomplete", incomplete_details: { reason: "content_filter" }, output: [], usage }).hetToken, undefined);
+  assert.equal(docPhanHoi({ status: "completed", output: [], usage }).hetToken, undefined);
+  const coChu = docPhanHoi({ status: "incomplete", incomplete_details: { reason: "max_output_tokens" }, output: [{ type: "message", content: [{ type: "output_text", text: "Nửa câu" }] }], usage });
+  assert.equal(coChu.hetToken, undefined, "có chữ thì không phải trường hợp rỗng");
+});
+
 test("docPhanHoi: gộp output_text của phần tử message; usage kể cả khi incomplete; thân lạ → rỗng", () => {
   const j = {
     status: "incomplete",

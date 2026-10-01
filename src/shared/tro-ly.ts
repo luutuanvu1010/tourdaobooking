@@ -44,6 +44,8 @@ export const CAU_CHUA_BAT = "Trợ lý chưa bật. Xem hướng dẫn ở Trợ
 /** ADR-0066 điều 6 — nguyên văn. */
 export const CAU_HET_TRAN_THANG = "Trợ lý tạm nghỉ tới tháng sau — xem Trợ giúp";
 export const cauHetTranNgay = (tran: number): string => `Bạn đã hỏi đủ ${tran} câu hôm nay. Mai hỏi tiếp, hoặc xem hướng dẫn ở Trợ giúp.`;
+/** Chỉ ô thử của Toàn quyền (khung nhân viên giữ CAU_LOI): mẫu suy nghĩ đã dùng hết token ra mà chưa viết được chữ nào. */
+export const CAU_HET_TOKEN_RA = "Mẫu AI đã dùng hết số token trả lời cho phần suy nghĩ trước khi kịp viết câu trả lời. Tăng \"Số token trả lời tối đa\" hoặc giảm \"Mức suy nghĩ\" rồi thử lại.";
 export const CAU_LOI = "Trợ lý đang bận hoặc gặp lỗi. Thử lại sau ít phút, hoặc xem hướng dẫn ở Trợ giúp.";
 /** ADR-0066 điều 4 — nguyên văn. Từ ADR-0073 (M1) máy chủ KHÔNG còn tự trả câu này (không khớp vẫn gọi mẫu); giữ hằng cho bài kiểm ví dụ cũ của chủ. */
 export const CAU_CHUA_CO = "Chưa có trong hướng dẫn — hỏi Quản trị hoặc gửi Góp ý";
@@ -272,7 +274,8 @@ export const truyVanTim = (cauHoi: string, cauTruoc: string | null): string => (
 // ---------------------------------------------------------------- đọc phản hồi + nguồn
 
 export type SuDung = SoToken;
-export interface PhanHoiDoc { readonly chu: string; readonly suDung: SuDung | null }
+/** `hetToken` chỉ có (= true) khi mẫu trả `status: "incomplete"` + `incomplete_details.reason: "max_output_tokens"` MÀ không có chữ nào: mẫu suy nghĩ đã dùng hết token ra. */
+export interface PhanHoiDoc { readonly chu: string; readonly suDung: SuDung | null; readonly hetToken?: true }
 
 const soKhongAm = (v: unknown): number => (typeof v === "number" && Number.isFinite(v) && v > 0 ? Math.floor(v) : 0);
 
@@ -281,7 +284,7 @@ const soKhongAm = (v: unknown): number => (typeof v === "number" && Number.isFin
  * không có trong JSON thô). `usage` đọc kể cả khi `status` = "incomplete" (vẫn tính tiền — ADR-0066 điều 6). Thân lạ → chữ rỗng, `suDung` null.
  */
 export function docPhanHoi(json: unknown): PhanHoiDoc {
-  const j = (json ?? {}) as { output?: unknown; usage?: { input_tokens?: unknown; output_tokens?: unknown; input_tokens_details?: { cached_tokens?: unknown } } };
+  const j = (json ?? {}) as { status?: unknown; incomplete_details?: { reason?: unknown } | null; output?: unknown; usage?: { input_tokens?: unknown; output_tokens?: unknown; input_tokens_details?: { cached_tokens?: unknown } } };
   const phan: string[] = [];
   if (Array.isArray(j.output)) {
     for (const o of j.output as { type?: unknown; content?: unknown }[]) {
@@ -293,7 +296,9 @@ export function docPhanHoi(json: unknown): PhanHoiDoc {
   const suDung = u && typeof u === "object"
     ? { vao: soKhongAm(u.input_tokens), vaoDem: Math.min(soKhongAm(u.input_tokens_details?.cached_tokens), soKhongAm(u.input_tokens)), ra: soKhongAm(u.output_tokens) }
     : null;
-  return { chu: phan.join("").trim(), suDung };
+  const chu = phan.join("").trim();
+  const het = !chu && j.status === "incomplete" && j.incomplete_details?.reason === "max_output_tokens";
+  return het ? { chu, suDung, hetToken: true } : { chu, suDung };
 }
 
 /**

@@ -313,6 +313,40 @@ test("T1 + T5: ô thử chạy đúng đường ống thật với cấu hình C
   assert.equal(w.q("SELECT count(*) AS n FROM audit_log WHERE action = 'tro_ly_settings_changed'")[0]!.n, 0, "thử không ghi nhật ký đổi cài đặt");
 });
 
+test("Hết token ra cho phần suy nghĩ (status incomplete, max_output_tokens, không chữ): ô thử trả câu lời thường chỉ cách sửa, lượt ghi 'loi' VẪN tính tiền, log chỉ tên lý do; khung nhân viên giữ câu lỗi chung", async () => {
+  const w = setup();
+  const log: string[] = [];
+  const errThat = console.error;
+  console.error = (...a: unknown[]) => { if (a.length === 1 && a[0] === '{"event":"tro_ly_van_nghia_loi"}') return; log.push(a.map(String).join(" ")); };
+  try {
+    globalThis.fetch = (async (i: RequestInfo | URL) => {
+      if (String(i instanceof Request ? i.url : i).endsWith("/v1/embeddings")) return new Response(JSON.stringify({ error: { message: "tắt" } }), { status: 503 });
+      return new Response(JSON.stringify({
+        status: "incomplete", incomplete_details: { reason: "max_output_tokens" }, output: [{ type: "reasoning", summary: [] }],
+        usage: { input_tokens: 3000, input_tokens_details: { cached_tokens: 0 }, output_tokens: 1200 },
+      }), { status: 200 });
+    }) as typeof fetch;
+    const r = await thu(w, THU);
+    assert.equal(r.status, 502, r.text);
+    assert.equal(r.json.error.code, "tro_ly_loi");
+    assert.equal(
+      r.json.error.message,
+      "Mẫu AI đã dùng hết số token trả lời cho phần suy nghĩ trước khi kịp viết câu trả lời. Tăng \"Số token trả lời tối đa\" hoặc giảm \"Mức suy nghĩ\" rồi thử lại.",
+    );
+    const l = w.q("SELECT ket_qua, la_thu, chi_phi_micro_usd FROM tl_luot_hoi");
+    assert.deepEqual(l.map((x) => [x.ket_qua, x.la_thu]), [["loi", 1]]);
+    assert.ok(l[0]!.chi_phi_micro_usd > 0, "vẫn tính tiền");
+    assert.ok(log.some((x) => x.includes("thu_het_token_ra")), "log ghi tên lý do");
+    assert.ok(!log.some((x) => x.includes("PIN")), "log không có nội dung");
+    // khung nhân viên: câu lỗi chung như cũ
+    const h = await w.call("POST", "/api/tro-ly/hoi", { as: SALES, body: { cauHoi: "đổi mã PIN thế nào" } });
+    assert.equal(h.status, 502);
+    assert.match(h.json.error.message, /^Trợ lý đang bận/);
+  } finally {
+    console.error = errThat;
+  }
+});
+
 test("T2: cấu hình thử sai ⇒ 400 như khi lưu; vai lạ / câu rỗng ⇒ 400; không gọi mẫu, không ghi dòng", async () => {
   const w = setup();
   const goi = openAiGia();

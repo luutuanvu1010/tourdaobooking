@@ -15,7 +15,7 @@ import { error, escapeLike, intParam, json, readJson, UUID_RE } from "../../shar
 import { can, PERMISSION_CODES, PERMISSION_LABEL, type PermissionCode } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
 import {
-  CAU_CHUA_BAT, CAU_HET_TRAN_THANG, CAU_HOI_THO_TOI_DA, CAU_LOI, CAU_QUA_DAI, CAU_VAI_TAT, cauHetTranNgay, cheCauHoi, chiPhiMicroUsd, chiaKho,
+  CAU_CHUA_BAT, CAU_HET_TOKEN_RA, CAU_HET_TRAN_THANG, CAU_HOI_THO_TOI_DA, CAU_LOI, CAU_QUA_DAI, CAU_VAI_TAT, cauHetTranNgay, cheCauHoi, chiPhiMicroUsd, chiaKho,
   doanNguCanh, duocDungTroLy, ketQuaThuKhoa, khoaCuoi, khoangThang, kiemCaiDat, kiemLoiDan, kiemNguCanh, kiemVai, NHO_TRONG_MS, quyetDinhTran, thanThuKhoa, thanYeuCau,
   truyVanTim, uocTokenVao, type SuDung,
 } from "../../shared/tro-ly";
@@ -282,7 +282,7 @@ export const troLyModule: AppModule = {
       if (!("loi" in kq)) return json(ketQuaThuKhoa({ ok: true }) satisfies TroLyThuKhoaResponse);
       logLoi(`thu_khoa_${kq.loi}`);
       // Hết token ra mà chưa có chữ ("rong") vẫn là khoá dùng được.
-      if (kq.loi === "rong") return json(ketQuaThuKhoa({ ok: true }) satisfies TroLyThuKhoaResponse);
+      if (kq.loi === "rong" || kq.loi === "het_token_ra") return json(ketQuaThuKhoa({ ok: true }) satisfies TroLyThuKhoaResponse);
       return json(ketQuaThuKhoa(kq.status === null ? { mang: true } : { status: kq.status, maLoi: kq.maLoi }) satisfies TroLyThuKhoaResponse);
     }),
 
@@ -404,6 +404,8 @@ export const troLyModule: AppModule = {
       if (!kq.ok) {
         logLoi(`thu_${kq.loi}`);
         if (kq.loi === "rong") return error(502, "tro_ly_loi", CAU_LOI);
+        // Chỉ ô thử của Toàn quyền biết lý do (chỉ cách sửa cấu hình); khung nhân viên (route hỏi) giữ CAU_LOI.
+        if (kq.loi === "het_token_ra") return error(502, "tro_ly_loi", CAU_HET_TOKEN_RA);
         // Cùng câu lời thường với Thử key (vd. 400 ⇒ mau_tu_choi "mẫu không nhận mức suy nghĩ…"); không chuyển tiếp chữ lỗi của OpenAI.
         const tk = ketQuaThuKhoa(kq.status === null ? { mang: true } : { status: kq.status, maLoi: kq.maLoi });
         return error(502, tk.ma, tk.cau);
