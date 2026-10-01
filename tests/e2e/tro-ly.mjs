@@ -110,7 +110,8 @@ try {
   assert.equal(dong.la_thu, 0);
   // ADR-0082 P1: tiền lượt = mẫu (4200 × 0,05 + 600 × 0,40 = 450) + embedding của MỌI lần gọi /v1/embeddings trong lượt
   // (máy giả: 10 token / đầu vào; 0,02 USD / 1 triệu token, làm tròn lên từng lần gọi). Kho có thể đã được tính bù bởi kịch bản chạy trước ⇒ đếm theo lần gọi thật.
-  const tienNhung = nhung.slice(m0).reduce((a, x) => a + Math.ceil((10 * x.body.input.length * 20_000) / 1_000_000), 0);
+  const tienGoi = (ds) => ds.reduce((a, x) => a + Math.ceil((10 * x.body.input.length * 20_000) / 1_000_000), 0);
+  const tienNhung = tienGoi(nhung.slice(m0));
   assert.ok(tienNhung >= 1, "lượt có gọi embeddings");
   assert.equal(dong.chi_phi_micro_usd, 450 + tienNhung);
   assert.deepEqual([dong.token_vao, dong.token_ra], [4200, 600], "token chỉ của mẫu trả lời");
@@ -118,7 +119,7 @@ try {
   console.log("✓ hỏi thường → 200 + nguồn; một dòng tl_luot_hoi không nội dung, chi phí = mẫu 450 + embedding micro-USD");
 
   // 2b) ADR-0082: dấu vân nghĩa ghi vào D1 THẬT (wrangler dev) dạng BLOB đúng độ dài; thân embeddings ĐÚNG bốn khoá, không SĐT người hỏi;
-  //     câu kế tiếp chỉ tính véc-tơ câu hỏi; ô thử có đoạn "khớp nghĩa" ⇒ véc-tơ đoạn đã được ĐỌC LẠI từ D1 và giải mã đúng (bộ nhớ isolate chỉ nạp từ D1 — R1).
+  //     câu kế tiếp chỉ tính véc-tơ câu hỏi; ô thử có đoạn "khớp nghĩa" ⇒ đoạn "khớp nghĩa" có véc-tơ giải mã đúng (từ D1 hoặc từ bộ nhớ isolate đã nạp từ D1 — e2e không phân biệt được hai nguồn; kiểu BLOB và độ dài đã khoá ở trên).
   const vn = (await sqlRows("SELECT count(*) AS n, sum(typeof(vec) = 'blob') AS b, min(length(vec)) AS mn, max(length(vec)) AS mx, min(so_chieu) AS sc FROM tl_van_nghia"))[0];
   console.log("  vn =", JSON.stringify(vn), "| lần gọi embeddings:", nhung.length, "| tiền embeddings lượt đầu:", tienNhung, "| chi phí lượt:", dong.chi_phi_micro_usd);
   assert.ok(vn.n >= 200, JSON.stringify(vn));
@@ -135,11 +136,13 @@ try {
   assert.equal(r.status, 200, JSON.stringify(r.body));
   assert.equal(nhung.length, m + 1, "câu kế tiếp chỉ tính véc-tơ câu hỏi");
   assert.equal(nhung.at(-1).body.input.length, 1);
+  const m2 = nhung.length;
   r = await call(OWNER, "POST", "/api/tro-ly/thu", { boNao: boNaoDau, cauHoi: "đổi mã PIN thế nào", vai: "SALES" });
   assert.equal(r.status, 200, JSON.stringify(r.body));
   assert.ok(r.body.doanDaChon.some((d) => d.theoNghia), JSON.stringify(r.body.doanDaChon));
-  assert.ok(r.body.chiPhiVanNghiaMicroUsd >= 1);
-  console.log("✓ dấu vân nghĩa: BLOB trên D1 thật, câu sau không tính lại đoạn, ô thử có đoạn khớp nghĩa (đọc lại BLOB)");
+  assert.equal(r.body.chiPhiVanNghiaMicroUsd, tienGoi(nhung.slice(m2)), "tiền nghĩa của ô thử = đúng các lần gọi máy giả trong ô thử");
+  console.log("  ô thử: lần gọi embeddings", nhung.length - m2, "| chiPhiVanNghiaMicroUsd", r.body.chiPhiVanNghiaMicroUsd);
+  console.log("✓ dấu vân nghĩa: BLOB trên D1 thật, câu sau không tính lại đoạn, ô thử có đoạn khớp nghĩa (véc-tơ giải mã đúng)");
 
   // 3) SĐT / email trong câu hỏi bị che TRƯỚC khi tới máy giả
   r = await hoi(SALES, "khách 0905 123 456 và lan@vidu.vn hỏi đổi PIN thế nào");
@@ -161,10 +164,17 @@ try {
   // 4b) ADR-0082 L1: Embeddings lỗi ⇒ vẫn trả lời (lùi về từ khoá), mẫu trả lời vẫn được gọi
   cheDoNhung = "loi";
   m = nhan.length;
+  const e4 = nhung.length;
   r = await hoi(SALES, "đổi PIN thế nào");
   cheDoNhung = "ok";
   assert.equal(r.status, 200, JSON.stringify(r.body));
   assert.equal(nhan.length, m + 1);
+  assert.equal(nhung.length, e4 + 1, "máy giả embeddings thật sự nhận lời gọi trong ca này (và trả 500)");
+  assert.ok(Array.isArray(r.body.nguon), JSON.stringify(r.body));
+  const dong4 = (await sqlRows("SELECT * FROM tl_luot_hoi ORDER BY created_at DESC, rowid DESC LIMIT 1"))[0];
+  assert.equal(dong4.ket_qua, "ok");
+  assert.deepEqual([dong4.token_vao, dong4.token_ra], [4200, 600]);
+  assert.equal(dong4.chi_phi_micro_usd, 450, "lượt lỗi embeddings chỉ tính tiền mẫu");
   console.log("✓ Embeddings lỗi → vẫn trả lời (lùi về từ khoá)");
 
   // 5) Toàn quyền đổi cài đặt; Quản trị, Bán hàng bị từ chối
