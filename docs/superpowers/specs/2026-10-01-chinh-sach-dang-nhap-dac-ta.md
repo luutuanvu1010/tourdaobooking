@@ -1,6 +1,6 @@
 # Chính sách đăng nhập — Toàn quyền chọn quyền nào "một máy" / "nhiều máy" (đặc tả)
 
-- **Trạng thái:** bản nháp chờ chủ duyệt (2026-10-01). Đi cùng bản nháp ADR-0085 (`2026-10-01-adr-0085-chinh-sach-dang-nhap.md`, cùng thư mục).
+- **Trạng thái:** **ĐÃ DUYỆT** 2026-10-01 (chủ: "duyêt"). Quyết định chính thức: `docs/adr/ADR-0085-chinh-sach-dang-nhap.md`. Thứ tự: làm **trước** Phần B (áp khuyến nghị — chủ chưa trả lời câu thứ tự).
 - **Mốc mã:** `main` = `6d5964ba` (sau bản 1.58 — sổ phiên một máy đã lên production).
 - **Sửa:** ADR-0075 điều 3 (miễn luật một máy) và phần lý do của bổ sung "Đồng ý ngoại lệ" ở điều 7.
 - **Xây trên lỗ đang hở:** không (`docs/quyen-hoan.json` `phat_hien` = `[]`).

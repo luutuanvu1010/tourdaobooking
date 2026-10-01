@@ -1,6 +1,6 @@
 # ADR-0085 — Chính sách đăng nhập: Toàn quyền chọn quyền app nào "một máy" / "nhiều máy" (sửa ADR-0075 điều 3)
 
-- **Trạng thái:** **proposed** (bản nháp, chờ chủ duyệt). Khi duyệt: chép sang `docs/adr/ADR-0085-chinh-sach-dang-nhap.md` + mục lục.
+- **Trạng thái:** bản nháp gốc — **đã duyệt** 2026-10-01; văn bản chính thức ở `docs/adr/ADR-0085-chinh-sach-dang-nhap.md`.
 - **Ngày:** 2026-10-01.
 - **Số:** 0085 — 0084 do nhánh chưa gộp `tro-ly-mai` giữ (kiểm `git log --all` 2026-10-01). Kiểm lại ngay trước khi chép vào `docs/adr/`.
 - **Đặc tả:** `docs/superpowers/specs/2026-10-01-chinh-sach-dang-nhap-dac-ta.md` (trang ghép §13). Lượt duyệt gồm 3 quyết định chạm quyền/dữ liệu (Q1–Q3 dưới) = trần 3.
