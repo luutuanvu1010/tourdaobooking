@@ -195,18 +195,18 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "PUT", path: "/api/parties/document-types/:code", access: "admin" }, // như trên; CCCD/GPLX không ngưng được (409 fixed_type)
   { method: "POST", path: "/api/parties/license-classes", access: "admin" }, // ADR-0040 D2: danh mục hạng giấy phép lái xe — admin.manage
   { method: "PUT", path: "/api/parties/license-classes/:code", access: "admin" }, // như trên
-  { method: "GET", path: "/api/staff", access: "admin" },
-  { method: "POST", path: "/api/staff", access: "admin" },
-  { method: "PATCH", path: "/api/staff/:id", access: "admin" },
-  { method: "PUT", path: "/api/staff/:id/permissions", access: "admin" },
-  { method: "GET", path: "/api/staff/:id/roles", access: "admin" }, // vai + chỉnh tay của một tài khoản (ADR-0018)
-  { method: "PUT", path: "/api/staff/:id/roles", access: "admin" }, // gán vai — quyền sinh từ vai (ADR-0018)
-  { method: "POST", path: "/api/staff/:id/passkeys/remove-all", access: "admin" }, // quản trị viên gỡ mọi Face ID của một tài khoản (ADR-0016 điều 6/8)
+  // ADR-0071 điều 1b: Quản lý tài khoản sang cổng MỚI "accounts" (Quản trị, Toàn quyền, Hành chính nhân sự); thân hỏi account.view / account.create / account.edit.
+  { method: "GET", path: "/api/staff", access: "accounts" },
+  { method: "POST", path: "/api/staff", access: "accounts" }, // tạo tài khoản: account.create (HCNS + Toàn quyền — Quản trị KHÔNG)
+  { method: "PATCH", path: "/api/staff/:id", access: "accounts" },
+  { method: "PUT", path: "/api/staff/:id/permissions", access: "accounts" },
+  { method: "GET", path: "/api/staff/:id/roles", access: "accounts" }, // vai + chỉnh tay của một tài khoản (ADR-0018)
+  { method: "PUT", path: "/api/staff/:id/roles", access: "accounts" }, // gán vai — quyền sinh từ vai (ADR-0018)
+  { method: "POST", path: "/api/staff/:id/passkeys/remove-all", access: "admin" }, // quản trị viên gỡ mọi Face ID của một tài khoản (ADR-0016 điều 6/8) — GIỮ cổng admin (ADR-0071 điều 1e: HCNS không)
   { method: "POST", path: "/api/staff/:id/reset-pin", access: "admin" },
   { method: "POST", path: "/api/staff/:id/unlock", access: "admin" },
-  { method: "GET", path: "/api/staff/ho-so-khop", access: "admin" }, // ADR-0068 Đ9 (C1): hồ sơ khớp khi Thêm tài khoản — admin.manage
-  { method: "GET", path: "/api/staff/sheet", access: "admin" },
-  { method: "POST", path: "/api/staff/sheet/apply", access: "admin" },
+  { method: "GET", path: "/api/staff/ho-so-khop", access: "accounts" }, // ADR-0068 Đ9 (C1): hồ sơ khớp khi Thêm tài khoản — account.create (ADR-0071)
+  // ADR-0071 điều 2: GET /api/staff/sheet, POST /api/staff/sheet/apply (đồng bộ nhân viên từ Google Sheet) ĐÃ GỠ.
   { method: "GET", path: "/api/account/passkeys", access: "staff" }, // danh sách Face ID của chính mình
   { method: "POST", path: "/api/account/passkeys", access: "staff" }, // hoàn tất đăng ký một Face ID mới
   { method: "POST", path: "/api/account/passkeys/options", access: "staff" }, // xin thách thức "register" (yêu cầu PIN hiện tại trước)
@@ -313,7 +313,7 @@ test("MODULES liệt kê ĐỦ mọi thư mục module có khai `...Module: AppM
   assert.deepEqual(routedDirs, listed, "có thư mục module khai AppModule nhưng chưa có trong MODULES của bài kiểm route-access này — thêm vào MODULES và SNAPSHOT");
 });
 
-test("mức truy cập của 200 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
+test("mức truy cập của 198 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
   const actual = await collectRealRoutes();
   // deepEqual TRƯỚC: khi có route mới/bị xoá, thông báo của nó chỉ ra ĐÚNG route lệch — hai assert.equal độ dài bên dưới chỉ để phòng hờ
   // (không bao giờ tự chạy tới nếu deepEqual đã trượt) và tài liệu hoá con số 86 để đối chiếu nhanh bằng mắt.
@@ -360,7 +360,8 @@ test("mức truy cập của 200 route hiện có khớp ảnh chụp đã duy�
   // 2026-10-01 (ADR-0068, gộp hồ sơ): + 2 route (POST /api/parties/:id/merge/preview, …/merge — admin) = 198 (gộp main 1.49: nhánh ghi 193 trên nền 191).
   // 2026-10-01 (ADR-0068 Đ8): + GET /api/parties/duplicates = 199.
   // 2026-10-01 (ADR-0068 Đ9): + GET /api/staff/ho-so-khop = 200.
+  // 2026-10-01 (ADR-0071 điều 2): − GET /api/staff/sheet, − POST /api/staff/sheet/apply (gỡ đồng bộ nhân viên từ Google Sheet) = 198.
   assert.deepEqual(actual, SNAPSHOT);
-  assert.equal(actual.length, 200, "số route thực tế lệch 200 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 200, "SNAPSHOT phải có đúng 200 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  assert.equal(actual.length, 198, "số route thực tế lệch 198 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 198, "SNAPSHOT phải có đúng 198 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

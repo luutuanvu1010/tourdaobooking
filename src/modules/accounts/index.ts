@@ -1,5 +1,6 @@
-// Module accounts — quản trị tài khoản nhân viên (chỉ admin) và đổi PIN cá nhân. Route: /api/staff*, /api/account/*.
-// Sheet nhân viên chỉ là nguồn ĐỀ XUẤT: admin xem trước rồi xác nhận; Sheet không bao giờ tự tạo/ngưng tài khoản hay cấp quyền ngoài "Bán hàng".
+// Module accounts — Quản lý tài khoản (cổng "accounts": Quản trị, Toàn quyền, Hành chính nhân sự — ADR-0071) và đổi PIN cá nhân. Route: /api/staff*, /api/account/*.
+// ADR-0071 điều 1b: TẠO tài khoản = ô account.create (HCNS + Toàn quyền, Quản trị KHÔNG); xem / sửa = account.view / account.edit; hỗ trợ đăng nhập (đặt lại PIN,
+// mở khoá, gỡ Face ID) giữ cổng "admin" + admin.manage + account.access.manage. Đồng bộ nhân viên từ Google Sheet đã GỠ HẲN (ADR-0071 điều 2).
 // Quyền trong app (ADR-0005) là tập SALES/ACCOUNTING/ADMIN/FIELD của tài khoản; KHÔNG phải vai trò hồ sơ (HDV, tài xế… — module parties).
 import { auditStatement, type AuditAction } from "../audit";
 import {
@@ -7,26 +8,23 @@ import {
   limitChallenge, listActivePasskeys, lockedPhones, logPasskeyRejected, newSessionCookie, passkeyRp, readPasskeyChallenge, revokeAllPasskeysIfSuspendedStatement,
   revokeAllPasskeysStatement, revokePasskeyStatement, toPasskeyDto, unlockPhone, verifyPinThrottled, verifyRegistration,
 } from "../auth";
-import { getMaintenanceState } from "../maintenance";
 import {
   accountRoleCodes, canManageAccount, checkAccountChange, checkStaffName, countActiveAdmins, createAccountStatements, createAccountWithRolesStatements, findStaffByPhone, hoSoKhopKhiTaoTaiKhoan,
-  generatePin, getAccountRoleState, getStaffAccount, isValidPin, listStaffAccounts, normalizePhone, parseStaffSheet, renameAccountStatements, roleChangeStatements,
+  generatePin, getAccountRoleState, getStaffAccount, isValidPin, listStaffAccounts, normalizePhone, renameAccountStatements, roleChangeStatements,
   setPermissionStatements, setPinStatement, touchCredentialsStatement, updateStaffStatement, validateFreshPin, validateNewPin, type StaffAccount,
 } from "../staff";
 import type {
   PartyMatchDto, PartyMatchResponse, PasskeyCreationOptionsResponse, PasskeyListResponse, PasskeyResponse, PasskeyRequestOptionsResponse, StaffAccountDto, StaffListResponse, StaffResponse,
-  StaffRolesResponse, StaffSheetApplyResponse, StaffSheetPreviewResponse, StaffWithPinResponse,
+  StaffRolesResponse, StaffWithPinResponse,
 } from "../../shared/contracts";
 import { toBase64Url } from "../../shared/encoding";
 import { UUID_RE, error, json, readJson } from "../../shared/http";
-import { phoneChangeProblem } from "../../shared/maintenance";
 import { PARTY_ID_RE } from "../../shared/party-id";
 import { PERMISSION_CODES, can, isPermissionCode, type PermissionCode, quyenHienThi } from "../../shared/permissions";
 import { route, type AppModule, type Ctx } from "../../shared/router";
 import {
-  highPermissionProblem, parseRoleAssignment, permissionsLabel, roleAssignmentProblem, rolesLabel, taiKhoanLaiProblem, type RoleAssignment, type RoleCode, type RoleProblem,
+  highPermissionProblem, parseRoleAssignment, permissionsLabel, roleAssignmentProblem, rolesLabel, taiKhoanLaiProblem, type RoleCode, type RoleProblem,
 } from "../../shared/roles";
-import { SheetError, fetchSheetCsv } from "../../shared/sheets";
 import { vnToday } from "../../shared/vn-date";
 
 const isUniqueViolation = (e: unknown) => e instanceof Error && /UNIQUE constraint failed: staff\.phone/.test(e.message);
@@ -37,13 +35,16 @@ const NOT_FOUND = () => error(404, "not_found", "Không tìm thấy nhân viên.
 const LAST_ADMIN = () => error(409, "account_rule", "Hệ thống phải còn ít nhất một quản trị viên đang hoạt động.");
 // ADR-0019 điều 2: lời cổng `admin` của router, nhắc lại ở thân handler khi ô `admin.manage` của bảng quyền không cho.
 const NOT_ADMIN = () => error(403, "forbidden", "Chỉ quản trị viên được thực hiện thao tác này.");
+// ADR-0071 điều 1b: lời từ chối của ba ô Quản lý tài khoản (cổng "accounts").
+const NOT_ACCOUNT_VIEW = () => error(403, "forbidden", "Tài khoản này không quản lý được tài khoản.");
+const NOT_ACCOUNT_CREATE = () => error(403, "forbidden", "Chỉ Hành chính nhân sự hoặc người phụ trách hệ thống được thêm tài khoản.");
 const NOT_SUPER_ONLY = () => error(403, "forbidden", "Việc này chỉ người phụ trách hệ thống làm được.");
 const NOT_MANAGER = () => error(403, "forbidden", "Chỉ quản lý được tài khoản cấp dưới.");
 // DK-T3-02: đặt lại PIN ở đây KHÔNG hỏi PIN cũ — áp lên chính mình thì một phiên bỏ quên đủ để chiếm hẳn tài khoản (vượt ADR-0016 điều 2a).
 const SELF_RESET_PIN = () => error(403, "forbidden", "Không tự đặt lại PIN của chính mình ở đây. Để đổi PIN, vào trang Tôi, mục “Đổi mã PIN”, rồi nhập PIN hiện tại.");
 const NO_PARTY = () => error(409, "no_party", "Tài khoản này chưa có hồ sơ (đang di trú dữ liệu). Thử lại sau ít phút.");
 const ROLE_MANAGED = () => error(409, "role_managed", "Tài khoản đã gán vai — đổi quyền bằng cách chọn vai hoặc chỉnh riêng ở mục Vai và quyền.");
-// ADR-0068 Đ9 (C2): chặn tạo hồ sơ trùng ở MÁY CHỦ — không đặt trong createAccountWithRolesStatements (dùng chung với đồng bộ Sheet, C3 giữ nguyên).
+// ADR-0068 Đ9 (C2): chặn tạo hồ sơ trùng ở MÁY CHỦ — không đặt trong createAccountWithRolesStatements (đường tạo DUY NHẤT từ khi gỡ đồng bộ Sheet — ADR-0071).
 const MATCH_EXISTS = (khop: PartyMatchDto[]) =>
   json({ error: { code: "party_match_exists", message: "Đã có hồ sơ cá nhân trùng số điện thoại hoặc họ tên. Chọn “Dùng hồ sơ này”, hoặc đánh dấu “Vẫn tạo hồ sơ mới” nếu là người khác.", khop } }, 409);
 const problemResponse = (p: RoleProblem): Response => error(p.forbidden ? 403 : 400, p.forbidden ? "forbidden" : "invalid_input", p.message);
@@ -64,18 +65,14 @@ function ruleViolation(e: unknown): Response | null {
   return null;
 }
 /**
- * ADR-0014 điều 8 áp cho tài khoản NGƯỜI KHÁC ("Admin không làm được các việc đó với một Admin/Super Admin KHÁC") — tự sửa chính
+ * ADR-0014 điều 8 + ADR-0071 điều 1c áp cho tài khoản NGƯỜI KHÁC ("Admin không làm được các việc đó với một Admin/Super Admin KHÁC"; Quản trị và HCNS không
+ * sửa tài khoản giữ Quản trị / Toàn quyền / Nhân sự) — tự sửa chính
  * mình đi theo luật riêng đã có từ trước (`checkAccountChange`: không tự ngưng/tự đổi quyền), không bị chặn thêm ở đây, kẻo che mất
  * thông báo cụ thể hơn của luật đó (và khoá luôn cả việc tự mở khoá của chính mình — chưa từng bị cấm).
  * Riêng tự ĐẶT LẠI PIN của chính mình thì bị chặn ngay trong route reset-pin (DK-T3-02, `SELF_RESET_PIN`), không ở hàm này — unlock và
  * passkeys/remove-all vẫn dùng hàm này nguyên như cũ.
  */
 const mayManage = (actor: { id: string; permissions: readonly PermissionCode[] }, target: StaffAccount): boolean => actor.id === target.id || canManageAccount(actor.permissions, target.permissions);
-
-function sheetError(e: unknown): Response {
-  if (e instanceof SheetError) return error(e.code === "sheet_unreachable" ? 502 : 424, e.code, e.message);
-  throw e;
-}
 
 // Giới hạn độ dài do module parties giữ (khớp CHECK của pty_person): kiểm Ở ĐÂY để tên quá dài thành 400, không làm vỡ db.batch() thành 500.
 function cleanName(v: unknown): { value?: string; error?: string } {
@@ -331,16 +328,16 @@ export const accountsModule: AppModule = {
     }),
 
     // ---- Danh sách / tạo thủ công ------------------------------------------------
-    route("GET", "/api/staff", "admin", async ({ env, staff: admin }) => {
-      if (!can(admin, "admin.manage")) return NOT_ADMIN();
+    route("GET", "/api/staff", "accounts", async ({ env, staff: admin }) => {
+      if (!can(admin, "account.view")) return NOT_ACCOUNT_VIEW();
       const [staff, locked, passkeys] = await Promise.all([listStaffAccounts(env.DB), lockedPhones(env.DB), countActivePasskeys(env.DB)]);
       const roles = await accountRoleCodes(env.DB, staff);
       const seesHidden = can(admin, "admin.manage.superadmin"); // ADR-0042: Toàn quyền là vai ẩn với người khác
       return json({ staff: staff.map((s) => ({ ...dto(s, locked, passkeys, roles), permissions: quyenHienThi(s.permissions, seesHidden) })) } satisfies StaffListResponse);
     }),
 
-    route("POST", "/api/staff", "admin", async ({ request, env, staff: admin }) => {
-      if (!can(admin, "admin.manage")) return NOT_ADMIN();
+    route("POST", "/api/staff", "accounts", async ({ request, env, staff: admin }) => {
+      if (!can(admin, "account.create")) return NOT_ACCOUNT_CREATE(); // ADR-0071 điều 1b: Quản trị KHÔNG tạo tài khoản nữa
       const actorIsSuper = can(admin, "admin.manage.superadmin"); // LC-4 (ADR-0019): "là Toàn quyền" do bảng quyền trả lời, không kiểm tay
       const db = env.DB;
       const body = await readJson(request);
@@ -410,82 +407,23 @@ export const accountsModule: AppModule = {
     }),
 
     // ADR-0068 Đ9 (C1): giao diện Thêm tài khoản hỏi "có hồ sơ khớp không" TRONG LÚC GÕ — cùng một hàm với 409 party_match_exists (không hai luật).
-    route("GET", "/api/staff/ho-so-khop", "admin", async ({ env, url, staff: admin }) => {
-      if (!can(admin, "admin.manage")) return NOT_ADMIN();
+    // ADR-0071: cùng ô account.create với POST /api/staff (một phần của luồng tạo; 409 party_match_exists của POST trả đúng dữ liệu này — không lộ thêm gì).
+    route("GET", "/api/staff/ho-so-khop", "accounts", async ({ env, url, staff: admin }) => {
+      if (!can(admin, "account.create")) return NOT_ACCOUNT_CREATE();
       const phone = normalizePhone(url.searchParams.get("phone") ?? "");
       const ten = (url.searchParams.get("ten") ?? "").trim().slice(0, 200);
       if (!phone && !ten) return json({ khop: [] } satisfies PartyMatchResponse);
       return json({ khop: await hoSoKhopKhiTaoTaiKhoan(env.DB, { phone, ten: ten || null }) } satisfies PartyMatchResponse);
     }),
 
-    // ---- Đồng bộ từ Google Sheet: xem trước rồi áp dụng --------------------------
-    route("GET", "/api/staff/sheet", "admin", async ({ env, staff: admin }) => {
-      if (!can(admin, "admin.manage")) return NOT_ADMIN();
-      if (!can(admin, "staff.sheet.sync")) return NOT_SUPER_ONLY(); // ADR-0038 điều 6 (sửa bởi ADR-0042: ô đăng nhập mở lại cho Quản trị, chỉ cấp dưới qua mayManage)
-      let parsed;
-      try {
-        parsed = parseStaffSheet(await fetchSheetCsv(env.STAFF_SHEET_ID));
-      } catch (e) {
-        return sheetError(e);
-      }
-      if (!parsed.ok) return error(422, "sheet_bad_format", `Sheet thiếu cột "Tên người dùng" hoặc "Số điện thoại" (đọc được: ${parsed.headers.join(" | ")}).`);
-      const existing = new Map((await listStaffAccounts(env.DB)).map((s) => [s.phone, s]));
-      const inSheet = new Set(parsed.candidates.map((c) => c.phone));
-      return json({
-        candidates: parsed.candidates.map((c) => {
-          const have = existing.get(c.phone);
-          return { row: c.row, name: c.name, phone: c.phone, status: !have ? "new" : have.fullName === c.name ? "same" : "name_differs", currentName: have?.fullName ?? null };
-        }),
-        problems: parsed.problems,
-        notInSheet: [...existing.values()].filter((s) => !inSheet.has(s.phone)).map((s) => ({ fullName: s.fullName, phone: s.phone, active: s.active })),
-      } satisfies StaffSheetPreviewResponse);
-    }),
-
-    route("POST", "/api/staff/sheet/apply", "admin", async ({ request, env, staff: admin }) => {
-      if (!can(admin, "admin.manage")) return NOT_ADMIN();
-      if (!can(admin, "staff.sheet.sync")) return NOT_SUPER_ONLY(); // ADR-0038 điều 6 (sửa bởi ADR-0042: ô đăng nhập mở lại cho Quản trị, chỉ cấp dưới qua mayManage)
-      const db = env.DB;
-      const body = await readJson(request);
-      const wanted = Array.isArray(body?.phones) ? body.phones.filter((p): p is string => typeof p === "string") : [];
-      if (wanted.length === 0) return error(400, "invalid_input", "Chưa chọn ai để thêm.");
-      // Tải lại Sheet và chỉ tin dữ liệu của Sheet, không tin tên/SĐT do client gửi.
-      let parsed;
-      try {
-        parsed = parseStaffSheet(await fetchSheetCsv(env.STAFF_SHEET_ID));
-      } catch (e) {
-        return sheetError(e);
-      }
-      if (!parsed.ok) return error(422, "sheet_bad_format", "Sheet thiếu cột bắt buộc.");
-      const pick = new Set(wanted);
-      const todo = [];
-      for (const c of parsed.candidates) if (pick.has(c.phone) && !(await findStaffByPhone(db, c.phone))) todo.push(c);
-      if (todo.length === 0) return error(409, "nothing_to_add", "Không có ai để thêm (đã có tài khoản hoặc Sheet vừa thay đổi). Hãy đồng bộ lại.");
-      const salesStaff: RoleAssignment = { roles: ["SALES_STAFF"], adds: [], removes: [], reason: null };
-      const made = await Promise.all(todo.map(async (c) => {
-        const r = await createAccountWithRolesStatements(db, { fullName: c.name, phone: c.phone, assignment: salesStaff, existingPartyId: null }, admin.id);
-        if (!r.ok) throw new Error(r.message); // hồ sơ mới luôn hợp lệ — không xảy ra
-        return { c, ...r };
-      }));
-      try {
-        await db.batch([
-          ...made.flatMap((m) => [...m.statements, adminAudit(db, admin.id, "staff_created", m.id, "nạp từ Google Sheet, vai: Nhân viên kinh doanh")]),
-          adminAudit(db, admin.id, "staff_synced", undefined, `thêm ${made.length} tài khoản từ Google Sheet`),
-        ]);
-      } catch (e) {
-        if (isUniqueViolation(e)) return error(409, "phone_taken", "Có số điện thoại vừa được tạo bởi người khác. Hãy đồng bộ lại.");
-        throw e;
-      }
-      return json({ created: made.map((m) => ({ id: m.id, fullName: m.c.name, phone: m.c.phone, pin: m.pin })) } satisfies StaffSheetApplyResponse, 201);
-    }),
-
     // ---- Sửa một tài khoản (tên, SĐT đăng nhập, ngưng/kích hoạt) --------------------------------
-    route("PATCH", "/api/staff/:id", "admin", async (ctx) => {
+    route("PATCH", "/api/staff/:id", "accounts", async (ctx) => {
       const { request, env, staff: admin } = ctx;
-      if (!can(admin, "admin.manage")) return NOT_ADMIN();
+      if (!can(admin, "account.edit")) return NOT_ACCOUNT_VIEW();
       const db = env.DB;
       const t = await target(ctx);
       if (!t) return NOT_FOUND();
-      // ADR-0014 điều 8: Quản trị viên chỉ quản lý được tài khoản cấp dưới (không giữ ADMIN/SUPER_ADMIN); Super Admin quản lý được mọi tài khoản.
+      // ADR-0014 điều 8 + ADR-0071 điều 1c: Quản trị / HCNS chỉ quản lý được tài khoản cấp dưới (không giữ ADMIN/SUPER_ADMIN/HR); Toàn quyền quản lý được mọi tài khoản.
       if (!mayManage(admin, t)) return NOT_MANAGER();
       const body = await readJson(request);
       if (!body) return error(400, "invalid_input", "Dữ liệu không hợp lệ.");
@@ -499,9 +437,7 @@ export const accountsModule: AppModule = {
         const phone = typeof body.phone === "string" ? normalizePhone(body.phone) : null;
         if (!phone) return error(400, "invalid_input", "Số điện thoại không hợp lệ.");
         if (phone !== t.phone) {
-          // Chế độ bảo trì nhận diện chủ dự án theo SĐT: đổi SĐT của tài khoản chủ sẽ khoá chính họ (đang bật thì không ai tắt được từ giao diện) hoặc để số cũ rơi vào tay người khác.
-          const locksOwner = phoneChangeProblem(await getMaintenanceState(db), t.phone, phone);
-          if (locksOwner) return error(409, "account_rule", locksOwner);
+          // ADR-0071 điều 3d: bảo trì miễn trừ theo QUYỀN Toàn quyền, không theo SĐT — đổi SĐT không còn đụng tới chế độ bảo trì (bỏ luật phoneChangeProblem).
           if (await findStaffByPhone(db, phone)) return PHONE_TAKEN();
           patch.phone = phone;
         }
@@ -534,14 +470,14 @@ export const accountsModule: AppModule = {
     }),
 
     // ---- Đặt tập quyền của tài khoản (ADR-0005) ---------------------------------------------------------
-    route("PUT", "/api/staff/:id/permissions", "admin", async (ctx) => {
+    route("PUT", "/api/staff/:id/permissions", "accounts", async (ctx) => {
       const { request, env, staff: admin } = ctx;
-      if (!can(admin, "admin.manage")) return NOT_ADMIN();
+      if (!can(admin, "account.edit")) return NOT_ACCOUNT_VIEW();
       const actorIsSuper = can(admin, "admin.manage.superadmin");
       const db = env.DB;
       const t = await target(ctx);
       if (!t) return NOT_FOUND();
-      // ADR-0014 điều 8: Quản trị viên chỉ quản lý được tài khoản cấp dưới; Super Admin quản lý được mọi tài khoản.
+      // ADR-0014 điều 8 + ADR-0071 điều 1c: Quản trị / HCNS chỉ quản lý được tài khoản cấp dưới; Toàn quyền quản lý được mọi tài khoản.
       if (!mayManage(admin, t)) return NOT_MANAGER();
       const state = await getAccountRoleState(db, t, vnToday(new Date()));
       if (state && state.roles.length > 0) return ROLE_MANAGED();
@@ -575,8 +511,8 @@ export const accountsModule: AppModule = {
     }),
 
     // ---- Vai với Tour Đảo của tài khoản (ADR-0018) ---------------------------------------------------------
-    route("GET", "/api/staff/:id/roles", "admin", async (ctx) => {
-      if (!can(ctx.staff, "admin.manage")) return NOT_ADMIN();
+    route("GET", "/api/staff/:id/roles", "accounts", async (ctx) => {
+      if (!can(ctx.staff, "account.view")) return NOT_ACCOUNT_VIEW();
       const t = await target(ctx);
       if (!t) return NOT_FOUND();
       if (!mayManage(ctx.staff, t)) return NOT_MANAGER(); // ADR-0042: vai + chỉnh riêng của tài khoản Toàn quyền/Quản trị khác không lộ cho Quản trị
@@ -585,9 +521,9 @@ export const accountsModule: AppModule = {
       return json({ roles: state.roles, adds: state.adds, removes: state.removes, reason: state.reason } satisfies StaffRolesResponse);
     }),
 
-    route("PUT", "/api/staff/:id/roles", "admin", async (ctx) => {
+    route("PUT", "/api/staff/:id/roles", "accounts", async (ctx) => {
       const { request, env, staff: admin } = ctx;
-      if (!can(admin, "admin.manage")) return NOT_ADMIN();
+      if (!can(admin, "account.edit")) return NOT_ACCOUNT_VIEW();
       const actorIsSuper = can(admin, "admin.manage.superadmin");
       const db = env.DB;
       const t = await target(ctx);
@@ -638,7 +574,7 @@ export const accountsModule: AppModule = {
 
     route("POST", "/api/staff/:id/reset-pin", "admin", async (ctx) => {
       if (!can(ctx.staff, "admin.manage")) return NOT_ADMIN();
-      if (!can(ctx.staff, "account.access.manage")) return NOT_SUPER_ONLY(); // ADR-0038 điều 6 (sửa bởi ADR-0042: ô đăng nhập mở lại cho Quản trị, chỉ cấp dưới qua mayManage)
+      if (!can(ctx.staff, "account.access.manage")) return NOT_SUPER_ONLY(); // ADR-0038 điều 6 (sửa bởi ADR-0042: ô đăng nhập mở lại cho Quản trị, chỉ cấp dưới qua mayManage); ADR-0071 điều 1e: HCNS không
       const db = ctx.env.DB;
       const t = await target(ctx);
       if (!t) return NOT_FOUND();

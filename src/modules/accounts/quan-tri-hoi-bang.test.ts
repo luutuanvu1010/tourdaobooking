@@ -12,6 +12,7 @@ const ADM = "33333333-3333-4333-8333-333333333333";
 const ADM2 = "66666666-6666-4666-8666-666666666666";
 const SUP = "77777777-7777-4777-8777-777777777777";
 const PARTNER = "88888888-8888-4888-8888-888888888888";
+const HR = "44444444-4444-4444-8444-444444444444";
 
 function setup() {
   const w = world();
@@ -20,6 +21,7 @@ function setup() {
   seedStaff(w.sqlite, { id: ADM2, phone: "0900000006", name: "Quản trị Hai", perms: ["ADMIN"] });
   seedStaff(w.sqlite, { id: SUP, phone: "0900000007", name: "Chủ", perms: ["SUPER_ADMIN"] });
   seedStaff(w.sqlite, { id: PARTNER, phone: "0900000008", name: "Đối tác", perms: ["PARTNER"] });
+  seedStaff(w.sqlite, { id: HR, phone: "0900000004", name: "Nhân sự", perms: ["HR"] });
   return w;
 }
 const logCount = (w: any, action: string) => w.q("SELECT count(*) n FROM audit_log WHERE action = ?", action)[0].n;
@@ -49,10 +51,11 @@ test("luật cấp bậc giữ nguyên: quản trị sửa được cấp dướ
   assert.equal((await w.call("PATCH", `/api/staff/${ADM2}`, { as: SUP, body: { fullName: "Hai Mới" } })).status, 200);
 });
 
-test("LC-4 qua bảng quyền: quản trị cấp Quản trị cho tài khoản tạo mới → 403; toàn quyền → 201", async () => {
+test("LC-4 qua bảng quyền: Hành chính nhân sự cấp Quản trị cho tài khoản tạo mới → 403 (Quản trị không tạo tài khoản — ADR-0071); toàn quyền → 201", async () => {
   const w = setup();
   const body = { fullName: "Người Mới", phone: "0911000222", permissions: ["SALES", "ADMIN"] };
   assert.equal((await w.call("POST", "/api/staff", { as: ADM, body })).status, 403);
+  assert.equal((await w.call("POST", "/api/staff", { as: HR, body })).status, 403);
   assert.equal(w.q("SELECT count(*) n FROM staff WHERE phone = '0911000222'")[0].n, 0);
   assert.equal((await w.call("POST", "/api/staff", { as: SUP, body })).status, 201);
 });

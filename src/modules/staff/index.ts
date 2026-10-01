@@ -14,13 +14,12 @@ import {
   type AdjustmentRow, type StaffRow,
 } from "./repository";
 import { canManageAccount, checkAccountChange, generatePin, isWeakPin, partyAccountVerdict, validateFreshPin } from "./rules";
-import { parseStaffSheet as parseSheetRows, type StaffCandidate, type StaffSheetParse } from "./sheet";
 import type { PartyMatchDto, StaffAccount, StaffProfile } from "../../shared/contracts";
 import { PERMISSION_CODES, type PermissionCode } from "../../shared/permissions";
 import { ROLES, ROLE_CODES, effectivePermissions, groupOf, isRoleCode, type RoleAssignment, type RoleCode } from "../../shared/roles";
 import { addDays, vnToday } from "../../shared/vn-date";
 
-export type { StaffAccount, StaffCandidate, StaffProfile, StaffSheetParse };
+export type { StaffAccount, StaffProfile };
 export {
   canManageAccount, checkAccountChange, countActiveAdmins, generatePin, hashPin, isValidPin, isWeakPin, normalizePhone,
   touchCredentialsStatement, updateStaffStatement, validateFreshPin,
@@ -43,9 +42,6 @@ export function checkStaffName(fullName: string): string | null {
   const checked = validatePersonFullName(fullName);
   return checked.ok ? null : checked.message;
 }
-
-/** Đọc Sheet nhân viên, dùng chính luật tên của hồ sơ để loại dòng tên không hợp lệ (thành "dòng có vấn đề"). */
-export const parseStaffSheet = (csv: string): StaffSheetParse => parseSheetRows(csv, checkStaffName);
 
 function toProfile(s: StaffRow): StaffProfile {
   return { id: s.id, fullName: s.label, phone: s.phone, partyId: s.party_id, permissions: parsePermissions(s.permissions) };

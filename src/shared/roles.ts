@@ -5,7 +5,7 @@
 import { PERMISSION_CODES, PERMISSION_LABEL, isExternalPermission, isPermissionCode, type PermissionCode } from "./permissions.ts";
 
 export const ROLE_CODES = [
-  "DIRECTOR", "OPERATIONS_MANAGER", "GUIDE_INTERNAL", "SALES_STAFF", "INTERN", "ACCOUNTANT", "IT", "DRIVER_INTERNAL",
+  "DIRECTOR", "OPERATIONS_MANAGER", "GUIDE_INTERNAL", "SALES_STAFF", "INTERN", "ACCOUNTANT", "IT", "DRIVER_INTERNAL", "HR_STAFF",
   "TRAVEL_AGENCY", "GUIDE_FREELANCE", "HOTEL_RECEPTION", "TAXI_DRIVER", "COLLABORATOR", "DRIVER_EXTERNAL",
 ] as const;
 export type RoleCode = (typeof ROLE_CODES)[number];
@@ -35,6 +35,9 @@ export const ROLES: Readonly<Record<RoleCode, RoleDef>> = {
   // ADR-0040 D3 (Ruling R1, R12): tài xế là NHÂN VIÊN có tài khoản; không nhận đơn (không phải người phụ trách đơn). Mã vai hồ sơ cũ DRIVER (nhóm OTHER,
   // đã ngưng) KHÔNG phải vai này — không bao giờ sinh quyền. Quản trị gán được như "Hướng dẫn viên nội bộ".
   DRIVER_INTERNAL: { name: "Tài xế công ty", group: "INTERNAL", defaults: ["DRIVER"], handles: "never", superAdminOnly: false },
+  // ADR-0071 điều 1a, 1d: Hành chính nhân sự — nhập MỌI tài khoản (nội bộ, đối tác, tài xế đối tác), không nhận đơn. CHỈ Toàn quyền gán (vai này tạo được mọi
+  // tài khoản), như Giám đốc / Điều hành chung.
+  HR_STAFF: { name: "Hành chính nhân sự", group: "INTERNAL", defaults: ["HR"], handles: "never", superAdminOnly: true },
   TRAVEL_AGENCY: { name: "Công ty lữ hành", group: "EXTERNAL", defaults: ["PARTNER"], handles: "never", superAdminOnly: false },
   GUIDE_FREELANCE: { name: "Hướng dẫn viên độc lập", group: "EXTERNAL", defaults: ["PARTNER"], handles: "never", superAdminOnly: false },
   HOTEL_RECEPTION: { name: "Lễ tân khách sạn", group: "EXTERNAL", defaults: ["PARTNER"], handles: "never", superAdminOnly: false },
@@ -48,8 +51,25 @@ export const ROLES: Readonly<Record<RoleCode, RoleDef>> = {
 export const ROLE_GROUP_LABEL: Readonly<Record<RoleGroup, string>> = { INTERNAL: "Nội bộ", EXTERNAL: "Bên ngoài" };
 export const isRoleCode = (v: unknown): v is RoleCode => typeof v === "string" && (ROLE_CODES as readonly string[]).includes(v);
 
-/** LC-4: quyền chỉ Toàn quyền được cấp hoặc gỡ. */
-export const SUPER_ADMIN_GRANTED: readonly PermissionCode[] = ["ADMIN", "SUPER_ADMIN"];
+/** LC-4: quyền chỉ Toàn quyền được cấp hoặc gỡ — ADR-0071 điều 1d thêm HR (Nhân sự). */
+export const SUPER_ADMIN_GRANTED: readonly PermissionCode[] = ["ADMIN", "SUPER_ADMIN", "HR"];
+
+/**
+ * ADR-0014 điều 8 (đính chính trực tiếp của chủ dự án) + ADR-0071 điều 1c: người giữ `ADMIN` hoặc `HR` chỉ quản lý được tài khoản "cấp dưới" — KHÔNG giữ
+ * `ADMIN`, `SUPER_ADMIN` hay `HR` (Quản trị không sửa HCNS; HCNS không sửa HCNS khác, không sửa Quản trị). `SUPER_ADMIN` quản lý được mọi tài khoản. Không
+ * phải một ô của MATRIX (Scope không diễn đạt được "so cấp bậc mục tiêu"). MỘT nguồn cho máy chủ (`accounts`, `staff`) và giao diện (web/staff.ts).
+ */
+export function canManageAccount(actor: readonly PermissionCode[], target: readonly PermissionCode[]): boolean {
+  if (actor.includes("SUPER_ADMIN")) return true;
+  if (!actor.includes("ADMIN") && !actor.includes("HR")) return false;
+  return !target.some((p) => SUPER_ADMIN_GRANTED.includes(p));
+}
+
+/** Lời 403 khi gán / gỡ vai chỉ Toàn quyền được gán — liệt kê đúng các vai đó (đọc từ ROLES, không chép tay). */
+const VAI_QUAN_LY_MESSAGE = `Chỉ người phụ trách hệ thống mới gán hoặc gỡ vai ${ROLE_CODES.filter((r) => ROLES[r].superAdminOnly).map((r) => ROLES[r].name).join(", ")}.`;
+/** Lời 403 khi cấp / gỡ quyền chỉ Toàn quyền được cấp: nhắc Quản trị khi đụng Quản trị/Toàn quyền, nhắc Nhân sự khi chỉ đụng Nhân sự. */
+const capCaoMessage = (changed: readonly PermissionCode[]): string =>
+  `Chỉ người phụ trách hệ thống mới cấp hoặc gỡ quyền ${changed.some((p) => p !== "HR") ? "Quản trị" : PERMISSION_LABEL.HR}.`;
 
 /**
  * ADR-0048 B2.2 (Q4 = (a)): vai "Tài xế đối tác" đi cùng một vai BÊN NGOÀI khác (mọi vai bên ngoài khác sinh PARTNER) — một người chọn một. MỘT nguồn cho
@@ -123,11 +143,11 @@ export interface RoleProblem {
   readonly message: string;
 }
 
-/** LC-4 cho MỌI đường đổi quyền (gán vai, route cũ PUT …/permissions, tạo tài khoản): chỉ Toàn quyền cấp hoặc gỡ Quản trị/Toàn quyền. */
+/** LC-4 cho MỌI đường đổi quyền (gán vai, route cũ PUT …/permissions, tạo tài khoản): chỉ Toàn quyền cấp hoặc gỡ Quản trị/Toàn quyền/Nhân sự. */
 export function highPermissionProblem(actorIsSuper: boolean, current: readonly PermissionCode[], next: readonly PermissionCode[]): RoleProblem | null {
   if (actorIsSuper) return null;
-  const changed = SUPER_ADMIN_GRANTED.some((p) => current.includes(p) !== next.includes(p));
-  return changed ? { forbidden: true, message: "Chỉ người phụ trách hệ thống mới cấp hoặc gỡ quyền Quản trị." } : null;
+  const changed = SUPER_ADMIN_GRANTED.filter((p) => current.includes(p) !== next.includes(p));
+  return changed.length ? { forbidden: true, message: capCaoMessage(changed) } : null;
 }
 
 /**
@@ -154,14 +174,14 @@ export function roleAssignmentProblem(a: {
   }
   if (!a.actorIsSuper) {
     const touched = [...a.next.roles.filter((r) => !a.currentRoles.includes(r)), ...a.currentRoles.filter((r) => !a.next.roles.includes(r))];
-    if (touched.some((r) => ROLES[r].superAdminOnly)) return { forbidden: true, message: "Chỉ người phụ trách hệ thống mới gán hoặc gỡ vai Giám đốc, Điều hành chung." };
+    if (touched.some((r) => ROLES[r].superAdminOnly)) return { forbidden: true, message: VAI_QUAN_LY_MESSAGE };
     // I-1 (kiểm độc lập vòng 1): chặn cả khi chỉnh tay Quản trị/Toàn quyền "ngủ" — quyền hiệu lực hôm nay không đổi (vai hiện tại đã có sẵn hoặc
     // chưa từng cần đến quyền đó) nhưng dòng chỉnh tay sẽ phát tác khi vai đổi sau này. So danh sách chỉnh tay MUỐN với danh sách chỉnh tay ĐANG CÓ,
     // không so quyền hiệu lực ròng (highPermissionProblem ở dưới lo phần đó).
-    const adjustmentChanged = SUPER_ADMIN_GRANTED.some(
+    const adjustmentChanged = SUPER_ADMIN_GRANTED.filter(
       (p) => a.next.adds.includes(p) !== a.currentAdjustments.adds.includes(p) || a.next.removes.includes(p) !== a.currentAdjustments.removes.includes(p),
     );
-    if (adjustmentChanged) return { forbidden: true, message: "Chỉ người phụ trách hệ thống mới cấp hoặc gỡ quyền Quản trị." };
+    if (adjustmentChanged.length) return { forbidden: true, message: capCaoMessage(adjustmentChanged) };
   }
   const next = effectivePermissions(a.next.roles, a.next).permissions;
   const high = highPermissionProblem(a.actorIsSuper, a.currentPermissions, next);

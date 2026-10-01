@@ -100,7 +100,7 @@ export function world(tuyChon = {}) {
   } else if (tuyChon.demNhan) {
     ungDung = app.taoAppChoKhungThu({ nhanNhanVien: async (_env, ids) => (goiNhan.push([...ids]), new Map(ids.map((id) => [id, `Nhãn ${id.slice(0, 4)}`]))) });
   }
-  const env = { DB: fakeD1(sqlite), SESSION_SECRET: SECRET, STAFF_SHEET_ID: "x", SERVICES_SHEET_ID: "x" };
+  const env = { DB: fakeD1(sqlite), SESSION_SECRET: SECRET, SERVICES_SHEET_ID: "x" };
   // Danh mục đã đồng bộ gần đây để POST /api/orders không đi gọi Google Sheet.
   sqlite.exec(`UPDATE catalog_sync SET last_attempt_at = '${new Date().toISOString()}', last_success_at = '${new Date().toISOString()}' WHERE id = 'default'`);
   const exec = { waitUntil: () => {}, passThroughOnException: () => {} };

@@ -48,7 +48,7 @@ test("số giấy tờ của người chỉ rời máy chủ ở 'xem đủ số
   const w = world();
   seedStaff(w.sqlite, { id: ADM, phone: "0900000003", name: "Quản trị", perms: ["ADMIN"] });
   seedStaff(w.sqlite, { id: SUP, phone: "0900000007", name: "Chủ", perms: ["SUPER_ADMIN"] });
-  const tk = await w.call("POST", "/api/staff", { as: ADM, body: { fullName: "Tài Xế Dò Số", phone: "0900000097", roles: ["DRIVER_INTERNAL"] } });
+  const tk = await w.call("POST", "/api/staff", { as: SUP, body: { fullName: "Tài Xế Dò Số", phone: "0900000097", roles: ["DRIVER_INTERNAL"] } });
   assert.equal(tk.status, 201, tk.text);
   const TX = tk.json.staff.id as string;
   const P = w.q("SELECT party_id FROM staff WHERE id = ?", TX)[0].party_id as string;
@@ -127,7 +127,7 @@ test("số giấy tờ của người chỉ rời máy chủ ở 'xem đủ số
   for (const k of Object.keys(TUYEN)) await TUYEN[k]!();
   await goi("hồ sơ người", "GET", `/api/parties/${P}`, ADM, undefined, 200);
   // ADR-0048 D1: tài xế đối tác của một nhà xe, giấy tờ có số đánh dấu, sắp hết hạn → lên danh sách "sắp hết hạn" (nhãn nhà xe, KHÔNG số).
-  const tkDt = await w.call("POST", "/api/staff", { as: ADM, body: { fullName: "Tài Xế Đối Tác Dò Số", phone: "0900000096", roles: ["DRIVER_EXTERNAL"] } });
+  const tkDt = await w.call("POST", "/api/staff", { as: SUP, body: { fullName: "Tài Xế Đối Tác Dò Số", phone: "0900000096", roles: ["DRIVER_EXTERNAL"] } });
   assert.equal(tkDt.status, 201, tkDt.text);
   const PDT = w.q("SELECT party_id FROM staff WHERE id = ?", tkDt.json.staff.id)[0].party_id as string;
   const nhaXe = (await w.call("POST", "/api/parties", { as: ADM, body: { kind: "ORGANIZATION", displayName: "Nhà Xe Dò Số" } })).json.party.id as string;

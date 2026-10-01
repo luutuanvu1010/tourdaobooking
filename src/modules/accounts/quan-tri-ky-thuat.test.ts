@@ -1,6 +1,7 @@
-// ADR-0038 điều 6 (chủ chọn phương án A, chat 2026-09-27) + ADR-0042 (sửa điều 6 cùng ngày): Quản trị giữ việc kinh doanh + nhân sự — tạo/sửa/ngưng
-// tài khoản cấp dưới, gán vai thường, đặt lại PIN / mở khoá / gỡ Face ID cho cấp dưới (`account.access.manage`); đồng bộ nhân viên từ Sheet
-// (`staff.sheet.sync`) và trang Nhật ký (`audit.view`) chỉ Toàn quyền; Toàn quyền là vai ẩn. Chạy CẢ ứng dụng trên SQLite thật (khuôn quan-tri-hoi-bang.test.ts).
+// ADR-0038 điều 6 (chủ chọn phương án A, chat 2026-09-27) + ADR-0042 (sửa điều 6 cùng ngày) + ADR-0071: Quản trị giữ việc kinh doanh + nhân sự — sửa/ngưng
+// tài khoản cấp dưới, gán vai thường, đặt lại PIN / mở khoá / gỡ Face ID cho cấp dưới (`account.access.manage`); KHÔNG tạo tài khoản nữa (ADR-0071 điều 1b —
+// bài HCNS ở hanh-chinh-nhan-su.test.ts); trang Nhật ký (`audit.view`) chỉ Toàn quyền; đồng bộ nhân viên từ Sheet đã gỡ (ADR-0071 điều 2); Toàn quyền là vai
+// ẩn. Chạy CẢ ứng dụng trên SQLite thật (khuôn quan-tri-hoi-bang.test.ts).
 import { test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
@@ -19,18 +20,12 @@ function setup() {
 }
 const logCount = (w: any, action: string) => w.q("SELECT count(*) n FROM audit_log WHERE action = ?", action)[0].n;
 
-test("ADR-0042: Quản trị bị chặn 403 ở ba việc kỹ thuật còn lại (đồng bộ Sheet, trang Nhật ký), không ghi gì", async () => {
+test("ADR-0042: Quản trị bị chặn 403 ở việc kỹ thuật còn lại (trang Nhật ký), không ghi gì; đồng bộ Sheet không còn route (ADR-0071 điều 2)", async () => {
   const w = setup();
-  const calls: [string, string, unknown?][] = [
-    ["GET", "/api/staff/sheet"],
-    ["POST", "/api/staff/sheet/apply", { phones: ["0900000001"] }],
-    ["GET", "/api/audit"],
-  ];
-  for (const [method, path, body] of calls) {
-    const r = await w.call(method, path, { as: ADM, body });
-    assert.equal(r.status, 403, `${method} ${path}: ${r.text}`);
-    assert.doesNotMatch(r.text, /Toàn quyền|Super Admin/i, "câu báo lỗi không nhắc vai ẩn");
-  }
+  const r = await w.call("GET", "/api/audit", { as: ADM });
+  assert.equal(r.status, 403, r.text);
+  assert.doesNotMatch(r.text, /Toàn quyền|Super Admin/i, "câu báo lỗi không nhắc vai ẩn");
+  assert.equal((await w.call("POST", "/api/staff/sheet/apply", { as: SUP, body: { phones: ["0900000001"] } })).status, 404);
   assert.equal(logCount(w, "staff_synced"), 0);
 });
 
@@ -71,11 +66,11 @@ test("ADR-0038 điều 6: Toàn quyền vẫn đặt lại PIN, mở khoá, xem 
   assert.equal((await w.call("GET", "/api/audit", { as: SUP })).status, 200);
 });
 
-test("ADR-0038 điều 6: Quản trị GIỮ việc nhân sự — tạo, sửa tên, ngưng, kích hoạt lại tài khoản cấp dưới; xem danh sách tài khoản", async () => {
+test("ADR-0038 điều 6 + ADR-0071: Quản trị GIỮ sửa tên, ngưng, kích hoạt lại tài khoản cấp dưới; xem danh sách tài khoản — nhưng KHÔNG tạo tài khoản (403)", async () => {
   const w = setup();
   assert.equal((await w.call("GET", "/api/staff", { as: ADM })).status, 200);
   const created = await w.call("POST", "/api/staff", { as: ADM, body: { fullName: "Người Mới", phone: "0911000111", roles: ["SALES_STAFF"] } });
-  assert.equal(created.status, 201, created.text);
+  assert.equal(created.status, 403, created.text);
   assert.equal((await w.call("PATCH", `/api/staff/${SALES}`, { as: ADM, body: { fullName: "An Đổi Tên" } })).status, 200);
   assert.equal((await w.call("PATCH", `/api/staff/${SALES}`, { as: ADM, body: { active: false } })).status, 200);
   assert.equal((await w.call("PATCH", `/api/staff/${SALES}`, { as: ADM, body: { active: true } })).status, 200);

@@ -44,7 +44,7 @@ async function taoTheoVai(w: any, as: string, phone: string, roles: string[]): P
 test("#1 POST /api/staff có vai: 'Tài xế taxi' + 'Tài xế đối tác' → 400 câu dễ hiểu, không tạo tài khoản, không quyền, không nhật ký", async () => {
   const w = setup();
   const [perms, logs] = [permRows(w), logRows(w)];
-  const r = await w.call("POST", "/api/staff", { as: ADM, body: { fullName: "Người Lai", phone: "0911000301", roles: ["TAXI_DRIVER", "DRIVER_EXTERNAL"] } });
+  const r = await w.call("POST", "/api/staff", { as: SUP, body: { fullName: "Người Lai", phone: "0911000301", roles: ["TAXI_DRIVER", "DRIVER_EXTERNAL"] } });
   assert.equal(r.status, 400, r.text);
   assert.equal(r.json.error.code, "invalid_input");
   assert.equal(r.json.error.message, "Vai Tài xế đối tác không đi cùng vai bên ngoài khác — một người chọn một: đối tác đặt đơn hoặc tài xế đối tác.");
@@ -56,14 +56,14 @@ test("#1 POST /api/staff có vai: 'Tài xế taxi' + 'Tài xế đối tác' →
 test("#2 POST /api/staff đường cũ: permissions Tài xế đối tác + Bán hàng → 400 (lời kiểm máy chủ, không phải lỗi trigger), không ghi gì", async () => {
   const w = setup();
   const [perms, logs] = [permRows(w), logRows(w)];
-  const r = await w.call("POST", "/api/staff", { as: ADM, body: { fullName: "Người Lai Hai", phone: "0911000302", permissions: ["DRIVER_PARTNER", "SALES"] } });
+  const r = await w.call("POST", "/api/staff", { as: SUP, body: { fullName: "Người Lai Hai", phone: "0911000302", permissions: ["DRIVER_PARTNER", "SALES"] } });
   assert.equal(r.status, 400, r.text);
   assert.deepEqual(r.json.error, { code: "invalid_input", message: LAI });
   assert.equal(staffByPhone(w, "0911000302"), 0);
   assert.equal(permRows(w), perms);
   assert.equal(logRows(w), logs);
   // Đường cũ vẫn tạo được tài khoản chỉ-Tài xế đối tác (đứng một mình).
-  const ok = await w.call("POST", "/api/staff", { as: ADM, body: { fullName: "Tài Xế Đường Cũ", phone: "0911000303", permissions: ["DRIVER_PARTNER"] } });
+  const ok = await w.call("POST", "/api/staff", { as: SUP, body: { fullName: "Tài Xế Đường Cũ", phone: "0911000303", permissions: ["DRIVER_PARTNER"] } });
   assert.equal(ok.status, 201, ok.text);
   assert.deepEqual(openPerms(w, ok.json.staff.id), ["DRIVER_PARTNER"]);
 });
@@ -86,7 +86,7 @@ test("#4 PUT /api/staff/:id/permissions (tài khoản chưa gán vai): Đối t�
 
 test("#5 PUT /api/staff/:id/roles: 'Tài xế đối tác' + cộng tay Đối tác → 400, vai và quyền giữ nguyên, không nhật ký đổi vai", async () => {
   const w = setup();
-  const id = await taoTheoVai(w, ADM, "0911000304", ["DRIVER_EXTERNAL"]);
+  const id = await taoTheoVai(w, SUP, "0911000304", ["DRIVER_EXTERNAL"]);
   assert.deepEqual(openPerms(w, id), ["DRIVER_PARTNER"]);
   const [perms, logs] = [permRows(w), logRows(w)];
   const r = await w.call("PUT", `/api/staff/${id}/roles`, { as: ADM, body: { roles: ["DRIVER_EXTERNAL"], adds: ["PARTNER"], reason: "thử lai" } });
@@ -100,7 +100,7 @@ test("#5 PUT /api/staff/:id/roles: 'Tài xế đối tác' + cộng tay Đối t
 
 test("#5 PUT /api/staff/:id/roles: gán cùng lúc 'Tài xế taxi' + 'Tài xế đối tác' → 400 câu 'một người chọn một'", async () => {
   const w = setup();
-  const id = await taoTheoVai(w, ADM, "0911000305", ["TAXI_DRIVER"]);
+  const id = await taoTheoVai(w, SUP, "0911000305", ["TAXI_DRIVER"]);
   const r = await w.call("PUT", `/api/staff/${id}/roles`, { as: ADM, body: { roles: ["TAXI_DRIVER", "DRIVER_EXTERNAL"] } });
   assert.equal(r.status, 400, r.text);
   assert.match(r.json.error.message, /một người chọn một/);
@@ -109,7 +109,7 @@ test("#5 PUT /api/staff/:id/roles: gán cùng lúc 'Tài xế taxi' + 'Tài xế
 
 test("5b (i): 'Tài xế taxi' → 'Tài xế đối tác' → 200, đúng MỘT quyền mở DRIVER_PARTNER; đổi ngược lại → 200, đúng PARTNER (lô một: đóng trước, mở sau)", async () => {
   const w = setup();
-  const id = await taoTheoVai(w, ADM, "0911000306", ["TAXI_DRIVER"]);
+  const id = await taoTheoVai(w, SUP, "0911000306", ["TAXI_DRIVER"]);
   assert.deepEqual(openPerms(w, id), ["PARTNER"]);
   const sang = await w.call("PUT", `/api/staff/${id}/roles`, { as: ADM, body: { roles: ["DRIVER_EXTERNAL"] } });
   assert.equal(sang.status, 200, sang.text);
@@ -134,10 +134,10 @@ test("5b (ii): Toàn quyền đổi 'Điều hành chung' (Quản trị; còn Qu
 
 test("không đường ghi quyền nào ra 500 với tổ hợp lai (năm đường, mỗi đường một ca)", async () => {
   const w = setup();
-  const id = await taoTheoVai(w, ADM, "0911000308", ["DRIVER_EXTERNAL"]);
+  const id = await taoTheoVai(w, SUP, "0911000308", ["DRIVER_EXTERNAL"]);
   const ca = [
-    await w.call("POST", "/api/staff", { as: ADM, body: { fullName: "Lai Một", phone: "0911000309", roles: ["COLLABORATOR", "DRIVER_EXTERNAL"] } }),
-    await w.call("POST", "/api/staff", { as: ADM, body: { fullName: "Lai Hai", phone: "0911000310", permissions: ["DRIVER", "DRIVER_PARTNER"] } }),
+    await w.call("POST", "/api/staff", { as: SUP, body: { fullName: "Lai Một", phone: "0911000309", roles: ["COLLABORATOR", "DRIVER_EXTERNAL"] } }),
+    await w.call("POST", "/api/staff", { as: SUP, body: { fullName: "Lai Hai", phone: "0911000310", permissions: ["DRIVER", "DRIVER_PARTNER"] } }),
     await w.call("PUT", `/api/staff/${CU}/permissions`, { as: ADM, body: { permissions: ["DRIVER_PARTNER", "SALES"] } }),
     await w.call("PUT", `/api/staff/${id}/roles`, { as: ADM, body: { roles: ["DRIVER_EXTERNAL"], adds: ["PARTNER"], reason: "lai" } }),
   ];

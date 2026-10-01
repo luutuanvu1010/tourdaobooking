@@ -13,12 +13,14 @@ async function nen() {
   const w = world();
   seedStaff(w.sqlite, { id: SALES, phone: "0900000001", name: "Bán Hàng", perms: ["SALES"] });
   seedStaff(w.sqlite, { id: ADM, phone: "0900000003", name: "Quản Trị", perms: ["ADMIN"] });
+  // ADR-0071: chỉ Hành chính nhân sự / Toàn quyền tạo tài khoản — người tạo trong các bài dưới là Toàn quyền.
+  seedStaff(w.sqlite, { id: SUP, phone: "0900000004", name: "Toàn Quyền", perms: ["ADMIN", "SUPER_ADMIN"] });
   const r = await w.call("POST", "/api/parties", { as: ADM, body: { kind: "PERSON", fullName: "Nguyễn Phú Hải", contacts: [{ kind: "PHONE", value: SO }] } });
   const P = r.json.party.id as string;
   assert.equal((await w.call("POST", `/api/parties/${P}/roles`, { as: ADM, body: { roleTypeCode: "BOAT_CAPTAIN" } })).status, 201);
   return { w, P };
 }
-const tao = (w: any, body: Record<string, unknown>) => w.call("POST", "/api/staff", { as: ADM, body: { roles: ["SALES_STAFF"], ...body } });
+const tao = (w: any, body: Record<string, unknown>) => w.call("POST", "/api/staff", { as: SUP, body: { roles: ["SALES_STAFF"], ...body } });
 
 test("C2: tên khớp (chữ thường, khoảng trắng thừa) → 409 kèm danh sách; không SĐT của hồ sơ khác; không tạo gì", async () => {
   const { w, P } = await nen();
@@ -51,15 +53,15 @@ test("C2: có cờ taoHoSoMoi → tạo như cũ (hồ sơ MỚI); không khớp
 
 test("C2 đường cũ (danh sách quyền): cũng chặn khi khớp, cũng nhận cờ", async () => {
   const { w } = await nen();
-  const r = await w.call("POST", "/api/staff", { as: ADM, body: { fullName: "Nguyễn Phú Hải", phone: "0900000053", permissions: ["SALES"] } });
+  const r = await w.call("POST", "/api/staff", { as: SUP, body: { fullName: "Nguyễn Phú Hải", phone: "0900000053", permissions: ["SALES"] } });
   assert.equal(r.status, 409, r.text);
   assert.equal(r.json.error.code, "party_match_exists");
-  assert.equal((await w.call("POST", "/api/staff", { as: ADM, body: { fullName: "Nguyễn Phú Hải", phone: "0900000053", permissions: ["SALES"], taoHoSoMoi: true } })).status, 201);
+  assert.equal((await w.call("POST", "/api/staff", { as: SUP, body: { fullName: "Nguyễn Phú Hải", phone: "0900000053", permissions: ["SALES"], taoHoSoMoi: true } })).status, 201);
 });
 
 test("C1 [Dừng Q4]: GET /api/staff/ho-so-khop trả ĐÚNG danh sách của 409; Bán hàng → 403; thiếu cả hai tham số → rỗng", async () => {
   const { w, P } = await nen();
-  const r = await w.call("GET", `/api/staff/ho-so-khop?phone=${SO}&ten=${encodeURIComponent("Nguyễn Phú Hải")}`, { as: ADM });
+  const r = await w.call("GET", `/api/staff/ho-so-khop?phone=${SO}&ten=${encodeURIComponent("Nguyễn Phú Hải")}`, { as: SUP });
   assert.equal(r.status, 200, r.text);
   assert.deepEqual(r.json.khop.map((k: any) => [k.id, k.lyDo]), [[P, ["PHONE", "NAME"]]]);
   // F20: route đọc trả ĐÚNG danh sách của 409 (cùng tham số) — một luật, không hai.
@@ -67,22 +69,6 @@ test("C1 [Dừng Q4]: GET /api/staff/ho-so-khop trả ĐÚNG danh sách của 40
   assert.equal(post.status, 409, post.text);
   assert.deepEqual(r.json.khop, post.json.error.khop);
   assert.equal((await w.call("GET", `/api/staff/ho-so-khop?phone=${SO}`, { as: SALES })).status, 403);
-  assert.deepEqual((await w.call("GET", "/api/staff/ho-so-khop", { as: ADM })).json, { khop: [] });
-});
-
-test("C3: đồng bộ Sheet (POST /api/staff/sheet/apply) vẫn tạo hồ sơ mới dù tên trùng hồ sơ có sẵn — không cờ, không 409", async () => {
-  const { w, P } = await nen();
-  seedStaff(w.sqlite, { id: SUP, phone: "0900000004", name: "Toàn Quyền", perms: ["ADMIN", "SUPER_ADMIN"] });
-  w.env.STAFF_SHEET_ID = "abcdefghij1234567890";
-  const goc = globalThis.fetch;
-  globalThis.fetch = (async () => new Response("Tên người dùng,Số điện thoại\nNguyễn Phú Hải,0900000077\n", { status: 200, headers: { "content-type": "text/csv" } })) as typeof fetch;
-  try {
-    const r = await w.call("POST", "/api/staff/sheet/apply", { as: SUP, body: { phones: ["0900000077"] } });
-    assert.equal(r.status, 201, r.text);
-    const moi = w.q("SELECT party_id FROM staff WHERE phone = ?", "0900000077");
-    assert.equal(moi.length, 1);
-    assert.notEqual(moi[0].party_id, P);
-  } finally {
-    globalThis.fetch = goc;
-  }
+  assert.equal((await w.call("GET", `/api/staff/ho-so-khop?phone=${SO}`, { as: ADM })).status, 403, "ADR-0071: Quản trị không tạo tài khoản ⇒ không hỏi hồ sơ khớp");
+  assert.deepEqual((await w.call("GET", "/api/staff/ho-so-khop", { as: SUP })).json, { khop: [] });
 });
