@@ -7,6 +7,7 @@
 import assert from "node:assert/strict";
 import { mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 import { ACCOUNTS, clickText, ok, setInput, startEnv } from "../../2026-09-20-a2/kich-ban/a2-cdp.mjs";
 
 const OUT = process.env.OUT ?? "docs/evidence/2026-09-24-mo-hinh-vai";
@@ -27,21 +28,25 @@ const guiThem = async (p) => {
 };
 const preview = (scope) => `document.querySelector(${JSON.stringify(`${scope} [data-role-preview]`)}).textContent`;
 
+// ADR-0071 điều 1b: Quản trị KHÔNG còn tạo tài khoản — người tạo ở các bước A–C là tài khoản CHỈ Nhân sự (vai Hành chính nhân sự), dựng thêm trên D1 tạm.
+const NHAN_SU = { name: "Nhân Sự Chrome", phone: "0900000293", pin: "246893", permissions: ["HR"] };
+
 const env = await startEnv();
 try {
+  const { insertStaffSql } = await import(pathToFileURL(join(process.cwd(), "scripts", "staff-lib.mjs")).href);
+  for (const stmt of (await insertStaffSql(NHAN_SU)).split("\n").filter(Boolean)) env.sql(stmt);
   const axe = async (p, label) => {
     if (!(await p.ev("typeof axe !== 'undefined'"))) await p.ev(`${AXE}\n;true`);
     const v = await p.ev(`axe.run(document).then((r) => r.violations.filter((x) => x.impact === 'critical' || x.impact === 'serious').map((x) => x.id))`);
     assert.deepEqual(v, [], `axe (${label}): ${JSON.stringify(v)}`);
   };
 
-  // ---- A. Form thêm (máy tính): Quản trị thấy 10 ô vai — 13 vai trừ 3 vai chỉ Toàn quyền gán (Giám đốc, Điều hành chung, IT) bị ẨN hẳn từ ADR-0042
-  // (trước đây là "tắt"; kịch bản cũ khoá 11 ô + ".disabled" đã đỏ sẵn từ ADR-0042 — đo ở Task A0 Vận chuyển 1a: 9 ô); ADR-0040 D3 thêm "Tài xế công ty"
-  // (nhóm Nội bộ). Chọn Kế toán → nhóm Bên ngoài tắt, xem trước "Kế toán".
-  let p = await env.as(ACCOUNTS.admin, "/staff", DESK);
+  // ---- A. Form thêm (máy tính): người tạo (Nhân sự — ADR-0071) thấy 11 ô vai — 15 vai trừ 4 vai chỉ Toàn quyền gán (Giám đốc, Điều hành chung, IT, Hành
+  // chính nhân sự) bị ẨN hẳn từ ADR-0042; ADR-0040 D3 thêm "Tài xế công ty" (nhóm Nội bộ). Chọn Kế toán → nhóm Bên ngoài tắt, xem trước "Kế toán".
+  let p = await env.as(NHAN_SU, "/staff", DESK);
   await p.waitFor(`!!${box("#add-perms", "role", "ACCOUNTANT")}`, "khối chọn vai đã dựng");
-  assert.equal(await p.ev(`document.querySelectorAll('#add-perms input[data-kind=role]').length`), 11); // ADR-0048 D2: + "Tài xế đối tác" (nhóm Bên ngoài) — 14 vai trừ 3 vai chỉ Toàn quyền gán
-  assert.equal(await p.ev(`${box("#add-perms", "role", "DIRECTOR")} === null && ${box("#add-perms", "role", "OPERATIONS_MANAGER")} === null && ${box("#add-perms", "role", "IT")} === null`), true, "LC-4 + ADR-0042: Quản trị không thấy vai chỉ Toàn quyền gán");
+  assert.equal(await p.ev(`document.querySelectorAll('#add-perms input[data-kind=role]').length`), 11); // ADR-0071: + "Hành chính nhân sự" (chỉ Toàn quyền gán, ẩn) — 15 vai trừ 4
+  assert.equal(await p.ev(`${box("#add-perms", "role", "DIRECTOR")} === null && ${box("#add-perms", "role", "OPERATIONS_MANAGER")} === null && ${box("#add-perms", "role", "IT")} === null && ${box("#add-perms", "role", "HR_STAFF")} === null`), true, "LC-4 + ADR-0042: người không giữ Toàn quyền không thấy vai chỉ Toàn quyền gán");
   // ADR-0040 D3 (Ruling R12): ô "Tài xế công ty" ở nhóm Nội bộ; chọn thử → xem trước "Quyền sẽ có: Tài xế." rồi bỏ chọn (không ảnh hưởng các bước sau).
   assert.equal(await p.ev(`${box("#add-perms", "role", "DRIVER_INTERNAL")}.closest('label').textContent.trim()`), "Tài xế công ty");
   assert.equal(await p.ev(`${box("#add-perms", "role", "DRIVER_INTERNAL")}.closest('label').parentElement.querySelector('strong').textContent.trim()`), "Nội bộ", "vai Tài xế công ty nằm ở nhóm Nội bộ");
@@ -124,11 +129,16 @@ try {
   // chọn sẵn, vai người dùng đã tích (Nhân viên kinh doanh) vẫn giữ; lưu được và danh sách hiện đủ hai vai.
   const KT_NAME = "Kế Toán Có Sẵn Chrome";
   const KT_PHONE = "0912345680";
-  const ktParty = await p.ev(`fetch('/api/parties', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ kind: 'PERSON', fullName: ${JSON.stringify(KT_NAME)}, contacts: [{ kind: 'PHONE', value: ${JSON.stringify(KT_PHONE)} }] }) }).then((r) => r.json()).then((b) => b.party.id)`);
+  // Nhân sự không ghi Danh bạ (ADR-0071 điều 1e): hồ sơ có sẵn dựng bằng phiên Quản trị gọi thẳng API (không qua trang — kho cookie của trang giữ nguyên).
+  const ckQT = await env.login(ACCOUNTS.admin);
+  const taoHs = await fetch(`${env.base}/api/parties`, { method: "POST", headers: { "content-type": "application/json", origin: env.base, cookie: `${ckQT.name}=${ckQT.value}` }, body: JSON.stringify({ kind: "PERSON", fullName: KT_NAME, contacts: [{ kind: "PHONE", value: KT_PHONE }] }) });
+  assert.equal(taoHs.status, 201, `tạo hồ sơ có sẵn: ${taoHs.status}`);
+  const ktParty = (await taoHs.json()).party.id;
   env.sql(`INSERT INTO pty_party_role (id, party_id, role_type_code, location_id, valid_from_date, created_at, updated_at) VALUES ('chrome-r26', '${ktParty}', 'ACCOUNTANT', NULL, '2026-09-01', '2026-09-01T00:00:00.000Z', '2026-09-01T00:00:00.000Z')`);
   await p.ev(`(${box("#add-perms", "role", "SALES_STAFF")}).click(), true`);
   await p.ev(setInput("document.querySelector('#add-phone')", KT_PHONE));
-  // ADR-0068 C1: khối #add-khop liệt kê mọi hồ sơ khớp; bấm "Dùng hồ sơ này" ở đúng dòng của hồ sơ có sẵn.
+  // ADR-0068 C1: khối #add-khop liệt kê mọi hồ sơ khớp; bấm "Dùng hồ sơ này" ở đúng dòng của hồ sơ có sẵn. Hồ sơ này đang mở vai tài khoản (Kế toán) nên
+  // Nhân sự thấy được tên (ADR-0071 điều 3b); vai chọn sẵn lấy từ kết quả khớp (`vaiTaiKhoan`), không đọc Danh bạ.
   await p.waitFor(`[...document.querySelectorAll('#add-khop li')].some((li) => li.textContent.includes(${JSON.stringify(KT_NAME)}))`, "khối hồ sơ khớp có hồ sơ có sẵn");
   assert.equal(await p.ev(`(() => { const li = [...document.querySelectorAll('#add-khop li')].find((x) => x.textContent.includes(${JSON.stringify(KT_NAME)})); const b = [...li.querySelectorAll('button')].find((x) => x.textContent.trim() === 'Dùng hồ sơ này'); if (!b) return false; b.click(); return true; })()`), true, "nút Dùng hồ sơ này");
   await p.waitFor(`${box("#add-perms", "role", "ACCOUNTANT")}.checked`, "R26: vai Kế toán hồ sơ đang giữ được chọn sẵn");
