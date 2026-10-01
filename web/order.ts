@@ -695,7 +695,7 @@ function render(order: Order, history: AuditEntry[], canModify: boolean, handler
           : null
       : null;
   // Cảnh báo sớm lúc xác nhận (lời chủ 1/10 "2 — Có"): chỉ cảnh báo, vẫn xác nhận được.
-  const canhBaoXN = a.confirm ? canhBaoXacNhan(order.services, khachDon?.soNguoiCoTen ?? null) : [];
+  const canhBaoXN = a.confirm ? canhBaoXacNhan(order.services, khachDon ? khachDon.passengers.map((p) => p.personKey) : null) : [];
   // ADR-0049 V12: chặng đơn nháp còn dưới mốc chưa đặt gấp (luật kiemMocDat, dữ liệu N-14) — chỉ để hiện; máy chủ vẫn quyết lúc xác nhận (409).
   const canDatGap = changDuoiMoc(order, mocPhut, Date.now());
   const duocDatGap = can(staff!, "order.leg.short_notice");

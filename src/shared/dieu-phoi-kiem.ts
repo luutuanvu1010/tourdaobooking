@@ -198,14 +198,19 @@ export interface KiemXepVao {
 
 // ---- Nơi trả, đủ tên: MỘT luật cho cổng xuất bến (giữ) và cảnh báo sớm lúc xếp (lời chủ 1/10 "chỉ cảnh báo, không chặn") ----------------------------
 /** CHUA_CO_NOI_TRA: chặng chưa có nơi trả (không điểm danh mục, không địa chỉ gõ tự do — `coNoiTra`). */
-export const lyDoNoiTra = (ch: ChangVao): LyDoGiu | null => (ch.coNoiTra ? null : lyDoGiu("CHUA_CO_NOI_TRA", ch.orderCode));
+// Kiểu vào là `Pick` (chỉ các trường luật đọc) để cảnh báo LÚC XÁC NHẬN ĐƠN ở trang đơn (src/shared/canh-bao-xac-nhan.ts — Người 1, kế hoạch 2026-10-01) gọi
+// CHÍNH hai hàm này từ chặng của chi tiết đơn, không viết luật thứ hai.
+export const lyDoNoiTra = (ch: Pick<ChangVao, "coNoiTra" | "orderCode">): LyDoGiu | null => (ch.coNoiTra ? null : lyDoGiu("CHUA_CO_NOI_TRA", ch.orderCode));
+/** Số tên còn thiếu của chặng (vế của THIEU_TEN — dùng ở `lyDoThieuTen` và câu "Còn N khách chưa có tên" lúc xác nhận đơn). */
+export const soTenThieu = (ch: Pick<ChangVao, "soNguoi" | "nguoiCuaDon">, trenChuyen: { chuaTen: number; ranh: number } = { chuaTen: 0, ranh: 0 }): number =>
+  Math.max(ch.soNguoi - ch.nguoiCuaDon.length, trenChuyen.chuaTen - trenChuyen.ranh, 0);
 /**
  * THIEU_TEN (I12, I19b): số tên còn thiếu = max(số người − hành khách hiện hành của đơn, suất chưa tên trên chuyến − khoá người rảnh, 0) — CHỈ khi chính sách
  * bắt danh sách (`requireManifest`). Lúc xếp không có vế thứ hai (`trenChuyen` mặc định 0/0): khi mọi khoá đã gắn thuộc đơn, vế hai không vượt vế một (bài
  * "MỘT luật hai nơi" ở dieu-phoi-kiem.test.ts so cảnh báo lúc xếp với lý do giữ của cổng xuất bến trên trạng thái sau khi xếp).
  */
-export function lyDoThieuTen(ch: ChangVao, requireManifest: boolean, trenChuyen: { chuaTen: number; ranh: number } = { chuaTen: 0, ranh: 0 }): LyDoGiu | null {
-  const thieu = Math.max(ch.soNguoi - ch.nguoiCuaDon.length, trenChuyen.chuaTen - trenChuyen.ranh, 0);
+export function lyDoThieuTen(ch: Pick<ChangVao, "orderCode" | "soNguoi" | "nguoiCuaDon">, requireManifest: boolean, trenChuyen: { chuaTen: number; ranh: number } = { chuaTen: 0, ranh: 0 }): LyDoGiu | null {
+  const thieu = soTenThieu(ch, trenChuyen);
   return requireManifest && thieu > 0 ? lyDoGiu("THIEU_TEN", `${ch.orderCode} thiếu ${thieu} tên`) : null;
 }
 
