@@ -54,3 +54,9 @@ Không `innerHTML`; ô gõ 16px; CSS chỉ token; chữ tiếng Việt có dấu
 9. Chữ khớp danh sách câu chữ bản vẽ; không chữ Anh / mã thô; 390 + 1040 không tràn ngang.
 10. `npm test`, `npm run typecheck`, e2e liên quan (`chang-hanh-khach`, `dieu-phoi`, `orders`, `catalog`, `pwa`) xanh; kịch bản Chrome + ảnh ở `docs/evidence/2026-10-01-dua-don-hanh-khach/`.
 11. Nhật ký phiên bản: mục mới (số = lớn nhất + 1 lúc gộp).
+
+## Kết quả (điều phối, 2026-10-01 16:55)
+
+- Người 2 (M7 + cảnh báo xếp) @c953c426: kiểm độc lập **ĐẠT CÓ ĐIỀU KIỆN** (điều kiện e2e). Người 1 (M1–M6 + cảnh báo xác nhận) @9020f0c6, đã gộp Người 2: kiểm độc lập **ĐẠT CÓ ĐIỀU KIỆN** (điều kiện e2e), không CAO/VỪA.
+- Gộp vào nhánh này + `origin/main` + nhật ký phiên bản **1.57** (@99a57503): `npm run typecheck` 0 lỗi; `npm test` 2511/2511; **e2e đủ bộ 37/37** (gồm `dua-don-dau-cuoi`, `audit-invariants`). Bài đo giờ hook đỏ do máy tải 24–98 (nhánh không đổi hook; lúc máy rảnh trước đó xanh) — chạy lại khi máy rảnh.
+- Nợ nhỏ (không chặn): PM-1 `PUT /api/orders/:id` trả 400 thay vì 409 khi chặng vừa bị bỏ; PM-2 `GET /passengers` sắp theo `created_at, id` ⇒ thứ tự khác thứ tự nhập (sửa: `rowid` / cột thứ tự — cần chủ); trang đơn nhắc thiếu tên cả khi chính sách tắt `requireManifest`; mã đơn vị `perPax` lộ ở Danh mục (có từ trước); lịch sử mẫu chặng thiếu cột "Người đổi" và bảng điều phối chưa hiện số hiệu chuyến bay (chờ chủ — thêm khoá DTO); D6 "Nhà riêng" chờ chủ; chữ tự đặt: "Đã xác nhận đơn.", "Đã lưu đưa đón.", "Đã lưu danh sách hành khách.", "Điểm đã ngưng"; đề xuất dòng mới cho bảng kịch bản Chrome của `web/CLAUDE.md` (ở hai nhật ký thi công).
