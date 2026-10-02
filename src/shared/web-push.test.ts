@@ -266,3 +266,10 @@ test("guiLo: mỗi lời gọi có hạn giờ (signal); hết hạn → lỗi t
   }
   assert.ok(signals[0] instanceof AbortSignal, "fetch phải có signal hạn giờ");
 });
+
+test("nguoiNhanDay { chuyen }: đúng người tinChuyenCho chọn — tài xế được xếp; người bấm và Kế toán không", () => {
+  const d = { id: "ev", tripId: "t1", maChuyen: "CX-1", ngayChay: "2027-03-11", action: "trip_created", actorId: "s", luc: "2027-03-11T04:00:00.000Z",
+    lai: [{ partyId: "p-b", tu: "2027-03-11T04:00:00.000Z", den: null }], don: [] };
+  const tk = [{ id: "tx", permissions: ["DRIVER" as const], partyId: "p-b" }, { id: "s", permissions: ["SALES" as const], partyId: null }, { id: "kt", permissions: ["ACCOUNTING" as const], partyId: null }];
+  assert.deepEqual(nguoiNhanDay(tk, { chuyen: d }, "2027-03-11T05:00:00.000Z"), ["tx"]);
+});

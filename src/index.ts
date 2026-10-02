@@ -10,11 +10,13 @@
 // wrangler cần lớp đó được export từ tệp chính.
 // WEB PUSH (ADR-0036): cũng ở `baoThayDoi` gốc lắp ráp gõ cửa màn hình khoá (`dayGoCua` của `thongbao`) độc lập với phát Bảng tin; `thongbao` giao lô
 // cho trạm qua hàm tiêm `giaoLoDay` (không cạnh thongbao → bangtin); `dongBangTin` còn tắt máy nhận của tài khoản vừa đổi (mọi máy / trừ máy mới / chỉ máy của phiên bị gỡ).
+// TIN CHUYẾN (ADR-0052 D6): route van-chuyen gọi `ctx.baoThayDoiChuyen` sau lô thành công; gốc lắp ráp đọc hành động theo requestId (van-chuyen), phát Bảng tin
+// chuyến (nhóm `dieu-xe` + tài xế có dòng lái lúc sự kiện) và gõ cửa tin chuyến (`dayGoCua` với `{ chuyen }`); hộp thông báo đọc dữ kiện qua `ctx.chuyenChoTin`.
 
 import { accountsModule } from "./modules/accounts";
 import { auditModule } from "./modules/audit";
 import { authModule, checkAuthConfig, currentStaff } from "./modules/auth";
-import { bangtinModule, dongCua, phatDon, xepHangDay } from "./modules/bangtin";
+import { bangtinModule, dongCua, phatChuyen, phatDon, xepHangDay } from "./modules/bangtin";
 import { billingModule, nhapKeToanCuaDon, soDongNoCuaNguoi } from "./modules/billing";
 import { receiptModule } from "./modules/receipt";
 import { catalogModule, runScheduledSync } from "./modules/catalog";
@@ -27,10 +29,11 @@ import { maintenanceBlock, maintenanceModule } from "./modules/maintenance";
 import { partiesModule } from "./modules/parties";
 import { cauDoiNguoiDat, donCuaNguoiDat, findOrderRef, ordersModule } from "./modules/orders";
 import { accountOfParty, listStaffAccounts, nhanNhanVienTheoId, soDangNhapTheoHoSo } from "./modules/staff";
-import { dayGoCua, tatMayCuaCacPhienStatement, tatMayCuaPhienStatement, tatMayStatement, tatMayTruPhienStatement, thongbaoModule } from "./modules/thongbao";
+import { dayGoCua, dongChuyenTheoId, tatMayCuaCacPhienStatement, tatMayCuaPhienStatement, tatMayStatement, tatMayTruPhienStatement, thongbaoModule } from "./modules/thongbao";
 import { troLyModule } from "./modules/tro-ly";
-import { chuyenChoTinTheoId, mocToiThieuHienHanh, nguongHetHanHienHanh, vanChuyenModule, viecXeCuaNguoi } from "./modules/van-chuyen";
-import { HANDLER_TRUOC_KHONG_BIET, nhanSuKien } from "./shared/bang-tin";
+import { chuyenChoTinTheoId, mocToiThieuHienHanh, nguongHetHanHienHanh, suKienTheoYeuCau, vanChuyenModule, viecXeCuaNguoi } from "./modules/van-chuyen";
+import { HANDLER_TRUOC_KHONG_BIET, nhanSuKien, nhanSuKienChuyen } from "./shared/bang-tin";
+import { laHanhDongTinChuyen, taiXeNhanSuKien, thayDoiCuaHanhDongChuyen } from "./shared/tin-chuyen";
 import { hanhDongCuaThayDoi, khoaVapid } from "./shared/web-push";
 import { createApp, type AppOptions } from "./shared/router";
 
@@ -92,6 +95,23 @@ const APP_OPTIONS: AppOptions = {
           },
           quanTrong: false,
         }, (ds) => xepHangDay(env, ds))],
+      ]);
+    },
+    // TIN CHUYẾN (ADR-0052 D6.3, D6.4). Bảng tin: MỌI lệnh chuyến (màn đang mở tự tải lại) — chuyến nguồn và chuyến liên quan (dời khách); gõ cửa: chỉ
+    // hành động sinh tin (HANH_DONG_TIN_CHUYEN). Hai việc độc lập. Kiểm TRƯỚC mọi lần đọc D1: không trạm VÀ không khoá gõ cửa (khung thử, e2e) → thôi.
+    baoThayDoiChuyen: async (env, _actor, e) => {
+      if (!env.BANG_TIN && !khoaVapid(env)) return;
+      const ev = await suKienTheoYeuCau(env.DB, e.requestId);
+      if (!ev || (ev.tripId !== e.tripId && ev.relatedTripId !== e.tripId)) return;
+      const noi = (q: { tripIds: readonly string[]; suKienIds: readonly string[] }) => chuyenChoTinTheoId(env.DB, q);
+      const tripIds = ev.relatedTripId ? [ev.tripId, ev.relatedTripId] : [ev.tripId];
+      const [dong, f, taiKhoan] = await Promise.all([dongChuyenTheoId(env.DB, ev.id, noi), noi({ tripIds, suKienIds: [] }), listStaffAccounts(env.DB)]);
+      if (!dong) return;
+      const dangHoatDong = taiKhoan.filter((s) => s.active);
+      const thayDoi = thayDoiCuaHanhDongChuyen(dong.action);
+      await nemNeuLoi([
+        ["tram", Promise.all(f.chuyen.map((c) => phatChuyen(env, { loai: "chuyen", maChuyen: c.ma, thayDoi, luc: dong.luc }, nhanSuKienChuyen(taiXeNhanSuKien(dangHoatDong, c.lai, dong.luc)))))],
+        ["day", laHanhDongTinChuyen(dong.action) ? dayGoCua(env, { chuyen: dong, quanTrong: false }, (ds) => xepHangDay(env, ds)) : null],
       ]);
     },
     // Đóng kết nối Bảng tin (mọi lần gọi) + tắt mọi máy nhận thông báo điện thoại của tài khoản đó CHỈ khi `tatThongBao` (ADR-0046: thao tác bảo

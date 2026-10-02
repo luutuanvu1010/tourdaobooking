@@ -8,7 +8,7 @@
 // Lối vào DUY NHẤT là binding BANG_TIN: không route nào chuyển tiếp đường dẫn tuỳ ý tới trạm; `fetch` chỉ nhận yêu cầu bắt tay do route
 // GET /api/bang-tin dựng MỚI (nhãn đã tính ở máy chủ — BT-2), các RPC `phat`/`dongCua` chỉ do gốc lắp ráp gọi.
 import { DurableObject } from "cloudflare:workers";
-import type { SuKienDon } from "../../shared/bang-tin";
+import type { SuKienChuyen, SuKienDon } from "../../shared/bang-tin";
 import { docHanGiay, hetHan, keHoachTram, mocBaoThuc, type KetNoiXet } from "./rules";
 import { chiaLo, guiLo, khoaVapid } from "../../shared/web-push";
 
@@ -87,7 +87,7 @@ export class BangTin extends DurableObject<Env> {
   }
 
   /** RPC (gốc lắp ráp): đóng kết nối quá hạn (4001) rồi gửi `suKien` tới kết nối còn hạn có ít nhất một nhãn trong `nhan` — mỗi kết nối nhiều nhất một lần. */
-  async phat(suKien: SuKienDon, nhan: string[]): Promise<void> {
+  async phat(suKien: SuKienDon | SuKienChuyen, nhan: string[]): Promise<void> {
     const ds = this.ctx.getWebSockets();
     const keHoach = keHoachTram(ds.map((ws) => this.xet(ws)), nhan, Date.now());
     for (const i of keHoach.dong) dong(ds[i]!, MA_QUA_HAN, "het-han");

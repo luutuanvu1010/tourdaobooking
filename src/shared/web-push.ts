@@ -3,6 +3,7 @@
 import type { ThayDoiDon } from "./bang-tin.ts";
 import type { PermissionHolder } from "./permissions.ts";
 import { locHopThongBao, type DongDon, type DongThuCong } from "./thong-bao.ts";
+import type { DongChuyen } from "./tin-chuyen.ts";
 import { vnHour } from "./vn-date.ts";
 
 /** Tên máy chủ dịch vụ đẩy được coi là hợp lệ — khớp CHÍNH XÁC hoặc là một máy con (subdomain) của các tên này. */
@@ -73,14 +74,15 @@ export function hanhDongCuaThayDoi(t: ThayDoiDon): string | null {
  * mọi luật đó đã có sẵn trong `locHopThongBao`). `now` phải là ISO đủ mili-giây (hàm so chuỗi — xem `chuanHoaMocGio`).
  */
 export function nguoiNhanDay(
-  taiKhoan: PermissionHolder[],
-  tin: { don: DongDon } | { thuCong: DongThuCong },
+  taiKhoan: (PermissionHolder & { readonly partyId?: string | null })[],
+  tin: { don: DongDon } | { thuCong: DongThuCong } | { chuyen: DongChuyen },
   now: string,
 ): string[] {
   const don = "don" in tin ? [tin.don] : [];
   const thuCong = "thuCong" in tin ? [tin.thuCong] : [];
+  const chuyen = "chuyen" in tin ? [tin.chuyen] : []; // ADR-0052 D6.2: tin chuyến — cùng hàm người nhận (tinChuyenCho) qua locHopThongBao
   return taiKhoan
-    .filter((tk) => locHopThongBao(tk, { don, thuCong, docDenLuc: now, now, ngan: "cua-toi" }).tin.length > 0)
+    .filter((tk) => locHopThongBao(tk, { don, thuCong, chuyen, docDenLuc: now, now, ngan: "cua-toi" }).tin.length > 0)
     .map((tk) => tk.id);
 }
 

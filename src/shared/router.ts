@@ -107,6 +107,11 @@ export interface Ctx<A extends Access = Access> {
    */
   baoThayDoi: (e: { orderId: string; thayDoi: ThayDoiDon; handlerTruoc?: TrangThaiPhuTrach }) => void;
   /**
+   * TIN CHUYẾN (ADR-0052 D6.3) — route van-chuyen báo "lệnh chuyến vừa ghi xong" SAU lô thành công; KHÔNG gọi khi 4xx hay lệnh lặp. Kiểu `void`: bắn-và-quên
+   * (router bọc waitUntil + bắt lỗi → một dòng `bang_tin_loi` viec "bao_chuyen"). Gốc lắp ráp tự đọc hành động từ nhật ký theo `requestId` (không tin chữ route).
+   */
+  baoThayDoiChuyen: (e: { tripId: string; requestId: string }) => void;
+  /**
    * BẢNG TIN — đóng các kết nối đang mở của một tài khoản (`{ staffId }`, khi tài khoản đó bị ngưng/đổi quyền/đổi SĐT/đổi PIN…) hoặc MỌI kết
    * nối (`"tat-ca"`, khi bật chế độ bảo trì). Không phụ thuộc người đang gọi (không cần ai đăng nhập) — bắn-và-quên như `baoThayDoi`.
    * `tatThongBao` (BẮT BUỘC, ADR-0046): có tắt luôn mọi máy nhận thông báo điện thoại của tài khoản không — `true` CHỈ cho thao tác bảo mật
@@ -244,6 +249,8 @@ export interface AppOptions {
     partyAccount: (env: Env, actor: StaffProfile, partyId: string) => Promise<PartyAccountVerdict>;
     /** BẢNG TIN (ADR-0022). BẮT BUỘC: router gọi cho MỌI route có đăng nhập gọi `ctx.baoThayDoi`. Bản thật ở `src/index.ts` (trạm `BangTin` đã có); chỉ là no-op khi môi trường không có binding `BANG_TIN` (khung thử). */
     baoThayDoi: (env: Env, actor: StaffProfile, e: { orderId: string; thayDoi: ThayDoiDon; handlerTruoc?: TrangThaiPhuTrach }) => Promise<void>;
+    /** TIN CHUYẾN (ADR-0052 D6.3, D6.4). BẮT BUỘC trong mã chạy thật (`src/index.ts`): phát Bảng tin chuyến + gõ cửa tin chuyến; thiếu (khung thử cũ) → no-op. */
+    baoThayDoiChuyen: (env: Env, actor: StaffProfile, e: { tripId: string; requestId: string }) => Promise<void>;
     /** BẢNG TIN (ADR-0022). BẮT BUỘC. Bản thật ở `src/index.ts` (`dongCua` của module `bangtin`); chỉ là no-op khi môi trường không có binding `BANG_TIN`. */
     dongBangTin: (env: Env, muc: MucDongBangTin) => Promise<void>;
     /** WEB PUSH (ADR-0036). BẮT BUỘC. Bản thật ở `src/index.ts` (`xepHangDay` của module `bangtin`); `[]` khi môi trường không có binding `BANG_TIN`. */
@@ -268,8 +275,8 @@ export interface AppOptions {
   };
 }
 
-/** Log lỗi phát tin (DP-3): KHÔNG ghi SĐT/email/tên/nội dung lỗi — chỉ mã lỗi (`name`) và việc nào (`bao` báo thay đổi, `dong` đóng kết nối). */
-function ghiLoiBangTin(viec: "bao" | "dong", e: unknown): void {
+/** Log lỗi phát tin (DP-3): KHÔNG ghi SĐT/email/tên/nội dung lỗi — chỉ mã lỗi (`name`) và việc nào (`bao` báo thay đổi đơn, `bao_chuyen` báo thay đổi chuyến, `dong` đóng kết nối). */
+function ghiLoiBangTin(viec: "bao" | "dong" | "bao_chuyen", e: unknown): void {
   const name = e instanceof Error ? e.name : "unknown";
   console.error(JSON.stringify({ level: "error", event: "bang_tin_loi", viec, name }));
 }
@@ -328,6 +335,10 @@ export function createApp(opts: AppOptions) {
       baoThayDoi: (e) => {
         if (!who) return; // route công khai: không ai "báo" thay mặt.
         exec.waitUntil(Promise.resolve().then(() => opts.injected.baoThayDoi(env, who, e)).catch((err) => ghiLoiBangTin("bao", err)));
+      },
+      baoThayDoiChuyen: (e) => {
+        if (!who || typeof opts.injected.baoThayDoiChuyen !== "function") return;
+        exec.waitUntil(Promise.resolve().then(() => opts.injected.baoThayDoiChuyen(env, who, e)).catch((err) => ghiLoiBangTin("bao_chuyen", err)));
       },
       dongBangTin: (muc) => {
         exec.waitUntil(Promise.resolve().then(() => opts.injected.dongBangTin(env, muc)).catch((err) => ghiLoiBangTin("dong", err)));

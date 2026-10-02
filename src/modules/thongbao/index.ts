@@ -16,7 +16,7 @@ import { route, type AppModule, type Ctx } from "../../shared/router";
 import { dungDongChuyen, type ChuyenChoTin, type DongChuyen, type DongChuyenTho } from "../../shared/tin-chuyen";
 import {
   batMayStatements, demMay, findByRequest, getMark, getNotice, getThuCong, hetHanStatement, insertAckStatement, insertNoticeStatement,
-  insertTargetStatement, listAcks, listDon, listMayDangBat, listSent, listThuCong, listTinChuyen, donChoTin, mayDangBat, revokeStatement, tatMayStatement,
+  insertTargetStatement, listAcks, listDon, listMayDangBat, listSent, listThuCong, listTinChuyen, donChoTin, mayDangBat, tinChuyenTheoId, revokeStatement, tatMayStatement,
   upsertMarkStatement,
 } from "./repository";
 
@@ -49,6 +49,12 @@ export async function ghepTinChuyen(db: D1Database, tho: readonly DongChuyenTho[
   return dungDongChuyen(tho, f, await donChoTin(db, f.vang.map((v) => v.orderId)));
 }
 
+/** Gốc lắp ráp: dựng `DongChuyen` của MỘT dòng nhật ký chuyến (mọi trip_*, kể cả hành động không sinh tin — dùng cho Bảng tin). */
+export async function dongChuyenTheoId(db: D1Database, id: string, noi: NoiChuyen): Promise<DongChuyen | null> {
+  const t = await tinChuyenTheoId(db, id);
+  return t ? ((await ghepTinChuyen(db, [t], noi))[0] ?? null) : null;
+}
+
 async function hop(db: D1Database, staff: StaffProfile, ngan: "cua-toi" | "tat-ca", chuyenChoTin: Ctx["chuyenChoTin"]): Promise<HopThongBaoResponse> {
   const now = new Date().toISOString();
   const tu = new Date(Date.now() - NGAY_GIU_TIN * 86400000).toISOString();
@@ -68,7 +74,7 @@ async function hop(db: D1Database, staff: StaffProfile, ngan: "cua-toi" | "tat-c
 const GUI_THANG_TOI_DA = 40;
 
 /**
- * WEB PUSH (ADR-0036, ADR-0039): gõ cửa màn hình khoá của những ai thấy `tin` ở ngăn "Của tôi" (chọn bằng chính `locHopThongBao`, qua
+ * WEB PUSH (ADR-0036, ADR-0039; tin chuyến — ADR-0052 D6.2): gõ cửa màn hình khoá của những ai thấy `tin` ở ngăn "Của tôi" (chọn bằng chính `locHopThongBao`, qua
  * `nguoiNhanDay`). Thoát sớm TRƯỚC mọi lần đọc D1: thiếu khoá VAPID → thôi; không ai bật máy → thôi. Từ ADR-0039, giờ yên lặng KHÔNG
  * còn ở đây — vẫn gõ cửa như ban ngày; `tin.quanTrong` không dùng trong hàm này nữa, chỉ máy chủ dùng lại ở `GET …/moi-nhat` (`imLang`)
  * để service worker quyết có rung/kêu hay không (silent).
@@ -77,7 +83,7 @@ const GUI_THANG_TOI_DA = 40;
  */
 export async function dayGoCua(
   env: Env,
-  tin: ({ don: DongDon } | { thuCong: DongThuCong }) & { quanTrong: boolean },
+  tin: ({ don: DongDon } | { thuCong: DongThuCong } | { chuyen: DongChuyen }) & { quanTrong: boolean },
   giaoLo: (ds: string[]) => Promise<string[]>,
 ): Promise<void> {
   const khoa = khoaVapid(env);
