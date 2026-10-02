@@ -105,8 +105,10 @@ const APP_OPTIONS: AppOptions = {
       if (!ev || (ev.tripId !== e.tripId && ev.relatedTripId !== e.tripId)) return;
       const noi = (q: { tripIds: readonly string[]; suKienIds: readonly string[] }) => chuyenChoTinTheoId(env.DB, q);
       const tripIds = ev.relatedTripId ? [ev.tripId, ev.relatedTripId] : [ev.tripId];
-      const [dong, f, taiKhoan] = await Promise.all([dongChuyenTheoId(env.DB, ev.id, noi), noi({ tripIds, suKienIds: [] }), listStaffAccounts(env.DB)]);
-      if (!dong) return;
+      // Một lần gọi dữ kiện chuyến cho cả dòng nhật ký lẫn chuyến liên quan (vòng sửa 1, V1).
+      const [kq, taiKhoan] = await Promise.all([dongChuyenTheoId(env.DB, ev.id, noi, tripIds), listStaffAccounts(env.DB)]);
+      if (!kq) return;
+      const { dong, f } = kq;
       const dangHoatDong = taiKhoan.filter((s) => s.active);
       const thayDoi = thayDoiCuaHanhDongChuyen(dong.action);
       await nemNeuLoi([

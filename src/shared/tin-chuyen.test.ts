@@ -3,7 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { PERMISSION_CODES, can, type PermissionCode } from "./permissions.ts";
 import {
-  HANH_DONG_TIN_CHUYEN, dungDongChuyen, laiLucSuKien, taiXeNhanSuKien, thayDoiCuaHanhDongChuyen, tinChuyenCho,
+  HANH_DONG_TIN_CHUYEN, dungDongChuyen, laiLucSuKien, taiXeNhanSuKien, thayDoiCoTheCoTin, thayDoiCuaHanhDongChuyen, tinChuyenCho,
   type DongChuyen, type NguoiNhanChuyen,
 } from "./tin-chuyen.ts";
 
@@ -120,6 +120,17 @@ test("taiXeNhanSuKien: chỉ tài khoản có dòng lái lúc t VÀ qua can(trip
 
 test("thayDoiCuaHanhDongChuyen: mọi trip_* có loại thay đổi; hành động lạ → 'sua'", () => {
   assert.equal(thayDoiCuaHanhDongChuyen("trip_allocated"), "xep");
-  assert.equal(thayDoiCuaHanhDongChuyen("trip_passenger_no_show"), "tien_do");
+  assert.equal(thayDoiCuaHanhDongChuyen("trip_passenger_no_show"), "vang"); // vòng sửa 1 (V1): tách khỏi "tien_do" để chuông chỉ gọi lại khi có thể có tin
   assert.equal(thayDoiCuaHanhDongChuyen("trip_zzz"), "sua");
+});
+
+test("thayDoiCoTheCoTin: đúng loại thay đổi của 5 hành động sinh tin (D6.1); mọi hành động trip_* khác KHÔNG (chuông không gọi lại vô ích)", () => {
+  const moi = ["trip_created", "trip_edited", "trip_cancelled", "trip_allocated", "trip_allocation_removed", "trip_allocation_moved", "trip_stops_synced",
+    "trip_passengers_synced", "trip_departed", "trip_stop_arrived", "trip_passenger_boarded", "trip_passenger_no_show", "trip_passenger_cancelled_at_stop",
+    "trip_passenger_dropped", "trip_stops_reordered", "trip_ended", "trip_ended_interrupted"];
+  for (const a of moi) {
+    const coTin = (HANH_DONG_TIN_CHUYEN as readonly string[]).includes(a);
+    assert.equal(thayDoiCoTheCoTin(thayDoiCuaHanhDongChuyen(a)), coTin, a);
+  }
+  assert.equal(thayDoiCuaHanhDongChuyen("trip_passenger_no_show"), "vang");
 });

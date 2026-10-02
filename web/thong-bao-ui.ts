@@ -6,6 +6,8 @@ import { ApiError, api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
 import { icon, type IconName } from "./icons";
 import { taoBoLamMoi } from "./lam-moi-logic";
+import type { SuKienChuyen } from "../src/shared/bang-tin";
+import { thayDoiCoTheCoTin } from "../src/shared/tin-chuyen";
 import { gioVN, nhanSo, nhomTheoNgay, thoiGian } from "./thong-bao-logic";
 
 const KIND_ICON: Record<LoaiTin, IconName> = {
@@ -227,7 +229,10 @@ export function ganThongBao(topbar: HTMLElement, staff: Staff): void {
   };
   const lamMoi = taoBoLamMoi(taiTomTat);
   window.addEventListener("don-thay-doi", () => void lamMoi.yeuCau());
-  window.addEventListener("chuyen-thay-doi", () => void lamMoi.yeuCau()); // ADR-0052 D6: tin chuyến tới chuông
+  // ADR-0052 D6: chỉ gọi lại khi đợt có loại thay đổi CÓ THỂ sinh tin (tạo, sửa, huỷ, gián đoạn, khách vắng) — tiến độ khác chỉ làm mới màn (vòng sửa 1, V1).
+  window.addEventListener("chuyen-thay-doi", (ev) => {
+    if ((ev as CustomEvent<SuKienChuyen[]>).detail.some((e) => thayDoiCoTheCoTin(e.thayDoi))) void lamMoi.yeuCau();
+  });
   window.addEventListener("can-tai-lai", () => void lamMoi.yeuCau());
 
   /**

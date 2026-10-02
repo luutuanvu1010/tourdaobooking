@@ -49,10 +49,19 @@ export async function ghepTinChuyen(db: D1Database, tho: readonly DongChuyenTho[
   return dungDongChuyen(tho, f, await donChoTin(db, f.vang.map((v) => v.orderId)));
 }
 
-/** Gốc lắp ráp: dựng `DongChuyen` của MỘT dòng nhật ký chuyến (mọi trip_*, kể cả hành động không sinh tin — dùng cho Bảng tin). */
-export async function dongChuyenTheoId(db: D1Database, id: string, noi: NoiChuyen): Promise<DongChuyen | null> {
+/**
+ * Gốc lắp ráp: dựng `DongChuyen` của MỘT dòng nhật ký chuyến (mọi trip_*, kể cả hành động không sinh tin — dùng cho Bảng tin) VÀ trả luôn dữ kiện chuyến
+ * đã đọc. `themChuyen` = chuyến khác cần dữ kiện trong CÙNG một lần gọi hàm tiêm (chuyến liên quan khi dời khách) — vòng sửa 1 (V1): một lần `noi`, không hai.
+ */
+export async function dongChuyenTheoId(
+  db: D1Database, id: string, noi: NoiChuyen, themChuyen: readonly string[] = [],
+): Promise<{ dong: DongChuyen; f: ChuyenChoTin } | null> {
   const t = await tinChuyenTheoId(db, id);
-  return t ? ((await ghepTinChuyen(db, [t], noi))[0] ?? null) : null;
+  if (!t) return null;
+  const f = await noi({ tripIds: [t.tripId, ...themChuyen], suKienIds: t.action === "trip_passenger_no_show" ? [t.id] : [] });
+  if (!f) return null;
+  const dong = dungDongChuyen([t], f, await donChoTin(db, f.vang.map((v) => v.orderId)))[0];
+  return dong ? { dong, f } : null;
 }
 
 async function hop(db: D1Database, staff: StaffProfile, ngan: "cua-toi" | "tat-ca", chuyenChoTin: Ctx["chuyenChoTin"]): Promise<HopThongBaoResponse> {

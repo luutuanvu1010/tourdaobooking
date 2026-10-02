@@ -85,7 +85,11 @@ export function taiXeNhanSuKien(taiKhoan: readonly NguoiNhanChuyen[], lai: reado
 const THAY_DOI_CUA: Record<string, ThayDoiChuyen> = {
   trip_created: "tao", trip_edited: "sua", trip_allocated: "xep", trip_allocation_removed: "rut", trip_allocation_moved: "doi", trip_cancelled: "huy",
   trip_stops_synced: "cap_nhat", trip_passengers_synced: "cap_nhat", trip_departed: "xuat_ben", trip_stop_arrived: "tien_do",
-  trip_passenger_boarded: "tien_do", trip_passenger_no_show: "tien_do", trip_passenger_cancelled_at_stop: "tien_do", trip_passenger_dropped: "tien_do",
+  trip_passenger_boarded: "tien_do", trip_passenger_no_show: "vang", trip_passenger_cancelled_at_stop: "tien_do", trip_passenger_dropped: "tien_do",
   trip_stops_reordered: "tien_do", trip_ended: "ket_thuc", trip_ended_interrupted: "gian_doan",
 };
 export const thayDoiCuaHanhDongChuyen = (action: string): ThayDoiChuyen => THAY_DOI_CUA[action] ?? "sua";
+
+/** Loại thay đổi Bảng tin của các hành động CÓ THỂ sinh tin (suy từ HANH_DONG_TIN_CHUYEN — một nguồn). Chuông chỉ gọi lại khi đợt có loại này. */
+const THAY_DOI_CO_TIN: ReadonlySet<ThayDoiChuyen> = new Set(HANH_DONG_TIN_CHUYEN.map(thayDoiCuaHanhDongChuyen));
+export const thayDoiCoTheCoTin = (t: ThayDoiChuyen): boolean => THAY_DOI_CO_TIN.has(t);
