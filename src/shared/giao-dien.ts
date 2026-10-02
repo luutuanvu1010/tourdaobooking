@@ -42,7 +42,18 @@ export const NUM: readonly Num[] = [
   { khoa: "dam-nhan", nhan: "Độ đậm chữ nhấn (nút, tên, số tiền)", nhom: "chu", loai: "dam", token: "--fw-semibold", min: 400, max: 700 },
 ];
 /** Núm "dam-nhan" kéo cả ba mức nhấn (đặc tả §2). */
-const KEO_THEO: Readonly<Record<string, readonly string[]>> = { "dam-nhan": ["--fw-bold", "--fw-heavy"], "nen-nut-chinh": ["--c-btn-primary-border", "--c-btn-primary-hover-bg"] };
+export const KEO_THEO: Readonly<Record<string, readonly string[]>> = { "dam-nhan": ["--fw-bold", "--fw-heavy"], "nen-nut-chinh": ["--c-btn-primary-border", "--c-btn-primary-hover-bg"] };
+
+/**
+ * Núm con -> núm cha: token của núm con trong app.css :root là `var(token của núm cha)`, nên đổi cha thì con đi theo (CSS tự thừa kế).
+ * Kiểm tương phản phải đi theo cùng quan hệ này, nếu không sẽ chấm con bằng màu mặc định cũ. Bài src/giao-dien-mac-dinh.test.ts canh bảng này khớp app.css.
+ */
+export const CHA: Readonly<Record<string, string>> = {
+  "nen-thanh-tren": "nen-the", "chu-thanh-tren": "mau-chinh",
+  "nen-thanh-ben": "nen-the", "chu-thanh-ben": "chu-phu",
+  "nen-muc-chon": "mau-chinh-nhat", "chu-muc-chon": "mau-chinh",
+  "nen-nut-chinh": "mau-chinh-nhat", "chu-nut-chinh": "mau-chinh",
+};
 
 /** Giá trị mặc định = app.css bản 1.65 (bài src/giao-dien-mac-dinh.test.ts so khớp). */
 export const MAC_DINH: Readonly<Record<string, string>> = {
@@ -91,7 +102,7 @@ const NUM_THEO_KHOA = new Map(NUM.map((n) => [n.khoa, n] as const));
 /** Lỗi của MỘT giá trị (null = hợp lệ). Không xét chéo ô. */
 function loiMotO(n: Num, v: unknown): string | null {
   if (typeof v !== "string") return `${n.nhan}: giá trị không hợp lệ.`;
-  if (n.loai === "mau") return HEX.test(v) ? null : `${n.nhan}: chọn một màu (dạng #rrggbb).`;
+  if (n.loai === "mau") return HEX.test(v) ? null : `${n.nhan}: chọn một màu trong bảng màu.`;
   if (n.loai === "phong") return Object.hasOwn(PHONG, v) ? null : `${n.nhan}: phông không có trong danh sách.`;
   if (!SO.test(v)) return `${n.nhan}: phải là số nguyên.`;
   const x = Number(v);
@@ -112,7 +123,8 @@ export function kiemGiaoDien(tokens: unknown): LoiGiaoDien[] {
     if (m) loi.push({ khoa: k, message: m });
   }
   if (loi.length > 0) return loi;
-  const gt = (k: string): string => (k.startsWith("#") ? k : ((t[k] as string | undefined) ?? MAC_DINH[k]!));
+  // Giá trị hiệu lực: tự đặt, nếu không thì theo núm cha (CHA), nếu không thì mặc định.
+  const gt = (k: string): string => (k.startsWith("#") ? k : ((t[k] as string | undefined) ?? (CHA[k] !== undefined ? gt(CHA[k]!) : MAC_DINH[k]!)));
   for (const [chu, nen, ten] of CAP_TUONG_PHAN) {
     const r = tuongPhan(gt(chu), gt(nen));
     if (r < 4.5) loi.push({ khoa: chu.startsWith("#") ? nen : (t[chu] !== undefined ? chu : nen), message: `${ten} khó đọc (${soVN(r)}:1, cần ít nhất 4,5:1).` });

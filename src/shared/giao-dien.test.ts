@@ -53,6 +53,20 @@ test("chặn tương phản dưới 4,5:1, câu lỗi nêu tên ô bằng tiến
   assert.match(l!.message, /4,5:1/);
 });
 
+test("tương phản đi theo núm cha: đổi nền thẻ / màu chính / màu chính nhạt kéo thanh và nút theo", () => {
+  const a = kiemGiaoDien({ "nen-the": "#0c4a6e" });
+  assert.ok(a.some((l) => l.khoa === "nen-thanh-tren" && /khó đọc/.test(l.message)), JSON.stringify(a));
+  assert.ok(a.some((l) => l.khoa === "nen-thanh-ben"), JSON.stringify(a));
+  const b = kiemGiaoDien({ "mau-chinh": "#dcebf6" });
+  assert.ok(b.some((l) => /nút chính/i.test(l.message)), JSON.stringify(b));
+  // núm con tự đặt thì thắng núm cha: nền thanh trên tối + chữ thanh trên sáng hợp lệ dù nền thẻ đổi
+  assert.deepEqual(kiemGiaoDien({ "nen-the": "#0c4a6e", "nen-thanh-tren": "#ffffff" }).filter((l) => l.khoa === "nen-thanh-tren" || l.khoa === "chu-thanh-tren"), []);
+});
+
+test("câu lỗi màu không lộ định dạng kỹ thuật", () => {
+  assert.equal(kiemGiaoDien({ "nen-trang": "red" })[0]!.message, "Nền trang: chọn một màu trong bảng màu.");
+});
+
 test("độ đậm: mọi giá trị chọn được ở mọi núm độ đậm đều có tệp phông ở MỌI phông (Review Focus 5); số lẻ bị chặn", () => {
   for (const n of NUM.filter((x) => x.loai === "dam")) {
     for (let d = n.min!; d <= n.max!; d += 100) {
@@ -76,5 +90,8 @@ test("bienCss / dungCss: chỉ khoá hợp lệ, đúng token, cỡ thêm px, ph
 test("docTokensDaLuu: JSON hỏng → {}, khoá lạ/sai dạng bị bỏ, khoá đúng giữ (Review Focus 2)", () => {
   assert.deepEqual(docTokensDaLuu("không phải json"), {});
   assert.deepEqual(docTokensDaLuu("[]"), {});
+  assert.deepEqual(docTokensDaLuu("null"), {});
+  assert.deepEqual(docTokensDaLuu("5"), {});
+  assert.deepEqual(docTokensDaLuu(JSON.stringify({ "co-noi-dung": 16, "nen-trang": "#f0f0f0" })), { "nen-trang": "#f0f0f0" }, "giá trị không phải chuỗi bị bỏ");
   assert.deepEqual(docTokensDaLuu(JSON.stringify({ "da-bo": "#ffffff", "nen-trang": "#f0f0f0", "nen-the": "x" })), { "nen-trang": "#f0f0f0" });
 });
