@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="_ds/tour-o-booking-design-system-34f284df-c97a-4672-bb66-d7df03a0d97a/tokens/fonts.css">
+<link rel="stylesheet" href="_ds/tour-o-booking-design-system-34f284df-c97a-4672-bb66-d7df03a0d97a/tokens/colors.css">
+<link rel="stylesheet" href="_ds/tour-o-booking-design-system-34f284df-c97a-4672-bb66-d7df03a0d97a/tokens/typography.css">
+<link rel="stylesheet" href="_ds/tour-o-booking-design-system-34f284df-c97a-4672-bb66-d7df03a0d97a/tokens/spacing.css">
+<link rel="stylesheet" href="_ds/tour-o-booking-design-system-34f284df-c97a-4672-bb66-d7df03a0d97a/tokens/effects.css">
+<link rel="stylesheet" href="_ds/tour-o-booking-design-system-34f284df-c97a-4672-bb66-d7df03a0d97a/tokens/layout.css">
+<link rel="stylesheet" href="_ds/tour-o-booking-design-system-34f284df-c97a-4672-bb66-d7df03a0d97a/tokens/base.css">
+<link rel="stylesheet" href="_ds/tour-o-booking-design-system-34f284df-c97a-4672-bb66-d7df03a0d97a/styles.css">
+<script src="_ds/tour-o-booking-design-system-34f284df-c97a-4672-bb66-d7df03a0d97a/_ds_bundle.js"></script>
+<style>body{margin:0;background:#dfe8ef;font-family:'Nunito',sans-serif;color:#0F172A}a{color:#0C4A6E}a:hover{color:#082F49}.sb-gray{--c-on-dark:#0C4A6E;--c-sidebar-item:#475569;--c-sidebar-active:#DCE4EC;--c-sidebar-border:#D3E1EC;--c-sidebar-badge:#DCE4EC}.bsd button{background:var(--c-danger) !important;color:#fff !important;border-color:var(--c-danger) !important}.sb-gray nav{background:#EEF2F6 !important;border-right:1px solid #D3E1EC}</style>
+</helmet>
+<!-- GHI CHÚ ĐIỀU PHỐI: phần khung (layout canvas) giống hệt bản vẽ Đợt 5/6 — xem tệp gốc ở dự án Claude Design f0f47482. Dưới đây là NỘI DUNG (script dữ liệu) nguyên văn. -->
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const T = { ok: ['var(--c-green-soft)', 'var(--c-green-text)'], soon: ['var(--c-primary-soft)', 'var(--c-primary)'], end: ['#E6EDF3', 'var(--c-text-muted)'], warn: ['var(--c-sand-soft)', 'var(--c-sand-text)'], bad: ['var(--c-danger-soft)', 'var(--c-danger-text)'], run: ['var(--c-primary)', '#fff'] };
+    const fld0 = (label, value, o = {}) => ({ label: label + (o.req ? ' *' : ''), value, mark: o.sel ? '▾' : '', vc: o.empty ? 'var(--c-placeholder)' : 'var(--c-text)',
+      st: 'flex:1 1 ' + (o.basis || '150px') + ';display:flex;flex-direction:column;gap:4px;min-width:0',
+      box: 'min-height:44px;box-sizing:border-box;border:1px solid var(--c-border);border-radius:8px;padding:0 12px;display:flex;align-items:center;justify-content:space-between;font:16px Nunito;background:#fff' });
+    const fld = (label, value, o = {}) => { const f = fld0(label, value, o); return { ...f, hint: o.hint || '', hasHint: !!o.hint, err: o.err || '', hasErr: !!o.err, tog: !!o.tog,
+      swSt: 'display:inline-block;position:relative;flex:none;width:44px;height:26px;border-radius:13px;background:' + (o.on ? 'var(--c-primary)' : '#9FB3C4'), knSt: 'position:absolute;top:3px;left:' + (o.on ? '21px' : '3px') + ';width:20px;height:20px;border-radius:50%;background:#fff',
+      box: f.box.replace('1px solid var(--c-border)', o.err ? '2px solid var(--c-danger)' : '1px solid var(--c-border)') }; };
+    // Thẻ chip: padding 2px 10px; bo 999px; chữ 800 12px Nunito; letter-spacing .04em. Ô lỗi: viền 2px var(--c-danger), chữ lỗi 13px 700 var(--c-danger-text). Gợi ý 13px #475569.
+    const XR = ['XE RIÊNG', 'run'], MIN = ['≥ 15 chỗ', 'soon'], BAY = ['✈︎ VN1553', 'end'];
+    const form = (title, o = {}) => FM(title, 'Đưa đón hành khách · Chặng 1', [
+      fld('Loại đưa đón', 'Đón sân bay', { sel: 1, basis: '170px' }), fld('Ngày giờ đón', '04/10/2026 · 07:30', { basis: '170px' }),
+      fld('Điểm đón', 'Sân bay Cam Ranh', { basis: '170px' }), fld('Điểm trả', 'Khách sạn Mường Thanh', { basis: '170px' }),
+      fld('Số khách', '9', { basis: '110px' }), fld('Số hiệu chuyến bay', 'VN1553', { basis: '170px' }),
+      fld('Xe riêng', o.rieng === false ? 'Tắt' : 'Bật', { tog: 1, on: o.rieng !== false, hint: 'Không ghép khách đơn khác', basis: '170px' }),
+      fld('Xe tối thiểu', o.min === undefined ? '15' : o.min, { mark: o.min === '' ? '' : 'chỗ', err: o.err, empty: o.min === '', hint: o.err ? '' : 'Không kể tài xế (xe 16 chỗ nhập 15)', basis: '170px' })
+    ], o.actions || [['Lưu chặng', 'primary'], ['Huỷ']]);
+    const empty = form('Tạo đơn', { rieng: false, min: '', actions: [['Lưu chặng', 'primary'], ['Huỷ']] });
+    empty.fields[7].value = 'Để trống = không yêu cầu';
+    const err = form('Tạo đơn', { min: '120', err: 'Số chỗ từ 1 đến 100' });
+    const M1 = { id: 'M1', title: 'Đưa đón — form lập đơn', boards: [
+      P('bh', 'new', 'Tạo đơn', 'Có hai ô mới', [H('Tạo đơn', 'Đưa đón hành khách'), form('Chặng đưa đón')]),
+      P('bh', 'new', 'Tạo đơn', 'Để trống = không yêu cầu', [H('Tạo đơn', 'Đưa đón hành khách'), empty]),
+      P('bh', 'new', 'Tạo đơn', 'Lỗi số chỗ', [H('Tạo đơn', 'Đưa đón hành khách'), err]),
+      D('bh', 'new', 'Bán hàng › Tạo đơn', 'Form lập đơn, mặc định và lỗi', [H('Tạo đơn', 'Đưa đón hành khách'), form('Chặng đưa đón'), err])
+    ] };
+    const sua = form('Sửa đưa đón', { actions: [['Lưu thay đổi', 'primary'], ['Đóng']] });
+    const suaLoi = form('Sửa đưa đón', { min: '0', err: 'Số chỗ từ 1 đến 100', actions: [['Lưu thay đổi', 'primary'], ['Đóng']] });
+    const M4 = { id: 'M4', title: 'Sửa đưa đón', boards: [
+      P('bh', 'orders', 'Sửa đưa đón', 'Bảng sửa, đã có cam kết', [H('Sửa đưa đón', 'TD-20261004-0003 · Chặng 1'), sua]),
+      P('bh', 'orders', 'Sửa đưa đón', 'Lỗi số chỗ', [H('Sửa đưa đón', 'TD-20261004-0003 · Chặng 1'), suaLoi]),
+      D('bh', 'orders', 'Đơn hàng › TD-20261004-0003 › Sửa đưa đón', 'Bảng sửa và lỗi', [H('Sửa đưa đón', 'TD-20261004-0003 · Chặng 1'), sua, suaLoi])
+    ] };
+    const ch1 = CD('Chặng 1 · Đón sân bay', { chips: [XR, MIN, BAY], rows: [['Giờ đón', '04/10/2026 · 07:30'], ['Điểm đón', 'Sân bay Cam Ranh'], ['Điểm trả', 'Khách sạn Mường Thanh'], ['Số khách', '9 (6 NL · 3 TE)']] });
+    const ch2 = CD('Chặng 2 · Tiễn sân bay', { chips: [BAY], rows: [['Giờ đón', '07/10/2026 · 10:00'], ['Điểm đón', 'Khách sạn Mường Thanh'], ['Điểm trả', 'Sân bay Cam Ranh'], ['Số khách', '9 (6 NL · 3 TE)']] });
+    const M3 = { id: 'M3', title: 'Chi tiết đơn — thẻ đưa đón', boards: [
+      P('bh', 'orders', 'TD-20261004-0003', 'Chặng có cam kết', [H('TD-20261004-0003', 'Đã xác nhận · Đưa đón hành khách'), ch1, ch2]),
+      D('bh', 'orders', 'Đơn hàng › TD-20261004-0003', 'Chặng có cam kết và chặng thường', [H('TD-20261004-0003', 'Đã xác nhận · Đưa đón hành khách'), ch1, ch2])
+    ] };
+    const cho = LS('Chặng chờ xếp', [
+      ['07:30 · Sân bay Cam Ranh → Mường Thanh', '9 khách · TD-20261004-0003', '', ['Chờ xếp', 'warn'], { chips: [BAY, XR, MIN] }],
+      ['08:15 · Sân bay Cam Ranh → Vinpearl', '4 khách · TD-20261004-0005', '', ['Chờ xếp', 'warn'], { chips: [['✈︎ VJ627', 'end'], MIN] }],
+      ['09:00 · Mường Thanh → Bến Cầu Đá', '6 khách · TD-20261004-0006', '', ['Chờ xếp', 'warn']],
+      ['10:30 · Bến du thuyền → Sân bay Cam Ranh', '2 khách · TD-20261004-0008', '', ['Chờ xếp', 'warn'], { chips: [XR] }]
+    ], { text: 'Nhãn ngắn cạnh chuyến bay cho biết chặng cần xe riêng hoặc xe từ số chỗ tối thiểu.' });
+    const DP = { id: 'DP', title: 'Bảng điều phối — thẻ chặng chờ xếp', boards: [
+      P('vp', 'board', 'Bảng điều phối', 'Chặng chờ xếp', [cho]),
+      D('vp', 'board', 'Điều phối › Bảng điều phối', 'Chặng chờ xếp', [H('Bảng điều phối', '04/10/2026'), cho])
+    ] };
+    return { sections: [M1, M4, M3, DP] };
+  }
+}
+</script>
+</body>
+</html>
