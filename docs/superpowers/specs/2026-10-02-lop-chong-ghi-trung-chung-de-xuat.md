@@ -1,6 +1,14 @@
 # Lớp chống ghi trùng ở tầng Nền tảng: Cloudflare, chuẩn ngành, Oracle và đề xuất một cơ chế chung
 
-> **Trạng thái:** **ĐỀ XUẤT — chờ chủ dự án trả lời 3 câu ở §7** (2026-10-02). Duyệt xong sẽ thành **ADR-0094** (số đã giữ chỗ ở `docs/adr/README.md`).
+> **Trạng thái:** **CHỦ ĐÃ TRẢ LỜI 3 câu ở §7** (chat 2026-10-02). Đã soạn thành **ADR-0094** (`docs/adr/ADR-0094-…`, proposed), chờ chủ duyệt văn bản. Khi đề xuất này và ADR khác nhau, **ADR thắng**.
+>
+> **Lời chủ (nguyên văn) cho §7:**
+>
+> > "1- Vé là dữ liệu kỹ thuật nhưng cũng không dọn sau 30 ngày, vì có thể sau này cần dùng lịch sử của quá khứ để đánh giá tỷ lệ thành công, huỷ, hoanf của đơn. Tôi đề xuất vẫn giữ với thời gian lâu hơn, tạm thời là 365 ngày (cụ thể hoá bằng lựa chọn trong tài khoản Toàn quyền). 2- Theo đề xuất. 3- ok ."
+>
+> - Câu 1 → **giữ vé 365 ngày, Toàn quyền chọn được thời hạn** (không phải 30 ngày như khuyến nghị A).
+> - Câu 2 → **R2**.
+> - Câu 3 → **từ từ** (cũng là CT2).
 >
 > **Lời chủ dự án (nguyên văn, chat 2026-10-02):**
 >

@@ -1,6 +1,6 @@
 # Lượt duyệt 2 — ADR-0088 sửa sai sau "Đã giao" (I1 đúng mọi lúc, phân định trách nhiệm) + ADR-0092 sổ không đổi dấu, điều chỉnh có kiểm soát
 
-> **Trạng thái:** **NHÁP bản 3.2** — QT1–QT4 (bảng trách nhiệm) **đã có lời chủ** 2/10 ("7- ok"). **Còn chờ** Q-A1, Q-A2 và duyệt văn bản. Bản 3.1 (2/10) sửa theo phiếu kiểm độc lập bản 3: I1 trừ giảm trừ đã phân định; T7 gắn nợ theo đơn; dọn chữ phí huỷ. Bản 3 (2/10): Q-A3 và Q-A5 đã có lời chủ; Q-A5 thành đ9 (bảng phân định trách nhiệm); đ7 phí huỷ của ADR-0092 bỏ.
+> **Trạng thái:** **NHÁP bản 3.3** — QT1–QT4 (bảng trách nhiệm) **đã có lời chủ** 2/10 ("7- ok"). CT3, CT4 (cảnh báo lần thu tiền mặt giống nhau) **đã có lời chủ** 2/10, ghi ở ADR-0092 đ6a (bản 3.3). **Còn chờ** Q-A1, Q-A2 và duyệt văn bản. Bản 3.1 (2/10) sửa theo phiếu kiểm độc lập bản 3: I1 trừ giảm trừ đã phân định; T7 gắn nợ theo đơn; dọn chữ phí huỷ. Bản 3 (2/10): Q-A3 và Q-A5 đã có lời chủ; Q-A5 thành đ9 (bảng phân định trách nhiệm); đ7 phí huỷ của ADR-0092 bỏ.
 > - Chủ đã chọn nguyên tắc ngày 2026-10-02 (câu 2 "Luôn luôn").
 > - Bản 1 bị người duyệt độc lập kết luận "chưa nên duyệt" (`2026-10-02-phieu-duyet-doc-lap-luot-A-tien.md`). Bản này sửa theo phiếu; mã sửa ghi trong ngoặc.
 >
@@ -189,6 +189,11 @@ Câu đã hỏi: "Bất biến 'đã thu = phải thu' xét tại mốc Đã gia
    - **chặn** khi trùng (mã đã chuẩn hoá, **cùng đơn**) với một lần thu còn hiệu lực. Oracle Receivables chặn biên lai trùng số;
    - **cảnh báo** khi cùng mã ở **đơn khác**, kèm tổng số đã gắn mã đó, vì một lần chuyển có thể trả nhiều đơn. Kế toán bỏ qua được, **lý do bắt buộc**, ghi nhật ký;
    - khi xác nhận: **tổng các lần thu gắn cùng một mã ≤ số tiền thực chuyển** (Kế toán nhập theo sao kê). Vượt thì chặn.
+6a. **Cảnh báo lần thu tiền mặt giống nhau** (CT3, CT4; **đã có lời chủ**, chat 2026-10-02, chủ chọn trên bảng hỏi):
+   - CT3: *"Có, chỉ cảnh báo (Recommended)"*. Cùng đơn, cùng số tiền, cùng ngày thì cảnh báo "Có thể trùng với lần thu …: Xem bản cũ / Vẫn ghi" **trước khi ghi**. Không chặn, vì hai lần thu giống hệt nhau đôi khi là thật.
+   - CT4: *"Người đang ghi, bắt nhập lý do (Recommended)"*. Ai đang ghi thì được bấm "Vẫn ghi", nhưng phải gõ lý do. Lý do và người bỏ qua vào nhật ký; Kế toán xem lại được.
+   - Làm bằng **một dòng trong bảng luật trùng dùng chung** của lớp nghiệp vụ (`2026-10-02-lop-chong-ghi-trung-chung-de-xuat.md` §4), không vá riêng màn ghi lần thu. Lời chủ: *"chặn ghi trùng bằng giải pháp kỹ thuật, chứ không phải đi vá thế này"*.
+   - Cảnh báo ở đ6 (cùng mã giao dịch, khác đơn) đi qua **cùng** bảng luật và **cùng** hộp thoại.
 7. **Phí huỷ — bỏ khỏi ADR này.** Chủ đã trả lời Q-A3 ngày 2/10: khách huỷ thì mặc định **không hoàn cọc**, hoàn là tuỳ chọn có duyệt, hạn 60 ngày. Việc này nằm trọn ở **ADR-0089 bản 3 (lượt 1a)**; không cần loại ghi "phí huỷ" riêng.
 8. **Bộ kiểm:**
    - **R-BIL-8**: đã thu ròng ≥ 0 mọi đơn;
@@ -210,6 +215,7 @@ Câu đã hỏi: "Bất biến 'đã thu = phải thu' xét tại mốc Đã gia
 ### Câu hỏi mở
 - **Q-A1:** trần điều chỉnh theo đ5. **Khuyến nghị: đồng ý.**
 - **Q-A2:** ô mã giao dịch ngân hàng theo đ6 (chặn trùng trong cùng đơn, cảnh báo khác đơn, tổng ≤ số chuyển). **Khuyến nghị: có.**
+- **CT3, CT4 — đã trả lời 2/10:** xem đ6a.
 - **Q-A3 — đã trả lời 2/10:** mặc định không hoàn cọc; xem ADR-0089 bản 3. Các ý bên dưới giữ lại để tham khảo lịch sử:
   - mốc bao nhiêu ngày trước ngày đi;
   - có khác theo dịch vụ hay nhà cung cấp không (vé không hoàn của bên thứ ba);
@@ -256,6 +262,8 @@ Câu đã hỏi: "Bất biến 'đã thu = phải thu' xét tại mốc Đã gia
 | Phân định trách nhiệm | không có | route mới `can(ô phân định)`; ghi theo phân định `can(ledger.write)`, người ghi ≠ người phân định; khoá lần gửi |
 | **Nút "Đảo"** (`web/order.ts:534`, ẩn khi Hoàn thành `:453`) | hiện sau Đã giao | sau Đã giao thay bằng "Thay lần thu"; nút Thay hiện cả sau Hoàn thành |
 | **Khung xác nhận "Công ty đã nhận"** | không có ô mã giao dịch | thêm ô mã giao dịch + cảnh báo trùng |
+| Ghi lần thu tiền mặt (`can(payment.receive)`, mọi vai đang có ô) | không kiểm trùng | đ6a: cùng đơn + số tiền + ngày → máy chủ trả 409 "có thể trùng" kèm lần thu cũ (chỉ trường người ghi được xem); **người đang ghi** bấm "Vẫn ghi" với lý do bắt buộc; nhật ký ghi người + lý do. Không thêm ô quyền |
+| **Hộp thoại "Có thể trùng"** (giao diện, mới, dùng chung) | không có | hiện ở màn ghi lần thu và khung xác nhận; "Xem bản cũ" chỉ mở được khi người đó có quyền xem đơn cũ |
 | **Câu 409** `service.ts:218` và mọi route chung đuôi câu | chỉ "ghi điều chỉnh" | chỉ "Thay lần thu" |
 
 ### 4. Va chạm

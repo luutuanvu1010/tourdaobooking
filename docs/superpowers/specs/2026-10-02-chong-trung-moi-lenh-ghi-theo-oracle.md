@@ -22,6 +22,13 @@
 > - **C2** → CT5.
 > - **C3** → theo cách hiểu (2) là **có**, chờ chủ xác nhận.
 >
+> **Cập nhật 2026-10-02 (sau lời chủ lần 4–5):**
+> - **Lượt A** (A1, A2/CT1, A3/CT2) được **thay** bằng lớp chống ghi trùng chung: `2026-10-02-lop-chong-ghi-trung-chung-de-xuat.md`, sẽ thành ADR-0094. Chủ trả lời A3/CT2 bằng câu 3 của đề xuất đó: *"3- ok"* (làm từ từ).
+> - **B2 = CT3:** chủ chọn *"Có, chỉ cảnh báo (Recommended)"*.
+> - **B3 = CT4:** chủ chọn *"Người đang ghi, bắt nhập lý do (Recommended)"*.
+> - Cả hai đã ghi ở ADR-0092 đ6a (lượt 2b, nháp bản 3.3).
+> - B1 (Q-A2), C1–C3 vẫn chờ.
+>
 > Dòng "Tạo hồ sơ khách" ở §3.2 ghi "chưa làm" theo khuyến nghị cũ của đặc tả 22/9; nay đọc là **làm**.
 >
 > **Nguồn:** tài liệu chính thức Oracle, đọc ngày 2026-10-02, có URL ở §5. Mỗi khẳng định gắn nhãn nguyên văn / suy luận / chưa xác minh. Phần §3 là **đề xuất cho app**, không phải sự thật Oracle.
