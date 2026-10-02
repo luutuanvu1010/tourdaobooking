@@ -776,3 +776,24 @@ test("Vòng sửa 1: đổi sang xe nhà xe A KÈM tài xế của nhà xe B →
     tat();
   }
 });
+
+test("Vòng sửa 1 (mục 5): nhà xe đã thôi — DỜI NGÀY chạy → 409 carrier_inactive với lời đúng ca ('giữ ngày chạy cũ'); đổi tuyến vẫn câu ADR nguyên văn", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const n = await nenThue(w);
+    const id = (await taoThue(w, { xe: n.x16, taiXe: n.tx, tuyen: n.crt })).json.chuyen.id;
+    thoiHopTac(w, n.nx);
+    const ngay = await sua(w, id, { batDau: { ngay: NGAY_SAU, gio: "12:30" }, ketThuc: { ngay: NGAY_SAU, gio: "15:00" } });
+    assert.equal(ngay.status, 409, ngay.text);
+    assert.equal(ngay.json.error.code, "carrier_inactive");
+    assert.equal(ngay.json.error.message, "Nhà xe này đã thôi hợp tác nên máy không tính lại giá được. Hãy chọn xe của nhà xe khác, hoặc giữ ngày chạy cũ.");
+    const tuyen = await sua(w, id, { tuyen: n.dl });
+    assert.equal(tuyen.json.error.message, "Nhà xe này đã thôi hợp tác nên máy không tính lại giá được. Hãy chọn xe của nhà xe khác, hoặc giữ tuyến cũ.");
+    const ca2 = await sua(w, id, { tuyen: n.dl, batDau: { ngay: NGAY_SAU, gio: "12:30" }, ketThuc: { ngay: NGAY_SAU, gio: "15:00" } });
+    assert.equal(ca2.json.error.message, "Nhà xe này đã thôi hợp tác nên máy không tính lại giá được. Hãy chọn xe của nhà xe khác, hoặc giữ tuyến và ngày chạy cũ.");
+    assert.deepEqual(dongCp(w, id), [["SNAPSHOT", 1_200_000]]);
+  } finally {
+    tat();
+  }
+});

@@ -22,10 +22,10 @@ import type { DoiThan, HuyThan, RutThan, SuaChuyenThan, XepThan } from "./dieu-p
 import { phanLoaiThue } from "./tien-xe";
 import { chiTietChiPhiNhatKy, keHoachChiPhiKhiDoi, keHoachChiPhiKhiHuy } from "./tien-xe-lo";
 import { docChiPhiChoLenh, tenTuyen, tenTuyenDangDung } from "./tien-xe-lenh";
-import { CAU_NHA_XE_THOI } from "./rules";
+import { cauNhaXeThoi } from "./rules";
 
 const TUYEN_KHONG_HOP_LE = () => error(400, "invalid_input", "Tuyến không có hoặc đã ngưng dùng.");
-const NHA_XE_THOI_HOP_TAC = () => error(409, "carrier_inactive", CAU_NHA_XE_THOI);
+const NHA_XE_THOI_HOP_TAC = (v: { doiTuyen: boolean; doiNgay: boolean }) => error(409, "carrier_inactive", cauNhaXeThoi(v));
 
 const NGAY_MS = 86_400_000;
 const nowIsoOf = (ms: number) => new Date(ms).toISOString();
@@ -71,11 +71,12 @@ export async function lenhSuaChuyen(db: D1Database, nen: NenChuyen, b: SuaChuyen
   const ngayChayMoi = msToVnLocal(batDauMs).date;
   const cp = await docChiPhiChoLenh(db, { tripId: t.id, chuXe: xeRow.owner_party_id, homNay: homNay(bayGioMs) });
   const thue = doiXe ? phanLoaiThue({ chuXePartyId: xeRow.owner_party_id, congTyChuId: cp.congTyChuId, nhaXeDangMo: cp.nhaXeDangMo, cuRented: t.rented }) : t.rented;
+  const doiNgay = ngayChayMoi !== t.service_date;
   const kh = keHoachChiPhiKhiDoi({
     dong: cp.dong, rentedMoi: thue, chuXeMoi: xeRow.owner_party_id, nhaXeDangMo: cp.nhaXeDangMo, laTaoMoi: false, doiXeHoacNhaXe: doiXe, doiTuyen,
-    doiNgay: ngayChayMoi !== t.service_date, tuyenMoi, soChoMoi: xeRow.passenger_capacity, ngayChayMoi, gia: cp.gia, coXe: cp.coXe,
+    doiNgay, tuyenMoi, soChoMoi: xeRow.passenger_capacity, ngayChayMoi, gia: cp.gia, coXe: cp.coXe,
   });
-  if (!kh.ok) return NHA_XE_THOI_HOP_TAC();
+  if (!kh.ok) return NHA_XE_THOI_HOP_TAC({ doiTuyen, doiNgay: doiNgay && !doiXe });
   const khac = (await tripsTouching(db, Math.min(batDauMs, t.planned_start_ms) - NGAY_MS, Math.max(ketThucMs, t.planned_end_ms) + NGAY_MS)).filter((x) => x.id !== t.id);
   const tai = nen.allocs.filter((a) => a.valid_to_at === null && (a.status === "WAITING" || a.status === "BOARDED")).length;
   const kq: KetQuaKiem = kiemTaoSuaChuyen({

@@ -169,6 +169,14 @@ export function loiRangBuocChuyen(message: string): { status: number; code: stri
 }
 /** ADR-0057 C4 — nguyên văn: đổi tuyến / xe trên chuyến của nhà xe đã thôi hợp tác. */
 export const CAU_NHA_XE_THOI = "Nhà xe này đã thôi hợp tác nên máy không tính lại giá được. Hãy chọn xe của nhà xe khác, hoặc giữ tuyến cũ.";
+/**
+ * Lời của cùng lỗi cho đúng việc đang đổi (vòng sửa 1, mục 5 — BỀ MẶT; Cần chủ 3 = A làm DỜI NGÀY cũng tính lại giá, ADR chỉ có câu cho đổi tuyến): chỉ đổi ngày
+ * ⇒ "giữ ngày chạy cũ"; đổi cả tuyến lẫn ngày ⇒ "giữ tuyến và ngày chạy cũ"; còn lại câu ADR nguyên văn.
+ */
+export function cauNhaXeThoi(v: { doiTuyen: boolean; doiNgay: boolean }): string {
+  if (!v.doiNgay) return CAU_NHA_XE_THOI;
+  return CAU_NHA_XE_THOI.replace("giữ tuyến cũ.", v.doiTuyen ? "giữ tuyến và ngày chạy cũ." : "giữ ngày chạy cũ.");
+}
 export const CAU_TONG_AM = "Tổng chi phí chuyến sẽ âm — đảo điều chỉnh giảm trước.";
 export const CAU_CHI_PHI_VUA_DOI = "Chi phí chuyến vừa thay đổi — tải lại rồi thử lại.";
 
