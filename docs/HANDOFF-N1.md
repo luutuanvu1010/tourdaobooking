@@ -2,7 +2,22 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 1.66 ĐÃ LÊN PRODUCTION (Trang chủ điện thoại theo bản vẽ 2026-09-30; gồm cả 1.65 Vận chuyển đợt 1) — không migration mới của 1.66 (2026-10-02 09:09 giờ VN)
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 1.70 ĐÃ LÊN PRODUCTION (thị giác toàn Nền tảng "Năng động – Tin cậy – Tinh tế"; gồm cả 1.69 Vận chuyển Đợt 2 và 1.67–1.68) — migration `0070_tin_chuyen` đã áp (2026-10-02 17:25 giờ VN)
+
+AI (phiên "Thị giác toàn Nền tảng") kiểm bằng lệnh chỉ đọc sau khi chủ báo đã `day-len` + `trien-khai` (2/10 tối):
+
+- **Phiên bản:** `node scripts/kiem-phien-ban.mjs --sau-deploy` → "ĐẠT: production đang chạy đúng bản 1.70."; `GET /api/auth/config` → `"version":"1.70"`. Mã 1.70 = `a496e8d1` (nhánh `worktree-thi-giac-nen-tang`, đã gộp main e7cd764f = 1.69). Lúc ghi, `origin/main` = ab87d7c3 — sau 1.70 chỉ thêm tài liệu (ADR-0095, phân tích câu hỏi Vận chuyển), số phiên bản vẫn 1.70.
+- **Worker** (`wrangler deployments list`): **1ce67b85-27e7-471a-b7a6-11ce7c6c0839** (2026-10-02T10:25:41Z = 1.70). Trước đó e01d29b8-c701-4997-9738-1b28bfc3fdf4 (10:13Z — chưa đối chiếu là bản nào) và 2a02d3c5-a3dd-41cf-959c-a763e9322aea (05:17Z — nhiều khả năng 1.68, chưa đối chiếu). **Lùi Worker:** `0070` chỉ thêm view `v_aud_trip_event` (mã cũ không đọc) ⇒ lùi mã không vỡ dữ liệu; lùi về trước 1.69 thì mất tin báo chuyến của Vận chuyển Đợt 2.
+- **Migration:** `wrangler d1 migrations list --remote` → "No migrations to apply!" (`0070` đã áp; trước phát hành còn chờ đúng `0070`).
+- **Dữ liệu:** `audit-invariants --db remote` → "Mọi bất biến đạt, 4 cảnh báo" (R-CTL-1: 3 dịch vụ đang hiện chưa gán nhóm; R-BIL-2/5 chưa áp dụng; R-BIL-7 dùng lại R-PTY-1), thoát 0.
+- **Tệp công khai:** `/`, `/app.css`, `/js/home.js` → 200; `app.css` có token 1.70 (`--c-lagoon`, `--c-btn-soft-bg`, `--c-receipt-surface-alt`); `home.js` có lớp ô theo nhóm (`dash-o-hop-…`); `GET /api/staff` chưa đăng nhập → 401.
+- **Giao diện công ty (ADR-0087):** `GET /api/giao-dien.css` → `:root{}` (không ghi đè) — hai núm "Nền/Chữ nút lưu, xác nhận" đổi nghĩa ở 1.70 không ảnh hưởng cài đặt nào.
+- **Bảo trì:** đang BẬT tới 2026-10-05 06:17 giờ VN (`endsAt` 2026-10-04T23:17Z).
+- **Kiểm trước phát hành (trên mã đã gộp):** npm test 2802/2802, typecheck 0, e2e 42/42, axe 16 màn × 2 khổ 0 vi phạm serious/critical; kiểm độc lập ĐẠT CÓ ĐIỀU KIỆN → 3 mục trung bình đã sửa, có bài canh (chưa vòng kiểm lại). Đặc tả: `docs/superpowers/specs/2026-10-02-thi-giac-nen-tang-design.md`.
+- **Chưa kiểm:** iPhone thật (thanh tab mờ kính, bóng đổ); thao tác bằng tài khoản thật trên production; lần triển khai 10:13Z là gì.
+- **Việc treo liên quan:** `docs/BACKLOG.md` mục 19 (núm màu ngọc, màu rê nút lưu theo "Màu chính"); đề xuất một dòng luật `web/CLAUDE.md` ("nút chốt không phải nút gửi form → lớp `btn-chinh`") chờ chủ duyệt; nhánh `worktree-agent-a76ababaa4a5b3183` (Tiền xe thuê T1) đang ghi số "1.70" → đánh lại (≥ 1.71) lúc gộp.
+
+## TRẠNG THÁI TRIỂN KHAI (cũ) — Phiên bản 1.66 ĐÃ LÊN PRODUCTION (Trang chủ điện thoại theo bản vẽ 2026-09-30; gồm cả 1.65 Vận chuyển đợt 1) — không migration mới của 1.66 (2026-10-02 09:09 giờ VN)
 
 AI (phiên "Trang chủ điện thoại") kiểm bằng lệnh chỉ đọc sau khi chủ báo đã `day-len` + `trien-khai` (2/10; lần `trien-khai` đầu dừng ở e2e — `catalog` đỏ chập chờn, chạy riêng trên cùng mã đạt 27 bước — chủ chạy lại):
 
