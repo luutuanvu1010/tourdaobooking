@@ -108,7 +108,8 @@ Cột "Chứng minh" là **tiêu chí nghiệm thu**. Mỗi dòng phải có bà
 | HD09, QT03, KD09, DT09 (ngưng tài khoản đang giữ đơn/tiền) | R4d | 4 | ngưng ⇒ đơn và tiền hiện ở danh sách "cần chuyển"; không im lặng |
 | HD01 (HDV bị đổi khỏi đơn không nhận tin) | R4b | 4 | tin cho HDV bị đổi (phần ghi đè của HD02: xem R9) |
 | KT01 (không có danh sách "đơn huỷ còn tiền", "cần chi hoàn") | R4e | 1 (máy chủ) + 4b (màn) | route danh sách + ô đếm Trang chủ Kế toán (kế hoạch Đợt 1, Task 10); màn theo bản vẽ (4b) |
-| KT08, KD02/03 (sổ không có dòng theo đơn, không mục "dư", không thấy sự cố tiền khác) | R4e | 4b | màn sổ Kế toán theo bản vẽ; **không** thuộc Đợt 1 |
+| KD02/03 (sổ không có dòng theo đơn, không mục "dư", không thấy sự cố tiền khác) | R4e | 4b | màn sổ Kế toán theo bản vẽ; **không** thuộc Đợt 1 |
+| KT08 (dấu "đã nhập phần mềm kế toán" không bị gỡ hay báo khi đơn đổi tiền hoặc huỷ sau khi đánh dấu) | R4b | 4 | theo ADR-0062 (báo tin khi đơn đổi sau xác nhận): đơn đã đánh dấu mà đổi tiền hay huỷ ⇒ dấu hiện "cần nhập lại" + tin cho Kế toán; ca e2e đổi tiền / huỷ sau đánh dấu. Tự **gỡ** dấu hay chỉ báo: áp nguyên tắc 5.7 (giữ + hiện lý do, không âm thầm đổi), chi tiết ở kế hoạch con Đợt 4 |
 | GD-L-04, L-06, L-08, L-09, S-02, DT07, route Face ID | R8 | 6 | như dòng trên; giới hạn tần suất: tạo 20 nháp/giây ⇒ bị chặn (kịch bản DT07) |
 | GD-D-01 (HDV không có tab Đơn hàng), GD-R-08 (xác nhận ngày đã qua báo sai lý do), KD04 (nháp giữ giá cũ không báo), GD-B-06 (luật thiếu module) | G12 | 7 | màn và câu báo đúng; diff luật chủ duyệt |
 | GD-R-01, R-02, R-06, cửa khẩn cấp | R7 | 5 | sao lưu chạy theo lịch có bằng chứng; biên bản diễn tập; `create-staff` chạy được bằng `--command` trên D1 tạm |

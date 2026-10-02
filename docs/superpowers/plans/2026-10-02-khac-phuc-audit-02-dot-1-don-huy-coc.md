@@ -104,7 +104,7 @@
 | NT-B1 | Trên mỗi đơn huỷ: **Σ chi + Σ chuyển ≤ Σ duyệt ≤ đã trả**. Hai vế đều tính cả hoàn ngoài đã xác nhận (X-4) | U + A |
 | NT-B2 | **Đảo lần thu** (`ghiDieuChinh` loại `dao_lan_thu`, `billing/service.ts:462-484`) làm đã trả < tổng duyệt → trigger `RAISE` → 409 "Đơn đã duyệt hoàn X — huỷ duyệt phần chưa chi trước khi đảo". Có ca riêng | U + E + G |
 | NT-B3 | Lệnh "Thay lần thu" (ADR-0088, **chưa có mã**) sẽ đi qua cùng trigger lần thu. Bài trigger ghi một ca **giả lập** "đảo + thu mới nhỏ hơn trong một lô" để khoá trước | U |
-| NT-B4 | `audit-invariants` có kiểm mới:<br>• **R-BIL-C1** (đ15);<br>• **R-BIL-C2** (`CUSTOMER_REFUND` trên đơn huỷ không gắn khoản duyệt, ghi sau phát hành);<br>• **R-BIL-C3** (người chi/chuyển/xác nhận trùng người duyệt/ghi);<br>• **R-BIL-C4** (hai dòng hoàn ngoài có hiệu lực một đơn);<br>• **R-BIL-C5** (cặp chuyển lệch số / lệch người giữ / thiếu nửa);<br>• **R-BIL-C6** (khoản duyệt khách huỷ ghi sau hạn);<br>• **R-ORD-H1** (đơn huỷ thiếu dòng lý do).<br>Cố ý chèn vi phạm trên D1 local → thoát 1 | A + U |
+| NT-B4 | `audit-invariants` có kiểm mới:<br>• **R-BIL-C0** (đơn huỷ có "còn lại" > 0 ở hình chiếu — lõi TNV-G1, H-C8);<br>• **R-BIL-C1** (đ15);<br>• **R-BIL-C2** (`CUSTOMER_REFUND` trên đơn huỷ không gắn khoản duyệt, ghi sau phát hành);<br>• **R-BIL-C3** (người chi/chuyển/xác nhận trùng người duyệt/ghi);<br>• **R-BIL-C4** (hai dòng hoàn ngoài có hiệu lực một đơn);<br>• **R-BIL-C5** (cặp chuyển lệch số / lệch người giữ / thiếu nửa);<br>• **R-BIL-C6** (khoản duyệt khách huỷ ghi sau hạn);<br>• **R-ORD-H1** (đơn huỷ thiếu dòng lý do).<br>Cố ý chèn vi phạm trên D1 local → thoát 1 | A + U |
 
 ### 1.7 Hiển thị (đ3, đ9, đ10)
 
@@ -164,7 +164,7 @@
 
 ## 3. Thiết kế chốt ở kế hoạch (tên thi công — đổi được trước khi migration áp remote)
 
-### 3.1 Migration A — `orders`: lý do huỷ (số: **kế tiếp sau Đợt 0**)
+### 3.1 Migration A — `orders`: lý do huỷ (số: **dự kiến, chốt theo lộ trình §1** — lấy số kế tiếp lúc gộp thật; có thể trước Đợt 0 nếu "cầm máu" lên trước)
 
 - **Số migration:**
   - `main` tới `0069` (`ls migrations`).
@@ -505,7 +505,7 @@ Báo cáo ghi vào sổ thi công.
 
 ### Task 12 — Bất biến `audit-invariants` + sổ hàng rào
 - **Tệp:**
-  - `scripts/audit-checks.mjs`: R-BIL-C1…C6, R-ORD-H1 (NT-B4), mức `fail`; nhắc hạn là `warn`;
+  - `scripts/audit-checks.mjs`: R-BIL-C0…C6, R-ORD-H1 (NT-B4), mức `fail`; nhắc hạn là `warn`;
   - `src/audit-invariants.test.ts`;
   - `docs/SO-HANG-RAO.md` (§5).
 - **Đỏ trước:** chèn vi phạm trên SQLite thử → mỗi mã đếm ≥ 1. Rồi trên D1 local:
@@ -578,7 +578,7 @@ Mỗi dòng có ngày quan sát thật. Không có ngày = lời khuyên. Ngư�
 | **H-C6** đơn huỷ phải có lý do | đ8 | trigger `orders_cancel_requires_reason` + `R-ORD-H1` | bỏ câu chèn lý do khỏi `cancelOrder` → NT-L3 đỏ |
 | **H-C7** đơn huỷ không hoàn tự do | trang ghép §3 "Chi hoàn cọc" | `ghiHoanKhach` 409 + trigger `coc_needs_approval` + `R-BIL-C2` | bỏ nhánh 409 → trigger vẫn chặn (thấy lớp 2 đứng một mình); bỏ trigger → e2e đỏ |
 | **H-C8** *(thêm sau vòng đối chiếu)* đơn huỷ: "còn lại" = 0 ở **mọi** đường đọc (lõi TNV-G1) | đ1, đ14, NT-1 | **một** hàm `conLai` nhận cờ huỷ (NT-R9) + bài "mọi đường đọc tiền đơn đi qua `conLai`" (khuôn `buildlines-guard.test.ts`) + kiểm định kỳ `R-BIL-C0` (đơn huỷ không có "còn lại" > 0 ở hình chiếu) | bỏ nhánh cờ huỷ trong `conLai` → NT-1 và `kiem-lai-09` đỏ; thêm một đường tính "còn lại" thứ hai trong biên nhận → bài một-nguồn đỏ |
-| **H-C9** *(thêm)* chỉ Kế toán / Toàn quyền ghi lần thu lên đơn huỷ | đ13 (NT-H10) | máy chủ 409 + trigger trên `bil_payment_receipt` đọc view trạng thái đơn công bố | bỏ nhánh kiểm trạng thái → e2e NT-H10 đỏ (Bán hàng ghi được 201) |
+| **H-C9** *(thêm)* chỉ Kế toán / Toàn quyền ghi lần thu lên đơn huỷ | đ13 (NT-H10) | **một lớp máy chủ + bài** (như H-C4): 409 ở route ghi lần thu. Thuộc Phần A "cầm máu", chưa có Migration B nên không có trigger; lớp CSDL cân nhắc thêm ở Task 7 nếu rẻ. Ghi rõ "một lớp" ở sổ hàng rào | bỏ nhánh kiểm trạng thái → e2e NT-H10 đỏ (Bán hàng ghi được 201) |
 
 ---
 

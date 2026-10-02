@@ -705,7 +705,7 @@ Nội dung gốc (giữ để truy vết):
   - (B) Giữ F-02 mở tới khi Đợt 1 lên production. Cùng hạn 15/10 với TNV-G1, nên dễ phải gia hạn.
 - **C2. ADR-90 đ3: tin "Quản trị ngưng tài khoản Kế toán" vào "Của tôi" của Toàn quyền.**
   - "Của tôi" hôm nay chỉ dựng từ sự kiện **đơn** (`v_aud_order_event`). Có ba cách:
-    - **(A, khuyến nghị)** Thêm một view nhật ký tài khoản trong module `audit`. `thongbao` đã có cạnh tới `audit`, nên không nới ranh giới. Cần **một migration** (số kế tiếp sau `0074`). Việc này trái câu "không migration" của ADR-90 đ4, nên cần chủ đồng ý một dòng ghi bổ sung.
+    - **(A, khuyến nghị)** Thêm một view nhật ký tài khoản trong module `audit`. `thongbao` đã có cạnh tới `audit`, nên không nới ranh giới. Cần **một migration** (số dự kiến, chốt theo lộ trình §1). Việc này trái câu "không migration" của ADR-90 đ4, nên cần chủ đồng ý một dòng ghi bổ sung.
     - (B) Gửi bằng thông báo hệ thống (`ntf_notice`) từ `accounts`. Cần cạnh `accounts → thongbao`, tức là nới hàng rào ranh giới (Điều 9.4).
     - (C) Tạm bỏ tin, chỉ giữ nhật ký. Rủi ro: Toàn quyền không biết người duyệt tiền vừa bị ngưng.
 - **Thông báo (không phải câu hỏi, P18):** Quản trị sẽ không **gỡ** được vai Kế toán nữa, không chỉ không cấp. Đây là hệ quả của dòng LC-4 trong ADR-90 ("cấp hoặc gỡ").
