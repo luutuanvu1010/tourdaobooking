@@ -1952,7 +1952,7 @@ test("R-VC-COST-2: dòng đảo sai số / trỏ dòng không có / đảo dòng
   assert.equal(violations(db, c), 3);
 });
 
-test("R-VC-COST-3 (TC-10 — người kiểm soi): chuyến rented = 0 còn nguồn giá chưa đảo HOẶC tổng ≠ 0 → vi phạm; đổi sang xe công ty với dòng đã đảo (tổng 0) → không; chuyến huỷ → không xét", () => {
+test("R-VC-COST-3 (TC-10; ADR-0095 Q5): chuyến rented = 0 còn nguồn giá chưa đảo HOẶC tổng ≠ 0 ngoài 'Phí huỷ muộn' cho nhà xe cũ → vi phạm; đổi sang xe công ty với dòng đã đảo (tổng 0) → không; chuyến huỷ → không xét", () => {
   const c = one("R-VC-COST-3");
   assert.equal(c.level, "fail");
   const db = tho();
@@ -1961,8 +1961,20 @@ test("R-VC-COST-3 (TC-10 — người kiểm soi): chuyến rented = 0 còn ngu�
   assert.equal(violations(db, c), 1, "nguồn giá trên chuyến không thuê");
   cpTho(db, { trip: t, kind: "REVERSAL", amount: -1_200_000, reverses: s });
   assert.equal(violations(db, c), 0, "V13: dòng đã đảo, tổng 0");
-  cpTho(db, { trip: t, kind: "ADJUSTMENT", amount: 300_000, reason: "CPX_HUY_MUON" });
-  assert.equal(violations(db, c), 1, "tổng ≠ 0");
+  const ph = cpTho(db, { trip: t, kind: "ADJUSTMENT", amount: 300_000, reason: "CPX_HUY_MUON" });
+  assert.equal(violations(db, c), 0, "4.7: tổng ≠ 0 CHỈ gồm phí huỷ muộn cho nhà xe cũ (p-nx ≠ p-cty) → hợp lệ");
+  const kh = cpTho(db, { trip: t, kind: "ADJUSTMENT", amount: 50_000, reason: "CPX_KHAC" });
+  assert.equal(violations(db, c), 1, "lý do khác trên chuyến không thuê → vi phạm");
+  cpTho(db, { trip: t, kind: "REVERSAL", amount: -50_000, reverses: kh, reason: "CPX_NHAP_SAI" });
+  assert.equal(violations(db, c), 0, "dòng lý do khác đã đảo → tổng phần còn lại = phí huỷ");
+  cpTho(db, { trip: t, kind: "REVERSAL", amount: -300_000, reverses: ph, reason: "CPX_NHAP_SAI" });
+  assert.equal(violations(db, c), 0, "đảo luôn phí huỷ → tổng 0");
+  const t2 = chuyenTho(db, { carrier: "p-cty" });
+  cpTho(db, { trip: t2, kind: "ADJUSTMENT", amount: 300_000, reason: "CPX_HUY_MUON", carrier: "p-cty" });
+  assert.equal(violations(db, c), 1, "phí huỷ muộn mang CHÍNH công ty chủ (không phải nhà xe cũ) → vi phạm");
+  db.prepare("UPDATE vc_trip SET status = 'CANCELLED', cancel_reason_code = 'HUY_KHAC' WHERE id = ?").run(t2);
+  cpTho(db, { trip: t, kind: "ADJUSTMENT", amount: 70_000, reason: "CPX_KHAC" });
+  assert.equal(violations(db, c), 1, "tổng ≠ 0 vì lý do khác");
   db.prepare("UPDATE vc_trip SET status = 'CANCELLED', cancel_reason_code = 'HUY_KHAC' WHERE id = ?").run(t);
   assert.equal(violations(db, c), 0, "chuyến huỷ do R-VC-COST-4 xét");
 });

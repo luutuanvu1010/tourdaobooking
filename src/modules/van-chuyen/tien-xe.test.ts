@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  chonDongGiaThue, coXeCua, daoDuoc, ngayDieuChinhMacDinh, ngayGhiDao, demDieuChinh, dongChongGia, loaiNguonGia, nhaXeChiuChiPhi, nhomBangKe, dongConHieuLuc, nguonGiaConHieuLuc, phanLoaiThue, thuTuDaoTatCa, tongBangKe, tongChiPhiChuyen, tongDieuChinh,
+  chonDongGiaThue, coXeCua, daoDuoc, dieuChinhDuoc, ngayDieuChinhMacDinh, ngayGhiDao, demDieuChinh, dongChongGia, loaiNguonGia, nhaXeChiuChiPhi, nhomBangKe, dongConHieuLuc, nguonGiaConHieuLuc, phanLoaiThue, thuTuDaoTatCa, tongBangKe, tongChiPhiChuyen, tongDieuChinh,
   type CoXe, type DongChiPhi, type DongGiaThue, type LoaiDongChiPhi,
 } from "./tien-xe.ts";
 
@@ -141,4 +141,13 @@ test("ngayDieuChinhMacDinh (ADR-0095 Q4, vòng sửa 2 C1): chuyến đã huỷ 
   assert.equal(ngayDieuChinhMacDinh({ trangThai: "CANCELLED", ngayHuy: "2026-10-13", homNay: "2026-10-20" }), "2026-10-13");
   assert.equal(ngayDieuChinhMacDinh({ trangThai: "ENDED", ngayHuy: null, homNay: "2026-10-20" }), "2026-10-20");
   assert.equal(ngayDieuChinhMacDinh({ trangThai: "PLANNED", ngayHuy: null, homNay: "2026-10-20" }), "2026-10-20");
+});
+
+test("dieuChinhDuoc (ADR-0095 Q5, vòng sửa 2 4.7): xe thuê / đã huỷ ⇒ mọi lý do; đã đổi sang xe công ty chưa huỷ ⇒ CHỈ Phí huỷ muộn", () => {
+  assert.equal(dieuChinhDuoc({ rented: 1, trangThai: "PLANNED", lyDo: "CPX_KHAC" }), true);
+  assert.equal(dieuChinhDuoc({ rented: 0, trangThai: "CANCELLED", lyDo: "CPX_NHAP_SAI" }), true);
+  assert.equal(dieuChinhDuoc({ rented: 0, trangThai: "PLANNED", lyDo: "CPX_HUY_MUON" }), true);
+  assert.equal(dieuChinhDuoc({ rented: 0, trangThai: "ENDED", lyDo: "CPX_HUY_MUON" }), true);
+  assert.equal(dieuChinhDuoc({ rented: 0, trangThai: "PLANNED", lyDo: "CPX_KHAC" }), false);
+  assert.equal(dieuChinhDuoc({ rented: 0, trangThai: "RUNNING", lyDo: "CPX_PHU_THU_CHO" }), false);
 });

@@ -10,7 +10,7 @@ import { vnToday } from "../../shared/vn-date";
 import { tripById, type TripRow } from "./chuyen-repo";
 import { findVehicle } from "./repository";
 import { CAU_CHI_PHI_VUA_DOI, CAU_NHA_XE_THOI, CAU_TONG_AM, loiRangBuocChuyen } from "./rules";
-import { chonDongGiaThue, chuTien, coXeCua, daoDuoc, ngayDieuChinhMacDinh, ngayGhiDao, nguonGiaConHieuLuc, nhaXeChiuChiPhi, tongChiPhiChuyen, type DongChiPhi } from "./tien-xe";
+import { chonDongGiaThue, chuTien, coXeCua, daoDuoc, dieuChinhDuoc, ngayDieuChinhMacDinh, ngayGhiDao, nguonGiaConHieuLuc, nhaXeChiuChiPhi, tongChiPhiChuyen, type DongChiPhi } from "./tien-xe";
 import { bangKeDto, chiPhiChuyenDto } from "./tien-xe-dto";
 import { dongCua } from "./tien-xe-lo";
 import {
@@ -88,9 +88,11 @@ export async function lenhDieuChinh(db: D1Database, tripId: string, b: DieuChinh
   if (!nc) return null;
   const nhan = await lyDoNguoiGhi(db, b.lyDo);
   if (!nhan) return { ok: false, res: LY_DO_SAI() };
-  // TC-11: chỉ chuyến đã từng có dòng chi phí. Chuyến KHÔNG còn là xe thuê mà chưa huỷ: không ghi (R-VC-COST-3 — câu hỏi cho chủ ở báo cáo).
+  // TC-11: chỉ chuyến đã từng có dòng chi phí. Chuyến KHÔNG còn là xe thuê mà chưa huỷ: CHỈ "Phí huỷ muộn" cho nhà xe cũ (ADR-0095 Q5; R-VC-COST-3).
   if (nc.rows.length === 0) return { ok: false, res: error(409, "chua_co_chi_phi", "Chuyến này chưa có chi phí nào để điều chỉnh.") };
-  if (nc.trip.rented === 0 && nc.trip.status !== "CANCELLED") return { ok: false, res: error(409, "khong_phai_xe_thue", "Chuyến này không còn là xe thuê — không ghi chi phí xe thuê.") };
+  if (!dieuChinhDuoc({ rented: nc.trip.rented, trangThai: nc.trip.status, lyDo: b.lyDo })) {
+    return { ok: false, res: error(409, "khong_phai_xe_thue", "Chuyến này đã đổi sang xe công ty — chỉ ghi được Phí huỷ muộn cho nhà xe cũ.") };
+  }
   if (b.phienBanChiPhi !== nc.rows.length) return { ok: false, res: VUA_DOI() };
   const truoc = tongChiPhiChuyen(nc.dong);
   if (truoc + b.soTien < 0) return { ok: false, res: TONG_AM() };

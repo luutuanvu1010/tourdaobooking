@@ -661,6 +661,51 @@ test("Vòng sửa 2 (C1 — ADR-0095 Q4): điều chỉnh trên chuyến ĐÃ HU
   }
 });
 
+test("Vòng sửa 2 (4.7 — ADR-0095 Q5): chuyến đã đổi sang XE CÔNG TY (chưa huỷ) — ghi 'Phí huỷ muộn' 300.000 → 201, dòng mang nhà xe CŨ, kiểm định không đỏ, bảng kê ở nhóm nhà xe cũ; lý do khác → 409", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const n = await nenThue(w);
+    const id = (await taoThue(w, { xe: n.x16, taiXe: n.tx, tuyen: n.crt })).json.chuyen.id;
+    assert.equal((await sua(w, id, { xeId: xe(w, 16), taiXePartyId: `pty-${DRIVER}` })).status, 200);
+    assert.equal(w.q("SELECT rented r FROM vc_trip WHERE id = ?", id)[0].r, 0);
+    const k = await ghiCp(w, id, "dieu-chinh", { soTien: 100_000, lyDo: "CPX_KHAC", ghiChu: null });
+    assert.equal(k.status, 409, k.text);
+    assert.equal(k.json.error.code, "khong_phai_xe_thue");
+    const p = await ghiCp(w, id, "dieu-chinh", { soTien: 300_000, lyDo: "CPX_HUY_MUON", ghiChu: "nhà xe đã điều xe tới bến" });
+    assert.equal(p.status, 201, p.text);
+    assert.equal(p.json.chiPhi.tong, 300_000);
+    assert.equal(p.json.chiPhi.nhaXe.partyId, n.nx, "màn chi phí: nhà xe chịu là nhà xe cũ");
+    assert.equal(w.q("SELECT carrier_party_id c FROM vc_trip_cost_line WHERE trip_id = ? ORDER BY rowid DESC LIMIT 1", id)[0].c, n.nx);
+    const { CHECKS } = (await import(new URL("../../../scripts/audit-checks.mjs", import.meta.url).href)) as { CHECKS: { code: string; sql: string }[] };
+    const do_ = CHECKS.filter((c) => c.code.startsWith("R-VC-COST")).map((c) => [c.code, Number(Object.values(w.q(c.sql)[0])[0])]).filter(([, v]) => v !== 0);
+    assert.deepEqual(do_, [], "kiểm định R-VC-COST-* không đỏ");
+    const bk = (await w.call("GET", `/api/van-chuyen/chi-phi?tu=${NGAY}&den=${NGAY}&nha-xe=${n.nx}`, { as: ACC })).json;
+    assert.deepEqual([bk.soChuyen, bk.tongCong], [1, 300_000]);
+  } finally {
+    tat();
+  }
+});
+
+test("Vòng sửa 2 (4.7) — GHIM hành vi hiện tại (Cần chủ): phí huỷ cho nhà xe cũ rồi HUỶ chuyến → lô huỷ đảo luôn phí đó (tổng 0); Kế toán ghi lại phí huỷ sau huỷ → mang nhà xe cũ", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const n = await nenThue(w);
+    const id = (await taoThue(w, { xe: n.x16, taiXe: n.tx, tuyen: n.crt })).json.chuyen.id;
+    assert.equal((await sua(w, id, { xeId: xe(w, 16), taiXePartyId: `pty-${DRIVER}` })).status, 200);
+    assert.equal((await ghiCp(w, id, "dieu-chinh", { soTien: 300_000, lyDo: "CPX_HUY_MUON", ghiChu: null })).status, 201);
+    const c = await chiTiet(w, id);
+    assert.equal((await w.call("POST", `/api/van-chuyen/chuyen/${id}/huy`, { as: SALES, body: { version: c.chuyen.version, requestId: uuid(), lyDo: "HUY_KHAC" } })).status, 200);
+    assert.equal(tongCp(w, id), 0, "lô huỷ đảo mọi dòng còn hiệu lực, kể cả phí huỷ cho nhà xe cũ");
+    const p = await ghiCp(w, id, "dieu-chinh", { soTien: 300_000, lyDo: "CPX_HUY_MUON", ghiChu: null });
+    assert.equal(p.status, 201, p.text);
+    assert.equal(w.q("SELECT carrier_party_id c FROM vc_trip_cost_line WHERE trip_id = ? ORDER BY rowid DESC LIMIT 1", id)[0].c, n.nx);
+  } finally {
+    tat();
+  }
+});
+
 test("Phiên bản chi phí cũ (TC-8): hai Kế toán cùng đọc phiên bản 1 — người thứ nhất 201, người thứ hai 409 chi_phi_vua_doi; gửi lại cùng requestId → 200, không dòng mới; ngày phát sinh điều chỉnh mặc định hôm nay, chọn được", async () => {
   const tat = batDongHo();
   try {

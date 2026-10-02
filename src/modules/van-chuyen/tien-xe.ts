@@ -100,6 +100,16 @@ export function ngayDieuChinhMacDinh(v: { trangThai: TrangThaiChuyenTien; ngayHu
   return v.trangThai === "CANCELLED" && v.ngayHuy !== null ? v.ngayHuy : v.homNay;
 }
 
+/** Lý do "Phí huỷ muộn" — ràng buộc hợp đồng với nhà xe (ADR-0095 Q4, Q5). */
+export const LY_DO_PHI_HUY_MUON = "CPX_HUY_MUON";
+/**
+ * Điều chỉnh tay được với lý do này không (ADR-0095 Q5, vòng sửa 2 mục 4.7): chuyến xe thuê, hoặc chuyến đã huỷ ⇒ mọi lý do người ghi; chuyến KHÔNG còn là
+ * xe thuê (đã đổi sang xe công ty) mà chưa huỷ ⇒ CHỈ "Phí huỷ muộn" cho nhà xe cũ (dòng mang nhà xe chịu chi phí — `nhaXeChiuChiPhi`).
+ */
+export function dieuChinhDuoc(v: { rented: number; trangThai: TrangThaiChuyenTien; lyDo: string }): boolean {
+  return v.rented === 1 || v.trangThai === "CANCELLED" || v.lyDo === LY_DO_PHI_HUY_MUON;
+}
+
 /** Mã lý do đảo tự động khi đổi chuyến (xe, nhà xe, tuyến, ngày chạy) — mã hệ thống, `MA_LY_DO_HE_THONG`. */
 export const LY_DO_DAO_DOI_CHUYEN = "CPX_DOI_CHUYEN";
 /** Loại nguồn giá còn hiệu lực: giá bảng (SNAPSHOT) / giá thoả thuận (AGREED) / chưa có. */

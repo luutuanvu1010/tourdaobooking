@@ -604,10 +604,15 @@ export const CHECKS = [
   // "không có dòng" sẽ báo nhầm.
   {
     code: "R-VC-COST-3",
-    what: "chuyến không phải xe thuê còn nguồn giá chưa đảo hoặc tổng chi phí khác 0",
+    // ADR-0095 Q5 (vòng sửa 2, 4.7): tổng ≠ 0 được phép CHỈ gồm "Phí huỷ muộn" cho NHÀ XE CŨ (ADJUSTMENT CPX_HUY_MUON mang nhà xe khác chủ xe hiện tại) cùng
+    // các dòng đảo của chính chúng — mọi dòng khác phải cộng về 0.
+    what: "chuyến không phải xe thuê còn nguồn giá chưa đảo hoặc tổng chi phí khác 0 (ngoài phí huỷ muộn cho nhà xe cũ)",
     sql: `SELECT count(*) FROM vc_trip t WHERE t.rented = 0 AND t.status <> 'CANCELLED' AND (
             EXISTS (SELECT 1 FROM vc_trip_cost_line l WHERE l.trip_id = t.id AND l.kind IN ('SNAPSHOT','AGREED') AND NOT EXISTS (SELECT 1 FROM vc_trip_cost_line r WHERE r.reverses_id = l.id))
-            OR (SELECT COALESCE(sum(l.amount), 0) FROM vc_trip_cost_line l WHERE l.trip_id = t.id) <> 0)`,
+            OR (SELECT COALESCE(sum(l.amount), 0) FROM vc_trip_cost_line l WHERE l.trip_id = t.id)
+            <> (SELECT COALESCE(sum(l.amount), 0) FROM vc_trip_cost_line l LEFT JOIN vc_trip_cost_line g ON g.id = l.reverses_id
+                WHERE l.trip_id = t.id AND l.carrier_party_id <> t.carrier_party_id
+                  AND ((l.kind = 'ADJUSTMENT' AND l.reason_code = 'CPX_HUY_MUON') OR (l.kind = 'REVERSAL' AND g.kind = 'ADJUSTMENT' AND g.reason_code = 'CPX_HUY_MUON'))))`,
     level: "fail",
   },
   {
