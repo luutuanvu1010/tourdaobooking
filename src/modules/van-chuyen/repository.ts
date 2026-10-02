@@ -237,12 +237,15 @@ export interface DispatchPolicyRow {
   require_contract: number;
   /** ADR-0050 VK1-A: kẹp lùi tối đa (phút) khi văn phòng bấm thay khai giờ xảy ra. */
   proxy_backdate_max_minutes: number;
+  /** ADR-0055 VK2-B (0071): giờ lái tối đa một ngày, nhắc nghỉ khi chuyến dài hơn (phút) — chỉ cảnh báo. */
+  duty_day_max_minutes: number;
+  trip_no_break_max_minutes: number;
   valid_from_at: string;
   created_at: string;
   /** R-P23: tài khoản đã lưu bản này (null = bản gieo của migration). CHỈ để tra nhãn qua hàm tiêm `ctx.nhanNhanVien` — không ra DTO. */
   created_by: string | null;
 }
-const COT_CHINH_SACH = "id, min_lead_minutes, warn_lead_minutes, rest_minutes, require_manifest, require_contract, proxy_backdate_max_minutes, valid_from_at, created_at, created_by";
+const COT_CHINH_SACH = "id, min_lead_minutes, warn_lead_minutes, rest_minutes, require_manifest, require_contract, proxy_backdate_max_minutes, duty_day_max_minutes, trip_no_break_max_minutes, valid_from_at, created_at, created_by";
 // Dòng hiệu lực = valid_from_at mới nhất ≤ ?1 (mốc UTC ISO của lúc gọi).
 const CURRENT_DISPATCH_POLICY = defineSql(
   "van-chuyen",

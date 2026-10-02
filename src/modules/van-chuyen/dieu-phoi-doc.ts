@@ -57,7 +57,8 @@ export async function boSungXe(db: D1Database, chung: DuLieuChung, ids: readonly
 
 // ---- Đổi dạng thuần ---------------------------------------------------------------------------------------------------------------------------------------
 export const chinhSachVao = (r: DispatchPolicyRow | null): ChinhSachVao | null =>
-  r ? { id: r.id, minLeadMinutes: r.min_lead_minutes, warnLeadMinutes: r.warn_lead_minutes, restMinutes: r.rest_minutes, requireManifest: r.require_manifest === 1, requireContract: r.require_contract === 1 } : null;
+  r ? { id: r.id, minLeadMinutes: r.min_lead_minutes, warnLeadMinutes: r.warn_lead_minutes, restMinutes: r.rest_minutes, requireManifest: r.require_manifest === 1, requireContract: r.require_contract === 1,
+    dutyDayMaxMinutes: r.duty_day_max_minutes, tripNoBreakMaxMinutes: r.trip_no_break_max_minutes } : null;
 export const xeVao = (r: XeDieuPhoiRow, giayTo: Map<string, GiayToXeVao[]>): XeVao => ({
   id: r.id, bienSo: r.plate_number, soCho: r.passenger_capacity, trangThai: r.status, chuXePartyId: r.owner_party_id, chuLaCongTy: r.owner_is_company === 1, giayTo: giayTo.get(r.id) ?? [],
 });
@@ -73,9 +74,10 @@ export function taiXeVao(partyId: string, ds: readonly TaiXeDieuPhoi[]): TaiXeVa
 }
 export const khungChuyen = (t: TripRow): KhungChuyen => ({
   id: t.id, ma: t.code, xeId: t.vehicle_id, taiXePartyId: t.driver_party_id, batDauMs: t.planned_start_ms, ketThucMs: t.planned_end_ms, ketThucThatMs: t.ended_ms, trangThai: t.status,
+  xuatBenMs: t.departed_ms,
 });
 export const chuyenVao = (t: TripRow, xe: XeVao, taiXe: TaiXeVao | null): ChuyenVao => ({
-  id: t.id, ma: t.code, ngayChay: t.service_date, batDauMs: t.planned_start_ms, ketThucMs: t.planned_end_ms, ketThucThatMs: t.ended_ms, trangThai: t.status, xe, taiXe,
+  id: t.id, ma: t.code, ngayChay: t.service_date, batDauMs: t.planned_start_ms, ketThucMs: t.planned_end_ms, ketThucThatMs: t.ended_ms, trangThai: t.status, xuatBenMs: t.departed_ms, xe, taiXe,
   nghiChup: t.rest_minutes_snapshot, nghiPhaLe: t.rest_override_reason_code !== null,
 });
 export const suatVao = (a: AllocRow): SuatVao => ({

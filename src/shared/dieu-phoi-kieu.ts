@@ -128,6 +128,10 @@ export interface ChinhSachVao {
   restMinutes: number;
   requireManifest: boolean;
   requireContract: boolean;
+  /** ADR-0055 VK2-B (0071): tổng giờ lái tối đa một ngày chạy (phút) — vượt chỉ cảnh báo. */
+  dutyDayMaxMinutes: number;
+  /** ADR-0055 VK2-B (0071): chuyến dài hơn (phút) → nhắc nghỉ — chỉ cảnh báo. */
+  tripNoBreakMaxMinutes: number;
 }
 /** Dòng hạng bằng đang hiệu lực của MỘT hạng (`vc_license_capacity`). `maxPassengers` null = không giới hạn. Hạng không có dòng → CHẶN (không đoán). */
 export interface HangBangVao {
@@ -238,6 +242,8 @@ export interface KhungChuyen {
   /** Mốc kết thúc THẬT (`ended_ms`) — chuyến đã kết thúc tính khoảng tới đây (I22). */
   ketThucThatMs: number | null;
   trangThai: TrangThaiChuyen;
+  /** Giờ XẢY RA xuất bến (`departed_ms`) — mapper `khungChuyen` luôn đặt; giờ lái dùng cho chuyến đã chạy (ADR-0055 VK2-B). */
+  xuatBenMs?: number | null;
 }
 /** Khung bận CÒN HIỆU LỰC (`vc_unavailability`, withdrawn_at IS NULL — ADR-0055 VK2-A; ADR-0053 D9.1). Đúng một trong xeId / taiXePartyId theo doiTuong. */
 export interface KhungBanVao {
@@ -259,6 +265,8 @@ export interface ChuyenVao {
   ketThucMs: number;
   ketThucThatMs: number | null;
   trangThai: TrangThaiChuyen;
+  /** Giờ XẢY RA xuất bến (`departed_ms`) — mapper `chuyenVao` luôn đặt (ADR-0055 VK2-B). */
+  xuatBenMs?: number | null;
   xe: XeVao;
   taiXe: TaiXeVao | null;
   /** Khoảng nghỉ đã chụp lúc tạo / sửa (`rest_minutes_snapshot` — 5.6). */
