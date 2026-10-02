@@ -4,14 +4,12 @@
 > **Nhánh / worktree:** `worktree-dot-0-luong-l` ở `.claude/worktrees/dot-0-luong-l`, tách từ `main` cục bộ `df6bc864` (chưa lên `origin/main`: nhánh mang theo cả các commit kế hoạch + gia hạn TNV-G1 của `gia-han-tnv-g1`).
 > **Xây trên lỗ đang hở: F-02** (HIGH, hạn 2026-10-15, `docs/quyen-hoan.json`). Lớp này là cách vá. Nếu tới 12/10 kiểm độc lập vòng 2 chưa ĐẠT → báo chủ ngay.
 
-## TRẠNG THÁI HIỆN TẠI — phiên sau đọc mục này trước (cập nhật 2026-10-02, commit `b604a937`)
-- **XONG, đừng làm lại:** L0–L14 (checklist mục 1 đã đánh `[x]` cùng commit), "commit bài đỏ trước", kiểm độc lập vòng 1 **ĐẠT** + đã xử lý phát hiện N1/N2/G1/G5, vá 401 giữ vé, kịch bản Chrome (`lop-ve-smoke` 6/6; 7 kịch bản đỏ có sẵn GIỐNG nền `df6bc864`), sửa kiểm kiểu đỏ. Hàng rào H1–H7, H9 (CSDL), D1 giả nghiêm, T17, cổng khoá L13 đều có dòng ngày ở `docs/SO-HANG-RAO.md`.
-- **Số đo cuối (đo bằng mã thoát):** `npm run typecheck` 0; `npm test` 2886/2886 + bài đo giờ; `build:web` 0; e2e đủ bộ 45/45 (chạy trên `b158fd4a`+; sau đó chỉ đổi `web/` + kiểu ⇒ chưa chạy lại e2e trên `b604a937`).
-- **Vòng 2 (L15):** lần 1 trên `b604a937` = **KHÔNG ĐẠT** (1 CHẶN: PIN lộ ra localStorage qua `POST /api/account/passkeys/options`) — ĐÃ SỬA, xem mục "Kiểm độc lập vòng 2 — lần 1" cuối sổ. **ĐANG CHỜ** người kiểm xem lại phần sửa. Phiên sau: nếu không thấy mục "Kiểm độc lập vòng 2 — ĐẠT" bên dưới thì giao người kiểm xem lại `git diff b604a937 <đầu nhánh>` (không làm lại thi công).
-- **Sau khi vòng 2 ĐẠT:** đánh `[x]` L15 ở checklist; đo lại số migration (mục "Việc phải làm LÚC GỘP"); đưa chủ MỘT lần `npm run day-len -- worktree-dot-0-luong-l` rồi `npm run trien-khai` (cần triển khai: migration 0074 + mã). Kiểm số phiên bản 1.71 lúc gộp.
-- **Việc của chủ (không phải AI):** L16 (thử iPhone thật T3 sau triển khai); duyệt đề xuất luật `2026-10-02-dot-0-de-xuat-luat.md` ("duyệt 1–3"). Sau triển khai AI chạy lại T12 rồi mới đóng F-02 ở `docs/quyen-hoan.json`.
-- **Chưa quan sát trên production:** chữ lỗi D1 khi đụng vé (N2) — mới thấy trên D1 local của `wrangler dev`.
-- **`main` đã đi trước (đo 2026-10-02):** `main` = `667d3704`, luồng Q + Trang chủ 1.73 đã gộp và ĐÃ LÊN PRODUCTION bản **1.74**, migration `0075_tin_tai_khoan` ĐÃ ÁP remote. ⇒ Luồng L là nhánh gộp SAU: trước day-len phải gộp `main` vào nhánh, đánh lại nhật ký **1.71 → 1.75** (+ bài ghim `app-info.test.ts`), chạy lại H2 (số cứng 129), H5 (e2e đủ bộ), H7, typecheck + `npm test`; nếu có sửa mã sau gộp thì cho người kiểm xem phần chênh. `0074` áp SAU `0075` vẫn được (wrangler theo dõi theo TÊN tệp) — kiểm lại bằng `src/migrations-*.test.ts` sau gộp.
+## TRẠNG THÁI HIỆN TẠI — phiên sau đọc mục này trước (cập nhật 2026-10-02, commit gộp `05100460`)
+- **XONG, đừng làm lại:** L0–L15 (checklist mục 1 đã `[x]`). Kiểm độc lập vòng 1 ĐẠT; vòng 2 lần 1 KHÔNG ĐẠT (PIN lộ qua vé bật Face ID) ⇒ sửa `4f9fe164` ⇒ lần 2 **ĐẠT**; gộp `main` `a6fd0a3d` (1.73–1.75) ⇒ bản **1.76**, người kiểm xem phần gộp **ĐẠT**. Hàng rào H1–H7, H9 (CSDL), D1 giả nghiêm, T16, T17, cổng khoá đều có dòng ngày ở `docs/SO-HANG-RAO.md`.
+- **Số đo cuối trên `05100460` (mã thoát):** typecheck 0; `npm test` 0 đỏ (2966, 1 todo) + đo giờ 1/1; e2e đủ bộ **47/47**, H5 xanh, lỗi lạ 0. Chrome: `lop-ve-smoke` 6/6, `passkey-smoke` 9/9 (trước gộp).
+- **VIỆC TIẾP THEO (chủ):** `npm run day-len -- worktree-dot-0-luong-l` rồi `npm run trien-khai` (cần triển khai: migration `0074` + mã; khoá `LAN_GUI_SECRET` chủ đã đặt 2/10, `trien-khai` tự kiểm). Đã đưa lệnh cho chủ 2026-10-02 — đừng nhắc lại; trước khi nhắc, kiểm `main` + production.
+- **Sau triển khai:** chủ thử iPhone thật (L16, T3); AI chạy lại T12 rồi đóng F-02 ở `docs/quyen-hoan.json`; ghi trạng thái production (kèm sửa dòng 0071/0074/0075 ở bảng migration SYSTEM-DESIGN theo lệnh chỉ-đọc). Chủ trả lời đề xuất luật `2026-10-02-dot-0-de-xuat-luat.md` ("duyệt 1–3").
+- **Chưa quan sát trên production:** chữ lỗi D1 khi đụng vé (N2) — mới thấy trên D1 local (e2e nhóm 3, nhiều lần).
 - **Ngoài phạm vi lượt này:** màn "Thời hạn giữ vé", Cron dọn, bản nghiêm (A-11; bài không-vé + redteam R1/R2 chỉ xanh ở bản nghiêm).
 
 ## Giữ chỗ số migration — **`0074_lan_gui.sql`** (đã lấy 2026-10-02)
@@ -359,3 +357,8 @@ Số bản nhật ký phiên bản: `main` cục bộ có `1.70` ở đầu `src
 - Hàng rào bắt đúng lúc gộp: **H7** đỏ — `POST /api/van-chuyen/xe/:id/ban` trả 201 không `Location` (10 bài khung-ban của Đợt 3 đỏ theo vì khung thử ném H7) ⇒ thêm `kemLocation(…, "/lich-xe-ban")`; **H2** đỏ — 131 ≠ 129 (+2 route lịch xe bận) ⇒ cập nhật số có chủ đích.
 - Sau gộp: `npm run typecheck` thoát 0; `npm test` thoát 0 (2966, 0 đỏ, 1 todo; đo giờ 1/1); e2e đủ bộ **47/47**, H5 xanh, lỗi lạ 0, nhóm 3 đụng vé 1 (N2).
 - Phần sửa MÃ sau vòng 2: hai dòng trên (`van-chuyen/index.ts`, `lan-gui-phu-route.test.ts`) + gỡ xung đột ⇒ giao người kiểm xem phần gộp.
+
+## Kiểm độc lập phần gộp — **ĐẠT** (2026-10-02, trên `05100460`)
+- Người kiểm (bản sao riêng): typecheck thoát 0; `npm test` 2966 (1 đỏ `.gitattributes` do bản sao không `.git`, 1 todo), đo giờ 1/1. Đếm độc lập 136 route ghi, 5 public ⇒ 131 (khớp H2). `POST …/xe/:id/ban`: một lô, `Location /lich-xe-ban` đúng trang gọi; `…/rut` trả 200, một lô. Route mới không PIN/giấy tờ, không ghi phụ. `release-lib.mjs` / `kiem-phien-ban.mjs` không giả định số migration tăng dần ⇒ `0074` áp sau `0075` được.
+- Gợi ý (không làm): dòng 0071/0075 ở bảng migration SYSTEM-DESIGN ghi "CHƯA lên production" — dòng của nhánh khác; tôi không khẳng định trạng thái production từ trí nhớ (CLAUDE.md §8) ⇒ để phiên ghi trạng thái sau triển khai sửa.
+- `origin/main` = `main` = `a6fd0a3d`, nằm trong nhánh. SẴN SÀNG day-len.
