@@ -27,6 +27,7 @@ export const TEN_PHAN_HE: Readonly<Record<string, TenLoiThuong>> = {
   company: { ten: "Thông tin công ty", moTa: "Tên, mã số thuế, địa chỉ, đường dây nóng của Tour Đảo, hiện trên biên nhận gửi khách và trang đăng nhập." },
   dispatch: { ten: "Người phụ trách đơn", moTa: "Giao, nhận, đổi người phụ trách một đơn; hàng chờ nhận cho đơn chưa có ai phụ trách; hướng dẫn viên huỷ hoặc sửa số khách đơn mình phụ trách." },
   feedback: { ten: "Góp ý / Báo lỗi", moTa: "Mọi tài khoản gửi góp ý hoặc báo lỗi và theo dõi yêu cầu của mình; Toàn quyền tiếp nhận và trả lời." },
+  "giao-dien": { ten: "Giao diện công ty", moTa: "Màu thanh trên, màu nút chính, phông chữ và cỡ chữ chung cho cả công ty; chỉ người phụ trách hệ thống chỉnh, ai cũng thấy kết quả. Có kiểm chữ đủ dễ đọc trước khi lưu và ghi nhật ký mỗi lần đổi." },
   locations: { ten: "Địa điểm", moTa: "Danh sách nơi đón, nơi trả dùng chung khi lập đơn và xếp chuyến; Quản trị thêm, sửa ở trang Địa điểm." },
   maintenance: { ten: "Chế độ bảo trì", moTa: "Khi bật, chỉ người phụ trách hệ thống còn dùng được app; mọi người khác, kể cả Quản trị, thấy màn hình bảo trì. Chỉ người phụ trách hệ thống bật, tắt." },
   orders: { ten: "Đơn hàng", moTa: "Lập, sửa, xác nhận, huỷ đơn; dịch vụ của đơn, chặng đưa đón (giờ, nơi đón), danh sách hành khách. Tiền của đơn do app tự tính từ giá danh mục và số khách." },

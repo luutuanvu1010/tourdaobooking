@@ -690,6 +690,11 @@ CI=1 npx wrangler d1 execute tourdao-sales-db --remote --command "UPDATE mnt_set
 ```
 - Bảng cố ý không có CHECK chéo cột nên lệnh trên luôn chạy được dù `ends_at` còn giá trị (đã có test ở `src/migrations-maintenance.test.ts`).
 - Lệnh này KHÔNG ghi nhật ký `maintenance_changed` (đi vòng app): sau khi dùng, ghi lại vào đầu tệp này (ngày, lý do) để lịch sử không thiếu.
+
+Giao diện công ty hỏng (ADR-0087, migration `0069`; màn chỉnh không vào được) — về giao diện mặc định, một câu (chủ tự chạy; KHÔNG ghi nhật ký `giao_dien_changed`, ghi lại vào đầu tệp này sau khi dùng):
+```
+CI=1 npx wrangler d1 execute tourdao-sales-db --remote --command "UPDATE gd_setting SET tokens = '{}', version = version + 1 WHERE id = 'default'"
+```
 - Sau đó kiểm `GET /api/auth/config` → `"maintenance":{"on":false,…}` và đăng nhập thử; rồi tìm nguyên nhân (vd `allowed_phones` sai — số nhập vào danh sách phải là dạng chuẩn hoá `0xxxxxxxxx`).
 
 ## Cổng bổ sung trước/sau khi áp lần phát hành 1 (rà soát độc lập, 2026-09-20)
