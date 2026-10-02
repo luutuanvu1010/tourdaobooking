@@ -45,7 +45,14 @@ Khi đó khách hết bị ghi "còn nợ". Phần này **không** đóng TNV-G1
 
 **Cần chủ quyết** (không phải câu "nên đồng ý").
 
-Người kiểm độc lập vòng đối chiếu chỉ ra 6 câu mà phiên lập kế hoạch đã tự áp nhưng **không được tự áp**. Lý do: chúng chạm tiền của khách, luật tách nhiệm vụ, hoặc chữ ADR đã duyệt; mã lệch ADR accepted là lỗi (CLAUDE.md §2). Sáu câu này **đã chuyển về chờ chủ**, đánh dấu **(a)–(f)**:
+Người kiểm độc lập vòng đối chiếu chỉ ra 6 câu mà phiên lập kế hoạch đã tự áp nhưng **không được tự áp**. Lý do: chúng chạm tiền của khách, luật tách nhiệm vụ, hoặc chữ ADR đã duyệt; mã lệch ADR accepted là lỗi (CLAUDE.md §2). Sáu câu này **đã chuyển về chờ chủ**, đánh dấu **(a)–(f)**.
+
+> **CHỦ ĐÃ ĐỒNG Ý CẢ SÁU** (chat 2026-10-02: *"a,b.c,d,e,f : đồng ý."*). Đã ghi vào:
+> - ADR-0089: lời chủ lần 6; đ4a, đ6, đ8, đ15, đ16;
+> - ADR-0090: đ4 bổ sung;
+> - `docs/quyen-hoan.json`: F-02, điều kiện đóng theo A-9.
+>
+> Phần sửa chữ ADR có hiệu lực khi chủ gộp nhánh.
 - **(a) Đợt 1 Q1:** HDV huỷ vì "không liên hệ được khách" thuộc nhóm nào. Khuyến nghị: khách huỷ (giữ cọc). Đụng tiền của khách.
 - **(b) Đợt 1 Q2:** dòng "đã hoàn ngoài hệ thống" bị Quản trị từ chối thì Toàn quyền ghi lại được không. Khuyến nghị: có. Đổi nghĩa "một lần" của đ16.
 - **(c) Đợt 1 Q3:** giới hạn duyệt hoàn tính trên "tiền còn giữ" thay vì "đã trả". Khuyến nghị: còn giữ. Đổi chữ đ4a/đ15 của ADR-0089: **chưa duyệt thì mã giữ đúng chữ hiện hành**.

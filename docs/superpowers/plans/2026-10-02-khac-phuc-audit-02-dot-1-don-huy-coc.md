@@ -618,7 +618,9 @@ Mỗi dòng có ngày quan sát thật. Không có ngày = lời khuyên. Ngư�
 > - **Q5:** dùng nguyên câu ví dụ của ADR; chủ sửa trên ảnh chụp.
 > - **Cầm máu = CÓ:** Phần A + phần chữ Task 13 lên trước Đợt 0 (không đóng TNV-G1). Số migration lấy theo thứ tự gộp thật (lộ trình §1).
 >
-> **CHỜ CHỦ** (vòng đối chiếu độc lập chỉ ra không được tự áp, vì chạm tiền của khách, tách nhiệm vụ, hoặc chữ ADR đã duyệt): Q1, Q2, Q3, Q4, Q6. Đây là các câu (a)–(d) và (xi) ở lộ trình.
+> **CHỦ ĐÃ ĐỒNG Ý Q1–Q4 theo khuyến nghị** (chat 2026-10-02, câu (a)–(d): *"a,b.c,d,e,f : đồng ý."*). Chữ ADR-0089 đã sửa theo (đ4a, đ6, đ8, đ15, đ16); SV-DH-13 nay theo "còn giữ". **Q6 (gia hạn TNV-G1)** soạn sẵn ở nhánh riêng `gia-han-tnv-g1`; chủ gộp hay không.
+>
+> *(Ghi chú cũ, giữ để truy vết:)* các câu sau từng **CHỜ CHỦ** (vòng đối chiếu độc lập chỉ ra không được tự áp, vì chạm tiền của khách, tách nhiệm vụ, hoặc chữ ADR đã duyệt): Q1, Q2, Q3, Q4, Q6. Đây là các câu (a)–(d) và (xi) ở lộ trình.
 > - **Q1** chỉ chặn một dòng ánh xạ ở Task 6.
 > - **Q2** chặn Task 7, 10 phần đ16.
 > - **Q3**: tới khi chủ duyệt, mã giữ **đúng chữ hiện hành** của ADR-0089 ("≤ đã trả"); SV-DH-13 tách ra.

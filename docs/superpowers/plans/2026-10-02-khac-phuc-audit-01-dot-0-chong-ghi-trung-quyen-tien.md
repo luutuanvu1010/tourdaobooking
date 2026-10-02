@@ -682,7 +682,7 @@ Người thi công **không** tự báo "đạt" (N8). Báo cáo cuối cho ch�
 
 ---
 
-## 13. Câu cần chủ quyết — CHỜ CHỦ (C1, C2)
+## 13. Câu cần chủ quyết — CHỦ ĐÃ ĐỒNG Ý C1 = (A), C2 = (A) (chat 2026-10-02, câu (e), (f))
 
 > Phiên lập kế hoạch từng áp khuyến nghị cho C1, C2. **Vòng đối chiếu độc lập chỉ ra không được tự áp**:
 > - C1 là xung đột giữa hai văn bản chuẩn tắc: ADR-0094 A-9 và trường `ke_hoach` của F-02 trong sổ dừng dây chuyền. CLAUDE.md §2 đòi dừng và hỏi.
