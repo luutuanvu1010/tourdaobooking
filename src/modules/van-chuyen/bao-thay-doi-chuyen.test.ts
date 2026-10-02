@@ -3,7 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
-import { ACC, SALES, batDongHo, chuyenSan, setup, tienDo, uuid } from "../../../tests/audit/dieu-phoi-khung.mjs";
+import { ACC, DRIVER, NGAY, SALES, batDongHo, chuyenSan, setup, tienDo, uuid, xe } from "../../../tests/audit/dieu-phoi-khung.mjs";
 
 function voiGoi() {
   const goi: { tripId: string; requestId: string }[] = [];
@@ -56,5 +56,38 @@ test("bài quét: MỌI route POST/PUT lệnh chuyến của van-chuyen gọi ba
       than.lastIndexOf("if (r.loi) return r.loi", i),
     );
     assert.ok(chan > 0 && chan < i, `${m[1]} ${m[2]}: lời gọi phải đứng sau nhánh trả lỗi của lệnh`);
+    // Vòng sửa 1 (T1): lời gọi phải nằm TRONG khối "lệnh chưa lặp" (`if (!(await eventByRequest(…))) {` / `if (!lap) {`) — dời ra ngoài khối thì lệnh lặp
+    // cùng requestId cũng bắn tin lần hai. Đếm ngoặc từ `{` mở khối tới lời gọi: độ sâu không được về 0.
+    const khoi = Math.max(than.lastIndexOf("if (!(await eventByRequest(", i), than.lastIndexOf("if (!lap) {", i));
+    assert.ok(khoi > 0, `${m[1]} ${m[2]}: không thấy khối "lệnh chưa lặp" trước lời gọi`);
+    const mo = than.indexOf(") {", khoi) + 2; // `{` mở khối: `…requestId))) {` hoặc `if (!lap) {`
+    assert.ok(mo > khoi + 1 && mo < i, `${m[1]} ${m[2]}: không thấy ngoặc mở khối "lệnh chưa lặp"`);
+    let sau = 0;
+    let trong = true;
+    for (let k = mo; k < i; k++) {
+      if (than[k] === "{") sau++;
+      else if (than[k] === "}") sau--;
+      if (sau === 0) { trong = false; break; }
+    }
+    assert.ok(trong, `${m[1]} ${m[2]}: lời gọi phải nằm TRONG khối "lệnh chưa lặp" (không bắn lại khi gửi lặp cùng requestId)`);
+  }
+});
+
+test("gửi lặp lệnh TẠO chuyến cùng requestId (201 rồi 200) → đúng MỘT lời gọi baoThayDoiChuyen (không gõ cửa hai lần)", async () => {
+  const tat = batDongHo();
+  try {
+    const { w, goi } = voiGoi();
+    const xeId = xe(w);
+    const rid = uuid();
+    const than = { requestId: rid, xeId, taiXePartyId: `pty-${DRIVER}`, batDau: { ngay: NGAY, gio: "12:30" }, ketThuc: { ngay: NGAY, gio: "15:00" } };
+    const r1 = await w.call("POST", "/api/van-chuyen/chuyen", { as: SALES, body: than });
+    assert.equal(r1.status, 201, r1.text);
+    const r2 = await w.call("POST", "/api/van-chuyen/chuyen", { as: SALES, body: than });
+    assert.equal(r2.status, 200, r2.text);
+    assert.equal(r2.json.chuyen.id, r1.json.chuyen.id);
+    await xong();
+    assert.deepEqual(goi.filter((g) => g.requestId === rid), [{ tripId: r1.json.chuyen.id, requestId: rid }]);
+  } finally {
+    tat();
   }
 });
