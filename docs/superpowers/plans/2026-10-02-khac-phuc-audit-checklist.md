@@ -56,16 +56,16 @@ Hai luồng song song, mỗi luồng một phiên.
 - [x] 🤖 L4a bộ bọc cơ sở dữ liệu theo từng yêu cầu — 2026-10-02, chế độ nghiêm fakeD1 quan sát chặn
 - [x] 🤖 commit bài **đỏ trước** (L5, L11) — 2026-10-02 `27a3f5f1`
 - [x] 🤖 L4b router giai đoạn 1 (có vé thì áp, thiếu vé cho qua và đếm) — 2026-10-02, e2e đủ bộ 43/43; kèm trả nợ T17 (`demThanCu`)
-- [ ] 🔍 kiểm độc lập vòng 1 → **mở khoá Đợt 1**
-- [ ] 🤖 L5 H1 hành vi qua router thật; bài hồi quy có vé trong `src/`
-- [ ] 🤖 L6 H2 phủ route + tệp miễn
-- [ ] 🤖 L7 `Location` cho route 201 + H7
-- [ ] 🤖 L8 mô-đun vòng đời vé + H4 (không nuốt lần ghi thật thứ hai)
+- [x] 🔍 kiểm độc lập vòng 1 → **mở khoá Đợt 1** — ĐẠT 2026-10-02 (commit `57e53a18`; N1, G1, G5 đã sửa `f263b1d6`)
+- [x] 🤖 L5 H1 hành vi qua router thật; bài hồi quy có vé trong `src/` — 2026-10-02 `7b9899ea`, H1 quan sát chặn
+- [x] 🤖 L6 H2 phủ route + tệp miễn — 2026-10-02 `7b9899ea`, H2 quan sát chặn
+- [x] 🤖 L7 `Location` cho route 201 + H7 — 2026-10-02 `8280c626`, e2e 43/43
+- [x] 🤖 L8 mô-đun vòng đời vé + H4 (không nuốt lần ghi thật thứ hai) — 2026-10-02 `7b9899ea`
 - [ ] 🤖 L9 `web/api.ts` gửi vé; sửa `dieu-phoi-ui.ts:32`; H3
 - [ ] 🤖 L10 e2e tự gắn vé
 - [ ] 🤖 L11 T12: kịch bản 11, 12, 13, HD10 (nhánh "Ghi lần thu"), KT03, KT04 **bản có vé** trong `tests/e2e/`
 - [ ] 🤖 L12 H5 đo ghi nhiều lần; trả nợ `demThanCu` (T17)
-- [ ] 🤖 L13 cổng kiểm khoá trong `npm run trien-khai`
+- [x] 🤖 L13 cổng kiểm khoá trong `npm run trien-khai` — 2026-10-02 `7b9899ea` (quan sát bằng hàm giả)
 - [ ] 🤖 L14 tài liệu (`SYSTEM-DESIGN`, `CHANGE-GUIDE`, sổ hàng rào)
 - [ ] 🔍 L15 kiểm độc lập vòng 2: ĐẠT (nếu tới **12/10** chưa đạt → báo chủ)
 - [ ] 👤 L16 🚀 phát hành luồng L (khoá đã có; cổng L13 xác nhận)
