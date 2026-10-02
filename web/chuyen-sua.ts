@@ -4,9 +4,11 @@
 //   xế" (chủ trả lời Q1: chưa làm).
 // - Lỗi hiện dưới đúng ô sau khi bấm Lưu (409 → `truongLoiChuyen`); tạo mới / dời giờ không bao giờ cần phá lệ mốc (máy chủ quyết — 2.2, 2.3); "cần phá lệ" (khoảng
 //   nghỉ; đổi xe / tài xế của chuyến đã vào vùng khoá) → Quản trị, Toàn quyền mở hộp Phá lệ (H18, `canQuyen` của máy chủ); Bán hàng thấy câu dưới ô.
+// - Ô "Tuyến" (Đợt 4 G3 — không có trong bản vẽ, theo khuôn ô Xe): danh sách tuyến đang dùng (GET /api/van-chuyen/tuyen — chỉ tên, không giá); sửa chuyến gửi
+//   `tuyen` CHỈ khi đổi; tuyến cũ đã ngưng dùng vẫn hiện là lựa chọn đang chọn. Lỗi tải danh mục thì ẩn ô, không chặn form. Màn không báo số tiền nào.
 // - Cột phải "<biển số> trong ngày" (máy tính): các chuyến của xe đang chọn trong ngày (từ GET /lich); chuyến máy chủ báo trùng giờ tô đỏ.
 import { gioHien, truongLoiChuyen } from "../src/shared/dieu-phoi-man";
-import type { ChuyenChiTietResponse, ChuyenTomTatDto, GioVnDto, LichChungResponse, LyDoDangDungDto, TaiXeChonDto, XeChonDto } from "../src/shared/contracts";
+import type { ChuyenChiTietResponse, ChuyenTomTatDto, GioVnDto, LichChungResponse, LyDoDangDungDto, TaiXeChonDto, TuyenDto, TuyenListResponse, XeChonDto } from "../src/shared/contracts";
 import { can } from "../src/shared/permissions";
 import { addDays, isISODate, vnToday } from "../src/shared/vn-date";
 import { byId, h, replaceChildren } from "./dom";
@@ -32,6 +34,8 @@ interface TrangThai {
   ngay: string;
   xeId: string;
   taiXe: string;
+  /** Mã tuyến; "" = chưa chọn. */
+  tuyen: string;
   tu: string;
   den: string;
 }
@@ -63,6 +67,8 @@ async function main(): Promise<void> {
     return showError(errorEl, loiCua(e));
   }
   const lich = await api<LichChungResponse>(`/api/van-chuyen/lich?ngay=${ngay}`).catch(() => null);
+  // Danh mục tuyến (ô trip.dispatch — đúng người dùng trang này): lỗi tải thì ẩn ô Tuyến, form vẫn lưu được (không gửi `tuyen`).
+  const tuyen = await api<TuyenListResponse>("/api/van-chuyen/tuyen").then((r) => r.tuyen).catch(() => null);
   const quayLai = chuyen ? `/chuyen?id=${encodeURIComponent(chuyen.id)}` : `/dieu-phoi?ngay=${ngay}`;
   const back = byId<HTMLAnchorElement>("cx-back");
   back.href = quayLai;
@@ -73,11 +79,12 @@ async function main(): Promise<void> {
   document.title = `${tieuDe} — Island Booking System`;
   setBarTitle(chuyen ? `Sửa chuyến ${chuyen.ma}` : "Chuyến mới");
   datCrumb("Vận chuyển › Điều phối xe", chuyen ? `Sửa ${chuyen.ma}` : "Chuyến mới");
-  dung(ngay, chuyen, xe, taiXe, lyDo, lich);
+  dung(ngay, chuyen, xe, taiXe, lyDo, lich, tuyen);
 }
 
-function dung(ngay: string, chuyen: ChuyenChiTietResponse["chuyen"] | null, xe: XeChonDto[], taiXe: TaiXeChonDto[], lyDo: LyDoDangDungDto[], lich: LichChungResponse | null): void {
-  const st: TrangThai = { ngay, xeId: chuyen?.xe.id ?? "", taiXe: chuyen?.taiXe?.partyId ?? "", tu: chuyen?.batDau.gio ?? "", den: chuyen?.ketThuc.gio ?? "" };
+function dung(ngay: string, chuyen: ChuyenChiTietResponse["chuyen"] | null, xe: XeChonDto[], taiXe: TaiXeChonDto[], lyDo: LyDoDangDungDto[], lich: LichChungResponse | null, tuyen: TuyenDto[] | null): void {
+  const tuyenCu = chuyen?.tuyen?.ma ?? "";
+  const st: TrangThai = { ngay, xeId: chuyen?.xe.id ?? "", taiXe: chuyen?.taiXe?.partyId ?? "", tuyen: tuyenCu, tu: chuyen?.batDau.gio ?? "", den: chuyen?.ketThuc.gio ?? "" };
   let dangGui = false;
   let loiTruong: string[] = [];
 
@@ -107,6 +114,21 @@ function dung(ngay: string, chuyen: ChuyenChiTietResponse["chuyen"] | null, xe: 
     st.xeId = selXe.value;
     baoLoi(selXe, loiXe, []);
     veGoiYXe();
+  });
+
+  // Tuyến (Đợt 4 G3): chỉ tuyến đang dùng, theo thứ tự danh mục; tuyến đang gắn mà đã ngưng dùng vẫn là một lựa chọn (không xoá lặng lẽ).
+  const dangDung = (tuyen ?? []).filter((t) => t.dangDung).sort((a, b) => a.thuTu - b.thuTu || a.ten.localeCompare(b.ten, "vi"));
+  const tuyenNgung = chuyen?.tuyen && !dangDung.some((t) => t.ma === chuyen.tuyen!.ma) ? chuyen.tuyen : null;
+  const selTuyen = h("select", { id: "cx-tuyen", class: "vc-input", "aria-describedby": "cx-tuyen-hint cx-tuyen-error" },
+    h("option", { value: "" }, "Chưa chọn tuyến"),
+    tuyenNgung ? h("option", { value: tuyenNgung.ma }, `${tuyenNgung.ten} (đã ngưng dùng)`) : null,
+    ...dangDung.map((t) => h("option", { value: t.ma }, t.ten)));
+  selTuyen.value = st.tuyen;
+  const hintTuyen = h("div", { id: "cx-tuyen-hint", class: "vc-hint" }, "Xe thuê của nhà xe lấy giá theo tuyến và cỡ xe.");
+  const loiTuyen = oLoi("cx-tuyen");
+  selTuyen.addEventListener("change", () => {
+    st.tuyen = selTuyen.value;
+    baoLoi(selTuyen, loiTuyen, []);
   });
 
   // Tài xế — nhóm "Tài xế công ty" rồi từng nhà xe (không lọc theo tên — máy chủ báo chéo xe / tài xế dưới ô).
@@ -152,6 +174,7 @@ function dung(ngay: string, chuyen: ChuyenChiTietResponse["chuyen"] | null, xe: 
   replaceChildren(
     formEl,
     truong("cx-xe", "Xe", selXe, hintXe, loiXe),
+    tuyen ? truong("cx-tuyen", "Tuyến", selTuyen, hintTuyen, loiTuyen) : null,
     truong("cx-tai-xe", "Tài xế", selTx, null, loiTx),
     h("div", { class: "dp-cx-gio" }, truong("cx-tu", "Giờ bắt đầu", oTu, null, loiTu), truong("cx-den", "Giờ kết thúc", oDen, hintDen, loiDen)),
     chuyen?.khoaMoc.dangKhoa
@@ -184,10 +207,11 @@ function dung(ngay: string, chuyen: ChuyenChiTietResponse["chuyen"] | null, xe: 
   const than = (): { tao: Record<string, unknown> } | { sua: Record<string, unknown> } => {
     const batDau = gio(st.tu, st.ngay);
     const ketThuc = gio(st.den, st.den <= st.tu ? addDays(st.ngay, 1) : st.ngay);
-    if (!chuyen) return { tao: { xeId: st.xeId, taiXePartyId: st.taiXe, batDau, ketThuc } };
+    if (!chuyen) return { tao: { xeId: st.xeId, taiXePartyId: st.taiXe, batDau, ketThuc, ...(tuyen && st.tuyen ? { tuyen: st.tuyen } : {}) } };
     const b: Record<string, unknown> = { version: chuyen.version };
     if (st.xeId !== chuyen.xe.id) b.xeId = st.xeId;
     if (st.taiXe !== (chuyen.taiXe?.partyId ?? "")) b.taiXePartyId = st.taiXe;
+    if (tuyen && st.tuyen !== tuyenCu) b.tuyen = st.tuyen || null; // chỉ gửi khi đổi (vắng = giữ; null = bỏ tuyến)
     if (st.tu !== chuyen.batDau.gio || ketThuc.ngay !== chuyen.ketThuc.ngay || st.den !== chuyen.ketThuc.gio) {
       b.batDau = batDau;
       b.ketThuc = ketThuc;

@@ -259,6 +259,26 @@ test("RF1-a/b/c (V1, V7): tạo chuyến xe nhà xe 16 chỗ NT-CR → đúng m�
   }
 });
 
+test("G3 (giao diện Đợt 4): chi tiết chuyến mang TÊN tuyến {ma, ten} (null khi chưa chọn) — form sửa điền sẵn được; tuyến đã ngưng dùng vẫn hiện tên; không số tiền", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const n = await nenThue(w);
+    const co = await taoThue(w, { xe: n.x16, taiXe: n.tx, tuyen: n.crt });
+    assert.equal(co.status, 201, co.text);
+    const ct = await chiTiet(w, co.json.chuyen.id);
+    assert.deepEqual(ct.chuyen.tuyen, { ma: n.crt, ten: "Nha Trang – sân bay Cam Ranh" });
+    assert.ok(!JSON.stringify(ct).includes("1200000"), "chi tiết chuyến không mang tiền");
+    assert.equal((await w.call("PUT", `/api/van-chuyen/tuyen/${n.crt}`, { as: ACC, body: { dangDung: false } })).status, 200);
+    assert.deepEqual((await chiTiet(w, co.json.chuyen.id)).chuyen.tuyen, { ma: n.crt, ten: "Nha Trang – sân bay Cam Ranh" }, "tuyến ngưng dùng vẫn hiện tên");
+    const khong = await taoThue(w, { xe: n.x29, taiXe: n.tx, bd: "16:00", kt: "18:00" });
+    assert.equal(khong.status, 201, khong.text);
+    assert.equal((await chiTiet(w, khong.json.chuyen.id)).chuyen.tuyen, null);
+  } finally {
+    tat();
+  }
+});
+
 test("RF1-d (V12, V12b): nguồn là giá thoả thuận → đổi tuyến: thoả thuận bị đảo, chụp giá bảng nếu có; không có → thiếu giá (giữ THIEU_GIA, mọi người xem chuyến thấy, không số)", async () => {
   const tat = batDongHo();
   try {

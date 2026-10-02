@@ -5,13 +5,22 @@
 //   AXE_JS=<…/axe.min.js> CHROME_BIN=docs/evidence/2026-09-20-a2/kich-ban/chrome-wrap.sh OUT=<thư mục ảnh> node docs/evidence/2026-09-29-adr-0049/kich-ban/chuyen-sua-smoke.mjs
 // Kho cookie của Chrome dùng CHUNG: làm hết các bước của một tài khoản rồi mới sang tài khoản khác (Bán hàng → Quản trị → Kế toán; trang mở sau cùng là của Kế toán).
 import {
-  ACCOUNTS, CHU, DESK, MOB, apiCalls, assert, axe, axeNote, boDem, click, dungDuLieuDieuPhoi, dungMoiTruong, noCode, noOverflowX, shotFull, shotView, shown, sleep, txt,
+  ACCOUNTS, CHU, DESK, MOB, apiCalls, assert, axe, axeNote, boDem, click, dungDuLieuDieuPhoi, dungMoiTruong, fetchTrang, noCode, noOverflowX, shotFull, shotView, shown, sleep, txt,
   typeInto,
 } from "./dp-lib.mjs";
 
 const { env, call } = await dungMoiTruong([CHU]);
 const b = boDem("CHUYEN SUA SMOKE");
 const d = await dungDuLieuDieuPhoi(env, call);
+// Đợt 4 G3: một tuyến đang dùng + một tuyến đã ngưng (Kế toán giữ ô transport.rate.manage) — ô "Tuyến" chỉ liệt kê tuyến đang dùng.
+const taoTuyen = async (ten) => {
+  const r = await call(ACCOUNTS.accounting, "POST", "/api/van-chuyen/tuyen", { ten });
+  assert.equal(r.status, 201, r.text);
+  return r.json.tuyen.find((t) => t.ten === ten).ma;
+};
+const TUYEN = await taoTuyen("Nha Trang – sân bay Cam Ranh");
+const TUYEN_NGUNG = await taoTuyen("Nha Trang – Hòn Tằm");
+assert.equal((await call(ACCOUNTS.accounting, "PUT", `/api/van-chuyen/tuyen/${TUYEN_NGUNG}`, { dangDung: false })).status, 200);
 const dm = (ngay) => `${ngay.slice(8, 10)}/${ngay.slice(5, 7)}`;
 const di = async (p, path) => {
   await p.ev(`document.body.dataset.cu = '1'`);
@@ -35,7 +44,10 @@ try {
     assert.equal(await p.ev(txt("#cx-back")), `‹ Điều phối xe ${dm(d.NGAY_XA)}`);
     assert.equal(await p.ev(`document.querySelector('#cx-back').getAttribute('href')`), `/dieu-phoi?ngay=${d.NGAY_XA}`);
     const nhan = await p.ev(`[...document.querySelectorAll('#cx-form .vc-field > label')].map((l) => l.textContent)`);
-    assert.deepEqual(nhan, ["Xe", "Tài xế", "Giờ bắt đầu", "Giờ kết thúc"]);
+    assert.deepEqual(nhan, ["Xe", "Tuyến", "Tài xế", "Giờ bắt đầu", "Giờ kết thúc"]);
+    // Đợt 4 G3: ô Tuyến — "Chưa chọn tuyến" + chỉ tuyến đang dùng (tuyến ngưng không có), không số tiền.
+    assert.deepEqual(await p.ev(`[...document.querySelectorAll('#cx-tuyen option')].map((o) => o.textContent)`), ["Chưa chọn tuyến", "Nha Trang – sân bay Cam Ranh"]);
+    assert.equal(await p.ev(`document.querySelector('#cx-tuyen').value`), "");
     assert.equal(await p.ev(`document.querySelectorAll('#cx-form textarea').length`), 0, "không ô ghi chú cho tài xế (chủ Q1)");
     const xe = await p.ev(`[...document.querySelectorAll('#cx-xe option')].map((o) => ({ t: o.textContent, off: o.disabled }))`);
     assert.deepEqual(xe.find((o) => o.t.startsWith("79A-333.33")), { t: "79A-333.33 · 15 chỗ · xe công ty · đang bảo dưỡng", off: true });
@@ -103,6 +115,7 @@ try {
     await p.ev(typeInto("#cx-tai-xe", d.CUONG.partyId));
     await p.ev(typeInto("#cx-tu", "12:00"));
     await p.ev(typeInto("#cx-den", "13:00"));
+    await p.ev(typeInto("#cx-tuyen", TUYEN));
     const truoc = ghi(p).length;
     await gui(p);
     await p.waitFor(`location.pathname === '/chuyen'`, "sang /chuyen");
@@ -110,8 +123,34 @@ try {
     const body = JSON.parse(post.body);
     assert.equal(body.nghiPhaLe, undefined);
     assert.equal(body.taiXePartyId, d.CUONG.partyId);
+    assert.equal(body.tuyen, TUYEN, "Đợt 4 G3: tạo chuyến gửi mã tuyến đã chọn");
     await p.waitFor(`!!document.querySelector('.dp-ct-title')`, "trang chi tiết dựng xong");
     assert.match(await p.ev(txt(".dp-ct-title")), /^CX-\d{4}-\d+$/);
+  });
+
+  await b.step("5b", "Đợt 4 G3: mở sửa chuyến vừa tạo → ô Tuyến điền sẵn tuyến đã chọn; bỏ tuyến → PUT chỉ gửi tuyen: null; tuyến đã ngưng dùng vẫn hiện là lựa chọn đang chọn", async () => {
+    const idMoi = await p.ev(`new URLSearchParams(location.search).get('id')`);
+    await di(p, `/chuyen-sua?id=${idMoi}`);
+    await choForm(p);
+    assert.equal(await p.ev(`document.querySelector('#cx-tuyen').value`), TUYEN);
+    await p.ev(typeInto("#cx-tuyen", ""));
+    const truoc = ghi(p).length;
+    await gui(p);
+    await p.waitFor(`location.pathname === '/chuyen'`, "sang /chuyen sau khi bỏ tuyến");
+    const body = JSON.parse(ghi(p).slice(truoc)[0].body);
+    assert.deepEqual(Object.keys(body).sort(), ["requestId", "tuyen", "version"], "chỉ gửi ô đã đổi");
+    assert.equal(body.tuyen, null);
+    // Tuyến đang gắn nhưng đã ngưng dùng: gắn bằng API (đường thật: gắn lúc còn dùng rồi ngưng).
+    assert.equal((await call(ACCOUNTS.accounting, "PUT", `/api/van-chuyen/tuyen/${TUYEN_NGUNG}`, { dangDung: true })).status, 200);
+    const ct = await fetchTrang(p, "GET", `/api/van-chuyen/chuyen/${idMoi}`);
+    const gan = await fetchTrang(p, "PUT", `/api/van-chuyen/chuyen/${idMoi}`, { version: ct.json.chuyen.version, requestId: crypto.randomUUID(), tuyen: TUYEN_NGUNG });
+    assert.equal(gan.status, 200, gan.text);
+    assert.equal((await call(ACCOUNTS.accounting, "PUT", `/api/van-chuyen/tuyen/${TUYEN_NGUNG}`, { dangDung: false })).status, 200);
+    await di(p, `/chuyen-sua?id=${idMoi}`);
+    await choForm(p);
+    assert.equal(await p.ev(`document.querySelector('#cx-tuyen').value`), TUYEN_NGUNG);
+    assert.equal(await p.ev(`document.querySelector('#cx-tuyen').selectedOptions[0].textContent`), "Nha Trang – Hòn Tằm (đã ngưng dùng)");
+    await shotFull(p, "g3-sua-chuyen-tuyen-may-tinh.png");
   });
 
   await b.step("6", "sửa chuyến đang khoá (Bán hàng): dải cảnh báo vùng khoá; đổi tài xế → câu 'cần Quản trị phá lệ' dưới ô Tài xế, không hộp phá lệ", async () => {
@@ -190,7 +229,8 @@ try {
     assert.deepEqual(puts[1].phaLe, { lyDo: "PHA_LE_SU_CO" });
     assert.equal(puts[1].nghiPhaLe, undefined);
     assert.notEqual(puts[0].requestId, puts[1].requestId, "lệnh kèm phá lệ là ý định mới → requestId mới");
-    const ct = await call(ACCOUNTS.admin, "GET", `/api/van-chuyen/chuyen/${d.T4.id}`);
+    // ADR-0075 (một phiên mỗi tài khoản): đọc bằng phiên của trang — `call()` của Quản trị đã bị phiên trình duyệt đá (bài đỏ sẵn trước Đợt 4, sửa 2/10).
+    const ct = await fetchTrang(qm, "GET", `/api/van-chuyen/chuyen/${d.T4.id}`);
     assert.equal(ct.json.chuyen.taiXe.ten, "Phạm Văn Cường");
   });
   await qm.close();

@@ -1286,7 +1286,8 @@ export interface BanChupDto {
 }
 /** GET /api/van-chuyen/chuyen/:id (và phản hồi mọi lệnh ghi của văn phòng). */
 export interface ChuyenChiTietResponse {
-  chuyen: ChuyenTomTatDto & { nghiPhaLe: boolean; lyDoHuy: string | null; lyDoKetThuc: string | null };
+  /** `tuyen` (Đợt 4 G3 — trường đọc thêm cho form sửa chuyến): mã + TÊN tuyến đang gắn (kể cả tuyến đã ngưng dùng), null = chưa chọn. Không có tiền. */
+  chuyen: ChuyenTomTatDto & { nghiPhaLe: boolean; lyDoHuy: string | null; lyDoKetThuc: string | null; tuyen: { ma: string; ten: string } | null };
   diem: DiemChuyenDto[];
   suat: SuatChuyenDto[];
   canhBao: CanhBaoLichDto[];
@@ -1334,6 +1335,8 @@ export interface TaoChuyenRequest {
   ketThuc: GioVnDto;
   /** Phá lệ khoảng nghỉ (luật KHOANG_NGHI). */
   nghiPhaLe?: PhaLeRequest;
+  /** ADR-0057 C2: mã tuyến (null / vắng = chưa chọn). Đợt 4 G3 — khai kiểu cho giao diện; máy chủ đã nhận từ Task 9. */
+  tuyen?: string | null;
 }
 /** PUT /api/van-chuyen/chuyen/:id — sửa kế hoạch (khoá `version`). Vắng = giữ. */
 export interface SuaChuyenRequest {
@@ -1347,6 +1350,8 @@ export interface SuaChuyenRequest {
   diem?: { id: string; thuTu: number; gioXeToi: GioVnDto | null }[];
   phaLe?: PhaLeRequest;
   nghiPhaLe?: PhaLeRequest;
+  /** ADR-0057 C2: vắng = giữ tuyến; null = bỏ tuyến; mã = đổi tuyến (đổi tuyến trên chuyến xe thuê làm máy chủ đảo + chụp lại giá). Đợt 4 G3 — khai kiểu. */
+  tuyen?: string | null;
 }
 /** GET /api/van-chuyen/huong-dan-vien — người gắn được làm "người đi kèm" (lời chủ 2026-10-01: chỉ tài khoản Hướng dẫn viên đang hoạt động). Hồ sơ + tên, KHÔNG SĐT. */
 export interface HuongDanVienListResponse { nguoi: { partyId: string; ten: string }[] }
