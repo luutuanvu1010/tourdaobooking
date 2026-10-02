@@ -49,7 +49,7 @@ Hai luồng song song, mỗi luồng một phiên.
 - [ ] 👤 Q7 🚀 phát hành luồng Q
 
 **Luồng L — lớp chống ghi trùng bản mở rộng (ADR-0094), đường găng**
-- [ ] 🤖 L0 kiểm kê; **đo lại số migration** (mọi nhánh chưa gộp)
+- [x] 🤖 L0 kiểm kê; **đo lại số migration** (mọi nhánh chưa gộp) — 2026-10-02, lấy `0074`; sổ `2026-10-02-dot-0-lop-ve-nhat-ky.md`
 - [ ] 🤖 L1 migration bảng vé + bảng chính sách (gieo 365 ngày), từ điển dữ liệu
 - [ ] 🤖 L2 module `lan-gui`
 - [ ] 🤖 L3 khoá bí mật ở mọi nơi dựng môi trường (khung thử, e2e, `.dev.vars.example`)
