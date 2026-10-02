@@ -3,7 +3,7 @@
 - **Trạng thái:** **accepted** — chủ dự án, chat 2026-10-02: *"7- Duyệt"*.
   - Chủ duyệt văn bản **bản 3.2** của lượt duyệt 1a (`docs/superpowers/specs/2026-10-02-luot-duyet-1-don-huy-va-quyen-tien.md` @ `4598221f`), cùng các câu trả lời trong cùng tin nhắn (lời chủ lần 4).
   - Các điểm AI viết **sau** bản 3.2 (Đ-1…Đ-6) và QH5 được **chủ chọn từng điểm** ở lời chủ lần 5 (cùng ngày), nay đã nằm trong phần "Quyết định": đ3, đ5–đ10, đ15, đ16.
-  - Bốn chi tiết AI thêm khi ghi lời chủ lần 5 nằm riêng ở mục **"Chi tiết AI ghi — áp theo khuyến nghị"** (X-1…X-4). X-1…X-3 áp theo lời chủ *"đừng hỏi tôi những câu hỏi mà tôi nên đồng ý nữa,"*; **X-4 chưa áp, chờ chủ** (chạm tách nhiệm vụ).
+  - Bốn chi tiết AI thêm khi ghi lời chủ lần 5 nằm riêng ở mục **"Chi tiết AI ghi — áp theo khuyến nghị"** (X-1…X-4). X-1…X-3 áp theo lời chủ *"đừng hỏi tôi những câu hỏi mà tôi nên đồng ý nữa,"*; **X-4 chủ đã chọn** (*"1- có"*: Quản trị xác nhận).
   - Lời chủ lần 5 được ghi **thẳng vào tệp này** cùng ngày duyệt, chưa thi công, thay vì ra ADR mới trỏ về. Đây là lệch với lời dặn đầu mục lục ADR ("không sửa ADR đã accepted") và với Hiến pháp N9 / CLAUDE.md §3 (AI không tự sửa ADR đã duyệt, chỉ đề xuất bằng diff trên nhánh).
     - Phần sửa này **chỉ là đề xuất** cho tới khi chủ gộp nhánh. Chủ có thể yêu cầu tách thành ADR bổ sung.
     - Người đọc lưu ý: phần "Quyết định" nay gồm cả câu chữ AI viết từ lời chủ lần 5, chủ chưa đọc ở dạng văn bản này.
@@ -120,13 +120,11 @@
 
 ## Chi tiết AI ghi — áp theo khuyến nghị
 Khi đưa lời chủ lần 5 vào văn bản, AI cần thêm bốn chi tiết mà chủ chưa nói. Bốn chi tiết này **áp theo khuyến nghị**, theo lời chủ cùng ngày: *"đừng hỏi tôi những câu hỏi mà tôi nên đồng ý nữa,"*. Chủ bác điểm nào thì sửa điểm đó trước khi thi công.
-- **X-4 (chạm tách nhiệm vụ — CHƯA áp, chờ chủ):** dòng "đã hoàn ngoài hệ thống" (đ16) không có bước duyệt riêng. Muốn bất biến đ15 (chi + chuyển ≤ duyệt ≤ đã trả) vẫn đúng, dòng này phải được tính **cả là duyệt lẫn chi**. Hai cách:
-  - **(a, khuyến nghị sau vòng kiểm 3)** Toàn quyền ghi, **Quản trị xác nhận** rồi dòng mới có hiệu lực. Giữ luật tách nhiệm vụ đ4c.
-  - (b) Toàn quyền ghi một mình: ngoại lệ có tên của đ4c.
-  - Điểm này **không** thuộc loại "nên đồng ý": nó làm lỏng luật tách người duyệt và người chi mà chủ đã chọn. Người kiểm độc lập vòng 3 lưu ý: một khoản cọc có thể rời sổ mà không người thứ hai nào thấy. Vì vậy X-4 **chưa áp**, và phần đ16 chưa thi công tới khi chủ chọn.
+- **X-4 — CHỦ ĐÃ CHỌN** (chat 2026-10-02, *"1- có"*, trả lời câu "có cần Quản trị xác nhận không"): dòng "đã hoàn ngoài hệ thống" (đ16) do **Toàn quyền ghi, Quản trị xác nhận** rồi mới có hiệu lực.
+  - Giữ luật tách nhiệm vụ đ4c: người ghi khác người xác nhận. Tài khoản kiêm cả hai nhận 409 ở bước xác nhận.
+  - Khi đã xác nhận, dòng này được tính **cả là duyệt lẫn chi** cho bất biến đ15 (chi + chuyển ≤ duyệt ≤ đã trả). Chưa xác nhận thì không tính.
   - Dòng này không đụng số dư của người đang giữ tiền (đ4b, đ11).
-  - Đây là **ngoại lệ có tên** của đ4c (không ai vừa duyệt vừa chi). Lý do: việc trả đã xảy ra ngoài Nền tảng, dòng này chỉ ghi lại.
-  - Cách khác: Toàn quyền ghi, rồi Quản trị xác nhận. Cách này giữ tách nhiệm vụ nhưng thêm một bước.
+  - Phương án bị loại: Toàn quyền ghi một mình. Người kiểm độc lập vòng 3 lưu ý cách này để một khoản cọc rời sổ mà không người thứ hai nào thấy.
 - **X-3:** phạm vi đ16 là đơn đã huỷ **trước ngày ADR này lên production**; số ghi ≤ "còn giữ" của đơn; có lý do bắt buộc.
 - **X-2:** đơn còn ở nhóm "chưa kết luận" thì **chưa duyệt hoàn được** tới khi Quản trị phân loại. Lý do: hạn 60 ngày và miễn hạn tuỳ nhóm.
 - **X-1:** duyệt chuyển tiền (đ6) dùng **cùng ô quyền "duyệt hoàn cọc"** (Quản trị, Toàn quyền), vì cùng người giữ. Cách khác: một ô riêng.

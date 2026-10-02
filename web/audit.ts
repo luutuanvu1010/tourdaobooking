@@ -61,7 +61,7 @@ function cardGroups(entries: readonly AuditRecord[]): HTMLElement[] {
   for (const e of entries) {
     const day = dayLabel(e.at);
     if (day !== lastDay) {
-      out.push(h("div", { class: "muted", style: "font-weight:600;margin-top:var(--s3)" }, day));
+      out.push(h("div", { class: "muted", style: "font-weight:var(--fw-semibold);margin-top:var(--s3)" }, day));
       lastDay = day;
     }
     out.push(auditCard(e));

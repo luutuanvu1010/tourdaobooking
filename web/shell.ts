@@ -31,6 +31,7 @@ const TRANG_CUOC_CAC = [TRANG_CUOC, "/cuoc-chuyen"];
 const TRANG_CHINH_SACH = ["/chinh-sach-dieu-phoi", "/dieu-kien-xuat-ben"];
 const TRANG_LY_DO = "/ly-do-dieu-phoi";
 const TRANG_TRO_LY = "/tro-ly-cai-dat"; // ADR-0069: bảng điều khiển trợ lý Hỗ trợ (chỉ Toàn quyền)
+const TRANG_GIAO_DIEN = "/giao-dien"; // ADR-0087: màn Giao diện công ty (chỉ Toàn quyền)
 /** ADR-0075 điều 7: sổ phiên đăng nhập của mọi tài khoản — chỉ IT/Toàn quyền (ô auth.session.viewAll). Ở điện thoại mở từ trang Tôi nên tab "Tôi" sáng. */
 const TRANG_PHIEN = "/sessions";
 
@@ -67,7 +68,7 @@ function tabsFor(admin: boolean, seesAll: boolean, canCreate: boolean, taiXe = f
   return [
     ...officeTabs,
     ...adminTabs,
-    { href: "/account", label: "Tôi", icon: "me", active: (p) => p === "/account" || p === "/audit" || p === "/help" || p === "/gui-thong-bao" || TRANG_XE.includes(p) || p === TRANG_SAP_HET_HAN || p === TRANG_LOAI_GIAY_TO_XE || p === TRANG_LOAI_GIAY_TO_NGUOI || TRANG_CHINH_SACH.includes(p) || p === TRANG_LY_DO || TRANG_DIEU_PHOI.includes(p) || p === TRANG_TRO_LY || p === TRANG_PHIEN || (!cuoc && TRANG_CUOC_CAC.includes(p)) },
+    { href: "/account", label: "Tôi", icon: "me", active: (p) => p === "/account" || p === "/audit" || p === "/help" || p === "/gui-thong-bao" || TRANG_XE.includes(p) || p === TRANG_SAP_HET_HAN || p === TRANG_LOAI_GIAY_TO_XE || p === TRANG_LOAI_GIAY_TO_NGUOI || TRANG_CHINH_SACH.includes(p) || p === TRANG_LY_DO || TRANG_DIEU_PHOI.includes(p) || p === TRANG_TRO_LY || p === TRANG_GIAO_DIEN || p === TRANG_PHIEN || (!cuoc && TRANG_CUOC_CAC.includes(p)) },
   ];
 }
 
@@ -147,14 +148,17 @@ async function ganPhienThongBaoMayNay(): Promise<void> {
   }
 }
 
-/** Số mục chưa đọc của Góp ý (phản hồi mới cho tôi + yêu cầu chờ admin). Lỗi mạng → 0, không làm hỏng khung. */
-export async function feedbackBadge(): Promise<number> {
-  try {
-    const b = await api<Api.FeedbackBadgeResponse>("/api/feedback/badge");
-    return b.mine + b.queue;
-  } catch {
-    return 0;
-  }
+/**
+ * Số mục chưa đọc của Góp ý (phản hồi mới cho tôi + yêu cầu chờ admin). Lỗi mạng → 0, không làm hỏng khung. MỘT lời gọi mỗi lần mở trang dù nhiều nơi cùng cần
+ * (thanh bên + dải chào Trang chủ máy tính, thanh bên + trang Tôi) — giữ lời hỏi đang chạy, cùng cách web/vc-dem.ts.
+ */
+let feedbackBadgeHoi: Promise<number> | null = null;
+export function feedbackBadge(): Promise<number> {
+  feedbackBadgeHoi ??= api<Api.FeedbackBadgeResponse>("/api/feedback/badge").then(
+    (b) => b.mine + b.queue,
+    () => 0,
+  );
+  return feedbackBadgeHoi;
 }
 
 /**
@@ -261,6 +265,8 @@ function navGroups(admin: boolean, seesAll: boolean, office: boolean, canCreate:
   if (guiThongBao) management.push({ href: "/gui-thong-bao", label: "Gửi thông báo", icon: "megaphone", active: (p) => p === "/gui-thong-bao" });
   // ADR-0069 điều 1: bảng điều khiển trợ lý Hỗ trợ — chỉ Toàn quyền (ô settings.ops, cùng cờ `chinhSach`).
   if (chinhSach) management.push({ href: TRANG_TRO_LY, label: "Trợ lý Hỗ trợ", icon: "chat", active: (p) => p === TRANG_TRO_LY });
+  // ADR-0087: màn Giao diện công ty — chỉ Toàn quyền (ô settings.ops, cùng cờ `chinhSach`).
+  if (chinhSach) management.push({ href: TRANG_GIAO_DIEN, label: "Giao diện", icon: "palette", active: (p) => p === TRANG_GIAO_DIEN });
 
   const me: NavItem[] = [
     // Tài xế (ADR-0040 D3): "Trang chủ" của họ là /tai-xe — đứng đầu nhóm TÔI (bản vẽ Vận chuyển: menu tài xế "Trang chủ, Của tôi"; giữ vỏ thật: Góp ý, Trợ giúp).

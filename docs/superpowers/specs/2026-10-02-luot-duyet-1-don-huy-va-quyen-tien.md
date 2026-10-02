@@ -279,7 +279,7 @@ Nguồn **tách nhiệm vụ** duyệt và chi: ADR-0072 đ1, ADR-0026 H4. Hiế
 | `bil_posting`, `bil_debt_line` | phiếu sổ + dòng nợ: giữ hộ, nộp, trả, điều chỉnh; lượt 2 thêm `HOA_HONG`, `GIAM_GIA_BEN_DAT`, `GIA_VON`; dòng gắn chuyến (ADR-0057) | 0089 đ11: "còn ai giữ tiền của đơn huỷ" đọc từ đây |
 | lý do huỷ (danh sách ADR-0030) | lý do huỷ đơn | 0089 đ8: thêm nhóm "khách huỷ" / "công ty huỷ" / "huỷ để lập lại / trùng đơn" / "chưa kết luận" (lý do "Khác") |
 | **khoản "duyệt hoàn cọc"** (như trên) | nay chứa **hai loại** quyết định: duyệt **hoàn** và duyệt **chuyển sang đơn mới** (có mã đơn nhận) | 0089 đ6 (lời chủ 5, Đ-1) |
-| dòng **"đã hoàn ngoài hệ thống"** (mới, nơi chứa do kế hoạch chọn) | việc hoàn đã làm tay trên đơn cũ; **đề xuất** tính cả là duyệt lẫn chi cho bất biến (X-4, **CHƯA áp, chờ chủ** — chạm tách nhiệm vụ; đ16 chưa thi công tới khi chủ chọn) | 0089 đ16 (QH5) |
+| dòng **"đã hoàn ngoài hệ thống"** (mới, nơi chứa do kế hoạch chọn) | việc hoàn đã làm tay trên đơn cũ; Toàn quyền ghi, **Quản trị xác nhận**; đã xác nhận thì tính cả là duyệt lẫn chi cho bất biến (X-4, chủ chọn "1- có" 2/10) | 0089 đ16 (QH5) |
 | `staff`, `stf_permission`, vai (`roles.ts`) | tài khoản (nội bộ và bên ngoài, chung một bảng), quyền, vai | 0090: ai gán, tạo quyền tiền, ai đặt lại PIN. Không đổi cột |
 
 ### 2. Dòng bản đồ quyền chạm các bảng trên
@@ -308,7 +308,7 @@ Nguồn **tách nhiệm vụ** duyệt và chi: ADR-0072 đ1, ADR-0026 H4. Hiế
 | Duyệt chuyển tiền | không có | như "Duyệt hoàn cọc", kèm mã đơn nhận (Đ-1) |
 | Chuyển tiền sang đơn mới | không có | route mới `can(ledger.write)` + **cần khoản duyệt chuyển còn số**, **người chuyển ≠ người duyệt** (Đ-1); một lô: chi khỏi đơn huỷ + thu vào đơn mới cùng số, cùng người giữ; nhật ký trên cả hai đơn; qua lớp chống ghi trùng chung |
 | Hạn 60 ngày | — | chặn duyệt mới **chỉ cho khách huỷ**; công ty huỷ, huỷ để lập lại / trùng đơn (Đ-3) và dòng đ16 **không bị chặn, chỉ nhắc** |
-| Ghi "đã hoàn ngoài hệ thống" (đ16) | không có | route mới, **chỉ SUPER_ADMIN**, mỗi đơn **một lần**; **đề xuất**: chỉ đơn huỷ trước ngày phát hành, ≤ còn giữ, lý do bắt buộc (X-3, áp theo khuyến nghị); nút chỉ hiện cho Toàn quyền; qua lớp chống ghi trùng chung |
+| Ghi "đã hoàn ngoài hệ thống" (đ16) | không có | route ghi **chỉ SUPER_ADMIN**, mỗi đơn **một lần**; route **xác nhận** cho Quản trị (ô duyệt hoàn cọc), người xác nhận ≠ người ghi, 409 nếu trùng người (X-4); **đề xuất**: chỉ đơn huỷ trước ngày phát hành, ≤ còn giữ, lý do bắt buộc (X-3, áp theo khuyến nghị); nút chỉ hiện cho Toàn quyền; qua lớp chống ghi trùng chung |
 | Danh sách đối chiếu đơn cũ (đ16) | không có | route đọc `ledger.view any` |
 | Lớp CSDL | trigger hoàn ≤ đã thu (`0045:212-216`) | + trigger: **tổng chi + tổng chuyển ≤ tổng duyệt ≤ đã trả** trên đơn huỷ (đ15), đúng **mọi lúc**: đảo hay "Thay lần thu" làm đã trả < tổng duyệt cũng bị chặn |
 | **Nút "Ghi hoàn"** (`web/order.ts:567`, hiện khi dư > 0) | đơn huỷ: không hiện (dư = 0) | **đổi nghĩa:** đơn huỷ dùng nút "Duyệt hoàn cọc" (người duyệt) rồi "Ghi chi hoàn" (Kế toán); đơn không huỷ trả dư giữ nút cũ |

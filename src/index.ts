@@ -20,6 +20,7 @@ import { receiptModule } from "./modules/receipt";
 import { catalogModule, runScheduledSync } from "./modules/catalog";
 import { companyModule } from "./modules/company";
 import { dispatchModule, handledOrderIdsOf, handlerOf, isOrderHandler, newOrderHandler, ordersWithHandler, soDonDangPhuTrachCua } from "./modules/dispatch";
+import { giaoDienModule } from "./modules/giao-dien";
 import { locationsModule } from "./modules/locations";
 import { feedbackModule } from "./modules/feedback";
 import { maintenanceBlock, maintenanceModule } from "./modules/maintenance";
@@ -51,7 +52,7 @@ async function nemNeuLoi(viec: [string, Promise<unknown> | null][]): Promise<voi
 }
 
 const APP_OPTIONS: AppOptions = {
-  modules: [authModule, accountsModule, ordersModule, dispatchModule, billingModule, receiptModule, catalogModule, auditModule, locationsModule, partiesModule, companyModule, maintenanceModule, feedbackModule, bangtinModule, thongbaoModule, vanChuyenModule, troLyModule],
+  modules: [authModule, accountsModule, ordersModule, dispatchModule, billingModule, receiptModule, catalogModule, auditModule, locationsModule, partiesModule, companyModule, maintenanceModule, giaoDienModule, feedbackModule, bangtinModule, thongbaoModule, vanChuyenModule, troLyModule],
   currentStaff,
   checkConfig: checkAuthConfig,
   injected: {

@@ -177,7 +177,7 @@ route("PUT", "/api/foo/:id", "office", async ({ env, request, params, staff }) =
 ### c. Thêm trang web
 
 **Sửa theo thứ tự:**
-1. `public/<tên>.html`: copy nguyên `<head>` của `public/locations.html` (đủ thẻ meta iOS, `theme-color`, `manifest`, `apple-touch-icon`), đổi `<title>Tên — Island Booking System</title>`.
+1. `public/<tên>.html`: copy nguyên `<head>` của `public/locations.html` (đủ thẻ meta iOS, `theme-color`, `manifest`, `apple-touch-icon`), đổi `<title>Tên — Island Booking System</title>`. Giữ đúng thẻ link giao diện công ty `<link rel="stylesheet" href="/api/giao-dien.css">` đứng NGAY SAU `<link rel="stylesheet" href="/app.css">` (ADR-0087).
    - Thân: `<header id="topbar"></header>`, `<div id="error" class="alert" role="alert" hidden>`, `<script type="module" src="/js/<tên>.js">`.
    - `<body data-title data-back data-tabbar="off">` tuỳ trang. KHÔNG script inline (CSP `script-src 'self'`).
 2. `web/<tên>.ts`: `const staff = await initShell();` (`web/shell.ts`) làm việc đầu; kiểm quyền bằng `hasPermission`/`can` (`src/shared/permissions`, import KHÔNG đuôi `.ts`); lỗi hiện bằng `showError`.
@@ -304,7 +304,9 @@ route("PUT", "/api/foo/:id", "office", async ({ env, request, params, staff }) =
 - Đổi giá trị ở `:root` của `public/app.css` (nhóm "Riêng của Island Booking System" dành cho token mới).
 - Khối SAU dấu mốc `/* ---------- app iPhone (PWA)` CHỈ dùng token: không hex, `rgb()`/`hsl()`, `px` (trừ `1px`), `rem`/`em`; `@media (…)` được phép. `tests/e2e/pwa.mjs` quét khối đó sau khi bỏ chú thích và `@media`.
 - Cổng đó KHÔNG bắt: tên màu (`red`), `%`, `vw`/`vh`/`ch`, `color-mix()` — tự kiểm.
-- Đổi `--c-primary` phải đổi KHỚP `theme_color` của `public/manifest.webmanifest` và `<meta name="theme-color">` trong từng `public/*.html` (`pwa.mjs` bắt lệch ở mọi trang của `PAGES`).
+- **Token theo VAI (2026-10-02):** thanh, nút chính, mục đang chọn, mảng đậm, nút tròn Tạo đơn trỏ token vai ở khối "MÀU THEO VAI" của `:root` (`--c-bar-*`, `--c-sidebar-*`, `--c-btn-primary-*`, `--c-selected-*`, `--c-tab-new-*`, `--c-band-*`, `--c-maint-bg`). Màn mới lấy nền/chữ của nút và thanh từ đây, KHÔNG viết `var(--c-primary)` làm nền. Đổi cả app = đổi giá trị token vai. `src/token-giao-dien.test.ts` chặn trỏ thẳng màu thương hiệu ở các bộ chọn đó và đo tương phản mọi cặp chữ/nền vai (≥ 4,5:1).
+- **Độ đậm chữ** chỉ qua năm mức `--fw-regular/medium/semibold/bold/heavy` (từ 1.65: 400/500/500/500/500 — chủ dự án muốn chữ mảnh). Luật CSS và kiểu viết thẳng ở `web/*.ts`/`public/*.html` không viết số (cùng bài kiểm).
+- Thanh trạng thái iPhone: `--c-status-bar` (hex) phải KHỚP `theme_color` của `public/manifest.webmanifest` và `<meta name="theme-color">` trong từng `public/*.html`; kiểu thanh trạng thái là `default` (chữ đen). Thanh đầu nền trắng nên `black-translucent` (chữ trắng) sẽ làm giờ/pin biến mất. `pwa.mjs` bắt lệch ở mọi trang của `PAGES`.
 - Ô gõ 16px (chống zoom iOS). Không `innerHTML` (dựng bằng `h()` ở `web/dom.ts`).
 
 **CSP (`public/_headers`, một chính sách chung cho MỌI trang tĩnh):**
@@ -316,9 +318,10 @@ route("PUT", "/api/foo/:id", "office", async ({ env, request, params, staff }) =
 - MỌI chữ dùng **Be Vietnam Pro** (`--font` và `--font-display` cùng trỏ; LỆCH tourdaovn có chủ đích — chủ dự án giao chọn 30/9). Năm tệp `public/fonts/be-vietnam-pro-{400,500,600,700,800}.woff2`, **MỘT tệp mỗi độ đậm, đủ Latin + tiếng Việt + dấu tổ hợp**. **KHÔNG** tách tệp theo `unicode-range` như Google Fonts: chữ gõ kiểu "Unicode tổ hợp" (Unikey trên Windows, dữ liệu dán từ Sheet) có chữ gốc ở tệp này và dấu ở tệp kia → trình duyệt không ghép được, dấu lệch/rời (đã đo bằng CDP `CSS.getPlatformFontsForNode`: bản cũ vẽ một câu bằng Nunito + phông hệ thống).
 - Tạo lại tệp (máy có Python; `fonttools` + `brotli` cài trong venv tạm, KHÔNG thêm vào repo), nguồn TTF tĩnh ở kho `google/fonts`, thư mục `ofl/bevietnampro/` (giấy phép OFL):
   `pyftsubset BeVietnamPro-<Tên>.ttf --unicodes="U+0000-00FF,U+0102-0103,U+0110-0111,U+0128-0129,U+0131,U+0152-0153,U+0168-0169,U+01A0-01A1,U+01AF-01B0,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0300-0301,U+0303-0304,U+0308-0309,U+0323,U+0329,U+1EA0-1EF9,U+2000-206F,U+20AB,U+20AC,U+2122,U+2212,U+2215,U+FEFF,U+FFFD" --layout-features+=tnum,ccmp,mark,mkmk,kern,locl --flavor=woff2 --desubroutinize --output-file=public/fonts/be-vietnam-pro-<độ đậm>.woff2` (Regular=400, Medium=500, SemiBold=600, Bold=700, ExtraBold=800). GIỮ hinting (không `--no-hinting`): Windows dùng nó cho chữ nhỏ.
+- **Phông tuỳ chọn (ADR-0087):** ngoài Be Vietnam Pro còn Nunito, Lexend, Noto Sans (`public/fonts/{nunito,lexend,noto-sans}-{400,500,600,700}.woff2`, 12 tệp, 16–18 KB mỗi tệp) để Toàn quyền chọn ở màn Giao diện (danh sách ở `PHONG`, `src/shared/giao-dien.ts`). CHỈ Be Vietnam Pro nạp sẵn trong `PRECACHE`; ba phông này tải khi cần, KHÔNG thêm vào `PRECACHE` (`src/phong-chu.test.ts` và `pwa.mjs` canh). Nguồn của google/fonts là bản biến thiên: dựng bản tĩnh bằng `fonttools varLib.instancer <tệp> wght=<400|500|600|700> [wdth=100 cho Noto Sans] -o <tĩnh>.ttf` rồi chạy đúng lệnh `pyftsubset` ở trên. Thêm phông mới = thêm vào `PHONG` + đủ `@font-face` đúng độ đậm khai ở đó.
 - Phông không có mũi tên, ✓, ✕, ▾ → chúng rơi về phông hệ thống theo chồng `--font` (Apple: San Francisco; Windows: Segoe UI / Segoe UI Symbol). Chấp nhận có chủ đích; đừng thêm phông biểu tượng.
 - `button, input, select, textarea { font-family: inherit; }` ở đầu `app.css`: phần tử form của trình duyệt KHÔNG kế thừa phông (Windows vẽ Arial). Đừng gỡ.
-- Tên tệp chỉ `[A-Za-z0-9_-]` (khớp `STATIC_FILE` trong `src/shared/sw-policy.ts`); thêm/bớt tệp phải sửa `PRECACHE` + số tệp ở `pwa.mjs` (`fontUrls.length === 5`). `src/phong-chu.test.ts` đỏ khi: `@font-face` có `unicode-range`, tệp thiếu/quá nhỏ/không có trong `PRECACHE`, một độ đậm được dùng mà không có tệp, chồng phông mất dự phòng Windows, mất luật `button … inherit`.
+- Tên tệp chỉ `[A-Za-z0-9_-]` (khớp `STATIC_FILE` trong `src/shared/sw-policy.ts`); thêm/bớt tệp Be Vietnam Pro phải sửa `PRECACHE` (5 tệp nạp sẵn); 12 tệp phông tuỳ chọn KHÔNG vào `PRECACHE`; số tệp ở `pwa.mjs` là 17 (`5 + 12`). `src/phong-chu.test.ts` đỏ khi: `@font-face` có `unicode-range`, tệp thiếu/quá nhỏ (Be Vietnam Pro ≤ 20 KB, phông tuỳ chọn ≤ 10 KB), Be Vietnam Pro không có trong `PRECACHE` hoặc phông tuỳ chọn lại có trong đó, `@font-face` lệch độ đậm khai trong `PHONG`, một độ đậm được dùng mà không có tệp, chồng phông mất dự phòng Windows, mất luật `button … inherit`.
 - CSP `font-src 'self' data:` ở `public/_headers` đã cho font cùng origin; font từ CDN phải sửa CSP (và `STATIC_FILE`).
 
 **Cỡ chữ — thang `--fs-step-1…14` (12→32px) ở `:root`:** token cỡ chữ theo vai (`--fs-ui`, `--fs-hdv-*`, `--fs-vc-*`, `--fs-dp-*`…) chỉ được trỏ `var(--fs-step-N)`; luật CSS không viết cứng cỡ chữ (`src/phong-chu.test.ts` canh). Bậc nhỏ nhất 12px — dưới đó dấu chồng hai tầng (ấ, ở) nhoè trên màn Windows 100%. Cần cỡ mới: dùng bậc có sẵn; thêm bậc = hỏi chủ.
@@ -830,6 +833,16 @@ Quyết định của chủ dự án (nguồn: `docs/HANDOFF-CHE-DO-BAO-TRI.md` 
 - **Route mới ghi dịch vụ đơn (vd sửa sau xác nhận C2):** gọi `validateOrder` thì PHẢI gọi `priceGuard(…, (await manualPolicy(…)).bat)` — bài `src/nhap-tay-guard.test.ts` đỏ nếu quên; hoặc gọi thẳng `duocNhapTay`.
 - **Kiểm:** `node --test src/modules/orders/price-guards.test.ts src/modules/orders/nhap-tay-route.test.ts src/nhap-tay-guard.test.ts src/migrations-nhap-tay.test.ts` → `npm test` → `npm run test:e2e -- nhap-tay-va-gia-doi-tac` (kịch bản tự đưa công tắc về TẮT ở cuối — D1 chung) → Chrome `docs/evidence/2026-09-30-adr-0061/kich-ban/nhap-tay-smoke.mjs` + ba `a2-smoke-*.mjs`.
 - **Bẫy:** Đối tác KHÔNG xác nhận được đơn nháp của mình mà văn phòng đã thêm dòng nhập tay (R2 ở xác nhận — hệ quả có chủ ý, ADR-0061); văn phòng xác nhận thay. `R-ORD-NT1` (warn) sẽ hiện các đơn đó nếu người lập mang quyền Đối tác — rà theo mã đơn.
+
+### z9. Thêm một núm giao diện (ADR-0087)
+
+Núm = một ô chỉnh ở màn Giao diện công ty, ánh xạ tới MỘT token của `:root`. Nguồn: `src/shared/giao-dien.ts` (thuần, dùng chung máy chủ và màn chỉnh).
+1. Token phải CÓ SẴN ở `:root` của `public/app.css` (bài `src/giao-dien-mac-dinh.test.ts` đỏ nếu không). Thêm một dòng vào `NUM` (`khoa` tiếng Việt không dấu, `nhan` lời thường, `nhom`, `loai` `mau|phong|co|dam`, `token`; `co`/`dam` thêm `min`/`max`) và đúng một giá trị vào `MAC_DINH` bằng giá trị `:root` hiện tại.
+2. Núm là MÀU CHỮ hoặc MÀU NỀN đứng cạnh nhau → thêm cặp `[chữ, nền, tên cặp]` vào `CAP_TUONG_PHAN` (máy chủ chặn cặp dưới 4,5:1).
+3. Nếu giá trị `:root` của token là `var()` của núm khác → khai núm con → núm cha ở `CHA` (nếu không, kiểm tương phản chấm bằng màu mặc định cũ).
+4. Nếu đổi núm phải kéo thêm token khác (vd độ đậm, viền/hover của nút) → khai ở `KEO_THEO`.
+5. Chạy `node --test src/giao-dien-mac-dinh.test.ts src/shared/giao-dien.test.ts`. Không cần migration (`tokens` là JSON mở). Ghi nhật ký phiên bản như công thức t.
+- **Tắt khẩn** khi giao diện hỏng mà không vào được màn chỉnh: `UPDATE gd_setting SET tokens = '{}', version = version + 1 WHERE id = 'default'` (chủ tự chạy theo `docs/HANDOFF-N1.md`); mọi người thấy giao diện mặc định ở lần mở trang kế tiếp.
 
 ### z8. Cấp phiên đăng nhập, luật một máy, kết thúc phiên (ADR-0075 Phần A)
 

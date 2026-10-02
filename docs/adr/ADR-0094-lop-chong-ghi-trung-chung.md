@@ -1,10 +1,10 @@
 # ADR-0094 — Lớp chống ghi trùng chung của Nền tảng: mỗi lệnh ghi mang một "vé", máy chủ ghi vé cùng lô với dữ liệu
 
-- **Trạng thái:** **proposed**.
-  - Chủ dự án đã trả lời ba câu V1–V3 (chat 2026-10-02, lời chủ lần 5 bên dưới). Chủ **chưa duyệt văn bản ADR này**.
+- **Trạng thái:** **accepted** — chủ dự án, chat 2026-10-02: *"2- Duyệt"* (cùng tin nhắn với *"1- có"* cho X-4 của ADR-0089).
+  - Chủ dự án đã trả lời ba câu V1–V3 (chat 2026-10-02, lời chủ lần 5 bên dưới), rồi duyệt văn bản bản @`8cd6349d`.
   - Phần AI tự thêm khi soạn nằm riêng ở mục **"Đề xuất của AI — áp theo khuyến nghị"** (A-1…A-11). Các điểm này **áp theo khuyến nghị**, theo lời chủ cùng ngày: *"đừng hỏi tôi những câu hỏi mà tôi nên đồng ý nữa,"*. Chủ bác điểm nào thì sửa điểm đó.
   - Vì vậy số sàn (A-3: 90 ngày) và thời gian chờ khi rút ngắn (A-4: 7 ngày) mà đ8 cần đã có.
-  - ADR chuyển **accepted** khi chủ nói "Duyệt" (Hiến pháp N3).
+  - AI ghi lại lời duyệt, không tự duyệt (Hiến pháp N3).
   - AI ghi lại, không tự duyệt (Hiến pháp N3).
 - **Ngày:** 2026-10-02.
 - **Số:** 0094 (đã giữ chỗ ở `docs/adr/README.md`).

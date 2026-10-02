@@ -1,17 +1,15 @@
 <!doctype html>
-<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"><meta name="robots" content="noindex"><meta name="theme-color" content="#0c4a6e"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><title>Trang chủ — Island Booking System</title></head>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"><meta name="robots" content="noindex"><meta name="theme-color" content="#ffffff"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><link rel="stylesheet" href="/api/giao-dien.css"><title>Trang chủ — Island Booking System</title></head>
 <body class="trang-chu">
 <header id="topbar"></header>
+<!-- Dải chào MÁY TÍNH (≥641px — bản vẽ "Trang chu may tinh v2.dc.html", Claude Design 2026-10-02): lời chào theo buổi, ngày, viên bảo trì, MỌI ô chức năng theo nhóm.
+     Nằm NGOÀI main: một hàng riêng của lưới khung (thanh bên | thanh trên / dải mảnh / dải chào / nội dung) để nền trải hết cột. web/home.ts dựng nội dung; điện thoại ẩn. -->
+<section id="dash-dai" class="dash-dai" aria-label="Lời chào và chức năng" hidden></section>
 <main>
   <!-- Bản mẫu không có H1 to trên trang (khung có sẵn của trang này chưa có thanh tiêu đề như bản mẫu sidebar — đó là việc của Đợt D khác) — h1 chỉ còn phục vụ trình đọc màn hình, ẩn khỏi mắt ở MỌI khổ (cùng kỹ thuật với .detail-head h1). -->
   <h1 class="visually-hidden">Trang chủ</h1>
-  <div class="dash-hello">
-    <span id="dash-name" class="dash-name"></span>
-    <span id="dash-date" class="dash-date"></span>
-    <span id="dash-maint" class="badge badge-draft" hidden>Đang ở chế độ bảo trì</span>
-  </div>
   <!-- Trang chủ điện thoại (≤640px — bản vẽ "Trang chu dien thoai.dc.html" 1a–1g): ô tìm đơn nổi trên dải đầu trang, lưới ô chức năng, khối số liệu 2×2.
-       Máy tính ẩn ba khối này (CSS), giữ nguyên bố cục cũ. Lời chào / chuông / trợ giúp của dải đầu trang nằm trong #topbar (web/home.ts chèn sau initShell). -->
+       Máy tính ẩn ba khối này (CSS) — lời chào và ô chức năng của máy tính ở #dash-dai, số liệu ở #dash-so-mt. Lời chào / chuông / trợ giúp của dải đầu trang nằm trong #topbar (web/home.ts chèn sau initShell). -->
   <form id="dash-tim" class="dash-tim" role="search">
     <span class="dash-tim-ico" aria-hidden="true"></span>
     <input id="dash-tim-o" type="search" enterkeyhint="search" autocomplete="off" placeholder="Tìm mã đơn, tên khách, SĐT…" aria-label="Tìm đơn">
@@ -19,7 +17,6 @@
   <nav id="dash-o" class="dash-o" aria-label="Chức năng" hidden></nav>
   <div id="error" class="alert" role="alert" hidden></div>
   <div id="loading" class="skeleton-list" aria-hidden="true">
-    <div class="skeleton-row"></div><div class="skeleton-row"></div>
     <div class="dash-xuong">
       <div class="dash-xuong-so">
         <div><span class="dash-xg dash-xg-a"></span><span class="dash-xg dash-xg-so"></span><span class="dash-xg dash-xg-b"></span></div>
@@ -35,14 +32,25 @@
         <div class="dash-xuong-dong"><span class="dash-xg dash-xg-gio"></span><div><span class="dash-xg dash-xg-ten"></span><span class="dash-xg dash-xg-phu"></span></div><span class="dash-xg dash-xg-tien"></span></div>
       </div>
     </div>
+    <!-- Khung xương máy tính (bản vẽ v2 "Đang tải"): thẻ Chuyến đón + thẻ số liệu, cùng lưới với nội dung thật. -->
+    <div class="dash-xuong-mt">
+      <div class="dash-xuong-mt-chuyen">
+        <span class="dash-xg dash-xg-tieu-de"></span>
+        <div class="dash-xuong-vien"><span class="dash-xg dash-xg-vien"></span><span class="dash-xg dash-xg-vien"></span><span class="dash-xg dash-xg-vien"></span></div>
+        <span class="dash-xg dash-xg-truc"></span>
+        <div class="dash-xuong-mt-dong"><div><span class="dash-xg dash-xg-gio"></span><span class="dash-xg dash-xg-phu"></span></div><div><span class="dash-xg dash-xg-ten"></span><span class="dash-xg dash-xg-phu"></span></div><span class="dash-xg dash-xg-tien"></span></div>
+        <div class="dash-xuong-mt-dong"><div><span class="dash-xg dash-xg-gio"></span><span class="dash-xg dash-xg-phu"></span></div><div><span class="dash-xg dash-xg-ten"></span><span class="dash-xg dash-xg-phu"></span></div><span class="dash-xg dash-xg-tien"></span></div>
+        <div class="dash-xuong-mt-dong"><div><span class="dash-xg dash-xg-gio"></span><span class="dash-xg dash-xg-phu"></span></div><div><span class="dash-xg dash-xg-ten"></span><span class="dash-xg dash-xg-phu"></span></div><span class="dash-xg dash-xg-tien"></span></div>
+      </div>
+      <div class="dash-xuong-mt-so">
+        <div><span class="dash-xg dash-xg-a"></span><span class="dash-xg dash-xg-so"></span><span class="dash-xg dash-xg-b"></span></div>
+        <div><span class="dash-xg dash-xg-a"></span><span class="dash-xg dash-xg-so"></span><span class="dash-xg dash-xg-b"></span></div>
+        <div><span class="dash-xg dash-xg-a"></span><span class="dash-xg dash-xg-so"></span><span class="dash-xg dash-xg-b"></span></div>
+      </div>
+    </div>
   </div>
   <div id="dash-so" class="dash-so" hidden></div>
   <div id="dash-grid" class="dash-grid" hidden>
-    <div id="dash-stats" class="dash-stats"></div>
-    <section id="dash-revenue" class="card dash-revenue">
-      <div class="dash-revenue-head"><span class="dash-revenue-title icon-label">Doanh thu của tôi</span><span id="dash-revenue-range" class="muted"></span></div>
-      <div id="dash-revenue-total" class="dash-revenue-total"></div>
-    </section>
     <section id="dash-today" class="card dash-today">
       <div class="dash-today-head">
         <span class="dash-today-title icon-label">Chuyến đón</span>
@@ -50,9 +58,13 @@
         <a class="dash-today-all" href="/orders"><span class="lbl-full">Xem tất cả</span><span class="lbl-short">Tất cả</span></a>
       </div>
       <div id="dash-today-days" class="dash-days" role="group" aria-label="Chọn ngày đón" hidden></div>
+      <!-- Dòng thời gian trong ngày (chỉ máy tính, bản vẽ v2): vạch giờ, "Bây giờ", chấm từng chuyến — trang trí, thông tin đã có trong từng dòng. -->
+      <div id="dash-tl" class="dash-tl" aria-hidden="true" hidden></div>
       <div id="dash-today-list"></div>
       <p id="dash-today-empty" class="empty" hidden>Không có chuyến nào hôm nay.</p>
     </section>
+    <!-- Số liệu máy tính (bản vẽ v2): một thẻ chia ô — Còn thiếu tiền, Doanh thu của tôi (biểu đồ tuần), Chờ xác nhận, Chưa phụ trách. Điện thoại dùng #dash-so. -->
+    <section id="dash-so-mt" class="dash-so-mt" aria-label="Số liệu"></section>
     <section id="dash-review" class="card dash-review" hidden>
       <div class="dash-review-head"><span class="dash-review-heading icon-label">Cần xem lại</span></div>
       <div id="dash-review-list"></div>

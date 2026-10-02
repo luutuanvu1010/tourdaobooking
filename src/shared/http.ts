@@ -10,6 +10,11 @@ export function json(data: unknown, status = 200, headers: HeadersInit = {}): Re
   });
 }
 
+/** Phản hồi CSS (route DUY NHẤT hiện có: GET /api/giao-dien.css, ADR-0087). `no-cache` = trình duyệt được giữ nhưng phải hỏi lại (ETag → 304). */
+export function css(body: string, status = 200, headers: HeadersInit = {}): Response {
+  return new Response(body, { status, headers: { "content-type": "text/css; charset=utf-8", "cache-control": "no-cache", ...headers } });
+}
+
 export function error(status: number, code: string, message: string): Response {
   return json({ error: { code, message } }, status);
 }

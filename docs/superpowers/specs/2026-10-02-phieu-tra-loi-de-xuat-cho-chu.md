@@ -61,17 +61,13 @@
 - Q-B8: Đối tác thấy loại dấu.
 - Q-B9: Toàn quyền nhận tin ở ngăn "Tất cả".
 
-## Một điểm giằng co thật, chờ chủ chọn
-**X-4 (ADR-0089 đ16):** khi Toàn quyền ghi "đã hoàn ngoài hệ thống" cho đơn cũ, có cần người thứ hai xác nhận không?
-- **(a) Quản trị xác nhận dòng đó** (khuyến nghị): giữ luật "không ai vừa duyệt vừa chi" mà chủ đã chọn; thêm một bước nhỏ.
-- (b) Toàn quyền ghi một mình: nhanh hơn, nhưng khoản cọc có thể rời sổ mà không ai khác thấy.
-
-Điểm này không hỏi theo kiểu "nên đồng ý", vì nó đụng chính luật tách nhiệm vụ. Chưa có lời chủ thì phần đ16 chưa thi công; các phần khác của ADR-0089 không bị chặn.
+## Lời chủ 2/10 sau bản 6
+- **X-4:** *"1- có"* → Quản trị xác nhận dòng "đã hoàn ngoài hệ thống" (ADR-0089).
+- **ADR-0094:** *"2- Duyệt"* → accepted.
 
 ## Chờ chủ nói "Duyệt" (không phải câu hỏi)
-1. **ADR-0094** — gấp, vì lỗi gửi lặp (F-02) có hạn **15/10**. Không kịp thì gia hạn kèm lý do.
-2. **ADR-0088 + ADR-0092** (lượt 2).
-3. **ADR-0093 + ADR-0091** (lượt 3).
+1. **ADR-0088 + ADR-0092** (lượt 2).
+2. **ADR-0093 + ADR-0091** (lượt 3).
 
 ## Việc của chủ khi triển khai lớp chống ghi trùng
 - Đặt khoá bí mật trước lần triển khai. Thiếu khoá thì mọi màn báo lỗi.
