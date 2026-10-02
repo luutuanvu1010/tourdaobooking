@@ -566,6 +566,16 @@ export const CHECKS = [
     level: "warn",
     note: "cảnh báo (không chặn phát hành): form lập đơn để trống nơi trả cho các dịch vụ này — Quản trị chọn lại nơi trả mặc định",
   },
+  // R-VC-RATE-1 (ADR-0057 T1 B4, mức warn): dòng giá thuê xe ĐANG hoặc SẮP hiệu lực (ngày kết thúc chưa qua — giờ VN) của hồ sơ không còn vai Nhà xe — Kế toán /
+  // Quản trị kết thúc dòng giá (màn bảng giá vẫn liệt kê nhà xe đã thôi còn giá mở để Kết thúc được). Trigger vc_rental_rate_carrier chỉ chặn lúc THÊM.
+  {
+    code: "R-VC-RATE-1",
+    what: "dòng giá thuê xe còn hiệu lực của hồ sơ đã thôi vai nhà xe",
+    sql: `SELECT count(*) FROM vc_rental_rate r WHERE COALESCE(r.valid_to_date, '9999-12-31') >= date('now', '+7 hours')
+          AND r.carrier_party_id NOT IN (SELECT party_id FROM v_pty_carrier)`,
+    level: "warn",
+    note: "cảnh báo, không chặn phát hành: nhà xe đã thôi hợp tác mà còn giá — Kế toán / Quản trị bấm Kết thúc dòng giá",
+  },
 
   // ---- Người phụ trách đơn (ADR-0006 điều 3, ADR-0009). Migration 0014 trở lên: trên D1 chưa có 0014 các câu dưới lỗi "no such table" → script thoát mã 2. ----
   // R-DSP-1: chỉ mục duy nhất một phần đã chặn ở CSDL; kiểm này bắt trường hợp chỉ mục bị gỡ/sửa nhầm.

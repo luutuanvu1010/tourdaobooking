@@ -38,3 +38,6 @@ Làn máy chủ (Task 0 → 12). **Không** làm Task G (giao diện) — làn k
   - Chốt: "thay dòng X" mà X vừa bị người khác kết thúc trước ngày mới → dòng mới vẫn lưu (trigger chồng giá đã cho qua) + 409 `gia_vua_doi` "giá mới đã lưu, tải lại" — vì sao: D1 không huỷ được lô sau khi chạy; sai thì tốn: một lần tải lại.
   - Chốt: số tiền giá tối đa 1.000.000.000 đ/chuyến (chặn gõ thừa số 0) — đổi một hằng `TIEN_TOI_DA`.
   - `src/route-access.test.ts` SNAPSHOT 216 → 225 (+9 route office).
+- Task 5: xong — kiểm định kỳ `R-VC-RATE-1` (warn) + bài; `docs/SO-HANG-RAO.md` 4 dòng (chồng giá, chỉ-thêm, vai nhà xe lúc thêm, ghim `transport.*`) đều có ngày thấy chặn thật 2026-10-02 (đột biến thêm: bỏ `vc_rental_rate_close_once` ⇒ bài "chỉ-thêm…" đỏ; ADMIN của `transport.rate.manage` = none ⇒ 4 bài permissions đỏ); SYSTEM-DESIGN §5 (3 bảng + 0072) §7 (6 dòng route); CHANGE-GUIDE công thức z10; nhật ký phiên bản 1.70 (một mục cho cả đợt). `npm test` 2784/2784 + bài đo giờ 1/1; typecheck 0 lỗi.
+  - `node scripts/audit-invariants.mjs --db local` (sau `db:migrate:local`, 0072 áp): thoát 1 vì **R-N1-5** (D1 local của worktree mới không có quản trị viên nào — có sẵn, không do đợt này); `R-VC-RATE-1` ✓.
+  - Người kiểm độc lập T1: KHÔNG gọi (luật làn) — danh sách soi ghi ở báo cáo điều phối.

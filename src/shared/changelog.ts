@@ -11,6 +11,15 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Vận chuyển Đợt 4 — tiền xe thuê (ADR-0057 T1 + T2, migration 0072, 0073). MỘT mục cho cả đợt (máy chủ + giao diện cùng một bản phát hành — Cần chủ 2 = A).
+    // Số TẠM 1.70 do điều phối cấp — ĐIỀU PHỐI ĐÁNH LẠI LÚC GỘP, và sửa lời khi gộp phần giao diện.
+    version: "1.70",
+    date: "2026-10-02",
+    items: [
+      { kind: "moi", text: "Kế toán, Quản trị có Bảng giá thuê xe: giá mỗi chuyến của từng nhà xe theo tuyến hoặc cỡ xe, có ngày hiệu lực. Có cả hai thì dùng giá theo tuyến." },
+    ],
+  },
+  {
     // Trang chủ máy tính theo bản vẽ "Trang chu may tinh v2.dc.html" (Claude Design 2026-10-02). Không migration, không đổi máy chủ.
     // Số 1.68 = main 1.67 + 1. KIỂM LẠI LÚC GỘP (nhánh khác gộp trước thì đánh lại số).
     version: "1.68",

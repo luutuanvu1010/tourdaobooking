@@ -1880,3 +1880,25 @@ test("R-VC-20 (NT-D4): mẫu hiện hành trỏ điểm đang dùng → 0; đi�
   db.prepare("UPDATE loc_location SET active = 0 WHERE id = ?").run(BEN);
   assert.equal(violations(db, c), 2, "TD101 + TD103 (bản hiện hành) trỏ điểm đã ngưng");
 });
+
+// ---------------------------------------------------------------------------------------------------------------------
+// ADR-0057 T1 B4 (kế hoạch Đợt 4 Task 5): R-VC-RATE-1 — dòng giá còn hiệu lực của hồ sơ đã thôi vai nhà xe (warn).
+// ---------------------------------------------------------------------------------------------------------------------
+test("R-VC-RATE-1 (ADR-0057 B4): nhà xe đang hợp tác có giá mở → 0; thôi vai → 1 (warn); kết thúc dòng giá → 0; dòng đã hết hạn trước hôm nay không đếm", () => {
+  const c = one("R-VC-RATE-1");
+  assert.equal(c.level, "warn");
+  const db = build();
+  db.exec(`INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES ('p-nx', 'ORGANIZATION', 'Nhà xe', 1, '${T1}', '${T1}')`);
+  db.exec(`INSERT INTO pty_party_role (id, party_id, role_type_code, location_id, valid_from_date, created_at, updated_at) VALUES ('r-nx', 'p-nx', 'CARRIER', NULL, '2026-09-01', '${T1}', '${T1}')`);
+  db.exec(`INSERT INTO vc_route (code, name, created_at, updated_at) VALUES ('T001', 'Tuyến', '${T1}', '${T1}')`);
+  const gia = (id: string, tu: string, den: string | null) =>
+    db.prepare(`INSERT INTO vc_rental_rate (id, carrier_party_id, route_code, amount, valid_from_date, valid_to_date, created_at, updated_at) VALUES (?, 'p-nx', 'T001', 1000000, ?, ?, ?, ?)`)
+      .run(id, tu, den, T1, T1);
+  gia("g-cu", "2020-01-01", "2020-12-31");
+  gia("g-mo", "2026-09-01", null);
+  assert.equal(violations(db, c), 0);
+  db.exec("UPDATE pty_party_role SET valid_to_date = '2026-09-30' WHERE id = 'r-nx'");
+  assert.equal(violations(db, c), 1, "dòng mở của nhà xe đã thôi");
+  db.exec("UPDATE vc_rental_rate SET valid_to_date = '2026-09-15' WHERE id = 'g-mo'");
+  assert.equal(violations(db, c), 0, "đã kết thúc (ngày đã qua)");
+});
