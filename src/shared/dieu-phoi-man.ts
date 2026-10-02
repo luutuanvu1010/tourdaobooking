@@ -142,7 +142,10 @@ export interface ViecCanXuLy {
 /** Cảnh báo lịch KHÔNG thành mục riêng: trùng mục chuyến bị giữ / đơn nháp, hoặc đã hiện ở chỗ khác (nhãn "Sát mốc" ở cột Chưa xếp; dải trên màn). */
 const BO_QUA_CANH_BAO = new Set(["CHUYEN_GIU", "NHAP_CHO_DAT_GAP", "CHANG_SAT_MOC", "CHINH_SACH_RONG"]);
 const TONE_CANH_BAO: Readonly<Record<string, ViecCanXuLy["tone"]>> = { CHANG_QUA_MOC: "danger", THUA_SUAT: "danger", CHANG_GIU: "danger" };
-const ICON_CANH_BAO: Readonly<Record<string, ViecCanXuLy["bieuTuong"]>> = { CHANG_QUA_MOC: "clock", GIO_XE_TOI_MUON_HON_HEN: "clock", NOI_HEN_KHAC_DIEM: "pin" };
+const ICON_CANH_BAO: Readonly<Record<string, ViecCanXuLy["bieuTuong"]>> = {
+  CHANG_QUA_MOC: "clock", GIO_XE_TOI_MUON_HON_HEN: "clock", NOI_HEN_KHAC_DIEM: "pin",
+  GIO_LAI_VUOT: "clock", CHUYEN_DAI_CAN_NGHI: "clock", // ADR-0055 VK2-B: giờ lái — chỉ nhắc (tone mặc định "warn")
+};
 
 /**
  * Cột "Cần xử lý" (bản vẽ dp-can-xu-ly, sửa theo đối chiếu): (1) chuyến bị giữ — lý do nguyên câu, ai xử lý theo NHAN_AI_XU_LY, nút theo cờ; (2) cảnh báo lịch —

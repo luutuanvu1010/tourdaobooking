@@ -325,7 +325,8 @@
     {
       "name": "vc_dispatch_policy",
       "module": "van-chuyen",
-      "kind": "table"
+      "kind": "table",
+      "note": "duty_day_max_minutes (480, 60–1440) tổng giờ lái một ngày chạy; trip_no_break_max_minutes (240, 30–720) chuyến dài hơn → nhắc nghỉ — chỉ cảnh báo (ADR-0055 VK2-B); thêm bằng ADD COLUMN có DEFAULT ở 0071 (lệch khuôn I43 có ghi — bù bằng bài 'câu chèn liệt kê đủ cột' và thân yêu cầu bắt buộc hai số)"
     },
     {
       "name": "vc_leg_template",
@@ -347,6 +348,12 @@
       "name": "vc_reason",
       "module": "van-chuyen",
       "kind": "lookup"
+    },
+    {
+      "name": "vc_unavailability",
+      "module": "van-chuyen",
+      "kind": "table",
+      "note": "KHUNG BẬN (ADR-0055 VK2-A; hình dùng chung ADR-0053 D9.1, migration 0071): subject VEHICLE (xe vào xưởng, đăng kiểm…) | DRIVER (Báo bận tài xế đối tác — CHƯA MỞ, trigger chặn tới Đợt 6). Đúng một đối tượng theo subject. start_ms/end_ms nửa mở, phút tròn; start_at/end_at ISO UTC cùng mốc. Chỉ thêm; một kiểu sửa: rút một lần (withdrawn_*, version + 1). Lý do: vc_reason nhóm BAN_XE (xe) / BAN_TAI_XE (tài xế). Trigger hai chiều với vc_trip: chuyến chưa huỷ không chồng khung còn hiệu lực; khung không chồng chuyến PLANNED/RUNNING. Không cột ghi chú tự do. Đọc đợt này luôn lọc subject = 'VEHICLE'"
     },
     {
       "name": "vc_trip",

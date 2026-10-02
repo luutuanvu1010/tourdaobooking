@@ -8,7 +8,7 @@ import { vnLocalToMs } from "./vn-date.ts";
 
 const PHUT = 60_000;
 const ms = (d: string, t: string) => vnLocalToMs(d, t)!;
-const CS: ChinhSachVao = { id: "cs-1", minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes: 30, requireManifest: true, requireContract: false };
+const CS: ChinhSachVao = { id: "cs-1", minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes: 30, requireManifest: true, requireContract: false, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240 };
 const HB: HangBangVao[] = [{ classCode: "D1", maxPassengers: 16 }, { classCode: "D2", maxPassengers: 29 }];
 const xe = (v: Partial<XeVao> = {}): XeVao => ({ id: "xe-a", bienSo: "79B-123.45", soCho: 15, trangThai: "active", chuXePartyId: "cty", chuLaCongTy: true, giayTo: [], ...v });
 const tx = (v: Partial<TaiXeVao> = {}): TaiXeVao => ({ partyId: "tx-an", displayName: "Tài xế An", loai: "CONG_TY", carrierPartyIds: [], giayTo: [{ rowId: "g-an", typeCode: "GPLX", classCode: "D1", expiryDate: null }], ...v });
@@ -167,4 +167,36 @@ test("I38 (R-P9): lịch chung truyền `changNgoai` xuống cổng xuất bến
   }));
   assert.deepEqual(r.chuyen[0]!.lyDoGiu.map((l) => l.ma), ["DON_DA_HUY"]);
   assert.match(r.chuyen[0]!.lyDoGiu[0]!.loiNhan, /ĐH-x/);
+});
+
+// ---- Giờ lái (ADR-0055 VK2-B B3 — kế hoạch Đợt 3 Task 4) ------------------------------------------------------------------------------------------------
+/** Ba chuyến của tài xế An cùng ngày 30/09: 05:00–08:00, 09:00–12:00 (lịch), 13:00–15:10 (chuyenKhac — phải gộp, khử trùng id) = 8 giờ 10 phút. */
+function vaoVoi3ChuyenCungTaiXe(): LichChungVao {
+  return vao({
+    chuyen: [
+      chuyen("t1", { batDauMs: ms("2026-09-30", "05:00"), ketThucMs: ms("2026-09-30", "08:00") }),
+      chuyen("t2", { batDauMs: ms("2026-09-30", "09:00"), ketThucMs: ms("2026-09-30", "12:00"), xe: xe({ id: "xe-b", bienSo: "79B-678.90" }) }),
+    ],
+    chuyenKhac: [{ id: "t3", ma: "CX-t3", xeId: "xe-c", taiXePartyId: "tx-an", batDauMs: ms("2026-09-30", "13:00"), ketThucMs: ms("2026-09-30", "15:10"), ketThucThatMs: null, trangThai: "PLANNED", xuatBenMs: null },
+      // trùng id với chuyến của lịch — không cộng hai lần
+      { id: "t1", ma: "CX-t1", xeId: "xe-a", taiXePartyId: "tx-an", batDauMs: ms("2026-09-30", "05:00"), ketThucMs: ms("2026-09-30", "08:00"), ketThucThatMs: null, trangThai: "PLANNED", xuatBenMs: null }],
+  });
+}
+test("VK2-B B3: tài xế ba chuyến tổng 8 giờ 10 phút cùng ngày → GIO_LAI_VUOT gắn từng chuyến chưa kết thúc của tài xế; lyDoGiu (kiemXuatBen) KHÔNG đổi", () => {
+  const ra = dungLichChung(vaoVoi3ChuyenCungTaiXe());
+  const gl = ra.canhBao.filter((w) => w.loai === "GIO_LAI_VUOT").map((w) => w.tripId).sort();
+  assert.deepEqual(gl, ["t1", "t2"], "chuyến ở chuyenKhac góp vào tổng nhưng không sinh mục (không thuộc lịch ngày)");
+  const truoc = dungLichChung({ ...vaoVoi3ChuyenCungTaiXe(), chinhSach: { ...CS, dutyDayMaxMinutes: 1440 } });
+  assert.deepEqual(truoc.canhBao.filter((w) => w.loai === "GIO_LAI_VUOT"), [], "ngưỡng 24 giờ → không cảnh báo");
+  assert.deepEqual(ra.chuyen.map((c) => c.lyDoGiu), truoc.chuyen.map((c) => c.lyDoGiu), "chỉ cảnh báo — không đổi giữ");
+});
+test("VK2-B B3: chuyến dự kiến 4 giờ 30 phút → CHUYEN_DAI_CAN_NGHI; đúng 4 giờ → không", () => {
+  const ra = dungLichChung(vao({ chuyen: [chuyen("dai", { batDauMs: ms("2026-09-30", "06:00"), ketThucMs: ms("2026-09-30", "10:30") }), chuyen("bon", { batDauMs: ms("2026-09-30", "11:00"), ketThucMs: ms("2026-09-30", "15:00"), xe: xe({ id: "xe-b" }), taiXe: tx({ partyId: "tx-binh" }) })] }));
+  assert.deepEqual(ra.canhBao.filter((w) => w.loai === "CHUYEN_DAI_CAN_NGHI").map((w) => w.tripId), ["dai"]);
+});
+test("nhãn hai loại mới có chữ, không lộ mã", () => {
+  for (const l of ["GIO_LAI_VUOT", "CHUYEN_DAI_CAN_NGHI"] as const) {
+    assert.ok(NHAN_CANH_BAO_LICH[l].length > 0);
+    assert.doesNotMatch(NHAN_CANH_BAO_LICH[l], /[A-Z]{2,}_/);
+  }
 });
