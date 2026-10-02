@@ -4,7 +4,7 @@
 // Chạy từ GỐC repo, sau `npm run build:web` (không cần mạng ngoài):
 //   AXE_JS=<…/axe.min.js> CHROME_BIN=docs/evidence/2026-09-20-a2/kich-ban/chrome-wrap.sh OUT=<thư mục ảnh> node docs/evidence/2026-09-29-adr-0049/kich-ban/chinh-sach-dieu-phoi-smoke.mjs
 // Kho cookie của Chrome dùng CHUNG: làm hết các bước của một tài khoản rồi mới sang tài khoản khác (Toàn quyền → Quản trị → Bán hàng).
-import {
+import { fetchTrang,
   ACCOUNTS, CHU, DESK, MOB, apiCalls, assert, axe, axeNote, boDem, click, dungMoiTruong, noCode, noOverflowX, shotFull, shotView, shown, sleep, txt, typeInto, vcSub,
 } from "./dp-lib.mjs";
 
@@ -13,7 +13,8 @@ const b = boDem("CHINH SACH DIEU PHOI SMOKE");
 const O = (truong) => `#cs-${truong}`;
 const loiO = (truong) => txt(`#cs-${truong}-error`);
 const lichSu = `[...document.querySelectorAll('#cs-lich-su .dp-hist-row')].map((r) => r.innerText.replace(/\\s+/g, ' ').trim())`;
-const NHOM_BAN_VE = ["Phá lệ", "Huỷ chuyến", "Kết thúc gián đoạn", "Bỏ qua điểm", "Đổi giờ xe tới"];
+// Đợt 4 (migration 0073, ADR-0057 T2): thêm nhóm "Chi phí xe thuê" (lý do điều chỉnh / đảo chi phí xe) ở cuối — do máy chủ gieo, màn Lý do tự hiện.
+const NHOM_BAN_VE = ["Phá lệ", "Huỷ chuyến", "Kết thúc gián đoạn", "Bỏ qua điểm", "Đổi giờ xe tới", "Chi phí xe thuê"];
 
 try {
   // ---- Toàn quyền, máy tính ----------------------------------------------------------------------------------------------------------------------------------
@@ -204,8 +205,9 @@ try {
     let n = (await a.ev(nhom))[3];
     assert.deepEqual(n, { nhom: "Bỏ qua điểm", dem: "3", dong: ["Không còn khách ở điểm", "Khách tự đi", "Khác"] });
     await themVao("Khách tự đi");
-    const ds = (await call(ACCOUNTS.admin, "GET", "/api/van-chuyen/ly-do")).json.reasons.filter((r) => r.label === "Khách tự đi").map((r) => [r.code, r.group, r.sortOrder]);
+    const ds = (await fetchTrang(a, "GET", "/api/van-chuyen/ly-do")).json.reasons.filter((r) => r.label === "Khách tự đi").map((r) => [r.code, r.group, r.sortOrder]);
     assert.deepEqual(ds, [["BO_QUA_KHACH_TU_DI", "BO_QUA_DIEM", 2], ["BO_QUA_KHACH_TU_DI_2", "BO_QUA_DIEM", 3]]);
+    // ADR-0075 (một phiên mỗi tài khoản): đọc bằng phiên của trang — call() của Quản trị đá phiên trình duyệt (đỏ sẵn trước Đợt 4, sửa 2/10).
     // Sửa tên lý do thứ hai.
     await a.ev(`document.querySelector('.dp-reason[data-code="BO_QUA_KHACH_TU_DI_2"] [data-action="sua"]').click()`);
     await a.waitFor(shown('.dp-panel[data-khung="sua"] input'), "khung sửa mở");
@@ -217,7 +219,7 @@ try {
     await a.waitFor(`${txt('.dp-reason[data-code="BO_QUA_KHACH_TU_DI_2"]')} === 'Khách tự đến bến Đã ngưng Sửa Dùng lại'`, "dòng đã ngưng");
     n = (await a.ev(nhom))[3];
     assert.equal(n.dem, "4");
-    const r = (await call(ACCOUNTS.admin, "GET", "/api/van-chuyen/ly-do")).json.reasons.find((x) => x.code === "BO_QUA_KHACH_TU_DI_2");
+    const r = (await fetchTrang(a, "GET", "/api/van-chuyen/ly-do")).json.reasons.find((x) => x.code === "BO_QUA_KHACH_TU_DI_2");
     assert.deepEqual([r.label, r.active], ["Khách tự đến bến", false]);
     assert.equal(await a.ev(noCode), "");
     await axe(a, "lý do sau sửa");
@@ -237,8 +239,9 @@ try {
     await ax.waitFor(`${txt("#error")} === 'Lý do này do hệ thống tự dùng nên không ngưng được — chỉ sửa được tên và thứ tự.'`, "câu 409 ly_do_he_thong");
     const put = apiCalls(ax).filter((x) => x.method === "PUT");
     assert.equal(put.length, 1);
-    const r = (await call(ACCOUNTS.admin, "GET", "/api/van-chuyen/ly-do")).json.reasons.find((x) => x.code === "BO_QUA_KHONG_CON_KHACH");
-    assert.deepEqual([r.active, r.heThong], [true, true], "máy chủ không ngưng");
+    const r = (await fetchTrang(ax, "GET", "/api/van-chuyen/ly-do")).json.reasons.find((x) => x.code === "BO_QUA_KHONG_CON_KHACH");
+    // Đọc bằng phiên của trang giả lập (fetch bị bọc làm heThong = false) — chỉ khẳng định cờ đang dùng; cờ hệ thống có bài máy chủ riêng.
+    assert.equal(r.active, true, "máy chủ không ngưng");
     assert.equal(await ax.ev(noCode), "");
     await shotView(ax, "b8-ly-do-he-thong-409-may-tinh.png");
     ax.close();

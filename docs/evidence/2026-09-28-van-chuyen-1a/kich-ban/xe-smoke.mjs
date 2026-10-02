@@ -36,7 +36,8 @@ try {
       // "Loại giấy tờ cá nhân" (sau Địa điểm) và mục con "Loại giấy tờ xe": tách "Danh mục giấy tờ" 2026-09-28 (chủ dự án), không có trong bản vẽ 00.
       // ADR-0049 B1 (vòng 3, bản vẽ Bảng điều phối vo-may-tinh): mục con "Điều phối xe" (ô trip.view) đứng ĐẦU dưới "Vận chuyển", trước "Xe".
       assert.deepEqual(labels.slice(at, at + 9), ["Địa điểm", "Loại giấy tờ cá nhân", "Vận chuyển", "Điều phối xe", "Bảng giá thuê xe", "Bảng kê chi phí xe", "Xe", "Sắp hết hạn", "Loại giấy tờ xe"], JSON.stringify(labels));
-      const [cha, dieuPhoi, xe, han, loaiXe] = qt.items.slice(at + 2, at + 7);
+      const [cha, dieuPhoi, bangGia, bangKe, xe, han, loaiXe] = qt.items.slice(at + 2, at + 9);
+      assert.deepEqual([bangGia.href, bangKe.href], ["/bang-gia-xe", "/bang-ke-xe"], "Đợt 4 G0: hai mục con tiền xe thuê sau Điều phối xe");
       assert.equal(cha.tag, "DIV", "mục cha không phải liên kết (bản vẽ: luôn mở, chỉ các mục con bấm được)");
       assert.equal(cha.current, null);
       assert.deepEqual([dieuPhoi.href, dieuPhoi.sub, dieuPhoi.current], ["/dieu-phoi", true, null]);
@@ -241,8 +242,9 @@ try {
         assert.ok(await p.ev(clickVisible(".sheet-root", "Ngừng dùng")));
         await p.waitFor("!document.querySelector('.sheet-root') && !!document.querySelector('.vc-stopped')", "trạng thái Ngừng + Dùng lại xe", 8000);
         assert.equal(await p.ev(txt(".vc-stopped .vc-chip")), "Ngừng");
-        const r = await call(ADMIN, "GET", `/api/van-chuyen/xe/${target.id}`);
-        assert.equal(r.json.vehicle.status, "retired");
+        // ADR-0075 (một phiên mỗi tài khoản): đọc bằng phiên của trang — call() của Quản trị đã bị phiên trình duyệt đá (đỏ sẵn trước Đợt 4, sửa 2/10).
+        const r = await p.ev(`fetch(${JSON.stringify(`/api/van-chuyen/xe/${target.id}`)}).then((x) => x.json())`);
+        assert.equal(r.vehicle.status, "retired");
         await shotFull(p, `02-da-ngung-${ten}.png`);
       } finally {
         p.close();
