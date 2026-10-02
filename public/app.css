@@ -299,6 +299,20 @@
   --bw-dp-dot: 1.5px;
   --dp-lg-o: 12px;             /* ô màu chú thích */
   --radius-dp-lg: 3px;
+  /* — Riêng: trang "Lịch xe bận" (ADR-0055 VK2-A, Vận chuyển Đợt 3) — theo bản vẽ docs/design/van-chuyen-dot-3-7/Quản lý lịch xe bận.dc.html 2/10
+     (bản vẽ = duyệt màu, tiền lệ Đăng nhập). Màu nền "Xe bận" dùng chung cho dải bận trên Điều phối xe. — */
+  --c-xe-ban-bg: #fef3c7;      /* nền thẻ "Xe bận", ô chú thích, dải bận dòng thời gian */
+  --gap-xb-the: 6px;           /* khoảng giữa các thẻ trong ô ngày; đệm dọc thẻ */
+  --gap-xb-xe: 2px;            /* biển số ↔ "Xe 16 chỗ"; nút ✕ cách mép thẻ */
+  --pad-xb-btn: 20px;          /* đệm ngang nút "Thêm lịch bận" */
+  --radius-xb-lg: 4px;         /* ô màu chú thích */
+  --w-xb-xe: 150px;            /* cột XE (dính trái khi cuộn ngang) */
+  --w-xb-luoi: 860px;          /* lưới tuần tối thiểu — hẹp hơn thì cuộn ngang trong thẻ */
+  --h-xb-o: 72px;              /* ô ngày tối thiểu */
+  --w-xb-o: 160px;             /* cột form "Thêm lịch bận" tối thiểu (auto-fit — khổ 390 tự xếp một cột) */
+  --xb-x: 24px;                /* nút ✕ trên thẻ (vùng chạm mở rộng bằng ::after tới --tap-min) */
+  --xb-lg-o: 14px;             /* ô màu chú thích */
+  --ls-chip: .04em;            /* L6 lộ trình Vận chuyển 2/10: nhãn chip chung Đợt 3–7 — viên thuốc, chữ đậm nhất 12px, giãn .04em */
   --dp-run-so: 28px;           /* vòng số điểm của chuyến đang chạy (05, khung 5a) */
   --fs-dp-run-so: var(--fs-step-3);
   --h-dp-khach: 32px;          /* dòng tên khách (05) */
@@ -2832,6 +2846,56 @@ label.check > input.o-tick { display: inline; width: auto; margin: 0 var(--s2) 0
 .gd-xem-ben { display: flex; flex-direction: column; gap: 1px; padding: var(--s2); background: var(--c-sidebar-bg); border: 1px solid var(--c-sidebar-border); border-radius: var(--radius-sm); }
 .gd-xem-nut { display: flex; flex-wrap: wrap; gap: var(--s2); }
 @media (min-width: 900px) { .gd-luoi { grid-template-columns: minmax(0, 1fr) var(--w-gd-xem); align-items: start; } .gd-xem { position: sticky; top: calc(var(--bar-h) + var(--s4)); } }
+
+/* ---------- Lịch xe bận (ADR-0055 VK2-A, Vận chuyển Đợt 3 — bản vẽ "Quản lý lịch xe bận" 2/10; chỉ token) ---------- */
+.xb-main { display: flex; flex-direction: column; gap: var(--s4); }
+.xb-main > .alert { margin-bottom: 0; }
+.xb-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s3); }
+.xb-title { margin: 0; font-family: var(--font-display); font-size: var(--fs-step-11); font-weight: var(--fw-heavy); color: var(--c-primary); }
+.xb-sub { font-size: var(--fs-step-3); color: var(--c-text-muted); }
+.xb-nav { display: flex; flex-wrap: wrap; gap: var(--s2); align-items: center; }
+.xb-nut { min-width: var(--tap-min); height: var(--tap-min); padding: 0 var(--s4); font: inherit; font-size: var(--fs-step-3); font-weight: var(--fw-bold); color: var(--c-primary); background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius-sm); cursor: pointer; }
+.xb-nut-tuan { padding: 0; font-size: var(--fs-step-9); }
+.xb-nut-lon { font-size: var(--fs-step-5); }
+.xb-them { height: var(--tap-min); padding: 0 var(--pad-xb-btn); font-size: var(--fs-step-5); border-radius: var(--radius-sm); }
+.xb-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(var(--w-xb-o), 1fr)); gap: var(--s3); align-items: end; padding: var(--s4); background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius-md); }
+.xb-truong { display: flex; flex-direction: column; gap: var(--s1); font-size: var(--fs-step-3); font-weight: var(--fw-semibold); }
+.xb-o { height: var(--tap-min); padding: 0 var(--s2); font: inherit; font-size: var(--fs-step-5); font-weight: var(--fw-regular); color: var(--c-text); background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius-sm); }
+.xb-o[aria-invalid="true"] { border-color: var(--c-danger); }
+.xb-loi-o { font-size: var(--fs-step-2); font-weight: var(--fw-regular); color: var(--c-danger-text); }
+.xb-nut-form { display: flex; gap: var(--s2); }
+.xb-nut-form .btn { height: var(--tap-min); padding: 0 var(--s4); font-size: var(--fs-step-5); }
+.xb-form-loi { grid-column: 1 / -1; margin: 0; }
+.xb-form-loi ul { margin: var(--s1) 0 0; padding-left: var(--s5); }
+.xb-the { overflow: auto; background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius-md); }
+.xb-luoi { display: grid; grid-template-columns: var(--w-xb-xe) repeat(7, minmax(0, 1fr)); min-width: var(--w-xb-luoi); }
+.xb-dau-xe, .xb-dau-ngay, .xb-xe, .xb-o-ngay { border-bottom: 1px solid var(--c-border); background: var(--c-surface); }
+.xb-dau-xe, .xb-dau-ngay, .xb-xe { padding: var(--s3); }
+.xb-dau-ngay, .xb-o-ngay { border-left: 1px solid var(--c-border); }
+.xb-dau-ngay.is-hom-nay, .xb-o-ngay.is-hom-nay { background: var(--c-surface-alt); }
+.xb-dau-xe, .xb-xe { position: sticky; left: 0; z-index: 1; } /* cột XE dính trái khi cuộn ngang (khổ 390 — bản vẽ thiếu, khuôn .dp-tl-nhan) */
+.xb-eyebrow { font-size: var(--fs-step-1); font-weight: var(--fw-bold); letter-spacing: var(--ls-eyebrow); color: var(--c-text-muted); }
+.xb-ngay-so { font-family: var(--font-display); font-size: var(--fs-step-5); font-weight: var(--fw-heavy); color: var(--c-primary); }
+.xb-xe { display: flex; flex-direction: column; align-items: flex-start; gap: var(--gap-xb-xe); }
+.xb-bien { font-family: var(--font-display); font-size: var(--fs-step-4); font-weight: var(--fw-heavy); color: var(--c-primary); }
+.xb-cho { font-size: var(--fs-step-2); color: var(--c-text-muted); }
+.xb-o-ngay { display: flex; flex-direction: column; gap: var(--gap-xb-the); min-height: var(--h-xb-o); padding: var(--s2); }
+.xb-muc { position: relative; display: block; padding: var(--gap-xb-the) var(--s2); font-size: var(--fs-step-2); line-height: 1.3; color: var(--c-text); text-decoration: none; background: var(--c-xe-ban-bg); border-radius: var(--radius-sm); }
+.xb-muc.is-chuyen { background: var(--c-surface-alt); border: 1px solid var(--c-border); }
+.xb-muc-gio { font-family: var(--font-display); font-size: var(--fs-step-2); font-weight: var(--fw-heavy); color: var(--c-text); }
+.xb-muc-nhan { padding-right: var(--pad-xb-btn); color: var(--c-text); }
+.xb-x { position: absolute; top: var(--gap-xb-xe); right: var(--gap-xb-xe); display: flex; align-items: center; justify-content: center; width: var(--xb-x); height: var(--xb-x); padding: 0; color: var(--c-text-muted); background: transparent; border: 0; border-radius: var(--radius-sm); cursor: pointer; }
+.xb-x::after { content: ""; position: absolute; top: 50%; left: 50%; width: var(--tap-min); height: var(--tap-min); transform: translate(-50%, -50%); }
+.xb-chu-thich { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); font-size: var(--fs-step-3); color: var(--c-text-muted); }
+.xb-lg { display: inline-flex; align-items: center; gap: var(--s2); }
+.xb-lg-o { width: var(--xb-lg-o); height: var(--xb-lg-o); background: var(--c-xe-ban-bg); border: 1px solid var(--c-border); border-radius: var(--radius-xb-lg); }
+.xb-lg-o.is-chuyen { background: var(--c-surface-alt); }
+/* L6 (lộ trình Vận chuyển 2/10): nhãn chip chung Đợt 3–7 — viên thuốc (.vc-chip), chữ đậm nhất, giãn chữ --ls-chip. */
+.vc-chip.nhan-chip { font-weight: var(--fw-heavy); letter-spacing: var(--ls-chip); }
+/* Dải bận trên "Dòng thời gian theo xe" của Điều phối xe (bản vẽ không vẽ — khuôn khối chuyến, nằm DƯỚI khối chuyến). */
+.dp-tl-ban { position: absolute; top: var(--dp-tl-inset); bottom: var(--dp-tl-inset); left: calc(var(--dp-x) * var(--dp-gio)); z-index: 0; display: flex; align-items: flex-end; width: calc(var(--dp-dai) * var(--dp-gio)); padding: var(--pad-dp-khoi); overflow: hidden; font-size: var(--fs-dp-tiny); font-weight: var(--fw-bold); color: var(--c-sand-text); white-space: nowrap; background: var(--c-xe-ban-bg); border: 1px dashed var(--c-sand-border); border-radius: var(--radius-dp-khoi); }
+.dp-ban-ds { display: flex; flex-direction: column; gap: var(--s1); margin: var(--s2) 0 0; padding: 0; list-style: none; }
+.dp-ban-dong { display: flex; align-items: center; gap: var(--s2); font-size: var(--fs-step-2); color: var(--c-sand-text); }
 
 /* ---------- Thị giác 1.70: GIẢM CHUYỂN ĐỘNG — PHẢI ở cuối tệp ----------
    Luật toàn cục `* { transition: none !important }` (khối PWA) chỉ tắt chuyển tiếp; luật dưới gỡ thêm độ nhấc / lún. Đặt cuối tệp để thắng mọi luật nhấc / lún

@@ -108,6 +108,10 @@ function ve(): void {
       `Ai xử lý: ${khachDoi[0]!.aiXuLyNhan}. Không cần phá lệ, kể cả trong vùng khoá trước giờ xuất bến.`,
     ], undefined, nut ? [h("div", { class: "banner-actions" }, nut)] : []));
   }
+  // ADR-0055 VK2-B B3: nhắc giờ lái (chỉ nhắc — không chặn xuất bến). Sau tạo / sửa chuyến, màn chuyển về đây nên nhắc hiện ngay (khuôn canhBaoXep).
+  for (const w of r.canhBao.filter((x) => x.loai === "GIO_LAI_VUOT" || x.loai === "CHUYEN_DAI_CAN_NGHI")) {
+    dais.push(dai("warning", w.nhan, ["Chỉ nhắc — không chặn xuất bến. Toàn quyền đổi con số ở Chính sách điều phối."]));
+  }
   if (c.trangThai === "RUNNING") {
     for (const w of r.canhBao.filter((x) => x.loai === "NOI_HEN_KHAC_DIEM")) {
       dais.push(dai("warning", "Nơi hẹn khác điểm xe", [`Đơn ${w.maDon ?? ""} hẹn khác điểm của xe. Xe đang chạy nên không cập nhật điểm — gọi tài xế${c.taiXe ? ` ${c.taiXe.ten}` : ""}.`]));

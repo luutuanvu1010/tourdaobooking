@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"><meta name="robots" content="noindex"><meta name="theme-color" content="#ffffff"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><link rel="stylesheet" href="/api/giao-dien.css"><title>Lịch xe bận — Island Booking System</title></head>
+<body data-title="Lịch xe bận" data-back="/account">
+<header id="topbar"></header>
+<main class="xb-main">
+  <!-- Lịch xe bận (ADR-0055 VK2-A; bản vẽ docs/design/van-chuyen-dot-3-7/Quản lý lịch xe bận.dc.html, 2/10): lưới tuần hàng = xe, cột = 7 ngày; form "Thêm lịch bận" mở tại chỗ.
+       Chỉ Quản trị + Toàn quyền (ô vehicle.manage — câu 3.4). -->
+  <div class="xb-head">
+    <div><h1 class="xb-title">Lịch xe bận</h1><div id="xb-sub" class="xb-sub"></div></div>
+    <div id="xb-nav" class="xb-nav" hidden>
+      <button id="xb-truoc" type="button" class="xb-nut xb-nut-tuan" aria-label="Tuần trước">‹</button>
+      <button id="xb-nay" type="button" class="xb-nut">Tuần này</button>
+      <button id="xb-sau" type="button" class="xb-nut xb-nut-tuan" aria-label="Tuần sau">›</button>
+      <button id="xb-them" type="button" class="btn btn-accent xb-them" hidden>Thêm lịch bận</button>
+    </div>
+  </div>
+  <div id="error" class="alert" role="alert" hidden></div>
+  <div id="xb-bao" hidden></div>
+  <form id="xb-form" class="xb-form" novalidate hidden></form>
+  <section id="xb-empty" class="vc-card vc-empty" hidden><span class="vc-empty-title">Chưa có xe nào</span><span class="vc-empty-text">Thêm xe ở mục Xe để ghi lịch bận.</span></section>
+  <div id="xb-the" class="xb-the" tabindex="0" role="region" aria-label="Lịch xe bận theo tuần — cuộn ngang" hidden><div id="xb-luoi" class="xb-luoi"></div></div>
+  <div id="xb-chu-thich" class="xb-chu-thich" hidden></div>
+</main>
+<script type="module" src="/js/lich-xe-ban.js"></script>
+</body></html>
