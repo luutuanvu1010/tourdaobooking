@@ -75,6 +75,14 @@ Ba tông theo người (hoãn từ 1/10); đổi phông/cỡ/độ đậm; đổ
 3. **Ảnh biên nhận gửi khách giữ màu cũ:** bộ vẽ ảnh (`web/confirmation-image.ts`) đọc `--c-surface-alt` và `--c-border` lúc vẽ, nên đổi nền trang / viền sẽ âm thầm đổi ảnh gửi khách (nằm ngoài phạm vi §5). Thêm hai token riêng `--c-receipt-surface-alt` (`#eaf2f8`) và `--c-receipt-border` (`#d3e1ec`) và trỏ bộ vẽ vào đó; kịch bản `v1-xac-nhan-png.mjs` đối chiếu huy hiệu "Đã huỷ" với token riêng này. Hệ quả phụ (đúng ADR-0087 điều 7): núm "Nền trang" / "Viền" của màn Giao diện cũng không còn đổi ảnh gửi khách.
 - Đã nhìn bảng trượt đang mở (bảng Lọc đơn, bảng Sửa thông tin chuyến, 390 + 1280): mỗi chân bảng đúng MỘT nút đặc. Các chân bảng khác (hộp biên nhận, hộp thông báo, bảng HDV, bảng Vận chuyển) rà mã: nút còn lại đều là nút viền / chữ / san hô / đỏ.
 
+## 10. Vòng kiểm độc lập (2026-10-02): ĐẠT CÓ ĐIỀU KIỆN → đã sửa
+- **TB-1** ô tích / ô chọn một mất khung tiêu điểm bàn phím (luật `outline: 0` của ô gõ áp cả chúng) → luật tiêu điểm chừa `checkbox`/`radio`, chúng giữ khung 2px của `:focus-visible` chung.
+- **TB-2** nút `.vc-btn` chính đặc khi KHOÁ trông như nút phụ đang bật → luật nhạt-khi-khoá chừa `.vc-btn`; `.vc-btn:disabled` (xám) thêm `box-shadow: none`.
+- **TB-3** ô Đăng nhập viền nhạt hơn bản duyệt (luật riêng của trang thắng luật chung) → ô Đăng nhập dùng `--c-input-border` và cùng màu tiêu điểm ngọc như mọi ô (đặc tả §3.3 nói mọi ô).
+- Thấp đã sửa: Đăng nhập đang gửi không mờ 50% (TH-5); nút đang chọn `aria-pressed` giữ nền chọn khi rê (TH-6); bài reduced-motion canh đủ 5 bộ chọn (TH-8); gắn `.btn-chinh` cho "Tắt chế độ bảo trì" và "Chuyển N dịch vụ" (TH-9). Bài "thác CSS 1.69" canh TB-1/2/3 (đã thấy chặn thật).
+- Để sau / báo chủ: màu rê chuột nút đặc (`#0b5c84`) chưa đi theo "Màu chính" khi Toàn quyền đổi màu (TH-1, ghi BACKLOG #19); cặp vàng "Còn lại" viết `#fcd34d` ở hai nơi (TH-2); khác bản xem trước: viên ngày "Hôm nay" và dải tóm tắt đầu phải đậm hơn, ô nhóm có độ bóng (TH-4 — cột "Đã thi công" của artifact cho chủ xem); viền đôi rất mờ ở `.login-invite`, `.secret`, `.owner-card` (TH-7); nút "Lưu" của bảng trượt chuyển nhạt-mờ trong lúc "Đang lưu…" (TH-5 phần còn lại).
+- **Lúc gộp:** main đã có một mục "1.69" khác → bản này đánh lại **1.70** (changelog.ts, app-info.test.ts).
+
 ## 8. Rủi ro
 - Trình duyệt cũ: `backdrop-filter` (iOS 9+ có tiền tố), `:is()` (iOS 14+); không dùng `color-mix()`. Thiếu hỗ trợ ⇒ thanh tab nền trắng đục như nay, không vỡ.
 - Màn từng làm đúng bản vẽ Claude Design (Đăng nhập, Trang chủ điện thoại/máy tính, Vận chuyển, Điều phối, Việc của tôi) đổi màu theo token chung — chủ đã được báo trong bản xem trước; bố cục không đổi.

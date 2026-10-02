@@ -517,7 +517,7 @@ main { max-width: var(--w-main); margin: 0 auto; padding: var(--s4) max(var(--s4
 label { display: block; font-size: var(--fs-old-label); color: var(--c-muted); }
 input, select, textarea { display: block; width: 100%; margin-top: var(--s1); padding: 10px 12px; font: inherit; font-size: var(--fs-ui); color: var(--c-text); background: #fff; border: 1px solid var(--c-input-border); border-radius: var(--radius-sm); transition: border-color var(--m-fast) var(--ease-out), box-shadow var(--m-fast) var(--ease-out); }
 /* 1.69: ô đang gõ = viền ngọc + vành nhạt (như trang Đăng nhập), thay khung xanh 2px; rê chuột (máy có chuột) viền đậm lên. */
-input:focus, select:focus, textarea:focus { outline: 0; border-color: var(--c-focus); box-shadow: 0 0 0 var(--ring-field) var(--c-focus-ring); }
+input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:focus { outline: 0; border-color: var(--c-focus); box-shadow: 0 0 0 var(--ring-field) var(--c-focus-ring); } /* ô tích / ô chọn một KHÔNG vào đây: giữ khung 2px của luật :focus-visible chung (kiểm độc lập TB-1) */
 @media (hover: hover) { input:not([type="checkbox"]):not([type="radio"]):not(:focus):hover, select:not(:focus):hover, textarea:not(:focus):hover { border-color: var(--c-input-border-hover); } }
 textarea { min-height: 72px; resize: vertical; }
 .grid { display: grid; gap: var(--s3); grid-template-columns: 1fr; }
@@ -530,10 +530,10 @@ textarea { min-height: 72px; resize: vertical; }
 /* 1.69 (chủ dự án duyệt 2/10): CHỈ nút lưu / xác nhận chính đặc màu — nút gửi form, nút gắn lớp .btn-chinh (nút chốt không phải nút gửi form), nút chính ở chân
    bảng trượt, nút Đăng nhập. Bị khoá (chưa đủ điều kiện) thì trở về kiểu nhạt; Đăng nhập đang gửi (.is-loading) giữ đặc để thấy vòng quay trắng. */
 .btn-primary[type="submit"], .btn-primary.btn-chinh, .sheet-foot .btn-primary, .login-actions .login-submit { color: var(--c-btn-primary-text); background: var(--c-btn-primary-bg); border-color: var(--c-btn-primary-border); box-shadow: var(--shadow-btn-solid); }
-:is(.btn-primary[type="submit"], .btn-primary.btn-chinh, .sheet-foot .btn-primary, .login-actions .login-submit):disabled:not(.is-loading) { color: var(--c-btn-soft-text); background: var(--c-btn-soft-bg); border-color: var(--c-btn-soft-border); box-shadow: none; }
+:is(.btn-primary[type="submit"], .btn-primary.btn-chinh, .sheet-foot .btn-primary, .login-actions .login-submit):disabled:not(.is-loading):not(.vc-btn) { color: var(--c-btn-soft-text); background: var(--c-btn-soft-bg); border-color: var(--c-btn-soft-border); box-shadow: none; } /* nút Vận chuyển khoá giữ kiểu xám riêng (.vc-btn:disabled) */
 .btn-accent { color: #fff; background: var(--c-accent); border-color: var(--c-accent); box-shadow: var(--shadow-btn-accent); }
 @media (hover: hover) {
-  .btn:not(:disabled):not(.btn-primary):not(.btn-accent):not(.btn-link):hover { background: var(--c-soft-hover); }
+  .btn:not(:disabled):not(.btn-primary):not(.btn-accent):not(.btn-link):not([aria-pressed="true"]):hover { background: var(--c-soft-hover); } /* nút đang chọn (aria-pressed) giữ nền chọn khi rê */
   .btn-primary:not(:disabled):hover { background: var(--c-btn-soft-hover-bg); border-color: var(--c-btn-soft-hover-bg); }
   :is(.btn-primary[type="submit"], .btn-primary.btn-chinh, .sheet-foot .btn-primary, .login-actions .login-submit):not(:disabled):hover { background: var(--c-btn-primary-hover-bg); border-color: var(--c-btn-primary-hover-bg); }
   .btn-accent:not(:disabled):hover { background: var(--c-accent-strong); border-color: var(--c-accent-strong); }
@@ -1307,8 +1307,9 @@ body.login-page main.login { display: flex; flex-direction: column; height: 100%
 .login-field label { font-size: var(--fs-label); font-weight: var(--fw-bold); color: var(--c-text); }
 .login-label-row { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s2); }
 .login-pin-count { font-size: var(--fs-label); font-weight: var(--fw-semibold); color: var(--c-text-muted); font-variant-numeric: tabular-nums; }
-.login-field input { height: var(--h-field); margin: 0; padding: 0 var(--s4); font-size: var(--fs-field); font-weight: var(--fw-semibold); color: var(--c-text); background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius-sm); outline: none; transition: border-color var(--m-fast) ease, box-shadow var(--m-fast) ease; }
-.login-field input:focus, .login-field input:focus-visible { border-color: var(--c-primary); outline: none; box-shadow: 0 0 0 var(--ring-field) var(--c-primary-soft); }
+.login-field input { height: var(--h-field); margin: 0; padding: 0 var(--s4); font-size: var(--fs-field); font-weight: var(--fw-semibold); color: var(--c-text); background: var(--c-surface); border: 1px solid var(--c-input-border); border-radius: var(--radius-sm); outline: none; transition: border-color var(--m-fast) ease, box-shadow var(--m-fast) ease; }
+/* 1.69 (kiểm độc lập TB-3): ô Đăng nhập cùng viền ô nhập + cùng vành ngọc khi gõ như mọi ô khác (bản xem trước chủ duyệt vẽ viền này). */
+.login-field input:focus, .login-field input:focus-visible { border-color: var(--c-focus); outline: none; box-shadow: 0 0 0 var(--ring-field) var(--c-focus-ring); }
 .login-field input::placeholder { color: var(--c-placeholder); opacity: 1; }
 .login-pin-wrap { position: relative; display: block; }
 .login-pin-wrap input { width: 100%; padding-right: var(--pin-toggle-space); font-weight: var(--fw-bold); }
@@ -1319,6 +1320,7 @@ body.login-page main.login { display: flex; flex-direction: column; height: 100%
 .login-actions { display: flex; gap: var(--s3); margin-top: var(--s2); }
 .login-actions .login-submit { flex: 1; display: flex; align-items: center; justify-content: center; gap: var(--s3); min-width: 0; height: var(--h-field); min-height: var(--h-field); margin: 0; padding: 0 var(--s4); font-size: var(--fs-ui); font-weight: var(--fw-heavy); color: var(--c-btn-primary-text); background: var(--c-btn-primary-bg); border: 1px solid var(--c-btn-primary-border); border-radius: var(--radius-sm); transition: background var(--m-fast) ease; }
 .login-actions .login-submit:not(:disabled):hover { background: var(--c-btn-primary-hover-bg); border-color: var(--c-btn-primary-hover-bg); }
+.login-actions .login-submit.is-loading:disabled { opacity: 1; cursor: progress; } /* 1.69 (kiểm độc lập TH-5): đang gửi giữ ĐẶC rõ (không mờ 50%) để thấy vòng quay trắng */
 .login-spinner { display: none; flex: none; width: var(--spinner); height: var(--spinner); border: var(--spinner-bar) solid var(--c-spinner-track); border-top-color: var(--c-btn-primary-text); border-radius: 50%; animation: login-spin var(--m-spin) linear infinite; }
 .login-submit.is-loading .login-spinner { display: block; }
 @keyframes login-spin { to { transform: rotate(360deg); } }
@@ -1906,7 +1908,7 @@ body.login-page main.login { display: flex; flex-direction: column; height: 100%
 .vc-btn-stop:hover, .vc-btn-stop:active { background: var(--c-danger-soft); }
 .vc-btn-danger { color: var(--c-on-dark); background: var(--c-danger); border: 1px solid var(--c-danger); }
 .vc-btn-text { gap: var(--s1); padding: 0 var(--s2); font-weight: var(--fw-bold); color: var(--c-primary); background: none; border: 0; }
-.vc-btn:disabled { color: var(--c-text-muted); background: var(--c-surface-alt); border-color: var(--c-surface-alt); cursor: not-allowed; opacity: 1; }
+.vc-btn:disabled { color: var(--c-text-muted); background: var(--c-surface-alt); border-color: var(--c-surface-alt); cursor: not-allowed; opacity: 1; box-shadow: none; } /* 1.69: box-shadow none — nút chính đặc ở chân bảng có bóng, khoá thì xám phẳng (kiểm độc lập TB-2) */
 .vc-hist-toggle svg { transition: transform var(--m-fast); }
 .vc-hist-toggle[aria-expanded="true"] svg { transform: rotate(180deg); }
 .vc-back { display: inline-flex; align-items: center; min-height: var(--tap-min); margin-bottom: var(--s1); font-size: var(--fs-label); font-weight: var(--fw-bold); }

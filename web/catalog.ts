@@ -226,7 +226,7 @@ function renderChon(): void {
     showError(loiEl, null);
   });
   const quaTran = n > LO_TOI_DA;
-  const nut = h("button", { id: "chuyen-nut", type: "button", class: "btn btn-primary", disabled: quaTran }, quaTran ? `Tối đa ${LO_TOI_DA} dịch vụ một lần` : `Chuyển ${n} dịch vụ`);
+  const nut = h("button", { id: "chuyen-nut", type: "button", class: "btn btn-primary btn-chinh", disabled: quaTran }, quaTran ? `Tối đa ${LO_TOI_DA} dịch vụ một lần` : `Chuyển ${n} dịch vụ`);
   nut.addEventListener("click", () => void chuyenNhom(nut));
   const bo = h("button", { id: "bo-chon", type: "button", class: "btn" }, "Bỏ chọn");
   bo.addEventListener("click", () => {

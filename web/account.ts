@@ -514,7 +514,7 @@ function renderMaintenance(status: Api.MaintenanceResponse): void {
           const iso = chosen();
           if (iso) void send({ on: true, endsAt: iso });
         }),
-        button("Tắt chế độ bảo trì", "btn btn-primary", () => void send({ on: false })),
+        button("Tắt chế độ bảo trì", "btn btn-primary btn-chinh", () => void send({ on: false })),
       ),
     );
   } else {

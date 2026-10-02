@@ -156,9 +156,32 @@ test("chuyển động: máy đặt Giảm chuyển động thì tắt chuyển 
   const khoi = [...luat.matchAll(/^@media \(prefers-reduced-motion: reduce\) \{(.*)\}/gm)].map((m) => m[1]!);
   assert.ok(khoi.some((k) => /transition:\s*none/.test(k)), "thiếu luật tắt chuyển tiếp khi Giảm chuyển động");
   const tatTransform = khoi.filter((k) => /transform:\s*none/.test(k)).join(" ");
-  for (const sel of [".btn:not(:disabled):active", ".order-card:hover", ".dash-o-muc:active", "#tabbar .tab:active .tab-icon"]) {
+  for (const sel of [".btn:not(:disabled):active", ".order-card:hover", ".dash-o-muc:active", "#tabbar .tab:active .tab-icon", ".dash-dai .dash-o-muc:hover"]) {
     assert.ok(tatTransform.includes(sel), `Giảm chuyển động chưa gỡ độ nhấc / lún của ${sel}`);
   }
+});
+
+// Kiểm độc lập thị giác 1.69 (2/10): ba lỗi thác CSS chỉ lộ khi đo trạng thái thật — canh để không tái phát.
+test("thác CSS 1.69: ô tích giữ khung tiêu điểm, nút Vận chuyển khoá vẫn xám, ô Đăng nhập cùng viền ô nhập", () => {
+  const bang = [...luat.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((m) => [m[1]!.trim().split("\n").pop()!.trim(), m[2]!] as const);
+  // TB-1: luật bỏ khung (outline: 0) của ô đang gõ không được áp vào ô tích / ô chọn một (chúng chỉ có khung 2px của :focus-visible chung).
+  const boKhung = bang.filter(([sel, than]) => /:focus\b/.test(sel) && /outline:\s*(?:0|none)\b/.test(than) && /(?:^|,\s*)input(?::not\([^)]*\))*:focus/.test(sel));
+  assert.ok(boKhung.length > 0, "không thấy luật tiêu điểm của ô gõ");
+  for (const [sel] of boKhung) {
+    for (const phan of sel.split(",").map((x) => x.trim()).filter((x) => /^input\b/.test(x))) {
+      assert.ok(phan.includes(':not([type="checkbox"])') && phan.includes(':not([type="radio"])'), `luật bỏ khung tiêu điểm áp cả ô tích / ô chọn một: ${phan}`);
+    }
+  }
+  // TB-2: kiểu "nhạt khi khoá" của nút chính đặc chừa .vc-btn; .vc-btn:disabled tắt bóng của nút đặc.
+  const nhatKhiKhoa = bang.find(([sel]) => sel.startsWith(':is(.btn-primary[type="submit"]') && sel.includes(":disabled"));
+  assert.ok(nhatKhiKhoa && nhatKhiKhoa[0].includes(":not(.vc-btn)"), "luật nhạt-khi-khoá của nút chính đặc phải chừa .vc-btn");
+  const vcKhoa = bang.find(([sel]) => sel === ".vc-btn:disabled");
+  assert.ok(vcKhoa && /box-shadow:\s*none/.test(vcKhoa[1]), ".vc-btn:disabled phải tắt bóng của nút đặc");
+  // TB-3: ô Đăng nhập dùng cùng viền ô nhập và cùng màu tiêu điểm như mọi ô.
+  const oDangNhap = bang.find(([sel]) => sel === ".login-field input");
+  assert.ok(oDangNhap && /border:\s*1px solid var\(--c-input-border\)/.test(oDangNhap[1]), "ô Đăng nhập phải viền var(--c-input-border)");
+  const oDangNhapGo = bang.find(([sel]) => sel.startsWith(".login-field input:focus"));
+  assert.ok(oDangNhapGo && /border-color:\s*var\(--c-focus\)/.test(oDangNhapGo[1]) && /var\(--c-focus-ring\)/.test(oDangNhapGo[1]), "ô Đăng nhập đang gõ phải theo --c-focus / --c-focus-ring");
 });
 
 // Núm "Độ đậm chữ nội dung" chỉ có tác dụng nếu chữ gốc của trang đọc --fw-regular (viết tắt `font:` đặt lại độ đậm về thường).
