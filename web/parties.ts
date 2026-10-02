@@ -180,7 +180,7 @@ function openCreate(): void {
     }, 400);
   });
 
-  const save = h("button", { type: "button", class: "btn btn-primary" }, "Tạo hồ sơ");
+  const save = h("button", { type: "button", class: "btn btn-primary btn-chinh" }, "Tạo hồ sơ");
   save.addEventListener("click", async () => {
     const contacts: Record<string, unknown>[] = [];
     if (phone.value.trim()) contacts.push({ kind: "PHONE", value: phone.value });

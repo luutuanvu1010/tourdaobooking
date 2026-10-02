@@ -200,7 +200,7 @@ async function openEdit(s: StaffAccount): Promise<void> {
     boxes.set(code, box);
     return meSuper || code !== "SUPER_ADMIN" ? h("label", { class: "check" }, box, PERMISSION_LABEL[code]) : null; // ADR-0042: vai ẩn
   });
-  const save = h("button", { type: "button", class: "btn btn-primary" }, "Lưu");
+  const save = h("button", { type: "button", class: "btn btn-primary btn-chinh" }, "Lưu");
   const cancel = h("button", { type: "button", class: "btn" }, "Đóng");
   cancel.addEventListener("click", () => (editEl.hidden = true));
   save.addEventListener("click", async () => {

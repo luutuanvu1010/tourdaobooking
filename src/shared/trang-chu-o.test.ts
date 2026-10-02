@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { NHOM_O, O_TOI, TOI_DA_O, nhomMayTinh, oTrangChu, type KhoaO } from "./trang-chu-o.ts";
+import { NHOM_O, O_TOI, TOI_DA_O, mauO, nhomMayTinh, oTrangChu, type KhoaO } from "./trang-chu-o.ts";
 import { PERMISSION_CODES, type PermissionCode } from "./permissions.ts";
 import { PAGES } from "./sw-policy.ts";
 
@@ -123,4 +123,17 @@ test("Máy tính, bản vẽ v2 (2/10): đúng các ô của ba vai đã vẽ", 
     ["Vận chuyển", ["dieu-phoi", "xe", "sap-het-han", "giay-to-xe", "chinh-sach", "ly-do"]],
     ["Của tôi", ["toi", "gop-y", "tro-giup"]],
   ]);
+});
+
+// Thị giác 1.70 (chủ dự án duyệt 2/10): ô tô màu theo NHÓM — Tạo đơn san hô (hành động chốt), Vận chuyển ngọc, Của tôi cát; Bán hàng / Quản lý giữ màu biển (null).
+test("mauO: màu ô theo nhóm — Tạo đơn chốt, Vận chuyển ngọc, Của tôi (kể cả ô Tôi của máy tính) cát, còn lại màu biển", () => {
+  assert.equal(mauO("tao-don"), "chot");
+  for (const k of ["don-hang", "danh-ba", "dich-vu", "tai-khoan", "phien", "dia-diem", "giay-to-nguoi", "nhat-ky", "gui-thong-bao", "tro-ly", "giao-dien"] as const) assert.equal(mauO(k), null, k);
+  for (const k of ["dieu-phoi", "cuoc", "xe", "sap-het-han", "giay-to-xe", "chinh-sach", "ly-do"] as const) assert.equal(mauO(k), "vc", k);
+  for (const k of ["toi", "gop-y", "tro-giup"] as const) assert.equal(mauO(k), "toi", k);
+  assert.equal(mauO(O_TOI.khoa), "toi");
+  // Mọi ô của mọi nhóm đều có màu đúng theo nhóm của nó (tổ hợp quyền thấy gần đủ ô).
+  for (const g of oTrangChu(who("ADMIN", "SUPER_ADMIN", "DRIVER", "SALES")).nhom) {
+    for (const o of g.o) assert.equal(mauO(o.khoa), o.khoa === "tao-don" ? "chot" : g.ten === "Vận chuyển" ? "vc" : g.ten === "Của tôi" ? "toi" : null, `${g.ten}: ${o.khoa}`);
+  }
 });

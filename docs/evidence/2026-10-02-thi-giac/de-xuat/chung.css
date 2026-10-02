@@ -1,0 +1,84 @@
+/* ĐỀ XUẤT thị giác 2026-10-02 — phần CHUNG cho cả hướng A và B (chỉ để chụp ảnh xem trước; được chủ duyệt mới gộp vào public/app.css).
+   Giữ: bố cục, cỡ chữ, độ đậm (chữ mảnh), thanh trên/thanh bên nền trắng, dải chào máy tính nền trắng, không viết HOA mới.
+   Đổi: nền trang trung tính, viền nhẹ hơn, thẻ có chiều sâu (bóng mềm), ô nhập rõ hơn, phản hồi khi rê/nhấn, thanh tab mờ kính. */
+:root {
+  --c-surface-alt: #f2f5f9;          /* nền trang: xám xanh rất nhạt (trước #eaf2f8 xanh nhạt) — thẻ trắng và màu nhấn nổi hơn */
+  --c-border: #e1e7ef;               /* viền thẻ, đường kẻ (trước #d3e1ec) */
+  --c-input-border: #c9d4e0;         /* viền ô nhập: đậm hơn viền thẻ một bậc để ô gõ rõ ràng */
+  --c-input-border-hover: #94a3b8;
+  --c-soft-hover: #f1f5f9;           /* nền rê chuột nút phụ, mục thanh bên */
+  --ring-card: 0 0 0 1px rgba(15, 23, 42, .05);  /* đường viền bằng bóng: không đổi kích thước thẻ */
+  --shadow-card: 0 1px 2px rgba(15, 23, 42, .04), 0 3px 10px rgba(15, 23, 42, .05);
+  --shadow-card-hover: 0 2px 6px rgba(15, 23, 42, .06), 0 12px 28px rgba(15, 23, 42, .10);
+  --shadow-overlay: 0 16px 48px rgba(15, 23, 42, .18), 0 2px 8px rgba(15, 23, 42, .06);
+  --shadow-float: 0 4px 14px rgba(15, 23, 42, .12), 0 1px 3px rgba(15, 23, 42, .08);
+  --c-tabbar-glass: rgba(255, 255, 255, .86);
+  --blur-glass: saturate(180%) blur(16px);
+  --ease-out: cubic-bezier(.22, 1, .36, 1);
+  --lift: -2px;
+  --press: .97;
+  --ls-tight: -.01em;
+  --c-focus: var(--c-primary);
+  --c-focus-ring: var(--c-primary-soft);
+  --c-indicator: var(--c-primary);
+  --bw-indicator: 3px;
+}
+
+/* Chữ: tiêu đề trang siết khoảng chữ nhẹ — gọn, tinh tế hơn (độ đậm giữ nguyên). */
+h1, .order-summary-band .value, .dash-dai-loi { letter-spacing: var(--ls-tight); }
+
+/* Thẻ: viền bằng bóng + bóng mềm (trước: thẻ trắng phẳng trên nền xanh nhạt). */
+.card { box-shadow: var(--ring-card), var(--shadow-card); }
+.order-card { box-shadow: var(--shadow-card); transition: box-shadow var(--m-fast) var(--ease-out), transform var(--m-fast) var(--ease-out), border-color var(--m-fast) var(--ease-out); }
+.order-card:hover { outline: 0; }
+@media (hover: hover) {
+  .order-card:hover { border-color: var(--c-input-border); box-shadow: var(--shadow-card-hover); transform: translateY(var(--lift)); }
+}
+.order-card:focus-within { outline: var(--focus-ring) solid var(--c-focus); outline-offset: 0; }
+
+/* Nút: phản hồi mượt khi rê và nhấn. */
+.btn { transition: background-color var(--m-fast) var(--ease-out), border-color var(--m-fast) var(--ease-out), box-shadow var(--m-fast) var(--ease-out), transform var(--m-fast) var(--ease-out); }
+.btn:not(:disabled):active { transform: scale(var(--press)); }
+@media (hover: hover) {
+  .btn:not(:disabled):not(.btn-primary):not(.btn-accent):not(.btn-link):hover { background: var(--c-soft-hover); }
+  .btn-primary:not(:disabled):hover { background: var(--c-btn-primary-hover-bg); border-color: var(--c-btn-primary-hover-bg); }
+  .btn-accent:not(:disabled):hover { background: var(--c-accent-strong); border-color: var(--c-accent-strong); }
+}
+.btn-accent { box-shadow: 0 1px 2px rgba(150, 39, 26, .18), 0 4px 12px rgba(192, 57, 43, .22); }
+
+/* Ô nhập: viền rõ hơn, rê chuột đậm lên, đang gõ có vành nhạt (như trang Đăng nhập). */
+input:not([type="checkbox"]):not([type="radio"]), select, textarea { border-color: var(--c-input-border); transition: border-color var(--m-fast) var(--ease-out), box-shadow var(--m-fast) var(--ease-out); }
+@media (hover: hover) {
+  input:not([type="checkbox"]):not([type="radio"]):not(:focus):hover, select:not(:focus):hover, textarea:not(:focus):hover { border-color: var(--c-input-border-hover); }
+}
+input:focus, select:focus, textarea:focus { outline: 0; border-color: var(--c-focus); box-shadow: 0 0 0 var(--ring-field) var(--c-focus-ring); }
+
+/* Thanh bên máy tính: rê chuột có nền, mục đang chọn có vạch chỉ báo bên trái. */
+.sidebar-item { transition: background-color var(--m-fast) var(--ease-out), color var(--m-fast) var(--ease-out); }
+@media (hover: hover) { .sidebar-item:not([aria-current="page"]):hover { color: var(--c-text); background: var(--c-soft-hover); } }
+.sidebar-item[aria-current="page"] { box-shadow: inset var(--bw-indicator) 0 0 var(--c-indicator); }
+
+/* Thanh tab điện thoại: kính mờ (nội dung lướt phía sau), viền trên mảnh. */
+@media (max-width: 640px) {
+  #tabbar { background: var(--c-tabbar-glass); -webkit-backdrop-filter: var(--blur-glass); backdrop-filter: var(--blur-glass); }
+  #tabbar .tab-icon { transition: background-color var(--m-fast) var(--ease-out), transform var(--m-fast) var(--ease-out); }
+  #tabbar .tab:active .tab-icon { transform: scale(.92); }
+}
+
+/* Nút nổi "Hỗ trợ": bóng nổi rõ hơn. */
+.tl-fab { box-shadow: var(--shadow-float); }
+
+/* Ô chức năng Trang chủ: nhấn có độ lún. */
+.dash-o-muc { transition: transform var(--m-fast) var(--ease-out); }
+.dash-o-muc:active { transform: scale(.95); }
+
+/* Bảng trượt: bóng sâu hơn, trượt lên mượt. */
+.sheet { box-shadow: var(--shadow-overlay); transition-timing-function: var(--ease-out); }
+
+/* SỬA LỖI có sẵn: số "Còn lại" ở dải tóm tắt đơn màu cát trên nền xanh nhạt chỉ 1,67:1 (chuẩn 4,5:1). */
+.order-summary-band .value.due { color: var(--c-accent-strong); }
+
+@media (prefers-reduced-motion: reduce) {
+  .btn, .order-card, .dash-o-muc, #tabbar .tab-icon, .sidebar-item { transition: none; }
+  .btn:not(:disabled):active, .dash-o-muc:active, #tabbar .tab:active .tab-icon, .order-card:hover { transform: none; }
+}

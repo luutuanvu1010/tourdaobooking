@@ -71,7 +71,7 @@ function oTen(id: string, nhan: string, giaTri: string): { root: HTMLElement; in
 
 function khungThem(n: NhomHien): HTMLElement {
   const { root, input } = oTen(`ld-moi-${n.nhom}`, "Lý do mới", "");
-  const them = h("button", { type: "button", class: "vc-btn btn btn-primary", "data-action": "luu-them" }, "Thêm");
+  const them = h("button", { type: "button", class: "vc-btn btn btn-primary btn-chinh", "data-action": "luu-them" }, "Thêm");
   const dong = h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary", "data-action": "dong" }, "Đóng");
   them.addEventListener("click", () => {
     const nhan = input.value.trim().replace(/\s+/g, " ");
@@ -96,7 +96,7 @@ function khungThem(n: NhomHien): HTMLElement {
 
 function khungSua(n: NhomHien, l: Api.TripReasonDto): HTMLElement {
   const { root, input } = oTen(`ld-sua-${l.code}`, "Tên lý do", l.label);
-  const luu = h("button", { type: "button", class: "vc-btn btn btn-primary", "data-action": "luu-sua" }, "Lưu");
+  const luu = h("button", { type: "button", class: "vc-btn btn btn-primary btn-chinh", "data-action": "luu-sua" }, "Lưu");
   const dong = h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary", "data-action": "dong" }, "Đóng");
   luu.addEventListener("click", () => {
     const nhan = input.value.trim().replace(/\s+/g, " ");
