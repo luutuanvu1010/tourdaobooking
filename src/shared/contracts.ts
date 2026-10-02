@@ -162,7 +162,12 @@ export interface NhapTayRequest { batNhapTay: boolean }
 export interface MaintenanceRequest { on: boolean; endsAt?: string }
 /** Thân `error` của phản hồi 503 `maintenance` (mọi `/api/*` cần đăng nhập với người bị chặn, và `POST /api/auth/login`): `endsAt` để giao diện dựng đồng hồ đếm ngược mà không cần gọi thêm. */
 export interface MaintenanceErrorBody { code: "maintenance"; message: string; endsAt: string | null }
-export interface StaffListResponse { staff: StaffAccountDto[] }
+/**
+ * Một dòng của GET /api/staff: `datLaiPinDuoc` = nút "Đặt lại PIN" hiện ở dòng này cho người đang xem — máy chủ tính bằng CÙNG hàm với cổng route reset-pin
+ * (`datLaiPinDuoc` của src/shared/roles.ts: cấp dưới, không phải chính mình, tài khoản có quyền tiền chỉ Toàn quyền — ADR-0090 đ2). Giao diện không tự tính.
+ */
+export interface StaffListRowDto extends StaffAccountDto { datLaiPinDuoc: boolean }
+export interface StaffListResponse { staff: StaffListRowDto[] }
 export interface StaffResponse { staff: StaffAccountDto }
 export interface StaffWithPinResponse { staff: StaffAccountDto; pin: string }
 

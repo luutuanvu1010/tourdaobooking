@@ -2,7 +2,7 @@
 // cứng) và web/ (xem trước quyền khi gán vai) cùng import. Mã vai là DỮ LIỆU ở pty_role_type (migration 0024); src/roles-schema.test.ts giữ hai
 // nơi khớp nhau. Vai KHÔNG phải cổng cho phép (ADR-0001 điều 4): vai chỉ đi vào đây để SINH bộ quyền; cổng vẫn là can() của permissions.ts.
 // Đổi bảng này = đổi quyền của mọi tài khoản mang vai đó → chỉ qua chủ dự án duyệt + phát hành (ADR-0018 điều 2).
-import { PERMISSION_CODES, PERMISSION_LABEL, isExternalPermission, isPermissionCode, type PermissionCode } from "./permissions.ts";
+import { MA_QUYEN_TIEN, PERMISSION_CODES, PERMISSION_LABEL, can, coQuyenTien, isExternalPermission, isPermissionCode, type PermissionCode, type PermissionHolder } from "./permissions.ts";
 
 export const ROLE_CODES = [
   "DIRECTOR", "OPERATIONS_MANAGER", "GUIDE_INTERNAL", "SALES_STAFF", "INTERN", "ACCOUNTANT", "IT", "DRIVER_INTERNAL", "HR_STAFF",
@@ -30,7 +30,9 @@ export const ROLES: Readonly<Record<RoleCode, RoleDef>> = {
   GUIDE_INTERNAL: { name: "Hướng dẫn viên nội bộ", group: "INTERNAL", defaults: ["FIELD"], handles: "primary", superAdminOnly: false },
   SALES_STAFF: { name: "Nhân viên kinh doanh", group: "INTERNAL", defaults: ["SALES"], handles: "substitute", superAdminOnly: false },
   INTERN: { name: "Thực tập sinh", group: "INTERNAL", defaults: ["INTERN"], handles: "ownOrGiven", superAdminOnly: false },
-  ACCOUNTANT: { name: "Kế toán", group: "INTERNAL", defaults: ["ACCOUNTING"], handles: "ownOrGiven", superAdminOnly: false },
+  // ADR-0090 đ1(ii): vai mang quyền tiền — chỉ Toàn quyền gán / gỡ. KHÔNG thêm ACCOUNTING vào SUPER_ADMIN_GRANTED (canManageAccount đọc danh sách đó: Quản trị sẽ
+  // mất cả đổi tên / ngưng Kế toán, trái đ3).
+  ACCOUNTANT: { name: "Kế toán", group: "INTERNAL", defaults: ["ACCOUNTING"], handles: "ownOrGiven", superAdminOnly: true },
   // ADR-0044: vai hiện ra của tài khoản chủ (Toàn quyền là vai ẩn — người khác thấy "IT"); Quản trị + Toàn quyền (ADR-0072 điều 2: giữ nguyên), chỉ Toàn quyền gán.
   IT: { name: "IT", group: "INTERNAL", defaults: ["ADMIN", "SUPER_ADMIN"], handles: "substitute", superAdminOnly: true },
   // ADR-0040 D3 (Ruling R1, R12): tài xế là NHÂN VIÊN có tài khoản; không nhận đơn (không phải người phụ trách đơn). Mã vai hồ sơ cũ DRIVER (nhóm OTHER,
@@ -65,6 +67,33 @@ export function canManageAccount(actor: readonly PermissionCode[], target: reado
   if (!actor.includes("ADMIN") && !actor.includes("HR")) return false;
   return !target.some((p) => SUPER_ADMIN_GRANTED.includes(p));
 }
+
+/** ADR-0090 đ1: lời 403 nguyên văn khi người không phải Toàn quyền chạm cửa của tài khoản có quyền tiền. */
+export const TIEN_CHI_TOAN_QUYEN_MESSAGE = "Tài khoản giữ tiền — chỉ người phụ trách hệ thống (Toàn quyền) làm việc này.";
+
+/**
+ * ADR-0090 đ1(i): người làm chạm được "đăng nhập" (đặt lại PIN) của tài khoản đích không, xét RIÊNG luật quyền tiền — đích có quyền tiền (coQuyenTien) thì chỉ
+ * Toàn quyền. Không thay canManageAccount (luật cấp dưới vẫn hỏi riêng). Route reset-pin hỏi hàm này; cờ theo dòng hỏi datLaiPinDuoc (gọi lại hàm này).
+ */
+export const chamTaiKhoanTienDuoc = (actor: PermissionHolder, target: { readonly permissions: readonly PermissionCode[] }): boolean =>
+  !coQuyenTien(target.permissions) || can(actor, "admin.manage.superadmin");
+
+/**
+ * Nút "Đặt lại PIN" hiện ở dòng `target` không — CÙNG thứ tự cổng của route POST /api/staff/:id/reset-pin: hai ô (admin.manage, account.access.manage), không
+ * phải chính mình (DK-T3-02), cấp dưới (canManageAccount — ADR-0042), luật quyền tiền (ADR-0090 đ1i). MỘT nguồn cho cờ `datLaiPinDuoc` của GET /api/staff và
+ * GET /api/sessions (đ2: cờ máy chủ tính theo dòng); bài khung thử accounts/quyen-tien.test.ts đối chiếu cờ với mã trả của route.
+ */
+export function datLaiPinDuoc(actor: PermissionHolder, target: PermissionHolder): boolean {
+  return can(actor, "admin.manage") && can(actor, "account.access.manage") && actor.id !== target.id
+    && canManageAccount(actor.permissions, target.permissions) && chamTaiKhoanTienDuoc(actor, target);
+}
+
+/**
+ * ADR-0090 đ1(ii) (bảng "Thay câu nào", dòng LC-4: "cấp hoặc gỡ"): mã quyền tiền mà LC-4 cũ CHƯA canh — suy từ MA_QUYEN_TIEN trừ SUPER_ADMIN_GRANTED (hôm nay
+ * = ACCOUNTING). SUPER_ADMIN đã thuộc SUPER_ADMIN_GRANTED nên giữ câu cũ "cấp hoặc gỡ quyền Quản trị" (ruling R-Q1, sổ thi công luồng Q).
+ */
+const QUYEN_TIEN_RIENG: readonly PermissionCode[] = MA_QUYEN_TIEN.filter((p) => !SUPER_ADMIN_GRANTED.includes(p));
+const TIEN_PROBLEM: RoleProblem = { forbidden: true, message: TIEN_CHI_TOAN_QUYEN_MESSAGE };
 
 /** Lời 403 khi gán / gỡ vai chỉ Toàn quyền được gán — liệt kê đúng các vai đó (đọc từ ROLES, không chép tay). */
 const VAI_QUAN_LY_MESSAGE = `Chỉ người phụ trách hệ thống mới gán hoặc gỡ vai ${ROLE_CODES.filter((r) => ROLES[r].superAdminOnly).map((r) => ROLES[r].name).join(", ")}.`;
@@ -158,7 +187,9 @@ export interface RoleProblem {
 export function highPermissionProblem(actorIsSuper: boolean, current: readonly PermissionCode[], next: readonly PermissionCode[]): RoleProblem | null {
   if (actorIsSuper) return null;
   const changed = SUPER_ADMIN_GRANTED.filter((p) => current.includes(p) !== next.includes(p));
-  return changed.length ? { forbidden: true, message: capCaoMessage(changed) } : null;
+  if (changed.length) return { forbidden: true, message: capCaoMessage(changed) };
+  // ADR-0090 đ1(ii), (iii): cấp hoặc gỡ quyền tiền (gồm tạo tài khoản mang quyền tiền — current rỗng) chỉ Toàn quyền.
+  return MA_QUYEN_TIEN.some((p) => current.includes(p) !== next.includes(p)) ? TIEN_PROBLEM : null;
 }
 
 /**
@@ -185,6 +216,12 @@ export function roleAssignmentProblem(a: {
   }
   if (!a.actorIsSuper) {
     const touched = [...a.next.roles.filter((r) => !a.currentRoles.includes(r)), ...a.currentRoles.filter((r) => !a.next.roles.includes(r))];
+    // ADR-0090 đ1(ii): gán / gỡ vai mang quyền tiền, hoặc ĐỔI dòng chỉnh tay quyền tiền (kể cả "ngủ" — như I-1 bên dưới) — câu đ1, TRƯỚC câu vai chung.
+    const vaiTien = touched.some((r) => ROLES[r].defaults.some((p) => QUYEN_TIEN_RIENG.includes(p)));
+    const chinhTayTien = QUYEN_TIEN_RIENG.some(
+      (p) => a.next.adds.includes(p) !== a.currentAdjustments.adds.includes(p) || a.next.removes.includes(p) !== a.currentAdjustments.removes.includes(p),
+    );
+    if (vaiTien || chinhTayTien) return TIEN_PROBLEM;
     if (touched.some((r) => ROLES[r].superAdminOnly)) return { forbidden: true, message: VAI_QUAN_LY_MESSAGE };
     // I-1 (kiểm độc lập vòng 1): chặn cả khi chỉnh tay Quản trị/Toàn quyền "ngủ" — quyền hiệu lực hôm nay không đổi (vai hiện tại đã có sẵn hoặc
     // chưa từng cần đến quyền đó) nhưng dòng chỉnh tay sẽ phát tác khi vai đổi sau này. So danh sách chỉnh tay MUỐN với danh sách chỉnh tay ĐANG CÓ,

@@ -41,7 +41,7 @@ Hai luồng song song, mỗi luồng một phiên.
 **Luồng Q — quyền tiền chỉ Toàn quyền (ADR-0090), không cần chờ gì**
 - [x] 🤖 Q0 kiểm kê, mở sổ thi công
 - [x] 🤖 Q1 một hàm "có quyền tiền" suy từ bảng quyền
-- [ ] 🤖 Q2 cổng máy chủ ba cửa (đặt lại PIN, gán vai/quyền tiền, tạo tài khoản tiền); `ACCOUNTANT.superAdminOnly` (**không** thêm vào `SUPER_ADMIN_GRANTED`)
+- [x] 🤖 Q2 cổng máy chủ ba cửa (đặt lại PIN, gán vai/quyền tiền, tạo tài khoản tiền); `ACCOUNTANT.superAdminOnly` (**không** thêm vào `SUPER_ADMIN_GRANTED`)
 - [ ] 🤖 Q3 cờ theo từng dòng + giao diện ẩn/hiện
 - [ ] 🤖 Q4 tin "Quản trị ngưng Kế toán" → Toàn quyền (một view, một migration — chủ đồng ý (f))
 - [ ] 🤖 Q5 e2e QT04 + dòng sổ hàng rào (thấy chặn thật)
