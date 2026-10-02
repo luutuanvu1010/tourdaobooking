@@ -1969,6 +1969,12 @@ test("R-VC-COST-3 (TC-10; ADR-0095 Q5): chuyến rented = 0 còn nguồn giá ch
   assert.equal(violations(db, c), 0, "dòng lý do khác đã đảo → tổng phần còn lại = phí huỷ");
   cpTho(db, { trip: t, kind: "REVERSAL", amount: -300_000, reverses: ph, reason: "CPX_NHAP_SAI" });
   assert.equal(violations(db, c), 0, "đảo luôn phí huỷ → tổng 0");
+  const t3 = chuyenTho(db, { carrier: "p-cty" });
+  const s3 = cpTho(db, { trip: t3, kind: "SNAPSHOT", amount: 1_000_000 });
+  cpTho(db, { trip: t3, kind: "REVERSAL", amount: -1_000_000, reverses: s3 });
+  cpTho(db, { trip: t3, kind: "ADJUSTMENT", amount: 300_000, reason: "CPX_HUY_MUON", carrier: "p-khac" });
+  assert.equal(violations(db, c), 1, "vòng sửa 3: phí huỷ mang nhà xe CHƯA TỪNG có nguồn giá trên chuyến này → vi phạm");
+  db.prepare("UPDATE vc_trip SET status = 'CANCELLED', cancel_reason_code = 'HUY_KHAC' WHERE id = ?").run(t3);
   const t2 = chuyenTho(db, { carrier: "p-cty" });
   cpTho(db, { trip: t2, kind: "ADJUSTMENT", amount: 300_000, reason: "CPX_HUY_MUON", carrier: "p-cty" });
   assert.equal(violations(db, c), 1, "phí huỷ muộn mang CHÍNH công ty chủ (không phải nhà xe cũ) → vi phạm");
@@ -2036,4 +2042,11 @@ test("R-VC-COST-6 (kẽ C2a — nợ N-T1, warn): chuyến chưa huỷ rented = 
   assert.equal(violations(db, c), 0);
   chuyenTho(db, { carrier: "p-nx-cu" });
   assert.equal(violations(db, c), 1);
+});
+
+test("vòng sửa 3: MỘT mốc huỷ — R-VC-COST-4 và ngày huỷ mặc định của điều chỉnh (tien-xe-repo `vc_trip_cancelled_at`) cùng đọc created_at của sự kiện CANCELLED mới nhất", () => {
+  const sql4 = one("R-VC-COST-4").sql.replace(/\s+/g, " ");
+  assert.match(sql4, /SELECT e\.id, e\.created_at FROM vc_trip_event e WHERE e\.trip_id = t\.id AND e\.kind = 'CANCELLED' ORDER BY e\.created_at DESC LIMIT 1/);
+  const repo = readFileSync(new URL("./modules/van-chuyen/tien-xe-repo.ts", import.meta.url), "utf8");
+  assert.match(repo, /"vc_trip_cancelled_at", "SELECT created_at FROM vc_trip_event WHERE trip_id = \?1 AND kind = 'CANCELLED' ORDER BY created_at DESC LIMIT 1"/);
 });

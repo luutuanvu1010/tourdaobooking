@@ -604,14 +604,15 @@ export const CHECKS = [
   // "không có dòng" sẽ báo nhầm.
   {
     code: "R-VC-COST-3",
-    // ADR-0095 Q5 (vòng sửa 2, 4.7): tổng ≠ 0 được phép CHỈ gồm "Phí huỷ muộn" cho NHÀ XE CŨ (ADJUSTMENT CPX_HUY_MUON mang nhà xe khác chủ xe hiện tại) cùng
-    // các dòng đảo của chính chúng — mọi dòng khác phải cộng về 0.
+    // ADR-0095 Q5 (vòng sửa 2, 4.7; siết vòng sửa 3): tổng ≠ 0 được phép CHỈ gồm "Phí huỷ muộn" cho NHÀ XE CŨ — ADJUSTMENT CPX_HUY_MUON mang nhà xe khác chủ
+    // xe hiện tại VÀ đã từng có dòng nguồn giá (SNAPSHOT / AGREED) trên CHÍNH chuyến đó — cùng các dòng đảo của chính chúng; mọi dòng khác phải cộng về 0.
     what: "chuyến không phải xe thuê còn nguồn giá chưa đảo hoặc tổng chi phí khác 0 (ngoài phí huỷ muộn cho nhà xe cũ)",
     sql: `SELECT count(*) FROM vc_trip t WHERE t.rented = 0 AND t.status <> 'CANCELLED' AND (
             EXISTS (SELECT 1 FROM vc_trip_cost_line l WHERE l.trip_id = t.id AND l.kind IN ('SNAPSHOT','AGREED') AND NOT EXISTS (SELECT 1 FROM vc_trip_cost_line r WHERE r.reverses_id = l.id))
             OR (SELECT COALESCE(sum(l.amount), 0) FROM vc_trip_cost_line l WHERE l.trip_id = t.id)
             <> (SELECT COALESCE(sum(l.amount), 0) FROM vc_trip_cost_line l LEFT JOIN vc_trip_cost_line g ON g.id = l.reverses_id
                 WHERE l.trip_id = t.id AND l.carrier_party_id <> t.carrier_party_id
+                  AND EXISTS (SELECT 1 FROM vc_trip_cost_line s WHERE s.trip_id = t.id AND s.kind IN ('SNAPSHOT','AGREED') AND s.carrier_party_id = l.carrier_party_id)
                   AND ((l.kind = 'ADJUSTMENT' AND l.reason_code = 'CPX_HUY_MUON') OR (l.kind = 'REVERSAL' AND g.kind = 'ADJUSTMENT' AND g.reason_code = 'CPX_HUY_MUON'))))`,
     level: "fail",
   },
@@ -619,7 +620,8 @@ export const CHECKS = [
     code: "R-VC-COST-4",
     // Vòng sửa 1 (người kiểm V-1, điều phối chốt phương án a): vế phải = MỌI dòng ghi SAU lúc huỷ, không lọc lý do (phí huỷ muộn rồi "Nhập sai" là luồng hợp lệ).
     // "Sau lúc huỷ" = mốc giờ ≥ sự kiện huỷ VÀ không thuộc chính lô huỷ (dấu lệnh khác id sự kiện huỷ — dòng đảo của lô huỷ cùng mốc giờ). Tức: mọi dòng trước
-    // và trong lô huỷ phải cộng về 0 ("chuyến huỷ chỉ còn tiền phát sinh sau huỷ").
+    // và trong lô huỷ phải cộng về 0 ("chuyến huỷ chỉ còn tiền phát sinh sau huỷ"). MỐC HUỶ = created_at của sự kiện CANCELLED mới nhất — CÙNG mốc máy chủ dùng
+    // cho ngày huỷ mặc định của điều chỉnh (tien-xe-repo `vc_trip_cancelled_at`; vòng sửa 3).
     what: "chuyến đã huỷ có tiền chi phí còn treo từ trước lúc huỷ (tổng khác tổng các dòng ghi sau lúc huỷ)",
     sql: `SELECT count(*) FROM vc_trip t WHERE t.status = 'CANCELLED'
           AND (SELECT COALESCE(sum(l.amount), 0) FROM vc_trip_cost_line l WHERE l.trip_id = t.id)
