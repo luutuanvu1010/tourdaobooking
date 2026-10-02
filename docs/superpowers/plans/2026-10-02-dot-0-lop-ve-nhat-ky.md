@@ -183,3 +183,10 @@ Số bản nhật ký phiên bản: `main` cục bộ có `1.70` ở đầu `src
 | van-chuyen | POST | `/api/van-chuyen/chuyen/:id/thu-tu` | office | src/modules/van-chuyen/index.ts:1431 |
 | van-chuyen | POST | `/api/van-chuyen/chang/:legId/da-goi-bao` | office | src/modules/van-chuyen/index.ts:1476 |
 | van-chuyen | POST | `/api/van-chuyen/chang/:legId/bo-danh-dau-goi-bao` | office | src/modules/van-chuyen/index.ts:1498 |
+
+## L1 — migration `0074_lan_gui.sql` (2026-10-02)
+- Đỏ trước: `node --test src/migrations-lan-gui.test.ts` → 0/6 (chưa có tệp). Xanh: 6/6. `src/architecture.test.ts` + bài migration: 51/51.
+- Từ điển: hai bảng vào `docs/data-dictionary.json` (module `lan-gui`, tiền tố `lg_`), `npm run dict`. `TABLE_PREFIX` thêm `lg_: "lan-gui"`.
+- **H9 (phần CSDL) quan sát chặn thật 2026-10-02:** đổi `so_ngay >= 90` thành `>= 1` ⇒ `not ok 5 - (e) H9 phần CSDL … error: 'Missing expected exception.'` ⇒ hoàn nguyên ⇒ 6/6.
+- `npm test`: bộ chính 2808/2808 xanh. Bài đo giờ hook đỏ (24,4 s; `uptime` tải trung bình 46 — máy quá tải bởi phiên khác), không do luồng L.
+- Chưa chạy e2e ở L1 (gộp vào lần chạy e2e đủ bộ sau L3, vì e2e cần khoá mới).

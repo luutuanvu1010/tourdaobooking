@@ -50,7 +50,7 @@ Hai luồng song song, mỗi luồng một phiên.
 
 **Luồng L — lớp chống ghi trùng bản mở rộng (ADR-0094), đường găng**
 - [x] 🤖 L0 kiểm kê; **đo lại số migration** (mọi nhánh chưa gộp) — 2026-10-02, lấy `0074`; sổ `2026-10-02-dot-0-lop-ve-nhat-ky.md`
-- [ ] 🤖 L1 migration bảng vé + bảng chính sách (gieo 365 ngày), từ điển dữ liệu
+- [x] 🤖 L1 migration bảng vé + bảng chính sách (gieo 365 ngày), từ điển dữ liệu — 2026-10-02, `0074_lan_gui.sql`, H9 (CSDL) quan sát chặn
 - [ ] 🤖 L2 module `lan-gui`
 - [ ] 🤖 L3 khoá bí mật ở mọi nơi dựng môi trường (khung thử, e2e, `.dev.vars.example`)
 - [ ] 🤖 L4a bộ bọc cơ sở dữ liệu theo từng yêu cầu

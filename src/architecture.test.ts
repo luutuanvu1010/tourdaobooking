@@ -175,7 +175,7 @@ const DOC_AUDIT_LOG_WONGUARD = {
 // ĐÃ DUYỆT 2026-09-29 (lần 5) ở docs/superpowers/plans/2026-09-29-adr-0047-de-xuat-luat.md mục 1.
 // prc_/prc: ADR-0024 điều 1 (module pricing, bảng ở lượt 2).
 // ctl_/catalog: ADR-0058 điều 1 (nhóm dịch vụ; bảng cũ catalog_* giữ tên) — NỚI hàng rào đã duyệt (Điều 9.4), chủ duyệt ADR-0058 ngày 2026-09-30 (lượt 1a).
-const TABLE_PREFIX: Record<string, string> = { ctl_: "catalog", prc_: "pricing", pty_: "parties", loc_: "locations", stf_: "staff", fbk_: "feedback", dsp_: "dispatch", bil_: "billing", mnt_: "maintenance", aut_: "auth", ntf_: "thongbao", vc_: "van-chuyen", ord_: "orders", tl_: "tro-ly", gd_: "giao-dien" };
+const TABLE_PREFIX: Record<string, string> = { ctl_: "catalog", prc_: "pricing", pty_: "parties", loc_: "locations", stf_: "staff", fbk_: "feedback", dsp_: "dispatch", bil_: "billing", mnt_: "maintenance", aut_: "auth", ntf_: "thongbao", vc_: "van-chuyen", ord_: "orders", tl_: "tro-ly", gd_: "giao-dien", lg_: "lan-gui" };
 const VIEW_PREFIX: Record<string, string> = { prc: "pricing", pty: "parties", loc: "locations", stf: "staff", ord: "orders", dsp: "dispatch", bil: "billing", aud: "audit", vc: "van-chuyen" };
 
 // ---------------------------------------------------------------------------------------------------------------------

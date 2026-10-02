@@ -17,7 +17,8 @@
     "staff",
     "thongbao",
     "van-chuyen",
-    "tro-ly"
+    "tro-ly",
+    "lan-gui"
   ],
   "tables": [
     {
@@ -270,6 +271,18 @@
       "name": "gd_setting",
       "module": "giao-dien",
       "kind": "table"
+    },
+    {
+      "name": "lg_lan_gui",
+      "module": "lan-gui",
+      "kind": "table",
+      "note": "vé chống ghi trùng (ADR-0094, migration 0074): dữ liệu KỸ THUẬT, không dữ liệu cá nhân — mỗi dòng một Idempotency-Key của một lệnh ghi có đăng nhập, chèn CUỐI lô ghi đầu tiên thành công của lệnh (có vé ⇔ lô đã ghi). Khoá chính (staff_id, khoa), WITHOUT ROWID; van_tay = HMAC (khoá LAN_GUI_SECRET); duong = mẫu route; ket_qua = đường dẫn nội bộ chỉ chứa id. Không xoá ở bản này (đường dọn theo thời hạn: bản sau, A-11)"
+    },
+    {
+      "name": "lg_chinh_sach_giu",
+      "module": "lan-gui",
+      "kind": "table",
+      "note": "thời hạn giữ vé (ADR-0094 đ8a, migration 0074): dữ liệu kỹ thuật; dòng hiệu lực = valid_from_at mới nhất ≤ bây giờ; chỉ thêm (trigger cấm sửa/xoá); so_ngay NULL = Không dọn; sàn cứng 90 ngày ở CHECK; gieo 365 ngày"
     },
     {
       "name": "mnt_setting",
