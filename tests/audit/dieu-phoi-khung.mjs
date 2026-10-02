@@ -61,6 +61,40 @@ export function xe(w, cho = 15) {
   return id;
 }
 
+/** ADR-0057 (Đợt 4): hồ sơ TỔ CHỨC mở vai Nhà xe (CARRIER) đang hợp tác. Trả partyId. */
+export function nhaXeKhung(w, ten = "Nhà xe Hùng Phát") {
+  const id = uuid();
+  w.sqlite.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES (?, 'ORGANIZATION', ?, 1, ?, ?)").run(id, ten, AT, AT);
+  w.sqlite.prepare("INSERT INTO pty_organization (party_id, legal_name, created_at, updated_at) VALUES (?, ?, ?, ?)").run(id, ten, AT, AT); // R-N1-2
+  w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, location_id, valid_from_date, created_at, updated_at) VALUES (?, ?, 'CARRIER', NULL, '2026-09-01', ?, ?)").run(uuid(), id, AT, AT);
+  return id;
+}
+/** Nhà xe thôi hợp tác (đóng vai CARRIER). */
+export const thoiHopTac = (w, carrierId) => w.sqlite.prepare("UPDATE pty_party_role SET valid_to_date = '2027-03-10' WHERE party_id = ? AND role_type_code = 'CARRIER' AND valid_to_date IS NULL").run(carrierId);
+/** Tài xế "thuộc" nhà xe (quan hệ DRIVES_FOR) có GPLX hạng D (không giới hạn khách). Trả partyId. */
+export function taiXeNhaXe(w, carrierId) {
+  const id = uuid();
+  so++;
+  w.sqlite.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES (?, 'PERSON', ?, 1, ?, ?)").run(id, `Tài xế nhà xe ${so}`, AT, AT);
+  w.sqlite.prepare("INSERT INTO pty_person (party_id, given_name, created_at, updated_at) VALUES (?, ?, ?, ?)").run(id, `Tài xế nhà xe ${so}`, AT, AT);
+  w.sqlite.prepare(`INSERT INTO pty_party_relationship (id, from_party_id, to_party_id, relationship_type_code, valid_from_date, created_at, updated_at)
+    VALUES (?, ?, ?, 'DRIVES_FOR', '2026-09-01', ?, ?)`).run(uuid(), id, carrierId, AT, AT);
+  w.sqlite.prepare(`INSERT INTO pty_person_document (id, party_id, document_type_code, document_number, number_key, issued_place, license_class_code, expiry_date, created_at, updated_at)
+    VALUES (?, ?, 'GPLX', ?, ?, 'Nơi cấp Dò Tìm', 'D', '2030-12-31', ?, ?)`).run(`g-nx-${so}`, id, `7922000000${String(so).padStart(2, "0")}`, `7922000000${String(so).padStart(2, "0")}`, AT, AT);
+  return id;
+}
+/** Xe `cho` chỗ của nhà xe `carrierId`, có Kiểm định + Bảo hiểm còn hạn. */
+export function xeNhaXe(w, carrierId, cho = 16) {
+  const id = uuid();
+  const bien = `79N${String(++so).padStart(5, "0")}`;
+  w.sqlite.prepare(`INSERT INTO vc_vehicle (id, plate_number, plate_key, chassis_number, chassis_key, name, model_year, passenger_capacity, owner_party_id, status, valid_from_date,
+     created_at, updated_at) VALUES (?, ?, ?, ?, ?, 'Xe nhà xe', 2020, ?, ?, 'active', '2026-09-01', ?, ?)`).run(id, bien, bien, `KHUNGN${so}`, `KHUNGN${so}`, cho, carrierId, AT, AT);
+  for (const loai of ["INSPECTION", "TPL_INSURANCE"]) {
+    w.sqlite.prepare(`INSERT INTO vc_vehicle_document (id, vehicle_id, document_type_code, expiry_date, created_at, updated_at) VALUES (?, ?, ?, '2030-12-31', ?, ?)`).run(uuid(), id, loai, AT, AT);
+  }
+  return id;
+}
+
 export function setup(tuyChon = {}) {
   const w = world(tuyChon);
   seedStaff(w.sqlite, { id: SALES, phone: "0900000001", name: "An", perms: ["SALES"] });

@@ -566,6 +566,99 @@ export const CHECKS = [
     level: "warn",
     note: "cảnh báo (không chặn phát hành): form lập đơn để trống nơi trả cho các dịch vụ này — Quản trị chọn lại nơi trả mặc định",
   },
+  // R-VC-RATE-1 (ADR-0057 T1 B4, mức warn): dòng giá thuê xe ĐANG hoặc SẮP hiệu lực (ngày kết thúc chưa qua — giờ VN) của hồ sơ không còn vai Nhà xe — Kế toán /
+  // Quản trị kết thúc dòng giá (màn bảng giá vẫn liệt kê nhà xe đã thôi còn giá mở để Kết thúc được). Trigger vc_rental_rate_carrier chỉ chặn lúc THÊM.
+  {
+    code: "R-VC-RATE-1",
+    what: "dòng giá thuê xe còn hiệu lực của hồ sơ đã thôi vai nhà xe",
+    sql: `SELECT count(*) FROM vc_rental_rate r WHERE COALESCE(r.valid_to_date, '9999-12-31') >= date('now', '+7 hours')
+          AND r.carrier_party_id NOT IN (SELECT party_id FROM v_pty_carrier)`,
+    level: "warn",
+    note: "cảnh báo, không chặn phát hành: nhà xe đã thôi hợp tác mà còn giá — Kế toán / Quản trị bấm Kết thúc dòng giá",
+  },
+  // ADR-0057 T2 C8 — lưới thứ hai của chi phí chuyến xe thuê (kế hoạch Đợt 4 Task 11). NGOẠI LỆ CÓ TÊN của hàng rào "một nguồn tính" (src/tien-xe-mot-nguon.test.ts
+  // chỉ quét src/**, web/**): các câu dưới dùng sum( để ĐỐI CHIẾU trên CSDL, không phải nguồn tính hiển thị. "Nguồn giá còn hiệu lực" = SNAPSHOT / AGREED chưa đảo.
+  {
+    code: "R-VC-COST-1",
+    what: "chuyến xe thuê chưa huỷ có nhiều hơn một nguồn giá còn hiệu lực",
+    sql: `SELECT count(*) FROM vc_trip t WHERE t.rented = 1 AND t.status <> 'CANCELLED' AND (SELECT count(*) FROM vc_trip_cost_line l WHERE l.trip_id = t.id
+          AND l.kind IN ('SNAPSHOT','AGREED') AND NOT EXISTS (SELECT 1 FROM vc_trip_cost_line r WHERE r.reverses_id = l.id)) > 1`,
+    level: "fail",
+  },
+  {
+    code: "R-VC-COST-1b",
+    what: "chuyến xe thuê chưa xuất bến đang thiếu giá (thông tin cho Kế toán)",
+    sql: `SELECT count(*) FROM vc_trip t WHERE t.rented = 1 AND t.status = 'PLANNED' AND NOT EXISTS (SELECT 1 FROM vc_trip_cost_line l WHERE l.trip_id = t.id
+          AND l.kind IN ('SNAPSHOT','AGREED') AND NOT EXISTS (SELECT 1 FROM vc_trip_cost_line r WHERE r.reverses_id = l.id))`,
+    level: "warn",
+    note: "thông tin: các chuyến này đang bị giữ 'chưa có giá' — Kế toán / Quản trị nhập giá",
+  },
+  {
+    code: "R-VC-COST-2",
+    what: "dòng đảo không đối dấu đúng dòng gốc cùng chuyến",
+    sql: `SELECT count(*) FROM vc_trip_cost_line r LEFT JOIN vc_trip_cost_line g ON g.id = r.reverses_id
+          WHERE r.kind = 'REVERSAL' AND (g.id IS NULL OR g.trip_id <> r.trip_id OR g.amount <> -r.amount OR g.kind = 'REVERSAL')`,
+    level: "fail",
+  },
+  // TC-10 của kế hoạch (người kiểm soi): "nguồn giá chưa đảo HOẶC tổng ≠ 0" — chuyến đổi từ xe nhà xe sang xe công ty giữ các dòng ĐÃ ĐẢO (tổng 0), chữ ADR
+  // "không có dòng" sẽ báo nhầm.
+  {
+    code: "R-VC-COST-3",
+    // ADR-0095 Q5 (vòng sửa 2, 4.7; siết vòng sửa 3): tổng ≠ 0 được phép CHỈ gồm "Phí huỷ muộn" cho NHÀ XE CŨ — ADJUSTMENT CPX_HUY_MUON mang nhà xe khác chủ
+    // xe hiện tại VÀ đã từng có dòng nguồn giá (SNAPSHOT / AGREED) trên CHÍNH chuyến đó — cùng các dòng đảo của chính chúng; mọi dòng khác phải cộng về 0.
+    what: "chuyến không phải xe thuê còn nguồn giá chưa đảo hoặc tổng chi phí khác 0 (ngoài phí huỷ muộn cho nhà xe cũ)",
+    sql: `SELECT count(*) FROM vc_trip t WHERE t.rented = 0 AND t.status <> 'CANCELLED' AND (
+            EXISTS (SELECT 1 FROM vc_trip_cost_line l WHERE l.trip_id = t.id AND l.kind IN ('SNAPSHOT','AGREED') AND NOT EXISTS (SELECT 1 FROM vc_trip_cost_line r WHERE r.reverses_id = l.id))
+            OR (SELECT COALESCE(sum(l.amount), 0) FROM vc_trip_cost_line l WHERE l.trip_id = t.id)
+            <> (SELECT COALESCE(sum(l.amount), 0) FROM vc_trip_cost_line l LEFT JOIN vc_trip_cost_line g ON g.id = l.reverses_id
+                WHERE l.trip_id = t.id AND l.carrier_party_id <> t.carrier_party_id
+                  AND EXISTS (SELECT 1 FROM vc_trip_cost_line s WHERE s.trip_id = t.id AND s.kind IN ('SNAPSHOT','AGREED') AND s.carrier_party_id = l.carrier_party_id)
+                  AND ((l.kind = 'ADJUSTMENT' AND l.reason_code = 'CPX_HUY_MUON') OR (l.kind = 'REVERSAL' AND g.kind = 'ADJUSTMENT' AND g.reason_code = 'CPX_HUY_MUON'))))`,
+    level: "fail",
+  },
+  {
+    code: "R-VC-COST-4",
+    // Vòng sửa 1 (người kiểm V-1, điều phối chốt phương án a): vế phải = MỌI dòng ghi SAU lúc huỷ, không lọc lý do (phí huỷ muộn rồi "Nhập sai" là luồng hợp lệ).
+    // "Sau lúc huỷ" = mốc giờ ≥ sự kiện huỷ VÀ không thuộc chính lô huỷ (dấu lệnh khác id sự kiện huỷ — dòng đảo của lô huỷ cùng mốc giờ). Tức: mọi dòng trước
+    // và trong lô huỷ phải cộng về 0 ("chuyến huỷ chỉ còn tiền phát sinh sau huỷ"). MỐC HUỶ = created_at của sự kiện CANCELLED mới nhất — CÙNG mốc máy chủ dùng
+    // cho ngày huỷ mặc định của điều chỉnh (tien-xe-repo `vc_trip_cancelled_at`; vòng sửa 3).
+    what: "chuyến đã huỷ có tiền chi phí còn treo từ trước lúc huỷ (tổng khác tổng các dòng ghi sau lúc huỷ)",
+    sql: `SELECT count(*) FROM vc_trip t WHERE t.status = 'CANCELLED'
+          AND (SELECT COALESCE(sum(l.amount), 0) FROM vc_trip_cost_line l WHERE l.trip_id = t.id)
+           <> (SELECT COALESCE(sum(l.amount), 0) FROM vc_trip_cost_line l
+               JOIN (SELECT e.id, e.created_at FROM vc_trip_event e WHERE e.trip_id = t.id AND e.kind = 'CANCELLED' ORDER BY e.created_at DESC LIMIT 1) h
+               WHERE l.trip_id = t.id AND l.created_at >= h.created_at AND l.cmd_id <> h.id)`,
+    level: "fail",
+  },
+  {
+    code: "R-VC-COST-5",
+    what: "chuyến xe thuê đã xuất bến mà không có nguồn giá còn hiệu lực",
+    sql: `SELECT count(*) FROM vc_trip t WHERE t.rented = 1 AND t.status IN ('RUNNING','ENDED','ENDED_INTERRUPTED') AND NOT EXISTS (SELECT 1 FROM vc_trip_cost_line l
+          WHERE l.trip_id = t.id AND l.kind IN ('SNAPSHOT','AGREED') AND NOT EXISTS (SELECT 1 FROM vc_trip_cost_line r WHERE r.reverses_id = l.id))`,
+    level: "fail",
+  },
+  {
+    code: "R-VC-COST-6",
+    what: "chuyến chưa huỷ không đánh dấu xe thuê mà chủ xe không phải công ty chủ hiện tại (kẽ C2a — nợ N-T1)",
+    sql: `SELECT count(*) FROM vc_trip t WHERE t.rented = 0 AND t.status <> 'CANCELLED' AND t.carrier_party_id NOT IN (SELECT party_id FROM v_pty_owner_company)`,
+    level: "warn",
+    note: "cảnh báo (chấp nhận ồn): có thể là xe của nhà xe đã thôi hợp tác bị xếp như xe công ty, hoặc xe của công ty chủ cũ — Quản trị xem",
+  },
+
+  // ADR-0095 Q5b (chủ chọn E1, 2/10): phí huỷ của nhà xe cũ VẪN bị lô lệnh chuyến đảo theo luật chung (đổi xe / dời ngày / đổi tuyến / huỷ — `dongBiDaoKhi`);
+  // Kế toán ghi lại nếu vẫn phải trả. Kiểm này để KHÔNG MẤT NỢ ÂM THẦM: dòng "Phí huỷ muộn" mang nhà xe khác chủ xe hiện tại, bị đảo TỰ ĐỘNG (dòng đảo do lô
+  // lệnh: dấu lệnh ≠ id dòng — cùng nghĩa cờ `tuDong` của màn chi phí), mà SAU lúc đảo chưa có dòng "Phí huỷ muộn" mới cho cùng nhà xe trên chuyến đó.
+  {
+    code: "R-VC-COST-8",
+    what: "phí huỷ muộn của nhà xe cũ bị đảo tự động khi đổi / huỷ chuyến mà chưa ghi lại (ADR-0095 Q5b)",
+    sql: `SELECT count(*) FROM vc_trip_cost_line l JOIN vc_trip t ON t.id = l.trip_id
+          JOIN vc_trip_cost_line r ON r.reverses_id = l.id AND r.kind = 'REVERSAL' AND r.cmd_id <> r.id
+          WHERE l.kind = 'ADJUSTMENT' AND l.reason_code = 'CPX_HUY_MUON' AND l.carrier_party_id <> t.carrier_party_id
+            AND NOT EXISTS (SELECT 1 FROM vc_trip_cost_line m WHERE m.trip_id = l.trip_id AND m.kind = 'ADJUSTMENT' AND m.reason_code = 'CPX_HUY_MUON'
+                            AND m.carrier_party_id = l.carrier_party_id AND m.id <> l.id AND m.created_at >= r.created_at)`,
+    level: "warn",
+    note: "cảnh báo (không chặn phát hành): Kế toán xem chuyến — nếu vẫn phải trả nhà xe cũ thì ghi lại Phí huỷ muộn",
+  },
 
   // ---- Người phụ trách đơn (ADR-0006 điều 3, ADR-0009). Migration 0014 trở lên: trên D1 chưa có 0014 các câu dưới lỗi "no such table" → script thoát mã 2. ----
   // R-DSP-1: chỉ mục duy nhất một phần đã chặn ở CSDL; kiểm này bắt trường hợp chỉ mục bị gỡ/sửa nhầm.

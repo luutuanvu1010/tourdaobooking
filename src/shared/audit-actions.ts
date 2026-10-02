@@ -121,6 +121,16 @@ export const AUDIT_ACTIONS = {
   // ADR-0051 GB1: mốc giờ hẹn của chặng — orderId NULL (I17); detail danh sách trắng (mã đơn, chiều, "giờ hẹn đón A → B", mã chuyến).
   trip_appt_called: { label: "Đã gọi báo khách giờ hẹn mới", group: "trip" },
   trip_appt_call_undone: { label: "Bỏ đánh dấu đã gọi báo", group: "trip" },
+  // ADR-0057 T1 (kế hoạch Đợt 4 Task 4): bảng giá thuê xe — detail: tên nhà xe, tên tuyến / nhãn cỡ, số tiền, ngày hiệu lực (C10); không SĐT.
+  // ADR-0057 T2 C10 (Task 10): Kế toán / Quản trị ghi chi phí chuyến xe thuê — detail: mã chuyến, tên nhà xe, tổng trước → sau, nhãn lý do; KHÔNG ghi chú (chữ tự do).
+  trip_cost_adjusted: { label: "Điều chỉnh chi phí xe thuê", group: "trip" },
+  trip_cost_reversed: { label: "Đảo dòng chi phí xe thuê", group: "trip" },
+  trip_cost_snapshot: { label: "Lấy lại giá bảng cho chuyến xe thuê", group: "trip" },
+  trip_cost_agreed: { label: "Nhập giá thoả thuận chuyến xe thuê", group: "trip" },
+  rental_rate_added: { label: "Thêm giá thuê xe", group: "trip" },
+  rental_rate_closed: { label: "Kết thúc giá thuê xe", group: "trip" },
+  route_saved: { label: "Lưu tuyến (bảng giá xe)", group: "trip" },
+  vehicle_size_saved: { label: "Lưu cỡ xe (bảng giá xe)", group: "trip" },
   location_created: { label: "Thêm địa điểm", group: "location" },
   location_updated: { label: "Sửa địa điểm", group: "location" },
   maintenance_changed: { label: "Đổi chế độ bảo trì", group: "system" },

@@ -349,6 +349,26 @@
       "kind": "lookup"
     },
     {
+      "name": "vc_route",
+      "module": "van-chuyen",
+      "kind": "lookup"
+    },
+    {
+      "name": "vc_vehicle_size",
+      "module": "van-chuyen",
+      "kind": "lookup"
+    },
+    {
+      "name": "vc_rental_rate",
+      "module": "van-chuyen",
+      "kind": "table"
+    },
+    {
+      "name": "vc_trip_cost_line",
+      "module": "van-chuyen",
+      "kind": "table"
+    },
+    {
       "name": "vc_trip",
       "module": "van-chuyen",
       "kind": "table"

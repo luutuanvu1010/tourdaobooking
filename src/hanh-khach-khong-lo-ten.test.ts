@@ -270,6 +270,27 @@ test("khối van-chuyen: đủ tuyến; tên hành khách chỉ ở GET /chuyen/
         const r = await goi("GET /api/van-chuyen/xe-cua-don/:orderId", "xe của đơn A", "GET", `/api/van-chuyen/xe-cua-don/${dA.id}`, SALES);
         assert.equal(r.chang[0].xe[0].soKhach, 3, "chống bài rỗng: đơn A có xe, 3 khách đã gắn tên");
       },
+      // ADR-0057 T2 (kế hoạch Đợt 4 Task 10): route chi phí chuyến xe thuê — thân chỉ tiền + nhãn lý do + tên NGƯỜI GHI (nhân viên), không suất, không tên khách.
+      // Chuyến A là xe công ty (không dòng chi phí) ⇒ lệnh ghi bị từ chối có lý do — thân lỗi cũng được quét.
+      "GET /api/van-chuyen/chuyen/:id/chi-phi": async () => {
+        await goi("GET /api/van-chuyen/chuyen/:id/chi-phi", "chi phí chuyến (Kế toán)", "GET", `/api/van-chuyen/chuyen/${T.A.chuyen.id}/chi-phi`, ACC);
+      },
+      "POST /api/van-chuyen/chuyen/:id/chi-phi/dieu-chinh": async () => {
+        await goi("POST /api/van-chuyen/chuyen/:id/chi-phi/dieu-chinh", "điều chỉnh (chưa có chi phí)", "POST", `/api/van-chuyen/chuyen/${T.A.chuyen.id}/chi-phi/dieu-chinh`, ACC,
+          { requestId: rid(), phienBanChiPhi: 0, soTien: 100_000, lyDo: "CPX_KHAC", ghiChu: null }, 409);
+      },
+      "POST /api/van-chuyen/chuyen/:id/chi-phi/dao": async () => {
+        await goi("POST /api/van-chuyen/chuyen/:id/chi-phi/dao", "đảo dòng (không có)", "POST", `/api/van-chuyen/chuyen/${T.A.chuyen.id}/chi-phi/dao`, ACC,
+          { requestId: rid(), phienBanChiPhi: 0, dongId: uuid(), lyDo: "CPX_NHAP_SAI", ghiChu: null }, 404);
+      },
+      "POST /api/van-chuyen/chuyen/:id/chi-phi/chup-lai": async () => {
+        await goi("POST /api/van-chuyen/chuyen/:id/chi-phi/chup-lai", "lấy lại giá bảng (không phải xe thuê)", "POST", `/api/van-chuyen/chuyen/${T.A.chuyen.id}/chi-phi/chup-lai`, ACC,
+          { requestId: rid(), phienBanChiPhi: 0 }, 409);
+      },
+      "POST /api/van-chuyen/chuyen/:id/chi-phi/gia-thoa-thuan": async () => {
+        await goi("POST /api/van-chuyen/chuyen/:id/chi-phi/gia-thoa-thuan", "giá thoả thuận (không phải xe thuê)", "POST", `/api/van-chuyen/chuyen/${T.A.chuyen.id}/chi-phi/gia-thoa-thuan`, ACC,
+          { requestId: rid(), phienBanChiPhi: 0, soTien: 1_000_000, ghiChu: "thử" }, 409);
+      },
       "GET /api/van-chuyen/chuyen/:id": async () => {
         // I19(a) (làm bù theo K2c VỪA-1): xếp theo SỐ → máy gắn tên ngay lúc xếp theo thứ tự khoá người ⇒ chi tiết văn phòng CÓ tên TRƯỚC xuất bến.
         const c = await ct(T.A.chuyen.id);
@@ -421,7 +442,10 @@ test("khối van-chuyen: đủ tuyến; tên hành khách chỉ ở GET /chuyen/
     for (const r of TRA_TEN) assert.ok(than.some((t) => t.route === r && t.text.includes(TEN_VC[0]!)), `chống bài rỗng: ${r} CÓ tên`);
     // K2a V2: phép (2) chỉ có nghĩa khi thân CÓ suất đã gắn tên. Bốn route bản chất không còn suất mở có tên (tạo chuyến — chuyến rỗng; huỷ chuyến, kết thúc
     // gián đoạn ×2 — mọi suất đã đóng) do bài 3 (quét mã: đối `kemTen` / `hk` ở MỌI nơi gọi) canh.
-    const KHONG_THE_LO = new Set(["POST /api/van-chuyen/chuyen", "POST /api/van-chuyen/chuyen/:id/huy", `${R}/ket-thuc-gian-doan`, `${V}/ket-thuc-gian-doan`]);
+    const KHONG_THE_LO = new Set(["POST /api/van-chuyen/chuyen", "POST /api/van-chuyen/chuyen/:id/huy", `${R}/ket-thuc-gian-doan`, `${V}/ket-thuc-gian-doan`,
+      // ADR-0057 T2: bốn lệnh ghi CHI PHÍ — phản hồi là DTO chi phí (không có mảng `suat` bao giờ), phép "không lộ tên" ở (2) vẫn quét thân.
+      "POST /api/van-chuyen/chuyen/:id/chi-phi/dieu-chinh", "POST /api/van-chuyen/chuyen/:id/chi-phi/dao", "POST /api/van-chuyen/chuyen/:id/chi-phi/chup-lai",
+      "POST /api/van-chuyen/chuyen/:id/chi-phi/gia-thoa-thuan"]);
     const phaiCoCaiDeLo = TUYEN_VC_THAT.filter((k) => /^(POST|PUT) \/api\/van-chuyen\/(chuyen\/:id|cuoc-cua-toi\/:id)(\/|$)/.test(k) && !KHONG_THE_LO.has(k));
     assert.equal(phaiCoCaiDeLo.length, 22, "6 lệnh kế hoạch (sửa, xếp, rút, dời, cập nhật điểm, cập nhật khách — R-P29) + 8 lệnh tài xế + 8 lệnh văn phòng bấm thay");
     for (const r of phaiCoCaiDeLo) assert.ok(than.some((t) => t.route === r && t.coCaiDeLo), `${r}: không lần gọi nào có suất đã gắn tên — phép "không lộ tên" vô nghĩa ở route này`);

@@ -11,6 +11,18 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Vận chuyển Đợt 4 — tiền xe thuê (ADR-0057 T1 + T2, migration 0072, 0073). MỘT mục cho cả đợt (máy chủ + giao diện cùng một bản phát hành — Cần chủ 2 = A).
+    // Số 1.71 = origin/main 1.70 (thị giác) + 1 — đánh lại lúc gộp a496e8d1; ĐIỀU PHỐI KIỂM LẠI LÚC GỘP, và sửa lời khi gộp phần giao diện.
+    version: "1.71",
+    date: "2026-10-02",
+    items: [
+      { kind: "moi", text: "Kế toán, Quản trị có Bảng giá thuê xe: giá mỗi chuyến của từng nhà xe theo cả tuyến và cỡ xe, có ngày hiệu lực." },
+      { kind: "moi", text: "Chuyến xe của nhà xe đối tác có chi phí: máy tự lấy giá trong bảng giá lúc xếp xe; đổi xe, tuyến hoặc ngày chạy thì máy tính lại." },
+      { kind: "doi", text: "Chuyến xe thuê chưa có giá thì chưa được xuất bến — Kế toán hoặc Quản trị nhập giá bảng hoặc giá thoả thuận với nhà xe." },
+      { kind: "moi", text: "Kế toán, Quản trị điều chỉnh chi phí từng chuyến có lý do và xem bảng kê chi phí xe thuê theo nhà xe." },
+    ],
+  },
+  {
     // Thị giác toàn Nền tảng "Năng động – Tin cậy – Tinh tế" (đặc tả docs/superpowers/specs/2026-10-02-thi-giac-nen-tang-design.md, chủ duyệt hướng A 2/10).
     // Chỉ giao diện: không migration, không đổi máy chủ. Số 1.70 = main 1.69 (Vận chuyển Đợt 2) + 1 — đánh lại lúc gộp main e7cd764f. KIỂM LẠI LÚC GỘP.
     version: "1.70",

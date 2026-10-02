@@ -23,7 +23,7 @@ const suat = (id: string, legId: string, tripId: string, v: Partial<SuatVao> = {
 });
 const chuyen = (id: string, v: Partial<ChuyenVao> = {}): ChuyenVao => ({
   id, ma: `CX-${id}`, ngayChay: "2026-09-30", batDauMs: ms("2026-09-30", "06:00"), ketThucMs: ms("2026-09-30", "08:30"), ketThucThatMs: null, trangThai: "PLANNED",
-  xe: xe(), taiXe: tx(), nghiChup: 30, nghiPhaLe: false, ...v,
+  xe: xe(), taiXe: tx(), nghiChup: 30, nghiPhaLe: false, thue: false, coNguonGia: false, ...v,
 });
 const BAY_GIO = ms("2026-09-29", "20:00");
 /** Điểm mặc định của một chuyến: d1 (đón) / d9 (trả) với khoá so sánh nơi GIẢ khớp khung `chang()` (ADR-0050 VK1-B). */

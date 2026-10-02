@@ -8,8 +8,9 @@ import { auditStatement, type AuditAction } from "../audit";
 import {
   ALLOC_CLOSE, ALLOC_GAN_TEN, ALLOC_INSERT, ALLOC_TIEN_DO, ALLOCS_CLOSE_ALL, ALLOCS_DONG_GIAN_DOAN, CHECK_INSERT, CHECK_ITEM_INSERT, DRIVER_CLOSE, DRIVER_INSERT,
   EVENT_INSERT, MANIFEST_INSERT, MOC_GOI_INSERT, MOC_XEP_INSERT, STOP_DA_TOI, STOP_INSERT, STOP_SET_SEQ, STOP_SKIP, STOP_UPDATE_PLAN, STOP_XONG_NEU_HET, STOPS_SKIP_ALL, TRIP_CANCEL, TRIP_GATE,
-  TRIP_GATE_DANG_CHAY, TRIP_GATE_DOI, TRIP_GATE_TIEN_DO, TRIP_INSERT, TRIP_KET_THUC, TRIP_UPDATE_PLAN, TRIP_XUAT_BEN,
+  TRIP_GATE_CHI_PHI, TRIP_GATE_DANG_CHAY, TRIP_GATE_DOI, TRIP_GATE_TIEN_DO, TRIP_INSERT, TRIP_KET_THUC, TRIP_UPDATE_PLAN, TRIP_XUAT_BEN,
 } from "./chuyen-repo";
+import { cauChiPhi, type KeHoachChiPhi } from "./tien-xe-lo";
 import {
   LENH_DONG_SUAT, type GanTen, type LoaiSuKienChuyen, type LyDoDongSuat, type MA_LY_DO_HE_THONG, type MaLuatPhaLe, type MucChup, type NguonGioXayRa, type TrangThaiSuat,
 } from "../../shared/dieu-phoi-kieu";
@@ -67,6 +68,11 @@ const cong = (db: D1Database, l: LenhChung, tripId: string, version: number): Ca
   stmt: db.prepare(TRIP_GATE).bind(tripId, version, l.cmd, l.lucIso, l.nguoiId),
 });
 const ghi = (stmt: D1PreparedStatement): CauCoNhan => ({ nhan: "GHI", stmt });
+/** Câu cổng của lệnh kế hoạch CHẠM CHI PHÍ (sửa, huỷ — ADR-0057 C4, TC-8): thêm điều kiện "số dòng chi phí vẫn bằng phiên bản đã đọc". */
+const congChiPhi = (db: D1Database, l: LenhChung, tripId: string, version: number, phienBanChiPhi: number): CauCoNhan => ({
+  nhan: "CONG",
+  stmt: db.prepare(TRIP_GATE_CHI_PHI).bind(tripId, version, l.cmd, l.lucIso, l.nguoiId, phienBanChiPhi),
+});
 
 // ---- Khuôn dữ liệu của các lệnh --------------------------------------------------------------------------------------------------------------------------
 /** Điểm MỚI dựng từ chặng (I40): khoá nơi của chặng; chữ tự do đã che (chỉ hiển thị). */
@@ -103,19 +109,28 @@ export const LY_DO_BO_QUA_KHONG_CON_KHACH: (typeof MA_LY_DO_HE_THONG)[number] = 
 
 // ---- Tạo chuyến (route 2) --------------------------------------------------------------------------------------------------------------------------------
 export interface LenhTaoChuyen extends LenhChung {
-  chuyen: { id: string; ma: string; xeId: string; chuXePartyId: string; ngayChay: string; batDauMs: number; ketThucMs: number; nghiChup: number; nghiPhaLeLyDo: string | null };
+  chuyen: {
+    id: string; ma: string; xeId: string; chuXePartyId: string; ngayChay: string; batDauMs: number; ketThucMs: number; nghiChup: number; nghiPhaLeLyDo: string | null;
+    /** ADR-0057 C2a: cờ xe thuê (`phanLoaiThue`). */ thue: 0 | 1; /** ADR-0057 C2: tuyến (nhãn tra giá). */ tuyen: string | null;
+  };
   taiXePartyId: string;
   policyId: string | null;
   phaLeNghi: PhaLe | null;
+  /** ADR-0057 C4: chụp giá bảng khi tạo chuyến bằng xe nhà xe (không có dòng đảo). */
+  chiPhi: KeHoachChiPhi;
   detail: string;
 }
+/** Thứ tự: TRIP_INSERT (cổng) → nhật ký → sự kiện → tài xế → CHỤP giá (sau khi chuyến có cờ xe thuê). */
 export function loTaoChuyen(db: D1Database, l: LenhTaoChuyen): CauCoNhan[] {
   const c = l.chuyen;
+  const cp = cauChiPhi(db, l, c.id, l.chiPhi);
   return [
-    { nhan: "CONG", stmt: db.prepare(TRIP_INSERT).bind(c.id, c.ma, c.xeId, c.chuXePartyId, c.ngayChay, c.batDauMs, c.ketThucMs, c.nghiChup, c.nghiPhaLeLyDo, l.cmd, l.lucIso, l.nguoiId) },
+    { nhan: "CONG", stmt: db.prepare(TRIP_INSERT).bind(c.id, c.ma, c.xeId, c.chuXePartyId, c.ngayChay, c.batDauMs, c.ketThucMs, c.nghiChup, c.nghiPhaLeLyDo, l.cmd, l.lucIso, l.nguoiId, c.thue, c.tuyen) },
     nhatKy(db, l, "trip_created", c.id, l.detail),
     suKien(db, l, { tripId: c.id, loai: "CREATED", phaLe: l.phaLeNghi, policyId: l.policyId }),
     ghi(db.prepare(DRIVER_INSERT).bind(crypto.randomUUID(), c.id, l.taiXePartyId, l.cmd, l.lucIso, l.nguoiId)),
+    ...cp.dao,
+    ...cp.chup,
   ];
 }
 
@@ -123,27 +138,34 @@ export function loTaoChuyen(db: D1Database, l: LenhTaoChuyen): CauCoNhan[] {
 export interface LenhSuaChuyen extends LenhChung {
   tripId: string;
   version: number;
-  moi: { xeId: string; chuXePartyId: string; ngayChay: string; batDauMs: number; ketThucMs: number; batDauSomNhatMs: number; nghiPhaLeLyDo: string | null };
+  moi: { xeId: string; chuXePartyId: string; ngayChay: string; batDauMs: number; ketThucMs: number; batDauSomNhatMs: number; nghiPhaLeLyDo: string | null; thue: 0 | 1; tuyen: string | null };
   /** Tài xế MỚI khi đổi (đóng dòng cũ REASSIGNED + mở dòng mới); null = giữ. */
   doiTaiXe: string | null;
   diem: { id: string; seq: number; ngayXeToi: string | null; gioXeToi: string | null }[];
   phaLe: PhaLe | null;
   policyId: string | null;
+  /** ADR-0057 C4: đảo + chụp lại khi đổi xe / nhà xe / tuyến / ngày chạy; `phienBanChiPhi` = số dòng chi phí đã đọc (câu cổng — TC-8). */
+  chiPhi: KeHoachChiPhi;
+  phienBanChiPhi: number;
   detail: string;
 }
+/** Thứ tự: cổng (+ phiên bản chi phí) → nhật ký → sự kiện → ĐẢO (âm → dương) → đóng tài xế cũ → ghi chuyến → mở tài xế mới → điểm → CHỤP. */
 export function loSuaChuyen(db: D1Database, l: LenhSuaChuyen): CauCoNhan[] {
   const m = l.moi;
+  const cp = cauChiPhi(db, l, l.tripId, l.chiPhi);
   const lo: CauCoNhan[] = [
-    cong(db, l, l.tripId, l.version),
+    congChiPhi(db, l, l.tripId, l.version, l.phienBanChiPhi),
     nhatKy(db, l, "trip_edited", l.tripId, l.detail),
     suKien(db, l, { tripId: l.tripId, loai: "UPDATED", phaLe: l.phaLe, policyId: l.policyId }),
-    ghi(db.prepare(TRIP_UPDATE_PLAN).bind(l.tripId, l.cmd, m.xeId, m.chuXePartyId, m.ngayChay, m.batDauMs, m.ketThucMs, m.batDauSomNhatMs, m.nghiPhaLeLyDo, l.lucIso, l.nguoiId)),
+    ...cp.dao,
   ];
-  if (l.doiTaiXe !== null) {
-    lo.push(ghi(db.prepare(DRIVER_CLOSE).bind(l.tripId, l.cmd, "REASSIGNED", l.lucIso, l.nguoiId)));
-    lo.push(ghi(db.prepare(DRIVER_INSERT).bind(crypto.randomUUID(), l.tripId, l.doiTaiXe, l.cmd, l.lucIso, l.nguoiId)));
-  }
+  // Đổi tài xế: ĐÓNG dòng cũ TRƯỚC câu ghi chuyến (trigger LC-13 vc_trip_vehicle_carrier_upd so tài xế ĐANG MỞ với chủ xe MỚI — đổi xe nhà xe ↔ xe công ty /
+  // nhà xe khác kèm đổi tài xế trước đây vấp lc13_cross; phát hiện khi thi công ADR-0057 RF1-e/f), MỞ dòng mới SAU.
+  if (l.doiTaiXe !== null) lo.push(ghi(db.prepare(DRIVER_CLOSE).bind(l.tripId, l.cmd, "REASSIGNED", l.lucIso, l.nguoiId)));
+  lo.push(ghi(db.prepare(TRIP_UPDATE_PLAN).bind(l.tripId, l.cmd, m.xeId, m.chuXePartyId, m.ngayChay, m.batDauMs, m.ketThucMs, m.batDauSomNhatMs, m.nghiPhaLeLyDo, l.lucIso, l.nguoiId, m.thue, m.tuyen)));
+  if (l.doiTaiXe !== null) lo.push(ghi(db.prepare(DRIVER_INSERT).bind(crypto.randomUUID(), l.tripId, l.doiTaiXe, l.cmd, l.lucIso, l.nguoiId)));
   for (const d of l.diem) lo.push(ghi(db.prepare(STOP_UPDATE_PLAN).bind(d.id, l.tripId, l.cmd, d.seq, d.ngayXeToi, d.gioXeToi, l.lucIso, l.nguoiId)));
+  lo.push(...cp.chup);
   return lo;
 }
 
@@ -233,17 +255,21 @@ export interface LenhHuy extends LenhChung {
   phaLe: PhaLe | null;
   policyId: string | null;
   soSuatMo: number;
+  /** ADR-0057 C4: đảo MỌI dòng chi phí còn hiệu lực (âm → dương) khi chuyến còn PLANNED, TRƯỚC câu trạng thái cuối. */
+  chiPhi: KeHoachChiPhi;
+  phienBanChiPhi: number;
   detail: string;
 }
-/** Thứ tự ADR-0049 D1 / [TK] §2.1a: cổng → nhật ký → sự kiện → đóng suất → đóng tài xế → bỏ điểm → trạng thái cuối (CUỐI lô). */
+/** Thứ tự ADR-0049 D1 / [TK] §2.1a: cổng → nhật ký → sự kiện → đóng suất → đóng tài xế → bỏ điểm → ĐẢO chi phí (ADR-0057 C4) → trạng thái cuối (CUỐI lô). */
 export function loHuy(db: D1Database, l: LenhHuy): CauCoNhan[] {
   return [
-    cong(db, l, l.tripId, l.version),
+    congChiPhi(db, l, l.tripId, l.version, l.phienBanChiPhi),
     nhatKy(db, l, "trip_cancelled", l.tripId, l.detail),
     suKien(db, l, { tripId: l.tripId, loai: "CANCELLED", soNguoi: l.soSuatMo, phaLe: l.phaLe, policyId: l.policyId }),
     ghi(db.prepare(ALLOCS_CLOSE_ALL).bind(l.tripId, l.cmd, LENH_DONG_SUAT.HUY_CO_KHACH, l.lucIso, l.nguoiId)),
     ghi(db.prepare(DRIVER_CLOSE).bind(l.tripId, l.cmd, "TRIP_CANCELLED", l.lucIso, l.nguoiId)),
     ghi(db.prepare(STOPS_SKIP_ALL).bind(l.tripId, l.cmd, l.lyDo, l.lucIso, l.nguoiId)),
+    ...cauChiPhi(db, l, l.tripId, l.chiPhi).dao,
     { nhan: "TRANG_THAI_CUOI", stmt: db.prepare(TRIP_CANCEL).bind(l.tripId, l.cmd, l.lyDo, l.lucIso, l.nguoiId) },
   ];
 }

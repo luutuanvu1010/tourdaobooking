@@ -11,7 +11,7 @@ import type { LyDoGiu } from "./ly-do-giu.ts";
 
 // ---- Danh sách mở (kiểm ở mã) -------------------------------------------------------------------------------------------------------------------------------
 /** Nhóm lý do ([TK] §1.9). Máy chỉ rẽ nhánh theo NHÓM; từng lý do là dữ liệu `vc_reason` (Quản trị sửa). Lượt 1 dùng năm nhóm; BAO_HUY_DIEM, TU_CHOI_NHAN từ lượt 2. */
-export const NHOM_LY_DO = ["DOI_GIO_XE", "BAO_HUY_DIEM", "PHA_LE", "TU_CHOI_NHAN", "KET_THUC_GIAN_DOAN", "HUY_CHUYEN", "BO_QUA_DIEM"] as const;
+export const NHOM_LY_DO = ["DOI_GIO_XE", "BAO_HUY_DIEM", "PHA_LE", "TU_CHOI_NHAN", "KET_THUC_GIAN_DOAN", "HUY_CHUYEN", "BO_QUA_DIEM", "CHI_PHI_XE"] as const;
 export type NhomLyDo = (typeof NHOM_LY_DO)[number];
 export const NHAN_NHOM_LY_DO: Readonly<Record<NhomLyDo, string>> = {
   DOI_GIO_XE: "Đổi giờ xe tới",
@@ -21,13 +21,14 @@ export const NHAN_NHOM_LY_DO: Readonly<Record<NhomLyDo, string>> = {
   KET_THUC_GIAN_DOAN: "Kết thúc gián đoạn",
   HUY_CHUYEN: "Huỷ chuyến",
   BO_QUA_DIEM: "Bỏ qua điểm",
+  CHI_PHI_XE: "Chi phí xe thuê", // ADR-0057 C3 (0073): lý do điều chỉnh / đảo / giá thoả thuận của chi phí chuyến xe thuê
 };
 export const isNhomLyDo = (v: unknown): v is NhomLyDo => typeof v === "string" && (NHOM_LY_DO as readonly string[]).includes(v);
 /**
  * Mã lý do HỆ THỐNG — máy chủ TỰ ghi (quyết định MAY, không người chọn), mã nguồn tham chiếu như hằng (ruling R-P22 của điều phối, 29/9): KHÔNG ngưng được
  * (route sửa lý do trả 409; DTO có cờ `heThong` để màn ẩn nút). Nhãn, thứ tự vẫn sửa được. Thêm mã hệ thống = thêm vào đây (có bài kiểm).
  */
-export const MA_LY_DO_HE_THONG = ["BO_QUA_KHONG_CON_KHACH"] as const;
+export const MA_LY_DO_HE_THONG = ["BO_QUA_KHONG_CON_KHACH", "CPX_DOI_CHUYEN", "CPX_HUY_CHUYEN", "CPX_GIA_THOA_THUAN"] as const; // + ba mã máy tự ghi của chi phí xe thuê (ADR-0057: hai mã đảo tự động TC-6 + lý do cố định của giá thoả thuận)
 export const laLyDoHeThong = (code: string): boolean => (MA_LY_DO_HE_THONG as readonly string[]).includes(code);
 
 /** Loại sự kiện chuyến (`vc_trip_event.kind`) — một-một với hành động nhật ký `trip_*` của kế hoạch mục 1.1. Lượt 2–3 thêm loại ở đây, không dựng lại bảng. */
@@ -254,6 +255,10 @@ export interface ChuyenVao {
   nghiChup: number;
   /** Đã có Quản trị / Toàn quyền phá lệ khoảng nghỉ (`rest_override_reason_code` có). */
   nghiPhaLe: boolean;
+  /** ADR-0057 C2a: cờ xe thuê chụp lúc xếp (`vc_trip.rented = 1`). */
+  thue: boolean;
+  /** ADR-0057 C5: có nguồn giá (SNAPSHOT / AGREED chưa đảo) — CHỈ cờ, không số tiền (bài số lạ). */
+  coNguonGia: boolean;
 }
 
 // ---- Kiểu RA của luật thuần -------------------------------------------------------------------------------------------------------------------------------

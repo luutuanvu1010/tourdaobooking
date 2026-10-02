@@ -221,7 +221,7 @@ test("TC-2 route 16–18 danh mục lý do: Quản trị thêm → 201; Bán hà
   const w = setup();
   let r = await w.call("GET", "/api/van-chuyen/ly-do", { as: ADM });
   assert.equal(r.status, 200, r.text);
-  assert.equal(r.json.reasons.length, 13);
+  assert.equal(r.json.reasons.length, 22); // 13 lý do của 0041 + 9 lý do nhóm CHI_PHI_XE (ADR-0057 T2, migration *_vc_chi_phi_chuyen)
   assert.deepEqual(r.json.reasons.find((x: any) => x.code === "PHA_LE_SU_CO"), {
     code: "PHA_LE_SU_CO", group: "PHA_LE", groupLabel: "Phá lệ", label: "Sự cố vận hành", active: true, sortOrder: 1, updatedAt: "2026-09-29T00:00:00.000Z", heThong: false,
   });
@@ -254,10 +254,11 @@ test("TC-2 route 16–18 danh mục lý do: Quản trị thêm → 201; Bán hà
   assert.equal((await w.call("PUT", "/api/van-chuyen/ly-do/PHA_LE_SU_CO", { as: ADM, body: { label: "x", sortOrder: 1, active: true, expectedUpdatedAt: moc, group: "HUY_CHUYEN" } })).status, 400);
 });
 
-test("R-P22 (điều phối 29/9 đêm, siết): mã lý do HỆ THỐNG (máy tự dùng — BO_QUA_KHONG_CON_KHACH) KHÔNG ngưng được → 409 ly_do_he_thong, không ghi, không nhật ký; sửa nhãn / thứ tự vẫn được; DTO có cờ heThong đúng một mã", async () => {
+test("R-P22 (điều phối 29/9 đêm, siết): mã lý do HỆ THỐNG (máy tự dùng — BO_QUA_KHONG_CON_KHACH) KHÔNG ngưng được → 409 ly_do_he_thong, không ghi, không nhật ký; sửa nhãn / thứ tự vẫn được; DTO có cờ heThong đúng các mã hệ thống", async () => {
   const w = setup();
   const ds = (await w.call("GET", "/api/van-chuyen/ly-do", { as: ADM })).json.reasons;
-  assert.deepEqual(ds.filter((x: any) => x.heThong).map((x: any) => x.code), ["BO_QUA_KHONG_CON_KHACH"]);
+  // + ba mã máy tự ghi của chi phí xe thuê (ADR-0057 T2 — hai mã đảo tự động TC-6 + lý do cố định của giá thoả thuận).
+  assert.deepEqual(ds.filter((x: any) => x.heThong).map((x: any) => x.code).sort(), ["BO_QUA_KHONG_CON_KHACH", "CPX_DOI_CHUYEN", "CPX_GIA_THOA_THUAN", "CPX_HUY_CHUYEN"]);
   const moc = w.q("SELECT updated_at u FROM vc_reason WHERE code = 'BO_QUA_KHONG_CON_KHACH'")[0].u;
   const n0 = soNhatKy(w);
   const ngung = await w.call("PUT", "/api/van-chuyen/ly-do/BO_QUA_KHONG_CON_KHACH", { as: ADM, body: { label: "Không còn khách", sortOrder: 1, active: false, expectedUpdatedAt: moc } });
