@@ -876,6 +876,7 @@ test("R-VC-11 (LH-04): 'hiện hành' của câu kiểm là NGUYÊN VĂN HIEN_HA
 test("R-VC-11 (LH-04): xe chưa ngừng có ≥ 2 dòng giấy tờ HIỆN HÀNH cùng loại → đếm theo cặp (xe, loại); khác loại / đã gia hạn / đã huỷ / xe đã ngừng → 0", () => {
   const c = one("R-VC-11");
   const db = build();
+  db.exec("DROP TRIGGER vc_vehicle_document_one_current"); // dữ liệu CŨ có trước trigger ADR-0056 VK3-B — R-VC-11 là lưới cho đúng dữ liệu đó
   xe(db, "xe-a", "79B00001");
   giayToXe(db, { id: "a-kd", xe: "xe-a", type: "INSPECTION" });
   giayToXe(db, { id: "a-bh", xe: "xe-a", type: "TPL_INSURANCE" });
@@ -889,7 +890,7 @@ test("R-VC-11 (LH-04): xe chưa ngừng có ≥ 2 dòng giấy tờ HIỆN HÀNH
   giayToXe(db, { id: "n-1", xe: "xe-ngung", type: "INSPECTION" });
   giayToXe(db, { id: "n-2", xe: "xe-ngung", type: "INSPECTION" });
   assert.equal(violations(db, c), 0, "xe đã ngừng không tính");
-  // Chuỗi song song: bấm "Thêm" thay vì "Gia hạn" — CSDL và route hôm nay đều nhận (LH-04).
+  // Chuỗi song song: bấm "Thêm" thay vì "Gia hạn" — dữ liệu cũ trước trigger VK3-B (LH-04).
   xe(db, "xe-b", "79B00002");
   giayToXe(db, { id: "b-1", xe: "xe-b", type: "INSPECTION" });
   giayToXe(db, { id: "b-2", xe: "xe-b", type: "INSPECTION" });

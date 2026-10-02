@@ -1,7 +1,7 @@
 // Trang đầu của tài xế (/tai-xe — ADR-0040 D3; bản vẽ docs/design/van-chuyen-1a/project/07 Trang dau tai xe.dc.html). Lượt 1a: lời chào, khối "Cuốc xe" giữ
 // chỗ (lượt 1b thay nội dung), "Giấy tờ của tôi" tóm tắt HAI giấy gần hạn nhất (điều phối chốt theo bản vẽ), "Xem tất cả" → trang Tôi (danh sách đủ).
 // Chỉ gọi GET /api/parties/documents/mine (cổng "staff", số CHE) — không lời gọi đơn hàng nào. Tài khoản không phải "chỉ tài xế" → về Trang chủ "/".
-import { NGUONG_MAC_DINH, chipHan, coMucGiayToCuaToi, haiGiayGanHan, loiChao, ngayVN, tenGiayTo } from "../src/shared/giay-to-hien-thi";
+import { chipHan, coMucGiayToCuaToi, haiGiayGanHan, loiChao, ngayVN, tenGiayTo } from "../src/shared/giay-to-hien-thi";
 import { chiTaiXe, coCuocCuaToi, TRANG_CUOC } from "../src/shared/start-page";
 import { api, type Api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
@@ -35,7 +35,7 @@ async function main(): Promise<void> {
     return;
   }
   try {
-    const { documents } = await api<Api.PersonDocumentListResponse>("/api/parties/documents/mine");
+    const { documents, warnDays } = await api<Api.PersonDocumentListResponse>("/api/parties/documents/mine");
     const hai = haiGiayGanHan(documents);
     if (hai.length === 0) {
       replaceChildren(list, h("p", { class: "vc-empty-line" }, "Chưa có giấy tờ nào. Báo văn phòng để cập nhật."));
@@ -48,7 +48,7 @@ async function main(): Promise<void> {
           "div",
           { class: "vc-txdoc" },
           h("span", { class: "vc-txdoc-text" }, h("span", { class: "vc-doc-title" }, tenGiayTo(d)), h("span", { class: "vc-txdoc-exp" }, d.expiryDate ? `Hết hạn ${ngayVN(d.expiryDate)}` : "Không hạn")),
-          chipEl(chipHan(d.daysLeft, NGUONG_MAC_DINH)),
+          chipEl(chipHan(d.daysLeft, warnDays)),
         ),
       ),
     );

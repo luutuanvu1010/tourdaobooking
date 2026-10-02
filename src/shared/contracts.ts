@@ -839,7 +839,8 @@ export interface PersonDocumentDto {
   /** Khoá lạc quan của sửa sai (`expectedUpdatedAt`). */
   updatedAt: string;
 }
-export interface PersonDocumentListResponse { documents: PersonDocumentDto[] }
+/** `warnDays` = mốc "sắp hết hạn" đang hiệu lực (ADR-0040 D1) — nhãn hạn ở giao diện so với số này, không hằng 30. */
+export interface PersonDocumentListResponse { documents: PersonDocumentDto[]; warnDays: number }
 /** Chỉ ở POST /api/parties/:id/documents/:did/reveal ("Xem đủ số", ô party.document.reveal; mỗi lần một dòng nhật ký KHÔNG kèm số). */
 export interface PersonDocumentRevealResponse { number: string }
 export interface DocumentTypeDto { code: string; name: string; hasExpiry: boolean; sortOrder: number; active: boolean; updatedAt: string }
@@ -1255,6 +1256,8 @@ export interface SuatChuyenDto {
   /** Họ tên + năm sinh — CHỈ ở chi tiết chuyến của văn phòng (R-P1; `trip.view = any` ⇒ `contact.view = any`) và DTO tài xế trong ngày chạy (A15). */
   hoTen?: string;
   namSinh?: number;
+  /** Suất người đi kèm (`CREW`): tên hướng dẫn viên (lời chủ 2026-10-01) — chỉ tên, mọi lúc; suất khách không có khoá này. */
+  tenNguoiDiKem?: string;
   daDon: MocTienDoDto | null;
   daTra: MocTienDoDto | null;
 }
@@ -1345,6 +1348,9 @@ export interface SuaChuyenRequest {
   phaLe?: PhaLeRequest;
   nghiPhaLe?: PhaLeRequest;
 }
+/** GET /api/van-chuyen/huong-dan-vien — người gắn được làm "người đi kèm" (lời chủ 2026-10-01: chỉ tài khoản Hướng dẫn viên đang hoạt động). Hồ sơ + tên, KHÔNG SĐT. */
+export interface HuongDanVienListResponse { nguoi: { partyId: string; ten: string }[] }
+
 /** POST /api/van-chuyen/chuyen/:id/phan-bo — xếp khách theo chặng (tách đoàn: `soSuat` < số người) và / hoặc người đi kèm. */
 export interface XepRequest {
   version: number;
@@ -1470,6 +1476,8 @@ export interface CuocChiTietResponse {
   }[];
   suat: {
     id: string;
+    /** `CREW` = người đi kèm (hướng dẫn viên) — không phải khách, không gắn điểm dừng; vẫn phải "Đã lên xe" → "Đã xuống" mới kết thúc thường được. */
+    loai: "PASSENGER" | "CREW";
     maDon: string | null;
     diemLen: string | null;
     diemXuong: string | null;
@@ -1480,6 +1488,8 @@ export interface CuocChiTietResponse {
     soHieuChuyenBay: string | null;
     hoTen?: string;
     namSinh?: number;
+    /** Suất người đi kèm (`CREW`): tên hướng dẫn viên (lời chủ 2026-10-01) — chỉ tên, mọi lúc; suất khách không có khoá này. */
+    tenNguoiDiKem?: string;
   }[];
   lienHe?: { maDon: string; tenLienHe: string; sdtLienHe: string }[];
   dieuKienConThieu: DieuKienConThieuDto[];

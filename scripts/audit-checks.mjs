@@ -365,10 +365,10 @@ export const CHECKS = [
           + (SELECT count(*) FROM (SELECT previous_id FROM vc_vehicle_document WHERE previous_id IS NOT NULL AND voided_at IS NULL GROUP BY previous_id HAVING count(*) > 1))`,
     level: "fail",
   },
-  // R-VC-11 (đặc tả 2026-09-29 Transportation Kernel, K-01 / lỗ LH-04; R-VC-3…10 đã giữ cho ADR-0049): route "Thêm giấy tờ" luôn chèn dòng mới
-  // `previous_id = NULL`, không hỏi loại đó đã có dòng hiện hành chưa; CSDL chỉ canh "mỗi dòng tối đa một dòng gia hạn" — bấm "Thêm Kiểm định" thay vì
-  // "Gia hạn" sinh HAI chuỗi song song. Đếm CẶP (xe chưa ngừng, loại) có ≥ 2 dòng hiện hành. Chỉ đếm số (không biển số, không số giấy tờ). Mức warn:
-  // có thể đã có dữ liệu thật như vậy (số đếm trên production là đầu vào của đề xuất chặn VK3-B); không chặn phát hành.
+  // R-VC-11 (đặc tả 2026-09-29 Transportation Kernel, K-01 / lỗ LH-04; R-VC-3…10 đã giữ cho ADR-0049): bấm "Thêm Kiểm định" thay vì "Gia hạn" từng sinh HAI
+  // chuỗi song song. Route "Thêm giấy tờ" (409 `document_type_exists`) và trigger `vc_vehicle_document_one_current` (ADR-0056 VK3-B, migration 0068) chặn dòng
+  // song song MỚI; câu này đếm dòng CŨ có trước trigger. Đếm CẶP (xe chưa ngừng, loại) có ≥ 2 dòng hiện hành. Chỉ đếm số (không biển số, không số giấy tờ).
+  // Mức warn: Quản trị huỷ dòng nhập nhầm, không chặn phát hành.
   {
     code: "R-VC-11",
     what: "xe chưa ngừng có từ 2 dòng giấy tờ HIỆN HÀNH cùng loại trở lên (hai chuỗi giấy tờ song song)",
@@ -780,7 +780,7 @@ export const CHECKS = [
       + (SELECT count(*) FROM ord_passenger WHERE source = 'DRIVER')`,
     level: "fail",
   },
-  // R-ORD-12 (ADR-0047 A1, câu hỏi Q1 (a) — GIẢ ĐỊNH chờ chủ chạy truy vấn đếm): chặng mở của đơn chưa huỷ còn chữ tạm "(chưa ghi nơi đón)" (dịch vụ cũ có
+  // R-ORD-12 (ADR-0047 A1, câu hỏi Q1 (a) — ĐÓNG 2026-09-29: chủ chạy truy vấn chỉ đọc, 2 dịch vụ giờ-không-nơi đều thuộc đơn đã huỷ (`docs/superpowers/plans/2026-09-29-adr-0047-thi-cong-nhat-ky.md:37`)): chặng mở của đơn chưa huỷ còn chữ tạm "(chưa ghi nơi đón)" (dịch vụ cũ có
   // giờ đón mà không có điểm đón, hoặc thân cũ gửi giờ mà trống điểm) — văn phòng bổ sung nơi đón. Cảnh báo.
   {
     code: "R-ORD-12",

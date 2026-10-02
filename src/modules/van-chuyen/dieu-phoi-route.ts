@@ -12,7 +12,7 @@ import type { LyDoGiu, MaGiu } from "../../shared/ly-do-giu";
 import { can, type PermissionHolder } from "../../shared/permissions";
 import { maskLongDigits } from "../../shared/text-guards";
 import { msToVnLocal } from "../../shared/vn-date";
-import { allocsByTrips, banChupCuoi, eventByRequest, eventsByTrips, stopsByTrips, type StopRow, type TripRow } from "./chuyen-repo";
+import { allocsByTrips, banChupCuoi, eventByRequest, eventsByTrips, stopsByTrips, tenNguoiDiKem, type StopRow, type TripRow } from "./chuyen-repo";
 import type { CauCoNhan, DiemMoi } from "./dieu-phoi";
 import {
   banChupDto, canhBaoDto, chuyenTomTat, diemChuyenDto, lyDoDangDung, lyDoGiuDto, nhatKyChuyenDto, suatChuyenDto, taiXeChon, xeChon,
@@ -153,6 +153,7 @@ export async function chiTietChuyen(
   const dGoiBao = await docGoiBao(db, nen.legIds);
   const nguoiIds = [...new Set([...nen.events.flatMap((e) => (e.created_by ? [e.created_by] : [])), ...nguoiBamGoiBao(dGoiBao)])];
   const nhan = await nhanNhanVien(nguoiIds);
+  const tenDiKem = nen.allocs.some((a) => a.kind === "CREW" && a.valid_to_at === null) ? await tenNguoiDiKem(db, nen.trip.id) : undefined;
   const ten = new Map<string, { fullName: string; birthYear: number }>();
   // Họ tên + năm sinh CHỈ ở GET /chuyen/:id (kế hoạch mục 1.8, TC-39 — "đúng hai route van-chuyen trả tên"): phản hồi lệnh ghi không kèm tên (màn tải lại chi tiết).
   if (kemTen) for (const ch of hk) for (const n of ch.nguoi) ten.set(n.personKey, { fullName: n.fullName, birthYear: n.birthYear });
@@ -166,7 +167,7 @@ export async function chiTietChuyen(
       lyDoKetThuc: t.end_reason_code ? (lyDoNhan.get(t.end_reason_code) ?? null) : null,
     },
     diem: nen.stops.map((s) => diemChuyenDto(s, { allocs: nen.allocs, chang: nc.chang, stops: nen.stops, events: nen.events, nhan })),
-    suat: nen.allocs.filter((a) => a.valid_to_at === null).map((a) => suatChuyenDto(a, { changLich: nc.changLich, changNgoai: nc.changNgoai, ten, events: nen.events, nhan })),
+    suat: nen.allocs.filter((a) => a.valid_to_at === null).map((a) => suatChuyenDto(a, { changLich: nc.changLich, changNgoai: nc.changNgoai, ten, events: nen.events, nhan, tenDiKem })),
     canhBao: canhBao.map(canhBaoDto),
     nhatKy: nhatKyChuyenDto(nen.events, nhan, lyDoNhan),
     banChup: banChupDto(await banChupCuoi(db, t.id)),
@@ -206,12 +207,13 @@ export async function cuocChiTiet(
   const nc = await docNguCanh(db, nen, lich, c);
   const t = nen.trip;
   const nhan = await nhanNhanVien([...new Set(nen.events.flatMap((e) => (e.created_by && e.occurred_source === "VAN_PHONG_KHAI" ? [e.created_by] : [])))]);
+  const tenDiKem = nen.allocs.some((a) => a.kind === "CREW" && a.valid_to_at === null) ? await tenNguoiDiKem(db, nen.trip.id) : undefined;
   const ten = new Map<string, { fullName: string; birthYear: number }>();
   if (trongNgay) for (const ch of hk) for (const n of ch.nguoi) ten.set(n.personKey, { fullName: n.fullName, birthYear: n.birthYear });
   return cuocChiTietDto({
     trip: t, xe: c.xe.find((x) => x.id === t.vehicle_id), events: nen.events,
     diem: nen.stops.map((s) => diemChuyenDto(s, { allocs: nen.allocs, chang: nc.chang, stops: nen.stops, events: nen.events, nhan })),
-    suat: nen.allocs.filter((a) => a.valid_to_at === null).map((a) => suatChuyenDto(a, { changLich: nc.changLich, changNgoai: nc.changNgoai, ten, events: nen.events, nhan })),
+    suat: nen.allocs.filter((a) => a.valid_to_at === null).map((a) => suatChuyenDto(a, { changLich: nc.changLich, changNgoai: nc.changNgoai, ten, events: nen.events, nhan, tenDiKem })),
     lienHe, conThieu: lyDoGiuDuPhong(t, nc, c, bayGioMs), lyDo: c.lyDo.filter((r) => r.reason_group === "KET_THUC_GIAN_DOAN"), nhan, trongNgay,
   });
 }

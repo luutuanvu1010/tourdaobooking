@@ -429,7 +429,7 @@ export interface NhomKhach {
  * quyết mọi luật khi rút / chuyển (route 6, 7).
  */
 export function nhomKhach(
-  suat: readonly { id: string; loai: "PASSENGER" | "CREW"; maDon: string | null; legId: string | null; diemLen: string | null; diemXuong: string | null; trangThai: string; hoTen?: string; namSinh?: number }[],
+  suat: readonly { id: string; loai: "PASSENGER" | "CREW"; maDon: string | null; legId: string | null; diemLen: string | null; diemXuong: string | null; trangThai: string; hoTen?: string; namSinh?: number; tenNguoiDiKem?: string }[],
   diem: readonly { id: string; tenNoi: string }[],
 ): NhomKhach[] {
   const tenDiem = new Map(diem.map((d) => [d.id, d.tenNoi]));
@@ -445,7 +445,7 @@ export function nhomKhach(
     const coTen = s.filter((x) => x.hoTen).map((x) => `${maskLongDigits(x.hoTen!)}${x.namSinh ? ` ${x.namSinh}` : ""}`);
     const chuaGan = s.length - coTen.length;
     const ten = [...coTen, ...(chuaGan ? [`${chuaGan} khách chưa gắn tên`] : [])].join(" · ");
-    if (khoa === "CREW") return { khoa, tieuDe: `Người đi kèm · ${s.length}`, tuyen: "", ten, suatIds: s.map((x) => x.id) };
+    if (khoa === "CREW") return { khoa, tieuDe: `Người đi kèm · ${s.length}`, tuyen: "", ten: s.map((x) => x.tenNguoiDiKem ?? "").filter(Boolean).join(" · "), suatIds: s.map((x) => x.id) };
     const len = dau.diemLen ? tenDiem.get(dau.diemLen) : undefined;
     const xuong = dau.diemXuong ? tenDiem.get(dau.diemXuong) : undefined;
     return { khoa, tieuDe: `${dau.maDon ?? "Đơn"} · ${s.length} khách`, tuyen: `${len ?? "—"} → ${xuong ?? "nơi trả chưa chốt"}`, ten, suatIds: s.map((x) => x.id) };

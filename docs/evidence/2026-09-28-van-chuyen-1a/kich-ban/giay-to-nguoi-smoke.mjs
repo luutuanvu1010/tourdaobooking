@@ -188,7 +188,9 @@ try {
       assert.ok(await p.ev(clickVisible(".sheet-root", "Lưu gia hạn")));
       await p.waitFor("!document.querySelector('.sheet-root')", "bảng đóng", 8000);
       await p.waitFor(`[...document.querySelectorAll('#giay-to .vc-docs-list .vc-doc')].some((r) => r.innerText.includes('Giấy phép') && r.innerText.includes('Lịch sử (1)'))`, "Lịch sử (1)", 8000);
-      const r = await call(ADMIN, "GET", `/api/parties/${hung}/documents`);
+      // Đọc bằng PHIÊN CỦA TRANG: sổ phiên một máy (ADR-0075) — lần đăng nhập của trình duyệt đã thay phiên của `call` (cookie lưu sẵn → 401).
+      const r = { json: await p.ev(`fetch('/api/parties/${hung}/documents').then((x) => x.json())`) };
+      assert.equal(typeof r.json.warnDays, "number", "danh sách giấy tờ người mang mốc sắp hết hạn (ADR-0040 D1)");
       const moi = r.json.documents.find((x) => x.typeCode === "GPLX" && x.current);
       assert.equal(moi.maskedNumber, "••••0412", "để trống → máy chủ chép số cũ");
     } finally {

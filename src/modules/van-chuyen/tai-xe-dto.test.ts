@@ -8,7 +8,7 @@ import { DRIVER, NGAY, NGAY_SAU, batDongHo, chiTiet, chuyenSan, denGio, setup, t
 
 const KHOA_CHUYEN = ["bienSo", "gioBatDau", "gioKetThuc", "id", "ketThucThat", "ma", "soCho", "trangThai", "trangThaiNhan", "xuatBen"];
 const KHOA_DIEM = ["daToi", "gioHen", "gioXeToi", "id", "loai", "soNguoi", "tenNoi", "thuTu", "trangThai"];
-const KHOA_SUAT = ["daDon", "daTra", "diemLen", "diemXuong", "id", "maDon", "soHieuChuyenBay", "trangThai"];
+const KHOA_SUAT = ["daDon", "daTra", "diemLen", "diemXuong", "id", "loai", "maDon", "soHieuChuyenBay", "trangThai"];
 const KHOA_GOC = ["chuyen", "diem", "dieuKienConThieu", "lyDo", "suat", "trongNgayChay"];
 /** Chuỗi KHÔNG BAO GIỜ được thấy trong DTO tài xế: tiền, ghi chú đơn, ghi chú thanh toán, người lập (tên Bán hàng), số / nơi cấp GPLX, khoá nơi, SĐT người bấm. */
 const CAM = /777000|Ghi chú đơn Dò Tìm|Thanh toán Dò Tìm|"An"|7911000000|Nơi cấp Dò Tìm|2030-12-31|\b[LT]:[0-9a-f-]{8,}|0900000001/;

@@ -122,6 +122,15 @@ const SHAPES = {
   "chevron-down": [["path", { d: "M6 9l6 6 6-6" }]],
   // Nút đổi cỡ khung Hỗ trợ: hai mũi tên ngược chiều theo đường chéo (↖↘), cùng khuôn 24×24, nét 1.8 như cả bộ.
   resize: [["path", { d: "M10 4H4v6M4 4l6.5 6.5M14 20h6v-6M20 20l-6.5-6.5" }]],
+  // Trang chủ điện thoại (bản vẽ "Trang chu dien thoai.dc.html", Claude Design 2026-09-30 — hai hình MỚI của bản vẽ, chép ĐÚNG path, cùng khuôn 24×24 nét 1.8):
+  // kính lúp của ô tìm đơn, lưới 4 ô của ô "Tất cả".
+  search: [["circle", { cx: 11, cy: 11, r: 6.5 }], ["path", { d: "M16 16l4.5 4.5" }]],
+  grid: [
+    ["rect", { x: 4, y: 4, width: 6.5, height: 6.5, rx: 1.8 }],
+    ["rect", { x: 13.5, y: 4, width: 6.5, height: 6.5, rx: 1.8 }],
+    ["rect", { x: 4, y: 13.5, width: 6.5, height: 6.5, rx: 1.8 }],
+    ["rect", { x: 13.5, y: 13.5, width: 6.5, height: 6.5, rx: 1.8 }],
+  ],
 } as const satisfies Record<string, readonly Shape[]>;
 
 export type IconName = keyof typeof SHAPES;

@@ -24,9 +24,7 @@ export interface Chip {
 }
 
 /**
- * Ngưỡng "sắp hết hạn" dùng khi API KHÔNG đưa ngưỡng: danh sách giấy tờ của NGƯỜI (`GET /api/parties/documents/mine`, `GET /api/parties/:id/documents`) chưa
- * trả `warnDays`, và nhân viên thường không gọi được `/api/van-chuyen/meta` (ô vehicle.manage). Bằng dòng gieo của `vc_expiry_policy` (migration 0033).
- * Đã báo điều phối là trường còn thiếu (nhật ký thi công Phần B) — khi API có `warnDays` thì thay hằng này bằng giá trị của API.
+ * Mốc dự phòng của router khi môi trường không tiêm `nguongHetHan`; giao diện đọc `warnDays` của API. Bằng dòng gieo của `vc_expiry_policy` (migration 0033).
  */
 export const NGUONG_MAC_DINH = 30;
 
@@ -208,4 +206,10 @@ export function duongDanDong(item: Pick<ExpiringItemDto, "kind" | "targetId">): 
 export function loiChao(fullName: string): string {
   const words = fullName.trim().split(/\s+/).filter(Boolean);
   return `Chào ${words[words.length - 1] ?? fullName.trim()}`;
+}
+
+/** ADR-0056 VK3-B: loại giấy tờ XE còn "Thêm" được = đang dùng và xe CHƯA có dòng hiện hành của loại đó (có rồi thì Gia hạn / Sửa sai). Máy chủ luôn kiểm lại. */
+export function loaiThemDuocChoXe<T extends { code: string; active: boolean }>(types: readonly T[], docs: readonly { typeCode: string; current: boolean }[]): T[] {
+  const daCo = new Set(docs.filter((d) => d.current).map((d) => d.typeCode));
+  return types.filter((t) => t.active && !daCo.has(t.code));
 }

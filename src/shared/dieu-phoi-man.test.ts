@@ -312,21 +312,21 @@ test("nhomKhach: gom suất đang mở theo chặng (một đơn một nhóm), n
     { id: "d2", thuTu: 2, loai: "PICKUP" as const, tenNoi: "Amiana Resort" },
     { id: "d3", thuTu: 3, loai: "DROPOFF" as const, tenNoi: "Bến tàu du lịch Nha Trang" },
   ];
-  const s = (id: string, legId: string | null, maDon: string | null, len: string | null, xuong: string | null, x: Partial<{ loai: "PASSENGER" | "CREW"; trangThai: string; hoTen: string; namSinh: number }> = {}) => ({
+  const s = (id: string, legId: string | null, maDon: string | null, len: string | null, xuong: string | null, x: Partial<{ loai: "PASSENGER" | "CREW"; trangThai: string; hoTen: string; namSinh: number; tenNguoiDiKem: string }> = {}) => ({
     id, loai: x.loai ?? "PASSENGER", maDon, legId, chieu: legId ? "OUT" as const : null, diemLen: len, diemXuong: xuong, trangThai: (x.trangThai ?? "WAITING") as "WAITING", coTen: !!x.hoTen,
-    ...(x.hoTen ? { hoTen: x.hoTen, namSinh: x.namSinh ?? 1990 } : {}), daDon: null, daTra: null,
+    ...(x.hoTen ? { hoTen: x.hoTen, namSinh: x.namSinh ?? 1990 } : {}), ...(x.tenNguoiDiKem ? { tenNguoiDiKem: x.tenNguoiDiKem } : {}), daDon: null, daTra: null,
   });
   const g = nhomKhach([
     s("a", "l1", "TD-1", "d1", "d3", { hoTen: "Nguyễn Thị Lan", namSinh: 1990 }),
     s("b", "l2", "TD-2", "d2", "d3", { hoTen: "Lê Hoàng Yến" }),
     s("c", "l1", "TD-1", "d1", "d3"),
-    s("e", null, null, null, null, { loai: "CREW", hoTen: "Trần Văn Phụ" }),
+    s("e", null, null, null, null, { loai: "CREW", tenNguoiDiKem: "Trần Văn Phụ" }),
     s("f", "l1", "TD-1", "d1", "d3", { trangThai: "DROPPED", hoTen: "Đã Trả" }),
   ], diem);
   assert.deepEqual(g.map((x) => [x.khoa, x.tieuDe, x.tuyen, x.ten, x.suatIds]), [
     ["l1", "TD-1 · 2 khách", "Sheraton Nha Trang → Bến tàu du lịch Nha Trang", "Nguyễn Thị Lan 1990 · 1 khách chưa gắn tên", ["a", "c"]],
     ["l2", "TD-2 · 1 khách", "Amiana Resort → Bến tàu du lịch Nha Trang", "Lê Hoàng Yến 1990", ["b"]],
-    ["CREW", "Người đi kèm · 1", "", "Trần Văn Phụ 1990", ["e"]],
+    ["CREW", "Người đi kèm · 1", "", "Trần Văn Phụ", ["e"]],
   ]);
   assert.equal(nhomKhach([s("x", "l9", "TD-9", "d1", "d3"), s("y", "l9", "TD-9", "d1", "d3")], diem)[0]!.ten, "2 khách chưa gắn tên");
   assert.deepEqual(nhomKhach([], diem), []);

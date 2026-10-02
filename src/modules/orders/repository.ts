@@ -14,6 +14,7 @@ import { addDays, vnLocalToIso, vnToday } from "../../shared/vn-date";
 import { effectiveMoney, effectiveSubtotal, isAdjustmentSeqCollision, parseAdjustmentAfter, type AdjustmentEntry, type SubtotalServiceInput } from "./money-adjustment";
 import type { PoolSourceOrder, PoolSourceService } from "./pool";
 import type { FrozenLine } from "./price-guards";
+import { NHAN_THAN_CU, type LoaiThanCu } from "./than-cu";
 import { orderCodePrefix, type OrderStatus, type ValidOrder } from "./rules";
 import { confirmWindow, summarizeDeviations, type StoredService, type ValidService, type ValidTrip } from "./service-rules";
 
@@ -1380,4 +1381,16 @@ export async function changeBooker(
     auditStatement(db, { orderId, staffId, action: "booker_changed", at, detail }, "changes() > 0"),
   ]);
   return (results[booker.before.length]!.meta.changes ?? 0) > 0;
+}
+
+/**
+ * ADR-0047 §6 (Đợt 8): ghi MỘT dòng đếm máy gửi thân kiểu cũ (`client_outdated_body`) — người thao tác + nhãn màn hình, KHÔNG gắn đơn,
+ * KHÔNG nội dung thân. Đếm hỏng KHÔNG được làm hỏng yêu cầu: nuốt lỗi, một dòng log không dữ liệu cá nhân.
+ */
+export async function demThanCu(db: D1Database, staffId: string, loai: LoaiThanCu): Promise<void> {
+  try {
+    await auditStatement(db, { staffId, action: "client_outdated_body", at: new Date().toISOString(), targetType: "system", detail: NHAN_THAN_CU[loai] }).run();
+  } catch {
+    console.log(JSON.stringify({ level: "warn", event: "dem_than_cu_loi", loai }));
+  }
 }

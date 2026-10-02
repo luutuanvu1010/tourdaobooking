@@ -11,22 +11,37 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
-    // Có migration 0069 (ADR-0087). Số 1.66 = nền 1.65 (nhánh thanh-sang-chu-manh, chưa gộp) + 1. KIỂM LẠI LÚC GỘP.
-    version: "1.66",
+    // Thanh sáng + chữ mảnh (thanh-sang-chu-manh) + Giao diện công ty (ADR-0087, migration 0069). Số 1.67 = main 1.66 + 1. KIỂM LẠI LÚC GỘP.
+    version: "1.67",
     date: "2026-10-02",
     items: [
+      { kind: "doi", text: "Giao diện nhẹ hơn: thanh bên trái, thanh trên cùng và đầu Trang chủ điện thoại chuyển nền trắng; nút chính nền xanh nhạt; chữ toàn app mảnh hơn." },
+      { kind: "doi", text: "Trên iPhone, giờ và pin ở trên cùng chuyển sang chữ đen. Nếu vẫn thấy thanh màu xanh cũ, hãy đóng hẳn app rồi mở lại." },
       { kind: "moi", text: "Toàn quyền đổi được màu nền, thanh, nút, phông và cỡ chữ của cả app ở Tôi → Giao diện; mọi người thấy ở lần mở trang kế tiếp." },
       { kind: "doi", text: "Thanh trên cùng bản máy tính đổi màu theo cài đặt giao diện, giống thanh trên điện thoại." },
     ],
   },
   {
-    // Thanh sáng + chữ mảnh (chủ dự án duyệt bản xem trước 2026-10-02): chỉ CSS token + thẻ meta iOS, không migration.
-    // Số "1.65" = main 1.64 + 1. KIỂM LẠI LÚC GỘP (nhánh khác gộp trước thì đánh lại số).
+    // Trang chủ điện thoại theo bản vẽ "Trang chu dien thoai.dc.html" (Claude Design 2026-09-30, 1a–1g). Không migration, không đổi máy chủ.
+    // Số "1.66" = main 1.65 (Vận chuyển đợt 1) + 1 (gộp main 2026-10-02). KIỂM LẠI LÚC GỘP (nhánh khác gộp trước thì đánh lại số).
+    version: "1.66",
+    date: "2026-10-02",
+    items: [
+      { kind: "doi", text: "Trang chủ trên điện thoại làm mới: lời chào, ô tìm đơn ở đầu trang và lưới ô vuông mở nhanh mọi chức năng bạn được dùng (nhiều chức năng thì có ô Tất cả)." },
+      { kind: "doi", text: "Bốn con số Còn thiếu, Doanh thu, Chờ xác nhận, Chưa phụ trách gom vào một thẻ; chuyến đón đã trả đủ hiện chữ Đủ tiền. Máy tính giữ nguyên." },
+    ],
+  },
+  {
+    // Đợt 1 Vận chuyển còn lại (kế hoạch docs/superpowers/plans/2026-10-01-van-chuyen-con-lai-01-viec-nho.md): ADR-0056 VK3-B, đổi thứ tự điểm, mốc nhắc, người đi kèm.
+    // Có migration 0068. Số "1.65" = main 1.64 + 1 — kiểm lại lúc gộp (nhánh khác gộp trước thì đánh lại số).
     version: "1.65",
     date: "2026-10-02",
     items: [
-      { kind: "doi", text: "Giao diện nhẹ nhàng hơn: thanh bên trái (máy tính) và thanh trên cùng (điện thoại) chuyển sang nền trắng; nút chính nền xanh nhạt; chữ toàn app mảnh hơn." },
-      { kind: "doi", text: "Trên iPhone, giờ và pin ở trên cùng chuyển sang chữ đen. Nếu vẫn thấy thanh màu xanh cũ, hãy đóng hẳn app rồi mở lại." },
+      { kind: "moi", text: "Xe đã có một loại giấy tờ đang dùng thì không \"Thêm\" loại đó nữa — bấm \"Gia hạn\" hoặc \"Sửa sai\"; form Thêm chỉ hiện loại chưa có." },
+      { kind: "moi", text: "Chi tiết chuyến: văn phòng đổi được thứ tự các điểm chưa tới khi xe đang chạy (nút lên / xuống)." },
+      { kind: "moi", text: "Giấy tờ sắp hết hạn: Toàn quyền đổi được số ngày nhắc trước (nút \"Đổi mốc nhắc\"); nhãn hạn giấy tờ cá nhân theo đúng số này." },
+      { kind: "moi", text: "Chi tiết chuyến: gắn hướng dẫn viên đi kèm lên xe; tên hiện ở Chi tiết chuyến và màn tài xế. Người đi kèm có nút \"Đã lên xe\" / \"Đã xuống\"." },
+      { kind: "doi", text: "Chuẩn bị cho bản sau: máy chủ ghi nhận máy nào còn dùng ứng dụng bản cũ khi lưu đơn (không ghi thông tin khách)." },
     ],
   },
   {

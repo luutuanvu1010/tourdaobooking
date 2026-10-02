@@ -57,7 +57,7 @@
 ## 7. Việc nhỏ còn lại của Bảng điều phối lượt 1 (người kiểm K2b xếp "để lượt sau")
 
 - **Ngày:** 2026-09-30 · **Trạng thái:** `để lượt sau`. Nguồn: nhật ký giao diện `docs/superpowers/plans/2026-09-29-adr-0049-giao-dien-nhat-ky.md`.
-- Q-B-15: văn phòng sắp lại thứ tự điểm dừng khi chuyến đang chạy (route 39). Bản vẽ chưa vẽ.
+- ~~Q-B-15: văn phòng sắp lại thứ tự điểm dừng khi chuyến đang chạy~~ — **xong bản 1.65** (nút lên / xuống ở Chi tiết chuyến, khuôn màn tài xế).
 - Q-B-7: ô chọn tài xế chưa hiện hạng bằng lái (DTO thiếu trường).
 - Q-B-10: huy hiệu số ở mục menu "Điều phối xe" (chưa có nguồn số).
 - Q-B-12: danh sách cuốc của tài xế chưa có giờ kết thúc dự kiến.
@@ -66,7 +66,7 @@
 - Kịch bản cũ `docs/evidence/2026-09-21-v1-0/kich-ban/v1-bao-tri.mjs` đỏ sẵn trên `main`. Kịch bản dùng tài khoản Quản trị, nhưng bật bảo trì cần Toàn quyền (ADR-0038). Sửa: đổi tài khoản sang Toàn quyền như `dot-c-smoke`.
 - Kịch bản `help-smoke` đôi khi đỏ thoáng qua do bộ nhớ đệm trang của Chrome (bfcache): đỏ một lần, chạy lại thì xanh. Người kiểm K2b (T3) nêu, K2c xác nhận còn tồn.
 - Máy chủ trả `canhBaoPhut` nhưng giao diện chưa đọc. Vô hại; người kiểm K2b (T4) nêu, K2c xác nhận còn tồn.
-- Tên khách trong một nhóm ở Chi tiết chuyến hiện theo thứ tự ngẫu nhiên, vì suất sắp theo mã ngẫu nhiên. Muốn theo đúng thứ tự trong đơn thì máy chủ phải trả thứ tự dòng hành khách, mà bảng `ord_passenger` chưa có cột vị trí. Chỉ ảnh hưởng hiển thị. Phiên giao diện vòng 5d nêu (30/9).
+- ~~Tên khách trong một nhóm ở Chi tiết chuyến hiện theo thứ tự ngẫu nhiên, vì suất sắp theo mã ngẫu nhiên. Muốn theo đúng thứ tự trong đơn thì máy chủ phải trả thứ tự dòng hành khách, mà bảng `ord_passenger` chưa có cột vị trí. Chỉ ảnh hưởng hiển thị. Phiên giao diện vòng 5d nêu (30/9).~~ — **xong bản 1.63** ("Danh sách hành khách hiện đúng thứ tự đã nhập").
 
 ## 8. Góp ý người dùng 30/9 — việc đã chốt hướng, chưa làm
 
@@ -136,3 +136,13 @@
 - **Phạm vi nghiên cứu gợi ý:** với từng nhóm sự kiện, trả lời "nó giúp gì cho khâu LẬP KẾ HOẠCH hay khâu LẬP TRÌNH của kho này, và đã có chốt nào làm việc đó chưa": (1) đầu/cuối phiên và lúc nén ngữ cảnh (`SessionStart`, `SessionEnd`, `PreCompact`, `PostCompact`) — nạp sổ điều phối, nhắc vai của phiên; (2) lúc chủ gửi lệnh (`UserPromptSubmit`, `UserPromptExpansion`); (3) trợ lý con và nhóm AI (`SubagentStart`, `SubagentStop`, `TaskCreated`, `TaskCompleted`, `TeammateIdle`) — gồm cổng xanh cho trợ lý con (phải giải I-1: báo cáo đi qua `SubagentHandback`); (4) sau khi sửa tệp (`PostToolUse`, `PostToolBatch`, `FileChanged`); (5) xin quyền (`PermissionRequest`, `PermissionDenied`); (6) môi trường (`ConfigChange`, `CwdChanged`, `WorktreeCreate`, `WorktreeRemove`, `InstructionsLoaded`). Kèm ba loại hook không phải lệnh (`prompt`, `agent`, `http`).
 - **Tiêu chí đã dùng 1/10 (giữ khi nghiên cứu, tránh làm thừa):** một hook chỉ đáng thêm khi (a) đã có sự cố thật hoặc hậu quả không sửa lại được, (b) máy kiểm được chắc chắn và rẻ, (c) chưa có chốt nào phía sau bắt được. Theo tiêu chí đó, ngày 1/10 AI khuyến nghị CHƯA làm: nhắc lại sau khi nén ngữ cảnh, kiểm ngay sau mỗi lần sửa tệp, cổng xanh cho trợ lý con.
 - **Còn vướng:** hook là LUẬT (`.claude/`) — thêm cái nào cũng phải qua đặc tả, người kiểm độc lập, sổ hàng rào và chủ duyệt (CLAUDE.md §3); hook mới chỉ có hiệu lực với phiên mở sau khi gộp nên chưa quan sát được ba hook 1/10 chạy trong phiên thật — nên dùng một hai tuần rồi mới nghiên cứu tiếp.
+
+## 18. Trang chủ riêng cho Hướng dẫn viên và Đối tác ("mỗi vai là một nội dung")
+
+- **Ngày:** 2026-10-02 · **Chủ nêu** (trả lời câu 1 sau bản Trang chủ điện thoại 1.66): *"HDV và đối tác sử dụng Trang chủ riêng của họ, hiển thị những gì trực tiếp liên quan đến nghiệp vụ và công việc của họ và hỗ trợ cho công việc của họ (Đúng phương châm mỗi vai là một nội dung)"* · **Trạng thái:** `đã duyệt hướng, chưa làm` — chủ chọn làm thành **đợt riêng**.
+- **Đã có:** bản vẽ 2a (Hướng dẫn viên) và 2b (Đối tác) trong `~/Desktop/Phone home screen redesign/Trang chu dien thoai.dc.html` (Claude Design 2026-09-30): cùng khung Trang chủ điện thoại 1.66 (dải chào, ô tìm, lưới ô theo quyền, thẻ Chuyến đón) nhưng KHÔNG có số liệu toàn công ty, KHÔNG "Cần xem lại"; chuyến đón = đơn mình phụ trách (HDV) / mình lập (Đối tác). Khung giao diện dùng lại được: `oTrangChu()` (`src/shared/trang-chu-o.ts`), khối `.dash-*` điện thoại của `public/app.css`.
+- **Còn vướng (cần đặc tả + ADR, chủ duyệt — chạm quyền và dữ liệu):**
+  - Trang khởi đầu: hai vai này hôm nay được đưa thẳng sang `/orders` (`homeRedirect`, `src/shared/start-page.ts`); đổi thì cũng phải đổi thanh tab / menu của họ (HDV hôm nay chỉ có tab "Tôi").
+  - Nguồn dữ liệu: `GET /api/orders/dashboard` trả 403 với họ (cổng `seesAllOrders`) — cần route / nhánh mới chỉ trả chuyến của chính họ.
+  - Nội dung theo vai: mỗi vai thấy gì "trực tiếp liên quan" (HDV: việc chờ nhận, chuyến mình phụ trách, số tiền mình thu trước chuyến?; Đối tác: đơn mình lập, còn phải thu?) — đặc tả liệt kê, chủ chọn.
+  - Tiền: ô `money.view` của HDV hôm nay = `assigned` (xem tiền đơn mình phụ trách) — bản vẽ 2a có hiện "còn lại"; xác nhận lại trong đặc tả.

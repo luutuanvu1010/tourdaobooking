@@ -484,9 +484,9 @@ const ADMIN_ONLY = () => error(403, "forbidden", "Chỉ quản trị viên đư�
 const CATALOG_STALE = () => error(409, "stale", "Danh mục vừa được người khác sửa, hãy tải lại rồi sửa tiếp.");
 const CODE_TAKEN = () => error(409, "code_taken", "Mã này đã có trong danh mục.");
 /** Danh sách giấy tờ (đủ lịch sử, số che) của hồ sơ sau khi ghi. */
-async function respondDocs(db: D1Database, partyId: string, status: number): Promise<Response> {
+async function respondDocs(db: D1Database, partyId: string, status: number, warnDays: number): Promise<Response> {
   const today = vnToday(new Date());
-  return json({ documents: (await listPersonDocuments(db, partyId, false)).map((r) => toPersonDocDto(r, today)) } satisfies PersonDocumentListResponse, status);
+  return json({ documents: (await listPersonDocuments(db, partyId, false)).map((r) => toPersonDocDto(r, today)), warnDays } satisfies PersonDocumentListResponse, status);
 }
 
 const KIND_LABEL = { PERSON: "cá nhân", ORGANIZATION: "tổ chức" } as const;
@@ -579,16 +579,17 @@ export const partiesModule: AppModule = {
     }),
 
     // ---- Giấy tờ của người (ADR-0040 D2) — hai route tra cứu khai TRƯỚC các route :id (thói quen của tệp) ----------------------------------------------
-    route("GET", "/api/parties/documents/mine", "staff", async ({ env, staff }) => {
+    route("GET", "/api/parties/documents/mine", "staff", async ({ env, staff, nguongHetHan }) => {
       // Ruling R4 + R5 (chủ 28/9: mọi nhân viên nội bộ): cổng "staff"; ô own chặn Đối tác; CHỈ giấy tờ của chính người gọi, CHỈ dòng hiện hành (R15 điểm 6),
       // ngày hết hạn tăng dần; số che.
       if (!can(staff, "party.document.view", { ownerId: staff.id })) return error(403, "forbidden", "Tài khoản này không có mục giấy tờ.");
       // Ruling R18 (điều phối 2026-09-28): tài khoản CÓ quyền Đối tác — kể cả LAI với quyền nội bộ (ô `own` của quyền nội bộ làm `can()` ở trên qua) —
       // cũng không có mục này; tiền lệ "chặn tài khoản lai" của ADR-0030 (hàng chờ nhận, `holdsPartner`).
       if (holdsPartner(staff)) return error(403, "forbidden", "Tài khoản này không có mục giấy tờ.");
-      if (!staff.partyId) return json({ documents: [] } satisfies PersonDocumentListResponse);
+      const warnDays = await nguongHetHan();
+      if (!staff.partyId) return json({ documents: [], warnDays } satisfies PersonDocumentListResponse);
       const today = vnToday(new Date());
-      return json({ documents: (await listPersonDocuments(env.DB, staff.partyId, true)).map((r) => toPersonDocDto(r, today)) } satisfies PersonDocumentListResponse);
+      return json({ documents: (await listPersonDocuments(env.DB, staff.partyId, true)).map((r) => toPersonDocDto(r, today)), warnDays } satisfies PersonDocumentListResponse);
     }),
 
     route("GET", "/api/parties/documents/meta", "office", async ({ env, staff }) => {
@@ -668,15 +669,16 @@ export const partiesModule: AppModule = {
       return respondDocMeta(env.DB);
     }),
 
-    route("GET", "/api/parties/:id/documents", "office", async ({ env, params, staff }) => {
+    route("GET", "/api/parties/:id/documents", "office", async ({ env, params, staff, nguongHetHan }) => {
       // ADR-0040 D2: party.view KHÔNG mở giấy tờ; người ghi giấy tờ (Quản trị, Toàn quyền) xem danh sách (số che) của người khác — đủ dòng lịch sử.
       if (!can(staff, "party.document.write")) return DOC_FORBIDDEN();
       const id = idParam(params, "id", PARTY_ID_RE);
       const party = id ? await findParty(env.DB, id) : null;
       if (!id || !party) return NOT_FOUND();
-      if (party.party_kind !== "PERSON") return json({ documents: [] } satisfies PersonDocumentListResponse);
+      const warnDays = await nguongHetHan();
+      if (party.party_kind !== "PERSON") return json({ documents: [], warnDays } satisfies PersonDocumentListResponse);
       const today = vnToday(new Date());
-      return json({ documents: (await listPersonDocuments(env.DB, id, false)).map((r) => toPersonDocDto(r, today)) } satisfies PersonDocumentListResponse);
+      return json({ documents: (await listPersonDocuments(env.DB, id, false)).map((r) => toPersonDocDto(r, today)), warnDays } satisfies PersonDocumentListResponse);
     }),
 
     // Ghi giấy tờ của người (ADR-0040 D2): thứ tự 403 ô → 404 hồ sơ → 403 cấp bậc (Ruling R8 = Q1: Quản trị không ghi giấy tờ của tài khoản cấp trên) →
@@ -707,7 +709,7 @@ export const partiesModule: AppModule = {
         if (problem) return problem;
         throw e;
       }
-      return respondDocs(env.DB, id, 201);
+      return respondDocs(env.DB, id, 201, await ctx.nguongHetHan());
     }),
 
     route("POST", "/api/parties/:id/documents/:did/renew", "office", async (ctx) => {
@@ -743,7 +745,7 @@ export const partiesModule: AppModule = {
         if (problem) return problem;
         throw e;
       }
-      return respondDocs(env.DB, id, 201);
+      return respondDocs(env.DB, id, 201, await ctx.nguongHetHan());
     }),
 
     route("POST", "/api/parties/:id/documents/:did/correct", "office", async (ctx) => {
@@ -793,7 +795,7 @@ export const partiesModule: AppModule = {
         throw e;
       }
       if ((results[0]!.meta.changes ?? 0) === 0) return DOC_STALE();
-      return respondDocs(env.DB, id, 200);
+      return respondDocs(env.DB, id, 200, await ctx.nguongHetHan());
     }),
 
     // "Xem đủ số" (ADR-0040 D2; R15 điểm 5): route DUY NHẤT trả số đầy đủ. POST (có ghi, và để router chặn gọi chéo trang). Thứ tự: 403 ô → 404 hồ sơ → 403

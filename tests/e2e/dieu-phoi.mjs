@@ -247,3 +247,22 @@ const lai = await call(SALES, "POST", `/api/van-chuyen/chuyen/${r.body.chuyen.id
 assert.equal(lai.status, 200, JSON.stringify(lai.body));
 assert.equal(lai.body.canhBaoXep, undefined, "gửi lại cùng requestId: lô không chạy lại, không cảnh báo");
 console.log("✓ (7) cảnh báo sớm lúc xếp: thiếu nơi trả → xếp được + canhBaoXep CHUA_CO_NOI_TRA; gửi lại cùng requestId → 200 không cảnh báo");
+
+// --- (8) Người đi kèm (lời chủ 2026-10-01, "Chỉ hướng dẫn viên"): danh sách không SĐT; tài xế không phải HDV → 409; HDV cố định → 200, có tên ---
+r = await call(SALES, "GET", "/api/van-chuyen/huong-dan-vien");
+assert.equal(r.status, 200, JSON.stringify(r.body));
+const hdvE2e = r.body.nguoi.find((x) => x.ten === ACCOUNTS.field.name);
+assert.ok(hdvE2e, "tài khoản HDV cố định có trong danh sách");
+assert.ok(!JSON.stringify(r.body).includes(ACCOUNTS.field.phone), "không SĐT");
+r = await call(SALES, "POST", "/api/van-chuyen/chuyen", { requestId: uuid(), xeId: xe2, taiXePartyId: txParty, batDau: { ngay: D, gio: "21:00" }, ketThuc: { ngay: D, gio: "22:00" } });
+assert.equal(r.status, 201, JSON.stringify(r.body));
+const tripK = r.body.chuyen.id;
+const vK = r.body.chuyen.version;
+r = await call(SALES, "POST", `/api/van-chuyen/chuyen/${tripK}/phan-bo`, { version: vK, requestId: uuid(), nguoiDiKem: [txParty] });
+assert.equal(r.status, 409, JSON.stringify(r.body));
+assert.equal(r.body.error.code, "nguoi_di_kem_khong_hop_le");
+r = await call(SALES, "POST", `/api/van-chuyen/chuyen/${tripK}/phan-bo`, { version: vK, requestId: uuid(), nguoiDiKem: [hdvE2e.partyId] });
+assert.equal(r.status, 200, JSON.stringify(r.body));
+r = await call(SALES, "GET", `/api/van-chuyen/chuyen/${tripK}`);
+assert.deepEqual(r.body.suat.filter((s) => s.loai === "CREW").map((s) => s.tenNguoiDiKem), [ACCOUNTS.field.name]);
+console.log("✓ (8) người đi kèm: chỉ HDV đang hoạt động, không SĐT; người khác 409; HDV 200 có tên");

@@ -133,7 +133,7 @@ export function diemChuyenDto(
 export function suatChuyenDto(
   a: AllocRow,
   v: { changLich: ReadonlyMap<string, ChangLichChung>; changNgoai: readonly { legId: string; orderCode: string }[]; ten: ReadonlyMap<string, { fullName: string; birthYear: number }>;
-    events: readonly EventRow[]; nhan: ReadonlyMap<string, string> | null },
+    events: readonly EventRow[]; nhan: ReadonlyMap<string, string> | null; tenDiKem?: ReadonlyMap<string, string> },
 ): SuatChuyenDto {
   const ch = a.leg_id ? v.changLich.get(a.leg_id) : undefined;
   const maDon = ch?.orderCode ?? (a.leg_id ? v.changNgoai.find((x) => x.legId === a.leg_id)?.orderCode ?? null : null);
@@ -143,6 +143,7 @@ export function suatChuyenDto(
     soHieuChuyenBay: ch?.soHieuChuyenBay ?? null,
     coTen: a.passenger_key !== null,
     ...(nguoi ? { hoTen: nguoi.fullName, namSinh: nguoi.birthYear } : {}),
+    ...(a.kind === "CREW" && a.crew_party_id !== null && v.tenDiKem?.has(a.crew_party_id) ? { tenNguoiDiKem: v.tenDiKem.get(a.crew_party_id)! } : {}),
     daDon: mocTienDo(suKienCuoi(v.events, a.trip_id, ["PASSENGER_BOARDED"], (e) => e.allocation_id === a.id), v.nhan),
     daTra: mocTienDo(suKienCuoi(v.events, a.trip_id, ["PASSENGER_DROPPED"], (e) => e.allocation_id === a.id), v.nhan),
   };

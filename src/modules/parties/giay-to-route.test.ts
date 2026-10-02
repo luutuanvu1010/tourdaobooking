@@ -532,3 +532,18 @@ test("route 10, 11 hạng: thêm → 201 (trùng 409 code_taken); sửa có mố
   assert.equal(t.status, 400, t.text);
   assert.deepEqual(nhatKyDanhMuc(w), ["hạng: C1 — Hạng C1", "hạng: D1 — Hạng D1"]);
 });
+
+test("ADR-0040 D1 (GB2/R23): mọi phản hồi danh sách giấy tờ người mang warnDays = mốc đang hiệu lực; Toàn quyền đổi 7 → mọi đường trả 7", async () => {
+  const w = setup();
+  const ids = gieoTaiXe(w);
+  const doc = async () => [
+    (await w.call("GET", "/api/parties/documents/mine", { as: DRIVER })).json.warnDays,
+    (await w.call("GET", `/api/parties/${pty(DRIVER)}/documents`, { as: ADM })).json.warnDays,
+  ];
+  assert.deepEqual(await doc(), [30, 30]);
+  assert.equal((await w.call("POST", "/api/van-chuyen/nguong-het-han", { as: SUP, body: { warnDays: 7 } })).status, 200);
+  assert.deepEqual(await doc(), [7, 7]);
+  const g = await giaHan(w, ADM, pty(DRIVER), ids.gplx, { expiryDate: "2027-11-05" });
+  assert.equal(g.status, 201, g.text);
+  assert.equal(g.json.warnDays, 7, "phản hồi sau khi ghi cũng mang mốc");
+});

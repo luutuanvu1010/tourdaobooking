@@ -351,6 +351,45 @@
   --fw-bold: 500;      /* tiêu đề, tên, nút; cũng là độ đậm mặc định của h1–h6, b, strong, th (luật nền bên dưới) */
   --fw-heavy: 500;     /* số lớn, tiêu đề nổi nhất */
   --fw-heading: 500;   /* độ đậm tiêu đề h1–h6 (núm "Tiêu đề" của màn Giao diện, ADR-0087) — luật nền bên dưới trỏ vào đây */
+  /* — Riêng: Trang chủ điện thoại (≤640px) — bản vẽ "Trang chu dien thoai.dc.html" (Claude Design 2026-09-30, thư mục "Phone home screen redesign"; tiền lệ
+     duyệt như nhóm Đăng nhập: chủ dự án giao làm đúng bản vẽ — coi là duyệt các giá trị dưới đây). Tên token màu mượn tên của bộ ba tông đang chờ ADR (tones.css
+     cùng thư mục, giá trị tông "Biển đêm" = màu hiện tại của app) để khi làm tông chỉ đổi giá trị, không đổi tên. — */
+  /* Dải đầu trang LẤY ĐÚNG MÀU THANH TRÊN (chủ dự án chọn 2026-10-02, câu 2-B: "đổi sang trắng cho đồng bộ" với bản 1.65 thanh sáng): nền/chữ trỏ token vai
+     --c-bar-bg / --c-on-bar (khai ở nhóm MÀU THEO VAI bên trên; ADR-0087: Toàn quyền chỉnh được qua núm thanh trên). Gộp main 2026-10-02: hai token đã có nên bỏ
+     giá trị dự phòng xanh (trỏ thẳng --c-primary) — dải luôn cùng màu thanh trên. Chữ phụ và nền tròn của nút suy từ CHÍNH màu chữ (độ mờ) nên hợp mọi màu thanh. */
+  --hero-bg: var(--c-bar-bg);
+  --c-on-hero: var(--c-on-bar);         /* tên, chuông, nút trợ giúp, chữ phụ trên dải đầu trang */
+  --c-hero-ring: var(--c-bar-bg);       /* viền quanh số đỏ trên chuông (tách số khỏi nền dải) */
+  --c-hero-edge: var(--c-status-bar);   /* dải cố định sau thanh trạng thái iPhone khi dải đầu trang đã cuộn đi */
+  --hero-muted: .8;            /* độ đậm chữ phụ ("Xin chào,", ngày) so với màu chữ của dải — trên xanh ≈ chữ trắng nhạt của bản vẽ, trên trắng ≈ xanh nhạt (≥ 4,5:1) */
+  --hero-btn-tint: .12;        /* nền tròn nút chuông / trợ giúp = màu chữ của dải ở độ đậm này (bản vẽ: trắng 12% trên xanh) */
+  --hero-avatar: 44px;         /* ảnh đại diện chữ cái đầu trên dải đầu trang */
+  --hero-row: 62px;            /* chiều cao cụm lời chào ba dòng (20 + 24 + 18) — giữ chỗ cho dải lúc chưa biết tên (khung tạm) */
+  --hero-pad-bottom: 44px;     /* đệm dưới dải đầu trang: chỗ cho nửa trên ô tìm đè lên */
+  --search-h: 52px;            /* ô tìm đơn nổi */
+  --search-overlap: 26px;      /* phần ô tìm đè lên dải đầu trang (một nửa chiều cao) */
+  --shadow-search: 0 1px 3px rgba(15, 23, 42, .08), 0 4px 12px rgba(8, 47, 73, .10);
+  --tile-box: 52px;            /* ô vuông biểu tượng của lưới chức năng */
+  --radius-tile: 14px;         /* bo góc ô vuông biểu tượng */
+  --tile-badge: 20px;          /* huy hiệu số trên ô vuông / chuông dải đầu trang */
+  --tile-dot: 10px;            /* chấm "có bản mới" trên ô Trợ giúp */
+  --lh-18: 18px;               /* dòng nhãn ô (tối đa hai dòng), ngày trên dải đầu trang, dòng phụ số liệu */
+  --icon-md: 20px;             /* biểu tượng tiêu đề khối Chuyến đón / Cần xem lại (điện thoại) */
+  --lh-20: 20px;               /* dòng chữ 14px của bản vẽ (ngày, dòng phụ chuyến, dải lỗi) */
+  --lh-22: 22px;               /* dòng giờ đón / tên khách */
+  --lh-24: 24px;               /* dòng tên người trên dải đầu trang */
+  --lh-30: 30px;               /* dòng số lớn của khối số liệu */
+  --w-trip-time-dt: 52px;      /* cột giờ đón ở danh sách chuyến (điện thoại) */
+  --day-pill-h: 36px;          /* viên thuốc Hôm nay / Ngày mai / Ngày kia (trong vùng chạm 44px) */
+  --review-icon-dt: 36px;      /* ô biểu tượng dòng "Cần xem lại" (điện thoại) */
+  --skel-sm: 14px;             /* thanh khung xương chữ nhỏ */
+  --skel-md: 16px;
+  --skel-title: 20px;
+  --skel-num: 26px;            /* thanh khung xương số lớn */
+  --skel-tag: 22px;            /* khung xương giờ đón */
+  --skel-time: 48px;
+  --skel-money: 56px;
+  --skel-pill: 96px;
 }
 * { box-sizing: border-box; }
 h1, h2, h3, h4, h5, h6 { font-weight: var(--fw-heading); }
@@ -1205,10 +1244,11 @@ body.login-page main.login { display: flex; flex-direction: column; height: 100%
 .dash-name { font-family: var(--font-display); font-weight: var(--fw-heavy); font-size: var(--fs-title); }
 .dash-date { color: var(--c-text-muted); font-size: var(--fs-label); }
 #dash-maint { margin-left: auto; } /* chip bảo trì đẩy sang phải cùng dòng chào (bản mẫu), không nối tiếp sau ngày */
-/* Nhãn/ô đầy đủ (máy tính) — .lbl-short ẩn theo mặc định; đảo ngược ở khổ ≤639px. Dùng lại ở nhiều chỗ của Trang chủ
-   (nhãn ô số liệu, "Xem tất cả", tiền rút gọn…) — hai bản luôn cùng có mặt trong DOM, CSS chỉ ẩn/hiện, không đổi bằng JS. */
+/* Nhãn/ô đầy đủ (máy tính) — .lbl-short ẩn theo mặc định; đảo ngược ở khổ ≤640px. Dùng lại ở nhiều chỗ của Trang chủ
+   (nhãn ô số liệu, "Xem tất cả", tiền rút gọn…) — hai bản luôn cùng có mặt trong DOM, CSS chỉ ẩn/hiện, không đổi bằng JS.
+   Mốc 640 (trước 639): cùng mốc với thanh tab / thanh đầu trang điện thoại — ở đúng 640px trước đây có thanh tab mà Trang chủ vẫn hiện nhãn máy tính. */
 .lbl-short { display: none; }
-@media (max-width: 639px) {
+@media (max-width: 640px) {
   .lbl-full { display: none; }
   .lbl-short { display: inline; }
 }
@@ -1264,33 +1304,143 @@ body.login-page main.login { display: flex; flex-direction: column; height: 100%
 .dash-review-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--s1); }
 .dash-review-title { font-size: var(--fs-label); font-weight: var(--fw-bold); }
 
-@media (max-width: 639px) {
-  /* Lưới 2×2 gộp cả "Doanh thu của tôi" (đặc tả §3: mockup mobile gộp doanh thu vào lưới, không tách riêng).
-     .dash-stats chuyển display:contents để 3 ô của nó "thoát" ra tham gia thẳng lưới ngoài (.dash-grid) cùng
-     .dash-revenue — không lồng div bọc mới, DOM vẫn đúng thứ tự đọc: 3 ô số liệu, doanh thu, rồi chuyến đón hôm nay. */
-  .dash-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s3); }
-  .dash-stats { display: contents; }
-  .dash-stat-value { font-size: var(--fs-stat-sm); } /* kiểm gộp I-3: lưới 2 cột ở khổ hẹp không đủ chỗ cho --fs-stat (26px) — "₫" rơi xuống dòng riêng với số tiền lớn */
-  .dash-today { grid-column: 1 / -1; margin-bottom: 0; }
-  .dash-revenue { margin-bottom: 0; padding: var(--s3) var(--s4); } /* cùng đệm với .dash-stat để trông như ô thứ tư cùng hàng */
-  .dash-revenue-head { flex-direction: column; align-items: flex-start; gap: 0; margin-bottom: 0; }
-  .dash-revenue-title { font-size: var(--fs-badge); font-weight: var(--fw-bold); color: var(--c-text-muted); text-transform: uppercase; } /* cùng kiểu nhãn với .dash-stat-label */
-  #dash-revenue-range { display: none; } /* thay bằng dòng phụ rút gọn "Tuần này · N đơn" trong .dash-revenue-total */
-  .dash-revenue-total { flex-direction: column; align-items: flex-start; gap: var(--s1); }
-  .dash-revenue-value { font-size: var(--fs-stat-sm); }
-  /* Mockup mobile (390px) không có biểu đồ trong ô "Doanh thu của tôi" (ô đó là 1 trong 4 ô rút gọn của lưới 2×2, chỉ
-     có tổng tiền + dòng phụ) — ẩn ở khổ hẹp, không xoá khỏi DOM (bảng máy đọc màn hình cũng ẩn theo cha, không đọc trùng). */
-  .dash-revenue-chart { display: none; }
-  .dash-today-place { display: none; } /* nơi đón chuyển sang đứng cạnh tên dịch vụ trong .dash-today-sub (không phải kỹ thuật ẩn-cho-mắt: display:none để trình đọc màn hình không đọc trùng hai lần) */
-  /* Fix round 2 (quyết định chủ dự án 2026-09-23): dòng phụ rút gọn bỏ SĐT nên khổ điện thoại mất thao tác gọi khách — chủ chốt
-     giữ nút gọi dù lệch bản mẫu. `.dash-today-call` chỉ hiện ở khổ này (cùng cơ chế `.lbl-short`, luật kế thừa ở trên thắng
-     `display:none` mặc định của `.lbl-short` vì hai lớp cùng chọn một phần tử và quy tắc này đứng sau trong tệp); nút đặt
-     dưới số tiền còn lại trong cụm bên phải, không đổi bề rộng ba cụm khi/tên/tiền hiện có. */
-  .dash-today-call { display: inline-flex; align-items: center; justify-content: center; gap: var(--s1); min-height: var(--tap-min); padding: 0 var(--s3); margin-top: var(--s1); font-size: var(--fs-label); font-weight: var(--fw-bold); color: var(--c-primary); background: var(--c-primary-soft); border-radius: var(--radius-sm); cursor: pointer; }
-  /* Đợt D Task 3 (đặc tả §3.6: "Biểu đồ và 'Cần xem lại': xếp một cột dưới danh sách chuyến"): khối chỉ tồn tại
-     trong DOM khi ADMIN có cảnh báo (web/home.ts) — khi có, phải chiếm trọn bề rộng lưới 2×2 như .dash-today, không
-     rơi vào MỘT nửa cột bên cạnh ô trống. */
-  .dash-review { grid-column: 1 / -1; margin-bottom: 0; }
+/* ---------- Trang chủ ĐIỆN THOẠI (≤640px — khổ có thanh tab) — bản vẽ "Trang chu dien thoai.dc.html" 1a–1g (Claude Design 2026-09-30); chỉ token ----------
+   Thay lưới 2×2 cũ (Đợt D Task 1). Máy tính (≥641px) KHÔNG đổi: mọi khối mới dưới đây mặc định ẩn, khối máy tính chỉ bị ẩn trong @media này.
+   Dải đầu trang = CHÍNH #topbar đổi kiểu (body.trang-chu ở public/index.html): chuông của web/thong-bao-ui.ts giữ nguyên nút, ngăn tin, cách đếm. */
+.dash-tim, .dash-o, .dash-so, .dash-xuong, .dash-hero-chao, .dash-hero-nut, .dash-hero-dong, .dash-loi-ico, .dash-loi-nut, #error.dash-loi-dt { display: none; }
+/* Ô của lưới chức năng — dùng chung lưới chính và bảng trượt "Tất cả chức năng" (bảng trượt chỉ mở được từ lưới điện thoại). */
+.dash-o-luoi { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); row-gap: var(--s3); column-gap: calc(var(--s1) / 2); }
+.dash-o-muc { display: flex; flex-direction: column; align-items: center; gap: var(--s2); min-width: 0; min-height: var(--tap-min); padding: 0; font: inherit; color: var(--c-text); text-decoration: none; background: none; border: 0; cursor: pointer; }
+.dash-o-muc:active { filter: brightness(.94); }
+.dash-o-hop { position: relative; display: flex; align-items: center; justify-content: center; width: var(--tile-box); height: var(--tile-box); color: var(--c-primary); background: var(--c-primary-soft); border-radius: var(--radius-tile); }
+.dash-o-hop-chot { color: var(--c-accent); background: var(--c-accent-soft); } /* "Tạo đơn": ô duy nhất màu san hô — hành động chốt */
+.dash-o-nhan { max-width: 100%; min-height: calc(2 * var(--lh-18)); font-size: var(--fs-step-3); font-weight: var(--fw-semibold, 600); line-height: var(--lh-18); text-align: center; overflow-wrap: anywhere; text-wrap: balance; color: var(--c-text); } /* balance: "Góp ý /" + "Báo lỗi" như bản vẽ, không để một chữ mồ côi ở dòng hai */
+.dash-o-so { position: absolute; top: calc(-1.5 * var(--s1)); right: calc(-1 * var(--s2)); display: flex; align-items: center; justify-content: center; min-width: var(--tile-badge); height: var(--tile-badge); padding: 0 calc(1.5 * var(--s1)); font-size: var(--fs-step-1); font-weight: var(--fw-bold, 700); line-height: 1; border: var(--ntf-badge-ring) solid var(--c-surface); border-radius: var(--radius-pill); }
+.dash-o-so-xanh { color: var(--c-on-dark); background: var(--c-primary); }
+.dash-o-so-cat { color: var(--c-sand-text); background: var(--c-sand); }
+.dash-o-so-san-ho { color: var(--c-on-dark); background: var(--c-accent); }
+.dash-o-cham { position: absolute; top: calc(-.75 * var(--s1)); right: calc(-.75 * var(--s1)); width: var(--tile-dot); height: var(--tile-dot); background: var(--c-danger); border: var(--ntf-badge-ring) solid var(--c-surface); border-radius: var(--radius-pill); }
+.sheet.dash-tc { max-height: 88%; }
+.dash-tc .sheet-head { padding: var(--s2) var(--s2) 0 var(--s4); border-bottom: 0; }
+.dash-tc .sheet-title { font-family: inherit; font-weight: var(--fw-bold, 700); color: var(--c-text); }
+.dash-tc .sheet-body { padding: 0 var(--s3) calc(var(--s7) + env(safe-area-inset-bottom)); }
+.dash-tc-foot { display: none; } /* bảng chỉ để chọn, không có nút đáy — vùng vạch vuốt chừa ở đệm dưới thân bảng */
+.dash-tc-ten { margin: 0; padding: var(--s4) var(--s1) var(--s3); font-family: inherit; font-size: var(--fs-step-1); font-weight: var(--fw-bold, 700); letter-spacing: var(--ls-eyebrow); text-transform: uppercase; color: var(--c-text-muted); }
+@media (max-width: 640px) {
+  /* Dải đầu trang cuộn đi theo trang (bản vẽ) → thanh trạng thái iOS (chữ trắng, "black-translucent") cần một dải navy cố định bằng đúng vùng an toàn trên. */
+  body.trang-chu::before { content: ""; position: fixed; top: 0; left: 0; right: 0; z-index: 21; height: env(safe-area-inset-top); background: var(--c-hero-edge); pointer-events: none; }
+  body.trang-chu #topbar { position: static; flex-wrap: wrap; align-items: center; align-content: flex-start; gap: var(--s3); min-height: calc(env(safe-area-inset-top) + var(--s3) + var(--hero-row) + var(--hero-pad-bottom)); padding-top: calc(env(safe-area-inset-top) + var(--s3)); padding-bottom: var(--hero-pad-bottom); color: var(--c-on-hero); background: var(--hero-bg); }
+  body.trang-chu #topbar .brand { display: none; }
+  /* Thứ tự nhìn = thứ tự DOM (ảnh đại diện, lời chào, chuông, trợ giúp, bảo trì) — gỡ `order` của thanh đầu trang chung (chuông trước ảnh đại diện). */
+  body.trang-chu #topbar .bar-avatar, body.trang-chu #topbar:has(> .bell) .bar-avatar { order: 0; width: var(--hero-avatar); height: var(--hero-avatar); margin: calc((var(--hero-row) - var(--hero-avatar)) / 2) 0; font-size: var(--fs-step-5); color: var(--c-sand-text); background: var(--c-sand-soft); }
+  body.trang-chu #topbar .dash-hero-chao { order: 0; display: flex; flex-direction: column; flex: 1; min-width: 0; }
+  .dash-hero-xin { font-size: var(--fs-step-3); font-weight: var(--fw-medium, 500); line-height: var(--lh-20); color: var(--c-on-hero); opacity: var(--hero-muted); }
+  .dash-hero-ten { overflow: hidden; font-size: var(--fs-step-6); font-weight: var(--fw-bold, 700); line-height: var(--lh-24); color: var(--c-on-hero); white-space: nowrap; text-overflow: ellipsis; }
+  .dash-hero-ngay { font-size: var(--fs-step-2); font-weight: var(--fw-medium, 500); line-height: var(--lh-18); color: var(--c-on-hero); opacity: var(--hero-muted); }
+  body.trang-chu #topbar:has(> .bell) .bell { order: 0; margin-left: 0; isolation: isolate; color: var(--c-on-hero); border-radius: var(--radius-pill); background: none; }
+  body.trang-chu #topbar .bell:hover, body.trang-chu #topbar .bell[aria-expanded="true"] { background: none; }
+  /* Nền tròn của chuông / Trợ giúp: lớp dưới cùng màu chữ, độ đậm --hero-btn-tint (isolation giữ lớp này nằm TRONG nút, dưới biểu tượng và số đỏ). */
+  body.trang-chu #topbar .bell::before, body.trang-chu #topbar .dash-hero-nut::before { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: currentColor; opacity: var(--hero-btn-tint); }
+  body.trang-chu #topbar .bell-count { top: calc(var(--s1) / 2); right: 0; min-width: calc(var(--tile-badge) - 2 * var(--ntf-badge-ring)); height: calc(var(--tile-badge) - 2 * var(--ntf-badge-ring)); font-weight: var(--fw-bold, 700); box-shadow: 0 0 0 var(--ntf-badge-ring) var(--c-hero-ring); }
+  body.trang-chu #topbar .dash-hero-nut { order: 0; position: relative; isolation: isolate; display: flex; align-items: center; justify-content: center; flex: none; width: var(--tap-min); height: var(--tap-min); color: var(--c-on-hero); border-radius: var(--radius-pill); }
+  body.trang-chu #topbar .dash-hero-dong { order: 0; display: flex; flex-basis: 100%; }
+  body.trang-chu #topbar .dash-hero-bao-tri { display: inline-flex; align-items: center; gap: var(--s1); padding: var(--s1) var(--s3); font-size: var(--fs-step-2); font-weight: var(--fw-bold, 700); color: var(--c-sand-text); background: var(--c-sand-soft); border-radius: var(--radius-pill); }
+  body.trang-chu .maint-strip { display: none; } /* thay bằng viên thuốc trong dải đầu trang (bản vẽ 1g), cùng đích /account */
+
+  body.trang-chu main { display: flex; flex-direction: column; gap: var(--s3); padding-top: 0; padding-left: max(var(--s3), env(safe-area-inset-left)); padding-right: max(var(--s3), env(safe-area-inset-right)); }
+  body.trang-chu .dash-hello, body.trang-chu #dash-stats, body.trang-chu #dash-revenue { display: none; } /* lời chào máy tính; ba ô + thẻ doanh thu máy tính → thay bằng #dash-so */
+  .dash-tim { position: relative; display: flex; align-items: center; gap: var(--s2); height: var(--search-h); margin: calc(-1 * var(--search-overlap)) var(--s1) var(--s1); padding: 0 var(--s4); color: var(--c-text-muted); background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius-pill); box-shadow: var(--shadow-search); }
+  .dash-tim:focus-within { border-color: var(--c-primary); }
+  .dash-tim-ico { display: flex; flex: none; }
+  .dash-tim input { flex: 1; min-width: 0; height: 100%; min-height: 0; margin: 0; padding: 0; font: inherit; font-size: var(--fs-step-5); font-weight: var(--fw-medium, 500); color: var(--c-text); background: none; border: 0; border-radius: 0; outline: none; box-shadow: none; -webkit-appearance: none; appearance: none; }
+  .dash-tim input { text-overflow: ellipsis; }
+  .dash-tim input::placeholder { color: var(--c-text-muted); opacity: 1; }
+  /* Thông báo quan trọng (.ntf-strip) chen giữa dải đầu trang và ô tìm: ô tìm thôi đè lên (nếu không sẽ che dải thông báo). */
+  body.trang-chu #strips:has(.ntf-strip) ~ main .dash-tim { margin-top: var(--s3); }
+  .dash-o { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); row-gap: var(--s3); column-gap: calc(var(--s1) / 2); padding: var(--s4) var(--s1) var(--s3); background: var(--c-card); border: 1px solid var(--c-border); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); }
+
+  /* Dải báo lỗi (bản vẽ 1f): dưới lưới, biểu tượng + câu + "Thử lại". */
+  body.trang-chu #error { display: flex; align-items: flex-start; gap: var(--s2); margin: 0; padding: var(--s3); color: var(--c-danger); background: var(--c-danger-soft); border: 1px solid var(--c-danger); border-radius: var(--radius-md); }
+  .dash-loi-ico { display: flex; flex: none; padding-top: calc(var(--s1) / 2); }
+  .dash-loi-chu { flex: 1; min-width: 0; font-size: var(--fs-step-3); font-weight: var(--fw-semibold, 600); line-height: var(--lh-20); }
+  .dash-loi-nut { display: block; flex: none; min-height: var(--tap-min); margin: calc(-1 * var(--s3)) calc(-1 * var(--s1)) calc(-1 * var(--s3)) 0; padding: 0 var(--s2); font: inherit; font-size: var(--fs-step-3); font-weight: var(--fw-heavy, 800); color: var(--c-danger); text-decoration: underline; background: none; border: 0; cursor: pointer; }
+
+  /* Khung xương lúc tải (bản vẽ 1e): khối số liệu 2×2 + thẻ Chuyến đón; lời chào, ô tìm, lưới đã hiện. */
+  body.trang-chu #loading .skeleton-row { display: none; }
+  .dash-xuong { display: flex; flex-direction: column; gap: var(--s3); }
+  .dash-xuong-so { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; overflow: hidden; background: var(--c-border); border: 1px solid var(--c-border); border-radius: var(--radius-lg); }
+  .dash-xuong-so > div { display: flex; flex-direction: column; gap: var(--s2); padding: var(--s4); background: var(--c-card); }
+  .dash-xuong-chuyen { display: flex; flex-direction: column; gap: var(--s4); padding: var(--s4); background: var(--c-card); border: 1px solid var(--c-border); border-radius: var(--radius-lg); }
+  .dash-xuong-vien, .dash-xuong-dong { display: flex; gap: var(--s2); }
+  .dash-xuong-dong { align-items: flex-start; gap: var(--s3); }
+  .dash-xuong-dong > div { display: flex; flex: 1; flex-direction: column; gap: var(--s2); }
+  .dash-xg { display: block; flex: none; background: var(--c-surface-alt); border-radius: var(--radius-sm); }
+  .dash-xg-a { width: 70%; height: var(--skel-sm); }
+  .dash-xg-so { width: 55%; height: var(--skel-num); }
+  .dash-xg-b { width: 60%; height: var(--skel-sm); }
+  .dash-xg-tieu-de { width: 45%; height: var(--skel-title); }
+  .dash-xg-vien { width: var(--skel-pill); height: var(--day-pill-h); border-radius: var(--radius-pill); }
+  .dash-xg-gio { width: var(--skel-time); height: var(--skel-tag); }
+  .dash-xg-ten { width: 75%; height: var(--skel-md); }
+  .dash-xg-phu { width: 90%; height: var(--skel-sm); }
+  .dash-xg-tien { width: var(--skel-money); height: var(--skel-md); }
+
+  /* Khối số liệu (bản vẽ 1a): MỘT thẻ chia 2×2 bằng đường kẻ 1px (nền viền lộ qua khe). */
+  .dash-so { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1px; overflow: hidden; background: var(--c-border); border: 1px solid var(--c-border); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); }
+  .dash-so-o { display: flex; flex-direction: column; align-items: flex-start; gap: var(--s1); min-width: 0; padding: var(--s4); color: var(--c-text); text-decoration: none; background: var(--c-card); }
+  .dash-so-o:active { filter: brightness(.94); }
+  .dash-so-nhan { display: flex; align-items: center; gap: var(--s1); color: var(--c-primary); }
+  .dash-so-nhan span { font-size: var(--fs-step-2); font-weight: var(--fw-semibold, 600); color: var(--c-text-muted); }
+  .dash-so-gt { font-size: var(--fs-step-10); font-weight: var(--fw-heavy, 800); line-height: var(--lh-30); color: var(--c-text); white-space: nowrap; }
+  .dash-so-thieu { color: var(--c-danger); }
+  .dash-so-doanh-thu { color: var(--c-primary); }
+  .dash-so-phu { font-size: var(--fs-step-2); font-weight: var(--fw-medium, 500); line-height: var(--lh-18); color: var(--c-text-muted); }
+
+  .dash-grid { display: flex; flex-direction: column; gap: var(--s3); }
+  /* Thẻ "Chuyến đón" (bản vẽ 1a). */
+  .dash-today { margin: 0; padding: var(--s2) 0 0; overflow: hidden; border: 1px solid var(--c-border); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); }
+  .dash-today-head { gap: var(--s2); min-height: var(--tap-min); padding: 0 var(--s2) 0 var(--s4); border-bottom: 0; }
+  .dash-today-title { gap: var(--s2); font-size: var(--fs-step-6); font-weight: var(--fw-bold, 700); color: var(--c-text); }
+  .dash-today-title svg, .dash-review-heading svg { width: var(--icon-md); height: var(--icon-md); }
+  .dash-today-title svg { color: var(--c-primary); }
+  .dash-today-head .badge { padding: calc(var(--s1) / 2) var(--s2); font-size: var(--fs-step-1); }
+  .dash-today-all { display: flex; align-items: center; min-height: var(--tap-min); padding: 0 var(--s2); font-size: var(--fs-step-3); font-weight: var(--fw-bold, 700); color: var(--c-primary); text-decoration: none; }
+  .dash-today-all .lbl-short { display: inline-flex; align-items: center; gap: calc(var(--s1) / 2); }
+  .dash-days { flex-wrap: wrap; gap: var(--s1); margin: 0; padding: 0 var(--s3) var(--s1); background: none; border: 0; border-radius: 0; }
+  .dash-day { display: flex; flex: none; align-items: center; min-height: var(--tap-min); padding: 0; font-size: var(--fs-step-3); background: none; border-radius: 0; }
+  .dash-day[aria-pressed="true"] { background: none; }
+  .dash-day-nhan { display: flex; align-items: center; height: var(--day-pill-h); padding: 0 calc(2.5 * var(--s1)); font-weight: var(--fw-semibold, 600); color: var(--c-primary); white-space: nowrap; background: var(--c-primary-soft); border-radius: var(--radius-pill); }
+  .dash-day[aria-pressed="true"] .dash-day-nhan { font-weight: var(--fw-bold, 700); color: var(--c-on-dark); background: var(--c-primary); }
+  .dash-today-row { display: grid; grid-template-columns: var(--w-trip-time-dt) minmax(0, 1fr) auto; align-items: start; gap: var(--s3); padding: var(--s3) var(--s4); border-top: 1px solid var(--c-border); border-bottom: 0; }
+  .dash-today-when { width: auto; }
+  .dash-today-time { font-size: var(--fs-step-6); font-weight: var(--fw-heavy, 800); line-height: var(--lh-22); color: var(--c-primary); white-space: nowrap; } /* "06:30" không gãy (cụm .dash-today-when có overflow-wrap:anywhere của máy tính) */
+  .dash-today-place { display: none; } /* nơi đón chuyển sang đứng cạnh tên dịch vụ trong .dash-today-sub (display:none để trình đọc màn hình không đọc trùng hai lần) */
+  .dash-today-main { gap: calc(var(--s1) / 2); }
+  .dash-today-name { overflow: hidden; font-size: var(--fs-step-5); font-weight: var(--fw-bold, 700); line-height: var(--lh-22); white-space: nowrap; text-overflow: ellipsis; }
+  .dash-today-pax { font-size: var(--fs-step-3); font-weight: var(--fw-medium, 500); color: var(--c-text-muted); }
+  .dash-today-sub { font-size: var(--fs-step-3); line-height: var(--lh-20); color: var(--c-text-muted); }
+  .dash-today-money { gap: calc(var(--s1) / 2); padding-top: 1px; }
+  .dash-today-money b { font-size: var(--fs-step-4); font-weight: var(--fw-heavy, 800); line-height: var(--lh-20); white-space: nowrap; }
+  .dash-today-money .money-due { color: var(--c-danger); }
+  .dash-tien-du { display: none; } /* đủ tiền → viên thuốc "Đủ tiền" thay cho "0 ₫" */
+  .dash-con-lai { font-size: var(--fs-step-1); font-weight: var(--fw-semibold, 600); }
+  .dash-du-tien { padding: calc(var(--s1) / 2) var(--s2); font-size: var(--fs-step-1); white-space: nowrap; }
+  /* Quyết định chủ dự án 2026-09-23 (Fix round 2): dòng phụ rút gọn bỏ SĐT nên khổ điện thoại mất thao tác gọi khách — GIỮ nút gọi dù bản vẽ không vẽ (cả bản
+     vẽ 2026-09-30). `.dash-today-call` chỉ hiện ở khổ này (cùng cơ chế `.lbl-short`; luật này đứng sau nên thắng `display:none` mặc định), dưới số tiền. */
+  .dash-today-call { display: inline-flex; align-items: center; justify-content: center; gap: var(--s1); min-height: var(--tap-min); padding: 0 var(--s3); margin-top: var(--s1); font-size: var(--fs-label); font-weight: var(--fw-bold, 700); color: var(--c-primary); background: var(--c-primary-soft); border-radius: var(--radius-sm); cursor: pointer; }
+  #dash-today-empty { margin: 0; padding: var(--s5) var(--s4); font-size: var(--fs-step-4); border-top: 1px solid var(--c-border); }
+
+  /* Thẻ "Cần xem lại" (bản vẽ 1b — chỉ Quản trị / Toàn quyền, ẩn hẳn khi không có gì). */
+  .dash-review { margin: 0; padding: var(--s2) 0 0; overflow: hidden; border-radius: var(--radius-lg); }
+  .dash-review-head { min-height: var(--tap-min); padding: 0 var(--s4); border-bottom: 0; }
+  .dash-review-heading { gap: var(--s2); font-size: var(--fs-step-6); font-weight: var(--fw-bold, 700); }
+  .dash-review-heading svg { color: var(--c-sand-text); }
+  .dash-review-row { display: grid; grid-template-columns: var(--review-icon-dt) minmax(0, 1fr) var(--icon-md); align-items: center; gap: var(--s3); min-height: var(--tap-min); padding: var(--s3) var(--s4); border-top: 1px solid var(--c-border); border-bottom: 0; }
+  .dash-review-icon { width: var(--review-icon-dt); height: var(--review-icon-dt); border-radius: var(--radius-md); }
+  .dash-review-icon-accent { color: var(--c-danger); background: var(--c-danger-soft); }
+  .dash-review-title { font-size: var(--fs-step-4); line-height: var(--lh-20); }
+  .dash-review-sub { font-size: var(--fs-step-2); line-height: var(--lh-18); }
+  .dash-review-next { color: var(--c-text-muted); }
 }
 
 @media (min-width: 900px) {
@@ -2150,6 +2300,9 @@ body.login-page main.login { display: flex; flex-direction: column; height: 100%
 .dp-cuoc-mo { width: 100%; }
 .dp-cuoc-trong { margin: 0; font-size: var(--fs-label); color: var(--c-text-muted); }
 .dp-cc-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); margin-bottom: var(--s3); font-size: var(--fs-label); }
+.dp-cc-di-kem { display: flex; align-items: center; gap: var(--s2); margin-bottom: var(--s3); font-size: var(--fs-label); color: var(--c-muted); }
+.dp-cc-di-kem-viec { display: flex; flex-direction: column; gap: var(--s2); margin-bottom: var(--s3); }
+.dp-cc-di-kem-dong { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s2); font-size: var(--fs-label); }
 .dp-cc-meta { margin-bottom: var(--s3); font-size: var(--fs-label); }
 .dp-cc-day { display: flex; flex-direction: column; gap: var(--s1); }
 .dp-cc-day .vc-btn { min-height: var(--h-field); }
@@ -2172,6 +2325,7 @@ body.login-page main.login { display: flex; flex-direction: column; height: 100%
 
 /* Vòng 5b: thẻ "Khách trong chuyến" + "Rút khỏi xe" / "Chuyển sang xe khác" ở Chi tiết chuyến (chủ lần 15 — thợ tự đặt nút, lệch bản vẽ D-B2-4). Chỉ token. */
 .dp-khach-nhom-the { overflow: hidden; }
+.dp-khach-nhom-the .dp-card-head { flex-wrap: wrap; } /* nút "Thêm người đi kèm" xuống dòng ở 390 thay vì ép tiêu đề thành 3 dòng */
 .dp-khach-khoa { padding: var(--s2) var(--s4); border-bottom: 1px solid var(--c-border); }
 .dp-khach-nhom { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "t nut" "ten nut"; column-gap: var(--s3); row-gap: var(--gap-dp-hist); align-items: center; padding: var(--s3) var(--s4); font-size: var(--fs-label); border-bottom: 1px solid var(--c-border); }
 .dp-khach-nhom:last-child { border-bottom: 0; }

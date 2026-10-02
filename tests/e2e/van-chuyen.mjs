@@ -104,6 +104,9 @@ assert.equal(r.status, 409, JSON.stringify(r.body));
 assert.equal(r.body.error.code, "vehicle_plate_taken", "dùng lại xe khi biển đã thuộc xe khác chưa ngừng (R15 điểm 1)");
 r = await call(ADMIN, "POST", `/api/van-chuyen/xe/${xe2.id}/giay-to`, { typeCode: "INSPECTION", number: "KD-E2E-1", expiryDate: vnDate(5) });
 assert.equal(r.status, 201, JSON.stringify(r.body));
+const dup = await call(ADMIN, "POST", `/api/van-chuyen/xe/${xe2.id}/giay-to`, { typeCode: "INSPECTION", number: "KD-E2E-2", expiryDate: vnDate(300) });
+assert.equal(dup.status, 409, JSON.stringify(dup.body));
+assert.equal(dup.body.error.code, "document_type_exists", "ADR-0056 VK3-B: xe đã có Kiểm định đang dùng → dùng Gia hạn");
 r = await call(ADMIN, "GET", "/api/van-chuyen/sap-het-han");
 assert.equal(r.status, 200, JSON.stringify(r.body));
 const cua = (items) => items.filter((i) => i.targetId === xe2.id || i.targetId === txParty).map((i) => [i.kind, i.typeName]);
@@ -121,6 +124,8 @@ try {
   r = await call(ADMIN, "GET", "/api/van-chuyen/sap-het-han");
   assert.equal(r.body.warnDays, 7);
   assert.deepEqual(cua(r.body.items), [["vehicle", "Kiểm định"]]);
+  r = await call(TX, "GET", "/api/parties/documents/mine");
+  assert.equal(r.body.warnDays, 7, "giấy tờ của tài xế dùng CÙNG mốc (ADR-0040 D1)");
 } finally {
   await new Promise((res) => setTimeout(res, 5)); // valid_from_at duy nhất theo mili-giây
   const kp = await call(TOAN_QUYEN, "POST", "/api/van-chuyen/nguong-het-han", { warnDays: 30 });
