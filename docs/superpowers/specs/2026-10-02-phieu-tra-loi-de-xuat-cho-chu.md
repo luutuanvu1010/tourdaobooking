@@ -1,103 +1,93 @@
-# Phiếu trả lời đề xuất cho chủ dự án — sau duyệt độc lập (2026-10-02)
+# Phiếu trả lời đề xuất cho chủ dự án — bản 2.1 (2026-10-02, sau phiếu kiểm độc lập bản 3)
 
-> **Phiếu này để làm gì:** gom mọi câu hỏi mở của ba lượt duyệt vào **một lần trả lời**. Mỗi câu có đề xuất, lý do và phương án khác.
+> **Phiếu này để làm gì:** gom mọi câu còn mở vào **một lần trả lời**. Mỗi câu có đề xuất kèm lý do; chi tiết và phương án khác nằm ở văn bản từng lượt.
 >
-> **Nguồn đề xuất:** hai người duyệt độc lập. Đây chỉ là đề xuất. Quyết định có hiệu lực khi chủ trả lời (Hiến pháp N3).
+> **Đề xuất** đến từ người duyệt độc lập và nghiên cứu khung Oracle. Quyết định chỉ có hiệu lực khi chủ trả lời (Hiến pháp N3).
 >
-> **Cách trả lời:**
-> - "Đồng ý tất cả theo đề xuất, trừ … ", kèm ba câu ở mục 0; hoặc
-> - trả lời từng mã.
->
-> **Tệp đi kèm:**
-> - văn bản ba lượt: `2026-10-02-luot-duyet-1-…`, `2026-10-02-luot-duyet-2-…`, `2026-10-02-luot-duyet-3-…`;
-> - hai phiếu duyệt: `2026-10-02-phieu-duyet-doc-lap-luot-A-tien.md`, `…-B-quyen.md`.
+> **Cách trả lời nhanh:** "Đồng ý tất cả đề xuất, trừ: …".
 
-## Kết luận của người duyệt
-- **Lượt tiền (bản 1): chưa nên duyệt.** Ba chỗ làm theo sẽ không chạy:
-  - giữ cọc làm phí huỷ không làm số "cần hoàn" giảm;
-  - khi khách chưa trả sau chuyến, bản 1 đưa lại kiểu "khách còn nợ" mà bạn đã bác;
-  - sau chuyến không hoàn hay bồi thường được nữa.
-  
-  Thêm nữa, giấy báo huỷ có thể hứa hoàn cả khoản chuyển khoản chưa chắc đã về.
-- **Lượt quyền (bản 1): duyệt được sau khi sửa 9 chỗ.**
-  - Quản trị vẫn cấp thêm quyền Kế toán cho người khác được; Nhân sự tạo được tài khoản Kế toán mới.
-  - Bán hàng có thể đóng dấu "ngoại lệ" trước nhiều ngày để né mốc 6 giờ.
-- **Đã làm:** viết lại thành **bản 2**, chia lượt cho đúng luật "tối đa 3 quyết định mỗi lượt".
-- **Người kiểm thứ ba** soát bản 2: "trình được sau khi sửa 11 chỗ nhỏ", không có lỗi nghiêm trọng. **Đã sửa cả 11 chỗ.**
+## Đã có lời chủ (chat 2026-10-02) — đã viết vào văn bản
 
-## Ba lượt mới
-| Lượt | Gồm | Vì sao thứ tự này |
+| Câu | Lời chủ (nguyên văn) | Đã làm |
 |---|---|---|
-| **1 (gấp)** | ADR-0089 đơn huỷ còn tiền (hiện "cần hoàn" ở biên nhận, trang đơn, màn sổ); ADR-0090 chỉ Toàn quyền cấp quyền Kế toán, tạo tài khoản Kế toán, đặt lại PIN của họ | Lỗi đơn huỷ có hạn 15/10. ADR-0090 nhỏ, không đổi dữ liệu, chặn Quản trị đội tên Kế toán **trước khi** thêm lệnh tiền mới |
-| **2a** | ADR-0088 sửa sai sau "Đã giao" bằng lệnh "Thay lần thu", quy tắc tiền đúng mọi lúc, cách ghi khi khách chưa trả hay cần bồi thường (Q-A5) | Hạn 31/10. Tách 2a và 2b vì đếm theo từng quyết định con thì gộp lại sẽ vượt trần 3 |
-| **2b** | ADR-0092 sổ không ra số sai dấu, điều chỉnh có kiểm soát, ô mã giao dịch ngân hàng, phí huỷ | Hạn 31/10 |
-| **3** | ADR-0093 PIN tạm; ADR-0091 Bán hàng phá lệ mốc 6 giờ có nhãn "Ngoại lệ 6 giờ" | Không được làm chậm hai lượt tiền; phá lệ phải khớp lộ trình Vận chuyển |
+| Cọc khi khách huỷ (Q-A3 cũ) | "Khi khách huỷ, mặc định tiền cọc không được bồi hoàn. Tuy nhiên trên thực tế, công ty có thể hoàn tiền lại cho khách nhưng không bắt buộc, thời gian hoàn cọc tối đa là 60 ngày sau ngày khởi hành đã được lên kế hoạch" | **ADR-0089 viết lại (bản 3):** "còn lại" về 0; cọc mặc định giữ lại; hoàn tuỳ chọn hai bước (một người duyệt, Kế toán chi); quá hạn 60 ngày thì máy chặn |
+| Thiếu tiền hoặc bồi thường sau "Đã giao" (Q-A5 cũ) | "ai làm ngươì đó phải chịu, phân định rạch ròi trách nhiệm trong các trường hợp cụ thể" | **ADR-0088 đ9:** bảng 11 trường hợp, mỗi trường hợp một bên chịu; khoản thiếu thành nợ của bên đó với công ty |
+| Chống gửi trùng (Q-F02) | "Đồng ý, đều phải có cơ chế chống trùng, truy ngược lại khung của Oracle xem nên làm kiểu gì" | Đặc tả 22/9 ghi **đã duyệt**; mọi lệnh ghi đều chống trùng, kể cả màn Hồ sơ; viết **đặc tả mở rộng theo Oracle** (`2026-10-02-chong-trung-moi-lenh-ghi-theo-oracle.md`) |
+| Cho Bán hàng phá lệ mốc 6 giờ | "cho phép (nhưng phải có nhãn…)" | Đã nhắc một lần (P18) rằng câu này đảo ngược lựa chọn ngày 29/9. Văn bản thi hành theo lời chủ, không nhắc lại |
+
+**Cách AI hiểu lời chủ, chủ sửa nếu sai:**
+- "Ai làm người đó chịu" được hiểu là: khoản thiếu hoặc bồi thường chuyển thành **nợ của bên gây ra với công ty**, có thể là nhân viên, nhà xe, nhà cung cấp hay đối tác.
+- **Bất khả kháng** (thời tiết, cấm biển) thì không có ai "làm", nên **công ty chịu**.
+- App chỉ ghi công nợ; **trừ lương** làm theo luật lao động và quy chế, ngoài app.
+- "Đều phải có cơ chế chống trùng" được hiểu là áp cho **mọi lệnh ghi**, kể cả nút "Tạo hồ sơ" ở màn Hồ sơ. Phiếu trước đề xuất "chưa" cho màn này.
+- **Cách hạch toán** cọc giữ lại (tạm giữ trong hạn 60 ngày, sau đó là thu nhập khác) là suy luận của AI; **Kế toán chốt**.
 
 ---
 
-## 0. Ba câu **bạn phải trả lời trước** (hai câu máy không đoán được, một đặc tả đang treo)
+## Còn chờ chủ trả lời
 
-**Q-A3 — Công ty có giữ cọc khi khách huỷ không?**
-- Nếu có, cho biết:
-  - mốc bao nhiêu ngày trước ngày đi;
-  - có khác theo dịch vụ không (ví dụ vé cano, vé tham quan không hoàn được);
-  - ai thoả thuận với khách;
-  - khách có được báo điều kiện huỷ trước không.
-- Trong tài liệu dự án **chưa có** chính sách này.
-- **Nếu có giữ cọc:** lượt này Kế toán ghi tay số giữ lại, bằng một loại ghi riêng, có lý do. Bảng mốc tự tính để sau, giống cách bạn đã chọn cho phí huỷ nhà xe.
-- **Nếu không giữ cọc:** bỏ phần phí huỷ, văn bản gọn hơn.
-
-**Q-A5 — Sau "Đã giao", khách thực sự chưa trả (do có người ghi nhầm), hoặc công ty phải hoàn hay bồi thường cho khách: ghi thế nào, ai chịu?**
-- **Đề xuất (A):**
-  - thêm hai loại ghi: "phải đòi sau Đã giao" và "giảm trừ sau Đã giao";
-  - Kế toán theo dõi danh sách phải đòi; không đòi được thì Toàn quyền ghi "thất thu" có lý do;
-  - **mặc định công ty chịu** khoản thất thu; xử lý người làm sai theo quy chế nhân sự, ngoài app;
-  - **hoàn tiền sau "Đã giao"** (ví dụ khách phàn nàn sau tour) đi kèm một dòng "giảm trừ". Nếu bạn chưa chọn (A), hoàn sau "Đã giao" **tạm bị chặn**, vì để nguyên thì bộ kiểm báo đỏ và chặn phát hành.
-- **Lý do:**
-  - giữ được quy tắc tiền "luôn luôn" bạn đã chọn;
-  - không quay lại kiểu "khách còn nợ" bạn đã bác ngày 29/9;
-  - không đẩy rủi ro sang nhân viên khi chưa có quy chế.
-- **Phương án khác:**
-  - (A') khoản thiếu treo trên người ghi nhầm: dùng cơ chế sẵn có, nhưng là chính sách để nhân viên gánh, cần quy chế rõ;
-  - (B) ghi "khách còn nợ": đảo ngược lựa chọn ngày 29/9;
-  - (C) làm ngoài app: sổ sẽ ghi sai sự thật.
-
-**Q-F02 — Duyệt đặc tả "chống gửi trùng" ngày 22/9 (đang treo).** Lỗi gửi lặp (F-02) có hạn **15/10** trong sổ dừng dây chuyền và chỉ sửa được khi đặc tả này được duyệt. Đặc tả có 3 câu:
-- **Câu 1:** làm trước "cảnh báo đơn trùng". **Đề xuất:** (a) làm trước.
-- **Câu 2:** áp cho nút "Tạo hồ sơ" ở màn Hồ sơ. **Đề xuất:** (a) chưa.
-- **Câu 3:** nay **lỗi thời**, vì sổ thu tiền đã chạy. **Đề xuất:** cho AI **mở rộng đặc tả** sang ghi lần thu, hoàn, nộp và lệnh "Thay lần thu" rồi trình lại phần mở rộng. Thử thật đêm 1→2/10 đã cho thấy cả bốn lệnh này đều ghi hai lần khi gửi lặp.
-
-**Ghi chú F-03** (tiền đơn đã xác nhận mới chỉ được mã khoá, cơ sở dữ liệu chưa khoá): việc này là **siết theo luật tiền đã có**, không cần quyết định mới. AI làm như một việc thi công riêng, có người kiểm độc lập, hạn 31/10.
-
-## 1. Nhắc một lần (P18)
-Ngày 29/9 bạn đã **loại** phương án "Bán hàng tự phá lệ mốc 6 giờ", chỉ cho Quản trị và Toàn quyền (ADR-0049, ĐP3). Câu 5 ngày 2/10 ("cho phép") **đảo ngược** lựa chọn đó. Nếu chọn "mọi giờ" ở Q-B3 thì đảo ngược trọn vẹn, không chỉ vá ban đêm. Bạn xác nhận vẫn giữ "cho phép" thì văn bản thi hành, không nhắc lại.
-
-## 2. Lượt 1
-| Mã | Đề xuất | Lý do chính | Phương án khác |
+### Lượt 1a — Đơn huỷ và cọc (ADR-0089) — **gấp, hạn 15/10**
+| Mã | Câu hỏi | Đề xuất | Lý do |
 |---|---|---|---|
-| **Q-A4** | Nhắc khi đơn chờ hoàn quá **7 ngày** (tô màu ở danh sách "Cần hoàn") | Công ty nhỏ đối soát theo tuần; báo trước khi khoá sổ tháng | 3 ngày: nhắc nhiều, dễ bị lờ đi. 15–30 ngày: trễ |
-| **Ghi thu lên đơn huỷ** (mới) | Chỉ **Kế toán, Toàn quyền** | Ca thật là khách chuyển khoản muộn, việc của Kế toán; tránh Bán hàng hay Đối tác ghi tiền vào đơn đã huỷ | Giữ như hôm nay: ai cũng ghi được |
-| **Chỉ Toàn quyền cấp quyền tiền** (Q-B2 cũ) | Bốn việc chỉ Toàn quyền làm với tài khoản Kế toán: đặt lại PIN, gán quyền Kế toán, tạo tài khoản Kế toán, tắt lớp hai | Thử thật cho thấy Quản trị đội tên Kế toán hoàn được 500.000. Công ty chỉ 1–2 Kế toán nên việc dồn lên Toàn quyền rất ít. Đúng nguyên tắc "tách nhiệm vụ" bạn duyệt ở ADR-0072 | Chỉ chặn đặt lại PIN và báo Toàn quyền khi có người được cấp quyền Kế toán: phát hiện sau, không chặn trước |
+| **QH1** | "Cọc" là gì, khi app không có "% cọc"? | **Toàn bộ số khách đã trả trước khi huỷ**, kể cả khi đã trả đủ | Đúng chữ "mặc định không hoàn"; công ty vẫn hoàn tuỳ ý được; không phải thêm cài đặt tỉ lệ |
+| **QH2** | **Công ty huỷ** (thời tiết, cấm biển, hết chỗ, lỗi công ty) thì sao? | **Hoàn toàn bộ hoặc dời lịch**, theo lựa chọn của khách | Khách không có lỗi; đây là chỗ dễ tranh chấp nhất. Ở Nha Trang, huỷ vì thời tiết là chuyện thường |
+| **QH3** | Ai **duyệt** hoàn cọc? | **Quản trị (Giám đốc, Điều hành) hoặc Toàn quyền duyệt; Kế toán chi** | Hoàn cọc là quyết định giảm thu, tách khỏi người ghi sổ (lỗ G7 đã thấy khi một người làm cả hai) |
+| (đ7) | Ai được ghi thu lên đơn **đã huỷ**? | **Chỉ Kế toán, Toàn quyền** | Ca thật là khách chuyển khoản muộn, việc của Kế toán đối chiếu ngân hàng |
+| (đ4) | Nhắc Kế toán | Khoản đã duyệt mà chưa chi quá **7 ngày**; còn ≤ **10 ngày** tới hạn 60 ngày. Hiện ở danh sách, không đẩy tin | Báo trước khi hết hạn |
+| **QH4** | Huỷ vì **nhập sai, lập lại đơn** hoặc **khách đặt trùng** | Tiền **chuyển sang đơn mới** (hoặc hoàn), **không giữ cọc** | Nếu giữ thì khách bị thu hai lần cho cùng một chuyến |
+| **QH5** | Đơn cũ **đã hoàn tay** trước khi có sổ | Toàn quyền **ghi bù một lần**, có lý do, **không áp hạn 60 ngày** | Sổ phải ghi đúng việc đã xảy ra |
+| **QH6** | Hạn 60 ngày chặn gì | Chặn **duyệt mới** sau hạn; khoản **đã duyệt trước hạn** vẫn chi được. Đơn nháp huỷ chưa có ngày đi thì tính từ ngày huỷ | Khách đã được hứa hoàn thì không bị mất. Phương án khác: chặn cả chi, đúng chữ "tối đa 60 ngày" hơn |
+| **QH7** | Đơn của **đối tác mà đại lý cầm cọc** | Cọc là của công ty; đại lý **nộp về** hoặc **bù trừ** ở kỳ đối soát đại lý | Thống nhất với cách tính hoa hồng sắp làm |
+| **QH8** | In **điều khoản huỷ** lên ảnh **xác nhận đơn** lúc đặt | **Có**, một dòng "Khi khách huỷ, tiền cọc không được hoàn lại" (bạn chốt chữ) | Thông báo huỷ in "không hoàn" mà lúc đặt khách chưa được báo thì dễ tranh chấp |
 
-## 3. Lượt 2 (2a và 2b)
-| Mã | Đề xuất | Lý do chính | Phương án khác |
+### Lượt 1b — Chỉ Toàn quyền cấp quyền tiền (ADR-0090)
+Không có câu hỏi. **Đề xuất: duyệt văn bản.** Chỉ Toàn quyền được đặt lại PIN, gán quyền Kế toán, tạo tài khoản Kế toán và tắt lớp hai của tài khoản Kế toán. Lý do: thử thật cho thấy Quản trị đội tên Kế toán hoàn được 500.000.
+
+### Chống trùng — đặc tả mở rộng theo Oracle (§3.5)
+| Mã | Câu hỏi | Đề xuất | Lý do |
 |---|---|---|---|
-| **Q-A1** — trần điều chỉnh tiền | Giảm nợ của ai thì không quá số người đó đang nợ; tăng nợ không quá số lớn hơn giữa phải thu và đã thu; lý do ≥ 10 ký tự; **người bị đổi số nhận tin báo** | Lần thử mất tiền là xoá 100.000 tiền mặt Bán hàng đang cầm, lý do một dấu chấm. Trần "≤ phải thu" của bản 1 vẫn để lọt. Báo cho người bị đổi là kiểm soát rẻ nhất | Một con số cố định (vd 5 triệu): không chặn được xoá nợ nhỏ. Toàn quyền duyệt mọi điều chỉnh: chặt nhất nhưng thành nút thắt |
-| **Q-A2** — ô mã giao dịch ngân hàng | **Có**: ô riêng, cảnh báo khi trùng mã (không chặn) | Thử thật: hai người khai cùng một khoản chuyển khoản, công ty mất 100.000. Mã giao dịch là bằng chứng đối chiếu duy nhất. Hiện ghi chú đang **chặn** đúng chuỗi số này | Không thêm ô; màn xác nhận liệt kê các khoản cùng số tiền, cùng ngày: rẻ nhưng dò đoán |
+| **CT1** | Cùng mã lần gửi nhưng **khác nội dung**, ở lệnh tiền | **Báo lỗi 409** "lần gửi trước đã ghi với nội dung khác, tải lại để xem" | Không lặng lẽ bỏ số mới, không ghi hai lần. Oracle không ghi rõ cách này, đây là lựa chọn an toàn của app |
+| **CT2** | Thứ tự phát hành | **(a)** Giao diện gửi mã trước, máy chủ nhận tuỳ chọn; khi mọi người đã lên bản mới thì **bắt buộc** | Máy còn bản app cũ sẽ không bị báo lỗi bất ngờ |
+| **CT3** | Cảnh báo lần thu **tiền mặt** giống nhau (cùng đơn, số tiền, ngày) | **Có**, chỉ cảnh báo; người ghi bấm "vẫn ghi" kèm lý do | Hai lần thu thật cùng số vẫn có thể xảy ra |
+| **CT4** | Ai được bỏ qua cảnh báo trùng | **Người đang ghi** bỏ qua được, **lý do bắt buộc**, ghi nhật ký; Kế toán thấy danh sách đã bỏ qua | Cách của Oracle với hồ sơ khả nghi trùng: người nhập tự quyết, nhưng có dấu vết |
+| **CT5** | Đối tác, HDV thấy gì khi SĐT khách **đã có đơn của người khác** | Chỉ thấy **"Khách này có thể đã có đơn — liên hệ văn phòng"**, không thấy mã đơn, tên người lập hay giá | Không lộ khách và giá của công ty cho người ngoài |
+| **CT6** | (Đặc tả "cảnh báo đơn trùng", câu 1) "1 tuần" tính theo ngày nào | **Ngày khởi hành** của hai dịch vụ cách nhau ≤ 7 ngày | Cái hại thật là hai lần đón cho cùng một chuyến |
+| **CT7** | (Câu 2) Đổi ngày hay đổi khách của đơn đã xác nhận có cảnh báo không | **Có** | Đổi phút cuối là lúc dễ trùng nhất |
+| **CT8** | (Câu 3) **Dịch vụ nhập tay** có đem ra so trùng không | **Không**, chỉ so dịch vụ có mã danh mục | Dịch vụ nhập tay đã mở lại cho nội bộ bằng công tắc (ADR-0061, mặc định tắt). So theo tên gõ tay dễ báo nhầm |
 
-## 4. Lượt 3
-| Mã | Đề xuất | Lý do chính | Phương án khác |
+### Lượt 2a — Sửa sai sau "Đã giao" và phân định trách nhiệm (ADR-0088)
+| Mã | Câu hỏi | Đề xuất | Lý do |
 |---|---|---|---|
-| **Q-B1** — hạn PIN tạm | Đặt lại PIN: **24 giờ**. Tạo tài khoản mới: **7 ngày** | Đặt lại thì người dùng đang chờ, dùng ngay. Người mới hay đối tác chưa chắc cài app ngay; Nhân sự không cấp lại được PIN | 72 giờ cho cả hai: đơn giản hơn, cửa hở lâu hơn |
-| **Q-B6** — tài khoản cũ có PIN do người khác đặt | **Có**: khoảng 30 tài khoản nội bộ phải đổi PIN một lần; đối tác không bắt | Nếu không, PIN cũ vẫn nằm trong tay người đặt, đăng nhập lặng lẽ được. Câu này chạm dữ liệu thật; trước khi làm sẽ đếm bằng lệnh chỉ đọc | Không bắt: rủi ro cũ còn nguyên |
-| **Q-B3** — giờ phá lệ | **Mọi giờ**, kèm hai chốt: chỉ phá lệ được khi đơn **đang thật sự** bị mốc chặn; Quản trị có ô đếm "ngoại lệ 7 ngày qua, theo người" | Ban ngày Quản trị cũng hay vắng; khung giờ cần thêm cài đặt "giờ trực" | Chỉ ngoài giờ hành chính: ban ngày giữ đúng lựa chọn 29/9, nhưng ban ngày Quản trị vắng thì lại kẹt |
-| **Q-B4** — báo Quản trị | **Chỉ hộp thông báo**, không đẩy thông báo ra điện thoại | Ngoại lệ sinh ra để không phải đánh thức Quản trị; việc đã làm xong | Đẩy thông báo ngay: đánh thức người vì việc đã xong, dễ khiến họ tắt thông báo luôn |
-| **Q-B5** — ai không được phá lệ | Đối tác, HDV, Thực tập, Kế toán đều **không** | HDV không xếp xe; Đối tác là bên ngoài (khoảng 1.000 tài khoản) và đã tự xác nhận được đơn | Cho Đối tác: hàng nghìn người ngoài mở được lối này, nhãn nhiều đến mất nghĩa |
-| **Q-B7** — lệnh nào được phá lệ | Xác nhận đơn; sửa giờ hoặc nơi dưới mốc; **đưa khách chưa có xe lên xe**; thêm điểm khi xe đang chạy. **Chưa** cho đổi xe, đổi tài xế, rút khách, huỷ chuyến | Đổi xe hay tài xế sát giờ chính là chỗ thử thật cho thấy tài xế không được báo. Mở sau khi làm xong phần báo tài xế | Mở hết: nhanh hơn, nhưng dễ lỡ khách |
-| **Q-B8** — Đối tác có thấy nhãn không | Thấy **loại** nhãn trên đơn của mình, không thấy ai làm, vì sao | Giống "Đặt gấp" hôm nay; đối tác biết đơn mình là ca đặc biệt | Ẩn với đối tác |
-| **Q-B9** — Toàn quyền nhận tin ở đâu | Ngăn **"Tất cả"**; Quản trị nhận ở "Của tôi" | Toàn quyền là vai kỹ thuật, ngoại lệ là việc kinh doanh | Cả hai cùng nhận ở "Của tôi" |
+| **QT1** | Bảng 11 trường hợp (ADR-0088 đ9). Tóm tắt: ghi nhầm mà tiền có thật thì sửa, không ai mất; khai thu mà không thu thì người khai chịu; lỗi nhân viên, nhà xe, nhà cung cấp, đối tác thì bên đó chịu; bất khả kháng thì công ty chịu; chưa rõ thì công ty tạm chịu trong 7 ngày | **Duyệt bảng** | Đúng lời chủ "ai làm người đó chịu"; không ghi "khách còn nợ" mà chủ đã bác |
+| **QT2** | Ai **phân định** trách nhiệm | **Quản trị hoặc Toàn quyền**; Kế toán ghi theo phân định; người ghi khác người phân định | Phân định là quyết định về người, cần thẩm quyền; tách khỏi người ghi sổ |
+| **QT3** | Người bị gán có bao lâu để phản hồi | **3 ngày làm việc** | Đủ để giải thích, không treo lâu |
+| **QT4** | Quá 7 ngày mà chưa phân định | Công ty **tiếp tục tạm chịu**, khoản hiện đỏ ở danh sách; **không** tự gán cho ai | Tự gán là trái "phân định rạch ròi" |
 
-## 5. Sau khi bạn trả lời
-1. AI chép câu trả lời nguyên văn vào văn bản, đổi trạng thái thành accepted, chuyển vào `docs/adr/`. Việc này cần bạn bấm đồng ý khi được hỏi quyền sửa ADR.
-2. Lập kế hoạch thi công **lượt 1** trước, kèm điều kiện: làm phần chống gửi lặp cho lệnh hoàn tiền cùng đợt.
-3. Mỗi lượt thi công xong có người kiểm độc lập. Các kịch bản thử thật đêm 1→2/10 được chuyển thành bài kiểm tự động.
+### Lượt 2b — Sổ không đổi dấu, điều chỉnh, mã giao dịch (ADR-0092)
+| Mã | Câu hỏi | Đề xuất | Lý do |
+|---|---|---|---|
+| **Q-A1** | Trần phiếu điều chỉnh | Giảm nợ của ai thì không quá số người đó đang nợ; tăng nợ không quá số lớn hơn giữa phải thu và đã thu; lý do ≥ 10 ký tự; **người bị đổi số nhận tin báo** | Lần thử mất tiền là xoá 100.000 tiền mặt với lý do một dấu chấm |
+| **Q-A2** | Ô mã giao dịch ngân hàng | **Có**: chặn trùng trong cùng đơn; cảnh báo khi trùng ở đơn khác; tổng các lần thu gắn cùng mã ≤ số tiền chuyển | Theo cách Oracle chặn biên lai trùng. Lần thử: hai người khai cùng một khoản chuyển, công ty mất 100.000 |
+
+### Lượt 3 — PIN tạm (ADR-0093) và ngoại lệ 6 giờ (ADR-0091)
+| Mã | Câu hỏi | Đề xuất | Lý do |
+|---|---|---|---|
+| **Q-B1** | Hạn PIN tạm | Đặt lại **24 giờ**; tạo tài khoản mới **7 ngày** | Đặt lại thì người dùng đang chờ dùng ngay; người mới hay đối tác chưa chắc cài app ngay |
+| **Q-B6** | Tài khoản cũ có PIN do người khác đặt | **Có**: khoảng 30 tài khoản nội bộ đổi PIN một lần; đối tác không bắt | Nếu không, PIN cũ vẫn nằm trong tay người đặt |
+| **Q-B3** | Giờ được phá lệ | **Mọi giờ**, chỉ khi đơn **đang thật sự** bị mốc chặn; Quản trị có ô đếm theo người | Ban ngày Quản trị cũng hay vắng |
+| **Q-B4** | Báo Quản trị | **Chỉ hộp thông báo**, không đẩy ra điện thoại | Phá lệ sinh ra để không phải đánh thức Quản trị |
+| **Q-B5** | Ai **không** được phá lệ | Đối tác, HDV, Thực tập, Kế toán | HDV không xếp xe; Đối tác là bên ngoài |
+| **Q-B7** | Lệnh nào được phá lệ | Xác nhận đơn, sửa giờ hoặc nơi dưới mốc, **đưa khách chưa có xe lên xe**, thêm điểm khi xe chạy. **Chưa** cho đổi xe hay tài xế | Đổi xe hay tài xế sát giờ là chỗ tài xế không được báo |
+| **Q-B8** | Đối tác thấy nhãn không | Thấy **loại** nhãn, không thấy ai làm, vì sao | Giống "Đặt gấp" hôm nay |
+| **Q-B9** | Toàn quyền nhận tin ở đâu | Ngăn **"Tất cả"** | Toàn quyền là vai kỹ thuật |
+
+---
+
+## Sau khi chủ trả lời
+1. **Chuyển văn bản vào `docs/adr/`:** AI chép lời chủ nguyên văn, đổi trạng thái sang đã duyệt. Bước này cần chủ bấm đồng ý khi máy hỏi quyền sửa ADR.
+2. **Thi công theo thứ tự:**
+   - **lượt 1a + 1b**, cùng chống trùng cho **mọi lệnh ghi đang có**: lập đơn và hồ sơ, thu tiền, Đã giao kèm thu, Công ty đã nhận, hoàn, nộp/trả, điều chỉnh, và hai lệnh mới duyệt hoàn, chi hoàn. Hạn 15/10 của lỗi gửi lặp gồm tất cả các lệnh này; không kịp thì bạn gia hạn có lý do;
+   - rồi **2a, 2b** (hạn 31/10);
+   - rồi **3**.
+3. Mỗi lượt có người kiểm độc lập. Kịch bản thử thật đêm 1→2/10 chuyển thành bài kiểm tự động.
+4. **F-03** (tiền đơn đã xác nhận mới chỉ được mã khoá) là việc siết theo luật đã có, không cần câu hỏi; hạn 31/10.

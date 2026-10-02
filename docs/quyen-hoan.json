@@ -51,7 +51,7 @@
       "ma": "F-02",
       "muc_do": "HIGH",
       "ly_do": "Lệnh ghi không chống gửi lặp (mất sóng sau khi máy chủ đã lưu rồi gửi lại): lập đơn ra 2 đơn + 2 hồ sơ khách, ghi lần thu ra 2 lần thu, ghi hoàn ra 2 lần hoàn, ghi nộp ra 2 lần nộp (sổ âm). Chạy thật đêm 1→2/10 trên app tạm: tình huống 11, 12, 13, HD10, KT03, KT04 (gốc G2 của báo cáo thử nghiệp vụ). Gộp phát hiện thử nghiệp vụ G2 vào đây (cùng gốc).",
-      "ke_hoach": "Khoá lần gửi theo đặc tả docs/superpowers/specs/2026-09-22-chong-gui-trung.md (lập đơn + hồ sơ khách mới), mở rộng cho ghi lần thu, hoàn, nộp, điều chỉnh và lệnh Thay lần thu (ADR-0088 nháp); CHỦ DUYỆT ĐẶC TẢ 22/9 (§6) trước — điều kiện để kịp hạn; phần lệnh HOÀN làm cùng đợt lượt duyệt 1 (ADR-0089 làm nút hoàn hiện thêm ở đơn huỷ); thi công có người kiểm độc lập; kịch bản kiểm lại: ~/Documents/danh-gia-ux/2026-10-01/kich-ban/nhom-2.mjs 11 12, vai-kt.mjs KT03 KT04.",
+      "ke_hoach": "Khoá lần gửi cho MỌI lệnh ghi (chủ dự án 2026-10-02: \"Đồng ý, đều phải có cơ chế chống trùng, truy ngược lại khung của Oracle xem nên làm kiểu gì\"): đặc tả docs/superpowers/specs/2026-09-22-chong-gui-trung.md (đã duyệt 2/10) + mở rộng theo Oracle docs/superpowers/specs/2026-10-02-chong-trung-moi-lenh-ghi-theo-oracle.md (chờ chủ trả lời CT1–CT8). Đợt hạn 15/10 phải gồm: lập đơn + hồ sơ khách, ghi lần thu, Đã giao kèm thu, Công ty đã nhận, hoàn, nộp/trả, điều chỉnh, và hai lệnh mới duyệt hoàn / chi hoàn cọc (ADR-0089); lệnh Thay lần thu (ADR-0088) có mã ngay từ đầu. Không kịp thì chủ gia hạn bằng diff có lý do. Thi công có người kiểm độc lập; kịch bản kiểm lại: ~/Documents/danh-gia-ux/2026-10-01/kich-ban/nhom-2.mjs 11 12, vai-kt.mjs KT03 KT04.",
       "han": "2026-10-15",
       "nguoi_chiu_trach_nhiem": "chủ dự án",
       "nguon": "docs/AUDIT-2026-09-22-KIEN-TRUC.md F-02; ~/Documents/danh-gia-ux/2026-10-01/BAO-CAO.md G2; chủ dự án đồng ý đưa vào sổ 2026-10-02 (câu 1: \"Có\")"
@@ -68,8 +68,8 @@
     {
       "ma": "TNV-G1",
       "muc_do": "HIGH",
-      "ly_do": "Đơn huỷ còn tiền đã thu: \"phải thu\" không về 0 nên sổ, trang đơn và biên nhận gửi khách vẫn ghi \"còn lại\", dư chờ hoàn = 0, nút hoàn không hiện, Kế toán không có danh sách nhắc (src/modules/orders/hoan-tat.ts:9-17,64). Khách đã trả tiền cho tour không đi, không ai chủ động hoàn. Tình huống 09, 26, HD06, HD08, QT05, DT04.",
-      "ke_hoach": "Theo ADR-0089 (nháp, chủ đã chọn: dấu \"cần hoàn cọc\" hiện ở cả biên nhận, trang đơn và màn sổ — 2026-10-02); chủ duyệt văn bản ADR rồi thi công, người kiểm độc lập.",
+      "ly_do": "Đơn huỷ còn tiền đã thu: \"phải thu\" không xét trạng thái huỷ nên sổ, trang đơn và biên nhận gửi khách vẫn ghi \"còn lại\" (khách trông như CÒN NỢ), không có đường ghi \"cọc giữ lại\" hay quyết định hoàn (src/modules/orders/hoan-tat.ts:9-18,64). Tình huống 09, 26, HD06, HD08, QT05, DT04. Chính sách chủ 2026-10-02: khách huỷ thì mặc định KHÔNG hoàn cọc; công ty có thể hoàn (không bắt buộc), tối đa 60 ngày sau ngày khởi hành dự kiến.",
+      "ke_hoach": "Theo ADR-0089 bản 3.1 (lượt duyệt 1a — docs/superpowers/specs/2026-10-02-luot-duyet-1-don-huy-va-quyen-tien.md): hàm duy nhất billing.conLai nhận cờ đơn huỷ → còn lại 0, cọc mặc định giữ; hoàn tuỳ chọn hai bước (duyệt / chi, khác người), tổng chi ≤ tổng duyệt ≤ đã trả, hạn 60 ngày; lý do huỷ ba nhóm bắt buộc; trạng thái cọc ở biên nhận + trang đơn + màn sổ. Chủ duyệt văn bản + QH1–QH8 rồi thi công; người kiểm độc lập.",
       "han": "2026-10-15",
       "nguoi_chiu_trach_nhiem": "chủ dự án",
       "nguon": "~/Documents/danh-gia-ux/2026-10-01/BAO-CAO.md G1; chủ dự án đồng ý đưa vào sổ 2026-10-02"
@@ -78,7 +78,7 @@
       "ma": "TNV-G3",
       "muc_do": "HIGH",
       "ly_do": "Sửa sai sau \"Đã giao\": Kế toán đảo lần thu ghi nhầm được nhưng không ghi lại được lần thu đúng (409 order_delivered), vậy mà đơn vẫn Hoàn thành với \"còn lại\" > 0 — tiền biến khỏi sổ (200.000–800.000đ trong lần thử); audit-invariants R-BIL-1 chỉ so tại mốc Đã giao nên không bắt (src/modules/billing/service.ts:218-222). Tình huống 30, 49, KD06, DT05.",
-      "ke_hoach": "Theo ADR-0088 (nháp bản 2, lượt duyệt 2a — docs/superpowers/specs/2026-10-02-luot-duyet-2-sua-sai-sau-da-giao-va-so-khong-doi-dau.md; chủ đã chọn I1 xét LUÔN LUÔN 2026-10-02): lệnh Thay lần thu (một lô), chặn đảo đơn lẻ sau Đã giao, chặn Hoàn thành khi lệch (máy chủ + trigger), R-BIL-1 mọi lúc (cảnh báo trước mốc, lỗi sau mốc), luật tạm cho hoàn sau Đã giao chờ Q-A5; người kiểm độc lập.",
+      "ke_hoach": "Theo ADR-0088 bản 3.1 (lượt duyệt 2a — docs/superpowers/specs/2026-10-02-luot-duyet-2-sua-sai-sau-da-giao-va-so-khong-doi-dau.md; chủ chọn I1 xét LUÔN LUÔN 2026-10-02): I1 = due_snapshot − giảm trừ đã phân định; lệnh Thay lần thu (một lô); chặn đảo đơn lẻ sau Đã giao; chặn Hoàn thành khi lệch (máy chủ + trigger); phân định trách nhiệm đ9 (lời chủ: ai làm người đó chịu); R-BIL-1 mọi lúc (cảnh báo trước mốc, lỗi sau mốc); người kiểm độc lập.",
       "han": "2026-10-31",
       "nguoi_chiu_trach_nhiem": "chủ dự án",
       "nguon": "~/Documents/danh-gia-ux/2026-10-01/BAO-CAO.md G3; chủ dự án đồng ý 2026-10-02"
@@ -87,7 +87,7 @@
       "ma": "TNV-G4",
       "muc_do": "HIGH",
       "ly_do": "Sổ tiền thiếu ràng buộc: hoàn rồi đảo lần thu gốc làm \"đã thu\" ÂM, biên nhận đòi khách hơn giá đơn (KT06, src/modules/billing/service.ts:461-486); ghi nộp quá số đang giữ / cho người không giữ làm số dư âm, đơn vẫn Hoàn thành (KT04); điều chỉnh không trần, lý do một ký tự (KT05); hai người khai cùng một khoản chuyển khoản đều được xác nhận rồi bị hoàn (KT02). audit-invariants báo xanh (KT10).",
-      "ke_hoach": "Theo ADR-0092 (nháp bản 2, lượt duyệt 2 — docs/superpowers/specs/2026-10-02-luot-duyet-2-sua-sai-sau-da-giao-va-so-khong-doi-dau.md): đã thu ròng ≥ 0, quyết toán không đổi dấu (R-BIL-13 lên mức lỗi), hoàn ≤ người trả đang giữ, điều chỉnh có trần + lý do + báo người bị đổi, ô mã giao dịch ngân hàng; người kiểm độc lập.",
+      "ke_hoach": "Theo ADR-0092 (nháp bản 3.1, lượt duyệt 2b — docs/superpowers/specs/2026-10-02-luot-duyet-2-sua-sai-sau-da-giao-va-so-khong-doi-dau.md): đã thu ròng ≥ 0, quyết toán không đổi dấu (R-BIL-13 lên mức lỗi), hoàn ≤ người trả đang giữ, điều chỉnh có trần + lý do + báo người bị đổi, ô mã giao dịch ngân hàng; người kiểm độc lập.",
       "han": "2026-10-31",
       "nguoi_chiu_trach_nhiem": "chủ dự án",
       "nguon": "~/Documents/danh-gia-ux/2026-10-01/BAO-CAO.md G4; chủ dự án đồng ý 2026-10-02"
