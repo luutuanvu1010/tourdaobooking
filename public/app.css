@@ -1545,8 +1545,8 @@ body.login-page main.login { display: flex; flex-direction: column; height: 100%
   .dash-today-call { display: inline-flex; align-items: center; justify-content: center; gap: var(--s1); min-height: var(--tap-min); padding: 0 var(--s3); margin-top: var(--s1); font-size: var(--fs-label); font-weight: var(--fw-bold, 700); color: var(--c-primary); background: var(--c-primary-soft); border-radius: var(--radius-sm); cursor: pointer; }
   #dash-today-empty { margin: 0; padding: var(--s5) var(--s4); font-size: var(--fs-step-4); border-top: 1px solid var(--c-border); }
 
-  /* Thẻ "Cần xem lại" (bản vẽ 1b — chỉ Quản trị / Toàn quyền, ẩn hẳn khi không có gì). Bản vẽ 1.73: đứng TRƯỚC thẻ Chuyến đón. */
-  .dash-review { order: -1; margin: 0; padding: var(--s2) 0 0; overflow: hidden; border-radius: var(--radius-lg); }
+  /* Thẻ "Cần xem lại" (bản vẽ 1b — chỉ Quản trị / Toàn quyền, ẩn hẳn khi không có gì). Bản vẽ 1.73: đứng TRƯỚC thẻ Chuyến đón (thứ tự DOM). */
+  .dash-review { margin: 0; padding: var(--s2) 0 0; overflow: hidden; border-radius: var(--radius-lg); }
   .dash-review-head { min-height: var(--tap-min); padding: 0 var(--s4); border-bottom: 0; }
   .dash-review-heading { gap: var(--s2); font-size: var(--fs-step-6); font-weight: var(--fw-bold, 700); }
   .dash-review-heading svg { color: var(--c-sand-text); }
@@ -1662,7 +1662,9 @@ body.login-page main.login { display: flex; flex-direction: column; height: 100%
 
   /* Thẻ số liệu: một thẻ, các ô ngăn bằng khe 1px (nền viền lộ qua khe). Dưới 1200px: Còn thiếu tiền cả hàng, Chờ xác nhận | Chưa phụ trách, Doanh thu cả hàng;
      từ 1200px một hàng bốn ô (khối @media cuối). Ô Doanh thu: chữ bên trái, biểu đồ tuần bên phải (hẹp quá thì biểu đồ xuống dòng). */
-  .dash-so-mt { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "thieu thieu" "cho chua" "dt dt"; gap: 1px; min-width: 0; overflow: hidden; background: var(--c-border); border: 1px solid var(--c-border); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); }
+  /* position: relative — bảng ẩn cho máy đọc màn hình của biểu đồ (.visually-hidden, bảng tự giãn theo chữ dù đặt rộng 1px) lấy thẻ làm khung nên bị cắt theo thẻ,
+     không lòi ra mép phải trang (đo 1.73: tràn ngang 65px khi biểu đồ đứng sát mép phải). */
+  .dash-so-mt { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "thieu thieu" "cho chua" "dt dt"; gap: 1px; min-width: 0; overflow: hidden; background: var(--c-border); border: 1px solid var(--c-border); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); }
   .dash-smt-o-thieu { grid-area: thieu; }
   .dash-smt-o-cho { grid-area: cho; }
   .dash-smt-o-chua { grid-area: chua; }
@@ -1741,8 +1743,10 @@ body.login-page main.login { display: flex; flex-direction: column; height: 100%
   .dash-xuong-mt { grid-template-columns: minmax(0, 1fr) var(--w-home-side); grid-template-areas: "stats stats" "trips ."; }
   .dash-xuong-mt-so { flex-direction: row; }
   .dash-xuong-mt-so > div { flex: 1; }
-  .dash-so-mt { grid-template-columns: minmax(0, 1.2fr) minmax(0, .8fr) minmax(0, .8fr) minmax(0, 1.7fr); grid-template-areas: "thieu cho chua dt"; }
-  .dash-smt-o-dt { flex-wrap: nowrap; }
+  /* Một hàng bốn ô. Tỉ lệ bản vẽ 1.2 / .8 / .8 / 1.7 nới cho ô Doanh thu (1.15 / .75 / .75 / 1.85) và lề ngang hẹp hơn: Be Vietnam Pro rộng hơn chữ của bản vẽ —
+     "10.400.000 ₫" bị cắt ở 1280 khi giữ đúng tỉ lệ. Ô Doanh thu vẫn cho xuống dòng: số rất lớn thì biểu đồ xuống dưới, không cắt số. */
+  .dash-so-mt { grid-template-columns: minmax(0, 1.15fr) minmax(0, .75fr) minmax(0, .75fr) minmax(0, 1.85fr); grid-template-areas: "thieu cho chua dt"; }
+  .dash-smt-o { padding: var(--s4); gap: var(--s3); }
 }
 @media (min-width: 1400px) {
   .dash-grid, .dash-xuong-mt { grid-template-columns: minmax(0, 1fr) var(--w-home-side-lg); }

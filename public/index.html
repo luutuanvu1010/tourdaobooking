@@ -51,6 +51,14 @@
   </div>
   <div id="dash-so" class="dash-so" hidden></div>
   <div id="dash-grid" class="dash-grid" hidden>
+    <!-- Thứ tự DOM = thứ tự đọc ở điện thoại và máy tính một cột (bản vẽ 1.73): số liệu → Cần xem lại → Chuyến đón → Lối tắt. Hai cột (≥1200px) đặt chỗ bằng
+         grid-template-areas, không dùng CSS order (bài học Đợt C).
+         Số liệu máy tính: một thẻ bốn ô — Còn thiếu tiền, Chờ xác nhận, Chưa phụ trách, Doanh thu của tôi (biểu đồ tuần). Điện thoại dùng #dash-so. -->
+    <section id="dash-so-mt" class="dash-so-mt" aria-label="Số liệu"></section>
+    <section id="dash-review" class="card dash-review" hidden>
+      <div class="dash-review-head"><span class="dash-review-heading icon-label">Cần xem lại</span></div>
+      <div id="dash-review-list"></div>
+    </section>
     <section id="dash-today" class="card dash-today">
       <div class="dash-today-head">
         <span class="dash-today-title icon-label">Chuyến đón</span>
@@ -62,12 +70,6 @@
       <div id="dash-tl" class="dash-tl" aria-hidden="true" hidden></div>
       <div id="dash-today-list"></div>
       <p id="dash-today-empty" class="empty" hidden>Không có chuyến nào hôm nay.</p>
-    </section>
-    <!-- Số liệu máy tính (bản vẽ v2): một thẻ chia ô — Còn thiếu tiền, Doanh thu của tôi (biểu đồ tuần), Chờ xác nhận, Chưa phụ trách. Điện thoại dùng #dash-so. -->
-    <section id="dash-so-mt" class="dash-so-mt" aria-label="Số liệu"></section>
-    <section id="dash-review" class="card dash-review" hidden>
-      <div class="dash-review-head"><span class="dash-review-heading icon-label">Cần xem lại</span></div>
-      <div id="dash-review-list"></div>
     </section>
     <!-- Thẻ "Lối tắt" (chỉ máy tính, bản vẽ 1.73): 7 ô + "Tất cả" mở hộp mọi chức năng. Điện thoại dùng lưới #dash-o. -->
     <section id="dash-loi-tat" class="card dash-loi-tat" hidden>
