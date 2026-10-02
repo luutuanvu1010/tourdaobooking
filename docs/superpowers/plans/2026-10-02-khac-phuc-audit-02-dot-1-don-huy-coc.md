@@ -577,6 +577,8 @@ Mỗi dòng có ngày quan sát thật. Không có ngày = lời khuyên. Ngư�
 | **H-C5** đ16 chỉ Toàn quyền, một lần mỗi đơn, chỉ đơn cũ | đ16, X-3 | ô `deposit.outside.record` + chỉ mục duy nhất một phần + trigger `legacy` + `R-BIL-C4` | (a) xoá chỉ mục duy nhất trong bản thử → ca "ghi lần hai" đỏ; (b) đổi ô sang ADMIN `any` → bài ghim quyền đỏ |
 | **H-C6** đơn huỷ phải có lý do | đ8 | trigger `orders_cancel_requires_reason` + `R-ORD-H1` | bỏ câu chèn lý do khỏi `cancelOrder` → NT-L3 đỏ |
 | **H-C7** đơn huỷ không hoàn tự do | trang ghép §3 "Chi hoàn cọc" | `ghiHoanKhach` 409 + trigger `coc_needs_approval` + `R-BIL-C2` | bỏ nhánh 409 → trigger vẫn chặn (thấy lớp 2 đứng một mình); bỏ trigger → e2e đỏ |
+| **H-C8** *(thêm sau vòng đối chiếu)* đơn huỷ: "còn lại" = 0 ở **mọi** đường đọc (lõi TNV-G1) | đ1, đ14, NT-1 | **một** hàm `conLai` nhận cờ huỷ (NT-R9) + bài "mọi đường đọc tiền đơn đi qua `conLai`" (khuôn `buildlines-guard.test.ts`) + kiểm định kỳ `R-BIL-C0` (đơn huỷ không có "còn lại" > 0 ở hình chiếu) | bỏ nhánh cờ huỷ trong `conLai` → NT-1 và `kiem-lai-09` đỏ; thêm một đường tính "còn lại" thứ hai trong biên nhận → bài một-nguồn đỏ |
+| **H-C9** *(thêm)* chỉ Kế toán / Toàn quyền ghi lần thu lên đơn huỷ | đ13 (NT-H10) | máy chủ 409 + trigger trên `bil_payment_receipt` đọc view trạng thái đơn công bố | bỏ nhánh kiểm trạng thái → e2e NT-H10 đỏ (Bán hàng ghi được 201) |
 
 ---
 
@@ -610,16 +612,18 @@ Mỗi dòng có ngày quan sát thật. Không có ngày = lời khuyên. Ngư�
 
 ---
 
-## 7. Câu hỏi cho chủ — ĐÃ ÁP THEO KHUYẾN NGHỊ (trừ Q6)
+## 7. Câu hỏi cho chủ
 
-> Theo lời chủ 2026-10-02: *"đừng hỏi tôi những câu hỏi mà tôi nên đồng ý nữa,"*. Phiên lập kế hoạch đã áp khuyến nghị cho Q1–Q5 và phương án "cầm máu" ở §6. Chủ bác câu nào thì sửa câu đó trước khi thi công task tương ứng.
-> - **Q1 = Khách huỷ.**
-> - **Q2 = Có** (một dòng đang hiệu lực; Quản trị "Từ chối" có lý do thì Toàn quyền ghi lại được).
-> - **Q3 = Còn giữ.** Thi công sửa chữ ADR-0089 đ4a/đ15 bằng **diff để chủ duyệt khi gộp** (N9). Chưa gộp thì SV-DH-13 tách ra.
-> - **Q4 = Không**, tách việc riêng sau Đợt 1.
-> - **Q5 = dùng nguyên câu ví dụ của ADR**; chủ sửa trên ảnh chụp.
-> - **Cầm máu = CÓ:** Phần A + phần chữ Task 13 lên trước Đợt 0 (không đóng TNV-G1).
-> - **Q6 (gia hạn TNV-G1) CÒN CHỜ CHỦ:** đây là sổ dừng dây chuyền, chỉ chủ gia hạn. Ngày quyết đề xuất: 10/10.
+> **Đã áp theo khuyến nghị** (lời chủ 2026-10-02: *"đừng hỏi tôi những câu hỏi mà tôi nên đồng ý nữa,"*); chỉ chạm chữ hoặc giảm hại, đảo được:
+> - **Q5:** dùng nguyên câu ví dụ của ADR; chủ sửa trên ảnh chụp.
+> - **Cầm máu = CÓ:** Phần A + phần chữ Task 13 lên trước Đợt 0 (không đóng TNV-G1). Số migration lấy theo thứ tự gộp thật (lộ trình §1).
+>
+> **CHỜ CHỦ** (vòng đối chiếu độc lập chỉ ra không được tự áp, vì chạm tiền của khách, tách nhiệm vụ, hoặc chữ ADR đã duyệt): Q1, Q2, Q3, Q4, Q6. Đây là các câu (a)–(d) và (xi) ở lộ trình.
+> - **Q1** chỉ chặn một dòng ánh xạ ở Task 6.
+> - **Q2** chặn Task 7, 10 phần đ16.
+> - **Q3**: tới khi chủ duyệt, mã giữ **đúng chữ hiện hành** của ADR-0089 ("≤ đã trả"); SV-DH-13 tách ra.
+> - **Q4** không chặn task nào, nhưng chặn việc **đóng** TNV-G1 nếu chủ không đồng ý tách.
+> - **Đóng TNV-G1 không cần màn sổ** (ADR-0089 đ9c cho phép route + ô đếm trong lúc chờ). Khi trình chủ đóng mục, phải nói rõ điều này, vì lời chủ ban đầu chọn hiển thị ở "cả 3" nơi.
 
 Bảng gốc (giữ để truy vết):
 

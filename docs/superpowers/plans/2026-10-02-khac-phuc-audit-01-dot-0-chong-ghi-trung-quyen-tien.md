@@ -509,12 +509,13 @@ Việc lớn (dữ liệu + luật + mọi route ghi). Phiên riêng, worktree r
 - **Tệp:** `tests/e2e/chong-ghi-trung.mjs` (mới), `tests/e2e/run.mjs` (thêm vào `ALL`).
 - **Nguồn** (ngoài kho, chỉ đọc):
   - `~/Documents/danh-gia-ux/2026-10-01/kich-ban/nhom-2.mjs:171` (11), `:218` (12), `:253` (13);
-  - `vai-hd.mjs:565` (HD10: `/api/orders/:id/delivered` kèm thu);
+  - `vai-hd.mjs:565` (HD10). **Sửa sau vòng đối chiếu:** lấy nhánh **"Ghi lần thu"** gửi lại (lỗi thật: đã thu 400.000). **Không** lấy `/delivered` kèm thu: nhánh đó đã chống lặp đúng (409), nên không đỏ trước;
   - `vai-kt.mjs:284` (KT03: `/api/ledger/refunds`), `:332` (KT04: `/api/ledger/settlements`, `/api/ledger/adjustments`).
 - **Ca:** mỗi tình huống gửi **hai lần cùng vé** ⇒ đúng một dòng nghiệp vụ, lần 2 nhận 200 `da_ghi_truoc_do`. Kèm:
   - T4: hai lần thu thật, vé khác ⇒ 2 dòng;
   - T5: đổi số tiền ⇒ vé khác ⇒ lớp không chặn;
-  - đồng thời: `Promise.all` cùng vé ⇒ 1 dòng (tình huống 15 của lộ trình);
+  - đồng thời: `Promise.all` cùng vé ⇒ 1 dòng. **Không phải tình huống 15**: tình huống 15 là "xác nhận dựa trên bản cũ", thuộc gốc R9, Đợt 4;
+  - **Lưu ý:** bản **không vé** của kịch bản gốc và redteam R1/R2 vẫn ra 2 bản ghi ở giai đoạn 1. Chúng chỉ là tiêu chí của **bản siết**;
   - 422 khác thân.
 
   Mỗi ca đọc lại số dòng bằng API, kèm `audit-invariants` cuối bộ.
@@ -681,14 +682,18 @@ Người thi công **không** tự báo "đạt" (N8). Báo cáo cuối cho ch�
 
 ---
 
-## 13. Câu cần chủ quyết — ĐÃ ÁP THEO KHUYẾN NGHỊ
+## 13. Câu cần chủ quyết — CHỜ CHỦ (C1, C2)
 
-> Theo lời chủ 2026-10-02: *"đừng hỏi tôi những câu hỏi mà tôi nên đồng ý nữa,"*. Phiên lập kế hoạch chép kế hoạch vào kho và áp như sau:
-> - **C1 = (A) đóng F-02 theo A-9.** A-9 là một phần ADR-0094 mà chủ đã duyệt ("2- Duyệt"). Trường `ke_hoach` của F-02 sẽ được sửa cho khớp khi đóng. Đợt 1 thêm ca e2e "gửi lặp cùng vé" cho duyệt hoàn / chi hoàn.
-> - **C2 = (A) view nhật ký tài khoản trong `audit`**, một migration. Thi công ghi dòng bổ sung cho ADR-0090 đ4 ("không migration" → "một view, không bảng mới") bằng **diff để chủ duyệt khi gộp** (N9).
-> - Thông báo P18 bên dưới (Quản trị không gỡ được vai Kế toán) được báo chủ trong câu trả lời của phiên.
+> Phiên lập kế hoạch từng áp khuyến nghị cho C1, C2. **Vòng đối chiếu độc lập chỉ ra không được tự áp**:
+> - C1 là xung đột giữa hai văn bản chuẩn tắc: ADR-0094 A-9 và trường `ke_hoach` của F-02 trong sổ dừng dây chuyền. CLAUDE.md §2 đòi dừng và hỏi.
+> - C2 đổi chữ ADR-0090 đ4.
 >
-> Chủ bác câu nào thì sửa câu đó trước task tương ứng.
+> Hai câu nay **chờ chủ**: câu (e), (f) ở lộ trình `00-lo-trinh.md`.
+> - **Không chặn L0–L11, Q0–Q3.**
+> - C1 chỉ chặn bước **đóng** F-02.
+> - C2 chỉ chặn Q4 (tin cho Toàn quyền).
+>
+> Thông báo P18 bên dưới (Quản trị không gỡ được vai Kế toán) đã báo chủ trong phiên.
 
 Nội dung gốc (giữ để truy vết):
 
