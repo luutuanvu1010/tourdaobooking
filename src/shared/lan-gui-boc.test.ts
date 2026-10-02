@@ -119,6 +119,34 @@ test("bẫy 5: lô đụng khoá vé ⇒ ném LẠI ĐÚNG lỗi gốc, không g
   assert.equal(ve(), 1);
 });
 
+test("N1 (kiểm độc lập vòng 1): hai lệnh ghi ĐỒNG THỜI trong một yêu cầu ⇒ xếp hàng tuần tự — cả hai ghi được, đúng MỘT vé, không đụng vé của chính mình", async () => {
+  const { db, ve, thu, b } = dung();
+  const kq = await Promise.allSettled([
+    db.prepare("INSERT INTO thu (id, v) VALUES ('a', 1)").run(),
+    db.batch([db.prepare("INSERT INTO thu (id, v) VALUES ('b', 2)")]),
+    db.prepare("INSERT INTO thu (id, v) VALUES ('c', 3) RETURNING id").first(),
+  ]);
+  assert.deepEqual(kq.map((k) => k.status), ["fulfilled", "fulfilled", "fulfilled"], JSON.stringify(kq));
+  assert.equal(b.dungVe(), false);
+  assert.equal(ve(), 1);
+  assert.deepEqual(thu().map((r: { id: string }) => r.id), ["a", "b", "c"]);
+});
+
+test("N1: lệnh ghi đầu (mang vé) HỎNG khi lệnh thứ hai đang chờ ⇒ lệnh thứ hai mang vé thay (vé ⇔ lô ghi thành công)", async () => {
+  const { db, ve, thu } = dung();
+  const [r1, r2] = await Promise.allSettled([db.prepare("INSERT INTO thu (id, v) VALUES ('a', -1)").run(), db.prepare("INSERT INTO thu (id, v) VALUES ('b', 1)").run()]);
+  assert.equal(r1.status, "rejected");
+  assert.equal(r2.status, "fulfilled");
+  assert.equal(ve(), 1);
+  assert.deepEqual(thu(), [{ id: "b", v: 1 }]);
+});
+
+test("G1 (kiểm độc lập vòng 1): WITH … SELECT có hàm replace() là câu ĐỌC; WITH … REPLACE INTO vẫn là ghi", () => {
+  assert.equal(laCauDoc("WITH a AS (SELECT 1 AS x) SELECT replace(x, '1', '2') FROM a"), true);
+  assert.equal(laCauDoc("WITH a AS (SELECT 1) REPLACE INTO t SELECT * FROM a"), false);
+  assert.equal(laCauDoc("WITH a AS (SELECT 1) DELETE FROM t WHERE id IN (SELECT * FROM a)"), false);
+});
+
 test("dong(): sau khi router xong, lệnh ghi trễ đi thẳng — không mang vé, không bị từ chối kể cả sau đụng vé", async () => {
   const a = dung();
   a.b.dong();

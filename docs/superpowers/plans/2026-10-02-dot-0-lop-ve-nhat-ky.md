@@ -258,3 +258,10 @@ Số bản nhật ký phiên bản: `main` cục bộ có `1.70` ở đầu `src
 - H7 ba lớp: bài tĩnh `src/lan-gui-location.test.ts`; `call()` của khung thử NÉM khi 201 thiếu/sai Location (mọi bài khung thử thành bài canh — `npm test` 2877/2877 xanh); `call()` của e2e cũng vậy — **e2e đủ bộ 43/43 xanh** (bắt nốt 201 ngoài khung thử: không còn chỗ nào thiếu).
 - H7 quan sát chặn thật (sổ hàng rào).
 - `src/lan-gui-giao-dien.test.ts` (H3) đã viết, chưa quan sát đột biến (làm cùng L9).
+
+## Xử lý phát hiện vòng 1 (2026-10-02)
+- **N1 — đã sửa:** bộ bọc xếp hàng TUẦN TỰ mọi lệnh ghi trong một yêu cầu (hàng đợi promise, trước `dong()`); bài đỏ trước `lan-gui-boc.test.ts` "N1 … hai lệnh ghi ĐỒNG THỜI" (đỏ: `not ok 12`) ⇒ xanh; thêm ca "lệnh đầu hỏng khi lệnh hai đang chờ ⇒ lệnh hai mang vé".
+- **N2 — giữ mở, ghi "chưa kiểm":** giữ log `lan_gui_dung_ve` / `lan_gui_loi_la`; L12 thu log máy chủ e2e; trên production chỉ thấy sau lần triển khai (chủ đọc nhật ký Worker). Dòng sổ hàng rào KHÔNG ghi "đã quan sát" cho chữ lỗi D1 production.
+- **G1 — đã sửa:** `REPLACE` chỉ tính là ghi khi đi với `INTO`; bài đỏ trước ⇒ xanh.
+- **G5 — đã sửa:** câu cố định đúng nguyên văn ADR đ6 ("Lần gửi trước đã bị từ chối, tải lại để xem", không dấu chấm).
+- G2 (`.raw({columnNames})` trên câu ghi) — chưa nơi nào dùng; ghi lại, không sửa. G3 — L12. G4 — chấp nhận (thân sai UTF-8 cũng không qua kiểm JSON của handler).

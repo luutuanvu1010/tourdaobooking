@@ -17,7 +17,8 @@
 export function laCauDoc(sql: string): boolean {
   const s = sql.replace(/^(?:\s+|--[^\n]*\n|\/\*[\s\S]*?\*\/)*/, "");
   if (/^(SELECT|PRAGMA|EXPLAIN)\b/i.test(s)) return true;
-  return /^WITH\b/i.test(s) && !/\b(INSERT|UPDATE|DELETE|REPLACE)\b/i.test(s);
+  // `REPLACE` chỉ là câu ghi khi đi với INTO (hàm chuỗi replace(…) trong câu đọc thì không) — kiểm độc lập vòng 1, G1.
+  return /^WITH\b/i.test(s) && !/\b(INSERT|UPDATE|DELETE)\b|\bREPLACE\s+INTO\b/i.test(s);
 }
 
 /** Lỗi D1 khi lô đụng khoá chính của bảng vé (SQLite: `UNIQUE constraint failed: lg_lan_gui.staff_id, lg_lan_gui.khoa`; D1 bọc thêm tiền tố/hậu tố). */
@@ -64,8 +65,22 @@ export function bocDb(goc: D1Database, cauVe: (dbGoc: D1Database) => D1PreparedS
   const goBoc = (s: unknown): D1PreparedStatement => (laCauBoc(s) ? s[GOC] : (s as D1PreparedStatement));
   const laDoc = (s: unknown): boolean => laCauBoc(s) && laCauDoc(s.sql);
 
-  /** Chạy một lô GHI (câu đã gỡ bọc). Trả kết quả của đúng các câu nơi gọi gửi. */
-  async function ghiLo(cau: D1PreparedStatement[]): Promise<D1Result[]> {
+  // N1 (kiểm độc lập vòng 1): lệnh ghi trong MỘT yêu cầu chạy TUẦN TỰ (hàng đợi promise) — hai lệnh ghi đồng thời không cùng mang vé rồi đụng vé của
+  // chính nhau; lệnh sau chờ biết lệnh trước đã ghi được vé chưa. Chỉ áp trước `dong()`; câu đọc không xếp hàng.
+  let hang: Promise<unknown> = Promise.resolve();
+  function xepHang<T>(viec: () => Promise<T>): Promise<T> {
+    if (daDong) return viec();
+    const p = hang.then(viec, viec);
+    hang = p.then(
+      () => undefined,
+      () => undefined,
+    );
+    return p;
+  }
+
+  /** Chạy một lô GHI (câu đã gỡ bọc) — qua hàng đợi. Trả kết quả của đúng các câu nơi gọi gửi. */
+  const ghiLo = (cau: D1PreparedStatement[]): Promise<D1Result[]> => xepHang(() => ghiLoNgay(cau));
+  async function ghiLoNgay(cau: D1PreparedStatement[]): Promise<D1Result[]> {
     if (daDong) return goc.batch(cau);
     if (dungVe) throw new Error(LOI_TU_CHOI_SAU_DUNG_VE);
     soLanGhi++;
@@ -85,14 +100,16 @@ export function bocDb(goc: D1Database, cauVe: (dbGoc: D1Database) => D1PreparedS
     }
   }
   /** Câu ghi lẻ: còn phải mang vé ⇒ đi qua lô [câu, vé]; không thì chạy thẳng (giữ đúng hình kết quả của D1). */
-  async function ghiLe<T>(cau: D1PreparedStatement, chayThang: () => Promise<T>, tuKetQua: (r: D1Result) => T): Promise<T> {
-    if (daDong) return chayThang();
-    if (dungVe) throw new Error(LOI_TU_CHOI_SAU_DUNG_VE);
-    if (daGhiVe) {
-      soLanGhi++;
-      return chayThang();
-    }
-    return tuKetQua((await ghiLo([cau]))[0]!);
+  function ghiLe<T>(cau: D1PreparedStatement, chayThang: () => Promise<T>, tuKetQua: (r: D1Result) => T): Promise<T> {
+    return xepHang(async () => {
+      if (daDong) return chayThang();
+      if (dungVe) throw new Error(LOI_TU_CHOI_SAU_DUNG_VE);
+      if (daGhiVe) {
+        soLanGhi++;
+        return chayThang();
+      }
+      return tuKetQua((await ghiLoNgay([cau]))[0]!);
+    });
   }
 
   function boc(raw: D1PreparedStatement, sql: string): D1PreparedStatement {

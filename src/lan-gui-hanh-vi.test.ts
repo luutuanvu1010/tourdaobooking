@@ -119,7 +119,7 @@ test("(f) lô thua mà vẫn ghi vé (LAST_ADMIN) ⇒ gửi lại nhận ĐÚNG 
   const r = await goi(w, "PUT", `/api/staff/${thua.id}/permissions`, { as: SUP, body: { permissions: ["SALES"] }, ve: thua.ve });
   assert.equal(r.status, 409, r.text);
   assert.equal(r.json?.error?.code, "account_rule");
-  assert.equal(r.json?.error?.message, "Lần gửi trước đã bị từ chối, tải lại để xem.");
+  assert.equal(r.json?.error?.message, "Lần gửi trước đã bị từ chối, tải lại để xem");
   assert.equal(r.headers.get("idempotent-replayed"), "true");
 });
 

@@ -45,7 +45,7 @@ export function phanLoai(dong: DongVe, vanTayMoi: string, nowMs: number): LoaiPh
 }
 
 /** Câu cố định khi lần đầu bị từ chối mà vẫn ghi vé (ADR-0094 đ6) — không lưu câu chữ cũ vì có thể chứa tên. */
-export const CAU_TU_CHOI_PHAT_LAI = "Lần gửi trước đã bị từ chối, tải lại để xem.";
+export const CAU_TU_CHOI_PHAT_LAI = "Lần gửi trước đã bị từ chối, tải lại để xem";
 
 /** Thân phản hồi phát lại (ADR-0094 đ6 — R2: không lưu thân phản hồi). Gọi với `phat_lai` hoặc `phat_lai_khong_ro`. */
 export function thanPhatLai(dong: DongVe, loai: "phat_lai" | "phat_lai_khong_ro"): { status: number; body: unknown } {
