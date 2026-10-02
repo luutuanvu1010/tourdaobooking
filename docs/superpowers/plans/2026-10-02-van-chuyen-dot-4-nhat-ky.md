@@ -78,3 +78,19 @@ Làn máy chủ (Task 0 → 12). **Không** làm Task G (giao diện) — làn k
   - Số liệu cuối (2026-10-02): `npm test` 2835 bài — 2834 đạt + 1 todo (sổ vàng lớp 2, chưa ca nào xác nhận), 0 đỏ; bài đo giờ hook 1/1; `npm run typecheck` 0 lỗi; `npm run test:e2e` ĐỦ BỘ 42/42 xanh (3 nhóm, 344 giây, gồm audit-invariants --strict từng nhóm); `node scripts/audit-invariants.mjs --db local` — mọi kiểm Đợt 4 ✓, thoát 1 chỉ vì `R-N1-5` (D1 local của worktree trống, không có quản trị viên — có sẵn).
   - Người kiểm độc lập T1 + T2 máy chủ: CHƯA (luật làn cấm gọi subagent) — điều phối giao.
   - Nhánh T2 KHÔNG gộp `main` tới khi có giao diện G1–G2 (Cần chủ 2 = A).
+- Sửa sau tự rà (2026-10-02): (1) bảng kê NHÓM + LỌC theo **nhà xe chịu chi phí** (`nhaXeChiuChiPhi` ở tien-xe.ts — nhà xe của nguồn giá ghi gần nhất, kể cả đã đảo; MỘT luật cho màn chi phí, dòng điều chỉnh, bảng kê) thay vì chủ xe hiện tại — trước đó chuyến nhà xe A đổi sang xe công ty rồi huỷ thì phí huỷ muộn rơi vào nhóm công ty chủ và lọc `nha-xe=A` không thấy; bài mới "Bảng kê nhóm theo NHÀ XE CHỊU CHI PHÍ…" (P16: trả về nhóm theo chủ xe ⇒ đỏ → hoàn nguyên → xanh). (2) `CPX_GIA_THOA_THUAN` vào `MA_LY_DO_HE_THONG` (máy chủ tự ghi cho giá thoả thuận — R-P22: không ngưng được); bài R-P22 nay 4 mã.
+  - Số liệu sau sửa: `npm test` 2837 (2836 + 1 todo), 0 đỏ; typecheck 0; e2e `tien-xe-thue dieu-phoi van-chuyen chinh-sach-dieu-phoi` 5/5 (đủ bộ 42/42 chạy ở Task 12 trước sửa này).
+
+## Sổ commit (luật làn 3)
+- Task 0 + 1: xong — ad3cdf89 — nhật ký Task 0 + luật thuần chọn dòng giá.
+- Task 2: xong — b45d9df2 — migration 0072 + bài CSDL T1.
+- Task 3 + 4: xong — f8dfd9b6 — ô `transport.rate.*` + 9 route bảng giá / tuyến / cỡ xe.
+- Task 5: xong — b3a94e6f — R-VC-RATE-1, sổ hàng rào, tài liệu, nhật ký phiên bản 1.70. (RANH T1 | T2: T1 máy chủ kết thúc ở đây.)
+- Task 6: xong — 33ef9ef2 — luật thuần chi phí + sổ vàng (chờ xác nhận).
+- Task 7: xong — 6c343721 — migration 0073 + bài CSDL T2.
+- Task 8: xong — b698e67e — `THIEU_GIA` ở cổng xuất bến.
+- Task 9: xong — 4a0210a3 — chụp / đảo trong lô tạo, sửa, huỷ.
+- Task 10: xong — 839ae1d7 — ô `transport.cost.*` + route chi phí + bảng kê.
+- Task 11: xong — dcabed28 — bài số lạ, một nguồn tính, R-VC-COST-*, sổ hàng rào.
+- Task 12: xong — 492d9764 — tài liệu, nhật ký phiên bản.
+- Sửa sau tự rà: xong — (commit kế tiếp) — bảng kê theo nhà xe chịu chi phí; `CPX_GIA_THOA_THUAN` là mã hệ thống.

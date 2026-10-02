@@ -98,7 +98,15 @@ export function demDieuChinh(dong: readonly DongChiPhi[]): { soDieuChinh: number
     soDieuChinhBiDao: dong.filter((d) => d.kind === "ADJUSTMENT" && daoDoDoi.has(d.id)).length,
   };
 }
-export type NhomBangKe = "DA_PHAT_SINH" | "CHUA_CHAY" | "DANG_CHAY" | "DA_HUY" | "THIEU_GIA";
+/**
+ * Nhà xe CHỊU chi phí của chuyến (bảng kê "trả nhà xe nào", nhà xe của dòng điều chỉnh): nhà xe của nguồn giá GHI GẦN NHẤT (kể cả đã đảo — vd chuyến đã đổi sang
+ * xe công ty rồi huỷ, phí huỷ muộn vẫn thuộc nhà xe cũ); chưa từng có nguồn giá ⇒ chủ xe chụp của chuyến. `dong` theo THỨ TỰ GHI.
+ */
+export function nhaXeChiuChiPhi(dong: readonly { kind: LoaiDongChiPhi; carrierPartyId: string }[], chuXeChuyen: string): string {
+  for (let i = dong.length - 1; i >= 0; i--) if (dong[i]!.kind === "SNAPSHOT" || dong[i]!.kind === "AGREED") return dong[i]!.carrierPartyId;
+  return chuXeChuyen;
+}
+export type NhomBangKe ="DA_PHAT_SINH" | "CHUA_CHAY" | "DANG_CHAY" | "DA_HUY" | "THIEU_GIA";
 /** Nhóm trạng thái của một dòng bảng kê (ADR-0057 C4 "đã phát sinh" = kết thúc / kết thúc gián đoạn; chưa chạy mà là xe thuê thiếu nguồn giá = "chưa có giá"). */
 export function nhomBangKe(trangThai: TrangThaiChuyenTien, thue: boolean, coNguonGia: boolean): NhomBangKe {
   if (trangThai === "CANCELLED") return "DA_HUY";

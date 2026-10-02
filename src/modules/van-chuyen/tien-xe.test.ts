@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  chonDongGiaThue, coXeCua, daoDuoc, demDieuChinh, dongChongGia, loaiNguonGia, nhomBangKe, dongConHieuLuc, nguonGiaConHieuLuc, phanLoaiThue, thuTuDaoTatCa, tongBangKe, tongChiPhiChuyen, tongDieuChinh,
+  chonDongGiaThue, coXeCua, daoDuoc, demDieuChinh, dongChongGia, loaiNguonGia, nhaXeChiuChiPhi, nhomBangKe, dongConHieuLuc, nguonGiaConHieuLuc, phanLoaiThue, thuTuDaoTatCa, tongBangKe, tongChiPhiChuyen, tongDieuChinh,
   type CoXe, type DongChiPhi, type DongGiaThue, type LoaiDongChiPhi,
 } from "./tien-xe.ts";
 
@@ -116,4 +116,10 @@ test("bảng kê: loaiNguonGia, demDieuChinh (điều chỉnh bị đảo DO Đ�
   assert.equal(nhomBangKe("PLANNED", true, false), "THIEU_GIA");
   assert.equal(nhomBangKe("PLANNED", true, true), "CHUA_CHAY");
   assert.equal(nhomBangKe("PLANNED", false, false), "CHUA_CHAY");
+});
+
+test("nhaXeChiuChiPhi: nhà xe của nguồn giá GHI GẦN NHẤT (kể cả đã đảo — đổi sang xe công ty rồi huỷ vẫn là nhà xe cũ); chưa có nguồn giá → chủ xe của chuyến", () => {
+  assert.equal(nhaXeChiuChiPhi([], "p-cty"), "p-cty");
+  assert.equal(nhaXeChiuChiPhi([{ kind: "SNAPSHOT", carrierPartyId: "p-a" }, { kind: "REVERSAL", carrierPartyId: "p-a" }, { kind: "ADJUSTMENT", carrierPartyId: "p-a" }], "p-cty"), "p-a");
+  assert.equal(nhaXeChiuChiPhi([{ kind: "SNAPSHOT", carrierPartyId: "p-a" }, { kind: "REVERSAL", carrierPartyId: "p-a" }, { kind: "AGREED", carrierPartyId: "p-b" }], "p-b"), "p-b");
 });

@@ -67,6 +67,9 @@ export function chiPhiChuyenDto(v: {
 export function bangKeDto(v: {
   tu: string; den: string; nhaXePartyId: string | null; nhom: NhomBangKeDto | null; trips: readonly BangKeTripRow[]; lines: readonly CostLineRow[];
   tenTuyen: ReadonlyMap<string, string>;
+  /** Nhà xe CHỊU chi phí của từng chuyến (`nhaXeChiuChiPhi`) + tên — nhóm theo nhà xe này, không theo chủ xe hiện tại. */
+  nhaXeCua: ReadonlyMap<string, string>;
+  tenNhaXe: ReadonlyMap<string, string>;
 }): BangKeResponse {
   const theoChuyen = new Map<string, DongChiPhi[]>();
   for (const r of v.lines) {
@@ -87,7 +90,7 @@ export function bangKeDto(v: {
       tong: tongChiPhiChuyen(dong),
       tongDieuChinh: tongDieuChinh(dong),
       soDieuChinh: dem.soDieuChinh, soDieuChinhBiDao: dem.soDieuChinhBiDao,
-      nhaXe: { partyId: t.carrier_party_id, ten: t.carrier_name ?? "" },
+      nhaXe: ((id: string) => ({ partyId: id, ten: v.tenNhaXe.get(id) ?? "" }))(v.nhaXeCua.get(t.id) ?? t.carrier_party_id),
     });
   }
   const nhom: BangKeNhomDto[] = [];

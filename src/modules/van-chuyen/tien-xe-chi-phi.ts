@@ -9,7 +9,7 @@ import { error } from "../../shared/http";
 import { tripById, type TripRow } from "./chuyen-repo";
 import { findVehicle } from "./repository";
 import { CAU_CHI_PHI_VUA_DOI, CAU_NHA_XE_THOI, CAU_TONG_AM, loiRangBuocChuyen } from "./rules";
-import { chonDongGiaThue, chuTien, coXeCua, daoDuoc, nguonGiaConHieuLuc, tongChiPhiChuyen, type DongChiPhi } from "./tien-xe";
+import { chonDongGiaThue, chuTien, coXeCua, daoDuoc, nguonGiaConHieuLuc, nhaXeChiuChiPhi, tongChiPhiChuyen, type DongChiPhi } from "./tien-xe";
 import { bangKeDto, chiPhiChuyenDto } from "./tien-xe-dto";
 import { dongCua } from "./tien-xe-lo";
 import {
@@ -24,9 +24,9 @@ const TONG_AM = () => error(409, "tong_am", CAU_TONG_AM);
 const NHA_XE_THOI = () => error(409, "carrier_inactive", CAU_NHA_XE_THOI);
 const LY_DO_SAI = () => error(400, "invalid_input", "Lý do không có trong danh mục chi phí xe.");
 
-/** Nhà xe "chịu" chi phí của chuyến: nhà xe của nguồn giá GẦN NHẤT (kể cả đã đảo — vd chuyến đã đổi sang xe công ty / đã huỷ), không có thì chủ xe chụp. */
+/** Nhà xe chịu chi phí — MỘT luật (`nhaXeChiuChiPhi`) cho màn chi phí, dòng điều chỉnh và bảng kê. */
 const nhaXeCuaChiPhi = (rows: readonly CostLineRow[], trip: TripRow): string =>
-  [...rows].reverse().find((r) => r.kind === "SNAPSHOT" || r.kind === "AGREED")?.carrier_party_id ?? trip.carrier_party_id;
+  nhaXeChiuChiPhi(rows.map((r) => ({ kind: r.kind, carrierPartyId: r.carrier_party_id })), trip.carrier_party_id);
 
 // ---- Xem -------------------------------------------------------------------------------------------------------------------------------------------------
 export async function docChiPhiChuyen(db: D1Database, tripId: string, nhanNhanVien: (ids: readonly string[]) => Promise<Map<string, string> | null>): Promise<ChiPhiChuyenDto | null> {
@@ -183,9 +183,18 @@ export async function lenhGiaThoaThuan(db: D1Database, tripId: string, b: ThoaTh
 }
 
 // ---- Bảng kê -------------------------------------------------------------------------------------------------------------------------------------------------
+/** Nhóm + lọc theo NHÀ XE CHỊU CHI PHÍ (`nhaXeChiuChiPhi` — không theo chủ xe hiện tại của chuyến): đọc mọi chuyến của khoảng, lọc nhà xe ở luật. */
 export async function docBangKe(db: D1Database, v: { tu: string; den: string; nhaXe: string | null; nhom: NhomBangKeDto | null }): Promise<BangKeResponse> {
-  const [trips, lines, tuyen] = await Promise.all([bangKeTrips(db, v.tu, v.den, v.nhaXe), bangKeLines(db, v.tu, v.den), listRoutes(db)]);
-  return bangKeDto({ tu: v.tu, den: v.den, nhaXePartyId: v.nhaXe, nhom: v.nhom, trips, lines, tenTuyen: new Map(tuyen.map((t) => [t.code, t.name])) });
+  const [trips, lines, tuyen] = await Promise.all([bangKeTrips(db, v.tu, v.den, null), bangKeLines(db, v.tu, v.den), listRoutes(db)]);
+  const theoChuyen = new Map<string, { kind: CostLineRow["kind"]; carrierPartyId: string }[]>();
+  for (const r of lines) theoChuyen.set(r.trip_id, [...(theoChuyen.get(r.trip_id) ?? []), { kind: r.kind, carrierPartyId: r.carrier_party_id }]);
+  const nhaXeCua = new Map(trips.map((t) => [t.id, nhaXeChiuChiPhi(theoChuyen.get(t.id) ?? [], t.carrier_party_id)]));
+  const ids = [...new Set(nhaXeCua.values())];
+  const ten = new Map(await Promise.all(ids.map(async (id) => [id, (await partyName(db, id)) ?? ""] as const)));
+  return bangKeDto({
+    tu: v.tu, den: v.den, nhaXePartyId: v.nhaXe, nhom: v.nhom, trips: trips.filter((t) => v.nhaXe === null || nhaXeCua.get(t.id) === v.nhaXe), lines,
+    tenTuyen: new Map(tuyen.map((t) => [t.code, t.name])), nhaXeCua, tenNhaXe: ten,
+  });
 }
 
 export { KHONG_CO_CHUYEN };

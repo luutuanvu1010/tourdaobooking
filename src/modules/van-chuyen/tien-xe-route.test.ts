@@ -693,3 +693,25 @@ test("Bảng kê: ba chuyến (đã kết thúc 1.200.000; huỷ có phí 300.00
     tat();
   }
 });
+
+test("Bảng kê nhóm theo NHÀ XE CHỊU CHI PHÍ: chuyến của nhà xe A đổi sang xe công ty rồi huỷ, phí huỷ muộn 300.000 → nằm ở nhóm A (lọc nha-xe=A thấy), không ở công ty chủ", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const n = await nenThue(w);
+    const id = (await taoThue(w, { xe: n.x16, taiXe: n.tx, tuyen: n.crt })).json.chuyen.id;
+    assert.equal((await sua(w, id, { xeId: xe(w, 16), taiXePartyId: `pty-${DRIVER}` })).status, 200);
+    const c = await chiTiet(w, id);
+    assert.equal((await w.call("POST", `/api/van-chuyen/chuyen/${id}/huy`, { as: SALES, body: { version: c.chuyen.version, requestId: uuid(), lyDo: "HUY_KHAC" } })).status, 200);
+    const p = await ghiCp(w, id, "dieu-chinh", { soTien: 300_000, lyDo: "CPX_HUY_MUON", ghiChu: null });
+    assert.equal(p.status, 201, p.text);
+    assert.equal(p.json.chiPhi.nhaXe.partyId, n.nx, "màn chi phí: nhà xe chịu là A");
+    assert.equal(w.q("SELECT carrier_party_id c FROM vc_trip_cost_line WHERE trip_id = ? ORDER BY rowid DESC LIMIT 1", id)[0].c, n.nx);
+    const k = (await w.call("GET", `/api/van-chuyen/chi-phi?tu=${NGAY}&den=${NGAY}`, { as: ACC })).json;
+    assert.deepEqual(k.nhom.map((g: any) => [g.nhaXe.partyId, g.nhaXe.ten, g.tongNhom]), [[n.nx, "Nhà xe Hùng Phát", 300_000]]);
+    const loc = (await w.call("GET", `/api/van-chuyen/chi-phi?tu=${NGAY}&den=${NGAY}&nha-xe=${n.nx}`, { as: ACC })).json;
+    assert.deepEqual([loc.soChuyen, loc.tongCong], [1, 300_000]);
+  } finally {
+    tat();
+  }
+});
