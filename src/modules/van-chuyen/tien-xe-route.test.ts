@@ -735,6 +735,38 @@ test("Vòng sửa 2 (4.7) — GHIM hành vi hiện tại (Cần chủ): phí hu�
   }
 });
 
+test("H1 (vòng sửa 3 — GHIM hành vi hiện tại, chờ chủ): phí huỷ muộn cho nhà xe cũ trên chuyến xe công ty BỊ ĐẢO khi đổi sang xe công ty khác / dời ngày chạy / đổi tuyến (đường huỷ: bài 4.7 GHIM ở trên)", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const n = await nenThue(w);
+    const phiHuy = async (bd: string, kt: string) => {
+      const id = (await taoThue(w, { xe: n.x16, taiXe: n.tx, tuyen: n.crt, bd, kt })).json.chuyen.id;
+      const s = await sua(w, id, { xeId: xe(w, 16), taiXePartyId: `pty-${DRIVER}` });
+      assert.equal(s.status, 200, s.text);
+      assert.equal((await ghiCp(w, id, "dieu-chinh", { soTien: 300_000, lyDo: "CPX_HUY_MUON", ghiChu: null })).status, 201);
+      assert.equal(tongCp(w, id), 300_000);
+      return id;
+    };
+    const daoPhi = (id: string) => w.q("SELECT count(*) n FROM vc_trip_cost_line r JOIN vc_trip_cost_line g ON g.id = r.reverses_id WHERE r.trip_id = ? AND g.reason_code = 'CPX_HUY_MUON'", id)[0].n;
+    const a = await phiHuy("12:30", "13:30");
+    const sa = await sua(w, a, { xeId: xe(w, 16), taiXePartyId: `pty-${DRIVER}` });
+    assert.equal(sa.status, 200, `đổi sang xe công ty khác: ${sa.text}`);
+    const b = await phiHuy("15:00", "16:00");
+    const sb = await sua(w, b, { batDau: { ngay: NGAY_SAU, gio: "15:00" }, ketThuc: { ngay: NGAY_SAU, gio: "16:00" } });
+    assert.equal(sb.status, 200, `dời ngày: ${sb.text}`);
+    const c = await phiHuy("18:00", "19:00");
+    const sc = await sua(w, c, { tuyen: n.dl });
+    assert.equal(sc.status, 200, `đổi tuyến: ${sc.text}`);
+    for (const [id, ten] of [[a, "đổi xe công ty khác"], [b, "dời ngày"], [c, "đổi tuyến"]] as const) {
+      assert.equal(daoPhi(id), 1, `${ten}: phí huỷ cho nhà xe cũ hiện BỊ đảo (dongBiDaoKhi) — đổi khi chủ chọn H1`);
+      assert.equal(tongCp(w, id), 0, ten);
+    }
+  } finally {
+    tat();
+  }
+});
+
 test("Phiên bản chi phí cũ (TC-8): hai Kế toán cùng đọc phiên bản 1 — người thứ nhất 201, người thứ hai 409 chi_phi_vua_doi; gửi lại cùng requestId → 200, không dòng mới; ngày phát sinh điều chỉnh mặc định = NGÀY CHẠY (ADR-0095 Q4, vòng sửa 3 M1), chọn được", async () => {
   const tat = batDongHo();
   try {

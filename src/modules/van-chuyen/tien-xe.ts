@@ -61,6 +61,14 @@ export function thuTuDaoTatCa(dong: readonly DongChiPhi[]): DongChiPhi[] {
   const con = dongConHieuLuc(dong);
   return [...moiNhatTruoc(con.filter((d) => d.amount < 0)), ...moiNhatTruoc(con.filter((d) => d.amount > 0))];
 }
+/**
+ * DÒNG NÀO BỊ ĐẢO khi lô chuyến tính lại (đổi xe / nhà xe / tuyến / ngày chạy — "DOI_CHUYEN") hoặc huỷ chuyến ("HUY_CHUYEN") — MỘT chỗ quyết (vòng sửa 3, H1).
+ * Hiện: MỌI dòng còn hiệu lực theo `thuTuDaoTatCa` (ADR-0057 C4), KỂ CẢ "Phí huỷ muộn" đã ghi cho nhà xe cũ trên chuyến đã đổi sang xe công ty — ADR-0095
+ * Q5 chưa nói ⇒ CHỜ CHỦ (H1). Chủ chọn giữ phí đó thì đổi Ở ĐÂY (+ R-VC-COST-4); bài ghim: tien-xe.test.ts "dongBiDaoKhi", tien-xe-route.test.ts "H1".
+ */
+export function dongBiDaoKhi(dong: readonly DongChiPhi[], _khi: "DOI_CHUYEN" | "HUY_CHUYEN"): DongChiPhi[] {
+  return thuTuDaoTatCa(dong);
+}
 /** Cờ xe thuê (ADR C2a): chủ là công ty chủ ⇒ 0; chủ đang mở vai nhà xe ⇒ 1; còn lại (đã thôi vai) ⇒ giữ cờ cũ khi đổi xe (cấm hạ), 0 khi tạo mới. */
 export function phanLoaiThue(v: { chuXePartyId: string; congTyChuId: string | null; nhaXeDangMo: ReadonlySet<string>; cuRented: 0 | 1 | null }): 0 | 1 {
   if (v.chuXePartyId === v.congTyChuId) return 0;

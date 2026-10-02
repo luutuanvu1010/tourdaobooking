@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  chonDongGiaThue, coXeCua, daoDuoc, dieuChinhDuoc, ngayDieuChinhMacDinh, ngayGhiDao, demDieuChinh, dongChongGia, loaiNguonGia, nhaXeChiuChiPhi, nhomBangKe, dongConHieuLuc, nguonGiaConHieuLuc, phanLoaiThue, thuTuDaoTatCa, tongBangKe, tongChiPhiChuyen, tongDieuChinh,
+  chonDongGiaThue, coXeCua, daoDuoc, dieuChinhDuoc, dongBiDaoKhi, ngayDieuChinhMacDinh, ngayGhiDao, demDieuChinh, dongChongGia, loaiNguonGia, nhaXeChiuChiPhi, nhomBangKe, dongConHieuLuc, nguonGiaConHieuLuc, phanLoaiThue, thuTuDaoTatCa, tongBangKe, tongChiPhiChuyen, tongDieuChinh,
   type CoXe, type DongChiPhi, type DongGiaThue, type LoaiDongChiPhi,
 } from "./tien-xe.ts";
 
@@ -151,4 +151,13 @@ test("dieuChinhDuoc (ADR-0095 Q5, vòng sửa 2 4.7): xe thuê / đã huỷ ⇒ 
   assert.equal(dieuChinhDuoc({ rented: 0, trangThai: "ENDED", lyDo: "CPX_HUY_MUON" }), true);
   assert.equal(dieuChinhDuoc({ rented: 0, trangThai: "PLANNED", lyDo: "CPX_KHAC" }), false);
   assert.equal(dieuChinhDuoc({ rented: 0, trangThai: "RUNNING", lyDo: "CPX_PHU_THU_CHO" }), false);
+});
+
+test("dongBiDaoKhi (vòng sửa 3, H1 — GHIM, chờ chủ): đổi chuyến / huỷ chuyến đảo MỌI dòng còn hiệu lực, KỂ CẢ phí huỷ muộn cho nhà xe cũ; thứ tự âm trước dương sau", () => {
+  const dong: DongChiPhi[] = [
+    D("s", "SNAPSHOT", 1_200_000), D("r", "REVERSAL", -1_200_000, "s"), { ...D("p", "ADJUSTMENT", 300_000), reasonCode: "CPX_HUY_MUON" }, D("a", "ADJUSTMENT", -50_000),
+  ];
+  for (const khi of ["DOI_CHUYEN", "HUY_CHUYEN"] as const) {
+    assert.deepEqual(dongBiDaoKhi(dong, khi).map((d) => d.id), ["a", "p"], `${khi}: phí huỷ cho nhà xe cũ (p) hiện BỊ đảo — đổi luật ở dongBiDaoKhi khi chủ chọn`);
+  }
 });
