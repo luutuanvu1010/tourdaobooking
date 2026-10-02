@@ -1,0 +1,45 @@
+<!-- Bản lưu của điều phối: KHUNG CANVAS dùng chung — xem mô tả các khối H/TAG/BN/SK/EM/CD/LS/FM ở đầu tệp Đợt 5 (/Users/tuanbao/.claude/jobs/a7328a0e/tmp/danh-gia/dot-5/ban-ve/Điều phối xe đang chạy.dc.html). Thêm ở bản này: nút variant 'solid' = nền --c-danger chữ trắng (lớp .bsd). SCRIPT DỮ LIỆU dưới đây NGUYÊN VĂN. -->
+<script type="text/x-dc" data-dc-script>
+    const mkG = (role) => role === 'tx' ? [{ title: 'Tài xế', items: [{ id: 'trip', label: 'Cuốc của tôi', icon: 'assign' }, { id: 'busy', label: 'Báo bận của tôi', icon: 'clock' }, { id: 'me', label: 'Tôi', icon: 'me' }] }]
+      : role === 'vp' ? [{ title: 'Điều phối', items: [{ id: 'board', label: 'Bảng điều phối', icon: 'orders' }, { id: 'req', label: 'Đề nghị cần duyệt', icon: 'doc-check', badge: '3', badgeTone: 'sand' }, { id: 'run', label: 'Xe đang chạy', icon: 'assign' }] }]
+      : [{ title: 'Chủ', items: [{ id: 'flow', label: 'Dòng dữ liệu', icon: 'chart' }, { id: 'log', label: 'Nhật ký quyết định', icon: 'history' }] }];
+
+    const info = CD('Chuyến của tôi', { rows: [['Giờ đón', '06:00 · 02/10/2026'], ['Điểm đón', 'Bến du thuyền'], ['Biển số', '79A-123.45'], ['Số khách', '9 (6 NL · 3 TE)']], actions: [['Xuất bến', 'primary'], ['Từ chối chuyến']] });
+    const infoQH = CD('Chuyến của tôi', { rows: [['Giờ đón', '06:00 · 02/10/2026'], ['Điểm đón', 'Bến du thuyền'], ['Biển số', '79A-123.45'], ['Số khách', '9 (6 NL · 3 TE)']], actions: [['Xuất bến', 'primary']] });
+    const conHan = BN('info', 'Bạn có thể từ chối chuyến này đến 18:00 hôm nay');
+    const lyDoTC = LS('Chọn một lý do', [['Bận lịch khác', '', '', ['Đã chọn', 'soon'], { sel: 1 }], ['Ốm / việc riêng'], ['Xe không chạy được'], ['Khác']], { text: 'Bắt buộc chọn một lý do.' });
+    const nhac = BN('warning', 'Từ chối xong bạn không xem lại được chuyến này');
+    const xacNhan = CD('Xác nhận', { actions: [['Xác nhận từ chối', 'solid'], ['Quay lại']] });
+    const quaHan = BN('warning', 'Đã quá hạn từ chối — muốn đổi người hãy gọi văn phòng', '', [['Gọi văn phòng', 'primary']]);
+    const chuaToi = CD('Khách trên chuyến', { tone: 'end', text: 'Thấy danh sách khách từ 00:00 ngày 02/10' });
+    const loiDoi = BN('danger', 'Văn phòng vừa đổi tài xế chuyến này', 'Chuyến không còn thuộc về bạn. Quay lại danh sách cuốc để xem chuyến mới.', [['Về cuốc của tôi']]);
+    const hdr = H('TR-0123', 'Cuốc của tôi · 06:00 02/10 · 79A-123.45');
+    const A = { id: 'A', title: 'Tài xế đối tác — Từ chối chuyến', boards: [
+      P('tx', 'trip', 'TR-0123', '1 · Còn hạn từ chối', [hdr, conHan, info]),
+      P('tx', 'trip', 'Từ chối chuyến', '1 · Tấm chọn lý do', [H('Từ chối chuyến TR-0123', '06:00 02/10 · 79A-123.45'), lyDoTC, nhac, xacNhan]),
+      P('tx', 'trip', 'TR-0123', '2 · Đã qua hạn', [hdr, quaHan, infoQH]),
+      P('tx', 'trip', 'TR-0123', '3 · Chưa tới khung xem khách', [hdr, conHan, infoQH, chuaToi]),
+      P('tx', 'trip', 'TR-0123', '4 · Lỗi: văn phòng vừa đổi tài xế', [hdr, loiDoi, SK(2)]),
+      D('tx', 'trip', 'Cuốc của tôi › TR-0123', 'Từ chối chuyến: còn hạn, lý do, quá hạn', [hdr, conHan, info, chuaToi, lyDoTC, nhac, xacNhan, quaHan, loiDoi])
+    ] };
+    const dsBan = LS('Khung bận của tôi', [['02/10 06:00 → 03/10 18:00', 'Lý do: Việc riêng', '', ['Đang hiệu lực', 'ok'], { link: 'Rút' }], ['05/10 08:00 → 05/10 12:00', 'Lý do: Ốm', '', ['Sắp tới', 'soon'], { link: 'Rút' }], ['28/09 08:00 → 29/09 17:00', 'Lý do: Việc riêng', '', ['Đã rút', 'end'], { dim: 1 }]], { text: 'Văn phòng không xếp chuyến cho bạn trong các khung này.' });
+    const nutBan = CD('Báo bận', { text: 'Báo trước khi bạn không nhận được chuyến.', actions: [['Báo bận', 'accent']] });
+    const bieuMau = FM('Báo bận', 'Tối đa 14 ngày, không chọn ngày đã qua.', [fld('Bắt đầu', '02/10/2026 · 06:00', { req: 1, basis: '170px' }), fld('Kết thúc', '03/10/2026 · 18:00', { req: 1, basis: '170px' }), fld('Lý do', 'Việc riêng', { req: 1, sel: 1, basis: '170px' })], [['Lưu khung bận', 'primary'], ['Đóng']]);
+    const loiBan = FM('Báo bận', 'Tối đa 14 ngày, không chọn ngày đã qua.', [fld('Bắt đầu', '02/10/2026 · 05:00', { req: 1, basis: '170px' }), fld('Kết thúc', '02/10/2026 · 18:00', { req: 1, basis: '170px' }), fld('Lý do', 'Ốm', { req: 1, sel: 1, basis: '170px' })], [['Mở chuyến TR-0123', 'link'], ['Đóng']], 'Bạn đang có chuyến TR-0123 lúc 06:00 02/10 — hãy Từ chối chuyến (nếu còn hạn) hoặc gọi văn phòng');
+    const rutHoi = BN('warning', 'Rút khung bận này?', '05/10 08:00 → 12:00 · Ốm. Văn phòng có thể xếp chuyến cho bạn lại.', [['Rút khung bận', 'solid'], ['Giữ lại']]);
+    const B = { id: 'B', title: 'Tài xế đối tác — Báo bận của tôi', boards: [
+      P('tx', 'busy', 'Báo bận của tôi', '1 · Danh sách khung bận', [H('Báo bận của tôi', 'Khung thời gian bạn không nhận chuyến'), nutBan, dsBan]),
+      P('tx', 'busy', 'Báo bận của tôi', '1 · Trống', [H('Báo bận của tôi', 'Khung thời gian bạn không nhận chuyến'), nutBan, EM('Bạn chưa báo bận lần nào. Bấm “Báo bận” khi cần nghỉ để văn phòng không xếp chuyến cho bạn.')]),
+      P('tx', 'busy', 'Báo bận', '2 · Biểu mẫu', [bieuMau]),
+      P('tx', 'busy', 'Báo bận của tôi', '3 · Hỏi lại khi rút', [dsBan, rutHoi]),
+      P('tx', 'busy', 'Báo bận', '4 · Lỗi trùng chuyến', [loiBan]),
+      D('tx', 'busy', 'Báo bận của tôi', 'Danh sách, biểu mẫu, rút, lỗi', [H('Báo bận của tôi', 'Khung thời gian bạn không nhận chuyến'), nutBan, dsBan, bieuMau, rutHoi, loiBan])
+    ] };
+    const dai = LS('Tài xế bận', [['Hoàng Nam · nhà xe Phúc Thành', '02/10 06:00 → 03/10 18:00', '', ['Bận', 'warn']], ['Quốc Bảo · nhà xe Minh Tâm', '05/10 08:00 → 12:00', '', ['Bận', 'warn']]], { text: 'Chỉ hiện tên và giờ. Lý do không hiển thị với người không xếp xe.' });
+    const chan = BN('danger', 'Không thể xếp: tài xế đang bận', 'Hoàng Nam bận từ 06:00 02/10 đến 18:00 03/10. Chọn tài xế khác hoặc đổi giờ chuyến TR-0131.');
+    const keo = LS('Kéo xếp chuyến', [['TR-0131 · 07:00 02/10', 'Đang kéo vào Hoàng Nam', '', ['Bị chặn', 'bad'], { sel: 1 }], ['TR-0132 · 09:30 02/10', 'Chưa xếp tài xế', '', ['Chờ xếp', 'soon']]]);
+    const C = { id: 'C', title: 'Văn phòng — Dải “Tài xế bận” trên lịch điều phối', boards: [
+      D('vp', 'board', 'Điều phối › Lịch điều phối', 'Dải tài xế bận và câu chặn', [H('Lịch điều phối', '02/10/2026'), dai, keo, chan]),
+      P('vp', 'board', 'Lịch điều phối', 'Dải tài xế bận và câu chặn', [dai, keo, chan])
+    ] };
+</script>
