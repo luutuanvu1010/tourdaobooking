@@ -58,6 +58,12 @@
   - `dot-a-smoke.mjs`: không sửa; mọi bước ✓ tới `Error: hết giờ chờ: nhat-ky: thẻ đã dựng xong (máy tính)` → EXIT=1. Đây là bước ĐỎ SẴN từ ADR-0038 (ghi ở `web/CLAUDE.md`, bảng kịch bản), không do luồng Q.
 - Kiểm: `npm run typecheck` 0 lỗi; `node --test src/giao-dien-hoi-bang-quyen.test.ts` xanh.
 
+## Q5 — e2e QT04 + hàng rào (2026-10-02)
+- `tests/e2e/quyen-tien.mjs` (mới, đăng ký ở `ALL` sau "roles", `THOI_GIAN` 3 giây): QT04 (403 câu đ1, phiên Kế toán còn sống, không có `pin_reset` mới, cờ theo dòng Quản trị false / Toàn quyền true), biến thể (Quản trị + Nhân sự, vai và cộng tay), GD-P-01 (hai đường), đ3 (đổi tên rồi đổi lại, mở khoá; PIN Kế toán vẫn đăng nhập được), Toàn quyền gán vai Kế toán. Không đổi tài khoản dùng chung. `npm run test:e2e -- quyen-tien` → 5 ✓, EXIT=0.
+- Quan sát chặn thật (P16): ghi ở `docs/SO-HANG-RAO.md` dòng "Cổng quyền tiền chỉ Toàn quyền (ADR-0090…)". Khác dự kiến của kế hoạch: trả `superAdminOnly` về `false` KHÔNG làm đỏ Q-T3 (route) — luật quyền tiền ở `roleAssignmentProblem` độc lập với cờ vai; chỉ `roles.test.ts` đỏ (5 bài). Ghi đúng như thấy.
+- (iv) có bài `test.todo` ở `quyen-tien.test.ts`.
+- `npm test` 2813 đạt; bài đo giờ của hook đỏ lần ba khi chạy cùng bộ lúc máy bận — xem Q2.
+
 ## Ruling thi công (tự áp, có khuyến nghị rõ)
 
 - **R-Q1 (thứ tự câu báo):** `highPermissionProblem` kiểm nhóm Quản trị/Toàn quyền/Nhân sự TRƯỚC (giữ câu cũ khi đụng `SUPER_ADMIN`), rồi mới kiểm quyền tiền. `roleAssignmentProblem` kiểm quyền tiền TRƯỚC luật vai `VAI_QUAN_LY` (để câu đúng ADR-0090 đ1). Tập kích hoạt câu tiền ở luật vai / chỉnh tay = `MA_QUYEN_TIEN` trừ `SUPER_ADMIN_GRANTED` (suy ra, không chép tay `ACCOUNTING`) — để gán vai IT / Giám đốc vẫn nhận câu cũ.
