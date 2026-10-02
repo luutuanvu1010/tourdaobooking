@@ -2896,6 +2896,7 @@ label.check > input.o-tick { display: inline; width: auto; margin: 0 var(--s2) 0
 .dp-tl-ban { position: absolute; top: var(--dp-tl-inset); bottom: var(--dp-tl-inset); left: calc(var(--dp-x) * var(--dp-gio)); z-index: 0; display: flex; align-items: flex-end; width: calc(var(--dp-dai) * var(--dp-gio)); padding: var(--pad-dp-khoi); overflow: hidden; font-size: var(--fs-dp-tiny); font-weight: var(--fw-bold); color: var(--c-sand-text); white-space: nowrap; background: var(--c-xe-ban-bg); border: 1px dashed var(--c-sand-border); border-radius: var(--radius-dp-khoi); }
 .dp-ban-ds { display: flex; flex-direction: column; gap: var(--s1); margin: var(--s2) 0 0; padding: 0; list-style: none; }
 .dp-ban-dong { display: flex; align-items: center; gap: var(--s2); font-size: var(--fs-step-2); color: var(--c-sand-text); }
+@media (min-width: 900px) { .dp-ban-ds.vc-narrow { display: none; } } /* .dp-ban-ds khai sau .vc-narrow nên phải nhắc lại: máy tính đã có dải trên dòng thời gian */
 
 /* ---------- Thị giác 1.70: GIẢM CHUYỂN ĐỘNG — PHẢI ở cuối tệp ----------
    Luật toàn cục `* { transition: none !important }` (khối PWA) chỉ tắt chuyển tiếp; luật dưới gỡ thêm độ nhấc / lún. Đặt cuối tệp để thắng mọi luật nhấc / lún
