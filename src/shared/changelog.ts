@@ -14,7 +14,7 @@ export const CHANGELOG: readonly ReleaseNote[] = [
     // Đợt 0 luồng Q — ADR-0090 (quyền tiền chỉ Toàn quyền), migration 0075 (chỉ một view). Số 1.71 = main 1.70 + 1. KIỂM LẠI LÚC GỘP (luồng L / nhánh khác
     // gộp trước thì đánh lại số).
     version: "1.71",
-    date: "2026-10-03",
+    date: "2026-10-02",
     items: [
       { kind: "doi", text: "Tài khoản Kế toán nay chỉ người phụ trách hệ thống (Toàn quyền) được tạo, gán vai Kế toán, cộng quyền Kế toán và đặt lại PIN." },
       { kind: "doi", text: "Quản trị vẫn đổi tên, ngưng và mở khoá đăng nhập cho tài khoản Kế toán như trước; nút Đặt lại PIN không còn hiện ở dòng Kế toán." },

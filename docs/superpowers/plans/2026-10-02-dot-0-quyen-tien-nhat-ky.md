@@ -75,6 +75,14 @@
 - Mục nhật ký thay đổi **1.71** (bước A.0) ở `src/shared/changelog.ts` + chuỗi ghim ở `src/shared/app-info.test.ts`. Số tạm — đánh lại lúc gộp nếu nhánh khác lên trước.
 - **Không làm (ghi để khỏi hiểu nhầm):** không gõ cửa màn hình khoá (Web Push) cho tin này — tin chỉ hiện trong hộp + số đỏ; không thêm vào Bảng tin. Đề xuất làm sau nếu chủ muốn.
 
+## Q6 — kiểm độc lập (2026-10-02): **ĐẠT**
+Subagent `nguoi-kiem-doc-lap` (chỉ đọc), trên `main..7038b15f`:
+- Tự chạy lại: `npm run typecheck` 0 lỗi; `npm test` 2816 đạt + 1 todo, bài đo giờ đạt; `npm run test:e2e -- quyen-tien roles admin permissions chinh-sach-phien thongbao` 7/7 xanh.
+- Q-T1…Q-T9 ĐẠT; `SUPER_ADMIN_GRANTED`, `canManageAccount` không đổi; rà mọi route ghi: không thấy đường vòng (vai hồ sơ nhóm tài khoản bị chặn ở `parties`, gộp hồ sơ chặn hồ sơ có tài khoản). Q4: view chỉ khoá, số 0075 không trùng, không lộ tên cho người không phải Toàn quyền.
+- Tự làm hai phép đột biến (bỏ cổng reset-pin; bỏ dòng `if (vaiTien || chinhTayTien)`) → đỏ → hoàn nguyên, `git status` sạch.
+- Phát hiện: không CAO. VỪA: số 1.71 và 0075 phải đo lại lúc gộp. THẤP: (1) ngày 1.71 ghi 2026-10-03 → **đã sửa thành 2026-10-02**; (2) Quản trị mở "Sửa" tài khoản Kế toán không thấy ô vai Kế toán (ẩn như vai IT/Giám đốc; lưu vẫn an toàn) — đề xuất hiện dạng chỉ đọc nếu chủ muốn; (3) tin ngưng tài khoản không có Web Push/Bảng tin (đã ghi "không làm").
+- Chưa kiểm (người kiểm): kịch bản Chrome (người thi công đã chạy, xem Q3), iPhone thật, production.
+
 ## Ruling thi công (tự áp, có khuyến nghị rõ)
 
 - **R-Q1 (thứ tự câu báo):** `highPermissionProblem` kiểm nhóm Quản trị/Toàn quyền/Nhân sự TRƯỚC (giữ câu cũ khi đụng `SUPER_ADMIN`), rồi mới kiểm quyền tiền. `roleAssignmentProblem` kiểm quyền tiền TRƯỚC luật vai `VAI_QUAN_LY` (để câu đúng ADR-0090 đ1). Tập kích hoạt câu tiền ở luật vai / chỉnh tay = `MA_QUYEN_TIEN` trừ `SUPER_ADMIN_GRANTED` (suy ra, không chép tay `ACCOUNTING`) — để gán vai IT / Giám đốc vẫn nhận câu cũ.

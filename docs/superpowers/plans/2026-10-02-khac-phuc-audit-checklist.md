@@ -45,7 +45,7 @@ Hai luồng song song, mỗi luồng một phiên.
 - [x] 🤖 Q3 cờ theo từng dòng + giao diện ẩn/hiện
 - [x] 🤖 Q4 tin "Quản trị ngưng Kế toán" → Toàn quyền (một view, một migration — chủ đồng ý (f))
 - [x] 🤖 Q5 e2e QT04 + dòng sổ hàng rào (thấy chặn thật)
-- [ ] 🔍 Q6 kiểm độc lập (quyền): ĐẠT
+- [x] 🔍 Q6 kiểm độc lập (quyền): ĐẠT
 - [ ] 👤 Q7 🚀 phát hành luồng Q
 
 **Luồng L — lớp chống ghi trùng bản mở rộng (ADR-0094), đường găng**
