@@ -177,7 +177,7 @@ route("PUT", "/api/foo/:id", "office", async ({ env, request, params, staff }) =
 ### c. Thêm trang web
 
 **Sửa theo thứ tự:**
-1. `public/<tên>.html`: copy nguyên `<head>` của `public/locations.html` (đủ thẻ meta iOS, `theme-color`, `manifest`, `apple-touch-icon`), đổi `<title>Tên — Island Booking System</title>`.
+1. `public/<tên>.html`: copy nguyên `<head>` của `public/locations.html` (đủ thẻ meta iOS, `theme-color`, `manifest`, `apple-touch-icon`), đổi `<title>Tên — Island Booking System</title>`. Giữ đúng thẻ link giao diện công ty `<link rel="stylesheet" href="/api/giao-dien.css">` đứng NGAY SAU `<link rel="stylesheet" href="/app.css">` (ADR-0087).
    - Thân: `<header id="topbar"></header>`, `<div id="error" class="alert" role="alert" hidden>`, `<script type="module" src="/js/<tên>.js">`.
    - `<body data-title data-back data-tabbar="off">` tuỳ trang. KHÔNG script inline (CSP `script-src 'self'`).
 2. `web/<tên>.ts`: `const staff = await initShell();` (`web/shell.ts`) làm việc đầu; kiểm quyền bằng `hasPermission`/`can` (`src/shared/permissions`, import KHÔNG đuôi `.ts`); lỗi hiện bằng `showError`.
