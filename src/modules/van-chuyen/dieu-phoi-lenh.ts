@@ -19,6 +19,8 @@ import {
 import { canhBaoDto, changLichDto, chuyenTomTat, lyDoDangDung, taiXeChon, xeChon } from "./dieu-phoi-dto";
 import { chayLo, diemChoKhoa, diemKhongConKhach, gioNgan, loi409, loiKiem, lyDoHopLe, maDonGon, nhanLyDo, phaLeNhatKy } from "./dieu-phoi-route";
 import type { DoiThan, HuyThan, RutThan, SuaChuyenThan, XepThan } from "./dieu-phoi-than";
+import { phanLoaiThue } from "./tien-xe";
+import { docPhanLoai } from "./tien-xe-lenh";
 
 const NGAY_MS = 86_400_000;
 const nowIsoOf = (ms: number) => new Date(ms).toISOString();
@@ -82,7 +84,12 @@ export async function lenhSuaChuyen(db: D1Database, nen: NenChuyen, b: SuaChuyen
   if (diemDoi.length > 0) thay.push(`${diemDoi.length} điểm đổi thứ tự / giờ xe tới`);
   const lo = loSuaChuyen(db, {
     ...lenhChung(b.requestId, staff, bayGioMs), tripId: t.id, version: b.version,
-    moi: { xeId, chuXePartyId: xeRow.owner_party_id, ngayChay: msToVnLocal(batDauMs).date, batDauMs, ketThucMs, batDauSomNhatMs: somNhat, nghiPhaLeLyDo: b.nghiPhaLe?.lyDo ?? t.rest_override_reason_code },
+    moi: {
+      xeId, chuXePartyId: xeRow.owner_party_id, ngayChay: msToVnLocal(batDauMs).date, batDauMs, ketThucMs, batDauSomNhatMs: somNhat, nghiPhaLeLyDo: b.nghiPhaLe?.lyDo ?? t.rest_override_reason_code,
+      // ADR-0057 C2a: cờ xe thuê CHỈ tính lại khi đổi xe (trigger vc_trip_rented_alone chặn đổi riêng cờ; chuyến cũ cờ 0 sửa giờ vẫn được).
+      thue: doiXe ? phanLoaiThue({ chuXePartyId: xeRow.owner_party_id, ...(await docPhanLoai(db)), cuRented: t.rented }) : t.rented,
+      tuyen: t.route_code,
+    },
     doiTaiXe: doiTaiXe ? taiXeId : null,
     diem: diemDoi.map((d) => ({ id: d.id, seq: d.thuTu, ngayXeToi: d.gioXeToi?.ngay ?? null, gioXeToi: d.gioXeToi?.gio ?? null })),
     phaLe, policyId: chung.chinhSach?.id ?? null,

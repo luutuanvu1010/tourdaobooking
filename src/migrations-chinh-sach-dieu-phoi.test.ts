@@ -114,6 +114,15 @@ test("(c) dữ liệu gieo: đúng một dòng chính sách 360/120/30/1/0 + k�
   assert.deepEqual(lyDoGieo.map((r) => `${r.reason_group}:${r.code}`), [
     "BO_QUA_DIEM:BO_QUA_KHONG_CON_KHACH",
     "BO_QUA_DIEM:BO_QUA_KHAC",
+    // + nhóm CHI_PHI_XE gieo ở migration *_vc_chi_phi_chuyen (ADR-0057 T2 — kế hoạch Đợt 4 TC-6, TC-7).
+    "CHI_PHI_XE:CPX_PHU_THU_CHO",
+    "CHI_PHI_XE:CPX_CAU_DUONG",
+    "CHI_PHI_XE:CPX_HUY_MUON",
+    "CHI_PHI_XE:CPX_NHAP_SAI",
+    "CHI_PHI_XE:CPX_GIA_THOA_THUAN",
+    "CHI_PHI_XE:CPX_DOI_CHUYEN",
+    "CHI_PHI_XE:CPX_HUY_CHUYEN",
+    "CHI_PHI_XE:CPX_KHAC",
     "DOI_GIO_XE:DOI_GIO_XE_TOI_SOM",
     "DOI_GIO_XE:DOI_GIO_XE_KHAC",
     "HUY_CHUYEN:HUY_GOP_CHUYEN",

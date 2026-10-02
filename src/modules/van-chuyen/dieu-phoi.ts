@@ -103,7 +103,10 @@ export const LY_DO_BO_QUA_KHONG_CON_KHACH: (typeof MA_LY_DO_HE_THONG)[number] = 
 
 // ---- Tạo chuyến (route 2) --------------------------------------------------------------------------------------------------------------------------------
 export interface LenhTaoChuyen extends LenhChung {
-  chuyen: { id: string; ma: string; xeId: string; chuXePartyId: string; ngayChay: string; batDauMs: number; ketThucMs: number; nghiChup: number; nghiPhaLeLyDo: string | null };
+  chuyen: {
+    id: string; ma: string; xeId: string; chuXePartyId: string; ngayChay: string; batDauMs: number; ketThucMs: number; nghiChup: number; nghiPhaLeLyDo: string | null;
+    /** ADR-0057 C2a: cờ xe thuê (`phanLoaiThue`). */ thue: 0 | 1; /** ADR-0057 C2: tuyến (nhãn tra giá). */ tuyen: string | null;
+  };
   taiXePartyId: string;
   policyId: string | null;
   phaLeNghi: PhaLe | null;
@@ -112,7 +115,7 @@ export interface LenhTaoChuyen extends LenhChung {
 export function loTaoChuyen(db: D1Database, l: LenhTaoChuyen): CauCoNhan[] {
   const c = l.chuyen;
   return [
-    { nhan: "CONG", stmt: db.prepare(TRIP_INSERT).bind(c.id, c.ma, c.xeId, c.chuXePartyId, c.ngayChay, c.batDauMs, c.ketThucMs, c.nghiChup, c.nghiPhaLeLyDo, l.cmd, l.lucIso, l.nguoiId) },
+    { nhan: "CONG", stmt: db.prepare(TRIP_INSERT).bind(c.id, c.ma, c.xeId, c.chuXePartyId, c.ngayChay, c.batDauMs, c.ketThucMs, c.nghiChup, c.nghiPhaLeLyDo, l.cmd, l.lucIso, l.nguoiId, c.thue, c.tuyen) },
     nhatKy(db, l, "trip_created", c.id, l.detail),
     suKien(db, l, { tripId: c.id, loai: "CREATED", phaLe: l.phaLeNghi, policyId: l.policyId }),
     ghi(db.prepare(DRIVER_INSERT).bind(crypto.randomUUID(), c.id, l.taiXePartyId, l.cmd, l.lucIso, l.nguoiId)),
@@ -123,7 +126,7 @@ export function loTaoChuyen(db: D1Database, l: LenhTaoChuyen): CauCoNhan[] {
 export interface LenhSuaChuyen extends LenhChung {
   tripId: string;
   version: number;
-  moi: { xeId: string; chuXePartyId: string; ngayChay: string; batDauMs: number; ketThucMs: number; batDauSomNhatMs: number; nghiPhaLeLyDo: string | null };
+  moi: { xeId: string; chuXePartyId: string; ngayChay: string; batDauMs: number; ketThucMs: number; batDauSomNhatMs: number; nghiPhaLeLyDo: string | null; thue: 0 | 1; tuyen: string | null };
   /** Tài xế MỚI khi đổi (đóng dòng cũ REASSIGNED + mở dòng mới); null = giữ. */
   doiTaiXe: string | null;
   diem: { id: string; seq: number; ngayXeToi: string | null; gioXeToi: string | null }[];
@@ -137,7 +140,7 @@ export function loSuaChuyen(db: D1Database, l: LenhSuaChuyen): CauCoNhan[] {
     cong(db, l, l.tripId, l.version),
     nhatKy(db, l, "trip_edited", l.tripId, l.detail),
     suKien(db, l, { tripId: l.tripId, loai: "UPDATED", phaLe: l.phaLe, policyId: l.policyId }),
-    ghi(db.prepare(TRIP_UPDATE_PLAN).bind(l.tripId, l.cmd, m.xeId, m.chuXePartyId, m.ngayChay, m.batDauMs, m.ketThucMs, m.batDauSomNhatMs, m.nghiPhaLeLyDo, l.lucIso, l.nguoiId)),
+    ghi(db.prepare(TRIP_UPDATE_PLAN).bind(l.tripId, l.cmd, m.xeId, m.chuXePartyId, m.ngayChay, m.batDauMs, m.ketThucMs, m.batDauSomNhatMs, m.nghiPhaLeLyDo, l.lucIso, l.nguoiId, m.thue, m.tuyen)),
   ];
   if (l.doiTaiXe !== null) {
     lo.push(ghi(db.prepare(DRIVER_CLOSE).bind(l.tripId, l.cmd, "REASSIGNED", l.lucIso, l.nguoiId)));

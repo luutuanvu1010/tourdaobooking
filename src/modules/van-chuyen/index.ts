@@ -74,8 +74,9 @@ import { lyDoGiuDto, xeCuaDonDto } from "./dieu-phoi-dto";
 // ADR-0057 T1 (kế hoạch Đợt 4 Task 4): bảng giá thuê xe theo nhà xe, danh mục tuyến / cỡ xe — thân route mỏng, xử lý ở tien-xe-lenh.ts.
 import type { BangGiaDongResponse, CoXeListResponse, TuyenListResponse } from "../../shared/contracts";
 import { bangGiaDto, coXeDto, tuyenDto } from "./tien-xe-dto";
+import { phanLoaiThue } from "./tien-xe";
 import {
-  docBangGia, lenhKetThucGia, lenhSuaCoXe, lenhSuaTuyen, lenhThemCoXe, lenhThemGia, lenhThemTuyen,
+  docBangGia, docPhanLoai, lenhKetThucGia, lenhSuaCoXe, lenhSuaTuyen, lenhThemCoXe, lenhThemGia, lenhThemTuyen,
 } from "./tien-xe-lenh";
 import { listRoutes, listSizes } from "./tien-xe-repo";
 import { MA_TUYEN_CO_RE, docCoXeMoi, docKetThucGia, docSuaCoXe, docSuaTuyen, docThemGia, docTuyenMoi } from "./tien-xe-than";
@@ -937,12 +938,16 @@ export const vanChuyenModule: AppModule = {
         const chan = loiKiem(kq, staff, null, { moc: false, nghi: t.nghiPhaLe !== null });
         if (chan) return chan;
         const ngayChay = msToVnLocal(t.batDauMs).date;
+        const phanLoai = await docPhanLoai(env.DB); // ADR-0057 C2a: cờ xe thuê chụp lúc xếp
         const id = crypto.randomUUID();
         for (let lan = 0; ; lan++) {
           const ma = `CX-${ngayChay.slice(8, 10)}${ngayChay.slice(5, 7)}-${String((await tripCountByDate(env.DB, ngayChay)) + 1 + lan).padStart(2, "0")}`;
           const lo = loTaoChuyen(env.DB, {
             cmd: crypto.randomUUID(), requestId: t.requestId, lucIso: nowIso, nguoiId: staff.id,
-            chuyen: { id, ma, xeId: xeRow.id, chuXePartyId: xeRow.owner_party_id, ngayChay, batDauMs: t.batDauMs, ketThucMs: t.ketThucMs, nghiChup: chung.chinhSach?.rest_minutes ?? 0, nghiPhaLeLyDo: t.nghiPhaLe?.lyDo ?? null },
+            chuyen: {
+              id, ma, xeId: xeRow.id, chuXePartyId: xeRow.owner_party_id, ngayChay, batDauMs: t.batDauMs, ketThucMs: t.ketThucMs, nghiChup: chung.chinhSach?.rest_minutes ?? 0,
+              nghiPhaLeLyDo: t.nghiPhaLe?.lyDo ?? null, thue: phanLoaiThue({ chuXePartyId: xeRow.owner_party_id, ...phanLoai, cuRented: null }), tuyen: null,
+            },
             taiXePartyId: t.taiXePartyId, policyId: chung.chinhSach?.id ?? null,
             phaLeNghi: t.nghiPhaLe ? { luat: "KHOANG_NGHI", lyDo: t.nghiPhaLe.lyDo, policyId: chung.chinhSach?.id ?? null } : null,
             detail: `${ma} · xe ${xeRow.plate_number} (${xeRow.passenger_capacity} chỗ) · ${gioNgan(t.batDauMs)} → ${gioNgan(t.ketThucMs)}${t.nghiPhaLe ? phaLeNhatKy("KHOANG_NGHI", nhanLyDo(chung, t.nghiPhaLe.lyDo)) : ""}`,

@@ -112,8 +112,10 @@ function chuyen(db: Db, o: { xe: string; tu?: number; den?: number; som?: number
   const tu = o.tu ?? ms("07:00");
   const chu = one<{ c: string }>(db, "SELECT owner_party_id c FROM vc_vehicle WHERE id = ?", o.xe).c;
   const ngay = new Date(tu + 7 * H).toISOString().slice(0, 10);
-  run(db, `INSERT INTO vc_trip (id, code, vehicle_id, carrier_party_id, service_date, planned_start_ms, planned_end_ms, earliest_start_ms, rest_minutes_snapshot, last_cmd_id,
-     created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 30, ?, ?, ?)`, id, o.code ?? `CX-${id}`, o.xe, chu, ngay, tu, o.den ?? tu + 2 * H, o.som ?? tu, randomUUID(), AT, AT);
+  // ADR-0057 C2a (0073): cờ xe thuê chụp lúc xếp — phải khớp phân loại chủ chụp (trigger vc_trip_rented_ins).
+  const rented = one<{ r: number }>(db, `SELECT CASE WHEN ? IN (SELECT party_id FROM v_pty_carrier) AND ? NOT IN (SELECT party_id FROM v_pty_owner_company) THEN 1 ELSE 0 END r`, chu, chu).r;
+  run(db, `INSERT INTO vc_trip (id, code, vehicle_id, carrier_party_id, service_date, planned_start_ms, planned_end_ms, earliest_start_ms, rest_minutes_snapshot, rented, last_cmd_id,
+     created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 30, ?, ?, ?, ?)`, id, o.code ?? `CX-${id}`, o.xe, chu, ngay, tu, o.den ?? tu + 2 * H, o.som ?? tu, rented, randomUUID(), AT, AT);
   return id;
 }
 const laiXe = (db: Db, trip: string, taiXe: string) =>
@@ -204,7 +206,8 @@ test("(a) đúng một tệp *_chuyen_xe.sql, số 0042; tám bảng vc_trip*; m
   assert.match(FILE, /^0042_/);
   const db = openDb();
   const bang = (db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name LIKE 'vc\\_trip%' ESCAPE '\\' ORDER BY name").all() as { name: string }[]).map((r) => r.name);
-  assert.deepEqual(bang, ["vc_trip", "vc_trip_allocation", "vc_trip_departure_check", "vc_trip_departure_check_item", "vc_trip_driver", "vc_trip_event", "vc_trip_manifest", "vc_trip_stop"]);
+  // + vc_trip_cost_line của migration *_vc_chi_phi_chuyen (ADR-0057 T2 — không thuộc tệp 0042; tên trigger vẫn vc_).
+  assert.deepEqual(bang, ["vc_trip", "vc_trip_allocation", "vc_trip_cost_line", "vc_trip_departure_check", "vc_trip_departure_check_item", "vc_trip_driver", "vc_trip_event", "vc_trip_manifest", "vc_trip_stop"]);
   const text = sqlOf(FILE);
   const tenTrigger = [...text.matchAll(/CREATE TRIGGER (\w+)/g)].map((m) => m[1]!);
   assert.ok(tenTrigger.length >= 50, `chống bài rỗng: ${tenTrigger.length}`);
@@ -624,7 +627,8 @@ test("TC-13 LC-13: chủ xe chụp của chuyến khác chủ hiện tại của
   loi(() => run(db, `INSERT INTO vc_trip (id, code, vehicle_id, carrier_party_id, service_date, planned_start_ms, planned_end_ms, earliest_start_ms, rest_minutes_snapshot, last_cmd_id,
      created_at, updated_at) VALUES ('t-sai', 'CX-SAI', ?, ?, ?, ?, ?, ?, 30, ?, ?, ?)`, xeX, congTyChu(db), DAY, ms("07:00"), ms("08:00"), ms("07:00"), randomUUID(), AT, AT), /lc13_carrier/);
   const c = chuyenChuan(db);
-  loi(() => run(db, "UPDATE vc_trip SET vehicle_id = ?, carrier_party_id = ? WHERE id = ?", xeX, x, c.id), /lc13_cross/);
+  // rented = 1: cờ xe thuê đúng (ADR-0057 C2a, 0073) để chỉ còn LC-13 chặn.
+  loi(() => run(db, "UPDATE vc_trip SET vehicle_id = ?, carrier_party_id = ?, rented = 1 WHERE id = ?", xeX, x, c.id), /lc13_cross/);
   loi(() => run(db, "UPDATE vc_trip SET vehicle_id = ? WHERE id = ?", xeX, c.id), /lc13_cross/, "chủ chụp không theo xe mới");
   loi(() => run(db, "UPDATE vc_vehicle SET owner_party_id = ? WHERE id = ?", x, c.xe), /lc13_owner/);
 });

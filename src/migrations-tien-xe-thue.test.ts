@@ -132,3 +132,248 @@ test("vai CARRIER chỉ khi THÊM; ĐÓNG giá của nhà xe đã thôi vai vẫ
   run(db, "UPDATE vc_rental_rate SET valid_to_date = '2026-10-31', updated_at = ? WHERE id = ?", AT, id); // đóng: được
 });
 
+
+// ==== T2 (0073): cờ xe thuê, tuyến trên chuyến, dòng chi phí, cổng thiếu giá ===========================================================================
+const POLICY = "d53b6dd9-60e2-4644-8e63-9ca7dcff35d0"; // dòng chính sách gieo của 0041
+const DAY = "2026-10-15";
+const H = 3_600_000;
+const ms = (hhmm: string) => Date.parse(`${DAY}T${hhmm}:00.000+07:00`);
+function taiXeCua(db: Db, carrier: string): string {
+  const t = hoSo(db, "PERSON", "Tài xế nhà xe");
+  run(db, "INSERT INTO pty_party_relationship (id, from_party_id, to_party_id, relationship_type_code, valid_from_date, created_at, updated_at) VALUES (?, ?, ?, 'DRIVES_FOR', '2026-09-20', ?, ?)",
+    nid("q"), t, carrier, AT, AT);
+  return t;
+}
+/** Chèn chuyến THẲNG (lớp CSDL). `rented` mặc định = phân loại đúng theo chủ xe (khuôn hàm chuyen() của migrations-chuyen-xe.test.ts sau 0073). */
+function chuyen(db: Db, o: { xe: string; rented?: number; status?: string; tu?: number; route?: string | null }): string {
+  const id = nid("tr");
+  const tu = o.tu ?? ms("07:00");
+  const chu = one<{ c: string }>(db, "SELECT owner_party_id c FROM vc_vehicle WHERE id = ?", o.xe).c;
+  const dung = one<{ r: number }>(db, "SELECT CASE WHEN ? IN (SELECT party_id FROM v_pty_carrier) AND ? NOT IN (SELECT party_id FROM v_pty_owner_company) THEN 1 ELSE 0 END r", chu, chu).r;
+  run(db, `INSERT INTO vc_trip (id, code, vehicle_id, carrier_party_id, service_date, planned_start_ms, planned_end_ms, earliest_start_ms, rest_minutes_snapshot, status,
+     rented, route_code, last_cmd_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 30, ?, ?, ?, ?, ?, ?)`,
+    id, `CX-${id}`, o.xe, chu, new Date(tu + 7 * H).toISOString().slice(0, 10), tu, tu + 2 * H, tu, o.status ?? "PLANNED", o.rented ?? dung, o.route ?? null, randomUUID(), AT, AT);
+  return id;
+}
+const laiXe = (db: Db, trip: string, taiXe: string) =>
+  run(db, "INSERT INTO vc_trip_driver (id, trip_id, driver_party_id, valid_from_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)", nid("dr"), trip, taiXe, AT, AT, AT);
+function cong(db: Db, trip: string): string {
+  const cmd = randomUUID();
+  run(db, "UPDATE vc_trip SET version = version + 1, last_cmd_id = ?, updated_at = ? WHERE id = ?", cmd, AT, trip);
+  return cmd;
+}
+/** Xuất bến lớp CSDL: câu cổng → bản kiểm ĐẠT mang dấu lệnh → status RUNNING (khuôn xuatBenTrongLo của migrations-chuyen-xe.test.ts, không sự kiện). */
+function xuatBen(db: Db, trip: string): void {
+  const cmd = cong(db, trip);
+  const t = one<{ vehicle_id: string; carrier_party_id: string }>(db, "SELECT vehicle_id, carrier_party_id FROM vc_trip WHERE id = ?", trip);
+  run(db, `INSERT INTO vc_trip_departure_check (id, trip_id, cmd_id, policy_id, ket_qua, vehicle_id, plate_number, passenger_capacity, owner_party_id, driver_party_id,
+     rest_minutes_used, checked_at, created_at, updated_at) VALUES (?, ?, ?, ?, 'DAT', ?, '79B-000.00', 16, ?, ?, 30, ?, ?, ?)`,
+    nid("ck"), trip, cmd, POLICY, t.vehicle_id, t.carrier_party_id, t.carrier_party_id, AT, AT, AT);
+  const luc = new Date(ms("07:00")).toISOString();
+  run(db, "UPDATE vc_trip SET status = 'RUNNING', departed_at = ?, departed_ms = ?, updated_at = ? WHERE id = ?", luc, ms("07:00"), luc, trip);
+}
+const ketThuc = (db: Db, trip: string, gianDoan = false) =>
+  run(db, `UPDATE vc_trip SET status = ?, ended_at = ?, ended_ms = ?, end_reason_code = ? WHERE id = ?`,
+    gianDoan ? "ENDED_INTERRUPTED" : "ENDED", new Date(ms("08:00")).toISOString(), ms("08:00"), gianDoan ? "GIAN_DOAN_XE_HONG" : null, trip);
+const huy = (db: Db, trip: string) => run(db, "UPDATE vc_trip SET status = 'CANCELLED', cancel_reason_code = 'HUY_KHAC' WHERE id = ?", trip);
+interface Cp { trip: string; kind: string; amount: number; carrier?: string; rate?: string | null; reason?: string | null; reverses?: string | null; cap?: number | null; ngay?: string }
+function cp(db: Db, o: Cp): string {
+  const id = nid("cl");
+  const carrier = o.carrier ?? one<{ c: string }>(db, "SELECT carrier_party_id c FROM vc_trip WHERE id = ?", o.trip).c;
+  const snap = o.kind === "SNAPSHOT";
+  run(db, `INSERT INTO vc_trip_cost_line (id, trip_id, carrier_party_id, kind, amount, rate_id, passenger_capacity_snapshot, unit_amount_snapshot, reason_code, reverses_id,
+     occurred_date, cmd_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    id, o.trip, carrier, o.kind, o.amount, o.rate === undefined ? null : o.rate, o.cap === undefined ? (snap ? 16 : null) : o.cap, snap ? o.amount : null,
+    o.reason === undefined ? (snap ? null : o.kind === "AGREED" ? "CPX_GIA_THOA_THUAN" : "CPX_KHAC") : o.reason, o.reverses ?? null, o.ngay ?? DAY, randomUUID(), AT, AT);
+  return id;
+}
+const carrierOf = (db: Db, trip: string) => one<{ c: string }>(db, "SELECT carrier_party_id c FROM vc_trip WHERE id = ?", trip).c;
+/** Nhà xe + tài xế + xe 16 chỗ + tuyến NT-CR + giá 1.200.000 + chuyến xe thuê có tài xế. */
+function nen(db: Db) {
+  const nx = nhaXe(db);
+  const tx = taiXeCua(db, nx);
+  const x = xe(db, nx, 16);
+  tuyen(db, "NT-CR");
+  const g = gia(db, { nx, tuyen: "NT-CR", tien: 1_200_000 });
+  const t = chuyen(db, { xe: x, route: "NT-CR" });
+  laiXe(db, t, tx);
+  return { nx, tx, x, g, t };
+}
+
+test("T2 ca 1: chèn chuyến thẳng ở trạng thái khác PLANNED → vc_trip_insert_planned", () => {
+  const db = openDb();
+  const x = xe(db, congTyChu(db));
+  loi(() => chuyen(db, { xe: x, status: "RUNNING" }), /vc_trip_insert_planned/);
+  loi(() => chuyen(db, { xe: x, status: "CANCELLED" }), /vc_trip_insert_planned/);
+});
+
+test("T2 ca 2: cờ xe thuê lúc chèn phải khớp chủ xe (nhà xe đang mở ⇒ 1, công ty ⇒ 0); chủ chụp = công ty chủ trên xe nhà xe vẫn báo lc13_carrier", () => {
+  const db = openDb();
+  const nx = nhaXe(db);
+  const xeNx = xe(db, nx);
+  const xeCty = xe(db, congTyChu(db));
+  loi(() => chuyen(db, { xe: xeNx, rented: 0 }), /vc_rented_mismatch/);
+  loi(() => chuyen(db, { xe: xeCty, rented: 1 }), /vc_rented_mismatch/);
+  assert.equal(one<{ r: number }>(db, "SELECT rented r FROM vc_trip WHERE id = ?", chuyen(db, { xe: xeNx })).r, 1);
+  assert.equal(one<{ r: number }>(db, "SELECT rented r FROM vc_trip WHERE id = ?", chuyen(db, { xe: xeCty, tu: ms("12:00") })).r, 0);
+  loi(() => run(db, `INSERT INTO vc_trip (id, code, vehicle_id, carrier_party_id, service_date, planned_start_ms, planned_end_ms, earliest_start_ms, rest_minutes_snapshot, last_cmd_id,
+     created_at, updated_at) VALUES ('t-sai', 'CX-SAI', ?, ?, ?, ?, ?, ?, 30, ?, ?, ?)`, xeNx, congTyChu(db), DAY, ms("15:00"), ms("16:00"), ms("15:00"), randomUUID(), AT, AT), /lc13_carrier/);
+});
+
+test("T2 ca 3: đổi xe sang xe nhà xe khác mà để rented = 0 → chặn; sang xe công ty để rented = 1 → vc_rented_change; đúng cờ → được", () => {
+  const db = openDb();
+  const { t } = nen(db);
+  const nx2 = nhaXe(db);
+  const x2 = xe(db, nx2);
+  const boTaiXe = (trip: string) => run(db, "UPDATE vc_trip_driver SET valid_to_at = ?, close_reason = 'REASSIGNED' WHERE trip_id = ? AND valid_to_at IS NULL", AT, trip);
+  boTaiXe(t); // đổi xe trước, gắn tài xế mới sau (LC-13)
+  loi(() => run(db, "UPDATE vc_trip SET vehicle_id = ?, carrier_party_id = ?, rented = 0 WHERE id = ?", x2, nx2, t), /vc_rented_change|vc_rented_lower/);
+  run(db, "UPDATE vc_trip SET vehicle_id = ?, carrier_party_id = ?, rented = 1 WHERE id = ?", x2, nx2, t);
+  const xeCty = xe(db, congTyChu(db));
+  loi(() => run(db, "UPDATE vc_trip SET vehicle_id = ?, carrier_party_id = ?, rented = 1 WHERE id = ?", xeCty, congTyChu(db), t), /vc_rented_change/);
+  run(db, "UPDATE vc_trip SET vehicle_id = ?, carrier_party_id = ?, rented = 0 WHERE id = ?", xeCty, congTyChu(db), t);
+  laiXe(db, t, hoSo(db, "PERSON", "Tài xế công ty"));
+  // Chuyến không thuê đổi sang xe nhà xe để rented = 0 → vc_rented_change.
+  const t2 = chuyen(db, { xe: xe(db, congTyChu(db)), tu: ms("12:00") }); // chưa có tài xế (LC-13 không vướng)
+  loi(() => run(db, "UPDATE vc_trip SET vehicle_id = ?, carrier_party_id = ? WHERE id = ?", xe(db, nx2), nx2, t2), /vc_rented_change/);
+  run(db, "UPDATE vc_trip SET vehicle_id = ?, carrier_party_id = ?, rented = 1 WHERE id = ?", xe(db, nx2), nx2, t2);
+});
+
+test("T2 ca 4: nhà xe thôi vai; đổi chuyến rented = 1 sang xe khác của CHÍNH nhà xe đó với rented = 0 → vc_rented_lower; giữ 1 → được", () => {
+  const db = openDb();
+  const { nx, t } = nen(db);
+  const x2 = xe(db, nx);
+  thoiVai(db, nx);
+  loi(() => run(db, "UPDATE vc_trip SET vehicle_id = ?, rented = 0 WHERE id = ?", x2, t), /vc_rented_lower/);
+  run(db, "UPDATE vc_trip SET vehicle_id = ?, rented = 1 WHERE id = ?", x2, t);
+  assert.equal(one<{ r: number }>(db, "SELECT rented r FROM vc_trip WHERE id = ?", t).r, 1);
+});
+
+test("T2 ca 5: đổi RIÊNG cờ xe thuê → vc_rented_alone (cả nâng lẫn hạ)", () => {
+  const db = openDb();
+  const t = chuyen(db, { xe: xe(db, congTyChu(db)) });
+  loi(() => run(db, "UPDATE vc_trip SET rented = 1 WHERE id = ?", t), /vc_rented_alone/);
+  const t2 = nen(db).t;
+  loi(() => run(db, "UPDATE vc_trip SET rented = 0 WHERE id = ?", t2), /vc_rented_lower|vc_rented_alone/);
+});
+
+test("T2 ca 6: đổi route_code khi RUNNING → vc_route_locked; khi PLANNED → được", () => {
+  const db = openDb();
+  const { t, g } = nen(db);
+  tuyen(db, "NT-DL");
+  run(db, "UPDATE vc_trip SET route_code = 'NT-DL' WHERE id = ?", t);
+  run(db, "UPDATE vc_trip SET route_code = 'NT-CR' WHERE id = ?", t);
+  cp(db, { trip: t, kind: "SNAPSHOT", amount: 1_200_000, rate: g });
+  xuatBen(db, t);
+  loi(() => run(db, "UPDATE vc_trip SET route_code = 'NT-DL' WHERE id = ?", t), /vc_route_locked/);
+});
+
+test("T2 ca 7: chuyến xe thuê không nguồn giá → xuất bến thieu_gia; có SNAPSHOT / AGREED → được; SNAPSHOT đã đảo → thieu_gia; chuyến không thuê → được", () => {
+  const db = openDb();
+  const a = nen(db);
+  loi(() => xuatBen(db, a.t), /thieu_gia/);
+  const s = cp(db, { trip: a.t, kind: "SNAPSHOT", amount: 1_200_000, rate: a.g });
+  cp(db, { trip: a.t, kind: "REVERSAL", amount: -1_200_000, reverses: s, reason: "CPX_DOI_CHUYEN" });
+  loi(() => xuatBen(db, a.t), /thieu_gia/, "SNAPSHOT đã đảo");
+  cp(db, { trip: a.t, kind: "AGREED", amount: 1_350_000 });
+  xuatBen(db, a.t);
+  ketThuc(db, a.t);
+  const t2 = chuyen(db, { xe: a.x, tu: ms("12:00"), route: "NT-CR" });
+  laiXe(db, t2, a.tx);
+  cp(db, { trip: t2, kind: "SNAPSHOT", amount: 1_200_000, rate: a.g });
+  xuatBen(db, t2);
+  const tCty = chuyen(db, { xe: xe(db, congTyChu(db)), tu: ms("15:00") });
+  xuatBen(db, tCty);
+});
+
+test("T2 ca 8: dòng chi phí chỉ-thêm; CHECK theo loại; lý do phải thuộc nhóm CHI_PHI_XE", () => {
+  const db = openDb();
+  const { t, g } = nen(db);
+  const s = cp(db, { trip: t, kind: "SNAPSHOT", amount: 1_200_000, rate: g });
+  loi(() => run(db, "UPDATE vc_trip_cost_line SET amount = 1 WHERE id = ?", s), /vc_cost_append_only/);
+  loi(() => run(db, "DELETE FROM vc_trip_cost_line WHERE id = ?", s), /vc_cost_append_only/);
+  loi(() => cp(db, { trip: t, kind: "ADJUSTMENT", amount: 0 }), /CHECK constraint failed/);
+  loi(() => cp(db, { trip: t, kind: "ADJUSTMENT", amount: 1.5 }), /CHECK constraint failed/);
+  const t2 = chuyen(db, { xe: xe(db, carrierOf(db, t)), tu: ms("12:00") });
+  loi(() => cp(db, { trip: t2, kind: "SNAPSHOT", amount: 0, rate: g }), /CHECK constraint failed|vc_cost_snapshot_rate/);
+  loi(() => cp(db, { trip: t2, kind: "SNAPSHOT", amount: 1_200_000, rate: null }), /CHECK constraint failed|vc_cost_snapshot_rate/, "SNAPSHOT thiếu rate_id");
+  loi(() => cp(db, { trip: t2, kind: "AGREED", amount: -5 }), /CHECK constraint failed|vc_cost_total_negative/);
+  loi(() => cp(db, { trip: t, kind: "ADJUSTMENT", amount: 100, reason: null }), /CHECK constraint failed/, "điều chỉnh thiếu lý do");
+  loi(() => cp(db, { trip: t2, kind: "AGREED", amount: 1_000, reason: null }), /CHECK constraint failed/, "thoả thuận thiếu lý do");
+  loi(() => cp(db, { trip: t, kind: "ADJUSTMENT", amount: 100, reason: "HUY_KHAC" }), /vc_cost_reason/);
+  loi(() => cp(db, { trip: t, kind: "ADJUSTMENT", amount: 100, rate: g }), /CHECK constraint failed/, "rate_id chỉ cho SNAPSHOT");
+});
+
+test("T2 ca 9: dòng đảo sai số / sai chuyến / đảo dòng đảo → vc_cost_reversal; đảo cùng gốc hai lần → UNIQUE reverses_id", () => {
+  const db = openDb();
+  const { t, g } = nen(db);
+  cp(db, { trip: t, kind: "SNAPSHOT", amount: 1_200_000, rate: g });
+  const a = cp(db, { trip: t, kind: "ADJUSTMENT", amount: 150_000 });
+  loi(() => cp(db, { trip: t, kind: "REVERSAL", amount: -150_001, reverses: a }), /vc_cost_reversal/);
+  const t2 = chuyen(db, { xe: xe(db, carrierOf(db, t)), tu: ms("12:00") });
+  loi(() => cp(db, { trip: t2, kind: "REVERSAL", amount: -150_000, reverses: a }), /vc_cost_reversal|vc_cost_total_negative/);
+  const ra = cp(db, { trip: t, kind: "REVERSAL", amount: -150_000, reverses: a });
+  loi(() => cp(db, { trip: t, kind: "REVERSAL", amount: 150_000, reverses: ra }), /vc_cost_reversal/, "đảo dòng đảo");
+  loi(() => cp(db, { trip: t, kind: "REVERSAL", amount: -150_000, reverses: a }), /UNIQUE constraint failed: vc_trip_cost_line\.reverses_id/);
+});
+
+test("T2 ca 10: hai nguồn giá chưa đảo (SNAPSHOT rồi AGREED / SNAPSHOT) → vc_cost_one_source", () => {
+  const db = openDb();
+  const { t, g } = nen(db);
+  cp(db, { trip: t, kind: "SNAPSHOT", amount: 1_200_000, rate: g });
+  loi(() => cp(db, { trip: t, kind: "AGREED", amount: 1_350_000 }), /vc_cost_one_source/);
+  loi(() => cp(db, { trip: t, kind: "SNAPSHOT", amount: 1_200_000, rate: g }), /vc_cost_one_source/);
+});
+
+test("T2 ca 11: SNAPSHOT / AGREED khi chuyến RUNNING / ENDED / CANCELLED → vc_cost_planned_only; đảo SNAPSHOT khi RUNNING → chặn; đảo ADJUSTMENT khi ENDED → được", () => {
+  const db = openDb();
+  const { t, g, x, tx } = nen(db);
+  const s = cp(db, { trip: t, kind: "SNAPSHOT", amount: 1_200_000, rate: g });
+  const a = cp(db, { trip: t, kind: "ADJUSTMENT", amount: 100_000 });
+  xuatBen(db, t);
+  loi(() => cp(db, { trip: t, kind: "REVERSAL", amount: -1_200_000, reverses: s, reason: "CPX_NHAP_SAI" }), /vc_cost_planned_only/);
+  loi(() => cp(db, { trip: t, kind: "AGREED", amount: 1_000 }), /vc_cost_planned_only|vc_cost_one_source/);
+  ketThuc(db, t);
+  loi(() => cp(db, { trip: t, kind: "REVERSAL", amount: -1_200_000, reverses: s, reason: "CPX_NHAP_SAI" }), /vc_cost_planned_only/);
+  cp(db, { trip: t, kind: "REVERSAL", amount: -100_000, reverses: a, reason: "CPX_NHAP_SAI" });
+  const t2 = chuyen(db, { xe: x, tu: ms("12:00") });
+  laiXe(db, t2, tx);
+  huy(db, t2);
+  loi(() => cp(db, { trip: t2, kind: "SNAPSHOT", amount: 1_200_000, rate: g }), /vc_cost_planned_only/);
+  loi(() => cp(db, { trip: t2, kind: "AGREED", amount: 1_000 }), /vc_cost_planned_only/);
+});
+
+test("T2 ca 12: tổng âm — SNAPSHOT 1.200.000 + ADJUSTMENT −200.000, đảo SNAPSHOT → vc_cost_total_negative (V9); đảo âm trước rồi dương → tổng 0 (V8); đảo điều chỉnh dương làm tổng âm → chặn", () => {
+  const db = openDb();
+  const { t, g } = nen(db);
+  const s = cp(db, { trip: t, kind: "SNAPSHOT", amount: 1_200_000, rate: g });
+  const a = cp(db, { trip: t, kind: "ADJUSTMENT", amount: -200_000 });
+  loi(() => cp(db, { trip: t, kind: "REVERSAL", amount: -1_200_000, reverses: s, reason: "CPX_NHAP_SAI" }), /vc_cost_total_negative/);
+  cp(db, { trip: t, kind: "REVERSAL", amount: 200_000, reverses: a, reason: "CPX_HUY_CHUYEN" });
+  cp(db, { trip: t, kind: "REVERSAL", amount: -1_200_000, reverses: s, reason: "CPX_HUY_CHUYEN" });
+  assert.equal(one<{ n: number }>(db, "SELECT total(amount) n FROM vc_trip_cost_line WHERE trip_id = ?", t).n, 0);
+  huy(db, t);
+  const p = cp(db, { trip: t, kind: "ADJUSTMENT", amount: 300_000, reason: "CPX_HUY_MUON" });
+  cp(db, { trip: t, kind: "ADJUSTMENT", amount: -300_000, reason: "CPX_NHAP_SAI" });
+  loi(() => cp(db, { trip: t, kind: "REVERSAL", amount: -300_000, reverses: p, reason: "CPX_NHAP_SAI" }), /vc_cost_total_negative/, "đảo điều chỉnh dương làm tổng âm");
+});
+
+test("T2 ca 13: SNAPSHOT cho chuyến rented = 0 / sai nhà xe → vc_cost_source_carrier; SNAPSHOT sai dòng giá / sai số → vc_cost_snapshot_rate; nhà xe thôi vai: ADJUSTMENT + REVERSAL vẫn được, AGREED mới bị chặn (người kiểm soi)", () => {
+  const db = openDb();
+  const { nx, t, g } = nen(db);
+  const tCty = chuyen(db, { xe: xe(db, congTyChu(db)), tu: ms("12:00") });
+  loi(() => cp(db, { trip: tCty, kind: "SNAPSHOT", amount: 1_200_000, rate: g, carrier: nx }), /vc_cost_source_carrier/);
+  loi(() => cp(db, { trip: tCty, kind: "AGREED", amount: 1_000 }), /vc_cost_source_carrier/);
+  const nx2 = nhaXe(db);
+  loi(() => cp(db, { trip: t, kind: "SNAPSHOT", amount: 1_200_000, rate: g, carrier: nx2 }), /vc_cost_source_carrier|vc_cost_snapshot_rate/);
+  loi(() => cp(db, { trip: t, kind: "AGREED", amount: 1_000, carrier: nx2 }), /vc_cost_source_carrier/, "AGREED sai nhà xe của chuyến");
+  const g2 = gia(db, { nx: nx2, co: null, tuyen: "NT-CR", tien: 1_200_000 });
+  loi(() => cp(db, { trip: t, kind: "SNAPSHOT", amount: 1_200_000, rate: g2 }), /vc_cost_snapshot_rate/, "dòng giá của nhà xe khác");
+  loi(() => cp(db, { trip: t, kind: "SNAPSHOT", amount: 1_100_000, rate: g }), /vc_cost_snapshot_rate|CHECK constraint failed/, "số khác giá dòng");
+  const s = cp(db, { trip: t, kind: "SNAPSHOT", amount: 1_200_000, rate: g });
+  thoiVai(db, nx);
+  const a = cp(db, { trip: t, kind: "ADJUSTMENT", amount: 50_000 });
+  cp(db, { trip: t, kind: "REVERSAL", amount: -50_000, reverses: a });
+  cp(db, { trip: t, kind: "REVERSAL", amount: -1_200_000, reverses: s, reason: "CPX_DOI_CHUYEN" });
+  loi(() => cp(db, { trip: t, kind: "AGREED", amount: 1_000 }), /vc_cost_source_carrier/, "nhà xe đã thôi: không đặt giá mới");
+});

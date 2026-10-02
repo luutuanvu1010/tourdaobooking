@@ -1,7 +1,7 @@
 // XỬ LÝ ROUTE TIỀN XE THUÊ (ADR-0057 T1 B4/B5, T2 C9 — kế hoạch Đợt 4 Task 4, 10): đọc → luật thuần (tien-xe.ts) → lô (`db.batch`, nhật ký cùng lô, C10)
 // → phản hồi. Thân route ở index.ts chỉ hỏi `can()` rồi gọi các hàm ở đây. Lỗi CSDL dịch sang 409 bằng lời ở `loiTienXe` (KHÔNG đụng `loiRangBuocChuyen`).
 import { auditStatement } from "../audit";
-import { nhaXeDangHopTac } from "../parties";
+import { nhaXeDangHopTac, ownerCompany } from "../parties";
 import type { BangGiaResponse, StaffProfile } from "../../shared/contracts";
 import { error } from "../../shared/http";
 import { addDays } from "../../shared/vn-date";
@@ -12,6 +12,12 @@ import {
   ratesOfCarrier, routeCount, sizeCount, updateRouteStatement, updateSizeStatement, type RateRow, type RouteRow, type SizeRow,
 } from "./tien-xe-repo";
 import { nhanCoXeMacDinh, type ThemGiaThan } from "./tien-xe-than";
+
+/** Nguồn phân loại xe thuê (ADR-0057 C2a) — hàm công bố của parties (không thêm hàm "isCarrier"): công ty chủ hiện tại + nhà xe đang hợp tác. */
+export async function docPhanLoai(db: D1Database): Promise<{ congTyChuId: string | null; nhaXeDangMo: ReadonlySet<string> }> {
+  const [cty, nx] = await Promise.all([ownerCompany(db), nhaXeDangHopTac(db)]);
+  return { congTyChuId: cty?.partyId ?? null, nhaXeDangMo: new Set(nx.map((c) => c.partyId)) };
+}
 
 /** Câu lời theo bản vẽ Đợt 4 (ADR-0057 B4 lớp máy chủ). */
 export const CAU_NHA_XE_THOI_GIA = "Nhà xe này đã thôi hợp tác — không thể thêm giá mới.";

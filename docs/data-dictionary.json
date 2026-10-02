@@ -364,6 +364,11 @@
       "kind": "table"
     },
     {
+      "name": "vc_trip_cost_line",
+      "module": "van-chuyen",
+      "kind": "table"
+    },
+    {
       "name": "vc_trip",
       "module": "van-chuyen",
       "kind": "table"
