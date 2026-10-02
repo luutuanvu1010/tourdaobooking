@@ -1,6 +1,6 @@
 # Lượt duyệt 2 — ADR-0088 sửa sai sau "Đã giao" (I1 đúng mọi lúc, phân định trách nhiệm) + ADR-0092 sổ không đổi dấu, điều chỉnh có kiểm soát
 
-> **Trạng thái:** **NHÁP bản 3.3** — QT1–QT4 (bảng trách nhiệm) **đã có lời chủ** 2/10 ("7- ok"). CT3, CT4 (cảnh báo lần thu tiền mặt giống nhau) **đã có lời chủ** 2/10, ghi ở ADR-0092 đ6a (bản 3.3). **Còn chờ** Q-A1, Q-A2 và duyệt văn bản. Bản 3.1 (2/10) sửa theo phiếu kiểm độc lập bản 3: I1 trừ giảm trừ đã phân định; T7 gắn nợ theo đơn; dọn chữ phí huỷ. Bản 3 (2/10): Q-A3 và Q-A5 đã có lời chủ; Q-A5 thành đ9 (bảng phân định trách nhiệm); đ7 phí huỷ của ADR-0092 bỏ.
+> **Trạng thái:** **NHÁP bản 3.3** — QT1–QT4 (bảng trách nhiệm) **đã có lời chủ** 2/10 ("7- ok"). CT3, CT4 (cảnh báo lần thu tiền mặt giống nhau) **đã có lời chủ** 2/10, ghi ở ADR-0092 đ6a (bản 3.3). Q-A1, Q-A2 **áp theo khuyến nghị** (đồng ý), theo lời chủ 2/10: *"đừng hỏi tôi những câu hỏi mà tôi nên đồng ý nữa,"*. **Còn chờ** chủ nói "Duyệt" văn bản ADR-0088, ADR-0092. Bản 3.1 (2/10) sửa theo phiếu kiểm độc lập bản 3: I1 trừ giảm trừ đã phân định; T7 gắn nợ theo đơn; dọn chữ phí huỷ. Bản 3 (2/10): Q-A3 và Q-A5 đã có lời chủ; Q-A5 thành đ9 (bảng phân định trách nhiệm); đ7 phí huỷ của ADR-0092 bỏ.
 > - Chủ đã chọn nguyên tắc ngày 2026-10-02 (câu 2 "Luôn luôn").
 > - Bản 1 bị người duyệt độc lập kết luận "chưa nên duyệt" (`2026-10-02-phieu-duyet-doc-lap-luot-A-tien.md`). Bản này sửa theo phiếu; mã sửa ghi trong ngoặc.
 >
@@ -213,8 +213,8 @@ Câu đã hỏi: "Bất biến 'đã thu = phải thu' xét tại mốc Đã gia
 | ADR-0034 điều 1, 4 | — | + tin "điều chỉnh đổi số dư của bạn" (đ5d) |
 
 ### Câu hỏi mở
-- **Q-A1:** trần điều chỉnh theo đ5. **Khuyến nghị: đồng ý.**
-- **Q-A2:** ô mã giao dịch ngân hàng theo đ6 (chặn trùng trong cùng đơn, cảnh báo khác đơn, tổng ≤ số chuyển). **Khuyến nghị: có.**
+- **Q-A1:** trần điều chỉnh theo đ5. **Khuyến nghị: đồng ý.** → **Áp theo khuyến nghị** (lời chủ 2/10).
+- **Q-A2:** ô mã giao dịch ngân hàng theo đ6 (chặn trùng trong cùng đơn, cảnh báo khác đơn, tổng ≤ số chuyển). **Khuyến nghị: có.** → **Áp theo khuyến nghị** (lời chủ 2/10).
 - **CT3, CT4 — đã trả lời 2/10:** xem đ6a.
 - **Q-A3 — đã trả lời 2/10:** mặc định không hoàn cọc; xem ADR-0089 bản 3. Các ý bên dưới giữ lại để tham khảo lịch sử:
   - mốc bao nhiêu ngày trước ngày đi;

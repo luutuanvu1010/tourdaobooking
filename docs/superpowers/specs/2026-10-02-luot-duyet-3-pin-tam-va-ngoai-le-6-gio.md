@@ -1,6 +1,15 @@
 # Lượt duyệt 3 — ADR-0093 PIN tạm + ADR-0091 Bán hàng phá lệ mốc 6 giờ (nhãn "Ngoại lệ 6 giờ")
 
-> **Trạng thái:** **NHÁP bản 2, chờ chủ dự án duyệt văn bản và trả lời Q-B1, Q-B3, Q-B4, Q-B5, Q-B6, Q-B7, Q-B8, Q-B9.**
+> **Trạng thái:** **NHÁP bản 2.1, chờ chủ nói "Duyệt" văn bản ADR-0093, ADR-0091.**
+> - Q-B1, Q-B3…Q-B9 **áp theo khuyến nghị** (mục "Câu hỏi mở" của từng ADR), theo lời chủ 2/10: *"đừng hỏi tôi những câu hỏi mà tôi nên đồng ý nữa,"*. Chủ bác câu nào thì sửa câu đó.
+>   - Q-B1: đặt lại PIN 24 giờ, tạo mới 7 ngày.
+>   - Q-B6: tài khoản nội bộ cũ phải đổi PIN một lần; đối tác không bắt.
+>   - Q-B3: mọi giờ.
+>   - Q-B4: chỉ hộp thông báo.
+>   - Q-B5: Đối tác, HDV, Thực tập, Kế toán không phá lệ.
+>   - Q-B7: như đ3.
+>   - Q-B8: Đối tác thấy loại dấu.
+>   - Q-B9: ngăn "Tất cả".
 > - Chủ đã chọn nguyên tắc ngày 2026-10-02 (câu 4 "ok"; câu 5 "cho phép (nhưng phải có nhãn hoặc ký hiệu riêng…)").
 > - Bản 1 bị người duyệt độc lập kết luận "duyệt được sau khi sửa 9 chỗ" (`2026-10-02-phieu-duyet-doc-lap-luot-B-quyen.md`). Bản này sửa đủ 9 chỗ; mã sửa ghi trong ngoặc, ví dụ (B-C1).
 > - Phần "chỉ Toàn quyền cấp quyền tiền" (Q-B2 cũ) đã tách thành **ADR-0090 ở lượt 1**.

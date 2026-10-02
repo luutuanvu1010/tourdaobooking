@@ -3,13 +3,15 @@
 - **Trạng thái:** **accepted** — chủ dự án, chat 2026-10-02: *"7- Duyệt"*.
   - Chủ duyệt văn bản **bản 3.2** của lượt duyệt 1a (`docs/superpowers/specs/2026-10-02-luot-duyet-1-don-huy-va-quyen-tien.md` @ `4598221f`), cùng các câu trả lời trong cùng tin nhắn (lời chủ lần 4).
   - Các điểm AI viết **sau** bản 3.2 (Đ-1…Đ-6) và QH5 được **chủ chọn từng điểm** ở lời chủ lần 5 (cùng ngày), nay đã nằm trong phần "Quyết định": đ3, đ5–đ10, đ15, đ16.
+  - Bốn chi tiết AI thêm khi ghi lời chủ lần 5 nằm riêng ở mục **"Chi tiết AI ghi — áp theo khuyến nghị"** (X-1…X-4). Chúng áp theo lời chủ *"đừng hỏi tôi những câu hỏi mà tôi nên đồng ý nữa,"*; chủ bác điểm nào thì sửa điểm đó.
+  - Lời chủ lần 5 được ghi **thẳng vào tệp này** cùng ngày duyệt, chưa thi công, thay vì ra ADR mới trỏ về. Đây là lệch với lời dặn đầu mục lục ADR ("không sửa ADR đã accepted"); chủ có thể yêu cầu tách thành ADR bổ sung.
   - AI ghi lại, không tự duyệt (Hiến pháp N3).
 - **Ngày:** 2026-10-02.
 - **Số:** 0089. Đã kiểm mọi nhánh: 0086 bị bác, 0087 ở nhánh Giao diện công ty, 0088 và 0090–0093 dùng cho các lượt duyệt cùng đợt.
 - **Loại:** việc lớn (tiền, dữ liệu). Dữ liệu ghi theo luật này là chỉ-thêm, nên là cửa một chiều về dữ liệu; luật và mã đảo được.
 - **Đi cùng:**
   - ADR-0090 (chỉ Toàn quyền cấp quyền tiền), cùng lượt 1;
-  - lớp chống ghi trùng chung của Nền tảng (ADR-0094, đang soạn, chờ chủ duyệt);
+  - lớp chống ghi trùng chung của Nền tảng (ADR-0094, proposed, chờ chủ nói "Duyệt");
   - sổ dừng dây chuyền `docs/quyen-hoan.json`, mục TNV-G1 (hạn 15/10).
 - **Xây trên lỗ đang hở:** F-02 (gửi lặp ghi hai lần). Mọi lệnh ghi của ADR này phải đi qua lớp chống ghi trùng chung (lời chủ lần 4, câu 1).
 - **Số dòng mã** trích theo `968ecfdb`; khi lập kế hoạch đối chiếu lại trên `main`.
@@ -70,7 +72,7 @@
    - Hoàn đi qua đ4. Hạn 60 ngày **không chặn**, chỉ nhắc.
    - Dời lịch: đơn mới giữ đúng số tiền khách đã cam kết. Nếu giá mới cao hơn thì phần chênh do công ty chịu, ghi là giảm giá có lý do "dời lịch do công ty huỷ", **Quản trị duyệt**.
    - Tiền chuyển sang đơn mới bằng lệnh **"Chuyển tiền sang đơn mới"**:
-     - lệnh này **tính như một lần chi** khỏi đơn huỷ, nên **Quản trị duyệt trước** số chuyển và đơn nhận, dùng cùng ô "duyệt hoàn cọc" (lời chủ 5, Đ-1);
+     - lệnh này **tính như một lần chi** khỏi đơn huỷ, nên **Quản trị duyệt trước** số chuyển và đơn nhận (lời chủ 5, Đ-1). Ô quyền dùng cho việc duyệt này: X-1;
      - đ4c áp dụng: **người duyệt không tự chuyển**;
      - Kế toán ghi **một lô**: chi khỏi đơn huỷ, thu vào đơn mới, cùng số, cùng người đang giữ tiền;
      - nhật ký ghi trên **cả hai đơn**;
@@ -81,7 +83,7 @@
    - Cơ chế **chống đặt trùng** (cảnh báo hai đơn của cùng khách) làm **về sau**, theo đặc tả "cảnh báo đơn trùng" (nhánh `canh-bao-don-trung`, `d90ceed5`).
 8. **Lý do huỷ bắt buộc, chia nhóm:** "khách huỷ" (mặc định giữ cọc), "công ty huỷ" (đ6), "huỷ để lập lại / trùng đơn" (đ7).
    - **Chỉ Quản trị, Toàn quyền** chọn được nhóm "công ty huỷ", vì nhóm này kéo theo hoàn toàn bộ và miễn hạn (lời chủ 5, Đ-2). Người huỷ khác chỉ chọn "khách huỷ" hoặc "huỷ để lập lại / trùng đơn".
-   - Lý do **"Khác"** bắt ghi chú và nằm ở nhóm **"chưa kết luận"** tới khi Quản trị phân loại. Thông báo gửi khách dùng câu trung tính, không in "không hoàn". Chưa phân loại thì chưa duyệt hoàn được (chi tiết thi công do AI ghi).
+   - Lý do **"Khác"** bắt ghi chú và nằm ở nhóm **"chưa kết luận"** tới khi Quản trị phân loại (lời chủ 5, Đ-2). Thông báo gửi khách dùng câu trung tính, không in "không hoàn" (đã có ở bản 3.2). Duyệt hoàn khi đơn còn "chưa kết luận": X-2.
    - Hôm nay route đổi trạng thái (`src/modules/orders/index.ts`, bắt đầu khoảng dòng 975) **không đọc lý do**. Danh sách lý do của ADR-0030 (`:114`) chưa có mã.
    - Vì vậy đây là **thêm mới**, thi công cùng ADR này.
 9. **Trạng thái tiền đơn huỷ hiện ở ba nơi** (lời chủ 2):
@@ -109,11 +111,19 @@
 15. **Bất biến:** **tổng chi + tổng chuyển ≤ tổng duyệt ≤ đã trả**, trên mỗi đơn huỷ (chuyển tính như chi, lời chủ 5, Đ-1). Chặn ở CSDL (trigger) và ở máy chủ; thêm vào `audit-invariants`.
 16. **Đơn cũ đã hoàn tay trước khi có lệnh hoàn trong Nền tảng** (QH5; lời chủ 5, "4: ok"):
     - Nền tảng in **danh sách các đơn huỷ còn tiền** để Kế toán đối chiếu;
-    - đơn nào công ty đã trả tay thì **Toàn quyền ghi bổ sung một dòng "đã hoàn ngoài hệ thống"**, mỗi đơn **một lần**, có lý do;
+    - đơn nào công ty đã trả tay thì **Toàn quyền ghi bổ sung một dòng "đã hoàn ngoài hệ thống"**, mỗi đơn **một lần**;
     - dòng này **không bị hạn 60 ngày chặn**, vì đó là việc đã xảy ra;
     - đây là **lệnh của Toàn quyền trên Nền tảng**, không phải kịch bản sửa dữ liệu;
-    - phạm vi: đơn đã huỷ trước ngày ADR này lên production; số ≤ "còn giữ" của đơn;
-    - với bất biến đ15, dòng này được tính **cả là duyệt lẫn chi** (ngoại lệ có tên của đ4c, vì việc đã xảy ra; chi tiết thi công do AI ghi).
+    - phạm vi đơn, giới hạn số tiền và cách dòng này khớp bất biến đ15: X-3, X-4.
+
+## Chi tiết AI ghi — áp theo khuyến nghị
+Khi đưa lời chủ lần 5 vào văn bản, AI cần thêm bốn chi tiết mà chủ chưa nói. Bốn chi tiết này **áp theo khuyến nghị**, theo lời chủ cùng ngày: *"đừng hỏi tôi những câu hỏi mà tôi nên đồng ý nữa,"*. Chủ bác điểm nào thì sửa điểm đó trước khi thi công.
+- **X-4 (chạm tách nhiệm vụ — xem trước):** dòng "đã hoàn ngoài hệ thống" (đ16) không có bước duyệt riêng. Muốn bất biến đ15 (chi + chuyển ≤ duyệt ≤ đã trả) vẫn đúng, AI đề xuất tính dòng này **cả là duyệt lẫn chi**, do Toàn quyền ghi một mình.
+  - Đây là **ngoại lệ có tên** của đ4c (không ai vừa duyệt vừa chi). Lý do: việc trả đã xảy ra ngoài Nền tảng, dòng này chỉ ghi lại.
+  - Cách khác: Toàn quyền ghi, rồi Quản trị xác nhận. Cách này giữ tách nhiệm vụ nhưng thêm một bước.
+- **X-3:** phạm vi đ16 là đơn đã huỷ **trước ngày ADR này lên production**; số ghi ≤ "còn giữ" của đơn; có lý do bắt buộc.
+- **X-2:** đơn còn ở nhóm "chưa kết luận" thì **chưa duyệt hoàn được** tới khi Quản trị phân loại. Lý do: hạn 60 ngày và miễn hạn tuỳ nhóm.
+- **X-1:** duyệt chuyển tiền (đ6) dùng **cùng ô quyền "duyệt hoàn cọc"** (Quản trị, Toàn quyền), vì cùng người giữ. Cách khác: một ô riêng.
 
 ## Đề xuất đã được chủ chọn (lời chủ 5)
 Sáu điểm Đ-1…Đ-6 (AI viết sau bản 3.2 hoặc do người kiểm độc lập nêu) và QH5 đều đã được chủ chọn; nội dung nằm ở đ3, đ5–đ10, đ15, đ16.
@@ -122,7 +132,7 @@ Sáu điểm Đ-1…Đ-6 (AI viết sau bản 3.2 hoặc do người kiểm đ�
   - Ghi sổ kế toán lúc nào vẫn do Kế toán quyết (đ3).
 
 ## Còn treo
-- **Lớp chống ghi trùng chung (ADR-0094):** điều kiện thi công (xem đầu tệp). ADR-0094 còn chờ chủ duyệt văn bản. Mục F-02 trong `docs/quyen-hoan.json` có hạn **15/10**.
+- **Lớp chống ghi trùng chung (ADR-0094):** điều kiện thi công (xem đầu tệp). ADR-0094 đã đủ văn bản (proposed), chờ chủ nói "Duyệt". Mục F-02 trong `docs/quyen-hoan.json` có hạn **15/10**.
 
 ## Thay câu nào (ghi bằng dòng trỏ ở dòng trạng thái của văn bản cũ, không sửa thân)
 | Văn bản | Câu cũ | Thay bằng |

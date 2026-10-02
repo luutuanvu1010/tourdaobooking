@@ -2,8 +2,9 @@
 
 - **Trạng thái:** **proposed**.
   - Chủ dự án đã trả lời ba câu V1–V3 (chat 2026-10-02, lời chủ lần 5 bên dưới). Chủ **chưa duyệt văn bản ADR này**.
-  - Phần AI tự thêm khi soạn nằm riêng ở mục **"Đề xuất của AI — chờ chủ"** (A-1…A-11) và chưa có hiệu lực.
-  - ADR chỉ chuyển **accepted** khi chủ đã chốt **số sàn** (A-3) và **thời gian chờ khi rút ngắn** (A-4), vì đ8 cần hai số đó mới thi hành được.
+  - Phần AI tự thêm khi soạn nằm riêng ở mục **"Đề xuất của AI — áp theo khuyến nghị"** (A-1…A-11). Các điểm này **áp theo khuyến nghị**, theo lời chủ cùng ngày: *"đừng hỏi tôi những câu hỏi mà tôi nên đồng ý nữa,"*. Chủ bác điểm nào thì sửa điểm đó.
+  - Vì vậy số sàn (A-3: 90 ngày) và thời gian chờ khi rút ngắn (A-4: 7 ngày) mà đ8 cần đã có.
+  - ADR chuyển **accepted** khi chủ nói "Duyệt" (Hiến pháp N3).
   - AI ghi lại, không tự duyệt (Hiến pháp N3).
 - **Ngày:** 2026-10-02.
 - **Số:** 0094 (đã giữ chỗ ở `docs/adr/README.md`).
@@ -56,7 +57,7 @@
   Mỗi màn tự vá một kiểu; đây chính là cách chủ không muốn.
 - **Về số liệu lịch sử** (lý do chủ nêu cho V1):
   - Tỷ lệ thành công, huỷ, hoàn **của đơn** nằm trong dữ liệu đơn và sổ tiền. Các bảng đó không xoá cứng, nên số liệu này không phụ thuộc bảng vé.
-  - Bảng vé bổ sung số liệu ở mức **lệnh**: mỗi loại lệnh có bao nhiêu lần thành công, bị từ chối (theo mã lỗi), lỗi máy chủ, và (nếu duyệt A-1) bị gửi lặp.
+  - Bảng vé bổ sung số liệu ở mức **lệnh**: mỗi loại lệnh có bao nhiêu lần thành công, bị từ chối (theo mã lỗi), lỗi máy chủ, và bị gửi lặp (A-1).
   - Bản này **không có màn xem** số liệu đó. Muốn có màn báo cáo thì cần ADR và ô quyền riêng.
 
 ## Quyết định
@@ -116,7 +117,7 @@
 
        `api()` bắt phản hồi này **trước** khi trả cho màn gọi: hiện "Lần bấm trước đã được ghi", rồi `location.replace(ket_qua)`, hoặc tải lại trang khi `ket_qua` là `null`. Màn gọi không bao giờ nhận thân này, nên các màn đang đọc `data.order…` không phải sửa.
      - **Lần đầu bị từ chối mà vẫn ghi vé:** đúng mã HTTP và mã lỗi máy của lần đầu. Thân theo hình lỗi chung `{ error: { code: <ma_loi>, message: "Lần gửi trước đã bị từ chối, tải lại để xem" } }` (`src/shared/http.ts` `error()`), kèm header `Idempotent-Replayed: true`.
-   - Luật **địa chỉ kết quả**: xem **A-10** (AI chọn một trong hai cách đặc tả §3.4 để ngỏ). Không duyệt A-10 thì `ket_qua` luôn `null` và phát lại chỉ tải lại trang.
+   - Luật **địa chỉ kết quả**: xem **A-10** (AI chọn một trong hai cách đặc tả §3.4 để ngỏ). Route nào chưa có địa chỉ thì `ket_qua` là `null` và phát lại chỉ tải lại trang.
    - **Hệ quả của R2 đã biết, ghi một lần:**
      - Thân phản hồi chứa PIN ở ba chỗ: tạo tài khoản (`src/modules/accounts/index.ts:426, 456`) và đặt lại PIN (`:675`). Gửi lặp những lệnh này **không hiện lại PIN**.
      - Cách xử lý: bấm "Đặt lại PIN" lần nữa; đó là ý định mới, vé mới.
@@ -180,8 +181,8 @@
     Chúng là lớp thứ hai vô hại; gộp về lớp chung là việc riêng về sau.
     - **Lệch phải sửa ở bản mở rộng:** `web/dieu-phoi-ui.ts:32` sinh `requestId` mới sau 5xx. `requestId` nằm trong thân nên vân tay đổi, `api()` cấp vé mới, và quy tắc "giữ vé khi 5xx" **mất tác dụng** với Vận chuyển. Bản mở rộng sửa dòng này để giữ `requestId` khi 5xx.
 
-## Đề xuất của AI — chờ chủ (chưa có hiệu lực)
-AI thêm khi soạn, không có trong lời chủ hay trong khuyến nghị đặc tả mà chủ đã chọn.
+## Đề xuất của AI — áp theo khuyến nghị
+AI thêm khi soạn, không có trong lời chủ hay trong khuyến nghị đặc tả mà chủ đã chọn. Các điểm này áp theo khuyến nghị (lời chủ 2026-10-02: *"đừng hỏi tôi những câu hỏi mà tôi nên đồng ý nữa,"*); chủ bác điểm nào thì sửa điểm đó.
 - **A-1. Đếm số lần gửi lặp:** thêm cột `so_lan_lap INTEGER NOT NULL DEFAULT 0` vào `lg_lan_gui`, tăng mỗi lần phát lại.
   - **Lý do:** chủ muốn dùng lịch sử để đánh giá. Không có cột này thì bảng vé **không** biết một lệnh bị gửi lặp bao nhiêu lần, vì lần phát lại không sinh dòng mới.
   - **Cái giá:** mỗi lần phát lại thêm một câu `UPDATE`, chạy nền.
@@ -246,7 +247,7 @@ Bảng `lg_lan_gui` nhận vé của **mọi** module, nên được coi là b�
 2. **Dòng quyền chạm:**
    - **Không ô nào** mở quyền đọc `lg_lan_gui` cho người dùng. Chỉ router đọc, và chỉ đọc vé của **chính tài khoản đang gửi** (phạm vi `staff_id`).
    - Ô của từng route nghiệp vụ **không đổi**: handler vẫn hỏi `can()` như cũ.
-   - Phát lại **không** chạy handler, nên không ghi gì mới vào dữ liệu nghiệp vụ (trừ bộ đếm A-1 trên chính dòng vé, nếu được duyệt). Nếu người gửi đã mất quyền giữa hai lần gửi, họ chỉ nhận lại "đã ghi" và một đường dẫn; trang đích vẫn tự kiểm quyền.
+   - Phát lại **không** chạy handler, nên không ghi gì mới vào dữ liệu nghiệp vụ (trừ bộ đếm A-1 trên chính dòng vé). Nếu người gửi đã mất quyền giữa hai lần gửi, họ chỉ nhận lại "đã ghi" và một đường dẫn; trang đích vẫn tự kiểm quyền.
    - Ô cổng thời hạn (A-2) chỉ chạm bảng chính sách.
 3. **Cổng nào canh cửa nào:**
    - router canh mọi route ghi có đăng nhập; ngoại lệ là tệp miễn (chủ duyệt);
@@ -316,10 +317,10 @@ Bảng `lg_lan_gui` nhận vé của **mọi** module, nên được coi là b�
    - module `lan-gui`;
    - router ở chế độ "có vé thì áp, thiếu thì cho qua và đếm";
    - `web/api.ts` gửi vé, mô-đun vòng đời vé;
-   - `Location` cho các route 201 (nếu duyệt A-10);
+   - `Location` cho các route 201 (A-10);
    - sửa `web/dieu-phoi-ui.ts:32` (đ10);
    - cổng kiểm khoá trong `npm run trien-khai` (đ4);
-   - màn "Thời hạn giữ vé" và Cron dọn (hoặc tách sang bản sau, trước ngày thứ 90, nếu duyệt A-11).
+   - màn "Thời hạn giữ vé" và Cron dọn **tách sang bản sau**, ra trước ngày thứ 90 kể từ bản mở rộng (A-11).
 2. **Theo dõi:** đo H5, trả nợ các route ghi nhiều lần; đếm `thieu_ma_lan_gui`; cập nhật e2e (đ7).
 3. **Bản siết:** thiếu vé ⇒ 400 (đ7). Phát hành riêng, chủ ra lệnh.
 
