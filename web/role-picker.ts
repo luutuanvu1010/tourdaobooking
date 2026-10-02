@@ -1,7 +1,7 @@
 // Khối "Vai và quyền" của trang Nhân viên (ADR-0018): chọn vai theo hai nhóm, xem trước quyền sẽ có (và sẽ thêm/mất so với hiện tại), chỉnh riêng có lý do.
 // Mọi luật (nhóm vai, bộ quyền mặc định, LC-1/LC-1b/LC-3/LC-4) đến từ src/shared/roles.ts — giao diện chỉ tắt ô và xem trước; máy chủ luôn kiểm lại.
 // Ô vai mang data-kind="role", ô chỉnh tay data-kind="add"/"remove": mã INTERN vừa là mã vai vừa là mã quyền, chọn phần tử phải kèm data-kind.
-import { PERMISSION_CODES, PERMISSION_LABEL, isExternalPermission, type PermissionCode } from "../src/shared/permissions";
+import { MA_QUYEN_TIEN, PERMISSION_CODES, PERMISSION_LABEL, isExternalPermission, type PermissionCode } from "../src/shared/permissions";
 import {
   ROLES, ROLE_CODES, ROLE_GROUP_LABEL, SUPER_ADMIN_GRANTED, effectivePermissions, groupOf, laiNoiBoBenNgoaiProblem, permissionsLabel, taiKhoanLaiProblem, vaiTaiXeDoiTacXungDot,
   type RoleCode, type RoleGroup,
@@ -20,7 +20,8 @@ export function rolePicker(opts: { initial: RolePickerValue; actorIsSuperAdmin: 
   const reason = h("input", { type: "text", maxLength: 200, placeholder: "Vì sao chỉnh riêng cho người này" });
   const preview = h("p", { class: "muted", "aria-live": "polite", "data-role-preview": "" });
   const roleLocked = (c: RoleCode) => ROLES[c].superAdminOnly && !opts.actorIsSuperAdmin; // LC-4
-  const permLocked = (p: PermissionCode) => SUPER_ADMIN_GRANTED.includes(p) && !opts.actorIsSuperAdmin; // LC-4
+  // LC-4 + ADR-0090 đ1(ii): quyền tiền (MA_QUYEN_TIEN — suy từ bảng quyền) cũng chỉ Toàn quyền cộng/bớt tay. Máy chủ vẫn kiểm lại.
+  const permLocked = (p: PermissionCode) => (SUPER_ADMIN_GRANTED.includes(p) || MA_QUYEN_TIEN.includes(p)) && !opts.actorIsSuperAdmin;
 
   const value = (): RolePickerValue => ({
     roles: ROLE_CODES.filter((c) => roleBoxes.get(c)!.checked),

@@ -11,9 +11,9 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
-    // Vận chuyển Đợt 3 — Lịch xe bận (khung bận của xe) + nhắc giờ lái (ADR-0055 VK2-A, VK2-B), migration 0071. Đánh lại 1.74 lúc gộp (chủ chọn A 2/10: Đợt 3 lên
-    // trước; Đợt 4 tiền xe thuê chờ Kế toán ký sổ vàng). Câu chữ theo lời chủ 2/10 (câu 3.1–3.4 theo khuyến nghị).
-    version: "1.74",
+    // Vận chuyển Đợt 3 — Lịch xe bận (khung bận của xe) + nhắc giờ lái (ADR-0055 VK2-A, VK2-B), migration 0071. Đánh lại 1.75 lúc gộp (chủ chọn A 2/10: Đợt 3 lên
+    // trước, sau 1.74 quyền tiền của main; Đợt 4 tiền xe thuê chờ Kế toán ký sổ vàng). Câu chữ theo lời chủ 2/10 (câu 3.1–3.4 theo khuyến nghị).
+    version: "1.75",
     date: "2026-10-02",
     items: [
       { kind: "moi", text: "Trang mới Vận chuyển › Lịch xe bận: Quản trị xem lịch bận của mọi xe theo tuần, cùng các chuyến đã xếp." },
@@ -22,6 +22,17 @@ export const CHANGELOG: readonly ReleaseNote[] = [
       { kind: "moi", text: "Điều phối xe hiện dải “Xe bận” trên hàng của xe trong ngày." },
       { kind: "moi", text: "Điều phối xe và Chi tiết chuyến nhắc khi tài xế lái quá 8 giờ một ngày hoặc chuyến dài quá 4 giờ — chỉ nhắc, không chặn." },
       { kind: "moi", text: "Toàn quyền đổi hai con số giờ lái ở Chính sách điều phối." },
+    ],
+  },
+  {
+    // Đợt 0 luồng Q — ADR-0090 (quyền tiền chỉ Toàn quyền), migration 0075 (chỉ một view). Số 1.74 = main 1.73 + 1 (đánh lại lúc gộp main e0d62688).
+    // Đã kiểm lúc gộp Đợt 3 (production 1.73).
+    version: "1.74",
+    date: "2026-10-02",
+    items: [
+      { kind: "doi", text: "Tài khoản Kế toán nay chỉ người phụ trách hệ thống (Toàn quyền) được tạo, gán vai Kế toán, cộng quyền Kế toán và đặt lại PIN." },
+      { kind: "doi", text: "Quản trị vẫn đổi tên, ngưng và mở khoá đăng nhập cho tài khoản Kế toán như trước; nút Đặt lại PIN không còn hiện ở dòng Kế toán." },
+      { kind: "moi", text: "Khi một tài khoản Kế toán bị ngưng, người phụ trách hệ thống nhận thông báo trong mục Của tôi." },
     ],
   },
   {

@@ -156,11 +156,11 @@
 
 ## 20. Vận chuyển Đợt 4 — tiền xe thuê: chờ Kế toán ký sổ vàng rồi mới đẩy
 
-- **Ngày:** 2026-10-02 · **Chủ chọn:** *"A nhưng ghi backlog lại để làm sau"* (A = đưa Đợt 3 lịch xe bận lên trước với số 1.74; Đợt 4 chờ) · **Trạng thái:** `đã duyệt, chưa làm` — đã thi công xong, CHƯA lên main.
+- **Ngày:** 2026-10-02 · **Chủ chọn:** *"A nhưng ghi backlog lại để làm sau"* (A = đưa Đợt 3 lịch xe bận lên trước — thành 1.75 vì main đã có 1.74 quyền tiền; Đợt 4 chờ) · **Trạng thái:** `đã duyệt, chưa làm` — đã thi công xong, CHƯA lên main.
 - **Đã có:** ADR-0057 + ADR-0095 (accepted); nhánh `worktree-agent-a29831d6b479d7c89` @ 0c86f012 (máy chủ + giao diện G0–G5 + vòng vá 1; đã gộp origin/main e0d62688 và tài liệu ADR-0095). Kiểm độc lập ĐẠT cả máy chủ lẫn giao diện; typecheck 0 lỗi, `npm test` 2907/2907 + 1 todo (sổ vàng lớp 2). Migration `0072_vc_bang_gia_thue`, `0073_vc_chi_phi_chuyen` (chưa áp remote).
 - **Vì sao chờ:** ADR-0095 Q10 / ADR-0057 C12 (Hiến chương 5.17) — phát hành tiền xe thuê chờ **Kế toán ký** sổ vàng 22 ca (bản nháp ngoài kho `tmp/tra-loi/SO-VANG-KE-TOAN-KY.md` của phiên 2/10; đưa vào kho khi ký).
 - **Việc khi Kế toán ký xong:**
   1. Chép sổ vàng đã ký vào kho, đổi trạng thái `cho_xac_nhan` → đã ký; gỡ bài `todo` sổ vàng lớp 2.
-  2. Gộp origin/main mới nhất (lúc đó có Đợt 3 = 1.74) vào nhánh; **đánh lại số 1.74 → 1.75** (hoặc số kế tiếp bản production) ở `src/shared/changelog.ts`, `src/shared/app-info.test.ts`, nhật ký thi công. Xung đột dự kiến: `changelog.ts`, `app-info.test.ts`, có thể `public/app.css`, `trang-chu-smoke.mjs`.
+  2. Gộp origin/main mới nhất (lúc đó có Đợt 3 = 1.75) vào nhánh; **đánh lại số 1.74 → 1.76** (hoặc số kế tiếp số lớn nhất trên main / production) ở `src/shared/changelog.ts`, `src/shared/app-info.test.ts`, nhật ký thi công. Xung đột dự kiến: `changelog.ts`, `app-info.test.ts`, có thể `public/app.css`, `trang-chu-smoke.mjs`.
   3. Chạy lại typecheck, `npm test`, e2e, Chrome (bang-gia-xe, chi-phi-chuyen, bang-ke-xe, trang-chu-smoke), `kiem-phien-ban.mjs`; rồi chủ `npm run day-len` + `npm run trien-khai` (có migration).
 - **Còn vướng kèm theo:** thêm 3 dòng kịch bản Chrome (bang-gia-xe, chi-phi-chuyen, bang-ke-xe) vào bảng của `web/CLAUDE.md` — tệp luật, chủ duyệt. Chủ có thể muốn hai ô tiền xe thuê lên hàng chính Trang chủ điện thoại của Kế toán (hiện nằm trong "Tất cả" theo thứ tự ưu tiên 1.73 — sửa một dòng).

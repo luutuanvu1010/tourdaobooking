@@ -658,6 +658,17 @@
       ]
     },
     {
+      "name": "v_aud_account_event",
+      "module": "audit",
+      "columns": [
+        "id",
+        "account_id",
+        "staff_id",
+        "action",
+        "created_at"
+      ]
+    },
+    {
       "name": "v_ord_order_owner",
       "module": "orders",
       "columns": [

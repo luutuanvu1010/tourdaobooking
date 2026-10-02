@@ -72,3 +72,4 @@ Nền: `origin/main` = `e7cd764f` (fetch + merge 2026-10-02: "Already up to date
 ## Gộp lên trước Đợt 4 (2026-10-02 tối — chủ chọn A)
 - Production đang 1.73 (GET `/api/auth/config`). Đợt 4 tiền xe thuê chờ Kế toán ký sổ vàng (ADR-0095 Q10) ⇒ chủ chọn A: Đợt 3 lên trước.
 - Gộp vào nhánh `worktree-tra-loi-cau-hoi-van-chuyen` (cùng tài liệu ADR-0095) sau origin/main e0d62688. Phiên bản **1.72 → 1.74** (`changelog.ts`, `app-info.test.ts`); xoá chú thích "Số 1.73 TẠM … KIỂM LẠI LÚC GỘP" của mục 1.73 vì đã kiểm. Đợt 4 ghi ở `docs/BACKLOG.md` mục 20 (đánh lại 1.75 khi đẩy).
+- Lần fetch cuối: main có thêm 1.74 (ADR-0090 quyền tiền, migration 0075, chưa lên production) ⇒ Đợt 3 đánh lại **1.75**. Xung đột giữ cả hai: `SO-HANG-RAO.md`, `SYSTEM-DESIGN.md` (bảng migration 0071 + 0075), `tests/e2e/run.mjs` (thêm `khung-ban-xe` vào danh sách main), `changelog.ts`.

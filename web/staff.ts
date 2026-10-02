@@ -27,7 +27,7 @@ let meSuper = false;
 let canAccessManage = false;
 
 let me: { id: string; permissions: readonly PermissionCode[] };
-let accounts: StaffAccount[] = [];
+let accounts: Api.StaffListRowDto[] = [];
 
 const reasonOf = (err: unknown): string => (err instanceof ApiError ? err.message : "Không kết nối được máy chủ.");
 const fail = (err: unknown) => showError(errorEl, reasonOf(err));
@@ -70,7 +70,7 @@ async function act<T>(fn: () => Promise<T>): Promise<T | undefined> {
 // — ẩn nút trên tài khoản giữ Quản trị / Toàn quyền / Nhân sự (máy chủ trả tài khoản Toàn quyền như Quản trị thường cho người không giữ Toàn quyền).
 const quanDuoc = (s: StaffAccount): boolean => s.id === me.id || canManageAccount(me.permissions, s.permissions);
 
-function row(s: StaffAccount): HTMLElement {
+function row(s: Api.StaffListRowDto): HTMLElement {
   const btn = (label: string, onclick: () => void, cls = "btn btn-link") => {
     const b = h("button", { type: "button", class: cls }, label);
     b.addEventListener("click", onclick);
@@ -89,9 +89,9 @@ function row(s: StaffAccount): HTMLElement {
       "td",
       { class: "row-actions" },
       quanDuoc(s) && btn("Sửa", () => void openEdit(s)),
-      // DK-T3-02: không hiện trên hàng/thẻ của chính mình — máy chủ trả 403 (đặt lại không hỏi PIN cũ); đổi PIN của mình ở trang "Tôi".
-      canAccessManage && quanDuoc(s) &&
-        !isMe &&
+      // Cờ máy chủ theo dòng (ADR-0090 đ2): cùng hàm với cổng route — hai ô, cấp dưới, không phải chính mình (DK-T3-02: đổi PIN của mình ở trang "Tôi"),
+      // tài khoản có quyền tiền chỉ Toàn quyền. Trang không tự tính.
+      s.datLaiPinDuoc &&
         btn("Đặt lại PIN", async () => {
           if (!confirm(`Đặt lại PIN của ${s.fullName}? PIN cũ, Face ID và mọi phiên đang đăng nhập sẽ mất hiệu lực.`)) return;
           const r = await act(() => api<Api.StaffWithPinResponse>(`/api/staff/${s.id}/reset-pin`, { method: "POST" }));
@@ -125,7 +125,7 @@ function row(s: StaffAccount): HTMLElement {
   );
 }
 
-function card(s: StaffAccount): HTMLElement {
+function card(s: Api.StaffListRowDto): HTMLElement {
   const btn = (label: string, onclick: () => void, danger = false) => {
     const b = h("button", { type: "button", class: danger ? "pill-btn pill-btn-danger" : "pill-btn" }, label);
     b.addEventListener("click", onclick);
@@ -144,9 +144,9 @@ function card(s: StaffAccount): HTMLElement {
       "div",
       { style: "display:flex;flex-wrap:wrap;gap:var(--s2);margin-top:var(--s1)" },
       quanDuoc(s) && btn("Sửa", () => void openEdit(s)),
-      // DK-T3-02: không hiện trên hàng/thẻ của chính mình — máy chủ trả 403 (đặt lại không hỏi PIN cũ); đổi PIN của mình ở trang "Tôi".
-      canAccessManage && quanDuoc(s) &&
-        !isMe &&
+      // Cờ máy chủ theo dòng (ADR-0090 đ2): cùng hàm với cổng route — hai ô, cấp dưới, không phải chính mình (DK-T3-02: đổi PIN của mình ở trang "Tôi"),
+      // tài khoản có quyền tiền chỉ Toàn quyền. Trang không tự tính.
+      s.datLaiPinDuoc &&
         btn("Đặt lại PIN", async () => {
           if (!confirm(`Đặt lại PIN của ${s.fullName}? PIN cũ, Face ID và mọi phiên đang đăng nhập sẽ mất hiệu lực.`)) return;
           const r = await act(() => api<Api.StaffWithPinResponse>(`/api/staff/${s.id}/reset-pin`, { method: "POST" }));

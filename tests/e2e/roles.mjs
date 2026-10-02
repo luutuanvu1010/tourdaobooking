@@ -31,7 +31,11 @@ console.log("✓ route cũ /api/parties/:id/roles/:rid/end khoá với vai gán 
 r = await call(ADMIN, "GET", `/api/staff/${K.id}/roles`);
 assert.deepEqual(r.body, { roles: ["ACCOUNTANT"], adds: [], removes: [], reason: null });
 assert.equal((await call(ADMIN, "PUT", `/api/staff/${K.id}/roles`, { roles: ["SALES_STAFF"], adds: ["ACCOUNTING"] })).status, 400, "chỉnh tay thiếu lý do");
+// ADR-0090 đ1(ii): gỡ vai Kế toán / cộng tay quyền tiền chỉ Toàn quyền — Quản trị nhận 403 câu đ1, rồi Toàn quyền làm.
 r = await call(ADMIN, "PUT", `/api/staff/${K.id}/roles`, { roles: ["SALES_STAFF"], adds: ["ACCOUNTING"], reason: "kiêm nhiệm kế toán tạm thời" });
+assert.equal(r.status, 403, JSON.stringify(r.body));
+assert.equal(r.body.error.message, "Tài khoản giữ tiền — chỉ người phụ trách hệ thống (Toàn quyền) làm việc này.");
+r = await call(SUPER, "PUT", `/api/staff/${K.id}/roles`, { roles: ["SALES_STAFF"], adds: ["ACCOUNTING"], reason: "kiêm nhiệm kế toán tạm thời" });
 assert.equal(r.status, 200, JSON.stringify(r.body));
 assert.deepEqual(r.body.staff.permissions, ["SALES", "ACCOUNTING"]);
 assert.deepEqual(r.body.staff.roles, ["SALES_STAFF"]);
@@ -46,7 +50,8 @@ console.log("✓ đổi vai + chỉnh tay có lý do; nhật ký ghi trước �
 // ---- 3. Luật cứng
 assert.equal((await call(ADMIN, "PUT", `/api/staff/${K.id}/roles`, { roles: ["SALES_STAFF", "COLLABORATOR"] })).status, 400, "LC-3: lẫn hai nhóm");
 assert.equal((await call(ADMIN, "PUT", `/api/staff/${K.id}/roles`, { roles: ["COLLABORATOR"], adds: ["SALES"], reason: "x" })).status, 400, "LC-1: cộng tay quyền nội bộ cho tài khoản bên ngoài");
-r = await call(ADMIN, "PUT", `/api/staff/${K.id}/roles`, { roles: ["COLLABORATOR"] });
+assert.equal((await call(ADMIN, "PUT", `/api/staff/${K.id}/roles`, { roles: ["COLLABORATOR"] })).status, 403, "ADR-0090: bỏ chỉnh tay Kế toán = gỡ quyền tiền");
+r = await call(SUPER, "PUT", `/api/staff/${K.id}/roles`, { roles: ["COLLABORATOR"] });
 assert.equal(r.status, 200, JSON.stringify(r.body));
 assert.deepEqual(r.body.staff.permissions, ["PARTNER"], "đổi sang vai bên ngoài trong một lần lưu: chỉ còn Đối tác (Review Focus 1)");
 assert.equal((await call(ADMIN, "PUT", `/api/staff/${K.id}/roles`, { roles: ["OPERATIONS_MANAGER"] })).status, 403, "LC-4: Quản trị không gán vai Điều hành");

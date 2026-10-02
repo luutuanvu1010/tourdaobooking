@@ -135,6 +135,7 @@ try {
       const pick = (pred) => items.find(pred) ?? null;
       const me = pick((el) => el.textContent.includes('(bạn)'));
       const sales = pick((el) => el.textContent.includes(${JSON.stringify(ACCOUNTS.salesA.name)}));
+      const acc = pick((el) => el.textContent.includes(${JSON.stringify(ACCOUNTS.accounting.name)}) && el.textContent.includes(${JSON.stringify(ACCOUNTS.accounting.phone)}));
       const labels = (el) => (el ? [...el.querySelectorAll('button')].map((b) => b.textContent.trim()) : null);
       return {
         tableShown: shown(document.querySelector('table.items')),
@@ -144,6 +145,8 @@ try {
         meButtons: labels(me),
         salesShown: shown(sales),
         salesButtons: labels(sales),
+        accShown: shown(acc),
+        accButtons: labels(acc),
       };
     })()`);
 
@@ -157,6 +160,10 @@ try {
     assert.ok(!m.meButtons.includes("Đặt lại PIN"), `hàng “(bạn)” KHÔNG được có “Đặt lại PIN” — ${JSON.stringify(m.meButtons)}`);
     assert.equal(m.salesShown, true, `hàng Sales Một phải hiện — ${JSON.stringify(m)}`);
     assert.ok(m.salesButtons.includes("Đặt lại PIN"), `hàng Sales Một VẪN phải có “Đặt lại PIN” — ${JSON.stringify(m.salesButtons)}`);
+    // ADR-0090 đ2: tài khoản có quyền tiền — Quản trị KHÔNG thấy “Đặt lại PIN” (cờ máy chủ theo dòng), vẫn có “Sửa” (đ3: đổi tên, ngưng).
+    assert.equal(m.accShown, true, `hàng Kế Toán phải hiện — ${JSON.stringify(m)}`);
+    assert.ok(m.accButtons.includes("Sửa"), `hàng Kế Toán vẫn có “Sửa” — ${JSON.stringify(m.accButtons)}`);
+    assert.ok(!m.accButtons.includes("Đặt lại PIN"), `hàng Kế Toán KHÔNG được có “Đặt lại PIN” (ADR-0090) — ${JSON.stringify(m.accButtons)}`);
     await shotAt(p, "[...document.querySelectorAll('#list tr')].find((el) => el.textContent.includes('(bạn)'))", "nhan-vien-ban-may-tinh.png");
     await axe(p, "Quản lý tài khoản máy tính");
     assert.deepEqual(p.consoleErrors, [], `lỗi console: ${p.consoleErrors}`);
@@ -175,6 +182,8 @@ try {
     assert.ok(!m.meButtons.includes("Đặt lại PIN"), `thẻ “(bạn)” KHÔNG được có “Đặt lại PIN” — ${JSON.stringify(m.meButtons)}`);
     assert.equal(m.salesShown, true, `thẻ Sales Một phải hiện — ${JSON.stringify(m)}`);
     assert.ok(m.salesButtons.includes("Đặt lại PIN"), `thẻ Sales Một VẪN phải có “Đặt lại PIN” — ${JSON.stringify(m.salesButtons)}`);
+    assert.equal(m.accShown, true, `thẻ Kế Toán phải hiện — ${JSON.stringify(m)}`);
+    assert.ok(m.accButtons.includes("Sửa") && !m.accButtons.includes("Đặt lại PIN"), `thẻ Kế Toán: có “Sửa”, KHÔNG “Đặt lại PIN” (ADR-0090) — ${JSON.stringify(m.accButtons)}`);
     await shotAt(p, "[...document.querySelectorAll('#list-cards .card')].find((el) => el.textContent.includes('(bạn)'))", "nhan-vien-ban-dien-thoai.png");
     await axe(p, "Quản lý tài khoản điện thoại");
     assert.deepEqual(p.consoleErrors, [], `lỗi console: ${p.consoleErrors}`);
