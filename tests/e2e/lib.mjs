@@ -49,6 +49,10 @@ export async function call(cookie, method, path, body, ip = freshIp(), opts = {}
     headers,
     body: body !== undefined && method !== "GET" ? JSON.stringify(body) : undefined,
   });
+  // HÀNG RÀO H7 (ADR-0094 A-10): mọi 201 phải có Location = trang nội bộ chỉ chứa id (bắt nốt route 201 ngoài khung thử).
+  if (r.status === 201 && !/^\/[a-z0-9-]+(\?[a-z]+=[A-Za-z0-9-]+)?$/.test(r.headers.get("location") ?? "")) {
+    throw new Error(`H7: ${method} ${path} trả 201 mà thiếu/sai header Location ("${r.headers.get("location")}")`);
+  }
   const setCookie = r.headers.get("set-cookie");
   return { status: r.status, body: await r.json().catch(() => null), cookie: setCookie?.split(";")[0] ?? null, headers: r.headers };
 }

@@ -187,7 +187,7 @@ export const catalogModule: AppModule = {
       }
       const moi = await nhomTheoMa(env.DB, code);
       if (!moi) return error(500, "internal", "Đã thêm nhóm nhưng chưa đọc lại được. Tải lại trang.");
-      return json({ group: nhomDto(moi, 0) } satisfies CatalogGroupResponse, 201);
+      return json({ group: nhomDto(moi, 0) } satisfies CatalogGroupResponse, 201, { location: "/catalog" });
     }),
 
     route("PATCH", "/api/catalog/groups/:code", "admin", async ({ env, request, params, staff }) => {

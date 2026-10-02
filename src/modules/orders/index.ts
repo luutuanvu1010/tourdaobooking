@@ -6,7 +6,7 @@ import type {
   CanhBaoMocDto, CatalogChangeDto, CatalogChangedBody, DashboardResponse, IncompleteTripBody, MyAssignmentDto, NhapTayResponse, OrderDetailDto, OrderDetailResponse,
   OrderListResponse, MocToiThieuResponse, NguoiLapResponse, OrderResponse, PassengerListResponse, PaxCounts, PoolResponse, ShortNoticeRequiredBody,
 } from "../../shared/contracts";
-import { UUID_RE, error, intParam, json, readJson } from "../../shared/http";
+import { UUID_RE, error, intParam, json, readJson, trangDon } from "../../shared/http";
 import { can, seesOnlyAssignedOrders, type PermissionHolder } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
 import { vnToday, vnWeekRange } from "../../shared/vn-date";
@@ -697,7 +697,7 @@ export const ordersModule: AppModule = {
       // "tao_cho_nhan" khi đơn không có người phụ trách (chỉ làm mới màn hình, KHÔNG thông báo nổi/gõ cửa — ADR-0045). Không bao giờ phát "giao" cho đơn vừa lập.
       baoThayDoi({ orderId: id, thayDoi: "tao" });
       const taoXong = (await loadOrderView(env.DB, id, xemDuDatGap(staff)))!;
-      return json({ order: taoXong, ...(await phanHoiMoc(env.DB, id, taoXong, moc)) } satisfies OrderResponse, 201);
+      return json({ order: taoXong, ...(await phanHoiMoc(env.DB, id, taoXong, moc)) } satisfies OrderResponse, 201, { location: trangDon(id) });
     }),
 
     route("GET", "/api/orders/:id", "orders", async ({ env, params, staff, isAssigned, mocToiThieu }) => {
@@ -846,7 +846,7 @@ export const ordersModule: AppModule = {
         return now?.status === "cancelled" ? CANCELLED() : STALE();
       }
       baoThayDoi({ orderId: id, thayDoi: "chuyen" });
-      return json({ order: (await loadOrderView(env.DB, id, xemDuDatGap(staff)))! } satisfies OrderResponse, 201);
+      return json({ order: (await loadOrderView(env.DB, id, xemDuDatGap(staff)))! } satisfies OrderResponse, 201, { location: trangDon(id) });
     }),
 
     route("PUT", "/api/orders/:id/legs/:legId", "orders", async ({ env, request, params, staff, isAssigned, baoThayDoi, mocToiThieu }) => {

@@ -80,6 +80,8 @@ export function fakeD1(sqlite, moc = {}) {
 }
 
 export const SECRET = "a".repeat(48);
+/** `Location` hợp lệ của route tạo (ADR-0094 A-10): `/trang` hoặc `/trang?khoa=<id>` — cùng mẫu `ketQuaDeLuu` (src/shared/lan-gui-luat.ts). */
+export const LOCATION_HOP_LE = /^\/[a-z0-9-]+(\?[a-z]+=[A-Za-z0-9-]+)?$/;
 /** Khoá HMAC GIẢ của lớp vé (ADR-0094 đ4) — khác SESSION_SECRET; thiếu thì mọi API của khung thử trả 500 (T15). */
 export const LAN_GUI_SECRET_GIA = "l".repeat(48);
 const NOW = "2026-09-01T00:00:00.000Z";
@@ -198,6 +200,10 @@ export function world(tuyChon = {}) {
     if (method !== "GET" && h.origin === undefined) h.origin = "https://booking.tourdao.vn";
     if (h.origin === null) delete h.origin;
     const res = await ungDung.fetch(new Request(`https://booking.tourdao.vn${path}`, { method, headers: h, body: body === undefined ? undefined : JSON.stringify(body) }), env, exec);
+    // HÀNG RÀO H7 (ADR-0094 A-10): MỌI phản hồi 201 phải có `Location` = trang nội bộ chỉ chứa id — mọi bài dùng khung thử thành bài canh.
+    if (res.status === 201 && !LOCATION_HOP_LE.test(res.headers.get("location") ?? "")) {
+      throw new Error(`H7: ${method} ${path} trả 201 mà thiếu/sai header Location ("${res.headers.get("location")}") — thêm Location (src/shared/http.ts kemLocation)`);
+    }
     const text = await res.text();
     let json = null; try { json = JSON.parse(text); } catch {}
     return { status: res.status, json, text, headers: res.headers };

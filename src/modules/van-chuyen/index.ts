@@ -8,7 +8,7 @@ import type {
   CarrierListResponse, ExpiringListResponse, VanChuyenMetaResponse, VehicleDocumentDto, VehicleDto, VehicleListResponse, VehicleResponse,
 } from "../../shared/contracts";
 import { MA_LOAI_GIAY_TO_RE, TRANG_THAI_XE, kiemLoaiGiayToMoi, kiemSuaLoaiGiayTo, soNgayConLai } from "../../shared/giay-to";
-import { UUID_RE, error, json, readJson } from "../../shared/http";
+import { UUID_RE, error, json, kemLocation, readJson } from "../../shared/http";
 import { PARTY_ID_RE } from "../../shared/party-id";
 import { can } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
@@ -359,7 +359,7 @@ export const vanChuyenModule: AppModule = {
         if (p) return p;
         throw e;
       }
-      return respondVehicle(env.DB, id, 201);
+      return kemLocation(await respondVehicle(env.DB, id, 201), `/xe-chi-tiet?id=${id}`);
     }),
 
     route("GET", "/api/van-chuyen/xe/:id", "office", async ({ env, params, staff }) => {
@@ -428,7 +428,7 @@ export const vanChuyenModule: AppModule = {
         if (p) return p;
         throw e;
       }
-      return respondVehicle(env.DB, id, 201);
+      return kemLocation(await respondVehicle(env.DB, id, 201), `/xe-chi-tiet?id=${id}`);
     }),
 
     route("POST", "/api/van-chuyen/xe/:id/giay-to/:did/gia-han", "office", async ({ request, env, params, staff }) => {
@@ -461,7 +461,7 @@ export const vanChuyenModule: AppModule = {
         if (p) return p;
         throw e;
       }
-      return respondVehicle(env.DB, id, 201);
+      return kemLocation(await respondVehicle(env.DB, id, 201), `/xe-chi-tiet?id=${id}`);
     }),
 
     route("POST", "/api/van-chuyen/xe/:id/giay-to/:did/sua-sai", "office", async ({ request, env, params, staff }) => {
@@ -532,7 +532,7 @@ export const vanChuyenModule: AppModule = {
         if (e instanceof Error && /UNIQUE constraint failed: vc_dispatch_policy\.valid_from_at/.test(e.message)) return error(409, "stale", "Vừa có người đổi chính sách, tải lại rồi thử lại.");
         throw e;
       }
-      return respondChinhSach(env.DB, nhanNhanVien, 201);
+      return kemLocation(await respondChinhSach(env.DB, nhanNhanVien, 201), "/chinh-sach-dieu-phoi");
     }),
 
     route("GET", "/api/van-chuyen/dieu-kien", "office", async ({ env, staff }) => {
@@ -558,7 +558,7 @@ export const vanChuyenModule: AppModule = {
         if (e instanceof Error && LOI_KHOA_NGOAI.test(e.message)) return error(400, "invalid_input", "Không có loại giấy tờ này trong danh mục.");
         throw e;
       }
-      return respondDieuKien(env.DB, 201);
+      return kemLocation(await respondDieuKien(env.DB, 201), "/dieu-kien-xuat-ben");
     }),
 
     route("POST", "/api/van-chuyen/dieu-kien/:id/dong", "office", async ({ env, params, staff }) => {
@@ -600,7 +600,7 @@ export const vanChuyenModule: AppModule = {
         if (e instanceof Error && LOI_KHOA_NGOAI.test(e.message)) return error(400, "invalid_input", "Không có hạng bằng này trong danh mục.");
         throw e;
       }
-      return respondHangBang(env.DB, 201);
+      return kemLocation(await respondHangBang(env.DB, 201), "/dieu-kien-xuat-ben");
     }),
 
     // Danh mục lý do (ADR-0049 D2 CH-06) — Quản trị sửa: cổng admin + ô admin.manage viết thẳng (luật (4) của hàng rào 2); khuôn loc_location (Ruling R7).
@@ -624,7 +624,7 @@ export const vanChuyenModule: AppModule = {
         if (e instanceof Error && /UNIQUE constraint failed: vc_reason\.code/.test(e.message)) return error(409, "code_taken", "Mã này đã có trong danh mục lý do.");
         throw e;
       }
-      return respondLyDo(env.DB, 201);
+      return kemLocation(await respondLyDo(env.DB, 201), "/ly-do-dieu-phoi");
     }),
 
     route("PUT", "/api/van-chuyen/ly-do/:code", "admin", async ({ request, env, params, staff }) => {
@@ -701,7 +701,7 @@ export const vanChuyenModule: AppModule = {
         }
         throw e;
       }
-      return json(lichSuMauChang(code, await legTemplateHistory(env.DB, code)) satisfies MauChangLichSuResponse, 201);
+      return json(lichSuMauChang(code, await legTemplateHistory(env.DB, code)) satisfies MauChangLichSuResponse, 201, { location: "/catalog" });
     }),
 
     // ---- Danh mục loại giấy tờ xe + ngưỡng "sắp hết hạn" + danh sách giấy tờ sắp hết hạn (Task A15) ---------------------------------------------------------
@@ -728,7 +728,7 @@ export const vanChuyenModule: AppModule = {
         if (e instanceof Error && /UNIQUE constraint failed: vc_vehicle_document_type\.code/.test(e.message)) return error(409, "code_taken", "Mã này đã có trong danh mục.");
         throw e;
       }
-      return respondMeta(env.DB, 201);
+      return kemLocation(await respondMeta(env.DB, 201), "/loai-giay-to-xe");
     }),
 
     route("PUT", "/api/van-chuyen/loai-giay-to-xe/:code", "admin", async ({ request, env, params, staff }) => {
@@ -871,7 +871,7 @@ export const vanChuyenModule: AppModule = {
       if (!nen) return KHONG_CO_CHUYEN();
       const lich = await lichChungChang(env.DB, nen.tu, nen.den);
       const hk = await hanhKhachChoChuyen(env.DB, nen.legIds);
-      return json(await chiTietChuyen(env.DB, nen, lich.chang, hk, false, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), bayGioMs) satisfies ChuyenChiTietResponse, lap ? 200 : 201);
+      return json(await chiTietChuyen(env.DB, nen, lich.chang, hk, false, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), bayGioMs) satisfies ChuyenChiTietResponse, lap ? 200 : 201, { location: `/chuyen?id=${nen.trip.id}` });
     }),
 
     route("PUT", "/api/van-chuyen/chuyen/:id", "office", async ({ env, request, params, staff, nhanNhanVien, isAssigned, baoThayDoiChuyen }) => {

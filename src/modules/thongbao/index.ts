@@ -228,7 +228,7 @@ export const thongbaoModule: AppModule = {
         };
         exec.waitUntil(dayGoCua(env, { thuCong, quanTrong: v.value.quanTrong }, giaoLoDay).catch(ghiLoiDay));
       }
-      return json({ id: win }, win === id ? 201 : 200);
+      return json({ id: win }, win === id ? 201 : 200, { location: "/gui-thong-bao" });
     }),
     route("GET", "/api/thong-bao/da-gui", "admin", async ({ env, staff }) => {
       if (!can(staff, "notice.send")) return FORBIDDEN();

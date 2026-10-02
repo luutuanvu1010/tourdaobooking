@@ -279,7 +279,7 @@ export const accountsModule: AppModule = {
         if (isPasskeyTaken(e)) return PASSKEY_ERRORS.exists();
         throw e;
       }
-      const res = json({ passkey: { id, label, createdAt: at, lastUsedAt: null } } satisfies PasskeyResponse, 201);
+      const res = json({ passkey: { id, label, createdAt: at, lastUsedAt: null } } satisfies PasskeyResponse, 201, { location: "/account" });
       res.headers.append("set-cookie", clearChallengeCookie(request));
       return res;
     }),
@@ -423,7 +423,7 @@ export const accountsModule: AppModule = {
           if (rule) return rule;
           throw e;
         }
-        return json({ staff: await one(db, created.id), pin: created.pin } satisfies StaffWithPinResponse, 201);
+        return json({ staff: await one(db, created.id), pin: created.pin } satisfies StaffWithPinResponse, 201, { location: "/staff" });
       }
       // ---- Đường CŨ (giữ nguyên hành vi, thêm LC-4): danh sách quyền, hồ sơ mới mang vai STAFF.
       const name = cleanName(body?.fullName);
@@ -453,7 +453,7 @@ export const accountsModule: AppModule = {
         if (rule) return rule;
         throw e;
       }
-      return json({ staff: await one(db, created.id), pin: created.pin } satisfies StaffWithPinResponse, 201);
+      return json({ staff: await one(db, created.id), pin: created.pin } satisfies StaffWithPinResponse, 201, { location: "/staff" });
     }),
 
     // ADR-0068 Đ9 (C1): giao diện Thêm tài khoản hỏi "có hồ sơ khớp không" TRONG LÚC GÕ — cùng một hàm với 409 party_match_exists (không hai luật).

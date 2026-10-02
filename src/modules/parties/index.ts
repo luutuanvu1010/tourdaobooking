@@ -10,7 +10,7 @@ import { LOAI_CO_DINH, MA_LOAI_GIAY_TO_RE, kiemLoaiGiayToMoi, kiemSuaLoaiGiayTo,
 import { OWNER_COMPANY_ROLE, thieuChoCongTyChu } from "../../shared/cong-ty-chu";
 import { capNghiTrung, chuanHoaTen } from "../../shared/ho-so-trung";
 import type { RoleCode } from "../../shared/roles";
-import { UUID_RE, error, escapeLike, intParam, json, readJson } from "../../shared/http";
+import { UUID_RE, error, escapeLike, intParam, json, kemLocation, readJson } from "../../shared/http";
 import { can, holdsPartner } from "../../shared/permissions";
 import { normalizePhone } from "../../shared/phone";
 import { route, type AppModule, type Ctx } from "../../shared/router";
@@ -615,7 +615,7 @@ export const partiesModule: AppModule = {
         if (e instanceof Error && /UNIQUE constraint failed: pty_person_document_type\.code/.test(e.message)) return CODE_TAKEN();
         throw e;
       }
-      return respondDocMeta(env.DB, 201);
+      return kemLocation(await respondDocMeta(env.DB, 201), "/loai-giay-to-nguoi");
     }),
 
     route("PUT", "/api/parties/document-types/:code", "admin", async ({ request, env, params, staff }) => {
@@ -650,7 +650,7 @@ export const partiesModule: AppModule = {
         if (e instanceof Error && /UNIQUE constraint failed: pty_license_class\.code/.test(e.message)) return CODE_TAKEN();
         throw e;
       }
-      return respondDocMeta(env.DB, 201);
+      return kemLocation(await respondDocMeta(env.DB, 201), "/loai-giay-to-nguoi");
     }),
 
     route("PUT", "/api/parties/license-classes/:code", "admin", async ({ request, env, params, staff }) => {
@@ -709,7 +709,7 @@ export const partiesModule: AppModule = {
         if (problem) return problem;
         throw e;
       }
-      return respondDocs(env.DB, id, 201, await ctx.nguongHetHan());
+      return kemLocation(await respondDocs(env.DB, id, 201, await ctx.nguongHetHan()), `/parties?id=${id}`);
     }),
 
     route("POST", "/api/parties/:id/documents/:did/renew", "office", async (ctx) => {
@@ -745,7 +745,7 @@ export const partiesModule: AppModule = {
         if (problem) return problem;
         throw e;
       }
-      return respondDocs(env.DB, id, 201, await ctx.nguongHetHan());
+      return kemLocation(await respondDocs(env.DB, id, 201, await ctx.nguongHetHan()), `/parties?id=${id}`);
     }),
 
     route("POST", "/api/parties/:id/documents/:did/correct", "office", async (ctx) => {
@@ -894,7 +894,7 @@ export const partiesModule: AppModule = {
       const name = v.kind === "PERSON" ? composePersonName(v.name) : v.org.displayName;
       // Không ghi SĐT/email/MST vào nhật ký (chỉ tên và loại) — đặc tả N1 §5.
       await env.DB.batch([...made.statements, auditStatement(env.DB, { staffId: staff.id, action: "party_created", at, targetType: "party", targetId: made.partyId, detail: `${KIND_LABEL[v.kind]} "${name}"` })]);
-      return respondParty(ctx, made.partyId, 201);
+      return kemLocation(await respondParty(ctx, made.partyId, 201), `/parties?id=${made.partyId}`);
     }),
 
     route("GET", "/api/parties/:id", "office", async (ctx) => {
@@ -959,7 +959,7 @@ export const partiesModule: AppModule = {
         ...addContactStatements(env.DB, id, c, vnToday(now), staff.id, at),
         auditStatement(env.DB, { staffId: staff.id, action: "party_contact_changed", at, targetType: "party", targetId: id, detail: c.kind === "PHONE" ? "thêm số điện thoại" : "thêm email" }),
       ]);
-      return respondParty(ctx, id, 201);
+      return kemLocation(await respondParty(ctx, id, 201), `/parties?id=${id}`);
     }),
 
     route("POST", "/api/parties/:id/contacts/:cid/end", "office", async (ctx) => {
@@ -1044,7 +1044,7 @@ export const partiesModule: AppModule = {
         if (problem) return problem;
         throw e;
       }
-      return respondParty(ctx, id, 201);
+      return kemLocation(await respondParty(ctx, id, 201), `/parties?id=${id}`);
     }),
 
     route("POST", "/api/parties/:id/roles/:rid/end", "admin", async (ctx) => {
@@ -1123,7 +1123,7 @@ export const partiesModule: AppModule = {
         if (problem) return problem;
         throw e;
       }
-      return respondParty(ctx, id, 201);
+      return kemLocation(await respondParty(ctx, id, 201), `/parties?id=${id}`);
     }),
 
     route("POST", "/api/parties/:id/relationships/:rid/end", "admin", async (ctx) => {

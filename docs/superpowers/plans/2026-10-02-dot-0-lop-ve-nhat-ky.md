@@ -244,3 +244,17 @@ Số bản nhật ký phiên bản: `main` cục bộ có `1.70` ở đầu `src
 
 ## L13 — cổng khoá trong `npm run trien-khai` (2026-10-02)
 - `scripts/release-lib.mjs` bước 1c: `npx wrangler secret list --format json` (chỉ TÊN) sau `whoami`, trước D1; thiếu `SESSION_SECRET` / `LAN_GUI_SECRET` ⇒ dừng, in lệnh `secret put`; lệnh lỗi / đầu ra lạ ⇒ dừng. Bài `src/release-lib.test.ts` đỏ trước 21 bài ⇒ xanh 75/75. Dạng đầu ra đối chiếu mã nguồn wrangler đang cài. Quan sát chặn bằng hàm giả (sổ hàng rào). `docs/QUY-TRINH-PHAT-HANH.md` bước 1c.
+
+## Kiểm độc lập vòng 1 — **ĐẠT** (2026-10-02, commit `57e53a18`, L1–L4b)
+- Người kiểm `nguoi-kiem-doc-lap`, chỉ đọc, bản sao `git archive` riêng. Tự chạy: typecheck 0 lỗi; `npm test` 2855/2856 (1 đỏ `src/standards.test.ts:78` vì bản sao không có `.git` — không phải lỗi mã); bài đo giờ xanh; `npm run test:e2e` đủ bộ thoát 0 (705 giây, có `chong-ghi-trung` + `audit-invariants`). Sáu phép đột biến (H9, H6, fakeD1 nghiêm, T17, H1-i, H1-ii) đều ĐỎ đúng chỗ. `canManageAccount` và ba cơ chế cũ không đổi.
+- **CHẶN:** không.
+- **NÊN SỬA:** N1 — bộ bọc: hai lệnh ghi ĐỒNG THỜI trong một yêu cầu cùng mang vé, lệnh sau đụng vé của chính lệnh trước (hôm nay không route nào chạy ghi đồng thời). N2 — chữ lỗi D1 thật khi đụng khoá vé chưa kiểm trên production (workerd cục bộ `d1 execute --local` trả `UNIQUE constraint failed: lg_x.staff_id, lg_x.khoa: SQLITE_CONSTRAINT (extended: …)` — mẫu khớp; bằng chứng gián tiếp).
+- **GỢI Ý:** G1 `laCauDoc` coi `WITH … SELECT replace(…)` là câu ghi; G2 `.raw({columnNames})` trên câu ghi bỏ qua tuỳ chọn; G3 danh sách `GHI_NHIEU_LAN` rỗng (L12 đo); G4 thân sai UTF-8 (rất nhẹ); G5 dấu chấm cuối câu cố định khác ADR đ6.
+- ⇒ **Mở khoá Đợt 1** (kế hoạch §5: Đợt 1 bắt đầu khi L4b qua kiểm độc lập vòng 1).
+
+## L7 — `Location` cho route 201 + H7 (2026-10-02)
+- 33 chỗ trả 201 gắn `Location` (trang nội bộ chỉ chứa id): `json(…, 201, { location })` hoặc `kemLocation(await respondX(…, 201), …)` (`src/shared/http.ts`; `trangDon(id)` = `/order?id=<id>`). Lần thu / hoàn / điều chỉnh trỏ trang đơn; nộp nhiều đơn ⇒ `/orders`; điều chỉnh không gắn đơn ⇒ `/home`; Danh bạ ⇒ `/parties?id=<id>`; xe ⇒ `/xe-chi-tiet?id=<id>`; chuyến ⇒ `/chuyen?id=<id>`; danh mục / cài đặt ⇒ trang danh mục tương ứng. `POST /api/thong-bao` gửi Location cả ở nhánh 200 (trùng clientRequestId).
+- `src/shared/lan-gui-ket-qua.ts` (`TAO_TRA_200`) rỗng, có lý do: mọi route TẠO nay trả 201 + Location; route ghi trả 200 còn lại là sửa trên bản ghi đang mở (tải lại là đúng).
+- H7 ba lớp: bài tĩnh `src/lan-gui-location.test.ts`; `call()` của khung thử NÉM khi 201 thiếu/sai Location (mọi bài khung thử thành bài canh — `npm test` 2877/2877 xanh); `call()` của e2e cũng vậy — **e2e đủ bộ 43/43 xanh** (bắt nốt 201 ngoài khung thử: không còn chỗ nào thiếu).
+- H7 quan sát chặn thật (sổ hàng rào).
+- `src/lan-gui-giao-dien.test.ts` (H3) đã viết, chưa quan sát đột biến (làm cùng L9).
