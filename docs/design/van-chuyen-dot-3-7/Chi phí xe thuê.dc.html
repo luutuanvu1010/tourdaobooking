@@ -1,0 +1,112 @@
+<!-- Bản lưu của điều phối: KHUNG TRANG (markup) tóm tắt cấu trúc + SCRIPT DỮ LIỆU nguyên văn. Bản gốc đầy đủ: dự án Claude Design f0f47482…, tệp "Chi phí xe thuê.dc.html". -->
+<!-- helmet style: body{background:#dfe8ef;font-family:'Nunito'} .sb-gray{--c-on-dark:#0C4A6E;--c-sidebar-item:#475569;--c-sidebar-active:#DCE4EC;--c-sidebar-border:#D3E1EC;--c-sidebar-badge:#DCE4EC} .sb-gray nav{background:#EEF2F6 !important;border-right:1px solid #D3E1EC}
+     LỜI CHỦ: "nhớ đổi lại nền cho thanh bên trái (xanh đậm nên đổi thành màu nền toàn trang)" — bản vẽ dùng lớp .sb-gray đè thanh bên DS (mặc định xanh đậm) sang #EEF2F6. -->
+
+<!-- ===== MÀN 1c "Bảng kê chi phí xe thuê" (Topbar: "Quản trị › Bảng kê chi phí xe thuê"; MobileBar "Bảng kê chi phí xe thuê"; sidebar active "stmt")
+  - h1 800 22px Be Vietnam Pro #0C4A6E "Bảng kê chi phí xe thuê"; phụ đề 14px #475569 "Chuyến nào, nhà xe nào, bao nhiêu — để trả tay cho nhà xe."
+  - Thẻ lọc trắng (viền --c-border, bo 12, pad 16): 4 ô (flex 1 1 150px, nhãn 600 14px, hộp 44px bo 8 chữ 16px) "Từ ngày", "Đến ngày", "Nhà xe" ▾, "Trạng thái" ▾; dưới: 13px #475569 "Lọc theo ngày chạy, tối đa khoảng 3 tháng. Trạng thái: Đã phát sinh (đã chạy xong) · Chưa chạy · Đang chạy · Đã huỷ · Chưa có giá."
+  - Hàng: tóm tắt 700 15px ("6 chuyến · 2 nhà xe · 1 chuyến chưa có giá") + nút "Tải bảng kê" (Button mặc định).
+  - Mỗi nhóm nhà xe: thẻ trắng bo 12; đầu nhóm nền --c-primary-soft pad 12/16: tên nhà xe 800 16px #0C4A6E + "N chuyến" 13px; phải: "TỔNG NHÓM" 11px 700 ls .08em + số 800 18px màu --c-accent-strong.
+    Máy tính: lưới cột 140px | minmax(0,1fr) | 130px | 120px | 120px, đầu cột 11px 700 ls .08em: "MÃ CHUYẾN · NGÀY CHẠY", "BIỂN SỐ · TUYẾN", "TRẠNG THÁI · NGUỒN GIÁ", "ĐIỀU CHỈNH", "SỐ TIỀN"(phải).
+      Dòng: mã 700 14px BVP #0C4A6E + ngày 13px; biển số 700 14px + tuyến 14px #334155; chip trạng thái + nguồn giá 13px; điều chỉnh 700 (màu đỏ nếu âm) + "x điều chỉnh bị đảo do đổi chuyến" 13px; số tiền phải 800 16px BVP. Dòng bấm được (cursor pointer). Dòng "Chưa có giá": nền --c-sand-soft, số = chữ "Chưa có giá" màu --c-sand-text.
+    Điện thoại: mỗi chuyến thẻ dọc: mã + số tiền (800 17px) cùng hàng; "ngày · biển số · tuyến" 14px; chip trạng thái + nguồn; dòng điều chỉnh.
+  - Cuối: khối nền --c-primary chữ trắng bo 12: "TỔNG CỘNG" 12px 700 + ghi chú 13px "Chuyến chưa có giá chưa được tính."; số 800 24px màu --c-sand.
+
+===== MÀN 1b "Chi tiết chuyến xe — khối Chi phí chuyến" (Topbar "Chuyến xe › TX-20261004-0007"; sidebar active "trips")
+  - h1 mã chuyến + chip trạng thái chuyến; thẻ thông tin 4 ô (NGÀY CHẠY, BIỂN SỐ, ĐÓN, KHÁCH). Khung gạch đứt: "Các khối hiện có của trang (hành khách, đón trả, ghi chú, nhật ký) giữ nguyên, nằm trước khối này."
+  - Khi thiếu giá: Banner tone warning title "Chuyến xe thuê chưa có giá — chưa được xuất bến", text "Nhập giá thoả thuận với nhà xe, hoặc bổ sung giá vào Bảng giá thuê xe rồi lấy lại giá bảng." + nút primary "Nhập giá thoả thuận".
+  - Khối trắng bo 12: đầu "Chi phí chuyến" 800 17px + chip "Chỉ Kế toán · Quản trị" (nền primary-soft).
+    Khi 409: Banner danger "Chi phí chuyến vừa thay đổi — tải lại rồi thử lại." + nút "Tải lại".
+    Lưới tóm tắt (auto-fit minmax 150px): "NHÀ XE", "TUYẾN", "NGUỒN GIÁ" (chip), "TỔNG CHI PHÍ" (800 24px --c-accent-strong; chưa có giá = "—").
+    Danh sách dòng: chip loại (Giá bảng=ok xanh lá, Điều chỉnh=soon, Đảo=gray, Điều chỉnh phí huỷ=bad), chip "đã đảo" (viền), chip "đảo do đổi chuyến" (sand); số tiền phải 800 16px ("+ 450.000 ₫"/"− 400.000 ₫", âm màu --c-danger; dòng bị đảo: mờ .55 + gạch ngang); lý do 14px; ghi chú 14px #334155; "người · lúc" 13px; nút link "Đảo dòng" khi đảo được.
+    Không dòng: "Chưa có dòng chi phí nào."
+    Form nội tuyến (nền --c-soft-hover, bo 12, pad 16): tiêu đề, ô, Banner danger lỗi, nút primary + "Đóng".
+    Hàng nút cuối + gợi ý 13px.
+
+===== MÀN 1a "Bảng giá thuê xe" (Topbar "Quản trị › Bảng giá thuê xe"; sidebar active "rate")
+  - h1 + phụ đề "Giá thuê mỗi chuyến của từng nhà xe đối tác."; nút variant accent "Thêm giá" (ẩn ở tab Tuyến/Cỡ xe).
+  - Hai ô: "Nhà xe" ▾, "Giá đang áp ngày" (02/10/2026).
+  - Note: "Có cả giá theo tuyến và giá theo cỡ xe thì giá theo tuyến được dùng."
+  - Ba tab viên thuốc 44px: "Giá thuê", "Tuyến", "Cỡ xe" (đang chọn nền --c-primary chữ trắng; còn lại primary-soft).
+  - Máy tính: bảng cột minmax(0,1.5fr) | minmax(0,.8fr) | 110px | 150px | 96px | 140px: "TUYẾN"(+ghi chú 13px dưới), "CỠ XE", "SỐ TIỀN / CHUYẾN"(phải, 800 15px accent-strong), "HIỆU LỰC" ("01/07/2026 – đang áp"), "TRẠNG THÁI"(chip), nút link "Đổi giá" "Kết thúc" (ẩn khi Đã kết thúc). Tuyến trống hiện "Mọi tuyến", cỡ trống "Mọi cỡ xe" màu muted.
+  - Điện thoại: thẻ; nút pill "Đổi giá" + pill-danger "Kết thúc".
+  - Form Đổi giá/Thêm giá: máy tính = thẻ nội tuyến; điện thoại = tấm đáy (bo 18 18 0 0, bóng overlay, nền mờ --c-scrim).
+  - Trống: "Nhà xe này chưa có giá" + "Thêm giá theo tuyến hoặc theo cỡ xe để chuyến xe thuê tự lấy giá bảng." + nút accent "Thêm giá".
+  - Tab Tuyến/Cỡ xe: lưới thẻ (minmax 300px): tiêu đề + gợi ý; mỗi dòng tên + chip Đang dùng/Ngưng dùng + link "Đổi tên" + link "Ngưng dùng"/"Dùng lại"; chân nền soft-hover ô thêm + nút primary "Thêm".
+-->
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const vnd = n => String(Math.abs(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' ₫';
+    const T = {
+      ok: ['var(--c-green-soft)', 'var(--c-green-text)'], soon: ['var(--c-primary-soft)', 'var(--c-primary)'],
+      end: ['#E6EDF3', 'var(--c-text-muted)'], warn: ['var(--c-sand-soft)', 'var(--c-sand-text)'],
+      bad: ['var(--c-danger-soft)', 'var(--c-danger-text)'], run: ['var(--c-primary)', '#fff'], gray: ['#E6EDF3', 'var(--c-text-muted)']
+    };
+    const side = { logo: 'assets/logo-96.png', user: { name: 'Lan Anh', role: 'Kế toán' },
+      groups: [
+        { title: 'Bán hàng', items: [{ id: 'home', label: 'Trang chủ', icon: 'home' }, { id: 'orders', label: 'Đơn hàng', icon: 'orders' }] },
+        { title: 'Quản trị', items: [{ id: 'trips', label: 'Chuyến xe', icon: 'assign' }, { id: 'rate', label: 'Bảng giá thuê xe', icon: 'money' }, { id: 'stmt', label: 'Bảng kê chi phí xe', icon: 'doc-check' }] }
+      ] };
+    const fld = (label, value, o = {}) => ({
+      label: label + (o.req ? ' *' : ''), value, mark: o.sel ? '▾' : '', vc: o.empty ? 'var(--c-placeholder)' : 'var(--c-text)',
+      st: 'flex:1 1 ' + (o.basis || '150px') + ';display:flex;flex-direction:column;gap:4px;min-width:0',
+      box: 'min-height:' + (o.area ? '72px' : '44px') + ';box-sizing:border-box;border:1px solid ' + (o.err ? 'var(--c-danger)' : 'var(--c-border)') + ';border-radius:8px;padding:' + (o.area ? '10px' : '0') + ' 12px;display:flex;align-items:' + (o.area ? 'flex-start' : 'center') + ';justify-content:space-between;font:16px Nunito;background:#fff'
+    });
+    const tabs = a => ['Giá thuê', 'Tuyến', 'Cỡ xe'].map((l, i) => ({ label: l, bg: i === a ? 'var(--c-primary)' : 'var(--c-primary-soft)', fg: i === a ? '#fff' : 'var(--c-primary)' }));
+
+    // ---- 1a
+    const mk = (route, size, amt, f, t, note, st, tone) => ({ route: route || 'Mọi tuyến', rc: route ? 'var(--c-text)' : 'var(--c-text-muted)', size: size || 'Mọi cỡ xe', sc: size ? 'var(--c-text)' : 'var(--c-text-muted)', amount: vnd(amt), range: f + ' – ' + (t || 'đang áp'), note, status: st, bg: T[tone][0], fg: T[tone][1], open: st !== 'Đã kết thúc' });
+    const rows = [
+      mk('Nha Trang – sân bay Cam Ranh', '10–16 khách', 450000, '01/07/2026', '', 'Giá một chiều', 'Đang áp', 'ok'),
+      mk('Nha Trang – sân bay Cam Ranh', '10–16 khách', 400000, '01/01/2026', '30/06/2026', 'Giá cũ', 'Đã kết thúc', 'end'),
+      mk('', '29–35 khách', 1100000, '01/07/2026', '', 'Giá theo cỡ xe, chạy mọi tuyến', 'Đang áp', 'ok'),
+      mk('Nha Trang – Bình Ba', '', 1600000, '01/11/2026', '', 'Mùa cao điểm', 'Sắp áp', 'soon'),
+      mk('Nha Trang – Vinpearl', '4–7 khách', 350000, '01/07/2026', '', '', 'Đang áp', 'ok')
+    ];
+    const dupForm = { title: 'Đổi giá — Nha Trang – sân bay Cam Ranh', hint: 'Dòng cũ sẽ kết thúc ngày 30/09/2026, dòng mới bắt đầu ngày 01/10/2026. Cần ít nhất một trong tuyến hoặc cỡ xe.', cta: 'Lưu giá mới', error: 'Nhà xe đã có giá cùng tuyến, cùng cỡ trong khoảng ngày này',
+      fields: [fld('Tuyến', 'Nha Trang – sân bay Cam Ranh', { sel: 1, basis: '220px' }), fld('Cỡ xe', '10–16 khách', { sel: 1 }), fld('Số tiền (₫)', '480.000', { req: 1 }), fld('Từ ngày', '01/10/2026', { req: 1 }), fld('Đến ngày', 'Để trống nếu đang áp', { empty: 1 }), fld('Ghi chú', 'Tăng giá nhiên liệu', { basis: '220px' })] };
+    const stopForm = { title: 'Thêm giá', hint: 'Cần ít nhất một trong tuyến hoặc cỡ xe.', cta: 'Lưu giá', error: 'Nhà xe này đã thôi hợp tác — không thể thêm giá mới',
+      fields: [fld('Tuyến', 'Chọn tuyến (có thể trống)', { sel: 1, empty: 1, basis: '100%' }), fld('Cỡ xe', '29–35 khách', { sel: 1, basis: '100%' }), fld('Số tiền (₫)', '1.100.000', { req: 1, basis: '100%' }), fld('Từ ngày', '01/10/2026', { req: 1 }), fld('Đến ngày', 'Tuỳ chọn', { empty: 1 }), fld('Ghi chú', '', { basis: '100%' })] };
+    const cats = (sizeOnly) => {
+      const route = { title: 'Tuyến', hint: 'Thêm, đổi tên hoặc ngưng dùng. Tuyến ngưng dùng vẫn giữ trong giá cũ.', add: [fld('Tên tuyến mới', 'Ví dụ: Nha Trang – Đầm Môn', { empty: 1, basis: '160px' })],
+        items: [['Nha Trang – sân bay Cam Ranh', 1], ['Nha Trang – Bình Ba', 1], ['Nha Trang – Vinpearl', 1], ['Nha Trang – Hòn Tằm', 0]].map(([name, on]) => ({ name, status: on ? 'Đang dùng' : 'Ngưng dùng', toggle: on ? 'Ngưng dùng' : 'Dùng lại' })) };
+      const size = { title: 'Cỡ xe', hint: 'Nhập khoảng số khách, không kể tài xế.', add: [fld('Từ (khách)', '17', { basis: '70px' }), fld('Đến (khách)', '28', { basis: '70px' })],
+        items: [['4–7 khách', 1], ['10–16 khách', 1], ['17–28 khách', 1], ['29–35 khách', 1], ['45 khách', 0]].map(([name, on]) => ({ name, status: on ? 'Đang dùng' : 'Ngưng dùng', toggle: on ? 'Ngưng dùng' : 'Dùng lại' })) };
+      return sizeOnly ? [size] : [route, size];
+    };
+    // priceBoards: Máy tính 1040 · Danh sách giá | Đổi giá, báo trùng ngày (form thẻ nội tuyến) | Mục phụ Tuyến và Cỡ xe;
+    //              Điện thoại 390 · Danh sách giá | Trạng thái trống (Nhà xe Minh Tâm) | Thêm giá, nhà xe đã thôi hợp tác (tấm đáy + scrim; "Nhà xe Hoàng Long (đã thôi hợp tác)") | Cỡ xe
+
+    // ---- 1b
+    const L = (type, tone, amt, reason, note, who, when, o = {}) => ({ type, amount: (amt < 0 ? '− ' : '+ ') + vnd(amt), color: amt < 0 ? 'var(--c-danger)' : 'var(--c-text)', reason, note, who, when, reversed: !!o.rev, trip: !!o.trip, op: o.rev ? 0.55 : 1, deco: o.rev ? 'line-through' : 'none', canReverse: !!o.can });
+    const info = [{ k: 'NGÀY CHẠY', v: '04/10/2026' }, { k: 'BIỂN SỐ', v: '79A-123.45 · 16 chỗ' }, { k: 'ĐÓN', v: '07:30 · Sân bay Cam Ranh' }, { k: 'KHÁCH', v: '12 NL · 02 TE' }];
+    const none = { carrier: 'Nhà xe Phúc Thành', route: 'Nha Trang – sân bay Cam Ranh', source: 'Chưa có giá', tone: 'warn', total: '—' };
+    const s1 = { sum: none, noLines: true, warn: true, tripStatus: 'Chưa chạy' };
+    const agreed = { title: 'Nhập giá thoả thuận', cta: 'Lưu giá thoả thuận', fields: [fld('Số tiền (₫)', '1.250.000', { req: 1, basis: '180px' }), fld('Ghi chú thoả thuận', 'Anh Thành báo giá điện thoại 02/10, đã chốt giá trọn gói', { req: 1, area: 1, basis: '260px' })] };
+    const s1btn = [{ label: 'Nhập giá thoả thuận', variant: 'primary' }, { label: 'Lấy lại giá bảng', variant: 'default' }];
+    const s1hint = 'Bảng giá vừa có giá 450.000 ₫ cho tuyến này — bấm “Lấy lại giá bảng” để dùng.';
+    const s2 = { sum: { carrier: 'Nhà xe Phúc Thành', route: 'Nha Trang – sân bay Cam Ranh', source: 'Giá bảng', tone: 'ok', total: vnd(600000) },
+      lines: [L('Giá bảng', 'ok', 450000, 'Giá bảng: Nha Trang – sân bay Cam Ranh · 10–16 khách', 'Áp từ 01/07/2026', 'Hệ thống', '02/10/2026 08:12', { can: 1 }), L('Điều chỉnh', 'soon', 150000, 'Phí cầu đường / bến bãi', 'Phí BOT theo biên lai', 'Lan Anh (Kế toán)', '04/10/2026 11:40', { can: 1 })], buttons: [{ label: 'Điều chỉnh', variant: 'primary' }], hint: 'Điều chỉnh cộng hoặc trừ vào tổng; ghi sai thì “Đảo dòng”.' };
+    const adj = { title: 'Điều chỉnh chi phí', cta: 'Lưu điều chỉnh', error: 'Tổng chi phí chuyến sẽ âm — đảo điều chỉnh giảm trước',
+      fields: [fld('Số tiền (+ hoặc −)', '− 700.000', { req: 1, err: 1, basis: '160px' }), fld('Lý do', 'Nhập sai', { req: 1, sel: 1, basis: '200px' }), fld('Ngày phát sinh', '02/10/2026 (hôm nay)', { req: 1 }), fld('Ghi chú', 'Giảm theo thoả thuận', { basis: '100%' })] };
+    const s3 = { tripStatus: 'Đã huỷ', sum: { carrier: 'Nhà xe Phúc Thành', route: 'Nha Trang – sân bay Cam Ranh', source: 'Giá bảng', tone: 'ok', total: vnd(135000) },
+      lines: [L('Giá bảng', 'ok', 400000, 'Giá bảng xe 10–16 khách', 'Xe cũ 79A-555.12', 'Hệ thống', '01/10/2026 09:00', { rev: 1, trip: 1 }), L('Đảo', 'gray', -400000, 'Đảo do đổi xe', '', 'Hệ thống', '02/10/2026 08:12', { trip: 1 }), L('Giá bảng', 'ok', 450000, 'Giá bảng xe 10–16 khách', '', 'Hệ thống', '02/10/2026 08:12', { rev: 1 }), L('Đảo', 'gray', -450000, 'Đảo do huỷ chuyến', '', 'Hệ thống', '03/10/2026 16:05'), L('Điều chỉnh', 'bad', 135000, 'Phí huỷ muộn', 'Huỷ trước giờ đón 14 tiếng — tính 30%', 'Lan Anh (Kế toán)', '03/10/2026 16:20', { can: 1 })], buttons: [{ label: 'Điều chỉnh', variant: 'primary' }], hint: 'Chuyến đã huỷ vẫn ghi được phí huỷ.' };
+    // tripBoards: Máy tính 1040 · Chưa có giá, đang nhập giá thoả thuận (form agreed, nút s1btn, gợi ý s1hint) | Giá bảng + một điều chỉnh, báo tổng âm (form adj) | Chuyến đã huỷ có phí huỷ;
+    //             Điện thoại 390 · Chưa có giá | Giá bảng + một điều chỉnh, dữ liệu đã đổi (Banner tải lại) | Chuyến đã huỷ có phí huỷ
+
+    // ---- 1c
+    const tr = (code, date, plate, route, st, tone, src, amt, adjN, rev) => {
+      const np = st === 'Chưa có giá';
+      return { code, date, plate, route, status: st, tone, source: src, amount: np ? 'Chưa có giá' : vnd(amt),
+        adj: adjN ? (adjN > 0 ? '+ ' : '− ') + vnd(adjN) : '—', adjRev: rev ? rev + ' điều chỉnh bị đảo do đổi chuyến' : '', rowBg: np ? 'var(--c-sand-soft)' : '#fff' };
+    };
+    const raw = [
+      { carrier: 'Nhà xe Phúc Thành', trips: [tr('TX-20261004-0007', '04/10', '79A-123.45', 'Nha Trang – sân bay Cam Ranh', 'Chưa chạy', 'soon', 'Giá bảng', 600000, 150000), tr('TX-20260930-0012', '30/09', '79A-123.45', 'Nha Trang – Vinpearl', 'Đã phát sinh', 'ok', 'Giá bảng', 350000, 0, 1), tr('TX-20260928-0004', '28/09', '79B-246.80', 'Nha Trang – Bình Ba', 'Đã phát sinh', 'ok', 'Giá thoả thuận', 1700000, 100000)] },
+      { carrier: 'Nhà xe Minh Tâm', trips: [tr('TX-20261002-0003', '02/10', '79C-555.12', 'Nha Trang – Bình Ba', 'Đang chạy', 'run', 'Giá bảng', 1600000, 0), tr('TX-20261003-0009', '03/10', '79C-318.77', 'Nha Trang – Đầm Môn', 'Chưa có giá', 'warn', 'Chưa có giá', 0, 0), tr('TX-20260926-0002', '26/09', '79C-555.12', 'Nha Trang – sân bay Cam Ranh', 'Đã huỷ', 'bad', 'Giá bảng', 135000, 135000, 1)] }
+    ];
+    // LƯU Ý: bản vẽ tự CỘNG tổng nhóm / tổng cộng ở trình duyệt (num(), reduce) — app thật: web KHÔNG cộng, số do máy chủ trả.
+    return { side, stmtSummary: '6 chuyến · 2 nhà xe · 1 chuyến chưa có giá', stmtNote: 'Chuyến chưa có giá chưa được tính.' };
+  }
+}
+</script>

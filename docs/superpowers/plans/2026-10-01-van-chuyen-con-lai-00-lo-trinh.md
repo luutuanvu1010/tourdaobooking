@@ -10,6 +10,25 @@
 
 **Spec:** bản rà `docs/superpowers/specs/2026-10-01-ra-soat-phan-he-van-chuyen.md`; quyết định: ADR-0052, ADR-0053, ADR-0055, ADR-0056, ADR-0057, ADR-0047 §6 (Phần C), ADR-0049, ADR-0040; trang ghép `docs/superpowers/specs/2026-09-30-trang-ghep-luot-duyet-a-dieu-phoi.md`, `…-luot-duyet-b-kernel-tien.md`; lời chủ: `docs/superpowers/specs/2026-09-29-van-chuyen-hoi-dap-dieu-phoi.md`.
 
+## Trạng thái (cập nhật 2026-10-02 chiều)
+
+Bản vẽ Claude Design Đợt 3–7 đã nhận: `docs/design/van-chuyen-dot-3-7/` (đánh giá đối chiếu ở `danh-gia/`). **Câu hỏi còn mở gom một chỗ:** `docs/superpowers/plans/2026-10-02-van-chuyen-cau-hoi-ban-ve.md`. Kế hoạch con 03–07 đã viết lại theo bản vẽ + khuyến nghị (mục "Cập nhật 2026-10-02" đầu mỗi tệp).
+
+| Đợt | Trạng thái | Nhánh / việc kế |
+|---|---|---|
+| 1 | ĐÃ LÊN production 1.65 | — |
+| 2 Tin báo chuyến | Code xong, kiểm độc lập 2 vòng ĐẠT (1.69, migration 0070 view) | `worktree-agent-a169271206f91c9c4` — chủ `day-len` + `trien-khai` |
+| 3 Lịch xe bận | Kế hoạch viết lại (trang lịch tuần); chờ câu 3.1–3.4 (3.2 🔒) | migration 0071 đã cấp |
+| 4 Tiền xe thuê | Máy chủ T1+T2 xong, kiểm 2 vòng ĐẠT (1.70, 0072+0073, đã gộp sẵn Đợt 2); GIỮ tới khi có giao diện G1–G5 | `worktree-agent-a76ababaa4a5b3183`; chờ câu 4.x + sổ vàng; lúc gộp kiểm khoá kỳ ADR-0080 |
+| 5 Xe đang chạy | THU GỌN (D5, D5b, D5c đơn giản); D4 + V4 hoãn tới mốc | sau Đợt 2 + 3; A-1b sau Đợt 4 |
+| 6 Tài xế đối tác | Kế hoạch viết lại (taxi = nhà xe một xe); chờ câu 6.x (6.3 🔒) | sau Đợt 3, 4, 5 (đo lại phụ thuộc đã hoãn) |
+| 7 Xe riêng / số chỗ | Kế hoạch viết lại; chờ 7.1–7.2 | sau Đợt 3 + 4 gộp |
+| 8 Bỏ đường ghi cũ | Như cũ (cổng đếm thân cũ) | — |
+| **Mới: Toạ độ điểm** | Chủ chọn bảng phụ có kiểu (câu 0.1 xác nhận); cần ADR nhỏ (module `locations`, bảng chỉ thêm, vĩ độ −90…90 / kinh độ −180…180 `CHECK`, nguồn, không bắt buộc) trước migration | chưa cấp số; làm sau ADR |
+| **Mới: Chia doanh thu taxi** | Chưa ADR; chờ chủ chốt a–d (câu 0.2) | sổ riêng, không chạm `vc_trip_cost_line` |
+
+Số migration đã cấp: 0070 (Đợt 2), 0071 (Đợt 3), 0072–0073 (Đợt 4). Số kế tiếp lấy theo L2.
+
 ## Phạm vi
 
 **Trong:**
@@ -135,6 +154,8 @@ Bối cảnh chủ nêu: công ty có **5 xe** (2 xe 16 chỗ, 3 xe 4–7 chỗ)
 4. **Chia sẻ doanh thu với taxi đối tác** — chưa ADR nào có. Khuyến nghị (chủ chưa trả lời): Đợt 4 giữ nguyên (thuê theo chuyến = chi phí cố định); chia doanh thu làm **sổ riêng** bằng ADR riêng sau khi chủ chốt: (a) % trên giá bán chặng hay sau phí; (b) ai thu tiền khách; (c) trả theo chuyến hay theo kỳ (nối sổ công nợ / khoá kỳ); (d) hợp đồng, hoá đơn, thuế (hỏi Kế toán). Không chen vào `vc_trip_cost_line`.
 
 ## Cần chủ (gom từ 8 kế hoạch con; mỗi lượt tối đa 3 câu chạm dữ liệu/quyền/tiền)
+
+> **Lịch sử (1/10).** Lượt I–III dưới đây ĐÃ TRẢ LỜI hoặc đã theo mặc định (xem "Lời chủ" 1/10, 2/10). Câu 7 (mã giữ riêng "xe có lịch bận") và câu 8 (câu chữ tin) theo mặc định đã ghi; câu 10 (ca mẫu xe A/B) thuộc phần Đợt 5 đã HOÃN. **Câu đang mở: `2026-10-02-van-chuyen-cau-hoi-ban-ve.md`.**
 
 **Lượt I — tiền xe thuê (Đợt 4, hỏi trước khi nhận Đợt 4):**
 1. Chuyến xe nhà xe đã có trên production (bảng chuyến lên từ 1.38 — tiền đề C2a của ADR-0057 nay sai): chủ chạy lệnh đếm chỉ-đọc (Task 0 Đợt 4). Có chuyến chưa chạy thì (A, khuyến nghị) để cờ "xe thuê" = 0, câu kiểm định kỳ liệt kê; hay (B) đánh dấu thuê ⇒ bị giữ "chưa có giá".
