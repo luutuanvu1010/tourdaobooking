@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { NHOM_O, O_TOI, TOI_DA_O, mauO, nhomMayTinh, oTrangChu, type KhoaO } from "./trang-chu-o.ts";
+import { KHOA_CO_TAB, NHOM_O, O_DIEN_THOAI, O_TOI, TOI_DA_O, loiTatMayTinh, luoiDienThoai, mauO, nhomMayTinh, oTrangChu, type KhoaO } from "./trang-chu-o.ts";
 import { PERMISSION_CODES, type PermissionCode } from "./permissions.ts";
 import { PAGES } from "./sw-policy.ts";
 
@@ -123,6 +123,60 @@ test("Máy tính, bản vẽ v2 (2/10): đúng các ô của ba vai đã vẽ", 
     ["Vận chuyển", ["dieu-phoi", "xe", "sap-het-han", "giay-to-xe", "chinh-sach", "ly-do"]],
     ["Của tôi", ["toi", "gop-y", "tro-giup"]],
   ]);
+});
+
+// Bản vẽ "Trang chu Quan tri.dc.html" (Claude Design 2/10, bản 1.73): không lặp thanh bên / thanh tab.
+const moiToHop = function* () {
+  const n = PERMISSION_CODES.length;
+  for (let mask = 0; mask < 1 << n; mask++) yield PERMISSION_CODES.filter((_, i) => mask & (1 << i));
+};
+
+test("Điện thoại 1.73: Quản trị / Toàn quyền — Danh bạ, Điều phối xe, Xe + Tất cả (bản vẽ 1c, 1d)", () => {
+  for (const ma of [["ADMIN"], ["SUPER_ADMIN"], ["ADMIN", "SUPER_ADMIN"]] as PermissionCode[][]) {
+    const r = luoiDienThoai(who(...ma));
+    assert.deepEqual(khoa(r.luoi), ["danh-ba", "dieu-phoi", "xe"], ma.join("+"));
+    assert.equal(r.coTatCa, true, ma.join("+"));
+  }
+});
+
+test("Điện thoại 1.73: Bán hàng / Kế toán — đủ ô còn lại, không ô Tất cả", () => {
+  assert.deepEqual(khoa(luoiDienThoai(who("SALES")).luoi), ["danh-ba", "dieu-phoi", "gop-y", "tro-giup"]);
+  assert.equal(luoiDienThoai(who("SALES")).coTatCa, false);
+  assert.deepEqual(khoa(luoiDienThoai(who("ACCOUNTING")).luoi), ["danh-ba", "dieu-phoi", "gop-y", "tro-giup"]);
+});
+
+test("Điện thoại 1.73, mọi tổ hợp quyền: không ô nào đã có tab, tối đa 4 chỗ, Tất cả chỉ khi thừa, bảng trượt giữ nguyên", () => {
+  for (const ma of moiToHop()) {
+    const r = luoiDienThoai(who(...ma));
+    const goc = oTrangChu(who(...ma));
+    const conLai = goc.nhom.flatMap((g) => khoa(g.o)).filter((k) => !KHOA_CO_TAB.includes(k));
+    for (const k of khoa(r.luoi)) assert.ok(!KHOA_CO_TAB.includes(k), `${ma.join("+")}: ô ${k} đã có tab`);
+    assert.ok(r.luoi.length + (r.coTatCa ? 1 : 0) <= O_DIEN_THOAI, ma.join("+"));
+    assert.equal(r.coTatCa, conLai.length > O_DIEN_THOAI, ma.join("+"));
+    if (!r.coTatCa) assert.deepEqual(new Set(khoa(r.luoi)), new Set(conLai), ma.join("+"));
+    assert.deepEqual(r.nhom, goc.nhom, `${ma.join("+")}: bảng trượt không đổi`);
+  }
+});
+
+test("Máy tính 1.73: Lối tắt Quản trị / Toàn quyền đúng 7 ô bản vẽ 1a, 1b + Tất cả", () => {
+  for (const ma of [["ADMIN"], ["SUPER_ADMIN"]] as PermissionCode[][]) {
+    const r = loiTatMayTinh(who(...ma));
+    assert.deepEqual(khoa(r.luoi), ["don-hang", "danh-ba", "dieu-phoi", "xe", "sap-het-han", "dich-vu", "tai-khoan"], ma.join("+"));
+    assert.equal(r.coTatCa, true);
+  }
+  assert.deepEqual(khoa(loiTatMayTinh(who("SALES")).luoi), ["don-hang", "danh-ba", "dieu-phoi", "gop-y", "tro-giup"]);
+  assert.equal(loiTatMayTinh(who("SALES")).coTatCa, false);
+});
+
+test("Máy tính 1.73, mọi tổ hợp quyền: Lối tắt không có Tạo đơn (thanh trên có nút), tối đa 8 chỗ, ⊂ chức năng được dùng", () => {
+  for (const ma of moiToHop()) {
+    const r = loiTatMayTinh(who(...ma));
+    const tatCa = oTrangChu(who(...ma)).nhom.flatMap((g) => khoa(g.o));
+    assert.ok(!khoa(r.luoi).includes("tao-don"), ma.join("+"));
+    assert.ok(r.luoi.length + (r.coTatCa ? 1 : 0) <= TOI_DA_O, ma.join("+"));
+    assert.equal(r.coTatCa, tatCa.filter((k) => k !== "tao-don").length > TOI_DA_O, ma.join("+"));
+    for (const k of khoa(r.luoi)) assert.ok(tatCa.includes(k), `${ma.join("+")}: ${k}`);
+  }
 });
 
 // Thị giác 1.70 (chủ dự án duyệt 2/10): ô tô màu theo NHÓM — Tạo đơn san hô (hành động chốt), Vận chuyển ngọc, Của tôi cát; Bán hàng / Quản lý giữ màu biển (null).

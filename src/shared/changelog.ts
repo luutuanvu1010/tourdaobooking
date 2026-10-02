@@ -11,14 +11,26 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
-    // Đợt 0 luồng Q — ADR-0090 (quyền tiền chỉ Toàn quyền), migration 0075 (chỉ một view). Số 1.71 = main 1.70 + 1. KIỂM LẠI LÚC GỘP (luồng L / nhánh khác
-    // gộp trước thì đánh lại số).
-    version: "1.71",
+    // Đợt 0 luồng Q — ADR-0090 (quyền tiền chỉ Toàn quyền), migration 0075 (chỉ một view). Số 1.74 = main 1.73 + 1 (đánh lại lúc gộp main e0d62688). KIỂM
+    // LẠI LÚC GỘP (luồng L / nhánh khác gộp trước thì đánh lại số).
+    version: "1.74",
     date: "2026-10-02",
     items: [
       { kind: "doi", text: "Tài khoản Kế toán nay chỉ người phụ trách hệ thống (Toàn quyền) được tạo, gán vai Kế toán, cộng quyền Kế toán và đặt lại PIN." },
       { kind: "doi", text: "Quản trị vẫn đổi tên, ngưng và mở khoá đăng nhập cho tài khoản Kế toán như trước; nút Đặt lại PIN không còn hiện ở dòng Kế toán." },
       { kind: "moi", text: "Khi một tài khoản Kế toán bị ngưng, người phụ trách hệ thống nhận thông báo trong mục Của tôi." },
+    ],
+  },
+  {
+    // Trang chủ Quản trị và Toàn quyền theo bản vẽ Claude Design "Trang chu Quan tri.dc.html" (2/10). Chỉ giao diện: không migration, không đổi máy chủ.
+    // Số 1.73 TẠM: 1.71 / 1.72 đang có ở hai nhánh chưa gộp (worktree-agent-a9baef…, worktree-agent-a29831…). KIỂM LẠI LÚC GỘP.
+    version: "1.73",
+    date: "2026-10-02",
+    items: [
+      { kind: "doi", text: "Trang chủ máy tính gọn hơn: bỏ lưới mọi chức năng ở lời chào (đã có ở thanh bên). Bên phải có thẻ Lối tắt 7 ô, ô Tất cả mở bảng mọi chức năng." },
+      { kind: "doi", text: "Bốn con số đầu ca xếp một hàng: Còn thiếu tiền, Chờ xác nhận, Chưa phụ trách, Doanh thu tuần của tôi (kèm biểu đồ)." },
+      { kind: "moi", text: "Cần xem lại có thêm dòng giấy tờ sắp hết hạn (Quản trị, Toàn quyền). Lời chào ghi số chuyến đón hôm nay và số việc cần xem lại." },
+      { kind: "doi", text: "Điện thoại: lời chào theo buổi kèm vai của bạn; hàng ô chức năng chỉ còn những gì chưa có ở thanh dưới; Cần xem lại đứng trước Chuyến đón." },
     ],
   },
   {

@@ -34,7 +34,7 @@ Thanh tab dưới đáy có [[Trang chủ]], [[Đơn hàng]] và [[Tôi]]. Các 
     {
       tieuDe: "Xem tình hình chung ở Trang chủ",
       noiDung: `1. Mở app. App vào thẳng [[Trang chủ]].
-2. Nhìn thẻ số liệu (máy tính: cột bên phải; điện thoại: dưới các ô chức năng). Ba ô sau là số của **cả công ty**:
+2. Nhìn thẻ số liệu (máy tính: hàng ngay dưới lời chào; điện thoại: dưới các ô chức năng). Ba ô sau là số của **cả công ty**:
    - **Còn thiếu tiền**: tổng tiền khách còn phải trả của các đơn đã xác nhận. Dòng nhỏ bên dưới ghi số đơn và ngày đón sớm nhất (máy tính).
    - **Chờ xác nhận**: số đơn đã lưu nhưng chưa chốt.
    - **Chưa phụ trách**: số đơn chưa có ai nhận lo.
