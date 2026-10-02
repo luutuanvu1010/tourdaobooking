@@ -20,6 +20,16 @@ export interface SuKienDon {
   luc: string;
 }
 
+/** ADR-0052 D6.4 + bổ sung ADR-0022 điều 4: sự kiện CHUYẾN — đúng 4 khoá (mã chuyến, loại thay đổi, thời điểm). Không tripId (tự chốt T3 của kế hoạch Đợt 2). */
+export const THAY_DOI_CHUYEN = ["tao", "sua", "xep", "rut", "doi", "huy", "cap_nhat", "xuat_ben", "tien_do", "ket_thuc", "gian_doan"] as const;
+export type ThayDoiChuyen = (typeof THAY_DOI_CHUYEN)[number];
+export interface SuKienChuyen {
+  loai: "chuyen";
+  maChuyen: string;
+  thayDoi: ThayDoiChuyen;
+  luc: string;
+}
+
 /** Trạng thái người phụ trách dùng để tính nhãn/loại thay đổi. `coNguoi`: đơn có dòng phụ trách đang mở; `staffId`: null khi chưa ai hoặc người phụ trách là hồ sơ không có tài khoản. */
 export interface TrangThaiPhuTrach {
   coNguoi: boolean;
