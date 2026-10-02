@@ -226,3 +226,21 @@ Số bản nhật ký phiên bản: `main` cục bộ có `1.70` ở đầu `src
 - Ca (c), (e), (f): bài dựng phiên TRƯỚC khi gửi đồng thời (khung thử tạo phiên ở lần gọi đầu; hai lần đồng thời đụng chỉ mục phiên một máy — lỗi của khung thử, không của lớp).
 - **Kiểm L4b (2026-10-02):** `npm run typecheck` 0 lỗi; `npm test` bước 1 + bước 2 thoát 0 (bộ chính 2856/2856 + bài đo giờ); `npm run test:e2e` **đủ bộ 43/43 xanh** (599 giây, 3 nhóm; có `chong-ghi-trung` — nay XANH: 11, 12, 13, HD10, KT03, KT04, T4, T5, song song, 422 — và đuôi `audit-invariants`). Các kịch bản e2e cũ chưa gửi vé vẫn xanh ⇒ giai đoạn 1 không phá hành vi cũ.
 - Đã thêm log không dữ liệu `lan_gui_dung_ve` / `lan_gui_loi_la` ở bộ bọc để xác nhận trên D1 thật rằng chữ lỗi đụng vé được nhận ra (§14 mục 3) — chưa đọc được log máy chủ e2e (run.mjs không in log wrangler ra tệp kết quả); ca song song của `chong-ghi-trung` xanh trên `wrangler dev` (có thể do bước 5 hoặc lưới bước 7/8 — chưa tách được). Ghi là **chưa kiểm** chữ lỗi D1 thật; L12 thu log máy chủ e2e sẽ trả lời.
+
+## Kiểm độc lập vòng 1 — ĐÃ GIAO (2026-10-02)
+- Người kiểm `nguoi-kiem-doc-lap`, chỉ đọc, trên bản sao riêng của commit `57e53a18` (L1–L4b). Chờ báo cáo; chưa báo ĐẠT.
+
+## L5 — H1 + redteam (2026-10-02)
+- Bài hành vi đã có từ commit đỏ; nay quan sát đột biến H1 (i) và (ii) — xem `docs/SO-HANG-RAO.md` dòng H1.
+- `tests/audit/redteam.test.mjs`: R1/R2 giữ dạng FINDING (không vé ⇒ 2 bản ghi ở giai đoạn 1) + chú thích trỏ bài hồi quy có vé. `node --test tests/audit/redteam.test.mjs` 19/19.
+
+## L6 — H2 (2026-10-02)
+- `src/lan-gui-phu-route.test.ts` 3/3; tự bóc route bằng cùng khuôn với `src/route-write-guard.test.ts` (bộ bóc ở đó là hàm cục bộ của tệp test, import tệp test sẽ chạy cả bài của nó — nên chép khuôn regex, giữ cùng kiểm "số bóc = số lời gọi route(").
+- Bài chạy "route trong tệp miễn không gọi tra" CHƯA có: tệp miễn đang rỗng, không dựng được ca thật mà không thêm mục giả vào mã chạy thật. Thay bằng bài (3) khoá câu điều kiện của router + bài router.test (route công khai / đọc không tra). Ghi là giới hạn.
+- Đột biến T6 (hai phép) — xem `docs/SO-HANG-RAO.md` dòng H2.
+
+## L8 — vòng đời vé (2026-10-02)
+- `src/shared/lan-gui-ve.ts` + `src/shared/lan-gui-bi-mat.ts` (`BI_MAT` 7 route PIN/giấy tờ; `KHONG_VE` = 5 route công khai — máy khách không sinh vé ở đăng nhập vì thân có PIN) + `src/shared/lan-gui-ve.test.ts` (11 bài; đỏ trước: thiếu mô-đun). H4 quan sát chặn thật (sổ hàng rào).
+
+## L13 — cổng khoá trong `npm run trien-khai` (2026-10-02)
+- `scripts/release-lib.mjs` bước 1c: `npx wrangler secret list --format json` (chỉ TÊN) sau `whoami`, trước D1; thiếu `SESSION_SECRET` / `LAN_GUI_SECRET` ⇒ dừng, in lệnh `secret put`; lệnh lỗi / đầu ra lạ ⇒ dừng. Bài `src/release-lib.test.ts` đỏ trước 21 bài ⇒ xanh 75/75. Dạng đầu ra đối chiếu mã nguồn wrangler đang cài. Quan sát chặn bằng hàm giả (sổ hàng rào). `docs/QUY-TRINH-PHAT-HANH.md` bước 1c.

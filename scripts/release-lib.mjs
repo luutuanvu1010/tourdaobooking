@@ -11,6 +11,23 @@
 
 export const DB = "tourdao-sales-db";
 const CI = { CI: "1" };
+
+/** Khoá bí mật Worker BẮT BUỘC (thiếu ⇒ mọi API 500): khoá phiên + khoá HMAC lớp chống ghi trùng (ADR-0094 đ4). */
+export const KHOA_BAT_BUOC = ["SESSION_SECRET", "LAN_GUI_SECRET"];
+
+/** Tên khoá từ `wrangler secret list --format json` (mảng `{ name, type }`), hoặc null nếu đầu ra không đọc được. Không bao giờ đọc giá trị khoá. */
+export function parseSecretNames(output) {
+  const i = output.indexOf("[");
+  const j = output.lastIndexOf("]");
+  if (i === -1 || j < i) return null;
+  try {
+    const x = JSON.parse(output.slice(i, j + 1));
+    if (!Array.isArray(x) || !x.every((e) => e && typeof e === "object" && typeof e.name === "string")) return null;
+    return x.map((e) => e.name);
+  } catch {
+    return null;
+  }
+}
 const RED = "\x1b[31m";
 const BOLD = "\x1b[1m";
 const RESET = "\x1b[0m";
@@ -237,6 +254,22 @@ export async function trienKhai({ run, ask, isTTY, log, now = () => new Date(), 
   if (who.code !== 0 || !/You are logged in/i.test(`${who.stdout}\n${who.stderr ?? ""}`)) {
     return stop("chưa đăng nhập Cloudflare (hoặc vé đăng nhập hỏng).", "Chạy `npx wrangler login` (chọn đúng tài khoản Lưu Tuấn Vũ) rồi chạy lại `npm run trien-khai`.");
   }
+
+  // 1c. cổng chỉ-đọc: khoá bí mật BẮT BUỘC đã đặt chưa (ADR-0094 đ4, T15) — chỉ đọc TÊN, không bao giờ đọc giá trị. Thiếu khoá thì sau deploy MỌI API
+  // trả 500; nên dừng ở đây, TRƯỚC migration / deploy. Lệnh lỗi hay đầu ra lạ ⇒ dừng (không bao giờ coi là đạt).
+  log("\n▶ Cổng chỉ-đọc: khoá bí mật bắt buộc đã đặt trên Cloudflare chưa");
+  const sec = await run("npx", ["wrangler", "secret", "list", "--format", "json"], { env: CI });
+  if (sec.code !== 0) return stop("`wrangler secret list` lỗi — chưa kiểm được khoá bí mật nên KHÔNG đi tiếp.", String(sec.stderr ?? "").trim().slice(0, 400));
+  const tenKhoa = parseSecretNames(String(sec.stdout ?? ""));
+  if (tenKhoa === null) return stop("không đọc được danh sách khoá bí mật (đầu ra `wrangler secret list` lạ) — KHÔNG đi tiếp.", String(sec.stdout ?? "").slice(0, 400));
+  const thieuKhoa = KHOA_BAT_BUOC.filter((k) => !tenKhoa.includes(k));
+  if (thieuKhoa.length) {
+    return stop(
+      `${thieuKhoa.map((k) => `Chưa đặt khoá ${k}`).join("; ")} trên Cloudflare — triển khai lúc này sẽ làm MỌI màn hình báo lỗi. CHƯA có gì bị đổi trên production.`,
+      `Chạy trong Terminal, ở thư mục tourdao-sales:\n${thieuKhoa.map((k) => `  openssl rand -base64 48 | tr -d '\\n' | npx wrangler secret put ${k}`).join("\n")}\nrồi chạy lại \`npm run trien-khai\`.`,
+    );
+  }
+  log(`Đã có đủ khoá: ${KHOA_BAT_BUOC.join(", ")}.`);
 
   // 2. cổng chỉ-đọc: migration nào chưa áp. Lỗi 7403 ở bước CHỈ ĐỌC này được thử lại đúng MỘT lần; bước ghi (áp migration, deploy) không bao giờ tự thử lại.
   log("\n▶ Cổng chỉ-đọc: migration nào chưa áp trên production");

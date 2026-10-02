@@ -32,6 +32,8 @@ const orderBody = (extra = {}) => ({
   ...extra,
 });
 
+// ADR-0094 (lớp chống ghi trùng, giai đoạn 1): R1/R2 ở đây gửi KHÔNG VÉ nên vẫn ra 2 bản ghi — đúng thiết kế "thiếu vé cho qua và đếm" (đ7). Chúng chỉ
+// chuyển PASS ở BẢN SIẾT (thiếu vé ⇒ 400). Bài HỒI QUY có vé nằm trong npm test: src/lan-gui-hanh-vi.test.ts ca (a), (c) (R1) và (i) (R2).
 test("R1 FINDING idempotency: gửi lại cùng POST /api/orders (bấm 2 lần / mạng chập) tạo 2 đơn", async () => {
   const w = setup();
   const r1 = await w.call("POST", "/api/orders", { as: A, body: orderBody() });

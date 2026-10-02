@@ -99,6 +99,7 @@ Lệnh chạy vài phút, vì nó tự chạy toàn bộ kiểm thử, kể cả
 |---|---|---|
 | 1 | Kiểm `main` trên máy trùng với GitHub | Chỉ phát hành mã đã đẩy |
 | 1b | **Kiểm đăng nhập Cloudflare** và làm mới vé đăng nhập | Phòng lỗi 7403 (xem dưới) |
+| 1c | **Kiểm khoá bí mật bắt buộc** đã đặt chưa (`SESSION_SECRET`, `LAN_GUI_SECRET` — chỉ đọc TÊN, không đọc giá trị) | Thiếu khoá thì sau khi phát hành mọi màn hình báo lỗi. Lệnh dừng và in đúng câu `npx wrangler secret put …` cần chạy |
 | 2 | Đọc xem hệ thống thật còn **thay đổi dữ liệu** nào chưa áp | Phát hành mã cần dữ liệu mới khi dữ liệu chưa có là hỏng app |
 | 2b | **So số phiên bản**: bản trên máy phải **mới hơn** bản đang chạy | Bắt lỗi quên ghi nhật ký |
 | 3 | Chạy test, kiểm lỗi, dựng giao diện | Không phát hành mã hỏng |
@@ -117,6 +118,8 @@ Lệnh chạy vài phút, vì nó tự chạy toàn bộ kiểm thử, kể cả
 | "Có kịch bản e2e đỏ. Vẫn tiếp tục? (c/k)" | **Chép phần chữ đỏ gửi AI trước khi trả lời.** Có khi đỏ vì lý do bên ngoài (ví dụ giá trên Google Sheet vừa đổi), có khi là lỗi thật. |
 | "Áp N migration này lên production? (c/k)" | Gõ `c` **chỉ khi AI đã báo trước** là lần này có thay đổi dữ liệu. Nếu không được báo, gõ `k` rồi hỏi AI. |
 | "Triển khai Worker lên production? (c/k)" | Gõ `c`. (Nếu vừa áp thay đổi dữ liệu thì **phải** gõ `c` ngay, vì mã cũ không chạy đúng trên dữ liệu mới.) |
+
+**Nếu lệnh dừng ở bước 1c ("Chưa đặt khoá …")**: chưa có gì bị đổi. Chạy đúng dòng lệnh nó in ra (ở thư mục `tourdao-sales`, trong Terminal), rồi chạy lại `npm run trien-khai`. Khoá sinh ngẫu nhiên, không cần ghi lại.
 
 **Nếu lệnh dừng giữa chừng** ở bước 1–3b: chưa có gì bị đổi trên hệ thống thật. Chép thông báo gửi AI. Hay gặp nhất: một test đo tốc độ báo đỏ khi máy đang bận. Khi đó đóng bớt ứng dụng nặng rồi chạy lại `npm run trien-khai`.
 
