@@ -2888,8 +2888,8 @@ label.check > input.o-tick { display: inline; width: auto; margin: 0 var(--s2) 0
 .bg-the-tien { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s2); flex-wrap: wrap; }
 .bg-the-nut { display: flex; gap: var(--s2); margin-top: var(--s2); }
 .bg-the-nut .pill-btn { flex: 1; min-height: var(--tap-min); }
-@media (min-width: 900px) { .bg-the-ds, .bk-the-ds { display: none; } }
-@media (max-width: 899px) { .bg-bang, .bk-bang { display: none; } }
+@media (min-width: 900px) { .bg-the-ds { display: none; } }
+@media (max-width: 899px) { .bg-bang { display: none; } }
 .tx-form-host { margin-bottom: var(--s4); }
 .tx-form { padding: var(--s4); background: var(--c-soft-hover); border: 1px solid var(--c-border); border-radius: var(--radius-md); }
 .tx-form-title { margin: 0 0 var(--s3); font-size: var(--fs-title); }
@@ -2939,3 +2939,37 @@ label.check > input.o-tick { display: inline; width: auto; margin: 0 var(--s2) 0
 .cp-nut { display: flex; flex-wrap: wrap; gap: var(--s2); }
 .cp-goi-y { margin-top: calc(-1 * var(--s1)); }
 .cp-than .tx-form-host { margin-bottom: 0; }
+/* G4 — Bảng kê chi phí xe thuê (bản vẽ 1c). */
+.bk-tom-tat { margin: 0 0 var(--s3); font-weight: var(--fw-bold); font-size: var(--fs-step-4); }
+.bk-nhom { margin-bottom: var(--s4); overflow: hidden; }
+.bk-nhom-dau { display: flex; align-items: center; gap: var(--s3); padding: var(--s3) var(--s4); color: var(--c-on-band); background: var(--c-band-bg); }
+.bk-nhom-ten { margin: 0; font-size: var(--fs-step-5); font-weight: var(--fw-heavy); color: var(--c-on-band); }
+.bk-nhom-so { font-size: var(--fs-step-2); }
+.bk-nhom-tong { display: flex; flex-direction: column; align-items: flex-end; }
+.bk-nhan { font-size: var(--fs-badge); font-weight: var(--fw-bold); letter-spacing: var(--ls-eyebrow); }
+.bk-tien { font-family: var(--font-display); font-weight: var(--fw-heavy); color: var(--c-accent-strong); white-space: nowrap; }
+.bk-tong-nhom { font-size: var(--fs-step-7); }
+.bk-hang { display: grid; grid-template-columns: var(--w-bk-ma) minmax(0, 1fr) var(--w-bk-tt) var(--w-bk-dc) var(--w-bk-tien); gap: var(--s3); align-items: center; padding: var(--s3) var(--s4); border-top: 1px solid var(--c-border); color: var(--c-text); text-decoration: none; }
+.bk-hang.tx-hang-dau { border-top: 0; }
+.bk-hang.tx-hang-dau > :last-child { text-align: right; }
+a.bk-hang:hover, a.bk-the:hover { background: var(--c-soft-hover); }
+.bk-hang.is-thieu, .bk-the.is-thieu { background: var(--c-sand-soft); }
+.bk-cot { display: flex; flex-direction: column; align-items: flex-start; gap: var(--s1); min-width: 0; }
+.bk-ma { font-family: var(--font-display); color: var(--c-primary); }
+.bk-so { text-align: right; font-size: var(--fs-ui); }
+.bk-chua-gia { font-weight: var(--fw-bold); color: var(--c-sand-text); white-space: nowrap; }
+.bk-dc { display: flex; flex-direction: column; gap: var(--s1); }
+.bk-dc-so { font-weight: var(--fw-bold); }
+.bk-dc-so.is-am { color: var(--c-danger); }
+.bk-dc-phu { font-size: var(--fs-step-2); color: var(--c-text-muted); }
+.bk-the-ds { display: flex; flex-direction: column; }
+.bk-the { display: flex; flex-direction: column; gap: var(--s1); padding: var(--s3) var(--s4); border-top: 1px solid var(--c-border); color: var(--c-text); text-decoration: none; }
+.bk-the:first-child { border-top: 0; }
+.bk-the-dau { display: flex; align-items: center; gap: var(--s2); font-size: var(--fs-step-6); }
+.bk-the-chip, .bk-the-dc { display: flex; align-items: center; flex-wrap: wrap; gap: var(--s2); }
+.bk-the-dc .bk-dc { flex-direction: row; flex-wrap: wrap; gap: var(--s2); }
+.bk-tong-cong { display: flex; align-items: center; gap: var(--s3); padding: var(--s4); color: var(--c-on-total); background: var(--c-total-bg); border-radius: var(--radius-md); }
+.bk-tong-ghi-chu { font-size: var(--fs-step-2); }
+.bk-tong-so { font-family: var(--font-display); font-weight: var(--fw-heavy); font-size: var(--fs-step-11); color: var(--c-total-num); white-space: nowrap; }
+@media (min-width: 900px) { .bk-the-ds { display: none; } }
+@media (max-width: 899px) { .bk-bang { display: none; } }
