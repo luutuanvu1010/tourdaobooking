@@ -147,3 +147,15 @@ Làn máy chủ (Task 0 → 12). **Không** làm Task G (giao diện) — làn k
 - Nhật ký thay đổi: 141820b8 — thêm 4 dòng lời thường vào mục 1.71 (một mục cho cả đợt).
 - Dữ liệu thử Chrome: `docs/evidence/2026-10-02-tien-xe-thue/kich-ban/tx-lib.mjs` — câu SQL ghi thẳng phải chạy TRƯỚC lời gọi API đầu tiên + gõ cửa máy chủ (gặp ECONNRESET 2/10 khi chèn SQL xen giữa).
 - Đề xuất dòng `web/CLAUDE.md` (luật làn cấm sửa CLAUDE.md — để điều phối / chủ thêm): xem báo cáo điều phối.
+
+### Giao diện — Vòng vá 1 (kiểm độc lập ĐẠT, 6 mục LOW — `dot-4-giao-dien-kiem.md`)
+
+- L1: xong — f16f664a — token vai mới `--c-sidebar-hover: var(--c-card)` cho rê chuột mục thanh bên (nền cũ `--c-soft-hover` #f1f5f9 gần trùng nền thanh bên #f2f5f9 sau G5). Bài `token-giao-dien.test.ts`: nền rê chuột ≥ 1,08:1 so với nền thanh bên + `--c-text` ≥ 4,5:1 trên nền rê chuột (đỏ trước, xanh sau). Xoá luật `.tx-mo` không dùng.
+  - Chốt: chọn nền thẻ (trắng) — vì sao: nổi rõ trên nền trang, không trùng nền mục đang chọn (`--c-primary-soft`); sai thì tốn: đổi một token. Giới hạn: công ty đặt "Nền trang" trắng ở màn Giao diện công ty thì rê chuột lại khó thấy (không có ca đó hôm nay).
+- L2: chuyến ĐÃ HUỶ, nguồn giá máy chủ trả rỗng → "Chưa có giá" tông trung tính (`muted`); chưa huỷ giữ `warn`. Luật thuần `nhanNguonGia(nguonGia, daHuy)` (+ bài đỏ trước). Khối Chi phí chuyến dùng nó cho chip; bảng kê vốn hiện chữ phụ trung tính, nay gắn `data-tone` theo cùng luật (không đổi màu chữ). Chữ giữ đúng nguồn máy chủ trả, không tự suy "Giá bảng".
+- L3: số gõ không đọc được → báo ngay "Không đọc được số tiền — …" (trống: "Nhập số tiền."), KHÔNG gửi lệnh (trước gửi 0). Luật thuần `loiSoTien(text, {coDau})` chỉ kiểm định dạng (số 0 vẫn gửi, máy chủ quyết). Áp ở: giá thoả thuận, điều chỉnh (có dấu), Thêm/Đổi giá.
+- L4: gợi ý Q9 "… cho tuyến và cỡ xe này" (ADR-0095 Q3).
+- L6: soát lại — các nút Kết thúc giá, Đổi tên (`dangGui`), Thêm/Ngưng/Dùng lại tuyến + cỡ (`ghiDanhMuc` khoá nút đồng bộ trước `await`) ĐÃ khoá trong lúc chờ; không đổi mã, không đổi máy chủ. Thêm quan sát ở bang-gia-xe-smoke bước 7, 8: bấm "Thêm" hai lần liền ⇒ nút khoá sau lần đầu, đúng MỘT lệnh ghi, một dòng mới.
+- Kế hoạch G2 (câu 4.7, bước 3, bước nút): bỏ "ẩn 'Điều chỉnh' khi `!thue`", trỏ ADR-0095 Q5.
+- L5 (dòng `web/CLAUDE.md`): không làm — điều phối trình chủ.
+- Kiểm: typecheck 0 lỗi; npm test 2906 bài (2905 đạt + 1 todo, 0 đỏ); Chrome bang-gia-xe 12/12, chi-phi-chuyen 11/11 (thêm kiểm L2 chip warn/muted, L3, L4), bang-ke-xe 8/8 (thêm kiểm data-tone dòng huỷ / dòng thiếu giá).

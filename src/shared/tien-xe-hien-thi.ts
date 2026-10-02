@@ -32,6 +32,15 @@ export function docSoTien(text: string, o: { coDau?: boolean } = {}): number | n
   return dau < 0 ? -n : n;
 }
 
+/**
+ * Câu báo dưới ô số tiền khi người gõ chưa đúng ĐỊNH DẠNG (vòng vá 1 Đợt 4, L3) — để không gửi 0 rồi nhận câu máy chủ về số 0. Chỉ kiểm định dạng
+ * bằng `docSoTien`; KHÔNG kiểm giá trị (số 0, số âm ở ô điều chỉnh… máy chủ quyết). null = đọc được.
+ */
+export function loiSoTien(text: string, o: { coDau?: boolean } = {}): string | null {
+  if (text.trim() === "") return "Nhập số tiền.";
+  return docSoTien(text, o) === null ? `Không đọc được số tiền — chỉ gõ chữ số${o.coDau ? ", có thể thêm + hoặc − ở đầu" : ""} (ví dụ 1.250.000).` : null;
+}
+
 /** "+ 450.000 ₫" / "− 400.000 ₫" — dấu theo số máy chủ trả (định dạng, không tính). */
 export const soTienCoDau = (n: number): string => `${n < 0 ? "−" : "+"} ${vnd(Math.abs(n))}`;
 
@@ -62,6 +71,15 @@ export const NHAN_NGUON_GIA: Readonly<Record<"BANG" | "THOA_THUAN" | "NULL", { n
   THOA_THUAN: { nhan: "Giá thoả thuận", tone: "ok" },
   NULL: { nhan: "Chưa có giá", tone: "warn" },
 };
+
+/**
+ * Nguồn giá kèm trạng thái huỷ (vòng vá 1 Đợt 4, L2): chuyến ĐÃ HUỶ mà máy chủ trả nguồn giá rỗng (mọi dòng đã đảo) thì "Chưa có giá" là tông
+ * trung tính — không còn việc phải làm; chuyến chưa huỷ giữ tông cảnh báo. Chữ giữ đúng nguồn máy chủ trả, không tự suy "Giá bảng".
+ */
+export function nhanNguonGia(nguonGia: "BANG" | "THOA_THUAN" | null, daHuy: boolean): { nhan: string; tone: ToneTienXe } {
+  const n = NHAN_NGUON_GIA[nguonGia ?? "NULL"];
+  return nguonGia === null && daHuy ? { nhan: n.nhan, tone: "muted" } : n;
+}
 
 /** Năm nhóm trạng thái của bảng kê (máy chủ phân nhóm) → nhãn + tông (bản vẽ 1c: Đang chạy nền đậm, Chưa chạy xanh biển). Thứ tự = thứ tự ô lọc. */
 export const NHAN_NHOM_BANG_KE: Readonly<Record<NhomBangKeDto, { nhan: string; tone: ToneTienXe }>> = {

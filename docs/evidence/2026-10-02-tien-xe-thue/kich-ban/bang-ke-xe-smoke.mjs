@@ -72,6 +72,9 @@ try {
     assert.ok(pt.dong.includes(`${C.ma} ${dm} | 79C-318.77 Nha Trang – Đầm Môn | Chưa có giá Chưa có giá | — | Chưa có giá`), JSON.stringify(pt.dong));
     assert.ok(mt.dong.some((x) => x.startsWith(D.ma) && x.includes("Chưa chạy") && x.endsWith("1.600.000 ₫")));
     assert.ok(await p.ev(`document.querySelector('a.bk-hang[data-chuyen="${C.id}"]').classList.contains('is-thieu')`));
+    // L2 (vòng vá 1): nguồn giá dòng huỷ (B) tông trung tính, dòng chưa huỷ thiếu giá (C) tông cảnh báo — cùng luật với khối Chi phí chuyến.
+    const tone = (id) => `document.querySelector('a.bk-hang[data-chuyen="${id}"] .bk-cot:nth-child(3) .tx-phu')?.dataset.tone`;
+    assert.deepEqual([await p.ev(tone(B.id)), await p.ev(tone(C.id))], ["muted", "warn"]);
     assert.equal(await p.ev(txt(".bk-tong-so")), "2.500.000 ₫");
     assert.equal(await p.ev(txt(".bk-tong-ghi-chu")), "Chuyến chưa có giá chưa được tính.");
     const may = await fetchTrang(p, "GET", `/api/van-chuyen/chi-phi?tu=${vnDate(0)}&den=${vnDate(5)}`);

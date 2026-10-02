@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
-  NHAN_NHOM_BANG_KE, NHAN_TRANG_THAI_GIA, chipDongChiPhi, docSoTien, dongDieuChinhBangKe, goiYDoiGia, hieuLuc, ngayVn, soTienCoDau, tomTatBangKe,
+  NHAN_NHOM_BANG_KE, NHAN_TRANG_THAI_GIA, chipDongChiPhi, docSoTien, dongDieuChinhBangKe, goiYDoiGia, hieuLuc, loiSoTien, ngayVn, nhanNguonGia, soTienCoDau, tomTatBangKe,
 } from "./tien-xe-hien-thi.ts";
 
 test("ngayVn: YYYY-MM-DD → dd/mm/yyyy (thao tác chuỗi, không lệch múi giờ)", () => {
@@ -70,4 +70,21 @@ test("dongDieuChinhBangKe: cột ĐIỀU CHỈNH = số tiền máy chủ tính 
   assert.deepEqual(dongDieuChinhBangKe({ tongDieuChinh: 150_000, soDieuChinh: 1, soDieuChinhBiDao: 0 }), { so: "+ 150.000 ₫", am: false, phu: "" });
   assert.deepEqual(dongDieuChinhBangKe({ tongDieuChinh: -100_000, soDieuChinh: 2, soDieuChinhBiDao: 1 }), { so: "− 100.000 ₫", am: true, phu: "1 điều chỉnh bị đảo do đổi chuyến" });
   assert.deepEqual(dongDieuChinhBangKe({ tongDieuChinh: 0, soDieuChinh: 0, soDieuChinhBiDao: 0 }), { so: "—", am: false, phu: "" });
+});
+
+test("nhanNguonGia: chuyến ĐÃ HUỶ không có giá → 'Chưa có giá' tông trung tính; chuyến chưa huỷ giữ tông cảnh báo (vòng vá 1, L2)", () => {
+  assert.deepEqual(nhanNguonGia(null, false), { nhan: "Chưa có giá", tone: "warn" });
+  assert.deepEqual(nhanNguonGia(null, true), { nhan: "Chưa có giá", tone: "muted" });
+  assert.deepEqual(nhanNguonGia("BANG", true), { nhan: "Giá bảng", tone: "ok" });
+  assert.deepEqual(nhanNguonGia("THOA_THUAN", false), { nhan: "Giá thoả thuận", tone: "ok" });
+});
+
+test("loiSoTien: chỉ kiểm ĐỊNH DẠNG số người gõ — trống / không đọc được thì báo, không gửi 0 (vòng vá 1, L3)", () => {
+  assert.equal(loiSoTien("1.250.000"), null);
+  assert.equal(loiSoTien("0"), null); // số 0 đọc được: máy chủ quyết, trình duyệt không chặn
+  assert.equal(loiSoTien("  "), "Nhập số tiền.");
+  assert.match(loiSoTien("1,5 triệu") ?? "", /^Không đọc được số tiền/);
+  assert.match(loiSoTien("-150.000") ?? "", /^Không đọc được số tiền/); // ô không dấu: dấu trừ là sai định dạng
+  assert.equal(loiSoTien("− 150.000", { coDau: true }), null);
+  assert.match(loiSoTien("+", { coDau: true }) ?? "", /^Không đọc được số tiền/);
 });

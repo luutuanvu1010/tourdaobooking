@@ -6,7 +6,7 @@
 //   buộc thêm ô transport.rate.view). Đổi khoảng ngày → tải lại không lọc để dựng lại danh sách.
 import type { BangKeDongDto, BangKeNhomDto, BangKeResponse, NhomBangKeDto } from "../src/shared/contracts";
 import { can } from "../src/shared/permissions";
-import { NHAN_NGUON_GIA, NHAN_NHOM_BANG_KE, dongDieuChinhBangKe, tomTatBangKe } from "../src/shared/tien-xe-hien-thi";
+import { NHAN_NHOM_BANG_KE, nhanNguonGia, dongDieuChinhBangKe, tomTatBangKe } from "../src/shared/tien-xe-hien-thi";
 import { isISODate, vnToday } from "../src/shared/vn-date";
 import { api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
@@ -103,6 +103,11 @@ const dieuChinh = (d: BangKeDongDto) => {
   return h("span", { class: "bk-dc" }, h("span", { class: `bk-dc-so${dc.am ? " is-am" : ""}` }, dc.so), dc.phu ? h("span", { class: "bk-dc-phu" }, dc.phu) : null);
 };
 const lopDong = (d: BangKeDongDto, goc: string) => `${goc}${d.nhomTrangThai === "THIEU_GIA" ? " is-thieu" : ""}`;
+/** Nguồn giá ở dòng bảng kê: chữ phụ (bảng kê báo thiếu giá bằng chip nhóm "Chưa có giá" + nền dòng is-thieu, không tô chữ này); `data-tone` theo cùng luật L2 với khối Chi phí chuyến. */
+const nguonGiaEl = (d: BangKeDongDto) => {
+  const n = nhanNguonGia(d.nguonGia, d.trangThai === "CANCELLED");
+  return h("span", { class: "tx-phu", "data-tone": n.tone }, n.nhan);
+};
 const href = (d: BangKeDongDto) => `/chuyen?id=${encodeURIComponent(d.tripId)}`;
 
 function veNhom(g: BangKeNhomDto): HTMLElement {
@@ -125,7 +130,7 @@ function veNhom(g: BangKeNhomDto): HTMLElement {
           { class: lopDong(d, "bk-hang"), href: href(d), "data-chuyen": d.tripId },
           h("span", { class: "bk-cot" }, h("strong", { class: "bk-ma" }, d.ma), h("span", { class: "tx-phu" }, dayMonth(d.ngayChay))),
           h("span", { class: "bk-cot" }, h("strong", null, d.bienSo), h("span", { class: "tx-phu" }, d.tuyen?.ten ?? "Chưa chọn tuyến")),
-          h("span", { class: "bk-cot" }, chipTrangThai(d), h("span", { class: "tx-phu" }, NHAN_NGUON_GIA[d.nguonGia ?? "NULL"].nhan)),
+          h("span", { class: "bk-cot" }, chipTrangThai(d), nguonGiaEl(d)),
           dieuChinh(d),
           h("span", { class: "bk-so" }, soTien(d)),
         )),
@@ -139,7 +144,7 @@ function veNhom(g: BangKeNhomDto): HTMLElement {
           { class: lopDong(d, "bk-the"), href: href(d), "data-chuyen": d.tripId },
           h("span", { class: "bk-the-dau" }, h("strong", { class: "bk-ma vc-grow" }, d.ma), soTien(d)),
           h("span", { class: "tx-phu" }, `${dayMonth(d.ngayChay)} · ${d.bienSo} · ${d.tuyen?.ten ?? "Chưa chọn tuyến"}`),
-          h("span", { class: "bk-the-chip" }, chipTrangThai(d), h("span", { class: "tx-phu" }, NHAN_NGUON_GIA[d.nguonGia ?? "NULL"].nhan)),
+          h("span", { class: "bk-the-chip" }, chipTrangThai(d), nguonGiaEl(d)),
           d.soDieuChinh > 0 ? h("span", { class: "bk-the-dc" }, "Điều chỉnh ", dieuChinh(d)) : null,
         )),
     ),

@@ -6,7 +6,7 @@
 // - Ba tab viên thuốc Giá thuê / Tuyến / Cỡ xe (role="tablist", phím mũi tên). Mã tuyến / cỡ do máy sinh, không hiện.
 import type { BangGiaDongResponse, BangGiaDto, BangGiaResponse, CoXeDto, CoXeListResponse, NhaXeBangGiaDto, TuyenDto, TuyenListResponse } from "../src/shared/contracts";
 import { can } from "../src/shared/permissions";
-import { NHAN_TRANG_THAI_GIA, docSoTien, goiYDoiGia, hieuLuc } from "../src/shared/tien-xe-hien-thi";
+import { NHAN_TRANG_THAI_GIA, docSoTien, goiYDoiGia, hieuLuc, loiSoTien } from "../src/shared/tien-xe-hien-thi";
 import { isISODate, vnToday } from "../src/shared/vn-date";
 import { api } from "./api";
 import { moBangTruot } from "./bang-truot";
@@ -223,11 +223,14 @@ function moFormGia(cu: BangGiaDto | null, opener: HTMLElement, host?: HTMLElemen
   if (!form) return;
   nut.addEventListener("click", async () => {
     loi.hien(null);
+    // L3 (vòng vá 1): số gõ sai định dạng → báo ngay, không gửi 0. Chỉ kiểm định dạng, giá trị do máy chủ kiểm.
+    const saiSo = loiSoTien(tien.value);
+    if (saiSo) return loi.hien(saiSo);
     form.setBusy(true);
     dangGui(nut, true);
     try {
       await lenh.gui<BangGiaDongResponse>("/api/van-chuyen/bang-gia", "POST", {
-        nhaXePartyId: nhaXeId, tuyen: selTuyen.value || null, coXe: selCo.value || null, soTien: docSoTien(tien.value) ?? 0,
+        nhaXePartyId: nhaXeId, tuyen: selTuyen.value || null, coXe: selCo.value || null, soTien: docSoTien(tien.value),
         tuNgay: tuNgay.value, denNgay: denNgay.value || null, ghiChu: ghiChu.value.trim() || null, thayDongId: cu?.id ?? null,
       });
       form.setBusy(false);

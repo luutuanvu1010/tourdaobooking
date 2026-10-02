@@ -41,6 +41,7 @@ const cho = (p) => p.waitFor(`!!document.querySelector('.dp-ct-title')`, "chi ti
 const choCp = (p) => p.waitFor(`!!document.querySelector('#ct-chi-phi .cp-tong')`, "khối chi phí dựng xong");
 const dongCp = `[...document.querySelectorAll('#ct-chi-phi .cp-dong')].map((d) => ({ chip: [...d.querySelectorAll('.cp-chips .chip')].map((c) => c.textContent), so: d.querySelector('.cp-so').textContent, dao: d.classList.contains('is-dao') }))`;
 const nutCp = `[...document.querySelectorAll('#ct-chi-phi .cp-nut button')].map((x) => x.textContent)`;
+const chipNguon = `document.querySelector('#ct-chi-phi .cp-o:nth-child(3) .chip')?.className`;
 const tomTat = `[...document.querySelectorAll('#ct-chi-phi .cp-o')].map((x) => x.innerText.replace(/\\s+/g, ' ').trim())`;
 const dieuKienChu = `[...document.querySelectorAll('.dp-cond[data-dat]')].map((r) => r.innerText.replace(/\\s+/g, ' ').trim()).join(' | ')`;
 
@@ -67,6 +68,7 @@ const dieuKienChu = `[...document.querySelectorAll('.dp-cond[data-dat]')].map((r
     assert.equal(await p.ev(txt("#cp-title")), "Chi phí chuyến");
     assert.equal(await p.ev(txt("#ct-chi-phi .cp-chip-ai")), "Chỉ Kế toán · Quản trị");
     assert.deepEqual(await p.ev(tomTat), ["NHÀ XE Nhà xe Phúc Thành", "TUYẾN Nha Trang – Đầm Môn", "NGUỒN GIÁ Chưa có giá", "TỔNG CHI PHÍ —"]);
+    assert.equal(await p.ev(chipNguon), "chip dp-chip-warn", "chuyến CHƯA huỷ thiếu giá: chip cảnh báo (L2)");
     assert.equal(await p.ev(txt("#ct-chi-phi .cp-trong")), "Chưa có dòng chi phí nào.");
     assert.deepEqual(await p.ev(nutCp), ["Nhập giá thoả thuận"]);
     assert.equal(await p.ev(noCode), "");
@@ -81,7 +83,7 @@ const dieuKienChu = `[...document.querySelectorAll('.dp-cond[data-dat]')].map((r
     await cho(p);
     await choCp(p);
     assert.deepEqual(await p.ev(nutCp), ["Nhập giá thoả thuận", "Lấy lại giá bảng"]);
-    assert.equal(await p.ev(txt("#ct-chi-phi .cp-goi-y")), "Bảng giá vừa có giá 450.000 ₫ cho tuyến này — bấm “Lấy lại giá bảng” để dùng.");
+    assert.equal(await p.ev(txt("#ct-chi-phi .cp-goi-y")), "Bảng giá vừa có giá 450.000 ₫ cho tuyến và cỡ xe này — bấm “Lấy lại giá bảng” để dùng.");
     await shotFull(p, "g2-goi-y-gia-bang-may-tinh.png");
   });
 
@@ -118,8 +120,16 @@ const dieuKienChu = `[...document.querySelectorAll('.dp-cond[data-dat]')].map((r
     assert.equal(await p.ev(txt("#cp-dc-ngay + .vc-hint")), "Để trống: ngày chạy chuyến.");
     const lyDo = await p.ev(`[...document.querySelectorAll('#cp-dc-ly-do option')].map((o) => o.textContent)`);
     assert.ok(lyDo.includes("Nhập sai") && !lyDo.includes("Giá thoả thuận trước"), JSON.stringify(lyDo));
-    await p.ev(typeInto("#cp-dc-tien", "− 700.000"));
+    // L3 (vòng vá 1): số không đọc được → báo ngay ở trình duyệt, KHÔNG gửi lệnh (trước đây gửi 0).
     await p.ev(typeInto("#cp-dc-ly-do", "CPX_NHAP_SAI"));
+    await p.ev(typeInto("#cp-dc-tien", "1,5 triệu"));
+    const truocSai = apiCalls(p).length;
+    await p.ev(click('[data-action="luu-dieu-chinh"]'));
+    await p.waitFor(`!document.querySelector('#ct-chi-phi .tx-loi').hidden`, "câu không đọc được số");
+    assert.match(await p.ev(txt("#ct-chi-phi .tx-loi")), /^Không đọc được số tiền/);
+    assert.equal(apiCalls(p).slice(truocSai).filter((r) => r.method === "POST").length, 0, "không gửi lệnh khi số sai định dạng");
+    assert.equal(await p.ev(`document.querySelector('[data-action="luu-dieu-chinh"]').disabled`), false, "nút vẫn bấm được để sửa số");
+    await p.ev(typeInto("#cp-dc-tien", "− 700.000"));
     const truoc = apiCalls(p).length;
     await p.ev(click('[data-action="luu-dieu-chinh"]'));
     await p.waitFor(`!document.querySelector('#ct-chi-phi .tx-loi').hidden`, "câu tổng âm");
@@ -166,6 +176,9 @@ const dieuKienChu = `[...document.querySelectorAll('.dp-cond[data-dat]')].map((r
     const ds = await p.ev(dongCp);
     assert.deepEqual(ds.map((d) => d.chip.join("+")), ["Giá bảng+đã đảo", "Đảo", "Điều chỉnh · phí huỷ"]);
     assert.ok((await p.ev(`[...document.querySelectorAll('#ct-chi-phi .cp-goi-y')].map((x) => x.textContent)`)).includes("Chuyến đã huỷ vẫn ghi được phí huỷ."));
+    // L2 (vòng vá 1): chuyến ĐÃ HUỶ — nguồn giá máy chủ trả rỗng → "Chưa có giá" tông trung tính, không cảnh báo.
+    assert.equal(await p.ev(txt("#ct-chi-phi .cp-o:nth-child(3) .chip")), "Chưa có giá");
+    assert.equal(await p.ev(chipNguon), "chip dp-chip-muted");
     await p.ev(click('#ct-chi-phi [data-action="dieu-chinh"]'));
     await p.waitFor(`!!document.querySelector('#cp-dc-ngay')`, "form");
     assert.equal(await p.ev(txt("#cp-dc-ngay + .vc-hint")), "Để trống: ngày huỷ chuyến.");

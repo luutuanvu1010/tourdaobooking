@@ -85,6 +85,13 @@ try {
     assert.deepEqual(await p.ev(`[...document.querySelectorAll('#bg-f-tuyen option')].map((o) => o.textContent)`), ["Chọn tuyến", "Nha Trang – Bình Ba", "Nha Trang – Đầm Môn", "Nha Trang – sân bay Cam Ranh", "Nha Trang – Vinpearl"], "tuyến ngưng không chọn được; không 'Mọi tuyến'");
     assert.ok(!(await p.ev(`[...document.querySelectorAll('#bg-f-co option')].map((o) => o.textContent)`)).includes("45 khách"), "cỡ ngưng không chọn được");
     await p.ev(typeInto("#bg-f-tuyen", n.tuyen.VP));
+    // L3 (vòng vá 1): số gõ sai định dạng → báo ngay ở trình duyệt, không gửi lệnh (trước đây gửi 0).
+    await p.ev(typeInto("#bg-f-tien", "38O.000"));
+    const truocSai = ghi(p).length;
+    await p.ev(click('[data-action="luu-gia"]'));
+    await p.waitFor(`!document.querySelector('.tx-form .tx-loi').hidden`, "câu không đọc được số");
+    assert.match(await p.ev(txt(".tx-form .tx-loi")), /^Không đọc được số tiền/);
+    assert.equal(ghi(p).length, truocSai, "không gửi lệnh khi số sai định dạng");
     await p.ev(typeInto("#bg-f-tien", "380.000"));
     await p.ev(click('[data-action="luu-gia"]'));
     await p.waitFor(`!document.querySelector('.tx-form .tx-loi').hidden`, "câu lỗi thiếu cỡ");
@@ -150,8 +157,12 @@ try {
     assert.equal(ht, "Nha Trang – Hòn Tằm Ngưng dùng Đổi tên Dùng lại");
     assert.deepEqual(await p.ev(`[...document.querySelectorAll('#bg-dm-tuyen label')].map((l) => l.textContent)`), ["Tên tuyến mới"]);
     await p.ev(typeInto("#bg-tuyen-moi", "Nha Trang – Đà Lạt"));
-    await p.ev(click('[data-action="them-tuyen"]'));
+    // L6 (vòng vá 1): bấm "Thêm" hai lần liền ⇒ nút khoá ngay sau lần đầu, chỉ MỘT lệnh ghi.
+    const truocTuyen = ghi(p).length;
+    assert.equal(await p.ev(`(() => { const b = document.querySelector('[data-action="them-tuyen"]'); b.click(); const khoa = b.disabled; b.click(); return khoa; })()`), true, "nút Thêm khoá trong lúc chờ");
     await p.waitFor(`!!document.querySelector('#bg-dm-tuyen .tx-dm-dong[data-ten="Nha Trang – Đà Lạt"]')`, "tuyến mới");
+    assert.equal(ghi(p).slice(truocTuyen).filter((r) => r.path === "/api/van-chuyen/tuyen").length, 1, "bấm hai lần chỉ gửi một lệnh");
+    assert.equal(await p.ev(`document.querySelectorAll('#bg-dm-tuyen .tx-dm-dong[data-ten="Nha Trang – Đà Lạt"]').length`), 1);
     assert.ok(await p.ev(noOverflowX));
     await axe(p, "tab tuyến 1040");
     await shotFull(p, "g1-tab-tuyen-may-tinh.png");
@@ -163,8 +174,10 @@ try {
     assert.equal(await p.ev(txt("#bg-dm-co .vc-hint")), "Nhập khoảng số khách, không kể tài xế.");
     await p.ev(typeInto("#bg-co-tu", "8"));
     await p.ev(typeInto("#bg-co-den", "9"));
-    await p.ev(click('[data-action="them-co"]'));
+    const truocCo = ghi(p).length;
+    assert.equal(await p.ev(`(() => { const b = document.querySelector('[data-action="them-co"]'); b.click(); const khoa = b.disabled; b.click(); return khoa; })()`), true, "nút Thêm cỡ khoá trong lúc chờ (L6)");
     await p.waitFor(`!!document.querySelector('#bg-dm-co .tx-dm-dong[data-ten="8–9 khách"]')`, "cỡ mới");
+    assert.equal(ghi(p).slice(truocCo).filter((r) => r.path === "/api/van-chuyen/co-xe").length, 1, "bấm hai lần chỉ gửi một lệnh");
     await p.ev(`document.querySelector('#bg-dm-co .tx-dm-dong[data-ten="29–35 khách"] [data-action="ngung-dung"]').click()`);
     await p.waitFor(`!!document.querySelector('.sheet [data-action="ngung-xac-nhan"]')`, "hộp xác nhận");
     assert.equal(await p.ev(txt(".sheet .dp-sheet-text")), "Cỡ này còn 2 dòng giá đang áp. Ngưng dùng thì xe cùng số chỗ sẽ không còn khớp giá theo cỡ — vẫn ngưng?");

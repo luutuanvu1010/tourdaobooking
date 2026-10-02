@@ -8,7 +8,7 @@
 // - Khối là MỘT phần tử sống qua các lần vẽ lại trang chuyến (form nội tuyến đang mở không bị xoá khi Bảng tin làm mới trang).
 import type { ChiPhiChuyenDto, ChiPhiChuyenResponse, DongChiPhiDto } from "../src/shared/contracts";
 import { can, type PermissionHolder } from "../src/shared/permissions";
-import { NHAN_NGUON_GIA, chipDongChiPhi, docSoTien, soTienCoDau } from "../src/shared/tien-xe-hien-thi";
+import { chipDongChiPhi, docSoTien, loiSoTien, nhanNguonGia, soTienCoDau } from "../src/shared/tien-xe-hien-thi";
 import { ApiError, api } from "./api";
 import { moBangTruot } from "./bang-truot";
 import { dai, taoLenh } from "./dieu-phoi-ui";
@@ -102,7 +102,7 @@ export function taoKhoiChiPhi(staff: PermissionHolder, sauGhi: () => Promise<voi
         coSua && c.coTheNhapThoaThuan ? [h("div", { class: "banner-actions" }, nutThoaThuan("btn btn-primary btn-chinh"))] : [])
       : null;
     daiThieu?.classList.add("cp-dai-thieu");
-    const nguon = NHAN_NGUON_GIA[c.nguonGia ?? "NULL"];
+    const nguon = nhanNguonGia(c.nguonGia, c.trangThai === "CANCELLED"); // L2: chuyến huỷ không có giá → tông trung tính
     const tomTat = h(
       "div",
       { class: "cp-tom-tat" },
@@ -122,7 +122,7 @@ export function taoKhoiChiPhi(staff: PermissionHolder, sauGhi: () => Promise<voi
         const b = h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary", "data-action": "chup-lai" }, "Lấy lại giá bảng");
         b.addEventListener("click", () => void chupLai(b));
         nut.push(b);
-        if (c.giaBangCoThe !== null) goiY.push(`Bảng giá vừa có giá ${vnd(c.giaBangCoThe)} cho tuyến này — bấm “Lấy lại giá bảng” để dùng.`);
+        if (c.giaBangCoThe !== null) goiY.push(`Bảng giá vừa có giá ${vnd(c.giaBangCoThe)} cho tuyến và cỡ xe này — bấm “Lấy lại giá bảng” để dùng.`);
       }
       if (c.dong.length > 0) {
         const b = h("button", { type: "button", class: `vc-btn ${nut.length ? "vc-btn-ghost-primary" : "btn btn-primary btn-chinh"}`, "data-action": "dieu-chinh" }, "Điều chỉnh");
@@ -194,7 +194,7 @@ export function taoKhoiChiPhi(staff: PermissionHolder, sauGhi: () => Promise<voi
   }
 
   /** Mở form; nút chính gọi `layThan` (null = không gửi). */
-  function moFormChiPhi(tieuDe: string, body: HTMLElement[], nhanNut: string, action: string, duoi: string, layThan: () => Record<string, unknown>, opener: HTMLElement): void {
+  function moFormChiPhi(tieuDe: string, body: HTMLElement[], nhanNut: string, action: string, duoi: string, layThan: () => Record<string, unknown> | string, opener: HTMLElement): void {
     const lenh = taoLenh();
     const loi = daiLoi();
     const nut = nutGui(nhanNut, "btn btn-primary btn-chinh", action);
@@ -203,9 +203,12 @@ export function taoKhoiChiPhi(staff: PermissionHolder, sauGhi: () => Promise<voi
     const f = form;
     nut.addEventListener("click", async () => {
       loi.hien(null);
+      const than = layThan();
+      // L3: số gõ sai định dạng → báo ngay, không gửi (layThan trả câu thay vì thân lệnh).
+      if (typeof than === "string") return loi.hien(than);
       f.setBusy(true);
       dangGui(nut, true);
-      const cau = await gui(lenh, duoi, layThan());
+      const cau = await gui(lenh, duoi, than);
       if (cau && cau !== CAU_VUA_DOI) {
         loi.hien(cau);
         f.setBusy(false);
@@ -218,7 +221,7 @@ export function taoKhoiChiPhi(staff: PermissionHolder, sauGhi: () => Promise<voi
     const tien = h("input", { class: "vc-input", type: "text", inputmode: "numeric", autocomplete: "off", placeholder: "Ví dụ: 1.250.000" });
     const ghi = h("textarea", { class: "vc-input", maxLength: 300, rows: 3, placeholder: "Thoả thuận với ai, ngày nào" });
     moFormChiPhi("Nhập giá thoả thuận", [o("cp-tt-tien", "Số tiền (₫)", tien, { batBuoc: true }), o("cp-tt-ghi", "Ghi chú thoả thuận", ghi, { batBuoc: true, rong: true })],
-      "Lưu giá thoả thuận", "luu-thoa-thuan", "gia-thoa-thuan", () => ({ soTien: docSoTien(tien.value) ?? 0, ghiChu: ghi.value }), opener);
+      "Lưu giá thoả thuận", "luu-thoa-thuan", "gia-thoa-thuan", () => loiSoTien(tien.value) ?? { soTien: docSoTien(tien.value), ghiChu: ghi.value }, opener);
   }
 
   const chonLyDo = (): HTMLSelectElement => h("select", { class: "vc-input" }, h("option", { value: "" }, "Chọn lý do"), ...(cp?.lyDoChon ?? []).map((l) => h("option", { value: l.ma }, l.nhan)));
@@ -234,7 +237,7 @@ export function taoKhoiChiPhi(staff: PermissionHolder, sauGhi: () => Promise<voi
       o("cp-dc-ly-do", "Lý do", lyDo, { batBuoc: true }),
       o("cp-dc-ngay", "Ngày phát sinh", ngay, { goiY: goiYNgay }),
       o("cp-dc-ghi", "Ghi chú", ghi, { rong: true }),
-    ], "Lưu điều chỉnh", "luu-dieu-chinh", "dieu-chinh", () => ({ soTien: docSoTien(tien.value, { coDau: true }) ?? 0, lyDo: lyDo.value, ghiChu: ghi.value.trim() || null, ...(ngay.value ? { ngay: ngay.value } : {}) }), opener);
+    ], "Lưu điều chỉnh", "luu-dieu-chinh", "dieu-chinh", () => loiSoTien(tien.value, { coDau: true }) ?? ({ soTien: docSoTien(tien.value, { coDau: true }), lyDo: lyDo.value, ghiChu: ghi.value.trim() || null, ...(ngay.value ? { ngay: ngay.value } : {}) }), opener);
   }
 
   /** Hộp "Đảo dòng" (bản vẽ thiếu): lý do + ghi chú; không ô ngày (dòng đảo mang ngày của dòng gốc — ADR-0095 Q2). */
