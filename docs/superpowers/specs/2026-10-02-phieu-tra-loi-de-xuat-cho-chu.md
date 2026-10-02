@@ -36,23 +36,26 @@
 ## Còn chờ chủ trả lời
 
 ### 1. Duyệt văn bản ADR-0094 — lớp chống ghi trùng chung (gấp: F-02 hạn 15/10)
-Tệp: `docs/adr/ADR-0094-lop-chong-ghi-trung-chung.md`. Phần chính đã theo lời chủ. Có **9 điểm AI tự thêm** khi soạn, chờ chủ:
+Tệp: `docs/adr/ADR-0094-lop-chong-ghi-trung-chung.md`. Phần chính đã theo lời chủ, và đã qua người kiểm độc lập (3 chỗ chặn, 8 chỗ nên sửa, đã sửa hết). Có **11 điểm AI tự thêm** khi soạn, chờ chủ. Riêng A-3 và A-4 phải có số thì ADR mới có hiệu lực:
 
 | Mã | Đề xuất | Lý do |
 |---|---|---|
 | A-1 | Đếm **số lần gửi lặp** của mỗi vé | Chủ muốn dùng lịch sử để đánh giá; không đếm thì không biết một lệnh bị gửi lặp mấy lần |
 | A-2 | Màn "Thời hạn giữ vé" dùng chung **ô cài đặt vận hành** của Toàn quyền (ô đang canh bảo trì, trợ lý) | Không phải thêm một dòng quyền mới |
-| A-3 | Lựa chọn thời hạn: **90 / 180 / 365 (mặc định) / 730 ngày / Không dọn** | Sàn 90 ngày vẫn an toàn cho chống trùng |
+| A-3 | **Sàn 90 ngày**; lựa chọn **90 / 180 / 365 (mặc định) / 730 ngày / Không dọn** | Sàn lớn hơn 30 ngày theo lời chủ; vẫn an toàn cho chống trùng |
 | A-4 | **Rút ngắn** thời hạn: chờ **7 ngày** rồi mới xoá; kéo dài thì có tác dụng ngay | Lỡ tay rút ngắn thì vẫn kịp đổi lại, không mất dữ liệu |
-| A-5 | Dọn **mỗi ngày một lần**, khoảng 2 giờ sáng, mỗi lượt tối đa 5.000 vé | Không làm chậm giờ làm việc |
+| A-5 | Dọn ở **mọi lượt hẹn giờ** (15 phút một lần), mỗi lượt tối đa 5.000 vé | Theo kịp lượng vé mới; sau một lần rút ngắn lớn thì khoảng 6 ngày là dọn xong |
 | A-6 | Bản siết (bắt buộc có vé) bật sau **7 ngày** liên tiếp không còn máy cũ gửi thiếu vé | Đủ thời gian cho mọi người lên bản mới |
 | A-7 | Tên kỹ thuật của bảng, ngoại lệ, nhật ký | Chỉ là tên |
 | A-8 | Thêm một **khái niệm lõi** vào Hiến chương: "mỗi lệnh ghi chạy đúng một lần dù gửi lại" | Hiến chương chỉ chủ sửa được |
 | A-9 | Đóng lỗi gửi lặp (F-02) khi **bản đầu** lên production và 6 kịch bản lỗi chạy lại đạt | Kịp hạn 15/10. Cách khác: chờ bản siết, an toàn hơn nhưng dễ trễ hạn |
+| A-10 | Gửi lại thì Nền tảng báo "Lần bấm trước đã được ghi" rồi **mở thẳng trang kết quả** (đơn vừa tạo…); mọi lệnh tạo mới phải cho biết địa chỉ trang kết quả | Không có địa chỉ thì "Lập đơn" gửi lại sẽ thấy form trống |
+| A-11 | Màn chỉnh thời hạn và việc dọn vé có thể ra **bản sau** (trước ngày thứ 90) | 90 ngày đầu chưa có vé nào cần dọn; bản đầu nhẹ hơn, dễ kịp hạn 15/10 |
 
 **Kèm theo:**
 - ADR-0094 cần **ngoại lệ thứ hai** cho luật "không xoá cứng", để dọn vé quá hạn (chỉ bảng vé, chỉ chạy theo lịch, có nhật ký).
 - Khi triển khai, **bạn phải đặt một khoá bí mật trước**. Thiếu khoá thì mọi màn báo lỗi.
+- Gửi lặp lệnh tạo tài khoản hay đặt lại PIN sẽ **không hiện lại PIN**; khi đó bấm đặt lại PIN lần nữa.
 - **Lưu ý về dữ liệu:** tỷ lệ huỷ và hoàn của **đơn** vốn đã được giữ vĩnh viễn trong dữ liệu đơn và sổ tiền. Bảng vé chỉ thêm số liệu ở mức **lệnh** (bao nhiêu lần gửi lặp, bị từ chối, lỗi).
 
 **Lưu ý hạn:** lỗi gửi lặp (F-02) có hạn **15/10**. Nếu không kịp thi công, bạn gia hạn kèm lý do.

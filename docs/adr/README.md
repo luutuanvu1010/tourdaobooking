@@ -100,7 +100,7 @@ Thứ tự tài liệu (Điều 3.1): Hiến pháp → ràng buộc dự án →
 | 0091 | Bán hàng phá lệ mốc 6 giờ, nhãn "Ngoại lệ 6 giờ" | `docs/superpowers/specs/2026-10-02-luot-duyet-3-pin-tam-va-ngoai-le-6-gio.md` | proposed — lượt duyệt 3 |
 | 0092 | Sổ tiền không đổi dấu, điều chỉnh có kiểm soát, mã giao dịch ngân hàng | tệp lượt duyệt 2 (cùng tệp với 0088) | proposed — lượt duyệt 2b |
 | 0093 | PIN tạm | tệp lượt duyệt 3 (cùng tệp với 0091) | proposed — lượt duyệt 3 |
-| [0094](ADR-0094-lop-chong-ghi-trung-chung.md) | Lớp chống ghi trùng chung của Nền tảng (vé lần gửi, `Idempotency-Key`; giữ vé 365 ngày do Toàn quyền chọn) | tệp ADR (đề xuất gốc: `docs/superpowers/specs/2026-10-02-lop-chong-ghi-trung-chung-de-xuat.md`) | proposed — chủ đã trả lời V1–V3, chờ duyệt văn bản và A-1…A-9 |
+| [0094](ADR-0094-lop-chong-ghi-trung-chung.md) | Lớp chống ghi trùng chung của Nền tảng (vé lần gửi, `Idempotency-Key`; giữ vé 365 ngày do Toàn quyền chọn) | tệp ADR (đề xuất gốc: `docs/superpowers/specs/2026-10-02-lop-chong-ghi-trung-chung-de-xuat.md`) | proposed — chủ đã trả lời V1–V3, chờ duyệt văn bản và A-1…A-11 (A-3, A-4 bắt buộc có số) |
 | — | (số ADR mới kế tiếp là **0095** — 0074, 0075 đăng nhập 2FA / sổ phiên; 0076–0081 đã dùng trên main; 0082 trợ lý tìm theo nghĩa; 0083 nợ rà soát vai ↔ quyền; 0084 trợ lý Mai; 0085 chính sách đăng nhập; 0086 bỏ hai ô quyền chưa có route — bị bác; 0087 giao diện công ty; 0088–0094 đợt quyết định sau thử nghiệp vụ 2/10) | | |
 
 (0040, 0041, 0042, 0044, 0049, 0050, 0051, 0052–0057, 0058, 0059–0061, 0062 và 0067 đã có văn bản thật ở bảng trên nên bỏ khỏi bảng giữ chỗ.)
