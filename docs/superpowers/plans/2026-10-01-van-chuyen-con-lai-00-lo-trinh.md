@@ -39,7 +39,7 @@ Số migration đã cấp: 0070 (Đợt 2), 0071 (Đợt 3), 0072–0073 (Đợt
 | 2 | `…-02-tin-bao-chuyen.md` | Tin báo + Bảng tin khi chuyến đổi (xếp, dời, huỷ, đổi tài xế, xuất bến…) | 0052 D6 |
 | 3 | `…-03-khung-ban-gio-lai.md` | Lịch xe vào xưởng (khung bận xe); cảnh báo giờ lái | 0055 VK2-A, VK2-B |
 | 4 | `…-04-tien-xe-thue.md` | Bảng giá thuê theo nhà xe (T1); chi phí chuyến chụp lúc giao, thiếu giá không xuất bến (T2) | 0057 T1, T2 |
-| 5 | `…-05-xe-dang-chay.md` | A-1: chuyển điểm giữa hai xe (D4); văn phòng thêm điểm / báo huỷ khi xe chạy, LC-15 mới (D5). A-1b: tài xế bổ sung tên (D5b); cứu hộ (D5c) | 0052 D4, D5, D5b, D5c |
+| 5 | `…-05-xe-dang-chay.md` | **(thu gọn 2/10)** A-1: văn phòng thêm điểm / báo huỷ khi xe chạy, LC-15 mới (D5). A-1b: tài xế bổ sung tên (D5b); cứu hộ đơn giản — văn phòng tạo chuyến cứu hộ (D5c). D4 (chuyển điểm giữa hai xe) + V4: HOÃN tới mốc (phụ lục) | 0052 D5, D5b, D5c (D4 hoãn) |
 | 6 | `…-06-tai-xe-doi-tac.md` | Tài xế đối tác dùng app (D7), Từ chối chuyến (D8), Báo bận (D9) | 0053 |
 | 7 | `…-07-xe-rieng-so-cho.md` | Cam kết xe riêng / số chỗ tối thiểu trên chặng | 0056 VK3-A |
 | 8 | `…-08-bo-duong-ghi-cu.md` | Bỏ đường ghi chặng kiểu cũ (ngừng ghi kép `pickup_*`, thân cũ bị từ chối) | 0047 §6 (Phần C) |
@@ -58,9 +58,9 @@ Số migration đã cấp: 0070 (Đợt 2), 0071 (Đợt 3), 0072–0073 (Đợt
 Đợt 2 ─┤ (không phụ thuộc; D6 nối bằng hàm tiêm, ADR-0052 D6.3)
 Đợt 3 ─┤ (sau ADR-0049 gộp main — đã gộp)          ──┐
 Đợt 4: T1 → T2 (T3 ĐÃ CÓ: migrations/0045 cột trip_id)  ──┤
-Đợt 5 A-1 (D4, D5) — không chờ tiền                     │
+Đợt 5 A-1 (D5; D4 HOÃN 2/10) — sau Đợt 2 + Đợt 3       │
 Đợt 5 A-1b (D5b, D5c) — SAU Đợt 4 T2 (ADR-0052:135)  ◄──┤
-Đợt 6 (ADR-0053) — SAU Đợt 4 T2 (ADR-0053:129), SAU Đợt 3 VK2-A (D9 dùng chung bảng khung bận), SAU Đợt 5 A-1 (ô trip.transfer) VÀ A-1b (ô trip.passenger.add)
+Đợt 6 (ADR-0053) — SAU Đợt 4 T2 (ADR-0053:129), SAU Đợt 3 VK2-A (D9 dùng chung bảng khung bận), SAU Đợt 5 A-1b (ô trip.passenger.add). [2/10: KHÔNG còn chờ ô trip.transfer — thuộc D4 đã hoãn; hàng ghim Tài xế đối tác 9 ô; trip.transfer cho DRIVER_PARTNER gắn lại khi làm D4]
 Đợt 8 lần A (bộ đếm thân cũ) — gộp vào Đợt 1 để đồng hồ chạy sớm; lần cắt sau cổng đếm
 Đợt 7 VK3-A — sau ADR-0049 gộp main; giao diện chờ chủ vẽ hai ô + nhãn
 Đợt 8 Phần C — CỔNG: production không còn nhận thân cũ pickupTime/pickupPlace (đo nhật ký) — xem kế hoạch con
@@ -80,7 +80,7 @@ Số migration đã cấp: 0070 (Đợt 2), 0071 (Đợt 3), 0072–0073 (Đợt
 | `transport.cost.adjust`, `THIEU_GIA`, `keHoachChiPhiKhiDoi`, route `…/chi-phi/chup-lai`, `…/gia-thoa-thuan` | 04 | 05 A-1b, 06 | 04 T2 trước |
 | `MA_GIU`, `MA_LUAT_PHA_LE` (`ly-do-giu.test.ts`), `ChuyenVao` (`thue`, `coNguonGia`) | 04 | 07 | 04 trước; 07 đo lại giá trị ghim |
 | `KetQuaTaoSua = KetQuaKiem & { nhacGioLai }` | 03 | 06, 07 | 03 → 06 → 07 |
-| `vc_dispatch_policy` + `INSERT_DISPATCH_POLICY` + `kiemChinhSachMoi` + bài "câu chèn ghi đủ cột" (`chinh-sach.test.ts`) | 03 | 05, 06 | 03 → 05 → 06, mỗi đợt dựng từ bản đã gộp, không viết bài trùng |
+| `vc_dispatch_policy` + `INSERT_DISPATCH_POLICY` + `kiemChinhSachMoi` + bài "câu chèn ghi đủ cột" (`chinh-sach.test.ts`) | 03 | 06 (05 khi làm D4 hoãn) | 03 → 06 (2/10: Đợt 5 thu gọn không thêm cột chính sách; Đợt 6 thêm `office_phone` — câu 6.3), mỗi đợt dựng từ bản đã gộp, không viết bài trùng |
 | Bài ghim nhóm lý do (`dieu-phoi-kieu.test.ts`) | 03 (8 nhóm) | 06 (10 nhóm) | 03 → 06 |
 | `LOAI_SU_KIEN_CHUYEN`; `MAU` của `thu-tu-lo.test.ts` | 05 / chung | 04, 05, 06, 07 | nối thêm theo thứ tự 04 → 05 → 06 → 07 |
 
@@ -92,6 +92,9 @@ Không đợt nào DROP trigger trên `vc_trip` của đợt khác (tên không 
 |---|---|---|---|
 | L1 | ADR-0052:282, ADR-0055:92 "sửa `0042`/`0041` tại chỗ hay migration mới" | **migration mới** | `0041`, `0042` đã áp remote (bản 1.38); CLAUDE.md §7 cấm sửa |
 | L2 | Số migration, số phiên bản | **không ghi cứng**; lúc thi công = lớn nhất trong `migrations/` của `main` **và mọi nhánh chưa gộp** + 1 (`git ls-tree --name-only <nhánh> migrations/`); phiên bản = lớn nhất ở `origin/main` + 1 lúc gộp | nhiều phiên song song (bài học 1.53/1.57–1.63) |
+| L4 (2/10) | Bản vẽ Đợt 5/6 không có tab "Trang chủ" (`/tai-xe`) của tài xế | **giữ tab Trang chủ** của tài xế (không bỏ) | bản vẽ chỉ vẽ phần mới, không nói bỏ; bỏ trang có sẵn là việc lớn hơn phạm vi; Trang chủ riêng cho HDV/Đối tác đã ở BACKLOG mục 18. Hoàn tác: bỏ mục menu |
+| L5 (2/10) | Câu 5.2b "xe có tài xế dùng app" | = **tài xế công ty** (`taiXeChoDieuPhoi`) trong Đợt 5; khi Đợt 6 lên thì gồm cả tài xế đối tác có tài khoản | Đợt 6 lên sau Đợt 5; mở rộng một bộ lọc |
+| L6 (2/10) | Kiểu chữ nhãn (chip) Đợt 3–7 | **một kiểu chung** theo bản vẽ: viên thuốc, chữ 800 12px, giãn .04em; áp cả nhãn "✈︎" có sẵn | 5 bản vẽ cùng một kiểu; tránh mỗi đợt một lớp CSS. Hoàn tác: một lớp CSS |
 | L3 | Mức chi tiết | Đợt 1–4: tới từng bước có mã. Đợt 5–8: mức **giao diện (interface)** — chữ ký hàm, bảng, route, test bắt buộc; người thi công đo lại mã thật lúc nhận vì các đợt trước sẽ đổi tệp | tránh mã giả viết trên nền chưa có |
 
 ## Global Constraints
