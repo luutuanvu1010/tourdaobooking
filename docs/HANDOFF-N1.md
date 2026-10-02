@@ -2,7 +2,17 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 1.53 ĐÃ LÊN PRODUCTION (gộp 1.49–1.53: gộp hồ sơ ADR-0068, HCNS + hạn chế Quản trị ADR-0071/0072, ô mới của chặng) — migration `0056`–`0059` đã áp (2026-10-01 12:12 giờ VN)
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 1.66 ĐÃ LÊN PRODUCTION (Trang chủ điện thoại theo bản vẽ 2026-09-30; gồm cả 1.65 Vận chuyển đợt 1) — không migration mới của 1.66 (2026-10-02 09:09 giờ VN)
+
+AI (phiên "Trang chủ điện thoại") kiểm bằng lệnh chỉ đọc sau khi chủ báo đã `day-len` + `trien-khai` (2/10; lần `trien-khai` đầu dừng ở e2e — `catalog` đỏ chập chờn, chạy riêng trên cùng mã đạt 27 bước — chủ chạy lại):
+
+- **Phiên bản:** `node scripts/kiem-phien-ban.mjs --sau-deploy` → "ĐẠT: production đang chạy đúng bản 1.66."; `GET /api/auth/config` → `"version":"1.66"`. `origin/main` = 01026ec4 (nhánh `worktree-trang-chu-dien-thoai-momo`, đã gộp main 1.65).
+- **Worker** (`wrangler deployments list`): **ae754e1e-0d7f-41c9-bb7b-0c6727eed722** (2026-10-02T02:09:45Z = 1.66); trước đó 3b56e772-15e1-47cd-99c2-3d99ad8b12f0 (2026-10-02T01:38:55Z — nhiều khả năng 1.65, chưa đối chiếu). 1.66 chỉ đổi giao diện (không migration, không route) nên lùi Worker về 3b56e772 không vướng dữ liệu.
+- **Tệp công khai:** `/`, `/js/home.js`, `/app.css`, `/sw.js` → 200; `/` có `class="trang-chu"`, `#dash-tim`, `#dash-o`, `#dash-so`; `home.js` có các khối mới (dải chào, lưới ô, bảng "Tất cả", thẻ số liệu, dải "Thử lại"); `app.css` có khối "Trang chủ ĐIỆN THOẠI" và token `--hero-bg` / `--c-on-hero`.
+- **Chưa kiểm:** kết quả `audit-invariants --db remote` của lần `trien-khai` thứ hai (lệnh tự chạy; AI không thấy đầu ra); iPhone thật.
+- **Việc treo liên quan:** Trang chủ riêng cho Hướng dẫn viên / Đối tác — chủ duyệt hướng, đợt riêng (`docs/BACKLOG.md` mục 18). Nhánh `thanh-sang-chu-manh` (thanh sáng, chữ mảnh — chưa gộp) đang ghi số 1.65 → phải đánh lại số (≥ 1.67) lúc gộp; dải đầu Trang chủ đã trỏ token vai `--c-bar-bg` / `--c-on-bar` của nhánh đó (chủ chọn 2-B) nên tự chuyển trắng khi nó lên.
+
+## TRẠNG THÁI TRIỂN KHAI (cũ) — Phiên bản 1.53 ĐÃ LÊN PRODUCTION (gộp 1.49–1.53: gộp hồ sơ ADR-0068, HCNS + hạn chế Quản trị ADR-0071/0072, ô mới của chặng) — migration `0056`–`0059` đã áp (2026-10-01 12:12 giờ VN)
 
 AI (phiên "restrict admin permissions") kiểm bằng lệnh chỉ đọc sau khi chủ báo đã `day-len` + `trien-khai` (1/10; lần `trien-khai` đầu không triển khai gì — chủ chạy lại):
 
