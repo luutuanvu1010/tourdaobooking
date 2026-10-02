@@ -1032,7 +1032,7 @@ export interface FeedbackBadgeResponse {
 }
 
 // ---- Thông báo hệ thống (ADR-0034) --------------------------------------------
-export type LoaiTin = "thu_cong" | "lap" | "cho_nhan" | "nhan" | "giao" | "xac_nhan" | "huy";
+export type LoaiTin = "thu_cong" | "lap" | "cho_nhan" | "nhan" | "giao" | "xac_nhan" | "huy" | "chuyen"; // "chuyen": tin chuyến xe (ADR-0052 D6)
 export interface TinDto {
   id: string;
   loai: LoaiTin;

@@ -6,6 +6,7 @@ import type { ThayDoiDon, TrangThaiPhuTrach } from "./bang-tin.ts";
 import { NGUONG_MAC_DINH } from "./giay-to-hien-thi.ts";
 import { error, json } from "./http.ts";
 import type { MocToiThieu } from "./moc-toi-thieu.ts";
+import type { ChuyenChoTin } from "./tin-chuyen.ts";
 import { canAccessOrders, isOffice, passesAccountsGate, passesAdminGate } from "./permissions.ts";
 
 /**
@@ -155,6 +156,12 @@ export interface Ctx<A extends Access = Access> {
    * không tiêm (khung thử cố ý) ⇒ route không gắn nhãn, bộ lọc trả 503 — KHÔNG đoán "chưa nhập".
    */
   nhapKeToanCuaDon: (orderIds: readonly string[]) => Promise<Set<string> | null>;
+  /**
+   * TIN CHUYẾN (ADR-0052 D6.3) — dữ kiện chuyến theo id (mã, ngày, khoảng lái, đơn của suất vắng) do gốc lắp ráp tiêm (`van-chuyen.chuyenChoTinTheoId`;
+   * thongbao không import van-chuyen). Một lần gọi = ba truy vấn mảng JSON (mảng chuyến rỗng: không truy vấn). `null` = môi trường không tiêm (khung thử cố ý)
+   * ⇒ không có tin chuyến.
+   */
+  chuyenChoTin: (q: { tripIds: readonly string[]; suKienIds: readonly string[] }) => Promise<ChuyenChoTin | null>;
 }
 
 export interface Route {
@@ -256,6 +263,8 @@ export interface AppOptions {
     gopHoSo: (env: Env) => GopHoSoNoi;
     /** ADR-0060 điều 5. BẮT BUỘC trong mã chạy thật (`src/index.ts`: `nhapKeToanCuaDon` của billing); thiếu (khung thử cố ý) → router trả `null`. */
     nhapKeToanCuaDon: (env: Env, orderIds: readonly string[]) => Promise<Set<string>>;
+    /** TIN CHUYẾN (ADR-0052 D6.3). BẮT BUỘC trong mã chạy thật (`src/index.ts`: `chuyenChoTinTheoId` của van-chuyen); thiếu (khung thử cố ý) → router trả `null`. */
+    chuyenChoTin: (env: Env, q: { tripIds: readonly string[]; suKienIds: readonly string[] }) => Promise<ChuyenChoTin>;
   };
 }
 
@@ -340,6 +349,8 @@ export function createApp(opts: AppOptions) {
       },
       nhapKeToanCuaDon: (ids) =>
         typeof opts.injected.nhapKeToanCuaDon !== "function" ? Promise.resolve(null) : ids.length === 0 ? Promise.resolve(new Set<string>()) : opts.injected.nhapKeToanCuaDon(env, ids),
+      chuyenChoTin: (q) =>
+        typeof opts.injected.chuyenChoTin !== "function" ? Promise.resolve(null) : q.tripIds.length === 0 ? Promise.resolve({ chuyen: [], vang: [] }) : opts.injected.chuyenChoTin(env, q),
     } as Ctx);
   }
 

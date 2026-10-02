@@ -12,10 +12,12 @@ import {
   chuanHoaMocGio, NGAY_GIU_TIN, kiemTinThuCong, locHopThongBao, nhanNguoiNhan, nhanThayTinThuCong, type DongDon, type DongThuCong,
 } from "../../shared/thong-bao";
 import { guiLo, imLang, khoaVapid, kiemDiaChi, nguoiNhanDay } from "../../shared/web-push";
-import { route, type AppModule } from "../../shared/router";
+import { route, type AppModule, type Ctx } from "../../shared/router";
+import { dungDongChuyen, type ChuyenChoTin, type DongChuyen, type DongChuyenTho } from "../../shared/tin-chuyen";
 import {
   batMayStatements, demMay, findByRequest, getMark, getNotice, getThuCong, hetHanStatement, insertAckStatement, insertNoticeStatement,
-  insertTargetStatement, listAcks, listDon, listMayDangBat, listSent, listThuCong, mayDangBat, revokeStatement, tatMayStatement, upsertMarkStatement,
+  insertTargetStatement, listAcks, listDon, listMayDangBat, listSent, listThuCong, listTinChuyen, donChoTin, mayDangBat, revokeStatement, tatMayStatement,
+  upsertMarkStatement,
 } from "./repository";
 
 /** Gốc lắp ráp (src/index.ts) tắt mọi máy của một tài khoản ở cùng chỗ đóng Bảng tin (đổi PIN/quyền/SĐT, ngưng… — ADR-0036). */
@@ -36,14 +38,30 @@ async function nguoiNhanCuaMotTin(db: D1Database, tags: string[]) {
   return locNguoiNhan((await listStaffAccounts(db)).filter((s) => s.active), tags);
 }
 
-async function hop(db: D1Database, staff: StaffProfile, ngan: "cua-toi" | "tat-ca"): Promise<HopThongBaoResponse> {
+/** Hàm dữ kiện chuyến do gốc lắp ráp tiêm (`ctx.chuyenChoTin`) — thongbao không import van-chuyen (ADR-0052 D6.3). */
+type NoiChuyen = (q: { tripIds: readonly string[]; suKienIds: readonly string[] }) => Promise<ChuyenChoTin | null>;
+
+/** Ghép dòng nhật ký chuyến với dữ kiện van-chuyen (hàm tiêm) + đơn của suất vắng. Không tiêm → []. */
+export async function ghepTinChuyen(db: D1Database, tho: readonly DongChuyenTho[], noi: NoiChuyen): Promise<DongChuyen[]> {
+  if (tho.length === 0) return [];
+  const f = await noi({ tripIds: tho.map((t) => t.tripId), suKienIds: tho.filter((t) => t.action === "trip_passenger_no_show").map((t) => t.id) });
+  if (!f) return [];
+  return dungDongChuyen(tho, f, await donChoTin(db, f.vang.map((v) => v.orderId)));
+}
+
+async function hop(db: D1Database, staff: StaffProfile, ngan: "cua-toi" | "tat-ca", chuyenChoTin: Ctx["chuyenChoTin"]): Promise<HopThongBaoResponse> {
   const now = new Date().toISOString();
   const tu = new Date(Date.now() - NGAY_GIU_TIN * 86400000).toISOString();
-  const [don, thuCong, mark] = await Promise.all([listDon(db, tu), listThuCong(db, tu, staff.id), getMark(db, staff.id)]);
+  // ADR-0052 D6.2: chỉ người CÓ THỂ nhận tin chuyến mới đọc nhật ký chuyến (văn phòng có trip.view; tài xế có hồ sơ) — người khác không tốn truy vấn.
+  const coTheNhan = can(staff, "trip.view") || (staff.partyId !== null && can(staff, "trip.view", { assigned: true }));
+  const [don, thuCong, mark, choTho] = await Promise.all([
+    listDon(db, tu), listThuCong(db, tu, staff.id), getMark(db, staff.id), coTheNhan ? listTinChuyen(db, tu) : Promise.resolve([]),
+  ]);
+  const chuyen = await ghepTinChuyen(db, choTho, chuyenChoTin);
   // Chưa từng mở hộp: mốc = ngày tạo tài khoản (không đổ dồn tin cũ lên người mới — đặc tả §4.4). createdAt không đảm bảo luôn ở dạng
   // ISO có mili-giây — locHopThongBao so mốc giờ BẰNG CHUỖI nên phải chuẩn hoá trước (chuanHoaMocGio, src/shared/thong-bao.ts).
   const docDenLuc = chuanHoaMocGio(mark ?? (await getStaffAccount(db, staff.id))?.createdAt ?? now);
-  return locHopThongBao(staff, { don, thuCong, docDenLuc, now, ngan });
+  return locHopThongBao(staff, { don, thuCong, chuyen, docDenLuc, now, ngan });
 }
 
 /** Cỡ tối đa gửi thẳng trong `waitUntil` của yêu cầu; nhiều hơn thì giao trạm `BangTin` chia lô (ADR-0036). */
@@ -86,8 +104,8 @@ const ghiLoiDay = (e: unknown) => console.warn(JSON.stringify({ level: "warn", e
 export const thongbaoModule: AppModule = {
   name: "thongbao",
   routes: [
-    route("GET", "/api/thong-bao/tom-tat", "staff", async ({ env, staff }) => {
-      const h = await hop(env.DB, staff, "cua-toi");
+    route("GET", "/api/thong-bao/tom-tat", "staff", async ({ env, staff, chuyenChoTin }) => {
+      const h = await hop(env.DB, staff, "cua-toi", chuyenChoTin);
       // Sửa vòng kiểm Task 5→6: quanTrongChuaHieu lấy từ trường riêng của locHopThongBao (tính TRƯỚC khi cắt trần 100), KHÔNG lọc từ
       // h.tin (đã cắt) — nếu không, người có > 100 tin "Của tôi" mới hơn sẽ mất tin quan trọng chưa hiểu khỏi dải (trái X4).
       const quanTrongChuaHieu = h.quanTrongChuaHieu.map((t) => ({ id: t.id, tieuDe: t.cau, nguoiGui: t.nguoiGui ?? "", luc: t.luc }));
@@ -95,8 +113,8 @@ export const thongbaoModule: AppModule = {
     }),
     // Web Push (ADR-0036) — cú gõ cửa màn hình khoá của service worker: câu của tin CHƯA ĐỌC mới nhất ở ngăn "Của tôi" (h.tin đã sắp
     // xếp mới nhất trước). Chỉ đọc — không đổi mốc đã đọc (đó là việc của POST …/da-doc, người dùng tự bấm khi mở hộp).
-    route("GET", "/api/thong-bao/moi-nhat", "staff", async ({ env, staff }) => {
-      const h = await hop(env.DB, staff, "cua-toi");
+    route("GET", "/api/thong-bao/moi-nhat", "staff", async ({ env, staff, chuyenChoTin }) => {
+      const h = await hop(env.DB, staff, "cua-toi", chuyenChoTin);
       const t = h.tin.find((x) => x.chuaDoc);
       // ADR-0039: máy chủ báo giờ yên lặng qua CỜ này (không qua nội dung push) — service worker dùng để hiện `silent: true`.
       // Không có tin cụ thể (t undefined, hiếm — đọc lại đúng lúc mất tin) → coi như không quan trọng, vẫn im lặng trong giờ yên lặng.
@@ -149,9 +167,9 @@ export const thongbaoModule: AppModule = {
       await upsertMarkStatement(env.DB, staff.id, new Date().toISOString()).run();
       return json({ ok: true });
     }),
-    route("GET", "/api/thong-bao", "staff", async ({ env, staff, url }) => {
+    route("GET", "/api/thong-bao", "staff", async ({ env, staff, url, chuyenChoTin }) => {
       const ngan = url.searchParams.get("ngan") === "cua-toi" ? "cua-toi" : "tat-ca";
-      return json(await hop(env.DB, staff, ngan) satisfies HopThongBaoResponse);
+      return json(await hop(env.DB, staff, ngan, chuyenChoTin) satisfies HopThongBaoResponse);
     }),
     route("POST", "/api/account/thong-bao/:id/da-hieu", "staff", async ({ env, staff, params }) => {
       const id = params.id!;
