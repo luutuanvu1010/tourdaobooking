@@ -68,8 +68,8 @@ Hai luồng song song, mỗi luồng một phiên.
 - [x] 🤖 L13 cổng kiểm khoá trong `npm run trien-khai` — 2026-10-02 `7b9899ea` (quan sát bằng hàm giả)
 - [x] 🤖 L14 tài liệu (`SYSTEM-DESIGN`, `CHANGE-GUIDE`, sổ hàng rào) — 2026-10-02; đề xuất sửa luật chờ chủ
 - [x] 🔍 L15 kiểm độc lập vòng 2: ĐẠT (nếu tới **12/10** chưa đạt → báo chủ) — 2026-10-02: lần 1 KHÔNG ĐẠT (PIN lộ qua vé bật Face ID), sửa ở `4f9fe164`, lần 2 **ĐẠT** (sổ thi công luồng L)
-- [ ] 👤 L16 🚀 phát hành luồng L (khoá đã có; cổng L13 xác nhận)
-- [ ] 🤖 chạy lại T12 trên bản thử sau phát hành → **xoá mục F-02** khỏi sổ (đóng theo A-9) + dòng lịch sử
+- [x] 👤 L16 🚀 phát hành luồng L (khoá đã có; cổng L13 xác nhận) — 2026-10-02 22:08 VN, bản **1.76** (`kiem-phien-ban --sau-deploy` ĐẠT, `0074` đã áp, audit remote đạt; `docs/HANDOFF-N1.md`)
+- [ ] 🤖 chạy lại T12 trên bản thử sau phát hành → **xoá mục F-02** khỏi sổ (đóng theo A-9) + dòng lịch sử — 2026-10-02: **T12 ĐẠT** (`chong-ghi-trung` 4/4 trên `51d76648` = bản đã triển khai) ⇒ điều kiện A-9 đủ. **Chưa xoá mục:** công cụ của AI chặn việc xoá mục sổ phát hiện an ninh ⇒ chủ xoá (hoặc ra lệnh cho phép)
 - [ ] 👤 gộp commit đóng F-02 (không cần triển khai)
 
 **Để sau (A-11), trước ngày thứ 90 kể từ luồng L:**

@@ -362,3 +362,9 @@ Số bản nhật ký phiên bản: `main` cục bộ có `1.70` ở đầu `src
 - Người kiểm (bản sao riêng): typecheck thoát 0; `npm test` 2966 (1 đỏ `.gitattributes` do bản sao không `.git`, 1 todo), đo giờ 1/1. Đếm độc lập 136 route ghi, 5 public ⇒ 131 (khớp H2). `POST …/xe/:id/ban`: một lô, `Location /lich-xe-ban` đúng trang gọi; `…/rut` trả 200, một lô. Route mới không PIN/giấy tờ, không ghi phụ. `release-lib.mjs` / `kiem-phien-ban.mjs` không giả định số migration tăng dần ⇒ `0074` áp sau `0075` được.
 - Gợi ý (không làm): dòng 0071/0075 ở bảng migration SYSTEM-DESIGN ghi "CHƯA lên production" — dòng của nhánh khác; tôi không khẳng định trạng thái production từ trí nhớ (CLAUDE.md §8) ⇒ để phiên ghi trạng thái sau triển khai sửa.
 - `origin/main` = `main` = `a6fd0a3d`, nằm trong nhánh. SẴN SÀNG day-len.
+
+## Sau triển khai (2026-10-02 tối, nhánh `dong-f02-trang-thai-1-76`)
+- Chủ đã `day-len` + `trien-khai`. Kiểm chỉ đọc: `kiem-phien-ban --sau-deploy` ĐẠT 1.76; `d1 migrations list --remote` "No migrations to apply" (`0074` đã áp); `audit-invariants --db remote` đạt (4 cảnh báo cũ); Worker mới nhất `5b2b21ad` (15:08Z); `home.js` công khai có `idempotency-key`. Ghi ở `docs/HANDOFF-N1.md`.
+- **T12 ĐẠT:** `npm run test:e2e -- chong-ghi-trung` trên `51d76648` (= `origin/main` = bản đã triển khai) 4/4, H5 xanh, N2 409. ⇒ điều kiện A-9 đóng F-02 đủ.
+- **Chưa xoá mục F-02** ở `docs/quyen-hoan.json`: bộ phân loại quyền của công cụ AI chặn việc xoá mục sổ phát hiện an ninh ("Logging/Audit Tampering"). Không tìm đường vòng. Chủ xoá mục (hoặc cho phép) — commit riêng, không cần triển khai.
+- L16 `[x]`. Còn: T3 iPhone thật (chủ).

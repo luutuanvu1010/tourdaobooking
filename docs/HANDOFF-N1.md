@@ -2,7 +2,21 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 1.70 ĐÃ LÊN PRODUCTION (thị giác toàn Nền tảng "Năng động – Tin cậy – Tinh tế"; gồm cả 1.69 Vận chuyển Đợt 2 và 1.67–1.68) — migration `0070_tin_chuyen` đã áp (2026-10-02 17:25 giờ VN)
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 1.76 ĐÃ LÊN PRODUCTION (lớp chống ghi trùng chung ADR-0094 — Đợt 0 luồng L; gồm cả 1.73 Trang chủ Quản trị, 1.74 quyền tiền ADR-0090, 1.75 Vận chuyển Đợt 3) — migration `0074_lan_gui` đã áp (2026-10-02 22:08 giờ VN)
+
+AI (phiên "Đợt 0 luồng L") kiểm bằng lệnh chỉ đọc sau khi chủ báo đã `day-len` + `trien-khai` (2/10 tối):
+
+- **Phiên bản:** `node scripts/kiem-phien-ban.mjs --sau-deploy` → "ĐẠT: production đang chạy đúng bản 1.76."; `GET /api/auth/config` → `"version":"1.76"`. Mã 1.76 = `51d76648` (= `origin/main` lúc ghi; nhánh `worktree-dot-0-luong-l`, đã gộp main `a6fd0a3d` = 1.75).
+- **Worker** (`wrangler deployments list`): mới nhất **5b2b21ad-e3a3-4485-90b8-4cceb1a70f1a** (2026-10-02T15:08:19Z) — nhiều khả năng 1.76 (lần triển khai cuối, phiên bản công khai khớp); trước đó f9db293c-b08e-44ab-8876-a8a45b04ed38 (14:17Z) và 966bfb5d-6ae1-4cac-8c0d-85aaa82c0f15 (13:55Z) — chưa đối chiếu là bản nào. **Lùi Worker:** `0074` chỉ THÊM hai bảng `lg_*` (mã cũ không đọc) ⇒ lùi mã không vỡ dữ liệu; mã cũ không gửi/không đọc vé (mất chống ghi trùng, như trước 1.76).
+- **Migration:** `wrangler d1 migrations list --remote` → "No migrations to apply!" (`0074` đã áp, sau `0075` — wrangler theo TÊN tệp).
+- **Khoá:** `LAN_GUI_SECRET` chủ đặt 2/10; bước 1c của `npm run trien-khai` kiểm tên khoá trước migration (lần chạy thật đầu tiên — chủ chạy).
+- **Dữ liệu:** `audit-invariants --db remote` → "Mọi bất biến đạt, 4 cảnh báo" (R-CTL-1: 3 dịch vụ chưa gán nhóm; R-BIL-2/5 chưa áp dụng; R-BIL-7 dùng lại R-PTY-1), thoát 0.
+- **Tệp công khai:** `/`, `/api/auth/config`, `/js/home.js` → 200; `home.js` có chữ `idempotency-key` (giao diện gửi vé); `GET /api/staff` chưa đăng nhập → 401.
+- **T12 (ADR-0094 A-9):** `npm run test:e2e -- chong-ghi-trung` trên đúng `51d76648` → 4/4 xanh (11, 12, 13, HD10, KT03, KT04 gửi lại cùng vé ⇒ một lần ghi; N2 đụng vé ⇒ 409; T14), H5 xanh. Kiểm sau triển khai đạt (trên). ⇒ Điều kiện đóng F-02 ĐỦ; **xoá mục F-02 khỏi `docs/quyen-hoan.json` do chủ làm/ra lệnh** (công cụ của AI chặn việc xoá mục sổ phát hiện an ninh).
+- **Kiểm trước phát hành (trên mã đã gộp `05100460`):** typecheck 0; npm test 0 đỏ (2966); e2e 47/47; Chrome `lop-ve-smoke` 6/6, `passkey-smoke` 9/9; kiểm độc lập ĐẠT (vòng 1; vòng 2 sau khi vá lộ PIN; phần gộp). Sổ: `docs/superpowers/plans/2026-10-02-dot-0-lop-ve-nhat-ky.md`.
+- **Chưa kiểm:** iPhone thật T3 (chủ); chữ lỗi D1 khi đụng vé trên production (N2 — mới thấy ở D1 local); bảng migration ở `docs/SYSTEM-DESIGN.md` vẫn ghi 0071/0074/0075 "CHƯA lên production" (để lần sửa tài liệu sau).
+
+## TRẠNG THÁI TRIỂN KHAI (cũ) — Phiên bản 1.70 ĐÃ LÊN PRODUCTION (thị giác toàn Nền tảng "Năng động – Tin cậy – Tinh tế"; gồm cả 1.69 Vận chuyển Đợt 2 và 1.67–1.68) — migration `0070_tin_chuyen` đã áp (2026-10-02 17:25 giờ VN)
 
 AI (phiên "Thị giác toàn Nền tảng") kiểm bằng lệnh chỉ đọc sau khi chủ báo đã `day-len` + `trien-khai` (2/10 tối):
 
