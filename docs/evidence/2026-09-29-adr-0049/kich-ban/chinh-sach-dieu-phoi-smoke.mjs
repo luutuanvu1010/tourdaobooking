@@ -86,7 +86,7 @@ try {
     await p.ev(click(".dp-cs-actions button[type=submit]"));
     await p.waitFor(`${txt("#cs-ok")} === 'Đã lưu bản mới — có hiệu lực từ bây giờ.'`, "báo đã lưu");
     const post = apiCalls(p).filter((r) => r.method === "POST" && r.path === "/api/van-chuyen/chinh-sach-dieu-phoi").at(-1);
-    assert.deepEqual(JSON.parse(post.body), { minLeadMinutes: 300, warnLeadMinutes: 120, restMinutes: 30, requireManifest: false, proxyBackdateMaxMinutes: 240 });
+    assert.deepEqual(JSON.parse(post.body), { minLeadMinutes: 300, warnLeadMinutes: 120, restMinutes: 30, requireManifest: false, proxyBackdateMaxMinutes: 240, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240 });
     const rows = await p.ev(lichSu);
     assert.equal(rows.length, 2);
     // R-P23: bản vừa lưu có "ai lưu" (tên tài khoản Toàn quyền + lúc lưu); bản gieo (không người lưu) không có dòng đó.

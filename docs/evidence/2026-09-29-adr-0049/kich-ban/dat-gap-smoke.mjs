@@ -52,7 +52,7 @@ const themDichVuTrenForm = async (p, gio = "10:00") => {
 
 try {
   // ---- dữ liệu dựng bằng API (không phụ thuộc cookie của Chrome) ----------------------------------------------------------------------------------------
-  const cs = await call(CHU, "POST", "/api/van-chuyen/chinh-sach-dieu-phoi", { minLeadMinutes: 2880, warnLeadMinutes: 120, restMinutes: 30, requireManifest: true, proxyBackdateMaxMinutes: 180 });
+  const cs = await call(CHU, "POST", "/api/van-chuyen/chinh-sach-dieu-phoi", { minLeadMinutes: 2880, warnLeadMinutes: 120, restMinutes: 30, requireManifest: true, proxyBackdateMaxMinutes: 180, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240 });
   assert.equal(cs.status, 201, cs.text);
   const o1 = await donMoi(ACCOUNTS.salesA, "Khách Một"); // nháp của Bán hàng, dưới mốc, chưa đặt gấp
   const o3 = await donMoi(ACCOUNTS.salesA, "Khách Ba"); // Quản trị đặt gấp + xác nhận bằng API → dùng cho bảng "Sửa thông tin chuyến"

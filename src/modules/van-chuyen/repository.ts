@@ -256,9 +256,9 @@ const LIST_DISPATCH_POLICIES = defineSql("van-chuyen", "list_dispatch_policies",
 const INSERT_DISPATCH_POLICY = defineSql(
   "van-chuyen",
   "insert_dispatch_policy",
-  `INSERT INTO vc_dispatch_policy (id, min_lead_minutes, warn_lead_minutes, rest_minutes, require_manifest, require_contract, proxy_backdate_max_minutes, valid_from_at, created_at,
-     created_by, updated_at, updated_by)
-   VALUES (?1, ?2, ?3, ?4, ?5, 0, ?8, ?6, ?6, ?7, ?6, ?7)`,
+  `INSERT INTO vc_dispatch_policy (id, min_lead_minutes, warn_lead_minutes, rest_minutes, require_manifest, require_contract, proxy_backdate_max_minutes, duty_day_max_minutes,
+     trip_no_break_max_minutes, valid_from_at, created_at, created_by, updated_at, updated_by)
+   VALUES (?1, ?2, ?3, ?4, ?5, 0, ?8, ?9, ?10, ?6, ?6, ?7, ?6, ?7)`,
 );
 export const currentDispatchPolicy = (db: D1Database, nowIso: string): Promise<DispatchPolicyRow | null> =>
   db.prepare(CURRENT_DISPATCH_POLICY).bind(nowIso).first<DispatchPolicyRow>();
@@ -273,11 +273,12 @@ export async function listDispatchPolicies(db: D1Database): Promise<DispatchPoli
 export const insertDispatchPolicyStatement = (
   db: D1Database,
   id: string,
-  v: { minLeadMinutes: number; warnLeadMinutes: number; restMinutes: number; requireManifest: boolean; proxyBackdateMaxMinutes: number },
+  v: { minLeadMinutes: number; warnLeadMinutes: number; restMinutes: number; requireManifest: boolean; proxyBackdateMaxMinutes: number; dutyDayMaxMinutes: number; tripNoBreakMaxMinutes: number },
   at: string,
   actorId: string,
 ): D1PreparedStatement =>
-  db.prepare(INSERT_DISPATCH_POLICY).bind(id, v.minLeadMinutes, v.warnLeadMinutes, v.restMinutes, v.requireManifest ? 1 : 0, at, actorId, v.proxyBackdateMaxMinutes);
+  db.prepare(INSERT_DISPATCH_POLICY).bind(id, v.minLeadMinutes, v.warnLeadMinutes, v.restMinutes, v.requireManifest ? 1 : 0, at, actorId, v.proxyBackdateMaxMinutes, v.dutyDayMaxMinutes,
+    v.tripNoBreakMaxMinutes);
 
 export interface DepartureRuleRow {
   id: string;

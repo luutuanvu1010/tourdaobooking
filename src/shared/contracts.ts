@@ -1081,6 +1081,10 @@ export interface DispatchPolicyDto {
   requireContract: boolean;
   /** ADR-0050 VK1-A: kẹp lùi tối đa (phút) khi văn phòng bấm thay khai giờ xảy ra (1…1440; gieo 180). */
   proxyBackdateMaxMinutes: number;
+  /** ADR-0055 VK2-B (0071): giờ lái tối đa một ngày (phút, 60…1440; gieo 480) — vượt chỉ cảnh báo. */
+  dutyDayMaxMinutes: number;
+  /** ADR-0055 VK2-B (0071): chuyến dài hơn (phút, 30…720; gieo 240) → nhắc nghỉ — chỉ cảnh báo. */
+  tripNoBreakMaxMinutes: number;
   validFrom: string;
   current: boolean;
   /** R-P23: "ai lưu" — TÊN hiển thị người lưu bản này (hàm tiêm nhãn R-P20; không SĐT, không id); null = bản gieo / khung thử không tiêm nhãn. */
@@ -1095,6 +1099,10 @@ export interface DispatchPolicyCreateRequest {
   requireManifest: boolean;
   /** BẮT BUỘC (kế hoạch I43): thiếu → 400, không chép ngầm từ dòng cũ. */
   proxyBackdateMaxMinutes: number;
+  /** BẮT BUỘC (I43, ADR-0055 VK2-B): thiếu → 400 "tải lại trang". */
+  dutyDayMaxMinutes: number;
+  /** BẮT BUỘC (I43, ADR-0055 VK2-B). */
+  tripNoBreakMaxMinutes: number;
   requireContract?: false;
 }
 export interface DepartureRuleDto {

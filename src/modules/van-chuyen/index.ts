@@ -138,6 +138,8 @@ const toPolicyDto = (r: DispatchPolicyRow, currentId: string | null, nhan: Reado
   requireManifest: r.require_manifest === 1,
   requireContract: r.require_contract === 1,
   proxyBackdateMaxMinutes: r.proxy_backdate_max_minutes,
+  dutyDayMaxMinutes: r.duty_day_max_minutes,
+  tripNoBreakMaxMinutes: r.trip_no_break_max_minutes,
   validFrom: r.valid_from_at,
   current: r.id === currentId,
   nguoiLuu: r.created_by === null ? null : (nhan?.get(r.created_by) ?? null),
@@ -520,7 +522,7 @@ export const vanChuyenModule: AppModule = {
       const truoc = cu
         ? {
           minLeadMinutes: cu.min_lead_minutes, warnLeadMinutes: cu.warn_lead_minutes, restMinutes: cu.rest_minutes, requireManifest: cu.require_manifest === 1,
-          proxyBackdateMaxMinutes: cu.proxy_backdate_max_minutes,
+          proxyBackdateMaxMinutes: cu.proxy_backdate_max_minutes, dutyDayMaxMinutes: cu.duty_day_max_minutes, tripNoBreakMaxMinutes: cu.trip_no_break_max_minutes,
         }
         : null;
       try {
