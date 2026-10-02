@@ -1012,7 +1012,7 @@ export const vanChuyenModule: AppModule = {
         const cp = await docChiPhiChoLenh(env.DB, { tripId: null, chuXe: xeRow.owner_party_id, homNay: vnToday(new Date(bayGioMs)) });
         const thue = phanLoaiThue({ chuXePartyId: xeRow.owner_party_id, congTyChuId: cp.congTyChuId, nhaXeDangMo: cp.nhaXeDangMo, cuRented: null });
         const kh = keHoachChiPhiKhiDoi({
-          dong: [], rentedMoi: thue, chuXeMoi: xeRow.owner_party_id, nhaXeDangMo: cp.nhaXeDangMo, laTaoMoi: true, doiXeHoacNhaXe: false, doiTuyen: false, doiNgay: false,
+          dong: [], homNay: vnToday(new Date(bayGioMs)), rentedMoi: thue, chuXeMoi: xeRow.owner_party_id, nhaXeDangMo: cp.nhaXeDangMo, laTaoMoi: true, doiXeHoacNhaXe: false, doiTuyen: false, doiNgay: false,
           tuyenMoi: t.tuyen, soChoMoi: xeRow.passenger_capacity, ngayChayMoi: ngayChay, gia: cp.gia, coXe: cp.coXe,
         });
         if (!kh.ok) return error(409, "carrier_inactive", CAU_NHA_XE_THOI);

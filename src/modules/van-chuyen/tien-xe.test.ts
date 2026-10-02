@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  chonDongGiaThue, coXeCua, daoDuoc, demDieuChinh, dongChongGia, loaiNguonGia, nhaXeChiuChiPhi, nhomBangKe, dongConHieuLuc, nguonGiaConHieuLuc, phanLoaiThue, thuTuDaoTatCa, tongBangKe, tongChiPhiChuyen, tongDieuChinh,
+  chonDongGiaThue, coXeCua, daoDuoc, ngayGhiDao, demDieuChinh, dongChongGia, loaiNguonGia, nhaXeChiuChiPhi, nhomBangKe, dongConHieuLuc, nguonGiaConHieuLuc, phanLoaiThue, thuTuDaoTatCa, tongBangKe, tongChiPhiChuyen, tongDieuChinh,
   type CoXe, type DongChiPhi, type DongGiaThue, type LoaiDongChiPhi,
 } from "./tien-xe.ts";
 
@@ -122,4 +122,10 @@ test("nhaXeChiuChiPhi: nhà xe của nguồn giá GHI GẦN NHẤT (kể cả đ
   assert.equal(nhaXeChiuChiPhi([], "p-cty"), "p-cty");
   assert.equal(nhaXeChiuChiPhi([{ kind: "SNAPSHOT", carrierPartyId: "p-a" }, { kind: "REVERSAL", carrierPartyId: "p-a" }, { kind: "ADJUSTMENT", carrierPartyId: "p-a" }], "p-cty"), "p-a");
   assert.equal(nhaXeChiuChiPhi([{ kind: "SNAPSHOT", carrierPartyId: "p-a" }, { kind: "REVERSAL", carrierPartyId: "p-a" }, { kind: "AGREED", carrierPartyId: "p-b" }], "p-b"), "p-b");
+});
+
+test("ngayGhiDao (vòng sửa 2, SV-1): dòng đảo mang ngày của DÒNG GỐC; kỳ của dòng gốc đã khoá (chỗ nối ADR-0080) ⇒ ngày hiện tại", () => {
+  assert.equal(ngayGhiDao({ occurredDate: "2026-10-31" }, { homNay: "2026-11-05" }), "2026-10-31");
+  assert.equal(ngayGhiDao({ occurredDate: "2026-10-31" }, { homNay: "2026-11-05", kyDaKhoa: (n) => n.startsWith("2026-10") }), "2026-11-05");
+  assert.equal(ngayGhiDao({ occurredDate: "2026-10-31" }, { homNay: "2026-11-05", kyDaKhoa: () => false }), "2026-10-31");
 });

@@ -83,6 +83,15 @@ export function daoDuoc(dong: readonly DongChiPhi[], d: DongChiPhi, trangThai: T
   return true;
 }
 
+/**
+ * NGÀY GHI của dòng đảo (vòng sửa 2, SV-1 — lời chủ 2/10): MỘT hàm cho mọi đảo (tự động khi đổi xe / nhà xe / tuyến / ngày, khi huỷ; đảo tay). Mang ngày phát
+ * sinh của DÒNG GỐC (kỳ cũ về 0 — vd chuyến 31/10 dời sang 01/11: đảo −1.000.000 ngày 31/10, chụp mới ngày 01/11). Kỳ của dòng gốc ĐÃ KHOÁ ⇒ ngày hiện tại.
+ * CHỖ NỐI khoá kỳ (ADR-0080, module `ky-so` — CHƯA có trên main): khi có, truyền `kyDaKhoa` đọc `v_ky_closed_period`; hôm nay không truyền ⇒ luôn ngày gốc.
+ */
+export function ngayGhiDao(goc: { occurredDate: string }, v: { homNay: string; kyDaKhoa?: (ngay: string) => boolean }): string {
+  return v.kyDaKhoa?.(goc.occurredDate) ? v.homNay : goc.occurredDate;
+}
+
 /** Mã lý do đảo tự động khi đổi chuyến (xe, nhà xe, tuyến, ngày chạy) — mã hệ thống, `MA_LY_DO_HE_THONG`. */
 export const LY_DO_DAO_DOI_CHUYEN = "CPX_DOI_CHUYEN";
 /** Loại nguồn giá còn hiệu lực: giá bảng (SNAPSHOT) / giá thoả thuận (AGREED) / chưa có. */

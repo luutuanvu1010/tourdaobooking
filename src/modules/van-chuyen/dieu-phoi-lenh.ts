@@ -73,7 +73,7 @@ export async function lenhSuaChuyen(db: D1Database, nen: NenChuyen, b: SuaChuyen
   const thue = doiXe ? phanLoaiThue({ chuXePartyId: xeRow.owner_party_id, congTyChuId: cp.congTyChuId, nhaXeDangMo: cp.nhaXeDangMo, cuRented: t.rented }) : t.rented;
   const doiNgay = ngayChayMoi !== t.service_date;
   const kh = keHoachChiPhiKhiDoi({
-    dong: cp.dong, rentedMoi: thue, chuXeMoi: xeRow.owner_party_id, nhaXeDangMo: cp.nhaXeDangMo, laTaoMoi: false, doiXeHoacNhaXe: doiXe, doiTuyen,
+    dong: cp.dong, homNay: homNay(bayGioMs), rentedMoi: thue, chuXeMoi: xeRow.owner_party_id, nhaXeDangMo: cp.nhaXeDangMo, laTaoMoi: false, doiXeHoacNhaXe: doiXe, doiTuyen,
     doiNgay, tuyenMoi, soChoMoi: xeRow.passenger_capacity, ngayChayMoi, gia: cp.gia, coXe: cp.coXe,
   });
   if (!kh.ok) return NHA_XE_THOI_HOP_TAC({ doiTuyen, doiNgay: doiNgay && !doiXe });
@@ -296,7 +296,7 @@ export async function lenhHuy(db: D1Database, nen: NenChuyen, b: HuyThan, staff:
   const phaLe = moc ? phaLeCua(chung, "MOC_TOI_THIEU", b.phaLe) : null;
   // ADR-0057 C4: lô huỷ đảo MỌI dòng chi phí còn hiệu lực (âm → dương) trước câu trạng thái cuối; phiên bản chi phí ở câu cổng (TC-8).
   const cp = await docChiPhiChoLenh(db, { tripId: t.id, chuXe: t.carrier_party_id, homNay: homNay(bayGioMs) });
-  const kh = keHoachChiPhiKhiHuy(cp.dong, t.service_date);
+  const kh = keHoachChiPhiKhiHuy(cp.dong, homNay(bayGioMs));
   const lo = loHuy(db, {
     ...lenhChung(b.requestId, staff, bayGioMs), tripId: t.id, version: b.version, lyDo: b.lyDo, phaLe, policyId: chung.chinhSach?.id ?? null, soSuatMo: soMo,
     chiPhi: kh, phienBanChiPhi: kh.phienBan,

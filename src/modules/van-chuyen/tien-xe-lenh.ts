@@ -5,8 +5,8 @@ import { nhaXeDangHopTac, ownerCompany } from "../parties";
 import type { BangGiaResponse, StaffProfile } from "../../shared/contracts";
 import { error } from "../../shared/http";
 import { addDays } from "../../shared/vn-date";
-import { chuTien, dongChongGia, type CoXe, type DongChiPhi, type DongGiaThue } from "./tien-xe";
-import { dongCua } from "./tien-xe-lo";
+import { chuTien, dongChongGia, type CoXe, type DongGiaThue } from "./tien-xe";
+import { dongCua, type DongLo } from "./tien-xe-lo";
 import { bangGiaDto, coXeDto, tuyenDto } from "./tien-xe-dto";
 import {
   closeRateStatement, costLinesOfTrip, findRate, findRoute, findSize, inactiveCarriersWithOpenRate, insertRateStatement, insertRouteStatement, insertSizeStatement, listRoutes, listSizes, partyName,
@@ -25,7 +25,7 @@ export async function docPhanLoai(db: D1Database): Promise<{ congTyChuId: string
  * thuê. Đọc SAU `can()`, TRƯỚC khi dựng lô; số dòng = phiên bản chi phí cho câu cổng (TC-8).
  */
 export async function docChiPhiChoLenh(db: D1Database, v: { tripId: string | null; chuXe: string; homNay: string }): Promise<{
-  dong: (DongChiPhi & { carrierPartyId: string })[]; gia: DongGiaThue[]; coXe: CoXe[]; congTyChuId: string | null; nhaXeDangMo: ReadonlySet<string>;
+  dong: DongLo[]; gia: DongGiaThue[]; coXe: CoXe[]; congTyChuId: string | null; nhaXeDangMo: ReadonlySet<string>;
 }> {
   const [dong, gia, co, pl] = await Promise.all([
     v.tripId ? costLinesOfTrip(db, v.tripId) : Promise.resolve([]), ratesOfCarrier(db, v.chuXe), listSizes(db, v.homNay), docPhanLoai(db),

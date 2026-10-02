@@ -9,7 +9,7 @@ import { error } from "../../shared/http";
 import { tripById, type TripRow } from "./chuyen-repo";
 import { findVehicle } from "./repository";
 import { CAU_CHI_PHI_VUA_DOI, CAU_NHA_XE_THOI, CAU_TONG_AM, loiRangBuocChuyen } from "./rules";
-import { chonDongGiaThue, chuTien, coXeCua, daoDuoc, nguonGiaConHieuLuc, nhaXeChiuChiPhi, tongChiPhiChuyen, type DongChiPhi } from "./tien-xe";
+import { chonDongGiaThue, chuTien, coXeCua, daoDuoc, ngayGhiDao, nguonGiaConHieuLuc, nhaXeChiuChiPhi, tongChiPhiChuyen, type DongChiPhi } from "./tien-xe";
 import { bangKeDto, chiPhiChuyenDto } from "./tien-xe-dto";
 import { dongCua } from "./tien-xe-lo";
 import {
@@ -125,7 +125,7 @@ export async function lenhDaoDong(db: D1Database, tripId: string, b: DaoDongThan
   if (truoc - goc.amount < 0) return { ok: false, res: TONG_AM() };
   const at = now.toISOString();
   return chayGhi(db, [
-    db.prepare(COST_REVERSE_KT).bind(b.requestId, nc.trip.id, nc.rows[i]!.carrier_party_id, -goc.amount, goc.id, b.lyDo, b.ghiChu, b.ngay ?? homNay, b.requestId, at, staff.id, b.phienBanChiPhi),
+    db.prepare(COST_REVERSE_KT).bind(b.requestId, nc.trip.id, nc.rows[i]!.carrier_party_id, -goc.amount, goc.id, b.lyDo, b.ghiChu, ngayGhiDao({ occurredDate: nc.rows[i]!.occurred_date }, { homNay }), b.requestId, at, staff.id, b.phienBanChiPhi),
     nhatKy(db, { id: b.requestId, staff, at, action: "trip_cost_reversed", tripId: nc.trip.id, detail: chiTiet(nc.trip, nc.tenNhaXe, truoc, truoc - goc.amount, nhan) }),
   ]);
 }

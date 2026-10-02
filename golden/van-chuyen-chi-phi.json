@@ -1,146 +1,362 @@
 {
   "luat": "ADR-0057 T1 B2 + T2 C4/C8 — giá thuê xe theo chuyến (tuyến + cỡ > tuyến > cỡ, ngày chạy trong khoảng hiệu lực tính cả hai đầu), chi phí chuyến chỉ-thêm (chụp lúc xếp xe nhà xe, đảo + chụp lại khi đổi nhà xe / xe / tuyến / NGÀY chạy trước xuất bến — Cần chủ 3 = A, đảo hết khi huỷ: âm trước, dương sau), tổng ≥ 0 sau mọi dòng",
-  "mo_ta": "Ví dụ vàng V1–V13 của kế hoạch docs/superpowers/plans/2026-10-01-van-chuyen-con-lai-04-tien-xe-thue.md (mục 'Ví dụ vàng') + V14, V14b (dời ngày chạy — chủ chọn (A) '900.000đ — giá ngày chạy', 2026-10-02). Nhà xe HP = 'Nhà xe Hùng Phát'; tuyến NT-CR = 'Nha Trang – sân bay Cam Ranh', NT-DL = 'Nha Trang – Đà Lạt'; cỡ C16 = 10–16 khách, C29 = 17–29 khách (không kể tài xế). Ngày giờ Việt Nam. Sự kiện dùng tập đóng: CHUP, GIA_THOA_THUAN, DIEU_CHINH, DAO (dong = chỉ số 0-based trong danh sách dòng đã có), DOI_TUYEN, DOI_XE (so_cho, nha_xe 'HP' | 'CONG_TY'), DOI_NGAY, HUY, KET_THUC_GIAN_DOAN, THEM_GIA (thay = id dòng bị đóng ở ngày trước). dap_an.dong = các dòng chi phí theo thứ tự ghi [loại, số tiền có dấu]; tu_choi = sự kiện bị từ chối (chỉ số sự kiện, mã lỗi); thieu_gia = chuyến chưa xuất bến bị giữ 'chưa có giá' (null khi chuyến đã huỷ / đã chạy). Tiền: số nguyên đồng.",
+  "mo_ta": "Ví dụ vàng V1–V13 của kế hoạch docs/superpowers/plans/2026-10-01-van-chuyen-con-lai-04-tien-xe-thue.md (mục 'Ví dụ vàng') + V14, V14b (dời ngày chạy — chủ chọn (A) '900.000đ — giá ngày chạy', 2026-10-02). Nhà xe HP = 'Nhà xe Hùng Phát'; tuyến NT-CR = 'Nha Trang – sân bay Cam Ranh', NT-DL = 'Nha Trang – Đà Lạt'; cỡ C16 = 10–16 khách, C29 = 17–29 khách (không kể tài xế). Ngày giờ Việt Nam. Sự kiện dùng tập đóng: CHUP, GIA_THOA_THUAN, DIEU_CHINH, DAO (dong = chỉ số 0-based trong danh sách dòng đã có), DOI_TUYEN, DOI_XE (so_cho, nha_xe 'HP' | 'CONG_TY'), DOI_NGAY, HUY, KET_THUC_GIAN_DOAN, THEM_GIA (thay = id dòng bị đóng ở ngày trước). dap_an.dong = các dòng chi phí theo thứ tự ghi [loại, số tiền có dấu, ngày phát sinh] (vòng sửa 2 SV-1: dòng đảo mang ngày của dòng gốc); tu_choi = sự kiện bị từ chối (chỉ số sự kiện, mã lỗi); thieu_gia = chuyến chưa xuất bến bị giữ 'chưa có giá' (null khi chuyến đã huỷ / đã chạy). Tiền: số nguyên đồng.",
   "bang_gia": [
     { "id": "G1", "nha_xe": "HP", "tuyen": "NT-CR", "co": "C16", "tien": 1200000, "tu": "2026-10-01", "den": "2026-10-31" },
     { "id": "G2", "nha_xe": "HP", "tuyen": "NT-CR", "co": null, "tien": 1000000, "tu": "2026-10-01", "den": "2026-10-31" },
     { "id": "G3", "nha_xe": "HP", "tuyen": null, "co": "C16", "tien": 900000, "tu": "2026-10-01", "den": null },
     { "id": "G4", "nha_xe": "HP", "tuyen": "NT-CR", "co": null, "tien": 1100000, "tu": "2026-11-01", "den": null }
   ],
-  "co_xe": [{ "code": "C16", "min": 10, "max": 16 }, { "code": "C29", "min": 17, "max": 29 }],
+  "co_xe": [
+    { "code": "C16", "min": 10, "max": 16 },
+    { "code": "C29", "min": 17, "max": 29 }
+  ],
   "cac_ca": [
     {
-      "ma": "SV-CPX-01", "mo_ta": "V1: chuyến 15/10, xe 16 chỗ của Hùng Phát, tuyến NT-CR → giá bảng G1 (khớp tuyến + cỡ)",
+      "ma": "SV-CPX-01",
+      "mo_ta": "V1: chuyến 15/10, xe 16 chỗ của Hùng Phát, tuyến NT-CR → giá bảng G1 (khớp tuyến + cỡ)",
       "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
       "chuyen": { "nha_xe": "HP", "so_cho": 16, "tuyen": "NT-CR", "ngay": "2026-10-15" },
-      "su_kien": [{ "loai": "CHUP" }],
-      "dap_an": { "dong": [["SNAPSHOT", 1200000]], "tong": 1200000, "thieu_gia": false }
+      "su_kien": [
+        { "loai": "CHUP" }
+      ],
+      "dap_an": {
+        "dong": [
+          ["SNAPSHOT", 1200000, "2026-10-15"]
+        ],
+        "tong": 1200000,
+        "thieu_gia": false
+      }
     },
     {
-      "ma": "SV-CPX-02", "mo_ta": "V2: 15/10, xe 29 chỗ, tuyến NT-CR → G2 (khớp tuyến, cỡ trống)",
+      "ma": "SV-CPX-02",
+      "mo_ta": "V2: 15/10, xe 29 chỗ, tuyến NT-CR → G2 (khớp tuyến, cỡ trống)",
       "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
       "chuyen": { "nha_xe": "HP", "so_cho": 29, "tuyen": "NT-CR", "ngay": "2026-10-15" },
-      "su_kien": [{ "loai": "CHUP" }],
-      "dap_an": { "dong": [["SNAPSHOT", 1000000]], "tong": 1000000, "thieu_gia": false }
+      "su_kien": [
+        { "loai": "CHUP" }
+      ],
+      "dap_an": {
+        "dong": [
+          ["SNAPSHOT", 1000000, "2026-10-15"]
+        ],
+        "tong": 1000000,
+        "thieu_gia": false
+      }
     },
     {
-      "ma": "SV-CPX-03", "mo_ta": "V3: 15/10, xe 16 chỗ, chưa chọn tuyến → G3 (khớp cỡ)",
+      "ma": "SV-CPX-03",
+      "mo_ta": "V3: 15/10, xe 16 chỗ, chưa chọn tuyến → G3 (khớp cỡ)",
       "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
       "chuyen": { "nha_xe": "HP", "so_cho": 16, "tuyen": null, "ngay": "2026-10-15" },
-      "su_kien": [{ "loai": "CHUP" }],
-      "dap_an": { "dong": [["SNAPSHOT", 900000]], "tong": 900000, "thieu_gia": false }
+      "su_kien": [
+        { "loai": "CHUP" }
+      ],
+      "dap_an": {
+        "dong": [
+          ["SNAPSHOT", 900000, "2026-10-15"]
+        ],
+        "tong": 900000,
+        "thieu_gia": false
+      }
     },
     {
-      "ma": "SV-CPX-04", "mo_ta": "V4: 15/10, xe 16 chỗ, tuyến NT-DL (không có giá theo tuyến này) → G3",
+      "ma": "SV-CPX-04",
+      "mo_ta": "V4: 15/10, xe 16 chỗ, tuyến NT-DL (không có giá theo tuyến này) → G3",
       "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
       "chuyen": { "nha_xe": "HP", "so_cho": 16, "tuyen": "NT-DL", "ngay": "2026-10-15" },
-      "su_kien": [{ "loai": "CHUP" }],
-      "dap_an": { "dong": [["SNAPSHOT", 900000]], "tong": 900000, "thieu_gia": false }
+      "su_kien": [
+        { "loai": "CHUP" }
+      ],
+      "dap_an": {
+        "dong": [
+          ["SNAPSHOT", 900000, "2026-10-15"]
+        ],
+        "tong": 900000,
+        "thieu_gia": false
+      }
     },
     {
-      "ma": "SV-CPX-05a", "mo_ta": "V5a: 31/10 (ngày cuối của G2), xe 29 chỗ, NT-CR → G2 còn hiệu lực đúng ngày cuối",
+      "ma": "SV-CPX-05a",
+      "mo_ta": "V5a: 31/10 (ngày cuối của G2), xe 29 chỗ, NT-CR → G2 còn hiệu lực đúng ngày cuối",
       "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
       "chuyen": { "nha_xe": "HP", "so_cho": 29, "tuyen": "NT-CR", "ngay": "2026-10-31" },
-      "su_kien": [{ "loai": "CHUP" }],
-      "dap_an": { "dong": [["SNAPSHOT", 1000000]], "tong": 1000000, "thieu_gia": false }
+      "su_kien": [
+        { "loai": "CHUP" }
+      ],
+      "dap_an": {
+        "dong": [
+          ["SNAPSHOT", 1000000, "2026-10-31"]
+        ],
+        "tong": 1000000,
+        "thieu_gia": false
+      }
     },
     {
-      "ma": "SV-CPX-05b", "mo_ta": "V5b: 01/11, xe 29 chỗ, NT-CR → G4",
+      "ma": "SV-CPX-05b",
+      "mo_ta": "V5b: 01/11, xe 29 chỗ, NT-CR → G4",
       "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
       "chuyen": { "nha_xe": "HP", "so_cho": 29, "tuyen": "NT-CR", "ngay": "2026-11-01" },
-      "su_kien": [{ "loai": "CHUP" }],
-      "dap_an": { "dong": [["SNAPSHOT", 1100000]], "tong": 1100000, "thieu_gia": false }
+      "su_kien": [
+        { "loai": "CHUP" }
+      ],
+      "dap_an": {
+        "dong": [
+          ["SNAPSHOT", 1100000, "2026-11-01"]
+        ],
+        "tong": 1100000,
+        "thieu_gia": false
+      }
     },
     {
-      "ma": "SV-CPX-06", "mo_ta": "V6: 15/10, xe 29 chỗ, chưa chọn tuyến (không dòng nào khớp) → không dòng nào, KHÔNG BAO GIỜ ghi 0 đồng; bị giữ 'chưa có giá'",
+      "ma": "SV-CPX-06",
+      "mo_ta": "V6: 15/10, xe 29 chỗ, chưa chọn tuyến (không dòng nào khớp) → không dòng nào, KHÔNG BAO GIỜ ghi 0 đồng; bị giữ 'chưa có giá'",
       "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
       "chuyen": { "nha_xe": "HP", "so_cho": 29, "tuyen": null, "ngay": "2026-10-15" },
-      "su_kien": [{ "loai": "CHUP" }],
-      "dap_an": { "dong": [], "tong": 0, "thieu_gia": true }
+      "su_kien": [
+        { "loai": "CHUP" }
+      ],
+      "dap_an": {
+        "dong": [],
+        "tong": 0,
+        "thieu_gia": true
+      }
     },
     {
-      "ma": "SV-CPX-06b", "mo_ta": "V6b: tiếp V6 — Kế toán nhập giá thoả thuận 1.350.000 (lý do 'Giá thoả thuận trước', ghi chú 'đã chốt với anh Hùng 14/10')",
+      "ma": "SV-CPX-06b",
+      "mo_ta": "V6b: tiếp V6 — Kế toán nhập giá thoả thuận 1.350.000 (lý do 'Giá thoả thuận trước', ghi chú 'đã chốt với anh Hùng 14/10')",
       "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
       "chuyen": { "nha_xe": "HP", "so_cho": 29, "tuyen": null, "ngay": "2026-10-15" },
-      "su_kien": [{ "loai": "CHUP" }, { "loai": "GIA_THOA_THUAN", "tien": 1350000, "ly_do": "CPX_GIA_THOA_THUAN", "ghi_chu": "đã chốt với anh Hùng 14/10" }],
-      "dap_an": { "dong": [["AGREED", 1350000]], "tong": 1350000, "thieu_gia": false }
+      "su_kien": [
+        { "loai": "CHUP" },
+        { "loai": "GIA_THOA_THUAN", "tien": 1350000, "ly_do": "CPX_GIA_THOA_THUAN", "ghi_chu": "đã chốt với anh Hùng 14/10" }
+      ],
+      "dap_an": {
+        "dong": [
+          ["AGREED", 1350000, "2026-10-15"]
+        ],
+        "tong": 1350000,
+        "thieu_gia": false
+      }
     },
     {
-      "ma": "SV-CPX-07", "mo_ta": "V7: V1 rồi Kế toán ghi +150.000 'Phụ thu chờ thêm giờ'; sau đó văn phòng đổi tuyến sang NT-DL trước xuất bến → đảo phụ thu, đảo giá cũ, chụp G3",
+      "ma": "SV-CPX-07",
+      "mo_ta": "V7: V1 rồi Kế toán ghi +150.000 'Phụ thu chờ thêm giờ'; sau đó văn phòng đổi tuyến sang NT-DL trước xuất bến → đảo phụ thu, đảo giá cũ, chụp G3",
       "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
       "chuyen": { "nha_xe": "HP", "so_cho": 16, "tuyen": "NT-CR", "ngay": "2026-10-15" },
-      "su_kien": [{ "loai": "CHUP" }, { "loai": "DIEU_CHINH", "tien": 150000, "ly_do": "CPX_PHU_THU_CHO" }, { "loai": "DOI_TUYEN", "tuyen": "NT-DL" }],
-      "dap_an": { "dong": [["SNAPSHOT", 1200000], ["ADJUSTMENT", 150000], ["REVERSAL", -150000], ["REVERSAL", -1200000], ["SNAPSHOT", 900000]], "tong": 900000, "thieu_gia": false, "so_dieu_chinh_bi_dao": 1 }
+      "su_kien": [
+        { "loai": "CHUP" },
+        { "loai": "DIEU_CHINH", "tien": 150000, "ly_do": "CPX_PHU_THU_CHO" },
+        { "loai": "DOI_TUYEN", "tuyen": "NT-DL" }
+      ],
+      "dap_an": {
+        "dong": [
+          ["SNAPSHOT", 1200000, "2026-10-15"],
+          ["ADJUSTMENT", 150000, "2026-10-15"],
+          ["REVERSAL", -150000, "2026-10-15"],
+          ["REVERSAL", -1200000, "2026-10-15"],
+          ["SNAPSHOT", 900000, "2026-10-15"]
+        ],
+        "tong": 900000,
+        "thieu_gia": false,
+        "so_dieu_chinh_bi_dao": 1
+      }
     },
     {
-      "ma": "SV-CPX-08", "mo_ta": "V8: V1 rồi Kế toán ghi −200.000 'Nhập sai'; sau đó văn phòng huỷ chuyến → lô huỷ đảo âm trước (+200.000), dương sau (−1.200.000); tổng 0",
+      "ma": "SV-CPX-08",
+      "mo_ta": "V8: V1 rồi Kế toán ghi −200.000 'Nhập sai'; sau đó văn phòng huỷ chuyến → lô huỷ đảo âm trước (+200.000), dương sau (−1.200.000); tổng 0",
       "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
       "chuyen": { "nha_xe": "HP", "so_cho": 16, "tuyen": "NT-CR", "ngay": "2026-10-15" },
-      "su_kien": [{ "loai": "CHUP" }, { "loai": "DIEU_CHINH", "tien": -200000, "ly_do": "CPX_NHAP_SAI" }, { "loai": "HUY" }],
-      "dap_an": { "dong": [["SNAPSHOT", 1200000], ["ADJUSTMENT", -200000], ["REVERSAL", 200000], ["REVERSAL", -1200000]], "tong": 0, "thieu_gia": null }
+      "su_kien": [
+        { "loai": "CHUP" },
+        { "loai": "DIEU_CHINH", "tien": -200000, "ly_do": "CPX_NHAP_SAI" },
+        { "loai": "HUY" }
+      ],
+      "dap_an": {
+        "dong": [
+          ["SNAPSHOT", 1200000, "2026-10-15"],
+          ["ADJUSTMENT", -200000, "2026-10-15"],
+          ["REVERSAL", 200000, "2026-10-15"],
+          ["REVERSAL", -1200000, "2026-10-15"]
+        ],
+        "tong": 0,
+        "thieu_gia": null
+      }
     },
     {
-      "ma": "SV-CPX-08b", "mo_ta": "V8b: tiếp V8 — Kế toán ghi +300.000 'Phí huỷ muộn' sau khi huỷ",
+      "ma": "SV-CPX-08b",
+      "mo_ta": "V8b: tiếp V8 — Kế toán ghi +300.000 'Phí huỷ muộn' sau khi huỷ",
       "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
       "chuyen": { "nha_xe": "HP", "so_cho": 16, "tuyen": "NT-CR", "ngay": "2026-10-15" },
-      "su_kien": [{ "loai": "CHUP" }, { "loai": "DIEU_CHINH", "tien": -200000, "ly_do": "CPX_NHAP_SAI" }, { "loai": "HUY" }, { "loai": "DIEU_CHINH", "tien": 300000, "ly_do": "CPX_HUY_MUON" }],
-      "dap_an": { "dong": [["SNAPSHOT", 1200000], ["ADJUSTMENT", -200000], ["REVERSAL", 200000], ["REVERSAL", -1200000], ["ADJUSTMENT", 300000]], "tong": 300000, "thieu_gia": null }
+      "su_kien": [
+        { "loai": "CHUP" },
+        { "loai": "DIEU_CHINH", "tien": -200000, "ly_do": "CPX_NHAP_SAI" },
+        { "loai": "HUY" },
+        { "loai": "DIEU_CHINH", "tien": 300000, "ly_do": "CPX_HUY_MUON" }
+      ],
+      "dap_an": {
+        "dong": [
+          ["SNAPSHOT", 1200000, "2026-10-15"],
+          ["ADJUSTMENT", -200000, "2026-10-15"],
+          ["REVERSAL", 200000, "2026-10-15"],
+          ["REVERSAL", -1200000, "2026-10-15"],
+          ["ADJUSTMENT", 300000, "2026-10-15"]
+        ],
+        "tong": 300000,
+        "thieu_gia": null
+      }
     },
     {
-      "ma": "SV-CPX-09", "mo_ta": "V9: V1 + (−200.000 'Nhập sai'); Kế toán TỰ đảo giá bảng → bị từ chối 'Tổng chi phí chuyến sẽ âm — đảo điều chỉnh giảm trước'; không đổi",
+      "ma": "SV-CPX-09",
+      "mo_ta": "V9: V1 + (−200.000 'Nhập sai'); Kế toán TỰ đảo giá bảng → bị từ chối 'Tổng chi phí chuyến sẽ âm — đảo điều chỉnh giảm trước'; không đổi",
       "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
       "chuyen": { "nha_xe": "HP", "so_cho": 16, "tuyen": "NT-CR", "ngay": "2026-10-15" },
-      "su_kien": [{ "loai": "CHUP" }, { "loai": "DIEU_CHINH", "tien": -200000, "ly_do": "CPX_NHAP_SAI" }, { "loai": "DAO", "dong": 0, "ly_do": "CPX_NHAP_SAI" }],
-      "dap_an": { "dong": [["SNAPSHOT", 1200000], ["ADJUSTMENT", -200000]], "tong": 1000000, "thieu_gia": false, "tu_choi": [[2, "tong_am"]] }
+      "su_kien": [
+        { "loai": "CHUP" },
+        { "loai": "DIEU_CHINH", "tien": -200000, "ly_do": "CPX_NHAP_SAI" },
+        { "loai": "DAO", "dong": 0, "ly_do": "CPX_NHAP_SAI" }
+      ],
+      "dap_an": {
+        "dong": [
+          ["SNAPSHOT", 1200000, "2026-10-15"],
+          ["ADJUSTMENT", -200000, "2026-10-15"]
+        ],
+        "tong": 1000000,
+        "thieu_gia": false,
+        "tu_choi": [
+          [2, "tong_am"]
+        ]
+      }
     },
     {
-      "ma": "SV-CPX-10", "mo_ta": "V10: V1, xe hỏng giữa đường (kết thúc gián đoạn); giá đã chụp GIỮ NGUYÊN (Q-T6); Kế toán ghi −400.000 'Khác'",
+      "ma": "SV-CPX-10",
+      "mo_ta": "V10: V1, xe hỏng giữa đường (kết thúc gián đoạn); giá đã chụp GIỮ NGUYÊN (Q-T6); Kế toán ghi −400.000 'Khác'",
       "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
       "chuyen": { "nha_xe": "HP", "so_cho": 16, "tuyen": "NT-CR", "ngay": "2026-10-15" },
-      "su_kien": [{ "loai": "CHUP" }, { "loai": "KET_THUC_GIAN_DOAN" }, { "loai": "DIEU_CHINH", "tien": -400000, "ly_do": "CPX_KHAC" }],
-      "dap_an": { "dong": [["SNAPSHOT", 1200000], ["ADJUSTMENT", -400000]], "tong": 800000, "thieu_gia": null }
+      "su_kien": [
+        { "loai": "CHUP" },
+        { "loai": "KET_THUC_GIAN_DOAN" },
+        { "loai": "DIEU_CHINH", "tien": -400000, "ly_do": "CPX_KHAC" }
+      ],
+      "dap_an": {
+        "dong": [
+          ["SNAPSHOT", 1200000, "2026-10-15"],
+          ["ADJUSTMENT", -400000, "2026-10-15"]
+        ],
+        "tong": 800000,
+        "thieu_gia": null
+      }
     },
     {
-      "ma": "SV-CPX-11", "mo_ta": "V11: V1 đã chụp; SAU ĐÓ Quản trị đổi giá cùng tuyến / cỡ (G5 1.500.000 thay G1 từ 16/10) → chi phí chuyến KHÔNG đổi",
+      "ma": "SV-CPX-11",
+      "mo_ta": "V11: V1 đã chụp; SAU ĐÓ Quản trị đổi giá cùng tuyến / cỡ (G5 1.500.000 thay G1 từ 16/10) → chi phí chuyến KHÔNG đổi",
       "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
       "chuyen": { "nha_xe": "HP", "so_cho": 16, "tuyen": "NT-CR", "ngay": "2026-10-15" },
-      "su_kien": [{ "loai": "CHUP" }, { "loai": "THEM_GIA", "id": "G5", "tuyen": "NT-CR", "co": "C16", "tien": 1500000, "tu": "2026-10-10", "den": null, "thay": "G1" }],
-      "dap_an": { "dong": [["SNAPSHOT", 1200000]], "tong": 1200000, "thieu_gia": false }
+      "su_kien": [
+        { "loai": "CHUP" },
+        { "loai": "THEM_GIA", "id": "G5", "tuyen": "NT-CR", "co": "C16", "tien": 1500000, "tu": "2026-10-10", "den": null, "thay": "G1" }
+      ],
+      "dap_an": {
+        "dong": [
+          ["SNAPSHOT", 1200000, "2026-10-15"]
+        ],
+        "tong": 1200000,
+        "thieu_gia": false
+      }
     },
     {
-      "ma": "SV-CPX-12", "mo_ta": "V12: V6b (thoả thuận 1.350.000) rồi đổi tuyến sang NT-CR → đảo thoả thuận, chụp G2; thoả thuận KHÔNG tự chuyển",
+      "ma": "SV-CPX-12",
+      "mo_ta": "V12: V6b (thoả thuận 1.350.000) rồi đổi tuyến sang NT-CR → đảo thoả thuận, chụp G2; thoả thuận KHÔNG tự chuyển",
       "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
       "chuyen": { "nha_xe": "HP", "so_cho": 29, "tuyen": null, "ngay": "2026-10-15" },
-      "su_kien": [{ "loai": "CHUP" }, { "loai": "GIA_THOA_THUAN", "tien": 1350000, "ly_do": "CPX_GIA_THOA_THUAN", "ghi_chu": "đã chốt với anh Hùng 14/10" }, { "loai": "DOI_TUYEN", "tuyen": "NT-CR" }],
-      "dap_an": { "dong": [["AGREED", 1350000], ["REVERSAL", -1350000], ["SNAPSHOT", 1000000]], "tong": 1000000, "thieu_gia": false }
+      "su_kien": [
+        { "loai": "CHUP" },
+        { "loai": "GIA_THOA_THUAN", "tien": 1350000, "ly_do": "CPX_GIA_THOA_THUAN", "ghi_chu": "đã chốt với anh Hùng 14/10" },
+        { "loai": "DOI_TUYEN", "tuyen": "NT-CR" }
+      ],
+      "dap_an": {
+        "dong": [
+          ["AGREED", 1350000, "2026-10-15"],
+          ["REVERSAL", -1350000, "2026-10-15"],
+          ["SNAPSHOT", 1000000, "2026-10-15"]
+        ],
+        "tong": 1000000,
+        "thieu_gia": false
+      }
     },
     {
-      "ma": "SV-CPX-12b", "mo_ta": "V12b: V6b rồi đổi tuyến sang tuyến không có giá (NT-DL), xe 29 chỗ → đảo thoả thuận, thiếu giá (nhập lại thoả thuận)",
+      "ma": "SV-CPX-12b",
+      "mo_ta": "V12b: V6b rồi đổi tuyến sang tuyến không có giá (NT-DL), xe 29 chỗ → đảo thoả thuận, thiếu giá (nhập lại thoả thuận)",
       "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
       "chuyen": { "nha_xe": "HP", "so_cho": 29, "tuyen": null, "ngay": "2026-10-15" },
-      "su_kien": [{ "loai": "CHUP" }, { "loai": "GIA_THOA_THUAN", "tien": 1350000, "ly_do": "CPX_GIA_THOA_THUAN", "ghi_chu": "đã chốt với anh Hùng 14/10" }, { "loai": "DOI_TUYEN", "tuyen": "NT-DL" }],
-      "dap_an": { "dong": [["AGREED", 1350000], ["REVERSAL", -1350000]], "tong": 0, "thieu_gia": true }
+      "su_kien": [
+        { "loai": "CHUP" },
+        { "loai": "GIA_THOA_THUAN", "tien": 1350000, "ly_do": "CPX_GIA_THOA_THUAN", "ghi_chu": "đã chốt với anh Hùng 14/10" },
+        { "loai": "DOI_TUYEN", "tuyen": "NT-DL" }
+      ],
+      "dap_an": {
+        "dong": [
+          ["AGREED", 1350000, "2026-10-15"],
+          ["REVERSAL", -1350000, "2026-10-15"]
+        ],
+        "tong": 0,
+        "thieu_gia": true
+      }
     },
     {
-      "ma": "SV-CPX-13", "mo_ta": "V13: V1 rồi đổi sang XE CÔNG TY → đảo giá; chuyến thành 'không thuê' (không cần giá)",
+      "ma": "SV-CPX-13",
+      "mo_ta": "V13: V1 rồi đổi sang XE CÔNG TY → đảo giá; chuyến thành 'không thuê' (không cần giá)",
       "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
       "chuyen": { "nha_xe": "HP", "so_cho": 16, "tuyen": "NT-CR", "ngay": "2026-10-15" },
-      "su_kien": [{ "loai": "CHUP" }, { "loai": "DOI_XE", "so_cho": 16, "nha_xe": "CONG_TY" }],
-      "dap_an": { "dong": [["SNAPSHOT", 1200000], ["REVERSAL", -1200000]], "tong": 0, "thieu_gia": false }
+      "su_kien": [
+        { "loai": "CHUP" },
+        { "loai": "DOI_XE", "so_cho": 16, "nha_xe": "CONG_TY" }
+      ],
+      "dap_an": {
+        "dong": [
+          ["SNAPSHOT", 1200000, "2026-10-15"],
+          ["REVERSAL", -1200000, "2026-10-15"]
+        ],
+        "tong": 0,
+        "thieu_gia": false
+      }
     },
     {
-      "ma": "SV-CPX-14", "mo_ta": "V14 (Cần chủ 3 = A 'giá ngày chạy'): chuyến 31/10 xe 29 chỗ NT-CR (G2) dời sang 01/11 trước xuất bến → đảo G2, chụp G4 theo ngày chạy mới",
+      "ma": "SV-CPX-14",
+      "mo_ta": "V14 (Cần chủ 3 = A 'giá ngày chạy'; SV-1 lời chủ 2/10): chuyến 31/10 xe 29 chỗ NT-CR (G2) dời sang 01/11 trước xuất bến → đảo G2 MANG NGÀY 31/10 (tháng 10 về 0), chụp G4 ngày 01/11",
       "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
       "chuyen": { "nha_xe": "HP", "so_cho": 29, "tuyen": "NT-CR", "ngay": "2026-10-31" },
-      "su_kien": [{ "loai": "CHUP" }, { "loai": "DOI_NGAY", "ngay": "2026-11-01" }],
-      "dap_an": { "dong": [["SNAPSHOT", 1000000], ["REVERSAL", -1000000], ["SNAPSHOT", 1100000]], "tong": 1100000, "thieu_gia": false }
+      "su_kien": [
+        { "loai": "CHUP" },
+        { "loai": "DOI_NGAY", "ngay": "2026-11-01" }
+      ],
+      "dap_an": {
+        "dong": [
+          ["SNAPSHOT", 1000000, "2026-10-31"],
+          ["REVERSAL", -1000000, "2026-10-31"],
+          ["SNAPSHOT", 1100000, "2026-11-01"]
+        ],
+        "tong": 1100000,
+        "thieu_gia": false
+      }
     },
     {
-      "ma": "SV-CPX-14b", "mo_ta": "V14b: V6b (thoả thuận 1.350.000) dời GIỜ trong CÙNG ngày chạy → không tính lại, thoả thuận giữ nguyên",
+      "ma": "SV-CPX-14b",
+      "mo_ta": "V14b: V6b (thoả thuận 1.350.000) dời GIỜ trong CÙNG ngày chạy → không tính lại, thoả thuận giữ nguyên",
       "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
       "chuyen": { "nha_xe": "HP", "so_cho": 29, "tuyen": null, "ngay": "2026-10-15" },
-      "su_kien": [{ "loai": "CHUP" }, { "loai": "GIA_THOA_THUAN", "tien": 1350000, "ly_do": "CPX_GIA_THOA_THUAN", "ghi_chu": "đã chốt với anh Hùng 14/10" }, { "loai": "DOI_NGAY", "ngay": "2026-10-15" }],
-      "dap_an": { "dong": [["AGREED", 1350000]], "tong": 1350000, "thieu_gia": false }
+      "su_kien": [
+        { "loai": "CHUP" },
+        { "loai": "GIA_THOA_THUAN", "tien": 1350000, "ly_do": "CPX_GIA_THOA_THUAN", "ghi_chu": "đã chốt với anh Hùng 14/10" },
+        { "loai": "DOI_NGAY", "ngay": "2026-10-15" }
+      ],
+      "dap_an": {
+        "dong": [
+          ["AGREED", 1350000, "2026-10-15"]
+        ],
+        "tong": 1350000,
+        "thieu_gia": false
+      }
     }
   ]
 }

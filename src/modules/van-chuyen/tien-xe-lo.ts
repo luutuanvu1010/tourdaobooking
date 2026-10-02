@@ -3,7 +3,7 @@
 // sau — `thuTuDaoTatCa`) đứng TRƯỚC câu ghi chuyến; CHỤP đứng SAU câu ghi chuyến (trigger source_carrier đọc cờ / nhà xe MỚI của chuyến).
 import type { CauCoNhan, LenhChung } from "./dieu-phoi";
 // Đuôi .ts: sổ vàng (src/so-vang-chi-phi-xe.test.ts) nạp THẲNG tệp này bằng node --test để chạy đúng kế hoạch chi phí của lô chuyến (vòng sửa 1, V-2).
-import { chonDongGiaThue, chuTien, coXeCua, thuTuDaoTatCa, tongChiPhiChuyen, type CoXe, type DongChiPhi, type DongGiaThue } from "./tien-xe.ts";
+import { chonDongGiaThue, chuTien, coXeCua, ngayGhiDao, thuTuDaoTatCa, tongChiPhiChuyen, type CoXe, type DongChiPhi, type DongGiaThue } from "./tien-xe.ts";
 import { COST_REVERSE, COST_SNAPSHOT, type CostLineRow } from "./tien-xe-repo.ts";
 
 export type LyDoDaoHeThong = "CPX_DOI_CHUYEN" | "CPX_HUY_CHUYEN";
@@ -22,9 +22,12 @@ export interface KeHoachChiPhi {
 }
 export const KE_HOACH_RONG = (phienBan: number, tong: number): KeHoachChiPhi => ({ dao: [], chup: null, phienBan, daoDieuChinh: 0, tongTruoc: tong, tongSau: tong });
 
-/** Dòng đọc từ CSDL → dạng luật thuần (kèm nhà xe của dòng — dòng đảo mang nhà xe của GỐC). */
-export const dongCua = (r: CostLineRow): DongChiPhi & { carrierPartyId: string } => ({
+/** Dòng chi phí cho kế hoạch lô: kèm nhà xe (dòng đảo mang nhà xe của GỐC) và ngày phát sinh (dòng đảo mang ngày của GỐC — `ngayGhiDao`). */
+export type DongLo = DongChiPhi & { carrierPartyId: string; occurredDate: string };
+/** Dòng đọc từ CSDL → dạng luật thuần. */
+export const dongCua = (r: CostLineRow): DongLo => ({
   id: r.id, kind: r.kind, amount: r.amount, reversesId: r.reverses_id, reasonCode: r.reason_code, createdAt: r.created_at, carrierPartyId: r.carrier_party_id,
+  occurredDate: r.occurred_date,
 });
 
 /**
@@ -33,7 +36,9 @@ export const dongCua = (r: CostLineRow): DongChiPhi & { carrierPartyId: string }
  * xe / nhà xe / tuyến / ngày MỚI nếu chuyến là xe thuê. Nhà xe của chuyến xe thuê đã thôi hợp tác ⇒ cả lệnh từ chối (`carrier_inactive`) — không đảo lẻ.
  */
 export function keHoachChiPhiKhiDoi(v: {
-  dong: readonly (DongChiPhi & { carrierPartyId: string })[];
+  dong: readonly DongLo[];
+  /** Ngày hiện tại (giờ VN) — `ngayGhiDao` dùng khi kỳ của dòng gốc đã khoá (chỗ nối ADR-0080). */
+  homNay: string;
   rentedMoi: 0 | 1;
   chuXeMoi: string;
   nhaXeDangMo: ReadonlySet<string>;
@@ -53,7 +58,7 @@ export function keHoachChiPhiKhiDoi(v: {
   if (v.rentedMoi === 1 && !v.nhaXeDangMo.has(v.chuXeMoi)) return { ok: false, loi: "carrier_inactive" };
   const theoId = new Map(v.dong.map((d) => [d.id, d]));
   const dao: DaoMot[] = thuTuDaoTatCa(v.dong).map((d) => ({
-    id: crypto.randomUUID(), goc: { id: d.id, amount: d.amount, carrierPartyId: theoId.get(d.id)!.carrierPartyId }, lyDo: "CPX_DOI_CHUYEN", ngay: v.ngayChayMoi,
+    id: crypto.randomUUID(), goc: { id: d.id, amount: d.amount, carrierPartyId: theoId.get(d.id)!.carrierPartyId }, lyDo: "CPX_DOI_CHUYEN", ngay: ngayGhiDao(theoId.get(d.id)!, { homNay: v.homNay }),
   }));
   let chup: ChupMoi | null = null;
   if (v.rentedMoi === 1) {
@@ -71,10 +76,10 @@ export function keHoachChiPhiKhiDoi(v: {
 }
 
 /** Lô huỷ chuyến trước xuất bến (ADR-0057 C4): đảo MỌI dòng còn hiệu lực (âm trước, dương sau) ⇒ tổng 0; phí huỷ Kế toán ghi tay sau. */
-export function keHoachChiPhiKhiHuy(dong: readonly (DongChiPhi & { carrierPartyId: string })[], ngayChay: string): KeHoachChiPhi {
+export function keHoachChiPhiKhiHuy(dong: readonly DongLo[], homNay: string): KeHoachChiPhi {
   const theoId = new Map(dong.map((d) => [d.id, d]));
   const dao: DaoMot[] = thuTuDaoTatCa(dong).map((d) => ({
-    id: crypto.randomUUID(), goc: { id: d.id, amount: d.amount, carrierPartyId: theoId.get(d.id)!.carrierPartyId }, lyDo: "CPX_HUY_CHUYEN", ngay: ngayChay,
+    id: crypto.randomUUID(), goc: { id: d.id, amount: d.amount, carrierPartyId: theoId.get(d.id)!.carrierPartyId }, lyDo: "CPX_HUY_CHUYEN", ngay: ngayGhiDao(theoId.get(d.id)!, { homNay }),
   }));
   return { dao, chup: null, phienBan: dong.length, daoDieuChinh: dao.filter((d) => theoId.get(d.goc.id)!.kind === "ADJUSTMENT").length, tongTruoc: tongChiPhiChuyen(dong), tongSau: 0 };
 }

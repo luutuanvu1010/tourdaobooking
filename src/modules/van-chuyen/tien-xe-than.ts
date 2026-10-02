@@ -129,7 +129,8 @@ export function docDieuChinh(body: Record<string, unknown> | null): KetQua<DieuC
   if (body.ngay !== undefined && body.ngay !== null && !ngayHopLe(body.ngay)) return fail("Ngày phát sinh: YYYY-MM-DD.");
   return { ok: true, value: { requestId: rid.value, phienBanChiPhi: pb.value, soTien: t, lyDo: ly.value, ghiChu: gc.value, ngay: (body.ngay as string | null | undefined) ?? null } };
 }
-export interface DaoDongThan { requestId: string; phienBanChiPhi: number; dongId: string; lyDo: string; ghiChu: string | null; ngay: string | null }
+/** Đảo tay: KHÔNG nhận ngày — dòng đảo mang ngày của dòng gốc (`ngayGhiDao`, vòng sửa 2 SV-1). */
+export interface DaoDongThan { requestId: string; phienBanChiPhi: number; dongId: string; lyDo: string; ghiChu: string | null }
 export function docDaoDong(body: Record<string, unknown> | null): KetQua<DaoDongThan> {
   if (!body) return fail("Dữ liệu không hợp lệ.");
   const rid = docRequestId(body);
@@ -141,8 +142,7 @@ export function docDaoDong(body: Record<string, unknown> | null): KetQua<DaoDong
   if (!ly.ok) return ly;
   const gc = chuToiDa(body.ghiChu, 300, "Ghi chú");
   if (!gc.ok) return gc;
-  if (body.ngay !== undefined && body.ngay !== null && !ngayHopLe(body.ngay)) return fail("Ngày phát sinh: YYYY-MM-DD.");
-  return { ok: true, value: { requestId: rid.value, phienBanChiPhi: pb.value, dongId: body.dongId, lyDo: ly.value, ghiChu: gc.value, ngay: (body.ngay as string | null | undefined) ?? null } };
+  return { ok: true, value: { requestId: rid.value, phienBanChiPhi: pb.value, dongId: body.dongId, lyDo: ly.value, ghiChu: gc.value } };
 }
 export function docChupLai(body: Record<string, unknown> | null): KetQua<{ requestId: string; phienBanChiPhi: number }> {
   if (!body) return fail("Dữ liệu không hợp lệ.");

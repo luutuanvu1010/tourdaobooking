@@ -200,10 +200,10 @@ const sua = async (w: any, id: string, body: Record<string, unknown>, as = SALES
 const dongCp = (w: any, id: string): [string, number][] =>
   w.q("SELECT kind, amount FROM vc_trip_cost_line WHERE trip_id = ? ORDER BY rowid", id).map((r: any) => [r.kind, r.amount]);
 const tongCp = (w: any, id: string): number => dongCp(w, id).reduce((t, [, a]) => t + a, 0);
-const chenCp = (w: any, trip: string, kind: string, amount: number, reason: string) => {
+const chenCp = (w: any, trip: string, kind: string, amount: number, reason: string, ngay = NGAY) => {
   const carrier = w.q("SELECT carrier_party_id c FROM vc_trip WHERE id = ?", trip)[0].c;
   w.sqlite.prepare(`INSERT INTO vc_trip_cost_line (id, trip_id, carrier_party_id, kind, amount, reason_code, occurred_date, cmd_id, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(uuid(), trip, carrier, kind, amount, reason, NGAY, uuid(), new Date().toISOString(), new Date().toISOString());
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(uuid(), trip, carrier, kind, amount, reason, ngay, uuid(), new Date().toISOString(), new Date().toISOString());
 };
 const giu = async (w: any, id: string, as = SALES) => (await chiTiet(w, id, as)).chuyen.lyDoGiu.map((l: any) => l.ma) as string[];
 
@@ -320,7 +320,8 @@ test("RF1-g (Cần chủ 3 = A — 'giá ngày chạy'): dời giờ sang NGÀY 
     const sang = await sua(w, id, { batDau: { ngay: NGAY_SAU, gio: "08:00" }, ketThuc: { ngay: NGAY_SAU, gio: "10:00" } });
     assert.equal(sang.status, 200, sang.text);
     assert.deepEqual(dongCp(w, id), [["SNAPSHOT", 1_000_000], ["REVERSAL", -1_000_000], ["SNAPSHOT", 1_100_000]], "ngày mới → G4");
-    assert.deepEqual(w.q("SELECT occurred_date d FROM vc_trip_cost_line WHERE trip_id = ? ORDER BY rowid", id).map((r: any) => r.d), [NGAY, NGAY_SAU, NGAY_SAU]);
+    // Vòng sửa 2 (SV-1, lời chủ 2/10): dòng ĐẢO mang ngày của DÒNG GỐC (tháng / ngày cũ về 0), chụp mới mang ngày chạy mới.
+    assert.deepEqual(w.q("SELECT occurred_date d FROM vc_trip_cost_line WHERE trip_id = ? ORDER BY rowid", id).map((r: any) => r.d), [NGAY, NGAY, NGAY_SAU]);
     // Giá thoả thuận (chuyến khác, thiếu giá) + dời giờ trong cùng ngày → giữ nguyên thoả thuận.
     const id2 = (await taoThue(w, { xe: n.x29, taiXe: n.tx, bd: "13:00", kt: "14:00", ngay: NGAY_SAU })).json.chuyen.id;
     chenCp(w, id2, "AGREED", 1_350_000, "CPX_GIA_THOA_THUAN");
@@ -338,7 +339,7 @@ test("RF2 (V8): huỷ chuyến có SNAPSHOT + ADJUSTMENT −200.000 → một l�
     const w = setup();
     const n = await nenThue(w);
     const id = (await taoThue(w, { xe: n.x16, taiXe: n.tx, tuyen: n.crt })).json.chuyen.id;
-    chenCp(w, id, "ADJUSTMENT", -200_000, "CPX_NHAP_SAI");
+    chenCp(w, id, "ADJUSTMENT", -200_000, "CPX_NHAP_SAI", "2027-03-05");
     const c = await chiTiet(w, id);
     const h = await w.call("POST", `/api/van-chuyen/chuyen/${id}/huy`, { as: SALES, body: { version: c.chuyen.version, requestId: uuid(), lyDo: "HUY_KHAC" } });
     assert.equal(h.status, 200, h.text);
@@ -346,6 +347,9 @@ test("RF2 (V8): huỷ chuyến có SNAPSHOT + ADJUSTMENT −200.000 → một l�
     assert.equal(tongCp(w, id), 0);
     assert.equal(w.q("SELECT status s FROM vc_trip WHERE id = ?", id)[0].s, "CANCELLED");
     assert.deepEqual(w.q("SELECT DISTINCT reason_code r FROM vc_trip_cost_line WHERE trip_id = ? AND kind = 'REVERSAL'", id).map((r: any) => r.r), ["CPX_HUY_CHUYEN"]);
+    // SV-1: dòng đảo của lô huỷ mang ngày của dòng gốc (điều chỉnh −200.000 ghi ngày "2027-03-05").
+    assert.deepEqual(w.q("SELECT kind, amount, occurred_date d FROM vc_trip_cost_line WHERE trip_id = ? ORDER BY rowid", id).map((r: any) => [r.kind, r.amount, r.d]),
+      [["SNAPSHOT", 1_200_000, NGAY], ["ADJUSTMENT", -200_000, "2027-03-05"], ["REVERSAL", 200_000, "2027-03-05"], ["REVERSAL", -1_200_000, NGAY]]);
     assert.match(w.q("SELECT detail FROM audit_log WHERE action = 'trip_cancelled' AND target_id = ?", id)[0].detail, /chi phí xe thuê 1\.000\.000 → 0 \(đảo 1 điều chỉnh\)/);
   } finally {
     tat();
@@ -361,8 +365,8 @@ test("RF2 chen giữa (TC-8): lô huỷ dựng với phiên bản chi phí đã 
     const dp = await napDieuPhoi();
     const dungLo = (phienBan: number) => {
       const t = w.q("SELECT version, service_date FROM vc_trip WHERE id = ?", id)[0];
-      const dong = w.q("SELECT id, kind, amount, reverses_id, reason_code, created_at, carrier_party_id FROM vc_trip_cost_line WHERE trip_id = ? ORDER BY rowid", id)
-        .map((r: any) => ({ id: r.id, kind: r.kind, amount: r.amount, reversesId: r.reverses_id, reasonCode: r.reason_code, createdAt: r.created_at, carrierPartyId: r.carrier_party_id }));
+      const dong = w.q("SELECT id, kind, amount, reverses_id, reason_code, created_at, carrier_party_id, occurred_date FROM vc_trip_cost_line WHERE trip_id = ? ORDER BY rowid", id)
+        .map((r: any) => ({ id: r.id, kind: r.kind, amount: r.amount, reversesId: r.reverses_id, reasonCode: r.reason_code, createdAt: r.created_at, carrierPartyId: r.carrier_party_id, occurredDate: r.occurred_date }));
       const kh = dp.keHoachChiPhiKhiHuy(dong, t.service_date);
       return dp.loHuy(w.env.DB, {
         cmd: uuid(), requestId: uuid(), lucIso: new Date().toISOString(), nguoiId: SALES, tripId: id, version: t.version, lyDo: "HUY_KHAC", phaLe: null, policyId: null,
@@ -570,6 +574,11 @@ test("V9 + điều chỉnh làm tổng âm (bản vẽ): đảo SNAPSHOT khi cò
     assert.equal(am.json.error.code, "tong_am");
     assert.equal(dongCp(w, id).length, 2, "không dòng mới");
     assert.equal((await ghiCp(w, id, "dieu-chinh", { soTien: 100, lyDo: "CPX_DOI_CHUYEN", ghiChu: null })).status, 400, "mã hệ thống không chọn được");
+    // SV-1: đảo TAY mang ngày của dòng gốc (điều chỉnh ghi ngày 2027-03-20 → đảo cũng 2027-03-20, dù hôm nay là NGAY).
+    const g = await ghiCp(w, id, "dieu-chinh", { soTien: 70_000, lyDo: "CPX_CAU_DUONG", ghiChu: null, ngay: "2027-03-20" });
+    const dg = await ghiCp(w, id, "dao", { dongId: g.json.chiPhi.dong.find((d: any) => d.soTien === 70_000).id, lyDo: "CPX_NHAP_SAI", ghiChu: null });
+    assert.equal(dg.status, 201, dg.text);
+    assert.equal(w.q("SELECT occurred_date d FROM vc_trip_cost_line WHERE trip_id = ? ORDER BY rowid DESC LIMIT 1", id)[0].d, "2027-03-20");
     assert.equal((await ghiCp(w, id, "dieu-chinh", { soTien: 100, lyDo: "CPX_GIA_THOA_THUAN", ghiChu: null })).status, 400);
   } finally {
     tat();
