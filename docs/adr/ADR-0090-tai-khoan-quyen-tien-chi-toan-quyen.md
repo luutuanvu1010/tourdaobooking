@@ -33,7 +33,8 @@
 2. **Giao diện:** nút "Đặt lại PIN", lựa chọn vai Kế toán và lựa chọn quyền tiền ẩn hay hiện theo **cờ máy chủ tính cho từng dòng**, như `datLaiPinDuoc` (`src/modules/accounts/index.ts:735`). Cờ dùng cùng hàm với cổng route.
 3. **Không đổi:** Quản trị vẫn mở khoá "sai PIN quá nhiều", đổi tên, ngưng tài khoản Kế toán. Các việc này không mở được quyền tiền.
    - Khi Quản trị ngưng tài khoản Kế toán thì gửi tin cho Toàn quyền, vì việc ngưng làm đứt người duyệt tiền.
-4. **Thi công nhỏ, không migration:** cờ chỉ-Toàn-quyền của vai nằm trong mã (`src/shared/roles.ts`), cộng một nhánh kiểm ở các route đặt lại PIN, tạo tài khoản và sửa quyền. Làm **trước hoặc cùng** đợt thi công ADR-0089.
+4. **Thi công nhỏ:** cờ chỉ-Toàn-quyền của vai nằm trong mã (`src/shared/roles.ts`), cộng một nhánh kiểm ở các route đặt lại PIN, tạo tài khoản và sửa quyền. Làm **trước hoặc cùng** đợt thi công ADR-0089.
+   - **Bổ sung (lời chủ 2026-10-02, câu (f): *"a,b.c,d,e,f : đồng ý."*):** tin ở đ3 ("Quản trị ngưng tài khoản Kế toán" vào "Của tôi" của Toàn quyền) cần **một migration**. Migration này tạo **một view** nhật ký tài khoản trong module `audit`, **không bảng mới**; `thongbao` đã có cạnh tới `audit`, nên không nới ranh giới. Phần cờ và route vẫn không cần migration.
 
 ## Thay câu nào (ghi bằng dòng trỏ ở dòng trạng thái của văn bản cũ, không sửa thân)
 | Văn bản | Câu cũ | Thay bằng |

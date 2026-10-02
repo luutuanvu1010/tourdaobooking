@@ -81,19 +81,36 @@ export interface LuoiTrangChu {
 
 const bo = ({ khoa, nhan, href }: DinhNghiaO): OChucNang => ({ khoa, nhan, href });
 
-export function oTrangChu(who: PermissionHolder): LuoiTrangChu {
+/** `bo`: khoá không lên lưới chính (vẫn có trong bảng trượt); `toiDa`: số chỗ của lưới chính, kể cả ô "Tất cả". */
+export function oTrangChu(who: PermissionHolder, tuyChon: { bo?: readonly KhoaO[]; toiDa?: number } = {}): LuoiTrangChu {
+  const { bo: khongLen = [], toiDa = TOI_DA_O } = tuyChon;
   const duoc = DS.filter((o) => o.co(who));
   const hang = (k: KhoaO): number => {
     const i = UU_TIEN.indexOf(k);
     return i === -1 ? UU_TIEN.length + DS.findIndex((o) => o.khoa === k) : i;
   };
-  const xep = [...duoc].sort((a, b) => hang(a.khoa) - hang(b.khoa));
-  const coTatCa = xep.length > TOI_DA_O;
+  const xep = duoc.filter((o) => !khongLen.includes(o.khoa)).sort((a, b) => hang(a.khoa) - hang(b.khoa));
+  const coTatCa = xep.length > toiDa;
   return {
-    luoi: (coTatCa ? xep.slice(0, TOI_DA_O - 1) : xep).map(bo),
+    luoi: (coTatCa ? xep.slice(0, toiDa - 1) : xep).map(bo),
     coTatCa,
     nhom: NHOM_O.map((ten) => ({ ten, o: duoc.filter((o) => o.nhom === ten).map(bo) })).filter((g) => g.o.length > 0),
   };
+}
+
+/**
+ * Ô có tab riêng ở thanh tab điện thoại (web/shell.ts tabsFor): điều kiện hiện tab TRÙNG đúng điều kiện ô cùng tên ở DS (order.create, coMucDonHang,
+ * admin.manage, account.view) — nên người có ô thì luôn có tab, lưới điện thoại không lặp lại (bản vẽ "Trang chu Quan tri.dc.html" 1c, 1d, bản 1.73).
+ */
+export const KHOA_CO_TAB: readonly KhoaO[] = ["tao-don", "don-hang", "dich-vu", "tai-khoan"];
+/** Lưới điện thoại 1.73: một hàng 4 chỗ (3 ô + "Tất cả" khi thừa). */
+export const O_DIEN_THOAI = 4;
+export function luoiDienThoai(who: PermissionHolder): LuoiTrangChu {
+  return oTrangChu(who, { bo: KHOA_CO_TAB, toiDa: O_DIEN_THOAI });
+}
+/** Thẻ "Lối tắt" máy tính 1.73: 7 ô + "Tất cả"; bỏ "Tạo đơn" vì thanh trên máy tính đã có nút "Tạo đơn" (bản vẽ 1a, 1b). */
+export function loiTatMayTinh(who: PermissionHolder): LuoiTrangChu {
+  return oTrangChu(who, { bo: ["tao-don"] });
 }
 
 /**

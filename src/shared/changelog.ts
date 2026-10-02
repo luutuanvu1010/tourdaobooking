@@ -12,8 +12,8 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // Vận chuyển Đợt 4 — tiền xe thuê (ADR-0057 T1 + T2, migration 0072, 0073). MỘT mục cho cả đợt (máy chủ + giao diện cùng một bản phát hành — Cần chủ 2 = A).
-    // Số 1.71 = origin/main 1.70 (thị giác) + 1 — đánh lại lúc gộp a496e8d1; ĐIỀU PHỐI KIỂM LẠI LÚC GỘP. Bốn dòng cuối: phần giao diện G0–G5 (đã thêm 2/10).
-    version: "1.71",
+    // Số 1.74 = origin/main 1.73 (Trang chủ Quản trị) + 1 — đánh lại 1.71 → 1.74 lúc gộp origin/main e0d62688. Bốn dòng cuối: phần giao diện G0–G5 (đã thêm 2/10).
+    version: "1.74",
     date: "2026-10-02",
     items: [
       { kind: "moi", text: "Kế toán, Quản trị có Bảng giá thuê xe: giá mỗi chuyến của từng nhà xe theo cả tuyến và cỡ xe, có ngày hiệu lực." },
@@ -24,6 +24,18 @@ export const CHANGELOG: readonly ReleaseNote[] = [
       { kind: "moi", text: "Trang chi tiết chuyến có khối Chi phí chuyến cho Kế toán, Quản trị: nhập giá thoả thuận, lấy lại giá bảng, điều chỉnh, đảo dòng ghi sai." },
       { kind: "moi", text: "Tạo và sửa chuyến có ô chọn tuyến." },
       { kind: "doi", text: "Thanh menu bên trái trên máy tính nay cùng màu nền trang, có đường viền mảnh." },
+    ],
+  },
+  {
+    // Trang chủ Quản trị và Toàn quyền theo bản vẽ Claude Design "Trang chu Quan tri.dc.html" (2/10). Chỉ giao diện: không migration, không đổi máy chủ.
+    // Số 1.73 TẠM: 1.71 / 1.72 đang có ở hai nhánh chưa gộp (worktree-agent-a9baef…, worktree-agent-a29831…). KIỂM LẠI LÚC GỘP.
+    version: "1.73",
+    date: "2026-10-02",
+    items: [
+      { kind: "doi", text: "Trang chủ máy tính gọn hơn: bỏ lưới mọi chức năng ở lời chào (đã có ở thanh bên). Bên phải có thẻ Lối tắt 7 ô, ô Tất cả mở bảng mọi chức năng." },
+      { kind: "doi", text: "Bốn con số đầu ca xếp một hàng: Còn thiếu tiền, Chờ xác nhận, Chưa phụ trách, Doanh thu tuần của tôi (kèm biểu đồ)." },
+      { kind: "moi", text: "Cần xem lại có thêm dòng giấy tờ sắp hết hạn (Quản trị, Toàn quyền). Lời chào ghi số chuyến đón hôm nay và số việc cần xem lại." },
+      { kind: "doi", text: "Điện thoại: lời chào theo buổi kèm vai của bạn; hàng ô chức năng chỉ còn những gì chưa có ở thanh dưới; Cần xem lại đứng trước Chuyến đón." },
     ],
   },
   {
