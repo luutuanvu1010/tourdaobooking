@@ -768,6 +768,13 @@ Quyết định của chủ dự án (nguồn: `docs/HANDOFF-CHE-DO-BAO-TRI.md` 
 
 **Kiểm:** `node --test src/modules/van-chuyen/*.test.ts src/migrations-chuyen-xe.test.ts src/hanh-khach-khong-lo-ten.test.ts src/giay-to-khong-lo-so.test.ts src/audit-invariants.test.ts src/route-write-guard.test.ts src/route-access.test.ts src/tai-xe-cong.test.ts src/orders-cong-bo.test.ts src/architecture.test.ts` → `npm test` → `npm run typecheck` → e2e `npm run test:e2e -- dieu-phoi tai-xe-cuoc dieu-phoi-chay-dua` (chạm migration: ĐỦ BỘ, đuôi `audit-invariants --strict` có R-VC-3…19).
 
+
+**Khung bận + giờ lái (ADR-0055 VK2-A/B, Đợt 3, migration `0071`):**
+- **Đọc khung bận phải lọc `subject`**: mọi câu ĐỌC `vc_unavailability` của phần xe ghi `u.subject = 'VEHICLE'` tường minh (bài "Review Focus 4" ở `src/modules/van-chuyen/dieu-phoi-doc.test.ts` quét `khung-ban-repo.ts`) — khi Đợt 6 mở khung bận tài xế, Kế toán (`trip.view`) không được thấy dòng `DRIVER`.
+- **Khung bận chặn ở HAI lớp**: route tạo / sửa chuyến đọc `khungBanXeTrongKhoang` rồi truyền `khungBan` vào `kiemTaoSuaChuyen` (lời "lịch xe bận"); trigger `vc_trip_unavailable_ins/_upd` của `0071` là lưới thứ hai (`lc03_unavailable` → `trip_rule`). Thêm lệnh mới đổi giờ / xe của chuyến thì phải truyền `khungBan`, không thì người dùng chỉ thấy câu CSDL chung chung.
+- **Thêm cột chính sách điều phối** = sửa câu chèn `insert_dispatch_policy` (bài "câu chèn liệt kê ĐỦ cột" so `PRAGMA table_info`) + `kiemChinhSachMoi` đòi bắt buộc (thiếu → 400 "tải lại trang") + `GOC` của `tests/e2e/chinh-sach-dieu-phoi.mjs` + mọi thân POST chính sách ở bài / kịch bản Chrome (`grep -rn proxyBackdateMaxMinutes`).
+- **Hằng `CS` (ChinhSachVao) trong bài thuần** không được `tsc` kiểm: thêm khoá vào `ChinhSachVao` thì thêm vào hằng của `dieu-phoi-kiem.test.ts`, `dieu-phoi-lich-chung.test.ts` (thiếu ⇒ so sánh với `NaN`, cảnh báo im lặng biến mất).
+- Trang tuần `/lich-xe-ban`: tuần = `vnWeekRange` (MỘT luật với máy chủ); bài `src/shared/khung-ban-hien-thi.test.ts` phải chạy cả `TZ=America/Los_Angeles`.
 ### z4. Sổ tiền lượt 1: lần thu, Đã giao, Hoàn thành, sổ công nợ, biên nhận (ADR-0024 đ1–5, ADR-0025, ADR-0026 — nhánh thi công, CHƯA gộp)
 
 **Một nguồn số:** "phải thu hiện hành" = `orders` (`hoan-tat.ts:phaiThuNhieuDon`, đã áp điều chỉnh); "đã thu / còn lại / dư / chưa rõ" = `billing/rules.ts:conLai` — HÀM DUY NHẤT. Bề mặt mới cần số tiền đơn → gọi `POST /api/ledger/balances` (nhiều đơn) hoặc `GET /api/orders/:id/payments` (một đơn), KHÔNG tự trừ `total - daThu`, KHÔNG đọc ba cột cọc cũ (`src/coc-cu-khong-doc.test.ts` đỏ).

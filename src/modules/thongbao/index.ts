@@ -9,14 +9,14 @@ import type {
 import { UUID_RE, error, json, readJson } from "../../shared/http";
 import { can, PERMISSION_LABEL } from "../../shared/permissions";
 import {
-  chuanHoaMocGio, NGAY_GIU_TIN, kiemTinThuCong, locHopThongBao, nhanNguoiNhan, nhanThayTinThuCong, type DongDon, type DongThuCong,
+  chuanHoaMocGio, NGAY_GIU_TIN, kiemTinThuCong, locHopThongBao, nhanNguoiNhan, nhanThayTinThuCong, type DongDon, type DongTaiKhoan, type DongThuCong,
 } from "../../shared/thong-bao";
 import { guiLo, imLang, khoaVapid, kiemDiaChi, nguoiNhanDay } from "../../shared/web-push";
 import { route, type AppModule, type Ctx } from "../../shared/router";
 import { dungDongChuyen, type ChuyenChoTin, type DongChuyen, type DongChuyenTho } from "../../shared/tin-chuyen";
 import {
   batMayStatements, demMay, findByRequest, getMark, getNotice, getThuCong, hetHanStatement, insertAckStatement, insertNoticeStatement,
-  insertTargetStatement, listAcks, listDon, listMayDangBat, listSent, listThuCong, listTinChuyen, donChoTin, mayDangBat, tinChuyenTheoId, revokeStatement, tatMayStatement,
+  insertTargetStatement, listAcks, listDon, listMayDangBat, listSent, listThuCong, listTinChuyen, listTinTaiKhoan, donChoTin, mayDangBat, tinChuyenTheoId, revokeStatement, tatMayStatement,
   upsertMarkStatement,
 } from "./repository";
 
@@ -73,10 +73,19 @@ async function hop(db: D1Database, staff: StaffProfile, ngan: "cua-toi" | "tat-c
     listDon(db, tu), listThuCong(db, tu, staff.id), getMark(db, staff.id), coTheNhan ? listTinChuyen(db, tu) : Promise.resolve([]),
   ]);
   const chuyen = await ghepTinChuyen(db, choTho, chuyenChoTin);
+  const taiKhoan = can(staff, "admin.manage.superadmin") ? await tinTaiKhoan(db, tu) : []; // ADR-0090 đ3: chỉ Toàn quyền nhận — người khác không tốn truy vấn
   // Chưa từng mở hộp: mốc = ngày tạo tài khoản (không đổ dồn tin cũ lên người mới — đặc tả §4.4). createdAt không đảm bảo luôn ở dạng
   // ISO có mili-giây — locHopThongBao so mốc giờ BẰNG CHUỖI nên phải chuẩn hoá trước (chuanHoaMocGio, src/shared/thong-bao.ts).
   const docDenLuc = chuanHoaMocGio(mark ?? (await getStaffAccount(db, staff.id))?.createdAt ?? now);
-  return locHopThongBao(staff, { don, thuCong, chuyen, docDenLuc, now, ngan });
+  return locHopThongBao(staff, { don, thuCong, chuyen, taiKhoan, docDenLuc, now, ngan });
+}
+
+/** ADR-0090 đ3: dòng "ngưng tài khoản" (view audit) ghép quyền HIỆN TẠI của tài khoản bị ngưng (staff) — luật nhận ở locHopThongBao. */
+async function tinTaiKhoan(db: D1Database, tu: string): Promise<DongTaiKhoan[]> {
+  const tho = await listTinTaiKhoan(db, tu);
+  if (tho.length === 0) return [];
+  const quyen = new Map((await listStaffAccounts(db)).map((s) => [s.id, s.permissions]));
+  return tho.map((t) => ({ ...t, quyenTaiKhoan: quyen.get(t.accountId) ?? [] }));
 }
 
 /** Cỡ tối đa gửi thẳng trong `waitUntil` của yêu cầu; nhiều hơn thì giao trạm `BangTin` chia lô (ADR-0036). */

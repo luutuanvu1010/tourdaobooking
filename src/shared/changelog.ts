@@ -11,14 +11,50 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
-    // Đợt 0 luồng L — lớp chống ghi trùng chung (ADR-0094, bản mở rộng), migration 0074. Số 1.71 = main 1.70 + 1 — TẠM, KIỂM LẠI LÚC GỘP (luồng Q / nhánh
-    // khác gộp trước thì đánh lại số). Cần khoá LAN_GUI_SECRET trên Cloudflare TRƯỚC khi triển khai (chủ đã đặt 2/10; npm run trien-khai tự kiểm).
-    version: "1.71",
+    // Đợt 0 luồng L — lớp chống ghi trùng chung (ADR-0094, bản mở rộng), migration 0074. Đánh lại 1.71 → 1.76 lúc gộp main a6fd0a3d (1.75 Vận chuyển Đợt 3).
+    // Cần khoá LAN_GUI_SECRET trên Cloudflare TRƯỚC khi triển khai (chủ đã đặt 2/10; npm run trien-khai tự kiểm).
+    version: "1.76",
     date: "2026-10-02",
     items: [
       { kind: "sua", text: "Mất mạng ngay sau khi bấm Lưu, Lập đơn hay Ghi lần thu rồi bấm lại: Nền tảng không ghi thêm lần nữa, báo \"Lần bấm trước đã được ghi\" và mở đúng đơn." },
       { kind: "sua", text: "Bấm đúp nút lưu cũng chỉ ghi một lần." },
       { kind: "doi", text: "Nếu bấm lại trong lúc lần trước còn đang được xử lý, Nền tảng tự chờ vài giây rồi mới báo kết quả." },
+    ],
+  },
+  {
+    // Vận chuyển Đợt 3 — Lịch xe bận (khung bận của xe) + nhắc giờ lái (ADR-0055 VK2-A, VK2-B), migration 0071. Đánh lại 1.75 lúc gộp (chủ chọn A 2/10: Đợt 3 lên
+    // trước, sau 1.74 quyền tiền của main; Đợt 4 tiền xe thuê chờ Kế toán ký sổ vàng). Câu chữ theo lời chủ 2/10 (câu 3.1–3.4 theo khuyến nghị).
+    version: "1.75",
+    date: "2026-10-02",
+    items: [
+      { kind: "moi", text: "Trang mới Vận chuyển › Lịch xe bận: Quản trị xem lịch bận của mọi xe theo tuần, cùng các chuyến đã xếp." },
+      { kind: "moi", text: "Thêm lịch xe vào xưởng (bảo dưỡng, đăng kiểm, sửa chữa), ghi được nhiều ngày một lần. Trong giờ đó máy không cho xếp chuyến cho xe." },
+      { kind: "moi", text: "Xe ra xưởng sớm thì bấm dấu ✕ trên lịch để rút lịch bận. Lịch bận không ghi chồng lên chuyến đã xếp — máy báo mã chuyến cần dời hoặc đổi xe trước." },
+      { kind: "moi", text: "Điều phối xe hiện dải “Xe bận” trên hàng của xe trong ngày." },
+      { kind: "moi", text: "Điều phối xe và Chi tiết chuyến nhắc khi tài xế lái quá 8 giờ một ngày hoặc chuyến dài quá 4 giờ — chỉ nhắc, không chặn." },
+      { kind: "moi", text: "Toàn quyền đổi hai con số giờ lái ở Chính sách điều phối." },
+    ],
+  },
+  {
+    // Đợt 0 luồng Q — ADR-0090 (quyền tiền chỉ Toàn quyền), migration 0075 (chỉ một view). Số 1.74 = main 1.73 + 1 (đánh lại lúc gộp main e0d62688).
+    // Đã kiểm lúc gộp Đợt 3 (production 1.73).
+    version: "1.74",
+    date: "2026-10-02",
+    items: [
+      { kind: "doi", text: "Tài khoản Kế toán nay chỉ người phụ trách hệ thống (Toàn quyền) được tạo, gán vai Kế toán, cộng quyền Kế toán và đặt lại PIN." },
+      { kind: "doi", text: "Quản trị vẫn đổi tên, ngưng và mở khoá đăng nhập cho tài khoản Kế toán như trước; nút Đặt lại PIN không còn hiện ở dòng Kế toán." },
+      { kind: "moi", text: "Khi một tài khoản Kế toán bị ngưng, người phụ trách hệ thống nhận thông báo trong mục Của tôi." },
+    ],
+  },
+  {
+    // Trang chủ Quản trị và Toàn quyền theo bản vẽ Claude Design "Trang chu Quan tri.dc.html" (2/10). Chỉ giao diện: không migration, không đổi máy chủ.
+    version: "1.73",
+    date: "2026-10-02",
+    items: [
+      { kind: "doi", text: "Trang chủ máy tính gọn hơn: bỏ lưới mọi chức năng ở lời chào (đã có ở thanh bên). Bên phải có thẻ Lối tắt 7 ô, ô Tất cả mở bảng mọi chức năng." },
+      { kind: "doi", text: "Bốn con số đầu ca xếp một hàng: Còn thiếu tiền, Chờ xác nhận, Chưa phụ trách, Doanh thu tuần của tôi (kèm biểu đồ)." },
+      { kind: "moi", text: "Cần xem lại có thêm dòng giấy tờ sắp hết hạn (Quản trị, Toàn quyền). Lời chào ghi số chuyến đón hôm nay và số việc cần xem lại." },
+      { kind: "doi", text: "Điện thoại: lời chào theo buổi kèm vai của bạn; hàng ô chức năng chỉ còn những gì chưa có ở thanh dưới; Cần xem lại đứng trước Chuyến đón." },
     ],
   },
   {

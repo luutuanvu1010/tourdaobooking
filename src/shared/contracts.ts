@@ -162,7 +162,12 @@ export interface NhapTayRequest { batNhapTay: boolean }
 export interface MaintenanceRequest { on: boolean; endsAt?: string }
 /** Thân `error` của phản hồi 503 `maintenance` (mọi `/api/*` cần đăng nhập với người bị chặn, và `POST /api/auth/login`): `endsAt` để giao diện dựng đồng hồ đếm ngược mà không cần gọi thêm. */
 export interface MaintenanceErrorBody { code: "maintenance"; message: string; endsAt: string | null }
-export interface StaffListResponse { staff: StaffAccountDto[] }
+/**
+ * Một dòng của GET /api/staff: `datLaiPinDuoc` = nút "Đặt lại PIN" hiện ở dòng này cho người đang xem — máy chủ tính bằng CÙNG hàm với cổng route reset-pin
+ * (`datLaiPinDuoc` của src/shared/roles.ts: cấp dưới, không phải chính mình, tài khoản có quyền tiền chỉ Toàn quyền — ADR-0090 đ2). Giao diện không tự tính.
+ */
+export interface StaffListRowDto extends StaffAccountDto { datLaiPinDuoc: boolean }
+export interface StaffListResponse { staff: StaffListRowDto[] }
 export interface StaffResponse { staff: StaffAccountDto }
 export interface StaffWithPinResponse { staff: StaffAccountDto; pin: string }
 
@@ -1032,7 +1037,8 @@ export interface FeedbackBadgeResponse {
 }
 
 // ---- Thông báo hệ thống (ADR-0034) --------------------------------------------
-export type LoaiTin = "thu_cong" | "lap" | "cho_nhan" | "nhan" | "giao" | "xac_nhan" | "huy" | "chuyen"; // "chuyen": tin chuyến xe (ADR-0052 D6)
+// "chuyen": tin chuyến xe (ADR-0052 D6); "tai_khoan": ngưng tài khoản giữ tiền — chỉ Toàn quyền nhận (ADR-0090 đ3)
+export type LoaiTin = "thu_cong" | "lap" | "cho_nhan" | "nhan" | "giao" | "xac_nhan" | "huy" | "chuyen" | "tai_khoan";
 export interface TinDto {
   id: string;
   loai: LoaiTin;
@@ -1081,6 +1087,10 @@ export interface DispatchPolicyDto {
   requireContract: boolean;
   /** ADR-0050 VK1-A: kẹp lùi tối đa (phút) khi văn phòng bấm thay khai giờ xảy ra (1…1440; gieo 180). */
   proxyBackdateMaxMinutes: number;
+  /** ADR-0055 VK2-B (0071): giờ lái tối đa một ngày (phút, 60…1440; gieo 480) — vượt chỉ cảnh báo. */
+  dutyDayMaxMinutes: number;
+  /** ADR-0055 VK2-B (0071): chuyến dài hơn (phút, 30…720; gieo 240) → nhắc nghỉ — chỉ cảnh báo. */
+  tripNoBreakMaxMinutes: number;
   validFrom: string;
   current: boolean;
   /** R-P23: "ai lưu" — TÊN hiển thị người lưu bản này (hàm tiêm nhãn R-P20; không SĐT, không id); null = bản gieo / khung thử không tiêm nhãn. */
@@ -1095,6 +1105,10 @@ export interface DispatchPolicyCreateRequest {
   requireManifest: boolean;
   /** BẮT BUỘC (kế hoạch I43): thiếu → 400, không chép ngầm từ dòng cũ. */
   proxyBackdateMaxMinutes: number;
+  /** BẮT BUỘC (I43, ADR-0055 VK2-B): thiếu → 400 "tải lại trang". */
+  dutyDayMaxMinutes: number;
+  /** BẮT BUỘC (I43, ADR-0055 VK2-B). */
+  tripNoBreakMaxMinutes: number;
   requireContract?: false;
 }
 export interface DepartureRuleDto {
@@ -1156,6 +1170,21 @@ export interface KhoaMocDto { dangKhoa: boolean; tuLuc: GioVnDto; tuLucMs: numbe
 export interface LyDoDangDungDto { code: string; nhom: NhomLyDo; nhan: string }
 /** Xe để chọn (văn phòng không có ô vehicle.manage nên không gọi /xe — mục 1.8). */
 export interface XeChonDto { id: string; bienSo: string; soCho: number; trangThai: "active" | "maintenance"; chuXe: string; chuLaCongTy: boolean }
+// ---- Khung bận của xe (ADR-0055 VK2-A; migration 0071; kế hoạch Đợt 3 Task 6) ----------------------------------------------------------------------------
+/** Một khung bận của xe. `batDau`/`ketThuc` = ISO UTC (màn đổi giờ VN bằng hàm có sẵn); `lyDoMa` chỉ để chọn — màn hiện `lyDo` (nhãn). */
+export interface KhungBanXeDto {
+  id: string; xeId: string; batDau: string; ketThuc: string; batDauMs: number; ketThucMs: number; lyDoMa: string; lyDo: string; daRut: boolean; daQua: boolean; version: number;
+}
+/** `GET|POST /api/van-chuyen/xe/:id/ban`: `dangCo` = chưa rút và chưa qua (giờ bắt đầu tăng); `lichSu` = phần còn lại (mới trước); `lyDo` = danh mục `BAN_XE` đang dùng. */
+export interface KhungBanXeListResponse { dangCo: KhungBanXeDto[]; lichSu: KhungBanXeDto[]; lyDo: { code: string; label: string }[] }
+/** 409 lớp route khi ghi khung chồng chuyến chưa huỷ, chưa kết thúc (Q-L2-1 = a) — chỉ mã chuyến + giờ, không tên khách. */
+export interface KhungBanChongChuyenLoi { error: { code: "khung_ban_chong_chuyen"; message: string; chuyen: { ma: string; gio: string }[] } }
+/** Chuyến đã xếp trên lưới tuần Lịch xe bận — DANH SÁCH TRẮNG: không mã đơn, không tên khách, không tài xế (câu 3.1, chủ 2/10). Trạng thái thô chỉ để màn chọn nhãn. */
+export interface ChuyenXeBanDto { id: string; ma: string; xeId: string; batDauMs: number; ketThucMs: number; trangThai: "PLANNED" | "RUNNING" | "ENDED" | "ENDED_INTERRUPTED" }
+/** Dải bận trên lịch chung ngày D (`LichChungResponse.khungBanXe`; trip.view — ADR-0055 A4): DANH SÁCH TRẮNG — không người ghi, không tài xế. Giờ ISO UTC. */
+export interface KhungBanLichDto { id: string; xeId: string; bienSo: string; batDau: string; ketThuc: string; lyDo: string }
+/** `GET /api/van-chuyen/ban-xe?tu=` — trang tuần "Lịch xe bận" (ô vehicle.manage — câu 3.4). `tu` = thứ Hai, `den` = Chủ nhật (hai đầu bao gồm, như vnWeekRange). */
+export interface LichXeBanResponse { tu: string; den: string; xe: XeChonDto[]; khung: KhungBanXeDto[]; chuyen: ChuyenXeBanDto[]; lyDo: { code: string; label: string }[] }
 /** Tài xế để chọn (hàm công bố `taiXeChoDieuPhoi` của parties — không số, không nơi cấp). */
 export interface TaiXeChonDto { partyId: string; ten: string; loai: "CONG_TY" | "NHA_XE"; nhaXe: string[] }
 export interface CanhBaoLichDto { loai: string; nhan: string; legId: string | null; tripId: string | null; maDon: string | null }
@@ -1222,6 +1251,8 @@ export interface LichChungResponse {
   lyDo: LyDoDangDungDto[];
   xe: XeChonDto[];
   taiXe: TaiXeChonDto[];
+  /** ADR-0055 VK2-A A4: khung bận CÒN HIỆU LỰC của xe giao ngày D theo giờ VN [00:00 D, 00:00 D+1) — chỉ subject VEHICLE. */
+  khungBanXe: KhungBanLichDto[];
 }
 export interface DiemChuyenDto {
   id: string;
@@ -1306,6 +1337,11 @@ export interface ChuyenChiTietResponse {
    * `lyDoNoiTra` / `lyDoThieuTen` ở src/shared/dieu-phoi-kiem.ts). Chỉ nhắc — lệnh đã chạy. Mã đơn + số tên thiếu, không tên khách.
    */
   canhBaoXep?: LyDoGiuDto[];
+  /**
+   * ADR-0055 VK2-B B3: nhắc giờ lái của CHÍNH chuyến vừa tạo / sửa (chỉ nhắc — lệnh đã chạy). Chỉ có ở phản hồi lệnh lần đầu; gửi lại cùng `requestId` thì không.
+   * Khuôn `canhBaoXep`; dạng `CanhBaoLichDto` (`loai` GIO_LAI_VUOT / CHUYEN_DAI_CAN_NGHI, `nhan` tiếng Việt).
+   */
+  canhBaoLenh?: CanhBaoLichDto[];
 }
 
 // ---- Nhắc "gọi báo khách" khi giờ hẹn đổi (ADR-0051 GB1, GB2 — Task A-GB) --------------------------------------------------------------------------------

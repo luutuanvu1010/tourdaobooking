@@ -1,54 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { conLai, cotNhom, dongThoiGian, loiChao, phutVN } from "./trang-chu-may-tinh.ts";
-
-// Bề rộng lưới ô = cột nội dung (khổ − thanh bên 236px, trần 1200px) − đệm hai bên 24px của dải chào.
-const rongLuoi = (kho: number): number => Math.min(kho - 236, 1200) - 48;
-
-test("cotNhom: đúng số cột bản vẽ v2 vẽ ở 1280 và 1440 (bảng LCOLS)", () => {
-  assert.deepEqual(cotNhom([3, 1, 3], rongLuoi(1280)), [3, 1, 3], "Bán hàng 1280: một hàng");
-  assert.deepEqual(cotNhom([3, 4, 5, 3], rongLuoi(1280)), [2, 2, 3, 2], "Quản trị 1280: hai hàng");
-  assert.deepEqual(cotNhom([3, 8, 6, 3], rongLuoi(1280)), [2, 3, 2, 2], "Toàn quyền (8 ô Quản lý như bản vẽ) 1280: ba hàng");
-  assert.deepEqual(cotNhom([3, 8, 6, 3], rongLuoi(1440)), [2, 4, 3, 2], "Toàn quyền 1440: hai hàng");
-  assert.deepEqual(cotNhom([3, 1, 3], rongLuoi(1440)), [3, 1, 3]);
-  assert.deepEqual(cotNhom([3, 4, 5, 3], rongLuoi(1440)), [2, 2, 3, 2]);
-});
-
-test("cotNhom: Toàn quyền có thêm ô Giao diện (9 ô Quản lý) — vẫn ba hàng ở 1280 và cả 1440", () => {
-  assert.deepEqual(cotNhom([3, 9, 6, 3], rongLuoi(1280)), [2, 3, 2, 2]);
-  assert.deepEqual(cotNhom([3, 9, 6, 3], rongLuoi(1440)), [2, 3, 2, 2]);
-  assert.deepEqual(cotNhom([3, 9, 6, 3], rongLuoi(1920)), [2, 3, 2, 2], "trần 1200px: khổ to hơn không thêm chỗ");
-});
-
-test("cotNhom: Kế toán (không Tạo đơn) một hàng", () => {
-  assert.deepEqual(cotNhom([2, 1, 3], rongLuoi(1280)), [2, 1, 3]);
-  assert.deepEqual(cotNhom([2, 1, 3], rongLuoi(1040)), [2, 1, 3]);
-});
-
-test("cotNhom: không xếp nổi trong ba hàng với ô ≥ 88px → null (xếp chồng nhóm như bản vẽ 768)", () => {
-  assert.equal(cotNhom([3, 4, 5, 3], rongLuoi(1040)), null, "Quản trị 1040");
-  assert.equal(cotNhom([3, 9, 6, 3], rongLuoi(1040)), null, "Toàn quyền 1040");
-  assert.equal(cotNhom([3, 4, 5, 3], rongLuoi(768)), null);
-  assert.equal(cotNhom([3, 1, 3], rongLuoi(768)), null, "Bán hàng 768");
-  assert.equal(cotNhom([3, 1, 3], 0), null, "chưa đo được bề rộng");
-});
-
-test("cotNhom: mọi nhóm có ít nhất min(số ô, 2) cột, đủ chỗ cho mọi ô trong số hàng chọn, mỗi ô ≥ 88px theo đúng cách chia của flex", () => {
-  for (const so of [[3, 1, 3], [2, 1, 3], [3, 4, 5, 3], [3, 9, 6, 3], [1, 2], [3, 3, 7, 3], [5]]) {
-    for (let rong = 300; rong <= 1300; rong += 7) {
-      const c = cotNhom(so, rong);
-      if (!c) continue;
-      const hang = Math.max(...so.map((n, i) => Math.ceil(n / c[i]!)));
-      assert.ok(hang <= 3, `${so} @${rong}: ${hang} hàng`);
-      const tong = c.reduce((a, b) => a + b, 0);
-      const W = rong - 33 * (so.length - 1);
-      for (const [i, ci] of c.entries()) {
-        assert.ok(ci >= Math.min(so[i]!, 2) && ci <= so[i]!, `${so} @${rong}: nhóm ${i} có ${ci} cột`);
-        assert.ok((W * ci) / tong - 4 * (ci - 1) >= 88 * ci, `${so} @${rong}: ô nhóm ${i} hẹp hơn 88px`);
-      }
-    }
-  }
-});
+import { conLai, dongThoiGian, loiChao, phutVN } from "./trang-chu-may-tinh.ts";
 
 test("loiChao: theo giờ Việt Nam — sáng 04:00–10:59, trưa 11:00–12:59, chiều 13:00–17:59, tối còn lại", () => {
   const p = (h: number, m = 0) => h * 60 + m;

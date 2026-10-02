@@ -191,6 +191,15 @@ export const MATRIX = {
 
 export type OperationCode = keyof typeof MATRIX;
 
+/**
+ * ADR-0090 đ0: bốn ô GHI TIỀN mà Quản trị không có (ghim theo văn bản ADR — permissions.test.ts khẳng định ADMIN = none ở cả bốn).
+ * "Tài khoản có quyền tiền" = giữ một mã quyền có ô ≠ none ở ít nhất một ô này; danh sách mã SUY từ MATRIX (thêm mã mới giữ ô tiền thì tự nhận).
+ * MỘT nguồn cho máy chủ (cổng đặt lại PIN, gán vai/quyền, tạo tài khoản — roles.ts) và giao diện (cờ theo dòng, khoá ô quyền).
+ */
+export const O_GHI_TIEN = ["ledger.write", "payment.refund", "order.complete", "accounting.entry.mark"] as const satisfies readonly OperationCode[];
+export const MA_QUYEN_TIEN: readonly PermissionCode[] = PERMISSION_CODES.filter((p) => O_GHI_TIEN.some((o) => MATRIX[o][p] !== "none"));
+export const coQuyenTien = (perms: readonly PermissionCode[]): boolean => perms.some((p) => MA_QUYEN_TIEN.includes(p));
+
 export interface PermissionHolder {
   readonly id: string;
   readonly permissions: readonly PermissionCode[];

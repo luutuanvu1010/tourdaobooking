@@ -52,5 +52,5 @@ test("H2 (3): router đọc ĐÚNG tệp miễn này và áp lớp theo access �
   const r = maskSource(readFileSync(join(SRC, "shared/router.ts"), "utf8"), { strings: false });
   assert.match(r, /import \{ laMienLanGui \} from "\.\/lan-gui-mien\.ts";/);
   assert.match(r, /if \(!WRITE_METHODS\.has\(request\.method\) \|\| !who \|\| laMienLanGui\(request\.method, hit\.r\.path\)\) return chayHandler\(env\);/);
-  assert.equal(routes().filter((x) => GHI.has(x.method) && x.access !== "public").length, 129, "số route ghi có đăng nhập đổi — cập nhật số này có chủ đích (L0: 129)");
+  assert.equal(routes().filter((x) => GHI.has(x.method) && x.access !== "public").length, 131, "số route ghi có đăng nhập đổi — cập nhật số này có chủ đích (L0: 129; gộp main a6fd0a3d: +2 lịch xe bận POST …/xe/:id/ban, …/ban/:bid/rut = 131)");
 });

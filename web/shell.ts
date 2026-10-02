@@ -17,6 +17,8 @@ import { ganTroLy } from "./tro-ly";
 /** Trang của phân hệ Vận chuyển (ADR-0040 D1): mục con "Xe" sáng ở cả ba trang xe; ở điện thoại các trang này mở từ trang Tôi nên tab "Tôi" sáng. */
 const TRANG_XE = ["/xe", "/xe-sua", "/xe-chi-tiet"];
 const TRANG_SAP_HET_HAN = "/giay-to-sap-het-han";
+/** Lịch xe bận (ADR-0055 VK2-A, Vận chuyển Đợt 3 — bản vẽ 2/10): mục con sau "Xe", ô vehicle.manage (câu 3.4: chỉ Quản trị + Toàn quyền). */
+const TRANG_LICH_XE_BAN = "/lich-xe-ban";
 /** Danh mục giấy tờ, tách 2026-09-28 theo chủ dữ liệu (chủ dự án): loại giấy tờ XE là mục con của "Vận chuyển"; loại giấy tờ NGƯỜI (+ hạng giấy phép lái xe)
  *  là mục danh mục chung của nhóm QUẢN TRỊ, sau "Địa điểm". Cả hai theo ô admin.manage (như dòng "Danh mục giấy tờ" cũ). Đường dẫn cũ /danh-muc-giay-to chỉ
  *  còn chuyển hướng (public/danh-muc-giay-to.html, không JS). Ở điện thoại hai trang mở từ trang Tôi nên tab "Tôi" sáng. */
@@ -68,7 +70,7 @@ function tabsFor(admin: boolean, seesAll: boolean, canCreate: boolean, taiXe = f
   return [
     ...officeTabs,
     ...adminTabs,
-    { href: "/account", label: "Tôi", icon: "me", active: (p) => p === "/account" || p === "/audit" || p === "/help" || p === "/gui-thong-bao" || TRANG_XE.includes(p) || p === TRANG_SAP_HET_HAN || p === TRANG_LOAI_GIAY_TO_XE || p === TRANG_LOAI_GIAY_TO_NGUOI || TRANG_CHINH_SACH.includes(p) || p === TRANG_LY_DO || TRANG_DIEU_PHOI.includes(p) || p === TRANG_TRO_LY || p === TRANG_GIAO_DIEN || p === TRANG_PHIEN || (!cuoc && TRANG_CUOC_CAC.includes(p)) },
+    { href: "/account", label: "Tôi", icon: "me", active: (p) => p === "/account" || p === "/audit" || p === "/help" || p === "/gui-thong-bao" || TRANG_XE.includes(p) || p === TRANG_LICH_XE_BAN || p === TRANG_SAP_HET_HAN || p === TRANG_LOAI_GIAY_TO_XE || p === TRANG_LOAI_GIAY_TO_NGUOI || TRANG_CHINH_SACH.includes(p) || p === TRANG_LY_DO || TRANG_DIEU_PHOI.includes(p) || p === TRANG_TRO_LY || p === TRANG_GIAO_DIEN || p === TRANG_PHIEN || (!cuoc && TRANG_CUOC_CAC.includes(p)) },
   ];
 }
 
@@ -245,13 +247,14 @@ function navGroups(admin: boolean, seesAll: boolean, office: boolean, canCreate:
   if (vehicle || dieuPhoi) {
     management.push({
       href: "", label: "Vận chuyển", icon: "truck", kind: "parent",
-      active: (p) => TRANG_DIEU_PHOI.includes(p) || TRANG_XE.includes(p) || p === TRANG_SAP_HET_HAN || p === TRANG_LOAI_GIAY_TO_XE || TRANG_CHINH_SACH.includes(p) || p === TRANG_LY_DO,
+      active: (p) => TRANG_DIEU_PHOI.includes(p) || TRANG_XE.includes(p) || p === TRANG_LICH_XE_BAN || p === TRANG_SAP_HET_HAN || p === TRANG_LOAI_GIAY_TO_XE || TRANG_CHINH_SACH.includes(p) || p === TRANG_LY_DO,
     });
     if (dieuPhoi) management.push({ href: TRANG_DIEU_PHOI[0]!, label: "Điều phối xe", kind: "sub", active: (p) => TRANG_DIEU_PHOI.includes(p) });
   }
   if (vehicle) {
     management.push(
       { href: "/xe", label: "Xe", kind: "sub", active: (p) => TRANG_XE.includes(p) },
+      { href: TRANG_LICH_XE_BAN, label: "Lịch xe bận", kind: "sub", active: (p) => p === TRANG_LICH_XE_BAN },
       { href: TRANG_SAP_HET_HAN, label: "Sắp hết hạn", kind: "sub", badge: demSapHetHan, badgeClass: "sidebar-item-badge-sand", active: (p) => p === TRANG_SAP_HET_HAN },
     );
     if (danhMuc) management.push({ href: TRANG_LOAI_GIAY_TO_XE, label: "Loại giấy tờ xe", kind: "sub", active: (p) => p === TRANG_LOAI_GIAY_TO_XE });

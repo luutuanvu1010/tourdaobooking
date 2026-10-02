@@ -79,7 +79,7 @@ function baoLoi(o: O, cau: string | null): void {
 function capNhatGoiYSatMoc(): void {
   const o = oSo.find((x) => x.truong === "satMocGio");
   if (!o) return;
-  const r = docFormChinhSach({ ...st, mocGio: "1", nghiPhut: "0", khaiLuiPhut: "1" }); // chỉ đọc ô sát mốc
+  const r = docFormChinhSach({ ...st, mocGio: "1", nghiPhut: "0", khaiLuiPhut: "1", gioLaiGio: "8", chuyenDaiGio: "4" }); // chỉ đọc ô sát mốc
   const khoang = r.ok ? nhanThoiLuong(r.value.warnLeadMinutes) : "khoảng này";
   o.hint.textContent = `Chặng chưa xếp trong ${khoang} trước mốc hiện nhãn “Sát mốc”.`;
 }
@@ -143,6 +143,9 @@ function dung(): void {
     taoO("satMocGio", "Cảnh báo sát mốc (giờ)", "", true),
     taoO("nghiPhut", "Khoảng nghỉ tài xế (phút)", "Giữa hai chuyến của cùng tài xế.", false),
     taoO("khaiLuiPhut", "Khai lùi tối đa (phút)", "Từ 1 đến 1440, mặc định 180.", false),
+    // ADR-0055 VK2-B: hai con số giờ lái — chỉ nhắc, không chặn (khuôn ô có sẵn; không cần bản vẽ).
+    taoO("gioLaiGio", "Giờ lái tối đa một ngày (giờ)", "Vượt thì chỉ cảnh báo, không chặn. Mặc định 8.", true),
+    taoO("chuyenDaiGio", "Nhắc nghỉ khi chuyến dài hơn (giờ)", "Chỉ nhắc. Mặc định 4.", true),
   );
   capNhatGoiYSatMoc();
   const toggles = h(

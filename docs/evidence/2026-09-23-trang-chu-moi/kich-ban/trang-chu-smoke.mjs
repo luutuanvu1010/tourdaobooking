@@ -302,8 +302,8 @@ try {
         return { label: el.querySelector('.dash-so-nhan span').textContent.trim(), value: v.textContent.trim(), sub: el.querySelector('.dash-so-phu').textContent.trim(), shown: vis(el), wrapped: v.getBoundingClientRect().height > oneLine + 1, href: el.getAttribute('href') };
       });
       const grid = document.querySelector('#dash-grid');
-      // Bản vẽ máy tính v2 (2026-10-02): ba ô #dash-stats + thẻ #dash-revenue cũ thay bằng MỘT thẻ số liệu #dash-so-mt — Còn thiếu tiền, Doanh thu của tôi
-      // (chữ phụ "Tuần này · …" bên phải + biểu đồ), Chờ xác nhận, Chưa phụ trách. Số ĐẦY ĐỦ ("12.345.000 ₫"); điện thoại vẫn dùng #dash-so (số rút gọn).
+      // Bản vẽ "Trang chu Quan tri.dc.html" (1.73): MỘT thẻ số liệu #dash-so-mt, bốn ô — Còn thiếu tiền, Chờ xác nhận, Chưa phụ trách, Doanh thu của tôi
+      // (chữ phụ "Tuần này · dd/mm–dd/mm · N đơn" + biểu đồ bên phải). Số ĐẦY ĐỦ ("12.345.000 ₫"); điện thoại vẫn dùng #dash-so (số rút gọn).
       const statsMt = [...document.querySelectorAll('#dash-so-mt .dash-smt-o')].map((el) => {
         const valueEl = el.querySelector('.dash-smt-gt');
         const cs = getComputedStyle(valueEl);
@@ -311,7 +311,6 @@ try {
         const actualHeight = valueEl.getBoundingClientRect().height;
         return {
           label: el.querySelector('.dash-smt-nhan-chu').textContent.trim(),
-          ben: el.querySelector('.dash-smt-ben')?.textContent.trim() ?? null,
           value: valueEl.textContent.trim(),
           sub: el.querySelector('.dash-smt-phu').textContent.trim(),
           href: el.getAttribute('href'),
@@ -322,12 +321,16 @@ try {
           valueWrapped: actualHeight > oneLineHeight + 1,
         };
       });
-      // Dải chào máy tính (bản vẽ v2): lời chào, ngày, nhóm ô chức năng.
+      // Lời chào máy tính (bản vẽ 1.73): ngày, lời chào, dòng tóm tắt, nhãn vai — KHÔNG còn nhóm ô chức năng (đã có ở thanh bên).
       const dai = {
         chao: document.querySelector('#dash-dai .dash-dai-loi')?.textContent.trim() ?? null,
         ngay: document.querySelector('#dash-dai .dash-dai-ngay')?.textContent.trim() ?? null,
-        nhom: [...document.querySelectorAll('#dash-dai .dash-nhom-muc')].map((g) => [g.querySelector('.dash-nhom-ten').textContent.trim(), [...g.querySelectorAll('.dash-o-nhan')].map((x) => x.textContent.trim())]),
+        tom: visibleText(document.querySelector('#dash-dai-tom')),
+        vai: document.querySelector('#dash-dai .dash-dai-vai')?.textContent.trim() ?? null,
+        soO: document.querySelectorAll('#dash-dai .dash-o-muc').length,
       };
+      // Thẻ "Lối tắt" (bản vẽ 1.73, chỉ máy tính): 7 ô + "Tất cả".
+      const loiTat = [...document.querySelectorAll('#dash-loi-tat-luoi .dash-o-muc')].map((el) => ({ nhan: el.querySelector('.dash-o-nhan').textContent.trim(), href: el.getAttribute('href'), so: el.querySelector('.dash-o-so')?.textContent.trim() ?? null }));
       const todayRows = [...document.querySelectorAll('#dash-today-list .dash-today-row')].map((row) => ({
         time: row.querySelector('.dash-today-time')?.textContent.trim() ?? null,
         place: row.querySelector('.dash-today-place')?.textContent.trim() ?? null,
@@ -392,6 +395,8 @@ try {
         statsShown: vis(document.querySelector('#dash-so-mt')),
         dai,
         daiShown: vis(document.querySelector('#dash-dai')),
+        loiTat,
+        loiTatShown: vis(document.querySelector('#dash-loi-tat')),
         tlShown: vis(document.querySelector('#dash-tl')),
         tlDots: document.querySelectorAll('#dash-tl .dash-tl-diem').length,
         so,
@@ -399,10 +404,9 @@ try {
         heroShown: vis(document.querySelector('#topbar .dash-hero-chao')),
         timShown: vis(document.querySelector('#dash-tim')),
         luoiShown: vis(document.querySelector('#dash-o')),
-        // Doanh thu: ô đang HIỂN THỊ thật — máy tính ô thứ hai của #dash-so-mt, điện thoại ô thứ hai của #dash-so.
-        revenueRange: statsMt[1]?.ben ?? null,
-        revenueValue: (vis(document.querySelector('#dash-so-mt')) ? statsMt[1]?.value : so[1]?.value) ?? null,
-        revenueSub: (vis(document.querySelector('#dash-so-mt')) ? statsMt[1]?.sub : so[1]?.sub) ?? null,
+        // Doanh thu: ô đang HIỂN THỊ thật — máy tính ô CUỐI của #dash-so-mt (bản vẽ 1.73), điện thoại ô thứ hai của #dash-so.
+        revenueValue: (vis(document.querySelector('#dash-so-mt')) ? statsMt[3]?.value : so[1]?.value) ?? null,
+        revenueSub: (vis(document.querySelector('#dash-so-mt')) ? statsMt[3]?.sub : so[1]?.sub) ?? null,
         chart,
         review,
         errorHidden: document.querySelector('#error').hidden,
@@ -419,20 +423,19 @@ try {
     assert.equal(m.loadingHidden, true, `${label}: #loading (khung xương) phải ẨN sau khi tải xong — ${JSON.stringify(m)}`);
     assert.ok(m.scrollOverflow <= 1, `${label}: không được tràn ngang — lệch ${m.scrollOverflow}px`);
 
-    // Thẻ số liệu máy tính (bản vẽ v2) — bốn ô, đối chiếu với API (nguồn sự thật vừa đọc), theo ĐÚNG thứ tự renderSoMayTinh() dựng.
+    // Thẻ số liệu máy tính (bản vẽ 1.73) — bốn ô, đối chiếu với API (nguồn sự thật vừa đọc), theo ĐÚNG thứ tự renderSoMayTinh() dựng.
     assert.equal(m.statsMt.length, 4, `${label}: thẻ số liệu máy tính phải có đúng 4 ô — ${JSON.stringify(m.statsMt)}`);
     if (mode === "desktop") {
-      assert.deepEqual(m.statsMt.map((x) => x.label), ["Còn thiếu tiền", "Doanh thu của tôi", "Chờ xác nhận", "Chưa phụ trách"], `${label}: nhãn bốn ô đúng thứ tự bản vẽ v2 — ${JSON.stringify(m.statsMt)}`);
+      assert.deepEqual(m.statsMt.map((x) => x.label), ["Còn thiếu tiền", "Chờ xác nhận", "Chưa phụ trách", "Doanh thu của tôi"], `${label}: nhãn bốn ô đúng thứ tự bản vẽ 1.73 — ${JSON.stringify(m.statsMt)}`);
       assert.equal(m.statsMt[0].value, "12.345.000 ₫", `${label}: ô "Còn thiếu tiền" phải hiện ĐẦY ĐỦ 12.345.000 ₫ — ${JSON.stringify(m.statsMt[0])}`);
       assert.ok(m.statsMt[0].sub.includes("1 đơn"), `${label}: ô "Còn thiếu tiền" phải nói "1 đơn" — ${JSON.stringify(m.statsMt[0])}`);
-      assert.equal(m.statsMt[2].value, "1", `${label}: ô "Chờ xác nhận" phải = 1 (chỉ R2, không đếm R1/R3 đã xác nhận) — ${JSON.stringify(m.statsMt[2])}`);
-      assert.equal(m.statsMt[2].sub, "Cần xác nhận đơn", `${label}: ${JSON.stringify(m.statsMt[2])}`);
-      assert.equal(m.statsMt[3].value, String(data.unassignedCount), `${label}: ô "Chưa phụ trách" phải khớp API (${data.unassignedCount}) — ${JSON.stringify(m.statsMt[3])}`);
-      assert.equal(m.statsMt[3].sub, "Chờ người nhận", `${label}: dòng phụ ô chưa phụ trách phải là "Chờ người nhận" (ADR-0020 điều 7, M1 = A) — ${JSON.stringify(m.statsMt[3])}`);
+      assert.equal(m.statsMt[1].value, "1", `${label}: ô "Chờ xác nhận" phải = 1 (chỉ R2, không đếm R1/R3 đã xác nhận) — ${JSON.stringify(m.statsMt[1])}`);
+      assert.equal(m.statsMt[1].sub, "Cần xác nhận đơn", `${label}: ${JSON.stringify(m.statsMt[1])}`);
+      assert.equal(m.statsMt[2].value, String(data.unassignedCount), `${label}: ô "Chưa phụ trách" phải khớp API (${data.unassignedCount}) — ${JSON.stringify(m.statsMt[2])}`);
+      assert.equal(m.statsMt[2].sub, "Chờ người nhận", `${label}: dòng phụ ô chưa phụ trách phải là "Chờ người nhận" (ADR-0020 điều 7, M1 = A) — ${JSON.stringify(m.statsMt[2])}`);
       assert.ok(m.statsMt.every((x) => x.shown && x.href === "/orders"), `${label}: bốn ô hiển thị thật và dẫn tới /orders — ${JSON.stringify(m.statsMt)}`);
       assert.equal(m.revenueValue, "12.645.000 ₫", `${label}: doanh thu ĐẦY ĐỦ phải = 12.645.000 ₫ (R1 300.000 + R3 12.345.000) — ${JSON.stringify(m)}`);
-      assert.equal(m.revenueSub, "2 đơn đã xác nhận", `${label}: doanh thu phải nói "2 đơn đã xác nhận" — ${m.revenueSub}`);
-      assert.match(m.revenueRange ?? "", /^Tuần này · \d\d\/\d\d–\d\d\/\d\d$/, `${label}: chữ phụ bên phải ô doanh thu "Tuần này · dd/mm–dd/mm" — ${m.revenueRange}`);
+      assert.match(m.revenueSub ?? "", /^Tuần này · \d\d\/\d\d–\d\d\/\d\d · 2 đơn$/, `${label}: dòng phụ ô doanh thu "Tuần này · dd/mm–dd/mm · 2 đơn" (bản vẽ 1.73) — ${m.revenueSub}`);
 
       // Đợt D Task 2 — biểu đồ cột 7 ngày: PHẢI hiển thị thật ở máy tính (cùng thẻ "Doanh thu của tôi").
       assert.ok(m.chart, `${label}: phải có .dash-revenue-chart trong DOM — ${JSON.stringify(m)}`);
@@ -475,16 +478,18 @@ try {
       // Bản vẽ điện thoại 2026-09-30 KHÔNG được lộ ra máy tính: dải chào/ô tìm/lưới ô chức năng/khối số liệu 2×2 đều ẩn thật.
       assert.equal(m.statsShown, true, `${label}: thẻ số liệu máy tính (#dash-so-mt) phải hiển thị thật — ${JSON.stringify(m)}`);
       for (const k of ["soShown", "heroShown", "timShown", "luoiShown"]) assert.equal(m[k], false, `${label}: khối điện thoại (${k}) KHÔNG được hiển thị ở máy tính — ${JSON.stringify(m)}`);
-      // Dải chào máy tính (bản vẽ v2): hiện thật; lời chào theo buổi + tên; ngày + số chuyến đón hôm nay; MỌI ô của Quản trị theo nhóm (+ ô "Tôi").
-      assert.equal(m.daiShown, true, `${label}: dải chào máy tính (#dash-dai) phải hiển thị thật — ${JSON.stringify(m.dai)}`);
+      // Lời chào máy tính (bản vẽ 1.73): hiện thật; ngày có năm; lời chào theo buổi + tên; tóm tắt "1 chuyến đón hôm nay · N việc cần xem lại" (N = số dòng
+      // Cần xem lại đang hiện); nhãn vai; KHÔNG còn ô chức năng nào ở lời chào (không lặp thanh bên).
+      assert.equal(m.daiShown, true, `${label}: lời chào máy tính (#dash-dai) phải hiển thị thật — ${JSON.stringify(m.dai)}`);
       assert.match(m.dai.chao ?? "", /^Chào buổi (sáng|trưa|chiều|tối), \S/, `${label}: lời chào "Chào buổi …, <tên>" — ${JSON.stringify(m.dai)}`);
-      assert.match(m.dai.ngay ?? "", /^(Thứ .+|Chủ nhật), \d\d\/\d\d · 1 chuyến đón hôm nay$/i, `${label}: dòng ngày + "1 chuyến đón hôm nay" (khớp API: chỉ R1) — ${JSON.stringify(m.dai)}`);
-      assert.deepEqual(m.dai.nhom, [
-        ["Bán hàng", ["Tạo đơn", "Đơn hàng", "Danh bạ"]],
-        ["Quản lý", ["Dịch vụ & giá", "Quản lý tài khoản", "Địa điểm", "Loại giấy tờ cá nhân"]],
-        ["Vận chuyển", ["Điều phối xe", "Xe", "Giấy tờ sắp hết hạn", "Loại giấy tờ xe", "Lý do điều phối"]],
-        ["Của tôi", ["Tôi", "Góp ý / Báo lỗi", "Trợ giúp"]],
-      ], `${label}: nhóm ô của Quản trị đúng bản vẽ v2 (mọi chức năng, không giới hạn 8, không ô "Tất cả") — ${JSON.stringify(m.dai.nhom)}`);
+      assert.match(m.dai.ngay ?? "", /^(Thứ .+|Chủ nhật), \d\d\/\d\d\/\d{4}$/i, `${label}: dòng ngày "Thứ …, dd/mm/yyyy" — ${JSON.stringify(m.dai)}`);
+      assert.equal(m.dai.tom, `1 chuyến đón hôm nay · ${m.review.rows.length} việc cần xem lại`, `${label}: tóm tắt khớp API (chỉ R1) và số dòng Cần xem lại — ${JSON.stringify(m.dai)} / ${JSON.stringify(m.review.rows)}`);
+      assert.equal(m.dai.vai, "Quản trị", `${label}: nhãn vai — ${JSON.stringify(m.dai)}`);
+      assert.equal(m.dai.soO, 0, `${label}: lời chào không còn ô chức năng (bản vẽ 1.73) — ${JSON.stringify(m.dai)}`);
+      // Thẻ "Lối tắt" (bản vẽ 1a): 7 ô theo thứ tự ưu tiên, không có "Tạo đơn" (thanh trên có nút), + "Tất cả".
+      assert.equal(m.loiTatShown, true, `${label}: thẻ Lối tắt phải hiển thị ở máy tính — ${JSON.stringify(m.loiTat)}`);
+      assert.deepEqual(m.loiTat.map((x) => x.nhan), ["Đơn hàng", "Danh bạ", "Điều phối xe", "Xe", "Giấy tờ sắp hết hạn", "Dịch vụ & giá", "Quản lý tài khoản", "Tất cả"], `${label}: ô Lối tắt của Quản trị đúng bản vẽ 1a — ${JSON.stringify(m.loiTat)}`);
+      assert.equal(m.loiTat[0].so, "1", `${label}: huy hiệu ô Đơn hàng = số đơn chưa xác nhận (1) — ${JSON.stringify(m.loiTat)}`);
       // Dòng thời gian (bản vẽ v2, chỉ máy tính): R1 có giờ đón → một chấm. Không khẳng định "đã qua / sắp tới" (phụ thuộc giờ thật lúc chạy — luật thuần có test riêng).
       assert.equal(m.tlShown, true, `${label}: dòng thời gian trong ngày phải hiển thị ở máy tính — ${JSON.stringify(m)}`);
       assert.equal(m.tlDots, 1, `${label}: dòng thời gian có đúng 1 chấm (R1) — ${m.tlDots}`);
@@ -492,7 +497,8 @@ try {
       // Bản vẽ điện thoại 2026-09-30: số liệu ở MỘT thẻ 2×2 (#dash-so), đúng thứ tự Còn thiếu · Doanh thu của tôi · Chờ xác nhận · Chưa phụ trách.
       // Thẻ số liệu, dải chào và dòng thời gian của máy tính phải ẩn thật (không hiện hai lần).
       assert.equal(m.statsShown, false, `${label}: thẻ số liệu máy tính (#dash-so-mt) phải ẨN ở khổ điện thoại — ${JSON.stringify(m)}`);
-      assert.equal(m.daiShown, false, `${label}: dải chào máy tính (#dash-dai) phải ẨN ở khổ điện thoại — ${JSON.stringify(m)}`);
+      assert.equal(m.daiShown, false, `${label}: lời chào máy tính (#dash-dai) phải ẨN ở khổ điện thoại — ${JSON.stringify(m)}`);
+      assert.equal(m.loiTatShown, false, `${label}: thẻ Lối tắt (chỉ máy tính) phải ẨN ở khổ điện thoại — ${JSON.stringify(m)}`);
       assert.equal(m.tlShown, false, `${label}: dòng thời gian (chỉ máy tính) phải ẨN ở khổ điện thoại — ${JSON.stringify(m)}`);
       assert.equal(m.soShown, true, `${label}: khối số liệu 2×2 (#dash-so) phải hiển thị thật — ${JSON.stringify(m)}`);
       assert.deepEqual(m.so.map((s) => s.label), ["Còn thiếu", "Doanh thu của tôi", "Chờ xác nhận", "Chưa phụ trách"], `${label}: bốn ô số liệu đúng thứ tự bản vẽ — ${JSON.stringify(m.so)}`);
@@ -584,31 +590,53 @@ try {
   let m = await measureHome(p);
   assertHome(m, "Trang chủ (máy tính, 1040×800)", "desktop");
   assert.equal(m.gridDisplay, "grid", `Trang chủ (máy tính): #dash-grid phải display:grid ở ≥900px — ${JSON.stringify(m)}`);
-  // Bản vẽ máy tính v2 (2026-10-02): #dash-grid = Chuyến đón → thẻ số liệu máy tính → Cần xem lại (DOM cố định ở public/index.html, không đổi theo khổ);
-  // CSS grid-template-areas đặt chỗ: hai cột từ 1200px (Chuyến đón trái; số liệu, Cần xem lại phải), một cột dưới đó (số liệu trước). #dash-review LUÔN có mặt
-  // trong DOM (chỉ ẩn/hiện bằng `hidden`). Điện thoại: thẻ số liệu máy tính ẩn, thứ tự đọc Chuyến đón → Cần xem lại không đổi.
-  assert.deepEqual(m.gridOrder, ["dash-today", "dash-so-mt", "dash-review"], `Trang chủ (máy tính): thứ tự DOM phải là dash-today, dash-so-mt, dash-review — ${JSON.stringify(m.gridOrder)}`);
+  // Bản vẽ "Trang chu Quan tri.dc.html" (1.73): #dash-grid = số liệu → Cần xem lại → Chuyến đón → Lối tắt (DOM cố định ở public/index.html = thứ tự đọc ở
+  // điện thoại và máy tính một cột; không dùng CSS order). Hai cột từ 1200px đặt chỗ bằng grid-template-areas. #dash-review LUÔN có mặt trong DOM (ẩn/hiện bằng `hidden`).
+  assert.deepEqual(m.gridOrder, ["dash-so-mt", "dash-review", "dash-today", "dash-loi-tat"], `Trang chủ (máy tính): thứ tự DOM — ${JSON.stringify(m.gridOrder)}`);
   {
-    // Khổ 1040 (bản vẽ không vẽ, dưới mốc hai cột 1200px): MỘT cột — thẻ số liệu TRÊN Chuyến đón; nhóm ô của Quản trị xếp chồng (không vừa một hàng với ô ≥ 88px).
-    const bo = await p.ev(`(() => ({
-      soBottom: Math.round(document.querySelector('#dash-so-mt').getBoundingClientRect().bottom),
-      todayTop: Math.round(document.querySelector('#dash-today').getBoundingClientRect().top),
-      chong: !!document.querySelector('#dash-dai .dash-nhom-chong'),
-      daiBottom: Math.round(document.querySelector('#dash-dai').getBoundingClientRect().bottom),
-      mainTop: Math.round(document.querySelector('main').getBoundingClientRect().top),
-      topbarBottom: Math.round(document.querySelector('#topbar').getBoundingClientRect().bottom),
-      daiTop: Math.round(document.querySelector('#dash-dai').getBoundingClientRect().top),
-      daiLeft: Math.round(document.querySelector('#dash-dai').getBoundingClientRect().left),
-      sidebarRight: Math.round(document.querySelector('#sidebar').getBoundingClientRect().right),
-    }))()`);
-    assert.ok(bo.soBottom <= bo.todayTop, `Trang chủ (máy tính 1040): một cột, thẻ số liệu nằm TRÊN Chuyến đón — ${JSON.stringify(bo)}`);
-    assert.equal(bo.chong, true, `Trang chủ (máy tính 1040): nhóm ô của Quản trị xếp chồng — ${JSON.stringify(bo)}`);
-    assert.ok(bo.daiTop >= bo.topbarBottom - 1 && bo.mainTop >= bo.daiBottom - 1 && bo.daiLeft === bo.sidebarRight, `Trang chủ (máy tính): dải chào là hàng riêng giữa thanh trên và nội dung, bắt đầu ngay sau thanh bên — ${JSON.stringify(bo)}`);
-    ok(`Bản vẽ máy tính v2 ở 1040: một cột (số liệu trên Chuyến đón), nhóm ô xếp chồng, dải chào giữa thanh trên và nội dung — ${JSON.stringify(bo)}`);
+    // Khổ 1040 (dưới mốc hai cột 1200px): MỘT cột theo đúng thứ tự DOM; lời chào nằm TRONG nội dung (bản vẽ 1.73 — không còn dải nền riêng), dưới thanh trên.
+    const bo = await p.ev(`(() => { const r = (s) => document.querySelector(s).getBoundingClientRect(); return {
+      daiBottom: Math.round(r('#dash-dai').bottom), soTop: Math.round(r('#dash-so-mt').top), soBottom: Math.round(r('#dash-so-mt').bottom),
+      reviewTop: Math.round(r('#dash-review').top), reviewBottom: Math.round(r('#dash-review').bottom), todayTop: Math.round(r('#dash-today').top), todayBottom: Math.round(r('#dash-today').bottom),
+      loiTatTop: Math.round(r('#dash-loi-tat').top), topbarBottom: Math.round(r('#topbar').bottom), daiTop: Math.round(r('#dash-dai').top),
+      daiTrongMain: document.querySelector('main').contains(document.querySelector('#dash-dai')),
+    }; })()`);
+    assert.ok(bo.daiTrongMain && bo.daiTop >= bo.topbarBottom - 1 && bo.daiBottom <= bo.soTop, `Trang chủ (máy tính 1040): lời chào trong nội dung, dưới thanh trên, trên thẻ số liệu — ${JSON.stringify(bo)}`);
+    assert.ok(bo.soBottom <= bo.reviewTop && bo.reviewBottom <= bo.todayTop && bo.todayBottom <= bo.loiTatTop, `Trang chủ (máy tính 1040): một cột số liệu → Cần xem lại → Chuyến đón → Lối tắt — ${JSON.stringify(bo)}`);
+    ok(`Bản vẽ 1.73 ở 1040: lời chào trong nội dung; một cột số liệu → Cần xem lại → Chuyến đón → Lối tắt — ${JSON.stringify(bo)}`);
   }
   assert.deepEqual(p.consoleErrors, [], `lỗi console (Trang chủ máy tính): ${p.consoleErrors}`);
   await shot(p, "trang-chu-may-tinh.png");
   await axe(p, "Trang chủ máy tính");
+  {
+    // Bản vẽ 1.73: ô "Tất cả" của thẻ Lối tắt mở HỘP giữa màn (bảng trượt chung), bốn nhóm thành cột danh sách, có ô "Tôi", huy hiệu đúng số; Esc đóng và trả
+    // tiêu điểm về ô "Tất cả".
+    await p.ev(`[...document.querySelectorAll('#dash-loi-tat-luoi .dash-o-muc')].find((b) => b.textContent.trim() === 'Tất cả').click()`);
+    await p.waitFor("!!document.querySelector('.sheet.dash-tc-mt')", "hộp Tất cả chức năng (máy tính) mở");
+    const hop = await p.ev(`(() => ({
+      phu: document.querySelector('.dash-tc-phu')?.textContent.trim() ?? null,
+      nhom: [...document.querySelectorAll('.dash-tc-mt .dash-tc-nhom')].map((g) => [g.querySelector('.dash-tc-ten').textContent.trim(), [...g.querySelectorAll('.dash-tc-nhan')].map((n) => n.textContent.trim())]),
+      soDon: [...document.querySelectorAll('.dash-tc-dong')].find((a) => a.textContent.includes('Đơn hàng'))?.querySelector('.dash-o-so')?.textContent.trim() ?? null,
+      cot: new Set([...document.querySelectorAll('.dash-tc-mt .dash-tc-nhom')].map((g) => Math.round(g.getBoundingClientRect().top))).size,
+    }))()`);
+    assert.deepEqual(hop.nhom, [
+      ["Bán hàng", ["Tạo đơn", "Đơn hàng", "Danh bạ"]],
+      ["Quản lý", ["Dịch vụ & giá", "Quản lý tài khoản", "Địa điểm", "Loại giấy tờ cá nhân"]],
+      ["Vận chuyển", ["Điều phối xe", "Xe", "Giấy tờ sắp hết hạn", "Loại giấy tờ xe", "Lý do điều phối"]],
+      ["Của tôi", ["Tôi", "Góp ý / Báo lỗi", "Trợ giúp"]],
+    ], `Hộp Tất cả (máy tính): bốn nhóm đúng quyền Quản trị, có ô Tôi — ${JSON.stringify(hop)}`);
+    assert.equal(hop.phu, "15 chức năng theo quyền Quản trị", `Hộp Tất cả (máy tính): dòng phụ — ${JSON.stringify(hop)}`);
+    assert.equal(hop.soDon, "1", `Hộp Tất cả (máy tính): huy hiệu Đơn hàng — ${JSON.stringify(hop)}`);
+    assert.equal(hop.cot, 1, `Hộp Tất cả (máy tính): bốn nhóm đứng một hàng (bốn cột) — ${JSON.stringify(hop)}`);
+    // Hộp máy tính hiện dần (opacity, --m-base): đo tương phản khi đã hiện hẳn, không giữa lúc mờ dần.
+    await p.waitFor("getComputedStyle(document.querySelector('.sheet.dash-tc-mt')).opacity === '1'", "hộp Tất cả hiện hẳn");
+    await shot(p, "trang-chu-may-tinh-tat-ca.png");
+    await axe(p, "Trang chủ máy tính (hộp Tất cả chức năng)");
+    await p.ev(`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))`);
+    await p.waitFor("!document.querySelector('.sheet-root')", "Esc đóng hộp");
+    assert.equal(await p.ev("document.activeElement?.textContent.trim()"), "Tất cả", "Hộp Tất cả (máy tính): đóng trả tiêu điểm về ô \"Tất cả\"");
+    ok(`Bản vẽ 1.73: hộp Tất cả máy tính — ${hop.phu}, bốn cột, có ô Tôi, Esc đóng và trả tiêu điểm`);
+  }
 
   // Đợt D Task 4 (ADR-0015): thanh ngang (`.topnav`, 9 mục) đổi thành thanh điều hướng dọc (`#sidebar`) — ĐỔI
   // CÓ CHỦ ĐÍCH, không phải lỗi. Nay ADMIN có 11 mục: 9 mục cũ + "Của tôi" (trước 1.10 tên "Tài khoản") + "Trợ giúp" (từ 1.4) (trước là `.who` hiện tên nhân
@@ -626,7 +654,7 @@ try {
   // đếm số THẬT (16) và so ĐÚNG danh sách nhãn, thay cho con số 17 giữ chỗ nợ.
   const ADMIN_NAV = [
     "Trang chủ", "Đơn hàng", "Tạo đơn", "Danh bạ",
-    "Dịch vụ & giá", "Quản lý tài khoản", "Địa điểm", "Loại giấy tờ cá nhân", "Vận chuyển", "Điều phối xe", "Xe", "Sắp hết hạn", "Loại giấy tờ xe", "Lý do điều phối",
+    "Dịch vụ & giá", "Quản lý tài khoản", "Địa điểm", "Loại giấy tờ cá nhân", "Vận chuyển", "Điều phối xe", "Xe", "Lịch xe bận", "Sắp hết hạn", "Loại giấy tờ xe", "Lý do điều phối",
     "Của tôi", "Góp ý / Báo lỗi", "Trợ giúp",
   ];
   const navMeasure = await p.ev(`(() => {
@@ -639,29 +667,30 @@ try {
       sidebarOverflow: document.querySelector('#sidebar').scrollWidth - document.querySelector('#sidebar').clientWidth,
     };
   })()`);
-  assert.deepEqual(navMeasure.labels, ADMIN_NAV, `Thanh điều hướng dọc (ADMIN): đúng 17 mục theo thứ tự — ${JSON.stringify(navMeasure.labels)}`);
-  assert.equal(navMeasure.linkCount, 17, `Thanh điều hướng dọc (ADMIN) phải có 17 mục (ADR-0038: không "Nhật ký"; ADR-0049 B8: có "Lý do điều phối"; B1: có "Điều phối xe") — thấy ${navMeasure.linkCount}: ${JSON.stringify(navMeasure.labels)}`);
+  assert.deepEqual(navMeasure.labels, ADMIN_NAV, `Thanh điều hướng dọc (ADMIN): đúng 18 mục theo thứ tự — ${JSON.stringify(navMeasure.labels)}`);
+  // 2/10 (ADR-0055 VK2-A, Vận chuyển Đợt 3): + "Lịch xe bận" (ô vehicle.manage, sau "Xe") ⇒ 18.
+  assert.equal(navMeasure.linkCount, 18, `Thanh điều hướng dọc (ADMIN) phải có 18 mục (ADR-0038: không "Nhật ký"; ADR-0049 B8: có "Lý do điều phối"; B1: có "Điều phối xe"; Đợt 3: có "Lịch xe bận") — thấy ${navMeasure.linkCount}: ${JSON.stringify(navMeasure.labels)}`);
   assert.ok(navMeasure.scrollOverflow <= 1, `Thanh điều hướng máy tính: trang không được tràn ngang — lệch ${navMeasure.scrollOverflow}px`);
   assert.ok(navMeasure.topbarOverflow <= 1, `Thanh điều hướng máy tính: #topbar tự nó không được tràn ngang (flex-wrap phải nhận đủ) — lệch ${navMeasure.topbarOverflow}px`);
   assert.ok(navMeasure.sidebarOverflow <= 1, `Thanh điều hướng dọc: #sidebar tự nó không được tràn ngang — lệch ${navMeasure.sidebarOverflow}px`);
   ok(`D) Thanh điều hướng dọc (1040px): ${navMeasure.linkCount} mục (${navMeasure.labels.join(", ")}), không tràn ngang (lệch ${navMeasure.scrollOverflow}px), #topbar/#sidebar tự chúng không tràn`);
   p.close();
-  ok("Trang chủ (máy tính, 1040×800, bản vẽ v2): dải chào + nhóm ô đúng quyền, thẻ số liệu bốn ô + biểu đồ đúng số, danh sách chuyến + dòng thời gian, thứ tự DOM đúng, không tái phát bug giờ/nơi đón, axe không vi phạm critical/serious");
+  ok("Trang chủ (máy tính, 1040×800, bản vẽ 1.73): lời chào + tóm tắt + nhãn vai, thẻ số liệu bốn ô + biểu đồ đúng số, Lối tắt đúng quyền, danh sách chuyến + dòng thời gian, thứ tự DOM đúng, không tái phát bug giờ/nơi đón, axe không vi phạm critical/serious");
 
   p = await env.as(ACCOUNTS.admin, "/", MOB);
   await p.waitFor("!document.querySelector('#dash-grid').hidden", "Trang chủ tải xong (điện thoại)");
   m = await measureHome(p);
   assertHome(m, "Trang chủ (điện thoại, 390×844)", "mobile");
   // Bản vẽ điện thoại 2026-09-30: lưới 2×2 cũ (Đợt D Task 1, #dash-grid display:grid + #dash-stats display:contents) thay bằng thẻ số liệu riêng #dash-so;
-  // #dash-grid ở khổ này chỉ còn xếp dọc Chuyến đón → Cần xem lại (display:flex cột).
+  // #dash-grid ở khổ này xếp dọc Cần xem lại → Chuyến đón (display:flex cột; bản vẽ 1.73).
   assert.equal(m.gridDisplay, "flex", `Trang chủ (điện thoại): #dash-grid phải display:flex (xếp dọc các thẻ) ở ≤640px — ${JSON.stringify(m)}`);
-  // Đợt D Task 3 (đặc tả §3.6: "Biểu đồ và 'Cần xem lại': xếp một cột dưới danh sách chuyến"): #dash-review đứng
-  // CUỐI, sau #dash-today — đúng thứ tự đọc tự nhiên ở điện thoại (bài học Đợt C: DOM phẳng, không dùng CSS order).
-  assert.deepEqual(
-    m.gridOrder,
-    ["dash-today", "dash-so-mt", "dash-review"],
-    `Trang chủ (điện thoại): thứ tự DOM phải là dash-today, dash-so-mt (ẩn ở khổ này), dash-review (thứ tự đọc: chuyến đón, rồi Cần xem lại) — ${JSON.stringify(m.gridOrder)}`,
-  );
+  // Bản vẽ 1.73 (1c, 1d): "Cần xem lại" đứng TRƯỚC "Chuyến đón" — bằng thứ tự DOM (bài học Đợt C: DOM phẳng, không dùng CSS order); số liệu máy tính và
+  // Lối tắt ẩn ở khổ này.
+  assert.deepEqual(m.gridOrder, ["dash-so-mt", "dash-review", "dash-today", "dash-loi-tat"], `Trang chủ (điện thoại): thứ tự DOM — ${JSON.stringify(m.gridOrder)}`);
+  {
+    const rv = await p.ev(`(() => ({ reviewBottom: Math.round(document.querySelector('#dash-review').getBoundingClientRect().bottom), todayTop: Math.round(document.querySelector('#dash-today').getBoundingClientRect().top) }))()`);
+    assert.ok(rv.reviewBottom <= rv.todayTop, `Trang chủ (điện thoại): Cần xem lại nằm TRÊN Chuyến đón (bản vẽ 1.73) — ${JSON.stringify(rv)}`);
+  }
   {
     // Bản vẽ 2026-09-30 (1a): bốn ô số liệu là MỘT thẻ chia 2×2 — đo THẬT hai hàng × hai cột, và thẻ nằm TRÊN "Chuyến đón".
     const soMeasure = await p.ev(`(() => {
@@ -686,8 +715,9 @@ try {
   {
     // ==================================================================================================
     // K) TRANG CHỦ ĐIỆN THOẠI THEO BẢN VẼ 2026-09-30 ("Trang chu dien thoai.dc.html" 1a–1c, Claude Design): dải đầu trang = #topbar đổi kiểu
-    //    (không dính, nền chuyển xanh), lời chào + ngày, chuông + Trợ giúp; ô tìm đơn 16px nổi; lưới ô theo quyền (Quản trị: 7 ô + "Tất cả");
-    //    huy hiệu dùng lại số đã có (Đơn hàng = số đơn chưa xác nhận, Dịch vụ & giá = số dịch vụ lệch Sheet); bảng trượt "Tất cả chức năng" bốn nhóm.
+    //    (không dính, nền chuyển xanh), lời chào theo buổi + ngày · vai (bản vẽ 1.73), chuông + Trợ giúp; ô tìm đơn 16px nổi; lưới MỘT hàng 4 chỗ không lặp
+    //    ô đã có tab (bản vẽ 1.73 — Quản trị: Danh bạ, Điều phối xe, Xe + "Tất cả"); huy hiệu dùng lại số đã có (Đơn hàng = số đơn chưa xác nhận, Dịch vụ & giá =
+    //    số dịch vụ lệch Sheet — nay đo trong bảng trượt); bảng trượt "Tất cả chức năng" bốn nhóm.
     // ==================================================================================================
     const k = await p.ev(`(() => {
       const vis = (el) => !!el && el.offsetParent !== null;
@@ -708,16 +738,11 @@ try {
       };
     })()`);
     assert.equal(k.topbarPosition, "static", `K: dải đầu Trang chủ điện thoại cuộn theo trang (không dính) — ${JSON.stringify(k)}`);
-    assert.ok(k.chaoShown && k.chao[0] === "Xin chào," && k.chao[1] === ACCOUNTS.admin.name && /^(Thứ \S+|Chủ nhật|Chủ Nhật), \d{2}\/\d{2}$/.test(k.chao[2]), `K: lời chào "Xin chào," + tên + "Thứ …, dd/mm" — ${JSON.stringify(k.chao)}`);
+    assert.ok(k.chaoShown && /^Chào buổi (sáng|trưa|chiều|tối),$/.test(k.chao[0]) && k.chao[1] === ACCOUNTS.admin.name && /^(Thứ \S+|Chủ nhật|Chủ Nhật), \d{2}\/\d{2} · Quản trị$/.test(k.chao[2]), `K: lời chào "Chào buổi …," + tên + "Thứ …, dd/mm · Quản trị" (bản vẽ 1.73) — ${JSON.stringify(k.chao)}`);
     assert.ok(k.bellShown && k.helpShown && k.helpHref === "/help", `K: chuông + nút Trợ giúp (/help) hiện trên dải đầu trang — ${JSON.stringify(k)}`);
     assert.ok(k.timShown && k.timFont === "16px" && k.timPlaceholder === "Tìm mã đơn, tên khách, SĐT…", `K: ô tìm đơn hiện, chữ 16px (chống iOS tự phóng to) — ${JSON.stringify(k)}`);
-    assert.deepEqual(k.o.map((x) => x.nhan), ["Tạo đơn", "Đơn hàng", "Danh bạ", "Điều phối xe", "Xe", "Giấy tờ sắp hết hạn", "Dịch vụ & giá", "Tất cả"], `K: lưới Quản trị = 7 ô theo thứ tự ưu tiên + "Tất cả" (bản vẽ 1b) — ${JSON.stringify(k.o)}`);
+    assert.deepEqual(k.o.map((x) => x.nhan), ["Danh bạ", "Điều phối xe", "Xe", "Tất cả"], `K: lưới Quản trị = 3 ô chưa có tab + "Tất cả" (bản vẽ 1.73, 1c) — ${JSON.stringify(k.o)}`);
     assert.ok(k.o.every((x) => x.shown), `K: mọi ô hiển thị thật — ${JSON.stringify(k.o)}`);
-    const don = k.o.find((x) => x.nhan === "Đơn hàng");
-    const dv = k.o.find((x) => x.nhan === "Dịch vụ & giá");
-    assert.ok(don.so === "1" && /dash-o-so-xanh/.test(don.mau), `K: huy hiệu "Đơn hàng" = số đơn chưa xác nhận (1, R2), màu xanh — ${JSON.stringify(don)}`);
-    assert.ok(dv.so === "1" && /dash-o-so-cat/.test(dv.mau), `K: huy hiệu "Dịch vụ & giá" = số dịch vụ lệch Sheet (1, TD101), màu cát — ${JSON.stringify(dv)}`);
-    assert.equal(k.o.find((x) => x.nhan === "Tạo đơn").href, "/order-form", `K: ô "Tạo đơn" dẫn tới /order-form — ${JSON.stringify(k.o)}`);
     // Bảng trượt "Tất cả chức năng" (bản vẽ 1c): mở bằng ô "Tất cả", bốn nhóm (Quản trị: không có Nhật ký / Gửi thông báo — chỉ Toàn quyền), đóng bằng Esc,
     // tiêu điểm trở về ô "Tất cả".
     await p.ev(`[...document.querySelectorAll('#dash-o > .dash-o-muc')].find((b) => b.textContent.trim() === 'Tất cả').click()`);
@@ -725,7 +750,13 @@ try {
     const sheet = await p.ev(`(() => ({
       title: document.querySelector('.sheet.dash-tc .sheet-title').textContent.trim(),
       nhom: [...document.querySelectorAll('.dash-tc .dash-tc-nhom')].map((g) => [g.querySelector('.dash-tc-ten').textContent.trim(), [...g.querySelectorAll('.dash-o-nhan')].map((n) => n.textContent.trim())]),
+      o: [...document.querySelectorAll('.dash-tc .dash-o-muc')].map((el) => ({ nhan: el.querySelector('.dash-o-nhan').textContent.trim(), href: el.getAttribute('href'), so: el.querySelector('.dash-o-so')?.textContent.trim() ?? null, mau: el.querySelector('.dash-o-so')?.className ?? null })),
     }))()`);
+    const don = sheet.o.find((x) => x.nhan === "Đơn hàng");
+    const dv = sheet.o.find((x) => x.nhan === "Dịch vụ & giá");
+    assert.ok(don.so === "1" && /dash-o-so-xanh/.test(don.mau), `K: huy hiệu "Đơn hàng" (bảng trượt) = số đơn chưa xác nhận (1, R2), màu xanh — ${JSON.stringify(don)}`);
+    assert.ok(dv.so === "1" && /dash-o-so-cat/.test(dv.mau), `K: huy hiệu "Dịch vụ & giá" (bảng trượt) = số dịch vụ lệch Sheet (1, TD101), màu cát — ${JSON.stringify(dv)}`);
+    assert.equal(sheet.o.find((x) => x.nhan === "Tạo đơn").href, "/order-form", `K: ô "Tạo đơn" dẫn tới /order-form — ${JSON.stringify(sheet.o)}`);
     assert.equal(sheet.title, "Tất cả chức năng", `K: tiêu đề bảng trượt — ${JSON.stringify(sheet)}`);
     assert.deepEqual(
       sheet.nhom,
@@ -981,7 +1012,7 @@ try {
   }
   {
     const FRAME_PAGES = [
-      { path: "/staff", label: "/staff", widths: [640, 641, 645, 650, 700, 768, 899, 900, 910, 929, 930, 1040, 1440, 1920], ready: null, mainCap: () => CSS_W_MAIN, account: ACCOUNTS.admin, sidebar: 17 },
+      { path: "/staff", label: "/staff", widths: [640, 641, 645, 650, 700, 768, 899, 900, 910, 929, 930, 1040, 1440, 1920], ready: null, mainCap: () => CSS_W_MAIN, account: ACCOUNTS.admin, sidebar: 18 },
       {
         // PHẢI là đơn NHÁP (R2). Đơn đã xác nhận (R1/R3) bị web/order-form.ts khoá form ("Chỉ sửa được đơn ở trạng
         // thái nháp") và KHÔNG gọi setBarTitle(`Sửa đơn <mã>`) — breadcrumb kẹt ở chữ "Sửa đơn" ngắn, lưới xanh giả.
@@ -997,7 +1028,7 @@ try {
         // (đã tự đo: bản đầu của khẳng định này báo đỏ SAI ở 641px vì giả định --w-form áp dụng mọi khổ ≥641px).
         mainCap: (width) => (width >= 960 ? CSS_W_FORM : CSS_W_MAIN),
         account: ACCOUNTS.admin,
-        sidebar: 17,
+        sidebar: 18,
       },
       {
         path: "/audit",
@@ -1007,7 +1038,7 @@ try {
         ready: `document.querySelector('.toolbar select option[value]:not([value=""])') !== null`,
         mainCap: () => CSS_W_MAIN,
         account: TOAN_QUYEN,
-        sidebar: 23, // 2/10 (ADR-0087, Task 5): + "Giao diện" (ô settings.ops, chỉ Toàn quyền) = 23; Quản trị không có ô này nên vẫn 17. Trước đó 22 (1/10, ADR-0075: + "Phiên đăng nhập")
+        sidebar: 24, // 2/10 (ADR-0055 VK2-A, Vận chuyển Đợt 3): + "Lịch xe bận" (ô vehicle.manage) = 24. 2/10 (ADR-0087, Task 5): + "Giao diện" (ô settings.ops, chỉ Toàn quyền) = 23; Quản trị không có ô này nên 18. Trước đó 22 (1/10, ADR-0075: + "Phiên đăng nhập")
       },
     ];
 
@@ -1119,7 +1150,7 @@ try {
         assert.equal(f.newBtnShown, false, `${at}: nút "Tạo đơn" trên thanh công việc chỉ từ 641px (điện thoại đã có tab "Tạo đơn") — ${JSON.stringify(f)}`);
       } else {
         assert.equal(f.sidebarShown, true, `${at}: thanh bên PHẢI hiện từ 641px (quyết định 9 của chủ dự án) — ${JSON.stringify(f)}`);
-        assert.equal(f.sidebarLinks, spec.sidebar, `${at}: thanh bên phải đủ ${spec.sidebar} mục của tài khoản mở trang (Quản trị 17 — ADR-0038 không "Nhật ký", ADR-0049 B8 có "Lý do điều phối", B1 có "Điều phối xe"; Toàn quyền 23 — ADR-0069 thêm "Trợ lý Hỗ trợ", ADR-0075 thêm "Phiên đăng nhập", ADR-0087 thêm "Giao diện") — ${JSON.stringify(f)}`);
+        assert.equal(f.sidebarLinks, spec.sidebar, `${at}: thanh bên phải đủ ${spec.sidebar} mục của tài khoản mở trang (Quản trị 18 — ADR-0038 không "Nhật ký", ADR-0049 B8 có "Lý do điều phối", B1 có "Điều phối xe", Đợt 3 có "Lịch xe bận"; Toàn quyền 24 — ADR-0069 thêm "Trợ lý Hỗ trợ", ADR-0075 thêm "Phiên đăng nhập", ADR-0087 thêm "Giao diện") — ${JSON.stringify(f)}`);
         assert.equal(f.tabbarLinks, 0, `${at}: thanh tab dưới đáy KHÔNG được hiện cùng thanh bên — ${JSON.stringify(f)}`);
         assert.equal(f.logoutShown, true, `${at}: "Đăng xuất" phải hiển thị thật trong thanh bên — ${JSON.stringify(f)}`);
         assert.equal(f.sidebarWidth, f.sidebarToken, `${at}: thanh bên phải rộng đúng token --w-sidebar (${f.sidebarToken}px) — ${JSON.stringify(f)}`);
@@ -1548,7 +1579,7 @@ try {
         todayPlace: info(today?.querySelector('.dash-today-place')),
       };
     })()`);
-    assert.deepEqual(icons.statLabels, ["Còn thiếu tiền", "Doanh thu của tôi", "Chờ xác nhận", "Chưa phụ trách"], `J: bốn ô số liệu (bản vẽ máy tính v2) đúng thứ tự — ${JSON.stringify(icons.statLabels)}`);
+    assert.deepEqual(icons.statLabels, ["Còn thiếu tiền", "Chờ xác nhận", "Chưa phụ trách", "Doanh thu của tôi"], `J: bốn ô số liệu (bản vẽ 1.73) đúng thứ tự — ${JSON.stringify(icons.statLabels)}`);
     icons.stats.forEach((s, i) => {
       assert.ok(s.hasSvg && s.ariaHidden === "true", `J: ô số liệu #${i} (${icons.statLabels[i]}) phải có biểu tượng aria-hidden — ${JSON.stringify(s)}`);
       assert.ok(s.text && s.text.length > 0, `J: ô số liệu #${i} phải còn chữ đi kèm biểu tượng (không đứng một mình) — ${JSON.stringify(s)}`);

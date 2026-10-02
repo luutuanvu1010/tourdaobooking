@@ -39,13 +39,13 @@
 Hai luồng song song, mỗi luồng một phiên.
 
 **Luồng Q — quyền tiền chỉ Toàn quyền (ADR-0090), không cần chờ gì**
-- [ ] 🤖 Q0 kiểm kê, mở sổ thi công
-- [ ] 🤖 Q1 một hàm "có quyền tiền" suy từ bảng quyền
-- [ ] 🤖 Q2 cổng máy chủ ba cửa (đặt lại PIN, gán vai/quyền tiền, tạo tài khoản tiền); `ACCOUNTANT.superAdminOnly` (**không** thêm vào `SUPER_ADMIN_GRANTED`)
-- [ ] 🤖 Q3 cờ theo từng dòng + giao diện ẩn/hiện
-- [ ] 🤖 Q4 tin "Quản trị ngưng Kế toán" → Toàn quyền (một view, một migration — chủ đồng ý (f))
-- [ ] 🤖 Q5 e2e QT04 + dòng sổ hàng rào (thấy chặn thật)
-- [ ] 🔍 Q6 kiểm độc lập (quyền): ĐẠT
+- [x] 🤖 Q0 kiểm kê, mở sổ thi công
+- [x] 🤖 Q1 một hàm "có quyền tiền" suy từ bảng quyền
+- [x] 🤖 Q2 cổng máy chủ ba cửa (đặt lại PIN, gán vai/quyền tiền, tạo tài khoản tiền); `ACCOUNTANT.superAdminOnly` (**không** thêm vào `SUPER_ADMIN_GRANTED`)
+- [x] 🤖 Q3 cờ theo từng dòng + giao diện ẩn/hiện
+- [x] 🤖 Q4 tin "Quản trị ngưng Kế toán" → Toàn quyền (một view, một migration — chủ đồng ý (f))
+- [x] 🤖 Q5 e2e QT04 + dòng sổ hàng rào (thấy chặn thật)
+- [x] 🔍 Q6 kiểm độc lập (quyền): ĐẠT
 - [ ] 👤 Q7 🚀 phát hành luồng Q
 
 **Luồng L — lớp chống ghi trùng bản mở rộng (ADR-0094), đường găng**

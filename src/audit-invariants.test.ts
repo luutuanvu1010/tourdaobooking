@@ -1880,3 +1880,34 @@ test("R-VC-20 (NT-D4): mẫu hiện hành trỏ điểm đang dùng → 0; đi�
   db.prepare("UPDATE loc_location SET active = 0 WHERE id = ?").run(BEN);
   assert.equal(violations(db, c), 2, "TD101 + TD103 (bản hiện hành) trỏ điểm đã ngưng");
 });
+
+// ---------------------------------------------------------------------------------------------------------------------
+// ADR-0055 VK2-A hệ quả 10 (kế hoạch Đợt 3 Task 8): R-VC-21 — chuyến chưa kết thúc chồng khung bận còn hiệu lực của xe (warn, lưới thứ hai của trigger).
+// ---------------------------------------------------------------------------------------------------------------------
+test("R-VC-21 (ADR-0055 hệ quả 10): chuyến chưa huỷ, CHƯA kết thúc chồng khung bận còn hiệu lực của xe → đếm (warn); chuyến đã kết thúc / khung đã rút / khung DRIVER → không đếm", () => {
+  const c = one("R-VC-21");
+  assert.equal(c.level, "warn");
+  const db = tho(); // trigger vc_trip* đã thả — giả "lọt lưới" của vc_trip_unavailable_ins / _upd
+  const goc = Math.floor(NOW_MS / 60_000) * 60_000 + 24 * H;
+  const khung = (id: string, tu: number, den: number, o: { subject?: string; xe?: string | null; taiXe?: string | null; lyDo?: string } = {}) =>
+    db.prepare(`INSERT INTO vc_unavailability (id, subject, vehicle_id, driver_party_id, start_ms, end_ms, start_at, end_at, reason_code, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(id, o.subject ?? "VEHICLE", o.xe === undefined ? "xe-1" : o.xe, o.taiXe ?? null, tu, den, isoMs(tu), isoMs(den), o.lyDo ?? "BAN_XE_BAO_DUONG", T1, T1);
+  khung("kb-1", goc + 8 * H, goc + 17 * H);
+  chuyenTho(db, { tu: goc + 18 * H, den: goc + 19 * H });
+  chuyenTho(db, { tu: goc + 17 * H, den: goc + 18 * H }); // chạm mép — nửa mở
+  assert.equal(violations(db, c), 0, "chuyến ngoài khung / chạm mép");
+  const b = chuyenTho(db, { tu: goc + 9 * H, den: goc + 10 * H });
+  assert.equal(violations(db, c), 1, "chuyến PLANNED lọt vào khung");
+  chuyenTho(db, { tu: goc + 11 * H, den: goc + 12 * H, status: "ENDED", departed: goc + 11 * H, ended: goc + 12 * H });
+  const huy = chuyenTho(db, { tu: goc + 13 * H, den: goc + 14 * H });
+  db.prepare("UPDATE vc_trip SET status = 'CANCELLED', cancel_reason_code = 'HUY_KHAC' WHERE id = ?").run(huy);
+  assert.equal(violations(db, c), 1, "chuyến đã kết thúc / đã huỷ không đếm");
+  // Khung DRIVER (Đợt 6 — thả trigger "chưa mở" để dựng) không khớp theo xe.
+  db.exec("DROP TRIGGER vc_unavailability_driver_closed");
+  db.prepare("INSERT INTO vc_reason (code, reason_group, label, sort_order, created_at, updated_at) VALUES ('BAN_TAI_XE_THU', 'BAN_TAI_XE', 'Thử', 1, ?, ?)").run(T1, T1);
+  khung("kb-tx", goc + 8 * H, goc + 17 * H, { subject: "DRIVER", xe: null, taiXe: "p-cty", lyDo: "BAN_TAI_XE_THU" });
+  assert.equal(violations(db, c), 1, "khung DRIVER không đếm");
+  db.prepare("UPDATE vc_unavailability SET withdrawn_at = ?, withdrawn_by = 's', version = 2, updated_at = ?, updated_by = 's' WHERE id = 'kb-1'").run(T2, T2);
+  assert.equal(violations(db, c), 0, "khung đã rút");
+  assert.ok(b);
+});

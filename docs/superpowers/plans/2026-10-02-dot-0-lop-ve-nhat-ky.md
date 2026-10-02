@@ -352,3 +352,10 @@ Số bản nhật ký phiên bản: `main` cục bộ có `1.70` ở đầu `src
 - Gợi ý (không chặn): bài quét không bắt route kiểm PIN qua hàm lạ hoặc helper ở tệp khác (đã ghi ở chú thích `lan-gui-bi-mat.ts` + cột "không chặn" sổ hàng rào); dòng trống thừa trong `BI_MAT` — đã xoá.
 - Người kiểm KHÔNG chạy lại typecheck / npm test đủ / e2e / Chrome ở lần 2 (dựa số đo thi công + lần 1).
 - Checklist: L15 `[x]`.
+
+## Gộp `main` `a6fd0a3d` vào nhánh (2026-10-02, sau vòng 2 ĐẠT)
+- `main` đã có 1.73 (Trang chủ), 1.74 (luồng Q, `0075`), 1.75 (Vận chuyển Đợt 3, `0071`). Đo lại migration mọi nhánh + worktree: `0074_lan_gui` chỉ nhánh này dùng.
+- Xung đột 6 tệp: `van-chuyen/index.ts` (tạo chuyến: giữ `canhBaoLenh` của Đợt 3 + `location` của H7), `tests/e2e/run.mjs` (giữ cả `quyen-tien`, `khung-ban-xe` và `chong-ghi-trung`), `changelog.ts` + `app-info.test.ts` (**1.71 → 1.76**), `SYSTEM-DESIGN.md` (bảng migration 0071, 0074, 0075), `SO-HANG-RAO.md` (giữ cả hai bên).
+- Hàng rào bắt đúng lúc gộp: **H7** đỏ — `POST /api/van-chuyen/xe/:id/ban` trả 201 không `Location` (10 bài khung-ban của Đợt 3 đỏ theo vì khung thử ném H7) ⇒ thêm `kemLocation(…, "/lich-xe-ban")`; **H2** đỏ — 131 ≠ 129 (+2 route lịch xe bận) ⇒ cập nhật số có chủ đích.
+- Sau gộp: `npm run typecheck` thoát 0; `npm test` thoát 0 (2966, 0 đỏ, 1 todo; đo giờ 1/1); e2e đủ bộ **47/47**, H5 xanh, lỗi lạ 0, nhóm 3 đụng vé 1 (N2).
+- Phần sửa MÃ sau vòng 2: hai dòng trên (`van-chuyen/index.ts`, `lan-gui-phu-route.test.ts`) + gỡ xung đột ⇒ giao người kiểm xem phần gộp.

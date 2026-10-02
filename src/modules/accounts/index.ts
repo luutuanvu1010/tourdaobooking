@@ -27,7 +27,8 @@ import {
 import { PERMISSION_CODES, PERMISSION_LABEL, can, isPermissionCode, type PermissionCode, quyenHienThi } from "../../shared/permissions";
 import { route, type AppModule, type Ctx } from "../../shared/router";
 import {
-  highPermissionProblem, parseRoleAssignment, permissionsLabel, roleAssignmentProblem, rolesLabel, taiKhoanLaiProblem, laiNoiBoBenNgoaiProblem, type RoleCode, type RoleProblem,
+  TIEN_CHI_TOAN_QUYEN_MESSAGE, chamTaiKhoanTienDuoc, datLaiPinDuoc as datLaiPinDuocTheoDong, highPermissionProblem, parseRoleAssignment, permissionsLabel, roleAssignmentProblem,
+  rolesLabel, taiKhoanLaiProblem, laiNoiBoBenNgoaiProblem, type RoleCode, type RoleProblem,
 } from "../../shared/roles";
 import { vnToday } from "../../shared/vn-date";
 
@@ -381,7 +382,10 @@ export const accountsModule: AppModule = {
       const [staff, locked, passkeys] = await Promise.all([listStaffAccounts(env.DB), lockedPhones(env.DB), countActivePasskeys(env.DB)]);
       const roles = await accountRoleCodes(env.DB, staff);
       const seesHidden = can(admin, "admin.manage.superadmin"); // ADR-0042: Toàn quyền là vai ẩn với người khác
-      return json({ staff: staff.map((s) => ({ ...dto(s, locked, passkeys, roles), permissions: quyenHienThi(s.permissions, seesHidden) })) } satisfies StaffListResponse);
+      // ADR-0090 đ2: cờ theo dòng tính trên quyền THẬT (trước khi che Toàn quyền thành Quản trị).
+      return json({
+        staff: staff.map((s) => ({ ...dto(s, locked, passkeys, roles), permissions: quyenHienThi(s.permissions, seesHidden), datLaiPinDuoc: datLaiPinDuocTheoDong(admin, s) })),
+      } satisfies StaffListResponse);
     }),
 
     route("POST", "/api/staff", "accounts", async ({ request, env, staff: admin }) => {
@@ -660,6 +664,7 @@ export const accountsModule: AppModule = {
       if (!t) return NOT_FOUND();
       if (t.id === ctx.staff.id) return SELF_RESET_PIN(); // DK-T3-02: chặn TRƯỚC mọi ghi; tự đổi PIN chỉ qua change-pin (PIN hiện tại) hoặc pin-by-passkey (ký Face ID mới)
       if (!mayManage(ctx.staff, t)) return NOT_MANAGER();
+      if (!chamTaiKhoanTienDuoc(ctx.staff, t)) return error(403, "forbidden", TIEN_CHI_TOAN_QUYEN_MESSAGE); // ADR-0090 đ1(i): QT04 — TRƯỚC mọi ghi
       const pin = generatePin();
       const now = Date.now();
       const at = new Date(now).toISOString();
@@ -727,12 +732,11 @@ export const accountsModule: AppModule = {
       const nowIso = new Date().toISOString();
       const rows = await listSessions(env.DB, staffId, liveOnly, nowIso);
       const owners = await chuPhienTheoId(env.DB, [...new Set(rows.map((r) => r.staff_id))]);
-      // Nút "Gỡ phiên + đặt lại PIN" chỉ hiện khi route reset-pin sẽ nhận: CÙNG thứ tự cổng của route đó — hai ô, không phải chính mình (SELF_RESET_PIN),
-      // mayManage (NOT_MANAGER). Máy chủ tính để giao diện không chép luật cấp bậc.
-      const haiO = can(staff, "admin.manage") && can(staff, "account.access.manage");
+      // Nút "Gỡ phiên + đặt lại PIN" chỉ hiện khi route reset-pin sẽ nhận: MỘT hàm datLaiPinDuoc (src/shared/roles.ts) — hai ô, không phải chính mình,
+      // cấp dưới, luật quyền tiền (ADR-0090 đ2). Máy chủ tính để giao diện không chép luật cấp bậc.
       const sessions = rows.map((r) => {
         const o = owners.get(r.staff_id);
-        const datLaiPinDuoc = haiO && !!o && r.staff_id !== staff.id && mayManage(staff, { id: r.staff_id, permissions: o.permissions });
+        const datLaiPinDuoc = !!o && datLaiPinDuocTheoDong(staff, { id: r.staff_id, permissions: o.permissions });
         return { ...toSessionDto(r, o?.credentialsChangedAt ?? null, nowIso, sessionId), staffId: r.staff_id, staffName: o?.label ?? "", datLaiPinDuoc };
       });
       return json({ sessions: liveOnly ? sessions.filter((s) => s.live) : sessions } satisfies StaffSessionListResponse);

@@ -71,6 +71,16 @@ import { danhSachNhac, docGoiBao, phanHoiLenhLap, xuLyMoc, type QuyenGoiBao } fr
 import type { XeCuaDonResponse } from "../../shared/contracts";
 import { changMoCuaDon, donTonTai, xeCuaDon } from "./chuyen-repo";
 import { lyDoGiuDto, xeCuaDonDto } from "./dieu-phoi-dto";
+// ADR-0055 VK2-A (Đợt 3): khung bận của xe — ghi, rút một lần, xem (một xe / tuần).
+import type { ChuyenXeBanDto, KhungBanChongChuyenLoi, KhungBanXeDto, KhungBanXeListResponse, LichXeBanResponse } from "../../shared/contracts";
+import { chuyenVuongKhung, nhanKhoangGio } from "../../shared/khung-ban";
+import { vnLocalToMs, vnWeekRange } from "../../shared/vn-date";
+import { CAU_KHUNG_VUA_DOI, chiTietNhatKyKhung, kiemKhungBanMoi, kiemRutKhung, loiRangBuocKhungBan } from "./khung-ban";
+import { insertKhungBanStatement, khungBanCuaXe, khungBanTheoId, khungBanXeTrongKhoang, rutKhungBanStatement, type KhungBanRow } from "./khung-ban-repo";
+import { lyDoDangDung, xeDieuPhoi } from "./chuyen-repo";
+import type { CanhBaoLichDto } from "../../shared/contracts";
+import { NHAN_CANH_BAO_GIO_LAI, type CanhBaoGioLai } from "../../shared/gio-lai";
+import { khungBanVao } from "./dieu-phoi-doc";
 const CAN_XEM_XE_DON = () => error(403, "forbidden", "Tài khoản này không xem được xe đón khách của đơn.");
 const CAN_XEM_CUOC = () => error(403, "forbidden", "Tài khoản này không có cuốc xe.");
 const CAN_BAM_THAY = () => error(403, "forbidden", "Tài khoản này không bấm thay tiến độ chuyến được.");
@@ -101,6 +111,25 @@ const OWNER_NOT_CARRIER = () => error(409, "vehicle_owner_not_carrier", CAU_CHU_
 const BAD_OWNER_FILTER = () => error(400, "invalid_input", "Bộ lọc chủ xe không hợp lệ.");
 
 const RETIRED = () => error(409, "vehicle_retired", "Xe đã ngừng dùng.");
+// ---- Khung bận của xe (ADR-0055 VK2-A A5) -------------------------------------------------------------------------------------------------------------
+const khungBanXeDto = (r: KhungBanRow, bayGioMs: number): KhungBanXeDto => ({
+  id: r.id, xeId: r.vehicle_id, batDau: new Date(r.start_ms).toISOString(), ketThuc: new Date(r.end_ms).toISOString(), batDauMs: r.start_ms, ketThucMs: r.end_ms,
+  lyDoMa: r.reason_code, lyDo: r.reason_label, daRut: r.withdrawn_at !== null, daQua: r.end_ms <= bayGioMs, version: r.version,
+});
+/** Lý do ĐANG DÙNG của nhóm BAN_XE (danh mục — câu 3.2, chủ 2/10). */
+const lyDoBanXe = async (db: D1Database): Promise<{ code: string; label: string }[]> =>
+  (await lyDoDangDung(db)).filter((r) => r.reason_group === "BAN_XE").map((r) => ({ code: r.code, label: r.label }));
+/** Nhắc giờ lái của lệnh tạo / sửa chuyến → `canhBaoLenh` (id tạm "__moi__" của luật thuần đổi sang id thật). */
+const nhacGioLaiDto = (ds: readonly CanhBaoGioLai[], tripId: string): CanhBaoLichDto[] =>
+  ds.map((w) => ({ loai: w.loai, nhan: NHAN_CANH_BAO_GIO_LAI[w.loai], legId: null, tripId, maDon: null }));
+async function respondKhungBan(db: D1Database, xeId: string, status = 200): Promise<Response> {
+  const bayGioMs = Date.now();
+  const [rows, lyDo] = await Promise.all([khungBanCuaXe(db, xeId), lyDoBanXe(db)]);
+  const ds = rows.map((r) => khungBanXeDto(r, bayGioMs));
+  const dangCo = ds.filter((k) => !k.daRut && !k.daQua).sort((a, b) => a.batDauMs - b.batDauMs);
+  const lichSu = ds.filter((k) => k.daRut || k.daQua);
+  return json({ dangCo, lichSu, lyDo } satisfies KhungBanXeListResponse, status);
+}
 const DOC_NOT_FOUND = () => error(404, "not_found", "Không tìm thấy giấy tờ này của xe.");
 // ADR-0056 VK3-B lớp ROUTE — lớp CSDL (trigger) trả document_type_conflict (loiRangBuocXe).
 const DOC_TYPE_EXISTS = (ten: string) => error(409, "document_type_exists", `Xe đã có ${ten} đang dùng — bấm Gia hạn hoặc Sửa sai.`);
@@ -138,6 +167,8 @@ const toPolicyDto = (r: DispatchPolicyRow, currentId: string | null, nhan: Reado
   requireManifest: r.require_manifest === 1,
   requireContract: r.require_contract === 1,
   proxyBackdateMaxMinutes: r.proxy_backdate_max_minutes,
+  dutyDayMaxMinutes: r.duty_day_max_minutes,
+  tripNoBreakMaxMinutes: r.trip_no_break_max_minutes,
   validFrom: r.valid_from_at,
   current: r.id === currentId,
   nguoiLuu: r.created_by === null ? null : (nhan?.get(r.created_by) ?? null),
@@ -504,6 +535,104 @@ export const vanChuyenModule: AppModule = {
       return respondVehicle(env.DB, id);
     }),
 
+    // ---- ADR-0055 VK2-A (Đợt 3): khung bận của xe — ô vehicle.manage ĐẦU thân (403 trước 400). Thứ tự: 403 → 404 xe → 409 xe ngừng (chỉ ghi) → 400 thân →
+    // 400 lý do ngoài nhóm / ngưng → 409 chồng chuyến (lớp route, liệt kê mã chuyến) → lô ghi + nhật ký → lỗi CSDL (mã lớp CSDL khác).
+    route("GET", "/api/van-chuyen/xe/:id/ban", "office", async ({ env, params, staff }) => {
+      if (!can(staff, "vehicle.manage")) return FORBIDDEN();
+      const id = params.id ?? "";
+      const xe = UUID_RE.test(id) ? await findVehicle(env.DB, id) : null;
+      return xe ? respondKhungBan(env.DB, id) : NOT_FOUND();
+    }),
+    route("POST", "/api/van-chuyen/xe/:id/ban", "office", async ({ request, env, params, staff }) => {
+      if (!can(staff, "vehicle.manage")) return FORBIDDEN();
+      const id = params.id ?? "";
+      const xe = UUID_RE.test(id) ? await findVehicle(env.DB, id) : null;
+      if (!xe) return NOT_FOUND();
+      if (xe.status === "retired") return RETIRED();
+      const now = new Date();
+      const parsed = kiemKhungBanMoi(await readJson(request), now.getTime());
+      if (!parsed.ok) return error(400, "invalid_input", parsed.message);
+      const k = parsed.value;
+      const lyDo = (await lyDoBanXe(env.DB)).find((r) => r.code === k.lyDo);
+      if (!lyDo) return error(400, "invalid_input", "Lý do không có trong danh mục lý do xe bận.");
+      // Q-L2-1 = a (lớp route): chuyến chưa huỷ, chưa kết thúc của xe chồng khung → 409 liệt kê mã chuyến + giờ (không tên khách).
+      const vuong = chuyenVuongKhung({ xeId: id, ...k }, (await tripsTouching(env.DB, k.batDauMs, k.ketThucMs)).map(khungChuyen));
+      if (vuong.length > 0) {
+        const dau = vuong[0]!;
+        return json({
+          error: {
+            code: "khung_ban_chong_chuyen", message: `Xe đang có chuyến ${dau.ma} lúc ${nhanKhoangGio(dau.batDauMs, dau.ketThucMs)} — dời hoặc đổi xe chuyến đó trước.`,
+            chuyen: vuong.map((c) => ({ ma: c.ma, gio: nhanKhoangGio(c.batDauMs, c.ketThucMs) })),
+          },
+        } satisfies KhungBanChongChuyenLoi, 409);
+      }
+      const at = now.toISOString();
+      try {
+        await env.DB.batch([
+          insertKhungBanStatement(env.DB, crypto.randomUUID(), id, k, at, staff.id),
+          auditStatement(env.DB, { staffId: staff.id, action: "vehicle_unavailability_added", at, targetType: "vehicle", targetId: id, detail: chiTietNhatKyKhung(xe.plate_number, k, lyDo.label) }),
+        ]);
+      } catch (e) {
+        const p = loiRangBuocKhungBan(e instanceof Error ? e.message : "");
+        if (p) return error(p.status, p.code, p.message);
+        throw e;
+      }
+      return kemLocation(await respondKhungBan(env.DB, id, 201), "/lich-xe-ban"); // ADR-0094 A-10: trang gọi route này (web/lich-xe-ban.ts)
+    }),
+    route("POST", "/api/van-chuyen/xe/:id/ban/:bid/rut", "office", async ({ request, env, params, staff }) => {
+      if (!can(staff, "vehicle.manage")) return FORBIDDEN();
+      const id = params.id ?? "";
+      const xe = UUID_RE.test(id) ? await findVehicle(env.DB, id) : null;
+      if (!xe) return NOT_FOUND();
+      const bid = params.bid ?? "";
+      const k = UUID_RE.test(bid) ? await khungBanTheoId(env.DB, bid, id) : null;
+      if (!k) return error(404, "not_found", "Không có khung bận này.");
+      const parsed = kiemRutKhung(await readJson(request));
+      if (!parsed.ok) return error(400, "invalid_input", parsed.message);
+      const now = new Date();
+      if (k.withdrawn_at !== null || k.version !== parsed.value.version) return error(409, "khung_ban_vua_doi_route", CAU_KHUNG_VUA_DOI);
+      if (k.end_ms <= now.getTime()) return error(409, "khung_ban_da_qua", "Khung này đã qua — giữ trong lịch sử, không rút.");
+      const at = now.toISOString();
+      let kq: D1Result[];
+      try {
+        kq = await env.DB.batch([
+          rutKhungBanStatement(env.DB, bid, parsed.value.version, at, staff.id),
+          auditStatement(env.DB, {
+            staffId: staff.id, action: "vehicle_unavailability_withdrawn", at, targetType: "vehicle", targetId: id,
+            detail: chiTietNhatKyKhung(xe.plate_number, { batDauMs: k.start_ms, ketThucMs: k.end_ms }, k.reason_label, true),
+          }, "changes() > 0"),
+        ]);
+      } catch (e) {
+        const p = loiRangBuocKhungBan(e instanceof Error ? e.message : "");
+        if (p) return error(p.status, p.code, p.message);
+        throw e;
+      }
+      if ((kq[0]!.meta.changes ?? 0) === 0) return error(409, "khung_ban_vua_doi_route", CAU_KHUNG_VUA_DOI);
+      return respondKhungBan(env.DB, id);
+    }),
+    // Trang tuần "Lịch xe bận" (bản vẽ 2/10): ô vehicle.manage (câu 3.4 — chỉ Quản trị + Toàn quyền), 403 trước 400. Tuần = MỘT luật với màn (vnWeekRange),
+    // khoảng chặn bằng nửa đêm VN. Chuyến đã xếp chỉ khi có trip.view, DANH SÁCH TRẮNG (câu 3.1).
+    route("GET", "/api/van-chuyen/ban-xe", "office", async ({ env, url, staff }) => {
+      if (!can(staff, "vehicle.manage")) return FORBIDDEN();
+      const now = new Date();
+      const tuGui = url.searchParams.get("tu");
+      if (tuGui !== null && !isISODate(tuGui)) return error(400, "invalid_input", "Tuần xem: YYYY-MM-DD.");
+      const { from: tu, to: den } = vnWeekRange(tuGui ?? vnToday(now));
+      const tuMs = vnLocalToMs(tu, "00:00")!;
+      const denMs = vnLocalToMs(addDays(tu, 7), "00:00")!;
+      const bayGioMs = now.getTime();
+      const [xeRows, khung, lyDo, trips] = await Promise.all([
+        xeDieuPhoi(env.DB), khungBanXeTrongKhoang(env.DB, tuMs, denMs), lyDoBanXe(env.DB), can(staff, "trip.view") ? tripsTouching(env.DB, tuMs, denMs) : Promise.resolve([]),
+      ]);
+      const chuyen: ChuyenXeBanDto[] = trips.filter((t) => t.status !== "CANCELLED" && t.planned_start_ms < denMs && t.planned_end_ms > tuMs) // tripsTouching trả MỌI chuyến đang chạy
+        .map((t) => ({ id: t.id, ma: t.code, xeId: t.vehicle_id, batDauMs: t.planned_start_ms, ketThucMs: t.planned_end_ms, trangThai: t.status as ChuyenXeBanDto["trangThai"] }));
+      return json({
+        tu, den,
+        xe: xeRows.map((x) => ({ id: x.id, bienSo: x.plate_number, soCho: x.passenger_capacity, trangThai: x.status as "active" | "maintenance", chuXe: x.owner_name, chuLaCongTy: x.owner_is_company === 1 })),
+        khung: khung.map((r) => khungBanXeDto(r, bayGioMs)), chuyen, lyDo,
+      } satisfies LichXeBanResponse);
+    }),
+
     // ---- ADR-0049 D2 (Task A7): chính sách điều phối, điều kiện xuất bến, hạng bằng — cổng office + ô settings.ops (chỉ Toàn quyền) viết thẳng ở đầu thân,
     // kể cả route ĐỌC (luật (1b) hàng rào 2). Khác tiền lệ `nguong-het-han` (cổng admin): ADR-0049 D3 ghi rõ cổng office.
     route("GET", "/api/van-chuyen/chinh-sach-dieu-phoi", "office", async ({ env, staff, nhanNhanVien }) => {
@@ -520,7 +649,7 @@ export const vanChuyenModule: AppModule = {
       const truoc = cu
         ? {
           minLeadMinutes: cu.min_lead_minutes, warnLeadMinutes: cu.warn_lead_minutes, restMinutes: cu.rest_minutes, requireManifest: cu.require_manifest === 1,
-          proxyBackdateMaxMinutes: cu.proxy_backdate_max_minutes,
+          proxyBackdateMaxMinutes: cu.proxy_backdate_max_minutes, dutyDayMaxMinutes: cu.duty_day_max_minutes, tripNoBreakMaxMinutes: cu.trip_no_break_max_minutes,
         }
         : null;
       try {
@@ -831,6 +960,7 @@ export const vanChuyenModule: AppModule = {
       const lap = await eventByRequest(env.DB, t.requestId);
       const bayGioMs = Date.now();
       const nowIso = new Date(bayGioMs).toISOString();
+      let canhBaoLenh: CanhBaoLichDto[] = []; // ADR-0055 VK2-B B3: chỉ nhắc, chỉ lần đầu (khuôn canhBaoXep)
       if (!lap) {
         const chung = await docChung(env.DB, nowIso, vnToday(new Date(bayGioMs)));
         const xeRow = chung.xe.find((x) => x.id === t.xeId);
@@ -839,14 +969,17 @@ export const vanChuyenModule: AppModule = {
         // LC-13 phần CHỈ máy chủ giữ (R-P8): hồ sơ không có trong `taiXeChoDieuPhoi` (không mở vai tài xế công ty, không thuộc nhà xe nào) → chéo xe – tài xế.
         if (!chung.taiXe.some((x) => x.partyId === t.taiXePartyId)) return loi409("cheo_xe_tai_xe", [lyDoGiu("CHEO_XE_TAI_XE")]);
         const khac = await tripsTouching(env.DB, t.batDauMs - NGAY_MS, t.ketThucMs + NGAY_MS);
+        // ADR-0055 VK2-A A2 (i): khung bận còn hiệu lực là khoảng chặn (lớp máy chủ nói trước — trigger vc_trip_unavailable_ins là lưới thứ hai).
+        const khungBan = (await khungBanXeTrongKhoang(env.DB, t.batDauMs, t.ketThucMs)).map(khungBanVao);
         const kq = kiemTaoSuaChuyen({
           lenh: "TAO", chuyen: { id: null, batDauMs: t.batDauMs, ketThucMs: t.ketThucMs, xe: xeVao(xeRow, chung.giayToXe), taiXe: taiXeVao(t.taiXePartyId, chung.taiXe), nghiPhaLe: t.nghiPhaLe !== null },
-          chuyenKhac: khac.map(khungChuyen), chinhSach: chinhSachVao(chung.chinhSach), hangBang: chung.hangBang, bayGioMs,
+          chuyenKhac: khac.map(khungChuyen), khungBan, chinhSach: chinhSachVao(chung.chinhSach), hangBang: chung.hangBang, bayGioMs,
         });
         const chan = loiKiem(kq, staff, null, { moc: false, nghi: t.nghiPhaLe !== null });
         if (chan) return chan;
         const ngayChay = msToVnLocal(t.batDauMs).date;
         const id = crypto.randomUUID();
+        canhBaoLenh = nhacGioLaiDto(kq.nhacGioLai, id);
         for (let lan = 0; ; lan++) {
           const ma = `CX-${ngayChay.slice(8, 10)}${ngayChay.slice(5, 7)}-${String((await tripCountByDate(env.DB, ngayChay)) + 1 + lan).padStart(2, "0")}`;
           const lo = loTaoChuyen(env.DB, {
@@ -871,7 +1004,8 @@ export const vanChuyenModule: AppModule = {
       if (!nen) return KHONG_CO_CHUYEN();
       const lich = await lichChungChang(env.DB, nen.tu, nen.den);
       const hk = await hanhKhachChoChuyen(env.DB, nen.legIds);
-      return json(await chiTietChuyen(env.DB, nen, lich.chang, hk, false, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), bayGioMs) satisfies ChuyenChiTietResponse, lap ? 200 : 201, { location: `/chuyen?id=${nen.trip.id}` });
+      const ct = await chiTietChuyen(env.DB, nen, lich.chang, hk, false, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), bayGioMs);
+      return json({ ...ct, ...(canhBaoLenh.length > 0 ? { canhBaoLenh } : {}) } satisfies ChuyenChiTietResponse, lap ? 200 : 201, { location: `/chuyen?id=${nen.trip.id}` });
     }),
 
     route("PUT", "/api/van-chuyen/chuyen/:id", "office", async ({ env, request, params, staff, nhanNhanVien, isAssigned, baoThayDoiChuyen }) => {
@@ -883,15 +1017,18 @@ export const vanChuyenModule: AppModule = {
       const nen = await docNen(env.DB, params.id ?? "");
       if (!nen) return KHONG_CO_CHUYEN();
       const bayGioMs = Date.now();
+      const ra: { nhacGioLai?: CanhBaoGioLai[] } = {}; // ADR-0055 VK2-B B3: nhắc giờ lái của chuyến sau sửa (chỉ lần đầu)
       if (!(await eventByRequest(env.DB, b.requestId))) {
-        const r = await lenhSuaChuyen(env.DB, nen, b, staff, bayGioMs);
+        const r = await lenhSuaChuyen(env.DB, nen, b, staff, bayGioMs, ra);
         if (r) return r;
         baoThayDoiChuyen({ tripId: nen.trip.id, requestId: b.requestId }); // ADR-0052 D6.3: sau lô thành công, bắn-và-quên; không gọi khi 4xx / lệnh lặp
       }
       const nen2 = (await docNen(env.DB, nen.trip.id))!;
       const lich = await lichChungChang(env.DB, nen2.tu, nen2.den);
       const hk = await hanhKhachChoChuyen(env.DB, nen2.legIds);
-      return json(await chiTietChuyen(env.DB, nen2, lich.chang, hk, false, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), bayGioMs) satisfies ChuyenChiTietResponse);
+      const ct = await chiTietChuyen(env.DB, nen2, lich.chang, hk, false, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), bayGioMs);
+      const canhBaoLenh = nhacGioLaiDto(ra.nhacGioLai ?? [], nen.trip.id);
+      return json({ ...ct, ...(canhBaoLenh.length > 0 ? { canhBaoLenh } : {}) } satisfies ChuyenChiTietResponse);
     }),
 
     // Người đi kèm (lời chủ 2026-10-01, phương án A): ai gắn được — tài khoản Hướng dẫn viên đang hoạt động; tên, KHÔNG SĐT. Cùng ô với lệnh xếp.

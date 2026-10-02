@@ -4,7 +4,7 @@
 // hạng lạ → CHẶN (không đoán).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import type { ChangVao, ChinhSachVao, ChuyenVao, DiemVao, DieuKienVao, HangBangVao, KhungChuyen, SuatVao, TaiXeVao, XeVao } from "./dieu-phoi-kieu.ts";
+import type { ChangVao, ChinhSachVao, ChuyenVao, DiemVao, DieuKienVao, HangBangVao, KhungBanVao, KhungChuyen, SuatVao, TaiXeVao, XeVao } from "./dieu-phoi-kieu.ts";
 import { changXetTheoDon, khoaNguoiRanh, kiemKetThuc, lyDoNoiTra, lyDoThieuTen, kiemTaoSuaChuyen, kiemXep, kiemXuatBen, noiLechCuaSuat, suatKhachDaDoi, tenLucXep, trongNgayChay, type KiemTaoSuaChuyenVao, type KiemXuatBenVao } from "./dieu-phoi-kiem.ts";
 import { NUT_CAP_NHAT_KHACH, type LyDoGiu } from "./ly-do-giu.ts";
 import { batDauSomNhatSauDoiGio } from "./moc-toi-thieu.ts";
@@ -12,7 +12,7 @@ import { vnLocalToMs } from "./vn-date.ts";
 
 const PHUT = 60_000;
 const ms = (d: string, t: string) => vnLocalToMs(d, t)!;
-const CS: ChinhSachVao = { id: "cs-1", minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes: 30, requireManifest: true, requireContract: false };
+const CS: ChinhSachVao = { id: "cs-1", minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes: 30, requireManifest: true, requireContract: false, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240 };
 const HB: HangBangVao[] = [
   { classCode: "B", maxPassengers: 8 }, { classCode: "D1", maxPassengers: 16 }, { classCode: "D2", maxPassengers: 29 }, { classCode: "D", maxPassengers: null },
   { classCode: "B2_OLD", maxPassengers: 8 }, { classCode: "C_OLD", maxPassengers: 8 }, { classCode: "D_OLD", maxPassengers: 29 }, { classCode: "E_OLD", maxPassengers: null },
@@ -35,7 +35,7 @@ function tao(v: Partial<KiemTaoSuaChuyenVao["chuyen"]> = {}, khac: KhungChuyen[]
 const khung = (v: Partial<KhungChuyen>): KhungChuyen => ({ id: "cx-khac", ma: "CX-3009-11", xeId: "xe-a", taiXePartyId: "tx-khac", batDauMs: BAT_DAU, ketThucMs: KET_THUC, ketThucThatMs: null, trangThai: "PLANNED", ...v });
 
 test("kiemTaoSuaChuyen: xe 15 chỗ + tài xế hạng D1 còn hạn, không trùng, không mốc → đạt", () => {
-  assert.deepEqual(kiemTaoSuaChuyen(tao()), { ok: true, chan: [], canPhaLe: [] });
+  assert.deepEqual(kiemTaoSuaChuyen(tao()), { ok: true, chan: [], canPhaLe: [], nhacGioLai: [] });
 });
 
 test("TC-17 LC-12 lúc gán tài xế: hạng B với xe 15 chỗ; GPLX hết hạn TRƯỚC giờ kết thúc (kể cả chuyến qua nửa đêm); chưa có GPLX; GPLX chưa ghi hạng; không dòng hạng bằng", () => {
@@ -507,4 +507,53 @@ test("lyDoNoiTra / lyDoThieuTen — hai hàm dùng chung của cổng xuất b�
   assert.equal(lyDoThieuTen(chang({ nguoiCuaDon: [] }), false), null, "chính sách không bắt danh sách");
   assert.equal(lyDoThieuTen(chang({ nguoiCuaDon: ["p1", "p2"] }), true)?.loiNhan, "Chưa đủ tên khách: ĐH-1024 thiếu 2 tên");
   assert.equal(lyDoThieuTen(chang(), true, { chuaTen: 3, ranh: 1 })?.loiNhan, "Chưa đủ tên khách: ĐH-1024 thiếu 2 tên", "suất chưa tên trên chuyến nhiều hơn khoá rảnh");
+});
+
+// ---- Khung bận (ADR-0055 VK2-A A2 (i); ADR-0053 D9 B9.3 — kế hoạch Đợt 3 Task 2) ------------------------------------------------------------------------
+test("VK2-A A2 (i) lớp máy chủ: tạo / dời giờ / đổi xe vào khung bận còn hiệu lực của xe → chặn TRUNG_GIO_XE kèm chi tiết 'lịch xe bận'; khung xe khác → không", () => {
+  const kb: KhungBanVao = { id: "kb1", doiTuong: "VEHICLE", xeId: "xe-a", taiXePartyId: null, batDauMs: ms("2026-09-30", "05:00"), ketThucMs: ms("2026-09-30", "17:00"), lyDoNhan: "Bảo dưỡng" };
+  const kq = kiemTaoSuaChuyen(tao({}, [], { khungBan: [kb] }));
+  assert.equal(kq.ok, false);
+  assert.ok(kq.chan.some((l) => l.ma === "TRUNG_GIO_XE" && /lịch xe bận: Bảo dưỡng 05:00 30\/09 → 17:00 30\/09/.test(l.loiNhan)), JSON.stringify(kq.chan));
+  const khac = kiemTaoSuaChuyen(tao({}, [], { khungBan: [{ ...kb, xeId: "xe-khac" }] }));
+  assert.equal(khac.chan.some((l) => l.ma === "TRUNG_GIO_XE"), false);
+  // Nửa mở: khung kết thúc đúng lúc chuyến bắt đầu → không chặn.
+  const mep = kiemTaoSuaChuyen(tao({}, [], { khungBan: [{ ...kb, batDauMs: ms("2026-09-30", "03:00"), ketThucMs: BAT_DAU }] }));
+  assert.equal(mep.chan.some((l) => l.ma === "TRUNG_GIO_XE"), false);
+  // Đổi xe (SUA) sang xe đang có khung → chặn.
+  const doiXe = kiemTaoSuaChuyen(tao({ id: "cx-1" }, [], { lenh: "SUA", cu: { batDauMs: BAT_DAU, batDauSomNhatMs: BAT_DAU, xeId: "xe-b", taiXePartyId: "tx-an", trangThai: "PLANNED" }, khungBan: [kb] }));
+  assert.ok(doiXe.chan.some((l) => l.ma === "TRUNG_GIO_XE" && /lịch xe bận/.test(l.loiNhan)));
+});
+
+test("D9 B9.3 (MỘT hàm cho xe và tài xế — chuẩn bị Đợt 6): khung DRIVER của tài xế được gán → chặn TRUNG_GIO_TAI_XE kèm 'lịch tài xế bận'", () => {
+  const kb: KhungBanVao = { id: "kb2", doiTuong: "DRIVER", xeId: null, taiXePartyId: "tx-an", batDauMs: ms("2026-09-30", "05:00"), ketThucMs: ms("2026-09-30", "12:00"), lyDoNhan: "Việc riêng" };
+  const kq = kiemTaoSuaChuyen(tao({}, [], { khungBan: [kb] }));
+  assert.ok(kq.chan.some((l) => l.ma === "TRUNG_GIO_TAI_XE" && /lịch tài xế bận/.test(l.loiNhan)));
+});
+
+test("VK2-B B3: kiemTaoSuaChuyen trả nhacGioLai cho CHÍNH chuyến đang tạo/gán (không đổi ok); chuyến mới 4 giờ 30 + chuyến khác 4 giờ → CHUYEN_DAI_CAN_NGHI + GIO_LAI_VUOT", () => {
+  const khac = [khung({ id: "k1", ma: "CX-1", xeId: "xe-khac", taiXePartyId: "tx-an", batDauMs: ms("2026-09-30", "00:30"), ketThucMs: ms("2026-09-30", "04:30") })];
+  const kq = kiemTaoSuaChuyen(tao({ batDauMs: ms("2026-09-30", "10:00"), ketThucMs: ms("2026-09-30", "14:30") }, khac));
+  assert.equal(kq.ok, true, JSON.stringify(kq));
+  assert.deepEqual(kq.nhacGioLai.map((x) => x.loai).sort(), ["CHUYEN_DAI_CAN_NGHI", "GIO_LAI_VUOT"]);
+  assert.equal(kq.nhacGioLai.every((x) => x.tripId === "__moi__"), true, "chỉ gắn chuyến đang tạo");
+  // Không tài xế → không nhắc giờ lái.
+  assert.deepEqual(kiemTaoSuaChuyen(tao({ taiXe: null, batDauMs: ms("2026-09-30", "10:00"), ketThucMs: ms("2026-09-30", "14:30") }, khac)).nhacGioLai, []);
+});
+
+test("VK2-B B1 + B3 (vòng vá 1): ngưỡng giờ lái của lệnh tạo / sửa lấy TỪ CHÍNH SÁCH — dutyDayMaxMinutes = 300, tài xế tổng 5 giờ 30 → GIO_LAI_VUOT, không chặn", () => {
+  const cs5: ChinhSachVao = { ...CS, dutyDayMaxMinutes: 300 };
+  // Chuyến khác của tài xế 00:30–04:30 (4 giờ) + chuyến đang xét 10:00–11:30 (1 giờ 30) = 5 giờ 30 > 5 giờ, < 8 giờ mặc định.
+  const khac = [khung({ id: "k1", ma: "CX-1", xeId: "xe-khac", taiXePartyId: "tx-an", batDauMs: ms("2026-09-30", "00:30"), ketThucMs: ms("2026-09-30", "04:30") })];
+  const than = { batDauMs: ms("2026-09-30", "10:00"), ketThucMs: ms("2026-09-30", "11:30") };
+  const tao5 = kiemTaoSuaChuyen(tao(than, khac, { chinhSach: cs5 }));
+  assert.equal(tao5.ok, true, JSON.stringify(tao5));
+  assert.deepEqual(tao5.nhacGioLai.map((x) => [x.loai, x.tongPhut]), [["GIO_LAI_VUOT", 330]]);
+  const sua5 = kiemTaoSuaChuyen(tao({ id: "cx-1", ...than }, khac, {
+    lenh: "SUA", chinhSach: cs5, cu: { batDauMs: than.batDauMs, batDauSomNhatMs: than.batDauMs, xeId: "xe-a", taiXePartyId: "tx-an", trangThai: "PLANNED" },
+  }));
+  assert.equal(sua5.ok, true, JSON.stringify(sua5));
+  assert.deepEqual(sua5.nhacGioLai.map((x) => [x.loai, x.tripId]), [["GIO_LAI_VUOT", "cx-1"]]);
+  // Đối chứng: chính sách 8 giờ → cùng dữ liệu không nhắc.
+  assert.deepEqual(kiemTaoSuaChuyen(tao(than, khac)).nhacGioLai, []);
 });

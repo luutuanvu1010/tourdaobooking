@@ -27,6 +27,9 @@ Phụ thu chờ thêm giờ: ngày phát sinh = ngày chạy chuyến (chủ: V7
 **Q5 — Phí cho nhà xe cũ khi chuyến đổi sang xe công ty.** Chuyến đã chụp giá xe nhà xe rồi đổi sang xe công ty (chưa huỷ): Kế toán được ghi `ADJUSTMENT` lý do "Phí huỷ muộn" mang nhà xe cũ. Sửa kiểm định `R-VC-COST-3`: chuyến `rented = 0` được có tổng ≠ 0 **chỉ** gồm phí huỷ cho nhà xe cũ (mọi nguồn giá đã đảo).
 > Chủ: 4.7 *"có"*; V13 *"ok"*.
 
+**Q5b — Phí huỷ của nhà xe cũ theo luật chung "đổi / huỷ thì đảo hết".** Khi chuyến (đã đổi sang xe công ty, có phí huỷ ghi cho nhà xe cũ) sau đó đổi xe khác, dời sang ngày khác, đổi tuyến hoặc bị huỷ, lô tính lại / lô huỷ **đảo cả dòng phí huỷ đó**; Kế toán ghi lại nếu vẫn phải trả nhà xe. Để không mất nợ âm thầm: một kiểm định **mức cảnh báo** (không chặn phát hành) liệt kê các dòng phí huỷ của nhà xe cũ bị đảo tự động mà chưa ghi lại, và nhật ký lệnh ghi rõ "đã đảo phí huỷ của nhà xe …".
+> Chủ (khi được hỏi E1 đảo theo luật chung / E2 không bao giờ tự đảo, AI khuyến nghị E2): *"E1"*.
+
 **Q6 — Giá thoả thuận khi đổi tuyến: hết hiệu lực** (giữ ADR-0057 như mã hiện tại — đổi tuyến là dịch vụ khác). Chủ: D *"D1"*.
 
 **Q7 — Giá mới không áp cho chuyến đã chụp giá** (giữ ADR-0057, ca V11). Chủ: V11 *"Không, bản chất là theo lời hứa đã hứa."*

@@ -156,7 +156,7 @@ test("chuyển động: máy đặt Giảm chuyển động thì tắt chuyển 
   const khoi = [...luat.matchAll(/^@media \(prefers-reduced-motion: reduce\) \{(.*)\}/gm)].map((m) => m[1]!);
   assert.ok(khoi.some((k) => /transition:\s*none/.test(k)), "thiếu luật tắt chuyển tiếp khi Giảm chuyển động");
   const tatTransform = khoi.filter((k) => /transform:\s*none/.test(k)).join(" ");
-  for (const sel of [".btn:not(:disabled):active", ".order-card:hover", ".dash-o-muc:active", "#tabbar .tab:active .tab-icon", ".dash-dai .dash-o-muc:hover"]) {
+  for (const sel of [".btn:not(:disabled):active", ".order-card:hover", ".dash-o-muc:active", "#tabbar .tab:active .tab-icon"]) {
     assert.ok(tatTransform.includes(sel), `Giảm chuyển động chưa gỡ độ nhấc / lún của ${sel}`);
   }
 });
