@@ -12,7 +12,7 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // Vận chuyển Đợt 4 — tiền xe thuê (ADR-0057 T1 + T2, migration 0072, 0073). MỘT mục cho cả đợt (máy chủ + giao diện cùng một bản phát hành — Cần chủ 2 = A).
-    // Số 1.71 = origin/main 1.70 (thị giác) + 1 — đánh lại lúc gộp a496e8d1; ĐIỀU PHỐI KIỂM LẠI LÚC GỘP, và sửa lời khi gộp phần giao diện.
+    // Số 1.71 = origin/main 1.70 (thị giác) + 1 — đánh lại lúc gộp a496e8d1; ĐIỀU PHỐI KIỂM LẠI LÚC GỘP. Bốn dòng cuối: phần giao diện G0–G5 (đã thêm 2/10).
     version: "1.71",
     date: "2026-10-02",
     items: [
@@ -20,6 +20,10 @@ export const CHANGELOG: readonly ReleaseNote[] = [
       { kind: "moi", text: "Chuyến xe của nhà xe đối tác có chi phí: máy tự lấy giá trong bảng giá lúc xếp xe; đổi xe, tuyến hoặc ngày chạy thì máy tính lại." },
       { kind: "doi", text: "Chuyến xe thuê chưa có giá thì chưa được xuất bến — Kế toán hoặc Quản trị nhập giá bảng hoặc giá thoả thuận với nhà xe." },
       { kind: "moi", text: "Kế toán, Quản trị điều chỉnh chi phí từng chuyến có lý do và xem bảng kê chi phí xe thuê theo nhà xe." },
+      { kind: "moi", text: "Menu Vận chuyển có thêm hai mục Bảng giá thuê xe và Bảng kê chi phí xe (máy tính: thanh bên; điện thoại: trang Tôi)." },
+      { kind: "moi", text: "Trang chi tiết chuyến có khối Chi phí chuyến cho Kế toán, Quản trị: nhập giá thoả thuận, lấy lại giá bảng, điều chỉnh, đảo dòng ghi sai." },
+      { kind: "moi", text: "Tạo và sửa chuyến có ô chọn tuyến." },
+      { kind: "doi", text: "Thanh menu bên trái trên máy tính nay cùng màu nền trang, có đường viền mảnh." },
     ],
   },
   {
