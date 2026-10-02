@@ -148,14 +148,17 @@ async function ganPhienThongBaoMayNay(): Promise<void> {
   }
 }
 
-/** Số mục chưa đọc của Góp ý (phản hồi mới cho tôi + yêu cầu chờ admin). Lỗi mạng → 0, không làm hỏng khung. */
-export async function feedbackBadge(): Promise<number> {
-  try {
-    const b = await api<Api.FeedbackBadgeResponse>("/api/feedback/badge");
-    return b.mine + b.queue;
-  } catch {
-    return 0;
-  }
+/**
+ * Số mục chưa đọc của Góp ý (phản hồi mới cho tôi + yêu cầu chờ admin). Lỗi mạng → 0, không làm hỏng khung. MỘT lời gọi mỗi lần mở trang dù nhiều nơi cùng cần
+ * (thanh bên + dải chào Trang chủ máy tính, thanh bên + trang Tôi) — giữ lời hỏi đang chạy, cùng cách web/vc-dem.ts.
+ */
+let feedbackBadgeHoi: Promise<number> | null = null;
+export function feedbackBadge(): Promise<number> {
+  feedbackBadgeHoi ??= api<Api.FeedbackBadgeResponse>("/api/feedback/badge").then(
+    (b) => b.mine + b.queue,
+    () => 0,
+  );
+  return feedbackBadgeHoi;
 }
 
 /**

@@ -11,6 +11,18 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Trang chủ máy tính theo bản vẽ "Trang chu may tinh v2.dc.html" (Claude Design 2026-10-02). Không migration, không đổi máy chủ.
+    // Số 1.68 = main 1.67 + 1. KIỂM LẠI LÚC GỘP (nhánh khác gộp trước thì đánh lại số).
+    version: "1.68",
+    date: "2026-10-02",
+    items: [
+      { kind: "doi", text: "Trang chủ trên máy tính làm mới: lời chào, ngày và mọi chức năng bạn được dùng hiện thành ô vuông chia theo nhóm ngay đầu trang." },
+      { kind: "doi", text: "Chuyến đón có dòng thời gian trong ngày: chuyến kế tiếp ghi \"Sắp tới\" và số phút còn lại, chuyến đã qua giờ hiện chữ xám." },
+      { kind: "doi", text: "Bốn con số và biểu đồ doanh thu tuần gom vào một thẻ bên phải; chuyến đã trả đủ hiện chữ Đủ tiền." },
+      { kind: "doi", text: "Bảng Tất cả chức năng trên điện thoại: tên nhóm viết chữ thường; Toàn quyền có thêm ô Giao diện." },
+    ],
+  },
+  {
     // Thanh sáng + chữ mảnh (thanh-sang-chu-manh) + Giao diện công ty (ADR-0087, migration 0069). Số 1.67 = main 1.66 + 1. KIỂM LẠI LÚC GỘP.
     version: "1.67",
     date: "2026-10-02",

@@ -1,7 +1,7 @@
 import { ApiError, api, type Api, type OrderSummary, type Staff } from "./api";
 import { moBangTruot } from "./bang-truot";
 import { byId, h, replaceChildren, type Child } from "./dom";
-import { dayMonth, paxCounts, paxCountsShort, vnd, vndShort } from "./format";
+import { dayMonth, initials, paxCountsShort, vnd, vndShort } from "./format";
 import { helpHasNews } from "./help-seen";
 import { icon, type IconName } from "./icons";
 import { taoBoLamMoi } from "./lam-moi-logic";
@@ -12,7 +12,8 @@ import { demSapHetHan } from "./vc-dem";
 import { canSeeReviewAlerts, reviewAlerts, type ReviewAlerts } from "../src/shared/dashboard-review";
 import { can } from "../src/shared/permissions";
 import { homeRedirect } from "../src/shared/start-page";
-import { oTrangChu, type KhoaO, type LuoiTrangChu, type OChucNang } from "../src/shared/trang-chu-o";
+import { cotNhom, conLai, dongThoiGian, loiChao, phutVN, type DongThoiGian, type LoaiChuyen } from "../src/shared/trang-chu-may-tinh";
+import { nhomMayTinh, oTrangChu, type KhoaO, type LuoiTrangChu, type OChucNang } from "../src/shared/trang-chu-o";
 import { vnToday } from "../src/shared/vn-date";
 
 const SHORT_WEEKDAY = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"]; // chỉ số = Date.getUTCDay() (0 = Chủ nhật)
@@ -21,7 +22,8 @@ const FULL_WEEKDAY = ["Chủ nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Th�
 const weekdayOf = (isoDate: string): number => new Date(`${isoDate}T00:00:00Z`).getUTCDay();
 
 /**
- * Biểu đồ cột "Doanh thu của tôi" (Đợt D Task 2) — 7 cột T2…CN, dựng bằng `h()` (không thư viện ngoài).
+ * Biểu đồ cột "Doanh thu của tôi" (Đợt D Task 2) — 7 cột T2…CN, dựng bằng `h()` (không thư viện ngoài). Từ bản vẽ máy tính v2 (2026-10-02) nằm trong ô
+ * "Doanh thu của tôi" của thẻ số liệu máy tính (#dash-so-mt); nhãn ngày HÔM NAY tô màu chính (bản vẽ). Điện thoại không có biểu đồ (thẻ #dash-so riêng).
  * Chiều cao theo % so với ngày cao nhất; sàn 4% cho ngày 0 đ để cột vẫn thấy được (không biến mất).
  * Tô đậm `--c-primary`: NGÀY ĐÃ QUA + HÔM NAY (`d.date <= today`), ngày CHƯA TỚI để nhạt — quyết định chốt của chủ dự
  * án sau vòng kiểm Task 2 (`docs/superpowers/specs/2026-09-23-trang-chu-moi-quyet-dinh.md` mục 7, câu 7). LƯU Ý LỊCH
@@ -46,7 +48,7 @@ function revenueChart(daily: readonly { date: string; total: number }[]): HTMLEl
     const isDark = d.date <= today; // ngày ĐÃ QUA hoặc HÔM NAY — so sánh chuỗi "YYYY-MM-DD" đúng thứ tự thời gian
     return h("span", { class: isDark ? "dash-chart-bar dash-chart-bar-dark" : "dash-chart-bar", style: `height:${pct}%`, "aria-hidden": "true" });
   });
-  const labels = daily.map((d) => h("span", null, SHORT_WEEKDAY[weekdayOf(d.date)]));
+  const labels = daily.map((d) => h("span", { class: d.date === today ? "dash-chart-nay" : null }, SHORT_WEEKDAY[weekdayOf(d.date)]));
   const rows = daily.map((d) => h("tr", null, h("th", { scope: "row" }, FULL_WEEKDAY[weekdayOf(d.date)]), h("td", null, vnd(d.total))));
   return h(
     "div",
@@ -58,35 +60,38 @@ function revenueChart(daily: readonly { date: string; total: number }[]): HTMLEl
 }
 
 /**
- * Một ô số liệu (dạng liên kết về Đơn hàng, như bản thiết kế) — ba ô đầu là số liệu TOÀN CÔNG TY. Đợt D Task 5:
- * trang Đơn hàng dời sang "/orders" ("/" nay là chính Trang chủ này).
- * Mỗi phần (nhãn/giá trị/dòng phụ) có hai bản: đầy đủ (`.lbl-full`, máy tính) và rút gọn (`.lbl-short`, khổ điện
- * thoại ≤639px) — CSS ẩn/hiện theo khổ màn hình (`public/app.css`), không đổi DOM bằng JS.
+ * Một ô của thẻ số liệu MÁY TÍNH (bản vẽ v2: một thẻ chia ô bằng đường kẻ 1px) — nhãn có biểu tượng (+ chữ phụ bên phải), số lớn, dòng phụ; bấm → Đơn hàng.
+ * `rong`: ô trải cả hai cột (Còn thiếu tiền, Doanh thu của tôi). Số đầy đủ ("12.500.000 ₫"), khác thẻ điện thoại (#dash-so, số rút gọn).
  */
-/** Biểu tượng ở nhãn ô số liệu — trang trí (`aria-hidden`, đi kèm chữ ngay sau), Đợt E Phần B. */
-function statTile(iconName: IconName, labelFull: string, labelShort: string, valueFull: string, valueShort: string, subFull: string, subShort: string, valueClass?: string): HTMLElement {
+function oSoMayTinh(iconName: IconName, nhan: string, giaTri: string, phu: string, tuyChon: { lop?: string; rong?: boolean; ben?: string; them?: Child } = {}): HTMLElement {
   return h(
     "a",
-    { class: "dash-stat", href: "/orders" },
-    h("span", { class: "dash-stat-label icon-label" }, icon(iconName, 16), h("span", { class: "lbl-full" }, labelFull), h("span", { class: "lbl-short" }, labelShort)),
-    h("span", { class: valueClass ? `dash-stat-value ${valueClass}` : "dash-stat-value" }, h("span", { class: "lbl-full" }, valueFull), h("span", { class: "lbl-short" }, valueShort)),
-    h("span", { class: "dash-stat-sub" }, h("span", { class: "lbl-full" }, subFull), h("span", { class: "lbl-short" }, subShort)),
+    { class: tuyChon.rong ? "dash-smt-o dash-smt-o-rong" : "dash-smt-o", href: "/orders" },
+    h("span", { class: "dash-smt-nhan" }, icon(iconName, 16), h("span", { class: "dash-smt-nhan-chu" }, nhan), tuyChon.ben && h("span", { class: "dash-smt-ben" }, tuyChon.ben)),
+    h("span", { class: tuyChon.lop ? `dash-smt-gt ${tuyChon.lop}` : "dash-smt-gt" }, giaTri),
+    h("span", { class: "dash-smt-phu" }, phu),
+    tuyChon.them,
   );
 }
 
-/** Ô "Còn thiếu tiền" lấy từ billing (`GET /api/ledger/unpaid-summary` — sổ tiền lượt 1, ADR-0026 đ9); `null` = chưa tải được (hiện "—"). */
-function renderStats(data: Api.DashboardResponse, unpaidOrNull: Api.UnpaidSummaryResponse | null): void {
-  const { draftCount, unassignedCount } = data;
-  const unpaid = unpaidOrNull ?? { count: 0, total: 0, earliestDate: null };
-  const unpaidSubFull = unpaid.count === 0 ? "Không có đơn nào" : `${unpaid.count} đơn${unpaid.earliestDate ? ` · sớm nhất đón ${dayMonth(unpaid.earliestDate)}` : ""}`;
-  const unpaidSubShort = unpaid.count === 0 ? "Không có đơn nào" : `${unpaid.count} đơn`;
+/**
+ * Thẻ số liệu máy tính, thứ tự bản vẽ v2: Còn thiếu tiền · Doanh thu của tôi (tuần, biểu đồ) · Chờ xác nhận · Chưa phụ trách — cùng số với thẻ điện thoại.
+ * "Còn thiếu tiền" lấy từ billing (`GET /api/ledger/unpaid-summary` — sổ tiền lượt 1, ADR-0026 đ9); `null` = chưa tải được (hiện "—", không đoán).
+ * Ba ô kia là số TOÀN CÔNG TY của `GET /api/orders/dashboard`; "Doanh thu của tôi" chỉ đơn người xem lập.
+ */
+function renderSoMayTinh(data: Api.DashboardResponse, unpaid: Api.UnpaidSummaryResponse | null): void {
+  const rev = data.revenueWeek;
+  const phuThieu = (u: Api.UnpaidSummaryResponse): string => (u.count === 0 ? "Không có đơn nào" : `${u.count} đơn${u.earliestDate ? ` · sớm nhất đón ${dayMonth(u.earliestDate)}` : ""}`);
   replaceChildren(
-    byId("dash-stats"),
-    unpaidOrNull
-      ? statTile("money", "Còn thiếu tiền", "Còn thiếu", vnd(unpaid.total), `${vndShort(unpaid.total)} ₫`, unpaidSubFull, unpaidSubShort, "money-due")
-      : statTile("money", "Còn thiếu tiền", "Còn thiếu", "—", "—", "Chưa tải được số", "Chưa tải được"),
-    statTile("doc-check", "Đơn chờ xác nhận", "Chờ xác nhận", String(draftCount), String(draftCount), "Cần xác nhận đơn", "Cần xác nhận đơn"),
-    statTile("assign", "Chưa có người phụ trách", "Chưa phụ trách", String(unassignedCount), String(unassignedCount), "Chờ người nhận", "Chờ người nhận"),
+    byId("dash-so-mt"),
+    unpaid
+      ? oSoMayTinh("money", "Còn thiếu tiền", vnd(unpaid.total), phuThieu(unpaid), { lop: "dash-smt-thieu", rong: true })
+      : oSoMayTinh("money", "Còn thiếu tiền", "—", "Chưa tải được số", { rong: true }),
+    oSoMayTinh("chart", "Doanh thu của tôi", vnd(rev.total), `${rev.count} đơn đã xác nhận`, {
+      lop: "dash-smt-doanh-thu", rong: true, ben: `Tuần này · ${dayMonth(rev.from)}–${dayMonth(rev.to)}`, them: revenueChart(rev.daily),
+    }),
+    oSoMayTinh("doc-check", "Chờ xác nhận", String(data.draftCount), "Cần xác nhận đơn"),
+    oSoMayTinh("assign", "Chưa phụ trách", String(data.unassignedCount), "Chờ người nhận"),
   );
 }
 
@@ -108,9 +113,9 @@ function renderStats(data: Api.DashboardResponse, unpaidOrNull: Api.UnpaidSummar
  * (chỉ hiện ở ≤639px, cùng cơ chế `.lbl-short`) trong cụm tiền bên phải — tái dùng ĐÚNG kỹ thuật gọi đã có (span + onclick +
  * `tel:`, giống `.order-row-phone` ở `web/orders.ts`), không đổi bố cục ba cụm khi/tên/tiền hiện có.
  */
-function todayRow(o: OrderSummary, tien: { conLai: number } | undefined): HTMLElement {
+function todayRow(o: OrderSummary, tien: { conLai: number } | undefined, loai: LoaiChuyen | null = null, conLaiPhut: number | null = null): HTMLElement {
   const time = o.trip.pickupTime ?? "—";
-  const pax = paxCounts(o.pax);
+  const pax = paxCountsShort(o.pax);
   const serviceLine = o.serviceNames.length === 0 ? "—" : o.serviceNames.length === 1 ? o.serviceNames[0] : `${o.serviceNames[0]} +${o.serviceNames.length - 1} dịch vụ`;
   const mobileSubText = o.trip.pickupPlace ? `${o.trip.pickupPlace} · ${serviceLine}` : serviceLine;
   const sub: Child[] = [
@@ -123,34 +128,37 @@ function todayRow(o: OrderSummary, tien: { conLai: number } | undefined): HTMLEl
         icon("handset", 16),
         o.customerPhone,
       ),
-      " · ",
-      serviceLine,
+      // Hai cụm riêng (bản vẽ máy tính v2: số gọi được + "· dịch vụ", xuống dòng giữa hai cụm khi hẹp).
+      h("span", { class: "dash-today-dv" }, `· ${serviceLine}`),
     ),
     h("span", { class: "lbl-short" }, mobileSubText),
   ];
   const when: Child[] = [h("span", { class: "dash-today-time" }, time)];
   if (o.trip.pickupPlace) when.push(h("span", { class: "dash-today-place icon-label" }, icon("pin", 14), o.trip.pickupPlace));
+  // Máy tính (bản vẽ v2): chuyến SẮP TỚI nền nhạt + viên "Sắp tới · còn N phút"; chuyến ĐÃ QUA giờ xám. Điện thoại không đổi (hai lớp chỉ có kiểu ở khổ ≥641px).
+  const lop = loai === "toi" ? "dash-today-row is-toi" : loai === "qua" ? "dash-today-row is-qua" : "dash-today-row";
   return h(
     "a",
-    { class: "dash-today-row", href: `/order?id=${encodeURIComponent(o.id)}` },
+    { class: lop, href: `/order?id=${encodeURIComponent(o.id)}` },
     h("span", { class: "dash-today-when" }, ...when),
     h(
       "span",
       { class: "dash-today-main" },
-      // Số khách trong span riêng: bản vẽ điện thoại cho chữ nhỏ, nhạt hơn tên, dạng rút gọn "2NL 1TE" (máy tính giữ "02 NL · 01 TE", nhìn như cũ).
-      h("span", { class: "dash-today-name" }, o.customerName, pax ? h("span", { class: "dash-today-pax" }, h("span", { class: "lbl-full" }, ` · ${pax}`), h("span", { class: "lbl-short" }, ` · ${paxCountsShort(o.pax)}`)) : false),
+      // Số khách trong span riêng: chữ nhạt hơn tên, dạng rút gọn "2NL 1TE" — cả hai bản vẽ (điện thoại 1a, máy tính v2).
+      h("span", { class: "dash-today-name" }, o.customerName, pax ? h("span", { class: "dash-today-pax" }, ` · ${pax}`) : false),
       h("span", { class: "muted dash-today-sub" }, ...sub),
+      loai === "toi" && conLaiPhut !== null && h("span", { class: "dash-sap-toi" }, icon("clock", 14), `Sắp tới · ${conLai(conLaiPhut)}`),
     ),
     h(
       "span",
       { class: "dash-today-money" },
       // Sổ tiền lượt 1: "còn lại" là số của billing (`POST /api/ledger/balances`); chưa tải được → "—", không đoán.
-      tien
-        ? h("b", { class: tien.conLai === 0 ? "money-ok dash-tien-du" : "money-due" }, h("span", { class: "lbl-full" }, vnd(tien.conLai)), h("span", { class: "lbl-short" }, `${vndShort(tien.conLai)} ₫`))
-        : h("b", null, "—"),
-      h("span", { class: "muted lbl-full" }, tien ? (tien.conLai === 0 ? "đã trả đủ" : "còn lại") : ""),
-      // Điện thoại (bản vẽ 1a): còn tiền → số + "còn lại" nhỏ bên dưới; đủ tiền → viên thuốc xanh "Đủ tiền" thay cho số 0 ₫ (CSS ẩn `.dash-tien-du` ở khổ này).
+      // Còn tiền → số + "còn lại" nhỏ bên dưới; đủ tiền → viên thuốc xanh "Đủ tiền" thay cho "0 ₫" (cả hai bản vẽ: điện thoại 1a, máy tính v2 — máy tính có dấu ✓).
+      tien === undefined && h("b", null, "—"),
+      tien && tien.conLai > 0 && h("b", { class: "money-due" }, h("span", { class: "lbl-full" }, vnd(tien.conLai)), h("span", { class: "lbl-short" }, `${vndShort(tien.conLai)} ₫`)),
+      tien && tien.conLai > 0 && h("span", { class: "muted lbl-full dash-con-lai-mt" }, "còn lại"),
       tien && tien.conLai > 0 && h("span", { class: "muted lbl-short dash-con-lai" }, "còn lại"),
+      tien && tien.conLai === 0 && h("span", { class: "lbl-full dash-du-tien-mt" }, icon("check", 14), "Đủ tiền"),
       tien && tien.conLai === 0 && h("span", { class: "badge badge-confirmed lbl-short dash-du-tien" }, "Đủ tiền"),
       h(
         "span",
@@ -170,9 +178,42 @@ const NGAY_DON = [
 ] as const;
 /** Ngày đang chọn — giữ qua các lần làm mới lặng lẽ (không nhớ qua lần mở trang: mở lại luôn là Hôm nay). */
 let ngayDonChon = 0;
+/** Dữ liệu lần vẽ gần nhất — đồng hồ phút (dongHoPhut) vẽ lại khối Chuyến đón hôm nay với giờ mới, không gọi lại máy chủ. */
+let veGanNhat: { data: Pick<Api.DashboardResponse, "today" | "tomorrow" | "dayAfter">; tien: Api.LedgerBalancesResponse["balances"] } | null = null;
+
+/** Đặt vị trí ngang (0…1) cho một phần tử của dòng thời gian — CSS đọc `--x` (`left: calc(var(--x) * 100%)`), cùng cách dòng thời gian Điều phối xe (`--dp-x`). */
+function oViTri<T extends HTMLElement>(el: T, tiLe: number): T {
+  el.style.setProperty("--x", String(tiLe));
+  return el;
+}
+
+/**
+ * Dòng thời gian trong ngày (bản vẽ máy tính v2, chỉ máy tính — CSS ẩn ở điện thoại): trục, vạch mỗi giờ (nhãn thưa khi khoảng dài), vạch "Bây giờ" (chỉ hôm nay,
+ * trong khoảng), chấm từng chuyến (đã qua: rỗng; sắp tới: to, có vòng). `aria-hidden`: mọi thông tin đã có ở từng dòng chuyến. Không có giờ đón nào → ẩn.
+ */
+function veDongThoiGian(tl: DongThoiGian | null): void {
+  const el = byId("dash-tl");
+  if (!tl) {
+    el.hidden = true;
+    replaceChildren(el);
+    return;
+  }
+  replaceChildren(
+    el,
+    h("span", { class: "dash-tl-truc" }),
+    ...tl.vach.flatMap((v) => [oViTri(h("span", { class: "dash-tl-vach" }), v.tiLe), v.nhan !== null && oViTri(h("span", { class: "dash-tl-gio" }, v.nhan), v.tiLe)]),
+    tl.bayGio && oViTri(h("span", { class: "dash-tl-nay" }), tl.bayGio.tiLe),
+    tl.bayGio && oViTri(h("span", { class: "dash-tl-nay-chu" }, tl.bayGio.nhan), tl.bayGio.tiLe),
+    ...tl.diem.map((d, i) => d !== null && oViTri(h("span", { class: `dash-tl-diem${tl.loai[i] === "qua" ? " is-qua" : tl.loai[i] === "toi" ? " is-toi" : ""}` }), d.tiLe)),
+  );
+  el.hidden = false;
+}
 
 function renderToday(data: Pick<Api.DashboardResponse, "today" | "tomorrow" | "dayAfter">, tien: Api.LedgerBalancesResponse["balances"]): void {
+  veGanNhat = { data, tien };
   const ds: readonly OrderSummary[] = data[NGAY_DON[ngayDonChon]!.khoa];
+  // Chỉ HÔM NAY mới có "bây giờ" (giờ Việt Nam): Ngày mai / Ngày kia không có chuyến đã qua hay sắp tới.
+  const tl = dongThoiGian(ds.map((o) => o.trip.pickupTime), ngayDonChon === 0 ? phutVN(new Date()) : null);
   const badge = byId("dash-today-count");
   badge.textContent = String(ds.length);
   badge.hidden = false; // chỉ hiện huy hiệu SAU khi đã có số thật — trước đó không để lộ viên thuốc xanh rỗng
@@ -187,23 +228,11 @@ function renderToday(data: Pick<Api.DashboardResponse, "today" | "tomorrow" | "d
     ),
   );
   nut.hidden = false;
-  replaceChildren(byId("dash-today-list"), ...ds.map((o) => todayRow(o, tien[o.id])));
+  veDongThoiGian(tl);
+  replaceChildren(byId("dash-today-list"), ...ds.map((o, i) => todayRow(o, tien[o.id], tl?.loai[i] ?? null, tl?.conLaiPhut ?? null)));
   const trong = byId("dash-today-empty");
   trong.textContent = NGAY_DON[ngayDonChon]!.trong;
   trong.hidden = ds.length > 0;
-}
-
-function renderRevenue(rev: Api.DashboardResponse["revenueWeek"]): void {
-  byId("dash-revenue-range").textContent = `Tuần này · ${dayMonth(rev.from)}–${dayMonth(rev.to)}`;
-  replaceChildren(
-    byId("dash-revenue-total"),
-    h("span", { class: "dash-revenue-value" }, h("span", { class: "lbl-full" }, vnd(rev.total)), h("span", { class: "lbl-short" }, `${vndShort(rev.total)} ₫`)),
-    h("span", { class: "muted" }, h("span", { class: "lbl-full" }, `${rev.count} đơn đã xác nhận`), h("span", { class: "lbl-short" }, `Tuần này · ${rev.count} đơn`)),
-  );
-  // Mockup mobile (390px) KHÔNG có biểu đồ trong ô "Doanh thu của tôi" (ô đó chỉ là một trong 4 ô số liệu rút gọn của
-  // lưới 2×2) — biểu đồ chỉ ẩn ở khổ hẹp qua CSS (`.dash-revenue-chart` trong `public/app.css`), không đổi bằng JS ở đây.
-  byId("dash-revenue").querySelector(".dash-revenue-chart")?.remove();
-  byId("dash-revenue").append(revenueChart(rev.daily));
 }
 
 /**
@@ -236,19 +265,17 @@ async function loadReview(staff: Staff): Promise<ReviewAlerts | null> {
   });
 }
 
-/** Một dòng của khối "Cần xem lại": icon cảnh báo (màu theo loại) + tiêu đề đậm + dòng phụ nhạt, cả dòng là liên kết (đúng bản mẫu). */
-function reviewRow(iconClass: string, iconDienThoai: IconName, href: string, title: string, sub: string): HTMLElement {
-  // Máy tính giữ tam giác cảnh báo 17px như cũ; điện thoại theo bản vẽ 1b (biểu tượng theo loại 20px + mũi tên › cuối dòng) — hai bản cùng có trong DOM, CSS ẩn/hiện.
-  const iconMayTinh = icon("alert", 17);
-  iconMayTinh.classList.add("lbl-full");
-  const iconDt = icon(iconDienThoai, 20);
-  iconDt.classList.add("lbl-short");
+/**
+ * Một dòng của khối "Cần xem lại": ô biểu tượng theo loại (cảnh báo cát / góp ý san hô) + tiêu đề + dòng phụ nhạt + mũi tên ›, cả dòng là liên kết —
+ * cùng một kiểu ở hai khổ (bản vẽ điện thoại 1b, máy tính v2), chỉ cỡ ô biểu tượng khác (CSS).
+ */
+function reviewRow(iconClass: string, iconName: IconName, href: string, title: string, sub: string): HTMLElement {
   const muiTen = icon("next", 20);
-  muiTen.classList.add("lbl-short", "dash-review-next");
+  muiTen.classList.add("dash-review-next");
   return h(
     "a",
     { class: "dash-review-row", href },
-    h("span", { class: `dash-review-icon ${iconClass}` }, iconMayTinh, iconDt),
+    h("span", { class: `dash-review-icon ${iconClass}` }, icon(iconName, 20)),
     h("span", { class: "dash-review-body" }, h("span", { class: "dash-review-title" }, title), h("span", { class: "muted dash-review-sub" }, sub)),
     muiTen,
   );
@@ -280,28 +307,30 @@ function renderReview(alerts: ReviewAlerts | null): void {
 function initSectionIcons(): void {
   const prepend = (selector: string, name: IconName) => document.querySelector(selector)?.prepend(icon(name, 16));
   prepend(".dash-today-title", "clock");
-  prepend(".dash-revenue-title", "chart");
   prepend(".dash-review-heading", "alert");
   // Trang chủ điện thoại: kính lúp của ô tìm đơn (hiện ngay, trước khi biết người dùng) và mũi tên › sau "Tất cả" của khối Chuyến đón (bản vẽ 1a).
   byId("dash-tim").querySelector(".dash-tim-ico")?.append(icon("search", 22));
   document.querySelector(".dash-today-all .lbl-short")?.append(icon("next", 16));
+  document.querySelector(".dash-today-all .lbl-full")?.append(icon("next", 16)); // máy tính v2: "Xem tất cả ›"
 }
 
 // ---- Trang chủ điện thoại (bản vẽ "Trang chu dien thoai.dc.html" 1a–1g, Claude Design 2026-09-30) -------------------------------------------------------------
-// Chỉ hiện ở khổ ≤640px (khổ có thanh tab); máy tính ẩn hết bằng CSS và giữ nguyên bố cục cũ. Không thêm số liệu mới cần máy chủ: mọi con số lấy từ route sẵn có.
+// Chỉ hiện ở khổ ≤640px (khổ có thanh tab); máy tính có dải chào riêng (#dash-dai, bản vẽ v2) dùng CHUNG kiểu ô dưới đây. Không thêm số liệu mới cần máy chủ: mọi
+// con số lấy từ route sẵn có.
 
 /** Biểu tượng từng ô (hình chép từ bản vẽ; cùng hình với mục cùng tên ở thanh bên máy tính khi mục đó có biểu tượng). */
 const ICON_O: Record<KhoaO, IconName> = {
   "tao-don": "plus", "don-hang": "orders", "danh-ba": "contact-card",
   "dich-vu": "services", "tai-khoan": "staff", phien: "lock", "dia-diem": "pin", "giay-to-nguoi": "guests", "nhat-ky": "history", "gui-thong-bao": "megaphone", "tro-ly": "chat",
+  "giao-dien": "palette",
   "dieu-phoi": "swap", cuoc: "clock", xe: "truck", "sap-het-han": "clock", "giay-to-xe": "doc-check", "chinh-sach": "checkCircle", "ly-do": "filePlus",
-  "gop-y": "chat", "tro-giup": "help",
+  toi: "me", "gop-y": "chat", "tro-giup": "help",
 };
 /** Màu huy hiệu số theo bản vẽ: Đơn hàng xanh biển, giấy tờ sắp hết hạn + dịch vụ lệch Sheet màu cát, Góp ý san hô. Ô không có ở đây không bao giờ có số. */
 const MAU_HUY_HIEU: Partial<Record<KhoaO, "xanh" | "cat" | "san-ho">> = { "don-hang": "xanh", "sap-het-han": "cat", "dich-vu": "cat", "gop-y": "san-ho" };
 const huyHieu = new Map<KhoaO, number>();
-/** Ô vuông (chỗ gắn huy hiệu) của từng ô ĐANG hiện trên lưới chính — để cập nhật số tại chỗ, không dựng lại cả lưới. */
-const hopTrenLuoi = new Map<KhoaO, HTMLElement>();
+/** Ô vuông (chỗ gắn huy hiệu) của từng ô ĐANG hiện — lưới điện thoại VÀ dải chào máy tính (một khoá có thể có hai ô) — để cập nhật số tại chỗ, không dựng lại. */
+const hopTrenLuoi = new Map<KhoaO, HTMLElement[]>();
 let luoiTrangChu: LuoiTrangChu | null = null;
 let nguoiXem: Staff | null = null;
 
@@ -314,8 +343,7 @@ function veHuyHieu(hop: HTMLElement, k: KhoaO): void {
 
 function datHuyHieu(k: KhoaO, n: number): void {
   huyHieu.set(k, n);
-  const hop = hopTrenLuoi.get(k);
-  if (hop) veHuyHieu(hop, k);
+  for (const hop of hopTrenLuoi.get(k) ?? []) veHuyHieu(hop, k);
 }
 
 /** Một ô: ô vuông bo góc (biểu tượng + huy hiệu / chấm "có bản mới") và nhãn tối đa hai dòng. "Tạo đơn" là ô duy nhất màu san hô (hành động chốt). */
@@ -327,7 +355,7 @@ function oChucNang(o: OChucNang, ghiNho: boolean): HTMLElement {
     o.khoa === "tro-giup" && helpHasNews() && h("span", { class: "dash-o-cham", role: "img", "aria-label": "Có bản mới" }),
   );
   veHuyHieu(hop, o.khoa);
-  if (ghiNho) hopTrenLuoi.set(o.khoa, hop);
+  if (ghiNho) hopTrenLuoi.set(o.khoa, [...(hopTrenLuoi.get(o.khoa) ?? []), hop]);
   return h("a", { class: "dash-o-muc", href: o.href }, hop, h("span", { class: "dash-o-nhan" }, o.nhan));
 }
 
@@ -347,7 +375,6 @@ function moTatCa(nut: HTMLElement): void {
 function veLuoi(staff: Staff): void {
   const luoi = oTrangChu(staff);
   luoiTrangChu = luoi;
-  hopTrenLuoi.clear();
   const cacO = luoi.luoi.map((x) => oChucNang(x, true));
   if (luoi.coTatCa) {
     const nut = h("button", { type: "button", class: "dash-o-muc", "aria-haspopup": "dialog" }, h("span", { class: "dash-o-hop" }, icon("grid", 26)), h("span", { class: "dash-o-nhan" }, "Tất cả"));
@@ -357,21 +384,110 @@ function veLuoi(staff: Staff): void {
   const nav = byId("dash-o");
   replaceChildren(nav, ...cacO);
   nav.hidden = false;
-  // Huy hiệu cần lời gọi riêng (giấy tờ sắp hết hạn, Góp ý) chỉ nạp khi lưới THẬT SỰ hiển thị (điện thoại) — máy tính đã có số ở thanh bên, không gọi hai lần.
-  // Cùng cách thanh bên (web/shell.ts addNav): hỏi trình duyệt `offsetParent`, chờ đổi khổ nếu đang ẩn. "Đơn hàng", "Dịch vụ & giá" dùng lại số trang đã tải.
-  const nap = (): void => {
-    if (luoi.nhom.some((g) => g.o.some((x) => x.khoa === "sap-het-han"))) void demSapHetHan().then((n) => datHuyHieu("sap-het-han", n));
-    void feedbackBadge().then((n) => datHuyHieu("gop-y", n));
+}
+
+/**
+ * Huy hiệu cần lời gọi riêng (giấy tờ sắp hết hạn, Góp ý) — MỘT lần cho cả lưới điện thoại lẫn dải chào máy tính. Hai hàm đếm giữ lời hỏi đang chạy
+ * (web/vc-dem.ts, web/shell.ts feedbackBadge) nên thanh bên máy tính và dải chào dùng chung MỘT lời gọi. "Đơn hàng", "Dịch vụ & giá" dùng lại số trang đã tải.
+ */
+function napHuyHieu(): void {
+  if (luoiTrangChu?.nhom.some((g) => g.o.some((x) => x.khoa === "sap-het-han"))) void demSapHetHan().then((n) => datHuyHieu("sap-het-han", n));
+  void feedbackBadge().then((n) => datHuyHieu("gop-y", n));
+}
+
+// ---- Dải chào máy tính (bản vẽ "Trang chu may tinh v2.dc.html", Claude Design 2026-10-02) -------------------------------------------------------------------
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+/** Hai đường sóng mảnh ở đáy dải (bản vẽ v2: điểm nhấn biển) — trang trí, kéo giãn theo bề ngang (`preserveAspectRatio="none"`, nét không giãn). */
+function songDai(): SVGSVGElement {
+  const svg = document.createElementNS(SVG_NS, "svg");
+  for (const [k, v] of Object.entries({ class: "dash-dai-song", viewBox: "0 0 1200 24", preserveAspectRatio: "none", "aria-hidden": "true", focusable: "false" })) svg.setAttribute(k, v);
+  const duong = (y: number, a: number, lop: string): SVGPathElement => {
+    let d = `M0 ${y}`;
+    for (let x = 0; x < 1200; x += 120) d += ` Q${x + 30} ${y - a} ${x + 60} ${y} T${x + 120} ${y}`;
+    const el = document.createElementNS(SVG_NS, "path");
+    el.setAttribute("d", d);
+    el.setAttribute("class", lop);
+    el.setAttribute("vector-effect", "non-scaling-stroke");
+    return el;
   };
-  if (nav.offsetParent !== null) nap();
-  else {
-    const khiDoiKho = (): void => {
-      if (nav.offsetParent === null) return;
-      window.removeEventListener("resize", khiDoiKho);
-      nap();
-    };
-    window.addEventListener("resize", khiDoiKho);
-  }
+  svg.append(duong(11, 6, "dash-dai-song-1"), duong(18, 4, "dash-dai-song-2"));
+  return svg;
+}
+
+/**
+ * Số cột từng nhóm theo bề rộng THẬT của lưới (luật thuần `cotNhom`: tái tạo đúng số cột bản vẽ ở 1280/1440, ô ≥ 88px). Không vừa trong ba hàng → xếp chồng nhóm
+ * (`dash-nhom-chong`, như khổ 768 của bản vẽ — mỗi nhóm một hàng ô tự dàn). Gọi lại mỗi khi lưới đổi bề rộng (ResizeObserver).
+ */
+function chiaCot(nav: HTMLElement, soO: readonly number[]): void {
+  const c = cotNhom(soO, nav.clientWidth);
+  nav.classList.toggle("dash-nhom-chong", c === null);
+  for (const [i, nhom] of [...nav.children].entries()) (nhom as HTMLElement).style.setProperty("--cot", String(c?.[i] ?? 1));
+}
+
+/**
+ * Dải chào máy tính: ảnh đại diện chữ cái, "Chào buổi …, <tên>", ngày (+ số chuyến đón hôm nay khi số liệu về), viên bảo trì; dưới là MỌI ô chức năng theo nhóm
+ * (`nhomMayTinh`: bốn nhóm như bảng trượt điện thoại + ô "Tôi"). Điện thoại ẩn cả dải (CSS). Ô và huy hiệu dùng chung `oChucNang` với lưới điện thoại.
+ */
+function veDai(staff: Staff): void {
+  const dai = byId("dash-dai");
+  const now = new Date();
+  const nhom = nhomMayTinh(staff);
+  const nav = h(
+    "nav",
+    { class: "dash-nhom", "aria-label": "Chức năng" },
+    ...nhom.map((g) => h("section", { class: "dash-nhom-muc" }, h("h3", { class: "dash-nhom-ten" }, g.ten), h("div", { class: "dash-nhom-luoi" }, ...g.o.map((o) => oChucNang(o, true))))),
+  );
+  replaceChildren(
+    dai,
+    songDai(),
+    h(
+      "div",
+      { class: "dash-dai-trong" },
+      h(
+        "div",
+        { class: "dash-dai-chao" },
+        h("span", { class: "dash-dai-anh", "aria-hidden": "true" }, initials(staff.fullName)),
+        h(
+          "div",
+          { class: "dash-dai-chu" },
+          h("span", { class: "dash-dai-loi" }, h("span", { id: "dash-dai-buoi" }, `${loiChao(phutVN(now))}, `), h("span", { class: "dash-dai-ten" }, staff.fullName)),
+          h("span", { class: "dash-dai-ngay" }, ngayChao(now), h("span", { id: "dash-dai-so", hidden: true })),
+        ),
+        // Đang bảo trì: viên cát thay cho dải mảnh chung của khung (bản vẽ v2, như điện thoại 1g), dẫn tới trang Tôi — nơi tắt bảo trì.
+        document.querySelector(".maint-strip") && h("a", { class: "dash-dai-bao-tri", href: "/account" }, icon("alert", 16), "Đang ở chế độ bảo trì"),
+      ),
+      nav,
+    ),
+  );
+  dai.hidden = false;
+  const soO = nhom.map((g) => g.o.length);
+  chiaCot(nav, soO);
+  if ("ResizeObserver" in window) new ResizeObserver(() => chiaCot(nav, soO)).observe(nav);
+}
+
+/** Dòng ngày của dải chào: " · N chuyến đón hôm nay" khi số liệu đã về (bản vẽ v2 — lúc đang tải chỉ có ngày). */
+function datSoChuyenDai(n: number): void {
+  const el = document.getElementById("dash-dai-so");
+  if (!el) return;
+  replaceChildren(el, " · ", h("span", { class: "dash-dai-so" }, `${n} chuyến đón hôm nay`));
+  el.hidden = false;
+}
+
+/**
+ * Đồng hồ phút (máy tính): "Bây giờ", chuyến đã qua / sắp tới và "còn N phút" đi theo giờ thật mà không gọi lại máy chủ. MỘT bộ hẹn giờ cho cả trang; chỉ vẽ lại khi
+ * đang xem Hôm nay, trang đang hiện, và tiêu điểm KHÔNG nằm trong khối Chuyến đón (vẽ lại thay các dòng — không giật tiêu điểm của người đang dùng bàn phím).
+ */
+let dongHoPhut: number | undefined;
+function batDongHoPhut(): void {
+  if (dongHoPhut !== undefined) return;
+  dongHoPhut = window.setInterval(() => {
+    if (document.visibilityState !== "visible") return;
+    const buoi = document.getElementById("dash-dai-buoi");
+    if (buoi) buoi.textContent = `${loiChao(phutVN(new Date()))}, `;
+    if (ngayDonChon !== 0 || !veGanNhat || byId("dash-today").contains(document.activeElement)) return;
+    renderToday(veGanNhat.data, veGanNhat.tien);
+  }, 60_000);
 }
 
 /** "Thứ Tư, 30/09" — hôm nay theo giờ Việt Nam (dải đầu trang điện thoại). */
@@ -424,7 +540,7 @@ function oSo(iconName: IconName, nhan: string, giaTri: string, phu: string, lop?
   );
 }
 
-/** Thứ tự bản vẽ: Còn thiếu · Doanh thu của tôi · Chờ xác nhận · Chưa phụ trách — cùng số với ba ô + thẻ doanh thu của máy tính (renderStats / renderRevenue). */
+/** Thứ tự bản vẽ: Còn thiếu · Doanh thu của tôi · Chờ xác nhận · Chưa phụ trách — cùng số với thẻ số liệu máy tính (renderSoMayTinh), số rút gọn. */
 function renderSoDienThoai(data: Api.DashboardResponse, unpaid: Api.UnpaidSummaryResponse | null): void {
   const rev = data.revenueWeek;
   replaceChildren(
@@ -441,13 +557,12 @@ function renderSoDienThoai(data: Api.DashboardResponse, unpaid: Api.UnpaidSummar
 
 const LOI_SO_LIEU = "Không tải được số liệu. Kiểm tra mạng rồi thử lại.";
 /**
- * Dải báo lỗi của Trang chủ (`#error`). Điện thoại theo bản vẽ 1f: biểu tượng + câu + nút "Thử lại" (tải lại số liệu, không tải lại trang), nằm dưới lưới.
- * Máy tính giữ đúng dải chữ cũ (biểu tượng và nút ẩn bằng CSS). `chiDienThoai`: số "Còn thiếu" không tải được nhưng phần còn lại có — máy tính xưa nay chỉ hiện
- * "—", không có dải, nên dải loại này ẩn ở máy tính. `null` = gỡ. (Câu "Không có kết nối mạng…" của initShell() vẫn ghi thẳng `textContent` vào cùng phần tử.)
+ * Dải báo lỗi của Trang chủ (`#error`): biểu tượng + câu + nút "Thử lại" (tải lại số liệu, không tải lại trang) — bản vẽ điện thoại 1f và máy tính v2 (máy tính:
+ * nút viền đỏ, trên nội dung). Cả khi chỉ số "Còn thiếu" không tải được (ô đó hiện "—"). `null` = gỡ. (Câu "Không có kết nối mạng…" của initShell() vẫn ghi
+ * thẳng `textContent` vào cùng phần tử.)
  */
-function baoLoi(cau: Child, chiDienThoai = false): void {
+function baoLoi(cau: Child): void {
   const el = byId("error");
-  el.classList.toggle("dash-loi-dt", chiDienThoai);
   if (cau === null || cau === false || cau === undefined || cau === "") {
     el.hidden = true;
     replaceChildren(el);
@@ -490,15 +605,15 @@ async function main(): Promise<void> {
     location.replace(redirect);
     return;
   }
-  const words = staff.fullName.trim().split(/\s+/).filter(Boolean);
-  byId("dash-name").textContent = `Chào ${words[words.length - 1] ?? staff.fullName}`;
-  // Dải "Đang ở chế độ bảo trì" chung của khung (web/shell.ts) đã dựng xong tại đây (initShell() đã trả về) — suy ra trạng thái từ đó thay vì đọc lại API, tránh đổi chữ ký initShell().
-  byId("dash-maint").hidden = !document.querySelector(".maint-strip");
-  // Điện thoại: lời chào, ô tìm và lưới hiện NGAY khi biết người dùng; số liệu + chuyến đón hiện khung xương tới khi về (bản vẽ 1e).
+  // Lời chào, ô tìm và ô chức năng hiện NGAY khi biết người dùng (cả hai khổ); số liệu + chuyến đón hiện khung xương tới khi về (bản vẽ điện thoại 1e, máy tính v2).
+  // Viên bảo trì (cả hai khổ) suy từ dải "Đang ở chế độ bảo trì" chung của khung (web/shell.ts) — đã dựng xong khi initShell() trả về.
   nguoiXem = staff;
   dungDauTrang(staff);
   veLuoi(staff);
+  veDai(staff);
+  napHuyHieu();
   await taiDashboard(staff);
+  batDongHoPhut();
   // Bảng tin (ADR-0022, TD-3): đơn đổi / vừa nối lại → tải lại số liệu và danh sách hôm nay. Đăng ký MỘT lần, sau lần tải đầu; bộ gộp bảo đảm
   // một đợt tin + `can-tai-lai` đến cùng lúc không chạy hai lần tải song song.
   const lamMoi = taoBoLamMoi(() => taiDashboard(staff, true));
@@ -512,9 +627,6 @@ async function main(): Promise<void> {
  * và lỗi mạng thì giữ nguyên số cũ đang hiện (không xoá khối, không dựng banner lỗi).
  */
 async function taiDashboard(staff: Staff, lamMoi = false): Promise<void> {
-  const now = new Date();
-  const weekday = new Intl.DateTimeFormat("vi-VN", { timeZone: "Asia/Ho_Chi_Minh", weekday: "long" }).format(now);
-  const dateStr = now.toLocaleDateString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh", day: "2-digit", month: "2-digit", year: "numeric" });
   const loadingEl = byId("loading");
   try {
     // loadReview() không bao giờ ném lỗi (allSettled + canSeeReviewAlerts() chặn trước) — gọi song song với
@@ -530,23 +642,20 @@ async function taiDashboard(staff: Staff, lamMoi = false): Promise<void> {
       ? await api<Api.LedgerBalancesResponse>("/api/ledger/balances", { method: "POST", body: { orderIds: maDon } }).then((r) => r.balances, () => ({}))
       : {};
     loadingEl.hidden = true;
-    // Lần trước lỗi mà lần này được → gỡ dải. Chỉ thiếu số "Còn thiếu" → dải "Thử lại" ở điện thoại (bản vẽ 1f); máy tính như cũ (ô hiện "—", không dải).
-    baoLoi(unpaid ? null : LOI_SO_LIEU, true);
-    byId("dash-date").textContent = `${weekday}, ${dateStr} · ${data.today.length} chuyến đón hôm nay`;
+    // Lần trước lỗi mà lần này được → gỡ dải. Chỉ thiếu số "Còn thiếu" → dải "Thử lại" (bản vẽ điện thoại 1f, máy tính v2), ô đó hiện "—".
+    baoLoi(unpaid ? null : LOI_SO_LIEU);
+    datSoChuyenDai(data.today.length);
     datHuyHieu("don-hang", data.draftCount); // huy hiệu ô "Đơn hàng" = số đơn chưa xác nhận (quyết định 8 của chủ dự án — cùng số huy hiệu thanh bên)
-    renderStats(data, unpaid);
+    renderSoMayTinh(data, unpaid);
     renderSoDienThoai(data, unpaid);
     renderToday(data, tien);
-    renderRevenue(data.revenueWeek);
     if (review !== undefined) renderReview(review);
     // Chỉ hiện khối nội dung SAU KHI dựng xong dữ liệu thật — lúc đang tải/lỗi giữ ẩn (tránh khối rỗng đọng lại cạnh skeleton/banner lỗi).
     byId("dash-grid").hidden = false;
   } catch (err) {
     if (lamMoi) return; // làm mới lặng lẽ: giữ số cũ
     loadingEl.hidden = true;
-    byId("dash-date").textContent = `${weekday}, ${dateStr}`;
-    // Máy tính giữ câu cũ; điện thoại dùng câu của bản vẽ 1f (nút "Thử lại" ngay cạnh) — hai bản cùng trong DOM, CSS ẩn/hiện.
-    baoLoi(err instanceof ApiError ? err.message : h("span", null, h("span", { class: "lbl-full" }, "Không tải được Trang chủ. Thử tải lại trang."), h("span", { class: "lbl-short" }, LOI_SO_LIEU)));
+    baoLoi(err instanceof ApiError ? err.message : LOI_SO_LIEU); // câu của bản vẽ (điện thoại 1f, máy tính v2), nút "Thử lại" ngay cạnh
   }
 }
 void main();

@@ -18,9 +18,9 @@ export type NhomO = (typeof NHOM_O)[number];
 
 export type KhoaO =
   | "tao-don" | "don-hang" | "danh-ba"
-  | "dich-vu" | "tai-khoan" | "phien" | "dia-diem" | "giay-to-nguoi" | "nhat-ky" | "gui-thong-bao" | "tro-ly"
+  | "dich-vu" | "tai-khoan" | "phien" | "dia-diem" | "giay-to-nguoi" | "nhat-ky" | "gui-thong-bao" | "tro-ly" | "giao-dien"
   | "dieu-phoi" | "cuoc" | "xe" | "sap-het-han" | "giay-to-xe" | "chinh-sach" | "ly-do"
-  | "gop-y" | "tro-giup";
+  | "toi" | "gop-y" | "tro-giup";
 
 export interface OChucNang {
   khoa: KhoaO;
@@ -51,6 +51,8 @@ const DS: readonly DinhNghiaO[] = [
   { khoa: "nhat-ky", nhan: "Nhật ký", href: "/audit", nhom: "Quản lý", co: (w) => can(w, "audit.view") },
   { khoa: "gui-thong-bao", nhan: "Gửi thông báo", href: "/gui-thong-bao", nhom: "Quản lý", co: (w) => can(w, "notice.send") },
   { khoa: "tro-ly", nhan: "Trợ lý Hỗ trợ", href: "/tro-ly-cai-dat", nhom: "Quản lý", co: (w) => can(w, "settings.ops") },
+  // ADR-0087 (bản 1.67): màn Giao diện công ty — cùng ô settings.ops với mục "Giao diện" ở thanh bên / trang Tôi.
+  { khoa: "giao-dien", nhan: "Giao diện", href: "/giao-dien", nhom: "Quản lý", co: (w) => can(w, "settings.ops") },
   { khoa: "dieu-phoi", nhan: "Điều phối xe", href: "/dieu-phoi", nhom: "Vận chuyển", co: thayDieuPhoiXe },
   // Tài khoản vừa tài xế công ty vừa văn phòng (K2b T2): lối tới "Cuốc của tôi" — tài khoản chỉ tài xế có tab riêng và không ở Trang chủ này.
   { khoa: "cuoc", nhan: "Cuốc của tôi", href: "/cuoc", nhom: "Vận chuyển", co: (w) => coCuocCuaToi(w) && !chiTaiXe(w) },
@@ -89,4 +91,15 @@ export function oTrangChu(who: PermissionHolder): LuoiTrangChu {
     coTatCa,
     nhom: NHOM_O.map((ten) => ({ ten, o: duoc.filter((o) => o.nhom === ten).map(bo) })).filter((g) => g.o.length > 0),
   };
+}
+
+/**
+ * Ô "Tôi" — CHỈ dải chào máy tính (bản vẽ "Trang chu may tinh v2.dc.html": đầu nhóm "Của tôi"). Điện thoại có tab "Tôi" ở thanh tab nên lưới và bảng
+ * trượt không có ô này. Không hỏi quyền: mọi người vào được trang Tôi của mình (như mục "Của tôi" ở thanh bên).
+ */
+export const O_TOI: OChucNang = { khoa: "toi", nhan: "Tôi", href: "/account" };
+
+/** Nhóm ô của dải chào máy tính: MỌI chức năng (không giới hạn 8, không ô "Tất cả"), cùng nhóm và thứ tự như bảng trượt điện thoại, thêm ô "Tôi". */
+export function nhomMayTinh(who: PermissionHolder): LuoiTrangChu["nhom"] {
+  return oTrangChu(who).nhom.map((g) => (g.ten === "Của tôi" ? { ten: g.ten, o: [O_TOI, ...g.o] } : g));
 }

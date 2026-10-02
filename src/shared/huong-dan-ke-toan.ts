@@ -34,16 +34,16 @@ Thanh tab dưới đáy có [[Trang chủ]], [[Đơn hàng]] và [[Tôi]]. Các 
     {
       tieuDe: "Xem tình hình chung ở Trang chủ",
       noiDung: `1. Mở app. App vào thẳng [[Trang chủ]].
-2. Nhìn ba ô số ở trên cùng. Ba ô này là số của **cả công ty**:
-   - **Còn thiếu tiền**: tổng tiền khách còn phải trả của các đơn đã xác nhận. Dòng nhỏ bên dưới ghi số đơn và ngày đón sớm nhất.
-   - **Đơn chờ xác nhận**: số đơn đã lưu nhưng chưa chốt.
-   - **Chưa có người phụ trách**: số đơn chưa có ai nhận lo.
+2. Nhìn thẻ số liệu (máy tính: cột bên phải; điện thoại: dưới các ô chức năng). Ba ô sau là số của **cả công ty**:
+   - **Còn thiếu tiền**: tổng tiền khách còn phải trả của các đơn đã xác nhận. Dòng nhỏ bên dưới ghi số đơn và ngày đón sớm nhất (máy tính).
+   - **Chờ xác nhận**: số đơn đã lưu nhưng chưa chốt.
+   - **Chưa phụ trách**: số đơn chưa có ai nhận lo.
 3. Bấm vào một ô để mở danh sách đơn.
-4. Kéo xuống xem **Chuyến đón hôm nay**: các đơn đã xác nhận có giờ đón trong ngày.
+4. Xem thẻ **Chuyến đón**: các đơn đã xác nhận có giờ đón hôm nay (bấm Ngày mai, Ngày kia để xem tiếp).
 
 > Ví dụ: Sáng thứ Hai, chị Lan (kế toán) mở app. Ô Còn thiếu tiền ghi "5 đơn · sớm nhất đón 03/10". Chị bấm vào ô đó để xem đó là những đơn nào, rồi gọi nhắc người phụ trách thu tiền.
 
-> Lưu ý: Ô **Doanh thu của tôi** chỉ tính đơn do chính bạn lập. Kế toán không lập đơn nên ô này luôn ghi "Chưa có đơn nào tuần này". Không phải lỗi.`,
+> Lưu ý: Ô **Doanh thu của tôi** chỉ tính đơn do chính bạn lập. Kế toán không lập đơn nên ô này luôn bằng không (máy tính ghi thêm "Chưa có đơn nào tuần này"). Không phải lỗi.`,
     },
     {
       tieuDe: "Tìm và lọc đơn",
