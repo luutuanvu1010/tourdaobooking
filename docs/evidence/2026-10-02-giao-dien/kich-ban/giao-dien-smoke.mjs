@@ -73,6 +73,9 @@ try {
   // Trang này tắt tệp giao diện công ty và chưa chỉnh gì → KHÔNG có biến --* nào đặt trên <html> (hiện đúng app.css mặc định).
   assert.equal(await p.ev("document.documentElement.style.length"), 0, "2. chưa chỉnh: không có biến --* inline trên <html>");
   assert.equal(await p.ev("[...document.querySelectorAll('link[href^=\"/api/giao-dien.css\"]')].every((l) => l.disabled)"), true, "2. tệp giao diện công ty bị tắt ở màn này");
+  // M3: xem trước có một thẻ đơn dựng bằng thành phần thẻ đơn thật.
+  assert.equal(await p.ev("!!document.querySelector('#gd-xem-truoc .order-card .order-row-name') && document.querySelector('#gd-xem-truoc .order-row-name').textContent"), "Chị Nguyễn Thu Hà", "2. xem trước có thẻ đơn mẫu");
+  assert.equal(await p.ev("!!document.querySelector('#gd-xem-truoc .order-card .badge')"), true, "2. thẻ đơn mẫu có huy hiệu trạng thái");
   await p.shot(join(OUT, "01-giao-dien-1040-mac-dinh.png"));
   ok(`2. Toàn quyền: thanh bên có Giao diện; 4 nhóm, ${soDong} dòng; 'Áp dụng' và 'Bỏ thay đổi' khoá khi chưa đổi`);
 
@@ -101,6 +104,7 @@ try {
   const chuSau = await p.ev("getComputedStyle(document.querySelector('.gd-xem-thanh')).color");
   assert.notEqual(chuSau, chuTruoc, "3a. đổi Màu chính thì chữ thanh trên (xem trước) đổi theo");
   assert.equal(chuSau, "rgb(124, 45, 18)", "3a. chữ thanh trên theo đúng màu chính mới");
+  assert.equal(await p.ev("document.getElementById('gd-chu-thanh-tren').value"), "#7c2d12", "3a. M2: ô 'Chữ thanh trên' hiện giá trị hiệu lực (theo Màu chính mới), không phải mặc định");
   await p.ev("document.getElementById('gd-bo').click()");
   await p.ev(setInput("document.getElementById('gd-nen-thanh-tren')", "#0c4a6e"));
   await p.ev("(() => { window.__o = document.getElementById('gd-nen-thanh-tren'); return true; })()"); // 'Bỏ thay đổi' dựng lại form → lấy lại phần tử mốc cho 3b

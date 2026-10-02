@@ -108,3 +108,22 @@ test("màu theo vai: mọi cặp chữ/nền của thanh, nút chính, mục đa
   const loi = cap.map(([chu, nen]) => `${chu} trên ${nen}: ${tuongPhan(chu, nen).toFixed(2)}:1`).filter((_, i) => tuongPhan(...cap[i]!) < 4.5);
   assert.deepEqual(loi, []);
 });
+
+// Vòng sửa cuối ADR-0087: núm "Cỡ chữ nội dung" kéo --fs-step-5 xuống 14px; ô gõ phải KHÔNG bị kéo theo (chống zoom iOS, web/CLAUDE.md "Ô gõ 16px").
+test("ô gõ: font-size đọc --fs-ui, và --fs-ui không bao giờ nhỏ hơn 16px dù --fs-step-5 bị núm kéo xuống", () => {
+  const ui = tokens.get("--fs-ui");
+  assert.ok(ui, "--fs-ui chưa khai ở :root");
+  const literal = /^(\d+(?:\.\d+)?)px$/.exec(ui);
+  const sanDuoi = /^max\(\s*16px\s*,/.test(ui);
+  assert.ok(sanDuoi || (literal && Number(literal[1]) >= 16), `--fs-ui phải là max(16px, …) hoặc số ≥ 16px, hiện là ${ui}`);
+  const luatO = [...luat.matchAll(/([^{}]+)\{([^{}]*)\}/g)].find((m) => /(?:^|,)\s*input, select, textarea\s*(?:,|$)/.test(m[1]!.trim().split("\n").pop()!.trim()) && m[2]!.includes("font-size"));
+  assert.ok(luatO, "không thấy luật `input, select, textarea` có font-size");
+  assert.match(luatO[2]!, /font-size:\s*var\(--fs-ui\)/);
+});
+
+// Núm "Độ đậm chữ nội dung" chỉ có tác dụng nếu chữ gốc của trang đọc --fw-regular (viết tắt `font:` đặt lại độ đậm về thường).
+test("body: độ đậm chữ gốc đọc token --fw-regular (sau viết tắt font)", () => {
+  const body = /\nbody \{([^{}]*)\}/.exec(luat);
+  assert.ok(body, "không thấy luật `body {`");
+  assert.match(body[1]!, /font:[^;]*;[^}]*font-weight:\s*var\(--fw-regular\)/);
+});

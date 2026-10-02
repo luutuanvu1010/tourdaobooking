@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { MAC_DINH, NUM, PHONG, bienCss, docTokensDaLuu, dungCss, kiemGiaoDien, tuongPhan } from "./giao-dien.ts";
+import { MAC_DINH, NUM, PHONG, bienCss, docTokensDaLuu, dungCss, giaTriHieuLuc, giaTriKhiBoGhiDe, kiemGiaoDien, tuongPhan } from "./giao-dien.ts";
 
 test("tuongPhan: trắng/đen 21:1, cùng màu 1:1, đối xứng", () => {
   assert.equal(tuongPhan("#ffffff", "#000000").toFixed(2), "21.00");
@@ -94,4 +94,33 @@ test("docTokensDaLuu: JSON hỏng → {}, khoá lạ/sai dạng bị bỏ, khoá
   assert.deepEqual(docTokensDaLuu("5"), {});
   assert.deepEqual(docTokensDaLuu(JSON.stringify({ "co-noi-dung": 16, "nen-trang": "#f0f0f0" })), { "nen-trang": "#f0f0f0" }, "giá trị không phải chuỗi bị bỏ");
   assert.deepEqual(docTokensDaLuu(JSON.stringify({ "da-bo": "#ffffff", "nen-trang": "#f0f0f0", "nen-the": "x" })), { "nen-trang": "#f0f0f0" });
+});
+
+// Vòng sửa cuối: bảng tối qua được phép kiểm cũ nhưng chữ trong ô nhập (nền trắng cố định) và chữ trắng trên huy hiệu màu chính đọc không được.
+test("bảng tối: chữ chính sáng (ô nhập nền trắng) và màu chính nhạt (huy hiệu chữ trắng) bị chặn, lỗi gắn vào ô núm", () => {
+  const toi = { "nen-trang": "#0f172a", "nen-the": "#1e293b", "chu-chinh": "#f1f5f9", "chu-phu": "#cbd5e1", "mau-chinh": "#7dd3fc", "mau-chinh-nhat": "#0c4a6e" };
+  const loi = kiemGiaoDien(toi);
+  assert.ok(loi.some((l) => l.khoa === "chu-chinh" && /ô nhập/.test(l.message)), JSON.stringify(loi));
+  assert.ok(loi.some((l) => l.khoa === "mau-chinh" && /huy hiệu/.test(l.message)), JSON.stringify(loi));
+});
+
+test("không lỗi nào mang khoá bắt đầu bằng #; mặc định vẫn qua hai cặp cố định mới", () => {
+  assert.deepEqual(kiemGiaoDien({}), []);
+  for (const t of [{ "mau-chinh": "#7dd3fc" }, { "chu-chinh": "#f1f5f9" }, { "nen-nut-chot": "#fde68a" }, { "chu-chinh": "#ffffff", "nen-trang": "#000000", "nen-the": "#000000" }]) {
+    for (const l of kiemGiaoDien(t)) assert.ok(l.khoa === null || !l.khoa.startsWith("#"), JSON.stringify(l));
+  }
+});
+
+test("giaTriHieuLuc: tự đặt > theo núm cha > mặc định", () => {
+  assert.equal(giaTriHieuLuc({}, "chu-thanh-tren"), MAC_DINH["chu-thanh-tren"]);
+  assert.equal(giaTriHieuLuc({ "mau-chinh": "#112233" }, "chu-thanh-tren"), "#112233");
+  assert.equal(giaTriHieuLuc({ "mau-chinh": "#112233", "chu-thanh-tren": "#445566" }, "chu-thanh-tren"), "#445566");
+  assert.equal(giaTriHieuLuc({ "mau-chinh": "#112233" }, "mau-chinh"), "#112233");
+  assert.equal(giaTriHieuLuc({}, "co-noi-dung"), "16");
+});
+
+test("giaTriKhiBoGhiDe: giá trị của núm khi KHÔNG có ghi đè riêng (cha đổi thì con đổi theo)", () => {
+  assert.equal(giaTriKhiBoGhiDe({ "mau-chinh": "#112233", "chu-thanh-tren": "#445566" }, "chu-thanh-tren"), "#112233");
+  assert.equal(giaTriKhiBoGhiDe({ "chu-thanh-tren": "#445566" }, "chu-thanh-tren"), MAC_DINH["mau-chinh"]);
+  assert.equal(giaTriKhiBoGhiDe({ "co-noi-dung": "14" }, "co-noi-dung"), "16");
 });

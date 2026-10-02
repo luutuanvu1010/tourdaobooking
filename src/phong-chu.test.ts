@@ -71,6 +71,8 @@ test("thang cỡ chữ: mọi cỡ chữ đi qua token, token theo vai trỏ m�
   for (const m of root.matchAll(/\n\s*(--fs-[\w-]+):\s*([^;]+);/g)) {
     const [, name, v] = m as unknown as [string, string, string];
     if (name.startsWith("--fs-step-") || cu.has(name)) continue;
+    // Ngoại lệ DUY NHẤT, đúng một giá trị: cỡ ô gõ có sàn 16px để núm "Cỡ chữ nội dung" (ADR-0087) không kéo ô gõ dưới 16px (chống zoom iOS). src/token-giao-dien.test.ts canh sàn này.
+    if (name === "--fs-ui" && v.trim() === "max(16px, var(--fs-step-5))") continue;
     assert.match(v.trim(), /^var\(--fs-(step-\d+|h2)\)$/, `${name}: ${v} — phải trỏ một bậc var(--fs-step-N)`);
   }
   const luat = css.slice(css.indexOf("\n}", css.indexOf(":root")));

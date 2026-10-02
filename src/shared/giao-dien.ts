@@ -83,6 +83,8 @@ export const CAP_TUONG_PHAN: readonly [string, string, string][] = [
   ["chu-muc-chon", "nen-muc-chon", "Chữ mục đang chọn ở thanh bên"],
   ["chu-nut-chinh", "nen-nut-chinh", "Chữ nút chính"],
   ["#ffffff", "nen-nut-chot", "Chữ trắng trên nút hành động chốt"],
+  ["chu-chinh", "#ffffff", "Chữ chính trong ô nhập (nền trắng cố định)"],
+  ["#ffffff", "mau-chinh", "Chữ trắng trên màu chính (huy hiệu)"],
 ];
 
 const HEX = /^#[0-9a-f]{6}$/;
@@ -111,6 +113,15 @@ function loiMotO(n: Num, v: unknown): string | null {
   return null;
 }
 
+/** Giá trị HIỆU LỰC của một núm: tự đặt, nếu không thì theo núm cha (CHA), nếu không thì mặc định. */
+export function giaTriHieuLuc(tokens: Readonly<Record<string, string>>, khoa: string): string {
+  return tokens[khoa] ?? (CHA[khoa] !== undefined ? giaTriHieuLuc(tokens, CHA[khoa]!) : MAC_DINH[khoa]!);
+}
+/** Giá trị núm SẼ có nếu bỏ ghi đè riêng của nó (núm con: theo cha; núm gốc: mặc định) — để so trước khi xoá ghi đè. */
+export function giaTriKhiBoGhiDe(tokens: Readonly<Record<string, string>>, khoa: string): string {
+  return CHA[khoa] !== undefined ? giaTriHieuLuc(tokens, CHA[khoa]!) : MAC_DINH[khoa]!;
+}
+
 /** Kiểm tập ghi đè; mảng rỗng = hợp lệ. Giá trị chưa đặt lấy MAC_DINH khi xét chéo (tương phản, độ đậm theo phông). */
 export function kiemGiaoDien(tokens: unknown): LoiGiaoDien[] {
   if (!tokens || typeof tokens !== "object" || Array.isArray(tokens)) return [{ khoa: null, message: "Dữ liệu giao diện không hợp lệ." }];
@@ -124,10 +135,12 @@ export function kiemGiaoDien(tokens: unknown): LoiGiaoDien[] {
   }
   if (loi.length > 0) return loi;
   // Giá trị hiệu lực: tự đặt, nếu không thì theo núm cha (CHA), nếu không thì mặc định.
-  const gt = (k: string): string => (k.startsWith("#") ? k : ((t[k] as string | undefined) ?? (CHA[k] !== undefined ? gt(CHA[k]!) : MAC_DINH[k]!)));
+  const gt = (k: string): string => (k.startsWith("#") ? k : giaTriHieuLuc(t as Record<string, string>, k));
   for (const [chu, nen, ten] of CAP_TUONG_PHAN) {
     const r = tuongPhan(gt(chu), gt(nen));
-    if (r < 4.5) loi.push({ khoa: chu.startsWith("#") ? nen : (t[chu] !== undefined ? chu : nen), message: `${ten} khó đọc (${soVN(r)}:1, cần ít nhất 4,5:1).` });
+    // Lỗi luôn gắn vào ô của MỘT NÚM (khoá hex cố định không có dòng nào trên màn → nút Áp dụng khoá mà không có câu báo).
+    const khoaLoi = chu.startsWith("#") ? nen : nen.startsWith("#") ? chu : (t[chu] !== undefined ? chu : nen);
+    if (r < 4.5) loi.push({ khoa: khoaLoi, message: `${ten} khó đọc (${soVN(r)}:1, cần ít nhất 4,5:1).` });
   }
   for (const n of NUM.filter((x) => x.loai === "dam")) {
     const phong = gt(n.khoa === "dam-tieu-de" ? "phong-tieu-de" : "phong-noi-dung");
