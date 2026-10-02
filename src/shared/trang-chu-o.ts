@@ -19,7 +19,7 @@ export type NhomO = (typeof NHOM_O)[number];
 export type KhoaO =
   | "tao-don" | "don-hang" | "danh-ba"
   | "dich-vu" | "tai-khoan" | "phien" | "dia-diem" | "giay-to-nguoi" | "nhat-ky" | "gui-thong-bao" | "tro-ly" | "giao-dien"
-  | "dieu-phoi" | "cuoc" | "xe" | "sap-het-han" | "giay-to-xe" | "chinh-sach" | "ly-do"
+  | "dieu-phoi" | "bang-gia-xe" | "bang-ke-xe" | "cuoc" | "xe" | "sap-het-han" | "giay-to-xe" | "chinh-sach" | "ly-do"
   | "toi" | "gop-y" | "tro-giup";
 
 export interface OChucNang {
@@ -54,6 +54,9 @@ const DS: readonly DinhNghiaO[] = [
   // ADR-0087 (bản 1.67): màn Giao diện công ty — cùng ô settings.ops với mục "Giao diện" ở thanh bên / trang Tôi.
   { khoa: "giao-dien", nhan: "Giao diện", href: "/giao-dien", nhom: "Quản lý", co: (w) => can(w, "settings.ops") },
   { khoa: "dieu-phoi", nhan: "Điều phối xe", href: "/dieu-phoi", nhom: "Vận chuyển", co: thayDieuPhoiXe },
+  // Tiền xe thuê (bản vẽ Đợt 4): cùng ô với mục con cùng tên ở thanh bên / trang Tôi.
+  { khoa: "bang-gia-xe", nhan: "Bảng giá thuê xe", href: "/bang-gia-xe", nhom: "Vận chuyển", co: (w) => can(w, "transport.rate.view") },
+  { khoa: "bang-ke-xe", nhan: "Bảng kê chi phí xe", href: "/bang-ke-xe", nhom: "Vận chuyển", co: (w) => can(w, "transport.cost.view") },
   // Tài khoản vừa tài xế công ty vừa văn phòng (K2b T2): lối tới "Cuốc của tôi" — tài khoản chỉ tài xế có tab riêng và không ở Trang chủ này.
   { khoa: "cuoc", nhan: "Cuốc của tôi", href: "/cuoc", nhom: "Vận chuyển", co: (w) => coCuocCuaToi(w) && !chiTaiXe(w) },
   { khoa: "xe", nhan: "Xe", href: "/xe", nhom: "Vận chuyển", co: quanLyXe },

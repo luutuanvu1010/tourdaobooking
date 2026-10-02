@@ -13,7 +13,7 @@ export const CACHE_VERSION = typeof __BUILD_ID__ === "undefined" ? "dev" : __BUI
 export const CACHE_NAME = `td-shell-${CACHE_VERSION}`;
 
 /** Các trang của app (đường dẫn đúng như trình duyệt yêu cầu, không có .html). Test đối chiếu với các file HTML trong public/ nên không lệch khi thêm/bớt trang. */
-export const PAGES: readonly string[] = ["/", "/orders", "/home", "/login", "/order-form", "/order", "/account", "/catalog", "/staff", "/audit", "/parties", "/locations", "/feedback", "/help", "/gui-thong-bao", "/tai-xe", "/xe", "/xe-sua", "/xe-chi-tiet", "/giay-to-sap-het-han", "/danh-muc-giay-to", "/loai-giay-to-xe", "/loai-giay-to-nguoi", "/chinh-sach-dieu-phoi", "/ly-do-dieu-phoi", "/dieu-kien-xuat-ben", "/chuyen-sua", "/chuyen", "/dieu-phoi", "/cuoc", "/cuoc-chuyen", "/tro-ly-cai-dat", "/sessions", "/giao-dien"];
+export const PAGES: readonly string[] = ["/", "/orders", "/home", "/login", "/order-form", "/order", "/account", "/catalog", "/staff", "/audit", "/parties", "/locations", "/feedback", "/help", "/gui-thong-bao", "/tai-xe", "/xe", "/xe-sua", "/xe-chi-tiet", "/giay-to-sap-het-han", "/danh-muc-giay-to", "/loai-giay-to-xe", "/loai-giay-to-nguoi", "/chinh-sach-dieu-phoi", "/ly-do-dieu-phoi", "/dieu-kien-xuat-ben", "/chuyen-sua", "/chuyen", "/dieu-phoi", "/cuoc", "/cuoc-chuyen", "/tro-ly-cai-dat", "/sessions", "/giao-dien", "/bang-gia-xe", "/bang-ke-xe"];
 
 /** Tệp tĩnh đúng mẫu: CSS, manifest, JS của trang, font woff2, icon PNG. Không cho phép thư mục lồng nhau hay ký tự lạ. */
 const STATIC_FILE = /^\/(?:app\.css|manifest\.webmanifest|js\/[A-Za-z0-9_-]+\.js|fonts\/[A-Za-z0-9_-]+\.woff2|icons\/[A-Za-z0-9_-]+\.png)$/;
@@ -22,12 +22,12 @@ const STATIC_FILE = /^\/(?:app\.css|manifest\.webmanifest|js\/[A-Za-z0-9_-]+\.js
  *  triển khai, không lần bấm nào phải kéo cả trang qua mạng; mỗi lần bấm chỉ còn chờ dữ liệu. Test đối chiếu với `PAGES` và script
  *  `build:web` nên thêm trang mới mà quên dòng này thì `npm test` đỏ. */
 export const PRECACHE: readonly string[] = [
-  "/", "/orders", "/home", "/login", "/order-form", "/order", "/account", "/catalog", "/staff", "/audit", "/parties", "/locations", "/feedback", "/help", "/gui-thong-bao", "/tai-xe", "/xe", "/xe-sua", "/xe-chi-tiet", "/giay-to-sap-het-han", "/danh-muc-giay-to", "/loai-giay-to-xe", "/loai-giay-to-nguoi", "/chinh-sach-dieu-phoi", "/ly-do-dieu-phoi", "/dieu-kien-xuat-ben", "/chuyen-sua", "/chuyen", "/dieu-phoi", "/cuoc", "/cuoc-chuyen", "/tro-ly-cai-dat", "/sessions", "/giao-dien",
+  "/", "/orders", "/home", "/login", "/order-form", "/order", "/account", "/catalog", "/staff", "/audit", "/parties", "/locations", "/feedback", "/help", "/gui-thong-bao", "/tai-xe", "/xe", "/xe-sua", "/xe-chi-tiet", "/giay-to-sap-het-han", "/danh-muc-giay-to", "/loai-giay-to-xe", "/loai-giay-to-nguoi", "/chinh-sach-dieu-phoi", "/ly-do-dieu-phoi", "/dieu-kien-xuat-ben", "/chuyen-sua", "/chuyen", "/dieu-phoi", "/cuoc", "/cuoc-chuyen", "/tro-ly-cai-dat", "/sessions", "/giao-dien", "/bang-gia-xe", "/bang-ke-xe",
   "/app.css",
   "/fonts/be-vietnam-pro-400.woff2", "/fonts/be-vietnam-pro-500.woff2", "/fonts/be-vietnam-pro-600.woff2",
   "/fonts/be-vietnam-pro-700.woff2", "/fonts/be-vietnam-pro-800.woff2",
   "/js/login.js", "/js/home.js", "/js/orders.js", "/js/order-form.js", "/js/order.js", "/js/account.js",
-  "/js/catalog.js", "/js/staff.js", "/js/audit.js", "/js/parties.js", "/js/locations.js", "/js/feedback.js", "/js/help.js", "/js/gui-thong-bao.js", "/js/tai-xe.js", "/js/xe.js", "/js/xe-sua.js", "/js/xe-chi-tiet.js", "/js/giay-to-sap-het-han.js", "/js/loai-giay-to-xe.js", "/js/loai-giay-to-nguoi.js", "/js/chinh-sach-dieu-phoi.js", "/js/ly-do-dieu-phoi.js", "/js/dieu-kien-xuat-ben.js", "/js/chuyen-sua.js", "/js/chuyen.js", "/js/dieu-phoi.js", "/js/cuoc.js", "/js/cuoc-chuyen.js", "/js/tro-ly-cai-dat.js", "/js/sessions.js", "/js/giao-dien.js",
+  "/js/catalog.js", "/js/staff.js", "/js/audit.js", "/js/parties.js", "/js/locations.js", "/js/feedback.js", "/js/help.js", "/js/gui-thong-bao.js", "/js/tai-xe.js", "/js/xe.js", "/js/xe-sua.js", "/js/xe-chi-tiet.js", "/js/giay-to-sap-het-han.js", "/js/loai-giay-to-xe.js", "/js/loai-giay-to-nguoi.js", "/js/chinh-sach-dieu-phoi.js", "/js/ly-do-dieu-phoi.js", "/js/dieu-kien-xuat-ben.js", "/js/chuyen-sua.js", "/js/chuyen.js", "/js/dieu-phoi.js", "/js/cuoc.js", "/js/cuoc-chuyen.js", "/js/tro-ly-cai-dat.js", "/js/sessions.js", "/js/giao-dien.js", "/js/bang-gia-xe.js", "/js/bang-ke-xe.js",
   "/manifest.webmanifest",
   "/icons/logo-96.png", "/icons/icon-192.png",
 ];

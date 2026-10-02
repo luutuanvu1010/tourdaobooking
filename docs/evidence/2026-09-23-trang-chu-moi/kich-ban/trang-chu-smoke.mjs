@@ -482,7 +482,7 @@ try {
       assert.deepEqual(m.dai.nhom, [
         ["Bán hàng", ["Tạo đơn", "Đơn hàng", "Danh bạ"]],
         ["Quản lý", ["Dịch vụ & giá", "Quản lý tài khoản", "Địa điểm", "Loại giấy tờ cá nhân"]],
-        ["Vận chuyển", ["Điều phối xe", "Xe", "Giấy tờ sắp hết hạn", "Loại giấy tờ xe", "Lý do điều phối"]],
+        ["Vận chuyển", ["Điều phối xe", "Bảng giá thuê xe", "Bảng kê chi phí xe", "Xe", "Giấy tờ sắp hết hạn", "Loại giấy tờ xe", "Lý do điều phối"]],
         ["Của tôi", ["Tôi", "Góp ý / Báo lỗi", "Trợ giúp"]],
       ], `${label}: nhóm ô của Quản trị đúng bản vẽ v2 (mọi chức năng, không giới hạn 8, không ô "Tất cả") — ${JSON.stringify(m.dai.nhom)}`);
       // Dòng thời gian (bản vẽ v2, chỉ máy tính): R1 có giờ đón → một chấm. Không khẳng định "đã qua / sắp tới" (phụ thuộc giờ thật lúc chạy — luật thuần có test riêng).
@@ -624,9 +624,10 @@ try {
   // settings.ops) — Quản trị không có. B1 (vòng 3, Q-B-4): mục con "Điều phối xe" (ô trip.view) đứng đầu dưới "Vận chuyển" ⇒ +1 ⇒ 17.
   // 29/9 (làm xanh kịch bản, Phần B ADR-0049): BỎ nợ "Nhật ký" — ADR-0038 đã quyết Nhật ký chỉ Toàn quyền, nên Quản trị KHÔNG có mục đó là ĐÚNG; kịch bản nay
   // đếm số THẬT (16) và so ĐÚNG danh sách nhãn, thay cho con số 17 giữ chỗ nợ.
+  // Tiền xe thuê (Đợt 4 G0, 2/10): mục con "Bảng giá thuê xe" (ô transport.rate.view) + "Bảng kê chi phí xe" (ô transport.cost.view) ngay sau "Điều phối xe" ⇒ +2 ⇒ 19.
   const ADMIN_NAV = [
     "Trang chủ", "Đơn hàng", "Tạo đơn", "Danh bạ",
-    "Dịch vụ & giá", "Quản lý tài khoản", "Địa điểm", "Loại giấy tờ cá nhân", "Vận chuyển", "Điều phối xe", "Xe", "Sắp hết hạn", "Loại giấy tờ xe", "Lý do điều phối",
+    "Dịch vụ & giá", "Quản lý tài khoản", "Địa điểm", "Loại giấy tờ cá nhân", "Vận chuyển", "Điều phối xe", "Bảng giá thuê xe", "Bảng kê chi phí xe", "Xe", "Sắp hết hạn", "Loại giấy tờ xe", "Lý do điều phối",
     "Của tôi", "Góp ý / Báo lỗi", "Trợ giúp",
   ];
   const navMeasure = await p.ev(`(() => {
@@ -639,8 +640,8 @@ try {
       sidebarOverflow: document.querySelector('#sidebar').scrollWidth - document.querySelector('#sidebar').clientWidth,
     };
   })()`);
-  assert.deepEqual(navMeasure.labels, ADMIN_NAV, `Thanh điều hướng dọc (ADMIN): đúng 17 mục theo thứ tự — ${JSON.stringify(navMeasure.labels)}`);
-  assert.equal(navMeasure.linkCount, 17, `Thanh điều hướng dọc (ADMIN) phải có 17 mục (ADR-0038: không "Nhật ký"; ADR-0049 B8: có "Lý do điều phối"; B1: có "Điều phối xe") — thấy ${navMeasure.linkCount}: ${JSON.stringify(navMeasure.labels)}`);
+  assert.deepEqual(navMeasure.labels, ADMIN_NAV, `Thanh điều hướng dọc (ADMIN): đúng 19 mục theo thứ tự — ${JSON.stringify(navMeasure.labels)}`);
+  assert.equal(navMeasure.linkCount, 19, `Thanh điều hướng dọc (ADMIN) phải có 19 mục (ADR-0038: không "Nhật ký"; ADR-0049 B8: có "Lý do điều phối"; B1: có "Điều phối xe") — thấy ${navMeasure.linkCount}: ${JSON.stringify(navMeasure.labels)}`);
   assert.ok(navMeasure.scrollOverflow <= 1, `Thanh điều hướng máy tính: trang không được tràn ngang — lệch ${navMeasure.scrollOverflow}px`);
   assert.ok(navMeasure.topbarOverflow <= 1, `Thanh điều hướng máy tính: #topbar tự nó không được tràn ngang (flex-wrap phải nhận đủ) — lệch ${navMeasure.topbarOverflow}px`);
   assert.ok(navMeasure.sidebarOverflow <= 1, `Thanh điều hướng dọc: #sidebar tự nó không được tràn ngang — lệch ${navMeasure.sidebarOverflow}px`);
@@ -732,7 +733,7 @@ try {
       [
         ["Bán hàng", ["Tạo đơn", "Đơn hàng", "Danh bạ"]],
         ["Quản lý", ["Dịch vụ & giá", "Quản lý tài khoản", "Địa điểm", "Loại giấy tờ cá nhân"]],
-        ["Vận chuyển", ["Điều phối xe", "Xe", "Giấy tờ sắp hết hạn", "Loại giấy tờ xe", "Lý do điều phối"]],
+        ["Vận chuyển", ["Điều phối xe", "Bảng giá thuê xe", "Bảng kê chi phí xe", "Xe", "Giấy tờ sắp hết hạn", "Loại giấy tờ xe", "Lý do điều phối"]],
         ["Của tôi", ["Góp ý / Báo lỗi", "Trợ giúp"]],
       ],
       `K: bốn nhóm của bảng trượt Quản trị — ${JSON.stringify(sheet.nhom)}`,
@@ -981,7 +982,7 @@ try {
   }
   {
     const FRAME_PAGES = [
-      { path: "/staff", label: "/staff", widths: [640, 641, 645, 650, 700, 768, 899, 900, 910, 929, 930, 1040, 1440, 1920], ready: null, mainCap: () => CSS_W_MAIN, account: ACCOUNTS.admin, sidebar: 17 },
+      { path: "/staff", label: "/staff", widths: [640, 641, 645, 650, 700, 768, 899, 900, 910, 929, 930, 1040, 1440, 1920], ready: null, mainCap: () => CSS_W_MAIN, account: ACCOUNTS.admin, sidebar: 19 },
       {
         // PHẢI là đơn NHÁP (R2). Đơn đã xác nhận (R1/R3) bị web/order-form.ts khoá form ("Chỉ sửa được đơn ở trạng
         // thái nháp") và KHÔNG gọi setBarTitle(`Sửa đơn <mã>`) — breadcrumb kẹt ở chữ "Sửa đơn" ngắn, lưới xanh giả.
@@ -997,7 +998,7 @@ try {
         // (đã tự đo: bản đầu của khẳng định này báo đỏ SAI ở 641px vì giả định --w-form áp dụng mọi khổ ≥641px).
         mainCap: (width) => (width >= 960 ? CSS_W_FORM : CSS_W_MAIN),
         account: ACCOUNTS.admin,
-        sidebar: 17,
+        sidebar: 19,
       },
       {
         path: "/audit",
@@ -1007,7 +1008,7 @@ try {
         ready: `document.querySelector('.toolbar select option[value]:not([value=""])') !== null`,
         mainCap: () => CSS_W_MAIN,
         account: TOAN_QUYEN,
-        sidebar: 23, // 2/10 (ADR-0087, Task 5): + "Giao diện" (ô settings.ops, chỉ Toàn quyền) = 23; Quản trị không có ô này nên vẫn 17. Trước đó 22 (1/10, ADR-0075: + "Phiên đăng nhập")
+        sidebar: 25, // 2/10 tiền xe thuê (Đợt 4 G0): + "Bảng giá thuê xe", "Bảng kê chi phí xe" = 25 (Quản trị 19). Trước đó 23 — 2/10 (ADR-0087, Task 5): + "Giao diện" (ô settings.ops, chỉ Toàn quyền) = 23; Quản trị không có ô này nên vẫn 17. Trước đó 22 (1/10, ADR-0075: + "Phiên đăng nhập")
       },
     ];
 
@@ -1119,7 +1120,7 @@ try {
         assert.equal(f.newBtnShown, false, `${at}: nút "Tạo đơn" trên thanh công việc chỉ từ 641px (điện thoại đã có tab "Tạo đơn") — ${JSON.stringify(f)}`);
       } else {
         assert.equal(f.sidebarShown, true, `${at}: thanh bên PHẢI hiện từ 641px (quyết định 9 của chủ dự án) — ${JSON.stringify(f)}`);
-        assert.equal(f.sidebarLinks, spec.sidebar, `${at}: thanh bên phải đủ ${spec.sidebar} mục của tài khoản mở trang (Quản trị 17 — ADR-0038 không "Nhật ký", ADR-0049 B8 có "Lý do điều phối", B1 có "Điều phối xe"; Toàn quyền 23 — ADR-0069 thêm "Trợ lý Hỗ trợ", ADR-0075 thêm "Phiên đăng nhập", ADR-0087 thêm "Giao diện") — ${JSON.stringify(f)}`);
+        assert.equal(f.sidebarLinks, spec.sidebar, `${at}: thanh bên phải đủ ${spec.sidebar} mục của tài khoản mở trang (Quản trị 19 — Đợt 4 có "Bảng giá thuê xe", "Bảng kê chi phí xe"; ADR-0038 không "Nhật ký", ADR-0049 B8 có "Lý do điều phối", B1 có "Điều phối xe"; Toàn quyền 23 — ADR-0069 thêm "Trợ lý Hỗ trợ", ADR-0075 thêm "Phiên đăng nhập", ADR-0087 thêm "Giao diện") — ${JSON.stringify(f)}`);
         assert.equal(f.tabbarLinks, 0, `${at}: thanh tab dưới đáy KHÔNG được hiện cùng thanh bên — ${JSON.stringify(f)}`);
         assert.equal(f.logoutShown, true, `${at}: "Đăng xuất" phải hiển thị thật trong thanh bên — ${JSON.stringify(f)}`);
         assert.equal(f.sidebarWidth, f.sidebarToken, `${at}: thanh bên phải rộng đúng token --w-sidebar (${f.sidebarToken}px) — ${JSON.stringify(f)}`);

@@ -84,7 +84,7 @@ try {
     try {
       await p.waitFor(`!!document.querySelector('#vc-links a[href="${XE}"]')`, "dòng Loại giấy tờ xe", 10000);
       // ADR-0049 B8 (2026-09-29): Quản trị có thêm dòng "Lý do điều phối" cuối nhóm VẬN CHUYỂN.
-      assert.deepEqual(await dongToi(p, "#vc-links"), [{ href: "/dieu-phoi", text: "Điều phối xe" }, { href: "/xe", text: "Xe" }, { href: "/giay-to-sap-het-han", text: "Giấy tờ sắp hết hạn" }, { href: XE, text: "Loại giấy tờ xe" }, { href: "/ly-do-dieu-phoi", text: "Lý do điều phối" }]);
+      assert.deepEqual(await dongToi(p, "#vc-links"), [{ href: "/dieu-phoi", text: "Điều phối xe" }, { href: "/bang-gia-xe", text: "Bảng giá thuê xe" }, { href: "/bang-ke-xe", text: "Bảng kê chi phí xe" }, { href: "/xe", text: "Xe" }, { href: "/giay-to-sap-het-han", text: "Giấy tờ sắp hết hạn" }, { href: XE, text: "Loại giấy tờ xe" }, { href: "/ly-do-dieu-phoi", text: "Lý do điều phối" }]);
       await shotFull(p, "loai-giay-to-toi-390.png");
       assert.ok(await p.ev(clickVisible("#vc-links", "Loại giấy tờ xe")));
       await p.waitFor(`location.pathname === '${XE}' && !document.querySelector('#dm-xe').hidden`, "trang Loại giấy tờ xe", 10000);
@@ -108,7 +108,7 @@ try {
       const qt = (await thanhBen(p)).find((g) => g.title === "QUẢN TRỊ");
       const at = qt.items.findIndex((i) => i.parent && i.label === "Vận chuyển");
       // ADR-0049 B1 (vòng 3): mục con "Điều phối xe" (ô trip.view) đứng đầu dưới "Vận chuyển".
-      assert.deepEqual(qt.items.slice(at, at + 5).map((i) => [i.label, i.sub]), [["Vận chuyển", false], ["Điều phối xe", true], ["Xe", true], ["Sắp hết hạn", true], ["Loại giấy tờ xe", true]], JSON.stringify(qt.items));
+      assert.deepEqual(qt.items.slice(at, at + 7).map((i) => [i.label, i.sub]), [["Vận chuyển", false], ["Điều phối xe", true], ["Bảng giá thuê xe", true], ["Bảng kê chi phí xe", true], ["Xe", true], ["Sắp hết hạn", true], ["Loại giấy tờ xe", true]], JSON.stringify(qt.items));
       assert.ok(await p.ev(clickVisible("#sidebar", "Loại giấy tờ xe")));
       await p.waitFor(`location.pathname === '${XE}' && !document.querySelector('#dm-xe').hidden`, "trang Loại giấy tờ xe", 10000);
       const moi = (await thanhBen(p)).find((g) => g.title === "QUẢN TRỊ").items;

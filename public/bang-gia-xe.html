@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"><meta name="robots" content="noindex"><meta name="theme-color" content="#ffffff"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><link rel="stylesheet" href="/api/giao-dien.css"><title>Bảng giá thuê xe — Island Booking System</title></head>
+<body data-title="Bảng giá thuê xe" data-back="/account">
+<header id="topbar"></header>
+<main class="bg-trang">
+  <!-- Bảng giá thuê xe (ADR-0057 T1, ADR-0095 Q3) — bản vẽ docs/design/van-chuyen-dot-3-7/Chi phí xe thuê.dc.html màn 1a. Ô transport.rate.view; ghi: transport.rate.manage. -->
+  <div class="bg-dau">
+    <div class="vc-grow">
+      <h1>Bảng giá thuê xe</h1>
+      <p class="muted">Giá thuê mỗi chuyến của từng nhà xe đối tác.</p>
+    </div>
+    <div id="bg-dau-nut"></div>
+  </div>
+  <div id="error" class="alert" role="alert" hidden></div>
+  <div id="bg-trang"></div>
+</main>
+<script type="module" src="/js/bang-gia-xe.js"></script>
+</body></html>

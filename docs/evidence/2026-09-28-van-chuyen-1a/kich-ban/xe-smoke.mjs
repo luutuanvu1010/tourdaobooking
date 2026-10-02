@@ -35,7 +35,7 @@ try {
       const at = labels.indexOf("Địa điểm");
       // "Loại giấy tờ cá nhân" (sau Địa điểm) và mục con "Loại giấy tờ xe": tách "Danh mục giấy tờ" 2026-09-28 (chủ dự án), không có trong bản vẽ 00.
       // ADR-0049 B1 (vòng 3, bản vẽ Bảng điều phối vo-may-tinh): mục con "Điều phối xe" (ô trip.view) đứng ĐẦU dưới "Vận chuyển", trước "Xe".
-      assert.deepEqual(labels.slice(at, at + 7), ["Địa điểm", "Loại giấy tờ cá nhân", "Vận chuyển", "Điều phối xe", "Xe", "Sắp hết hạn", "Loại giấy tờ xe"], JSON.stringify(labels));
+      assert.deepEqual(labels.slice(at, at + 9), ["Địa điểm", "Loại giấy tờ cá nhân", "Vận chuyển", "Điều phối xe", "Bảng giá thuê xe", "Bảng kê chi phí xe", "Xe", "Sắp hết hạn", "Loại giấy tờ xe"], JSON.stringify(labels));
       const [cha, dieuPhoi, xe, han, loaiXe] = qt.items.slice(at + 2, at + 7);
       assert.equal(cha.tag, "DIV", "mục cha không phải liên kết (bản vẽ: luôn mở, chỉ các mục con bấm được)");
       assert.equal(cha.current, null);
@@ -66,7 +66,7 @@ try {
       assert.deepEqual(s.top.map((r) => r.text), ["Danh bạ", "Địa điểm", "Loại giấy tờ cá nhân"]);
       assert.equal(s.eyebrow, "VẬN CHUYỂN");
       // ADR-0049 B8 (bản vẽ Bảng điều phối 08 khung 8d, 2026-09-29): Quản trị có thêm dòng "Lý do điều phối" cuối nhóm (không có "Chính sách điều phối" — chỉ Toàn quyền).
-      assert.deepEqual(s.vc, [{ href: "/dieu-phoi", text: "Điều phối xe" }, { href: "/xe", text: "Xe" }, { href: "/giay-to-sap-het-han", text: "Giấy tờ sắp hết hạn" }, { href: "/loai-giay-to-xe", text: "Loại giấy tờ xe" }, { href: "/ly-do-dieu-phoi", text: "Lý do điều phối" }]);
+      assert.deepEqual(s.vc, [{ href: "/dieu-phoi", text: "Điều phối xe" }, { href: "/bang-gia-xe", text: "Bảng giá thuê xe" }, { href: "/bang-ke-xe", text: "Bảng kê chi phí xe" }, { href: "/xe", text: "Xe" }, { href: "/giay-to-sap-het-han", text: "Giấy tờ sắp hết hạn" }, { href: "/loai-giay-to-xe", text: "Loại giấy tờ xe" }, { href: "/ly-do-dieu-phoi", text: "Lý do điều phối" }]);
       assert.ok(s.rest.some((r) => r.text?.startsWith("Góp ý")) && s.rest.some((r) => r.text === "Đăng xuất"), JSON.stringify(s.rest));
       const iTop = s.order.indexOf("links-top");
       assert.deepEqual(s.order.slice(iTop, iTop + 4), ["links-top", "vc-eyebrow", "vc-links", "links"], JSON.stringify(s.order));
