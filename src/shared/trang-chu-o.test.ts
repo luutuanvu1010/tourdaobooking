@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { NHOM_O, TOI_DA_O, oTrangChu, type KhoaO } from "./trang-chu-o.ts";
+import { NHOM_O, O_TOI, TOI_DA_O, nhomMayTinh, oTrangChu, type KhoaO } from "./trang-chu-o.ts";
 import { PERMISSION_CODES, type PermissionCode } from "./permissions.ts";
 import { PAGES } from "./sw-policy.ts";
 
@@ -81,4 +81,46 @@ test("Mỗi ô trỏ tới một trang có thật (khai ở PAGES); nhãn là ch
     assert.match(o.nhan, /^\p{Lu}[^-]*$/u, `${o.khoa}: nhãn "${o.nhan}" phải viết hoa chữ đầu, không phải mã`);
   }
   assert.deepEqual(r.nhom.map((g) => g.ten), [...NHOM_O]);
+});
+
+test("Giao diện (ADR-0087): ô chỉ Toàn quyền, cùng câu hỏi với mục thanh bên (ô settings.ops), ở nhóm Quản lý sau Trợ lý Hỗ trợ", () => {
+  const ql = (r: ReturnType<typeof oTrangChu>) => khoa(r.nhom.find((g) => g.ten === "Quản lý")?.o ?? []);
+  assert.deepEqual(ql(oTrangChu(who("SUPER_ADMIN"))).slice(-2), ["tro-ly", "giao-dien"]);
+  assert.ok(!ql(oTrangChu(who("ADMIN"))).includes("giao-dien"), "Quản trị không có ô Giao diện");
+  assert.ok(!oTrangChu(who("SALES")).nhom.flatMap((g) => khoa(g.o)).includes("giao-dien"));
+});
+
+test("Máy tính: nhóm giống bảng trượt điện thoại + ô Tôi đứng đầu nhóm Của tôi (điện thoại có tab Tôi nên lưới / bảng trượt không có ô này)", () => {
+  const n = PERMISSION_CODES.length;
+  for (let mask = 0; mask < 1 << n; mask++) {
+    const ma = PERMISSION_CODES.filter((_, i) => mask & (1 << i));
+    const dt = oTrangChu(who(...ma));
+    const mt = nhomMayTinh(who(...ma));
+    assert.deepEqual(mt.map((g) => g.ten), dt.nhom.map((g) => g.ten), ma.join("+"));
+    for (const [i, g] of mt.entries()) {
+      const goc = khoa(dt.nhom[i]!.o);
+      assert.deepEqual(khoa(g.o), g.ten === "Của tôi" ? ["toi", ...goc] : goc, `${ma.join("+")} · ${g.ten}`);
+    }
+    assert.ok(!dt.nhom.flatMap((g) => khoa(g.o)).includes("toi") && !khoa(dt.luoi).includes("toi"), `${ma.join("+")}: điện thoại không có ô Tôi`);
+  }
+  assert.deepEqual(O_TOI, { khoa: "toi", nhan: "Tôi", href: "/account" });
+  assert.ok(PAGES.includes(O_TOI.href));
+});
+
+test("Máy tính, bản vẽ v2 (2/10): đúng các ô của ba vai đã vẽ", () => {
+  const mt = (...ma: PermissionCode[]) => nhomMayTinh(who(...ma)).map((g) => [g.ten, khoa(g.o)]);
+  assert.deepEqual(mt("SALES"), [["Bán hàng", ["tao-don", "don-hang", "danh-ba"]], ["Vận chuyển", ["dieu-phoi"]], ["Của tôi", ["toi", "gop-y", "tro-giup"]]]);
+  assert.deepEqual(mt("ADMIN"), [
+    ["Bán hàng", ["tao-don", "don-hang", "danh-ba"]],
+    ["Quản lý", ["dich-vu", "tai-khoan", "dia-diem", "giay-to-nguoi"]],
+    ["Vận chuyển", ["dieu-phoi", "xe", "sap-het-han", "giay-to-xe", "ly-do"]],
+    ["Của tôi", ["toi", "gop-y", "tro-giup"]],
+  ]);
+  // Toàn quyền: bản vẽ có 8 ô Quản lý (vẽ trước khi 1.67 thêm màn Giao diện); ô Giao diện đứng cuối nhóm.
+  assert.deepEqual(mt("SUPER_ADMIN"), [
+    ["Bán hàng", ["tao-don", "don-hang", "danh-ba"]],
+    ["Quản lý", ["dich-vu", "tai-khoan", "phien", "dia-diem", "giay-to-nguoi", "nhat-ky", "gui-thong-bao", "tro-ly", "giao-dien"]],
+    ["Vận chuyển", ["dieu-phoi", "xe", "sap-het-han", "giay-to-xe", "chinh-sach", "ly-do"]],
+    ["Của tôi", ["toi", "gop-y", "tro-giup"]],
+  ]);
 });

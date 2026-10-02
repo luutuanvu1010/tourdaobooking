@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"><meta name="robots" content="noindex"><meta name="theme-color" content="#ffffff"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><link rel="stylesheet" href="/api/giao-dien.css"><title>Giao diện — Island Booking System</title></head>
+<body data-title="Giao diện" data-back="/account">
+<header id="topbar"></header>
+<main class="gd">
+  <!-- Màn Giao diện công ty (ADR-0087; chỉ Toàn quyền — ô settings.ops, máy chủ kiểm lại ở mọi route). -->
+  <h1>Giao diện</h1>
+  <p class="muted">Đổi màu, phông và cỡ chữ cho cả công ty. Thay đổi hiện ngay trên máy bạn; bấm "Áp dụng cho mọi người" thì mọi người thấy ở lần mở trang kế tiếp.</p>
+  <div id="error" class="alert" role="alert" hidden></div>
+  <div class="gd-luoi">
+    <form id="gd-form" class="gd-o" autocomplete="off"></form>
+    <aside id="gd-xem-truoc" class="gd-xem card" aria-label="Xem trước"></aside>
+  </div>
+  <div class="form-actions gd-nut">
+    <button id="gd-ap-dung" class="btn btn-primary" type="button" disabled>Áp dụng cho mọi người</button>
+    <button id="gd-bo" class="btn" type="button" disabled>Bỏ thay đổi</button>
+    <button id="gd-mac-dinh" class="btn" type="button">Về mặc định toàn bộ</button>
+  </div>
+  <div id="gd-xac-nhan" class="card" hidden></div>
+</main>
+<script type="module" src="/js/giao-dien.js"></script>
+</body></html>

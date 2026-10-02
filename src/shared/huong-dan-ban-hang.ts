@@ -104,8 +104,9 @@ App chỉ cho xác nhận khi mỗi dịch vụ có ngày khởi hành, ngày đ
 
 ### Trang chủ
 
-- Ba ô của cả công ty: [[Còn thiếu tiền]], [[Đơn chờ xác nhận]], [[Chưa có người phụ trách]] — bấm để sang [[Đơn hàng]].
-- [[Chuyến đón]]: đơn đã xác nhận, xếp theo giờ đón; bấm [[Hôm nay]] / [[Ngày mai]] / [[Ngày kia]] để đổi ngày; trên điện thoại có nút [[Gọi]] khách.
+- Trên cùng là lời chào và các ô chức năng. Máy tính hiện đủ mọi ô, chia theo nhóm; điện thoại hiện tối đa tám ô, bấm [[Tất cả]] để xem hết.
+- Số của cả công ty: [[Còn thiếu tiền]], [[Chờ xác nhận]], [[Chưa phụ trách]] — bấm để sang [[Đơn hàng]].
+- [[Chuyến đón]]: đơn đã xác nhận, xếp theo giờ đón; bấm [[Hôm nay]] / [[Ngày mai]] / [[Ngày kia]] để đổi ngày. Trên máy tính có dòng thời gian trong ngày; chuyến kế tiếp có nhãn **Sắp tới** và số phút còn lại, chuyến đã qua giờ hiện chữ xám. Trên điện thoại có nút [[Gọi]] khách.
 - [[Doanh thu của tôi]]: chỉ đơn **bạn lập** đã xác nhận trong tuần.`,
     },
     {

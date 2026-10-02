@@ -9,6 +9,7 @@
     "company",
     "dispatch",
     "feedback",
+    "giao-dien",
     "locations",
     "maintenance",
     "orders",
@@ -264,6 +265,11 @@
       "name": "stf_permission_type",
       "module": "staff",
       "kind": "lookup"
+    },
+    {
+      "name": "gd_setting",
+      "module": "giao-dien",
+      "kind": "table"
     },
     {
       "name": "mnt_setting",

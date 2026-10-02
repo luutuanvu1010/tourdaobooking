@@ -53,6 +53,7 @@ const MODULES: readonly { entry: string; exportName: string }[] = [
   { entry: "./modules/company/index.ts", exportName: "companyModule" },
   { entry: "./modules/dispatch/index.ts", exportName: "dispatchModule" },
   { entry: "./modules/feedback/index.ts", exportName: "feedbackModule" },
+  { entry: "./modules/giao-dien/index.ts", exportName: "giaoDienModule" },
   { entry: "./modules/locations/index.ts", exportName: "locationsModule" },
   { entry: "./modules/maintenance/index.ts", exportName: "maintenanceModule" },
   { entry: "./modules/orders/index.ts", exportName: "ordersModule" },
@@ -125,6 +126,9 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/feedback/:id/messages", access: "staff" },
   { method: "GET", path: "/api/feedback/badge", access: "staff" },
   { method: "GET", path: "/api/feedback/mine", access: "staff" },
+  { method: "GET", path: "/api/giao-dien", access: "admin" }, // ADR-0087: chỉ Toàn quyền (ô settings.ops viết thẳng trong thân route)
+  { method: "PUT", path: "/api/giao-dien", access: "admin" },
+  { method: "GET", path: "/api/giao-dien.css", access: "public" }, // CÔNG KHAI có chủ đích: trang Đăng nhập cần CSS trước khi có phiên; chỉ màu/phông/cỡ, không dữ liệu cá nhân (ADR-0087)
   { method: "GET", path: "/api/locations", access: "staff" },
   { method: "POST", path: "/api/locations", access: "admin" },
   { method: "PUT", path: "/api/locations/:id", access: "admin" },
@@ -384,7 +388,8 @@ test("mức truy cập của 213 route hiện có khớp ảnh chụp đã duy�
   // 2026-10-01 (ADR-0075 Task 4 + điều 7–8): + POST /api/auth/session-ended (public), GET /api/account/sessions (staff), GET /api/sessions, POST /api/sessions/:id/revoke (admin) = 209 (gộp main 1.57: nhánh ghi 205 trên nền 201, main lên 205 ⇒ 201 + 4 + 4).
   // 2026-10-01 (ADR-0085): + 3 route chính sách đăng nhập (GET/PUT /api/sessions/policy, GET /api/sessions/policy/preview — admin) = 212.
   // 2026-10-02 (Đợt 1 Task 7): + GET /api/van-chuyen/huong-dan-vien (office; người đi kèm, lời chủ 1/10) = 213.
+  // 2026-10-02 (ADR-0087, module giao-dien): + GET/PUT /api/giao-dien (admin, settings.ops), GET /api/giao-dien.css (public) = 216 (gộp main 1.66: nhánh ghi 215 trên nền 212, main lên 213 ⇒ 213 + 3).
   assert.deepEqual(actual, SNAPSHOT);
-  assert.equal(actual.length, 213, "số route thực tế lệch 213 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 213, "SNAPSHOT phải có đúng 213 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  assert.equal(actual.length, 216, "số route thực tế lệch 216 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 216, "SNAPSHOT phải có đúng 216 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });
