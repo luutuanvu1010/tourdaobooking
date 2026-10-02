@@ -1,8 +1,16 @@
 # Lượt duyệt 1 (gấp) — ADR-0089 đơn huỷ: cọc mặc định giữ lại, hoàn tuỳ chọn trong 60 ngày + ADR-0090 chỉ Toàn quyền cấp quyền tiền
 
-> **Trạng thái:** **NHÁP bản 3.2** (2026-10-02).
-> - Chủ **đã trả lời** QH1, QH2, QH3, QH4, QH6, QH8 (lời nguyên văn ở mục "Lời chủ lần 3" dưới).
-> - **Còn chờ:** QH5, QH7, QH9, một cách hiểu về hạch toán (đ2), đường dẫn trang chính sách bán hàng (QH8), và **duyệt văn bản** lượt 1a + 1b.
+> **ĐÃ THÀNH VĂN BẢN CHÍNH THỨC:**
+> - `docs/adr/ADR-0089-don-huy-coc-mac-dinh-giu-hoan-tuy-chon.md` (accepted);
+> - `docs/adr/ADR-0090-tai-khoan-quyen-tien-chi-toan-quyen.md` (accepted).
+>
+> Tệp này nay là **lịch sử soạn thảo** và giữ **trang ghép** của lượt 1. Khi hai nơi khác nhau, **ADR thắng**.
+>
+> **Trạng thái:** **CHỦ ĐÃ DUYỆT văn bản lượt 1a + 1b** (chat 2026-10-02, câu 7: "Duyệt" — duyệt bản 3.2 @ `4598221f`). Bản 3.3 ghi thêm lời chủ lần 4. Phần AI viết sau bản 3.2 nằm ở mục "Đề xuất — chờ chủ" của ADR-0089.
+> - **Còn treo, không chặn duyệt:**
+>   - QH5 (dữ liệu cũ đã hoàn tay): chủ "chưa hiểu", AI giải thích lại;
+>   - **lớp chống ghi trùng chung của Nền tảng**: chủ yêu cầu giải pháp kỹ thuật chung, đang tra Cloudflare và Oracle; sẽ thành ADR riêng.
+> - Bước tiếp: người kiểm độc lập soát văn bản cuối → chuyển vào `docs/adr/` (ADR-0089, ADR-0090, accepted).
 > - Bản 3.1 đã sửa theo phiếu kiểm độc lập bản 3.
 > - **Bản 3:** ADR-0089 viết lại theo lời chủ về chính sách cọc (mặc định không hoàn; hoàn tuỳ chọn; hạn 60 ngày).
 > - **Bản 2:** sửa theo hai phiếu duyệt độc lập (`2026-10-02-phieu-duyet-doc-lap-luot-A-tien.md`, `…-B-quyen.md`) và phiếu kiểm bản 2 (`2026-10-02-phieu-kiem-ban-2-ba-luot-duyet.md`).
@@ -18,7 +26,7 @@
 >
 > Hai lần dùng chung trang ghép ở cuối tệp. Lượt 2a (ADR-0088), 2b (ADR-0092), 3 (ADR-0093 + ADR-0091) ở hai tệp kia.
 >
-> **Xây trên lỗ đang hở: F-02** (lệnh hoàn chưa chống gửi lặp, KT03). ADR-0089 thêm lệnh duyệt hoàn và chi hoàn. **Điều kiện thi công:** cả hai lệnh có khoá lần gửi ngay từ đầu, theo đặc tả chống trùng chủ đã đồng ý ngày 2/10.
+> **Xây trên lỗ đang hở: F-02** (lệnh hoàn chưa chống gửi lặp, KT03). ADR-0089 thêm lệnh duyệt hoàn và chi hoàn. **Điều kiện thi công:** mọi lệnh ghi (kể cả duyệt hoàn, chi hoàn, chuyển tiền) đi qua **lớp chống ghi trùng chung của Nền tảng** (lời chủ lần 4, câu 1: "giải pháp kỹ thuật, chứ không phải đi vá"; ADR riêng đang soạn).
 >
 > **Số dòng mã** trích theo `968ecfdb`; nhánh đã gộp `main` (`63c422e3`). Lúc lập kế hoạch phải đối chiếu lại số dòng.
 
@@ -54,6 +62,21 @@ Lời chủ trước đó (câu 3): dấu hiện ở **cả ba nơi**: biên nh�
 | 6 | QH8 | có, ngắn gọn, trỏ tới chính sách bán hàng trên tourdao.vn |
 | 7 | QT1–QT3 của ADR-0088 | ok |
 
+**Lời chủ lần 4 (nguyên văn, chat 2026-10-02):**
+
+> "1- Chúng ta chặn ghi trùng bằng giải pháp kỹ thuật, chứ không phải đi vá thế này. Tìm trong Cloudflare và/hoặc Oracle xem họ có cách nào chống ghi trùng dữ liệu. 2- Theo bản chất thì thu tiền trước chính là 1 nghĩa vụ của công ty với khách hàng, lúc này chưa thành thu nhập vì chưa hoàn tất việc bàn giao nghĩa vụ và quyền lợi về sản phẩm/dịch vụ. Nền tảng  (Từ nay chúng ta ghi thành luật là dùng từ Nền tảng thay cho App) hiển thị đúng bản chất: "Khách hàng đã trả trước" . 3- KHông có ý kiến vì chưa hiểu. 4- Thông thường là trừ vào đối soát, dù cách nào thì bản chất là không đổi. 5- Chỉ nhắc. 6- https://tourdao.vn/chinh-sach-thanh-toan, 7- Duyệt"
+
+**Ứng với:**
+| Câu | Ứng với | Lời chủ |
+|---|---|---|
+| 1 | A1 (màn Danh bạ chống tạo trùng) | chống ghi trùng bằng **giải pháp kỹ thuật chung**, không vá từng màn; tra Cloudflare, Oracle |
+| 2 | A2 (hạch toán) | tiền trả trước là **nghĩa vụ** của công ty với khách, **chưa là thu nhập** khi chưa bàn giao xong; Nền tảng hiển thị **"Khách hàng đã trả trước"**; dùng chữ **"Nền tảng"** thay "App" |
+| 3 | QH5 | chưa có ý kiến (chưa hiểu) |
+| 4 | QH7 | thông thường **trừ vào đối soát**; cách nào thì bản chất không đổi |
+| 5 | QH9 | **chỉ nhắc** |
+| 6 | trang chính sách (QH8) | `https://tourdao.vn/chinh-sach-thanh-toan` |
+| 7 | duyệt văn bản lượt 1a + 1b | **Duyệt** |
+
 ### Bối cảnh (đã chạy thật, đã chạy lại)
 - **Tình huống:** 09, 26, HD06, HD08, QT05, DT04, KT01.
 - **Lỗi:** đơn huỷ đã thu cọc vẫn ghi "còn lại", tức khách trông như **còn nợ**, trên cả sổ lẫn biên nhận gửi khách. Không có đường nào ghi "cọc giữ lại" hay quyết định hoàn.
@@ -78,7 +101,10 @@ Lời chủ trước đó (câu 3): dấu hiện ở **cả ba nơi**: biên nh�
    - **"Còn giữ" (ròng)** = đã trả − đã chi hoàn. Đây là phần cọc công ty đang giữ.
    - Tiền khách chuyển **sau khi huỷ** (Kế toán ghi, đ7) cộng vào "đã trả".
    - Khoản "Công ty thu – CK" **chưa xác nhận** chưa tính vào "đã trả". Nếu tiền không về thì người khai giữ hộ, theo H3 đã duyệt.
-   - **(đề xuất) Cách hạch toán:** trong hạn 60 ngày, "còn giữ" là khoản **tạm giữ, có thể hoàn**; sau hạn là **thu nhập khác**. Chủ không dùng chữ "thu nhập khác"; đây là suy luận theo Hiến chương 5.9, **Kế toán chốt** cách hạch toán.
+   - **Bản chất tiền trả trước** (lời chủ lần 4, câu 2): tiền khách trả trước là **nghĩa vụ của công ty với khách**, **chưa là thu nhập** khi chưa bàn giao xong dịch vụ.
+     - Nền tảng hiển thị đúng bản chất bằng nhãn **"Khách hàng đã trả trước"**, cho mọi đơn chưa "Đã giao" (đ11).
+     - Với đơn **khách huỷ** mà công ty giữ cọc: nghĩa vụ giao dịch vụ đã chấm dứt do khách huỷ, còn hoàn là tuỳ chọn.
+     - **Thời điểm và cách ghi khoản giữ lại thành thu nhập trong sổ sách kế toán** do **Kế toán chốt** theo chuẩn mực. Đây là cách hiểu của AI, chủ đã nêu nguyên tắc ở trên. Nền tảng **không tự gắn** nhãn kế toán.
 3. **Hoàn cọc tuỳ chọn — hai bước, hai người** (tách nhiệm vụ theo ADR-0072 đ1 và ADR-0026 H4):
    - **(a) Duyệt hoàn: Quản trị** (lời chủ, QH3) ghi số Y, kèm lý do. Duyệt có thể một phần, nhiều lần. **Tổng đã duyệt ≤ "đã trả"** của đơn.
      - Ô quyền mới: ADMIN; SUPER_ADMIN có theo luật "Toàn quyền là `any` ở mọi ô" (`permissions.test.ts:91-93`).
@@ -101,9 +127,10 @@ Lời chủ trước đó (câu 3): dấu hiện ở **cả ba nơi**: biên nh�
      - **Chưa phân loại lý do huỷ** (đ8): chỉ câu trung tính "Khoản đã thanh toán được xử lý theo chính sách huỷ; Tour Đảo sẽ liên hệ". **Không** in "không hoàn".
      - Đơn của đối tác mà đại lý cầm tiền: câu trung tính như trên.
      - **Điều khoản huỷ trên ảnh xác nhận đơn** (lời chủ, QH8: "Có, ngắn gọn. Đọc đầy đủ trong chính sách bán hàng tại website tourdao.vn"):
-       - in **một dòng ngắn** ngay từ lúc đặt, ví dụ "Khi khách huỷ, tiền cọc không được hoàn lại. Xem đầy đủ: chính sách bán hàng tại tourdao.vn/…" (chủ chốt chữ);
+       - in **một dòng ngắn** ngay từ lúc đặt, ví dụ "Khi khách huỷ, tiền cọc không được hoàn lại. Xem đầy đủ: tourdao.vn/chinh-sach-thanh-toan" (chủ chốt chữ). Đường dẫn do chủ đưa (lời chủ lần 4, câu 6): `https://tourdao.vn/chinh-sach-thanh-toan`;
+       - **Kiểm 2/10:** đường dẫn này trả **404** (cả có hay không dấu `/` cuối, cả `/vi/`), sơ đồ website không có, mã nguồn website cũng không có. Có thể trang còn ở dạng nháp trong hệ quản trị nội dung, chưa đăng;
        - **Lưu ý (chưa có):** ngày 2/10, AI **không tìm thấy** trang chính sách bán hàng trên tourdao.vn: trang chủ không có liên kết; các đường dẫn `/chinh-sach-ban-hang`, `/chinh-sach`, `/chinh-sach-huy`, `/chinh-sach-dat-coc`, `/dieu-khoan`, `/dieu-khoan-su-dung`, `/chinh-sach-hoan-tien` đều 404; sơ đồ `sitemap-vi.xml` không có trang nào về chính sách;
-       - dòng này **chỉ in đường dẫn khi trang đã có**. Tạo trang là việc của website (kho `tourdaovn`), ngoài app này.
+       - dòng này **chỉ in đường dẫn khi trang trả 200**. Trước mỗi lần phát hành có bước kiểm GET. Đăng trang là việc của website (kho `tourdaovn`), ngoài Nền tảng này.
      - Chữ cụ thể chủ chốt khi duyệt giao diện. Danh sách trắng biên nhận (ADR-0026 đ11) thêm các trường này.
    - **(b) Trang đơn:**
      - khối tiền đơn huỷ: "Đã trả X — đang giữ X′ — mặc định không hoàn — có thể duyệt hoàn đến dd/mm/yyyy";
@@ -119,7 +146,7 @@ Lời chủ trước đó (câu 3): dấu hiện ở **cả ba nơi**: biên nh�
      Màn sổ chưa có, chủ thiết kế trên Claude Design; trong lúc chờ, máy chủ có route và Trang chủ Kế toán có ô đếm.
 6. **Còn người giữ tiền mặt của đơn huỷ:** cọc là tiền **của công ty**, nên người giữ vẫn phải nộp. Đơn huỷ hiện dấu "còn người giữ tiền" cho tới khi nộp xong (A-B6d), và vào danh sách ở đ5c.
    - Đơn huỷ không qua cổng Hoàn thành, nên **không có hạn nộp tự động**. Kế toán rà danh sách.
-   - **(đề xuất, QH7)** Đơn của **đối tác mà đại lý cầm cọc**: đại lý nộp về, hoặc **bù trừ** vào kỳ đối soát đại lý (ADR-0079/0080).
+   - **Đơn của đối tác mà đại lý cầm cọc** (lời chủ, QH7): **mặc định trừ vào kỳ đối soát** đại lý (ADR-0079/0080); nộp về cũng được, bản chất không đổi: cọc là của công ty.
 7. **Ghi lần thu lên đơn đã huỷ:** chỉ **Kế toán, Toàn quyền** (khách chuyển khoản muộn). Người khác nhận 409: "Đơn đã huỷ — nếu khách vừa chuyển tiền, báo Kế toán ghi."
 8. **Lý do huỷ — ba nhóm** (phiếu kiểm bản 3, A4):
    - Hôm nay route huỷ (`orders/index.ts:978-1030`) **không đọc lý do**. Danh sách lý do của ADR-0030 (`:114`) chưa có mã (ADR-0030 lượt 2 chưa thi công) và không có lý do phía công ty. Vì vậy điều này là **thêm mới**: huỷ đơn phải chọn lý do, thi công cùng lượt 1a.
@@ -128,22 +155,28 @@ Lời chủ trước đó (câu 3): dấu hiện ở **cả ba nơi**: biên nh�
      - **"Công ty huỷ"** (thời tiết hoặc cấm biển, hết chỗ, sự cố nhà cung cấp, lỗi công ty) — lời chủ, QH2: **hoàn toàn bộ tiền đã trả trước, hoặc dời lịch; khách không phải trả thêm tiền.**
        - Hoàn: đi đúng hai bước ở đ3 (Quản trị duyệt **toàn bộ** "đã trả", Kế toán chi).
        - Dời lịch: lệnh **"Chuyển tiền sang đơn mới"** (dưới đây). Đơn mới giữ **đúng số tiền khách đã cam kết**. Nếu giá mới cao hơn thì phần chênh do công ty chịu, ghi là giảm giá có lý do "dời lịch do công ty huỷ", Quản trị duyệt.
-       - **(đề xuất)** Hạn 60 ngày ở đ4 **không chặn** khoản hoàn của nhóm này, vì đây là nghĩa vụ của công ty chứ không phải hoàn tuỳ chọn. Máy chỉ nhắc khi quá hạn.
+       - Hạn 60 ngày ở đ4 **không chặn** khoản hoàn của nhóm này, **chỉ nhắc** (lời chủ, QH9), vì đây là nghĩa vụ của công ty chứ không phải hoàn tuỳ chọn.
      - **"Huỷ để lập lại / trùng đơn"** (Sai thông tin — lập lại đơn; Khách đặt trùng) — lời chủ, QH4 "ok": tiền **chuyển sang đơn mới** hoặc **hoàn**, **không** giữ cọc, để khách không bị thu hai lần.
        - **Cơ chế chống đặt trùng** (cảnh báo khi cùng khách đặt hai đơn gần ngày) làm **về sau**, theo lời chủ. Dùng đặc tả "cảnh báo đơn trùng" đã có (nhánh `canh-bao-don-trung`, commit `d90ceed5`).
    - **Lệnh "Chuyển tiền sang đơn mới"** (dùng cho dời lịch và cho huỷ để lập lại):
      - Kế toán ghi **một lô**: chi khỏi đơn huỷ và ghi một lần thu vào đơn mới, **cùng số**, cùng người đang giữ tiền;
      - mỗi lần chuyển có lý do, ghi nhật ký **trên cả hai đơn**;
      - đơn huỷ sau khi chuyển hết thì "còn giữ" = 0;
-     - có khoá lần gửi (chống trùng).
+     - đi qua lớp chống ghi trùng chung của Nền tảng.
    - **Đơn huỷ chưa phân loại** (đơn cũ, hoặc trong lúc chờ QH2): **"chưa kết luận"**. Thông báo khách dùng câu trung tính; Quản trị phân loại.
 9. **Dữ liệu cũ:**
    - Trước phát hành, chủ chạy lệnh **chỉ đọc** (AI soạn) đếm đơn huỷ có tiền. Các đơn này thuộc nhóm "chưa kết luận" cho tới khi Quản trị phân loại.
    - **(đề xuất, QH5)** Đơn đã **hoàn ngoài hệ thống** trước khi có sổ: Toàn quyền ghi bù bằng lệnh riêng **"Ghi nhận đã hoàn ngoài hệ thống"**, có lý do, **không áp hạn 60 ngày**. Đây là ngoại lệ có tên duy nhất, chỉ cho dữ liệu trước ngày phát hành.
 10. **Kiểm:**
     - bài test `conLai` (đơn huỷ: còn lại 0, dư 0; duyệt, chi một phần);
+    - bài kiểm nhãn: đơn chưa Đã giao hiện "Khách hàng đã trả trước", không hiện "Đã thu" (đ11);
     - e2e chép từ kịch bản 09, 26, HD06, QT05, DT04, thêm các ca: duyệt → chi → duyệt lần hai vượt "đã trả" → 409; một người vừa duyệt vừa chi → 409; duyệt sau hạn → 409;
     - bất biến mới, ở CSDL và trong bộ kiểm: **tổng chi ≤ tổng duyệt ≤ đã trả** trên mỗi đơn huỷ.
+
+11. **Nhãn "Khách hàng đã trả trước"** (lời chủ lần 4, câu 2):
+    - Tiền khách trả cho đơn **chưa "Đã giao"** hiện là **"Khách hàng đã trả trước X"** ở trang đơn, thẻ danh sách, biên nhận và thông báo huỷ. Không gọi là "đã thu" hay "doanh thu".
+    - Sau "Đã giao", dịch vụ đã bàn giao, nên nhãn đổi thành **"Đã thu"**.
+    - Áp cho **mọi đơn**, không riêng đơn huỷ. Đổi chữ ở các màn hiện có (ADR-0026 M2) làm trong cùng đợt thi công lượt 1a.
 
 ### Thay câu nào (dòng trỏ ở dòng trạng thái của văn bản cũ, không sửa thân)
 | Văn bản | Câu cũ | Thay bằng |
@@ -153,7 +186,7 @@ Lời chủ trước đó (câu 3): dấu hiện ở **cả ba nơi**: biên nh�
 | Hiến chương 5.9 (phần "đề xuất của AI, chờ chủ xác nhận ở ADR sổ tiền": mặc định "phải trả khác") | mặc định phải trả khác | khách huỷ: mặc định **giữ cọc** (lời chủ 2/10). Cách hạch toán, tạm giữ trong hạn rồi thu nhập khác, là **đề xuất, Kế toán chốt** (đ2). Trả dư của đơn không huỷ vẫn là phải trả khác |
 | ADR-0030 (danh sách lý do huỷ, `:114`, chưa có mã) | một danh sách, không có lý do phía công ty | **thêm** nhóm "công ty huỷ" (hoàn toàn bộ hoặc dời lịch không thu thêm) và nhóm "huỷ để lập lại / trùng đơn" (chuyển tiền sang đơn mới hoặc hoàn); huỷ phải chọn lý do (đ8) |
 | ADR-0026 đ10 (`:83`) | không nói đơn huỷ | lần thu lên đơn huỷ: chỉ Kế toán, Toàn quyền (đ7) |
-| ADR-0026 đ11 (`:88`), M2 (`:139`) | các trường hiện có | + trường đơn huỷ (đ5) |
+| ADR-0026 đ11 (`:88`), M2 (`:139`) | các trường, câu hiện có ("đã thu") | + trường đơn huỷ (đ5); nhãn "Khách hàng đã trả trước" cho đơn chưa Đã giao (đ11) |
 | ADR-0025 đ3d (`:53`), ADR-0024 (NT-R9: `conLai` là hàm duy nhất) | không xét đơn huỷ | `conLai` nhận cờ đơn huỷ: còn lại 0, dư 0, cộng phần đã duyệt hoàn (đ1) |
 | Đặc tả v1.0 Việc 2 | ảnh đơn huỷ dùng mẫu xác nhận | mẫu thông báo huỷ (đ5a) |
 | ADR-0092 đ7 (bản 2, phí huỷ) | loại ghi "giữ làm phí huỷ" | **bỏ**: chính sách mặc định giữ đã trả lời (Q-A3) |
@@ -178,17 +211,17 @@ Nguồn **tách nhiệm vụ** duyệt và chi: ADR-0072 đ1, ADR-0026 H4. Hiế
 - **QH6:** ok.
 - **QH8:** có, ngắn gọn, trỏ tới chính sách bán hàng trên website.
 
-**Còn chờ:**
-- **QH5 — Đơn đã hoàn ngoài hệ thống trước khi có sổ** (đ9).
-  - **Khuyến nghị:** Toàn quyền ghi bù một lần, có lý do, **không áp hạn 60 ngày**.
-  - Lý do: đó là việc đã xảy ra, sổ phải ghi đúng.
-- **QH7 — Đơn đối tác mà đại lý cầm cọc** (đ6).
-  - **Khuyến nghị:** cọc là của công ty; đại lý **nộp về** hoặc **bù trừ** ở kỳ đối soát đại lý.
-- **Cách hiểu về hạch toán** (đ2): khoản cọc công ty giữ lại ghi vào loại nào trong **sổ sách kế toán của công ty**. Ví dụ: ghi thành thu nhập ngay, hay tạm giữ 60 ngày rồi mới thành thu nhập.
-  - **Khuyến nghị:** để **Kế toán của công ty quyết**. App chỉ hiện đủ số cho Kế toán ghi.
-- **Trang chính sách bán hàng** (QH8): gửi đường dẫn nếu đã có; nếu chưa thì cần tạo trên website trước.
-- **QH9 (đề xuất mới)** Hoàn cho nhóm "công ty huỷ" **không bị chặn bởi hạn 60 ngày**, chỉ nhắc khi quá hạn (đ8).
-- **Q-A4:** 7 ngày như đ4, đã gộp.
+**Đã trả lời thêm (lời chủ lần 4):**
+- **QH7:** trừ vào đối soát.
+- **QH9:** chỉ nhắc.
+- **Hạch toán:** nguyên tắc "trả trước là nghĩa vụ"; Kế toán chốt cách ghi sổ.
+- **Trang chính sách:** đường dẫn đã có, nhưng đang 404.
+- **Duyệt văn bản:** đã duyệt.
+
+**Còn treo:**
+- **QH5 — đơn cũ đã hoàn tay trước khi có sổ** (đ9). Chủ chưa hiểu câu hỏi; giải thích lại bằng lời thường ở phiếu trả lời bản 4.
+  - **Khuyến nghị:** Toàn quyền ghi bổ sung một lần "đã hoàn ngoài hệ thống" cho đúng những đơn đó, không áp hạn 60 ngày.
+- **Lớp chống ghi trùng chung** của Nền tảng: ADR riêng, theo lời chủ lần 4, câu 1.
 
 ## ADR-0090 — Tài khoản có quyền tiền: chỉ Toàn quyền cấp quyền, tạo, và đặt lại PIN
 
@@ -264,10 +297,10 @@ Nguồn **tách nhiệm vụ** duyệt và chi: ADR-0072 đ1, ADR-0026 H4. Hiế
 | Cửa | Hôm nay | Sau lượt 1 |
 |---|---|---|
 | Ghi lần thu lên đơn huỷ | `can(payment.receive)` | + kiểm trạng thái huỷ, chỉ ACCOUNTING, SUPER_ADMIN |
-| Duyệt hoàn cọc | không có | route mới: `can(ô duyệt)`, tổng duyệt ≤ **đã trả** (đã xác nhận), lý do, **trước hạn 60 ngày**, khoá lần gửi |
-| Chi hoàn cọc | ghi hoàn tự do | cần khoản duyệt còn số; **người chi ≠ người duyệt**; khoản duyệt trước hạn chi được sau hạn (QH6); ≤ người trả đang giữ nếu không phải công ty; khoá lần gửi |
+| Duyệt hoàn cọc | không có | route mới: `can(ô duyệt)`, tổng duyệt ≤ **đã trả** (đã xác nhận), lý do, **trước hạn 60 ngày**, qua lớp chống ghi trùng chung |
+| Chi hoàn cọc | ghi hoàn tự do | cần khoản duyệt còn số; **người chi ≠ người duyệt**; khoản duyệt trước hạn chi được sau hạn (QH6); ≤ người trả đang giữ nếu không phải công ty; qua lớp chống ghi trùng chung |
 | Huỷ đơn | `can(...)`, không đọc lý do | **bắt buộc chọn lý do** (ba nhóm, đ8) |
-| Chuyển tiền sang đơn mới | không có | route mới `can(ledger.write)`; một lô: chi khỏi đơn huỷ + thu vào đơn mới cùng số, cùng người giữ; nhật ký trên cả hai đơn; khoá lần gửi |
+| Chuyển tiền sang đơn mới | không có | route mới `can(ledger.write)`; một lô: chi khỏi đơn huỷ + thu vào đơn mới cùng số, cùng người giữ; nhật ký trên cả hai đơn; qua lớp chống ghi trùng chung |
 | Hoàn cho nhóm "công ty huỷ" | — | **(đề xuất)** không bị hạn 60 ngày chặn, chỉ nhắc |
 | Lớp CSDL | trigger hoàn ≤ đã thu (`0045:212-216`) | + trigger: tổng chi ≤ tổng duyệt ≤ đã trả trên đơn huỷ (đ10) |
 | **Nút "Ghi hoàn"** (`web/order.ts:567`, hiện khi dư > 0) | đơn huỷ: không hiện (dư = 0) | **đổi nghĩa:** đơn huỷ dùng nút "Duyệt hoàn cọc" (người duyệt) rồi "Ghi chi hoàn" (Kế toán); đơn không huỷ trả dư giữ nút cũ |
