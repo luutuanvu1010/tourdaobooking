@@ -346,3 +346,9 @@ Số bản nhật ký phiên bản: `main` cục bộ có `1.70` ở đầu `src
 - **GỢI Ý 5** chú thích lặp ở `web/api.ts`: xoá. **GỢI Ý 6** (`parseSecretNames` gặp banner có `[`), **7** (H5 ngưỡng ≥ 1 sự kiện), **8** (sha256 thân route thường): ghi nhận, CHƯA làm — 6 dừng an toàn (không bỏ qua), chủ là người chạy thật đầu tiên; 7 thực tế log có dữ liệu; 8 đã khai ở đặc tả.
 - Nghi vấn e2e `dispatch` 500 một lần khi máy bận (người kiểm chạy song song đột biến), không tái hiện — để mắt.
 - Sau sửa: `npm run typecheck` thoát 0; `npm test` thoát 0 (2887/2887 + bài đo giờ 1/1); `build:web` 0; Chrome `passkey-smoke.mjs` (theo `web/CLAUDE.md` cho luồng Face ID) **9/9** — bước c "nhập PIN, bấm Bật" đi đúng route vừa đổi. (Lần chạy đầu 4 bước ✗ vì thư mục ảnh `OUT` tôi chỉ định chưa tạo — ENOENT, không phải lỗi giao diện; tạo thư mục, chạy lại 9/9.) e2e không chạy lại: phần đổi chỉ là danh sách phía máy khách + tài liệu.
+
+## Kiểm độc lập vòng 2 — **ĐẠT** (2026-10-02, lần 2, trên `4f9fe164`)
+- Người kiểm đọc diff `b604a937..4f9fe164` (6 tệp); bản sao riêng: `lan-gui-ve.test.ts` 13/13; đột biến bỏ `passkeys/options` khỏi `BI_MAT` ⇒ ĐỎ bài 13 nêu đúng route; bỏ `change-pin` ⇒ ĐỎ (bài 9, 13); hoàn nguyên. Grep `.pin` / isValidPin / validateNewPin / validateFreshPin: không còn route sót.
+- Gợi ý (không chặn): bài quét không bắt route kiểm PIN qua hàm lạ hoặc helper ở tệp khác (đã ghi ở chú thích `lan-gui-bi-mat.ts` + cột "không chặn" sổ hàng rào); dòng trống thừa trong `BI_MAT` — đã xoá.
+- Người kiểm KHÔNG chạy lại typecheck / npm test đủ / e2e / Chrome ở lần 2 (dựa số đo thi công + lần 1).
+- Checklist: L15 `[x]`.

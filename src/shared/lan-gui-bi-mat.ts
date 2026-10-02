@@ -15,7 +15,6 @@ export interface MauRoute {
 export const BI_MAT: readonly MauRoute[] = [
   { method: "POST", path: "/api/account/change-pin" },
   { method: "POST", path: "/api/account/passkeys/options" }, // thân có PIN hiện tại (bật Face ID, điều 2a) — sót ở L8, vòng 2 kiểm độc lập bắt
-
   { method: "POST", path: "/api/account/pin-by-passkey" },
   { method: "POST", path: "/api/staff/:id/reset-pin" },
   { method: "POST", path: "/api/parties/:id/documents" },
