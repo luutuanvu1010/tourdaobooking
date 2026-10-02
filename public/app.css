@@ -320,7 +320,7 @@
   --c-on-bar: var(--c-primary);          /* chữ, biểu tượng, chuông, nút quay lại trên thanh đầu điện thoại */
   --c-bar-border: var(--c-border);           /* đường mảnh dưới thanh đầu điện thoại (vẽ bằng bóng trong — không đổi chiều cao) */
   --c-icon-hover-on-bar: var(--c-soft-hover); /* nền rê chuột nút biểu tượng trên mảng đậm (đầu bảng thông báo ở điện thoại) */
-  --c-sidebar-bg: var(--c-surface); /* nền thanh bên máy tính */
+  --c-sidebar-bg: var(--c-surface-alt); /* nền thanh bên máy tính = nền trang (lời chủ 2/10 khi gửi bản vẽ Đợt 4: "đổi lại nền cho thanh bên trái … thành màu nền toàn trang"); viền phải tách khỏi nội dung */
   --c-sidebar-text-on: var(--c-primary); /* chữ mục đang chọn, đầu thanh, tên người ở chân thanh bên */
   --c-sidebar-title: var(--c-text-muted); /* tiêu đề nhóm (BÁN HÀNG, QUẢN TRỊ, TÔI) */
   --c-sidebar-badge-text: var(--c-primary); /* chữ huy hiệu số đếm mặc định trên thanh bên */
@@ -990,7 +990,7 @@ body.login-page::before { content: ""; display: block; height: env(safe-area-ins
   body.has-sidebar { display: grid; grid-template-columns: var(--w-sidebar) minmax(0, 1fr); grid-template-rows: auto auto 1fr; min-height: 100vh; }
   /* Ghim theo khung nhìn: trước đây `#sidebar` trôi theo tài liệu, nên ở trang dài (Nhân viên, Tôi, Nhật ký) chân
      thanh — avatar, tên, vai và nút ĐĂNG XUẤT — tụt xuống tận đáy TÀI LIỆU, người dùng không bao giờ thấy. */
-  #sidebar { grid-row: 1 / 4; display: flex; position: sticky; top: 0; height: 100vh; background: var(--c-sidebar-bg); }
+  #sidebar { grid-row: 1 / 4; display: flex; position: sticky; top: 0; height: 100vh; background: var(--c-sidebar-bg); border-right: 1px solid var(--c-sidebar-border); }
   /* Chiều cao ĐÚNG token --bar-h (60px, chủ dự án đã duyệt): thanh từng cao 71px vì nút "Lập đơn mới" (46px) cộng
      đệm dọc 12+12 cộng viền 1px tự quyết chiều cao — giảm đệm không đủ, phải đặt thẳng chiều cao (box-sizing:
      border-box nên viền nằm trong 60px). Vẫn chừa vùng an toàn trên (iPad cài PWA) như thanh đầu trang điện thoại. */

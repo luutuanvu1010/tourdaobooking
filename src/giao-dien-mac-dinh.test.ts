@@ -50,3 +50,9 @@ test("mọi token trong KEO_THEO có khai ở :root", () => {
     for (const t of ds) assert.ok(tokens.has(t), `${t} (kéo theo ${khoa}) chưa khai ở :root`);
   }
 });
+
+// Lời chủ khi gửi bản vẽ Đợt 4 (2026-10-02): "nhớ đổi lại nền cho thanh bên trái … thành màu nền toàn trang" — thanh bên máy tính theo núm "Nền trang".
+test("nền thanh bên mặc định = nền trang (lời chủ 2/10, Đợt 4 G5): CHA và MAC_DINH theo núm nen-trang", () => {
+  assert.equal(CHA["nen-thanh-ben"], "nen-trang");
+  assert.equal(MAC_DINH["nen-thanh-ben"], MAC_DINH["nen-trang"]);
+});
