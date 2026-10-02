@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import * as esbuild from "esbuild";
 import {
-  ACC, ADM, DRIVER, DRIVER_PARTNER, FIELD, INTERN, NGAY, NGAY_SAU, PARTNER, SALES, SUP, batDongHo, chiTiet, don, nhaXeKhung, setup, taiXeNhaXe, thoiHopTac, tienDo, uuid, xe,
+  ACC, ADM, DRIVER, DRIVER_PARTNER, FIELD, INTERN, NGAY, NGAY_SAU, PARTNER, SALES, SUP, batDongHo, chiTiet, denGio, don, nhaXeKhung, setup, taiXeNhaXe, thoiHopTac, tienDo, uuid, xe,
   xeNhaXe, xepHet,
 } from "../../../tests/audit/dieu-phoi-khung.mjs";
 
@@ -634,6 +634,28 @@ test("V10 + V8b + TC-11: chuyến kết thúc gián đoạn — điều chỉnh 
     const k = await ghiCp(w, cty, "dieu-chinh", { soTien: 100_000, lyDo: "CPX_KHAC", ghiChu: null });
     assert.equal(k.status, 409);
     assert.equal(k.json.error.code, "chua_co_chi_phi");
+  } finally {
+    tat();
+  }
+});
+
+test("Vòng sửa 2 (C1 — ADR-0095 Q4): điều chỉnh trên chuyến ĐÃ HUỶ mặc định mang NGÀY HUỶ (không phải hôm nay, không phải ngày chạy); chọn ngày khác vẫn được", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const n = await nenThue(w);
+    const id = (await taoThue(w, { xe: n.x29, taiXe: n.tx, tuyen: n.crt, ngay: NGAY_SAU })).json.chuyen.id; // G4, chạy NGAY_SAU
+    const c = await chiTiet(w, id);
+    assert.equal((await w.call("POST", `/api/van-chuyen/chuyen/${id}/huy`, { as: SALES, body: { version: c.chuyen.version, requestId: uuid(), lyDo: "HUY_KHAC" } })).status, 200); // huỷ ngày NGAY
+    denGio("09:00", "2027-03-14"); // Kế toán ghi phí ba ngày sau
+    const p = await ghiCp(w, id, "dieu-chinh", { soTien: 300_000, lyDo: "CPX_HUY_MUON", ghiChu: null });
+    assert.equal(p.status, 201, p.text);
+    const s = await ghiCp(w, id, "dieu-chinh", { soTien: -50_000, lyDo: "CPX_NHAP_SAI", ghiChu: null });
+    assert.equal(s.status, 201, s.text);
+    const t = await ghiCp(w, id, "dieu-chinh", { soTien: 10_000, lyDo: "CPX_KHAC", ghiChu: null, ngay: "2027-03-20" });
+    assert.equal(t.status, 201, t.text);
+    const ngay = w.q("SELECT amount a, occurred_date d FROM vc_trip_cost_line WHERE trip_id = ? AND kind = 'ADJUSTMENT' ORDER BY rowid", id).map((r: any) => [r.a, r.d]);
+    assert.deepEqual(ngay, [[300_000, NGAY], [-50_000, NGAY], [10_000, "2027-03-20"]], "mặc định = ngày huỷ (NGAY); ngày chọn tay giữ nguyên");
   } finally {
     tat();
   }

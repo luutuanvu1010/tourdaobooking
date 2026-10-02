@@ -1,6 +1,6 @@
 {
   "luat": "ADR-0057 T1 B2 + T2 C4/C8 — giá thuê xe theo chuyến (ADR-0095 Q3: chỉ khớp ĐỦ tuyến + cỡ xe, không bậc lùi; ngày chạy trong khoảng hiệu lực tính cả hai đầu), chi phí chuyến chỉ-thêm (chụp lúc xếp xe nhà xe, đảo + chụp lại khi đổi nhà xe / xe / tuyến / NGÀY chạy trước xuất bến — Cần chủ 3 = A, đảo hết khi huỷ: âm trước, dương sau), tổng ≥ 0 sau mọi dòng",
-  "mo_ta": "Ví dụ vàng V1–V13 của kế hoạch docs/superpowers/plans/2026-10-01-van-chuyen-con-lai-04-tien-xe-thue.md (mục 'Ví dụ vàng') + V14, V14b (dời ngày chạy — chủ chọn (A) '900.000đ — giá ngày chạy', 2026-10-02). Nhà xe HP = 'Nhà xe Hùng Phát'; tuyến NT-CR = 'Nha Trang – sân bay Cam Ranh', NT-DL = 'Nha Trang – Đà Lạt'; cỡ C16 = 10–16 khách, C29 = 17–29 khách (không kể tài xế). Ngày giờ Việt Nam. Sự kiện dùng tập đóng: CHUP, GIA_THOA_THUAN, DIEU_CHINH, DAO (dong = chỉ số 0-based trong danh sách dòng đã có), DOI_TUYEN, DOI_XE (so_cho, nha_xe 'HP' | 'CONG_TY'), DOI_NGAY, HUY, KET_THUC_GIAN_DOAN, THEM_GIA (thay = id dòng bị đóng ở ngày trước). dap_an.dong = các dòng chi phí theo thứ tự ghi [loại, số tiền có dấu, ngày phát sinh] (ADR-0095 Q2: dòng đảo mang ngày của dòng gốc); tu_choi = sự kiện bị từ chối (chỉ số sự kiện, mã lỗi); thieu_gia = chuyến chưa xuất bến bị giữ 'chưa có giá' (null khi chuyến đã huỷ / đã chạy). ADR-0095 Q3: bảng giá chỉ gồm dòng đủ tuyến + cỡ (G2, G4 = NT-CR + C29; G3 = NT-DL + C16); đáp án V3 đổi (chưa chọn tuyến ⇒ chưa có giá). Tiền: số nguyên đồng.",
+  "mo_ta": "Ví dụ vàng V1–V13 của kế hoạch docs/superpowers/plans/2026-10-01-van-chuyen-con-lai-04-tien-xe-thue.md (mục 'Ví dụ vàng') + V14, V14b (dời ngày chạy — chủ chọn (A) '900.000đ — giá ngày chạy', 2026-10-02). Nhà xe HP = 'Nhà xe Hùng Phát'; tuyến NT-CR = 'Nha Trang – sân bay Cam Ranh', NT-DL = 'Nha Trang – Đà Lạt'; cỡ C16 = 10–16 khách, C29 = 17–29 khách (không kể tài xế). Ngày giờ Việt Nam. Sự kiện dùng tập đóng: CHUP, GIA_THOA_THUAN, DIEU_CHINH, DAO (dong = chỉ số 0-based trong danh sách dòng đã có), DOI_TUYEN, DOI_XE (so_cho, nha_xe 'HP' | 'CONG_TY'), DOI_NGAY, HUY (ngay = ngày huỷ, mặc định ngày chạy), KET_THUC_GIAN_DOAN, THEM_GIA (thay = id dòng bị đóng ở ngày trước). dap_an.dong = các dòng chi phí theo thứ tự ghi [loại, số tiền có dấu, ngày phát sinh] (ADR-0095 Q2: dòng đảo mang ngày của dòng gốc); tu_choi = sự kiện bị từ chối (chỉ số sự kiện, mã lỗi); thieu_gia = chuyến chưa xuất bến bị giữ 'chưa có giá' (null khi chuyến đã huỷ / đã chạy). ADR-0095 Q3: bảng giá chỉ gồm dòng đủ tuyến + cỡ (G2, G4 = NT-CR + C29; G3 = NT-DL + C16); đáp án V3 đổi (chưa chọn tuyến ⇒ chưa có giá). Tiền: số nguyên đồng.",
   "bang_gia": [
     { "id": "G1", "nha_xe": "HP", "tuyen": "NT-CR", "co": "C16", "tien": 1200000, "tu": "2026-10-01", "den": "2026-10-31" },
     { "id": "G2", "nha_xe": "HP", "tuyen": "NT-CR", "co": "C29", "tien": 1000000, "tu": "2026-10-01", "den": "2026-10-31" },
@@ -183,13 +183,13 @@
     },
     {
       "ma": "SV-CPX-08b",
-      "mo_ta": "V8b: tiếp V8 — Kế toán ghi +300.000 'Phí huỷ muộn' sau khi huỷ",
+      "mo_ta": "V8b: tiếp V8 nhưng chuyến huỷ ngày 13/10 (chạy 15/10) — Kế toán ghi +300.000 'Phí huỷ muộn' sau khi huỷ (không chọn ngày) ⇒ ngày phát sinh = NGÀY HUỶ 13/10 (ADR-0095 Q4); các dòng đảo của lô huỷ mang ngày dòng gốc 15/10 (Q2)",
       "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
       "chuyen": { "nha_xe": "HP", "so_cho": 16, "tuyen": "NT-CR", "ngay": "2026-10-15" },
       "su_kien": [
         { "loai": "CHUP" },
         { "loai": "DIEU_CHINH", "tien": -200000, "ly_do": "CPX_NHAP_SAI" },
-        { "loai": "HUY" },
+        { "loai": "HUY", "ngay": "2026-10-13" },
         { "loai": "DIEU_CHINH", "tien": 300000, "ly_do": "CPX_HUY_MUON" }
       ],
       "dap_an": {
@@ -198,7 +198,7 @@
           ["ADJUSTMENT", -200000, "2026-10-15"],
           ["REVERSAL", 200000, "2026-10-15"],
           ["REVERSAL", -1200000, "2026-10-15"],
-          ["ADJUSTMENT", 300000, "2026-10-15"]
+          ["ADJUSTMENT", 300000, "2026-10-13"]
         ],
         "tong": 300000,
         "thieu_gia": null

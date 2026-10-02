@@ -8,7 +8,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { daoDuoc, ngayGhiDao, nguonGiaConHieuLuc, tongChiPhiChuyen, type CoXe, type DongChiPhi, type DongGiaThue, type LoaiDongChiPhi, type TrangThaiChuyenTien } from "./modules/van-chuyen/tien-xe.ts";
+import { daoDuoc, ngayDieuChinhMacDinh, ngayGhiDao, nguonGiaConHieuLuc, tongChiPhiChuyen, type CoXe, type DongChiPhi, type DongGiaThue, type LoaiDongChiPhi, type TrangThaiChuyenTien } from "./modules/van-chuyen/tien-xe.ts";
 // Vòng sửa 1 (V-2): mô phỏng gọi THẲNG kế hoạch chi phí của lô chuyến (không tự dựng lại phép đảo / chụp).
 import { keHoachChiPhiKhiDoi, keHoachChiPhiKhiHuy, type DongLo, type KeHoachChiPhi } from "./modules/van-chuyen/tien-xe-lo.ts";
 import { addDays, isISODate } from "./shared/vn-date.ts";
@@ -66,7 +66,7 @@ const CO_XE: CoXe[] = TEP.co_xe.map((c) => ({ ...c, active: true }));
 interface KetQuaMoPhong { dong: [LoaiDongChiPhi, number, string][]; tong: number; thieu_gia: boolean | null; tu_choi: [number, string][] }
 function moPhong(c: Ca): KetQuaMoPhong {
   const gia: DongGiaThue[] = TEP.bang_gia.map((g) => ({ id: g.id, carrierPartyId: g.nha_xe, routeCode: g.tuyen, sizeCode: g.co, amount: g.tien, validFrom: g.tu, validTo: g.den }));
-  const x = { ...c.chuyen, trangThai: "PLANNED" as TrangThaiChuyenTien, thue: c.chuyen.nha_xe !== "CONG_TY" };
+  const x = { ...c.chuyen, trangThai: "PLANNED" as TrangThaiChuyenTien, thue: c.chuyen.nha_xe !== "CONG_TY", ngayHuy: null as string | null };
   const dong: DongLo[] = [];
   const tuChoi: [number, string][] = [];
   let n = 0;
@@ -101,7 +101,7 @@ function moPhong(c: Ca): KetQuaMoPhong {
       case "DIEU_CHINH":
         if (dong.length === 0) tuChoi.push([i, "chua_co_dong"]);
         else if (tongChiPhiChuyen(dong) + (e.tien as number) < 0) tuChoi.push([i, "tong_am"]);
-        else them("ADJUSTMENT", e.tien as number, null, (e.ngay as string | undefined) ?? x.ngay);
+        else them("ADJUSTMENT", e.tien as number, null, (e.ngay as string | undefined) ?? ngayDieuChinhMacDinh({ trangThai: x.trangThai, ngayHuy: x.ngayHuy, homNay: x.ngay }));
         break;
       case "DAO": {
         const d = dong[e.dong as number]!;
@@ -113,7 +113,7 @@ function moPhong(c: Ca): KetQuaMoPhong {
       case "DOI_TUYEN": doi({ tuyen: e.tuyen as string | null }); break;
       case "DOI_NGAY": doi({ ngay: e.ngay as string }); break;
       case "DOI_XE": doi({ xe: { so_cho: e.so_cho as number, nha_xe: e.nha_xe as string } }); break;
-      case "HUY": apKeHoach(keHoachChiPhiKhiHuy(dong, x.ngay)); x.trangThai = "CANCELLED"; break;
+      case "HUY": apKeHoach(keHoachChiPhiKhiHuy(dong, (e.ngay as string | undefined) ?? x.ngay)); x.trangThai = "CANCELLED"; x.ngayHuy = (e.ngay as string | undefined) ?? x.ngay; break;
       case "KET_THUC_GIAN_DOAN": x.trangThai = "ENDED_INTERRUPTED"; break;
       case "THEM_GIA": {
         const thay = gia.findIndex((g) => g.id === e.thay);

@@ -92,6 +92,14 @@ export function ngayGhiDao(goc: { occurredDate: string }, v: { homNay: string; k
   return v.kyDaKhoa?.(goc.occurredDate) ? v.homNay : goc.occurredDate;
 }
 
+/**
+ * NGÀY PHÁT SINH MẶC ĐỊNH của dòng điều chỉnh (ADR-0095 Q4, vòng sửa 2 C1): chuyến ĐÃ HUỶ ⇒ NGÀY HUỶ (phí huỷ muộn là ràng buộc hợp đồng, ghi theo
+ * ngày huỷ); chuyến khác ⇒ hôm nay. Người ghi chọn ngày khác thì dùng ngày đó (không qua hàm này).
+ */
+export function ngayDieuChinhMacDinh(v: { trangThai: TrangThaiChuyenTien; ngayHuy: string | null; homNay: string }): string {
+  return v.trangThai === "CANCELLED" && v.ngayHuy !== null ? v.ngayHuy : v.homNay;
+}
+
 /** Mã lý do đảo tự động khi đổi chuyến (xe, nhà xe, tuyến, ngày chạy) — mã hệ thống, `MA_LY_DO_HE_THONG`. */
 export const LY_DO_DAO_DOI_CHUYEN = "CPX_DOI_CHUYEN";
 /** Loại nguồn giá còn hiệu lực: giá bảng (SNAPSHOT) / giá thoả thuận (AGREED) / chưa có. */

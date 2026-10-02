@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  chonDongGiaThue, coXeCua, daoDuoc, ngayGhiDao, demDieuChinh, dongChongGia, loaiNguonGia, nhaXeChiuChiPhi, nhomBangKe, dongConHieuLuc, nguonGiaConHieuLuc, phanLoaiThue, thuTuDaoTatCa, tongBangKe, tongChiPhiChuyen, tongDieuChinh,
+  chonDongGiaThue, coXeCua, daoDuoc, ngayDieuChinhMacDinh, ngayGhiDao, demDieuChinh, dongChongGia, loaiNguonGia, nhaXeChiuChiPhi, nhomBangKe, dongConHieuLuc, nguonGiaConHieuLuc, phanLoaiThue, thuTuDaoTatCa, tongBangKe, tongChiPhiChuyen, tongDieuChinh,
   type CoXe, type DongChiPhi, type DongGiaThue, type LoaiDongChiPhi,
 } from "./tien-xe.ts";
 
@@ -135,4 +135,10 @@ test("ngayGhiDao (vòng sửa 2, SV-1): dòng đảo mang ngày của DÒNG GỐ
   assert.equal(ngayGhiDao({ occurredDate: "2026-10-31" }, { homNay: "2026-11-05" }), "2026-10-31");
   assert.equal(ngayGhiDao({ occurredDate: "2026-10-31" }, { homNay: "2026-11-05", kyDaKhoa: (n) => n.startsWith("2026-10") }), "2026-11-05");
   assert.equal(ngayGhiDao({ occurredDate: "2026-10-31" }, { homNay: "2026-11-05", kyDaKhoa: () => false }), "2026-10-31");
+});
+
+test("ngayDieuChinhMacDinh (ADR-0095 Q4, vòng sửa 2 C1): chuyến đã huỷ ⇒ ngày huỷ; chuyến khác ⇒ hôm nay", () => {
+  assert.equal(ngayDieuChinhMacDinh({ trangThai: "CANCELLED", ngayHuy: "2026-10-13", homNay: "2026-10-20" }), "2026-10-13");
+  assert.equal(ngayDieuChinhMacDinh({ trangThai: "ENDED", ngayHuy: null, homNay: "2026-10-20" }), "2026-10-20");
+  assert.equal(ngayDieuChinhMacDinh({ trangThai: "PLANNED", ngayHuy: null, homNay: "2026-10-20" }), "2026-10-20");
 });

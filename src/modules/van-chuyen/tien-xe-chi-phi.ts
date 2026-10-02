@@ -6,15 +6,16 @@ import { nhaXeDangHopTac } from "../parties";
 import type { BangKeResponse, ChiPhiChuyenDto, NhomBangKeDto, StaffProfile } from "../../shared/contracts";
 import { laLyDoHeThong } from "../../shared/dieu-phoi-kieu";
 import { error } from "../../shared/http";
+import { vnToday } from "../../shared/vn-date";
 import { tripById, type TripRow } from "./chuyen-repo";
 import { findVehicle } from "./repository";
 import { CAU_CHI_PHI_VUA_DOI, CAU_NHA_XE_THOI, CAU_TONG_AM, loiRangBuocChuyen } from "./rules";
-import { chonDongGiaThue, chuTien, coXeCua, daoDuoc, ngayGhiDao, nguonGiaConHieuLuc, nhaXeChiuChiPhi, tongChiPhiChuyen, type DongChiPhi } from "./tien-xe";
+import { chonDongGiaThue, chuTien, coXeCua, daoDuoc, ngayDieuChinhMacDinh, ngayGhiDao, nguonGiaConHieuLuc, nhaXeChiuChiPhi, tongChiPhiChuyen, type DongChiPhi } from "./tien-xe";
 import { bangKeDto, chiPhiChuyenDto } from "./tien-xe-dto";
 import { dongCua } from "./tien-xe-lo";
 import {
   COST_ADJUST_KT, COST_AGREED_KT, COST_REVERSE_KT, COST_SNAPSHOT_KT, bangKeLines, bangKeTrips, costLinesOfTrip, costReasons, findCostLine, findRoute, listRoutes, listSizes,
-  partyName, ratesOfCarrier, type CostLineRow,
+  partyName, ratesOfCarrier, tripCancelledAt, type CostLineRow,
 } from "./tien-xe-repo";
 import type { DaoDongThan, DieuChinhThan, ThoaThuanThan } from "./tien-xe-than";
 
@@ -94,8 +95,10 @@ export async function lenhDieuChinh(db: D1Database, tripId: string, b: DieuChinh
   const truoc = tongChiPhiChuyen(nc.dong);
   if (truoc + b.soTien < 0) return { ok: false, res: TONG_AM() };
   const at = now.toISOString();
+  const huyLuc = nc.trip.status === "CANCELLED" && b.ngay === null ? await tripCancelledAt(db, nc.trip.id) : null;
+  const ngay = b.ngay ?? ngayDieuChinhMacDinh({ trangThai: nc.trip.status, ngayHuy: huyLuc === null ? null : vnToday(new Date(huyLuc)), homNay });
   return chayGhi(db, [
-    db.prepare(COST_ADJUST_KT).bind(b.requestId, nc.trip.id, nhaXeCuaChiPhi(nc.rows, nc.trip), b.soTien, b.lyDo, b.ghiChu, b.ngay ?? homNay, b.requestId, at, staff.id, b.phienBanChiPhi),
+    db.prepare(COST_ADJUST_KT).bind(b.requestId, nc.trip.id, nhaXeCuaChiPhi(nc.rows, nc.trip), b.soTien, b.lyDo, b.ghiChu, ngay, b.requestId, at, staff.id, b.phienBanChiPhi),
     nhatKy(db, { id: b.requestId, staff, at, action: "trip_cost_adjusted", tripId: nc.trip.id, detail: chiTiet(nc.trip, nc.tenNhaXe, truoc, truoc + b.soTien, nhan) }),
   ]);
 }

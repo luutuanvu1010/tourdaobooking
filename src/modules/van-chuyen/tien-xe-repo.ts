@@ -192,6 +192,10 @@ export const COST_AGREED_KT = defineSql(
 );
 const COST_LINE_BY_ID = defineSql("van-chuyen", "vc_cost_line_by_id", `SELECT ${COT_CP} FROM vc_trip_cost_line WHERE id = ?1`);
 export const findCostLine = (db: D1Database, id: string): Promise<CostLineRow | null> => db.prepare(COST_LINE_BY_ID).bind(id).first<CostLineRow>();
+/** Lúc huỷ chuyến (sự kiện CANCELLED mới nhất — cùng mốc với R-VC-COST-4); null khi chưa huỷ. */
+const TRIP_CANCELLED_AT = defineSql("van-chuyen", "vc_trip_cancelled_at", "SELECT occurred_at FROM vc_trip_event WHERE trip_id = ?1 AND kind = 'CANCELLED' ORDER BY created_at DESC LIMIT 1");
+export const tripCancelledAt = async (db: D1Database, tripId: string): Promise<string | null> =>
+  (await db.prepare(TRIP_CANCELLED_AT).bind(tripId).first<{ occurred_at: string }>())?.occurred_at ?? null;
 /** Lý do nhóm chi phí xe (danh mục `vc_reason`, nhóm CHI_PHI_XE) — mã, nhãn, đang dùng. */
 const COST_REASONS = defineSql("van-chuyen", "vc_cost_reasons", "SELECT code, label, active FROM vc_reason WHERE reason_group = 'CHI_PHI_XE' ORDER BY sort_order, code");
 export const costReasons = async (db: D1Database): Promise<{ code: string; label: string; active: number }[]> =>
