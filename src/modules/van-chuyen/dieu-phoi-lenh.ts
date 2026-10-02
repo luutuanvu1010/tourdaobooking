@@ -5,16 +5,18 @@ import type { ChangLichChung, ChangNhapLichChung } from "../orders";
 import type { StaffProfile } from "../../shared/contracts";
 import { changXetTheoDon, khoaNguoiRanh, kiemTaoSuaChuyen, kiemXep, moLaiSauDoiKhach, noiLechCuaSuat, suatKhachDaDoi, tenLucXep } from "../../shared/dieu-phoi-kiem";
 import type { ChangVao, KetQuaKiem } from "../../shared/dieu-phoi-kieu";
+import type { CanhBaoGioLai } from "../../shared/gio-lai";
 import { dungLichChung } from "../../shared/dieu-phoi-lich-chung";
 import { error } from "../../shared/http";
 import { lyDoGiu, type LyDoGiu } from "../../shared/ly-do-giu";
 import { batDauSomNhatSauDoiGio, kiemMocXep } from "../../shared/moc-toi-thieu";
-import { msToVnLocal } from "../../shared/vn-date";
+import { addDays, msToVnLocal, vnLocalToMs } from "../../shared/vn-date";
+import { khungBanXeTrongKhoang } from "./khung-ban-repo";
 import type { LichChungResponse } from "../../shared/contracts";
 import { allocsByTrips, allocsOpenByLegs, eventsByTrips, legFlags, stopsByTrips, tenDiem, tripsTouching, type TripRow } from "./chuyen-repo";
 import { loCapNhatDiem, loCapNhatKhach, loDoi, loHuy, loRut, loSuaChuyen, loXep, type DiemMoi, type PhaLe, type SuatMoi } from "./dieu-phoi";
 import {
-  boSungXe, changVao, chinhSachVao, chuyenVao, diemVao, docChung, docNguCanh, khungChuyen, lyDoChangNgoai, suatVao, taiXeVao, xeVao, type DuLieuChung, type NenChuyen,
+  boSungXe, changVao, chinhSachVao, chuyenVao, diemVao, docChung, docNguCanh, khungBanVao, khungChuyen, lyDoChangNgoai, suatVao, taiXeVao, xeVao, type DuLieuChung, type NenChuyen,
 } from "./dieu-phoi-doc";
 import { canhBaoDto, changLichDto, chuyenTomTat, lyDoDangDung, taiXeChon, xeChon } from "./dieu-phoi-dto";
 import { chayLo, diemChoKhoa, diemKhongConKhach, gioNgan, loi409, loiKiem, lyDoHopLe, maDonGon, nhanLyDo, phaLeNhatKy } from "./dieu-phoi-route";
@@ -34,7 +36,8 @@ function khongConKeHoach(t: TripRow): Response | null {
 const lenhChung = (requestId: string, staff: StaffProfile, bayGioMs: number) => ({ cmd: crypto.randomUUID(), requestId, lucIso: nowIsoOf(bayGioMs), nguoiId: staff.id });
 
 // ---- Sửa chuyến (route 4) ---------------------------------------------------------------------------------------------------------------------------------
-export async function lenhSuaChuyen(db: D1Database, nen: NenChuyen, b: SuaChuyenThan, staff: StaffProfile, bayGioMs: number): Promise<Response | null> {
+/** `ra.nhacGioLai` (tuỳ chọn): nhắc giờ lái của chuyến sau sửa (ADR-0055 VK2-B B3 — chỉ nhắc); route gắn vào phản hồi `canhBaoLenh`. */
+export async function lenhSuaChuyen(db: D1Database, nen: NenChuyen, b: SuaChuyenThan, staff: StaffProfile, bayGioMs: number, ra?: { nhacGioLai?: CanhBaoGioLai[] }): Promise<Response | null> {
   const t = nen.trip;
   const chung = await docChung(db, nowIsoOf(bayGioMs), homNay(bayGioMs));
   if ((b.phaLe && !lyDoHopLe(chung, b.phaLe.lyDo, "PHA_LE")) || (b.nghiPhaLe && !lyDoHopLe(chung, b.nghiPhaLe.lyDo, "PHA_LE"))) return PHA_LE_KHONG_HOP_LE();
@@ -55,14 +58,17 @@ export async function lenhSuaChuyen(db: D1Database, nen: NenChuyen, b: SuaChuyen
   }
   const khac = (await tripsTouching(db, Math.min(batDauMs, t.planned_start_ms) - NGAY_MS, Math.max(ketThucMs, t.planned_end_ms) + NGAY_MS)).filter((x) => x.id !== t.id);
   const tai = nen.allocs.filter((a) => a.valid_to_at === null && (a.status === "WAITING" || a.status === "BOARDED")).length;
-  const kq: KetQuaKiem = kiemTaoSuaChuyen({
+  // ADR-0055 VK2-A A2 (i): khung bận còn hiệu lực giao giờ MỚI là khoảng chặn (lớp máy chủ nói trước bằng lời; trigger vc_trip_unavailable_upd là lưới thứ hai).
+  const khungBan = (await khungBanXeTrongKhoang(db, batDauMs, ketThucMs)).map(khungBanVao);
+  const kq = kiemTaoSuaChuyen({
     lenh: "SUA",
     chuyen: { id: t.id, batDauMs, ketThucMs, xe: xeVao(xeRow, chung.giayToXe), taiXe: taiXeId ? taiXeVao(taiXeId, chung.taiXe) : null, nghiPhaLe: b.nghiPhaLe !== null || t.rest_override_reason_code !== null },
     cu: { batDauMs: t.planned_start_ms, batDauSomNhatMs: t.earliest_start_ms, xeId: t.vehicle_id, taiXePartyId: t.driver_party_id, trangThai: t.status },
-    taiTrenChuyen: tai, chuyenKhac: khac.map(khungChuyen), chinhSach: chinhSachVao(chung.chinhSach), hangBang: chung.hangBang, bayGioMs,
+    taiTrenChuyen: tai, chuyenKhac: khac.map(khungChuyen), khungBan, chinhSach: chinhSachVao(chung.chinhSach), hangBang: chung.hangBang, bayGioMs,
   });
   const chan = loiKiem(kq, staff, t.status, { moc: b.phaLe !== null, nghi: b.nghiPhaLe !== null || t.rest_override_reason_code !== null });
   if (chan) return chan;
+  if (ra) ra.nhacGioLai = kq.nhacGioLai;
   const doiGio = batDauMs !== t.planned_start_ms;
   const doiXe = xeId !== t.vehicle_id;
   const doiTaiXe = taiXeId !== t.driver_party_id && taiXeId !== null;
@@ -388,8 +394,13 @@ export async function dungLichNgay(
   const allLegs = [...new Set([...changNgay.map((c) => c.legId), ...legTrip])];
   const minStart = Math.min(Date.parse(`${ngay}T00:00:00+07:00`), ...trips.map((t) => t.planned_start_ms));
   const maxEnd = Math.max(Date.parse(`${ngay}T23:59:59+07:00`), ...trips.map((t) => t.planned_end_ms));
-  const [flags, moCuaChang, khac] = await Promise.all([legFlags(db, thieu), allocsOpenByLegs(db, allLegs), tripsTouching(db, minStart - NGAY_MS, maxEnd + NGAY_MS)]);
-  const xeIds = trips.map((t) => t.vehicle_id);
+  // ADR-0055 VK2-A A4: dải bận của ngày D — khoảng chặn bằng nửa đêm VN [00:00 D, 00:00 D+1) (Review Focus 1), KHÔNG nửa đêm UTC.
+  const tuNgayMs = vnLocalToMs(ngay, "00:00")!;
+  const denNgayMs = vnLocalToMs(addDays(ngay, 1), "00:00")!;
+  const [flags, moCuaChang, khac, khungBan] = await Promise.all([
+    legFlags(db, thieu), allocsOpenByLegs(db, allLegs), tripsTouching(db, minStart - NGAY_MS, maxEnd + NGAY_MS), khungBanXeTrongKhoang(db, tuNgayMs, denNgayMs),
+  ]);
+  const xeIds = [...new Set([...trips.map((t) => t.vehicle_id), ...khungBan.map((k) => k.vehicle_id)])];
   await boSungXe(db, chung, xeIds);
   const chuyen = trips.map((t) => chuyenVao(t, xeVao(chung.xe.find((x) => x.id === t.vehicle_id)!, chung.giayToXe), t.driver_party_id ? taiXeVao(t.driver_party_id, chung.taiXe) : null));
   const khacNgoai = khac.filter((t) => !ids.includes(t.id));
@@ -420,5 +431,8 @@ export async function dungLichNgay(
     lyDo: lyDoDangDung(chung),
     xe: xeChon(chung),
     taiXe: taiXeChon(chung),
+    khungBanXe: khungBan.map((k) => ({
+      id: k.id, xeId: k.vehicle_id, bienSo: chung.xe.find((x) => x.id === k.vehicle_id)?.plate_number ?? "", batDau: new Date(k.start_ms).toISOString(), ketThuc: new Date(k.end_ms).toISOString(), lyDo: k.reason_label,
+    })),
   };
 }

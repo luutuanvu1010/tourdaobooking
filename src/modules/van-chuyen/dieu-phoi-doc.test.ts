@@ -3,6 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import * as esbuild from "esbuild";
+import { readFileSync } from "node:fs";
 
 const built = await esbuild.build({ entryPoints: [new URL("./dieu-phoi-doc.ts", import.meta.url).pathname], bundle: true, format: "esm", platform: "neutral", target: "es2022", write: false, logLevel: "silent" });
 const doc = (await import(`data:text/javascript;base64,${Buffer.from(built.outputFiles[0]!.text).toString("base64")}`)) as any;
@@ -20,4 +21,15 @@ test("mapper chính sách mang hai con số giờ lái", () => {
     duty_day_max_minutes: 500, trip_no_break_max_minutes: 200, valid_from_at: "a", created_at: "a", created_by: null });
   assert.equal(cs.dutyDayMaxMinutes, 500);
   assert.equal(cs.tripNoBreakMaxMinutes, 200);
+});
+
+test("khungBanVao: dòng khung bận của xe → VEHICLE, nhãn lý do, không tài xế", () => {
+  assert.deepEqual(doc.khungBanVao({ id: "kb", vehicle_id: "xe1", start_ms: 1, end_ms: 2, reason_code: "BAN_XE_KHAC", reason_label: "Khác", withdrawn_at: null, version: 1, created_at: "a", updated_at: "a" }),
+    { id: "kb", doiTuong: "VEHICLE", xeId: "xe1", taiXePartyId: null, batDauMs: 1, ketThucMs: 2, lyDoNhan: "Khác" });
+});
+test("Review Focus 4: mọi câu ĐỌC khung bận của Đợt 3 lọc subject = 'VEHICLE' tường minh (Kế toán có trip.view không thấy dòng DRIVER khi Đợt 6 mở)", () => {
+  const src = readFileSync(new URL("./khung-ban-repo.ts", import.meta.url), "utf8");
+  const cau = [...src.matchAll(/defineSql\("van-chuyen", "(khung_ban_[a-z_]+)",\s*`([^`]+)`/g)];
+  assert.ok(cau.length >= 5, `chỉ thấy ${cau.length} câu`);
+  for (const [, ten, sql] of cau) if (!/^\s*INSERT/i.test(sql!)) assert.match(sql!, /subject = 'VEHICLE'/, ten);
 });

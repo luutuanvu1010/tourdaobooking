@@ -78,6 +78,9 @@ import { vnLocalToMs, vnWeekRange } from "../../shared/vn-date";
 import { CAU_KHUNG_VUA_DOI, chiTietNhatKyKhung, kiemKhungBanMoi, kiemRutKhung, loiRangBuocKhungBan } from "./khung-ban";
 import { insertKhungBanStatement, khungBanCuaXe, khungBanTheoId, khungBanXeTrongKhoang, rutKhungBanStatement, type KhungBanRow } from "./khung-ban-repo";
 import { lyDoDangDung, xeDieuPhoi } from "./chuyen-repo";
+import type { CanhBaoLichDto } from "../../shared/contracts";
+import { NHAN_CANH_BAO_GIO_LAI, type CanhBaoGioLai } from "../../shared/gio-lai";
+import { khungBanVao } from "./dieu-phoi-doc";
 const CAN_XEM_XE_DON = () => error(403, "forbidden", "Tài khoản này không xem được xe đón khách của đơn.");
 const CAN_XEM_CUOC = () => error(403, "forbidden", "Tài khoản này không có cuốc xe.");
 const CAN_BAM_THAY = () => error(403, "forbidden", "Tài khoản này không bấm thay tiến độ chuyến được.");
@@ -116,6 +119,9 @@ const khungBanXeDto = (r: KhungBanRow, bayGioMs: number): KhungBanXeDto => ({
 /** Lý do ĐANG DÙNG của nhóm BAN_XE (danh mục — câu 3.2, chủ 2/10). */
 const lyDoBanXe = async (db: D1Database): Promise<{ code: string; label: string }[]> =>
   (await lyDoDangDung(db)).filter((r) => r.reason_group === "BAN_XE").map((r) => ({ code: r.code, label: r.label }));
+/** Nhắc giờ lái của lệnh tạo / sửa chuyến → `canhBaoLenh` (id tạm "__moi__" của luật thuần đổi sang id thật). */
+const nhacGioLaiDto = (ds: readonly CanhBaoGioLai[], tripId: string): CanhBaoLichDto[] =>
+  ds.map((w) => ({ loai: w.loai, nhan: NHAN_CANH_BAO_GIO_LAI[w.loai], legId: null, tripId, maDon: null }));
 async function respondKhungBan(db: D1Database, xeId: string, status = 200): Promise<Response> {
   const bayGioMs = Date.now();
   const [rows, lyDo] = await Promise.all([khungBanCuaXe(db, xeId), lyDoBanXe(db)]);
@@ -954,6 +960,7 @@ export const vanChuyenModule: AppModule = {
       const lap = await eventByRequest(env.DB, t.requestId);
       const bayGioMs = Date.now();
       const nowIso = new Date(bayGioMs).toISOString();
+      let canhBaoLenh: CanhBaoLichDto[] = []; // ADR-0055 VK2-B B3: chỉ nhắc, chỉ lần đầu (khuôn canhBaoXep)
       if (!lap) {
         const chung = await docChung(env.DB, nowIso, vnToday(new Date(bayGioMs)));
         const xeRow = chung.xe.find((x) => x.id === t.xeId);
@@ -962,14 +969,17 @@ export const vanChuyenModule: AppModule = {
         // LC-13 phần CHỈ máy chủ giữ (R-P8): hồ sơ không có trong `taiXeChoDieuPhoi` (không mở vai tài xế công ty, không thuộc nhà xe nào) → chéo xe – tài xế.
         if (!chung.taiXe.some((x) => x.partyId === t.taiXePartyId)) return loi409("cheo_xe_tai_xe", [lyDoGiu("CHEO_XE_TAI_XE")]);
         const khac = await tripsTouching(env.DB, t.batDauMs - NGAY_MS, t.ketThucMs + NGAY_MS);
+        // ADR-0055 VK2-A A2 (i): khung bận còn hiệu lực là khoảng chặn (lớp máy chủ nói trước — trigger vc_trip_unavailable_ins là lưới thứ hai).
+        const khungBan = (await khungBanXeTrongKhoang(env.DB, t.batDauMs, t.ketThucMs)).map(khungBanVao);
         const kq = kiemTaoSuaChuyen({
           lenh: "TAO", chuyen: { id: null, batDauMs: t.batDauMs, ketThucMs: t.ketThucMs, xe: xeVao(xeRow, chung.giayToXe), taiXe: taiXeVao(t.taiXePartyId, chung.taiXe), nghiPhaLe: t.nghiPhaLe !== null },
-          chuyenKhac: khac.map(khungChuyen), chinhSach: chinhSachVao(chung.chinhSach), hangBang: chung.hangBang, bayGioMs,
+          chuyenKhac: khac.map(khungChuyen), khungBan, chinhSach: chinhSachVao(chung.chinhSach), hangBang: chung.hangBang, bayGioMs,
         });
         const chan = loiKiem(kq, staff, null, { moc: false, nghi: t.nghiPhaLe !== null });
         if (chan) return chan;
         const ngayChay = msToVnLocal(t.batDauMs).date;
         const id = crypto.randomUUID();
+        canhBaoLenh = nhacGioLaiDto(kq.nhacGioLai, id);
         for (let lan = 0; ; lan++) {
           const ma = `CX-${ngayChay.slice(8, 10)}${ngayChay.slice(5, 7)}-${String((await tripCountByDate(env.DB, ngayChay)) + 1 + lan).padStart(2, "0")}`;
           const lo = loTaoChuyen(env.DB, {
@@ -994,7 +1004,8 @@ export const vanChuyenModule: AppModule = {
       if (!nen) return KHONG_CO_CHUYEN();
       const lich = await lichChungChang(env.DB, nen.tu, nen.den);
       const hk = await hanhKhachChoChuyen(env.DB, nen.legIds);
-      return json(await chiTietChuyen(env.DB, nen, lich.chang, hk, false, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), bayGioMs) satisfies ChuyenChiTietResponse, lap ? 200 : 201);
+      const ct = await chiTietChuyen(env.DB, nen, lich.chang, hk, false, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), bayGioMs);
+      return json({ ...ct, ...(canhBaoLenh.length > 0 ? { canhBaoLenh } : {}) } satisfies ChuyenChiTietResponse, lap ? 200 : 201);
     }),
 
     route("PUT", "/api/van-chuyen/chuyen/:id", "office", async ({ env, request, params, staff, nhanNhanVien, isAssigned, baoThayDoiChuyen }) => {
@@ -1006,15 +1017,18 @@ export const vanChuyenModule: AppModule = {
       const nen = await docNen(env.DB, params.id ?? "");
       if (!nen) return KHONG_CO_CHUYEN();
       const bayGioMs = Date.now();
+      const ra: { nhacGioLai?: CanhBaoGioLai[] } = {}; // ADR-0055 VK2-B B3: nhắc giờ lái của chuyến sau sửa (chỉ lần đầu)
       if (!(await eventByRequest(env.DB, b.requestId))) {
-        const r = await lenhSuaChuyen(env.DB, nen, b, staff, bayGioMs);
+        const r = await lenhSuaChuyen(env.DB, nen, b, staff, bayGioMs, ra);
         if (r) return r;
         baoThayDoiChuyen({ tripId: nen.trip.id, requestId: b.requestId }); // ADR-0052 D6.3: sau lô thành công, bắn-và-quên; không gọi khi 4xx / lệnh lặp
       }
       const nen2 = (await docNen(env.DB, nen.trip.id))!;
       const lich = await lichChungChang(env.DB, nen2.tu, nen2.den);
       const hk = await hanhKhachChoChuyen(env.DB, nen2.legIds);
-      return json(await chiTietChuyen(env.DB, nen2, lich.chang, hk, false, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), bayGioMs) satisfies ChuyenChiTietResponse);
+      const ct = await chiTietChuyen(env.DB, nen2, lich.chang, hk, false, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), bayGioMs);
+      const canhBaoLenh = nhacGioLaiDto(ra.nhacGioLai ?? [], nen.trip.id);
+      return json({ ...ct, ...(canhBaoLenh.length > 0 ? { canhBaoLenh } : {}) } satisfies ChuyenChiTietResponse);
     }),
 
     // Người đi kèm (lời chủ 2026-10-01, phương án A): ai gắn được — tài khoản Hướng dẫn viên đang hoạt động; tên, KHÔNG SĐT. Cùng ô với lệnh xếp.

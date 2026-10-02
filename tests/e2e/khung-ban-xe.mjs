@@ -46,6 +46,7 @@ async function taoXe(hau) {
 }
 const xeId = await taoXe("1");
 const xe2 = await taoXe("2");
+const xe3 = await taoXe("3");
 const [{ plate_number: bien }] = await sqlRows(`SELECT plate_number FROM vc_vehicle WHERE id = '${xeId}'`);
 const taoChuyen = (xe, ngay, bd, kt, ngayKt = ngay) =>
   call(SALES, "POST", "/api/van-chuyen/chuyen", { requestId: uuid(), xeId: xe, taiXePartyId: txParty, batDau: { ngay, gio: bd }, ketThuc: { ngay: ngayKt, gio: kt } });
@@ -91,12 +92,32 @@ try {
       VALUES ('${uuid()}', 'CX-E2E-KB${duoi}', '${xeId}', '${chu}', '${D}', ${ms(D, "10:00")}, ${ms(D, "11:00")}, ${ms(D, "10:00")}, 30, '${uuid()}', '${AT}', '${AT}')`),
     /lc03_unavailable/,
   );
-  console.log("✓ (4) D1 thật: chèn tay chuyến chồng khung → trigger lc03_unavailable");
+  r = await taoChuyen(xeId, D, "10:00", "11:00");
+  assert.equal(r.status, 409, JSON.stringify(r.body));
+  assert.ok(r.body.error.lyDo.some((l) => l.ma === "TRUNG_GIO_XE" && /lịch xe bận/.test(l.loiNhan)), JSON.stringify(r.body));
+  console.log("✓ (4) D1 thật: chèn tay chuyến chồng khung → trigger lc03_unavailable; tạo qua route → 409 'lịch xe bận' (lớp máy chủ nói trước)");
 
   // --- (5) khung qua nửa đêm VN ---
   r = await call(ADMIN, "POST", `/api/van-chuyen/xe/${xe2}/ban`, than(D, "23:00", "07:00", D1, "BAN_XE_SUA_CHUA"));
   assert.equal(r.status, 201, JSON.stringify(r.body));
-  console.log("✓ (5) khung 23:00 D → 07:00 D+1 ghi được");
+  // Dời giờ một chuyến khác vào khung → 409; rồi huỷ chuyến đó (không góp giờ lái cho bước 8).
+  r = await taoChuyen(xe2, D, "20:00", "21:00");
+  assert.equal(r.status, 201, JSON.stringify(r.body));
+  const doi = r.body.chuyen;
+  r = await call(SALES, "PUT", `/api/van-chuyen/chuyen/${doi.id}`, { version: doi.version, requestId: uuid(), batDau: { ngay: D, gio: "22:30" }, ketThuc: { ngay: D, gio: "23:30" } });
+  assert.equal(r.status, 409, JSON.stringify(r.body));
+  assert.ok(r.body.error.lyDo.some((l) => /lịch xe bận/.test(l.loiNhan)), JSON.stringify(r.body));
+  r = await call(SALES, "POST", `/api/van-chuyen/chuyen/${doi.id}/huy`, { version: doi.version, requestId: uuid(), lyDo: "HUY_KHAC" });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  // Lịch chung của Kế toán (trip.view — ADR-0055 A4): dải bận ở D và D+1, không ở D+2; danh sách trắng.
+  for (const [ngay, co] of [[D, true], [D1, true], [D2, false]]) {
+    r = await call(ACC, "GET", `/api/van-chuyen/lich?ngay=${ngay}`);
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+    const cua = r.body.khungBanXe.filter((k) => k.xeId === xe2);
+    assert.equal(cua.length > 0, co, `${ngay}: ${JSON.stringify(r.body.khungBanXe)}`);
+    for (const k of r.body.khungBanXe) assert.deepEqual(Object.keys(k).sort(), ["batDau", "bienSo", "id", "ketThuc", "lyDo", "xeId"]);
+  }
+  console.log("✓ (5) khung 23:00 D → 07:00 D+1 ghi được; dời giờ chuyến vào khung → 409; Kế toán thấy dải bận ở D, D+1, không ở D+2");
 
   // --- (6) rút ---
   const url = `/api/van-chuyen/xe/${xeId}/ban/${k1.id}/rut`;
@@ -139,10 +160,23 @@ try {
   }
   console.log(`✓ (7b) trang tuần: khung 23:00 ${cn} → 07:00 ${t2} có ở cả hai tuần; chuyến chỉ mã + giờ`);
 
+  // --- (8) giờ lái (ADR-0055 VK2-B — chỉ nhắc): hai chuyến 4 giờ (đúng 8 giờ — chưa nhắc), chuyến thứ ba → 201 + canhBaoLenh ---
+  r = await taoChuyen(xe3, D2, "05:00", "09:00");
+  assert.equal(r.status, 201, JSON.stringify(r.body));
+  r = await taoChuyen(xe3, D2, "09:30", "13:30");
+  assert.equal(r.status, 201, JSON.stringify(r.body));
+  assert.equal(r.body.canhBaoLenh, undefined, "đúng 8 giờ → chưa nhắc");
+  r = await taoChuyen(xe3, D2, "14:00", "15:00");
+  assert.equal(r.status, 201, JSON.stringify(r.body));
+  assert.deepEqual((r.body.canhBaoLenh ?? []).map((c) => c.nhan), ["Tài xế lái quá giờ tối đa trong ngày"]);
+  const ct = await call(SALES, "GET", `/api/van-chuyen/chuyen/${r.body.chuyen.id}`);
+  assert.ok(ct.body.canhBao.some((c) => c.loai === "GIO_LAI_VUOT"), JSON.stringify(ct.body.canhBao));
+  console.log("✓ (8) giờ lái: chuyến thứ ba (tổng 9 giờ) → 201 kèm nhắc 'Tài xế lái quá giờ tối đa trong ngày'; chi tiết chuyến có cảnh báo cùng loại");
+
   console.log("E2E KHUNG BAN XE OK");
 } finally {
   // Khôi phục: rút mọi khung còn mở của hai xe thử (xe dùng một lần — không ảnh hưởng kịch bản khác).
-  for (const x of [xeId, xe2]) {
+  for (const x of [xeId, xe2, xe3]) {
     const g = await call(ADMIN, "GET", `/api/van-chuyen/xe/${x}/ban`);
     for (const k of g.body?.dangCo ?? []) await call(ADMIN, "POST", `/api/van-chuyen/xe/${x}/ban/${k.id}/rut`, { version: k.version });
   }

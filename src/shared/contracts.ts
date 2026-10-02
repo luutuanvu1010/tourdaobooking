@@ -1175,6 +1175,8 @@ export interface KhungBanXeListResponse { dangCo: KhungBanXeDto[]; lichSu: Khung
 export interface KhungBanChongChuyenLoi { error: { code: "khung_ban_chong_chuyen"; message: string; chuyen: { ma: string; gio: string }[] } }
 /** Chuyến đã xếp trên lưới tuần Lịch xe bận — DANH SÁCH TRẮNG: không mã đơn, không tên khách, không tài xế (câu 3.1, chủ 2/10). Trạng thái thô chỉ để màn chọn nhãn. */
 export interface ChuyenXeBanDto { id: string; ma: string; xeId: string; batDauMs: number; ketThucMs: number; trangThai: "PLANNED" | "RUNNING" | "ENDED" | "ENDED_INTERRUPTED" }
+/** Dải bận trên lịch chung ngày D (`LichChungResponse.khungBanXe`; trip.view — ADR-0055 A4): DANH SÁCH TRẮNG — không người ghi, không tài xế. Giờ ISO UTC. */
+export interface KhungBanLichDto { id: string; xeId: string; bienSo: string; batDau: string; ketThuc: string; lyDo: string }
 /** `GET /api/van-chuyen/ban-xe?tu=` — trang tuần "Lịch xe bận" (ô vehicle.manage — câu 3.4). `tu` = thứ Hai, `den` = Chủ nhật (hai đầu bao gồm, như vnWeekRange). */
 export interface LichXeBanResponse { tu: string; den: string; xe: XeChonDto[]; khung: KhungBanXeDto[]; chuyen: ChuyenXeBanDto[]; lyDo: { code: string; label: string }[] }
 /** Tài xế để chọn (hàm công bố `taiXeChoDieuPhoi` của parties — không số, không nơi cấp). */
@@ -1243,6 +1245,8 @@ export interface LichChungResponse {
   lyDo: LyDoDangDungDto[];
   xe: XeChonDto[];
   taiXe: TaiXeChonDto[];
+  /** ADR-0055 VK2-A A4: khung bận CÒN HIỆU LỰC của xe giao ngày D theo giờ VN [00:00 D, 00:00 D+1) — chỉ subject VEHICLE. */
+  khungBanXe: KhungBanLichDto[];
 }
 export interface DiemChuyenDto {
   id: string;
@@ -1327,6 +1331,11 @@ export interface ChuyenChiTietResponse {
    * `lyDoNoiTra` / `lyDoThieuTen` ở src/shared/dieu-phoi-kiem.ts). Chỉ nhắc — lệnh đã chạy. Mã đơn + số tên thiếu, không tên khách.
    */
   canhBaoXep?: LyDoGiuDto[];
+  /**
+   * ADR-0055 VK2-B B3: nhắc giờ lái của CHÍNH chuyến vừa tạo / sửa (chỉ nhắc — lệnh đã chạy). Chỉ có ở phản hồi lệnh lần đầu; gửi lại cùng `requestId` thì không.
+   * Khuôn `canhBaoXep`; dạng `CanhBaoLichDto` (`loai` GIO_LAI_VUOT / CHUYEN_DAI_CAN_NGHI, `nhan` tiếng Việt).
+   */
+  canhBaoLenh?: CanhBaoLichDto[];
 }
 
 // ---- Nhắc "gọi báo khách" khi giờ hẹn đổi (ADR-0051 GB1, GB2 — Task A-GB) --------------------------------------------------------------------------------

@@ -4,7 +4,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
-import { DRIVER, NGAY, NGAY_SAU, batDongHo, chiTiet, chuyenSan, denGio, setup, tienDo } from "../../../tests/audit/dieu-phoi-khung.mjs";
+import { ADM, DRIVER, NGAY, NGAY_SAU, batDongHo, chiTiet, chuyenSan, denGio, setup, tienDo, xe } from "../../../tests/audit/dieu-phoi-khung.mjs";
 
 const KHOA_CHUYEN = ["bienSo", "gioBatDau", "gioKetThuc", "id", "ketThucThat", "ma", "soCho", "trangThai", "trangThaiNhan", "xuatBen"];
 const KHOA_DIEM = ["daToi", "gioHen", "gioXeToi", "id", "loai", "soNguoi", "tenNoi", "thuTu", "trangThai"];
@@ -12,7 +12,8 @@ const KHOA_SUAT = ["daDon", "daTra", "diemLen", "diemXuong", "id", "loai", "maDo
 const KHOA_GOC = ["chuyen", "diem", "dieuKienConThieu", "lyDo", "suat", "trongNgayChay"];
 /** Chuỗi KHÔNG BAO GIỜ được thấy trong DTO tài xế: tiền, ghi chú đơn, ghi chú thanh toán, người lập (tên Bán hàng), số / nơi cấp GPLX, khoá nơi, SĐT người bấm. */
 const CAM = /777000|Ghi chú đơn Dò Tìm|Thanh toán Dò Tìm|"An"|7911000000|Nơi cấp Dò Tìm|2030-12-31|\b[LT]:[0-9a-f-]{8,}|0900000001/;
-const CAM_KHOA = /"(tongTien|total|price|gia|ghiChu|customerNote|paymentNote|nguoiLap|staffName|nguoiPhuTrach|handler|soGiayTo|documentNumber|issuedPlace|hetHan|expiryDate|placeKey|khoaNoi\w*|staffId|sdt(?!LienHe)\w*)"\s*:/;
+// ADR-0055 A4 + kế hoạch Đợt 3 Review Focus 4: DTO tài xế KHÔNG có khung bận (của xe hay của tài xế) — khoá khungBan*, unavailab*, lyDoBan.
+const CAM_KHOA = /"(tongTien|total|price|gia|ghiChu|customerNote|paymentNote|nguoiLap|staffName|nguoiPhuTrach|handler|soGiayTo|documentNumber|issuedPlace|hetHan|expiryDate|placeKey|khoaNoi\w*|staffId|sdt(?!LienHe)\w*|khungBan\w*|unavailab\w*|lyDoBan)"\s*:/;
 
 /** `lienHe`: khoá liên hệ có mặt không; `ten`: suất có họ tên + năm sinh không (tên gắn vào suất lúc XẾP — thân gửi hoặc máy tự chọn, I19a — hoặc lúc XUẤT BẾN — I19b). */
 const ghim = (j: any, v: { lienHe: boolean; ten: boolean }) => {
@@ -154,6 +155,26 @@ test("kế hoạch ô mới TC-F7 (ADR-0055 C3, G-C1): số hiệu chuyến bay 
     assert.doesNotMatch(r.text, /Dò Tìm \d|0912345678|Khách Liên Hệ/, "không tên khách, không liên hệ");
     const vp = await chiTiet(w, a.id);
     for (const s of vp.suat.filter((x: any) => x.loai === "PASSENGER")) assert.equal(s.soHieuChuyenBay, "VN1553");
+  } finally {
+    tat();
+  }
+});
+
+test("ADR-0055 A4 (Review Focus 4): xe của chuyến có khung bận (ngoài giờ chuyến) — DTO tài xế KHÔNG mang khung bận, không lý do bận", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const x = xe(w);
+    const a = await chuyenSan(w, { xe: x });
+    const k = await w.call("POST", `/api/van-chuyen/xe/${x}/ban`, { as: ADM, body: { batDau: { ngay: NGAY, gio: "16:00" }, ketThuc: { ngay: NGAY, gio: "18:00" }, lyDo: "BAN_XE_DANG_KIEM" } });
+    assert.equal(k.status, 201, k.text);
+    const r = await w.call("GET", `/api/van-chuyen/cuoc-cua-toi/${a.id}`, { as: DRIVER });
+    assert.equal(r.status, 200, r.text);
+    assert.doesNotMatch(r.text, CAM_KHOA);
+    assert.doesNotMatch(r.text, /Đăng kiểm|BAN_XE/);
+    const ds = await w.call("GET", "/api/van-chuyen/cuoc-cua-toi", { as: DRIVER });
+    assert.doesNotMatch(ds.text, CAM_KHOA);
+    assert.doesNotMatch(ds.text, /Đăng kiểm|BAN_XE/);
   } finally {
     tat();
   }
