@@ -146,3 +146,10 @@
   - Nguồn dữ liệu: `GET /api/orders/dashboard` trả 403 với họ (cổng `seesAllOrders`) — cần route / nhánh mới chỉ trả chuyến của chính họ.
   - Nội dung theo vai: mỗi vai thấy gì "trực tiếp liên quan" (HDV: việc chờ nhận, chuyến mình phụ trách, số tiền mình thu trước chuyến?; Đối tác: đơn mình lập, còn phải thu?) — đặc tả liệt kê, chủ chọn.
   - Tiền: ô `money.view` của HDV hôm nay = `assigned` (xem tiền đơn mình phụ trách) — bản vẽ 2a có hiện "còn lại"; xác nhận lại trong đặc tả.
+
+## 19. Núm "Màu nhấn (xanh ngọc)" ở màn Giao diện
+
+- **Ngày:** 2026-10-02 · **AI nêu** khi thi công thị giác 1.70 (đặc tả `docs/superpowers/specs/2026-10-02-thi-giac-nen-tang-design.md` §4) · **Trạng thái:** ý tưởng.
+- **Vì sao:** bản 1.70 thêm màu ngọc (`--c-lagoon*`: vạch mục đang chọn, viền ô đang gõ, ô nhóm Vận chuyển, đầu cuối dải tóm tắt đơn) nhưng màn Giao diện (ADR-0087) CHƯA có núm cho nó — Toàn quyền đổi "Màu chính" thì màu ngọc đứng yên.
+- **Làm khi chủ cần:** theo công thức z9 của `docs/CHANGE-GUIDE.md` (một dòng `NUM`, một giá trị `MAC_DINH`, cặp tương phản cho ngọc đậm trên ngọc nhạt và vàng "Còn lại" trên ngọc đậm). Không cần migration.
+- **Cùng đợt nên làm (kiểm độc lập 1.70, TH-1/TH-2):** màu rê chuột nút lưu đặc là hằng `#0b5c84` — Toàn quyền đổi "Màu chính" thì nút đổi màu nhưng rê chuột vẫn xanh biển; nên dẫn xuất màu rê từ nền nút và thêm cặp tương phản "chữ nút lưu / màu rê". Vàng "Còn lại" `#fcd34d` đang viết ở hai nơi (`app.css` và `CAP_TUONG_PHAN`) — nối bằng một bài kiểm.

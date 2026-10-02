@@ -150,7 +150,7 @@ async function loadThread(id: string): Promise<void> {
   const t = d.ticket;
   const body = h("textarea", { rows: 4, maxLength: 4000, placeholder: "Viết phản hồi…" });
   const internal = h("input", { type: "checkbox" });
-  const send = h("button", { type: "button", class: "btn btn-primary" }, "Gửi");
+  const send = h("button", { type: "button", class: "btn btn-primary btn-chinh" }, "Gửi");
   send.addEventListener("click", async () => {
     const r = await act(() => api<Api.FeedbackDetailResponse>(`/api/feedback/${id}/messages`, { method: "POST", body: { body: body.value, internal: d.canTriage && internal.checked } }), send);
     if (r) void loadThread(id);

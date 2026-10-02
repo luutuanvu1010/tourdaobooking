@@ -159,7 +159,7 @@ function pinByPasskeySection(): HTMLElement {
   const newPin = h("input", { type: "password", inputmode: "numeric", pattern: "[0-9]{6}", maxlength: "6", autocomplete: "new-password" });
   const confirmPin = h("input", { type: "password", inputmode: "numeric", pattern: "[0-9]{6}", maxlength: "6", autocomplete: "new-password" });
   const msg = h("p", { class: "muted", role: "status" });
-  const go = h("button", { class: "btn btn-primary", type: "button" }, "Xác nhận bằng Face ID");
+  const go = h("button", { class: "btn btn-primary btn-chinh", type: "button" }, "Xác nhận bằng Face ID");
   let challenge: { opts: Api.PasskeyRequestOptionsResponse["publicKey"]; at: number } | null = null;
   const CHALLENGE_TTL_MS = 4 * 60_000;
   async function fetchChallenge(): Promise<void> {
@@ -514,7 +514,7 @@ function renderMaintenance(status: Api.MaintenanceResponse): void {
           const iso = chosen();
           if (iso) void send({ on: true, endsAt: iso });
         }),
-        button("Tắt chế độ bảo trì", "btn btn-primary", () => void send({ on: false })),
+        button("Tắt chế độ bảo trì", "btn btn-primary btn-chinh", () => void send({ on: false })),
       ),
     );
   } else {
@@ -534,7 +534,7 @@ function renderMaintenance(status: Api.MaintenanceResponse): void {
         { class: "maint-confirm", role: "group", "aria-label": "Xác nhận bật chế độ bảo trì", tabindex: -1 },
         h("p", null, h("strong", null, "Mọi nhân viên khác sẽ bị chặn ngay, kể cả người đang mở app. Chỉ bạn dùng được.")),
         h("p", null, `Dự kiến hoàn tất lúc ${vnDateTimeText(iso)}.`),
-        h("div", { class: "maint-actions" }, button("Xác nhận bật", "btn btn-primary", () => void send({ on: true, endsAt: iso })), back),
+        h("div", { class: "maint-actions" }, button("Xác nhận bật", "btn btn-primary btn-chinh", () => void send({ on: true, endsAt: iso })), back),
       );
       replaceChildren(confirmBox, panel);
       setup.hidden = true;

@@ -1,0 +1,231 @@
+<title>Thị giác Island Booking</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600&display=swap">
+<style>
+/* Bố cục: một cột đọc (chẩn đoán → hai hướng → so màn thật → câu hỏi); khung so sánh rộng hơn cột chữ. Bảng màu lấy từ chính Nền tảng. */
+:root {
+  --bg: #f2f5f9; --surface: #ffffff; --ink: #0f172a; --muted: #475569; --line: #e1e7ef;
+  --navy: #0c4a6e; --navy-soft: #dcebf6; --lagoon: #0e7490; --lagoon-soft: #e0f2f7;
+  --coral: #c0392b; --coral-soft: #fef2f0; --sand: #f5a623; --sand-soft: #fdf1d8; --sand-ink: #5a4109;
+  --shadow: 0 1px 2px rgba(15, 23, 42, .04), 0 3px 10px rgba(15, 23, 42, .06);
+  --font: "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --r: 14px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0b1620; --surface: #12202b; --ink: #e6edf3; --muted: #9fb0c0; --line: #233544;
+  --navy: #8fcdef; --navy-soft: #16344a; --lagoon: #5fd0e4; --lagoon-soft: #133a44;
+  --coral: #f0907f; --coral-soft: #3a1d1a; --sand: #f5b84a; --sand-soft: #3a2e14; --sand-ink: #f7d999;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 3px 10px rgba(0, 0, 0, .25); color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0b1620; --surface: #12202b; --ink: #e6edf3; --muted: #9fb0c0; --line: #233544;
+  --navy: #8fcdef; --navy-soft: #16344a; --lagoon: #5fd0e4; --lagoon-soft: #133a44;
+  --coral: #f0907f; --coral-soft: #3a1d1a; --sand: #f5b84a; --sand-soft: #3a2e14; --sand-ink: #f7d999;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 3px 10px rgba(0, 0, 0, .25); color-scheme: dark }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 400 16px/1.6 var(--font); }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: 16px; padding-block: 28px 56px; display: flex; flex-direction: column; gap: 28px; }
+.doc { max-width: 760px; }
+h1, h2, h3 { font-weight: 500; line-height: 1.25; text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(26px, 4vw, 34px); letter-spacing: -.01em; color: var(--navy); }
+h2 { font-size: 22px; color: var(--navy); }
+h3 { font-size: 17px; }
+p { margin: 0; }
+.lead { color: var(--muted); font-size: 17px; margin-top: 8px; }
+.motto { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.motto span { padding: 4px 14px; border-radius: 999px; font-size: 14px; font-weight: 500; }
+.m1 { background: var(--lagoon-soft); color: var(--lagoon); } .m2 { background: var(--navy-soft); color: var(--navy); } .m3 { background: var(--sand-soft); color: var(--sand-ink); }
+section { display: flex; flex-direction: column; gap: 14px; }
+.panel { background: var(--surface); border-radius: var(--r); box-shadow: var(--shadow); padding: 20px; }
+ul.list { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
+ul.list li::marker { color: var(--muted); }
+.muted { color: var(--muted); }
+.keep { font-size: 15px; color: var(--muted); }
+.keep b { font-weight: 500; color: var(--ink); }
+.two { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.dir { display: flex; flex-direction: column; gap: 10px; border-top: 4px solid var(--line); }
+.dir.a { border-top-color: var(--lagoon); } .dir.b { border-top-color: var(--navy); }
+.tag { align-self: flex-start; padding: 2px 10px; border-radius: 999px; font-size: 13px; font-weight: 500; background: var(--lagoon-soft); color: var(--lagoon); }
+.dir.b .tag { background: var(--navy-soft); color: var(--navy); }
+.swatches { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.sw { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.sw i { flex: none; width: 36px; height: 36px; border-radius: 10px; box-shadow: inset 0 0 0 1px rgba(15, 23, 42, .08); }
+.sw div { min-width: 0; font-size: 14px; line-height: 1.35; }
+.sw small { display: block; color: var(--muted); font-size: 12.5px; }
+.viewer { display: flex; flex-direction: column; gap: 14px; }
+.screens { display: flex; flex-wrap: wrap; gap: 8px; }
+.screens button, .mode button, .flip button { font: inherit; font-size: 14px; cursor: pointer; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 999px; padding: 6px 14px; min-height: 40px; }
+.screens button[aria-pressed="true"], .mode button[aria-pressed="true"], .flip button[aria-pressed="true"] { background: var(--navy); border-color: var(--navy); color: var(--surface); }
+.screens button:focus-visible, .mode button:focus-visible, .flip button:focus-visible { outline: 3px solid var(--lagoon); outline-offset: 2px; }
+.bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+.mode, .flip { display: flex; flex-wrap: wrap; gap: 6px; }
+.grid3 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; align-items: start; }
+.grid3.wide { grid-template-columns: 1fr; }
+figure { margin: 0; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+figcaption { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 500; }
+figcaption .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.d0 { background: var(--muted); } .d1 { background: var(--navy); } .d2 { background: var(--lagoon); } .d3 { background: var(--coral); }
+.shot { display: block; width: 100%; height: auto; border-radius: 12px; box-shadow: var(--shadow); background: var(--surface); outline: 1px solid var(--line); }
+.phone .shot { max-width: 390px; }
+.note { font-size: 14px; color: var(--muted); }
+.qs { counter-reset: q; display: flex; flex-direction: column; gap: 12px; margin: 0; padding: 0; list-style: none; }
+.qs li { counter-increment: q; display: grid; grid-template-columns: 32px 1fr; gap: 10px; }
+.qs li::before { content: counter(q); width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-size: 14px; font-weight: 500; background: var(--navy-soft); color: var(--navy); }
+.qs b { font-weight: 500; }
+.warn { background: var(--sand-soft); color: var(--sand-ink); border-radius: var(--r); padding: 14px 16px; font-size: 15px; }
+.bug { background: var(--coral-soft); border-radius: var(--r); padding: 14px 16px; font-size: 15px; }
+.bug b { font-weight: 500; color: var(--coral); }
+@media (max-width: 760px) { .grid3 { grid-template-columns: 1fr; } .phone .shot { margin-inline: auto; } }
+@media (prefers-reduced-motion: no-preference) { .shot { transition: opacity .2s ease; } }
+</style>
+
+<div class="wrap">
+  <header class="doc">
+    <h1>Chỉnh thị giác toàn Nền tảng</h1>
+    <p class="lead">Hai hướng đề xuất, chụp trên chính Nền tảng (dữ liệu thử) để bạn so với hiện tại. Bố cục giữ nguyên; chỉ đổi màu, chiều sâu, chi tiết và cảm giác khi chạm.</p>
+    <div class="motto"><span class="m1">Năng động</span><span class="m2">Tin cậy</span><span class="m3">Tinh tế</span></div>
+  </header>
+
+  <section class="doc">
+    <div class="panel dir a">
+      <span class="tag">Đã thi công · bản 1.70</span>
+      <h3>Bạn chọn hướng A đầy đủ; mã đã làm xong, chờ đưa lên Nền tảng</h3>
+      <ul class="list">
+        <li>Xem cột <b>"Đã thi công"</b> trong phần so sánh bên dưới: ảnh chụp từ mã thật, không phải lớp xem trước.</li>
+        <li>Một chỉnh nhỏ so với bản xem trước: dải tóm tắt đơn chuyển sang ngọc đậm hơn ở đầu phải, để số "Còn lại" màu vàng đủ rõ (trước 3,72:1, nay 5,04:1).</li>
+        <li>Mọi nút Lưu / Gửi / Áp dụng / Xác nhận trên các màn đều đặc màu như nhau; nút phụ vẫn nhạt.</li>
+        <li>Ảnh biên nhận gửi khách giữ nguyên màu cũ. Người kiểm độc lập tìm thêm 3 lỗi nhỏ (khung chọn ô tích khi dùng bàn phím, nút Vận chuyển lúc khoá, viền ô Đăng nhập), đã sửa.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="doc">
+    <h2>Vì sao hiện tại trông "nhạt"</h2>
+    <div class="panel">
+      <ul class="list">
+        <li><b>Một màu xanh nhạt phủ gần hết</b>: nền trang, ô biểu tượng, nút chính, mục đang chọn, dải tóm tắt đơn đều cùng một tông, nên mắt không biết nhìn đâu trước.</li>
+        <li><b>Nút chính nền nhạt</b> trông giống nút phụ. Trên nhiều màn, chỉ có nút "Tạo đơn" màu san hô là nổi.</li>
+        <li><b>Phẳng</b>: thẻ chỉ có viền mảnh, bóng đổ gần như không thấy, thẻ trắng và nền trang chênh nhau rất ít.</li>
+        <li><b>Ít phản hồi</b>: rê chuột hay bấm vào thẻ, nút gần như không có hiệu ứng, cảm giác "tĩnh".</li>
+      </ul>
+    </div>
+    <div class="bug"><b>Lỗi có sẵn sẽ sửa ở cả hai hướng:</b> số "Còn lại" ở đầu trang chi tiết đơn đang màu cát trên nền xanh nhạt, độ tương phản 1,67:1 (chuẩn tối thiểu 4,5:1), gần như không đọc được.</div>
+    <p class="keep"><b>Giữ nguyên theo quyết định cũ của bạn:</b> bố cục, cỡ chữ, chữ mảnh (không chữ đậm), không viết HOA mới, thanh trên và thanh bên nền trắng, dải chào Trang chủ máy tính nền trắng, bảng "Giao diện" của Toàn quyền vẫn chỉnh được như cũ.</p>
+  </section>
+
+  <section>
+    <h2 class="doc">Hai hướng</h2>
+    <div class="two">
+      <div class="panel dir b">
+        <span class="tag">Hướng B · Nhẹ nhàng</span>
+        <h3>Giữ tinh thần 2/10, thêm chiều sâu</h3>
+        <ul class="list">
+          <li>Nền trang xám xanh rất nhạt, thẻ trắng có bóng mềm.</li>
+          <li>Ô nhập rõ viền hơn; đang gõ có vành sáng như trang Đăng nhập.</li>
+          <li>Rê chuột, bấm có phản hồi nhẹ; thanh tab điện thoại mờ kính.</li>
+          <li>Mục đang chọn ở thanh bên có vạch chỉ báo.</li>
+          <li>Nút chính giữ nền nhạt như hiện tại.</li>
+        </ul>
+      </div>
+      <div class="panel dir a">
+        <span class="tag">Hướng A · Năng động (khuyến nghị)</span>
+        <h3>Toàn bộ hướng B, thêm điểm nhấn</h3>
+        <ul class="list">
+          <li>Nút lưu / xác nhận chính (cuối form, trong bảng trượt, Đăng nhập) đặc màu biển đậm, chữ trắng. Các nút khác vẫn nhạt.</li>
+          <li>Thêm một màu nhấn <b>xanh ngọc</b> cho dấu đang chọn, vòng tiêu điểm, nhóm Vận chuyển.</li>
+          <li>Dải tóm tắt đầu trang chi tiết đơn đậm màu biển → ngọc.</li>
+          <li>Nút tròn "Tạo đơn" ở thanh dưới điện thoại đặc màu san hô.</li>
+          <li>Ô chức năng Trang chủ tô màu theo nhóm, có độ bóng nhẹ như biểu tượng ứng dụng.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="panel">
+      <h3>Bảng màu hướng A: lấy từ hình ảnh đảo</h3>
+      <div class="swatches" style="margin-top:12px">
+        <div class="sw"><i style="background:#0c4a6e"></i><div>Biển đậm<small>khung, nút chính · tin cậy</small></div></div>
+        <div class="sw"><i style="background:#0e7490"></i><div>Xanh ngọc <span class="muted">(mới)</span><small>đang chọn, tiêu điểm · năng động</small></div></div>
+        <div class="sw"><i style="background:#c0392b"></i><div>San hô<small>hành động chốt (Tạo đơn, Xác nhận)</small></div></div>
+        <div class="sw"><i style="background:#f5a623"></i><div>Cát<small>nhắc nhở, cần chú ý</small></div></div>
+        <div class="sw"><i style="background:#f2f5f9"></i><div>Nền trang<small>xám xanh rất nhạt (mới)</small></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="viewer" aria-label="So sánh màn hình">
+    <h2>So sánh trên màn thật</h2>
+    <div class="screens" id="screens" role="group" aria-label="Chọn màn"></div>
+    <div class="bar">
+      <div class="mode" role="group" aria-label="Cách xem">
+        <button type="button" id="mode-side" aria-pressed="true">Đặt cạnh nhau</button>
+        <button type="button" id="mode-flip" aria-pressed="false">Lật từng bản</button>
+      </div>
+      <div class="flip" id="flip" role="group" aria-label="Chọn bản" hidden>
+        <button type="button" data-ban="hien-tai" aria-pressed="false">Hiện tại</button>
+        <button type="button" data-ban="huong-b" aria-pressed="false">B · Nhẹ nhàng</button>
+        <button type="button" data-ban="huong-a" aria-pressed="false">A · Năng động</button>
+        <button type="button" data-ban="sau" aria-pressed="true">Đã thi công</button>
+      </div>
+    </div>
+    <div class="grid3" id="grid"></div>
+    <p class="note">Ảnh chụp màn hình đầu tiên khi mở trang (chưa cuộn), khổ điện thoại 390 điểm và máy tính 1280 điểm. Dữ liệu là dữ liệu thử.</p>
+  </section>
+
+  <section class="doc">
+    <h2>Cần bạn quyết (trả lời trong cửa sổ trò chuyện)</h2>
+    <ol class="qs">
+      <li><div><b>Điểm nhấn đậm</b> (nút lưu/xác nhận chính, dải tóm tắt đơn, nút tròn Tạo đơn): đặc màu như hướng A, hay giữ nền nhạt như 2/10 (hướng B)?</div></li>
+      <li><div><b>Màu nhấn xanh ngọc:</b> thêm (hướng A) hay chỉ dùng các màu đang có?</div></li>
+      <li><div><b>Nền trang:</b> xám xanh rất nhạt (cả hai hướng) hay giữ xanh nhạt hiện tại?</div></li>
+      <li><div><b>Chuyển động nhẹ</b> (thẻ nhấc lên khi rê chuột, nút lún khi bấm, thanh tab mờ kính): bật hay không?</div></li>
+    </ol>
+    <div class="warn">Các màn từng làm đúng bản vẽ Claude Design (Đăng nhập, Trang chủ điện thoại và máy tính, Vận chuyển, Điều phối, Việc của tôi) cũng sẽ đổi theo, vì dùng chung bộ màu. Bố cục các màn đó không đổi.</div>
+  </section>
+</div>
+
+<script>
+const MAN = [
+  ["dt-trang-chu", "Trang chủ · điện thoại"], ["dt-don-hang", "Đơn hàng · điện thoại"], ["dt-chi-tiet-don", "Chi tiết đơn · điện thoại"],
+  ["dt-lap-don", "Tạo đơn · điện thoại"], ["dt-dang-nhap", "Đăng nhập · điện thoại"], ["dt-toi", "Trang Tôi · điện thoại"],
+  ["mt-trang-chu", "Trang chủ · máy tính"], ["mt-don-hang", "Đơn hàng · máy tính"], ["mt-chi-tiet-don", "Chi tiết đơn · máy tính"],
+  ["mt-lap-don", "Tạo đơn · máy tính"], ["mt-dang-nhap", "Đăng nhập · máy tính"], ["mt-toi", "Trang Tôi · máy tính"],
+];
+const BAN = [["hien-tai", "Hiện tại", "d0"], ["huong-b", "B · Nhẹ nhàng", "d1"], ["huong-a", "A · Năng động", "d2"], ["sau", "Đã thi công (1.70)", "d3"]];
+const state = { man: "dt-trang-chu", mode: "side", ban: "sau" };
+const $ = (id) => document.getElementById(id);
+const src = (ban, man) => `anh/${ban}-${man}.jpg`;
+
+function render() {
+  for (const b of $("screens").children) b.setAttribute("aria-pressed", String(b.dataset.man === state.man));
+  $("mode-side").setAttribute("aria-pressed", String(state.mode === "side"));
+  $("mode-flip").setAttribute("aria-pressed", String(state.mode === "flip"));
+  $("flip").hidden = state.mode !== "flip";
+  for (const b of $("flip").children) b.setAttribute("aria-pressed", String(b.dataset.ban === state.ban));
+  const grid = $("grid");
+  const phone = state.man.startsWith("dt-");
+  grid.className = "grid3" + (state.mode === "flip" || !phone ? " wide" : "") + (phone ? " phone" : "");
+  const ds = state.mode === "flip" ? BAN.filter(([b]) => b === state.ban) : BAN;
+  grid.replaceChildren(...ds.map(([b, ten, dot]) => {
+    const f = document.createElement("figure");
+    const cap = document.createElement("figcaption");
+    const d = document.createElement("span"); d.className = "dot " + dot;
+    cap.append(d, ten);
+    const img = document.createElement("img");
+    img.className = "shot"; img.loading = "lazy"; img.alt = `${ten} — ${MAN.find((m) => m[0] === state.man)[1]}`;
+    img.src = src(b, state.man);
+    f.append(cap, img);
+    return f;
+  }));
+  try { localStorage.setItem("tg-xem", JSON.stringify(state)); } catch {}
+}
+try { Object.assign(state, JSON.parse(localStorage.getItem("tg-xem") || "{}")); } catch {}
+for (const [id, ten] of MAN) {
+  const b = document.createElement("button");
+  b.type = "button"; b.dataset.man = id; b.textContent = ten;
+  b.addEventListener("click", () => { state.man = id; render(); });
+  $("screens").append(b);
+}
+$("mode-side").addEventListener("click", () => { state.mode = "side"; render(); });
+$("mode-flip").addEventListener("click", () => { state.mode = "flip"; render(); });
+for (const b of $("flip").children) b.addEventListener("click", () => { state.ban = b.dataset.ban; render(); });
+render();
+</script>

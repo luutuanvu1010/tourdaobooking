@@ -103,7 +103,7 @@ function veDieuKien(): void {
   };
   doiTuong.addEventListener("change", napLoai);
   napLoai();
-  const them = h("button", { type: "button", class: "vc-btn btn btn-primary", "data-action": "them-dieu-kien" }, "Thêm điều kiện");
+  const them = h("button", { type: "button", class: "vc-btn btn btn-primary btn-chinh", "data-action": "them-dieu-kien" }, "Thêm điều kiện");
   them.addEventListener("click", () => {
     const r = docDieuKienMoi({ coXe: coXe.value, doiTuong: doiTuong.value as "VEHICLE" | "DRIVER", loai: loai.value });
     if (!r.ok) return bao(null, r.loi);
@@ -154,7 +154,7 @@ function veHangBang(): void {
     ];
     if (dangSuaHang === x.code) {
       const o = h("input", { id: "dk-hang-o", class: "vc-input", type: "text", inputmode: "numeric", value: c?.maxPassengers == null ? "" : String(c.maxPassengers), autocomplete: "off", "aria-describedby": "dk-hang-o-hint" });
-      const luu = h("button", { type: "button", class: "vc-btn btn btn-primary", "data-action": "luu-hang" }, "Lưu");
+      const luu = h("button", { type: "button", class: "vc-btn btn btn-primary btn-chinh", "data-action": "luu-hang" }, "Lưu");
       const dongNut = h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary" }, "Đóng");
       luu.addEventListener("click", () => {
         const r = docSoKhachHang(x.code, o.value);

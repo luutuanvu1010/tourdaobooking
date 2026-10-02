@@ -44,6 +44,11 @@ const VAI = [
   "--c-selected-bg", "--c-selected-text", "--c-selected-border",
   "--c-tab-new-bg", "--c-tab-new-icon", "--c-band-bg", "--c-on-band", "--c-maint-bg",
   "--c-tab-active-bg", "--c-tab-active-text", "--c-fab-bg", "--c-fab-text", "--c-fab-hover-bg", "--c-avatar-bg", "--c-avatar-text",
+  // Thị giác 1.70 (đặc tả 2026-10-02-thi-giac-nen-tang-design.md): nút phụ nền nhạt, dải tóm tắt đơn đậm, ô chức năng theo nhóm, tiêu điểm / chỉ báo.
+  "--c-btn-soft-bg", "--c-btn-soft-text", "--c-btn-soft-border", "--c-btn-soft-hover-bg",
+  "--c-summary-bg", "--c-summary-bg-2", "--c-on-summary", "--c-summary-due",
+  "--c-tile-vc-bg", "--c-tile-vc", "--c-tile-toi-bg", "--c-tile-toi", "--c-tile-all-bg", "--c-tile-all",
+  "--c-focus", "--c-focus-ring", "--c-indicator", "--c-input-border", "--c-input-border-hover",
 ];
 
 test("màu theo vai: mọi token vai khai ở :root", () => {
@@ -104,6 +109,16 @@ test("màu theo vai: mọi cặp chữ/nền của thanh, nút chính, mục đa
     ["--c-fab-text", "--c-fab-bg"],
     ["--c-fab-text", "--c-fab-hover-bg"],
     ["--c-avatar-text", "--c-avatar-bg"],
+    // Thị giác 1.70: dải tóm tắt đơn là dải màu chuyển — chữ phải đọc được trên CẢ HAI đầu dải.
+    ["--c-btn-soft-text", "--c-btn-soft-bg"],
+    ["--c-btn-soft-text", "--c-btn-soft-hover-bg"],
+    ["--c-on-summary", "--c-summary-bg"],
+    ["--c-on-summary", "--c-summary-bg-2"],
+    ["--c-summary-due", "--c-summary-bg"],
+    ["--c-summary-due", "--c-summary-bg-2"],
+    ["--c-tile-vc", "--c-tile-vc-bg"],
+    ["--c-tile-toi", "--c-tile-toi-bg"],
+    ["--c-tile-all", "--c-tile-all-bg"],
   ];
   const loi = cap.map(([chu, nen]) => `${chu} trên ${nen}: ${tuongPhan(chu, nen).toFixed(2)}:1`).filter((_, i) => tuongPhan(...cap[i]!) < 4.5);
   assert.deepEqual(loi, []);
@@ -119,6 +134,54 @@ test("ô gõ: font-size đọc --fs-ui, và --fs-ui không bao giờ nhỏ hơn 
   const luatO = [...luat.matchAll(/([^{}]+)\{([^{}]*)\}/g)].find((m) => /(?:^|,)\s*input, select, textarea\s*(?:,|$)/.test(m[1]!.trim().split("\n").pop()!.trim()) && m[2]!.includes("font-size"));
   assert.ok(luatO, "không thấy luật `input, select, textarea` có font-size");
   assert.match(luatO[2]!, /font-size:\s*var\(--fs-ui\)/);
+});
+
+// Thị giác 1.70 (chủ dự án duyệt 2/10): CHỈ nút lưu / xác nhận chính đặc màu (núm "Nền/Chữ nút lưu, xác nhận" = --c-btn-primary-*);
+// mọi .btn-primary khác giữ nền nhạt (--c-btn-soft-*). Đổi bộ chọn ngữ cảnh mà quên một nơi = nút chính nhạt lại hoặc mọi nút đặc hết.
+test("nút chính đặc: nút gửi form, chân bảng trượt, Đăng nhập đọc --c-btn-primary-*; .btn-primary còn lại đọc --c-btn-soft-*", () => {
+  const luatCua = (sel: RegExp) => [...luat.matchAll(/([^{}]+)\{([^{}]*)\}/g)].filter((m) => sel.test(m[1]!.trim().split("\n").pop()!.trim())).map((m) => m[2]!);
+  const goc = luatCua(/^\.btn-primary$/);
+  assert.equal(goc.length, 1, "phải có đúng một luật gốc `.btn-primary {`");
+  assert.match(goc[0]!, /background:\s*var\(--c-btn-soft-bg\)/);
+  assert.match(goc[0]!, /color:\s*var\(--c-btn-soft-text\)/);
+  const dac = luatCua(/^\.btn-primary\[type="submit"\], \.btn-primary\.btn-chinh, \.sheet-foot \.btn-primary, \.login-actions \.login-submit$/);
+  assert.equal(dac.length, 1, "thiếu luật nút chính đặc cho bốn ngữ cảnh (nút gửi form, lớp .btn-chinh, chân bảng trượt, Đăng nhập)");
+  assert.match(dac[0]!, /background:\s*var\(--c-btn-primary-bg\)/);
+  assert.match(dac[0]!, /color:\s*var\(--c-btn-primary-text\)/);
+});
+
+// Thị giác 1.70: thẻ nhấc khi rê, nút / ô chức năng lún khi bấm. Máy đặt "Giảm chuyển động" thì tắt CẢ chuyển tiếp lẫn độ nhấc / lún
+// (luật toàn cục `* { transition: none !important }` có sẵn không gỡ transform). Mọi khối reduced-motion của app.css viết MỘT dòng.
+test("chuyển động: máy đặt Giảm chuyển động thì tắt chuyển tiếp và mọi độ nhấc / lún mới", () => {
+  const khoi = [...luat.matchAll(/^@media \(prefers-reduced-motion: reduce\) \{(.*)\}/gm)].map((m) => m[1]!);
+  assert.ok(khoi.some((k) => /transition:\s*none/.test(k)), "thiếu luật tắt chuyển tiếp khi Giảm chuyển động");
+  const tatTransform = khoi.filter((k) => /transform:\s*none/.test(k)).join(" ");
+  for (const sel of [".btn:not(:disabled):active", ".order-card:hover", ".dash-o-muc:active", "#tabbar .tab:active .tab-icon", ".dash-dai .dash-o-muc:hover"]) {
+    assert.ok(tatTransform.includes(sel), `Giảm chuyển động chưa gỡ độ nhấc / lún của ${sel}`);
+  }
+});
+
+// Kiểm độc lập thị giác 1.70 (2/10): ba lỗi thác CSS chỉ lộ khi đo trạng thái thật — canh để không tái phát.
+test("thác CSS 1.70: ô tích giữ khung tiêu điểm, nút Vận chuyển khoá vẫn xám, ô Đăng nhập cùng viền ô nhập", () => {
+  const bang = [...luat.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((m) => [m[1]!.trim().split("\n").pop()!.trim(), m[2]!] as const);
+  // TB-1: luật bỏ khung (outline: 0) của ô đang gõ không được áp vào ô tích / ô chọn một (chúng chỉ có khung 2px của :focus-visible chung).
+  const boKhung = bang.filter(([sel, than]) => /:focus\b/.test(sel) && /outline:\s*(?:0|none)\b/.test(than) && /(?:^|,\s*)input(?::not\([^)]*\))*:focus/.test(sel));
+  assert.ok(boKhung.length > 0, "không thấy luật tiêu điểm của ô gõ");
+  for (const [sel] of boKhung) {
+    for (const phan of sel.split(",").map((x) => x.trim()).filter((x) => /^input\b/.test(x))) {
+      assert.ok(phan.includes(':not([type="checkbox"])') && phan.includes(':not([type="radio"])'), `luật bỏ khung tiêu điểm áp cả ô tích / ô chọn một: ${phan}`);
+    }
+  }
+  // TB-2: kiểu "nhạt khi khoá" của nút chính đặc chừa .vc-btn; .vc-btn:disabled tắt bóng của nút đặc.
+  const nhatKhiKhoa = bang.find(([sel]) => sel.startsWith(':is(.btn-primary[type="submit"]') && sel.includes(":disabled"));
+  assert.ok(nhatKhiKhoa && nhatKhiKhoa[0].includes(":not(.vc-btn)"), "luật nhạt-khi-khoá của nút chính đặc phải chừa .vc-btn");
+  const vcKhoa = bang.find(([sel]) => sel === ".vc-btn:disabled");
+  assert.ok(vcKhoa && /box-shadow:\s*none/.test(vcKhoa[1]), ".vc-btn:disabled phải tắt bóng của nút đặc");
+  // TB-3: ô Đăng nhập dùng cùng viền ô nhập và cùng màu tiêu điểm như mọi ô.
+  const oDangNhap = bang.find(([sel]) => sel === ".login-field input");
+  assert.ok(oDangNhap && /border:\s*1px solid var\(--c-input-border\)/.test(oDangNhap[1]), "ô Đăng nhập phải viền var(--c-input-border)");
+  const oDangNhapGo = bang.find(([sel]) => sel.startsWith(".login-field input:focus"));
+  assert.ok(oDangNhapGo && /border-color:\s*var\(--c-focus\)/.test(oDangNhapGo[1]) && /var\(--c-focus-ring\)/.test(oDangNhapGo[1]), "ô Đăng nhập đang gõ phải theo --c-focus / --c-focus-ring");
 });
 
 // Núm "Độ đậm chữ nội dung" chỉ có tác dụng nếu chữ gốc của trang đọc --fw-regular (viết tắt `font:` đặt lại độ đậm về thường).
