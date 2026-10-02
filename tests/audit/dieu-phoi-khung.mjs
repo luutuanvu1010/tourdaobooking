@@ -65,6 +65,7 @@ export function xe(w, cho = 15) {
 export function nhaXeKhung(w, ten = "Nhà xe Hùng Phát") {
   const id = uuid();
   w.sqlite.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES (?, 'ORGANIZATION', ?, 1, ?, ?)").run(id, ten, AT, AT);
+  w.sqlite.prepare("INSERT INTO pty_organization (party_id, legal_name, created_at, updated_at) VALUES (?, ?, ?, ?)").run(id, ten, AT, AT); // R-N1-2
   w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, location_id, valid_from_date, created_at, updated_at) VALUES (?, ?, 'CARRIER', NULL, '2026-09-01', ?, ?)").run(uuid(), id, AT, AT);
   return id;
 }

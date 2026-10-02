@@ -17,6 +17,7 @@ let r;
 // --- Nền: nhà xe đối tác đang hợp tác (hồ sơ tổ chức + vai CARRIER) ---
 const nx = uuid();
 await sql(`INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES ('${nx}', 'ORGANIZATION', 'Nhà xe E2E ${duoi}', 1, '${AT}', '${AT}')`);
+await sql(`INSERT INTO pty_organization (party_id, legal_name, created_at, updated_at) VALUES ('${nx}', 'Nhà xe E2E ${duoi}', '${AT}', '${AT}')`); // R-N1-2: tổ chức có pty_organization
 await sql(`INSERT INTO pty_party_role (id, party_id, role_type_code, location_id, valid_from_date, created_at, updated_at) VALUES ('${uuid()}', '${nx}', 'CARRIER', NULL, '2026-09-01', '${AT}', '${AT}')`);
 
 // --- (1) T1 ---
