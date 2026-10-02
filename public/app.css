@@ -465,6 +465,10 @@
   --grad-gloss: linear-gradient(180deg, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0) 100%); /* độ bóng nhẹ của ô chức năng */
   --grad-brand: linear-gradient(120deg, var(--c-primary) 0%, var(--c-lagoon-strong) 100%);   /* viên ngày đang chọn (chữ trắng ≥ 7:1 cả hai đầu) */
   --grad-brand-v: linear-gradient(180deg, var(--c-lagoon) 0%, var(--c-primary) 100%);        /* cột biểu đồ hôm nay (không có chữ) */
+  /* Ảnh biên nhận gửi khách (web/confirmation-image.ts đọc token lúc vẽ) GIỮ nền phụ / viền CŨ: ngoài phạm vi thị giác 1.69 (đặc tả §5) và ngoài phạm vi núm
+     Giao diện (ADR-0087 điều 7) — đổi nền trang / viền của Nền tảng không làm đổi ảnh gửi khách. */
+  --c-receipt-surface-alt: #eaf2f8;
+  --c-receipt-border: #d3e1ec;
   --c-tabbar-glass: rgba(255, 255, 255, 0.86);   /* thanh tab điện thoại mờ kính */
   --blur-glass: saturate(180%) blur(16px);
   /* Dải tóm tắt đầu trang chi tiết đơn: dải màu biển đậm → ngọc đậm. Chữ phải đọc được trên CẢ HAI đầu dải (src/token-giao-dien.test.ts). Vàng "Còn lại":

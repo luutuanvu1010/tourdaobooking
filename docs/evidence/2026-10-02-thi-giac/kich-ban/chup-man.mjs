@@ -122,6 +122,32 @@ try {
       try { p?.close(); } catch { /* đã đóng */ }
     }
   };
+  // BANG=1: chụp thêm BẢNG TRƯỢT đang mở (bảng Lọc đơn ở /orders, bảng "Sửa thông tin chuyến" ở chi tiết đơn) — nút chính ở chân bảng (.sheet-foot .btn-primary).
+  if (process.env.BANG) {
+    for (const [kho, vp] of Object.entries(KHO)) {
+      for (const [ten, duong, nut] of [["bang-loc", "/orders", "Lọc"], ["bang-chuyen", `/order?id=${d1.id}`, "Sửa thông tin chuyến"]].filter(([t]) => !process.env.BANG_CHI || process.env.BANG_CHI.split(",").includes(t))) {
+        let p;
+        try {
+          p = await hanGio(env.as(ACCOUNTS.chu, duong, vp), 30000, `mở ${duong}`);
+          await sleep(2000);
+          // Nút "Lọc" có kèm số điều kiện trong chữ (.loc-mo) → so ĐẦU chữ; nút khác so đúng chữ.
+          const bam = await p.ev(`(() => { const b = [...document.querySelectorAll('button')].find((x) => x.offsetParent !== null && (x.textContent.trim() === ${JSON.stringify(nut)} || (x.classList.contains('loc-mo') && x.textContent.trim().startsWith(${JSON.stringify(nut)})))); if (!b) return false; b.click(); return true; })()`);
+          if (!bam) throw new Error(`không thấy nút "${nut}"`);
+          await p.waitFor("!!document.querySelector('.sheet-root.open .sheet-foot')", `bảng trượt ${ten} mở`);
+          await sleep(700);
+          const r = await hanGio(p.send("Page.captureScreenshot", { format: "png" }), 30000, `chụp ${ten}`);
+          mkdirSync(join(OUT, "bang"), { recursive: true });
+          (await import("node:fs")).writeFileSync(join(OUT, "bang", `${kho}-${ten}.png`), Buffer.from(r.result.data, "base64"));
+          const nutDac = await p.ev("[...document.querySelectorAll('.sheet-root.open .sheet-foot .btn')].map((b) => b.textContent.trim() + ' = ' + getComputedStyle(b).backgroundColor)");
+          console.log(`✓ bảng ${kho}-${ten}: ${JSON.stringify(nutDac)}`);
+        } catch (e) {
+          console.log(`✗ bảng ${kho}-${ten}: ${e.message}`);
+        } finally {
+          try { p?.close(); } catch { /* đã đóng */ }
+        }
+      }
+    }
+  }
   const TIEU_BIEU = new Set(["trang-chu", "don-hang", "chi-tiet-don", "lap-don", "toi"]);
   for (const [ban, css] of Object.entries(BAN)) {
     const thuMuc = ban ? join(OUT, ban) : OUT;
