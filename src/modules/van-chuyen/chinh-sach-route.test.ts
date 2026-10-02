@@ -254,10 +254,11 @@ test("TC-2 route 16–18 danh mục lý do: Quản trị thêm → 201; Bán hà
   assert.equal((await w.call("PUT", "/api/van-chuyen/ly-do/PHA_LE_SU_CO", { as: ADM, body: { label: "x", sortOrder: 1, active: true, expectedUpdatedAt: moc, group: "HUY_CHUYEN" } })).status, 400);
 });
 
-test("R-P22 (điều phối 29/9 đêm, siết): mã lý do HỆ THỐNG (máy tự dùng — BO_QUA_KHONG_CON_KHACH) KHÔNG ngưng được → 409 ly_do_he_thong, không ghi, không nhật ký; sửa nhãn / thứ tự vẫn được; DTO có cờ heThong đúng một mã", async () => {
+test("R-P22 (điều phối 29/9 đêm, siết): mã lý do HỆ THỐNG (máy tự dùng — BO_QUA_KHONG_CON_KHACH) KHÔNG ngưng được → 409 ly_do_he_thong, không ghi, không nhật ký; sửa nhãn / thứ tự vẫn được; DTO có cờ heThong đúng các mã hệ thống", async () => {
   const w = setup();
   const ds = (await w.call("GET", "/api/van-chuyen/ly-do", { as: ADM })).json.reasons;
-  assert.deepEqual(ds.filter((x: any) => x.heThong).map((x: any) => x.code), ["BO_QUA_KHONG_CON_KHACH"]);
+  // + hai mã đảo tự động của chi phí xe thuê (ADR-0057 T2 — kế hoạch Đợt 4 TC-6).
+  assert.deepEqual(ds.filter((x: any) => x.heThong).map((x: any) => x.code).sort(), ["BO_QUA_KHONG_CON_KHACH", "CPX_DOI_CHUYEN", "CPX_HUY_CHUYEN"]);
   const moc = w.q("SELECT updated_at u FROM vc_reason WHERE code = 'BO_QUA_KHONG_CON_KHACH'")[0].u;
   const n0 = soNhatKy(w);
   const ngung = await w.call("PUT", "/api/van-chuyen/ly-do/BO_QUA_KHONG_CON_KHACH", { as: ADM, body: { label: "Không còn khách", sortOrder: 1, active: false, expectedUpdatedAt: moc } });

@@ -5,6 +5,7 @@ import {
   LY_DO_SUA_SAI, TRANG_THAI_XE, isLyDoSuaSai, isTrangThaiXe, kiemNgayCap, kiemNgayHetHan, soNgayConLai, type LyDoSuaSai, type TrangThaiXe,
 } from "../../shared/giay-to.ts";
 import { PARTY_ID_RE } from "../../shared/party-id.ts";
+import { MA_GIU } from "../../shared/ly-do-giu.ts";
 import { isISODate } from "../../shared/vn-date.ts";
 
 export type Result<T> = { ok: true; value: T } | { ok: false; message: string };
@@ -156,9 +157,20 @@ export function loiRangBuocChuyen(message: string): { status: number; code: stri
   if (/UNIQUE constraint failed: vc_trip_allocation\.leg_id|UNIQUE constraint failed: vc_trip\.vehicle_id|UNIQUE constraint failed: vc_trip_driver\.trip_id/.test(message)) {
     return { status: 409, code: "trip_rule", message: CAU_LUAT_CHUYEN };
   }
+  // ADR-0057 T2 (0073): cổng thiếu giá, tổng âm, vai nhà xe khi đặt giá, chi phí đổi giữa lúc đọc và lúc ghi — TRƯỚC dòng CHECK chung.
+  if (/\bthieu_gia:/.test(message)) return { status: 409, code: "thieu_gia", message: MA_GIU.THIEU_GIA.loiNhan };
+  if (/\bvc_cost_total_negative:/.test(message)) return { status: 409, code: "tong_am", message: CAU_TONG_AM };
+  if (/\bvc_cost_source_carrier:/.test(message)) return { status: 409, code: "carrier_inactive", message: CAU_NHA_XE_THOI };
+  if (/\bvc_cost_(one_source|planned_only|reversal|append_only|reason|snapshot_rate):|\bvc_rented_|\bvc_route_locked|\bvc_trip_insert_planned|UNIQUE constraint failed: vc_trip_cost_line\.reverses_id/.test(message)) {
+    return { status: 409, code: "chi_phi_vua_doi", message: CAU_CHI_PHI_VUA_DOI };
+  }
   if (/CHECK constraint failed/.test(message)) return { status: 409, code: "trip_rule", message: CAU_LUAT_CHUYEN };
   return null;
 }
+/** ADR-0057 C4 — nguyên văn: đổi tuyến / xe trên chuyến của nhà xe đã thôi hợp tác. */
+export const CAU_NHA_XE_THOI = "Nhà xe này đã thôi hợp tác nên máy không tính lại giá được. Hãy chọn xe của nhà xe khác, hoặc giữ tuyến cũ.";
+export const CAU_TONG_AM = "Tổng chi phí chuyến sẽ âm — đảo điều chỉnh giảm trước.";
+export const CAU_CHI_PHI_VUA_DOI = "Chi phí chuyến vừa thay đổi — tải lại rồi thử lại.";
 
 // ---- Giấy tờ XE (Task A14) — khuôn giấy tờ của người (parties/giay-to.ts), KHÁC ở ba chỗ: không CCCD / không hạng / không nơi cấp; không che số (giấy tờ xe
 // không phải dữ liệu cá nhân — giả định G4); chỉ lý do sửa sai `choXe`. Luật ngày chung ở src/shared/giay-to.ts. Nhật ký vẫn KHÔNG ghi số (một luật chung).

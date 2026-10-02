@@ -51,6 +51,9 @@ export const MA_GIU = {
   GPLX_HET_HAN: { loiNhan: "Giấy phép lái xe hết hạn trước khi chuyến kết thúc", aiXuLy: "QUAN_TRI" },
   DIEU_KIEN_GIAY_TO_XE: { loiNhan: "Xe thiếu hoặc hết hạn giấy tờ bắt buộc", aiXuLy: "QUAN_TRI" },
   DIEU_KIEN_GIAY_TO_TAI_XE: { loiNhan: "Tài xế thiếu hoặc hết hạn giấy tờ bắt buộc", aiXuLy: "QUAN_TRI" },
+  // ADR-0057 C5 (chủ lần 18 "chưa có giá thì không được chạy"): chuyến xe thuê chưa có giá bảng đã chụp / giá thoả thuận — KHÔNG ai phá lệ (không thuộc
+  // MA_LUAT_PHA_LE). aiXuLy giữ tập đóng AI_XU_LY (G-T5): Quản trị; lời nhắn nói rõ Kế toán cũng làm được. Không kèm số tiền (G-T4).
+  THIEU_GIA: { loiNhan: "Chuyến xe thuê chưa có giá — Quản trị hoặc Kế toán nhập giá bảng hoặc giá thoả thuận", aiXuLy: "QUAN_TRI" },
   // Luật cấu hình — cần phá lệ (Quản trị, Toàn quyền) hoặc giữ vì nghỉ chưa đủ lúc xuất bến
   MOC_TOI_THIEU: { loiNhan: "Trong mốc tối thiểu trước giờ xuất bến — cần Quản trị phá lệ", aiXuLy: "QUAN_TRI" },
   KHOANG_NGHI: { loiNhan: "Chưa đủ khoảng nghỉ giữa hai chuyến — cần Quản trị phá lệ", aiXuLy: "QUAN_TRI" },

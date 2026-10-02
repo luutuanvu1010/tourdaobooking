@@ -315,6 +315,8 @@ export function kiemXuatBen(v: KiemXuatBenVao): KetQuaXuatBen {
     if (lai.gplx) muc.push({ ...mucRong, loai: "GPLX", personDocumentId: lai.gplx.rowId, documentTypeCode: LOAI_CO_DINH.GPLX, licenseClassCode: lai.gplx.classCode, expiryDate: lai.gplx.expiryDate });
     if (!khongCheo(c.xe, c.taiXe)) lyDo.push(lyDoGiu("CHEO_XE_TAI_XE"));
   }
+  // ADR-0057 C5: chuyến xe thuê phải có nguồn giá (giá bảng đã chụp hoặc giá thoả thuận) — không ai phá lệ (lớp CSDL: trigger vc_trip_thieu_gia).
+  if (c.thue && !c.coNguonGia) lyDo.push(lyDoGiu("THIEU_GIA", c.ma));
   // Điều kiện xuất bến đang hiệu lực, áp cho xe từ minCapacity chỗ.
   for (const dk of v.dieuKien.filter((d) => c.xe.soCho >= d.minCapacity)) {
     if (dk.subject === "VEHICLE") {
