@@ -1,6 +1,6 @@
 # Lượt duyệt 2 — ADR-0088 sửa sai sau "Đã giao" (I1 đúng mọi lúc, phân định trách nhiệm) + ADR-0092 sổ không đổi dấu, điều chỉnh có kiểm soát
 
-> **Trạng thái:** **NHÁP bản 3.1, chờ chủ dự án duyệt văn bản và trả lời Q-A1, Q-A2, QT1, QT2, QT3, QT4.** Bản 3.1 (2/10) sửa theo phiếu kiểm độc lập bản 3: I1 trừ giảm trừ đã phân định; T7 gắn nợ theo đơn; dọn chữ phí huỷ. Bản 3 (2/10): Q-A3 và Q-A5 đã có lời chủ; Q-A5 thành đ9 (bảng phân định trách nhiệm); đ7 phí huỷ của ADR-0092 bỏ.
+> **Trạng thái:** **NHÁP bản 3.2** — QT1–QT4 (bảng trách nhiệm) **đã có lời chủ** 2/10 ("7- ok"). **Còn chờ** Q-A1, Q-A2 và duyệt văn bản. Bản 3.1 (2/10) sửa theo phiếu kiểm độc lập bản 3: I1 trừ giảm trừ đã phân định; T7 gắn nợ theo đơn; dọn chữ phí huỷ. Bản 3 (2/10): Q-A3 và Q-A5 đã có lời chủ; Q-A5 thành đ9 (bảng phân định trách nhiệm); đ7 phí huỷ của ADR-0092 bỏ.
 > - Chủ đã chọn nguyên tắc ngày 2026-10-02 (câu 2 "Luôn luôn").
 > - Bản 1 bị người duyệt độc lập kết luận "chưa nên duyệt" (`2026-10-02-phieu-duyet-doc-lap-luot-A-tien.md`). Bản này sửa theo phiếu; mã sửa ghi trong ngoặc.
 >
@@ -107,7 +107,7 @@ Câu đã hỏi: "Bất biến 'đã thu = phải thu' xét tại mốc Đã gia
   - Cùng lô, ghi **dòng nợ "bên chịu → công ty"** đúng số đó. Ngoại lệ T10: bên chịu là công ty, nên không có dòng nợ.
   - I1 so với `due_snapshot` − giảm trừ. **Không** dùng "lần thu giả" (phiếu kiểm bản 3, A1).
 
-**Bảng phân định** (chủ xác nhận từng dòng, QT1):
+**Bảng phân định** — **chủ đã duyệt** (chat 2026-10-02, câu 7: "ok", trả lời cho "Bảng 11 trường hợp trách nhiệm … Quản trị hoặc Toàn quyền phân định, người bị gán có 3 ngày làm việc để phản hồi"). Vì vậy QT1, QT2, QT3 đã có lời chủ. QT4 nằm trong dòng T11 của bảng, nên được tính là đã duyệt cùng bảng.
 
 | # | Trường hợp | Bên chịu (mặc định) | Ghi thế nào | Ví dụ đã chạy thật |
 |---|---|---|---|---|
