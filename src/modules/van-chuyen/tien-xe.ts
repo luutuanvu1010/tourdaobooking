@@ -63,8 +63,9 @@ export function thuTuDaoTatCa(dong: readonly DongChiPhi[]): DongChiPhi[] {
 }
 /**
  * DÒNG NÀO BỊ ĐẢO khi lô chuyến tính lại (đổi xe / nhà xe / tuyến / ngày chạy — "DOI_CHUYEN") hoặc huỷ chuyến ("HUY_CHUYEN") — MỘT chỗ quyết (vòng sửa 3, H1).
- * Hiện: MỌI dòng còn hiệu lực theo `thuTuDaoTatCa` (ADR-0057 C4), KỂ CẢ "Phí huỷ muộn" đã ghi cho nhà xe cũ trên chuyến đã đổi sang xe công ty — ADR-0095
- * Q5 chưa nói ⇒ CHỜ CHỦ (H1). Chủ chọn giữ phí đó thì đổi Ở ĐÂY (+ R-VC-COST-4); bài ghim: tien-xe.test.ts "dongBiDaoKhi", tien-xe-route.test.ts "H1".
+ * MỌI dòng còn hiệu lực theo `thuTuDaoTatCa` (ADR-0057 C4), KỂ CẢ "Phí huỷ muộn" đã ghi cho nhà xe cũ trên chuyến đã đổi sang xe công ty — ADR-0095 Q5b
+ * (chủ chọn E1): Kế toán ghi lại nếu vẫn phải trả; cảnh báo R-VC-COST-8 liệt kê phí bị đảo tự động chưa ghi lại. Luật đổi thì đổi Ở ĐÂY (+ R-VC-COST-4);
+ * bài ghim: tien-xe.test.ts "dongBiDaoKhi", tien-xe-route.test.ts "H1" + "4.7 — GHIM".
  */
 export function dongBiDaoKhi(dong: readonly DongChiPhi[], _khi: "DOI_CHUYEN" | "HUY_CHUYEN"): DongChiPhi[] {
   return thuTuDaoTatCa(dong);

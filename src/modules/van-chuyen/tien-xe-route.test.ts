@@ -735,7 +735,7 @@ test("Vòng sửa 2 (4.7) — GHIM hành vi hiện tại (Cần chủ): phí hu�
   }
 });
 
-test("H1 (vòng sửa 3 — GHIM hành vi hiện tại, chờ chủ): phí huỷ muộn cho nhà xe cũ trên chuyến xe công ty BỊ ĐẢO khi đổi sang xe công ty khác / dời ngày chạy / đổi tuyến (đường huỷ: bài 4.7 GHIM ở trên)", async () => {
+test("H1 (vòng sửa 3; ADR-0095 Q5b — chủ chọn E1): phí huỷ muộn cho nhà xe cũ trên chuyến xe công ty BỊ ĐẢO khi đổi sang xe công ty khác / dời ngày chạy / đổi tuyến (đường huỷ: bài 4.7 GHIM ở trên)", async () => {
   const tat = batDongHo();
   try {
     const w = setup();
@@ -759,9 +759,16 @@ test("H1 (vòng sửa 3 — GHIM hành vi hiện tại, chờ chủ): phí huỷ
     const sc = await sua(w, c, { tuyen: n.dl });
     assert.equal(sc.status, 200, `đổi tuyến: ${sc.text}`);
     for (const [id, ten] of [[a, "đổi xe công ty khác"], [b, "dời ngày"], [c, "đổi tuyến"]] as const) {
-      assert.equal(daoPhi(id), 1, `${ten}: phí huỷ cho nhà xe cũ hiện BỊ đảo (dongBiDaoKhi) — đổi khi chủ chọn H1`);
+      assert.equal(daoPhi(id), 1, `${ten}: phí huỷ cho nhà xe cũ BỊ đảo theo luật chung (ADR-0095 Q5b — chủ chọn E1; dongBiDaoKhi)`);
       assert.equal(tongCp(w, id), 0, ten);
     }
+    // Q5b: kiểm định cảnh báo R-VC-COST-8 thấy đủ 3 phí huỷ bị đảo tự động chưa ghi lại; Kế toán ghi lại một chuyến → còn 2.
+    const { CHECKS } = (await import(new URL("../../../scripts/audit-checks.mjs", import.meta.url).href)) as { CHECKS: { code: string; sql: string }[] };
+    const c8 = CHECKS.find((x) => x.code === "R-VC-COST-8")!;
+    const dem8 = () => Number(Object.values(w.q(c8.sql)[0])[0]);
+    assert.equal(dem8(), 3);
+    assert.equal((await ghiCp(w, c, "dieu-chinh", { soTien: 300_000, lyDo: "CPX_HUY_MUON", ghiChu: null })).status, 201);
+    assert.equal(dem8(), 2);
   } finally {
     tat();
   }

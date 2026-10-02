@@ -645,6 +645,21 @@ export const CHECKS = [
     note: "cảnh báo (chấp nhận ồn): có thể là xe của nhà xe đã thôi hợp tác bị xếp như xe công ty, hoặc xe của công ty chủ cũ — Quản trị xem",
   },
 
+  // ADR-0095 Q5b (chủ chọn E1, 2/10): phí huỷ của nhà xe cũ VẪN bị lô lệnh chuyến đảo theo luật chung (đổi xe / dời ngày / đổi tuyến / huỷ — `dongBiDaoKhi`);
+  // Kế toán ghi lại nếu vẫn phải trả. Kiểm này để KHÔNG MẤT NỢ ÂM THẦM: dòng "Phí huỷ muộn" mang nhà xe khác chủ xe hiện tại, bị đảo TỰ ĐỘNG (dòng đảo do lô
+  // lệnh: dấu lệnh ≠ id dòng — cùng nghĩa cờ `tuDong` của màn chi phí), mà SAU lúc đảo chưa có dòng "Phí huỷ muộn" mới cho cùng nhà xe trên chuyến đó.
+  {
+    code: "R-VC-COST-8",
+    what: "phí huỷ muộn của nhà xe cũ bị đảo tự động khi đổi / huỷ chuyến mà chưa ghi lại (ADR-0095 Q5b)",
+    sql: `SELECT count(*) FROM vc_trip_cost_line l JOIN vc_trip t ON t.id = l.trip_id
+          JOIN vc_trip_cost_line r ON r.reverses_id = l.id AND r.kind = 'REVERSAL' AND r.cmd_id <> r.id
+          WHERE l.kind = 'ADJUSTMENT' AND l.reason_code = 'CPX_HUY_MUON' AND l.carrier_party_id <> t.carrier_party_id
+            AND NOT EXISTS (SELECT 1 FROM vc_trip_cost_line m WHERE m.trip_id = l.trip_id AND m.kind = 'ADJUSTMENT' AND m.reason_code = 'CPX_HUY_MUON'
+                            AND m.carrier_party_id = l.carrier_party_id AND m.id <> l.id AND m.created_at >= r.created_at)`,
+    level: "warn",
+    note: "cảnh báo (không chặn phát hành): Kế toán xem chuyến — nếu vẫn phải trả nhà xe cũ thì ghi lại Phí huỷ muộn",
+  },
+
   // ---- Người phụ trách đơn (ADR-0006 điều 3, ADR-0009). Migration 0014 trở lên: trên D1 chưa có 0014 các câu dưới lỗi "no such table" → script thoát mã 2. ----
   // R-DSP-1: chỉ mục duy nhất một phần đã chặn ở CSDL; kiểm này bắt trường hợp chỉ mục bị gỡ/sửa nhầm.
   {

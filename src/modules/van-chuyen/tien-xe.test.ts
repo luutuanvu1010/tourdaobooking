@@ -153,11 +153,11 @@ test("dieuChinhDuoc (ADR-0095 Q5, vòng sửa 2 4.7): xe thuê / đã huỷ ⇒ 
   assert.equal(dieuChinhDuoc({ rented: 0, trangThai: "RUNNING", lyDo: "CPX_PHU_THU_CHO" }), false);
 });
 
-test("dongBiDaoKhi (vòng sửa 3, H1 — GHIM, chờ chủ): đổi chuyến / huỷ chuyến đảo MỌI dòng còn hiệu lực, KỂ CẢ phí huỷ muộn cho nhà xe cũ; thứ tự âm trước dương sau", () => {
+test("dongBiDaoKhi (vòng sửa 3, H1 — ADR-0095 Q5b, chủ chọn E1): đổi chuyến / huỷ chuyến đảo MỌI dòng còn hiệu lực, KỂ CẢ phí huỷ muộn cho nhà xe cũ; thứ tự âm trước dương sau", () => {
   const dong: DongChiPhi[] = [
     D("s", "SNAPSHOT", 1_200_000), D("r", "REVERSAL", -1_200_000, "s"), { ...D("p", "ADJUSTMENT", 300_000), reasonCode: "CPX_HUY_MUON" }, D("a", "ADJUSTMENT", -50_000),
   ];
   for (const khi of ["DOI_CHUYEN", "HUY_CHUYEN"] as const) {
-    assert.deepEqual(dongBiDaoKhi(dong, khi).map((d) => d.id), ["a", "p"], `${khi}: phí huỷ cho nhà xe cũ (p) hiện BỊ đảo — đổi luật ở dongBiDaoKhi khi chủ chọn`);
+    assert.deepEqual(dongBiDaoKhi(dong, khi).map((d) => d.id), ["a", "p"], `${khi}: phí huỷ cho nhà xe cũ (p) BỊ đảo theo luật chung (Q5b)`);
   }
 });

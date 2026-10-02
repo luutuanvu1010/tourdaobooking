@@ -1909,13 +1909,14 @@ test("R-VC-RATE-1 (ADR-0057 B4): nhà xe đang hợp tác có giá mở → 0; t
 // vc_trip_cost_line) để gieo vi phạm như SQL gõ tay trên D1.
 // ---------------------------------------------------------------------------------------------------------------------
 let soCp = 0;
-function cpTho(db: DatabaseSync, o: { trip: string; kind: string; amount: number; reverses?: string | null; reason?: string | null; at?: string; carrier?: string; cmd?: string }): string {
-  const id = `cp-${++soCp}`;
+function cpTho(db: DatabaseSync, o: { trip: string; kind: string; amount: number; reverses?: string | null; reason?: string | null; at?: string; carrier?: string; cmd?: string; tay?: boolean }): string {
+  // `tay`: dòng do Kế toán ghi tay — id = dấu lệnh (khuôn route chi phí; R-VC-COST-8 phân biệt đảo tay / đảo do lô lệnh).
+  const id = o.tay ? crypto.randomUUID() : `cp-${++soCp}`;
   const snap = o.kind === "SNAPSHOT";
   db.prepare(`INSERT INTO vc_trip_cost_line (id, trip_id, carrier_party_id, kind, amount, rate_id, passenger_capacity_snapshot, unit_amount_snapshot, reason_code, reverses_id,
       occurred_date, cmd_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '2026-09-21', ?, ?, ?)`)
     .run(id, o.trip, o.carrier ?? "p-nx", o.kind, o.amount, snap ? "rate-1" : null, snap ? 16 : null, snap ? o.amount : null,
-      o.reason === undefined ? (snap ? null : o.kind === "AGREED" ? "CPX_GIA_THOA_THUAN" : "CPX_KHAC") : o.reason, o.reverses ?? null, o.cmd ?? "c".repeat(36), o.at ?? T2, o.at ?? T2);
+      o.reason === undefined ? (snap ? null : o.kind === "AGREED" ? "CPX_GIA_THOA_THUAN" : "CPX_KHAC") : o.reason, o.reverses ?? null, o.tay ? id : (o.cmd ?? "c".repeat(36)), o.at ?? T2, o.at ?? T2);
   return id;
 }
 const thue = (db: DatabaseSync, trip: string) => db.prepare("UPDATE vc_trip SET rented = 1 WHERE id = ?").run(trip);
@@ -2049,4 +2050,26 @@ test("vòng sửa 3: MỘT mốc huỷ — R-VC-COST-4 và ngày huỷ mặc đ�
   assert.match(sql4, /SELECT e\.id, e\.created_at FROM vc_trip_event e WHERE e\.trip_id = t\.id AND e\.kind = 'CANCELLED' ORDER BY e\.created_at DESC LIMIT 1/);
   const repo = readFileSync(new URL("./modules/van-chuyen/tien-xe-repo.ts", import.meta.url), "utf8");
   assert.match(repo, /"vc_trip_cancelled_at", "SELECT created_at FROM vc_trip_event WHERE trip_id = \?1 AND kind = 'CANCELLED' ORDER BY created_at DESC LIMIT 1"/);
+});
+
+test("R-VC-COST-8 (ADR-0095 Q5b, warn): phí huỷ muộn của nhà xe cũ bị lô lệnh ĐẢO TỰ ĐỘNG mà chưa ghi lại cho cùng nhà xe → 1; ghi lại sau đó → 0; đảo TAY → 0", () => {
+  const c = one("R-VC-COST-8");
+  assert.equal(c.level, "warn");
+  const db = tho();
+  const L = (h: number) => `2026-09-21T${String(h).padStart(2, "0")}:00:00.000Z`;
+  const t = chuyenTho(db, { carrier: "p-cty" });
+  const s = cpTho(db, { trip: t, kind: "SNAPSHOT", amount: 1_200_000, at: L(1) });
+  cpTho(db, { trip: t, kind: "REVERSAL", amount: -1_200_000, reverses: s, at: L(2) });
+  const ph = cpTho(db, { trip: t, kind: "ADJUSTMENT", amount: 300_000, reason: "CPX_HUY_MUON", at: L(3), tay: true });
+  assert.equal(violations(db, c), 0, "phí huỷ còn hiệu lực");
+  cpTho(db, { trip: t, kind: "REVERSAL", amount: -300_000, reverses: ph, reason: "CPX_DOI_CHUYEN", at: L(4) }); // dấu lệnh ≠ id dòng ⇒ đảo do lô lệnh
+  assert.equal(violations(db, c), 1, "đảo tự động, chưa ghi lại");
+  cpTho(db, { trip: t, kind: "ADJUSTMENT", amount: 300_000, reason: "CPX_HUY_MUON", at: L(5), tay: true });
+  assert.equal(violations(db, c), 0, "Kế toán đã ghi lại phí huỷ cho cùng nhà xe");
+  const t2 = chuyenTho(db, { carrier: "p-cty" });
+  const s2 = cpTho(db, { trip: t2, kind: "SNAPSHOT", amount: 1_000_000, at: L(1) });
+  cpTho(db, { trip: t2, kind: "REVERSAL", amount: -1_000_000, reverses: s2, at: L(2) });
+  const ph2 = cpTho(db, { trip: t2, kind: "ADJUSTMENT", amount: 200_000, reason: "CPX_HUY_MUON", at: L(3), tay: true });
+  cpTho(db, { trip: t2, kind: "REVERSAL", amount: -200_000, reverses: ph2, reason: "CPX_NHAP_SAI", at: L(4), tay: true }); // đảo TAY: dấu lệnh = id dòng
+  assert.equal(violations(db, c), 0, "Kế toán tự đảo (nhập sai) — không cảnh báo");
 });
