@@ -61,12 +61,12 @@ Hai luồng song song, mỗi luồng một phiên.
 - [x] 🤖 L6 H2 phủ route + tệp miễn — 2026-10-02 `7b9899ea`, H2 quan sát chặn
 - [x] 🤖 L7 `Location` cho route 201 + H7 — 2026-10-02 `8280c626`, e2e 43/43
 - [x] 🤖 L8 mô-đun vòng đời vé + H4 (không nuốt lần ghi thật thứ hai) — 2026-10-02 `7b9899ea`
-- [ ] 🤖 L9 `web/api.ts` gửi vé; sửa `dieu-phoi-ui.ts:32`; H3
-- [ ] 🤖 L10 e2e tự gắn vé
-- [ ] 🤖 L11 T12: kịch bản 11, 12, 13, HD10 (nhánh "Ghi lần thu"), KT03, KT04 **bản có vé** trong `tests/e2e/`
-- [ ] 🤖 L12 H5 đo ghi nhiều lần; trả nợ `demThanCu` (T17)
+- [x] 🤖 L9 `web/api.ts` gửi vé; sửa `dieu-phoi-ui.ts:32`; H3 — 2026-10-02 `0773725c`, Chrome `lop-ve-smoke` 4/4
+- [x] 🤖 L10 e2e tự gắn vé — 2026-10-02
+- [x] 🤖 L11 T12: kịch bản 11, 12, 13, HD10 (nhánh "Ghi lần thu"), KT03, KT04 **bản có vé** trong `tests/e2e/` — 2026-10-02 `tests/e2e/chong-ghi-trung.mjs`, e2e 45/45
+- [x] 🤖 L12 H5 đo ghi nhiều lần; trả nợ `demThanCu` (T17) — 2026-10-02, kèm 3 chỗ cùng loại ở `auth`; H5 quan sát chặn
 - [x] 🤖 L13 cổng kiểm khoá trong `npm run trien-khai` — 2026-10-02 `7b9899ea` (quan sát bằng hàm giả)
-- [ ] 🤖 L14 tài liệu (`SYSTEM-DESIGN`, `CHANGE-GUIDE`, sổ hàng rào)
+- [x] 🤖 L14 tài liệu (`SYSTEM-DESIGN`, `CHANGE-GUIDE`, sổ hàng rào) — 2026-10-02; đề xuất sửa luật chờ chủ
 - [ ] 🔍 L15 kiểm độc lập vòng 2: ĐẠT (nếu tới **12/10** chưa đạt → báo chủ)
 - [ ] 👤 L16 🚀 phát hành luồng L (khoá đã có; cổng L13 xác nhận)
 - [ ] 🤖 chạy lại T12 trên bản thử sau phát hành → **xoá mục F-02** khỏi sổ (đóng theo A-9) + dòng lịch sử

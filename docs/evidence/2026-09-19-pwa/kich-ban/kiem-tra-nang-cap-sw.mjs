@@ -15,7 +15,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const build = () => execSync("npm run build:web", { cwd: ROOT, stdio: "ignore" });
 async function startServer() {
   // PASSKEY_RP_ID/PASSKEY_ORIGIN rỗng = TẮT Face ID (B-22): không ghi đè thì `vars` production của wrangler.jsonc lọt vào, hiện nút Face ID và gửi thêm một POST mỗi lần mở trang.
-  const child = spawn("npx", ["wrangler", "dev", "--port", String(PORT), "--ip", "127.0.0.1", "--inspector-port", String(PORT + 1000), "--var", "PASSKEY_RP_ID:", "--var", "PASSKEY_ORIGIN:"], { cwd: ROOT, detached: true, stdio: "ignore", env: { ...process.env, CI: "1" } });
+  const child = spawn("npx", ["wrangler", "dev", "--port", String(PORT), "--ip", "127.0.0.1", "--inspector-port", String(PORT + 1000), "--var", "PASSKEY_RP_ID:", "--var", "PASSKEY_ORIGIN:", "--var", `LAN_GUI_SECRET:${"k".repeat(48)}`], { cwd: ROOT, detached: true, stdio: "ignore", env: { ...process.env, CI: "1" } });
   for (let i = 0; i < 90; i++) {
     const r = await fetch(`${BASE}/api/auth/me`).catch(() => null);
     if (r?.status === 401) return child;

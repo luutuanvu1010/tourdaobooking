@@ -1,5 +1,7 @@
 # Chống gửi trùng khi lập đơn (khoá theo lần gửi)
 
+> **Dòng trỏ (2026-10-02, theo ADR-0094 bảng "Thay câu nào"):** phần KỸ THUẬT (cột `orders.client_request_id`; §6 câu 3 "áp ngay") **đã thay bởi ADR-0094** — lớp chống ghi trùng chung cho mọi lệnh ghi (vé `Idempotency-Key`, bảng `lg_lan_gui`, router + `web/api.ts`), phát hành từ từ. Phần HÀNH VI mong muốn (gửi lại được trả đơn cũ) giữ nguyên. Thân dưới đây không sửa.
+
 > Ngày 2026-09-22. Trạng thái: **ĐÃ DUYỆT (chủ dự án, chat 2026-10-02)**. Chưa có mã. Chưa qua kiểm độc lập.
 >
 > **Nguyên văn lời chủ:** "Đồng ý, đều phải có cơ chế chống trùng, truy ngược lại khung của Oracle xem nên làm kiểu gì".

@@ -1,5 +1,7 @@
 # Oracle chống trùng theo hai lớp, và cách áp vào Tour Đảo Booking
 
+> **Dòng trỏ (2026-10-02, theo ADR-0094 bảng "Thay câu nào"):** đã thay bởi **ADR-0094** — §3.3 mục 3 ("không dựng bảng nhật ký yêu cầu riêng…; mã giữ vĩnh viễn trên từng bảng") ⇒ một bảng vé chung, thời hạn do Toàn quyền chọn; §3.3 mục 1, 4–6 và §3.4 mục 3, 6 (mã cho từng lệnh; `sessionStorage`; xoá mã khi đăng xuất) ⇒ vé chung ở `api()`, giữ ở `localStorage` (trừ route có bí mật), vé theo tài khoản, KHÔNG xoá khi đăng xuất / bị đá phiên; câu A1, CT1, CT2 ⇒ mọi lệnh ghi có vé, 422 khi khác nội dung, phát hành từ từ. Thân dưới đây không sửa.
+
 > **Trạng thái:** **ĐẶC TẢ MỞ RỘNG — nháp, chờ chủ dự án trả lời các câu ở §3.5** (2026-10-02).
 >
 > **Lời chủ dự án (nguyên văn, chat 2026-10-02):**

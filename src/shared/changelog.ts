@@ -11,6 +11,17 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Đợt 0 luồng L — lớp chống ghi trùng chung (ADR-0094, bản mở rộng), migration 0074. Số 1.71 = main 1.70 + 1 — TẠM, KIỂM LẠI LÚC GỘP (luồng Q / nhánh
+    // khác gộp trước thì đánh lại số). Cần khoá LAN_GUI_SECRET trên Cloudflare TRƯỚC khi triển khai (chủ đã đặt 2/10; npm run trien-khai tự kiểm).
+    version: "1.71",
+    date: "2026-10-02",
+    items: [
+      { kind: "sua", text: "Mất mạng ngay sau khi bấm Lưu, Lập đơn hay Ghi lần thu rồi bấm lại: Nền tảng không ghi thêm lần nữa, báo \"Lần bấm trước đã được ghi\" và mở đúng đơn." },
+      { kind: "sua", text: "Bấm đúp nút lưu cũng chỉ ghi một lần." },
+      { kind: "doi", text: "Nếu bấm lại trong lúc lần trước còn đang được xử lý, Nền tảng tự chờ vài giây rồi mới báo kết quả." },
+    ],
+  },
+  {
     // Thị giác toàn Nền tảng "Năng động – Tin cậy – Tinh tế" (đặc tả docs/superpowers/specs/2026-10-02-thi-giac-nen-tang-design.md, chủ duyệt hướng A 2/10).
     // Chỉ giao diện: không migration, không đổi máy chủ. Số 1.70 = main 1.69 (Vận chuyển Đợt 2) + 1 — đánh lại lúc gộp main e7cd764f. KIỂM LẠI LÚC GỘP.
     version: "1.70",

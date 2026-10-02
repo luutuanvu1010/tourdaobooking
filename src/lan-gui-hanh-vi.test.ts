@@ -191,6 +191,33 @@ test("(j) T14: THIẾU vé ⇒ giai đoạn 1 cho qua (2 đơn) và ghi đúng m
   assert.equal(w.q("SELECT count(*) AS n FROM lg_lan_gui")[0].n, 0);
 });
 
+test("(k) T17 ở Đổi PIN: bộ chống dò PIN ghi bảng đếm TRƯỚC lô chính — lô chính hỏng thì gửi lại cùng vé phải CHẠY LẠI (không báo nhầm 'đã ghi')", async () => {
+  const w = setup();
+  const { hashPin } = await import("./modules/staff/password.ts");
+  w.sqlite.prepare("UPDATE staff SET pin_hash = ? WHERE id = ?").run(await hashPin("135790"), A);
+  const ve = veMoi();
+  const body = { currentPin: "135790", newPin: "246813" };
+  w.sqlite.exec("CREATE TRIGGER thu_chan_doi_pin BEFORE INSERT ON audit_log WHEN NEW.action = 'pin_changed' BEGIN SELECT RAISE(ABORT, 'thu_chan_doi_pin'); END");
+  const r1 = await goi(w, "POST", "/api/account/change-pin", { as: A, body, ve });
+  assert.equal(r1.status, 500, r1.text);
+  await w.choNen();
+  w.sqlite.exec("DROP TRIGGER thu_chan_doi_pin");
+  const r2 = await goi(w, "POST", "/api/account/change-pin", { as: A, body, ve });
+  assert.equal(r2.status, 200, `gửi lại phải chạy thật: ${r2.status} ${r2.text}`);
+  assert.equal(r2.json?.da_ghi_truoc_do, undefined, "không được là phản hồi phát lại");
+  assert.equal(w.q("SELECT count(*) AS n FROM audit_log WHERE action = 'pin_changed'")[0].n, 1);
+});
+
+test("(l) handler NÉM LẠI lỗi đụng vé (lập đơn) mà vé thắng không còn ⇒ 409 dang_xu_ly, không 500 (bước 5 ở nhánh ném — e2e N2 bắt trên D1 thật)", async () => {
+  const w = setup();
+  const ve = veMoi();
+  w.sqlite.exec(`CREATE TRIGGER thu_ep_dung_ve AFTER INSERT ON orders WHEN NEW.customer_name = 'Ép Đụng' BEGIN INSERT INTO lg_lan_gui (staff_id, khoa, van_tay, duong, created_at, updated_at) VALUES ('${A}', '${ve}', 'x', 'x', '2026-01-01', '2026-01-01'); END`);
+  const r = await goi(w, "POST", "/api/orders", { as: A, body: orderBody({ customerName: "Ép Đụng" }), ve });
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json?.error?.code, "dang_xu_ly");
+  assert.equal(soDon(w), 0);
+});
+
 test("vé sai dạng ⇒ 400 ma_lan_gui_sai_dang, không chạy handler", async () => {
   const w = setup();
   for (const ve of ["ngan", "co dau cach 1234567890", "x".repeat(65)]) {

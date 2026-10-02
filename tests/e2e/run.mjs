@@ -12,6 +12,7 @@ import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { insertStaffSql } from "../../scripts/staff-lib.mjs";
 import { ACCOUNTS, TRO_LY_DAU, TRO_LY_KHOA, TURNSTILE_TEST } from "./lib.mjs";
+import { GHI_NHIEU_LAN } from "../../src/shared/lan-gui-no.ts";
 
 const execFileAsync = promisify(execFile);
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -203,6 +204,26 @@ async function chayNhom(may) {
   // Đo 30/9: `wrangler dev` (CI=1) KHÔNG in console của Worker ra stdout — soi `log` không bao giờ đỏ (đột biến console.log(câu hỏi) vẫn xanh). Console của
   // Worker nằm ở bảng `logs` của Local Explorer (`/cdn-cgi/local/explorer/api/local/observability/query`, chỉ đọc) — hỏi ở đó; bảng rỗng / không hỏi được = ĐỎ
   // (không để bài kiểm rỗng thành "sạch"). Chỉ trên máy chủ của nhóm có chạy kịch bản tro-ly.
+  // LỚP CHỐNG GHI TRÙNG (ADR-0094, kế hoạch L10, L12) — đọc log Worker ở Local Explorer (cùng nguồn với bài trợ lý dưới):
+  //  - H5: lệnh ghi > 1 lần (`lan_gui_ghi_nhieu_lan`) chỉ được ở route có tên trong danh sách nợ GHI_NHIEU_LAN (src/shared/lan-gui-no.ts);
+  //  - `lan_gui_loi_la` (lỗi chạm bảng vé mà không khớp mẫu "đụng vé") phải = 0; `lan_gui_dung_ve` đếm để thấy mẫu chữ lỗi D1 khớp thật (N2);
+  //  - `thieu_ma_lan_gui` (lệnh không vé — giai đoạn 1 cho qua) đếm theo route để rà trước bản siết.
+  try {
+    const hoi = async (sqlText) => {
+      const r = await fetch(`${may.base}/cdn-cgi/local/explorer/api/local/observability/query`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ sql: sqlText }) });
+      return (await r.json()).result.rows;
+    };
+    const duongCua = (rows) => rows.map((r) => /duong\\*"\s*:\s*\\*"([^"\\]+)/.exec(String(r[0]))?.[1] ?? "?");
+    may.ghiNhieuLan = new Set(duongCua(await hoi("SELECT message FROM logs WHERE message LIKE '%lan_gui_ghi_nhieu_lan%'")));
+    const thieu = duongCua(await hoi("SELECT message FROM logs WHERE message LIKE '%thieu_ma_lan_gui%'"));
+    may.loiLa = (await hoi("SELECT count(*) FROM logs WHERE message LIKE '%lan_gui_loi_la%'"))[0][0];
+    const dungVe = (await hoi("SELECT count(*) FROM logs WHERE message LIKE '%lan_gui_dung_ve%'"))[0][0];
+    const demThieu = [...thieu.reduce((m, d) => m.set(d, (m.get(d) ?? 0) + 1), new Map())].sort((a, b) => b[1] - a[1]);
+    console.log(`ℹ lớp vé${nhan(k)}: ghi nhiều lần ở ${may.ghiNhieuLan.size} route [${[...may.ghiNhieuLan].join("; ")}]; đụng vé ${dungVe} lần; lỗi lạ ${may.loiLa}; thiếu vé ${thieu.length} lần${demThieu.length ? ` (${demThieu.map(([d, n]) => `${d} ×${n}`).join("; ")})` : ""}`);
+  } catch (e) {
+    may.ghiNhieuLan = null;
+    console.log(`⚠ không đọc được log Worker cho lớp vé${nhan(k)}: ${e}`);
+  }
   if (may.ten.includes("tro-ly")) {
     const hoiLog = async (sqlText) => {
       const r = await fetch(`${may.base}/cdn-cgi/local/explorer/api/local/observability/query`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ sql: sqlText }) });
@@ -271,6 +292,11 @@ try {
   if (audit) results.push(audit);
   // Web Push (ADR-0036): khoá VAPID bị ép rỗng → không lượt gửi nào được chạy, nên log máy chủ (MỌI nhóm) KHÔNG được có dòng `day_loi` (gửi hỏng/lỗi lô).
   results.push(gop("không có day_loi (thiếu khoá VAPID thì không gửi)", cacMay, (m) => !m.log.includes('"event":"day_loi"')));
+  // ADR-0094 H5: route ghi nhiều lần ngoài danh sách nợ có tên ⇒ ĐỎ (nêu tên route). Không đọc được log ⇒ ĐỎ (không để bài rỗng thành "sạch").
+  const ngoaiNo = (m) => (m.ghiNhieuLan ? [...m.ghiNhieuLan].filter((d) => !GHI_NHIEU_LAN.some((x) => x.duong === d)) : ["(không đọc được log)"]);
+  for (const m of cacMay) if (m.ghiNhieuLan !== undefined && ngoaiNo(m).length) console.log(`✘ H5${nhan(m.k)}: route ghi > 1 lần mỗi lệnh mà không có tên trong GHI_NHIEU_LAN: ${ngoaiNo(m).join("; ")}`);
+  results.push(gop("H5: ghi nhiều lần chỉ ở route có tên trong danh sách nợ (src/shared/lan-gui-no.ts)", cacMay, (m) => (m.ghiNhieuLan === undefined ? undefined : ngoaiNo(m).length === 0)));
+  results.push(gop("không có lỗi lạ chạm bảng vé (lan_gui_loi_la)", cacMay, (m) => (m.loiLa === undefined ? undefined : m.loiLa === 0)));
   const troLy = gop("không có nội dung câu hỏi trợ lý trong log Worker", cacMay, (m) => m.troLy);
   if (troLy) results.push(troLy);
   console.log("── Tóm tắt từng bộ ──");

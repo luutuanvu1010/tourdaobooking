@@ -436,9 +436,14 @@ export function createApp(opts: AppOptions) {
     } catch (e) {
       boc.dong();
       ghiNhieuLan(duong, boc.soLanGhi());
+      if (boc.dungVe()) {
+        // Bước 5 ở nhánh NÉM (handler ném lại lỗi đụng vé — vd createOrder): không tin lỗi của handler; tra lại, không thấy thì "đang xử lý" (không 500).
+        const d = await tra();
+        return d ? traLoiVeCo(d) : error(409, "dang_xu_ly", "Lần bấm trước đang được xử lý. Chờ chút rồi thử lại.");
+      }
       if (boc.daGhiVe()) capNhat(500, null, null); // Bước 8: đã ghi vé ⇒ lần sau "đã ghi, tải lại để xem"
       else {
-        // Bước 5 (handler để lỗi đụng vé ném ra) / bước 7 (lỗi khác, nhưng một lần gửi đồng thời cùng vé có thể đã thắng): tra lại một lần.
+        // Bước 7 ở nhánh ném (lỗi khác, nhưng một lần gửi đồng thời cùng vé có thể đã thắng): tra lại một lần.
         const d = await tra();
         if (d) return traLoiVeCo(d);
       }

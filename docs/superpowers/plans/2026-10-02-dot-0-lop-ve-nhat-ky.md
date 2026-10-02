@@ -273,3 +273,33 @@ Số bản nhật ký phiên bản: `main` cục bộ có `1.70` ở đầu `src
 - H3: `src/lan-gui-giao-dien.test.ts` (3 bài: fetch ghi ∈ danh sách; đ10 khoá câu `nenDongVe`; `api()` dùng mô-đun vòng đời vé + `safeNext`). Quan sát chặn thật (sổ hàng rào).
 - Kiểm: `npm run typecheck` 0 lỗi; `npm run build:web` thoát 0; `npm test` 2883/2883 + bài đo giờ xanh; `npm run test:e2e -- pwa bangtin chong-ghi-trung` 4/4.
 - Kịch bản Chrome theo `web/CLAUDE.md`: làm ở bước kế (chưa chạy tới dòng này).
+
+## L10 — e2e tự gắn vé (2026-10-02)
+- `tests/e2e/lib.mjs` `call()`: lệnh ghi mặc định mang vé MỚI mỗi lần gọi (nghĩa cũ giữ nguyên); `opts.ve` = đúng vé đó; `opts.veTrong: true` = không vé (T14). ⇒ toàn bộ e2e nay đi xuyên lớp vé trên D1 của `wrangler dev`.
+- `tests/e2e/run.mjs` đọc log Worker (Local Explorer) mỗi nhóm: đếm `thieu_ma_lan_gui` theo route, `lan_gui_dung_ve`, `lan_gui_loi_la` (phải 0), và H5. Lệnh không vé còn lại ở e2e đủ bộ (đo 2/10): `POST /api/orders` ×3 (ca T14 cố ý + chuỗi `fetch` thẳng), `POST /api/account/pin-by-passkey` ×1 (`passkey.mjs` gọi `fetch` thẳng) — danh sách cho bản siết (kế hoạch §11.2: rà 8 tệp e2e gọi `fetch` thẳng).
+- `chong-ghi-trung.mjs` thêm ca T14 (không vé ⇒ 2 đơn, giai đoạn 1 cho qua).
+
+## L12 — H5 đo ghi nhiều lần + trả nợ "ghi phụ trước lô chính" (2026-10-02)
+- **Đo lần 1 (e2e đủ bộ):** 9 route ghi > 1 lần — reset-pin, change-pin, unlock, catalog/sync, tro-ly/hoi, feedback, feedback/:id/messages, passkeys/options, pin-by-passkey.
+- **Rà và trả nợ T17 (ghi phụ TRƯỚC lô chính, ăn vé):** ngoài `demThanCu` (đã sửa ở L4b) còn 3 chỗ cùng loại, đều ở `auth` và đều là sổ đếm / tiêu thách thức phải ghi cả khi lệnh bị từ chối:
+  - `verifyPinThrottled` (Đổi PIN, Bật Face ID) — bài đỏ trước `src/lan-gui-hanh-vi.test.ts` ca (k): lô Đổi PIN hỏng ⇒ gửi lại nhận "đã ghi" mà PIN chưa đổi (`actual: true` ở `da_ghi_truoc_do`) ⇒ sửa `dbNgoaiVe` ⇒ xanh.
+  - `limitChallenge` (thách thức Face ID), `checkPasskeyAssertion` (`markPasskeyUsed` — tiêu thách thức, chống dùng lại chữ ký).
+  - Cả ba vào `NGOAI_VE` có lý do; bài tĩnh `src/lan-gui-no.test.ts` bắt ngay lần dùng chưa khai (đã thấy đỏ thật khi thêm `verifyPinThrottled`).
+  - Rà route của đợt hạn F-02 (lập đơn, ghi lần thu, Đã giao kèm thu, Công ty đã nhận, hoàn, nộp/trả, điều chỉnh): KHÔNG route nào ghi > 1 lần, KHÔNG ghi phụ trước lô chính (trừ `demThanCu` đã sửa).
+- **Đo lần 2:** còn 7 route — ghi nợ có tên + lý do trong `GHI_NHIEU_LAN` (`src/shared/lan-gui-no.ts`): reset-pin, pin-by-passkey (lô chính rồi `unlockPhone`), unlock (`unlockPhone` + nhật ký `.run()`), catalog/sync, tro-ly/hoi, feedback, feedback/:id/messages (dấu email trong waitUntil SAU lô chính). e2e đủ bộ **45/45 xanh**, H5 xanh, `lan_gui_loi_la` = 0.
+
+## N2 — chữ lỗi D1 thật khi đụng vé (2026-10-02)
+- Ca e2e `chong-ghi-trung` "N2": trigger tạm chèn trước đúng dòng vé ⇒ câu vé cuối lô đụng khoá trên D1 của `wrangler dev` (workerd, qua binding Worker). Lần chạy đầu: log `lan_gui_dung_ve` 1 lần, `lan_gui_loi_la` 0 ⇒ **mẫu chữ lỗi KHỚP trên D1 local**; nhưng máy chủ trả **500** — **lỗi thật của router:** handler NÉM LẠI lỗi đụng vé (`createOrder`) thì nhánh `catch` chưa xét cờ đụng vé. Bài đỏ trước trên khung thử ca (l) (`actual: 500`) ⇒ sửa nhánh `catch` (đụng vé ⇒ tra lại, không thấy ⇒ 409 `dang_xu_ly`) ⇒ xanh; e2e N2 ⇒ 409, cả lô huỷ.
+- Ở luồng đồng thời thật, dòng vé của bên thắng có thật nên tra lại thấy ⇒ phát lại; lỗi 500 chỉ ở ca vé thắng không còn (như trigger ép). Vẫn **chưa quan sát trên production** (chỉ thấy sau lần triển khai — đếm `lan_gui_dung_ve` / `lan_gui_loi_la` ở nhật ký Worker).
+
+## Chỗ L3 còn sót (phát hiện ở L9)
+- Máy chủ của mọi kịch bản Chrome dựng ở `docs/evidence/2026-09-20-a2/kich-ban/a2-cdp.mjs` (+ `docs/evidence/2026-09-19-pwa/kich-ban/kiem-tra-nang-cap-sw.mjs`) chưa có `LAN_GUI_SECRET` ⇒ đã thêm. CHANGE-GUIDE công thức l nay ghi cả hai tệp + lệnh `grep -rln SESSION_SECRET src tests scripts docs/evidence`.
+
+## L14 — tài liệu (2026-10-02)
+- `docs/SYSTEM-DESIGN.md` §3 (một request ghi qua lớp vé, bước 1–8), §5 (hai bảng `lg_*`, migration 0074), `http.ts`.
+- `docs/CHANGE-GUIDE.md`: công thức **z11** "thêm route ghi"; dòng tra nhanh; dòng ma trận §3; công thức l (bí mật bắt buộc).
+- `docs/SO-HANG-RAO.md`: H1, H2, H3, H4, H6 (một nửa), H7, H9 (CSDL), D1 giả nghiêm, T17, cổng khoá L13 — mỗi dòng có ngày + thông báo đỏ. H5 thêm sau phép đột biến.
+- `docs/quyen-hoan.json` F-02: thêm trỏ sổ thi công + e2e trong kho (KHÔNG đóng).
+- Dòng trỏ "đã thay bởi ADR-0094" ở đầu `specs/2026-09-22-chong-gui-trung.md` và `specs/2026-10-02-chong-trung-moi-lenh-ghi-theo-oracle.md`.
+- `src/shared/changelog.ts` mục **1.71** (tạm — KIỂM LẠI LÚC GỘP: nhánh `trang-chu-quan-tri` đang giữ 1.73 tạm); bài ghim `src/shared/app-info.test.ts` cập nhật.
+- Đề xuất sửa luật cho chủ: `docs/superpowers/plans/2026-10-02-dot-0-de-xuat-luat.md` (CLAUDE.md §7/§10, K17; dòng 5.5 để bản sau).

@@ -6,7 +6,7 @@
 // Kèm: T4 (hai lần thu thật, vé khác ⇒ 2 dòng), T5 (đổi số tiền ⇒ vé khác ⇒ lớp không chặn), đồng thời cùng vé ⇒ 1 dòng, 422 khác thân.
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { ACCOUNTS, call, catalogService, ensureFakeCatalog, freshIp, orderInput, randomPhone, session, sqlRows, vnDate } from "./lib.mjs";
+import { ACCOUNTS, call, catalogService, ensureFakeCatalog, freshIp, orderInput, randomPhone, session, sql, sqlRows, vnDate } from "./lib.mjs";
 
 await ensureFakeCatalog();
 const A = await session(ACCOUNTS.salesA);
@@ -139,6 +139,36 @@ const TAG = randomUUID().slice(0, 6);
   await haiLanCungVe("KT04 đảo", ACC, "POST", "/api/ledger/adjustments", { loai: "dao_lan_thu", receiptId, lyDo: "Ghi trùng khi mất sóng" });
   assert.equal(await dem(`SELECT count(*) AS n FROM bil_payment_receipt WHERE order_id = '${o2.id}'`), truocDao + 1, "KT04: một dòng đảo");
   console.log("✓ KT04: ghi nộp và đảo lần thu gửi lại cùng vé ⇒ một lần mỗi việc");
+}
+
+// ---- N2 (kiểm độc lập vòng 1): chữ lỗi THẬT của D1 (workerd của wrangler dev, qua binding Worker) khi lô ĐỤNG khoá vé phải khớp mẫu `laLoiDungVe`. Ép đụng
+// vé bằng trigger tạm: chèn đơn có tên đánh dấu ⇒ trigger chèn trước đúng dòng vé (cùng tài khoản + vé) ⇒ câu chèn vé ở CUỐI lô đụng khoá chính, cả lô huỷ.
+// Khớp mẫu ⇒ router đi bước 5 (đụng vé, tra lại không thấy vì lô đã huỷ) ⇒ 409 dang_xu_ly. KHÔNG khớp ⇒ ngoại lệ thường ⇒ 500. Không có đơn nào được ghi.
+{
+  const ten = `Ép Đụng Vé ${TAG}`;
+  const ve = randomUUID();
+  const staffA = (await call(A, "GET", "/api/auth/me")).body.staff.id;
+  await sql(`CREATE TRIGGER e2e_ep_dung_ve AFTER INSERT ON orders WHEN NEW.customer_name = '${ten}'
+    BEGIN INSERT INTO lg_lan_gui (staff_id, khoa, van_tay, duong, created_at, updated_at) VALUES ('${staffA}', '${ve}', 'x', 'x', '2026-01-01', '2026-01-01'); END`);
+  try {
+    const r = await call(A, "POST", "/api/orders", orderInput({ customerName: ten, customerPhone: randomPhone() }), freshIp(), { ve });
+    assert.equal(r.status, 409, `D1 thật: lô đụng vé phải được nhận ra (409 dang_xu_ly), không phải ${r.status} ${JSON.stringify(r.body)}`);
+    assert.equal(r.body?.error?.code, "dang_xu_ly");
+    assert.equal(await dem(`SELECT count(*) AS n FROM orders WHERE customer_name = '${ten}'`), 0, "cả lô huỷ");
+  } finally {
+    await sql("DROP TRIGGER IF EXISTS e2e_ep_dung_ve");
+  }
+  console.log("✓ N2: D1 thật (wrangler dev) — lô đụng khoá vé được nhận ra đúng (409 dang_xu_ly), cả lô huỷ");
+}
+
+// ---- T14 (giai đoạn 1): KHÔNG vé ⇒ cho qua (máy còn bản cũ) — gửi hai lần ra HAI đơn. Chỉ bản siết mới chặn; đây là bài canh hành vi giai đoạn 1.
+{
+  const ten = `Không Vé ${TAG}`;
+  const body = orderInput({ customerName: ten, customerPhone: randomPhone() });
+  assert.equal((await call(A, "POST", "/api/orders", body, freshIp(), { veTrong: true })).status, 201);
+  assert.equal((await call(A, "POST", "/api/orders", body, freshIp(), { veTrong: true })).status, 201);
+  assert.equal(await dem(`SELECT count(*) AS n FROM orders WHERE customer_name = '${ten}'`), 2, "T14: giai đoạn 1 cho qua lệnh thiếu vé");
+  console.log("✓ T14: lệnh thiếu vé được cho qua (giai đoạn 1) — hai lần gửi ra hai đơn; bản siết sẽ trả 400");
 }
 
 console.log("E2E CHỐNG GHI TRÙNG OK");
