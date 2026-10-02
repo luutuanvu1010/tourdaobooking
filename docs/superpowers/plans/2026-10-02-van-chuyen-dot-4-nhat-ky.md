@@ -29,3 +29,6 @@ Làn máy chủ (Task 0 → 12). **Không** làm Task G (giao diện) — làn k
 
 ## Sổ task
 
+- Task 1: xong — luật thuần `chonDongGiaThue`, `coXeCua`, `dongChongGia` (`src/modules/van-chuyen/tien-xe.ts`), 3/3 bài.
+- Task 2: xong — `migrations/0072_vc_bang_gia_thue.sql` (tuyến, cỡ xe, giá thuê) + `src/migrations-tien-xe-thue.test.ts` 5/5; từ điển dữ liệu 3 bảng.
+  - P16 (2026-10-02, bản sao đã sửa qua biến `TIEN_XE_GIA_SQL`): (1) `r.route_code IS NEW.route_code` → `=` ⇒ bài "chồng hiệu lực…" ĐỎ (dòng cỡ-không-tuyến chèn trùng lọt); (2) bỏ trigger `vc_rental_rate_carrier` ⇒ bài "vai CARRIER chỉ khi THÊM…" ĐỎ. Hoàn nguyên ⇒ 5/5 xanh.

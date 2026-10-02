@@ -169,6 +169,9 @@
 | `vc_departure_rule` | bảng |  |
 | `vc_license_capacity` | bảng |  |
 | `vc_reason` | bảng tra cứu |  |
+| `vc_route` | bảng tra cứu |  |
+| `vc_vehicle_size` | bảng tra cứu |  |
+| `vc_rental_rate` | bảng |  |
 | `vc_trip` | bảng |  |
 | `vc_trip_driver` | bảng |  |
 | `vc_trip_stop` | bảng |  |
