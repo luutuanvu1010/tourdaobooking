@@ -16,7 +16,7 @@ export const CHANGELOG: readonly ReleaseNote[] = [
     version: "1.70",
     date: "2026-10-02",
     items: [
-      { kind: "moi", text: "Kế toán, Quản trị có Bảng giá thuê xe: giá mỗi chuyến của từng nhà xe theo tuyến hoặc cỡ xe, có ngày hiệu lực. Có cả hai thì dùng giá theo tuyến." },
+      { kind: "moi", text: "Kế toán, Quản trị có Bảng giá thuê xe: giá mỗi chuyến của từng nhà xe theo cả tuyến và cỡ xe, có ngày hiệu lực." },
       { kind: "moi", text: "Chuyến xe của nhà xe đối tác có chi phí: máy tự lấy giá trong bảng giá lúc xếp xe; đổi xe, tuyến hoặc ngày chạy thì máy tính lại." },
       { kind: "doi", text: "Chuyến xe thuê chưa có giá thì chưa được xuất bến — Kế toán hoặc Quản trị nhập giá bảng hoặc giá thoả thuận với nhà xe." },
       { kind: "moi", text: "Kế toán, Quản trị điều chỉnh chi phí từng chuyến có lý do và xem bảng kê chi phí xe thuê theo nhà xe." },

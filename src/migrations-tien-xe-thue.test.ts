@@ -60,7 +60,7 @@ const co = (db: Db, code: string, min: number, max: number, active = 1) =>
 const gia = (db: Db, o: { nx: string; tuyen?: string | null; co?: string | null; tien?: number; tu?: string; den?: string | null; id?: string }) => {
   const id = o.id ?? nid("rate");
   run(db, `INSERT INTO vc_rental_rate (id, carrier_party_id, route_code, vehicle_size_code, amount, valid_from_date, valid_to_date, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, id, o.nx, o.tuyen ?? null, o.co ?? null, o.tien ?? 1_000_000, o.tu ?? "2026-10-01", o.den ?? null, AT, AT);
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, id, o.nx, o.tuyen === undefined ? "NT-CR" : o.tuyen, o.co === undefined ? "C16" : o.co, o.tien ?? 1_000_000, o.tu ?? "2026-10-01", o.den ?? null, AT, AT);
   return id;
 };
 
@@ -79,59 +79,60 @@ test("vc_route / vc_vehicle_size: không xoá, không đổi mã; cỡ đang dù
   loi(() => co(db, "CSAI", 20, 19), /CHECK constraint failed/);
 });
 
-test("vc_rental_rate: tiền nguyên dương; có tuyến hoặc cỡ; unit chỉ PER_TRIP; ngày hợp lệ", () => {
+/** Danh mục chung của các bài dòng giá: tuyến NT-CR, NT-DL; cỡ C16 (10–16), C29 (17–29). */
+const danhMuc = (db: Db) => { tuyen(db, "NT-CR"); tuyen(db, "NT-DL"); co(db, "C16", 10, 16); co(db, "C29", 17, 29); };
+
+test("vc_rental_rate (vòng sửa 2 — B): tiền nguyên dương; BẮT BUỘC cả tuyến LẪN cỡ xe; unit chỉ PER_TRIP; ngày hợp lệ", () => {
   const db = openDb();
   const nx = nhaXe(db);
-  tuyen(db, "NT-CR");
-  co(db, "C16", 10, 16);
-  loi(() => gia(db, { nx, tuyen: "NT-CR", tien: 0 }), /CHECK constraint failed/);
-  loi(() => gia(db, { nx, tuyen: "NT-CR", tien: 1.5 }), /CHECK constraint failed/);
-  loi(() => gia(db, { nx }), /CHECK constraint failed/, "thiếu cả tuyến lẫn cỡ");
-  loi(() => run(db, `INSERT INTO vc_rental_rate (id, carrier_party_id, route_code, unit, amount, valid_from_date, created_at, updated_at)
-     VALUES ('u', ?, 'NT-CR', 'PER_KM', 1000, '2026-10-01', ?, ?)`, nx, AT, AT), /CHECK constraint failed/);
-  loi(() => gia(db, { nx, tuyen: "NT-CR", tu: "2026-10-05", den: "2026-10-04" }), /CHECK constraint failed/);
-  loi(() => gia(db, { nx, tuyen: "NT-CR", tu: "2026-10-5" }), /CHECK constraint failed/, "ngày sai khuôn");
+  danhMuc(db);
+  loi(() => gia(db, { nx, tien: 0 }), /CHECK constraint failed|NOT NULL constraint failed/);
+  loi(() => gia(db, { nx, tien: 1.5 }), /CHECK constraint failed/);
+  loi(() => gia(db, { nx, tuyen: null, co: null }), /CHECK constraint failed|NOT NULL constraint failed/, "thiếu cả tuyến lẫn cỡ");
+  loi(() => gia(db, { nx, co: null }), /CHECK constraint failed|NOT NULL constraint failed/, "chỉ tuyến — không còn cho phép");
+  loi(() => gia(db, { nx, tuyen: null }), /CHECK constraint failed|NOT NULL constraint failed/, "chỉ cỡ — không còn cho phép");
+  loi(() => run(db, `INSERT INTO vc_rental_rate (id, carrier_party_id, route_code, vehicle_size_code, unit, amount, valid_from_date, created_at, updated_at)
+     VALUES ('u', ?, 'NT-CR', 'C16', 'PER_KM', 1000, '2026-10-01', ?, ?)`, nx, AT, AT), /CHECK constraint failed/);
+  loi(() => gia(db, { nx, tu: "2026-10-05", den: "2026-10-04" }), /CHECK constraint failed/);
+  loi(() => gia(db, { nx, tu: "2026-10-5" }), /CHECK constraint failed/, "ngày sai khuôn");
   gia(db, { nx, tuyen: "NT-CR", co: "C16" });
 });
 
-test("chồng hiệu lực cùng khoá (so trống bằng IS, ngày mở = 9999-12-31) → trigger; khác khoá → được", () => {
+test("chồng hiệu lực cùng khoá (nhà xe, tuyến, cỡ; ngày mở = 9999-12-31) → trigger; khác khoá → được", () => {
   const db = openDb();
   const nx = nhaXe(db);
-  tuyen(db, "NT-CR");
-  co(db, "C16", 10, 16);
-  gia(db, { nx, tuyen: "NT-CR", tu: "2026-10-01", den: "2026-10-31" });
-  loi(() => gia(db, { nx, tuyen: "NT-CR", tu: "2026-10-31" }), /vc_rate_overlap/, "chạm đúng ngày cuối");
-  gia(db, { nx, tuyen: "NT-CR", tu: "2026-11-01" });
-  gia(db, { nx, tuyen: "NT-CR", co: "C16", tu: "2026-10-01" }); // khoá khác (cỡ không trống)
-  gia(db, { nx, co: "C16", tu: "2026-10-01" });
-  loi(() => gia(db, { nx, co: "C16", tu: "2027-01-01" }), /vc_rate_overlap/, "dòng mở chồng mọi ngày sau");
+  danhMuc(db);
+  gia(db, { nx, tuyen: "NT-CR", co: "C29", tu: "2026-10-01", den: "2026-10-31" });
+  loi(() => gia(db, { nx, tuyen: "NT-CR", co: "C29", tu: "2026-10-31" }), /vc_rate_overlap/, "chạm đúng ngày cuối");
+  gia(db, { nx, tuyen: "NT-CR", co: "C29", tu: "2026-11-01" });
+  gia(db, { nx, tuyen: "NT-CR", co: "C16", tu: "2026-10-01" }); // khoá khác (cỡ khác)
+  gia(db, { nx, tuyen: "NT-DL", co: "C16", tu: "2026-10-01" }); // khoá khác (tuyến khác)
+  loi(() => gia(db, { nx, tuyen: "NT-DL", co: "C16", tu: "2027-01-01" }), /vc_rate_overlap/, "dòng mở chồng mọi ngày sau");
 });
 
 test("chỉ-thêm: không xoá, không đổi tiền/khoá/ngày bắt đầu; valid_to_date đặt MỘT lần", () => {
   const db = openDb();
   const nx = nhaXe(db);
-  tuyen(db, "NT-CR");
-  const id = gia(db, { nx, tuyen: "NT-CR" });
+  danhMuc(db);
+  const id = gia(db, { nx });
   loi(() => run(db, "DELETE FROM vc_rental_rate WHERE id = ?", id), /vc_rate_append_only/);
   loi(() => run(db, "UPDATE vc_rental_rate SET amount = 2 WHERE id = ?", id), /vc_rate_append_only/);
-  loi(() => run(db, "UPDATE vc_rental_rate SET route_code = NULL WHERE id = ?", id), /vc_rate_append_only/);
+  loi(() => run(db, "UPDATE vc_rental_rate SET route_code = 'NT-DL' WHERE id = ?", id), /vc_rate_append_only/);
   run(db, "UPDATE vc_rental_rate SET valid_to_date = '2026-10-31', updated_at = ? WHERE id = ?", AT, id);
   loi(() => run(db, "UPDATE vc_rental_rate SET valid_to_date = '2026-11-30' WHERE id = ?", id), /vc_rate_append_only/);
 });
 
 test("vai CARRIER chỉ khi THÊM; ĐÓNG giá của nhà xe đã thôi vai vẫn được (người kiểm soi)", () => {
   const db = openDb();
-  tuyen(db, "NT-CR");
+  danhMuc(db);
   const caNhan = hoSo(db, "ORGANIZATION", "Không phải nhà xe");
-  loi(() => gia(db, { nx: caNhan, tuyen: "NT-CR" }), /vc_rate_carrier/);
+  loi(() => gia(db, { nx: caNhan }), /vc_rate_carrier/);
   const nx = nhaXe(db);
-  const id = gia(db, { nx, tuyen: "NT-CR" });
+  const id = gia(db, { nx });
   thoiVai(db, nx);
-  loi(() => gia(db, { nx, tuyen: "NT-CR", tu: "2027-01-01", co: null }), /vc_rate_carrier|vc_rate_overlap/);
-  loi(() => gia(db, { nx, tuyen: null, co: null, tu: "2027-01-01" }), /vc_rate_carrier|CHECK/);
+  loi(() => gia(db, { nx, tuyen: "NT-DL", tu: "2027-01-01" }), /vc_rate_carrier/);
   run(db, "UPDATE vc_rental_rate SET valid_to_date = '2026-10-31', updated_at = ? WHERE id = ?", AT, id); // đóng: được
 });
-
 
 // ==== T2 (0073): cờ xe thuê, tuyến trên chuyến, dòng chi phí, cổng thiếu giá ===========================================================================
 const POLICY = "d53b6dd9-60e2-4644-8e63-9ca7dcff35d0"; // dòng chính sách gieo của 0041
@@ -194,7 +195,8 @@ function nen(db: Db) {
   const tx = taiXeCua(db, nx);
   const x = xe(db, nx, 16);
   tuyen(db, "NT-CR");
-  const g = gia(db, { nx, tuyen: "NT-CR", tien: 1_200_000 });
+  co(db, "C16", 10, 16);
+  const g = gia(db, { nx, tuyen: "NT-CR", co: "C16", tien: 1_200_000 });
   const t = chuyen(db, { xe: x, route: "NT-CR" });
   laiXe(db, t, tx);
   return { nx, tx, x, g, t };
@@ -367,7 +369,7 @@ test("T2 ca 13: SNAPSHOT cho chuyến rented = 0 / sai nhà xe → vc_cost_sourc
   const nx2 = nhaXe(db);
   loi(() => cp(db, { trip: t, kind: "SNAPSHOT", amount: 1_200_000, rate: g, carrier: nx2 }), /vc_cost_source_carrier|vc_cost_snapshot_rate/);
   loi(() => cp(db, { trip: t, kind: "AGREED", amount: 1_000, carrier: nx2 }), /vc_cost_source_carrier/, "AGREED sai nhà xe của chuyến");
-  const g2 = gia(db, { nx: nx2, co: null, tuyen: "NT-CR", tien: 1_200_000 });
+  const g2 = gia(db, { nx: nx2, co: "C16", tuyen: "NT-CR", tien: 1_200_000 });
   loi(() => cp(db, { trip: t, kind: "SNAPSHOT", amount: 1_200_000, rate: g2 }), /vc_cost_snapshot_rate/, "dòng giá của nhà xe khác");
   loi(() => cp(db, { trip: t, kind: "SNAPSHOT", amount: 1_100_000, rate: g }), /vc_cost_snapshot_rate|CHECK constraint failed/, "số khác giá dòng");
   const s = cp(db, { trip: t, kind: "SNAPSHOT", amount: 1_200_000, rate: g });

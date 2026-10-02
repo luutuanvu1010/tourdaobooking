@@ -11,13 +11,13 @@ export function coXeCua(soKhach: number, coXe: readonly CoXe[]): string | null {
   return coXe.find((c) => c.active && c.min <= soKhach && soKhach <= c.max)?.code ?? null;
 }
 
-/** ADR-0057 B2: dòng đang hiệu lực vào ngày chạy, đúng nhà xe; (1) khớp tuyến VÀ cỡ, (2) khớp tuyến – cỡ trống, (3) khớp cỡ – tuyến trống. Không có → null. */
+/**
+ * Dòng đang hiệu lực vào ngày chạy, đúng nhà xe, khớp ĐỦ tuyến VÀ cỡ xe — ADR-0095 Q3 (vòng sửa 2, B; thay thứ bậc "tuyến > cỡ" của ADR-0057 B2 / Q3 a:
+ * bỏ bậc "chỉ tuyến", "chỉ cỡ"). Chưa chọn tuyến, xe ngoài mọi cỡ, hay không dòng khớp → null (chưa có giá ⇒ giá thoả thuận).
+ */
 export function chonDongGiaThue(v: { carrierPartyId: string; routeCode: string | null; sizeCode: string | null; ngayChay: string }, dong: readonly DongGiaThue[]): DongGiaThue | null {
-  const cua = dong.filter((d) => d.carrierPartyId === v.carrierPartyId && conHieuLuc(d, v.ngayChay));
-  const bac1 = v.routeCode !== null && v.sizeCode !== null ? cua.find((d) => d.routeCode === v.routeCode && d.sizeCode === v.sizeCode) : undefined;
-  const bac2 = v.routeCode !== null ? cua.find((d) => d.routeCode === v.routeCode && d.sizeCode === null) : undefined;
-  const bac3 = v.sizeCode !== null ? cua.find((d) => d.routeCode === null && d.sizeCode === v.sizeCode) : undefined;
-  return bac1 ?? bac2 ?? bac3 ?? null;
+  if (v.routeCode === null || v.sizeCode === null) return null;
+  return dong.find((d) => d.carrierPartyId === v.carrierPartyId && conHieuLuc(d, v.ngayChay) && d.routeCode === v.routeCode && d.sizeCode === v.sizeCode) ?? null;
 }
 
 /** Dòng (khác `boQuaId`) cùng khoá (nhà xe, tuyến, cỡ — trống so với trống) có khoảng ngày giao với dòng mới (hai đầu tính cả). Lớp máy chủ của trigger chồng giá. */
@@ -84,7 +84,7 @@ export function daoDuoc(dong: readonly DongChiPhi[], d: DongChiPhi, trangThai: T
 }
 
 /**
- * NGÀY GHI của dòng đảo (vòng sửa 2, SV-1 — lời chủ 2/10): MỘT hàm cho mọi đảo (tự động khi đổi xe / nhà xe / tuyến / ngày, khi huỷ; đảo tay). Mang ngày phát
+ * NGÀY GHI của dòng đảo (ADR-0095 Q2, vòng sửa 2 SV-1): MỘT hàm cho mọi đảo (tự động khi đổi xe / nhà xe / tuyến / ngày, khi huỷ; đảo tay). Mang ngày phát
  * sinh của DÒNG GỐC (kỳ cũ về 0 — vd chuyến 31/10 dời sang 01/11: đảo −1.000.000 ngày 31/10, chụp mới ngày 01/11). Kỳ của dòng gốc ĐÃ KHOÁ ⇒ ngày hiện tại.
  * CHỖ NỐI khoá kỳ (ADR-0080, module `ky-so` — CHƯA có trên main): khi có, truyền `kyDaKhoa` đọc `v_ky_closed_period`; hôm nay không truyền ⇒ luôn ngày gốc.
  */

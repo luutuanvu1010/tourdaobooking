@@ -32,7 +32,8 @@ test("bài số lạ 480017: giá thuê / chi phí chuyến KHÔNG lộ ở bấ
     const x16 = xeNhaXe(w, nx, 16);
     const t = await w.call("POST", "/api/van-chuyen/tuyen", { as: ACC, body: { ten: "Tuyến số lạ" } });
     const tuyen = t.json.tuyen[0].ma;
-    assert.equal((await w.call("POST", "/api/van-chuyen/bang-gia", { as: ACC, body: { requestId: uuid(), nhaXePartyId: nx, tuyen, coXe: null, soTien: Number(LA), tuNgay: "2027-03-01", denNgay: null, ghiChu: null, thayDongId: null } })).status, 201);
+    const coXe = (await w.call("POST", "/api/van-chuyen/co-xe", { as: ACC, body: { tuSoKhach: 10, denSoKhach: 16 } })).json.coXe[0].ma; // vòng sửa 2 (B): đủ tuyến + cỡ
+    assert.equal((await w.call("POST", "/api/van-chuyen/bang-gia", { as: ACC, body: { requestId: uuid(), nhaXePartyId: nx, tuyen, coXe, soTien: Number(LA), tuNgay: "2027-03-01", denNgay: null, ghiChu: null, thayDongId: null } })).status, 201);
     const d = await don(w, { soNguoi: 2, handler: FIELD });
     const tao = await w.call("POST", "/api/van-chuyen/chuyen", { as: SALES, body: { requestId: uuid(), xeId: x16, taiXePartyId: tx, tuyen, batDau: { ngay: NGAY, gio: "12:30" }, ketThuc: { ngay: NGAY, gio: "15:00" } } });
     assert.equal(tao.status, 201, tao.text);

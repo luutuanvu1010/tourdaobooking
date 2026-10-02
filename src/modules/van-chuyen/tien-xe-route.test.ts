@@ -29,8 +29,19 @@ async function coMoi(w: any, tu: number, den: number, as = ACC): Promise<string>
   assert.equal(r.status, 201, r.text);
   return r.json.coXe.find((c: any) => c.tuSoKhach === tu && c.denSoKhach === den && c.dangDung).ma;
 }
-const themGia = (w: any, as: string, body: Record<string, unknown>) =>
-  w.call("POST", "/api/van-chuyen/bang-gia", { as, body: { requestId: uuid(), tuyen: null, coXe: null, soTien: 1_200_000, tuNgay: "2026-10-01", denNgay: null, ghiChu: null, thayDongId: null, ...body } });
+/** Vòng sửa 2 (B): giá luôn theo CẢ tuyến LẪN cỡ — bài chỉ ghi một khoá (khuôn T1 cũ) thì khoá còn lại lấy MẶC ĐỊNH (tuyến / cỡ "Mặc định" của khung thử,
+ *  tạo một lần); bài muốn thử "thiếu khoá" gửi `null` tường minh. */
+async function khoaMacDinh(w: any, loai: "tuyen" | "co-xe"): Promise<string> {
+  const ds = (await w.call("GET", `/api/van-chuyen/${loai}`, { as: ACC })).json;
+  if (loai === "tuyen") return ds.tuyen.find((t: any) => t.ten === "Tuyến mặc định")?.ma ?? tuyenMoi(w, "Tuyến mặc định");
+  return ds.coXe.find((c: any) => c.tuSoKhach === 50 && c.denSoKhach === 60)?.ma ?? coMoi(w, 50, 60);
+}
+async function themGia(w: any, as: string, body: Record<string, unknown>) {
+  const b = { ...body };
+  if (b.tuyen === undefined && b.coXe !== undefined && b.coXe !== null) b.tuyen = await khoaMacDinh(w, "tuyen");
+  if (b.coXe === undefined && b.tuyen !== undefined && b.tuyen !== null) b.coXe = await khoaMacDinh(w, "co-xe");
+  return w.call("POST", "/api/van-chuyen/bang-gia", { as, body: { requestId: uuid(), tuyen: null, coXe: null, soTien: 1_200_000, tuNgay: "2026-10-01", denNgay: null, ghiChu: null, thayDongId: null, ...b } });
+}
 
 test("T1 route: Kế toán VÀ Quản trị thêm tuyến, cỡ, giá (201); Bán hàng / HDV / tài xế / Đối tác / Thực tập → 403 cả đọc lẫn ghi; 403 đứng trước 400", async () => {
   const w = setup();
@@ -90,17 +101,18 @@ test("T1 route: chồng giá → 409 gia_chong; 'thay dòng X' đóng X ngày tr
   const a = await themGia(w, ACC, { nhaXePartyId: nx, tuyen: t, tuNgay: "2026-10-01" });
   assert.equal(a.status, 201);
   const x = a.json.dong.id;
+  const cx = a.json.dong.coXe.ma;
   const chong = await themGia(w, ACC, { nhaXePartyId: nx, tuyen: t, tuNgay: "2026-12-01" });
   assert.equal(chong.status, 409);
   assert.equal(chong.json.error.code, "gia_chong");
   assert.equal((await themGia(w, ACC, { nhaXePartyId: nx, tuyen: t, tuNgay: "2026-10-01", thayDongId: x })).status, 409, "thay bằng ngày = ngày bắt đầu");
   const rid = uuid();
-  const thay = await w.call("POST", "/api/van-chuyen/bang-gia", { as: ACC, body: { requestId: rid, nhaXePartyId: nx, tuyen: t, coXe: null, soTien: 1_300_000, tuNgay: "2026-11-01", denNgay: null, ghiChu: "Tăng giá mùa", thayDongId: x } });
+  const thay = await w.call("POST", "/api/van-chuyen/bang-gia", { as: ACC, body: { requestId: rid, nhaXePartyId: nx, tuyen: t, coXe: cx, soTien: 1_300_000, tuNgay: "2026-11-01", denNgay: null, ghiChu: "Tăng giá mùa", thayDongId: x } });
   assert.equal(thay.status, 201, thay.text);
   assert.equal(thay.json.dong.thayDongId, x);
   const rows = w.q("SELECT id, amount, valid_from_date, valid_to_date FROM vc_rental_rate WHERE carrier_party_id = ? ORDER BY valid_from_date", nx);
   assert.deepEqual(rows.map((r: any) => [r.amount, r.valid_from_date, r.valid_to_date]), [[1_200_000, "2026-10-01", "2026-10-31"], [1_300_000, "2026-11-01", null]]);
-  const lai = await w.call("POST", "/api/van-chuyen/bang-gia", { as: ACC, body: { requestId: rid, nhaXePartyId: nx, tuyen: t, coXe: null, soTien: 1_300_000, tuNgay: "2026-11-01", denNgay: null, ghiChu: "Tăng giá mùa", thayDongId: x } });
+  const lai = await w.call("POST", "/api/van-chuyen/bang-gia", { as: ACC, body: { requestId: rid, nhaXePartyId: nx, tuyen: t, coXe: cx, soTien: 1_300_000, tuNgay: "2026-11-01", denNgay: null, ghiChu: "Tăng giá mùa", thayDongId: x } });
   assert.equal(lai.status, 200, "gửi lại cùng requestId → kết quả cũ");
   assert.equal(w.q("SELECT count(*) n FROM vc_rental_rate WHERE carrier_party_id = ?", nx)[0].n, 2);
   assert.equal(w.q("SELECT typeof(amount) t FROM vc_rental_rate LIMIT 1")[0].t, "integer");
@@ -160,6 +172,14 @@ test("T1 route: cỡ xe chồng khoảng → 409 co_xe_chong; nhãn mặc địn
   assert.equal((await w.call("PUT", `/api/van-chuyen/tuyen/${t}`, { as: ACC, body: { dangDung: false } })).status, 200);
   assert.equal((await themGia(w, ACC, { nhaXePartyId: nx, tuyen: t })).status, 400);
   assert.equal((await themGia(w, ACC, { nhaXePartyId: nx })).status, 400, "thiếu cả tuyến lẫn cỡ");
+  // Vòng sửa 2 (B — ADR-0095 Q3): giá luôn theo CẢ tuyến LẪN cỡ xe.
+  const t2 = await tuyenMoi(w, "Tuyến đủ");
+  for (const b of [{ tuyen: t2, coXe: null }, { tuyen: null, coXe: c16 }, { tuyen: null, coXe: null }]) {
+    const r = await themGia(w, ACC, { nhaXePartyId: nx, ...b });
+    assert.equal(r.status, 400, JSON.stringify(b));
+    assert.match(r.text, /Cần chọn cả tuyến và cỡ xe/);
+  }
+  assert.equal((await themGia(w, ACC, { nhaXePartyId: nx, tuyen: t2, coXe: c16 })).status, 201);
 });
 
 // ==== T2 — chụp / đảo chi phí trong lô tạo, sửa, huỷ chuyến (kế hoạch Đợt 4 Task 9; Review Focus 1, 2, 3, 5) ===========================================
@@ -172,17 +192,18 @@ async function nenThue(w: any) {
   const crt = await tuyenMoi(w, "Nha Trang – sân bay Cam Ranh");
   const dl = await tuyenMoi(w, "Nha Trang – Đà Lạt");
   const c16 = await coMoi(w, 10, 16);
-  await coMoi(w, 17, 29);
+  const c29 = await coMoi(w, 17, 29);
   const g = async (b: Record<string, unknown>) => {
     const r = await themGia(w, ACC, { nhaXePartyId: nx, ...b });
     assert.equal(r.status, 201, r.text);
     return r.json.dong.id as string;
   };
+  // Vòng sửa 2 (B): mọi dòng đủ tuyến + cỡ (khuôn ví dụ vàng mới).
   await g({ tuyen: crt, coXe: c16, soTien: 1_200_000, tuNgay: "2027-03-01", denNgay: NGAY });
-  await g({ tuyen: crt, soTien: 1_000_000, tuNgay: "2027-03-01", denNgay: NGAY });
-  await g({ coXe: c16, soTien: 900_000, tuNgay: "2027-03-01" });
-  await g({ tuyen: crt, soTien: 1_100_000, tuNgay: NGAY_SAU });
-  return { nx, tx, x16, x29, crt, dl, c16 };
+  await g({ tuyen: crt, coXe: c29, soTien: 1_000_000, tuNgay: "2027-03-01", denNgay: NGAY });
+  await g({ tuyen: dl, coXe: c16, soTien: 900_000, tuNgay: "2027-03-01" });
+  await g({ tuyen: crt, coXe: c29, soTien: 1_100_000, tuNgay: NGAY_SAU });
+  return { nx, tx, x16, x29, crt, dl, c16, c29 };
 }
 async function taoThue(w: any, v: { xe: string; taiXe: string; tuyen?: string | null; ngay?: string; bd?: string; kt?: string; ngayKt?: string; as?: string; requestId?: string }) {
   return w.call("POST", "/api/van-chuyen/chuyen", {
@@ -297,7 +318,7 @@ test("RF1-f: nhà xe thôi hợp tác SAU khi chụp → đổi tuyến 409 carr
     const nx2 = nhaXeKhung(w, "Nhà xe Minh Phát");
     const tx2 = taiXeNhaXe(w, nx2);
     const xe2 = xeNhaXe(w, nx2, 16);
-    assert.equal((await themGia(w, ACC, { nhaXePartyId: nx2, tuyen: n.crt, soTien: 1_300_000, tuNgay: "2027-03-01" })).status, 201);
+    assert.equal((await themGia(w, ACC, { nhaXePartyId: nx2, tuyen: n.crt, coXe: n.c16, soTien: 1_300_000, tuNgay: "2027-03-01" })).status, 201);
     const c = await sua(w, id, { xeId: xe2, taiXePartyId: tx2 });
     assert.equal(c.status, 200, c.text);
     assert.deepEqual(dongCp(w, id), [["SNAPSHOT", 1_200_000], ["REVERSAL", -1_200_000], ["SNAPSHOT", 1_300_000]]);
@@ -320,7 +341,7 @@ test("RF1-g (Cần chủ 3 = A — 'giá ngày chạy'): dời giờ sang NGÀY 
     const sang = await sua(w, id, { batDau: { ngay: NGAY_SAU, gio: "08:00" }, ketThuc: { ngay: NGAY_SAU, gio: "10:00" } });
     assert.equal(sang.status, 200, sang.text);
     assert.deepEqual(dongCp(w, id), [["SNAPSHOT", 1_000_000], ["REVERSAL", -1_000_000], ["SNAPSHOT", 1_100_000]], "ngày mới → G4");
-    // Vòng sửa 2 (SV-1, lời chủ 2/10): dòng ĐẢO mang ngày của DÒNG GỐC (tháng / ngày cũ về 0), chụp mới mang ngày chạy mới.
+    // Vòng sửa 2 (SV-1, ADR-0095 Q2): dòng ĐẢO mang ngày của DÒNG GỐC (tháng / ngày cũ về 0), chụp mới mang ngày chạy mới.
     assert.deepEqual(w.q("SELECT occurred_date d FROM vc_trip_cost_line WHERE trip_id = ? ORDER BY rowid", id).map((r: any) => r.d), [NGAY, NGAY, NGAY_SAU]);
     // Giá thoả thuận (chuyến khác, thiếu giá) + dời giờ trong cùng ngày → giữ nguyên thoả thuận.
     const id2 = (await taoThue(w, { xe: n.x29, taiXe: n.tx, bd: "13:00", kt: "14:00", ngay: NGAY_SAU })).json.chuyen.id;
@@ -539,7 +560,7 @@ test("V6b + chụp lại (ADR tiêu chí 4): thiếu giá → giá thoả thuậ
     assert.equal(k.status, 409);
     assert.match(k.text, /Chưa có giá bảng cho chuyến này — nhập giá thoả thuận/);
     const c29 = (await w.call("GET", "/api/van-chuyen/co-xe", { as: ACC })).json.coXe.find((c: any) => c.tuSoKhach === 17).ma;
-    assert.equal((await themGia(w, ADM, { nhaXePartyId: n.nx, coXe: c29, soTien: 1_250_000, tuNgay: NGAY })).status, 201);
+    assert.equal((await themGia(w, ADM, { nhaXePartyId: n.nx, tuyen: n.dl, coXe: c29, soTien: 1_250_000, tuNgay: NGAY })).status, 201);
     const k2 = await ghiCp(w, b, "chup-lai", {});
     assert.equal(k2.status, 201, k2.text);
     assert.deepEqual([k2.json.chiPhi.nguonGia, k2.json.chiPhi.tong], ["BANG", 1_250_000]);
@@ -623,7 +644,7 @@ test("Phiên bản chi phí cũ (TC-8): hai Kế toán cùng đọc phiên bản
   try {
     const w = setup();
     const n = await nenThue(w);
-    const id = (await taoThue(w, { xe: n.x16, taiXe: n.tx, tuyen: n.crt, ngay: NGAY_SAU })).json.chuyen.id;
+    const id = (await taoThue(w, { xe: n.x29, taiXe: n.tx, tuyen: n.crt, ngay: NGAY_SAU })).json.chuyen.id; // G4 (NT-CR, C29) từ NGAY_SAU
     const rid = uuid();
     const mot = await w.call("POST", `/api/van-chuyen/chuyen/${id}/chi-phi/dieu-chinh`, { as: ACC, body: { requestId: rid, phienBanChiPhi: 1, soTien: 150_000, lyDo: "CPX_PHU_THU_CHO", ghiChu: null } });
     assert.equal(mot.status, 201, mot.text);
@@ -691,11 +712,12 @@ test("Bảng kê: ba chuyến (đã kết thúc 1.200.000; huỷ có phí 300.00
     assert.equal((await w.call("GET", `/api/van-chuyen/chi-phi?tu=2027-01-01&den=2027-04-15`, { as: ACC })).status, 400);
     assert.equal((await w.call("GET", `/api/van-chuyen/chi-phi?tu=${NGAY}&den=${NGAY}&trang-thai=LA`, { as: ACC })).status, 400);
     // V7 trên bảng kê: điều chỉnh bị đảo DO ĐỔI CHUYẾN được đếm.
-    const d = (await taoThue(w, { xe: n.x16, taiXe: n.tx, tuyen: n.crt, ngay: NGAY_SAU, bd: "09:00", kt: "10:00" })).json.chuyen.id;
+    const d = (await taoThue(w, { xe: n.x29, taiXe: n.tx, tuyen: n.crt, ngay: NGAY_SAU, bd: "09:00", kt: "10:00" })).json.chuyen.id; // G4
     await ghiCp(w, d, "dieu-chinh", { soTien: 150_000, lyDo: "CPX_PHU_THU_CHO", ghiChu: null });
     assert.equal((await sua(w, d, { tuyen: n.dl })).status, 200);
     const kd = (await w.call("GET", `/api/van-chuyen/chi-phi?tu=${NGAY_SAU}&den=${NGAY_SAU}`, { as: ADM })).json.nhom[0].dong[0];
-    assert.deepEqual([kd.tong, kd.soDieuChinh, kd.soDieuChinhBiDao, kd.tongDieuChinh], [900_000, 0, 1, 0]);
+    // Vòng sửa 2 (B): NT-DL không có giá cho xe 29 chỗ ⇒ sau đổi tuyến chưa có giá.
+    assert.deepEqual([kd.tong, kd.soDieuChinh, kd.soDieuChinhBiDao, kd.tongDieuChinh, kd.nhomTrangThai], [0, 0, 1, 0, "THIEU_GIA"]);
     const cpd = (await chiPhi(w, d)).json.chiPhi;
     assert.ok(cpd.dong.find((x: any) => x.loai === "ADJUSTMENT").daoDoDoiChuyen, "dòng điều chỉnh: 'đảo do đổi chuyến'");
   } finally {
@@ -733,7 +755,7 @@ test("Vòng sửa 1: nhật ký bảng giá / tuyến / cỡ xe KHÔNG gắn tar
   await w.call("PUT", `/api/van-chuyen/tuyen/${t}`, { as: ACC, body: { ten: "Tuyến nhật ký 2" } });
   const c = await coMoi(w, 10, 16);
   await w.call("PUT", `/api/van-chuyen/co-xe/${c}`, { as: ACC, body: { nhan: "Xe 16 chỗ" } });
-  const a = await themGia(w, ACC, { nhaXePartyId: nx, tuyen: t });
+  const a = await themGia(w, ACC, { nhaXePartyId: nx, tuyen: t, coXe: c });
   await w.call("POST", `/api/van-chuyen/bang-gia/${a.json.dong.id}/ket-thuc`, { as: ACC, body: { denNgay: "2026-12-31" } });
   const rows = w.q("SELECT action, target_type, target_id FROM audit_log WHERE action IN ('rental_rate_added', 'rental_rate_closed', 'route_saved', 'vehicle_size_saved') ORDER BY created_at, rowid")
     .map((r: any) => [r.action, r.target_type, r.target_id]);

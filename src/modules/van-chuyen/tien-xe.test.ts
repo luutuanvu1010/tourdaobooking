@@ -12,11 +12,12 @@ const CO: CoXe[] = [
   { code: "C29", min: 17, max: 29, active: true },
   { code: "C45CU", min: 30, max: 45, active: false },
 ];
+// Vòng sửa 2 (B — ADR-0095 Q3): giá luôn theo CẢ tuyến LẪN cỡ xe — mọi dòng giá đủ hai khoá (CHECK 0072 + máy chủ).
 const G: DongGiaThue[] = [
   { id: "G1", carrierPartyId: HP, routeCode: "NT-CR", sizeCode: "C16", amount: 1_200_000, validFrom: "2026-10-01", validTo: "2026-10-31" },
-  { id: "G2", carrierPartyId: HP, routeCode: "NT-CR", sizeCode: null, amount: 1_000_000, validFrom: "2026-10-01", validTo: "2026-10-31" },
-  { id: "G3", carrierPartyId: HP, routeCode: null, sizeCode: "C16", amount: 900_000, validFrom: "2026-10-01", validTo: null },
-  { id: "G4", carrierPartyId: HP, routeCode: "NT-CR", sizeCode: null, amount: 1_100_000, validFrom: "2026-11-01", validTo: null },
+  { id: "G2", carrierPartyId: HP, routeCode: "NT-CR", sizeCode: "C29", amount: 1_000_000, validFrom: "2026-10-01", validTo: "2026-10-31" },
+  { id: "G3", carrierPartyId: HP, routeCode: "NT-DL", sizeCode: "C16", amount: 900_000, validFrom: "2026-10-01", validTo: null },
+  { id: "G4", carrierPartyId: HP, routeCode: "NT-CR", sizeCode: "C29", amount: 1_100_000, validFrom: "2026-11-01", validTo: null },
   { id: "KHAC", carrierPartyId: "p-khac", routeCode: "NT-CR", sizeCode: "C16", amount: 5_000_000, validFrom: "2026-01-01", validTo: null },
 ];
 const ca = (routeCode: string | null, so: number, ngayChay: string) => chonDongGiaThue({ carrierPartyId: HP, routeCode, sizeCode: coXeCua(so, CO), ngayChay }, G)?.id ?? null;
@@ -29,25 +30,31 @@ test("coXeCua: khoảng tính cả hai đầu; cỡ ngưng dùng không áp; ngo
   assert.equal(coXeCua(9, CO), null);
 });
 
-test("chonDongGiaThue — ví dụ vàng V1–V6: tuyến+cỡ > tuyến > cỡ; ranh ngày; không dòng → null; đúng nhà xe", () => {
+test("chonDongGiaThue (vòng sửa 2 — B): CHỈ khớp đủ tuyến + cỡ; ranh ngày; chưa chọn tuyến / cỡ ngoài danh mục → null (thoả thuận); đúng nhà xe", () => {
   assert.equal(ca("NT-CR", 16, "2026-10-15"), "G1"); // V1
   assert.equal(ca("NT-CR", 29, "2026-10-15"), "G2"); // V2
-  assert.equal(ca(null, 16, "2026-10-15"), "G3"); // V3
+  assert.equal(ca(null, 16, "2026-10-15"), null); // V3: chưa chọn tuyến → chưa có giá
   assert.equal(ca("NT-DL", 16, "2026-10-15"), "G3"); // V4
   assert.equal(ca("NT-CR", 29, "2026-10-31"), "G2"); // V5a ngày cuối vẫn áp
   assert.equal(ca("NT-CR", 29, "2026-11-01"), "G4"); // V5b
   assert.equal(ca("NT-CR", 29, "2026-09-30"), null); // trước ngày bắt đầu
   assert.equal(ca(null, 29, "2026-10-15"), null); // V6 thiếu giá
+  assert.equal(ca("NT-DL", 29, "2026-10-15"), null); // tuyến có giá nhưng cỡ khác → không lấy giá "theo tuyến"
+  assert.equal(ca("NT-CR", 35, "2026-10-15"), null); // xe ngoài mọi cỡ đang dùng
   assert.equal(chonDongGiaThue({ carrierPartyId: "p-la", routeCode: "NT-CR", sizeCode: "C16", ngayChay: "2026-10-15" }, G), null);
+  // Dòng THIẾU một khoá (không còn tạo được — dữ liệu dò) không bao giờ được chọn.
+  const thieu: DongGiaThue[] = [{ id: "X", carrierPartyId: HP, routeCode: "NT-CR", sizeCode: null, amount: 1, validFrom: "2026-01-01", validTo: null },
+    { id: "Y", carrierPartyId: HP, routeCode: null, sizeCode: "C16", amount: 2, validFrom: "2026-01-01", validTo: null }];
+  assert.equal(chonDongGiaThue({ carrierPartyId: HP, routeCode: "NT-CR", sizeCode: "C16", ngayChay: "2026-10-15" }, thieu), null);
 });
 
-test("dongChongGia: cùng khoá (nhà xe, tuyến, cỡ — so cả trống) giao ngày → chồng; khác khoá hoặc ngày rời → không", () => {
-  const moi = { carrierPartyId: HP, routeCode: "NT-CR", sizeCode: null, validFrom: "2026-10-31", validTo: null };
+test("dongChongGia: cùng khoá (nhà xe, tuyến, cỡ) giao ngày → chồng; khác khoá hoặc ngày rời → không", () => {
+  const moi = { carrierPartyId: HP, routeCode: "NT-CR", sizeCode: "C29", validFrom: "2026-10-31", validTo: null };
   assert.equal(dongChongGia(moi, G)?.id, "G2"); // 31/10 chạm G2 (tính cả ngày cuối)
   assert.equal(dongChongGia({ ...moi, validFrom: "2026-11-01" }, G)?.id, "G4");
   assert.equal(dongChongGia({ ...moi, validFrom: "2026-11-01" }, G, "G4"), null); // bỏ qua dòng đang thay
-  assert.equal(dongChongGia({ carrierPartyId: HP, routeCode: null, sizeCode: "C29", validFrom: "2026-10-01", validTo: null }, G), null);
-  assert.equal(dongChongGia({ carrierPartyId: HP, routeCode: null, sizeCode: "C16", validFrom: "2027-01-01", validTo: null }, G)?.id, "G3"); // G3 mở
+  assert.equal(dongChongGia({ carrierPartyId: HP, routeCode: "NT-DL", sizeCode: "C29", validFrom: "2026-10-01", validTo: null }, G), null);
+  assert.equal(dongChongGia({ carrierPartyId: HP, routeCode: "NT-DL", sizeCode: "C16", validFrom: "2027-01-01", validTo: null }, G)?.id, "G3"); // G3 mở
 });
 
 // ---- T2: chi phí chuyến (ADR-0057 C3, C4, C6, C8) ---------------------------------------------------------------------------------------------------------

@@ -862,7 +862,7 @@ Núm = một ô chỉnh ở màn Giao diện công ty, ánh xạ tới MỘT tok
 ### z10. Tiền xe thuê: bảng giá theo nhà xe, chi phí chuyến, bảng kê (ADR-0057 T1 + T2 — Đợt 4, nhánh thi công, CHƯA gộp)
 
 **Luật (một nơi mỗi việc):**
-- **Luật tiền một nguồn** ở `src/modules/van-chuyen/tien-xe.ts`: `chonDongGiaThue` (tuyến + cỡ > tuyến > cỡ, ngày chạy trong `valid_from_date`–`valid_to_date` tính cả hai đầu), `coXeCua`, `dongChongGia`. Không viết lại phép chọn / phép cộng tiền chi phí ở chỗ khác.
+- **Luật tiền một nguồn** ở `src/modules/van-chuyen/tien-xe.ts`: `chonDongGiaThue` (khớp ĐỦ tuyến + cỡ xe — ADR-0095 Q3; ngày chạy trong `valid_from_date`–`valid_to_date` tính cả hai đầu), `coXeCua`, `dongChongGia`. Không viết lại phép chọn / phép cộng tiền chi phí ở chỗ khác.
 - **Thêm / đổi giá thuê xe:** KHÔNG có đường sửa tiền. Đổi giá = route `POST /api/van-chuyen/bang-gia` với `thayDongId` (đóng dòng cũ ở ngày trước ngày bắt đầu mới + thêm dòng mới, MỘT lô — trigger `vc_rental_rate_close_once` chỉ cho đặt ngày kết thúc một lần). Kết thúc = `…/:id/ket-thuc` (được cả với nhà xe đã thôi hợp tác).
 - **Tuyến / cỡ xe:** mã máy sinh (`T001…`, `S001…`); cỡ xe là khoảng số khách KHÔNG kể tài xế, khoảng các cỡ đang dùng không chồng; đổi khoảng = thêm cỡ mới + ngưng cỡ cũ.
 - **Quyền:** `transport.rate.*` — Quản trị = Kế toán (chủ lần 18); mọi vai khác none (bài ghim `transport.*` ở `src/shared/permissions.test.ts`). Người xếp xe đọc TÊN tuyến / cỡ qua `trip.dispatch`, không bao giờ thấy giá.

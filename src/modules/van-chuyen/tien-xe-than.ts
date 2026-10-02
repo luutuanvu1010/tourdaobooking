@@ -25,7 +25,7 @@ export const TIEN_TOI_DA = 1_000_000_000;
 const tienDuong = (v: unknown): v is number => typeof v === "number" && Number.isSafeInteger(v) && v > 0 && v <= TIEN_TOI_DA;
 
 export interface ThemGiaThan {
-  requestId: string; nhaXePartyId: string; tuyen: string | null; coXe: string | null; soTien: number; tuNgay: string; denNgay: string | null; ghiChu: string | null; thayDongId: string | null;
+  requestId: string; nhaXePartyId: string; tuyen: string; coXe: string; soTien: number; tuNgay: string; denNgay: string | null; ghiChu: string | null; thayDongId: string | null;
 }
 export function docThemGia(body: Record<string, unknown> | null): KetQua<ThemGiaThan> {
   if (!body) return fail("Dữ liệu không hợp lệ.");
@@ -36,7 +36,8 @@ export function docThemGia(body: Record<string, unknown> | null): KetQua<ThemGia
   if (!tuyen.ok) return tuyen;
   const coXe = maHoacNull(body.coXe);
   if (!coXe.ok) return coXe;
-  if (tuyen.value === null && coXe.value === null) return fail("Chọn tuyến hoặc cỡ xe (ít nhất một).");
+  // Vòng sửa 2 (B — ADR-0095 Q3): giá luôn theo CẢ tuyến LẪN cỡ xe.
+  if (tuyen.value === null || coXe.value === null) return fail("Cần chọn cả tuyến và cỡ xe.");
   if (!tienDuong(body.soTien)) return fail("Số tiền phải là số nguyên dương (đồng), tối đa 1.000.000.000.");
   if (!ngayHopLe(body.tuNgay)) return fail("Từ ngày: YYYY-MM-DD.");
   if (body.denNgay !== undefined && body.denNgay !== null && !ngayHopLe(body.denNgay)) return fail("Đến ngày: YYYY-MM-DD.");
@@ -48,7 +49,7 @@ export function docThemGia(body: Record<string, unknown> | null): KetQua<ThemGia
   return {
     ok: true,
     value: {
-      requestId: rid.value, nhaXePartyId: body.nhaXePartyId, tuyen: tuyen.value, coXe: coXe.value, soTien: body.soTien, tuNgay: body.tuNgay, denNgay,
+      requestId: rid.value, nhaXePartyId: body.nhaXePartyId, tuyen: tuyen.value, coXe: coXe.value as string, soTien: body.soTien, tuNgay: body.tuNgay, denNgay,
       ghiChu: ghiChu.value, thayDongId: (body.thayDongId as string | null | undefined) ?? null,
     },
   };

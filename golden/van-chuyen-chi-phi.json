@@ -1,11 +1,11 @@
 {
-  "luat": "ADR-0057 T1 B2 + T2 C4/C8 — giá thuê xe theo chuyến (tuyến + cỡ > tuyến > cỡ, ngày chạy trong khoảng hiệu lực tính cả hai đầu), chi phí chuyến chỉ-thêm (chụp lúc xếp xe nhà xe, đảo + chụp lại khi đổi nhà xe / xe / tuyến / NGÀY chạy trước xuất bến — Cần chủ 3 = A, đảo hết khi huỷ: âm trước, dương sau), tổng ≥ 0 sau mọi dòng",
-  "mo_ta": "Ví dụ vàng V1–V13 của kế hoạch docs/superpowers/plans/2026-10-01-van-chuyen-con-lai-04-tien-xe-thue.md (mục 'Ví dụ vàng') + V14, V14b (dời ngày chạy — chủ chọn (A) '900.000đ — giá ngày chạy', 2026-10-02). Nhà xe HP = 'Nhà xe Hùng Phát'; tuyến NT-CR = 'Nha Trang – sân bay Cam Ranh', NT-DL = 'Nha Trang – Đà Lạt'; cỡ C16 = 10–16 khách, C29 = 17–29 khách (không kể tài xế). Ngày giờ Việt Nam. Sự kiện dùng tập đóng: CHUP, GIA_THOA_THUAN, DIEU_CHINH, DAO (dong = chỉ số 0-based trong danh sách dòng đã có), DOI_TUYEN, DOI_XE (so_cho, nha_xe 'HP' | 'CONG_TY'), DOI_NGAY, HUY, KET_THUC_GIAN_DOAN, THEM_GIA (thay = id dòng bị đóng ở ngày trước). dap_an.dong = các dòng chi phí theo thứ tự ghi [loại, số tiền có dấu, ngày phát sinh] (vòng sửa 2 SV-1: dòng đảo mang ngày của dòng gốc); tu_choi = sự kiện bị từ chối (chỉ số sự kiện, mã lỗi); thieu_gia = chuyến chưa xuất bến bị giữ 'chưa có giá' (null khi chuyến đã huỷ / đã chạy). Tiền: số nguyên đồng.",
+  "luat": "ADR-0057 T1 B2 + T2 C4/C8 — giá thuê xe theo chuyến (ADR-0095 Q3: chỉ khớp ĐỦ tuyến + cỡ xe, không bậc lùi; ngày chạy trong khoảng hiệu lực tính cả hai đầu), chi phí chuyến chỉ-thêm (chụp lúc xếp xe nhà xe, đảo + chụp lại khi đổi nhà xe / xe / tuyến / NGÀY chạy trước xuất bến — Cần chủ 3 = A, đảo hết khi huỷ: âm trước, dương sau), tổng ≥ 0 sau mọi dòng",
+  "mo_ta": "Ví dụ vàng V1–V13 của kế hoạch docs/superpowers/plans/2026-10-01-van-chuyen-con-lai-04-tien-xe-thue.md (mục 'Ví dụ vàng') + V14, V14b (dời ngày chạy — chủ chọn (A) '900.000đ — giá ngày chạy', 2026-10-02). Nhà xe HP = 'Nhà xe Hùng Phát'; tuyến NT-CR = 'Nha Trang – sân bay Cam Ranh', NT-DL = 'Nha Trang – Đà Lạt'; cỡ C16 = 10–16 khách, C29 = 17–29 khách (không kể tài xế). Ngày giờ Việt Nam. Sự kiện dùng tập đóng: CHUP, GIA_THOA_THUAN, DIEU_CHINH, DAO (dong = chỉ số 0-based trong danh sách dòng đã có), DOI_TUYEN, DOI_XE (so_cho, nha_xe 'HP' | 'CONG_TY'), DOI_NGAY, HUY, KET_THUC_GIAN_DOAN, THEM_GIA (thay = id dòng bị đóng ở ngày trước). dap_an.dong = các dòng chi phí theo thứ tự ghi [loại, số tiền có dấu, ngày phát sinh] (ADR-0095 Q2: dòng đảo mang ngày của dòng gốc); tu_choi = sự kiện bị từ chối (chỉ số sự kiện, mã lỗi); thieu_gia = chuyến chưa xuất bến bị giữ 'chưa có giá' (null khi chuyến đã huỷ / đã chạy). ADR-0095 Q3: bảng giá chỉ gồm dòng đủ tuyến + cỡ (G2, G4 = NT-CR + C29; G3 = NT-DL + C16); đáp án V3 đổi (chưa chọn tuyến ⇒ chưa có giá). Tiền: số nguyên đồng.",
   "bang_gia": [
     { "id": "G1", "nha_xe": "HP", "tuyen": "NT-CR", "co": "C16", "tien": 1200000, "tu": "2026-10-01", "den": "2026-10-31" },
-    { "id": "G2", "nha_xe": "HP", "tuyen": "NT-CR", "co": null, "tien": 1000000, "tu": "2026-10-01", "den": "2026-10-31" },
-    { "id": "G3", "nha_xe": "HP", "tuyen": null, "co": "C16", "tien": 900000, "tu": "2026-10-01", "den": null },
-    { "id": "G4", "nha_xe": "HP", "tuyen": "NT-CR", "co": null, "tien": 1100000, "tu": "2026-11-01", "den": null }
+    { "id": "G2", "nha_xe": "HP", "tuyen": "NT-CR", "co": "C29", "tien": 1000000, "tu": "2026-10-01", "den": "2026-10-31" },
+    { "id": "G3", "nha_xe": "HP", "tuyen": "NT-DL", "co": "C16", "tien": 900000, "tu": "2026-10-01", "den": null },
+    { "id": "G4", "nha_xe": "HP", "tuyen": "NT-CR", "co": "C29", "tien": 1100000, "tu": "2026-11-01", "den": null }
   ],
   "co_xe": [
     { "code": "C16", "min": 10, "max": 16 },
@@ -14,7 +14,7 @@
   "cac_ca": [
     {
       "ma": "SV-CPX-01",
-      "mo_ta": "V1: chuyến 15/10, xe 16 chỗ của Hùng Phát, tuyến NT-CR → giá bảng G1 (khớp tuyến + cỡ)",
+      "mo_ta": "V1: chuyến 15/10, xe 16 chỗ của Hùng Phát, tuyến NT-CR → giá bảng G1 (khớp đủ NT-CR + C16)",
       "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
       "chuyen": { "nha_xe": "HP", "so_cho": 16, "tuyen": "NT-CR", "ngay": "2026-10-15" },
       "su_kien": [
@@ -30,7 +30,7 @@
     },
     {
       "ma": "SV-CPX-02",
-      "mo_ta": "V2: 15/10, xe 29 chỗ, tuyến NT-CR → G2 (khớp tuyến, cỡ trống)",
+      "mo_ta": "V2: 15/10, xe 29 chỗ, tuyến NT-CR → G2 (khớp đủ NT-CR + C29)",
       "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
       "chuyen": { "nha_xe": "HP", "so_cho": 29, "tuyen": "NT-CR", "ngay": "2026-10-15" },
       "su_kien": [
@@ -46,23 +46,21 @@
     },
     {
       "ma": "SV-CPX-03",
-      "mo_ta": "V3: 15/10, xe 16 chỗ, chưa chọn tuyến → G3 (khớp cỡ)",
+      "mo_ta": "V3 (ADR-0095 Q3): 15/10, xe 16 chỗ, CHƯA chọn tuyến → không dòng nào khớp đủ tuyến + cỡ ⇒ không ghi dòng, bị giữ 'chưa có giá' (chọn tuyến hoặc nhập giá thoả thuận)",
       "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
       "chuyen": { "nha_xe": "HP", "so_cho": 16, "tuyen": null, "ngay": "2026-10-15" },
       "su_kien": [
         { "loai": "CHUP" }
       ],
       "dap_an": {
-        "dong": [
-          ["SNAPSHOT", 900000, "2026-10-15"]
-        ],
-        "tong": 900000,
-        "thieu_gia": false
+        "dong": [],
+        "tong": 0,
+        "thieu_gia": true
       }
     },
     {
       "ma": "SV-CPX-04",
-      "mo_ta": "V4: 15/10, xe 16 chỗ, tuyến NT-DL (không có giá theo tuyến này) → G3",
+      "mo_ta": "V4: 15/10, xe 16 chỗ, tuyến NT-DL → G3 (khớp đủ NT-DL + C16)",
       "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
       "chuyen": { "nha_xe": "HP", "so_cho": 16, "tuyen": "NT-DL", "ngay": "2026-10-15" },
       "su_kien": [
@@ -94,7 +92,7 @@
     },
     {
       "ma": "SV-CPX-05b",
-      "mo_ta": "V5b: 01/11, xe 29 chỗ, NT-CR → G4",
+      "mo_ta": "V5b: 01/11, xe 29 chỗ, NT-CR → G4 (NT-CR + C29 từ 01/11)",
       "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
       "chuyen": { "nha_xe": "HP", "so_cho": 29, "tuyen": "NT-CR", "ngay": "2026-11-01" },
       "su_kien": [
@@ -110,7 +108,7 @@
     },
     {
       "ma": "SV-CPX-06",
-      "mo_ta": "V6: 15/10, xe 29 chỗ, chưa chọn tuyến (không dòng nào khớp) → không dòng nào, KHÔNG BAO GIỜ ghi 0 đồng; bị giữ 'chưa có giá'",
+      "mo_ta": "V6: 15/10, xe 29 chỗ, chưa chọn tuyến (không dòng nào khớp đủ tuyến + cỡ) → không dòng nào, KHÔNG BAO GIỜ ghi 0 đồng; bị giữ 'chưa có giá'",
       "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
       "chuyen": { "nha_xe": "HP", "so_cho": 29, "tuyen": null, "ngay": "2026-10-15" },
       "su_kien": [
@@ -141,7 +139,7 @@
     },
     {
       "ma": "SV-CPX-07",
-      "mo_ta": "V7: V1 rồi Kế toán ghi +150.000 'Phụ thu chờ thêm giờ'; sau đó văn phòng đổi tuyến sang NT-DL trước xuất bến → đảo phụ thu, đảo giá cũ, chụp G3",
+      "mo_ta": "V7: V1 rồi Kế toán ghi +150.000 'Phụ thu chờ thêm giờ'; sau đó văn phòng đổi tuyến sang NT-DL trước xuất bến → đảo phụ thu, đảo giá cũ, chụp G3 (NT-DL + C16)",
       "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
       "chuyen": { "nha_xe": "HP", "so_cho": 16, "tuyen": "NT-CR", "ngay": "2026-10-15" },
       "su_kien": [
@@ -266,7 +264,7 @@
     },
     {
       "ma": "SV-CPX-12",
-      "mo_ta": "V12: V6b (thoả thuận 1.350.000) rồi đổi tuyến sang NT-CR → đảo thoả thuận, chụp G2; thoả thuận KHÔNG tự chuyển",
+      "mo_ta": "V12: V6b (thoả thuận 1.350.000) rồi đổi tuyến sang NT-CR → đảo thoả thuận, chụp G2 (NT-CR + C29); thoả thuận KHÔNG tự chuyển",
       "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
       "chuyen": { "nha_xe": "HP", "so_cho": 29, "tuyen": null, "ngay": "2026-10-15" },
       "su_kien": [
@@ -286,7 +284,7 @@
     },
     {
       "ma": "SV-CPX-12b",
-      "mo_ta": "V12b: V6b rồi đổi tuyến sang tuyến không có giá (NT-DL), xe 29 chỗ → đảo thoả thuận, thiếu giá (nhập lại thoả thuận)",
+      "mo_ta": "V12b: V6b rồi đổi tuyến sang NT-DL — không có giá NT-DL + C29 → đảo thoả thuận, thiếu giá (nhập lại thoả thuận)",
       "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
       "chuyen": { "nha_xe": "HP", "so_cho": 29, "tuyen": null, "ngay": "2026-10-15" },
       "su_kien": [
@@ -323,7 +321,7 @@
     },
     {
       "ma": "SV-CPX-14",
-      "mo_ta": "V14 (Cần chủ 3 = A 'giá ngày chạy'; SV-1 lời chủ 2/10): chuyến 31/10 xe 29 chỗ NT-CR (G2) dời sang 01/11 trước xuất bến → đảo G2 MANG NGÀY 31/10 (tháng 10 về 0), chụp G4 ngày 01/11",
+      "mo_ta": "V14 (Cần chủ 3 = A 'giá ngày chạy'; ADR-0095 Q2): chuyến 31/10 xe 29 chỗ NT-CR (G2) dời sang 01/11 trước xuất bến → đảo G2 MANG NGÀY 31/10 (tháng 10 về 0), chụp G4 ngày 01/11",
       "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
       "chuyen": { "nha_xe": "HP", "so_cho": 29, "tuyen": "NT-CR", "ngay": "2026-10-31" },
       "su_kien": [

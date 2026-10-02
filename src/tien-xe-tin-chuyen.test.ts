@@ -38,8 +38,9 @@ test("route chi phí của Kế toán KHÔNG gọi baoThayDoiChuyen; lệnh chuy
     const x16 = xeNhaXe(w, nx, 16);
     const t1 = (await w.call("POST", "/api/van-chuyen/tuyen", { as: ACC, body: { ten: "Tuyến A" } })).json.tuyen[0].ma;
     const t2 = (await w.call("POST", "/api/van-chuyen/tuyen", { as: ACC, body: { ten: "Tuyến B" } })).json.tuyen.find((t: any) => t.ten === "Tuyến B").ma;
+    const coXe = (await w.call("POST", "/api/van-chuyen/co-xe", { as: ACC, body: { tuSoKhach: 10, denSoKhach: 16 } })).json.coXe[0].ma; // vòng sửa 2 (B)
     for (const [tuyen, soTien] of [[t1, 480_017], [t2, 1_480_017]] as const) {
-      assert.equal((await w.call("POST", "/api/van-chuyen/bang-gia", { as: ADM, body: { requestId: uuid(), nhaXePartyId: nx, tuyen, coXe: null, soTien, tuNgay: "2027-03-01", denNgay: null, ghiChu: null, thayDongId: null } })).status, 201);
+      assert.equal((await w.call("POST", "/api/van-chuyen/bang-gia", { as: ADM, body: { requestId: uuid(), nhaXePartyId: nx, tuyen, coXe, soTien, tuNgay: "2027-03-01", denNgay: null, ghiChu: null, thayDongId: null } })).status, 201);
     }
     const tao = await w.call("POST", "/api/van-chuyen/chuyen", { as: SALES, body: { requestId: uuid(), xeId: x16, taiXePartyId: tx, tuyen: t1, batDau: { ngay: NGAY, gio: "12:30" }, ketThuc: { ngay: NGAY, gio: "15:00" } } });
     assert.equal(tao.status, 201, tao.text);

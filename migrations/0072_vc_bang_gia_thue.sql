@@ -1,4 +1,5 @@
 -- Migration 0072 — ADR-0057 T1 (accepted 2026-09-30): BẢNG GIÁ THUÊ XE theo nhà xe, trong module van-chuyen (chủ chọn Tiền Q2 a). CHỈ THÊM.
+-- ADR-0095 Q3 (vòng sửa 2 — B): mỗi dòng giá theo CẢ tuyến LẪN cỡ xe (bỏ giá "chỉ tuyến" / "chỉ cỡ").
 -- Tuyến = NHÃN để tra giá (không phải lộ trình; không khoá tới loc_location — giả định G-T1). Cỡ xe = khoảng số khách KHÔNG kể tài xế, máy suy từ
 -- vc_vehicle.passenger_capacity (chủ chọn Q-T1 lần 17). Dòng giá CHỈ-THÊM: đổi giá = đóng dòng cũ + thêm dòng mới (một lô). valid_to_date TÍNH CẢ NGÀY ĐÓ.
 -- Trigger chỉ đọc bảng vc_ + view công bố v_pty_carrier (Hiến chương 5.3; src/architecture.test.ts VIEW_CHO_TRIGGER_VC). Mã lỗi: vc_route_, vc_size_, vc_rate_.
@@ -48,8 +49,8 @@ BEGIN SELECT RAISE(ABORT, 'vc_size_overlap: khoảng số khách chồng với c
 CREATE TABLE vc_rental_rate (
   id                 TEXT PRIMARY KEY,
   carrier_party_id   TEXT NOT NULL REFERENCES pty_party(id),
-  route_code         TEXT REFERENCES vc_route(code),
-  vehicle_size_code  TEXT REFERENCES vc_vehicle_size(code),
+  route_code         TEXT NOT NULL REFERENCES vc_route(code),
+  vehicle_size_code  TEXT NOT NULL REFERENCES vc_vehicle_size(code),
   unit               TEXT NOT NULL DEFAULT 'PER_TRIP' CHECK (unit IN ('PER_TRIP')),
   amount             INTEGER NOT NULL CHECK (amount > 0 AND amount = round(amount)),
   valid_from_date    TEXT NOT NULL CHECK (date(valid_from_date) IS valid_from_date),
@@ -60,7 +61,9 @@ CREATE TABLE vc_rental_rate (
   created_by         TEXT,
   updated_at         TEXT NOT NULL,
   updated_by         TEXT,
-  CHECK (route_code IS NOT NULL OR vehicle_size_code IS NOT NULL)
+  -- Vòng sửa 2 (B — ADR-0095 Q3, sửa tại chỗ khi 0072 CHƯA áp remote): giá luôn theo CẢ tuyến LẪN cỡ xe — hai cột bắt buộc (NOT NULL ở trên). Lớp máy
+  -- chủ: "Cần chọn cả tuyến và cỡ xe"; luật chọn `chonDongGiaThue` chỉ còn khớp đủ hai.
+  CHECK (length(route_code) > 0 AND length(vehicle_size_code) > 0)
 );
 CREATE INDEX vc_rental_rate_carrier_ix ON vc_rental_rate(carrier_party_id, valid_from_date);
 CREATE TRIGGER vc_rental_rate_no_delete BEFORE DELETE ON vc_rental_rate
@@ -73,7 +76,7 @@ WHEN OLD.valid_to_date IS NOT NULL OR NEW.valid_to_date IS NULL
   OR NEW.valid_from_date IS NOT OLD.valid_from_date OR NEW.note IS NOT OLD.note OR NEW.replaces_id IS NOT OLD.replaces_id
   OR NEW.created_at IS NOT OLD.created_at OR NEW.created_by IS NOT OLD.created_by
 BEGIN SELECT RAISE(ABORT, 'vc_rate_append_only: dòng giá chỉ đóng một lần, không sửa tiền / khoá / ngày bắt đầu'); END;
--- Khuôn pty_party_role_overlap (0011:97-104): khoá có thể trống so bằng IS; khoảng mở = '9999-12-31'.
+-- Khuôn pty_party_role_overlap (0011:97-104): khoá so bằng IS (hai cột nay NOT NULL — IS ≡ =); khoảng mở = '9999-12-31'.
 CREATE TRIGGER vc_rental_rate_overlap BEFORE INSERT ON vc_rental_rate
 WHEN EXISTS (SELECT 1 FROM vc_rental_rate r WHERE r.carrier_party_id = NEW.carrier_party_id AND r.route_code IS NEW.route_code
   AND r.vehicle_size_code IS NEW.vehicle_size_code

@@ -24,10 +24,15 @@ await sql(`INSERT INTO pty_party_role (id, party_id, role_type_code, location_id
 r = await call(ACC, "POST", "/api/van-chuyen/tuyen", { ten: `Nha Trang – Cam Ranh E2E ${duoi}` });
 assert.equal(r.status, 201, JSON.stringify(r.body));
 const tuyen = r.body.tuyen.find((t) => t.ten === `Nha Trang – Cam Ranh E2E ${duoi}`).ma;
-r = await call(ACC, "POST", "/api/van-chuyen/bang-gia", { requestId: uuid(), nhaXePartyId: nx, tuyen, coXe: null, soTien: 1200000, tuNgay: "2026-10-01", denNgay: null, ghiChu: null, thayDongId: null });
+// Vòng sửa 2 (B): giá luôn theo CẢ tuyến LẪN cỡ xe — cỡ 10–16 khách (D1 tạm của nhóm có thể đã có cỡ chồng khoảng — dùng lại).
+r = await call(ACC, "POST", "/api/van-chuyen/co-xe", { tuSoKhach: 10, denSoKhach: 16 });
+const c16 = r.status === 201 ? r.body.coXe.find((c) => c.tuSoKhach === 10 && c.denSoKhach === 16 && c.dangDung).ma : (await call(ACC, "GET", "/api/van-chuyen/co-xe")).body.coXe.find((c) => c.tuSoKhach <= 16 && c.denSoKhach >= 16 && c.dangDung)?.ma;
+assert.ok(c16, JSON.stringify(r.body));
+assert.equal((await call(ACC, "POST", "/api/van-chuyen/bang-gia", { requestId: uuid(), nhaXePartyId: nx, tuyen, coXe: null, soTien: 1200000, tuNgay: "2026-10-01", denNgay: null, ghiChu: null, thayDongId: null })).status, 400, "thiếu cỡ xe");
+r = await call(ACC, "POST", "/api/van-chuyen/bang-gia", { requestId: uuid(), nhaXePartyId: nx, tuyen, coXe: c16, soTien: 1200000, tuNgay: "2026-10-01", denNgay: null, ghiChu: null, thayDongId: null });
 assert.equal(r.status, 201, JSON.stringify(r.body));
 const giaId = r.body.dong.id;
-r = await call(ACC, "POST", "/api/van-chuyen/bang-gia", { requestId: uuid(), nhaXePartyId: nx, tuyen, coXe: null, soTien: 1300000, tuNgay: "2026-12-01", denNgay: null, ghiChu: null, thayDongId: null });
+r = await call(ACC, "POST", "/api/van-chuyen/bang-gia", { requestId: uuid(), nhaXePartyId: nx, tuyen, coXe: c16, soTien: 1300000, tuNgay: "2026-12-01", denNgay: null, ghiChu: null, thayDongId: null });
 assert.equal(r.status, 409, JSON.stringify(r.body));
 assert.equal(r.body.error.code, "gia_chong");
 r = await call(SALES, "GET", "/api/van-chuyen/tuyen");
@@ -62,12 +67,9 @@ const xeNx = async (cho, bienDuoi) => {
 };
 const x16 = await xeNx(16, `${duoi.slice(0, 3)}1${duoi.slice(3)}`);
 const x29 = await xeNx(29, `${duoi.slice(0, 3)}2${duoi.slice(3)}`);
-r = await call(ACC, "POST", "/api/van-chuyen/co-xe", { tuSoKhach: 10, denSoKhach: 16 });
-const c16 = r.status === 201 ? r.body.coXe.find((c) => c.tuSoKhach === 10 && c.denSoKhach === 16 && c.dangDung).ma : (await call(ACC, "GET", "/api/van-chuyen/co-xe")).body.coXe.find((c) => c.tuSoKhach <= 16 && c.denSoKhach >= 16 && c.dangDung)?.ma;
-assert.ok(c16, JSON.stringify(r.body));
 r = await call(ACC, "POST", "/api/van-chuyen/tuyen", { ten: `Nha Trang – Đà Lạt E2E ${duoi}` });
 const dl = r.body.tuyen.find((t) => t.ten === `Nha Trang – Đà Lạt E2E ${duoi}`).ma;
-assert.equal((await call(ACC, "POST", "/api/van-chuyen/bang-gia", { requestId: uuid(), nhaXePartyId: nx, tuyen: null, coXe: c16, soTien: 900000, tuNgay: "2026-10-01", denNgay: null, ghiChu: null, thayDongId: null })).status, 201);
+assert.equal((await call(ACC, "POST", "/api/van-chuyen/bang-gia", { requestId: uuid(), nhaXePartyId: nx, tuyen: dl, coXe: c16, soTien: 900000, tuNgay: "2026-10-01", denNgay: null, ghiChu: null, thayDongId: null })).status, 201);
 // Chuyến có giá (16 chỗ, tuyến có giá 1.200.000) → một SNAPSHOT; xuất bến 200.
 r = await call(SALES, "POST", "/api/van-chuyen/chuyen", { requestId: uuid(), xeId: x16, taiXePartyId: tx, tuyen, batDau: { ngay: D, gio: "07:00" }, ketThuc: { ngay: D, gio: "08:00" } });
 assert.equal(r.status, 201, JSON.stringify(r.body));

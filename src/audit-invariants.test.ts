@@ -1891,8 +1891,9 @@ test("R-VC-RATE-1 (ADR-0057 B4): nhà xe đang hợp tác có giá mở → 0; t
   db.exec(`INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES ('p-nx', 'ORGANIZATION', 'Nhà xe', 1, '${T1}', '${T1}')`);
   db.exec(`INSERT INTO pty_party_role (id, party_id, role_type_code, location_id, valid_from_date, created_at, updated_at) VALUES ('r-nx', 'p-nx', 'CARRIER', NULL, '2026-09-01', '${T1}', '${T1}')`);
   db.exec(`INSERT INTO vc_route (code, name, created_at, updated_at) VALUES ('T001', 'Tuyến', '${T1}', '${T1}')`);
+  db.exec(`INSERT INTO vc_vehicle_size (code, label, min_passengers, max_passengers, created_at, updated_at) VALUES ('S001', '10–16 khách', 10, 16, '${T1}', '${T1}')`);
   const gia = (id: string, tu: string, den: string | null) =>
-    db.prepare(`INSERT INTO vc_rental_rate (id, carrier_party_id, route_code, amount, valid_from_date, valid_to_date, created_at, updated_at) VALUES (?, 'p-nx', 'T001', 1000000, ?, ?, ?, ?)`)
+    db.prepare(`INSERT INTO vc_rental_rate (id, carrier_party_id, route_code, vehicle_size_code, amount, valid_from_date, valid_to_date, created_at, updated_at) VALUES (?, 'p-nx', 'T001', 'S001', 1000000, ?, ?, ?, ?)`)
       .run(id, tu, den, T1, T1);
   gia("g-cu", "2020-01-01", "2020-12-31");
   gia("g-mo", "2026-09-01", null);
