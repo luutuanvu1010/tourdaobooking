@@ -24,6 +24,10 @@ export async function docPhanLoai(db: D1Database): Promise<{ congTyChuId: string
  * Dữ liệu chi phí cho MỘT lệnh chuyến (tạo / sửa / huỷ — ADR-0057 C4): dòng chi phí đã có của chuyến (thứ tự ghi), giá của nhà xe MỚI, cỡ xe, phân loại xe
  * thuê. Đọc SAU `can()`, TRƯỚC khi dựng lô; số dòng = phiên bản chi phí cho câu cổng (TC-8).
  */
+/** Tên hồ sơ các nhà xe bị đảo phí huỷ trong lô (nhật ký lệnh — ADR-0095 Q5b); hồ sơ không có tên ⇒ "(không rõ tên)". */
+export async function tenNhaXePhiHuy(db: D1Database, ids: readonly string[]): Promise<string[]> {
+  return Promise.all(ids.map(async (id) => (await partyName(db, id)) ?? "(không rõ tên)"));
+}
 export async function docChiPhiChoLenh(db: D1Database, v: { tripId: string | null; chuXe: string; homNay: string }): Promise<{
   dong: DongLo[]; gia: DongGiaThue[]; coXe: CoXe[]; congTyChuId: string | null; nhaXeDangMo: ReadonlySet<string>;
 }> {

@@ -21,7 +21,7 @@ import { chayLo, diemChoKhoa, diemKhongConKhach, gioNgan, loi409, loiKiem, lyDoH
 import type { DoiThan, HuyThan, RutThan, SuaChuyenThan, XepThan } from "./dieu-phoi-than";
 import { phanLoaiThue } from "./tien-xe";
 import { chiTietChiPhiNhatKy, keHoachChiPhiKhiDoi, keHoachChiPhiKhiHuy } from "./tien-xe-lo";
-import { docChiPhiChoLenh, tenTuyen, tenTuyenDangDung } from "./tien-xe-lenh";
+import { docChiPhiChoLenh, tenNhaXePhiHuy, tenTuyen, tenTuyenDangDung } from "./tien-xe-lenh";
 import { cauNhaXeThoi } from "./rules";
 
 const TUYEN_KHONG_HOP_LE = () => error(400, "invalid_input", "Tuyến không có hoặc đã ngưng dùng.");
@@ -114,7 +114,7 @@ export async function lenhSuaChuyen(db: D1Database, nen: NenChuyen, b: SuaChuyen
     doiTaiXe: doiTaiXe ? taiXeId : null,
     diem: diemDoi.map((d) => ({ id: d.id, seq: d.thuTu, ngayXeToi: d.gioXeToi?.ngay ?? null, gioXeToi: d.gioXeToi?.gio ?? null })),
     phaLe, policyId: chung.chinhSach?.id ?? null,
-    detail: `${t.code}: ${thay.join("; ") || "phá lệ khoảng nghỉ"}${phaLe ? phaLeNhatKy(phaLe.luat, nhanLyDo(chung, phaLe.lyDo)) : ""}${chiTietChiPhiNhatKy(kh.kh, thue)}`,
+    detail: `${t.code}: ${thay.join("; ") || "phá lệ khoảng nghỉ"}${phaLe ? phaLeNhatKy(phaLe.luat, nhanLyDo(chung, phaLe.lyDo)) : ""}${chiTietChiPhiNhatKy(kh.kh, thue, false, await tenNhaXePhiHuy(db, kh.kh.phiHuyBiDao))}`,
   });
   const r = await chayLo(db, lo, b.requestId);
   return r.ok ? null : r.res;
@@ -300,7 +300,7 @@ export async function lenhHuy(db: D1Database, nen: NenChuyen, b: HuyThan, staff:
   const lo = loHuy(db, {
     ...lenhChung(b.requestId, staff, bayGioMs), tripId: t.id, version: b.version, lyDo: b.lyDo, phaLe, policyId: chung.chinhSach?.id ?? null, soSuatMo: soMo,
     chiPhi: kh, phienBanChiPhi: kh.phienBan,
-    detail: `${t.code}: huỷ — ${nhanLyDo(chung, b.lyDo)}${soMo > 0 ? ` · còn ${soMo} người` : ""}${phaLe ? phaLeNhatKy(phaLe.luat, nhanLyDo(chung, phaLe.lyDo)) : ""}${chiTietChiPhiNhatKy(kh, t.rented, true)}`,
+    detail: `${t.code}: huỷ — ${nhanLyDo(chung, b.lyDo)}${soMo > 0 ? ` · còn ${soMo} người` : ""}${phaLe ? phaLeNhatKy(phaLe.luat, nhanLyDo(chung, phaLe.lyDo)) : ""}${chiTietChiPhiNhatKy(kh, t.rented, true, await tenNhaXePhiHuy(db, kh.phiHuyBiDao))}`,
   });
   const r = await chayLo(db, lo, b.requestId);
   return r.ok ? null : r.res;

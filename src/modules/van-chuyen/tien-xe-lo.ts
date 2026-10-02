@@ -3,7 +3,7 @@
 // sau — `thuTuDaoTatCa`) đứng TRƯỚC câu ghi chuyến; CHỤP đứng SAU câu ghi chuyến (trigger source_carrier đọc cờ / nhà xe MỚI của chuyến).
 import type { CauCoNhan, LenhChung } from "./dieu-phoi";
 // Đuôi .ts: sổ vàng (src/so-vang-chi-phi-xe.test.ts) nạp THẲNG tệp này bằng node --test để chạy đúng kế hoạch chi phí của lô chuyến (vòng sửa 1, V-2).
-import { chonDongGiaThue, chuTien, coXeCua, dongBiDaoKhi, ngayGhiDao, tongChiPhiChuyen, type CoXe, type DongChiPhi, type DongGiaThue } from "./tien-xe.ts";
+import { LY_DO_PHI_HUY_MUON, chonDongGiaThue, chuTien, coXeCua, dongBiDaoKhi, ngayGhiDao, tongChiPhiChuyen, type CoXe, type DongChiPhi, type DongGiaThue } from "./tien-xe.ts";
 import { COST_REVERSE, COST_SNAPSHOT, type CostLineRow } from "./tien-xe-repo.ts";
 
 export type LyDoDaoHeThong = "CPX_DOI_CHUYEN" | "CPX_HUY_CHUYEN";
@@ -19,8 +19,13 @@ export interface KeHoachChiPhi {
   /** Tổng trước → sau (chỉ cho NHẬT KÝ — không vào DTO). */
   tongTruoc: number;
   tongSau: number;
+  /** Nhà xe có dòng "Phí huỷ muộn" bị lô này đảo (ADR-0095 Q5b — nhật ký lệnh ghi rõ "đã đảo phí huỷ của nhà xe …"); không trùng, theo thứ tự đảo. */
+  phiHuyBiDao: string[];
 }
-export const KE_HOACH_RONG = (phienBan: number, tong: number): KeHoachChiPhi => ({ dao: [], chup: null, phienBan, daoDieuChinh: 0, tongTruoc: tong, tongSau: tong });
+export const KE_HOACH_RONG = (phienBan: number, tong: number): KeHoachChiPhi => ({ dao: [], chup: null, phienBan, daoDieuChinh: 0, tongTruoc: tong, tongSau: tong, phiHuyBiDao: [] });
+/** Nhà xe của các dòng "Phí huỷ muộn" nằm trong danh sách đảo (Q5b). */
+const phiHuyBiDaoCua = (dao: readonly DaoMot[], theoId: ReadonlyMap<string, DongLo>): string[] =>
+  [...new Set(dao.filter((d) => theoId.get(d.goc.id)!.reasonCode === LY_DO_PHI_HUY_MUON).map((d) => d.goc.carrierPartyId))];
 
 /** Dòng chi phí cho kế hoạch lô: kèm nhà xe (dòng đảo mang nhà xe của GỐC) và ngày phát sinh (dòng đảo mang ngày của GỐC — `ngayGhiDao`). */
 export type DongLo = DongChiPhi & { carrierPartyId: string; occurredDate: string };
@@ -70,7 +75,7 @@ export function keHoachChiPhiKhiDoi(v: {
     ok: true,
     kh: {
       dao, chup, phienBan: v.dong.length, daoDieuChinh: dao.filter((d) => theoId.get(d.goc.id)!.kind === "ADJUSTMENT").length,
-      tongTruoc: tong, tongSau: chup ? chup.amount : 0,
+      tongTruoc: tong, tongSau: chup ? chup.amount : 0, phiHuyBiDao: phiHuyBiDaoCua(dao, theoId),
     },
   };
 }
@@ -81,7 +86,7 @@ export function keHoachChiPhiKhiHuy(dong: readonly DongLo[], homNay: string): Ke
   const dao: DaoMot[] = dongBiDaoKhi(dong, "HUY_CHUYEN").map((d) => ({
     id: crypto.randomUUID(), goc: { id: d.id, amount: d.amount, carrierPartyId: theoId.get(d.id)!.carrierPartyId }, lyDo: "CPX_HUY_CHUYEN", ngay: ngayGhiDao(theoId.get(d.id)!, { homNay }),
   }));
-  return { dao, chup: null, phienBan: dong.length, daoDieuChinh: dao.filter((d) => theoId.get(d.goc.id)!.kind === "ADJUSTMENT").length, tongTruoc: tongChiPhiChuyen(dong), tongSau: 0 };
+  return { dao, chup: null, phienBan: dong.length, daoDieuChinh: dao.filter((d) => theoId.get(d.goc.id)!.kind === "ADJUSTMENT").length, tongTruoc: tongChiPhiChuyen(dong), tongSau: 0, phiHuyBiDao: phiHuyBiDaoCua(dao, theoId) };
 }
 
 /** Câu chi phí cho lô (mọi câu mang lính gác dấu lệnh — bài thứ tự lô). `dao` đặt TRƯỚC câu ghi chuyến, `chup` SAU. */
@@ -102,8 +107,10 @@ export function cauChiPhi(db: D1Database, l: LenhChung, tripId: string, kh: KeHo
 }
 
 /** Phần nhật ký của chi phí (C10 — chỉ số tiền trước → sau + số điều chỉnh bị đảo; dòng nhật ký của CHÍNH lệnh chuyến, cùng lô). Rỗng khi không đổi gì. */
-export function chiTietChiPhiNhatKy(kh: KeHoachChiPhi, rented: 0 | 1, laHuy = false): string {
+export function chiTietChiPhiNhatKy(kh: KeHoachChiPhi, rented: 0 | 1, laHuy = false, tenNhaXePhiHuy: readonly string[] = []): string {
   if (kh.dao.length === 0 && !kh.chup) return "";
   const dc = kh.daoDieuChinh > 0 ? ` (đảo ${kh.daoDieuChinh} điều chỉnh)` : "";
-  return ` · chi phí xe thuê ${chuTien(kh.tongTruoc)} → ${kh.chup ? chuTien(kh.tongSau) : rented === 1 && !laHuy ? "chưa có giá" : "0"}${dc}`;
+  // ADR-0095 Q5b: lô đảo "Phí huỷ muộn" ⇒ ghi rõ nhà xe (tên hồ sơ — `tenNhaXePhiHuy` do nơi gọi tra từ `kh.phiHuyBiDao`), để Kế toán ghi lại nếu vẫn phải trả.
+  const ph = tenNhaXePhiHuy.length > 0 ? ` · đã đảo phí huỷ của nhà xe: ${tenNhaXePhiHuy.join(", ")}` : "";
+  return ` · chi phí xe thuê ${chuTien(kh.tongTruoc)} → ${kh.chup ? chuTien(kh.tongSau) : rented === 1 && !laHuy ? "chưa có giá" : "0"}${dc}${ph}`;
 }

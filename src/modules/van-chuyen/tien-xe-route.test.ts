@@ -727,6 +727,7 @@ test("Vòng sửa 2 (4.7) — GHIM hành vi hiện tại (Cần chủ): phí hu�
     const c = await chiTiet(w, id);
     assert.equal((await w.call("POST", `/api/van-chuyen/chuyen/${id}/huy`, { as: SALES, body: { version: c.chuyen.version, requestId: uuid(), lyDo: "HUY_KHAC" } })).status, 200);
     assert.equal(tongCp(w, id), 0, "lô huỷ đảo mọi dòng còn hiệu lực, kể cả phí huỷ cho nhà xe cũ");
+    assert.match(w.q("SELECT detail FROM audit_log WHERE action = 'trip_cancelled' AND target_id = ?", id)[0].detail, /đã đảo phí huỷ của nhà xe: Nhà xe Hùng Phát/, "nhật ký lệnh huỷ (Q5b)");
     const p = await ghiCp(w, id, "dieu-chinh", { soTien: 300_000, lyDo: "CPX_HUY_MUON", ghiChu: null });
     assert.equal(p.status, 201, p.text);
     assert.equal(w.q("SELECT carrier_party_id c FROM vc_trip_cost_line WHERE trip_id = ? ORDER BY rowid DESC LIMIT 1", id)[0].c, n.nx);
@@ -761,6 +762,8 @@ test("H1 (vòng sửa 3; ADR-0095 Q5b — chủ chọn E1): phí huỷ muộn ch
     for (const [id, ten] of [[a, "đổi xe công ty khác"], [b, "dời ngày"], [c, "đổi tuyến"]] as const) {
       assert.equal(daoPhi(id), 1, `${ten}: phí huỷ cho nhà xe cũ BỊ đảo theo luật chung (ADR-0095 Q5b — chủ chọn E1; dongBiDaoKhi)`);
       assert.equal(tongCp(w, id), 0, ten);
+      const nk = w.q("SELECT detail FROM audit_log WHERE action = 'trip_edited' AND target_id = ? ORDER BY created_at DESC, rowid DESC LIMIT 1", id)[0].detail;
+      assert.match(nk, /đã đảo phí huỷ của nhà xe: Nhà xe Hùng Phát/, `${ten}: nhật ký lệnh ghi rõ đã đảo phí huỷ (Q5b)`);
     }
     // Q5b: kiểm định cảnh báo R-VC-COST-8 thấy đủ 3 phí huỷ bị đảo tự động chưa ghi lại; Kế toán ghi lại một chuyến → còn 2.
     const { CHECKS } = (await import(new URL("../../../scripts/audit-checks.mjs", import.meta.url).href)) as { CHECKS: { code: string; sql: string }[] };
