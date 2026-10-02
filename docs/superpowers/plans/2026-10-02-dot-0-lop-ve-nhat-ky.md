@@ -209,3 +209,10 @@ Số bản nhật ký phiên bản: `main` cục bộ có `1.70` ở đầu `src
 - Chế độ nghiêm `fakeD1` (`tests/audit/harness.mjs`): `batch` từ chối câu không do chính D1 giả tạo; bật mặc định; toàn bộ `npm test` xanh 2838/2838 với chế độ này. Thêm móc `moc.truocTraVe` (chỉ khung thử) cho ca đồng thời L5.
 - **Hàng rào "chế độ nghiêm fakeD1" quan sát chặn thật 2026-10-02:** bỏ bước gỡ bọc (`goBoc = s => s`) ⇒ `not ok 3 - bẫy 1 … error: 'fakeD1 nghiêm: câu thứ 0 của lô không do D1 này tạo (quên gỡ bọc?)'` (và 3 bài khác) ⇒ hoàn nguyên ⇒ 12/12.
 - `npm run typecheck` 0 lỗi; `npm test` 2838/2838 + bài đo giờ xanh.
+
+## Bài ĐỎ TRƯỚC router (L5 + L11 + router.test) — commit riêng (2026-10-02)
+- `src/lan-gui-hanh-vi.test.ts` (ca a–j + vé sai dạng + phạm vi tài khoản), trên mã CHƯA có router lớp vé: **3 xanh / 10 đỏ** — đỏ: (a) 2 đơn, (b) không 422, (c) 2 đơn, (e) bên thua nhận `phone_taken`, (f) gửi lại nhận câu của handler "Hệ thống phải còn ít nhất một quản trị viên đang hoạt động." thay vì câu cố định, (g2) câu vé hỏng mà đơn vẫn ghi, (h) không có dòng vé, (i) 2 hồ sơ, (j) không có log `thieu_ma_lan_gui`, vé sai dạng vẫn 201. Xanh sẵn (đúng — là bài canh): (d), (g), phạm vi tài khoản.
+- `src/shared/router.test.ts` 3 ca mới (T18 thiếu phần tiêm ⇒ 500; có vé ⇒ tra đúng một lần, công khai/đọc không tra; T14 thiếu vé ⇒ chạy + đúng một dòng log): **3 đỏ**. `buildThrowing` (T-1) thêm `lanGui` giả vì T18.
+- `tests/e2e/chong-ghi-trung.mjs` (T12: 11, 12, 13, HD10 nhánh "Ghi lần thu", KT03, KT04 + T4, T5, song song, 422) chạy `npm run test:e2e -- chong-ghi-trung` trên D1 local tạm: **đỏ** ở ca đầu — `AssertionError: 11 tuần tự lần 2 cùng vé phải là "đã ghi": 201 {"order":{… "orderCode":"TD-20261002-0002" …}}` (gửi lại cùng vé tạo đơn thứ hai). Kịch bản dừng ở lỗi đầu nên các ca sau chưa có số riêng.
+- Khung thử: `exec.waitUntil` thu promise + `w.choNen()`; `w.raoTraVe(n)` (rào ca đồng thời, tự mở sau 2 giây để bài đỏ chứ không treo).
+- Commit này CỐ Ý để `npm test` đỏ; router (L4b) commit ngay sau trong cùng lượt.

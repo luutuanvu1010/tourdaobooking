@@ -135,10 +135,40 @@ export function world(tuyChon = {}) {
   } else if (tuyChon.demNhan) {
     ungDung = app.taoAppChoKhungThu({ nhanNhanVien: async (_env, ids) => (goiNhan.push([...ids]), new Map(ids.map((id) => [id, `Nhãn ${id.slice(0, 4)}`]))) });
   }
-  const env = { DB: fakeD1(sqlite), SESSION_SECRET: SECRET, LAN_GUI_SECRET: LAN_GUI_SECRET_GIA, SERVICES_SHEET_ID: "x" };
+  // Rào cho ca gửi ĐỒNG THỜI (ADR-0094, L5 ca c, e): `raoTraVe(n)` giữ n lần tra vé kế tiếp cho tới khi đủ n yêu cầu cùng tới bước tra trước. Chỉ khung thử.
+  let rao = null;
+  const moc = {
+    truocTraVe: () => {
+      if (!rao) return undefined;
+      const r = rao;
+      r.den++;
+      if (r.den >= r.n) {
+        rao = null;
+        r.mo();
+      }
+      return r.cho;
+    },
+  };
+  function raoTraVe(n) {
+    let mo;
+    const cho = new Promise((res) => (mo = res));
+    const r = { n, den: 0, cho, mo };
+    rao = r;
+    // Không ai tới bước tra (vd mã chưa có lớp vé) ⇒ tự mở sau 2 giây và gỡ rào, để bài ĐỎ chứ không treo.
+    setTimeout(() => {
+      if (rao === r) rao = null;
+      mo();
+    }, 2000).unref?.();
+  }
+  const env = { DB: fakeD1(sqlite, moc), SESSION_SECRET: SECRET, LAN_GUI_SECRET: LAN_GUI_SECRET_GIA, SERVICES_SHEET_ID: "x" };
   // Danh mục đã đồng bộ gần đây để POST /api/orders không đi gọi Google Sheet.
   sqlite.exec(`UPDATE catalog_sync SET last_attempt_at = '${new Date().toISOString()}', last_success_at = '${new Date().toISOString()}' WHERE id = 'default'`);
-  const exec = { waitUntil: () => {}, passThroughOnException: () => {} };
+  // waitUntil THU promise (promise vốn đã chạy — bài cũ không đổi hành vi); `choNen()` chờ hết việc chạy nền (ADR-0094 L5: bước 6 cập nhật kết quả vé).
+  const nen = [];
+  const exec = { waitUntil: (p) => { nen.push(Promise.resolve(p).catch(() => {})); }, passThroughOnException: () => {} };
+  async function choNen() {
+    while (nen.length) await Promise.all(nen.splice(0));
+  }
   /**
    * Token phiên của `as` (sổ phiên ADR-0075): dùng lại phiên CÒN SỐNG mới nhất của tài khoản (kể cả phiên do route đăng nhập vừa cấp); không có thì
    * chèn một dòng phiên như lô đăng nhập thật (dọn phiên hết hạn trước; `single` theo ĐÚNG luật miễn một máy — không nới luật cho khung thử).
@@ -172,5 +202,5 @@ export function world(tuyChon = {}) {
     let json = null; try { json = JSON.parse(text); } catch {}
     return { status: res.status, json, text, headers: res.headers };
   }
-  return { sqlite, env, call, token, q: (sql, ...a) => sqlite.prepare(sql).all(...a), soLanGoiMoc: () => soLanGoiMoc, soLanGoiNhan: () => goiNhan.length, goiNhan: () => goiNhan };
+  return { sqlite, env, call, token, choNen, raoTraVe, q:(sql, ...a) => sqlite.prepare(sql).all(...a), soLanGoiMoc: () => soLanGoiMoc, soLanGoiNhan: () => goiNhan.length, goiNhan: () => goiNhan };
 }
