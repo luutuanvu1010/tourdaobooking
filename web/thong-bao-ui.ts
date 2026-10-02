@@ -19,6 +19,7 @@ const KIND_ICON: Record<LoaiTin, IconName> = {
   xac_nhan: "checkCircle",
   huy: "ban",
   chuyen: "truck", // tin chuyến xe (ADR-0052 D6) — giữ màu mặc định `.ntf-badge`
+  tai_khoan: "lock", // ngưng tài khoản giữ tiền — chỉ Toàn quyền nhận (ADR-0090 đ3)
 };
 /** Màu vòng biểu tượng theo loại (đúng bản mẫu: chờ nhận = cát, nhận/xác nhận = xanh lá, huỷ = nguy hiểm, tin công ty = primary/cát đậm nếu quan trọng; "lập"/"giao" giữ màu mặc định `.ntf-badge`). */
 const KIND_BADGE_CLASS: Partial<Record<LoaiTin, string>> = {
@@ -27,6 +28,7 @@ const KIND_BADGE_CLASS: Partial<Record<LoaiTin, string>> = {
   nhan: "ntf-badge-nhan",
   xac_nhan: "ntf-badge-nhan",
   huy: "ntf-badge-huy",
+  tai_khoan: "ntf-badge-huy",
 };
 const MINE_NOTE = "Tin công ty gửi bạn, đơn bạn lập hoặc phụ trách, đơn chờ nhận, chuyến xe liên quan tới bạn.";
 const ALL_NOTE = "Thêm tin về mọi đơn bạn được xem. Số đỏ trên chuông không đếm ngăn này.";

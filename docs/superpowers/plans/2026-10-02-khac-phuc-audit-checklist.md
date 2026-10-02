@@ -43,7 +43,7 @@ Hai luồng song song, mỗi luồng một phiên.
 - [x] 🤖 Q1 một hàm "có quyền tiền" suy từ bảng quyền
 - [x] 🤖 Q2 cổng máy chủ ba cửa (đặt lại PIN, gán vai/quyền tiền, tạo tài khoản tiền); `ACCOUNTANT.superAdminOnly` (**không** thêm vào `SUPER_ADMIN_GRANTED`)
 - [x] 🤖 Q3 cờ theo từng dòng + giao diện ẩn/hiện
-- [ ] 🤖 Q4 tin "Quản trị ngưng Kế toán" → Toàn quyền (một view, một migration — chủ đồng ý (f))
+- [x] 🤖 Q4 tin "Quản trị ngưng Kế toán" → Toàn quyền (một view, một migration — chủ đồng ý (f))
 - [x] 🤖 Q5 e2e QT04 + dòng sổ hàng rào (thấy chặn thật)
 - [ ] 🔍 Q6 kiểm độc lập (quyền): ĐẠT
 - [ ] 👤 Q7 🚀 phát hành luồng Q

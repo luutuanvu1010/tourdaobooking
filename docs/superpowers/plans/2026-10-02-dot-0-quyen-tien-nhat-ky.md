@@ -64,6 +64,18 @@
 - (iv) có bài `test.todo` ở `quyen-tien.test.ts`.
 - `npm test` 2813 đạt; bài đo giờ của hook đỏ lần ba khi chạy cùng bộ lúc máy bận — xem Q2.
 
+## Q4 — tin "ngưng tài khoản giữ tiền" cho Toàn quyền (2026-10-02)
+- **Số migration: `0075`** (`migrations/0075_tin_tai_khoan.sql`). Đo 2026-10-02 bằng `git ls-tree --name-only <nhánh> migrations/` cho `main` + MỌI nhánh `git branch -a --no-merged main`, cộng `ls .claude/worktrees/*/migrations/` (bắt tệp chưa commit), cộng số giữ chỗ trong `docs/superpowers/plans|specs`: lớn nhất = `0074_lan_gui.sql` (nhánh `worktree-dot-0-luong-l`); `0071` (khung bán giờ lái), `0072`/`0073` (Vận chuyển) đã có tệp ở nhánh agent; Đợt 1 (ADR-0089) chưa giữ số cụ thể (kế hoạch ghi "từ 0075 trở đi" — **Đợt 1 phải lấy từ 0076**). Đo lại ngay trước day-len.
+- **Migration:** MỘT view `v_aud_account_event` (module `audit`): `id, account_id, staff_id, action, created_at` từ `audit_log` với `target_type = 'staff' AND action = 'staff_suspended'` — chỉ khoá, không `detail`. Không bảng mới. `docs/data-dictionary.json` + `npm run dict`.
+- **Mã:** `thongbao/repository.ts` `LIST_TIN_TAI_KHOAN` (`defineSql`; đọc view + `v_stf_staff_label`); `thongbao/index.ts` `hop()` chỉ đọc khi người xem `can(…, "admin.manage.superadmin")`, ghép quyền HIỆN TẠI của tài khoản bị ngưng qua `listStaffAccounts` (cạnh `thongbao → staff` đã có); `src/shared/thong-bao.ts` `DongTaiKhoan` + nhánh trong `locHopThongBao` (một luật cho danh sách lẫn số đỏ); loại tin `tai_khoan` (`contracts.ts`), biểu tượng ổ khoá ở `web/thong-bao-ui.ts`.
+- **Đỏ trước** (`src/modules/thongbao/tin-tai-khoan.test.ts`, router thật): bài view đỏ khi tạm dời tệp migration ra ngoài (không có view) → xanh khi trả lại; hai bài hành vi đỏ "expected 1, actual 0" (chưa có tin) → xanh sau khi viết mã.
+- **e2e đủ bộ** (`npm run test:e2e`, 3 nhóm, 618 giây, cây gồm Q0–Q5 + Q4): 645 ✓, audit-invariants đạt (5 cảnh báo có sẵn), 2 ✘:
+  - `chinh-sach-phien.mjs:97` AC9 — Quản trị gỡ vai Kế toán nay 403 (đúng luật mới). Sửa: Quản trị → 403 (hai máy còn sống), rồi Toàn quyền đổi vai → máy thừa đăng xuất. Chạy lại: ✔.
+  - `tai-xe-doi-tac.mjs:76` — lệnh `sqlRows` (wrangler d1 execute) trả `internal error; reference = …`, không qua mã Nền tảng; máy lúc đó tải trung bình > 40. Chạy lại KHÔNG sửa gì: ✔.
+- Mục nhật ký thay đổi **1.71** (bước A.0) ở `src/shared/changelog.ts` + chuỗi ghim ở `src/shared/app-info.test.ts`. Số tạm — đánh lại lúc gộp nếu nhánh khác lên trước.
+- **Không làm (ghi để khỏi hiểu nhầm):** không gõ cửa màn hình khoá (Web Push) cho tin này — tin chỉ hiện trong hộp + số đỏ; không thêm vào Bảng tin. Đề xuất làm sau nếu chủ muốn.
+
 ## Ruling thi công (tự áp, có khuyến nghị rõ)
 
 - **R-Q1 (thứ tự câu báo):** `highPermissionProblem` kiểm nhóm Quản trị/Toàn quyền/Nhân sự TRƯỚC (giữ câu cũ khi đụng `SUPER_ADMIN`), rồi mới kiểm quyền tiền. `roleAssignmentProblem` kiểm quyền tiền TRƯỚC luật vai `VAI_QUAN_LY` (để câu đúng ADR-0090 đ1). Tập kích hoạt câu tiền ở luật vai / chỉnh tay = `MA_QUYEN_TIEN` trừ `SUPER_ADMIN_GRANTED` (suy ra, không chép tay `ACCOUNTING`) — để gán vai IT / Giám đốc vẫn nhận câu cũ.
+- **R-Q2 (ai ngưng thì báo):** ADR-0090 đ3 nói "Khi Quản trị ngưng tài khoản Kế toán thì gửi tin cho Toàn quyền, vì việc ngưng làm đứt người duyệt tiền". Lý do áp cho MỌI người ngưng được tài khoản Kế toán (Nhân sự cũng ngưng được — `canManageAccount`; Toàn quyền khác). Áp: báo cho mọi Toàn quyền TRỪ chính người làm, bất kể người làm giữ quyền gì. Bề mặt, đảo ngược được (một điều kiện ở `locHopThongBao`). Tài khoản bị ngưng xét quyền tiền LÚC ĐỌC hộp (nếu sau đó bị gỡ Kế toán thì tin biến mất).

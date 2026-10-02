@@ -11,6 +11,17 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Đợt 0 luồng Q — ADR-0090 (quyền tiền chỉ Toàn quyền), migration 0075 (chỉ một view). Số 1.71 = main 1.70 + 1. KIỂM LẠI LÚC GỘP (luồng L / nhánh khác
+    // gộp trước thì đánh lại số).
+    version: "1.71",
+    date: "2026-10-03",
+    items: [
+      { kind: "doi", text: "Tài khoản Kế toán nay chỉ người phụ trách hệ thống (Toàn quyền) được tạo, gán vai Kế toán, cộng quyền Kế toán và đặt lại PIN." },
+      { kind: "doi", text: "Quản trị vẫn đổi tên, ngưng và mở khoá đăng nhập cho tài khoản Kế toán như trước; nút Đặt lại PIN không còn hiện ở dòng Kế toán." },
+      { kind: "moi", text: "Khi một tài khoản Kế toán bị ngưng, người phụ trách hệ thống nhận thông báo trong mục Của tôi." },
+    ],
+  },
+  {
     // Thị giác toàn Nền tảng "Năng động – Tin cậy – Tinh tế" (đặc tả docs/superpowers/specs/2026-10-02-thi-giac-nen-tang-design.md, chủ duyệt hướng A 2/10).
     // Chỉ giao diện: không migration, không đổi máy chủ. Số 1.70 = main 1.69 (Vận chuyển Đợt 2) + 1 — đánh lại lúc gộp main e7cd764f. KIỂM LẠI LÚC GỘP.
     version: "1.70",

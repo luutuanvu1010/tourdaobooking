@@ -1,5 +1,5 @@
 // SQL của module thongbao (bảng ntf_*; ADR-0034 + ADR-0036). Mọi câu qua defineSql, tham số ?N. Đọc xuyên module CHỈ qua view công bố:
-// v_aud_order_event + v_aud_trip_event (audit), v_ord_order_label + v_ord_order_owner (orders), v_dsp_order_handler + v_dsp_first_handler (dispatch), v_stf_staff_label (staff).
+// v_aud_order_event + v_aud_trip_event + v_aud_account_event (audit), v_ord_order_label + v_ord_order_owner (orders), v_dsp_order_handler + v_dsp_first_handler (dispatch), v_stf_staff_label (staff).
 // Không DELETE, không OR REPLACE (R-N1-9).
 import { defineSql } from "../../shared/sql-registry.ts";
 import type { DongDon, DongThuCong } from "../../shared/thong-bao.ts";
@@ -208,6 +208,17 @@ export async function listTinChuyen(db: D1Database, tu: string): Promise<DongChu
 export async function tinChuyenTheoId(db: D1Database, id: string): Promise<DongChuyenTho | null> {
   const r = await db.prepare(TIN_CHUYEN_THEO_ID).bind(id).first<TinChuyenRow>();
   return r ? tho(r) : null;
+}
+// ADR-0090 đ3: tin "ngưng tài khoản giữ tiền" đọc v_aud_account_event (audit, migration 0075) — chỉ khoá; nhãn tên qua v_stf_staff_label (staff). Quyền của
+// tài khoản bị ngưng do index.ts ghép từ staff (listStaffAccounts) — không đọc bảng của module khác.
+const LIST_TIN_TAI_KHOAN = defineSql("thongbao", "list_tin_tai_khoan", `
+  SELECT e.id, e.account_id, e.staff_id AS actor_id, e.created_at AS luc, s.label AS ten_nguoi_lam, COALESCE(t.label, '') AS ten_tai_khoan
+  FROM v_aud_account_event e LEFT JOIN v_stf_staff_label s ON s.id = e.staff_id LEFT JOIN v_stf_staff_label t ON t.id = e.account_id
+  WHERE e.created_at >= ?1 ORDER BY e.created_at DESC LIMIT 500`);
+export interface TinTaiKhoanTho { id: string; accountId: string; actorId: string | null; luc: string; tenNguoiLam: string | null; tenTaiKhoan: string }
+export async function listTinTaiKhoan(db: D1Database, tu: string): Promise<TinTaiKhoanTho[]> {
+  const r = (await db.prepare(LIST_TIN_TAI_KHOAN).bind(tu).all<{ id: string; account_id: string; actor_id: string | null; luc: string; ten_nguoi_lam: string | null; ten_tai_khoan: string }>()).results;
+  return r.map((x) => ({ id: x.id, accountId: x.account_id, actorId: x.actor_id, luc: x.luc, tenNguoiLam: x.ten_nguoi_lam, tenTaiKhoan: x.ten_tai_khoan }));
 }
 export async function donChoTin(db: D1Database, orderIds: readonly string[]): Promise<DonCuaTin[]> {
   if (orderIds.length === 0) return [];

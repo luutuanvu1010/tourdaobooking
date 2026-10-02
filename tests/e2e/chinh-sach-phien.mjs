@@ -89,15 +89,19 @@ try {
   assert.equal((await call(y2, "GET", "/api/auth/me")).status, 200);
   console.log("✓ AC4: một quyền Nhiều máy là đủ");
 
-  // 7. AC9: Quản trị đổi vai Z (Kế toán → Nhân viên kinh doanh) → máy thừa đăng xuất ngay
+  // 7. AC9: đổi vai Z (Kế toán → Nhân viên kinh doanh) → máy thừa đăng xuất ngay. ADR-0090 đ1(ii): gỡ vai Kế toán nay chỉ Toàn quyền — Quản trị 403
+  // (không đổi gì, hai máy còn sống), rồi Toàn quyền đổi.
   const Z = await taoTaiKhoanThu("Kế toán thử đổi vai", ["ACCOUNTING"]);
   const z1 = await dangNhapMay(Z, "iPhone Z");
   const z2 = await dangNhapMay(Z, "Windows Z");
   r = await call(ADM, "PUT", `/api/staff/${Z.id}/roles`, { roles: ["SALES_STAFF"] });
+  assert.equal(r.status, 403, JSON.stringify(r.body));
+  assert.equal((await call(z1, "GET", "/api/auth/me")).status, 200, "Quản trị bị chặn: máy Z còn sống");
+  r = await call(SA, "PUT", `/api/staff/${Z.id}/roles`, { roles: ["SALES_STAFF"] });
   assert.equal(r.status, 200, JSON.stringify(r.body));
   assert.equal((await call(z1, "GET", "/api/auth/me")).status, 401);
   assert.equal((await call(z2, "GET", "/api/auth/me")).status, 200);
-  console.log("✓ AC9: Quản trị đổi vai → máy thừa đăng xuất ngay");
+  console.log("✓ AC9: đổi vai → máy thừa đăng xuất ngay (Quản trị 403 vì ADR-0090, Toàn quyền làm)");
 
   // 8. AC10 / Review Focus 4: 1000 tài khoản Đối tác giả (hồ sơ đầy đủ — audit-invariants --strict), mỗi người 2 phiên sống → Đối tác về Một máy: một lô, đo giờ
   assert.equal((await luu([{ permissionCode: "PARTNER", multi: true, banDangXem: banCua(await ban(), "PARTNER") }])).status, 200);
