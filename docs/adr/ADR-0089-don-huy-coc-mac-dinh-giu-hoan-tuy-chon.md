@@ -3,8 +3,10 @@
 - **Trạng thái:** **accepted** — chủ dự án, chat 2026-10-02: *"7- Duyệt"*.
   - Chủ duyệt văn bản **bản 3.2** của lượt duyệt 1a (`docs/superpowers/specs/2026-10-02-luot-duyet-1-don-huy-va-quyen-tien.md` @ `4598221f`), cùng các câu trả lời trong cùng tin nhắn (lời chủ lần 4).
   - Các điểm AI viết **sau** bản 3.2 (Đ-1…Đ-6) và QH5 được **chủ chọn từng điểm** ở lời chủ lần 5 (cùng ngày), nay đã nằm trong phần "Quyết định": đ3, đ5–đ10, đ15, đ16.
-  - Bốn chi tiết AI thêm khi ghi lời chủ lần 5 nằm riêng ở mục **"Chi tiết AI ghi — áp theo khuyến nghị"** (X-1…X-4). Chúng áp theo lời chủ *"đừng hỏi tôi những câu hỏi mà tôi nên đồng ý nữa,"*; chủ bác điểm nào thì sửa điểm đó.
-  - Lời chủ lần 5 được ghi **thẳng vào tệp này** cùng ngày duyệt, chưa thi công, thay vì ra ADR mới trỏ về. Đây là lệch với lời dặn đầu mục lục ADR ("không sửa ADR đã accepted"); chủ có thể yêu cầu tách thành ADR bổ sung.
+  - Bốn chi tiết AI thêm khi ghi lời chủ lần 5 nằm riêng ở mục **"Chi tiết AI ghi — áp theo khuyến nghị"** (X-1…X-4). X-1…X-3 áp theo lời chủ *"đừng hỏi tôi những câu hỏi mà tôi nên đồng ý nữa,"*; **X-4 chưa áp, chờ chủ** (chạm tách nhiệm vụ).
+  - Lời chủ lần 5 được ghi **thẳng vào tệp này** cùng ngày duyệt, chưa thi công, thay vì ra ADR mới trỏ về. Đây là lệch với lời dặn đầu mục lục ADR ("không sửa ADR đã accepted") và với Hiến pháp N9 / CLAUDE.md §3 (AI không tự sửa ADR đã duyệt, chỉ đề xuất bằng diff trên nhánh).
+    - Phần sửa này **chỉ là đề xuất** cho tới khi chủ gộp nhánh. Chủ có thể yêu cầu tách thành ADR bổ sung.
+    - Người đọc lưu ý: phần "Quyết định" nay gồm cả câu chữ AI viết từ lời chủ lần 5, chủ chưa đọc ở dạng văn bản này.
   - AI ghi lại, không tự duyệt (Hiến pháp N3).
 - **Ngày:** 2026-10-02.
 - **Số:** 0089. Đã kiểm mọi nhánh: 0086 bị bác, 0087 ở nhánh Giao diện công ty, 0088 và 0090–0093 dùng cho các lượt duyệt cùng đợt.
@@ -48,7 +50,7 @@
    - **"Chờ hoàn" mặc định = 0**: cọc không hoàn (lời chủ 1).
 2. **Cọc là tiền trả trước** (lời chủ 3, câu 1): mọi khoản khách đã trả cho đơn trước khi đơn bị huỷ.
    - **"Đã trả"** = tổng các lần thu còn hiệu lực **đã xác nhận**.
-   - **"Còn giữ"** = đã trả − đã hoàn.
+   - **"Còn giữ"** = đã trả − đã hoàn − đã chuyển sang đơn mới (đ6) − dòng "đã hoàn ngoài hệ thống" (đ16).
    - Khoản "Công ty thu – CK" chưa xác nhận chưa tính vào "đã trả"; tiền không về thì người khai giữ hộ (H3 đã duyệt).
 3. **Tiền trả trước là nghĩa vụ của công ty với khách, chưa là thu nhập** khi chưa bàn giao xong dịch vụ (lời chủ 4, câu 2).
    - Nền tảng hiển thị đúng bản chất bằng nhãn **"Khách hàng đã trả trước"**.
@@ -56,8 +58,8 @@
    - Đơn **khách huỷ** dùng nhãn "Cọc giữ lại" (đ9b, lời chủ 5, Đ-6).
    - Nền tảng **không tự gắn nhãn kế toán**: ghi thành thu nhập khi nào, ghi vào đâu là việc của Kế toán.
 4. **Hoàn cọc tuỳ chọn, hai bước:**
-   - **(a) Quản trị duyệt** (lời chủ 3, câu 3) số hoàn, có lý do. Duyệt được một phần, nhiều lần. **Tổng đã duyệt ≤ đã trả.**
-   - **(b) Kế toán chi** khi thực trả tiền. **Tổng đã chi ≤ tổng đã duyệt.** Người trả không phải công ty thì ≤ số người đó đang giữ trên đơn.
+   - **(a) Quản trị duyệt** (lời chủ 3, câu 3) số hoàn, có lý do. Duyệt được một phần, nhiều lần. Khoản duyệt có **hai loại**: hoàn, và chuyển sang đơn mới (đ6). **Tổng đã duyệt (cả hai loại) ≤ đã trả.**
+   - **(b) Kế toán chi** khi thực trả tiền, hoặc ghi lệnh chuyển. **Tổng đã chi + đã chuyển ≤ tổng đã duyệt** (cùng công thức đ15). Người trả không phải công ty thì ≤ số người đó đang giữ trên đơn.
    - **(c) Không ai vừa duyệt vừa chi cùng một khoản.** Tài khoản kiêm cả hai nhận 409 ở bước thứ hai. Phần chưa chi có thể huỷ duyệt, có lý do.
    - Ô quyền mới "duyệt hoàn cọc": ADMIN. SUPER_ADMIN có theo luật "Toàn quyền là `any` ở mọi ô" (`src/shared/permissions.test.ts:91-93`).
 5. **Hạn 60 ngày** (lời chủ 1, lời chủ 3 câu 5):
@@ -65,7 +67,7 @@
    - Sau hạn, máy chủ **chặn duyệt mới** cho đơn **khách huỷ**: 409 "Đã quá hạn hoàn cọc (hạn: dd/mm/yyyy)".
    - **Không bị hạn chặn, chỉ nhắc:** công ty huỷ (đ6); huỷ để lập lại / trùng đơn (đ7; lời chủ 5, Đ-3); dòng "đã hoàn ngoài hệ thống" của đơn cũ (đ16).
    - Khoản **đã duyệt trước hạn** vẫn chi được sau hạn.
-   - **Nhắc Kế toán:** khoản đã duyệt mà chưa chi quá 7 ngày; còn ≤ 10 ngày tới hạn. Hiện ở danh sách và ô đếm, **không đẩy tin**, vì theo ADR-0034 đ1 tin là hình chiếu của nhật ký.
+   - **Nhắc Kế toán:** khoản đã duyệt mà chưa chi quá 7 ngày (mọi nhóm); còn ≤ 10 ngày tới hạn (chỉ nhóm khách huỷ, vì nhóm khác không có hạn chặn). Hiện ở danh sách và ô đếm, **không đẩy tin**, vì theo ADR-0034 đ1 tin là hình chiếu của nhật ký.
 6. **Công ty huỷ** (lời chủ 3, câu 2; lời chủ 4, câu 5):
    - Gồm: thời tiết hoặc cấm biển, hết chỗ, sự cố nhà cung cấp, lỗi công ty.
    - Công ty **hoàn toàn bộ tiền đã trả trước**, hoặc **dời lịch**; khách **không phải trả thêm tiền**.
@@ -90,7 +92,7 @@
    - **(a) Thông báo gửi khách:**
      - tiêu đề "THÔNG BÁO HUỶ ĐƠN DỊCH VỤ", không có dòng "Còn lại";
      - ghi "Khách hàng đã trả trước X". Khách huỷ thì thêm "Theo chính sách của Tour Đảo, tiền cọc không được hoàn lại khi khách huỷ";
-     - đã duyệt hoàn thì ghi "Tour Đảo hoàn Y, chậm nhất ngày dd/mm/yyyy"; đã chi thì "Đã hoàn Y";
+     - đã duyệt hoàn thì ghi "Tour Đảo hoàn Y" (nhóm khách huỷ thêm "chậm nhất ngày dd/mm/yyyy" theo hạn đ5; nhóm khác không hứa ngày); đã chi thì "Đã hoàn Y";
      - khoản chưa xác nhận: "đang đối chiếu".
      
      Danh sách trắng chứng từ gửi ngoài (Hiến chương 4.4; ADR-0026 đ11) thêm các trường này.
@@ -106,19 +108,23 @@
 11. **Người đang giữ tiền mặt của đơn huỷ:** cọc là tiền **của công ty**, nên người giữ phải nộp. Đơn huỷ hiện dấu "còn người giữ tiền" và vào danh sách của Kế toán.
 12. **Đơn của đối tác mà đại lý cầm cọc** (lời chủ 4, câu 4): **mặc định trừ vào kỳ đối soát** đại lý (ADR-0079/0080). Nộp về cũng được; bản chất không đổi.
 13. **Ghi lần thu lên đơn đã huỷ:** chỉ Kế toán và Toàn quyền (khách chuyển khoản muộn).
-14. **Nơi tính:** hàm **duy nhất** tính đã thu / còn lại / dư là `conLai` của `billing` (`src/modules/billing/rules.ts`; luật NT-R9, `docs/superpowers/plans/2026-09-29-so-tien-luot-1-ke-hoach.md:29`). Hàm nhận thêm cờ đơn huỷ và các khoản duyệt hoàn.
+14. **Nơi tính:** hàm **duy nhất** tính đã thu / còn lại / dư là `conLai` của `billing` (`src/modules/billing/rules.ts`; luật NT-R9, `docs/superpowers/plans/2026-09-29-so-tien-luot-1-ke-hoach.md:29`). Hàm nhận thêm cờ đơn huỷ và các khoản duyệt (hoàn và chuyển), chuyển, dòng đ16.
     - `phaiThuCua` của `orders` không được đọc bảng `bil_*` (`hoan-tat.ts:1-3`; ADR-0024 đ4), nên giữ nguyên.
-15. **Bất biến:** **tổng chi + tổng chuyển ≤ tổng duyệt ≤ đã trả**, trên mỗi đơn huỷ (chuyển tính như chi, lời chủ 5, Đ-1). Chặn ở CSDL (trigger) và ở máy chủ; thêm vào `audit-invariants`.
+15. **Bất biến:** **tổng chi + tổng chuyển ≤ tổng duyệt ≤ đã trả**, trên mỗi đơn huỷ (chuyển tính như chi, lời chủ 5, Đ-1). Chặn ở CSDL (trigger) và ở máy chủ; thêm vào `audit-invariants`. Bất biến phải đúng **mọi lúc**, không chỉ lúc duyệt: lệnh đảo hay "Thay lần thu" (ADR-0088) làm "đã trả" tụt dưới "tổng duyệt" trên đơn huỷ cũng bị chặn, và có ca thử riêng.
 16. **Đơn cũ đã hoàn tay trước khi có lệnh hoàn trong Nền tảng** (QH5; lời chủ 5, "4: ok"):
     - Nền tảng in **danh sách các đơn huỷ còn tiền** để Kế toán đối chiếu;
     - đơn nào công ty đã trả tay thì **Toàn quyền ghi bổ sung một dòng "đã hoàn ngoài hệ thống"**, mỗi đơn **một lần**;
     - dòng này **không bị hạn 60 ngày chặn**, vì đó là việc đã xảy ra;
-    - đây là **lệnh của Toàn quyền trên Nền tảng**, không phải kịch bản sửa dữ liệu;
+    - cách hiểu của AI: đây là **lệnh của Toàn quyền trên Nền tảng**, không phải kịch bản sửa dữ liệu;
     - phạm vi đơn, giới hạn số tiền và cách dòng này khớp bất biến đ15: X-3, X-4.
 
 ## Chi tiết AI ghi — áp theo khuyến nghị
 Khi đưa lời chủ lần 5 vào văn bản, AI cần thêm bốn chi tiết mà chủ chưa nói. Bốn chi tiết này **áp theo khuyến nghị**, theo lời chủ cùng ngày: *"đừng hỏi tôi những câu hỏi mà tôi nên đồng ý nữa,"*. Chủ bác điểm nào thì sửa điểm đó trước khi thi công.
-- **X-4 (chạm tách nhiệm vụ — xem trước):** dòng "đã hoàn ngoài hệ thống" (đ16) không có bước duyệt riêng. Muốn bất biến đ15 (chi + chuyển ≤ duyệt ≤ đã trả) vẫn đúng, AI đề xuất tính dòng này **cả là duyệt lẫn chi**, do Toàn quyền ghi một mình.
+- **X-4 (chạm tách nhiệm vụ — CHƯA áp, chờ chủ):** dòng "đã hoàn ngoài hệ thống" (đ16) không có bước duyệt riêng. Muốn bất biến đ15 (chi + chuyển ≤ duyệt ≤ đã trả) vẫn đúng, dòng này phải được tính **cả là duyệt lẫn chi**. Hai cách:
+  - **(a, khuyến nghị sau vòng kiểm 3)** Toàn quyền ghi, **Quản trị xác nhận** rồi dòng mới có hiệu lực. Giữ luật tách nhiệm vụ đ4c.
+  - (b) Toàn quyền ghi một mình: ngoại lệ có tên của đ4c.
+  - Điểm này **không** thuộc loại "nên đồng ý": nó làm lỏng luật tách người duyệt và người chi mà chủ đã chọn. Người kiểm độc lập vòng 3 lưu ý: một khoản cọc có thể rời sổ mà không người thứ hai nào thấy. Vì vậy X-4 **chưa áp**, và phần đ16 chưa thi công tới khi chủ chọn.
+  - Dòng này không đụng số dư của người đang giữ tiền (đ4b, đ11).
   - Đây là **ngoại lệ có tên** của đ4c (không ai vừa duyệt vừa chi). Lý do: việc trả đã xảy ra ngoài Nền tảng, dòng này chỉ ghi lại.
   - Cách khác: Toàn quyền ghi, rồi Quản trị xác nhận. Cách này giữ tách nhiệm vụ nhưng thêm một bước.
 - **X-3:** phạm vi đ16 là đơn đã huỷ **trước ngày ADR này lên production**; số ghi ≤ "còn giữ" của đơn; có lý do bắt buộc.
@@ -161,7 +167,7 @@ Tách nhiệm vụ duyệt và chi dựa theo ADR-0072 (mục "Câu hỏi đã �
 ## Hệ quả
 - Khách huỷ không còn bị ghi "còn nợ".
 - Công ty giữ cọc đúng chính sách; mọi khoản hoàn có người duyệt, người chi, hạn và dấu vết.
-- Thêm: một ô quyền (duyệt hoàn cọc, dùng cho cả hoàn lẫn chuyển); lệnh duyệt hoàn, chi hoàn, chuyển tiền sang đơn mới; nhóm lý do huỷ; danh sách đối chiếu đơn cũ và lệnh "đã hoàn ngoài hệ thống" của Toàn quyền (đ16); bất biến mới.
+- Thêm: ô quyền duyệt hoàn cọc (dùng cho cả hoàn lẫn chuyển, X-1); cổng "chọn công ty huỷ" và cổng "ghi đã hoàn ngoài hệ thống" (ô mới hay dùng lại do kế hoạch chọn, xem trang ghép); lệnh Quản trị phân loại lý do "chưa kết luận"; lệnh duyệt hoàn, chi hoàn, chuyển tiền sang đơn mới; nhóm lý do huỷ; danh sách đối chiếu đơn cũ và lệnh "đã hoàn ngoài hệ thống" của Toàn quyền (đ16); bất biến mới.
 - Ca thử "duyệt sau hạn → 409" chỉ áp cho **khách huỷ**. Phải có ca ngược: công ty huỷ, huỷ để lập lại, và dòng đ16 đều qua được sau hạn.
 - Trang ghép, bảng chạm và cổng: xem `docs/superpowers/specs/2026-10-02-luot-duyet-1-don-huy-va-quyen-tien.md`, mục "Trang ghép lượt 1".
 - Thi công: người kiểm độc lập; dòng mới ở `docs/SO-HANG-RAO.md` cho các cổng "chi + chuyển ≤ duyệt ≤ đã trả", "người chi/chuyển ≠ người duyệt", "hạn 60 ngày (chỉ khách huỷ)", "chỉ Quản trị, Toàn quyền chọn công ty huỷ", "đ16 chỉ Toàn quyền, một lần mỗi đơn", mỗi cổng có quan sát chặn thật.

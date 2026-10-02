@@ -42,8 +42,7 @@
 - A-10: mọi lệnh tạo mới cho biết địa chỉ trang kết quả.
 - A-11: màn chỉnh thời hạn và việc dọn vé ra ở bản sau, trước ngày thứ 90.
 
-**ADR-0089 — bốn chi tiết khi ghi lời chủ lần 5:**
-- X-4: dòng "đã hoàn ngoài hệ thống" do Toàn quyền ghi một mình, tính cả là duyệt lẫn chi. Đây là ngoại lệ có tên của luật "không ai vừa duyệt vừa chi", vì việc trả đã xảy ra ngoài Nền tảng.
+**ADR-0089 — ba chi tiết khi ghi lời chủ lần 5** (X-4 ở mục cuối, chờ chủ):
 - X-3: chỉ áp cho đơn huỷ trước ngày phát hành; số ≤ tiền còn giữ; có lý do.
 - X-2: đơn có lý do huỷ "chưa kết luận" thì chưa duyệt hoàn được tới khi Quản trị phân loại.
 - X-1: duyệt chuyển tiền dùng cùng ô quyền với duyệt hoàn cọc.
@@ -61,6 +60,13 @@
 - Q-B7: mở đúng các lệnh ở đ3.
 - Q-B8: Đối tác thấy loại dấu.
 - Q-B9: Toàn quyền nhận tin ở ngăn "Tất cả".
+
+## Một điểm giằng co thật, chờ chủ chọn
+**X-4 (ADR-0089 đ16):** khi Toàn quyền ghi "đã hoàn ngoài hệ thống" cho đơn cũ, có cần người thứ hai xác nhận không?
+- **(a) Quản trị xác nhận dòng đó** (khuyến nghị): giữ luật "không ai vừa duyệt vừa chi" mà chủ đã chọn; thêm một bước nhỏ.
+- (b) Toàn quyền ghi một mình: nhanh hơn, nhưng khoản cọc có thể rời sổ mà không ai khác thấy.
+
+Điểm này không hỏi theo kiểu "nên đồng ý", vì nó đụng chính luật tách nhiệm vụ. Chưa có lời chủ thì phần đ16 chưa thi công; các phần khác của ADR-0089 không bị chặn.
 
 ## Chờ chủ nói "Duyệt" (không phải câu hỏi)
 1. **ADR-0094** — gấp, vì lỗi gửi lặp (F-02) có hạn **15/10**. Không kịp thì gia hạn kèm lý do.

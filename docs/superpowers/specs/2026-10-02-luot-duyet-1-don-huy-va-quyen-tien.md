@@ -129,7 +129,7 @@ Lời chủ trước đó (câu 3): dấu hiện ở **cả ba nơi**: biên nh�
        - in **một dòng ngắn** ngay từ lúc đặt, ví dụ "Khi khách huỷ, tiền cọc không được hoàn lại. Xem đầy đủ: tourdao.vn/chinh-sach-thanh-toan" (chủ chốt chữ). Đường dẫn do chủ đưa (lời chủ lần 4, câu 6): `https://tourdao.vn/chinh-sach-thanh-toan`;
        - **Kiểm 2/10:** đường dẫn này trả **404** (cả có hay không dấu `/` cuối, cả `/vi/`), sơ đồ website không có, mã nguồn website cũng không có. Có thể trang còn ở dạng nháp trong hệ quản trị nội dung, chưa đăng;
        - **Lưu ý (chưa có):** ngày 2/10, AI **không tìm thấy** trang chính sách bán hàng trên tourdao.vn: trang chủ không có liên kết; các đường dẫn `/chinh-sach-ban-hang`, `/chinh-sach`, `/chinh-sach-huy`, `/chinh-sach-dat-coc`, `/dieu-khoan`, `/dieu-khoan-su-dung`, `/chinh-sach-hoan-tien` đều 404; sơ đồ `sitemap-vi.xml` không có trang nào về chính sách;
-       - dòng này **chỉ in đường dẫn khi trang trả 200**. Trước mỗi lần phát hành có bước kiểm GET. Đăng trang là việc của website (kho `tourdaovn`), ngoài Nền tảng này.
+       - ~~dòng này chỉ in đường dẫn khi trang trả 200~~ — **đã thay** bằng lời chủ lần 5 (Đ-5): **in luôn đường dẫn**; trang đang là bản nháp của chủ (ADR-0089 đ10). Đăng trang là việc của website (kho `tourdaovn`), ngoài Nền tảng này.
      - Chữ cụ thể chủ chốt khi duyệt giao diện. Danh sách trắng biên nhận (ADR-0026 đ11) thêm các trường này.
    - **(b) Trang đơn:**
      - khối tiền đơn huỷ: "Đã trả X — đang giữ X′ — mặc định không hoàn — có thể duyệt hoàn đến dd/mm/yyyy";
@@ -273,19 +273,19 @@ Nguồn **tách nhiệm vụ** duyệt và chi: ADR-0072 đ1, ADR-0026 H4. Hiế
 ### 1. Bảng nào chứa loại thực thể nào
 | Bảng | Thực thể | ADR chạm |
 |---|---|---|
-| `orders` | đơn (`draft/confirmed/cancelled`, mốc Đã giao, Hoàn thành; ngày khởi hành ở dịch vụ) | 0089 đ1: `billing.conLai` nhận cờ huỷ (**tính ra, không lưu**); đ4: hạn hoàn = ngày khởi hành + 60 (nháp chưa có ngày: ngày huỷ + 60); đ8: lý do huỷ bắt buộc (cột hoặc bảng mới — kế hoạch chọn) |
-| `bil_payment_receipt` | lần thu của khách **và** lần trả lại khách (`CUSTOMER_PAYMENT`, `CUSTOMER_REFUND`, `0045:35`) **và** dòng đảo | 0089 đ3b: lần **chi hoàn** là `CUSTOMER_REFUND`, có liên kết tới khoản duyệt; đ7: ai ghi lần thu lên đơn huỷ |
-| **khoản "duyệt hoàn cọc"** (mới) | quyết định hoàn: số, lý do, người duyệt, trạng thái (đã duyệt / đã huỷ duyệt). Chỉ-thêm | 0089 đ3a. Chứa ở **loại phiếu mới** trong `bil_posting` hay bảng riêng do kế hoạch chọn sau spike. Module chủ là `billing` |
-| `bil_posting`, `bil_debt_line` | phiếu sổ + dòng nợ: giữ hộ, nộp, trả, điều chỉnh; lượt 2 thêm `HOA_HONG`, `GIAM_GIA_BEN_DAT`, `GIA_VON`; dòng gắn chuyến (ADR-0057) | 0089 đ6: "còn ai giữ tiền của đơn huỷ" đọc từ đây |
+| `orders` | đơn (`draft/confirmed/cancelled`, mốc Đã giao, Hoàn thành; ngày khởi hành ở dịch vụ) | 0089 đ1, đ14: `billing.conLai` nhận cờ huỷ (**tính ra, không lưu**); đ5: hạn hoàn = ngày khởi hành + 60 (nháp chưa có ngày: ngày huỷ + 60); đ8: lý do huỷ bắt buộc (cột hoặc bảng mới — kế hoạch chọn) |
+| `bil_payment_receipt` | lần thu của khách **và** lần trả lại khách (`CUSTOMER_PAYMENT`, `CUSTOMER_REFUND`, `0045:35`) **và** dòng đảo | 0089 đ4b: lần **chi hoàn** là `CUSTOMER_REFUND`, có liên kết tới khoản duyệt; đ13: ai ghi lần thu lên đơn huỷ |
+| **khoản "duyệt hoàn cọc"** (mới) | quyết định hoàn: số, lý do, người duyệt, trạng thái (đã duyệt / đã huỷ duyệt). Chỉ-thêm | 0089 đ4a. Chứa ở **loại phiếu mới** trong `bil_posting` hay bảng riêng do kế hoạch chọn sau spike. Module chủ là `billing` |
+| `bil_posting`, `bil_debt_line` | phiếu sổ + dòng nợ: giữ hộ, nộp, trả, điều chỉnh; lượt 2 thêm `HOA_HONG`, `GIAM_GIA_BEN_DAT`, `GIA_VON`; dòng gắn chuyến (ADR-0057) | 0089 đ11: "còn ai giữ tiền của đơn huỷ" đọc từ đây |
 | lý do huỷ (danh sách ADR-0030) | lý do huỷ đơn | 0089 đ8: thêm nhóm "khách huỷ" / "công ty huỷ" / "huỷ để lập lại / trùng đơn" / "chưa kết luận" (lý do "Khác") |
 | **khoản "duyệt hoàn cọc"** (như trên) | nay chứa **hai loại** quyết định: duyệt **hoàn** và duyệt **chuyển sang đơn mới** (có mã đơn nhận) | 0089 đ6 (lời chủ 5, Đ-1) |
-| dòng **"đã hoàn ngoài hệ thống"** (mới, nơi chứa do kế hoạch chọn) | việc hoàn đã làm tay trên đơn cũ; **đề xuất** tính cả là duyệt lẫn chi cho bất biến (X-4, áp theo khuyến nghị) | 0089 đ16 (QH5) |
+| dòng **"đã hoàn ngoài hệ thống"** (mới, nơi chứa do kế hoạch chọn) | việc hoàn đã làm tay trên đơn cũ; **đề xuất** tính cả là duyệt lẫn chi cho bất biến (X-4, **CHƯA áp, chờ chủ** — chạm tách nhiệm vụ; đ16 chưa thi công tới khi chủ chọn) | 0089 đ16 (QH5) |
 | `staff`, `stf_permission`, vai (`roles.ts`) | tài khoản (nội bộ và bên ngoài, chung một bảng), quyền, vai | 0090: ai gán, tạo quyền tiền, ai đặt lại PIN. Không đổi cột |
 
 ### 2. Dòng bản đồ quyền chạm các bảng trên
 | Ô quyền | Hôm nay | Sau lượt 1 |
 |---|---|---|
-| `payment.receive` (SALES own, ACCOUNTING, ADMIN, FIELD assigned, PARTNER own, SUPER_ADMIN, INTERN own) | ghi được lên đơn huỷ | không đổi ô; **đơn huỷ chỉ ACCOUNTING, SUPER_ADMIN** (0089 đ7) |
+| `payment.receive` (SALES own, ACCOUNTING, ADMIN, FIELD assigned, PARTNER own, SUPER_ADMIN, INTERN own) | ghi được lên đơn huỷ | không đổi ô; **đơn huỷ chỉ ACCOUNTING, SUPER_ADMIN** (0089 đ13) |
 | **ô mới "duyệt hoàn cọc"** (tên kế hoạch đặt, ví dụ `deposit.refund.approve`) | — | **ADMIN** (lời chủ, QH3); SUPER_ADMIN bắt buộc `any`. Thêm **ô**, không thêm mã quyền. **Đề xuất** dùng cho cả duyệt hoàn lẫn duyệt chuyển (X-1, áp theo khuyến nghị) |
 | `ledger.write` (ACCOUNTING, SUPER_ADMIN) — **lệnh mới "Chuyển tiền sang đơn mới"** | — | Kế toán ghi khi dời lịch (công ty huỷ) hoặc huỷ để lập lại (đ8), **chỉ khi có khoản duyệt chuyển còn số**; người chuyển ≠ người duyệt (Đ-1). Dòng giảm giá bù chênh "dời lịch do công ty huỷ" cần Quản trị duyệt |
 | **ô "chọn lý do công ty huỷ"** (ô mới, hoặc dùng lại ô duyệt hoàn cọc vì cùng người giữ — kế hoạch chọn) | — | **ADMIN**, SUPER_ADMIN `any` (Đ-2). Người huỷ khác vẫn huỷ được nhưng chỉ chọn "khách huỷ", "huỷ để lập lại / trùng đơn" hoặc "Khác" |
@@ -303,17 +303,18 @@ Nguồn **tách nhiệm vụ** duyệt và chi: ADR-0072 đ1, ADR-0026 H4. Hiế
 | Duyệt hoàn cọc | không có | route mới: `can(ô duyệt)`, tổng duyệt ≤ **đã trả** (đã xác nhận), lý do, **trước hạn 60 ngày**, qua lớp chống ghi trùng chung |
 | Chi hoàn cọc | ghi hoàn tự do | cần khoản duyệt còn số; **người chi ≠ người duyệt**; khoản duyệt trước hạn chi được sau hạn (QH6); ≤ người trả đang giữ nếu không phải công ty; qua lớp chống ghi trùng chung |
 | Huỷ đơn | `can(...)`, không đọc lý do | **bắt buộc chọn lý do** (nhóm, đ8); nhóm "công ty huỷ" cần ô "chọn lý do công ty huỷ" (Đ-2), máy chủ 403 nếu thiếu; "Khác" → "chưa kết luận" tới khi Quản trị phân loại; **đề xuất** chưa duyệt hoàn được trong lúc đó (X-2, áp theo khuyến nghị) |
-| **Màn huỷ đơn** (giao diện) | không có lựa chọn lý do | **đổi nghĩa:** lựa chọn "Công ty huỷ" chỉ hiện khi máy chủ báo `can()` cho ô đó (giao diện hỏi `can()`, ADR-0071) |
+| **Màn huỷ đơn** (giao diện) | không có lựa chọn lý do | **đổi nghĩa:** lựa chọn "Công ty huỷ" chỉ hiện khi máy chủ báo `can()` cho ô đó (luật "giao diện hỏi bảng quyền", `web/CLAUDE.md:18`, ADR-0072 mục 4a) |
+| **Phân loại lý do "chưa kết luận"** (đ8) | không có | route mới cho Quản trị, Toàn quyền (cùng ô "chọn lý do công ty huỷ"), đổi nhóm lý do của đơn đã huỷ, lý do bắt buộc, có nhật ký; nút "Phân loại lý do" trên trang đơn huỷ chỉ hiện theo `can()`; trong lúc "chưa kết luận" thì nút "Duyệt hoàn cọc" ẩn và máy chủ trả 409 (X-2) |
 | Duyệt chuyển tiền | không có | như "Duyệt hoàn cọc", kèm mã đơn nhận (Đ-1) |
 | Chuyển tiền sang đơn mới | không có | route mới `can(ledger.write)` + **cần khoản duyệt chuyển còn số**, **người chuyển ≠ người duyệt** (Đ-1); một lô: chi khỏi đơn huỷ + thu vào đơn mới cùng số, cùng người giữ; nhật ký trên cả hai đơn; qua lớp chống ghi trùng chung |
 | Hạn 60 ngày | — | chặn duyệt mới **chỉ cho khách huỷ**; công ty huỷ, huỷ để lập lại / trùng đơn (Đ-3) và dòng đ16 **không bị chặn, chỉ nhắc** |
 | Ghi "đã hoàn ngoài hệ thống" (đ16) | không có | route mới, **chỉ SUPER_ADMIN**, mỗi đơn **một lần**; **đề xuất**: chỉ đơn huỷ trước ngày phát hành, ≤ còn giữ, lý do bắt buộc (X-3, áp theo khuyến nghị); nút chỉ hiện cho Toàn quyền; qua lớp chống ghi trùng chung |
 | Danh sách đối chiếu đơn cũ (đ16) | không có | route đọc `ledger.view any` |
-| Lớp CSDL | trigger hoàn ≤ đã thu (`0045:212-216`) | + trigger: **tổng chi + tổng chuyển ≤ tổng duyệt ≤ đã trả** trên đơn huỷ (đ15) |
+| Lớp CSDL | trigger hoàn ≤ đã thu (`0045:212-216`) | + trigger: **tổng chi + tổng chuyển ≤ tổng duyệt ≤ đã trả** trên đơn huỷ (đ15), đúng **mọi lúc**: đảo hay "Thay lần thu" làm đã trả < tổng duyệt cũng bị chặn |
 | **Nút "Ghi hoàn"** (`web/order.ts:567`, hiện khi dư > 0) | đơn huỷ: không hiện (dư = 0) | **đổi nghĩa:** đơn huỷ dùng nút "Duyệt hoàn cọc" (người duyệt) rồi "Ghi chi hoàn" (Kế toán); đơn không huỷ trả dư giữ nút cũ |
 | **Khối tiền trang đơn** (`web/order.ts:420, 438`) | đơn huỷ hiện "Còn lại" | đơn khách huỷ: "Cọc giữ lại – khách huỷ", "còn có thể hoàn tới dd/mm/yyyy", quá hạn chỉ "Cọc giữ lại" (Đ-6) / "Đã duyệt hoàn Y"; đơn chưa giao: "Khách hàng đã trả trước"; sau "Đã giao": **"Đã thu"** (Đ-4) |
 | **Ảnh xác nhận đơn** | không có điều khoản huỷ | thêm dòng điều khoản huỷ **kèm đường dẫn, in luôn** (Đ-5) |
-| **Ảnh gửi khách** (`src/shared/order-confirmation.ts:177, 220`) | mẫu xác nhận, dòng "Còn lại" | mẫu thông báo huỷ (đ5a) |
+| **Ảnh gửi khách** (`src/shared/order-confirmation.ts:177, 220`) | mẫu xác nhận, dòng "Còn lại" | mẫu thông báo huỷ (đ9a) |
 | Đặt lại PIN, tạo tài khoản, sửa quyền | `can(...)` + `mayManage` / `roleAssignmentProblem` | + nhánh "tài khoản có quyền tiền → chỉ SUPER_ADMIN" (0090) |
 | **Màn Quản lý tài khoản** | Quản trị thấy nút đặt lại PIN, chọn được vai Kế toán | ẩn với tài khoản / quyền tiền (cờ từng dòng) |
 | Ô "Còn thiếu tiền" Trang chủ (chỉ đơn `confirmed` chưa Đã giao, `hoan-tat-repo.ts:65`) | — | không đổi |
