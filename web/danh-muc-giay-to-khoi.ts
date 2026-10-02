@@ -84,7 +84,7 @@ export async function moTrangDanhMuc(khoi: readonly Khoi[], tai: () => Promise<R
       const coHan = h("input", { type: "checkbox", checked: d.hasExpiry ?? false, class: "vc-check-inline" });
       const thuTu = h("input", { type: "number", value: String(d.sortOrder), min: 0, max: 9999 });
       const dung = h("input", { type: "checkbox", checked: d.active, class: "vc-check-inline" });
-      const luu = h("button", { type: "button", class: "btn btn-primary" }, "Lưu");
+      const luu = h("button", { type: "button", class: "btn btn-primary btn-chinh" }, "Lưu");
       const dong2 = h("button", { type: "button", class: "btn" }, "Đóng");
       dong2.addEventListener("click", () => (sua.hidden = true));
       luu.addEventListener("click", () =>
@@ -142,7 +142,7 @@ export async function moTrangDanhMuc(khoi: readonly Khoi[], tai: () => Promise<R
     const ten = h("input", { type: "text", maxLength: k.coHan ? 100 : 60 });
     const coHan = h("input", { type: "checkbox", checked: true, class: "vc-check-inline" });
     const thuTu = h("input", { type: "number", value: "0", min: 0, max: 9999 });
-    const them = h("button", { type: "button", class: "btn btn-primary" }, "Thêm");
+    const them = h("button", { type: "button", class: "btn btn-primary btn-chinh" }, "Thêm");
     them.addEventListener("click", () =>
       void act(async () => {
         await k.them({ code: ma.value.trim(), name: ten.value, ...(k.coHan ? { hasExpiry: coHan.checked } : {}), sortOrder: Number(thuTu.value || 0) });
