@@ -121,6 +121,8 @@
   --c-on-dark: #ffffff;     /* chữ/biểu tượng trên nền primary hoặc accent */
   --tap-min: 44px;          /* vùng chạm tối thiểu */
   --bar-h: 60px;            /* thanh đầu trang, chưa tính vùng an toàn — chủ dự án duyệt tăng từ 52px theo bản thiết kế mới (đặc tả §16 mục 3) */
+  --w-gd-o: 160px;         /* ADR-0087: bề rộng ô chọn phông / độ đậm / cỡ chữ ở màn Giao diện */
+  --w-gd-xem: 360px;        /* ADR-0087: bề rộng cột xem trước ở màn Giao diện (máy tính) */
   --tabbar-h: 56px;         /* thanh tab dưới đáy, chưa tính vùng an toàn */
   --h-trang-toi-thieu: calc(100vh + env(safe-area-inset-bottom)); /* trang có thanh tab luôn cao ≥ cả màn hình kể cả vùng vạch vuốt: iPhone (app cài ra màn hình chính) đặt thanh tab cao hơn đúng một vùng an toàn khi trang NGẮN hơn màn hình → thanh nhảy khi dữ liệu về (video của chủ dự án 2026-09-27) */
   --tab-icon: 36px;
@@ -2382,3 +2384,18 @@ label.check > input.o-tick { display: inline; width: auto; margin: 0 var(--s2) 0
 .dd-sheet .dd-che-do-ds { flex-direction: column; }
 .dd-sheet .dd-che-do { flex: none; } /* bản vẽ M7 390: ba thẻ chọn xếp dọc trong bảng trượt */
 .dd-sheet .sheet-foot .dd-luu-day { width: 100%; }
+
+/* Màn Giao diện công ty (ADR-0087) */
+.gd-luoi { display: grid; gap: var(--s4); }
+.gd-nhom { display: flex; flex-direction: column; gap: var(--s3); }
+.gd-dong { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--s1) var(--s3); }
+.gd-dong label { margin: 0; }
+.gd-dong input[type="color"] { width: var(--tap-min); height: var(--tap-min); padding: 0; margin: 0; }
+.gd-dong select, .gd-dong input[type="number"] { width: var(--w-gd-o); margin: 0; }
+.gd-dong.is-doi label { color: var(--c-primary); }
+.gd-loi { grid-column: 1 / -1; margin: 0; font-size: var(--fs-label); color: var(--c-danger-text); }
+.gd-xem { display: flex; flex-direction: column; gap: var(--s3); }
+.gd-xem-thanh { display: flex; justify-content: space-between; padding: var(--s3); background: var(--c-bar-bg); color: var(--c-on-bar); border: 1px solid var(--c-bar-border); border-radius: var(--radius-sm); }
+.gd-xem-ben { display: flex; flex-direction: column; gap: 1px; padding: var(--s2); background: var(--c-sidebar-bg); border: 1px solid var(--c-sidebar-border); border-radius: var(--radius-sm); }
+.gd-xem-nut { display: flex; flex-wrap: wrap; gap: var(--s2); }
+@media (min-width: 900px) { .gd-luoi { grid-template-columns: minmax(0, 1fr) var(--w-gd-xem); align-items: start; } .gd-xem { position: sticky; top: calc(var(--bar-h) + var(--s4)); } }

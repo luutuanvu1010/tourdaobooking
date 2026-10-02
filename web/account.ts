@@ -55,6 +55,7 @@ const lienKetSau = [
   can(staff, "notice.send") && h("a", { class: "row-link", href: "/gui-thong-bao" }, "Gửi thông báo", icon("next", 20)),
   // ADR-0069 điều 1: cài đặt trợ lý chuyển từ khối ở trang này sang trang riêng — chỉ Toàn quyền (ô settings.ops).
   can(staff, "settings.ops") && h("a", { class: "row-link", href: "/tro-ly-cai-dat" }, "Trợ lý Hỗ trợ", icon("next", 20)),
+  can(staff, "settings.ops") && h("a", { class: "row-link", href: "/giao-dien" }, "Giao diện", icon("next", 20)), // ADR-0087
   h("a", { class: "row-link", href: "/feedback" }, "Góp ý / Báo lỗi", feedbackBadgeEl, icon("next", 20)),
   h("a", { class: "row-link", href: "/help" }, "Trợ giúp", helpHasNews() && newDot(), icon("next", 20)),
   logoutBtn,

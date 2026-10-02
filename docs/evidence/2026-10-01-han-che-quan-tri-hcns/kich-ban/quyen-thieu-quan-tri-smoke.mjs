@@ -56,7 +56,7 @@ try {
   const benTQ = await thanhBen(p);
   assert.deepEqual(benTQ, mocBen, "B. thanh bên chỉ Toàn quyền phải GIỐNG HỆT Quản trị + Toàn quyền (Toàn quyền = any ở mọi ô)");
   const quanTriTQ = benTQ.find(([t]) => t === "QUẢN TRỊ")?.[1] ?? [];
-  for (const m of ["Dịch vụ & giá", "Quản lý tài khoản", "Địa điểm", "Nhật ký", "Gửi thông báo", "Trợ lý Hỗ trợ"]) assert.ok(quanTriTQ.includes(m), `B. thiếu mục "${m}": ${JSON.stringify(quanTriTQ)}`);
+  for (const m of ["Dịch vụ & giá", "Quản lý tài khoản", "Địa điểm", "Nhật ký", "Gửi thông báo", "Trợ lý Hỗ trợ", "Giao diện"]) assert.ok(quanTriTQ.includes(m), `B. thiếu mục "${m}": ${JSON.stringify(quanTriTQ)}`);
   await p.waitFor("!document.getElementById('maintenance').hidden", "B. mục bảo trì hiện ở trang Tôi", 8000);
   const linkTQ = await p.ev(`[...document.querySelectorAll('main .row-link')].map((a) => a.textContent.trim())`);
   for (const m of ["Địa điểm", "Gửi thông báo", "Nhật ký"]) assert.ok(linkTQ.some((t) => t.startsWith(m)), `B. trang Tôi thiếu dòng "${m}": ${JSON.stringify(linkTQ)}`);
