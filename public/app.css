@@ -150,7 +150,7 @@
   --spinner: 16px;          /* vòng quay "Đang đăng nhập…" */
   --spinner-bar: 2px;
   --m-spin: 700ms;
-  --c-soft-hover: #f1f5f9;  /* nền nút số hỗ trợ, nền khi rê chuột nút phụ / mục thanh bên — bản thiết kế Đăng nhập #f0f7fc, thị giác 1.70 đổi sang xám xanh cho hợp nền trang mới */
+  --c-soft-hover: #f1f5f9;  /* nền nút số hỗ trợ, nền khi rê chuột nút phụ — bản thiết kế Đăng nhập #f0f7fc, thị giác 1.70 đổi sang xám xanh cho hợp nền trang mới */
   --c-placeholder: #94a3b8; /* chữ gợi ý trong ô gõ — MÀU MỚI theo bản thiết kế */
   --c-spinner-track: rgba(255, 255, 255, 0.3); /* vòng mờ của vòng quay trên nút Đăng nhập đặc màu (1.70; trước là navy mờ trên nút nhạt) */
   --radius-icon: 22.37%;    /* độ bo góc icon iOS */
@@ -336,6 +336,7 @@
   --c-bar-border: var(--c-border);           /* đường mảnh dưới thanh đầu điện thoại (vẽ bằng bóng trong — không đổi chiều cao) */
   --c-icon-hover-on-bar: var(--c-soft-hover); /* nền rê chuột nút biểu tượng trên mảng đậm (đầu bảng thông báo ở điện thoại) */
   --c-sidebar-bg: var(--c-surface-alt); /* nền thanh bên máy tính = nền trang (lời chủ 2/10 khi gửi bản vẽ Đợt 4: "đổi lại nền cho thanh bên trái … thành màu nền toàn trang"); viền phải tách khỏi nội dung */
+  --c-sidebar-hover: var(--c-card); /* nền khi rê chuột mục thanh bên — nền thẻ (trắng) nổi trên nền thanh bên (= nền trang); --c-soft-hover gần trùng nền trang nên không dùng được ở đây (vòng vá 1 Đợt 4, L1) */
   --c-sidebar-text-on: var(--c-primary); /* chữ mục đang chọn, đầu thanh, tên người ở chân thanh bên */
   --c-sidebar-title: var(--c-text-muted); /* tiêu đề nhóm (BÁN HÀNG, QUẢN TRỊ, TÔI) */
   --c-sidebar-badge-text: var(--c-primary); /* chữ huy hiệu số đếm mặc định trên thanh bên */
@@ -965,7 +966,7 @@ body.login-page::before { content: ""; display: block; height: env(safe-area-ins
 .sidebar-group-items { display: flex; flex-direction: column; gap: 1px; }
 .sidebar-item { display: flex; align-items: center; gap: var(--s3); padding: var(--s2) var(--s3); font-size: var(--fs-label); color: var(--c-sidebar-item); text-decoration: none; border-radius: var(--radius-sm); transition: background-color var(--m-fast) var(--ease-out), color var(--m-fast) var(--ease-out); }
 .sidebar-item[aria-current="page"] { color: var(--c-sidebar-text-on); font-weight: var(--fw-bold); background: var(--c-sidebar-active); box-shadow: inset var(--bw-indicator) 0 0 var(--c-indicator); } /* 1.70: vạch ngọc bên trái mục đang chọn */
-@media (hover: hover) { .sidebar-item:not([aria-current="page"]):not(.sidebar-parent):hover { color: var(--c-text); background: var(--c-soft-hover); } }
+@media (hover: hover) { .sidebar-item:not([aria-current="page"]):not(.sidebar-parent):hover { color: var(--c-text); background: var(--c-sidebar-hover); } }
 .sidebar-item-icon { flex: none; display: flex; }
 .sidebar-item-label { flex: 1; min-width: 0; }
 .sidebar-item-badge { flex: none; padding: 1px var(--s2); font-size: var(--fs-badge); font-weight: var(--fw-bold); color: var(--c-sidebar-badge-text); background: var(--c-sidebar-badge); border-radius: var(--radius-pill); }
@@ -2878,7 +2879,6 @@ label.check > input.o-tick { display: inline; width: auto; margin: 0 var(--s2) 0
 .bg-hang > :nth-child(3) { text-align: right; }
 .bg-tuyen { display: flex; flex-direction: column; min-width: 0; }
 .tx-phu { font-size: var(--fs-label); color: var(--c-text); }
-.tx-mo { color: var(--c-text-muted); }
 .tx-tien { font-family: var(--font-display); font-weight: var(--fw-heavy); color: var(--c-accent-strong); white-space: nowrap; }
 .tx-nut-dong { display: flex; gap: var(--s1); justify-content: flex-end; flex-wrap: wrap; }
 .tx-nut-do { color: var(--c-danger-text); }
