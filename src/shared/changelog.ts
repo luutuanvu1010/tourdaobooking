@@ -11,6 +11,20 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Vận chuyển Đợt 3 — Lịch xe bận (khung bận của xe) + nhắc giờ lái (ADR-0055 VK2-A, VK2-B), migration 0071. Số 1.72 TẠM (1.71 để cho Đợt 4) — điều phối
+    // đánh lại lúc gộp. Câu chữ theo lời chủ 2/10 (câu 3.1–3.4 theo khuyến nghị).
+    version: "1.72",
+    date: "2026-10-02",
+    items: [
+      { kind: "moi", text: "Trang mới Vận chuyển › Lịch xe bận: Quản trị xem lịch bận của mọi xe theo tuần, cùng các chuyến đã xếp." },
+      { kind: "moi", text: "Thêm lịch xe vào xưởng (bảo dưỡng, đăng kiểm, sửa chữa), ghi được nhiều ngày một lần. Trong giờ đó máy không cho xếp chuyến cho xe." },
+      { kind: "moi", text: "Xe ra xưởng sớm thì bấm dấu ✕ trên lịch để rút lịch bận. Lịch bận không ghi chồng lên chuyến đã xếp — máy báo mã chuyến cần dời hoặc đổi xe trước." },
+      { kind: "moi", text: "Điều phối xe hiện dải “Xe bận” trên hàng của xe trong ngày." },
+      { kind: "moi", text: "Điều phối xe và Chi tiết chuyến nhắc khi tài xế lái quá 8 giờ một ngày hoặc chuyến dài quá 4 giờ — chỉ nhắc, không chặn." },
+      { kind: "moi", text: "Toàn quyền đổi hai con số giờ lái ở Chính sách điều phối." },
+    ],
+  },
+  {
     // Thị giác toàn Nền tảng "Năng động – Tin cậy – Tinh tế" (đặc tả docs/superpowers/specs/2026-10-02-thi-giac-nen-tang-design.md, chủ duyệt hướng A 2/10).
     // Chỉ giao diện: không migration, không đổi máy chủ. Số 1.70 = main 1.69 (Vận chuyển Đợt 2) + 1 — đánh lại lúc gộp main e7cd764f. KIỂM LẠI LÚC GỘP.
     version: "1.70",
