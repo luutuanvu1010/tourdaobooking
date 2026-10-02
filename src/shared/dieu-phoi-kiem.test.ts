@@ -540,3 +540,20 @@ test("VK2-B B3: kiemTaoSuaChuyen trả nhacGioLai cho CHÍNH chuyến đang tạ
   // Không tài xế → không nhắc giờ lái.
   assert.deepEqual(kiemTaoSuaChuyen(tao({ taiXe: null, batDauMs: ms("2026-09-30", "10:00"), ketThucMs: ms("2026-09-30", "14:30") }, khac)).nhacGioLai, []);
 });
+
+test("VK2-B B1 + B3 (vòng vá 1): ngưỡng giờ lái của lệnh tạo / sửa lấy TỪ CHÍNH SÁCH — dutyDayMaxMinutes = 300, tài xế tổng 5 giờ 30 → GIO_LAI_VUOT, không chặn", () => {
+  const cs5: ChinhSachVao = { ...CS, dutyDayMaxMinutes: 300 };
+  // Chuyến khác của tài xế 00:30–04:30 (4 giờ) + chuyến đang xét 10:00–11:30 (1 giờ 30) = 5 giờ 30 > 5 giờ, < 8 giờ mặc định.
+  const khac = [khung({ id: "k1", ma: "CX-1", xeId: "xe-khac", taiXePartyId: "tx-an", batDauMs: ms("2026-09-30", "00:30"), ketThucMs: ms("2026-09-30", "04:30") })];
+  const than = { batDauMs: ms("2026-09-30", "10:00"), ketThucMs: ms("2026-09-30", "11:30") };
+  const tao5 = kiemTaoSuaChuyen(tao(than, khac, { chinhSach: cs5 }));
+  assert.equal(tao5.ok, true, JSON.stringify(tao5));
+  assert.deepEqual(tao5.nhacGioLai.map((x) => [x.loai, x.tongPhut]), [["GIO_LAI_VUOT", 330]]);
+  const sua5 = kiemTaoSuaChuyen(tao({ id: "cx-1", ...than }, khac, {
+    lenh: "SUA", chinhSach: cs5, cu: { batDauMs: than.batDauMs, batDauSomNhatMs: than.batDauMs, xeId: "xe-a", taiXePartyId: "tx-an", trangThai: "PLANNED" },
+  }));
+  assert.equal(sua5.ok, true, JSON.stringify(sua5));
+  assert.deepEqual(sua5.nhacGioLai.map((x) => [x.loai, x.tripId]), [["GIO_LAI_VUOT", "cx-1"]]);
+  // Đối chứng: chính sách 8 giờ → cùng dữ liệu không nhắc.
+  assert.deepEqual(kiemTaoSuaChuyen(tao(than, khac)).nhacGioLai, []);
+});

@@ -62,3 +62,9 @@ Nền: `origin/main` = `e7cd764f` (fetch + merge 2026-10-02: "Already up to date
 - `node scripts/audit-invariants.mjs --db local`: R-VC-21 ✓; R-N1-5 ✗ vì D1 local của worktree trống tài khoản (không do Đợt 3; audit trên D1 tạm của e2e: xanh).
 - Chrome: `lich-xe-ban-smoke` 9/9; kịch bản cũ xem dòng Task 10 Step 4.
 - Người kiểm độc lập: CHƯA (luật làn cấm gọi trợ lý con).
+
+## Vòng vá 1 (sau người kiểm độc lập — kết luận ĐẠT, 1 Vừa + 2 Thấp)
+- (Vừa) Bài mới `dieu-phoi-kiem.test.ts` "VK2-B B1 + B3 (vòng vá 1): ngưỡng giờ lái của lệnh tạo / sửa lấy TỪ CHÍNH SÁCH" — `dutyDayMaxMinutes = 300`, tài xế tổng 5 giờ 30 ⇒ lệnh TAO và SUA đều trả `GIO_LAI_VUOT` (330 phút), `ok` vẫn true; đối chứng chính sách 8 giờ không nhắc.
+  Đột biến (2026-10-02): gắn cứng `{ dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240 }` trong `kiemTaoSuaChuyen` → ĐỎ đúng bài này (36/37) → hoàn nguyên → 37/37.
+- (Thấp) Nhánh `can(staff, "trip.view")` của `GET /ban-xe`: BỎ QUA có lý do — bản đồ quyền hiện không có quyền nào giữ `vehicle.manage` mà thiếu `trip.view` (chỉ ADMIN, SUPER_ADMIN giữ `vehicle.manage`, cả hai có `trip.view` — `src/shared/permissions.ts:164,169`); khung thử `tests/audit/dieu-phoi-khung.mjs` dựng tài khoản theo mã quyền, đọc ô qua `can()` thật, không tiêm được hồ sơ giả mà không sửa `permissions.ts`. Nhánh hiện là phòng thủ cho tổ hợp chưa tồn tại.
+- (Thấp) Sổ hàng rào dòng "Luật tuần MỘT hàm `tuanXem`": phép phá thật 2026-10-02 — `tuanXem` lệch một ngày (`vnWeekRange(addDays(…, -1))`) → `TZ=UTC` ĐỎ 6 bài của `khung-ban-hien-thi.test.ts` → hoàn nguyên → xanh ở `TZ=UTC`, `Asia/Ho_Chi_Minh`, `America/Los_Angeles`.
