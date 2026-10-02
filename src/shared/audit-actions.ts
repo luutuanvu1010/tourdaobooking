@@ -128,6 +128,8 @@ export const AUDIT_ACTIONS = {
   manual_service_policy_changed: { label: "Đổi công tắc dịch vụ nhập tay", group: "system" },
   // ADR-0069 điều 5 + Hiến chương 5.12: ai đổi cài đặt trợ lý Hỗ trợ lúc nào — detail chỉ nêu PHẦN đã đổi, KHÔNG nội dung lời dặn / ngữ cảnh.
   tro_ly_settings_changed: { label: "Đổi cài đặt trợ lý Hỗ trợ", group: "system" },
+  // ADR-0047 §6 (Đợt 8): máy còn gửi thân đơn / thông tin chuyến KIỂU CŨ — dòng ĐẾM cho cổng cắt; order_id NULL, detail = nhãn màn hình, không nội dung thân.
+  client_outdated_body: { label: "Máy dùng app bản cũ", group: "system" },
   catalog_synced: { label: "Đồng bộ dịch vụ từ Sheet", group: "catalog" },
   catalog_overridden: { label: "Ghi đè giá dịch vụ", group: "catalog" },
   catalog_override_cleared: { label: "Bỏ ghi đè dịch vụ", group: "catalog" },

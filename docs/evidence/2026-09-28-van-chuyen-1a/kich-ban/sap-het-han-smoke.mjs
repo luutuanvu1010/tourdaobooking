@@ -3,8 +3,8 @@
 // 2–3) có dữ liệu (1040 / 390): giấy xe + giấy tài xế chung MỘT danh sách, xếp theo ngày hết hạn (đã hết lên đầu), biểu tượng xe / người đầu dòng, chip đỏ (đã hết) /
 //      cát (còn N ngày), không số giấy tờ; huy hiệu "Sắp hết hạn" = số dòng; trang Tôi điện thoại có cùng số.
 // 4) bấm dòng xe → chi tiết xe; dòng người → hồ sơ ở Danh bạ mở thẳng (mục Giấy tờ hiện).
-// 5) Ruling R23 (điều phối 2026-09-28): KHÔNG ai thấy ô đổi mốc, kể cả Toàn quyền (1040 + 390) — bản vẽ và danh sách màn chủ duyệt không có ô này; chip giấy tờ
-//    người cố định 30 ngày nên đổi mốc ở giao diện làm hai nơi lệch nhau. Mốc chỉ đổi ở máy chủ (route giữ nguyên); lượt 1b làm lại. (Thay phần "ô đổi mốc" của kế hoạch B6.)
+// 5) Đợt 1 Task 5: nút "Đổi mốc nhắc" chỉ Toàn quyền (settings.ops) thấy (1040 + 390); Quản trị không. Gõ 0 → câu của máy chủ, không lưu; gõ 7 → danh sách theo mốc 7;
+//    trả về 30. (R23 cũ đã hết điều kiện vì giấy tờ người nay đọc mốc từ API.)
 // 6) Bán hàng mở thẳng → câu từ chối của máy chủ, không danh sách.
 // Chạy từ GỐC repo, sau `npm run build:web`:
 //   AXE_JS=<…/axe.min.js> CHROME_BIN=docs/evidence/2026-09-20-a2/kich-ban/chrome-wrap.sh OUT=<thư mục ảnh> node docs/evidence/2026-09-28-van-chuyen-1a/kich-ban/sap-het-han-smoke.mjs
@@ -82,7 +82,7 @@ try {
       assert.ok(!s.html.includes("790100000412") && !s.html.includes("PH-0091"), "danh sách không có số giấy tờ");
       assert.deepEqual(await p.ev(`[...document.querySelectorAll('#due-table .vc-due-head span')].map((x) => x.innerText.trim())`), ["", "XE / NGƯỜI", "LOẠI GIẤY", "HẾT HẠN", "CÒN", ""]);
       assert.deepEqual(await p.ev(`[...document.querySelectorAll('#due-table a.vc-due-trow')].map((r) => r.querySelector('.vc-due-exp').innerText.trim())`), KY_VONG.map((k) => k.exp));
-      assert.equal(s.threshold, false, "Quản trị không thấy ô đổi mốc (Ruling R23: màn 06 không có ô này)");
+      assert.equal(s.threshold, false, "Quản trị không thấy ô đổi mốc (#due-threshold; nút mới là data-action=doi-moc)");
       assert.equal(await p.ev(txt("#bar-title")), "Vận chuyển › Sắp hết hạn");
       await axe(p, "06 máy tính");
       await shotFull(p, "06-sap-het-han-1040.png");
@@ -130,18 +130,44 @@ try {
     }
   });
 
-  await dem.step("5", "06 Toàn quyền (Ruling R23): KHÔNG có ô “Đổi mốc” ở 1040 lẫn 390 — không nút nào nói “mốc”, không bảng đổi mốc; danh sách vẫn theo mốc 30", async () => {
+  await dem.step("5", "06 mốc nhắc: Quản trị KHÔNG có nút “Đổi mốc nhắc” (1040 + 390); Toàn quyền có — gõ 0 → câu máy chủ dưới ô, không lưu; gõ 7 → “Trong 7 ngày tới”, còn 3 dòng; trả về 30", async () => {
+    for (const [vp, layout, sel] of [[DESK, "desk", "#due-table a.vc-due-trow"], [MOB, "mob", "#due-list a.vc-due-row"]]) {
+      const q = await env.as(ADMIN, "/giay-to-sap-het-han", vp);
+      try {
+        await q.waitFor(`document.querySelectorAll(${JSON.stringify(sel)}).length === 6`, `sáu dòng Quản trị (${layout})`, 10000);
+        await sleep(300);
+        assert.equal(await q.ev(`!!document.querySelector('[data-action="doi-moc"]')`), false, `${layout}: Quản trị không thấy nút đổi mốc`);
+      } finally {
+        q.close();
+      }
+    }
     for (const [vp, layout, sel] of [[DESK, "desk", "#due-table a.vc-due-trow"], [MOB, "mob", "#due-list a.vc-due-row"]]) {
       const p = await env.as(SUPER, "/giay-to-sap-het-han", vp);
       try {
         await p.waitFor(`document.querySelectorAll(${JSON.stringify(sel)}).length === 6`, `sáu dòng (${layout})`, 10000);
-        await sleep(400);
-        const s = await read(p, layout);
-        assert.equal(s.threshold, false, `${layout}: Toàn quyền không có #due-threshold (R23)`);
-        const nutMoc = await p.ev(`[...document.querySelectorAll('main button, main a')].filter((b) => b.getClientRects().length > 0 && /mốc/i.test(b.innerText)).map((b) => b.innerText.trim())`);
-        assert.deepEqual(nutMoc, [], `${layout}: không nút / liên kết nào nói “mốc” (R23)`);
-        assert.equal(await p.ev("!!document.querySelector('#due-days')"), false, `${layout}: không có ô nhập mốc`);
-        assert.ok((s.sub ?? "").includes("6 giấy"), s.sub);
+        await p.waitFor(`!!document.querySelector('[data-action="doi-moc"]')`, "nút Đổi mốc nhắc", 8000);
+        assert.ok(await p.ev(clickVisible("#due-sub", "Đổi mốc nhắc")), "bấm nút");
+        await p.waitFor(`!!document.querySelector('.sheet-root #moc-nhac')`, "bảng đổi mốc", 8000);
+        assert.equal(await p.ev(`document.querySelector('#moc-nhac').value`), "30");
+        assert.ok((await p.ev(`parseFloat(getComputedStyle(document.querySelector('#moc-nhac')).fontSize)`)) >= 16, `${layout}: ô gõ ≥ 16px (chống zoom iOS)`);
+        await p.ev(typeInto("#moc-nhac", "0"));
+        assert.ok(await p.ev(clickVisible(".sheet-root", "Lưu")));
+        await p.waitFor(`!document.querySelector('#moc-nhac-loi').hidden`, "câu của máy chủ", 8000);
+        const cau = await p.ev(txt("#moc-nhac-loi"));
+        assert.ok(/1 đến 365/.test(cau ?? ""), `${layout}: câu máy chủ: ${cau}`);
+        assert.equal(await p.ev(`document.querySelectorAll(${JSON.stringify(sel)}).length`), 6, `${layout}: chưa lưu thì danh sách giữ nguyên`);
+        await p.ev(typeInto("#moc-nhac", "7"));
+        assert.ok(await p.ev(clickVisible(".sheet-root", "Lưu")));
+        await p.waitFor(`!document.querySelector('.sheet-root') && document.querySelectorAll(${JSON.stringify(sel)}).length === 3`, `còn 3 dòng với mốc 7 (${layout})`, 10000);
+        const s7 = await read(p, layout);
+        assert.ok((layout === "desk" ? s7.sub : s7.title)?.includes("Trong 7 ngày tới"), `${layout}: ${s7.title} | ${s7.sub}`);
+        if (layout === "desk") await shotFull(p, "06-doi-moc-7-ngay-1040.png");
+        // trả về 30 để bước sau không lệch
+        assert.ok(await p.ev(clickVisible("#due-sub", "Đổi mốc nhắc")));
+        await p.waitFor(`!!document.querySelector('.sheet-root #moc-nhac')`, "bảng đổi mốc lần hai", 8000);
+        await p.ev(typeInto("#moc-nhac", "30"));
+        assert.ok(await p.ev(clickVisible(".sheet-root", "Lưu")));
+        await p.waitFor(`!document.querySelector('.sheet-root') && document.querySelectorAll(${JSON.stringify(sel)}).length === 6`, `trả về 30 (${layout})`, 10000);
       } finally {
         p.close();
       }

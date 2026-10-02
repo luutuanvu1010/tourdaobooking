@@ -2,6 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
+  loaiThemDuocChoXe,
   LOC_XE, NGUONG_MAC_DINH, NHAN_TRANG_THAI_XE, canhBaoXe, chipHan, coMucGiayToCuaToi, demLocXe, duongDanDong, haiGiayGanHan, lichSuCua, loiChao, lyDoSuaSai, ngayVN,
   tenGiayTo, tenXe, thanDungLaiHoacSuaXe, thanNgungXe, thanSuaSai, thanXeMoi, thoiGianTuToken, tomTatGiayToXe, xepTheoHan,
 } from "./giay-to-hien-thi.ts";
@@ -174,4 +175,15 @@ test("coMucGiayToCuaToi: mọi nhân viên nội bộ có mục (R5); tài kho�
 test("loiChao: “Chào” + tên gọi (từ cuối của họ tên), như Trang chủ", () => {
   assert.equal(loiChao("Nguyễn Văn Hùng"), "Chào Hùng");
   assert.equal(loiChao("  Hùng "), "Chào Hùng");
+});
+
+test("loaiThemDuocChoXe (ADR-0056 VK3-B): bỏ loại đang có dòng HIỆN HÀNH và loại đã ngưng; dòng lịch sử / đã huỷ không tính", () => {
+  const types = [{ code: "INSPECTION", active: true }, { code: "TPL_INSURANCE", active: true }, { code: "REGISTRATION", active: true }, { code: "OLD", active: false }];
+  const docs = [
+    { typeCode: "INSPECTION", current: true },
+    { typeCode: "INSPECTION", current: false },
+    { typeCode: "TPL_INSURANCE", current: false },
+  ];
+  assert.deepEqual(loaiThemDuocChoXe(types, docs).map((t) => t.code), ["TPL_INSURANCE", "REGISTRATION"]);
+  assert.deepEqual(loaiThemDuocChoXe(types, [{ typeCode: "INSPECTION", current: true }, { typeCode: "TPL_INSURANCE", current: true }, { typeCode: "REGISTRATION", current: true }]), []);
 });

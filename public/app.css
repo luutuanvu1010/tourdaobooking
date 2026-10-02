@@ -2242,6 +2242,9 @@ body.login-page main.login { display: flex; flex-direction: column; height: 100%
 .dp-cuoc-mo { width: 100%; }
 .dp-cuoc-trong { margin: 0; font-size: var(--fs-label); color: var(--c-text-muted); }
 .dp-cc-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); margin-bottom: var(--s3); font-size: var(--fs-label); }
+.dp-cc-di-kem { display: flex; align-items: center; gap: var(--s2); margin-bottom: var(--s3); font-size: var(--fs-label); color: var(--c-muted); }
+.dp-cc-di-kem-viec { display: flex; flex-direction: column; gap: var(--s2); margin-bottom: var(--s3); }
+.dp-cc-di-kem-dong { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s2); font-size: var(--fs-label); }
 .dp-cc-meta { margin-bottom: var(--s3); font-size: var(--fs-label); }
 .dp-cc-day { display: flex; flex-direction: column; gap: var(--s1); }
 .dp-cc-day .vc-btn { min-height: var(--h-field); }
@@ -2264,6 +2267,7 @@ body.login-page main.login { display: flex; flex-direction: column; height: 100%
 
 /* Vòng 5b: thẻ "Khách trong chuyến" + "Rút khỏi xe" / "Chuyển sang xe khác" ở Chi tiết chuyến (chủ lần 15 — thợ tự đặt nút, lệch bản vẽ D-B2-4). Chỉ token. */
 .dp-khach-nhom-the { overflow: hidden; }
+.dp-khach-nhom-the .dp-card-head { flex-wrap: wrap; } /* nút "Thêm người đi kèm" xuống dòng ở 390 thay vì ép tiêu đề thành 3 dòng */
 .dp-khach-khoa { padding: var(--s2) var(--s4); border-bottom: 1px solid var(--c-border); }
 .dp-khach-nhom { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "t nut" "ten nut"; column-gap: var(--s3); row-gap: var(--gap-dp-hist); align-items: center; padding: var(--s3) var(--s4); font-size: var(--fs-label); border-bottom: 1px solid var(--c-border); }
 .dp-khach-nhom:last-child { border-bottom: 0; }

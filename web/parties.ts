@@ -4,7 +4,7 @@
 // hồ sơ công ty chủ: chỉ người giữ ô company.legal.write (ADR-0024 6.4 — máy chủ tính `editable`). Lựa chọn "Công ty chủ" (= đổi công ty chủ, chủ dự án 2026-09-28)
 // chỉ hiện với người giữ ô đó, trên hồ sơ tổ chức, kèm câu xác nhận. Giao diện chỉ ẩn/hiện, máy chủ luôn kiểm lại.
 import { OWNER_COMPANY_ROLE } from "../src/shared/cong-ty-chu";
-import { NGUONG_MAC_DINH, chipHan, lichSuCua, ngayVN, tenGiayTo, xepTheoHan } from "../src/shared/giay-to-hien-thi";
+import { chipHan, lichSuCua, ngayVN, tenGiayTo, xepTheoHan } from "../src/shared/giay-to-hien-thi";
 import { NHAN_LY_DO_KHOP, chuanHoaTen } from "../src/shared/ho-so-trung";
 import { can } from "../src/shared/permissions";
 import { GIOI_TINH, GIOI_TINH_NHAN } from "../src/shared/xung-ho";
@@ -537,10 +537,14 @@ async function veGiayTo(sec: HTMLElement, p: Api.PartyDto): Promise<void> {
     loi.hidden = false;
   };
   let docs: Api.PersonDocumentDto[];
+  let moc: number;
   let meta: Api.PersonDocumentMetaResponse;
   try {
     metaGiayTo ??= api<Api.PersonDocumentMetaResponse>("/api/parties/documents/meta");
-    [docs, meta] = await Promise.all([api<Api.PersonDocumentListResponse>(`/api/parties/${p.id}/documents`).then((r) => r.documents), metaGiayTo]);
+    let r: Api.PersonDocumentListResponse;
+    [r, meta] = await Promise.all([api<Api.PersonDocumentListResponse>(`/api/parties/${p.id}/documents`), metaGiayTo]);
+    docs = r.documents;
+    moc = r.warnDays;
   } catch (err) {
     metaGiayTo = null;
     replaceChildren(sec, h("div", { class: "vc-gt-head" }, h("h3", { id: "giay-to-title" }, "Giấy tờ")), loi);
@@ -558,7 +562,9 @@ async function veGiayTo(sec: HTMLElement, p: Api.PartyDto): Promise<void> {
       gui: async (body) => {
         const duong = kind === "add" ? url : `${url}/${encodeURIComponent(d!.id)}/${kind === "renew" ? "renew" : "correct"}`;
         try {
-          docs = (await api<Api.PersonDocumentListResponse>(duong, { method: "POST", body })).documents;
+          const r = await api<Api.PersonDocumentListResponse>(duong, { method: "POST", body });
+          docs = r.documents;
+          moc = r.warnDays;
         } catch (err) {
           if (err instanceof ApiError && err.status === 409) void veGiayTo(sec, p); // dòng đã cũ: nạp lại ngầm, bảng vẫn hiện câu của máy chủ
           throw err;
@@ -611,7 +617,7 @@ async function veGiayTo(sec: HTMLElement, p: Api.PartyDto): Promise<void> {
     // Điện thoại (<900px)
     const khoi = hienHanh.map((d) => {
       const cu = lichSuCua(d, docs);
-      const chip = chipHan(d.daysLeft, NGUONG_MAC_DINH);
+      const chip = chipHan(d.daysLeft, moc);
       const dong = [d.issuedDate ? `Cấp ${ngayVN(d.issuedDate)}` : null, d.issuedPlace, d.expiryDate ? `hết hạn ${ngayVN(d.expiryDate)}` : "không hạn"].filter(Boolean).join(" · ");
       const nutDong = [
         ghi && d.expiryDate ? nut("Gia hạn", "vc-btn vc-btn-line", (b) => moBang("renew", b, d)) : null,
@@ -665,7 +671,7 @@ async function veGiayTo(sec: HTMLElement, p: Api.PartyDto): Promise<void> {
               ? h("span", { class: "vc-countdown vc-countdown-sm", "data-count-for": d.id, hidden: true }, h("span", null, "Tự che sau ", h("span", { class: "vc-count-n" }, ""), " giây"), nut("Che lại", "vc-reveal-link", () => boCheSo.che(), { "data-hide-for": d.id }))
               : null,
           ),
-          h("span", { class: "vc-pt-exp" }, h("span", null, d.expiryDate ? ngayVN(d.expiryDate) : "Không hạn"), chipEl(chipHan(d.daysLeft, NGUONG_MAC_DINH))),
+          h("span", { class: "vc-pt-exp" }, h("span", null, d.expiryDate ? ngayVN(d.expiryDate) : "Không hạn"), chipEl(chipHan(d.daysLeft, moc))),
           h(
             "span",
             { class: "vc-dt-actions" },

@@ -142,6 +142,15 @@ const FIND_VEHICLE_DOC = defineSql(
    FROM vc_vehicle_document d JOIN vc_vehicle_document_type t ON t.code = d.document_type_code
    WHERE d.id = ?1 AND d.vehicle_id = ?2`,
 );
+// ADR-0056 VK3-B lớp ROUTE: xe đã có dòng HIỆN HÀNH của loại này chưa — CÙNG đoạn HIEN_HANH với trigger vc_vehicle_document_one_current và R-VC-11.
+const HAS_CURRENT_DOC_OF_TYPE = defineSql(
+  "van-chuyen",
+  "has_current_vehicle_document_of_type",
+  `SELECT 1 AS x FROM vc_vehicle_document d WHERE d.vehicle_id = ?1 AND d.document_type_code = ?2 AND ${HIEN_HANH} LIMIT 1`,
+);
+export async function hasCurrentVehicleDocOfType(db: D1Database, vehicleId: string, typeCode: string): Promise<boolean> {
+  return (await db.prepare(HAS_CURRENT_DOC_OF_TYPE).bind(vehicleId, typeCode).first<{ x: number }>()) !== null;
+}
 const INSERT_VEHICLE_DOC = defineSql(
   "van-chuyen",
   "insert_vehicle_document",

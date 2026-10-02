@@ -1,6 +1,7 @@
 // DTO TÀI XẾ (ADR-0049 D3; kế hoạch mục 1.8; ruling R-P11, R-P17 — Task A15). Dựng MỚI TỪNG KHOÁ (khuôn `pool.ts` — không trải đối tượng nguồn): danh sách
 // trắng. Họ tên + năm sinh khách, liên hệ (tên + SĐT người liên hệ của đơn) CHỈ trong ngày chạy — ngoài ngày chạy các khoá đó VẮNG MẶT. KHÔNG BAO GIỜ: tiền,
 // dịch vụ khác, ghi chú đơn, người lập, người phụ trách, số giấy tờ, hạn GPLX, khoá so sánh nơi (`L:…` / `T:…`), id người bấm, SĐT người bấm.
+// Tên người đi kèm (HDV — nhân viên, không phải khách): mọi lúc, chỉ tên.
 import type { LienHeTaiXe } from "../orders";
 import type { CuocChiTietResponse, CuocCuaToiItemDto, DieuKienConThieuDto, DiemChuyenDto, SuatChuyenDto } from "../../shared/contracts";
 import type { LyDoGiu } from "../../shared/ly-do-giu";
@@ -64,8 +65,9 @@ export function cuocChiTietDto(v: {
       id: d.id, thuTu: d.thuTu, loai: d.loai, tenNoi: d.tenNoi, gioHen: d.gioHen, gioXeToi: d.gioXeToi, trangThai: d.trangThai, soNguoi: d.soNguoi, daToi: d.daToi,
     })),
     suat: v.suat.map((s) => ({
-      id: s.id, maDon: s.maDon, diemLen: s.diemLen, diemXuong: s.diemXuong, trangThai: s.trangThai, daDon: s.daDon, daTra: s.daTra, soHieuChuyenBay: s.soHieuChuyenBay,
+      id: s.id, loai: s.loai, maDon: s.maDon, diemLen: s.diemLen, diemXuong: s.diemXuong, trangThai: s.trangThai, daDon: s.daDon, daTra: s.daTra, soHieuChuyenBay: s.soHieuChuyenBay,
       ...(v.trongNgay && s.hoTen !== undefined && s.namSinh !== undefined ? { hoTen: s.hoTen, namSinh: s.namSinh } : {}),
+      ...(s.tenNguoiDiKem !== undefined ? { tenNguoiDiKem: s.tenNguoiDiKem } : {}), // tên HDV đi kèm — mọi lúc, chỉ tên (lời chủ 2026-10-01; T-5)
     })),
     ...(v.trongNgay && v.lienHe !== null
       ? { lienHe: v.lienHe.filter((x) => maDonCuaSuat.has(x.orderCode)).map((x) => ({ maDon: x.orderCode, tenLienHe: x.tenLienHe, sdtLienHe: x.sdtLienHe })) }

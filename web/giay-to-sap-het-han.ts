@@ -1,10 +1,12 @@
 // Giấy tờ sắp hết hạn (/giay-to-sap-het-han — ADR-0040 D1; bản vẽ docs/design/van-chuyen-1a/project/06 Sap het han.dc.html). Giấy xe và giấy tài xế chung MỘT
 // danh sách, xếp theo ngày hết hạn gần nhất (máy chủ xếp; giấy đã hết hạn tự nổi lên đầu), biểu tượng xe / người đầu dòng; bấm dòng mở chi tiết xe hoặc hồ sơ ở
-// Danh bạ. KHÔNG có số giấy tờ (máy chủ không trả). Mốc (mặc định 30 ngày) KHÔNG đổi ở màn này — Ruling R23 (điều phối 2026-09-28): bản vẽ và danh sách màn chủ
-// duyệt không có ô đổi mốc, chip giấy tờ người còn cố định 30 ngày nên đổi ở giao diện làm hai nơi lệch nhau; route máy chủ giữ nguyên, lượt 1b làm lại.
+// Danh bạ. KHÔNG có số giấy tờ (máy chủ không trả). Toàn quyền (ô `settings.ops`) đổi mốc bằng nút "Đổi mốc nhắc" (khuôn kế hoạch B6 của 1a: nút chữ cạnh dòng tiêu đề,
+// bảng trượt một ô số) — R23 đã hết điều kiện vì giấy tờ người nay đọc mốc từ API (Task 4).
 // ADR-0048 D1 (Task B4, khuôn dòng phụ sẵn có): dòng có `ownerLabel` (xe của nhà xe; tài xế đối tác — tên nhà xe) thêm nhãn phụ "Nhà xe: <tên>" — chỉ TÊN.
+import { can } from "../src/shared/permissions";
 import { chipHan, duongDanDong, ngayVN, tenGiayTo } from "../src/shared/giay-to-hien-thi";
-import type { Api } from "./api";
+import { api, type Api } from "./api";
+import { moBangTruot } from "./bang-truot";
 import { byId, h, replaceChildren } from "./dom";
 import { chipEl, datCrumb, loiCua } from "./giay-to-ui";
 import { icon } from "./icons";
@@ -34,6 +36,11 @@ function ve(r: Api.ExpiringListResponse): void {
     h("span", { class: "vc-phone" }, "Gồm cả giấy đã hết hạn"),
     ` · ${r.count} giấy`,
   );
+  if (can(staff, "settings.ops")) {
+    const doiMoc = h("button", { type: "button", class: "btn btn-link vc-due-doi-moc", "data-action": "doi-moc" }, "Đổi mốc nhắc");
+    doiMoc.addEventListener("click", () => moDoiMoc(doiMoc, r.warnDays));
+    subEl.append(" · ", doiMoc);
+  }
   emptyEl.hidden = r.items.length > 0;
   replaceChildren(
     listEl,
@@ -80,10 +87,39 @@ function ve(r: Api.ExpiringListResponse): void {
   }
 }
 
-await initShell();
+const staff = await initShell();
 datCrumb("Vận chuyển", "Sắp hết hạn");
 try {
   ve(await layDanhSachSapHet());
 } catch (err) {
   showError(errorEl, loiCua(err));
+}
+
+/** Đổi mốc "sắp hết hạn" (ADR-0040 D1) — chỉ Toàn quyền; máy chủ kiểm 1–365 và quyền, màn chỉ hiện câu của máy chủ. Lưu xong đọc lại danh sách. */
+function moDoiMoc(opener: HTMLElement, hienTai: number): void {
+  const o = h("input", { id: "moc-nhac", class: "vc-input", type: "text", inputmode: "numeric", value: String(hienTai), autocomplete: "off", "aria-describedby": "moc-nhac-loi" }) as HTMLInputElement;
+  const loi = h("div", { id: "moc-nhac-loi", class: "vc-field-error", role: "alert", hidden: true });
+  const huy = h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary" }, "Huỷ");
+  const luu = h("button", { type: "button", class: "vc-btn btn btn-primary", "data-action": "doi-moc-luu" }, "Lưu");
+  const bang = moBangTruot({
+    title: "Mốc nhắc giấy tờ sắp hết hạn",
+    body: [h("div", { class: "vc-field" }, h("label", { for: "moc-nhac" }, "Nhắc trước (ngày)"), o, loi), h("p", { class: "dp-note" }, "Áp cho giấy tờ xe và giấy tờ cá nhân, có hiệu lực ngay.")],
+    foot: [huy, luu],
+    footClass: "vc-foot-2",
+    opener,
+  });
+  if (!bang) return;
+  huy.addEventListener("click", () => bang.close());
+  luu.addEventListener("click", async () => {
+    bang.setBusy(true);
+    try {
+      await api<Api.VanChuyenMetaResponse>("/api/van-chuyen/nguong-het-han", { method: "POST", body: { warnDays: Number(o.value.trim()) } });
+      bang.close(false);
+      ve(await api<Api.ExpiringListResponse>("/api/van-chuyen/sap-het-han"));
+    } catch (err) {
+      bang.setBusy(false);
+      replaceChildren(loi, loiCua(err));
+      loi.hidden = false;
+    }
+  });
 }

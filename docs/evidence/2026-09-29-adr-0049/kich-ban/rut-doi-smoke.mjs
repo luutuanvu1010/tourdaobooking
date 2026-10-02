@@ -35,7 +35,8 @@ const TEN_O1 = ["Hành Khách Thử 1-1 1980", "Hành Khách Thử 1-2 1981", "H
 const TEN_O5 = ["Hành Khách Thử 4-1 1980", "Hành Khách Thử 4-2 1981", "Hành Khách Thử 4-3 1982", "Hành Khách Thử 4-4 1983", "Hành Khách Thử 4-5 1984"];
 const TEN_O3 = ["Hành Khách Thử 3-1 1980", "Hành Khách Thử 3-2 1981", "Hành Khách Thử 3-3 1982", "Hành Khách Thử 3-4 1983"];
 const tenCua = (g, legId) => g.find((x) => x.khoa === legId)?.ten.split(" · ").sort();
-const chang = async (legId, ngay) => (await call(ACCOUNTS.admin, "GET", `/api/van-chuyen/lich?ngay=${ngay}`)).json.chang.find((c) => c.legId === legId);
+// Gọi bằng phiên CỦA TRANG (ADR-0075: mỗi tài khoản một phiên — `call` đăng nhập lại làm cookie cũ hết hiệu lực sau khi trang mở).
+const chang = async (pg, legId, ngay) => (await pg.ev(`fetch(${JSON.stringify(`/api/van-chuyen/lich?ngay=${ngay}`)}).then((r) => r.json())`)).chang.find((c) => c.legId === legId);
 
 try {
   // ---- Bán hàng, máy tính ------------------------------------------------------------------------------------------------------------------------------------
@@ -102,7 +103,7 @@ try {
     assert.deepEqual(conLai.map((x) => x.khoa), [d.O1.legId]);
     assert.deepEqual(tenCua(conLai, d.O1.legId), TEN_O1, "sau rút, nhóm còn lại vẫn đúng tên ngay trên trang (đọc lại GET)");
     assert.equal(await p.ev(`document.querySelector('.dp-khach-nhom-the').innerText.includes('chưa gắn tên')`), false);
-    assert.equal((await chang(d.O2.legId, d.NGAY_XA)).trangThai, "CHUA_XEP");
+    assert.equal((await chang(p, d.O2.legId, d.NGAY_XA)).trangThai, "CHUA_XEP");
     await p.ev(`document.body.dataset.cu = '1'`);
     await p.send("Page.navigate", { url: `${env.base}/dieu-phoi?ngay=${d.NGAY_XA}` });
     await p.waitFor(`!document.body.dataset.cu && !!document.querySelector('#dp-cot-chua-xep .dp-leg[data-leg="${d.O2.legId}"]')`, "O2 ở cột Chưa xếp");
@@ -162,7 +163,7 @@ try {
     assert.deepEqual(rut[1].phaLe, { lyDo: "PHA_LE_SU_CO" });
     assert.notEqual(rut[0].requestId, rut[1].requestId);
     assert.equal(await q.ev(`document.querySelectorAll('.dp-khach-nhom').length`), 0);
-    assert.equal((await chang(d.O4.legId, d.NGAY_KHOA)).trangThai, "CHUA_XEP");
+    assert.equal((await chang(q, d.O4.legId, d.NGAY_KHOA)).trangThai, "CHUA_XEP");
   });
   await q.close();
 

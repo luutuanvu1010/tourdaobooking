@@ -1,5 +1,5 @@
 import { ApiError, api, type Api } from "./api";
-import { NGUONG_MAC_DINH, chipHan, coMucGiayToCuaToi, ngayVN, tenGiayTo } from "../src/shared/giay-to-hien-thi";
+import { chipHan, coMucGiayToCuaToi, ngayVN, tenGiayTo } from "../src/shared/giay-to-hien-thi";
 import { PERMISSION_LABEL, can, hasPermission, isOffice } from "../src/shared/permissions";
 import { chiTaiXe, coCuocCuaToi, coPhanTaiXe } from "../src/shared/start-page";
 import { thayDieuPhoiXe } from "../src/shared/dieu-phoi-man";
@@ -101,8 +101,11 @@ if (quanLyXe || thayDieuPhoiXe(staff)) {
 async function initGiayToCuaToi(): Promise<void> {
   if (!coMucGiayToCuaToi(staff)) return;
   let docs: Api.PersonDocumentDto[];
+  let moc: number;
   try {
-    docs = (await api<Api.PersonDocumentListResponse>("/api/parties/documents/mine")).documents;
+    const r = await api<Api.PersonDocumentListResponse>("/api/parties/documents/mine");
+    docs = r.documents;
+    moc = r.warnDays;
   } catch {
     return; // lỗi mạng: không có khối (không ảnh hưởng phần còn lại của trang)
   }
@@ -112,7 +115,7 @@ async function initGiayToCuaToi(): Promise<void> {
       "div",
       { class: "vc-mydoc" },
       h("span", { class: "vc-doc-title" }, tenGiayTo(d)),
-      chipEl(chipHan(d.daysLeft, NGUONG_MAC_DINH)),
+      chipEl(chipHan(d.daysLeft, moc)),
       h("span", { class: d.maskedNumber ? "vc-mydoc-no" : "vc-mydoc-no is-empty" }, h("span", { class: "vc-no-val" }, d.maskedNumber ?? "—")),
       h("span", { class: "vc-mydoc-exp" }, ...(d.expiryDate ? [h("span", { class: "vc-exp-pre" }, "Hết hạn "), ngayVN(d.expiryDate)] : ["Không hạn"])),
     );

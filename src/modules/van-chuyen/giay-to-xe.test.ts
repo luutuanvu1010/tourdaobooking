@@ -2,6 +2,7 @@
 // vẫn không ghi số), chỉ lý do sửa sai `choXe`. Xe đã ngừng: không thêm / gia hạn giấy tờ (409 vehicle_retired). Chạy CẢ ứng dụng trên SQLite thật.
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync, readdirSync } from "node:fs";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { world, seedStaff } from "../../../tests/audit/harness.mjs";
 
@@ -137,4 +138,60 @@ test("xe đã ngừng: thêm / gia hạn giấy tờ → 409 vehicle_retired 'Xe
   assert.equal(r.json.error.code, "vehicle_retired");
   r = await suaSai(w, ADM, xe, did, { reason: "SAI_NGAY_HET_HAN", value: ngay(22), expectedUpdatedAt: dong(w, did).updated_at });
   assert.equal(r.status, 200, r.text);
+});
+
+const TRIGGER = "vc_vehicle_document_one_current";
+const chenTho = (w: any, id: string, xe: string, type: string, truoc: string | null = null) =>
+  w.sqlite.prepare(
+    `INSERT INTO vc_vehicle_document (id, vehicle_id, document_type_code, previous_id, created_at, updated_at) VALUES (?, ?, ?, ?, '2026-10-01T00:00:00.000Z', '2026-10-01T00:00:00.000Z')`,
+  ).run(id, xe, type, truoc);
+
+test("VK3-B route: thêm Kiểm định khi đã có dòng hiện hành → 409 document_type_exists, không ghi, không nhật ký; Gia hạn → 201; loại khác → 201; huỷ dòng rồi thêm → 201", async () => {
+  const { w, xe } = await setup();
+  const d1 = dongMoiNhat(await them(w, ADM, xe, { typeCode: "INSPECTION", number: "KD-0456", expiryDate: ngay(20) }), "INSPECTION").id;
+  const [n0, g0] = [soNhatKy(w), w.q("SELECT count(*) n FROM vc_vehicle_document")[0].n];
+  const x = await them(w, ADM, xe, { typeCode: "INSPECTION", number: "KD-9999", expiryDate: ngay(300) });
+  assert.equal(x.status, 409, x.text);
+  assert.equal(x.json.error.code, "document_type_exists", "lớp route (lớp CSDL trả document_type_conflict)");
+  assert.equal(x.json.error.message, "Xe đã có Kiểm định đang dùng — bấm Gia hạn hoặc Sửa sai.");
+  assert.deepEqual([soNhatKy(w), w.q("SELECT count(*) n FROM vc_vehicle_document")[0].n], [n0, g0]);
+  assert.equal((await giaHan(w, ADM, xe, d1, { expiryDate: ngay(385) })).status, 201, "Gia hạn vẫn được");
+  assert.equal((await them(w, ADM, xe, { typeCode: "TPL_INSURANCE", expiryDate: ngay(100) })).status, 201, "loại chưa có vẫn được");
+  const bh = w.q("SELECT id, updated_at FROM vc_vehicle_document WHERE document_type_code = 'TPL_INSURANCE'")[0];
+  assert.equal((await suaSai(w, ADM, xe, bh.id, { reason: "NHAP_NHAM_DONG", expectedUpdatedAt: bh.updated_at })).status, 200);
+  assert.equal((await them(w, ADM, xe, { typeCode: "TPL_INSURANCE", expiryDate: ngay(120) })).status, 201, "dòng cũ đã huỷ → thêm lại được");
+});
+
+test("VK3-B CSDL: INSERT thô dòng song song → RAISE vehicle_document_type_current; dòng gia hạn, loại khác → được; huỷ dòng gia hạn không sinh dòng hiện hành thứ hai", async () => {
+  const { w, xe } = await setup();
+  chenTho(w, "a0000000-0000-4000-8000-000000000001", xe, "INSPECTION");
+  assert.throws(() => chenTho(w, "a0000000-0000-4000-8000-000000000002", xe, "INSPECTION"), /vehicle_document_type_current/);
+  chenTho(w, "a0000000-0000-4000-8000-000000000003", xe, "INSPECTION", "a0000000-0000-4000-8000-000000000001");
+  chenTho(w, "a0000000-0000-4000-8000-000000000004", xe, "TPL_INSURANCE");
+  w.sqlite.prepare("UPDATE vc_vehicle_document SET voided_at = '2026-10-01T01:00:00.000Z' WHERE id = 'a0000000-0000-4000-8000-000000000003'").run();
+  const r = await w.call("GET", `/api/van-chuyen/xe/${xe}`, { as: ADM });
+  assert.equal(r.json.documents.filter((d: any) => d.typeCode === "INSPECTION" && d.current).length, 1, "dòng trước sống lại — vẫn MỘT dòng hiện hành");
+  assert.throws(() => chenTho(w, "a0000000-0000-4000-8000-000000000005", xe, "INSPECTION"), /vehicle_document_type_current/);
+});
+
+test("VK3-B dữ liệu cũ: hai dòng song song có TRƯỚC trigger vẫn gia hạn / huỷ được qua route (trigger chỉ canh dòng mới không nối dòng nào)", async () => {
+  const { w, xe } = await setup();
+  const sql = w.q("SELECT sql FROM sqlite_master WHERE name = ?", TRIGGER)[0].sql;
+  w.sqlite.exec(`DROP TRIGGER ${TRIGGER}`);
+  chenTho(w, "b0000000-0000-4000-8000-000000000001", xe, "INSPECTION");
+  chenTho(w, "b0000000-0000-4000-8000-000000000002", xe, "INSPECTION");
+  w.sqlite.exec(sql);
+  assert.equal((await giaHan(w, ADM, xe, "b0000000-0000-4000-8000-000000000001", { expiryDate: ngay(385) })).status, 201);
+  const d2 = dong(w, "b0000000-0000-4000-8000-000000000002");
+  assert.equal((await suaSai(w, ADM, xe, d2.id, { reason: "NHAP_NHAM_DONG", expectedUpdatedAt: d2.updated_at })).status, 200);
+});
+
+test("VK3-B một luật: trigger chứa NGUYÊN VĂN HIEN_HANH của van-chuyen/repository.ts", () => {
+  const repo = readFileSync(new URL("./repository.ts", import.meta.url), "utf8");
+  const m = repo.match(/const HIEN_HANH = "(.+?)";/);
+  assert.ok(m, "không thấy HIEN_HANH");
+  const dir = new URL("../../../migrations/", import.meta.url);
+  const tep = readdirSync(dir).filter((f) => f.endsWith(".sql")).map((f) => readFileSync(new URL(f, dir), "utf8")).find((s) => s.includes(`CREATE TRIGGER ${TRIGGER}`));
+  assert.ok(tep, `không có migration tạo ${TRIGGER}`);
+  assert.ok(tep!.includes(m![1]!), "trigger phải dùng đúng đoạn HIEN_HANH (tránh hai luật 'hiện hành')");
 });

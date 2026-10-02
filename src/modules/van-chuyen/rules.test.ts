@@ -82,6 +82,9 @@ test("loiRangBuocXe: lỗi CSDL của xe → mã lớp CSDL RIÊNG (khác mã l�
   assert.deepEqual(loiRangBuocXe("D1_ERROR: vehicle_owner_not_allowed: chủ xe phải là công ty chủ hoặc nhà xe đối tác đang hợp tác: SQLITE_CONSTRAINT"), {
     status: 409, code: "vehicle_owner_conflict", message: "Chủ xe phải là công ty chủ hoặc nhà xe đối tác đang hợp tác.",
   });
+  assert.deepEqual(loiRangBuocXe("D1_ERROR: vehicle_document_type_current: xe đã có giấy tờ loại này đang dùng — gia hạn hoặc sửa sai: SQLITE_CONSTRAINT"), {
+    status: 409, code: "document_type_conflict", message: "Xe vừa có giấy tờ loại này — tải lại rồi bấm Gia hạn hoặc Sửa sai.",
+  });
 });
 
 // ---- Giấy tờ xe (Task A14) — khuôn giấy tờ của người, KHÁC ở ba chỗ: không CCCD, không che số, chỉ lý do sửa sai `choXe` ----------------------------------
