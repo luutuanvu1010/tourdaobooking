@@ -260,6 +260,13 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "GET", path: "/api/van-chuyen/co-xe", access: "office" },
   { method: "POST", path: "/api/van-chuyen/co-xe", access: "office" },
   { method: "PUT", path: "/api/van-chuyen/co-xe/:code", access: "office" },
+  // ADR-0057 T2 (kế hoạch Đợt 4 Task 10): chi phí chuyến xe thuê + bảng kê — thân hỏi transport.cost.view / transport.cost.adjust.
+  { method: "GET", path: "/api/van-chuyen/chuyen/:id/chi-phi", access: "office" },
+  { method: "POST", path: "/api/van-chuyen/chuyen/:id/chi-phi/dieu-chinh", access: "office" },
+  { method: "POST", path: "/api/van-chuyen/chuyen/:id/chi-phi/dao", access: "office" },
+  { method: "POST", path: "/api/van-chuyen/chuyen/:id/chi-phi/chup-lai", access: "office" },
+  { method: "POST", path: "/api/van-chuyen/chuyen/:id/chi-phi/gia-thoa-thuan", access: "office" },
+  { method: "GET", path: "/api/van-chuyen/chi-phi", access: "office" },
   // ADR-0049 D2, D3 (kế hoạch mục 1.7 route 9–18): chính sách điều phối, điều kiện xuất bến, hạng bằng — cổng office, thân hỏi settings.ops (chỉ Toàn quyền);
   // danh mục lý do — cổng admin, thân hỏi admin.manage viết thẳng (luật 4).
   { method: "GET", path: "/api/van-chuyen/chinh-sach-dieu-phoi", access: "office" }, // bản đang hiệu lực + lịch sử; thân hỏi settings.ops
@@ -401,6 +408,7 @@ test("mức truy cập của 213 route hiện có khớp ảnh chụp đã duy�
   // 2026-10-02 (ADR-0087, module giao-dien): + GET/PUT /api/giao-dien (admin, settings.ops), GET /api/giao-dien.css (public) = 216 (gộp main 1.66: nhánh ghi 215 trên nền 212, main lên 213 ⇒ 213 + 3).
   assert.deepEqual(actual, SNAPSHOT);
   // 2026-10-02 (Đợt 4 Task 4, ADR-0057 T1): + 9 route bảng giá thuê xe, tuyến, cỡ xe (office) = 225.
-  assert.equal(actual.length, 225, "số route thực tế lệch 225 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 225, "SNAPSHOT phải có đúng 225 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // 2026-10-02 (Đợt 4 Task 10, ADR-0057 T2): + 6 route chi phí chuyến xe thuê + bảng kê (office) = 231.
+  assert.equal(actual.length, 231, "số route thực tế lệch 231 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 231, "SNAPSHOT phải có đúng 231 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

@@ -75,6 +75,8 @@ const ADR: Record<string, [Scope, Scope, Scope, Scope, Scope, Scope, Scope, Scop
   "vehicle.manage": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "none"], // ADR-0040 D1: xe, giấy tờ xe, danh sách sắp hết hạn — Quản trị + Toàn quyền (ADR-0038 điều 6)
   "transport.rate.view": ["none", "any", "any", "none", "none", "any", "none", "none", "none", "none"], // ADR-0057 B3: xem bảng giá thuê xe — Kế toán = Quản trị (lần 18), Toàn quyền
   "transport.rate.manage": ["none", "any", "any", "none", "none", "any", "none", "none", "none", "none"], // ADR-0057 B3: thêm / đóng giá, danh mục tuyến, cỡ xe
+  "transport.cost.view": ["none", "any", "any", "none", "none", "any", "none", "none", "none", "none"], // ADR-0057 C7: chi phí chuyến xe thuê, bảng kê
+  "transport.cost.adjust": ["none", "any", "any", "none", "none", "any", "none", "none", "none", "none"], // ADR-0057 C7: điều chỉnh, đảo, chụp lại, giá thoả thuận
   "assistant.ask": ["any", "any", "any", "any", "any", "any", "any", "any", "any", "any"], // ADR-0066 điều 1: hỏi trợ lý Hỗ trợ — mọi tài khoản đăng nhập
   "auth.session.viewAll": ["none", "none", "none", "none", "none", "any", "none", "none", "none", "none"], // ADR-0075 điều 7: xem sổ phiên của MỌI tài khoản — chỉ Toàn quyền (vai IT mang Toàn quyền)
   "auth.session.revoke": ["none", "none", "none", "none", "none", "any", "none", "none", "none", "none"], // ADR-0075 điều 7: gỡ một phiên đăng nhập — chỉ Toàn quyền
@@ -327,6 +329,7 @@ test("ADR-0040 D3 + ADR-0049 D3: MỌI ô của Tài xế (DRIVER) — ghim nguy
     "party.document.view": "own", // ngoại lệ có tên (Ruling R2, R5): xem giấy tờ của CHÍNH MÌNH, số che
     "party.document.write": "none", "party.document.reveal": "none", "vehicle.manage": "none",
     "transport.rate.view": "none", "transport.rate.manage": "none", // ADR-0057 B3 — tiền xe thuê: không
+    "transport.cost.view": "none", "transport.cost.adjust": "none", // ADR-0057 C7 — chi phí xe thuê: không
     // ADR-0049 D3 — NỚI (ĐÃ DUYỆT 2026-09-30 (lần 17), đề xuất luật mục 2): tài xế công ty xem + bấm tiến độ chuyến MÌNH ĐANG LÁI (`assigned` — A13 / A15).
     "trip.view": "assigned", "trip.dispatch": "none", "trip.override": "none", "trip.progress": "assigned", "trip.call_ack": "none",
     // Sổ tiền lượt 1 (bản làm mới §2): tài xế không thu tiền khách — none ở cả bốn ô mới (ledger.view none, không phải own: tài xế không bao giờ là người thu).
@@ -359,6 +362,7 @@ test("ADR-0048 D2: MỌI ô của Tài xế đối tác (DRIVER_PARTNER) — ghi
     "party.document.view": "own", // ngoại lệ có tên (ADR-0048 D2): xem giấy tờ của CHÍNH MÌNH, số che
     "party.document.write": "none", "party.document.reveal": "none", "vehicle.manage": "none",
     "transport.rate.view": "none", "transport.rate.manage": "none", // ADR-0057 B3 — tiền xe thuê: không
+    "transport.cost.view": "none", "transport.cost.adjust": "none", // ADR-0057 C7 — chi phí xe thuê: không
     "trip.view": "none", "trip.dispatch": "none", "trip.override": "none", "trip.progress": "none", "trip.call_ack": "none", // ADR-0049 D3 × ADR-0048 D2: tài xế đối tác chưa dùng app cho chuyến (D7 — lượt sau)
     "order.handover": "none", "order.complete": "none", "ledger.view": "none", "ledger.write": "none", // sổ tiền lượt 1 (bản làm mới §2) — mọi ô tiền = none
     "assistant.ask": "any", // ngoại lệ có tên (ADR-0066 điều 1): hỏi trợ lý Hỗ trợ — mọi tài khoản đăng nhập
@@ -386,6 +390,7 @@ test("ADR-0071: MỌI ô của Nhân sự (HR) — ghim nguyên dòng, chỉ ba 
     "party.document.view": "own", // như mọi tài khoản nội bộ (ADR-0040 D2, R5): giấy tờ của CHÍNH MÌNH, số che
     "party.document.write": "none", "party.document.reveal": "none", "vehicle.manage": "none",
     "transport.rate.view": "none", "transport.rate.manage": "none", // ADR-0057 B3 — tiền xe thuê: không
+    "transport.cost.view": "none", "transport.cost.adjust": "none", // ADR-0057 C7 — chi phí xe thuê: không
     "trip.view": "none", "trip.dispatch": "none", "trip.override": "none", "trip.progress": "none", "trip.call_ack": "none",
     "assistant.ask": "any",
     "auth.session.viewAll": "none", "auth.session.revoke": "none", "auth.session.policy": "none", // ADR-0075 điều 7: chỉ Toàn quyền

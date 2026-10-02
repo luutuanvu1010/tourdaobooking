@@ -114,6 +114,8 @@ export const TEN_THAO_TAC: Readonly<Record<OperationCode, TenLoiThuong>> = {
   "vehicle.manage": { ten: "quản lý xe và giấy tờ xe", moTa: "Thêm, sửa xe, giấy tờ xe, xem danh sách sắp hết hạn." },
   "transport.rate.view": { ten: "xem bảng giá thuê xe", moTa: "Xem giá thuê xe theo chuyến của từng nhà xe." },
   "transport.rate.manage": { ten: "nhập bảng giá thuê xe", moTa: "Thêm, kết thúc giá thuê xe; sửa danh mục tuyến và cỡ xe." },
+  "transport.cost.view": { ten: "xem chi phí xe thuê", moTa: "Xem chi phí từng chuyến xe thuê và bảng kê chi phí theo nhà xe." },
+  "transport.cost.adjust": { ten: "sửa chi phí xe thuê", moTa: "Nhập giá thoả thuận, lấy lại giá bảng, điều chỉnh hoặc đảo chi phí chuyến xe thuê." },
   "trip.view": { ten: "xem chuyến xe", moTa: "Xem bảng Điều phối xe và chi tiết chuyến (tài xế: chỉ chuyến mình lái)." },
   "trip.dispatch": { ten: "tạo, xếp, sửa, huỷ chuyến", moTa: "Tạo chuyến, xếp khách lên chuyến, rút, dời, huỷ chuyến." },
   "trip.override": { ten: "phá lệ khi điều xe", moTa: "Cho chuyến đi dù vướng luật cấu hình như mốc tối thiểu, khoảng nghỉ, kèm lý do." },

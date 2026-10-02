@@ -83,6 +83,19 @@ import {
 import { listRoutes, listSizes } from "./tien-xe-repo";
 import { MA_TUYEN_CO_RE, docCoXeMoi, docKetThucGia, docSuaCoXe, docSuaTuyen, docThemGia, docTuyenMoi } from "./tien-xe-than";
 const CAN_GIA = () => error(403, "forbidden", "Chỉ Kế toán, Quản trị, Toàn quyền xem và nhập bảng giá thuê xe.");
+// ADR-0057 T2 C9 (kế hoạch Đợt 4 Task 10): chi phí chuyến xe thuê + bảng kê — chỉ route hỏi transport.cost.*; thân mỏng, xử lý ở tien-xe-chi-phi.ts.
+import type { ChiPhiChuyenResponse, NhomBangKeDto } from "../../shared/contracts";
+import { docBangKe, docChiPhiChuyen, lenhChupLai, lenhDaoDong, lenhDieuChinh, lenhGiaThoaThuan } from "./tien-xe-chi-phi";
+import { BANG_KE_TOI_DA_NGAY, NHOM_BANG_KE, docChupLai, docDaoDong, docDieuChinh, docGiaThoaThuan } from "./tien-xe-than";
+const CAN_CHI_PHI = () => error(403, "forbidden", "Chỉ Kế toán, Quản trị, Toàn quyền xem và sửa chi phí xe thuê.");
+const ID_CHUYEN_RE = /^[A-Za-z0-9-]{3,64}$/;
+/** Phản hồi sau một lệnh ghi chi phí: chi phí HIỆN TẠI của chuyến (201 khi vừa ghi, 200 khi gửi lại cùng requestId). */
+async function phanHoiChiPhi(db: D1Database, tripId: string, nhan: (ids: readonly string[]) => Promise<Map<string, string> | null>, r: { ok: true; lap: boolean } | { ok: false; res: Response } | null): Promise<Response> {
+  if (r === null) return error(404, "not_found", "Không tìm thấy chuyến xe.");
+  if (!r.ok) return r.res;
+  const dto = await docChiPhiChuyen(db, tripId, nhan);
+  return dto ? json({ chiPhi: dto } satisfies ChiPhiChuyenResponse, r.lap ? 200 : 201) : error(404, "not_found", "Không tìm thấy chuyến xe.");
+}
 const CAN_DANH_MUC_TUYEN = () => error(403, "forbidden", "Tài khoản này không xem được danh mục tuyến, cỡ xe.");
 /** Bảng giá đọc theo tên tuyến / cỡ (map) — một lần mỗi request. */
 const banDoTuyenCo = async (db: D1Database, ngay: string) => {
@@ -891,6 +904,58 @@ export const vanChuyenModule: AppModule = {
       const r = await lenhSuaCoXe(env.DB, code, than.value, staff, new Date().toISOString());
       if (r instanceof Response) return r;
       return json({ coXe: (await listSizes(env.DB, vnToday(new Date()))).map((c) => coXeDto(c, true)) } satisfies CoXeListResponse);
+    }),
+
+    // ---- CHI PHÍ CHUYẾN XE THUÊ + BẢNG KÊ (ADR-0057 T2 C9) — cổng office, `can()` ĐẦU thân (403 trước 400). Quản trị = Kế toán (chủ lần 18). Không báo tài xế /
+    // Bảng tin (route ghi TIỀN, không đổi chuyến — kế hoạch Đợt 4 Task 10 bước 3b).
+    route("GET", "/api/van-chuyen/chuyen/:id/chi-phi", "office", async ({ env, params, staff, nhanNhanVien }) => {
+      if (!can(staff, "transport.cost.view")) return CAN_CHI_PHI();
+      const id = params.id ?? "";
+      const dto = ID_CHUYEN_RE.test(id) ? await docChiPhiChuyen(env.DB, id, nhanNhanVien) : null;
+      return dto ? json({ chiPhi: dto } satisfies ChiPhiChuyenResponse) : error(404, "not_found", "Không tìm thấy chuyến xe.");
+    }),
+    route("POST", "/api/van-chuyen/chuyen/:id/chi-phi/dieu-chinh", "office", async ({ env, request, params, staff, nhanNhanVien }) => {
+      if (!can(staff, "transport.cost.adjust")) return CAN_CHI_PHI();
+      const id = params.id ?? "";
+      const than = docDieuChinh(await readJson(request));
+      if (!than.ok) return error(400, "invalid_input", than.message);
+      const now = new Date();
+      return phanHoiChiPhi(env.DB, id, nhanNhanVien, ID_CHUYEN_RE.test(id) ? await lenhDieuChinh(env.DB, id, than.value, staff, now, vnToday(now)) : null);
+    }),
+    route("POST", "/api/van-chuyen/chuyen/:id/chi-phi/dao", "office", async ({ env, request, params, staff, nhanNhanVien }) => {
+      if (!can(staff, "transport.cost.adjust")) return CAN_CHI_PHI();
+      const id = params.id ?? "";
+      const than = docDaoDong(await readJson(request));
+      if (!than.ok) return error(400, "invalid_input", than.message);
+      const now = new Date();
+      return phanHoiChiPhi(env.DB, id, nhanNhanVien, ID_CHUYEN_RE.test(id) ? await lenhDaoDong(env.DB, id, than.value, staff, now, vnToday(now)) : null);
+    }),
+    route("POST", "/api/van-chuyen/chuyen/:id/chi-phi/chup-lai", "office", async ({ env, request, params, staff, nhanNhanVien }) => {
+      if (!can(staff, "transport.cost.adjust")) return CAN_CHI_PHI();
+      const id = params.id ?? "";
+      const than = docChupLai(await readJson(request));
+      if (!than.ok) return error(400, "invalid_input", than.message);
+      const now = new Date();
+      return phanHoiChiPhi(env.DB, id, nhanNhanVien, ID_CHUYEN_RE.test(id) ? await lenhChupLai(env.DB, id, than.value, staff, now, vnToday(now)) : null);
+    }),
+    route("POST", "/api/van-chuyen/chuyen/:id/chi-phi/gia-thoa-thuan", "office", async ({ env, request, params, staff, nhanNhanVien }) => {
+      if (!can(staff, "transport.cost.adjust")) return CAN_CHI_PHI();
+      const id = params.id ?? "";
+      const than = docGiaThoaThuan(await readJson(request));
+      if (!than.ok) return error(400, "invalid_input", than.message);
+      return phanHoiChiPhi(env.DB, id, nhanNhanVien, ID_CHUYEN_RE.test(id) ? await lenhGiaThoaThuan(env.DB, id, than.value, staff, new Date()) : null);
+    }),
+    route("GET", "/api/van-chuyen/chi-phi", "office", async ({ env, url, staff }) => {
+      if (!can(staff, "transport.cost.view")) return CAN_CHI_PHI();
+      const tu = url.searchParams.get("tu") ?? "";
+      const den = url.searchParams.get("den") ?? "";
+      if (!isISODate(tu) || !isISODate(den) || den < tu) return error(400, "invalid_input", "Khoảng ngày chạy: từ ngày, đến ngày dạng YYYY-MM-DD, đến ngày không trước từ ngày.");
+      if (addDays(tu, BANG_KE_TOI_DA_NGAY) < den) return error(400, "invalid_input", `Khoảng ngày chạy tối đa ${BANG_KE_TOI_DA_NGAY} ngày (khoảng 3 tháng).`);
+      const nhaXe = url.searchParams.get("nha-xe");
+      if (nhaXe !== null && !PARTY_ID_RE.test(nhaXe)) return error(400, "invalid_input", "Nhà xe không hợp lệ.");
+      const tt = url.searchParams.get("trang-thai");
+      if (tt !== null && !(NHOM_BANG_KE as readonly string[]).includes(tt)) return error(400, "invalid_input", "Trạng thái lọc không hợp lệ.");
+      return json(await docBangKe(env.DB, { tu, den, nhaXe, nhom: tt as NhomBangKeDto | null }));
     }),
 
     // ---- CHUYẾN XE — route văn phòng lập kế hoạch (ADR-0049 D1–D3 lát 1.5; ADR-0050 VK1-B route 40; kế hoạch mục 1.7 route 1–8, 40; Task A13) -------------

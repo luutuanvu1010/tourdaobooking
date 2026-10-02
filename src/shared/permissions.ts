@@ -167,6 +167,10 @@ export const MATRIX = {
   // giờ đọc giá (ADR-0019 điều 3). HR none (ADR-0071). Route: /api/van-chuyen/bang-gia*, /tuyen*, /co-xe* (cổng office).
   "transport.rate.view": row("none", "any", "any", "none", "none", "any", "none", "none", "none", "none"),
   "transport.rate.manage": row("none", "any", "any", "none", "none", "any", "none", "none", "none", "none"),
+  // ADR-0057 T2 C7: CHI PHÍ CHUYẾN XE THUÊ (giá vốn) + bảng kê — xem: Kế toán, Quản trị, Toàn quyền; điều chỉnh, đảo, chụp lại, NHẬP GIÁ THOẢ THUẬN: cùng ba vai
+  // (chủ lần 18 "Hai vai giống hệt"). Không bao giờ vào DTO của orders, tài xế, lịch chung, chi tiết chuyến. Route: /api/van-chuyen/chuyen/:id/chi-phi*, /chi-phi.
+  "transport.cost.view": row("none", "any", "any", "none", "none", "any", "none", "none", "none", "none"),
+  "transport.cost.adjust": row("none", "any", "any", "none", "none", "any", "none", "none", "none", "none"),
   // ADR-0049 D3 (Task A13): CHUYẾN XE. `trip.view` — xem lịch chung, chi tiết chuyến (văn phòng: Bán hàng, Kế toán, Quản trị, Toàn quyền; Tài xế công ty:
   // CHỈ chuyến mình đang lái — `assigned` = dòng lái mở trên chuyến, tính trong van-chuyen, route tài xế A15). NỚI bài ghim hàng DRIVER — ĐÃ DUYỆT 2026-09-30 (lần 17)
   // (đề xuất luật mục 2). `trip.dispatch` — tạo / sửa / xếp / rút / dời / huỷ chuyến, cập nhật điểm theo đơn (Bán hàng, Quản trị, Toàn quyền). `trip.override`

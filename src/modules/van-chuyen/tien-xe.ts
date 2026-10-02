@@ -82,3 +82,27 @@ export function daoDuoc(dong: readonly DongChiPhi[], d: DongChiPhi, trangThai: T
   if (d.kind === "SNAPSHOT" || d.kind === "AGREED") return trangThai === "PLANNED";
   return true;
 }
+
+/** Mã lý do đảo tự động khi đổi chuyến (xe, nhà xe, tuyến, ngày chạy) — mã hệ thống, `MA_LY_DO_HE_THONG`. */
+export const LY_DO_DAO_DOI_CHUYEN = "CPX_DOI_CHUYEN";
+/** Loại nguồn giá còn hiệu lực: giá bảng (SNAPSHOT) / giá thoả thuận (AGREED) / chưa có. */
+export function loaiNguonGia(dong: readonly DongChiPhi[]): "BANG" | "THOA_THUAN" | null {
+  const n = nguonGiaConHieuLuc(dong);
+  return n === null ? null : n.kind === "SNAPSHOT" ? "BANG" : "THOA_THUAN";
+}
+/** Đếm điều chỉnh (bảng kê): số điều chỉnh còn hiệu lực; số điều chỉnh bị đảo DO ĐỔI CHUYẾN (dòng đảo mang `CPX_DOI_CHUYEN`). Không tiền. */
+export function demDieuChinh(dong: readonly DongChiPhi[]): { soDieuChinh: number; soDieuChinhBiDao: number } {
+  const daoDoDoi = new Set(dong.filter((d) => d.kind === "REVERSAL" && d.reasonCode === LY_DO_DAO_DOI_CHUYEN).map((d) => d.reversesId));
+  return {
+    soDieuChinh: dongConHieuLuc(dong).filter((d) => d.kind === "ADJUSTMENT").length,
+    soDieuChinhBiDao: dong.filter((d) => d.kind === "ADJUSTMENT" && daoDoDoi.has(d.id)).length,
+  };
+}
+export type NhomBangKe = "DA_PHAT_SINH" | "CHUA_CHAY" | "DANG_CHAY" | "DA_HUY" | "THIEU_GIA";
+/** Nhóm trạng thái của một dòng bảng kê (ADR-0057 C4 "đã phát sinh" = kết thúc / kết thúc gián đoạn; chưa chạy mà là xe thuê thiếu nguồn giá = "chưa có giá"). */
+export function nhomBangKe(trangThai: TrangThaiChuyenTien, thue: boolean, coNguonGia: boolean): NhomBangKe {
+  if (trangThai === "CANCELLED") return "DA_HUY";
+  if (trangThai === "ENDED" || trangThai === "ENDED_INTERRUPTED") return "DA_PHAT_SINH";
+  if (trangThai === "RUNNING") return "DANG_CHAY";
+  return thue && !coNguonGia ? "THIEU_GIA" : "CHUA_CHAY";
+}

@@ -472,3 +472,224 @@ test("Thiếu giá (V6): xe 29 chỗ không tuyến → không dòng nào; xuấ
     tat();
   }
 });
+
+// ==== T2 — route chi phí chuyến (Kế toán / Quản trị) + bảng kê (kế hoạch Đợt 4 Task 10; đánh giá bản vẽ §4 mục 7–9) =====================================
+const chiPhi = (w: any, id: string, as = ACC) => w.call("GET", `/api/van-chuyen/chuyen/${id}/chi-phi`, { as });
+const ghiCp = async (w: any, id: string, duoi: string, body: Record<string, unknown>, as = ACC) => {
+  const pb = body.phienBanChiPhi ?? (await chiPhi(w, id)).json.chiPhi.phienBanChiPhi;
+  return w.call("POST", `/api/van-chuyen/chuyen/${id}/chi-phi/${duoi}`, { as, body: { requestId: uuid(), phienBanChiPhi: pb, ...body } });
+};
+const xuatBenVp = (w: any, id: string) => tienDo(w, "van-phong", id, "xuat-ben");
+
+test("Task 10 quyền: Kế toán VÀ Quản trị dùng được cả sáu route chi phí; Bán hàng / HDV / tài xế / tài xế đối tác / Đối tác / Thực tập → 403 (403 trước 400)", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const n = await nenThue(w);
+    const id = (await taoThue(w, { xe: n.x29, taiXe: n.tx })).json.chuyen.id; // thiếu giá
+    for (const as of [ACC, ADM]) {
+      assert.equal((await chiPhi(w, id, as)).status, 200, `${as} xem`);
+      assert.equal((await w.call("GET", `/api/van-chuyen/chi-phi?tu=${NGAY}&den=${NGAY}`, { as })).status, 200, `${as} bảng kê`);
+    }
+    assert.equal((await ghiCp(w, id, "chup-lai", {}, ACC)).status, 409, "chưa có giá bảng khớp");
+    assert.equal((await ghiCp(w, id, "gia-thoa-thuan", { soTien: 1_350_000, ghiChu: "đã chốt với anh Hùng 14/10" }, ADM)).status, 201);
+    assert.equal((await ghiCp(w, id, "dieu-chinh", { soTien: 50_000, lyDo: "CPX_CAU_DUONG", ghiChu: null }, ACC)).status, 201);
+    const cp = (await chiPhi(w, id)).json.chiPhi;
+    assert.equal((await ghiCp(w, id, "dao", { dongId: cp.dong[1].id, lyDo: "CPX_NHAP_SAI", ghiChu: null }, ADM)).status, 201);
+    for (const as of [SALES, FIELD, DRIVER, DRIVER_PARTNER, PARTNER, INTERN]) {
+      assert.equal((await chiPhi(w, id, as)).status, 403, `${as} xem`);
+      assert.equal((await w.call("GET", `/api/van-chuyen/chi-phi?tu=${NGAY}&den=${NGAY}`, { as })).status, 403, `${as} bảng kê`);
+      for (const duoi of ["dieu-chinh", "dao", "chup-lai", "gia-thoa-thuan"]) {
+        assert.equal((await w.call("POST", `/api/van-chuyen/chuyen/${id}/chi-phi/${duoi}`, { as, body: { soTien: "sai" } })).status, 403, `${as} ${duoi}`);
+      }
+    }
+  } finally {
+    tat();
+  }
+});
+
+test("V6b + chụp lại (ADR tiêu chí 4): thiếu giá → giá thoả thuận 1.350.000 → hết THIEU_GIA, xuất bến được; nhập lần nữa → 409; chụp lại khi Quản trị vừa thêm giá → SNAPSHOT, xuất bến được; occurred_date = ngày chạy", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const n = await nenThue(w);
+    const a = (await taoThue(w, { xe: n.x29, taiXe: n.tx })).json.chuyen.id;
+    assert.ok((await giu(w, a)).includes("THIEU_GIA"));
+    const cp0 = (await chiPhi(w, a)).json.chiPhi;
+    assert.deepEqual([cp0.nguonGia, cp0.tong, cp0.coTheNhapThoaThuan, cp0.coTheChupLai, cp0.phienBanChiPhi], [null, 0, true, true, 0]);
+    assert.ok(!cp0.lyDoChon.some((l: any) => ["CPX_DOI_CHUYEN", "CPX_HUY_CHUYEN", "CPX_GIA_THOA_THUAN"].includes(l.ma)), "không chọn được mã hệ thống / mã thoả thuận");
+    assert.equal((await ghiCp(w, a, "gia-thoa-thuan", { soTien: 1_350_000, ghiChu: "" })).status, 400, "ghi chú thoả thuận bắt buộc");
+    const t = await ghiCp(w, a, "gia-thoa-thuan", { soTien: 1_350_000, ghiChu: "đã chốt với anh Hùng 14/10" });
+    assert.equal(t.status, 201, t.text);
+    assert.deepEqual([t.json.chiPhi.nguonGia, t.json.chiPhi.tong, t.json.chiPhi.coTheNhapThoaThuan], ["THOA_THUAN", 1_350_000, false]);
+    assert.equal(w.q("SELECT occurred_date d FROM vc_trip_cost_line WHERE trip_id = ?", a)[0].d, NGAY);
+    assert.ok(!(await giu(w, a)).includes("THIEU_GIA"));
+    const lai = await ghiCp(w, a, "gia-thoa-thuan", { soTien: 1_000_000, ghiChu: "lần hai" });
+    assert.equal(lai.status, 409);
+    assert.match(lai.text, /đã có giá thoả thuận/);
+    assert.equal((await xuatBenVp(w, a)).status, 200);
+    assert.equal((await ghiCp(w, a, "gia-thoa-thuan", { soTien: 1_000_000, ghiChu: "sau xuất bến" })).status, 409, "đã xuất bến");
+    // Chụp lại: chuyến 29 chỗ tuyến NT-DL (không giá) → 409; Quản trị thêm giá cỡ 29 → chụp lại → SNAPSHOT.
+    const b = (await taoThue(w, { xe: xeNhaXe(w, n.nx, 29), taiXe: taiXeNhaXe(w, n.nx), tuyen: n.dl, bd: "16:00", kt: "17:00" })).json.chuyen.id;
+    const k = await ghiCp(w, b, "chup-lai", {});
+    assert.equal(k.status, 409);
+    assert.match(k.text, /Chưa có giá bảng cho chuyến này — nhập giá thoả thuận/);
+    const c29 = (await w.call("GET", "/api/van-chuyen/co-xe", { as: ACC })).json.coXe.find((c: any) => c.tuSoKhach === 17).ma;
+    assert.equal((await themGia(w, ADM, { nhaXePartyId: n.nx, coXe: c29, soTien: 1_250_000, tuNgay: NGAY })).status, 201);
+    const k2 = await ghiCp(w, b, "chup-lai", {});
+    assert.equal(k2.status, 201, k2.text);
+    assert.deepEqual([k2.json.chiPhi.nguonGia, k2.json.chiPhi.tong], ["BANG", 1_250_000]);
+    assert.equal(k2.json.chiPhi.dong[0].tuDong, false, "chụp lại do người bấm");
+    assert.ok(!(await giu(w, b)).includes("THIEU_GIA"));
+    const k3 = await ghiCp(w, b, "gia-thoa-thuan", { soTien: 1, ghiChu: "x" });
+    assert.equal(k3.status, 409);
+    assert.match(k3.text, /Chuyến đã có giá bảng — đảo giá bảng trước nếu muốn dùng giá thoả thuận/);
+  } finally {
+    tat();
+  }
+});
+
+test("V9 + điều chỉnh làm tổng âm (bản vẽ): đảo SNAPSHOT khi còn −200.000 → 409 tong_am, không dòng mới; điều chỉnh −1.300.000 trên tổng 1.000.000 → 409 tong_am; DTO: daoDuoc, lyDo {ma, nhan}, tuDong", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const n = await nenThue(w);
+    const id = (await taoThue(w, { xe: n.x16, taiXe: n.tx, tuyen: n.crt })).json.chuyen.id;
+    const dc = await ghiCp(w, id, "dieu-chinh", { soTien: -200_000, lyDo: "CPX_NHAP_SAI", ghiChu: "nhập thừa" });
+    assert.equal(dc.status, 201, dc.text);
+    const cp = dc.json.chiPhi;
+    assert.equal(cp.tong, 1_000_000);
+    assert.deepEqual(cp.dong.map((d: any) => [d.loai, d.soTien, d.daoDuoc, d.tuDong, d.lyDo?.ma ?? null]), [["SNAPSHOT", 1_200_000, true, true, null], ["ADJUSTMENT", -200_000, true, false, "CPX_NHAP_SAI"]]);
+    assert.equal(cp.dong[1].lyDo.nhan, "Nhập sai");
+    const v9 = await ghiCp(w, id, "dao", { dongId: cp.dong[0].id, lyDo: "CPX_NHAP_SAI", ghiChu: null });
+    assert.equal(v9.status, 409);
+    assert.equal(v9.json.error.code, "tong_am");
+    assert.equal(v9.json.error.message, "Tổng chi phí chuyến sẽ âm — đảo điều chỉnh giảm trước.");
+    const am = await ghiCp(w, id, "dieu-chinh", { soTien: -1_300_000, lyDo: "CPX_KHAC", ghiChu: null });
+    assert.equal(am.status, 409);
+    assert.equal(am.json.error.code, "tong_am");
+    assert.equal(dongCp(w, id).length, 2, "không dòng mới");
+    assert.equal((await ghiCp(w, id, "dieu-chinh", { soTien: 100, lyDo: "CPX_DOI_CHUYEN", ghiChu: null })).status, 400, "mã hệ thống không chọn được");
+    assert.equal((await ghiCp(w, id, "dieu-chinh", { soTien: 100, lyDo: "CPX_GIA_THOA_THUAN", ghiChu: null })).status, 400);
+  } finally {
+    tat();
+  }
+});
+
+test("V10 + V8b + TC-11: chuyến kết thúc gián đoạn — điều chỉnh −400.000 → 800.000, đảo giá sau xuất bến → 409; chuyến huỷ — phí huỷ muộn 300.000 → 300.000; chuyến chưa có dòng nào → 409 chua_co_chi_phi", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const n = await nenThue(w);
+    const id = (await taoThue(w, { xe: n.x16, taiXe: n.tx, tuyen: n.crt })).json.chuyen.id;
+    assert.equal((await xuatBenVp(w, id)).status, 200);
+    const kt = await tienDo(w, "van-phong", id, "ket-thuc-gian-doan", { lyDo: "GIAN_DOAN_XE_HONG" });
+    assert.equal(kt.status, 200, kt.text);
+    const a = await ghiCp(w, id, "dieu-chinh", { soTien: -400_000, lyDo: "CPX_KHAC", ghiChu: "xe hỏng giữa đường" });
+    assert.equal(a.status, 201, a.text);
+    assert.equal(a.json.chiPhi.tong, 800_000);
+    assert.equal(a.json.chiPhi.dong[0].daoDuoc, false, "giá đã chụp không đảo sau xuất bến");
+    const d = await ghiCp(w, id, "dao", { dongId: a.json.chiPhi.dong[0].id, lyDo: "CPX_NHAP_SAI", ghiChu: null });
+    assert.equal(d.status, 409);
+    assert.match(d.text, /Giá đã chụp không đảo được sau khi xe chạy — dùng điều chỉnh/);
+    // V8b
+    const h = (await taoThue(w, { xe: n.x16, taiXe: n.tx, tuyen: n.crt, bd: "17:00", kt: "18:00" })).json.chuyen.id;
+    const c = await chiTiet(w, h);
+    assert.equal((await w.call("POST", `/api/van-chuyen/chuyen/${h}/huy`, { as: SALES, body: { version: c.chuyen.version, requestId: uuid(), lyDo: "HUY_KHAC" } })).status, 200);
+    const p = await ghiCp(w, h, "dieu-chinh", { soTien: 300_000, lyDo: "CPX_HUY_MUON", ghiChu: null });
+    assert.equal(p.status, 201, p.text);
+    assert.equal(p.json.chiPhi.tong, 300_000);
+    // TC-11: chuyến xe công ty không dòng nào.
+    const cty = (await taoThue(w, { xe: xe(w, 16), taiXe: `pty-${DRIVER}`, bd: "19:00", kt: "20:00" })).json.chuyen.id;
+    const k = await ghiCp(w, cty, "dieu-chinh", { soTien: 100_000, lyDo: "CPX_KHAC", ghiChu: null });
+    assert.equal(k.status, 409);
+    assert.equal(k.json.error.code, "chua_co_chi_phi");
+  } finally {
+    tat();
+  }
+});
+
+test("Phiên bản chi phí cũ (TC-8): hai Kế toán cùng đọc phiên bản 1 — người thứ nhất 201, người thứ hai 409 chi_phi_vua_doi; gửi lại cùng requestId → 200, không dòng mới; ngày phát sinh điều chỉnh mặc định hôm nay, chọn được", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const n = await nenThue(w);
+    const id = (await taoThue(w, { xe: n.x16, taiXe: n.tx, tuyen: n.crt, ngay: NGAY_SAU })).json.chuyen.id;
+    const rid = uuid();
+    const mot = await w.call("POST", `/api/van-chuyen/chuyen/${id}/chi-phi/dieu-chinh`, { as: ACC, body: { requestId: rid, phienBanChiPhi: 1, soTien: 150_000, lyDo: "CPX_PHU_THU_CHO", ghiChu: null } });
+    assert.equal(mot.status, 201, mot.text);
+    const hai = await w.call("POST", `/api/van-chuyen/chuyen/${id}/chi-phi/dieu-chinh`, { as: ADM, body: { requestId: uuid(), phienBanChiPhi: 1, soTien: 50_000, lyDo: "CPX_CAU_DUONG", ghiChu: null } });
+    assert.equal(hai.status, 409);
+    assert.equal(hai.json.error.code, "chi_phi_vua_doi");
+    const lai = await w.call("POST", `/api/van-chuyen/chuyen/${id}/chi-phi/dieu-chinh`, { as: ACC, body: { requestId: rid, phienBanChiPhi: 1, soTien: 150_000, lyDo: "CPX_PHU_THU_CHO", ghiChu: null } });
+    assert.equal(lai.status, 200);
+    assert.equal(dongCp(w, id).length, 2);
+    const ngay = w.q("SELECT kind, occurred_date d FROM vc_trip_cost_line WHERE trip_id = ? ORDER BY rowid", id).map((r: any) => [r.kind, r.d]);
+    assert.deepEqual(ngay, [["SNAPSHOT", NGAY_SAU], ["ADJUSTMENT", NGAY]], "SNAPSHOT = ngày chạy; điều chỉnh = hôm nay (giờ VN)");
+    assert.equal((await ghiCp(w, id, "dieu-chinh", { soTien: 10_000, lyDo: "CPX_KHAC", ghiChu: null, ngay: "2027-03-20" })).status, 201);
+    assert.equal(w.q("SELECT occurred_date d FROM vc_trip_cost_line WHERE trip_id = ? ORDER BY rowid DESC LIMIT 1", id)[0].d, "2027-03-20");
+  } finally {
+    tat();
+  }
+});
+
+test("Nhật ký chi phí: mỗi lệnh ghi MỘT dòng audit_log cùng lô — mã chuyến, tên nhà xe, tổng trước → sau, nhãn lý do; không ghi chú tự do, không SĐT", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const n = await nenThue(w);
+    const id = (await taoThue(w, { xe: n.x29, taiXe: n.tx })).json.chuyen.id;
+    const ma = (await chiTiet(w, id)).chuyen.ma;
+    await ghiCp(w, id, "gia-thoa-thuan", { soTien: 1_350_000, ghiChu: "anh Hùng 0987654321" });
+    await ghiCp(w, id, "dieu-chinh", { soTien: 150_000, lyDo: "CPX_PHU_THU_CHO", ghiChu: "chờ 2 giờ" });
+    const nk = w.q("SELECT action, detail FROM audit_log WHERE action LIKE 'trip_cost_%' ORDER BY created_at, rowid");
+    assert.deepEqual(nk.map((r: any) => r.action), ["trip_cost_agreed", "trip_cost_adjusted"]);
+    assert.equal(nk[0].detail, `${ma} · Nhà xe Hùng Phát · chi phí 0 → 1.350.000 · giá thoả thuận trước`);
+    assert.equal(nk[1].detail, `${ma} · Nhà xe Hùng Phát · chi phí 1.350.000 → 1.500.000 · Phụ thu chờ thêm giờ`);
+    for (const r of nk) assert.ok(!/0987654321|chờ 2 giờ/.test(r.detail));
+  } finally {
+    tat();
+  }
+});
+
+test("Bảng kê: ba chuyến (đã kết thúc 1.200.000; huỷ có phí 300.000; thiếu giá) ⇒ nhóm nhà xe 1.500.000, tổng cộng, số đếm do máy chủ; lọc DA_PHAT_SINH ⇒ 1.200.000; cột điều chỉnh là TIỀN; khoảng > 92 ngày → 400", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const n = await nenThue(w);
+    const a = (await taoThue(w, { xe: n.x16, taiXe: n.tx, tuyen: n.crt })).json.chuyen.id;
+    assert.equal((await xuatBenVp(w, a)).status, 200);
+    assert.equal((await tienDo(w, "van-phong", a, "ket-thuc")).status, 200);
+    const b = (await taoThue(w, { xe: n.x16, taiXe: n.tx, tuyen: n.crt, bd: "17:00", kt: "18:00" })).json.chuyen.id;
+    await ghiCp(w, b, "dieu-chinh", { soTien: 150_000, lyDo: "CPX_PHU_THU_CHO", ghiChu: null });
+    const cb = await chiTiet(w, b);
+    assert.equal((await w.call("POST", `/api/van-chuyen/chuyen/${b}/huy`, { as: SALES, body: { version: cb.chuyen.version, requestId: uuid(), lyDo: "HUY_KHAC" } })).status, 200);
+    await ghiCp(w, b, "dieu-chinh", { soTien: 300_000, lyDo: "CPX_HUY_MUON", ghiChu: null });
+    const c = (await taoThue(w, { xe: n.x29, taiXe: n.tx, bd: "19:00", kt: "20:00" })).json.chuyen.id; // thiếu giá
+    const r = await w.call("GET", `/api/van-chuyen/chi-phi?tu=${NGAY}&den=${NGAY}`, { as: ACC });
+    assert.equal(r.status, 200, r.text);
+    const k = r.json;
+    assert.deepEqual([k.tongCong, k.soChuyen, k.soNhaXe, k.soThieuGia], [1_500_000, 3, 1, 1]);
+    assert.equal(k.nhom[0].nhaXe.ten, "Nhà xe Hùng Phát");
+    assert.deepEqual([k.nhom[0].soChuyen, k.nhom[0].tongNhom], [3, 1_500_000]);
+    const theo = new Map(k.nhom[0].dong.map((d: any) => [d.tripId, d]));
+    assert.deepEqual(((x: any) => [x.nhomTrangThai, x.nguonGia, x.tong, x.tongDieuChinh])(theo.get(a)), ["DA_PHAT_SINH", "BANG", 1_200_000, 0]);
+    assert.deepEqual(((x: any) => [x.nhomTrangThai, x.nguonGia, x.tong, x.tongDieuChinh, x.soDieuChinh])(theo.get(b)), ["DA_HUY", null, 300_000, 300_000, 1]);
+    assert.deepEqual(((x: any) => [x.nhomTrangThai, x.tong])(theo.get(c)), ["THIEU_GIA", 0]);
+    assert.ok((theo.get(a) as any).bienSo.length > 0);
+    const loc = (await w.call("GET", `/api/van-chuyen/chi-phi?tu=${NGAY}&den=${NGAY}&trang-thai=DA_PHAT_SINH`, { as: ACC })).json;
+    assert.deepEqual([loc.tongCong, loc.soChuyen], [1_200_000, 1]);
+    assert.equal((await w.call("GET", `/api/van-chuyen/chi-phi?tu=2027-01-01&den=2027-04-15`, { as: ACC })).status, 400);
+    assert.equal((await w.call("GET", `/api/van-chuyen/chi-phi?tu=${NGAY}&den=${NGAY}&trang-thai=LA`, { as: ACC })).status, 400);
+    // V7 trên bảng kê: điều chỉnh bị đảo DO ĐỔI CHUYẾN được đếm.
+    const d = (await taoThue(w, { xe: n.x16, taiXe: n.tx, tuyen: n.crt, ngay: NGAY_SAU, bd: "09:00", kt: "10:00" })).json.chuyen.id;
+    await ghiCp(w, d, "dieu-chinh", { soTien: 150_000, lyDo: "CPX_PHU_THU_CHO", ghiChu: null });
+    assert.equal((await sua(w, d, { tuyen: n.dl })).status, 200);
+    const kd = (await w.call("GET", `/api/van-chuyen/chi-phi?tu=${NGAY_SAU}&den=${NGAY_SAU}`, { as: ADM })).json.nhom[0].dong[0];
+    assert.deepEqual([kd.tong, kd.soDieuChinh, kd.soDieuChinhBiDao, kd.tongDieuChinh], [900_000, 0, 1, 0]);
+    const cpd = (await chiPhi(w, d)).json.chiPhi;
+    assert.ok(cpd.dong.find((x: any) => x.loai === "ADJUSTMENT").daoDoDoiChuyen, "dòng điều chỉnh: 'đảo do đổi chuyến'");
+  } finally {
+    tat();
+  }
+});

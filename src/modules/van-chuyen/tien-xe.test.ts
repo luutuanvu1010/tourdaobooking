@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  chonDongGiaThue, coXeCua, daoDuoc, dongChongGia, dongConHieuLuc, nguonGiaConHieuLuc, phanLoaiThue, thuTuDaoTatCa, tongBangKe, tongChiPhiChuyen, tongDieuChinh,
+  chonDongGiaThue, coXeCua, daoDuoc, demDieuChinh, dongChongGia, loaiNguonGia, nhomBangKe, dongConHieuLuc, nguonGiaConHieuLuc, phanLoaiThue, thuTuDaoTatCa, tongBangKe, tongChiPhiChuyen, tongDieuChinh,
   type CoXe, type DongChiPhi, type DongGiaThue, type LoaiDongChiPhi,
 } from "./tien-xe.ts";
 
@@ -99,4 +99,21 @@ test("daoDuoc: không đảo dòng đảo, không đảo dòng đã bị đảo;
   assert.deepEqual(theo("PLANNED"), [true, true, false, false]);
   assert.deepEqual(theo("ENDED"), [false, true, false, false]);
   assert.deepEqual(theo("CANCELLED"), [false, true, false, false]);
+});
+
+test("bảng kê: loaiNguonGia, demDieuChinh (điều chỉnh bị đảo DO ĐỔI CHUYẾN), nhomBangKe (đã phát sinh / chưa chạy / đang chạy / đã huỷ / chưa có giá)", () => {
+  const R = (id: string, amount: number, goc: string, ly: string) => ({ ...D(id, "REVERSAL", amount, goc), reasonCode: ly });
+  const v7 = [D("s", "SNAPSHOT", 1_200_000), D("a", "ADJUSTMENT", 150_000), R("ra", -150_000, "a", "CPX_DOI_CHUYEN"), R("rs", -1_200_000, "s", "CPX_DOI_CHUYEN"), D("s2", "SNAPSHOT", 900_000), D("b", "ADJUSTMENT", 50_000)];
+  assert.equal(loaiNguonGia(v7), "BANG");
+  assert.equal(loaiNguonGia([D("g", "AGREED", 1)]), "THOA_THUAN");
+  assert.equal(loaiNguonGia([]), null);
+  assert.deepEqual(demDieuChinh(v7), { soDieuChinh: 1, soDieuChinhBiDao: 1 });
+  assert.deepEqual(demDieuChinh([D("a", "ADJUSTMENT", 5), R("r", -5, "a", "CPX_NHAP_SAI")]), { soDieuChinh: 0, soDieuChinhBiDao: 0 }, "Kế toán tự đảo: không phải do đổi chuyến");
+  assert.equal(nhomBangKe("ENDED", true, true), "DA_PHAT_SINH");
+  assert.equal(nhomBangKe("ENDED_INTERRUPTED", true, true), "DA_PHAT_SINH");
+  assert.equal(nhomBangKe("RUNNING", true, true), "DANG_CHAY");
+  assert.equal(nhomBangKe("CANCELLED", true, false), "DA_HUY");
+  assert.equal(nhomBangKe("PLANNED", true, false), "THIEU_GIA");
+  assert.equal(nhomBangKe("PLANNED", true, true), "CHUA_CHAY");
+  assert.equal(nhomBangKe("PLANNED", false, false), "CHUA_CHAY");
 });

@@ -2,6 +2,7 @@
 //   (1) T1: Kế toán thêm tuyến, cỡ xe, giá thuê cho nhà xe; Bán hàng đọc TÊN tuyến 200, bảng giá 403; thêm giá chồng 409; tiền lưu INTEGER trên D1.
 //   (2) T2: Bán hàng tạo chuyến xe nhà xe có giá → một SNAPSHOT, xuất bến được; chuyến xe nhà xe không giá → xuất bến 409 "Chuyến xe thuê chưa có giá";
 //       đổi tuyến → đảo + chụp lại (V7 rút gọn); dòng chi phí INTEGER trên D1.
+//   (3) Kế toán nhập giá thoả thuận cho chuyến thiếu giá → xuất bến được; bảng kê có hai chuyến, tổng do máy chủ; Bán hàng xem chi phí → 403.
 // Dữ liệu độc nhất theo lần chạy (tên theo Date.now()). Tên nhà xe là GIẢ.
 import assert from "node:assert/strict";
 import { ACCOUNTS, call, session, sql, sqlRows, vnDate } from "./lib.mjs";
@@ -91,5 +92,23 @@ r = await call(SALES, "POST", `/api/van-chuyen/chuyen/${tB}/xuat-ben`, { request
 assert.equal(r.status, 409, JSON.stringify(r.body));
 assert.ok(r.body.error.lyDo.some((l) => l.ma === "THIEU_GIA" && /Chuyến xe thuê chưa có giá/.test(l.loiNhan)), JSON.stringify(r.body));
 console.log("✓ (2) chi phí chuyến: chụp lúc xếp, đảo + chụp lại khi đổi tuyến, thiếu giá không xuất bến");
+
+// --- (3) Giá thoả thuận + bảng kê ---
+r = await call(ACC, "GET", `/api/van-chuyen/chuyen/${tB}/chi-phi`);
+assert.equal(r.status, 200, JSON.stringify(r.body));
+assert.equal(r.body.chiPhi.coTheNhapThoaThuan, true);
+r = await call(ACC, "POST", `/api/van-chuyen/chuyen/${tB}/chi-phi/gia-thoa-thuan`, { requestId: uuid(), phienBanChiPhi: r.body.chiPhi.phienBanChiPhi, soTien: 1350000, ghiChu: "Thoả thuận E2E" });
+assert.equal(r.status, 201, JSON.stringify(r.body));
+assert.equal(r.body.chiPhi.tong, 1350000);
+assert.equal((await call(SALES, "POST", `/api/van-chuyen/chuyen/${tA}/ket-thuc`, { requestId: uuid() })).status, 200, "tài xế xong chuyến trước");
+r = await call(SALES, "POST", `/api/van-chuyen/chuyen/${tB}/xuat-ben`, { requestId: uuid() });
+assert.equal(r.status, 200, JSON.stringify(r.body));
+assert.equal((await call(SALES, "GET", `/api/van-chuyen/chuyen/${tB}/chi-phi`)).status, 403);
+r = await call(ACC, "GET", `/api/van-chuyen/chi-phi?tu=${D}&den=${D}&nha-xe=${nx}`);
+assert.equal(r.status, 200, JSON.stringify(r.body));
+assert.deepEqual([r.body.soChuyen, r.body.tongCong], [2, 900000 + 1350000]);
+const [{ t: tt }] = await sqlRows(`SELECT typeof(amount) AS t FROM vc_trip_cost_line WHERE trip_id = '${tB}'`);
+assert.equal(tt, "integer");
+console.log("✓ (3) giá thoả thuận → xuất bến; bảng kê tổng do máy chủ; Bán hàng không xem chi phí");
 
 console.log("tien-xe-thue: OK");

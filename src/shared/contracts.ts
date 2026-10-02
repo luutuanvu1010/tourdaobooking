@@ -1764,3 +1764,68 @@ export interface BangGiaResponse { ngay: string; nhaXePartyId: string | null; do
 export interface BangGiaDongResponse { dong: BangGiaDto }
 export interface TuyenListResponse { tuyen: TuyenDto[] }
 export interface CoXeListResponse { coXe: CoXeDto[] }
+
+// ---- Chi phí chuyến xe thuê + bảng kê (ADR-0057 T2 C9 — kế hoạch Đợt 4 Task 10; sửa theo đánh giá bản vẽ 2/10). CHỈ route hỏi transport.cost.* trả các kiểu này.
+/** Một dòng chi phí. `daoDuoc` = máy chủ áp luật đảo (màn không tự suy); `tuDong` = dòng chụp / đảo do lệnh chuyến (màn ghi "Hệ thống"). */
+export interface DongChiPhiDto {
+  id: string;
+  loai: "SNAPSHOT" | "AGREED" | "ADJUSTMENT" | "REVERSAL";
+  soTien: number;
+  lyDo: { ma: string; nhan: string } | null;
+  ghiChu: string | null;
+  ngay: string;
+  daDao: boolean;
+  daoDoDoiChuyen: boolean;
+  daoDuoc: boolean;
+  tuDong: boolean;
+  nguoi: string | null;
+  luc: string;
+}
+export interface ChiPhiChuyenDto {
+  tripId: string;
+  ma: string;
+  trangThai: "PLANNED" | "RUNNING" | "ENDED" | "ENDED_INTERRUPTED" | "CANCELLED";
+  thue: boolean;
+  nhaXe: { partyId: string; ten: string } | null;
+  tuyen: { ma: string; ten: string } | null;
+  nguonGia: "BANG" | "THOA_THUAN" | null;
+  /** Tổng do máy chủ tính (`tongChiPhiChuyen`) — màn KHÔNG cộng. */
+  tong: number;
+  /** Số dòng chi phí đã đọc — gửi lại ở mọi lệnh ghi (khoá chống ghi chồng — TC-8). */
+  phienBanChiPhi: number;
+  coTheNhapThoaThuan: boolean;
+  coTheChupLai: boolean;
+  dong: DongChiPhiDto[];
+  /** Lý do chọn được khi điều chỉnh / đảo (nhóm chi phí xe, đang dùng, không gồm mã hệ thống và "Giá thoả thuận trước"). */
+  lyDoChon: { ma: string; nhan: string }[];
+}
+export interface ChiPhiChuyenResponse { chiPhi: ChiPhiChuyenDto }
+export type NhomBangKeDto = "DA_PHAT_SINH" | "CHUA_CHAY" | "DANG_CHAY" | "DA_HUY" | "THIEU_GIA";
+export interface BangKeDongDto {
+  tripId: string;
+  ma: string;
+  ngayChay: string;
+  bienSo: string;
+  tuyen: { ma: string; ten: string } | null;
+  trangThai: "PLANNED" | "RUNNING" | "ENDED" | "ENDED_INTERRUPTED" | "CANCELLED";
+  nhomTrangThai: NhomBangKeDto;
+  nguonGia: "BANG" | "THOA_THUAN" | null;
+  /** Do máy chủ tính (`tongChiPhiChuyen`, `tongDieuChinh`). */
+  tong: number;
+  tongDieuChinh: number;
+  soDieuChinh: number;
+  soDieuChinhBiDao: number;
+}
+export interface BangKeNhomDto { nhaXe: { partyId: string; ten: string }; soChuyen: number; tongNhom: number; dong: BangKeDongDto[] }
+export interface BangKeResponse {
+  tu: string;
+  den: string;
+  nhaXePartyId: string | null;
+  trangThai: NhomBangKeDto | null;
+  /** Do máy chủ tính (`tongBangKe`) — "Chuyến chưa có giá chưa được tính". */
+  tongCong: number;
+  soChuyen: number;
+  soNhaXe: number;
+  soThieuGia: number;
+  nhom: BangKeNhomDto[];
+}

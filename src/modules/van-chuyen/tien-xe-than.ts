@@ -105,3 +105,66 @@ export function docSuaCoXe(body: Record<string, unknown> | null): KetQua<{ nhan:
 }
 /** Nhãn mặc định của cỡ xe theo khoảng (bản vẽ: "4–7 khách", "45 khách"). */
 export const nhanCoXeMacDinh = (tu: number, den: number): string => (tu === den ? `${tu} khách` : `${tu}–${den} khách`);
+
+// ---- Chi phí chuyến (ADR-0057 C9 — kế hoạch Đợt 4 Task 10). Mọi lệnh ghi mang `phienBanChiPhi` (số dòng chi phí đã đọc — TC-8). ------------------------------
+const MA_LY_DO_RE = /^[A-Z][A-Z0-9_]{1,39}$/;
+const docPhienBan = (b: Record<string, unknown>): KetQua<number> =>
+  typeof b.phienBanChiPhi === "number" && Number.isInteger(b.phienBanChiPhi) && b.phienBanChiPhi >= 0 && b.phienBanChiPhi <= 100_000
+    ? { ok: true, value: b.phienBanChiPhi } : fail("Thiếu phiên bản chi phí — tải lại trang rồi làm lại.");
+const docLyDo = (v: unknown): KetQua<string> => (typeof v === "string" && MA_LY_DO_RE.test(v) ? { ok: true, value: v } : fail("Chọn lý do."));
+
+export interface DieuChinhThan { requestId: string; phienBanChiPhi: number; soTien: number; lyDo: string; ghiChu: string | null; ngay: string | null }
+export function docDieuChinh(body: Record<string, unknown> | null): KetQua<DieuChinhThan> {
+  if (!body) return fail("Dữ liệu không hợp lệ.");
+  const rid = docRequestId(body);
+  if (!rid.ok) return rid;
+  const pb = docPhienBan(body);
+  if (!pb.ok) return pb;
+  const t = body.soTien;
+  if (typeof t !== "number" || !Number.isSafeInteger(t) || t === 0 || Math.abs(t) > TIEN_TOI_DA) return fail("Số tiền điều chỉnh là số nguyên khác 0 (đồng), cộng hoặc trừ.");
+  const ly = docLyDo(body.lyDo);
+  if (!ly.ok) return ly;
+  const gc = chuToiDa(body.ghiChu, 300, "Ghi chú");
+  if (!gc.ok) return gc;
+  if (body.ngay !== undefined && body.ngay !== null && !ngayHopLe(body.ngay)) return fail("Ngày phát sinh: YYYY-MM-DD.");
+  return { ok: true, value: { requestId: rid.value, phienBanChiPhi: pb.value, soTien: t, lyDo: ly.value, ghiChu: gc.value, ngay: (body.ngay as string | null | undefined) ?? null } };
+}
+export interface DaoDongThan { requestId: string; phienBanChiPhi: number; dongId: string; lyDo: string; ghiChu: string | null; ngay: string | null }
+export function docDaoDong(body: Record<string, unknown> | null): KetQua<DaoDongThan> {
+  if (!body) return fail("Dữ liệu không hợp lệ.");
+  const rid = docRequestId(body);
+  if (!rid.ok) return rid;
+  const pb = docPhienBan(body);
+  if (!pb.ok) return pb;
+  if (!idHopLe(body.dongId)) return fail("Chọn dòng chi phí cần đảo.");
+  const ly = docLyDo(body.lyDo);
+  if (!ly.ok) return ly;
+  const gc = chuToiDa(body.ghiChu, 300, "Ghi chú");
+  if (!gc.ok) return gc;
+  if (body.ngay !== undefined && body.ngay !== null && !ngayHopLe(body.ngay)) return fail("Ngày phát sinh: YYYY-MM-DD.");
+  return { ok: true, value: { requestId: rid.value, phienBanChiPhi: pb.value, dongId: body.dongId, lyDo: ly.value, ghiChu: gc.value, ngay: (body.ngay as string | null | undefined) ?? null } };
+}
+export function docChupLai(body: Record<string, unknown> | null): KetQua<{ requestId: string; phienBanChiPhi: number }> {
+  if (!body) return fail("Dữ liệu không hợp lệ.");
+  const rid = docRequestId(body);
+  if (!rid.ok) return rid;
+  const pb = docPhienBan(body);
+  if (!pb.ok) return pb;
+  return { ok: true, value: { requestId: rid.value, phienBanChiPhi: pb.value } };
+}
+export interface ThoaThuanThan { requestId: string; phienBanChiPhi: number; soTien: number; ghiChu: string }
+export function docGiaThoaThuan(body: Record<string, unknown> | null): KetQua<ThoaThuanThan> {
+  if (!body) return fail("Dữ liệu không hợp lệ.");
+  const rid = docRequestId(body);
+  if (!rid.ok) return rid;
+  const pb = docPhienBan(body);
+  if (!pb.ok) return pb;
+  if (!tienDuong(body.soTien)) return fail("Số tiền phải là số nguyên dương (đồng), tối đa 1.000.000.000.");
+  const gc = chuToiDa(body.ghiChu, 300, "Ghi chú thoả thuận");
+  if (!gc.ok) return gc;
+  if (gc.value === null) return fail("Nhập ghi chú thoả thuận (thoả thuận với ai, ngày nào).");
+  return { ok: true, value: { requestId: rid.value, phienBanChiPhi: pb.value, soTien: body.soTien, ghiChu: gc.value } };
+}
+/** Bảng kê: khoảng ngày chạy ≤ 92 ngày (TC-14); nhóm trạng thái tuỳ chọn. */
+export const BANG_KE_TOI_DA_NGAY = 92;
+export const NHOM_BANG_KE = ["DA_PHAT_SINH", "CHUA_CHAY", "DANG_CHAY", "DA_HUY", "THIEU_GIA"] as const;
