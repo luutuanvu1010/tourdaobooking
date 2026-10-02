@@ -9,9 +9,11 @@ import {
   THAY_DOI,
   choNoiLai,
   duocThayTinDon,
+  laSuKienChuyenHopLe,
   laSuKienHopLe,
   nhanKetNoi,
   nhanSuKien,
+  nhanSuKienChuyen,
   thayDoiCuaHandler,
   thongBaoNoi,
   type SuKienDon,
@@ -30,7 +32,7 @@ function moiTapCon<T>(mang: readonly T[]): T[][] {
   return [...conCacTap, ...conCacTap.map((t) => [dau as T, ...t])];
 }
 
-test("nhanKetNoi: mọi tập con quyền (1024) khớp can(order.view)/(can(dispatch.claim) && !holdsPartner) suy từ MATRIX (ADR-0030 S20-8)", () => {
+test("nhanKetNoi: mọi tập con quyền (1024) khớp can(order.view)/(can(dispatch.claim) && !holdsPartner)/can(trip.view) suy từ MATRIX (ADR-0030 S20-8; 'dieu-xe' — ADR-0052 D6.4, đã duyệt)", () => {
   const tapCon = moiTapCon(PERMISSION_CODES as readonly PermissionCode[]);
   assert.equal(tapCon.length, 1024); // 10 mã (ADR-0071 thêm HR)
   for (const permissions of tapCon) {
@@ -38,6 +40,7 @@ test("nhanKetNoi: mọi tập con quyền (1024) khớp can(order.view)/(can(dis
     const ky_vong = new Set<string>(["nguoi:nv1"]);
     if (can(staff, "order.view")) ky_vong.add("tat-ca");
     if (can(staff, "dispatch.claim") && !holdsPartner(staff)) ky_vong.add("cho-nhan");
+    if (can(staff, "trip.view")) ky_vong.add("dieu-xe"); // ADR-0052 D6.4: trip.view KHÔNG ngữ cảnh (ô any)
     assert.deepEqual(nhanKetNoi(staff), [...ky_vong].sort(), `permissions=${JSON.stringify(permissions)}`);
   }
 });
@@ -48,15 +51,16 @@ test("nhanKetNoi: tài khoản chỉ Tài xế đối tác (DRIVER_PARTNER) ch�
 });
 
 test("nhanKetNoi: tài khoản lai Đối tác + quyền có dispatch.claim (SALES/ADMIN/SUPER_ADMIN) KHÔNG có cho-nhan (ADR-0030 S20-8, Q-M)", () => {
-  // holdsPartner áp bất kể quyền đi kèm (chủ dự án 2026-09-26: "Có quyền Đối tác là áp") — cùng luật với checkAssignee.
-  assert.deepEqual(nhanKetNoi({ id: "x", permissions: ["PARTNER", "SALES"] }), ["nguoi:x", "tat-ca"], "lai PARTNER+SALES: tat-ca có (order.view=any qua SALES), cho-nhan KHÔNG");
-  assert.deepEqual(nhanKetNoi({ id: "x", permissions: ["PARTNER", "ADMIN"] }), ["nguoi:x", "tat-ca"], "lai PARTNER+ADMIN: cho-nhan KHÔNG");
-  assert.deepEqual(nhanKetNoi({ id: "x", permissions: ["PARTNER", "SUPER_ADMIN"] }), ["nguoi:x", "tat-ca"], "lai PARTNER+SUPER_ADMIN: cho-nhan KHÔNG (SUPER_ADMIN any ở mọi ô nhưng holdsPartner vẫn chặn)");
+  // holdsPartner áp bất kể quyền đi kèm (chủ dự án 2026-09-26: "Có quyền Đối tác là áp") — cùng luật với checkAssignee. `dieu-xe` (ADR-0052 D6.4) theo trip.view
+  // của quyền văn phòng đi kèm — holdsPartner không chặn nhãn này (ADR chỉ nói "trip.view = any").
+  assert.deepEqual(nhanKetNoi({ id: "x", permissions: ["PARTNER", "SALES"] }), ["dieu-xe", "nguoi:x", "tat-ca"], "lai PARTNER+SALES: tat-ca có (order.view=any qua SALES), cho-nhan KHÔNG");
+  assert.deepEqual(nhanKetNoi({ id: "x", permissions: ["PARTNER", "ADMIN"] }), ["dieu-xe", "nguoi:x", "tat-ca"], "lai PARTNER+ADMIN: cho-nhan KHÔNG");
+  assert.deepEqual(nhanKetNoi({ id: "x", permissions: ["PARTNER", "SUPER_ADMIN"] }), ["dieu-xe", "nguoi:x", "tat-ca"], "lai PARTNER+SUPER_ADMIN: cho-nhan KHÔNG (SUPER_ADMIN any ở mọi ô nhưng holdsPartner vẫn chặn)");
 });
 
-test("nhanKetNoi: bảng ảnh chụp hôm nay theo từng quyền đơn lẻ", () => {
-  const nhomDayDu = ["cho-nhan", "nguoi:x", "tat-ca"];
-  const nhomTatCa = ["nguoi:x", "tat-ca"];
+test("nhanKetNoi: bảng ảnh chụp hôm nay theo từng quyền đơn lẻ (ADR-0052 D6.4: SALES, ACCOUNTING, ADMIN, SUPER_ADMIN thêm 'dieu-xe')", () => {
+  const nhomDayDu = ["cho-nhan", "dieu-xe", "nguoi:x", "tat-ca"];
+  const nhomTatCa = ["dieu-xe", "nguoi:x", "tat-ca"];
   const chiNguoi = ["nguoi:x"];
   assert.deepEqual(nhanKetNoi({ id: "x", permissions: ["SALES"] }), nhomDayDu);
   assert.deepEqual(nhanKetNoi({ id: "x", permissions: ["ADMIN"] }), nhomDayDu);
@@ -65,6 +69,32 @@ test("nhanKetNoi: bảng ảnh chụp hôm nay theo từng quyền đơn lẻ", 
   assert.deepEqual(nhanKetNoi({ id: "x", permissions: ["FIELD"] }), ["cho-nhan", "nguoi:x"], "ADR-0030 S20-8: hướng dẫn viên nhận tin hàng chờ (cho-nhan), KHÔNG có tat-ca");
   assert.deepEqual(nhanKetNoi({ id: "x", permissions: ["PARTNER"] }), chiNguoi);
   assert.deepEqual(nhanKetNoi({ id: "x", permissions: ["INTERN"] }), chiNguoi);
+  assert.deepEqual(nhanKetNoi({ id: "x", permissions: ["DRIVER"] }), chiNguoi, "tài xế: trip.view chỉ assigned — không dieu-xe");
+  assert.deepEqual(nhanKetNoi({ id: "x", permissions: ["DRIVER_PARTNER"] }), chiNguoi);
+  assert.deepEqual(nhanKetNoi({ id: "x", permissions: ["HR"] }), chiNguoi);
+});
+
+test("ADR-0052 D6.4: kết nối có trip.view KHÔNG ngữ cảnh mới mang 'dieu-xe'; tài xế (assigned), HDV, Đối tác, Thực tập, Tài xế đối tác thì không", () => {
+  for (const p of ["SALES", "ACCOUNTING", "ADMIN", "SUPER_ADMIN"] as const) assert.ok(nhanKetNoi({ id: "x", permissions: [p] }).includes("dieu-xe"), p);
+  for (const p of ["DRIVER", "DRIVER_PARTNER", "FIELD", "PARTNER", "INTERN", "HR"] as const) assert.ok(!nhanKetNoi({ id: "x", permissions: [p] }).includes("dieu-xe"), p);
+});
+test("nhanSuKienChuyen: luôn dieu-xe + nguoi:<tài xế>; KHÔNG BAO GIỜ tat-ca / cho-nhan / noi-bo", () => {
+  assert.deepEqual(nhanSuKienChuyen(["b", "a", "a"]), ["dieu-xe", "nguoi:a", "nguoi:b"]);
+  assert.deepEqual(nhanSuKienChuyen([]), ["dieu-xe"]);
+  for (const ds of [[], ["a"], ["tat-ca"], ["a", "b", "c"]]) {
+    const n = nhanSuKienChuyen(ds);
+    for (const cam of ["tat-ca", "cho-nhan", "noi-bo"]) assert.ok(!n.includes(cam), `${cam} trong ${JSON.stringify(n)}`);
+  }
+});
+test("laSuKienChuyenHopLe: đúng 4 khoá (loai, maChuyen, thayDoi, luc) — thêm tripId / tên → từ chối", () => {
+  const e = { loai: "chuyen", maChuyen: "CX-1", thayDoi: "huy", luc: "2027-03-11T00:00:00.000Z" };
+  assert.ok(laSuKienChuyenHopLe(e));
+  assert.ok(!laSuKienChuyenHopLe({ ...e, tripId: "t" }));
+  assert.ok(!laSuKienChuyenHopLe({ ...e, ten: "Khách" }));
+  assert.ok(!laSuKienChuyenHopLe({ ...e, thayDoi: "zzz" }));
+  assert.ok(!laSuKienChuyenHopLe({ loai: "chuyen", maChuyen: "CX-1", thayDoi: "huy" }));
+  assert.ok(!laSuKienHopLe(e), "sự kiện chuyến không lọt vào nhánh sự kiện đơn");
+  assert.ok(!laSuKienChuyenHopLe({ loai: "don", orderId: "o", maDon: "DH-1", thayDoi: "huy", luc: "x" }), "sự kiện đơn không lọt vào nhánh chuyến");
 });
 
 // NT-3 (thay, ADR-0030 S20-8/9, đỏ có chủ ý — chủ đã duyệt): trước đây (bài cũ) mọi mã quyền có dispatch.claim ≠ none đều có order.view = any,

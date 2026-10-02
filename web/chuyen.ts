@@ -18,6 +18,8 @@ import { moBangTruot } from "./bang-truot";
 import { datCrumb, loiCua } from "./giay-to-ui";
 import { icon } from "./icons";
 import { initShell, setBarTitle, showError } from "./shell";
+import { taoBoLamMoi } from "./lam-moi-logic";
+import type { SuKienChuyen } from "../src/shared/bang-tin";
 import { cauLoiTienDo, dongMoc, moKhaiGio, veDiemChay, type LenhDiem } from "./tien-do-ui";
 import { giuTenKhach, ketThucDuoc, thanDoiThuTu, viecNguoiDiKem, type BuocDiem } from "../src/shared/tien-do-man";
 import type { GioVnDto, GoiBaoChangDto } from "../src/shared/contracts";
@@ -690,3 +692,24 @@ async function main(): Promise<void> {
   ve();
 }
 await main();
+
+/** ADR-0052 D6.4: đang mở bảng trượt / hộp (khuôn `.sheet[role=dialog]`) thì KHÔNG tự dựng lại trang dưới tay người dùng — lần nối lại / tin sau sẽ tải. */
+const bangDangMo = (): boolean => document.querySelector('.sheet[role="dialog"]') !== null;
+// ADR-0052 D6.4: tin Bảng tin về ĐÚNG chuyến đang xem (theo mã chuyến) → tải lại + vẽ lại; nối lại Bảng tin → tải lại. Trang chưa tải được thì thôi.
+const lamMoi = taoBoLamMoi(async () => {
+  if (!duLieu || bangDangMo()) return;
+  try {
+    await nap();
+  } catch (e) {
+    trangEl.hidden = true; // chuyến không còn mở được (bị đổi ra, không còn quyền) — không để màn cũ trông như còn đúng
+    return showError(errorEl, loiCua(e));
+  }
+  // Vòng sửa 1 (T2): tải lại được (vd sau một lần lỗi mạng) thì hiện lại trang, ẩn câu lỗi cũ.
+  trangEl.hidden = false;
+  showError(errorEl, null);
+  ve();
+});
+window.addEventListener("chuyen-thay-doi", (ev) => {
+  if ((ev as CustomEvent<SuKienChuyen[]>).detail.some((e) => e.maChuyen === duLieu?.chuyen.ma)) void lamMoi.yeuCau();
+});
+window.addEventListener("can-tai-lai", () => void lamMoi.yeuCau());

@@ -22,7 +22,7 @@ import { maskSource } from "../scripts/source-mask-lib.mjs";
 import type { AppModule } from "./shared/router.ts";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { world, seedStaff } from "../tests/audit/harness.mjs";
-import { ADM, DRIVER, DRIVER2, NGAY, NGAY_SAU, batDongHo, denGio, don, setup, thanhTaiXe, uuid, xe } from "../tests/audit/dieu-phoi-khung.mjs";
+import { ACC, ADM, DRIVER, DRIVER2, NGAY, NGAY_SAU, batDongHo, chuyenSan, denGio, don, setup, thanhTaiXe, tienDo, uuid, xe } from "../tests/audit/dieu-phoi-khung.mjs";
 
 async function routesOf(entry: string, exportName: string): Promise<string[]> {
   const built = await esbuild.build({ entryPoints: [new URL(entry, import.meta.url).pathname], bundle: true, format: "esm", platform: "neutral", target: "es2022", write: false });
@@ -515,4 +515,36 @@ test("khối van-chuyen (bài 3, quét mã — K2a V2): chỉ GET /chuyen/:id tr
   }
   assert.deepEqual(loi, []);
   assert.deepEqual(dem, { chiTiet: 18, cuoc: 10 }, "chống bài rỗng: 18 nơi gọi chiTietChuyen (1 GET + 17 lệnh — thêm cập nhật khách, R-P29), 10 nơi gọi cuocChiTiet (1 GET + 9 lệnh tài xế)");
+});
+
+// ADR-0052 tiêu chí 12 (D6 — Đợt 2 Vận chuyển): tin chuyến ở hộp thông báo không mang tên, năm sinh, SĐT, chữ nơi tự do có dãy số, khoá nơi.
+test("ADR-0052 tiêu chí 12 (D6): sau đổi tài xế, khách vắng, gián đoạn với nơi đón chữ tự do có dãy số + tên khách đánh dấu → hộp thông báo của MỌI tài khoản không chứa tên, năm sinh, dãy ≥ 8 số, khoá nơi", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const a = await chuyenSan(w, { soNguoi: 2, noiDon: "Khách sạn Dò Tìm 0905123456" });
+    denGio("06:10");
+    const c = (await w.call("GET", `/api/van-chuyen/chuyen/${a.id}`, { as: SALES })).json;
+    const doi = await w.call("PUT", `/api/van-chuyen/chuyen/${a.id}`, { as: SALES, body: { version: c.chuyen.version, requestId: uuid(), taiXePartyId: `pty-${DRIVER2}` } });
+    assert.equal(doi.status, 200, doi.text);
+    denGio("12:40");
+    for (const d of ["xuat-ben", `diem/${a.diemDon}/da-toi`, `phan-bo/${a.suat[0]}/vang`]) {
+      const r = await tienDo(w, "tai-xe", a.id, d, {}, DRIVER2);
+      assert.equal(r.status, 200, `${d}: ${r.text}`);
+    }
+    const gd = await tienDo(w, "tai-xe", a.id, "ket-thuc-gian-doan", { lyDo: "GIAN_DOAN_XE_HONG" }, DRIVER2);
+    assert.equal(gd.status, 200, gd.text);
+    let thayTin = 0;
+    for (const as of [SALES, ADM, ACC, DRIVER, DRIVER2, FIELD]) {
+      const r = await w.call("GET", "/api/thong-bao?ngan=tat-ca", { as });
+      assert.equal(r.status, 200, r.text);
+      thayTin += (r.json.tin as { loai: string }[]).filter((t) => t.loai === "chuyen").length;
+      // Bỏ id (UUID) và MÃ ĐƠN (TD-YYYYMMDD-NNNN — mã hiển thị, đã có trong mọi tin đơn) trước khi quét dãy số: không phải số điện thoại / giấy tờ.
+      const txt = r.text.replace(UUID, "<id>").replace(/\bTD-\d{8}-\d{4,}\b/g, "<ma-don>");
+      assert.doesNotMatch(txt, /Khách Dò Tìm|199\d|0905123456|\d{8,}|"[LT]:|\b[LT]:[0-9a-f-]{8,}/, `tài khoản ${as}`);
+    }
+    assert.ok(thayTin >= 3, `chống bài rỗng: phải có tin chuyến để quét (thấy ${thayTin})`);
+  } finally {
+    tat();
+  }
 });

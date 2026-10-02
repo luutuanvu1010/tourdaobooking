@@ -1,7 +1,7 @@
 // BẢNG TIN (ADR-0022, Task 8) — phần LOGIC THUẦN của bộ lắng nghe ở trình duyệt: không đụng `window`/`document`/`WebSocket`/`setTimeout` thật
 // (mọi thứ ngoài đời đi qua `Phu` do web/bangtin.ts tiêm vào) nên `node --test` chạy được (src/bang-tin-web.test.ts). Import kèm đuôi `.ts` vì
 // Node chạy trực tiếp tệp này; esbuild/tsc của web/ chấp nhận (allowImportingTsExtensions). Chỉ import src/shared/, không import src/modules/.
-import { choNoiLai, laSuKienHopLe, thongBaoNoi, type SuKienDon, type ThongBaoNoi } from "../src/shared/bang-tin.ts";
+import { choNoiLai, laSuKienChuyenHopLe, laSuKienHopLe, thongBaoNoi, type SuKienChuyen, type SuKienDon, type ThongBaoNoi } from "../src/shared/bang-tin.ts";
 import type { PermissionHolder } from "../src/shared/permissions.ts";
 
 /** Trong khoảng này sau khi CHÍNH tab này ghi một đơn thì tin về đơn đó không hiện thông báo nổi (TD-4). */
@@ -73,11 +73,11 @@ export function taoBoThongBao(
 }
 
 /** Gộp: tin đầu tiên của một đợt bắt đầu đếm `GOP_MS`; hết hạn thì phát CẢ đợt một lần. Ngưng (`huy`) thì bỏ đợt đang chờ. */
-export function taoBoGop(phat: (ds: SuKienDon[]) => void, hen: (fn: () => void, ms: number) => unknown, huyHen: (id: unknown) => void) {
-  let dem: SuKienDon[] = [];
+export function taoBoGop<T = SuKienDon>(phat: (ds: T[]) => void, hen: (fn: () => void, ms: number) => unknown, huyHen: (id: unknown) => void) {
+  let dem: T[] = [];
   let timer: unknown = null;
   return {
-    them(e: SuKienDon): void {
+    them(e: T): void {
       dem.push(e);
       if (timer !== null) return;
       timer = hen(() => {
@@ -114,6 +114,8 @@ export interface Phu {
   khiSuKien(e: SuKienDon): void;
   /** Một đợt tin đã gộp trong `GOP_MS` (phát `don-thay-doi`). */
   khiDot(ds: SuKienDon[]): void;
+  /** Một đợt sự kiện CHUYẾN đã gộp (phát `chuyen-thay-doi`) — ADR-0052 D6.4; không thông báo nổi (tự chốt T4 kế hoạch Đợt 2). */
+  khiDotChuyen(ds: SuKienChuyen[]): void;
   /** Nối lại thành công (phát `can-tai-lai`). */
   khiCanTaiLai(): void;
 }
@@ -125,6 +127,7 @@ export interface Phu {
  */
 export function taoBoDieuKhien(phu: Phu) {
   const gop = taoBoGop(phu.khiDot, phu.hen, phu.huyHen);
+  const gopChuyen = taoBoGop<SuKienChuyen>(phu.khiDotChuyen, phu.hen, phu.huyHen);
   let ws: OSocket | null = null;
   let dung = false; // đã ngưng (pagehide): không nối lại
   let lan = 0; // số lần hỏng liên tiếp chưa mở được
@@ -224,9 +227,10 @@ export function taoBoDieuKhien(phu: Phu) {
       } catch {
         return;
       }
-      if (!laSuKienHopLe(x)) return;
-      phu.khiSuKien(x);
-      gop.them(x);
+      if (laSuKienHopLe(x)) {
+        phu.khiSuKien(x);
+        gop.them(x);
+      } else if (laSuKienChuyenHopLe(x)) gopChuyen.them(x); // ADR-0052 D6.4: chỉ làm mới màn hình
     };
     mine.onclose = () => matKetNoi(mine);
     mine.onerror = () => matKetNoi(mine);
@@ -250,6 +254,7 @@ export function taoBoDieuKhien(phu: Phu) {
       xoaHen(henNoi);
       henNoi = null;
       gop.huy();
+      gopChuyen.huy();
       boSocket();
     },
     /** Trang được khôi phục từ bộ nhớ đệm chuyển trang (`pageshow` persisted): kết nối đã bị `dung()` đóng, mở lại. */

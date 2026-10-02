@@ -8,6 +8,7 @@
 |---|---|---|
 | `audit_log` | bảng | tên cũ, giữ nguyên (ADR-0002 điều 2) |
 | `v_aud_order_event` | view công bố | cột: id, order_id, staff_id, action, created_at |
+| `v_aud_trip_event` | view công bố | cột: id, trip_id, staff_id, action, created_at |
 
 ## auth
 
