@@ -6,7 +6,7 @@ import type { ThayDoiDon, TrangThaiPhuTrach } from "./bang-tin.ts";
 import { NGUONG_MAC_DINH } from "./giay-to-hien-thi.ts";
 import { error, json } from "./http.ts";
 import { bocDb } from "./lan-gui-boc.ts";
-import { HEADER_PHAT_LAI, HEADER_VE, ketQuaDeLuu, kiemKhoa, phanLoai, thanPhatLai, type DongVe, type LanGuiNoi } from "./lan-gui-luat.ts";
+import { HEADER_PHAT_LAI, HEADER_VE, ketQuaDeLuu, kiemKhoa, phanLoai, thanPhatLai, type DongVe } from "./lan-gui-luat.ts";
 import { laMienLanGui } from "./lan-gui-mien.ts";
 import type { MocToiThieu } from "./moc-toi-thieu.ts";
 import type { ChuyenChoTin } from "./tin-chuyen.ts";
@@ -221,6 +221,19 @@ function checkWriteRequest(request: Request, url: URL): Response | null {
   const hasBody = type !== null || (request.headers.get("content-length") ?? "0") !== "0";
   if (hasBody && !(type ?? "").toLowerCase().startsWith("application/json")) return error(415, "unsupported_media_type", "Dữ liệu phải gửi dạng JSON.");
   return null;
+}
+
+/**
+ * LỚP CHỐNG GHI TRÙNG (ADR-0094 đ2) — phần của module `lan-gui` mà router cần; gốc lắp ráp tiêm (`AppOptions.injected.lanGui`), router không import module.
+ * Ở đây (không ở lan-gui-luat.ts) vì dùng kiểu D1 của Worker — lan-gui-luat.ts còn được giao diện import. `vanTay` đọc khoá `LAN_GUI_SECRET` từ `env`.
+ * Mọi hàm nhận tay cầm D1 GỐC (không bọc) trừ `cauChenVe` — câu chưa chạy, bộ bọc nối vào lô.
+ */
+export interface LanGuiNoi {
+  vanTay: (env: Env, method: string, duongDanThat: string, than: string) => Promise<string>;
+  tra: (db: D1Database, staffId: string, khoa: string) => Promise<DongVe | null>;
+  cauChenVe: (db: D1Database, v: { staffId: string; khoa: string; vanTay: string; duong: string; at: string }) => D1PreparedStatement;
+  capNhatKetQua: (db: D1Database, v: { staffId: string; khoa: string; maTra: number; maLoi: string | null; ketQua: string | null; at: string }) => Promise<void>;
+  tangLap: (db: D1Database, staffId: string, khoa: string) => Promise<void>;
 }
 
 export interface AppOptions {

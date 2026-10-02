@@ -322,3 +322,7 @@ Số bản nhật ký phiên bản: `main` cục bộ có `1.70` ở đầu `src
 - **Đụng luồng Q:** cả hai nhánh sửa `src/modules/accounts/index.ts` (L: `Location` ở tạo tài khoản / passkey; Q: cổng quyền tiền ở reset-pin, roles, tạo tài khoản). Nhánh gộp SAU phải chạy lại H2 (số cứng 129 route ghi có đăng nhập ở `src/lan-gui-phu-route.test.ts`), H5 (e2e đủ bộ — route mới của Q có ghi nhiều lần không), H7 (route 201 mới của Q phải có `Location`).
 - **Số phiên bản:** `1.71` ở `src/shared/changelog.ts` + bài ghim `src/shared/app-info.test.ts` là TẠM — nhánh khác (`trang-chu-quan-tri`) đang giữ `1.73`; đánh lại lúc gộp.
 - **Nhánh mang theo** các commit kế hoạch + gia hạn TNV-G1 của `gia-han-tnv-g1` (tách từ `main` cục bộ `df6bc864`, chưa có trên `origin/main`).
+
+## Sửa kiểm kiểu đỏ (2026-10-02, cổng xanh bắt)
+- `tsc -p web` ĐỎ từ L9 (`web/api.ts` import `lan-gui-luat.ts`, mà tệp đó khai `LanGuiNoi` bằng kiểu D1/Env của Worker — giao diện không có). **Lỗi đo của người thi công:** từ L9 tôi kiểm bằng `grep -c "error TS"` trên đầu ra có mã màu ⇒ luôn 0 ⇒ báo "kiểm kiểu sạch" SAI ở các mục L9–L14 của sổ này. Commit `a0d02168` giao vòng 2 cũng mang lỗi này.
+- Sửa: chuyển `LanGuiNoi` sang `src/shared/router.ts` (chỉ chạy trong Worker); `lan-gui-luat.ts` thuần. Từ đây kiểm bằng MÃ THOÁT của `npm run typecheck`: **0**. `npm test` 2886/2886 + bài đo giờ; `build:web` 0.

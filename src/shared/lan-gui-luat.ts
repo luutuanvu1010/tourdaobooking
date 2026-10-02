@@ -22,18 +22,6 @@ export interface DongVe {
   created_at: string;
 }
 
-/**
- * Phần của module `lan-gui` mà router cần — gốc lắp ráp tiêm (`AppOptions.injected.lanGui`), router không import module (ADR-0094 đ2). `vanTay` đọc
- * khoá `LAN_GUI_SECRET` từ `env`. Mọi hàm nhận tay cầm D1 GỐC (không bọc) trừ `cauChenVe` — câu chưa chạy, bộ bọc nối vào lô.
- */
-export interface LanGuiNoi {
-  vanTay: (env: Env, method: string, duongDanThat: string, than: string) => Promise<string>;
-  tra: (db: D1Database, staffId: string, khoa: string) => Promise<DongVe | null>;
-  cauChenVe: (db: D1Database, v: { staffId: string; khoa: string; vanTay: string; duong: string; at: string }) => D1PreparedStatement;
-  capNhatKetQua: (db: D1Database, v: { staffId: string; khoa: string; maTra: number; maLoi: string | null; ketQua: string | null; at: string }) => Promise<void>;
-  tangLap: (db: D1Database, staffId: string, khoa: string) => Promise<void>;
-}
-
 export type LoaiPhatLai = "khac_noi_dung" | "phat_lai" | "dang_xu_ly" | "phat_lai_khong_ro";
 
 /** Bước 3a–3d: cùng vé đã có dòng — xử lý thế nào. Mốc `created_at` hỏng ⇒ không rõ (không treo "đang xử lý" mãi). */
