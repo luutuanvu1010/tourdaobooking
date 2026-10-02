@@ -43,11 +43,24 @@ export function xe(env, carrierId, bien, cho) {
  * Nền chung: hai nhà xe đang hợp tác (Phúc Thành, Minh Tâm) + một đã thôi còn giá mở (Hoàng Long); tuyến (bản vẽ) + một tuyến ngưng; cỡ 4–7, 10–16, 17–28,
  * 29–35, 45 (ngưng); giá theo bản vẽ (đủ tuyến + cỡ — ADR-0095 Q3). Trả mã để kịch bản dùng.
  */
-export async function dungNenGia(env, call) {
+/** `truocApi(nhaXe)` chạy NGAY sau khi chèn nhà xe, TRƯỚC lời gọi API đầu tiên: mọi câu SQL ghi (tài xế, xe) phải chạy trước — ghi SQL thẳng vào D1 tạm sau khi
+ *  máy chủ đã phục vụ request làm workerd ngắt kết nối (ECONNRESET, gặp 2/10). */
+export async function dungNenGia(env, call, truocApi = () => undefined) {
   const dung = (r, ma, viec) => assert.equal(r.status, ma, `${viec}: ${r.status} ${r.text}`);
   const PT = nhaXe(env, "Nhà xe Phúc Thành");
   const MT = nhaXe(env, "Nhà xe Minh Tâm");
   const HL = nhaXe(env, "Nhà xe Hoàng Long");
+  const them = truocApi({ PT, MT, HL });
+  // Sau loạt câu SQL ghi thẳng, máy chủ thử đôi khi ngắt kết nối đầu tiên (ECONNRESET, gặp 2/10): gõ cửa tới khi trả lời rồi mới gọi API.
+  for (let i = 0; ; i++) {
+    try {
+      await fetch(`${env.base}/api/auth/me`);
+      break;
+    } catch (e) {
+      if (i >= 20) throw e;
+      await new Promise((r) => setTimeout(r, 500));
+    }
+  }
   const tuyen = {};
   for (const [k, ten] of [["CR", "Nha Trang – sân bay Cam Ranh"], ["BB", "Nha Trang – Bình Ba"], ["VP", "Nha Trang – Vinpearl"], ["HT", "Nha Trang – Hòn Tằm"], ["DM", "Nha Trang – Đầm Môn"]]) {
     const r = await call(ACCOUNTS.accounting, "POST", "/api/van-chuyen/tuyen", { ten });
@@ -78,5 +91,5 @@ export async function dungNenGia(env, call) {
     hlCR: await gia(HL, tuyen.CR, co.C16, 500_000, `${nam}-01-01`),
   };
   HL.thoi();
-  return { PT, MT, HL, tuyen, co, G };
+  return { PT, MT, HL, tuyen, co, G, them };
 }

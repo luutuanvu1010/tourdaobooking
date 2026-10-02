@@ -329,7 +329,6 @@
   --w-tx-dm: 300px;            /* lưới thẻ Tuyến / Cỡ xe (minmax 300px) */
   --w-tx-tom-tat: 150px;       /* lưới tóm tắt khối Chi phí chuyến (auto-fit minmax 150px) */
   --h-tx-area: 72px;           /* ô nhiều dòng "Ghi chú thoả thuận" (bản vẽ 1b) */
-  --o-dong-dao: .55;           /* dòng chi phí đã bị đảo: mờ + gạch ngang */
   /* — MÀU THEO VAI (2026-10-02, chủ dự án): thanh, nút chính, mục đang chọn, mảng đậm — luật trỏ VAI, không trỏ thẳng màu thương hiệu,
      để đổi giao diện = đổi giá trị ở đây (src/token-giao-dien.test.ts). Màn mới: nền thanh/nút lấy từ đây, đừng viết var(--c-primary). — */
   --c-bar-bg: var(--c-surface);          /* thanh đầu trang ở điện thoại (+ dải vùng an toàn trang Đăng nhập) */
@@ -2912,3 +2911,31 @@ label.check > input.o-tick { display: inline; width: auto; margin: 0 var(--s2) 0
 .tx-dm-chan > .vc-field { flex: 1 1 var(--w-tx-o-hep); }
 .tx-dm > .tx-loi { margin: var(--s3) var(--s4); }
 .tx-tai { padding: var(--s5); text-align: center; color: var(--c-text-muted); }
+/* G2 — khối "Chi phí chuyến" trong Chi tiết chuyến (bản vẽ 1b): cuối cột chính. */
+.cp-khoi { display: flex; flex-direction: column; gap: var(--s3); margin-top: var(--s4); }
+.cp-dai-thieu { margin-bottom: 0; }
+.cp-title { font-size: var(--fs-vc-md); font-weight: var(--fw-heavy); }
+.cp-chip-ai { margin-left: auto; }
+.cp-than { display: flex; flex-direction: column; gap: var(--s3); padding: var(--s4); }
+.cp-than > .banner { margin-bottom: 0; }
+.cp-tom-tat { display: grid; grid-template-columns: repeat(auto-fit, minmax(var(--w-tx-tom-tat), 1fr)); gap: var(--s3); }
+.cp-o { display: flex; flex-direction: column; gap: var(--s1); min-width: 0; }
+.cp-v { font-weight: var(--fw-bold); overflow-wrap: anywhere; }
+.cp-tong { font-family: var(--font-display); font-weight: var(--fw-heavy); font-size: var(--fs-step-11); color: var(--c-accent-strong); }
+.cp-ds { display: flex; flex-direction: column; border: 1px solid var(--c-border); border-radius: var(--radius-sm); }
+.cp-dong { display: flex; flex-direction: column; gap: var(--s1); padding: var(--s3); border-top: 1px solid var(--c-border); }
+.cp-dong:first-child { border-top: 0; }
+/* Dòng đã bị đảo: bản vẽ dùng opacity .55 — đo axe thì chữ mờ đó dưới 4,5:1, nên dùng màu chữ phụ (--c-text-muted, 7,5:1) + gạch ngang. */
+.cp-dong.is-dao .cp-so, .cp-dong.is-dao .cp-ly-do { color: var(--c-text-muted); text-decoration: line-through; }
+.cp-dong-dau { display: flex; align-items: center; gap: var(--s2); flex-wrap: wrap; }
+.cp-chips { display: flex; flex-wrap: wrap; gap: var(--s1); flex: 1; min-width: 0; }
+.cp-chip-vien { color: var(--c-text-muted); background: var(--c-surface); border: 1px solid var(--c-border); }
+.cp-so { margin-left: auto; font-family: var(--font-display); font-weight: var(--fw-heavy); font-size: var(--fs-ui); white-space: nowrap; }
+.cp-so.is-am { color: var(--c-danger); }
+.cp-ly-do { font-size: var(--fs-step-3); }
+.cp-ai { font-size: var(--fs-step-2); color: var(--c-text-muted); }
+.cp-dao { align-self: flex-start; min-height: var(--h-vc-link); padding: 0; }
+.cp-trong { padding: var(--s3); color: var(--c-text-muted); text-align: center; }
+.cp-nut { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.cp-goi-y { margin-top: calc(-1 * var(--s1)); }
+.cp-than .tx-form-host { margin-bottom: 0; }
