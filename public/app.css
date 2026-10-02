@@ -299,11 +299,15 @@
   /* — Riêng: Trang chủ điện thoại (≤640px) — bản vẽ "Trang chu dien thoai.dc.html" (Claude Design 2026-09-30, thư mục "Phone home screen redesign"; tiền lệ
      duyệt như nhóm Đăng nhập: chủ dự án giao làm đúng bản vẽ — coi là duyệt các giá trị dưới đây). Tên token màu mượn tên của bộ ba tông đang chờ ADR (tones.css
      cùng thư mục, giá trị tông "Biển đêm" = màu hiện tại của app) để khi làm tông chỉ đổi giá trị, không đổi tên. — */
-  --hero-bg: linear-gradient(180deg, var(--c-primary) 0%, var(--c-primary-strong) 100%); /* dải đầu trang kéo lên cả vùng tai thỏ */
-  --c-hero-btn-bg: rgba(255, 255, 255, .12); /* nền tròn nút chuông / trợ giúp trên dải đầu trang */
-  --c-on-bar-muted: var(--c-primary-soft);   /* "Xin chào," và ngày trên dải đầu trang */
-  --c-on-hero: var(--c-on-dark);             /* tên, chuông, nút trợ giúp trên dải đầu trang (KHÔNG dùng --c-on-bar của thanh trên chung) */
-  --c-hero-edge: var(--c-primary);           /* dải cố định sau thanh trạng thái iPhone khi dải đầu trang đã cuộn đi — cùng màu mép trên của --hero-bg */
+  /* Dải đầu trang LẤY ĐÚNG MÀU THANH TRÊN (chủ dự án chọn 2026-10-02, câu 2-B: "đổi sang trắng cho đồng bộ" với bản 1.65 thanh sáng): nền/chữ trỏ token vai
+     --c-bar-bg / --c-on-bar (bản 1.65; ADR-0087: Toàn quyền chỉnh được — màn mới phải theo token vai). Chưa có hai token đó (main hôm nay, thanh trên còn xanh)
+     thì dùng giá trị sau dấu phẩy = dải xanh chuyển màu của bản vẽ. Chữ phụ và nền tròn của nút suy từ CHÍNH màu chữ (độ mờ) nên hợp mọi màu thanh. */
+  --hero-bg: var(--c-bar-bg, linear-gradient(180deg, var(--c-primary) 0%, var(--c-primary-strong) 100%));
+  --c-on-hero: var(--c-on-bar, var(--c-on-dark));       /* tên, chuông, nút trợ giúp, chữ phụ trên dải đầu trang */
+  --c-hero-ring: var(--c-bar-bg, var(--c-primary));     /* viền quanh số đỏ trên chuông (tách số khỏi nền dải) */
+  --c-hero-edge: var(--c-status-bar, var(--c-primary)); /* dải cố định sau thanh trạng thái iPhone khi dải đầu trang đã cuộn đi */
+  --hero-muted: .8;            /* độ đậm chữ phụ ("Xin chào,", ngày) so với màu chữ của dải — trên xanh ≈ chữ trắng nhạt của bản vẽ, trên trắng ≈ xanh nhạt (≥ 4,5:1) */
+  --hero-btn-tint: .12;        /* nền tròn nút chuông / trợ giúp = màu chữ của dải ở độ đậm này (bản vẽ: trắng 12% trên xanh) */
   --hero-avatar: 44px;         /* ảnh đại diện chữ cái đầu trên dải đầu trang */
   --hero-row: 62px;            /* chiều cao cụm lời chào ba dòng (20 + 24 + 18) — giữ chỗ cho dải lúc chưa biết tên (khung tạm) */
   --hero-pad-bottom: 44px;     /* đệm dưới dải đầu trang: chỗ cho nửa trên ô tìm đè lên */
@@ -1272,13 +1276,15 @@ body.login-page main.login { display: flex; flex-direction: column; height: 100%
   /* Thứ tự nhìn = thứ tự DOM (ảnh đại diện, lời chào, chuông, trợ giúp, bảo trì) — gỡ `order` của thanh đầu trang chung (chuông trước ảnh đại diện). */
   body.trang-chu #topbar .bar-avatar, body.trang-chu #topbar:has(> .bell) .bar-avatar { order: 0; width: var(--hero-avatar); height: var(--hero-avatar); margin: calc((var(--hero-row) - var(--hero-avatar)) / 2) 0; font-size: var(--fs-step-5); color: var(--c-sand-text); background: var(--c-sand-soft); }
   body.trang-chu #topbar .dash-hero-chao { order: 0; display: flex; flex-direction: column; flex: 1; min-width: 0; }
-  .dash-hero-xin { font-size: var(--fs-step-3); font-weight: var(--fw-medium, 500); line-height: var(--lh-20); color: var(--c-on-bar-muted); }
+  .dash-hero-xin { font-size: var(--fs-step-3); font-weight: var(--fw-medium, 500); line-height: var(--lh-20); color: var(--c-on-hero); opacity: var(--hero-muted); }
   .dash-hero-ten { overflow: hidden; font-size: var(--fs-step-6); font-weight: var(--fw-bold, 700); line-height: var(--lh-24); color: var(--c-on-hero); white-space: nowrap; text-overflow: ellipsis; }
-  .dash-hero-ngay { font-size: var(--fs-step-2); font-weight: var(--fw-medium, 500); line-height: var(--lh-18); color: var(--c-on-bar-muted); }
-  body.trang-chu #topbar:has(> .bell) .bell { order: 0; margin-left: 0; color: var(--c-on-hero); border-radius: var(--radius-pill); background: var(--c-hero-btn-bg); }
-  body.trang-chu #topbar .bell:hover { background: var(--c-hero-btn-bg); }
-  body.trang-chu #topbar .bell-count { top: calc(var(--s1) / 2); right: 0; min-width: calc(var(--tile-badge) - 2 * var(--ntf-badge-ring)); height: calc(var(--tile-badge) - 2 * var(--ntf-badge-ring)); font-weight: var(--fw-bold, 700); }
-  body.trang-chu #topbar .dash-hero-nut { order: 0; display: flex; align-items: center; justify-content: center; flex: none; width: var(--tap-min); height: var(--tap-min); color: var(--c-on-hero); background: var(--c-hero-btn-bg); border-radius: var(--radius-pill); }
+  .dash-hero-ngay { font-size: var(--fs-step-2); font-weight: var(--fw-medium, 500); line-height: var(--lh-18); color: var(--c-on-hero); opacity: var(--hero-muted); }
+  body.trang-chu #topbar:has(> .bell) .bell { order: 0; margin-left: 0; isolation: isolate; color: var(--c-on-hero); border-radius: var(--radius-pill); background: none; }
+  body.trang-chu #topbar .bell:hover, body.trang-chu #topbar .bell[aria-expanded="true"] { background: none; }
+  /* Nền tròn của chuông / Trợ giúp: lớp dưới cùng màu chữ, độ đậm --hero-btn-tint (isolation giữ lớp này nằm TRONG nút, dưới biểu tượng và số đỏ). */
+  body.trang-chu #topbar .bell::before, body.trang-chu #topbar .dash-hero-nut::before { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: currentColor; opacity: var(--hero-btn-tint); }
+  body.trang-chu #topbar .bell-count { top: calc(var(--s1) / 2); right: 0; min-width: calc(var(--tile-badge) - 2 * var(--ntf-badge-ring)); height: calc(var(--tile-badge) - 2 * var(--ntf-badge-ring)); font-weight: var(--fw-bold, 700); box-shadow: 0 0 0 var(--ntf-badge-ring) var(--c-hero-ring); }
+  body.trang-chu #topbar .dash-hero-nut { order: 0; position: relative; isolation: isolate; display: flex; align-items: center; justify-content: center; flex: none; width: var(--tap-min); height: var(--tap-min); color: var(--c-on-hero); border-radius: var(--radius-pill); }
   body.trang-chu #topbar .dash-hero-dong { order: 0; display: flex; flex-basis: 100%; }
   body.trang-chu #topbar .dash-hero-bao-tri { display: inline-flex; align-items: center; gap: var(--s1); padding: var(--s1) var(--s3); font-size: var(--fs-step-2); font-weight: var(--fw-bold, 700); color: var(--c-sand-text); background: var(--c-sand-soft); border-radius: var(--radius-pill); }
   body.trang-chu .maint-strip { display: none; } /* thay bằng viên thuốc trong dải đầu trang (bản vẽ 1g), cùng đích /account */
