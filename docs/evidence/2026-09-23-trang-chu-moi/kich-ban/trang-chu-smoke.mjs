@@ -622,10 +622,10 @@ try {
     assert.deepEqual(hop.nhom, [
       ["Bán hàng", ["Tạo đơn", "Đơn hàng", "Danh bạ"]],
       ["Quản lý", ["Dịch vụ & giá", "Quản lý tài khoản", "Địa điểm", "Loại giấy tờ cá nhân"]],
-      ["Vận chuyển", ["Điều phối xe", "Xe", "Giấy tờ sắp hết hạn", "Loại giấy tờ xe", "Lý do điều phối"]],
+      ["Vận chuyển", ["Điều phối xe", "Bảng giá thuê xe", "Bảng kê chi phí xe", "Xe", "Giấy tờ sắp hết hạn", "Loại giấy tờ xe", "Lý do điều phối"]],
       ["Của tôi", ["Tôi", "Góp ý / Báo lỗi", "Trợ giúp"]],
     ], `Hộp Tất cả (máy tính): bốn nhóm đúng quyền Quản trị, có ô Tôi — ${JSON.stringify(hop)}`);
-    assert.equal(hop.phu, "15 chức năng theo quyền Quản trị", `Hộp Tất cả (máy tính): dòng phụ — ${JSON.stringify(hop)}`);
+    assert.equal(hop.phu, "17 chức năng theo quyền Quản trị", `Hộp Tất cả (máy tính): dòng phụ — ${JSON.stringify(hop)}`);
     assert.equal(hop.soDon, "1", `Hộp Tất cả (máy tính): huy hiệu Đơn hàng — ${JSON.stringify(hop)}`);
     assert.equal(hop.cot, 1, `Hộp Tất cả (máy tính): bốn nhóm đứng một hàng (bốn cột) — ${JSON.stringify(hop)}`);
     // Hộp máy tính hiện dần (opacity, --m-base): đo tương phản khi đã hiện hẳn, không giữa lúc mờ dần.
