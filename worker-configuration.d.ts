@@ -6,6 +6,10 @@ interface __BaseEnv_Env {
 	ASSETS: Fetcher;
 	SERVICES_SHEET_ID: "1XPx1g0JVTdevdX35MeCpt6Cc6Dgxdmfer6okEWleD3s";
 	SESSION_SECRET: string;
+	// Lớp chống ghi trùng (ADR-0094 đ4) — khai TAY (worktree thi công không ghi được .dev.vars nên không chạy `npm run types`). Bí mật BẮT BUỘC, ≥ 32 ký tự,
+	// đặt bằng `wrangler secret put LAN_GUI_SECRET` (production) / dòng LAN_GUI_SECRET trong .dev.vars (máy mình). `npm run types` chỉ sinh lại tên này nếu
+	// .dev.vars có nó; thiếu thì thêm tay lại, không thì src/modules/lan-gui/index.ts lỗi kiểu.
+	LAN_GUI_SECRET: string;
 	TURNSTILE_SITE_KEY?: string;
 	TURNSTILE_SECRET_KEY?: string;
 	PASSKEY_RP_ID?: string;
@@ -36,7 +40,7 @@ type StringifyValues<EnvType extends Record<string, unknown>> = {
 	[Binding in keyof EnvType]: EnvType[Binding] extends string ? EnvType[Binding] : string;
 };
 declare namespace NodeJS {
-	interface ProcessEnv extends StringifyValues<Pick<Cloudflare.Env, "SERVICES_SHEET_ID" | "SESSION_SECRET" | "TURNSTILE_SITE_KEY" | "TURNSTILE_SECRET_KEY" | "PASSKEY_RP_ID" | "PASSKEY_ORIGIN">> {}
+	interface ProcessEnv extends StringifyValues<Pick<Cloudflare.Env, "SERVICES_SHEET_ID" | "SESSION_SECRET" | "LAN_GUI_SECRET" | "TURNSTILE_SITE_KEY" | "TURNSTILE_SECRET_KEY" | "PASSKEY_RP_ID" | "PASSKEY_ORIGIN">> {}
 }
 
 // Begin runtime types

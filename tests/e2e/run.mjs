@@ -132,6 +132,8 @@ async function batMayChu(may) {
     [
       "wrangler", "dev", "--port", String(port), "--ip", "127.0.0.1", "--inspector-port", String(inspector), "--persist-to", may.persist, "--test-scheduled",
       "--var", `SESSION_SECRET:${secret}`,
+      // Lớp chống ghi trùng (ADR-0094 đ4): khoá HMAC giả riêng cho lần chạy — thiếu thì mọi API trả 500.
+      "--var", `LAN_GUI_SECRET:${randomBytes(48).toString("base64url")}`,
       // Bật Turnstile bằng khoá THỬ của Cloudflare (luôn đạt) — lib.mjs login() gửi token thử; đặt tường minh để không phụ thuộc .dev.vars của máy.
       "--var", `TURNSTILE_SITE_KEY:${TURNSTILE_TEST.siteKey}`,
       "--var", `TURNSTILE_SECRET_KEY:${TURNSTILE_TEST.secret}`,

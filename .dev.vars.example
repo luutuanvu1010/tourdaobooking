@@ -2,6 +2,10 @@
 # Tạo: openssl rand -base64 48 | tr -d '\n'   rồi dán vào sau dấu = (file .dev.vars không được commit).
 SESSION_SECRET=
 
+# Khoá HMAC của lớp chống ghi trùng (ADR-0094 đ4), TỐI THIỂU 32 ký tự, KHÁC SESSION_SECRET và khác khoá production. Thiếu/ngắn → mọi API trả 500.
+# Tạo: openssl rand -base64 48 | tr -d '\n'   rồi dán vào sau dấu =. Production: CHỈ `wrangler secret put LAN_GUI_SECRET` (chủ dự án tự chạy).
+LAN_GUI_SECRET=
+
 # Cloudflare Turnstile ở màn hình đăng nhập. ĐỂ TRỐNG = TẮT (đăng nhập không đòi token; máy chủ ghi cảnh báo mỗi lần đăng nhập) — local không cần bật.
 # Phía máy chủ (kiểm token) VÀ trang đăng nhập (widget dựng ở web/login.ts, khoá site lấy từ GET /api/auth/config) đều đã có: đặt CẶP dưới đây là widget hiện ra
 # ở /login khi chạy `npm run dev`. Muốn thử ở máy mình, dùng CẶP KHOÁ THỬ của Cloudflare (luôn đạt, dùng được với localhost, cần mạng):

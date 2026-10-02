@@ -51,9 +51,9 @@ Hai luồng song song, mỗi luồng một phiên.
 **Luồng L — lớp chống ghi trùng bản mở rộng (ADR-0094), đường găng**
 - [x] 🤖 L0 kiểm kê; **đo lại số migration** (mọi nhánh chưa gộp) — 2026-10-02, lấy `0074`; sổ `2026-10-02-dot-0-lop-ve-nhat-ky.md`
 - [x] 🤖 L1 migration bảng vé + bảng chính sách (gieo 365 ngày), từ điển dữ liệu — 2026-10-02, `0074_lan_gui.sql`, H9 (CSDL) quan sát chặn
-- [ ] 🤖 L2 module `lan-gui`
-- [ ] 🤖 L3 khoá bí mật ở mọi nơi dựng môi trường (khung thử, e2e, `.dev.vars.example`)
-- [ ] 🤖 L4a bộ bọc cơ sở dữ liệu theo từng yêu cầu
+- [x] 🤖 L2 module `lan-gui` — 2026-10-02, H6 quan sát chặn
+- [x] 🤖 L3 khoá bí mật ở mọi nơi dựng môi trường (khung thử, e2e, `.dev.vars.example`) — 2026-10-02
+- [x] 🤖 L4a bộ bọc cơ sở dữ liệu theo từng yêu cầu — 2026-10-02, chế độ nghiêm fakeD1 quan sát chặn
 - [ ] 🤖 commit bài **đỏ trước** (L5, L11)
 - [ ] 🤖 L4b router giai đoạn 1 (có vé thì áp, thiếu vé cho qua và đếm)
 - [ ] 🔍 kiểm độc lập vòng 1 → **mở khoá Đợt 1**

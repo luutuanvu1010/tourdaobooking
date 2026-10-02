@@ -37,11 +37,16 @@ let ipn = 0;
 /** IP giả khác nhau cho từng request để bộ đếm chống dò theo IP không chặn nhầm kịch bản. */
 export const freshIp = () => `10.${Math.floor(Math.random() * 250)}.${Math.floor(Math.random() * 250)}.${(++ipn % 250) + 1}`;
 
-/** Gọi API như trình duyệt cùng trang (có Origin + JSON). Trả status, body JSON, cookie phiên mới (nếu có), headers. */
-export async function call(cookie, method, path, body, ip = freshIp()) {
+/**
+ * Gọi API như trình duyệt cùng trang (có Origin + JSON). Trả status, body JSON, cookie phiên mới (nếu có), headers.
+ * `opts.ve` (ADR-0094): gửi header `Idempotency-Key` với vé này — bài chống ghi trùng gửi CÙNG một vé ở hai lần gọi.
+ */
+export async function call(cookie, method, path, body, ip = freshIp(), opts = {}) {
+  const headers = { cookie: cookie ?? "", "content-type": "application/json", origin: BASE, "cf-connecting-ip": ip };
+  if (opts.ve !== undefined) headers["idempotency-key"] = opts.ve;
   const r = await fetch(BASE + path, {
     method,
-    headers: { cookie: cookie ?? "", "content-type": "application/json", origin: BASE, "cf-connecting-ip": ip },
+    headers,
     body: body !== undefined && method !== "GET" ? JSON.stringify(body) : undefined,
   });
   const setCookie = r.headers.get("set-cookie");

@@ -23,6 +23,7 @@ import { catalogModule, runScheduledSync } from "./modules/catalog";
 import { companyModule } from "./modules/company";
 import { dispatchModule, handledOrderIdsOf, handlerOf, isOrderHandler, newOrderHandler, ordersWithHandler, soDonDangPhuTrachCua } from "./modules/dispatch";
 import { giaoDienModule } from "./modules/giao-dien";
+import { checkLanGuiConfig } from "./modules/lan-gui";
 import { locationsModule } from "./modules/locations";
 import { feedbackModule } from "./modules/feedback";
 import { maintenanceBlock, maintenanceModule } from "./modules/maintenance";
@@ -57,7 +58,8 @@ async function nemNeuLoi(viec: [string, Promise<unknown> | null][]): Promise<voi
 const APP_OPTIONS: AppOptions = {
   modules: [authModule, accountsModule, ordersModule, dispatchModule, billingModule, receiptModule, catalogModule, auditModule, locationsModule, partiesModule, companyModule, maintenanceModule, giaoDienModule, feedbackModule, bangtinModule, thongbaoModule, vanChuyenModule, troLyModule],
   currentStaff,
-  checkConfig: checkAuthConfig,
+  // Cấu hình bắt buộc: khoá phiên (auth) VÀ khoá HMAC của lớp vé (lan-gui, ADR-0094 đ4) — mỗi module kiểm khoá của mình; thiếu một ⇒ mọi API 500.
+  checkConfig: (env) => checkAuthConfig(env) ?? checkLanGuiConfig(env),
   injected: {
     isAssigned: (env, staffId, orderId) => isOrderHandler(env.DB, staffId, orderId),
     newOrderHandler: (env, actor, staffId) => newOrderHandler(env.DB, actor.id, staffId),

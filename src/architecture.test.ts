@@ -39,6 +39,8 @@ const ALLOWED_EDGES: Record<string, readonly string[]> = {
   dispatch: ["orders", "parties", "locations", "staff", "audit"],
   feedback: ["staff", "audit"], // đọc nhãn nhân viên (v_stf_staff_label) + ghi nhật ký `feedback_*`; không module nào import feedback
   "giao-dien": ["audit"], // ADR-0087: ghi nhật ký giao_dien_changed
+  // ADR-0094 đ2: lớp chống ghi trùng — lá, không import module nào; router dùng nó qua phần tiêm `injected.lanGui` của gốc lắp ráp (không cạnh nào tới lan-gui).
+  "lan-gui": [],
   locations: ["audit"],
   maintenance: ["audit"], // ghi nhật ký `maintenance_changed`; là lá của cạnh auth → maintenance (không vòng)
   // pricing: ADR-0024 điều 2 — tỷ lệ chiết khấu/hoa hồng chụp trong luồng của đơn lúc Xác nhận (lượt 2; lượt 1 chưa import).
@@ -73,6 +75,7 @@ const STRICT: readonly { module: string; file: string }[] = [
   { module: "dispatch", file: "modules/dispatch/repository.ts" },
   { module: "feedback", file: "modules/feedback/repository.ts" },
   { module: "giao-dien", file: "modules/giao-dien/repository.ts" },
+  { module: "lan-gui", file: "modules/lan-gui/repository.ts" }, // ADR-0094 đ2: nghiêm từ ngày đầu
   { module: "locations", file: "modules/locations/repository.ts" },
   { module: "maintenance", file: "modules/maintenance/repository.ts" },
   { module: "parties", file: "modules/parties/repository.ts" },

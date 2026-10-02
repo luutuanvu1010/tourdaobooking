@@ -190,3 +190,22 @@ Số bản nhật ký phiên bản: `main` cục bộ có `1.70` ở đầu `src
 - **H9 (phần CSDL) quan sát chặn thật 2026-10-02:** đổi `so_ngay >= 90` thành `>= 1` ⇒ `not ok 5 - (e) H9 phần CSDL … error: 'Missing expected exception.'` ⇒ hoàn nguyên ⇒ 6/6.
 - `npm test`: bộ chính 2808/2808 xanh. Bài đo giờ hook đỏ (24,4 s; `uptime` tải trung bình 46 — máy quá tải bởi phiên khác), không do luồng L.
 - Chưa chạy e2e ở L1 (gộp vào lần chạy e2e đủ bộ sau L3, vì e2e cần khoá mới).
+
+## L2 — module `lan-gui` (2026-10-02)
+- `src/modules/lan-gui/{index,rules,repository}.ts` + `rules.test.ts` (5 bài: T15 phần hàm kiểm khoá, vân tay HMAC đổi khi đổi byte thân / khoá / phương thức / đường dẫn / query, thân rỗng, không phải SHA-256 trơn). `ALLOWED_EDGES["lan-gui"] = []`, vào `STRICT`.
+- **Lệch nhỏ so với kế hoạch (bề mặt, đảo ngược được):** `kiemKhoa`, `phanLoai`, `thanPhatLai` (+ `ketQuaDeLuu`, kiểu `DongVe`, `LanGuiNoi`) đặt ở `src/shared/lan-gui-luat.ts` thay vì `lan-gui/rules.ts` — router ở `src/shared/` không được import module (ADR-0002 điều 6). Module giữ phần có khoá bí mật (`vanTay`, `kiemCauHinhLanGui`). Bài: `src/shared/lan-gui-luat.test.ts` (8 bài; biên 15/16/64/65 ký tự, 9.999/10.000 ms).
+- Thêm tên lời thường "Chống ghi trùng" vào `src/shared/tro-ly-cau-truc-ten.ts` (bài Đ1 của kho trợ lý đòi mọi thư mục module có tên) và sinh lại `tro-ly-cau-truc.ts`.
+- **H6 quan sát chặn thật 2026-10-02:** thêm tạm `defineSql("lan-gui","thu_xoa","DELETE FROM lg_lan_gui WHERE created_at < ?1")` ⇒ `src/architecture.test.ts` đỏ: `'lan-gui.thu_xoa: xoá cứng bảng lg_lan_gui (R-N1-9: đóng hiệu lực hoặc active = 0, không DELETE/REPLACE)'` ⇒ hoàn nguyên ⇒ 45/45.
+
+## L3 — khoá `LAN_GUI_SECRET` ở mọi nơi dựng môi trường (2026-10-02)
+- Đỏ trước: `src/lan-gui-cau-hinh.test.ts` (qua khung thử, cả ứng dụng) ⇒ 1/5 (chưa có khoá, chưa có kiểm) ⇒ xanh 5/5 sau khi sửa.
+- Sửa cùng một commit: `src/index.ts` (`checkConfig: checkAuthConfig(env) ?? checkLanGuiConfig(env)`), `worker-configuration.d.ts` (hai chỗ, khai tay), `tests/audit/harness.mjs` (`LAN_GUI_SECRET_GIA`), `tests/e2e/run.mjs` (`--var`), `scripts/dev-iphone.mjs`, `.dev.vars.example`, `docs/CHANGE-GUIDE.md` công thức l. `src/passkey-off.test.ts` gọi handler thẳng (không qua `checkConfig`) — không cần sửa. Phần "nhận tham số vé" của L10: `call(…, ip, { ve })` ở `tests/e2e/lib.mjs`.
+- `npm test` 2826/2826; `npm run test:e2e -- platform` xanh (2/2, 39 giây).
+- **Việc của chủ (ghi lại, không làm ở đây):** thêm dòng `LAN_GUI_SECRET=<≥ 32 ký tự, khác khoá thật>` vào `.dev.vars` của mỗi chỗ chạy `npm run dev`. Nếu chạy `npm run types`: kiểm lại hai dòng khai tay `LAN_GUI_SECRET` trong `worker-configuration.d.ts`.
+
+## L4a — bộ bọc cơ sở dữ liệu theo từng yêu cầu (2026-10-02)
+- `src/shared/lan-gui-boc.ts` + `src/shared/lan-gui-boc.test.ts` (12 bài: nhận câu đọc/ghi, nhận lỗi đụng vé (chữ SQLite và dạng D1 bọc tiền tố), bẫy 1 gỡ bọc + câu lạ, bẫy 2 vé cuối lô + cắt kết quả, bẫy 3 `.run()`/`.first()`/`.all()`/`.raw()` với `RETURNING`, bẫy 4 chỉ lô ghi đầu THÀNH CÔNG mang vé + đếm, bẫy 5 đụng vé ⇒ ném lại lỗi gốc + từ chối ghi tiếp, `dong()`).
+- Ghi trung thực: bộ bọc viết TRƯỚC bài (không chụp đỏ từng bẫy); bù bằng phép đột biến dưới đây. Chữ lỗi D1 thật khi đụng vé: chưa ghi được (cần `wrangler dev`) — ghi ở L4b qua e2e.
+- Chế độ nghiêm `fakeD1` (`tests/audit/harness.mjs`): `batch` từ chối câu không do chính D1 giả tạo; bật mặc định; toàn bộ `npm test` xanh 2838/2838 với chế độ này. Thêm móc `moc.truocTraVe` (chỉ khung thử) cho ca đồng thời L5.
+- **Hàng rào "chế độ nghiêm fakeD1" quan sát chặn thật 2026-10-02:** bỏ bước gỡ bọc (`goBoc = s => s`) ⇒ `not ok 3 - bẫy 1 … error: 'fakeD1 nghiêm: câu thứ 0 của lô không do D1 này tạo (quên gỡ bọc?)'` (và 3 bài khác) ⇒ hoàn nguyên ⇒ 12/12.
+- `npm run typecheck` 0 lỗi; `npm test` 2838/2838 + bài đo giờ xanh.
