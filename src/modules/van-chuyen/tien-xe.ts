@@ -25,3 +25,6 @@ export function dongChongGia(moi: Omit<DongGiaThue, "id" | "amount">, dong: read
   return dong.find((d) => d.id !== boQuaId && d.carrierPartyId === moi.carrierPartyId && d.routeCode === moi.routeCode && d.sizeCode === moi.sizeCode
     && d.validFrom <= (moi.validTo ?? HET) && moi.validFrom <= (d.validTo ?? HET)) ?? null;
 }
+
+/** Số tiền dạng chữ cho nhật ký / lời báo: 1200000 → "1.200.000", −150000 → "−150.000" (tất định, không phụ thuộc Intl). */
+export const chuTien = (n: number): string => `${n < 0 ? "−" : ""}${String(Math.abs(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ".")}`;

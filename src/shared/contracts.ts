@@ -1739,3 +1739,28 @@ export interface TroLyThuResponse {
   traLoi: string; nguon: string[]; tokenVao: number; tokenRa: number; chiPhiMicroUsd: number; chiPhiUsd: number; chiPhiVanNghiaMicroUsd: number; mau: string;
   doanDaChon: TroLyDoanDaChon[];
 }
+
+// ---- Tiền xe thuê (ADR-0057 T1 — kế hoạch Đợt 4 Task 4; sửa theo đánh giá bản vẽ 2/10) -------------------------------------------------------------------
+/** Một dòng giá thuê theo chuyến của nhà xe. `trangThai` do máy chủ gắn theo ngày xem (`ngay`): đang áp / sắp áp / đã kết thúc. */
+export interface BangGiaDto {
+  id: string;
+  nhaXePartyId: string;
+  tuyen: { ma: string; ten: string } | null;
+  coXe: { ma: string; nhan: string } | null;
+  soTien: number;
+  tuNgay: string;
+  denNgay: string | null;
+  ghiChu: string | null;
+  thayDongId: string | null;
+  trangThai: "DANG_AP" | "SAP_AP" | "DA_KET_THUC";
+}
+/** Tuyến — chỉ TÊN (không giá): đọc được bởi người xếp xe (`trip.dispatch`) và người xem bảng giá. */
+export interface TuyenDto { ma: string; ten: string; dangDung: boolean; thuTu: number }
+/** Cỡ xe — khoảng số khách KHÔNG kể tài xế. `soDongGiaDangAp`: số dòng giá chưa kết thúc theo cỡ này (null với người không xem được bảng giá). */
+export interface CoXeDto { ma: string; nhan: string; tuSoKhach: number; denSoKhach: number; dangDung: boolean; soDongGiaDangAp: number | null }
+/** Nhà xe cho màn bảng giá: đang hợp tác, hoặc đã thôi mà còn dòng giá chưa kết thúc (để Kết thúc được — ADR-0057 B4). */
+export interface NhaXeBangGiaDto { partyId: string; ten: string; dangHopTac: boolean }
+export interface BangGiaResponse { ngay: string; nhaXePartyId: string | null; dong: BangGiaDto[]; tuyen: TuyenDto[]; coXe: CoXeDto[]; nhaXe: NhaXeBangGiaDto[] }
+export interface BangGiaDongResponse { dong: BangGiaDto }
+export interface TuyenListResponse { tuyen: TuyenDto[] }
+export interface CoXeListResponse { coXe: CoXeDto[] }

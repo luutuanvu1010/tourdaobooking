@@ -1,0 +1,120 @@
+// SQL TIỀN XE THUÊ của van-chuyen (ADR-0057 T1 B1/B5; T2 C3/C9) — tệp thứ BA của module nghiêm (src/architecture.test.ts nạp + EXPLAIN từng câu). Mọi câu
+// TĨNH qua defineSql, tham số ?N. Chỉ đọc bảng vc_ của mình và VIEW công bố của parties (v_pty_carrier — nhà xe đang hợp tác; v_pty_party_label — tên).
+// KHÔNG câu nào cộng tiền (`sum(`) — tổng chi phí chỉ tính ở tien-xe.ts (`tongChiPhiChuyen`, hàng rào src/tien-xe-mot-nguon.test.ts).
+import { defineSql } from "../../shared/sql-registry.ts";
+
+// ---- Tuyến ----------------------------------------------------------------------------------------------------------------------------------------------
+export interface RouteRow { code: string; name: string; active: number; sort_order: number; updated_at: string }
+const ROUTE_LIST = defineSql("van-chuyen", "vc_route_list", "SELECT code, name, active, sort_order, updated_at FROM vc_route ORDER BY active DESC, sort_order, name, code");
+const ROUTE_BY_CODE = defineSql("van-chuyen", "vc_route_by_code", "SELECT code, name, active, sort_order, updated_at FROM vc_route WHERE code = ?1");
+/** Mã tuyến máy sinh (`T` + số thứ tự 3 chữ số) — người dùng không nhập mã (bản vẽ Đợt 4). ?1 mã, ?2 tên, ?3 thứ tự, ?4 lúc, ?5 người. */
+const ROUTE_INSERT = defineSql(
+  "van-chuyen",
+  "vc_route_insert",
+  "INSERT INTO vc_route (code, name, active, sort_order, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, 1, ?3, ?4, ?5, ?4, ?5)",
+);
+const ROUTE_UPDATE = defineSql(
+  "van-chuyen",
+  "vc_route_update",
+  "UPDATE vc_route SET name = ?2, active = ?3, sort_order = ?4, updated_at = ?5, updated_by = ?6 WHERE code = ?1",
+);
+const ROUTE_COUNT = defineSql("van-chuyen", "vc_route_count", "SELECT count(*) AS n FROM vc_route");
+
+export const listRoutes = async (db: D1Database): Promise<RouteRow[]> => (await db.prepare(ROUTE_LIST).all<RouteRow>()).results;
+export const findRoute = (db: D1Database, code: string): Promise<RouteRow | null> => db.prepare(ROUTE_BY_CODE).bind(code).first<RouteRow>();
+export const routeCount = async (db: D1Database): Promise<number> => (await db.prepare(ROUTE_COUNT).first<{ n: number }>())?.n ?? 0;
+export const insertRouteStatement = (db: D1Database, v: { code: string; name: string; sortOrder: number }, at: string, actor: string): D1PreparedStatement =>
+  db.prepare(ROUTE_INSERT).bind(v.code, v.name, v.sortOrder, at, actor);
+export const updateRouteStatement = (db: D1Database, v: { code: string; name: string; active: boolean; sortOrder: number }, at: string, actor: string): D1PreparedStatement =>
+  db.prepare(ROUTE_UPDATE).bind(v.code, v.name, v.active ? 1 : 0, v.sortOrder, at, actor);
+
+// ---- Cỡ xe ----------------------------------------------------------------------------------------------------------------------------------------------
+export interface SizeRow { code: string; label: string; min_passengers: number; max_passengers: number; active: number; sort_order: number; so_dong_gia_dang_ap: number }
+/** Kèm số dòng giá CHƯA KẾT THÚC tính tới ngày ?1 theo cỡ — màn nhắc trước khi ngưng dùng cỡ ("cỡ này còn N dòng giá đang áp" — kế hoạch Đợt 4). */
+const SIZE_LIST = defineSql(
+  "van-chuyen",
+  "vc_size_list",
+  `SELECT s.code, s.label, s.min_passengers, s.max_passengers, s.active, s.sort_order,
+          (SELECT count(*) FROM vc_rental_rate r WHERE r.vehicle_size_code = s.code AND COALESCE(r.valid_to_date, '9999-12-31') >= ?1) AS so_dong_gia_dang_ap
+   FROM vc_vehicle_size s ORDER BY s.active DESC, s.min_passengers, s.code`,
+);
+const SIZE_BY_CODE = defineSql(
+  "van-chuyen",
+  "vc_size_by_code",
+  "SELECT code, label, min_passengers, max_passengers, active, sort_order, 0 AS so_dong_gia_dang_ap FROM vc_vehicle_size WHERE code = ?1",
+);
+const SIZE_INSERT = defineSql(
+  "van-chuyen",
+  "vc_size_insert",
+  `INSERT INTO vc_vehicle_size (code, label, min_passengers, max_passengers, active, sort_order, created_at, created_by, updated_at, updated_by)
+   VALUES (?1, ?2, ?3, ?4, 1, ?5, ?6, ?7, ?6, ?7)`,
+);
+const SIZE_UPDATE = defineSql("van-chuyen", "vc_size_update", "UPDATE vc_vehicle_size SET label = ?2, active = ?3, updated_at = ?4, updated_by = ?5 WHERE code = ?1");
+const SIZE_COUNT = defineSql("van-chuyen", "vc_size_count", "SELECT count(*) AS n FROM vc_vehicle_size");
+
+export const listSizes = async (db: D1Database, ngay: string): Promise<SizeRow[]> => (await db.prepare(SIZE_LIST).bind(ngay).all<SizeRow>()).results;
+export const findSize = (db: D1Database, code: string): Promise<SizeRow | null> => db.prepare(SIZE_BY_CODE).bind(code).first<SizeRow>();
+export const sizeCount = async (db: D1Database): Promise<number> => (await db.prepare(SIZE_COUNT).first<{ n: number }>())?.n ?? 0;
+export const insertSizeStatement = (db: D1Database, v: { code: string; label: string; min: number; max: number; sortOrder: number }, at: string, actor: string): D1PreparedStatement =>
+  db.prepare(SIZE_INSERT).bind(v.code, v.label, v.min, v.max, v.sortOrder, at, actor);
+export const updateSizeStatement = (db: D1Database, v: { code: string; label: string; active: boolean }, at: string, actor: string): D1PreparedStatement =>
+  db.prepare(SIZE_UPDATE).bind(v.code, v.label, v.active ? 1 : 0, at, actor);
+
+// ---- Dòng giá thuê --------------------------------------------------------------------------------------------------------------------------------------
+export interface RateRow {
+  id: string;
+  carrier_party_id: string;
+  route_code: string | null;
+  vehicle_size_code: string | null;
+  unit: string;
+  amount: number;
+  valid_from_date: string;
+  valid_to_date: string | null;
+  note: string | null;
+  replaces_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+const COT_GIA = "id, carrier_party_id, route_code, vehicle_size_code, unit, amount, valid_from_date, valid_to_date, note, replaces_id, created_at, updated_at";
+/** MỌI dòng của một nhà xe (màn gắn nhãn đang áp / sắp áp / đã kết thúc theo ngày xem — không lọc). */
+const RATE_LIST = defineSql("van-chuyen", "vc_rate_list", `SELECT ${COT_GIA} FROM vc_rental_rate WHERE carrier_party_id = ?1 ORDER BY valid_from_date DESC, id`);
+const RATE_BY_ID = defineSql("van-chuyen", "vc_rate_by_id", `SELECT ${COT_GIA} FROM vc_rental_rate WHERE id = ?1`);
+/** ?1 id, ?2 nhà xe, ?3 tuyến, ?4 cỡ, ?5 tiền, ?6 từ, ?7 đến, ?8 ghi chú, ?9 thay dòng, ?10 lúc, ?11 người. */
+const RATE_INSERT = defineSql(
+  "van-chuyen",
+  "vc_rate_insert",
+  `INSERT INTO vc_rental_rate (id, carrier_party_id, route_code, vehicle_size_code, unit, amount, valid_from_date, valid_to_date, note, replaces_id,
+     created_at, created_by, updated_at, updated_by)
+   VALUES (?1, ?2, ?3, ?4, 'PER_TRIP', ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?10, ?11)`,
+);
+/** Đóng MỘT lần (dòng còn mở). ?1 id, ?2 đến ngày, ?3 lúc, ?4 người. */
+const RATE_CLOSE = defineSql(
+  "van-chuyen",
+  "vc_rate_close",
+  "UPDATE vc_rental_rate SET valid_to_date = ?2, updated_at = ?3, updated_by = ?4 WHERE id = ?1 AND valid_to_date IS NULL",
+);
+/**
+ * Nhà xe ĐÃ THÔI hợp tác (không còn trong v_pty_carrier) mà còn dòng giá chưa kết thúc tính tới ngày ?1 — để màn bảng giá cho "Kết thúc" được (ADR-0057 B4:
+ * đóng giá của nhà xe đã thôi luôn làm được). Tên qua view công bố.
+ */
+const CARRIERS_INACTIVE_WITH_OPEN_RATE = defineSql(
+  "van-chuyen",
+  "vc_rate_inactive_carriers",
+  `SELECT l.id AS party_id, l.display_name FROM v_pty_party_label l
+   WHERE l.id IN (SELECT r.carrier_party_id FROM vc_rental_rate r WHERE COALESCE(r.valid_to_date, '9999-12-31') >= ?1)
+     AND l.id NOT IN (SELECT c.party_id FROM v_pty_carrier c)
+   ORDER BY l.display_name, l.id`,
+);
+/** Tên một hồ sơ (nhật ký: "tên nhà xe") qua view công bố. */
+const PARTY_NAME = defineSql("van-chuyen", "vc_rate_party_name", "SELECT display_name FROM v_pty_party_label WHERE id = ?1");
+
+export const ratesOfCarrier = async (db: D1Database, carrier: string): Promise<RateRow[]> => (await db.prepare(RATE_LIST).bind(carrier).all<RateRow>()).results;
+export const findRate = (db: D1Database, id: string): Promise<RateRow | null> => db.prepare(RATE_BY_ID).bind(id).first<RateRow>();
+export const insertRateStatement = (
+  db: D1Database, v: { id: string; carrier: string; route: string | null; size: string | null; amount: number; from: string; to: string | null; note: string | null; replaces: string | null },
+  at: string, actor: string,
+): D1PreparedStatement => db.prepare(RATE_INSERT).bind(v.id, v.carrier, v.route, v.size, v.amount, v.from, v.to, v.note, v.replaces, at, actor);
+export const closeRateStatement = (db: D1Database, id: string, to: string, at: string, actor: string): D1PreparedStatement => db.prepare(RATE_CLOSE).bind(id, to, at, actor);
+export const inactiveCarriersWithOpenRate = async (db: D1Database, ngay: string): Promise<{ party_id: string; display_name: string }[]> =>
+  (await db.prepare(CARRIERS_INACTIVE_WITH_OPEN_RATE).bind(ngay).all<{ party_id: string; display_name: string }>()).results;
+export const partyName = async (db: D1Database, id: string): Promise<string | null> => (await db.prepare(PARTY_NAME).bind(id).first<{ display_name: string }>())?.display_name ?? null;

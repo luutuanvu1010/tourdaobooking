@@ -73,6 +73,8 @@ const ADR: Record<string, [Scope, Scope, Scope, Scope, Scope, Scope, Scope, Scop
   "party.document.write": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "none"], // ADR-0040 D2: ghi giấy tờ của người + xem danh sách (số che) của người khác — Quản trị + Toàn quyền
   "party.document.reveal": ["none", "none", "none", "none", "none", "any", "none", "none", "none", "none"], // ADR-0040 D2 sửa bởi ADR-0083 điều 2: "xem đủ số" — CHỈ Toàn quyền; mỗi lần một dòng nhật ký không kèm số
   "vehicle.manage": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "none"], // ADR-0040 D1: xe, giấy tờ xe, danh sách sắp hết hạn — Quản trị + Toàn quyền (ADR-0038 điều 6)
+  "transport.rate.view": ["none", "any", "any", "none", "none", "any", "none", "none", "none", "none"], // ADR-0057 B3: xem bảng giá thuê xe — Kế toán = Quản trị (lần 18), Toàn quyền
+  "transport.rate.manage": ["none", "any", "any", "none", "none", "any", "none", "none", "none", "none"], // ADR-0057 B3: thêm / đóng giá, danh mục tuyến, cỡ xe
   "assistant.ask": ["any", "any", "any", "any", "any", "any", "any", "any", "any", "any"], // ADR-0066 điều 1: hỏi trợ lý Hỗ trợ — mọi tài khoản đăng nhập
   "auth.session.viewAll": ["none", "none", "none", "none", "none", "any", "none", "none", "none", "none"], // ADR-0075 điều 7: xem sổ phiên của MỌI tài khoản — chỉ Toàn quyền (vai IT mang Toàn quyền)
   "auth.session.revoke": ["none", "none", "none", "none", "none", "any", "none", "none", "none", "none"], // ADR-0075 điều 7: gỡ một phiên đăng nhập — chỉ Toàn quyền
@@ -324,6 +326,7 @@ test("ADR-0040 D3 + ADR-0049 D3: MỌI ô của Tài xế (DRIVER) — ghim nguy
     "feedback.triage": "none", "settings.ops": "none", "order.pool.view": "none", "notice.send": "none", "company.legal.write": "none",
     "party.document.view": "own", // ngoại lệ có tên (Ruling R2, R5): xem giấy tờ của CHÍNH MÌNH, số che
     "party.document.write": "none", "party.document.reveal": "none", "vehicle.manage": "none",
+    "transport.rate.view": "none", "transport.rate.manage": "none", // ADR-0057 B3 — tiền xe thuê: không
     // ADR-0049 D3 — NỚI (ĐÃ DUYỆT 2026-09-30 (lần 17), đề xuất luật mục 2): tài xế công ty xem + bấm tiến độ chuyến MÌNH ĐANG LÁI (`assigned` — A13 / A15).
     "trip.view": "assigned", "trip.dispatch": "none", "trip.override": "none", "trip.progress": "assigned", "trip.call_ack": "none",
     // Sổ tiền lượt 1 (bản làm mới §2): tài xế không thu tiền khách — none ở cả bốn ô mới (ledger.view none, không phải own: tài xế không bao giờ là người thu).
@@ -355,6 +358,7 @@ test("ADR-0048 D2: MỌI ô của Tài xế đối tác (DRIVER_PARTNER) — ghi
     "feedback.triage": "none", "settings.ops": "none", "order.pool.view": "none", "notice.send": "none", "company.legal.write": "none",
     "party.document.view": "own", // ngoại lệ có tên (ADR-0048 D2): xem giấy tờ của CHÍNH MÌNH, số che
     "party.document.write": "none", "party.document.reveal": "none", "vehicle.manage": "none",
+    "transport.rate.view": "none", "transport.rate.manage": "none", // ADR-0057 B3 — tiền xe thuê: không
     "trip.view": "none", "trip.dispatch": "none", "trip.override": "none", "trip.progress": "none", "trip.call_ack": "none", // ADR-0049 D3 × ADR-0048 D2: tài xế đối tác chưa dùng app cho chuyến (D7 — lượt sau)
     "order.handover": "none", "order.complete": "none", "ledger.view": "none", "ledger.write": "none", // sổ tiền lượt 1 (bản làm mới §2) — mọi ô tiền = none
     "assistant.ask": "any", // ngoại lệ có tên (ADR-0066 điều 1): hỏi trợ lý Hỗ trợ — mọi tài khoản đăng nhập
@@ -381,6 +385,7 @@ test("ADR-0071: MỌI ô của Nhân sự (HR) — ghim nguyên dòng, chỉ ba 
     "notice.send": "none", "company.legal.write": "none",
     "party.document.view": "own", // như mọi tài khoản nội bộ (ADR-0040 D2, R5): giấy tờ của CHÍNH MÌNH, số che
     "party.document.write": "none", "party.document.reveal": "none", "vehicle.manage": "none",
+    "transport.rate.view": "none", "transport.rate.manage": "none", // ADR-0057 B3 — tiền xe thuê: không
     "trip.view": "none", "trip.dispatch": "none", "trip.override": "none", "trip.progress": "none", "trip.call_ack": "none",
     "assistant.ask": "any",
     "auth.session.viewAll": "none", "auth.session.revoke": "none", "auth.session.policy": "none", // ADR-0075 điều 7: chỉ Toàn quyền
@@ -464,4 +469,15 @@ test("ADR-0060: accounting.entry.mark ≠ none ĐÚNG ở ACCOUNTING, SUPER_ADMI
     assert.ok(BAC[a]! <= BAC[b]! && !(a === "own" && b === "assigned") && !(a === "assigned" && b === "own"), `${p}: accounting.entry.view ${a} rộng hơn order.view ${b}`);
   }
   assert.equal(MATRIX["accounting.entry.view"].PARTNER, "none");
+});
+
+// ADR-0057 B3, C7 (chủ lần 18 "Hai vai giống hệt"): Quản trị = Kế toán ở MỌI ô transport.*; Toàn quyền any; mọi cột khác none (kể cả HR — ADR-0071).
+test("ADR-0057: ô transport.* — ADMIN = ACCOUNTING = any, SUPER_ADMIN any, mọi cột khác none", () => {
+  const ops = (Object.keys(MATRIX) as OperationCode[]).filter((op) => op.startsWith("transport."));
+  assert.ok(ops.length >= 2, "chống bài rỗng");
+  for (const op of ops) {
+    const r = MATRIX[op];
+    assert.equal(r.ADMIN, r.ACCOUNTING, `${op}: Quản trị phải ngang Kế toán`);
+    assert.deepEqual(r, { SALES: "none", ACCOUNTING: "any", ADMIN: "any", FIELD: "none", PARTNER: "none", SUPER_ADMIN: "any", INTERN: "none", DRIVER: "none", DRIVER_PARTNER: "none", HR: "none" }, op);
+  }
 });
