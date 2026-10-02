@@ -576,6 +576,64 @@ export const CHECKS = [
     level: "warn",
     note: "cảnh báo, không chặn phát hành: nhà xe đã thôi hợp tác mà còn giá — Kế toán / Quản trị bấm Kết thúc dòng giá",
   },
+  // ADR-0057 T2 C8 — lưới thứ hai của chi phí chuyến xe thuê (kế hoạch Đợt 4 Task 11). NGOẠI LỆ CÓ TÊN của hàng rào "một nguồn tính" (src/tien-xe-mot-nguon.test.ts
+  // chỉ quét src/**, web/**): các câu dưới dùng sum( để ĐỐI CHIẾU trên CSDL, không phải nguồn tính hiển thị. "Nguồn giá còn hiệu lực" = SNAPSHOT / AGREED chưa đảo.
+  {
+    code: "R-VC-COST-1",
+    what: "chuyến xe thuê chưa huỷ có nhiều hơn một nguồn giá còn hiệu lực",
+    sql: `SELECT count(*) FROM vc_trip t WHERE t.rented = 1 AND t.status <> 'CANCELLED' AND (SELECT count(*) FROM vc_trip_cost_line l WHERE l.trip_id = t.id
+          AND l.kind IN ('SNAPSHOT','AGREED') AND NOT EXISTS (SELECT 1 FROM vc_trip_cost_line r WHERE r.reverses_id = l.id)) > 1`,
+    level: "fail",
+  },
+  {
+    code: "R-VC-COST-1b",
+    what: "chuyến xe thuê chưa xuất bến đang thiếu giá (thông tin cho Kế toán)",
+    sql: `SELECT count(*) FROM vc_trip t WHERE t.rented = 1 AND t.status = 'PLANNED' AND NOT EXISTS (SELECT 1 FROM vc_trip_cost_line l WHERE l.trip_id = t.id
+          AND l.kind IN ('SNAPSHOT','AGREED') AND NOT EXISTS (SELECT 1 FROM vc_trip_cost_line r WHERE r.reverses_id = l.id))`,
+    level: "warn",
+    note: "thông tin: các chuyến này đang bị giữ 'chưa có giá' — Kế toán / Quản trị nhập giá",
+  },
+  {
+    code: "R-VC-COST-2",
+    what: "dòng đảo không đối dấu đúng dòng gốc cùng chuyến",
+    sql: `SELECT count(*) FROM vc_trip_cost_line r LEFT JOIN vc_trip_cost_line g ON g.id = r.reverses_id
+          WHERE r.kind = 'REVERSAL' AND (g.id IS NULL OR g.trip_id <> r.trip_id OR g.amount <> -r.amount OR g.kind = 'REVERSAL')`,
+    level: "fail",
+  },
+  // TC-10 của kế hoạch (người kiểm soi): "nguồn giá chưa đảo HOẶC tổng ≠ 0" — chuyến đổi từ xe nhà xe sang xe công ty giữ các dòng ĐÃ ĐẢO (tổng 0), chữ ADR
+  // "không có dòng" sẽ báo nhầm.
+  {
+    code: "R-VC-COST-3",
+    what: "chuyến không phải xe thuê còn nguồn giá chưa đảo hoặc tổng chi phí khác 0",
+    sql: `SELECT count(*) FROM vc_trip t WHERE t.rented = 0 AND t.status <> 'CANCELLED' AND (
+            EXISTS (SELECT 1 FROM vc_trip_cost_line l WHERE l.trip_id = t.id AND l.kind IN ('SNAPSHOT','AGREED') AND NOT EXISTS (SELECT 1 FROM vc_trip_cost_line r WHERE r.reverses_id = l.id))
+            OR (SELECT COALESCE(sum(l.amount), 0) FROM vc_trip_cost_line l WHERE l.trip_id = t.id) <> 0)`,
+    level: "fail",
+  },
+  {
+    code: "R-VC-COST-4",
+    what: "chuyến đã huỷ có tổng chi phí khác tổng các dòng phí huỷ ghi sau lúc huỷ",
+    sql: `SELECT count(*) FROM vc_trip t WHERE t.status = 'CANCELLED'
+          AND (SELECT COALESCE(sum(l.amount), 0) FROM vc_trip_cost_line l WHERE l.trip_id = t.id)
+           <> (SELECT COALESCE(sum(l.amount), 0) FROM vc_trip_cost_line l WHERE l.trip_id = t.id AND l.kind = 'ADJUSTMENT' AND l.reason_code = 'CPX_HUY_MUON'
+                AND NOT EXISTS (SELECT 1 FROM vc_trip_cost_line r WHERE r.reverses_id = l.id)
+                AND l.created_at >= (SELECT max(e.created_at) FROM vc_trip_event e WHERE e.trip_id = t.id AND e.kind = 'CANCELLED'))`,
+    level: "fail",
+  },
+  {
+    code: "R-VC-COST-5",
+    what: "chuyến xe thuê đã xuất bến mà không có nguồn giá còn hiệu lực",
+    sql: `SELECT count(*) FROM vc_trip t WHERE t.rented = 1 AND t.status IN ('RUNNING','ENDED','ENDED_INTERRUPTED') AND NOT EXISTS (SELECT 1 FROM vc_trip_cost_line l
+          WHERE l.trip_id = t.id AND l.kind IN ('SNAPSHOT','AGREED') AND NOT EXISTS (SELECT 1 FROM vc_trip_cost_line r WHERE r.reverses_id = l.id))`,
+    level: "fail",
+  },
+  {
+    code: "R-VC-COST-6",
+    what: "chuyến chưa huỷ không đánh dấu xe thuê mà chủ xe không phải công ty chủ hiện tại (kẽ C2a — nợ N-T1)",
+    sql: `SELECT count(*) FROM vc_trip t WHERE t.rented = 0 AND t.status <> 'CANCELLED' AND t.carrier_party_id NOT IN (SELECT party_id FROM v_pty_owner_company)`,
+    level: "warn",
+    note: "cảnh báo (chấp nhận ồn): có thể là xe của nhà xe đã thôi hợp tác bị xếp như xe công ty, hoặc xe của công ty chủ cũ — Quản trị xem",
+  },
 
   // ---- Người phụ trách đơn (ADR-0006 điều 3, ADR-0009). Migration 0014 trở lên: trên D1 chưa có 0014 các câu dưới lỗi "no such table" → script thoát mã 2. ----
   // R-DSP-1: chỉ mục duy nhất một phần đã chặn ở CSDL; kiểm này bắt trường hợp chỉ mục bị gỡ/sửa nhầm.

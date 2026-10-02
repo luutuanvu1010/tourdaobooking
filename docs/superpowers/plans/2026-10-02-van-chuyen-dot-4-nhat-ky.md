@@ -68,3 +68,9 @@ Làn máy chủ (Task 0 → 12). **Không** làm Task G (giao diện) — làn k
   - Bài `src/hanh-khach-khong-lo-ten.test.ts` (đủ tuyến van-chuyen): thêm 5 ca route chi phí; bốn lệnh ghi chi phí vào `KHONG_THE_LO` (phản hồi không bao giờ có `suat`) — ngoại lệ có tên, người kiểm soi.
   - Bước 3b (Đợt 2 `baoThayDoiChuyen`) bỏ qua — Đợt 2 chưa trên `main`. Khi Đợt 2 gộp: thêm `KHONG_BAO` 4 route chi phí theo khuôn kế hoạch.
   - `npm test` 2826 (2825 + 1 todo), typecheck 0.
+- Task 11: xong — `src/tien-xe-so-la.test.ts` (tự quét mọi route GET × 6 mã quyền + phản hồi tạo / xếp / sửa chuyến của Bán hàng; số lạ 480017, 1480017 và TỔNG dẫn xuất 1960034), `src/tien-xe-mot-nguon.test.ts` (4 luật + bài bộ bắt), `R-VC-COST-1/1b/2/3/4/5/6` ở `scripts/audit-checks.mjs` + 6 bài (`src/audit-invariants.test.ts` 110/110; R-VC-COST-5 gỡ TẠM `vc_trip_thieu_gia` + `vc_trip_insert_planned` rồi khôi phục trong bài — tiêu chí 4c); `docs/SO-HANG-RAO.md` +6 dòng.
+  - P16 2026-10-02: (a) số lạ — thêm tạm bảng kê vào phản hồi `GET /lich` ⇒ đỏ; thêm tạm CHỈ `tongCong` ⇒ lúc đầu KHÔNG đỏ (tổng không chứa 480017) ⇒ đã bổ sung số tổng vào bộ bắt ⇒ đỏ → hoàn nguyên → xanh. (b) một nguồn — thêm tạm `SELECT sum(amount) … FROM vc_trip_cost_line` vào `tien-xe-repo.ts` ⇒ đỏ → hoàn nguyên → xanh.
+  - Chốt: `R-VC-COST-4` so `created_at >= max(created_at của sự kiện CANCELLED)` (kế hoạch: `>`) — vì sao: điều chỉnh không bao giờ nằm trong lô huỷ (lô huỷ chỉ có dòng ĐẢO), `>=` tránh báo nhầm khi cùng mili-giây; sai thì tốn: một ký tự.
+  - `node scripts/audit-invariants.mjs --db local` (0072 + 0073 đã áp local): mọi `R-VC-COST-*`, `R-VC-RATE-1` ✓; thoát 1 chỉ vì `R-N1-5` (D1 local trống, không quản trị viên — có sẵn).
+  - "Mỗi ô được máy chủ hỏi" (`permission-enforcement`): bốn ô `transport.*` đều được hỏi, `docs/quyen-hoan.json` không thêm mục. Bài thân trigger `vc_` (`architecture.test.ts`) xanh với 26 trigger mới.
+  - `npm test` 2835 (2834 + 1 todo), typecheck 0.

@@ -94,7 +94,7 @@ export function bangKeDto(v: {
   for (const d of dongTatCa) {
     let g = nhom.find((x) => x.nhaXe.partyId === d.nhaXe.partyId);
     if (!g) {
-      g = { nhaXe: d.nhaXe, soChuyen: 0, tongNhom: 0, dong: [] };
+      g = { nhaXe: d.nhaXe, soChuyen: 0, tongNhom: tongBangKe([]), dong: [] };
       nhom.push(g);
     }
     const { nhaXe: _bo, ...dongDto } = d;
