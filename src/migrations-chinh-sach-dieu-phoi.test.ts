@@ -112,6 +112,11 @@ test("(c) dữ liệu gieo: đúng một dòng chính sách 360/120/30/1/0 + k�
   );
   const lyDoGieo = rows(db, "SELECT code, reason_group, active, created_by FROM vc_reason ORDER BY reason_group, sort_order, code");
   assert.deepEqual(lyDoGieo.map((r) => `${r.reason_group}:${r.code}`), [
+    // 0071 (ADR-0055 VK2-A): nhóm lý do xe bận
+    "BAN_XE:BAN_XE_BAO_DUONG",
+    "BAN_XE:BAN_XE_DANG_KIEM",
+    "BAN_XE:BAN_XE_SUA_CHUA",
+    "BAN_XE:BAN_XE_KHAC",
     "BO_QUA_DIEM:BO_QUA_KHONG_CON_KHACH",
     "BO_QUA_DIEM:BO_QUA_KHAC",
     "DOI_GIO_XE:DOI_GIO_XE_TOI_SOM",
@@ -238,7 +243,9 @@ test("(b) TC-1 danh mục lý do: DELETE → RAISE (ngưng = active 0); không �
 test("(f) sổ dữ liệu có bốn bảng mới của van-chuyen (vc_reason là bảng tra cứu — khoá mã)", () => {
   const dict = JSON.parse(readFileSync(new URL("../docs/data-dictionary.json", import.meta.url), "utf8")) as { tables: { name: string; module: string; kind: string }[] };
   const pick = (name: string) => dict.tables.find((t) => t.name === name);
-  assert.deepEqual(pick("vc_dispatch_policy"), { name: "vc_dispatch_policy", module: "van-chuyen", kind: "table" });
+  // 0071 thêm ghi chú hai cột giờ lái (ADR-0055 VK2-B) — so tên / module / loại.
+  const { name, module, kind } = pick("vc_dispatch_policy")!;
+  assert.deepEqual({ name, module, kind }, { name: "vc_dispatch_policy", module: "van-chuyen", kind: "table" });
   assert.deepEqual(pick("vc_departure_rule"), { name: "vc_departure_rule", module: "van-chuyen", kind: "table" });
   assert.deepEqual(pick("vc_license_capacity"), { name: "vc_license_capacity", module: "van-chuyen", kind: "table" });
   assert.deepEqual(pick("vc_reason"), { name: "vc_reason", module: "van-chuyen", kind: "lookup" });
