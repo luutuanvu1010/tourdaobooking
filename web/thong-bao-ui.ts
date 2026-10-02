@@ -6,6 +6,8 @@ import { ApiError, api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
 import { icon, type IconName } from "./icons";
 import { taoBoLamMoi } from "./lam-moi-logic";
+import type { SuKienChuyen } from "../src/shared/bang-tin";
+import { thayDoiCoTheCoTin } from "../src/shared/tin-chuyen";
 import { gioVN, nhanSo, nhomTheoNgay, thoiGian } from "./thong-bao-logic";
 
 const KIND_ICON: Record<LoaiTin, IconName> = {
@@ -16,6 +18,7 @@ const KIND_ICON: Record<LoaiTin, IconName> = {
   giao: "swap",
   xac_nhan: "checkCircle",
   huy: "ban",
+  chuyen: "truck", // tin chuyến xe (ADR-0052 D6) — giữ màu mặc định `.ntf-badge`
 };
 /** Màu vòng biểu tượng theo loại (đúng bản mẫu: chờ nhận = cát, nhận/xác nhận = xanh lá, huỷ = nguy hiểm, tin công ty = primary/cát đậm nếu quan trọng; "lập"/"giao" giữ màu mặc định `.ntf-badge`). */
 const KIND_BADGE_CLASS: Partial<Record<LoaiTin, string>> = {
@@ -25,7 +28,7 @@ const KIND_BADGE_CLASS: Partial<Record<LoaiTin, string>> = {
   xac_nhan: "ntf-badge-nhan",
   huy: "ntf-badge-huy",
 };
-const MINE_NOTE = "Tin công ty gửi bạn, đơn bạn lập hoặc phụ trách, đơn chờ nhận.";
+const MINE_NOTE = "Tin công ty gửi bạn, đơn bạn lập hoặc phụ trách, đơn chờ nhận, chuyến xe liên quan tới bạn.";
 const ALL_NOTE = "Thêm tin về mọi đơn bạn được xem. Số đỏ trên chuông không đếm ngăn này.";
 
 /** `#strips` (dải mảnh dưới thanh đầu trang, dùng chung với `.maint-strip`) — tạo lười, cái nào chạy trước tạo (R7). */
@@ -226,6 +229,10 @@ export function ganThongBao(topbar: HTMLElement, staff: Staff): void {
   };
   const lamMoi = taoBoLamMoi(taiTomTat);
   window.addEventListener("don-thay-doi", () => void lamMoi.yeuCau());
+  // ADR-0052 D6: chỉ gọi lại khi đợt có loại thay đổi CÓ THỂ sinh tin (tạo, sửa, huỷ, gián đoạn, khách vắng) — tiến độ khác chỉ làm mới màn (vòng sửa 1, V1).
+  window.addEventListener("chuyen-thay-doi", (ev) => {
+    if ((ev as CustomEvent<SuKienChuyen[]>).detail.some((e) => thayDoiCoTheCoTin(e.thayDoi))) void lamMoi.yeuCau();
+  });
   window.addEventListener("can-tai-lai", () => void lamMoi.yeuCau());
 
   /**

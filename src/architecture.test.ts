@@ -891,6 +891,17 @@ test("ADR-0049 D2 (siết, kế hoạch mục 1.6): chỉ gốc lắp ráp (src/
   assert.deepEqual(problems, [], "orders nhận mốc qua ctx.mocToiThieu — không gọi thẳng hàm công bố của van-chuyen");
 });
 
+test("ADR-0052 D6.3 (siết): chỉ gốc lắp ráp (src/index.ts) và module van-chuyen nhắc `suKienTheoYeuCau` / `chuyenChoTinTheoId` (bỏ chú thích)", () => {
+  const problems: string[] = [];
+  for (const file of walk(SRC)) {
+    const rel = relative(ROOT, file).split(sep).join("/");
+    // Bài *.test.ts gọi hàm qua bản dựng của khung thử (tests/audit/harness.mjs) — không phải mã chạy thật.
+    if (rel === "src/index.ts" || rel.startsWith("src/modules/van-chuyen/") || rel.endsWith(".test.ts")) continue;
+    if (/\b(suKienTheoYeuCau|chuyenChoTinTheoId)\b/.test(maskSource(readFileSync(file, "utf8"), { strings: false, comments: true }))) problems.push(rel);
+  }
+  assert.deepEqual(problems, [], "thongbao nhận dữ kiện chuyến qua ctx.chuyenChoTin — không gọi thẳng hàm công bố của van-chuyen");
+});
+
 test("ADR-0068 Đ6 (siết): chỉ gốc lắp ráp (src/index.ts) và module chủ nhắc sáu hàm công bố của gộp hồ sơ (bỏ chú thích)", () => {
   const CHU: Record<string, string> = {
     viecXeCuaNguoi: "src/modules/van-chuyen/",

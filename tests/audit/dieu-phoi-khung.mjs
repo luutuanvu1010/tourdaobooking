@@ -154,13 +154,13 @@ export async function xepHet(w, chuyen, d, soNguoi, as = SALES) {
   return r.json;
 }
 /**
- * Một chuyến sẵn sàng xuất bến: xe `cho` chỗ, tài xế = tài khoản `taiXe` (mặc định DRIVER), một đơn `soNguoi` khách có tên đón 13:00, xếp hết. Trả id chuyến,
+ * Một chuyến sẵn sàng xuất bến: xe `cho` chỗ, tài xế = tài khoản `taiXe` (mặc định DRIVER), một đơn `soNguoi` khách có tên đón 13:00 (nơi đón `noiDon`), xếp hết. Trả id chuyến,
  * đơn, điểm đón / trả, suất.
  */
 export async function chuyenSan(w, v = {}) {
   const taiXe = v.taiXe ?? DRIVER;
   const soNguoi = v.soNguoi ?? 2;
-  const d = await don(w, { soNguoi, ten: v.ten ?? soNguoi, gio: v.gio ?? "13:00", ngay: v.ngay });
+  const d = await don(w, { soNguoi, ten: v.ten ?? soNguoi, gio: v.gio ?? "13:00", ngay: v.ngay, noiDon: v.noiDon });
   const c = await taoChuyen(w, { xe: v.xe ?? xe(w), taiXe: `pty-${taiXe}`, ngay: v.ngay, bd: v.bd, kt: v.kt, ngayKt: v.ngayKt });
   const sau = await xepHet(w, c, d, soNguoi);
   return {

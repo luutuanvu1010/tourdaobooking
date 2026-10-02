@@ -4,7 +4,7 @@
 //
 // Lớp Durable Object (`./tram`) KHÔNG được import ở đây, kể cả chỉ lấy kiểu: tệp đó chỉ chạy trong Worker và chỉ src/index.ts được nạp nó
 // (architecture.test.ts). Kiểu của stub đến từ `Env.BANG_TIN` (worker-configuration.d.ts).
-import { nhanKetNoi, type SuKienDon } from "../../shared/bang-tin";
+import { nhanKetNoi, type SuKienChuyen, type SuKienDon } from "../../shared/bang-tin";
 import { error, json } from "../../shared/http";
 import { route, type AppModule } from "../../shared/router";
 import { kiemOrigin } from "./rules";
@@ -41,6 +41,12 @@ export const bangtinModule: AppModule = {
  * Không có trạm (khung thử, `router.test.ts`) → không làm gì (DP-3). Lỗi ném ra được router bắt và ghi một dòng `bang_tin_loi` — không làm hỏng thao tác ghi.
  */
 export async function phatDon(env: Env, suKien: SuKienDon, nhan: string[]): Promise<void> {
+  if (!env.BANG_TIN) return;
+  await env.BANG_TIN.getByName(TEN_TRAM).phat(suKien, nhan);
+}
+
+/** ADR-0052 D6.4: phát một sự kiện CHUYẾN (đúng 4 khoá) tới kết nối mang một nhãn trong `nhan` (gốc lắp ráp tính bằng `nhanSuKienChuyen`). Không trạm → thôi. */
+export async function phatChuyen(env: Env, suKien: SuKienChuyen, nhan: string[]): Promise<void> {
   if (!env.BANG_TIN) return;
   await env.BANG_TIN.getByName(TEN_TRAM).phat(suKien, nhan);
 }

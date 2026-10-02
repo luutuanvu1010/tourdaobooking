@@ -215,3 +215,17 @@ test("nhanNhomNhan (ADR-0042): không liệt kê nhóm Toàn quyền trong \"G�
   assert.equal(nhanNhomNhan(["quyen:SUPER_ADMIN"]), "");
   assert.equal(nhanNhomNhan(["quyen:SALES", "quyen:ADMIN"]), "Bán hàng, Quản trị");
 });
+
+test("tin chuyến: chỉ ở hộp của người nhận (cuaToi), loại 'chuyen', không ở ngăn Tất cả của người khác; quá 30 ngày thì bỏ", () => {
+  const now = "2027-03-11T05:00:00.000Z";
+  const d = { id: "ev", tripId: "t1", maChuyen: "CX-1103-02", ngayChay: "2027-03-11", action: "trip_created", actorId: "s", luc: "2027-03-11T04:00:00.000Z",
+    lai: [{ partyId: "p-b", tu: "2027-03-11T04:00:00.000Z", den: null }], don: [] };
+  const tx = locHopThongBao({ id: "tx", permissions: ["DRIVER"], partyId: "p-b" }, { don: [], thuCong: [], chuyen: [d], docDenLuc: "2027-03-01T00:00:00.000Z", now, ngan: "cua-toi" });
+  assert.equal(tx.tin.length, 1);
+  assert.equal(tx.tin[0]!.loai, "chuyen");
+  assert.equal(tx.soChuaDoc, 1);
+  const kt = locHopThongBao({ id: "kt", permissions: ["ACCOUNTING"], partyId: null }, { don: [], thuCong: [], chuyen: [d], docDenLuc: now, now, ngan: "tat-ca" });
+  assert.equal(kt.tin.length, 0);
+  const cu = locHopThongBao({ id: "tx", permissions: ["DRIVER"], partyId: "p-b" }, { don: [], thuCong: [], chuyen: [{ ...d, luc: "2027-01-01T00:00:00.000Z", lai: [{ partyId: "p-b", tu: "2027-01-01T00:00:00.000Z", den: null }] }], docDenLuc: now, now, ngan: "cua-toi" });
+  assert.equal(cu.tin.length, 0);
+});

@@ -5,6 +5,7 @@
 // - Câu GHI sau câu cổng đều mang `EXISTS (SELECT 1 FROM vc_trip WHERE id = ?T AND last_cmd_id = ?cmd)` (bài thứ tự lô — Task A14). Mỗi suất MỘT câu INSERT
 //   (trigger sức chứa theo dòng — kế hoạch mục 4 điểm 3). Không câu DELETE nào (không xoá cứng).
 import { defineSql } from "../../shared/sql-registry.ts";
+import type { ChuyenChoTin } from "../../shared/tin-chuyen.ts";
 
 // ---- Đọc -------------------------------------------------------------------------------------------------------------------------------------------------------
 export interface TripRow {
@@ -695,4 +696,33 @@ const VIEC_XE_CUA_NGUOI = defineSql(
 export async function viecXeCuaNguoi(db: D1Database, partyId: string): Promise<{ laiChuyen: number; toLaiChuyen: number; chuXeChuyen: number; soXe: number }> {
   const r = await db.prepare(VIEC_XE_CUA_NGUOI).bind(partyId).first<{ lai: number; to_lai: number; chu_xe: number; so_xe: number }>();
   return { laiChuyen: r?.lai ?? 0, toLaiChuyen: r?.to_lai ?? 0, chuXeChuyen: r?.chu_xe ?? 0, soXe: r?.so_xe ?? 0 };
+}
+
+// ---- TIN CHUYẾN (ADR-0052 D6.3): dữ kiện cho thongbao / gốc lắp ráp qua hàm tiêm — chỉ khoá, mã chuyến, ngày, khoảng lái, đơn của suất vắng. ----
+const SU_KIEN_THEO_YEU_CAU = defineSql("van-chuyen", "su_kien_theo_yeu_cau", `SELECT id, trip_id, related_trip_id FROM vc_trip_event WHERE request_id = ?1`);
+const CHUYEN_CHO_TIN = defineSql("van-chuyen", "chuyen_cho_tin",
+  `SELECT t.id AS trip_id, t.code AS ma, t.service_date AS ngay_chay FROM vc_trip t WHERE t.id IN (SELECT value FROM json_each(?1))`);
+const LAI_CHO_TIN = defineSql("van-chuyen", "lai_cho_tin",
+  `SELECT d.trip_id, d.driver_party_id AS party_id, d.valid_from_at AS tu, d.valid_to_at AS den FROM vc_trip_driver d WHERE d.trip_id IN (SELECT value FROM json_each(?1))`);
+const VANG_CHO_TIN = defineSql("van-chuyen", "vang_cho_tin", `
+  SELECT e.id AS su_kien_id, k.order_id FROM vc_trip_event e
+  JOIN vc_trip_allocation a ON a.id = e.allocation_id JOIN v_ord_leg_key k ON k.id = a.leg_id
+  WHERE e.id IN (SELECT value FROM json_each(?1)) AND e.kind = 'PASSENGER_NO_SHOW'`);
+
+export async function suKienTheoYeuCau(db: D1Database, requestId: string): Promise<{ id: string; tripId: string; relatedTripId: string | null } | null> {
+  const r = await db.prepare(SU_KIEN_THEO_YEU_CAU).bind(requestId).first<{ id: string; trip_id: string; related_trip_id: string | null }>();
+  return r ? { id: r.id, tripId: r.trip_id, relatedTripId: r.related_trip_id } : null;
+}
+export async function chuyenChoTinTheoId(db: D1Database, q: { tripIds: readonly string[]; suKienIds: readonly string[] }): Promise<ChuyenChoTin> {
+  const tj = JSON.stringify([...new Set(q.tripIds)]);
+  const [t, l, v] = await Promise.all([
+    db.prepare(CHUYEN_CHO_TIN).bind(tj).all<{ trip_id: string; ma: string; ngay_chay: string }>(),
+    db.prepare(LAI_CHO_TIN).bind(tj).all<{ trip_id: string; party_id: string; tu: string; den: string | null }>(),
+    q.suKienIds.length ? db.prepare(VANG_CHO_TIN).bind(JSON.stringify([...new Set(q.suKienIds)])).all<{ su_kien_id: string; order_id: string }>() : Promise.resolve({ results: [] }),
+  ]);
+  return {
+    chuyen: t.results.map((c) => ({ tripId: c.trip_id, ma: c.ma, ngayChay: c.ngay_chay,
+      lai: l.results.filter((x) => x.trip_id === c.trip_id).map((x) => ({ partyId: x.party_id, tu: x.tu, den: x.den })) })),
+    vang: v.results.map((x) => ({ suKienId: x.su_kien_id, orderId: x.order_id })),
+  };
 }

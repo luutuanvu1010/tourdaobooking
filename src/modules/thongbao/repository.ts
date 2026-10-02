@@ -1,8 +1,9 @@
 // SQL của module thongbao (bảng ntf_*; ADR-0034 + ADR-0036). Mọi câu qua defineSql, tham số ?N. Đọc xuyên module CHỈ qua view công bố:
-// v_aud_order_event (audit), v_ord_order_label + v_ord_order_owner (orders), v_dsp_order_handler + v_dsp_first_handler (dispatch), v_stf_staff_label (staff).
+// v_aud_order_event + v_aud_trip_event (audit), v_ord_order_label + v_ord_order_owner (orders), v_dsp_order_handler + v_dsp_first_handler (dispatch), v_stf_staff_label (staff).
 // Không DELETE, không OR REPLACE (R-N1-9).
 import { defineSql } from "../../shared/sql-registry.ts";
 import type { DongDon, DongThuCong } from "../../shared/thong-bao.ts";
+import { HANH_DONG_TIN_CHUYEN, type DonCuaTin, type DongChuyenTho } from "../../shared/tin-chuyen.ts";
 
 const LIST_DON = defineSql("thongbao", "list_don", `
   SELECT e.id, e.order_id, o.order_code AS ma_don, e.action, e.staff_id AS actor_id, s.label AS ten_nguoi_lam, e.created_at AS luc,
@@ -187,3 +188,29 @@ export const tatMayStatement = (db: D1Database, staffId: string, endpoint: strin
   db.prepare(TAT_MAY).bind(staffId, endpoint, lyDo, at, by);
 export const hetHanStatement = (db: D1Database, endpoints: string[], at: string): D1PreparedStatement =>
   db.prepare(HET_HAN).bind(JSON.stringify(endpoints), at);
+
+// ADR-0052 D6.1: tin chuyến đọc v_aud_trip_event (audit) — chỉ khoá; danh sách hành động truyền bằng tham số JSON từ HANH_DONG_TIN_CHUYEN (một nguồn).
+const LIST_TIN_CHUYEN = defineSql("thongbao", "list_tin_chuyen", `
+  SELECT e.id, e.trip_id, e.staff_id AS actor_id, e.action, e.created_at AS luc FROM v_aud_trip_event e
+  WHERE e.created_at >= ?1 AND e.action IN (SELECT value FROM json_each(?2)) ORDER BY e.created_at DESC LIMIT 3000`);
+const TIN_CHUYEN_THEO_ID = defineSql("thongbao", "tin_chuyen_theo_id",
+  `SELECT e.id, e.trip_id, e.staff_id AS actor_id, e.action, e.created_at AS luc FROM v_aud_trip_event e WHERE e.id = ?1`);
+const DON_CHO_TIN = defineSql("thongbao", "don_cho_tin", `
+  SELECT o.id AS order_id, o.order_code AS ma_don, w.staff_id AS owner_id, h.staff_id AS handler_staff_id
+  FROM v_ord_order_label o JOIN v_ord_order_owner w ON w.id = o.id LEFT JOIN v_dsp_order_handler h ON h.order_id = o.id
+  WHERE o.id IN (SELECT value FROM json_each(?1))`);
+
+interface TinChuyenRow { id: string; trip_id: string; actor_id: string | null; action: string; luc: string }
+const tho = (r: TinChuyenRow): DongChuyenTho => ({ id: r.id, tripId: r.trip_id, actorId: r.actor_id, action: r.action, luc: r.luc });
+export async function listTinChuyen(db: D1Database, tu: string): Promise<DongChuyenTho[]> {
+  return (await db.prepare(LIST_TIN_CHUYEN).bind(tu, JSON.stringify(HANH_DONG_TIN_CHUYEN)).all<TinChuyenRow>()).results.map(tho);
+}
+export async function tinChuyenTheoId(db: D1Database, id: string): Promise<DongChuyenTho | null> {
+  const r = await db.prepare(TIN_CHUYEN_THEO_ID).bind(id).first<TinChuyenRow>();
+  return r ? tho(r) : null;
+}
+export async function donChoTin(db: D1Database, orderIds: readonly string[]): Promise<DonCuaTin[]> {
+  if (orderIds.length === 0) return [];
+  const r = (await db.prepare(DON_CHO_TIN).bind(JSON.stringify([...new Set(orderIds)])).all<{ order_id: string; ma_don: string; owner_id: string; handler_staff_id: string | null }>()).results;
+  return r.map((x) => ({ orderId: x.order_id, maDon: x.ma_don, ownerId: x.owner_id, handlerStaffId: x.handler_staff_id }));
+}

@@ -660,6 +660,17 @@
       ]
     },
     {
+      "name": "v_aud_trip_event",
+      "module": "audit",
+      "columns": [
+        "id",
+        "trip_id",
+        "staff_id",
+        "action",
+        "created_at"
+      ]
+    },
+    {
       "name": "v_ord_order_owner",
       "module": "orders",
       "columns": [

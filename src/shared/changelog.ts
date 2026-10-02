@@ -23,6 +23,16 @@ export const CHANGELOG: readonly ReleaseNote[] = [
     ],
   },
   {
+    // Vận chuyển Đợt 2 — tin báo + Bảng tin khi chuyến xe đổi (ADR-0052 D6), migration 0070 (chỉ một view). Số 1.69 TẠM — điều phối đánh lại lúc gộp.
+    version: "1.69",
+    date: "2026-10-02",
+    items: [
+      { kind: "moi", text: "Tài xế nhận thông báo khi được xếp lái, bị đổi sang người khác, chuyến bị sửa hoặc bị huỷ." },
+      { kind: "moi", text: "Văn phòng nhận thông báo khi một chuyến kết thúc giữa chừng, hoặc có khách vắng ở đơn mình lập hay phụ trách." },
+      { kind: "moi", text: "Màn Điều phối xe, Chi tiết chuyến và Cuốc của tôi tự cập nhật khi chuyến thay đổi, không cần tải lại trang." },
+    ],
+  },
+  {
     // Trang chủ máy tính theo bản vẽ "Trang chu may tinh v2.dc.html" (Claude Design 2026-10-02). Không migration, không đổi máy chủ.
     // Số 1.68 = main 1.67 + 1. KIỂM LẠI LÚC GỘP (nhánh khác gộp trước thì đánh lại số).
     version: "1.68",
