@@ -365,3 +365,18 @@ test("vòng 5g (K2e VỪA-1): CẢ THIEU_TEN lẫn KHACH_DA_DOI → dòng 'Đủ
   assert.deepEqual(dong([ly("KHACH_DA_DOI", khach), ly("THIEU_TEN", thieu)]), [{ nhan: "Đủ tên khách", dat: false, chiTiet: `${khach}; ${thieu} · Ai xử lý: Văn phòng` }]);
   assert.deepEqual(dong([ly("THIEU_TEN", thieu), ly("KHACH_DA_DOI", khach)]), [{ nhan: "Đủ tên khách", dat: false, chiTiet: `${thieu}; ${khach} · Ai xử lý: Văn phòng` }]);
 });
+
+test("viecCanXuLy + giờ lái (ADR-0055 VK2-B): GIO_LAI_VUOT / CHUYEN_DAI_CAN_NGHI → mục nhãn tiếng Việt, biểu tượng đồng hồ, tone vàng, không nút, mở Chi tiết chuyến", () => {
+  const L = lich({
+    chuyen: [chuyen({ id: "t1" })],
+    canhBao: [
+      { loai: "GIO_LAI_VUOT", nhan: "Tài xế lái quá giờ tối đa trong ngày", legId: null, tripId: "t1", maDon: null },
+      { loai: "CHUYEN_DAI_CAN_NGHI", nhan: "Chuyến dài — nhớ cho tài xế nghỉ giữa chuyến", legId: null, tripId: "t1", maDon: null },
+    ],
+  });
+  const v = viecCanXuLy(L, { dieuPhoi: true, phaLe: false, quanLyXe: false }).filter((x) => x.bieuTuong === "clock");
+  assert.deepEqual(v.map((x) => [x.loai, x.tone, x.tieuDe, x.href, x.hanhDong.length]), [
+    ["Tài xế lái quá giờ tối đa trong ngày", "warn", "CX-3009-07", "/chuyen?id=t1", 0],
+    ["Chuyến dài — nhớ cho tài xế nghỉ giữa chuyến", "warn", "CX-3009-07", "/chuyen?id=t1", 0],
+  ]);
+});

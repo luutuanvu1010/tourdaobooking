@@ -12,7 +12,7 @@ import { vnLocalToMs } from "./vn-date.ts";
 
 const PHUT = 60_000;
 const ms = (d: string, t: string) => vnLocalToMs(d, t)!;
-const CS: ChinhSachVao = { id: "cs-1", minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes: 30, requireManifest: true, requireContract: false };
+const CS: ChinhSachVao = { id: "cs-1", minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes: 30, requireManifest: true, requireContract: false, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240 };
 const HB: HangBangVao[] = [
   { classCode: "B", maxPassengers: 8 }, { classCode: "D1", maxPassengers: 16 }, { classCode: "D2", maxPassengers: 29 }, { classCode: "D", maxPassengers: null },
   { classCode: "B2_OLD", maxPassengers: 8 }, { classCode: "C_OLD", maxPassengers: 8 }, { classCode: "D_OLD", maxPassengers: 29 }, { classCode: "E_OLD", maxPassengers: null },
@@ -35,7 +35,7 @@ function tao(v: Partial<KiemTaoSuaChuyenVao["chuyen"]> = {}, khac: KhungChuyen[]
 const khung = (v: Partial<KhungChuyen>): KhungChuyen => ({ id: "cx-khac", ma: "CX-3009-11", xeId: "xe-a", taiXePartyId: "tx-khac", batDauMs: BAT_DAU, ketThucMs: KET_THUC, ketThucThatMs: null, trangThai: "PLANNED", ...v });
 
 test("kiemTaoSuaChuyen: xe 15 chỗ + tài xế hạng D1 còn hạn, không trùng, không mốc → đạt", () => {
-  assert.deepEqual(kiemTaoSuaChuyen(tao()), { ok: true, chan: [], canPhaLe: [] });
+  assert.deepEqual(kiemTaoSuaChuyen(tao()), { ok: true, chan: [], canPhaLe: [], nhacGioLai: [] });
 });
 
 test("TC-17 LC-12 lúc gán tài xế: hạng B với xe 15 chỗ; GPLX hết hạn TRƯỚC giờ kết thúc (kể cả chuyến qua nửa đêm); chưa có GPLX; GPLX chưa ghi hạng; không dòng hạng bằng", () => {
@@ -529,4 +529,14 @@ test("D9 B9.3 (MỘT hàm cho xe và tài xế — chuẩn bị Đợt 6): khung
   const kb: KhungBanVao = { id: "kb2", doiTuong: "DRIVER", xeId: null, taiXePartyId: "tx-an", batDauMs: ms("2026-09-30", "05:00"), ketThucMs: ms("2026-09-30", "12:00"), lyDoNhan: "Việc riêng" };
   const kq = kiemTaoSuaChuyen(tao({}, [], { khungBan: [kb] }));
   assert.ok(kq.chan.some((l) => l.ma === "TRUNG_GIO_TAI_XE" && /lịch tài xế bận/.test(l.loiNhan)));
+});
+
+test("VK2-B B3: kiemTaoSuaChuyen trả nhacGioLai cho CHÍNH chuyến đang tạo/gán (không đổi ok); chuyến mới 4 giờ 30 + chuyến khác 4 giờ → CHUYEN_DAI_CAN_NGHI + GIO_LAI_VUOT", () => {
+  const khac = [khung({ id: "k1", ma: "CX-1", xeId: "xe-khac", taiXePartyId: "tx-an", batDauMs: ms("2026-09-30", "00:30"), ketThucMs: ms("2026-09-30", "04:30") })];
+  const kq = kiemTaoSuaChuyen(tao({ batDauMs: ms("2026-09-30", "10:00"), ketThucMs: ms("2026-09-30", "14:30") }, khac));
+  assert.equal(kq.ok, true, JSON.stringify(kq));
+  assert.deepEqual(kq.nhacGioLai.map((x) => x.loai).sort(), ["CHUYEN_DAI_CAN_NGHI", "GIO_LAI_VUOT"]);
+  assert.equal(kq.nhacGioLai.every((x) => x.tripId === "__moi__"), true, "chỉ gắn chuyến đang tạo");
+  // Không tài xế → không nhắc giờ lái.
+  assert.deepEqual(kiemTaoSuaChuyen(tao({ taiXe: null, batDauMs: ms("2026-09-30", "10:00"), ketThucMs: ms("2026-09-30", "14:30") }, khac)).nhacGioLai, []);
 });
