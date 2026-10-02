@@ -11,8 +11,8 @@ import {
 import { MA_GIU } from "./ly-do-giu.ts";
 import { LENH_XEP } from "./moc-toi-thieu.ts";
 
-test("NHOM_LY_DO: đúng bảy nhóm của thiết kế [TK] §1.9, có nhãn tiếng Việt; isNhomLyDo chỉ nhận đúng mã", () => {
-  assert.deepEqual([...NHOM_LY_DO], ["DOI_GIO_XE", "BAO_HUY_DIEM", "PHA_LE", "TU_CHOI_NHAN", "KET_THUC_GIAN_DOAN", "HUY_CHUYEN", "BO_QUA_DIEM"]);
+test("NHOM_LY_DO: đúng tám nhóm — bảy của thiết kế [TK] §1.9 + BAN_XE từ ADR-0055; có nhãn tiếng Việt; isNhomLyDo chỉ nhận đúng mã", () => {
+  assert.deepEqual([...NHOM_LY_DO], ["DOI_GIO_XE", "BAO_HUY_DIEM", "PHA_LE", "TU_CHOI_NHAN", "KET_THUC_GIAN_DOAN", "HUY_CHUYEN", "BO_QUA_DIEM", "BAN_XE"]);
   for (const g of NHOM_LY_DO) assert.ok(NHAN_NHOM_LY_DO[g].trim().length > 0, g);
   assert.equal(Object.keys(NHAN_NHOM_LY_DO).length, NHOM_LY_DO.length);
   assert.equal(isNhomLyDo("PHA_LE"), true);

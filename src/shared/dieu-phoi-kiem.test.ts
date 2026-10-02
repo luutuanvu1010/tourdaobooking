@@ -4,7 +4,7 @@
 // hạng lạ → CHẶN (không đoán).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import type { ChangVao, ChinhSachVao, ChuyenVao, DiemVao, DieuKienVao, HangBangVao, KhungChuyen, SuatVao, TaiXeVao, XeVao } from "./dieu-phoi-kieu.ts";
+import type { ChangVao, ChinhSachVao, ChuyenVao, DiemVao, DieuKienVao, HangBangVao, KhungBanVao, KhungChuyen, SuatVao, TaiXeVao, XeVao } from "./dieu-phoi-kieu.ts";
 import { changXetTheoDon, khoaNguoiRanh, kiemKetThuc, lyDoNoiTra, lyDoThieuTen, kiemTaoSuaChuyen, kiemXep, kiemXuatBen, noiLechCuaSuat, suatKhachDaDoi, tenLucXep, trongNgayChay, type KiemTaoSuaChuyenVao, type KiemXuatBenVao } from "./dieu-phoi-kiem.ts";
 import { NUT_CAP_NHAT_KHACH, type LyDoGiu } from "./ly-do-giu.ts";
 import { batDauSomNhatSauDoiGio } from "./moc-toi-thieu.ts";
@@ -507,4 +507,26 @@ test("lyDoNoiTra / lyDoThieuTen — hai hàm dùng chung của cổng xuất b�
   assert.equal(lyDoThieuTen(chang({ nguoiCuaDon: [] }), false), null, "chính sách không bắt danh sách");
   assert.equal(lyDoThieuTen(chang({ nguoiCuaDon: ["p1", "p2"] }), true)?.loiNhan, "Chưa đủ tên khách: ĐH-1024 thiếu 2 tên");
   assert.equal(lyDoThieuTen(chang(), true, { chuaTen: 3, ranh: 1 })?.loiNhan, "Chưa đủ tên khách: ĐH-1024 thiếu 2 tên", "suất chưa tên trên chuyến nhiều hơn khoá rảnh");
+});
+
+// ---- Khung bận (ADR-0055 VK2-A A2 (i); ADR-0053 D9 B9.3 — kế hoạch Đợt 3 Task 2) ------------------------------------------------------------------------
+test("VK2-A A2 (i) lớp máy chủ: tạo / dời giờ / đổi xe vào khung bận còn hiệu lực của xe → chặn TRUNG_GIO_XE kèm chi tiết 'lịch xe bận'; khung xe khác → không", () => {
+  const kb: KhungBanVao = { id: "kb1", doiTuong: "VEHICLE", xeId: "xe-a", taiXePartyId: null, batDauMs: ms("2026-09-30", "05:00"), ketThucMs: ms("2026-09-30", "17:00"), lyDoNhan: "Bảo dưỡng" };
+  const kq = kiemTaoSuaChuyen(tao({}, [], { khungBan: [kb] }));
+  assert.equal(kq.ok, false);
+  assert.ok(kq.chan.some((l) => l.ma === "TRUNG_GIO_XE" && /lịch xe bận: Bảo dưỡng 05:00 30\/09 → 17:00 30\/09/.test(l.loiNhan)), JSON.stringify(kq.chan));
+  const khac = kiemTaoSuaChuyen(tao({}, [], { khungBan: [{ ...kb, xeId: "xe-khac" }] }));
+  assert.equal(khac.chan.some((l) => l.ma === "TRUNG_GIO_XE"), false);
+  // Nửa mở: khung kết thúc đúng lúc chuyến bắt đầu → không chặn.
+  const mep = kiemTaoSuaChuyen(tao({}, [], { khungBan: [{ ...kb, batDauMs: ms("2026-09-30", "03:00"), ketThucMs: BAT_DAU }] }));
+  assert.equal(mep.chan.some((l) => l.ma === "TRUNG_GIO_XE"), false);
+  // Đổi xe (SUA) sang xe đang có khung → chặn.
+  const doiXe = kiemTaoSuaChuyen(tao({ id: "cx-1" }, [], { lenh: "SUA", cu: { batDauMs: BAT_DAU, batDauSomNhatMs: BAT_DAU, xeId: "xe-b", taiXePartyId: "tx-an", trangThai: "PLANNED" }, khungBan: [kb] }));
+  assert.ok(doiXe.chan.some((l) => l.ma === "TRUNG_GIO_XE" && /lịch xe bận/.test(l.loiNhan)));
+});
+
+test("D9 B9.3 (MỘT hàm cho xe và tài xế — chuẩn bị Đợt 6): khung DRIVER của tài xế được gán → chặn TRUNG_GIO_TAI_XE kèm 'lịch tài xế bận'", () => {
+  const kb: KhungBanVao = { id: "kb2", doiTuong: "DRIVER", xeId: null, taiXePartyId: "tx-an", batDauMs: ms("2026-09-30", "05:00"), ketThucMs: ms("2026-09-30", "12:00"), lyDoNhan: "Việc riêng" };
+  const kq = kiemTaoSuaChuyen(tao({}, [], { khungBan: [kb] }));
+  assert.ok(kq.chan.some((l) => l.ma === "TRUNG_GIO_TAI_XE" && /lịch tài xế bận/.test(l.loiNhan)));
 });
