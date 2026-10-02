@@ -4,6 +4,16 @@
 > **Nhánh / worktree:** `worktree-dot-0-luong-l` ở `.claude/worktrees/dot-0-luong-l`, tách từ `main` cục bộ `df6bc864` (chưa lên `origin/main`: nhánh mang theo cả các commit kế hoạch + gia hạn TNV-G1 của `gia-han-tnv-g1`).
 > **Xây trên lỗ đang hở: F-02** (HIGH, hạn 2026-10-15, `docs/quyen-hoan.json`). Lớp này là cách vá. Nếu tới 12/10 kiểm độc lập vòng 2 chưa ĐẠT → báo chủ ngay.
 
+## TRẠNG THÁI HIỆN TẠI — phiên sau đọc mục này trước (cập nhật 2026-10-02, commit `b604a937`)
+- **XONG, đừng làm lại:** L0–L14 (checklist mục 1 đã đánh `[x]` cùng commit), "commit bài đỏ trước", kiểm độc lập vòng 1 **ĐẠT** + đã xử lý phát hiện N1/N2/G1/G5, vá 401 giữ vé, kịch bản Chrome (`lop-ve-smoke` 6/6; 7 kịch bản đỏ có sẵn GIỐNG nền `df6bc864`), sửa kiểm kiểu đỏ. Hàng rào H1–H7, H9 (CSDL), D1 giả nghiêm, T17, cổng khoá L13 đều có dòng ngày ở `docs/SO-HANG-RAO.md`.
+- **Số đo cuối (đo bằng mã thoát):** `npm run typecheck` 0; `npm test` 2886/2886 + bài đo giờ; `build:web` 0; e2e đủ bộ 45/45 (chạy trên `b158fd4a`+; sau đó chỉ đổi `web/` + kiểu ⇒ chưa chạy lại e2e trên `b604a937`).
+- **ĐANG CHỜ:** kiểm độc lập vòng 2 (L15) giao trên `a0d02168`, đã báo người kiểm áp kết luận cho `b604a937`. Chưa có báo cáo ⇒ CHƯA ĐẠT. Phiên sau: nếu không thấy mục "Kiểm độc lập vòng 2 — ĐẠT" bên dưới thì giao lại vòng 2 cho `nguoi-kiem-doc-lap` trên commit đầu nhánh (không làm lại thi công).
+- **Sau khi vòng 2 ĐẠT:** đánh `[x]` L15 ở checklist; đo lại số migration (mục "Việc phải làm LÚC GỘP"); đưa chủ MỘT lần `npm run day-len -- worktree-dot-0-luong-l` rồi `npm run trien-khai` (cần triển khai: migration 0074 + mã). Kiểm số phiên bản 1.71 lúc gộp.
+- **Việc của chủ (không phải AI):** L16 (thử iPhone thật T3 sau triển khai); duyệt đề xuất luật `2026-10-02-dot-0-de-xuat-luat.md` ("duyệt 1–3"). Sau triển khai AI chạy lại T12 rồi mới đóng F-02 ở `docs/quyen-hoan.json`.
+- **Chưa quan sát trên production:** chữ lỗi D1 khi đụng vé (N2) — mới thấy trên D1 local của `wrangler dev`.
+- **`main` đã đi trước (đo 2026-10-02):** `main` = `667d3704`, luồng Q + Trang chủ 1.73 đã gộp và ĐÃ LÊN PRODUCTION bản **1.74**, migration `0075_tin_tai_khoan` ĐÃ ÁP remote. ⇒ Luồng L là nhánh gộp SAU: trước day-len phải gộp `main` vào nhánh, đánh lại nhật ký **1.71 → 1.75** (+ bài ghim `app-info.test.ts`), chạy lại H2 (số cứng 129), H5 (e2e đủ bộ), H7, typecheck + `npm test`; nếu có sửa mã sau gộp thì cho người kiểm xem phần chênh. `0074` áp SAU `0075` vẫn được (wrangler theo dõi theo TÊN tệp) — kiểm lại bằng `src/migrations-*.test.ts` sau gộp.
+- **Ngoài phạm vi lượt này:** màn "Thời hạn giữ vé", Cron dọn, bản nghiêm (A-11; bài không-vé + redteam R1/R2 chỉ xanh ở bản nghiêm).
+
 ## Giữ chỗ số migration — **`0074_lan_gui.sql`** (đã lấy 2026-10-02)
 
 Đo lại ở L0 (2026-10-02):
