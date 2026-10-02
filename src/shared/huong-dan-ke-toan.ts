@@ -8,7 +8,7 @@ export const HD_KE_TOAN: NhomHuongDan = {
   gioiThieu:
     "Bạn là kế toán của công ty. Bạn xem được mọi đơn: khách, dịch vụ, số khách, tiền, lịch sử sửa đơn, và mở được biên nhận để gửi khách. Trên trang đơn, bạn ghi và đối chiếu tiền, bấm Hoàn thành, đánh dấu đã nhập phần mềm kế toán. Bạn không lập, không sửa, không xác nhận, không huỷ đơn.",
   batDauNhanh: `1. Mở app. App vào thẳng [[Trang chủ]].
-2. Nhìn ba ô số trên cùng: **Còn thiếu tiền**, **Đơn chờ xác nhận**, **Chưa có người phụ trách**. Đây là số của cả công ty.
+2. Nhìn thẻ số liệu: **Còn thiếu tiền**, **Chờ xác nhận**, **Chưa phụ trách**. Đây là số của cả công ty.
 3. Bấm [[Đơn hàng]] để xem danh sách đơn.
 4. Gõ tên khách, số điện thoại hoặc mã đơn vào ô tìm kiếm của danh sách.
 5. Bấm vào một đơn, xem khối **Thanh toán** để biết tổng tiền, đã thu và còn lại.
