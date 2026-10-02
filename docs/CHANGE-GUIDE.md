@@ -834,6 +834,16 @@ Quyết định của chủ dự án (nguồn: `docs/HANDOFF-CHE-DO-BAO-TRI.md` 
 - **Kiểm:** `node --test src/modules/orders/price-guards.test.ts src/modules/orders/nhap-tay-route.test.ts src/nhap-tay-guard.test.ts src/migrations-nhap-tay.test.ts` → `npm test` → `npm run test:e2e -- nhap-tay-va-gia-doi-tac` (kịch bản tự đưa công tắc về TẮT ở cuối — D1 chung) → Chrome `docs/evidence/2026-09-30-adr-0061/kich-ban/nhap-tay-smoke.mjs` + ba `a2-smoke-*.mjs`.
 - **Bẫy:** Đối tác KHÔNG xác nhận được đơn nháp của mình mà văn phòng đã thêm dòng nhập tay (R2 ở xác nhận — hệ quả có chủ ý, ADR-0061); văn phòng xác nhận thay. `R-ORD-NT1` (warn) sẽ hiện các đơn đó nếu người lập mang quyền Đối tác — rà theo mã đơn.
 
+### z9. Thêm một núm giao diện (ADR-0087)
+
+Núm = một ô chỉnh ở màn Giao diện công ty, ánh xạ tới MỘT token của `:root`. Nguồn: `src/shared/giao-dien.ts` (thuần, dùng chung máy chủ và màn chỉnh).
+1. Token phải CÓ SẴN ở `:root` của `public/app.css` (bài `src/giao-dien-mac-dinh.test.ts` đỏ nếu không). Thêm một dòng vào `NUM` (`khoa` tiếng Việt không dấu, `nhan` lời thường, `nhom`, `loai` `mau|phong|co|dam`, `token`; `co`/`dam` thêm `min`/`max`) và đúng một giá trị vào `MAC_DINH` bằng giá trị `:root` hiện tại.
+2. Núm là MÀU CHỮ hoặc MÀU NỀN đứng cạnh nhau → thêm cặp `[chữ, nền, tên cặp]` vào `CAP_TUONG_PHAN` (máy chủ chặn cặp dưới 4,5:1).
+3. Nếu giá trị `:root` của token là `var()` của núm khác → khai núm con → núm cha ở `CHA` (nếu không, kiểm tương phản chấm bằng màu mặc định cũ).
+4. Nếu đổi núm phải kéo thêm token khác (vd độ đậm, viền/hover của nút) → khai ở `KEO_THEO`.
+5. Chạy `node --test src/giao-dien-mac-dinh.test.ts src/shared/giao-dien.test.ts`. Không cần migration (`tokens` là JSON mở). Ghi nhật ký phiên bản như công thức t.
+- **Tắt khẩn** khi giao diện hỏng mà không vào được màn chỉnh: `UPDATE gd_setting SET tokens = '{}', version = version + 1 WHERE id = 'default'` (chủ tự chạy theo `docs/HANDOFF-N1.md`); mọi người thấy giao diện mặc định ở lần mở trang kế tiếp.
+
 ### z8. Cấp phiên đăng nhập, luật một máy, kết thúc phiên (ADR-0075 Phần A)
 
 **Luật (một nơi mỗi việc):**

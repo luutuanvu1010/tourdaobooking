@@ -11,6 +11,15 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Có migration 0069 (ADR-0087). Số 1.66 = nền 1.65 (nhánh thanh-sang-chu-manh, chưa gộp) + 1. KIỂM LẠI LÚC GỘP.
+    version: "1.66",
+    date: "2026-10-02",
+    items: [
+      { kind: "moi", text: "Toàn quyền đổi được màu nền, thanh, nút, phông và cỡ chữ của cả app ở Tôi → Giao diện; mọi người thấy ở lần mở trang kế tiếp." },
+      { kind: "doi", text: "Thanh trên cùng bản máy tính đổi màu theo cài đặt giao diện, giống thanh trên điện thoại." },
+    ],
+  },
+  {
     // Thanh sáng + chữ mảnh (chủ dự án duyệt bản xem trước 2026-10-02): chỉ CSS token + thẻ meta iOS, không migration.
     // Số "1.65" = main 1.64 + 1. KIỂM LẠI LÚC GỘP (nhánh khác gộp trước thì đánh lại số).
     version: "1.65",
