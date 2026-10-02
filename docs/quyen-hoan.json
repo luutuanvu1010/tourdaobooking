@@ -46,5 +46,51 @@
     { "method": "POST", "path": "/api/account/thong-bao/may/huy", "loai": "ngoại lệ", "ly_do": "Tự phục vụ: tắt địa chỉ nhận của chính mình, một máy hoặc mọi máy (ADR-0036 điều 1–2, 6); chỉ đổi dòng của staffId trong phiên." }
   ],
   "_phat_hien_mo_ta": "Phát hiện an ninh/tiền mức HIGH trở lên từ kiểm toán/red team còn MỞ (luật 'dừng dây chuyền', CLAUDE.md §3, chủ duyệt 2026-09-24). Mỗi mục có người chịu trách nhiệm và hạn; quá hạn → npm test đỏ (src/phat-hien-han.test.ts) cho tới khi vá (xoá mục trong cùng commit vá) hoặc chủ dự án gia hạn bằng diff có lý do trong thông điệp commit.",
-  "phat_hien": []
+  "phat_hien": [
+    {
+      "ma": "F-02",
+      "muc_do": "HIGH",
+      "ly_do": "Lệnh ghi không chống gửi lặp (mất sóng sau khi máy chủ đã lưu rồi gửi lại): lập đơn ra 2 đơn + 2 hồ sơ khách, ghi lần thu ra 2 lần thu, ghi hoàn ra 2 lần hoàn, ghi nộp ra 2 lần nộp (sổ âm). Chạy thật đêm 1→2/10 trên app tạm: tình huống 11, 12, 13, HD10, KT03, KT04 (gốc G2 của báo cáo thử nghiệp vụ). Gộp phát hiện thử nghiệp vụ G2 vào đây (cùng gốc).",
+      "ke_hoach": "Khoá lần gửi theo đặc tả docs/superpowers/specs/2026-09-22-chong-gui-trung.md (mở rộng cho thu, hoàn, nộp, điều chỉnh); chủ dự án duyệt đặc tả trước; thi công có người kiểm độc lập; kịch bản kiem lai: ~/Documents/danh-gia-ux/2026-10-01/kich-ban/nhom-2.mjs 11 12, vai-kt.mjs KT03 KT04.",
+      "han": "2026-10-15",
+      "nguoi_chiu_trach_nhiem": "chủ dự án",
+      "nguon": "docs/AUDIT-2026-09-22-KIEN-TRUC.md F-02; ~/Documents/danh-gia-ux/2026-10-01/BAO-CAO.md G2; chủ dự án đồng ý đưa vào sổ 2026-10-02 (câu 1: \"Có\")"
+    },
+    {
+      "ma": "F-03",
+      "muc_do": "HIGH",
+      "ly_do": "Khoá tiền của đơn đã xác nhận chỉ nằm ở mã; không có lưới subtotal = Σ line_total ở CSDL hay ở bộ kiểm bất biến; thành tiền dòng tính tay ở 6 nơi (GD-B-02 của đánh giá kiến trúc 1/10 — người đánh giá hạ TRUNG BÌNH, chủ giữ theo mức gốc HIGH).",
+      "ke_hoach": "Thêm kiểm Σ line_total ở audit-invariants + trigger hoặc một hàm tính duy nhất; người kiểm độc lập.",
+      "han": "2026-10-31",
+      "nguoi_chiu_trach_nhiem": "chủ dự án",
+      "nguon": "docs/AUDIT-2026-09-22-KIEN-TRUC.md F-03; ~/Documents/danh-gia-kien-truc/2026-10-01/BAO-CAO-CHI-TIET.md GD-B-02, GD-T-01; chủ dự án đồng ý 2026-10-02"
+    },
+    {
+      "ma": "TNV-G1",
+      "muc_do": "HIGH",
+      "ly_do": "Đơn huỷ còn tiền đã thu: \"phải thu\" không về 0 nên sổ, trang đơn và biên nhận gửi khách vẫn ghi \"còn lại\", dư chờ hoàn = 0, nút hoàn không hiện, Kế toán không có danh sách nhắc (src/modules/orders/hoan-tat.ts:9-17,64). Khách đã trả tiền cho tour không đi, không ai chủ động hoàn. Tình huống 09, 26, HD06, HD08, QT05, DT04.",
+      "ke_hoach": "Theo ADR-0089 (nháp, chủ đã chọn: dấu \"cần hoàn cọc\" hiện ở cả biên nhận, trang đơn và màn sổ — 2026-10-02); chủ duyệt văn bản ADR rồi thi công, người kiểm độc lập.",
+      "han": "2026-10-15",
+      "nguoi_chiu_trach_nhiem": "chủ dự án",
+      "nguon": "~/Documents/danh-gia-ux/2026-10-01/BAO-CAO.md G1; chủ dự án đồng ý đưa vào sổ 2026-10-02"
+    },
+    {
+      "ma": "TNV-G3",
+      "muc_do": "HIGH",
+      "ly_do": "Sửa sai sau \"Đã giao\": Kế toán đảo lần thu ghi nhầm được nhưng không ghi lại được lần thu đúng (409 order_delivered), vậy mà đơn vẫn Hoàn thành với \"còn lại\" > 0 — tiền biến khỏi sổ (200.000–800.000đ trong lần thử); audit-invariants R-BIL-1 chỉ so tại mốc Đã giao nên không bắt (src/modules/billing/service.ts:218-222). Tình huống 30, 49, KD06, DT05.",
+      "ke_hoach": "Theo ADR-0088 (nháp, chủ đã chọn: bất biến \"đã thu = phải thu\" xét LUÔN LUÔN — 2026-10-02): cho ghi lại sau khi đảo, chặn Hoàn thành khi lệch, sửa R-BIL-1; người kiểm độc lập.",
+      "han": "2026-10-31",
+      "nguoi_chiu_trach_nhiem": "chủ dự án",
+      "nguon": "~/Documents/danh-gia-ux/2026-10-01/BAO-CAO.md G3; chủ dự án đồng ý 2026-10-02"
+    },
+    {
+      "ma": "TNV-G4",
+      "muc_do": "HIGH",
+      "ly_do": "Sổ tiền thiếu ràng buộc: hoàn rồi đảo lần thu gốc làm \"đã thu\" ÂM, biên nhận đòi khách hơn giá đơn (KT06, src/modules/billing/service.ts:461-486); ghi nộp quá số đang giữ / cho người không giữ làm số dư âm, đơn vẫn Hoàn thành (KT04); điều chỉnh không trần, lý do một ký tự (KT05); hai người khai cùng một khoản chuyển khoản đều được xác nhận rồi bị hoàn (KT02). audit-invariants báo xanh (KT10).",
+      "ke_hoach": "Theo ADR-0088 (nháp): không cho \"đã thu\" / số dư âm, nộp ≤ đang giữ, điều chỉnh có trần và lý do thật, bất biến mới trong audit-invariants; người kiểm độc lập.",
+      "han": "2026-10-31",
+      "nguoi_chiu_trach_nhiem": "chủ dự án",
+      "nguon": "~/Documents/danh-gia-ux/2026-10-01/BAO-CAO.md G4; chủ dự án đồng ý 2026-10-02"
+    }
+  ]
 }
