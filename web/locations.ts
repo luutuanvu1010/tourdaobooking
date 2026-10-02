@@ -77,7 +77,7 @@ function openEdit(l: Api.LocationDto): void {
   const address = h("input", { type: "text", value: l.address ?? "", maxLength: 300 });
   const sort = h("input", { type: "number", value: String(l.sortOrder), min: 0, max: 9999 });
   const active = h("input", { type: "checkbox", checked: l.active, style: "width:auto;display:inline;margin:0 6px 0 0" });
-  const save = h("button", { type: "button", class: "btn btn-primary" }, "Lưu");
+  const save = h("button", { type: "button", class: "btn btn-primary btn-chinh" }, "Lưu");
   const close = h("button", { type: "button", class: "btn" }, "Đóng");
   close.addEventListener("click", () => (editEl.hidden = true));
   save.addEventListener("click", async () => {

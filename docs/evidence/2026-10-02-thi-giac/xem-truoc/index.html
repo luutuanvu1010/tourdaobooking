@@ -59,12 +59,12 @@ ul.list li::marker { color: var(--muted); }
 .screens button:focus-visible, .mode button:focus-visible, .flip button:focus-visible { outline: 3px solid var(--lagoon); outline-offset: 2px; }
 .bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
 .mode, .flip { display: flex; flex-wrap: wrap; gap: 6px; }
-.grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; align-items: start; }
+.grid3 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; align-items: start; }
 .grid3.wide { grid-template-columns: 1fr; }
 figure { margin: 0; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 figcaption { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 500; }
 figcaption .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
-.d0 { background: var(--muted); } .d1 { background: var(--navy); } .d2 { background: var(--lagoon); }
+.d0 { background: var(--muted); } .d1 { background: var(--navy); } .d2 { background: var(--lagoon); } .d3 { background: var(--coral); }
 .shot { display: block; width: 100%; height: auto; border-radius: 12px; box-shadow: var(--shadow); background: var(--surface); outline: 1px solid var(--line); }
 .phone .shot { max-width: 390px; }
 .note { font-size: 14px; color: var(--muted); }
@@ -85,6 +85,18 @@ figcaption .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
     <p class="lead">Hai hướng đề xuất, chụp trên chính Nền tảng (dữ liệu thử) để bạn so với hiện tại. Bố cục giữ nguyên; chỉ đổi màu, chiều sâu, chi tiết và cảm giác khi chạm.</p>
     <div class="motto"><span class="m1">Năng động</span><span class="m2">Tin cậy</span><span class="m3">Tinh tế</span></div>
   </header>
+
+  <section class="doc">
+    <div class="panel dir a">
+      <span class="tag">Đã thi công · bản 1.69</span>
+      <h3>Bạn chọn hướng A đầy đủ; mã đã làm xong, chờ đưa lên Nền tảng</h3>
+      <ul class="list">
+        <li>Xem cột <b>"Đã thi công"</b> trong phần so sánh bên dưới: ảnh chụp từ mã thật, không phải lớp xem trước.</li>
+        <li>Một chỉnh nhỏ so với bản xem trước: dải tóm tắt đơn chuyển sang ngọc đậm hơn ở đầu phải, để số "Còn lại" màu vàng đủ rõ (trước 3,72:1, nay 5,04:1).</li>
+        <li>Mọi nút Lưu / Gửi / Áp dụng / Xác nhận trên các màn đều đặc màu như nhau; nút phụ vẫn nhạt.</li>
+      </ul>
+    </div>
+  </section>
 
   <section class="doc">
     <h2>Vì sao hiện tại trông "nhạt"</h2>
@@ -149,7 +161,8 @@ figcaption .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
       <div class="flip" id="flip" role="group" aria-label="Chọn bản" hidden>
         <button type="button" data-ban="hien-tai" aria-pressed="false">Hiện tại</button>
         <button type="button" data-ban="huong-b" aria-pressed="false">B · Nhẹ nhàng</button>
-        <button type="button" data-ban="huong-a" aria-pressed="true">A · Năng động</button>
+        <button type="button" data-ban="huong-a" aria-pressed="false">A · Năng động</button>
+        <button type="button" data-ban="sau" aria-pressed="true">Đã thi công</button>
       </div>
     </div>
     <div class="grid3" id="grid"></div>
@@ -175,8 +188,8 @@ const MAN = [
   ["mt-trang-chu", "Trang chủ · máy tính"], ["mt-don-hang", "Đơn hàng · máy tính"], ["mt-chi-tiet-don", "Chi tiết đơn · máy tính"],
   ["mt-lap-don", "Tạo đơn · máy tính"], ["mt-dang-nhap", "Đăng nhập · máy tính"], ["mt-toi", "Trang Tôi · máy tính"],
 ];
-const BAN = [["hien-tai", "Hiện tại", "d0"], ["huong-b", "B · Nhẹ nhàng", "d1"], ["huong-a", "A · Năng động", "d2"]];
-const state = { man: "dt-trang-chu", mode: "side", ban: "huong-a" };
+const BAN = [["hien-tai", "Hiện tại", "d0"], ["huong-b", "B · Nhẹ nhàng", "d1"], ["huong-a", "A · Năng động", "d2"], ["sau", "Đã thi công (1.69)", "d3"]];
+const state = { man: "dt-trang-chu", mode: "side", ban: "sau" };
 const $ = (id) => document.getElementById(id);
 const src = (ban, man) => `anh/${ban}-${man}.jpg`;
 

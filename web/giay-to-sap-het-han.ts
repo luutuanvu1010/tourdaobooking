@@ -100,7 +100,7 @@ function moDoiMoc(opener: HTMLElement, hienTai: number): void {
   const o = h("input", { id: "moc-nhac", class: "vc-input", type: "text", inputmode: "numeric", value: String(hienTai), autocomplete: "off", "aria-describedby": "moc-nhac-loi" }) as HTMLInputElement;
   const loi = h("div", { id: "moc-nhac-loi", class: "vc-field-error", role: "alert", hidden: true });
   const huy = h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary" }, "Huỷ");
-  const luu = h("button", { type: "button", class: "vc-btn btn btn-primary", "data-action": "doi-moc-luu" }, "Lưu");
+  const luu = h("button", { type: "button", class: "vc-btn btn btn-primary btn-chinh", "data-action": "doi-moc-luu" }, "Lưu");
   const bang = moBangTruot({
     title: "Mốc nhắc giấy tờ sắp hết hạn",
     body: [h("div", { class: "vc-field" }, h("label", { for: "moc-nhac" }, "Nhắc trước (ngày)"), o, loi), h("p", { class: "dp-note" }, "Áp cho giấy tờ xe và giấy tờ cá nhân, có hiệu lực ngay.")],

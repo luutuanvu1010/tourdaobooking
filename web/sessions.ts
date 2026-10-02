@@ -158,7 +158,7 @@ if (!can(staff, "auth.session.viewAll")) {
       h(
         "div",
         { class: "maint-actions" },
-        nut(kemPin ? "Xác nhận gỡ và đặt lại PIN" : "Xác nhận gỡ", () => void goPhien(s, kemPin), "btn btn-primary"),
+        nut(kemPin ? "Xác nhận gỡ và đặt lại PIN" : "Xác nhận gỡ", () => void goPhien(s, kemPin), "btn btn-primary btn-chinh"),
         nut("Thôi", () => {
           xacNhan = null;
           render();

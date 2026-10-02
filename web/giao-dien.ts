@@ -113,8 +113,9 @@ function dungXemTruoc(): void {
     h("p", null, "Chữ nội dung: Chị Nguyễn Thu Hà · Tour 4 đảo · 6 khách."),
     h("p", { class: "muted" }, "Chữ phụ: Đón tại khách sạn lúc 07:30."),
     theDonMau(),
-    h("div", { class: "gd-xem-nut" }, h("button", { type: "button", class: "btn btn-primary" }, "Nút chính"), h("button", { type: "button", class: "btn" }, "Nút phụ"),
-      h("button", { type: "button", class: "btn btn-accent" }, "Xác nhận đơn")));
+    // Thị giác 1.69: "Lưu" = nút lưu / xác nhận chính đặc màu (núm "Nền/Chữ nút lưu, xác nhận"); "Nút phụ" = .btn-primary nhạt (núm "Màu chính nhạt").
+    h("div", { class: "gd-xem-nut" }, h("button", { type: "button", class: "btn btn-primary btn-chinh" }, "Lưu"), h("button", { type: "button", class: "btn btn-primary" }, "Nút phụ"),
+      h("button", { type: "button", class: "btn" }, "Nút viền"), h("button", { type: "button", class: "btn btn-accent" }, "Xác nhận đơn")));
 }
 
 async function napLai(): Promise<void> {
@@ -130,7 +131,7 @@ function hoiXacNhan(): void {
   replaceChildren(xacNhanEl,
     h("p", null, "Áp dụng giao diện này cho mọi người? Mọi người sẽ thấy ở lần mở trang kế tiếp."),
     h("div", { class: "actions" },
-      h("button", { type: "button", class: "btn btn-primary", onclick: () => void apDung() }, "Áp dụng"),
+      h("button", { type: "button", class: "btn btn-primary btn-chinh", onclick: () => void apDung() }, "Áp dụng"),
       h("button", { type: "button", class: "btn", onclick: () => { xacNhanEl.hidden = true; } }, "Thôi")));
   xacNhanEl.hidden = false;
 }

@@ -44,6 +44,11 @@ const VAI = [
   "--c-selected-bg", "--c-selected-text", "--c-selected-border",
   "--c-tab-new-bg", "--c-tab-new-icon", "--c-band-bg", "--c-on-band", "--c-maint-bg",
   "--c-tab-active-bg", "--c-tab-active-text", "--c-fab-bg", "--c-fab-text", "--c-fab-hover-bg", "--c-avatar-bg", "--c-avatar-text",
+  // Thị giác 1.69 (đặc tả 2026-10-02-thi-giac-nen-tang-design.md): nút phụ nền nhạt, dải tóm tắt đơn đậm, ô chức năng theo nhóm, tiêu điểm / chỉ báo.
+  "--c-btn-soft-bg", "--c-btn-soft-text", "--c-btn-soft-border", "--c-btn-soft-hover-bg",
+  "--c-summary-bg", "--c-summary-bg-2", "--c-on-summary", "--c-summary-due",
+  "--c-tile-vc-bg", "--c-tile-vc", "--c-tile-toi-bg", "--c-tile-toi", "--c-tile-all-bg", "--c-tile-all",
+  "--c-focus", "--c-focus-ring", "--c-indicator", "--c-input-border", "--c-input-border-hover",
 ];
 
 test("màu theo vai: mọi token vai khai ở :root", () => {
@@ -104,6 +109,16 @@ test("màu theo vai: mọi cặp chữ/nền của thanh, nút chính, mục đa
     ["--c-fab-text", "--c-fab-bg"],
     ["--c-fab-text", "--c-fab-hover-bg"],
     ["--c-avatar-text", "--c-avatar-bg"],
+    // Thị giác 1.69: dải tóm tắt đơn là dải màu chuyển — chữ phải đọc được trên CẢ HAI đầu dải.
+    ["--c-btn-soft-text", "--c-btn-soft-bg"],
+    ["--c-btn-soft-text", "--c-btn-soft-hover-bg"],
+    ["--c-on-summary", "--c-summary-bg"],
+    ["--c-on-summary", "--c-summary-bg-2"],
+    ["--c-summary-due", "--c-summary-bg"],
+    ["--c-summary-due", "--c-summary-bg-2"],
+    ["--c-tile-vc", "--c-tile-vc-bg"],
+    ["--c-tile-toi", "--c-tile-toi-bg"],
+    ["--c-tile-all", "--c-tile-all-bg"],
   ];
   const loi = cap.map(([chu, nen]) => `${chu} trên ${nen}: ${tuongPhan(chu, nen).toFixed(2)}:1`).filter((_, i) => tuongPhan(...cap[i]!) < 4.5);
   assert.deepEqual(loi, []);
@@ -119,6 +134,31 @@ test("ô gõ: font-size đọc --fs-ui, và --fs-ui không bao giờ nhỏ hơn 
   const luatO = [...luat.matchAll(/([^{}]+)\{([^{}]*)\}/g)].find((m) => /(?:^|,)\s*input, select, textarea\s*(?:,|$)/.test(m[1]!.trim().split("\n").pop()!.trim()) && m[2]!.includes("font-size"));
   assert.ok(luatO, "không thấy luật `input, select, textarea` có font-size");
   assert.match(luatO[2]!, /font-size:\s*var\(--fs-ui\)/);
+});
+
+// Thị giác 1.69 (chủ dự án duyệt 2/10): CHỈ nút lưu / xác nhận chính đặc màu (núm "Nền/Chữ nút lưu, xác nhận" = --c-btn-primary-*);
+// mọi .btn-primary khác giữ nền nhạt (--c-btn-soft-*). Đổi bộ chọn ngữ cảnh mà quên một nơi = nút chính nhạt lại hoặc mọi nút đặc hết.
+test("nút chính đặc: nút gửi form, chân bảng trượt, Đăng nhập đọc --c-btn-primary-*; .btn-primary còn lại đọc --c-btn-soft-*", () => {
+  const luatCua = (sel: RegExp) => [...luat.matchAll(/([^{}]+)\{([^{}]*)\}/g)].filter((m) => sel.test(m[1]!.trim().split("\n").pop()!.trim())).map((m) => m[2]!);
+  const goc = luatCua(/^\.btn-primary$/);
+  assert.equal(goc.length, 1, "phải có đúng một luật gốc `.btn-primary {`");
+  assert.match(goc[0]!, /background:\s*var\(--c-btn-soft-bg\)/);
+  assert.match(goc[0]!, /color:\s*var\(--c-btn-soft-text\)/);
+  const dac = luatCua(/^\.btn-primary\[type="submit"\], \.btn-primary\.btn-chinh, \.sheet-foot \.btn-primary, \.login-actions \.login-submit$/);
+  assert.equal(dac.length, 1, "thiếu luật nút chính đặc cho bốn ngữ cảnh (nút gửi form, lớp .btn-chinh, chân bảng trượt, Đăng nhập)");
+  assert.match(dac[0]!, /background:\s*var\(--c-btn-primary-bg\)/);
+  assert.match(dac[0]!, /color:\s*var\(--c-btn-primary-text\)/);
+});
+
+// Thị giác 1.69: thẻ nhấc khi rê, nút / ô chức năng lún khi bấm. Máy đặt "Giảm chuyển động" thì tắt CẢ chuyển tiếp lẫn độ nhấc / lún
+// (luật toàn cục `* { transition: none !important }` có sẵn không gỡ transform). Mọi khối reduced-motion của app.css viết MỘT dòng.
+test("chuyển động: máy đặt Giảm chuyển động thì tắt chuyển tiếp và mọi độ nhấc / lún mới", () => {
+  const khoi = [...luat.matchAll(/^@media \(prefers-reduced-motion: reduce\) \{(.*)\}/gm)].map((m) => m[1]!);
+  assert.ok(khoi.some((k) => /transition:\s*none/.test(k)), "thiếu luật tắt chuyển tiếp khi Giảm chuyển động");
+  const tatTransform = khoi.filter((k) => /transform:\s*none/.test(k)).join(" ");
+  for (const sel of [".btn:not(:disabled):active", ".order-card:hover", ".dash-o-muc:active", "#tabbar .tab:active .tab-icon"]) {
+    assert.ok(tatTransform.includes(sel), `Giảm chuyển động chưa gỡ độ nhấc / lún của ${sel}`);
+  }
 });
 
 // Núm "Độ đậm chữ nội dung" chỉ có tác dụng nếu chữ gốc của trang đọc --fw-regular (viết tắt `font:` đặt lại độ đậm về thường).

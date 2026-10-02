@@ -13,7 +13,7 @@ import { canSeeReviewAlerts, reviewAlerts, type ReviewAlerts } from "../src/shar
 import { can } from "../src/shared/permissions";
 import { homeRedirect } from "../src/shared/start-page";
 import { cotNhom, conLai, dongThoiGian, loiChao, phutVN, type DongThoiGian, type LoaiChuyen } from "../src/shared/trang-chu-may-tinh";
-import { nhomMayTinh, oTrangChu, type KhoaO, type LuoiTrangChu, type OChucNang } from "../src/shared/trang-chu-o";
+import { mauO, nhomMayTinh, oTrangChu, type KhoaO, type LuoiTrangChu, type OChucNang } from "../src/shared/trang-chu-o";
 import { vnToday } from "../src/shared/vn-date";
 
 const SHORT_WEEKDAY = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"]; // chỉ số = Date.getUTCDay() (0 = Chủ nhật)
@@ -346,11 +346,13 @@ function datHuyHieu(k: KhoaO, n: number): void {
   for (const hop of hopTrenLuoi.get(k) ?? []) veHuyHieu(hop, k);
 }
 
-/** Một ô: ô vuông bo góc (biểu tượng + huy hiệu / chấm "có bản mới") và nhãn tối đa hai dòng. "Tạo đơn" là ô duy nhất màu san hô (hành động chốt). */
+/** Một ô: ô vuông bo góc (biểu tượng + huy hiệu / chấm "có bản mới") và nhãn tối đa hai dòng. Màu ô theo nhóm (`mauO`, thị giác 1.69): "Tạo đơn" san hô
+ * (hành động chốt), Vận chuyển ngọc, Của tôi cát, còn lại màu biển. */
 function oChucNang(o: OChucNang, ghiNho: boolean): HTMLElement {
+  const mau = mauO(o.khoa);
   const hop = h(
     "span",
-    { class: o.khoa === "tao-don" ? "dash-o-hop dash-o-hop-chot" : "dash-o-hop" },
+    { class: mau ? `dash-o-hop dash-o-hop-${mau}` : "dash-o-hop" },
     icon(ICON_O[o.khoa], 26),
     o.khoa === "tro-giup" && helpHasNews() && h("span", { class: "dash-o-cham", role: "img", "aria-label": "Có bản mới" }),
   );
@@ -377,7 +379,7 @@ function veLuoi(staff: Staff): void {
   luoiTrangChu = luoi;
   const cacO = luoi.luoi.map((x) => oChucNang(x, true));
   if (luoi.coTatCa) {
-    const nut = h("button", { type: "button", class: "dash-o-muc", "aria-haspopup": "dialog" }, h("span", { class: "dash-o-hop" }, icon("grid", 26)), h("span", { class: "dash-o-nhan" }, "Tất cả"));
+    const nut = h("button", { type: "button", class: "dash-o-muc", "aria-haspopup": "dialog" }, h("span", { class: "dash-o-hop dash-o-hop-tat-ca" }, icon("grid", 26)), h("span", { class: "dash-o-nhan" }, "Tất cả"));
     nut.addEventListener("click", () => moTatCa(nut));
     cacO.push(nut);
   }

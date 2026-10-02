@@ -843,6 +843,14 @@ Núm = một ô chỉnh ở màn Giao diện công ty, ánh xạ tới MỘT tok
 4. Nếu đổi núm phải kéo thêm token khác (vd độ đậm, viền/hover của nút) → khai ở `KEO_THEO`.
 5. Chạy `node --test src/giao-dien-mac-dinh.test.ts src/shared/giao-dien.test.ts`. Không cần migration (`tokens` là JSON mở). Ghi nhật ký phiên bản như công thức t.
 - **Tắt khẩn** khi giao diện hỏng mà không vào được màn chỉnh: `UPDATE gd_setting SET tokens = '{}', version = version + 1 WHERE id = 'default'` (chủ tự chạy theo `docs/HANDOFF-N1.md`); mọi người thấy giao diện mặc định ở lần mở trang kế tiếp.
+- **Từ 1.69** (đặc tả `2026-10-02-thi-giac-nen-tang-design.md`): núm "Nền/Chữ nút lưu, xác nhận" (`--c-btn-primary-*`) điều khiển nút chính ĐẶC màu; nút `.btn-primary` còn lại nền nhạt đi theo `--c-btn-soft-*` (= "Màu chính nhạt" + "Màu chính"). `CHA`: `nen-nut-chinh → mau-chinh`; `chu-nut-chinh` không có cha (chữ trắng cố định).
+
+### z10. Nút lưu / xác nhận chính đặc màu (thị giác 1.69)
+
+- **Luật:** MỘT luật trong `public/app.css` quyết nút nào đặc: `.btn-primary[type="submit"]`, `.btn-primary.btn-chinh`, `.sheet-foot .btn-primary`, `.login-actions .login-submit` (bài `src/token-giao-dien.test.ts` canh đúng bộ chọn này). Bị khoá → về kiểu nhạt; Đăng nhập đang gửi (`.is-loading`) giữ đặc.
+- **Màn mới:** nút CHỐT của một khối (Lưu, Gửi, Áp dụng, Xác nhận, Tạo…) mà là `type="button"` và không nằm ở chân bảng trượt → thêm lớp `btn-chinh` (`"btn btn-primary btn-chinh"`). Nút hành động phụ (mở bảng, chuyển trang, "Nhận phụ trách", "Xem biên nhận") giữ `btn btn-primary` (nhạt). Một khối chỉ nên có MỘT nút đặc; hành động chốt đơn ("Tạo đơn", "Xác nhận đơn") vẫn là `btn-accent` (san hô).
+- **Màu ô chức năng Trang chủ** theo nhóm: `mauO()` ở `src/shared/trang-chu-o.ts` (Tạo đơn san hô, Vận chuyển ngọc, Của tôi cát, còn lại biển) — thêm ô mới chỉ cần đúng `nhom`.
+- **Chuyển động:** luật nhấc / lún mới phải thêm bộ chọn vào khối `@media (prefers-reduced-motion: reduce)` CUỐI `app.css` (bài token đếm danh sách).
 
 ### z8. Cấp phiên đăng nhập, luật một máy, kết thúc phiên (ADR-0075 Phần A)
 

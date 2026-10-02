@@ -441,7 +441,7 @@ function openEdit(it: CatalogAdminItem): void {
     el.addEventListener("input", () => (el.value = el.value.trim() === "" ? "" : grouped(parseMoney(el.value))));
     fields.set(c, el);
   }
-  const save = h("button", { type: "button", class: "btn btn-primary" }, "Lưu ghi đè");
+  const save = h("button", { type: "button", class: "btn btn-primary btn-chinh" }, "Lưu ghi đè");
   const close = h("button", { type: "button", class: "btn" }, "Đóng");
   close.addEventListener("click", () => (editEl.hidden = true));
   save.addEventListener("click", async () => {
@@ -601,7 +601,7 @@ function moDuaDon(it: CatalogAdminItem, opener: HTMLElement | null): void {
   const truongTra = h("div", { class: "dd-o" }, h("label", { for: oNoiTra.id }, "Nơi trả gợi ý"), oNoiTra, h("div", { id: `dd-tra-${luot}-goi-y`, class: "dd-goi-y" }, "Để trống nếu không gợi ý"), ghiNgung);
   const apDung = h("p", { class: "dd-ghi muted" }, "Áp dụng cho đơn lập từ bây giờ; đơn đã có không đổi.");
   const lichSuEl = h("div", { class: "dd-lich-su" }, h("p", { class: "muted" }, "Đang tải…"));
-  const luu = h("button", { type: "button", class: mayTinh ? "btn btn-primary" : "btn btn-primary dd-luu-day", "data-action": "dd-luu", disabled: true }, "Lưu bản mới");
+  const luu = h("button", { type: "button", class: mayTinh ? "btn btn-primary btn-chinh" : "btn btn-primary btn-chinh dd-luu-day", "data-action": "dd-luu", disabled: true }, "Lưu bản mới");
   function ve(): void {
     for (const [m, o] of radio) {
       o.checked = m === mode;

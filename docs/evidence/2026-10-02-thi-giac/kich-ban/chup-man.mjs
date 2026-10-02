@@ -20,6 +20,8 @@ const BAN = SO_SANH
   : { "": "" };
 if (process.env.BAN_CHI) for (const k of Object.keys(BAN)) if (!process.env.BAN_CHI.split(",").includes(k)) delete BAN[k];
 const CHI = process.env.CHI ? new Set(process.env.CHI.split(",")) : null;
+const AXE = process.env.AXE_JS ? readFileSync(process.env.AXE_JS, "utf8") : null;
+let axeLoi = 0;
 mkdirSync(OUT, { recursive: true });
 
 const KHO = {
@@ -106,6 +108,13 @@ try {
         (await import("node:fs")).writeFileSync(anh, Buffer.from(r.result.data, "base64"));
       } else await hanGio(p.shot(anh), 30000, `chụp ${ten}`);
       if (p.consoleErrors.length) console.log(`! lỗi JS ${kho}-${ten}: ${p.consoleErrors.slice(0, 3).join(" | ")}`);
+      // AXE_JS=<…/axe.min.js>: quét axe sau khi chụp — chỉ in vi phạm mức serious / critical (cùng ngưỡng các kịch bản Chrome khác).
+      if (AXE) {
+        if (!(await p.ev("typeof axe !== 'undefined'"))) await p.ev(`${AXE}\n;true`);
+        const v = await hanGio(p.ev("axe.run(document).then((r) => r.violations.filter((x) => x.impact === 'serious' || x.impact === 'critical').map((x) => ({ id: x.id, impact: x.impact, nodes: x.nodes.slice(0, 3).map((n) => n.target.join(' ')) })))"), 30000, `axe ${ten}`);
+        axeLoi += v.length;
+        console.log(v.length ? `✗ axe ${kho}-${ten}: ${JSON.stringify(v)}` : `  axe ${kho}-${ten}: 0 vi phạm serious/critical`);
+      }
       console.log(`✓ ${thuMuc.split("/").pop()} ${kho}-${ten}`);
     } catch (e) {
       console.log(`✗ ${kho}-${ten}: ${e.message}`);
@@ -119,9 +128,11 @@ try {
     mkdirSync(thuMuc, { recursive: true });
     for (const [kho, vp] of Object.entries(KHO)) {
       if (!CHI || CHI.has("dang-nhap")) await chup(thuMuc, css, kho, vp, "dang-nhap", "/login", false);
-      for (const [ten, duong] of TRANG) if (!SO_SANH || TIEU_BIEU.has(ten)) await chup(thuMuc, css, kho, vp, ten, duong);
+      for (const [ten, duong] of TRANG) if (!SO_SANH || TIEU_BIEU.has(ten) || process.env.TAT_CA) await chup(thuMuc, css, kho, vp, ten, duong);
     }
   }
+  if (AXE) console.log(axeLoi ? `✗ axe: ${axeLoi} vi phạm serious/critical` : "✓ axe: 0 vi phạm serious/critical ở mọi màn đã quét");
+  if (AXE && axeLoi) process.exitCode = 1;
 } finally {
   await env.stop();
 }

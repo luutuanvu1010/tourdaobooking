@@ -11,6 +11,20 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Thị giác toàn Nền tảng "Năng động – Tin cậy – Tinh tế" (đặc tả docs/superpowers/specs/2026-10-02-thi-giac-nen-tang-design.md, chủ duyệt hướng A 2/10).
+    // Chỉ giao diện: không migration, không đổi máy chủ. Số 1.69 = main 1.68 + 1. KIỂM LẠI LÚC GỘP (một nhánh khác cũng đang ghi "1.69": đánh lại số nếu nó gộp trước).
+    version: "1.69",
+    date: "2026-10-02",
+    items: [
+      { kind: "doi", text: "Giao diện làm mới cho cả Nền tảng: nền trang xám xanh nhẹ, các thẻ có bóng mềm, ô nhập rõ viền hơn. Bố cục và cỡ chữ giữ nguyên." },
+      { kind: "doi", text: "Nút lưu, xác nhận chính (cuối form, trong bảng trượt, nút Đăng nhập) nay đặc màu xanh biển, dễ nhận ra. Các nút khác vẫn nền nhạt." },
+      { kind: "doi", text: "Thêm màu xanh ngọc cho mục đang chọn ở thanh bên và ô đang gõ. Ô chức năng ở Trang chủ tô màu theo nhóm, nhóm Vận chuyển màu ngọc." },
+      { kind: "doi", text: "Điện thoại: nút tròn Tạo đơn ở thanh dưới đặc màu san hô; thanh dưới trong mờ như kính." },
+      { kind: "sua", text: "Đầu trang chi tiết đơn: số tiền Còn lại trước đây rất khó đọc, nay là chữ vàng trên dải màu xanh đậm." },
+      { kind: "doi", text: "Rê chuột hay bấm vào thẻ, nút có hiệu ứng nhẹ. Máy đặt Giảm chuyển động thì hiệu ứng tự tắt." },
+    ],
+  },
+  {
     // Trang chủ máy tính theo bản vẽ "Trang chu may tinh v2.dc.html" (Claude Design 2026-10-02). Không migration, không đổi máy chủ.
     // Số 1.68 = main 1.67 + 1. KIỂM LẠI LÚC GỘP (nhánh khác gộp trước thì đánh lại số).
     version: "1.68",

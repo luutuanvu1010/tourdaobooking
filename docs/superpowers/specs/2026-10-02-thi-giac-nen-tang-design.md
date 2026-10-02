@@ -1,6 +1,7 @@
 # Thị giác toàn Nền tảng: "Năng động – Tin cậy – Tinh tế" (bản 1.69)
 
-- **Ngày:** 2026-10-02. **Trạng thái:** chờ chủ dự án duyệt đặc tả (hướng thiết kế ĐÃ chọn, xem dưới).
+- **Ngày:** 2026-10-02. **Trạng thái:** **ĐÃ DUYỆT** 2026-10-02 (chủ dự án: "Duyệt, thi công luôn" — kể cả đổi nghĩa hai núm nút chính ở §4). Đã thi công cùng ngày, bản 1.69 — xem §9.
+- **Thay cho** (chủ duyệt, cùng lượt): ở đặc tả đã duyệt `2026-10-02-giao-dien-cong-ty-design.md` (ADR-0087), dòng "Nút" của bảng núm — nhãn "Nền/Chữ nút chính" nay là "Nền/Chữ nút lưu, xác nhận" và điều khiển nút chính ĐẶC màu; mặc định "Nền trang" `#eaf2f8` → `#f2f5f9`, "Viền" `#d3e1ec` → `#e1e7ef`. Đặc tả cũ KHÔNG sửa (luật: không sửa đặc tả đã duyệt để hợp thức hoá mã); tệp này là nguồn cho phần thay đổi.
 - **Lời giao việc (chủ dự án, 2/10):** "xử lý bề mặt, thị giác dành cho toàn bộ Nền tảng… nhìn chưa được bắt mắt và tối ưu, cảm giác kém thu hút… phương châm: Năng động, tin cậy và Tinh tế. Giữ lại bố cục chung."
 - **Bản xem trước đã cho chủ xem:** artifact "Thị giác Island Booking" (https://claude.ai/artifact/KohvwKX2j75JS8DTYqssE9) — ảnh chụp THẬT của Nền tảng trên D1 tạm, ba bản "Hiện tại / B Nhẹ nhàng / A Năng động", 12 màn (6 điện thoại 390, 6 máy tính 1280). Nguồn ảnh và lớp CSS đề xuất: `docs/evidence/2026-10-02-thi-giac/` (`de-xuat/chung.css` = B, `chung.css` + `huong-a.css` = A, kịch bản `kich-ban/chup-man.mjs`).
 - **Chủ đã chốt (4 câu, 2/10, đều chọn khuyến nghị) = hướng A đầy đủ:**
@@ -65,6 +66,12 @@ Ba tông theo người (hoãn từ 1/10); đổi phông/cỡ/độ đậm; đổ
 4. Chụp ảnh "sau", so 12 màn với bản xem trước; chạy 4 kịch bản Chrome.
 5. Nhật ký phiên bản 1.69, cập nhật chú thích token / `web/CLAUDE.md` (nhóm token), `docs/BACKLOG.md`; commit.
 6. Một vòng kiểm độc lập chỉ đọc cuối (nhìn ảnh đối chiếu bản xem trước + đọc diff `giao-dien.ts`), vì `giao-dien.ts` là luật kiểm hợp lệ dùng chung với máy chủ.
+
+## 9. Thi công (2026-10-02) — hai điều chỉnh so với bản xem trước
+1. **Dải tóm tắt đơn:** bài tương phản bắt được ở bản xem trước, chữ vàng "Còn lại" trên đầu PHẢI của dải (ngọc `#0e7490`) chỉ 3,72:1. Đầu cuối dải đổi sang ngọc đậm `#155e75` (vàng 5,04:1, chữ trắng 7,27:1); nhìn gần như không khác. Bài token đo chữ với CẢ HAI đầu dải (`--c-summary-bg`, `--c-summary-bg-2`).
+2. **"Nút chính" theo ngữ cảnh không đủ:** nhiều nút chốt là `type="button"` (Lưu ở Địa điểm, Quản lý tài khoản, Danh mục, Lý do điều phối…). Thêm lớp đánh dấu `.btn-chinh` vào 20 nút chốt như vậy (account, chinh-sach-dieu-phoi, chinh-sach-dang-nhap-ui, catalog ×2, danh-muc-giay-to-khoi ×2, giay-to-sap-het-han, giao-dien, dieu-kien-xuat-ben ×2, feedback, ly-do-dieu-phoi ×2, locations, parties, sessions, staff) để mọi màn nhất quán. Nút hành động phụ ("Nhận phụ trách", "Xem biên nhận", "Thêm giấy tờ" mở bảng) giữ nhạt. Công thức cho màn mới: `docs/CHANGE-GUIDE.md` z10.
+- Khung xem trước của màn Giao diện có thêm mẫu "Lưu" (đặc) và "Nút phụ" (nhạt) cho khớp hai núm.
+- Luật riêng `.vc-btn.btn-primary` (viền + rê chuột theo token nút chính cũ) bị bỏ: luật chung của `.btn-primary` đã lo, giữ thì nút nhạt Vận chuyển rê chuột thành chữ xanh trên nền xanh đậm.
 
 ## 8. Rủi ro
 - Trình duyệt cũ: `backdrop-filter` (iOS 9+ có tiền tố), `:is()` (iOS 14+); không dùng `color-mix()`. Thiếu hỗ trợ ⇒ thanh tab nền trắng đục như nay, không vỡ.
