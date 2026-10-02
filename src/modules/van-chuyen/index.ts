@@ -93,7 +93,7 @@ const ID_CHUYEN_RE = /^[A-Za-z0-9-]{3,64}$/;
 async function phanHoiChiPhi(db: D1Database, tripId: string, nhan: (ids: readonly string[]) => Promise<Map<string, string> | null>, r: { ok: true; lap: boolean } | { ok: false; res: Response } | null): Promise<Response> {
   if (r === null) return error(404, "not_found", "Không tìm thấy chuyến xe.");
   if (!r.ok) return r.res;
-  const dto = await docChiPhiChuyen(db, tripId, nhan);
+  const dto = await docChiPhiChuyen(db, tripId, nhan, vnToday(new Date()));
   return dto ? json({ chiPhi: dto } satisfies ChiPhiChuyenResponse, r.lap ? 200 : 201) : error(404, "not_found", "Không tìm thấy chuyến xe.");
 }
 const CAN_DANH_MUC_TUYEN = () => error(403, "forbidden", "Tài khoản này không xem được danh mục tuyến, cỡ xe.");
@@ -913,7 +913,7 @@ export const vanChuyenModule: AppModule = {
     route("GET", "/api/van-chuyen/chuyen/:id/chi-phi", "office", async ({ env, params, staff, nhanNhanVien }) => {
       if (!can(staff, "transport.cost.view")) return CAN_CHI_PHI();
       const id = params.id ?? "";
-      const dto = ID_CHUYEN_RE.test(id) ? await docChiPhiChuyen(env.DB, id, nhanNhanVien) : null;
+      const dto = ID_CHUYEN_RE.test(id) ? await docChiPhiChuyen(env.DB, id, nhanNhanVien, vnToday(new Date())) : null;
       return dto ? json({ chiPhi: dto } satisfies ChiPhiChuyenResponse) : error(404, "not_found", "Không tìm thấy chuyến xe.");
     }),
     route("POST", "/api/van-chuyen/chuyen/:id/chi-phi/dieu-chinh", "office", async ({ env, request, params, staff, nhanNhanVien }) => {

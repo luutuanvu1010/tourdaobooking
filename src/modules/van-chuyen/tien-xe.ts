@@ -100,6 +100,14 @@ export function ngayDieuChinhMacDinh(v: { trangThai: TrangThaiChuyenTien; ngayHu
   return v.trangThai === "CANCELLED" && v.ngayHuy !== null ? v.ngayHuy : v.homNay;
 }
 
+/**
+ * Đặt giá được không (ADR-0057 C5 — "lấy lại giá bảng" / "giá thoả thuận"): chuyến chưa xuất bến, xe thuê, chưa có nguồn giá còn hiệu lực, nhà xe đang hợp tác.
+ * MỘT luật cho cờ `coTheNhapThoaThuan` / `coTheChupLai` của DTO và cho việc tra `giaBangCoThe` (Task 13).
+ */
+export function datGiaDuoc(v: { trangThai: TrangThaiChuyenTien; rented: number; dong: readonly DongChiPhi[]; nhaXeDangHopTac: boolean }): boolean {
+  return v.trangThai === "PLANNED" && v.rented === 1 && nguonGiaConHieuLuc(v.dong) === null && v.nhaXeDangHopTac;
+}
+
 /** Lý do "Phí huỷ muộn" — ràng buộc hợp đồng với nhà xe (ADR-0095 Q4, Q5). */
 export const LY_DO_PHI_HUY_MUON = "CPX_HUY_MUON";
 /**

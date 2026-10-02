@@ -4,7 +4,9 @@
 //   (2) `tongChiPhiChuyen`, `tongBangKe`, `tongDieuChinh` chỉ ĐỊNH NGHĨA ở src/modules/van-chuyen/tien-xe.ts;
 //   (3) ở tệp dựng DTO / xử lý route tiền xe, mọi trường `tong`, `tongCong`, `tongNhom`, `tongDieuChinh` (khai `x:` hoặc gán `.x =`) có vế phải BẮT ĐẦU bằng
 //       `tongChiPhiChuyen(` / `tongBangKe(` / `tongDieuChinh(`;
-//   (4) `web/**` không cộng tiền chi phí (`amount +`, `soTien +`, `.tong +`, `tongNhom +`).
+//   (4) `web/**` không cộng tiền chi phí (`amount +`, `soTien +`, `.tong +`, `tongNhom +`);
+//   (5) Task 13 (ADR-0095 Q9): ở tệp DTO / route tiền xe, mọi `giaBangCoThe` (khai `x:`, gán `x =`, `const x =`) có vế phải là `null`, BẮT ĐẦU bằng
+//       `chonDongGiaThue(`, hoặc chuyển tiếp nguyên `v.giaBangCoThe` — số gợi ý chỉ đến từ luật chọn giá.
 // NGOẠI LỆ CÓ TÊN: kiểm định kỳ scripts/audit-checks.mjs (R-VC-COST-*) có `sum(` trên vc_trip_cost_line — lưới thứ hai đọc CSDL, ngoài src/** (không bị quét).
 // GIỚI HẠN: canh QUÊN, không canh cố ý (vd cộng bằng vòng lặp `for` ở tệp khác không tên trường "tong…"); người kiểm đọc mã.
 import { test } from "node:test";
@@ -54,6 +56,16 @@ export function viPham(tep: readonly { rel: string; src: string }[]): string[] {
         if (!HAM_TONG.some((h) => vePhai.startsWith(`${h}(`))) loi.push(`${rel}: trường ${m[1]} lấy giá trị "${vePhai.slice(0, 40)}" không qua ${HAM_TONG.join(" / ")}`);
       }
     }
+    // (5)
+    if (TEP_DTO.includes(rel)) {
+      for (const m of maChay.matchAll(/(?:\b|\.)giaBangCoThe\s*(:|=(?!=))\s*([^,;\n}]*)/g)) {
+        const veTrai = maChay.slice(Math.max(0, m.index! - 1), m.index!);
+        if (m[1] === ":" && /[?(]/.test(veTrai)) continue;
+        const vePhai = m[2]!.trim();
+        if (/^(number|readonly|\{|\[)/.test(vePhai)) continue; // khai KIỂU
+        if (!(vePhai === "null" || vePhai.startsWith("chonDongGiaThue(") || vePhai === "v.giaBangCoThe")) loi.push(`${rel}: giaBangCoThe lấy giá trị "${vePhai.slice(0, 40)}" không qua chonDongGiaThue`);
+      }
+    }
     // (4)
     if (rel.startsWith("web/") && /\b(amount|soTien|tongNhom)\s*\+(?!\+)|\.tong\s*\+(?!\+)/.test(maChay)) loi.push(`${rel}: web cộng tiền chi phí`);
   }
@@ -64,6 +76,7 @@ test("một nguồn tính chi phí xe thuê: không SQL cộng tiền chi phí; 
   assert.ok(TEP.some((t) => t.rel === NGUON) && TEP_DTO.every((r) => TEP.some((t) => t.rel === r)), "chống bài rỗng: có đủ tệp nguồn + tệp DTO");
   const dto = TEP.find((t) => t.rel === "src/modules/van-chuyen/tien-xe-dto.ts")!;
   assert.ok((maskSource(dto.src) as string).match(/\btong\s*:/g)!.length >= 2, "chống bài rỗng: tệp DTO có trường tong");
+  assert.ok(TEP_DTO.some((r) => /\bgiaBangCoThe\s*=\s*chonDongGiaThue\(/.test(maskSource(TEP.find((t) => t.rel === r)!.src) as string)), "chống bài rỗng: giaBangCoThe dựng từ chonDongGiaThue");
   assert.deepEqual(viPham(TEP), []);
 });
 
@@ -75,4 +88,8 @@ test("bộ bắt: SQL `sum(amount) FROM vc_trip_cost_line`, định nghĩa lại
   assert.equal(viPham([{ ...dung, src: "export const f = (a: number, b: number) => ({ tong: a + b });" }]).length, 1);
   assert.equal(viPham([{ rel: "web/x.ts", src: "const t = a.soTien + b.soTien;" }]).length, 1);
   assert.deepEqual(viPham([{ rel: "web/x.ts", src: "// a.soTien + b.soTien\nconst s = `soTien + 1`;" }]), [], "chú thích / chuỗi không tính (4)");
+  // (5) Task 13
+  assert.deepEqual(viPham([{ ...dung, src: "const giaBangCoThe = chonDongGiaThue(a, b)?.amount ?? null; const o = { giaBangCoThe: v.giaBangCoThe, x: { giaBangCoThe: null } };" }]), []);
+  assert.equal(viPham([{ ...dung, src: "const o = { giaBangCoThe: 1 };" }]).length, 1, "P16: gán tạm giaBangCoThe: 1 ⇒ đỏ");
+  assert.equal(viPham([{ ...dung, src: "const giaBangCoThe = gia[0].amount;" }]).length, 1);
 });

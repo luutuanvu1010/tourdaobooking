@@ -541,7 +541,7 @@ test("V6b + chụp lại (ADR tiêu chí 4): thiếu giá → giá thoả thuậ
     const a = (await taoThue(w, { xe: n.x29, taiXe: n.tx })).json.chuyen.id;
     assert.ok((await giu(w, a)).includes("THIEU_GIA"));
     const cp0 = (await chiPhi(w, a)).json.chiPhi;
-    assert.deepEqual([cp0.nguonGia, cp0.tong, cp0.coTheNhapThoaThuan, cp0.coTheChupLai, cp0.phienBanChiPhi], [null, 0, true, true, 0]);
+    assert.deepEqual([cp0.nguonGia, cp0.tong, cp0.coTheNhapThoaThuan, cp0.coTheChupLai, cp0.giaBangCoThe, cp0.phienBanChiPhi], [null, 0, true, false, null, 0]); // Task 13: chưa chọn tuyến ⇒ không giá bảng để lấy
     assert.ok(!cp0.lyDoChon.some((l: any) => ["CPX_DOI_CHUYEN", "CPX_HUY_CHUYEN", "CPX_GIA_THOA_THUAN"].includes(l.ma)), "không chọn được mã hệ thống / mã thoả thuận");
     assert.equal((await ghiCp(w, a, "gia-thoa-thuan", { soTien: 1_350_000, ghiChu: "" })).status, 400, "ghi chú thoả thuận bắt buộc");
     const t = await ghiCp(w, a, "gia-thoa-thuan", { soTien: 1_350_000, ghiChu: "đã chốt với anh Hùng 14/10" });
@@ -569,6 +569,34 @@ test("V6b + chụp lại (ADR tiêu chí 4): thiếu giá → giá thoả thuậ
     const k3 = await ghiCp(w, b, "gia-thoa-thuan", { soTien: 1, ghiChu: "x" });
     assert.equal(k3.status, 409);
     assert.match(k3.text, /Chuyến đã có giá bảng — đảo giá bảng trước nếu muốn dùng giá thoả thuận/);
+  } finally {
+    tat();
+  }
+});
+
+test("Task 13 (ADR-0095 Q9, vòng sửa 2 — 4.3): giaBangCoThe — thiếu giá + Quản trị thêm giá khớp 450.000 ⇒ 450000 / coTheChupLai; không khớp ⇒ null / false; đã có SNAPSHOT hoặc đã xuất bến ⇒ null; nhà xe thôi ⇒ null", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const n = await nenThue(w);
+    const a = (await taoThue(w, { xe: n.x29, taiXe: n.tx, tuyen: n.dl })).json.chuyen.id; // NT-DL + C29: chưa có giá
+    const d = (await taoThue(w, { xe: xeNhaXe(w, n.nx, 29), taiXe: taiXeNhaXe(w, n.nx), tuyen: n.dl, bd: "20:00", kt: "21:00" })).json.chuyen.id;
+    const cp0 = (await chiPhi(w, a)).json.chiPhi;
+    assert.deepEqual([cp0.giaBangCoThe, cp0.coTheChupLai, cp0.coTheNhapThoaThuan], [null, false, true], "không dòng khớp");
+    assert.equal((await themGia(w, ADM, { nhaXePartyId: n.nx, tuyen: n.dl, coXe: n.c29, soTien: 450_000, tuNgay: NGAY })).status, 201);
+    const cp1 = (await chiPhi(w, a)).json.chiPhi;
+    assert.deepEqual([cp1.giaBangCoThe, cp1.coTheChupLai], [450_000, true], "Quản trị vừa thêm giá khớp");
+    assert.equal((await chiPhi(w, d)).json.chiPhi.giaBangCoThe, 450_000);
+    const k = await ghiCp(w, a, "chup-lai", {});
+    assert.equal(k.status, 201, k.text);
+    assert.equal(k.json.chiPhi.tong, 450_000, "số gợi ý = số được chụp");
+    assert.deepEqual([k.json.chiPhi.giaBangCoThe, k.json.chiPhi.coTheChupLai], [null, false], "đã có SNAPSHOT");
+    const b = (await taoThue(w, { xe: n.x16, taiXe: n.tx, tuyen: n.crt, bd: "16:00", kt: "17:00" })).json.chuyen.id;
+    assert.equal((await xuatBenVp(w, b)).status, 200);
+    assert.equal((await chiPhi(w, b)).json.chiPhi.giaBangCoThe, null, "đã xuất bến");
+    thoiHopTac(w, n.nx);
+    const cpd = (await chiPhi(w, d)).json.chiPhi;
+    assert.deepEqual([cpd.giaBangCoThe, cpd.coTheChupLai, cpd.coTheNhapThoaThuan], [null, false, false], "nhà xe đã thôi");
   } finally {
     tat();
   }

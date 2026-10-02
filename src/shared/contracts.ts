@@ -1794,7 +1794,10 @@ export interface ChiPhiChuyenDto {
   /** Số dòng chi phí đã đọc — gửi lại ở mọi lệnh ghi (khoá chống ghi chồng — TC-8). */
   phienBanChiPhi: number;
   coTheNhapThoaThuan: boolean;
+  /** Có giá bảng để lấy (điều kiện đặt giá VÀ `giaBangCoThe !== null` — Task 13). */
   coTheChupLai: boolean;
+  /** Task 13 (ADR-0095 Q9): số tiền dòng giá SẼ chụp nếu bấm "Lấy lại giá bảng" lúc đọc; null ngoài ca chụp lại được. CHỈ trong phản hồi chi phí (transport.cost.view). */
+  giaBangCoThe: number | null;
   dong: DongChiPhiDto[];
   /** Lý do chọn được khi điều chỉnh / đảo (nhóm chi phí xe, đang dùng, không gồm mã hệ thống và "Giá thoả thuận trước"). */
   lyDoChon: { ma: string; nhan: string }[];

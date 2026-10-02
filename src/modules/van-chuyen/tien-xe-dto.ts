@@ -4,7 +4,7 @@ import type { BangGiaDto, BangKeDongDto, BangKeNhomDto, BangKeResponse, ChiPhiCh
 import { laLyDoHeThong } from "../../shared/dieu-phoi-kieu";
 import type { TripRow } from "./chuyen-repo";
 import {
-  LY_DO_DAO_DOI_CHUYEN, daoDuoc, demDieuChinh, loaiNguonGia, nhomBangKe, tongBangKe, tongChiPhiChuyen, tongDieuChinh, type DongChiPhi,
+  LY_DO_DAO_DOI_CHUYEN, daoDuoc, datGiaDuoc, demDieuChinh, loaiNguonGia, nhomBangKe, tongBangKe, tongChiPhiChuyen, tongDieuChinh, type DongChiPhi,
 } from "./tien-xe";
 import { dongCua } from "./tien-xe-lo";
 import type { BangKeTripRow, CostLineRow, RateRow, RouteRow, SizeRow } from "./tien-xe-repo";
@@ -40,12 +40,14 @@ export const lyDoChonDuoc = (reasons: readonly { code: string; label: string; ac
 export function chiPhiChuyenDto(v: {
   trip: TripRow; rows: readonly CostLineRow[]; reasons: readonly { code: string; label: string; active: number }[]; nhan: ReadonlyMap<string, string> | null;
   nhaXe: { partyId: string; ten: string } | null; tuyen: { ma: string; ten: string } | null; nhaXeDangHopTac: boolean;
+  /** Task 13: số tiền dòng giá SẼ chụp nếu bấm "Lấy lại giá bảng" lúc đọc (`chonDongGiaThue` ở docChiPhiChuyen); null ngoài ca đặt giá được. */
+  giaBangCoThe: number | null;
 }): ChiPhiChuyenDto {
   const dong: DongChiPhi[] = v.rows.map(dongCua);
   const nhanLyDo = new Map(v.reasons.map((r) => [r.code, r.label]));
   const daoBoi = new Map(dong.filter((d) => d.kind === "REVERSAL").map((d) => [d.reversesId, d]));
   const nguonGia = loaiNguonGia(dong);
-  const chuaCoGia = v.trip.status === "PLANNED" && v.trip.rented === 1 && nguonGia === null;
+  const datGia = datGiaDuoc({ trangThai: v.trip.status, rented: v.trip.rented, dong, nhaXeDangHopTac: v.nhaXeDangHopTac });
   const dongDto: DongChiPhiDto[] = v.rows.map((r, i) => {
     const d = dong[i]!;
     const tuDong = r.cmd_id !== r.id;
@@ -58,7 +60,8 @@ export function chiPhiChuyenDto(v: {
   return {
     tripId: v.trip.id, ma: v.trip.code, trangThai: v.trip.status, thue: v.trip.rented === 1, nhaXe: v.nhaXe, tuyen: v.tuyen, nguonGia,
     tong: tongChiPhiChuyen(dong),
-    phienBanChiPhi: v.rows.length, coTheNhapThoaThuan: chuaCoGia && v.nhaXeDangHopTac, coTheChupLai: chuaCoGia && v.nhaXeDangHopTac, dong: dongDto,
+    phienBanChiPhi: v.rows.length, coTheNhapThoaThuan: datGia, coTheChupLai: datGia && v.giaBangCoThe !== null,
+    giaBangCoThe: v.giaBangCoThe, dong: dongDto,
     lyDoChon: lyDoChonDuoc(v.reasons),
   };
 }

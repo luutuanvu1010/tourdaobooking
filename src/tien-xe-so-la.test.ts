@@ -84,3 +84,49 @@ test("bài số lạ 480017: giá thuê / chi phí chuyến KHÔNG lộ ở bấ
     tat();
   }
 });
+
+test("bài số lạ 480017 — Task 13 (giaBangCoThe): dòng giá 480017 khớp chuyến CHƯA chụp — mọi route GET của Bán hàng, HDV, Đối tác, Thực tập, tài xế, tài xế đối tác không lộ; Kế toán /chi-phi THẤY (ca dương)", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const nx = nhaXeKhung(w, "Nhà xe Số Lạ");
+    const tx = taiXeNhaXe(w, nx);
+    const x16 = xeNhaXe(w, nx, 16);
+    const tuyen = (await w.call("POST", "/api/van-chuyen/tuyen", { as: ACC, body: { ten: "Tuyến số lạ" } })).json.tuyen[0].ma;
+    const coXe = (await w.call("POST", "/api/van-chuyen/co-xe", { as: ACC, body: { tuSoKhach: 10, denSoKhach: 16 } })).json.coXe[0].ma;
+    const d = await don(w, { soNguoi: 2, handler: FIELD });
+    const tao = await w.call("POST", "/api/van-chuyen/chuyen", { as: SALES, body: { requestId: uuid(), xeId: x16, taiXePartyId: tx, tuyen, batDau: { ngay: NGAY, gio: "12:30" }, ketThuc: { ngay: NGAY, gio: "15:00" } } });
+    assert.equal(tao.status, 201, tao.text);
+    const tripId = tao.json.chuyen.id;
+    await xepHet(w, { chuyen: tao.json.chuyen }, d, 2);
+    // Giá thêm SAU khi tạo chuyến ⇒ chuyến chưa chụp, chỉ có giá "có thể lấy".
+    assert.equal((await w.call("POST", "/api/van-chuyen/bang-gia", { as: ACC, body: { requestId: uuid(), nhaXePartyId: nx, tuyen, coXe, soTien: Number(LA), tuNgay: "2027-03-01", denNgay: null, ghiChu: null, thayDongId: null } })).status, 201);
+    const kt = await w.call("GET", `/api/van-chuyen/chuyen/${tripId}/chi-phi`, { as: ACC });
+    assert.equal(kt.json.chiPhi.giaBangCoThe, Number(LA), "chống bài rỗng: Kế toán thấy giá có thể lấy 480017");
+    assert.equal(kt.json.chiPhi.dong.length, 0, "chuyến chưa chụp");
+    const duong = (p: string) => {
+      let r = p;
+      if (/\/api\/van-chuyen\/(chuyen|cuoc-cua-toi)\/:id/.test(r)) r = r.replace(":id", tripId);
+      if (/\/api\/orders\/:id/.test(r)) r = r.replace(":id", d.id);
+      r = r.replace(":orderId", d.id).replace(":legId", d.legId).replace(/:[A-Za-z]+/g, "x");
+      if (r === "/api/van-chuyen/lich") r += `?ngay=${NGAY}`;
+      if (r === "/api/van-chuyen/chi-phi") r += `?tu=${NGAY}&den=${NGAY}`;
+      if (r === "/api/van-chuyen/bang-gia") r += `?nha-xe=${nx}`;
+      return r;
+    };
+    let so200 = 0;
+    const loi: string[] = [];
+    for (const as of [SALES, FIELD, PARTNER, INTERN, DRIVER, DRIVER_PARTNER]) {
+      for (const p of ROUTE_GET) {
+        const r = await w.call("GET", duong(p), { as });
+        if (r.status !== 200) continue;
+        so200++;
+        if (coLo(r.text)) loi.push(`${p} (${as})`);
+      }
+    }
+    assert.deepEqual(loi, [], "route GET lộ giá có thể lấy");
+    assert.ok(so200 >= 40, `chống bài rỗng: ${so200} lần gọi 200`);
+  } finally {
+    tat();
+  }
+});

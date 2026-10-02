@@ -10,7 +10,7 @@ import { vnToday } from "../../shared/vn-date";
 import { tripById, type TripRow } from "./chuyen-repo";
 import { findVehicle } from "./repository";
 import { CAU_CHI_PHI_VUA_DOI, CAU_NHA_XE_THOI, CAU_TONG_AM, loiRangBuocChuyen } from "./rules";
-import { chonDongGiaThue, chuTien, coXeCua, daoDuoc, dieuChinhDuoc, ngayDieuChinhMacDinh, ngayGhiDao, nguonGiaConHieuLuc, nhaXeChiuChiPhi, tongChiPhiChuyen, type DongChiPhi } from "./tien-xe";
+import { chonDongGiaThue, chuTien, coXeCua, daoDuoc, datGiaDuoc, dieuChinhDuoc, ngayDieuChinhMacDinh, ngayGhiDao, nguonGiaConHieuLuc, nhaXeChiuChiPhi, tongChiPhiChuyen, type DongChiPhi, type DongGiaThue } from "./tien-xe";
 import { bangKeDto, chiPhiChuyenDto } from "./tien-xe-dto";
 import { dongCua } from "./tien-xe-lo";
 import {
@@ -30,11 +30,17 @@ const nhaXeCuaChiPhi = (rows: readonly CostLineRow[], trip: TripRow): string =>
   nhaXeChiuChiPhi(rows.map((r) => ({ kind: r.kind, carrierPartyId: r.carrier_party_id })), trip.carrier_party_id);
 
 // ---- Xem -------------------------------------------------------------------------------------------------------------------------------------------------
-export async function docChiPhiChuyen(db: D1Database, tripId: string, nhanNhanVien: (ids: readonly string[]) => Promise<Map<string, string> | null>): Promise<ChiPhiChuyenDto | null> {
+export async function docChiPhiChuyen(
+  db: D1Database, tripId: string, nhanNhanVien: (ids: readonly string[]) => Promise<Map<string, string> | null>, homNay: string,
+): Promise<ChiPhiChuyenDto | null> {
   const trip = await tripById(db, tripId);
   if (!trip) return null;
   const [rows, reasons, dangMo] = await Promise.all([costLinesOfTrip(db, trip.id), costReasons(db), nhaXeDangHopTac(db)]);
   const nx = nhaXeCuaChiPhi(rows, trip);
+  // Task 13 (ADR-0095 Q9): giá bảng SẼ chụp nếu bấm "Lấy lại giá bảng" — CÙNG đầu vào lệnh chup-lai (`dauVaoChupLai`), chỉ khi đặt giá được.
+  const datGia = datGiaDuoc({ trangThai: trip.status, rented: trip.rented, dong: rows.map(dongCua), nhaXeDangHopTac: dangMo.some((c) => c.partyId === trip.carrier_party_id) });
+  const vao = datGia ? await dauVaoChupLai(db, trip, homNay) : { chon: { carrierPartyId: trip.carrier_party_id, routeCode: null, sizeCode: null, ngayChay: trip.service_date }, gia: [] };
+  const giaBangCoThe = chonDongGiaThue(vao.chon, vao.gia)?.amount ?? null; // không đặt giá được ⇒ không dòng nào để chọn ⇒ null
   const [ten, tuyen, nhan] = await Promise.all([
     partyName(db, nx), trip.route_code ? findRoute(db, trip.route_code) : Promise.resolve(null),
     nhanNhanVien([...new Set(rows.flatMap((r) => (r.created_by ? [r.created_by] : [])))]),
@@ -42,6 +48,7 @@ export async function docChiPhiChuyen(db: D1Database, tripId: string, nhanNhanVi
   return chiPhiChuyenDto({
     trip, rows, reasons, nhan, nhaXe: trip.rented === 1 || rows.length > 0 ? { partyId: nx, ten: ten ?? "" } : null,
     tuyen: trip.route_code ? { ma: trip.route_code, ten: tuyen?.name ?? trip.route_code } : null, nhaXeDangHopTac: dangMo.some((c) => c.partyId === nx),
+    giaBangCoThe,
   });
 }
 
@@ -155,13 +162,9 @@ export async function lenhChupLai(db: D1Database, tripId: string, b: { requestId
   if (!nc) return null;
   const chan = await kiemDatGia(db, nc, b.phienBanChiPhi, nc.rows.length);
   if (chan) return { ok: false, res: chan };
-  const [xe, gia, co] = await Promise.all([findVehicle(db, nc.trip.vehicle_id), ratesOfCarrier(db, nc.trip.carrier_party_id), listSizes(db, homNay)]);
-  const soCho = xe?.passenger_capacity ?? 0;
-  const sizeCode = coXeCua(soCho, co.map((c) => ({ code: c.code, min: c.min_passengers, max: c.max_passengers, active: c.active === 1 })));
-  const g = chonDongGiaThue(
-    { carrierPartyId: nc.trip.carrier_party_id, routeCode: nc.trip.route_code, sizeCode, ngayChay: nc.trip.service_date },
-    gia.map((r) => ({ id: r.id, carrierPartyId: r.carrier_party_id, routeCode: r.route_code, sizeCode: r.vehicle_size_code, amount: r.amount, validFrom: r.valid_from_date, validTo: r.valid_to_date })),
-  );
+  const vao = await dauVaoChupLai(db, nc.trip, homNay);
+  const { sizeCode, soCho } = vao.chon;
+  const g = chonDongGiaThue(vao.chon, vao.gia);
   if (!g) return { ok: false, res: error(409, "khong_co_gia_bang", "Chưa có giá bảng cho chuyến này — nhập giá thoả thuận.") };
   const at = now.toISOString();
   const truoc = tongChiPhiChuyen(nc.dong);
@@ -169,6 +172,17 @@ export async function lenhChupLai(db: D1Database, tripId: string, b: { requestId
     db.prepare(COST_SNAPSHOT_KT).bind(b.requestId, nc.trip.id, nc.trip.carrier_party_id, g.amount, g.id, nc.trip.route_code, sizeCode, soCho, nc.trip.service_date, b.requestId, at, staff.id, b.phienBanChiPhi),
     nhatKy(db, { id: b.requestId, staff, at, action: "trip_cost_snapshot", tripId: nc.trip.id, detail: chiTiet(nc.trip, nc.tenNhaXe, truoc, truoc + g.amount, "lấy lại giá bảng") }),
   ]);
+}
+
+/** Đầu vào luật chọn giá của "lấy lại giá bảng" — MỘT chỗ cho lệnh chup-lai và gợi ý `giaBangCoThe` (Task 13): nhà xe, tuyến, cỡ theo số chỗ, ngày chạy. */
+async function dauVaoChupLai(db: D1Database, trip: TripRow, homNay: string): Promise<{ chon: Parameters<typeof chonDongGiaThue>[0] & { soCho: number }; gia: DongGiaThue[] }> {
+  const [xe, gia, co] = await Promise.all([findVehicle(db, trip.vehicle_id), ratesOfCarrier(db, trip.carrier_party_id), listSizes(db, homNay)]);
+  const soCho = xe?.passenger_capacity ?? 0;
+  const sizeCode = coXeCua(soCho, co.map((c) => ({ code: c.code, min: c.min_passengers, max: c.max_passengers, active: c.active === 1 })));
+  return {
+    chon: { carrierPartyId: trip.carrier_party_id, routeCode: trip.route_code, sizeCode, ngayChay: trip.service_date, soCho },
+    gia: gia.map((r) => ({ id: r.id, carrierPartyId: r.carrier_party_id, routeCode: r.route_code, sizeCode: r.vehicle_size_code, amount: r.amount, validFrom: r.valid_from_date, validTo: r.valid_to_date })),
+  };
 }
 
 // ---- Giá thoả thuận trước (ADR-0057 C5 — chủ lần 18) -----------------------------------------------------------------------------------------------------
