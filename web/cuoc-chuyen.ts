@@ -303,6 +303,9 @@ const lamMoi = taoBoLamMoi(async () => {
     trangEl.hidden = true; // chuyến không còn mở được (bị đổi ra, không còn quyền) — không để màn cũ trông như còn đúng
     return showError(errorEl, loiCua(e));
   }
+  // Vòng sửa 1 (T2): tải lại được (vd sau một lần lỗi mạng) thì hiện lại trang, ẩn câu lỗi cũ.
+  trangEl.hidden = false;
+  showError(errorEl, null);
   ve();
 });
 window.addEventListener("chuyen-thay-doi", (ev) => {
