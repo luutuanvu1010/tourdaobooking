@@ -1,4 +1,4 @@
-import { ApiError, api, type Staff, type Api } from "./api";
+import { ApiError, api, datNguoiDangNhap, type Staff, type Api } from "./api";
 import { PERMISSION_LABEL, can, isOffice, seesAllOrders } from "../src/shared/permissions";
 import { TRANG_CUOC, TRANG_DAU_TAI_XE, chiTaiXe, coCuocCuaToi, coMucDonHang } from "../src/shared/start-page";
 import { thayDieuPhoiXe } from "../src/shared/dieu-phoi-man";
@@ -501,6 +501,7 @@ export async function initShell(): Promise<Staff> {
     return new Promise<never>(() => undefined);
   }
   const { staff } = me;
+  datNguoiDangNhap(staff.id); // ADR-0094: vé chống ghi trùng giữ qua "tải lại trang" theo ngăn của tài khoản này
   if (me.maintenance?.on) setMaintenanceStrip(true);
   // ADR-0072 mục 4a: cờ `admin` (Dịch vụ & giá, Địa điểm, tab Dịch vụ) hỏi bảng quyền — ô admin.manage, cùng ô máy chủ hỏi — không hỏi mã Quản trị.
   const admin = can(staff, "admin.manage");

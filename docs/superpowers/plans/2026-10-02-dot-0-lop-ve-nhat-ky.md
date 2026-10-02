@@ -265,3 +265,11 @@ Số bản nhật ký phiên bản: `main` cục bộ có `1.70` ở đầu `src
 - **G1 — đã sửa:** `REPLACE` chỉ tính là ghi khi đi với `INTO`; bài đỏ trước ⇒ xanh.
 - **G5 — đã sửa:** câu cố định đúng nguyên văn ADR đ6 ("Lần gửi trước đã bị từ chối, tải lại để xem", không dấu chấm).
 - G2 (`.raw({columnNames})` trên câu ghi) — chưa nơi nào dùng; ghi lại, không sửa. G3 — L12. G4 — chấp nhận (thân sai UTF-8 cũng không qua kiểm JSON của handler).
+
+## L9 — `web/api.ts` gửi vé + `dieu-phoi-ui.ts` + H3 (2026-10-02)
+- `api()`: mở vé TRƯỚC khi gửi (mô-đun `src/shared/lan-gui-ve.ts`), header `Idempotency-Key`; máy chủ trả lời ⇒ `ketThuc` (đóng khi 2xx / 4xx trừ 409 `dang_xu_ly`, giữ khi 5xx); mất mạng / hết giờ ⇒ giữ; 409 `dang_xu_ly` ⇒ chờ 1,5 giây gửi lại CÙNG vé, tối đa 3 lần, rồi ném "Đang xử lý lần bấm trước, chờ chút rồi bấm lại."; phản hồi `Idempotent-Replayed` + `da_ghi_truoc_do` ⇒ báo ngắn "Lần bấm trước đã được ghi." (`hienBaoNgan`) rồi `location.replace(safeNext(ket_qua))` hoặc tải lại sau 1,2 giây, lời gọi treo (màn gọi không nhận thân này — T19). Không mở được vé (không có `crypto.subtle`, vd trang http qua IP LAN của `dev-iphone`) ⇒ gửi không vé (giai đoạn 1 cho qua).
+- `datNguoiDangNhap(id)` gọi ở `web/shell.ts` ngay sau `/api/auth/me`; trước đó vé chỉ ở bộ nhớ trang. `goLogin()` không xoá vé.
+- `web/dieu-phoi-ui.ts`: giữ `requestId` theo CÙNG luật `nenDongVe` (đ10) — 5xx / mất mạng / 409 `dang_xu_ly` giữ, 4xx khác bỏ.
+- H3: `src/lan-gui-giao-dien.test.ts` (3 bài: fetch ghi ∈ danh sách; đ10 khoá câu `nenDongVe`; `api()` dùng mô-đun vòng đời vé + `safeNext`). Quan sát chặn thật (sổ hàng rào).
+- Kiểm: `npm run typecheck` 0 lỗi; `npm run build:web` thoát 0; `npm test` 2883/2883 + bài đo giờ xanh; `npm run test:e2e -- pwa bangtin chong-ghi-trung` 4/4.
+- Kịch bản Chrome theo `web/CLAUDE.md`: làm ở bước kế (chưa chạy tới dòng này).

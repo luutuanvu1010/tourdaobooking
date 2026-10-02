@@ -46,6 +46,21 @@ function fetchGhi(): string[] {
   return out;
 }
 
+test("ADR-0094 đ10: Vận chuyển giữ requestId theo CÙNG luật đóng/giữ vé (nenDongVe) — không bỏ requestId sau 5xx", () => {
+  const t = maskSource(readFileSync(join(ROOT, "web/dieu-phoi-ui.ts"), "utf8"), { strings: false });
+  assert.match(t, /dangCho = e instanceof ApiError && nenDongVe\(\{ status: e\.status, code: e\.code \}\) \? null : lenh;/);
+  assert.doesNotMatch(t, /dangCho = e instanceof ApiError \? null : lenh;/);
+});
+
+test("web/api.ts gửi vé (Idempotency-Key) và đóng/giữ vé qua mô-đun thuần — không tự viết luật riêng", () => {
+  const t = maskSource(readFileSync(join(ROOT, "web/api.ts"), "utf8"), { strings: false });
+  assert.match(t, /from "\.\.\/src\/shared\/lan-gui-ve"/);
+  assert.match(t, /headers\[HEADER_VE\] = ve\.ve;/);
+  assert.match(t, /vongDoiVe\.ketThuc\(ve, \{ status: res\.status, code: data\?\.error\?\.code \}\);/);
+  assert.match(t, /vongDoiVe\.ketThuc\(ve, \{ matMang: true \}\);/);
+  assert.match(t, /safeNext\(ketQua\)/, "T19: địa chỉ kết quả qua safeNext trước location.replace");
+});
+
 test("H3: mọi fetch có phương thức ghi trong web/ nằm trong danh sách đã biết (lệnh ghi đi qua api() để mang vé)", () => {
   const thay = fetchGhi();
   assert.deepEqual(thay.filter((x) => !DA_BIET.has(x)), [], "fetch ghi viết thẳng — dùng api() (web/api.ts) để có vé chống ghi trùng");
