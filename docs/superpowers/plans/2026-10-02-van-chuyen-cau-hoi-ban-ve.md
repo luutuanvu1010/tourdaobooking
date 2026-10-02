@@ -6,6 +6,14 @@ Nguồn: đánh giá đối chiếu 5 bản vẽ (`docs/design/van-chuyen-dot-3-
 
 🔒 = phải chốt trước khi tạo bảng dữ liệu (đổi sau rất tốn). 💰 = tiền (AI không tự chọn).
 
+## ĐÃ TRẢ LỜI tối 2/10 (chủ, chat — có trợ lý phân tích `danh-gia/tra-loi-cau-hoi.md`, `danh-gia/so-vang.md`)
+
+- **"Đồng ý 18 câu theo khuyến nghị"**: 0.1, 3.1–3.4, 4.1, 4.2, 4.4, 4.5, 4.8, 5.3, 6.1–6.5, 7.1, 7.2 (3.2 không thêm ô gara / tiền sửa).
+- **5.2c đổi** (theo trợ lý phân tích): câu "Xe hỏng? Bấm Kết thúc gián đoạn — văn phòng nhận tin ngay và xếp xe cứu hộ" (kế hoạch 05).
+- **Tiền** → ghi thành [ADR-0095](../../adr/ADR-0095-tien-xe-thue-gia-du-tuyen-co-va-ngay-dao.md): A2 (dời ngày theo yêu cầu khách ⇒ tính giá ngày mới); dòng đảo vào kỳ dòng gốc; giá bắt buộc đủ tuyến + cỡ xe; C1 phí huỷ ghi ngày huỷ; V7 phụ thu chờ ghi theo ngày chạy; V10 lý do "Xe hỏng giữa đường"; V11 giá mới không áp chuyến đã chụp; D1 đổi tuyến ⇒ thoả thuận hết hiệu lực; 4.3 có hiện số; 4.6 Kế toán ký sổ vàng; 4.7 có ghi phí huỷ cho nhà xe cũ; V13 ok.
+- **5.2b**: *"Không phân biệt giờ hành chính hay ngoài giờ hành chính, mọi người đều có thể làm việc của mình theo đúng quy định"* ⇒ giữ: ô giá thoả thuận cứu hộ chỉ Quản trị / Kế toán / Toàn quyền; không làm cơ chế trực riêng.
+- **Còn mở:** 0.2 (chia doanh thu taxi — phải xong TRƯỚC Đợt 6; thêm điểm e–h: taxi qua cổng "thiếu giá" thế nào, % có đảo câu ADR-0057 "không giá vốn a%" không, taxi chở một đơn hay ghép, taxi có thu tiền mặt không).
+
 ## Đã chốt chiều 2/10 (không hỏi lại)
 
 - Thu gọn Đợt 5: làm D5 (văn phòng thêm điểm / báo huỷ), D5b (tài xế bổ sung tên), D5c đơn giản (văn phòng tạo chuyến cứu hộ). **Hoãn tới mốc** (≈ ≥ 15 xe đối tác hoặc > 40 chuyến/ngày): D4 (tài xế nhờ xe khác, hộp duyệt, bảng kiểm luật), V4. ⇒ câu cũ 5.1, 5.2a, 5.2d, 5.4, 5.5, 5.6a, 5.6b, 5.7 **không hỏi nữa** (để lúc làm phần hoãn).
