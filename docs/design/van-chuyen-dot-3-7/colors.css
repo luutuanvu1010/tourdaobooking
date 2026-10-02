@@ -1,0 +1,17 @@
+/* Bản vẽ _ds tokens/colors.css — "exact values from tourdaobooking public/app.css :root" */
+:root {
+  --c-primary: #0c4a6e; --c-primary-strong: #082f49; --c-primary-soft: #dcebf6; --c-soft-hover: #f0f7fc;
+  /* Coral accent — ONLY the committing action ("Tạo đơn", "Xác nhận đơn") and price tags. Never errors/deletes. */
+  --c-accent: #c0392b; --c-accent-strong: #96271a; --c-accent-soft: #fef2f0;
+  /* Sand — markers, draft state, warnings, avatars. Never a button fill. */
+  --c-sand: #f5a623; --c-sand-soft: #fbe3b3; --c-sand-text: #5a4109; --c-sand-border: #e9d3a4;
+  --c-surface: #ffffff; --c-surface-alt: #eaf2f8; --c-card: #ffffff; --c-border: #d3e1ec;
+  --c-text: #0f172a; --c-text-muted: #475569; --c-text-inverse: #f8fafc; --c-placeholder: #94a3b8; --c-on-dark: #ffffff;
+  --c-green-soft: #dcfce7; --c-green-text: #166534; --c-green-border: #a7e3bc;
+  /* danger (errors, "Huỷ đơn", "Xoá") */
+  --c-danger: #b01235; --c-danger-text: #8e0e2b; --c-danger-soft: #fde9ee; --c-danger-border: #f1c3cf;
+  --c-scrim: rgba(15, 23, 42, 0.45);
+  --c-sidebar-item: rgba(255,255,255,.72); --c-sidebar-active: rgba(255,255,255,.14); --c-sidebar-border: rgba(255,255,255,.12); --c-sidebar-badge: rgba(255,255,255,.18);
+  --surface-page: var(--c-surface-alt); --surface-card: var(--c-card); --surface-band: var(--c-primary); --surface-sidebar: var(--c-primary-strong);
+  --money-due: var(--c-accent-strong); --money-ok: var(--c-green-text);
+}

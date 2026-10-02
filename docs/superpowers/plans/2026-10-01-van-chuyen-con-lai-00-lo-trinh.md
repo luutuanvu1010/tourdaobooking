@@ -10,6 +10,25 @@
 
 **Spec:** bản rà `docs/superpowers/specs/2026-10-01-ra-soat-phan-he-van-chuyen.md`; quyết định: ADR-0052, ADR-0053, ADR-0055, ADR-0056, ADR-0057, ADR-0047 §6 (Phần C), ADR-0049, ADR-0040; trang ghép `docs/superpowers/specs/2026-09-30-trang-ghep-luot-duyet-a-dieu-phoi.md`, `…-luot-duyet-b-kernel-tien.md`; lời chủ: `docs/superpowers/specs/2026-09-29-van-chuyen-hoi-dap-dieu-phoi.md`.
 
+## Trạng thái (cập nhật 2026-10-02 chiều)
+
+Bản vẽ Claude Design Đợt 3–7 đã nhận: `docs/design/van-chuyen-dot-3-7/` (đánh giá đối chiếu ở `danh-gia/`). **Câu hỏi còn mở gom một chỗ:** `docs/superpowers/plans/2026-10-02-van-chuyen-cau-hoi-ban-ve.md`. Kế hoạch con 03–07 đã viết lại theo bản vẽ + khuyến nghị (mục "Cập nhật 2026-10-02" đầu mỗi tệp).
+
+| Đợt | Trạng thái | Nhánh / việc kế |
+|---|---|---|
+| 1 | ĐÃ LÊN production 1.65 | — |
+| 2 Tin báo chuyến | Code xong, kiểm độc lập 2 vòng ĐẠT (1.69, migration 0070 view) | `worktree-agent-a169271206f91c9c4` — chủ `day-len` + `trien-khai` |
+| 3 Lịch xe bận | Kế hoạch viết lại (trang lịch tuần); chờ câu 3.1–3.4 (3.2 🔒) | migration 0071 đã cấp |
+| 4 Tiền xe thuê | Máy chủ T1+T2 xong, kiểm 2 vòng ĐẠT (1.70, 0072+0073, đã gộp sẵn Đợt 2); GIỮ tới khi có giao diện G1–G5 | `worktree-agent-a76ababaa4a5b3183`; chờ câu 4.x + sổ vàng; lúc gộp kiểm khoá kỳ ADR-0080 |
+| 5 Xe đang chạy | THU GỌN (D5, D5b, D5c đơn giản); D4 + V4 hoãn tới mốc | sau Đợt 2 + 3; A-1b sau Đợt 4 |
+| 6 Tài xế đối tác | Kế hoạch viết lại (taxi = nhà xe một xe); chờ câu 6.x (6.3 🔒) | sau Đợt 3, 4, 5 (đo lại phụ thuộc đã hoãn) |
+| 7 Xe riêng / số chỗ | Kế hoạch viết lại; chờ 7.1–7.2 | sau Đợt 3 + 4 gộp |
+| 8 Bỏ đường ghi cũ | Như cũ (cổng đếm thân cũ) | — |
+| **Mới: Toạ độ điểm** | Chủ chọn bảng phụ có kiểu (câu 0.1 xác nhận); cần ADR nhỏ (module `locations`, bảng chỉ thêm, vĩ độ −90…90 / kinh độ −180…180 `CHECK`, nguồn, không bắt buộc) trước migration | chưa cấp số; làm sau ADR |
+| **Mới: Chia doanh thu taxi** | Chưa ADR; chờ chủ chốt a–d (câu 0.2) | sổ riêng, không chạm `vc_trip_cost_line` |
+
+Số migration đã cấp: 0070 (Đợt 2), 0071 (Đợt 3), 0072–0073 (Đợt 4). Số kế tiếp lấy theo L2.
+
 ## Phạm vi
 
 **Trong:**
@@ -20,7 +39,7 @@
 | 2 | `…-02-tin-bao-chuyen.md` | Tin báo + Bảng tin khi chuyến đổi (xếp, dời, huỷ, đổi tài xế, xuất bến…) | 0052 D6 |
 | 3 | `…-03-khung-ban-gio-lai.md` | Lịch xe vào xưởng (khung bận xe); cảnh báo giờ lái | 0055 VK2-A, VK2-B |
 | 4 | `…-04-tien-xe-thue.md` | Bảng giá thuê theo nhà xe (T1); chi phí chuyến chụp lúc giao, thiếu giá không xuất bến (T2) | 0057 T1, T2 |
-| 5 | `…-05-xe-dang-chay.md` | A-1: chuyển điểm giữa hai xe (D4); văn phòng thêm điểm / báo huỷ khi xe chạy, LC-15 mới (D5). A-1b: tài xế bổ sung tên (D5b); cứu hộ (D5c) | 0052 D4, D5, D5b, D5c |
+| 5 | `…-05-xe-dang-chay.md` | **(thu gọn 2/10)** A-1: văn phòng thêm điểm / báo huỷ khi xe chạy, LC-15 mới (D5). A-1b: tài xế bổ sung tên (D5b); cứu hộ đơn giản — văn phòng tạo chuyến cứu hộ (D5c). D4 (chuyển điểm giữa hai xe) + V4: HOÃN tới mốc (phụ lục) | 0052 D5, D5b, D5c (D4 hoãn) |
 | 6 | `…-06-tai-xe-doi-tac.md` | Tài xế đối tác dùng app (D7), Từ chối chuyến (D8), Báo bận (D9) | 0053 |
 | 7 | `…-07-xe-rieng-so-cho.md` | Cam kết xe riêng / số chỗ tối thiểu trên chặng | 0056 VK3-A |
 | 8 | `…-08-bo-duong-ghi-cu.md` | Bỏ đường ghi chặng kiểu cũ (ngừng ghi kép `pickup_*`, thân cũ bị từ chối) | 0047 §6 (Phần C) |
@@ -39,9 +58,9 @@
 Đợt 2 ─┤ (không phụ thuộc; D6 nối bằng hàm tiêm, ADR-0052 D6.3)
 Đợt 3 ─┤ (sau ADR-0049 gộp main — đã gộp)          ──┐
 Đợt 4: T1 → T2 (T3 ĐÃ CÓ: migrations/0045 cột trip_id)  ──┤
-Đợt 5 A-1 (D4, D5) — không chờ tiền                     │
+Đợt 5 A-1 (D5; D4 HOÃN 2/10) — sau Đợt 2 + Đợt 3       │
 Đợt 5 A-1b (D5b, D5c) — SAU Đợt 4 T2 (ADR-0052:135)  ◄──┤
-Đợt 6 (ADR-0053) — SAU Đợt 4 T2 (ADR-0053:129), SAU Đợt 3 VK2-A (D9 dùng chung bảng khung bận), SAU Đợt 5 A-1 (ô trip.transfer) VÀ A-1b (ô trip.passenger.add)
+Đợt 6 (ADR-0053) — SAU Đợt 4 T2 (ADR-0053:129), SAU Đợt 3 VK2-A (D9 dùng chung bảng khung bận), SAU Đợt 5 A-1b (ô trip.passenger.add). [2/10: KHÔNG còn chờ ô trip.transfer — thuộc D4 đã hoãn; hàng ghim Tài xế đối tác 9 ô; trip.transfer cho DRIVER_PARTNER gắn lại khi làm D4]
 Đợt 8 lần A (bộ đếm thân cũ) — gộp vào Đợt 1 để đồng hồ chạy sớm; lần cắt sau cổng đếm
 Đợt 7 VK3-A — sau ADR-0049 gộp main; giao diện chờ chủ vẽ hai ô + nhãn
 Đợt 8 Phần C — CỔNG: production không còn nhận thân cũ pickupTime/pickupPlace (đo nhật ký) — xem kế hoạch con
@@ -61,7 +80,7 @@
 | `transport.cost.adjust`, `THIEU_GIA`, `keHoachChiPhiKhiDoi`, route `…/chi-phi/chup-lai`, `…/gia-thoa-thuan` | 04 | 05 A-1b, 06 | 04 T2 trước |
 | `MA_GIU`, `MA_LUAT_PHA_LE` (`ly-do-giu.test.ts`), `ChuyenVao` (`thue`, `coNguonGia`) | 04 | 07 | 04 trước; 07 đo lại giá trị ghim |
 | `KetQuaTaoSua = KetQuaKiem & { nhacGioLai }` | 03 | 06, 07 | 03 → 06 → 07 |
-| `vc_dispatch_policy` + `INSERT_DISPATCH_POLICY` + `kiemChinhSachMoi` + bài "câu chèn ghi đủ cột" (`chinh-sach.test.ts`) | 03 | 05, 06 | 03 → 05 → 06, mỗi đợt dựng từ bản đã gộp, không viết bài trùng |
+| `vc_dispatch_policy` + `INSERT_DISPATCH_POLICY` + `kiemChinhSachMoi` + bài "câu chèn ghi đủ cột" (`chinh-sach.test.ts`) | 03 | 06 (05 khi làm D4 hoãn) | 03 → 06 (2/10: Đợt 5 thu gọn không thêm cột chính sách; Đợt 6 thêm `office_phone` — câu 6.3), mỗi đợt dựng từ bản đã gộp, không viết bài trùng |
 | Bài ghim nhóm lý do (`dieu-phoi-kieu.test.ts`) | 03 (8 nhóm) | 06 (10 nhóm) | 03 → 06 |
 | `LOAI_SU_KIEN_CHUYEN`; `MAU` của `thu-tu-lo.test.ts` | 05 / chung | 04, 05, 06, 07 | nối thêm theo thứ tự 04 → 05 → 06 → 07 |
 
@@ -73,6 +92,9 @@ Không đợt nào DROP trigger trên `vc_trip` của đợt khác (tên không 
 |---|---|---|---|
 | L1 | ADR-0052:282, ADR-0055:92 "sửa `0042`/`0041` tại chỗ hay migration mới" | **migration mới** | `0041`, `0042` đã áp remote (bản 1.38); CLAUDE.md §7 cấm sửa |
 | L2 | Số migration, số phiên bản | **không ghi cứng**; lúc thi công = lớn nhất trong `migrations/` của `main` **và mọi nhánh chưa gộp** + 1 (`git ls-tree --name-only <nhánh> migrations/`); phiên bản = lớn nhất ở `origin/main` + 1 lúc gộp | nhiều phiên song song (bài học 1.53/1.57–1.63) |
+| L4 (2/10) | Bản vẽ Đợt 5/6 không có tab "Trang chủ" (`/tai-xe`) của tài xế | **giữ tab Trang chủ** của tài xế (không bỏ) | bản vẽ chỉ vẽ phần mới, không nói bỏ; bỏ trang có sẵn là việc lớn hơn phạm vi; Trang chủ riêng cho HDV/Đối tác đã ở BACKLOG mục 18. Hoàn tác: bỏ mục menu |
+| L5 (2/10) | Câu 5.2b "xe có tài xế dùng app" | = **tài xế công ty** (`taiXeChoDieuPhoi`) trong Đợt 5; khi Đợt 6 lên thì gồm cả tài xế đối tác có tài khoản | Đợt 6 lên sau Đợt 5; mở rộng một bộ lọc |
+| L6 (2/10) | Kiểu chữ nhãn (chip) Đợt 3–7 | **một kiểu chung** theo bản vẽ: viên thuốc, chữ 800 12px, giãn .04em; áp cả nhãn "✈︎" có sẵn | 5 bản vẽ cùng một kiểu; tránh mỗi đợt một lớp CSS. Hoàn tác: một lớp CSS |
 | L3 | Mức chi tiết | Đợt 1–4: tới từng bước có mã. Đợt 5–8: mức **giao diện (interface)** — chữ ký hàm, bảng, route, test bắt buộc; người thi công đo lại mã thật lúc nhận vì các đợt trước sẽ đổi tệp | tránh mã giả viết trên nền chưa có |
 
 ## Global Constraints
@@ -113,7 +135,30 @@ Không đợt nào DROP trigger trên `vc_trip` của đợt khác (tên không 
 - Lượt II câu 4 (chủ: *"Đồng ý"*) ⇒ Đợt 5 P4 chốt: một đề nghị được nhận ⇒ các đề nghị khác cùng điểm thành `VOID` trong cùng lô.
 - Lượt II câu 6 (chủ: *"Bỏ, ghi ADR vì tôi chưa thấy thấu đáo, bỏ nếu bạn khuyến nghị như vậy"*) ⇒ soạn **ADR-0086** (proposed) bỏ `task.progress` + `dispatch.guides.view` (cùng hạn 30/11); AI đã báo ADR-0019 điều 5 từng chủ ý giữ (P18). → chủ **bác** (*"giữ lại đi, tiếp"*): giữ hai ô; hạn 30/11 còn nguyên, cần chủ gia hạn trước hạn.
 
+## Lời chủ (chat 2026-10-02, sau khi Đợt 1 lên 1.65 — năm câu mở của Đợt 1)
+
+1. Tự đóng suất hướng dẫn viên khi tài xế kết thúc chuyến — chủ: *"không, của ai việc nấy. Hệ thống sẽ tự giúp đóng khi các nguy cơ về bỏ qua sai sót là không còn. Tự đóng khi chưa nghiên cứu kỹ là mầm mống của sai sót bị lãng quên."* ⇒ **giữ nguyên** luật 1.65 (`kiemKetThuc` đòi suất `CREW` đã "Đã xuống"; tài xế không kết thúc thay). Không đợt nào được thêm tự đóng nếu chưa có đặc tả + chủ duyệt.
+2. Cấm gắn một hướng dẫn viên hai lần — chủ: *"Cái đó là đương nhiên … ngay khi HDV được gán vào chuyến thì đã không rảnh, mà hệ thống chỉ xếp ai đang rảnh, dường như thiếu tham chiếu và/hoặc nhãn."* Đã kiểm mã 2/10, chủ nói đúng: xe và tài xế có chặn trùng giờ hai lớp (`lc03_overlap` ở `migrations/0042_chuyen_xe.sql:357-381` + mã `trung_gio_xe` / `trung_gio_tai_xe` ở `dieu-phoi-route.ts:35-36`), còn người đi kèm thì **không có gì**. `GET /api/van-chuyen/huong-dan-vien` trả mọi HDV đang hoạt động, không có giờ bận; màn `web/chuyen.ts:507` chỉ lọc người đã gắn trên CHÍNH chuyến đó, lọc theo **tên**; route xếp (`index.ts:910-914`) chỉ kiểm "là HDV". ⇒ **việc mới "Người đi kèm bận"** (đã duyệt hướng, chưa có kế hoạch con), làm theo đúng khuôn tài xế:
+   - (a) máy chủ + CSDL: cấm một người hai suất `CREW` trên cùng chuyến, và cấm người đó ở hai chuyến chưa huỷ giao giờ nhau ⇒ 409 `trung_gio_nguoi_di_kem` "Hướng dẫn viên đã đi chuyến CX-… lúc …";
+   - (b) danh sách chọn trả thêm cho mỗi người `banChuyen` (mã chuyến + giờ) ⇒ màn hiện nhãn "Đang đi CX-… 08:00–11:00", xám, không chọn được; lọc theo `partyId`, bỏ lọc theo tên;
+   - (c) khuyến nghị lát đầu chỉ tính bận **theo chuyến xe** (dữ liệu có giờ chính xác). Việc tour / đơn của HDV ("Việc của tôi") chỉ hiện làm nhãn tham khảo "Có N việc hôm đó" nếu đọc được, không chặn — chờ chủ xác nhận khi lập kế hoạch con.
+3. Cấm điểm trả đứng trước điểm đón khi đổi thứ tự — chủ: *"chưa quyết được vì chưa hiểu tình huống này trong thực tế sẽ thế nào"* ⇒ **còn mở**. Đã giải thích ví dụ cho chủ 2/10: chỉ xét điểm đón và trả của **cùng một nhóm khách**. Trả khách nhóm A ở sân bay rồi đón nhóm C cũng ở sân bay là bình thường, không chặn. Khuyến nghị: chặn, vì không có tình huống thật nào trả khách trước khi đón chính khách đó.
+4. Bản vẽ Claude Design Đợt 3–7: chủ *"sẽ gửi sau"*, xin xem nguyên văn lệnh vẽ ⇒ đã chép ra chat 2/10 (nguồn vẫn là mục lệnh vẽ trong từng kế hoạch con).
+5. Đếm xe có hai giấy tờ cùng loại đang hiện hành trên production — chủ: **0** ⇒ trigger `0068` không vướng dữ liệu cũ; không cần dọn.
+
+## Lời chủ (chat 2026-10-02 chiều — mô hình thật + quy mô hợp tác xã)
+
+Bối cảnh chủ nêu: công ty có **5 xe** (2 xe 16 chỗ, 3 xe 4–7 chỗ); **thuê xe theo chuyến** khi cao điểm; dự kiến mở rộng: **taxi / xe hợp đồng tự do làm đối tác, chia sẻ doanh thu** (khách là khách của Tour Đảo); có thể lên **hợp tác xã vài chục – vài trăm xe**.
+
+1. **Thu gọn Đợt 5** — chủ: *"ok"*. Làm ngay: V11 (văn phòng thêm điểm / báo huỷ khi xe chạy, D5), V6 (tài xế bổ sung tên, D5b), cứu hộ đơn giản (văn phòng "Tạo chuyến cứu hộ", D5c). **Hoãn tới mốc**: V8–V10 (tài xế nhờ xe khác đón, hộp đề nghị cần duyệt, bảng kiểm luật — D4), V4 (Dòng dữ liệu / Nhật ký quyết định). Bỏ khỏi danh sách hỏi: câu bản vẽ 5.1, 5.2a, 5.2d, 5.4, 5.5, 5.6a, 5.7. Khi làm D4: tập mã luật để dạng **danh mục** (thêm luật = thêm dòng), không khoá cứng bằng `CHECK`.
+   **Mốc bật lại D4 / kiểu "phát chuyến"**: khoảng ≥ 15 xe đối tác hoạt động HOẶC văn phòng xếp > ~40 chuyến/ngày ⇒ viết ADR chọn cách.
+2. **Toạ độ điểm đón / trả** — chủ: *"Có, cho bổ sung vào 1 trường linh động (Flex field)"*. ⚠ Xung đột **Hiến chương 5.2** (`docs/ARCHITECTURE.md:93` — cấm flexfield/JSON không lược đồ; ADR-0060 chủ từng giữ luật này). Đã hỏi lại chủ 2/10 với phương án hợp luật: **bảng phụ có kiểu** (vd `loc_location_geo`: vĩ độ / kinh độ có `CHECK` khoảng, nguồn, không bắt buộc) — không đụng bảng lõi, thêm sau được; hoặc chủ sửa Hiến chương 5.2. **Chờ chủ.**
+3. **Cách điều xe ở quy mô hợp tác xã** — chủ: *"kết hợp cả giao chuyến cả để tài xế tự nhận"* ⇒ hướng: văn phòng giao (kiểu A, đang có) **+** phát chuyến cho tài xế rảnh tự nhận (kiểu C, chưa có ADR); tài xế nhờ tài xế (kiểu B, ADR-0052 D4) là đường phụ khi sự cố. ADR kiểu C viết khi tới mốc ở mục 1.
+4. **Chia sẻ doanh thu với taxi đối tác** — chưa ADR nào có. Khuyến nghị (chủ chưa trả lời): Đợt 4 giữ nguyên (thuê theo chuyến = chi phí cố định); chia doanh thu làm **sổ riêng** bằng ADR riêng sau khi chủ chốt: (a) % trên giá bán chặng hay sau phí; (b) ai thu tiền khách; (c) trả theo chuyến hay theo kỳ (nối sổ công nợ / khoá kỳ); (d) hợp đồng, hoá đơn, thuế (hỏi Kế toán). Không chen vào `vc_trip_cost_line`.
+
 ## Cần chủ (gom từ 8 kế hoạch con; mỗi lượt tối đa 3 câu chạm dữ liệu/quyền/tiền)
+
+> **Lịch sử (1/10).** Lượt I–III dưới đây ĐÃ TRẢ LỜI hoặc đã theo mặc định (xem "Lời chủ" 1/10, 2/10). Câu 7 (mã giữ riêng "xe có lịch bận") và câu 8 (câu chữ tin) theo mặc định đã ghi; câu 10 (ca mẫu xe A/B) thuộc phần Đợt 5 đã HOÃN. **Câu đang mở: `2026-10-02-van-chuyen-cau-hoi-ban-ve.md`.**
 
 **Lượt I — tiền xe thuê (Đợt 4, hỏi trước khi nhận Đợt 4):**
 1. Chuyến xe nhà xe đã có trên production (bảng chuyến lên từ 1.38 — tiền đề C2a của ADR-0057 nay sai): chủ chạy lệnh đếm chỉ-đọc (Task 0 Đợt 4). Có chuyến chưa chạy thì (A, khuyến nghị) để cờ "xe thuê" = 0, câu kiểm định kỳ liệt kê; hay (B) đánh dấu thuê ⇒ bị giữ "chưa có giá".

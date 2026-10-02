@@ -4,11 +4,23 @@
 
 **Goal:** Bảng giá thuê xe theo nhà xe (T1) và chi phí từng chuyến xe thuê chụp lúc xếp, chỉ-thêm, thiếu giá thì không xuất bến (T2) — đủ hai lớp (CSDL + máy chủ), có bảng kê cho Kế toán.
 
-**Architecture:** Mọi bảng mới thuộc module `van-chuyen` (tiền tố `vc_`), không cạnh module mới. Luật tiền là hàm thuần trong `src/modules/van-chuyen/tien-xe.ts` (một nguồn tính); chụp / đảo chi phí đi **trong cùng lô** của lệnh chuyến (ADR-0049 D1: cổng → nhật ký → câu có dấu lệnh → trạng thái cuối). Cổng `THIEU_GIA` hai lớp: `kiemXuatBen` (máy chủ) + trigger `thieu_gia` (CSDL). Giao diện chờ bản vẽ Claude Design.
+**Architecture:** Mọi bảng mới thuộc module `van-chuyen` (tiền tố `vc_`), không cạnh module mới. Luật tiền là hàm thuần trong `src/modules/van-chuyen/tien-xe.ts` (một nguồn tính); chụp / đảo chi phí đi **trong cùng lô** của lệnh chuyến (ADR-0049 D1: cổng → nhật ký → câu có dấu lệnh → trạng thái cuối). Cổng `THIEU_GIA` hai lớp: `kiemXuatBen` (máy chủ) + trigger `thieu_gia` (CSDL). Giao diện theo bản vẽ Claude Design đã nhận 2/10 (Task G1–G5).
 
 **Tech Stack:** Cloudflare Worker + D1 (SQLite), TypeScript, `node --test` + `node:sqlite`, khung thử `tests/audit/dieu-phoi-khung.mjs`, e2e `tests/e2e/*.mjs`, giao diện thuần `web/*.ts` (`h()`).
 
 **Spec:** `docs/adr/ADR-0057-van-chuyen-tien-xe-thue.md` (accepted 30/9 — đọc đủ 364 dòng); trang ghép `docs/superpowers/specs/2026-09-30-trang-ghep-luot-duyet-b-kernel-tien.md`; lộ trình mẹ `docs/superpowers/plans/2026-10-01-van-chuyen-con-lai-00-lo-trinh.md` (Đợt 4); ADR-0080 điều 3 (L-T1); ADR-0049 D1–D3; ADR-0071 (cột `HR`).
+
+---
+
+## Cập nhật 2026-10-02 — theo bản vẽ Claude Design + lời chủ
+
+- **Máy chủ Task 0–12 ĐÃ THI CÔNG** trên nhánh `worktree-agent-a76ababaa4a5b3183` @ `8094df2b`. Nhánh đã gộp sẵn Đợt 2 (`271b7687`). Người kiểm độc lập kiểm 2 vòng, ĐẠT. T1 = `ad3cdf89..b3a94e6f`. Commit từng task ghi ở nhật ký thi công `docs/superpowers/plans/2026-10-02-van-chuyen-dot-4-nhat-ky.md` trên nhánh đó. Số liệu: `npm test` 2873 (1 todo là sổ vàng lớp 2), typecheck 0, e2e 43/43. Migration `0072`/`0073`, nhật ký phiên bản 1.70 (đánh số lại lúc gộp).
+- **Cần chủ 1/2/3 cũ đã trả lời:** 0 chuyến xe thuê cũ (cờ `DEFAULT 0`); T2 chờ có màn (A); dời ngày cũng tính lại giá (A, ca RF1-g là bài thật).
+- **Yêu cầu từ bản vẽ đã có trong DTO** (`src/shared/contracts.ts` trên nhánh): `BangGiaDto.trangThai`, `NhaXeBangGiaDto.dangHopTac`, `CoXeDto.soDongGiaDangAp`. Máy tự sinh mã tuyến/cỡ (`T001`/`S001`). `DongChiPhiDto.{daoDuoc, tuDong, lyDo{ma,nhan}}`; `ChiPhiChuyenDto.{coTheNhapThoaThuan, coTheChupLai, lyDoChon}`. Bảng kê có `BangKeResponse.{tongCong, soChuyen, soNhaXe, soThieuGia}`, `BangKeNhomDto.{soChuyen, tongNhom}`, `BangKeDongDto.{nhomTrangThai, tongDieuChinh}`. Route `dieu-chinh` trả 409 `tong_am`. Nhãn `CPX_DOI_CHUYEN` = "Đảo do đổi chuyến (xe, nhà xe, tuyến hoặc ngày chạy)".
+- **Chưa làm (chờ chủ):** trường `giaBangCoThe` (câu 4.3 → **Task 13** mới); nút "Tải bảng kê" (câu 4.1, khuyến nghị chưa làm).
+- **Giao diện:** mục "Giao diện" viết lại thành **Task G1–G5** theo bản vẽ. G5 mới: nền thanh bên toàn app (câu 4.5).
+- **Mục "Lúc gộp" mới** (cuối kế hoạch): kiểm lại khoá kỳ ADR-0080, đánh số phiên bản, số migration, lệnh đếm Task 0, sổ vàng.
+- **Bản vẽ:** `docs/design/van-chuyen-dot-3-7/Chi phí xe thuê.dc.html` (3 màn × 1040/390). Dự án Claude Design: `f0f47482-c51a-4232-b5c0-d924871ce294`. Câu hỏi chung: `docs/superpowers/plans/2026-10-02-van-chuyen-cau-hoi-ban-ve.md` (mã 4.1–4.8).
 
 ---
 
@@ -46,7 +58,7 @@
 - `ADMIN = ACCOUNTING` ở cả bốn ô `transport.*` (chủ lần 18 "Hai vai giống hệt"); `DRIVER`, `DRIVER_PARTNER`, `HR`, `FIELD`, `PARTNER`, `INTERN`, `SALES` = `none`.
 - `transport.rate.*` vào `MATRIX` cùng bản phát hành có route T1 hỏi; `transport.cost.*` chỉ vào ở bản phát hành T2 (ADR Hệ quả :280).
 - Nhật ký (`audit_log.detail`) chỉ: mã chuyến, biển số, tên nhà xe, tên tuyến, số tiền trước→sau, nhãn lý do; không tên/SĐT khách.
-- Giao diện: không `innerHTML`; CSS chỉ token; ô gõ 16px; ẩn/hiện bằng `can()`; trang mới khai `PAGES` (`src/shared/sw-policy.ts:16`, `:25`, `:30`) + script `build:web`; kịch bản Chrome 390 + 1040; **màn mới chờ bản vẽ**.
+- Giao diện: không `innerHTML`; CSS chỉ token; ô gõ 16px; ẩn/hiện bằng `can()`; trang mới khai `PAGES` (`src/shared/sw-policy.ts:16`, `:25`, `:30`) + script `build:web`; kịch bản Chrome 390 + 1040; màn làm đúng bản vẽ 2/10 (`docs/design/van-chuyen-dot-3-7/Chi phí xe thuê.dc.html`); **web không cộng, không đếm tiền**, chỉ định dạng số máy chủ trả bằng `vnd()` (`web/format.ts`).
 - Việc TIỀN + DỮ LIỆU + QUYỀN ⇒ người kiểm độc lập chỉ-đọc (`nguoi-kiem-doc-lap`) sau **mỗi lát** (T1, T2 máy chủ, T2 giao diện); người thi công không tự nghiệm thu.
 - Lệnh cấm AI tự chạy (CLAUDE.md §8) giữ nguyên — chủ chạy `npm run day-len -- <nhánh>` rồi `npm run trien-khai`; mọi câu SQL trên D1 remote (kể cả chỉ đọc) do chủ chạy bằng `--command`, không `--file` (lỗi OAuth 10000).
 
@@ -60,7 +72,22 @@
 
 ---
 
-## Cần chủ (3 câu — gom một lần; phần không phụ thuộc vẫn thi công)
+## Cần chủ (câu đang mở — mã ở `docs/superpowers/plans/2026-10-02-van-chuyen-cau-hoi-ban-ve.md`)
+
+Mỗi câu đã có khuyến nghị. Kế hoạch đang làm theo khuyến nghị, đánh dấu `[chờ chủ xác nhận câu 4.x — đang theo khuyến nghị]` ở đúng task.
+
+- **4.1** Nút "Tải bảng kê": khuyến nghị **chưa làm** lượt này. G4 không có nút; lượt sau làm cùng sổ công nợ nhà xe (ADR-0057 T4).
+- **4.2** Cột "Điều chỉnh" ở bảng kê = **số tiền** do máy chủ tính (`tongDieuChinh`, đã có trên nhánh). Chọn "số lần" thì G4 hiện `soDieuChinh`.
+- **4.3** Gợi ý "Bảng giá vừa có giá …" cần trường máy chủ mới `giaBangCoThe` → **Task 13**. Chủ chọn B thì bỏ Task 13; G2 hiện nút "Lấy lại giá bảng" theo `coTheChupLai`, không kèm số.
+- **4.4** Bán hàng **không** thấy dải "chưa có giá". Họ chỉ thấy lý do giữ trong thẻ "Điều kiện xuất bến" có sẵn, không số tiền (G2).
+- **4.5** Nền thanh bên toàn app = `--c-surface-alt` + viền phải (G5). Đây là việc bề mặt chủ đã dặn; chỉ hỏi để chủ xác nhận bằng mắt.
+- **4.6** Sổ vàng 19 ca (`golden/van-chuyen-chi-phi.json`) chờ Kế toán / chủ ghi tên + ngày xác nhận. **Chặn phát hành**: chưa có ca xác nhận thì chưa nhận mã tiền.
+- **4.7** Phí cho nhà xe cũ trên chuyến đã đổi sang xe công ty (chưa huỷ): khuyến nghị **chặn** như nhánh đang làm (409 "Chuyến này không còn là xe thuê"). G2 ẩn nút "Điều chỉnh" khi `!thue`.
+- **4.8** Ghi dòng trạng thái ADR-0057 trỏ lời chủ 2/10 "dời ngày chạy cũng tính lại giá" (C4 chỉ liệt kê đổi nhà xe / xe / tuyến). Kèm lời `carrier_inactive` theo ca dời ngày. Chủ / điều phối làm, người thi công không sửa ADR.
+
+<details><summary>Ba câu cũ (1/10) — ĐÃ TRẢ LỜI, giữ để tra</summary>
+
+Đã trả lời (lộ trình mẹ, lời chủ 1/10): câu 1 = 0 chuyến (cờ `DEFAULT 0`); câu 2 = A; câu 3 = A (đã thi công, RF1-g là bài thật).
 
 1. **Chuyến xe nhà xe đã có trên production từ 30/9.** ADR viết lúc bảng chuyến chưa lên, nên tính "không có chuyến xe thuê cũ". Chủ chạy một lệnh **chỉ đếm** (Task 0 bước 1) rồi chọn:
    - **(A) Khuyến nghị — để nguyên chuyến cũ là "không thuê" (cờ 0):** chuyến cũ không bị đòi giá; cảnh báo định kỳ `R-VC-COST-6` liệt kê để Kế toán ghi tay. Được: không chuyến nào bị giữ đột ngột ngày triển khai. Mất: các chuyến đó không có chi phí trong bảng kê.
@@ -75,7 +102,9 @@
    - (B) Giữ giá đã chụp (đúng chữ ADR), chỉ ngày trên dòng chi phí lệch ngày chạy mới.
    - Đây là quyết định về tiền ⇒ AI không tự chọn. Task 9 làm sẵn đường (B) (đúng chữ ADR) và **đánh dấu bài chờ** ca RF1-g; chủ chọn (A) thì đổi một điều kiện (Task 9 bước 3, `canChupLai`) + bài.
 
-Việc khác của chủ đã có quy trình, không phải câu hỏi mới: (i) dán **lệnh vẽ** (mục "Giao diện") vào Claude Design; (ii) **Kế toán / chủ xác nhận "ví dụ vàng"** (mục dưới) trước khi nhận mã tiền.
+(Lệnh vẽ đã dùng; bản vẽ đã nhận 2/10. Việc xác nhận "ví dụ vàng" nay là câu 4.6.)
+
+</details>
 
 ## Tự chốt khi lập kế hoạch (bề mặt, đảo ngược được — ghi lại, không hỏi)
 
@@ -86,7 +115,7 @@ Việc khác của chủ đã có quy trình, không phải câu hỏi mới: (i
 | TC-3 | Sổ vàng | `golden/van-chuyen-chi-phi.json` + bài riêng `src/so-vang-chi-phi-xe.test.ts` (ADR C12 nói "thêm vào `FILES` của `so-vang.test.ts`") | `so-vang.test.ts` chỉ hiểu khuôn sổ công nợ; tiền lệ `dieu-phoi-ca-mau.test.ts`. Ghi vào `golden/README.md` |
 | TC-4 | Cột `HR` bốn ô mới | `none` | ADR-0071 đã duyệt nguyên tắc "mọi ô nghiệp vụ ngoài tài khoản = none"; ADR-0057 soạn trước khi có cột này |
 | TC-5 | Hàng ghim `DRIVER`/`DRIVER_PARTNER`/`HR`/`PARTNER` | thêm bốn ô với giá trị `none` | Là **siết** (khai báo none), không nới ⇒ **không cần tệp đề xuất luật** (Điều 9.4). Nếu người thi công thấy cần giá trị khác `none` ở các hàng đó → DỪNG |
-| TC-6 | Mã lý do hệ thống cho đảo tự động | `CPX_DOI_CHUYEN` ("Đổi nhà xe / xe / tuyến trước xuất bến"), `CPX_HUY_CHUYEN` ("Huỷ chuyến trước xuất bến") vào `MA_LY_DO_HE_THONG` (`src/shared/dieu-phoi-kieu.ts:30`) | ADR nói một mã hệ thống; lô huỷ cũng cần lý do cho `REVERSAL` (CHECK) ⇒ thêm mã thứ hai; không ngưng được (R-P22) |
+| TC-6 | Mã lý do hệ thống cho đảo tự động | `CPX_DOI_CHUYEN` ("Đảo do đổi chuyến (xe, nhà xe, tuyến hoặc ngày chạy)" — sửa 2/10 theo bản vẽ + lời chủ dời ngày, đã có ở `0073` trên nhánh), `CPX_HUY_CHUYEN` ("Đảo do huỷ chuyến") vào `MA_LY_DO_HE_THONG` (`src/shared/dieu-phoi-kieu.ts:30`) | ADR nói một mã hệ thống; lô huỷ cũng cần lý do cho `REVERSAL` (CHECK) ⇒ thêm mã thứ hai; không ngưng được (R-P22) |
 | TC-7 | Lý do người ghi, nhóm `CHI_PHI_XE` | `CPX_PHU_THU_CHO` (Phụ thu chờ thêm giờ), `CPX_CAU_DUONG` (Phí cầu đường / bến bãi), `CPX_HUY_MUON` (Phí huỷ muộn), `CPX_NHAP_SAI` (Nhập sai), `CPX_GIA_THOA_THUAN` (Giá thoả thuận trước), `CPX_KHAC` (Khác) | Danh mục là dữ liệu, Quản trị sửa ở màn Lý do có sẵn |
 | TC-8 | Khoá chống ghi chồng của route Kế toán (ADR C9 "kế hoạch chốt") | `phienBanChiPhi` = `count(*)` dòng chi phí của chuyến; câu ghi `… WHERE (SELECT count(*) FROM vc_trip_cost_line WHERE trip_id = ?) = ?` | Không chạm `vc_trip` (bị `vc_trip_final_frozen` khoá sau kết thúc); lô chuyến chèn dòng đảo làm số đếm đổi ⇒ hai bên loại trừ nhau |
 | TC-9 | Trigger cờ `rented` | ba trigger một-việc: (a) lúc chèn khớp phân loại theo `NEW.carrier_party_id`; (b) lúc đổi xe/chủ: chủ mới là công ty chủ ⇒ 0, đang là nhà xe ⇒ 1, còn lại không ràng; (c) cấm hạ `1→0` khi chủ mới không phải công ty chủ; (d) cấm đổi riêng `rented` | Mỗi hàng rào một phép đột biến (khuôn 0038 B1.2); phân loại theo chủ chụp để `lc13_carrier` (`:624`) vẫn báo trước |
@@ -157,6 +186,10 @@ Ca V1–V13 vào `golden/van-chuyen-chi-phi.json` (Task 6), trạng thái `cho_x
 | `golden/van-chuyen-chi-phi.json`, `src/so-vang-chi-phi-xe.test.ts` (mới), `golden/README.md` | Sổ vàng | 6 |
 | `tests/e2e/tien-xe-thue.mjs` (mới), `tests/e2e/run.mjs` | e2e | 4, 11 |
 | `docs/data-dictionary.json` → `npm run dict`; `docs/SO-HANG-RAO.md`; `docs/SYSTEM-DESIGN.md` §5/§7; `docs/CHANGE-GUIDE.md`; `src/shared/changelog.ts` | Tài liệu | 5, 12 |
+| `web/bang-gia-xe.ts`, `web/bang-ke-xe.ts`, `public/bang-gia-xe.html`, `public/bang-ke-xe.html` (mới) | Hai màn mới theo bản vẽ 2/10 | G0, G1, G4 |
+| `web/shell.ts`, `web/account.ts`, `src/shared/sw-policy.ts`, `package.json` | Menu + khai trang | G0 |
+| `web/chuyen.ts`, `web/chuyen-sua.ts`, `ChuyenChiTietResponse` (`src/shared/contracts.ts`) | Khối Chi phí chuyến; ô tuyến (+ trường `tuyen` chi tiết chuyến) | G2, G3 |
+| `public/app.css`, `src/shared/giao-dien.ts` | Token vai mới, khối `.bg-*`/`.cp-*`/`.bk-*`; nền + viền thanh bên | G1–G5 |
 
 ## Lát, bản phát hành, người kiểm
 
@@ -164,7 +197,8 @@ Ca V1–V13 vào `golden/van-chuyen-chi-phi.json` (Task 6), trạng thái `cho_x
 |---|---|---|---|
 | **T1 máy chủ** | 0–5 | được gộp + triển khai riêng (vô hại: chưa ai bị chặn) | trigger chồng giá dùng `IS` + `COALESCE`; **đóng** giá của nhà xe đã thôi vai vẫn được; `ADMIN = ACCOUNTING`; HR/DRIVER/DRIVER_PARTNER = none; ví dụ vàng V1–V5b chạy qua `chonDongGiaThue` |
 | **T2 máy chủ** | 6–12 | **giữ trên nhánh** tới khi có giao diện (Cần chủ 2) | thứ tự lô (đảo âm → dương; chụp sau ghi chuyến); `thieu_gia` hai lớp; không phá lệ; cờ `rented` + cấm hạ; luật vai chỉ áp `SNAPSHOT`/`AGREED`; tổng ≥ 0 canh mọi dòng; bài số lạ có đỏ một lần; `R-VC-COST-3` (TC-10); ADR-0080 điều kiện |
-| **T2 giao diện** | G1–G4 | cùng bản với T2 máy chủ | `can()` ẩn/hiện; không số tiền ở màn của Bán hàng; kịch bản Chrome |
+| **Task 13** (máy chủ nhỏ, chờ câu 4.3) | 13 | cùng bản với T2 | `giaBangCoThe` chỉ trong phản hồi `transport.cost.view`; bài số lạ có ca mới |
+| **T2 giao diện** | G1–G5 | cùng bản với T2 máy chủ (G5 tách được, xem G5) | `can()` ẩn/hiện; không số tiền ở màn của Bán hàng; web không cộng; kịch bản Chrome |
 
 ---
 
@@ -1156,19 +1190,343 @@ const lenh = routes.filter((m) => !/\/chang\//.test(m[2]!) && !KHONG_BAO.has(m[2
 
 ---
 
-## Giao diện (CHỜ BẢN VẼ — mức interface + lệnh vẽ)
+## Task 13: Trường `giaBangCoThe` cho gợi ý "Bảng giá vừa có giá …" `[chờ chủ xác nhận câu 4.3 — đang theo khuyến nghị]`
 
-Màn mới ⇒ chờ bản vẽ Claude Design của chủ (bài học Đợt D). Ô nhỏ thêm vào màn có sẵn theo khuôn hiện có ⇒ làm được không cần vẽ (G3). Mỗi màn: không `innerHTML`, `h()`, token `public/app.css`, ô gõ 16px, `can()` ẩn/hiện, trang mới khai `PAGES` + `build:web`, kịch bản Chrome 390 + 1040 (tài khoản Kế toán, Quản trị, Bán hàng — trang của tài khoản nào mở SAU CÙNG), ảnh `docs/evidence/`.
+Việc máy chủ nhỏ, làm trên nhánh T2 trước G2. Chủ chọn B ở câu 4.3 thì **bỏ cả task**; G2 vẫn chạy, chỉ thiếu dòng gợi ý có số.
 
-| # | Màn | Ai thấy (`can`) | Dữ liệu (route) | Trạng thái |
-|---|---|---|---|---|
-| G1 | **Bảng giá thuê xe** — trang mới `/bang-gia-xe` (`web/bang-gia-xe.ts`); mục menu "Bảng giá thuê xe" trong nhóm Vận chuyển | `transport.rate.view` (thêm/kết thúc: `transport.rate.manage`) | `GET/POST /api/van-chuyen/bang-gia`, `…/:id/ket-thuc`, `/tuyen`, `/co-xe` | chờ vẽ |
-| G2 | **Chi phí chuyến** — khối trên trang chi tiết chuyến `web/chuyen.ts` (thêm khối mới vào màn có sẵn, nhưng có bảng dòng + 4 nút ⇒ **cần vẽ**) | `transport.cost.view` (nút: `transport.cost.adjust`) | `GET …/chuyen/:id/chi-phi`, `POST …/dieu-chinh`, `…/dao`, `…/chup-lai`, `…/gia-thoa-thuan` | chờ vẽ |
-| G3 | **Ô chọn tuyến** trên tạo / sửa chuyến (`web/chuyen-sua.ts`) — một ô chọn thêm theo khuôn ô chọn xe | `trip.dispatch` | `GET /api/van-chuyen/tuyen`; thân `tuyen` | **không cần vẽ** — làm cùng G1/G2 |
-| G4 | **Bảng kê chi phí xe** — trang mới `/bang-ke-xe` (`web/bang-ke-xe.ts`) | `transport.cost.view` | `GET /api/van-chuyen/chi-phi` | chờ vẽ |
-| — | Lý do giữ "Chuyến xe thuê chưa có giá" | mọi người xem chuyến (kể cả Bán hàng) | đã có qua `lyDoGiu` | **không cần vẽ** (khuôn lý do giữ có sẵn), không kèm số |
+**Files:** `src/shared/contracts.ts` (`ChiPhiChuyenDto`), hàm dựng DTO chi phí chuyến trong `src/modules/van-chuyen/` (đo lại; trên nhánh route gọi `docChiPhiChuyen`), `src/modules/van-chuyen/tien-xe-route.test.ts`, `src/tien-xe-so-la.test.ts`, `src/tien-xe-mot-nguon.test.ts`.
 
-### Lệnh vẽ Claude Design (chủ dán nguyên văn)
+**Interfaces:**
+- `ChiPhiChuyenDto.giaBangCoThe: number | null` là số tiền của dòng giá **sẽ** được chụp nếu bấm "Lấy lại giá bảng" ngay lúc đọc. Máy chủ tra bằng `chonDongGiaThue`, với đúng đầu vào lệnh `chup-lai` dùng (nhà xe, tuyến, cỡ theo số chỗ, ngày chạy). Ngoài ca chụp lại được thì luôn `null`.
+- `coTheChupLai` đổi nghĩa: điều kiện cũ (`PLANNED`, `thue`, chưa nguồn giá, nhà xe còn hợp tác) **và** `giaBangCoThe !== null`. Nút chỉ hiện khi có giá để lấy; web không tự suy.
+- Trường chỉ nằm trong `GET /api/van-chuyen/chuyen/:id/chi-phi` và phản hồi các lệnh ghi chi phí, tức sau cổng `transport.cost.view`. Không đưa vào DTO nào khác.
+
+- [ ] **Bước 1: Test (đỏ)** — `tien-xe-route.test.ts`:
+  - chuyến thiếu giá, Quản trị thêm dòng giá khớp 450.000 ⇒ `giaBangCoThe = 450000`, `coTheChupLai = true`;
+  - không dòng khớp ⇒ `null`, `coTheChupLai = false`;
+  - chuyến `RUNNING`, hoặc đã có `SNAPSHOT` ⇒ `null`;
+  - nhà xe đã thôi hợp tác ⇒ `null`.
+
+  `src/tien-xe-so-la.test.ts`: thêm ca dòng giá `480017` khớp một chuyến **chưa** chụp.
+  - Gọi `/api/van-chuyen/chuyen/:id` và mọi GET khác **bằng Bán hàng** ⇒ không phản hồi nào chứa `480017`.
+  - Kế toán gọi `/chi-phi` ⇒ có `480017`. Đây là ca dương, để bài không xanh giả.
+- [ ] **Bước 2: Đỏ đúng lý do.**
+- [ ] **Bước 3: Mã.** Dựng `giaBangCoThe` trong hàm đọc chi phí chuyến bằng `chonDongGiaThue`, không thêm câu SQL cộng. Sửa `coTheChupLai` dùng chính giá trị này.
+- [ ] **Bước 4: Hàng rào một nguồn tính.** `src/tien-xe-mot-nguon.test.ts` ý 3 thêm luật: gán `giaBangCoThe:` có vế phải là `null` hoặc giá trị lấy từ `chonDongGiaThue(`. P16: gán tạm `giaBangCoThe: 1` ⇒ đỏ ⇒ hoàn nguyên.
+- [ ] **Bước 5:** `npm test`, typecheck, e2e `tien-xe-thue` xanh. Commit "Tiền xe thuê: gợi ý giá bảng có thể lấy cho chuyến thiếu giá (chỉ Kế toán, Quản trị)". Người kiểm T2 soi lại bài số lạ.
+
+---
+
+## Giao diện — Bản vẽ đã nhận 2/10 (Task G0–G5)
+
+**Bản vẽ:** `docs/design/van-chuyen-dot-3-7/Chi phí xe thuê.dc.html`. Gồm màn 1a Bảng giá, 1b Chi phí chuyến, 1c Bảng kê; mỗi màn có bản 1040px và 390px. Dự án Claude Design `f0f47482-c51a-4232-b5c0-d924871ce294`.
+
+Phần **bề mặt** (chữ, thứ tự, nút, chip, bố cục) làm đúng bản vẽ 100%. Phần chạm dữ liệu, quyền, tiền làm theo câu 4.x ở mục "Cần chủ".
+
+**Luật chung cho mọi task G:**
+- Làm trên nhánh T2 (`worktree-agent-a76ababaa4a5b3183` hoặc nhánh nối tiếp).
+- **Bước 0 mỗi task: đo lại số dòng** trên nhánh đó. Số dòng dưới đây đo ở `origin/main` ngày 2/10, còn nhánh đã gộp Đợt 2 nên có thể lệch.
+- Web **không cộng, không đếm, không so ngày** để ra số hoặc trạng thái. Màn chỉ hiện các trường máy chủ trả: `tong`, `tongNhom`, `tongCong`, `tongDieuChinh`, `soTien`, `soChuyen`, `soNhaXe`, `soThieuGia`, `trangThai`, `nhomTrangThai`, `daoDuoc`, `coThe…`.
+  - Tiền định dạng bằng `vnd()` (`web/format.ts:10`).
+  - Dấu "+ " / "− " đặt theo dấu của `soTien`. Đó là định dạng, không phải tính.
+  - Ô nhập tiền chỉ đọc số người gõ để gửi lên.
+- Dựng bằng `h()`, không `innerHTML`; CSS chỉ dùng token; ô gõ 16px (`--fs-step-5`), cao `--tap-min`; ẩn/hiện bằng `can()`.
+- Mọi lệnh ghi gửi `requestId` (UUID mới mỗi lần mở form). Route chi phí gửi thêm `phienBanChiPhi`.
+- Form ở điện thoại dùng tấm đáy `moBangTruot` (`web/bang-truot.ts:19`); ở máy tính dùng thẻ nội tuyến như bản vẽ.
+- Ánh xạ màu bản vẽ → token theo bảng §5 của đánh giá bản vẽ:
+  - số tiền `--c-accent-strong`;
+  - chip `.vc-chip-ok/-warn/-danger/-muted`;
+  - dải `.banner.banner-warning` / `.banner-danger`;
+  - `#334155` → `--c-text`; `#E6EDF3` → `.vc-chip-muted`.
+- **Hai chỗ màu đậm của bản vẽ:** tab viên thuốc đang chọn (nền `--c-primary`, chữ trắng) và khối "TỔNG CỘNG" (nền `--c-primary`, số `--c-sand`). App đã chuyển sang hướng sáng: nút chính và mục chọn dùng nền nhạt (nhóm "MÀU THEO VAI", `public/app.css:314`).
+  - **Chốt bề mặt:** làm **đúng bản vẽ** bằng **token vai mới** trong nhóm đó; luật CSS không trỏ thẳng `--c-primary`. Năm token: `--c-pill-on-bg: var(--c-primary)`, `--c-pill-on-text: var(--c-on-dark)`, `--c-total-bg: var(--c-primary)`, `--c-on-total: var(--c-on-dark)`, `--c-total-num: var(--c-sand)`.
+  - Thêm cặp tương phản vào `src/token-giao-dien.test.ts`.
+  - Muốn theo hướng sáng thì chỉ đổi giá trị năm token về `--c-selected-*` / `--c-band-*` + `--c-accent-strong`, không sửa luật CSS. Đảo ngược được; ghi ở Tự rà.
+- Bề rộng cột bảng (140/130/120/110/150/96px) chưa có token: thêm `--w-bg-*` (bảng giá) và `--w-bk-*` (bảng kê) vào nhóm "Riêng của Tour Đảo Booking" của `public/app.css`.
+- Kịch bản Chrome:
+  - mỗi task một kịch bản, chạy ở 390 và 1040, ảnh vào `docs/evidence/2026-10-0X-tien-xe-thue/`;
+  - tài khoản Kế toán, Quản trị, Bán hàng; các trang dùng chung kho cookie, nên trang của tài khoản nào phải mở **sau cùng**;
+  - thêm dòng vào bảng "Sửa tệp nào thì chạy lại kịch bản Chrome nào" của `web/CLAUDE.md`.
+
+### Task G0: Menu + khai trang (làm trước G1, G4)
+
+**Files:** `web/shell.ts`, `web/account.ts`, `src/shared/sw-policy.ts`, `package.json`, `public/bang-gia-xe.html` và `public/bang-ke-xe.html` (mới, khuôn `public/loai-giay-to-xe.html`), `src/shared/sw-policy.test.ts`.
+
+- [ ] **Bước 1: Test (đỏ).** `src/shared/sw-policy.test.ts` đối chiếu `PAGES` với script `build:web`. Thêm `/bang-gia-xe`, `/bang-ke-xe` vào danh sách mong đợi ⇒ đỏ.
+- [ ] **Bước 2: Khai trang.**
+  - Thêm hai trang vào `PAGES` (`src/shared/sw-policy.ts:16`) và danh sách trang (`:25`); thêm `/js/bang-gia-xe.js`, `/js/bang-ke-xe.js` vào danh sách js (`:30`).
+  - Thêm `web/bang-gia-xe.ts web/bang-ke-xe.ts` vào `build:web` (`package.json:11`).
+  - `data-title`: "Bảng giá thuê xe" / "Bảng kê chi phí xe thuê". Thanh trên theo khuôn app (`web/shell.ts:362`), không dựng lại "Quản trị › …" của bản vẽ.
+- [ ] **Bước 3: Thanh bên (máy tính).** Bản vẽ có nhóm "Quản trị" gồm "Chuyến xe, Bảng giá thuê xe, Bảng kê chi phí xe". Trong app, "Chuyến xe" chính là mục con **"Điều phối xe"** đã có ⇒ **không vẽ menu mới**.
+  - Thêm hai cờ `bangGia = can(staff, "transport.rate.view")`, `bangKe = can(staff, "transport.cost.view")` cạnh các cờ ở `web/shell.ts:506`. Truyền qua `addNav` (`:428`) → `sidebar` (`:330`) → `navGroups` (`:220`), theo đúng khuôn cờ vị trí `dieuPhoi`.
+  - Mục cha "Vận chuyển": `if (vehicle || dieuPhoi)` (`:245`) → `if (vehicle || dieuPhoi || bangGia || bangKe)`. Thêm hai đường vào `active()` của mục cha (`:248`).
+  - Ngay sau "Điều phối xe" (`:250`), theo thứ tự bản vẽ:
+    - `{ href: "/bang-gia-xe", label: "Bảng giá thuê xe", kind: "sub" }` khi `bangGia`;
+    - `{ href: "/bang-ke-xe", label: "Bảng kê chi phí xe", kind: "sub" }` khi `bangKe`.
+
+    Không biểu tượng, không huy hiệu.
+  - Thêm hai đường vào danh sách làm sáng tab "Tôi" (`web/shell.ts:71`): ở điện thoại hai trang mở từ trang Tôi.
+- [ ] **Bước 4: Trang Tôi (điện thoại).** `web/account.ts`, nhóm "VẬN CHUYỂN": thêm hai dòng `row-link` ngay sau "Điều phối xe" (`:83`), cùng điều kiện `can()`. Nếu nhóm đang ẩn khi thiếu `trip.view` / `vehicle.manage`, nới điều kiện hiện nhóm như bước 3.
+- [ ] **Bước 5: Kịch bản đếm mục.** Đo lại rồi sửa số đếm mục thanh bên ở:
+  - `docs/evidence/2026-09-23-trang-chu-moi/kich-ban/trang-chu-smoke.mjs` (dự kiến Quản trị 17 → 19, trang `/audit` 20 → 22, Kế toán +2);
+  - `docs/evidence/2026-10-01-han-che-quan-tri-hcns/kich-ban/quyen-thieu-quan-tri-smoke.mjs`;
+  - thứ tự mục ở `docs/evidence/2026-09-28-van-chuyen-1a/kich-ban/xe-smoke.mjs`.
+
+  Kịch bản khẳng định Bán hàng **không** thấy hai mục. `src/giao-dien-hoi-bang-quyen.test.ts` xanh.
+- [ ] **Bước 6:** `npm test`, typecheck, `npm run build:web`. Commit "Tiền xe thuê: khai trang và mục menu Bảng giá thuê xe, Bảng kê chi phí xe".
+
+### Task G1: Trang Bảng giá thuê xe `/bang-gia-xe` + tab Tuyến / Cỡ xe (bản vẽ màn 1a)
+
+**Files:** `web/bang-gia-xe.ts` (mới), `public/bang-gia-xe.html`, `public/app.css` (khối `.bg-*` mới), kịch bản `docs/evidence/2026-10-0X-tien-xe-thue/kich-ban/bang-gia-xe-smoke.mjs` (mới). Khuôn trang danh mục: `web/loai-giay-to-xe.ts`.
+
+**Dữ liệu** (đo lại tên trường thân ở `src/modules/van-chuyen/tien-xe-than.ts`):
+- `GET /api/van-chuyen/bang-gia?nha-xe=&ngay=` → `BangGiaResponse { ngay, nhaXePartyId, dong: BangGiaDto[], tuyen, coXe, nhaXe: NhaXeBangGiaDto[] }`;
+- `POST /api/van-chuyen/bang-gia`, thân `{ requestId, nhaXePartyId, tuyen, coXe, soTien, tuNgay, denNgay, ghiChu, thayDongId }`;
+- `POST …/bang-gia/:id/ket-thuc { denNgay }`;
+- `POST /tuyen { ten }`, `PUT /tuyen/:code { ten?, dangDung?, thuTu? }`;
+- `POST /co-xe { tuSoKhach, denSoKhach }`, `PUT /co-xe/:code { nhan?, dangDung? }`.
+
+- [ ] **Bước 1: Kịch bản Chrome (đỏ, vì trang chưa có).**
+  - Kế toán mở `/bang-gia-xe` ⇒ h1 "Bảng giá thuê xe" + phụ đề "Giá thuê mỗi chuyến của từng nhà xe đối tác.".
+  - Thêm giá theo tuyến; "Đổi giá" thấy gợi ý ngày; "Kết thúc".
+  - Tab Tuyến: thêm "Nha Trang – Đà Lạt". Tab Cỡ xe: thêm 4–7 ⇒ nhãn "4–7 khách".
+  - Nhà xe đã thôi hợp tác ⇒ không có "Thêm giá" / "Đổi giá", vẫn "Kết thúc" được.
+  - Bán hàng mở thẳng `/bang-gia-xe` ⇒ câu không có quyền, không bảng.
+- [ ] **Bước 2: Khung trang.**
+  - Đầu trang: h1 + phụ đề + nút accent "Thêm giá" (`--c-accent`). Nút hiện khi `can(staff, "transport.rate.manage")` **và** nhà xe đang chọn có `dangHopTac`; ẩn ở tab Tuyến / Cỡ xe.
+  - Thẻ lọc, ô "Nhà xe" ▾: lấy từ `nhaXe[]`. Nhà xe `dangHopTac = false` ghi "<tên> (đã thôi hợp tác)".
+  - Thẻ lọc, ô "Giá đang áp ngày": mặc định `ngay` máy chủ trả. Ô này **chỉ gắn nhãn**; máy chủ vẫn trả mọi dòng.
+  - Ghi chú nhỏ: "Có cả giá theo tuyến và giá theo cỡ xe thì giá theo tuyến được dùng."
+- [ ] **Bước 3: Ba tab viên thuốc** "Giá thuê / Tuyến / Cỡ xe". Tab đang chọn `--c-pill-on-bg` / `--c-pill-on-text`; tab chưa chọn `--c-primary-soft`. Có `role="tablist"` và đi bằng phím mũi tên.
+- [ ] **Bước 4: Tab Giá thuê.**
+  - **Máy tính:** bảng 6 cột:
+    - TUYẾN (ghi chú ở dòng dưới, `--c-text`);
+    - CỠ XE;
+    - SỐ TIỀN / CHUYẾN (`vnd(soTien)`, `--c-accent-strong`);
+    - HIỆU LỰC ("01/07/2026 – đang áp" khi `denNgay = null`);
+    - TRẠNG THÁI;
+    - nút.
+  - **Chip trạng thái** theo `trangThai`: `DANG_AP` "Đang áp" `.vc-chip-ok`; `SAP_AP` "Sắp áp" `.vc-chip-warn`; `DA_KET_THUC` "Đã kết thúc" `.vc-chip-muted`.
+  - **Nút "Đổi giá", "Kết thúc"** ẩn khi `DA_KET_THUC` hoặc thiếu `transport.rate.manage`. Riêng "Đổi giá" ẩn với nhà xe đã thôi.
+  - Tuyến trống ghi "Mọi tuyến", cỡ trống ghi "Mọi cỡ xe" (chữ mờ `--c-text-muted`).
+  - **Điện thoại:** thẻ dọc, nút viên "Đổi giá" và viên đỏ "Kết thúc".
+  - **Trống:** "Nhà xe này chưa có giá" + "Thêm giá theo tuyến hoặc theo cỡ xe để chuyến xe thuê tự lấy giá bảng." + nút "Thêm giá".
+- [ ] **Bước 5: Form "Thêm giá" / "Đổi giá — <tuyến>".**
+  - Ô:
+    - Tuyến ▾ (tuyến đang dùng, có "Mọi tuyến");
+    - Cỡ xe ▾ (cỡ đang dùng, có "Mọi cỡ xe");
+    - Số tiền *, Từ ngày *;
+    - Đến ngày (gợi ý "Để trống nếu đang áp"), Ghi chú.
+
+    Nút "Lưu giá mới".
+  - "Đổi giá": điền sẵn, **khoá** Tuyến và Cỡ xe (chỉ đọc) vì dòng thay phải cùng khoá; gửi `thayDongId`.
+  - Gợi ý dưới ô Từ ngày: "Dòng cũ sẽ kết thúc ngày <Từ ngày − 1>, dòng mới bắt đầu ngày <Từ ngày>…". Đây là định dạng ngày người gõ, không phải luật: máy chủ quyết.
+  - Lỗi hiện **nguyên văn** câu máy chủ, gồm "Nhà xe đã có giá cùng tuyến, cùng cỡ trong khoảng ngày này" và "Nhà xe này đã thôi hợp tác — không thể thêm giá mới".
+  - Máy tính: thẻ nội tuyến nền `--c-soft-hover`. Điện thoại: `moBangTruot`.
+- [ ] **Bước 6: Hộp "Kết thúc"** (bản vẽ thiếu, theo khuôn form trên). Một ô "Đến ngày", điền sẵn hôm nay; nút "Kết thúc giá"; gọi `…/:id/ket-thuc`.
+- [ ] **Bước 7: Tab Tuyến.**
+  - Tiêu đề + gợi ý "Thêm, đổi tên hoặc ngưng dùng. Tuyến ngưng dùng vẫn giữ trong giá cũ."
+  - Mỗi dòng: tên, chip "Đang dùng" (`.vc-chip-ok`) / "Ngưng dùng" (`.vc-chip-muted`), nút "Đổi tên", nút "Ngưng dùng" / "Dùng lại".
+  - Chân: ô **"Tên tuyến mới"** + "Thêm". **Không ô mã**: máy sinh `T001…`, mã không hiện.
+- [ ] **Bước 8: Tab Cỡ xe.**
+  - Gợi ý "Nhập khoảng số khách, không kể tài xế."
+  - Chân: ô "Từ (khách)", "Đến (khách)" + "Thêm". Nhãn do máy chủ sinh ("4–7 khách", "45 khách"). "Đổi tên" đổi `nhan`.
+  - "Ngưng dùng" khi `soDongGiaDangAp > 0`: hỏi xác nhận trước, N lấy từ máy chủ. Câu: "Cỡ này còn N dòng giá đang áp. Ngưng dùng thì xe cùng số chỗ sẽ không còn khớp giá theo cỡ — vẫn ngưng?"
+- [ ] **Bước 9: Trạng thái bản vẽ thiếu**, theo khuôn `.vc-*` của `web/loai-giay-to-xe.ts`:
+  - đang tải;
+  - lỗi tải, có nút "Thử lại";
+  - 409 `co_xe_chong` / `gia_chong`, 400: hiện câu máy chủ;
+  - 403 khi mở thẳng mà không có quyền.
+- [ ] **Bước 10:** `npm run build:web`; kịch bản bước 1 xanh ở 390 + 1040; axe 0 lỗi; ảnh vào `docs/evidence/`. Commit "Tiền xe thuê: màn Bảng giá thuê xe (giá, tuyến, cỡ xe) theo bản vẽ 2/10".
+
+### Task G2: Khối "Chi phí chuyến" trong Chi tiết chuyến (bản vẽ màn 1b)
+
+**Files:** `web/chuyen.ts`, `public/app.css` (khối `.cp-*` mới), kịch bản mới `docs/evidence/2026-10-0X-tien-xe-thue/kich-ban/chi-phi-chuyen-smoke.mjs`. Chạy lại `docs/evidence/2026-09-29-adr-0049/kich-ban/chuyen-smoke.mjs`.
+
+**Dữ liệu:**
+- `GET /api/van-chuyen/chuyen/:id/chi-phi` → `ChiPhiChuyenResponse { chiPhi: ChiPhiChuyenDto }`.
+- Bốn lệnh ghi trả lại chi phí chuyến mới (`phanHoiChiPhi`, đo lại kiểu trả). Màn vẽ lại từ phản hồi, không tự cộng.
+- Thân `dieu-chinh`: `{ requestId, phienBanChiPhi, soTien, lyDo, ghiChu, ngay }`.
+- Thân `dao`: `{ requestId, phienBanChiPhi, dongId, lyDo, ghiChu, ngay }`.
+- Thân `chup-lai`: `{ requestId, phienBanChiPhi }`.
+- Thân `gia-thoa-thuan`: `{ requestId, phienBanChiPhi, soTien, ghiChu }`.
+
+- [ ] **Bước 1: Kịch bản Chrome (đỏ).**
+  - Kế toán, chuyến xe thuê thiếu giá (V6): thấy dải cảnh báo → "Nhập giá thoả thuận" 1.350.000 → khối hiện nguồn "Giá thoả thuận", tổng 1.350.000 → thẻ "Điều kiện xuất bến" hết lý do giữ → xuất bến được (V6 → V6b).
+  - Điều chỉnh −700.000 trên tổng 600.000 ⇒ form hiện "Tổng chi phí chuyến sẽ âm — đảo điều chỉnh giảm trước".
+  - "Đảo dòng" một điều chỉnh ⇒ dòng mờ, có chip "đã đảo".
+  - Chuyến đã huỷ có phí huỷ ⇒ 5 dòng như trạng thái 3 của bản vẽ.
+  - Hai tab cùng phiên bản, tab 2 ghi ⇒ dải đỏ 409.
+  - **Bán hàng** mở cùng chuyến:
+    - **không** có khối, **không** có dải;
+    - **không** có yêu cầu mạng tới `/chi-phi` (đọc nhật ký mạng);
+    - vẫn thấy lý do giữ "Chuyến xe thuê chưa có giá" trong thẻ "Điều kiện xuất bến", không số tiền.
+- [ ] **Bước 2: Chỗ đặt.**
+  - Khối là `section.vc-card` đặt **cuối** cột chính `dp-ct-main`, sau `theKhach()` (`web/chuyen.ts:206`). Điện thoại: cuối trang.
+  - Đầu trang, thẻ 4 ô và các khối hiện có **giữ nguyên**. Khung gạch đứt trong bản vẽ chỉ là chỗ giữ.
+  - Chỉ dựng khối **và** chỉ gọi `GET …/chi-phi` khi `can(staff, "transport.cost.view")`.
+  - Gọi song song với `nap()` (`:39`). Lỗi tải chi phí không làm hỏng trang chuyến.
+- [ ] **Bước 3: Khi nào hiện khối.**
+  - Ẩn hẳn khi `!thue && dong.length === 0` (xe công ty thuần; bản vẽ thiếu trạng thái này).
+  - `!thue && dong.length > 0` (V13: đổi sang xe công ty, mọi dòng đã đảo): hiện dòng, không nút giá, không "Điều chỉnh" `[chờ chủ xác nhận câu 4.7 — đang theo khuyến nghị]`.
+- [ ] **Bước 4: Dải cảnh báo** `[chờ chủ xác nhận câu 4.4 — đang theo khuyến nghị]`.
+  - Hiện khi `thue && trangThai === "PLANNED" && nguonGia === null`, chỉ với người có `transport.cost.view`.
+  - Dùng `.banner.banner-warning`. `.banner-title`: "Chuyến xe thuê chưa có giá — chưa được xuất bến". Lời: "Nhập giá thoả thuận với nhà xe, hoặc bổ sung giá vào Bảng giá thuê xe rồi lấy lại giá bảng."
+  - Nút "Nhập giá thoả thuận" trong `.banner-actions` khi `coTheNhapThoaThuan && can(staff, "transport.cost.adjust")`.
+  - Không đổi thẻ "Điều kiện xuất bến" có sẵn.
+- [ ] **Bước 5: Đầu khối + tóm tắt.**
+  - Tiêu đề "Chi phí chuyến" + chip "Chỉ Kế toán · Quản trị" (`--c-primary-soft`).
+  - Lưới 4 ô:
+    - NHÀ XE: `nhaXe.ten`;
+    - TUYẾN: `tuyen.ten`, hoặc "Chưa chọn tuyến";
+    - NGUỒN GIÁ: chip `BANG` "Giá bảng" `.vc-chip-ok`; `THOA_THUAN` "Giá thoả thuận" `.vc-chip-ok`; `null` "Chưa có giá" `.vc-chip-warn`;
+    - TỔNG CHI PHÍ: `vnd(tong)`, cỡ `--fs-stat-*`, màu `--c-accent-strong`; ghi "—" khi `nguonGia === null && tong === 0`.
+- [ ] **Bước 6: Danh sách dòng** (giữ thứ tự máy chủ trả).
+  - **Chip loại:**
+    - `SNAPSHOT` "Giá bảng" `.vc-chip-ok`;
+    - `AGREED` "Giá thoả thuận" `.vc-chip-ok`;
+    - `ADJUSTMENT` "Điều chỉnh" (`--c-primary-soft`); riêng `lyDo.ma === "CPX_HUY_MUON"` là "Điều chỉnh · phí huỷ" `.vc-chip-danger`;
+    - `REVERSAL` "Đảo" `.vc-chip-muted`.
+  - **Chip phụ:** "đã đảo" khi `daDao`; "đảo do đổi chuyến" `.vc-chip-warn` khi `daoDoDoiChuyen`.
+  - **Số:** "+ 450.000 ₫" / "− 400.000 ₫"; số âm `--c-danger`.
+  - Dòng `daDao`: mờ (token mới `--o-dong-dao: .55` ở nhóm "Riêng") và gạch ngang.
+  - **Dưới số:** `lyDo.nhan`, `ghiChu`, "<người> · <lúc>". Người = "Hệ thống" khi `tuDong`, không thì `nguoi`.
+  - **Nút liên kết "Đảo dòng":** khi `daoDuoc && can(staff, "transport.cost.adjust")`. Web không tự suy luật đảo.
+  - **Trống:** "Chưa có dòng chi phí nào."
+- [ ] **Bước 7: Hàng nút cuối khối**, chỉ khi `can(staff, "transport.cost.adjust")`:
+  - "Nhập giá thoả thuận" (nút chính) khi `coTheNhapThoaThuan`.
+  - "Lấy lại giá bảng" khi `coTheChupLai` `[chờ chủ xác nhận câu 4.3 — đang theo khuyến nghị]`. Kèm gợi ý "Bảng giá vừa có giá <vnd(giaBangCoThe)> cho tuyến này — bấm 'Lấy lại giá bảng' để dùng." Chủ chọn B (không làm Task 13) thì có nút, không có dòng gợi ý.
+  - "Điều chỉnh" khi `thue` `[chờ chủ xác nhận câu 4.7 — đang theo khuyến nghị]`. Gợi ý: "Điều chỉnh cộng hoặc trừ vào tổng; ghi sai thì 'Đảo dòng'." Chuyến đã huỷ thêm: "Chuyến đã huỷ vẫn ghi được phí huỷ."
+- [ ] **Bước 8: Ba form + một hộp.** Máy tính: thẻ nội tuyến nền `--c-soft-hover`. Điện thoại: `moBangTruot` (bản vẽ không vẽ form 390px).
+  - **"Nhập giá thoả thuận":** Số tiền (₫) *, Ghi chú thoả thuận * (ô nhiều dòng, tối đa 300). Nút "Lưu giá thoả thuận".
+  - **"Điều chỉnh chi phí":**
+    - Số tiền (+ hoặc −) *;
+    - Lý do * ▾: **từ `lyDoChon`**, không viết cứng, không có "Giá thoả thuận trước";
+    - Ngày phát sinh *: điền sẵn hôm nay, ghi "(hôm nay)";
+    - Ghi chú.
+
+    Nút "Lưu điều chỉnh".
+  - **Hộp "Đảo dòng"** (bản vẽ thiếu): Lý do * ▾ (`lyDoChon`), Ghi chú. Nút "Đảo dòng". Lỗi `tong_am` hiện ngay trong hộp.
+  - Lỗi ở form hiện **nguyên văn** câu máy chủ (`tong_am`, `carrier_inactive`, 400).
+- [ ] **Bước 9: Các trạng thái lỗi và tải.**
+  - 409 `chi_phi_vua_doi` ⇒ dải `.banner.banner-danger` "Chi phí chuyến vừa thay đổi — tải lại rồi thử lại." + nút "Tải lại" (đọc lại `/chi-phi`, giữ chỗ cuộn).
+  - Đang tải; lỗi tải.
+- [ ] **Bước 10:** kịch bản bước 1 xanh ở 390 + 1040; `chuyen-smoke.mjs` vẫn xanh; axe 0 lỗi. Commit "Tiền xe thuê: khối Chi phí chuyến (giá thoả thuận, lấy lại giá bảng, điều chỉnh, đảo dòng) theo bản vẽ 2/10".
+
+### Task G3: Ô chọn tuyến ở Tạo / sửa chuyến (không có trong bản vẽ — theo khuôn ô chọn xe)
+
+**Files:**
+- `web/chuyen-sua.ts`;
+- `src/shared/contracts.ts` (`ChuyenChiTietResponse`, `:1288` ở main);
+- hàm dựng chi tiết chuyến trong `src/modules/van-chuyen/` (đo lại; trên nhánh `chuyen-repo.ts` đã đọc `route_code`);
+- test route chi tiết chuyến;
+- `docs/evidence/2026-09-29-adr-0049/kich-ban/chuyen-sua-smoke.mjs`.
+
+- [ ] **Bước 1: Trường máy chủ nhỏ (đỏ trước).** Trên nhánh, `ChuyenChiTietResponse["chuyen"]` **chưa có** tuyến, nên form sửa không điền sẵn được.
+  - Thêm `tuyen: { ma: string; ten: string } | null`. Chỉ có **tên** tuyến, không có tiền.
+  - Test: chuyến có tuyến trả đúng `{ma, ten}`; chuyến không tuyến ⇒ `null`.
+  - Bài số lạ (Task 11) vẫn xanh.
+- [ ] **Bước 2: Ô chọn.**
+  - Đặt sau ô chọn xe (`cx-xe`, `web/chuyen-sua.ts:95`), cùng khuôn `select.vc-input` + gợi ý + lỗi. Nhãn "Tuyến"; lựa chọn đầu "Chưa chọn tuyến".
+  - Danh sách lấy từ `GET /api/van-chuyen/tuyen`: chỉ dòng `dangDung`, xếp theo `thuTu`.
+  - Route này cho người có `trip.dispatch`, tức đúng người dùng trang này. Lỗi tải danh mục thì ẩn ô, không chặn form.
+- [ ] **Bước 3: Gửi.**
+  - Tạo: gửi `tuyen: <mã> | null`.
+  - Sửa: gửi `tuyen` **chỉ khi đổi**, như `xeId` ở `web/chuyen-sua.ts:189`. Tuyến cũ đã ngừng dùng vẫn hiện là lựa chọn đang chọn (lấy từ `chuyen.tuyen`), không bị xoá lặng lẽ.
+  - Lỗi 400 "Tuyến không có hoặc đã ngừng dùng." và 409 `carrier_inactive` hiện nguyên văn.
+  - Đổi tuyến trên chuyến xe thuê làm máy chủ đảo + chụp lại giá; màn **không** báo số tiền nào.
+- [ ] **Bước 4:** `chuyen-sua-smoke.mjs` thêm các bước: chọn tuyến → tạo chuyến → mở sửa, thấy tuyến đã chọn. Xanh ở 390 + 1040. Commit "Tiền xe thuê: ô chọn tuyến ở tạo / sửa chuyến".
+
+### Task G4: Trang Bảng kê chi phí xe thuê `/bang-ke-xe` (bản vẽ màn 1c)
+
+**Files:** `web/bang-ke-xe.ts` (mới), `public/bang-ke-xe.html`, `public/app.css` (khối `.bk-*`), kịch bản mới `docs/evidence/2026-10-0X-tien-xe-thue/kich-ban/bang-ke-xe-smoke.mjs`. Khuôn trống / lỗi: `web/dieu-phoi.ts`.
+
+**Dữ liệu:** `GET /api/van-chuyen/chi-phi?tu=&den=&nha-xe=&trang-thai=` → `BangKeResponse { tu, den, nhaXePartyId, trangThai, tongCong, soChuyen, soNhaXe, soThieuGia, nhom: BangKeNhomDto[] }`.
+
+- [ ] **Bước 1: Kịch bản Chrome (đỏ).**
+  - Kế toán, ba chuyến: đã kết thúc 1.200.000; huỷ có phí 300.000; thiếu giá. Kỳ vọng: nhóm nhà xe có "TỔNG NHÓM 1.500.000 ₫"; dòng thiếu giá nổi bật; "TỔNG CỘNG" = `tongCong`.
+  - Lọc "Đã phát sinh" ⇒ 1.200.000.
+  - Khoảng > 92 ngày ⇒ câu lỗi máy chủ.
+  - Bấm dòng ⇒ mở `/chuyen?id=…`.
+  - Bán hàng mở thẳng ⇒ câu không có quyền.
+- [ ] **Bước 2: Đầu trang + lọc.**
+  - h1 "Bảng kê chi phí xe thuê" + phụ đề "Chuyến nào, nhà xe nào, bao nhiêu — để trả tay cho nhà xe."
+  - Thẻ lọc:
+    - Từ ngày, Đến ngày: mặc định đầu tháng → hôm nay;
+    - Nhà xe ▾;
+    - Trạng thái ▾: Đã phát sinh / Chưa chạy / Đang chạy / Đã huỷ / Chưa có giá, ứng với `DA_PHAT_SINH`/`CHUA_CHAY`/`DANG_CHAY`/`DA_HUY`/`THIEU_GIA`.
+  - Chú thích: "Lọc theo ngày chạy, tối đa khoảng 3 tháng. Trạng thái: Đã phát sinh (đã chạy xong) · Chưa chạy · Đang chạy · Đã huỷ · Chưa có giá."
+  - **Nguồn danh sách "Nhà xe"** (chốt bề mặt, đảo ngược được): `nhom[].nhaXe` của lần tải **không lọc nhà xe** gần nhất, cùng khoảng ngày.
+    - Lý do: `BangKeResponse` không có danh sách nhà xe. Gọi `/bang-gia` thì buộc thêm ô `transport.rate.view`; hôm nay cùng vai, nhưng là hai ô khác nhau.
+    - Danh sách này đúng nghĩa "nhà xe có chuyến trong khoảng".
+    - Lọc nhà xe gửi `nha-xe=`. Đổi khoảng ngày thì tải lại không lọc để dựng lại danh sách.
+- [ ] **Bước 3: Dòng tóm tắt** "<soChuyen> chuyến · <soNhaXe> nhà xe · <soThieuGia> chuyến chưa có giá" (bỏ vế cuối khi bằng 0). Số do máy chủ trả. **Không có nút "Tải bảng kê"** `[chờ chủ xác nhận câu 4.1 — đang theo khuyến nghị]`.
+- [ ] **Bước 4: Nhóm nhà xe.** Đầu nhóm nền `--c-band-bg`, chữ `--c-on-band`: tên + "<soChuyen> chuyến"; "TỔNG NHÓM" + `vnd(tongNhom)` màu `--c-accent-strong`.
+- [ ] **Bước 5: Dòng.**
+  - **Máy tính:** lưới 5 cột:
+    - MÃ CHUYẾN;
+    - NGÀY CHẠY / BIỂN SỐ;
+    - TUYẾN / TRẠNG THÁI;
+    - NGUỒN GIÁ / ĐIỀU CHỈNH;
+    - SỐ TIỀN.
+  - **Chip trạng thái** theo `nhomTrangThai`: Đã phát sinh `.vc-chip-ok`; Chưa chạy `.vc-chip-muted`; Đang chạy `.vc-chip-warn`; Đã huỷ `.vc-chip-danger`; Chưa có giá `.vc-chip-warn`.
+  - **Phần ĐIỀU CHỈNH** `[chờ chủ xác nhận câu 4.2 — đang theo khuyến nghị]`:
+    - hiện `tongDieuChinh` dạng "+ 150.000 ₫" / "− …" (âm `--c-danger`); "—" khi `soDieuChinh === 0`;
+    - thêm dòng phụ "<soDieuChinhBiDao> điều chỉnh bị đảo do đổi chuyến" khi > 0.
+  - **Dòng `THIEU_GIA`:** nền `--c-sand-soft`; ô số ghi chữ "Chưa có giá" (`--c-sand-text`).
+  - Cả dòng là liên kết tới Chi tiết chuyến.
+  - **Điện thoại:** thẻ dọc: mã + số tiền cùng hàng; "ngày · biển số · tuyến"; chip; dòng điều chỉnh.
+- [ ] **Bước 6: Khối "TỔNG CỘNG"** cuối trang.
+  - Nền `--c-total-bg`, chữ `--c-on-total`.
+  - Số `vnd(tongCong)`, cỡ `--fs-stat-*`, màu `--c-total-num`.
+  - Lời "Chuyến chưa có giá chưa được tính."
+  - Web **không** cộng các nhóm.
+- [ ] **Bước 7: Trạng thái bản vẽ thiếu:**
+  - trống: "Không có chuyến xe thuê nào trong khoảng này.";
+  - đang tải; lỗi tải;
+  - lỗi khoảng ngày: câu máy chủ;
+  - 403.
+- [ ] **Bước 8:** kịch bản xanh ở 390 + 1040, axe 0 lỗi. Commit "Tiền xe thuê: màn Bảng kê chi phí xe thuê theo bản vẽ 2/10".
+
+### Task G5: Nền thanh bên toàn app = màu nền trang + viền phải `[chờ chủ xác nhận câu 4.5 — đang theo khuyến nghị]`
+
+Lời chủ khi gửi bản vẽ: "nhớ đổi lại nền cho thanh bên trái … thành màu nền toàn trang".
+- Việc bề mặt, áp cho toàn app ở khổ ≥ 641px; không chạm dữ liệu.
+- **Tách được:** G5 không phụ thuộc T2. Điều phối muốn thì đưa lên trước bằng bản phát hành riêng.
+- Đã kiểm 2/10: production **không có** ghi đè "Nền thanh bên" ở màn Giao diện công ty (ADR-0087), nên giá trị mặc định mới sẽ hiện ngay. Như vậy ý cuối §4.1 của đánh giá bản vẽ đã giải.
+
+**Files:** `public/app.css`, `src/shared/giao-dien.ts`, `src/giao-dien-mac-dinh.test.ts`, `src/token-giao-dien.test.ts`, `src/shared/changelog.ts` (+ `src/shared/app-info.test.ts`).
+
+- [ ] **Bước 1: Test (đỏ).** Ở `src/giao-dien-mac-dinh.test.ts`, đổi mong đợi `"nen-thanh-ben"`: mặc định `"#eaf2f8"`, cha `"nen-trang"`. Chạy ⇒ đỏ.
+- [ ] **Bước 2: Mã.**
+  - `public/app.css:320`: `--c-sidebar-bg: var(--c-surface-alt);`. Đây đúng màu nền trang `#eaf2f8`. **Không** dùng `#EEF2F6` của bản vẽ vì nó không phải token.
+  - `#sidebar` trong khối máy tính (`public/app.css:918`): thêm `border-right: 1px solid var(--c-sidebar-border);` (bản vẽ: `border-right:1px solid #D3E1EC`).
+  - `src/shared/giao-dien.ts`:
+    - `CHA["nen-thanh-ben"]` (`:53`): `"nen-the"` → `"nen-trang"`;
+    - `MAC_DINH["nen-thanh-ben"]` (`:62`): `"#ffffff"` → `"#eaf2f8"`;
+    - khoá `"nen-trang"` đã có sẵn (`:18`, `:60`).
+  - Giữ nguyên `--c-sidebar-active` (`--c-primary-soft`), dù trên nền mới sẽ nhạt. Bản vẽ cũng nhạt tương tự, và mục đang chọn có chữ màu chính.
+- [ ] **Bước 3: Tương phản và chỗ dùng chung.**
+  - `src/token-giao-dien.test.ts` phải xanh: tương phản của `--c-sidebar-item`, `--c-sidebar-title`, `--c-sidebar-text-on` (#475569, #0c4a6e) trên #eaf2f8 đạt. Bài chưa phủ cặp nào thì thêm.
+  - `.gd-xem-ben` (`public/app.css:2752`, ô xem trước ở màn Giao diện công ty) cũng dùng `--c-sidebar-bg`, nên đổi theo. Đúng ý: xem trước khớp với thật.
+- [ ] **Bước 4: Kịch bản Chrome** (ảnh 1040, chụp trước / sau để chủ xem):
+  - `docs/evidence/2026-10-02-giao-dien/kich-ban/giao-dien-smoke.mjs`;
+  - `docs/evidence/2026-09-22-thiet-ke-lai-giao-dien-dot-c/kich-ban/dot-c-smoke.mjs`;
+  - `docs/evidence/2026-09-23-trang-chu-moi/kich-ban/trang-chu-smoke.mjs`.
+- [ ] **Bước 5:** mục nhật ký phiên bản (lời thường): "Thanh menu bên trái trên máy tính nay cùng màu nền trang, có đường viền mảnh." Ghi chung bản với T2, hoặc riêng nếu tách. Commit "Thanh bên máy tính: nền theo màu nền trang + viền phải (lời chủ 2/10)".
+
+### Người kiểm lát giao diện + phát hành
+
+- [ ] Người kiểm độc lập (`nguoi-kiem-doc-lap`, chỉ đọc) kiểm lát G0–G5 + Task 13. Soi:
+  - web không cộng / đếm: grep `web/bang-*.ts`, `web/chuyen.ts` tìm `+` trên trường tiền, `reduce`, `.length` dùng làm số hiển thị;
+  - Bán hàng không gọi `/chi-phi`;
+  - `can()` có ở mọi nút;
+  - ảnh 390 + 1040 khớp bản vẽ.
+- [ ] Gộp T2 máy chủ + Task 13 + G0–G5 thành **một** bản phát hành, theo mục "Lúc gộp" bên dưới.
+  - Chủ chạy `npm run day-len -- <nhánh>` rồi `npm run trien-khai`.
+  - Sau đó: `node scripts/kiem-phien-ban.mjs --sau-deploy` ĐẠT; `audit-invariants --db remote` (chủ chạy, theo `npm run trien-khai`).
+
+<details><summary>Lệnh vẽ Claude Design cũ (1/10) — đã dùng, giữ để tra</summary>
 
 **Lệnh vẽ 1 — Bảng giá thuê xe (G1):**
 
@@ -1182,14 +1540,7 @@ Màn mới ⇒ chờ bản vẽ Claude Design của chủ (bài học Đợt D).
 
 > Vẽ màn "Bảng kê chi phí xe thuê" cho Kế toán (Tour Đảo Booking). Mục đích: biết "chuyến nào, nhà xe nào, bao nhiêu" để trả tay cho nhà xe (chưa nối sổ công nợ). Bộ lọc: từ ngày – đến ngày (ngày chạy, tối đa khoảng 3 tháng), nhà xe, trạng thái (Đã phát sinh = đã chạy xong / Chưa chạy / Đang chạy / Đã huỷ / Chưa có giá). Nội dung: nhóm theo nhà xe, mỗi nhóm có tổng tiền; trong nhóm mỗi chuyến một dòng: mã chuyến, ngày chạy, biển số, tuyến, trạng thái, nguồn giá, số tiền, số điều chỉnh (và "x điều chỉnh bị đảo do đổi chuyến" nếu có); bấm dòng mở Chi tiết chuyến. Tổng cộng cuối trang. Dòng "Chưa có giá" nổi bật. Vẽ 390px (thẻ xếp dọc) và 1040px (bảng).
 
-### Task G (sau khi có bản vẽ — mỗi màn một task, mỗi task đỏ→xanh)
-
-**Interfaces chung:** kiểu phản hồi ở `src/shared/contracts.ts` (Task 4, Task 10); web chỉ hiển thị số máy chủ trả (`tong`, `soTien`), **không cộng**; định dạng tiền dùng hàm định dạng VNĐ có sẵn của web.
-- [ ] G1: dựng `web/bang-gia-xe.ts` đúng bản vẽ 100%; khai `PAGES` + `/js/bang-gia-xe.js` (`src/shared/sw-policy.ts:16,25,30`) + script `build:web`; mục menu ẩn khi `!can(staff, "transport.rate.view")`; kịch bản Chrome (Kế toán thêm / đổi / kết thúc giá; Bán hàng không thấy menu).
-- [ ] G2: khối chi phí trong `web/chuyen.ts` — chỉ gọi `GET …/chi-phi` khi `can(staff, "transport.cost.view")` (Bán hàng không gọi, không 403 trên màn); nút theo `transport.cost.adjust` + trạng thái chuyến; kịch bản Chrome V6→V6b→xuất bến.
-- [ ] G3: ô chọn tuyến trong `web/chuyen-sua.ts` theo khuôn ô chọn xe (trống = "Chưa chọn tuyến").
-- [ ] G4: `web/bang-ke-xe.ts`, `PAGES`, menu.
-- [ ] Người kiểm độc lập lát giao diện; rồi gộp T2 máy chủ + G1–G4 thành **một** bản phát hành (chủ `day-len` + `trien-khai`), `node scripts/kiem-phien-ban.mjs --sau-deploy` ĐẠT, `audit-invariants --db remote` (chủ chạy, theo `npm run trien-khai`).
+</details>
 
 ---
 
@@ -1215,11 +1566,62 @@ Màn mới ⇒ chờ bản vẽ Claude Design của chủ (bài học Đợt D).
 
 ## Điều chưa chắc (ghi cho người thi công / người kiểm)
 
-- **Cần chủ 1, 2, 3** chưa có câu trả lời — Task 7 (backfill), Task 9 (RF1-g), thời điểm gộp T2 phụ thuộc.
-- **TC-8** đặt điều kiện "phiên bản chi phí" ở câu cổng (`count(*)` mọi dòng) thay vì ở từng câu đảo như chữ ADR C4 — lý do: câu `INSERT … SELECT … WHERE` thiếu điều kiện thì lặng lẽ chèn 0 dòng giữa lô (không huỷ lô), để lại "đảo một nửa". Người kiểm xác nhận cách này mạnh hơn; nếu không, quay về chữ ADR + kiểm `meta.changes` từng câu (cần đổi `chayLo`).
-- **TC-10** định nghĩa `R-VC-COST-3` khác chữ ADR ("không có dòng") vì chuyến đổi sang xe công ty giữ dòng đã đảo.
-- **Kẽ C2a / nợ N-T1** (xe nhà xe đã thôi hợp tác xếp chuyến MỚI có `rented = 0`) giữ nguyên như ADR; chỉ có lưới `R-VC-COST-6`. Hạn: lượt duyệt kế tiếp của tiền xe thuê.
-- **Ca mẫu điều phối B23** (`golden/dieu-phoi/xe-a-b-luot-1.json`, xe nhà xe thiếu Bảo hiểm): đầu vào luật thuần nay cần `coNguonGia` — chưa đo ca đó đã xác nhận chưa (Task 8 bước 4).
-- **ADR-0080:** điều kiện "T2 gộp trước `ky-so`" — đo lại ở Task 6 bước 1; nếu ngược, Task 7 bước 3b có một mục nới `VIEW_CHO_TRIGGER_VC` cần chủ duyệt.
-- **Cỡ xe ngưng dùng** sau khi đã có dòng giá theo cỡ đó: xe cùng số chỗ sẽ không còn khớp cỡ ⇒ thiếu giá. Đúng luật (cỡ là dữ liệu) nhưng màn G1 nên nhắc ("cỡ này còn N dòng giá đang áp").
-- Số dòng mã trong kế hoạch đo ở `0ba370d6`; Đợt 1–3, 5 có thể dời — người thi công đo lại (Task 0 bước 4).
+- **Câu 4.1–4.8** chưa có trả lời. Task 13, G2 bước 3/4/7, G4 bước 3/5, G5 đang theo khuyến nghị (xem mục "Cần chủ"). Câu 4.6 (sổ vàng) chặn phát hành.
+- **TC-8** đặt điều kiện "phiên bản chi phí" ở câu cổng (`count(*)` mọi dòng), thay vì ở từng câu đảo như chữ ADR C4.
+  - Lý do: câu `INSERT … SELECT … WHERE` thiếu điều kiện thì lặng lẽ chèn 0 dòng giữa lô (không huỷ lô), để lại "đảo một nửa".
+  - Người kiểm T2 đã soi (ĐẠT). Giữ ghi chú cho người kiểm lát giao diện.
+- **TC-10** định nghĩa `R-VC-COST-3` khác chữ ADR ("không có dòng"), vì chuyến đổi sang xe công ty giữ các dòng đã đảo.
+- **Kẽ C2a / nợ N-T1:** xe nhà xe đã thôi hợp tác được xếp chuyến MỚI sẽ có `rented = 0`. Giữ nguyên như ADR, chỉ có lưới `R-VC-COST-6`. Hạn: lượt duyệt kế tiếp của tiền xe thuê.
+- **Ca mẫu điều phối B23** (`golden/dieu-phoi/xe-a-b-luot-1.json`): đầu vào luật thuần nay cần `coNguonGia`. Nhánh đã làm ở Task 8 (đo lại khi gộp).
+- **Màu đậm của bản vẽ** (tab đang chọn, khối TỔNG CỘNG) đang làm đúng bản vẽ bằng 5 token vai mới. Nếu chủ thấy lệch hướng sáng của app, chỉ đổi giá trị 5 token (xem "Luật chung" của mục Giao diện).
+- Số dòng mã trong mục Giao diện đo ở `origin/main` 2/10; nhánh T2 đã gộp Đợt 2 nên có thể lệch. Mỗi task G đo lại ở bước 0.
+
+---
+
+## Lúc gộp (T2 máy chủ + Task 13 + G0–G5 vào `main`) — làm ngay trước khi đưa chủ lệnh `day-len`
+
+- [ ] **1. Khoá kỳ ADR-0080 (điều 3).** Chạy `git log main --oneline -S ky_period_close -- migrations`.
+  - Rỗng: ghi "T2 không cần trigger khoá kỳ" vào nhật ký thi công, đi tiếp.
+  - **Có kết quả: DỪNG.** Migration chi phí phải kèm trigger `vc_trip_cost_line_period_closed` đọc `v_ky_closed_period`, theo khuôn Task 7 bước 3b, và mở rộng `R-KY-1`. Việc này nới `VIEW_CHO_TRIGGER_VC` (`src/architecture.test.ts`), nên **chủ duyệt** trước.
+- [ ] **2. Số phiên bản.**
+  - Nhánh đang ghi 1.70 (trên 1.69 của Đợt 2); `main` lúc viết là 1.68.
+  - Lấy số lớn nhất của `src/shared/changelog.ts` trên `main` **lúc gộp** + 1.
+  - **Một** mục nhật ký phiên bản cho cả T2 + Task 13 + G0–G4. Lời thường, viết sẵn ở Task 12 bước 2, thêm câu về hai màn mới. G5 ghi chung, hoặc riêng nếu đã tách lên trước.
+  - Sửa `src/shared/app-info.test.ts` theo số mới. Nếu Đợt 2 đã lên `main` trước thì mục 1.69 của nhánh trùng nội dung: lấy bản của `main`.
+- [ ] **3. Số migration (L2).** Nhánh dùng `0072`, `0073`. Đo lại số lớn nhất trên `main` và mọi nhánh chưa gộp (`git branch --no-merged main`, mỗi nhánh `git ls-tree --name-only <nhánh> migrations/`). Trùng thì đổi tên tệp, sửa mọi chỗ trích, chạy lại `npm test` + e2e đủ bộ. Migration chưa lên remote nên đổi được.
+- [ ] **4. Lệnh đếm Task 0** (lộ trình mẹ: dữ liệu có thể đổi từ 1/10). Đưa chủ chạy lại đúng lệnh chỉ-đọc ở Task 0 bước 1. Có chuyến xe nhà xe `PLANNED` thì dừng, hỏi chủ trước khi triển khai (Cần chủ 1 cũ, phương án A/B).
+- [ ] **5. Sổ vàng (câu 4.6).** `golden/van-chuyen-chi-phi.json` phải có ca đã xác nhận (tên + ngày của Kế toán / chủ). Bài lớp 2 hết `todo`. Chưa có thì **không** phát hành.
+- [ ] **6. ADR-0057** có dòng trạng thái trỏ lời chủ 2/10 về dời ngày (câu 4.8). Chủ / điều phối ghi; người thi công nhắc.
+- [ ] **7.** `npm test`, typecheck, `npm run test:e2e` **đủ bộ**, `node scripts/audit-invariants.mjs --db local`, mọi kịch bản Chrome của G0–G5 xanh trên nhánh đã gộp `main` mới nhất. Rồi đưa chủ **một lần**: `npm run day-len -- <nhánh>` kèm dòng "chạy `npm run trien-khai`" (đổi app + migration).
+
+---
+
+## Tự rà sau cập nhật 2/10 (đối chiếu §4 của đánh giá bản vẽ Đợt 4)
+
+| §4 | Nội dung | Đã áp ở đâu / vì sao không |
+|---|---|---|
+| 1 | Nền thanh bên toàn app + viền phải + `CHA`/`MAC_DINH`, kiểm ghi đè production | **Task G5.** Ghi đè production: đã kiểm 2/10, không có |
+| 2 | Hai mục con dưới "Vận chuyển" sau "Điều phối xe"; `account.ts`; tab "Tôi"; sửa đếm kịch bản | **Task G0** bước 3–5 |
+| 3 | Khai `PAGES` + js + `build:web`; `data-title` | **Task G0** bước 1–2 |
+| 4 | `nhaXe` gồm nhà xe đã thôi còn giá, `dangHopTac` | **Máy chủ đã làm** (`NhaXeBangGiaDto`). Màn: G1 bước 2, 4 |
+| 5 | `BangGiaDto.trangThai`; `ngay` chỉ gắn nhãn | **Máy chủ đã làm.** Màn: G1 bước 2, 4 |
+| 6 | Máy sinh mã tuyến / cỡ, nhãn mặc định | **Máy chủ đã làm** (`T001`/`S001`). Màn: G1 bước 7–8 |
+| 7 | `daoDuoc`, `tuDong`, `lyDo{ma,nhan}`, `coTheNhapThoaThuan`/`coTheChupLai`; `giaBangCoThe` nếu câu 4.3 = A | **Máy chủ đã làm** (thêm `lyDoChon`). `giaBangCoThe` → **Task 13** (chờ 4.3). Màn: G2 bước 5–8 |
+| 8 | `dieu-chinh` trả 409 `tong_am` | **Máy chủ báo đã làm** (`TONG_AM` ở `tien-xe-chi-phi.ts`). G2 bước 1 kiểm lại bằng kịch bản (−700.000 trên 600.000) |
+| 9 | Bảng kê `tongCong`, `soChuyen`, `soNhaXe`, `soThieuGia`, `tongNhom`, `nhomTrangThai`; `tongDieuChinh` nếu câu 4.2 = A | **Máy chủ đã làm**, gồm `tongDieuChinh` (theo khuyến nghị 4.2). Màn: G4 bước 3–6. Web không cộng |
+| 10 | Nhãn TC-6 | **Máy chủ báo đã làm** (`0073`): "Đảo do đổi chuyến (xe, nhà xe, tuyến hoặc ngày chạy)". Chữ thêm "ngày chạy" theo lời chủ dời ngày. G2 kiểm lại trên màn. TC-6 trong bảng tự chốt đã sửa |
+| 11 | Câu lỗi `nha_xe_khong_hop_tac` theo bản vẽ | **Máy chủ đã làm.** G1 bước 5 hiện nguyên văn |
+| 12 | G1 khoá Tuyến/Cỡ khi Đổi giá, hộp Kết thúc; G2 hộp Đảo dòng, chỉ dựng khi `can(cost.view)`, cuối `dp-ct-main` | **G1** bước 5–6; **G2** bước 2, 8 |
+| 13 | Bài số lạ: route trang mới tự vào; ca `giaBangCoThe` 480017 với Bán hàng | Quét tự động đã có (Task 11). Ca mới ở **Task 13** bước 1 |
+
+**Không theo §5 của đánh giá ở hai chỗ (chốt bề mặt):** tab đang chọn và khối TỔNG CỘNG. §5 đề xuất nền nhạt (`--c-selected-*`, `--c-band-*` + `--c-accent-strong`); kế hoạch làm **đúng màu đậm của bản vẽ** qua 5 token vai mới. Lý do: đề bài "bề mặt đúng bản vẽ 100%" và bài học Đợt D (chủ chê lệch mockup). Đổi lại: chỉ sửa giá trị 5 token.
+
+**Câu chung không thuộc §4 nhưng đã đưa vào kế hoạch:** 4.6 (sổ vàng) và 4.8 (ADR) ở mục "Lúc gộp"; 4.7 ở G2 bước 3, 7.
+
+**Bản vẽ thiếu trạng thái (§2), đã thêm theo khuôn có sẵn:**
+- G1 bước 6, 9: hộp Kết thúc; tải, lỗi, 403.
+- G1 bước 8: cảnh báo ngưng cỡ.
+- G2 bước 3, 8, 9: xe công ty / V13; hộp Đảo; form 390px; tải, lỗi.
+- G2 bước 5–6: chip "Giá thoả thuận".
+- G3: cả task.
+- G4 bước 7: trống, tải, lỗi, 403.

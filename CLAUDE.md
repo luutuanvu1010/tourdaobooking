@@ -7,7 +7,7 @@
 - Production `https://booking.tourdao.vn`: Cloudflare Worker `tourdao-sales` + D1 `tourdao-sales-db` + Workers Assets; PWA cài lên iPhone ("Tour Đảo Booking").
 - **Độc lập** với repo `tourdaovn` (website công khai): khác Worker, D1, domain. Điểm chạm hiện có: giá trị token màu/font (chỉ sao chép giá trị).
 - TypeScript, giao diện thuần (không React), esbuild, SQLite (D1), Node 22 (chạy `.ts` trực tiếp bằng `node --test`), **không có dependency runtime**.
-- Mười quyền app, một tài khoản có nhiều quyền: `SALES`, `ACCOUNTING`, `ADMIN`, `FIELD`, `PARTNER`, `SUPER_ADMIN`, `INTERN`, `DRIVER` (Tài xế công ty — ADR-0040), `DRIVER_PARTNER` (Tài xế đối tác — ADR-0048; đứng một mình, không kèm quyền nào khác), `HR` (Nhân sự — vai Hành chính nhân sự, ADR-0071; chỉ tạo/xem/sửa tài khoản). Từ vựng: `docs/SYSTEM-DESIGN.md` §15.
+- Mười quyền của Nền tảng, một tài khoản có nhiều quyền: `SALES`, `ACCOUNTING`, `ADMIN`, `FIELD`, `PARTNER`, `SUPER_ADMIN`, `INTERN`, `DRIVER` (Tài xế công ty — ADR-0040), `DRIVER_PARTNER` (Tài xế đối tác — ADR-0048; đứng một mình, không kèm quyền nào khác), `HR` (Nhân sự — vai Hành chính nhân sự, ADR-0071; chỉ tạo/xem/sửa tài khoản). Từ vựng: `docs/SYSTEM-DESIGN.md` §15.
 
 ## 2. Thứ tự ưu tiên khi mâu thuẫn (Hiến pháp Điều 3.1)
 Hiến pháp → ràng buộc dự án → ADR → quy trình/playbook → đặc tả → mã. Hiến pháp v2.3.0 nằm ngay trong repo ở `playbook/CONSTITUTION.md` (bản chép chỉ-đọc từ Core, ADR-0012 đã accepted; cách dùng và điều cấm: `playbook/PIN-README.md`). **Không sửa `playbook/`.**
@@ -85,6 +85,7 @@ Chủ dự án không phải lập trình viên. Quy tắc này áp cho **câu t
 
 ## 7. Quy tắc bắt buộc (chi tiết theo thư mục ở `src/CLAUDE.md`, `web/CLAUDE.md`)
 - **Ngôn ngữ**: giao diện, thông báo lỗi, tài liệu, commit đều **tiếng Việt CÓ DẤU** đầy đủ; không chữ Anh lộ ra người dùng, kể cả mã trạng thái thô như `cancelled`.
+- **Gọi hệ thống là "Nền tảng", không gọi "App"** (chủ dự án 2026-10-02, nguyên văn: "Từ nay chúng ta ghi thành luật là dùng từ Nền tảng thay cho App"): áp cho trả lời chủ, tài liệu, commit và chữ mới trên giao diện. Tên riêng đã đặt (tên cài lên iPhone "Tour Đảo Booking", "Island Booking System") giữ nguyên.
 - **Kiến trúc** (`src/architecture.test.ts` ép đầy đủ cho module "nghiêm"; module cũ còn ngoại lệ có hạn): module chỉ import module khác qua `index.ts`; chỉ module chủ ghi bảng của mình; đọc xuyên module chỉ qua view `v_<tiền tố>_*`; `src/shared/` và `web/` không import `src/modules/`.
 - **Dữ liệu**: tiền = `INTEGER` VNĐ, dẫn xuất chỉ tính ở **server** (`buildLines`), không tin số tiền từ trình duyệt; ngày/giờ dân sự theo **giờ Việt Nam** (`vnToday`), dấu thời gian ISO UTC; không xoá cứng (hiệu lực bằng `valid_from/to`; ngoại lệ có tên duy nhất: dòng `ord_*` của **đơn nháp** xoá–chèn lại khi lưu nháp — ADR-0047, `XOA_CUNG_NHAP`).
 - **Migration**: chỉ thêm tệp mới, **không sửa tệp đã áp remote**; đổi phá vỡ theo expand–contract trong hai lần phát hành; bảng/cột mới → cập nhật `docs/data-dictionary.json` + `npm run dict`.

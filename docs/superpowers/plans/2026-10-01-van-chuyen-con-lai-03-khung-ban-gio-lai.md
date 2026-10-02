@@ -12,21 +12,34 @@
 
 **Đo mã thật** (worktree `doi-chieu-phieu-giam-doc` @ `0ba370d6`, 2026-10-01): `kiemTaoSuaChuyen` `src/shared/dieu-phoi-kiem.ts:79-130`; `kiemXep` trả `canhBao` (`:198-232`, có từ 1.62); `KhungChuyen` `src/shared/dieu-phoi-kieu.ts:220-231` (CHƯA có giờ xuất bến); `ChinhSachVao` `:123-130`; `LOAI_CANH_BAO_LICH` `src/shared/dieu-phoi-lich-chung.ts:44-49`; `vc_dispatch_policy` `migrations/0041:13-33` (KHÔNG DEFAULT, trigger cấm sửa — khuôn I43); trigger LC-03 `migrations/0042:352-381`; `loiRangBuocChuyen` `src/modules/van-chuyen/rules.ts:148` (regex `lc0[1-9]_` → `trip_rule`); route chính sách `src/modules/van-chuyen/index.ts:501-528`; route xe `:318-497`; route lịch `:798-806`; `dungLichNgay` `src/modules/van-chuyen/dieu-phoi-lenh.ts:376-424`; `chiTietChuyen` `src/modules/van-chuyen/dieu-phoi-route.ts:131-185`; mapper `khungChuyen`/`chuyenVao` `src/modules/van-chuyen/dieu-phoi-doc.ts:75-81`; bài thân trigger `src/architecture.test.ts:873-879` (quét chuỗi `vc_*`) và `:951+` (EXPLAIN — bảng phải có trong `docs/data-dictionary.json`); bài khoá DTO tài xế `src/modules/van-chuyen/tai-xe-dto.test.ts:9-15`; màn: `web/chinh-sach-dieu-phoi.ts:144-145`, `web/xe-chi-tiet.ts`, `web/dieu-phoi.ts`. Người thi công **đo lại** lúc nhận (Đợt 1, 2 chạy song song có thể đổi dòng).
 
+## Cập nhật 2026-10-02 — theo bản vẽ Claude Design + lời chủ
+
+Bản vẽ đã nhận 2/10: `docs/design/van-chuyen-dot-3-7/Quản lý lịch xe bận.dc.html` (dự án Claude Design `f0f47482-c51a-4232-b5c0-d924871ce294`). Đo lại trên `origin/main` 992f7cbe. Đổi so với bản 1/10:
+- **Màn mới là TRANG LỊCH TUẦN RIÊNG** `/lich-xe-ban` (hàng = xe, cột = 7 ngày, form "Thêm lịch bận" mở tại chỗ), mục con "Lịch xe bận" sau "Xe" ở thanh bên + trang Tôi. **Bỏ** khối trong Chi tiết xe (`web/xe-chi-tiet.ts` không còn sửa) — Task 10.
+- **Route đọc tuần mới** `GET /api/van-chuyen/ban-xe?tu=` (ô `vehicle.manage`, 403 trước 400; tuần theo `vnWeekRange` — MỘT hàm với màn); trả kèm chuyến đã xếp **chỉ mã `CX-…` + giờ**, chỉ khi `can(trip.view)` — Task 6 Step 3b.
+- Form có ô **"Đến ngày"** (3.3); **Lý do = ô chọn** danh mục `BAN_XE` ở đúng chỗ ô gõ của bản vẽ (3.2 — cổng trước migration, Task 1 Step 3).
+- Nút ✕ của bản vẽ giữ hình nhưng = **"Rút" có hỏi + gửi `version`** (ADR-0055 A1, không hỏi chủ).
+- Dải bận trên Điều phối xe + hai cảnh báo giờ lái: bản vẽ không vẽ ⇒ **làm theo khuôn có sẵn, không chờ vẽ**.
+- Thanh bên thêm một mục ⇒ `trang-chu-smoke.mjs`: Quản trị 17 → 18, Toàn quyền 23 → 24.
+- Migration số **`0071`** (đã cấp). Phần máy chủ bảng `vc_unavailability` (Task 1) **giữ đúng ADR-0053 D9.1** — không đổi.
+- "Đúng bản vẽ 100%" ở bề mặt, **trừ hai lệch có chủ đích**: phông Be Vietnam Pro (quyết định 30/9, bản vẽ Nunito) và nút "Lưu" `.btn-primary` theo luật "màu theo vai" 2/10 (bản vẽ nền navy đặc).
+- Câu còn mở: 3.1–3.4 (tệp chung `docs/superpowers/plans/2026-10-02-van-chuyen-cau-hoi-ban-ve.md`) + Lượt III câu 7 — xem "Cần chủ".
+
 ## Global Constraints
 
 - Tiếng Việt CÓ DẤU ở mọi chữ người dùng thấy, commit, tài liệu; không lộ mã thô (`VEHICLE`, `BAN_XE`, `GIO_LAI_VUOT`…) ra màn hình.
 - Ngày dân sự giờ Việt Nam (`vnToday`, `vnLocalToMs`, `msToVnLocal`); dấu thời gian ISO UTC; MỘT mốc giờ mỗi request (`new Date().toISOString()` của máy chủ).
 - Không xoá cứng; khung bận chỉ-thêm, chỉ một kiểu sửa: rút một lần. Đổi giờ = rút + ghi khung mới.
 - Migration chỉ thêm tệp mới; **không sửa `0041`, `0042`** (L1 lộ trình — đã áp remote bản 1.38). Bảng mới → `docs/data-dictionary.json` + `npm run dict`.
-- Số migration: **`<NNNN>`** = lớn nhất trong `migrations/` của `main` **và mọi nhánh chưa gộp** + 1 (L2). Lệnh kiểm ở Task 0.
+- Số migration: **`0071`** (điều phối đã cấp 2026-10-02 theo L2; `main` hiện tới `0069`). Task 0 chỉ kiểm lại rằng `0071` còn trống trên mọi nhánh.
 - Thân trigger `vc_*` chỉ đọc bảng `vc_` (Hiến chương 5.3; `src/architecture.test.ts:873`, `:951`).
 - Luật lõi ở **cả** trigger lẫn máy chủ; máy chủ nói trước bằng lời (mã lớp route), CSDL là lưới thứ hai (mã lớp CSDL KHÁC — khuôn R15).
 - Mọi câu đọc khung bận đợt này lọc **`subject = 'VEHICLE'`** tường minh (D9.2: Kế toán không được thấy khung bận tài xế khi Đợt 6 mở).
-- Không ô quyền mới (ADR-0055 A4): ghi/rút = `vehicle.manage`; xem = `vehicle.manage` (màn Xe) và `trip.view` (lịch chung). DTO tài xế **không** có khung bận.
+- Không ô quyền mới (ADR-0055 A4): ghi/rút = `vehicle.manage`; xem = `vehicle.manage` (trang tuần "Lịch xe bận", route `GET /ban-xe` + `GET /xe/:id/ban`) và `trip.view` (lịch chung — dải bận). DTO tài xế **không** có khung bận.
 - Không thêm mã vào `MA_LUAT_PHA_LE`; không thêm mã vào `MA_GIU` (ADR-0055 mục "Hệ quả của ADR-0057") — xem "Cần chủ" câu 1.
 - Giờ lái **chỉ cảnh báo**: không vào `kiemXuatBen`, không chặn, không cột trên `vc_trip`.
 - Nhật ký `vehicle_unavailability_added` / `_withdrawn`: biển số + khung giờ + nhãn lý do; không dữ liệu cá nhân.
-- Giao diện: không `innerHTML`; CSS chỉ token; ô gõ 16px; ẩn/hiện theo `can()`; kịch bản Chrome 390 + 1040. **Màn mới chờ bản vẽ chủ**; ô thêm vào màn có sẵn theo khuôn thì không cần vẽ.
+- Giao diện: không `innerHTML`; CSS chỉ token; ô gõ 16px; ẩn/hiện theo `can()`; kịch bản Chrome 390 + 1040. Bản vẽ trang mới **đã nhận 2/10** (`docs/design/van-chuyen-dot-3-7/Quản lý lịch xe bận.dc.html`) — bề mặt làm đúng bản vẽ; phần bản vẽ thiếu (dải bận Điều phối xe, cảnh báo giờ lái, lỗi, trống, 403, khổ 390) theo khuôn có sẵn.
 - Việc lớn (dữ liệu + luật lõi) ⇒ người kiểm độc lập chỉ đọc cuối đợt; người thi công không tự nghiệm thu.
 - Xong đợt: `npm test`, `npm run typecheck` 0 lỗi, `npm run test:e2e` đủ bộ, `node scripts/audit-invariants.mjs --db local` không vi phạm, mục nhật ký phiên bản `src/shared/changelog.ts` + `src/shared/app-info.test.ts`.
 
@@ -52,16 +65,20 @@
 | K8 | Chuyến đang chạy quá giờ kết thúc dự kiến | trigger khung bận so với `planned_end_ms` (như LC-03 hiện có); lưới thứ hai R-VC-21 | migration mới |
 | K9 | Số cảnh báo `GIO_LAI_VUOT` | **một mỗi chuyến chưa kết thúc** của tài xế trong ngày đó (`tripId` = chuyến) — thẻ chuyến nào cũng thấy; tổng vẫn cộng cả chuyến đã kết thúc | sửa `canhBaoGioLai` |
 | K10 | Ngưỡng | "quá" = **lớn hơn hẳn** (8 giờ đúng không cảnh báo; 8 giờ 1 phút có) | sửa so sánh |
-| K11 | Tên route / mã lỗi / hành động nhật ký | `GET\|POST /api/van-chuyen/xe/:id/ban`, `POST /api/van-chuyen/xe/:id/ban/:bid/rut`; route 409 `khung_ban_chong_chuyen`, CSDL 409 `khung_ban_chong_chuyen_csdl`; `vehicle_unavailability_added` / `_withdrawn` (ADR G-A2) | đổi tên trước phát hành |
+| K11 | Tên route / mã lỗi / hành động nhật ký | `GET\|POST /api/van-chuyen/xe/:id/ban`, `POST /api/van-chuyen/xe/:id/ban/:bid/rut`, `GET /api/van-chuyen/ban-xe?tu=` (trang tuần — thêm 2/10); trang `/lich-xe-ban`; route 409 `khung_ban_chong_chuyen`, CSDL 409 `khung_ban_chong_chuyen_csdl`; `vehicle_unavailability_added` / `_withdrawn` (ADR G-A2) | đổi tên trước phát hành |
 | K12 | Ghi chú tự do trên khung | **không có cột** (không lối vào dữ liệu cá nhân) | migration mới thêm cột |
 | K14 | "Dùng lại `canhBao` của 1.62" | dùng lại **khuôn** (cảnh báo không chặn, lệnh vẫn chạy, route gắn vào phản hồi như `canhBaoXep`) nhưng **không cùng kiểu**: `kiemXep.canhBao` là `LyDoGiu[]` (cần mã `MA_GIU`, ADR cấm thêm) ⇒ `kiemTaoSuaChuyen` trả trường tên khác `nhacGioLai: CanhBaoGioLai[]`; lịch chung dùng `LOAI_CANH_BAO_LICH` như ADR B3 | đổi tên trường |
 | K15 | Tệp SQL mới `khung-ban-repo.ts` | đăng ký vào danh sách tệp SQL của module ở `src/architecture.test.ts:79-80` (siết: thêm tệp được EXPLAIN) — hoặc đặt câu vào `chuyen-repo.ts` nếu bài đó không nhận tệp thứ ba | gộp tệp |
 | K13 | Mã lý do gieo | nhóm `BAN_XE`: `BAN_XE_BAO_DUONG` "Bảo dưỡng", `BAN_XE_DANG_KIEM` "Đăng kiểm", `BAN_XE_SUA_CHUA` "Sửa chữa", `BAN_XE_KHAC` "Khác" (Quản trị sửa được nhãn) | dữ liệu |
 
-## Cần chủ (gom một lần — không chặn phần máy chủ)
+## Cần chủ (chỉ câu còn mở — cập nhật 2026-10-02)
 
-1. **Câu báo khi xếp chuyến vào giờ xe bận.** ADR-0055 ghi "không thêm mã vào bộ mã giữ", nên kế hoạch dùng lại mã "Xe trùng giờ với chuyến khác" kèm chi tiết "lịch xe bận: Bảo dưỡng 08:00 03/10 → 17:00 03/10" — câu đọc hơi lệch ("với chuyến khác"). **Khuyến nghị:** cho phép một mã riêng "Xe có lịch bận trùng giờ" (đổi 3 dòng ở Task 2 — chỉ đổi câu chữ, không đổi luật). Phương án còn lại: giữ đúng chữ ADR, chấp nhận câu lệch.
-2. **Bản vẽ Claude Design** hai màn mới: khung bận ở màn Xe, dải bận trên lịch điều phối (lệnh vẽ soạn sẵn ở Task 10). Máy chủ làm trước, không chờ.
+1. **Câu báo khi xếp chuyến vào giờ xe bận** = lộ trình mẹ "Cần chủ" **Lượt III câu 7**. ADR-0055 ghi "không thêm mã vào bộ mã giữ", nên kế hoạch dùng lại mã "Xe trùng giờ với chuyến khác" kèm chi tiết "lịch xe bận: Bảo dưỡng 08:00 03/10 → 17:00 03/10". **Khuyến nghị:** cho phép mã riêng "Xe có lịch bận trùng giờ" (đổi 3 dòng ở Task 2). Không trả lời ⇒ theo đúng chữ ADR.
+2. Bốn câu bản vẽ — tệp câu hỏi chung `docs/superpowers/plans/2026-10-02-van-chuyen-cau-hoi-ban-ve.md`; kế hoạch đang theo khuyến nghị, mỗi chỗ chạm có dấu `[chờ chủ xác nhận câu 3.x — đang theo khuyến nghị]`:
+   - **3.1** chuyến đã xếp hiện trên lưới tuần (chỉ mã `CX-…` + giờ, không mã đơn/tên khách) — Task 6 Step 3b, Task 10.
+   - **3.2** 🔒 lý do chọn từ danh mục `BAN_XE`, không ghi chú tự do — **phải chốt trước Task 1 Step 3 (migration)**.
+   - **3.3** thêm ô "Đến ngày" (khung nhiều ngày / qua đêm ghi một lần) — Task 10 (`FormKhungBan`); máy chủ không đổi.
+   - **3.4** chỉ Quản trị + Toàn quyền mở trang "Lịch xe bận" (ô `vehicle.manage`) — Task 6 Step 3b, Task 10 (thanh bên, trang Tôi).
 
 ---
 
@@ -69,7 +86,7 @@
 
 | Tệp | Việc |
 |---|---|
-| Tạo `migrations/<NNNN>_khung_ban_gio_lai.sql` | bảng `vc_unavailability` + 7 trigger + gieo nhóm lý do `BAN_XE` + hai cột chính sách |
+| Tạo `migrations/0071_khung_ban_gio_lai.sql` | bảng `vc_unavailability` + 7 trigger + gieo nhóm lý do `BAN_XE` + hai cột chính sách |
 | Tạo `src/migrations-khung-ban.test.ts` | lớp CSDL (tiêu chí 1–3, hai thứ tự đua, P16 qua biến `KHUNG_BAN_SQL`) |
 | Tạo `src/shared/khung-ban.ts` (+ `.test.ts`) | luật thuần khung bận: chồng nửa mở, chuyến vướng khung, khung trong ngày VN, nhãn giờ |
 | Tạo `src/shared/gio-lai.ts` (+ `.test.ts`) | luật thuần giờ lái: `thoiLuongChuyenMs`, `gioLaiTaiXe`, `canhBaoGioLai` |
@@ -80,14 +97,18 @@
 | Tạo `src/modules/van-chuyen/khung-ban-repo.ts` | SQL (`defineSql`) đọc/ghi `vc_unavailability` |
 | Tạo `src/modules/van-chuyen/khung-ban-route.test.ts` | route chạy cả ứng dụng trên SQLite (`tests/audit/dieu-phoi-khung.mjs`) |
 | Tạo `src/modules/van-chuyen/dieu-phoi-doc.test.ts` | ghim mapper `xuatBenMs`, hai số chính sách, `khungBanVao` (gói esbuild) |
-| Sửa `src/modules/van-chuyen/index.ts` | 3 route khung bận; nối khung bận vào tạo/sửa chuyến; `khungBanXe` của `GET /lich` |
+| Sửa `src/modules/van-chuyen/index.ts` | 3 route khung bận + `GET /ban-xe` (tuần); nối khung bận vào tạo/sửa chuyến; `khungBanXe` của `GET /lich` |
 | Sửa `src/modules/van-chuyen/dieu-phoi-doc.ts`, `dieu-phoi-lenh.ts`, `dieu-phoi-route.ts` | mapper `xuatBenMs`; khung bận vào lệnh sửa; chính sách hai số |
 | Sửa `src/modules/van-chuyen/chinh-sach.ts`, `repository.ts` | hai con số mới (kiểm thân, câu chèn, nhật ký) |
 | Sửa `src/shared/contracts.ts` | DTO khung bận, `khungBanXe` của lịch, hai số chính sách, `canhBaoLenh` |
 | Sửa `src/shared/audit-actions.ts` | hai hành động nhật ký |
 | Sửa `src/shared/chinh-sach-hien-thi.ts`, `web/chinh-sach-dieu-phoi.ts` | hai ô mới theo khuôn (không cần vẽ) |
-| Tạo `src/shared/khung-ban-hien-thi.ts` (+ `.test.ts`) | luật hiển thị màn khung bận (làm trước bản vẽ) |
-| Sửa `web/xe-chi-tiet.ts`, `web/dieu-phoi.ts` | **sau bản vẽ** |
+| Tạo `src/shared/khung-ban-hien-thi.ts` (+ `.test.ts`) | luật hiển thị: tuần (`vnWeekRange`), lưới xe × 7 ngày, form, dải bận, câu hỏi rút |
+| Tạo `public/lich-xe-ban.html`, `web/lich-xe-ban.ts` | trang tuần "Lịch xe bận" theo bản vẽ 2/10 (Task 10) |
+| Sửa `src/shared/sw-policy.ts`, `package.json` (`build:web`), `web/shell.ts`, `web/account.ts` | khai trang mới; mục con "Lịch xe bận" sau "Xe" |
+| Sửa `web/dieu-phoi.ts`, `web/chuyen-sua.ts`, `public/app.css` | dải bận + dòng "Xe bận" (khuôn có sẵn); dải `canhBaoLenh`; token mới + `.xb-*` |
+| Sửa `docs/evidence/2026-09-23-trang-chu-moi/kich-ban/trang-chu-smoke.mjs`, `web/CLAUDE.md`; tạo `docs/evidence/<ngày>-dot-3/kich-ban/lich-xe-ban-smoke.mjs` | số mục thanh bên 17→18 / 23→24; kịch bản Chrome mới |
+| ~~Sửa `web/xe-chi-tiet.ts`~~ | **bỏ** (2/10 — bản vẽ thay khối Chi tiết xe bằng trang tuần) |
 | Sửa `scripts/audit-checks.mjs`, `src/audit-invariants.test.ts` | R-VC-21 (warn) |
 | Tạo `tests/e2e/khung-ban-xe.mjs`; sửa `tests/e2e/run.mjs`, `tests/e2e/chinh-sach-dieu-phoi.mjs` | e2e |
 | Sửa `docs/data-dictionary.json` (+ `npm run dict`), `docs/SO-HANG-RAO.md`, `docs/SYSTEM-DESIGN.md`, `docs/CHANGE-GUIDE.md`, `src/shared/changelog.ts` | tài liệu |
@@ -106,7 +127,7 @@ git fetch origin
 for b in $(git for-each-ref --format='%(refname:short)' refs/heads refs/remotes/origin); do git ls-tree --name-only "$b" migrations/ 2>/dev/null; done | sed 's#migrations/##' | grep -E '^[0-9]{4}_' | sort -u | tail -5
 ```
 
-Số `<NNNN>` = số lớn nhất in ra + 1. Ghi vào sổ thi công. Cũng kiểm mã kiểm định kỳ kế tiếp: `for b in …; do git show "$b":scripts/audit-checks.mjs 2>/dev/null | grep -o 'R-VC-[0-9]*'; done | sort -t- -k3 -n -u | tail -1` → R-VC-`<M>` = lớn nhất + 1 (đo hôm nay: R-VC-20 ⇒ R-VC-21).
+Số migration đã cấp: **`0071`** (2026-10-02). Kiểm: không nhánh nào đã có tệp `0071_*` khác tệp của đợt này — có thì DỪNG, báo điều phối xin số mới (không tự lấy số). Ghi vào sổ thi công. Cũng kiểm mã kiểm định kỳ kế tiếp: `for b in …; do git show "$b":scripts/audit-checks.mjs 2>/dev/null | grep -o 'R-VC-[0-9]*'; done | sort -t- -k3 -n -u | tail -1` → R-VC-`<M>` = lớn nhất + 1 (đo hôm nay: R-VC-20 ⇒ R-VC-21).
 
 - [ ] **Step 2: Đo lại các dòng ở mục "Đo mã thật"** bằng `grep -n` (tên hàm), ghi chênh lệch vào sổ.
 
@@ -130,7 +151,7 @@ git commit -m "Đợt 3 Vận chuyển: mở sổ thi công khung bận + giờ 
 ### Task 1: Migration — bảng khung bận, trigger, nhóm lý do, hai cột chính sách (lớp CSDL)
 
 **Files:**
-- Create: `migrations/<NNNN>_khung_ban_gio_lai.sql`
+- Create: `migrations/0071_khung_ban_gio_lai.sql`
 - Create: `src/migrations-khung-ban.test.ts`
 - Modify: `docs/data-dictionary.json` (bảng `vc_unavailability`, module `van-chuyen`; hai cột mới của `vc_dispatch_policy` trong `note` bảng đó) rồi `npm run dict`
 
@@ -196,9 +217,9 @@ function khung(db: Db, o: { xe?: string | null; taiXe?: string | null; tu: numbe
 const rut = (db: Db, id: string, v = 1) =>
   run(db, "UPDATE vc_unavailability SET withdrawn_at = ?, withdrawn_by = 's1', version = ?, updated_at = ?, updated_by = 's1' WHERE id = ?", AT, v + 1, AT, id);
 
-test("đúng MỘT tệp *_khung_ban_gio_lai.sql, số sau 0058; chỉ-thêm (không DROP, không dựng lại bảng cũ)", () => {
+test("đúng MỘT tệp 0071_khung_ban_gio_lai.sql (số đã cấp); chỉ-thêm (không DROP, không dựng lại bảng cũ)", () => {
   assert.equal(MATCHES.length, 1, `cần đúng một tệp, có ${MATCHES.length}`);
-  assert.ok(MATCHES[0]! > "0058", MATCHES[0]);
+  assert.equal(MATCHES[0], "0071_khung_ban_gio_lai.sql");
   assert.doesNotMatch(sqlOf(MATCHES[0]!), /DROP\s+(TABLE|TRIGGER)|vc_dispatch_policy_new|vc_trip_new/i);
 });
 
@@ -316,10 +337,12 @@ test("gieo nhóm lý do BAN_XE: bốn mã, có 'Khác'", () => {
 Run: `node --test src/migrations-khung-ban.test.ts`
 Expected: FAIL "cần đúng một tệp, có 0".
 
-- [ ] **Step 3: Viết migration** `migrations/<NNNN>_khung_ban_gio_lai.sql`:
+- [ ] **Step 3: Viết migration** `migrations/0071_khung_ban_gio_lai.sql`:
+
+> **CỔNG trước bước này** `[chờ chủ xác nhận câu 3.2 — đang theo khuyến nghị]`: lý do bận là **ô chọn** từ danh mục `BAN_XE` (bản vẽ vẽ ô gõ tự do — chỉ giữ vị trí/cỡ ô), **không cột ghi chú** (K12). Hình bảng giữ ĐÚNG ADR-0053 D9.1 như dưới. Nếu chủ muốn ô ghi chú tự do ⇒ **DỪNG Task 1**, soạn ADR bổ sung (cột mới, che dãy số, không vào nhật ký) trước khi viết migration — quyết sau khi áp là tốn thêm một migration.
 
 ```sql
--- Migration <NNNN> — ADR-0055 VK2-A (khung bận của xe) + VK2-B B1 (hai con số giờ lái) (accepted 2026-09-30); hình bảng DÙNG CHUNG với ADR-0053 D9.1
+-- Migration 0071 — ADR-0055 VK2-A (khung bận của xe) + VK2-B B1 (hai con số giờ lái) (accepted 2026-09-30); hình bảng DÙNG CHUNG với ADR-0053 D9.1
 -- (Báo bận của tài xế đối tác — Đợt 6). Module van-chuyen (tiền tố vc_). CHỈ THÊM. Không dữ liệu cá nhân (không cột ghi chú tự do — K12).
 -- Kế hoạch docs/superpowers/plans/2026-10-01-van-chuyen-con-lai-03-khung-ban-gio-lai.md, Task 1. Không sửa 0041/0042 (đã áp remote — L1).
 -- Trigger CHỈ đọc bảng vc_ (Hiến chương 5.3). Câu báo mang tiền tố để máy chủ đổi mã: lc03_unavailable (→ trip_rule, rules.ts có sẵn),
@@ -919,7 +942,7 @@ test("bù lệch I43: câu chèn chính sách liệt kê ĐỦ mọi cột của
 
 **Files:**
 - Create: `src/modules/van-chuyen/khung-ban.ts`, `src/modules/van-chuyen/khung-ban.test.ts`, `src/modules/van-chuyen/khung-ban-repo.ts`, `src/modules/van-chuyen/khung-ban-route.test.ts`
-- Modify: `src/modules/van-chuyen/index.ts` (3 route sau khối giấy tờ xe, trước chính sách), `src/shared/audit-actions.ts:82-90`, `src/shared/contracts.ts`, `src/route-access.test.ts:237`
+- Modify: `src/modules/van-chuyen/index.ts` (3 route sau khối giấy tờ xe, trước chính sách + route tuần `GET /api/van-chuyen/ban-xe` — Step 3b), `src/shared/audit-actions.ts:82-90`, `src/shared/contracts.ts` (+ `LichXeBanResponse`, `ChuyenXeBanDto`), `src/route-access.test.ts:237`, `:272`
 - Create: `tests/e2e/khung-ban-xe.mjs`; Modify: `tests/e2e/run.mjs:28-65`
 
 **Interfaces:**
@@ -1234,14 +1257,33 @@ Route trong `index.ts` (thứ tự: 403 ô → 404 xe → 409 xe đã ngừng (c
   vehicle_unavailability_withdrawn: { label: "Rút lịch xe bận", group: "vehicle" },
 ```
 
+- [ ] **Step 3b (thêm 2026-10-02 — bản vẽ trang tuần): route đọc tuần `GET /api/van-chuyen/ban-xe?tu=YYYY-MM-DD`** (tên theo khuôn `ban-tai-xe` của Đợt 6). Trang "Lịch xe bận" là màn đọc nhiều xe một lúc — `GET /xe/:id/ban` (một xe) và `khungBanXe` của `GET /lich` (một ngày) không đủ.
+  - Cổng `office`; **`can(staff, "vehicle.manage")` đầu thân, 403 trước 400** `[chờ chủ xác nhận câu 3.4 — đang theo khuyến nghị: chỉ Quản trị + Toàn quyền]`. Vắng `tu` ⇒ `vnWeekRange(vnToday(now)).from`; có `tu` ⇒ `isISODate` sai → 400 "Tuần xem: YYYY-MM-DD."; đúng ⇒ chuẩn về thứ Hai bằng `vnWeekRange(tu).from` (MỘT hàm tuần với màn — `src/shared/vn-date.ts:69`).
+  - Khoảng `[vnLocalToMs(tu, "00:00"), vnLocalToMs(addDays(tu, 7), "00:00"))` — nửa đêm VN, KHÔNG `Date.parse(\`${tu}T00:00:00Z\`)`.
+  - Đọc: `xeDieuPhoi(env.DB)` (đã bỏ xe `retired`, `chuyen-repo.ts:197`) map như `xeChon` (`dieu-phoi-dto.ts:52`); `khungBanXeTrongKhoang(db, tuMs, denMs)` (Task 6 — câu `khung_ban_xe_trong_khoang` đã lọc `subject = 'VEHICLE'`, không thêm câu SQL mới); `lyDo` = lý do đang dùng nhóm `BAN_XE`; `chuyen` = `tripsTouching(db, tuMs, denMs)` bỏ `CANCELLED`, **chỉ khi `can(staff, "trip.view")`** (vắng ô ⇒ `[]`) `[chờ chủ xác nhận câu 3.1 — đang theo khuyến nghị]`.
+  - `contracts.ts` thêm:
+    ```ts
+    /** Chuyến đã xếp trên lưới tuần Lịch xe bận — DANH SÁCH TRẮNG: không mã đơn, không tên khách, không tài xế (câu 3.1). */
+    export interface ChuyenXeBanDto { id: string; ma: string; xeId: string; batDauMs: number; ketThucMs: number; trangThai: "PLANNED" | "RUNNING" | "ENDED" | "ENDED_INTERRUPTED" } // trạng thái thô chỉ để màn chọn nhãn — không hiện mã
+    export interface LichXeBanResponse { tu: string; den: string; xe: XeChonDto[]; khung: KhungBanXeDto[]; chuyen: ChuyenXeBanDto[]; lyDo: { code: string; label: string }[] }
+    ```
+    (`den` = `addDays(tu, 6)`, hai đầu bao gồm như `vnWeekRange`.) Mapper `khungBanXeDto(row, bayGioMs)` dùng chung với `respondKhungBan` (một chỗ dựng `KhungBanXeDto`).
+  - Test thêm vào `khung-ban-route.test.ts` (SQLite, đỏ trước): (1) Bán hàng, Kế toán → 403, kể cả khi `tu=abc` (403 trước 400); (2) Quản trị, vắng `tu` → `tu` là thứ Hai của tuần hiện tại theo ngày VN (đồng hồ giả `batDongHo(ms)` — `tests/audit/dieu-phoi-khung.mjs:31` — đặt 00:30 VN thứ Hai = 17:30 UTC Chủ nhật ⇒ vẫn tuần MỚI); `tu=2026-10-07` (thứ Tư) → `tu: "2026-10-05"`; (3) khung 23:00 CN → 07:00 T2 có trong `khung` của CẢ tuần trước và tuần sau; (4) **khoá DTO**: mỗi phần tử `chuyen` có ĐÚNG các khoá `id, ma, xeId, batDauMs, ketThucMs, trangThai`; `JSON.stringify(r.json)` không khớp `/Khách Dò Tìm|09\d{8}|TD-\d/` (chuyến dựng bằng `chuyenSan` — có khách có tên); (5) chuyến đã huỷ không có trong `chuyen`.
+  - `src/route-access.test.ts` thêm (cạnh dòng `/api/van-chuyen/lich`, `:272`):
+    ```ts
+      { method: "GET", path: "/api/van-chuyen/ban-xe", access: "office" }, // trang tuần Lịch xe bận; thân hỏi vehicle.manage (câu 3.4)
+    ```
+  - P16 (ghi sổ, Task 9 dòng "+"): (a) dựng `chuyen` bằng `{ ...row }` (trải nguyên `TripRow`) hoặc thêm khoá `maDon` → ca (4) khoá DTO ĐỎ; (b) bỏ dòng `can(staff, "vehicle.manage")` → ca (1) ĐỎ (Kế toán `tu=abc` ra 400 thay 403). Hoàn nguyên cả hai → xanh.
+
 - [ ] **Step 4: E2E** `tests/e2e/khung-ban-xe.mjs` (khuôn nền của `tests/e2e/dieu-phoi.mjs:1-40`: tài xế công ty + xe 15 chỗ có Kiểm định + Bảo hiểm; dữ liệu theo `Date.now()`; ngày `vnDate(3)`). Kịch bản:
-  1. Bán hàng, Kế toán `GET|POST /xe/:id/ban` → 403; Quản trị `GET` → 200 có `lyDo` 4 dòng.
+  1. Bán hàng, Kế toán `GET|POST /xe/:id/ban` và `GET /ban-xe` → 403; Quản trị `GET` → 200 có `lyDo` 4 dòng.
   2. Tạo chuyến 09:00–11:00 (route `POST /api/van-chuyen/chuyen`), rồi Quản trị ghi khung 08:00–17:00 → 409 `khung_ban_chong_chuyen`, `chuyen[0].ma` là mã chuyến, thân lỗi không có `fullName`/`phone` (khẳng định `doesNotMatch(JSON.stringify(body), /Khách|09\d{8}/)`). (ADR tiêu chí 1, lớp route.)
   3. Huỷ chuyến → ghi lại → 201; nhật ký `vehicle_unavailability_added` có biển số, không có `09\d{8}`.
   4. `INSERT` tay (`sql()`) một chuyến chồng khung → lỗi chứa `lc03_unavailable` (ADR tiêu chí 2, CSDL trên D1 thật). Tạo chuyến qua route vào khung → 409 có lý do "lịch xe bận". Dời giờ (`PUT /chuyen/:id`) một chuyến khác vào khung → 409.
   5. Khung 23:00 D → 07:00 D+1 ghi được (nửa đêm VN).
   6. Rút với `version` sai → 409 `khung_ban_vua_doi_route`; rút đúng → 200, `daRut: true`; rút lần hai → 409 (Review Focus 3); nhật ký `_withdrawn` đúng một dòng mới.
   7. `UPDATE vc_unavailability SET start_ms = …` / `DELETE` bằng `sql()` → bị chặn; chèn `subject = 'DRIVER'` → `unavailability_driver_closed`.
+  7b. (thêm 2/10) `GET /api/van-chuyen/ban-xe?tu=<thứ Hai tuần chứa D>` bằng Kế toán → 403; bằng Quản trị → 200, `khung` có khung 08:00–17:00 của xe thử, thêm một khung 23:00 CN → 07:00 T2 (CN = Chủ nhật đầu tiên từ `vnDate(3)` trở đi) có ở CẢ hai tuần; `chuyen` (nếu câu 3.1 giữ khuyến nghị) chỉ có khoá trong danh sách trắng, không `TD-…`, không `09\d{8}`.
   8. Khôi phục: rút mọi khung còn mở của xe thử ở `finally` (khung là dữ liệu của xe dùng một lần — không ảnh hưởng kịch bản khác).
 
   Đăng ký `"khung-ban-xe"` trong `ALL` của `tests/e2e/run.mjs` ngay sau `"dieu-phoi"` (cùng nền tài xế/xe dùng một lần) + ước lượng thời gian (bảng `:64-65`, ~15) + dòng chú thích thứ tự.
@@ -1356,36 +1398,85 @@ test("R-VC-21 (ADR-0055 hệ quả 10): chuyến chưa huỷ, CHƯA kết thúc 
 | 10 | R-VC-21 (warn) | bỏ `u.withdrawn_at IS NULL` → ca "khung đã rút" đỏ (Task 8) |
 | + | bài "câu chèn chính sách liệt kê đủ cột" (bù lệch I43) | Task 5 Step 5 |
 | + | bài "mọi câu đọc khung bận lọc VEHICLE" | Task 7 Step 5 |
+| + | route tuần `GET /ban-xe`: cổng `vehicle.manage` (403 trước 400) + danh sách trắng `ChuyenXeBanDto` (thêm 2/10) | Task 6 Step 3b P16 (a), (b) |
+| + | luật tuần một hàm `tuanXem` → `vnWeekRange` (không giờ máy) | Task 10 Step 1 P16 (lượt `TZ=America/Los_Angeles`) |
 
 - [ ] **Step 2: Commit** — `git commit -m "Sổ hàng rào: mười hai dòng khung bận + giờ lái, có ngày thấy chặn thật"`.
 
 ---
 
-### Task 10: Giao diện — phần làm trước bản vẽ (hàm thuần) + LỆNH VẼ cho chủ
+### Task 10: Giao diện — trang "Lịch xe bận" (lưới tuần, theo bản vẽ 2/10) + dải bận trên Điều phối xe + cảnh báo giờ lái (khuôn có sẵn)
+
+> **Đổi 2026-10-02:** bản vẽ "Quản lý lịch xe bận" thay Màn A (khối trong Chi tiết xe) bằng **một trang tuần riêng** (hàng = xe, cột = 7 ngày). `web/xe-chi-tiet.ts` **không còn sửa**. Màn B (dải bận) và hai cảnh báo giờ lái bản vẽ không vẽ ⇒ làm theo khuôn có sẵn, không chờ vẽ. Bản vẽ: `docs/design/van-chuyen-dot-3-7/Quản lý lịch xe bận.dc.html` (dự án Claude Design `f0f47482-c51a-4232-b5c0-d924871ce294`).
 
 **Files:**
 - Create: `src/shared/khung-ban-hien-thi.ts`, `src/shared/khung-ban-hien-thi.test.ts`
-- Modify (SAU khi có bản vẽ): `web/xe-chi-tiet.ts`, `web/dieu-phoi.ts`, `public/app.css` (token có sẵn), kịch bản Chrome
+- Create: `public/lich-xe-ban.html`, `web/lich-xe-ban.ts` (công thức trang mới của `docs/CHANGE-GUIDE.md`: `initShell()`, khai `PAGES`, thêm vào `build:web`)
+- Create: `docs/evidence/<ngày>-dot-3/kich-ban/lich-xe-ban-smoke.mjs`
+- Modify: `src/shared/sw-policy.ts:16` (`PAGES` thêm `"/lich-xe-ban"` — bài đối chiếu `PAGES` ↔ `build:web` ở `:22`), `package.json:11` (`build:web` thêm `web/lich-xe-ban.ts`)
+- Modify: `web/shell.ts` — hằng `TRANG_LICH_XE_BAN = "/lich-xe-ban"` cạnh `TRANG_XE` (`:18`); mục cha "Vận chuyển" `active()` (`:248`) và tab "Tôi" `active()` (`:71`) nhận đường dẫn mới; mục con `{ href: TRANG_LICH_XE_BAN, label: "Lịch xe bận", kind: "sub" }` **ngay sau "Xe", trước "Sắp hết hạn"** trong khối `if (vehicle)` (`:252-256`) `[chờ chủ xác nhận câu 3.4 — đang theo khuyến nghị]`
+- Modify: `web/account.ts:87` — dòng "Lịch xe bận" ngay sau dòng "Xe" của nhóm VẬN CHUYỂN, cùng điều kiện `quanLyXe` (ô `vehicle.manage`) `[chờ chủ xác nhận câu 3.4 — đang theo khuyến nghị]`
+- Modify: `web/dieu-phoi.ts:186-200` (dải bận trên "Dòng thời gian theo xe") + thẻ xe khổ điện thoại; nơi `web/chuyen-sua.ts` nhận phản hồi lưu (người thi công đo) — dải `canhBaoLenh`
+- Modify: `public/app.css` — token mới nhóm "Riêng" + khối `.xb-*` (trang tuần) + `.dp-tl-ban` (dải bận) sau dấu mốc PWA, chỉ token (bài quét `tests/e2e/pwa.mjs`)
+- Modify: `docs/evidence/2026-09-23-trang-chu-moi/kich-ban/trang-chu-smoke.mjs` — `ADMIN_NAV` (`:627-631`, `deepEqual` ⇒ chèn "Lịch xe bận" giữa "Xe" và "Sắp hết hạn"); số mục Quản trị **17 → 18** ở `:642`, `:643`, `:984`, `:1000` và chữ thông báo `:1122`; Toàn quyền **23 → 24** ở `:1010` (Toàn quyền giữ `vehicle.manage` — chú thích `:976`: "20 mục = 17 của Quản trị + …"; người thi công đo lại ô trước khi sửa số). Đợt khác thêm mục thanh bên (Đợt 4, 6) ⇒ số đếm cộng dồn lúc gộp.
+- Modify: `web/CLAUDE.md` (bảng kịch bản Chrome: hàng `web/lich-xe-ban.ts` → `lich-xe-ban-smoke.mjs`)
+- KHÔNG sửa: `web/xe-chi-tiet.ts` (bỏ Màn A — gỡ đụng độ với Đợt 1)
 
-**Interfaces (mức giao diện — không viết DOM trước bản vẽ):**
-- `src/shared/khung-ban-hien-thi.ts` (thuần, có test, làm NGAY):
+**Interfaces:**
+- `src/shared/khung-ban-hien-thi.ts` (thuần, có test, không import `src/modules/`):
   ```ts
-  export interface FormKhungBan { tuNgay: string; tuGio: string; denNgay: string; denGio: string; lyDo: string }
-  export type KetQuaFormKhungBan = { ok: true; value: { batDau: { ngay: string; gio: string }; ketThuc: { ngay: string; gio: string }; lyDo: string } } | { ok: false; loi: Partial<Record<keyof FormKhungBan, string>> };
-  export function docFormKhungBan(f: FormKhungBan, bayGioMs: number): KetQuaFormKhungBan       // biên khớp kiemKhungBanMoi (máy chủ vẫn quyết)
-  export function dongKhungBan(k: KhungBanXeDto, bayGioMs: number): { tieuDe: string; phu: string; trangThai: "Đang bận" | "Sắp tới" | "Đã rút" | "Đã qua"; tone: "danger" | "warn" | "muted"; rutDuoc: boolean }
+  /** Form "Thêm lịch bận" của bản vẽ + ô "Đến ngày" (câu 3.3). */
+  export interface FormKhungBan { xeId: string; ngay: string; denNgay: string; tuGio: string; denGio: string; lyDo: string }
+  export type KetQuaFormKhungBan =
+    | { ok: true; xeId: string; value: { batDau: { ngay: string; gio: string }; ketThuc: { ngay: string; gio: string }; lyDo: string } }
+    | { ok: false; loi: Partial<Record<keyof FormKhungBan, string>> };
+  export function docFormKhungBan(f: FormKhungBan, bayGioMs: number): KetQuaFormKhungBan   // biên khớp kiemKhungBanMoi (máy chủ vẫn quyết); lỗi theo ô
+  /** Tuần hiển thị: MỘT luật với máy chủ — gọi `vnWeekRange` (src/shared/vn-date.ts:69), không `new Date(y, m, d)` của trình duyệt. */
+  export function tuanXem(tu: string | null, homNay: string): { tu: string; den: string; truoc: string; sau: string; nhan: string } // nhan "28/09 – 04/10/2026"
+  export interface MucO { loai: "BAN" | "CHUYEN"; id: string; gio: string; nhan: string; rutDuoc: boolean; version: number | null; href: string | null }
+  export function luoiTuanXeBan(v: LichXeBanResponse, homNay: string, bayGioMs: number): {
+    ngay: { k: string; thu: string; nhan: string; homNay: boolean }[];                      // "THỨ 2" … "CN", "28/09"
+    hang: { xeId: string; bienSo: string; soChoNhan: string; trangThaiNhan: string | null; o: MucO[][] }[]; // "Xe 16 chỗ"; "Bảo dưỡng" khi trangThai = maintenance
+    soLichBan: number;                                                                         // số KHUNG giao tuần (không đếm chuyến) — dòng "N lịch bận"
+  }
+  export function cauHoiRut(m: MucO, ngay: string): string   // "Rút lịch bận Bảo dưỡng 08:00–17:00 03/10? Xe sẽ xếp chuyến được trong giờ này."
   export function daiBanTrenLich(ds: readonly KhungBanLichDto[], ngay: string): { xeId: string; tuPhut: number; denPhut: number; nhan: string }[] // phút trong ngày VN, kẹp [0, 1440]
-  export function cauLoiChongChuyen(e: KhungBanChongChuyenLoi["error"]): string           // "Xe đang có 2 chuyến trùng: CX-0510-01 (09:00 05/10 → 11:00 05/10), …"
+  export function cauLoiChongChuyen(e: KhungBanChongChuyenLoi["error"]): string // "Xe đang có 2 chuyến trùng: CX-0510-01 (09:00 05/10 → 11:00 05/10), …"
   ```
-  Bài test bắt buộc: `daiBanTrenLich` khung 23:00 D → 07:00 D+1 cho `ngay = D` ra `{ tuPhut: 1380, denPhut: 1440 }`, cho `D+1` ra `{ tuPhut: 0, denPhut: 420 }` (Review Focus 1 ở tầng màn); `dongKhungBan` khung đang diễn ra → "Đang bận", `rutDuoc: true`; khung đã qua → `rutDuoc: false`.
-- Màn Xe (`web/xe-chi-tiet.ts`, sau bản vẽ): khối "Lịch xe bận" dưới giấy tờ — danh sách `dangCo` + "Lịch sử (N)" thu gọn (khuôn `lichSuCua` của giấy tờ); nút "Ghi lịch bận" (hiện khi `can(vehicle.manage)` và xe chưa ngừng) mở hộp 4 ô ngày/giờ (16px) + chọn lý do; 409 `khung_ban_chong_chuyen` → hiện `cauLoiChongChuyen` + liên kết từng chuyến `/chuyen?id=` (máy chủ trả mã chuyến — màn tra id qua lịch nếu bản vẽ đòi liên kết; nếu không, chỉ chữ). Nút "Rút" có hỏi xác nhận, gửi `version`.
-- Lịch điều phối (`web/dieu-phoi.ts`, sau bản vẽ): trên hàng của mỗi xe ở "Dòng thời gian theo xe", vẽ dải bận từ `daiBanTrenLich(l.khungBanXe, l.ngay)` (gạch chéo / màu trung tính — theo bản vẽ), nhãn lý do; điện thoại: dòng "Xe bận 08:00–17:00 · Bảo dưỡng" trong thẻ xe. Cảnh báo `GIO_LAI_VUOT`, `CHUYEN_DAI_CAN_NGHI` đã tự vào "Cần xử lý" qua `viecCanXuLy` (Task 4) — bản vẽ chỉ chốt vị trí/biểu tượng.
+  Luật `gio` của một mục trong ô ngày D (cắt khung theo `[00:00 D, 00:00 D+1)` giờ VN): phủ trọn ngày → `"Cả ngày"`; bắt đầu trước D, kết thúc trong D → `"đến 07:00"`; bắt đầu trong D, kết thúc sau D → `"từ 23:00"`; cả hai trong D → `"06:30–16:00"`. Khung nhiều ngày hiện ở MỌI ô nó phủ. `rutDuoc = loai === "BAN" && !daRut && ketThucMs > bayGioMs`. Mục `CHUYEN`: `rutDuoc: false`, `href = /chuyen?id=<id>`, `nhan` = mã chuyến `CX-…` (không mã đơn, không tên khách) `[chờ chủ xác nhận câu 3.1 — đang theo khuyến nghị]`.
+  Bài test bắt buộc (`khung-ban-hien-thi.test.ts`, chạy cả `TZ=UTC node --test …` và `TZ=Asia/Ho_Chi_Minh node --test …`):
+  - `tuanXem(null, "2026-10-02")` → `tu: "2026-09-28"`, `den: "2026-10-04"`, `nhan: "28/09 – 04/10/2026"`; `tuanXem("2026-10-04", …)` (Chủ nhật) → cùng tuần; `truoc`/`sau` lệch đúng 7 ngày.
+  - Khung 23:00 CN 04/10 → 07:00 T2 05/10: tuần 28/09 có `"từ 23:00"` ở ô 04/10; tuần 05/10 có `"đến 07:00"` ở ô 05/10 (Review Focus 1 ở tầng màn).
+  - Khung 00:00 D → 00:00 D+1 → `"Cả ngày"`, chỉ ở ô D. Khung 3 ngày → 3 ô (giữa là `"Cả ngày"`), `soLichBan` đếm 1.
+  - Khung đã qua → `rutDuoc: false`; mục `CHUYEN` không có khoá `maDon`/`ten` (danh sách trắng).
+  - `daiBanTrenLich` khung 23:00 D → 07:00 D+1: `ngay = D` → `{ tuPhut: 1380, denPhut: 1440 }`, `D+1` → `{ tuPhut: 0, denPhut: 420 }`.
+  - `docFormKhungBan`: `denNgay` vắng/rỗng ⇒ lấy `ngay` (người chỉ ghi một ngày không phải làm gì thêm); `denNgay < ngay` → lỗi ô `denNgay`; thiếu `lyDo` → lỗi ô `lyDo`; khung đã qua → lỗi ô `denGio`.
 
-- [ ] **Step 1:** Viết test + hàm thuần `khung-ban-hien-thi.ts` (đỏ → xanh), `node --test src/shared/khung-ban-hien-thi.test.ts`. Commit.
-- [ ] **Step 2:** Gửi chủ LỆNH VẼ dưới đây (điều phối dán vào câu trả lời cho chủ). **Dừng phần DOM tới khi có bản vẽ.**
-- [ ] **Step 3 (sau bản vẽ):** dựng DOM bằng `h()` đúng 100% bản vẽ; `npm run build:web`; kịch bản Chrome 390 + 1040 (mở trang Quản trị sau cùng — cookie chung); ảnh vào `docs/evidence/`. Commit.
+**Màn — trang "Lịch xe bận" (`web/lich-xe-ban.ts`), làm ĐÚNG bản vẽ ở phần bề mặt:**
+- Gọi `GET /api/van-chuyen/ban-xe?tu=` (Task 6 Step 3b). 403 ⇒ khối chặn + câu tiếng Việt theo khuôn trang Xe (bản vẽ thiếu — theo khuôn). Đang tải / chưa có xe / lỗi tải ⇒ khuôn `vc-empty` (bản vẽ thiếu).
+- Đầu trang: tiêu đề "Lịch xe bận" (24px — `--fs-step-11`, `--font-display`) + dòng phụ `"<tuanXem.nhan> · <soLichBan> lịch bận"`; nút `‹` / "Tuần này" / `›` (`.btn` viền) đổi `?tu=` (dùng `tuanXem`, cập nhật URL bằng `history.replaceState`); nút **"Thêm lịch bận"** `.btn-accent` (san hô, như bản vẽ — tiền lệ "+ Chuyến mới"), chỉ khi `can(staff, "vehicle.manage")`.
+- Form mở tại chỗ (bản vẽ trạng thái 2), lưới `auto-fit minmax(var(--w-xb-o), 1fr)` (khổ 390 tự xếp một cột): **Xe** (chọn, từ `xe[]`, nhãn `"<bienSo> · Xe <soCho> chỗ"`) · **Ngày** · **Đến ngày** (mặc định = Ngày) `[chờ chủ xác nhận câu 3.3 — đang theo khuyến nghị]` · **Từ** · **Đến** · **Lý do** = ô **chọn** từ `lyDo[]` (danh mục `BAN_XE`), giữ đúng vị trí/cỡ ô của bản vẽ `[chờ chủ xác nhận câu 3.2 — đang theo khuyến nghị]`; nút **"Lưu"** `.btn-primary` + **"Đóng"** `.btn`. Ô gõ 16px. Lưu ⇒ `docFormKhungBan` → `POST /api/van-chuyen/xe/:xeId/ban` → thành công: đóng form, tải lại tuần. Lỗi (bản vẽ thiếu — theo khuôn khung lỗi đỏ `--c-danger-*`): 409 `khung_ban_chong_chuyen` → `cauLoiChongChuyen` + mỗi chuyến một dòng; 409 `khung_ban_chong_chuyen_csdl` / `khung_ban_vua_doi` → câu máy chủ + tải lại; 400 → lỗi theo ô.
+- Lưới (thẻ trắng, cuộn ngang trong thẻ, `min-width: var(--w-xb-luoi)`; cột XE `var(--w-xb-xe)` **dính trái** khi cuộn — khổ 390 bản vẽ thiếu, theo khuôn `.dp-tl-nhan`): đầu cột "XE" + 7 cột `"THỨ 2"`/`"28/09"`; ô hôm nay nền `--c-surface-alt`. Hàng xe: biển số đậm + `"Xe 16 chỗ"`; xe `maintenance` thêm chip "Bảo dưỡng" (bản vẽ thiếu — chip có sẵn, tone `warn`).
+- Thẻ mục `BAN` (nền `--c-xe-ban-bg`): dòng giờ (`gio`) + dòng lý do; nút ✕ chỉ khi `rutDuoc && can(vehicle.manage)`, `aria-label="Rút lịch bận <lý do> <giờ>"`. **Bấm ✕ = RÚT có hỏi, không xoá thẳng** (ADR-0055 A1: chỉ-thêm, rút một lần, khoá lạc quan — không hỏi chủ): mở `moBangTruot` (`web/bang-truot.ts:19`, khuôn hỏi xác nhận như `web/giay-to-ui.ts:211`) với `cauHoiRut`; xác nhận → `POST …/xe/:id/ban/:bid/rut { version }`; 409 `khung_ban_vua_doi_route` / `khung_ban_da_qua` → dải báo + tải lại tuần.
+- Thẻ mục `CHUYEN` (chuyến đã xếp — chỉ có khi máy chủ trả `chuyen[]`): nền khác khung bận (`--c-surface-alt` + viền `--c-border`), dòng giờ + mã `CX-…`, là liên kết `/chuyen?id=`, **không ✕** `[chờ chủ xác nhận câu 3.1 — đang theo khuyến nghị]`.
+- Chú thích cuối thẻ: ô màu `--c-xe-ban-bg` "Xe bận · ô trống là xe rảnh" (+ ô "Chuyến đã xếp" khi có `chuyen[]` — câu 3.1).
+- **Khác bản vẽ có chủ đích (ghi để chủ xem khi duyệt ảnh, không chặn):** phông nội dung Be Vietnam Pro thay Nunito (quyết định 30/9); "Lưu" dùng `.btn-primary` (nền nhạt + chữ navy, luật "MÀU THEO VAI" 2/10 ở `public/app.css`) thay nền navy đặc; dòng lý do dùng `--c-text` thay `#334155`; độ đậm theo `--fw-*` (ADR-0087). Nếu chủ muốn nút "Lưu" đặc như bản vẽ ⇒ thêm vai màu "nút chốt đặc" vào nhóm MÀU THEO VAI.
+- Token (ánh xạ bản vẽ → app, DANH-GIA §5): dùng token có sẵn cho mọi màu/cỡ khớp (`--c-surface-alt`, `--c-text`, `--c-primary`, `--c-border`, `--c-surface`, `--c-text-muted`, `--c-accent`, `--fs-step-*`, `--s1…--s5`, `--radius-sm/md`, `--tap-min`, `--w-main`, `--ls-eyebrow`). Token MỚI nhóm "Riêng" (ghi "theo bản vẽ Quản lý lịch xe bận 2/10 — bản vẽ = duyệt màu"): `--c-xe-ban-bg: #fef3c7`, `--gap-xb-the: 6px`, `--gap-xb-xe: 2px`, `--pad-xb-btn: 20px`, `--radius-xb-lg: 4px`, `--w-xb-xe: 150px`, `--w-xb-luoi: 860px`, `--h-xb-o: 72px`, `--w-xb-o: 160px`, `--xb-x: 24px` (nút ✕ — vùng chạm mở rộng bằng `::after` tới `--tap-min` nếu axe báo, không đổi hình), `--xb-lg-o: 14px`. Không nhập CSS `_ds` của bản vẽ.
 
-**LỆNH VẼ (Claude Design) — chủ dán nguyên văn:**
+**Màn — "Điều phối xe" (`web/dieu-phoi.ts`), theo khuôn có sẵn, KHÔNG chờ vẽ:**
+- Máy tính: trên `.dp-tl-duong` của hàng mỗi xe (`:193`), thêm khối `.dp-tl-ban` từ `daiBanTrenLich(l.khungBanXe, l.ngay)` đặt bằng `viTri(…)` có sẵn (`:188`) — nền `--c-xe-ban-bg` (cùng màu "Xe bận" của trang tuần) + nhãn lý do; nằm dưới khối chuyến (`z-index` token có sẵn), `aria-label` "Xe bận <giờ> · <lý do>".
+- Điện thoại (thẻ xe): một dòng "Xe bận 08:00–17:00 · Bảo dưỡng" với biểu tượng `ban` có sẵn trong `web/icons.ts` (không có biểu tượng cờ lê — không vẽ biểu tượng mới).
+- Hai cảnh báo `GIO_LAI_VUOT`, `CHUYEN_DAI_CAN_NGHI`: KHÔNG DOM mới — tự vào "Cần xử lý" qua `viecCanXuLy` với biểu tượng `clock` (Task 4 Step 3, `ICON_CANH_BAO` `src/shared/dieu-phoi-man.ts:145`). Sau tạo/sửa chuyến có `canhBaoLenh` ⇒ dải `dai("warning", …)` theo khuôn `canhBaoXep` (`web/dieu-phoi.ts:454-455`), chỉ nhắc.
+- Kế toán / Bán hàng (`trip.view`, không `vehicle.manage`): thấy dải bận, không nút, không mục thanh bên "Lịch xe bận" (câu 3.4).
+
+- [ ] **Step 1:** Test đỏ `src/shared/khung-ban-hien-thi.test.ts` (các ca bắt buộc ở trên) → `TZ=UTC node --test src/shared/khung-ban-hien-thi.test.ts` ĐỎ → cài `khung-ban-hien-thi.ts` → xanh ở cả `TZ=UTC`, `TZ=Asia/Ho_Chi_Minh` và `TZ=America/Los_Angeles`. P16: đổi `tuanXem` sang `new Date(homNay)` + `getDay()` (giờ máy) → lượt `TZ=America/Los_Angeles node --test src/shared/khung-ban-hien-thi.test.ts` ĐỎ (`"2026-10-05"` thành 17:00 Chủ nhật giờ máy ⇒ sai tuần; hai lượt UTC/VN vẫn xanh — vì vậy BẮT BUỘC chạy lượt múi âm) → hoàn nguyên. Commit `"Lịch xe bận: luật hiển thị lưới tuần, form, dải bận (thuần)"`.
+- [ ] **Step 2:** Trang `public/lich-xe-ban.html` + `web/lich-xe-ban.ts` theo các gạch đầu dòng ở trên; `PAGES`, `build:web`, `web/shell.ts`, `web/account.ts`, token + `.xb-*` trong `public/app.css`. Chạy `npm run typecheck && npm run build:web && node --test src/shared/sw-policy.test.ts` (bài `PAGES` ↔ `build:web`) và `npm run test:e2e -- pwa` (trang mới + quét token). Commit.
+- [ ] **Step 3:** Dải bận + dòng "Xe bận" + dải `canhBaoLenh` trên Điều phối xe / sửa chuyến. `npm run build:web`. Commit.
+- [ ] **Step 4: Kịch bản Chrome** `lich-xe-ban-smoke.mjs` (khuôn `trang-chu-smoke.mjs`: `startEnv`, `ACCOUNTS`), khổ **1040 + 390**, thứ tự **Kế toán trước** (mở `/lich-xe-ban` → khối chặn tiếng Việt, thanh bên không có "Lịch xe bận"; `/dieu-phoi` thấy dải bận, không nút) **rồi Quản trị** (cookie chung): tuần có khung 23:00 CN → 07:00 T2 hiện "từ 23:00" / "đến 07:00" ở hai tuần; Thêm lịch bận (chọn lý do, Đến ngày) → thẻ hiện; ghi chồng chuyến → khung lỗi liệt kê `CX-…`; ✕ → hộp hỏi → Rút → thẻ mất; cột XE dính trái khi cuộn ở 390; axe không lỗi mới. Ảnh vào `docs/evidence/<ngày>-dot-3/`. Chạy lại `trang-chu-smoke.mjs` (thanh bên 18 / 24) và `dot-c-smoke.mjs` (trang Tôi — `web/account.ts`, theo `docs/CHANGE-GUIDE.md:910`). Thêm hàng vào bảng của `web/CLAUDE.md`. Commit.
+
+**Bản vẽ đã nhận 2/10:** `docs/design/van-chuyen-dot-3-7/Quản lý lịch xe bận.dc.html` (dự án Claude Design `f0f47482-c51a-4232-b5c0-d924871ce294`; đánh giá đối chiếu: bảng lệch + token ở mục "Tự rà sau cập nhật 2/10").
+
+<details><summary>LỆNH VẼ cũ (1/10 — đã thay bằng bản vẽ 2/10, giữ để tra)</summary>
 
 > Vẽ cho app "Island Booking System" (Công ty TNHH Tour Đảo, PWA trên iPhone + máy tính), dùng đúng hệ thiết kế hiện có (phông Be Vietnam Pro, token màu của app). Hai khung: **điện thoại 390px** và **máy tính 1040px**. Chữ tiếng Việt có dấu, không chữ tiếng Anh.
 >
@@ -1403,6 +1494,8 @@ test("R-VC-21 (ADR-0055 hệ quả 10): chuyến chưa huỷ, CHƯA kết thúc 
 > - Cột "Cần xử lý": hai loại nhắc mới màu vàng, biểu tượng đồng hồ: "Tài xế lái quá giờ tối đa trong ngày — Nguyễn Văn A: 8 giờ 10 phút (CX-0310-03)" và "Chuyến dài — nhớ cho tài xế nghỉ giữa chuyến (CX-0310-04, 4 giờ 30 phút)". Đây chỉ là nhắc, không có nút chặn.
 > - Kế toán xem cùng màn (chỉ xem): thấy dải bận, không nút.
 
+</details>
+
 ---
 
 ### Task 11: Tài liệu, nhật ký phiên bản, kiểm độc lập
@@ -1410,9 +1503,9 @@ test("R-VC-21 (ADR-0055 hệ quả 10): chuyến chưa huỷ, CHƯA kết thúc 
 **Files:**
 - Modify: `docs/SYSTEM-DESIGN.md` (§5 bảng `vc_unavailability`; §6 luồng ghi lịch xe bận; §7 ba route), `docs/CHANGE-GUIDE.md` (bẫy: "đọc khung bận phải lọc `subject`"; "thêm cột chính sách = sửa câu chèn + thân bắt buộc + e2e GOC"), `src/shared/changelog.ts` + `src/shared/app-info.test.ts` (bản `<X.YY>` = lớn nhất ở `origin/main` + 1 lúc gộp — L2), sổ thi công
 
-- [ ] **Step 1:** Mục nhật ký phiên bản (lời thường): "Quản trị ghi được lịch xe vào xưởng ở màn Xe — trong giờ đó máy không cho xếp chuyến cho xe. Lịch điều phối nhắc khi tài xế lái quá 8 giờ một ngày hoặc chuyến dài quá 4 giờ (chỉ nhắc, không chặn); Toàn quyền đổi hai con số ở Chính sách điều phối." (Nếu giao diện chưa có bản vẽ lúc phát hành: bỏ câu "ở màn Xe", ghi "qua máy chủ — màn hình ở bản sau".)
+- [ ] **Step 1:** Mục nhật ký phiên bản (lời thường): "Trang mới Vận chuyển › Lịch xe bận: Quản trị xem lịch bận của mọi xe theo tuần, thêm lịch xe vào xưởng (bảo dưỡng, đăng kiểm, sửa chữa) — trong giờ đó máy không cho xếp chuyến cho xe; rút lịch bận khi xe ra xưởng sớm. Điều phối xe hiện dải 'Xe bận' trên hàng của xe. Lịch điều phối nhắc khi tài xế lái quá 8 giờ một ngày hoặc chuyến dài quá 4 giờ (chỉ nhắc, không chặn); Toàn quyền đổi hai con số ở Chính sách điều phối." (Câu chữ theo chủ trả lời câu 3.1–3.4: nếu 3.1 = có ⇒ thêm "trang tuần hiện cả chuyến đã xếp".)
 - [ ] **Step 2:** Chạy đủ: `npm test` · `npm run typecheck` · `npm run test:e2e` · `node scripts/audit-invariants.mjs --db local`. Ghi số liệu vào sổ.
-- [ ] **Step 3:** Gọi **người kiểm độc lập chỉ đọc** (`nguoi-kiem-doc-lap`) với: kế hoạch này, ADR-0055, ADR-0053 D9.1–D9.3, sổ thi công, danh sách commit. Yêu cầu kiểm riêng: (a) hình bảng khớp D9.1 (cột, `CHECK`, khoá lạc quan, nhóm lý do theo đối tượng); (b) mọi câu đọc lọc `VEHICLE`; (c) ADR tiêu chí 1–4, 8 chạy lại được; (d) không mã mới trong `MA_GIU`/`MA_LUAT_PHA_LE` (trừ khi chủ duyệt "Cần chủ" câu 1); (e) không sửa `0041`/`0042`; (f) sổ hàng rào có ngày cho cả mười dòng. Chỉ báo "đạt" dựa trên báo cáo đó + test.
+- [ ] **Step 3:** Gọi **người kiểm độc lập chỉ đọc** (`nguoi-kiem-doc-lap`) với: kế hoạch này, ADR-0055, ADR-0053 D9.1–D9.3, sổ thi công, danh sách commit. Yêu cầu kiểm riêng: (a) hình bảng khớp D9.1 (cột, `CHECK`, khoá lạc quan, nhóm lý do theo đối tượng); (b) mọi câu đọc lọc `VEHICLE` (kể cả câu tuần của `GET /ban-xe`); (b′) `GET /ban-xe`: 403 trước 400 cho người thiếu `vehicle.manage`, `chuyen[]` chỉ danh sách trắng (không mã đơn, tên khách, tài xế) và chỉ khi `can(trip.view)`; (c) ADR tiêu chí 1–4, 8 chạy lại được; (d) không mã mới trong `MA_GIU`/`MA_LUAT_PHA_LE` (trừ khi chủ duyệt "Cần chủ" câu 1); (e) không sửa `0041`/`0042`; (f) sổ hàng rào có ngày cho cả mười dòng. Chỉ báo "đạt" dựa trên báo cáo đó + test.
 - [ ] **Step 4:** Commit tài liệu; báo điều phối nhánh + lệnh cho chủ: `npm run day-len -- <nhánh>` rồi `npm run trien-khai` (đổi app, có migration).
 
 ---
@@ -1422,3 +1515,23 @@ test("R-VC-21 (ADR-0055 hệ quả 10): chuyến chưa huỷ, CHƯA kết thúc 
 - **Phủ đặc tả:** A1 bảng (Task 1) · A2 (i) hai lớp (Task 1 trigger, Task 2 + 7 máy chủ) · A2 (ii) hai lớp (Task 1, Task 6) · A3 không tự đổi `status` (không task nào ghi `vc_vehicle.status`) · A4 quyền (Task 6 route `vehicle.manage`; Task 7 `/lich` `trip.view`; DTO tài xế Task 7) · A5 route (Task 6, 7) · A6 nhật ký (Task 6) · B1 (Task 1, 5) · B2 (Task 3) · B3 (Task 4, 7) · B4 việc ngoài app (không phải mã — nhắc trong nhật ký phiên bản "chỉ nhắc") · hệ quả 1–10 (Task 9) · tiêu chí 1–4, 8 (Task 1, 6, 7, 3, 11); tiêu chí 5–7 thuộc VK2-C (đã có). D9.1: `driver_party_id`, `version`, `CHECK` một đối tượng, nhóm lý do theo đối tượng (Task 1); B9.3 một hàm (Task 2).
 - **Tên thống nhất:** `KhungBanVao`/`khungBan`/`khungBanVao`; `canhBaoGioLai`/`CanhBaoGioLai`/`NHAN_CANH_BAO_GIO_LAI`; `KetQuaTaoSua.nhacGioLai`; `khungBanXeTrongKhoang`; `loiRangBuocKhungBan`; DTO `KhungBanXeDto`, `KhungBanLichDto`.
 - **Điều chưa chắc (người thi công đo lại):** tên hàm dựng mẫu trong `dieu-phoi-kiem.test.ts` / `dieu-phoi-lich-chung.test.ts`; bộ tra chữ SQL của `defineSql` (Task 5 Step 1); cách dựng chuyến RUNNING trong test migration (TC-K1b); bài kiến trúc có đọc migration qua biến môi trường hay không (Task 9 mục 9).
+
+## Tự rà sau cập nhật 2/10
+
+Đối chiếu từng mục §4 của bản đánh giá bản vẽ Đợt 3 (S1–S10):
+
+| Mục | Nội dung | Áp ở | Ghi chú |
+|---|---|---|---|
+| S1 | Route tuần `GET /api/van-chuyen/ban-xe?tu=`, `vehicle.manage` 403 trước 400, `LichXeBanResponse`, `ChuyenXeBanDto` danh sách trắng, dòng `route-access`, bài khoá DTO, e2e khung qua nửa đêm CN→T2 | Task 6 Step 3b (+ e2e bước 1, 7b; Files) | Không thêm câu SQL mới: dùng `khung_ban_xe_trong_khoang` (đã lọc `VEHICLE`, bài Review Focus 4 vẫn phủ) + `tripsTouching` + `xeDieuPhoi`. Tuần chuẩn về thứ Hai thay vì 400 khi `tu` không phải thứ Hai (tự chốt bề mặt). Dấu 3.1, 3.4 |
+| S2 | Bỏ khối Chi tiết xe; trang mới `public/lich-xe-ban.html` + `web/lich-xe-ban.ts`; `PAGES`, `build:web`; mục thanh bên + trang Tôi; số đếm `trang-chu-smoke` | Task 10 Files, Step 2, Step 4; Cấu trúc tệp | Số dòng đo lại trên mã thật (DANH-GIA ghi `:541/:557/:873`, "/audit 20→21" — sai): `ADMIN_NAV :627-631`, `:642`, `:643`, `:984`, `:1000`, `:1122` (17→18), `:1010` Toàn quyền 23→24. Không làm liên kết "Xem lịch bận" ở Chi tiết xe (bản vẽ không có) |
+| S3 | Hàm thuần `luoiTuanXeBan`, `MucO`, cắt khung theo ngày VN, "Cả ngày", `rutDuoc`, `soLichBan`; test `TZ=UTC`; `FormKhungBan` theo 3.3 | Task 10 Interfaces + Step 1 | Thêm `tuanXem` gọi `vnWeekRange` (có sẵn) để màn và máy chủ dùng MỘT luật tuần. Bỏ nhãn "Cả ngày (tiếp)" (thừa — ô giữa đã là "Cả ngày"). Bỏ `dongKhungBan` (chỉ phục vụ Màn A). Phương án một-ngày (23:59 → 00:00 hôm sau) chỉ áp nếu chủ bác 3.3 — không viết sẵn |
+| S4 | ✕ = Rút có hỏi, `aria-label`, chỉ khi `rutDuoc` + `can`, gửi `version`, 409 → tải lại; thẻ chuyến không ✕, bấm mở `/chuyen?id=` | Task 10 (thẻ `BAN`, thẻ `CHUYEN`) | Hộp hỏi dùng `moBangTruot` (`web/bang-truot.ts:19`, khuôn `web/giay-to-ui.ts:211`) — không có thành phần `confirmation-dialog` trong mã |
+| S5 | Dải bận Điều phối xe + dòng "Xe bận" điện thoại + hai cảnh báo giờ lái theo khuôn, bỏ "dừng DOM chờ vẽ" | Task 10 mục "Điều phối xe", Step 3 | `web/icons.ts` không có cờ lê ⇒ dùng `ban` có sẵn. `ICON_CANH_BAO` `clock` đã có ở Task 4 Step 3. `canhBaoLenh` hiện theo khuôn `canhBaoXep` |
+| S6 | Lý do: khuyến nghị giữ nguyên (không cột ghi chú); chủ muốn ghi chú ⇒ dừng Task 1, soạn ADR | Task 1 Step 3 (cổng 3.2) | Bảng giữ đúng D9.1 |
+| S7 | `kiemKhungBanMoi` thân `{batDau, ketThuc}` giữ nguyên | Task 6 (không đổi) | Máy chủ đã nhận khung nhiều ngày; chỉ form đổi |
+| S8 | Chữ: "Thêm lịch bận", "Đóng", tiêu đề "Lịch xe bận", chú thích "Xe bận · ô trống là xe rảnh" (+ "Chuyến đã xếp") | Task 10 | Lệnh vẽ cũ thu vào khối `<details>`; câu hỏi rút giữ làm `cauHoiRut` |
+| S9 | Màu nút: "Thêm lịch bận" `.btn-accent`, "Lưu" `.btn-primary`, ‹ › Tuần này Đóng `.btn` viền | Task 10 + mục Cập nhật 2/10 | Ghi rõ lệch bản vẽ ở "Lưu" (luật màu theo vai) để chủ xem khi duyệt ảnh |
+| S10 | Kịch bản Chrome `lich-xe-ban-smoke.mjs` 1040 + 390, Kế toán (403) trước Quản trị; hàng `web/CLAUDE.md` | Task 10 Step 4 | Thêm chạy lại `trang-chu-smoke.mjs` và `dot-c-smoke.mjs` (trang Tôi đổi — `docs/CHANGE-GUIDE.md:910`) + `npm run test:e2e -- pwa` (Step 2) |
+| §5 | Ánh xạ token | Task 10 mục "Token" | 11 token mới nhóm "Riêng", khối `.xb-*` sau dấu mốc PWA |
+
+Không áp: không có mục nào bị bỏ. Ngoài §4: Task 11 Step 1 (câu nhật ký phiên bản) và Step 3 (b′ — người kiểm soi route tuần) đã sửa theo trang mới.
