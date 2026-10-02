@@ -313,3 +313,12 @@ Số bản nhật ký phiên bản: `main` cục bộ có `1.70` ở đầu `src
 - Nhánh (`b158fd4a` + vá 401 chưa có lúc chạy): `dieu-phoi-smoke` ✓, `chuyen-smoke` ✓; ĐỎ: `v1-bao-tri` (11 ✓ / 8 ✗), `bang-tin-smoke` (31 / 7), `chuyen-sua-smoke` (12 / 2), `cuoc-smoke` (9 / 5), `a2-smoke-form` (dừng ở bước 2: form có thêm mục "Hành khách"), `a2-smoke-order` (dừng "form mở lại đơn"), `a2-smoke-sheet` (7 ✓ rồi dừng "đóng bảng + banner đã lưu").
 - **Bản nền** (`git archive df6bc864`, `npm ci`, `build:web`, cùng Chrome, cùng `AXE_JS`): 7 kịch bản trên đỏ **GIỐNG HỆT từng dòng** (bộ so `so-nen.mjs` ở thư mục tạm của phiên) ⇒ lỗi có sẵn, không do luồng L. Giới hạn: những kịch bản dừng sớm không phủ được phần đã sửa phía sau điểm dừng; phần lớp vé có `lop-ve-smoke` phủ riêng.
 - `lop-ve-smoke.mjs` (mới): 6/6.
+
+## Kiểm độc lập vòng 2 — ĐÃ GIAO (2026-10-02, commit `a0d02168`)
+- Người kiểm `nguoi-kiem-doc-lap`, chỉ đọc, bản sao `git archive` riêng. Chờ báo cáo; CHƯA báo ĐẠT.
+
+## Việc phải làm LÚC GỘP (ghi trước để khỏi quên)
+- **Migration:** đo lại 2026-10-02 sau L14 — luồng Q (`worktree-dot-0-luong-q`) đã lấy `0075_tin_tai_khoan.sql`; luồng L giữ `0074`. Không trùng. Đo lại lần nữa ngay trước day-len.
+- **Đụng luồng Q:** cả hai nhánh sửa `src/modules/accounts/index.ts` (L: `Location` ở tạo tài khoản / passkey; Q: cổng quyền tiền ở reset-pin, roles, tạo tài khoản). Nhánh gộp SAU phải chạy lại H2 (số cứng 129 route ghi có đăng nhập ở `src/lan-gui-phu-route.test.ts`), H5 (e2e đủ bộ — route mới của Q có ghi nhiều lần không), H7 (route 201 mới của Q phải có `Location`).
+- **Số phiên bản:** `1.71` ở `src/shared/changelog.ts` + bài ghim `src/shared/app-info.test.ts` là TẠM — nhánh khác (`trang-chu-quan-tri`) đang giữ `1.73`; đánh lại lúc gộp.
+- **Nhánh mang theo** các commit kế hoạch + gia hạn TNV-G1 của `gia-han-tnv-g1` (tách từ `main` cục bộ `df6bc864`, chưa có trên `origin/main`).
