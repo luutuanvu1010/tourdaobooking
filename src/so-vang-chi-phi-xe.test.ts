@@ -2,16 +2,15 @@
 // Hai lớp (khuôn golden/README.md "Hai lớp kiểm"):
 //   LỚP 1 (mọi ca, chạy ngay): ca tự cân — tiền nguyên; tổng = cộng các dòng; tổng ≥ 0 sau MỖI dòng (ADR C8); mỗi dòng đảo đối dấu một dòng trước nó chưa bị
 //     đảo; ca "da_xac_nhan" phải có người + ngày. Bắt CA VIẾT SAI, không kiểm mã.
-//   LỚP 2 (CHỈ ca "da_xac_nhan"): chuỗi sự kiện chạy qua CHÍNH luật thuần src/modules/van-chuyen/tien-xe.ts (chonDongGiaThue, coXeCua, thuTuDaoTatCa,
-//     nguonGiaConHieuLuc, tongChiPhiChuyen, daoDuoc) — so đáp án từng đồng. Chưa có ca nào xác nhận ⇒ bài lớp 2 báo `todo` (không "xanh vì rỗng").
+//   LỚP 2 (CHỈ ca "da_xac_nhan"): chuỗi sự kiện chạy qua CHÍNH kế hoạch chi phí của lô chuyến (tien-xe-lo.ts: keHoachChiPhiKhiDoi, keHoachChiPhiKhiHuy — gọi
+//     chonDongGiaThue, coXeCua, thuTuDaoTatCa) + luật thuần tien-xe.ts (nguonGiaConHieuLuc, tongChiPhiChuyen, daoDuoc) — so đáp án từng đồng. Chưa có ca nào xác nhận ⇒ bài lớp 2 báo `todo` (không "xanh vì rỗng").
 // AI KHÔNG tự đổi ca sang "da_xac_nhan" (Hiến pháp N8) — chỉ chủ dự án / Kế toán.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import {
-  chonDongGiaThue, coXeCua, daoDuoc, nguonGiaConHieuLuc, thuTuDaoTatCa, tongChiPhiChuyen, type CoXe, type DongChiPhi, type DongGiaThue, type LoaiDongChiPhi,
-  type TrangThaiChuyenTien,
-} from "./modules/van-chuyen/tien-xe.ts";
+import { daoDuoc, nguonGiaConHieuLuc, tongChiPhiChuyen, type CoXe, type DongChiPhi, type DongGiaThue, type LoaiDongChiPhi, type TrangThaiChuyenTien } from "./modules/van-chuyen/tien-xe.ts";
+// Vòng sửa 1 (V-2): mô phỏng gọi THẲNG kế hoạch chi phí của lô chuyến (không tự dựng lại phép đảo / chụp).
+import { keHoachChiPhiKhiDoi, keHoachChiPhiKhiHuy, type KeHoachChiPhi } from "./modules/van-chuyen/tien-xe-lo.ts";
 import { addDays } from "./shared/vn-date.ts";
 
 interface SuKien { loai: string; [k: string]: unknown }
@@ -65,19 +64,33 @@ interface KetQuaMoPhong { dong: [LoaiDongChiPhi, number][]; tong: number; thieu_
 function moPhong(c: Ca): KetQuaMoPhong {
   const gia: DongGiaThue[] = TEP.bang_gia.map((g) => ({ id: g.id, carrierPartyId: g.nha_xe, routeCode: g.tuyen, sizeCode: g.co, amount: g.tien, validFrom: g.tu, validTo: g.den }));
   const x = { ...c.chuyen, trangThai: "PLANNED" as TrangThaiChuyenTien, thue: c.chuyen.nha_xe !== "CONG_TY" };
-  const dong: DongChiPhi[] = [];
+  const dong: (DongChiPhi & { carrierPartyId: string })[] = [];
   const tuChoi: [number, string][] = [];
   let n = 0;
-  const them = (kind: LoaiDongChiPhi, amount: number, reversesId: string | null = null) => dong.push({ id: `d${String(++n).padStart(3, "0")}`, kind, amount, reversesId, reasonCode: kind === "SNAPSHOT" ? null : "X", createdAt: String(n).padStart(6, "0") });
-  const chup = () => {
-    if (!x.thue) return;
-    const g = chonDongGiaThue({ carrierPartyId: x.nha_xe, routeCode: x.tuyen, sizeCode: coXeCua(x.so_cho, CO_XE), ngayChay: x.ngay }, gia);
-    if (g) them("SNAPSHOT", g.amount);
+  const them = (kind: LoaiDongChiPhi, amount: number, reversesId: string | null = null) =>
+    dong.push({ id: `d${String(++n).padStart(3, "0")}`, kind, amount, reversesId, reasonCode: kind === "SNAPSHOT" ? null : "X", createdAt: String(n).padStart(6, "0"), carrierPartyId: x.nha_xe });
+  const NHA_XE_MO = new Set(["HP"]);
+  /** Áp kế hoạch chi phí của CHÍNH lô chuyến (`keHoachChiPhiKhiDoi` / `keHoachChiPhiKhiHuy` — vòng sửa 1, V-2): đảo theo thứ tự kế hoạch rồi chụp. */
+  const apKeHoach = (kh: KeHoachChiPhi) => {
+    for (const d of kh.dao) them("REVERSAL", -d.goc.amount, d.goc.id);
+    if (kh.chup) them("SNAPSHOT", kh.chup.amount);
   };
-  const daoHet = () => { for (const d of thuTuDaoTatCa(dong)) them("REVERSAL", -d.amount, d.id); };
+  const doi = (v: { tuyen?: string | null; ngay?: string; xe?: { so_cho: number; nha_xe: string }; laTaoMoi?: boolean }) => {
+    const nhaXeMoi = v.xe?.nha_xe ?? x.nha_xe;
+    const kh = keHoachChiPhiKhiDoi({
+      dong, rentedMoi: nhaXeMoi === "CONG_TY" ? 0 : 1, chuXeMoi: nhaXeMoi, nhaXeDangMo: NHA_XE_MO, laTaoMoi: v.laTaoMoi ?? false,
+      doiXeHoacNhaXe: v.xe !== undefined, doiTuyen: v.tuyen !== undefined && v.tuyen !== x.tuyen, doiNgay: v.ngay !== undefined && v.ngay !== x.ngay,
+      tuyenMoi: v.tuyen !== undefined ? v.tuyen : x.tuyen, soChoMoi: v.xe?.so_cho ?? x.so_cho, ngayChayMoi: v.ngay ?? x.ngay, gia, coXe: CO_XE,
+    });
+    if (!kh.ok) throw new Error(`${c.ma}: ${kh.loi}`);
+    if (v.xe) { x.so_cho = v.xe.so_cho; x.nha_xe = v.xe.nha_xe; x.thue = x.nha_xe !== "CONG_TY"; }
+    if (v.tuyen !== undefined) x.tuyen = v.tuyen;
+    if (v.ngay !== undefined) x.ngay = v.ngay;
+    apKeHoach(kh.kh);
+  };
   c.su_kien.forEach((e, i) => {
     switch (e.loai) {
-      case "CHUP": chup(); break;
+      case "CHUP": doi({ laTaoMoi: true }); break;
       case "GIA_THOA_THUAN":
         if (x.trangThai !== "PLANNED" || !x.thue || nguonGiaConHieuLuc(dong)) tuChoi.push([i, "khong_nhap_duoc"]);
         else them("AGREED", e.tien as number);
@@ -94,10 +107,10 @@ function moPhong(c: Ca): KetQuaMoPhong {
         else them("REVERSAL", -d.amount, d.id);
         break;
       }
-      case "DOI_TUYEN": if (e.tuyen !== x.tuyen) { daoHet(); x.tuyen = e.tuyen as string | null; chup(); } break;
-      case "DOI_NGAY": if (e.ngay !== x.ngay) { daoHet(); x.ngay = e.ngay as string; chup(); } break;
-      case "DOI_XE": daoHet(); x.so_cho = e.so_cho as number; x.nha_xe = e.nha_xe as string; x.thue = x.nha_xe !== "CONG_TY"; chup(); break;
-      case "HUY": daoHet(); x.trangThai = "CANCELLED"; break;
+      case "DOI_TUYEN": doi({ tuyen: e.tuyen as string | null }); break;
+      case "DOI_NGAY": doi({ ngay: e.ngay as string }); break;
+      case "DOI_XE": doi({ xe: { so_cho: e.so_cho as number, nha_xe: e.nha_xe as string } }); break;
+      case "HUY": apKeHoach(keHoachChiPhiKhiHuy(dong, x.ngay)); x.trangThai = "CANCELLED"; break;
       case "KET_THUC_GIAN_DOAN": x.trangThai = "ENDED_INTERRUPTED"; break;
       case "THEM_GIA": {
         const thay = gia.findIndex((g) => g.id === e.thay);

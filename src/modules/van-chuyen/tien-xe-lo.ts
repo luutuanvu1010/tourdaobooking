@@ -2,8 +2,9 @@
 // ĐÃ ĐỌC, gọi luật của tien-xe.ts); phần dựng câu (`cauChiPhi`) chỉ prepare/bind câu đã đăng ký (tien-xe-repo.ts), không đọc gì. Thứ tự: ĐẢO (âm trước, dương
 // sau — `thuTuDaoTatCa`) đứng TRƯỚC câu ghi chuyến; CHỤP đứng SAU câu ghi chuyến (trigger source_carrier đọc cờ / nhà xe MỚI của chuyến).
 import type { CauCoNhan, LenhChung } from "./dieu-phoi";
-import { chonDongGiaThue, chuTien, coXeCua, thuTuDaoTatCa, tongChiPhiChuyen, type CoXe, type DongChiPhi, type DongGiaThue } from "./tien-xe";
-import { COST_REVERSE, COST_SNAPSHOT, type CostLineRow } from "./tien-xe-repo";
+// Đuôi .ts: sổ vàng (src/so-vang-chi-phi-xe.test.ts) nạp THẲNG tệp này bằng node --test để chạy đúng kế hoạch chi phí của lô chuyến (vòng sửa 1, V-2).
+import { chonDongGiaThue, chuTien, coXeCua, thuTuDaoTatCa, tongChiPhiChuyen, type CoXe, type DongChiPhi, type DongGiaThue } from "./tien-xe.ts";
+import { COST_REVERSE, COST_SNAPSHOT, type CostLineRow } from "./tien-xe-repo.ts";
 
 export type LyDoDaoHeThong = "CPX_DOI_CHUYEN" | "CPX_HUY_CHUYEN";
 export interface ChupMoi { id: string; rateId: string; amount: number; carrierPartyId: string; routeCode: string | null; sizeCode: string | null; soCho: number; ngayChay: string }
