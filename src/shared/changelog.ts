@@ -12,8 +12,8 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // Thị giác toàn Nền tảng "Năng động – Tin cậy – Tinh tế" (đặc tả docs/superpowers/specs/2026-10-02-thi-giac-nen-tang-design.md, chủ duyệt hướng A 2/10).
-    // Chỉ giao diện: không migration, không đổi máy chủ. Số 1.69 = main 1.68 + 1. KIỂM LẠI LÚC GỘP (một nhánh khác cũng đang ghi "1.69": đánh lại số nếu nó gộp trước).
-    version: "1.69",
+    // Chỉ giao diện: không migration, không đổi máy chủ. Số 1.70 = main 1.69 (Vận chuyển Đợt 2) + 1 — đánh lại lúc gộp main e7cd764f. KIỂM LẠI LÚC GỘP.
+    version: "1.70",
     date: "2026-10-02",
     items: [
       { kind: "doi", text: "Giao diện làm mới cho cả Nền tảng: nền trang xám xanh nhẹ, các thẻ có bóng mềm, ô nhập rõ viền hơn. Bố cục và cỡ chữ giữ nguyên." },
@@ -22,6 +22,16 @@ export const CHANGELOG: readonly ReleaseNote[] = [
       { kind: "doi", text: "Điện thoại: nút tròn Tạo đơn ở thanh dưới đặc màu san hô; thanh dưới trong mờ như kính." },
       { kind: "sua", text: "Đầu trang chi tiết đơn: số tiền Còn lại trước đây rất khó đọc, nay là chữ vàng trên dải màu xanh đậm." },
       { kind: "doi", text: "Rê chuột hay bấm vào thẻ, nút có hiệu ứng nhẹ. Máy đặt Giảm chuyển động thì hiệu ứng tự tắt." },
+    ],
+  },
+  {
+    // Vận chuyển Đợt 2 — tin báo + Bảng tin khi chuyến xe đổi (ADR-0052 D6), migration 0070 (chỉ một view). Số 1.69 TẠM — điều phối đánh lại lúc gộp.
+    version: "1.69",
+    date: "2026-10-02",
+    items: [
+      { kind: "moi", text: "Tài xế nhận thông báo khi được xếp lái, bị đổi sang người khác, chuyến bị sửa hoặc bị huỷ." },
+      { kind: "moi", text: "Văn phòng nhận thông báo khi một chuyến kết thúc giữa chừng, hoặc có khách vắng ở đơn mình lập hay phụ trách." },
+      { kind: "moi", text: "Màn Điều phối xe, Chi tiết chuyến và Cuốc của tôi tự cập nhật khi chuyến thay đổi, không cần tải lại trang." },
     ],
   },
   {

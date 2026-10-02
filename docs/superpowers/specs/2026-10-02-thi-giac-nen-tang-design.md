@@ -1,6 +1,6 @@
-# Thị giác toàn Nền tảng: "Năng động – Tin cậy – Tinh tế" (bản 1.69)
+# Thị giác toàn Nền tảng: "Năng động – Tin cậy – Tinh tế" (bản 1.70)
 
-- **Ngày:** 2026-10-02. **Trạng thái:** **ĐÃ DUYỆT** 2026-10-02 (chủ dự án: "Duyệt, thi công luôn" — kể cả đổi nghĩa hai núm nút chính ở §4). Đã thi công cùng ngày, bản 1.69 — xem §9.
+- **Ngày:** 2026-10-02. **Trạng thái:** **ĐÃ DUYỆT** 2026-10-02 (chủ dự án: "Duyệt, thi công luôn" — kể cả đổi nghĩa hai núm nút chính ở §4). Đã thi công cùng ngày, bản 1.70 — xem §9.
 - **Thay cho** (chủ duyệt, cùng lượt): ở đặc tả đã duyệt `2026-10-02-giao-dien-cong-ty-design.md` (ADR-0087), dòng "Nút" của bảng núm — nhãn "Nền/Chữ nút chính" nay là "Nền/Chữ nút lưu, xác nhận" và điều khiển nút chính ĐẶC màu; mặc định "Nền trang" `#eaf2f8` → `#f2f5f9`, "Viền" `#d3e1ec` → `#e1e7ef`. Đặc tả cũ KHÔNG sửa (luật: không sửa đặc tả đã duyệt để hợp thức hoá mã); tệp này là nguồn cho phần thay đổi.
 - **Lời giao việc (chủ dự án, 2/10):** "xử lý bề mặt, thị giác dành cho toàn bộ Nền tảng… nhìn chưa được bắt mắt và tối ưu, cảm giác kém thu hút… phương châm: Năng động, tin cậy và Tinh tế. Giữ lại bố cục chung."
 - **Bản xem trước đã cho chủ xem:** artifact "Thị giác Island Booking" (https://claude.ai/artifact/KohvwKX2j75JS8DTYqssE9) — ảnh chụp THẬT của Nền tảng trên D1 tạm, ba bản "Hiện tại / B Nhẹ nhàng / A Năng động", 12 màn (6 điện thoại 390, 6 máy tính 1280). Nguồn ảnh và lớp CSS đề xuất: `docs/evidence/2026-10-02-thi-giac/` (`de-xuat/chung.css` = B, `chung.css` + `huong-a.css` = A, kịch bản `kich-ban/chup-man.mjs`).
@@ -57,14 +57,14 @@ Ba tông theo người (hoãn từ 1/10); đổi phông/cỡ/độ đậm; đổ
 4. Ảnh "sau" chụp bằng `chup-man.mjs` (không tiêm lớp đề xuất) khớp ảnh hướng A của bản xem trước ở cả 12 màn — so bằng mắt từng màn (bài học Đợt D).
 5. Kịch bản Chrome: `giao-dien-smoke.mjs`, `trang-chu-smoke.mjs`, `dot-c-smoke.mjs`, `a2-smoke-form.mjs` — không đỏ mới so với `main` (đỏ sẵn trên `main` ghi rõ); axe không vi phạm mức serious/critical ở các màn đó.
 6. Quét khối PWA (`tests/e2e/pwa.mjs`): sau dấu mốc PWA không hex/rgb/px ngoài 1px.
-7. Nhật ký phiên bản 1.69 (`src/shared/changelog.ts`) — số = main + 1, kiểm lại lúc gộp (một nhánh khác đang giữ "1.69").
+7. Nhật ký phiên bản 1.70 (`src/shared/changelog.ts`) — số = main + 1, kiểm lại lúc gộp (một nhánh khác đang giữ "1.70").
 
 ## 7. Kế hoạch thi công (một phiên, mỗi bước đỏ → xanh khi có bài)
 1. Bài token mới (đỏ) → token `:root` (`public/app.css`) + `MAC_DINH`/`CHA`/nhãn núm (`src/shared/giao-dien.ts`) → xanh.
 2. Gộp `chung.css` + `huong-a.css` vào ĐÚNG luật gốc của `app.css` (không thêm khối đè cuối tệp); chọn bộ chọn theo ngữ cảnh cho nút chính đặc.
 3. Ô chức năng theo nhóm: `web/home.ts` gắn lớp theo `nhom` của `src/shared/trang-chu-o.ts` (thay bộ chọn theo đường dẫn của bản xem trước).
 4. Chụp ảnh "sau", so 12 màn với bản xem trước; chạy 4 kịch bản Chrome.
-5. Nhật ký phiên bản 1.69, cập nhật chú thích token / `web/CLAUDE.md` (nhóm token), `docs/BACKLOG.md`; commit.
+5. Nhật ký phiên bản 1.70, cập nhật chú thích token / `web/CLAUDE.md` (nhóm token), `docs/BACKLOG.md`; commit.
 6. Một vòng kiểm độc lập chỉ đọc cuối (nhìn ảnh đối chiếu bản xem trước + đọc diff `giao-dien.ts`), vì `giao-dien.ts` là luật kiểm hợp lệ dùng chung với máy chủ.
 
 ## 9. Thi công (2026-10-02) — hai điều chỉnh so với bản xem trước
@@ -79,7 +79,7 @@ Ba tông theo người (hoãn từ 1/10); đổi phông/cỡ/độ đậm; đổ
 - **TB-1** ô tích / ô chọn một mất khung tiêu điểm bàn phím (luật `outline: 0` của ô gõ áp cả chúng) → luật tiêu điểm chừa `checkbox`/`radio`, chúng giữ khung 2px của `:focus-visible` chung.
 - **TB-2** nút `.vc-btn` chính đặc khi KHOÁ trông như nút phụ đang bật → luật nhạt-khi-khoá chừa `.vc-btn`; `.vc-btn:disabled` (xám) thêm `box-shadow: none`.
 - **TB-3** ô Đăng nhập viền nhạt hơn bản duyệt (luật riêng của trang thắng luật chung) → ô Đăng nhập dùng `--c-input-border` và cùng màu tiêu điểm ngọc như mọi ô (đặc tả §3.3 nói mọi ô).
-- Thấp đã sửa: Đăng nhập đang gửi không mờ 50% (TH-5); nút đang chọn `aria-pressed` giữ nền chọn khi rê (TH-6); bài reduced-motion canh đủ 5 bộ chọn (TH-8); gắn `.btn-chinh` cho "Tắt chế độ bảo trì" và "Chuyển N dịch vụ" (TH-9). Bài "thác CSS 1.69" canh TB-1/2/3 (đã thấy chặn thật).
+- Thấp đã sửa: Đăng nhập đang gửi không mờ 50% (TH-5); nút đang chọn `aria-pressed` giữ nền chọn khi rê (TH-6); bài reduced-motion canh đủ 5 bộ chọn (TH-8); gắn `.btn-chinh` cho "Tắt chế độ bảo trì" và "Chuyển N dịch vụ" (TH-9). Bài "thác CSS 1.70" canh TB-1/2/3 (đã thấy chặn thật).
 - Để sau / báo chủ: màu rê chuột nút đặc (`#0b5c84`) chưa đi theo "Màu chính" khi Toàn quyền đổi màu (TH-1, ghi BACKLOG #19); cặp vàng "Còn lại" viết `#fcd34d` ở hai nơi (TH-2); khác bản xem trước: viên ngày "Hôm nay" và dải tóm tắt đầu phải đậm hơn, ô nhóm có độ bóng (TH-4 — cột "Đã thi công" của artifact cho chủ xem); viền đôi rất mờ ở `.login-invite`, `.secret`, `.owner-card` (TH-7); nút "Lưu" của bảng trượt chuyển nhạt-mờ trong lúc "Đang lưu…" (TH-5 phần còn lại).
 - **Lúc gộp:** main đã có một mục "1.69" khác → bản này đánh lại **1.70** (changelog.ts, app-info.test.ts).
 

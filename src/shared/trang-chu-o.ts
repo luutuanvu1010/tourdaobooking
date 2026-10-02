@@ -100,7 +100,7 @@ export function oTrangChu(who: PermissionHolder): LuoiTrangChu {
 export const O_TOI: OChucNang = { khoa: "toi", nhan: "Tôi", href: "/account" };
 
 /**
- * Màu của ô theo NHÓM (thị giác 1.69, chủ dự án duyệt 2026-10-02): "chot" = san hô (Tạo đơn — hành động chốt), "vc" = ngọc (Vận chuyển), "toi" = cát (Của tôi,
+ * Màu của ô theo NHÓM (thị giác 1.70, chủ dự án duyệt 2026-10-02): "chot" = san hô (Tạo đơn — hành động chốt), "vc" = ngọc (Vận chuyển), "toi" = cát (Của tôi,
  * kể cả ô Tôi của máy tính); null = màu biển mặc định (Bán hàng, Quản lý). web/home.ts gắn lớp `dash-o-hop-<màu>`; nhóm lấy từ đúng bảng DS ở trên.
  */
 export type MauO = "chot" | "vc" | "toi";

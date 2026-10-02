@@ -346,7 +346,7 @@ function datHuyHieu(k: KhoaO, n: number): void {
   for (const hop of hopTrenLuoi.get(k) ?? []) veHuyHieu(hop, k);
 }
 
-/** Một ô: ô vuông bo góc (biểu tượng + huy hiệu / chấm "có bản mới") và nhãn tối đa hai dòng. Màu ô theo nhóm (`mauO`, thị giác 1.69): "Tạo đơn" san hô
+/** Một ô: ô vuông bo góc (biểu tượng + huy hiệu / chấm "có bản mới") và nhãn tối đa hai dòng. Màu ô theo nhóm (`mauO`, thị giác 1.70): "Tạo đơn" san hô
  * (hành động chốt), Vận chuyển ngọc, Của tôi cát, còn lại màu biển. */
 function oChucNang(o: OChucNang, ghiNho: boolean): HTMLElement {
   const mau = mauO(o.khoa);

@@ -1,6 +1,8 @@
 // BẢNG TIN (ADR-0022) — hàm thuần dùng chung server ↔ web/: nhãn (tag) của một kết nối/sự kiện (Task 1). Không I/O, không API
 // Worker/Node — chỉ import ./permissions.ts (điều 3 ADR-0022: nhóm nhận suy từ ô `order.view`/`dispatch.claim` hiện hành, không đặt luật
 // quyền mới ở đây). Sự kiện chỉ gồm đúng 5 khoá của điều 4 (không tiền, không SĐT, không tên người) — thêm trường = đổi ADR.
+// Bổ sung ADR-0052 D6.4 (điều 3 + 4 của ADR-0022): sự kiện CHUYẾN đúng 4 khoá (mã chuyến, loại thay đổi, thời điểm) tới nhóm `dieu-xe` (kết nối có
+// `trip.view` không ngữ cảnh) + `nguoi:<tài xế liên quan>` — không bao giờ `tat-ca`.
 
 import { can, hasPermission, holdsPartner, isOffice, type PermissionHolder } from "./permissions.ts";
 
@@ -17,6 +19,16 @@ export interface SuKienDon {
   orderId: string;
   maDon: string;
   thayDoi: ThayDoiDon;
+  luc: string;
+}
+
+/** ADR-0052 D6.4 + bổ sung ADR-0022 điều 4: sự kiện CHUYẾN — đúng 4 khoá (mã chuyến, loại thay đổi, thời điểm). Không tripId (tự chốt T3 của kế hoạch Đợt 2). */
+export const THAY_DOI_CHUYEN = ["tao", "sua", "xep", "rut", "doi", "huy", "cap_nhat", "xuat_ben", "tien_do", "vang", "ket_thuc", "gian_doan"] as const;
+export type ThayDoiChuyen = (typeof THAY_DOI_CHUYEN)[number];
+export interface SuKienChuyen {
+  loai: "chuyen";
+  maChuyen: string;
+  thayDoi: ThayDoiChuyen;
   luc: string;
 }
 
@@ -44,7 +56,26 @@ export function nhanKetNoi(staff: PermissionHolder): string[] {
   const nhan = new Set<string>([`nguoi:${staff.id}`]);
   if (can(staff, "order.view")) nhan.add("tat-ca");
   if (can(staff, "dispatch.claim") && !holdsPartner(staff)) nhan.add("cho-nhan");
+  if (can(staff, "trip.view")) nhan.add(NHAN_DIEU_XE); // ADR-0052 D6.4: không ngữ cảnh = ô any (tài xế — assigned — không có)
   return [...nhan].sort();
+}
+
+/** ADR-0052 D6.4: nhãn kết nối của người xem được MỌI chuyến (`can(trip.view)` không ngữ cảnh = ô any). */
+export const NHAN_DIEU_XE = "dieu-xe";
+
+/** Nhãn của một sự kiện CHUYẾN: nhóm điều xe + tài xế có dòng lái lúc sự kiện (người gọi tính bằng `taiXeNhanSuKien`). Không bao giờ tat-ca. */
+export function nhanSuKienChuyen(taiXeStaffIds: readonly string[]): string[] {
+  return [...new Set([NHAN_DIEU_XE, ...taiXeStaffIds.map((id) => `nguoi:${id}`)])].sort();
+}
+
+const KHOA_SU_KIEN_CHUYEN = ["loai", "maChuyen", "thayDoi", "luc"] as const;
+/** Tin WebSocket có đúng hình dạng một `SuKienChuyen` (đúng 4 khoá, `thayDoi` thuộc `THAY_DOI_CHUYEN`) không — trình duyệt bỏ qua tin lạ. */
+export function laSuKienChuyenHopLe(x: unknown): x is SuKienChuyen {
+  if (typeof x !== "object" || x === null || Array.isArray(x)) return false;
+  const khoa = Object.keys(x);
+  if (khoa.length !== KHOA_SU_KIEN_CHUYEN.length || !KHOA_SU_KIEN_CHUYEN.every((k) => khoa.includes(k))) return false;
+  const v = x as Record<string, unknown>;
+  return v.loai === "chuyen" && typeof v.maChuyen === "string" && typeof v.luc === "string" && (THAY_DOI_CHUYEN as readonly string[]).includes(v.thayDoi as string);
 }
 
 /**

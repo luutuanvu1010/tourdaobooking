@@ -44,7 +44,7 @@ const VAI = [
   "--c-selected-bg", "--c-selected-text", "--c-selected-border",
   "--c-tab-new-bg", "--c-tab-new-icon", "--c-band-bg", "--c-on-band", "--c-maint-bg",
   "--c-tab-active-bg", "--c-tab-active-text", "--c-fab-bg", "--c-fab-text", "--c-fab-hover-bg", "--c-avatar-bg", "--c-avatar-text",
-  // Thị giác 1.69 (đặc tả 2026-10-02-thi-giac-nen-tang-design.md): nút phụ nền nhạt, dải tóm tắt đơn đậm, ô chức năng theo nhóm, tiêu điểm / chỉ báo.
+  // Thị giác 1.70 (đặc tả 2026-10-02-thi-giac-nen-tang-design.md): nút phụ nền nhạt, dải tóm tắt đơn đậm, ô chức năng theo nhóm, tiêu điểm / chỉ báo.
   "--c-btn-soft-bg", "--c-btn-soft-text", "--c-btn-soft-border", "--c-btn-soft-hover-bg",
   "--c-summary-bg", "--c-summary-bg-2", "--c-on-summary", "--c-summary-due",
   "--c-tile-vc-bg", "--c-tile-vc", "--c-tile-toi-bg", "--c-tile-toi", "--c-tile-all-bg", "--c-tile-all",
@@ -109,7 +109,7 @@ test("màu theo vai: mọi cặp chữ/nền của thanh, nút chính, mục đa
     ["--c-fab-text", "--c-fab-bg"],
     ["--c-fab-text", "--c-fab-hover-bg"],
     ["--c-avatar-text", "--c-avatar-bg"],
-    // Thị giác 1.69: dải tóm tắt đơn là dải màu chuyển — chữ phải đọc được trên CẢ HAI đầu dải.
+    // Thị giác 1.70: dải tóm tắt đơn là dải màu chuyển — chữ phải đọc được trên CẢ HAI đầu dải.
     ["--c-btn-soft-text", "--c-btn-soft-bg"],
     ["--c-btn-soft-text", "--c-btn-soft-hover-bg"],
     ["--c-on-summary", "--c-summary-bg"],
@@ -136,7 +136,7 @@ test("ô gõ: font-size đọc --fs-ui, và --fs-ui không bao giờ nhỏ hơn 
   assert.match(luatO[2]!, /font-size:\s*var\(--fs-ui\)/);
 });
 
-// Thị giác 1.69 (chủ dự án duyệt 2/10): CHỈ nút lưu / xác nhận chính đặc màu (núm "Nền/Chữ nút lưu, xác nhận" = --c-btn-primary-*);
+// Thị giác 1.70 (chủ dự án duyệt 2/10): CHỈ nút lưu / xác nhận chính đặc màu (núm "Nền/Chữ nút lưu, xác nhận" = --c-btn-primary-*);
 // mọi .btn-primary khác giữ nền nhạt (--c-btn-soft-*). Đổi bộ chọn ngữ cảnh mà quên một nơi = nút chính nhạt lại hoặc mọi nút đặc hết.
 test("nút chính đặc: nút gửi form, chân bảng trượt, Đăng nhập đọc --c-btn-primary-*; .btn-primary còn lại đọc --c-btn-soft-*", () => {
   const luatCua = (sel: RegExp) => [...luat.matchAll(/([^{}]+)\{([^{}]*)\}/g)].filter((m) => sel.test(m[1]!.trim().split("\n").pop()!.trim())).map((m) => m[2]!);
@@ -150,7 +150,7 @@ test("nút chính đặc: nút gửi form, chân bảng trượt, Đăng nhập 
   assert.match(dac[0]!, /color:\s*var\(--c-btn-primary-text\)/);
 });
 
-// Thị giác 1.69: thẻ nhấc khi rê, nút / ô chức năng lún khi bấm. Máy đặt "Giảm chuyển động" thì tắt CẢ chuyển tiếp lẫn độ nhấc / lún
+// Thị giác 1.70: thẻ nhấc khi rê, nút / ô chức năng lún khi bấm. Máy đặt "Giảm chuyển động" thì tắt CẢ chuyển tiếp lẫn độ nhấc / lún
 // (luật toàn cục `* { transition: none !important }` có sẵn không gỡ transform). Mọi khối reduced-motion của app.css viết MỘT dòng.
 test("chuyển động: máy đặt Giảm chuyển động thì tắt chuyển tiếp và mọi độ nhấc / lún mới", () => {
   const khoi = [...luat.matchAll(/^@media \(prefers-reduced-motion: reduce\) \{(.*)\}/gm)].map((m) => m[1]!);
@@ -161,8 +161,8 @@ test("chuyển động: máy đặt Giảm chuyển động thì tắt chuyển 
   }
 });
 
-// Kiểm độc lập thị giác 1.69 (2/10): ba lỗi thác CSS chỉ lộ khi đo trạng thái thật — canh để không tái phát.
-test("thác CSS 1.69: ô tích giữ khung tiêu điểm, nút Vận chuyển khoá vẫn xám, ô Đăng nhập cùng viền ô nhập", () => {
+// Kiểm độc lập thị giác 1.70 (2/10): ba lỗi thác CSS chỉ lộ khi đo trạng thái thật — canh để không tái phát.
+test("thác CSS 1.70: ô tích giữ khung tiêu điểm, nút Vận chuyển khoá vẫn xám, ô Đăng nhập cùng viền ô nhập", () => {
   const bang = [...luat.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((m) => [m[1]!.trim().split("\n").pop()!.trim(), m[2]!] as const);
   // TB-1: luật bỏ khung (outline: 0) của ô đang gõ không được áp vào ô tích / ô chọn một (chúng chỉ có khung 2px của :focus-visible chung).
   const boKhung = bang.filter(([sel, than]) => /:focus\b/.test(sel) && /outline:\s*(?:0|none)\b/.test(than) && /(?:^|,\s*)input(?::not\([^)]*\))*:focus/.test(sel));

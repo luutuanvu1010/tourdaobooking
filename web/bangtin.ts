@@ -1,9 +1,9 @@
 // Bộ lắng nghe chung của Bảng tin (ADR-0022, TD-1/TD-2/TD-4): MỘT kết nối WebSocket mỗi trang đã đăng nhập (initShell() gọi batDauBangTin cuối hàm;
 // trang không gọi initShell — vd. đăng nhập — thì không bao giờ mở). Tin đến → phát `don-thay-doi` (gộp trong 1 giây) trên window; nối lại thành
-// công → `can-tai-lai`; Task 9 cho các trang nghe hai sự kiện này. Toàn bộ quyết định (nối lại, ping, gộp) nằm ở ./bangtin-logic (thuần, có test);
+// công → `can-tai-lai`; Task 9 cho các trang nghe hai sự kiện này. Sự kiện chuyến (ADR-0052 D6.4) → `chuyen-thay-doi`. Toàn bộ quyết định (nối lại, ping, gộp) nằm ở ./bangtin-logic (thuần, có test);
 // ở đây chỉ nối vào WebSocket/window/document thật.
 import type { StaffProfile } from "../src/shared/contracts";
-import type { SuKienDon } from "../src/shared/bang-tin";
+import type { SuKienChuyen, SuKienDon } from "../src/shared/bang-tin";
 import { vuaLamBoiTabNay } from "./api";
 import { taoBoDieuKhien, taoBoThongBao, type OSocket } from "./bangtin-logic";
 import { chuanBiVungThongBao, hienThongBao } from "./toast";
@@ -23,6 +23,8 @@ export function batDauBangTin(staff: StaffProfile): void {
     ngauNhien: () => Math.random(),
     khiSuKien: thongBao,
     khiDot: (ds) => window.dispatchEvent(new CustomEvent<SuKienDon[]>("don-thay-doi", { detail: ds })),
+    // ADR-0052 D6.4: sự kiện chuyến (gộp 1 giây) → `chuyen-thay-doi`; trang Điều phối, Chi tiết chuyến, Cuốc của tôi tự tải lại.
+    khiDotChuyen: (ds) => window.dispatchEvent(new CustomEvent<SuKienChuyen[]>("chuyen-thay-doi", { detail: ds })),
     khiCanTaiLai: () => window.dispatchEvent(new CustomEvent("can-tai-lai")),
   });
   document.addEventListener("visibilitychange", () => {

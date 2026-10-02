@@ -58,7 +58,7 @@ test("tương phản đi theo núm cha: đổi nền thẻ / màu chính / màu 
   assert.ok(a.some((l) => l.khoa === "nen-thanh-tren" && /khó đọc/.test(l.message)), JSON.stringify(a));
   assert.ok(a.some((l) => l.khoa === "nen-thanh-ben"), JSON.stringify(a));
   const b = kiemGiaoDien({ "mau-chinh": "#dcebf6" });
-  // Thị giác 1.69: nút lưu / xác nhận đặc màu có nền theo Màu chính (chữ trắng cố định) — màu chính nhạt làm chữ trắng của nút khó đọc, lỗi gắn vào ô nền nút.
+  // Thị giác 1.70: nút lưu / xác nhận đặc màu có nền theo Màu chính (chữ trắng cố định) — màu chính nhạt làm chữ trắng của nút khó đọc, lỗi gắn vào ô nền nút.
   assert.ok(b.some((l) => l.khoa === "nen-nut-chinh" && /nút lưu, xác nhận/i.test(l.message)), JSON.stringify(b));
   // núm con tự đặt thì thắng núm cha: nền thanh trên tối + chữ thanh trên sáng hợp lệ dù nền thẻ đổi
   assert.deepEqual(kiemGiaoDien({ "nen-the": "#0c4a6e", "nen-thanh-tren": "#ffffff" }).filter((l) => l.khoa === "nen-thanh-tren" || l.khoa === "chu-thanh-tren"), []);

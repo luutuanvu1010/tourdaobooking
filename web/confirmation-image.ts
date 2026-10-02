@@ -33,7 +33,7 @@ export class ConfirmationImageError extends Error {
 
 // ---- token → màu/phông ----------------------------------------------------------------------------------------------------------------------------------------------
 const COLOR_TOKENS = {
-  // border / surfaceAlt: token RIÊNG của ảnh biên nhận (giữ màu cũ khi Nền tảng đổi nền trang / viền — thị giác 1.69, ADR-0087 điều 7).
+  // border / surfaceAlt: token RIÊNG của ảnh biên nhận (giữ màu cũ khi Nền tảng đổi nền trang / viền — thị giác 1.70, ADR-0087 điều 7).
   primary: "--c-primary", accent: "--c-accent", accentSoft: "--c-accent-soft", text: "--c-text", muted: "--c-text-muted", border: "--c-receipt-border", surface: "--c-surface", surfaceAlt: "--c-receipt-surface-alt",
   sandSoft: "--c-sand-soft", sandText: "--c-sand-text", greenSoft: "--c-green-soft", greenText: "--c-green-text",
 } as const;

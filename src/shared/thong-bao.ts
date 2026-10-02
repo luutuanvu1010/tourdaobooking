@@ -3,6 +3,7 @@
 import { duocThayTinDon, nhanKetNoi, nhanSuKien, type TrangThaiPhuTrach } from "./bang-tin.ts";
 import { can, hasPermission, isExternalPermission, isOffice, PERMISSION_CODES, PERMISSION_LABEL, type PermissionCode, type PermissionHolder } from "./permissions.ts";
 import type { GuiThongBaoRequest, HopThongBaoResponse, LoaiTin, NguoiNhanTin, TinDto } from "./contracts.ts";
+import { tinChuyenCho, type DongChuyen } from "./tin-chuyen.ts";
 
 export const HANH_DONG_TIN_DON = ["created", "order_claimed", "order_handler_changed", "confirmed", "cancelled", "order_cancelled_by_field"] as const;
 export const NGAY_GIU_TIN = 30;
@@ -18,7 +19,7 @@ export interface DongThuCong {
   id: string; tieuDe: string; noiDung: string; quanTrong: boolean; nhan: string[]; nguoiGuiId: string;
   tenNguoiGui: string; luc: string; thuHoi: boolean; daHieuLuc: string | null;
 }
-type LoaiTinDon = Exclude<LoaiTin, "thu_cong">;
+type LoaiTinDon = Exclude<LoaiTin, "thu_cong" | "chuyen">;
 
 export function loaiTinDon(d: DongDon): LoaiTinDon | null {
   switch (d.action) {
@@ -71,8 +72,8 @@ export function nhanNhomNhan(nhan: string[]): string {
 export const chuanHoaMocGio = (x: string): string => new Date(x).toISOString();
 
 export function locHopThongBao(
-  staff: PermissionHolder,
-  vao: { don: DongDon[]; thuCong: DongThuCong[]; docDenLuc: string; now: string; ngan: "cua-toi" | "tat-ca" },
+  staff: PermissionHolder & { readonly partyId?: string | null },
+  vao: { don: DongDon[]; thuCong: DongThuCong[]; chuyen?: DongChuyen[]; docDenLuc: string; now: string; ngan: "cua-toi" | "tat-ca" },
 ): HopThongBaoResponse {
   const moc = new Date(Date.parse(vao.now) - NGAY_GIU_TIN * 86400000).toISOString();
   const ketNoi = new Set(nhanKetNoi(staff));
@@ -101,6 +102,17 @@ export function locHopThongBao(
       cau: coTen ? CAU[loai].coTen(d.tenNguoiLam!, d.maDon) : CAU[loai].khongTen(d.maDon),
       lienKet: isOffice(staff) ? `/order?id=${d.orderId}` : "/account",
       luc: d.luc, cuaToi, chuaDoc: d.luc > vao.docDenLuc, mo: false, // ADR-0045: "chờ nhận" chỉ tồn tại khi đơn ĐANG chưa có người → không còn tin chờ nhận "mờ"
+    });
+  }
+  // ADR-0052 D6.2: tin CHUYẾN — người nhận do MỘT hàm (tinChuyenCho, src/shared/tin-chuyen.ts); luôn ở "Của tôi" của người nhận, không bao giờ tat-ca.
+  const nguoiChuyen = { id: staff.id, permissions: staff.permissions, partyId: staff.partyId ?? null };
+  for (const d of vao.chuyen ?? []) {
+    if (d.luc < moc) continue;
+    const t = tinChuyenCho(nguoiChuyen, d);
+    if (!t) continue;
+    tat.push({
+      id: d.id, loai: "chuyen", cau: t.cau, maDon: null, noiDung: null, nguoiGui: null, nhomNhan: null, quanTrong: false, daHieuLuc: null,
+      lienKet: t.lienKet, luc: d.luc, cuaToi: true, chuaDoc: d.luc > vao.docDenLuc, mo: false,
     });
   }
   for (const t of vao.thuCong) {

@@ -1,6 +1,15 @@
 # Chống gửi trùng khi lập đơn (khoá theo lần gửi)
 
-> Ngày 2026-09-22. Trạng thái: **bản thảo chờ chủ dự án duyệt** (câu hỏi ở §6), chưa có mã. Chưa qua kiểm độc lập.
+> Ngày 2026-09-22. Trạng thái: **ĐÃ DUYỆT (chủ dự án, chat 2026-10-02)**. Chưa có mã. Chưa qua kiểm độc lập.
+>
+> **Nguyên văn lời chủ:** "Đồng ý, đều phải có cơ chế chống trùng, truy ngược lại khung của Oracle xem nên làm kiểu gì".
+>
+> **Câu §6 ghi theo lời chủ:**
+> - câu 1: **(a)** làm trước "cảnh báo đơn trùng";
+> - câu 2: **(b) có** — **cách hiểu của AI, chờ chủ xác nhận**: phiếu trước đề xuất (a) và chủ trả lời "Đồng ý", nhưng câu "đều phải có cơ chế chống trùng" được đọc là áp cho mọi lệnh ghi, kể cả màn Hồ sơ;
+> - câu 3: luật "thu tiền bắt buộc có mã chống gửi trùng" áp **ngay**. Ghi luật này vào `docs/ARCHITECTURE.md` là sửa tài liệu chuẩn tắc, nên AI chỉ **soạn diff đề xuất**, chủ duyệt (N9). Việc đó **chưa làm**. Sổ thu tiền đã chạy từ bản 1.42, nên phần mở rộng sang lệnh tiền nằm ở `2026-10-02-chong-trung-moi-lenh-ghi-theo-oracle.md` (nháp, chờ chủ trả lời §3.5).
+>
+> Câu §7 "các lệnh thu tiền (chưa tồn tại)" nay không còn đúng; xem tệp mở rộng.
 > Nguồn: kiểm toán kiến trúc `docs/AUDIT-2026-09-22-KIEN-TRUC.md` F-02 (việc sửa số 1 của §22); chủ dự án đồng ý thứ tự ba việc sửa ngày 2026-09-22.
 > Bằng chứng: `tests/audit/redteam.test.mjs` R1 (gửi lặp → 2 đơn), R2 (kèm khách mới → 2 hồ sơ), R11 (Góp ý đã chống được — khuôn để dùng lại).
 > Loại việc: **việc lớn** (dữ liệu: cột + chỉ mục mới trên `orders`; hợp đồng API) → thi công xong phải có người kiểm độc lập chỉ-đọc (CLAUDE.md §3).

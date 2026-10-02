@@ -125,7 +125,7 @@ test("Máy tính, bản vẽ v2 (2/10): đúng các ô của ba vai đã vẽ", 
   ]);
 });
 
-// Thị giác 1.69 (chủ dự án duyệt 2/10): ô tô màu theo NHÓM — Tạo đơn san hô (hành động chốt), Vận chuyển ngọc, Của tôi cát; Bán hàng / Quản lý giữ màu biển (null).
+// Thị giác 1.70 (chủ dự án duyệt 2/10): ô tô màu theo NHÓM — Tạo đơn san hô (hành động chốt), Vận chuyển ngọc, Của tôi cát; Bán hàng / Quản lý giữ màu biển (null).
 test("mauO: màu ô theo nhóm — Tạo đơn chốt, Vận chuyển ngọc, Của tôi (kể cả ô Tôi của máy tính) cát, còn lại màu biển", () => {
   assert.equal(mauO("tao-don"), "chot");
   for (const k of ["don-hang", "danh-ba", "dich-vu", "tai-khoan", "phien", "dia-diem", "giay-to-nguoi", "nhat-ky", "gui-thong-bao", "tro-ly", "giao-dien"] as const) assert.equal(mauO(k), null, k);

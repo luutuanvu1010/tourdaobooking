@@ -28,7 +28,7 @@ export const NUM: readonly Num[] = [
   { khoa: "chu-thanh-ben", nhan: "Chữ thanh bên", nhom: "thanh", loai: "mau", token: "--c-sidebar-item" },
   { khoa: "nen-muc-chon", nhan: "Nền mục đang chọn ở thanh bên", nhom: "thanh", loai: "mau", token: "--c-sidebar-active" },
   { khoa: "chu-muc-chon", nhan: "Chữ mục đang chọn ở thanh bên", nhom: "thanh", loai: "mau", token: "--c-sidebar-text-on" },
-  // Thị giác 1.69 (chủ dự án duyệt 2/10): hai núm này điều khiển nút lưu / xác nhận CHÍNH đặc màu; nút nhạt còn lại theo "Màu chính nhạt" + "Màu chính".
+  // Thị giác 1.70 (chủ dự án duyệt 2/10): hai núm này điều khiển nút lưu / xác nhận CHÍNH đặc màu; nút nhạt còn lại theo "Màu chính nhạt" + "Màu chính".
   { khoa: "nen-nut-chinh", nhan: "Nền nút lưu, xác nhận", nhom: "nut", loai: "mau", token: "--c-btn-primary-bg" },
   { khoa: "chu-nut-chinh", nhan: "Chữ nút lưu, xác nhận", nhom: "nut", loai: "mau", token: "--c-btn-primary-text" },
   { khoa: "nen-nut-chot", nhan: "Nền nút hành động chốt (Tạo đơn, Xác nhận)", nhom: "nut", loai: "mau", token: "--c-accent" },
@@ -53,11 +53,11 @@ export const CHA: Readonly<Record<string, string>> = {
   "nen-thanh-tren": "nen-the", "chu-thanh-tren": "mau-chinh",
   "nen-thanh-ben": "nen-the", "chu-thanh-ben": "chu-phu",
   "nen-muc-chon": "mau-chinh-nhat", "chu-muc-chon": "mau-chinh",
-  // 1.69: nút lưu / xác nhận đặc màu — nền theo Màu chính; chữ trắng cố định (--c-on-dark, không phải núm) nên "chu-nut-chinh" không còn núm cha.
+  // 1.70: nút lưu / xác nhận đặc màu — nền theo Màu chính; chữ trắng cố định (--c-on-dark, không phải núm) nên "chu-nut-chinh" không còn núm cha.
   "nen-nut-chinh": "mau-chinh",
 };
 
-/** Giá trị mặc định = app.css bản 1.69 (bài src/giao-dien-mac-dinh.test.ts so khớp). */
+/** Giá trị mặc định = app.css bản 1.70 (bài src/giao-dien-mac-dinh.test.ts so khớp). */
 export const MAC_DINH: Readonly<Record<string, string>> = {
   "nen-trang": "#f2f5f9", "nen-the": "#ffffff", "chu-chinh": "#0f172a", "chu-phu": "#475569", vien: "#e1e7ef",
   "mau-chinh": "#0c4a6e", "mau-chinh-nhat": "#dcebf6",
@@ -87,7 +87,7 @@ export const CAP_TUONG_PHAN: readonly [string, string, string][] = [
   ["#ffffff", "nen-nut-chot", "Chữ trắng trên nút hành động chốt"],
   ["chu-chinh", "#ffffff", "Chữ chính trong ô nhập (nền trắng cố định)"],
   ["#ffffff", "mau-chinh", "Chữ trắng trên màu chính (huy hiệu, dải tóm tắt đơn)"],
-  // 1.69: số "Còn lại" vàng (--c-summary-due của app.css) đặt trên dải tóm tắt đơn — đầu dải là Màu chính.
+  // 1.70: số "Còn lại" vàng (--c-summary-due của app.css) đặt trên dải tóm tắt đơn — đầu dải là Màu chính.
   ["#fcd34d", "mau-chinh", "Số còn lại (vàng) trên dải tóm tắt đơn"],
 ];
 

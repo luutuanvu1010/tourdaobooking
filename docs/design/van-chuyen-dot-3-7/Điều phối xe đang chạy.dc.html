@@ -1,0 +1,97 @@
+<!-- Bản lưu của điều phối: KHUNG CANVAS dùng chung (giống "Dua don xe rieng.dc.html" / Đợt 6): mỗi mục (id + tiêu đề) có nhiều bảng 390 (MobileBar) / 1040 (Sidebar xám .sb-gray #EEF2F6 + Topbar); khối dựng sẵn:
+     H = h1 800 22px BVP #0C4A6E + phụ đề 14px; TAG = nhãn 12px 700 ls .08em; BN = Banner DS (tone, title, text, nút); SK = Skeleton; EM = thẻ trống trắng giữa 15px 600;
+     CD = thẻ bo 12 pad 16 (tone: plain trắng | float viền 2px --c-primary + bóng overlay | ok/bad/warn/info/end nền mềm), tiêu đề 800 16px BVP + chip badge, "big" 800 32px --c-accent-strong + chú 13px, hàng k/v (k 108px 13px muted, v 700 14px), nút DS 44px;
+     LS = danh sách thẻ trắng, đầu tiêu đề + chú 13px, dòng: chữ 700 14px + phụ 13px, cột phải 700 13px, chip, nút pill (link); dòng chọn nền --c-primary-soft, dòng mờ opacity .6;
+     CK = bảng kiểm luật: dòng "luật" 700 14px + "loại · giá trị" 13px + chip Đạt(ok)/Cảnh báo(warn)/Không đạt(bad, nền dòng danger-soft);
+     FM = form trắng: tiêu đề + chú, ô 44px (nhãn 600 14px, chữ 16px), Banner lỗi, nút; FN = phễu thanh 16px; FL = sơ đồ nút nối "→".
+     Lưới nội dung: repeat(auto-fit, minmax(340px,1fr)) gap 16. SCRIPT DỮ LIỆU dưới đây là NGUYÊN VĂN (bỏ phần định nghĩa hàm dựng khung đã mô tả ở trên). -->
+<script type="text/x-dc" data-dc-script>
+    const T = { ok: ['var(--c-green-soft)', 'var(--c-green-text)'], soon: ['var(--c-primary-soft)', 'var(--c-primary)'], end: ['#E6EDF3', 'var(--c-text-muted)'], warn: ['var(--c-sand-soft)', 'var(--c-sand-text)'], bad: ['var(--c-danger-soft)', 'var(--c-danger-text)'], run: ['var(--c-primary)', '#fff'] };
+    const mkG = (role) => role === 'tx' ? [{ title: 'Tài xế', items: [{ id: 'trip', label: 'Chuyến của tôi', icon: 'assign' }, { id: 'offer', label: 'Đề nghị gửi tới tôi', icon: 'chat', badge: '1', badgeTone: 'accent' }, { id: 'me', label: 'Tôi', icon: 'me' }] }]
+      : role === 'vp' ? [{ title: 'Điều phối', items: [{ id: 'board', label: 'Bảng điều phối', icon: 'orders' }, { id: 'req', label: 'Đề nghị cần duyệt', icon: 'doc-check', badge: '3', badgeTone: 'sand' }, { id: 'run', label: 'Xe đang chạy', icon: 'assign' }] }]
+      : [{ title: 'Chủ', items: [{ id: 'flow', label: 'Dòng dữ liệu', icon: 'chart' }, { id: 'log', label: 'Nhật ký quyết định', icon: 'history' }] }];
+    const users = { tx: { name: 'Văn Hải', role: 'Tài xế' }, vp: { name: 'Lan Anh', role: 'Văn phòng' }, ch: { name: 'Quản trị', role: 'Chủ' } };
+
+    const diemDon = [['Điểm 1 · Bến du thuyền', '07:30 · 4 khách', '', ['Đã đón', 'ok'], { dim: 1 }], ['Điểm 2 · Khách sạn Mường Thanh', '08:00 · 3 khách (2 NL · 1 TE)', '', ['Chưa tới', 'soon'], { sel: 1 }], ['Điểm 3 · Sân bay Cam Ranh', '08:40 · 5 khách', '', ['Chưa tới', 'soon']]];
+    const diemCard = CD('Điểm 2 · Khách sạn Mường Thanh', { tone: 'float', badge: ['Chưa tới', 'soon'], rows: [['Giờ đón', '08:00'], ['Số khách', '3 (2 NL · 1 TE)'], ['Nơi trả', 'Bến Cầu Đá']], actions: [['Nhờ xe khác đón', 'accent'], ['Đã đón khách', 'primary']] });
+    const xeList = LS('Xe cùng ngày', [
+      ['TX-20261004-0011 · Văn Hải', 'Sắp tới: Bến du thuyền · 08:10', 'Còn 6 chỗ'], ['TX-20261004-0014 · Quốc Bảo', 'Sắp tới: Chợ Đầm · 08:20', 'Còn 2 chỗ', ['Không đủ chỗ', 'end'], { dim: 1 }],
+      ['TX-20261004-0016 · Minh Khoa', 'Sắp tới: Khách sạn Mường Thanh · 08:05', 'Còn 9 chỗ', ['Đã chọn', 'soon'], { sel: 1 }]], { text: 'Chỉ hiện xe còn đủ chỗ cho 3 khách.' });
+    const review = CD('Xem lại đề nghị', { rows: [['Gửi tới', 'Minh Khoa · TX-20261004-0016'], ['Điểm đón', 'Khách sạn Mường Thanh · 08:00'], ['Số khách', '3 (2 NL · 1 TE)'], ['Nơi trả', 'Bến Cầu Đá']], actions: [['Gửi', 'accent'], ['Quay lại']] });
+    const pending = CD('Đang chờ Minh Khoa nhận', { tone: 'info', big: '09:42', bigNote: 'còn lại trước khi hết hạn (10 phút)', rows: [['Điểm đón', 'Khách sạn Mường Thanh · 08:00'], ['Số khách', '3 (2 NL · 1 TE)']], actions: [['Rút lại', 'danger']] });
+    const ketQua = [
+      CD('Minh Khoa đã nhận', { tone: 'ok', badge: ['Đã nhận', 'ok'], text: 'Khách đã chuyển sang chuyến TX-20261004-0016. Điểm 2 không còn trong chuyến của bạn.' }),
+      CD('Minh Khoa không nhận', { tone: 'bad', badge: ['Không nhận', 'bad'], text: 'Lý do: không kịp giờ. Điểm 2 vẫn thuộc chuyến của bạn.', actions: [['Nhờ xe khác đón']] }),
+      CD('Đề nghị đã hết hạn', { tone: 'end', badge: ['Hết hạn', 'end'], text: 'Không ai trả lời trong 10 phút. Điểm 2 vẫn thuộc chuyến của bạn.', actions: [['Nhờ xe khác đón']] }),
+      CD('Chờ văn phòng duyệt', { tone: 'warn', badge: ['Chờ duyệt', 'warn'], text: 'Đề nghị vượt giới hạn cấu hình nên cần văn phòng duyệt. Bạn vẫn giữ khách đến khi có kết quả.', actions: [['Rút lại', 'danger']] })
+    ];
+    const trangThai = (nhan) => [TAG('ĐANG TẢI'), SK(3), TAG('TRỐNG'), EM(nhan), TAG('LỖI'), BN('danger', 'Người khác vừa đổi — tải lại', 'Dữ liệu đã thay đổi trước khi bạn lưu. Tải lại rồi thử lại (409).', [['Tải lại', 'default']])];
+
+    const V8 = { id: 'V8', title: 'Tài xế — Nhờ xe khác đón', boards: [
+      P('tx', 'trip', 'Chuyến của tôi', '1 · Chạm điểm đón chưa tới', [H('TX-20261004-0007', 'Đang chạy · 79A-123.45'), LS('Các điểm đón', diemDon), diemCard]),
+      P('tx', 'trip', 'Nhờ xe khác đón', '2 · Chọn xe cùng ngày', [H('Nhờ xe khác đón', 'Điểm 2 · 3 khách'), xeList, CD('Tiếp tục', { actions: [['Tiếp tục', 'primary']] })]),
+      P('tx', 'trip', 'Nhờ xe khác đón', '3 · Xem lại và gửi', [H('Xem lại', 'Kiểm tra trước khi gửi'), review, BN('info', 'Đề nghị hết hạn sau 10 phút', 'Hết hạn mà chưa ai trả lời thì điểm vẫn ở chuyến của bạn.')]),
+      P('tx', 'trip', 'Chuyến của tôi', '4 · Sau khi gửi', [H('TX-20261004-0007', 'Đang chạy · 79A-123.45'), pending]),
+      P('tx', 'trip', 'Chuyến của tôi', '5 · Bốn kết quả', [H('Kết quả đề nghị', 'Bốn trạng thái có thể gặp')].concat(ketQua)),
+      P('tx', 'trip', 'Nhờ xe khác đón', '6 · Trống · đang tải · lỗi 409', [H('Nhờ xe khác đón', 'Điểm 2 · 3 khách')].concat(trangThai('Hôm nay không có xe nào khác còn đủ chỗ để nhờ đón.'))),
+      D('tx', 'trip', 'Chuyến của tôi › Nhờ xe khác đón', 'Chọn xe, xem lại, chờ nhận', [H('TX-20261004-0007', 'Đang chạy · 79A-123.45'), LS('Các điểm đón', diemDon), diemCard, xeList, review, pending])
+    ] };
+
+    const offer = CD('Đề nghị gửi tới bạn', { tone: 'float', badge: ['Mới', 'bad'], big: '08:31', bigNote: 'còn lại để trả lời', rows: [['Chuyến nguồn', 'TX-20261004-0011'], ['Tài xế', 'Văn Hải (A)'], ['Điểm đón', 'Khách sạn Mường Thanh · 08:00'], ['Số khách', '3 (2 NL · 1 TE)'], ['Nơi trả', 'Bến Cầu Đá'], ['Sau khi nhận', '12/16 chỗ']], actions: [['Nhận', 'accent'], ['Không nhận']] });
+    const lyDo = LS('Lý do không nhận', [['Xe đã đầy chỗ', '', '', ['Đã chọn', 'soon'], { sel: 1 }], ['Không kịp giờ'], ['Đang xử lý sự cố'], ['Lý do khác']]);
+    const V9 = { id: 'V9', title: 'Tài xế — Đề nghị gửi tới tôi', boards: [
+      P('tx', 'offer', 'Chuyến của tôi', '1 · Thẻ nổi đầu màn', [offer, LS('Các điểm đón của tôi', [['Điểm 1 · Bến du thuyền', '07:45 · 6 khách', '', ['Chưa tới', 'soon']], ['Điểm 2 · Chợ Đầm', '08:20 · 3 khách', '', ['Chưa tới', 'soon']]])]),
+      P('tx', 'offer', 'Không nhận', '2 · Không nhận → chọn lý do', [H('Không nhận đề nghị', 'Chọn lý do để báo lại tài xế A'), lyDo, CD('Gửi lý do', { actions: [['Gửi lý do', 'primary'], ['Quay lại']] })]),
+      P('tx', 'offer', 'Chuyến của tôi', '3 · Sau khi nhận', [CD('Đã nhận — khách đã vào chuyến của bạn', { tone: 'ok', badge: ['Đã nhận', 'ok'], text: '3 khách đã thêm vào chuyến TX-20261004-0007. Chỗ còn lại: 4/16.' }), CD('Chờ văn phòng duyệt', { tone: 'warn', badge: ['Chờ duyệt', 'warn'], text: 'Đề nghị vượt giới hạn cấu hình. Khách chưa vào chuyến của bạn cho đến khi văn phòng duyệt.' })]),
+      P('tx', 'offer', 'Chuyến của tôi', '4 · Trống · đang tải · lỗi 409', trangThai('Hiện chưa có đề nghị nào gửi tới bạn.')),
+      D('tx', 'offer', 'Đề nghị gửi tới tôi', 'Thẻ nổi và hai kết quả', [offer, CD('Đã nhận — khách đã vào chuyến của bạn', { tone: 'ok', badge: ['Đã nhận', 'ok'], text: '3 khách đã thêm vào chuyến TX-20261004-0007. Chỗ còn lại: 4/16.' }), lyDo, CD('Chờ văn phòng duyệt', { tone: 'warn', badge: ['Chờ duyệt', 'warn'], text: 'Đề nghị vượt giới hạn cấu hình, văn phòng đang xem.' })])
+    ] };
+
+    const dsDN = LS('Đề nghị chờ duyệt (3)', [['ĐN-0042 · Văn Hải → Minh Khoa', '3 khách · Điểm 2 · Chuyển cùng ngày', 'Còn 04:10', ['Cần duyệt', 'warn'], { sel: 1 }], ['ĐN-0041 · Quốc Bảo → Văn Hải', '2 khách · Điểm 5', 'Còn 07:30', ['Cần duyệt', 'warn']], ['ĐN-0040 · Minh Khoa → Quốc Bảo', '4 khách · Điểm 1', 'Còn 08:55', ['Luật lõi', 'bad']]]);
+    const kiem1 = CK('Kết quả kiểm theo luật — ĐN-0042', 'Chỉ luật cấu hình không đạt nên văn phòng được phép duyệt.', [['Xe nhận chạy cùng ngày', 'Luật lõi', 'Cùng ngày 04/10', 'Đạt'], ['Chỗ trống sau khi nhận', 'Luật lõi', '12/16 chỗ so với ≤ 16', 'Đạt'], ['Thời gian trước giờ đón', 'Luật cấu hình', '22 phút so với ≥ 30 phút', 'Không đạt'], ['Số lần nhờ xe trong ngày', 'Luật cấu hình', '2 lần so với ≤ 3', 'Đạt'], ['Khoảng cách tới điểm sắp tới', 'Luật cấu hình', '6,8 km so với ≤ 5 km', 'Cảnh báo']]);
+    const kiem2 = CK('Kết quả kiểm theo luật — ĐN-0040', 'Có luật lõi không đạt.', [['Xe nhận chạy cùng ngày', 'Luật lõi', 'Cùng ngày 04/10', 'Đạt'], ['Chỗ trống sau khi nhận', 'Luật lõi', '18/16 chỗ so với ≤ 16', 'Không đạt'], ['Số lần nhờ xe trong ngày', 'Luật cấu hình', '1 lần so với ≤ 3', 'Đạt']]);
+    const duyet = FM('Duyệt đề nghị ĐN-0042', 'Bắt buộc chọn lý do khi duyệt vượt luật cấu hình.', [fld('Lý do duyệt', 'Chọn lý do', { req: 1, sel: 1, empty: 1, basis: '220px' }), fld('Ghi chú', 'Tuỳ chọn', { empty: 1, basis: '220px' })], [['Duyệt', 'accent'], ['Bác', 'danger']]);
+    const V10 = { id: 'V10', title: 'Văn phòng — Hộp đề nghị cần duyệt', boards: [
+      D('vp', 'req', 'Điều phối › Đề nghị cần duyệt', 'Chỉ luật cấu hình không đạt: Duyệt và Bác', [H('Đề nghị cần duyệt', 'Mở một đề nghị để xem kết quả kiểm'), dsDN, kiem1, duyet]),
+      D('vp', 'req', 'Điều phối › Đề nghị cần duyệt', 'Luật lõi không đạt: chỉ Bác', [H('ĐN-0040', 'Minh Khoa → Quốc Bảo · 4 khách'), kiem2, BN('danger', 'Không thể duyệt đề nghị này', 'Vượt số chỗ của xe nhận là luật lõi, văn phòng không được phá lệ. Chỉ có thể bác; tài xế gửi sẽ nhận thông báo.'), CD('Bác đề nghị', { actions: [['Bác', 'danger']] })]),
+      P('vp', 'req', 'Đề nghị cần duyệt', 'Danh sách và kiểm luật', [dsDN, kiem1, CD('Xử lý', { actions: [['Duyệt', 'accent'], ['Bác', 'danger']] })]),
+      P('vp', 'req', 'Đề nghị cần duyệt', 'Trống · đang tải · lỗi 409', trangThai('Không có đề nghị nào cần duyệt.'))
+    ] };
+
+    const khach = LS('Khách đang chờ', [['Suất 1 · Điểm 3 · Sân bay Cam Ranh', 'Chờ đón 08:40', '', ['Chờ đón', 'soon'], { link: 'Báo huỷ' }], ['Suất 2 · Điểm 3 · Sân bay Cam Ranh', 'Chờ đón 08:40', '', ['Chờ đón', 'soon'], { link: 'Báo huỷ' }], ['Suất 3 · Điểm 4 · Bến Cầu Đá', 'Vẫn chiếm chỗ cho đến khi tài xế xác nhận', '', ['Văn phòng đã báo huỷ', 'warn']]]);
+    const viec = CD('Việc của văn phòng', { actions: [['Thêm điểm đón / thêm khách', 'primary'], ['Cứu hộ', 'danger']] });
+    const them = FM('Thêm điểm đón / thêm khách', 'Chọn chặng đang chờ xếp rồi thêm vào chuyến đang chạy.', [fld('Chặng chờ xếp', 'Bến Cầu Đá → Vinpearl · 3 khách', { sel: 1, basis: '260px' }), fld('Điểm đón', 'Bến Cầu Đá · 09:10', { basis: '200px' }), fld('Số khách', '3', { basis: '100px' })], [['Thêm vào chuyến', 'accent'], ['Xin Quản trị phá lệ', 'primary']]);
+    const huy = LS('Lý do báo huỷ — Suất 1', [['Khách báo không đi', '', '', ['Đã chọn', 'soon'], { sel: 1 }], ['Khách đổi lịch'], ['Khách không liên lạc được'], ['Lý do khác']], { text: 'Thẻ vẫn chiếm chỗ và hiện nhãn “Văn phòng đã báo huỷ” cho tài xế.' });
+    const V11 = { id: 'V11', title: 'Văn phòng — Xe đang chạy', boards: [
+      D('vp', 'run', 'Điều phối › Xe đang chạy › TX-20261004-0007', 'Chi tiết chuyến đang chạy', [H('TX-20261004-0007', 'Đang chạy · 79A-123.45 · 12/16 chỗ'), khach, viec, them, BN('warning', 'Cần Quản trị phá lệ', 'Điểm đón này nằm trong mốc 30 phút trước giờ tới, văn phòng không tự thêm được.', [], { full: 1 })]),
+      P('vp', 'run', 'TX-20261004-0007', 'Xe đang chạy và việc của văn phòng', [H('TX-20261004-0007', 'Đang chạy · 12/16 chỗ'), viec, khach]),
+      P('vp', 'run', 'Báo huỷ', 'Báo huỷ một suất', [H('Báo huỷ', 'Suất 1 · Điểm 3'), huy, CD('Xác nhận', { actions: [['Báo huỷ', 'danger'], ['Quay lại']] })]),
+      P('vp', 'run', 'Thêm khách', 'Thêm điểm đón, cảnh báo mốc', [them, BN('warning', 'Cần Quản trị phá lệ', 'Trong mốc 30 phút trước giờ tới của điểm sắp tới — chỉ Quản trị được phá lệ.')]),
+      P('vp', 'run', 'Xe đang chạy', 'Trống · đang tải · lỗi 409', trangThai('Hiện không có xe nào đang chạy.'))
+    ] };
+
+    const moi = BN('info', 'Văn phòng vừa thêm điểm', 'Điểm 4 · Bến Cầu Đá · 09:10 · 3 khách. Đã nằm trong lộ trình của bạn.');
+    const dsDiem = LS('Các điểm đón', [['Điểm 2 · Khách sạn Mường Thanh', '08:00 · 3 khách', '', ['Chưa tới', 'soon']], ['Điểm 3 · Sân bay Cam Ranh', '08:40 · 2 khách', '', ['Văn phòng đã báo huỷ — vẫn tới điểm', 'warn']], ['Điểm 4 · Bến Cầu Đá', '09:10 · 3 khách', '', ['Mới thêm', 'bad']]]);
+    const suat = LS('Suất của khách', [['Suất 1 · Điểm 2', 'Đã có tên', '', ['Đủ tên', 'ok']], ['Suất 2 · Điểm 2', 'Chưa có tên', '', ['Thiếu tên', 'warn'], { link: 'Bổ sung tên' }], ['Suất 3 · Điểm 4', 'Chưa có tên', '', ['Thiếu tên', 'warn'], { link: 'Bổ sung tên' }]]);
+    const tenForm = FM('Bổ sung tên — Suất 2', 'Nhập khi khách đã lên xe.', [fld('Họ tên', 'Nhập họ tên', { req: 1, empty: 1, basis: '220px' }), fld('Năm sinh', 'Ví dụ 1985', { req: 1, empty: 1, basis: '120px' })], [['Lưu', 'primary'], ['Đóng']]);
+    const V6 = { id: 'V6', title: 'Tài xế — Màn chuyến (bổ sung)', boards: [
+      P('tx', 'trip', 'TX-20261004-0007', '1 · Thẻ mới và suất thiếu tên', [moi, dsDiem, suat]),
+      P('tx', 'trip', 'Bổ sung tên', '2 · Nhập họ tên và năm sinh', [tenForm, BN('danger', 'Người khác vừa đổi — tải lại', 'Suất này vừa được văn phòng cập nhật (409). Tải lại rồi thử lại.', [['Tải lại']])]),
+      P('tx', 'trip', 'TX-20261004-0007', '3 · Trống · đang tải · lỗi 409', trangThai('Chuyến này chưa có điểm đón nào.')),
+      D('tx', 'trip', 'Chuyến của tôi › TX-20261004-0007', 'Màn chuyến đầy đủ', [moi, dsDiem, suat, tenForm])
+    ] };
+
+    const cuuHo = LS('Chọn xe cứu hộ', [['TX-20261004-0014 · Quốc Bảo', 'Cùng ngày · còn 8 chỗ', '4,2 km', ['Đã chọn', 'soon'], { sel: 1 }], ['TX-20261004-0016 · Minh Khoa', 'Cùng ngày · còn 9 chỗ', '6,0 km'], ['Xe nhà xe Phúc Thành', 'Xe thuê ngoài · cần giá thoả thuận', '', ['Cần giá', 'warn']]]);
+    const gia = FM('Nhập giá thoả thuận', 'Chọn xe của nhà xe thì chuyến cứu hộ phải có giá trước khi xuất bến.', [fld('Số tiền (₫)', '900.000', { req: 1, basis: '160px' }), fld('Ghi chú thoả thuận', 'Nhà xe Phúc Thành báo giá, đã chốt', { req: 1, basis: '260px' })], [['Lưu giá', 'primary'], ['Đóng']]);
+    const RC = { id: 'CH', title: 'Cứu hộ — Xe hỏng, chuyển khách', boards: [
+      P('tx', 'trip', 'Xe hỏng — chuyển khách', 'Tài xế: chọn xe cứu hộ và nơi gặp', [BN('warning', 'Xe hỏng — chuyển khách', 'Chọn một xe cùng ngày để đón 12 khách còn trên xe. Văn phòng sẽ được báo ngay.'), cuuHo, FM('Nơi gặp', '', [fld('Nơi gặp', 'Ngã ba Diên Khánh, cách điểm 3 km', { basis: '260px' })], [['Gửi cứu hộ', 'danger'], ['Quay lại']])]),
+      D('vp', 'run', 'Điều phối › Xe đang chạy › Cứu hộ', 'Văn phòng: Cứu hộ và nhập giá', [H('Cứu hộ TX-20261004-0007', 'Xe 79A-123.45 · 12 khách cần chuyển'), viec, cuuHo, gia]),
+      P('vp', 'run', 'Cứu hộ', 'Văn phòng: chọn xe nhà xe', [cuuHo, gia]),
+      P('tx', 'trip', 'Xe hỏng — chuyển khách', 'Trống · đang tải · lỗi 409', trangThai('Hôm nay không còn xe nào khác để cứu hộ.'))
+    ] };
+
+    const V4 = { id: 'V4', title: 'Chủ — Sơ đồ dòng dữ liệu', boards: [
+      D('ch', 'flow', 'Dòng dữ liệu', 'Phễu, hành trình, nhật ký', [H('Dòng dữ liệu', 'Chặng → chuyến, và máy quyết theo luật nào'), FN('Phễu chặng → chuyến', 'Hôm nay, 04/10/2026', [['Chặng chờ xếp', '48', '100%'], ['Đã xếp vào chuyến', '41', '85%'], ['Đã xuất bến', '38', '79%'], ['Đã trả khách', '36', '75%', 'a']]), LS('Máy quyết theo luật nào', [['Xếp chặng 1021 vào TX-0011', 'Luật: cùng tuyến · còn chỗ · đủ giờ', '07:12', ['Tự động', 'ok']], ['Duyệt ĐN-0042', 'Luật cấu hình không đạt: trước giờ đón · duyệt bởi Lan Anh', '08:27', ['Văn phòng', 'warn']], ['Bác ĐN-0040', 'Luật lõi: vượt số chỗ của xe nhận', '08:31', ['Tự động', 'bad']]]), FL('Hành trình một chặng', 'Từ lúc xếp đến lúc trả khách', [['Xếp', 'Chặng vào chuyến', 'soon'], ['Xuất bến', 'Xe rời bến', 'run'], ['Chuyển xe', 'Nhờ xe khác, cứu hộ', 'warn'], ['Trả', 'Khách xuống điểm trả', 'ok']])]),
+      P('ch', 'flow', 'Dòng dữ liệu', 'Điện thoại', [/* cùng phễu, sơ đồ, nhật ký rút gọn */])
+    ] };
+</script>
