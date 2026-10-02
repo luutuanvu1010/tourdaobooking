@@ -16,7 +16,7 @@
     {
       "ma": "SV-CPX-01",
       "mo_ta": "V1: chuyến 15/10, xe 16 chỗ của Hùng Phát, tuyến NT-CR → giá bảng G1 (khớp đủ NT-CR + C16)",
-      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "xac_nhan": { "trang_thai": "da_xac_nhan", "nguoi": "Kế toán — chủ dự án Lưu Tuấn Vũ báo đã ký sổ 22 ca (chat 2026-10-02)", "ngay": "2026-10-02" },
       "chuyen": { "nha_xe": "HP", "so_cho": 16, "tuyen": "NT-CR", "ngay": "2026-10-15" },
       "su_kien": [
         { "loai": "CHUP" }
@@ -32,7 +32,7 @@
     {
       "ma": "SV-CPX-02",
       "mo_ta": "V2: 15/10, xe 29 chỗ, tuyến NT-CR → G2 (khớp đủ NT-CR + C29)",
-      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "xac_nhan": { "trang_thai": "da_xac_nhan", "nguoi": "Kế toán — chủ dự án Lưu Tuấn Vũ báo đã ký sổ 22 ca (chat 2026-10-02)", "ngay": "2026-10-02" },
       "chuyen": { "nha_xe": "HP", "so_cho": 29, "tuyen": "NT-CR", "ngay": "2026-10-15" },
       "su_kien": [
         { "loai": "CHUP" }
@@ -48,7 +48,7 @@
     {
       "ma": "SV-CPX-03",
       "mo_ta": "V3 (ADR-0095 Q3): 15/10, xe 16 chỗ, CHƯA chọn tuyến → không dòng nào khớp đủ tuyến + cỡ ⇒ không ghi dòng, bị giữ 'chưa có giá' (chọn tuyến hoặc nhập giá thoả thuận)",
-      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "xac_nhan": { "trang_thai": "da_xac_nhan", "nguoi": "Kế toán — chủ dự án Lưu Tuấn Vũ báo đã ký sổ 22 ca (chat 2026-10-02)", "ngay": "2026-10-02" },
       "chuyen": { "nha_xe": "HP", "so_cho": 16, "tuyen": null, "ngay": "2026-10-15" },
       "su_kien": [
         { "loai": "CHUP" }
@@ -62,7 +62,7 @@
     {
       "ma": "SV-CPX-04",
       "mo_ta": "V4: 15/10, xe 16 chỗ, tuyến NT-DL → G3 (khớp đủ NT-DL + C16)",
-      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "xac_nhan": { "trang_thai": "da_xac_nhan", "nguoi": "Kế toán — chủ dự án Lưu Tuấn Vũ báo đã ký sổ 22 ca (chat 2026-10-02)", "ngay": "2026-10-02" },
       "chuyen": { "nha_xe": "HP", "so_cho": 16, "tuyen": "NT-DL", "ngay": "2026-10-15" },
       "su_kien": [
         { "loai": "CHUP" }
@@ -78,7 +78,7 @@
     {
       "ma": "SV-CPX-05a",
       "mo_ta": "V5a: 31/10 (ngày cuối của G2), xe 29 chỗ, NT-CR → G2 còn hiệu lực đúng ngày cuối",
-      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "xac_nhan": { "trang_thai": "da_xac_nhan", "nguoi": "Kế toán — chủ dự án Lưu Tuấn Vũ báo đã ký sổ 22 ca (chat 2026-10-02)", "ngay": "2026-10-02" },
       "chuyen": { "nha_xe": "HP", "so_cho": 29, "tuyen": "NT-CR", "ngay": "2026-10-31" },
       "su_kien": [
         { "loai": "CHUP" }
@@ -94,7 +94,7 @@
     {
       "ma": "SV-CPX-05b",
       "mo_ta": "V5b: 01/11, xe 29 chỗ, NT-CR → G4 (NT-CR + C29 từ 01/11)",
-      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "xac_nhan": { "trang_thai": "da_xac_nhan", "nguoi": "Kế toán — chủ dự án Lưu Tuấn Vũ báo đã ký sổ 22 ca (chat 2026-10-02)", "ngay": "2026-10-02" },
       "chuyen": { "nha_xe": "HP", "so_cho": 29, "tuyen": "NT-CR", "ngay": "2026-11-01" },
       "su_kien": [
         { "loai": "CHUP" }
@@ -110,7 +110,7 @@
     {
       "ma": "SV-CPX-06",
       "mo_ta": "V6: 15/10, xe 29 chỗ, chưa chọn tuyến (không dòng nào khớp đủ tuyến + cỡ) → không dòng nào, KHÔNG BAO GIỜ ghi 0 đồng; bị giữ 'chưa có giá'",
-      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "xac_nhan": { "trang_thai": "da_xac_nhan", "nguoi": "Kế toán — chủ dự án Lưu Tuấn Vũ báo đã ký sổ 22 ca (chat 2026-10-02)", "ngay": "2026-10-02" },
       "chuyen": { "nha_xe": "HP", "so_cho": 29, "tuyen": null, "ngay": "2026-10-15" },
       "su_kien": [
         { "loai": "CHUP" }
@@ -124,7 +124,7 @@
     {
       "ma": "SV-CPX-06b",
       "mo_ta": "V6b: tiếp V6 — Kế toán nhập giá thoả thuận 1.350.000 (lý do 'Giá thoả thuận trước', ghi chú 'đã chốt với anh Hùng 14/10')",
-      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "xac_nhan": { "trang_thai": "da_xac_nhan", "nguoi": "Kế toán — chủ dự án Lưu Tuấn Vũ báo đã ký sổ 22 ca (chat 2026-10-02)", "ngay": "2026-10-02" },
       "chuyen": { "nha_xe": "HP", "so_cho": 29, "tuyen": null, "ngay": "2026-10-15" },
       "su_kien": [
         { "loai": "CHUP" },
@@ -141,7 +141,7 @@
     {
       "ma": "SV-CPX-07",
       "mo_ta": "V7: V1 rồi Kế toán ghi +150.000 'Phụ thu chờ thêm giờ'; sau đó văn phòng đổi tuyến sang NT-DL trước xuất bến → đảo phụ thu, đảo giá cũ, chụp G3 (NT-DL + C16)",
-      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "xac_nhan": { "trang_thai": "da_xac_nhan", "nguoi": "Kế toán — chủ dự án Lưu Tuấn Vũ báo đã ký sổ 22 ca (chat 2026-10-02)", "ngay": "2026-10-02" },
       "chuyen": { "nha_xe": "HP", "so_cho": 16, "tuyen": "NT-CR", "ngay": "2026-10-15" },
       "su_kien": [
         { "loai": "CHUP" },
@@ -164,7 +164,7 @@
     {
       "ma": "SV-CPX-08",
       "mo_ta": "V8: V1 rồi Kế toán ghi −200.000 'Nhập sai'; sau đó văn phòng huỷ chuyến → lô huỷ đảo âm trước (+200.000), dương sau (−1.200.000); tổng 0",
-      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "xac_nhan": { "trang_thai": "da_xac_nhan", "nguoi": "Kế toán — chủ dự án Lưu Tuấn Vũ báo đã ký sổ 22 ca (chat 2026-10-02)", "ngay": "2026-10-02" },
       "chuyen": { "nha_xe": "HP", "so_cho": 16, "tuyen": "NT-CR", "ngay": "2026-10-15" },
       "su_kien": [
         { "loai": "CHUP" },
@@ -185,7 +185,7 @@
     {
       "ma": "SV-CPX-08b",
       "mo_ta": "V8b: tiếp V8 nhưng chuyến huỷ ngày 13/10 (chạy 15/10) — Kế toán ghi +300.000 'Phí huỷ muộn' sau khi huỷ (không chọn ngày) ⇒ ngày phát sinh = NGÀY HUỶ 13/10 (ADR-0095 Q4); các dòng đảo của lô huỷ mang ngày dòng gốc 15/10 (Q2)",
-      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "xac_nhan": { "trang_thai": "da_xac_nhan", "nguoi": "Kế toán — chủ dự án Lưu Tuấn Vũ báo đã ký sổ 22 ca (chat 2026-10-02)", "ngay": "2026-10-02" },
       "chuyen": { "nha_xe": "HP", "so_cho": 16, "tuyen": "NT-CR", "ngay": "2026-10-15" },
       "su_kien": [
         { "loai": "CHUP" },
@@ -208,7 +208,7 @@
     {
       "ma": "SV-CPX-09",
       "mo_ta": "V9: V1 + (−200.000 'Nhập sai'); Kế toán TỰ đảo giá bảng → bị từ chối 'Tổng chi phí chuyến sẽ âm — đảo điều chỉnh giảm trước'; không đổi",
-      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "xac_nhan": { "trang_thai": "da_xac_nhan", "nguoi": "Kế toán — chủ dự án Lưu Tuấn Vũ báo đã ký sổ 22 ca (chat 2026-10-02)", "ngay": "2026-10-02" },
       "chuyen": { "nha_xe": "HP", "so_cho": 16, "tuyen": "NT-CR", "ngay": "2026-10-15" },
       "su_kien": [
         { "loai": "CHUP" },
@@ -230,7 +230,7 @@
     {
       "ma": "SV-CPX-10",
       "mo_ta": "V10: V1, xe hỏng giữa đường (kết thúc gián đoạn); giá đã chụp GIỮ NGUYÊN (Q-T6); Kế toán ghi −400.000 lý do 'Xe hỏng giữa đường' (ADR-0095 Q8)",
-      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "xac_nhan": { "trang_thai": "da_xac_nhan", "nguoi": "Kế toán — chủ dự án Lưu Tuấn Vũ báo đã ký sổ 22 ca (chat 2026-10-02)", "ngay": "2026-10-02" },
       "chuyen": { "nha_xe": "HP", "so_cho": 16, "tuyen": "NT-CR", "ngay": "2026-10-15" },
       "su_kien": [
         { "loai": "CHUP" },
@@ -249,7 +249,7 @@
     {
       "ma": "SV-CPX-11",
       "mo_ta": "V11: V1 đã chụp; SAU ĐÓ Quản trị đổi giá cùng tuyến / cỡ (G5 1.500.000 thay G1 từ 10/10 — trước cả ngày chạy 15/10) → chi phí chuyến KHÔNG đổi",
-      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "xac_nhan": { "trang_thai": "da_xac_nhan", "nguoi": "Kế toán — chủ dự án Lưu Tuấn Vũ báo đã ký sổ 22 ca (chat 2026-10-02)", "ngay": "2026-10-02" },
       "chuyen": { "nha_xe": "HP", "so_cho": 16, "tuyen": "NT-CR", "ngay": "2026-10-15" },
       "su_kien": [
         { "loai": "CHUP" },
@@ -266,7 +266,7 @@
     {
       "ma": "SV-CPX-12",
       "mo_ta": "V12: V6b (thoả thuận 1.350.000) rồi đổi tuyến sang NT-CR → đảo thoả thuận, chụp G2 (NT-CR + C29); thoả thuận KHÔNG tự chuyển",
-      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "xac_nhan": { "trang_thai": "da_xac_nhan", "nguoi": "Kế toán — chủ dự án Lưu Tuấn Vũ báo đã ký sổ 22 ca (chat 2026-10-02)", "ngay": "2026-10-02" },
       "chuyen": { "nha_xe": "HP", "so_cho": 29, "tuyen": null, "ngay": "2026-10-15" },
       "su_kien": [
         { "loai": "CHUP" },
@@ -286,7 +286,7 @@
     {
       "ma": "SV-CPX-12b",
       "mo_ta": "V12b: V6b rồi đổi tuyến sang NT-DL — không có giá NT-DL + C29 → đảo thoả thuận, thiếu giá (nhập lại thoả thuận)",
-      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "xac_nhan": { "trang_thai": "da_xac_nhan", "nguoi": "Kế toán — chủ dự án Lưu Tuấn Vũ báo đã ký sổ 22 ca (chat 2026-10-02)", "ngay": "2026-10-02" },
       "chuyen": { "nha_xe": "HP", "so_cho": 29, "tuyen": null, "ngay": "2026-10-15" },
       "su_kien": [
         { "loai": "CHUP" },
@@ -305,7 +305,7 @@
     {
       "ma": "SV-CPX-13",
       "mo_ta": "V13: V1 rồi đổi sang XE CÔNG TY → đảo giá; chuyến thành 'không thuê' (không cần giá)",
-      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "xac_nhan": { "trang_thai": "da_xac_nhan", "nguoi": "Kế toán — chủ dự án Lưu Tuấn Vũ báo đã ký sổ 22 ca (chat 2026-10-02)", "ngay": "2026-10-02" },
       "chuyen": { "nha_xe": "HP", "so_cho": 16, "tuyen": "NT-CR", "ngay": "2026-10-15" },
       "su_kien": [
         { "loai": "CHUP" },
@@ -323,7 +323,7 @@
     {
       "ma": "SV-CPX-14",
       "mo_ta": "V14 (Cần chủ 3 = A 'giá ngày chạy'; ADR-0095 Q2): chuyến 31/10 xe 29 chỗ NT-CR (G2) dời sang 01/11 trước xuất bến → đảo G2 MANG NGÀY 31/10 (tháng 10 về 0), chụp G4 ngày 01/11",
-      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "xac_nhan": { "trang_thai": "da_xac_nhan", "nguoi": "Kế toán — chủ dự án Lưu Tuấn Vũ báo đã ký sổ 22 ca (chat 2026-10-02)", "ngay": "2026-10-02" },
       "chuyen": { "nha_xe": "HP", "so_cho": 29, "tuyen": "NT-CR", "ngay": "2026-10-31" },
       "su_kien": [
         { "loai": "CHUP" },
@@ -342,7 +342,7 @@
     {
       "ma": "SV-CPX-14b",
       "mo_ta": "V14b: V6b (thoả thuận 1.350.000) dời GIỜ trong CÙNG ngày chạy → không tính lại, thoả thuận giữ nguyên",
-      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "xac_nhan": { "trang_thai": "da_xac_nhan", "nguoi": "Kế toán — chủ dự án Lưu Tuấn Vũ báo đã ký sổ 22 ca (chat 2026-10-02)", "ngay": "2026-10-02" },
       "chuyen": { "nha_xe": "HP", "so_cho": 29, "tuyen": null, "ngay": "2026-10-15" },
       "su_kien": [
         { "loai": "CHUP" },
@@ -360,7 +360,7 @@
     {
       "ma": "SV-CPX-15",
       "mo_ta": "ADR-0057 C12 (vòng sửa 2): V1 rồi ĐỔI SANG XE CỦA NHÀ XE KHÁC (Nam Việt, 16 chỗ) trước xuất bến → đảo giá Hùng Phát (dòng đảo mang Hùng Phát, ngày 15/10), chụp G6 1.300.000 của Nam Việt",
-      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "xac_nhan": { "trang_thai": "da_xac_nhan", "nguoi": "Kế toán — chủ dự án Lưu Tuấn Vũ báo đã ký sổ 22 ca (chat 2026-10-02)", "ngay": "2026-10-02" },
       "chuyen": { "nha_xe": "HP", "so_cho": 16, "tuyen": "NT-CR", "ngay": "2026-10-15" },
       "su_kien": [
         { "loai": "CHUP" },
@@ -380,7 +380,7 @@
     {
       "ma": "SV-CPX-16",
       "mo_ta": "4.7 (ADR-0095 Q5): V13 (đổi sang XE CÔNG TY, chưa huỷ) rồi Kế toán ghi +300.000 'Phí huỷ muộn' → dòng mang nhà xe CŨ Hùng Phát, tổng 300.000; ghi +50.000 'Khác' → bị từ chối (chuyến không còn là xe thuê — chỉ phí huỷ muộn cho nhà xe cũ)",
-      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "xac_nhan": { "trang_thai": "da_xac_nhan", "nguoi": "Kế toán — chủ dự án Lưu Tuấn Vũ báo đã ký sổ 22 ca (chat 2026-10-02)", "ngay": "2026-10-02" },
       "chuyen": { "nha_xe": "HP", "so_cho": 16, "tuyen": "NT-CR", "ngay": "2026-10-15" },
       "su_kien": [
         { "loai": "CHUP" },
@@ -403,7 +403,7 @@
     {
       "ma": "SV-CPX-17",
       "mo_ta": "SV-1 (ADR-0095 Q2): V1, Kế toán ghi +150.000 'Phụ thu chờ thêm giờ' ngày 20/10 (chọn tay), rồi TỰ ĐẢO dòng đó → dòng đảo mang 20/10 (ngày dòng gốc, không phải hôm nay); sau đó huỷ chuyến → lô huỷ đảo giá bảng mang 15/10",
-      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "xac_nhan": { "trang_thai": "da_xac_nhan", "nguoi": "Kế toán — chủ dự án Lưu Tuấn Vũ báo đã ký sổ 22 ca (chat 2026-10-02)", "ngay": "2026-10-02" },
       "chuyen": { "nha_xe": "HP", "so_cho": 16, "tuyen": "NT-CR", "ngay": "2026-10-15" },
       "su_kien": [
         { "loai": "CHUP" },
