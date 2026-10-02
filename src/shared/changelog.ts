@@ -11,6 +11,17 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Thanh sáng + chữ mảnh (thanh-sang-chu-manh) + Giao diện công ty (ADR-0087, migration 0069). Số 1.67 = main 1.66 + 1. KIỂM LẠI LÚC GỘP.
+    version: "1.67",
+    date: "2026-10-02",
+    items: [
+      { kind: "doi", text: "Giao diện nhẹ hơn: thanh bên trái, thanh trên cùng và đầu Trang chủ điện thoại chuyển nền trắng; nút chính nền xanh nhạt; chữ toàn app mảnh hơn." },
+      { kind: "doi", text: "Trên iPhone, giờ và pin ở trên cùng chuyển sang chữ đen. Nếu vẫn thấy thanh màu xanh cũ, hãy đóng hẳn app rồi mở lại." },
+      { kind: "moi", text: "Toàn quyền đổi được màu nền, thanh, nút, phông và cỡ chữ của cả app ở Tôi → Giao diện; mọi người thấy ở lần mở trang kế tiếp." },
+      { kind: "doi", text: "Thanh trên cùng bản máy tính đổi màu theo cài đặt giao diện, giống thanh trên điện thoại." },
+    ],
+  },
+  {
     // Trang chủ điện thoại theo bản vẽ "Trang chu dien thoai.dc.html" (Claude Design 2026-09-30, 1a–1g). Không migration, không đổi máy chủ.
     // Số "1.66" = main 1.65 (Vận chuyển đợt 1) + 1 (gộp main 2026-10-02). KIỂM LẠI LÚC GỘP (nhánh khác gộp trước thì đánh lại số).
     version: "1.66",

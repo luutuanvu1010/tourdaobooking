@@ -142,6 +142,14 @@ export interface MaintenanceStatusDto {
 /** `GET`/`PUT /api/maintenance` (chỉ Toàn quyền — ô settings.ops, ADR-0071 điều 3c): `canToggle` luôn true khi qua chốt (giữ trường cho giao diện). */
 export interface MaintenanceResponse extends MaintenanceStatusDto { canToggle: boolean }
 
+// ---- Giao diện công ty (ADR-0087; module `giao-dien`) ----
+/** `GET /api/giao-dien` (chỉ Toàn quyền) và thân phản hồi `PUT`: `tokens` = chỉ các núm đã đổi khỏi mặc định; `version` = khoá lạc quan (cũng là ETag của CSS). */
+export interface GiaoDienDto { tokens: Record<string, string>; version: number }
+/** Thân `PUT /api/giao-dien`: `version` = bản đang xem; lệch → 409 `stale`. */
+export interface GiaoDienPutBody { tokens: Record<string, string>; version: number }
+/** Thân lỗi 400 của `PUT /api/giao-dien`: `loi` liệt kê từng ô sai (`khoa` null = lỗi chung, vd cặp màu khó đọc không gắn một ô). */
+export interface GiaoDienLoiBody { error: { code: "invalid_input"; message: string; loi: { khoa: string | null; message: string }[] } }
+
 // ---- Công tắc "Dịch vụ nhập tay" (ADR-0061 điều 6; module `orders`) ----
 /**
  * `GET`/`POST /api/cai-dat/nhap-tay`: `batNhapTay` = công tắc đang BẬT; `duocDung` = CHÍNH người gọi có được nhập tay không (`duocNhapTay` của máy chủ —

@@ -70,6 +70,12 @@
 | `fbk_status` | bảng tra cứu |  |
 | `fbk_ticket` | bảng |  |
 
+## giao-dien
+
+| Đối tượng | Loại | Ghi chú |
+|---|---|---|
+| `gd_setting` | bảng |  |
+
 ## locations
 
 | Đối tượng | Loại | Ghi chú |

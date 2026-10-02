@@ -38,6 +38,7 @@ const ALLOWED_EDGES: Record<string, readonly string[]> = {
   // View v_dsp_order_handler đọc view công bố v_pty_party_label và v_stf_staff_label ở tầng SQL (cạnh dispatch → parties, dispatch → staff).
   dispatch: ["orders", "parties", "locations", "staff", "audit"],
   feedback: ["staff", "audit"], // đọc nhãn nhân viên (v_stf_staff_label) + ghi nhật ký `feedback_*`; không module nào import feedback
+  "giao-dien": ["audit"], // ADR-0087: ghi nhật ký giao_dien_changed
   locations: ["audit"],
   maintenance: ["audit"], // ghi nhật ký `maintenance_changed`; là lá của cạnh auth → maintenance (không vòng)
   // pricing: ADR-0024 điều 2 — tỷ lệ chiết khấu/hoa hồng chụp trong luồng của đơn lúc Xác nhận (lượt 2; lượt 1 chưa import).
@@ -71,6 +72,7 @@ const STRICT: readonly { module: string; file: string }[] = [
   { module: "company", file: "modules/company/repository.ts" },
   { module: "dispatch", file: "modules/dispatch/repository.ts" },
   { module: "feedback", file: "modules/feedback/repository.ts" },
+  { module: "giao-dien", file: "modules/giao-dien/repository.ts" },
   { module: "locations", file: "modules/locations/repository.ts" },
   { module: "maintenance", file: "modules/maintenance/repository.ts" },
   { module: "parties", file: "modules/parties/repository.ts" },
@@ -173,7 +175,7 @@ const DOC_AUDIT_LOG_WONGUARD = {
 // ĐÃ DUYỆT 2026-09-29 (lần 5) ở docs/superpowers/plans/2026-09-29-adr-0047-de-xuat-luat.md mục 1.
 // prc_/prc: ADR-0024 điều 1 (module pricing, bảng ở lượt 2).
 // ctl_/catalog: ADR-0058 điều 1 (nhóm dịch vụ; bảng cũ catalog_* giữ tên) — NỚI hàng rào đã duyệt (Điều 9.4), chủ duyệt ADR-0058 ngày 2026-09-30 (lượt 1a).
-const TABLE_PREFIX: Record<string, string> = { ctl_: "catalog", prc_: "pricing", pty_: "parties", loc_: "locations", stf_: "staff", fbk_: "feedback", dsp_: "dispatch", bil_: "billing", mnt_: "maintenance", aut_: "auth", ntf_: "thongbao", vc_: "van-chuyen", ord_: "orders", tl_: "tro-ly" };
+const TABLE_PREFIX: Record<string, string> = { ctl_: "catalog", prc_: "pricing", pty_: "parties", loc_: "locations", stf_: "staff", fbk_: "feedback", dsp_: "dispatch", bil_: "billing", mnt_: "maintenance", aut_: "auth", ntf_: "thongbao", vc_: "van-chuyen", ord_: "orders", tl_: "tro-ly", gd_: "giao-dien" };
 const VIEW_PREFIX: Record<string, string> = { prc: "pricing", pty: "parties", loc: "locations", stf: "staff", ord: "orders", dsp: "dispatch", bil: "billing", aud: "audit", vc: "van-chuyen" };
 
 // ---------------------------------------------------------------------------------------------------------------------

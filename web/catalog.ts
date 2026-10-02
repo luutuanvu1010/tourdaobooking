@@ -149,7 +149,7 @@ function card(it: CatalogAdminItem): HTMLElement {
     h("div", { class: "the-dau" }, oChon(it), h("span", { class: "muted" }, it.code, " · ", unitLabel(it.unit))),
     h("div", { class: "dd-ten-dong" }, h("strong", null, it.name), chipDuaDon(it), it.hidden && h("span", { class: "badge badge-cancelled" }, " Đã ẩn"), !it.inSheet && h("span", { class: "badge badge-draft" }, " Không còn trong Sheet"), !it.supported && h("span", { class: "badge badge-draft", title: "Chỉ nhập tay được" }, ` Đơn vị ${it.unit} chưa hỗ trợ`)),
     h("div", { class: "nhom-o muted" }, `Nhóm: ${tenNhomCua(it)}`),
-    h("div", null, priceLine(it), it.overridden.length > 0 && h("span", { class: "mark", style: "color:var(--c-accent);font-weight:700", title: "Có giá ghi đè" }, " ✎")),
+    h("div", null, priceLine(it), it.overridden.length > 0 && h("span", { class: "mark", style: "color:var(--c-accent);font-weight:var(--fw-bold)", title: "Có giá ghi đè" }, " ✎")),
     it.conflicts.length > 0 && h("div", { class: "alert warn" }, `Sheet đã đổi giá kể từ khi ghi đè — ${conflicts}. Giá đang bán vẫn là giá ghi đè.`),
     h(
       "div",
