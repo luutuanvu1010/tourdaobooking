@@ -335,9 +335,11 @@
   --fw-semibold: 500;  /* nhãn, chữ phụ cần nhấn nhẹ */
   --fw-bold: 500;      /* tiêu đề, tên, nút; cũng là độ đậm mặc định của h1–h6, b, strong, th (luật nền bên dưới) */
   --fw-heavy: 500;     /* số lớn, tiêu đề nổi nhất */
+  --fw-heading: 500;   /* độ đậm tiêu đề h1–h6 (núm "Tiêu đề" của màn Giao diện, ADR-0087) — luật nền bên dưới trỏ vào đây */
 }
 * { box-sizing: border-box; }
-h1, h2, h3, h4, h5, h6, b, strong, th { font-weight: var(--fw-bold); } /* trình duyệt mặc định tô đậm các thẻ này bằng "bold" (700) — kéo về token để đổi một chỗ */
+h1, h2, h3, h4, h5, h6 { font-weight: var(--fw-heading); }
+b, strong, th { font-weight: var(--fw-bold); } /* trình duyệt mặc định tô đậm các thẻ này — kéo về token để đổi một chỗ */
 button, input, select, textarea { font-family: inherit; } /* nút/ô của trình duyệt KHÔNG kế thừa phông: Windows vẽ bằng Arial/Segoe UI giữa chữ Be Vietnam Pro (rà soát 2026-09-30) */
 [hidden] { display: none !important; } /* để thuộc tính hidden luôn thắng các quy tắc display của class (vd .btn) */
 body { margin: 0; font: var(--fs-step-5)/1.5 var(--font); color: var(--c-text); background: var(--c-alt); }

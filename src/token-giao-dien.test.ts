@@ -3,6 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
+import { tuongPhan as tp } from "./shared/giao-dien.ts";
 
 const css = readFileSync(new URL("../public/app.css", import.meta.url), "utf8");
 const rootEnd = css.indexOf("\n}", css.indexOf(":root"));
@@ -19,7 +20,8 @@ test("độ đậm chữ: năm mức --fw-* khai ở :root, tăng dần", () => 
 test("độ đậm chữ: luật CSS không viết số, chỉ trỏ token (ngoài @font-face)", () => {
   const cung = [...luat.matchAll(/font-weight:\s*(?:\d{3}|bold|bolder|lighter)\b|font:\s*\d{3}\s/g)].map((m) => m[0]);
   assert.deepEqual(cung, [], "độ đậm viết cứng trong luật app.css");
-  assert.match(luat, /\nh1, h2, h3, h4, h5, h6, b, strong, th \{ font-weight: var\(--fw-bold\); \}/, "thiếu luật nền kéo độ đậm mặc định của tiêu đề/b/strong/th về token");
+  assert.match(luat, /\nh1, h2, h3, h4, h5, h6 \{ font-weight: var\(--fw-heading\); \}/, "thiếu luật nền kéo độ đậm mặc định của tiêu đề h1–h6 về token --fw-heading");
+  assert.match(luat, /\nb, strong, th \{ font-weight: var\(--fw-bold\); \}/, "thiếu luật nền kéo độ đậm mặc định của b/strong/th về token --fw-bold");
 });
 
 test("độ đậm chữ: kiểu viết thẳng trong web/*.ts và public/*.html cũng chỉ trỏ token", () => {
@@ -84,14 +86,7 @@ function hex(v: string, sau = 0): string {
   assert.match(v, /^#[0-9a-fA-F]{6}$/, `giá trị ${v} không dò được về hex 6 chữ số`);
   return v.toLowerCase();
 }
-function doSang(h: string): number {
-  const kenh = [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255).map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
-  return 0.2126 * kenh[0]! + 0.7152 * kenh[1]! + 0.0722 * kenh[2]!;
-}
-function tuongPhan(chu: string, nen: string): number {
-  const [x, y] = [doSang(hex(`var(${chu})`)), doSang(hex(`var(${nen})`))].sort((p, q) => q - p);
-  return (x! + 0.05) / (y! + 0.05);
-}
+const tuongPhan = (chu: string, nen: string): number => tp(hex(`var(${chu})`), hex(`var(${nen})`));
 
 test("màu theo vai: mọi cặp chữ/nền của thanh, nút chính, mục đang chọn đạt ≥ 4,5:1", () => {
   const cap: [string, string][] = [
