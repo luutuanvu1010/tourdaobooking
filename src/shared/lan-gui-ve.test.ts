@@ -53,6 +53,18 @@ test("5xx ⇒ giữ; 409 dang_xu_ly ⇒ giữ; 422 ⇒ đóng; 400 ⇒ đóng; 2
   }
 });
 
+test("401 (phiên bị đá / hết hạn — cổng đăng nhập trả lời, KHÔNG phải lệnh) ⇒ GIỮ vé; đăng nhập lại, tải lại trang ⇒ CÙNG vé (ADR-0094 đ3, đặc tả §3.2 mục 7)", async () => {
+  const kho = khoGia();
+  const { vd } = dung({ kho });
+  const a = await vd.moVe("POST", P, THAN);
+  vd.ketThuc(a, { matMang: true }); // máy chủ đã lưu, phản hồi mất
+  const lai = await vd.moVe("POST", P, THAN);
+  assert.equal(lai!.ve, a!.ve);
+  vd.ketThuc(lai, { status: 401, code: "unauthenticated" }); // bấm lại đúng lúc phiên bị đá
+  const { vd: sauDangNhap } = dung({ kho });
+  assert.equal((await sauDangNhap.moVe("POST", P, THAN))!.ve, a!.ve, "sau khi đăng nhập lại vẫn trúng vé cũ ⇒ máy chủ phát lại, không ghi lần hai");
+});
+
 test("khác thân / khác đường dẫn / khác phương thức ⇒ khác vé", async () => {
   const { vd } = dung();
   const a = await vd.moVe("POST", P, THAN);

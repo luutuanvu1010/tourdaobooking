@@ -303,3 +303,13 @@ Số bản nhật ký phiên bản: `main` cục bộ có `1.70` ở đầu `src
 - Dòng trỏ "đã thay bởi ADR-0094" ở đầu `specs/2026-09-22-chong-gui-trung.md` và `specs/2026-10-02-chong-trung-moi-lenh-ghi-theo-oracle.md`.
 - `src/shared/changelog.ts` mục **1.71** (tạm — KIỂM LẠI LÚC GỘP: nhánh `trang-chu-quan-tri` đang giữ 1.73 tạm); bài ghim `src/shared/app-info.test.ts` cập nhật.
 - Đề xuất sửa luật cho chủ: `docs/superpowers/plans/2026-10-02-dot-0-de-xuat-luat.md` (CLAUDE.md §7/§10, K17; dòng 5.5 để bản sau).
+
+## Vá 401 giữ vé (2026-10-02, góp ý người soát trước vòng 2)
+- **Lỗi:** `api()` gọi `ketThuc` trước nhánh 401 ⇒ `nenDongVe({status:401})` = đóng vé. Kịch bản F-02: mất phản hồi (giữ vé) → phiên bị đá (ADR-0075) → bấm lại nhận 401 (cổng đăng nhập, chưa tới lớp vé) → vé bị đóng → đăng nhập lại bấm lại ⇒ vé MỚI ⇒ ghi lần thu thứ hai. Trái ADR-0094 đ3 + đặc tả §3.2 mục 7.
+- **Sửa:** `nenDongVe`: 401 ⇒ GIỮ (cổng đăng nhập trả lời, không phải lệnh; không gì được ghi dưới vé). **Diễn giải (ghi lại cho chủ):** đ5 viết "đóng khi 4xx" — hiểu là "khi máy chủ trả lời LỆNH"; 401 của cổng phiên không phải câu trả lời của lệnh. Không đổi chữ ADR. `web/dieu-phoi-ui.ts` dùng chung `nenDongVe` nên Vận chuyển cũng giữ `requestId` khi 401.
+- Đỏ trước: `src/shared/lan-gui-ve.test.ts` "401 … GIỮ vé; đăng nhập lại, tải lại trang ⇒ CÙNG vé" (`not ok 4`) ⇒ xanh 12/12. Chrome `lop-ve-smoke.mjs` thêm bước T1b (SQL kết thúc phiên giữa chừng): trên luật cũ ĐỎ, luật mới **6/6 xanh** (390 + 1040).
+
+## Kịch bản Chrome theo `web/CLAUDE.md` cho `web/api.ts`, `web/dieu-phoi-ui.ts` (2026-10-02)
+- Nhánh (`b158fd4a` + vá 401 chưa có lúc chạy): `dieu-phoi-smoke` ✓, `chuyen-smoke` ✓; ĐỎ: `v1-bao-tri` (11 ✓ / 8 ✗), `bang-tin-smoke` (31 / 7), `chuyen-sua-smoke` (12 / 2), `cuoc-smoke` (9 / 5), `a2-smoke-form` (dừng ở bước 2: form có thêm mục "Hành khách"), `a2-smoke-order` (dừng "form mở lại đơn"), `a2-smoke-sheet` (7 ✓ rồi dừng "đóng bảng + banner đã lưu").
+- **Bản nền** (`git archive df6bc864`, `npm ci`, `build:web`, cùng Chrome, cùng `AXE_JS`): 7 kịch bản trên đỏ **GIỐNG HỆT từng dòng** (bộ so `so-nen.mjs` ở thư mục tạm của phiên) ⇒ lỗi có sẵn, không do luồng L. Giới hạn: những kịch bản dừng sớm không phủ được phần đã sửa phía sau điểm dừng; phần lớp vé có `lop-ve-smoke` phủ riêng.
+- `lop-ve-smoke.mjs` (mới): 6/6.

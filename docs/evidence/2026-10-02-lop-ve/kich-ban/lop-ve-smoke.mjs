@@ -82,6 +82,31 @@ try {
     p.close();
     dat(`T1 (${kho}): máy chủ đã lưu, phản hồi mất, bấm lại ⇒ cùng vé, "Lần bấm trước đã được ghi.", mở lại đúng trang đơn, MỘT lần thu; localStorage không lộ dữ liệu`);
 
+    // ---- T1b: mất phản hồi → phiên bị đá (máy khác đăng nhập) → bấm lại nhận 401 → đăng nhập lại → bấm lại ⇒ VẪN một lần thu (vé giữ qua 401 + tải lại trang)
+    const id3 = await lapDon(`Khách Bị Đá ${kho}`);
+    const r = await env.as(ACCOUNTS.salesA, `/order?id=${id3}`, vp);
+    await moFormThu(r, 150000);
+    await r.ev(BOC_FETCH);
+    await r.ev(`document.querySelector('[data-khoi="form-lan-thu"]').requestSubmit()`);
+    await r.waitFor(`!document.querySelector('[data-khoi="form-lan-thu"] button[type=submit]').disabled`, "nút Ghi bật lại sau lỗi mạng");
+    assert.equal(soLanThu(id3), 1);
+    const [{ id: staffA }] = env.sql(`SELECT id FROM staff WHERE phone = '${ACCOUNTS.salesA.phone}'`);
+    const luc = new Date().toISOString();
+    env.sql(`UPDATE aut_session SET ended_at = '${luc}', end_reason = 'het_han', updated_at = '${luc}' WHERE staff_id = '${staffA}' AND ended_at IS NULL`);
+    await r.ev(`document.querySelector('[data-khoi="form-lan-thu"]').requestSubmit()`);
+    await r.waitFor(`location.pathname === '/login'`, "bị đưa về đăng nhập (401)");
+    const c = await env.login(ACCOUNTS.salesA);
+    await r.send("Network.setCookie", { name: c.name, value: c.value, url: env.base, httpOnly: true });
+    await r.send("Page.navigate", { url: `${env.base}/order?id=${id3}` });
+    await r.waitFor("document.readyState === 'complete'", "trang đơn mở lại");
+    await moFormThu(r, 150000);
+    await r.ev(`document.querySelector('[data-khoi="form-lan-thu"]').requestSubmit()`);
+    await r.waitFor(`[...document.querySelectorAll('.toast')].some((t) => t.textContent.includes('Lần bấm trước đã được ghi.'))`, "báo 'Lần bấm trước đã được ghi.' sau khi đăng nhập lại");
+    await sleep(1500);
+    assert.equal(soLanThu(id3), 1, "T1b: bị đá phiên giữa chừng vẫn chỉ MỘT lần thu");
+    r.close();
+    dat(`T1b (${kho}): mất phản hồi → phiên bị đá → đăng nhập lại → bấm lại ⇒ "Lần bấm trước đã được ghi.", MỘT lần thu`);
+
     // ---- T2: bấm đúp "Ghi" (hai lần gửi liền, vé đang mở) ⇒ một lần thu
     const id2 = await lapDon(`Khách Bấm Đúp ${kho}`);
     const q = await env.as(ACCOUNTS.salesA, `/order?id=${id2}`, vp);

@@ -1,8 +1,8 @@
 // LỚP CHỐNG GHI TRÙNG (ADR-0094 đ5; đặc tả §3.2) — VÒNG ĐỜI VÉ Ở MÁY KHÁCH, thuần (kho lưu, đồng hồ, bộ sinh vé tiêm vào). `web/api.ts` chỉ gọi mô-đun này.
 //  - `moVe`: dùng lại vé đang mở cho cùng "dấu" (mã băm SHA-256 của ĐÚNG chuỗi sẽ gửi: phương thức + đường dẫn + thân JSON), hoặc sinh vé mới và GHI TRƯỚC
 //    khi gửi. Bấm đúp (vé còn mở) ⇒ cùng vé.
-//  - `ketThuc`: ĐÓNG vé khi máy chủ trả lời rõ (mọi 2xx — kể cả "đã ghi"; mọi 4xx trừ 409 `dang_xu_ly`); GIỮ vé khi không rõ (mất mạng, hết giờ, 5xx,
-//    409 `dang_xu_ly`) ⇒ lần bấm lại cùng nội dung mang CÙNG vé. Hai lần ghi thật giống hệt nhau nối tiếp ⇒ lần 1 đóng vé ⇒ lần 2 vé mới (H4/T4).
+//  - `ketThuc`: ĐÓNG vé khi máy chủ trả lời rõ (mọi 2xx — kể cả "đã ghi"; mọi 4xx trừ 401 và 409 `dang_xu_ly`); GIỮ vé khi không rõ (mất mạng, hết giờ,
+//    5xx, 401 phiên bị đá, 409 `dang_xu_ly`) ⇒ lần bấm lại cùng nội dung mang CÙNG vé. Hai lần ghi thật giống hệt nhau nối tiếp ⇒ lần 1 đóng vé ⇒ lần 2 vé mới (H4/T4).
 //  - Nơi giữ: localStorage `lg:<staffId>`, mỗi mục {dấu → vé, mốc}, hạn 24 giờ, tối đa 50 mục (cũ nhất bị đẩy). Mục chỉ có mã băm + vé, không thân.
 //    Chưa biết người đăng nhập, route có thân chứa bí mật (src/shared/lan-gui-bi-mat.ts), hay kho lỗi ⇒ chỉ bộ nhớ của trang.
 //  - Không xoá vé khi bị đá về đăng nhập (phạm vi vé ở máy chủ là TÀI KHOẢN — đặc tả §3.2 mục 7).
@@ -38,6 +38,9 @@ const sha256Hex = async (s: string): Promise<string> =>
 export function nenDongVe(kq: KetQuaGui): boolean {
   if ("matMang" in kq) return false;
   if (kq.status >= 200 && kq.status < 300) return true;
+  // 401: cổng ĐĂNG NHẬP trả lời (phiên bị đá / hết hạn — ADR-0075), lệnh chưa tới lớp vé ⇒ GIỮ vé, để đăng nhập lại rồi bấm lại vẫn trúng vé cũ (ADR-0094 đ3,
+  // đặc tả §3.2 mục 7). Đóng ở đây là mất chống trùng đúng kịch bản F-02 (mất phản hồi → bị đá phiên → đăng nhập lại → ghi lần hai).
+  if (kq.status === 401) return false;
   if (kq.status >= 400 && kq.status < 500) return !(kq.status === 409 && kq.code === "dang_xu_ly");
   return false;
 }
