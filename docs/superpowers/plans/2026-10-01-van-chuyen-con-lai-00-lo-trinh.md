@@ -124,6 +124,16 @@ Không đợt nào DROP trigger trên `vc_trip` của đợt khác (tên không 
 4. Bản vẽ Claude Design Đợt 3–7: chủ *"sẽ gửi sau"*, xin xem nguyên văn lệnh vẽ ⇒ đã chép ra chat 2/10 (nguồn vẫn là mục lệnh vẽ trong từng kế hoạch con).
 5. Đếm xe có hai giấy tờ cùng loại đang hiện hành trên production — chủ: **0** ⇒ trigger `0068` không vướng dữ liệu cũ; không cần dọn.
 
+## Lời chủ (chat 2026-10-02 chiều — mô hình thật + quy mô hợp tác xã)
+
+Bối cảnh chủ nêu: công ty có **5 xe** (2 xe 16 chỗ, 3 xe 4–7 chỗ); **thuê xe theo chuyến** khi cao điểm; dự kiến mở rộng: **taxi / xe hợp đồng tự do làm đối tác, chia sẻ doanh thu** (khách là khách của Tour Đảo); có thể lên **hợp tác xã vài chục – vài trăm xe**.
+
+1. **Thu gọn Đợt 5** — chủ: *"ok"*. Làm ngay: V11 (văn phòng thêm điểm / báo huỷ khi xe chạy, D5), V6 (tài xế bổ sung tên, D5b), cứu hộ đơn giản (văn phòng "Tạo chuyến cứu hộ", D5c). **Hoãn tới mốc**: V8–V10 (tài xế nhờ xe khác đón, hộp đề nghị cần duyệt, bảng kiểm luật — D4), V4 (Dòng dữ liệu / Nhật ký quyết định). Bỏ khỏi danh sách hỏi: câu bản vẽ 5.1, 5.2a, 5.2d, 5.4, 5.5, 5.6a, 5.7. Khi làm D4: tập mã luật để dạng **danh mục** (thêm luật = thêm dòng), không khoá cứng bằng `CHECK`.
+   **Mốc bật lại D4 / kiểu "phát chuyến"**: khoảng ≥ 15 xe đối tác hoạt động HOẶC văn phòng xếp > ~40 chuyến/ngày ⇒ viết ADR chọn cách.
+2. **Toạ độ điểm đón / trả** — chủ: *"Có, cho bổ sung vào 1 trường linh động (Flex field)"*. ⚠ Xung đột **Hiến chương 5.2** (`docs/ARCHITECTURE.md:93` — cấm flexfield/JSON không lược đồ; ADR-0060 chủ từng giữ luật này). Đã hỏi lại chủ 2/10 với phương án hợp luật: **bảng phụ có kiểu** (vd `loc_location_geo`: vĩ độ / kinh độ có `CHECK` khoảng, nguồn, không bắt buộc) — không đụng bảng lõi, thêm sau được; hoặc chủ sửa Hiến chương 5.2. **Chờ chủ.**
+3. **Cách điều xe ở quy mô hợp tác xã** — chủ: *"kết hợp cả giao chuyến cả để tài xế tự nhận"* ⇒ hướng: văn phòng giao (kiểu A, đang có) **+** phát chuyến cho tài xế rảnh tự nhận (kiểu C, chưa có ADR); tài xế nhờ tài xế (kiểu B, ADR-0052 D4) là đường phụ khi sự cố. ADR kiểu C viết khi tới mốc ở mục 1.
+4. **Chia sẻ doanh thu với taxi đối tác** — chưa ADR nào có. Khuyến nghị (chủ chưa trả lời): Đợt 4 giữ nguyên (thuê theo chuyến = chi phí cố định); chia doanh thu làm **sổ riêng** bằng ADR riêng sau khi chủ chốt: (a) % trên giá bán chặng hay sau phí; (b) ai thu tiền khách; (c) trả theo chuyến hay theo kỳ (nối sổ công nợ / khoá kỳ); (d) hợp đồng, hoá đơn, thuế (hỏi Kế toán). Không chen vào `vc_trip_cost_line`.
+
 ## Cần chủ (gom từ 8 kế hoạch con; mỗi lượt tối đa 3 câu chạm dữ liệu/quyền/tiền)
 
 **Lượt I — tiền xe thuê (Đợt 4, hỏi trước khi nhận Đợt 4):**
