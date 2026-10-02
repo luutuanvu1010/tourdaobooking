@@ -304,6 +304,16 @@ export const TRIP_GATE = defineSql(
   "UPDATE vc_trip SET version = version + 1, last_cmd_id = ?3, updated_at = ?4, updated_by = ?5 WHERE id = ?1 AND version = ?2 AND status = 'PLANNED'",
 );
 /**
+ * Câu cổng lệnh KẾ HOẠCH có chạm CHI PHÍ chuyến xe thuê (ADR-0057 C4 — sửa, huỷ; kế hoạch Đợt 4 TC-8): như TRIP_GATE + "số dòng chi phí của chuyến vẫn bằng ?6 đã
+ * đọc" (đếm MỌI dòng, lúc cổng — trước khi lô chèn gì). Có dòng chen giữa lúc đọc và lúc ghi ⇒ cổng 0 dòng ⇒ cả lô thua (409), không bao giờ "đảo một nửa".
+ */
+export const TRIP_GATE_CHI_PHI = defineSql(
+  "van-chuyen",
+  "trip_gate_chi_phi",
+  `UPDATE vc_trip SET version = version + 1, last_cmd_id = ?3, updated_at = ?4, updated_by = ?5
+   WHERE id = ?1 AND version = ?2 AND status = 'PLANNED' AND (SELECT count(*) FROM vc_trip_cost_line WHERE trip_id = ?1) = ?6`,
+);
+/**
  * Câu cổng THỨ HAI của lệnh chạm hai chuyến (dời — cổng đôi, [TK] §3.3): chỉ thắng khi câu cổng thứ nhất (chuyến nguồn) đã mang CHÍNH dấu lệnh này — không
  * bao giờ có nửa lô. ?1 chuyến đích, ?2 version đích, ?3 dấu lệnh, ?4 lúc, ?5 người, ?6 chuyến nguồn.
  */

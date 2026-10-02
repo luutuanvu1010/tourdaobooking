@@ -118,3 +118,48 @@ export const closeRateStatement = (db: D1Database, id: string, to: string, at: s
 export const inactiveCarriersWithOpenRate = async (db: D1Database, ngay: string): Promise<{ party_id: string; display_name: string }[]> =>
   (await db.prepare(CARRIERS_INACTIVE_WITH_OPEN_RATE).bind(ngay).all<{ party_id: string; display_name: string }>()).results;
 export const partyName = async (db: D1Database, id: string): Promise<string | null> => (await db.prepare(PARTY_NAME).bind(id).first<{ display_name: string }>())?.display_name ?? null;
+
+// ---- Dòng chi phí chuyến (ADR-0057 T2 C3) ---------------------------------------------------------------------------------------------------------------
+export interface CostLineRow {
+  id: string;
+  trip_id: string;
+  carrier_party_id: string;
+  kind: "SNAPSHOT" | "AGREED" | "ADJUSTMENT" | "REVERSAL";
+  amount: number;
+  rate_id: string | null;
+  route_code_snapshot: string | null;
+  vehicle_size_code_snapshot: string | null;
+  reason_code: string | null;
+  note: string | null;
+  reverses_id: string | null;
+  occurred_date: string;
+  cmd_id: string;
+  created_at: string;
+  created_by: string | null;
+}
+const COT_CP = `id, trip_id, carrier_party_id, kind, amount, rate_id, route_code_snapshot, vehicle_size_code_snapshot, reason_code, note, reverses_id, occurred_date, cmd_id,
+  created_at, created_by`;
+/** Mọi dòng của một chuyến theo THỨ TỰ GHI (rowid tăng — bảng chỉ-thêm, không xoá). */
+const COST_LINES_OF_TRIP = defineSql("van-chuyen", "vc_cost_lines_of_trip", `SELECT ${COT_CP} FROM vc_trip_cost_line WHERE trip_id = ?1 ORDER BY created_at, rowid`);
+export const costLinesOfTrip = async (db: D1Database, tripId: string): Promise<CostLineRow[]> => (await db.prepare(COST_LINES_OF_TRIP).bind(tripId).all<CostLineRow>()).results;
+
+/**
+ * Đảo một dòng TRONG LÔ LỆNH CHUYẾN (đổi xe / nhà xe / tuyến / ngày chạy; huỷ). ?1 id, ?2 chuyến, ?3 dấu lệnh, ?4 dòng gốc, ?5 số tiền (= −gốc), ?6 nhà xe của gốc,
+ * ?7 lý do hệ thống, ?8 ngày phát sinh (ngày chạy), ?9 lúc, ?10 người. Lính gác dấu lệnh (bài thứ tự lô); phiên bản chi phí ở CÂU CỔNG (`TRIP_GATE_CHI_PHI` — TC-8).
+ */
+export const COST_REVERSE = defineSql(
+  "van-chuyen",
+  "vc_cost_reverse",
+  `INSERT INTO vc_trip_cost_line (id, trip_id, carrier_party_id, kind, amount, reverses_id, reason_code, occurred_date, cmd_id, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, ?6, 'REVERSAL', ?5, ?4, ?7, ?8, ?3, ?9, ?10, ?9, ?10
+   WHERE EXISTS (SELECT 1 FROM vc_trip WHERE id = ?2 AND last_cmd_id = ?3)`,
+);
+/** Chụp giá bảng TRONG LÔ LỆNH CHUYẾN. ?1 id, ?2 chuyến, ?3 dấu lệnh, ?4 nhà xe, ?5 tiền, ?6 dòng giá, ?7 tuyến, ?8 cỡ, ?9 số chỗ, ?10 ngày chạy, ?11 lúc, ?12 người. */
+export const COST_SNAPSHOT = defineSql(
+  "van-chuyen",
+  "vc_cost_snapshot",
+  `INSERT INTO vc_trip_cost_line (id, trip_id, carrier_party_id, kind, amount, rate_id, route_code_snapshot, vehicle_size_code_snapshot, passenger_capacity_snapshot,
+     unit_amount_snapshot, occurred_date, cmd_id, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, ?4, 'SNAPSHOT', ?5, ?6, ?7, ?8, ?9, ?5, ?10, ?3, ?11, ?12, ?11, ?12
+   WHERE EXISTS (SELECT 1 FROM vc_trip WHERE id = ?2 AND last_cmd_id = ?3)`,
+);

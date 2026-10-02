@@ -50,15 +50,16 @@ export function dongConHieuLuc(dong: readonly DongChiPhi[]): DongChiPhi[] {
 export function nguonGiaConHieuLuc(dong: readonly DongChiPhi[]): DongChiPhi | null {
   return dongConHieuLuc(dong).find((d) => d.kind === "SNAPSHOT" || d.kind === "AGREED") ?? null;
 }
-/** Mới nhất trước (createdAt giảm dần, rồi id giảm dần) — "gỡ ngược" theo thời gian trong mỗi nhóm dấu. */
-const sapXep = (a: DongChiPhi, b: DongChiPhi) => (a.createdAt === b.createdAt ? (a.id < b.id ? 1 : a.id > b.id ? -1 : 0) : a.createdAt < b.createdAt ? 1 : -1);
+/** Mới nhất trước: createdAt giảm dần; cùng mốc giờ ⇒ ghi SAU (vị trí sau trong danh sách theo thứ tự ghi) đứng trước — "gỡ ngược" trong mỗi nhóm dấu. */
+const moiNhatTruoc = (ds: readonly DongChiPhi[]): DongChiPhi[] =>
+  ds.map((d, i) => ({ d, i })).sort((a, b) => (a.d.createdAt === b.d.createdAt ? b.i - a.i : a.d.createdAt < b.d.createdAt ? 1 : -1)).map((x) => x.d);
 /**
  * ADR-0057 C8 "thứ tự đảo": các dòng ÂM trước (đảo ⇒ tổng tăng), rồi DƯƠNG (tổng giảm dần về 0) ⇒ trigger "tổng ≥ 0" canh được từng dòng. Trong mỗi nhóm:
- * mới nhất trước (khớp ví dụ vàng V7: đảo phụ thu rồi mới đảo giá bảng).
+ * mới nhất trước (khớp ví dụ vàng V7: đảo phụ thu rồi mới đảo giá bảng). `dong` theo THỨ TỰ GHI (như `costLinesOfTrip` đọc).
  */
 export function thuTuDaoTatCa(dong: readonly DongChiPhi[]): DongChiPhi[] {
   const con = dongConHieuLuc(dong);
-  return [...con.filter((d) => d.amount < 0).sort(sapXep), ...con.filter((d) => d.amount > 0).sort(sapXep)];
+  return [...moiNhatTruoc(con.filter((d) => d.amount < 0)), ...moiNhatTruoc(con.filter((d) => d.amount > 0))];
 }
 /** Cờ xe thuê (ADR C2a): chủ là công ty chủ ⇒ 0; chủ đang mở vai nhà xe ⇒ 1; còn lại (đã thôi vai) ⇒ giữ cờ cũ khi đổi xe (cấm hạ), 0 khi tạo mới. */
 export function phanLoaiThue(v: { chuXePartyId: string; congTyChuId: string | null; nhaXeDangMo: ReadonlySet<string>; cuRented: 0 | 1 | null }): 0 | 1 {

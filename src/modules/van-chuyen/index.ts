@@ -75,8 +75,10 @@ import { lyDoGiuDto, xeCuaDonDto } from "./dieu-phoi-dto";
 import type { BangGiaDongResponse, CoXeListResponse, TuyenListResponse } from "../../shared/contracts";
 import { bangGiaDto, coXeDto, tuyenDto } from "./tien-xe-dto";
 import { phanLoaiThue } from "./tien-xe";
+import { chiTietChiPhiNhatKy, keHoachChiPhiKhiDoi } from "./tien-xe-lo";
+import { CAU_NHA_XE_THOI } from "./rules";
 import {
-  docBangGia, docPhanLoai, lenhKetThucGia, lenhSuaCoXe, lenhSuaTuyen, lenhThemCoXe, lenhThemGia, lenhThemTuyen,
+  docBangGia, docChiPhiChoLenh, lenhKetThucGia, tenTuyen, tenTuyenDangDung, lenhSuaCoXe, lenhSuaTuyen, lenhThemCoXe, lenhThemGia, lenhThemTuyen,
 } from "./tien-xe-lenh";
 import { listRoutes, listSizes } from "./tien-xe-repo";
 import { MA_TUYEN_CO_RE, docCoXeMoi, docKetThucGia, docSuaCoXe, docSuaTuyen, docThemGia, docTuyenMoi } from "./tien-xe-than";
@@ -928,6 +930,7 @@ export const vanChuyenModule: AppModule = {
         const xeRow = chung.xe.find((x) => x.id === t.xeId);
         if (!xeRow) return error(400, "invalid_input", "Xe không có hoặc đã ngừng dùng.");
         if (t.nghiPhaLe && !lyDoHopLe(chung, t.nghiPhaLe.lyDo, "PHA_LE")) return error(400, "invalid_input", "Lý do phá lệ không có trong danh mục.");
+        if (t.tuyen !== null && (await tenTuyenDangDung(env.DB, t.tuyen)) === null) return error(400, "invalid_input", "Tuyến không có hoặc đã ngừng dùng.");
         // LC-13 phần CHỈ máy chủ giữ (R-P8): hồ sơ không có trong `taiXeChoDieuPhoi` (không mở vai tài xế công ty, không thuộc nhà xe nào) → chéo xe – tài xế.
         if (!chung.taiXe.some((x) => x.partyId === t.taiXePartyId)) return loi409("cheo_xe_tai_xe", [lyDoGiu("CHEO_XE_TAI_XE")]);
         const khac = await tripsTouching(env.DB, t.batDauMs - NGAY_MS, t.ketThucMs + NGAY_MS);
@@ -938,7 +941,15 @@ export const vanChuyenModule: AppModule = {
         const chan = loiKiem(kq, staff, null, { moc: false, nghi: t.nghiPhaLe !== null });
         if (chan) return chan;
         const ngayChay = msToVnLocal(t.batDauMs).date;
-        const phanLoai = await docPhanLoai(env.DB); // ADR-0057 C2a: cờ xe thuê chụp lúc xếp
+        // ADR-0057 C2a, C4: cờ xe thuê + chụp giá bảng LÚC XẾP xe nhà xe (cùng lô); thiếu giá ⇒ không dòng nào (chuyến bị giữ THIEU_GIA tới khi có giá).
+        const cp = await docChiPhiChoLenh(env.DB, { tripId: null, chuXe: xeRow.owner_party_id, homNay: vnToday(new Date(bayGioMs)) });
+        const thue = phanLoaiThue({ chuXePartyId: xeRow.owner_party_id, congTyChuId: cp.congTyChuId, nhaXeDangMo: cp.nhaXeDangMo, cuRented: null });
+        const kh = keHoachChiPhiKhiDoi({
+          dong: [], rentedMoi: thue, chuXeMoi: xeRow.owner_party_id, nhaXeDangMo: cp.nhaXeDangMo, laTaoMoi: true, doiXeHoacNhaXe: false, doiTuyen: false, doiNgay: false,
+          tuyenMoi: t.tuyen, soChoMoi: xeRow.passenger_capacity, ngayChayMoi: ngayChay, gia: cp.gia, coXe: cp.coXe,
+        });
+        if (!kh.ok) return error(409, "carrier_inactive", CAU_NHA_XE_THOI);
+        const tenT = t.tuyen ? ` · tuyến ${await tenTuyen(env.DB, t.tuyen)}` : "";
         const id = crypto.randomUUID();
         for (let lan = 0; ; lan++) {
           const ma = `CX-${ngayChay.slice(8, 10)}${ngayChay.slice(5, 7)}-${String((await tripCountByDate(env.DB, ngayChay)) + 1 + lan).padStart(2, "0")}`;
@@ -946,11 +957,12 @@ export const vanChuyenModule: AppModule = {
             cmd: crypto.randomUUID(), requestId: t.requestId, lucIso: nowIso, nguoiId: staff.id,
             chuyen: {
               id, ma, xeId: xeRow.id, chuXePartyId: xeRow.owner_party_id, ngayChay, batDauMs: t.batDauMs, ketThucMs: t.ketThucMs, nghiChup: chung.chinhSach?.rest_minutes ?? 0,
-              nghiPhaLeLyDo: t.nghiPhaLe?.lyDo ?? null, thue: phanLoaiThue({ chuXePartyId: xeRow.owner_party_id, ...phanLoai, cuRented: null }), tuyen: null,
+              nghiPhaLeLyDo: t.nghiPhaLe?.lyDo ?? null, thue, tuyen: t.tuyen,
             },
+            chiPhi: kh.kh,
             taiXePartyId: t.taiXePartyId, policyId: chung.chinhSach?.id ?? null,
             phaLeNghi: t.nghiPhaLe ? { luat: "KHOANG_NGHI", lyDo: t.nghiPhaLe.lyDo, policyId: chung.chinhSach?.id ?? null } : null,
-            detail: `${ma} · xe ${xeRow.plate_number} (${xeRow.passenger_capacity} chỗ) · ${gioNgan(t.batDauMs)} → ${gioNgan(t.ketThucMs)}${t.nghiPhaLe ? phaLeNhatKy("KHOANG_NGHI", nhanLyDo(chung, t.nghiPhaLe.lyDo)) : ""}`,
+            detail: `${ma} · xe ${xeRow.plate_number} (${xeRow.passenger_capacity} chỗ) · ${gioNgan(t.batDauMs)} → ${gioNgan(t.ketThucMs)}${tenT}${t.nghiPhaLe ? phaLeNhatKy("KHOANG_NGHI", nhanLyDo(chung, t.nghiPhaLe.lyDo)) : ""}${chiTietChiPhiNhatKy(kh.kh, thue)}`,
           });
           try {
             const r = await chayLo(env.DB, lo, t.requestId);

@@ -5,10 +5,11 @@ import { nhaXeDangHopTac, ownerCompany } from "../parties";
 import type { BangGiaResponse, StaffProfile } from "../../shared/contracts";
 import { error } from "../../shared/http";
 import { addDays } from "../../shared/vn-date";
-import { chuTien, dongChongGia, type DongGiaThue } from "./tien-xe";
+import { chuTien, dongChongGia, type CoXe, type DongChiPhi, type DongGiaThue } from "./tien-xe";
+import { dongCua } from "./tien-xe-lo";
 import { bangGiaDto, coXeDto, tuyenDto } from "./tien-xe-dto";
 import {
-  closeRateStatement, findRate, findRoute, findSize, inactiveCarriersWithOpenRate, insertRateStatement, insertRouteStatement, insertSizeStatement, listRoutes, listSizes, partyName,
+  closeRateStatement, costLinesOfTrip, findRate, findRoute, findSize, inactiveCarriersWithOpenRate, insertRateStatement, insertRouteStatement, insertSizeStatement, listRoutes, listSizes, partyName,
   ratesOfCarrier, routeCount, sizeCount, updateRouteStatement, updateSizeStatement, type RateRow, type RouteRow, type SizeRow,
 } from "./tien-xe-repo";
 import { nhanCoXeMacDinh, type ThemGiaThan } from "./tien-xe-than";
@@ -18,6 +19,27 @@ export async function docPhanLoai(db: D1Database): Promise<{ congTyChuId: string
   const [cty, nx] = await Promise.all([ownerCompany(db), nhaXeDangHopTac(db)]);
   return { congTyChuId: cty?.partyId ?? null, nhaXeDangMo: new Set(nx.map((c) => c.partyId)) };
 }
+
+/**
+ * Dữ liệu chi phí cho MỘT lệnh chuyến (tạo / sửa / huỷ — ADR-0057 C4): dòng chi phí đã có của chuyến (thứ tự ghi), giá của nhà xe MỚI, cỡ xe, phân loại xe
+ * thuê. Đọc SAU `can()`, TRƯỚC khi dựng lô; số dòng = phiên bản chi phí cho câu cổng (TC-8).
+ */
+export async function docChiPhiChoLenh(db: D1Database, v: { tripId: string | null; chuXe: string; homNay: string }): Promise<{
+  dong: (DongChiPhi & { carrierPartyId: string })[]; gia: DongGiaThue[]; coXe: CoXe[]; congTyChuId: string | null; nhaXeDangMo: ReadonlySet<string>;
+}> {
+  const [dong, gia, co, pl] = await Promise.all([
+    v.tripId ? costLinesOfTrip(db, v.tripId) : Promise.resolve([]), ratesOfCarrier(db, v.chuXe), listSizes(db, v.homNay), docPhanLoai(db),
+  ]);
+  return {
+    dong: dong.map(dongCua), gia: gia.map(dongGia), coXe: co.map((c) => ({ code: c.code, min: c.min_passengers, max: c.max_passengers, active: c.active === 1 })), ...pl,
+  };
+}
+/** Tuyến chọn khi xếp phải có và đang dùng (400 nếu không) — trả tên để ghi nhật ký. */
+export async function tenTuyenDangDung(db: D1Database, code: string): Promise<string | null> {
+  const r = await findRoute(db, code);
+  return r && r.active === 1 ? r.name : null;
+}
+export const tenTuyen = async (db: D1Database, code: string | null): Promise<string> => (code ? ((await findRoute(db, code))?.name ?? code) : "chưa chọn");
 
 /** Câu lời theo bản vẽ Đợt 4 (ADR-0057 B4 lớp máy chủ). */
 export const CAU_NHA_XE_THOI_GIA = "Nhà xe này đã thôi hợp tác — không thể thêm giá mới.";
