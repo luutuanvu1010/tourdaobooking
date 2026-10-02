@@ -1,6 +1,6 @@
 // Module van-chuyen — phân hệ Vận chuyển, lượt 1a (ADR-0040 D1): xe, giấy tờ xe, danh mục loại giấy tờ xe, ngưỡng "sắp hết hạn", danh sách giấy tờ sắp hết
 // hạn (xe + tài xế). Route: /api/van-chuyen/*. Tiền tố bảng vc_ (module nghiêm — STRICT). Phụ thuộc: parties (hàm công bố ownerCompany — chủ xe;
-// expiringDriverDocuments — giấy tờ tài xế, KHÔNG số; nhaXeDangHopTac — nhà xe đối tác, ADR-0048 D1) và audit (auditStatement). KHÔNG module nào import van-chuyen; ngoài AppModule chỉ xuất ba hàm công bố cho gốc lắp ráp: mocToiThieuHienHanh (ADR-0049 D2), nguongHetHanHienHanh (ADR-0040 D1) và viecXeCuaNguoi (ADR-0068 Đ2).
+// expiringDriverDocuments — giấy tờ tài xế, KHÔNG số; nhaXeDangHopTac — nhà xe đối tác, ADR-0048 D1) và audit (auditStatement). KHÔNG module nào import van-chuyen; ngoài AppModule chỉ xuất năm hàm công bố cho gốc lắp ráp: mocToiThieuHienHanh (ADR-0049 D2), nguongHetHanHienHanh (ADR-0040 D1), viecXeCuaNguoi (ADR-0068 Đ2), suKienTheoYeuCau và chuyenChoTinTheoId (tin chuyến — ADR-0052 D6.3).
 // Ô quyền: vehicle.manage (Quản trị + Toàn quyền) hỏi ở ĐẦU thân mọi route, trước khi đọc thân yêu cầu (403 trước 400).
 import { auditStatement } from "../audit";
 import { expiringDriverDocuments, nhaXeDangHopTac, ownerCompany } from "../parties";
@@ -122,6 +122,8 @@ export const nguongHetHanHienHanh = (db: D1Database): Promise<number> => current
 
 /** HÀM CÔNG BỐ (ADR-0068 Đ2) — CHỈ gốc lắp ráp gọi (ctx.gopHoSo của route gộp hồ sơ ở parties). Khe giữa kiểm và ghi chấp nhận được, R-PTY-MERGE-4 bắt nếu lọt. */
 export { viecXeCuaNguoi } from "./chuyen-repo";
+// TIN CHUYẾN (ADR-0052 D6.3): CHỈ gốc lắp ráp gọi (bài siết ở src/architecture.test.ts) — thongbao nhận dữ kiện qua ctx.chuyenChoTin.
+export { chuyenChoTinTheoId, suKienTheoYeuCau } from "./chuyen-repo";
 
 // ---- Chính sách điều phối, điều kiện xuất bến, hạng bằng, danh mục lý do (ADR-0049 D2; kế hoạch mục 1.7 route 9–18, Task A7) ------------------------------
 // Chính sách / điều kiện / hạng bằng: dòng có ngày hiệu lực, CHỈ THÊM, `valid_from_at` = lúc ghi (I28). Hai lần ghi cùng mili-giây vấp khoá duy nhất → 409

@@ -31,7 +31,8 @@ function loaiCho(n: NguoiNhanChuyen, d: DongChuyen): LoaiTinChuyen | null {
   if (k && can(n, "trip.view", { assigned: true })) {
     if (d.action === "trip_created") return "xep_lai";
     if (d.action === "trip_cancelled") return "huy_chuyen";
-    if (d.action === "trip_edited") return k.tu === d.luc ? "xep_lai" : k.den === d.luc ? "go_lai" : "doi_chuyen";
+    // Dòng ĐÓNG đúng mốc xét trước dòng MỞ đúng mốc: dòng vừa tạo rồi bị đổi ra trong cùng mili-giây (chỉ xảy ra ở đồng hồ giả) vẫn là "không còn lái".
+    if (d.action === "trip_edited") return k.den === d.luc ? "go_lai" : k.tu === d.luc ? "xep_lai" : "doi_chuyen";
   }
   if (!can(n, "trip.view")) return null; // không ngữ cảnh = ô any (văn phòng). DRIVER (assigned) / FIELD / PARTNER / INTERN / DRIVER_PARTNER dừng ở đây.
   if (d.action === "trip_ended_interrupted" && can(n, "trip.dispatch")) return "gian_doan";
