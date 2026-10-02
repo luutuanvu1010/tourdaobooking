@@ -90,11 +90,11 @@ export async function dungMucChinhSach(el: HTMLElement): Promise<void> {
       h("div", { class: "maint-actions" },
         nut("Tất cả một máy", () => { for (const c of QUYEN_DAT_DUOC) chon.set(c, false); xemTruoc = null; render(); }, "btn"),
         nut("Tất cả nhiều máy", () => { for (const c of QUYEN_DAT_DUOC) chon.set(c, true); xemTruoc = null; render(); }, "btn"),
-        coDoi && nut("Lưu chính sách", () => void bamLuu(), "btn btn-primary")),
+        coDoi && nut("Lưu chính sách", () => void bamLuu(), "btn btn-primary btn-chinh")),
       xemTruoc && h("div", { class: "maint-confirm", role: "group", "aria-label": "Xác nhận lưu chính sách" },
         h("p", null, h("strong", null, `Sẽ đăng xuất ${xemTruoc.soPhien} máy của ${xemTruoc.soNguoi} người. Lưu?`)),
         h("div", { class: "maint-actions" },
-          nut("Xác nhận lưu", () => void xacNhan(), "btn btn-primary"),
+          nut("Xác nhận lưu", () => void xacNhan(), "btn btn-primary btn-chinh"),
           nut("Thôi", () => { xemTruoc = null; render(); }, "btn"))),
     );
     el.hidden = false;

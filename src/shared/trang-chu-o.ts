@@ -99,6 +99,17 @@ export function oTrangChu(who: PermissionHolder): LuoiTrangChu {
  */
 export const O_TOI: OChucNang = { khoa: "toi", nhan: "Tôi", href: "/account" };
 
+/**
+ * Màu của ô theo NHÓM (thị giác 1.70, chủ dự án duyệt 2026-10-02): "chot" = san hô (Tạo đơn — hành động chốt), "vc" = ngọc (Vận chuyển), "toi" = cát (Của tôi,
+ * kể cả ô Tôi của máy tính); null = màu biển mặc định (Bán hàng, Quản lý). web/home.ts gắn lớp `dash-o-hop-<màu>`; nhóm lấy từ đúng bảng DS ở trên.
+ */
+export type MauO = "chot" | "vc" | "toi";
+export function mauO(khoa: KhoaO): MauO | null {
+  if (khoa === "tao-don") return "chot";
+  const nhom = khoa === O_TOI.khoa ? "Của tôi" : DS.find((o) => o.khoa === khoa)?.nhom;
+  return nhom === "Vận chuyển" ? "vc" : nhom === "Của tôi" ? "toi" : null;
+}
+
 /** Nhóm ô của dải chào máy tính: MỌI chức năng (không giới hạn 8, không ô "Tất cả"), cùng nhóm và thứ tự như bảng trượt điện thoại, thêm ô "Tôi". */
 export function nhomMayTinh(who: PermissionHolder): LuoiTrangChu["nhom"] {
   return oTrangChu(who).nhom.map((g) => (g.ten === "Của tôi" ? { ten: g.ten, o: [O_TOI, ...g.o] } : g));

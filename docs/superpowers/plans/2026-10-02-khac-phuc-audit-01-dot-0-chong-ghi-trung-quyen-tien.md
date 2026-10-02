@@ -682,6 +682,17 @@ Người thi công **không** tự báo "đạt" (N8). Báo cáo cuối cho ch�
 
 ---
 
+## 12b. Đặt khoá `LAN_GUI_SECRET` trên production (việc của chủ — soạn 2026-10-02 theo lời chủ "chuẩn bị … đặt khoá bí mật")
+- **Đặt sớm được và an toàn:** mã đang chạy chưa đọc khoá này, nên không ảnh hưởng người dùng.
+  - Lệnh `wrangler secret put` tạo một phiên bản Worker mới với **cùng mã đang chạy**, chỉ thêm bí mật.
+  - Đặt trước thì lúc triển khai Đợt 0, cổng kiểm khoá (L13) qua ngay.
+- **Lệnh** (chủ chạy trong Terminal, đứng ở thư mục `tourdao-sales`; AI bị cấm chạy `wrangler secret …`, CLAUDE.md §8):
+  - `openssl rand -base64 48 | tr -d '\n' | npx wrangler secret put LAN_GUI_SECRET`
+  - Khoá sinh ngẫu nhiên 64 ký tự, đi thẳng vào Cloudflare, **không hiện ra màn hình, không lưu ở đâu khác**. Không cần giữ: mất khoá thì đặt khoá mới. Hệ quả duy nhất của việc đổi khoá: vé cũ gửi lại nhận 422 thay vì "đã ghi".
+- **Kiểm:** `npx wrangler secret list` phải có dòng `LAN_GUI_SECRET` (chỉ hiện tên, không hiện giá trị).
+- **Máy của chủ (chạy thử cục bộ, chỉ cần khi thi công xong Đợt 0):** thêm dòng `LAN_GUI_SECRET=<giá trị bất kỳ ≥ 32 ký tự, khác khoá thật>` vào `.dev.vars` của từng chỗ chạy `npm run dev`. Phiên thi công nhắc lại lúc đó.
+- **Gặp lỗi Cloudflare 7403** ở lần gọi đầu: chạy lại (xem `docs/QUY-TRINH-PHAT-HANH.md`, mục "Nếu gặp lỗi Cloudflare 7403").
+
 ## 13. Câu cần chủ quyết — CHỦ ĐÃ ĐỒNG Ý C1 = (A), C2 = (A) (chat 2026-10-02, câu (e), (f))
 
 > Phiên lập kế hoạch từng áp khuyến nghị cho C1, C2. **Vòng đối chiếu độc lập chỉ ra không được tự áp**:
