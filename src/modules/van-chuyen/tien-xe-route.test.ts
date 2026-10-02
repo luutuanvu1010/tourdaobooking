@@ -715,3 +715,64 @@ test("Bảng kê nhóm theo NHÀ XE CHỊU CHI PHÍ: chuyến của nhà xe A đ
     tat();
   }
 });
+
+// ==== Vòng sửa 1 (người kiểm độc lập — mục thấp) ======================================================================================================
+test("Vòng sửa 1: nhật ký bảng giá / tuyến / cỡ xe KHÔNG gắn targetType 'trip' cho id không phải chuyến — giá: hồ sơ nhà xe ('party'); tuyến, cỡ xe: không đối tượng (khuôn lý do điều phối)", async () => {
+  const w = setup();
+  const nx = nhaXeKhung(w);
+  const t = await tuyenMoi(w, "Tuyến nhật ký");
+  await w.call("PUT", `/api/van-chuyen/tuyen/${t}`, { as: ACC, body: { ten: "Tuyến nhật ký 2" } });
+  const c = await coMoi(w, 10, 16);
+  await w.call("PUT", `/api/van-chuyen/co-xe/${c}`, { as: ACC, body: { nhan: "Xe 16 chỗ" } });
+  const a = await themGia(w, ACC, { nhaXePartyId: nx, tuyen: t });
+  await w.call("POST", `/api/van-chuyen/bang-gia/${a.json.dong.id}/ket-thuc`, { as: ACC, body: { denNgay: "2026-12-31" } });
+  const rows = w.q("SELECT action, target_type, target_id FROM audit_log WHERE action IN ('rental_rate_added', 'rental_rate_closed', 'route_saved', 'vehicle_size_saved') ORDER BY created_at, rowid")
+    .map((r: any) => [r.action, r.target_type, r.target_id]);
+  assert.equal(rows.length, 6);
+  for (const [action, type, id] of rows) {
+    if (String(action).startsWith("rental_rate")) assert.deepEqual([type, id], ["party", nx], String(action));
+    else assert.deepEqual([type, id], [null, null], String(action));
+  }
+});
+
+test("Vòng sửa 1: chặn TỔNG ÂM ở LỚP MÁY CHỦ (điều chỉnh, đảo dòng) — gỡ trigger vc_trip_cost_line_total trong DB thử, máy chủ vẫn 409 tong_am, không dòng mới", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const n = await nenThue(w);
+    const id = (await taoThue(w, { xe: n.x16, taiXe: n.tx, tuyen: n.crt })).json.chuyen.id;
+    w.sqlite.exec("DROP TRIGGER vc_trip_cost_line_total"); // chỉ còn lớp máy chủ
+    const am = await ghiCp(w, id, "dieu-chinh", { soTien: -1_300_000, lyDo: "CPX_KHAC", ghiChu: null });
+    assert.equal(am.status, 409, am.text);
+    assert.equal(am.json.error.code, "tong_am");
+    const dc = await ghiCp(w, id, "dieu-chinh", { soTien: -200_000, lyDo: "CPX_NHAP_SAI", ghiChu: null });
+    assert.equal(dc.status, 201, dc.text);
+    const v9 = await ghiCp(w, id, "dao", { dongId: dc.json.chiPhi.dong[0].id, lyDo: "CPX_NHAP_SAI", ghiChu: null });
+    assert.equal(v9.status, 409, v9.text);
+    assert.equal(v9.json.error.code, "tong_am");
+    assert.equal(dongCp(w, id).length, 2, "không dòng mới");
+  } finally {
+    tat();
+  }
+});
+
+test("Vòng sửa 1: đổi sang xe nhà xe A KÈM tài xế của nhà xe B → bị chặn (chéo xe – tài xế), không ghi gì", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const n = await nenThue(w);
+    const id = (await taoThue(w, { xe: n.x16, taiXe: n.tx, tuyen: n.crt })).json.chuyen.id;
+    const nxA = nhaXeKhung(w, "Nhà xe A");
+    const xeA = xeNhaXe(w, nxA, 16);
+    const nxB = nhaXeKhung(w, "Nhà xe B");
+    const txB = taiXeNhaXe(w, nxB);
+    const truoc = dongCp(w, id);
+    const r = await sua(w, id, { xeId: xeA, taiXePartyId: txB });
+    assert.equal(r.status, 409, r.text);
+    assert.match(r.text, /CHEO_XE_TAI_XE|cheo_xe_tai_xe|Tài xế không thuộc chủ của xe/);
+    assert.deepEqual(dongCp(w, id), truoc, "không dòng chi phí mới");
+    assert.equal(w.q("SELECT vehicle_id v FROM vc_trip WHERE id = ?", id)[0].v, n.x16);
+  } finally {
+    tat();
+  }
+});

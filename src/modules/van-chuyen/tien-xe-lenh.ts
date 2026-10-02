@@ -118,7 +118,7 @@ export async function lenhThemGia(db: D1Database, b: ThemGiaThan, staff: StaffPr
   if (thay && ngayDong) lo.push(closeRateStatement(db, thay.id, ngayDong, nowIso, staff.id));
   lo.push(insertRateStatement(db, { id: b.requestId, carrier: b.nhaXePartyId, route: b.tuyen, size: b.coXe, amount: b.soTien, from: b.tuNgay, to: b.denNgay, note: b.ghiChu, replaces: thay?.id ?? null }, nowIso, staff.id));
   lo.push(auditStatement(db, {
-    staffId: staff.id, action: "rental_rate_added", at: nowIso, targetType: "trip", targetId: b.requestId,
+    staffId: staff.id, action: "rental_rate_added", at: nowIso, targetType: "party", targetId: b.nhaXePartyId,
     detail: `${nhaXe.displayName} · ${khoa} · ${thay ? `${chuTien(thay.amount)} → ` : ""}${chuTien(b.soTien)} đ/chuyến · từ ${b.tuNgay}${b.denNgay ? ` đến ${b.denNgay}` : ""}${thay ? ` (giá cũ kết thúc ${ngayDong})` : ""}`,
   }));
   const r = await chay(db, lo);
@@ -142,7 +142,7 @@ export async function lenhKetThucGia(db: D1Database, id: string, denNgay: string
   const kq = await chay(db, [
     closeRateStatement(db, id, denNgay, nowIso, staff.id),
     auditStatement(db, {
-      staffId: staff.id, action: "rental_rate_closed", at: nowIso, targetType: "trip", targetId: id,
+      staffId: staff.id, action: "rental_rate_closed", at: nowIso, targetType: "party", targetId: r.carrier_party_id,
       detail: `${ten ?? "nhà xe"} · ${moTaKhoa(tuyen, co)} · ${chuTien(r.amount)} đ/chuyến · kết thúc ${denNgay}`,
     }, "changes() > 0"),
   ]);
@@ -161,7 +161,7 @@ export async function lenhThemTuyen(db: D1Database, v: { ten: string; thuTu: num
     try {
       await db.batch([
         insertRouteStatement(db, { code, name: v.ten, sortOrder: v.thuTu ?? 0 }, nowIso, staff.id),
-        auditStatement(db, { staffId: staff.id, action: "route_saved", at: nowIso, targetType: "trip", targetId: code, detail: `Thêm tuyến ${v.ten}` }),
+        auditStatement(db, { staffId: staff.id, action: "route_saved", at: nowIso, detail: `Thêm tuyến ${v.ten}` }),
       ]);
       return (await findRoute(db, code))!;
     } catch (e) {
@@ -180,7 +180,7 @@ export async function lenhSuaTuyen(
   const doi = [moi.name !== cu.name ? `tên ${cu.name} → ${moi.name}` : null, moi.active !== (cu.active === 1) ? (moi.active ? "dùng lại" : "ngưng dùng") : null].filter(Boolean);
   await db.batch([
     updateRouteStatement(db, moi, nowIso, staff.id),
-    auditStatement(db, { staffId: staff.id, action: "route_saved", at: nowIso, targetType: "trip", targetId: code, detail: `Tuyến ${moi.name}: ${doi.join(", ") || "đổi thứ tự"}` }),
+    auditStatement(db, { staffId: staff.id, action: "route_saved", at: nowIso, detail: `Tuyến ${moi.name}: ${doi.join(", ") || "đổi thứ tự"}` }),
   ]);
   return (await findRoute(db, code))!;
 }
@@ -191,7 +191,7 @@ export async function lenhThemCoXe(db: D1Database, v: { tu: number; den: number;
     const code = maSinh("S", dem + 1 + lan);
     const kq = await chay(db, [
       insertSizeStatement(db, { code, label: nhan, min: v.tu, max: v.den, sortOrder: 0 }, nowIso, staff.id),
-      auditStatement(db, { staffId: staff.id, action: "vehicle_size_saved", at: nowIso, targetType: "trip", targetId: code, detail: `Thêm cỡ xe ${nhan} (${v.tu}–${v.den} khách)` }),
+      auditStatement(db, { staffId: staff.id, action: "vehicle_size_saved", at: nowIso, detail: `Thêm cỡ xe ${nhan} (${v.tu}–${v.den} khách)` }),
     ]).catch((e: unknown) => {
       if (e instanceof Error && /UNIQUE constraint failed: vc_vehicle_size\.code/.test(e.message)) return null;
       throw e;
@@ -209,7 +209,7 @@ export async function lenhSuaCoXe(db: D1Database, code: string, v: { nhan: strin
   const doi = [moi.label !== cu.label ? `nhãn ${cu.label} → ${moi.label}` : null, moi.active !== (cu.active === 1) ? (moi.active ? "dùng lại" : "ngưng dùng") : null].filter(Boolean);
   const kq = await chay(db, [
     updateSizeStatement(db, moi, nowIso, staff.id),
-    auditStatement(db, { staffId: staff.id, action: "vehicle_size_saved", at: nowIso, targetType: "trip", targetId: code, detail: `Cỡ xe ${moi.label}: ${doi.join(", ") || "không đổi"}` }),
+    auditStatement(db, { staffId: staff.id, action: "vehicle_size_saved", at: nowIso, detail: `Cỡ xe ${moi.label}: ${doi.join(", ") || "không đổi"}` }),
   ]);
   if (!kq.ok) return kq.res;
   return (await findSize(db, code))!;
