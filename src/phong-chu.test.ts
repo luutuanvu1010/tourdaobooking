@@ -23,8 +23,10 @@ test("tệp phông khai trong CSS có thật, đủ lớn để chứa chữ Vi�
     assert.ok(url, "@font-face thiếu url");
     const file = new URL(`../public${url}`, import.meta.url);
     assert.ok(existsSync(file), `thiếu tệp ${url}`);
-    // Ba phông tuỳ chọn (Nunito, Lexend, Noto Sans) nhẹ hơn Be Vietnam Pro (~16–18 KB, đã kiểm đủ U+1EA0–1EF9 + dấu tổ hợp) nên ngưỡng 10 KB.
-    assert.ok(statSync(file).size > 10_000, `${url} quá nhỏ — có thể chỉ là tập con Latin hoặc tiếng Việt`);
+    // Be Vietnam Pro giữ ngưỡng 20 KB (hiện 27–29 KB). Ba phông tuỳ chọn (Nunito, Lexend, Noto Sans) nhẹ hơn: đo được 15,7–18,4 KB,
+    // đã kiểm cmap đủ U+1EA0–1EF9 + dấu tổ hợp nên ngưỡng riêng 10 KB. Hàng rào chỉ được siết, không nới cho Be Vietnam Pro.
+    const toiThieu = url.startsWith("/fonts/be-vietnam-pro-") ? 20_000 : 10_000;
+    assert.ok(statSync(file).size > toiThieu, `${url} quá nhỏ (≤ ${toiThieu} byte) — có thể chỉ là tập con Latin hoặc tiếng Việt`);
     // Chỉ Be Vietnam Pro (mặc định) nạp sẵn; phông tuỳ chọn của ADR-0087 tải khi cần, KHÔNG được nằm trong PRECACHE (đặc tả §5).
     if (url.startsWith("/fonts/be-vietnam-pro-")) assert.ok(PRECACHE.includes(url), `${url} chưa có trong PRECACHE (src/shared/sw-policy.ts)`);
     else assert.ok(!PRECACHE.includes(url), `${url} là phông tuỳ chọn, không được nạp sẵn trong PRECACHE`);
