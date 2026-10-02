@@ -70,7 +70,7 @@
       "muc_do": "HIGH",
       "ly_do": "Đơn huỷ còn tiền đã thu: \"phải thu\" không xét trạng thái huỷ nên sổ, trang đơn và biên nhận gửi khách vẫn ghi \"còn lại\" (khách trông như CÒN NỢ), không có đường ghi \"cọc giữ lại\" hay quyết định hoàn (src/modules/orders/hoan-tat.ts:9-18,64). Tình huống 09, 26, HD06, HD08, QT05, DT04. Chính sách chủ 2026-10-02: khách huỷ thì mặc định KHÔNG hoàn cọc; công ty có thể hoàn (không bắt buộc), tối đa 60 ngày sau ngày khởi hành dự kiến.",
       "ke_hoach": "Theo ADR-0089 (accepted 2026-10-02 — docs/adr/ADR-0089-don-huy-coc-mac-dinh-giu-hoan-tuy-chon.md): hàm duy nhất billing.conLai nhận cờ đơn huỷ → còn lại 0, cọc mặc định giữ; hoàn tuỳ chọn hai bước (duyệt / chi, khác người), tổng chi ≤ tổng duyệt ≤ đã trả, hạn 60 ngày; lý do huỷ ba nhóm bắt buộc; trạng thái cọc ở biên nhận + trang đơn + màn sổ. Chủ ĐÃ DUYỆT văn bản lượt 1a + 1b (2/10); còn QH5 (dữ liệu cũ). Thi công sau khi chuyển vào docs/adr/; người kiểm độc lập.",
-      "han": "2026-10-15",
+      "han": "2026-10-31",
       "nguoi_chiu_trach_nhiem": "chủ dự án",
       "nguon": "~/Documents/danh-gia-ux/2026-10-01/BAO-CAO.md G1; chủ dự án đồng ý đưa vào sổ 2026-10-02"
     },
