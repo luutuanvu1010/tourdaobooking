@@ -31,6 +31,11 @@
 
 Khi đó khách hết bị ghi "còn nợ". Phần này **không** đóng TNV-G1.
 
+> **Lời chủ 2026-10-02** (về việc gia hạn TNV-G1): *"dữ liêụ chỉ là demo, không vấn đề gì"*.
+> - Dữ liệu production hiện là **dữ liệu thử**; lỗi đơn huỷ chưa gây hại thật.
+> - ⇒ **Gia hạn TNV-G1 tới 31/10** (nhánh `gia-han-tnv-g1`).
+> - ⇒ "Cầm máu" **không còn gấp**: Đợt 1 làm trọn sau Đợt 0, không cần phát hành Phần A trước.
+
 **Đợt 0 gồm hai luồng song song** (kế hoạch con):
 - **Luồng Q (ADR-0090):** nhỏ, không cần khoá, phát hành riêng sớm.
 - **Luồng L (ADR-0094 bản mở rộng):** đường găng; lịch đề xuất triển khai **13/10**. Chủ đặt khoá `LAN_GUI_SECRET` **trước**. Nếu tới 12/10 kiểm vòng 2 chưa đạt thì báo chủ.

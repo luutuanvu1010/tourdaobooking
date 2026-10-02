@@ -682,7 +682,11 @@ Người thi công **không** tự báo "đạt" (N8). Báo cáo cuối cho ch�
 
 ---
 
-## 12b. Đặt khoá `LAN_GUI_SECRET` trên production (việc của chủ — soạn 2026-10-02 theo lời chủ "chuẩn bị … đặt khoá bí mật")
+## 12b. Đặt khoá `LAN_GUI_SECRET` trên production — ✅ CHỦ ĐÃ ĐẶT 2026-10-02
+
+> Chủ báo trong chat 2026-10-02: *"đã làm 2, ✨ Success! Uploaded secret LAN_GUI_SECRET"*. AI chưa tự kiểm bằng `wrangler secret list`, vì hook cấm AI chạy `wrangler secret …`. Phiên thi công kiểm lại bằng cổng L13 trước lần triển khai Đợt 0.
+
+*(Hướng dẫn đã dùng, giữ lại để đặt lại khi cần:)*
 - **Đặt sớm được và an toàn:** mã đang chạy chưa đọc khoá này, nên không ảnh hưởng người dùng.
   - Lệnh `wrangler secret put` tạo một phiên bản Worker mới với **cùng mã đang chạy**, chỉ thêm bí mật.
   - Đặt trước thì lúc triển khai Đợt 0, cổng kiểm khoá (L13) qua ngay.
