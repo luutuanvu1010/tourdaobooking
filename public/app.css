@@ -1484,7 +1484,8 @@ body.login-page main.login { display: flex; flex-direction: column; height: 100%
   body.trang-chu.has-sidebar main { grid-row: 4; }
   body.trang-chu .maint-strip { display: none; } /* thay bằng viên "Đang ở chế độ bảo trì" trong dải chào (bản vẽ v2), cùng đích /account */
 
-  /* Dải chào — nền thẻ (chữ chính / chữ phụ đã được màn Giao diện canh tương phản trên nền này), viền dưới, hai đường sóng ở đáy. */
+  /* Dải chào — nền thẻ (chữ chính / chữ phụ đã được màn Giao diện canh tương phản trên nền này), viền dưới, hai đường sóng ở đáy.
+     Chủ dự án chốt 2026-10-02: GIỮ nền trắng (--c-surface), KHÔNG theo màu thanh trên (--c-bar-bg) như dải đầu điện thoại — chữ trên ô luôn đọc được. */
   .dash-dai { position: relative; display: block; overflow: hidden; background: var(--c-surface); border-bottom: 1px solid var(--c-border); }
   .dash-dai-song { position: absolute; right: 0; bottom: 0; left: 0; display: block; width: 100%; height: var(--home-wave-h); pointer-events: none; }
   .dash-dai-song path { fill: none; stroke-width: 1.2; }
