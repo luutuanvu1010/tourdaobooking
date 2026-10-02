@@ -23,6 +23,21 @@
 | **6** | R8 | Câu xác thực theo khoá (không quét bảng), phân trang hộp thông báo, bỏ N+1 "Việc của tôi", Bảng tin nối lại chỉ tải phần thiếu; câu xác thực vào `query-plan.test.mjs` | Không cần ADR | — | Sau Đợt 0 (router đổi) | vừa |
 | **7** | G12 | Câu báo lộ mã tiếng Anh, tìm đơn không dấu và SĐT chuẩn hoá, sửa các câu báo sai | Việc nhỏ | — | Bất kỳ lúc nào | nhỏ |
 
+**Đợt 1 "cầm máu"** (áp theo khuyến nghị, kế hoạch con §6–§7): Phần A của Đợt 1 có thể lên production **trước** Đợt 0, vì không thêm lệnh ghi tiền mới. Phần A gồm:
+- còn lại = 0;
+- lý do huỷ bắt buộc;
+- chặn người không phải Kế toán/Toàn quyền ghi thu vào đơn huỷ;
+- nhãn và ảnh thông báo huỷ.
+
+Khi đó khách hết bị ghi "còn nợ". Phần này **không** đóng TNV-G1.
+
+**Đợt 0 gồm hai luồng song song** (kế hoạch con):
+- **Luồng Q (ADR-0090):** nhỏ, không cần khoá, phát hành riêng sớm.
+- **Luồng L (ADR-0094 bản mở rộng):** đường găng; lịch đề xuất triển khai **13/10**. Chủ đặt khoá `LAN_GUI_SECRET` **trước**. Nếu tới 12/10 kiểm vòng 2 chưa đạt thì báo chủ.
+- **Migration dự kiến:** Đợt 0 lấy `0074`; Đợt 1 lấy `0075` trở đi. `0070`–`0073` đã giữ cho các nhánh Vận chuyển. Đo lại ngay trước khi day-len.
+
+**Khả năng kịp hạn 15/10:** F-02 (Đợt 0) có thể kịp nếu bắt đầu ngay. TNV-G1 (Đợt 1) **khó kịp**, vì phần duyệt, chi, chuyển phải chờ Đợt 0 gộp. **Chủ quyết gia hạn ngày 10/10** theo tình trạng Đợt 0.
+
 **Song song được:**
 - Đợt 5 (phần không chờ) và Đợt 7 chạy song song với Đợt 0–1, khác vùng mã.
 - Đợt 6 chờ Đợt 0, vì cùng chạm router.
