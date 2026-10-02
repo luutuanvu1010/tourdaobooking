@@ -27,6 +27,14 @@ export const laLoiDungVe = (e: unknown): boolean => /UNIQUE constraint failed: l
 export const LOI_TU_CHOI_SAU_DUNG_VE = "lan_gui_tu_choi: lệnh ghi sau khi đụng vé bị từ chối";
 
 const GOC = Symbol("lan-gui-goc");
+const DB_GOC = Symbol("lan-gui-db-goc");
+
+/**
+ * GHI NGOÀI VÉ (ADR-0094 đặc tả §3.5 bẫy 4; kế hoạch L12/T17): tay cầm D1 GỐC cho một câu ghi PHỤ đứng TRƯỚC lô chính của lệnh (vd dòng đếm "thân kiểu
+ * cũ" `demThanCu`) — câu đó không mang vé, không bị đếm, nên không "ăn" vé của lô chính (lô chính hỏng mà vé đã ghi ⇒ gửi lại bị báo nhầm "đã ghi").
+ * CHỈ nơi có tên trong `NGOAI_VE` (src/shared/lan-gui-no.ts) được gọi — bài src/lan-gui-no.test.ts ép. `db` không bọc ⇒ trả nguyên.
+ */
+export const dbNgoaiVe = (db: D1Database): D1Database => (db as unknown as { [DB_GOC]?: D1Database })[DB_GOC] ?? db;
 interface CauBoc {
   readonly [GOC]: D1PreparedStatement;
   readonly sql: string;
@@ -67,7 +75,12 @@ export function bocDb(goc: D1Database, cauVe: (dbGoc: D1Database) => D1PreparedS
       daGhiVe = true;
       return kq.slice(0, cau.length);
     } catch (e) {
-      if (laLoiDungVe(e)) dungVe = true;
+      if (laLoiDungVe(e)) {
+        dungVe = true;
+        console.warn(JSON.stringify({ event: "lan_gui_dung_ve" })); // không dữ liệu — để đếm/kiểm trên D1 thật rằng chữ lỗi được nhận ra
+      } else if (/lg_lan_gui/.test(e instanceof Error ? e.message : String(e))) {
+        console.error(JSON.stringify({ level: "error", event: "lan_gui_loi_la" })); // lỗi chạm bảng vé mà không khớp mẫu đụng vé — cần xem lại laLoiDungVe
+      }
       throw e;
     }
   }
@@ -102,6 +115,7 @@ export function bocDb(goc: D1Database, cauVe: (dbGoc: D1Database) => D1PreparedS
   }
 
   const db = {
+    [DB_GOC]: goc,
     prepare: (sql: string) => boc(goc.prepare(sql), sql),
     batch: async (stmts: D1PreparedStatement[]) => {
       const cau = stmts.map(goBoc);

@@ -65,6 +65,7 @@ test("(b) cùng vé, KHÁC thân ⇒ 422 ma_lan_gui_khac_noi_dung, không ghi th
 test("(c) gửi ĐỒNG THỜI cùng vé ⇒ 1 đơn; bên thua nhận 'đã ghi' hoặc 409 dang_xu_ly; gửi lại sau đó ⇒ phát lại", async () => {
   const w = setup();
   const ve = veMoi();
+  await w.token(A); // phiên dựng TRƯỚC: khung thử tạo phiên ở lần gọi đầu — hai lần đồng thời sẽ đụng chỉ mục phiên một máy (lỗi của khung thử, không của lớp)
   w.raoTraVe(2);
   const [r1, r2] = await Promise.all([1, 2].map(() => goi(w, "POST", "/api/orders", { as: A, body: orderBody(), ve })));
   assert.equal(soDon(w), 1, `${r1.status} ${r2.status}`);
@@ -91,6 +92,7 @@ test("(e) handler NUỐT lỗi UNIQUE (POST /api/staff, phone_taken) — hai l�
   const w = setup();
   const ve = veMoi();
   const body = { fullName: "Người Mới", phone: "0909999999", permissions: ["SALES"], taoHoSoMoi: true };
+  await w.token(SUP);
   w.raoTraVe(2);
   const kq = await Promise.all([1, 2].map(() => goi(w, "POST", "/api/staff", { as: SUP, body, ve })));
   assert.equal(w.q("SELECT count(*) AS n FROM staff WHERE phone = '0909999999'")[0].n, 1);
@@ -104,6 +106,7 @@ test("(e) handler NUỐT lỗi UNIQUE (POST /api/staff, phone_taken) — hai l�
 test("(f) lô thua mà vẫn ghi vé (LAST_ADMIN) ⇒ gửi lại nhận ĐÚNG 409 + mã lỗi cũ + câu cố định", async () => {
   const w = setup();
   const [v1, v2] = [veMoi(), veMoi()];
+  await w.token(SUP);
   w.raoTraVe(2);
   const [r1, r2] = await Promise.all([
     goi(w, "PUT", `/api/staff/${ADM}/permissions`, { as: SUP, body: { permissions: ["SALES"] }, ve: v1 }),

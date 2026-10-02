@@ -54,8 +54,8 @@ Hai luồng song song, mỗi luồng một phiên.
 - [x] 🤖 L2 module `lan-gui` — 2026-10-02, H6 quan sát chặn
 - [x] 🤖 L3 khoá bí mật ở mọi nơi dựng môi trường (khung thử, e2e, `.dev.vars.example`) — 2026-10-02
 - [x] 🤖 L4a bộ bọc cơ sở dữ liệu theo từng yêu cầu — 2026-10-02, chế độ nghiêm fakeD1 quan sát chặn
-- [ ] 🤖 commit bài **đỏ trước** (L5, L11)
-- [ ] 🤖 L4b router giai đoạn 1 (có vé thì áp, thiếu vé cho qua và đếm)
+- [x] 🤖 commit bài **đỏ trước** (L5, L11) — 2026-10-02 `27a3f5f1`
+- [x] 🤖 L4b router giai đoạn 1 (có vé thì áp, thiếu vé cho qua và đếm) — 2026-10-02, e2e đủ bộ 43/43; kèm trả nợ T17 (`demThanCu`)
 - [ ] 🔍 kiểm độc lập vòng 1 → **mở khoá Đợt 1**
 - [ ] 🤖 L5 H1 hành vi qua router thật; bài hồi quy có vé trong `src/`
 - [ ] 🤖 L6 H2 phủ route + tệp miễn

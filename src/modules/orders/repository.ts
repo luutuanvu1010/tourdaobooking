@@ -2,6 +2,7 @@ import { auditStatement, type AuditAction } from "../audit";
 import { LY_DO_DAT_GAP, chieuDiDau, isLyDoDatGap, xepChang, type ChangDaLuu, type ChangHopLe, type LyDoDongChang } from "../../shared/chang-dua-don";
 import type { LegDto, OrderDetailDto, OrderDto, OrderItemDto, OrderServiceDto, OrderSummaryDto, OrderSummaryTripDto } from "../../shared/contracts";
 import { escapeLike } from "../../shared/http";
+import { dbNgoaiVe } from "../../shared/lan-gui-boc";
 import { moTaDanhSachNhap, type HanhKhachHopLe } from "../../shared/hanh-khach";
 import {
   legCloseChecked, legCloseGuarded, legDeleteDraft, legFillDateOnConfirm, legInsert, legInsertGuarded, legPaxOverrideChecked, legUpdateChecked, legUpdateGuarded, openLegsByOrders,
@@ -1389,7 +1390,9 @@ export async function changeBooker(
  */
 export async function demThanCu(db: D1Database, staffId: string, loai: LoaiThanCu): Promise<void> {
   try {
-    await auditStatement(db, { staffId, action: "client_outdated_body", at: new Date().toISOString(), targetType: "system", detail: NHAN_THAN_CU[loai] }).run();
+    // NGOÀI VÉ (ADR-0094, T17 — mục có tên trong src/shared/lan-gui-no.ts): câu đếm đứng TRƯỚC lô chính, không được mang vé của lệnh.
+    const goc = dbNgoaiVe(db);
+    await auditStatement(goc, { staffId, action: "client_outdated_body", at: new Date().toISOString(), targetType: "system", detail: NHAN_THAN_CU[loai] }).run();
   } catch {
     console.log(JSON.stringify({ level: "warn", event: "dem_than_cu_loi", loai }));
   }

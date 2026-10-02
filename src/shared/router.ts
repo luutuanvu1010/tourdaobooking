@@ -5,6 +5,9 @@ import type { StaffProfile } from "./contracts";
 import type { ThayDoiDon, TrangThaiPhuTrach } from "./bang-tin.ts";
 import { NGUONG_MAC_DINH } from "./giay-to-hien-thi.ts";
 import { error, json } from "./http.ts";
+import { bocDb } from "./lan-gui-boc.ts";
+import { HEADER_PHAT_LAI, HEADER_VE, ketQuaDeLuu, kiemKhoa, phanLoai, thanPhatLai, type DongVe, type LanGuiNoi } from "./lan-gui-luat.ts";
+import { laMienLanGui } from "./lan-gui-mien.ts";
 import type { MocToiThieu } from "./moc-toi-thieu.ts";
 import type { ChuyenChoTin } from "./tin-chuyen.ts";
 import { canAccessOrders, isOffice, passesAccountsGate, passesAdminGate } from "./permissions.ts";
@@ -272,6 +275,11 @@ export interface AppOptions {
     nhapKeToanCuaDon: (env: Env, orderIds: readonly string[]) => Promise<Set<string>>;
     /** TIN CHUYẾN (ADR-0052 D6.3). BẮT BUỘC trong mã chạy thật (`src/index.ts`: `chuyenChoTinTheoId` của van-chuyen); thiếu (khung thử cố ý) → router trả `null`. */
     chuyenChoTin: (env: Env, q: { tripIds: readonly string[]; suKienIds: readonly string[] }) => Promise<ChuyenChoTin>;
+    /**
+     * LỚP CHỐNG GHI TRÙNG (ADR-0094 đ2) — phần của module `lan-gui` (gốc lắp ráp tiêm; router không import module). BẮT BUỘC: thiếu ⇒ MỌI route ghi có
+     * đăng nhập trả 500 `server_misconfigured` (T18) — không bao giờ lặng lẽ tắt lớp.
+     */
+    lanGui: LanGuiNoi;
   };
 }
 
@@ -279,6 +287,24 @@ export interface AppOptions {
 function ghiLoiBangTin(viec: "bao" | "dong" | "bao_chuyen", e: unknown): void {
   const name = e instanceof Error ? e.name : "unknown";
   console.error(JSON.stringify({ level: "error", event: "bang_tin_loi", viec, name }));
+}
+
+/** Lớp vé (ADR-0094): lỗi của việc chạy nền (cập nhật kết quả, đếm lặp) — chỉ tên lỗi, không dữ liệu. Dữ liệu nghiệp vụ không bị ảnh hưởng. */
+function ghiLoiLanGui(viec: "cap_nhat" | "tang_lap", e: unknown): void {
+  console.error(JSON.stringify({ level: "error", event: "lan_gui_loi", viec, name: e instanceof Error ? e.name : "unknown" }));
+}
+/** H5 (ADR-0094 đ3): lệnh ghi > 1 lần mỗi yêu cầu — đo ở giai đoạn 1; e2e đối chiếu với danh sách nợ có tên (src/shared/lan-gui-no.ts). */
+function ghiNhieuLan(duong: string, so: number): void {
+  if (so > 1) console.warn(JSON.stringify({ event: "lan_gui_ghi_nhieu_lan", duong, so }));
+}
+/** Mã lỗi máy (`error.code`) của phản hồi 4xx — đọc từ bản sao, chỉ giữ mã (không câu chữ: có thể chứa tên). */
+async function maLoiCua(res: Response): Promise<string | null> {
+  try {
+    const code = ((await res.clone().json()) as { error?: { code?: unknown } } | null)?.error?.code;
+    return typeof code === "string" && /^[a-z0-9_]{1,64}$/.test(code) ? code : null;
+  } catch {
+    return null;
+  }
 }
 
 /** `ctx.newOrderHandler` ở route công khai (không ai đăng nhập): không đạt, không truy vấn. */
@@ -325,13 +351,15 @@ export function createApp(opts: AppOptions) {
       if (hit.r.access === "orders" && !canAccessOrders(staff)) return error(403, "forbidden", "Tài khoản này không dùng được màn hình đơn.");
     }
     const who = staff;
-    return hit.r.handler({
-      request, env, exec, url, params: hit.params, staff, sessionId,
-      isAssigned: (orderId) => (who ? opts.injected.isAssigned(env, who.id, orderId) : Promise.resolve(false)),
-      newOrderHandler: (staffId) => (who ? opts.injected.newOrderHandler(env, who, staffId) : Promise.resolve(NOT_SIGNED_IN)),
-      ordersWithHandler: (orderIds) => opts.injected.ordersWithHandler(env, orderIds),
-      myHandledOrderIds: () => (who ? opts.injected.handledOrderIdsOf(env, who.id) : Promise.resolve([])),
-      partyAccount: (partyId) => (who ? opts.injected.partyAccount(env, who, partyId) : Promise.resolve({ linked: true, manageable: false } as const)),
+    // `envH` = env đưa cho handler và cho các hàm tiêm có câu đi vào CHÍNH lô của handler (ADR-0094 đặc tả §3.5 bẫy 6) — bản BỌC khi lệnh mang vé. Việc
+    // bắn-và-quên (Bảng tin, đóng kết nối, gõ cửa) ghi trong waitUntil, KHÔNG thuộc lô của lệnh ⇒ luôn dùng `env` gốc (không ăn vé, không bị từ chối).
+    const chayHandler = (envH: Env): Promise<Response> => hit.r.handler({
+      request, env: envH, exec, url, params: hit.params, staff, sessionId,
+      isAssigned: (orderId) => (who ? opts.injected.isAssigned(envH, who.id, orderId) : Promise.resolve(false)),
+      newOrderHandler: (staffId) => (who ? opts.injected.newOrderHandler(envH, who, staffId) : Promise.resolve(NOT_SIGNED_IN)),
+      ordersWithHandler: (orderIds) => opts.injected.ordersWithHandler(envH, orderIds),
+      myHandledOrderIds: () => (who ? opts.injected.handledOrderIdsOf(envH, who.id) : Promise.resolve([])),
+      partyAccount: (partyId) => (who ? opts.injected.partyAccount(envH, who, partyId) : Promise.resolve({ linked: true, manageable: false } as const)),
       baoThayDoi: (e) => {
         if (!who) return; // route công khai: không ai "báo" thay mặt.
         exec.waitUntil(Promise.resolve().then(() => opts.injected.baoThayDoi(env, who, e)).catch((err) => ghiLoiBangTin("bao", err)));
@@ -345,24 +373,97 @@ export function createApp(opts: AppOptions) {
       },
       giaoLoDay: (ds) => opts.injected.giaoLoDay(env, ds),
       // Thiếu hàm tiêm (khung thử cố ý) → null: route chặn, không đoán (I25). Kiểm lúc GỌI, không lúc dựng app (typeof — JS không kiểm kiểu).
-      mocToiThieu: () => (typeof opts.injected.mocToiThieu === "function" ? opts.injected.mocToiThieu(env) : Promise.resolve(null)),
-      nguongHetHan: () => (typeof opts.injected.nguongHetHan === "function" ? opts.injected.nguongHetHan(env) : Promise.resolve(NGUONG_MAC_DINH)),
-      huongDanVien: () => (typeof opts.injected.huongDanVien === "function" ? opts.injected.huongDanVien(env) : Promise.resolve([])),
+      mocToiThieu: () => (typeof opts.injected.mocToiThieu === "function" ? opts.injected.mocToiThieu(envH) : Promise.resolve(null)),
+      nguongHetHan: () => (typeof opts.injected.nguongHetHan === "function" ? opts.injected.nguongHetHan(envH) : Promise.resolve(NGUONG_MAC_DINH)),
+      huongDanVien: () => (typeof opts.injected.huongDanVien === "function" ? opts.injected.huongDanVien(envH) : Promise.resolve([])),
       nhanNhanVien: (ids) =>
-        typeof opts.injected.nhanNhanVien !== "function" ? Promise.resolve(null) : ids.length === 0 ? Promise.resolve(new Map()) : opts.injected.nhanNhanVien(env, ids),
+        typeof opts.injected.nhanNhanVien !== "function" ? Promise.resolve(null) : ids.length === 0 ? Promise.resolve(new Map()) : opts.injected.nhanNhanVien(envH, ids),
       // Lười (kế hoạch R9): gọi opts.injected.gopHoSo(env) trong từng phương thức — app dựng bằng injected cũ (src/shared/router.test.ts) không vỡ ở route khác.
       gopHoSo: {
-        viecCua: (id) => opts.injected.gopHoSo(env).viecCua(id),
-        donNguoiDat: (id) => opts.injected.gopHoSo(env).donNguoiDat(id),
-        cauDoiDon: (tu, sang, at) => opts.injected.gopHoSo(env).cauDoiDon(tu, sang, at),
-        soDongNo: (id) => opts.injected.gopHoSo(env).soDongNo(id),
-        soDangNhap: () => opts.injected.gopHoSo(env).soDangNhap(),
+        viecCua: (id) => opts.injected.gopHoSo(envH).viecCua(id),
+        donNguoiDat: (id) => opts.injected.gopHoSo(envH).donNguoiDat(id),
+        cauDoiDon: (tu, sang, at) => opts.injected.gopHoSo(envH).cauDoiDon(tu, sang, at),
+        soDongNo: (id) => opts.injected.gopHoSo(envH).soDongNo(id),
+        soDangNhap: () => opts.injected.gopHoSo(envH).soDangNhap(),
       },
       nhapKeToanCuaDon: (ids) =>
-        typeof opts.injected.nhapKeToanCuaDon !== "function" ? Promise.resolve(null) : ids.length === 0 ? Promise.resolve(new Set<string>()) : opts.injected.nhapKeToanCuaDon(env, ids),
+        typeof opts.injected.nhapKeToanCuaDon !== "function" ? Promise.resolve(null) : ids.length === 0 ? Promise.resolve(new Set<string>()) : opts.injected.nhapKeToanCuaDon(envH, ids),
       chuyenChoTin: (q) =>
-        typeof opts.injected.chuyenChoTin !== "function" ? Promise.resolve(null) : q.tripIds.length === 0 ? Promise.resolve({ chuyen: [], vang: [] }) : opts.injected.chuyenChoTin(env, q),
+        typeof opts.injected.chuyenChoTin !== "function" ? Promise.resolve(null) : q.tripIds.length === 0 ? Promise.resolve({ chuyen: [], vang: [] }) : opts.injected.chuyenChoTin(envH, q),
     } as Ctx);
+
+    // ---- LỚP CHỐNG GHI TRÙNG (ADR-0094 đ3; đặc tả §3.3 bước 1–8), giai đoạn 1. SAU mọi cổng (đăng nhập, bảo trì, access), TRƯỚC handler; chỉ route GHI có
+    // đăng nhập, không nằm trong tệp miễn (src/shared/lan-gui-mien.ts).
+    if (!WRITE_METHODS.has(request.method) || !who || laMienLanGui(request.method, hit.r.path)) return chayHandler(env);
+    const lanGui = opts.injected.lanGui;
+    if (typeof lanGui !== "object" || lanGui === null) {
+      // T18: thiếu phần tiêm thì TỪ CHỐI lệnh ghi, không lặng lẽ tắt lớp.
+      console.error(JSON.stringify({ level: "error", event: "server_misconfigured", message: "Thiếu injected.lanGui (lớp chống ghi trùng)." }));
+      return error(500, "server_misconfigured", "Hệ thống chưa được cấu hình đúng. Hãy báo quản trị viên.");
+    }
+    const duong = `${request.method} ${hit.r.path}`; // MẪU route — không id, không dữ liệu
+    const ve = request.headers.get(HEADER_VE);
+    if (ve === null) {
+      // Bước 1, giai đoạn 1 (đ7): thiếu vé ⇒ cho qua và ĐẾM (máy còn bản cũ). Bản siết sẽ trả 400.
+      console.warn(JSON.stringify({ event: "thieu_ma_lan_gui", duong }));
+      return chayHandler(env);
+    }
+    if (!kiemKhoa(ve)) return error(400, "ma_lan_gui_sai_dang", "Mã lần gửi không hợp lệ. Tải lại trang rồi thử lại.");
+
+    // Bước 2: vân tay của phương thức + đường dẫn thật (kèm query) + thân THÔ — đọc từ bản sao, handler đọc bản gốc.
+    const vanTay = await lanGui.vanTay(env, request.method, url.pathname + url.search, await request.clone().text());
+    const tra = () => lanGui.tra(env.DB, who.id, ve);
+    /** Bước 3a–3d: trả lời cho lần gửi trúng một vé đã có dòng. */
+    const traLoiVeCo = (dong: DongVe): Response => {
+      const loai = phanLoai(dong, vanTay, Date.now());
+      if (loai === "khac_noi_dung") return error(422, "ma_lan_gui_khac_noi_dung", "Lần gửi trước đã ghi với nội dung khác. Tải lại để xem.");
+      if (loai === "dang_xu_ly") return error(409, "dang_xu_ly", "Lần bấm trước đang được xử lý. Chờ chút rồi thử lại.");
+      exec.waitUntil(lanGui.tangLap(env.DB, who.id, ve).catch((e) => ghiLoiLanGui("tang_lap", e))); // A-1
+      const p = thanPhatLai(dong, loai);
+      return json(p.body, p.status, { [HEADER_PHAT_LAI]: "true" });
+    };
+
+    const dong0 = await tra(); // Bước 3: tra trước bằng env GỐC
+    if (dong0) return traLoiVeCo(dong0);
+
+    // Bước 4: handler chạy với env BỌC — lô ghi đầu tiên thành công mang câu chèn vé.
+    const boc = bocDb(env.DB, (g) => lanGui.cauChenVe(g, { staffId: who.id, khoa: ve, vanTay, duong, at: new Date().toISOString() }));
+    const capNhat = (maTra: number, maLoi: string | null, ketQua: string | null): void =>
+      exec.waitUntil(lanGui.capNhatKetQua(env.DB, { staffId: who.id, khoa: ve, maTra, maLoi, ketQua, at: new Date().toISOString() }).catch((e) => ghiLoiLanGui("cap_nhat", e)));
+    let res: Response;
+    try {
+      res = await chayHandler({ ...env, DB: boc.db });
+    } catch (e) {
+      boc.dong();
+      ghiNhieuLan(duong, boc.soLanGhi());
+      if (boc.daGhiVe()) capNhat(500, null, null); // Bước 8: đã ghi vé ⇒ lần sau "đã ghi, tải lại để xem"
+      else {
+        // Bước 5 (handler để lỗi đụng vé ném ra) / bước 7 (lỗi khác, nhưng một lần gửi đồng thời cùng vé có thể đã thắng): tra lại một lần.
+        const d = await tra();
+        if (d) return traLoiVeCo(d);
+      }
+      throw e;
+    }
+    boc.dong(); // lệnh ghi trễ của handler (waitUntil) đi thẳng D1 gốc
+    ghiNhieuLan(duong, boc.soLanGhi());
+    if (boc.dungVe()) {
+      // Bước 5: lô đụng khoá vé (lần gửi đồng thời đã thắng) — KHÔNG tin phản hồi handler tự dựng (có thể đã nuốt lỗi).
+      const d = await tra();
+      if (d) return traLoiVeCo(d);
+      return error(409, "dang_xu_ly", "Lần bấm trước đang được xử lý. Chờ chút rồi thử lại.");
+    }
+    if (boc.daGhiVe()) {
+      // Bước 6: ghi kết quả lần đầu (chạy nền). Mã lỗi máy chỉ khi 4xx; địa chỉ kết quả chỉ khi 2xx và là đường dẫn nội bộ chỉ chứa id.
+      const maLoi = res.status >= 400 && res.status < 500 ? await maLoiCua(res) : null;
+      capNhat(res.status, maLoi, res.status < 300 ? ketQuaDeLuu(res.headers.get("location")) : null);
+      return res;
+    }
+    if (res.status >= 400) {
+      // Bước 7: handler báo lỗi mà lệnh này không ghi vé — có thể một lần gửi đồng thời cùng vé đã thắng (vd handler đọc thấy "đã có" rồi trả 409).
+      const d = await tra();
+      if (d) return traLoiVeCo(d);
+    }
+    return res;
   }
 
   return {
