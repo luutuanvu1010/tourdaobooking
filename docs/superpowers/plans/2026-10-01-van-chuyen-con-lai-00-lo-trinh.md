@@ -113,6 +113,17 @@ Không đợt nào DROP trigger trên `vc_trip` của đợt khác (tên không 
 - Lượt II câu 4 (chủ: *"Đồng ý"*) ⇒ Đợt 5 P4 chốt: một đề nghị được nhận ⇒ các đề nghị khác cùng điểm thành `VOID` trong cùng lô.
 - Lượt II câu 6 (chủ: *"Bỏ, ghi ADR vì tôi chưa thấy thấu đáo, bỏ nếu bạn khuyến nghị như vậy"*) ⇒ soạn **ADR-0086** (proposed) bỏ `task.progress` + `dispatch.guides.view` (cùng hạn 30/11); AI đã báo ADR-0019 điều 5 từng chủ ý giữ (P18). → chủ **bác** (*"giữ lại đi, tiếp"*): giữ hai ô; hạn 30/11 còn nguyên, cần chủ gia hạn trước hạn.
 
+## Lời chủ (chat 2026-10-02, sau khi Đợt 1 lên 1.65 — năm câu mở của Đợt 1)
+
+1. Tự đóng suất hướng dẫn viên khi tài xế kết thúc chuyến — chủ: *"không, của ai việc nấy. Hệ thống sẽ tự giúp đóng khi các nguy cơ về bỏ qua sai sót là không còn. Tự đóng khi chưa nghiên cứu kỹ là mầm mống của sai sót bị lãng quên."* ⇒ **giữ nguyên** luật 1.65 (`kiemKetThuc` đòi suất `CREW` đã "Đã xuống"; tài xế không kết thúc thay). Không đợt nào được thêm tự đóng nếu chưa có đặc tả + chủ duyệt.
+2. Cấm gắn một hướng dẫn viên hai lần — chủ: *"Cái đó là đương nhiên … ngay khi HDV được gán vào chuyến thì đã không rảnh, mà hệ thống chỉ xếp ai đang rảnh, dường như thiếu tham chiếu và/hoặc nhãn."* Đã kiểm mã 2/10, chủ nói đúng: xe và tài xế có chặn trùng giờ hai lớp (`lc03_overlap` ở `migrations/0042_chuyen_xe.sql:357-381` + mã `trung_gio_xe` / `trung_gio_tai_xe` ở `dieu-phoi-route.ts:35-36`), còn người đi kèm thì **không có gì**. `GET /api/van-chuyen/huong-dan-vien` trả mọi HDV đang hoạt động, không có giờ bận; màn `web/chuyen.ts:507` chỉ lọc người đã gắn trên CHÍNH chuyến đó, lọc theo **tên**; route xếp (`index.ts:910-914`) chỉ kiểm "là HDV". ⇒ **việc mới "Người đi kèm bận"** (đã duyệt hướng, chưa có kế hoạch con), làm theo đúng khuôn tài xế:
+   - (a) máy chủ + CSDL: cấm một người hai suất `CREW` trên cùng chuyến, và cấm người đó ở hai chuyến chưa huỷ giao giờ nhau ⇒ 409 `trung_gio_nguoi_di_kem` "Hướng dẫn viên đã đi chuyến CX-… lúc …";
+   - (b) danh sách chọn trả thêm cho mỗi người `banChuyen` (mã chuyến + giờ) ⇒ màn hiện nhãn "Đang đi CX-… 08:00–11:00", xám, không chọn được; lọc theo `partyId`, bỏ lọc theo tên;
+   - (c) khuyến nghị lát đầu chỉ tính bận **theo chuyến xe** (dữ liệu có giờ chính xác). Việc tour / đơn của HDV ("Việc của tôi") chỉ hiện làm nhãn tham khảo "Có N việc hôm đó" nếu đọc được, không chặn — chờ chủ xác nhận khi lập kế hoạch con.
+3. Cấm điểm trả đứng trước điểm đón khi đổi thứ tự — chủ: *"chưa quyết được vì chưa hiểu tình huống này trong thực tế sẽ thế nào"* ⇒ **còn mở**. Đã giải thích ví dụ cho chủ 2/10: chỉ xét điểm đón và trả của **cùng một nhóm khách**. Trả khách nhóm A ở sân bay rồi đón nhóm C cũng ở sân bay là bình thường, không chặn. Khuyến nghị: chặn, vì không có tình huống thật nào trả khách trước khi đón chính khách đó.
+4. Bản vẽ Claude Design Đợt 3–7: chủ *"sẽ gửi sau"*, xin xem nguyên văn lệnh vẽ ⇒ đã chép ra chat 2/10 (nguồn vẫn là mục lệnh vẽ trong từng kế hoạch con).
+5. Đếm xe có hai giấy tờ cùng loại đang hiện hành trên production — chủ: **0** ⇒ trigger `0068` không vướng dữ liệu cũ; không cần dọn.
+
 ## Cần chủ (gom từ 8 kế hoạch con; mỗi lượt tối đa 3 câu chạm dữ liệu/quyền/tiền)
 
 **Lượt I — tiền xe thuê (Đợt 4, hỏi trước khi nhận Đợt 4):**
