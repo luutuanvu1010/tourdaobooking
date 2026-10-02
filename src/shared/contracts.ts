@@ -1164,6 +1164,19 @@ export interface KhoaMocDto { dangKhoa: boolean; tuLuc: GioVnDto; tuLucMs: numbe
 export interface LyDoDangDungDto { code: string; nhom: NhomLyDo; nhan: string }
 /** Xe để chọn (văn phòng không có ô vehicle.manage nên không gọi /xe — mục 1.8). */
 export interface XeChonDto { id: string; bienSo: string; soCho: number; trangThai: "active" | "maintenance"; chuXe: string; chuLaCongTy: boolean }
+// ---- Khung bận của xe (ADR-0055 VK2-A; migration 0071; kế hoạch Đợt 3 Task 6) ----------------------------------------------------------------------------
+/** Một khung bận của xe. `batDau`/`ketThuc` = ISO UTC (màn đổi giờ VN bằng hàm có sẵn); `lyDoMa` chỉ để chọn — màn hiện `lyDo` (nhãn). */
+export interface KhungBanXeDto {
+  id: string; xeId: string; batDau: string; ketThuc: string; batDauMs: number; ketThucMs: number; lyDoMa: string; lyDo: string; daRut: boolean; daQua: boolean; version: number;
+}
+/** `GET|POST /api/van-chuyen/xe/:id/ban`: `dangCo` = chưa rút và chưa qua (giờ bắt đầu tăng); `lichSu` = phần còn lại (mới trước); `lyDo` = danh mục `BAN_XE` đang dùng. */
+export interface KhungBanXeListResponse { dangCo: KhungBanXeDto[]; lichSu: KhungBanXeDto[]; lyDo: { code: string; label: string }[] }
+/** 409 lớp route khi ghi khung chồng chuyến chưa huỷ, chưa kết thúc (Q-L2-1 = a) — chỉ mã chuyến + giờ, không tên khách. */
+export interface KhungBanChongChuyenLoi { error: { code: "khung_ban_chong_chuyen"; message: string; chuyen: { ma: string; gio: string }[] } }
+/** Chuyến đã xếp trên lưới tuần Lịch xe bận — DANH SÁCH TRẮNG: không mã đơn, không tên khách, không tài xế (câu 3.1, chủ 2/10). Trạng thái thô chỉ để màn chọn nhãn. */
+export interface ChuyenXeBanDto { id: string; ma: string; xeId: string; batDauMs: number; ketThucMs: number; trangThai: "PLANNED" | "RUNNING" | "ENDED" | "ENDED_INTERRUPTED" }
+/** `GET /api/van-chuyen/ban-xe?tu=` — trang tuần "Lịch xe bận" (ô vehicle.manage — câu 3.4). `tu` = thứ Hai, `den` = Chủ nhật (hai đầu bao gồm, như vnWeekRange). */
+export interface LichXeBanResponse { tu: string; den: string; xe: XeChonDto[]; khung: KhungBanXeDto[]; chuyen: ChuyenXeBanDto[]; lyDo: { code: string; label: string }[] }
 /** Tài xế để chọn (hàm công bố `taiXeChoDieuPhoi` của parties — không số, không nơi cấp). */
 export interface TaiXeChonDto { partyId: string; ten: string; loai: "CONG_TY" | "NHA_XE"; nhaXe: string[] }
 export interface CanhBaoLichDto { loai: string; nhan: string; legId: string | null; tripId: string | null; maDon: string | null }
