@@ -49,6 +49,8 @@ const VAI = [
   "--c-summary-bg", "--c-summary-bg-2", "--c-on-summary", "--c-summary-due",
   "--c-tile-vc-bg", "--c-tile-vc", "--c-tile-toi-bg", "--c-tile-toi", "--c-tile-all-bg", "--c-tile-all",
   "--c-focus", "--c-focus-ring", "--c-indicator", "--c-input-border", "--c-input-border-hover",
+  // Tiền xe thuê (bản vẽ Đợt 4): tab viên thuốc đang chọn, khối "TỔNG CỘNG" của bảng kê.
+  "--c-pill-on-bg", "--c-pill-on-text", "--c-total-bg", "--c-on-total", "--c-total-num",
 ];
 
 test("màu theo vai: mọi token vai khai ở :root", () => {
@@ -119,6 +121,9 @@ test("màu theo vai: mọi cặp chữ/nền của thanh, nút chính, mục đa
     ["--c-tile-vc", "--c-tile-vc-bg"],
     ["--c-tile-toi", "--c-tile-toi-bg"],
     ["--c-tile-all", "--c-tile-all-bg"],
+    ["--c-pill-on-text", "--c-pill-on-bg"],
+    ["--c-on-total", "--c-total-bg"],
+    ["--c-total-num", "--c-total-bg"],
   ];
   const loi = cap.map(([chu, nen]) => `${chu} trên ${nen}: ${tuongPhan(chu, nen).toFixed(2)}:1`).filter((_, i) => tuongPhan(...cap[i]!) < 4.5);
   assert.deepEqual(loi, []);

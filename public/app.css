@@ -314,6 +314,22 @@
   /* Đưa đón — danh mục (bản vẽ M7 docs/design/2026-10-01-dua-don-hanh-khach/) */
   --w-dd-che-do: 150px;        /* bề rộng gốc một thẻ chọn "Không / Một / Hai chiều" (xuống dòng khi hẹp) */
   --w-dd-o: 220px;             /* cột tối thiểu của lưới "Giờ về gợi ý" / "Nơi trả gợi ý" */
+  /* Tiền xe thuê (bản vẽ Đợt 4 docs/design/van-chuyen-dot-3-7/Chi phí xe thuê.dc.html — 2026-10-02; làm đúng bản vẽ: coi là duyệt các số đo dưới đây). */
+  --w-bg-gia: 110px;           /* cột SỐ TIỀN / CHUYẾN của bảng giá (máy tính) */
+  --w-bg-hieu-luc: 150px;      /* cột HIỆU LỰC */
+  --w-bg-tt: 96px;             /* cột TRẠNG THÁI */
+  --w-bg-nut: 140px;           /* cột nút "Đổi giá" / "Kết thúc" */
+  --w-bk-ma: 140px;            /* bảng kê: cột MÃ CHUYẾN · NGÀY CHẠY */
+  --w-bk-tt: 130px;            /* bảng kê: cột TRẠNG THÁI · NGUỒN GIÁ */
+  --w-bk-dc: 120px;            /* bảng kê: cột ĐIỀU CHỈNH */
+  --w-bk-tien: 120px;          /* bảng kê: cột SỐ TIỀN */
+  --w-tx-o: 150px;             /* bề rộng gốc một ô của thẻ lọc / form (flex 1 1 150px — bản vẽ) */
+  --w-tx-o-rong: 220px;        /* ô rộng của form (Tuyến, Ghi chú) */
+  --w-tx-o-hep: 70px;          /* ô "Từ (khách)" / "Đến (khách)" của thẻ Cỡ xe */
+  --w-tx-dm: 300px;            /* lưới thẻ Tuyến / Cỡ xe (minmax 300px) */
+  --w-tx-tom-tat: 150px;       /* lưới tóm tắt khối Chi phí chuyến (auto-fit minmax 150px) */
+  --h-tx-area: 72px;           /* ô nhiều dòng "Ghi chú thoả thuận" (bản vẽ 1b) */
+  --o-dong-dao: .55;           /* dòng chi phí đã bị đảo: mờ + gạch ngang */
   /* — MÀU THEO VAI (2026-10-02, chủ dự án): thanh, nút chính, mục đang chọn, mảng đậm — luật trỏ VAI, không trỏ thẳng màu thương hiệu,
      để đổi giao diện = đổi giá trị ở đây (src/token-giao-dien.test.ts). Màn mới: nền thanh/nút lấy từ đây, đừng viết var(--c-primary). — */
   --c-bar-bg: var(--c-surface);          /* thanh đầu trang ở điện thoại (+ dải vùng an toàn trang Đăng nhập) */
@@ -324,6 +340,13 @@
   --c-sidebar-text-on: var(--c-primary); /* chữ mục đang chọn, đầu thanh, tên người ở chân thanh bên */
   --c-sidebar-title: var(--c-text-muted); /* tiêu đề nhóm (BÁN HÀNG, QUẢN TRỊ, TÔI) */
   --c-sidebar-badge-text: var(--c-primary); /* chữ huy hiệu số đếm mặc định trên thanh bên */
+  /* Tiền xe thuê (bản vẽ Đợt 4): hai chỗ màu ĐẬM của bản vẽ — tab viên thuốc đang chọn và khối "TỔNG CỘNG" của bảng kê. Muốn theo hướng sáng thì chỉ đổi
+     giá trị năm token này (về --c-selected-* / --c-band-* + --c-accent-strong), không sửa luật CSS. */
+  --c-pill-on-bg: var(--c-primary);
+  --c-pill-on-text: var(--c-on-dark);
+  --c-total-bg: var(--c-primary);
+  --c-on-total: var(--c-on-dark);
+  --c-total-num: var(--c-sand);
   /* Thị giác 1.70: nút lưu / xác nhận CHÍNH đặc màu (nút gửi form, lớp .btn-chinh, chân bảng trượt, Đăng nhập) — núm "Nền/Chữ nút lưu, xác nhận" (ADR-0087).
      Mọi .btn-primary khác là nút phụ nền nhạt: --c-btn-soft-* (theo núm "Màu chính nhạt" / "Màu chính"). */
   --c-btn-primary-bg: var(--c-primary);
@@ -2837,3 +2860,55 @@ label.check > input.o-tick { display: inline; width: auto; margin: 0 var(--s2) 0
    Luật toàn cục `* { transition: none !important }` (khối PWA) chỉ tắt chuyển tiếp; luật dưới gỡ thêm độ nhấc / lún. Đặt cuối tệp để thắng mọi luật nhấc / lún
    cùng độ ưu tiên khai ở trên (vd .dash-o-muc:active, .dash-dai .dash-o-muc:hover). src/token-giao-dien.test.ts canh danh sách. */
 @media (prefers-reduced-motion: reduce) { .btn:not(:disabled):active, .order-card:hover, .dash-o-muc:active, #tabbar .tab:active .tab-icon, .dash-dai .dash-o-muc:hover { transform: none; } }
+
+/* ---------- Tiền xe thuê (ADR-0057, ADR-0095; bản vẽ Đợt 4 "Chi phí xe thuê" — G1 Bảng giá, G2 Chi phí chuyến, G4 Bảng kê) ----------
+   Số tiền do máy chủ trả (trang không cộng); màu là token sẵn có + năm token vai --c-pill-on-* / --c-total-* / --c-on-total. */
+.bg-dau { display: flex; align-items: flex-start; gap: var(--s3); flex-wrap: wrap; }
+.bg-dau h1 { margin-bottom: var(--s1); }
+.bg-dau .muted, .bk-trang > .muted { margin: 0 0 var(--s4); }
+.tx-loc { display: flex; flex-wrap: wrap; gap: var(--s3); padding: var(--s4); margin-bottom: var(--s4); }
+.tx-loc > .vc-field { flex: 1 1 var(--w-tx-o); }
+.tx-loc-ghi-chu { flex: 1 1 100%; margin: 0; font-size: var(--fs-label); color: var(--c-text-muted); }
+.tx-tabs { display: flex; gap: var(--s2); margin-bottom: var(--s4); overflow-x: auto; }
+.tx-tab { flex: none; min-height: var(--tap-min); padding: 0 var(--s4); font: inherit; font-size: var(--fs-ui); font-weight: var(--fw-bold); color: var(--c-primary); background: var(--c-primary-soft); border: 0; border-radius: var(--radius-pill); cursor: pointer; }
+.tx-tab[aria-selected="true"] { color: var(--c-pill-on-text); background: var(--c-pill-on-bg); }
+.tx-bang { overflow: hidden; }
+.tx-hang-dau { font-size: var(--fs-badge); font-weight: var(--fw-bold); letter-spacing: var(--ls-eyebrow); color: var(--c-text-muted); background: var(--c-surface-alt); }
+.bg-hang { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, .8fr) var(--w-bg-gia) var(--w-bg-hieu-luc) var(--w-bg-tt) var(--w-bg-nut); gap: var(--s3); align-items: center; padding: var(--s3) var(--s4); border-top: 1px solid var(--c-border); }
+.bg-hang.tx-hang-dau { border-top: 0; }
+.bg-hang > :nth-child(3) { text-align: right; }
+.bg-tuyen { display: flex; flex-direction: column; min-width: 0; }
+.tx-phu { font-size: var(--fs-label); color: var(--c-text); }
+.tx-mo { color: var(--c-text-muted); }
+.tx-tien { font-family: var(--font-display); font-weight: var(--fw-heavy); color: var(--c-accent-strong); white-space: nowrap; }
+.tx-nut-dong { display: flex; gap: var(--s1); justify-content: flex-end; flex-wrap: wrap; }
+.tx-nut-do { color: var(--c-danger-text); }
+.bg-the-ds { display: grid; gap: var(--s3); }
+.bg-the { display: flex; flex-direction: column; gap: var(--s1); padding: var(--s3) var(--s4); }
+.bg-the-dau { display: flex; align-items: center; gap: var(--s2); }
+.bg-the-tien { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s2); flex-wrap: wrap; }
+.bg-the-nut { display: flex; gap: var(--s2); margin-top: var(--s2); }
+.bg-the-nut .pill-btn { flex: 1; min-height: var(--tap-min); }
+@media (min-width: 900px) { .bg-the-ds, .bk-the-ds { display: none; } }
+@media (max-width: 899px) { .bg-bang, .bk-bang { display: none; } }
+.tx-form-host { margin-bottom: var(--s4); }
+.tx-form { padding: var(--s4); background: var(--c-soft-hover); border: 1px solid var(--c-border); border-radius: var(--radius-md); }
+.tx-form-title { margin: 0 0 var(--s3); font-size: var(--fs-title); }
+.tx-form-o { display: flex; flex-wrap: wrap; gap: var(--s3); }
+.tx-form-o > .vc-field { flex: 1 1 var(--w-tx-o); }
+.tx-form-o > .tx-o-rong { flex: 1 1 var(--w-tx-o-rong); }
+.tx-form-o > .vc-hint, .tx-form-o > .tx-loi { flex: 1 1 100%; }
+.tx-form-nut { display: flex; flex-wrap: wrap; gap: var(--s2); margin-top: var(--s4); }
+.tx-loi { margin: 0; }
+.sheet-body > .tx-o + .tx-o, .sheet-body > .tx-loi, .sheet-body > .vc-hint, .sheet-body > .tx-o + .vc-field { margin-top: var(--s3); }
+.tx-o textarea.vc-input { min-height: var(--h-tx-area); padding: var(--s2) var(--s3); resize: vertical; font: inherit; font-size: var(--fs-field); }
+.tx-dm-luoi { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--w-tx-dm)), 1fr)); gap: var(--s4); }
+.tx-dm { overflow: hidden; }
+.tx-dm-dau { display: flex; flex-direction: column; gap: var(--s1); padding: var(--s3) var(--s4); border-bottom: 1px solid var(--c-border); }
+.tx-dm-dong { display: flex; align-items: center; flex-wrap: wrap; gap: var(--s2); min-height: var(--tap-min); padding: var(--s1) var(--s4); border-top: 1px solid var(--c-border); }
+.tx-dm-dau + .tx-dm-dong { border-top: 0; }
+.tx-dm-ten { font-weight: var(--fw-semibold); }
+.tx-dm-chan { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--s3); padding: var(--s3) var(--s4); background: var(--c-soft-hover); border-top: 1px solid var(--c-border); }
+.tx-dm-chan > .vc-field { flex: 1 1 var(--w-tx-o-hep); }
+.tx-dm > .tx-loi { margin: var(--s3) var(--s4); }
+.tx-tai { padding: var(--s5); text-align: center; color: var(--c-text-muted); }
