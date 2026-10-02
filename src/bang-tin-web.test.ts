@@ -94,6 +94,7 @@ function dungBo(ngauNhien = 0.5) {
     ngauNhien: () => ngauNhien,
     khiSuKien: (e) => tungTin.push(e),
     khiDot: (ds) => dot.push(ds),
+    khiDotChuyen: () => {},
     khiCanTaiLai: () => canTaiLai++,
   };
   const bo = taoBoDieuKhien(phu);
@@ -402,4 +403,32 @@ test("ganThongBao: giữ tối đa 3 cái mới nhất, đẩy cái cũ nhất r
   assert.deepEqual(ganThongBao(["a", "b"], "c"), { con: ["a", "b", "c"], bo: [] });
   assert.deepEqual(ganThongBao(["a", "b", "c"], "d"), { con: ["b", "c", "d"], bo: ["a"] });
   assert.deepEqual(ganThongBao(["a", "b", "c", "d", "e"], "f"), { con: ["d", "e", "f"], bo: ["a", "b", "c"] });
+});
+
+// ---- sự kiện CHUYẾN (ADR-0052 D6.4): chỉ làm mới màn hình, không thông báo nổi (tự chốt T4 của kế hoạch Đợt 2) ---------------------------------
+test("sự kiện chuyến: gộp thành MỘT đợt 'chuyen-thay-doi', không vào nhánh đơn, không thông báo nổi; khoá lạ bị bỏ", () => {
+  const dh = dongHoGia();
+  const sockets: SocketGia[] = [];
+  const dotChuyen: unknown[][] = [], dotDon: unknown[][] = [], noi: unknown[] = [];
+  const bo = taoBoDieuKhien({
+    moSocket: () => {
+      const s = new SocketGia();
+      sockets.push(s);
+      return s;
+    },
+    hen: dh.hen, huyHen: dh.huyHen, ngauNhien: () => 0.5,
+    khiSuKien: (e) => noi.push(e), khiDot: (ds) => dotDon.push(ds), khiDotChuyen: (ds) => dotChuyen.push(ds), khiCanTaiLai: () => {},
+  });
+  bo.batDau();
+  const s = sockets[0]!;
+  s.mo();
+  s.tin({ loai: "chuyen", maChuyen: "CX-1", thayDoi: "huy", luc: "2027-03-11T00:00:00.000Z" });
+  s.tin({ loai: "chuyen", maChuyen: "CX-1", thayDoi: "sua", luc: "2027-03-11T00:00:01.000Z" });
+  s.tin({ loai: "chuyen", maChuyen: "CX-1", thayDoi: "sua", luc: "2027-03-11T00:00:01.000Z", tripId: "t" }); // khoá thừa → bỏ
+  dh.tua(GOP_MS);
+  assert.equal(dotChuyen.length, 1);
+  assert.equal((dotChuyen[0] as unknown[]).length, 2);
+  assert.deepEqual(dotDon, []);
+  assert.deepEqual(noi, []);
+  bo.dung();
 });

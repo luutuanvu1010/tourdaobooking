@@ -227,6 +227,7 @@ export function ganThongBao(topbar: HTMLElement, staff: Staff): void {
   };
   const lamMoi = taoBoLamMoi(taiTomTat);
   window.addEventListener("don-thay-doi", () => void lamMoi.yeuCau());
+  window.addEventListener("chuyen-thay-doi", () => void lamMoi.yeuCau()); // ADR-0052 D6: tin chuyến tới chuông
   window.addEventListener("can-tai-lai", () => void lamMoi.yeuCau());
 
   /**

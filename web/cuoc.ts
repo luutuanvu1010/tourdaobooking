@@ -13,13 +13,22 @@ import { chip } from "./dieu-phoi-ui";
 import { loiCua } from "./giay-to-ui";
 import { icon } from "./icons";
 import { initShell, showError } from "./shell";
+import { taoBoLamMoi } from "./lam-moi-logic";
 
 const errorEl = byId("error");
 const dsEl = byId("cu-ds");
 
+let daMo = false;
+
 async function main(): Promise<void> {
   const staff = await initShell();
   if (!coCuocCuaToi(staff)) return showError(errorEl, "Tài khoản này không có cuốc xe.");
+  daMo = true;
+  await veDanhSach();
+}
+
+/** Ngày hôm nay + hai ngày sau, đọc lại từ máy chủ mỗi lần (mở trang, tin chuyến, nối lại Bảng tin). */
+async function veDanhSach(): Promise<void> {
   const homNay = vnToday(new Date());
   const [y, m, d] = homNay.split("-");
   const thu = new Intl.DateTimeFormat("vi-VN", { timeZone: "Asia/Ho_Chi_Minh", weekday: "long" }).format(new Date());
@@ -30,6 +39,7 @@ async function main(): Promise<void> {
   } catch (e) {
     return showError(errorEl, loiCua(e));
   }
+  errorEl.hidden = true;
   replaceChildren(
     dsEl,
     ...nhomCuoc(r.chuyen, homNay).map((g) =>
@@ -54,3 +64,10 @@ async function main(): Promise<void> {
   );
 }
 await main();
+
+// ADR-0052 D6.4: chuyến của tài xế đổi (được xếp, bị đổi ra, sửa, huỷ) → danh sách tự tải lại; nối lại Bảng tin → tải lại.
+const lamMoi = taoBoLamMoi(async () => {
+  if (daMo) await veDanhSach();
+});
+window.addEventListener("chuyen-thay-doi", () => void lamMoi.yeuCau());
+window.addEventListener("can-tai-lai", () => void lamMoi.yeuCau());

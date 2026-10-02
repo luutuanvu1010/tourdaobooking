@@ -25,6 +25,7 @@ import { chip, dai, docLoiLenh, moPhaLe, nhomChon, taoLenh } from "./dieu-phoi-u
 import { datCrumb, loiCua } from "./giay-to-ui";
 import { icon } from "./icons";
 import { initShell, showError } from "./shell";
+import { taoBoLamMoi } from "./lam-moi-logic";
 
 const errorEl = byId("error");
 const bannerEl = byId("dp-banner");
@@ -508,3 +509,12 @@ async function main(): Promise<void> {
   await nap();
 }
 await main();
+
+/** ADR-0052 D6.4: đang mở bảng trượt / hộp (khuôn `.sheet[role=dialog]`) thì KHÔNG tự dựng lại trang dưới tay người dùng — lần nối lại / tin sau sẽ tải. */
+const bangDangMo = (): boolean => document.querySelector('.sheet[role="dialog"]') !== null;
+// ADR-0052 D6.4: chuyến nào đổi cũng tải lại lịch đang xem (gộp, không chạy hai lần song song); nối lại Bảng tin → tải lại.
+const lamMoi = taoBoLamMoi(async () => {
+  if (!bangDangMo()) await nap();
+});
+window.addEventListener("chuyen-thay-doi", () => void lamMoi.yeuCau());
+window.addEventListener("can-tai-lai", () => void lamMoi.yeuCau());
