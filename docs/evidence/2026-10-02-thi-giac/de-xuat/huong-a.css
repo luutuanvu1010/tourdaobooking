@@ -1,0 +1,63 @@
+/* ĐỀ XUẤT hướng A "Năng động" = chung.css + phần dưới (chỉ để chụp ảnh xem trước).
+   Bảng màu theo hình ảnh đảo: XANH BIỂN ĐẬM (tin cậy, khung) · XANH NGỌC (năng động: đang chọn, tiêu điểm, Vận chuyển) · SAN HÔ (hành động chốt) · CÁT (nhắc nhở).
+   - Màu mới duy nhất: xanh ngọc #0e7490 (chữ trên trắng 5,36:1) / #0891b2 (vạch, vòng — không dùng cho chữ, 3,68:1).
+   - Nút lưu/xác nhận chính (nút gửi form, nút ở chân bảng trượt, nút Đăng nhập) đặc xanh biển đậm chữ trắng (9,46:1); nút khác giữ nền nhạt.
+   - Dải tóm tắt đơn: dải màu biển đậm → ngọc, chữ trắng; "Còn lại" vàng nhạt (6,56:1). */
+:root {
+  --c-lagoon: #0e7490;
+  --c-lagoon-strong: #155e75;
+  --c-lagoon-soft: #e0f2f7;
+  --c-lagoon-vivid: #0891b2;
+  --grad-brand: linear-gradient(120deg, #0c4a6e 0%, #0e6382 55%, #0e7490 100%);
+  --grad-brand-v: linear-gradient(180deg, #0e7490 0%, #0c4a6e 100%);
+  --c-focus: var(--c-lagoon-vivid);
+  --c-focus-ring: rgba(8, 145, 178, .20);
+  --c-indicator: var(--c-lagoon-vivid);
+  --c-btn-solid-bg: var(--c-primary);
+  --c-btn-solid-text: var(--c-on-dark);
+  --c-btn-solid-hover-bg: #0b5c84;
+  --shadow-btn-solid: 0 1px 2px rgba(8, 47, 73, .22), 0 4px 14px rgba(12, 74, 110, .24);
+  --c-band-bg: #0c4a6e;
+  --c-on-band: #ffffff;
+  --c-on-band-due: #fcd34d;
+  --c-tile-vc-bg: var(--c-lagoon-soft);
+  --c-tile-vc: var(--c-lagoon-strong);
+  --c-tile-toi-bg: #fdf1d8;
+  --c-tile-toi: var(--c-sand-text);
+  --c-tile-all-bg: #eef2f6;
+  --c-tile-all: var(--c-text-muted);
+}
+
+/* Nút lưu / xác nhận chính: đặc, nổi. */
+.btn-primary[type="submit"], .sheet-foot .btn-primary, .login-actions .login-submit:not(:disabled) {
+  color: var(--c-btn-solid-text); background: var(--c-btn-solid-bg); border-color: var(--c-btn-solid-bg); box-shadow: var(--shadow-btn-solid);
+}
+@media (hover: hover) {
+  .btn-primary[type="submit"]:not(:disabled):hover, .sheet-foot .btn-primary:not(:disabled):hover, .login-actions .login-submit:not(:disabled):hover {
+    background: var(--c-btn-solid-hover-bg); border-color: var(--c-btn-solid-hover-bg);
+  }
+}
+
+/* Dải tóm tắt đơn: mảng màu thương hiệu (biển đậm → ngọc). */
+.order-summary-band { color: var(--c-on-band); background: var(--c-band-bg); background-image: var(--grad-brand); box-shadow: var(--shadow-btn-solid); }
+.order-summary-band .value { color: var(--c-on-band); }
+.order-summary-band .value.due { color: var(--c-on-band-due); }
+
+/* Viên ngày đang chọn ở Trang chủ, cột biểu đồ hôm nay: dải màu thương hiệu. */
+.dash-day[aria-pressed="true"] .dash-day-nhan { background: var(--c-primary); background-image: var(--grad-brand); }
+.dash-chart-bar-dark { background: var(--c-primary); background-image: var(--grad-brand-v); }
+
+/* Ô chức năng theo nhóm: Vận chuyển = ngọc, Của tôi = cát, Tất cả = trung tính (Bán hàng / Quản lý giữ xanh biển, Tạo đơn giữ san hô). */
+.dash-o-muc:is([href^="/dieu-phoi"], [href^="/xe"], [href^="/giay-to-sap-het-han"], [href^="/loai-giay-to-xe"], [href^="/ly-do-dieu-phoi"], [href^="/chinh-sach-dieu-phoi"], [href^="/dieu-kien-xuat-ben"], [href^="/cuoc"]) .dash-o-hop { color: var(--c-tile-vc); background: var(--c-tile-vc-bg); }
+.dash-o-muc:is([href^="/account"], [href^="/feedback"], [href^="/help"]) .dash-o-hop { color: var(--c-tile-toi); background: var(--c-tile-toi-bg); }
+button.dash-o-muc .dash-o-hop { color: var(--c-tile-all); background: var(--c-tile-all-bg); }
+
+/* Ô chức năng: độ bóng nhẹ (sáng phía trên) + viền mảnh cùng tông — nổi như biểu tượng ứng dụng. */
+.dash-o-hop { background-image: var(--grad-gloss); box-shadow: var(--shadow-tile); }
+:root {
+  --grad-gloss: linear-gradient(180deg, rgba(255, 255, 255, .55) 0%, rgba(255, 255, 255, 0) 100%);
+  --shadow-tile: inset 0 0 0 1px rgba(12, 74, 110, .06), 0 1px 2px rgba(15, 23, 42, .06);
+  --c-tab-new-bg: var(--c-accent);   /* nút tròn "Tạo đơn" ở thanh dưới điện thoại: đặc san hô, dấu cộng trắng (5,44:1) */
+  --c-tab-new-icon: var(--c-on-dark);
+}
+@media (max-width: 640px) { #tabbar .tab-new .tab-icon { box-shadow: 0 2px 8px rgba(192, 57, 43, .30); } }

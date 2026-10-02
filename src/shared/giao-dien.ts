@@ -21,15 +21,16 @@ export const NUM: readonly Num[] = [
   { khoa: "chu-phu", nhan: "Chữ phụ", nhom: "nen-chu", loai: "mau", token: "--c-text-muted" },
   { khoa: "vien", nhan: "Viền", nhom: "nen-chu", loai: "mau", token: "--c-border" },
   { khoa: "mau-chinh", nhan: "Màu chính (tiêu đề, liên kết, chữ nhấn)", nhom: "nen-chu", loai: "mau", token: "--c-primary" },
-  { khoa: "mau-chinh-nhat", nhan: "Màu chính nhạt (nền mục đang chọn, nút chính)", nhom: "nen-chu", loai: "mau", token: "--c-primary-soft" },
+  { khoa: "mau-chinh-nhat", nhan: "Màu chính nhạt (nền mục đang chọn, nút phụ)", nhom: "nen-chu", loai: "mau", token: "--c-primary-soft" },
   { khoa: "nen-thanh-tren", nhan: "Nền thanh trên", nhom: "thanh", loai: "mau", token: "--c-bar-bg" },
   { khoa: "chu-thanh-tren", nhan: "Chữ thanh trên", nhom: "thanh", loai: "mau", token: "--c-on-bar" },
   { khoa: "nen-thanh-ben", nhan: "Nền thanh bên", nhom: "thanh", loai: "mau", token: "--c-sidebar-bg" },
   { khoa: "chu-thanh-ben", nhan: "Chữ thanh bên", nhom: "thanh", loai: "mau", token: "--c-sidebar-item" },
   { khoa: "nen-muc-chon", nhan: "Nền mục đang chọn ở thanh bên", nhom: "thanh", loai: "mau", token: "--c-sidebar-active" },
   { khoa: "chu-muc-chon", nhan: "Chữ mục đang chọn ở thanh bên", nhom: "thanh", loai: "mau", token: "--c-sidebar-text-on" },
-  { khoa: "nen-nut-chinh", nhan: "Nền nút chính", nhom: "nut", loai: "mau", token: "--c-btn-primary-bg" },
-  { khoa: "chu-nut-chinh", nhan: "Chữ nút chính", nhom: "nut", loai: "mau", token: "--c-btn-primary-text" },
+  // Thị giác 1.70 (chủ dự án duyệt 2/10): hai núm này điều khiển nút lưu / xác nhận CHÍNH đặc màu; nút nhạt còn lại theo "Màu chính nhạt" + "Màu chính".
+  { khoa: "nen-nut-chinh", nhan: "Nền nút lưu, xác nhận", nhom: "nut", loai: "mau", token: "--c-btn-primary-bg" },
+  { khoa: "chu-nut-chinh", nhan: "Chữ nút lưu, xác nhận", nhom: "nut", loai: "mau", token: "--c-btn-primary-text" },
   { khoa: "nen-nut-chot", nhan: "Nền nút hành động chốt (Tạo đơn, Xác nhận)", nhom: "nut", loai: "mau", token: "--c-accent" },
   { khoa: "phong-tieu-de", nhan: "Phông tiêu đề", nhom: "chu", loai: "phong", token: "--font-display" },
   { khoa: "phong-noi-dung", nhan: "Phông nội dung", nhom: "chu", loai: "phong", token: "--font" },
@@ -52,16 +53,17 @@ export const CHA: Readonly<Record<string, string>> = {
   "nen-thanh-tren": "nen-the", "chu-thanh-tren": "mau-chinh",
   "nen-thanh-ben": "nen-the", "chu-thanh-ben": "chu-phu",
   "nen-muc-chon": "mau-chinh-nhat", "chu-muc-chon": "mau-chinh",
-  "nen-nut-chinh": "mau-chinh-nhat", "chu-nut-chinh": "mau-chinh",
+  // 1.70: nút lưu / xác nhận đặc màu — nền theo Màu chính; chữ trắng cố định (--c-on-dark, không phải núm) nên "chu-nut-chinh" không còn núm cha.
+  "nen-nut-chinh": "mau-chinh",
 };
 
-/** Giá trị mặc định = app.css bản 1.65 (bài src/giao-dien-mac-dinh.test.ts so khớp). */
+/** Giá trị mặc định = app.css bản 1.70 (bài src/giao-dien-mac-dinh.test.ts so khớp). */
 export const MAC_DINH: Readonly<Record<string, string>> = {
-  "nen-trang": "#eaf2f8", "nen-the": "#ffffff", "chu-chinh": "#0f172a", "chu-phu": "#475569", vien: "#d3e1ec",
+  "nen-trang": "#f2f5f9", "nen-the": "#ffffff", "chu-chinh": "#0f172a", "chu-phu": "#475569", vien: "#e1e7ef",
   "mau-chinh": "#0c4a6e", "mau-chinh-nhat": "#dcebf6",
   "nen-thanh-tren": "#ffffff", "chu-thanh-tren": "#0c4a6e", "nen-thanh-ben": "#ffffff", "chu-thanh-ben": "#475569",
   "nen-muc-chon": "#dcebf6", "chu-muc-chon": "#0c4a6e",
-  "nen-nut-chinh": "#dcebf6", "chu-nut-chinh": "#0c4a6e", "nen-nut-chot": "#c0392b",
+  "nen-nut-chinh": "#0c4a6e", "chu-nut-chinh": "#ffffff", "nen-nut-chot": "#c0392b",
   "phong-tieu-de": "be-vietnam-pro", "phong-noi-dung": "be-vietnam-pro",
   // --fs-h1 = 1.5rem = 24px; --fs-h2 = 1.1rem = 17,6px (làm tròn 18 — mặc định KHÔNG ghi đè nên trang vẫn 17,6px; chỉ khi Toàn quyền chọn mới thành số nguyên);
   // --fs-step-5 = 16px; --fs-label → --fs-step-3 = 14px (đo 2026-10-02 trên nhánh thanh-sang-chu-manh).
@@ -76,15 +78,17 @@ export const CAP_TUONG_PHAN: readonly [string, string, string][] = [
   ["chu-phu", "nen-the", "Chữ phụ trên nền thẻ"],
   ["chu-phu", "nen-trang", "Chữ phụ trên nền trang"],
   ["mau-chinh", "nen-the", "Màu chính (liên kết) trên nền thẻ"],
-  ["mau-chinh", "mau-chinh-nhat", "Màu chính trên màu chính nhạt (mục đang chọn, dải tóm tắt)"],
+  ["mau-chinh", "mau-chinh-nhat", "Màu chính trên màu chính nhạt (mục đang chọn, nút phụ)"],
   ["chu-thanh-tren", "nen-thanh-tren", "Chữ trên thanh trên"],
   ["chu-thanh-ben", "nen-thanh-ben", "Chữ trên thanh bên"],
   ["chu-phu", "nen-thanh-ben", "Tiêu đề nhóm trên thanh bên"],
   ["chu-muc-chon", "nen-muc-chon", "Chữ mục đang chọn ở thanh bên"],
-  ["chu-nut-chinh", "nen-nut-chinh", "Chữ nút chính"],
+  ["chu-nut-chinh", "nen-nut-chinh", "Chữ nút lưu, xác nhận"],
   ["#ffffff", "nen-nut-chot", "Chữ trắng trên nút hành động chốt"],
   ["chu-chinh", "#ffffff", "Chữ chính trong ô nhập (nền trắng cố định)"],
-  ["#ffffff", "mau-chinh", "Chữ trắng trên màu chính (huy hiệu)"],
+  ["#ffffff", "mau-chinh", "Chữ trắng trên màu chính (huy hiệu, dải tóm tắt đơn)"],
+  // 1.70: số "Còn lại" vàng (--c-summary-due của app.css) đặt trên dải tóm tắt đơn — đầu dải là Màu chính.
+  ["#fcd34d", "mau-chinh", "Số còn lại (vàng) trên dải tóm tắt đơn"],
 ];
 
 const HEX = /^#[0-9a-f]{6}$/;

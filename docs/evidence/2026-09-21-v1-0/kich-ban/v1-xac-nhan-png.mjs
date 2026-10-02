@@ -518,9 +518,10 @@ await step("f", "đơn đã xác nhận / đã huỷ mở lại bằng nút, huy
   const cases = [
     ["draft", f.one, "Chờ xác nhận", "--c-sand-soft", ACCOUNTS.salesA],
     ["confirmed", f.confirmed, "Đã xác nhận", "--c-green-soft", ACCOUNTS.salesA],
-    ["cancelled", f.cancelled, "Đã huỷ", "--c-surface-alt", ACCOUNTS.salesA],
+    // Thị giác 1.70: ảnh biên nhận đọc token RIÊNG --c-receipt-surface-alt (giữ màu cũ), không còn --c-surface-alt của Nền tảng.
+    ["cancelled", f.cancelled, "Đã huỷ", "--c-receipt-surface-alt", ACCOUNTS.salesA],
     ["confirmed-salesB", f.confirmed, "Đã xác nhận", "--c-green-soft", ACCOUNTS.salesB],
-    ["cancelled-ke-toan", f.cancelled, "Đã huỷ", "--c-surface-alt", ACCOUNTS.accounting],
+    ["cancelled-ke-toan", f.cancelled, "Đã huỷ", "--c-receipt-surface-alt", ACCOUNTS.accounting],
   ];
   const seen = [];
   for (const [label, order, text, token, account] of cases) {

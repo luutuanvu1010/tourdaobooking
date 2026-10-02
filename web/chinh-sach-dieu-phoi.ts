@@ -176,7 +176,7 @@ function dung(): void {
   moLs.addEventListener("click", () => moLichSu(moLs));
   document.getElementById("cs-hist-open")?.remove();
   layoutEl.after(moLs);
-  const luuDay = h("button", { type: "button", class: "vc-btn btn btn-primary" }, "Lưu thành bản mới");
+  const luuDay = h("button", { type: "button", class: "vc-btn btn btn-primary btn-chinh" }, "Lưu thành bản mới");
   luuDay.addEventListener("click", () => formEl.requestSubmit());
   replaceChildren(bottomEl, luuDay);
   veLichSu();
