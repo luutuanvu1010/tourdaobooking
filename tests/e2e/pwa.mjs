@@ -56,12 +56,14 @@ console.log("✓ icon");
 // font tự lưu trữ (A2 Q4): mọi @font-face trỏ tới tệp CÓ THẬT, đúng content-type font/woff2 (Workers Assets), và nằm trong PRECACHE
 // (nếu không, mở ngoại tuyến rơi về system-ui mà không ai biết).
 const fontUrls = [...new Set([...css.matchAll(/url\(["']?(\/fonts\/[^"')]+)["']?\)/g)].map((m) => m[1]))];
-assert.equal(fontUrls.length, 5, `app.css phải khai đủ 5 tệp font Be Vietnam Pro 400–800 (đang ${fontUrls.length})`);
+assert.equal(fontUrls.length, 5 + 12, `app.css phải khai đủ 5 tệp Be Vietnam Pro + 12 tệp phông tuỳ chọn (ADR-0087) (đang ${fontUrls.length})`);
 for (const path of fontUrls) {
   const r = await get(path);
   assert.equal(r.status, 200, `${path} → ${r.status}`);
   assert.equal(r.headers.get("content-type"), "font/woff2", `${path} sai content-type`);
-  assert.ok(PRECACHE.includes(path), `${path} phải nằm trong PRECACHE (src/shared/sw-policy.ts)`);
+  // Chỉ Be Vietnam Pro (mặc định) nạp sẵn; phông tuỳ chọn tải khi cần.
+  if (path.startsWith("/fonts/be-vietnam-pro-")) assert.ok(PRECACHE.includes(path), `${path} phải nằm trong PRECACHE (src/shared/sw-policy.ts)`);
+  else assert.ok(!PRECACHE.includes(path), `${path} là phông tuỳ chọn, không được nằm trong PRECACHE`);
 }
 console.log("✓ font tự lưu trữ");
 

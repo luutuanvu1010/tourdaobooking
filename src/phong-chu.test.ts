@@ -6,6 +6,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { PRECACHE } from "./shared/sw-policy.ts";
+import { PHONG } from "./shared/giao-dien.ts";
 
 const css = readFileSync(new URL("../public/app.css", import.meta.url), "utf8");
 const root = css.slice(css.indexOf(":root"), css.indexOf("\n}", css.indexOf(":root")));
@@ -22,11 +23,21 @@ test("tệp phông khai trong CSS có thật, đủ lớn để chứa chữ Vi�
     assert.ok(url, "@font-face thiếu url");
     const file = new URL(`../public${url}`, import.meta.url);
     assert.ok(existsSync(file), `thiếu tệp ${url}`);
-    assert.ok(statSync(file).size > 20_000, `${url} quá nhỏ — có thể chỉ là tập con Latin hoặc tiếng Việt`);
-    assert.ok(PRECACHE.includes(url), `${url} chưa có trong PRECACHE (src/shared/sw-policy.ts)`);
+    // Ba phông tuỳ chọn (Nunito, Lexend, Noto Sans) nhẹ hơn Be Vietnam Pro (~16–18 KB, đã kiểm đủ U+1EA0–1EF9 + dấu tổ hợp) nên ngưỡng 10 KB.
+    assert.ok(statSync(file).size > 10_000, `${url} quá nhỏ — có thể chỉ là tập con Latin hoặc tiếng Việt`);
+    // Chỉ Be Vietnam Pro (mặc định) nạp sẵn; phông tuỳ chọn của ADR-0087 tải khi cần, KHÔNG được nằm trong PRECACHE (đặc tả §5).
+    if (url.startsWith("/fonts/be-vietnam-pro-")) assert.ok(PRECACHE.includes(url), `${url} chưa có trong PRECACHE (src/shared/sw-policy.ts)`);
+    else assert.ok(!PRECACHE.includes(url), `${url} là phông tuỳ chọn, không được nạp sẵn trong PRECACHE`);
   }
   for (const p of PRECACHE.filter((x) => x.startsWith("/fonts/"))) {
     assert.ok(faces.some((f) => f.includes(`url("${p}")`)), `PRECACHE nạp ${p} nhưng CSS không dùng`);
+  }
+});
+
+test("mỗi phông chọn được ở màn Giao diện có @font-face cho ĐÚNG các độ đậm khai trong PHONG", () => {
+  for (const p of Object.values(PHONG)) {
+    const co = new Set(faces.filter((f) => f.includes(`font-family: "${p.ten}"`)).map((f) => Number(/font-weight:\s*(\d+)/.exec(f)?.[1])));
+    assert.deepEqual([...co].sort(), [...p.dam].sort(), `${p.ten}: @font-face ${[...co]} ≠ PHONG ${p.dam}`);
   }
 });
 

@@ -10,6 +10,19 @@
 @font-face { font-family: "Be Vietnam Pro"; src: url("/fonts/be-vietnam-pro-600.woff2") format("woff2"); font-weight: 600; font-style: normal; font-display: swap; }
 @font-face { font-family: "Be Vietnam Pro"; src: url("/fonts/be-vietnam-pro-700.woff2") format("woff2"); font-weight: 700; font-style: normal; font-display: swap; }
 @font-face { font-family: "Be Vietnam Pro"; src: url("/fonts/be-vietnam-pro-800.woff2") format("woff2"); font-weight: 800; font-style: normal; font-display: swap; }
+/* Phông tuỳ chọn của ADR-0087 (Nunito, Lexend, Noto Sans): trình duyệt chỉ tải khi màn Giao diện chọn, KHÔNG nạp sẵn trong service worker. */
+@font-face { font-family: "Nunito"; src: url("/fonts/nunito-400.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "Nunito"; src: url("/fonts/nunito-500.woff2") format("woff2"); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: "Nunito"; src: url("/fonts/nunito-600.woff2") format("woff2"); font-weight: 600; font-style: normal; font-display: swap; }
+@font-face { font-family: "Nunito"; src: url("/fonts/nunito-700.woff2") format("woff2"); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: "Lexend"; src: url("/fonts/lexend-400.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "Lexend"; src: url("/fonts/lexend-500.woff2") format("woff2"); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: "Lexend"; src: url("/fonts/lexend-600.woff2") format("woff2"); font-weight: 600; font-style: normal; font-display: swap; }
+@font-face { font-family: "Lexend"; src: url("/fonts/lexend-700.woff2") format("woff2"); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: "Noto Sans"; src: url("/fonts/noto-sans-400.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "Noto Sans"; src: url("/fonts/noto-sans-500.woff2") format("woff2"); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: "Noto Sans"; src: url("/fonts/noto-sans-600.woff2") format("woff2"); font-weight: 600; font-style: normal; font-display: swap; }
+@font-face { font-family: "Noto Sans"; src: url("/fonts/noto-sans-700.woff2") format("woff2"); font-weight: 700; font-style: normal; font-display: swap; }
 :root {
   /* — tourdaovn (tên và giá trị chuẩn) — */
   --c-primary: #0c4a6e;
