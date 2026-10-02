@@ -70,15 +70,17 @@ try {
   assert.equal(await p.ev("document.getElementById('gd-bo').disabled"), true, "2. 'Bỏ thay đổi' khoá khi chưa đổi");
   const soDong = await p.ev("document.querySelectorAll('.gd-dong').length");
   assert.ok(soDong >= 20, `2. đủ dòng chỉnh: ${soDong}`);
+  // Trang này tắt tệp giao diện công ty và chưa chỉnh gì → KHÔNG có biến --* nào đặt trên <html> (hiện đúng app.css mặc định).
+  assert.equal(await p.ev("document.documentElement.style.length"), 0, "2. chưa chỉnh: không có biến --* inline trên <html>");
+  assert.equal(await p.ev("[...document.querySelectorAll('link[href^=\"/api/giao-dien.css\"]')].every((l) => l.disabled)"), true, "2. tệp giao diện công ty bị tắt ở màn này");
   await p.shot(join(OUT, "01-giao-dien-1040-mac-dinh.png"));
   ok(`2. Toàn quyền: thanh bên có Giao diện; 4 nhóm, ${soDong} dòng; 'Áp dụng' và 'Bỏ thay đổi' khoá khi chưa đổi`);
 
   p.close();
 
-  // ---- 3. xem trước ngay + lỗi tương phản. Thanh trên dùng --c-bar-bg ở khổ điện thoại; ở máy tính (có thanh bên) thanh trên dùng nền thẻ
-  // (app.css `body.has-sidebar #topbar`) nên các bước 3–7 đo ở 390. Khung xem trước `.gd-xem-thanh` dùng --c-bar-bg ở mọi khổ.
-  p = await env.as(ACCOUNTS.chu, "/giao-dien", MOB);
-  await khungThat(p, MOB);
+  // ---- 3. xem trước ngay + lỗi tương phản. Thanh trên thật dùng --c-bar-bg ở MỌI khổ (kể cả máy tính có thanh bên); đo ở 1040, khổ 390 ở bước 5b.
+  p = await env.as(ACCOUNTS.chu, "/giao-dien", DESK);
+  await khungThat(p, DESK);
   await p.waitFor("document.querySelectorAll('#gd-form fieldset').length === 4", "3. bốn nhóm");
   await p.ev("(() => { window.__o = document.getElementById('gd-nen-thanh-tren'); return true; })()");
   await doiMau(p, "nen-thanh-tren", "#0c4a6e");
@@ -92,6 +94,17 @@ try {
   assert.equal(await p.ev("!!document.getElementById('gd-nen-thanh-tren').closest('.gd-dong').querySelector('.btn-link:not([hidden])')"), true, "3. dòng đã đổi có nút 'Về mặc định'");
   await p.shot(join(OUT, "02-giao-dien-1040-loi-tuong-phan.png"));
   ok(`3. đổi Nền thanh trên → thanh trên rgb(12, 74, 110) ngay; lỗi "${l3[0]}"; 'Áp dụng' khoá`);
+
+  // ---- 3a. quan hệ cha→con còn nguyên trong xem trước: đổi "Màu chính" → chữ thanh trên (mặc định theo màu chính) đổi theo
+  const chuTruoc = await p.ev("getComputedStyle(document.querySelector('.gd-xem-thanh')).color");
+  await doiMau(p, "mau-chinh", "#7c2d12");
+  const chuSau = await p.ev("getComputedStyle(document.querySelector('.gd-xem-thanh')).color");
+  assert.notEqual(chuSau, chuTruoc, "3a. đổi Màu chính thì chữ thanh trên (xem trước) đổi theo");
+  assert.equal(chuSau, "rgb(124, 45, 18)", "3a. chữ thanh trên theo đúng màu chính mới");
+  await p.ev("document.getElementById('gd-bo').click()");
+  await p.ev(setInput("document.getElementById('gd-nen-thanh-tren')", "#0c4a6e"));
+  await p.ev("(() => { window.__o = document.getElementById('gd-nen-thanh-tren'); return true; })()"); // 'Bỏ thay đổi' dựng lại form → lấy lại phần tử mốc cho 3b
+  ok("3a. đổi Màu chính → chữ thanh trên trong xem trước đổi theo (quan hệ cha→con không bị gãy)");
 
   // ---- 3b. không dựng lại ô màu
   await doiMau(p, "nen-thanh-tren", "#0c4a6f");
@@ -111,35 +124,39 @@ try {
   ok("4. đổi Chữ thanh trên → hết lỗi, 'Áp dụng' mở; hộp xác nhận trong trang → lưu; /api/giao-dien.css có giá trị mới");
 
   // ---- 5. trang khác thấy ngay
-  p = await env.as(ACCOUNTS.chu, "/orders", MOB);
+  p = await env.as(ACCOUNTS.chu, "/orders", DESK);
   assert.equal(await bar(p), "rgb(12, 74, 110)", "5. /orders: thanh trên đã mang màu công ty ngay khi tải xong");
   await p.shot(join(OUT, "03-orders-1040-mau-cong-ty.png"));
   p.close();
   ok("5. tải /orders → thanh trên rgb(12, 74, 110) ngay sau khi tải xong");
+  p = await env.as(ACCOUNTS.chu, "/orders", MOB);
+  assert.equal(await bar(p), "rgb(12, 74, 110)", "5b. /orders (390): thanh trên cũng mang màu công ty");
+  p.close();
+  ok("5b. 390: thanh trên cũng rgb(12, 74, 110)");
 
   // ---- 6. mất /api/giao-dien.css
-  p = await env.openPage(MOB);
+  p = await env.openPage(DESK);
   const ck = await env.login(ACCOUNTS.chu);
   await p.send("Network.setCookie", { name: ck.name, value: ck.value, url: env.base, httpOnly: true });
   await p.send("Network.setBlockedURLs", { urls: ["*/api/giao-dien.css*"] });
   await p.send("Page.navigate", { url: env.base + "/orders" });
   await p.waitFor("document.readyState === 'complete'", "6. /orders tải xong");
-  await khungThat(p, MOB);
+  await khungThat(p, DESK);
   assert.equal(await bar(p), macDinhBar, "6. không có tệp giao diện → thanh trên mặc định");
   assert.ok(p.failed.length > 0, "6. yêu cầu bị chặn thật");
-  assert.equal(await p.ev("document.querySelectorAll('#tabbar .tab').length > 1"), true, "6. trang không vỡ (thanh tab vẫn dựng)");
+  assert.equal(await p.ev("document.querySelectorAll('#sidebar .sidebar-item').length > 3"), true, "6. trang không vỡ (thanh bên vẫn dựng)");
   p.close();
   ok(`6. chặn /api/giao-dien.css → thanh trên ${macDinhBar} (mặc định), trang vẫn dựng`);
 
   // ---- 7. về mặc định toàn bộ
-  p = await env.as(ACCOUNTS.chu, "/giao-dien", MOB);
+  p = await env.as(ACCOUNTS.chu, "/giao-dien", DESK);
   await p.waitFor("document.querySelectorAll('#gd-form fieldset').length === 4 && document.getElementById('gd-nen-thanh-tren').value === '#0c4a6e'", "7. nạp bản đã lưu");
   await p.ev("document.getElementById('gd-mac-dinh').click()");
   assert.equal(await bar(p), macDinhBar, "7. xem trước về mặc định ngay");
   assert.equal(await apDungDuoc(p), true, "7. 'Áp dụng' mở (khác bản đã lưu)");
   await luuLenMayChu(p);
   p.close();
-  p = await env.as(ACCOUNTS.chu, "/orders", MOB);
+  p = await env.as(ACCOUNTS.chu, "/orders", DESK);
   assert.equal(await bar(p), macDinhBar, "7. /orders: thanh trên về mặc định");
   p.close();
   ok("7. 'Về mặc định toàn bộ' → Áp dụng → /orders thanh trên về mặc định");

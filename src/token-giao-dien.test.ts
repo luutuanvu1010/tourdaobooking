@@ -56,7 +56,6 @@ test("màu theo vai: thanh, nút chính, mảng đậm không trỏ thẳng màu
   const loi: string[] = [];
   for (const m of luat.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
     const sel = m[1]!.trim().split("\n").pop()!.trim();
-    if (sel.startsWith("body.has-sidebar")) continue; // thanh trên máy tính: đã nền trắng theo token mặt (--c-surface)
     if (sel === ".sidebar-item-badge-accent") continue; // huy hiệu san hô "Góp ý / Báo lỗi": chữ trắng trên san hô cố định, giữ có chủ đích
     if (sel === ".ntf-panel-head h3" && m[2]!.includes("var(--c-primary)")) continue; // khối @media ≥641px: đầu bảng thông báo nền trắng, tiêu đề chữ xanh
     if (!boChon.some((b) => sel.includes(b))) continue;

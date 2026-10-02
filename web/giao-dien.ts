@@ -23,16 +23,21 @@ const daApLenTrang = new Set<string>();
 /** Phần tử của từng dòng — để capNhat() sửa tại chỗ thay vì dựng lại. */
 const dong = new Map<string, { hang: HTMLElement; veMacDinh: HTMLButtonElement; loi: HTMLElement }>();
 
+/** Tắt thẻ link /api/giao-dien.css của trang này: bản đã lưu không được che bản đang chỉnh. */
+function tatBanDaLuu(): void {
+  for (const l of document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]')) if (l.getAttribute("href")?.startsWith("/api/giao-dien.css")) l.disabled = true;
+}
+
 const giaTri = (k: string): string => dangSua[k] ?? MAC_DINH[k]!;
 const giongNhau = (a: Record<string, string>, b: Record<string, string>) => JSON.stringify(Object.entries(a).sort()) === JSON.stringify(Object.entries(b).sort());
 
-/** Áp bản đang chỉnh lên CHÍNH trang này (xem trước thật) — gỡ token cũ trước rồi đặt lại. Đặt cả giá trị MẶC ĐỊNH của núm chưa đổi:
- *  trang này cũng nạp /api/giao-dien.css (bản đã lưu), nên chỉ gỡ token thì "Về mặc định" / "Bỏ thay đổi" vẫn hiện bản đã lưu thay vì mặc định. */
+/** Áp bản đang chỉnh lên CHÍNH trang này (xem trước thật) — gỡ token cũ trước rồi đặt lại. Trang này TẮT tệp giao diện công ty (xem tatBanDaLuu),
+ *  nên nó hiện đúng "app.css mặc định + các chỉnh sửa hiện tại" — chính là thứ sẽ được áp dụng; không đặt cứng giá trị mặc định (làm gãy quan hệ cha→con của token). */
 function apXemTruoc(): void {
   const root = document.documentElement;
   for (const t of daApLenTrang) root.style.removeProperty(t);
   daApLenTrang.clear();
-  for (const [t, v] of bienCss({ ...MAC_DINH, ...dangSua })) { root.style.setProperty(t, v); daApLenTrang.add(t); }
+  for (const [t, v] of bienCss(dangSua)) { root.style.setProperty(t, v); daApLenTrang.add(t); }
 }
 
 function oNhap(n: Num): HTMLElement {
@@ -119,7 +124,9 @@ async function apDung(): Promise<void> {
     version = r.version;
     showError(errorEl, null);
   } catch (err) {
-    if (err instanceof ApiError && err.code === "stale") { await napLai(); showError(errorEl, err.message); }
+    if (err instanceof ApiError && err.code === "stale") {
+      try { await napLai(); showError(errorEl, err.message); } catch { showError(errorEl, "Không tải được cài đặt giao diện."); }
+    }
     else showError(errorEl, err instanceof ApiError ? err.message : "Không kết nối được máy chủ.");
   } finally { capNhat(); }
 }
@@ -132,6 +139,7 @@ void (async () => {
     for (const el of [formEl, xemEl, apDungBtn.parentElement!]) el.hidden = true;
     return;
   }
+  tatBanDaLuu();
   dungXemTruoc();
   apDungBtn.onclick = hoiXacNhan;
   boBtn.onclick = () => { dangSua = { ...daLuu }; dungForm(); capNhat(); };

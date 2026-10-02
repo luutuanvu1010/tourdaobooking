@@ -844,7 +844,7 @@ body.login-page::before { content: ""; display: block; height: env(safe-area-ins
      ở 60px — nút đỏ chồng lên chữ "Sửa đơn TD-20260923-0001").
      `min-height` thay cho `height` (biện pháp 3) là VAN AN TOÀN: nếu sau này có thứ gì vẫn không vừa thì thanh cao
      lên chứ không đè lên nội dung. Với hai biện pháp trên, chiều cao thực tế vẫn đúng --bar-h = 60px ở mọi khổ. */
-  body.has-sidebar #topbar { grid-column: 2; grid-row: 1; align-self: start; flex-wrap: nowrap; min-height: calc(var(--bar-h) + env(safe-area-inset-top)); padding-top: env(safe-area-inset-top); padding-bottom: 0; background: var(--c-surface); color: var(--c-text-muted); border-bottom: 1px solid var(--c-border); }
+  body.has-sidebar #topbar { grid-column: 2; grid-row: 1; align-self: start; flex-wrap: nowrap; min-height: calc(var(--bar-h) + env(safe-area-inset-top)); padding-top: env(safe-area-inset-top); padding-bottom: 0; background: var(--c-bar-bg); color: var(--c-on-bar); border-bottom: 1px solid var(--c-border); }
   body.has-sidebar #topbar .brand { display: none; } /* logo/tên app đã có ở đầu sidebar — không lặp lại */
   /* Biện pháp 2: breadcrumb CO LẠI VÀ CẮT CHỮ thay vì đẩy nút xuống dòng dưới. `min-width: 0` là bắt buộc — thiếu nó
      phần tử flex không co được dưới bề rộng nội dung. Cùng cách khổ điện thoại đã cắt chữ từ lâu (dòng `body[data-title]
@@ -1353,8 +1353,8 @@ body.login-page main.login { display: flex; flex-direction: column; height: 100%
    chỉ đúng khi thanh công việc thật sự đổi sang nền trắng (≥641px, xem body.has-sidebar #topbar ở trên); để ngoài
    @media thì điện thoại thừa hưởng nhầm màu xám/viền trắng trên nền xanh đậm, chuông gần như biến mất. */
 @media (min-width: 641px) {
-  body.has-sidebar .bell { color: var(--c-text-muted); } /* thanh công việc máy tính nền trắng (không phải nền primary như điện thoại/thanh ngang cũ) */
-  body.has-sidebar .bell-count { box-shadow: 0 0 0 var(--ntf-badge-ring) var(--c-surface); }
+  body.has-sidebar .bell { color: var(--c-on-bar); } /* thanh công việc máy tính nền theo núm "Nền thanh trên" (mặc định trắng; không phải nền primary như điện thoại/thanh ngang cũ) */
+  body.has-sidebar .bell-count { box-shadow: 0 0 0 var(--ntf-badge-ring) var(--c-bar-bg); }
 }
 
 .ntf-strip { display: flex; align-items: center; gap: var(--s3); padding: var(--s2) max(var(--s4), env(safe-area-inset-right)) var(--s2) max(var(--s4), env(safe-area-inset-left)); color: var(--c-sand-text); background: var(--c-sand-soft); border-bottom: 1px solid var(--c-sand-border); }
