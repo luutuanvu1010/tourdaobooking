@@ -59,6 +59,7 @@ test("reviewAlerts: Toàn quyền + dữ liệu có cả hai cảnh báo → tr�
   assert.deepEqual(r, {
     catalogConflict: { code: "CANO_RIENG", base: 2_400_000, current: 2_600_000, moreCount: 0, hidden: false },
     feedbackQueue: { count: 2, items: [{ code: "YC-0042", kindName: "Báo lỗi" }, { code: "YC-0041", kindName: "Đề xuất" }] },
+    expiringDocs: null,
   });
 });
 
@@ -132,6 +133,21 @@ test("reviewAlerts (ADR-0038): Quản trị KHÔNG thấy cảnh báo góp ý D�
   assert.deepEqual(reviewAlerts(ADMIN, { catalogItems: items, tickets }), {
     catalogConflict: { code: "CANO_RIENG", base: 2_400_000, current: 2_600_000, moreCount: 0, hidden: false },
     feedbackQueue: null,
+    expiringDocs: null,
   });
   assert.equal(reviewAlerts(ADMIN, { catalogItems: [], tickets }), null, "chỉ có góp ý → ẩn cả khối với Quản trị");
+});
+
+// Bản vẽ "Trang chu Quan tri.dc.html" (1.73): "Cần xem lại" gom thêm giấy tờ sắp hết hạn (số `count` của GET /api/van-chuyen/sap-het-han — xe + tài xế).
+test("reviewAlerts 1.73: giấy tờ sắp hết hạn — Quản trị / Toàn quyền (ô vehicle.manage) thấy; một mình nó cũng đủ hiện khối; 0 hoặc chưa tải → không dòng", () => {
+  for (const w of [ADMIN, SUPER_ADMIN]) {
+    assert.deepEqual(reviewAlerts(w, { catalogItems: [], tickets: [], expiringCount: 2 }), { catalogConflict: null, feedbackQueue: null, expiringDocs: { count: 2 } });
+    assert.equal(reviewAlerts(w, { catalogItems: [], tickets: [], expiringCount: 0 }), null);
+    assert.equal(reviewAlerts(w, { catalogItems: [], tickets: [], expiringCount: null }), null);
+    assert.equal(reviewAlerts(w, { catalogItems: [], tickets: [] }), null);
+  }
+});
+
+test("reviewAlerts 1.73: Bán hàng / Kế toán / Nhân sự không nhận dòng giấy tờ dù có số", () => {
+  for (const w of [SALES, ACCOUNTING, who("HR")]) assert.equal(reviewAlerts(w, { catalogItems: [], tickets: [], expiringCount: 3 }), null);
 });

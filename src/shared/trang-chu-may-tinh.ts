@@ -1,31 +1,8 @@
 // Luật thuần của Trang chủ MÁY TÍNH (≥641px) — bản vẽ "Trang chu may tinh v2.dc.html" (Claude Design 2026-10-02, lệnh
 // docs/superpowers/specs/2026-10-02-trang-chu-may-tinh-lenh-claude-design.md). Không I/O, có test cạnh tệp; web/home.ts dựng giao diện.
-// Ba việc: số cột của từng nhóm ô trong dải chào, lời chào theo buổi, dòng thời gian của khối Chuyến đón.
+// Hai việc: lời chào theo buổi, dòng thời gian của khối Chuyến đón. (Luật số cột nhóm ô của dải chào cũ đã bỏ ở bản 1.73 — bản vẽ
+// "Trang chu Quan tri.dc.html" không còn lưới mọi ô ở lời chào.)
 import { vnHour } from "./vn-date.ts";
-
-/** Ô rộng tối thiểu (bản vẽ: "ô rộng ≥ 88px"), khe giữa hai ô, và phần một nhóm (trừ nhóm đầu) chiếm thêm: khe 16 + vạch 1 + đệm 16. */
-const O_MIN = 88;
-const O_KHE = 4;
-const NHOM_THEM = 33;
-/** Bản vẽ: "giữ tối đa 2–3 hàng" — quá ba hàng thì xếp chồng nhóm (như khổ 768 của bản vẽ). */
-const HANG_TOI_DA = 3;
-
-/**
- * Số cột của từng nhóm khi các nhóm đứng thành MỘT hàng ngang (bản vẽ 1280/1440), hoặc `null` = không vừa → xếp chồng nhóm (bản vẽ 768).
- * Thử từ ít hàng tới nhiều: với r hàng, nhóm n ô có max(⌈n/r⌉, min(n, 2)) cột (nhóm 3 ô vẫn 2 cột như bản vẽ, không dồn một cột cao). Chọn r nhỏ nhất
- * mà mọi ô ≥ 88px khi chia bề rộng như CSS chia (`flex: <số cột> 1 0` — phần còn lại sau khe/đệm chia theo tỉ lệ số cột). Tái tạo đúng bảng LCOLS
- * của bản vẽ (bài test); khổ bản vẽ không vẽ (900–1279px) theo cùng một luật.
- */
-export function cotNhom(soO: readonly number[], rong: number): number[] | null {
-  if (soO.length === 0 || !(rong > 0)) return null;
-  const W = rong - NHOM_THEM * (soO.length - 1);
-  for (let r = 1; r <= HANG_TOI_DA; r++) {
-    const c = soO.map((n) => Math.max(Math.ceil(n / r), Math.min(n, 2)));
-    const tong = c.reduce((a, b) => a + b, 0);
-    if (c.every((ci) => (W * ci) / tong - O_KHE * (ci - 1) >= O_MIN * ci)) return c;
-  }
-  return null;
-}
 
 /** Phút trong ngày theo giờ Việt Nam. Lệch UTC+7 là số giờ chẵn nên phút giữ nguyên phút UTC. */
 export function phutVN(now: Date): number {

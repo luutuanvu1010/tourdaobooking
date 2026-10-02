@@ -11,6 +11,18 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Trang chủ Quản trị và Toàn quyền theo bản vẽ Claude Design "Trang chu Quan tri.dc.html" (2/10). Chỉ giao diện: không migration, không đổi máy chủ.
+    // Số 1.73 TẠM: 1.71 / 1.72 đang có ở hai nhánh chưa gộp (worktree-agent-a9baef…, worktree-agent-a29831…). KIỂM LẠI LÚC GỘP.
+    version: "1.73",
+    date: "2026-10-02",
+    items: [
+      { kind: "doi", text: "Trang chủ máy tính gọn hơn: bỏ lưới mọi chức năng ở lời chào (đã có ở thanh bên). Bên phải có thẻ Lối tắt 7 ô, ô Tất cả mở bảng mọi chức năng." },
+      { kind: "doi", text: "Bốn con số đầu ca xếp một hàng: Còn thiếu tiền, Chờ xác nhận, Chưa phụ trách, Doanh thu tuần của tôi (kèm biểu đồ)." },
+      { kind: "moi", text: "Cần xem lại có thêm dòng giấy tờ sắp hết hạn (Quản trị, Toàn quyền). Lời chào ghi số chuyến đón hôm nay và số việc cần xem lại." },
+      { kind: "doi", text: "Điện thoại: lời chào theo buổi kèm vai của bạn; hàng ô chức năng chỉ còn những gì chưa có ở thanh dưới; Cần xem lại đứng trước Chuyến đón." },
+    ],
+  },
+  {
     // Thị giác toàn Nền tảng "Năng động – Tin cậy – Tinh tế" (đặc tả docs/superpowers/specs/2026-10-02-thi-giac-nen-tang-design.md, chủ duyệt hướng A 2/10).
     // Chỉ giao diện: không migration, không đổi máy chủ. Số 1.70 = main 1.69 (Vận chuyển Đợt 2) + 1 — đánh lại lúc gộp main e7cd764f. KIỂM LẠI LÚC GỘP.
     version: "1.70",

@@ -2,14 +2,14 @@
 <html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"><meta name="robots" content="noindex"><meta name="theme-color" content="#ffffff"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><link rel="stylesheet" href="/api/giao-dien.css"><title>Trang chủ — Island Booking System</title></head>
 <body class="trang-chu">
 <header id="topbar"></header>
-<!-- Dải chào MÁY TÍNH (≥641px — bản vẽ "Trang chu may tinh v2.dc.html", Claude Design 2026-10-02): lời chào theo buổi, ngày, viên bảo trì, MỌI ô chức năng theo nhóm.
-     Nằm NGOÀI main: một hàng riêng của lưới khung (thanh bên | thanh trên / dải mảnh / dải chào / nội dung) để nền trải hết cột. web/home.ts dựng nội dung; điện thoại ẩn. -->
-<section id="dash-dai" class="dash-dai" aria-label="Lời chào và chức năng" hidden></section>
 <main>
   <!-- Bản mẫu không có H1 to trên trang (khung có sẵn của trang này chưa có thanh tiêu đề như bản mẫu sidebar — đó là việc của Đợt D khác) — h1 chỉ còn phục vụ trình đọc màn hình, ẩn khỏi mắt ở MỌI khổ (cùng kỹ thuật với .detail-head h1). -->
   <h1 class="visually-hidden">Trang chủ</h1>
-  <!-- Trang chủ điện thoại (≤640px — bản vẽ "Trang chu dien thoai.dc.html" 1a–1g): ô tìm đơn nổi trên dải đầu trang, lưới ô chức năng, khối số liệu 2×2.
-       Máy tính ẩn ba khối này (CSS) — lời chào và ô chức năng của máy tính ở #dash-dai, số liệu ở #dash-so-mt. Lời chào / chuông / trợ giúp của dải đầu trang nằm trong #topbar (web/home.ts chèn sau initShell). -->
+  <!-- Lời chào MÁY TÍNH (≥641px — bản vẽ "Trang chu Quan tri.dc.html", Claude Design 2026-10-02, bản 1.73): ngày, lời chào theo buổi, tóm tắt, viên bảo trì, nhãn vai.
+       Không còn lưới ô chức năng (đã có ở thanh bên) — lối tắt ở thẻ #dash-loi-tat. web/home.ts dựng nội dung; điện thoại ẩn. -->
+  <section id="dash-dai" class="dash-dai" aria-label="Lời chào" hidden></section>
+  <!-- Trang chủ điện thoại (≤640px — bản vẽ "Trang chu dien thoai.dc.html" 1a–1g, lưới 4 ô theo bản 1.73): ô tìm đơn nổi trên dải đầu trang, lưới ô chức năng, khối số liệu 2×2.
+       Máy tính ẩn ba khối này (CSS) — lời chào của máy tính ở #dash-dai, số liệu ở #dash-so-mt. Lời chào / chuông / trợ giúp của dải đầu trang nằm trong #topbar (web/home.ts chèn sau initShell). -->
   <form id="dash-tim" class="dash-tim" role="search">
     <span class="dash-tim-ico" aria-hidden="true"></span>
     <input id="dash-tim-o" type="search" enterkeyhint="search" autocomplete="off" placeholder="Tìm mã đơn, tên khách, SĐT…" aria-label="Tìm đơn">
@@ -68,6 +68,11 @@
     <section id="dash-review" class="card dash-review" hidden>
       <div class="dash-review-head"><span class="dash-review-heading icon-label">Cần xem lại</span></div>
       <div id="dash-review-list"></div>
+    </section>
+    <!-- Thẻ "Lối tắt" (chỉ máy tính, bản vẽ 1.73): 7 ô + "Tất cả" mở hộp mọi chức năng. Điện thoại dùng lưới #dash-o. -->
+    <section id="dash-loi-tat" class="card dash-loi-tat" hidden>
+      <div class="dash-loi-tat-head"><h2 class="dash-loi-tat-heading">Lối tắt</h2></div>
+      <nav id="dash-loi-tat-luoi" class="dash-loi-tat-luoi" aria-label="Lối tắt"></nav>
     </section>
   </div>
 </main>
