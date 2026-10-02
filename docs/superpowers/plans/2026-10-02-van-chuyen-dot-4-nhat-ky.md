@@ -94,3 +94,7 @@ Làn máy chủ (Task 0 → 12). **Không** làm Task G (giao diện) — làn k
 - Task 11: xong — dcabed28 — bài số lạ, một nguồn tính, R-VC-COST-*, sổ hàng rào.
 - Task 12: xong — 492d9764 — tài liệu, nhật ký phiên bản.
 - Sửa sau tự rà: xong — (commit kế tiếp) — bảng kê theo nhà xe chịu chi phí; `CPX_GIA_THOA_THUAN` là mã hệ thống.
+
+## Vòng sửa 1 (người kiểm độc lập: ĐẠT CÓ ĐIỀU KIỆN — 2026-10-02)
+- V-1: `R-VC-COST-4` báo nhầm luồng hợp lệ (huỷ → +300.000 Phí huỷ muộn → −100.000 Nhập sai). Bài tái hiện đúng chuỗi đó ĐỎ trước khi sửa.
+  - Chốt: vế phải = cộng MỌI dòng ghi sau lúc huỷ, không lọc lý do (điều phối chốt phương án a); "sau lúc huỷ" = `created_at ≥` sự kiện huỷ VÀ `cmd_id ≠` id sự kiện huỷ (dòng đảo của chính lô huỷ cùng mốc giờ, mang dấu lệnh của lô) — vì sao: giữ ý "chuyến huỷ chỉ còn tiền phát sinh sau huỷ", không đổi route / luồng tiền — sai thì tốn: sửa một câu kiểm.

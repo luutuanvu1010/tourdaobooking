@@ -612,12 +612,15 @@ export const CHECKS = [
   },
   {
     code: "R-VC-COST-4",
-    what: "chuyến đã huỷ có tổng chi phí khác tổng các dòng phí huỷ ghi sau lúc huỷ",
+    // Vòng sửa 1 (người kiểm V-1, điều phối chốt phương án a): vế phải = MỌI dòng ghi SAU lúc huỷ, không lọc lý do (phí huỷ muộn rồi "Nhập sai" là luồng hợp lệ).
+    // "Sau lúc huỷ" = mốc giờ ≥ sự kiện huỷ VÀ không thuộc chính lô huỷ (dấu lệnh khác id sự kiện huỷ — dòng đảo của lô huỷ cùng mốc giờ). Tức: mọi dòng trước
+    // và trong lô huỷ phải cộng về 0 ("chuyến huỷ chỉ còn tiền phát sinh sau huỷ").
+    what: "chuyến đã huỷ có tiền chi phí còn treo từ trước lúc huỷ (tổng khác tổng các dòng ghi sau lúc huỷ)",
     sql: `SELECT count(*) FROM vc_trip t WHERE t.status = 'CANCELLED'
           AND (SELECT COALESCE(sum(l.amount), 0) FROM vc_trip_cost_line l WHERE l.trip_id = t.id)
-           <> (SELECT COALESCE(sum(l.amount), 0) FROM vc_trip_cost_line l WHERE l.trip_id = t.id AND l.kind = 'ADJUSTMENT' AND l.reason_code = 'CPX_HUY_MUON'
-                AND NOT EXISTS (SELECT 1 FROM vc_trip_cost_line r WHERE r.reverses_id = l.id)
-                AND l.created_at >= (SELECT max(e.created_at) FROM vc_trip_event e WHERE e.trip_id = t.id AND e.kind = 'CANCELLED'))`,
+           <> (SELECT COALESCE(sum(l.amount), 0) FROM vc_trip_cost_line l
+               JOIN (SELECT e.id, e.created_at FROM vc_trip_event e WHERE e.trip_id = t.id AND e.kind = 'CANCELLED' ORDER BY e.created_at DESC LIMIT 1) h
+               WHERE l.trip_id = t.id AND l.created_at >= h.created_at AND l.cmd_id <> h.id)`,
     level: "fail",
   },
   {

@@ -1908,13 +1908,13 @@ test("R-VC-RATE-1 (ADR-0057 B4): nhà xe đang hợp tác có giá mở → 0; t
 // vc_trip_cost_line) để gieo vi phạm như SQL gõ tay trên D1.
 // ---------------------------------------------------------------------------------------------------------------------
 let soCp = 0;
-function cpTho(db: DatabaseSync, o: { trip: string; kind: string; amount: number; reverses?: string | null; reason?: string | null; at?: string; carrier?: string }): string {
+function cpTho(db: DatabaseSync, o: { trip: string; kind: string; amount: number; reverses?: string | null; reason?: string | null; at?: string; carrier?: string; cmd?: string }): string {
   const id = `cp-${++soCp}`;
   const snap = o.kind === "SNAPSHOT";
   db.prepare(`INSERT INTO vc_trip_cost_line (id, trip_id, carrier_party_id, kind, amount, rate_id, passenger_capacity_snapshot, unit_amount_snapshot, reason_code, reverses_id,
       occurred_date, cmd_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '2026-09-21', ?, ?, ?)`)
     .run(id, o.trip, o.carrier ?? "p-nx", o.kind, o.amount, snap ? "rate-1" : null, snap ? 16 : null, snap ? o.amount : null,
-      o.reason === undefined ? (snap ? null : o.kind === "AGREED" ? "CPX_GIA_THOA_THUAN" : "CPX_KHAC") : o.reason, o.reverses ?? null, "c".repeat(36), o.at ?? T2, o.at ?? T2);
+      o.reason === undefined ? (snap ? null : o.kind === "AGREED" ? "CPX_GIA_THOA_THUAN" : "CPX_KHAC") : o.reason, o.reverses ?? null, o.cmd ?? "c".repeat(36), o.at ?? T2, o.at ?? T2);
   return id;
 }
 const thue = (db: DatabaseSync, trip: string) => db.prepare("UPDATE vc_trip SET rented = 1 WHERE id = ?").run(trip);
@@ -1966,22 +1966,28 @@ test("R-VC-COST-3 (TC-10 — người kiểm soi): chuyến rented = 0 còn ngu�
   assert.equal(violations(db, c), 0, "chuyến huỷ do R-VC-COST-4 xét");
 });
 
-test("R-VC-COST-4: chuyến huỷ — tổng = phí huỷ muộn ghi SAU lúc huỷ → 0; còn dòng chưa đảo / phí huỷ ghi trước lúc huỷ → vi phạm (fail)", () => {
+test("R-VC-COST-4 (vòng sửa 1 — phương án a): chuyến huỷ — tổng = cộng MỌI dòng ghi SAU lúc huỷ (ngoài lô huỷ) → 0; giá chưa đảo trong lô huỷ / dòng ghi TRƯỚC lúc huỷ còn treo → vi phạm (fail)", () => {
   const c = one("R-VC-COST-4");
   assert.equal(c.level, "fail");
   const db = tho();
   const t = chuyenTho(db, { carrier: "p-nx" });
   thue(db, t);
   const s = cpTho(db, { trip: t, kind: "SNAPSHOT", amount: 1_200_000, at: T1 });
+  const a = cpTho(db, { trip: t, kind: "ADJUSTMENT", amount: -200_000, reason: "CPX_NHAP_SAI", at: T1 });
   db.prepare("UPDATE vc_trip SET status = 'CANCELLED', cancel_reason_code = 'HUY_KHAC' WHERE id = ?").run(t);
-  suKienTho(db, { trip: t, kind: "CANCELLED", ghi: T2, nhatKy: null });
+  const ev = suKienTho(db, { trip: t, kind: "CANCELLED", ghi: T2, nhatKy: null });
   assert.equal(violations(db, c), 1, "huỷ mà giá chưa đảo");
-  cpTho(db, { trip: t, kind: "REVERSAL", amount: -1_200_000, reverses: s, reason: "CPX_HUY_CHUYEN", at: T2 });
+  // Lô huỷ: dòng đảo CÙNG mốc giờ + CÙNG dấu lệnh với sự kiện huỷ — thuộc "trước / trong lúc huỷ".
+  cpTho(db, { trip: t, kind: "REVERSAL", amount: 200_000, reverses: a, reason: "CPX_HUY_CHUYEN", at: T2, cmd: ev });
+  assert.equal(violations(db, c), 1, "mới đảo một nửa");
+  cpTho(db, { trip: t, kind: "REVERSAL", amount: -1_200_000, reverses: s, reason: "CPX_HUY_CHUYEN", at: T2, cmd: ev });
   assert.equal(violations(db, c), 0);
   cpTho(db, { trip: t, kind: "ADJUSTMENT", amount: 300_000, reason: "CPX_HUY_MUON", at: T3 });
   assert.equal(violations(db, c), 0, "V8b: phí huỷ ghi sau lúc huỷ");
-  cpTho(db, { trip: t, kind: "ADJUSTMENT", amount: 50_000, reason: "CPX_KHAC", at: T3 });
-  assert.equal(violations(db, c), 1, "điều chỉnh khác sau huỷ");
+  cpTho(db, { trip: t, kind: "ADJUSTMENT", amount: -100_000, reason: "CPX_NHAP_SAI", at: T3 });
+  assert.equal(violations(db, c), 0, "luồng hợp lệ: phí huỷ rồi sửa sai (Nhập sai) — không báo nhầm (người kiểm V-1)");
+  cpTho(db, { trip: t, kind: "ADJUSTMENT", amount: 50_000, reason: "CPX_KHAC", at: T1 }); // dòng ghi TRƯỚC lúc huỷ (như gõ tay) còn treo
+  assert.equal(violations(db, c), 1, "dòng trước lúc huỷ chưa đảo");
 });
 
 test("R-VC-COST-5 (ADR tiêu chí 4c): GỠ TẠM trigger thieu_gia + insert_planned, đưa chuyến xe thuê không nguồn giá sang RUNNING → 1 (fail); khôi phục trigger trong cùng bài", () => {
