@@ -24,12 +24,12 @@
   - nghiên cứu Oracle `docs/superpowers/specs/2026-10-02-chong-trung-moi-lenh-ghi-theo-oracle.md`.
 
   ADR này chốt quyết định và trỏ về đặc tả cho chi tiết. Khi hai nơi khác nhau, **ADR thắng**.
-- **Người kiểm độc lập** đã soát bản nháp (chỉ đọc, 2026-10-02). Ba chỗ chặn và tám chỗ nên sửa đã được xử lý trong bản này (xem cuối tệp).
+- **Người kiểm độc lập** đã soát hai vòng (chỉ đọc, 2026-10-02). Vòng 1: ba chỗ chặn, tám chỗ nên sửa. Vòng 2: không chỗ chặn, bốn chỗ nên sửa. Tất cả đã xử lý trong bản này (xem cuối tệp).
 - **Số dòng mã** trích theo `93233953` (nhánh `worktree-quyet-dinh-thu-nghiep-vu`). Nhánh này chậm hơn `main` (`main` đã có migration `0069`). Khi lập kế hoạch, đối chiếu lại trên `main`.
 
 ## Lời chủ dự án (nguyên văn, chat 2026-10-02)
-Đánh số lần theo ADR-0089 (cùng chuỗi tin nhắn).
-1. **Lần 1, câu 3:** *"Đồng ý, đều phải có cơ chế chống trùng, truy ngược lại khung của Oracle xem nên làm kiểu gì"*
+Đánh số lần theo mục "Lời chủ" của ADR-0089 (cùng chuỗi tin nhắn).
+1. **Lần 1** (tin nhắn mở đầu "1- Khi khách huỷ…"), **câu 3**, trả lời câu Q-F02 của phiếu: *"Đồng ý, đều phải có cơ chế chống trùng, truy ngược lại khung của Oracle xem nên làm kiểu gì"*
 2. **Lần 4, câu 1:** *"Chúng ta chặn ghi trùng bằng giải pháp kỹ thuật, chứ không phải đi vá thế này. Tìm trong Cloudflare và/hoặc Oracle xem họ có cách nào chống ghi trùng dữ liệu."*
 3. **Lần 5:** *"1- Vé là dữ liệu kỹ thuật nhưng cũng không dọn sau 30 ngày, vì có thể sau này cần dùng lịch sử của quá khứ để đánh giá tỷ lệ thành công, huỷ, hoanf của đơn. Tôi đề xuất vẫn giữ với thời gian lâu hơn, tạm thời là 365 ngày (cụ thể hoá bằng lựa chọn trong tài khoản Toàn quyền). 2- Theo đề xuất. 3- ok ."*
    - Câu 1 trả lời **V1** (giữ vé bao lâu): **365 ngày, Toàn quyền chọn được**. Đặc tả khuyến nghị dọn sau 30 ngày; chủ không chọn.
@@ -98,6 +98,7 @@
    - **Khoá do chủ đặt bằng `wrangler secret put`** (việc của chủ, CLAUDE.md §8). `.dev.vars.example` và khung thử có giá trị giả cho khoá này.
    - Thiếu khoá thì `checkConfig` báo cấu hình sai, và router trả 500 cho **mọi** API (`src/shared/router.ts:287-291`). Vì vậy **khoá phải có trước lần triển khai mang lớp này**.
    - **Hàng rào cho bước này:** dựa vào kỷ luật (thứ tự trong runbook), **cho tới khi** `npm run trien-khai` có cổng chỉ-đọc kiểm tên khoá đã đặt trước khi triển khai. Cổng đó thuộc bản mở rộng.
+     - Cổng dùng lệnh `wrangler secret list` (chỉ đọc). Hook cấm AI chạy `wrangler secret …`, nên AI quan sát cổng chặn thật bằng **hàm giả** thay lệnh wrangler trong bài kiểm của `scripts/release-lib.mjs`; lần chạy thật đầu tiên do chủ chạy.
 5. **Máy khách:** `api()` ở `web/api.ts:76` tự gắn vé theo quy tắc đặc tả §3.2. Không màn nào phải tự làm gì.
    - Mở vé trước khi gửi.
    - **Đóng vé** khi có 2xx, khi có 4xx (trừ `409 dang_xu_ly`), và khi nhận "đã ghi".
@@ -107,8 +108,15 @@
    - **Vòng đời vé** (mở, đóng, giữ, dùng lại) là **mô-đun thuần** ở `src/shared/`, `web/api.ts` chỉ gọi nó. Nhờ vậy rủi ro "nuốt lần ghi thật thứ hai" có bài đơn vị trong `npm test` (H4).
 6. **V2 = R2: gửi lại thì trả "đã ghi" kèm địa chỉ kết quả** (lời chủ 5, câu 2).
    - **Không lưu thân phản hồi**, nên không chép SĐT, tên hay số giấy tờ vào bảng kỹ thuật.
-   - Lần đầu bị từ chối mà vẫn ghi vé: lần gửi lại trả **đúng mã HTTP và mã lỗi máy** của lần đầu, kèm câu cố định "Lần gửi trước đã bị từ chối, tải lại để xem".
-   - Hợp đồng phát lại và luật địa chỉ kết quả: xem **A-10** (AI chọn một trong hai cách đặc tả §3.4 để ngỏ).
+   - **Hợp đồng phát lại** (chi tiết kỹ thuật của R2, AI soạn theo đặc tả §3.2–§3.4; chủ duyệt cùng văn bản):
+     - **Lần đầu thành công**, hoặc lần đầu đã ghi vé nhưng không rõ kết quả (`ma_tra = 500`, hoặc chưa có kết quả sau 10 giây — đặc tả §3.3 bước 3d, 8):
+       - mã **200**;
+       - thân `{ "da_ghi_truoc_do": true, "ket_qua": "<đường dẫn>" | null }` (`null` khi không có địa chỉ hoặc không rõ kết quả);
+       - header `Idempotent-Replayed: true`.
+
+       `api()` bắt phản hồi này **trước** khi trả cho màn gọi: hiện "Lần bấm trước đã được ghi", rồi `location.replace(ket_qua)`, hoặc tải lại trang khi `ket_qua` là `null`. Màn gọi không bao giờ nhận thân này, nên các màn đang đọc `data.order…` không phải sửa.
+     - **Lần đầu bị từ chối mà vẫn ghi vé:** đúng mã HTTP và mã lỗi máy của lần đầu. Thân theo hình lỗi chung `{ error: { code: <ma_loi>, message: "Lần gửi trước đã bị từ chối, tải lại để xem" } }` (`src/shared/http.ts` `error()`), kèm header `Idempotent-Replayed: true`.
+   - Luật **địa chỉ kết quả**: xem **A-10** (AI chọn một trong hai cách đặc tả §3.4 để ngỏ). Không duyệt A-10 thì `ket_qua` luôn `null` và phát lại chỉ tải lại trang.
    - **Hệ quả của R2 đã biết, ghi một lần:**
      - Thân phản hồi chứa PIN ở ba chỗ: tạo tài khoản (`src/modules/accounts/index.ts:426, 456`) và đặt lại PIN (`:675`). Gửi lặp những lệnh này **không hiện lại PIN**.
      - Cách xử lý: bấm "Đặt lại PIN" lần nữa; đó là ý định mới, vé mới.
@@ -145,15 +153,18 @@
      - kéo dài thời hạn có hiệu lực ngay.
    - **(e) Ngoại lệ có tên cho luật "không xoá cứng"** (R-N1-9, ADR-0003 điều 8; `src/architecture.test.ts:402-404`). Đặt cạnh `XOA_CUNG_NHAP` (`:153`), cùng khuôn bài "danh sách chỉ được co lại" (`:791-798`).
      - Chỉ áp cho bảng `lg_lan_gui`, **chỉ** một câu xoá do module `lan-gui` khai. Điều kiện thời hạn và sàn nằm **trong câu**.
-     - Chỉ gọi từ hàm `scheduled` (Cron sẵn có `*/15 * * * *`, `wrangler.jsonc:10`; `src/index.ts:176`). **Không route nào xoá vé.**
+     - Chỉ gọi từ hàm `scheduled` (Cron sẵn có `*/15 * * * *`, `wrangler.jsonc:10`; `src/index.ts:176`), trong một `waitUntil` **riêng**, tách khỏi `runScheduledSync` (`:176-177`), để lỗi đồng bộ Sheet không chặn lượt dọn. **Không route nào xoá vé**; bài tĩnh H10 ép hàm xoá chỉ được tham chiếu từ đường `scheduled`.
      - Xoá **theo lô có giới hạn**, dùng chỉ mục `created_at` (lịch và giới hạn: A-5).
-     - Mỗi lượt có xoá ghi **một** dòng nhật ký: số dòng đã xoá và mốc cắt.
+       - SQLite không nhận `DELETE … LIMIT`, và bảng `WITHOUT ROWID` không có `rowid`. Câu xoá có dạng `DELETE FROM lg_lan_gui WHERE (staff_id, khoa) IN (SELECT staff_id, khoa FROM lg_lan_gui WHERE created_at < :moc ORDER BY created_at LIMIT :n)`.
+       - `:moc` = `MIN(mốc cắt, bây giờ − sàn)`, tính trong câu con. Người kiểm đã chạy dạng này trên SQLite cục bộ (5.000 dòng trên 500.000 dòng, ~111 ms); **trên D1 chưa kiểm**.
+     - **Nhật ký:** mỗi lô có xoá ghi **một** dòng nhật ký **trong cùng lô** với câu xoá (số dòng đã xoá, mốc cắt). Cách lấy số dòng do kế hoạch chọn (ví dụ `changes()`, chưa kiểm trên D1). Với lịch A-5, trạng thái ổn định chỉ ~1–2 dòng nhật ký mỗi ngày.
      - Bảng chính sách thời hạn **không** có ngoại lệ.
      - Đây là **nới** một hàng rào đã duyệt (Hiến pháp Điều 9.4), nên chủ duyệt cùng ADR này.
      - Vé là dữ liệu **kỹ thuật**. Hiến chương 5.5 nói về "dữ liệu nghiệp vụ", nhưng R-N1-9 áp cho mọi bảng mới. Vì vậy cần ghi lệch hẹp này ở bảng thi hành dòng 5.5 (chủ sửa Phần I, Điều 6.4).
    - **(f) Dung lượng** (ước tính, **chưa đo**):
-     - ~0,35–0,4 KB mỗi vé (đã tính bốn cột WHO); 3.000–10.000 lệnh ghi mỗi ngày.
-     - Dọn ở 365 ngày ⇒ bảng ổn định quanh **~0,4–1,4 GB**, tức ~4–14% trần 10 GB của D1.
+     - ~0,45–0,55 KB mỗi vé, đã tính bốn cột WHO **và chỉ mục `created_at`** (chỉ mục của bảng `WITHOUT ROWID` chứa cả khoá chính). Số này người kiểm độc lập đo trên SQLite cục bộ với 500.000 dòng, chưa đo trên D1.
+     - 3.000–10.000 lệnh ghi mỗi ngày.
+     - Dọn ở 365 ngày ⇒ bảng ổn định quanh **~0,5–2,0 GB**, tức ~5–20% trần 10 GB của D1.
      - **Cách đo:**
        - trước khi chốt: đếm `audit_log` mỗi ngày bằng lệnh chỉ đọc, do chủ chạy;
        - sau 30 ngày chạy thật: đếm dòng `lg_lan_gui`.
@@ -185,10 +196,11 @@ AI thêm khi soạn, không có trong lời chủ hay trong khuyến nghị đ�
   - Sàn 90 ngày vượt xa tuổi tối đa 24 giờ của vé ở máy người dùng.
 - **A-4. Thời gian chờ khi rút ngắn: 7 ngày.**
   - Cách tính: Cron dùng thời hạn **dài nhất** trong các dòng chính sách đã có hiệu lực ở bất kỳ lúc nào trong **7 ngày** gần nhất. "Không dọn" thắng mọi con số.
-- **A-5. Lịch dọn:** mọi lượt Cron (15 phút một lần), mỗi lượt xoá **tối đa 5.000 dòng**.
-  - Tối đa ~480.000 dòng mỗi ngày, nên vượt xa 3.000–10.000 vé mới mỗi ngày.
-  - Sau một lần rút ngắn lớn (ví dụ từ 365 xuống 90 ngày, ~2,75 triệu vé ở cận trên), khối tồn đọng dọn xong trong khoảng **6 ngày**.
-  - Mỗi lượt là một câu xoá có giới hạn trên chỉ mục, nhẹ. Không cần dồn vào giờ đêm.
+- **A-5. Lịch dọn:** **một lượt mỗi ngày**, ở lượt Cron rơi vào khung nửa mở **[02:00, 02:15) giờ Việt Nam** (19:00 UTC).
+  - Trong lượt, lặp các lô **≤ 5.000 dòng** tới khi hết vé quá hạn hoặc chạm trần **50 lô** (250.000 dòng).
+  - Trạng thái ổn định cần 1–2 lô mỗi ngày (3.000–10.000 vé hết hạn), nên chỉ ~1–2 dòng nhật ký mỗi ngày.
+  - Sau một lần rút ngắn lớn (ví dụ từ 365 xuống 90 ngày, ~2,75 triệu vé ở cận trên), khối tồn đọng dọn xong trong khoảng **12 ngày** (2,75 triệu ÷ (250.000 − 10.000)).
+  - Lượt bị Worker ngắt giữa chừng thì an toàn: mỗi lô tự đủ (xoá + nhật ký cùng lô), ngày sau làm tiếp. Giới hạn thời gian chạy của Cron với 50 lô: **chưa đo**.
 - **A-6. N của bản siết:** **7 ngày** liên tiếp không có lệnh thiếu vé.
 - **A-7. Tên và nhật ký:**
   - bảng chính sách: `lg_chinh_sach_giu`;
@@ -201,20 +213,13 @@ AI thêm khi soạn, không có trong lời chủ hay trong khuyến nghị đ�
 - **A-9. Khi nào đóng F-02:** khi **bản mở rộng** lên production **và** T12 đạt.
   - Máy còn bản cũ (chưa gửi vé) được theo dõi bằng số đếm `thieu_ma_lan_gui`.
   - Cách khác: chỉ đóng sau bản siết. Cách này an toàn hơn, nhưng dễ trễ hạn 15/10.
-- **A-10. Hợp đồng phát lại và địa chỉ kết quả** (đặc tả §3.4 để ngỏ hai cách; AI chọn cách (i)):
+- **A-10. Luật địa chỉ kết quả** (đặc tả §3.4 để ngỏ hai cách; AI chọn cách (i)). Hợp đồng phát lại nằm ở đ6:
   - **Mọi route trả 201 gửi header `Location`**, trỏ trang kết quả bằng đường dẫn nội bộ **chỉ chứa id**. Lệnh ghi lên một đơn (ví dụ lần thu) trỏ **trang đơn**.
     - Dùng tham số `headers` sẵn có của `json()` (`src/shared/http.ts:6`). Router lưu `Location` vào `ket_qua`.
     - **Một bài kiểm chung** (H7): mọi route trả 201 trong khung thử phải có `Location` hợp lệ.
     - Kho có **ít nhất 28** chỗ `, 201)` ở 8 module, cộng các dạng khác (ví dụ `thongbao/index.ts:198`, `parties/index.ts:712, 748`, `van-chuyen/index.ts:871`). Bài chạy thật bắt nốt.
     - **Route tạo mà trả 200** được lập danh sách bằng tay ở bước thi công. Mỗi route trong đó thêm `Location`, hoặc ghi vào danh sách "phát lại = tải lại trang", có lý do.
     - Lý do không chọn cách (ii) "bảng tra chung mẫu route → trang": cách đó buộc router đọc id trong **thân** phản hồi, mà R2 đã chọn không đọc nội dung.
-  - **Phản hồi phát lại khi lần đầu thành công:**
-    - mã **200**;
-    - thân `{ "da_ghi_truoc_do": true, "ket_qua": "<đường dẫn>" | null }`;
-    - header `Idempotent-Replayed: true`.
-
-    `api()` bắt phản hồi này **trước** khi trả cho màn gọi: hiện "Lần bấm trước đã được ghi", rồi `location.replace(ket_qua)`, hoặc tải lại trang khi `ket_qua` là `null`. Màn gọi không bao giờ nhận thân này, nên các màn đang đọc `data.order…` không phải sửa.
-  - **Phản hồi phát lại khi lần đầu bị từ chối:** đúng mã HTTP cũ. Thân theo hình lỗi chung `{ error: { code: <ma_loi>, message: "Lần gửi trước đã bị từ chối, tải lại để xem" } }` (`http.ts` `error()`), kèm header `Idempotent-Replayed: true`.
 - **A-11. Tách màn thời hạn và Cron dọn sang bản sau:** bảng vé bắt đầu rỗng, sàn 90 ngày, nên ít nhất 90 ngày đầu chưa có gì để xoá.
   - Bản mở rộng chỉ cần bảng chính sách (gieo 365) và lớp vé.
   - Màn "Thời hạn giữ vé" và Cron dọn có thể ra ở một bản sau, **trước ngày thứ 90** kể từ bản mở rộng.
@@ -255,7 +260,7 @@ Bảng `lg_lan_gui` nhận vé của **mọi** module, nên được coi là b�
 |---|---|---|
 | Đặc tả `2026-09-22-chong-gui-trung.md` | phần kỹ thuật: cột `orders.client_request_id`; §6 câu 3 "áp ngay" | lớp chung (đ1–đ6); phát hành từ từ (đ7). Phần hành vi mong muốn (gửi lại được trả đơn cũ) giữ nguyên |
 | Tệp Oracle 2026-10-02 §3.3 mục 3 | "không dựng bảng nhật ký yêu cầu riêng…; mã giữ vĩnh viễn trên từng bảng" | một bảng vé chung, thời hạn do Toàn quyền chọn (đ2, đ8) |
-| Tệp Oracle 2026-10-02 §3.3 (mục 1, 4–6), §3.4 mục 6 | mã cho từng lệnh; "xoá mã đang lưu tạm khi đăng xuất" | vé chung ở `api()`; vé theo tài khoản, **không** xoá khi đăng xuất hay bị đá phiên (đ3, đ5) |
+| Tệp Oracle 2026-10-02 §3.3 (mục 1, 4–6), §3.4 mục 3 và 6 | mã cho từng lệnh; giữ mã ở `sessionStorage`; "xoá mã đang lưu tạm khi đăng xuất" | vé chung ở `api()`; giữ ở `localStorage` (trừ route có bí mật); vé theo tài khoản, **không** xoá khi đăng xuất hay bị đá phiên (đ3, đ5) |
 | Câu A1, CT1, CT2 (tệp Oracle §3.5; phiếu trả lời) | gắn mã cho từng lệnh tiền; 409 khi khác nội dung; thứ tự phát hành | mọi lệnh ghi đều có vé; **422** khác nội dung; từ từ (đ7) |
 | ADR-0003 điều 8 / R-N1-9; `CLAUDE.md` §7 ("ngoại lệ có tên duy nhất: … `XOA_CUNG_NHAP`") | một ngoại lệ | thêm ngoại lệ thứ hai (đ8e). Sửa `CLAUDE.md` do chủ duyệt (Hiến pháp N9) |
 | Hiến chương: Điều 3 (bảng lõi); bảng thi hành dòng 5.5 | 16 khái niệm; lệch hẹp chỉ có đơn nháp | + K17 (A-8); + lệch hẹp "vé kỹ thuật dọn theo thời hạn" (đ8e) |
@@ -286,6 +291,7 @@ Bảng `lg_lan_gui` nhận vé của **mọi** module, nên được coi là b�
 | H7 | Route trả 201 thiếu `Location` | bài chung (A-10) |
 | H8 | Câu dọn xoá vé còn hạn hoặc dưới sàn; dọn quá giới hạn mỗi lượt; thiếu chính sách mà vẫn xoá | bài thuần cho câu dọn + khung thử Cron |
 | H9 | Ghi thời hạn dưới sàn | `CHECK` + máy chủ (đ8c) |
+| H10 | Hàm xoá vé được gọi từ nơi khác ngoài đường `scheduled` | bài tĩnh (đ8e) |
 
 ## Tiêu chí nghiệm thu (viết trước khi làm)
 - **T1.** Tắt mạng sau khi bấm "Ghi lần thu", bật lại, bấm lại ⇒ đơn có **một** lần thu; màn báo "Lần bấm trước đã được ghi".
@@ -293,11 +299,11 @@ Bảng `lg_lan_gui` nhận vé của **mọi** module, nên được coi là b�
 - **T3.** Lập đơn, mất phản hồi, iOS tắt Nền tảng, mở lại, gửi lại cùng nội dung ⇒ **một** đơn; mở trang đơn đã tạo. (Cần iPhone thật.)
 - **T4.** Hai lần thu thật giống hệt nhau, nối tiếp, cả hai thành công ⇒ **hai** dòng.
 - **T5.** Sửa số tiền sau khi mất mạng rồi gửi ⇒ lớp vé **không** chặn.
-- **T6.** Thêm vào bảng route một route ghi có đăng nhập mang cờ bỏ qua lớp (hoặc đổi `access` sang `public`) mà **không** có dòng trong tệp miễn ⇒ H2 đỏ; thêm dòng miễn cho route không tồn tại ⇒ H2 đỏ.
+- **T6.** Đổi `access` của một route ghi đang có đăng nhập sang `public` mà **không** có dòng trong tệp miễn ⇒ H2 đỏ; thêm dòng miễn cho route không tồn tại ⇒ H2 đỏ.
 - **T7.** Quản trị gọi route đổi thời hạn ⇒ **403**. Giao diện của Quản trị không có màn hay ô "Thời hạn giữ vé".
 - **T8.** Toàn quyền rút từ 365 xuống mức sàn ⇒ trong thời gian chờ (A-4), Cron **không** xoá vé còn trong hạn cũ; hết thời gian chờ mới xoá.
 - **T9.** Kéo dài từ mức sàn lên 365 ⇒ lượt Cron kế tiếp dùng 365.
-- **T10.** Cron chỉ xoá vé có `created_at` trước mốc cắt **và** trước mốc sàn, **không** chạm vé còn hạn. Mỗi lượt ≤ giới hạn; ghi đúng một dòng nhật ký. Thiếu dòng chính sách ⇒ không xoá gì.
+- **T10.** Cron chỉ xoá vé có `created_at` trước mốc cắt **và** trước mốc sàn, **không** chạm vé còn hạn. Mỗi lô ≤ giới hạn, mỗi lượt ≤ trần số lô; mỗi lô có xoá ghi đúng một dòng nhật ký trong cùng lô. Thiếu dòng chính sách ⇒ không xoá gì. Đồng bộ Sheet lỗi ⇒ lượt dọn vẫn chạy.
 - **T11.** Chọn "Không dọn" ⇒ Cron không xoá gì. Ghi số ngày dưới sàn ⇒ máy chủ từ chối, và chèn thẳng vào CSDL cũng bị `CHECK` chặn.
 - **T12.** Kịch bản F-02 chạy lại đạt: 11, 12, 13, HD10, KT03, KT04.
   - Kịch bản phải **gắn cùng một vé** ở hai lần gửi. Bản gốc ở `~/Documents/danh-gia-ux/2026-10-01/kich-ban/` (ngoài kho) chưa gửi vé, nên phải sửa.
@@ -335,7 +341,7 @@ Bảng `lg_lan_gui` nhận vé của **mọi** module, nên được coi là b�
 | C2 (chặn) | Ghi CT3/CT4 "vẫn chờ chủ" là sai | đ9: chủ đã chọn, ADR-0092 đ6a |
 | C3 (chặn) | Sàn và chờ khi rút ngắn chỉ nằm ở phần chờ chủ | đ8c, đ8d: sàn cứng và nguyên tắc chờ có hiệu lực; số ở A-3, A-4; ADR chỉ accepted khi có hai số đó |
 | N1 | Người tạo là Nhân sự không đặt lại PIN được; thiếu `:675` | đ6 |
-| N2 | 5.000 dòng mỗi ngày không theo kịp 10.000 vé | A-5: mỗi lượt Cron |
+| N2 | 5.000 dòng mỗi ngày không theo kịp 10.000 vé | A-5: lặp nhiều lô trong lượt, trần 250.000 dòng mỗi ngày |
 | N3 | Kịch bản F-02 không gửi vé, nằm ngoài kho | T12, đ7 |
 | N4 | H4 chưa vào `npm test`; T6 chưa nói cái gì đỏ | đ5 (mô-đun thuần), H4, T6 |
 | N5 | Cách (i) cho địa chỉ kết quả là AI chọn mà không gắn nhãn | A-10 |
@@ -343,3 +349,13 @@ Bảng `lg_lan_gui` nhận vé của **mọi** module, nên được coi là b�
 | N7 | Thiếu khoá HMAC là sự cố toàn hệ thống, chỉ có runbook | đ4: "dựa vào kỷ luật" + cổng kiểm ở bản mở rộng |
 | N8 | Thiếu mục "Hiến chương áp dụng" | đã thêm |
 | G1–G12 | số module, "ít nhất 28", nguồn luật giao diện, số dòng khuôn, A-1 vs trang ghép, `requestId` Vận chuyển, mã nhật ký, dòng "Thay câu nào", câu số liệu lịch sử, tách màn thời hạn, vị trí sau cổng `access`, bài kiểm danh sách bí mật | đã sửa trong thân (G9 chuyển sang Bối cảnh; G10 thành A-11) |
+
+**Vòng 2** (cùng người kiểm, chỉ đọc): xác nhận C1–C3 và N1–N8 đã sửa đúng. Người kiểm chạy lại phép thử phá với lược đồ mới: bài "ADR-0003: bảng mới" **xanh**. Bốn chỗ nên sửa mới và bảy gợi ý đã xử lý:
+
+| Mã | Phát hiện | Xử lý |
+|---|---|---|
+| L1 | Dung lượng chưa tính chỉ mục (đo cục bộ 0,46–0,55 KB mỗi dòng) | đ8f: ~0,5–2,0 GB |
+| L2 | Một dòng nhật ký mỗi lượt Cron ⇒ ~96 dòng mỗi ngày | A-5: một lượt mỗi ngày, nhật ký theo lô; ~1–2 dòng mỗi ngày |
+| L3 | Hợp đồng phát lại nằm trong A-10 chưa có hiệu lực, mà đ5 dựa vào nó | đ6: chuyển hợp đồng vào phần có hiệu lực, thêm ca `ma_tra = 500`; A-10 chỉ còn luật địa chỉ |
+| L4 | SQLite không nhận `DELETE … LIMIT` | đ8e: dạng câu xoá qua câu con |
+| G-a…G-g | chữ "cờ" ở T6; nhãn lời chủ; §3.4 mục 3; phiếu về PIN của Nhân sự; quan sát cổng khoá; bài tĩnh nơi gọi hàm xoá; `waitUntil` riêng | đã sửa (T6, mục Lời chủ, Thay câu nào, phiếu, đ4, H10, đ8e) |
