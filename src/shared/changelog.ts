@@ -11,6 +11,29 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Trang chủ điện thoại theo bản vẽ "Trang chu dien thoai.dc.html" (Claude Design 2026-09-30, 1a–1g). Không migration, không đổi máy chủ.
+    // Số "1.66" = main 1.65 (Vận chuyển đợt 1) + 1 (gộp main 2026-10-02). KIỂM LẠI LÚC GỘP (nhánh khác gộp trước thì đánh lại số).
+    version: "1.66",
+    date: "2026-10-02",
+    items: [
+      { kind: "doi", text: "Trang chủ trên điện thoại làm mới: lời chào, ô tìm đơn ở đầu trang và lưới ô vuông mở nhanh mọi chức năng bạn được dùng (nhiều chức năng thì có ô Tất cả)." },
+      { kind: "doi", text: "Bốn con số Còn thiếu, Doanh thu, Chờ xác nhận, Chưa phụ trách gom vào một thẻ; chuyến đón đã trả đủ hiện chữ Đủ tiền. Máy tính giữ nguyên." },
+    ],
+  },
+  {
+    // Đợt 1 Vận chuyển còn lại (kế hoạch docs/superpowers/plans/2026-10-01-van-chuyen-con-lai-01-viec-nho.md): ADR-0056 VK3-B, đổi thứ tự điểm, mốc nhắc, người đi kèm.
+    // Có migration 0068. Số "1.65" = main 1.64 + 1 — kiểm lại lúc gộp (nhánh khác gộp trước thì đánh lại số).
+    version: "1.65",
+    date: "2026-10-02",
+    items: [
+      { kind: "moi", text: "Xe đã có một loại giấy tờ đang dùng thì không \"Thêm\" loại đó nữa — bấm \"Gia hạn\" hoặc \"Sửa sai\"; form Thêm chỉ hiện loại chưa có." },
+      { kind: "moi", text: "Chi tiết chuyến: văn phòng đổi được thứ tự các điểm chưa tới khi xe đang chạy (nút lên / xuống)." },
+      { kind: "moi", text: "Giấy tờ sắp hết hạn: Toàn quyền đổi được số ngày nhắc trước (nút \"Đổi mốc nhắc\"); nhãn hạn giấy tờ cá nhân theo đúng số này." },
+      { kind: "moi", text: "Chi tiết chuyến: gắn hướng dẫn viên đi kèm lên xe; tên hiện ở Chi tiết chuyến và màn tài xế. Người đi kèm có nút \"Đã lên xe\" / \"Đã xuống\"." },
+      { kind: "doi", text: "Chuẩn bị cho bản sau: máy chủ ghi nhận máy nào còn dùng ứng dụng bản cũ khi lưu đơn (không ghi thông tin khách)." },
+    ],
+  },
+  {
     // Có migration 0067 (ADR-0085). Số "1.64" = main 1.63 + 1 (đánh lại lúc gộp main 1.63, 2026-10-01; trước ghi 1.62). KIỂM LẠI LÚC GỘP (nhánh khác gộp trước thì đánh lại số).
     version: "1.64",
     date: "2026-10-01",

@@ -15,7 +15,7 @@ import { LOC_NHAP_TOI_DA_NGAY, LOC_NHAP_TOI_DA_UNG_VIEN, laDongNhapKeToan, soNga
 import { editablePaxCodesOf, planMoneyEdit } from "./money-adjustment";
 import {
   addLeg, cancelOrder, changeBooker, changeLeg, cocCuNhap, confirmOrder, createOrder, effectivePax, findOrder, getDashboard, getDepartDates, getLatestAdjustment, getMeta, getOrderRef,
-  getServicesForSubtotal, getStoredServices, insertMoneyAdjustment, listOrderIds, listOrders, listPoolSources, updateDraftOrder, updateTrip, writePassengerChange,
+  demThanCu, getServicesForSubtotal, getStoredServices, insertMoneyAdjustment, listOrderIds, listOrders, listPoolSources, updateDraftOrder, updateTrip, writePassengerChange,
 } from "./repository";
 import {
   legById, legDatGapByOrder, legLichChungNhapRows, legLichChungRows, legShortNotice, legTripRows, manualPolicy, manualPolicyInsert, orderContactRows, passengerRowsByOrders,
@@ -29,6 +29,7 @@ import { dongHienHanh } from "../../shared/hanh-khach";
 import { soNguoiChang, tongKhach } from "../../shared/so-nguoi-chang";
 import { maskLongDigits } from "../../shared/text-guards";
 import { toPoolOrders } from "./pool";
+import { laThanDonCu, laThanTripCu } from "./than-cu";
 import {
   PARTNER_DISCOUNT_CAP, PARTNER_DISCOUNT_MESSAGE, RETAIL_PRICE_MESSAGE, discountWithinCap, duocNhapTay, holdsPartner, lyDoKhongNhapTay, manualFreezeViolation,
   retailPricesOnly,
@@ -668,6 +669,7 @@ export const ordersModule: AppModule = {
       // ADR-0047 A2: thân có khoá `passengers` (danh sách khách của đơn nháp — Ruling R1) → hỏi thêm ô nhập tên khách trên đơn của chính mình.
       if (hasPassengersKey(body) && !can(staff, "order.passenger.write", { ownerId: staff.id })) return CANNOT_WRITE_PASSENGERS();
       if (hasHandlerPick(body) && !can(staff, "dispatch.assign", { ownerId: staff.id })) return CANNOT_PICK_HANDLER();
+      if (laThanDonCu(body)) await demThanCu(env.DB, staff.id, "lap_don"); // ADR-0047 §6 — đếm máy cũ (cổng Đợt 8); sau 403, trước 400
       const pick = parseHandlerPick(body);
       if (!pick.ok) return error(400, "invalid_input", pick.message);
       const ctx = await validationContext(env.DB, null);
@@ -733,6 +735,7 @@ export const ordersModule: AppModule = {
       const body = await readJson(request);
       // ADR-0047 A2: thân có khoá `passengers` → hỏi thêm ô nhập tên khách với phạm vi CỦA ĐƠN NÀY (trước validateOrder).
       if (hasPassengersKey(body) && !can(staff, "order.passenger.write", { ownerId: meta.staffId, assigned })) return CANNOT_WRITE_PASSENGERS();
+      if (laThanDonCu(body)) await demThanCu(env.DB, staff.id, "luu_nhap"); // ADR-0047 §6 — trước PM-1
       // PM-1: khoá lạc quan kiểm TRƯỚC thân — mốc gửi lên đã cũ thì thân so với chặng/dịch vụ ĐANG lưu (phiên khác vừa đổi) sẽ báo lỗi sai chỗ
       // ("chặng không thuộc dịch vụ"); trả 409 stale cho form bảo tải lại. Lính gác `updated_at = ?` trong câu ghi vẫn giữ (đua sau bước này).
       const mocGui = body?.expectedUpdatedAt;
@@ -788,6 +791,7 @@ export const ordersModule: AppModule = {
       if (meta.status === "cancelled") return CANCELLED();
       const stored = await getStoredServices(env.DB, id);
       const tripBody = await readJson(request);
+      if (laThanTripCu(tripBody)) await demThanCu(env.DB, staff.id, "sua_chuyen"); // ADR-0047 §6 — đếm máy cũ
       const parsed = validateTripUpdate(tripBody, stored.map((s) => ({ id: s.id, departDate: s.trip.departDate })), meta.status, vnToday(new Date()));
       if (!parsed.ok) return error(400, "invalid_input", parsed.message);
       // ADR-0047 (R2c, R4e, R3): trộn hai khoá cũ CÓ MẶT vào chặng chiều đi đầu, dời chặng theo ngày đi mới; `trip` mang giá trị dẫn xuất (ghi kép + nhật ký).

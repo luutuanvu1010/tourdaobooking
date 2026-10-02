@@ -127,6 +127,10 @@ export const CAU_CHU_XE = "Chủ xe phải là công ty chủ hoặc nhà xe đ�
 export function loiRangBuocXe(message: string): { status: number; code: string; message: string } | null {
   if (/UNIQUE constraint failed: vc_vehicle\.plate_key/.test(message)) return { status: 409, code: "vehicle_plate_conflict", message: CAU_BIEN_TRUNG };
   if (/UNIQUE constraint failed: vc_vehicle\.chassis_key/.test(message)) return { status: 409, code: "vehicle_chassis_conflict", message: CAU_KHUNG_TRUNG };
+  // ADR-0056 VK3-B lớp CSDL (trigger vc_vehicle_document_one_current) — mã KHÁC lớp route (document_type_exists). Tới đây khi hai người cùng bấm "Thêm".
+  if (/vehicle_document_type_current/.test(message)) {
+    return { status: 409, code: "document_type_conflict", message: "Xe vừa có giấy tờ loại này — tải lại rồi bấm Gia hạn hoặc Sửa sai." };
+  }
   // Giấy tờ xe (Task A14): lớp CSDL của "chỉ dòng hiện hành gia hạn / sửa sai được" — mã KHÁC lớp route (document_not_current).
   if (/vehicle_document_superseded|vehicle_document_voided|vehicle_document_renew_mismatch|UNIQUE constraint failed: vc_vehicle_document\.previous_id/.test(message)) {
     return { status: 409, code: "document_changed", message: "Giấy tờ này vừa được người khác gia hạn hoặc sửa — tải lại rồi làm tiếp." };

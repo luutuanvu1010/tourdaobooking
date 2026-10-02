@@ -73,7 +73,7 @@ export interface DiemVao {
   soNguoi: number;
   daToi: MocTienDoDto | null;
 }
-/** Khoá chung của suất (văn phòng: `SuatChuyenDto`; tài xế: `CuocChiTietResponse.suat` — không có `loai`, chỉ suất khách). */
+/** Khoá chung của suất (văn phòng: `SuatChuyenDto`; tài xế: `CuocChiTietResponse.suat` — cả hai có `loai`; suất người đi kèm `CREW` không gắn điểm dừng). */
 export interface SuatVao {
   id: string;
   loai?: "PASSENGER" | "CREW";
@@ -86,6 +86,20 @@ export interface SuatVao {
   daDon: MocTienDoDto | null;
   daTra: MocTienDoDto | null;
 }
+/**
+ * Thân lệnh "đổi thứ tự" (route 29 của tài xế ↔ 39 của văn phòng — CÙNG một hàm xử lý): đổi chỗ điểm `diemId` với điểm CHƯA TỚI liền trước (-1) / liền sau (+1),
+ * gửi đủ các điểm chưa tới với tập số thứ tự cũ (máy chủ chỉ ghi điểm đổi số). `null` = không đổi được (đầu / cuối, hoặc điểm không còn chờ).
+ */
+export function thanDoiThuTu(diem: readonly Pick<DiemVao, "id" | "thuTu" | "trangThai">[], diemId: string, huong: -1 | 1): { diem: { id: string; thuTu: number }[] } | null {
+  const cho = diem.filter((d) => d.trangThai === "PENDING").sort((x, y) => x.thuTu - y.thuTu);
+  const i = cho.findIndex((d) => d.id === diemId);
+  const j = i + huong;
+  if (i < 0 || j < 0 || j >= cho.length) return null;
+  const moi = [...cho];
+  [moi[i], moi[j]] = [moi[j]!, moi[i]!];
+  return { diem: moi.map((d, k) => ({ id: d.id, thuTu: cho[k]!.thuTu })) };
+}
+
 export type LenhSuat = "don" | "vang" | "khach-huy";
 export const NHAN_LENH_SUAT: Readonly<Record<LenhSuat, string>> = { don: "Đã đón", vang: "Vắng", "khach-huy": "Khách đã huỷ" };
 const KET_QUA: Readonly<Record<SuatVao["trangThai"], string | null>> = { WAITING: null, BOARDED: "Đã đón", NO_SHOW: "Vắng", CANCELLED_AT_STOP: "Khách đã huỷ", DROPPED: "Đã trả" };
@@ -168,9 +182,12 @@ export function soHieuTaiDiemDon(suat: readonly { diemLen: string | null; soHieu
   return out;
 }
 
-/** "Kết thúc chuyến" bấm được khi không còn khách chờ đón hay đang trên xe (bản vẽ 5a: "Bấm được khi đã trả hết khách."). Máy chủ vẫn quyết. */
-export function ketThucDuoc(suat: readonly Pick<SuatVao, "trangThai" | "loai">[]): boolean {
-  return !suat.some((x) => (x.loai ?? "PASSENGER") === "PASSENGER" && (x.trangThai === "WAITING" || x.trangThai === "BOARDED"));
+/**
+ * "Kết thúc chuyến" bấm được khi mọi suất MỞ đã có kết quả cuối (Đã trả / Vắng / Khách đã huỷ) — KHỚP `kiemKetThuc` của máy chủ (LC-16 + trigger
+ * vc_trip_end_requires_settled): suất người đi kèm (CREW) tính như khách, phải "Đã lên xe" rồi "Đã xuống". Máy chủ vẫn quyết.
+ */
+export function ketThucDuoc(suat: readonly Pick<SuatVao, "trangThai">[]): boolean {
+  return !suat.some((x) => x.trangThai === "WAITING" || x.trangThai === "BOARDED");
 }
 
 // ---- Cuốc của tôi (bản vẽ 04) -------------------------------------------------------------------------------------------------------------------------------
@@ -212,4 +229,28 @@ export function nhomCuoc(ds: readonly CuocCuaToiItemDto[], homNay: string): { ti
     { tieuDe: "Ngày mai", ngay: thuNgay(mai), iso: mai, the: theoNgay(mai) },
     { tieuDe: "Ngày kia", ngay: thuNgay(kia), iso: kia, the: theoNgay(kia) },
   ];
+}
+
+/** Tên người đi kèm (hướng dẫn viên) của chuyến, theo thứ tự suất, không trùng, bỏ ô trống — màn tài xế hiện "Người đi kèm: …" (lời chủ 2026-10-01; chỉ tên). */
+export function tenNguoiDiKemCuaChuyen(suat: readonly { tenNguoiDiKem?: string }[]): string[] {
+  const out: string[] = [];
+  for (const x of suat) if (x.tenNguoiDiKem && !out.includes(x.tenNguoiDiKem)) out.push(x.tenNguoiDiKem);
+  return out;
+}
+
+/** Suất KHÁCH (bỏ người đi kèm `CREW`) — chỉ để ĐẾM / liệt kê khách; xét kết thúc chuyến thì dùng `ketThucDuoc` với MỌI suất. */
+export function chiSuatKhach<T extends { loai?: "PASSENGER" | "CREW" }>(suat: readonly T[]): T[] {
+  return suat.filter((x) => x.loai !== "CREW");
+}
+
+/**
+ * Việc với từng người đi kèm đang trên chuyến (lời chủ 2026-10-01 + ruling 2/10): chưa lên xe → "Đã lên xe" (lệnh `don`), đang trên xe → "Đã xuống" (lệnh
+ * `tra`), xong → không nút. Dùng đúng lệnh suất sẵn có của máy chủ (route 23 / 26, 33 / 36) — chúng đã nhận suất CREW, không đòi điểm dừng.
+ */
+export function viecNguoiDiKem(suat: readonly { id: string; loai?: "PASSENGER" | "CREW"; trangThai: SuatVao["trangThai"]; tenNguoiDiKem?: string }[]): { id: string; ten: string; lenh: "don" | "tra" | null; nhan: string | null; trangThai: SuatVao["trangThai"] }[] {
+  return suat.filter((x) => x.loai === "CREW").map((x) => ({
+    id: x.id, ten: x.tenNguoiDiKem ?? "Người đi kèm", trangThai: x.trangThai,
+    lenh: x.trangThai === "WAITING" ? "don" : x.trangThai === "BOARDED" ? "tra" : null,
+    nhan: x.trangThai === "WAITING" ? "Đã lên xe" : x.trangThai === "BOARDED" ? "Đã xuống" : null,
+  }));
 }

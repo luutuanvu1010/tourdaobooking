@@ -1,6 +1,6 @@
 // Module van-chuyen — phân hệ Vận chuyển, lượt 1a (ADR-0040 D1): xe, giấy tờ xe, danh mục loại giấy tờ xe, ngưỡng "sắp hết hạn", danh sách giấy tờ sắp hết
 // hạn (xe + tài xế). Route: /api/van-chuyen/*. Tiền tố bảng vc_ (module nghiêm — STRICT). Phụ thuộc: parties (hàm công bố ownerCompany — chủ xe;
-// expiringDriverDocuments — giấy tờ tài xế, KHÔNG số; nhaXeDangHopTac — nhà xe đối tác, ADR-0048 D1) và audit (auditStatement). KHÔNG module nào import van-chuyen; ngoài AppModule chỉ xuất hai hàm công bố cho gốc lắp ráp: mocToiThieuHienHanh (ADR-0049 D2) và viecXeCuaNguoi (ADR-0068 Đ2).
+// expiringDriverDocuments — giấy tờ tài xế, KHÔNG số; nhaXeDangHopTac — nhà xe đối tác, ADR-0048 D1) và audit (auditStatement). KHÔNG module nào import van-chuyen; ngoài AppModule chỉ xuất ba hàm công bố cho gốc lắp ráp: mocToiThieuHienHanh (ADR-0049 D2), nguongHetHanHienHanh (ADR-0040 D1) và viecXeCuaNguoi (ADR-0068 Đ2).
 // Ô quyền: vehicle.manage (Quản trị + Toàn quyền) hỏi ở ĐẦU thân mọi route, trước khi đọc thân yêu cầu (403 trước 400).
 import { auditStatement } from "../audit";
 import { expiringDriverDocuments, nhaXeDangHopTac, ownerCompany } from "../parties";
@@ -14,7 +14,7 @@ import { can } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
 import { addDays, vnToday } from "../../shared/vn-date";
 import {
-  chassisHolder, currentWarnDays, expiringVehicleDocuments, findVehicle, findVehicleDocument, findVehicleDocumentType, insertPolicyStatement, insertVehicleDocStatement,
+  chassisHolder, currentWarnDays, expiringVehicleDocuments, findVehicle, findVehicleDocument, findVehicleDocumentType, hasCurrentVehicleDocOfType, insertPolicyStatement, insertVehicleDocStatement,
   insertVehicleDocTypeStatement, insertVehicleStatement, listVehicleDocumentTypes, listVehicleDocuments, listVehicles, listVehiclesOfOwner, plateHolder,
   updateVehicleDocStatement, updateVehicleDocTypeStatement, updateVehicleStatement, vehicleCountByOwner, voidVehicleDocStatement, type VehicleDocRow, type VehicleRow,
 } from "./repository";
@@ -41,7 +41,7 @@ import {
 
 // ADR-0049 D1–D3 (Task A13): chuyến xe — hàm hẹp của orders (chỉ gọi trong THÂN route, sau can() — bài src/orders-cong-bo.test.ts), đọc / dựng lô / DTO.
 import { hanhKhachChoChuyen, lichChungChang, lienHeChoTaiXe } from "../orders";
-import type { CapNhatDiemResponse, CapNhatKhachResponse, ChuyenChiTietResponse, CuocChiTietResponse, CuocCuaToiResponse, StaffProfile } from "../../shared/contracts";
+import type { CapNhatDiemResponse, HuongDanVienListResponse, CapNhatKhachResponse, ChuyenChiTietResponse, CuocChiTietResponse, CuocCuaToiResponse, StaffProfile } from "../../shared/contracts";
 import { kiemTaoSuaChuyen, trongNgayChay } from "../../shared/dieu-phoi-kiem";
 import { lyDoGiu, type LyDoGiu } from "../../shared/ly-do-giu";
 import { isISODate, msToVnLocal } from "../../shared/vn-date";
@@ -102,6 +102,8 @@ const BAD_OWNER_FILTER = () => error(400, "invalid_input", "Bộ lọc chủ xe 
 
 const RETIRED = () => error(409, "vehicle_retired", "Xe đã ngừng dùng.");
 const DOC_NOT_FOUND = () => error(404, "not_found", "Không tìm thấy giấy tờ này của xe.");
+// ADR-0056 VK3-B lớp ROUTE — lớp CSDL (trigger) trả document_type_conflict (loiRangBuocXe).
+const DOC_TYPE_EXISTS = (ten: string) => error(409, "document_type_exists", `Xe đã có ${ten} đang dùng — bấm Gia hạn hoặc Sửa sai.`);
 const DOC_NOT_CURRENT = () => error(409, "document_not_current", "Dòng này đã được gia hạn hoặc đã huỷ — chỉ dòng hiện hành mới gia hạn hay sửa sai được.");
 const DOC_STALE = () => error(409, "stale", "Giấy tờ vừa được người khác sửa, hãy tải lại rồi sửa tiếp.");
 
@@ -114,6 +116,9 @@ export async function mocToiThieuHienHanh(db: D1Database): Promise<MocToiThieu |
   const r = await chinhSachHienHanh(db);
   return r ? { phut: r.min_lead_minutes, policyId: r.id, canhBaoPhut: r.warn_lead_minutes } : null;
 }
+
+/** HÀM CÔNG BỐ (ADR-0040 D1; GB2/R23): mốc "sắp hết hạn" đang hiệu lực — CHỈ gốc lắp ráp gọi, để tiêm `ctx.nguongHetHan` cho parties (không import van-chuyen). */
+export const nguongHetHanHienHanh = (db: D1Database): Promise<number> => currentWarnDays(db, new Date().toISOString());
 
 /** HÀM CÔNG BỐ (ADR-0068 Đ2) — CHỈ gốc lắp ráp gọi (ctx.gopHoSo của route gộp hồ sơ ở parties). Khe giữa kiểm và ghi chấp nhận được, R-PTY-MERGE-4 bắt nếu lọt. */
 export { viecXeCuaNguoi } from "./chuyen-repo";
@@ -396,7 +401,7 @@ export const vanChuyenModule: AppModule = {
       return respondVehicle(env.DB, id);
     }),
 
-    // ---- Giấy tờ xe (Task A14): thứ tự 403 ô → 404 xe → 409 xe đã ngừng (thêm, gia hạn) → 404 dòng → 400 thân → 409 dòng hiện hành → ghi + nhật ký cùng lô
+    // ---- Giấy tờ xe (Task A14): thứ tự 403 ô → 404 xe → 409 xe đã ngừng (thêm, gia hạn) → 404 dòng → 400 thân → 409 loại đã có dòng hiện hành (thêm — ADR-0056 VK3-B, `document_type_exists`; lớp CSDL `document_type_conflict`) → 409 dòng hiện hành (gia hạn, sửa sai) → ghi + nhật ký cùng lô
     // (chi tiết mở đầu bằng biển số, KHÔNG số) → 409 stale. Lớp CSDL (trigger) trả document_changed — khác document_not_current của lớp route.
     route("POST", "/api/van-chuyen/xe/:id/giay-to", "office", async ({ request, env, params, staff }) => {
       if (!can(staff, "vehicle.manage")) return FORBIDDEN();
@@ -409,6 +414,7 @@ export const vanChuyenModule: AppModule = {
       const parsed = kiemThemGiayToXe(await readJson(request), d.dm);
       if (!parsed.ok) return error(400, "invalid_input", parsed.message);
       const v = parsed.value;
+      if (await hasCurrentVehicleDocOfType(env.DB, id, v.typeCode)) return DOC_TYPE_EXISTS(d.tenLoai(v.typeCode));
       const at = now.toISOString();
       try {
         await env.DB.batch([
@@ -884,7 +890,13 @@ export const vanChuyenModule: AppModule = {
       return json(await chiTietChuyen(env.DB, nen2, lich.chang, hk, false, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), bayGioMs) satisfies ChuyenChiTietResponse);
     }),
 
-    route("POST", "/api/van-chuyen/chuyen/:id/phan-bo", "office", async ({ env, request, params, staff, nhanNhanVien, isAssigned }) => {
+    // Người đi kèm (lời chủ 2026-10-01, phương án A): ai gắn được — tài khoản Hướng dẫn viên đang hoạt động; tên, KHÔNG SĐT. Cùng ô với lệnh xếp.
+    route("GET", "/api/van-chuyen/huong-dan-vien", "office", async ({ staff, huongDanVien }) => {
+      if (!can(staff, "trip.dispatch")) return CAN_DIEU_PHOI();
+      return json({ nguoi: await huongDanVien() } satisfies HuongDanVienListResponse);
+    }),
+
+    route("POST", "/api/van-chuyen/chuyen/:id/phan-bo", "office", async ({ env, request, params, staff, nhanNhanVien, isAssigned, huongDanVien }) => {
       if (!can(staff, "trip.dispatch")) return CAN_DIEU_PHOI();
       const than = docXep(await readJson(request));
       if (!than.ok) return error(400, "invalid_input", than.message);
@@ -895,6 +907,11 @@ export const vanChuyenModule: AppModule = {
       const bayGioMs = Date.now();
       let canhBaoXep: LyDoGiu[] = [];
       if (!(await eventByRequest(env.DB, b.requestId))) {
+        // Lời chủ 2026-10-01: người đi kèm phải là hướng dẫn viên đang có tài khoản (gửi lại cùng requestId không kiểm lại — lô đã chạy).
+        if (b.nguoiDiKem.length > 0) {
+          const duoc = new Set((await huongDanVien()).map((x) => x.partyId));
+          if (!b.nguoiDiKem.every((p) => duoc.has(p))) return error(409, "nguoi_di_kem_khong_hop_le", "Chỉ gắn được hướng dẫn viên đang có tài khoản làm người đi kèm.");
+        }
         const lich = await lichChungChang(env.DB, nen.tu, nen.den);
         const r = await lenhXep(env.DB, nen, lich.chang, b, staff, bayGioMs);
         if (r.loi) return r.loi;

@@ -25,10 +25,10 @@ import { feedbackModule } from "./modules/feedback";
 import { maintenanceBlock, maintenanceModule } from "./modules/maintenance";
 import { partiesModule } from "./modules/parties";
 import { cauDoiNguoiDat, donCuaNguoiDat, findOrderRef, ordersModule } from "./modules/orders";
-import { accountOfParty, nhanNhanVienTheoId, soDangNhapTheoHoSo } from "./modules/staff";
+import { accountOfParty, listStaffAccounts, nhanNhanVienTheoId, soDangNhapTheoHoSo } from "./modules/staff";
 import { dayGoCua, tatMayCuaCacPhienStatement, tatMayCuaPhienStatement, tatMayStatement, tatMayTruPhienStatement, thongbaoModule } from "./modules/thongbao";
 import { troLyModule } from "./modules/tro-ly";
-import { mocToiThieuHienHanh, vanChuyenModule, viecXeCuaNguoi } from "./modules/van-chuyen";
+import { mocToiThieuHienHanh, nguongHetHanHienHanh, vanChuyenModule, viecXeCuaNguoi } from "./modules/van-chuyen";
 import { HANDLER_TRUOC_KHONG_BIET, nhanSuKien } from "./shared/bang-tin";
 import { hanhDongCuaThayDoi, khoaVapid } from "./shared/web-push";
 import { createApp, type AppOptions } from "./shared/router";
@@ -132,8 +132,16 @@ const APP_OPTIONS: AppOptions = {
     giaoLoDay: (env, ds) => xepHangDay(env, ds),
     // MỐC TỐI THIỂU (ADR-0049 D2, I25): `orders` không đọc bảng vc_ — gốc lắp ráp là NƠI DUY NHẤT gọi hàm công bố của van-chuyen (TC-26, A12 quét nơi gọi).
     mocToiThieu: (env) => mocToiThieuHienHanh(env.DB),
+    // MỐC SẮP HẾT HẠN (ADR-0040 D1, GB2/R23): parties không đọc bảng vc_ — gốc lắp ráp là NƠI DUY NHẤT gọi hàm công bố của van-chuyen.
+    nguongHetHan: (env) => nguongHetHanHienHanh(env.DB),
     // NHÃN NGƯỜI BẤM (ruling R-P20): van-chuyen không import staff — gốc lắp ráp gọi hàm công bố của staff (chỉ tên hiển thị).
     nhanNhanVien: (env, ids) => nhanNhanVienTheoId(env.DB, ids),
+    // NGƯỜI ĐI KÈM (lời chủ 2026-10-01 — "Chỉ hướng dẫn viên"): van-chuyen không import staff — gốc lắp ráp đọc tài khoản FIELD đang hoạt động, chỉ tên.
+    huongDanVien: async (env) => {
+      const ds = (await listStaffAccounts(env.DB)).filter((a) => a.active && a.partyId !== null && a.permissions.includes("FIELD"));
+      const nhan = await nhanNhanVienTheoId(env.DB, ds.map((a) => a.id));
+      return ds.map((a) => ({ partyId: a.partyId!, ten: nhan.get(a.id) ?? "" })).sort((x, y) => x.ten.localeCompare(y.ten, "vi"));
+    },
     // GỘP HỒ SƠ (ADR-0068 Đ2, Đ6, Đ8): parties không import orders / dispatch / van-chuyen / billing / staff — gốc lắp ráp là NƠI DUY NHẤT gọi các hàm công bố này.
     gopHoSo: (env) => ({
       // KIỂM "ĐANG BẬN" (Đ2): giữa lúc kiểm này và lô ghi gộp có khe thời gian CHẤP NHẬN ĐƯỢC (không có câu bảo vệ trong lô); lưới an toàn = bất biến

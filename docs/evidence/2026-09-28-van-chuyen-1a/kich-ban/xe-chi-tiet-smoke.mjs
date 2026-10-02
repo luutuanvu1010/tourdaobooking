@@ -3,7 +3,7 @@
 //      "Gia hạn" chỉ với giấy có hạn, "Lịch sử (N)" chỉ khi có dòng cũ; nút "Thêm giấy tờ" (máy tính: góc phải đầu thẻ; điện thoại: dính đáy).
 // 3) "Lịch sử (1)" mở ngay dưới dòng: dòng cũ nền xám + "Đã thay".  4) "Gia hạn" → bảng: chữ nhắc giữ dòng cũ, thiếu ngày hết hạn → câu lỗi, đủ → dòng mới + Lịch sử.
 // 5) "Sửa sai" → nút Lưu KHOÁ tới khi chọn lý do (danh sách đóng của máy chủ, chỉ lý do cho xe); chọn "Nhập sai ngày hết hạn" → ô ngày → Lưu → đổi; nhật ký
-//    có dòng sửa sai KHÔNG kèm số.  6) "Thêm giấy tờ": chọn loại không có hạn → ẩn ô hết hạn; loại có hạn → ô hết hạn + "Giấy này không có hạn".
+//    có dòng sửa sai KHÔNG kèm số.  6) "Thêm giấy tờ" (xe v2 đã có Kiểm định → ô loại không còn "Kiểm định"; xe v1 đủ 6 loại → nút tắt + câu hướng dẫn): chọn loại không có hạn → ẩn ô hết hạn; loại có hạn → ô hết hạn + "Giấy này không có hạn".
 // 7) xe đã ngừng: không "Thêm giấy tờ", không "Gia hạn", có câu nói rõ.
 // Chạy từ GỐC repo, sau `npm run build:web`:
 //   AXE_JS=<…/axe.min.js> CHROME_BIN=docs/evidence/2026-09-20-a2/kich-ban/chrome-wrap.sh OUT=<thư mục ảnh> node docs/evidence/2026-09-28-van-chuyen-1a/kich-ban/xe-chi-tiet-smoke.mjs
@@ -22,6 +22,8 @@ try {
   await themGiayXe(v1.id, { typeCode: "CONTRACT_BADGE", number: "PH-0091", expiryDate: vnDate(-8) });
   await themGiayXe(v1.id, { typeCode: "TRIP_MONITOR", expiryDate: vnDate(94) });
   await themGiayXe(v1.id, { typeCode: "DRIVER_CAMERA", expiryDate: vnDate(94) });
+  const v2 = await themXe({ plateNumber: "79C-246.80", chassisNumber: "KHUNGV2000002", name: "Hyundai Solati 2020", passengerCapacity: 16 });
+  await themGiayXe(v2.id, { typeCode: "INSPECTION", number: "KD-0777", issuedDate: vnDate(-100), expiryDate: vnDate(200) });
   const v4 = await themXe({ plateNumber: "79A-135.79", chassisNumber: "KHUNGV4000004", name: "Kia Carnival 2018", passengerCapacity: 6 });
   await themGiayXe(v4.id, { typeCode: "INSPECTION", number: "KD-0999", issuedDate: vnDate(-100), expiryDate: vnDate(200) });
   const ngung = await call(ADMIN, "PUT", `/api/van-chuyen/xe/${v4.id}`, { plateNumber: v4.plateNumber, chassisNumber: v4.chassisNumber, name: v4.name, modelYear: null, passengerCapacity: 6, status: "retired", expectedUpdatedAt: v4.updatedAt });
@@ -157,26 +159,35 @@ try {
     }
   });
 
-  await dem.step("6", "“Thêm giấy tờ” (1040): loại không có hạn → ẩn ô hết hạn; loại có hạn → ô hết hạn + “Giấy này không có hạn”; thêm được", async () => {
-    const p = await env.as(ADMIN, `/xe-chi-tiet?id=${v1.id}`, DESK);
+  await dem.step("6", "“Thêm giấy tờ” (1040) trên xe v2 (đã có Kiểm định): ô loại KHÔNG có “Kiểm định”; loại không có hạn → ẩn ô hết hạn; loại có hạn → ô hết hạn + “Giấy này không có hạn”; thêm được; xe v1 đủ sáu loại → nút tắt + câu hướng dẫn (ADR-0056 VK3-B)", async () => {
+    const p = await env.as(ADMIN, `/xe-chi-tiet?id=${v2.id}`, DESK);
     try {
-      await p.waitFor("document.querySelectorAll('#docs-table .vc-dt-row').length === 6", "giấy tờ", 10000);
+      await p.waitFor("document.querySelectorAll('#docs-table .vc-dt-row').length === 1", "giấy tờ", 10000);
       assert.ok(await p.ev(clickVisible(".vc-xe-head-actions", "Thêm giấy tờ")));
       await p.waitFor("document.querySelector('.sheet-root.open') && !!document.querySelector('#gt-type')", "bảng Thêm giấy tờ", 5000);
       assert.equal(await p.ev(txt(".sheet-title")), "Thêm giấy tờ");
-      assert.deepEqual(await p.ev(`[...document.querySelectorAll('#gt-type option')].map((o) => o.textContent)`), ["Đăng ký xe", "Kiểm định", "Bảo hiểm trách nhiệm dân sự", "Phù hiệu xe hợp đồng", "Giám sát hành trình", "Camera người lái"]);
+      assert.deepEqual(await p.ev(`[...document.querySelectorAll('#gt-type option')].map((o) => o.textContent)`), ["Đăng ký xe", "Bảo hiểm trách nhiệm dân sự", "Phù hiệu xe hợp đồng", "Giám sát hành trình", "Camera người lái"], "loại đã có dòng hiện hành (Kiểm định) không còn trong ô loại");
       await p.ev(typeInto("#gt-type", "REGISTRATION"));
       assert.equal(await p.ev("!!document.querySelector('#gt-exp') || !!document.querySelector('#gt-noexp')"), false, "loại không có hạn: không ô hết hạn");
-      await p.ev(typeInto("#gt-type", "INSPECTION"));
+      await p.ev(typeInto("#gt-type", "TPL_INSURANCE"));
       assert.equal(await p.ev("!!document.querySelector('#gt-exp') && !!document.querySelector('#gt-noexp')"), true);
       await shotView(p, "03-them-giay-to-1040.png");
       await p.ev("document.querySelector('#gt-noexp').click()");
       assert.equal(await p.ev("!!document.querySelector('#gt-exp')"), false, "“không có hạn” ẩn ô hết hạn");
-      await p.ev(typeInto("#gt-no", "KD-THEM-1"));
+      await p.ev(typeInto("#gt-no", "BH-THEM-1"));
       assert.ok(await p.ev(clickVisible(".sheet-root", "Thêm giấy tờ")));
-      await p.waitFor("!document.querySelector('.sheet-root') && document.querySelectorAll('#docs-table .vc-dt-row').length === 7", "thêm xong", 8000);
+      await p.waitFor("!document.querySelector('.sheet-root') && document.querySelectorAll('#docs-table .vc-dt-row').length === 2", "thêm xong", 8000);
     } finally {
       p.close();
+    }
+    const q = await env.as(ADMIN, `/xe-chi-tiet?id=${v1.id}`, DESK);
+    try {
+      await q.waitFor("document.querySelectorAll('#docs-table .vc-dt-row').length === 6", "giấy tờ v1", 10000);
+      assert.equal(await q.ev("document.querySelector('.vc-xe-head-actions button').disabled"), true, "xe đủ loại: nút Thêm giấy tờ tắt");
+      assert.equal(await q.ev(txt(".vc-xe-head-actions .dp-note")), "Xe đã có đủ các loại giấy tờ — dùng Gia hạn hoặc Sửa sai.");
+      await shotView(q, "03-xe-du-loai-1040.png");
+    } finally {
+      q.close();
     }
   });
 
