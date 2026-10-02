@@ -4,6 +4,8 @@
 >
 > **Vai:** phiên này **lập kế hoạch**. Mỗi đợt thi công ở **phiên riêng**, worktree riêng, có **người kiểm độc lập** sau mỗi phần việc lớn (Hiến pháp N8, P15; CLAUDE.md §3).
 >
+> **Checklist theo dõi tới khi xong nhiệm vụ:** `2026-10-02-khac-phuc-audit-checklist.md`. Mỗi phiên đánh dấu việc của mình ở đó.
+>
 > **Kế hoạch con chi tiết** (task, đỏ → xanh):
 > - Đợt 0: `2026-10-02-khac-phuc-audit-01-dot-0-chong-ghi-trung-quyen-tien.md`
 > - Đợt 1: `2026-10-02-khac-phuc-audit-02-dot-1-don-huy-coc.md`
