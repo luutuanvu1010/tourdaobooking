@@ -93,11 +93,12 @@ export function ngayGhiDao(goc: { occurredDate: string }, v: { homNay: string; k
 }
 
 /**
- * NGÀY PHÁT SINH MẶC ĐỊNH của dòng điều chỉnh (ADR-0095 Q4, vòng sửa 2 C1): chuyến ĐÃ HUỶ ⇒ NGÀY HUỶ (phí huỷ muộn là ràng buộc hợp đồng, ghi theo
- * ngày huỷ); chuyến khác ⇒ hôm nay. Người ghi chọn ngày khác thì dùng ngày đó (không qua hàm này).
+ * NGÀY PHÁT SINH MẶC ĐỊNH của dòng điều chỉnh (ADR-0095 Q4): chuyến ĐÃ HUỶ ⇒ NGÀY HUỶ (phí huỷ muộn là ràng buộc hợp đồng, ghi theo ngày huỷ — vòng sửa 2
+ * C1); chuyến CHƯA huỷ ⇒ NGÀY CHẠY (`service_date` — phụ thu chờ, cầu đường… phát sinh trong chuyến; vòng sửa 3 M1). KHÔNG dùng "hôm nay". Người ghi chọn
+ * ngày khác thì dùng ngày đó (không qua hàm này).
  */
-export function ngayDieuChinhMacDinh(v: { trangThai: TrangThaiChuyenTien; ngayHuy: string | null; homNay: string }): string {
-  return v.trangThai === "CANCELLED" && v.ngayHuy !== null ? v.ngayHuy : v.homNay;
+export function ngayDieuChinhMacDinh(v: { trangThai: TrangThaiChuyenTien; ngayHuy: string | null; ngayChay: string }): string {
+  return v.trangThai === "CANCELLED" && v.ngayHuy !== null ? v.ngayHuy : v.ngayChay;
 }
 
 /**

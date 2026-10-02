@@ -88,7 +88,7 @@ async function lyDoNguoiGhi(db: D1Database, ma: string): Promise<string | null> 
 }
 
 // ---- Điều chỉnh (ADR-0057 C4, C8; Q-T6; TC-11) -------------------------------------------------------------------------------------------------------------
-export async function lenhDieuChinh(db: D1Database, tripId: string, b: DieuChinhThan, staff: StaffProfile, now: Date, homNay: string): Promise<KetQuaGhi | null> {
+export async function lenhDieuChinh(db: D1Database, tripId: string, b: DieuChinhThan, staff: StaffProfile, now: Date): Promise<KetQuaGhi | null> {
   const lap = await daGhi(db, b.requestId, tripId);
   if (lap) return lap;
   const nc = await nguCanh(db, tripId);
@@ -105,7 +105,7 @@ export async function lenhDieuChinh(db: D1Database, tripId: string, b: DieuChinh
   if (truoc + b.soTien < 0) return { ok: false, res: TONG_AM() };
   const at = now.toISOString();
   const huyLuc = nc.trip.status === "CANCELLED" && b.ngay === null ? await tripCancelledAt(db, nc.trip.id) : null;
-  const ngay = b.ngay ?? ngayDieuChinhMacDinh({ trangThai: nc.trip.status, ngayHuy: huyLuc === null ? null : vnToday(new Date(huyLuc)), homNay });
+  const ngay = b.ngay ?? ngayDieuChinhMacDinh({ trangThai: nc.trip.status, ngayHuy: huyLuc === null ? null : vnToday(new Date(huyLuc)), ngayChay: nc.trip.service_date });
   return chayGhi(db, [
     db.prepare(COST_ADJUST_KT).bind(b.requestId, nc.trip.id, nhaXeCuaChiPhi(nc.rows, nc.trip), b.soTien, b.lyDo, b.ghiChu, ngay, b.requestId, at, staff.id, b.phienBanChiPhi),
     nhatKy(db, { id: b.requestId, staff, at, action: "trip_cost_adjusted", tripId: nc.trip.id, detail: chiTiet(nc.trip, nc.tenNhaXe, truoc, truoc + b.soTien, nhan) }),

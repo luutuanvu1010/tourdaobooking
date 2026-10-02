@@ -735,7 +735,7 @@ test("Vòng sửa 2 (4.7) — GHIM hành vi hiện tại (Cần chủ): phí hu�
   }
 });
 
-test("Phiên bản chi phí cũ (TC-8): hai Kế toán cùng đọc phiên bản 1 — người thứ nhất 201, người thứ hai 409 chi_phi_vua_doi; gửi lại cùng requestId → 200, không dòng mới; ngày phát sinh điều chỉnh mặc định hôm nay, chọn được", async () => {
+test("Phiên bản chi phí cũ (TC-8): hai Kế toán cùng đọc phiên bản 1 — người thứ nhất 201, người thứ hai 409 chi_phi_vua_doi; gửi lại cùng requestId → 200, không dòng mới; ngày phát sinh điều chỉnh mặc định = NGÀY CHẠY (ADR-0095 Q4, vòng sửa 3 M1), chọn được", async () => {
   const tat = batDongHo();
   try {
     const w = setup();
@@ -751,7 +751,7 @@ test("Phiên bản chi phí cũ (TC-8): hai Kế toán cùng đọc phiên bản
     assert.equal(lai.status, 200);
     assert.equal(dongCp(w, id).length, 2);
     const ngay = w.q("SELECT kind, occurred_date d FROM vc_trip_cost_line WHERE trip_id = ? ORDER BY rowid", id).map((r: any) => [r.kind, r.d]);
-    assert.deepEqual(ngay, [["SNAPSHOT", NGAY_SAU], ["ADJUSTMENT", NGAY]], "SNAPSHOT = ngày chạy; điều chỉnh = hôm nay (giờ VN)");
+    assert.deepEqual(ngay, [["SNAPSHOT", NGAY_SAU], ["ADJUSTMENT", NGAY_SAU]], "SNAPSHOT = ngày chạy; điều chỉnh mặc định = ngày chạy (hôm nay là NGAY ≠ ngày chạy)");
     assert.equal((await ghiCp(w, id, "dieu-chinh", { soTien: 10_000, lyDo: "CPX_KHAC", ghiChu: null, ngay: "2027-03-20" })).status, 201);
     assert.equal(w.q("SELECT occurred_date d FROM vc_trip_cost_line WHERE trip_id = ? ORDER BY rowid DESC LIMIT 1", id)[0].d, "2027-03-20");
   } finally {

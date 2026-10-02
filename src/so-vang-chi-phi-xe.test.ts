@@ -68,6 +68,8 @@ test("sổ vàng chi phí xe — LỚP 1: mỗi ca tự cân (tiền nguyên, t�
 
 // ---- Bộ mô phỏng thuần (chỉ gọi luật của tien-xe.ts; không tự viết lại phép chọn / cộng) ---------------------------------------------------------------
 const CO_XE: CoXe[] = TEP.co_xe.map((c) => ({ ...c, active: true }));
+/** "Hôm nay" của bộ mô phỏng — CỐ Ý khác mọi ngày chạy của sổ vàng (vòng sửa 3 M1): luật nào lỡ dùng hôm nay thay ngày chạy / ngày gốc sẽ lộ ra ở ngày dòng. */
+const HOM_NAY = "2026-10-02";
 interface KetQuaMoPhong { dong: [LoaiDongChiPhi, number, string][]; tong: number; thieu_gia: boolean | null; tu_choi: [number, string][]; nha_xe_dong: string[] }
 function moPhong(c: Ca): KetQuaMoPhong {
   const gia: DongGiaThue[] = TEP.bang_gia.map((g) => ({ id: g.id, carrierPartyId: g.nha_xe, routeCode: g.tuyen, sizeCode: g.co, amount: g.tien, validFrom: g.tu, validTo: g.den }));
@@ -87,7 +89,7 @@ function moPhong(c: Ca): KetQuaMoPhong {
   const doi = (v: { tuyen?: string | null; ngay?: string; xe?: { so_cho: number; nha_xe: string }; laTaoMoi?: boolean }) => {
     const nhaXeMoi = v.xe?.nha_xe ?? x.nha_xe;
     const kh = keHoachChiPhiKhiDoi({
-      dong, homNay: x.ngay, rentedMoi: nhaXeMoi === "CONG_TY" ? 0 : 1, chuXeMoi: nhaXeMoi, nhaXeDangMo: NHA_XE_MO, laTaoMoi: v.laTaoMoi ?? false,
+      dong, homNay: HOM_NAY, rentedMoi: nhaXeMoi === "CONG_TY" ? 0 : 1, chuXeMoi: nhaXeMoi, nhaXeDangMo: NHA_XE_MO, laTaoMoi: v.laTaoMoi ?? false,
       doiXeHoacNhaXe: v.xe !== undefined, doiTuyen: v.tuyen !== undefined && v.tuyen !== x.tuyen, doiNgay: v.ngay !== undefined && v.ngay !== x.ngay,
       tuyenMoi: v.tuyen !== undefined ? v.tuyen : x.tuyen, soChoMoi: v.xe?.so_cho ?? x.so_cho, ngayChayMoi: v.ngay ?? x.ngay, gia, coXe: CO_XE,
     });
@@ -109,7 +111,7 @@ function moPhong(c: Ca): KetQuaMoPhong {
         else if (!dieuChinhDuoc({ rented: x.thue ? 1 : 0, trangThai: x.trangThai, lyDo: e.ly_do as string })) tuChoi.push([i, "khong_phai_xe_thue"]);
         else if (tongChiPhiChuyen(dong) + (e.tien as number) < 0) tuChoi.push([i, "tong_am"]);
         else {
-          them("ADJUSTMENT", e.tien as number, null, (e.ngay as string | undefined) ?? ngayDieuChinhMacDinh({ trangThai: x.trangThai, ngayHuy: x.ngayHuy, homNay: x.ngay }),
+          them("ADJUSTMENT", e.tien as number, null, (e.ngay as string | undefined) ?? ngayDieuChinhMacDinh({ trangThai: x.trangThai, ngayHuy: x.ngayHuy, ngayChay: x.ngay }),
             nhaXeChiuChiPhi(dong, x.nha_xe));
         }
         break;
@@ -117,13 +119,16 @@ function moPhong(c: Ca): KetQuaMoPhong {
         const d = dong[e.dong as number]!;
         if (!daoDuoc(dong, d, x.trangThai)) tuChoi.push([i, "khong_dao_duoc"]);
         else if (tongChiPhiChuyen(dong) - d.amount < 0) tuChoi.push([i, "tong_am"]);
-        else them("REVERSAL", -d.amount, d.id, ngayGhiDao(d, { homNay: x.ngay }), d.carrierPartyId);
+        else them("REVERSAL", -d.amount, d.id, ngayGhiDao(d, { homNay: HOM_NAY }), d.carrierPartyId);
         break;
       }
       case "DOI_TUYEN": doi({ tuyen: e.tuyen as string | null }); break;
       case "DOI_NGAY": doi({ ngay: e.ngay as string }); break;
       case "DOI_XE": doi({ xe: { so_cho: e.so_cho as number, nha_xe: e.nha_xe as string } }); break;
-      case "HUY": apKeHoach(keHoachChiPhiKhiHuy(dong, (e.ngay as string | undefined) ?? x.ngay)); x.trangThai = "CANCELLED"; x.ngayHuy = (e.ngay as string | undefined) ?? x.ngay; break;
+      case "HUY": { // ngày huỷ = `ngay` của sự kiện, mặc định hôm nay của bộ mô phỏng
+        const ngayHuy = (e.ngay as string | undefined) ?? HOM_NAY;
+        apKeHoach(keHoachChiPhiKhiHuy(dong, ngayHuy)); x.trangThai = "CANCELLED"; x.ngayHuy = ngayHuy; break;
+      }
       case "KET_THUC_GIAN_DOAN": x.trangThai = "ENDED_INTERRUPTED"; break;
       case "THEM_GIA": {
         const thay = gia.findIndex((g) => g.id === e.thay);

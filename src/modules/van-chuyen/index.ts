@@ -922,7 +922,7 @@ export const vanChuyenModule: AppModule = {
       const than = docDieuChinh(await readJson(request));
       if (!than.ok) return error(400, "invalid_input", than.message);
       const now = new Date();
-      return phanHoiChiPhi(env.DB, id, nhanNhanVien, ID_CHUYEN_RE.test(id) ? await lenhDieuChinh(env.DB, id, than.value, staff, now, vnToday(now)) : null);
+      return phanHoiChiPhi(env.DB, id, nhanNhanVien, ID_CHUYEN_RE.test(id) ? await lenhDieuChinh(env.DB, id, than.value, staff, now) : null);
     }),
     route("POST", "/api/van-chuyen/chuyen/:id/chi-phi/dao", "office", async ({ env, request, params, staff, nhanNhanVien }) => {
       if (!can(staff, "transport.cost.adjust")) return CAN_CHI_PHI();
