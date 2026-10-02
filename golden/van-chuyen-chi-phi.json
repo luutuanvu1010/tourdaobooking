@@ -228,13 +228,13 @@
     },
     {
       "ma": "SV-CPX-10",
-      "mo_ta": "V10: V1, xe hỏng giữa đường (kết thúc gián đoạn); giá đã chụp GIỮ NGUYÊN (Q-T6); Kế toán ghi −400.000 'Khác'",
+      "mo_ta": "V10: V1, xe hỏng giữa đường (kết thúc gián đoạn); giá đã chụp GIỮ NGUYÊN (Q-T6); Kế toán ghi −400.000 lý do 'Xe hỏng giữa đường' (ADR-0095 Q8)",
       "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
       "chuyen": { "nha_xe": "HP", "so_cho": 16, "tuyen": "NT-CR", "ngay": "2026-10-15" },
       "su_kien": [
         { "loai": "CHUP" },
         { "loai": "KET_THUC_GIAN_DOAN" },
-        { "loai": "DIEU_CHINH", "tien": -400000, "ly_do": "CPX_KHAC" }
+        { "loai": "DIEU_CHINH", "tien": -400000, "ly_do": "CPX_XE_HONG" }
       ],
       "dap_an": {
         "dong": [

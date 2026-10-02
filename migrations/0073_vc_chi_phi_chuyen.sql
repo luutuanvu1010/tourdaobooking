@@ -112,6 +112,7 @@ INSERT INTO vc_reason (code, reason_group, label, sort_order, created_at, update
   ('CPX_HUY_MUON', 'CHI_PHI_XE', 'Phí huỷ muộn', 3, '2026-10-02T00:00:00.000Z', '2026-10-02T00:00:00.000Z'),
   ('CPX_NHAP_SAI', 'CHI_PHI_XE', 'Nhập sai', 4, '2026-10-02T00:00:00.000Z', '2026-10-02T00:00:00.000Z'),
   ('CPX_GIA_THOA_THUAN', 'CHI_PHI_XE', 'Giá thoả thuận trước', 5, '2026-10-02T00:00:00.000Z', '2026-10-02T00:00:00.000Z'),
+  ('CPX_XE_HONG', 'CHI_PHI_XE', 'Xe hỏng giữa đường', 6, '2026-10-02T00:00:00.000Z', '2026-10-02T00:00:00.000Z'), -- ADR-0095 Q8 (vòng sửa 2, V10; sửa tại chỗ — 0073 CHƯA áp remote)
   ('CPX_DOI_CHUYEN', 'CHI_PHI_XE', 'Đảo do đổi chuyến (xe, nhà xe, tuyến hoặc ngày chạy)', 90, '2026-10-02T00:00:00.000Z', '2026-10-02T00:00:00.000Z'),
   ('CPX_HUY_CHUYEN', 'CHI_PHI_XE', 'Đảo do huỷ chuyến', 91, '2026-10-02T00:00:00.000Z', '2026-10-02T00:00:00.000Z'),
   ('CPX_KHAC', 'CHI_PHI_XE', 'Khác', 99, '2026-10-02T00:00:00.000Z', '2026-10-02T00:00:00.000Z');

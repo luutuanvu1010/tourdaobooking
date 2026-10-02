@@ -221,7 +221,7 @@ test("TC-2 route 16–18 danh mục lý do: Quản trị thêm → 201; Bán hà
   const w = setup();
   let r = await w.call("GET", "/api/van-chuyen/ly-do", { as: ADM });
   assert.equal(r.status, 200, r.text);
-  assert.equal(r.json.reasons.length, 21); // 13 lý do của 0041 + 8 lý do nhóm CHI_PHI_XE (ADR-0057 T2, migration *_vc_chi_phi_chuyen)
+  assert.equal(r.json.reasons.length, 22); // 13 lý do của 0041 + 9 lý do nhóm CHI_PHI_XE (ADR-0057 T2, migration *_vc_chi_phi_chuyen)
   assert.deepEqual(r.json.reasons.find((x: any) => x.code === "PHA_LE_SU_CO"), {
     code: "PHA_LE_SU_CO", group: "PHA_LE", groupLabel: "Phá lệ", label: "Sự cố vận hành", active: true, sortOrder: 1, updatedAt: "2026-09-29T00:00:00.000Z", heThong: false,
   });

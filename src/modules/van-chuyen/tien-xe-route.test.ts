@@ -615,9 +615,10 @@ test("V10 + V8b + TC-11: chuyến kết thúc gián đoạn — điều chỉnh 
     assert.equal((await xuatBenVp(w, id)).status, 200);
     const kt = await tienDo(w, "van-phong", id, "ket-thuc-gian-doan", { lyDo: "GIAN_DOAN_XE_HONG" });
     assert.equal(kt.status, 200, kt.text);
-    const a = await ghiCp(w, id, "dieu-chinh", { soTien: -400_000, lyDo: "CPX_KHAC", ghiChu: "xe hỏng giữa đường" });
+    const a = await ghiCp(w, id, "dieu-chinh", { soTien: -400_000, lyDo: "CPX_XE_HONG", ghiChu: null }); // ADR-0095 Q8: lý do "Xe hỏng giữa đường"
     assert.equal(a.status, 201, a.text);
     assert.equal(a.json.chiPhi.tong, 800_000);
+    assert.deepEqual(a.json.chiPhi.dong.find((x: any) => x.loai === "ADJUSTMENT").lyDo, { ma: "CPX_XE_HONG", nhan: "Xe hỏng giữa đường" });
     assert.equal(a.json.chiPhi.dong[0].daoDuoc, false, "giá đã chụp không đảo sau xuất bến");
     const d = await ghiCp(w, id, "dao", { dongId: a.json.chiPhi.dong[0].id, lyDo: "CPX_NHAP_SAI", ghiChu: null });
     assert.equal(d.status, 409);

@@ -120,6 +120,7 @@ test("(c) dữ liệu gieo: đúng một dòng chính sách 360/120/30/1/0 + k�
     "CHI_PHI_XE:CPX_HUY_MUON",
     "CHI_PHI_XE:CPX_NHAP_SAI",
     "CHI_PHI_XE:CPX_GIA_THOA_THUAN",
+    "CHI_PHI_XE:CPX_XE_HONG", // ADR-0095 Q8 (vòng sửa 2, V10)
     "CHI_PHI_XE:CPX_DOI_CHUYEN",
     "CHI_PHI_XE:CPX_HUY_CHUYEN",
     "CHI_PHI_XE:CPX_KHAC",
