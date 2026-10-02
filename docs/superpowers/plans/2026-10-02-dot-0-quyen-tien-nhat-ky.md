@@ -46,6 +46,18 @@
 - **Lệnh:** `node --test` các tệp trên xanh; `npm run typecheck` 0 lỗi; `npm test` 2813 đạt; `npm run test:e2e -- roles admin permissions` EXIT=0.
 - **Bài đo giờ của hook** (`claude-guard-thoi-gian.test.ts`) đỏ HAI lần khi chạy cùng bộ (máy có tải trung bình 41 — các phiên khác đang chạy e2e); chạy riêng `--test-concurrency=1` thì đạt (4,4 giây). Không liên quan thay đổi của luồng Q.
 
+## Q3 — cờ theo dòng + giao diện (2026-10-02)
+- Máy chủ (đã ở commit Q2): `StaffListRowDto.datLaiPinDuoc`, tính bằng `datLaiPinDuoc` trên quyền THẬT (trước `quyenHienThi`).
+- `web/staff.ts`: hai nút "Đặt lại PIN" (bảng + thẻ) đọc `s.datLaiPinDuoc` thay cho `canAccessManage && quanDuoc(s) && !isMe`.
+- `web/role-picker.ts`: `permLocked` = `SUPER_ADMIN_GRANTED ∪ MA_QUYEN_TIEN` khi người làm không phải Toàn quyền. Ẩn vai Kế toán tự có nhờ `superAdminOnly = true` (`:74`).
+- `web/sessions.ts`: nút gộp "Gỡ phiên + đặt lại PIN" đã đọc `datLaiPinDuoc` của `GET /api/sessions` — nay tính bằng cùng hàm (commit Q2). Màn này chỉ Toàn quyền vào (`auth.session.viewAll`), nên với tài khoản tiền cờ luôn đúng như route. (Đóng mục 9 "chưa kiểm" của kế hoạch §14.)
+- Kịch bản Chrome (sau `npm run build:web`, ảnh ghi ra thư mục tạm, không đổi ảnh bằng chứng trong kho):
+  - `va3-smoke.mjs`: THÊM khẳng định ở bước 1 (1040) và 2 (390) — dòng/thẻ "Kế Toán" có "Sửa", KHÔNG có "Đặt lại PIN". Kết quả: 2 bước ✓, 0 ✗.
+  - `vai-smoke.mjs`: SỬA theo luật mới (Nhân sự không thấy vai Kế toán): bước A/B dùng vai Nhân viên kinh doanh, số ô vai 11 → 10, THÊM khẳng định "vai Kế toán ẩn, ô cộng tay Kế toán khoá"; B1e đổi quyền đối chứng sang Hướng dẫn viên; C2 (R26) hồ sơ có sẵn mang vai HDV nội bộ thay Kế toán. Kết quả: mọi bước ✓, EXIT=0.
+  - `quyen-thieu-quan-tri-smoke.mjs`: không sửa; EXIT=0.
+  - `dot-a-smoke.mjs`: không sửa; mọi bước ✓ tới `Error: hết giờ chờ: nhat-ky: thẻ đã dựng xong (máy tính)` → EXIT=1. Đây là bước ĐỎ SẴN từ ADR-0038 (ghi ở `web/CLAUDE.md`, bảng kịch bản), không do luồng Q.
+- Kiểm: `npm run typecheck` 0 lỗi; `node --test src/giao-dien-hoi-bang-quyen.test.ts` xanh.
+
 ## Ruling thi công (tự áp, có khuyến nghị rõ)
 
 - **R-Q1 (thứ tự câu báo):** `highPermissionProblem` kiểm nhóm Quản trị/Toàn quyền/Nhân sự TRƯỚC (giữ câu cũ khi đụng `SUPER_ADMIN`), rồi mới kiểm quyền tiền. `roleAssignmentProblem` kiểm quyền tiền TRƯỚC luật vai `VAI_QUAN_LY` (để câu đúng ADR-0090 đ1). Tập kích hoạt câu tiền ở luật vai / chỉnh tay = `MA_QUYEN_TIEN` trừ `SUPER_ADMIN_GRANTED` (suy ra, không chép tay `ACCOUNTING`) — để gán vai IT / Giám đốc vẫn nhận câu cũ.
