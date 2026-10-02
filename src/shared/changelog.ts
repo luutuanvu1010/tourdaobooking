@@ -11,6 +11,17 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Trợ giúp: bỏ câu "chưa dùng Điều phối cho chuyến thật" (lý do cũ — chưa có màn nhập tên khách — đã hết từ 1.62); thêm Lịch xe bận, ba nhóm cuốc,
+    // thông báo tài xế. Chủ 2/10: "Nếu đã đủ điều kiện để điều xe thật thì cập nhật trong Trợ giúp". Chỉ chữ hướng dẫn: không migration, không đổi máy chủ.
+    version: "1.77",
+    date: "2026-10-02",
+    items: [
+      { kind: "doi", text: "Trợ giúp: Điều phối xe dùng được cho chuyến thật khi xe, tài xế và đơn đã đủ điều kiện; bỏ lời dặn cũ \"chưa dùng cho chuyến thật\"." },
+      { kind: "doi", text: "Trợ giúp Bán hàng có các bước tạo chuyến và xếp khách; Quản trị có mục Lịch xe bận." },
+      { kind: "doi", text: "Trợ giúp Tài xế: cuốc chia ba nhóm Hôm nay, Ngày mai, Ngày kia; bật thông báo để được báo khi được xếp chuyến." },
+    ],
+  },
+  {
     // Đợt 0 luồng L — lớp chống ghi trùng chung (ADR-0094, bản mở rộng), migration 0074. Đánh lại 1.71 → 1.76 lúc gộp main a6fd0a3d (1.75 Vận chuyển Đợt 3).
     // Cần khoá LAN_GUI_SECRET trên Cloudflare TRƯỚC khi triển khai (chủ đã đặt 2/10; npm run trien-khai tự kiểm).
     version: "1.76",

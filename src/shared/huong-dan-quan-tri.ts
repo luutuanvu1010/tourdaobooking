@@ -16,7 +16,7 @@ export const HD_QUAN_TRI: NhomHuongDan = {
       tieuDe: "Menu của bạn",
       noiDung: `### Trên máy tính
 - Nhóm **BÁN HÀNG**: [[Trang chủ]], [[Đơn hàng]], [[Tạo đơn]], [[Danh bạ]].
-- Nhóm **QUẢN TRỊ**: [[Dịch vụ & giá]], [[Quản lý tài khoản]], [[Địa điểm]], [[Loại giấy tờ cá nhân]], rồi **Vận chuyển** gồm [[Điều phối xe]], [[Xe]], [[Sắp hết hạn]], [[Loại giấy tờ xe]], [[Lý do điều phối]].
+- Nhóm **QUẢN TRỊ**: [[Dịch vụ & giá]], [[Quản lý tài khoản]], [[Địa điểm]], [[Loại giấy tờ cá nhân]], rồi **Vận chuyển** gồm [[Điều phối xe]], [[Xe]], [[Lịch xe bận]], [[Sắp hết hạn]], [[Loại giấy tờ xe]], [[Lý do điều phối]].
 - Số nhỏ cạnh Dịch vụ & giá là số dịch vụ có giá trên Sheet vừa đổi. Số cạnh Sắp hết hạn là số giấy tờ đã hoặc sắp hết hạn.
 
 ### Trên điện thoại
@@ -154,7 +154,8 @@ Mở [[Sắp hết hạn]] (điện thoại: [[Giấy tờ sắp hết hạn]] �
 2. Hộp hỏi hiện nút như [[Phá lệ và rút]], [[Phá lệ và chuyển]], [[Phá lệ và lưu]], [[Phá lệ và huỷ]].
 3. Chọn lý do phá lệ, bấm nút đó. Việc phá lệ được ghi lại kèm tên bạn.
 
-> Lưu ý: chưa dùng Bảng điều phối cho chuyến thật cho tới khi có màn nhập tên khách. Hỏi người phụ trách hệ thống trước khi dùng.`,
+### Lịch xe bận
+[[Lịch xe bận]]: ghi giờ xe vào xưởng; giờ đó không xếp chuyến cho xe được. Bấm ✕ để rút.`,
     },
     {
       tieuDe: "Các danh mục cài đặt",

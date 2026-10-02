@@ -161,6 +161,6 @@
 - **Vì sao chờ:** ADR-0095 Q10 / ADR-0057 C12 (Hiến chương 5.17) — phát hành tiền xe thuê chờ **Kế toán ký** sổ vàng 22 ca (bản nháp ngoài kho `tmp/tra-loi/SO-VANG-KE-TOAN-KY.md` của phiên 2/10; đưa vào kho khi ký).
 - **Việc khi Kế toán ký xong:**
   1. Chép sổ vàng đã ký vào kho, đổi trạng thái `cho_xac_nhan` → đã ký; gỡ bài `todo` sổ vàng lớp 2.
-  2. Gộp origin/main mới nhất (lúc đó có Đợt 3 = 1.75) vào nhánh; **đánh lại số 1.74 → 1.76** (hoặc số kế tiếp số lớn nhất trên main / production) ở `src/shared/changelog.ts`, `src/shared/app-info.test.ts`, nhật ký thi công. Xung đột dự kiến: `changelog.ts`, `app-info.test.ts`, có thể `public/app.css`, `trang-chu-smoke.mjs`.
+  2. Gộp origin/main mới nhất (lúc đó có Đợt 3 = 1.75) vào nhánh; **đánh lại số 1.74 → 1.78** (main đã có 1.76 luồng L, 1.77 Trợ giúp Vận chuyển; kiểm lại số lớn nhất trên main / production lúc gộp) ở `src/shared/changelog.ts`, `src/shared/app-info.test.ts`, nhật ký thi công. Xung đột dự kiến: `changelog.ts`, `app-info.test.ts`, có thể `public/app.css`, `trang-chu-smoke.mjs`.
   3. Chạy lại typecheck, `npm test`, e2e, Chrome (bang-gia-xe, chi-phi-chuyen, bang-ke-xe, trang-chu-smoke), `kiem-phien-ban.mjs`; rồi chủ `npm run day-len` + `npm run trien-khai` (có migration).
 - **Còn vướng kèm theo:** thêm 3 dòng kịch bản Chrome (bang-gia-xe, chi-phi-chuyen, bang-ke-xe) vào bảng của `web/CLAUDE.md` — tệp luật, chủ duyệt. Chủ có thể muốn hai ô tiền xe thuê lên hàng chính Trang chủ điện thoại của Kế toán (hiện nằm trong "Tất cả" theo thứ tự ưu tiên 1.73 — sửa một dòng).

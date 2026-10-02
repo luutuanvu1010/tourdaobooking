@@ -7,12 +7,12 @@ export const HD_TAI_XE: NhomHuongDan = {
   quyen: ["DRIVER", "DRIVER_PARTNER"],
   gioiThieu:
     "Bạn là tài xế. Tài xế công ty xem cuốc mình lái hôm nay và ngày mai, bấm từng bước khi chạy. Mọi tài xế xem được hạn giấy tờ của mình. Bạn không thấy đơn hàng hay tiền.",
-  batDauNhanh: `> Lưu ý: Công ty CHƯA dùng phần điều xe trong app cho chuyến thật. Văn phòng vẫn điều xe như cũ. Thấy "Không có cuốc nào." là bình thường.
+  batDauNhanh: `> Lưu ý: cuốc hiện ở đây khi văn phòng xếp bạn lái. Thấy "Không có cuốc nào." nghĩa là bạn chưa được xếp chuyến nào.
 
 > Lưu ý: tài xế của nhà xe đối tác chưa có phần cuốc xe — chỉ làm bước 3–5, rồi đọc mục cuối "Tài xế nhà xe đối tác".
 
 1. Mở app. Bạn vào thẳng [[Cuốc của tôi]].
-2. Xem hai nhóm **Hôm nay** và **Ngày mai**.
+2. Xem ba nhóm **Hôm nay**, **Ngày mai**, **Ngày kia**. Vào [[Tôi]] bật thông báo để được báo khi được xếp chuyến.
 3. Bấm [[Trang chủ]] để xem **Giấy tờ của tôi** và hạn từng giấy.
 4. Bấm [[Xem tất cả]] để xem đủ danh sách giấy tờ.
 5. Giấy tờ sai hoặc sắp hết hạn: báo văn phòng.`,
@@ -21,7 +21,7 @@ export const HD_TAI_XE: NhomHuongDan = {
       tieuDe: "Menu của bạn",
       noiDung: `Trên điện thoại, thanh dưới đáy của tài xế công ty có: [[Trang chủ]], [[Cuốc của tôi]], [[Tôi]]. Tài xế nhà xe đối tác chỉ có [[Trang chủ]] và [[Tôi]].
 - [[Trang chủ]]: lời chào và hai giấy tờ sắp hết hạn nhất.
-- [[Cuốc của tôi]]: các chuyến hôm nay và ngày mai.
+- [[Cuốc của tôi]]: các chuyến hôm nay, ngày mai và ngày kia.
 - [[Tôi]]: đủ **Giấy tờ của tôi**, đổi PIN, bật thông báo.
 
 Trên máy tính, menu bên trái có: [[Trang chủ]], [[Cuốc của tôi]], [[Của tôi]], [[Góp ý / Báo lỗi]], [[Trợ giúp]].`,
@@ -79,7 +79,7 @@ Trên máy tính, menu bên trái có: [[Trang chủ]], [[Cuốc của tôi]], [
     {
       tieuDe: "Câu hỏi thường gặp",
       noiDung: `### Sao hôm nay không có cuốc nào?
-Công ty chưa dùng phần này cho chuyến thật.
+Văn phòng chưa xếp bạn lái chuyến nào. Khi được xếp, đổi hay huỷ chuyến, bạn nhận thông báo (nếu đã bật).
 
 ### Giờ ghi có phải giờ tôi bấm không?
 Đúng. Bạn không tự sửa giờ được.

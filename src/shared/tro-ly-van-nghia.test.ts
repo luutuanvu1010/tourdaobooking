@@ -152,13 +152,19 @@ test("C3: câu không khớp từ khoá nào nhưng gần nghĩa một đoạn �
   assert.deepEqual(tom(chonDoanTron("quên mật khẩu đăng nhập", mot(0), KHO, [mot(1), mot(1), mot(0), mot(1)], ["SALES"])), [["Đổi PIN", true, false]]);
 });
 
-test("C4: kho THẬT + mọi véc-tơ đoạn trực giao câu hỏi ⇒ chỉ còn đoạn khớp MẠNH — đo 2026-10-01, vai Bán hàng: than phiền 1, đổi PIN 10, lập đơn 41 (trần 12); không còn đoạn ⇒ khối tài liệu 'không tìm thấy'", () => {
+test("C4: kho THẬT + mọi véc-tơ đoạn trực giao câu hỏi ⇒ chỉ còn đoạn khớp MẠNH — đo 2026-10-02, vai Bán hàng: than phiền 15, đổi PIN 10, lập đơn 41 (trần 12); không còn đoạn ⇒ khối tài liệu 'không tìm thấy'", () => {
   // Hướng dẫn đổi chữ ⇒ con số có thể đổi: đo lại (nhật ký thi công "Số đo luật khớp mạnh"), sửa số ở đây kèm lý do — không nới luật để giữ số.
   const kho = chiaKho();
   const vec = kho.map(() => mot(1));
   const dem = (c: string) => khopManh(c, kho, ["SALES"]).filter(Boolean).length;
-  assert.deepEqual([dem("sao app khó dùng thế"), dem("đổi mã PIN thế nào"), dem("lập đơn mới ra sao")], [1, 10, 41]);
-  assert.deepEqual(chonDoanTron("sao app khó dùng thế", mot(0), kho, vec, ["SALES"]).map((x) => x.doan.ten), ["Bán hàng › Điều phối xe — chưa dùng cho chuyến thật"]);
+  // 2026-10-02 (1.77): bỏ đoạn "Điều phối xe — chưa dùng cho chuyến thật" (Trợ giúp + kho "Cách app vận hành") — đoạn đó lặp chữ "dùng" nên đè điểm cao nhất,
+  // chỉ MÌNH nó vượt 0,7 × max (1 khớp). Bỏ đi ⇒ max thấp xuống ⇒ 15 đoạn có "app" + "dùng" vượt ngưỡng tương đối; luật không đổi. Câu than phiền nay ra
+  // đoạn Câu hỏi thường gặp thay vì đoạn Điều phối xe (đúng hơn); trần 12 đoạn cắt bớt.
+  assert.deepEqual([dem("sao app khó dùng thế"), dem("đổi mã PIN thế nào"), dem("lập đơn mới ra sao")], [15, 10, 41]);
+  const thanPhien = chonDoanTron("sao app khó dùng thế", mot(0), kho, vec, ["SALES"]).map((x) => x.doan.ten);
+  assert.equal(thanPhien.length, SO_DOAN_TOI_DA);
+  assert.ok(thanPhien.includes("Phần chung › Câu hỏi thường gặp"), JSON.stringify(thanPhien));
+  assert.ok(!thanPhien.some((t) => t.includes("Điều phối xe")), JSON.stringify(thanPhien));
   // 41 khớp mạnh ⇒ RRF + trần 12 đoạn / 6.000 token chọn tiếp (F7: khoá tên cụ thể, không chỉ "có đoạn").
   const lapDon = chonDoanTron("lập đơn mới ra sao", mot(0), kho, vec, ["SALES"]).map((x) => x.doan.ten);
   assert.equal(lapDon.length, SO_DOAN_TOI_DA);
