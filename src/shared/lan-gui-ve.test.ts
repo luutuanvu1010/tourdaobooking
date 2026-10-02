@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { BI_MAT, KHONG_VE, khopMau } from "./lan-gui-bi-mat.ts";
+import { BI_MAT, KHONG_VE, khopMau, laRouteBiMat } from "./lan-gui-bi-mat.ts";
 import { HAN_VE_MS, TOI_DA_MUC, taoVongDoiVe, type KhoLuu } from "./lan-gui-ve.ts";
 
 function khoGia(): KhoLuu & { du: Map<string, string> } {
@@ -153,4 +153,29 @@ test("danh sách bí mật / không vé: mục là route ghi có thật; KHONG_V
   assert.deepEqual(KHONG_VE.map((m) => `${m.method} ${m.path}`).sort(), routes.filter((r) => r.access === "public").map((r) => r.k).sort());
   assert.equal(khopMau("/api/parties/:id/documents", "/api/parties/p1/documents?x=1"), true);
   assert.equal(khopMau("/api/parties/:id/documents", "/api/parties//documents"), false);
+});
+
+// T16 (vòng 2 kiểm độc lập, mục 1): `POST /api/account/passkeys/options` nhận PIN mà sót khỏi BI_MAT ⇒ mã băm thân (dò ngược được, 10^6 khả năng) nằm
+// trong localStorage tới 24 giờ. Thay "dựa vào kỷ luật" bằng quét: route ghi có đăng nhập mà THÂN HANDLER kiểm PIN (isValidPin / validateNewPin /
+// validateFreshPin / verifyPinThrottled), hoặc là route giấy tờ của người (`/documents`), PHẢI nằm trong BI_MAT.
+test("T16: route ghi đọc PIN hoặc số giấy tờ trong thân ⇒ phải nằm trong BI_MAT (quét mã route)", () => {
+  const SRC = fileURLToPath(new URL("..", import.meta.url));
+  const DAU_PIN = /\b(isValidPin|validateNewPin|validateFreshPin|verifyPinThrottled)\(/;
+  const thieu: string[] = [];
+  let soRouteThay = 0;
+  for (const mod of readdirSync(join(SRC, "modules"))) {
+    const f = join(SRC, "modules", mod, "index.ts");
+    if (!existsSync(f)) continue;
+    const ma = readFileSync(f, "utf8");
+    const dau = [...ma.matchAll(/route\(\s*"(POST|PUT|PATCH|DELETE)",\s*"([^"]+)",\s*"([^"]+)"/g)];
+    dau.forEach((h, i) => {
+      const than = ma.slice(h.index!, i + 1 < dau.length ? dau[i + 1]!.index : ma.length);
+      if (h[3] === "public") return; // KHONG_VE: không sinh vé, không lưu gì
+      if (!(DAU_PIN.test(than) || h[2]!.includes("/documents"))) return;
+      soRouteThay++;
+      if (!laRouteBiMat(h[1]!, h[2]!.replace(/:[a-z]+/g, "x"))) thieu.push(`${h[1]} ${h[2]}`);
+    });
+  }
+  assert.ok(soRouteThay >= 7, `bài quét phải thấy ít nhất 7 route PIN/giấy tờ, thấy ${soRouteThay} (mẫu quét hỏng?)`);
+  assert.deepEqual(thieu, [], `route có PIN/số giấy tờ trong thân mà thiếu ở BI_MAT (src/shared/lan-gui-bi-mat.ts): ${thieu.join(", ")}`);
 });

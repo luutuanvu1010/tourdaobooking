@@ -139,7 +139,6 @@ export async function api<T>(path: string, init?: { method?: string; body?: unkn
 }
 
 /** Một lần gửi. Trả `dangXuLy` khi gặp 409 `dang_xu_ly` (người gọi chờ rồi gửi lại cùng vé); `ket()` trả kết quả hoặc ném như cũ. */
-/** Một lần gửi. Trả `dangXuLy` khi gặp 409 `dang_xu_ly` (người gọi chờ rồi gửi lại cùng vé); `ket()` trả kết quả hoặc ném như cũ. */
 async function guiMotLan<T>(path: string, method: string, than: string | undefined, ve: VeMo | null): Promise<{ dangXuLy: boolean; ket: () => Promise<T> }> {
   const controller = new AbortController();
   // Bảng tin: id lấy từ ĐƯỜNG DẪN thì ghi dấu ngay khi GỬI (máy chủ phát tin trước khi trả phản hồi nên tin có thể tới trước). Ghi thất bại thì không có tin nào — chặn thừa vô hại. Không bao giờ được làm hỏng lời gọi.
