@@ -43,6 +43,8 @@
 
 ## 5. Ô ghi chú gõ tự do trong chuyến xe
 
+- **Mã nợ:** `BL-GHI-CHU-CHUYEN` (gắn 2026-10-03 khi ADR-0097 nháp trích mục này; nội dung mục không đổi).
+
 - **Ngày:** 2026-09-29 · **Chủ chọn:** *"Chưa làm"* cho câu "Bản vẽ có ô ghi chú gõ tự do trong chuyến xe ("Ghi chú cho tài xế", ghi chú khi phá lệ, khi kết thúc gián đoạn). Lượt này có làm không?" · **Trạng thái:** `tạm gác`.
 - **Bản vẽ:** `docs/design/van-chuyen-dieu-phoi/project/03 Tao sua chuyen.dc.html` (ô "Ghi chú cho tài xế"), `01 Dieu phoi xe.dc.html` (ghi chú khi phá lệ), `05 Chuyen dang chay.dc.html` (ghi chú khi kết thúc gián đoạn) — đối chiếu `docs/design/van-chuyen-dieu-phoi/DOI-CHIEU-2026-09-29.md` mục 2.10.
 - **Vì sao gác:** lệnh vận chuyển chỉ nhận mã lý do (kế hoạch ADR-0049 I18), vì chữ tự do có thể chứa tên / SĐT khách và lọt vào nhật ký chuyến nhiều người xem.
@@ -164,3 +166,33 @@
   2. Gộp origin/main mới nhất (lúc đó có Đợt 3 = 1.75) vào nhánh; **đánh lại số 1.74 → 1.78** (main đã có 1.76 luồng L, 1.77 Trợ giúp Vận chuyển; kiểm lại số lớn nhất trên main / production lúc gộp) ở `src/shared/changelog.ts`, `src/shared/app-info.test.ts`, nhật ký thi công. Xung đột dự kiến: `changelog.ts`, `app-info.test.ts`, có thể `public/app.css`, `trang-chu-smoke.mjs`.
   3. Chạy lại typecheck, `npm test`, e2e, Chrome (bang-gia-xe, chi-phi-chuyen, bang-ke-xe, trang-chu-smoke), `kiem-phien-ban.mjs`; rồi chủ `npm run day-len` + `npm run trien-khai` (có migration).
 - **Còn vướng kèm theo:** thêm 3 dòng kịch bản Chrome (bang-gia-xe, chi-phi-chuyen, bang-ke-xe) vào bảng của `web/CLAUDE.md` — tệp luật, chủ duyệt. Chủ có thể muốn hai ô tiền xe thuê lên hàng chính Trang chủ điện thoại của Kế toán (hiện nằm trong "Tất cả" theo thứ tự ưu tiên 1.73 — sửa một dòng).
+
+## 21. Kiểm theo vai 2/10 — nợ đã hoãn và câu chờ chủ (mã `BL-…`)
+
+- **Ngày:** 2026-10-03 · **Nguồn:** `docs/superpowers/specs/2026-10-02-kiem-theo-vai/NGUYEN-NHAN-GOC.md` (gốc M2: "hoãn có chủ ý không có mã nợ" nên không ai quay lại) và bảng truy vết §10 của `docs/superpowers/plans/2026-10-03-khac-phuc-kiem-theo-vai-00-lo-trinh.md` · **AI ghi** khi soạn đợt V0 · **Trạng thái chung:** `tạm gác` — mỗi mục dưới có câu gốc và nơi sẽ xử lý.
+- **Cách dùng mã:** mọi câu "hoãn / để sau / lượt 1 chưa / giả định bề mặt" trong tài liệu soạn từ 3/10 phải kèm một mã `BL-…` có ở mục này (đề xuất V7.3 của lộ trình sẽ có bài kiểm quét). Làm xong mục nào thì xoá dòng đó (lịch sử còn trong git) và ghi bản phát hành vào commit.
+
+**Năm mục hoãn có chủ ý trong ADR / đặc tả đã có (lộ trình §2.6):**
+
+- **BL-TIEN-KT — Kế toán không có tin về tiền, chỉ làm mới màn.** Câu gốc ADR-0025 `:71`: *"Loại thông báo: chỉ làm mới màn hình … giả định bề mặt, đảo được; chủ muốn hiện nổi cho người lập/Kế toán thì thêm một dòng."* Lỗi: VP-11. Xử lý ở đợt **V5** (ma trận sự kiện × vai).
+- **BL-CREW-TIN — HDV đi kèm (suất `CREW`) không nhận tin chuyến, không biết giờ / điểm hẹn.** Câu gốc ADR-0052 `:165`: *"người lập / phụ trách đơn là Đối tác, Hướng dẫn viên, Thực tập (không có `trip.view`) không nhận tin chuyến nào … đúng lời chủ Q1"* — duyệt trước khi HDV thành suất `CREW` (ADR-0056). Lỗi: HT-23. Xử lý ở **V5** (tách "được báo" khỏi "được xem").
+- **BL-MST-UNIQUE — hai tổ chức cùng mã số thuế tạo được.** Câu gốc bản nháp `docs/superpowers/specs/2026-09-21-doi-chieu-oracle-tca.md:80`: *"LỆCH — HOÃN … Chủ dự án (2026-09-21): hệ thống là CRM lập đơn, MST không phải khoá nhận dạng → không làm bây giờ."* Lỗi: VP-08. **V6** thêm bất biến cảnh báo `R-PTY-8`; câu hỏi mở lại cho chủ: nay có đại lý thật, MST có thành khoá duy nhất (UNIQUE từng phần theo hồ sơ đang hoạt động) không.
+- **BL-GIA-SHEET — giá danh mục (đồng bộ Sheet và ghi đè của Quản trị) áp ngay, không ngưỡng, không xác nhận.** Câu gốc: không có quyết định nào (chưa ai hỏi) — `catalog/rules.ts:54-60` chỉ chặn Sheet rỗng / ẩn > 50 %. Lỗi: VP-07. **V6** thêm cảnh báo `R-CAT-1` (giá đổi > 50 % hoặc về 0); bước duyệt giá: chờ chủ.
+- **BL-SDT-QT — SĐT quốc tế trên đơn.** Câu gốc `docs/superpowers/specs/2026-09-21-n2-lat-1-khach-tren-don.md:120`: *"Mở rộng chuẩn hoá số quốc tế là việc riêng."* Lỗi: BH-02. Chờ chủ trả lời Q-98-2 của ADR-0098 nháp; làm **sau V4**.
+
+**Câu chờ chủ phát sinh khi xếp 78 lỗi (bảng §10 của lộ trình):**
+
+- **BL-QUYEN-BH06 — Bán hàng đang phụ trách đơn đồng nghiệp có được ghi lần thu không** (ô `payment.receive` của Bán hàng hôm nay `own`). Phương án và khuyến nghị: lộ trình §10.1. Cần ADR (quyền + tiền).
+- **BL-QUYEN-BH08 — Thực tập có trần giá / giảm giá không** (ADR-0027 `:38` ghi là rủi ro còn lại). Phương án: lộ trình §10.1. Liên quan BACKLOG §15 câu 11 (trần giảm giá nhân viên).
+- **BL-QUYEN-BH09 — Đối tác còn tự xác nhận đơn mình lập không** (ADR-0014 điều 6 cho phép; đích ADR-0018 giai đoạn 2 thì không). Phương án: lộ trình §10.1.
+- **BL-NHAN-NHAP — chính sách "Nhận" đơn nháp của đồng nghiệp** (BH-19: người nhận sửa được tên khách, số khách, tổng tiền; người lập chỉ được báo "vừa nhận đơn"). Phần báo tin đi V5; phần chính sách cần ADR (báo cáo gợi ý: chỉ người lập / Quản trị giao nháp, hoặc người nhận không sửa nội dung nháp).
+- **BL-HDV-TEN — HDV phụ trách có được nhập tên khách vừa tăng tại hiện trường không** (HT-13; ô `order.passenger.write`). Phần báo văn phòng đi Đợt 4 (ADR-0062); phần quyền cần ADR.
+- **BL-TACH-DOAN — tách đoàn: thứ tự người lên xe và ô chọn người** (HT-09). Chạm luật xếp / bản chốt khách ⇒ hỏi chủ trước; khi có lời chủ làm ở V3-A.
+- **BL-NK-TIEN — nhật ký có ghi số tiền không** (VP-04; quy ước ADR-0025 "nhật ký không ghi số tiền chi tiết"). Phần lệnh nộp để vết theo đơn đi Đợt 2.
+- **BL-NHAP-MAY — lưu tạm nội dung form lập đơn trên máy khi bị đăng xuất** (BH-04). Đặt dữ liệu khách lên thiết bị ⇒ chủ duyệt phạm vi và thời hạn; khi có lời chủ làm ở V8.
+- **BL-NGAY-DON-CHANG — danh sách đơn hiện ngày đón của chặng khi khác ngày đi** (VP-09). Đổi dữ liệu tóm tắt đơn (hợp đồng máy chủ ↔ giao diện) ⇒ chủ duyệt; khi có lời chủ làm ở V8. Trang chủ giữ theo ngày đi (lời chủ Q3, đặc tả 23/9).
+- **BL-GIO-HEN-SOM — giữ chuyến khi giờ hẹn đón sớm hơn giờ xuất bến** (HT-06; hôm nay chỉ cảnh báo theo MQ-04). Đã gom vào câu hỏi cuối phiên V0: gộp vào ADR-0096 (cùng khuôn "rõ ràng sai thì phải chặn") hay giữ cảnh báo. Phần tin MQ-07 đi V5.
+- **BL-TEN-TRUOC-XB — màn tài xế trong ngày chạy giấu tên khách và SĐT liên hệ tới khi bấm Xuất bến** (HT-07; chủ ý của bản 1.39, có kịch bản Chrome ghim). Chủ quyết có mở trước khi xuất bến không.
+- **BL-BIEN-NHAN-LAN-THU — biên nhận gửi khách liệt kê từng lần thu** (VP-24). Biên nhận là danh sách trắng `ReceiptDto` (ADR-0026) ⇒ thêm trường cần chủ duyệt.
+- **BL-GHI-CHU-CHUYEN — ô chữ tự do trong chuyến xe** (ghi chú cho tài xế, khi phá lệ, khi kết thúc gián đoạn, khi chọn lý do "Khác" của ADR-0097 nháp): chủ chọn *"Chưa làm"* 2026-09-29 — chi tiết ở mục 5 sổ này.
+- **BL-CUOC-XA — "Cuốc của tôi" xem trước quá ngày kia và xem lại cuốc cũ** (HT-15). Phạm vi ngày tài xế thấy chuyến là quyết định ADR-0049 D3 / ADR-0053 D7.2 ⇒ cần chủ.

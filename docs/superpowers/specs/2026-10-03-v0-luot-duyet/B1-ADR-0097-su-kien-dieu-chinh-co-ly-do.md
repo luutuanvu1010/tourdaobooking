@@ -41,7 +41,7 @@ Không có `UPDATE` lùi trạng thái nào. Mỗi lần sửa sai là **một l
    | Đã trả (`DROPPED`) | Còn trên xe (`BOARDED`) | điểm xuống chưa `DONE` |
 
    Điều kiện "điểm chưa `DONE`" để kết quả mới **còn làm tiếp được** (không đẻ ra suất treo làm chuyến không kết thúc được — LC-16).
-5. **Lý do bắt buộc, danh sách đóng:** nhóm mới `DIEU_CHINH` trong `vc_reason`: `DIEU_CHINH_BAM_NHAM` "Bấm nhầm", `DIEU_CHINH_KHACH_DOI_Y` "Khách đổi ý tại điểm", `DIEU_CHINH_KHAC` "Khác". **Không có ô chữ tự do** — theo lời chủ 2026-09-29 chọn *"Chưa làm"* ô ghi chú gõ tự do trong chuyến xe (`docs/BACKLOG.md` §5: chữ tự do có thể chứa tên/SĐT khách). *Lệch có chủ ý so với lộ trình §2.4* (lộ trình ghi "ô ghi chú bắt buộc khi 'Khác'"): lời chủ có trước và chưa được đổi, nên ADR theo lời chủ; "Khác" chọn được không kèm chữ, như lý do huỷ của ADR-0030.
+5. **Lý do bắt buộc, danh sách đóng:** nhóm mới `DIEU_CHINH` trong `vc_reason`: `DIEU_CHINH_BAM_NHAM` "Bấm nhầm", `DIEU_CHINH_KHACH_DOI_Y` "Khách đổi ý tại điểm", `DIEU_CHINH_KHAC` "Khác". **Không có ô chữ tự do** — theo lời chủ 2026-09-29 chọn *"Chưa làm"* ô ghi chú gõ tự do trong chuyến xe (`docs/BACKLOG.md` §5, mã nợ `BL-GHI-CHU-CHUYEN`: chữ tự do có thể chứa tên/SĐT khách). *Lệch có chủ ý so với lộ trình §2.4* (lộ trình ghi "ô ghi chú bắt buộc khi 'Khác'"): lời chủ có trước và chưa được đổi, nên ADR theo lời chủ; "Khác" chọn được không kèm chữ, như lý do huỷ của ADR-0030.
 6. **Phản hồi và nhật ký không kèm tên khách** (CLAUDE.md §10 bẫy Điều phối xe): "CX-…: một suất Đã đón → Vắng · Bấm nhầm · văn phòng bấm thay".
 
 ### Đ3 — Thu hồi xuất bến (`DEPARTURE_REVOKED`) — HT-03
