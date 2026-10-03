@@ -30,7 +30,7 @@ Ký hiệu: 👤 chủ dự án · 🤖 phiên thi công · 🔍 người kiểm
 
 ## 2. Đợt V0 — Giấy tờ trước (soạn 🤖, duyệt 👤)
 
-> **Trạng thái 2026-10-03:** **đã soạn, chờ chủ duyệt.** Văn bản ở `docs/superpowers/specs/2026-10-03-v0-luot-duyet/` (mục lục `README.md`): lượt A = `A1-…diff`, `A2-…diff`, `A3-ADR-0096-…md` + `LUOT-A-TRANG-GHEP.md`; lượt B = `B1-ADR-0097-…md`, `B2-ADR-0098-…md` + `LUOT-B-TRANG-GHEP.md`; bản vá giữ chỗ số ADR `adr-README-giu-cho.diff`. Số ADR đo lại 3/10 trên mọi nhánh: 0096–0098 đúng như dự kiến. Mã nợ §2.6 đã vào `docs/BACKLOG.md` §21. Ba chỗ người soạn **lệch** so với chữ của mục này (có ghi lý do trong văn bản): (1) trigger cửa sổ / thứ tự đặt trên cạnh `PLANNED → RUNNING` của `vc_trip`, không trên `vc_trip_event`; (2) ADR-0097 không có ô chữ tự do khi chọn "Khác" (lời chủ 29/9, `BACKLOG.md` §5, mã nợ `BL-GHI-CHU-CHUYEN`); (3) ADR-0097 mở suất mới ở **trạng thái đúng** (không luôn `WAITING`) để suất không treo khi điểm đã `DONE`; ADR-0096 thêm nút đổi thứ tự cho chuyến **kế hoạch** (hôm nay chỉ có khi đang chạy) — là "nút đổi thứ tự để sửa tay" của lời chủ 3a; (4) ADR-0097 **không** gỡ HT-06 (mục 4 dưới và NGUYEN-NHAN-GOC.md §6 câu 3 ghi "HT-04/HT-06 theo ADR đó"): bản đầy đủ cho thấy HT-06 là lý do giữ chuyến + tin MQ-07, không phải sửa sai — phần giữ chờ chủ (`BL-GIO-HEN-SOM`), phần tin đi V5. Người kiểm độc lập V0 (3/10) kết luận "đạt có điều kiện"; các phát hiện đã sửa vào văn bản cùng ngày (commit sau `97bf3e0f`).
+> **Trạng thái 2026-10-03 (tối):** **ĐÃ DUYỆT.** Chủ trả lời chat 3/10: *"Duyệt A1, A2, A3 (A3: 12 giờ là mặc định trong bảng chính sách, không viết cứng, không có phá lệ). Duyệt ADR-0097 và ADR-0098. Danh bạ chặn trùng SĐT cho hồ sơ mới, hồ sơ cũ cảnh báo. SĐT nước ngoài: phương án B, ghi mã nợ chuẩn hoá số quốc tế. HT-06: chặn, gộp vào ADR-0096. BH-06: cho ghi như HDV phụ trách (ADR riêng). BH-08: Thực tập như Đối tác, chỉ giá danh mục, không giảm. BH-09: giữ như hôm nay tới ADR-0018 giai đoạn 2."* Đã làm: `TNV-VP01` vào `docs/quyen-hoan.json`; Đ2b/Đ4 vào bản nháp ADR-0092 (toàn văn ADR-0088/0092 **vẫn chờ "Duyệt"** ⇒ V2 chưa bắt đầu được); `docs/adr/` có ADR-0096 (gồm Đ3 LC-21 cho HT-06), ADR-0097, ADR-0098, ADR-0099 (BH-06), ADR-0100 (BH-08), trang ghép lượt C ở cùng thư mục. Ghi chú soạn thảo cũ (trước duyệt): Văn bản ở `docs/superpowers/specs/2026-10-03-v0-luot-duyet/` (mục lục `README.md`): lượt A = `A1-…diff`, `A2-…diff`, `A3-ADR-0096-…md` + `LUOT-A-TRANG-GHEP.md`; lượt B = `B1-ADR-0097-…md`, `B2-ADR-0098-…md` + `LUOT-B-TRANG-GHEP.md`; bản vá giữ chỗ số ADR `adr-README-giu-cho.diff`. Số ADR đo lại 3/10 trên mọi nhánh: 0096–0098 đúng như dự kiến. Mã nợ §2.6 đã vào `docs/BACKLOG.md` §21. Ba chỗ người soạn **lệch** so với chữ của mục này (có ghi lý do trong văn bản): (1) trigger cửa sổ / thứ tự đặt trên cạnh `PLANNED → RUNNING` của `vc_trip`, không trên `vc_trip_event`; (2) ADR-0097 không có ô chữ tự do khi chọn "Khác" (lời chủ 29/9, `BACKLOG.md` §5, mã nợ `BL-GHI-CHU-CHUYEN`); (3) ADR-0097 mở suất mới ở **trạng thái đúng** (không luôn `WAITING`) để suất không treo khi điểm đã `DONE`; ADR-0096 thêm nút đổi thứ tự cho chuyến **kế hoạch** (hôm nay chỉ có khi đang chạy) — là "nút đổi thứ tự để sửa tay" của lời chủ 3a; (4) ADR-0097 **không** gỡ HT-06 (mục 4 dưới và NGUYEN-NHAN-GOC.md §6 câu 3 ghi "HT-04/HT-06 theo ADR đó"): bản đầy đủ cho thấy HT-06 là lý do giữ chuyến + tin MQ-07, không phải sửa sai — phần giữ chờ chủ (`BL-GIO-HEN-SOM`), phần tin đi V5. Người kiểm độc lập V0 (3/10) kết luận "đạt có điều kiện"; các phát hiện đã sửa vào văn bản cùng ngày (commit sau `97bf3e0f`).
 
 Mỗi lượt duyệt tối đa **3** quyết định chạm quyền/dữ liệu, kèm trang ghép (CLAUDE.md §9).
 
@@ -91,6 +91,7 @@ Có dòng ⇒ ghi vào kế hoạch con một bước "dọn dữ liệu demo" (
 | V2.5 | `R-BIL-13` mức `fail` trong `scripts/audit-checks.mjs`: cặp (bên, công ty, đơn) có số dư âm **mà** tồn tại dòng HELD gốc còn hiệu lực hoặc SETTLEMENT công ty→bên vượt tổng HELD; loại trừ ca âm hợp lệ (REFUND người ứng, công ty nợ đại lý) theo loại dòng | `scripts/audit-checks.mjs`, `src/audit-invariants.test.ts` | dữ liệu B1–B3 (gỡ trigger) → 1; đúng luồng → 0; REFUND người ứng → 0 |
 | V2.6 | Giao diện `web/order.ts`: nút "Đã nộp" gửi số đang giữ **trừ** phần CK chờ xác nhận (hoặc Kế toán nhập số, kẹp ≤ số đó); dòng `dangGiu` ghi "gồm {X} ₫ chuyển khoản chờ xác nhận" | `web/order.ts:441-594` | kịch bản Chrome trang đơn vai Kế toán |
 | V2.7 | Sổ vàng SV-SC-05 "khai CK → nộp bù → xác nhận bị từ chối" (trạng thái `cho_xac_nhan` để 👤/Kế toán duyệt); e2e `so-tien.mjs` nhánh thứ tự ngược; `audit-invariants --strict` cuối bộ | `golden/so-cong-no-luot-1.json`, `tests/e2e/so-tien.mjs` | — |
+| V2.8 | **BH-06 (ADR-0099):** ô `payment.receive` của Bán hàng `own` → `ownOrAssigned`; bài "tập con quyền", tài liệu vai & quyền sinh tự động cập nhật cùng commit | `src/shared/permissions.ts:103` | route test Bán hàng phụ trách ghi lần thu → 201 (hôm nay 403) |
 
 **Cổng V2:** 🔍 đọc mã + chạy lại `lo-ghi`, `migrations-billing`, `audit-invariants`, e2e `so-tien`; mỗi hàng rào mới có dòng `SO-HANG-RAO` với ngày thấy chặn thật; đóng `TNV-VP01` (và phần KT04 của TNV-G4) trong `quyen-hoan.json`; `docs/SYSTEM-DESIGN.md` §6 luồng tiền cập nhật.
 
@@ -131,6 +132,8 @@ Có dòng ⇒ ghi vào kế hoạch con một bước "dọn dữ liệu demo" (
 | V4.3 | Giao diện `booker-picker.ts`: Đối tác/Thực tập không còn câu "Không tra được hồ sơ — vẫn lưu đơn được"; thay bằng "Nhập số điện thoại, hệ thống tự dùng lại hồ sơ nếu đã có" | `web/booker-picker.ts:65` | kịch bản Chrome vai Đối tác |
 | V4.4 | Bất biến `R-PTY-7` (`fail` từ mốc migration V4; dòng cũ `warn`): hai hồ sơ **đang hoạt động** cùng SĐT liên hệ chuẩn hoá | `scripts/audit-checks.mjs` | `audit-invariants.test.ts` |
 | V4.5 | Dòng "thay câu" ở ADR-0014 trỏ ADR-0098; `SYSTEM-DESIGN` §6 luồng lập đơn | docs | — |
+| V4.6 | **BH-08 (ADR-0100):** luật giá ADR-0027 Đ2 (giá danh mục, giảm = 0) áp cho người có quyền Thực tập ở lập / sửa / xác nhận; form lập đơn khoá ô giá như Đối tác | `src/modules/orders/index.ts:185-186, :999-1000`, `price-guards.ts`, `web/order-form.ts` | route test Thực tập giảm giá → 403 (hôm nay 201) |
+| V4.7 | **ADR-0098 Đ7 (Danh bạ):** tạo hồ sơ mới trùng SĐT → 409 kèm danh sách; thêm / sửa SĐT trùng trên hồ sơ có sẵn → cảnh báo "Vẫn lưu" có nhật ký; Đ3b ẩn tên hồ sơ với người không có `party.view` | `src/modules/parties/`, `web/parties.ts`, `orders/repository.ts`, `web/order.ts` | route test Danh bạ 409; route test Đối tác `GET /api/orders/:id` không có `bookerName` |
 
 **Cổng V4:** 🔍 (dữ liệu + quyền: kiểm Đối tác không đọc được chi tiết hồ sơ qua đường mới — route test 403 giữ nguyên); e2e `orders`, `booker`, `nhap-tay-va-gia-doi-tac`; `audit-invariants` sau e2e.
 
@@ -193,18 +196,18 @@ Nguyên tắc như V1: test đỏ trước, xanh sau; **không** đổi ô quy�
 | 2 | HT-24 | TB | V1.1 | `tien-do-man.test.ts` chuyến `RUNNING` xuất bến hôm qua → nhóm Hôm nay; Chrome `cuoc-qua-nua-dem-smoke.mjs` |
 | 3 | HT-03 | TB | V1.3 (hộp + cảnh báo ngày), V3-A (cửa sổ, ADR-0096), V3-B (thu hồi, ADR-0097) | hàm thuần hộp xác nhận; `dieu-phoi-kiem.test.ts` 13 giờ trước → giữ; trigger LC-20; route thu hồi; e2e `van-chuyen` "xuất bến nhầm → thu hồi" |
 | 4 | HT-01 | TB | V1.2 (tự sắp), V3-A (chặn + nút đổi thứ tự chuyến kế hoạch) | `dieu-phoi-route.test.ts` hai chặng cùng nơi trả → đón, đón, trả; `dieu-phoi-kiem.test.ts` `TRA_TRUOC_DON`; trigger LC-19; e2e `dieu-phoi` |
-| 5 | BH-08 | TB | **chưa xếp** — câu hỏi §10.1, `BL-QUYEN-BH08` | — |
+| 5 | BH-08 | TB | V4.6 (ADR-0100 accepted 3/10: luật giá ADR-0027 Đ2 áp cho Thực tập; cùng vùng `orders`) | route test Thực tập giá dưới danh mục / giảm giá > 0 → 403 ở lập, sửa, xác nhận; e2e `nhap-tay-va-gia-doi-tac` ca Thực tập |
 | 6 | VP-05 | TB | Đợt 2 (ADR-0092 đ6 ô mã giao dịch) + Đợt 4b (chọn người thu, ô ghi chú ở màn Kế toán) | route test ô mã giao dịch được miễn luật 8 chữ số; Chrome form "Ghi lần thu" vai Kế toán |
 | 7 | VP-03 | TB | Đợt 4 (R9: lệnh mang phiên bản đã thấy) | route test `PATCH /api/staff/:id` với giá trị cũ đã thấy lệch → 409; Chrome hai tab sửa cùng tài khoản |
 | 8 | BH-19 | TB | V5 (báo người lập khi nháp bị người nhận sửa) + chính sách "Nhận đơn nháp": `BL-NHAN-NHAP` | `thong-bao.test.ts` ca nháp bị sửa → người lập có tin; phần chính sách: chờ chủ |
 | 9 | BH-02 | TB | V4 (ADR-0098 Đ4) | `orders/rules.test.ts` 19 chữ số → 400, `"0912 345 678"` → chuẩn; số nước ngoài theo Q-98-2 / `BL-SDT-QT` |
 | 10 | BH-07 | TB | Đợt cũ: ADR-0063 (proposed, lượt duyệt 2a — giữ chỗ ở `docs/adr/README.md`) | route test sửa số khách sau xác nhận theo ADR-0063 D1 (khi duyệt) |
-| 11 | BH-06 | TB | **chưa xếp** — câu hỏi §10.1, `BL-QUYEN-BH06` | — |
+| 11 | BH-06 | TB | V2.8 (ADR-0099 accepted 3/10: ô `payment.receive` Bán hàng → `ownOrAssigned`; cùng vùng sổ giữ hộ) | route test Bán hàng phụ trách ghi lần thu → 201, người không phụ trách → 403; sổ có dòng giữ hộ trên người ghi |
 | 12 | HT-05 | TB | V1.6 | bài lô + `thu-tu-lo.test.ts` đổi xe + tài xế công ty ↔ nhà xe → 200 |
 | 13 | HT-04 | TB | V3-B (ADR-0097 Đ2) | route điều chỉnh: tài xế 403, văn phòng 201; e2e "đã đón nhầm → điều chỉnh thành vắng"; trigger LC-15 ngoại lệ `CORRECTION` |
 | 14 | HT-02 | TB | V3-A (ADR-0096 Đ1.4) | route "Đã tới" điểm trả khi còn khách chờ lên ở điểm đón trước → 409 |
 | 15 | HT-08 | TB | V1.7 | `dieu-phoi-kiem.test.ts` chip không "Đạt hết" khi chưa đủ nghỉ theo giờ hiện tại, có giờ được xuất bến |
-| 16 | HT-06 | TB | V5 (tin "giờ hẹn đổi" MQ-07 tới tài xế) + giữ chuyến khi giờ hẹn sớm hơn giờ xuất bến: `BL-GIO-HEN-SOM` (câu hỏi cuối phiên V0: gộp vào ADR-0096?) | `tin-chuyen.test.ts` MQ-07; phần giữ: `dieu-phoi-kiem.test.ts` khi chủ quyết |
+| 16 | HT-06 | TB | V5 (tin MQ-07 tới tài xế) + V3-A (ADR-0096 Đ3 LC-21, chủ quyết 3/10 "chặn") | `tin-chuyen.test.ts` MQ-07; `dieu-phoi-kiem.test.ts` giờ hẹn 06:30 trên chuyến 07:00 → giữ `GIO_HEN_TRUOC_KHOI_HANH` |
 | 17 | HT-10 | TB | V5 (`trip_passenger_cancelled_at_stop` vào ma trận) | `tin-chuyen.test.ts` khách huỷ tại điểm → người lập / phụ trách có tin, không tên / SĐT; bài "vắng mặt" của ma trận |
 | 18 | HT-13 | TB | Đợt 4 (ADR-0062 báo văn phòng khi HDV đổi số khách) + quyền HDV nhập tên: `BL-HDV-TEN` | e2e `thongbao` HDV tăng số khách → người lập có tin; câu 403 nói đúng "nhờ văn phòng" |
 | 19 | HT-09 | TB | V3-A (cùng vùng xếp) sau khi chủ quyết: `BL-TACH-DOAN` | `dieu-phoi-kiem.test.ts` tách đoàn giữ thứ tự nhập; Chrome ô chọn người khi tách |
@@ -220,7 +223,7 @@ Nguyên tắc như V1: test đỏ trước, xanh sau; **không** đổi ô quy�
 | 29 | BH-05 | ÍT | V4 (ADR-0098) | `orders` service test Đối tác tạo đơn SĐT đã có → không hồ sơ mới; R-PTY-7 |
 | 30 | VP-08 | ÍT | V6 (`R-PTY-8` warn) + `BL-MST-UNIQUE` | `audit-invariants.test.ts` hai tổ chức cùng MST → 1 cảnh báo |
 | 31 | VP-06 | ÍT | V1.5 (ngày có năm) + cận dưới ngày thu theo khoá kỳ ADR-0080 (đã duyệt, lượt 2 sổ tiền) | `vn-date.test.ts` ca khác năm; bài khoá kỳ khi thi công ADR-0080 |
-| 32 | BH-09 | ÍT | **chưa xếp** — câu hỏi §10.1, `BL-QUYEN-BH09` | — |
+| 32 | BH-09 | ÍT | không thi công — chủ chọn giữ như hôm nay tới ADR-0018 giai đoạn 2 (`BL-QUYEN-BH09`) | — (hành vi hiện tại đúng ADR-0014 điều 6) |
 | 33 | HT-14 | ÍT | VC-05 (cứu hộ ADR-0052 D5c, lộ trình Vận chuyển 1/10) | e2e cứu hộ: kết thúc gián đoạn có khách trên xe → chặng ghi "đang trên xe gián đoạn CX-…" |
 | 34 | HT-07 | ÍT | chờ chủ (chủ ý của bản 1.39): `BL-TEN-TRUOC-XB` | — (kịch bản Chrome đang ghim hành vi cũ; đổi khi chủ quyết) |
 | 35 | HT-12 | ÍT | V5 (nhãn "Ai xử lý" chỉ người làm được) | `tin-chuyen.test.ts` / hàm nhãn: HDV phụ trách không được gán việc họ không bấm được |
@@ -230,11 +233,11 @@ Nguyên tắc như V1: test đỏ trước, xanh sau; **không** đổi ô quy�
 | 39 | BH-01 | ÍT | Đợt 7 (cùng hàm tìm không dấu) | test hàm tìm dịch vụ "tour dao" ra "Tour Đảo" |
 | 40 | BH-20 | ÍT | V8 (riêng tư, 🔍) | `feedback` test nội dung có 10 chữ số → lưu và email đã che |
 | 41 | BH-21 | ÍT | V4 (ADR-0098: SĐT trùng hồ sơ nhân viên cũng dùng lại) | `orders` service test "thông tin của tôi" → `booker_party_id` = hồ sơ nhân viên, không hồ sơ mới |
-| 42 | VP-22 | ÍT | V4 nếu chủ chọn Q-98-1 (A) — mọi đường tạo / đổi SĐT | route test đổi SĐT đăng nhập sang số của hồ sơ khác → 409 kèm danh sách |
+| 42 | VP-22 | ÍT | V4 (ADR-0098 Đ7.2 — sửa SĐT trên cái đã có ⇒ cảnh báo) | route test đổi SĐT đăng nhập sang số của hồ sơ khác → cảnh báo, "Vẫn lưu" có nhật ký |
 | 43 | VP-16 | ÍT | V6 (`R-LOC-1` warn: hai địa điểm đang dùng cùng tên chuẩn hoá) | `audit-invariants.test.ts` hai địa điểm trùng tên → 1 cảnh báo |
 | 44 | VP-17 | ÍT | V3-A (cùng route chính sách với ADR-0096 Đ2.3: kiểm chéo các ô chính sách) | `chinh-sach.test.ts` giờ lái / ngày < lái liên tục → 400 |
 | 45 | VP-18 | ÍT | V8 | `accounts` route test tên "A" / chỉ emoji → 400 |
-| 46 | VP-19 | ÍT | V4 (theo Q-98-1) | route test Nhân sự tạo tài khoản với SĐT khớp hồ sơ khách → dùng lại, không hồ sơ thứ hai |
+| 46 | VP-19 | ÍT | V4 (ADR-0098 Đ7.1 — hồ sơ người mới trùng số ⇒ dùng hồ sơ có sẵn) | route test Nhân sự tạo tài khoản với SĐT khớp hồ sơ khách → dùng lại, không hồ sơ thứ hai |
 | 47 | VP-23 | ÍT | V8 | route test CCCD hết hạn → 201 kèm cảnh báo; câu 403 đúng vai |
 | 48 | HT-16 | ÍT | V3-A (cùng chỗ với HT-02) | route "Đã trả" khách chưa đón → câu "Khách chưa lên xe — bấm Đã đón trước" |
 | 49 | HT-17 | ÍT | V8 | test câu lỗi tạo chuyến khi xe có lịch bận nêu "lịch bận" |
@@ -268,11 +271,11 @@ Nguyên tắc như V1: test đỏ trước, xanh sau; **không** đổi ô quy�
 | 77 | VP-15 | ÍT | V8 | Chrome Quản trị mở `/audit` → chặn trước khi dựng |
 | 78 | VP-21 | ÍT | V8 | Chrome ô tìm / lọc / sắp danh sách tài khoản |
 
-**Đếm** (số dòng có mặt đợt đó; một lỗi có thể ở hai đợt nên tổng lớn hơn 78): V2 1 · V1 11 · V3 7 · V4 5 · V5 11 · V6 3 · V8 24 · đợt của lộ trình cũ (Đợt 2, 3, 4, 4b, 7, ADR-0063, VC-05) 14 · **chưa xếp** 3 (BH-06, BH-08, BH-09) · dòng có phần **chờ chủ** mang mã BL (kể cả ba câu chưa xếp) 13.
+**Đếm** (sau lời chủ 3/10; số dòng có mặt đợt đó, một lỗi có thể ở hai đợt): đếm lại bằng lệnh `awk` trên bảng khi lập kế hoạch từng đợt. Không còn lỗi **chưa xếp**; BH-09 "không thi công" theo lời chủ. Dòng còn phần **chờ chủ** (mã BL): BH-19, HT-13, HT-09, VP-04, BH-04, VP-09, HT-07, VP-24, HT-15 (+ BL-SDT-QT, BL-MST-UNIQUE, BL-GIA-SHEET là nợ có đợt).
 
 Kiểu lặp lại của bản tóm tắt (A–D) nay được phủ qua từng dòng trên: A → HT-03, HT-04, HT-02 (V1.3–1.4, V3); B → HT-10, HT-23, VP-11, HT-06 (V5); C → BH-02, BH-05, VP-08, VP-07 (V4, V6); D → BH-10, VP-09, BH-23, VP-13, HT-22 (V1.5, V8).
 
-### 10.1. Ba câu quyền chủ chưa trả lời (chưa xếp đợt)
+### 10.1. Ba câu quyền (đã trả lời 3/10: BH-06 phương án A ⇒ ADR-0099; BH-08 phương án A ⇒ ADR-0100; BH-09 phương án A — giữ như hôm nay)
 
 Lời thường, mỗi phương án một dòng; khuyến nghị là của người soạn, không phải quyết định.
 

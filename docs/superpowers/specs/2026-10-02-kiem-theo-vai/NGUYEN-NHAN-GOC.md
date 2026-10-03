@@ -260,4 +260,6 @@ Hai lời chủ trả lời các câu ở mục 6 (giữ nguyên văn, kể cả
 | 4 — ADR-0001 §8 hay ADR-0014 đ5 thắng | **Máy chủ tự tra; khoá là SĐT** | Máy chủ tra trùng theo **số điện thoại đã chuẩn hoá**, cho **mọi vai** lập đơn; đã có hồ sơ cùng số ⇒ **dùng lại**, không tạo hồ sơ thứ hai. Đối tác / Thực tập chỉ nhận thông điệp "đã có hồ sơ, dùng lại", **không** nhận chi tiết hồ sơ. Tên **không** là khoá (tên người có thể trùng). |
 | 5 — Ba luật quy trình (5.1–5.3) | Chưa trả lời | Giữ chờ; V7 của lộ trình chưa mở. |
 
+**Lời 3 (duyệt văn bản V0, chat 2026-10-03):** "Duyệt A1, A2, A3 (A3: 12 giờ là mặc định trong bảng chính sách, không viết cứng, không có phá lệ). Duyệt ADR-0097 và ADR-0098. Danh bạ chặn trùng SĐT cho hồ sơ mới, hồ sơ cũ cảnh báo. SĐT nước ngoài: phương án B, ghi mã nợ chuẩn hoá số quốc tế. HT-06: chặn, gộp vào ADR-0096. BH-06: cho ghi như HDV phụ trách (ADR riêng). BH-08: Thực tập như Đối tác, chỉ giá danh mục, không giảm. BH-09: giữ như hôm nay tới ADR-0018 giai đoạn 2." ⇒ ADR-0096…0100 accepted (`docs/adr/`), chi tiết ở `docs/superpowers/specs/2026-10-03-v0-luot-duyet/README.md`.
+
 Nơi thi hành: lộ trình `docs/superpowers/plans/2026-10-03-khac-phuc-kiem-theo-vai-00-lo-trinh.md` (V0 soạn giấy tờ; V2, V3, V4 thi công). Văn bản trình duyệt của V0: `docs/superpowers/specs/2026-10-03-v0-luot-duyet/`.

@@ -40,7 +40,28 @@ git apply docs/superpowers/specs/2026-10-03-v0-luot-duyet/A2-adr-0092-bo-sung-D2
 
 Người kiểm độc lập chỉ đọc (3/10) kết luận **ĐẠT CÓ ĐIỀU KIỆN**: 1 phát hiện CAO (ADR-0098 — trang đơn và nhật ký hôm nay trả tên hồ sơ cho Đối tác/Thực tập ⇒ thêm Đ3b), 8 VỪA, 6 THẤP. Tất cả đã sửa vào văn bản cùng ngày; **chưa** có vòng kiểm lại sau khi sửa.
 
-## Câu hỏi gom cho chủ (một lần hỏi)
+## Kết quả duyệt (chat 2026-10-03)
+
+> "Duyệt A1, A2, A3 (A3: 12 giờ là mặc định trong bảng chính sách, không viết cứng, không có phá lệ). Duyệt ADR-0097 và ADR-0098. Danh bạ chặn trùng SĐT cho hồ sơ mới, hồ sơ cũ cảnh báo. SĐT nước ngoài: phương án B, ghi mã nợ chuẩn hoá số quốc tế. HT-06: chặn, gộp vào ADR-0096. BH-06: cho ghi như HDV phụ trách (ADR riêng). BH-08: Thực tập như Đối tác, chỉ giá danh mục, không giảm. BH-09: giữ như hôm nay tới ADR-0018 giai đoạn 2."
+
+| Mục | Đã làm |
+|---|---|
+| A1 | áp vào `docs/quyen-hoan.json` (`TNV-VP01`) |
+| A2 | áp vào bản nháp ADR-0092 (bản 3.4); **toàn văn ADR-0088, ADR-0092 vẫn chờ "Duyệt"** |
+| A3 + HT-06 | `docs/adr/ADR-0096-thu-tu-diem-dung-cua-so-xuat-ben-va-gio-hen.md` (accepted, thêm Đ3 LC-21) |
+| B1 | `docs/adr/ADR-0097-su-kien-dieu-chinh-co-ly-do.md` (accepted) |
+| B2 + Q-98-1, Q-98-2 | `docs/adr/ADR-0098-tra-trung-ho-so-theo-sdt.md` (accepted, thêm Đ7 Danh bạ, Đ4 số nước ngoài) |
+| BH-06 | `docs/adr/ADR-0099-ban-hang-phu-trach-ghi-lan-thu.md` (accepted) |
+| BH-08 | `docs/adr/ADR-0100-thuc-tap-gia-danh-muc-khong-giam.md` (accepted) |
+| BH-09 | không đổi; `BL-QUYEN-BH09` ghi lời chủ |
+| Mục lục ADR | `docs/adr/README.md` thêm 0096–0100, số kế tiếp 0101 (bản vá `adr-README-giu-cho.diff` không còn dùng) |
+| Trang ghép lượt C | `LUOT-C-TRANG-GHEP.md` (C1 = ADR-0096 Đ3, C2 = ADR-0099, C3 = ADR-0100) — viết sau lời chủ |
+
+Các tệp A3, B1, B2 trong thư mục này là **bản nháp lịch sử**; bản có hiệu lực ở `docs/adr/`.
+
+**Chưa làm:** dòng "thay câu" trỏ về ADR mới trong dòng trạng thái các ADR cũ (ADR-0001, 0011, 0014, 0026, 0027, 0049, 0052, 0053, 0068, 0080) — phiên V0 được giao "không sửa ADR đã duyệt"; việc này chờ chủ cho phép riêng.
+
+## Câu hỏi gom cho chủ (lần hỏi 3/10 — đã trả lời, giữ để đối chiếu)
 
 1. Lượt A: A1, A2, A3 — "Duyệt" hay "Sửa: …".
 2. Lượt B: B1, B2 — "Duyệt" hay "Sửa: …"; kèm Q-98-1 (Danh bạ cũng chặn trùng số?) và Q-98-2 (số nước ngoài trên đơn).
