@@ -23,7 +23,7 @@ export function hopTraCaDiem(v: { tenNoi: string; soKhach: number }): HopXacNhan
     tieuDe: `Trả khách ở ${v.tenNoi}?`,
     dong: [["Điểm trả", v.tenNoi], ["Khách xuống", n > 0 ? `${n} khách đang trên xe` : "Chưa có khách nào trên xe xuống ở điểm này"]],
     canhBao: n > 0 ? null : "Xe chưa đón ai xuống ở điểm này. Chỉ bấm khi xe thật sự đã tới điểm trả (vd khách ở đây đều vắng hoặc đã huỷ).",
-    nutXacNhan: n > 0 ? `Đã trả ${n} khách` : "Vẫn ghi đã tới điểm trả",
+    nutXacNhan: n > 0 ? `Đã trả ${n} khách` : "Vẫn ghi đã tới", // chữ ngắn — vừa nửa chân hộp ở khổ 390
     ghiChu: SAI_BAO,
   };
 }

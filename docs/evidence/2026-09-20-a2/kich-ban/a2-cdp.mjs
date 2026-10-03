@@ -136,7 +136,8 @@ export async function startEnv({ turnstile = false, passkey = false, vapid = fal
         r = await post();
         break;
       } catch (e) {
-        if (i >= 2 || e?.cause?.code !== "ECONNRESET") throw e;
+        // 2026-10-03 (Đợt V1 kiểm theo vai): undici của Node 22.22 báo cùng hiện tượng kết nối giữ-sống đã chết bằng `UND_ERR_SOCKET` ("other side closed").
+        if (i >= 2 || (e?.cause?.code !== "ECONNRESET" && e?.cause?.code !== "UND_ERR_SOCKET")) throw e;
         await sleep(200);
       }
     }

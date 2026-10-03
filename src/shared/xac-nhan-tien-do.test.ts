@@ -13,11 +13,11 @@ test("hopTraCaDiem: nêu nơi trả + số khách sẽ ghi 'Đã trả'; nút n�
   assert.match(h.ghiChu, /báo văn phòng/);
 });
 
-test("hopTraCaDiem: HT-02 — chưa có khách nào trên xe xuống ở đây → cảnh báo, nút chỉ ghi 'đã tới điểm trả'", () => {
+test("hopTraCaDiem: HT-02 — chưa có khách nào trên xe xuống ở đây → cảnh báo, nút chỉ ghi 'đã tới' (chữ ngắn — vừa khổ 390)", () => {
   const h = hopTraCaDiem({ tenNoi: "Bến tàu", soKhach: 0 });
   assert.equal(h.dong[1]![1], "Chưa có khách nào trên xe xuống ở điểm này");
   assert.match(h.canhBao!, /chưa đón ai xuống ở điểm này/);
-  assert.equal(h.nutXacNhan, "Vẫn ghi đã tới điểm trả");
+  assert.equal(h.nutXacNhan, "Vẫn ghi đã tới");
 });
 
 test("hopKetThuc: tóm tắt kết quả khách (bỏ người đi kèm), nút 'Kết thúc chuyến'; kết thúc không tự mở lại được", () => {

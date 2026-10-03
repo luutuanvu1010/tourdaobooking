@@ -21,11 +21,11 @@ test("hopXuatBen: đủ năm dòng — mã chuyến, NGÀY CHẠY (có thứ), g
   assert.match(h.ghiChu, /giờ ghi là lúc bấm/);
 });
 
-test("hopXuatBen + canhBaoNgayChay: tái hiện HT-03 — chuyến ngày 05/10 mở lúc 02/10 → cảnh báo đỏ nêu ngày chạy và hôm nay; nút đổi chữ nhắc ngày", () => {
+test("hopXuatBen + canhBaoNgayChay: tái hiện HT-03 — chuyến ngày 05/10 mở lúc 02/10 → cảnh báo đỏ nêu ngày chạy và hôm nay; nút đổi chữ 'Vẫn xuất bến' (ngắn — vừa khổ 390)", () => {
   const h = hopXuatBen(C, "2026-10-02");
   assert.equal(h.dong[1]![1], "Thứ Hai 05/10/2026");
   assert.equal(h.canhBao, "Chuyến này chạy ngày Thứ Hai 05/10/2026, không phải hôm nay (Thứ Sáu 02/10/2026). Chỉ bấm khi xe thật sự lăn bánh cho chuyến này.");
-  assert.equal(h.nutXacNhan, "Vẫn xuất bến chuyến ngày 05/10");
+  assert.equal(h.nutXacNhan, "Vẫn xuất bến");
   assert.equal(canhBaoNgayChay("2026-10-05", "2026-10-02"), h.canhBao, "màn văn phòng dùng CHUNG câu");
   // Chuyến của hôm qua (vắt đêm, xuất bến muộn) cũng cảnh báo.
   assert.match(canhBaoNgayChay("2026-10-01", "2026-10-02")!, /Thứ Năm 01\/10\/2026/);

@@ -165,15 +165,15 @@ Có dòng ⇒ ghi vào kế hoạch con một bước "dọn dữ liệu demo" (
 | Lỗi | Đợt | Bài đỏ → xanh | Kịch bản chạy lại |
 |---|---|---|---|
 | VP-01 | V0-A, V2 | `lo-ghi.test.ts` (2 ca thứ tự), `migrations-billing.test.ts` (2 trigger), `audit-invariants.test.ts` R-BIL-13 | e2e `so-tien` nhánh ngược; tình huống VP-01 của báo cáo chạy lại trên bản thử → 409, sổ = 0 |
-| HT-24 | V1.1 | `tien-do-man.test.ts` | Chrome `cuoc-qua-nua-dem-smoke.mjs` |
-| HT-01 | V1.2 (tự sắp), V3.1–3.2 (chặn) | `dieu-phoi-route.test.ts`, `dieu-phoi-kiem.test.ts`, `migrations-van-chuyen.test.ts` | e2e `dieu-phoi` hai đoàn cùng Bến tàu |
-| HT-03 | V1.3 (hộp + cảnh báo), V3.2–3.3 (cửa sổ), V3.5–3.6 (thu hồi) | hàm hộp; `dieu-phoi-kiem.test.ts` cửa sổ; trigger; route thu hồi | e2e `van-chuyen` "xuất bến nhầm → thu hồi" |
+| HT-24 | V1.1 — **✅ thi công 3/10** (commit `9d57f418`) | `tien-do-man.test.ts` ca HT-24 (đỏ → xanh) | Chrome `docs/evidence/2026-10-03-kiem-theo-vai-v1/kich-ban/v1-smoke.mjs` bước 3 (đồng hồ giả 00:01 — gộp vào một kịch bản V1 thay cho `cuoc-qua-nua-dem-smoke.mjs`) |
+| HT-01 | V1.2 (tự sắp) — **✅ thi công 3/10** (`29be5435`; 🔍 kiểm độc lập ĐẠT 3/10); V3.1–3.2 (chặn) chờ ADR-0096 | `thu-tu-diem.test.ts`, `dieu-phoi-route.test.ts`, `dieu-phoi-lich-chung.test.ts` ca `TRA_TRUOC_DON` (V1 xanh); `dieu-phoi-kiem.test.ts`, `migrations-van-chuyen.test.ts` (V3) | e2e `dieu-phoi` ca (9) hai đoàn cùng Bến tàu — **xanh** (bộ chạy tắt Turnstile, xem sổ V1) |
+| HT-03 | V1.3 (hộp + cảnh báo) — **✅ thi công 3/10** (`59782d3a`); V3.2–3.3 (cửa sổ), V3.5–3.6 (thu hồi) chờ ADR | `xac-nhan-xuat-ben.test.ts` (V1); `dieu-phoi-kiem.test.ts` cửa sổ; trigger; route thu hồi (V3) | Chrome `v1-smoke.mjs` bước 1–2 (V1); e2e `van-chuyen` "xuất bến nhầm → thu hồi" (V3) |
 | HT-04, HT-06 | V3.5–3.7 | route điều chỉnh | e2e `van-chuyen` (mô tả đầy đủ hai lỗi này **chưa có trong kho** — 👤 bổ sung bản đầy đủ) |
-| Kiểu A | V1.4, V3-B | Chrome; route | — |
+| Kiểu A | V1.4 — **✅ thi công 3/10** (`66f7a6f6`); V3-B chờ ADR-0097 | `xac-nhan-tien-do.test.ts` (V1); route (V3) | Chrome `v1-smoke.mjs` bước 4, 4c |
 | Kiểu B | V5 | `tin-chuyen.test.ts`, `thong-bao.test.ts`, bài "vắng mặt" | e2e `thongbao`, `tin-chuyen` |
 | Kiểu C (SĐT, trùng hồ sơ) | V4 | `orders/rules.test.ts`, `orders` service test, R-PTY-7 | e2e `orders`, `booker` |
 | Kiểu C (MST, giá Sheet) | V6 | `audit-invariants.test.ts` | `audit-invariants --db local` sau e2e |
-| Kiểu D | V1.5 | `vn-date.test.ts`, bài kiến trúc quét `slice` | Chrome 390 cuộn cuối |
+| Kiểu D | V1.5 — **✅ thi công 3/10** (`b95b15f4`) | `vn-date.test.ts`, `src/ngay-mot-ham.test.ts` (quét `slice`), `src/thanh-hanh-dong-cuoi.test.ts`, `src/shared/pham-vi-so.test.ts` | Chrome `v1-smoke.mjs` bước 5 (390 cuộn cuối, có phản chứng) + 6 (Trang chủ 390 + 1040) |
 | BH-06, BH-08, BH-09 (quyền, báo cáo nêu "cần bạn quyết") | **chưa xếp** | — | Mô tả đầy đủ chưa có trong kho → 👤 bổ sung rồi xếp đợt |
 
 ---
