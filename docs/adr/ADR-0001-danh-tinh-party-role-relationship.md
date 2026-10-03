@@ -1,6 +1,6 @@
 # ADR-0001 — Danh tính theo mô hình Party–Role–Relationship
 
-- **Trạng thái:** **accepted** (chủ dự án duyệt 2026-09-20). Bằng chứng D1 ở mục Bối cảnh chưa được cung cấp khi duyệt: chuyển thành **cổng bắt buộc trước khi áp migration N1 lên remote** (đặc tả N1 §9); thiết kế không đổi dù kết quả thế nào. Sau khi accepted chỉ sửa trạng thái; thay đổi nội dung = ADR mới trỏ về ADR này.
+- **Trạng thái:** **accepted** (chủ dự án duyệt 2026-09-20). Bằng chứng D1 ở mục Bối cảnh chưa được cung cấp khi duyệt: chuyển thành **cổng bắt buộc trước khi áp migration N1 lên remote** (đặc tả N1 §9); thiết kế không đổi dù kết quả thế nào. Sau khi accepted chỉ sửa trạng thái; thay đổi nội dung = ADR mới trỏ về ADR này. **Thay câu bởi [ADR-0098](ADR-0098-tra-trung-ho-so-theo-sdt.md)** (accepted 2026-10-03): mục 8 — khi lập đơn máy chủ tra trùng theo SĐT chuẩn hoá và dùng lại hồ sơ có sẵn (không còn lựa chọn "tạo mới" khi đã có hồ sơ cùng số); Danh bạ chặn tạo hồ sơ mới trùng số, hồ sơ cũ cảnh báo; chỉ mục không duy nhất giữ nguyên.
 - **Ngày:** 2026-09-20   **Người phê chuẩn:** chủ dự án (đã duyệt 2026-09-20)
 - **Loại quyết định:** **cửa một chiều** (Điều 7.2) — cần phê chuẩn đầy đủ
 - **Liên quan:** ADR-0002 (sở hữu dữ liệu), ADR-0003 (chuẩn dữ liệu), ADR-0005 (quyền app), ADR-0006 (phân công)

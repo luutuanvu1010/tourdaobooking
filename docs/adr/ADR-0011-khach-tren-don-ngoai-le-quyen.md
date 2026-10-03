@@ -1,6 +1,6 @@
 # ADR-0011 — Khách trên đơn (N2 lát 1): nhân viên lập đơn được tạo hồ sơ khách kèm vai `CUSTOMER`, và đổi được khách của đơn đã xác nhận
 
-- **Trạng thái:** **accepted** theo quyết định trực tiếp của chủ dự án ngày 2026-09-21 (trả lời ba câu hỏi của đặc tả N2 lát 1: "A có; B có; C có, vì cho phép khách đổi phút cuối trước khi tàu khởi hành"). Sau khi accepted chỉ sửa trạng thái, thay đổi nội dung = ADR mới trỏ về ADR này.
+- **Trạng thái:** **accepted** theo quyết định trực tiếp của chủ dự án ngày 2026-09-21 (trả lời ba câu hỏi của đặc tả N2 lát 1: "A có; B có; C có, vì cho phép khách đổi phút cuối trước khi tàu khởi hành"). Sau khi accepted chỉ sửa trạng thái, thay đổi nội dung = ADR mới trỏ về ADR này. **Thay câu bởi [ADR-0098](ADR-0098-tra-trung-ho-so-theo-sdt.md)** (accepted 2026-10-03): điều 1 — ngoại lệ tạo hồ sơ mới trong lô lập đơn chỉ áp khi máy chủ tra theo SĐT không thấy hồ sơ nào trùng số.
 - **Ngày:** 2026-09-21   **Người phê chuẩn:** chủ dự án (quyết định ngày 2026-09-21)
 - **Loại quyết định:** **cửa hai chiều** — đổi quyền ở mã (route của `orders`) và test; cột `orders.booker_party_id` thuộc đặc tả N2 lát 1, gỡ được bằng expand–contract
 - **Liên quan:** ADR-0007 (bản đồ quyền → thao tác; dòng "vai trò hồ sơ" chỉ `ADMIN`; điều 2 sửa sau xác nhận), ADR-0001 mục 7–8 (người đặt, nhận dạng theo SĐT), ADR-0009 (người phụ trách sửa được đơn), đặc tả `docs/superpowers/specs/2026-09-21-n2-lat-1-khach-tren-don.md` §3
