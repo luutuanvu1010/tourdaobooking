@@ -85,3 +85,10 @@ export function msToVnLocal(ms: number): { date: string; time: string } {
   const iso = new Date(ms + VN_OFFSET_MS).toISOString();
   return { date: iso.slice(0, 10), time: iso.slice(11, 16) };
 }
+
+const THU_VN = ["Chủ nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"] as const;
+/** "Thứ Hai 05/10/2026" — thứ + ngày ĐẦY ĐỦ (có năm) của ngày dân sự "YYYY-MM-DD"; dùng ở hộp xác nhận (HT-03), nơi nhầm ngày gây hại. */
+export function ngayCoThu(iso: string): string {
+  const [y, m, d] = iso.split("-");
+  return `${THU_VN[new Date(`${iso}T00:00:00Z`).getUTCDay()]} ${d}/${m}/${y}`;
+}

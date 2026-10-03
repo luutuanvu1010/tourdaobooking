@@ -2317,6 +2317,10 @@ body.login-page main.login { display: flex; flex-direction: column; height: 100%
 .dp-sheet-sum { display: flex; flex-direction: column; gap: var(--s1); padding: var(--s3); margin-bottom: var(--s3); background: var(--c-surface-alt); border-radius: var(--radius-sm); }
 .dp-sheet-sum-title { font-family: var(--font-display); font-weight: var(--fw-bold); }
 .dp-sheet-text { margin: 0 0 var(--s3); line-height: 1.5; }
+/* HT-03 (V1.3): bảng mã chuyến / ngày chạy / giờ / biển số / số khách trong hộp xác nhận Xuất bến — hai cột nhãn : giá trị. */
+.dp-xn-ds { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: var(--s2) var(--s4); margin: 0 0 var(--s3); }
+.dp-xn-ds dt { color: var(--c-text-muted); font-size: var(--fs-label); }
+.dp-xn-ds dd { margin: 0; font-weight: var(--fw-bold); }
 .dp-card-head { display: flex; align-items: center; gap: var(--s2); padding: var(--s3) var(--s4); border-bottom: 1px solid var(--c-border); }
 .dp-card-title { margin: 0; font-family: var(--font-display); font-weight: var(--fw-bold); font-size: var(--fs-ui); color: var(--c-text); }
 .dp-card-head > .chip, .dp-card-note { margin-left: auto; }

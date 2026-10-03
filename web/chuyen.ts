@@ -23,6 +23,8 @@ import type { SuKienChuyen } from "../src/shared/bang-tin";
 import { cauLoiTienDo, dongMoc, moKhaiGio, veDiemChay, type LenhDiem } from "./tien-do-ui";
 import { giuTenKhach, ketThucDuoc, thanDoiThuTu, viecNguoiDiKem, type BuocDiem } from "../src/shared/tien-do-man";
 import type { GioVnDto, GoiBaoChangDto } from "../src/shared/contracts";
+import { vnToday } from "../src/shared/vn-date";
+import { canhBaoNgayChay } from "../src/shared/xac-nhan-xuat-ben";
 
 const errorEl = byId("error");
 const trangEl = byId("ct-trang");
@@ -267,9 +269,11 @@ const xong = (baoCaoMoi: HTMLElement | null = null) => {
 function xuatBenThay(nut: HTMLButtonElement): void {
   const r = duLieu!;
   const dk = dieuKienXuatBen(r.chuyen.lyDoGiu);
+  const lechNgay = canhBaoNgayChay(r.chuyen.ngayChay, vnToday(new Date()));
   moKhaiGio({
     tieuDe: `Xuất bến ${r.chuyen.ma} — bấm thay tài xế`,
-    dauHop: [dai("ok", `Đạt đủ ${dk.length} điều kiện xuất bến`)],
+    // HT-03 (V1.3): ngày chạy khác hôm nay → dòng đỏ CÙNG câu với màn tài xế (`canhBaoNgayChay`) — chỉ nhắc, máy chủ chưa chặn (cửa sổ xuất bến: ADR-0096).
+    dauHop: [...(lechNgay ? [dai("danger", "Không phải chuyến của hôm nay", [lechNgay])] : []), dai("ok", `Đạt đủ ${dk.length} điều kiện xuất bến`)],
     moTa: moTaBamThay(),
     nutChinh: "Xuất bến",
     nutLop: "btn btn-accent",

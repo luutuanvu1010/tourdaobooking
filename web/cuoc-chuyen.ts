@@ -5,6 +5,8 @@
 // - Đang chạy: thẻ từng điểm (đón: khách + Đã đón / Vắng / Khách đã huỷ; trả: "Đã trả"), liên hệ của đơn (CHỈ từ GET — phản hồi lệnh không kèm, màn giữ
 //   `lienHe` của lần GET; không lưu vào bộ nhớ trình duyệt), đổi thứ tự điểm chưa tới bằng nút lên / xuống (không ô giờ), "Kết thúc chuyến", "Kết thúc gián
 //   đoạn" (chọn lý do; KHÔNG ô ghi chú — chủ Q1).
+// - HT-03 (kiểm theo vai 2/10 — V1.3): "Xuất bến" mở bảng trượt xác nhận (mã chuyến, ngày chạy, giờ dự kiến, biển số, số khách — `hopXuatBen`); ngày chạy
+//   khác hôm nay → dòng cảnh báo đỏ trên trang VÀ trong hộp (`canhBaoNgayChay`, chung với văn phòng). Không dùng confirm() của trình duyệt.
 // - Mất mạng: dòng đó "Chưa gửi được" + "Bấm lại" (CÙNG requestId — bấm lại hai lần vẫn một lệnh); máy KHÔNG tự gửi lại (lệnh điều phối, khác câu 5a).
 import { giuTenKhach, ketThucDuoc, chiSuatKhach, soHieuTaiDiemDon, tenNguoiDiKemCuaChuyen, thanDoiThuTu, viecNguoiDiKem, type BuocDiem } from "../src/shared/tien-do-man";
 import type { CuocChiTietResponse } from "../src/shared/contracts";
@@ -20,7 +22,8 @@ import { taoBoLamMoi } from "./lam-moi-logic";
 import type { SuKienChuyen } from "../src/shared/bang-tin";
 import { cauLoiTienDo, dongMoc, veDiemChay, type LenhDiem } from "./tien-do-ui";
 import { formatDm } from "../src/shared/trip-form";
-import { msToVnLocal } from "../src/shared/vn-date";
+import { msToVnLocal, vnToday } from "../src/shared/vn-date";
+import { canhBaoNgayChay, hopXuatBen } from "../src/shared/xac-nhan-xuat-ben";
 
 const errorEl = byId("error");
 const trangEl = byId("cc-trang");
@@ -252,10 +255,12 @@ function veXuatBen(dauMang: HTMLElement | null): void {
   const r = duLieu!;
   const c = r.chuyen;
   const thieu = r.dieuKienConThieu;
+  const lechNgay = canhBaoNgayChay(c.gioBatDau.ngay, vnToday(new Date()));
   replaceChildren(
     trangEl,
     dauMang,
     baoCao,
+    lechNgay ? dai("danger", "Không phải chuyến của hôm nay", [lechNgay]) : null,
     h("div", { class: "dp-note dp-cc-meta" }, `${c.bienSo} · ${formatDm(c.gioBatDau.ngay)} ${c.gioBatDau.gio} · ${chiSuatKhach(r.suat).length} khách`),
     dongDiKem(),
     // Bản 1.39 (chủ quyết 30/9: "tài xế nên thấy điểm đón từ trước, ngày giờ đón, vị trí và số lượng khách"): các điểm của chuyến TRƯỚC khi xuất bến — thứ tự,
@@ -273,10 +278,38 @@ function veXuatBen(dauMang: HTMLElement | null): void {
     ),
   );
   const nut = h("button", { type: "button", class: "vc-btn btn btn-accent", disabled: thieu.length > 0, "data-action": "xuat-ben" }, "Xuất bến");
-  // Sau xuất bến, `gui` đọc lại chi tiết — có tên khách + liên hệ NẾU trong ngày chạy (phản hồi lệnh không kèm; xuất bến sớm tối hôm trước thì chưa có — Q-L3-B).
-  nut.addEventListener("click", () => void chay("xuat-ben", () => gui("xuat-ben")));
+  // HT-03: một chạm chỉ MỞ hộp xác nhận; lệnh chỉ gửi khi bấm nút trong hộp. Mất mạng lúc gửi: hộp đóng, "Bấm lại" ở dải đầu trang như cũ (`chay`).
+  nut.addEventListener("click", () => moXacNhanXuatBen(nut));
   replaceChildren(dayEl, nut, h("span", { class: "dp-note dp-cc-foot" }, thieu.length ? "Chưa xuất bến được — văn phòng đang lo." : `Bấm lúc xe lăn bánh — giờ ghi là lúc bấm (${msToVnLocal(Date.now()).time}).`));
   dayEl.hidden = false;
+}
+
+/** Hộp xác nhận "Xuất bến" (HT-03): nội dung từ hàm thuần `hopXuatBen` — giao diện chỉ vẽ. */
+function moXacNhanXuatBen(opener: HTMLElement): void {
+  const r = duLieu!;
+  const c = r.chuyen;
+  const hop = hopXuatBen({ ma: c.ma, ngayChay: c.gioBatDau.ngay, gioDuKien: c.gioBatDau.gio, bienSo: c.bienSo, soKhach: chiSuatKhach(r.suat).length }, vnToday(new Date()));
+  const chinh = h("button", { type: "button", class: "vc-btn btn btn-accent", "data-action": "xuat-ben-xac-nhan" }, hop.nutXacNhan);
+  const dong = h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary", "data-action": "xuat-ben-dong" }, "Chưa, quay lại");
+  const bang = moBangTruot({
+    title: hop.tieuDe,
+    body: [
+      hop.canhBao ? dai("danger", "Không phải chuyến của hôm nay", [hop.canhBao]) : null,
+      h("dl", { class: "dp-xn-ds" }, ...hop.dong.flatMap(([k, v]) => [h("dt", null, k), h("dd", null, v)])),
+      h("p", { class: "dp-sheet-text dp-note" }, hop.ghiChu),
+    ],
+    foot: [dong, chinh],
+    footClass: "vc-foot-2",
+    opener,
+  });
+  if (!bang) return;
+  dong.addEventListener("click", () => bang.close());
+  chinh.addEventListener("click", () => {
+    chinh.disabled = true;
+    bang.close(false);
+    // Sau xuất bến, `gui` đọc lại chi tiết — có tên khách + liên hệ NẾU trong ngày chạy (phản hồi lệnh không kèm; xuất bến sớm tối hôm trước thì chưa có — Q-L3-B).
+    void chay("xuat-ben", () => gui("xuat-ben"));
+  });
 }
 
 async function main(): Promise<void> {
