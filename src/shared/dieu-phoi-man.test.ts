@@ -26,6 +26,10 @@ const lich = (o: Partial<LichChungResponse> = {}): LichChungResponse => ({
   ngay: NGAY, mocToiThieuPhut: 360, canhBaoPhut: 120, chang: [], chuyen: [], soNhap: 0, nhapChoDatGap: [], canhBao: [], lyDo: [], xe: [], taiXe: [], ...o,
 });
 
+test("gioHien Kiểu D (V1.5b): khác NĂM ngày đang xem → kèm năm (chuyến qua giao thừa)", () => {
+  assert.equal(gioHien({ ngay: "2027-01-01", gio: "06:00" }, "2026-12-31"), "06:00 01/01/2027");
+  assert.equal(gioHien({ ngay: "2026-12-31", gio: "23:00" }, "2027-01-01"), "23:00 31/12/2026");
+});
 test("gioHien: 'HH:MM' cùng ngày; khác ngày thêm 'dd/mm'", () => {
   assert.equal(gioHien(g("09:00"), NGAY), "09:00");
   assert.equal(gioHien(g("00:40", "2026-10-01"), NGAY), "00:40 01/10");

@@ -8,6 +8,7 @@
 //   4. (ngày, giờ) hẹn HIỆN HÀNH khác (ngày, giờ) của mốc — so "IS": giờ NULL ("chưa chốt giờ") là một giá trị.
 // Một mục mỗi CHẶNG (không mỗi suất): chặng tách hai xe → một mục kèm mọi mã chuyến ở điều 1.
 
+import { ngayNgan } from "./vn-date.ts";
 export const GIO_HEN_DOI = "GIO_HEN_DOI" as const;
 export const NHAN_GIO_HEN_DOI = "Giờ hẹn đổi — gọi báo khách";
 export const AI_XU_LY_GIO_HEN_DOI = "Người phụ trách đơn";
@@ -112,6 +113,6 @@ export function kiemBoDanhDau(v: { moc: readonly MocVao[]; phienBan: number; sua
 /** Chữ "A → B" cho nhật ký / màn (G-GB-3): kèm "dd/mm" khi ngày khác; "chưa chốt giờ" khi giờ NULL. */
 export function moTaDoiGio(cu: GioHen, moi: GioHen): string {
   const khacNgay = cu.ngay !== moi.ngay;
-  const mot = (g: GioHen) => `${khacNgay ? `${g.ngay.slice(8, 10)}/${g.ngay.slice(5, 7)} ` : ""}${g.gio ?? "chưa chốt giờ"}`;
+  const mot = (g: GioHen) => `${khacNgay ? `${ngayNgan(g.ngay, moi.ngay)} ` : ""}${g.gio ?? "chưa chốt giờ"}`; // năm khi khác năm của giờ mới (Kiểu D)
   return `${mot(cu)} → ${mot(moi)}`;
 }

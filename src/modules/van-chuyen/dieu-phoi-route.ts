@@ -12,7 +12,7 @@ import type { LyDoGiu, MaGiu } from "../../shared/ly-do-giu";
 import { can, type PermissionHolder } from "../../shared/permissions";
 import { maskLongDigits } from "../../shared/text-guards";
 import { sapDonTruocTra } from "../../shared/thu-tu-diem";
-import { msToVnLocal } from "../../shared/vn-date";
+import { msToVnLocal, ngayNgan } from "../../shared/vn-date";
 import { allocsByTrips, banChupCuoi, eventByRequest, eventsByTrips, stopsByTrips, tenNguoiDiKem, type StopRow, type TripRow } from "./chuyen-repo";
 import type { CauCoNhan, DiemMoi } from "./dieu-phoi";
 import {
@@ -141,9 +141,10 @@ export function diemKhongConKhach(stops: readonly StopRow[], tripId: string, con
 }
 
 // ---- Chuỗi nhật ký (danh sách TRẮNG — kế hoạch mục 1.1: mã chuyến, mã đơn, biển số, con số, nhãn lý do, mã luật phá lệ, chiều, tên nơi danh mục) -----------
-export const gioNgan = (ms: number): string => {
+/** "HH:MM dd/mm" (năm khi khác năm của lúc lệnh chạy `bayGioMs` — Kiểu D, một hàm `ngayNgan`). */
+export const gioNgan = (ms: number, bayGioMs: number): string => {
   const { date, time } = msToVnLocal(ms);
-  return `${time} ${date.slice(8, 10)}/${date.slice(5, 7)}`;
+  return `${time} ${ngayNgan(date, msToVnLocal(bayGioMs).date)}`;
 };
 export const phaLeNhatKy = (luat: string, nhan: string): string => ` · phá lệ ${luat === "MOC_TOI_THIEU" ? "mốc tối thiểu" : "khoảng nghỉ"}: ${nhan}`;
 export const maDonGon = (codes: readonly string[]): string => [...new Set(codes)].sort().join(", ");

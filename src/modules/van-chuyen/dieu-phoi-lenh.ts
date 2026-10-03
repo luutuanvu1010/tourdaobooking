@@ -86,7 +86,7 @@ export async function lenhSuaChuyen(db: D1Database, nen: NenChuyen, b: SuaChuyen
   const thay: string[] = [];
   if (doiXe) thay.push(`xe ${chung.xe.find((x) => x.id === t.vehicle_id)?.plate_number ?? "?"} → ${xeRow.plate_number}`);
   if (doiTaiXe) thay.push("đổi tài xế");
-  if (doiGio || ketThucMs !== t.planned_end_ms) thay.push(`giờ ${gioNgan(t.planned_start_ms)}–${gioNgan(t.planned_end_ms)} → ${gioNgan(batDauMs)}–${gioNgan(ketThucMs)}`);
+  if (doiGio || ketThucMs !== t.planned_end_ms) thay.push(`giờ ${gioNgan(t.planned_start_ms, bayGioMs)}–${gioNgan(t.planned_end_ms, bayGioMs)} → ${gioNgan(batDauMs, bayGioMs)}–${gioNgan(ketThucMs, bayGioMs)}`);
   if (diemDoi.length > 0) thay.push(`${diemDoi.length} điểm đổi thứ tự / giờ xe tới`);
   const lo = loSuaChuyen(db, {
     ...lenhChung(b.requestId, staff, bayGioMs), tripId: t.id, version: b.version,

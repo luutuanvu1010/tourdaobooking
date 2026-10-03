@@ -5,6 +5,7 @@
 import type { ExpiringItemDto, VehicleDto, VehicleStatus } from "./contracts.ts";
 import { LOAI_CO_DINH, LY_DO_SUA_SAI, type LyDoSuaSai, type TruongSua } from "./giay-to.ts";
 import { can, holdsPartner, type PermissionHolder } from "./permissions.ts";
+import { ngayDayDu } from "./vn-date.ts";
 
 /**
  * Tài khoản có mục "Giấy tờ của tôi" (trang Tôi — màn 05; trang đầu tài xế — màn 07): đúng hai điều kiện route GET /api/parties/documents/mine hỏi — ô
@@ -31,7 +32,7 @@ export const NGUONG_MAC_DINH = 30;
 /** "2026-09-30" → "30/09/2026" — thao tác chuỗi, không `new Date()` (không lệch múi giờ máy). null → "". */
 export function ngayVN(iso: string | null): string {
   if (!iso) return "";
-  return `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}`;
+  return ngayDayDu(iso);
 }
 
 /**

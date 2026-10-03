@@ -7,10 +7,10 @@ import { dongDieuKienTaiXe } from "./dieu-phoi-hien-thi.ts";
 import { NHAN_GIO_XAY_RA, type MaGioXayRa } from "./gio-xay-ra.ts";
 import type { CuocCuaToiItemDto, DieuKienConThieuDto, GioVnDto, MocChanDto, MocTienDoDto } from "./contracts.ts";
 import { maskLongDigits } from "./text-guards.ts";
-import { addDays, msToVnLocal, vnLocalToMs } from "./vn-date.ts";
+import { addDays, msToVnLocal, ngayNgan, thuNgayNgan, vnLocalToMs } from "./vn-date.ts";
 
 const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
-const hien = (g: GioVnDto, ngayXem: string): string => (g.ngay === ngayXem ? g.gio : `${g.gio} ${g.ngay.slice(8, 10)}/${g.ngay.slice(5, 7)}`);
+const hien = (g: GioVnDto, ngayXem: string): string => (g.ngay === ngayXem ? g.gio : `${g.gio} ${ngayNgan(g.ngay, ngayXem)}`);
 
 // ---- ô "Xảy ra lúc" (thành phần A) ------------------------------------------------------------------------------------------------------------------------
 /**
@@ -191,11 +191,6 @@ export function ketThucDuoc(suat: readonly Pick<SuatVao, "trangThai">[]): boolea
 }
 
 // ---- Cuốc của tôi (bản vẽ 04) -------------------------------------------------------------------------------------------------------------------------------
-const THU = ["Chủ nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"] as const;
-const thuNgay = (ngay: string): string => {
-  const [y, m, dd] = ngay.split("-").map(Number) as [number, number, number];
-  return `${THU[new Date(Date.UTC(y, m - 1, dd)).getUTCDay()]} ${ngay.slice(8, 10)}/${ngay.slice(5, 7)}`;
-};
 export interface TheCuoc {
   id: string;
   ma: string;
@@ -232,11 +227,11 @@ export function nhomCuoc(ds: readonly CuocCuaToiItemDto[], homNay: string): { ti
   const chayNgoai = ds
     .filter((c) => c.trangThai === "RUNNING" && !baNgay.includes(c.gioXuatBen.ngay))
     .sort((a, b) => `${a.gioXuatBen.ngay} ${a.gioXuatBen.gio}`.localeCompare(`${b.gioXuatBen.ngay} ${b.gioXuatBen.gio}`))
-    .map((c) => ({ ...the(c), nhanNgay: `Xuất bến ${c.gioXuatBen.ngay.slice(8, 10)}/${c.gioXuatBen.ngay.slice(5, 7)}` }));
+    .map((c) => ({ ...the(c), nhanNgay: `Xuất bến ${ngayNgan(c.gioXuatBen.ngay, homNay)}` }));
   return [
-    { tieuDe: "Hôm nay", ngay: thuNgay(homNay), iso: homNay, the: [...chayNgoai, ...theoNgay(homNay)] },
-    { tieuDe: "Ngày mai", ngay: thuNgay(mai), iso: mai, the: theoNgay(mai) },
-    { tieuDe: "Ngày kia", ngay: thuNgay(kia), iso: kia, the: theoNgay(kia) },
+    { tieuDe: "Hôm nay", ngay: thuNgayNgan(homNay, homNay), iso: homNay, the: [...chayNgoai, ...theoNgay(homNay)] },
+    { tieuDe: "Ngày mai", ngay: thuNgayNgan(mai, homNay), iso: mai, the: theoNgay(mai) },
+    { tieuDe: "Ngày kia", ngay: thuNgayNgan(kia, homNay), iso: kia, the: theoNgay(kia) },
   ];
 }
 

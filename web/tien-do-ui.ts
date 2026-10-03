@@ -12,7 +12,7 @@ import { moBangTruot } from "./bang-truot";
 import { h, replaceChildren, type Child } from "./dom";
 import { chip, dai, docLoiLenh, LOI_MANG, nhomChon } from "./dieu-phoi-ui";
 import { icon } from "./icons";
-import { msToVnLocal } from "../src/shared/vn-date";
+import { msToVnLocal, ngayNgan } from "../src/shared/vn-date";
 
 /** Câu lỗi của một lệnh tiến độ (409 giờ / còn khách / câu máy chủ / mất mạng). */
 export function cauLoiTienDo(e: unknown, bayGioMs: number, ngayXem: string): { cau: string; oGio: boolean; mang: boolean } {
@@ -113,7 +113,7 @@ export function moKhaiGio(o: {
 /** Dòng mốc tiến độ ("Đã tới 07:31 · ghi lúc 07:45 — Hoa" + chip "giờ do văn phòng khai") — thành phần B. */
 export function dongMoc(nhan: string, m: MocTienDoDto | null, ngayXem: string): HTMLElement | null {
   if (!m) return null;
-  const gio = (g: GioVnDto) => (g.ngay === ngayXem ? g.gio : `${g.gio} ${g.ngay.slice(8, 10)}/${g.ngay.slice(5, 7)}`);
+  const gio = (g: GioVnDto) => (g.ngay === ngayXem ? g.gio : `${g.gio} ${ngayNgan(g.ngay, ngayXem)}`);
   // nhanMocTienDo nhận giờ TRẦN "HH:MM" (chuỗi kèm ngày làm nó ném RangeError — lỗi lần chạy đầu cuoc-smoke); ngày chỉ nối khi khác ngày đang xem.
   const n = nhanMocTienDo({ gioXayRa: m.gioXayRa.gio, gioGhiNhan: m.gioGhiNhan.gio, vanPhongKhai: m.vanPhongKhai, nguoiBam: m.nguoiBam ?? null });
   const sau = n.vanPhongKhai ? n.chu.slice(n.chu.indexOf(" · ") + 3).replace(m.gioGhiNhan.gio, gio(m.gioGhiNhan)) : "";

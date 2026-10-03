@@ -23,8 +23,7 @@ import { initShell, setBarTitle, showError } from "./shell";
 import { taoBoLamMoi } from "./lam-moi-logic";
 import type { SuKienChuyen } from "../src/shared/bang-tin";
 import { cauLoiTienDo, dongMoc, veDiemChay, type LenhDiem } from "./tien-do-ui";
-import { formatDm } from "../src/shared/trip-form";
-import { msToVnLocal, vnToday } from "../src/shared/vn-date";
+import { msToVnLocal, ngayNgan, vnToday } from "../src/shared/vn-date";
 import { canhBaoNgayChay, hopXuatBen } from "../src/shared/xac-nhan-xuat-ben";
 import { dongVuaGhi, hopKetThuc, hopTraCaDiem, type HopXacNhan, type LenhVuaGhi } from "../src/shared/xac-nhan-tien-do";
 
@@ -148,7 +147,7 @@ function ve(): void {
     c.ketThucThat ? h("div", { class: "dp-ct-moc" }, dongMoc(c.trangThai === "ENDED_INTERRUPTED" ? "Kết thúc gián đoạn" : "Kết thúc", c.ketThucThat, ngay)) : null,
     ...diemCho.map((k) => h("div", { class: "dp-khach-cho" }, "Một lệnh ở điểm chưa gửi được", h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary", "data-action": "bam-lai" }, "Bấm lại"))),
     h("div", { class: "dp-run-list" }, ...diem),
-    chayDuoc ? h("div", { class: "dp-run-end" }, ketThuc, ketThuc.disabled ? h("span", { class: "dp-note" }, "Bấm được khi đã trả hết khách và người đi kèm đã xuống.") : null, gianDoan) : null,
+    chayDuoc ? h("div", { class: "dp-run-end thanh-hanh-dong-cuoi" }, ketThuc, ketThuc.disabled ? h("span", { class: "dp-note" }, "Bấm được khi đã trả hết khách và người đi kèm đã xuống.") : null, gianDoan) : null,
   );
   // Nút "Bấm lại" của lệnh ở điểm (Đã tới / Đã trả).
   trangEl.querySelectorAll<HTMLButtonElement>(':scope > .dp-khach-cho [data-action="bam-lai"]').forEach((nut, i) => {
@@ -312,7 +311,7 @@ function veXuatBen(dauMang: HTMLElement | null): void {
     dauMang,
     baoCao,
     lechNgay ? dai("danger", "Không phải chuyến của hôm nay", [lechNgay]) : null,
-    h("div", { class: "dp-note dp-cc-meta" }, `${c.bienSo} · ${formatDm(c.gioBatDau.ngay)} ${c.gioBatDau.gio} · ${chiSuatKhach(r.suat).length} khách`),
+    h("div", { class: "dp-note dp-cc-meta" }, `${c.bienSo} · ${ngayNgan(c.gioBatDau.ngay, vnToday(new Date()))} ${c.gioBatDau.gio} · ${chiSuatKhach(r.suat).length} khách`),
     dongDiKem(),
     // Bản 1.39 (chủ quyết 30/9: "tài xế nên thấy điểm đón từ trước, ngày giờ đón, vị trí và số lượng khách"): các điểm của chuyến TRƯỚC khi xuất bến — thứ tự,
     // loại, tên nơi, giờ hẹn, số người; dùng lại cách vẽ điểm của màn đang chạy, KHÔNG nút tiến độ, KHÔNG khách từng người (`suat: []`) — tên / SĐT khách vẫn
