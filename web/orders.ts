@@ -280,7 +280,7 @@ function apDungLoc(moi: LocDonMan): void {
 
 /** Chip "đang lọc" + "Xoá lọc" ở đầu danh sách; số điều kiện trên nút "Lọc". */
 function veChip(): void {
-  const chip = chipLocDon(loc, tenDv, { toiId, ten: tenNguoi });
+  const chip = chipLocDon(loc, tenDv, { toiId, ten: tenNguoi }, vnToday(new Date()));
   locDem.textContent = String(chip.length);
   locDem.hidden = chip.length === 0;
   locMo.setAttribute("aria-label", chip.length ? `Lọc đơn — đang lọc ${chip.length} điều kiện` : "Lọc đơn");
@@ -408,7 +408,7 @@ function moBoLoc(): void {
         replaceChildren(ngDs, h("p", { class: "muted" }, "Chưa tải được danh sách người lập."));
         return;
       }
-      const khop = dsNguoiLapChon(dsNg, toiId, ngTim.value);
+      const khop = dsNguoiLapChon(dsNg, toiId, ngTim.value, vnToday(new Date()));
       const daChon = nhap.nguoiLap !== null && nhap.nguoiLap !== toiId && !khop.slice(0, NGUOI_TOI_DA).some((x) => x.id === nhap.nguoiLap)
         ? [chon(nhap.nguoiLap, tenNguoi.get(nhap.nguoiLap) ?? "Người lập đã chọn")]
         : [];

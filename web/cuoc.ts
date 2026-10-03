@@ -2,6 +2,7 @@
 // (4a, 4b điện thoại; 4c máy tính); bản đối chiếu 2.5, H15; ruling R-P17.
 // - Hôm nay + ngày mai + ngày kia (góp ý T3); mỗi chuyến: giờ xuất bến, trạng thái, mã, biển số, số khách, số điểm đón / trả; điều kiện còn thiếu "(văn phòng lo)".
 // - KHÔNG tên, KHÔNG SĐT khách ở màn này (DTO không có). Chuyến đang chạy: "Mở chuyến đang chạy". Bấm thẻ → /cuoc-chuyen?id= (xuất bến / đang chạy).
+// - HT-24: chuyến đang chạy vắt qua 0 giờ (hoặc xuất bến sớm) vẫn ở "Hôm nay", đứng đầu, dòng "Xuất bến dd/mm" (`nhomCuoc`).
 // - Giờ kết thúc dự kiến (bản vẽ "06:40 – 08:25") chưa có trong DTO route 19 — chỉ hiện giờ xuất bến (ghi câu hỏi Q-B-12 ở nhật ký).
 import { nhomCuoc } from "../src/shared/tien-do-man";
 import type { CuocCuaToiResponse } from "../src/shared/contracts";
@@ -53,6 +54,7 @@ async function veDanhSach(): Promise<void> {
                 "a",
                 { class: `vc-card dp-cuoc-the${t.moChay ? " is-chay" : ""}`, href: `/cuoc-chuyen?id=${encodeURIComponent(t.id)}`, "data-chuyen": t.id },
                 h("span", { class: "dp-cuoc-top" }, h("span", { class: "dp-cuoc-gio" }, t.gio), h("span", { class: "dp-cuoc-ma" }, t.ma), chip(t.chip.nhan, t.chip.tone)),
+                t.nhanNgay ? h("span", { class: "dp-cuoc-xb-ngay" }, t.nhanNgay) : null,
                 h("span", { class: "dp-cuoc-dong" }, t.dong),
                 ...t.canhBao.map((c) => h("span", { class: "dp-cuoc-canh-bao" }, icon("alert", 16, 2), h("span", null, c))),
                 t.moChay ? h("span", { class: "vc-btn btn btn-primary dp-cuoc-mo" }, "Mở chuyến đang chạy") : null,

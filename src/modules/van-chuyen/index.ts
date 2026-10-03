@@ -987,7 +987,7 @@ export const vanChuyenModule: AppModule = {
             chuyen: { id, ma, xeId: xeRow.id, chuXePartyId: xeRow.owner_party_id, ngayChay, batDauMs: t.batDauMs, ketThucMs: t.ketThucMs, nghiChup: chung.chinhSach?.rest_minutes ?? 0, nghiPhaLeLyDo: t.nghiPhaLe?.lyDo ?? null },
             taiXePartyId: t.taiXePartyId, policyId: chung.chinhSach?.id ?? null,
             phaLeNghi: t.nghiPhaLe ? { luat: "KHOANG_NGHI", lyDo: t.nghiPhaLe.lyDo, policyId: chung.chinhSach?.id ?? null } : null,
-            detail: `${ma} · xe ${xeRow.plate_number} (${xeRow.passenger_capacity} chỗ) · ${gioNgan(t.batDauMs)} → ${gioNgan(t.ketThucMs)}${t.nghiPhaLe ? phaLeNhatKy("KHOANG_NGHI", nhanLyDo(chung, t.nghiPhaLe.lyDo)) : ""}`,
+            detail: `${ma} · xe ${xeRow.plate_number} (${xeRow.passenger_capacity} chỗ) · ${gioNgan(t.batDauMs, bayGioMs)} → ${gioNgan(t.ketThucMs, bayGioMs)}${t.nghiPhaLe ? phaLeNhatKy("KHOANG_NGHI", nhanLyDo(chung, t.nghiPhaLe.lyDo)) : ""}`,
           });
           try {
             const r = await chayLo(env.DB, lo, t.requestId);

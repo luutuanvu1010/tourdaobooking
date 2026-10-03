@@ -3,7 +3,7 @@ import { renderBanner } from "./banner";
 import { openBookerSheet } from "./booker-sheet";
 import { openConfirmationDialog } from "./confirmation-dialog";
 import { byId, h, replaceChildren } from "./dom";
-import { METHOD_LABEL, actionLabel, dateTime, dayMonth, parseMoney, trangThaiHienThi, vnd } from "./format";
+import { METHOD_LABEL, actionLabel, dateTime, ngayNganHomNay, parseMoney, trangThaiHienThi, vnd } from "./format";
 import { regroupMoney } from "./money-input";
 import { openHandlerSheet } from "./handler-sheet";
 import { icon } from "./icons";
@@ -20,7 +20,6 @@ import { openSheetDuaDon } from "./sheet-dua-don";
 import { openSheetHanhKhach } from "./sheet-hanh-khach";
 import { CAU_CAN_NOI_TRA, canhBaoXacNhan, thieuNoiTra } from "../src/shared/canh-bao-xac-nhan";
 import { PAX_LABEL } from "../src/shared/order-lines";
-import { formatDm } from "../src/shared/trip-form";
 import { CHIEU_LABEL } from "../src/shared/chang-dua-don";
 import { can } from "../src/shared/permissions";
 import { cauMoc, changDuoiMoc, tomTatChanXacNhan, type ChangCanDatGap } from "../src/shared/dat-gap-hien-thi";
@@ -177,7 +176,7 @@ const canhEl = (cau: string): HTMLElement => h("span", { class: "dd-canh" }, ico
 
 /** Một chặng: chiều · ngày · giờ (hoặc "Chưa chốt giờ") · số hiệu · số người về; "nơi đón → nơi trả" (hoặc "Chưa chốt nơi trả"); văn phòng thấy câu nhắc. */
 function dongChang(l: Api.LegDto, vanPhong: boolean): HTMLElement {
-  const ngay = l.pickupDate ? formatDm(l.pickupDate) : "—";
+  const ngay = l.pickupDate ? ngayNganHomNay(l.pickupDate) : "—";
   return h(
     "div",
     { class: "dd-dong", "data-leg-id": l.id },
@@ -388,7 +387,7 @@ function handlerCard(order: Order, handler: Handler): HTMLElement | null {
  */
 function summaryBand(order: Order): HTMLElement {
   const firstSvc = order.services[0];
-  const when = firstSvc?.departDate ? `${dayMonth(firstSvc.departDate)}${firstSvc.pickupTime ? ` · ${firstSvc.pickupTime}` : ""}` : "Chưa có ngày khởi hành"; // bản 1.39: cùng chữ với dòng cảnh báo ở thẻ dịch vụ (trước: "Chưa có ngày đón")
+  const when = firstSvc?.departDate ? `${ngayNganHomNay(firstSvc.departDate)}${firstSvc.pickupTime ? ` · ${firstSvc.pickupTime}` : ""}` : "Chưa có ngày khởi hành"; // bản 1.39: cùng chữ với dòng cảnh báo ở thẻ dịch vụ (trước: "Chưa có ngày đón")
   const totalPax = order.services.reduce<PaxCounts>(
     (sum, s) => ({ adult: sum.adult + s.pax.adult, child: sum.child + s.pax.child, senior: sum.senior + s.pax.senior, infant: sum.infant + s.pax.infant }),
     { adult: 0, child: 0, senior: 0, infant: 0 },
@@ -447,7 +446,7 @@ function tienCard(order: Order): HTMLElement {
             h(
               "li",
               null,
-              h("span", { class: "muted" }, `${dayMonth(l.ngayPhatSinh)} · ${l.giaiDoan}`),
+              h("span", { class: "muted" }, `${ngayNganHomNay(l.ngayPhatSinh)} · ${l.giaiDoan}`),
               ` — ${l.traLai ? "Trả lại khách " : ""}${vnd(l.soTien)} · ${l.hinhThuc} · người thu: ${l.nguoiThu}`,
               l.laDongDao ? h("span", { class: "muted" }, " (dòng đảo)") : l.daDao ? h("span", { class: "muted" }, " (đã đảo)") : null,
               t.keToan && !t.completedAt ? nutKeToanLanThu(order, t, l) : null,

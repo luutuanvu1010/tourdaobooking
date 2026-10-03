@@ -15,9 +15,8 @@ import { handlerFailure, myJobActions } from "../src/shared/handler-view";
 import { PAX_LABEL, type PaxCode } from "../src/shared/order-lines";
 import { banner, type Banner } from "../src/shared/order-errors";
 import { can, holdsPartner } from "../src/shared/permissions";
-import { formatDm } from "../src/shared/trip-form";
 import { tripDeparted } from "../src/shared/trip-rules";
-import { vnToday } from "../src/shared/vn-date";
+import { ngayNgan, vnToday } from "../src/shared/vn-date";
 import {
   EDIT_REASON_QUICK, departLabel, moneyEditServices, myJobChip, orderDepartDate, paxSummary, relLabel, sortMyJobs, telHref, type MyJobChipTone,
 } from "../src/shared/viec-cua-toi";
@@ -325,7 +324,7 @@ interface ChuyenThem {
 function dongChuyenThem(s: ChuyenThem): HTMLElement[] {
   const out: HTMLElement[] = [];
   if (s.departTime) out.push(h("div", { class: "hdv-svc-place" }, `Khởi hành: ${s.departTime}`));
-  const checkin = [s.checkinDate ? formatDm(s.checkinDate) : null, s.checkinTime, s.checkinPlace].filter(Boolean).join(" · ");
+  const checkin = [s.checkinDate ? ngayNgan(s.checkinDate, vnToday(new Date())) : null, s.checkinTime, s.checkinPlace].filter(Boolean).join(" · ");
   if (checkin) out.push(h("div", { class: "hdv-svc-place" }, `Check-in: ${checkin}`));
   if (s.note) out.push(h("div", { class: "hdv-svc-place hdv-svc-note" }, `Ghi chú: ${s.note}`));
   return out;

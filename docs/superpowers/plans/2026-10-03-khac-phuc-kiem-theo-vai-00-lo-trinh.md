@@ -193,9 +193,9 @@ Nguyên tắc như V1: test đỏ trước, xanh sau; **không** đổi ô quy�
 | # | Mã | Mức | Đợt | Bài đỏ → xanh / kịch bản chứng minh "đã hết" |
 |---:|---|---|---|---|
 | 1 | VP-01 | NT | V0-A, V2 | `lo-ghi.test.ts` hai ca thứ tự → 409, sổ = 0; `migrations-billing.test.ts` trigger tất toán lần hai; `audit-invariants.test.ts` R-BIL-13; e2e `so-tien` nhánh ngược |
-| 2 | HT-24 | TB | V1.1 | `tien-do-man.test.ts` chuyến `RUNNING` xuất bến hôm qua → nhóm Hôm nay; Chrome `cuoc-qua-nua-dem-smoke.mjs` |
-| 3 | HT-03 | TB | V1.3 (hộp + cảnh báo ngày), V3-A (cửa sổ, ADR-0096), V3-B (thu hồi, ADR-0097) | hàm thuần hộp xác nhận; `dieu-phoi-kiem.test.ts` 13 giờ trước → giữ; trigger LC-20; route thu hồi; e2e `van-chuyen` "xuất bến nhầm → thu hồi" |
-| 4 | HT-01 | TB | V1.2 (tự sắp), V3-A (chặn + nút đổi thứ tự chuyến kế hoạch) | `dieu-phoi-route.test.ts` hai chặng cùng nơi trả → đón, đón, trả; `dieu-phoi-kiem.test.ts` `TRA_TRUOC_DON`; trigger LC-19; e2e `dieu-phoi` |
+| 2 | HT-24 | TB | V1.1 — **V1.1 ✅ thi công 3/10** (`9d57f418`) | `tien-do-man.test.ts` chuyến `RUNNING` xuất bến hôm qua → nhóm Hôm nay; Chrome `cuoc-qua-nua-dem-smoke.mjs` — V1 xanh: `tien-do-man.test.ts` ca HT-24; Chrome `docs/evidence/2026-10-03-kiem-theo-vai-v1/kich-ban/v1-smoke.mjs` bước 3 |
+| 3 | HT-03 | TB | V1.3 (hộp + cảnh báo ngày), V3-A (cửa sổ, ADR-0096), V3-B (thu hồi, ADR-0097) — **V1.3 ✅ thi công 3/10** (`59782d3a`) | hàm thuần hộp xác nhận; `dieu-phoi-kiem.test.ts` 13 giờ trước → giữ; trigger LC-20; route thu hồi; e2e `van-chuyen` "xuất bến nhầm → thu hồi" — V1 xanh: `xac-nhan-xuat-ben.test.ts`; Chrome `v1-smoke.mjs` bước 1–2 |
+| 4 | HT-01 | TB | V1.2 (tự sắp), V3-A (chặn + nút đổi thứ tự chuyến kế hoạch) — **V1.2 ✅ thi công 3/10** (`29be5435 — 🔍 kiểm độc lập ĐẠT`) | `dieu-phoi-route.test.ts` hai chặng cùng nơi trả → đón, đón, trả; `dieu-phoi-kiem.test.ts` `TRA_TRUOC_DON`; trigger LC-19; e2e `dieu-phoi` — V1 xanh: `thu-tu-diem.test.ts`, `dieu-phoi-route.test.ts`, `dieu-phoi-lich-chung.test.ts` ca `TRA_TRUOC_DON` |
 | 5 | BH-08 | TB | V4.6 (ADR-0100 accepted 3/10: luật giá ADR-0027 Đ2 áp cho Thực tập; cùng vùng `orders`) | route test Thực tập giá dưới danh mục / giảm giá > 0 → 403 ở lập, sửa, xác nhận; e2e `nhap-tay-va-gia-doi-tac` ca Thực tập |
 | 6 | VP-05 | TB | Đợt 2 (ADR-0092 đ6 ô mã giao dịch) + Đợt 4b (chọn người thu, ô ghi chú ở màn Kế toán) | route test ô mã giao dịch được miễn luật 8 chữ số; Chrome form "Ghi lần thu" vai Kế toán |
 | 7 | VP-03 | TB | Đợt 4 (R9: lệnh mang phiên bản đã thấy) | route test `PATCH /api/staff/:id` với giá trị cũ đã thấy lệch → 409; Chrome hai tab sửa cùng tài khoản |
@@ -222,14 +222,14 @@ Nguyên tắc như V1: test đỏ trước, xanh sau; **không** đổi ô quy�
 | 28 | VP-07 | ÍT | V6 (`R-CAT-1` warn gồm cả ghi đè giá) + `BL-GIA-SHEET` | `audit-invariants.test.ts` giá đổi > 50 % → 1 cảnh báo |
 | 29 | BH-05 | ÍT | V4 (ADR-0098) | `orders` service test Đối tác tạo đơn SĐT đã có → không hồ sơ mới; R-PTY-7 |
 | 30 | VP-08 | ÍT | V6 (`R-PTY-8` warn) + `BL-MST-UNIQUE` | `audit-invariants.test.ts` hai tổ chức cùng MST → 1 cảnh báo |
-| 31 | VP-06 | ÍT | V1.5 (ngày có năm) + cận dưới ngày thu theo khoá kỳ ADR-0080 (đã duyệt, lượt 2 sổ tiền) | `vn-date.test.ts` ca khác năm; bài khoá kỳ khi thi công ADR-0080 |
+| 31 | VP-06 | ÍT | V1.5 (ngày có năm) + cận dưới ngày thu theo khoá kỳ ADR-0080 (đã duyệt, lượt 2 sổ tiền) — **V1.5 ✅ thi công 3/10** (`b95b15f4`) | `vn-date.test.ts` ca khác năm; bài khoá kỳ khi thi công ADR-0080 — V1 xanh: `vn-date.test.ts`, `src/ngay-mot-ham.test.ts` (phần ngày có năm) |
 | 32 | BH-09 | ÍT | không thi công — chủ chọn giữ như hôm nay tới ADR-0018 giai đoạn 2 (`BL-QUYEN-BH09`) | — (hành vi hiện tại đúng ADR-0014 điều 6) |
 | 33 | HT-14 | ÍT | VC-05 (cứu hộ ADR-0052 D5c, lộ trình Vận chuyển 1/10) | e2e cứu hộ: kết thúc gián đoạn có khách trên xe → chặng ghi "đang trên xe gián đoạn CX-…" |
 | 34 | HT-07 | ÍT | chờ chủ (chủ ý của bản 1.39): `BL-TEN-TRUOC-XB` | — (kịch bản Chrome đang ghim hành vi cũ; đổi khi chủ quyết) |
 | 35 | HT-12 | ÍT | V5 (nhãn "Ai xử lý" chỉ người làm được) | `tin-chuyen.test.ts` / hàm nhãn: HDV phụ trách không được gán việc họ không bấm được |
 | 36 | HT-11 | ÍT | V5 | `thong-bao.test.ts` người vừa được giao nhận "… giao đơn X cho bạn" |
 | 37 | BH-17 | ÍT | V5 | `thong-bao.test.ts` người được chọn phụ trách lúc lập đơn nhận tin "giao cho bạn" |
-| 38 | BH-10 | ÍT | V1.5c (nhãn phạm vi) + V8 (bấm ô ra danh sách đã lọc) | hàm thuần nhãn ô Trang chủ; Chrome bấm từng ô |
+| 38 | BH-10 | ÍT | V1.5c (nhãn phạm vi) + V8 (bấm ô ra danh sách đã lọc) — **V1.5 ✅ thi công 3/10** (`b95b15f4`) | hàm thuần nhãn ô Trang chủ; Chrome bấm từng ô — V1 xanh: `src/shared/pham-vi-so.test.ts`; Chrome `v1-smoke.mjs` bước 6 (phần nhãn phạm vi) |
 | 39 | BH-01 | ÍT | Đợt 7 (cùng hàm tìm không dấu) | test hàm tìm dịch vụ "tour dao" ra "Tour Đảo" |
 | 40 | BH-20 | ÍT | V8 (riêng tư, 🔍) | `feedback` test nội dung có 10 chữ số → lưu và email đã che |
 | 41 | BH-21 | ÍT | V4 (ADR-0098: SĐT trùng hồ sơ nhân viên cũng dùng lại) | `orders` service test "thông tin của tôi" → `booker_party_id` = hồ sơ nhân viên, không hồ sơ mới |
@@ -250,9 +250,9 @@ Nguyên tắc như V1: test đỏ trước, xanh sau; **không** đổi ô quy�
 | 56 | VP-26 | ÍT | V8 | route test gộp → câu nói đúng "hồ sơ nhân viên … không gộp được" |
 | 57 | BH-25 | ÍT | V8 | Chrome Bán hàng không thấy lỗi đồng bộ kèm hướng dẫn quản trị |
 | 58 | BH-18 | ÍT | V5 | `thong-bao.test.ts` không sinh tin trùng cho cùng một sự kiện |
-| 59 | VP-13 | ÍT | V1.5a | Chrome 1280 + 390: nút "Hỗ trợ" không giao số tiền / nút |
-| 60 | BH-23 | ÍT | V1.5a | như trên |
-| 61 | HT-22 | ÍT | V1.5a | Chrome 390 cuộn cuối `/cuoc-chuyen` |
+| 59 | VP-13 | ÍT | V1.5a — **V1.5 ✅ thi công 3/10** (`b95b15f4`) | Chrome 1280 + 390: nút "Hỗ trợ" không giao số tiền / nút — V1 xanh: `src/thanh-hanh-dong-cuoi.test.ts`; Chrome `v1-smoke.mjs` bước 5 |
+| 60 | BH-23 | ÍT | V1.5a — **V1.5 ✅ thi công 3/10** (`b95b15f4`) | như trên — V1 xanh: `src/thanh-hanh-dong-cuoi.test.ts`; Chrome `v1-smoke.mjs` bước 5 |
+| 61 | HT-22 | ÍT | V1.5a — **V1.5 ✅ thi công 3/10** (`b95b15f4`) | Chrome 390 cuộn cuối `/cuoc-chuyen` — V1 xanh: `src/thanh-hanh-dong-cuoi.test.ts`; Chrome `v1-smoke.mjs` bước 5 |
 | 62 | BH-12 | ÍT | V8 | Chrome 390 thẻ đơn hiện số khách |
 | 63 | BH-22 | ÍT | V8 | Chrome 390 `scrollWidth ≤ 390` ở bộ lọc đơn |
 | 64 | VP-14 | ÍT | V8 | Chrome 390 Nhật ký không kéo ngang |
@@ -263,13 +263,15 @@ Nguyên tắc như V1: test đỏ trước, xanh sau; **không** đổi ô quy�
 | 69 | HT-15 | ÍT | chờ chủ (phạm vi ngày tài xế xem, ADR-0049 D3): `BL-CUOC-XA` | — |
 | 70 | BH-11 | ÍT | Đợt 7 (câu báo đúng lý do / đúng người) | test câu "Đang giữ đơn" chỉ hiện cho đơn có việc của HDV |
 | 71 | BH-13 | ÍT | V8 | test nhãn ngày khi đơn "Không đưa đón" |
-| 72 | BH-24 | ÍT | V8 (+ V1.5b hàm ngày) | bài quét chữ "app" trong chuỗi giao diện; `vn-date.test.ts` |
+| 72 | BH-24 | ÍT | V8 (+ V1.5b hàm ngày) — **V1.5 ✅ thi công 3/10** (`b95b15f4`) | bài quét chữ "app" trong chuỗi giao diện; `vn-date.test.ts` — V1 xanh: `src/ngay-mot-ham.test.ts` (phần định dạng ngày) |
 | 73 | BH-26 | ÍT | V8 | hàm thuần nhãn vai |
 | 74 | BH-27 | ÍT | V8 | Chrome Thực tập mở `/catalog` → trang chặn, không nút quản trị |
 | 75 | BH-28 | ÍT | V8 | Chrome lưu nháp không bật hộp xác nhận |
 | 76 | VP-12 | ÍT | V8 | Chrome Trang chủ Kế toán không có ô "Doanh thu của tôi", "Cần xác nhận đơn" |
 | 77 | VP-15 | ÍT | V8 | Chrome Quản trị mở `/audit` → chặn trước khi dựng |
 | 78 | VP-21 | ÍT | V8 | Chrome ô tìm / lọc / sắp danh sách tài khoản |
+
+**Tiến độ V1** (gộp từ `main` 3/10, phiên thi công khác — PR #16/#17): V1.1–V1.5 đã thi công (commit `9d57f418`, `29be5435`, `59782d3a`, `66f7a6f6`, `b95b15f4`), kịch bản Chrome `docs/evidence/2026-10-03-kiem-theo-vai-v1/`; V1.4 (Kiểu A — hộp xác nhận "Đã trả" cả điểm, "Kết thúc chuyến") không có dòng lỗi riêng ở bảng (bài `xac-nhan-tien-do.test.ts`, Chrome `v1-smoke.mjs` bước 4, 4c). V1.6 (HT-05), V1.7 (HT-08) xếp thêm 3/10 **chưa** làm.
 
 **Đếm** (sau lời chủ 3/10; số dòng có mặt đợt đó, một lỗi có thể ở hai đợt): đếm lại bằng lệnh `awk` trên bảng khi lập kế hoạch từng đợt. Không còn lỗi **chưa xếp**; BH-09 "không thi công" theo lời chủ. Dòng còn phần **chờ chủ** (mã BL): BH-19, HT-13, HT-09, VP-04, BH-04, VP-09, HT-07, VP-24, HT-15 (+ BL-SDT-QT, BL-MST-UNIQUE, BL-GIA-SHEET là nợ có đợt).
 

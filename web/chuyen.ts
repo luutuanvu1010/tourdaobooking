@@ -23,6 +23,8 @@ import type { SuKienChuyen } from "../src/shared/bang-tin";
 import { cauLoiTienDo, dongMoc, moKhaiGio, veDiemChay, type LenhDiem } from "./tien-do-ui";
 import { giuTenKhach, ketThucDuoc, thanDoiThuTu, viecNguoiDiKem, type BuocDiem } from "../src/shared/tien-do-man";
 import type { GioVnDto, GoiBaoChangDto } from "../src/shared/contracts";
+import { ngayNgan, vnToday } from "../src/shared/vn-date";
+import { canhBaoNgayChay } from "../src/shared/xac-nhan-xuat-ben";
 
 const errorEl = byId("error");
 const trangEl = byId("ct-trang");
@@ -50,7 +52,7 @@ function ve(): void {
   const keHoach = c.trangThai === "PLANNED";
   const back = byId<HTMLAnchorElement>("ct-back");
   back.href = `/dieu-phoi?ngay=${ngay}`;
-  back.textContent = `‹ Điều phối xe ${ngay.slice(8, 10)}/${ngay.slice(5, 7)}`;
+  back.textContent = `‹ Điều phối xe ${ngayNgan(ngay, vnToday(new Date()))}`;
   document.body.dataset.back = back.href;
   document.title = `${c.ma} — Island Booking System`;
   setBarTitle(c.ma);
@@ -111,6 +113,17 @@ function ve(): void {
   // ADR-0055 VK2-B B3: nhắc giờ lái (chỉ nhắc — không chặn xuất bến). Sau tạo / sửa chuyến, màn chuyển về đây nên nhắc hiện ngay (khuôn canhBaoXep).
   for (const w of r.canhBao.filter((x) => x.loai === "GIO_LAI_VUOT" || x.loai === "CHUYEN_DAI_CAN_NGHI")) {
     dais.push(dai("warning", w.nhan, ["Chỉ nhắc — không chặn xuất bến. Toàn quyền đổi con số ở Chính sách điều phối."]));
+  }
+  // HT-01 (kiểm theo vai 2/10 — V1.2): điểm trả đứng trước điểm đón của khách — chỉ nhắc (chặn ở cổng xuất bến chờ ADR-0096). Một dải cho mọi đơn.
+  const traTruoc = r.canhBao.filter((x) => x.loai === "TRA_TRUOC_DON");
+  if (traTruoc.length > 0 && (c.trangThai === "PLANNED" || c.trangThai === "RUNNING")) {
+    const don = [...new Set(traTruoc.map((w) => w.maDon).filter((x): x is string => !!x))].join(", ");
+    dais.push(dai("warning", traTruoc[0]!.nhan, [
+      `${don ? `Đơn ${don}: ` : ""}khách sẽ được trả ở một điểm đứng trước điểm đón của chính họ.`,
+      c.trangThai === "RUNNING"
+        ? `Xe đang chạy — đổi thứ tự bằng nút ↑ ↓ ở danh sách điểm hoặc gọi tài xế${c.taiXe ? ` ${c.taiXe.ten}` : ""}.`
+        : "Rút rồi xếp lại khách của đơn này: khi xếp, máy tự đưa điểm đón lên trước điểm trả. Chỉ nhắc — chưa chặn xuất bến.",
+    ]));
   }
   if (c.trangThai === "RUNNING") {
     for (const w of r.canhBao.filter((x) => x.loai === "NOI_HEN_KHAC_DIEM")) {
@@ -256,9 +269,11 @@ const xong = (baoCaoMoi: HTMLElement | null = null) => {
 function xuatBenThay(nut: HTMLButtonElement): void {
   const r = duLieu!;
   const dk = dieuKienXuatBen(r.chuyen.lyDoGiu);
+  const lechNgay = canhBaoNgayChay(r.chuyen.ngayChay, vnToday(new Date()));
   moKhaiGio({
     tieuDe: `Xuất bến ${r.chuyen.ma} — bấm thay tài xế`,
-    dauHop: [dai("ok", `Đạt đủ ${dk.length} điều kiện xuất bến`)],
+    // HT-03 (V1.3): ngày chạy khác hôm nay → dòng đỏ CÙNG câu với màn tài xế (`canhBaoNgayChay`) — chỉ nhắc, máy chủ chưa chặn (cửa sổ xuất bến: ADR-0096).
+    dauHop: [...(lechNgay ? [dai("danger", "Không phải chuyến của hôm nay", [lechNgay])] : []), dai("ok", `Đạt đủ ${dk.length} điều kiện xuất bến`)],
     moTa: moTaBamThay(),
     nutChinh: "Xuất bến",
     nutLop: "btn btn-accent",
@@ -330,7 +345,7 @@ function diemChay(): HTMLElement {
     h("div", { class: "dp-card-head dp-run-list-head" }, h("h2", { id: "ct-diem-title", class: "dp-card-title" }, "Điểm dừng"), h("span", { class: "dp-card-note" }, "Tải hiện tại ", h("strong", null, `${c.tai}/${c.xe.soCho}`))),
     ...veDiemChay({ diem: r.diem, suat: r.suat, trangThai: c.trangThai, ngayXem: c.ngayChay, coNut: coTienDo, onLenh: lenhDiemChay, phuDiem: (b) => ({ ben: nutThuTuVanPhong(b) ?? undefined, duoi: goiBaoCua(b.diem.id).map((x) => h("div", { class: "dp-gb-dong" }, x)) }) }),
     ...khoiDiKemVanPhong(),
-    coTienDo ? h("div", { class: "dp-run-end" }, ketThuc, ketThuc.disabled ? h("span", { class: "dp-note" }, "Bấm được khi đã trả hết khách và người đi kèm đã xuống.") : null, gianDoan) : null,
+    coTienDo ? h("div", { class: "dp-run-end thanh-hanh-dong-cuoi" }, ketThuc, ketThuc.disabled ? h("span", { class: "dp-note" }, "Bấm được khi đã trả hết khách và người đi kèm đã xuống.") : null, gianDoan) : null,
   );
 }
 

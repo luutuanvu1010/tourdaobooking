@@ -320,14 +320,16 @@ function moKhung(fab: HTMLElement, khung: Api.TroLyKhungResponse): void {
 const HO = 8;
 
 /**
- * Nâng nút lên khỏi thanh nút dính đáy của trang (`.form-actions`, `.vc-bottom-bar`) NẾU thanh đang đè vùng của nút: đo vị trí nút ở chỗ mặc định, đo thanh,
- * có giao nhau thì đặt `--tl-nang` = phần cần nâng. Thanh dính thay đổi vị trí khi cuộn (cột tóm tắt của form lập đơn ở máy tính) nên đo lại khi cuộn.
+ * Nâng nút lên khỏi thanh nút cuối trang NẾU thanh đang đè vùng của nút: đo vị trí nút ở chỗ mặc định, đo thanh, có giao nhau thì đặt `--tl-nang` = phần cần
+ * nâng. Thanh dính thay đổi vị trí khi cuộn (cột tóm tắt của form lập đơn ở máy tính) nên đo lại khi cuộn. Kiểu D (kiểm theo vai 2/10 — V1.5a): né MỌI phần
+ * tử mang MỘT lớp chung `.thanh-hanh-dong-cuoi` (thanh dính đáy `.form-actions`, `.vc-bottom-bar`, `.dp-ct-bottom` và khối cuối danh sách `.dp-run-end`) —
+ * không còn danh sách bộ chọn đóng (nút "Kết thúc chuyến" từng bị đè ở khổ 390). Thanh mới: thêm lớp chung (bài src/thanh-hanh-dong-cuoi.test.ts).
  */
 function nangTheoThanhDay(fab: HTMLElement): void {
   fab.style.removeProperty("--tl-nang");
   const f = fab.getBoundingClientRect();
   let nang = 0;
-  for (const el of document.querySelectorAll<HTMLElement>(".form-actions, .vc-bottom-bar")) {
+  for (const el of document.querySelectorAll<HTMLElement>(".thanh-hanh-dong-cuoi")) {
     if (el.offsetParent === null || el.closest(".sheet-root")) continue;
     const b = el.getBoundingClientRect();
     const ngang = b.left < f.right && b.right > f.left;

@@ -4,7 +4,7 @@
 import { doiNgayChang, NOI_DON_CHUA_GHI } from "./chang-dua-don.ts";
 import { changMacDinh, type MauChang } from "./chang-mac-dinh.ts";
 import type { LegDirection, LegDto, LegInput } from "./contracts.ts";
-import { formatDm } from "./trip-form.ts";
+import { ngayNgan } from "./vn-date.ts";
 
 /** Giá trị ô chọn nơi: "" = chưa chọn (nơi đón) / chưa chốt (nơi trả); `TU_DO` = "Gõ tự do…"; còn lại = id điểm danh mục. */
 export const TU_DO = "tudo";
@@ -129,7 +129,7 @@ export const cauDoiNgay = (n: number): string => `Đã dời ngày đón của $
 
 /** Chữ nhỏ dưới các ô của chặng (bản vẽ). */
 export function goiYChang(l: ChangNhap, ngayDi: string): { ngay: string; gio: string; don: string; tra: string } {
-  const ngay = l.pickupDate === "" || ngayDi === "" ? "" : l.pickupDate === ngayDi ? "Bằng ngày đi" : `Khác ngày đi (${formatDm(ngayDi)})`;
+  const ngay = l.pickupDate === "" || ngayDi === "" ? "" : l.pickupDate === ngayDi ? "Bằng ngày đi" : `Khác ngày đi (${ngayNgan(ngayDi, l.pickupDate)})`;
   return {
     ngay,
     gio: l.goiYGio ? "gợi ý theo dịch vụ" : "",

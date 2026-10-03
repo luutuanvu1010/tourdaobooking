@@ -10,16 +10,16 @@ import { AI_XU_LY_GIO_HEN_DOI, NHAN_GIO_HEN_DOI, moTaDoiGio } from "./goi-bao.ts
 import { NUT_CAP_NHAT_KHACH } from "./ly-do-giu.ts";
 import { can, type PermissionHolder } from "./permissions.ts";
 import { maskLongDigits } from "./text-guards.ts";
-import { msToVnLocal, vnLocalToMs } from "./vn-date.ts";
+import { msToVnLocal, ngayDayDu, ngayNgan, vnLocalToMs } from "./vn-date.ts";
 
 const GIO = 3_600_000;
 /** Làm tròn 4 chữ số (vị trí theo giờ trên dòng thời gian — tránh sai số dấu phẩy động). */
 const r4 = (n: number): number => Math.round(n * 1e4) / 1e4;
 const PHUT = 60_000;
 
-/** Giờ hiển thị: "HH:MM"; khác ngày đang xem → "HH:MM dd/mm". */
+/** Giờ hiển thị: "HH:MM"; khác ngày đang xem → "HH:MM dd/mm" (khác năm → thêm năm — `ngayNgan`, Kiểu D). */
 export function gioHien(g: GioVnDto, ngayXem: string): string {
-  return g.ngay === ngayXem ? g.gio : `${g.gio} ${g.ngay.slice(8, 10)}/${g.ngay.slice(5, 7)}`;
+  return g.ngay === ngayXem ? g.gio : `${g.gio} ${ngayNgan(g.ngay, ngayXem)}`;
 }
 
 /** Mục "Điều phối xe" (menu, trang Tôi) + trang /dieu-phoi: ô trip.view KHÔNG kèm ngữ cảnh — tài xế (ô "assigned") và mã không có ô → không (Q-B-4). */
@@ -193,7 +193,7 @@ export function viecCanXuLy(l: LichChungResponse, co: { dieuPhoi: boolean; phaLe
   }
   if (!daNhac) out.push(...viecGoiBao(nhacGoi, l.ngay));
   for (const n of l.nhapChoDatGap) {
-    const ngay = n.ngayDon === l.ngay ? "" : ` ${n.ngayDon.slice(8, 10)}/${n.ngayDon.slice(5, 7)}`;
+    const ngay = n.ngayDon === l.ngay ? "" : ` ${ngayNgan(n.ngayDon, l.ngay)}`;
     out.push({
       loai: "Đơn nháp chờ duyệt đặt gấp", tone: "navy", bieuTuong: "doc-check", tieuDe: `${n.maDon} · đón ${n.gioDon ?? "chưa chốt giờ"}${ngay}`, href: `/order?id=${encodeURIComponent(n.orderId)}`,
       noiDung: "", aiXuLy: "Quản trị", khoa: null, hanhDong: [{ nhan: "Xem đơn", kieu: "link", href: `/order?id=${encodeURIComponent(n.orderId)}` }],
@@ -213,7 +213,7 @@ function viecTuCanhBao(w: CanhBaoLichDto, ngay: string, c: ChangLichDto | undefi
     };
   }
   const tieuDe = t ? `${t.ma} · ${w.maDon ?? ""}`.replace(/ · $/, "") : c ? `${c.gioDon ?? "Chưa chốt giờ"} · ${c.maDon}` : (w.maDon ?? "");
-  const noiDung = c ? `Chặng ${c.gioDon ?? "chưa chốt giờ"}${c.ngayDon !== ngay ? ` ${c.ngayDon.slice(8, 10)}/${c.ngayDon.slice(5, 7)}` : ""} · ${tuyen(c)}` : "";
+  const noiDung = c ? `Chặng ${c.gioDon ?? "chưa chốt giờ"}${c.ngayDon !== ngay ? ` ${ngayNgan(c.ngayDon, ngay)}` : ""} · ${tuyen(c)}` : "";
   return { loai: w.nhan, tone, bieuTuong, tieuDe, href: t ? `/chuyen?id=${encodeURIComponent(t.id)}` : c ? `/order?id=${encodeURIComponent(c.orderId)}` : null, noiDung, aiXuLy: "Văn phòng", khoa: null, hanhDong: [] };
 }
 
@@ -377,7 +377,7 @@ export function idChoLenh(dangCho: { id: string; khoa: string } | null, khoa: st
 export function viecGoiBao(muc: readonly MucNhacGoiDto[], ngayXem: string): ViecCanXuLy[] {
   return muc.map((m) => {
     const g = m.gioHenDoi;
-    const khacNgay = m.ngayChuyen !== ngayXem ? ` · Chuyến ${m.ngayChuyen.slice(8, 10)}/${m.ngayChuyen.slice(5, 7)}` : "";
+    const khacNgay = m.ngayChuyen !== ngayXem ? ` · Chuyến ${ngayNgan(m.ngayChuyen, ngayXem)}` : "";
     return {
       loai: NHAN_GIO_HEN_DOI, tone: "warn", bieuTuong: "handset", tieuDe: `${m.orderCode} · ${m.noiDon}`, href: null,
       noiDung: `Giờ hẹn đón đổi ${moTaDoiGio(g.cu, g.moi)}${g.maChuyen.length ? ` · ${g.maChuyen.join(", ")}` : ""}${khacNgay}`,
@@ -409,7 +409,7 @@ const NHAN_MUC_BAN_CHUP: Readonly<Record<string, string>> = { GPLX: "Giấy phé
  * giấy — câu hỏi Q-B-16 ở nhật ký giao diện.
  */
 export function dongBanChup(m: { loai: string; hang: string | null; hetHan: string | null }): { nhan: string; phu: string } {
-  const han = m.hetHan ? `hạn ${m.hetHan.slice(8, 10)}/${m.hetHan.slice(5, 7)}/${m.hetHan.slice(0, 4)}` : null;
+  const han = m.hetHan ? `hạn ${ngayDayDu(m.hetHan)}` : null;
   return { nhan: NHAN_MUC_BAN_CHUP[m.loai] ?? "Điều kiện khác", phu: [m.hang ? `hạng ${m.hang}` : null, han].filter(Boolean).join(" · ") };
 }
 

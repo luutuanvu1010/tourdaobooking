@@ -12,6 +12,7 @@ import { trangThaiChang, type TrangThaiChangRa } from "./dieu-phoi-trang-thai.ts
 import { canhBaoGioLai, NHAN_CANH_BAO_GIO_LAI } from "./gio-lai.ts";
 import type { LyDoGiu } from "./ly-do-giu.ts";
 import { kiemMocDat } from "./moc-toi-thieu.ts";
+import { suatTraTruocDon } from "./thu-tu-diem.ts";
 import { vnLocalToMs } from "./vn-date.ts";
 
 /** Chặng của đơn NHÁP (I11): chỉ khoá, mã đơn, ngày giờ hẹn, cờ đặt gấp — không nơi, không số người. */
@@ -49,6 +50,8 @@ export const LOAI_CANH_BAO_LICH = [
   "NOI_HEN_KHAC_DIEM", "GIO_XE_TOI_MUON_HON_HEN",
   // ADR-0055 VK2-B B3: giờ lái — CHỈ cảnh báo (không vào kiemXuatBen, không chặn).
   "GIO_LAI_VUOT", "CHUYEN_DAI_CAN_NGHI",
+  // HT-01 (kiểm theo vai 2/10 — V1.2): suất chờ đón có điểm xuống đứng trước điểm lên — CHỈ cảnh báo; chặn ở cổng xuất bến chờ ADR-0096.
+  "TRA_TRUOC_DON",
 ] as const;
 export type LoaiCanhBaoLich = (typeof LOAI_CANH_BAO_LICH)[number];
 /** Nhãn tiếng Việt của cảnh báo lịch chung (màn hình không tự đặt chữ — một chỗ). */
@@ -66,6 +69,7 @@ export const NHAN_CANH_BAO_LICH: Readonly<Record<LoaiCanhBaoLich, string>> = {
   GIO_XE_TOI_MUON_HON_HEN: "Giờ xe tới muộn hơn giờ hẹn",
   GIO_LAI_VUOT: NHAN_CANH_BAO_GIO_LAI.GIO_LAI_VUOT,
   CHUYEN_DAI_CAN_NGHI: NHAN_CANH_BAO_GIO_LAI.CHUYEN_DAI_CAN_NGHI,
+  TRA_TRUOC_DON: "Điểm trả đứng trước điểm đón của khách",
 };
 export interface CanhBaoLich {
   loai: LoaiCanhBaoLich;
@@ -154,6 +158,10 @@ export function dungLichChung(v: LichChungVao): LichChungRa {
         }
         if (somNhat && d.gioXeToiMs > somNhat.ms) cb("GIO_XE_TOI_MUON_HON_HEN", somNhat.ch.legId, c.id, somNhat.ch.orderCode);
       }
+      // HT-01 (V1.2): suất CHỜ ĐÓN có điểm xuống đứng trước điểm lên (MỘT luật: `suatTraTruocDon`) — một mục mỗi chặng. Khách đã lên xe thì thôi.
+      const choDon = suatCuaChuyen.filter((s) => s.mo && s.loai === "PASSENGER" && s.trangThai === "WAITING" && s.legId !== null);
+      const traTruoc = new Set(suatTraTruocDon(diemCuaChuyen, choDon.map((s) => ({ diemLen: s.boardStopId, diemXuong: s.alightStopId }))).map((i) => choDon[i]!.legId!));
+      for (const legId of traTruoc) cb("TRA_TRUOC_DON", legId, c.id, v.chang.find((x) => x.legId === legId)?.orderCode ?? null);
     }
     let lyDoGiu: LyDoGiu[] = [];
     if (c.trangThai === "PLANNED") {

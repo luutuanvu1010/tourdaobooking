@@ -3,7 +3,7 @@
 // `today` luôn do nơi gọi cấp (vnToday(new Date())): không dùng ngày UTC (00:00–07:00 giờ VN sẽ lệch ngày).
 import type { TripInfoDto, TripInput, TripUpdateInput } from "./contracts.ts";
 import { MAX_DAYS_AHEAD, confirmWindow, sameDepartDate } from "./trip-rules.ts";
-import { isISODate } from "./vn-date.ts";
+import { isISODate, ngayDayDu } from "./vn-date.ts";
 
 /** Thông tin chuyến trống: "" = chưa có (máy chủ chuẩn hoá thành null). */
 export const emptyTrip = (): TripInput => ({ departDate: "", departTime: "", pickupTime: "", pickupPlace: "", checkinDate: "", checkinTime: "", checkinPlace: "", note: "" });
@@ -21,10 +21,8 @@ export const tripFromDto = (t: TripInfoDto): TripInput => ({
 });
 
 /** "2026-09-20" → "20/09/2026"; giá trị lạ trả nguyên. */
-export const formatDmy = (iso: string): string => (isISODate(iso) ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : iso);
-
-/** "2026-09-20" → "20/09"; giá trị lạ trả nguyên. */
-export const formatDm = (iso: string): string => (isISODate(iso) ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}` : iso);
+export const formatDmy = (iso: string): string => (isISODate(iso) ? ngayDayDu(iso) : iso);
+// Kiểu D (V1.5b): `formatDm` ("dd/mm" không năm) đã bỏ — ngày ngắn dùng `ngayNgan(iso, thamChieu)` của vn-date.ts (tự thêm năm khi khác năm).
 
 // ---- Cảnh báo (vàng, KHÔNG chặn Lưu nháp) ---------------------------------------------------------------------------
 

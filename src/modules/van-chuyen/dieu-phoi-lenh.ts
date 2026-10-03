@@ -19,7 +19,7 @@ import {
   boSungXe, changVao, chinhSachVao, chuyenVao, diemVao, docChung, docNguCanh, khungBanVao, khungChuyen, lyDoChangNgoai, suatVao, taiXeVao, xeVao, type DuLieuChung, type NenChuyen,
 } from "./dieu-phoi-doc";
 import { canhBaoDto, changLichDto, chuyenTomTat, lyDoDangDung, taiXeChon, xeChon } from "./dieu-phoi-dto";
-import { chayLo, diemChoKhoa, diemKhongConKhach, gioNgan, loi409, loiKiem, lyDoHopLe, maDonGon, nhanLyDo, phaLeNhatKy } from "./dieu-phoi-route";
+import { chayLo, diemChoKhoa, diemKhongConKhach, sapLaiDiem, gioNgan, loi409, loiKiem, lyDoHopLe, maDonGon, nhanLyDo, phaLeNhatKy } from "./dieu-phoi-route";
 import type { DoiThan, HuyThan, RutThan, SuaChuyenThan, XepThan } from "./dieu-phoi-than";
 
 const NGAY_MS = 86_400_000;
@@ -33,6 +33,8 @@ function khongConKeHoach(t: TripRow): Response | null {
   if (t.status === "PLANNED") return null;
   return loi409(t.status === "RUNNING" ? "xe_dang_chay" : "chuyen_da_ket_thuc", [lyDoGiu("CHUYEN_KHONG_CON_LEN_KE_HOACH", t.code)]);
 }
+/** Đuôi nhật ký khi lệnh sắp lại thứ tự điểm (HT-01) — chỉ con số (danh sách trắng mục 1.1). */
+const sapNhatKy = (doi: readonly unknown[]): string => (doi.length > 0 ? `; sắp lại thứ tự ${doi.length} điểm (đón trước trả)` : "");
 const lenhChung = (requestId: string, staff: StaffProfile, bayGioMs: number) => ({ cmd: crypto.randomUUID(), requestId, lucIso: nowIsoOf(bayGioMs), nguoiId: staff.id });
 
 // ---- Sửa chuyến (route 4) ---------------------------------------------------------------------------------------------------------------------------------
@@ -84,7 +86,7 @@ export async function lenhSuaChuyen(db: D1Database, nen: NenChuyen, b: SuaChuyen
   const thay: string[] = [];
   if (doiXe) thay.push(`xe ${chung.xe.find((x) => x.id === t.vehicle_id)?.plate_number ?? "?"} → ${xeRow.plate_number}`);
   if (doiTaiXe) thay.push("đổi tài xế");
-  if (doiGio || ketThucMs !== t.planned_end_ms) thay.push(`giờ ${gioNgan(t.planned_start_ms)}–${gioNgan(t.planned_end_ms)} → ${gioNgan(batDauMs)}–${gioNgan(ketThucMs)}`);
+  if (doiGio || ketThucMs !== t.planned_end_ms) thay.push(`giờ ${gioNgan(t.planned_start_ms, bayGioMs)}–${gioNgan(t.planned_end_ms, bayGioMs)} → ${gioNgan(batDauMs, bayGioMs)}–${gioNgan(ketThucMs, bayGioMs)}`);
   if (diemDoi.length > 0) thay.push(`${diemDoi.length} điểm đổi thứ tự / giờ xe tới`);
   const lo = loSuaChuyen(db, {
     ...lenhChung(b.requestId, staff, bayGioMs), tripId: t.id, version: b.version,
@@ -149,15 +151,20 @@ async function lenhXepLo(db: D1Database, nen: NenChuyen, lich: readonly ChangLic
     }
   }
   for (const p of b.nguoiDiKem) suatMoi.push({ id: crypto.randomUUID(), tripId: t.id, loai: "CREW", legId: null, personKey: null, crewPartyId: p, boardStopId: null, alightStopId: null });
+  // HT-01 (V1.2): điểm trả dùng lại có thể đứng trước điểm đón mới → sắp lại điểm chưa tới theo MỌI suất mở sau lệnh (cũ + mới).
+  const doiThuTu = sapLaiDiem(nen.stops, diemMoi, t.id, [
+    ...nen.allocs.filter((a) => a.valid_to_at === null).map((a) => ({ board: a.board_stop_id, alight: a.alight_stop_id })),
+    ...suatMoi.map((s) => ({ board: s.boardStopId, alight: s.alightStopId })),
+  ]);
   const phaLe = kq.canPhaLe.length > 0 ? phaLeCua(chung, "MOC_TOI_THIEU", b.phaLe) : null;
   const ma = maDonGon(b.chang.map((c) => nc.changLich.get(c.legId)!.orderCode));
   const lo = loXep(db, {
-    ...lenhChung(b.requestId, staff, bayGioMs), tripId: t.id, version: b.version, diemMoi, suatMoi, phaLe, policyId: chung.chinhSach?.id ?? null,
+    ...lenhChung(b.requestId, staff, bayGioMs), tripId: t.id, version: b.version, diemMoi, doiThuTu, suatMoi, phaLe, policyId: chung.chinhSach?.id ?? null,
     mocXep: b.chang.map((c) => {
       const ch = nc.changLich.get(c.legId)!;
       return { legId: c.legId, ngay: ch.pickupDate, gio: ch.pickupTime };
     }),
-    detail: `${t.code}: xếp ${suatMoi.length} người${ma ? ` (${ma})` : ""}${phaLe ? phaLeNhatKy(phaLe.luat, nhanLyDo(chung, phaLe.lyDo)) : ""}`,
+    detail: `${t.code}: xếp ${suatMoi.length} người${ma ? ` (${ma})` : ""}${sapNhatKy(doiThuTu)}${phaLe ? phaLeNhatKy(phaLe.luat, nhanLyDo(chung, phaLe.lyDo)) : ""}`,
   });
   try {
     const r = await chayLo(db, lo, b.requestId);
@@ -247,12 +254,17 @@ export async function lenhDoi(
     return { dongId: a.id, mo: { id: crypto.randomUUID(), tripId: d.id, loai: a.kind, legId: a.leg_id, personKey: a.passenger_key, crewPartyId: a.crew_party_id, boardStopId: len, alightStopId: xuong } };
   });
   const conMoNguon = mo.filter((a) => !b.suatIds.includes(a.id)).map((a) => ({ board: a.board_stop_id, alight: a.alight_stop_id }));
+  // HT-01 (V1.2): sắp lại điểm chưa tới của chuyến ĐÍCH theo suất mở của đích sau lệnh (cũ + suất dời tới).
+  const doiThuTuDich = sapLaiDiem(dich.stops, diemMoiDich, d.id, [
+    ...dich.allocs.filter((a) => a.valid_to_at === null).map((a) => ({ board: a.board_stop_id, alight: a.alight_stop_id })),
+    ...cap.map((c) => ({ board: c.mo.boardStopId, alight: c.mo.alightStopId })),
+  ]);
   const phaLe = kq.canPhaLe.length > 0 ? phaLeCua(chung, "MOC_TOI_THIEU", b.phaLe) : null;
   const ds = maDonGon(legIds.map((id) => nc.changLich.get(id)!.orderCode));
   const lo = loDoi(db, {
-    ...lenhChung(b.requestId, staff, bayGioMs), nguon: { tripId: t.id, version: b.version }, dich: { tripId: d.id, version: b.denVersion }, cap, diemMoiDich,
+    ...lenhChung(b.requestId, staff, bayGioMs), nguon: { tripId: t.id, version: b.version }, dich: { tripId: d.id, version: b.denVersion }, cap, diemMoiDich, doiThuTuDich,
     diemBoQuaNguon: diemKhongConKhach(nen.stops, t.id, conMoNguon), phaLe, policyId: chung.chinhSach?.id ?? null,
-    detail: `${t.code} → ${d.code}: dời ${di.length} người${ds ? ` (${ds})` : ""}${phaLe ? phaLeNhatKy(phaLe.luat, nhanLyDo(chung, phaLe.lyDo)) : ""}`,
+    detail: `${t.code} → ${d.code}: dời ${di.length} người${ds ? ` (${ds})` : ""}${sapNhatKy(doiThuTuDich)}${phaLe ? phaLeNhatKy(phaLe.luat, nhanLyDo(chung, phaLe.lyDo)) : ""}`,
   });
   const r = await chayLo(db, lo, b.requestId, 2);
   return r.ok ? null : r.res;
@@ -320,9 +332,12 @@ export async function lenhCapNhatDiem(
     ...nen.allocs.filter((a) => a.valid_to_at === null && !cap.some((c) => c.dongId === a.id)).map((a) => ({ board: a.board_stop_id, alight: a.alight_stop_id })),
     ...cap.map((c) => ({ board: c.mo.boardStopId, alight: c.mo.alightStopId })),
   ];
+  const diemBoQua = diemKhongConKhach(nen.stops, t.id, conMo);
+  // HT-01 (V1.2): điểm mới của nơi đổi có thể đứng sau điểm trả dùng lại — sắp lại (điểm sắp bỏ qua không xét).
+  const doiThuTu = sapLaiDiem(nen.stops, diemMoi, t.id, conMo, diemBoQua);
   const lo = loCapNhatDiem(db, {
-    ...lenhChung(b.requestId, staff, bayGioMs), tripId: t.id, version: b.version, diemMoi, cap, diemBoQua: diemKhongConKhach(nen.stops, t.id, conMo),
-    detail: `${t.code}: ${[...new Set(doi)].join("; ")}`,
+    ...lenhChung(b.requestId, staff, bayGioMs), tripId: t.id, version: b.version, diemMoi, cap, doiThuTu, diemBoQua,
+    detail: `${t.code}: ${[...new Set(doi)].join("; ")}${sapNhatKy(doiThuTu)}`,
   });
   const r = await chayLo(db, lo, b.requestId);
   return r.ok ? cap.length : r.res;
