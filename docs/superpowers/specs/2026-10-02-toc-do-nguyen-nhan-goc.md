@@ -4,12 +4,13 @@
 - **Loại tài liệu:** nghiên cứu (mô tả, chưa chuẩn tắc). **Chưa sửa mã.** Mọi giải pháp dưới đây là đề xuất; mục nào chạm ADR đã duyệt, cấu hình Cloudflare, quyền hay dữ liệu thì cần chủ duyệt (CLAUDE.md §3) trước khi thi công.
 - **Cách làm:** đọc mã ở `main` = `dfee4a8` (bản 1.76/1.77); hai trợ lý đọc độc lập (máy chủ, giao diện), người điều phối đọc lại các điểm chính trên mã thật; dựng `npm run build:web` và đo kích thước gói bằng metafile esbuild; đọc tài liệu chính thức Cloudflare (bản nguồn ở kho `cloudflare/cloudflare-docs`, nhánh `production` — trang `developers.cloudflare.com` bị chặn mạng từ môi trường này).
 - **Chưa đo trên production / iPhone thật** (môi trường này không tới được `booking.tourdao.vn`). Số "chuyến đi tới cơ sở dữ liệu" là **đếm từ mã**; số mili-giây là **ước tính**, ghi rõ ở từng chỗ.
+- **Cập nhật 2026-10-03 — số liệu chủ dự án cung cấp** (`npx wrangler d1 info tourdao-sales-db`, chủ tự chạy): `running_in_region` **APAC**; `read_replication.mode` **disabled**; `database_size` 3,21 MB; 24 giờ: `read_queries` 28 046, `write_queries` 489, **`rows_read` 3 595 230**, `rows_written` 867. Hệ quả ghi ở §1.4.
 
 ## 0. Kết luận một đoạn
 
 Chậm có **một nguyên nhân gốc lớn** và **bốn nguyên nhân phụ**:
 
-1. **(Gốc lớn — máy chủ) Mỗi thao tác là một chuỗi dài câu hỏi cơ sở dữ liệu NỐI ĐUÔI nhau, và mỗi câu là một chuyến đi xa.** Worker chạy ở trạm Cloudflare gần người dùng (Việt Nam), còn D1 chỉ có MỘT bản chính ở một vùng; không bật Smart Placement, không dùng bản sao đọc (read replica). Mã lại chờ từng câu một (cố ý tránh `db.batch()` vì D1 giả trong bài kiểm không có `batch()`). Trang chủ: ~23–29 chuyến nối đuôi; Chi tiết chuyến: ~18–22; Điều phối: ~11–14. Mỗi chuyến cộng nguyên độ trễ mạng Worker↔D1.
+1. **(Gốc lớn — máy chủ) Mỗi thao tác là một chuỗi dài câu hỏi cơ sở dữ liệu NỐI ĐUÔI nhau, và mỗi câu là một chuyến đi xa.** Worker chạy ở trạm Cloudflare gần người dùng (Việt Nam), còn D1 chỉ có MỘT bản chính ở một vùng; không bật Smart Placement, không dùng bản sao đọc (read replica). Mã lại chờ từng câu một (cố ý tránh `db.batch()` vì D1 giả trong bài kiểm không có `batch()`). Trang chủ: ~23–29 chuyến nối đuôi; Chi tiết chuyến: ~18–22; Điều phối: ~11–14. Mỗi chuyến cộng nguyên độ trễ mạng Worker↔D1. (2026-10-03: bản chính ở **APAC** ⇒ ước ~0,5–1,5 s chờ D1 ở Trang chủ; đòn bẩy chắc nhất là gộp câu hỏi trong mã — §1.4.)
 2. **(Giao diện — mới từ sáng 2/10) Mỗi trang bị chặn hiển thị bởi `/api/giao-dien.css`**, một yêu cầu phải đi tới Worker + D1 mỗi lần mở trang, trước khi vẽ được gì và trước khi mã trang được chạy.
 3. **Mỗi trang gọi quá nhiều API "phụ"** (huy hiệu thanh bên gọi nguyên Bảng điều khiển + nguyên danh mục, chuông thông báo quét 30 ngày nhật ký, trợ lý, WebSocket) — mỗi lời gọi lại trả "phí nền" 2–3 chuyến D1, và D1 xử lý tuần tự nên chúng xếp hàng trước dữ liệu chính.
 4. **Quay lại app / đổi tab = tải lại toàn bộ dữ liệu trang**, vì Bảng tin đóng kết nối còn khoẻ rồi phát `can-tai-lai`.
@@ -66,14 +67,24 @@ Chậm có **một nguyên nhân gốc lớn** và **bốn nguyên nhân phụ**
 | S3 | **Rút phí nền:** chạy câu đọc `mnt_setting` SONG SONG với phiên + nhân viên (không đổi nghĩa); đưa ghi `last_seen_at` vào `ctx.waitUntil`; `/api/auth/me` dùng lại trạng thái bảo trì đã đọc; đổi `claimFirstSync` thành đọc trước, chỉ `UPDATE` khi `last_attempt_at IS NULL`; miễn vé chống ghi trùng cho POST chỉ đọc (`/api/ledger/balances` — thêm vào `LAN_GUI_MIEN` hoặc đổi thành GET) | GET 2 → 1 chuyến nối đuôi | Vừa, áp cho MỌI lời gọi | `last_seen` và miễn vé chạm ADR-0094/ADR-0075 → chủ duyệt; song song bảo trì không đổi nghĩa |
 | S4 | **Làm nhẹ `tom-tat`:** lọc theo người ngay trong SQL, cửa sổ ngắn hơn/đếm thay vì trả 3000 dòng; hoặc bảng "hộp tin theo người" ghi lúc sự kiện | Câu nặng nhất chạy ở mọi trang | Vừa–lớn | Đụng logic thông báo (ADR-0034/0052) → đặc tả riêng |
 | S5 | **Chỉ mục** (migration mới): `orders(status)` (một phần/ghép), `orders(staff_id, created_at)`, `audit_log` một phần cho luồng 30 ngày, `vc_trip` (viết lại `status='RUNNING' OR …` + chỉ mục); sau đó `PRAGMA optimize` như tài liệu D1 › Use indexes khuyên | Giảm quét bảng, chặn chậm dần khi dữ liệu lớn | Thấp hôm nay, tăng theo thời gian | Migration = việc lớn → người kiểm độc lập; xác nhận bằng `EXPLAIN QUERY PLAN` |
-| S6 | **Bản sao đọc + Sessions API** (`withSession`, bookmark theo phiên để đọc-sau-ghi đúng) | Câu đọc phục vụ ở bản sao APAC gần nhất | Chỉ đáng làm nếu S1 + S2 chưa đủ và bản chính ở xa | Chạm mọi module đọc; bật ở bảng điều khiển D1 → chủ duyệt; làm sau cùng |
+| S6 | **Bản sao đọc + Sessions API** (`withSession`, bookmark theo phiên để đọc-sau-ghi đúng) | Câu đọc phục vụ ở bản sao APAC gần nhất | ~~Chỉ đáng làm nếu S1 + S2 chưa đủ và bản chính ở xa~~ **Bỏ (2026-10-03):** bản chính đã ở APAC; bản sao gần Việt Nam nhất cũng là vùng APAC ⇒ gần như không lợi | — |
+
+### 1.4 Cập nhật 2026-10-03 sau khi biết vị trí D1 (APAC)
+
+- **Ước tính lại (chưa đo):** chặng Worker (trạm gần Việt Nam) ↔ bản chính APAC ước ~20–50 ms mỗi chuyến tính cả thực thi (tài liệu Cloudflare không công bố thành phố cụ thể của "APAC"). Trang chủ ~23–29 chuyến nối đuôi ⇒ **~0,5–1,5 s chỉ để chờ D1**; Chi tiết chuyến ~18–22 ⇒ ~0,4–1,1 s. Không còn kịch bản "4–7 s".
+- **S2 (gộp / song song câu đọc) thành đòn bẩy CHẮC CHẮN nhất:** không phụ thuộc vị trí, không phụ thuộc Cloudflare chọn đặt hay không.
+- **S1 (Smart Placement) hạ thành "thử, rẻ, có thể không có tác dụng":** tài liệu ghi *"Smart Placement only considers locations where the Worker has previously run"* và *"requires consistent traffic to the Worker from multiple locations to make a placement decision"*. Gần như toàn bộ lưu lượng đến từ trạm ở/gần Việt Nam ⇒ có thể nhận trạng thái `INSUFFICIENT_INVOCATIONS` và không chuyển gì (không hại, chỉ không lợi). Kiểm bằng header `cf-placement` hoặc API trạng thái. Placement Hints (`placement.region`) chỉ nhận vùng AWS/GCP/Azure — không có mã cho D1, không dùng được ở đây.
+- **`rows_read` 3,6 triệu/ngày trên cơ sở dữ liệu 3,21 MB** (trung bình ~128 dòng mỗi câu đọc) ⇒ có câu đang quét rộng thay vì tra thẳng: khớp với `LIST_DON` của chuông (quét 30 ngày `audit_log`, nối view `GROUP BY` toàn bảng, gọi ở mọi trang — §1.2) và các bảng thiếu chỉ mục (S5). D1 thực thi tuần tự trên một cơ sở dữ liệu nên câu quét rộng làm các câu khác xếp hàng ⇒ **kéo S4 + S5 lên ngay sau Đợt 1**.
+- **Đo tiếp (chủ tự chạy, chỉ đọc, thư mục dự án):** `npx wrangler d1 insights tourdao-sales-db --sort-by=reads --limit=10` và `npx wrangler d1 insights tourdao-sales-db --sort-by=time --limit=10` — mười câu đọc nhiều dòng nhất / tốn giờ nhất trong 24 giờ (lệnh "experimental" của wrangler 4.135; đã kiểm tham số trong mã wrangler, chưa chạy).
 
 ## 2. `/api/giao-dien.css` chặn hiển thị mọi trang (mới từ 2026-10-02 08:52)
 
 - Mọi trang: `<link rel="stylesheet" href="/app.css"><link rel="stylesheet" href="/api/giao-dien.css">` (vd `public/orders.html:2`), commit `0e4e024` "Mọi trang nạp /api/giao-dien.css ngay sau /app.css (Task 4, ADR-0087)".
 - Service worker không phục vụ nó (`src/shared/sw-policy.ts` chỉ cho trang + tệp tĩnh); máy chủ trả `cache-control: no-cache` + ETag (`src/shared/http.ts:13-16`) và đọc D1 mỗi lần (`src/modules/giao-dien/index.ts:16-21`) ⇒ **mỗi lần mở trang phải chờ một lượt mạng tới Worker + một câu D1 trước khi vẽ**. Theo đặc tả HTML, stylesheet chặn bộ phân tích còn giữ lại cả `<script type="module">` (chạy sau khi CSS đã nạp) ⇒ `initShell()`, khung nhớ (ADR-0035), `/api/auth/me` và mọi lời gọi sớm (`goi-som`) đều bị đẩy lùi theo. Mạng đảo yếu: một yêu cầu kẹt = trang trắng nhiều giây.
 - ADR-0087 điều 3 đã chấp nhận "mỗi lần mở trang thêm một yêu cầu nhỏ (phần lớn 304)" nhưng chưa tính tới việc nó **chặn hiển thị và chặn mã trang** — đi ngược ADR-0035 ("phần ít thay đổi nằm sẵn trên máy").
-- **Giải pháp gốc (cần ADR mới sửa ADR-0087 điều 3 — chủ duyệt):** phương án khuyến nghị: trả `Cache-Control: max-age=300, stale-while-revalidate=604800` (bộ nhớ HTTP của trình duyệt dùng ngay bản đang có, hỏi lại ở nền; không phải service worker nên giữ đúng chữ "service worker không cache `/api/*`") + đệm phản hồi ở Worker bằng Cache API theo `version` để không đọc D1; đổi giao diện công ty thì máy khác thấy trong ≤ 5 phút (máy Toàn quyền thấy ngay khi lưu). Phương án khác: (b) cho service worker phục vụ "dùng ngay, làm mới ở nền" riêng tệp này (nội dung công khai, không dữ liệu cá nhân) — phải nới bất biến "không cache `/api/*`"; (c) nạp không chặn + dựng biến màu từ bản nhớ trên máy như khung nhớ — có thể chớp màu mặc định.
+- **Giải pháp gốc (cần ADR mới sửa ADR-0087 điều 3 — chủ duyệt).** **Khuyến nghị (sửa 2026-10-03):** service worker phục vụ RIÊNG tệp giao diện theo kiểu "dùng ngay bản đang có, hỏi máy chủ ở nền" như các tệp khung (nội dung công khai, không dữ liệu cá nhân — nới bất biến "không cache `/api/*`" đúng MỘT đường, hoặc chuyển tệp ra đường ngoài `/api/` và thêm vào `run_worker_first`); khi Toàn quyền lưu giao diện, trạm Bảng tin phát một tin để các máy đang mở tải lại tệp màu; máy chủ đệm CSS theo `version` (Cache API hoặc bộ nhớ isolate) để không đọc D1. Hệ quả: máy khác thấy màu mới ở **lần chuyển trang kế tiếp** (máy đang mở: gần như ngay), không còn chờ mạng trước khi vẽ. Lần mở đầu tiên trên máy chưa từng có tệp: vẫn tải qua mạng như hôm nay.
+  - (a) Chỉ dùng header HTTP `Cache-Control: max-age=300, stale-while-revalidate=…`: đơn giản, giữ đúng chữ ADR-0087 điều 3, nhưng **chưa chắc Safari trên iPhone hỗ trợ `stale-while-revalidate`** (chưa kiểm); nếu không, cứ mỗi 5 phút một lần mở trang lại phải chờ mạng, và màu mới tới máy khác chậm tới 5 phút.
+  - (c) Nạp không chặn + dựng biến màu từ bản nhớ trên máy như khung nhớ — có thể chớp màu mặc định khi mở trang.
 
 ## 3. Mỗi trang gọi quá nhiều API phụ
 
@@ -119,13 +130,14 @@ Chậm có **một nguyên nhân gốc lớn** và **bốn nguyên nhân phụ**
 ## 7. Thứ tự đề xuất
 
 **Bước 0 — đo trước (tiêu chí nghiệm thu cần số gốc, P20):**
-1. Chủ kiểm vị trí bản chính D1 (§8 câu hỏi 1).
-2. Thêm header `Server-Timing` cho mọi `/api/*` (tổng giờ + số câu D1 + giờ chờ D1) — xem được trong công cụ nhà phát triển và Workers Logs (`observability` đã bật). Không đổi hành vi.
-3. Ghi số gốc: thời gian tới dữ liệu đầu của `/`, `/orders`, `/order`, `/dieu-phoi`, `/chuyen` trên iPhone thật (4G) và máy tính.
+1. ~~Chủ kiểm vị trí bản chính D1~~ — xong 2026-10-03: APAC (§1.4).
+2. Chủ chạy `wrangler d1 insights` (§1.4) để biết câu nào đọc nhiều dòng / tốn giờ nhất.
+3. Thêm header `Server-Timing` cho mọi `/api/*` (tổng giờ + số câu D1 + giờ chờ D1) — xem được trong công cụ nhà phát triển và Workers Logs (`observability` đã bật). Không đổi hành vi.
+4. Ghi số gốc: thời gian tới dữ liệu đầu của `/`, `/orders`, `/order`, `/dieu-phoi`, `/chuyen` trên iPhone thật (4G) và máy tính.
 
-**Đợt 1 — nhanh, đảo ngược được:** S1 (Smart Placement), §2 (giao-dien.css), §5.1–5.2 (bỏ nhật ký khỏi gói, thu gọn CSS), §3 (route số đếm cho huy hiệu), §4 (không tải lại khi kết nối còn khoẻ), S3 (rút phí nền).
-**Đợt 2 — sửa truy vấn:** S2 (gộp/song song, sửa D1 giả để có `batch()`, bỏ N+1), S4 (`tom-tat`), S5 (chỉ mục), mở rộng `goi-som`, chuyển hướng trang đầu.
-**Đợt 3 — cân nhắc sau khi đo lại:** S6 (bản sao đọc), tách mã chung, cache-first cho tệp khung.
+**Đợt 1 — nhanh, đảo ngược được (sửa 2026-10-03):** §2 (giao-dien.css không chặn trang), §5.1–5.2 (bỏ nhật ký khỏi gói, thu gọn CSS), §3 (route số đếm cho huy hiệu), §4 (không tải lại khi kết nối còn khoẻ), S3 (rút phí nền), S1 (Smart Placement — thử, đo bằng `cf-placement`, gỡ nếu không lợi).
+**Đợt 2 — sửa truy vấn:** S2 (gộp/song song, sửa D1 giả để có `batch()`, bỏ N+1), S4 (`tom-tat`) và S5 (chỉ mục) — ưu tiên theo kết quả `d1 insights`; mở rộng `goi-som`, chuyển hướng trang đầu.
+**Đợt 3 — cân nhắc sau khi đo lại:** tách mã chung, cache-first cho tệp khung. (S6 bản sao đọc: bỏ — §1.4.)
 
 **Tiêu chí nghiệm thu đề xuất (kiểm được):**
 - Độ sâu D1 nối đuôi (đếm bằng bài kiểm với D1 giả có đếm): GET bất kỳ ≤ 1 chuyến phí nền; `dashboard` ≤ 4; `chuyen/:id` ≤ 5; `lich` ≤ 4.
@@ -136,9 +148,9 @@ Chậm có **một nguyên nhân gốc lớn** và **bốn nguyên nhân phụ**
 
 ## 8. Câu hỏi cho chủ (gom một lần)
 
-1. **Vị trí cơ sở dữ liệu** (chủ tự chạy, chỉ đọc): `npx wrangler d1 info tourdao-sales-db` trong thư mục dự án — xem có dòng vùng/vị trí không (CHƯA kiểm lệnh này có in vùng); nếu không, bảng điều khiển Cloudflare › Storage & Databases › D1 › `tourdao-sales-db` (mục vị trí / Metrics theo vùng). Tài liệu D1: trường `served_by_region` có trong `meta` của mọi kết quả truy vấn từ xa.
-2. **Duyệt Đợt 1?** Gồm một thay đổi cấu hình Cloudflare (Smart Placement) và một ADR mới sửa ADR-0087 điều 3 (cách đệm `giao-dien.css`).
-3. **Đổi màu/phông công ty mất tối đa 5 phút mới tới máy khác** — chấp nhận được không (phương án khuyến nghị §2)?
+1. ~~Vị trí cơ sở dữ liệu~~ — **đã trả lời 2026-10-03:** `running_in_region` APAC, `read_replication.mode` disabled (lệnh `wrangler d1 info` CÓ in vùng).
+2. **Duyệt Đợt 1?** Gồm một thay đổi cấu hình Cloudflare (Smart Placement) và một ADR mới sửa ADR-0087 điều 3 (cách đệm `giao-dien.css`). Chủ hỏi thêm giải thích (2026-10-03) — đã giải thích trong chat, chờ quyết.
+3. **Màu/phông công ty mới tới máy khác ở lần chuyển trang kế tiếp** (phương án khuyến nghị §2, sửa 2026-10-03; trước đó là "tối đa 5 phút") — chủ trả lời 2026-10-03: đổi màu không thường xuyên, "có thể xem xét".
 4. Cho phép ghi `last_seen_at` ở nền (không chờ) và miễn vé chống ghi trùng cho lời gọi chỉ đọc `/api/ledger/balances`?
 
 ## 9. Nguồn
