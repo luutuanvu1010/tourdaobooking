@@ -5,7 +5,8 @@
 //   (3) TC-29: Bán hàng BẤM THAY xuất bến → 200; có bản chụp ĐẠT + dòng con, bản chốt trỏ đúng dòng `ord_passenger`, suất đã gắn tên (I19b);
 //   (4) TC-47 trên D1: khai giờ "đã tới" lùi 5 phút → sự kiện VAN_PHONG_KHAI, giờ xảy ra = giờ khai (đúng khuôn toISOString), có chính sách; khai ngoài kẹp →
 //       409 gio_xay_ra_ngoai_khoang kèm giờ sớm nhất; Kế toán → 403;
-//   (5) lớp CSDL trên D1 thật: giờ xảy ra MÁY CHỦ khác giờ ghi nhận → CHECK chặn; sửa sự kiện → trigger chặn.
+//   (5) lớp CSDL trên D1 thật: giờ xảy ra MÁY CHỦ khác giờ ghi nhận → CHECK chặn; sửa sự kiện → trigger chặn;
+//   (9) HT-01 (kiểm theo vai 2/10 — V1.2): hai đơn cùng xuống Bến tàu → điểm đón đứng TRƯỚC điểm trả chung (một lần xếp, và xếp thêm lần sau).
 // Dữ liệu độc nhất theo lần chạy (SĐT ngẫu nhiên, biển số theo Date.now()). Chuyến chạy NGÀY KIA (xếp không vướng mốc 6 giờ); xuất bến sớm là hợp lệ.
 // Tên khách, số giấy tờ là GIẢ.
 import assert from "node:assert/strict";
@@ -266,3 +267,46 @@ assert.equal(r.status, 200, JSON.stringify(r.body));
 r = await call(SALES, "GET", `/api/van-chuyen/chuyen/${tripK}`);
 assert.deepEqual(r.body.suat.filter((s) => s.loai === "CREW").map((s) => s.tenNguoiDiKem), [ACCOUNTS.field.name]);
 console.log("✓ (8) người đi kèm: chỉ HDV đang hoạt động, không SĐT; người khác 409; HDV 200 có tên");
+
+// --- (9) HT-01 (kiểm theo vai 2/10 — lộ trình 3/10 V1.2): hai đơn cùng xuống Bến tàu → mọi điểm đón đứng trước điểm trả chung ---
+const xe4 = uuid();
+await sql(`INSERT INTO vc_vehicle (id, plate_number, plate_key, chassis_number, chassis_key, name, model_year, passenger_capacity, owner_party_id, status, valid_from_date, created_at, updated_at)
+  VALUES ('${xe4}', '79F-${duoi.slice(0, 3)}.${duoi.slice(3)}7', '79F${duoi}7', 'E2ETT${duoi}', 'E2ETT${duoi}', 'Xe thứ tự điểm E2E', 2021, 15, '${chu}', 'active', '2026-09-01', '${AT}', '${AT}')`);
+const donGio = async (ten, noi, gio) => {
+  const x = await call(SALES, "POST", "/api/orders", orderInput({ services: [catalogService({ pax: { adult: ten.length }, departDate: D, legs: [{ ...leg(noi), pickupTime: gio }] })], passengers: ten }));
+  assert.equal(x.status, 201, JSON.stringify(x.body));
+  assert.equal((await call(SALES, "POST", `/api/orders/${x.body.order.id}/status`, { status: "confirmed" })).status, 200);
+  return x.body.order;
+};
+const mt = await donGio([P(21), P(22), P(23), P(24)], `KS Mường Thanh E2E ${duoi}`, "06:30");
+const nv = await donGio([P(25), P(26)], `KS Novotel E2E ${duoi}`, "06:45");
+const th = await donGio([P(27)], `KS Thứ Ba E2E ${duoi}`, "07:00");
+r = await call(SALES, "POST", "/api/van-chuyen/chuyen", { requestId: uuid(), xeId: xe4, taiXePartyId: txParty, batDau: { ngay: D, gio: "06:00" }, ketThuc: { ngay: D, gio: "08:30" } }); // trước chuyến 09:30 của cùng tài xế, nghỉ đủ
+assert.equal(r.status, 201, JSON.stringify(r.body));
+const tripT = r.body.chuyen.id;
+r = await call(SALES, "POST", `/api/van-chuyen/chuyen/${tripT}/phan-bo`, {
+  version: r.body.chuyen.version, requestId: uuid(), chang: [{ legId: mt.services[0].legs[0].id, soSuat: 4 }, { legId: nv.services[0].legs[0].id, soSuat: 2 }],
+});
+assert.equal(r.status, 200, JSON.stringify(r.body));
+const nhanNoi = (t) => (/Mường Thanh/.test(t) ? "MT" : /Novotel/.test(t) ? "NV" : /Thứ Ba/.test(t) ? "TB" : "BEN");
+const thuTuDiem = (body) => [...body.diem].sort((x, y) => x.thuTu - y.thuTu).map((d) => `${d.loai === "PICKUP" ? "ĐÓN" : "TRẢ"} ${nhanNoi(d.tenNoi)}`);
+assert.deepEqual(thuTuDiem(r.body), ["ĐÓN MT", "ĐÓN NV", "TRẢ BEN"], "trước sửa: Đón MT → Trả Bến tàu → Đón Novotel");
+assert.equal(r.body.diem.filter((d) => d.loai === "DROPOFF").length, 1, "nơi trả chung vẫn gộp một điểm");
+// Mọi suất: điểm lên đứng trước điểm xuống.
+const kiemSuat = (body) => {
+  const tt = new Map(body.diem.map((d) => [d.id, d.thuTu]));
+  for (const s of body.suat.filter((x) => x.loai === "PASSENGER")) assert.ok(tt.get(s.diemLen) < tt.get(s.diemXuong), `suất ${s.id}: lên ${tt.get(s.diemLen)} < xuống ${tt.get(s.diemXuong)}`);
+  assert.ok(!body.canhBao.some((w) => w.loai === "TRA_TRUOC_DON"), "không còn cảnh báo trả trước đón");
+};
+kiemSuat(r.body);
+// Xếp thêm đoàn thứ ba ở lần bấm SAU: điểm trả ĐÃ CÓ phải đổi số thứ tự (câu đổi thứ tự điểm cũ) để đứng sau điểm đón mới.
+r = await call(SALES, "POST", `/api/van-chuyen/chuyen/${tripT}/phan-bo`, { version: r.body.chuyen.version, requestId: uuid(), chang: [{ legId: th.services[0].legs[0].id, soSuat: 1 }] });
+assert.equal(r.status, 200, JSON.stringify(r.body));
+assert.deepEqual(thuTuDiem(r.body), ["ĐÓN MT", "ĐÓN NV", "ĐÓN TB", "TRẢ BEN"]);
+kiemSuat(r.body);
+const seqD1 = await sqlRows(`SELECT kind, seq FROM vc_trip_stop WHERE trip_id = '${tripT}' ORDER BY seq`);
+assert.deepEqual(seqD1.map((x) => [x.kind, x.seq]), [["PICKUP", 1], ["PICKUP", 2], ["PICKUP", 3], ["DROPOFF", 4]], "D1: tập số thứ tự liền 1..4, điểm trả cuối");
+const [nkSap] = await sqlRows(`SELECT detail FROM audit_log WHERE action = 'trip_allocated' AND target_id = '${tripT}' ORDER BY created_at DESC LIMIT 1`);
+assert.match(nkSap.detail, /sắp lại thứ tự 1 điểm \(đón trước trả\)/, nkSap.detail);
+assert.doesNotMatch(nkSap.detail, /Khách Điều Phối|KS /, "nhật ký không mang tên khách / tên nơi tự do");
+console.log("✓ (9) HT-01: hai đơn cùng Bến tàu → [Đón MT, Đón Novotel, Trả]; xếp thêm đoàn sau → điểm trả cũ đổi số, vẫn cuối; không cảnh báo trả trước đón");

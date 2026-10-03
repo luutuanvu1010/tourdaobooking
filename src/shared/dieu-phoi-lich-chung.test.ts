@@ -200,3 +200,28 @@ test("nhãn hai loại mới có chữ, không lộ mã", () => {
     assert.doesNotMatch(NHAN_CANH_BAO_LICH[l], /[A-Z]{2,}_/);
   }
 });
+
+test("HT-01 (V1.2) TRA_TRUOC_DON: suất CHỜ ĐÓN có điểm xuống đứng trước điểm lên → CHỈ cảnh báo (một mục mỗi chặng; lyDoGiu KHÔNG đổi — chặn hẳn chờ ADR-0096); đúng thứ tự / đã lên xe / chuyến đã kết thúc → không", () => {
+  // Tái hiện: 1 Đón Mường Thanh → 2 Trả Bến tàu → 3 Đón Novotel; đoàn Novotel xuống ở điểm 2.
+  const diem = (tripId: string): DiemVao[] => [
+    { id: "d1", tripId, seq: 1, loai: "PICKUP", trangThai: "PENDING", placeKey: "L:noi-d1", gioXeToiMs: null },
+    { id: "d9", tripId, seq: 2, loai: "DROPOFF", trangThai: "PENDING", placeKey: "L:noi-d9", gioXeToiMs: null },
+    { id: "d3", tripId, seq: 3, loai: "PICKUP", trangThai: "PENDING", placeKey: "L:noi-d3", gioXeToiMs: null },
+  ];
+  const ca = (trangThai: ChuyenVao["trangThai"], sTrangThai: SuatVao["trangThai"] = "WAITING") => dungLichChung(vao({
+    chang: [chang("a", { nguoiCuaDon: ["a-p1"], soNguoi: 1 }), chang("b", { nguoiCuaDon: ["b-p1", "b-p2"], khoaNoiDon: "L:noi-d3" })],
+    chuyen: [chuyen("07", { trangThai })],
+    diem: diem("07"),
+    suat: [suat("s1", "a", "07", { personKey: "a-p1" }), suat("s2", "b", "07", { personKey: "b-p1", boardStopId: "d3", trangThai: sTrangThai }), suat("s3", "b", "07", { personKey: "b-p2", boardStopId: "d3", trangThai: sTrangThai })],
+  }));
+  const r = ca("PLANNED");
+  assert.deepEqual(r.canhBao.filter((c) => c.loai === "TRA_TRUOC_DON"), [{ loai: "TRA_TRUOC_DON", legId: "b", tripId: "07", orderCode: "ĐH-b" }]);
+  assert.deepEqual(r.chuyen[0]!.lyDoGiu, [], "chỉ cảnh báo — chưa thành lý do giữ (không thêm mã vào MA_GIU)");
+  assert.equal(ca("RUNNING").canhBao.filter((c) => c.loai === "TRA_TRUOC_DON").length, 1, "đang chạy: vẫn báo để văn phòng gọi tài xế");
+  assert.equal(ca("RUNNING", "BOARDED").canhBao.filter((c) => c.loai === "TRA_TRUOC_DON").length, 0, "khách đã lên xe: không còn 'trả trước đón'");
+  assert.equal(ca("ENDED").canhBao.filter((c) => c.loai === "TRA_TRUOC_DON").length, 0);
+  // Đúng thứ tự (điểm mặc định d1 → d9) → không.
+  const dung = dungLichChung(vao({ chang: [chang("a", { nguoiCuaDon: ["a-p1"], soNguoi: 1 })], chuyen: [chuyen("07")], suat: [suat("s1", "a", "07", { personKey: "a-p1" })] }));
+  assert.equal(dung.canhBao.filter((c) => c.loai === "TRA_TRUOC_DON").length, 0);
+  assert.ok(NHAN_CANH_BAO_LICH.TRA_TRUOC_DON.length > 0);
+});

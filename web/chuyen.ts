@@ -112,6 +112,17 @@ function ve(): void {
   for (const w of r.canhBao.filter((x) => x.loai === "GIO_LAI_VUOT" || x.loai === "CHUYEN_DAI_CAN_NGHI")) {
     dais.push(dai("warning", w.nhan, ["Chỉ nhắc — không chặn xuất bến. Toàn quyền đổi con số ở Chính sách điều phối."]));
   }
+  // HT-01 (kiểm theo vai 2/10 — V1.2): điểm trả đứng trước điểm đón của khách — chỉ nhắc (chặn ở cổng xuất bến chờ ADR-0096). Một dải cho mọi đơn.
+  const traTruoc = r.canhBao.filter((x) => x.loai === "TRA_TRUOC_DON");
+  if (traTruoc.length > 0 && (c.trangThai === "PLANNED" || c.trangThai === "RUNNING")) {
+    const don = [...new Set(traTruoc.map((w) => w.maDon).filter((x): x is string => !!x))].join(", ");
+    dais.push(dai("warning", traTruoc[0]!.nhan, [
+      `${don ? `Đơn ${don}: ` : ""}khách sẽ được trả ở một điểm đứng trước điểm đón của chính họ.`,
+      c.trangThai === "RUNNING"
+        ? `Xe đang chạy — đổi thứ tự bằng nút ↑ ↓ ở danh sách điểm hoặc gọi tài xế${c.taiXe ? ` ${c.taiXe.ten}` : ""}.`
+        : "Rút rồi xếp lại khách của đơn này: khi xếp, máy tự đưa điểm đón lên trước điểm trả. Chỉ nhắc — chưa chặn xuất bến.",
+    ]));
+  }
   if (c.trangThai === "RUNNING") {
     for (const w of r.canhBao.filter((x) => x.loai === "NOI_HEN_KHAC_DIEM")) {
       dais.push(dai("warning", "Nơi hẹn khác điểm xe", [`Đơn ${w.maDon ?? ""} hẹn khác điểm của xe. Xe đang chạy nên không cập nhật điểm — gọi tài xế${c.taiXe ? ` ${c.taiXe.ten}` : ""}.`]));

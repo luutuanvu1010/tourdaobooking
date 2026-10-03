@@ -11,6 +11,7 @@ import { error, json } from "../../shared/http";
 import type { LyDoGiu, MaGiu } from "../../shared/ly-do-giu";
 import { can, type PermissionHolder } from "../../shared/permissions";
 import { maskLongDigits } from "../../shared/text-guards";
+import { sapDonTruocTra } from "../../shared/thu-tu-diem";
 import { msToVnLocal } from "../../shared/vn-date";
 import { allocsByTrips, banChupCuoi, eventByRequest, eventsByTrips, stopsByTrips, tenNguoiDiKem, type StopRow, type TripRow } from "./chuyen-repo";
 import type { CauCoNhan, DiemMoi } from "./dieu-phoi";
@@ -114,6 +115,25 @@ export function diemChoKhoa(
   const id = crypto.randomUUID();
   moi.push({ id, tripId, seq, loai, locationId: diemDanhMuc, placeText: diemDanhMuc ? null : maskLongDigits(chu ?? ""), placeKey: khoa });
   return id;
+}
+/**
+ * HT-01 (kiểm theo vai 2/10 — V1.2): sau khi dựng điểm bằng `diemChoKhoa` (điểm trả DÙNG LẠI theo khoá nơi có thể đứng trước điểm đón MỚI), sắp lại điểm
+ * CHƯA TỚI của chuyến để mọi điểm đón của một suất đứng trước điểm trả của suất đó, giữ thứ tự tương đối còn lại (MỘT luật: `sapDonTruocTra`). `suat` =
+ * suất còn mở SAU lệnh (cũ + mới). Điểm MỚI: đổi `seq` ngay trong `moi` (chèn đúng số); điểm ĐÃ CÓ: trả `{ id, seq }` để lô đổi thứ tự (`STOP_SET_SEQ`).
+ * `boQua`: điểm lô này sẽ bỏ qua (I20) — không xét, giữ số. Chỉ sắp, không chặn: chặn "trả trước đón" ở cổng xuất bến chờ ADR-0096.
+ */
+export function sapLaiDiem(
+  stops: readonly StopRow[], moi: DiemMoi[], tripId: string, suat: readonly { board: string | null; alight: string | null }[], boQua: readonly string[] = [],
+): { id: string; seq: number }[] {
+  const bo = new Set(boQua);
+  const cu = stops.filter((s) => s.trip_id === tripId && s.status === "PENDING" && !bo.has(s.id));
+  const mMoi = moi.filter((d) => d.tripId === tripId);
+  const doi = sapDonTruocTra(
+    [...cu.map((s) => ({ id: s.id, seq: s.seq, dangCho: true })), ...mMoi.map((d) => ({ id: d.id, seq: d.seq, dangCho: true }))],
+    suat.map((x) => ({ diemLen: x.board, diemXuong: x.alight })),
+  );
+  for (const d of mMoi) d.seq = doi.get(d.id) ?? d.seq;
+  return cu.flatMap((s) => (doi.has(s.id) ? [{ id: s.id, seq: doi.get(s.id)! }] : []));
 }
 /** Điểm chưa tới (PENDING) không còn suất mở nào (lên hoặc xuống) sau lệnh → bỏ qua `BO_QUA_KHONG_CON_KHACH` (I20). */
 export function diemKhongConKhach(stops: readonly StopRow[], tripId: string, conMo: readonly { board: string | null; alight: string | null }[]): string[] {
