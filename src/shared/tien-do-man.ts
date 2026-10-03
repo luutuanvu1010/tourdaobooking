@@ -206,9 +206,13 @@ export interface TheCuoc {
   canhBao: string[];
   /** Chuyến đang chạy → nút "Mở chuyến đang chạy". */
   moChay: boolean;
+  /** HT-24: chuyến đang chạy có ngày xuất bến ngoài ba ngày đang xem (vắt qua nửa đêm, hoặc xuất bến sớm) — "Xuất bến dd/mm"; thẻ khác không có. */
+  nhanNgay?: string;
 }
 /** Ba nhóm "Hôm nay", "Ngày mai", "Ngày kia" (luôn có, trống vẫn hiện — góp ý T3: tài xế xem trước 2–3 ngày), mỗi nhóm theo giờ xuất bến. Không tên,
- *  không SĐT khách (R-P17; tên / năm sinh chỉ ở chi tiết chuyến TRONG ngày chạy — ADR-0053). */
+ *  không SĐT khách (R-P17; tên / năm sinh chỉ ở chi tiết chuyến TRONG ngày chạy — ADR-0053).
+ *  HT-24 (kiểm theo vai 2/10): chuyến ĐANG CHẠY mà ngày xuất bến không thuộc ba ngày (máy chủ trả chuyến RUNNING bất kể ngày — route 19) vào "Hôm nay", đứng
+ *  ĐẦU, kèm `nhanNgay` — không có thì chuyến vắt qua 0 giờ biến khỏi danh sách khi còn khách trên xe. */
 export function nhomCuoc(ds: readonly CuocCuaToiItemDto[], homNay: string): { tieuDe: string; ngay: string; iso: string; the: TheCuoc[] }[] {
   const mai = addDays(homNay, 1);
   const kia = addDays(homNay, 2);
@@ -224,8 +228,13 @@ export function nhomCuoc(ds: readonly CuocCuaToiItemDto[], homNay: string): { ti
     };
   };
   const theoNgay = (ngay: string) => ds.filter((c) => c.gioXuatBen.ngay === ngay).sort((a, b) => a.gioXuatBen.gio.localeCompare(b.gioXuatBen.gio)).map(the);
+  const baNgay = [homNay, mai, kia];
+  const chayNgoai = ds
+    .filter((c) => c.trangThai === "RUNNING" && !baNgay.includes(c.gioXuatBen.ngay))
+    .sort((a, b) => `${a.gioXuatBen.ngay} ${a.gioXuatBen.gio}`.localeCompare(`${b.gioXuatBen.ngay} ${b.gioXuatBen.gio}`))
+    .map((c) => ({ ...the(c), nhanNgay: `Xuất bến ${c.gioXuatBen.ngay.slice(8, 10)}/${c.gioXuatBen.ngay.slice(5, 7)}` }));
   return [
-    { tieuDe: "Hôm nay", ngay: thuNgay(homNay), iso: homNay, the: theoNgay(homNay) },
+    { tieuDe: "Hôm nay", ngay: thuNgay(homNay), iso: homNay, the: [...chayNgoai, ...theoNgay(homNay)] },
     { tieuDe: "Ngày mai", ngay: thuNgay(mai), iso: mai, the: theoNgay(mai) },
     { tieuDe: "Ngày kia", ngay: thuNgay(kia), iso: kia, the: theoNgay(kia) },
   ];
