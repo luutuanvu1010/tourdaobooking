@@ -29,6 +29,12 @@ Phát hiện NHỎ (nợ, chưa làm):
 - N-V1-2: dải nhắc `TRA_TRUOC_DON` ở `/chuyen` chưa có bước Chrome riêng (v1-smoke không dựng chuyến cũ sai thứ tự).
 - Ghi chú: khi xếp đơn mới, chuyến cũ vốn sai thứ tự được sửa luôn (cả điểm của đơn khác) — đúng yêu cầu; nhật ký ghi số điểm đổi.
 
+## Kịch bản Chrome cũ chạy lại (3/10)
+- `chuyen-smoke.mjs` (chi tiết chuyến): **9/9 xanh**. `trang-chu-smoke.mjs` (Trang chủ, kèm axe): **OK (44 dòng ✓)**.
+- `cuoc-smoke.mjs` (màn tài xế): 8 ✓ / 4 ✗ (3b, 4, 5, 6) — **ĐỎ SẴN**: chạy đúng kịch bản trên `main` gốc `dfee4a8c` (worktree tạm) ra CÙNG 4 bước đỏ, cùng
+  nguyên nhân (sau "Xuất bến" chuyến TH, trang gọi `/api/auth/session-ended` — phiên của Cường bị đá theo luật một máy, bẫy 57 (4) của CHANGE-GUIDE: `as()`
+  đăng nhập lại mỗi lần mở trang); không do V1. Nợ: sửa kịch bản (mở trang Cường một lần, không đăng nhập lại từ Node giữa chừng) — việc riêng.
+
 ## Nợ / chưa làm khác
 - E2E chuẩn chưa chạy được ở phiên này (mạng chặn Turnstile) — chạy lại `npm run test:e2e -- dieu-phoi tai-xe-cuoc van-chuyen` trên máy có mạng.
 - Nút "Hỗ trợ" nổi vẫn có thể che MÉP một nút GIỮA danh sách khi chưa cuộn tới cuối (ảnh `4a`, nút "Đã trả") — V1.5a chỉ xử lý thanh / khối nút CUỐI trang

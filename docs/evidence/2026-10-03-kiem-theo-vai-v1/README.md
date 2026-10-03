@@ -28,6 +28,9 @@ Thư viện dùng chung `docs/evidence/2026-09-20-a2/kich-ban/a2-cdp.mjs`: đăn
 
 Kịch bản cũ `docs/evidence/2026-09-29-adr-0049/kich-ban/cuoc-smoke.mjs` sửa theo V1.3: bấm "Xuất bến" rồi bấm `[data-action="xuat-ben-xac-nhan"]` trong hộp.
 
+Kịch bản cũ chạy lại: `chuyen-smoke.mjs` 9/9 xanh; `trang-chu-smoke.mjs` OK (kèm axe); `cuoc-smoke.mjs` 8 ✓ / 4 ✗ — 4 bước đỏ Y HỆT trên `main` gốc
+`dfee4a8c` (phiên tài xế bị đá theo luật một máy sau khi kịch bản đăng nhập lại) → đỏ sẵn, không do V1 (sổ thi công V1).
+
 ## E2E
 
 Môi trường phiên này **chặn mạng tới `challenges.cloudflare.com`** (Turnstile siteverify) → `npm run test:e2e -- …` chuẩn trả 503 `turnstile_unavailable`
