@@ -12,7 +12,7 @@ import { moBangTruot } from "./bang-truot";
 import { h, replaceChildren, type Child } from "./dom";
 import { chip, dai, docLoiLenh, LOI_MANG, nhomChon } from "./dieu-phoi-ui";
 import { icon } from "./icons";
-import { msToVnLocal } from "../src/shared/vn-date";
+import { msToVnLocal, ngayNgan } from "../src/shared/vn-date";
 
 /** Câu lỗi của một lệnh tiến độ (409 giờ / còn khách / câu máy chủ / mất mạng). */
 export function cauLoiTienDo(e: unknown, bayGioMs: number, ngayXem: string): { cau: string; oGio: boolean; mang: boolean } {
@@ -113,7 +113,7 @@ export function moKhaiGio(o: {
 /** Dòng mốc tiến độ ("Đã tới 07:31 · ghi lúc 07:45 — Hoa" + chip "giờ do văn phòng khai") — thành phần B. */
 export function dongMoc(nhan: string, m: MocTienDoDto | null, ngayXem: string): HTMLElement | null {
   if (!m) return null;
-  const gio = (g: GioVnDto) => (g.ngay === ngayXem ? g.gio : `${g.gio} ${g.ngay.slice(8, 10)}/${g.ngay.slice(5, 7)}`);
+  const gio = (g: GioVnDto) => (g.ngay === ngayXem ? g.gio : `${g.gio} ${ngayNgan(g.ngay, ngayXem)}`);
   // nhanMocTienDo nhận giờ TRẦN "HH:MM" (chuỗi kèm ngày làm nó ném RangeError — lỗi lần chạy đầu cuoc-smoke); ngày chỉ nối khi khác ngày đang xem.
   const n = nhanMocTienDo({ gioXayRa: m.gioXayRa.gio, gioGhiNhan: m.gioGhiNhan.gio, vanPhongKhai: m.vanPhongKhai, nguoiBam: m.nguoiBam ?? null });
   const sau = n.vanPhongKhai ? n.chu.slice(n.chu.indexOf(" · ") + 3).replace(m.gioGhiNhan.gio, gio(m.gioGhiNhan)) : "";
@@ -141,6 +141,8 @@ export function veDiemChay(o: {
   onLenh: (l: LenhDiem, nut: HTMLButtonElement) => void;
   phuDiem?: (b: BuocDiem) => { ben?: Child; duoi?: Child[] };
   choGui?: ReadonlySet<string>;
+  /** Kiểu A (V1.4): dòng "Vừa ghi … — Sai? Báo văn phòng." ngay dưới dòng khách vừa bấm (màn tài xế; văn phòng không truyền). */
+  vuaGhi?: { suatId: string; cau: string } | null;
 }): HTMLElement[] {
   return buocDiem(o.diem, o.suat, o.trangThai, o.ngayXem).map((b) => {
     const d = b.diem;
@@ -177,6 +179,7 @@ export function veDiemChay(o: {
           { class: `dp-khach${cho ? " is-cho" : ""}`, "data-suat": k.suatId },
           h("div", { class: "dp-khach-dong" }, h("span", { class: "dp-khach-ten" }, k.ten), k.namSinh ? h("span", { class: "dp-khach-nam" }, String(k.namSinh)) : null,
             k.ketQua ? h("span", { class: `dp-khach-kq${k.ketQua === "Vắng" ? " is-vang" : k.ketQua === "Đã đón" || k.ketQua === "Đã trả" ? " is-ok" : ""}` }, k.ketQua) : null),
+          o.vuaGhi?.suatId === k.suatId ? h("div", { class: "dp-vua-ghi", role: "status" }, icon("check", 16, 2), h("span", null, o.vuaGhi.cau)) : null,
           cho ? h("div", { class: "dp-khach-cho" }, "Chưa gửi được", h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary", "data-action": "bam-lai", "data-suat": k.suatId }, "Bấm lại")) : null,
           nut.length ? h("div", { class: "dp-khach-nut" }, ...nut) : null,
         );

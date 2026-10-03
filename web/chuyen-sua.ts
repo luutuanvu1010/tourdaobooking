@@ -8,7 +8,7 @@
 import { gioHien, truongLoiChuyen } from "../src/shared/dieu-phoi-man";
 import type { ChuyenChiTietResponse, ChuyenTomTatDto, GioVnDto, LichChungResponse, LyDoDangDungDto, TaiXeChonDto, XeChonDto } from "../src/shared/contracts";
 import { can } from "../src/shared/permissions";
-import { addDays, isISODate, vnToday } from "../src/shared/vn-date";
+import { addDays, isISODate, ngayNgan, vnToday } from "../src/shared/vn-date";
 import { byId, h, replaceChildren } from "./dom";
 import { dai, docLoiLenh, moPhaLe, taoLenh, thuNgay } from "./dieu-phoi-ui";
 import { datCrumb, loiCua } from "./giay-to-ui";
@@ -66,9 +66,9 @@ async function main(): Promise<void> {
   const quayLai = chuyen ? `/chuyen?id=${encodeURIComponent(chuyen.id)}` : `/dieu-phoi?ngay=${ngay}`;
   const back = byId<HTMLAnchorElement>("cx-back");
   back.href = quayLai;
-  back.textContent = chuyen ? `‹ ${chuyen.ma}` : `‹ Điều phối xe ${ngay.slice(8, 10)}/${ngay.slice(5, 7)}`;
+  back.textContent = chuyen ? `‹ ${chuyen.ma}` : `‹ Điều phối xe ${ngayNgan(ngay, vnToday(new Date()))}`;
   document.body.dataset.back = quayLai;
-  const tieuDe = chuyen ? `Sửa chuyến ${chuyen.ma}` : `Chuyến mới · ${ngay.slice(8, 10)}/${ngay.slice(5, 7)}`;
+  const tieuDe = chuyen ? `Sửa chuyến ${chuyen.ma}` : `Chuyến mới · ${ngayNgan(ngay, vnToday(new Date()))}`;
   byId("cx-title").textContent = tieuDe;
   document.title = `${tieuDe} — Island Booking System`;
   setBarTitle(chuyen ? `Sửa chuyến ${chuyen.ma}` : "Chuyến mới");

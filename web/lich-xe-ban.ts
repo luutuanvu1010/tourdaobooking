@@ -95,7 +95,7 @@ function moRut(m: MucO, ngay: string, opener: HTMLElement): void {
   const loi = h("div", { class: "vc-field-error", role: "alert", hidden: true });
   const dong = h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary" }, "Đóng");
   const rut = h("button", { type: "button", class: "vc-btn btn btn-primary btn-chinh", "data-action": "rut-xac-nhan" }, "Rút");
-  const bang = moBangTruot({ title: "Rút lịch bận", body: [h("p", null, cauHoiRut(m, ngay)), loi], foot: [dong, rut], footClass: "vc-foot-2", opener });
+  const bang = moBangTruot({ title: "Rút lịch bận", body: [h("p", null, cauHoiRut(m, ngay, homNay)), loi], foot: [dong, rut], footClass: "vc-foot-2", opener });
   if (!bang) return;
   dong.addEventListener("click", () => bang.close());
   rut.addEventListener("click", async () => {

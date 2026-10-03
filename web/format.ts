@@ -2,6 +2,7 @@ import { AUDIT_ACTIONS } from "../src/shared/audit-actions";
 import { vndShort } from "../src/shared/money";
 import { PAX_ORDER, type PaxCounts } from "../src/shared/order-lines";
 import { STATUS_LABEL, trangThaiHienThi } from "../src/shared/order-status-label";
+import { ngayNgan, vnToday } from "../src/shared/vn-date";
 import type { AuditAction } from "./api";
 
 const nf = new Intl.NumberFormat("vi-VN");
@@ -35,11 +36,9 @@ export function initials(name: string): string {
   return (first + last).toLocaleUpperCase("vi-VN");
 }
 
-/** "2026-10-01" → "01/10" — thao tác chuỗi thuần, KHÔNG dùng `new Date()` (tránh lệch múi giờ khi ngày không kèm giờ). */
-export function dayMonth(isoDate: string): string {
-  const [, m, d] = isoDate.split("-");
-  return `${d}/${m}`;
-}
+// Kiểu D (V1.5b): `dayMonth` ("dd/mm" không năm) đã bỏ — ngày ngắn qua MỘT hàm `ngayNgan(iso, thamChieu)` của src/shared/vn-date.ts (tự thêm năm khi khác
+// năm). Màn không có ngày tham chiếu nào khác hôm nay thì dùng `ngayNganHomNay`.
+export const ngayNganHomNay = (iso: string): string => ngayNgan(iso, vnToday(new Date()));
 
 const PAX_ABBR: Record<(typeof PAX_ORDER)[number], string> = { adult: "NL", child: "TE", senior: "NCT", infant: "EB" };
 

@@ -6,7 +6,7 @@
 import type { DepartureRuleCreateRequest, DepartureRuleDto, DispatchPolicyCreateRequest, DispatchPolicyDto, LicenseCapacityCreateRequest, TripReasonDto } from "./contracts.ts";
 import { NHAN_NHOM_LY_DO, NHOM_LY_DO, type NhomLyDo } from "./dieu-phoi-kieu.ts";
 import { maskLongDigits } from "./text-guards.ts";
-import { msToVnLocal } from "./vn-date.ts";
+import { msToVnLocal, ngayNgan } from "./vn-date.ts";
 
 // ---- thời lượng ----------------------------------------------------------------------------------------------------------------------------------------------
 /** Số phút → lời thường: "6 giờ", "1 giờ 30 phút", "30 phút". */
@@ -124,15 +124,15 @@ export interface DongLichSu {
   /** R-P23: "<tên> lưu dd/mm HH:MM" (bản vẽ 8a "Lưu Tuấn Vũ lưu 24/09 16:20"); null = DTO không có người lưu (bản gieo) → màn không hiện dòng. */
   nguoiLuu: string | null;
 }
-/** Mốc ISO → "dd/mm HH:MM" giờ VN (lúc lưu một bản). */
-function luuLuc(iso: string): string {
+/** Mốc ISO → "dd/mm HH:MM" giờ VN (lúc lưu một bản); năm khi khác năm của bản hiện hành `thamChieu` (Kiểu D — `ngayNgan`). */
+function luuLuc(iso: string, thamChieu: string | null): string {
   const { date, time } = msToVnLocal(Date.parse(iso));
-  return `${date.slice(8, 10)}/${date.slice(5, 7)} ${time}`;
+  return `${ngayNgan(date, thamChieu)} ${time}`;
 }
-/** Mốc ISO → ngày dân sự VN "dd/mm/yyyy". */
+/** Mốc ISO → ngày dân sự VN tách "dd/mm" + năm (nhãn khoảng hiệu lực tự ghép năm). */
 function ngayVnTuIso(iso: string): { dm: string; y: string } {
   const { date } = msToVnLocal(Date.parse(iso));
-  return { dm: `${date.slice(8, 10)}/${date.slice(5, 7)}`, y: date.slice(0, 4) };
+  return { dm: ngayNgan(date, date), y: date.slice(0, 4) };
 }
 /**
  * Lịch sử bản chính sách (máy chủ trả mới trước). Khoảng hiệu lực: bản cũ kết thúc đúng lúc bản kế tiếp bắt đầu (máy chủ đặt hiệu lực = lúc lưu) → ghi
@@ -157,7 +157,7 @@ export function dongLichSuChinhSach(history: readonly DispatchPolicyDto[]): Dong
       tone: p.current ? "unit" : chuaToi ? "warn" : "muted",
       hieuLuc,
       tomTat: tomTatChinhSach(p),
-      nguoiLuu: p.nguoiLuu ? `${maskLongDigits(p.nguoiLuu)} lưu ${luuLuc(p.validFrom)}` : null,
+      nguoiLuu: p.nguoiLuu ? `${maskLongDigits(p.nguoiLuu)} lưu ${luuLuc(p.validFrom, hienHanh ? msToVnLocal(Date.parse(hienHanh.validFrom)).date : null)}` : null,
     };
   });
 }

@@ -40,14 +40,14 @@ const MAU: Record<string, { vao: Record<string, unknown>; gac: string }> = {
     vao: { ...L, tripId: T, version: 3, moi: { xeId: "x-1", chuXePartyId: "p-1", ngayChay: "2027-03-11", batDauMs: 1, ketThucMs: 2, batDauSomNhatMs: 1, nghiPhaLeLyDo: null }, doiTaiXe: "p-tx2", diem: [{ id: "d-1", seq: 2, ngayXeToi: null, gioXeToi: null }], phaLe: null, policyId: null, detail: "d" },
     gac: T,
   },
-  loXep: { vao: { ...L, tripId: T, version: 3, diemMoi: [diem("d-9")], mocXep: [{ legId: "leg-1", ngay: "2027-03-11", gio: "09:00" }], suatMoi: [suat("a-1"), suat("a-2")], phaLe: null, policyId: null, detail: "d" }, gac: T },
+  loXep: { vao: { ...L, tripId: T, version: 3, diemMoi: [diem("d-9")], doiThuTu: [{ id: "d-2", seq: 4 }], mocXep: [{ legId: "leg-1", ngay: "2027-03-11", gio: "09:00" }], suatMoi: [suat("a-1"), suat("a-2")], phaLe: null, policyId: null, detail: "d" }, gac: T },
   loRut: { vao: { ...L, tripId: T, version: 3, suatIds: ["a-1"], diemBoQua: ["d-1"], phaLe: null, policyId: null, detail: "d" }, gac: T },
   loDoi: {
-    vao: { ...L, nguon: { tripId: T, version: 3 }, dich: { tripId: T2, version: 5 }, cap: [{ dongId: "a-1", mo: suat("a-9", T2) }], diemMoiDich: [diem("d-9", T2)], diemBoQuaNguon: ["d-1"], phaLe: null, policyId: null, detail: "d" },
+    vao: { ...L, nguon: { tripId: T, version: 3 }, dich: { tripId: T2, version: 5 }, cap: [{ dongId: "a-1", mo: suat("a-9", T2) }], diemMoiDich: [diem("d-9", T2)], doiThuTuDich: [{ id: "d-8", seq: 4 }], diemBoQuaNguon: ["d-1"], phaLe: null, policyId: null, detail: "d" },
     gac: T2,
   },
   loHuy: { vao: { ...L, tripId: T, version: 3, lyDo: "HUY_KHAC", phaLe: null, policyId: null, soSuatMo: 2, detail: "d" }, gac: T },
-  loCapNhatDiem: { vao: { ...L, tripId: T, version: 3, diemMoi: [diem("d-9")], cap: [{ dongId: "a-1", mo: suat("a-9") }], diemBoQua: ["d-1"], detail: "d" }, gac: T },
+  loCapNhatDiem: { vao: { ...L, tripId: T, version: 3, diemMoi: [diem("d-9")], doiThuTu: [{ id: "d-2", seq: 4 }], cap: [{ dongId: "a-1", mo: suat("a-9") }], diemBoQua: ["d-1"], detail: "d" }, gac: T },
   // R-P29 (chủ lần 16): "cập nhật khách theo đơn" — một suất đóng + mở lại, một suất chỉ đóng (đơn giảm người).
   loCapNhatKhach: { vao: { ...L, tripId: T, version: 3, cap: [{ dongId: "a-1", mo: suat("a-9") }, { dongId: "a-2", mo: null }], diemBoQua: ["d-1"], detail: "d" }, gac: T },
   loXuatBen: {

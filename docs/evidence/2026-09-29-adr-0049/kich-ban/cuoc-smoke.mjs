@@ -152,6 +152,10 @@ try {
     assert.equal(await p.ev("!!document.querySelector('.dp-cc-diem + .dp-side-card')"), true, "điểm nằm TRƯỚC khối điều kiện xuất bến");
     await shotFull(p, "b6-xuat-ben-dat-dien-thoai.png");
     await p.ev(click('[data-action="xuat-ben"]'));
+    // V1.3 HT-03 (lộ trình kiểm theo vai 3/10): "Xuất bến" chỉ mở hộp xác nhận — bấm nút trong hộp mới gửi lệnh.
+    await p.waitFor(`!!document.querySelector('[data-action="xuat-ben-xac-nhan"]')`, "hộp xác nhận xuất bến");
+    assert.deepEqual(posts(p, "/xuat-ben"), [], "một chạm chỉ mở hộp");
+    await p.ev(click('[data-action="xuat-ben-xac-nhan"]'));
     await p.waitFor(`!!document.querySelector('.dp-cc-head')`, "màn đang chạy"); // bản 1.39: .dp-run nay có cả trước xuất bến → chờ đầu trang "Đang chạy"
     const body = JSON.parse(posts(p, "/xuat-ben").at(-1).body);
     assert.deepEqual(Object.keys(body), ["requestId"], "tài xế tự bấm: không xayRaLuc");
@@ -194,6 +198,9 @@ try {
     assert.equal(await p.ev("document.querySelectorAll('.dp-cc-diem .dp-khach, .dp-run-lien-he').length"), 0, "trước xuất bến: không khách từng người, không liên hệ");
     assert.deepEqual(await p.ev(`[...document.querySelectorAll('.dp-cond')].map((x) => x.innerText.replace(/\\s+/g, ' ').trim())`), ["✓ Đủ điều kiện xuất bến"]);
     await p.ev(click('[data-action="xuat-ben"]'));
+    await p.waitFor(`!!document.querySelector('[data-action="xuat-ben-xac-nhan"]')`, "hộp xác nhận xuất bến TH"); // V1.3: cùng ngày → nút "Xuất bến"
+    assert.equal(await p.ev(txt('[data-action="xuat-ben-xac-nhan"]')), "Xuất bến");
+    await p.ev(click('[data-action="xuat-ben-xac-nhan"]'));
     await p.waitFor(`!!document.querySelector('.dp-cc-head')`, "màn đang chạy TH").catch(async (e) => { throw new Error(`${e.message}\n    trang: ${await p.ev(txt("#cc-trang"))}\n    POST: ${JSON.stringify(apiCalls(p).filter((r) => r.method === "POST").map((r) => r.path))}`); });
     assert.deepEqual(Object.keys(JSON.parse(posts(p, "/xuat-ben").at(-1).body)), ["requestId"], "tài xế tự bấm: không xayRaLuc");
     assert.match(await p.ev(txt(".dp-cc-head")), /^Đang chạy 79A-444\.44 · xuất bến \d\d:\d\d · trên xe 0\/15$/);

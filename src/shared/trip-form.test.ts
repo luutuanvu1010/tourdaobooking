@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { TripInfoDto } from "./contracts.ts";
-import { emptyTrip, formatDm, formatDmy, tripFromDto, tripPayload, tripRows, tripSheetDateIssues, tripSheetRowDate, tripSummaryLine, tripWarnings } from "./trip-form.ts";
+import { emptyTrip, formatDmy, tripFromDto, tripPayload, tripRows, tripSheetDateIssues, tripSheetRowDate, tripSummaryLine, tripWarnings } from "./trip-form.ts";
 import { vnToday } from "./vn-date.ts";
 
 const TODAY = "2026-09-19";
@@ -23,11 +23,10 @@ test("emptyTrip: mọi trường rỗng; tripFromDto: null → \"\" (checkinDate
   });
 });
 
-test("formatDmy / formatDm: đúng khuôn dd/mm/yyyy và dd/mm; giá trị lạ trả nguyên", () => {
+test("formatDmy: đúng khuôn dd/mm/yyyy; giá trị lạ trả nguyên (formatDm đã bỏ — Kiểu D, dùng ngayNgan của vn-date.ts)", () => {
   assert.equal(formatDmy("2026-09-20"), "20/09/2026");
-  assert.equal(formatDm("2026-09-20"), "20/09");
   assert.equal(formatDmy("hôm nay"), "hôm nay");
-  assert.equal(formatDm("2026-02-30"), "2026-02-30");
+  assert.equal(formatDmy("2026-02-30"), "2026-02-30");
 });
 
 test("tripWarnings: ngày đã qua / quá 365 ngày; biên hôm nay và +365 KHÔNG cảnh báo; ngày trống KHÔNG cảnh báo", () => {

@@ -18,7 +18,7 @@ export function vnDateTimeText(iso: string): string {
   const ms = Date.parse(iso);
   if (!Number.isFinite(ms)) return iso;
   const [date, time] = new Date(ms + VN_OFFSET_MS).toISOString().split("T") as [string, string];
-  return `${time.slice(0, 5)} ${date.slice(8, 10)}/${date.slice(5, 7)}/${date.slice(0, 4)}`;
+  return `${time.slice(0, 5)} ${ngayDayDu(date)}`;
 }
 
 const LOCAL_DATETIME_RE = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/;
@@ -84,4 +84,32 @@ export const isHHMM = (s: string): boolean => TIME_RE.test(s);
 export function msToVnLocal(ms: number): { date: string; time: string } {
   const iso = new Date(ms + VN_OFFSET_MS).toISOString();
   return { date: iso.slice(0, 10), time: iso.slice(11, 16) };
+}
+
+// ---- Ngày hiển thị (Kiểu D — kiểm theo vai 2/10, lộ trình 3/10 V1.5b): MỌI chỗ hiện ngày "dd/mm" đi qua `ngayNgan` — tự thêm năm khi khác năm của ngày
+// tham chiếu; ngoài tệp này không cắt chuỗi ngày bằng `slice(8, 10)` / `slice(5, 7)` (bài src/ngay-mot-ham.test.ts).
+const NGAY_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
+/**
+ * "dd/mm"; năm khác năm của `thamChieu` (hôm nay, hoặc ngày đang xem — "YYYY-MM-DD") → "dd/mm/yyyy". Chuỗi không đúng khuôn "YYYY-MM-DD" → trả nguyên.
+ * `thamChieu` rỗng / thiếu (chỉ xảy ra ở bài thử cũ không qua tsc) → "dd/mm" như trước, không ném.
+ */
+export function ngayNgan(iso: string, thamChieu: string | null | undefined): string {
+  const m = NGAY_RE.exec(iso);
+  if (!m) return iso;
+  return !thamChieu || m[1] === thamChieu.slice(0, 4) ? `${m[3]}/${m[2]}` : `${m[3]}/${m[2]}/${m[1]}`;
+}
+/** "dd/mm/yyyy" — luôn có năm (hạn giấy tờ, biên nhận, ngày khởi hành trên phiếu). Chuỗi không đúng khuôn → trả nguyên. */
+export function ngayDayDu(iso: string): string {
+  const m = NGAY_RE.exec(iso);
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : iso;
+}
+
+const THU_VN = ["Chủ nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"] as const;
+/** "Thứ Hai 05/10/2026" — thứ + ngày ĐẦY ĐỦ (có năm) của ngày dân sự "YYYY-MM-DD"; dùng ở hộp xác nhận (HT-03), nơi nhầm ngày gây hại. */
+export function ngayCoThu(iso: string): string {
+  return `${THU_VN[new Date(`${iso}T00:00:00Z`).getUTCDay()]} ${ngayDayDu(iso)}`;
+}
+/** "Thứ Hai 05/10" — thứ + `ngayNgan` (năm chỉ khi khác năm tham chiếu): tiêu đề nhóm ngày ở các màn lịch. */
+export function thuNgayNgan(iso: string, thamChieu: string): string {
+  return `${THU_VN[new Date(`${iso}T00:00:00Z`).getUTCDay()]} ${ngayNgan(iso, thamChieu)}`;
 }

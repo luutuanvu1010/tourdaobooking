@@ -5,18 +5,17 @@
 // - Mục CHUYEN (câu 3.1, chủ 2/10): chỉ mã chuyến CX-… + giờ — không mã đơn, không tên khách; bấm mở Chi tiết chuyến; không rút.
 import type { KhungBanChongChuyenLoi, KhungBanLichDto, LichXeBanResponse } from "./contracts.ts";
 import { chongNuaMo } from "./khung-ban.ts";
-import { addDays, isISODate, isHHMM, msToVnLocal, vnLocalToMs, vnWeekRange } from "./vn-date.ts";
+import { addDays, isISODate, isHHMM, msToVnLocal, ngayNgan, vnLocalToMs, vnWeekRange } from "./vn-date.ts";
 
 const NGAY_MS = 86_400_000;
 const PHUT = 60_000;
-const dm = (ngay: string): string => `${ngay.slice(8, 10)}/${ngay.slice(5, 7)}`;
 const gioCua = (ms: number): string => msToVnLocal(ms).time;
 
 // ---- Tuần ----------------------------------------------------------------------------------------------------------------------------------------------
 /** Tuần đang xem: `tu` (bất kỳ ngày nào trong tuần) hoặc tuần của `homNay`. Nhãn theo bản vẽ "28/09 – 04/10/2026" (năm của ngày cuối). */
 export function tuanXem(tu: string | null, homNay: string): { tu: string; den: string; truoc: string; sau: string; nhan: string } {
   const { from, to } = vnWeekRange(tu !== null && isISODate(tu) ? tu : homNay);
-  return { tu: from, den: to, truoc: addDays(from, -7), sau: addDays(from, 7), nhan: `${dm(from)} – ${dm(to)}/${to.slice(0, 4)}` };
+  return { tu: from, den: to, truoc: addDays(from, -7), sau: addDays(from, 7), nhan: `${ngayNgan(from, from)} – ${ngayNgan(to, to)}/${to.slice(0, 4)}` }; // bản vẽ: năm chỉ ở ngày cuối
 }
 
 // ---- Lưới tuần -----------------------------------------------------------------------------------------------------------------------------------------
@@ -51,7 +50,7 @@ export function luoiTuanXeBan(v: LichXeBanResponse, homNay: string, bayGioMs: nu
   const tuan = tuanXem(v.tu, homNay);
   const ngay = THU.map((thu, i) => {
     const k = addDays(tuan.tu, i);
-    return { k, thu, nhan: dm(k), homNay: k === homNay };
+    return { k, thu, nhan: ngayNgan(k, homNay), homNay: k === homNay };
   });
   const khoang = ngay.map((n) => [vnLocalToMs(n.k, "00:00")!, vnLocalToMs(addDays(n.k, 1), "00:00")!] as const);
   const hang = v.xe.map((x) => {
@@ -72,9 +71,9 @@ export function luoiTuanXeBan(v: LichXeBanResponse, homNay: string, bayGioMs: nu
 }
 
 /** Câu hỏi xác nhận rút (ADR-0055 A1: rút một lần, không xoá). */
-export function cauHoiRut(m: MucO, ngay: string): string {
+export function cauHoiRut(m: MucO, ngay: string, homNay?: string): string {
   const gio = m.gio === "Cả ngày" ? "cả ngày" : m.gio;
-  return `Rút lịch bận ${m.nhan} ${gio} ${dm(ngay)}? Xe sẽ xếp chuyến được trong giờ này.`;
+  return `Rút lịch bận ${m.nhan} ${gio} ${ngayNgan(ngay, homNay)}? Xe sẽ xếp chuyến được trong giờ này.`;
 }
 
 // ---- Dải bận trên Điều phối xe ---------------------------------------------------------------------------------------------------------------------------

@@ -2317,6 +2317,12 @@ body.login-page main.login { display: flex; flex-direction: column; height: 100%
 .dp-sheet-sum { display: flex; flex-direction: column; gap: var(--s1); padding: var(--s3); margin-bottom: var(--s3); background: var(--c-surface-alt); border-radius: var(--radius-sm); }
 .dp-sheet-sum-title { font-family: var(--font-display); font-weight: var(--fw-bold); }
 .dp-sheet-text { margin: 0 0 var(--s3); line-height: 1.5; }
+/* HT-03 (V1.3): bảng mã chuyến / ngày chạy / giờ / biển số / số khách trong hộp xác nhận Xuất bến — hai cột nhãn : giá trị. */
+.dp-xn-ds { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: var(--s2) var(--s4); margin: 0 0 var(--s3); }
+.dp-xn-ds dt { color: var(--c-text-muted); font-size: var(--fs-label); }
+.dp-xn-ds dd { margin: 0; font-weight: var(--fw-bold); }
+/* Kiểu A (V1.4): dòng "Vừa ghi … — Sai? Báo văn phòng." ngay dưới dòng khách / người đi kèm vừa bấm. */
+.dp-vua-ghi { display: flex; align-items: flex-start; gap: var(--s2); margin-top: var(--s2); font-size: var(--fs-label); color: var(--c-green-text); }
 .dp-card-head { display: flex; align-items: center; gap: var(--s2); padding: var(--s3) var(--s4); border-bottom: 1px solid var(--c-border); }
 .dp-card-title { margin: 0; font-family: var(--font-display); font-weight: var(--fw-bold); font-size: var(--fs-ui); color: var(--c-text); }
 .dp-card-head > .chip, .dp-card-note { margin-left: auto; }
@@ -2606,6 +2612,10 @@ body.login-page main.login { display: flex; flex-direction: column; height: 100%
 .dp-cuoc-ma { font-family: var(--font-display); font-size: var(--fs-label); font-weight: var(--fw-bold); }
 .dp-cuoc-top .chip { margin-left: auto; }
 .dp-cuoc-dong { font-size: var(--fs-label); color: var(--c-text-muted); }
+/* Kiểu D (V1.5c): nhãn phạm vi của ô số Trang chủ — "Toàn công ty" (chữ nhạt) / "Của tôi" (màu chính) — cả thẻ máy tính lẫn thẻ điện thoại. */
+.dash-pham-vi { display: block; font-size: var(--fs-step-2); font-weight: var(--fw-semibold, 600); line-height: var(--lh-18); color: var(--c-text-muted); }
+.dash-pham-vi.is-cua-toi { color: var(--c-primary); }
+.dp-cuoc-xb-ngay { font-size: var(--fs-label); font-weight: var(--fw-bold); color: var(--c-primary); }
 .dp-cuoc-canh-bao { display: flex; align-items: flex-start; gap: var(--s2); padding: var(--s2) var(--s3); font-size: var(--fs-label); font-weight: var(--fw-semibold); line-height: 1.45; color: var(--c-sand-text); background: var(--c-sand-soft); border: 1px solid var(--c-sand-border); border-radius: var(--radius-sm); }
 .dp-cuoc-canh-bao svg { flex: none; margin-top: var(--gap-dp-hist); }
 .dp-cuoc-mo { width: 100%; }

@@ -3,6 +3,7 @@
 // Thêm sự kiện D4/D5/ADR-0053: thêm phần tử HANH_DONG_TIN_CHUYEN + một nhánh trong `loaiCho` + một dòng CAU (bảng hai chiều — ADR-0052 dòng 211).
 import { can, type PermissionHolder } from "./permissions.ts";
 import type { ThayDoiChuyen } from "./bang-tin.ts";
+import { msToVnLocal, ngayNgan } from "./vn-date.ts";
 
 export const HANH_DONG_TIN_CHUYEN = ["trip_created", "trip_edited", "trip_cancelled", "trip_ended_interrupted", "trip_passenger_no_show"] as const;
 export const laHanhDongTinChuyen = (a: string): boolean => (HANH_DONG_TIN_CHUYEN as readonly string[]).includes(a);
@@ -40,13 +41,12 @@ function loaiCho(n: NguoiNhanChuyen, d: DongChuyen): LoaiTinChuyen | null {
   return null;
 }
 
-const ngayNgan = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
 const hoa = (s: string) => s.charAt(0).toLocaleUpperCase("vi-VN") + s.slice(1);
 
 export function tinChuyenCho(n: NguoiNhanChuyen, d: DongChuyen): { loai: LoaiTinChuyen; cau: string; lienKet: string } | null {
   const loai = loaiCho(n, d);
   if (!loai) return null;
-  const c = `chuyến ${d.maChuyen} ngày ${ngayNgan(d.ngayChay)}`;
+  const c = `chuyến ${d.maChuyen} ngày ${ngayNgan(d.ngayChay, msToVnLocal(Date.parse(d.luc)).date)}`; // năm khi khác năm của lúc sự kiện (Kiểu D)
   const id = encodeURIComponent(d.tripId);
   switch (loai) {
     case "xep_lai": return { loai, cau: `Bạn được xếp lái ${c}`, lienKet: `/cuoc-chuyen?id=${id}` };

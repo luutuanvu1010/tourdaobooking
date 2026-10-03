@@ -18,7 +18,7 @@ import { NHAN_TU_CHOI_GOI_BAO, type MaTuChoiGoiBao } from "../src/shared/goi-bao
 import { ApiError } from "./api";
 import { can } from "../src/shared/permissions";
 import { nhanThoiLuong } from "../src/shared/chinh-sach-hien-thi";
-import { addDays, isISODate, vnToday } from "../src/shared/vn-date";
+import { addDays, isISODate, ngayNgan, vnToday } from "../src/shared/vn-date";
 import { api } from "./api";
 import { moBangTruot } from "./bang-truot";
 import { append, byId, h, replaceChildren, type Child } from "./dom";
@@ -315,7 +315,7 @@ function theChon(): HTMLElement | null {
   );
 }
 const TONE_KIEU = { plan: "unit", run: "navy", done: "ok", held: "danger", nodrv: "warn", cancel: "muted" } as const;
-const gioChuyen = (c: ChuyenTomTatDto) => `${c.batDau.ngay === ngay ? c.batDau.gio : `${c.batDau.gio} ${c.batDau.ngay.slice(8, 10)}/${c.batDau.ngay.slice(5, 7)}`}–${c.ketThuc.ngay === ngay ? c.ketThuc.gio : `${c.ketThuc.gio} ${c.ketThuc.ngay.slice(8, 10)}/${c.ketThuc.ngay.slice(5, 7)}`}`;
+const gioChuyen = (c: ChuyenTomTatDto) => `${c.batDau.ngay === ngay ? c.batDau.gio : `${c.batDau.gio} ${ngayNgan(c.batDau.ngay, ngay)}`}–${c.ketThuc.ngay === ngay ? c.ketThuc.gio : `${c.ketThuc.gio} ${ngayNgan(c.ketThuc.ngay, ngay)}`}`;
 
 function veCanXuLy(viec: ViecCanXuLy[]): void {
   replaceChildren(
