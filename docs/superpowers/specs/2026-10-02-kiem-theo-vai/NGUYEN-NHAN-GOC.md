@@ -237,3 +237,27 @@ Thứ tự khuyến nghị: (a) VP-01 + bổ sung ADR-0092 (đang có hạn 31/1
 **Chỉ đọc mã, chưa chạy:** HT-24, HT-03, HT-01, kiểu A–D (không chạy trình duyệt, không chạy e2e). Ý định nguyên văn của chủ về "xuất bến chuyến chưa tới ngày": chưa có. "Câu báo sai tình huống": không có mã lỗi để truy. Dữ liệu production có cặp số dư âm nào do VP-01 chưa: chỉ kiểm được bằng SELECT chỉ-đọc trên D1 remote do chủ chạy.
 
 **Chưa có người kiểm độc lập** đọc lại bản này (phiên này một vai: điều tra). Người tổng hợp đã đối chiếu bốn báo cáo thành phần với nhau và với tài liệu gốc R1–R9; chưa tự mở lại từng dòng mã được trích (bị chặn quyền đọc một số tệp giữa phiên), nên tệp:dòng ở mục 3 là của trợ lý điều tra — người thi công phải mở lại trước khi sửa.
+
+---
+
+## 8. Quyết định của chủ dự án (chat 2026-10-03)
+
+Hai lời chủ trả lời các câu ở mục 6 (giữ nguyên văn, kể cả lỗi gõ):
+
+> **Lời 1:** "1- A, 2-A, 3-ok theo khuyến nghị làm 1-2-3, 3a: … Rõ ràng là sai thì phải chặn, đồng thời cho cách khắc phục. 3b- ok vậy thì không phải là cho phá lệ mà ta đặt thêm nguyên tắc logic lọc. Không chấp nhận phá lệ, tất cả đều được luật hoá"
+
+> **Lời 2:** "3a - theo khuyến nghị, 3b-ok cho 12 giờ, con số này có thể thay đổi trong bảng điều khiển của Super Admin (toàn quyền), 4- Máy chủ tự tra, yêu cầu là phải tránh việc trùng số điện thoại, vì tên người vẫn có thể trùng."
+
+**Diễn giải** (người soạn V0 ghi, đối chiếu từng câu ở mục 6; chỗ nào lời chủ chưa nói thì không tự thêm):
+
+| Câu ở mục 6 | Chủ chọn | Nghĩa áp dụng |
+|---|---|---|
+| 1 — VP-01 vào sổ dừng dây chuyền | **A** (mục riêng) | Mục riêng `TNV-VP01` trong `docs/quyen-hoan.json`, mức HIGH, hạn **2026-10-31** (cùng hạn TNV-G4), người chịu trách nhiệm: chủ dự án. |
+| 2 — Cách sửa VP-01 | **A** | Chặn lệnh tất toán thứ hai: một dòng giữ hộ (`HELD`) chỉ được tất toán **một lần**, bằng **một trong hai** đường ("Công ty đã nhận" hoặc "Đã nộp"). Lệnh thứ hai bị từ chối kèm câu chỉ đường. **Không đổi mô hình dòng** (dòng đảo HELD giữ nguyên; không đổi thành dòng quyết toán). Ghi vào ADR-0092 nháp thành Đ2b. |
+| 3 — Thứ tự bốn lỗi luật lõi chuyến | **ok theo khuyến nghị, làm 1-2-3** | Thứ tự: **V1** (việc nhỏ không cần ADR: sắp lại điểm, hộp xác nhận, cảnh báo ngày) → **ADR** (luật thứ tự điểm + cửa sổ xuất bến; sự kiện điều chỉnh có lý do) → **V3** (thi công luật lõi). |
+| 3a — "Trả trước đón" có thành lý do giữ xuất bến | **Chặn + cho cách khắc phục; theo khuyến nghị** | Luật **"mọi điểm đón của một suất đứng trước điểm trả của suất đó"**. Vi phạm ⇒ **chặn xuất bến** (lý do giữ). Cách khắc phục: máy **tự sắp lại khi xếp**; có **nút đổi thứ tự** để văn phòng sửa tay. |
+| 3b — Chuyến chưa tới ngày có bị chặn xuất bến | **Luật lọc, không phá lệ; 12 giờ; Toàn quyền đổi được** | **Cửa sổ xuất bến 12 giờ** trước giờ khởi hành dự kiến. Là **chính sách có ngày hiệu lực**; **Toàn quyền** đổi con số ở bảng điều khiển. **Không có đường phá lệ** cho bất kỳ ai ("tất cả đều được luật hoá"). |
+| 4 — ADR-0001 §8 hay ADR-0014 đ5 thắng | **Máy chủ tự tra; khoá là SĐT** | Máy chủ tra trùng theo **số điện thoại đã chuẩn hoá**, cho **mọi vai** lập đơn; đã có hồ sơ cùng số ⇒ **dùng lại**, không tạo hồ sơ thứ hai. Đối tác / Thực tập chỉ nhận thông điệp "đã có hồ sơ, dùng lại", **không** nhận chi tiết hồ sơ. Tên **không** là khoá (tên người có thể trùng). |
+| 5 — Ba luật quy trình (5.1–5.3) | Chưa trả lời | Giữ chờ; V7 của lộ trình chưa mở. |
+
+Nơi thi hành: lộ trình `docs/superpowers/plans/2026-10-03-khac-phuc-kiem-theo-vai-00-lo-trinh.md` (V0 soạn giấy tờ; V2, V3, V4 thi công). Văn bản trình duyệt của V0: `docs/superpowers/specs/2026-10-03-v0-luot-duyet/`.
