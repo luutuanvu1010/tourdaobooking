@@ -91,6 +91,15 @@
       "han": "2026-10-31",
       "nguoi_chiu_trach_nhiem": "chủ dự án",
       "nguon": "~/Documents/danh-gia-ux/2026-10-01/BAO-CAO.md G4; chủ dự án đồng ý 2026-10-02"
+    },
+    {
+      "ma": "TNV-VP01",
+      "muc_do": "HIGH",
+      "ly_do": "Sổ tiền trừ hai lần một khoản chuyển khoản. Một dòng giữ hộ (HELD) sinh từ lần thu \"Công ty thu – CK\" có HAI đường tất toán hợp lệ: \"Đã nộp\" (dòng quyết toán — src/modules/billing/service.ts:361-397) và \"Công ty đã nhận\" (dòng đảo HELD — service.ts:331-355). Máy chủ, trigger (migrations/0045_billing_so_cong_no.sql:182-255) và audit-invariants đều không chặn làm cả hai: Kế toán bấm \"Đã nộp\" rồi \"Xác nhận đã nhận\" (hoặc ngược thứ tự qua API) thì số dư người khai trên đơn ÂM đúng bằng khoản đó, bộ kiểm vẫn báo đạt. Tái hiện thật 2/10 trên khung thử SQLite (NGUYEN-NHAN-GOC.md §3.1), hai người kiểm độc lập xác nhận (BAO-CAO-LOI-DAY-DU.md mục 1). Cùng họ TNV-G4 (KT04) nhưng ADR-0092 nháp bản 3.3 chưa phủ đường \"Công ty đã nhận\".",
+      "ke_hoach": "Đợt V2 của lộ trình docs/superpowers/plans/2026-10-03-khac-phuc-kiem-theo-vai-00-lo-trinh.md (gộp vào Đợt 2 (b) của lộ trình 2/10), làm sau khi chủ duyệt ADR-0092 kèm Đ2b (lượt duyệt V0-A, docs/superpowers/specs/2026-10-03-v0-luot-duyet/). Hướng sửa theo lời chủ 3/10 câu 2 = A: một dòng HELD chỉ được tất toán MỘT lần, bằng một trong hai đường; lệnh thứ hai bị từ chối 409 kèm câu chỉ đường; không đổi mô hình dòng. Điều kiện đóng: (i) hai bài thứ tự ở src/modules/billing/lo-ghi.test.ts (nộp → xác nhận; xác nhận → nộp qua API) đều trả 409 và sổ người khai = 0; (ii) trigger CSDL chặn lệnh tất toán thứ hai được quan sát chặn thật một lần (sửa cố ý → đỏ → hoàn nguyên), có dòng docs/SO-HANG-RAO.md; (iii) R-BIL-13 ở mức lỗi (fail) xanh trên D1 local sau e2e. Tới khi đóng, mọi đặc tả/kế hoạch chạm billing ghi \"xây trên lỗ đang hở: TNV-G4, TNV-VP01\". Tới 2026-10-20 ADR-0092 chưa duyệt thì báo chủ để gia hạn có lý do. Thi công có người kiểm độc lập.",
+      "han": "2026-10-31",
+      "nguoi_chiu_trach_nhiem": "chủ dự án",
+      "nguon": "docs/superpowers/specs/2026-10-02-kiem-theo-vai/BAO-CAO-LOI-DAY-DU.md (VP-01); docs/superpowers/specs/2026-10-02-kiem-theo-vai/NGUYEN-NHAN-GOC.md §3.1; chủ dự án chọn mục riêng 2026-10-03 (\"1- A\", ghi ở NGUYEN-NHAN-GOC.md §8)"
     }
   ]
 }

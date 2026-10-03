@@ -1,6 +1,6 @@
 # Lượt duyệt 2 — ADR-0088 sửa sai sau "Đã giao" (I1 đúng mọi lúc, phân định trách nhiệm) + ADR-0092 sổ không đổi dấu, điều chỉnh có kiểm soát
 
-> **Trạng thái:** **NHÁP bản 3.3** — QT1–QT4 (bảng trách nhiệm) **đã có lời chủ** 2/10 ("7- ok"). CT3, CT4 (cảnh báo lần thu tiền mặt giống nhau) **đã có lời chủ** 2/10, ghi ở ADR-0092 đ6a (bản 3.3). Q-A1, Q-A2 **áp theo khuyến nghị** (đồng ý), theo lời chủ 2/10: *"đừng hỏi tôi những câu hỏi mà tôi nên đồng ý nữa,"*. **Còn chờ** chủ nói "Duyệt" văn bản ADR-0088, ADR-0092. Bản 3.1 (2/10) sửa theo phiếu kiểm độc lập bản 3: I1 trừ giảm trừ đã phân định; T7 gắn nợ theo đơn; dọn chữ phí huỷ. Bản 3 (2/10): Q-A3 và Q-A5 đã có lời chủ; Q-A5 thành đ9 (bảng phân định trách nhiệm); đ7 phí huỷ của ADR-0092 bỏ.
+> **Trạng thái:** **NHÁP bản 3.4** (3/10: ADR-0092 thêm **Đ2b**, sửa **Đ4**, R-BIL-13 đếm cả dòng đảo giữ hộ — theo lời chủ 3/10 câu 2 = A về VP-01; bản đề xuất ở `docs/superpowers/specs/2026-10-03-v0-luot-duyet/`, lượt duyệt V0-A). **Phần bổ sung 3.4 (Đ2b, sửa Đ4, R-BIL-13 đếm dòng đảo giữ hộ, đường sửa khi bấm nhầm) đã được chủ duyệt** chat 2026-10-03: *"Duyệt A1, A2, A3"*. **Toàn văn ADR-0088 và ADR-0092 vẫn chờ chủ nói "Duyệt"** — V2 của lộ trình kiểm theo vai chỉ bắt đầu sau đó. Bản 3.3 — QT1–QT4 (bảng trách nhiệm) **đã có lời chủ** 2/10 ("7- ok"). CT3, CT4 (cảnh báo lần thu tiền mặt giống nhau) **đã có lời chủ** 2/10, ghi ở ADR-0092 đ6a (bản 3.3). Q-A1, Q-A2 **áp theo khuyến nghị** (đồng ý), theo lời chủ 2/10: *"đừng hỏi tôi những câu hỏi mà tôi nên đồng ý nữa,"*. **Còn chờ** chủ nói "Duyệt" văn bản ADR-0088, ADR-0092. Bản 3.1 (2/10) sửa theo phiếu kiểm độc lập bản 3: I1 trừ giảm trừ đã phân định; T7 gắn nợ theo đơn; dọn chữ phí huỷ. Bản 3 (2/10): Q-A3 và Q-A5 đã có lời chủ; Q-A5 thành đ9 (bảng phân định trách nhiệm); đ7 phí huỷ của ADR-0092 bỏ.
 > - Chủ đã chọn nguyên tắc ngày 2026-10-02 (câu 2 "Luôn luôn").
 > - Bản 1 bị người duyệt độc lập kết luận "chưa nên duyệt" (`2026-10-02-phieu-duyet-doc-lap-luot-A-tien.md`). Bản này sửa theo phiếu; mã sửa ghi trong ngoặc.
 >
@@ -24,6 +24,12 @@
 > "2 - Luôn luôn"
 
 Câu đã hỏi: "Bất biến 'đã thu = phải thu' xét tại mốc Đã giao (như mã và bộ kiểm hiện nay), hay luôn luôn (như chữ ADR)?"
+
+## Lời chủ dự án (nguyên văn, chat 2026-10-03) — cho ADR-0092 Đ2b
+
+> "1- A, 2-A, 3-ok theo khuyến nghị làm 1-2-3, 3a: … Rõ ràng là sai thì phải chặn, đồng thời cho cách khắc phục. 3b- ok vậy thì không phải là cho phá lệ mà ta đặt thêm nguyên tắc logic lọc. Không chấp nhận phá lệ, tất cả đều được luật hoá"
+
+Câu liên quan đã hỏi (`docs/superpowers/specs/2026-10-02-kiem-theo-vai/NGUYEN-NHAN-GOC.md` §6 câu 2): "Cách sửa VP-01: (A) 'Xác nhận đã nhận' bị 409 khi khoản đã nộp (đơn giản, giữ mô hình dòng đảo) — khuyến nghị; (B) 'Xác nhận' tất toán phần còn lại (đổi dòng đảo thành dòng SETTLEMENT, thay đổi mô hình). Và duyệt điều bổ sung vào ADR-0092 nháp." Chủ chọn **A** ("2-A"). Câu 1 ("1- A") = VP-01 thành mục riêng `TNV-VP01` trong sổ dừng dây chuyền. Diễn giải đủ: NGUYEN-NHAN-GOC.md §8.
 
 ---
 
@@ -163,6 +169,7 @@ Câu đã hỏi: "Bất biến 'đã thu = phải thu' xét tại mốc Đã gia
 - **KT06 phần đảo dòng:** đảo dòng giữ hộ khi lần thu còn hiệu lực → "thôi giữ" mà không ai xác nhận tiền đã về.
 - **KT02:** hai người khai cùng **một** khoản chuyển khoản, cả hai được xác nhận → hoàn "dư" → công ty mất 100.000. Ghi chú chứa mã giao dịch bị chặn (`service.ts:94`).
 - **KT10:** `audit-invariants` xanh trong khi có đã thu âm và số dư âm.
+- **VP-01 (kiểm theo vai 2/10, tái hiện thật):** một dòng giữ hộ (`HELD`) của lần thu "Công ty thu – CK" bị tất toán **hai lần**: Kế toán bấm "Đã nộp" (dòng quyết toán, `service.ts:361-397`) rồi "Xác nhận đã nhận" (dòng đảo HELD, `service.ts:331-355`) → số dư người khai trên đơn **−1.000.000**; chiều ngược qua API cũng vậy. Đ2 bản 3.3 chỉ ràng dòng quyết toán, còn Đ4 kể "Công ty đã nhận" như một đường sửa được phép, nên bản 3.3 **vẫn để hở** ca này (`docs/superpowers/specs/2026-10-02-kiem-theo-vai/NGUYEN-NHAN-GOC.md` §3.1).
 
 ### Quyết định
 1. **Đã thu ròng của mỗi đơn ≥ 0 mọi lúc** (A-B16): "đảo một lần thu không được làm đã thu ròng < 0". Hai lớp: trigger trên dòng đảo và máy chủ.
@@ -172,11 +179,22 @@ Câu đã hỏi: "Bất biến 'đã thu = phải thu' xét tại mốc Đã gia
    - Hai lớp: trigger trên dòng quyết toán gốc và máy chủ.
    - Chỉ dòng gắn đơn; dòng gắn chuyến (ADR-0057) tính riêng.
    - **Không** cấm số dư âm nói chung, vì "công ty nợ bên đó" là hợp lệ (ADR-0080 D-1 `:114-116`).
-   - **Thêm R-BIL-13** ở **mức lỗi**. R-BIL-13 đã được định nghĩa trong ADR-0080 (`:104`, mức cảnh báo) nhưng **chưa có mã**: `audit-checks.mjs` hôm nay chỉ có R-BIL-1..7. Không dùng R-BIL-9 của bản 1.
+   - **Thêm R-BIL-13** ở **mức lỗi**. R-BIL-13 đã được định nghĩa trong ADR-0080 (`:104`, mức cảnh báo) nhưng **chưa có mã**: `audit-checks.mjs` hôm nay chỉ có R-BIL-1..7. Không dùng R-BIL-9 của bản 1. R-BIL-13 đếm đổi dấu do **dòng quyết toán và dòng đảo giữ hộ** (Đ2b), không chỉ dòng quyết toán như chữ ADR-0080 `:104`.
+2b. **Một dòng giữ hộ chỉ được tất toán một lần** (VP-01; lời chủ 3/10 câu 2 = A):
+   - Một dòng giữ hộ (`HELD`) được tất toán **đúng một lần**, bằng **một trong hai** đường: "Công ty đã nhận" (dòng đảo của dòng HELD) **hoặc** dòng quyết toán "Nộp". Hai đường **loại trừ nhau**: tiền hoặc đã về tài khoản công ty, hoặc người khai nộp bù — không thể cả hai.
+   - **Mọi** dòng đảo HELD thuộc phạm vi **"không đổi dấu"** của Đ2 — dòng đảo của "Công ty đã nhận" và dòng đảo HELD do lệnh "đảo lần thu" (`dao_lan_thu`, `service.ts:462-478`) sinh ra: sau khi cộng dòng đảo, số dư cặp (người khai, công ty) trên đơn không được đổi dấu. Vì vậy đảo một lần thu đã được nộp bù cũng bị 409, phải đảo lần nộp trước (cùng thứ tự "ghi mới trước, đảo sau" của 0088 đ2 / 0092 đ1).
+   - Vì dòng "Nộp" không trỏ tới một dòng HELD cụ thể, luật "một lần" thi hành bằng **điều kiện số dư**: "Công ty đã nhận" chỉ được ghi khi số người khai **đang nợ** công ty trên đơn **≥** số tiền của dòng HELD; "Nộp" chỉ được ghi trong giới hạn Đ2 (≤ số đang nợ).
+   - **Lệnh thứ hai bị từ chối 409 kèm câu chỉ đường** (tiếng Việt, không mã thô), ví dụ khi xác nhận sau nộp: "Khoản này đã được ghi nộp — nếu tiền cũng đã về tài khoản công ty thì đảo lần nộp trước rồi xác nhận."; khi nộp sau xác nhận: câu của Đ2 ("vượt số người này đang giữ cho đơn").
+   - **Hai lớp:** máy chủ (`xacNhanCongTyNhan`, `ghiQuyetToan`) và trigger trên `bil_debt_line` (dòng đảo HELD và dòng quyết toán gốc). Trigger chỉ đọc bảng `bil_*` (Hiến chương 5.3).
+   - **Một nguồn sự thật cho giao diện:** danh sách "chờ xác nhận" (`choXacNhan`) do máy chủ lọc theo **cùng** điều kiện số dư, nên nút "Xác nhận đã nhận" không hiện cho khoản đã được nộp; giao diện không tự ghép hai danh sách.
+   - **Không đổi mô hình dòng:** dòng đảo HELD giữ nguyên là dòng đảo (không đổi thành dòng quyết toán — phương án B bị loại).
+   - Sửa sai khi Kế toán bấm nhầm đường (chỉ-thêm, không xoá):
+     - nhầm **"Nộp"** (tiền thật ra đã về tài khoản): đảo dòng quyết toán bằng lệnh điều chỉnh "đảo dòng" sẵn có (`service.ts:453-522`), rồi "Công ty đã nhận";
+     - nhầm **"Công ty đã nhận"** (tiền chưa về, người khai nộp tiền mặt): hôm nay **không** đảo được dòng đảo (`service.ts:475` trả 409 "Không đảo dòng đảo"). **Khuyến nghị** (chủ duyệt cùng Đ2b): ghi điều chỉnh **tăng nợ** của người khai với công ty trên đơn (đ5b, lý do ≥ 10 ký tự, người bị đổi số dư nhận tin) bằng đúng số đó, rồi "Nộp". Không mở đường "đảo dòng đảo".
 3. **Hoàn với người trả không phải công ty** (A-B7, KT09): số hoàn ≤ số người đó đang giữ trên đơn.
    - Lượt 1 (ADR-0089 đ3b) đã kiểm ở máy chủ; điều này thêm lớp CSDL.
    - **Không cho vượt.** Nhân viên thực tế ứng tiền túi trả khách thì Kế toán ghi hoàn với người trả là **Công ty**. Khoản công ty phải trả lại nhân viên ghi bằng điều chỉnh tăng nợ của công ty với người đó (đ5b), lý do "ứng tiền túi hoàn khách", rồi trả bằng lệnh "trả".
-4. **Không đảo đơn lẻ dòng giữ hộ** khi lần thu sinh ra nó còn hiệu lực (A-B7). Muốn sửa thì đi đường đảo lần thu, "Thay lần thu" (ADR-0088) hoặc "Công ty đã nhận".
+4. **Không đảo đơn lẻ dòng giữ hộ** khi lần thu sinh ra nó còn hiệu lực (A-B7). Muốn sửa thì đi đường đảo lần thu, "Thay lần thu" (ADR-0088) hoặc "Công ty đã nhận". **Ngoại lệ cho "Công ty đã nhận" (phiếu `COMPANY_RECEIVED`) vẫn giữ** — đó là đường tất toán chính của khoản chuyển khoản — **nhưng không còn vô điều kiện**: nó chịu điều kiện số dư của Đ2b. Bản 3.3 miễn vô điều kiện, chính chỗ đó để lọt VP-01.
 5. **Điều chỉnh tiền** (Q-A1, khuyến nghị của phiếu A):
    - **(a)** điều chỉnh **giảm nợ** của một bên ≤ số bên đó đang nợ trên đơn, không đổi dấu;
    - **(b)** điều chỉnh **tăng nợ** ≤ max(phải thu, đã thu ròng) của đơn, để chặn gõ thừa số 0;
@@ -197,7 +215,7 @@ Câu đã hỏi: "Bất biến 'đã thu = phải thu' xét tại mốc Đã gia
 7. **Phí huỷ — bỏ khỏi ADR này.** Chủ đã trả lời Q-A3 ngày 2/10: khách huỷ thì mặc định **không hoàn cọc**, hoàn là tuỳ chọn có duyệt, hạn 60 ngày. Việc này nằm trọn ở **ADR-0089 bản 3 (lượt 1a)**; không cần loại ghi "phí huỷ" riêng.
 8. **Bộ kiểm:**
    - **R-BIL-8**: đã thu ròng ≥ 0 mọi đơn;
-   - R-BIL-13 lên mức lỗi (đ2);
+   - R-BIL-13 lên mức lỗi (đ2), đếm cả dòng đảo giữ hộ (đ2b); bài kiểm có ca VP-01 (nộp rồi xác nhận → 1 vi phạm khi gỡ trigger) và ca âm hợp lệ (công ty nợ đại lý, nhân viên ứng tiền → 0);
    - cùng khuôn trước mốc cảnh báo, sau mốc lỗi (ADR-0088 đ7);
    - mỗi bất biến mới có một lần **quan sát chặn thật** (dữ liệu sai trên D1 tạm → đỏ → hoàn nguyên), ghi `docs/SO-HANG-RAO.md`.
 
@@ -207,6 +225,8 @@ Câu đã hỏi: "Bất biến 'đã thu = phải thu' xét tại mốc Đã gia
 | ADR-0080 điều 8 (`:76`) | "Không vượt… kiểm ở mã; kiểm định kỳ R-BIL-13" | thêm lớp CSDL; R-BIL-13 mức lỗi (đ2) |
 | ADR-0080 điều 8 (`:77`) | "số chứng từ ngân hàng ghi ở ghi chú" | ô mã giao dịch riêng (đ6) |
 | ADR-0026 đ5 (nộp, trả, hoàn do Kế toán ghi) | không ràng số | đ2, đ3 |
+| ADR-0026 đ4 ("Công ty thu – CK" do người khác khai: Kế toán xác nhận = đảo dòng giữ hộ) | điều kiện duy nhất: dòng giữ hộ chưa bị đảo | + đ2b: chỉ khi người khai còn nợ trên đơn ≥ số dòng giữ hộ; loại trừ với "Nộp" |
+| ADR-0080 `:104` (R-BIL-13 "đổi dấu do dòng `SETTLEMENT`") | chỉ dòng quyết toán | + dòng đảo giữ hộ (đ2b) |
 | ADR-0026 điều chỉnh (phiếu ADJUSTMENT) | lý do bất kỳ, không trần | đ5 |
 | Hiến chương 5.9 | "điều kiện và ô quyền quyết ở ADR sổ tiền" | phần đơn huỷ do ADR-0089 bản 3 quyết |
 | ADR-0089 đ1 (lượt 1) | — | không còn liên quan: đ7 đã bỏ, ADR-0089 bản 3 tự xử lý cọc |
@@ -254,6 +274,8 @@ Câu đã hỏi: "Bất biến 'đã thu = phải thu' xét tại mốc Đã gia
 | Thay lần thu | không có | route mới, `can(ledger.write)`, một lô, trigger trên phiếu đánh dấu |
 | Đảo lần thu làm đã thu âm | cho phép | chặn (trigger + máy chủ) |
 | Nộp, trả | không ràng số | không đổi dấu (trigger + máy chủ) |
+| **Cổng `POST /api/ledger/company-receipts/:id/confirm` và `POST /api/ledger/settlements` canh cùng một dòng HELD** (đ2b) | hai cổng độc lập; làm được cả hai → số dư âm (VP-01) | loại trừ: đường nào ghi trước thì đường kia 409 kèm câu chỉ đường (máy chủ + trigger trên `bil_debt_line`) |
+| **Nút "Xác nhận đã nhận" và nút "Đã nộp về công ty"** (`web/order.ts:524-532`, `:553-563`) | hiện theo hai danh sách máy chủ tính độc lập (`choXacNhan`, `dangGiu`) → cùng hiện cho một khoản | `choXacNhan` lọc theo điều kiện số dư của đ2b → khoản đã nộp không còn nút "Xác nhận"; giao diện không tự ghép |
 | Hoàn với người trả khác công ty | không ràng | ≤ đang giữ |
 | Đảo dòng giữ hộ đơn lẻ | cho phép | chặn khi lần thu còn hiệu lực |
 | Điều chỉnh | lý do bất kỳ | trần + lý do ≥ 10 + tin cho người bị đổi |
@@ -268,6 +290,7 @@ Câu đã hỏi: "Bất biến 'đã thu = phải thu' xét tại mốc Đã gia
 
 ### 4. Va chạm
 - **0088 đ2 với 0092 đ1:** thứ tự lô ghi mới trước, đảo sau, giữ đã thu ròng ≥ 0 suốt quá trình.
+- **0092 đ2b với ADR-0088 đ4(i)/đ9 (nộp bù khi chuyển khoản không về):** nộp bù là đường "Nộp" của đ2b; sau khi nộp bù, "Công ty đã nhận" cho cùng khoản bị 409 — đúng nghĩa "loại trừ". Nếu sau đó tiền chuyển khoản lại về thật, Kế toán đảo lần nộp (trả lại người khai) rồi xác nhận — chỉ-thêm.
 - **0092 đ2 với lượt 2 hoa hồng** (ADR-0079/0080): ràng buộc không đổi dấu áp lên cặp (đại lý, công ty) trên đơn. Phiếu bù trừ ở tháng đã khoá không đụng; chênh lệch xử lý ở tháng đang mở (A-B12).
 - **0088 đ9 với ADR-0026 đ10 (`:84`):** chủ đã bỏ Quản trị khỏi `payment.refund`. Đ9 cho Quản trị **phân định** (quyết định ai chịu), còn lần hoàn và dòng nợ vẫn do Kế toán ghi, nên không trái chữ đ10. Nhắc một lần (P18): nếu ý của chủ khi bỏ Quản trị khỏi ô hoàn tiền là "Quản trị không đụng tới tiền" theo nghĩa rộng, thì QT2 nên chọn "chỉ Toàn quyền phân định".
 - **0088 đ9 với ADR-0089 (lượt 1a):** cùng khuôn "người quyết ≠ người ghi" như duyệt hoàn cọc.
