@@ -252,7 +252,7 @@ Hai lời chủ trả lời các câu ở mục 6 (giữ nguyên văn, kể cả
 
 | Câu ở mục 6 | Chủ chọn | Nghĩa áp dụng |
 |---|---|---|
-| 1 — VP-01 vào sổ dừng dây chuyền | **A** (mục riêng) | Mục riêng `TNV-VP01` trong `docs/quyen-hoan.json`, mức HIGH, hạn **2026-10-31** (cùng hạn TNV-G4), người chịu trách nhiệm: chủ dự án. |
+| 1 — VP-01 vào sổ dừng dây chuyền | **A** (mục riêng) | Mục riêng `TNV-VP01` trong `docs/quyen-hoan.json`. Mức HIGH, hạn **2026-10-31** (cùng hạn TNV-G4) và người chịu trách nhiệm "chủ dự án" **không** nằm trong lời chủ: lấy từ khuyến nghị đã hỏi ở §6 câu 1 ("hạn cùng TNV-G4 31/10") và giao việc của phiên V0 / lộ trình §2.1 — chủ xác nhận khi duyệt lượt V0-A. |
 | 2 — Cách sửa VP-01 | **A** | Chặn lệnh tất toán thứ hai: một dòng giữ hộ (`HELD`) chỉ được tất toán **một lần**, bằng **một trong hai** đường ("Công ty đã nhận" hoặc "Đã nộp"). Lệnh thứ hai bị từ chối kèm câu chỉ đường. **Không đổi mô hình dòng** (dòng đảo HELD giữ nguyên; không đổi thành dòng quyết toán). Ghi vào ADR-0092 nháp thành Đ2b. |
 | 3 — Thứ tự bốn lỗi luật lõi chuyến | **ok theo khuyến nghị, làm 1-2-3** | Thứ tự: **V1** (việc nhỏ không cần ADR: sắp lại điểm, hộp xác nhận, cảnh báo ngày) → **ADR** (luật thứ tự điểm + cửa sổ xuất bến; sự kiện điều chỉnh có lý do) → **V3** (thi công luật lõi). |
 | 3a — "Trả trước đón" có thành lý do giữ xuất bến | **Chặn + cho cách khắc phục; theo khuyến nghị** | Luật **"mọi điểm đón của một suất đứng trước điểm trả của suất đó"**. Vi phạm ⇒ **chặn xuất bến** (lý do giữ). Cách khắc phục: máy **tự sắp lại khi xếp**; có **nút đổi thứ tự** để văn phòng sửa tay. |

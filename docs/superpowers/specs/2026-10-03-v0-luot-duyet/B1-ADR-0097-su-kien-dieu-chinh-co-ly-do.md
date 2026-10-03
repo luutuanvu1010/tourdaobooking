@@ -28,7 +28,9 @@ Không có `UPDATE` lùi trạng thái nào. Mỗi lần sửa sai là **một l
 
 1. **Ai:** chỉ **văn phòng bấm thay** — người có ô `trip.progress` **không ngữ cảnh** (hôm nay: Bán hàng, Quản trị, Toàn quyền — `src/shared/permissions.ts:175`), cổng `office`. **Tài xế không có nút** (tài xế xem "Vừa ghi … — Sai? Báo văn phòng", V1.4 của lộ trình).
 2. **Khi nào:** chuyến đang `RUNNING`. Chuyến đã kết thúc / gián đoạn / huỷ thì không sửa (LC-06 giữ nguyên — chứng cứ đã đóng).
-3. **Làm gì (một lô, thứ tự cổng → nhật ký → câu có dấu lệnh → trạng thái — bài `thu-tu-lo.test.ts`):** đóng suất cũ với `close_reason = 'CORRECTED'` (giá trị mới) và **mở suất mới cùng chặng, cùng người, cùng điểm lên / xuống**, ở **trạng thái đúng**, cột mới `corrects_allocation_id` trỏ về suất cũ; ghi sự kiện `CORRECTION` (lý do, trạng thái trước → sau) và nhật ký `trip_allocation_corrected`.
+3. **Làm gì (một lô, thứ tự cổng → nhật ký → câu có dấu lệnh → trạng thái — bài `thu-tu-lo.test.ts`):** đóng suất cũ với `close_reason = 'CORRECTED'` (giá trị mới) và **mở suất mới cùng chặng, cùng người, cùng điểm lên / xuống**, ở **trạng thái đúng**, cột mới `corrects_allocation_id` trỏ về suất cũ; ghi sự kiện `CORRECTION` (lý do, trạng thái trước → sau) và nhật ký `trip_allocation_corrected`. Thứ tự trong lô: **đóng suất cũ trước, chèn suất mới sau** (chỉ mục "một suất mở mỗi người" LC-01 `vc_trip_allocation_person_open_uq` và trigger sức chứa LC-02 đều cần thứ tự này). Lô chạy **cùng bước "điểm tự xong"** của lệnh suất sẵn có (`STOP_XONG_NEU_HET`, `dieu-phoi.ts:409`, `chuyen-repo.ts:455`) cho điểm lên và điểm xuống của suất — không thì điều chỉnh kiểu "Đã đón → Vắng" có thể để điểm trả kẹt `ARRIVED`, LC-16 chặn kết thúc và văn phòng bị đẩy về "Kết thúc gián đoạn". Có bài kiểm cho ca này.
+   - **Bản chốt danh sách** (chứng cứ "ai trên xe lúc nào", ADR-0049 `:94`): suất thay thế mang `added_after_departure = 1` (cột sẵn có, `0042:135`) và lô ghi thêm dòng bản chốt cho suất mới mang dấu lệnh điều chỉnh (khuôn `vc_trip_manifest`); bản chốt cũ không sửa. Người lập kế hoạch V3-B đối chiếu khuôn bảng bản chốt; `R-VC-SUA-1` kiểm mỗi suất thay thế có dòng bản chốt.
+   - **Đơn đã huỷ giữa chuyến:** trigger LC-09 (`0042:465-469`) chặn chèn suất cho đơn đã huỷ ⇒ suất của đơn đó **không** điều chỉnh được; văn phòng xử lý theo luồng huỷ (BACKLOG §15 câu 9).
 4. **Bảng điều chỉnh được phép** (ngoài bảng này ⇒ 409 câu tiếng Việt):
 
    | Đã ghi (nhầm) | Sửa thành | Điều kiện |
@@ -50,7 +52,7 @@ Không có `UPDATE` lùi trạng thái nào. Mỗi lần sửa sai là **một l
 2. **Điều kiện (đủ cả ba):** chuyến `RUNNING`; **chưa có sự kiện tiến độ nào** sau lô xuất bến (không "Đã tới", không lệnh suất, không đổi thứ tự); giờ thu hồi ≤ giờ xuất bến + `proxy_backdate_max_minutes` của chính sách hiện hành (hôm nay 180 phút, `migrations/0041_chinh_sach_dieu_phoi.sql:23,32`). Quá điều kiện ⇒ 409 chỉ đường: chuyến đã có tiến độ thì sửa từng suất (Đ2) hoặc "Kết thúc gián đoạn" nếu xe thật sự không chạy tiếp.
 3. **Làm gì (một lô):** sự kiện `DEPARTURE_REVOKED` (lý do nhóm `DIEU_CHINH`), nhật ký `trip_departure_revoked`, chuyển `RUNNING → PLANNED`, `departed_at` / `departed_ms` về `NULL` (CHECK của `vc_trip` đòi vậy ở `PLANNED`, `0042:50-56`).
 4. **Giữ chứng cứ:** bản chụp lúc xuất bến (`vc_trip_departure_check`, `_item`, `vc_trip_manifest` — LC-05) và sự kiện `DEPARTED` **giữ nguyên**; xuất bến lại tạo bản chụp mới mang dấu lệnh mới. Trigger `vc_trip_departed_after_plan` (`0042:400-403`) tự buộc lần xuất bến sau muộn hơn sự kiện thu hồi.
-5. **Hệ quả tự nhiên:** xe và tài xế được nhả khỏi chỉ mục "một chuyến đang chạy" (`0042:61`, `0042:383-389`); tên khách trên màn tài xế đóng lại nếu chưa tới ngày chạy (ADR-0053 D7.2, `trongNgayChay` giữ nguyên nghĩa).
+5. **Hệ quả tự nhiên:** xe và tài xế được nhả khỏi chỉ mục "một chuyến đang chạy" (`0042:61`, `0042:383-389`); tên khách trên màn tài xế đóng lại nếu chưa tới ngày chạy (ADR-0053 D7.2, `trongNgayChay` giữ nguyên nghĩa). Nói rõ: tài xế **đã thấy** tên trong lúc chuyến chạy nhầm thì không rút lại được (một chiều, ADR-0052 `:210`) — cửa sổ xuất bến của ADR-0096 là lớp chặn chính cho ca này.
 
 ### Đ4 — Trigger (lớp CSDL)
 
@@ -87,7 +89,7 @@ Không có `UPDATE` lùi trạng thái nào. Mỗi lần sửa sai là **một l
 
 - Cột `corrects_allocation_id`, giá trị `close_reason` `CORRECTED`, nhóm lý do mới, sửa trigger: migration thêm (dự kiến `0078_dieu_chinh_chuyen.sql`, số chốt lúc gộp). Sự kiện và dòng ghi theo lệnh mới là **chỉ-thêm** (một chiều về dữ liệu); luật gỡ được bằng migration sau (hai chiều).
 - Thêm hành động vào danh sách tin chuyến đóng: một chiều theo ADR-0052 `:210`.
-- `close_reason` có `CHECK` liệt kê (`0042:133`) ⇒ thêm giá trị mới cần dựng lại bảng hoặc trigger thay `CHECK` — người lập kế hoạch V3-B chọn cách theo `docs/CHANGE-GUIDE.md` (migration không sửa tệp cũ) và có người kiểm độc lập.
+- `close_reason` có `CHECK` liệt kê (`0042:133`); trigger **không** nới được `CHECK` đã có. Hai lối thật: (a) **dựng lại** `vc_trip_allocation` để thêm giá trị `CORRECTED` (bảng nhiều trigger, chỉ mục, khoá ngoại từ `vc_trip_manifest`, `vc_trip_event` — nặng, rủi ro); (b) **không thêm giá trị**: đóng suất cũ bằng giá trị sẵn có `REMOVED`, phân biệt "đóng vì điều chỉnh" bằng sự kiện `CORRECTION` của lô + cột mới `corrects_allocation_id` ở suất thay thế (thêm cột bằng `ADD COLUMN` được). **Khuyến nghị (b)**; khi đó mọi chữ `CORRECTED` trong ADR này hiểu là "đóng `REMOVED` bởi lô `CORRECTION`". Kế hoạch V3-B chốt, có người kiểm độc lập.
 
 ## Hệ quả
 
@@ -95,5 +97,5 @@ Không có `UPDATE` lùi trạng thái nào. Mỗi lần sửa sai là **một l
 - e2e `van-chuyen.mjs`: "xuất bến nhầm → thu hồi → xuất bến chuyến đúng" (HT-03); "đã đón nhầm → điều chỉnh thành vắng" (HT-04); "khách huỷ nhầm → điều chỉnh thành đã đón → đã trả → kết thúc" (HT-04); `audit-invariants` sau e2e.
 - Bất biến mới `R-VC-SUA-1` (lỗi): mọi suất `CORRECTED` có đúng một suất kế tiếp trỏ về nó (`corrects_allocation_id`) cùng chặng, cùng người, cùng điểm; mọi `DEPARTURE_REVOKED` đứng sau một `DEPARTED` và trước mọi sự kiện tiến độ của lần chạy đó.
 - `docs/SYSTEM-DESIGN.md` §6 (máy trạng thái chuyến vẽ lại), `docs/CHANGE-GUIDE.md` công thức z3 + bẫy 53, `docs/DATA-DICTIONARY.md` cập nhật cùng lần thi công (đợt V3-B).
-- **Không** gỡ HT-06 (giờ hẹn đổi sớm hơn giờ xuất bến): lỗi đó thuộc bộ lý do giữ chuyến và tin MQ-07, không phải sửa sai (xem bảng truy vết của lộ trình §10).
+- **Không** gỡ HT-06 (giờ hẹn đổi sớm hơn giờ xuất bến): lỗi đó thuộc bộ lý do giữ chuyến và tin MQ-07, không phải sửa sai. Phần giữ chuyến chờ chủ (mã nợ `BL-GIO-HEN-SOM`), phần tin đi V5 (bảng truy vết của lộ trình §10). Đây là chỗ lệch so với khuyến nghị cũ "HT-04/HT-06 theo ADR đó" (NGUYEN-NHAN-GOC.md §6 câu 3) — viết khi chưa có mô tả đầy đủ của HT-06.
 - Xây trên lỗ đang hở: không.

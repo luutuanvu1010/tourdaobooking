@@ -4,7 +4,7 @@
 > - **B1** — ADR-0097 nháp "Sự kiện điều chỉnh có lý do cho chuyến xe": `B1-ADR-0097-su-kien-dieu-chinh-co-ly-do.md`.
 > - **B2** — ADR-0098 nháp "Tra trùng hồ sơ khách theo số điện thoại ở máy chủ, cho mọi vai lập đơn": `B2-ADR-0098-tra-trung-ho-so-theo-sdt.md`.
 >
-> **Đếm quyết định chạm quyền/dữ liệu (trần 3):** 2. Hai quyết định **không chạm chung bảng** (B1: `vc_*`; B2: `pty_*`, `orders`), nên không có va chạm chéo trong lượt; điểm chạm duy nhất là cả hai cùng đi qua lớp vé chống ghi trùng (ADR-0094) ở route mới / route sẵn có.
+> **Đếm quyết định chạm quyền/dữ liệu (trần 3):** 2 (B1, B2). Nếu chủ chọn Q-98-1 (A) — Danh bạ cũng chặn trùng số, chạm `party.write` và dữ liệu hồ sơ — thì đó là quyết định thứ 3, vẫn trong trần. Q-98-2 chỉ là chọn dạng số trong cùng luật của B2 (không tính thêm). Hai quyết định **không chạm chung bảng** (B1: `vc_*`; B2: `pty_*`, `orders`), nên không có va chạm chéo trong lượt; điểm chạm duy nhất là cả hai cùng đi qua lớp vé chống ghi trùng (ADR-0094) ở route mới / route sẵn có.
 >
 > **Phụ thuộc lượt A:** B1 cần ADR-0096 (lượt A) để chuyến "xuất bến nhầm 3 ngày sau" không còn xảy ra; B1 chỉ gỡ nhầm **trong cửa sổ** xuất bến. Duyệt B1 trước A3 vẫn đúng nghĩa, nhưng thi công V3-B làm sau V3-A.
 >
@@ -60,6 +60,8 @@ Không thêm mã quyền, không đổi giá trị ô nào.
 | **Nút "Thu hồi xuất bến"** trên chuyến đang chạy (`web/chuyen.ts`) | không có | hiện khi `can(trip.progress)`, chuyến `RUNNING`, chưa có tiến độ; ẩn khi quá hạn |
 | **Màn tài xế** (`web/cuoc-chuyen.ts`) | không nút sửa | **không** thêm nút; dòng "Vừa ghi … — Sai? Báo văn phòng" (V1.4); lịch sử điều chỉnh hiện như sự kiện thường |
 | **Ô chọn người đặt** (`web/booker-picker.ts:54-85`) cho Đối tác / Thực tập | gọi lookup → 403 → "Không tra được hồ sơ — vẫn lưu đơn được" + nút "Tạo hồ sơ mới" | không gọi lookup; câu "Nhập số điện thoại — hệ thống tự dùng lại hồ sơ nếu đã có"; sau lưu hiện "Khách này đã có hồ sơ, hệ thống dùng lại" khi `bookerReused` |
+| **Thông tin "Hồ sơ khách" trên trang đơn** (`web/order.ts:732`, `web/order-form.ts:520`; `OrderDto.bookerPartyId/bookerName`, `orders/repository.ts:75-76,162-163`) | trả tên hồ sơ cho mọi người xem được đơn — kể cả Đối tác, Thực tập | người không có `party.view`: không trả id / tên hồ sơ, chỉ cờ "đã gắn hồ sơ"; hiện bản chụp tên khách tự gõ (B2 Đ3b) |
+| **Lịch sử đơn** (nhật ký "gắn hồ sơ khách “{tên}”", `src/shared/booker.ts:62-67`, `orders/repository.ts:918`) | kèm tên hồ sơ | khi dùng lại hồ sơ có sẵn: câu không kèm tên (B2 Đ3b) |
 | **Ô chọn người đặt** cho văn phòng | danh sách trùng + "Dùng hồ sơ này" / "Tạo hồ sơ mới" | **bỏ** "Tạo hồ sơ mới" khi danh sách trùng không rỗng (máy chủ 409 nếu cố gửi) |
 
 ## (4) Cặp lệnh trên cùng đối tượng: độc lập / loại trừ / có thứ tự

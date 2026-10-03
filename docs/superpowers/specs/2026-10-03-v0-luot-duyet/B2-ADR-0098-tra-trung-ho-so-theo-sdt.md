@@ -40,7 +40,12 @@ Dòng ≥ 2 là **khuyến nghị của người soạn** (lời chủ chưa nó
 
 ### Đ3 — Đối tác, Thực tập chỉ nhận thông điệp, không nhận chi tiết hồ sơ
 
-Phản hồi lưu đơn mang cờ `bookerReused: true` và câu **"Khách này đã có hồ sơ, hệ thống dùng lại."** Không trả id, tên, liên hệ, vai của hồ sơ cũ cho người không có `party.view` (ô `party.view` **không đổi**: Đối tác, Thực tập vẫn `none` — `permissions.ts:122`). Cờ một bit "số này đã có hồ sơ" là mức lộ đã được chấp nhận ở ADR-0071 đ3b. Giao diện `web/booker-picker.ts` với hai vai này bỏ câu "Không tra được hồ sơ — vẫn lưu đơn được" và nút "Tạo hồ sơ mới", thay bằng: **"Nhập số điện thoại — hệ thống tự dùng lại hồ sơ nếu đã có."**
+Phản hồi lưu đơn mang cờ `bookerReused: true` và câu **"Khách này đã có hồ sơ, hệ thống dùng lại."** Không trả id, tên, liên hệ, vai của hồ sơ cũ cho người không có `party.view` (ô `party.view` **không đổi**: Đối tác, Thực tập vẫn `none` — `permissions.ts:122`).
+
+**Đ3b — bịt các đường hôm nay đã trả tên hồ sơ** (người kiểm độc lập V0 phát hiện; nếu thiếu điều này, dùng lại hồ sơ biến thành đường dò "số này là khách tên gì" mà ADR-0071 đ3b `:50` cấm):
+- `OrderDto` hôm nay trả `bookerPartyId` và `bookerName` (tên hồ sơ, từ `v_pty_party_label` — `src/modules/orders/repository.ts:75-76, 162-163`) cho mọi người xem được đơn; trang đơn hiện "Hồ sơ khách: {tên}" (`web/order.ts:732`, `web/order-form.ts:520`). Với người **không** có `party.view`: máy chủ **không** trả `bookerPartyId` / `bookerName` (chỉ cờ "đã gắn hồ sơ"); giao diện hiện bản chụp `customerName` người đó tự gõ.
+- Nhật ký "gắn hồ sơ khách “{tên}”" (`src/shared/booker.ts:62-67`, ghi vào dòng nhật ký của đơn ở `repository.ts:918`, hiện ở Lịch sử đơn): khi **dùng lại** hồ sơ có sẵn, câu nhật ký **không kèm tên** ("dùng lại hồ sơ khách có sẵn").
+- Bài kiểm: Đối tác lập đơn với SĐT đã có rồi `GET /api/orders/:id` và Lịch sử đơn ⇒ không có tên / id hồ sơ cũ; văn phòng vẫn thấy đủ. Cờ một bit "số này đã có hồ sơ" là mức lộ đã được chấp nhận ở ADR-0071 đ3b. Giao diện `web/booker-picker.ts` với hai vai này bỏ câu "Không tra được hồ sơ — vẫn lưu đơn được" và nút "Tạo hồ sơ mới", thay bằng: **"Nhập số điện thoại — hệ thống tự dùng lại hồ sơ nếu đã có."**
 
 ### Đ4 — Một chuẩn SĐT trên đơn
 
@@ -52,7 +57,7 @@ Câu chèn hồ sơ mới trong lô lập đơn mang điều kiện "chưa có h
 
 ### Đ6 — Bất biến `R-PTY-7`
 
-`scripts/audit-checks.mjs`: hai hồ sơ cá nhân **đang hoạt động, chưa gộp** có cùng SĐT liên hệ đang hiệu lực đã chuẩn hoá. Mức **lỗi** cho cặp mà hồ sơ mới hơn được tạo **sau** mốc thi hành ADR này (nghĩa là đường tạo đã chặn mà vẫn lọt); mức **cảnh báo** cho cặp cũ (Quản trị gộp bằng ADR-0068). Quan sát chặn thật một lần, dòng `docs/SO-HANG-RAO.md` ghi rõ "phát hiện, không chặn" cho cặp cũ.
+`scripts/audit-checks.mjs`: hai hồ sơ cá nhân **đang hoạt động, chưa gộp** có cùng SĐT liên hệ đang hiệu lực đã chuẩn hoá. Mức **lỗi** cho cặp mà hồ sơ mới hơn được tạo **sau** mốc thi hành ADR này (nghĩa là đường tạo đã chặn mà vẫn lọt); mức **cảnh báo** cho cặp cũ. Mốc = ngày phát hành V4, ghi là hằng số trong `scripts/audit-checks.mjs` và so với `pty_party.created_at` — không cần migration (Quản trị gộp bằng ADR-0068). Quan sát chặn thật một lần, dòng `docs/SO-HANG-RAO.md` ghi rõ "phát hiện, không chặn" cho cặp cũ.
 
 ## Bấm nhầm thì sao
 

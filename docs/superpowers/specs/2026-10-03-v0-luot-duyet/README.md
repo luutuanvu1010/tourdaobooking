@@ -36,9 +36,14 @@ git apply docs/superpowers/specs/2026-10-03-v0-luot-duyet/A2-adr-0092-bo-sung-D2
 
 `adr-README-giu-cho.diff` sửa `docs/adr/` — hàng rào "tệp luật" chặn ghi bằng dòng lệnh, nên áp bằng công cụ sửa tệp (chủ được hỏi). ADR-0096/0097/0098 khi "Duyệt" thì chép sang `docs/adr/` bằng công cụ sửa tệp, đổi dòng trạng thái sang `accepted` kèm lời chủ.
 
+## Kiểm độc lập
+
+Người kiểm độc lập chỉ đọc (3/10) kết luận **ĐẠT CÓ ĐIỀU KIỆN**: 1 phát hiện CAO (ADR-0098 — trang đơn và nhật ký hôm nay trả tên hồ sơ cho Đối tác/Thực tập ⇒ thêm Đ3b), 8 VỪA, 6 THẤP. Tất cả đã sửa vào văn bản cùng ngày; **chưa** có vòng kiểm lại sau khi sửa.
+
 ## Câu hỏi gom cho chủ (một lần hỏi)
 
 1. Lượt A: A1, A2, A3 — "Duyệt" hay "Sửa: …".
 2. Lượt B: B1, B2 — "Duyệt" hay "Sửa: …"; kèm Q-98-1 (Danh bạ cũng chặn trùng số?) và Q-98-2 (số nước ngoài trên đơn).
-3. HT-06 (`BL-GIO-HEN-SOM`): giờ hẹn đón sớm hơn giờ xuất bến có thành lý do **giữ** chuyến (gộp vào ADR-0096) không.
+3. HT-06 (`BL-GIO-HEN-SOM`): giờ hẹn đón sớm hơn giờ xuất bến có thành lý do **giữ** chuyến không. Nếu "có": soạn bổ sung ADR-0096 và duyệt ở **lượt sau** (không nhét vào lượt A để giữ trần 3).
 4. BH-06, BH-08, BH-09: chọn phương án ở lộ trình §10.1.
+5. ADR-0096 Đ2.4: chuyến thật sự chạy sớm thì văn phòng **sửa giờ khởi hành** cho lọt cửa sổ — đó là cửa thoát duy nhất. Sửa giờ **sớm hơn** có cần thêm lý do riêng không? Khuyến nghị: không thêm (lệnh sửa chuyến đã có nhật ký trước → sau và chạy mọi kiểm).

@@ -5,9 +5,9 @@
 > - **A2** — ADR-0092 nháp thêm **Đ2b** ("một dòng giữ hộ chỉ tất toán một lần"), sửa **Đ4**: `A2-adr-0092-bo-sung-D2b.diff` (vá vào `docs/superpowers/specs/2026-10-02-luot-duyet-2-sua-sai-sau-da-giao-va-so-khong-doi-dau.md`, bản 3.3 → 3.4).
 > - **A3** — ADR-0096 nháp "Luật thứ tự điểm dừng và cửa sổ xuất bến": `A3-ADR-0096-thu-tu-diem-dung-va-cua-so-xuat-ben.md`.
 >
-> **Đếm quyết định chạm quyền/dữ liệu (trần 3):** A1 không chạm bảng hay ô quyền (chỉ thêm một hạn vào sổ); A2 chạm dữ liệu tiền (1); A3 chạm dữ liệu chuyến bằng hai luật con (LC-19, LC-20 — 2). Tổng 3 ⇒ đạt trần.
+> **Đếm quyết định chạm quyền/dữ liệu (trần 3) — cách đếm ghi rõ để chủ rà:** đếm theo **luật con chạm bảng CSDL hoặc ô quyền**. A1 không chạm bảng hay ô quyền (chỉ thêm một hạn vào sổ dừng dây chuyền) ⇒ 0; A2 (Đ2b + sửa Đ4, cùng một luật "một dòng giữ hộ tất toán một lần") ⇒ 1; A3 hai luật con LC-19, LC-20 ⇒ 2. Tổng 3 ⇒ đúng trần. Nếu chủ coi A1 là một quyết định thì lượt A là 4: khi đó tách A1 sang duyệt riêng (A1 không phụ thuộc A2, A3). Câu hỏi HT-06 ("giờ hẹn sớm hơn giờ xuất bến có thành lý do giữ") **không** vào lượt này: nếu chủ chọn "có", phần bổ sung ADR-0096 được soạn và duyệt ở lượt sau.
 >
-> **Xây trên lỗ đang hở:** A2 chạm `billing` ⇒ "xây trên lỗ đang hở: TNV-G4, TNV-VP01" (và F-02 cho tới khi mục F-02 được xoá khỏi `docs/quyen-hoan.json`). A3 không chạm vùng đang hở.
+> **Xây trên lỗ đang hở:** A2 chạm `billing` ⇒ "xây trên lỗ đang hở: TNV-G4, TNV-VP01, F-03" (và F-02 cho tới khi mục F-02 được xoá khỏi `docs/quyen-hoan.json` — cùng danh sách ở lộ trình §4). A3 không chạm vùng đang hở.
 >
 > Mục (4) "cặp lệnh trên cùng đối tượng" là **áp thử** đề xuất 5.1 của `NGUYEN-NHAN-GOC.md` (chưa thành luật — V7.1 của lộ trình).
 
@@ -72,9 +72,11 @@ Không thêm mã quyền, không đổi giá trị ô nào.
 | Ghi lần thu "Công ty thu – CK" × "Công ty đã nhận" | **có thứ tự** — lần thu sinh dòng `HELD` trước | sẵn có (cần dòng `HELD` chưa đảo) |
 | "Công ty đã nhận" × "Công ty đã nhận" (lần hai) | **loại trừ** | sẵn có: UNIQUE `reverses_line_id` |
 | "Đã nộp" × "Đã nộp" (lần hai, cùng khoản) | **loại trừ** theo số: lần hai vượt số đang nợ | Đ2 (≤ đang nợ) + lớp vé chống gửi lặp (ADR-0094) |
-| "Đã nộp" × đảo lần nộp (`dao_dong`) × "Công ty đã nhận" | **có thứ tự** — đường sửa khi Kế toán đi nhầm: đảo lần nộp trước, rồi mới xác nhận | Đ2b (câu 409 chỉ đúng đường này) |
+| "Đã nộp" × đảo lần nộp (`dao_dong`) × "Công ty đã nhận" | **có thứ tự** — đường sửa khi Kế toán đi nhầm "Nộp": đảo lần nộp trước, rồi mới xác nhận | Đ2b (câu 409 chỉ đúng đường này) |
+| "Công ty đã nhận" (bấm nhầm) × sửa sai | **có thứ tự, đường riêng** — dòng đảo không đảo được (`service.ts:475`); khuyến nghị: điều chỉnh tăng nợ (ADR-0092 đ5b) rồi "Nộp" | Đ2b (khuyến nghị, chủ duyệt cùng A2) |
+| Đảo lần thu (`dao_lan_thu`, sinh dòng đảo HELD) × "Đã nộp" | **loại trừ theo số dư** — đã nộp bù thì đảo lần thu làm số dư đổi dấu ⇒ 409; phải đảo lần nộp trước | Đ2b (mọi dòng đảo HELD chịu "không đổi dấu") + trigger |
 | "Công ty đã nhận" × Hoàn thành đơn | **có thứ tự** — Hoàn thành chỉ khi không còn ai nợ công ty | sẵn có (`bil_posting_completed_settled`) |
-| "Công ty đã nhận" × "Thay lần thu" (ADR-0088) | **chưa phân tích ở lượt này** — thuộc lượt duyệt 2a (ADR-0088), cùng tệp với ADR-0092; người soạn kế hoạch V2 phải điền ô này trước khi thi công | — |
+| "Công ty đã nhận" × "Thay lần thu" (ADR-0088) | **chưa phân tích ở lượt này** (mã nợ `BL-THAY-CTY-NHAN`) — thuộc lượt duyệt 2a (ADR-0088), cùng tệp với ADR-0092; người soạn kế hoạch V2 phải điền ô này trước khi thi công | — |
 
 **Đối tượng: một chuyến và các điểm, suất của nó (A3).**
 

@@ -195,4 +195,5 @@
 - **BL-TEN-TRUOC-XB — màn tài xế trong ngày chạy giấu tên khách và SĐT liên hệ tới khi bấm Xuất bến** (HT-07; chủ ý của bản 1.39, có kịch bản Chrome ghim). Chủ quyết có mở trước khi xuất bến không.
 - **BL-BIEN-NHAN-LAN-THU — biên nhận gửi khách liệt kê từng lần thu** (VP-24). Biên nhận là danh sách trắng `ReceiptDto` (ADR-0026) ⇒ thêm trường cần chủ duyệt.
 - **BL-GHI-CHU-CHUYEN — ô chữ tự do trong chuyến xe** (ghi chú cho tài xế, khi phá lệ, khi kết thúc gián đoạn, khi chọn lý do "Khác" của ADR-0097 nháp): chủ chọn *"Chưa làm"* 2026-09-29 — chi tiết ở mục 5 sổ này.
+- **BL-THAY-CTY-NHAN — cặp lệnh "Công ty đã nhận" × "Thay lần thu" (ADR-0088) trên cùng một khoản chuyển khoản chưa phân tích** (trang ghép lượt V0-A mục 4). Người soạn kế hoạch V2 điền quan hệ (độc lập / loại trừ / có thứ tự) trước khi thi công; nếu cần luật mới thì trình chủ cùng lượt duyệt 2a.
 - **BL-CUOC-XA — "Cuốc của tôi" xem trước quá ngày kia và xem lại cuốc cũ** (HT-15). Phạm vi ngày tài xế thấy chuyến là quyết định ADR-0049 D3 / ADR-0053 D7.2 ⇒ cần chủ.
