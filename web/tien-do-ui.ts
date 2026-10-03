@@ -141,6 +141,8 @@ export function veDiemChay(o: {
   onLenh: (l: LenhDiem, nut: HTMLButtonElement) => void;
   phuDiem?: (b: BuocDiem) => { ben?: Child; duoi?: Child[] };
   choGui?: ReadonlySet<string>;
+  /** Kiểu A (V1.4): dòng "Vừa ghi … — Sai? Báo văn phòng." ngay dưới dòng khách vừa bấm (màn tài xế; văn phòng không truyền). */
+  vuaGhi?: { suatId: string; cau: string } | null;
 }): HTMLElement[] {
   return buocDiem(o.diem, o.suat, o.trangThai, o.ngayXem).map((b) => {
     const d = b.diem;
@@ -177,6 +179,7 @@ export function veDiemChay(o: {
           { class: `dp-khach${cho ? " is-cho" : ""}`, "data-suat": k.suatId },
           h("div", { class: "dp-khach-dong" }, h("span", { class: "dp-khach-ten" }, k.ten), k.namSinh ? h("span", { class: "dp-khach-nam" }, String(k.namSinh)) : null,
             k.ketQua ? h("span", { class: `dp-khach-kq${k.ketQua === "Vắng" ? " is-vang" : k.ketQua === "Đã đón" || k.ketQua === "Đã trả" ? " is-ok" : ""}` }, k.ketQua) : null),
+          o.vuaGhi?.suatId === k.suatId ? h("div", { class: "dp-vua-ghi", role: "status" }, icon("check", 16, 2), h("span", null, o.vuaGhi.cau)) : null,
           cho ? h("div", { class: "dp-khach-cho" }, "Chưa gửi được", h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary", "data-action": "bam-lai", "data-suat": k.suatId }, "Bấm lại")) : null,
           nut.length ? h("div", { class: "dp-khach-nut" }, ...nut) : null,
         );

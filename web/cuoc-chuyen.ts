@@ -7,6 +7,8 @@
 //   đoạn" (chọn lý do; KHÔNG ô ghi chú — chủ Q1).
 // - HT-03 (kiểm theo vai 2/10 — V1.3): "Xuất bến" mở bảng trượt xác nhận (mã chuyến, ngày chạy, giờ dự kiến, biển số, số khách — `hopXuatBen`); ngày chạy
 //   khác hôm nay → dòng cảnh báo đỏ trên trang VÀ trong hộp (`canhBaoNgayChay`, chung với văn phòng). Không dùng confirm() của trình duyệt.
+// - Kiểu A (V1.4): "Đã trả" cả điểm và "Kết thúc chuyến" cũng qua bảng trượt xác nhận (`hopTraCaDiem`, `hopKetThuc`); lệnh suất một chạm (Đã đón / Vắng /
+//   Khách đã huỷ / người đi kèm) giữ một chạm nhưng hiện ngay "Vừa ghi … — Sai? Báo văn phòng." dưới dòng đó (`dongVuaGhi`).
 // - Mất mạng: dòng đó "Chưa gửi được" + "Bấm lại" (CÙNG requestId — bấm lại hai lần vẫn một lệnh); máy KHÔNG tự gửi lại (lệnh điều phối, khác câu 5a).
 import { giuTenKhach, ketThucDuoc, chiSuatKhach, soHieuTaiDiemDon, tenNguoiDiKemCuaChuyen, thanDoiThuTu, viecNguoiDiKem, type BuocDiem } from "../src/shared/tien-do-man";
 import type { CuocChiTietResponse } from "../src/shared/contracts";
@@ -24,6 +26,7 @@ import { cauLoiTienDo, dongMoc, veDiemChay, type LenhDiem } from "./tien-do-ui";
 import { formatDm } from "../src/shared/trip-form";
 import { msToVnLocal, vnToday } from "../src/shared/vn-date";
 import { canhBaoNgayChay, hopXuatBen } from "../src/shared/xac-nhan-xuat-ben";
+import { dongVuaGhi, hopKetThuc, hopTraCaDiem, type HopXacNhan, type LenhVuaGhi } from "../src/shared/xac-nhan-tien-do";
 
 const errorEl = byId("error");
 const trangEl = byId("cc-trang");
@@ -35,6 +38,8 @@ let duLieu: CuocChiTietResponse | null = null;
 /** Liên hệ của đơn — CHỈ từ GET trong ngày chạy; lệnh tiến độ không trả lại khoá này (R-P11). Chỉ giữ trong bộ nhớ trang. */
 let lienHe: NonNullable<CuocChiTietResponse["lienHe"]> = [];
 let baoCao: HTMLElement | null = null;
+/** Kiểu A (V1.4): lệnh suất một chạm vừa ghi xong — dòng "Vừa ghi …" dưới đúng dòng khách / người đi kèm; lệnh kế tiếp xoá. Chỉ trong bộ nhớ trang. */
+let vuaGhi: { suatId: string; cau: string } | null = null;
 /** Việc chưa gửi được (mất mạng): khoá dòng → hàm gửi lại (cùng thân ⇒ cùng requestId qua `taoLenh`). */
 const choGui = new Map<string, () => Promise<void>>();
 const cacLenh = new Map<string, ReturnType<typeof taoLenh>>();
@@ -59,6 +64,7 @@ async function nap(): Promise<void> {
 
 /** Chạy một lệnh: mất mạng → ghi vào `choGui` (dòng đó hiện "Chưa gửi được" + "Bấm lại"); lỗi khác → dải báo. */
 async function chay(khoa: string, viec: () => Promise<void>): Promise<void> {
+  vuaGhi = null;
   try {
     await viec();
     choGui.delete(khoa);
@@ -86,8 +92,12 @@ function khoiDiKem(): HTMLElement | null {
   if (!viec.length || duLieu!.chuyen.trangThai !== "RUNNING") return null;
   return h("div", { class: "dp-cc-di-kem-viec" }, ...viec.map((v) => {
     const nut = v.lenh ? h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary", "data-action": `di-kem-${v.lenh}`, "data-suat": v.id }, v.nhan!) : null;
-    nut?.addEventListener("click", () => void chay(`di-kem:${v.id}`, () => gui(`phan-bo/${encodeURIComponent(v.id)}/${v.lenh}`)));
-    return h("div", { class: "dp-cc-di-kem-dong" }, h("span", null, `${v.ten} — ${v.trangThai === "WAITING" ? "chưa lên xe" : v.trangThai === "BOARDED" ? "đang trên xe" : "đã xuống"}`), nut);
+    nut?.addEventListener("click", () => void chay(`di-kem:${v.id}`, async () => {
+      await gui(`phan-bo/${encodeURIComponent(v.id)}/${v.lenh}`);
+      ghiVua(v.id, `di-kem-${v.lenh}` as LenhVuaGhi, v.ten);
+    }));
+    return h("div", { class: "dp-cc-di-kem-dong" }, h("span", null, `${v.ten} — ${v.trangThai === "WAITING" ? "chưa lên xe" : v.trangThai === "BOARDED" ? "đang trên xe" : "đã xuống"}`), nut,
+      vuaGhi?.suatId === v.id ? h("div", { class: "dp-vua-ghi", role: "status" }, icon("check", 16, 2), h("span", null, vuaGhi.cau)) : null);
   }));
 }
 
@@ -110,6 +120,7 @@ function ve(): void {
   const diem = veDiemChay({
     diem: r.diem, suat: r.suat, trangThai: c.trangThai, ngayXem: ngay, coNut: chayDuoc, onLenh: lenhDiem,
     choGui: new Set([...choGui.keys()]),
+    vuaGhi,
     phuDiem: (b) => ({ ben: nutThuTu(b), duoi: [...bayCua(b, r.suat), ...lienHeCua(b)] }),
   });
   // "Bấm lại" ở dòng khách chưa gửi được.
@@ -123,7 +134,8 @@ function ve(): void {
   }
   const diemCho = [...choGui.keys()].filter((k) => k.startsWith("diem:"));
   const ketThuc = h("button", { type: "button", class: "vc-btn btn btn-accent", disabled: !ketThucDuoc(r.suat), "data-action": "ket-thuc" }, "Kết thúc chuyến");
-  ketThuc.addEventListener("click", () => void chay("ket-thuc", () => gui("ket-thuc")));
+  // Kiểu A (V1.4): "Kết thúc chuyến" mở hộp xác nhận (tóm tắt kết quả khách) — lệnh chỉ gửi khi bấm nút trong hộp.
+  ketThuc.addEventListener("click", () => moXacNhan(ketThuc, hopKetThuc({ ma: c.ma, suat: r.suat }), "ket-thuc", () => void chay("ket-thuc", () => gui("ket-thuc"))));
   const gianDoan = h("button", { type: "button", class: "vc-btn vc-btn-stop dp-gian-doan", "data-action": "ket-thuc-gian-doan" }, "Kết thúc gián đoạn"); // bản 1.39: nút viền đỏ, nhỏ hơn — không còn là nút to nhất lúc đang chạy (nút xác nhận trong hộp vẫn đỏ đặc)
   gianDoan.addEventListener("click", () => moGianDoan(gianDoan));
   replaceChildren(
@@ -177,20 +189,59 @@ function nutThuTu(b: BuocDiem): HTMLElement | null {
   return h("span", { class: "dp-thu-tu-nhom" }, nut(-1, "↑", `Đưa ${b.diem.tenNoi} lên trước`, "len"), nut(1, "↓", `Đưa ${b.diem.tenNoi} xuống sau`, "xuong"));
 }
 
-function lenhDiem(l: LenhDiem): void {
+function lenhDiem(l: LenhDiem, nut: HTMLButtonElement): void {
   const d = l.buoc.diem;
   if (l.loai === "da-toi") return void chay(`diem:${d.id}`, () => gui(`diem/${encodeURIComponent(d.id)}/da-toi`));
-  if (l.loai === "tra-het") {
-    return void chay(`diem:${d.id}`, async () => {
-      if (duLieu!.diem.find((x) => x.id === d.id)?.trangThai === "PENDING") await gui(`diem/${encodeURIComponent(d.id)}/da-toi`);
-      for (const sid of l.buoc.traCho) {
-        if (duLieu!.suat.find((x) => x.id === sid)?.trangThai !== "BOARDED") continue;
-        await gui(`phan-bo/${encodeURIComponent(sid)}/tra`);
-      }
-    });
-  }
+  // Kiểu A (V1.4) + HT-02: "Đã trả" cả điểm mở hộp xác nhận (số khách xuống ở đây; 0 khách → cảnh báo) — lệnh chỉ gửi khi bấm nút trong hộp.
+  if (l.loai === "tra-het") return moXacNhan(nut, hopTraCaDiem({ tenNoi: d.tenNoi, soKhach: l.buoc.traCho.length }), "tra-het", () => traHet(l));
   const lenh = l.loai;
-  void chay(l.suatId, () => gui(`phan-bo/${encodeURIComponent(l.suatId)}/${lenh}`));
+  const ten = l.ten;
+  void chay(l.suatId, async () => {
+    await gui(`phan-bo/${encodeURIComponent(l.suatId)}/${lenh}`);
+    ghiVua(l.suatId, lenh, ten);
+  });
+}
+
+/** Ghi dòng "Vừa ghi …" (Kiểu A) cho lệnh suất vừa thành công; `ve()` của `chay` vẽ nó. */
+function ghiVua(suatId: string, lenh: LenhVuaGhi, ten: string): void {
+  const cau = dongVuaGhi(lenh, ten);
+  vuaGhi = cau ? { suatId, cau } : null;
+}
+
+/** Bảng trượt xác nhận dùng chung cho lệnh chốt (Kết thúc chuyến, Đã trả cả điểm) — nội dung từ hàm thuần, giao diện chỉ vẽ. */
+function moXacNhan(opener: HTMLElement, hop: HopXacNhan, ten: string, lam: () => void): void {
+  const chinh = h("button", { type: "button", class: "vc-btn btn btn-accent", "data-action": `${ten}-xac-nhan` }, hop.nutXacNhan);
+  const dong = h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary", "data-action": `${ten}-dong` }, "Chưa, quay lại");
+  const bang = moBangTruot({
+    title: hop.tieuDe,
+    body: [
+      hop.canhBao ? dai("warning", hop.canhBao) : null,
+      h("dl", { class: "dp-xn-ds" }, ...hop.dong.flatMap(([k, v]) => [h("dt", null, k), h("dd", null, v)])),
+      h("p", { class: "dp-sheet-text dp-note" }, hop.ghiChu),
+    ],
+    foot: [dong, chinh],
+    footClass: "vc-foot-2",
+    opener,
+  });
+  if (!bang) return;
+  dong.addEventListener("click", () => bang.close());
+  chinh.addEventListener("click", () => {
+    chinh.disabled = true;
+    bang.close(false);
+    lam();
+  });
+}
+
+/** "Đã trả" cả điểm sau khi xác nhận: tới điểm nếu chưa tới, rồi trả từng suất còn trên xe xuống ở đây. */
+function traHet(l: Extract<LenhDiem, { loai: "tra-het" }>): void {
+  const d = l.buoc.diem;
+  void chay(`diem:${d.id}`, async () => {
+    if (duLieu!.diem.find((x) => x.id === d.id)?.trangThai === "PENDING") await gui(`diem/${encodeURIComponent(d.id)}/da-toi`);
+    for (const sid of l.buoc.traCho) {
+      if (duLieu!.suat.find((x) => x.id === sid)?.trangThai !== "BOARDED") continue;
+      await gui(`phan-bo/${encodeURIComponent(sid)}/tra`);
+    }
+  });
 }
 
 /** Hộp "Kết thúc gián đoạn" (bản vẽ 5b): lý do nhóm Kết thúc gián đoạn; không ô ghi chú (Q1). */
