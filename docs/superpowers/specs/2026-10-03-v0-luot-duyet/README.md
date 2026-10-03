@@ -47,7 +47,7 @@ Người kiểm độc lập chỉ đọc (3/10) kết luận **ĐẠT CÓ ĐI�
 | Mục | Đã làm |
 |---|---|
 | A1 | áp vào `docs/quyen-hoan.json` (`TNV-VP01`) |
-| A2 | áp vào bản nháp ADR-0092 (bản 3.4); **toàn văn ADR-0088, ADR-0092 vẫn chờ "Duyệt"** |
+| A2 | áp vào bản nháp ADR-0092 (bản 3.4); toàn văn ADR-0088, ADR-0092 **duyệt 3/10 ("1- duyệt")** ⇒ `docs/adr/ADR-0088-…`, `docs/adr/ADR-0092-…` |
 | A3 + HT-06 | `docs/adr/ADR-0096-thu-tu-diem-dung-cua-so-xuat-ben-va-gio-hen.md` (accepted, thêm Đ3 LC-21) |
 | B1 | `docs/adr/ADR-0097-su-kien-dieu-chinh-co-ly-do.md` (accepted) |
 | B2 + Q-98-1, Q-98-2 | `docs/adr/ADR-0098-tra-trung-ho-so-theo-sdt.md` (accepted, thêm Đ7 Danh bạ, Đ4 số nước ngoài) |
@@ -59,7 +59,9 @@ Người kiểm độc lập chỉ đọc (3/10) kết luận **ĐẠT CÓ ĐI�
 
 Các tệp A3, B1, B2 trong thư mục này là **bản nháp lịch sử**; bản có hiệu lực ở `docs/adr/`.
 
-**Chưa làm:** dòng "thay câu" trỏ về ADR mới trong dòng trạng thái các ADR cũ (ADR-0001, 0011, 0014, 0026, 0027, 0049, 0052, 0053, 0068, 0080) — phiên V0 được giao "không sửa ADR đã duyệt"; việc này chờ chủ cho phép riêng.
+**Dòng "thay câu"** trỏ về ADR mới đã ghi vào dòng trạng thái 12 ADR cũ (ADR-0001, 0011, 0014, 0025, 0026, 0027, 0034, 0049, 0052, 0053, 0068, 0080) — chủ cho phép 3/10 ("2- có"); mỗi tệp chỉ đổi đúng dòng trạng thái, thân không đổi.
+
+**Hàng rào tệp luật:** chủ đồng ý siết (3/10, "3: ok") — làm ở phiên riêng (thẻ việc gợi ý "Siết hook tệp luật: chặn ghi docs/adr qua script"), vì sửa `.claude/` là sửa luật, cần người kiểm độc lập.
 
 ## Câu hỏi gom cho chủ (lần hỏi 3/10 — đã trả lời, giữ để đối chiếu)
 
