@@ -125,7 +125,7 @@ export function diemChuyenDto(
   return {
     id: s.id, thuTu: s.seq, loai: s.kind, tenNoi: tenNoi(s), diemDanhMucId: s.location_id, gioHen: gioHen === null ? null : gioVn(gioHen),
     gioXeToi: s.planned_date !== null && s.planned_time !== null ? { ngay: s.planned_date, gio: s.planned_time } : null, trangThai: s.status, soNguoi: moTaiDiem.length,
-    lechDon: lech, daToi: mocTienDo(suKienCuoi(v.events, s.trip_id, ["STOP_ARRIVED"], (e) => e.stop_id === s.id), v.nhan),
+    lechDon: lech, daToi: mocTienDo(suKienCuoi(v.events, s.trip_id, ["STOP_ARRIVED"], (e) => e.stop_id === s.id), v.nhan), themKhiChay: s.added_while_running === 1,
   };
 }
 
@@ -133,7 +133,7 @@ export function diemChuyenDto(
 export function suatChuyenDto(
   a: AllocRow,
   v: { changLich: ReadonlyMap<string, ChangLichChung>; changNgoai: readonly { legId: string; orderCode: string }[]; ten: ReadonlyMap<string, { fullName: string; birthYear: number }>;
-    events: readonly EventRow[]; nhan: ReadonlyMap<string, string> | null; tenDiKem?: ReadonlyMap<string, string> },
+    events: readonly EventRow[]; nhan: ReadonlyMap<string, string> | null; tenDiKem?: ReadonlyMap<string, string>; lyDoNhan: ReadonlyMap<string, string> },
 ): SuatChuyenDto {
   const ch = a.leg_id ? v.changLich.get(a.leg_id) : undefined;
   const maDon = ch?.orderCode ?? (a.leg_id ? v.changNgoai.find((x) => x.legId === a.leg_id)?.orderCode ?? null : null);
@@ -146,6 +146,10 @@ export function suatChuyenDto(
     ...(a.kind === "CREW" && a.crew_party_id !== null && v.tenDiKem?.has(a.crew_party_id) ? { tenNguoiDiKem: v.tenDiKem.get(a.crew_party_id)! } : {}),
     daDon: mocTienDo(suKienCuoi(v.events, a.trip_id, ["PASSENGER_BOARDED"], (e) => e.allocation_id === a.id), v.nhan),
     daTra: mocTienDo(suKienCuoi(v.events, a.trip_id, ["PASSENGER_DROPPED"], (e) => e.allocation_id === a.id), v.nhan),
+    // Đợt 5 D5.2: giờ + nhãn lý do; KHÔNG người bấm (cột office_cancel_by không đọc ra).
+    vanPhongBaoHuy: a.office_cancel_at !== null && a.office_cancel_reason_code !== null
+      ? { luc: gioVn(Date.parse(a.office_cancel_at)), lyDoNhan: v.lyDoNhan.get(a.office_cancel_reason_code) ?? "Khách huỷ" }
+      : null,
   };
 }
 

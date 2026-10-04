@@ -63,9 +63,11 @@ export function cuocChiTietDto(v: {
     },
     diem: v.diem.map((d) => ({
       id: d.id, thuTu: d.thuTu, loai: d.loai, tenNoi: d.tenNoi, gioHen: d.gioHen, gioXeToi: d.gioXeToi, trangThai: d.trangThai, soNguoi: d.soNguoi, daToi: d.daToi,
+      themKhiChay: d.themKhiChay,
     })),
     suat: v.suat.map((s) => ({
       id: s.id, loai: s.loai, maDon: s.maDon, diemLen: s.diemLen, diemXuong: s.diemXuong, trangThai: s.trangThai, daDon: s.daDon, daTra: s.daTra, soHieuChuyenBay: s.soHieuChuyenBay,
+      vanPhongBaoHuy: s.vanPhongBaoHuy === null ? null : { luc: s.vanPhongBaoHuy.luc, lyDoNhan: s.vanPhongBaoHuy.lyDoNhan }, // giờ + lý do, không người bấm
       ...(v.trongNgay && s.hoTen !== undefined && s.namSinh !== undefined ? { hoTen: s.hoTen, namSinh: s.namSinh } : {}),
       ...(s.tenNguoiDiKem !== undefined ? { tenNguoiDiKem: s.tenNguoiDiKem } : {}), // tên HDV đi kèm — mọi lúc, chỉ tên (lời chủ 2026-10-01; T-5)
     })),

@@ -205,6 +205,8 @@ test("khối van-chuyen: đủ tuyến; tên hành khách chỉ ở GET /chuyen/
     const dD = await don(w, { soNguoi: 1, gio: "16:30", namSinh: 1911 });
     const dE = await don(w, { soNguoi: 1, gio: "16:30", namSinh: 1911 });
     const dF = await don(w, { soNguoi: 2, gio: "08:30", ngay: NGAY_SAU, namSinh: 1911 });
+    // Đợt 5 (ADR-0052 D5.1, D5.2): đơn H thêm vào xe D ĐANG CHẠY (them-diem), rồi văn phòng báo huỷ một khách (bao-huy).
+    const dH = await don(w, { soNguoi: 2, gio: "16:30", namSinh: 1911 });
     const T: Record<string, any> = {};
     const S: Record<string, { don: string; tra: string; suat: string[] }> = {};
     const R = "POST /api/van-chuyen/cuoc-cua-toi/:id"; // tiền tố route tài xế
@@ -394,9 +396,24 @@ test("khối van-chuyen: đủ tuyến; tên hành khách chỉ ở GET /chuyen/
       [`${V}/ket-thuc`]: async () => {
         await goi(`${V}/ket-thuc`, "văn phòng kết thúc B", "POST", `/api/van-chuyen/chuyen/${T.B.chuyen.id}/ket-thuc`, SALES, { requestId: rid() });
       },
-      [`${R}/ket-thuc-gian-doan`]: async () => {
+      [`${V}/them-diem`]: async () => {
         denGio("16:10");
         await goi(`${R}/xuat-ben`, "tài xế xuất bến D", "POST", `/api/van-chuyen/cuoc-cua-toi/${T.D.chuyen.id}/xuat-ben`, DRIVER, { requestId: rid() });
+        const d = await ct(T.D.chuyen.id);
+        const r = await goi(`${V}/them-diem`, "thêm đơn H vào xe D đang chạy", "POST", `/api/van-chuyen/chuyen/${T.D.chuyen.id}/them-diem`, ADM, {
+          version: d.chuyen.version, requestId: rid(), chang: [{ legId: dH.legId, soSuat: 2 }], phaLe: { lyDo: "PHA_LE_SU_CO" },
+        });
+        S.H = { don: "", tra: "", suat: r.suat.filter((s: any) => s.maDon === dH.code).map((s: any) => s.id) };
+        assert.equal(S.H.suat.length, 2, "chống bài rỗng: hai suất H (máy gắn tên — I19a) trên xe D");
+      },
+      [`${V}/phan-bo/:aid/bao-huy`]: async () => {
+        const d = await ct(T.D.chuyen.id);
+        await goi(`${V}/phan-bo/:aid/bao-huy`, "văn phòng báo huỷ khách H", "POST", `/api/van-chuyen/chuyen/${T.D.chuyen.id}/phan-bo/${S.H!.suat[0]}/bao-huy`, SALES, {
+          version: d.chuyen.version, requestId: rid(), lyDo: "BAO_HUY_KHONG_DI",
+        });
+      },
+      [`${R}/ket-thuc-gian-doan`]: async () => {
+        // Xe D đã xuất bến ở ca them-diem (Đợt 5).
         await goi(`${R}/ket-thuc-gian-doan`, "tài xế kết thúc gián đoạn D", "POST", `/api/van-chuyen/cuoc-cua-toi/${T.D.chuyen.id}/ket-thuc-gian-doan`, DRIVER, { requestId: rid(), lyDo: "GIAN_DOAN_XE_HONG" });
       },
       [`${V}/ket-thuc-gian-doan`]: async () => {
@@ -423,7 +440,7 @@ test("khối van-chuyen: đủ tuyến; tên hành khách chỉ ở GET /chuyen/
     // gián đoạn ×2 — mọi suất đã đóng) do bài 3 (quét mã: đối `kemTen` / `hk` ở MỌI nơi gọi) canh.
     const KHONG_THE_LO = new Set(["POST /api/van-chuyen/chuyen", "POST /api/van-chuyen/chuyen/:id/huy", `${R}/ket-thuc-gian-doan`, `${V}/ket-thuc-gian-doan`]);
     const phaiCoCaiDeLo = TUYEN_VC_THAT.filter((k) => /^(POST|PUT) \/api\/van-chuyen\/(chuyen\/:id|cuoc-cua-toi\/:id)(\/|$)/.test(k) && !KHONG_THE_LO.has(k));
-    assert.equal(phaiCoCaiDeLo.length, 22, "6 lệnh kế hoạch (sửa, xếp, rút, dời, cập nhật điểm, cập nhật khách — R-P29) + 8 lệnh tài xế + 8 lệnh văn phòng bấm thay");
+    assert.equal(phaiCoCaiDeLo.length, 24, "6 lệnh kế hoạch (sửa, xếp, rút, dời, cập nhật điểm, cập nhật khách — R-P29) + 8 lệnh tài xế + 8 lệnh văn phòng bấm thay + 2 lệnh xe đang chạy (thêm điểm, báo huỷ — Đợt 5)");
     for (const r of phaiCoCaiDeLo) assert.ok(than.some((t) => t.route === r && t.coCaiDeLo), `${r}: không lần gọi nào có suất đã gắn tên — phép "không lộ tên" vô nghĩa ở route này`);
 
     // (3) NHẬT KÝ + cột chữ vc_* — mọi cột, bỏ mã UUID.
@@ -514,7 +531,7 @@ test("khối van-chuyen (bài 3, quét mã — K2a V2): chỉ GET /chuyen/:id tr
     }
   }
   assert.deepEqual(loi, []);
-  assert.deepEqual(dem, { chiTiet: 18, cuoc: 10 }, "chống bài rỗng: 18 nơi gọi chiTietChuyen (1 GET + 17 lệnh — thêm cập nhật khách, R-P29), 10 nơi gọi cuocChiTiet (1 GET + 9 lệnh tài xế)");
+  assert.deepEqual(dem, { chiTiet: 20, cuoc: 10 }, "chống bài rỗng: 20 nơi gọi chiTietChuyen (1 GET + 19 lệnh — thêm cập nhật khách R-P29, thêm điểm + báo huỷ Đợt 5), 10 nơi gọi cuocChiTiet (1 GET + 9 lệnh tài xế)");
 });
 
 // ADR-0052 tiêu chí 12 (D6 — Đợt 2 Vận chuyển): tin chuyến ở hộp thông báo không mang tên, năm sinh, SĐT, chữ nơi tự do có dãy số, khoá nơi.

@@ -48,11 +48,13 @@ import { isISODate, msToVnLocal } from "../../shared/vn-date";
 import { eventByRequest, eventsByTrips, tripCountByDate, tripsByDate, tripsCuaTaiXe, tripsTouching } from "./chuyen-repo";
 import { loTaoChuyen } from "./dieu-phoi";
 import { chinhSachVao, docChung, docNen, khungChuyen, taiXeVao, xeVao, type NenChuyen } from "./dieu-phoi-doc";
-import { dungLichNgay, lenhCapNhatDiem, lenhCapNhatKhach, lenhDoi, lenhHuy, lenhRut, lenhSuaChuyen, lenhXep } from "./dieu-phoi-lenh";
+import { dungLichNgay, lenhBaoHuy, lenhCapNhatDiem, lenhCapNhatKhach, lenhDoi, lenhHuy, lenhRut, lenhSuaChuyen, lenhThemDiemDangChay, lenhXep } from "./dieu-phoi-lenh";
 import {
   CAN_DIEU_PHOI, CAN_PHA_LE, CAN_XEM_CHUYEN, KHONG_CO_CHUYEN, chayLo, chiTietChuyen, cuocChiTiet, danhSachCuoc, gioNgan, loi409, loiKiem, lyDoHopLe, nhanLyDo, phaLeNhatKy,
 } from "./dieu-phoi-route";
-import { docCapNhatDiem, docDoi, docDoiThuTu, docHuy, docKetThucGianDoan, docRut, docSuaChuyen, docTaoChuyen, docTienDo, docXep } from "./dieu-phoi-than";
+import {
+  docBaoHuy, docCapNhatDiem, docDoi, docDoiThuTu, docHuy, docKetThucGianDoan, docRut, docSuaChuyen, docTaoChuyen, docThemDiem, docTienDo, docXep,
+} from "./dieu-phoi-than";
 // Task A15: lệnh tiến độ — MỘT hàm mỗi lệnh cho cả route tài xế lẫn route văn phòng bấm thay (R-P1).
 import {
   lenhDaDon, lenhDaToi, lenhDaTra, lenhDoiThuTu, lenhKetThuc, lenhKetThucGianDoan, lenhKhachHuy, lenhVang, lenhXuatBen, type NguoiBam,
@@ -1067,6 +1069,52 @@ export const vanChuyenModule: AppModule = {
       return json({ ...ct, ...(canhBaoXep.length > 0 ? { canhBaoXep: canhBaoXep.map(lyDoGiuDto) } : {}) } satisfies ChuyenChiTietResponse);
     }),
 
+    // ADR-0052 D5.1 (Đợt 5): "Thêm điểm khi xe đang chạy" — ô trip.dispatch (+ trip.override khi phá lệ mốc). Thân như phan-bo, không người đi kèm. Chuyến
+    // RUNNING (chưa chạy → 409 dùng Xếp). Mốc: chặng đặt gấp qua; chặng khác → 409 "Khách không đặt gấp — cần Quản trị phá lệ." trừ khi Quản trị phá lệ.
+    route("POST", "/api/van-chuyen/chuyen/:id/them-diem", "office", async ({ env, request, params, staff, nhanNhanVien, isAssigned, baoThayDoiChuyen }) => {
+      if (!can(staff, "trip.dispatch")) return CAN_DIEU_PHOI();
+      const than = docThemDiem(await readJson(request));
+      if (!than.ok) return error(400, "invalid_input", than.message);
+      const b = than.value;
+      if (b.phaLe && !can(staff, "trip.override")) return CAN_PHA_LE();
+      const nen = await docNen(env.DB, params.id ?? "");
+      if (!nen) return KHONG_CO_CHUYEN();
+      const bayGioMs = Date.now();
+      if (!(await eventByRequest(env.DB, b.requestId))) {
+        const lich = await lichChungChang(env.DB, nen.tu, nen.den);
+        const hkMoi = await hanhKhachChoChuyen(env.DB, b.chang.map((c) => c.legId)); // dòng hành khách hiện hành — chỉ để ghi bản chốt (không ra phản hồi)
+        const r = await lenhThemDiemDangChay(env.DB, nen, lich.chang, hkMoi, b, staff, bayGioMs);
+        if (r) return r;
+        baoThayDoiChuyen({ tripId: nen.trip.id, requestId: b.requestId }); // ADR-0052 D6.3: sau lô thành công, bắn-và-quên; không gọi khi 4xx / lệnh lặp
+      }
+      const nen2 = (await docNen(env.DB, nen.trip.id))!;
+      const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
+      const hk = await hanhKhachChoChuyen(env.DB, nen2.legIds);
+      return json(await chiTietChuyen(env.DB, nen2, lich2.chang, hk, false, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), bayGioMs) satisfies ChuyenChiTietResponse);
+    }),
+
+    // ADR-0052 D5.2 (Đợt 5): văn phòng báo khách huỷ trên xe đang chạy — chỉ đặt cờ (suất vẫn chiếm chỗ tới khi tài xế bấm "Khách đã huỷ"). Ô trip.dispatch;
+    // lý do nhóm BAO_HUY_DIEM (sai nhóm 400); báo lần hai / suất đã có kết quả 409.
+    route("POST", "/api/van-chuyen/chuyen/:id/phan-bo/:aid/bao-huy", "office", async ({ env, request, params, staff, nhanNhanVien, isAssigned, baoThayDoiChuyen }) => {
+      if (!can(staff, "trip.dispatch")) return CAN_DIEU_PHOI();
+      const than = docBaoHuy(await readJson(request));
+      if (!than.ok) return error(400, "invalid_input", than.message);
+      const b = than.value;
+      const nen = await docNen(env.DB, params.id ?? "");
+      if (!nen) return KHONG_CO_CHUYEN();
+      const bayGioMs = Date.now();
+      if (!(await eventByRequest(env.DB, b.requestId))) {
+        const lich = await lichChungChang(env.DB, nen.tu, nen.den);
+        const r = await lenhBaoHuy(env.DB, nen, lich.chang, params.aid ?? "", b, staff, bayGioMs);
+        if (r) return r;
+        baoThayDoiChuyen({ tripId: nen.trip.id, requestId: b.requestId }); // ADR-0052 D6.3: sau lô thành công, bắn-và-quên; không gọi khi 4xx / lệnh lặp
+      }
+      const nen2 = (await docNen(env.DB, nen.trip.id))!;
+      const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
+      const hk = await hanhKhachChoChuyen(env.DB, nen2.legIds);
+      return json(await chiTietChuyen(env.DB, nen2, lich2.chang, hk, false, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), bayGioMs) satisfies ChuyenChiTietResponse);
+    }),
+
     route("POST", "/api/van-chuyen/chuyen/:id/rut", "office", async ({ env, request, params, staff, nhanNhanVien, isAssigned, baoThayDoiChuyen }) => {
       if (!can(staff, "trip.dispatch")) return CAN_DIEU_PHOI();
       const than = docRut(await readJson(request));
@@ -1143,18 +1191,21 @@ export const vanChuyenModule: AppModule = {
       if (!nen) return KHONG_CO_CHUYEN();
       const bayGioMs = Date.now();
       let daCapNhat = 0;
+      let boQua: number | undefined;
       const lap = await eventByRequest(env.DB, b.requestId);
       if (!lap) {
         const lich = await lichChungChang(env.DB, nen.tu, nen.den);
         const r = await lenhCapNhatDiem(env.DB, nen, lich.chang, b, staff, bayGioMs);
         if (r instanceof Response) return r;
-        daCapNhat = r;
-        if (r > 0) baoThayDoiChuyen({ tripId: nen.trip.id, requestId: b.requestId }); // ADR-0052 D6.3: không suất lệch = không ghi = không báo
+        daCapNhat = r.daCapNhat;
+        if (nen.trip.status === "RUNNING") boQua = r.boQua; // Đợt 5 D5.3a: chỉ xe đang chạy mới có suất "không đổi được"
+        if (r.daCapNhat > 0) baoThayDoiChuyen({ tripId: nen.trip.id, requestId: b.requestId }); // ADR-0052 D6.3: không suất lệch = không ghi = không báo
       } else daCapNhat = (await eventsByTrips(env.DB, [nen.trip.id])).find((e) => e.id === lap.id)?.count ?? 0;
       const nen2 = (await docNen(env.DB, nen.trip.id))!;
       const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
       const hk = await hanhKhachChoChuyen(env.DB, nen2.legIds);
-      return json({ ...(await chiTietChuyen(env.DB, nen2, lich2.chang, hk, false, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), bayGioMs)), daCapNhat } satisfies CapNhatDiemResponse);
+      const ct = await chiTietChuyen(env.DB, nen2, lich2.chang, hk, false, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), bayGioMs);
+      return json({ ...ct, daCapNhat, ...(boQua !== undefined ? { boQua } : {}) } satisfies CapNhatDiemResponse);
     }),
 
     // R-P29 (chủ lần 16 — "Giữ xe + nút cập nhật", khuôn route 40): "Cập nhật khách theo đơn" — máy tự tìm MỌI suất khách mở mang khoá người không còn trong

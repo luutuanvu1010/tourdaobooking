@@ -54,6 +54,9 @@ const THONG_BAO_409: Record<string, string> = {
   diem_da_toi: "Điểm đã tới hoặc đã bỏ qua.",
   diem_chua_toi: "Xe chưa tới điểm của khách này — bấm \"Đã tới\" trước.",
   suat_da_co_ket_qua: "Khách này đã có kết quả — không đổi được.",
+  // Xe đang chạy (Đợt 5 — ADR-0052 D5)
+  chuyen_chua_chay: "Chuyến chưa xuất bến — dùng Xếp khách / Rút khách.",
+  da_bao_huy: "Khách này đã được báo huỷ.",
 };
 const MA_LOI_THEO_GIU: Partial<Record<MaGiu, string>> = {
   NGUOI_DA_O_CHUYEN_KHAC: "nguoi_da_o_chuyen_khac", VUOT_SO_NGUOI_CHANG: "vuot_so_nguoi_chang", VUOT_SO_CHO: "vuot_so_cho", TRUNG_GIO_XE: "trung_gio_xe",
@@ -62,14 +65,16 @@ const MA_LOI_THEO_GIU: Partial<Record<MaGiu, string>> = {
   DON_DA_HUY: "chang_khong_hop_le", CHANG_DA_DONG: "chang_khong_hop_le", GIO_HEN_NGOAI_CHUYEN: "chang_khong_hop_le", KHACH_KHONG_THUOC_DON: "khach_khong_thuoc_don",
   CHEO_XE_TAI_XE: "cheo_xe_tai_xe", XE_KHONG_DUNG: "xe_khong_dung", GIO_CHUYEN_KHONG_HOP_LE: "gio_chuyen_khong_hop_le", CHINH_SACH_RONG: "chinh_sach_rong",
 };
-export function loi409(code: string, lyDo: readonly LyDoGiu[] = [], extra: Omit<LenhChuyenLoiBody["error"], "code" | "message" | "lyDo"> = {}): Response {
-  return json({ error: { code, message: THONG_BAO_409[code] ?? "Lệnh chưa làm được.", lyDo: lyDo.map(lyDoGiuDto), ...extra } } satisfies LenhChuyenLoiBody, 409);
+export function loi409(code: string, lyDo: readonly LyDoGiu[] = [], extra: Omit<LenhChuyenLoiBody["error"], "code" | "message" | "lyDo"> = {}, thongBao?: string): Response {
+  return json({ error: { code, message: thongBao ?? THONG_BAO_409[code] ?? "Lệnh chưa làm được.", lyDo: lyDo.map(lyDoGiuDto), ...extra } } satisfies LenhChuyenLoiBody, 409);
 }
 /**
  * Kết quả luật thuần → 409 (kế hoạch mục 1.1 bảng mã lỗi — lớp ROUTE): `chan` → mã theo lý do ĐẦU (mọi lý do đi kèm); chỉ `canPhaLe` còn thiếu phá lệ →
  * `can_pha_le` (mốc) hoặc `chua_du_nghi` (chỉ khoảng nghỉ), kèm `canQuyen` = người gọi có ô `trip.override`. `null` = cho qua.
  */
-export function loiKiem(kq: KetQuaKiem, staff: PermissionHolder, trangThai: TrangThaiChuyen | null, co: { moc: boolean; nghi: boolean }): Response | null {
+export function loiKiem(
+  kq: KetQuaKiem, staff: PermissionHolder, trangThai: TrangThaiChuyen | null, co: { moc: boolean; nghi: boolean }, thongBaoMoc?: string,
+): Response | null {
   if (kq.chan.length > 0) {
     const dau = kq.chan[0]!.ma;
     const code = dau === "CHUYEN_KHONG_CON_LEN_KE_HOACH" ? (trangThai === "RUNNING" ? "xe_dang_chay" : "chuyen_da_ket_thuc") : (MA_LOI_THEO_GIU[dau] ?? "chang_khong_hop_le");
@@ -77,7 +82,8 @@ export function loiKiem(kq: KetQuaKiem, staff: PermissionHolder, trangThai: Tran
   }
   const thieu = kq.canPhaLe.filter((l) => (l.ma === "MOC_TOI_THIEU" && !co.moc) || (l.ma === "KHOANG_NGHI" && !co.nghi));
   if (thieu.length === 0) return null;
-  return loi409(thieu.some((l) => l.ma === "MOC_TOI_THIEU") ? "can_pha_le" : "chua_du_nghi", thieu, { canQuyen: can(staff, "trip.override") });
+  const moc = thieu.some((l) => l.ma === "MOC_TOI_THIEU");
+  return loi409(moc ? "can_pha_le" : "chua_du_nghi", thieu, { canQuyen: can(staff, "trip.override") }, moc ? thongBaoMoc : undefined);
 }
 /** Mã lý do phá lệ / huỷ hợp lệ: đang dùng, đúng nhóm. */
 export const lyDoHopLe = (chung: DuLieuChung, code: string, nhom: string): boolean => chung.lyDo.some((r) => r.code === code && r.reason_group === nhom);
@@ -188,7 +194,7 @@ export async function chiTietChuyen(
       lyDoKetThuc: t.end_reason_code ? (lyDoNhan.get(t.end_reason_code) ?? null) : null,
     },
     diem: nen.stops.map((s) => diemChuyenDto(s, { allocs: nen.allocs, chang: nc.chang, stops: nen.stops, events: nen.events, nhan })),
-    suat: nen.allocs.filter((a) => a.valid_to_at === null).map((a) => suatChuyenDto(a, { changLich: nc.changLich, changNgoai: nc.changNgoai, ten, events: nen.events, nhan, tenDiKem })),
+    suat: nen.allocs.filter((a) => a.valid_to_at === null).map((a) => suatChuyenDto(a, { changLich: nc.changLich, changNgoai: nc.changNgoai, ten, events: nen.events, nhan, tenDiKem, lyDoNhan })),
     canhBao: canhBao.map(canhBaoDto),
     nhatKy: nhatKyChuyenDto(nen.events, nhan, lyDoNhan),
     banChup: banChupDto(await banChupCuoi(db, t.id)),
@@ -230,11 +236,12 @@ export async function cuocChiTiet(
   const nhan = await nhanNhanVien([...new Set(nen.events.flatMap((e) => (e.created_by && e.occurred_source === "VAN_PHONG_KHAI" ? [e.created_by] : [])))]);
   const tenDiKem = nen.allocs.some((a) => a.kind === "CREW" && a.valid_to_at === null) ? await tenNguoiDiKem(db, nen.trip.id) : undefined;
   const ten = new Map<string, { fullName: string; birthYear: number }>();
+  const lyDoNhan = new Map(c.lyDo.map((r) => [r.code, r.label]));
   if (trongNgay) for (const ch of hk) for (const n of ch.nguoi) ten.set(n.personKey, { fullName: n.fullName, birthYear: n.birthYear });
   return cuocChiTietDto({
     trip: t, xe: c.xe.find((x) => x.id === t.vehicle_id), events: nen.events,
     diem: nen.stops.map((s) => diemChuyenDto(s, { allocs: nen.allocs, chang: nc.chang, stops: nen.stops, events: nen.events, nhan })),
-    suat: nen.allocs.filter((a) => a.valid_to_at === null).map((a) => suatChuyenDto(a, { changLich: nc.changLich, changNgoai: nc.changNgoai, ten, events: nen.events, nhan, tenDiKem })),
+    suat: nen.allocs.filter((a) => a.valid_to_at === null).map((a) => suatChuyenDto(a, { changLich: nc.changLich, changNgoai: nc.changNgoai, ten, events: nen.events, nhan, tenDiKem, lyDoNhan })),
     lienHe, conThieu: lyDoGiuDuPhong(t, nc, c, bayGioMs), lyDo: c.lyDo.filter((r) => r.reason_group === "KET_THUC_GIAN_DOAN"), nhan, trongNgay,
   });
 }

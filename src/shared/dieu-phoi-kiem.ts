@@ -255,7 +255,7 @@ export function kiemXep(v: KiemXepVao): KetQuaXep {
   if (v.chuyen.trangThai !== (khiChay ? "RUNNING" : "PLANNED")) chan.push(lyDoGiu("CHUYEN_KHONG_CON_LEN_KE_HOACH", v.chuyen.ma));
   // Xe đang chạy luôn ở trong mốc (ADR-0052 D5.1) — kể cả khi xuất bến sớm hơn giờ dự kiến.
   const chuyenMoc = khiChay ? { batDauMs: Math.min(v.chuyen.batDauMs, v.bayGioMs), batDauSomNhatMs: Math.min(v.chuyen.batDauSomNhatMs, v.bayGioMs) } : v.chuyen;
-  const loaiMoc = khiChay ? "XEP" : (v.lenh ?? "XEP");
+  const loaiMoc = v.lenh === "DOI_DEN" ? "DOI_DEN" : "XEP"; // THEM_KHI_CHAY xét mốc như dòng "Xếp"
   let moi = v.soNguoiDiKemMoi ?? 0;
   for (const t of v.them) {
     const c = t.chang;

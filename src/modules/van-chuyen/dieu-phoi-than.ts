@@ -157,6 +157,28 @@ export function docHuy(body: Record<string, unknown> | null): KetQua<HuyThan> {
   if (!phaLe.ok) return phaLe;
   return { ok: true, value: { version: v.value, requestId: rid.value, lyDo: body.lyDo, phaLe: phaLe.value } };
 }
+/**
+ * Đợt 5 D5.1 — "Thêm điểm khi xe đang chạy": thân như lệnh xếp (`chang[].soSuat`, `personKeys`, `phaLe`) nhưng KHÔNG người đi kèm (hướng dẫn viên không lên
+ * xe giữa đường qua lệnh này) và phải có ít nhất một chặng.
+ */
+export function docThemDiem(body: Record<string, unknown> | null): KetQua<XepThan> {
+  if (body && body.nguoiDiKem !== undefined && !(Array.isArray(body.nguoiDiKem) && body.nguoiDiKem.length === 0)) return fail("Xe đang chạy không thêm người đi kèm.");
+  const r = docXep(body);
+  if (!r.ok) return r;
+  if (r.value.chang.length === 0) return fail("Chọn chặng để thêm vào xe.");
+  return r;
+}
+/** Đợt 5 D5.2 — văn phòng báo khách huỷ: `lyDo` = mã trong nhóm BAO_HUY_DIEM (route kiểm nhóm — sai nhóm 400). */
+export interface BaoHuyThan { version: number; requestId: string; lyDo: string }
+export function docBaoHuy(body: Record<string, unknown> | null): KetQua<BaoHuyThan> {
+  if (!body) return fail("Dữ liệu không hợp lệ.");
+  const v = docVersion(body);
+  if (!v.ok) return v;
+  const rid = docRequestId(body);
+  if (!rid.ok) return rid;
+  if (typeof body.lyDo !== "string" || !MA_RE.test(body.lyDo)) return fail("Chọn lý do khách huỷ.");
+  return { ok: true, value: { version: v.value, requestId: rid.value, lyDo: body.lyDo } };
+}
 export function docCapNhatDiem(body: Record<string, unknown> | null): KetQua<{ version: number; requestId: string }> {
   if (!body) return fail("Dữ liệu không hợp lệ.");
   const v = docVersion(body);

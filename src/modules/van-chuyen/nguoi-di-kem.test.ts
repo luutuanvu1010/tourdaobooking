@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import { ACC, DRIVER, FIELD, SALES, batDongHo, chiTiet, chuyenSan, denGio, setup, tienDo, uuid } from "../../../tests/audit/dieu-phoi-khung.mjs";
 
 const SDT_HDV = "0900000004"; // seedStaff của khung thử
-const KHOA_SUAT_TAI_XE = ["daDon", "daTra", "diemLen", "diemXuong", "id", "loai", "maDon", "soHieuChuyenBay", "trangThai"];
+const KHOA_SUAT_TAI_XE = ["daDon", "daTra", "diemLen", "diemXuong", "id", "loai", "maDon", "soHieuChuyenBay", "trangThai", "vanPhongBaoHuy"]; // vanPhongBaoHuy: Đợt 5 D5.2
 const xepDiKem = async (w: any, tripId: string, ids: string[], as = SALES) => {
   const c = await chiTiet(w, tripId);
   return w.call("POST", `/api/van-chuyen/chuyen/${tripId}/phan-bo`, { as, body: { version: c.chuyen.version, requestId: uuid(), nguoiDiKem: ids } });

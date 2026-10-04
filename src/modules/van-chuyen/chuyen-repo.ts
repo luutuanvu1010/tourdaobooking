@@ -87,12 +87,14 @@ export interface StopRow {
   arrived_at: string | null;
   done_at: string | null;
   skip_reason_code: string | null;
+  /** Đợt 5 D5.1: 1 = văn phòng thêm khi xe đang chạy. */
+  added_while_running: number;
 }
 const STOPS_BY_TRIPS = defineSql(
   "van-chuyen",
   "stops_by_trips",
   `SELECT s.id, s.trip_id, s.seq, s.kind, s.location_id, s.place_text, s.place_key, l.name AS location_name, s.planned_date, s.planned_time, s.status, s.arrived_at,
-          s.done_at, s.skip_reason_code
+          s.done_at, s.skip_reason_code, s.added_while_running
    FROM vc_trip_stop s LEFT JOIN v_loc_location_label l ON l.id = s.location_id
    WHERE s.trip_id IN (SELECT value FROM json_each(?1))
    ORDER BY s.trip_id, s.seq, s.created_at, s.id`,
@@ -115,8 +117,12 @@ export interface AllocRow {
   valid_from_at: string;
   valid_to_at: string | null;
   close_reason: string | null;
+  /** Đợt 5 D5.2: văn phòng báo huỷ (giờ + mã lý do; người bấm KHÔNG đọc ra DTO). */
+  office_cancel_at: string | null;
+  office_cancel_reason_code: string | null;
 }
-const COT_SUAT = "a.id, a.trip_id, a.kind, a.leg_id, a.passenger_key, a.crew_party_id, a.board_stop_id, a.alight_stop_id, a.status, a.valid_from_at, a.valid_to_at, a.close_reason";
+const COT_SUAT =
+  "a.id, a.trip_id, a.kind, a.leg_id, a.passenger_key, a.crew_party_id, a.board_stop_id, a.alight_stop_id, a.status, a.valid_from_at, a.valid_to_at, a.close_reason, a.office_cancel_at, a.office_cancel_reason_code";
 const ALLOCS_BY_TRIPS = defineSql(
   "van-chuyen",
   "allocs_by_trips",

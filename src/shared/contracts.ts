@@ -1270,6 +1270,8 @@ export interface DiemChuyenDto {
   /** R-P16: nơi hiện hành của chặng khác điểm này (khoá so sánh nơi lệch — KHÔNG trả khoá, chỉ cờ). */
   lechDon: boolean;
   daToi: MocTienDoDto | null;
+  /** ADR-0052 D5.1 (Đợt 5): điểm văn phòng thêm khi xe đang chạy (`added_while_running`). */
+  themKhiChay: boolean;
 }
 export interface SuatChuyenDto {
   id: string;
@@ -1291,7 +1293,11 @@ export interface SuatChuyenDto {
   tenNguoiDiKem?: string;
   daDon: MocTienDoDto | null;
   daTra: MocTienDoDto | null;
+  /** ADR-0052 D5.2 (Đợt 5): văn phòng đã báo khách huỷ (suất VẪN chiếm chỗ tới khi tài xế bấm "Khách đã huỷ"). KHÔNG người bấm. null = chưa báo. */
+  vanPhongBaoHuy: VanPhongBaoHuyDto | null;
 }
+/** Báo huỷ của văn phòng trên một suất (Đợt 5 D5.2): giờ báo + nhãn lý do (nhóm BAO_HUY_DIEM) — không người bấm. */
+export interface VanPhongBaoHuyDto { luc: GioVnDto; lyDoNhan: string }
 export interface NhatKyChuyenDto {
   id: string;
   loai: string;
@@ -1400,7 +1406,8 @@ export interface DoiRequest { version: number; requestId: string; denChuyenId: s
 export interface HuyChuyenRequest { version: number; requestId: string; lyDo: string; phaLe?: PhaLeRequest }
 export interface CapNhatDiemRequest { version: number; requestId: string }
 /** Phản hồi "cập nhật điểm theo đơn" (I42): số suất đã đổi điểm (0 = không suất nào lệch — không ghi gì). */
-export interface CapNhatDiemResponse extends ChuyenChiTietResponse { daCapNhat: number }
+/** `boQua` (Đợt 5 D5.3a — chỉ khi xe đang chạy): số suất lệch nơi KHÔNG đổi được vì khách đã lên xe / có kết quả hoặc điểm đón đã tới. */
+export interface CapNhatDiemResponse extends ChuyenChiTietResponse { daCapNhat: number; boQua?: number }
 /**
  * `POST /api/van-chuyen/chuyen/:id/cap-nhat-khach` (R-P29, chủ lần 16 — khuôn route 40): thân như `CapNhatDiemRequest`. `daCapNhat` = số suất khách ĐÃ ĐỔI
  * được xử lý (đóng PASSENGER_CHANGED; mở lại tới số người của chặng). 0 = không có gì lệch (không ghi). Phản hồi KHÔNG tên (GA-55).
@@ -1509,6 +1516,8 @@ export interface CuocChiTietResponse {
     trangThai: "PENDING" | "ARRIVED" | "DONE" | "SKIPPED" | "MOVED";
     soNguoi: number;
     daToi: MocTienDoDto | null;
+    /** Đợt 5 D5.1: điểm văn phòng thêm khi xe đang chạy. */
+    themKhiChay: boolean;
   }[];
   suat: {
     id: string;
@@ -1520,6 +1529,8 @@ export interface CuocChiTietResponse {
     trangThai: "WAITING" | "BOARDED" | "NO_SHOW" | "CANCELLED_AT_STOP" | "DROPPED";
     daDon: MocTienDoDto | null;
     daTra: MocTienDoDto | null;
+    /** Đợt 5 D5.2: văn phòng báo khách huỷ — giờ + lý do, KHÔNG người bấm (mọi lúc, như trạng thái suất). */
+    vanPhongBaoHuy: VanPhongBaoHuyDto | null;
     /** Số hiệu chuyến bay của chặng — CÓ MỌI LÚC như giờ, nơi hẹn (ADR-0055 C3, G-C1: không kèm tên không chỉ ra một người). */
     soHieuChuyenBay: string | null;
     hoTen?: string;

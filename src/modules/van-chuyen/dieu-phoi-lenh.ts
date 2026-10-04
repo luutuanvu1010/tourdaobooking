@@ -1,7 +1,7 @@
 // CÁC LỆNH KẾ HOẠCH của chuyến xe (Task A13; kế hoạch mục 1.5, 1.7 route 4–8, 40): đọc (vc_ + chính sách + tài xế) → luật thuần (`kiemTaoSuaChuyen`, `kiemXep`,
 // `kiemMocXep`, `noiLechCuaSuat`) → dựng lô (dieu-phoi.ts) → chạy (`chayLo`). Trả `Response` khi từ chối, `null` / số khi đã ghi. KHÔNG gọi hàm hẹp của orders:
 // chặng (`lichChungChang`) do thân route đọc sau `can()` và truyền vào (bài src/orders-cong-bo.test.ts).
-import type { ChangLichChung, ChangNhapLichChung } from "../orders";
+import type { ChangChoChuyen, ChangLichChung, ChangNhapLichChung } from "../orders";
 import type { StaffProfile } from "../../shared/contracts";
 import { changXetTheoDon, khoaNguoiRanh, kiemTaoSuaChuyen, kiemXep, moLaiSauDoiKhach, noiLechCuaSuat, suatKhachDaDoi, tenLucXep } from "../../shared/dieu-phoi-kiem";
 import type { ChangVao, KetQuaKiem } from "../../shared/dieu-phoi-kieu";
@@ -14,13 +14,13 @@ import { addDays, msToVnLocal, vnLocalToMs } from "../../shared/vn-date";
 import { khungBanXeTrongKhoang } from "./khung-ban-repo";
 import type { LichChungResponse } from "../../shared/contracts";
 import { allocsByTrips, allocsOpenByLegs, eventsByTrips, legFlags, stopsByTrips, tenDiem, tripsTouching, type TripRow } from "./chuyen-repo";
-import { loCapNhatDiem, loCapNhatKhach, loDoi, loHuy, loRut, loSuaChuyen, loXep, type DiemMoi, type PhaLe, type SuatMoi } from "./dieu-phoi";
+import { loBaoHuy, loCapNhatDiem, loCapNhatKhach, loDoi, loHuy, loRut, loSuaChuyen, loThemDiemDangChay, loXep, type DiemMoi, type PhaLe, type SuatMoi } from "./dieu-phoi";
 import {
   boSungXe, changVao, chinhSachVao, chuyenVao, diemVao, docChung, docNguCanh, khungBanVao, khungChuyen, lyDoChangNgoai, suatVao, taiXeVao, xeVao, type DuLieuChung, type NenChuyen,
 } from "./dieu-phoi-doc";
 import { canhBaoDto, changLichDto, chuyenTomTat, lyDoDangDung, taiXeChon, xeChon } from "./dieu-phoi-dto";
 import { chayLo, diemChoKhoa, diemKhongConKhach, sapLaiDiem, gioNgan, loi409, loiKiem, lyDoHopLe, maDonGon, nhanLyDo, phaLeNhatKy } from "./dieu-phoi-route";
-import type { DoiThan, HuyThan, RutThan, SuaChuyenThan, XepThan } from "./dieu-phoi-than";
+import type { BaoHuyThan, DoiThan, HuyThan, RutThan, SuaChuyenThan, XepThan } from "./dieu-phoi-than";
 
 const NGAY_MS = 86_400_000;
 const nowIsoOf = (ms: number) => new Date(ms).toISOString();
@@ -118,38 +118,13 @@ async function lenhXepLo(db: D1Database, nen: NenChuyen, lich: readonly ChangLic
   const chung = await docChung(db, nowIsoOf(bayGioMs), homNay(bayGioMs));
   if (b.phaLe && !lyDoHopLe(chung, b.phaLe.lyDo, "PHA_LE")) return PHA_LE_KHONG_HOP_LE();
   const nc = await docNguCanh(db, nen, lich, chung, b.chang.map((c) => c.legId));
-  // Chặng không có trong lichChungChang (đơn nháp / đã huỷ / chặng đóng / ngoài khoảng ngày) → lý do CỤ THỂ theo cờ view (I38), không đoán.
-  const ngoai = b.chang.filter((c) => !nc.chang.has(c.legId));
-  if (ngoai.length > 0) {
-    const flags = await legFlags(db, ngoai.map((c) => c.legId));
-    return loi409("chang_khong_hop_le", ngoai.map((c) => {
-      const f = flags.find((x) => x.id === c.legId);
-      return f ? lyDoGiu(lyDoChangNgoai(f), f.order_code ?? undefined) : lyDoGiu("CHANG_KHONG_HOP_LE");
-    }));
-  }
-  const tai = nen.allocs.filter((a) => a.valid_to_at === null && (a.status === "WAITING" || a.status === "BOARDED")).length;
-  const xe = nc.chuyen.xe;
-  const kq = kiemXep({
-    chuyen: { id: t.id, ma: t.code, trangThai: t.status, batDauMs: t.planned_start_ms, batDauSomNhatMs: t.earliest_start_ms, soCho: xe.soCho, tai },
-    them: b.chang.map((c) => ({ chang: nc.chang.get(c.legId)!, soSuatMoi: c.soSuat, personKeys: c.personKeys, suatMoCuaChang: nc.suatMoCuaChang })),
-    soNguoiDiKemMoi: b.nguoiDiKem.length, lenh: "XEP", chinhSach: chinhSachVao(chung.chinhSach), bayGioMs,
-  });
+  const ngoai = await loiChangNgoai(db, nc, b.chang.map((c) => c.legId));
+  if (ngoai) return ngoai;
+  const kq = kiemXep(kiemXepVao(nen, nc, b, chung, bayGioMs, "XEP"));
   const chan = loiKiem(kq, staff, t.status, { moc: b.phaLe !== null, nghi: true });
   if (chan) return chan;
   const diemMoi: DiemMoi[] = [];
-  const suatMoi: SuatMoi[] = [];
-  // I19(a) (làm bù theo kiểm độc lập K2c VỪA-1): khoá thân gửi trước, phần còn lại máy lấp bằng khoá người RẢNH theo thứ tự — MỘT luật với lúc xuất bến
-  // (I19b, `khoaNguoiRanh`): hành khách hiện hành của đơn, chưa có suất mở ở chặng (mọi chuyến). "Chưa bị chính lô này dùng": mỗi chặng xuất hiện MỘT lần
-  // trong thân (`docXep` → 400 "Một chặng xuất hiện hai lần") và `tenLucXep` không lặp khoá trong một chặng. Hết khoá rảnh → null (I19b bù lúc xuất bến).
-  for (const c of b.chang) {
-    const ch = nc.changLich.get(c.legId)!;
-    const len = diemChoKhoa(nen.stops, diemMoi, t.id, "PICKUP", ch.khoaNoiDon, ch.noiDonDiemId, ch.noiDon);
-    const xuong = ch.khoaNoiTra === null ? null : diemChoKhoa(nen.stops, diemMoi, t.id, "DROPOFF", ch.khoaNoiTra, ch.noiTraDiemId, ch.noiTra);
-    const ranh = khoaNguoiRanh({ legId: c.legId, nguoiCuaDon: nc.chang.get(c.legId)!.nguoiCuaDon, suatMoCuaChang: nc.suatMoCuaChang });
-    for (const personKey of tenLucXep({ soSuat: c.soSuat, personKeys: c.personKeys, ranh })) {
-      suatMoi.push({ id: crypto.randomUUID(), tripId: t.id, loai: "PASSENGER", legId: c.legId, personKey, crewPartyId: null, boardStopId: len, alightStopId: xuong });
-    }
-  }
+  const suatMoi = suatTheoChang(nen, nc, b.chang, diemMoi);
   for (const p of b.nguoiDiKem) suatMoi.push({ id: crypto.randomUUID(), tripId: t.id, loai: "CREW", legId: null, personKey: null, crewPartyId: p, boardStopId: null, alightStopId: null });
   // HT-01 (V1.2): điểm trả dùng lại có thể đứng trước điểm đón mới → sắp lại điểm chưa tới theo MỌI suất mở sau lệnh (cũ + mới).
   const doiThuTu = sapLaiDiem(nen.stops, diemMoi, t.id, [
@@ -160,10 +135,7 @@ async function lenhXepLo(db: D1Database, nen: NenChuyen, lich: readonly ChangLic
   const ma = maDonGon(b.chang.map((c) => nc.changLich.get(c.legId)!.orderCode));
   const lo = loXep(db, {
     ...lenhChung(b.requestId, staff, bayGioMs), tripId: t.id, version: b.version, diemMoi, doiThuTu, suatMoi, phaLe, policyId: chung.chinhSach?.id ?? null,
-    mocXep: b.chang.map((c) => {
-      const ch = nc.changLich.get(c.legId)!;
-      return { legId: c.legId, ngay: ch.pickupDate, gio: ch.pickupTime };
-    }),
+    mocXep: mocXepCua(nc, b.chang),
     detail: `${t.code}: xếp ${suatMoi.length} người${ma ? ` (${ma})` : ""}${sapNhatKy(doiThuTu)}${phaLe ? phaLeNhatKy(phaLe.luat, nhanLyDo(chung, phaLe.lyDo)) : ""}`,
   });
   try {
@@ -173,6 +145,128 @@ async function lenhXepLo(db: D1Database, nen: NenChuyen, lich: readonly ChangLic
     if (e instanceof Error && /FOREIGN KEY constraint failed/.test(e.message)) return error(400, "invalid_input", "Người đi kèm không có trong hồ sơ.");
     throw e;
   }
+}
+
+type NguCanh = Awaited<ReturnType<typeof docNguCanh>>;
+/** Chặng không có trong lichChungChang (đơn nháp / đã huỷ / chặng đóng / ngoài khoảng ngày) → 409 lý do CỤ THỂ theo cờ view (I38), không đoán. */
+async function loiChangNgoai(db: D1Database, nc: NguCanh, legIds: readonly string[]): Promise<Response | null> {
+  const ngoai = legIds.filter((id) => !nc.chang.has(id));
+  if (ngoai.length === 0) return null;
+  const flags = await legFlags(db, ngoai);
+  return loi409("chang_khong_hop_le", ngoai.map((id) => {
+    const f = flags.find((x) => x.id === id);
+    return f ? lyDoGiu(lyDoChangNgoai(f), f.order_code ?? undefined) : lyDoGiu("CHANG_KHONG_HOP_LE");
+  }));
+}
+/** Dữ liệu vào `kiemXep` cho lệnh đưa chặng vào xe (Xếp — chuyến PLANNED; THEM_KHI_CHAY — xe đang chạy, ADR-0052 D5.1). */
+function kiemXepVao(nen: NenChuyen, nc: NguCanh, b: XepThan, chung: DuLieuChung, bayGioMs: number, lenh: "XEP" | "THEM_KHI_CHAY") {
+  const t = nen.trip;
+  const tai = nen.allocs.filter((a) => a.valid_to_at === null && (a.status === "WAITING" || a.status === "BOARDED")).length;
+  return {
+    chuyen: { id: t.id, ma: t.code, trangThai: t.status, batDauMs: t.planned_start_ms, batDauSomNhatMs: t.earliest_start_ms, soCho: nc.chuyen.xe.soCho, tai },
+    them: b.chang.map((c) => ({ chang: nc.chang.get(c.legId)!, soSuatMoi: c.soSuat, personKeys: c.personKeys, suatMoCuaChang: nc.suatMoCuaChang })),
+    soNguoiDiKemMoi: b.nguoiDiKem.length, lenh, chinhSach: chinhSachVao(chung.chinhSach), bayGioMs,
+  };
+}
+/** ADR-0051: mốc giờ hẹn của từng chặng đưa vào xe (câu chụp chỉ ghi khi chặng CHƯA có mốc). */
+const mocXepCua = (nc: NguCanh, chang: XepThan["chang"]) =>
+  chang.map((c) => {
+    const ch = nc.changLich.get(c.legId)!;
+    return { legId: c.legId, ngay: ch.pickupDate, gio: ch.pickupTime };
+  });
+/** Suất khách mới của các chặng đưa vào xe (điểm theo khoá nơi — `diemChoKhoa` đẩy điểm mới vào `diemMoi`). */
+function suatTheoChang(nen: NenChuyen, nc: NguCanh, chang: XepThan["chang"], diemMoi: DiemMoi[]): SuatMoi[] {
+  const t = nen.trip;
+  const suatMoi: SuatMoi[] = [];
+  // I19(a) (làm bù theo kiểm độc lập K2c VỪA-1): khoá thân gửi trước, phần còn lại máy lấp bằng khoá người RẢNH theo thứ tự — MỘT luật với lúc xuất bến
+  // (I19b, `khoaNguoiRanh`): hành khách hiện hành của đơn, chưa có suất mở ở chặng (mọi chuyến). "Chưa bị chính lô này dùng": mỗi chặng xuất hiện MỘT lần
+  // trong thân (`docXep` → 400 "Một chặng xuất hiện hai lần") và `tenLucXep` không lặp khoá trong một chặng. Hết khoá rảnh → null (I19b bù lúc xuất bến).
+  for (const c of chang) {
+    const ch = nc.changLich.get(c.legId)!;
+    const len = diemChoKhoa(nen.stops, diemMoi, t.id, "PICKUP", ch.khoaNoiDon, ch.noiDonDiemId, ch.noiDon);
+    const xuong = ch.khoaNoiTra === null ? null : diemChoKhoa(nen.stops, diemMoi, t.id, "DROPOFF", ch.khoaNoiTra, ch.noiTraDiemId, ch.noiTra);
+    const ranh = khoaNguoiRanh({ legId: c.legId, nguoiCuaDon: nc.chang.get(c.legId)!.nguoiCuaDon, suatMoCuaChang: nc.suatMoCuaChang });
+    for (const personKey of tenLucXep({ soSuat: c.soSuat, personKeys: c.personKeys, ranh })) {
+      suatMoi.push({ id: crypto.randomUUID(), tripId: t.id, loai: "PASSENGER", legId: c.legId, personKey, crewPartyId: null, boardStopId: len, alightStopId: xuong });
+    }
+  }
+  return suatMoi;
+}
+
+// ---- Thêm điểm / khách khi xe ĐANG CHẠY (Đợt 5 — ADR-0052 D5.1) ----------------------------------------------------------------------------------------------
+const MOC_THEM_KHI_CHAY = "Khách không đặt gấp — cần Quản trị phá lệ.";
+/**
+ * Văn phòng đưa chặng của đơn đã xác nhận vào xe ĐANG CHẠY: cùng luật xếp (`kiemXep` lệnh THEM_KHI_CHAY — số người chặng, số chỗ, tên; mốc như dòng Xếp với
+ * xe luôn trong mốc). Điểm mới mang cờ `added_while_running`, suất mang cờ `added_after_departure`; suất CÓ tên vào bản chốt (dòng hành khách hiện hành từ
+ * `hk` — thân route đọc sau `can()`). Chuyến chưa chạy → 409 (dùng Xếp); đã kết thúc → 409.
+ */
+export async function lenhThemDiemDangChay(
+  db: D1Database, nen: NenChuyen, lich: readonly ChangLichChung[], hk: readonly ChangChoChuyen[], b: XepThan, staff: StaffProfile, bayGioMs: number,
+): Promise<Response | null> {
+  const t = nen.trip;
+  const dung = khongDangChay(t);
+  if (dung) return dung;
+  const chung = await docChung(db, nowIsoOf(bayGioMs), homNay(bayGioMs));
+  if (b.phaLe && !lyDoHopLe(chung, b.phaLe.lyDo, "PHA_LE")) return PHA_LE_KHONG_HOP_LE();
+  const nc = await docNguCanh(db, nen, lich, chung, b.chang.map((c) => c.legId));
+  const ngoai = await loiChangNgoai(db, nc, b.chang.map((c) => c.legId));
+  if (ngoai) return ngoai;
+  const kq = kiemXep(kiemXepVao(nen, nc, b, chung, bayGioMs, "THEM_KHI_CHAY"));
+  const chan = loiKiem(kq, staff, t.status, { moc: b.phaLe !== null, nghi: true }, MOC_THEM_KHI_CHAY);
+  if (chan) return chan;
+  const diemMoi: DiemMoi[] = [];
+  const suatMoi = suatTheoChang(nen, nc, b.chang, diemMoi);
+  const doiThuTu = sapLaiDiem(nen.stops, diemMoi, t.id, [
+    ...nen.allocs.filter((a) => a.valid_to_at === null).map((a) => ({ board: a.board_stop_id, alight: a.alight_stop_id })),
+    ...suatMoi.map((s) => ({ board: s.boardStopId, alight: s.alightStopId })),
+  ]);
+  const dong = new Map<string, string>();
+  for (const ch of hk) for (const p of ch.nguoi) dong.set(`${ch.legId}|${p.personKey}`, p.rowId);
+  const chot = suatMoi.flatMap((s) => {
+    const row = s.personKey !== null && s.legId !== null ? dong.get(`${s.legId}|${s.personKey}`) : undefined;
+    return row ? [{ allocationId: s.id, passengerRowId: row }] : [];
+  });
+  const phaLe = kq.canPhaLe.length > 0 ? phaLeCua(chung, "MOC_TOI_THIEU", b.phaLe) : null;
+  const ma = maDonGon(b.chang.map((c) => nc.changLich.get(c.legId)!.orderCode));
+  const diemNhatKy = diemMoi.length > 0 ? `; ${diemMoi.length} điểm mới` : "";
+  const lo = loThemDiemDangChay(db, {
+    ...lenhChung(b.requestId, staff, bayGioMs), tripId: t.id, version: b.version, diemMoi, doiThuTu, mocXep: mocXepCua(nc, b.chang), suatMoi, chot, phaLe,
+    policyId: chung.chinhSach?.id ?? null,
+    detail: `${t.code}: thêm ${suatMoi.length} người khi xe đang chạy${ma ? ` (${ma})` : ""}${diemNhatKy}${sapNhatKy(doiThuTu)}${phaLe ? phaLeNhatKy(phaLe.luat, nhanLyDo(chung, phaLe.lyDo)) : ""}`,
+  });
+  const r = await chayLo(db, lo, b.requestId);
+  return r.ok ? null : r.res;
+}
+/** Lệnh chỉ dành cho xe đang chạy: chuyến chưa chạy → 409 `chuyen_chua_chay`; đã kết thúc / huỷ → 409 `chuyen_da_ket_thuc`. */
+function khongDangChay(t: TripRow): Response | null {
+  if (t.status === "RUNNING") return null;
+  return t.status === "PLANNED" ? loi409("chuyen_chua_chay") : loi409("chuyen_da_ket_thuc", [lyDoGiu("CHUYEN_KHONG_CON_LEN_KE_HOACH", t.code)]);
+}
+
+// ---- Văn phòng báo khách huỷ khi xe đang chạy (Đợt 5 — ADR-0052 D5.2) ------------------------------------------------------------------------------------
+/**
+ * Chỉ ĐẶT CỜ trên suất khách đang mở, còn chờ (WAITING), chưa báo — suất VẪN chiếm chỗ tới khi tài xế bấm "Khách đã huỷ" (hoặc "Đã đón" nếu báo nhầm). Lý do
+ * thuộc nhóm BAO_HUY_DIEM (sai nhóm → 400). Nhật ký: mã chuyến, mã đơn, nhãn lý do — không tên.
+ */
+export async function lenhBaoHuy(
+  db: D1Database, nen: NenChuyen, lich: readonly ChangLichChung[], suatId: string, b: BaoHuyThan, staff: StaffProfile, bayGioMs: number,
+): Promise<Response | null> {
+  const t = nen.trip;
+  const dung = khongDangChay(t);
+  if (dung) return dung;
+  const a = nen.allocs.find((x) => x.id === suatId && x.valid_to_at === null && x.kind === "PASSENGER");
+  if (!a) return error(400, "invalid_input", "Suất không thuộc chuyến này hoặc đã rời xe.");
+  const chung = await docChung(db, nowIsoOf(bayGioMs), homNay(bayGioMs));
+  if (!lyDoHopLe(chung, b.lyDo, "BAO_HUY_DIEM")) return error(400, "invalid_input", "Lý do báo huỷ không có trong danh mục.");
+  if (a.office_cancel_at !== null) return loi409("da_bao_huy");
+  if (a.status !== "WAITING") return loi409("suat_da_co_ket_qua");
+  const maDon = a.leg_id ? (lich.find((c) => c.legId === a.leg_id)?.orderCode ?? "") : "";
+  const lo = loBaoHuy(db, {
+    ...lenhChung(b.requestId, staff, bayGioMs), tripId: t.id, version: b.version, suatId: a.id, lyDo: b.lyDo,
+    detail: `${t.code}: văn phòng báo huỷ 1 khách${maDon ? ` (${maDon})` : ""} — ${nhanLyDo(chung, b.lyDo)}`,
+  });
+  const r = await chayLo(db, lo, b.requestId);
+  return r.ok ? null : r.res;
 }
 
 // ---- Rút (route 6) ---------------------------------------------------------------------------------------------------------------------------------------
@@ -296,14 +390,16 @@ export async function lenhHuy(db: D1Database, nen: NenChuyen, b: HuyThan, staff:
 /** Trả số suất đã đổi điểm (0 = không suất nào lệch, không ghi gì) hoặc `Response` khi từ chối. */
 export async function lenhCapNhatDiem(
   db: D1Database, nen: NenChuyen, lich: readonly ChangLichChung[], b: { version: number; requestId: string }, staff: StaffProfile, bayGioMs: number,
-): Promise<Response | number> {
+): Promise<Response | { daCapNhat: number; boQua: number }> {
   const t = nen.trip;
-  const dung = khongConKeHoach(t);
+  // Đợt 5 D5.3a: xe ĐANG CHẠY cũng cập nhật được — chỉ suất WAITING ở điểm lên PENDING; không phá lệ, không tự bỏ qua điểm.
+  const chay = t.status === "RUNNING";
+  const dung = chay ? null : khongConKeHoach(t);
   if (dung) return dung;
   const chung = await docChung(db, nowIsoOf(bayGioMs), homNay(bayGioMs));
   // Mốc lúc xếp: lệnh DOI_DIEM_THEO_CHANG KHÔNG khoá (không đổi "ai đi xe nào" — ADR-0050 VK1-B); hỏi CHÍNH luật mốc để đổi luật ở một chỗ là đủ.
   const cs = chinhSachVao(chung.chinhSach);
-  if (cs && kiemMocXep({ batDauMs: t.planned_start_ms, batDauSomNhatMs: t.earliest_start_ms }, bayGioMs, cs.minLeadMinutes, { loai: "DOI_DIEM_THEO_CHANG" }).canPhaLe) {
+  if (!chay && cs && kiemMocXep({ batDauMs: t.planned_start_ms, batDauSomNhatMs: t.earliest_start_ms }, bayGioMs, cs.minLeadMinutes, { loai: "DOI_DIEM_THEO_CHANG" }).canPhaLe) {
     return loi409("can_pha_le", [lyDoGiu("MOC_TOI_THIEU", t.code)], { canQuyen: false });
   }
   const nc = await docNguCanh(db, nen, lich, chung);
@@ -312,6 +408,7 @@ export async function lenhCapNhatDiem(
   const doi: string[] = [];
   const nhanDiem = await tenDiem(db, [...new Set([...nen.stops.flatMap((s) => (s.location_id ? [s.location_id] : [])), ...lich.flatMap((c) => [c.noiDonDiemId, c.noiTraDiemId].filter((x): x is string => x !== null))])]);
   const tenNoiNhatKy = (loc: string | null) => (loc ? (nhanDiem.get(loc) ?? "điểm danh mục") : "nơi tự do");
+  let boQua = 0;
   for (const a of nen.allocs) {
     if (a.valid_to_at !== null || a.kind !== "PASSENGER" || a.leg_id === null) continue;
     const ch: ChangVao | undefined = nc.chang.get(a.leg_id);
@@ -321,26 +418,35 @@ export async function lenhCapNhatDiem(
     const xuong = a.alight_stop_id ? nen.stops.find((s) => s.id === a.alight_stop_id) : undefined;
     const n = noiLechCuaSuat(suatVao(a), len ? diemVao(len) : undefined, xuong ? diemVao(xuong) : undefined, ch);
     if (!n.don && !n.tra) continue;
+    if (chay) {
+      // Văn phòng đã báo huỷ: khách không đi nữa — không dời điểm (cờ báo huỷ ở trên suất cũ), không tính "bỏ qua".
+      if (a.office_cancel_at !== null) continue;
+      if (a.status !== "WAITING" || len?.status !== "PENDING") {
+        boQua++;
+        continue;
+      }
+    }
     const moiLen = n.don ? diemChoKhoa(nen.stops, diemMoi, t.id, "PICKUP", ch.khoaNoiDon, lc.noiDonDiemId, lc.noiDon) : a.board_stop_id;
     const moiXuong = n.tra && ch.khoaNoiTra !== null ? diemChoKhoa(nen.stops, diemMoi, t.id, "DROPOFF", ch.khoaNoiTra, lc.noiTraDiemId, lc.noiTra) : a.alight_stop_id;
     cap.push({ dongId: a.id, mo: { id: crypto.randomUUID(), tripId: t.id, loai: "PASSENGER", legId: a.leg_id, personKey: a.passenger_key, crewPartyId: null, boardStopId: moiLen, alightStopId: moiXuong } });
     if (n.don) doi.push(`${lc.orderCode}: điểm đón ${tenNoiNhatKy(len?.location_id ?? null)} → ${tenNoiNhatKy(lc.noiDonDiemId)}`);
     if (n.tra) doi.push(`${lc.orderCode}: điểm trả ${xuong ? tenNoiNhatKy(xuong.location_id) : "chưa có"} → ${tenNoiNhatKy(lc.noiTraDiemId)}`);
   }
-  if (cap.length === 0) return 0;
+  if (cap.length === 0) return { daCapNhat: 0, boQua };
   const conMo = [
     ...nen.allocs.filter((a) => a.valid_to_at === null && !cap.some((c) => c.dongId === a.id)).map((a) => ({ board: a.board_stop_id, alight: a.alight_stop_id })),
     ...cap.map((c) => ({ board: c.mo.boardStopId, alight: c.mo.alightStopId })),
   ];
-  const diemBoQua = diemKhongConKhach(nen.stops, t.id, conMo);
+  // Xe đang chạy: KHÔNG tự bỏ qua điểm cũ (kế hoạch Đợt 5 Task 3 — điểm cũ hết khách để tài xế / văn phòng xử lý).
+  const diemBoQua = chay ? [] : diemKhongConKhach(nen.stops, t.id, conMo);
   // HT-01 (V1.2): điểm mới của nơi đổi có thể đứng sau điểm trả dùng lại — sắp lại (điểm sắp bỏ qua không xét).
   const doiThuTu = sapLaiDiem(nen.stops, diemMoi, t.id, conMo, diemBoQua);
   const lo = loCapNhatDiem(db, {
-    ...lenhChung(b.requestId, staff, bayGioMs), tripId: t.id, version: b.version, diemMoi, cap, doiThuTu, diemBoQua,
-    detail: `${t.code}: ${[...new Set(doi)].join("; ")}${sapNhatKy(doiThuTu)}`,
+    ...lenhChung(b.requestId, staff, bayGioMs), tripId: t.id, version: b.version, diemMoi, cap, doiThuTu, diemBoQua, dangChay: chay,
+    detail: `${t.code}: ${[...new Set(doi)].join("; ")}${chay ? " (xe đang chạy)" : ""}${sapNhatKy(doiThuTu)}`,
   });
   const r = await chayLo(db, lo, b.requestId);
-  return r.ok ? cap.length : r.res;
+  return r.ok ? { daCapNhat: cap.length, boQua } : r.res;
 }
 
 // ---- Cập nhật khách theo đơn (route 41 — R-P29, chủ lần 16; khuôn route 40) ------------------------------------------------------------------------------
