@@ -7,6 +7,10 @@
 import assert from "node:assert/strict";
 import { ACCOUNTS, call, session, sql, sqlRows, vnDate } from "./lib.mjs";
 
+// Số tiền xuất hiện như MỘT số đứng riêng (không phải mẩu của số dài hơn) hoặc dạng có dấu chấm. Gộp main ffed6f1c (5/10): `includes("1200000")` cũ đỏ giả
+// khi ngày chạy rơi vào 2026-10-07 — 07:00 giờ VN = 1791331200000 ms (mốc giờ trong phản hồi chứa chuỗi "1200000").
+const coSoTien = (body, n) => new RegExp(`(^|[^0-9])${n}([^0-9]|$)`).test(JSON.stringify(body)) || JSON.stringify(body).includes(new Intl.NumberFormat("vi-VN").format(n));
+
 const ACC = await session(ACCOUNTS.accountant);
 const SALES = await session(ACCOUNTS.salesA);
 const duoi = String(Date.now()).slice(-6);
@@ -38,7 +42,7 @@ assert.equal(r.body.error.code, "gia_chong");
 r = await call(SALES, "GET", "/api/van-chuyen/tuyen");
 assert.equal(r.status, 200, JSON.stringify(r.body));
 assert.ok(r.body.tuyen.some((t) => t.ma === tuyen));
-assert.ok(!JSON.stringify(r.body).includes("1200000"), "Bán hàng đọc tên tuyến, không thấy giá");
+assert.ok(!coSoTien(r.body, 1200000), "Bán hàng đọc tên tuyến, không thấy giá");
 assert.equal((await call(SALES, "GET", "/api/van-chuyen/bang-gia")).status, 403);
 r = await call(ACC, "GET", `/api/van-chuyen/bang-gia?nha-xe=${nx}`);
 assert.equal(r.status, 200, JSON.stringify(r.body));
@@ -73,7 +77,7 @@ assert.equal((await call(ACC, "POST", "/api/van-chuyen/bang-gia", { requestId: u
 // Chuyến có giá (16 chỗ, tuyến có giá 1.200.000) → một SNAPSHOT; xuất bến 200.
 r = await call(SALES, "POST", "/api/van-chuyen/chuyen", { requestId: uuid(), xeId: x16, taiXePartyId: tx, tuyen, batDau: { ngay: D, gio: "07:00" }, ketThuc: { ngay: D, gio: "08:00" } });
 assert.equal(r.status, 201, JSON.stringify(r.body));
-assert.ok(!JSON.stringify(r.body).includes("1200000"), "phản hồi lệnh xếp không mang tiền");
+assert.ok(!coSoTien(r.body, 1200000), "phản hồi lệnh xếp không mang tiền");
 const tA = r.body.chuyen.id;
 let rows = await sqlRows(`SELECT kind, amount, typeof(amount) AS t FROM vc_trip_cost_line WHERE trip_id = '${tA}' ORDER BY rowid`);
 assert.deepEqual(rows.map((x) => [x.kind, x.amount, x.t]), [["SNAPSHOT", 1200000, "integer"]]);
