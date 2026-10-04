@@ -13,7 +13,7 @@ const b = boDem("CHINH SACH DIEU PHOI SMOKE");
 const O = (truong) => `#cs-${truong}`;
 const loiO = (truong) => txt(`#cs-${truong}-error`);
 const lichSu = `[...document.querySelectorAll('#cs-lich-su .dp-hist-row')].map((r) => r.innerText.replace(/\\s+/g, ' ').trim())`;
-const NHOM_BAN_VE = ["Phá lệ", "Huỷ chuyến", "Kết thúc gián đoạn", "Bỏ qua điểm", "Đổi giờ xe tới", "Lý do xe bận"]; // + nhóm BAN_XE (ADR-0055, Đợt 3 — 0071 gieo 4 lý do)
+const NHOM_BAN_VE = ["Phá lệ", "Huỷ chuyến", "Kết thúc gián đoạn", "Bỏ qua điểm", "Đổi giờ xe tới", "Báo huỷ điểm đón", "Lý do xe bận"]; // + nhóm BAO_HUY_DIEM (ADR-0052 D5.2, Đợt 5 — 0076 gieo 4 lý do) // + nhóm BAN_XE (ADR-0055, Đợt 3 — 0071 gieo 4 lý do)
 
 try {
   // ---- Toàn quyền, máy tính ----------------------------------------------------------------------------------------------------------------------------------
@@ -281,7 +281,7 @@ try {
   await b.step("12", "Bán hàng: nhóm Vận chuyển chỉ có \"Điều phối xe\" (B1, Q-B-4) — không Chính sách, không Lý do; mở thẳng hai trang → câu tiếng Việt, không dựng gì", async () => {
     await s.waitFor(`${txt("#error")} === 'Chỉ Quản trị, Toàn quyền xem và sửa được lý do điều phối.'`, "câu từ chối lý do");
     assert.equal(await s.ev(`document.querySelectorAll('.dp-group').length`), 0);
-    assert.deepEqual((await s.ev(vcSub)).items, ["Điều phối xe"]);
+    assert.deepEqual((await s.ev(vcSub)).items, ["Điều phối xe", "Xe đang chạy"]);
     await s.send("Page.navigate", { url: env.base + "/chinh-sach-dieu-phoi" });
     await s.waitFor(`${txt("#error")} === 'Chỉ Toàn quyền xem và đổi được chính sách điều phối.'`, "câu từ chối chính sách");
   });

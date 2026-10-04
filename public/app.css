@@ -2664,6 +2664,9 @@ body.login-page main.login { display: flex; flex-direction: column; height: 100%
 
 /* Đợt 5 — Xe đang chạy (ADR-0052 D5; bản vẽ V11, V6 bổ sung). Chỉ token. */
 .dp-run-chip { display: flex; flex-wrap: wrap; gap: var(--s1); }
+/* Bản vẽ V11: máy tính "Khách đang chờ" rồi "Việc của văn phòng"; điện thoại ngược lại — cùng dữ liệu, đổi thứ tự bằng `order`. */
+.dp-xc { display: flex; flex-direction: column; gap: var(--s3); }
+@media (min-width: 641px) { .dp-xc .dp-khach-cho-the { order: -1; } }
 .dp-viec-vp { overflow: hidden; }
 .dp-viec-vp-nut { display: flex; flex-wrap: wrap; gap: var(--s2); padding: var(--s3) var(--s4) 0; }
 .dp-viec-vp-nut .vc-btn { min-height: var(--tap-min); }

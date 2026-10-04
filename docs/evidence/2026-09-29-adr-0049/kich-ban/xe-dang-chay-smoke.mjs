@@ -61,7 +61,7 @@ try {
     assert.equal(await s.ev(`document.body.innerText.includes('Cứu hộ')`), false);
     assert.equal(await s.ev(`document.querySelectorAll('.dp-kc').length`), 2);
     assert.equal(await s.ev(`document.querySelectorAll('.dp-kc [data-action="bao-huy"]').length`), 2);
-    assert.match(await s.ev(txt(".dp-kc")), /^Hành Khách Thử 5-1 .* · Citadines Bayfront · 10:00 Báo huỷ$/);
+    assert.match(await s.ev(txt(".dp-kc")), /^Hành Khách Thử 5-1 TD-\d{8}-\d{4} · Điểm 1 · Citadines Bayfront · 10:00 Báo huỷ$/);
     assert.equal(await s.ev(noCode), "");
     await axe(s, "Chi tiết chuyến đang chạy 1040");
     await shotFull(s, "d5-chuyen-dang-chay-ban-hang-may-tinh.png");

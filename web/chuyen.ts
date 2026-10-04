@@ -230,7 +230,7 @@ function ve(): void {
     khoa,
     baoCao,
     ...dais,
-    h("div", { class: "dp-ct-layout" }, h("div", { class: "dp-ct-main" }, dongDt, soLieu, chay ? theViecVanPhong() : null, diem, keHoach ? theKhach() : null, chay ? theKhachCho() : null), h("div", { class: "dp-ct-side" }, dieuKien, nhatKy)),
+    h("div", { class: "dp-ct-layout" }, h("div", { class: "dp-ct-main" }, dongDt, soLieu, chay ? h("div", { class: "dp-xc" }, theViecVanPhong(), theKhachCho()) : null, diem, keHoach ? theKhach() : null), h("div", { class: "dp-ct-side" }, dieuKien, nhatKy)),
   );
   // Điện thoại: nút ở cuối trang, lưới hai cột (bản vẽ 2b); máy tính: nút ở đầu trang.
   const huyDay = nutHuy("vc-btn-danger");

@@ -43,7 +43,7 @@ function ve(ds: readonly ChuyenTomTatDto[]): void {
             icon("next", 20),
           );
         }))
-      : h("div", { class: "vc-card xdc-rong" }, "Không có xe nào đang chạy."),
+      : h("div", { class: "vc-card xdc-rong" }, "Hiện không có xe nào đang chạy."),
   );
 }
 

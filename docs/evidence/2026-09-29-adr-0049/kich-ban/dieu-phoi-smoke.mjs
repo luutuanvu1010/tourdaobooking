@@ -59,7 +59,7 @@ try {
     assert.equal(await p.ev(shown("#dp-tabs")), false, "máy tính: không thẻ");
     for (const c of ["#dp-cot-chua-xep", "#dp-cot-xe", "#dp-cot-can-xu-ly"]) assert.ok(await p.ev(shown(c)), c);
     const nav = await p.ev(vcSub);
-    assert.deepEqual(nav.items, ["Điều phối xe"], "Bán hàng: nhóm Vận chuyển chỉ có Điều phối xe");
+    assert.deepEqual(nav.items, ["Điều phối xe", "Xe đang chạy"], "Bán hàng: nhóm Vận chuyển chỉ có Điều phối xe + Xe đang chạy (Đợt 5)");
     assert.equal(nav.current, "Điều phối xe");
     assert.deepEqual(await p.ev(the), [{ tag: "BUTTON", text: `11:00 Mường Thanh Luxury → nơi trả chưa chốt ${d.O5.ma} · 5 khách` }], "máy tính: không hiện nút viên 'Xếp vào chuyến…'");
     assert.equal(await p.ev(txt("#dp-cot-chua-xep .dp-col-note")), "Kéo chặng thả vào một chuyến, hoặc bấm chặng để chọn chuyến");
@@ -178,7 +178,7 @@ try {
   const pa = await env.as(ACCOUNTS.salesA, "/account", MOB);
   await b.step("6a", "390 Bán hàng trang Tôi: nhóm VẬN CHUYỂN có đúng một dòng 'Điều phối xe'", async () => {
     await pa.waitFor(`!!document.querySelector('#vc-links')`, "nhóm Vận chuyển");
-    assert.deepEqual(await pa.ev(`[...document.querySelectorAll('#vc-links .row-link')].map((a) => [a.innerText.trim(), a.getAttribute('href')])`), [["Điều phối xe", "/dieu-phoi"]]);
+    assert.deepEqual(await pa.ev(`[...document.querySelectorAll('#vc-links .row-link')].map((a) => [a.innerText.trim(), a.getAttribute('href')])`), [["Điều phối xe", "/dieu-phoi"], ["Xe đang chạy", "/xe-dang-chay"]]); // + Xe đang chạy (Đợt 5)
     assert.equal(await pa.ev(txt("#vc-eyebrow")), "VẬN CHUYỂN");
   });
   await pa.close();
@@ -219,7 +219,7 @@ try {
   await b.step("7", `1f 1040 Quản trị: menu Vận chuyển đủ mục (Điều phối xe đầu); chặng quá mốc KHÔNG dòng khoá, KHÔNG nút "Phá lệ" riêng; xếp vào chuyến đang khoá → hộp Phá lệ → "Phá lệ và xếp" gửi lại kèm phaLe`, async () => {
     await cho(q);
     const nav = await q.ev(vcSub);
-    assert.deepEqual(nav.items, ["Điều phối xe", "Xe", "Lịch xe bận", "Sắp hết hạn", "Loại giấy tờ xe", "Lý do điều phối"]); // + "Lịch xe bận" (Đợt 3, 2/10)
+    assert.deepEqual(nav.items, ["Điều phối xe", "Xe đang chạy", "Xe", "Lịch xe bận", "Sắp hết hạn", "Loại giấy tờ xe", "Lý do điều phối"]); // + "Lịch xe bận" (Đợt 3, 2/10)
     assert.equal(nav.current, "Điều phối xe");
     const qm = (await q.ev(viec)).find((x) => x.loai === "CHẶNG QUÁ MỐC");
     assert.deepEqual([qm.khoa, qm.nut], [null, []]);
@@ -268,7 +268,7 @@ try {
     assert.equal(await k.ev(txt(".dp-readonly")), "Chỉ xem — Kế toán không xếp xe, không phá lệ.");
     assert.equal(await k.ev(shown("#dp-moi")), false);
     assert.equal(await k.ev(`document.querySelectorAll('#dp-cot-chua-xep button, #dp-cot-can-xu-ly button, #dp-cot-can-xu-ly .vc-btn').length`), 0);
-    assert.deepEqual((await k.ev(vcSub)).items, ["Điều phối xe"]);
+    assert.deepEqual((await k.ev(vcSub)).items, ["Điều phối xe", "Xe đang chạy"]);
     await k.ev(click(`.dp-khoi[data-chuyen="${d.T2.id}"]`));
     await k.waitFor(`!!document.querySelector('.dp-chon')`, "thẻ đang chọn");
     assert.deepEqual(await k.ev(`[...document.querySelectorAll('.dp-chon .vc-btn')].map((x) => x.innerText.trim())`), ["Mở chuyến"]);
@@ -280,7 +280,7 @@ try {
     // Trang Tôi của Kế toán: nhóm VẬN CHUYỂN chỉ "Điều phối xe"; thẻ liên kết đầu (#links-top) không rỗng.
     await k.send("Page.navigate", { url: env.base + "/account" });
     await k.waitFor(`!!document.querySelector('#vc-links')`, "trang Tôi Kế toán");
-    assert.deepEqual(await k.ev(`[...document.querySelectorAll('#vc-links .row-link')].map((a) => a.innerText.trim())`), ["Điều phối xe"]);
+    assert.deepEqual(await k.ev(`[...document.querySelectorAll('#vc-links .row-link')].map((a) => a.innerText.trim())`), ["Điều phối xe", "Xe đang chạy"]);
     assert.ok(await k.ev(`document.querySelectorAll('#links-top .row-link').length > 0`), "thẻ #links-top không rỗng");
   });
   await k.close();

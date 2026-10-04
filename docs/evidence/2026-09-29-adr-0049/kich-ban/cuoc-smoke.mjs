@@ -403,7 +403,7 @@ try {
     await l.send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
     await l.send("Page.navigate", { url: env.base + "/account" });
     await l.waitFor(`!!document.querySelector('#vc-links')`, "trang Tôi");
-    assert.deepEqual(await l.ev(`[...document.querySelectorAll('#vc-links .row-link')].map((a) => [a.innerText.trim(), a.getAttribute('href')])`), [["Điều phối xe", "/dieu-phoi"], ["Cuốc của tôi", "/cuoc"]]);
+    assert.deepEqual(await l.ev(`[...document.querySelectorAll('#vc-links .row-link')].map((a) => [a.innerText.trim(), a.getAttribute('href')])`), [["Điều phối xe", "/dieu-phoi"], ["Xe đang chạy", "/xe-dang-chay"], ["Cuốc của tôi", "/cuoc"]]); // + Xe đang chạy (Đợt 5)
     const tabs = await tt(l);
     assert.ok(!tabs.some(([h]) => h === "/cuoc"), `không tab Cuốc của tôi: ${JSON.stringify(tabs)}`);
     await l.ev(click('#vc-links a[href="/cuoc"]'));

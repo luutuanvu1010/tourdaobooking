@@ -41,7 +41,7 @@ test("khachDangCho: chỉ suất KHÁCH đang chờ, theo thứ tự điểm đ�
   const r = khachDangCho(s, d, N);
   assert.deepEqual(r.map((x) => x.suatId), ["s1", "s3"]);
   assert.equal(r[0]!.ten, "Khách 1");
-  assert.equal(r[0]!.noiDon, "Khách sạn A · 09:10");
+  assert.equal(r[0]!.noiDon, "Điểm 1 · Khách sạn A · 09:10");
   assert.deepEqual(r[0]!.baoHuy, { nhan: "Văn phòng đã báo huỷ", phu: "Vẫn chiếm chỗ cho đến khi tài xế xác nhận · 09:02 · Khách đổi kế hoạch" });
   assert.equal(r[1]!.ten.includes("0905123456"), false, "che số dài trong tên");
   assert.equal(r[1]!.baoHuy, null);

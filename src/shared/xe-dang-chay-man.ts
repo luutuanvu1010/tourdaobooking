@@ -28,7 +28,7 @@ export interface KhachChoDong {
   suatId: string;
   ten: string;
   maDon: string | null;
-  /** "Nơi đón · giờ hẹn". */
+  /** "Điểm N · nơi đón · giờ hẹn" (bản vẽ 11.2: "Suất 1 · Điểm 3 · Sân bay Cam Ranh"). */
   noiDon: string;
   /** Dòng đã báo huỷ (V11 bảng 11.2): nhãn chip + câu "vẫn chiếm chỗ"; null = chưa báo. */
   baoHuy: { nhan: string; phu: string } | null;
@@ -47,7 +47,7 @@ export function khachDangCho(suat: readonly SuatVao[], diem: readonly DiemVao[],
         suatId: x.id,
         ten: x.hoTen ? maskLongDigits(x.hoTen) : `Khách ${i + 1}`,
         maDon: x.maDon,
-        noiDon: d ? [d.tenNoi, d.gioHen ? hien(d.gioHen, ngayXem) : null].filter(Boolean).join(" · ") : "—",
+        noiDon: d ? [`Điểm ${d.thuTu}`, d.tenNoi, d.gioHen ? hien(d.gioHen, ngayXem) : null].filter(Boolean).join(" · ") : "—",
         baoHuy: bh ? { nhan: "Văn phòng đã báo huỷ", phu: `Vẫn chiếm chỗ cho đến khi tài xế xác nhận · ${hien(bh.luc, ngayXem)} · ${bh.lyDoNhan}` } : null,
       };
     });
