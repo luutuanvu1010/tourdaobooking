@@ -186,7 +186,7 @@ test("D5.3a cập nhật điểm khi xe đang chạy: chỉ suất WAITING ở �
       const o = (await w.call("GET", `/api/orders/${d.id}`, { as: ADM })).json.order;
       const l = o.services[0].legs[0];
       const sua = await w.call("PUT", `/api/orders/${d.id}/legs/${l.id}`, {
-        as: ADM, body: { expectedUpdatedAt: l.updatedAt, leg: { pickupDate: l.pickupDate, pickupTime: l.pickupTime, pickupLocationId: null, pickupPlace: `Nơi mới ${d.code}`, dropoffLocationId: LOC, dropoffPlace: "" }, datGap: { lyDo: "KHAC" } },
+        as: ADM, body: { expectedUpdatedAt: l.updatedAt, leg: { pickupDate: l.pickupDate, pickupTime: l.pickupTime, pickupLocationId: null, pickupPlace: `Nhà riêng Khách Dò Tìm 1 gọi 0905123456 ${d.code}`, dropoffLocationId: LOC, dropoffPlace: "" }, datGap: { lyDo: "KHAC" } },
       });
       assert.equal(sua.status, 200, sua.text);
     }
@@ -198,9 +198,12 @@ test("D5.3a cập nhật điểm khi xe đang chạy: chỉ suất WAITING ở �
     assert.equal(r.json.chuyen.tai, truoc.chuyen.tai);
     assert.equal(w.q("SELECT count(*) n FROM vc_trip_stop WHERE trip_id = ? AND status = 'SKIPPED'", a.id)[0].n, 0, "xe đang chạy: không tự bỏ qua điểm");
     assert.equal(w.q("SELECT count(*) n FROM vc_trip_allocation WHERE trip_id = ? AND close_reason = 'STOP_CHANGED' AND closed_cmd_id IS NOT NULL", a.id)[0].n, 2);
+    // Nơi đón mới là chữ tự do có tên + SĐT (Review Focus 4): nhật ký chỉ "nơi tự do", không tên, không số, không khoá nơi.
     const nk = w.q("SELECT detail FROM audit_log WHERE action = 'trip_stops_synced'");
     assert.equal(nk.length, 1);
     assert.doesNotMatch(nk[0].detail, LO);
+    assert.doesNotMatch(nk[0].detail, /0905123456|Nhà riêng/);
+    assert.match(nk[0].detail, /nơi tự do/, "chống bài rỗng: nhật ký có nhắc nơi đổi");
     // Không còn suất đổi được → 200 daCapNhat 0, không ghi.
     const sau = await chiTiet(w, a.id, ADM);
     const r2 = await w.call("POST", `/api/van-chuyen/chuyen/${a.id}/cap-nhat-diem`, { as: SALES, body: { version: sau.chuyen.version, requestId: uuid() } });
