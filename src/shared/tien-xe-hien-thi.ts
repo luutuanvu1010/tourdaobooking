@@ -3,7 +3,7 @@
 // dd/mm/yyyy) và đọc số NGƯỜI GÕ ở ô nhập để gửi lên (máy chủ kiểm lại). Không import src/modules (web/CLAUDE.md).
 import type { DongChiPhiDto, NhomBangKeDto } from "./contracts.ts";
 import type { Tone } from "./dieu-phoi-man.ts";
-import { addDays, isISODate } from "./vn-date.ts";
+import { addDays, isISODate, ngayDayDu } from "./vn-date.ts";
 
 export type ToneTienXe = Tone | "navy";
 
@@ -11,7 +11,7 @@ const nf = new Intl.NumberFormat("vi-VN");
 const vnd = (n: number): string => `${nf.format(n)} ₫`;
 
 /** "2026-07-01" → "01/07/2026" (thao tác chuỗi — không lệch múi giờ). */
-export const ngayVn = (iso: string): string => `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}`;
+export const ngayVn = (iso: string): string => ngayDayDu(iso); // MỘT hàm ngày (Kiểu D, V1.5b — bài src/ngay-mot-ham.test.ts)
 
 /** Cột HIỆU LỰC của bảng giá: "01/07/2026 – đang áp" khi chưa có ngày kết thúc. */
 export const hieuLuc = (tuNgay: string, denNgay: string | null): string => `${ngayVn(tuNgay)} – ${denNgay ? ngayVn(denNgay) : "đang áp"}`;

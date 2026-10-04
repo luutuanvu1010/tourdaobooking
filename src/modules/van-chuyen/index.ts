@@ -94,7 +94,7 @@ async function phanHoiChiPhi(db: D1Database, tripId: string, nhan: (ids: readonl
   if (r === null) return error(404, "not_found", "Không tìm thấy chuyến xe.");
   if (!r.ok) return r.res;
   const dto = await docChiPhiChuyen(db, tripId, nhan, vnToday(new Date()));
-  return dto ? json({ chiPhi: dto } satisfies ChiPhiChuyenResponse, r.lap ? 200 : 201) : error(404, "not_found", "Không tìm thấy chuyến xe.");
+  return dto ? json({ chiPhi: dto } satisfies ChiPhiChuyenResponse, r.lap ? 200 : 201, { location: `/chuyen?id=${tripId}` }) : error(404, "not_found", "Không tìm thấy chuyến xe.");
 }
 const CAN_DANH_MUC_TUYEN = () => error(403, "forbidden", "Tài khoản này không xem được danh mục tuyến, cỡ xe.");
 /** Bảng giá đọc theo tên tuyến / cỡ (map) — một lần mỗi request. */
@@ -977,7 +977,7 @@ export const vanChuyenModule: AppModule = {
       if (r instanceof Response) return r;
       const ngay = vnToday(new Date());
       const m = await banDoTuyenCo(env.DB, ngay);
-      return json({ dong: bangGiaDto(r.row, ngay, m.t, m.c) } satisfies BangGiaDongResponse, r.lap ? 200 : 201);
+      return json({ dong: bangGiaDto(r.row, ngay, m.t, m.c) } satisfies BangGiaDongResponse, r.lap ? 200 : 201, { location: "/bang-gia-xe" }); // ADR-0094 A-10: trang gọi route này (web/bang-gia-xe.ts)
     }),
     route("POST", "/api/van-chuyen/bang-gia/:id/ket-thuc", "office", async ({ env, request, params, staff }) => {
       if (!can(staff, "transport.rate.manage")) return CAN_GIA();
@@ -1001,7 +1001,7 @@ export const vanChuyenModule: AppModule = {
       if (!than.ok) return error(400, "invalid_input", than.message);
       const r = await lenhThemTuyen(env.DB, than.value, staff, new Date().toISOString());
       if (r instanceof Response) return r;
-      return json({ tuyen: (await listRoutes(env.DB)).map(tuyenDto) } satisfies TuyenListResponse, 201);
+      return json({ tuyen: (await listRoutes(env.DB)).map(tuyenDto) } satisfies TuyenListResponse, 201, { location: "/bang-gia-xe" });
     }),
     route("PUT", "/api/van-chuyen/tuyen/:code", "office", async ({ env, request, params, staff }) => {
       if (!can(staff, "transport.rate.manage")) return CAN_GIA();
@@ -1024,7 +1024,7 @@ export const vanChuyenModule: AppModule = {
       if (!than.ok) return error(400, "invalid_input", than.message);
       const r = await lenhThemCoXe(env.DB, than.value, staff, new Date().toISOString());
       if (r instanceof Response) return r;
-      return json({ coXe: (await listSizes(env.DB, vnToday(new Date()))).map((c) => coXeDto(c, true)) } satisfies CoXeListResponse, 201);
+      return json({ coXe: (await listSizes(env.DB, vnToday(new Date()))).map((c) => coXeDto(c, true)) } satisfies CoXeListResponse, 201, { location: "/bang-gia-xe" });
     }),
     route("PUT", "/api/van-chuyen/co-xe/:code", "office", async ({ env, request, params, staff }) => {
       if (!can(staff, "transport.rate.manage")) return CAN_GIA();
