@@ -194,7 +194,7 @@ export function docSoKhachHang(classCode: string, v: string): { ok: true; value:
 
 // ---- danh mục lý do ------------------------------------------------------------------------------------------------------------------------------------------
 /** Nhóm lý do lượt 1, theo thứ tự bản vẽ 8c (Phá lệ, Huỷ chuyến, Kết thúc gián đoạn) rồi hai nhóm lượt 1 bản vẽ không vẽ. */
-export const NHOM_LY_DO_HIEN: readonly NhomLyDo[] = ["PHA_LE", "HUY_CHUYEN", "KET_THUC_GIAN_DOAN", "BO_QUA_DIEM", "DOI_GIO_XE"];
+export const NHOM_LY_DO_HIEN: readonly NhomLyDo[] = ["PHA_LE", "HUY_CHUYEN", "KET_THUC_GIAN_DOAN", "BO_QUA_DIEM", "DOI_GIO_XE", "BAO_HUY_DIEM"]; // + BAO_HUY_DIEM: ADR-0052 D5.2 (Đợt 5)
 export interface NhomHien {
   nhom: NhomLyDo;
   tieuDe: string;

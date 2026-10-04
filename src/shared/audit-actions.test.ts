@@ -22,3 +22,8 @@ test("isAuditAction chỉ nhận mã đã khai (kể cả không nhận thuộc 
 test("ADR-0050 VK1-B: hành động 'cập nhật điểm theo đơn' (trip_stops_synced) thuộc nhóm 'Điều phối xe' (trip), có nhãn", () => {
   assert.deepEqual({ ...AUDIT_ACTIONS.trip_stops_synced }, { label: "Cập nhật điểm theo đơn", group: "trip" });
 });
+
+test("ADR-0052 D5 (Đợt 5): văn phòng thêm điểm / báo huỷ khi xe đang chạy — hai hành động nhóm 'Điều phối xe', có nhãn", () => {
+  assert.deepEqual({ ...AUDIT_ACTIONS.trip_stop_added_running }, { label: "Thêm điểm khi xe đang chạy", group: "trip" });
+  assert.deepEqual({ ...AUDIT_ACTIONS.trip_allocation_office_cancelled }, { label: "Văn phòng báo huỷ khách", group: "trip" });
+});

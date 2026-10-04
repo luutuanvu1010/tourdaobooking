@@ -137,17 +137,18 @@ test("nhanDieuKien: tên loại + cỡ xe bằng lời, không lộ mã; giấy 
   assert.doesNotMatch(khong, /MA_LA/);
 });
 
-test("nhomLyDoHien: năm nhóm lượt 1 theo thứ tự bản vẽ (kể cả nhóm rỗng), nhãn từ NHAN_NHOM_LY_DO, lý do trong nhóm giữ thứ tự máy chủ; nhóm ngoài danh sách có dữ liệu thì thêm cuối", () => {
-  assert.deepEqual(NHOM_LY_DO_HIEN, ["PHA_LE", "HUY_CHUYEN", "KET_THUC_GIAN_DOAN", "BO_QUA_DIEM", "DOI_GIO_XE"]);
+test("nhomLyDoHien: năm nhóm lượt 1 theo thứ tự bản vẽ + Báo huỷ điểm đón (Đợt 5) (kể cả nhóm rỗng), nhãn từ NHAN_NHOM_LY_DO, lý do trong nhóm giữ thứ tự máy chủ; nhóm ngoài danh sách có dữ liệu thì thêm cuối", () => {
+  assert.deepEqual(NHOM_LY_DO_HIEN, ["PHA_LE", "HUY_CHUYEN", "KET_THUC_GIAN_DOAN", "BO_QUA_DIEM", "DOI_GIO_XE", "BAO_HUY_DIEM"]);
   const ly = (code: string, group: TripReasonDto["group"], sortOrder: number, active = true): TripReasonDto => ({ code, group, groupLabel: "x", label: code, active, sortOrder, updatedAt: "t" });
-  const nhom = nhomLyDoHien([ly("HUY_B", "HUY_CHUYEN", 2), ly("HUY_A", "HUY_CHUYEN", 1), ly("PHA_LE_KHAC", "PHA_LE", 99, false), ly("BAO_A", "BAO_HUY_DIEM", 1)]);
+  const nhom = nhomLyDoHien([ly("HUY_B", "HUY_CHUYEN", 2), ly("HUY_A", "HUY_CHUYEN", 1), ly("PHA_LE_KHAC", "PHA_LE", 99, false), ly("TC_A", "TU_CHOI_NHAN", 1)]);
   assert.deepEqual(nhom.map((n) => [n.nhom, n.tieuDe, n.lyDo.map((l) => l.code)]), [
     ["PHA_LE", "Phá lệ", ["PHA_LE_KHAC"]],
     ["HUY_CHUYEN", "Huỷ chuyến", ["HUY_B", "HUY_A"]],
     ["KET_THUC_GIAN_DOAN", "Kết thúc gián đoạn", []],
     ["BO_QUA_DIEM", "Bỏ qua điểm", []],
     ["DOI_GIO_XE", "Đổi giờ xe tới", []],
-    ["BAO_HUY_DIEM", "Báo huỷ điểm đón", ["BAO_A"]],
+    ["BAO_HUY_DIEM", "Báo huỷ điểm đón", []],
+    ["TU_CHOI_NHAN", "Không nhận chuyển điểm", ["TC_A"]],
   ]);
 });
 

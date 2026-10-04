@@ -37,6 +37,8 @@ export const LOAI_SU_KIEN_CHUYEN = [
   "ALLOCATED", "ALLOCATION_REMOVED", "ALLOCATION_MOVED", "ALLOCATION_STOP_CHANGED", "ALLOCATION_PASSENGER_CHANGED",
   "DEPARTED", "STOP_ARRIVED", "PASSENGER_BOARDED", "PASSENGER_NO_SHOW", "PASSENGER_CANCELLED_AT_STOP", "PASSENGER_DROPPED",
   "STOPS_REORDERED", "ENDED", "ENDED_INTERRUPTED",
+  // ADR-0052 D5 (Đợt 5): văn phòng thêm điểm / khách vào xe ĐANG CHẠY (D5.1 — đường (1) của LC-15 mới); văn phòng báo huỷ MỘT suất (D5.2 — chỉ đặt cờ).
+  "STOP_ADDED_RUNNING", "ALLOCATION_OFFICE_CANCELLED",
 ] as const;
 export type LoaiSuKienChuyen = (typeof LOAI_SU_KIEN_CHUYEN)[number];
 export const NHAN_SU_KIEN_CHUYEN: Readonly<Record<LoaiSuKienChuyen, string>> = {
@@ -57,6 +59,8 @@ export const NHAN_SU_KIEN_CHUYEN: Readonly<Record<LoaiSuKienChuyen, string>> = {
   STOPS_REORDERED: "Đổi thứ tự điểm",
   ENDED: "Kết thúc",
   ENDED_INTERRUPTED: "Kết thúc gián đoạn",
+  STOP_ADDED_RUNNING: "Văn phòng thêm điểm khi xe đang chạy",
+  ALLOCATION_OFFICE_CANCELLED: "Văn phòng báo huỷ khách",
 };
 
 /**

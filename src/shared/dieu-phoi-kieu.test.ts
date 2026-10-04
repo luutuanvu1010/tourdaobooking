@@ -35,8 +35,12 @@ test("LOAI_SU_KIEN_CHUYEN: đủ 17 loại tương ứng các hành động trip
     "ALLOCATED", "ALLOCATION_REMOVED", "ALLOCATION_MOVED", "ALLOCATION_STOP_CHANGED", "ALLOCATION_PASSENGER_CHANGED",
     "DEPARTED", "STOP_ARRIVED", "PASSENGER_BOARDED", "PASSENGER_NO_SHOW", "PASSENGER_CANCELLED_AT_STOP", "PASSENGER_DROPPED",
     "STOPS_REORDERED", "ENDED", "ENDED_INTERRUPTED",
+    // ADR-0052 D5 (Đợt 5): văn phòng thêm điểm / báo huỷ khi xe đang chạy
+    "STOP_ADDED_RUNNING", "ALLOCATION_OFFICE_CANCELLED",
   ]);
   assert.equal(NHAN_SU_KIEN_CHUYEN.ALLOCATION_PASSENGER_CHANGED, "Cập nhật khách theo đơn");
+  assert.equal(NHAN_SU_KIEN_CHUYEN.STOP_ADDED_RUNNING, "Văn phòng thêm điểm khi xe đang chạy");
+  assert.equal(NHAN_SU_KIEN_CHUYEN.ALLOCATION_OFFICE_CANCELLED, "Văn phòng báo huỷ khách");
   assert.equal(new Set(LOAI_SU_KIEN_CHUYEN).size, LOAI_SU_KIEN_CHUYEN.length);
   for (const k of LOAI_SU_KIEN_CHUYEN) assert.ok(NHAN_SU_KIEN_CHUYEN[k].trim().length > 0, k);
   // Ruling R-K1: MOVED / ALLOCATION_MOVED giữ nghĩa "dời sang chuyến KHÁC"; đổi điểm cùng chuyến là loại riêng.
