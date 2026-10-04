@@ -381,12 +381,14 @@
     {
       "name": "vc_trip_stop",
       "module": "van-chuyen",
-      "kind": "table"
+      "kind": "table",
+      "note": "điểm dừng của chuyến. added_while_running (0076, ADR-0052 D5.1/D5.3a): 1 = điểm thêm khi xe đang chạy (lệnh Thêm điểm của văn phòng hoặc Cập nhật điểm theo đơn); bất biến (LC-04); trigger LC-15 chỉ cho chèn điểm vào chuyến RUNNING khi có cờ VÀ sự kiện mang dấu lệnh hiện hành là STOP_ADDED_RUNNING / ALLOCATION_STOP_CHANGED; chuyến chưa chạy không mang cờ"
     },
     {
       "name": "vc_trip_allocation",
       "module": "van-chuyen",
       "kind": "table",
+      "note": "suất một người trên một chuyến. 0076 (ADR-0052 D5): opened_cmd_id / closed_cmd_id = dấu lệnh mở / đóng (máy chủ ghi ở mọi câu mở / đóng từ 1.79; dòng cũ NULL; opened bất biến, closed chỉ khi đã đóng) — câu chốt D5.3a (trigger vc_trip_stop_changed_balance) đếm đóng STOP_CHANGED = mở cùng dấu lệnh theo (chặng, người), cùng chuyến. office_cancel_at/_by/_reason_code (nhóm lý do BAO_HUY_DIEM): văn phòng báo huỷ một suất khi xe đang chạy — ba cột cùng có / cùng vắng, đặt MỘT lần trên suất WAITING đang mở, KHÔNG đóng suất (vẫn chiếm chỗ tới khi tài xế ghi Khách đã huỷ / Đã đón). added_after_departure = 1 chỉ trên chuyến RUNNING (LC-15 mới, ba đường có tên).",
       "logicalRefs": [
         { "column": "leg_id", "toTable": "ord_transfer_leg", "viaView": "v_ord_leg_key", "note": "trigger LC-09 lúc mở suất + kiểm định kỳ R-VC-19 — R-P19" },
         { "column": "passenger_key", "toTable": "ord_passenger", "viaView": "v_ord_passenger_key", "note": "person_key — trigger LC-10 lúc mở suất / gắn tên + kiểm định kỳ R-VC-19 — R-P19" }

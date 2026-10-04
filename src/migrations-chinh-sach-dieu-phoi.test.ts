@@ -117,6 +117,11 @@ test("(c) dữ liệu gieo: đúng một dòng chính sách 360/120/30/1/0 + k�
     "BAN_XE:BAN_XE_DANG_KIEM",
     "BAN_XE:BAN_XE_SUA_CHUA",
     "BAN_XE:BAN_XE_KHAC",
+    // 0076 (ADR-0052 D5.2, Đợt 5): nhóm lý do văn phòng báo huỷ khi xe đang chạy
+    "BAO_HUY_DIEM:BAO_HUY_KHONG_DI",
+    "BAO_HUY_DIEM:BAO_HUY_DOI_LICH",
+    "BAO_HUY_DIEM:BAO_HUY_KHONG_LIEN_LAC",
+    "BAO_HUY_DIEM:BAO_HUY_KHAC",
     "BO_QUA_DIEM:BO_QUA_KHONG_CON_KHACH",
     "BO_QUA_DIEM:BO_QUA_KHAC",
     "DOI_GIO_XE:DOI_GIO_XE_TOI_SOM",
