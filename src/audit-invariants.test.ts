@@ -1911,3 +1911,77 @@ test("R-VC-21 (ADR-0055 hệ quả 10): chuyến chưa huỷ, CHƯA kết thúc 
   assert.equal(violations(db, c), 0, "khung đã rút");
   assert.ok(b);
 });
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Vận chuyển Đợt 5 (ADR-0052 D5 — kế hoạch Task 7): lưới thứ hai cho báo huỷ (R-VC-22), điểm thêm khi chạy (R-VC-23), cập nhật điểm khi xe chạy (R-VC-24).
+// ---------------------------------------------------------------------------------------------------------------------
+const diemThemTho = (db: DatabaseSync, trip: string, o: { id?: string; them?: number; luc?: string } = {}): string => {
+  const id = o.id ?? `st-${++soVc}`;
+  db.prepare(`INSERT INTO vc_trip_stop (id, trip_id, seq, kind, location_id, place_key, added_while_running, created_at, updated_at) VALUES (?, ?, ?, 'PICKUP', 'loc-x', 'L:loc-x', ?, ?, ?)`)
+    .run(id, trip, (soVc % 400) + 1, o.them ?? 0, o.luc ?? T1, o.luc ?? T1);
+  return id;
+};
+test("R-VC-22 (Đợt 5 D5.2): cờ báo huỷ có sự kiện cùng suất, cùng lúc, đặt khi suất còn chờ → 0; cờ không sự kiện / đặt SAU khi suất đã có kết quả → vi phạm (fail)", () => {
+  const c = one("R-VC-22");
+  assert.equal(c.level, "fail");
+  const db = tho();
+  const t = chuyenTho(db, { status: "RUNNING", departed: NOW_MS });
+  const datCo = (a: string, luc: string) =>
+    db.prepare("UPDATE vc_trip_allocation SET office_cancel_at = ?, office_cancel_by = 's-admin', office_cancel_reason_code = 'BAO_HUY_KHONG_DI' WHERE id = ?").run(luc, a);
+  const tot = suatTho(db, { trip: t });
+  suKienTho(db, { trip: t, kind: "ALLOCATION_OFFICE_CANCELLED", alloc: tot, ghi: T3, nhatKy: null });
+  datCo(tot, T3);
+  // Báo nhầm: tài xế vẫn "Đã đón" SAU khi văn phòng báo huỷ — hợp lệ.
+  suKienTho(db, { trip: t, kind: "PASSENGER_BOARDED", alloc: tot, ghi: T4, nhatKy: null });
+  db.prepare("UPDATE vc_trip_allocation SET status = 'BOARDED' WHERE id = ?").run(tot);
+  assert.equal(violations(db, c), 0, "báo huỷ khi còn chờ, đón sau → sạch");
+  const khongSuKien = suatTho(db, { trip: t });
+  datCo(khongSuKien, T3);
+  assert.equal(violations(db, c), 1, "cờ không có sự kiện ALLOCATION_OFFICE_CANCELLED của đúng suất");
+  const daDon = suatTho(db, { trip: t, status: "BOARDED" });
+  suKienTho(db, { trip: t, kind: "PASSENGER_BOARDED", alloc: daDon, ghi: T2, nhatKy: null });
+  suKienTho(db, { trip: t, kind: "ALLOCATION_OFFICE_CANCELLED", alloc: daDon, ghi: T3, nhatKy: null });
+  datCo(daDon, T3);
+  assert.equal(violations(db, c), 2, "cờ đặt SAU khi suất đã đón");
+});
+test("R-VC-23 (Đợt 5 D5.1): điểm mang cờ 'thêm khi xe chạy' trên chuyến đã xuất bến, tạo sau xuất bến → 0; chuyến chưa xuất bến / tạo trước xuất bến → vi phạm (fail)", () => {
+  const c = one("R-VC-23");
+  assert.equal(c.level, "fail");
+  const db = tho();
+  const chay = chuyenTho(db, { status: "RUNNING", departed: Date.parse(T2) });
+  diemThemTho(db, chay, { them: 1, luc: T3 });
+  diemThemTho(db, chay, { them: 0, luc: T1 });
+  assert.equal(violations(db, c), 0);
+  const chua = chuyenTho(db);
+  diemThemTho(db, chua, { them: 1, luc: T3 });
+  assert.equal(violations(db, c), 1, "chuyến chưa từng xuất bến");
+  diemThemTho(db, chay, { them: 1, luc: T1 });
+  assert.equal(violations(db, c), 2, "điểm tạo trước giờ xuất bến");
+});
+test("R-VC-24 (Đợt 5 D5.3a): suất đóng STOP_CHANGED sau xuất bến có suất mở lại cùng chặng, cùng người, cùng dấu lệnh → 0; không mở lại / khác người → vi phạm (fail); trước xuất bến không xét", () => {
+  const c = one("R-VC-24");
+  assert.equal(c.level, "fail");
+  const db = tho();
+  const t = chuyenTho(db, { status: "RUNNING", departed: Date.parse(T2) });
+  const cmd = "d0000000-0000-4000-8000-000000000001";
+  const dong = (o: { leg: string; key: string | null; den: string; cmd: string | null }) => {
+    const a = suatTho(db, { trip: t, leg: o.leg, key: o.key, tu: T1, den: o.den });
+    db.prepare("UPDATE vc_trip_allocation SET close_reason = 'STOP_CHANGED', closed_cmd_id = ? WHERE id = ?").run(o.cmd, a);
+    return a;
+  };
+  const mo = (o: { leg: string; key: string | null; cmd: string }) => {
+    const a = suatTho(db, { trip: t, leg: o.leg, key: o.key, tu: T3 });
+    db.prepare("UPDATE vc_trip_allocation SET opened_cmd_id = ?, added_after_departure = 1 WHERE id = ?").run(o.cmd, a);
+  };
+  dong({ leg: "leg-1", key: "pk-1", den: T3, cmd });
+  mo({ leg: "leg-1", key: "pk-1", cmd });
+  dong({ leg: "leg-1", key: null, den: T3, cmd });
+  mo({ leg: "leg-1", key: null, cmd });
+  dong({ leg: "leg-2", key: "pk-9", den: T1, cmd: null }); // đóng TRƯỚC xuất bến (lô chuyến chưa chạy) — không xét
+  assert.equal(violations(db, c), 0);
+  dong({ leg: "leg-3", key: "pk-3", den: T3, cmd: "d0000000-0000-4000-8000-000000000002" });
+  assert.equal(violations(db, c), 1, "đóng khi xe chạy mà không mở lại");
+  dong({ leg: "leg-4", key: "pk-4", den: T3, cmd: "d0000000-0000-4000-8000-000000000003" });
+  mo({ leg: "leg-4", key: "pk-khac", cmd: "d0000000-0000-4000-8000-000000000003" });
+  assert.equal(violations(db, c), 2, "mở lại người khác");
+});

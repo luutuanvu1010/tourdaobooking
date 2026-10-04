@@ -14,6 +14,8 @@ async function xeDangChay(w: any) {
   denGio("12:40");
   const xb = await tienDo(w, "tai-xe", a.id, "xuat-ben");
   assert.equal(xb.status, 200, xb.text);
+  // Đồng hồ giả đứng yên: tiến một phút để lệnh văn phòng không trùng ĐÚNG mili-giây xuất bến (R-VC-4 đếm suất mở "≤ lúc chụp").
+  denGio("12:41");
   return { a, b };
 }
 async function themDiem(w: any, tripId: string, as: string, chang: unknown[], extra: Record<string, unknown> = {}) {
@@ -25,6 +27,17 @@ async function baoHuy(w: any, tripId: string, suatId: string, as: string, lyDo =
   return w.call("POST", `/api/van-chuyen/chuyen/${tripId}/phan-bo/${suatId}/bao-huy`, { as, body: { version: c.chuyen.version, requestId: uuid(), lyDo } });
 }
 const PHA_LE = { phaLe: { lyDo: "PHA_LE_SU_CO" } };
+// Kiểm định kỳ (scripts/audit-checks.mjs) mức fail của vận chuyển chạy trên CSDL sau mỗi ca — dữ liệu do chính các lô thật ghi phải sạch.
+const { CHECKS } = (await import(new URL("../../../scripts/audit-checks.mjs", import.meta.url).href)) as { CHECKS: { code: string; sql: string; level: string; mode?: string }[] };
+function kiemDinhKySach(w: any) {
+  const vc = CHECKS.filter((c) => c.code.startsWith("R-VC-") && c.level === "fail");
+  assert.ok(vc.some((c) => c.code === "R-VC-24"), "chống bài rỗng: có các câu Đợt 5");
+  for (const c of vc) {
+    const rows = w.q(c.sql.replace(/\s+/g, " ").trim());
+    const n = c.mode === "rows" ? rows.length : Number(Object.values(rows[0] ?? { n: 0 })[0]);
+    assert.equal(n, 0, `${c.code} có vi phạm`);
+  }
+}
 const dong = (x: any[]) => x.map((r) => ({ ...r }));
 /** Chuỗi nhật ký không được có: tên khách, khoá so sánh nơi, số điện thoại (mã đơn có 8 số ngày — được phép). */
 const LO = /Dò Tìm|L:|T:|0\d{9}/;
@@ -63,6 +76,7 @@ test("D5.1 thêm điểm: chặng thường — Bán hàng 409 'cần Quản tr�
     const them = await themDiem(w, a.id, ADM, [{ legId: b.legId, soSuat: 1 }], PHA_LE);
     assert.equal(them.status, 409, them.text);
     assert.equal(them.json.error.code, "vuot_so_nguoi_chang");
+    kiemDinhKySach(w);
   } finally {
     tat();
   }
@@ -82,6 +96,7 @@ test("D5.1 thêm điểm: chặng ĐẶT GẤP — Bán hàng 200 không phá l�
     const r = await themDiem(w, a.id, SALES, [{ legId: b.legId, soSuat: 2 }]);
     assert.equal(r.status, 200, r.text);
     assert.deepEqual(dong(w.q("SELECT override_rule_code FROM vc_trip_event WHERE kind = 'STOP_ADDED_RUNNING'")), [{ override_rule_code: null }]);
+    kiemDinhKySach(w);
   } finally {
     tat();
   }
@@ -133,6 +148,7 @@ test("D5.2 báo huỷ: suất VẪN chiếm chỗ tới khi tài xế bấm 'Kh�
     const rut = await w.call("POST", `/api/van-chuyen/chuyen/${a.id}/rut`, { as: ADM, body: { version: c.chuyen.version, requestId: uuid(), suatIds: [a.suat[0]] } });
     assert.equal(rut.status, 409, rut.text);
     assert.equal(rut.json.error.code, "xe_dang_chay");
+    kiemDinhKySach(w);
   } finally {
     tat();
   }
@@ -151,6 +167,7 @@ test("Chuyến CHƯA chạy: thêm điểm 409 (dùng Xếp khách), báo huỷ 
     assert.equal(r.status, 409, r.text);
     assert.equal(r.json.error.code, "chuyen_chua_chay");
     assert.equal(w.q("SELECT count(*) n FROM vc_trip_allocation WHERE office_cancel_at IS NOT NULL")[0].n, 0);
+    kiemDinhKySach(w);
   } finally {
     tat();
   }
@@ -190,6 +207,7 @@ test("D5.3a cập nhật điểm khi xe đang chạy: chỉ suất WAITING ở �
     assert.equal(r2.status, 200, r2.text);
     assert.equal(r2.json.daCapNhat, 0);
     assert.equal(w.q("SELECT count(*) n FROM audit_log WHERE action = 'trip_stops_synced'")[0].n, 1);
+    kiemDinhKySach(w);
   } finally {
     tat();
   }

@@ -577,6 +577,39 @@ export const CHECKS = [
     level: "warn",
     note: "cảnh báo: văn phòng dời hoặc đổi xe chuyến, hoặc Quản trị rút lịch xe bận",
   },
+  // ---- Xe đang chạy (ADR-0052 D5 — Vận chuyển Đợt 5, 0076): lưới thứ hai của trigger báo huỷ một lần, LC-15 ba đường, câu chốt D5.3a. Chỉ đếm, không tên. ----
+  // R-VC-22 (D5.2): cờ báo huỷ của văn phòng phải đi cùng sự kiện ALLOCATION_OFFICE_CANCELLED của ĐÚNG suất, ghi CÙNG lúc; và lúc đặt cờ suất còn chờ —
+  // không có sự kiện kết quả suất (đã đón / vắng / khách huỷ / đã trả) ghi TRƯỚC lúc đặt cờ. "Đã đón" SAU báo huỷ (báo nhầm) là hợp lệ.
+  {
+    code: "R-VC-22",
+    what: "suất mang cờ văn phòng báo huỷ không có sự kiện báo huỷ đúng suất, hoặc đặt khi khách đã có kết quả",
+    sql: `SELECT count(*) FROM vc_trip_allocation a
+          WHERE a.office_cancel_at IS NOT NULL
+            AND (NOT EXISTS (SELECT 1 FROM vc_trip_event e WHERE e.allocation_id = a.id AND e.kind = 'ALLOCATION_OFFICE_CANCELLED' AND e.created_at = a.office_cancel_at)
+                 OR EXISTS (SELECT 1 FROM vc_trip_event e WHERE e.allocation_id = a.id
+                              AND e.kind IN ('PASSENGER_BOARDED', 'PASSENGER_NO_SHOW', 'PASSENGER_CANCELLED_AT_STOP', 'PASSENGER_DROPPED') AND e.created_at < a.office_cancel_at))`,
+    level: "fail",
+  },
+  // R-VC-23 (D5.1): điểm mang cờ "văn phòng thêm khi xe đang chạy" phải thuộc chuyến ĐÃ xuất bến và được tạo SAU giờ xuất bến (giờ xảy ra ≤ giờ ghi nhận).
+  {
+    code: "R-VC-23",
+    what: "điểm mang cờ thêm khi xe đang chạy trên chuyến chưa xuất bến, hoặc tạo trước giờ xuất bến",
+    sql: `SELECT count(*) FROM vc_trip_stop s JOIN vc_trip t ON t.id = s.trip_id
+          WHERE s.added_while_running = 1 AND (t.departed_at IS NULL OR s.created_at < t.departed_at)`,
+    level: "fail",
+  },
+  // R-VC-24 (D5.3a — lưới thứ hai của câu chốt vc_trip_stop_changed_balance): suất đóng STOP_CHANGED SAU giờ xuất bến phải có suất mở lại cùng chuyến, cùng
+  // chặng, cùng khoá người (kể cả cùng "chưa tên"), mở bằng CHÍNH dấu lệnh đã đóng nó. Thiếu = khách bị gỡ khỏi xe đang chạy. Đóng trước xuất bến không xét.
+  {
+    code: "R-VC-24",
+    what: "suất đổi điểm khi xe đang chạy bị đóng mà không mở lại cùng người, cùng chặng, cùng lệnh",
+    sql: `SELECT count(*) FROM vc_trip_allocation a JOIN vc_trip t ON t.id = a.trip_id
+          WHERE a.close_reason = 'STOP_CHANGED' AND a.valid_to_at IS NOT NULL AND t.departed_at IS NOT NULL AND a.valid_to_at >= t.departed_at
+            AND NOT EXISTS (SELECT 1 FROM vc_trip_allocation b
+                            WHERE b.trip_id = a.trip_id AND b.leg_id IS a.leg_id AND b.passenger_key IS a.passenger_key AND b.id <> a.id
+                              AND a.closed_cmd_id IS NOT NULL AND b.opened_cmd_id = a.closed_cmd_id)`,
+    level: "fail",
+  },
 
   // ---- Người phụ trách đơn (ADR-0006 điều 3, ADR-0009). Migration 0014 trở lên: trên D1 chưa có 0014 các câu dưới lỗi "no such table" → script thoát mã 2. ----
   // R-DSP-1: chỉ mục duy nhất một phần đã chặn ở CSDL; kiểm này bắt trường hợp chỉ mục bị gỡ/sửa nhầm.
