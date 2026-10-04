@@ -1,0 +1,25 @@
+# Nhật ký thi công — Vận chuyển Đợt 5 (thu gọn): xe đang chạy — văn phòng thêm điểm / báo huỷ (D5), tài xế bổ sung tên (D5b), cứu hộ đơn giản (D5c)
+
+Kế hoạch: `docs/superpowers/plans/2026-10-01-van-chuyen-con-lai-05-xe-dang-chay.md`. Lộ trình mẹ: `…-00-lo-trinh.md` ("Lời chủ 2026-10-02 chiều" điểm 1).
+Câu hỏi bản vẽ: `docs/superpowers/plans/2026-10-02-van-chuyen-cau-hoi-ban-ve.md`. ADR: `docs/adr/ADR-0052-dieu-phoi-luot-2-chuyen-diem-va-xe-dang-chay.md` (D5, D5b, D5c).
+Nền: `origin/main` = `ffed6f1c` (fetch + merge 2026-10-05: "Already up to date"). Migration cấp: **0076**. Phiên bản tạm: **1.79**.
+Làn này KHÔNG gọi trợ lý con (kể cả người kiểm độc lập — điều phối giao). Người kiểm độc lập chỉ đọc phải chạy SAU, ở phiên khác (CLAUDE.md §3, N8).
+
+## Lời chủ áp vào kế hoạch (đã chốt — không hỏi lại)
+- Thu gọn: CHỈ D5 (văn phòng thêm điểm / báo huỷ khi xe chạy, D5.3a cập nhật điểm trên xe chạy), D5b (tài xế bổ sung tên), D5c đơn giản (văn phòng tạo chuyến cứu hộ). HOÃN: D4, V4. Câu 5.1, 5.2a, 5.2d, 5.4–5.7 không áp dụng.
+- 5.2b: ô giá thoả thuận cứu hộ chỉ Quản trị / Kế toán / Toàn quyền (ô `transport.cost.adjust` của Đợt 4); không cơ chế trực riêng.
+- 5.2c: câu cho tài xế "Xe hỏng? Bấm Kết thúc gián đoạn — văn phòng nhận tin ngay và xếp xe cứu hộ".
+- 5.3: tài xế thấy giờ đón + tổng khách, không tách người lớn / trẻ em.
+
+## Task 0 — nhận việc (2026-10-05)
+- Cổng vào: Đợt 2 (`src/shared/tin-chuyen.ts`, `ctx.baoThayDoiChuyen`) và Đợt 3 (`kiemKhungBanMoi` ở `src/modules/van-chuyen/khung-ban.ts`, migration `0071`) đã ở `main` ✅.
+- Số migration: `main` tới `0075_tin_tai_khoan` (có `0074_lan_gui`); nhánh Đợt 4 `worktree-agent-a29831d6b479d7c89` giữ `0072_vc_bang_gia_thue`, `0073_vc_chi_phi_chuyen` ⇒ **`0076_xe_dang_chay`**.
+- Bước 3 (kiểm `0042`, `0043` đã áp remote): KHÔNG chạy lệnh remote ở làn này (điều phối cấm đụng D1 remote). Căn cứ thay: `0042` lên production từ bản 1.38 (lộ trình mẹ, `docs/HANDOFF-N1.md`) ⇒ giữ P1 = migration MỚI bỏ + tạo lại trigger, không sửa `0042`.
+- Đo lại (HEAD `ffed6f1c`): `TRIP_GATE_DANG_CHAY` `chuyen-repo.ts:418`; `ALLOC_INSERT` :385, `ALLOC_CLOSE` :393, `ALLOC_GAN_TEN` :458, `MANIFEST_INSERT` :487 (cột `added_after_departure` đang ghi cứng 0); `NhanCau` `dieu-phoi.ts:22`; `loCapNhatDiem` :272; `congDangChay` :338; `khongConKeHoach` `dieu-phoi-lenh.ts:32`; `lenhCapNhatDiem` :297; route `cap-nhat-diem` `index.ts:1137`, `ket-thuc-gian-doan` (văn phòng) :1549, `thu-tu` :1568, `GET /lich` :935, `GET /chuyen/:id` :945, `POST /chuyen` :954, `phan-bo` :1040, khối `cuoc-cua-toi` :1191–1412; `NHOM_LY_DO_HIEN` `chinh-sach-hien-thi.ts:197`; `trip_stops_synced` `audit-actions.ts:105`; mã kiểm định kỳ lớn nhất `R-VC-21` (Đợt 4 dùng `R-VC-COST-*`, `R-VC-RATE-*`) ⇒ mã mới từ **R-VC-22**; R-ORD-11 `scripts/audit-checks.mjs:783`; bài H2 `src/lan-gui-phu-route.test.ts:55` (131 route ghi).
+- Trigger đang có trên `vc_trip_allocation` / `vc_trip_stop`: chỉ ở `0042` (identity :296, close_once :303, name_once :307, LC-15 :529–553) và `0043` (`vc_trip_allocation_needs_appt` :79). `0059`, `0068`, `0070`, `0071` không chạm hai bảng này ⇒ dựng lại LC-04 / LC-15 không làm mất luật Đợt 1, 3.
+- Bước 5 (tên hành động sinh tin): `HANH_DONG_TIN_CHUYEN` của Đợt 2 (`tin-chuyen.ts:8`) chưa có hành động D5 ⇒ Đợt 5 chốt `trip_stop_added_running`, `trip_allocation_office_cancelled` (đúng tên kế hoạch). `trip_stops_synced` có sẵn (nhật ký) — sinh tin CHỈ khi chuyến đang chạy (Task 8).
+- Bước 6: `ALTER TABLE … ADD COLUMN z TEXT CHECK ((x IS NULL) = (z IS NULL) AND (y IS NULL) = (z IS NULL))` trên node:sqlite: nhận; `UPDATE … SET x=1` (thiếu hai cột) → "CHECK constraint failed"; đặt đủ ba cột → được ⇒ luật "ba cột `office_cancel_*` cùng có / cùng vắng" để ở CHECK của cột cuối (D1 local: kiểm ở Task 1).
+- P9 (danh sách xe cứu hộ "tài xế dùng app"): `taiXeChoDieuPhoi` (`src/modules/parties/index.ts:153`) trả `loai` `CONG_TY` / `NHA_XE` nhưng KHÔNG có cờ "có tài khoản" ⇒ **chưa chắc**: danh sách có thể lẫn tài xế công ty chưa có tài khoản. Không tự thêm hàm vào `parties` (ghi nợ).
+- Đợt 4 (cổng `THIEU_GIA`, ô `transport.cost.adjust`, route `…/chi-phi/gia-thoa-thuan`) CHƯA ở `main` ⇒ cổng vào A-1b (T12 bước 1) chưa đủ cho phần GIÁ của D5c. Điều phối đã giao làm A-1b trong làn này ⇒ làm phần không phụ thuộc giá (route đọc cứu hộ, khối cứu hộ); bước "Nhập giá thoả thuận" ghi NỢ (nối khi Đợt 4 lên `main`).
+
+## Sổ task
