@@ -45,6 +45,8 @@ test("khachDangCho: chỉ suất KHÁCH đang chờ, theo thứ tự điểm đ�
   assert.deepEqual(r[0]!.baoHuy, { nhan: "Văn phòng đã báo huỷ", phu: "Vẫn chiếm chỗ cho đến khi tài xế xác nhận · 09:02 · Khách đổi kế hoạch" });
   assert.equal(r[1]!.ten.includes("0905123456"), false, "che số dài trong tên");
   assert.equal(r[1]!.baoHuy, null);
+  const cungDiem = khachDangCho([suat("y", "a", { hoTen: "Bình" }), suat("x", "a", { hoTen: "An" })], d, N);
+  assert.deepEqual(cungDiem.map((x) => x.suatId), ["x", "y"], "cùng điểm, cùng đơn → theo tên (thứ tự ổn định giữa các lần tải)");
 });
 
 test("diemMoiChuaXem: điểm thêm khi chạy còn chờ, chưa xem → câu 'Điểm N · nơi · giờ · N khách' (giờ đón + TỔNG khách — lời chủ 5.3)", () => {

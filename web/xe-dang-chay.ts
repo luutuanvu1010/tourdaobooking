@@ -1,5 +1,5 @@
 // Xe đang chạy (/xe-dang-chay) — Vận chuyển Đợt 5, ADR-0052 D5; bản vẽ docs/design/van-chuyen-dot-3-7/Điều phối xe đang chạy.dc.html, V11 bảng 11.1.
-// - Ô trip.view (cùng mục "Điều phối xe" — `thayDieuPhoiXe`). Đọc GET /api/van-chuyen/lich của HÔM NAY và HÔM QUA (chuyến chạy qua nửa đêm), lọc chuyến RUNNING.
+// - Ô trip.view (cùng mục "Điều phối xe" — `thayDieuPhoiXe`). Đọc GET /api/van-chuyen/lich của HÔM QUA, HÔM NAY, NGÀY MAI (chuyến chạy qua nửa đêm; xuất bến sớm chuyến ngày mai), lọc RUNNING.
 // - Mỗi thẻ "mã · Đang chạy · biển số · x/y chỗ" mở Chi tiết chuyến (web/chuyen.ts) — nơi có "Việc của văn phòng", "Khách đang chờ".
 // - Tin Bảng tin về chuyến / nối lại → tải lại danh sách.
 import type { ChuyenTomTatDto, LichChungResponse } from "../src/shared/contracts";
@@ -20,7 +20,7 @@ const staff = await initShell();
 
 async function nap(): Promise<ChuyenTomTatDto[]> {
   const homNay = vnToday(new Date());
-  const ngay = [addDays(homNay, -1), homNay];
+  const ngay = [addDays(homNay, -1), homNay, addDays(homNay, 1)];
   const lich = await Promise.all(ngay.map((d) => api<LichChungResponse>(`/api/van-chuyen/lich?ngay=${d}`)));
   const theoId = new Map<string, ChuyenTomTatDto>();
   for (const l of lich) for (const c of l.chuyen) theoId.set(c.id, c);

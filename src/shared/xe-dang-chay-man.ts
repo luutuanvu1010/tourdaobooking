@@ -39,7 +39,7 @@ export function khachDangCho(suat: readonly SuatVao[], diem: readonly DiemVao[],
   const thuTu = (x: SuatVao) => theoId.get(x.diemLen ?? "")?.thuTu ?? Number.MAX_SAFE_INTEGER;
   return suat
     .filter((x) => laKhach(x) && x.trangThai === "WAITING")
-    .sort((a, b) => thuTu(a) - thuTu(b))
+    .sort((a, b) => thuTu(a) - thuTu(b) || (a.maDon ?? "").localeCompare(b.maDon ?? "") || (a.hoTen ?? "").localeCompare(b.hoTen ?? "", "vi") || a.id.localeCompare(b.id))
     .map((x, i) => {
       const d = theoId.get(x.diemLen ?? "");
       const bh = x.vanPhongBaoHuy;
