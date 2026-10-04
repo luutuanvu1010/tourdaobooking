@@ -20,7 +20,7 @@ export const HD_KE_TOAN: NhomHuongDan = {
 
 Thanh menu dọc bên trái có:
 - Nhóm BÁN HÀNG: [[Trang chủ]], [[Đơn hàng]], [[Danh bạ]]. Cạnh [[Đơn hàng]] có số nhỏ, là số đơn chưa xác nhận.
-- Nhóm QUẢN TRỊ: [[Vận chuyển]], bên dưới là [[Điều phối xe]].
+- Nhóm QUẢN TRỊ: [[Vận chuyển]], bên dưới là [[Điều phối xe]] và [[Xe đang chạy]].
 - Nhóm TÔI: [[Của tôi]], [[Góp ý / Báo lỗi]], [[Trợ giúp]].
 
 Trên đầu trang có ô tìm kiếm. Gõ mã đơn, tên khách hoặc số điện thoại rồi bấm phím Enter là ra danh sách đơn khớp.
@@ -88,7 +88,8 @@ Thanh tab dưới đáy có [[Trang chủ]], [[Đơn hàng]] và [[Tôi]]. Các 
 2. Chọn ngày ở ô ngày trên cùng. Bấm mũi tên trái hoặc phải để lùi hay tiến một ngày.
 3. Màn có ba phần: **Chưa xếp**, **Xe**, **Cần xử lý**. Trên điện thoại, ba phần này là ba thẻ để bấm qua lại.
 4. Bạn sẽ thấy dải chữ "Chỉ xem — Kế toán không xếp xe, không phá lệ." Bạn không có nút [[+ Chuyến mới]], không xếp khách, không sửa chuyến.
-5. Bấm vào một chuyến để xem **Chi tiết chuyến**.`,
+5. Bấm vào một chuyến để xem **Chi tiết chuyến**.
+6. [[Xe đang chạy]] liệt kê xe đang chạy; bạn chỉ xem, không thêm khách hay báo huỷ.`,
     },
     {
       tieuDe: "Danh bạ",

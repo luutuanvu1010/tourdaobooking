@@ -121,6 +121,8 @@ App chỉ cho xác nhận khi mỗi dịch vụ có ngày khởi hành, ngày đ
       tieuDe: "Điều phối xe",
       noiDung: `Ở [[Điều phối xe]], chọn ngày; cột **Chưa xếp** có chặng của đơn đã xác nhận. Bấm [[+ Chuyến mới]] (xe, tài xế, giờ) → [[Lưu chuyến]], rồi kéo chặng vào chuyến hoặc bấm [[Xếp vào chuyến]]. Chuyến bị giữ thì [[Mở chuyến]] xem lý do và ai xử lý.
 
+Xe đã chạy: mở [[Xe đang chạy]], bấm chuyến. Thêm khách: [[Thêm điểm đón / thêm khách]], chọn chặng, số khách, [[Thêm vào chuyến]] (khách không đặt gấp cần Quản trị phá lệ). Khách huỷ: ở **Khách đang chờ** bấm [[Báo huỷ]]; ghế vẫn giữ tới khi tài xế xác nhận. Đơn đổi nơi đón: [[Cập nhật điểm theo đơn]].
+
 > Lưu ý: xe chỉ chạy được khi đơn đủ họ tên, năm sinh khách và nơi trả. Trong 6 giờ trước xuất bến, chuyến bị khoá — cần **Quản trị** phá lệ.
 
 Mục "Giờ hẹn đổi — gọi báo khách" ở [[Cần xử lý]]: gọi khách rồi bấm [[Đã gọi báo]] (nhầm thì [[Bỏ đánh dấu]]), chỉ cho đơn bạn lập hoặc phụ trách.`,

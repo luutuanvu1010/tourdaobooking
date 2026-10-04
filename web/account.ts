@@ -81,6 +81,7 @@ if (quanLyXe || thayDieuPhoiXe(staff)) {
       "section",
       { id: "vc-links", class: "card list-card", "aria-labelledby": "vc-eyebrow" },
       thayDieuPhoiXe(staff) && h("a", { class: "row-link", href: "/dieu-phoi" }, h("span", { class: "vc-row-label" }, "Điều phối xe"), icon("next", 20)),
+      thayDieuPhoiXe(staff) && h("a", { class: "row-link", href: "/xe-dang-chay" }, h("span", { class: "vc-row-label" }, "Xe đang chạy"), icon("next", 20)),
       // Kiểm độc lập K2b T2 (điều phối chốt, GA-K2b-T2): tài khoản vừa tài xế công ty vừa văn phòng — lối tới "Cuốc của tôi" ở điện thoại (tài khoản chỉ tài xế
       // có tab riêng; trang đầu của tổ hợp này KHÔNG đổi).
       coCuocCuaToi(staff) && !chiTaiXe(staff) && h("a", { class: "row-link", href: "/cuoc" }, h("span", { class: "vc-row-label" }, "Cuốc của tôi"), icon("next", 20)),

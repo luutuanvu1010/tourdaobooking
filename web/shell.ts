@@ -28,6 +28,8 @@ const TRANG_LOAI_GIAY_TO_NGUOI = "/loai-giay-to-nguoi";
  *  chuyến và Tạo / sửa chuyến mở từ đó), "Chính sách điều phối" (ô settings.ops — chỉ Toàn quyền; sáng ở cả trang Điều kiện xuất bến mở từ đó) và "Lý do điều
  *  phối" (ô admin.manage). Điện thoại: các trang này mở từ trang Tôi nên tab "Tôi" sáng. */
 const TRANG_DIEU_PHOI = ["/dieu-phoi", "/chuyen", "/chuyen-sua"];
+/** Vận chuyển Đợt 5 (bản vẽ V11 bảng 11.1): mục con "Xe đang chạy" ngay sau "Điều phối xe", cùng ô trip.view; chuyến mở từ đây vẫn là Chi tiết chuyến. */
+const TRANG_XE_DANG_CHAY = "/xe-dang-chay";
 /** "Cuốc của tôi" của tài xế (Q5): danh sách + màn một chuyến (xuất bến / đang chạy). */
 const TRANG_CUOC_CAC = [TRANG_CUOC, "/cuoc-chuyen"];
 const TRANG_CHINH_SACH = ["/chinh-sach-dieu-phoi", "/dieu-kien-xuat-ben"];
@@ -70,7 +72,7 @@ function tabsFor(admin: boolean, seesAll: boolean, canCreate: boolean, taiXe = f
   return [
     ...officeTabs,
     ...adminTabs,
-    { href: "/account", label: "Tôi", icon: "me", active: (p) => p === "/account" || p === "/audit" || p === "/help" || p === "/gui-thong-bao" || TRANG_XE.includes(p) || p === TRANG_LICH_XE_BAN || p === TRANG_SAP_HET_HAN || p === TRANG_LOAI_GIAY_TO_XE || p === TRANG_LOAI_GIAY_TO_NGUOI || TRANG_CHINH_SACH.includes(p) || p === TRANG_LY_DO || TRANG_DIEU_PHOI.includes(p) || p === TRANG_TRO_LY || p === TRANG_GIAO_DIEN || p === TRANG_PHIEN || (!cuoc && TRANG_CUOC_CAC.includes(p)) },
+    { href: "/account", label: "Tôi", icon: "me", active: (p) => p === "/account" || p === "/audit" || p === "/help" || p === "/gui-thong-bao" || TRANG_XE.includes(p) || p === TRANG_LICH_XE_BAN || p === TRANG_SAP_HET_HAN || p === TRANG_LOAI_GIAY_TO_XE || p === TRANG_LOAI_GIAY_TO_NGUOI || TRANG_CHINH_SACH.includes(p) || p === TRANG_LY_DO || TRANG_DIEU_PHOI.includes(p) || p === TRANG_XE_DANG_CHAY || p === TRANG_TRO_LY || p === TRANG_GIAO_DIEN || p === TRANG_PHIEN || (!cuoc && TRANG_CUOC_CAC.includes(p)) },
   ];
 }
 
@@ -247,9 +249,14 @@ function navGroups(admin: boolean, seesAll: boolean, office: boolean, canCreate:
   if (vehicle || dieuPhoi) {
     management.push({
       href: "", label: "Vận chuyển", icon: "truck", kind: "parent",
-      active: (p) => TRANG_DIEU_PHOI.includes(p) || TRANG_XE.includes(p) || p === TRANG_LICH_XE_BAN || p === TRANG_SAP_HET_HAN || p === TRANG_LOAI_GIAY_TO_XE || TRANG_CHINH_SACH.includes(p) || p === TRANG_LY_DO,
+      active: (p) => TRANG_DIEU_PHOI.includes(p) || p === TRANG_XE_DANG_CHAY || TRANG_XE.includes(p) || p === TRANG_LICH_XE_BAN || p === TRANG_SAP_HET_HAN || p === TRANG_LOAI_GIAY_TO_XE || TRANG_CHINH_SACH.includes(p) || p === TRANG_LY_DO,
     });
-    if (dieuPhoi) management.push({ href: TRANG_DIEU_PHOI[0]!, label: "Điều phối xe", kind: "sub", active: (p) => TRANG_DIEU_PHOI.includes(p) });
+    if (dieuPhoi) {
+      management.push(
+        { href: TRANG_DIEU_PHOI[0]!, label: "Điều phối xe", kind: "sub", active: (p) => TRANG_DIEU_PHOI.includes(p) },
+        { href: TRANG_XE_DANG_CHAY, label: "Xe đang chạy", kind: "sub", active: (p) => p === TRANG_XE_DANG_CHAY },
+      );
+    }
   }
   if (vehicle) {
     management.push(
