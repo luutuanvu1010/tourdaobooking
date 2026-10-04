@@ -23,7 +23,8 @@ export interface SuKienDon {
 }
 
 /** ADR-0052 D6.4 + bổ sung ADR-0022 điều 4: sự kiện CHUYẾN — đúng 4 khoá (mã chuyến, loại thay đổi, thời điểm). Không tripId (tự chốt T3 của kế hoạch Đợt 2). */
-export const THAY_DOI_CHUYEN = ["tao", "sua", "xep", "rut", "doi", "huy", "cap_nhat", "xuat_ben", "tien_do", "vang", "ket_thuc", "gian_doan"] as const;
+// "xe_chay" (Vận chuyển Đợt 5): văn phòng thêm điểm / báo huỷ / đổi điểm khi xe đang chạy.
+export const THAY_DOI_CHUYEN = ["tao", "sua", "xep", "rut", "doi", "huy", "cap_nhat", "xuat_ben", "tien_do", "vang", "ket_thuc", "gian_doan", "xe_chay"] as const;
 export type ThayDoiChuyen = (typeof THAY_DOI_CHUYEN)[number];
 export interface SuKienChuyen {
   loai: "chuyen";

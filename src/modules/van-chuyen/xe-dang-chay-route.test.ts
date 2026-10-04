@@ -72,6 +72,14 @@ test("D5.1 thêm điểm: chặng thường — Bán hàng 409 'cần Quản tr�
     assert.equal(nk.length, 1);
     assert.match(nk[0].detail, new RegExp(b.code));
     assert.doesNotMatch(nk[0].detail, LO);
+    // Task 8 (ADR-0052 D6): tài xế đang lái nhận tin "Văn phòng vừa thêm khách"; Bán hàng không.
+    const hop = await w.call("GET", "/api/thong-bao", { as: DRIVER });
+    assert.equal(hop.status, 200, hop.text);
+    const tin = hop.json.tin.filter((x: any) => x.loai === "chuyen" && /vừa thêm khách/.test(x.cau));
+    assert.equal(tin.length, 1, JSON.stringify(hop.json.tin.map((x: any) => x.cau)));
+    assert.doesNotMatch(tin[0].cau, /Dò Tìm|0\d{9}/);
+    const hopBan = await w.call("GET", "/api/thong-bao", { as: SALES });
+    assert.ok(!hopBan.json.tin.some((x: any) => /vừa thêm khách/.test(x.cau)), "Bán hàng không nhận tin xe đang chạy");
     // Chặng đã đủ người trên xe → thêm nữa bị chặn (L-D1).
     const them = await themDiem(w, a.id, ADM, [{ legId: b.legId, soSuat: 1 }], PHA_LE);
     assert.equal(them.status, 409, them.text);

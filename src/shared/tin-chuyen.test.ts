@@ -3,7 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { PERMISSION_CODES, can, type PermissionCode } from "./permissions.ts";
 import {
-  HANH_DONG_TIN_CHUYEN, dungDongChuyen, laiLucSuKien, taiXeNhanSuKien, thayDoiCoTheCoTin, thayDoiCuaHanhDongChuyen, tinChuyenCho,
+  HANH_DONG_TIN_CHUYEN, dangChayLucSuKien, dungDongChuyen, laiLucSuKien, taiXeNhanSuKien, thayDoiCoTheCoTin, thayDoiCuaHanhDongChuyen, tinChuyenCho,
   type DongChuyen, type NguoiNhanChuyen,
 } from "./tin-chuyen.ts";
 
@@ -11,7 +11,7 @@ const T0 = "2027-03-11T01:00:00.000Z", T1 = "2027-03-11T02:00:00.000Z", T2 = "20
 const nguoi = (id: string, permissions: PermissionCode[], partyId: string | null = null): NguoiNhanChuyen => ({ id, permissions, partyId });
 const dong = (v: Partial<DongChuyen>): DongChuyen => ({
   id: "ev", tripId: "t1", maChuyen: "CX-1103-02", ngayChay: "2027-03-11", action: "trip_edited", actorId: "sales", luc: T1,
-  lai: [{ partyId: "p-a", tu: T0, den: T1 }, { partyId: "p-b", tu: T1, den: null }], don: [], ...v,
+  lai: [{ partyId: "p-a", tu: T0, den: T1 }, { partyId: "p-b", tu: T1, den: null }], don: [], xuatBen: null, ...v,
 });
 const TX_A = nguoi("tx-a", ["DRIVER"], "p-a"), TX_B = nguoi("tx-b", ["DRIVER"], "p-b");
 
@@ -93,7 +93,7 @@ test("câu tin không chứa gì ngoài mã chuyến, ngày, mã đơn — khoá
   const d = dong({ action: "trip_passenger_no_show", don: [{ orderId: "o1", maDon: "DH-0001", ownerId: "lap", handlerStaffId: null }] });
   const t = tinChuyenCho(nguoi("lap", ["SALES"]), d)!;
   assert.equal(t.cau, "Có khách vắng ở chuyến CX-1103-02 ngày 11/03 (đơn DH-0001)");
-  assert.deepEqual(Object.keys(d).sort(), ["action", "actorId", "don", "id", "lai", "luc", "maChuyen", "ngayChay", "tripId"]);
+  assert.deepEqual(Object.keys(d).sort(), ["action", "actorId", "don", "id", "lai", "luc", "maChuyen", "ngayChay", "tripId", "xuatBen"]);
   assert.doesNotMatch(t.cau, /\d{8,}/);
 });
 
@@ -106,11 +106,12 @@ test("đường dẫn: tài xế → /cuoc-chuyen?id=; không còn lái / huỷ 
 test("dungDongChuyen: ghép mã/ngày/khoảng lái theo chuyến, đơn theo sự kiện vắng; chuyến không có dữ kiện thì bỏ", () => {
   const r = dungDongChuyen(
     [{ id: "e1", tripId: "t1", actorId: "a", action: "trip_passenger_no_show", luc: T1 }, { id: "e2", tripId: "lạ", actorId: "a", action: "trip_created", luc: T1 }],
-    { chuyen: [{ tripId: "t1", ma: "CX-1", ngayChay: "2027-03-11", lai: [] }], vang: [{ suKienId: "e1", orderId: "o1" }] },
+    { chuyen: [{ tripId: "t1", ma: "CX-1", ngayChay: "2027-03-11", lai: [], xuatBen: T0 }], vang: [{ suKienId: "e1", orderId: "o1" }] },
     [{ orderId: "o1", maDon: "DH-1", ownerId: "lap", handlerStaffId: null }],
   );
   assert.equal(r.length, 1);
   assert.deepEqual(r[0]!.don.map((x) => x.maDon), ["DH-1"]);
+  assert.equal(r[0]!.xuatBen, T0, "giờ xuất bến của chuyến đi theo dòng (Đợt 5 — tin chỉ khi xe đang chạy)");
 });
 
 test("taiXeNhanSuKien: chỉ tài khoản có dòng lái lúc t VÀ qua can(trip.view, assigned)", () => {
@@ -129,8 +130,42 @@ test("thayDoiCoTheCoTin: đúng loại thay đổi của 5 hành động sinh ti
     "trip_passengers_synced", "trip_departed", "trip_stop_arrived", "trip_passenger_boarded", "trip_passenger_no_show", "trip_passenger_cancelled_at_stop",
     "trip_passenger_dropped", "trip_stops_reordered", "trip_ended", "trip_ended_interrupted"];
   for (const a of moi) {
-    const coTin = (HANH_DONG_TIN_CHUYEN as readonly string[]).includes(a);
+    // Đợt 5: trip_stops_synced sinh tin CHỈ khi xe đang chạy — chuyến chưa chạy giữ loại "cap_nhat" (không gọi lại chuông).
+    const coTin = (HANH_DONG_TIN_CHUYEN as readonly string[]).includes(a) && a !== "trip_stops_synced";
     assert.equal(thayDoiCoTheCoTin(thayDoiCuaHanhDongChuyen(a)), coTin, a);
   }
+  for (const a of HANH_DONG_TIN_CHUYEN) assert.equal(thayDoiCoTheCoTin(thayDoiCuaHanhDongChuyen(a, true)), true, `${a} khi xe đang chạy`);
+  assert.equal(thayDoiCuaHanhDongChuyen("trip_passengers_synced", true), "cap_nhat", "chỉ ba hành động xe đang chạy đổi loại");
   assert.equal(thayDoiCuaHanhDongChuyen("trip_passenger_no_show"), "vang");
+});
+
+// ---- Vận chuyển Đợt 5 (ADR-0052 D5, D6): thay đổi khi xe ĐANG CHẠY → tài xế đang lái nhận tin ----
+const XE_CHAY = ["trip_stop_added_running", "trip_allocation_office_cancelled", "trip_stops_synced"] as const;
+const dangChay = (v: Partial<DongChuyen>) => dong({ actorId: "sales", luc: T2, xuatBen: T1, ...v });
+test("Đợt 5: thêm điểm / báo huỷ / cập nhật điểm khi xe đang chạy → ĐÚNG tài xế có dòng lái lúc đó; tài xế đã bị gỡ, Bán hàng, Kế toán không", () => {
+  for (const action of XE_CHAY) {
+    assert.ok((HANH_DONG_TIN_CHUYEN as readonly string[]).includes(action), action);
+    const d = dangChay({ action });
+    const t = tinChuyenCho(TX_B, d);
+    assert.equal(t?.loai, "xe_chay_doi", action);
+    assert.equal(t!.lienKet, "/cuoc-chuyen?id=t1");
+    assert.match(t!.cau, /CX-1103-02/);
+    assert.equal(tinChuyenCho(TX_A, d), null, `${action}: tài xế bị gỡ trước sự kiện`);
+    for (const p of ["SALES", "ADMIN", "ACCOUNTING", "SUPER_ADMIN"] as const) assert.equal(tinChuyenCho(nguoi("x", [p]), d), null, `${action}: ${p}`);
+    assert.equal(tinChuyenCho(nguoi("tx-dt", ["DRIVER_PARTNER"], "p-b"), d), null, `${action}: chỉ DRIVER_PARTNER`);
+    assert.doesNotMatch(t!.cau, /\d{8,}|L:|T:/);
+  }
+  assert.equal(tinChuyenCho(TX_B, dangChay({ action: "trip_stop_added_running" }))!.cau, "Văn phòng vừa thêm khách vào chuyến CX-1103-02 ngày 11/03 — mở để xem điểm, giờ đón và số khách");
+  assert.equal(tinChuyenCho(TX_B, dangChay({ action: "trip_allocation_office_cancelled" }))!.cau, "Văn phòng báo có khách huỷ ở chuyến CX-1103-02 ngày 11/03 — mở để xem");
+  assert.equal(tinChuyenCho(TX_B, dangChay({ action: "trip_stops_synced" }))!.cau, "Văn phòng vừa đổi điểm đón ở chuyến CX-1103-02 ngày 11/03 — mở để xem");
+});
+test("Đợt 5: cập nhật điểm trên chuyến CHƯA chạy (chưa xuất bến, hoặc xuất bến SAU sự kiện) → không ai nhận tin (giữ như Đợt 2)", () => {
+  for (const xuatBen of [null, "2027-03-11T04:00:00.000Z"]) {
+    const d = dangChay({ action: "trip_stops_synced", xuatBen });
+    assert.equal(dangChayLucSuKien(d), false);
+    assert.equal(tinChuyenCho(TX_B, d), null);
+    assert.equal(tinChuyenCho(nguoi("x", ["SALES"]), d), null);
+    assert.equal(thayDoiCuaHanhDongChuyen(d.action, dangChayLucSuKien(d)), "cap_nhat");
+  }
+  assert.equal(dangChayLucSuKien(dangChay({ action: "trip_stops_synced" })), true);
 });

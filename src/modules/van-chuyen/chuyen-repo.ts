@@ -716,7 +716,7 @@ export async function viecXeCuaNguoi(db: D1Database, partyId: string): Promise<{
 // ---- TIN CHUYẾN (ADR-0052 D6.3): dữ kiện cho thongbao / gốc lắp ráp qua hàm tiêm — chỉ khoá, mã chuyến, ngày, khoảng lái, đơn của suất vắng. ----
 const SU_KIEN_THEO_YEU_CAU = defineSql("van-chuyen", "su_kien_theo_yeu_cau", `SELECT id, trip_id, related_trip_id FROM vc_trip_event WHERE request_id = ?1`);
 const CHUYEN_CHO_TIN = defineSql("van-chuyen", "chuyen_cho_tin",
-  `SELECT t.id AS trip_id, t.code AS ma, t.service_date AS ngay_chay FROM vc_trip t WHERE t.id IN (SELECT value FROM json_each(?1))`);
+  `SELECT t.id AS trip_id, t.code AS ma, t.service_date AS ngay_chay, t.departed_at AS xuat_ben FROM vc_trip t WHERE t.id IN (SELECT value FROM json_each(?1))`);
 const LAI_CHO_TIN = defineSql("van-chuyen", "lai_cho_tin",
   `SELECT d.trip_id, d.driver_party_id AS party_id, d.valid_from_at AS tu, d.valid_to_at AS den FROM vc_trip_driver d WHERE d.trip_id IN (SELECT value FROM json_each(?1))`);
 const VANG_CHO_TIN = defineSql("van-chuyen", "vang_cho_tin", `
@@ -731,12 +731,12 @@ export async function suKienTheoYeuCau(db: D1Database, requestId: string): Promi
 export async function chuyenChoTinTheoId(db: D1Database, q: { tripIds: readonly string[]; suKienIds: readonly string[] }): Promise<ChuyenChoTin> {
   const tj = JSON.stringify([...new Set(q.tripIds)]);
   const [t, l, v] = await Promise.all([
-    db.prepare(CHUYEN_CHO_TIN).bind(tj).all<{ trip_id: string; ma: string; ngay_chay: string }>(),
+    db.prepare(CHUYEN_CHO_TIN).bind(tj).all<{ trip_id: string; ma: string; ngay_chay: string; xuat_ben: string | null }>(),
     db.prepare(LAI_CHO_TIN).bind(tj).all<{ trip_id: string; party_id: string; tu: string; den: string | null }>(),
     q.suKienIds.length ? db.prepare(VANG_CHO_TIN).bind(JSON.stringify([...new Set(q.suKienIds)])).all<{ su_kien_id: string; order_id: string }>() : Promise.resolve({ results: [] }),
   ]);
   return {
-    chuyen: t.results.map((c) => ({ tripId: c.trip_id, ma: c.ma, ngayChay: c.ngay_chay,
+    chuyen: t.results.map((c) => ({ tripId: c.trip_id, ma: c.ma, ngayChay: c.ngay_chay, xuatBen: c.xuat_ben,
       lai: l.results.filter((x) => x.trip_id === c.trip_id).map((x) => ({ partyId: x.party_id, tu: x.tu, den: x.den })) })),
     vang: v.results.map((x) => ({ suKienId: x.su_kien_id, orderId: x.order_id })),
   };

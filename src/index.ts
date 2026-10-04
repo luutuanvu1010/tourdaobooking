@@ -34,7 +34,7 @@ import { dayGoCua, dongChuyenTheoId, tatMayCuaCacPhienStatement, tatMayCuaPhienS
 import { troLyModule } from "./modules/tro-ly";
 import { chuyenChoTinTheoId, mocToiThieuHienHanh, nguongHetHanHienHanh, suKienTheoYeuCau, vanChuyenModule, viecXeCuaNguoi } from "./modules/van-chuyen";
 import { HANDLER_TRUOC_KHONG_BIET, nhanSuKien, nhanSuKienChuyen } from "./shared/bang-tin";
-import { laHanhDongTinChuyen, taiXeNhanSuKien, thayDoiCuaHanhDongChuyen } from "./shared/tin-chuyen";
+import { dangChayLucSuKien, laHanhDongTinChuyen, taiXeNhanSuKien, thayDoiCuaHanhDongChuyen } from "./shared/tin-chuyen";
 import { hanhDongCuaThayDoi, khoaVapid } from "./shared/web-push";
 import { createApp, type AppOptions } from "./shared/router";
 
@@ -112,7 +112,7 @@ const APP_OPTIONS: AppOptions = {
       if (!kq) return;
       const { dong, f } = kq;
       const dangHoatDong = taiKhoan.filter((s) => s.active);
-      const thayDoi = thayDoiCuaHanhDongChuyen(dong.action);
+      const thayDoi = thayDoiCuaHanhDongChuyen(dong.action, dangChayLucSuKien(dong)); // Đợt 5: đổi khi xe đang chạy → "xe_chay"
       await nemNeuLoi([
         ["tram", Promise.all(f.chuyen.map((c) => phatChuyen(env, { loai: "chuyen", maChuyen: c.ma, thayDoi, luc: dong.luc }, nhanSuKienChuyen(taiXeNhanSuKien(dangHoatDong, c.lai, dong.luc)))))],
         ["day", laHanhDongTinChuyen(dong.action) ? dayGoCua(env, { chuyen: dong, quanTrong: false }, (ds) => xepHangDay(env, ds)) : null],
