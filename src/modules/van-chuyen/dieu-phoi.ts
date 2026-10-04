@@ -95,6 +95,9 @@ export interface SuatMoi {
   boardStopId: string | null;
   alightStopId: string | null;
 }
+/** HT-01 (V1.2): đổi số thứ tự MỘT điểm chưa tới (sắp đón trước trả sau khi dựng điểm — `sapLaiDiem`). `gac` = chuyến mang dấu lệnh (lệnh dời: ĐÍCH). */
+const doiThuTuDiem = (db: D1Database, l: LenhChung, tripId: string, d: { id: string; seq: number }): CauCoNhan =>
+  ghi(db.prepare(STOP_SET_SEQ).bind(d.id, tripId, l.cmd, d.seq, l.lucIso, l.nguoiId));
 const chenDiem = (db: D1Database, l: LenhChung, d: DiemMoi): CauCoNhan =>
   ghi(db.prepare(STOP_INSERT).bind(d.id, d.tripId, d.seq, d.loai, d.locationId, d.placeText, d.placeKey, l.cmd, l.lucIso, l.nguoiId));
 const chenSuat = (db: D1Database, l: LenhChung, s: SuatMoi): CauCoNhan =>
@@ -174,6 +177,8 @@ export interface LenhXep extends LenhChung {
   tripId: string;
   version: number;
   diemMoi: DiemMoi[];
+  /** HT-01 (V1.2): điểm ĐÃ CÓ đổi số thứ tự để mọi đón của suất đứng trước trả của suất (`sapLaiDiem`); rỗng = không đổi. */
+  doiThuTu: { id: string; seq: number }[];
   /** ADR-0051: mốc "giờ hẹn đã biết" của từng chặng được xếp (ngày giờ hẹn đọc trong request) — câu chụp chỉ ghi khi chặng CHƯA có mốc. */
   mocXep: { legId: string; ngay: string; gio: string | null }[];
   suatMoi: SuatMoi[];
@@ -187,6 +192,7 @@ export function loXep(db: D1Database, l: LenhXep): CauCoNhan[] {
     nhatKy(db, l, "trip_allocated", l.tripId, l.detail),
     suKien(db, l, { tripId: l.tripId, loai: "ALLOCATED", soNguoi: l.suatMoi.length, phaLe: l.phaLe, policyId: l.policyId }),
     ...l.diemMoi.map((d) => chenDiem(db, l, d)), // điểm trước suất (khoá ngoại board_stop_id / alight_stop_id)
+    ...l.doiThuTu.map((d) => doiThuTuDiem(db, l, l.tripId, d)),
     // ADR-0051: chụp mốc giờ hẹn TRƯỚC câu mở suất (trigger vc_trip_allocation_needs_appt đòi chặng có mốc).
     ...l.mocXep.map((m) => ghi(db.prepare(MOC_XEP_INSERT).bind(crypto.randomUUID(), m.legId, m.ngay, m.gio, l.lucIso, l.nguoiId, l.tripId, l.cmd))),
     ...l.suatMoi.map((s) => chenSuat(db, l, s)), // mỗi suất MỘT câu (trigger sức chứa theo dòng)
@@ -221,6 +227,8 @@ export interface LenhDoi extends LenhChung {
   /** Từng suất: đóng ở nguồn (MOVED) NGAY TRƯỚC khi mở suất mới ở đích (cùng chặng, cùng người — LC-01 không vấp). */
   cap: { dongId: string; mo: SuatMoi }[];
   diemMoiDich: DiemMoi[];
+  /** HT-01 (V1.2): điểm ĐÃ CÓ của chuyến ĐÍCH đổi số thứ tự (`sapLaiDiem`). */
+  doiThuTuDich: { id: string; seq: number }[];
   diemBoQuaNguon: string[];
   phaLe: PhaLe | null;
   policyId: string | null;
@@ -238,6 +246,7 @@ export function loDoi(db: D1Database, l: LenhDoi): CauCoNhan[] {
     nhatKy(db, l, "trip_allocation_moved", gac, l.detail),
     suKien(db, l, { tripId: gac, relatedTripId: l.nguon.tripId, loai: "ALLOCATION_MOVED", soNguoi: l.cap.length, phaLe: l.phaLe, policyId: l.policyId }),
     ...l.diemMoiDich.map((d) => chenDiem(db, l, d)),
+    ...l.doiThuTuDich.map((d) => doiThuTuDiem(db, l, gac, d)),
   ];
   for (const c of l.cap) {
     lo.push(dongSuat(db, l, l.nguon.tripId, c.dongId, LENH_DONG_SUAT.DOI_DI, gac));
@@ -281,6 +290,8 @@ export interface LenhCapNhatDiem extends LenhChung {
   diemMoi: DiemMoi[];
   /** Từng suất lệch: đóng STOP_CHANGED NGAY TRƯỚC khi mở suất mới (cùng chặng, cùng người, WAITING) — LC-02 không vượt chỗ giữa chừng. */
   cap: { dongId: string; mo: SuatMoi }[];
+  /** HT-01 (V1.2): điểm ĐÃ CÓ đổi số thứ tự (`sapLaiDiem`; điểm sắp bỏ qua không xét). */
+  doiThuTu: { id: string; seq: number }[];
   diemBoQua: string[];
   detail: string;
 }
@@ -290,6 +301,7 @@ export function loCapNhatDiem(db: D1Database, l: LenhCapNhatDiem): CauCoNhan[] {
     nhatKy(db, l, "trip_stops_synced", l.tripId, l.detail),
     suKien(db, l, { tripId: l.tripId, loai: "ALLOCATION_STOP_CHANGED", soNguoi: l.cap.length }),
     ...l.diemMoi.map((d) => chenDiem(db, l, d)),
+    ...l.doiThuTu.map((d) => doiThuTuDiem(db, l, l.tripId, d)),
   ];
   for (const c of l.cap) {
     lo.push(dongSuat(db, l, l.tripId, c.dongId, LENH_DONG_SUAT.DOI_DIEM_THEO_CHANG));

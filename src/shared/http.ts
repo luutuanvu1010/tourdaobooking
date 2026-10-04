@@ -15,6 +15,18 @@ export function css(body: string, status = 200, headers: HeadersInit = {}): Resp
   return new Response(body, { status, headers: { "content-type": "text/css; charset=utf-8", "cache-control": "no-cache", ...headers } });
 }
 
+/**
+ * ĐỊA CHỈ KẾT QUẢ (ADR-0094 A-10): gắn header `Location` = đường dẫn TRANG nội bộ CHỈ CHỨA ID (`/trang` hoặc `/trang?id=<id>`) vào phản hồi của route tạo
+ * (201). Lớp chống ghi trùng lưu nó làm `ket_qua`; gửi lặp cùng vé thì giao diện mở thẳng trang này. Không đặt tên, SĐT, chữ người dùng vào đường dẫn.
+ * Lệnh ghi lên một đơn (lần thu, hoàn…) trỏ trang đơn (`trangDon`).
+ */
+export function kemLocation(res: Response, duong: string): Response {
+  const h = new Headers(res.headers);
+  h.set("location", duong);
+  return new Response(res.body, { status: res.status, headers: h });
+}
+export const trangDon = (orderId: string): string => `/order?id=${orderId}`;
+
 export function error(status: number, code: string, message: string): Response {
   return json({ error: { code, message } }, status);
 }

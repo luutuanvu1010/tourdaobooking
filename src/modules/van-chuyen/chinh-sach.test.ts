@@ -2,6 +2,7 @@
 // hiệu lực; bảng rỗng → null — `orders` sẽ CHẶN, không đoán) và luật thuần kiểm thân yêu cầu chính sách / điều kiện / hạng bằng / lý do (khoảng giá trị;
 // hợp đồng phải 0; không nhận ngày hiệu lực từ trình duyệt — I28).
 import { test } from "node:test";
+import { readFileSync } from "node:fs";
 import assert from "node:assert/strict";
 import * as esbuild from "esbuild";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
@@ -40,10 +41,10 @@ const loi = (r: { ok: boolean; message?: string }): string => {
 };
 
 test("kiemChinhSachMoi: đủ NĂM giá trị trong khoảng (kẹp lùi giờ khai 1…1440 — ADR-0050 VK1-A, BẮT BUỘC — I43); mốc KHÔNG tắt được (> 0 — chủ trả lời lần 9, GA-5); hợp đồng chỉ nhận false; không nhận ngày hiệu lực (I28); thiếu / sai kiểu → từ chối", () => {
-  const du = { minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes: 30, requireManifest: true, proxyBackdateMaxMinutes: 180 };
+  const du = { minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes: 30, requireManifest: true, proxyBackdateMaxMinutes: 180, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240 };
   assert.deepEqual(kiemChinhSachMoi(du), { ok: true, value: du });
   assert.deepEqual(kiemChinhSachMoi({ ...du, minLeadMinutes: 1, warnLeadMinutes: 0, restMinutes: 0, requireManifest: false, requireContract: false, proxyBackdateMaxMinutes: 1 }), {
-    ok: true, value: { minLeadMinutes: 1, warnLeadMinutes: 0, restMinutes: 0, requireManifest: false, proxyBackdateMaxMinutes: 1 },
+    ok: true, value: { minLeadMinutes: 1, warnLeadMinutes: 0, restMinutes: 0, requireManifest: false, proxyBackdateMaxMinutes: 1, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240 },
   });
   assert.deepEqual(kiemChinhSachMoi({ ...du, proxyBackdateMaxMinutes: 1440 }), { ok: true, value: { ...du, proxyBackdateMaxMinutes: 1440 } });
   for (const v of [0, 1441, -1, 1.5, "180", null]) assert.match(loi(kiemChinhSachMoi({ ...du, proxyBackdateMaxMinutes: v })), /khai lùi/, `kẹp lùi ${String(v)}`);
@@ -91,4 +92,25 @@ test("kiemLyDoMoi / kiemSuaLyDo: mã chữ HOA; nhóm thuộc NHOM_LY_DO (kiểm
   for (const bad of [{ label: "x", sortOrder: 1, active: "no", expectedUpdatedAt: "x" }, { label: "x", sortOrder: 1, active: true }, { label: "x", sortOrder: 1, active: true, expectedUpdatedAt: "x", group: "HUY_CHUYEN" }]) {
     loi(kiemSuaLyDo(bad));
   }
+});
+
+test("VK2-B B1 (khuôn I43): thân THIẾU dutyDayMaxMinutes hoặc tripNoBreakMaxMinutes → 400 câu 'tải lại trang' (Review Focus 5); ngoài khoảng → 400; đủ → ok", () => {
+  const GOC = { minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes: 30, requireManifest: true, proxyBackdateMaxMinutes: 180, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240 };
+  assert.equal(kiemChinhSachMoi(GOC).ok, true);
+  for (const k of ["dutyDayMaxMinutes", "tripNoBreakMaxMinutes"] as const) {
+    const { [k]: _bo, ...thieu } = GOC;
+    assert.match(loi(kiemChinhSachMoi(thieu)), /tải lại trang/, k);
+  }
+  for (const sai of [{ dutyDayMaxMinutes: 59 }, { dutyDayMaxMinutes: 1441 }, { dutyDayMaxMinutes: 480.5 }, { tripNoBreakMaxMinutes: 29 }, { tripNoBreakMaxMinutes: 721 }, { tripNoBreakMaxMinutes: "240" }]) {
+    assert.equal(kiemChinhSachMoi({ ...GOC, ...sai }).ok, false, JSON.stringify(sai));
+  }
+  assert.equal(kiemChinhSachMoi({ ...GOC, dutyDayMaxMinutes: 60, tripNoBreakMaxMinutes: 720 }).ok, true);
+});
+
+test("bù lệch I43 (0071 thêm cột bằng ADD COLUMN có DEFAULT): câu chèn chính sách liệt kê ĐỦ mọi cột của vc_dispatch_policy (không cột nào sống nhờ DEFAULT)", () => {
+  const cotBang = (openDb().prepare("PRAGMA table_info(vc_dispatch_policy)").all() as { name: string }[]).map((c) => c.name).sort();
+  const src = readFileSync(new URL("./repository.ts", import.meta.url), "utf8");
+  const m = /"insert_dispatch_policy",\s*`INSERT INTO vc_dispatch_policy \(([^)]+)\)/.exec(src);
+  assert.ok(m, "không tìm thấy câu insert_dispatch_policy");
+  assert.deepEqual(m[1]!.split(",").map((s) => s.trim()).sort(), cotBang);
 });

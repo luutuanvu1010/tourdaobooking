@@ -124,10 +124,11 @@ test("ADR-0085 §4.4: bỏ quyền mà chính sách đặt Nhiều máy (ACCOUNT
   assert.ok(goi.some((g) => JSON.stringify(g) === JSON.stringify({ staffId: SALES, sessionIds: [cu], giuPhien: "may-moi" })), JSON.stringify(goi));
 });
 
-test("ADR-0085 Q2 điều 7 + AC9: QUẢN TRỊ đổi vai (Kế toán → Nhân viên kinh doanh) khi chính sách 'Kế toán = Nhiều máy' → máy thừa đăng xuất ngay", async () => {
+// ADR-0090 đ1(ii): Quản trị không còn gỡ vai Kế toán — ví dụ đổi từ Kế toán sang Hướng dẫn viên (cùng ý AC9: Quản trị đổi vai làm mất miễn nhiều máy).
+test("ADR-0085 Q2 điều 7 + AC9: QUẢN TRỊ đổi vai (Hướng dẫn viên → Nhân viên kinh doanh) khi chính sách 'Hướng dẫn viên = Nhiều máy' → máy thừa đăng xuất ngay", async () => {
   const { w } = setup();
-  datChinhSach(w, "ACCOUNTING", 1);
-  w.sqlite.exec(`UPDATE stf_permission SET permission_type_code = 'ACCOUNTING' WHERE staff_id = '${SALES}'`);
+  datChinhSach(w, "FIELD", 1);
+  w.sqlite.exec(`UPDATE stf_permission SET permission_type_code = 'FIELD' WHERE staff_id = '${SALES}'`);
   const tk = await w.token(SALES);
   const cu = maPhien(tk);
   lui(w, cu);

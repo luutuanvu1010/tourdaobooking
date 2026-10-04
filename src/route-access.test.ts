@@ -244,6 +244,9 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/van-chuyen/xe/:id/giay-to", access: "office" }, // ADR-0040 D1: thêm giấy tờ xe (xe đã ngừng → 409); thân hỏi vehicle.manage
   { method: "POST", path: "/api/van-chuyen/xe/:id/giay-to/:did/gia-han", access: "office" }, // gia hạn = dòng mới (không gửi số thì chép số cũ); như trên
   { method: "POST", path: "/api/van-chuyen/xe/:id/giay-to/:did/sua-sai", access: "office" }, // sửa sai có lý do (chỉ lý do dùng cho xe) / huỷ dòng; như trên
+  { method: "GET", path: "/api/van-chuyen/xe/:id/ban", access: "office" }, // ADR-0055 A5: khung bận của xe; thân hỏi vehicle.manage
+  { method: "POST", path: "/api/van-chuyen/xe/:id/ban", access: "office" }, // ghi khung (chồng chuyến → 409 khung_ban_chong_chuyen)
+  { method: "POST", path: "/api/van-chuyen/xe/:id/ban/:bid/rut", access: "office" }, // rút một lần (version)
   { method: "GET", path: "/api/van-chuyen/meta", access: "office" }, // loại giấy tờ xe + ngưỡng; thân hỏi vehicle.manage / admin.manage
   { method: "POST", path: "/api/van-chuyen/loai-giay-to-xe", access: "admin" }, // danh mục loại giấy tờ xe — admin.manage viết thẳng (luật 4)
   { method: "PUT", path: "/api/van-chuyen/loai-giay-to-xe/:code", access: "admin" }, // như trên
@@ -287,6 +290,7 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   // ADR-0049 D1–D3 (Task A13, kế hoạch mục 1.7 route 1–8, 40): chuyến xe — văn phòng lập kế hoạch. Thân hỏi trip.view / trip.dispatch (+ trip.override khi
   // gửi phá lệ) TRƯỚC mọi đọc; hàm hẹp của orders chỉ gọi sau can() (src/orders-cong-bo.test.ts).
   { method: "GET", path: "/api/van-chuyen/lich", access: "office" },
+  { method: "GET", path: "/api/van-chuyen/ban-xe", access: "office" }, // trang tuần Lịch xe bận; thân hỏi vehicle.manage (câu 3.4)
   { method: "GET", path: "/api/van-chuyen/huong-dan-vien", access: "office" }, // người đi kèm gắn được (lời chủ 2026-10-01) — ô trip.dispatch
   { method: "GET", path: "/api/van-chuyen/chuyen/:id", access: "office" },
   { method: "POST", path: "/api/van-chuyen/chuyen", access: "office" },
@@ -406,9 +410,10 @@ test("mức truy cập của 213 route hiện có khớp ảnh chụp đã duy�
   // 2026-10-01 (ADR-0085): + 3 route chính sách đăng nhập (GET/PUT /api/sessions/policy, GET /api/sessions/policy/preview — admin) = 212.
   // 2026-10-02 (Đợt 1 Task 7): + GET /api/van-chuyen/huong-dan-vien (office; người đi kèm, lời chủ 1/10) = 213.
   // 2026-10-02 (ADR-0087, module giao-dien): + GET/PUT /api/giao-dien (admin, settings.ops), GET /api/giao-dien.css (public) = 216 (gộp main 1.66: nhánh ghi 215 trên nền 212, main lên 213 ⇒ 213 + 3).
+  // 2026-10-02 (ADR-0055 VK2-A, Vận chuyển Đợt 3): + GET/POST /api/van-chuyen/xe/:id/ban, POST …/ban/:bid/rut, GET /api/van-chuyen/ban-xe (office, vehicle.manage) = 220.
   assert.deepEqual(actual, SNAPSHOT);
-  // 2026-10-02 (Đợt 4 Task 4, ADR-0057 T1): + 9 route bảng giá thuê xe, tuyến, cỡ xe (office) = 225.
-  // 2026-10-02 (Đợt 4 Task 10, ADR-0057 T2): + 6 route chi phí chuyến xe thuê + bảng kê (office) = 231.
-  assert.equal(actual.length, 231, "số route thực tế lệch 231 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 231, "SNAPSHOT phải có đúng 231 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // 2026-10-02 (Đợt 4 Task 4, ADR-0057 T1): + 9 route bảng giá thuê xe, tuyến, cỡ xe (office) = 225 (trên nền 216 của nhánh).
+  // 2026-10-02 (Đợt 4 Task 10, ADR-0057 T2): + 6 route chi phí chuyến xe thuê + bảng kê (office) = 231 trên nhánh; gộp main ffed6f1c (1.78): main 220 + 15 route Đợt 4 = 235.
+  assert.equal(actual.length, 235, "số route thực tế lệch 235 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 235, "SNAPSHOT phải có đúng 235 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

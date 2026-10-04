@@ -33,8 +33,8 @@ Tiền của đơn (thành tiền, tổng, còn lại) do máy chủ tự tính 
     noiDung: `App báo tin ở ba nơi: hình chuông ở đầu trang (tin chưa đọc có số đỏ), dải tin quan trọng ở đầu mọi trang (phải bấm Đã hiểu), và thông báo trên điện thoại khi đã bật. Tin về đơn gửi cho người lập, người phụ trách và người đang chờ nhận đơn; lưu nháp không báo ai, xác nhận mới báo. Khi đang mở app, danh sách đơn tự cập nhật không cần tải lại. Đổi PIN hoặc bị ngưng tài khoản thì thông báo điện thoại tự tắt, phải bật lại.`,
   },
   {
-    tieuDe: "Điều phối xe: đang thử, chưa dùng cho chuyến thật",
-    noiDung: `Phân hệ Vận chuyển gồm xe, giấy tờ xe, tài xế, nhà xe đối tác và bảng Điều phối xe (xếp khách của nhiều đơn lên một chuyến, tài xế bấm tiến độ Xuất bến, Đã đón, Đã trả, Kết thúc). Công ty CHƯA dùng bảng điều phối cho chuyến thật vì chưa có màn nhập tên hành khách; chuyến có khách sẽ bị giữ với lý do "Chưa đủ tên khách". Chuyến chỉ xuất bến khi đủ điều kiện (giấy tờ xe còn hạn, bằng lái đúng hạng, đủ tên khách, đủ chỗ, đủ giờ nghỉ); thiếu gì thì màn hình ghi rõ lý do và ai xử lý.`,
+    tieuDe: "Điều phối xe: xếp khách lên chuyến, tài xế bấm tiến độ",
+    noiDung: `Phân hệ Vận chuyển gồm xe, giấy tờ xe, tài xế, nhà xe đối tác và bảng Điều phối xe (xếp khách của nhiều đơn lên một chuyến, tài xế bấm tiến độ Xuất bến, Đã đón, Đã trả, Kết thúc). Dùng được cho chuyến thật khi xe có Kiểm định và Bảo hiểm còn hạn, tài xế có bằng lái ghi hạng còn hạn, và đơn đủ nơi trả, họ tên, năm sinh khách (nhập ở khối Hành khách của đơn). Quản trị ghi Lịch xe bận khi xe vào xưởng; trong giờ đó không xếp chuyến cho xe được. Chuyến chỉ xuất bến khi đủ điều kiện (giấy tờ xe còn hạn, bằng lái đúng hạng, đủ tên khách, đủ chỗ, đủ giờ nghỉ); thiếu gì thì màn hình ghi rõ lý do và ai xử lý.`,
   },
   {
     tieuDe: "Giấy tờ của người và của xe",

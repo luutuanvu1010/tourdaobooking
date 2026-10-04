@@ -531,7 +531,8 @@ export const ALLOCS_DONG_GIAN_DOAN = defineSql(
   `UPDATE vc_trip_allocation SET valid_to_at = ?3, close_reason = 'TRIP_INTERRUPTED', closed_by = ?4, updated_at = ?3, updated_by = ?4
    WHERE trip_id = ?1 AND valid_to_at IS NULL AND status IN ('WAITING', 'BOARDED') AND EXISTS (SELECT 1 FROM vc_trip WHERE id = ?1 AND last_cmd_id = ?2)`,
 );
-/** Đổi thứ tự MỘT điểm chưa tới khi xe đang chạy (chỉ `seq` — không đụng giờ xe tới). ?1 điểm, ?2 chuyến, ?3 dấu lệnh, ?4 thứ tự, ?5 lúc, ?6 người. */
+/** Đổi thứ tự MỘT điểm chưa tới (chỉ `seq` — không đụng giờ xe tới): xe đang chạy (route 29 / 39), hoặc lệnh xếp / dời / cập nhật điểm sắp đón trước trả
+ *  (HT-01 — `sapLaiDiem`). ?1 điểm, ?2 chuyến, ?3 dấu lệnh, ?4 thứ tự, ?5 lúc, ?6 người. */
 export const STOP_SET_SEQ = defineSql(
   "van-chuyen",
   "stop_set_seq",

@@ -20,7 +20,7 @@
 // theo P8).
 import { type OrderStatus } from "./api";
 import { h, replaceChildren, type Child } from "./dom";
-import { dateTime, dayMonth, paxCounts, paxCountsShort, trangThaiHienThi, vnd, vndShort } from "./format";
+import { dateTime, ngayNganHomNay, paxCounts, paxCountsShort, trangThaiHienThi, vnd, vndShort } from "./format";
 import { icon } from "./icons";
 import { type PaxCounts } from "../src/shared/order-lines";
 import { NHAN_DA_NHAP } from "../src/shared/nhap-ke-toan";
@@ -93,7 +93,7 @@ function moneySpan(cls: string | undefined, amount: number): HTMLElement {
 
 export function orderCard(o: OrderCardData, opts: OrderCardOptions = {}): OrderCardResult {
   const money = opts.money ?? "full";
-  const when = o.departDate ? `${dayMonth(o.departDate)}${o.pickupTime ? ` · ${o.pickupTime}` : ""}` : "Chưa có ngày đón";
+  const when = o.departDate ? `${ngayNganHomNay(o.departDate)}${o.pickupTime ? ` · ${o.pickupTime}` : ""}` : "Chưa có ngày đón";
   const detailsId = `order-details-${o.id}`;
 
   // ---- Dòng 1: ngày · giờ đón · tên khách (co giãn, cắt bằng "…" khi dài) · huy hiệu trạng thái ----

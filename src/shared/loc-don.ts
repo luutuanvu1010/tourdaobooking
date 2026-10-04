@@ -6,7 +6,7 @@
 // Thuần, không I/O — dùng lại được cho màn lọc ở web/ sau khi chủ duyệt ảnh phác.
 import { CATALOG_CODE_RE } from "./order-lines.ts";
 import { STATUS_LABEL } from "./order-status-label.ts";
-import { addDays, isISODate, vnWeekRange } from "./vn-date.ts";
+import { addDays, isISODate, ngayNgan, vnWeekRange } from "./vn-date.ts";
 import { normName } from "./assignee-pick.ts";
 import type { NguoiLapDto, OrderStatus } from "./contracts.ts";
 import { LOC_NHAP_TOI_DA_NGAY, soNgayKhoang } from "./nhap-ke-toan.ts";
@@ -85,7 +85,6 @@ export function thamSoLocDon(loc: LocDonMan, toiId: string): [string, string][] 
   return p;
 }
 
-const ngayNgan = (d: string): string => `${d.slice(8, 10)}/${d.slice(5, 7)}`;
 
 /**
  * Chip "đang lọc" ở đầu danh sách — mỗi nhóm điều kiện một chip. `tenDv`: mã → tên dịch vụ (thiếu tên thì hiện mã). `nguoi`: mã người xem + mã → tên
@@ -95,11 +94,13 @@ export function chipLocDon(
   loc: LocDonMan,
   tenDv: ReadonlyMap<string, string>,
   nguoi: { toiId: string; ten: ReadonlyMap<string, string> } = { toiId: "", ten: new Map() },
+  /** Kiểu D (V1.5b): hôm nay (giờ VN) — ngày khác năm hiện kèm năm (`ngayNgan`). */
+  homNay?: string,
 ): { khoa: KhoaDieuKien; nhan: string }[] {
   const out: { khoa: KhoaDieuKien; nhan: string }[] = [];
   if (loc.tu || loc.den) {
-    const nhan = loc.tu && loc.den ? (loc.tu === loc.den ? `Ngày đi ${ngayNgan(loc.tu)}` : `Ngày đi ${ngayNgan(loc.tu)} – ${ngayNgan(loc.den)}`)
-      : loc.tu ? `Ngày đi từ ${ngayNgan(loc.tu)}` : `Ngày đi đến ${ngayNgan(loc.den!)}`;
+    const nhan = loc.tu && loc.den ? (loc.tu === loc.den ? `Ngày đi ${ngayNgan(loc.tu, homNay)}` : `Ngày đi ${ngayNgan(loc.tu, homNay)} – ${ngayNgan(loc.den, homNay)}`)
+      : loc.tu ? `Ngày đi từ ${ngayNgan(loc.tu, homNay)}` : `Ngày đi đến ${ngayNgan(loc.den!, homNay)}`;
     out.push({ khoa: "ngay", nhan });
   }
   if (loc.dichVu.length) {
@@ -140,14 +141,14 @@ export function chotLocDon(loc: LocDonMan, toiId: string, xemMoiDon: boolean): L
  * Danh sách người lập cho ô chọn (ADR-0067): bỏ chính người xem (đã có lối tắt "Đơn tôi lập"), giữ thứ tự máy chủ (đơn gần nhất trước), lọc theo chữ gõ
  * (không dấu cũng khớp — `normName`). Tên trùng trong danh sách (kể cả nhiều "(chưa có hồ sơ)") → kèm ngày đơn gần nhất để phân biệt (A-7).
  */
-export function dsNguoiLapChon(ds: readonly NguoiLapDto[], toiId: string, tim: string): { id: string; nhan: string }[] {
+export function dsNguoiLapChon(ds: readonly NguoiLapDto[], toiId: string, tim: string, homNay?: string): { id: string; nhan: string }[] {
   const khac = ds.filter((x) => x.id !== toiId);
   const dem = new Map<string, number>();
   for (const x of khac) dem.set(x.ten, (dem.get(x.ten) ?? 0) + 1);
   const kim = normName(tim.trim());
   return khac
     .filter((x) => !kim || normName(x.ten).includes(kim))
-    .map((x) => ({ id: x.id, nhan: (dem.get(x.ten) ?? 0) > 1 ? `${x.ten} · đơn gần nhất ${ngayNgan(x.ganNhat)}` : x.ten }));
+    .map((x) => ({ id: x.id, nhan: (dem.get(x.ten) ?? 0) > 1 ? `${x.ten} · đơn gần nhất ${ngayNgan(x.ganNhat, homNay)}` : x.ten }));
 }
 
 export type KhoangNhanh = "hom-nay" | "ngay-mai" | "3-ngay" | "tuan-nay";

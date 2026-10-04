@@ -6,6 +6,7 @@ import { accountRoleCodesOf, authenticate, findStaffByPhone, getActiveStaff, isV
 import { APP_VERSION } from "../../shared/app-info";
 import type { AuthConfigResponse, MeResponse, PasskeyRequestOptionsResponse, SessionPolicyChange } from "../../shared/contracts";
 import { error, getCookie, json, readJson } from "../../shared/http";
+import { dbNgoaiVe } from "../../shared/lan-gui-boc";
 import { route, type AppModule } from "../../shared/router";
 import { PASSKEY_ERRORS, checkPasskeyAssertion, clearChallengeCookie, issuePasskeyChallenge, limitChallenge, passkeyRp, readPasskeyChallenge } from "./passkey";
 import {
@@ -205,7 +206,10 @@ export async function verifyPinThrottled(request: Request, env: Env, rawPhone: s
   const phone = normalizePhone(rawPhone);
   const ip = request.headers.get("cf-connecting-ip") ?? "unknown";
   const keys = [{ key: ipKey(ip), max: IP_LIMIT }, ...(phone ? [{ key: phoneKey(phone), max: PHONE_LIMIT }] : [])];
-  const reservation = await reserveAttempts(env.DB, keys);
+  // NGOÀI VÉ (ADR-0094, T17 — mục có tên trong src/shared/lan-gui-no.ts): sổ đếm lần thử ghi TRƯỚC lô chính của lệnh gọi (đổi PIN, bật Face ID) và phải
+  // ghi cả khi lệnh bị từ chối — không được mang vé chống ghi trùng của lệnh đó. Đăng nhập (route công khai) không có vé: `dbNgoaiVe` trả nguyên D1.
+  const db = dbNgoaiVe(env.DB);
+  const reservation = await reserveAttempts(db, keys);
   if (!reservation.allowed) {
     const seconds = reservation.retryAfterSeconds;
     const res = json(
@@ -215,9 +219,9 @@ export async function verifyPinThrottled(request: Request, env: Env, rawPhone: s
     );
     return { ok: false, response: res };
   }
-  const profile = await authenticate(env.DB, rawPhone, pin);
+  const profile = await authenticate(db, rawPhone, pin);
   if (!profile) return { ok: false, response: error(401, "invalid_credentials", "Số điện thoại hoặc mã PIN không đúng.") };
-  await clearAttempts(env.DB, phone ? phoneKey(phone) : null, reservation.ids);
+  await clearAttempts(db, phone ? phoneKey(phone) : null, reservation.ids);
   return { ok: true, profile };
 }
 

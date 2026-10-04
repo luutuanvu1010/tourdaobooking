@@ -12,6 +12,7 @@ import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { insertStaffSql } from "../../scripts/staff-lib.mjs";
 import { ACCOUNTS, TRO_LY_DAU, TRO_LY_KHOA, TURNSTILE_TEST } from "./lib.mjs";
+import { GHI_NHIEU_LAN } from "../../src/shared/lan-gui-no.ts";
 
 const execFileAsync = promisify(execFile);
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -29,6 +30,8 @@ const ROOT = join(HERE, "..", "..");
 // rồi ở `finally` THÊM dòng khôi phục giá trị gieo và đóng điều kiện đã thêm; không đụng salesB/field của passkey.
 // "dieu-phoi", "tai-xe-cuoc" (ADR-0049 Task A13 / A15) đứng SAU "chinh-sach-dieu-phoi" (chính sách, điều kiện gieo đã khôi phục), TRƯỚC "passkey": tạo tài khoản
 // tài xế / xe / đơn / chuyến dùng một lần (SĐT ngẫu nhiên, biển số theo Date.now()), chuyến chạy NGÀY KIA; không đụng salesB/field của passkey.
+// "khung-ban-xe" (ADR-0055 VK2-A, Vận chuyển Đợt 3) ngay sau "dieu-phoi", cùng khuôn: tài xế / xe / chuyến dùng một lần (D+3…D+5); rút mọi khung bận của xe thử
+// ở `finally`; chuyến của tài xế thử nằm trên xe thử nên không chạm kịch bản khác.
 // "dua-don-dau-cuoi" (kế hoạch giao diện Đưa đón 2026-10-01, tiêu chí 5) ngay sau "dieu-phoi", cùng khuôn: tài xế / xe / đơn / chuyến dùng một lần, chuyến NGÀY KIA.
 // "xe-tren-don" (ADR-0059) ngay sau "tai-xe-cuoc", cùng khuôn: tài xế / xe / đơn / chuyến / tài khoản lai dùng một lần, chuyến NGÀY KIA; không đụng salesB/field.
 // "dieu-phoi-chay-dua" (TC-33, Task A14) sau đó: 10 yêu cầu xếp song song vào chuyến 3 chỗ trên dữ liệu dùng một lần (chạy riêng: npm run test:e2e -- dieu-phoi-chay-dua).
@@ -41,7 +44,7 @@ const ROOT = join(HERE, "..", "..");
 // "phien" (ADR-0075 Task 4) đứng TRƯỚC "passkey": đăng nhập lại salesA nhiều lần (luật một máy đá cookie cũ) rồi `sessionMoi` để lại phiên sống; không đổi PIN/quyền của ai.
 // "mau-chang" (nợ nhỏ đưa đón 2026-10-01) ngay sau "catalog", TRƯỚC "maintenance": mã dịch vụ riêng ZMC1 + một điểm đã ngưng dùng một lần; bảng mẫu chỉ-thêm.
 // "passkey" đứng CUỐI CÙNG: đổi PIN của salesB, tạm ngưng rồi kích hoạt lại field — mọi kịch bản CÙNG NHÓM dùng chung một D1 tạm (passkey luôn cuối nhóm của nó).
-const ALL = ["platform", "pwa", "orders", "trip", "chang-hanh-khach", "nhap-tay-va-gia-doi-tac", "admin", "turnstile", "catalog", "mau-chang", "dispatch", "admin-race", "locations", "parties", "gop-ho-so", "booker", "permissions", "feedback", "company", "bangtin", "thongbao", "tro-ly", "giao-dien", "maintenance", "roles", "van-chuyen", "tai-xe-doi-tac", "chinh-sach-dieu-phoi", "dieu-phoi", "tien-xe-thue", "dua-don-dau-cuoi", "tai-xe-cuoc", "tin-chuyen", "xe-tren-don", "dieu-phoi-chay-dua", "so-tien", "nhap-ke-toan", "chinh-sach-phien", "phien", "passkey"];
+const ALL = ["platform", "pwa", "orders", "trip", "chang-hanh-khach", "nhap-tay-va-gia-doi-tac", "admin", "turnstile", "catalog", "mau-chang", "dispatch", "admin-race", "locations", "parties", "gop-ho-so", "booker", "permissions", "feedback", "company", "bangtin", "thongbao", "tro-ly", "giao-dien", "maintenance", "roles", "quyen-tien", "van-chuyen", "tai-xe-doi-tac", "chinh-sach-dieu-phoi", "dieu-phoi", "khung-ban-xe", "tien-xe-thue", "dua-don-dau-cuoi", "tai-xe-cuoc", "tin-chuyen", "xe-tren-don", "dieu-phoi-chay-dua", "so-tien", "chong-ghi-trung", "nhap-ke-toan", "chinh-sach-phien", "phien", "passkey"];
 const picked = process.argv.slice(2);
 const scripts = picked.length ? picked : ALL;
 for (const s of scripts) if (!ALL.includes(s)) throw new Error(`Không có kịch bản "${s}" (có: ${ALL.join(", ")})`);
@@ -63,8 +66,8 @@ const soNhom = Math.min(Number(songSong), scripts.length);
 const THOI_GIAN = {
   platform: 1.4, pwa: 0.3, orders: 13.1, trip: 27.7, "chang-hanh-khach": 22.4, "nhap-tay-va-gia-doi-tac": 15.2, admin: 10.4, turnstile: 5.8,
   catalog: 28.6, "mau-chang": 6.4, dispatch: 165.8, "admin-race": 0.5, locations: 0.5, parties: 1, "gop-ho-so": 8, booker: 20.2, permissions: 5.2, feedback: 1.3, company: 28.8,
-  bangtin: 59.1, thongbao: 67.1, "tro-ly": 8.9, "giao-dien": 4, maintenance: 32.8, roles: 5.8, "van-chuyen": 14.4, "tai-xe-doi-tac": 27.9, "chinh-sach-dieu-phoi": 19.3,
-  "dieu-phoi": 53.1, "tien-xe-thue": 20, "dua-don-dau-cuoi": 20, "tai-xe-cuoc": 32, "tin-chuyen": 15, "dieu-phoi-chay-dua": 8.2, "so-tien": 24.7, "chinh-sach-phien": 30, phien: 19.4, passkey: 24.2,
+  bangtin: 59.1, thongbao: 67.1, "tro-ly": 8.9, "giao-dien": 4, maintenance: 32.8, roles: 5.8, "quyen-tien": 3, "van-chuyen": 14.4, "tai-xe-doi-tac": 27.9, "chinh-sach-dieu-phoi": 19.3,
+  "dieu-phoi": 53.1, "khung-ban-xe": 15, "tien-xe-thue": 20, "dua-don-dau-cuoi": 20, "tai-xe-cuoc": 32, "tin-chuyen": 15, "dieu-phoi-chay-dua": 8.2, "so-tien": 24.7, "chong-ghi-trung": 20, "chinh-sach-phien": 30, phien: 19.4, passkey: 24.2,
 };
 const nang = (name) => THOI_GIAN[name] ?? 15;
 
@@ -132,6 +135,8 @@ async function batMayChu(may) {
     [
       "wrangler", "dev", "--port", String(port), "--ip", "127.0.0.1", "--inspector-port", String(inspector), "--persist-to", may.persist, "--test-scheduled",
       "--var", `SESSION_SECRET:${secret}`,
+      // Lớp chống ghi trùng (ADR-0094 đ4): khoá HMAC giả riêng cho lần chạy — thiếu thì mọi API trả 500.
+      "--var", `LAN_GUI_SECRET:${randomBytes(48).toString("base64url")}`,
       // Bật Turnstile bằng khoá THỬ của Cloudflare (luôn đạt) — lib.mjs login() gửi token thử; đặt tường minh để không phụ thuộc .dev.vars của máy.
       "--var", `TURNSTILE_SITE_KEY:${TURNSTILE_TEST.siteKey}`,
       "--var", `TURNSTILE_SECRET_KEY:${TURNSTILE_TEST.secret}`,
@@ -201,6 +206,26 @@ async function chayNhom(may) {
   // Đo 30/9: `wrangler dev` (CI=1) KHÔNG in console của Worker ra stdout — soi `log` không bao giờ đỏ (đột biến console.log(câu hỏi) vẫn xanh). Console của
   // Worker nằm ở bảng `logs` của Local Explorer (`/cdn-cgi/local/explorer/api/local/observability/query`, chỉ đọc) — hỏi ở đó; bảng rỗng / không hỏi được = ĐỎ
   // (không để bài kiểm rỗng thành "sạch"). Chỉ trên máy chủ của nhóm có chạy kịch bản tro-ly.
+  // LỚP CHỐNG GHI TRÙNG (ADR-0094, kế hoạch L10, L12) — đọc log Worker ở Local Explorer (cùng nguồn với bài trợ lý dưới):
+  //  - H5: lệnh ghi > 1 lần (`lan_gui_ghi_nhieu_lan`) chỉ được ở route có tên trong danh sách nợ GHI_NHIEU_LAN (src/shared/lan-gui-no.ts);
+  //  - `lan_gui_loi_la` (lỗi chạm bảng vé mà không khớp mẫu "đụng vé") phải = 0; `lan_gui_dung_ve` đếm để thấy mẫu chữ lỗi D1 khớp thật (N2);
+  //  - `thieu_ma_lan_gui` (lệnh không vé — giai đoạn 1 cho qua) đếm theo route để rà trước bản siết.
+  try {
+    const hoi = async (sqlText) => {
+      const r = await fetch(`${may.base}/cdn-cgi/local/explorer/api/local/observability/query`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ sql: sqlText }) });
+      return (await r.json()).result.rows;
+    };
+    const duongCua = (rows) => rows.map((r) => /duong\\*"\s*:\s*\\*"([^"\\]+)/.exec(String(r[0]))?.[1] ?? "?");
+    may.ghiNhieuLan = new Set(duongCua(await hoi("SELECT message FROM logs WHERE message LIKE '%lan_gui_ghi_nhieu_lan%'")));
+    const thieu = duongCua(await hoi("SELECT message FROM logs WHERE message LIKE '%thieu_ma_lan_gui%'"));
+    may.loiLa = (await hoi("SELECT count(*) FROM logs WHERE message LIKE '%lan_gui_loi_la%'"))[0][0];
+    const dungVe = (await hoi("SELECT count(*) FROM logs WHERE message LIKE '%lan_gui_dung_ve%'"))[0][0];
+    const demThieu = [...thieu.reduce((m, d) => m.set(d, (m.get(d) ?? 0) + 1), new Map())].sort((a, b) => b[1] - a[1]);
+    console.log(`ℹ lớp vé${nhan(k)}: ghi nhiều lần ở ${may.ghiNhieuLan.size} route [${[...may.ghiNhieuLan].join("; ")}]; đụng vé ${dungVe} lần; lỗi lạ ${may.loiLa}; thiếu vé ${thieu.length} lần${demThieu.length ? ` (${demThieu.map(([d, n]) => `${d} ×${n}`).join("; ")})` : ""}`);
+  } catch (e) {
+    may.ghiNhieuLan = null;
+    console.log(`⚠ không đọc được log Worker cho lớp vé${nhan(k)}: ${e}`);
+  }
   if (may.ten.includes("tro-ly")) {
     const hoiLog = async (sqlText) => {
       const r = await fetch(`${may.base}/cdn-cgi/local/explorer/api/local/observability/query`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ sql: sqlText }) });
@@ -269,6 +294,11 @@ try {
   if (audit) results.push(audit);
   // Web Push (ADR-0036): khoá VAPID bị ép rỗng → không lượt gửi nào được chạy, nên log máy chủ (MỌI nhóm) KHÔNG được có dòng `day_loi` (gửi hỏng/lỗi lô).
   results.push(gop("không có day_loi (thiếu khoá VAPID thì không gửi)", cacMay, (m) => !m.log.includes('"event":"day_loi"')));
+  // ADR-0094 H5: route ghi nhiều lần ngoài danh sách nợ có tên ⇒ ĐỎ (nêu tên route). Không đọc được log ⇒ ĐỎ (không để bài rỗng thành "sạch").
+  const ngoaiNo = (m) => (m.ghiNhieuLan ? [...m.ghiNhieuLan].filter((d) => !GHI_NHIEU_LAN.some((x) => x.duong === d)) : ["(không đọc được log)"]);
+  for (const m of cacMay) if (m.ghiNhieuLan !== undefined && ngoaiNo(m).length) console.log(`✘ H5${nhan(m.k)}: route ghi > 1 lần mỗi lệnh mà không có tên trong GHI_NHIEU_LAN: ${ngoaiNo(m).join("; ")}`);
+  results.push(gop("H5: ghi nhiều lần chỉ ở route có tên trong danh sách nợ (src/shared/lan-gui-no.ts)", cacMay, (m) => (m.ghiNhieuLan === undefined ? undefined : ngoaiNo(m).length === 0)));
+  results.push(gop("không có lỗi lạ chạm bảng vé (lan_gui_loi_la)", cacMay, (m) => (m.loiLa === undefined ? undefined : m.loiLa === 0)));
   const troLy = gop("không có nội dung câu hỏi trợ lý trong log Worker", cacMay, (m) => m.troLy);
   if (troLy) results.push(troLy);
   console.log("── Tóm tắt từng bộ ──");

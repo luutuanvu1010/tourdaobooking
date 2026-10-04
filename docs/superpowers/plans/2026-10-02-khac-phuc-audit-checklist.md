@@ -39,37 +39,37 @@
 Hai luồng song song, mỗi luồng một phiên.
 
 **Luồng Q — quyền tiền chỉ Toàn quyền (ADR-0090), không cần chờ gì**
-- [ ] 🤖 Q0 kiểm kê, mở sổ thi công
-- [ ] 🤖 Q1 một hàm "có quyền tiền" suy từ bảng quyền
-- [ ] 🤖 Q2 cổng máy chủ ba cửa (đặt lại PIN, gán vai/quyền tiền, tạo tài khoản tiền); `ACCOUNTANT.superAdminOnly` (**không** thêm vào `SUPER_ADMIN_GRANTED`)
-- [ ] 🤖 Q3 cờ theo từng dòng + giao diện ẩn/hiện
-- [ ] 🤖 Q4 tin "Quản trị ngưng Kế toán" → Toàn quyền (một view, một migration — chủ đồng ý (f))
-- [ ] 🤖 Q5 e2e QT04 + dòng sổ hàng rào (thấy chặn thật)
-- [ ] 🔍 Q6 kiểm độc lập (quyền): ĐẠT
+- [x] 🤖 Q0 kiểm kê, mở sổ thi công
+- [x] 🤖 Q1 một hàm "có quyền tiền" suy từ bảng quyền
+- [x] 🤖 Q2 cổng máy chủ ba cửa (đặt lại PIN, gán vai/quyền tiền, tạo tài khoản tiền); `ACCOUNTANT.superAdminOnly` (**không** thêm vào `SUPER_ADMIN_GRANTED`)
+- [x] 🤖 Q3 cờ theo từng dòng + giao diện ẩn/hiện
+- [x] 🤖 Q4 tin "Quản trị ngưng Kế toán" → Toàn quyền (một view, một migration — chủ đồng ý (f))
+- [x] 🤖 Q5 e2e QT04 + dòng sổ hàng rào (thấy chặn thật)
+- [x] 🔍 Q6 kiểm độc lập (quyền): ĐẠT
 - [ ] 👤 Q7 🚀 phát hành luồng Q
 
 **Luồng L — lớp chống ghi trùng bản mở rộng (ADR-0094), đường găng**
-- [ ] 🤖 L0 kiểm kê; **đo lại số migration** (mọi nhánh chưa gộp)
-- [ ] 🤖 L1 migration bảng vé + bảng chính sách (gieo 365 ngày), từ điển dữ liệu
-- [ ] 🤖 L2 module `lan-gui`
-- [ ] 🤖 L3 khoá bí mật ở mọi nơi dựng môi trường (khung thử, e2e, `.dev.vars.example`)
-- [ ] 🤖 L4a bộ bọc cơ sở dữ liệu theo từng yêu cầu
-- [ ] 🤖 commit bài **đỏ trước** (L5, L11)
-- [ ] 🤖 L4b router giai đoạn 1 (có vé thì áp, thiếu vé cho qua và đếm)
-- [ ] 🔍 kiểm độc lập vòng 1 → **mở khoá Đợt 1**
-- [ ] 🤖 L5 H1 hành vi qua router thật; bài hồi quy có vé trong `src/`
-- [ ] 🤖 L6 H2 phủ route + tệp miễn
-- [ ] 🤖 L7 `Location` cho route 201 + H7
-- [ ] 🤖 L8 mô-đun vòng đời vé + H4 (không nuốt lần ghi thật thứ hai)
-- [ ] 🤖 L9 `web/api.ts` gửi vé; sửa `dieu-phoi-ui.ts:32`; H3
-- [ ] 🤖 L10 e2e tự gắn vé
-- [ ] 🤖 L11 T12: kịch bản 11, 12, 13, HD10 (nhánh "Ghi lần thu"), KT03, KT04 **bản có vé** trong `tests/e2e/`
-- [ ] 🤖 L12 H5 đo ghi nhiều lần; trả nợ `demThanCu` (T17)
-- [ ] 🤖 L13 cổng kiểm khoá trong `npm run trien-khai`
-- [ ] 🤖 L14 tài liệu (`SYSTEM-DESIGN`, `CHANGE-GUIDE`, sổ hàng rào)
-- [ ] 🔍 L15 kiểm độc lập vòng 2: ĐẠT (nếu tới **12/10** chưa đạt → báo chủ)
-- [ ] 👤 L16 🚀 phát hành luồng L (khoá đã có; cổng L13 xác nhận)
-- [ ] 🤖 chạy lại T12 trên bản thử sau phát hành → **xoá mục F-02** khỏi sổ (đóng theo A-9) + dòng lịch sử
+- [x] 🤖 L0 kiểm kê; **đo lại số migration** (mọi nhánh chưa gộp) — 2026-10-02, lấy `0074`; sổ `2026-10-02-dot-0-lop-ve-nhat-ky.md`
+- [x] 🤖 L1 migration bảng vé + bảng chính sách (gieo 365 ngày), từ điển dữ liệu — 2026-10-02, `0074_lan_gui.sql`, H9 (CSDL) quan sát chặn
+- [x] 🤖 L2 module `lan-gui` — 2026-10-02, H6 quan sát chặn
+- [x] 🤖 L3 khoá bí mật ở mọi nơi dựng môi trường (khung thử, e2e, `.dev.vars.example`) — 2026-10-02
+- [x] 🤖 L4a bộ bọc cơ sở dữ liệu theo từng yêu cầu — 2026-10-02, chế độ nghiêm fakeD1 quan sát chặn
+- [x] 🤖 commit bài **đỏ trước** (L5, L11) — 2026-10-02 `27a3f5f1`
+- [x] 🤖 L4b router giai đoạn 1 (có vé thì áp, thiếu vé cho qua và đếm) — 2026-10-02, e2e đủ bộ 43/43; kèm trả nợ T17 (`demThanCu`)
+- [x] 🔍 kiểm độc lập vòng 1 → **mở khoá Đợt 1** — ĐẠT 2026-10-02 (commit `57e53a18`; N1, G1, G5 đã sửa `f263b1d6`)
+- [x] 🤖 L5 H1 hành vi qua router thật; bài hồi quy có vé trong `src/` — 2026-10-02 `7b9899ea`, H1 quan sát chặn
+- [x] 🤖 L6 H2 phủ route + tệp miễn — 2026-10-02 `7b9899ea`, H2 quan sát chặn
+- [x] 🤖 L7 `Location` cho route 201 + H7 — 2026-10-02 `8280c626`, e2e 43/43
+- [x] 🤖 L8 mô-đun vòng đời vé + H4 (không nuốt lần ghi thật thứ hai) — 2026-10-02 `7b9899ea`
+- [x] 🤖 L9 `web/api.ts` gửi vé; sửa `dieu-phoi-ui.ts:32`; H3 — 2026-10-02 `0773725c`, Chrome `lop-ve-smoke` 4/4
+- [x] 🤖 L10 e2e tự gắn vé — 2026-10-02
+- [x] 🤖 L11 T12: kịch bản 11, 12, 13, HD10 (nhánh "Ghi lần thu"), KT03, KT04 **bản có vé** trong `tests/e2e/` — 2026-10-02 `tests/e2e/chong-ghi-trung.mjs`, e2e 45/45
+- [x] 🤖 L12 H5 đo ghi nhiều lần; trả nợ `demThanCu` (T17) — 2026-10-02, kèm 3 chỗ cùng loại ở `auth`; H5 quan sát chặn
+- [x] 🤖 L13 cổng kiểm khoá trong `npm run trien-khai` — 2026-10-02 `7b9899ea` (quan sát bằng hàm giả)
+- [x] 🤖 L14 tài liệu (`SYSTEM-DESIGN`, `CHANGE-GUIDE`, sổ hàng rào) — 2026-10-02; đề xuất sửa luật chờ chủ
+- [x] 🔍 L15 kiểm độc lập vòng 2: ĐẠT (nếu tới **12/10** chưa đạt → báo chủ) — 2026-10-02: lần 1 KHÔNG ĐẠT (PIN lộ qua vé bật Face ID), sửa ở `4f9fe164`, lần 2 **ĐẠT** (sổ thi công luồng L)
+- [x] 👤 L16 🚀 phát hành luồng L (khoá đã có; cổng L13 xác nhận) — 2026-10-02 22:08 VN, bản **1.76** (`kiem-phien-ban --sau-deploy` ĐẠT, `0074` đã áp, audit remote đạt; `docs/HANDOFF-N1.md`)
+- [ ] 🤖 chạy lại T12 trên bản thử sau phát hành → **xoá mục F-02** khỏi sổ (đóng theo A-9) + dòng lịch sử — 2026-10-02: **T12 ĐẠT** (`chong-ghi-trung` 4/4 trên `51d76648` = bản đã triển khai) ⇒ điều kiện A-9 đủ. **Chưa xoá mục:** công cụ của AI chặn việc xoá mục sổ phát hiện an ninh ⇒ chủ xoá (hoặc ra lệnh cho phép)
 - [ ] 👤 gộp commit đóng F-02 (không cần triển khai)
 
 **Để sau (A-11), trước ngày thứ 90 kể từ luồng L:**

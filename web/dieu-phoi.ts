@@ -7,6 +7,7 @@
 //   khoá theo giờ hiện tại (lệnh điều phối vòng 3).
 // - Kế toán (ô trip.view, không trip.dispatch): xem đủ, không nút, dải "Chỉ xem". Không "Gọi tài xế" (H7), không "Đã gọi báo" (Q2 / ADR-0051 — Task B-GB sau).
 // - CHỜ A15: thẻ chuyến đang chạy (mốc tiến độ, "giờ do văn phòng khai") — chưa dựng.
+import { daiBanTrenLich } from "../src/shared/khung-ban-hien-thi";
 import {
   cauKhoaMoc, changChuaXep, chipChang, chuyenXepDuoc, hinhDongThoiGian, kieuChuyen, nhanNgayXem, soLieuDieuPhoi, tuyenChuyen, viecCanXuLy,
   type HangXe, type KhoiChuyen, type ViecCanXuLy,
@@ -17,7 +18,7 @@ import { NHAN_TU_CHOI_GOI_BAO, type MaTuChoiGoiBao } from "../src/shared/goi-bao
 import { ApiError } from "./api";
 import { can } from "../src/shared/permissions";
 import { nhanThoiLuong } from "../src/shared/chinh-sach-hien-thi";
-import { addDays, isISODate, vnToday } from "../src/shared/vn-date";
+import { addDays, isISODate, ngayNgan, vnToday } from "../src/shared/vn-date";
 import { api } from "./api";
 import { moBangTruot } from "./bang-truot";
 import { append, byId, h, replaceChildren, type Child } from "./dom";
@@ -188,10 +189,22 @@ function veXe(): void {
   tl.style.setProperty("--dp-so-gio", String(hinh.gioCuoi - hinh.gioDau));
   const thuoc = h("div", { class: "dp-tl-thuoc" }, h("div", { class: "dp-tl-nhan" }), h("div", { class: "dp-tl-duong" }, ...hinh.nhanGio.map((g) => viTri(h("span", { class: "dp-tl-gio" }, g.nhan), g.x))));
   append(tl, [thuoc]);
+  // ADR-0055 VK2-A A4: dải "Xe bận" (khung bận của xe trong ngày giờ VN) nằm DƯỚI khối chuyến — bản vẽ không vẽ, khuôn khối chuyến (Đợt 3 Task 10).
+  const ban = daiBanTrenLich(l.khungBanXe ?? [], l.ngay);
+  const soGio = hinh.gioCuoi - hinh.gioDau;
+  const daiBan = (xeId: string): HTMLElement[] =>
+    ban.filter((b) => b.xeId === xeId).flatMap((b) => {
+      const x0 = Math.max(0, b.tuPhut / 60 - hinh.gioDau);
+      const x1 = Math.min(soGio, b.denPhut / 60 - hinh.gioDau);
+      if (x1 <= x0) return [];
+      const el = viTri(h("div", { class: "dp-tl-ban", role: "img", "aria-label": b.nhan, title: b.nhan }, b.nhan.replace(/^Xe bận [^·]+· /, "")), x0);
+      el.style.setProperty("--dp-dai", String(x1 - x0));
+      return [el];
+    });
   for (const n of hinh.nhom) {
     append(tl, [h("div", { class: "dp-tl-nhom" }, h("span", { class: "dp-tl-nhom-t" }, n.tieuDe))]);
     for (const hang of n.hang) {
-      const duong = h("div", { class: "dp-tl-duong" }, ...hang.khoi.map(khoi));
+      const duong = h("div", { class: "dp-tl-duong" }, ...daiBan(hang.xeId), ...hang.khoi.map(khoi));
       append(tl, [h("div", { class: "dp-tl-hang" }, nhanHang(hang), duong)]);
     }
   }
@@ -209,6 +222,11 @@ function veXe(): void {
       h("span", { class: "dp-lg" }, h("span", { class: "dp-lg-bay-gio" }), "Bây giờ"),
       h("span", { class: "dp-lg" }, h("span", { class: "dp-lg-moc" }), mocNhan)),
     cuon,
+    // Điện thoại (thẻ "Xe"): một dòng "Xe bận 08:00–17:00 · Bảo dưỡng" mỗi khung bận của ngày (biểu tượng `ban` có sẵn — không vẽ biểu tượng mới).
+    ban.length > 0
+      ? h("ul", { class: "dp-ban-ds vc-narrow", "aria-label": "Xe bận trong ngày" },
+        ...ban.map((b) => h("li", { class: "dp-ban-dong" }, icon("ban", 14, 2), h("strong", null, l.khungBanXe.find((k) => k.xeId === b.xeId)?.bienSo ?? ""), ` · ${b.nhan}`)))
+      : null,
     h("div", { class: "dp-tl-note" }, "Chuyến có ", icon("lock", 12), " đang trong vùng khoá trước giờ xuất bến — khoá xếp khách, đổi xe, đổi tài xế. ● điểm đón · ■ điểm trả."),
   );
   // Vẽ lại (bấm khối, sau khi xếp / cập nhật) GIỮ chỗ đang cuộn; chỉ tự cuộn tới chuyến đầu tiên MỘT lần mỗi ngày xem — và chỉ khi khung đang hiện (thẻ "Xe"
@@ -297,7 +315,7 @@ function theChon(): HTMLElement | null {
   );
 }
 const TONE_KIEU = { plan: "unit", run: "navy", done: "ok", held: "danger", nodrv: "warn", cancel: "muted" } as const;
-const gioChuyen = (c: ChuyenTomTatDto) => `${c.batDau.ngay === ngay ? c.batDau.gio : `${c.batDau.gio} ${c.batDau.ngay.slice(8, 10)}/${c.batDau.ngay.slice(5, 7)}`}–${c.ketThuc.ngay === ngay ? c.ketThuc.gio : `${c.ketThuc.gio} ${c.ketThuc.ngay.slice(8, 10)}/${c.ketThuc.ngay.slice(5, 7)}`}`;
+const gioChuyen = (c: ChuyenTomTatDto) => `${c.batDau.ngay === ngay ? c.batDau.gio : `${c.batDau.gio} ${ngayNgan(c.batDau.ngay, ngay)}`}–${c.ketThuc.ngay === ngay ? c.ketThuc.gio : `${c.ketThuc.gio} ${ngayNgan(c.ketThuc.ngay, ngay)}`}`;
 
 function veCanXuLy(viec: ViecCanXuLy[]): void {
   replaceChildren(

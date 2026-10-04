@@ -2,11 +2,12 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { EXTERNAL_PERMISSIONS, PERMISSION_CODES, type PermissionCode } from "./permissions.ts";
 import {
-  ROLES, ROLE_CODES, SUPER_ADMIN_GRANTED, canManageAccount, defaultPermissions, effectivePermissions, groupOf, highPermissionProblem, isRoleCode, laiNoiBoBenNgoaiProblem, parseRoleAssignment,
+  ROLES, ROLE_CODES, SUPER_ADMIN_GRANTED, TIEN_CHI_TOAN_QUYEN_MESSAGE, canManageAccount, chamTaiKhoanTienDuoc, datLaiPinDuoc, defaultPermissions, effectivePermissions, groupOf, highPermissionProblem, isRoleCode, laiNoiBoBenNgoaiProblem, parseRoleAssignment,
   permissionsLabel, roleAssignmentProblem, rolesLabel, taiKhoanLaiProblem, tuDoiQuyenCuaMinh, vaiTaiXeDoiTacXungDot, type RoleAssignment, type RoleCode,
 } from "./roles.ts";
 
-const VAI_QUAN_LY = "Chỉ người phụ trách hệ thống mới gán hoặc gỡ vai Giám đốc, Điều hành chung, IT, Hành chính nhân sự.";
+const VAI_QUAN_LY = "Chỉ người phụ trách hệ thống mới gán hoặc gỡ vai Giám đốc, Điều hành chung, Kế toán, IT, Hành chính nhân sự.";
+const TIEN = "Tài khoản giữ tiền — chỉ người phụ trách hệ thống (Toàn quyền) làm việc này."; // ADR-0090 đ1, nguyên văn
 const assignment = (roles: RoleAssignment["roles"], extra: Partial<RoleAssignment> = {}): RoleAssignment => ({ roles, adds: [], removes: [], reason: null, ...extra });
 
 test("danh mục: đủ 15 vai, 9 nội bộ + 6 bên ngoài (ADR-0044 thêm vai IT; ADR-0040 D3 thêm vai Tài xế công ty; ADR-0048 D2 thêm vai Tài xế đối tác; ADR-0071 thêm vai Hành chính nhân sự), bộ mặc định là mã quyền hợp lệ", () => {
@@ -21,7 +22,7 @@ test("danh mục: đủ 15 vai, 9 nội bộ + 6 bên ngoài (ADR-0044 thêm vai
     assert.deepEqual([...ROLES[r].defaults], r === "DRIVER_EXTERNAL" ? ["DRIVER_PARTNER"] : ["PARTNER"], r);
     for (const p of ROLES[r].defaults) assert.ok((EXTERNAL_PERMISSIONS as readonly string[]).includes(p), `${r}: mặc định ${p} phải là quyền bên ngoài (LC-1)`);
   }
-  assert.deepEqual(ROLE_CODES.filter((r) => ROLES[r].superAdminOnly), ["DIRECTOR", "OPERATIONS_MANAGER", "IT", "HR_STAFF"]);
+  assert.deepEqual(ROLE_CODES.filter((r) => ROLES[r].superAdminOnly), ["DIRECTOR", "OPERATIONS_MANAGER", "ACCOUNTANT", "IT", "HR_STAFF"]); // ADR-0090 đ1(ii): + Kế toán
   assert.equal(isRoleCode("SALES_STAFF"), true);
   assert.equal(isRoleCode("STAFF"), false, "vai cũ mơ hồ không thuộc mô hình mới");
   assert.equal(isRoleCode("DRIVER"), false, "mã vai hồ sơ cũ DRIVER (nhóm OTHER, đã ngưng) không thuộc mô hình vai tài khoản — vai tài xế công ty là DRIVER_INTERNAL");
@@ -121,7 +122,8 @@ test("parseRoleAssignment: đúng dạng, thứ tự chuẩn, lý do bắt buộ
 test("highPermissionProblem (LC-4): chỉ Toàn quyền cấp/gỡ Quản trị, Toàn quyền", () => {
   assert.equal(highPermissionProblem(true, ["SALES"], ["SALES", "ADMIN"]), null);
   assert.deepEqual(highPermissionProblem(false, ["SALES"], ["SALES", "ADMIN"]), { forbidden: true, message: "Chỉ người phụ trách hệ thống mới cấp hoặc gỡ quyền Quản trị." });
-  assert.equal(highPermissionProblem(false, ["SALES"], ["SALES", "ACCOUNTING"]), null);
+  // ADR-0090 đ1(ii): cấp Kế toán nay cũng chỉ Toàn quyền (trước đây null).
+  assert.deepEqual(highPermissionProblem(false, ["SALES"], ["SALES", "ACCOUNTING"]), { forbidden: true, message: TIEN });
 });
 
 test("roleAssignmentProblem: LC-3, LC-1 (cộng tay), LC-4, còn ít nhất một quyền", () => {
@@ -137,7 +139,7 @@ test("roleAssignmentProblem: LC-3, LC-1 (cộng tay), LC-4, còn ít nhất mộ
   assert.equal(roleAssignmentProblem({ ...base, next: assignment(["SALES_STAFF"], { adds: ["ADMIN"], reason: "x" }) })?.forbidden, true, "cộng tay Quản trị");
   assert.equal(roleAssignmentProblem({ ...base, actorIsSuper: true, next: assignment(["OPERATIONS_MANAGER"]) }), null);
   assert.match(roleAssignmentProblem({ ...base, next: assignment(["INTERN"], { removes: ["INTERN"], reason: "x" }) })!.message, /ít nhất một quyền/);
-  assert.equal(roleAssignmentProblem({ ...base, next: assignment(["ACCOUNTANT"]) }), null);
+  assert.deepEqual(roleAssignmentProblem({ ...base, next: assignment(["ACCOUNTANT"]) }), { forbidden: true, message: TIEN }, "ADR-0090 đ1(ii): trước đây null");
 });
 
 test("roleAssignmentProblem (I-1, kiểm độc lập vòng 1): chặn cộng tay Toàn quyền dù vai IT đã có sẵn qua mặc định (chỉnh tay 'ngủ')", () => {
@@ -316,4 +318,53 @@ test("ADR-0083 điều 1e (chủ dự án 2026-10-01 \"chặn luôn\"): gán VAI
   assert.match(lai?.message ?? "", /quyền nội bộ và quyền bên ngoài/);
   assert.equal(roleAssignmentProblem({ ...base, next: assignment(["IT"], { adds: ["DRIVER_PARTNER"], reason: "thử" }) }) !== null, true);
   assert.equal(roleAssignmentProblem({ ...base, next: assignment(["SALES_STAFF"], { adds: ["ACCOUNTING"], reason: "thử" }) }), null);
+});
+
+// ADR-0090 đ1(ii), (iii) + bảng "Thay câu nào" dòng LC-4 ("cấp hoặc gỡ"): chỉ Toàn quyền gán/gỡ vai Kế toán, cộng/bớt tay quyền tiền (kể cả chỉnh tay "ngủ").
+// Câu báo đ1 đứng TRƯỚC luật vai VAI_QUAN_LY; gán vai IT / Giám đốc vẫn nhận câu cũ (ruling R-Q1 ở sổ thi công).
+test("ADR-0090 đ1(ii): gán/gỡ vai Kế toán, cộng/bớt tay quyền tiền — chỉ Toàn quyền; câu đ1; Quản trị vẫn sửa vai khác của tài khoản Kế toán", () => {
+  const cam = { forbidden: true, message: TIEN };
+  const tu = (o: Partial<Parameters<typeof roleAssignmentProblem>[0]> & { next: RoleAssignment }) =>
+    roleAssignmentProblem({ actorIsSuper: false, currentRoles: [], currentPermissions: [], currentAdjustments: { adds: [], removes: [] }, ...o });
+  assert.deepEqual(tu({ next: assignment(["SALES_STAFF", "ACCOUNTANT"]) }), cam, "thêm vai Kế toán cho Bán hàng (QT04 biến thể)");
+  assert.deepEqual(tu({ next: assignment(["SALES_STAFF"], { adds: ["ACCOUNTING"], reason: "x" }) }), cam, "cộng tay Kế toán");
+  assert.deepEqual(tu({ currentRoles: ["ACCOUNTANT"], currentPermissions: ["ACCOUNTING"], next: assignment(["SALES_STAFF"]) }), cam, "gỡ vai Kế toán");
+  assert.deepEqual(tu({ currentRoles: ["ACCOUNTANT"], currentPermissions: ["ACCOUNTING"], next: assignment(["ACCOUNTANT"], { removes: ["ACCOUNTING"], adds: ["SALES"], reason: "x" }) }), cam, "bớt tay Kế toán");
+  // Chỉnh tay "ngủ": vai Kế toán đã có sẵn ACCOUNTING, cộng tay thêm ACCOUNTING không đổi quyền hôm nay nhưng phát tác khi vai đổi sau này.
+  assert.deepEqual(tu({ currentRoles: ["ACCOUNTANT"], currentPermissions: ["ACCOUNTING"], next: assignment(["ACCOUNTANT"], { adds: ["ACCOUNTING"], reason: "x" }) }), cam, "cộng tay ngủ");
+  // Giữ NGUYÊN chỉnh tay Kế toán đã có (Toàn quyền đặt) — Quản trị sửa phần khác vẫn được.
+  assert.equal(tu({ currentRoles: ["SALES_STAFF"], currentPermissions: ["SALES", "ACCOUNTING"], currentAdjustments: { adds: ["ACCOUNTING"], removes: [] },
+    next: assignment(["SALES_STAFF", "GUIDE_INTERNAL"], { adds: ["ACCOUNTING"], reason: "x" }) }), null, "giữ nguyên chỉnh tay đã có");
+  assert.equal(tu({ currentRoles: ["ACCOUNTANT"], currentPermissions: ["ACCOUNTING"], next: assignment(["ACCOUNTANT", "SALES_STAFF"]) }), null, "thêm vai thường cho Kế toán: không đụng quyền tiền");
+  // Vai IT / Giám đốc (mang SUPER_ADMIN / ADMIN) giữ câu cũ.
+  assert.deepEqual(tu({ next: assignment(["IT"]) }), { forbidden: true, message: VAI_QUAN_LY });
+  // Toàn quyền làm được hết.
+  assert.equal(tu({ actorIsSuper: true, next: assignment(["SALES_STAFF", "ACCOUNTANT"]) }), null);
+  assert.equal(tu({ actorIsSuper: true, currentRoles: ["ACCOUNTANT"], currentPermissions: ["ACCOUNTING"], next: assignment(["SALES_STAFF"]) }), null);
+  // Đường quyền cũ / tạo tài khoản đường cũ: highPermissionProblem.
+  assert.deepEqual(highPermissionProblem(false, [], ["ACCOUNTING"]), cam, "tạo tài khoản mang quyền tiền (đ1iii)");
+  assert.deepEqual(highPermissionProblem(false, ["SALES", "ACCOUNTING"], ["SALES"]), cam, "gỡ quyền tiền");
+  assert.deepEqual(highPermissionProblem(false, ["SALES"], ["SALES", "SUPER_ADMIN"]), { forbidden: true, message: "Chỉ người phụ trách hệ thống mới cấp hoặc gỡ quyền Quản trị." }, "SUPER_ADMIN giữ câu cũ");
+  assert.equal(highPermissionProblem(false, ["SALES", "ACCOUNTING"], ["SALES", "ACCOUNTING"]), null, "không đổi quyền tiền");
+  assert.equal(highPermissionProblem(true, [], ["ACCOUNTING"]), null);
+});
+
+// ADR-0090 đ1(i), đ2: MỘT hàm cho cổng route POST /api/staff/:id/reset-pin VÀ cờ theo dòng (GET /api/staff, GET /api/sessions) — không hai luật.
+test("ADR-0090 đ1(i): datLaiPinDuoc — Quản trị không đặt lại PIN tài khoản có quyền tiền; Toàn quyền được; vẫn giữ luật cũ (cấp dưới, không tự đặt, Nhân sự không)", () => {
+  const ai = (id: string, permissions: PermissionCode[]) => ({ id, permissions });
+  const QT = ai("qt", ["ADMIN"]), TQ = ai("tq", ["SUPER_ADMIN"]), NS = ai("ns", ["HR"]);
+  const KT = ai("kt", ["ACCOUNTING"]), BH = ai("bh", ["SALES"]), BHKT = ai("bhkt", ["SALES", "ACCOUNTING"]), QT2 = ai("qt2", ["ADMIN"]);
+  assert.equal(datLaiPinDuoc(QT, KT), false, "QT04");
+  assert.equal(datLaiPinDuoc(QT, BHKT), false, "Bán hàng kiêm Kế toán");
+  assert.equal(datLaiPinDuoc(QT, BH), true, "cấp dưới thường: vẫn được (ADR-0042)");
+  assert.equal(datLaiPinDuoc(QT, QT2), false, "Quản trị khác: không phải cấp dưới");
+  assert.equal(datLaiPinDuoc(QT, QT), false, "tự đặt lại (DK-T3-02)");
+  assert.equal(datLaiPinDuoc(NS, BH), false, "Nhân sự không có ô đăng nhập (ADR-0071 1e)");
+  assert.equal(datLaiPinDuoc(TQ, KT), true);
+  assert.equal(datLaiPinDuoc(TQ, BHKT), true);
+  assert.equal(datLaiPinDuoc(TQ, ai("tq2", ["SUPER_ADMIN"])), true, "Toàn quyền khác: như luật cũ");
+  assert.equal(chamTaiKhoanTienDuoc(QT, KT), false);
+  assert.equal(chamTaiKhoanTienDuoc(QT, BH), true);
+  assert.equal(chamTaiKhoanTienDuoc(TQ, KT), true);
+  assert.equal(TIEN_CHI_TOAN_QUYEN_MESSAGE, TIEN);
 });

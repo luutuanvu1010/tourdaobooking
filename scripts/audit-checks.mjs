@@ -659,6 +659,17 @@ export const CHECKS = [
     level: "warn",
     note: "cảnh báo (không chặn phát hành): Kế toán xem chuyến — nếu vẫn phải trả nhà xe cũ thì ghi lại Phí huỷ muộn",
   },
+  // R-VC-21 (ADR-0055 VK2-A, hệ quả 10 — lưới thứ hai của hai trigger khung bận, 0071): chuyến PLANNED/RUNNING chồng khung bận CÒN HIỆU LỰC của xe (nửa mở, so
+  // với giờ kết thúc dự kiến). Chuyến đã kết thúc là lịch sử — không báo. Gặp: chuyến đang chạy quá giờ dự kiến lấn vào khung ghi sau (K8 của kế hoạch Đợt 3),
+  // hoặc trigger bị gỡ nhầm. Chỉ đếm.
+  {
+    code: "R-VC-21",
+    what: "chuyến chưa kết thúc chồng lịch xe bận còn hiệu lực",
+    sql: `SELECT count(*) FROM vc_trip t JOIN vc_unavailability u ON u.subject = 'VEHICLE' AND u.vehicle_id = t.vehicle_id AND u.withdrawn_at IS NULL
+          WHERE t.status IN ('PLANNED', 'RUNNING') AND t.planned_start_ms < u.end_ms AND u.start_ms < t.planned_end_ms`,
+    level: "warn",
+    note: "cảnh báo: văn phòng dời hoặc đổi xe chuyến, hoặc Quản trị rút lịch xe bận",
+  },
 
   // ---- Người phụ trách đơn (ADR-0006 điều 3, ADR-0009). Migration 0014 trở lên: trên D1 chưa có 0014 các câu dưới lỗi "no such table" → script thoát mã 2. ----
   // R-DSP-1: chỉ mục duy nhất một phần đã chặn ở CSDL; kiểm này bắt trường hợp chỉ mục bị gỡ/sửa nhầm.

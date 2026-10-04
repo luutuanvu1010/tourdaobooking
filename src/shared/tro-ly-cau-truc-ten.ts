@@ -28,6 +28,7 @@ export const TEN_PHAN_HE: Readonly<Record<string, TenLoiThuong>> = {
   dispatch: { ten: "Người phụ trách đơn", moTa: "Giao, nhận, đổi người phụ trách một đơn; hàng chờ nhận cho đơn chưa có ai phụ trách; hướng dẫn viên huỷ hoặc sửa số khách đơn mình phụ trách." },
   feedback: { ten: "Góp ý / Báo lỗi", moTa: "Mọi tài khoản gửi góp ý hoặc báo lỗi và theo dõi yêu cầu của mình; Toàn quyền tiếp nhận và trả lời." },
   "giao-dien": { ten: "Giao diện công ty", moTa: "Màu thanh trên, màu nút chính, phông chữ và cỡ chữ chung cho cả công ty; chỉ người phụ trách hệ thống chỉnh, ai cũng thấy kết quả. Có kiểm chữ đủ dễ đọc trước khi lưu và ghi nhật ký mỗi lần đổi." },
+  "lan-gui": { ten: "Chống ghi trùng", moTa: "Khi mạng chập chờn mà bấm Lưu lại, Nền tảng nhận ra lần bấm trước đã được ghi nên không ghi thêm lần nữa, và báo \"Lần bấm trước đã được ghi\". Chạy ngầm cho mọi thao tác lưu, không có màn hình riêng." },
   locations: { ten: "Địa điểm", moTa: "Danh sách nơi đón, nơi trả dùng chung khi lập đơn và xếp chuyến; Quản trị thêm, sửa ở trang Địa điểm." },
   maintenance: { ten: "Chế độ bảo trì", moTa: "Khi bật, chỉ người phụ trách hệ thống còn dùng được app; mọi người khác, kể cả Quản trị, thấy màn hình bảo trì. Chỉ người phụ trách hệ thống bật, tắt." },
   orders: { ten: "Đơn hàng", moTa: "Lập, sửa, xác nhận, huỷ đơn; dịch vụ của đơn, chặng đưa đón (giờ, nơi đón), danh sách hành khách. Tiền của đơn do app tự tính từ giá danh mục và số khách." },
@@ -37,7 +38,7 @@ export const TEN_PHAN_HE: Readonly<Record<string, TenLoiThuong>> = {
   staff: { ten: "Tài khoản nhân viên", moTa: "Giữ tài khoản và các quyền của từng người; tên hiển thị lấy từ hồ sơ trong Danh bạ." },
   thongbao: { ten: "Thông báo", moTa: "Hình chuông ở đầu trang, dải tin quan trọng phải bấm Đã hiểu, thông báo trên điện thoại; Toàn quyền gửi thông báo thủ công." },
   "tro-ly": { ten: "Trợ lý Hỗ trợ", moTa: "Trả lời cách dùng app dựa trên hướng dẫn và sơ đồ app; không xem được dữ liệu thật. Toàn quyền bật, tắt theo vai ở trang Trợ lý Hỗ trợ." },
-  "van-chuyen": { ten: "Vận chuyển", moTa: "Xe, giấy tờ xe, tài xế và bảng Điều phối xe: xếp khách của nhiều đơn lên một chuyến, tài xế bấm tiến độ. Đang thử, chưa dùng cho chuyến thật." },
+  "van-chuyen": { ten: "Vận chuyển", moTa: "Xe, giấy tờ xe, tài xế và bảng Điều phối xe: xếp khách của nhiều đơn lên một chuyến, tài xế bấm tiến độ. Có Lịch xe bận cho xe vào xưởng." },
 };
 
 /**
@@ -182,7 +183,7 @@ export const LUONG_CHINH: readonly BuocLuong[] = [
   },
   {
     ten: "Xếp xe",
-    moTa: "Ở bảng Điều phối xe, khách của nhiều đơn đã xác nhận được xếp lên một chuyến; tài xế bấm tiến độ. Phần này đang thử, chưa dùng cho chuyến thật.",
+    moTa: "Ở bảng Điều phối xe, khách của nhiều đơn đã xác nhận được xếp lên một chuyến; tài xế bấm tiến độ.",
     viSao: "Chỉ đơn đã xác nhận mới xếp lên chuyến, vì trước đó giờ đón, số khách còn đổi. Chuyến chỉ xuất bến khi đủ điều kiện (giấy tờ xe còn hạn, bằng lái đúng hạng, đủ tên khách, đủ chỗ).",
     thaoTac: ["trip.dispatch", "trip.progress"],
     trang: "/dieu-phoi",

@@ -87,6 +87,9 @@ export const AUDIT_ACTIONS = {
   vehicle_document_corrected: { label: "Sửa sai giấy tờ xe", group: "vehicle" },
   vehicle_document_type_changed: { label: "Sửa danh mục loại giấy tờ xe", group: "vehicle" },
   expiry_policy_changed: { label: "Đổi mốc nhắc giấy tờ sắp hết hạn", group: "vehicle" },
+  // ADR-0055 VK2-A A6 (Đợt 3): khung bận của xe — `detail` = biển số + khung giờ VN + nhãn lý do; không dữ liệu cá nhân.
+  vehicle_unavailability_added: { label: "Ghi lịch xe bận", group: "vehicle" },
+  vehicle_unavailability_withdrawn: { label: "Rút lịch xe bận", group: "vehicle" },
   // ADR-0049 D2 (lát 1.1): chính sách điều phối, điều kiện xuất bến, hạng bằng (Toàn quyền), danh mục lý do (Quản trị). `detail` chỉ mã, con số, nhãn
   // danh mục; không order_id, không target (khuôn expiry_policy_changed).
   dispatch_policy_changed: { label: "Đổi chính sách điều phối", group: "trip" },

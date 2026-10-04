@@ -1,7 +1,7 @@
 import { ApiError, api, type Api, type OrderSummary, type Staff } from "./api";
 import { moBangTruot } from "./bang-truot";
 import { byId, h, replaceChildren, type Child } from "./dom";
-import { dayMonth, initials, paxCountsShort, vnd, vndShort } from "./format";
+import { initials, ngayNganHomNay, paxCountsShort, vnd, vndShort } from "./format";
 import { helpHasNews } from "./help-seen";
 import { icon, type IconName } from "./icons";
 import { taoBoLamMoi } from "./lam-moi-logic";
@@ -15,6 +15,7 @@ import { homeRedirect } from "../src/shared/start-page";
 import { conLai, dongThoiGian, loiChao, phutVN, type DongThoiGian, type LoaiChuyen } from "../src/shared/trang-chu-may-tinh";
 import { loiTatMayTinh, luoiDienThoai, mauO, nhomMayTinh, type KhoaO, type LuoiTrangChu, type OChucNang } from "../src/shared/trang-chu-o";
 import { vnToday } from "../src/shared/vn-date";
+import { NHAN_PHAM_VI, PHAM_VI_O_TRANG_CHU, type PhamVi } from "../src/shared/pham-vi-so";
 
 const SHORT_WEEKDAY = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"]; // chỉ số = Date.getUTCDay() (0 = Chủ nhật)
 const FULL_WEEKDAY = ["Chủ nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"];
@@ -64,7 +65,7 @@ function revenueChart(daily: readonly { date: string; total: number }[]): HTMLEl
  * phụ; bấm → Đơn hàng. `lopO`: chỗ của ô trong lưới (CSS grid-area). `ben`: phần đứng bên phải chữ (biểu đồ tuần của ô Doanh thu). Số đầy đủ ("12.500.000 ₫"),
  * khác thẻ điện thoại (#dash-so, số rút gọn).
  */
-function oSoMayTinh(lopO: string, iconName: IconName, nhan: string, giaTri: string, phu: string, tuyChon: { lop?: string; ben?: Child } = {}): HTMLElement {
+function oSoMayTinh(lopO: string, iconName: IconName, nhan: string, phamVi: PhamVi, giaTri: string, phu: string, tuyChon: { lop?: string; ben?: Child } = {}): HTMLElement {
   return h(
     "a",
     { class: `dash-smt-o ${lopO}`, href: "/orders" },
@@ -72,6 +73,7 @@ function oSoMayTinh(lopO: string, iconName: IconName, nhan: string, giaTri: stri
       "span",
       { class: "dash-smt-chu" },
       h("span", { class: "dash-smt-nhan" }, icon(iconName, 16), h("span", { class: "dash-smt-nhan-chu" }, nhan)),
+      h("span", { class: `dash-pham-vi is-${phamVi === "CUA_TOI" ? "cua-toi" : "cong-ty"}`, "data-pham-vi": phamVi }, NHAN_PHAM_VI[phamVi]),
       h("span", { class: tuyChon.lop ? `dash-smt-gt ${tuyChon.lop}` : "dash-smt-gt" }, giaTri),
       h("span", { class: "dash-smt-phu" }, phu),
     ),
@@ -83,19 +85,19 @@ function oSoMayTinh(lopO: string, iconName: IconName, nhan: string, giaTri: stri
  * Thẻ số liệu máy tính, thứ tự bản vẽ 1.73 (đọc theo câu hỏi đầu ca: tiền, đơn đang chờ, rồi doanh thu): Còn thiếu tiền · Chờ xác nhận · Chưa phụ trách ·
  * Doanh thu của tôi (tuần, biểu đồ bên phải) — cùng số với thẻ điện thoại. "Còn thiếu tiền" lấy từ billing (`GET /api/ledger/unpaid-summary` — sổ tiền lượt 1,
  * ADR-0026 đ9); `null` = chưa tải được (hiện "—", không đoán). Ba ô kia là số TOÀN CÔNG TY của `GET /api/orders/dashboard`; "Doanh thu của tôi" chỉ đơn người
- * xem lập.
+ * xem lập. Kiểu D (V1.5c): mỗi ô mang nhãn phạm vi "Toàn công ty" / "Của tôi" từ bảng chung `PHAM_VI_O_TRANG_CHU` (src/shared/pham-vi-so.ts).
  */
 function renderSoMayTinh(data: Api.DashboardResponse, unpaid: Api.UnpaidSummaryResponse | null): void {
   const rev = data.revenueWeek;
-  const phuThieu = (u: Api.UnpaidSummaryResponse): string => (u.count === 0 ? "Không có đơn nào" : `${u.count} đơn${u.earliestDate ? ` · sớm nhất đón ${dayMonth(u.earliestDate)}` : ""}`);
+  const phuThieu = (u: Api.UnpaidSummaryResponse): string => (u.count === 0 ? "Không có đơn nào" : `${u.count} đơn${u.earliestDate ? ` · sớm nhất đón ${ngayNganHomNay(u.earliestDate)}` : ""}`);
   replaceChildren(
     byId("dash-so-mt"),
     unpaid
-      ? oSoMayTinh("dash-smt-o-thieu", "money", "Còn thiếu tiền", vnd(unpaid.total), phuThieu(unpaid), { lop: "dash-smt-thieu" })
-      : oSoMayTinh("dash-smt-o-thieu", "money", "Còn thiếu tiền", "—", "Chưa tải được số"),
-    oSoMayTinh("dash-smt-o-cho", "doc-check", "Chờ xác nhận", String(data.draftCount), "Cần xác nhận đơn"),
-    oSoMayTinh("dash-smt-o-chua", "assign", "Chưa phụ trách", String(data.unassignedCount), "Chờ người nhận"),
-    oSoMayTinh("dash-smt-o-dt", "chart", "Doanh thu của tôi", vnd(rev.total), `Tuần này · ${dayMonth(rev.from)}–${dayMonth(rev.to)} · ${rev.count} đơn`, {
+      ? oSoMayTinh("dash-smt-o-thieu", "money", "Còn thiếu tiền", PHAM_VI_O_TRANG_CHU.conThieu, vnd(unpaid.total), phuThieu(unpaid), { lop: "dash-smt-thieu" })
+      : oSoMayTinh("dash-smt-o-thieu", "money", "Còn thiếu tiền", PHAM_VI_O_TRANG_CHU.conThieu, "—", "Chưa tải được số"),
+    oSoMayTinh("dash-smt-o-cho", "doc-check", "Chờ xác nhận", PHAM_VI_O_TRANG_CHU.choXacNhan, String(data.draftCount), "Cần xác nhận đơn"),
+    oSoMayTinh("dash-smt-o-chua", "assign", "Chưa phụ trách", PHAM_VI_O_TRANG_CHU.chuaPhuTrach, String(data.unassignedCount), "Chờ người nhận"),
+    oSoMayTinh("dash-smt-o-dt", "chart", "Doanh thu của tôi", PHAM_VI_O_TRANG_CHU.doanhThu, vnd(rev.total), `Tuần này · ${ngayNganHomNay(rev.from)}–${ngayNganHomNay(rev.to)} · ${rev.count} đơn`, {
       lop: "dash-smt-doanh-thu", ben: revenueChart(rev.daily),
     }),
   );
@@ -546,11 +548,12 @@ function ganOTim(): void {
 }
 
 /** Một ô của khối số liệu điện thoại (bản vẽ 1a: một thẻ chia 2×2) — nhãn có biểu tượng, số lớn, dòng phụ; bấm → Đơn hàng. */
-function oSo(iconName: IconName, nhan: string, giaTri: string, phu: string, lop?: string): HTMLElement {
+function oSo(iconName: IconName, nhan: string, phamVi: PhamVi, giaTri: string, phu: string, lop?: string): HTMLElement {
   return h(
     "a",
     { class: "dash-so-o", href: "/orders" },
     h("span", { class: "dash-so-nhan" }, icon(iconName, 16), h("span", null, nhan)),
+    h("span", { class: `dash-pham-vi is-${phamVi === "CUA_TOI" ? "cua-toi" : "cong-ty"}`, "data-pham-vi": phamVi }, NHAN_PHAM_VI[phamVi]),
     h("span", { class: lop ? `dash-so-gt ${lop}` : "dash-so-gt" }, giaTri),
     h("span", { class: "dash-so-phu" }, phu),
   );
@@ -562,11 +565,11 @@ function renderSoDienThoai(data: Api.DashboardResponse, unpaid: Api.UnpaidSummar
   replaceChildren(
     byId("dash-so"),
     unpaid
-      ? oSo("money", "Còn thiếu", `${vndShort(unpaid.total)} ₫`, unpaid.count === 0 ? "Không có đơn nào" : `${unpaid.count} đơn`, "dash-so-thieu")
-      : oSo("money", "Còn thiếu", "—", "Chưa tải được số"),
-    oSo("chart", "Doanh thu của tôi", `${vndShort(rev.total)} ₫`, `Tuần này · ${rev.count} đơn`, "dash-so-doanh-thu"),
-    oSo("doc-check", "Chờ xác nhận", String(data.draftCount), "Cần xác nhận đơn"),
-    oSo("assign", "Chưa phụ trách", String(data.unassignedCount), "Chờ người nhận"),
+      ? oSo("money", "Còn thiếu", PHAM_VI_O_TRANG_CHU.conThieu, `${vndShort(unpaid.total)} ₫`, unpaid.count === 0 ? "Không có đơn nào" : `${unpaid.count} đơn`, "dash-so-thieu")
+      : oSo("money", "Còn thiếu", PHAM_VI_O_TRANG_CHU.conThieu, "—", "Chưa tải được số"),
+    oSo("chart", "Doanh thu của tôi", PHAM_VI_O_TRANG_CHU.doanhThu, `${vndShort(rev.total)} ₫`, `Tuần này · ${rev.count} đơn`, "dash-so-doanh-thu"),
+    oSo("doc-check", "Chờ xác nhận", PHAM_VI_O_TRANG_CHU.choXacNhan, String(data.draftCount), "Cần xác nhận đơn"),
+    oSo("assign", "Chưa phụ trách", PHAM_VI_O_TRANG_CHU.chuaPhuTrach, String(data.unassignedCount), "Chờ người nhận"),
   );
   byId("dash-so").hidden = false;
 }

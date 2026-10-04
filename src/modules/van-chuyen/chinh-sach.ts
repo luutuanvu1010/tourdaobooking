@@ -27,18 +27,26 @@ export interface ChinhSachMoi {
   requireManifest: boolean;
   /** ADR-0050 VK1-A: kẹp lùi TỐI ĐA (phút) khi văn phòng bấm thay khai giờ xảy ra; 1…1440; BẮT BUỘC (kế hoạch I43 — không chép ngầm từ dòng cũ). */
   proxyBackdateMaxMinutes: number;
+  /** ADR-0055 VK2-B B1: giờ lái tối đa một ngày (phút) 60…1440; BẮT BUỘC (I43 — PWA cũ gửi thiếu thì 400, không tự điền mặc định). */
+  dutyDayMaxMinutes: number;
+  /** ADR-0055 VK2-B B1: chuyến dài hơn (phút) → nhắc nghỉ; 30…720; BẮT BUỘC. */
+  tripNoBreakMaxMinutes: number;
 }
 export function kiemChinhSachMoi(body: Record<string, unknown> | null): Result<ChinhSachMoi> {
   if (!body) return fail("Dữ liệu không hợp lệ.");
   if (coNgayHieuLuc(body)) return fail(CAU_HIEU_LUC);
-  const { minLeadMinutes, warnLeadMinutes, restMinutes, requireManifest, requireContract, proxyBackdateMaxMinutes } = body;
+  const { minLeadMinutes, warnLeadMinutes, restMinutes, requireManifest, requireContract, proxyBackdateMaxMinutes, dutyDayMaxMinutes, tripNoBreakMaxMinutes } = body;
   if (!soNguyen(minLeadMinutes, 1, 2880)) return fail("Mốc tối thiểu là số phút nguyên từ 1 đến 2880 — không tắt được; muốn nới thì giảm con số.");
   if (!soNguyen(warnLeadMinutes, 0, 1440)) return fail("Cảnh báo sát mốc là số phút nguyên từ 0 đến 1440.");
   if (!soNguyen(restMinutes, 0, 480)) return fail("Khoảng nghỉ giữa hai chuyến là số phút nguyên từ 0 đến 480.");
   if (typeof requireManifest !== "boolean") return fail("Chọn có hay không bắt đủ danh sách hành khách.");
   if (requireContract !== undefined && requireContract !== false) return fail("Chưa bật được yêu cầu hợp đồng vận chuyển — cần một quyết định riêng.");
   if (!soNguyen(proxyBackdateMaxMinutes, 1, 1440)) return fail("Giờ văn phòng khai lùi tối đa là số phút nguyên từ 1 đến 1440.");
-  return { ok: true, value: { minLeadMinutes, warnLeadMinutes, restMinutes, requireManifest, proxyBackdateMaxMinutes } };
+  // Review Focus 5 (khuôn I43): màn cũ (PWA chưa cập nhật) gửi thiếu hai con số → nói rõ, không tự điền mặc định im lặng.
+  if (dutyDayMaxMinutes === undefined || tripNoBreakMaxMinutes === undefined) return fail("Thiếu giờ lái tối đa / nhắc nghỉ — tải lại trang rồi lưu lại.");
+  if (!soNguyen(dutyDayMaxMinutes, 60, 1440)) return fail("Giờ lái tối đa một ngày là số phút nguyên từ 60 đến 1440.");
+  if (!soNguyen(tripNoBreakMaxMinutes, 30, 720)) return fail("Chuyến dài cần nhắc nghỉ là số phút nguyên từ 30 đến 720.");
+  return { ok: true, value: { minLeadMinutes, warnLeadMinutes, restMinutes, requireManifest, proxyBackdateMaxMinutes, dutyDayMaxMinutes, tripNoBreakMaxMinutes } };
 }
 export function chiTietChinhSach(cu: ChinhSachMoi | null, moi: ChinhSachMoi): string {
   const co = (b: boolean) => (b ? "có" : "không");
@@ -49,6 +57,8 @@ export function chiTietChinhSach(cu: ChinhSachMoi | null, moi: ChinhSachMoi): st
     phan("khoảng nghỉ", cu ? `${cu.restMinutes}` : null, `${moi.restMinutes} phút`),
     phan("bắt đủ danh sách", cu ? co(cu.requireManifest) : null, co(moi.requireManifest)),
     phan("kẹp lùi giờ khai", cu ? `${cu.proxyBackdateMaxMinutes}` : null, `${moi.proxyBackdateMaxMinutes} phút`),
+    phan("giờ lái tối đa", cu ? `${cu.dutyDayMaxMinutes}` : null, `${moi.dutyDayMaxMinutes} phút`),
+    phan("nhắc nghỉ chuyến trên", cu ? `${cu.tripNoBreakMaxMinutes}` : null, `${moi.tripNoBreakMaxMinutes} phút`),
   ].join("; ")}`;
 }
 

@@ -4,6 +4,8 @@
 //  - `docLoiLenh`: 409 / 400 của lệnh chuyến → câu lời thường (câu máy chủ + từng lý do), cờ "cần phá lệ" và `canQuyen` của máy chủ (không đoán theo vai).
 //  - `moPhaLe`: hộp "Phá lệ" (khuôn 1f của bản vẽ 01 — chọn lý do nhóm Phá lệ; KHÔNG ô ghi chú: chủ trả lời Q1); `moHuyChuyen`: hộp "Huỷ chuyến" (bản vẽ 2f).
 import { idChoLenh, type Tone } from "../src/shared/dieu-phoi-man";
+import { thuNgayNgan, vnToday } from "../src/shared/vn-date";
+import { nenDongVe } from "../src/shared/lan-gui-ve";
 import type { LyDoDangDungDto, LyDoGiuDto } from "../src/shared/contracts";
 import { ApiError, api } from "./api";
 import { moBangTruot } from "./bang-truot";
@@ -29,7 +31,9 @@ export function taoLenh(): { gui<T>(url: string, method: string, than: Record<st
         dangCho = null;
         return r;
       } catch (e) {
-        dangCho = e instanceof ApiError ? null : lenh; // mất mạng / hết giờ: giữ để bấm lại dùng cùng requestId
+        // ADR-0094 đ10: CÙNG luật đóng/giữ với vé của api() — chỉ bỏ requestId khi máy chủ trả lời rõ (4xx trừ 409 dang_xu_ly); mất mạng, hết giờ, 5xx,
+        // 409 dang_xu_ly ⇒ GIỮ, để bấm lại mang cùng requestId (thân giống hệt ⇒ cùng vé của lớp chống ghi trùng).
+        dangCho = e instanceof ApiError && nenDongVe({ status: e.status, code: e.code }) ? null : lenh;
         throw e;
       }
     },
@@ -190,9 +194,7 @@ export function moHuyChuyen(o: { ma: string; soKhach: number; lyDo: readonly LyD
   });
 }
 
-/** "Thứ Tư 30/09" của một ngày "YYYY-MM-DD" (lịch dân sự — không phụ thuộc múi giờ máy). */
+/** "Thứ Tư 30/09" của một ngày "YYYY-MM-DD" (lịch dân sự — không phụ thuộc múi giờ máy); khác năm hôm nay → kèm năm (Kiểu D — `thuNgayNgan`). */
 export function thuNgay(ngay: string): string {
-  const [y, m, d] = ngay.split("-").map(Number) as [number, number, number];
-  const thu = ["Chủ nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"][new Date(Date.UTC(y, m - 1, d)).getUTCDay()]!;
-  return `${thu} ${ngay.slice(8, 10)}/${ngay.slice(5, 7)}`;
+  return thuNgayNgan(ngay, vnToday(new Date()));
 }

@@ -1,7 +1,7 @@
 // THÔNG BÁO HỆ THỐNG (ADR-0034) — luật thuần dùng chung server ↔ web/: tin về đơn là HÌNH CHIẾU của audit_log; một hàm lọc cho cả số đỏ
 // lẫn danh sách. Không I/O. Luật quyền chỉ qua can()/hasPermission/isOffice và các hàm của bang-tin.ts — không viết tay luật mới.
 import { duocThayTinDon, nhanKetNoi, nhanSuKien, type TrangThaiPhuTrach } from "./bang-tin.ts";
-import { can, hasPermission, isExternalPermission, isOffice, PERMISSION_CODES, PERMISSION_LABEL, type PermissionCode, type PermissionHolder } from "./permissions.ts";
+import { can, coQuyenTien, hasPermission, isExternalPermission, isOffice, PERMISSION_CODES, PERMISSION_LABEL, type PermissionCode, type PermissionHolder } from "./permissions.ts";
 import type { GuiThongBaoRequest, HopThongBaoResponse, LoaiTin, NguoiNhanTin, TinDto } from "./contracts.ts";
 import { tinChuyenCho, type DongChuyen } from "./tin-chuyen.ts";
 
@@ -19,7 +19,14 @@ export interface DongThuCong {
   id: string; tieuDe: string; noiDung: string; quanTrong: boolean; nhan: string[]; nguoiGuiId: string;
   tenNguoiGui: string; luc: string; thuHoi: boolean; daHieuLuc: string | null;
 }
-type LoaiTinDon = Exclude<LoaiTin, "thu_cong" | "chuyen">;
+/**
+ * ADR-0090 đ3: một lần NGƯNG tài khoản (hình chiếu v_aud_account_event — migration 0075) đã ghép tên + quyền HIỆN TẠI của tài khoản bị ngưng (thongbao đọc
+ * qua staff). Luật nhận ở locHopThongBao: chỉ Toàn quyền, trừ chính người làm, chỉ khi tài khoản bị ngưng có quyền tiền (coQuyenTien).
+ */
+export interface DongTaiKhoan {
+  id: string; accountId: string; tenTaiKhoan: string; quyenTaiKhoan: readonly PermissionCode[]; actorId: string | null; tenNguoiLam: string | null; luc: string;
+}
+type LoaiTinDon = Exclude<LoaiTin, "thu_cong" | "chuyen" | "tai_khoan">;
 
 export function loaiTinDon(d: DongDon): LoaiTinDon | null {
   switch (d.action) {
@@ -73,7 +80,7 @@ export const chuanHoaMocGio = (x: string): string => new Date(x).toISOString();
 
 export function locHopThongBao(
   staff: PermissionHolder & { readonly partyId?: string | null },
-  vao: { don: DongDon[]; thuCong: DongThuCong[]; chuyen?: DongChuyen[]; docDenLuc: string; now: string; ngan: "cua-toi" | "tat-ca" },
+  vao: { don: DongDon[]; thuCong: DongThuCong[]; chuyen?: DongChuyen[]; taiKhoan?: DongTaiKhoan[]; docDenLuc: string; now: string; ngan: "cua-toi" | "tat-ca" },
 ): HopThongBaoResponse {
   const moc = new Date(Date.parse(vao.now) - NGAY_GIU_TIN * 86400000).toISOString();
   const ketNoi = new Set(nhanKetNoi(staff));
@@ -114,6 +121,17 @@ export function locHopThongBao(
       id: d.id, loai: "chuyen", cau: t.cau, maDon: null, noiDung: null, nguoiGui: null, nhomNhan: null, quanTrong: false, daHieuLuc: null,
       lienKet: t.lienKet, luc: d.luc, cuaToi: true, chuaDoc: d.luc > vao.docDenLuc, mo: false,
     });
+  }
+  // ADR-0090 đ3: ngưng tài khoản giữ tiền làm đứt người duyệt tiền → tin vào "Của tôi" của Toàn quyền (không phải người làm). Ai ngưng cũng báo (Quản trị,
+  // Nhân sự, Toàn quyền khác — ruling R-Q2 ở sổ thi công luồng Q). Tài khoản không còn quyền tiền lúc đọc thì thôi báo.
+  if (can(staff, "admin.manage.superadmin")) {
+    for (const d of vao.taiKhoan ?? []) {
+      if (d.luc < moc || d.actorId === staff.id || !coQuyenTien(d.quyenTaiKhoan)) continue;
+      tat.push({
+        id: d.id, loai: "tai_khoan", cau: `${d.tenNguoiLam ?? "Có người"} vừa ngưng tài khoản giữ tiền ${d.tenTaiKhoan}`, maDon: null, noiDung: null, nguoiGui: null,
+        nhomNhan: null, quanTrong: false, daHieuLuc: null, lienKet: "/staff", luc: d.luc, cuaToi: true, chuaDoc: d.luc > vao.docDenLuc, mo: false,
+      });
+    }
   }
   for (const t of vao.thuCong) {
     if (t.thuHoi || t.nguoiGuiId === staff.id || !nhanThayTinThuCong(staff, t.nhan)) continue;

@@ -88,9 +88,7 @@ Thanh tab dưới đáy có [[Trang chủ]], [[Đơn hàng]] và [[Tôi]]. Các 
 2. Chọn ngày ở ô ngày trên cùng. Bấm mũi tên trái hoặc phải để lùi hay tiến một ngày.
 3. Màn có ba phần: **Chưa xếp**, **Xe**, **Cần xử lý**. Trên điện thoại, ba phần này là ba thẻ để bấm qua lại.
 4. Bạn sẽ thấy dải chữ "Chỉ xem — Kế toán không xếp xe, không phá lệ." Bạn không có nút [[+ Chuyến mới]], không xếp khách, không sửa chuyến.
-5. Bấm vào một chuyến để xem **Chi tiết chuyến**.
-
-> Lưu ý: Công ty **chưa dùng Bảng điều phối cho chuyến thật** cho tới khi có màn nhập tên khách. Văn phòng vẫn điều xe như cũ, nên số trên bảng chưa phản ánh đủ việc chạy xe thật.`,
+5. Bấm vào một chuyến để xem **Chi tiết chuyến**.`,
     },
     {
       tieuDe: "Danh bạ",

@@ -43,9 +43,11 @@ test("điều 1b: Quản trị TẠO tài khoản → 403 (cả đường vai l�
   assert.equal((await w.call("POST", "/api/staff", { as: SUP, body: moi({ roles: ["SALES_STAFF"] }) })).status, 201);
 });
 
-test("điều 1b, 1f: HCNS tạo MỌI loại tài khoản (nội bộ, đối tác, tài xế đối tác, đường quyền cũ) → 201 kèm PIN đầu tiên; hỏi hồ sơ khớp được", async () => {
+// ADR-0090 (bảng "Thay câu nào"): "mọi loại" của điều 1b nay TRỪ tài khoản mang quyền tiền — ca đường quyền cũ đổi từ Kế toán sang Hướng dẫn viên; ca Kế toán
+// bị chặn ở accounts/quyen-tien.test.ts (Q-T4).
+test("điều 1b, 1f: HCNS tạo MỌI loại tài khoản (nội bộ, đối tác, tài xế đối tác, đường quyền cũ) trừ tài khoản mang quyền tiền → 201 kèm PIN đầu tiên; hỏi hồ sơ khớp được", async () => {
   const w = setup();
-  for (const body of [moi({ roles: ["SALES_STAFF"] }), moi({ roles: ["GUIDE_INTERNAL", "SALES_STAFF"] }), moi({ roles: ["COLLABORATOR"] }), moi({ roles: ["DRIVER_EXTERNAL"] }), moi({ permissions: ["ACCOUNTING"] })]) {
+  for (const body of [moi({ roles: ["SALES_STAFF"] }), moi({ roles: ["GUIDE_INTERNAL", "SALES_STAFF"] }), moi({ roles: ["COLLABORATOR"] }), moi({ roles: ["DRIVER_EXTERNAL"] }), moi({ permissions: ["FIELD"] })]) {
     const r = await w.call("POST", "/api/staff", { as: HR, body });
     assert.equal(r.status, 201, `${JSON.stringify(body)}: ${r.text}`);
     assert.match(r.json.pin, /^\d{6}$/);

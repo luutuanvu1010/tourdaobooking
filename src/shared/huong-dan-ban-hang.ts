@@ -19,7 +19,7 @@ export const HD_BAN_HANG: NhomHuongDan = {
       noiDung: `### Trên máy tính (thanh bên trái)
 
 - Nhóm **BÁN HÀNG**: [[Trang chủ]], [[Đơn hàng]] (số nhỏ bên cạnh là số đơn đang chờ xác nhận), [[Tạo đơn]], [[Danh bạ]].
-- Nhóm **QUẢN TRỊ**: [[Vận chuyển]] › [[Điều phối xe]] (chưa dùng cho chuyến thật — xem mục riêng).
+- Nhóm **QUẢN TRỊ**: [[Vận chuyển]] › [[Điều phối xe]] (xem mục riêng).
 - Nhóm **TÔI**: [[Của tôi]], [[Góp ý / Báo lỗi]], [[Trợ giúp]]. Nút [[Đăng xuất]] ở dưới cùng.
 - Thanh trên cùng: ô tìm đơn, nút [[Tạo đơn]] và cái chuông thông báo.
 
@@ -118,10 +118,12 @@ App chỉ cho xác nhận khi mỗi dịch vụ có ngày khởi hành, ngày đ
 - Danh sách đơn và trang đơn tự làm mới khi người khác sửa đơn.`,
     },
     {
-      tieuDe: "Điều phối xe — chưa dùng cho chuyến thật",
-      noiDung: `App đã có màn [[Điều phối xe]] (tạo chuyến, xếp khách lên xe) và Bán hàng được xếp chuyến. **Nhưng chủ công ty đã quyết: CHƯA dùng màn này cho chuyến thật** cho tới khi có màn nhập tên khách. Văn phòng vẫn điều xe như cũ. Bạn có thể mở xem, đừng tạo chuyến thật.
+      tieuDe: "Điều phối xe",
+      noiDung: `Ở [[Điều phối xe]], chọn ngày; cột **Chưa xếp** có chặng của đơn đã xác nhận. Bấm [[+ Chuyến mới]] (xe, tài xế, giờ) → [[Lưu chuyến]], rồi kéo chặng vào chuyến hoặc bấm [[Xếp vào chuyến]]. Chuyến bị giữ thì [[Mở chuyến]] xem lý do và ai xử lý.
 
-Khi được dùng (sau này): cột [[Cần xử lý]] có mục "Giờ hẹn đổi — gọi báo khách", người xử lý là người phụ trách đơn. Gọi khách xong bấm [[Đã gọi báo]]; nhầm thì bấm [[Bỏ đánh dấu]]. Bạn chỉ bấm được cho đơn mình lập hoặc đang phụ trách.`,
+> Lưu ý: xe chỉ chạy được khi đơn đủ họ tên, năm sinh khách và nơi trả. Trong 6 giờ trước xuất bến, chuyến bị khoá — cần **Quản trị** phá lệ.
+
+Mục "Giờ hẹn đổi — gọi báo khách" ở [[Cần xử lý]]: gọi khách rồi bấm [[Đã gọi báo]] (nhầm thì [[Bỏ đánh dấu]]), chỉ cho đơn bạn lập hoặc phụ trách.`,
     },
     {
       tieuDe: "Tình huống hay gặp",
@@ -194,7 +196,7 @@ Huỷ được cả đơn chờ xác nhận lẫn đã xác nhận, nếu là đ
 - Thêm, sửa dịch vụ và giá trong danh mục; dịch vụ "chưa có giá" → **Quản trị**.
 - Khách trả thêm: bấm [[Ghi lần thu]] trên đơn bạn lập. Hoàn tiền, hoá đơn → **Kế toán**.
 - Quên mã PIN, bị khoá đăng nhập → **Quản trị**.
-- Điều xe cho chuyến thật → làm như cũ, ngoài app.
+- Xe thiếu giấy tờ, tài xế thiếu bằng lái, phá lệ trong 6 giờ trước xuất bến → **Quản trị**.
 - Báo lỗi app, góp ý → [[Góp ý / Báo lỗi]].`,
     },
     {

@@ -256,6 +256,9 @@ test("day-len: push lỗi → thoát khác 0, báo rõ", async () => {
 const HEAD = "c".repeat(40);
 const WHOAMI = "CI=1 npx wrangler whoami";
 const WHOAMI_OK = out("👋 You are logged in with an OAuth Token, associated with the email x@y.z.\n");
+/** ADR-0094 đ4 (L13): cổng chỉ-đọc kiểm TÊN khoá bí mật đã đặt (không đọc giá trị). Đầu ra mẫu theo dạng `--format json` của wrangler 4. */
+const SECRETS = "CI=1 npx wrangler secret list --format json";
+const SECRETS_OK = out('[\n  {\n    "name": "LAN_GUI_SECRET",\n    "type": "secret_text"\n  },\n  {\n    "name": "SESSION_SECRET",\n    "type": "secret_text"\n  }\n]\n');
 const LIST = "CI=1 npx wrangler d1 migrations list tourdao-sales-db --remote";
 /** Lỗi THẬT chủ dự án gặp 2026-10-01 (cũng 26/9, 29/9): lần gọi đầu bị từ chối, chạy lại là qua. */
 const LOI_7403: RunResult = { code: 1, stdout: "", stderr: "✘ [ERROR] A request to the Cloudflare API (/accounts/381557e4e08091d31a3235baf2513df6/d1/database/bcd4c0ac/query) failed.\n\n  The given account is not valid or is not authorized to access this service [code: 7403]\n" };
@@ -275,6 +278,7 @@ function tkScript(over: Record<string, RunResult | RunResult[]> = {}): Record<st
     "git rev-parse origin/main": out(`${HEAD}\n`),
     "git log -1 --oneline --no-decorate main": out("ccccccc Thêm Face ID\n"),
     [WHOAMI]: WHOAMI_OK,
+    [SECRETS]: SECRETS_OK,
     [LIST]: out(LIST_0023),
     [GATE_PRE]: out("ĐẠT: bản ở máy 1.4 mới hơn production 1.3.\n"),
     "npm test": OK,
@@ -289,7 +293,7 @@ function tkScript(over: Record<string, RunResult | RunResult[]> = {}): Record<st
     ...over,
   };
 }
-const TK_PREFIX = ["git rev-parse --abbrev-ref HEAD", "git status --porcelain", "git fetch origin", "git rev-parse main", "git rev-parse origin/main", "git log -1 --oneline --no-decorate main", WHOAMI, LIST, GATE_PRE, "npm test", "npm run typecheck", "npm run build:web", E2E];
+const TK_PREFIX = ["git rev-parse --abbrev-ref HEAD", "git status --porcelain", "git fetch origin", "git rev-parse main", "git rev-parse origin/main", "git log -1 --oneline --no-decorate main", WHOAMI, SECRETS, LIST, GATE_PRE, "npm test", "npm run typecheck", "npm run build:web", E2E];
 const NOW = () => new Date("2026-09-23T03:04:05.000Z");
 
 test("trien-khai (tiêu chí 4): còn migration + trả lời c, c → áp migration → deploy → kiểm dữ liệu, đúng thứ tự", async () => {
@@ -602,6 +606,40 @@ test("trien-khai (7403): kiểm đăng nhập Cloudflare (wrangler whoami — l�
   const h = harness(tkScript(), ["c", "c"]);
   assert.equal(await lib.trienKhai({ ...h.deps, now: NOW, sleep: async () => {} }), 0);
   assert.ok(h.calls.indexOf(WHOAMI) >= 0 && h.calls.indexOf(WHOAMI) < h.calls.indexOf(LIST), h.calls.join(" | "));
+});
+
+// ─────────── ADR-0094 đ4 (L13): cổng chỉ-đọc kiểm khoá bí mật bắt buộc (thiếu khoá ⇒ mọi API 500 sau deploy) ───────────
+
+test("trien-khai (khoá — T15): kiểm tên khoá NGAY sau whoami, TRƯỚC lời gọi D1 và mọi bước ghi", async () => {
+  const h = harness(tkScript(), ["c", "c"]);
+  assert.equal(await lib.trienKhai({ ...h.deps, now: NOW, sleep: async () => {} }), 0);
+  assert.ok(h.calls.indexOf(SECRETS) > h.calls.indexOf(WHOAMI) && h.calls.indexOf(SECRETS) < h.calls.indexOf(LIST), h.calls.join(" | "));
+});
+
+test("trien-khai (khoá — T15): thiếu LAN_GUI_SECRET hoặc SESSION_SECRET ⇒ DỪNG trước migration/deploy, câu lời thường chỉ lệnh secret put", async () => {
+  for (const [thieu, dau] of [
+    ["LAN_GUI_SECRET", '[{"name":"SESSION_SECRET","type":"secret_text"}]'],
+    ["SESSION_SECRET", '[{"name":"LAN_GUI_SECRET","type":"secret_text"}]'],
+    ["LAN_GUI_SECRET", "[]"],
+  ] as const) {
+    const h = harness(tkScript({ [SECRETS]: out(dau) }), ["c", "c"]);
+    assert.notEqual(await lib.trienKhai({ ...h.deps, now: NOW, sleep: async () => {} }), 0, dau);
+    assert.ok(!h.calls.includes(LIST), "không chạm D1");
+    assertNothingDangerous(h.calls);
+    assert.ok(!h.calls.includes(DEPLOY) && !h.calls.includes(APPLY));
+    const t = h.text();
+    assert.match(t, new RegExp(`Chưa đặt khoá ${thieu}`));
+    assert.match(t, new RegExp(`npx wrangler secret put ${thieu}`));
+  }
+});
+
+test("trien-khai (khoá): lệnh secret list lỗi hoặc đầu ra không đọc được ⇒ DỪNG (không bao giờ coi là đạt)", async () => {
+  for (const r of [FAIL, out("không phải JSON"), out('{"name":"LAN_GUI_SECRET"}')]) {
+    const h = harness(tkScript({ [SECRETS]: r }), ["c", "c"]);
+    assert.notEqual(await lib.trienKhai({ ...h.deps, now: NOW, sleep: async () => {} }), 0);
+    assert.ok(!h.calls.includes(LIST));
+    assertNothingDangerous(h.calls);
+  }
 });
 
 test("trien-khai (7403): chưa đăng nhập (whoami lỗi hoặc không thấy 'You are logged in') → DỪNG trước D1, chỉ cách wrangler login", async () => {

@@ -1,6 +1,6 @@
 // Dùng chung cho các kịch bản e2e. Chạy qua `npm run test:e2e` (tests/e2e/run.mjs dựng D1 tạm + wrangler dev riêng).
 // Chạy lẻ một kịch bản: đặt E2E_BASE_URL (server đang chạy) và E2E_PERSIST_TO (thư mục D1 local của server đó).
-import { randomBytes } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import { execFile } from "node:child_process";
 import { request as httpRequest } from "node:http";
 import { promisify } from "node:util";
@@ -37,13 +37,25 @@ let ipn = 0;
 /** IP giả khác nhau cho từng request để bộ đếm chống dò theo IP không chặn nhầm kịch bản. */
 export const freshIp = () => `10.${Math.floor(Math.random() * 250)}.${Math.floor(Math.random() * 250)}.${(++ipn % 250) + 1}`;
 
-/** Gọi API như trình duyệt cùng trang (có Origin + JSON). Trả status, body JSON, cookie phiên mới (nếu có), headers. */
-export async function call(cookie, method, path, body, ip = freshIp()) {
+/**
+ * Gọi API như trình duyệt cùng trang (có Origin + JSON). Trả status, body JSON, cookie phiên mới (nếu có), headers.
+ * Vé chống ghi trùng (ADR-0094, kế hoạch L10): lệnh GHI mặc định mang một vé MỚI mỗi lần gọi (như `web/api.ts` với hai lần bấm có ý định khác nhau —
+ * nghĩa e2e cũ giữ nguyên: hai lần gọi là hai lệnh). `opts.ve`: gửi ĐÚNG vé này (bài chống ghi trùng gửi cùng vé hai lần). `opts.veTrong: true`: không
+ * gửi vé (thử giai đoạn 1 "thiếu vé cho qua và đếm" — T14). Đọc (GET) không bao giờ mang vé.
+ */
+export async function call(cookie, method, path, body, ip = freshIp(), opts = {}) {
+  const headers = { cookie: cookie ?? "", "content-type": "application/json", origin: BASE, "cf-connecting-ip": ip };
+  if (opts.ve !== undefined) headers["idempotency-key"] = opts.ve;
+  else if (method !== "GET" && !opts.veTrong) headers["idempotency-key"] = randomUUID();
   const r = await fetch(BASE + path, {
     method,
-    headers: { cookie: cookie ?? "", "content-type": "application/json", origin: BASE, "cf-connecting-ip": ip },
+    headers,
     body: body !== undefined && method !== "GET" ? JSON.stringify(body) : undefined,
   });
+  // HÀNG RÀO H7 (ADR-0094 A-10): mọi 201 phải có Location = trang nội bộ chỉ chứa id (bắt nốt route 201 ngoài khung thử).
+  if (r.status === 201 && !/^\/[a-z0-9-]+(\?[a-z]+=[A-Za-z0-9-]+)?$/.test(r.headers.get("location") ?? "")) {
+    throw new Error(`H7: ${method} ${path} trả 201 mà thiếu/sai header Location ("${r.headers.get("location")}")`);
+  }
   const setCookie = r.headers.get("set-cookie");
   return { status: r.status, body: await r.json().catch(() => null), cookie: setCookie?.split(";")[0] ?? null, headers: r.headers };
 }

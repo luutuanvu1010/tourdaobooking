@@ -133,6 +133,26 @@ test("nhomCuoc: 'Hôm nay' + 'Ngày mai' + 'Ngày kia' (luôn có ba nhóm, tr�
   ]);
 });
 
+test("nhomCuoc HT-24 (kiểm theo vai 2/10): chuyến ĐANG CHẠY có ngày xuất bến khác ba ngày đang xem (qua nửa đêm, hoặc xuất bến sớm) vẫn vào 'Hôm nay', đứng ĐẦU, kèm nhãn 'Xuất bến dd/mm'", () => {
+  const it = (id: string, ngay: string, gio: string, trangThai = "PLANNED") => ({
+    id, ma: `CX-${id}`, gioXuatBen: { ngay, gio }, trangThai: trangThai as "PLANNED", trangThaiNhan: "Đã lên kế hoạch", bienSo: "79B-123.45", soKhach: 2, soDiemDon: 1, soDiemTra: 1,
+    dieuKienConThieu: [],
+  });
+  // Tái hiện của báo cáo: CX-0210-03 ngày chạy 02/10 23:40, đang chạy; mở /cuoc lúc 00:01 ngày 03/10.
+  const g = nhomCuoc([it("x", "2026-10-02", "23:40", "RUNNING")], "2026-10-03");
+  assert.deepEqual(g.map((x) => x.the.map((t) => t.ma)), [["CX-x"], [], []], "trước đây trả [[],[],[]] — chuyến đang chở khách biến mất");
+  assert.deepEqual([g[0]!.the[0]!.moChay, g[0]!.the[0]!.chip.nhan, g[0]!.the[0]!.nhanNgay], [true, "Đang chạy", "Xuất bến 02/10"]);
+  // Đứng đầu nhóm, trước chuyến hôm nay giờ sớm hơn; chuyến đã KẾT THÚC của hôm qua vẫn không hiện.
+  const h2 = nhomCuoc([it("sang", "2026-10-03", "05:00"), it("dem", "2026-10-02", "23:40", "RUNNING"), it("cu", "2026-10-02", "20:00", "ENDED")], "2026-10-03");
+  assert.deepEqual(h2[0]!.the.map((t) => [t.ma, t.nhanNgay ?? null]), [["CX-dem", "Xuất bến 02/10"], ["CX-sang", null]]);
+  // Chuyến đang chạy CÙNG ngày không có nhãn ngày (giữ nguyên thẻ cũ).
+  assert.equal(nhomCuoc([it("a", "2026-10-03", "06:40", "RUNNING")], "2026-10-03")[0]!.the[0]!.nhanNgay, undefined);
+  // Xuất bến sớm chuyến 5 ngày sau (HT-03): vẫn thấy ở 'Hôm nay' để còn bấm tiếp / kết thúc — không trốn khỏi danh sách.
+  assert.deepEqual(nhomCuoc([it("som", "2026-10-08", "07:00", "RUNNING")], "2026-10-03").map((x) => x.the.map((t) => t.nhanNgay)), [["Xuất bến 08/10"], [], []]);
+  // Chuyến đang chạy thuộc ngày mai / ngày kia vẫn ở đúng nhóm của nó (không đếm hai lần).
+  assert.deepEqual(nhomCuoc([it("m", "2026-10-04", "07:00", "RUNNING")], "2026-10-03").map((x) => x.the.length), [0, 1, 0]);
+});
+
 test("soHieuTaiDiemDon (nợ nhỏ 2026-10-01, ADR-0055 C3): số hiệu chuyến bay của các suất LÊN xe ở điểm — không trùng, theo thứ tự suất; bỏ null, bỏ suất lên điểm khác", () => {
   const s = (id: string, diemLen: string | null, soHieuChuyenBay: string | null) => ({ id, maDon: "TD1", diemLen, diemXuong: "D9", trangThai: "WAITING" as const, daDon: null, daTra: null, soHieuChuyenBay });
   const ds = [s("1", "P1", "VN1553"), s("2", "P1", null), s("3", "P1", "VN1553"), s("4", "P2", "QH201"), s("5", "P1", "VJ778")];

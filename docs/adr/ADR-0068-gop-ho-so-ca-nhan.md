@@ -1,6 +1,6 @@
 # ADR-0068 — Gộp hồ sơ cá nhân trùng: hồ sơ phụ trỏ về hồ sơ chính, chỉ chuyển phần còn sửa được, sổ sách giữ nguyên
 
-- **Trạng thái:** **accepted** 2026-10-01 (chủ dự án duyệt bằng lời qua hộp hỏi gom — nguyên văn ở `docs/superpowers/plans/2026-09-30-gop-ho-so-thi-cong-nhat-ky.md`). Bản nháp gốc giữ ở `docs/superpowers/specs/2026-09-30-gop-ho-so/`.
+- **Trạng thái:** **accepted** 2026-10-01 (chủ dự án duyệt bằng lời qua hộp hỏi gom — nguyên văn ở `docs/superpowers/plans/2026-09-30-gop-ho-so-thi-cong-nhat-ky.md`). Bản nháp gốc giữ ở `docs/superpowers/specs/2026-09-30-gop-ho-so/`. **Bổ sung bởi [ADR-0098](ADR-0098-tra-trung-ho-so-theo-sdt.md)** (accepted 2026-10-03): `:28` nguồn trùng (a) "người lập đơn chọn 'tạo mới'" bị chặn ở máy chủ; cặp hồ sơ trùng số có sẵn được cảnh báo (`R-PTY-7`) để Quản trị gộp theo ADR này.
 - **Ngày:** 2026-09-30 (soạn), 2026-10-01 (duyệt).
 - **Số:** 0068 — 0066 (trợ lý AI) và 0067 (lọc đơn theo người lập) đã có văn bản ở nhánh khác. Migration số tạm `0056_gop_ho_so.sql` theo luật 1.46 (không giữ chỗ; số lớn nhất của `main` + 1; nhánh gộp sau tự đổi tên) — kế hoạch viết `0054` nhưng số đó đã dùng ở bản 1.47; thi công dùng `0055`, đổi thành `0056` khi gộp main 1.49 (2026-10-01) vì `0055_nhom_dich_vu` đã lên production.
 - **Thuộc gói:** một lượt duyệt gồm ADR này + đặc tả `docs/superpowers/specs/2026-09-30-gop-ho-so/dac-ta.md` (trang ghép ở §9 của đặc tả). Hai quyết định chạm dữ liệu/quyền ≤ trần 3.

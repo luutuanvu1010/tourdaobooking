@@ -9,6 +9,7 @@
 | `audit_log` | bảng | tên cũ, giữ nguyên (ADR-0002 điều 2) |
 | `v_aud_order_event` | view công bố | cột: id, order_id, staff_id, action, created_at |
 | `v_aud_trip_event` | view công bố | cột: id, trip_id, staff_id, action, created_at |
+| `v_aud_account_event` | view công bố | cột: id, account_id, staff_id, action, created_at |
 
 ## auth
 
@@ -165,7 +166,7 @@
 | `vc_vehicle_document` | bảng |  |
 | `vc_vehicle_document_type` | bảng |  |
 | `vc_expiry_policy` | bảng |  |
-| `vc_dispatch_policy` | bảng |  |
+| `vc_dispatch_policy` | bảng | duty_day_max_minutes (480, 60–1440) tổng giờ lái một ngày chạy; trip_no_break_max_minutes (240, 30–720) chuyến dài hơn → nhắc nghỉ — chỉ cảnh báo (ADR-0055 VK2-B); thêm bằng ADD COLUMN có DEFAULT ở 0071 (lệch khuôn I43 có ghi — bù bằng bài 'câu chèn liệt kê đủ cột' và thân yêu cầu bắt buộc hai số) |
 | `vc_leg_template` | bảng | MẪU ĐƯA ĐÓN theo dịch vụ (ADR-0054 D10.1, 0058): chỉ thêm (trigger cấm sửa/xoá), dòng valid_from_at lớn nhất đã tới là hiện hành, không dòng = không đưa đón. code = mã dịch vụ của Danh mục — tham chiếu LOGIC, KHÔNG khoá ngoại, KHÔNG khai logicalRefs (catalog chưa có view công bố cho mã; ruling 0.5 của nhật ký thi công 2026-10-01-may-chu-o-moi-chang); van-chuyen không đọc bảng catalog. default_dropoff_location_id = nơi trả mặc định (ADR nháp nơi trả mặc định, đã duyệt 1/10) — điểm danh mục, chỉ khi có đưa đón. Chỉ là GỢI Ý ở form (hàm thuần changMacDinh): máy chủ không tự tạo chặng, không tự điền nơi trả |
 | `vc_departure_rule` | bảng |  |
 | `vc_license_capacity` | bảng |  |
@@ -174,6 +175,7 @@
 | `vc_vehicle_size` | bảng tra cứu |  |
 | `vc_rental_rate` | bảng |  |
 | `vc_trip_cost_line` | bảng |  |
+| `vc_unavailability` | bảng | KHUNG BẬN (ADR-0055 VK2-A; hình dùng chung ADR-0053 D9.1, migration 0071): subject VEHICLE (xe vào xưởng, đăng kiểm…) | DRIVER (Báo bận tài xế đối tác — CHƯA MỞ, trigger chặn tới Đợt 6). Đúng một đối tượng theo subject. start_ms/end_ms nửa mở, phút tròn; start_at/end_at ISO UTC cùng mốc. Chỉ thêm; một kiểu sửa: rút một lần (withdrawn_*, version + 1). Lý do: vc_reason nhóm BAN_XE (xe) / BAN_TAI_XE (tài xế). Trigger hai chiều với vc_trip: chuyến chưa huỷ không chồng khung còn hiệu lực; khung không chồng chuyến PLANNED/RUNNING. Không cột ghi chú tự do. Đọc đợt này luôn lọc subject = 'VEHICLE' |
 | `vc_trip` | bảng |  |
 | `vc_trip_driver` | bảng |  |
 | `vc_trip_stop` | bảng |  |
@@ -196,6 +198,13 @@
 | `tl_hoi_dap` | bảng | lịch sử hỏi đáp (ADR-0069 điều 5, sửa ADR-0066 điều 7), CHỈ-THÊM, ghi cùng lô với tl_luot_hoi (luot_id); câu hỏi ĐÃ CHE (CHECK chặn dãy 8 chữ số); chỉ Toàn quyền đọc (settings.ops); không xoá; cuoc_tro_chuyen = mã cuộc trò chuyện để máy chủ lấy ≤ 3 lượt trước của CHÍNH người hỏi (ADR-0073 Đ4); câu trả lời lưu SAU khi đã ẩn số tiền |
 | `tl_bo_nao` | bảng | bộ não trợ lý Hỗ trợ (ADR-0073 Đ1, Đ2): mẫu AI (danh sách đóng trong mã), mức suy nghĩ, độ dài, token ra 800–4000, TOÀN BỘ lời nhắc 1–12.000 ký tự; bản có hiệu lực CHỈ-THÊM (bản hiện hành = valid_from_at lớn nhất); không gieo — chưa có bản thì dùng bản mặc định trong mã; chỉ Toàn quyền thêm bản (settings.ops) |
 | `tl_van_nghia` | bảng | dấu vân nghĩa (embedding OpenAI, ADR-0082 Đ2) của đoạn kho tri thức trợ lý — CHỈ nội dung kho (hướng dẫn, kiến trúc, sơ đồ trang, ngữ cảnh bổ sung đã lọc), KHÔNG câu hỏi / người hỏi; khoá = SHA-256 của đoạn đã định dạng + mẫu + số chiều; vec = BLOB float32 dài so_chieu × 4 (CHECK); CHỈ-THÊM, ghi bằng ON CONFLICT(khoa) DO NOTHING khi máy chủ tính bù; không route nào đọc / ghi trực tiếp |
+
+## lan-gui
+
+| Đối tượng | Loại | Ghi chú |
+|---|---|---|
+| `lg_lan_gui` | bảng | vé chống ghi trùng (ADR-0094, migration 0074): dữ liệu KỸ THUẬT, không dữ liệu cá nhân — mỗi dòng một Idempotency-Key của một lệnh ghi có đăng nhập, chèn CUỐI lô ghi đầu tiên thành công của lệnh (có vé ⇔ lô đã ghi). Khoá chính (staff_id, khoa), WITHOUT ROWID; van_tay = HMAC (khoá LAN_GUI_SECRET); duong = mẫu route; ket_qua = đường dẫn nội bộ chỉ chứa id. Không xoá ở bản này (đường dọn theo thời hạn: bản sau, A-11) |
+| `lg_chinh_sach_giu` | bảng | thời hạn giữ vé (ADR-0094 đ8a, migration 0074): dữ liệu kỹ thuật; dòng hiệu lực = valid_from_at mới nhất ≤ bây giờ; chỉ thêm (trigger cấm sửa/xoá); so_ngay NULL = Không dọn; sàn cứng 90 ngày ở CHECK; gieo 365 ngày |
 
 ## Cạnh toàn vẹn (khoá ngoại có sẵn, không phải phụ thuộc mã — ADR-0002 điều 6)
 

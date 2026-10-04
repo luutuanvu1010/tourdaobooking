@@ -61,6 +61,7 @@ try {
   const args = [
     "wrangler", "dev", "--port", String(PORT), "--ip", "0.0.0.0", "--persist-to", persist,
     "--var", `SESSION_SECRET:${randomBytes(48).toString("base64url")}`,
+    "--var", `LAN_GUI_SECRET:${randomBytes(48).toString("base64url")}`, // ADR-0094 đ4: thiếu thì mọi API 500
     "--var", "PASSKEY_RP_ID:", "--var", "PASSKEY_ORIGIN:",
   ];
   if (tunnel) args.push("--tunnel");

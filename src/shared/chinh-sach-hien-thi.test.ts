@@ -11,9 +11,9 @@ import type { DepartureRuleDto, DispatchPolicyDto, TripReasonDto } from "./contr
 
 const chinhSach = (o: Partial<DispatchPolicyDto> = {}): DispatchPolicyDto => ({
   id: "p1", minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes: 30, requireManifest: true, requireContract: false, proxyBackdateMaxMinutes: 180,
-  validFrom: "2026-09-01T00:00:00.000Z", current: true, nguoiLuu: null, ...o,
+  dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240, validFrom: "2026-09-01T00:00:00.000Z", current: true, nguoiLuu: null, ...o,
 });
-const form = (o: Partial<Parameters<typeof docFormChinhSach>[0]> = {}) => ({ mocGio: "6", satMocGio: "2", nghiPhut: "30", khaiLuiPhut: "180", duDanhSach: true, ...o });
+const form = (o: Partial<Parameters<typeof docFormChinhSach>[0]> = {}) => ({ mocGio: "6", satMocGio: "2", nghiPhut: "30", khaiLuiPhut: "180", gioLaiGio: "8", chuyenDaiGio: "4", duDanhSach: true, ...o });
 
 test("nhanThoiLuong: số phút → lời thường (giờ tròn, giờ + phút, phút)", () => {
   assert.equal(nhanThoiLuong(360), "6 giờ");
@@ -33,11 +33,11 @@ test("gioTuPhut: giá trị ô giờ — tròn thì số nguyên, lẻ thì th�
   }
 });
 
-test("docFormChinhSach: hợp lệ → thân POST đúng năm khoá (không ngày hiệu lực, không hợp đồng) và máy chủ nhận", () => {
-  const r = docFormChinhSach(form({ mocGio: "5", satMocGio: "1,5", nghiPhut: "45", khaiLuiPhut: "240", duDanhSach: false }));
+test("docFormChinhSach: hợp lệ → thân POST đúng bảy khoá (không ngày hiệu lực, không hợp đồng; hai con số giờ lái ADR-0055 VK2-B — K2: ô theo GIỜ) và máy chủ nhận", () => {
+  const r = docFormChinhSach(form({ mocGio: "5", satMocGio: "1,5", nghiPhut: "45", khaiLuiPhut: "240", gioLaiGio: "9", chuyenDaiGio: "4,5", duDanhSach: false }));
   assert.ok(r.ok);
-  assert.deepEqual(r.value, { minLeadMinutes: 300, warnLeadMinutes: 90, restMinutes: 45, requireManifest: false, proxyBackdateMaxMinutes: 240 });
-  assert.deepEqual(Object.keys(r.value).sort(), ["minLeadMinutes", "proxyBackdateMaxMinutes", "requireManifest", "restMinutes", "warnLeadMinutes"]);
+  assert.deepEqual(r.value, { minLeadMinutes: 300, warnLeadMinutes: 90, restMinutes: 45, requireManifest: false, proxyBackdateMaxMinutes: 240, dutyDayMaxMinutes: 540, tripNoBreakMaxMinutes: 270 });
+  assert.deepEqual(Object.keys(r.value).sort(), ["dutyDayMaxMinutes", "minLeadMinutes", "proxyBackdateMaxMinutes", "requireManifest", "restMinutes", "tripNoBreakMaxMinutes", "warnLeadMinutes"]);
   assert.ok(kiemChinhSachMoi({ ...r.value }).ok, "luật máy chủ nhận đúng thân này");
 });
 
@@ -66,16 +66,24 @@ test("docFormChinhSach: mỗi ô sai một câu lời thường theo đơn vị 
   assert.ok(docFormChinhSach(form({ khaiLuiPhut: "1440" })).ok);
   assert.ok(docFormChinhSach(form({ satMocGio: "0", nghiPhut: "0" })).ok);
   assert.ok(docFormChinhSach(form({ mocGio: "48" })).ok);
+  // ADR-0055 VK2-B: hai ô giờ lái (đơn vị giờ — K2).
+  assert.match(loi({ gioLaiGio: "0,5" }).gioLaiGio ?? "", /Giờ lái tối đa một ngày là số giờ từ 1 đến 24/);
+  assert.match(loi({ gioLaiGio: "25" }).gioLaiGio ?? "", /từ 1 đến 24/);
+  assert.match(loi({ gioLaiGio: "" }).gioLaiGio ?? "", /Nhập/);
+  assert.match(loi({ chuyenDaiGio: "13" }).chuyenDaiGio ?? "", /từ 0,5 đến 12/);
+  assert.match(loi({ chuyenDaiGio: "0,25" }).chuyenDaiGio ?? "", /từ 0,5 đến 12/);
+  assert.ok(docFormChinhSach(form({ gioLaiGio: "1", chuyenDaiGio: "0,5" })).ok);
+  assert.ok(docFormChinhSach(form({ gioLaiGio: "24", chuyenDaiGio: "12" })).ok);
 });
 
 test("formTuChinhSach: điền sẵn từ bản đang dùng; chưa có bản → ô trống, bật đủ danh sách", () => {
   assert.deepEqual(formTuChinhSach(chinhSach()), form());
-  assert.deepEqual(formTuChinhSach(null), { mocGio: "", satMocGio: "", nghiPhut: "", khaiLuiPhut: "", duDanhSach: true });
+  assert.deepEqual(formTuChinhSach(null), { mocGio: "", satMocGio: "", nghiPhut: "", khaiLuiPhut: "", gioLaiGio: "", chuyenDaiGio: "", duDanhSach: true });
 });
 
 test("tomTatChinhSach + thayDoiChinhSach: tóm tắt một bản; liệt kê đúng ô đã đổi so với bản đang dùng", () => {
-  assert.equal(tomTatChinhSach(chinhSach()), "Mốc 6 giờ · sát mốc 2 giờ · nghỉ 30 phút · khai lùi 180 phút · phải đủ danh sách khách");
-  assert.equal(tomTatChinhSach(chinhSach({ requireManifest: false, warnLeadMinutes: 90 })), "Mốc 6 giờ · sát mốc 1 giờ 30 phút · nghỉ 30 phút · khai lùi 180 phút");
+  assert.equal(tomTatChinhSach(chinhSach()), "Mốc 6 giờ · sát mốc 2 giờ · nghỉ 30 phút · khai lùi 180 phút · lái tối đa 8 giờ/ngày · nhắc nghỉ chuyến trên 4 giờ · phải đủ danh sách khách");
+  assert.equal(tomTatChinhSach(chinhSach({ requireManifest: false, warnLeadMinutes: 90, dutyDayMaxMinutes: 540 })), "Mốc 6 giờ · sát mốc 1 giờ 30 phút · nghỉ 30 phút · khai lùi 180 phút · lái tối đa 9 giờ/ngày · nhắc nghỉ chuyến trên 4 giờ");
   const cu = chinhSach();
   const giu = docFormChinhSach(form());
   assert.ok(giu.ok);
@@ -84,6 +92,9 @@ test("tomTatChinhSach + thayDoiChinhSach: tóm tắt một bản; liệt kê đ�
   assert.ok(doi.ok);
   assert.deepEqual(thayDoiChinhSach(cu, doi.value), ["Mốc tối thiểu 6 giờ → 5 giờ", "Khai lùi tối đa 180 → 240 phút", "Không bắt đủ danh sách khách"]);
   assert.deepEqual(thayDoiChinhSach(null, doi.value), ["Bản đầu tiên"]);
+  const gl = docFormChinhSach(form({ gioLaiGio: "9", chuyenDaiGio: "5" }));
+  assert.ok(gl.ok);
+  assert.deepEqual(thayDoiChinhSach(cu, gl.value), ["Giờ lái tối đa một ngày 8 giờ → 9 giờ", "Nhắc nghỉ chuyến trên 4 giờ → 5 giờ"]);
 });
 
 test("dongLichSuChinhSach: đánh số từ bản cũ nhất; bản đang dùng / hết hiệu lực; khoảng hiệu lực theo ngày VN; không có người lưu (DTO không có)", () => {
@@ -98,7 +109,7 @@ test("dongLichSuChinhSach: đánh số từ bản cũ nhất; bản đang dùng 
     ["b", "Bản 2", "Hết hiệu lực", "muted", "Hiệu lực 25/09 – 29/09/2026"],
     ["a", "Bản 1", "Hết hiệu lực", "muted", "Hiệu lực 01/09 – 25/09/2026"],
   ]);
-  assert.equal(dong[2]!.tomTat, "Mốc 4 giờ · sát mốc 2 giờ · nghỉ 30 phút · khai lùi 180 phút · phải đủ danh sách khách");
+  assert.equal(dong[2]!.tomTat, "Mốc 4 giờ · sát mốc 2 giờ · nghỉ 30 phút · khai lùi 180 phút · lái tối đa 8 giờ/ngày · nhắc nghỉ chuyến trên 4 giờ · phải đủ danh sách khách");
   // R-P23 (điều phối trả lời Q-B-1): "ai lưu" — "<tên> lưu dd/mm HH:MM" (giờ VN của lúc lưu = lúc hiệu lực); null (bản gieo) → không có dòng.
   assert.deepEqual(dong.map((d) => d.nguoiLuu), [null, null, null]);
   const coTen = dongLichSuChinhSach([chinhSach({ validFrom: "2026-09-24T09:20:00.000Z", nguoiLuu: "Lưu Tuấn Vũ" }), chinhSach({ id: "g", validFrom: "2026-09-01T00:00:00.000Z", current: false })]);

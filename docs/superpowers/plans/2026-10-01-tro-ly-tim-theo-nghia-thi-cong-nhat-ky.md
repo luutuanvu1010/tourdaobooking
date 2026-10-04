@@ -18,6 +18,7 @@ Ngày tra: 2026-10-01 (người thi công mở lại bằng WebFetch; khớp s�
 - "lập đơn mới ra sao" → 41 khớp mạnh → RRF + trần 12 đoạn chọn 12, đầu là `Cấu trúc app › Việc: lập đơn mới`, có `Bán hàng › Lập đơn mới`.
 - Khớp số kỳ vọng của kế hoạch (1 / 10 / 41) ⇒ không kích hoạt D3. Bài C4 khoá thêm tên cụ thể (ruling F7) thay cho "1 ≤ số ≤ 12" của bản kế hoạch.
 - F5: điểm từ khoá × hệ số vai chỉ một chỗ (`diemTuKhoa` + `heSoVai` ở `src/shared/tro-ly.ts`); `chonDoanTron` tính BM25 MỘT lần mỗi câu (hàm nội bộ `tuKhoaVaManh` dùng chung với `khopManh`) — lệch nhỏ khỏi mã mẫu của kế hoạch (mẫu gọi `diemTuKhoa` hai lần).
+- **Đo lại 2026-10-02 (bản 1.77, nhánh `worktree-tro-giup-van-chuyen`)** — Trợ giúp + kho "Cách app vận hành" bỏ đoạn "Điều phối xe — chưa dùng cho chuyến thật" (chủ 2/10: đủ điều kiện điều xe thật thì sửa Trợ giúp). Kho thật, vai `SALES`, véc-tơ trực giao: "sao app khó dùng thế" → **15** khớp mạnh (trước 1: đoạn bị bỏ lặp chữ "dùng" nên đè điểm cao nhất, chỉ mình nó vượt 0,7 × max; bỏ đi thì 15 đoạn có "app" + "dùng" vượt ngưỡng tương đối) → `chonDoanTron` chọn 12 (trần), có `Phần chung › Câu hỏi thường gặp`, không còn đoạn Điều phối xe; "đổi mã PIN thế nào" → 10; "lập đơn mới ra sao" → 41 (không đổi). Ruling điều phối: luật KHÔNG đổi, chỉ sửa số kỳ vọng C4 thành 15 / 10 / 41 và khoá "có Câu hỏi thường gặp, không có Điều phối xe" thay cho tên đoạn cũ — câu than phiền nay ra đoạn đúng chủ đề hơn.
 
 ## Đột biến hàng rào (sửa cố ý → đỏ → hoàn nguyên → xanh)
 

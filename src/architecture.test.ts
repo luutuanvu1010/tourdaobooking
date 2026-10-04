@@ -39,6 +39,8 @@ const ALLOWED_EDGES: Record<string, readonly string[]> = {
   dispatch: ["orders", "parties", "locations", "staff", "audit"],
   feedback: ["staff", "audit"], // đọc nhãn nhân viên (v_stf_staff_label) + ghi nhật ký `feedback_*`; không module nào import feedback
   "giao-dien": ["audit"], // ADR-0087: ghi nhật ký giao_dien_changed
+  // ADR-0094 đ2: lớp chống ghi trùng — lá, không import module nào; router dùng nó qua phần tiêm `injected.lanGui` của gốc lắp ráp (không cạnh nào tới lan-gui).
+  "lan-gui": [],
   locations: ["audit"],
   maintenance: ["audit"], // ghi nhật ký `maintenance_changed`; là lá của cạnh auth → maintenance (không vòng)
   // pricing: ADR-0024 điều 2 — tỷ lệ chiết khấu/hoa hồng chụp trong luồng của đơn lúc Xác nhận (lượt 2; lượt 1 chưa import).
@@ -73,6 +75,7 @@ const STRICT: readonly { module: string; file: string }[] = [
   { module: "dispatch", file: "modules/dispatch/repository.ts" },
   { module: "feedback", file: "modules/feedback/repository.ts" },
   { module: "giao-dien", file: "modules/giao-dien/repository.ts" },
+  { module: "lan-gui", file: "modules/lan-gui/repository.ts" }, // ADR-0094 đ2: nghiêm từ ngày đầu
   { module: "locations", file: "modules/locations/repository.ts" },
   { module: "maintenance", file: "modules/maintenance/repository.ts" },
   { module: "parties", file: "modules/parties/repository.ts" },
@@ -81,6 +84,7 @@ const STRICT: readonly { module: string; file: string }[] = [
   { module: "van-chuyen", file: "modules/van-chuyen/repository.ts" }, // ADR-0040 D1 (siết: SQL đi qua defineSql, EXPLAIN)
   { module: "van-chuyen", file: "modules/van-chuyen/chuyen-repo.ts" }, // ADR-0049 D1 (siết, Task A13 — R-P4 (ii) "bài nhận hai tệp"): SQL chuyến xe
   { module: "van-chuyen", file: "modules/van-chuyen/tien-xe-repo.ts" }, // ADR-0057 T1/T2 (kế hoạch Đợt 4 Task 4): SQL bảng giá thuê, chi phí chuyến — siết như chuyen-repo
+  { module: "van-chuyen", file: "modules/van-chuyen/khung-ban-repo.ts" }, // ADR-0055 VK2-A (Đợt 3, K15): SQL khung bận — EXPLAIN từng câu
   { module: "tro-ly", file: "modules/tro-ly/repository.ts" }, // ADR-0066: nghiêm từ ngày đầu
 ];
 
@@ -176,7 +180,7 @@ const DOC_AUDIT_LOG_WONGUARD = {
 // ĐÃ DUYỆT 2026-09-29 (lần 5) ở docs/superpowers/plans/2026-09-29-adr-0047-de-xuat-luat.md mục 1.
 // prc_/prc: ADR-0024 điều 1 (module pricing, bảng ở lượt 2).
 // ctl_/catalog: ADR-0058 điều 1 (nhóm dịch vụ; bảng cũ catalog_* giữ tên) — NỚI hàng rào đã duyệt (Điều 9.4), chủ duyệt ADR-0058 ngày 2026-09-30 (lượt 1a).
-const TABLE_PREFIX: Record<string, string> = { ctl_: "catalog", prc_: "pricing", pty_: "parties", loc_: "locations", stf_: "staff", fbk_: "feedback", dsp_: "dispatch", bil_: "billing", mnt_: "maintenance", aut_: "auth", ntf_: "thongbao", vc_: "van-chuyen", ord_: "orders", tl_: "tro-ly", gd_: "giao-dien" };
+const TABLE_PREFIX: Record<string, string> = { ctl_: "catalog", prc_: "pricing", pty_: "parties", loc_: "locations", stf_: "staff", fbk_: "feedback", dsp_: "dispatch", bil_: "billing", mnt_: "maintenance", aut_: "auth", ntf_: "thongbao", vc_: "van-chuyen", ord_: "orders", tl_: "tro-ly", gd_: "giao-dien", lg_: "lan-gui" };
 const VIEW_PREFIX: Record<string, string> = { prc: "pricing", pty: "parties", loc: "locations", stf: "staff", ord: "orders", dsp: "dispatch", bil: "billing", aud: "audit", vc: "van-chuyen" };
 
 // ---------------------------------------------------------------------------------------------------------------------

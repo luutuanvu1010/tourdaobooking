@@ -2,6 +2,7 @@
 // và ở accounts (bật/gỡ/đặt PIN, qua index.ts). Không ghi nhật ký ở đây: auth không phụ thuộc audit (đặc tả §2.1).
 import type { PasskeyDto } from "../../shared/contracts";
 import { error, getCookie, json } from "../../shared/http";
+import { dbNgoaiVe } from "../../shared/lan-gui-boc";
 import { CHALLENGE_COOKIE, challengeCookie, clearedChallengeCookie, issueChallenge, readChallenge, type ChallengePurpose } from "./challenge";
 import { findActivePasskey, markPasskeyUsed, type PasskeyRow } from "./repository";
 import { isSecure } from "./session";
@@ -36,7 +37,8 @@ export function passkeyRp(env: Env): RelyingParty | null {
 
 export async function limitChallenge(request: Request, env: Env): Promise<Response | null> {
   const ip = request.headers.get("cf-connecting-ip") ?? "unknown";
-  const r = await reserveAttempts(env.DB, [{ key: `webauthn:${ip}`, max: CHALLENGE_IP_LIMIT }]);
+  // NGOÀI VÉ (ADR-0094, T17 — mục có tên trong src/shared/lan-gui-no.ts): sổ đếm thách thức Face ID ghi TRƯỚC lô chính, phải ghi cả khi bị từ chối.
+  const r = await reserveAttempts(dbNgoaiVe(env.DB), [{ key: `webauthn:${ip}`, max: CHALLENGE_IP_LIMIT }]);
   if (r.allowed) return null;
   return json(
     { error: { code: "too_many_attempts", message: `Thử quá nhiều lần. Thử lại sau ${Math.ceil(r.retryAfterSeconds / 60)} phút.`, retryAfterSeconds: r.retryAfterSeconds } },
@@ -94,6 +96,8 @@ export async function checkPasskeyAssertion(
     const blocked = await gate(pk);
     if (blocked) return { ok: false, response: blocked };
   }
-  if (!(await markPasskeyUsed(env.DB, pk.id, signCount, new Date().toISOString(), new Date(ch.issuedAt).toISOString()))) return { ok: false, response: PASSKEY_ERRORS.expired() };
+  // NGOÀI VÉ (ADR-0094, T17 — mục có tên trong src/shared/lan-gui-no.ts): tiêu thách thức + bộ đếm chữ ký phải ghi DÙ lô chính sau đó hỏng (chống dùng lại
+  // chữ ký), và không được mang vé chống ghi trùng của lệnh (Đặt PIN bằng Face ID) — mang vé thì lô chính hỏng mà gửi lại bị báo nhầm "đã ghi".
+  if (!(await markPasskeyUsed(dbNgoaiVe(env.DB), pk.id, signCount, new Date().toISOString(), new Date(ch.issuedAt).toISOString()))) return { ok: false, response: PASSKEY_ERRORS.expired() };
   return { ok: true, passkey: pk };
 }

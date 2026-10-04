@@ -10,11 +10,13 @@
 // - ADR-0050: nơi hẹn đổi sau khi xếp → giữ NOI_HEN_DOI (so KHOÁ so sánh nơi của chặng với `placeKey` của điểm — `noiLechCuaSuat`, MỘT hàm cho cả lý do giữ
 //   lẫn cảnh báo lịch chung K-02); khoảng nghỉ lúc xuất bến đo từ giờ XẢY RA xuất bến (`xuatBenMs`), không từ lúc bấm (I37).
 import type {
-  BanChup, ChangVao, ChinhSachVao, ChuyenVao, DieuKienVao, DiemVao, GanTen, HangBangVao, KetQuaKiem, KetQuaXuatBen, KhungChuyen, MucChup, SuatVao, TaiXeVao,
+  BanChup, ChangVao, ChinhSachVao, ChuyenVao, DieuKienVao, DiemVao, GanTen, HangBangVao, KetQuaKiem, KetQuaXuatBen, KhungBanVao, KhungChuyen, MucChup, SuatVao, TaiXeVao,
   TrangThaiChuyen, XeVao,
 } from "./dieu-phoi-kieu.ts";
 import { KET_QUA_CUOI_SUAT } from "./dieu-phoi-kieu.ts";
 import { LOAI_CO_DINH } from "./giay-to.ts";
+import { canhBaoGioLai, type CanhBaoGioLai, type ChuyenGioLai } from "./gio-lai.ts";
+import { chongNuaMo, nhanKhoangGio } from "./khung-ban.ts";
 import { lyDoGiu, type LyDoGiu } from "./ly-do-giu.ts";
 import { kiemMocXep, type LenhXep } from "./moc-toi-thieu.ts";
 import { msToVnLocal, vnToday } from "./vn-date.ts";
@@ -81,13 +83,20 @@ export interface KiemTaoSuaChuyenVao {
   taiTrenChuyen?: number;
   /** Các chuyến khác (mọi trạng thái; chuyến huỷ bị bỏ qua) để xét trùng giờ và khoảng nghỉ. */
   chuyenKhac: KhungChuyen[];
+  /** Khung bận CÒN HIỆU LỰC giao giờ chuyến (ADR-0055 VK2-A A2 (i)) — vắng = không khung. */
+  khungBan?: KhungBanVao[];
   chinhSach: ChinhSachVao | null;
   hangBang: HangBangVao[];
   bayGioMs: number;
 }
 
-/** Kiểm lệnh tạo / sửa chuyến: giờ hợp lệ, xe dùng được, sức chứa, LC-03, CH-02 (cần phá lệ), LC-12, LC-13, mốc lúc xếp khi đổi xe / tài xế (cần phá lệ). */
-export function kiemTaoSuaChuyen(v: KiemTaoSuaChuyenVao): KetQuaKiem {
+/**
+ * Kết quả kiểm tạo / sửa chuyến + nhắc giờ lái của CHÍNH chuyến đó (ADR-0055 VK2-B B3 — chỉ cảnh báo, không đổi `ok`). Tên KHÁC `kiemXep.canhBao` có chủ
+ * đích (K14): cảnh báo xếp là `LyDoGiu` (mã `MA_GIU`), còn giờ lái không được thêm mã vào `MA_GIU` (ADR-0055).
+ */
+export type KetQuaTaoSua = KetQuaKiem & { nhacGioLai: CanhBaoGioLai[] };
+/** Kiểm lệnh tạo / sửa chuyến: giờ hợp lệ, xe dùng được, sức chứa, LC-03, khung bận, CH-02 (cần phá lệ), LC-12, LC-13, mốc lúc xếp khi đổi xe / tài xế (cần phá lệ). */
+export function kiemTaoSuaChuyen(v: KiemTaoSuaChuyenVao): KetQuaTaoSua {
   const chan: LyDoGiu[] = [];
   const canPhaLe: LyDoGiu[] = [];
   const c = v.chuyen;
@@ -114,6 +123,14 @@ export function kiemTaoSuaChuyen(v: KiemTaoSuaChuyenVao): KetQuaKiem {
       if (khoang < nghi * PHUT) canPhaLe.push(lyDoGiu("KHOANG_NGHI", k.ma));
     }
   }
+  // ADR-0055 VK2-A A2 (i) + ADR-0053 D9 B9.3: khung bận còn hiệu lực là KHOẢNG CHẶN như chuyến khác — MỘT hàm cho xe và tài xế (không luật thứ hai).
+  // Mã: dùng lại TRUNG_GIO_XE / TRUNG_GIO_TAI_XE (ADR-0055 "không thêm mã vào MA_GIU"; chủ không trả lời Lượt III câu 7) — chi tiết nói rõ là lịch bận.
+  for (const k of v.khungBan ?? []) {
+    if (!chongNuaMo(c.batDauMs, c.ketThucMs, k.batDauMs, k.ketThucMs)) continue;
+    const gio = `${k.lyDoNhan} ${nhanKhoangGio(k.batDauMs, k.ketThucMs)}`;
+    if (k.doiTuong === "VEHICLE" && k.xeId === c.xe.id) chan.push(lyDoGiu("TRUNG_GIO_XE", `lịch xe bận: ${gio}`));
+    if (k.doiTuong === "DRIVER" && c.taiXe !== null && k.taiXePartyId === c.taiXe.partyId) chan.push(lyDoGiu("TRUNG_GIO_TAI_XE", `lịch tài xế bận: ${gio}`));
+  }
   if (c.taiXe) {
     const lai = kiemLai(c.taiXe, c.xe.soCho, c.ketThucMs, v.hangBang);
     if (lai.lyDo) chan.push(lai.lyDo);
@@ -128,7 +145,12 @@ export function kiemTaoSuaChuyen(v: KiemTaoSuaChuyenVao): KetQuaKiem {
     if (v.cu.taiXePartyId !== (c.taiXe?.partyId ?? null)) lenh.push("DOI_TAI_XE");
     if (lenh.some((loai) => kiemMocXep({ batDauMs: batDau, batDauSomNhatMs: batDau }, v.bayGioMs, v.chinhSach!.minLeadMinutes, { loai }).canPhaLe)) canPhaLe.push(lyDoGiu("MOC_TOI_THIEU"));
   }
-  return ketQua(khongTrung(chan), khongTrung(canPhaLe));
+  // ADR-0055 VK2-B B3: nhắc giờ lái cho chuyến đang tạo / sửa (MỘT hàm với lịch chung — canhBaoGioLai). "__moi__" = id tạm của chuyến chưa có id.
+  const id = c.id ?? "__moi__";
+  const ung: ChuyenGioLai = { id, ma: "", taiXePartyId: c.taiXe?.partyId ?? null, batDauMs: c.batDauMs, ketThucMs: c.ketThucMs, ketThucThatMs: null, trangThai: "PLANNED", xuatBenMs: null };
+  const cs = v.chinhSach ? { dutyDayMaxMinutes: v.chinhSach.dutyDayMaxMinutes, tripNoBreakMaxMinutes: v.chinhSach.tripNoBreakMaxMinutes } : null;
+  const nhacGioLai = canhBaoGioLai([ung, ...v.chuyenKhac.filter((k) => k.id !== c.id)], cs, v.bayGioMs, new Set([id]));
+  return { ...ketQua(khongTrung(chan), khongTrung(canPhaLe)), nhacGioLai };
 }
 
 // ---- Xếp (mở suất) ----------------------------------------------------------------------------------------------------------------------------------------

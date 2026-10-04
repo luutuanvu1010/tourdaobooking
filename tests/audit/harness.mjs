@@ -41,15 +41,26 @@ export const app = (await bundle(
 ));
 
 const isRead = (sql) => /^\s*(SELECT|WITH|PRAGMA|EXPLAIN)\b/i.test(sql);
-export function fakeD1(sqlite) {
-  const stmt = (sql, args = []) => ({
+/**
+ * D1 giả = SQLite thật. CHẾ ĐỘ NGHIÊM (ADR-0094, kế hoạch L4a — bật mặc định, không tắt được): `batch` TỪ CHỐI mọi câu không do CHÍNH D1 giả này tạo
+ * (`prepare`/`bind`). D1 thật không nhận câu bọc của bộ bọc lớp vé (src/shared/lan-gui-boc.ts) — thiếu chế độ này, lỗi "quên gỡ bọc" chỉ lộ trên D1 thật.
+ * `moc.truocTraVe` (CHỈ khung thử): gọi và chờ trước câu tra vé (`… FROM lg_lan_gui WHERE staff_id …`) — rào cho ca gửi đồng thời (L5 ca c, e).
+ */
+export function fakeD1(sqlite, moc = {}) {
+  const cuaToi = new WeakSet();
+  const laTraVe = (sql) => /FROM lg_lan_gui WHERE staff_id/.test(sql);
+  const stmt = (sql, args = []) => {
+    const s = {
     sql, args,
     bind: (...a) => stmt(sql, a),
-    first: async (col) => { const r = sqlite.prepare(sql).get(...args); return r ? (col ? r[col] : { ...r }) : null; },
+    first: async (col) => { if (moc.truocTraVe && laTraVe(sql)) await moc.truocTraVe(); const r = sqlite.prepare(sql).get(...args); return r ? (col ? r[col] : { ...r }) : null; },
     all: async () => ({ results: sqlite.prepare(sql).all(...args).map((r) => ({ ...r })), meta: {} }),
     raw: async () => sqlite.prepare(sql).all(...args).map((r) => Object.values(r)),
     run: async () => ({ results: [], meta: { changes: Number(sqlite.prepare(sql).run(...args).changes) } }),
-  });
+    };
+    cuaToi.add(s);
+    return s;
+  };
   // Câu ghi có RETURNING trả dòng trong `results` như D1 thật (lô đăng nhập đọc mã phiên vừa bị thay — ADR-0075 điều 6).
   const exec1 = (s) => {
     if (isRead(s.sql)) return { results: sqlite.prepare(s.sql).all(...s.args).map((r) => ({ ...r })), meta: { changes: 0 } };
@@ -59,6 +70,8 @@ export function fakeD1(sqlite) {
   return {
     prepare: (sql) => stmt(sql),
     batch: async (stmts) => {
+      const la = stmts.findIndex((s) => !cuaToi.has(s));
+      if (la !== -1) throw new Error(`fakeD1 nghiêm: câu thứ ${la} của lô không do D1 này tạo (quên gỡ bọc?)`);
       sqlite.exec("BEGIN");
       try { const out = stmts.map(exec1); sqlite.exec("COMMIT"); return out; } catch (e) { sqlite.exec("ROLLBACK"); throw e; }
     },
@@ -67,6 +80,10 @@ export function fakeD1(sqlite) {
 }
 
 export const SECRET = "a".repeat(48);
+/** `Location` hợp lệ của route tạo (ADR-0094 A-10): `/trang` hoặc `/trang?khoa=<id>` — cùng mẫu `ketQuaDeLuu` (src/shared/lan-gui-luat.ts). */
+export const LOCATION_HOP_LE = /^\/[a-z0-9-]+(\?[a-z]+=[A-Za-z0-9-]+)?$/;
+/** Khoá HMAC GIẢ của lớp vé (ADR-0094 đ4) — khác SESSION_SECRET; thiếu thì mọi API của khung thử trả 500 (T15). */
+export const LAN_GUI_SECRET_GIA = "l".repeat(48);
 const NOW = "2026-09-01T00:00:00.000Z";
 
 /** Gieo tài khoản có hồ sơ + quyền. */
@@ -120,10 +137,40 @@ export function world(tuyChon = {}) {
   } else if (tuyChon.demNhan) {
     ungDung = app.taoAppChoKhungThu({ nhanNhanVien: async (_env, ids) => (goiNhan.push([...ids]), new Map(ids.map((id) => [id, `Nhãn ${id.slice(0, 4)}`]))) });
   }
-  const env = { DB: fakeD1(sqlite), SESSION_SECRET: SECRET, SERVICES_SHEET_ID: "x" };
+  // Rào cho ca gửi ĐỒNG THỜI (ADR-0094, L5 ca c, e): `raoTraVe(n)` giữ n lần tra vé kế tiếp cho tới khi đủ n yêu cầu cùng tới bước tra trước. Chỉ khung thử.
+  let rao = null;
+  const moc = {
+    truocTraVe: () => {
+      if (!rao) return undefined;
+      const r = rao;
+      r.den++;
+      if (r.den >= r.n) {
+        rao = null;
+        r.mo();
+      }
+      return r.cho;
+    },
+  };
+  function raoTraVe(n) {
+    let mo;
+    const cho = new Promise((res) => (mo = res));
+    const r = { n, den: 0, cho, mo };
+    rao = r;
+    // Không ai tới bước tra (vd mã chưa có lớp vé) ⇒ tự mở sau 2 giây và gỡ rào, để bài ĐỎ chứ không treo.
+    setTimeout(() => {
+      if (rao === r) rao = null;
+      mo();
+    }, 2000).unref?.();
+  }
+  const env = { DB: fakeD1(sqlite, moc), SESSION_SECRET: SECRET, LAN_GUI_SECRET: LAN_GUI_SECRET_GIA, SERVICES_SHEET_ID: "x" };
   // Danh mục đã đồng bộ gần đây để POST /api/orders không đi gọi Google Sheet.
   sqlite.exec(`UPDATE catalog_sync SET last_attempt_at = '${new Date().toISOString()}', last_success_at = '${new Date().toISOString()}' WHERE id = 'default'`);
-  const exec = { waitUntil: () => {}, passThroughOnException: () => {} };
+  // waitUntil THU promise (promise vốn đã chạy — bài cũ không đổi hành vi); `choNen()` chờ hết việc chạy nền (ADR-0094 L5: bước 6 cập nhật kết quả vé).
+  const nen = [];
+  const exec = { waitUntil: (p) => { nen.push(Promise.resolve(p).catch(() => {})); }, passThroughOnException: () => {} };
+  async function choNen() {
+    while (nen.length) await Promise.all(nen.splice(0));
+  }
   /**
    * Token phiên của `as` (sổ phiên ADR-0075): dùng lại phiên CÒN SỐNG mới nhất của tài khoản (kể cả phiên do route đăng nhập vừa cấp); không có thì
    * chèn một dòng phiên như lô đăng nhập thật (dọn phiên hết hạn trước; `single` theo ĐÚNG luật miễn một máy — không nới luật cho khung thử).
@@ -153,9 +200,13 @@ export function world(tuyChon = {}) {
     if (method !== "GET" && h.origin === undefined) h.origin = "https://booking.tourdao.vn";
     if (h.origin === null) delete h.origin;
     const res = await ungDung.fetch(new Request(`https://booking.tourdao.vn${path}`, { method, headers: h, body: body === undefined ? undefined : JSON.stringify(body) }), env, exec);
+    // HÀNG RÀO H7 (ADR-0094 A-10): MỌI phản hồi 201 phải có `Location` = trang nội bộ chỉ chứa id — mọi bài dùng khung thử thành bài canh.
+    if (res.status === 201 && !LOCATION_HOP_LE.test(res.headers.get("location") ?? "")) {
+      throw new Error(`H7: ${method} ${path} trả 201 mà thiếu/sai header Location ("${res.headers.get("location")}") — thêm Location (src/shared/http.ts kemLocation)`);
+    }
     const text = await res.text();
     let json = null; try { json = JSON.parse(text); } catch {}
     return { status: res.status, json, text, headers: res.headers };
   }
-  return { sqlite, env, call, token, q: (sql, ...a) => sqlite.prepare(sql).all(...a), soLanGoiMoc: () => soLanGoiMoc, soLanGoiNhan: () => goiNhan.length, goiNhan: () => goiNhan };
+  return { sqlite, env, call, token, choNen, raoTraVe, q:(sql, ...a) => sqlite.prepare(sql).all(...a), soLanGoiMoc: () => soLanGoiMoc, soLanGoiNhan: () => goiNhan.length, goiNhan: () => goiNhan };
 }

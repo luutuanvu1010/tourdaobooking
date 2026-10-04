@@ -1,0 +1,14 @@
+--- a/docs/adr/README.md
++++ b/docs/adr/README.md
+@@ -102,7 +102,10 @@
+ | 0093 | PIN tạm | tệp lượt duyệt 3 (cùng tệp với 0091) | proposed — lượt duyệt 3; Q-B1, Q-B6 áp theo khuyến nghị; chờ "Duyệt" |
+ | [0094](ADR-0094-lop-chong-ghi-trung-chung.md) | Lớp chống ghi trùng chung của Nền tảng (vé lần gửi, `Idempotency-Key`; giữ vé 365 ngày do Toàn quyền chọn) | tệp ADR (đề xuất gốc: `docs/superpowers/specs/2026-10-02-lop-chong-ghi-trung-chung-de-xuat.md`) | **accepted** 2026-10-02 (chủ, "2- Duyệt") — V1–V3 có lời chủ; A-1…A-11 áp theo khuyến nghị (lời chủ 2/10 "đừng hỏi … nên đồng ý"); kiểm độc lập 2 vòng |
+ | [0095](ADR-0095-tien-xe-thue-gia-du-tuyen-co-va-ngay-dao.md) | **Tiền xe thuê — sửa ADR-0057**: giá bắt buộc đủ tuyến + cỡ xe; dời sang ngày chạy khác tính lại giá; dòng đảo ghi vào kỳ dòng gốc (kỳ khoá thì kỳ hiện tại); phí huỷ ghi ngày huỷ; được ghi phí huỷ cho nhà xe cũ khi đổi sang xe công ty; lý do "Xe hỏng giữa đường"; gợi ý giá bảng có số; sổ vàng do Kế toán ký | một chiều (`CHECK` tuyến + cỡ; ngày dòng đảo) | **accepted** 2026-10-02 (chủ trả lời chat khi soát sổ vàng; AI ghi lại) |
+-| — | (số ADR mới kế tiếp là **0096** — 0095 tiền xe thuê sửa ADR-0057; 0074, 0075 đăng nhập 2FA / sổ phiên; 0076–0081 đã dùng trên main; 0082 trợ lý tìm theo nghĩa; 0083 nợ rà soát vai ↔ quyền; 0084 trợ lý Mai; 0085 chính sách đăng nhập; 0086 bỏ hai ô quyền chưa có route — bị bác; 0087 giao diện công ty; 0088–0094 đợt quyết định sau thử nghiệp vụ 2/10) | | |
++| 0096 | Luật thứ tự điểm dừng (LC-19 đón trước trả) và cửa sổ xuất bến (LC-20, 720 phút, Toàn quyền đổi, không phá lệ) | `docs/superpowers/specs/2026-10-03-v0-luot-duyet/A3-ADR-0096-thu-tu-diem-dung-va-cua-so-xuat-ben.md` | proposed — lượt duyệt V0-A (kiểm theo vai 2/10); chờ "Duyệt" |
++| 0097 | Sự kiện điều chỉnh có lý do cho chuyến xe (điều chỉnh suất, thu hồi xuất bến; chỉ văn phòng) | `…/B1-ADR-0097-su-kien-dieu-chinh-co-ly-do.md` | proposed — lượt duyệt V0-B; chờ "Duyệt" |
++| 0098 | Tra trùng hồ sơ khách theo SĐT ở máy chủ cho mọi vai lập đơn (thay câu ADR-0014 đ5) | `…/B2-ADR-0098-tra-trung-ho-so-theo-sdt.md` | proposed — lượt duyệt V0-B; Q-98-1, Q-98-2 chờ chủ; chờ "Duyệt" |
++| — | (số ADR mới kế tiếp là **0099** — 0096–0098 giữ chỗ cho đợt V0 kiểm theo vai 3/10; 0095 tiền xe thuê sửa ADR-0057; 0074, 0075 đăng nhập 2FA / sổ phiên; 0076–0081 đã dùng trên main; 0082 trợ lý tìm theo nghĩa; 0083 nợ rà soát vai ↔ quyền; 0084 trợ lý Mai; 0085 chính sách đăng nhập; 0086 bỏ hai ô quyền chưa có route — bị bác; 0087 giao diện công ty; 0088–0094 đợt quyết định sau thử nghiệp vụ 2/10) | | |
+ 
+ (0040, 0041, 0042, 0044, 0049, 0050, 0051, 0052–0057, 0058, 0059–0061, 0062 và 0067 đã có văn bản thật ở bảng trên nên bỏ khỏi bảng giữ chỗ.)
+ 

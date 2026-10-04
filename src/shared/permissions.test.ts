@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  MATRIX, PERMISSION_CODES, can, canAccessOrders, hasPermission, isOffice, isPermissionCode, quyenHienThi, seesOnlyAssignedOrders, type OperationCode, type PermissionCode, type Scope,
+  MA_QUYEN_TIEN, MATRIX, O_GHI_TIEN, PERMISSION_CODES, can, canAccessOrders, coQuyenTien, hasPermission, isOffice, isPermissionCode, quyenHienThi, seesOnlyAssignedOrders, type OperationCode, type PermissionCode, type Scope,
 } from "./permissions.ts";
 
 // BẢN ĐỌC THỨ HAI của bảng ADR-0007 điều 1 SAU khi ADR-0009 đổi ba ô của SALES (order.modify, order.history.view, dispatch.assign: own → ownOrAssigned),
@@ -485,4 +485,19 @@ test("ADR-0057: ô transport.* — ADMIN = ACCOUNTING = any, SUPER_ADMIN any, m�
     assert.equal(r.ADMIN, r.ACCOUNTING, `${op}: Quản trị phải ngang Kế toán`);
     assert.deepEqual(r, { SALES: "none", ACCOUNTING: "any", ADMIN: "any", FIELD: "none", PARTNER: "none", SUPER_ADMIN: "any", INTERN: "none", DRIVER: "none", DRIVER_PARTNER: "none", HR: "none" }, op);
   }
+});
+
+// ADR-0090 đ0 (Q-T1): "tài khoản có quyền tiền" = giữ ít nhất một ô GHI TIỀN mà Quản trị không có. Bốn ô ghim tay (đọc độc lập từ ADR); danh sách mã quyền
+// SUY từ MATRIX — thêm một mã giữ một trong bốn ô thì hàm tự nhận, không sửa tay.
+test("ADR-0090 đ0: bốn ô ghi tiền, Quản trị = none; mã quyền tiền suy từ bảng = Kế toán + Toàn quyền", () => {
+  assert.deepEqual([...O_GHI_TIEN], ["ledger.write", "payment.refund", "order.complete", "accounting.entry.mark"]);
+  for (const o of O_GHI_TIEN) assert.equal(MATRIX[o].ADMIN, "none", `${o}: Quản trị phải là none (đ0)`);
+  assert.deepEqual([...MA_QUYEN_TIEN], ["ACCOUNTING", "SUPER_ADMIN"]);
+  assert.deepEqual([...MA_QUYEN_TIEN], PERMISSION_CODES.filter((p) => O_GHI_TIEN.some((o) => MATRIX[o][p] !== "none")), "suy từ MATRIX, không chép tay");
+  assert.equal(coQuyenTien(["SALES"]), false);
+  assert.equal(coQuyenTien(["ADMIN"]), false, "Quản trị không phải tài khoản tiền");
+  assert.equal(coQuyenTien(["HR"]), false);
+  assert.equal(coQuyenTien(["SALES", "ACCOUNTING"]), true);
+  assert.equal(coQuyenTien(["SUPER_ADMIN"]), true);
+  assert.equal(coQuyenTien([]), false);
 });

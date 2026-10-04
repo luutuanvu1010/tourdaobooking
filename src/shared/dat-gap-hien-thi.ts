@@ -7,7 +7,7 @@ import { CHIEU_LABEL, GHI_CHU_DAT_GAP_TOI_DA, LY_DO_DAT_GAP, isLyDoDatGap, type 
 import { nhanThoiLuong } from "./chinh-sach-hien-thi.ts";
 import type { DatGapDto, LegDto, OrderDetailDto } from "./contracts.ts";
 import { kiemMocDat } from "./moc-toi-thieu.ts";
-import { msToVnLocal } from "./vn-date.ts";
+import { msToVnLocal, ngayNgan } from "./vn-date.ts";
 
 /** "Giờ đón cách bây giờ 4 giờ 10 phút — dưới mốc 6 giờ" (bản vẽ 07); giờ đón đã qua → "Giờ đón đã qua — dưới mốc …". */
 export function cauMoc(phutConLai: number, mocPhut: number): string {
@@ -20,8 +20,7 @@ function lucNgan(iso: string, nowMs: number): string {
   const l = msToVnLocal(Date.parse(iso));
   const n = msToVnLocal(nowMs);
   if (l.date === n.date) return l.time;
-  const dm = `${l.date.slice(8, 10)}/${l.date.slice(5, 7)}`;
-  return l.date.slice(0, 4) === n.date.slice(0, 4) ? `${l.time} ${dm}` : `${l.time} ${dm}/${l.date.slice(0, 4)}`;
+  return `${l.time} ${ngayNgan(l.date, n.date)}`;
 }
 
 /** Nhãn "Đặt gấp — lý do — người duyệt HH:MM" (+ ghi chú) của bản vẽ 7c; dấu chỉ có cờ → "Đặt gấp — Quản trị đã duyệt" (chủ H4). */

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { addDays, isHHMM, isISODate, vnDateTimeText, vnHour, vnLocalToIso, vnLocalToMs, vnToday, vnWeekRange } from "./vn-date.ts";
+import { addDays, isHHMM, ngayCoThu, ngayDayDu, ngayNgan, isISODate, vnDateTimeText, vnHour, vnLocalToIso, vnLocalToMs, vnToday, vnWeekRange } from "./vn-date.ts";
 
 test("vnLocalToMs (ADR-0047 A1): ngày + giờ dân sự VN → mili-giây; ca 00:00–07:00 giờ VN rơi vào NGÀY UTC TRƯỚC; sai → null", () => {
   assert.equal(vnLocalToMs("2026-10-10", "00:00"), Date.parse("2026-10-09T17:00:00.000Z"));
@@ -70,4 +70,22 @@ test("vnHour: giờ theo giờ Việt Nam (dùng cho giờ yên lặng của Web
   assert.equal(vnHour(new Date("2026-09-27T15:00:00Z")), 22); // 22:00 VN
   assert.equal(vnHour(new Date("2026-09-27T22:59:00Z")), 5); // 05:59 VN (qua ngày)
   assert.equal(vnHour(new Date("2026-09-27T23:00:00Z")), 6); // 06:00 VN (qua ngày)
+});
+
+test("ngayCoThu: thứ + ngày đủ năm (HT-03 — hộp xác nhận xuất bến)", () => {
+  assert.equal(ngayCoThu("2026-10-05"), "Thứ Hai 05/10/2026");
+  assert.equal(ngayCoThu("2026-10-04"), "Chủ nhật 04/10/2026");
+});
+
+test("ngayNgan (Kiểu D — V1.5b): 'dd/mm' cùng năm với ngày tham chiếu; KHÁC năm → 'dd/mm/yyyy'; chuỗi không phải ngày → trả nguyên", () => {
+  assert.equal(ngayNgan("2026-10-05", "2026-10-03"), "05/10");
+  assert.equal(ngayNgan("2027-01-02", "2026-12-30"), "02/01/2027", "qua năm mới phải có năm");
+  assert.equal(ngayNgan("2025-12-31", "2026-01-01"), "31/12/2025");
+  assert.equal(ngayNgan("", "2026-10-03"), "");
+  assert.equal(ngayNgan("05/10", "2026-10-03"), "05/10");
+});
+
+test("ngayDayDu: luôn 'dd/mm/yyyy'; chuỗi không phải ngày → trả nguyên", () => {
+  assert.equal(ngayDayDu("2026-10-05"), "05/10/2026");
+  assert.equal(ngayDayDu("x"), "x");
 });

@@ -532,8 +532,9 @@ function buildThrowing(err: unknown) {
       dongBangTin: async () => {},
       giaoLoDay: async () => [],
       mocToiThieu: async () => ({ phut: 360, policyId: "moc-gia-router", canhBaoPhut: 120 }),
+      lanGui: lanGuiGia().noi, // ADR-0094 T18: route ghi có đăng nhập cần phần tiêm lớp vé
     },
-  });
+  } as any);
   return app.fetch(new Request("http://x/api/ghi", { method: "POST", headers: { origin: "http://x" } }), {} as Env, {} as ExecutionContext);
 }
 
@@ -630,4 +631,93 @@ test("ctx.huongDanVien: khung thử không tiêm → [] (mặc định TỪ CH�
   };
   assert.deepEqual(await doc(goc), []);
   assert.deepEqual(await doc({ ...goc, huongDanVien: async () => [{ partyId: "p1", ten: "A" }] }), [{ partyId: "p1", ten: "A" }]);
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// LỚP CHỐNG GHI TRÙNG (ADR-0094) — phần router với module giả, không D1 (hành vi đầy đủ trên SQLite thật: src/lan-gui-hanh-vi.test.ts).
+// ---------------------------------------------------------------------------------------------------------------------
+/** Phần tiêm lớp vé GIẢ: đếm lời gọi `tra`, không có vé nào. */
+function lanGuiGia() {
+  const dem = { tra: 0, vanTay: 0 };
+  const noi = {
+    vanTay: async () => (dem.vanTay++, "vt"),
+    tra: async () => (dem.tra++, null),
+    cauChenVe: () => ({}) as D1PreparedStatement,
+    capNhatKetQua: async () => {},
+    tangLap: async () => {},
+  };
+  return { noi, dem };
+}
+function buildLanGui(lanGui: unknown) {
+  const calls = { handler: 0 };
+  const ok = async () => (calls.handler++, json({ ok: true }));
+  const mod: AppModule = {
+    name: "giả",
+    routes: [route("POST", "/api/ghi", "staff", ok), route("POST", "/api/cong-khai", "public", ok), route("GET", "/api/doc", "staff", ok)],
+  };
+  const injected: Record<string, unknown> = {
+    isAssigned: async () => false,
+    newOrderHandler: async () => ({ ok: false, message: "không dùng" }),
+    ordersWithHandler: async () => new Set<string>(),
+    handledOrderIdsOf: async () => [],
+    maintenanceBlock: async () => null,
+    partyAccount: async () => ({ linked: false }),
+    baoThayDoi: async () => {},
+    dongBangTin: async () => {},
+    giaoLoDay: async () => [],
+  };
+  if (lanGui !== undefined) injected.lanGui = lanGui;
+  const app = createApp({ modules: [mod], currentStaff: async () => phien(staffOf(["SALES"])), injected } as any);
+  const goi = (method: string, path: string, ve?: string) =>
+    app.fetch(
+      new Request(`http://x${path}`, { method, headers: { origin: "http://x", ...(ve ? { "idempotency-key": ve } : {}) } }),
+      {} as Env,
+      { waitUntil: () => {} } as unknown as ExecutionContext,
+    );
+  return { goi, calls };
+}
+async function imLog<T>(f: () => Promise<T>): Promise<{ kq: T; log: string[] }> {
+  const log: string[] = [];
+  const [w, e] = [console.warn, console.error];
+  console.warn = (...a: unknown[]) => void log.push(a.map(String).join(" "));
+  console.error = (...a: unknown[]) => void log.push(a.map(String).join(" "));
+  try {
+    return { kq: await f(), log };
+  } finally {
+    console.warn = w;
+    console.error = e;
+  }
+}
+
+test("ADR-0094 T18: thiếu phần tiêm lanGui ⇒ route GHI có đăng nhập trả 500 server_misconfigured (không lặng lẽ tắt lớp); route đọc, route công khai vẫn chạy", async () => {
+  const { goi, calls } = buildLanGui(undefined);
+  const { kq } = await imLog(() => goi("POST", "/api/ghi", crypto.randomUUID()));
+  assert.equal(kq.status, 500);
+  assert.equal(((await kq.json()) as { error: { code: string } }).error.code, "server_misconfigured");
+  const { kq: khongVe } = await imLog(() => goi("POST", "/api/ghi"));
+  assert.equal(khongVe.status, 500, "thiếu vé cũng không lọt khi thiếu phần tiêm");
+  assert.equal(calls.handler, 0);
+  assert.equal((await goi("GET", "/api/doc")).status, 200);
+  assert.equal((await goi("POST", "/api/cong-khai")).status, 200);
+});
+
+test("ADR-0094: có vé ⇒ router tra vé đúng một lần trước handler; route công khai KHÔNG tra (kể cả có vé); route đọc không tra", async () => {
+  const g = lanGuiGia();
+  const { goi, calls } = buildLanGui(g.noi);
+  assert.equal((await goi("POST", "/api/ghi", crypto.randomUUID())).status, 200);
+  assert.equal(g.dem.tra, 1);
+  assert.equal(calls.handler, 1);
+  assert.equal((await goi("POST", "/api/cong-khai", crypto.randomUUID())).status, 200);
+  assert.equal((await goi("GET", "/api/doc")).status, 200);
+  assert.equal(g.dem.tra, 1, "công khai / đọc: không tra");
+});
+
+test("ADR-0094 T14 (giai đoạn 1): thiếu vé ⇒ handler chạy, không tra, đúng MỘT dòng log thieu_ma_lan_gui mang mẫu route (không id, không dữ liệu)", async () => {
+  const g = lanGuiGia();
+  const { goi, calls } = buildLanGui(g.noi);
+  const { kq, log } = await imLog(() => goi("POST", "/api/ghi"));
+  assert.equal(kq.status, 200);
+  assert.equal(calls.handler, 1);
+  assert.equal(g.dem.tra, 0);
+  assert.deepEqual(log.map((l) => JSON.parse(l)), [{ event: "thieu_ma_lan_gui", duong: "POST /api/ghi" }]);
 });

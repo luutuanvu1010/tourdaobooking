@@ -90,6 +90,8 @@ if (quanLyXe || thayDieuPhoiXe(staff) || bangGiaXe || bangKeXe) {
       // có tab riêng; trang đầu của tổ hợp này KHÔNG đổi).
       coCuocCuaToi(staff) && !chiTaiXe(staff) && h("a", { class: "row-link", href: "/cuoc" }, h("span", { class: "vc-row-label" }, "Cuốc của tôi"), icon("next", 20)),
       quanLyXe && h("a", { class: "row-link", href: "/xe" }, h("span", { class: "vc-row-label" }, "Xe"), icon("next", 20)),
+      // ADR-0055 VK2-A (Đợt 3): trang tuần "Lịch xe bận" — ô vehicle.manage (câu 3.4).
+      quanLyXe && h("a", { class: "row-link", href: "/lich-xe-ban" }, h("span", { class: "vc-row-label" }, "Lịch xe bận"), icon("next", 20)),
       quanLyXe && h("a", { class: "row-link", href: "/giay-to-sap-het-han" }, h("span", { class: "vc-row-label" }, "Giấy tờ sắp hết hạn"), soSapHet, icon("next", 20)),
       quanLyXe && can(staff, "admin.manage") && h("a", { class: "row-link", href: "/loai-giay-to-xe" }, h("span", { class: "vc-row-label" }, "Loại giấy tờ xe"), icon("next", 20)),
       // Bảng điều phối lượt 1 (ADR-0049; bản vẽ 08 khung 8b / 8d — điện thoại mở từ trang Tôi): Chính sách điều phối (chỉ Toàn quyền — ô settings.ops),

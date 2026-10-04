@@ -11,7 +11,7 @@ import type { LyDoGiu } from "./ly-do-giu.ts";
 
 // ---- Danh sách mở (kiểm ở mã) -------------------------------------------------------------------------------------------------------------------------------
 /** Nhóm lý do ([TK] §1.9). Máy chỉ rẽ nhánh theo NHÓM; từng lý do là dữ liệu `vc_reason` (Quản trị sửa). Lượt 1 dùng năm nhóm; BAO_HUY_DIEM, TU_CHOI_NHAN từ lượt 2. */
-export const NHOM_LY_DO = ["DOI_GIO_XE", "BAO_HUY_DIEM", "PHA_LE", "TU_CHOI_NHAN", "KET_THUC_GIAN_DOAN", "HUY_CHUYEN", "BO_QUA_DIEM", "CHI_PHI_XE"] as const;
+export const NHOM_LY_DO = ["DOI_GIO_XE", "BAO_HUY_DIEM", "PHA_LE", "TU_CHOI_NHAN", "KET_THUC_GIAN_DOAN", "HUY_CHUYEN", "BO_QUA_DIEM", "BAN_XE", "CHI_PHI_XE"] as const;
 export type NhomLyDo = (typeof NHOM_LY_DO)[number];
 export const NHAN_NHOM_LY_DO: Readonly<Record<NhomLyDo, string>> = {
   DOI_GIO_XE: "Đổi giờ xe tới",
@@ -21,6 +21,7 @@ export const NHAN_NHOM_LY_DO: Readonly<Record<NhomLyDo, string>> = {
   KET_THUC_GIAN_DOAN: "Kết thúc gián đoạn",
   HUY_CHUYEN: "Huỷ chuyến",
   BO_QUA_DIEM: "Bỏ qua điểm",
+  BAN_XE: "Lý do xe bận", // ADR-0055 VK2-A (0071)
   CHI_PHI_XE: "Chi phí xe thuê", // ADR-0057 C3 (0073): lý do điều chỉnh / đảo / giá thoả thuận của chi phí chuyến xe thuê
 };
 export const isNhomLyDo = (v: unknown): v is NhomLyDo => typeof v === "string" && (NHOM_LY_DO as readonly string[]).includes(v);
@@ -128,6 +129,10 @@ export interface ChinhSachVao {
   restMinutes: number;
   requireManifest: boolean;
   requireContract: boolean;
+  /** ADR-0055 VK2-B (0071): tổng giờ lái tối đa một ngày chạy (phút) — vượt chỉ cảnh báo. */
+  dutyDayMaxMinutes: number;
+  /** ADR-0055 VK2-B (0071): chuyến dài hơn (phút) → nhắc nghỉ — chỉ cảnh báo. */
+  tripNoBreakMaxMinutes: number;
 }
 /** Dòng hạng bằng đang hiệu lực của MỘT hạng (`vc_license_capacity`). `maxPassengers` null = không giới hạn. Hạng không có dòng → CHẶN (không đoán). */
 export interface HangBangVao {
@@ -238,6 +243,18 @@ export interface KhungChuyen {
   /** Mốc kết thúc THẬT (`ended_ms`) — chuyến đã kết thúc tính khoảng tới đây (I22). */
   ketThucThatMs: number | null;
   trangThai: TrangThaiChuyen;
+  /** Giờ XẢY RA xuất bến (`departed_ms`) — mapper `khungChuyen` luôn đặt; giờ lái dùng cho chuyến đã chạy (ADR-0055 VK2-B). */
+  xuatBenMs?: number | null;
+}
+/** Khung bận CÒN HIỆU LỰC (`vc_unavailability`, withdrawn_at IS NULL — ADR-0055 VK2-A; ADR-0053 D9.1). Đúng một trong xeId / taiXePartyId theo doiTuong. */
+export interface KhungBanVao {
+  id: string;
+  doiTuong: "VEHICLE" | "DRIVER";
+  xeId: string | null;
+  taiXePartyId: string | null;
+  batDauMs: number;
+  ketThucMs: number;
+  lyDoNhan: string;
 }
 /** Một chuyến đủ dữ liệu cho cổng xuất bến. */
 export interface ChuyenVao {
@@ -249,6 +266,8 @@ export interface ChuyenVao {
   ketThucMs: number;
   ketThucThatMs: number | null;
   trangThai: TrangThaiChuyen;
+  /** Giờ XẢY RA xuất bến (`departed_ms`) — mapper `chuyenVao` luôn đặt (ADR-0055 VK2-B). */
+  xuatBenMs?: number | null;
   xe: XeVao;
   taiXe: TaiXeVao | null;
   /** Khoảng nghỉ đã chụp lúc tạo / sửa (`rest_minutes_snapshot` — 5.6). */

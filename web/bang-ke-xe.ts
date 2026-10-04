@@ -10,7 +10,7 @@ import { NHAN_NHOM_BANG_KE, nhanNguonGia, dongDieuChinhBangKe, tomTatBangKe } fr
 import { isISODate, vnToday } from "../src/shared/vn-date";
 import { api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
-import { dayMonth, vnd } from "./format";
+import { ngayNganHomNay, vnd } from "./format";
 import { datCrumb } from "./giay-to-ui";
 import { initShell, showError } from "./shell";
 import { cauLoi, chipTx, dangTai, o, trong } from "./tien-xe-ui";
@@ -128,7 +128,7 @@ function veNhom(g: BangKeNhomDto): HTMLElement {
         h(
           "a",
           { class: lopDong(d, "bk-hang"), href: href(d), "data-chuyen": d.tripId },
-          h("span", { class: "bk-cot" }, h("strong", { class: "bk-ma" }, d.ma), h("span", { class: "tx-phu" }, dayMonth(d.ngayChay))),
+          h("span", { class: "bk-cot" }, h("strong", { class: "bk-ma" }, d.ma), h("span", { class: "tx-phu" }, ngayNganHomNay(d.ngayChay))),
           h("span", { class: "bk-cot" }, h("strong", null, d.bienSo), h("span", { class: "tx-phu" }, d.tuyen?.ten ?? "Chưa chọn tuyến")),
           h("span", { class: "bk-cot" }, chipTrangThai(d), nguonGiaEl(d)),
           dieuChinh(d),
@@ -143,7 +143,7 @@ function veNhom(g: BangKeNhomDto): HTMLElement {
           "a",
           { class: lopDong(d, "bk-the"), href: href(d), "data-chuyen": d.tripId },
           h("span", { class: "bk-the-dau" }, h("strong", { class: "bk-ma vc-grow" }, d.ma), soTien(d)),
-          h("span", { class: "tx-phu" }, `${dayMonth(d.ngayChay)} · ${d.bienSo} · ${d.tuyen?.ten ?? "Chưa chọn tuyến"}`),
+          h("span", { class: "tx-phu" }, `${ngayNganHomNay(d.ngayChay)} · ${d.bienSo} · ${d.tuyen?.ten ?? "Chưa chọn tuyến"}`),
           h("span", { class: "bk-the-chip" }, chipTrangThai(d), nguonGiaEl(d)),
           d.soDieuChinh > 0 ? h("span", { class: "bk-the-dc" }, "Điều chỉnh ", dieuChinh(d)) : null,
         )),

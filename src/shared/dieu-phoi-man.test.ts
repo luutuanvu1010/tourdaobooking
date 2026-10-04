@@ -26,6 +26,10 @@ const lich = (o: Partial<LichChungResponse> = {}): LichChungResponse => ({
   ngay: NGAY, mocToiThieuPhut: 360, canhBaoPhut: 120, chang: [], chuyen: [], soNhap: 0, nhapChoDatGap: [], canhBao: [], lyDo: [], xe: [], taiXe: [], ...o,
 });
 
+test("gioHien Kiểu D (V1.5b): khác NĂM ngày đang xem → kèm năm (chuyến qua giao thừa)", () => {
+  assert.equal(gioHien({ ngay: "2027-01-01", gio: "06:00" }, "2026-12-31"), "06:00 01/01/2027");
+  assert.equal(gioHien({ ngay: "2026-12-31", gio: "23:00" }, "2027-01-01"), "23:00 31/12/2026");
+});
 test("gioHien: 'HH:MM' cùng ngày; khác ngày thêm 'dd/mm'", () => {
   assert.equal(gioHien(g("09:00"), NGAY), "09:00");
   assert.equal(gioHien(g("00:40", "2026-10-01"), NGAY), "00:40 01/10");
@@ -364,4 +368,19 @@ test("vòng 5g (K2e VỪA-1): CẢ THIEU_TEN lẫn KHACH_DA_DOI → dòng 'Đủ
   const dong = (ds: LyDoGiuDto[]) => dieuKienXuatBen(ds).filter((d) => !d.dat);
   assert.deepEqual(dong([ly("KHACH_DA_DOI", khach), ly("THIEU_TEN", thieu)]), [{ nhan: "Đủ tên khách", dat: false, chiTiet: `${khach}; ${thieu} · Ai xử lý: Văn phòng` }]);
   assert.deepEqual(dong([ly("THIEU_TEN", thieu), ly("KHACH_DA_DOI", khach)]), [{ nhan: "Đủ tên khách", dat: false, chiTiet: `${thieu}; ${khach} · Ai xử lý: Văn phòng` }]);
+});
+
+test("viecCanXuLy + giờ lái (ADR-0055 VK2-B): GIO_LAI_VUOT / CHUYEN_DAI_CAN_NGHI → mục nhãn tiếng Việt, biểu tượng đồng hồ, tone vàng, không nút, mở Chi tiết chuyến", () => {
+  const L = lich({
+    chuyen: [chuyen({ id: "t1" })],
+    canhBao: [
+      { loai: "GIO_LAI_VUOT", nhan: "Tài xế lái quá giờ tối đa trong ngày", legId: null, tripId: "t1", maDon: null },
+      { loai: "CHUYEN_DAI_CAN_NGHI", nhan: "Chuyến dài — nhớ cho tài xế nghỉ giữa chuyến", legId: null, tripId: "t1", maDon: null },
+    ],
+  });
+  const v = viecCanXuLy(L, { dieuPhoi: true, phaLe: false, quanLyXe: false }).filter((x) => x.bieuTuong === "clock");
+  assert.deepEqual(v.map((x) => [x.loai, x.tone, x.tieuDe, x.href, x.hanhDong.length]), [
+    ["Tài xế lái quá giờ tối đa trong ngày", "warn", "CX-3009-07", "/chuyen?id=t1", 0],
+    ["Chuyến dài — nhớ cho tài xế nghỉ giữa chuyến", "warn", "CX-3009-07", "/chuyen?id=t1", 0],
+  ]);
 });

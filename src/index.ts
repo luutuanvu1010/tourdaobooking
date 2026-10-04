@@ -23,6 +23,7 @@ import { catalogModule, runScheduledSync } from "./modules/catalog";
 import { companyModule } from "./modules/company";
 import { dispatchModule, handledOrderIdsOf, handlerOf, isOrderHandler, newOrderHandler, ordersWithHandler, soDonDangPhuTrachCua } from "./modules/dispatch";
 import { giaoDienModule } from "./modules/giao-dien";
+import { checkLanGuiConfig, lanGuiNoi } from "./modules/lan-gui";
 import { locationsModule } from "./modules/locations";
 import { feedbackModule } from "./modules/feedback";
 import { maintenanceBlock, maintenanceModule } from "./modules/maintenance";
@@ -57,7 +58,8 @@ async function nemNeuLoi(viec: [string, Promise<unknown> | null][]): Promise<voi
 const APP_OPTIONS: AppOptions = {
   modules: [authModule, accountsModule, ordersModule, dispatchModule, billingModule, receiptModule, catalogModule, auditModule, locationsModule, partiesModule, companyModule, maintenanceModule, giaoDienModule, feedbackModule, bangtinModule, thongbaoModule, vanChuyenModule, troLyModule],
   currentStaff,
-  checkConfig: checkAuthConfig,
+  // Cấu hình bắt buộc: khoá phiên (auth) VÀ khoá HMAC của lớp vé (lan-gui, ADR-0094 đ4) — mỗi module kiểm khoá của mình; thiếu một ⇒ mọi API 500.
+  checkConfig: (env) => checkAuthConfig(env) ?? checkLanGuiConfig(env),
   injected: {
     isAssigned: (env, staffId, orderId) => isOrderHandler(env.DB, staffId, orderId),
     newOrderHandler: (env, actor, staffId) => newOrderHandler(env.DB, actor.id, staffId),
@@ -182,6 +184,8 @@ const APP_OPTIONS: AppOptions = {
     }),
     // DẤU "ĐÃ NHẬP PHẦN MỀM KẾ TOÁN" (ADR-0060 điều 5): `orders` không đọc bảng bil_ — gốc lắp ráp gọi hàm đọc tập id của billing (lọc + nhãn danh sách đơn).
     nhapKeToanCuaDon: (env, ids) => nhapKeToanCuaDon(env.DB, ids),
+    // LỚP CHỐNG GHI TRÙNG (ADR-0094 đ2): router không import module — gốc lắp ráp tiêm phần của `lan-gui` (vân tay HMAC, tra / chèn / cập nhật vé).
+    lanGui: lanGuiNoi,
   },
 };
 const app = createApp(APP_OPTIONS);

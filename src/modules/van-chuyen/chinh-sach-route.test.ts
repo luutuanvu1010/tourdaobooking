@@ -33,7 +33,7 @@ const dem = (w: any, bang: string): number => w.q(`SELECT count(*) n FROM ${bang
 const CAU_CONG_OFFICE = /chỉ dùng cho việc được giao/;
 const CAU_CONG_ADMIN = /^Chỉ quản trị viên được thực hiện thao tác này\.$/;
 const CAU_O_CHINH_SACH = /Chỉ người phụ trách hệ thống/;
-const CS = { minLeadMinutes: 240, warnLeadMinutes: 60, restMinutes: 45, requireManifest: true, proxyBackdateMaxMinutes: 90 };
+const CS = { minLeadMinutes: 240, warnLeadMinutes: 60, restMinutes: 45, requireManifest: true, proxyBackdateMaxMinutes: 90, dutyDayMaxMinutes: 600, tripNoBreakMaxMinutes: 300 };
 
 const ROUTE_CHINH_SACH: [string, string, unknown][] = [
   ["GET", "/api/van-chuyen/chinh-sach-dieu-phoi", undefined],
@@ -72,7 +72,7 @@ test("TC-2 route 9–10: Toàn quyền xem (bản gieo 360/120/30) và thêm b�
   let r = await w.call("GET", "/api/van-chuyen/chinh-sach-dieu-phoi", { as: SUP });
   assert.equal(r.status, 200, r.text);
   assert.deepEqual({ ...r.json.current, id: undefined, validFrom: undefined }, {
-    id: undefined, minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes: 30, requireManifest: true, requireContract: false, proxyBackdateMaxMinutes: 180,
+    id: undefined, minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes: 30, requireManifest: true, requireContract: false, proxyBackdateMaxMinutes: 180, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240,
     validFrom: undefined, current: true, nguoiLuu: null,
   });
   r = await w.call("POST", "/api/van-chuyen/chinh-sach-dieu-phoi", { as: SUP, body: CS });
@@ -80,12 +80,15 @@ test("TC-2 route 9–10: Toàn quyền xem (bản gieo 360/120/30) và thêm b�
   assert.equal(r.json.current.minLeadMinutes, 240);
   assert.equal(r.json.current.proxyBackdateMaxMinutes, 90, "TC-52: dòng mới mang kẹp lùi đã gửi");
   assert.equal(w.q("SELECT proxy_backdate_max_minutes k FROM vc_dispatch_policy WHERE id = ?", r.json.current.id)[0].k, 90);
+  // ADR-0055 VK2-B: hai con số giờ lái của bản mới (câu chèn liệt kê đủ cột — không sống nhờ DEFAULT 480/240).
+  assert.deepEqual([r.json.current.dutyDayMaxMinutes, r.json.current.tripNoBreakMaxMinutes], [600, 300]);
+  assert.deepEqual({ ...w.q("SELECT duty_day_max_minutes d, trip_no_break_max_minutes b FROM vc_dispatch_policy WHERE id = ?", r.json.current.id)[0] }, { d: 600, b: 300 });
   assert.equal(r.json.history.length, 2);
   assert.deepEqual(r.json.history.map((h: any) => [h.minLeadMinutes, h.current]), [[240, true], [360, false]]);
   const nk = nhatKyCuoi(w, "dispatch_policy_changed");
   assert.deepEqual(nk, {
     staff_id: SUP, order_id: null, target_type: null, target_id: null,
-    detail: "chính sách điều phối: mốc tối thiểu 360 → 240 phút; cảnh báo sát mốc 120 → 60 phút; khoảng nghỉ 30 → 45 phút; bắt đủ danh sách có → có; kẹp lùi giờ khai 180 → 90 phút",
+    detail: "chính sách điều phối: mốc tối thiểu 360 → 240 phút; cảnh báo sát mốc 120 → 60 phút; khoảng nghỉ 30 → 45 phút; bắt đủ danh sách có → có; kẹp lùi giờ khai 180 → 90 phút; giờ lái tối đa 480 → 600 phút; nhắc nghỉ chuyến trên 240 → 300 phút",
   });
 });
 
@@ -100,7 +103,7 @@ test("R-P23 (điều phối 29/9 đêm): lịch sử bản chính sách có \"ai
   assert.equal(r.json.current.nguoiLuu, `Nhãn ${SUP.slice(0, 4)}`);
   for (const h of r.json.history) {
     assert.deepEqual(Object.keys(h).sort(), [
-      "current", "id", "minLeadMinutes", "nguoiLuu", "proxyBackdateMaxMinutes", "requireContract", "requireManifest", "restMinutes", "validFrom", "warnLeadMinutes",
+      "current", "dutyDayMaxMinutes", "id", "minLeadMinutes", "nguoiLuu", "proxyBackdateMaxMinutes", "requireContract", "requireManifest", "restMinutes", "tripNoBreakMaxMinutes", "validFrom", "warnLeadMinutes",
     ]);
   }
   assert.doesNotMatch(r.text, /0900000007|createdBy|created_by|staffId/, "không SĐT, không id người lưu");
@@ -120,8 +123,16 @@ test("TC-2 route 10: thân mang ngày hiệu lực → 400 (không nhận); hợ
   const w = setup();
   const n0 = soNhatKy(w);
   const { proxyBackdateMaxMinutes: _kep, ...thieuKep } = CS; // TC-52 / I43: thiếu kẹp lùi → 400 (không chép ngầm từ dòng cũ)
+  // ADR-0055 VK2-B (Review Focus 5): màn cũ gửi thiếu hai con số giờ lái → 400 "tải lại trang", không tự điền mặc định.
+  const { dutyDayMaxMinutes: _gl, ...thieuGioLai } = CS;
+  const { tripNoBreakMaxMinutes: _nn, ...thieuNhacNghi } = CS;
+  for (const body of [thieuGioLai, thieuNhacNghi]) {
+    const r = await w.call("POST", "/api/van-chuyen/chinh-sach-dieu-phoi", { as: SUP, body });
+    assert.equal(r.status, 400, r.text);
+    assert.match(r.json.error.message, /tải lại trang/);
+  }
   for (const body of [{ ...CS, validFrom: "2026-01-01" }, { ...CS, validFromAt: "2026-01-01T00:00:00.000Z" }, { ...CS, requireContract: true }, { ...CS, minLeadMinutes: 2881 }, { ...CS, requireManifest: "có" }, null,
-    thieuKep, { ...CS, proxyBackdateMaxMinutes: 0 }, { ...CS, proxyBackdateMaxMinutes: 1441 }]) {
+    thieuKep, { ...CS, proxyBackdateMaxMinutes: 0 }, { ...CS, proxyBackdateMaxMinutes: 1441 }, { ...CS, dutyDayMaxMinutes: 59 }, { ...CS, tripNoBreakMaxMinutes: 721 }]) {
     const r = await w.call("POST", "/api/van-chuyen/chinh-sach-dieu-phoi", { as: SUP, body });
     assert.equal(r.status, 400, `${JSON.stringify(body)}: ${r.text}`);
     assert.equal(r.json.error.code, "invalid_input");
@@ -221,7 +232,7 @@ test("TC-2 route 16–18 danh mục lý do: Quản trị thêm → 201; Bán hà
   const w = setup();
   let r = await w.call("GET", "/api/van-chuyen/ly-do", { as: ADM });
   assert.equal(r.status, 200, r.text);
-  assert.equal(r.json.reasons.length, 22); // 13 lý do của 0041 + 9 lý do nhóm CHI_PHI_XE (ADR-0057 T2, migration *_vc_chi_phi_chuyen)
+  assert.equal(r.json.reasons.length, 26); // 13 lý do gieo của 0041 + 4 lý do xe bận của 0071 (ADR-0055) + 9 lý do nhóm CHI_PHI_XE (ADR-0057 T2, 0073)
   assert.deepEqual(r.json.reasons.find((x: any) => x.code === "PHA_LE_SU_CO"), {
     code: "PHA_LE_SU_CO", group: "PHA_LE", groupLabel: "Phá lệ", label: "Sự cố vận hành", active: true, sortOrder: 1, updatedAt: "2026-09-29T00:00:00.000Z", heThong: false,
   });

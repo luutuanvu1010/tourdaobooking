@@ -49,7 +49,7 @@ export const locationsModule: AppModule = {
         if (e instanceof Error && /UNIQUE constraint failed: loc_location\.code/.test(e.message)) return error(409, "code_taken", "Mã địa điểm này đã có.");
         throw e;
       }
-      return json({ location: toDto((await findLocation(env.DB, id))!) } satisfies LocationResponse, 201);
+      return json({ location: toDto((await findLocation(env.DB, id))!) } satisfies LocationResponse, 201, { location: "/locations" });
     }),
 
     route("PUT", "/api/locations/:id", "admin", async ({ request, env, params, staff }) => {

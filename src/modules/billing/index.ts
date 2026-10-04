@@ -4,7 +4,7 @@
 // Mỗi route hỏi `can()` với ô của MATRIX TRƯỚC khi đọc thân / ghi (cổng router chỉ lọc thô — ADR-0019). Bảng tin (ADR-0022, ADR-0025 đ8): route ghi dưới
 // /api/orders/* báo `baoThayDoi` ĐÚNG MỘT lần, chỉ ở nhánh thành công, sau khi lô ghi xong (hàng rào src/bang-tin-guard.test.ts phủ tệp này).
 import type { LedgerBalancesResponse, NhapKeToanResponse, OrderPaymentsResponse, SoCongNoResponse, SoCuaToiResponse, UnpaidSummaryResponse } from "../../shared/contracts";
-import { UUID_RE, error, json, readJson } from "../../shared/http";
+import { UUID_RE, error, json, readJson, trangDon } from "../../shared/http";
 import { docLenhNhapKeToan } from "../../shared/nhap-ke-toan";
 import { can, seesOnlyAssignedOrders, type PermissionHolder } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
@@ -66,7 +66,7 @@ export const billingModule: AppModule = {
       const kq = await ghiLanThu(env.DB, { orderId: id, deliveredAt: info.deliveredAt, raw: await readJson(request), ai: nguoiGoi(staff) });
       if (!kq.ok) return kq.res;
       baoThayDoi({ orderId: id, thayDoi: "tien" });
-      return json({ ok: true }, 201);
+      return json({ ok: true }, 201, { location: trangDon(id) });
     }),
 
     // "ĐÃ GIAO – ĐÃ THU ĐỦ" (ADR-0025 điều 2–5): ô `order.handover` { assigned } — HDV đang phụ trách, Quản trị, Toàn quyền. MỘT lô ghi: [câu bảo vệ người phụ
@@ -200,7 +200,7 @@ export const billingModule: AppModule = {
       const kq = await ghiQuyetToan(env.DB, { raw: await readJson(request), ai: nguoiGoi(staff) });
       if (!kq.ok) return kq.res;
       for (const orderId of kq.value.orderIds) baoThayDoi({ orderId, thayDoi: "tien" });
-      return json({ ok: true }, 201);
+      return json({ ok: true }, 201, { location: kq.value.orderIds.length === 1 ? trangDon(kq.value.orderIds[0]!) : "/orders" });
     }),
 
     // Hoàn khách (ADR-0026 đ5, M2): ô `payment.refund` — Kế toán, Toàn quyền (Quản trị không — H4).
@@ -209,7 +209,7 @@ export const billingModule: AppModule = {
       const kq = await ghiHoanKhach(env.DB, { raw: await readJson(request), ai: nguoiGoi(staff) });
       if (!kq.ok) return kq.res;
       baoThayDoi({ orderId: kq.value.orderId, thayDoi: "tien" });
-      return json({ ok: true }, 201);
+      return json({ ok: true }, 201, { location: trangDon(kq.value.orderId) });
     }),
 
     // Điều chỉnh / đảo, lý do bắt buộc (ADR-0026 đ8). Ô `ledger.write`.
@@ -218,7 +218,7 @@ export const billingModule: AppModule = {
       const kq = await ghiDieuChinh(env.DB, { raw: await readJson(request), ai: nguoiGoi(staff) });
       if (!kq.ok) return kq.res;
       if (kq.value.orderId) baoThayDoi({ orderId: kq.value.orderId, thayDoi: "tien" });
-      return json({ ok: true }, 201);
+      return json({ ok: true }, 201, { location: kq.value.orderId ? trangDon(kq.value.orderId) : "/home" });
     }),
   ],
 };

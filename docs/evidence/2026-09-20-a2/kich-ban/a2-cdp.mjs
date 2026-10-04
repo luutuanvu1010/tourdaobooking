@@ -81,7 +81,7 @@ export async function startEnv({ turnstile = false, passkey = false, vapid = fal
   // (Chrome cấm tạo passkey trên địa chỉ IP) — kịch bản dùng `env.localBase` để điều hướng, KHÔNG dùng `env.base` (127.0.0.1) cho các bước cần WebAuthn.
   const passkeyVars = passkey ? ["localhost", localBase] : ["", ""];
   const vapidKeys = vapid ? await taoCapKhoaVapidThu() : { publicB64u: "", privateJwk: "" };
-  const server = spawn("npx", ["wrangler", "dev", "--port", String(port), "--ip", "127.0.0.1", "--inspector-port", String(inspector), "--persist-to", persist, "--var", `SESSION_SECRET:${randomBytes(48).toString("base64url")}`, "--var", `TURNSTILE_SITE_KEY:${turnstileVars[0]}`, "--var", `TURNSTILE_SECRET_KEY:${turnstileVars[1]}`, "--var", `PASSKEY_RP_ID:${passkeyVars[0]}`, "--var", `PASSKEY_ORIGIN:${passkeyVars[1]}`, "--var", `VAPID_PUBLIC_KEY:${vapidKeys.publicB64u}`, "--var", `VAPID_PRIVATE_KEY:${vapidKeys.privateJwk}`, ...Object.entries(vars).flatMap(([k, v]) => ["--var", `${k}:${v}`])],
+  const server = spawn("npx", ["wrangler", "dev", "--port", String(port), "--ip", "127.0.0.1", "--inspector-port", String(inspector), "--persist-to", persist, "--var", `SESSION_SECRET:${randomBytes(48).toString("base64url")}`, "--var", `LAN_GUI_SECRET:${randomBytes(48).toString("base64url")}`, "--var", `TURNSTILE_SITE_KEY:${turnstileVars[0]}`, "--var", `TURNSTILE_SECRET_KEY:${turnstileVars[1]}`, "--var", `PASSKEY_RP_ID:${passkeyVars[0]}`, "--var", `PASSKEY_ORIGIN:${passkeyVars[1]}`, "--var", `VAPID_PUBLIC_KEY:${vapidKeys.publicB64u}`, "--var", `VAPID_PRIVATE_KEY:${vapidKeys.privateJwk}`, ...Object.entries(vars).flatMap(([k, v]) => ["--var", `${k}:${v}`])],
     { cwd: ROOT, detached: true, stdio: ["ignore", "pipe", "pipe"], env: { ...process.env, CI: "1" } });
   server.stdout.on("data", (d) => logs.push(String(d)));
   server.stderr.on("data", (d) => logs.push(String(d)));
@@ -136,7 +136,8 @@ export async function startEnv({ turnstile = false, passkey = false, vapid = fal
         r = await post();
         break;
       } catch (e) {
-        if (i >= 2 || e?.cause?.code !== "ECONNRESET") throw e;
+        // 2026-10-03 (Đợt V1 kiểm theo vai): undici của Node 22.22 báo cùng hiện tượng kết nối giữ-sống đã chết bằng `UND_ERR_SOCKET` ("other side closed").
+        if (i >= 2 || (e?.cause?.code !== "ECONNRESET" && e?.cause?.code !== "UND_ERR_SOCKET")) throw e;
         await sleep(200);
       }
     }

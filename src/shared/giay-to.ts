@@ -30,7 +30,10 @@ export type TrangThaiXe = keyof typeof TRANG_THAI_XE;
 export const isTrangThaiXe = (v: unknown): v is TrangThaiXe => typeof v === "string" && Object.hasOwn(TRANG_THAI_XE, v);
 
 const MOT_NGAY_MS = 24 * 60 * 60 * 1000;
-const ngayUtc = (d: string): number => Date.UTC(Number(d.slice(0, 4)), Number(d.slice(5, 7)) - 1, Number(d.slice(8, 10)));
+const ngayUtc = (d: string): number => {
+  const [y, m, dd] = d.split("-").map(Number) as [number, number, number];
+  return Date.UTC(y, m - 1, dd);
+};
 
 /**
  * Số ngày từ `homNay` tới `hetHan` (ngày dân sự "YYYY-MM-DD", giờ VN); âm = đã quá hạn. Tính bằng `Date.UTC` của hai chuỗi ngày — không

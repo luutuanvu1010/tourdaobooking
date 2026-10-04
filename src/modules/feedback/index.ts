@@ -100,7 +100,7 @@ export const feedbackModule: AppModule = {
       scheduleMail(env, exec, request, id, {
         type: "created", code: d.ticket.code, kindName: FEEDBACK_KIND_NAME[d.ticket.kind], title: d.ticket.title, submitterName: staff.fullName, excerpt: v.value.body,
       });
-      return json(d, 201);
+      return json(d, 201, { location: "/feedback" });
     }),
 
     // Tuyến TĨNH khai trước tuyến có :id để "mine"/"badge" không bị hiểu là id.
@@ -166,7 +166,7 @@ export const feedbackModule: AppModule = {
         });
       }
       const d = await detail(env.DB, staff, id);
-      return d ? json(d, 201) : NOT_FOUND();
+      return d ? json(d, 201, { location: "/feedback" }) : NOT_FOUND();
     }),
 
     // Admin đổi trạng thái / người xử lý. Trạng thái đi theo bảng luật (canTransition); khoá lạc quan theo trạng thái cũ.
