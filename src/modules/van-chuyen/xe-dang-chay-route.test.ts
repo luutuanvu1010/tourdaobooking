@@ -4,7 +4,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import {
-  ACC, ADM, DRIVER, LOC, SALES, batDongHo, chiTiet, chuyenSan, denGio, don, setup, tienDo, uuid,
+  ACC, ADM, DRIVER, DRIVER2, LOC, SALES, batDongHo, chiTiet, chuyenSan, denGio, don, setup, tienDo, uuid,
 } from "../../../tests/audit/dieu-phoi-khung.mjs";
 
 /** Chuyến A (2 khách có tên, đón 13:00) đã xuất bến lúc 12:40; đơn B (2 khách, 1 có tên, đón 13:30 ở nơi khác) đã xác nhận, CHƯA xếp. */
@@ -218,6 +218,37 @@ test("D5.3a cập nhật điểm khi xe đang chạy: chỉ suất WAITING ở �
     assert.equal(r2.status, 200, r2.text);
     assert.equal(r2.json.daCapNhat, 0);
     assert.equal(w.q("SELECT count(*) n FROM audit_log WHERE action = 'trip_stops_synced'")[0].n, 1);
+    kiemDinhKySach(w);
+  } finally {
+    tat();
+  }
+});
+
+test("D5.1 chặng về 'chưa xếp' sau khi xe kia kết thúc gián đoạn → thêm vào xe đang chạy KHÁC vẫn theo luật mốc (Bán hàng 409, Quản trị phá lệ 200); văn phòng dời khách khỏi xe đang chạy → 409", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const a = await chuyenSan(w);
+    const a2 = await chuyenSan(w, { taiXe: DRIVER2 });
+    const b = await don(w, { gio: "13:30", soNguoi: 2, ten: 1, noiDon: "Khách sạn Hai Dò Tìm" });
+    denGio("12:40");
+    for (const [t, tx] of [[a, DRIVER], [a2, DRIVER2]] as const) assert.equal((await tienDo(w, "tai-xe", t.id, "xuat-ben", {}, tx)).status, 200);
+    denGio("12:41");
+    assert.equal((await themDiem(w, a.id, ADM, [{ legId: b.legId, soSuat: 2 }], PHA_LE)).status, 200);
+    assert.equal((await tienDo(w, "tai-xe", a.id, "ket-thuc-gian-doan", { lyDo: "GIAN_DOAN_XE_HONG" })).status, 200);
+    assert.equal(w.q("SELECT count(*) n FROM vc_trip_allocation WHERE leg_id = ? AND valid_to_at IS NULL", b.legId)[0].n, 0, "chặng B về 'chưa xếp'");
+    const ban = await themDiem(w, a2.id, SALES, [{ legId: b.legId, soSuat: 2 }]);
+    assert.equal(ban.status, 409, ban.text);
+    assert.equal(ban.json.error.code, "can_pha_le");
+    const r = await themDiem(w, a2.id, ADM, [{ legId: b.legId, soSuat: 2 }], PHA_LE);
+    assert.equal(r.status, 200, r.text);
+    assert.equal(r.json.suat.filter((s: any) => s.maDon === b.code).length, 2);
+    const c = await chiTiet(w, a2.id, ADM);
+    const doi = await w.call("POST", `/api/van-chuyen/chuyen/${a2.id}/doi`, {
+      as: ADM, body: { version: c.chuyen.version, requestId: uuid(), denChuyenId: a.id, denVersion: 1, suatIds: [a2.suat[0]] },
+    });
+    assert.equal(doi.status, 409, doi.text);
+    assert.equal(doi.json.error.code, "xe_dang_chay");
     kiemDinhKySach(w);
   } finally {
     tat();
