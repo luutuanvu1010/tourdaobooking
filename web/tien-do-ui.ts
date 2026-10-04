@@ -6,6 +6,7 @@
 //  - `veDiemChay`: điểm dừng + khách của chuyến đang chạy (bản vẽ 5a / 5c) — nút gọi `onLenh`, màn quyết có hỏi giờ hay gửi ngay.
 import { buocDiem, cauConKhach, cauTuChoiKhaiGio, goiYKhaiGio, NHAN_LENH_SUAT, xayRaLucTu, type BuocDiem, type DiemVao, type LenhSuat, type SuatVao } from "../src/shared/tien-do-man";
 import { nhanMocTienDo } from "../src/shared/dieu-phoi-hien-thi";
+import { chipDiemChay } from "../src/shared/xe-dang-chay-man";
 import type { GioVnDto, LyDoDangDungDto, MocTienDoDto } from "../src/shared/contracts";
 import { ApiError } from "./api";
 import { moBangTruot } from "./bang-truot";
@@ -144,8 +145,11 @@ export function veDiemChay(o: {
   /** Kiểu A (V1.4): dòng "Vừa ghi … — Sai? Báo văn phòng." ngay dưới dòng khách vừa bấm (màn tài xế; văn phòng không truyền). */
   vuaGhi?: { suatId: string; cau: string } | null;
 }): HTMLElement[] {
+  const baoHuy = new Set(o.suat.filter((x) => x.vanPhongBaoHuy).map((x) => x.id));
   return buocDiem(o.diem, o.suat, o.trangThai, o.ngayXem).map((b) => {
     const d = b.diem;
+    // Đợt 5 (V6 bảng 6.2): "Mới thêm" / "Văn phòng đã báo huỷ — vẫn tới điểm" — cùng khối cho tài xế và văn phòng.
+    const chipDiem = chipDiemChay(d, o.suat);
     const nutDiem = o.coNut && b.nut ? h("button", { type: "button", class: "vc-btn btn btn-primary dp-run-btn", "data-action": b.nut.lenh, "data-diem": d.id }, b.nut.nhan) : null;
     nutDiem?.addEventListener("click", () => o.onLenh(b.nut!.lenh === "da-toi" ? { loai: "da-toi", buoc: b } : { loai: "tra-het", buoc: b }, nutDiem));
     const phu = o.phuDiem ? o.phuDiem(b) : {};
@@ -163,6 +167,7 @@ export function veDiemChay(o: {
           h("span", { class: "dp-run-noi" }, d.tenNoi),
           dongMoc("Đã tới", d.daToi, o.ngayXem),
           d.trangThai === "SKIPPED" ? h("span", { class: "dp-run-bo" }, "Bỏ qua — không còn khách") : null,
+          chipDiem.length ? h("span", { class: "dp-run-chip" }, ...chipDiem.map((c) => chip(c.nhan, c.tone))) : null,
         ),
         phu.ben ?? null,
       ),
@@ -178,6 +183,7 @@ export function veDiemChay(o: {
           "div",
           { class: `dp-khach${cho ? " is-cho" : ""}`, "data-suat": k.suatId },
           h("div", { class: "dp-khach-dong" }, h("span", { class: "dp-khach-ten" }, k.ten), k.namSinh ? h("span", { class: "dp-khach-nam" }, String(k.namSinh)) : null,
+            baoHuy.has(k.suatId) && !k.ketQua ? chip("Văn phòng đã báo huỷ", "warn") : null,
             k.ketQua ? h("span", { class: `dp-khach-kq${k.ketQua === "Vắng" ? " is-vang" : k.ketQua === "Đã đón" || k.ketQua === "Đã trả" ? " is-ok" : ""}` }, k.ketQua) : null),
           o.vuaGhi?.suatId === k.suatId ? h("div", { class: "dp-vua-ghi", role: "status" }, icon("check", 16, 2), h("span", null, o.vuaGhi.cau)) : null,
           cho ? h("div", { class: "dp-khach-cho" }, "Chưa gửi được", h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary", "data-action": "bam-lai", "data-suat": k.suatId }, "Bấm lại")) : null,

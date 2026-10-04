@@ -9,6 +9,8 @@
 //   khác hôm nay → dòng cảnh báo đỏ trên trang VÀ trong hộp (`canhBaoNgayChay`, chung với văn phòng). Không dùng confirm() của trình duyệt.
 // - Kiểu A (V1.4): "Đã trả" cả điểm và "Kết thúc chuyến" cũng qua bảng trượt xác nhận (`hopTraCaDiem`, `hopKetThuc`); lệnh suất một chạm (Đã đón / Vắng /
 //   Khách đã huỷ / người đi kèm) giữ một chạm nhưng hiện ngay "Vừa ghi … — Sai? Báo văn phòng." dưới dòng đó (`dongVuaGhi`).
+// - Đợt 5 (bản vẽ V6 bổ sung): điểm văn phòng thêm khi xe chạy → dải "Văn phòng vừa thêm điểm" (giờ đón + tổng khách — lời chủ 5.3) tới khi bấm "Đã xem"
+//   (máy này nhớ, `localStorage` bọc try/catch); chip "Mới thêm" / "Văn phòng đã báo huỷ — vẫn tới điểm" ở `veDiemChay`.
 // - Mất mạng: dòng đó "Chưa gửi được" + "Bấm lại" (CÙNG requestId — bấm lại hai lần vẫn một lệnh); máy KHÔNG tự gửi lại (lệnh điều phối, khác câu 5a).
 import { giuTenKhach, ketThucDuoc, chiSuatKhach, soHieuTaiDiemDon, tenNguoiDiKemCuaChuyen, thanDoiThuTu, viecNguoiDiKem, type BuocDiem } from "../src/shared/tien-do-man";
 import type { CuocChiTietResponse } from "../src/shared/contracts";
@@ -25,6 +27,7 @@ import type { SuKienChuyen } from "../src/shared/bang-tin";
 import { cauLoiTienDo, dongMoc, veDiemChay, type LenhDiem } from "./tien-do-ui";
 import { msToVnLocal, ngayNgan, vnToday } from "../src/shared/vn-date";
 import { canhBaoNgayChay, hopXuatBen } from "../src/shared/xac-nhan-xuat-ben";
+import { diemMoiChuaXem } from "../src/shared/xe-dang-chay-man";
 import { dongVuaGhi, hopKetThuc, hopTraCaDiem, type HopXacNhan, type LenhVuaGhi } from "../src/shared/xac-nhan-tien-do";
 
 const errorEl = byId("error");
@@ -100,6 +103,38 @@ function khoiDiKem(): HTMLElement | null {
   }));
 }
 
+/** Điểm "thêm khi chạy" máy này đã xem (dải V6 6.1) — chỉ là tiện ích của máy; không đọc / ghi được thì dải hiện lại, không hỏng. */
+const KHOA_DA_XEM = `cc-diem-da-xem:${id}`;
+function daXem(): Set<string> {
+  try {
+    const v = JSON.parse(localStorage.getItem(KHOA_DA_XEM) ?? "[]") as unknown;
+    return new Set(Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : []);
+  } catch {
+    return new Set();
+  }
+}
+let daXemTam = new Set<string>();
+function ghiDaXem(ids: readonly string[]): void {
+  daXemTam = new Set([...daXemTam, ...ids]);
+  try {
+    localStorage.setItem(KHOA_DA_XEM, JSON.stringify([...new Set([...daXem(), ...ids])]));
+  } catch {
+    /* không ghi được: giữ trong bộ nhớ trang */
+  }
+}
+function daiDiemMoi(): HTMLElement | null {
+  const r = duLieu!;
+  if (r.chuyen.trangThai !== "RUNNING") return null;
+  const moi = diemMoiChuaXem(r.diem, new Set([...daXem(), ...daXemTam]), r.chuyen.gioBatDau.ngay);
+  if (!moi.length) return null;
+  const nut = h("button", { type: "button", class: "btn", "data-action": "da-xem-diem-moi" }, "Đã xem");
+  nut.addEventListener("click", () => {
+    ghiDaXem(moi.map((x) => x.id));
+    ve();
+  });
+  return dai("info", "Văn phòng vừa thêm điểm", [...moi.map((x) => `${x.cau}.`), "Đã nằm trong lộ trình của bạn."], undefined, [h("div", { class: "banner-actions" }, nut)]);
+}
+
 function ve(): void {
   const r = duLieu!;
   const c = r.chuyen;
@@ -141,6 +176,7 @@ function ve(): void {
     trangEl,
     dauMang,
     baoCao,
+    daiDiemMoi(),
     dauTrang,
     dongDiKem(),
     khoiDiKem(),

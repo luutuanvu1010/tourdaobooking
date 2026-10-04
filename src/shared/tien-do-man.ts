@@ -72,6 +72,8 @@ export interface DiemVao {
   trangThai: "PENDING" | "ARRIVED" | "DONE" | "SKIPPED" | "MOVED";
   soNguoi: number;
   daToi: MocTienDoDto | null;
+  /** Đợt 5 D5.1: điểm văn phòng thêm khi xe đang chạy (chip "Mới thêm"). */
+  themKhiChay?: boolean;
 }
 /** Khoá chung của suất (văn phòng: `SuatChuyenDto`; tài xế: `CuocChiTietResponse.suat` — cả hai có `loai`; suất người đi kèm `CREW` không gắn điểm dừng). */
 export interface SuatVao {
@@ -85,6 +87,8 @@ export interface SuatVao {
   namSinh?: number;
   daDon: MocTienDoDto | null;
   daTra: MocTienDoDto | null;
+  /** Đợt 5 D5.2: văn phòng đã báo khách huỷ (giờ + nhãn lý do; không người bấm) — suất vẫn chiếm chỗ. */
+  vanPhongBaoHuy?: { luc: GioVnDto; lyDoNhan: string } | null;
 }
 /**
  * Thân lệnh "đổi thứ tự" (route 29 của tài xế ↔ 39 của văn phòng — CÙNG một hàm xử lý): đổi chỗ điểm `diemId` với điểm CHƯA TỚI liền trước (-1) / liền sau (+1),
