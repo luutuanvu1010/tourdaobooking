@@ -557,3 +557,18 @@ test("VK2-B B1 + B3 (vòng vá 1): ngưỡng giờ lái của lệnh tạo / s�
   // Đối chứng: chính sách 8 giờ → cùng dữ liệu không nhắc.
   assert.deepEqual(kiemTaoSuaChuyen(tao(than, khac)).nhacGioLai, []);
 });
+
+test("Đợt 5 D5.1 kiemXep THEM_KHI_CHAY: chuyến RUNNING không bị chặn; xe đang chạy LUÔN trong mốc (kể cả giờ dự kiến còn xa) — đặt gấp qua, chặng thường cần phá lệ; PLANNED / ENDED → chặn", () => {
+  const dangChay = { ...CX, trangThai: "RUNNING" as const };
+  const sauXuatBen = BAT_DAU + 30 * PHUT;
+  const mot = (c = chang()) => [{ chang: c, soSuatMoi: 1, personKeys: [], suatMoCuaChang: [] }];
+  assert.deepEqual(ai(xep(mot(), { chuyen: dangChay, bayGioMs: sauXuatBen, lenh: "THEM_KHI_CHAY" }).canPhaLe), ["MOC_TOI_THIEU:QUAN_TRI"]);
+  assert.equal(xep(mot(chang({ datGap: true })), { chuyen: dangChay, bayGioMs: sauXuatBen, lenh: "THEM_KHI_CHAY" }).ok, true);
+  // Xuất bến sớm: giờ dự kiến còn 10 tiếng nữa — vẫn tính là trong mốc (ADR-0052 D5.1).
+  const somXa = BAT_DAU - 10 * 3600e3;
+  assert.deepEqual(ma(xep(mot(), { chuyen: dangChay, bayGioMs: somXa, lenh: "THEM_KHI_CHAY" }).canPhaLe), ["MOC_TOI_THIEU"]);
+  for (const trangThai of ["PLANNED", "ENDED", "ENDED_INTERRUPTED", "CANCELLED"] as const) {
+    assert.deepEqual(ma(xep(mot(chang({ datGap: true })), { chuyen: { ...CX, trangThai }, bayGioMs: sauXuatBen, lenh: "THEM_KHI_CHAY" }).chan), ["CHUYEN_KHONG_CON_LEN_KE_HOACH"], trangThai);
+  }
+  assert.deepEqual(ma(xep([{ chang: chang(), soSuatMoi: 5, personKeys: [], suatMoCuaChang: [] }], { chuyen: dangChay, bayGioMs: sauXuatBen, lenh: "THEM_KHI_CHAY" }).chan), ["VUOT_SO_NGUOI_CHANG"]);
+});

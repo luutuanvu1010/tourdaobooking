@@ -212,8 +212,11 @@ export interface KiemXepVao {
   them: ThemVaoXe[];
   /** Người đi kèm (HDV, phụ xe — G9) mới xếp: chiếm chỗ như khách. */
   soNguoiDiKemMoi?: number;
-  /** "XEP" (mặc định) hoặc "DOI_DEN" (suất dời từ chuyến khác sang). */
-  lenh?: "XEP" | "DOI_DEN";
+  /**
+   * "XEP" (mặc định) hoặc "DOI_DEN" (suất dời từ chuyến khác sang). "THEM_KHI_CHAY" (ADR-0052 D5.1 — Đợt 5): văn phòng thêm khách vào xe ĐANG CHẠY — chỉ
+   * chuyến RUNNING; mốc như dòng "Xếp" (đặt gấp qua) với xe LUÔN trong mốc (giờ xét = min(giờ dự kiến, bây giờ)).
+   */
+  lenh?: "XEP" | "DOI_DEN" | "THEM_KHI_CHAY";
   chinhSach: ChinhSachVao | null;
   bayGioMs: number;
 }
@@ -248,7 +251,11 @@ export function kiemXep(v: KiemXepVao): KetQuaXep {
   const canPhaLe: LyDoGiu[] = [];
   const canhBao: LyDoGiu[] = [];
   if (!v.chinhSach) chan.push(lyDoGiu("CHINH_SACH_RONG"));
-  if (v.chuyen.trangThai !== "PLANNED") chan.push(lyDoGiu("CHUYEN_KHONG_CON_LEN_KE_HOACH", v.chuyen.ma));
+  const khiChay = v.lenh === "THEM_KHI_CHAY";
+  if (v.chuyen.trangThai !== (khiChay ? "RUNNING" : "PLANNED")) chan.push(lyDoGiu("CHUYEN_KHONG_CON_LEN_KE_HOACH", v.chuyen.ma));
+  // Xe đang chạy luôn ở trong mốc (ADR-0052 D5.1) — kể cả khi xuất bến sớm hơn giờ dự kiến.
+  const chuyenMoc = khiChay ? { batDauMs: Math.min(v.chuyen.batDauMs, v.bayGioMs), batDauSomNhatMs: Math.min(v.chuyen.batDauSomNhatMs, v.bayGioMs) } : v.chuyen;
+  const loaiMoc = khiChay ? "XEP" : (v.lenh ?? "XEP");
   let moi = v.soNguoiDiKemMoi ?? 0;
   for (const t of v.them) {
     const c = t.chang;
@@ -263,7 +270,7 @@ export function kiemXep(v: KiemXepVao): KetQuaXep {
       else if (daCo.has(p)) chan.push(lyDoGiu("NGUOI_DA_O_CHUYEN_KHAC", c.orderCode));
       daCo.add(p);
     }
-    if (v.chinhSach && kiemMocXep(v.chuyen, v.bayGioMs, v.chinhSach.minLeadMinutes, { loai: v.lenh ?? "XEP", datGap: c.datGap }).canPhaLe) {
+    if (v.chinhSach && kiemMocXep(chuyenMoc, v.bayGioMs, v.chinhSach.minLeadMinutes, { loai: loaiMoc, datGap: c.datGap }).canPhaLe) {
       canPhaLe.push(lyDoGiu("MOC_TOI_THIEU", c.orderCode));
     }
     for (const x of [lyDoNoiTra(c), lyDoThieuTen(c, v.chinhSach?.requireManifest ?? false)]) if (x) canhBao.push(x);
