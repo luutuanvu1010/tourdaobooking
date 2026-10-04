@@ -11,6 +11,17 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Vận chuyển Đợt 5 "Xe đang chạy" (ADR-0052 D5), migration 0076. Số 1.79: nhánh Đợt 4 (chưa gộp) giữ 1.78 — người gộp đánh lại nếu thứ tự đổi.
+    version: "1.79",
+    date: "2026-10-05",
+    items: [
+      { kind: "moi", text: "Xe đang chạy: văn phòng thêm khách của đơn khác vào xe đang chạy. Khách đặt gấp thì thêm ngay; khách khác cần Quản trị phá lệ." },
+      { kind: "moi", text: "Văn phòng báo khách huỷ khi xe đang chạy: tài xế thấy giờ báo và lý do, ghế vẫn giữ tới khi tài xế bấm Khách đã huỷ." },
+      { kind: "doi", text: "Cập nhật điểm theo đơn dùng được cả khi xe đang chạy, cho khách còn chờ ở điểm xe chưa tới." },
+      { kind: "moi", text: "Tài xế đang lái nhận thông báo khi văn phòng thêm khách, báo khách huỷ hoặc đổi điểm đón." },
+    ],
+  },
+  {
     // Trợ giúp: bỏ câu "chưa dùng Điều phối cho chuyến thật" (lý do cũ — chưa có màn nhập tên khách — đã hết từ 1.62); thêm Lịch xe bận, ba nhóm cuốc,
     // thông báo tài xế. Chủ 2/10: "Nếu đã đủ điều kiện để điều xe thật thì cập nhật trong Trợ giúp". Chỉ chữ hướng dẫn: không migration, không đổi máy chủ.
     version: "1.77",
