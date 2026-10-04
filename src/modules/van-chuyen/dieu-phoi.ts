@@ -9,6 +9,7 @@ import {
   ALLOC_CLOSE, ALLOC_GAN_TEN, ALLOC_INSERT, ALLOC_TIEN_DO, ALLOCS_CLOSE_ALL, ALLOCS_DONG_GIAN_DOAN, CHECK_INSERT, CHECK_ITEM_INSERT, DRIVER_CLOSE, DRIVER_INSERT,
   EVENT_INSERT, MANIFEST_INSERT, MOC_GOI_INSERT, MOC_XEP_INSERT, STOP_DA_TOI, STOP_INSERT, STOP_SET_SEQ, STOP_SKIP, STOP_UPDATE_PLAN, STOP_XONG_NEU_HET, STOPS_SKIP_ALL, TRIP_CANCEL, TRIP_GATE,
   TRIP_GATE_DANG_CHAY, TRIP_GATE_DOI, TRIP_GATE_TIEN_DO, TRIP_INSERT, TRIP_KET_THUC, TRIP_UPDATE_PLAN, TRIP_XUAT_BEN,
+  ALLOC_OFFICE_CANCEL, MANIFEST_THEM_SAU, TRIP_CHOT, TRIP_GATE_DANG_CHAY_VERSION,
 } from "./chuyen-repo";
 import {
   LENH_DONG_SUAT, type GanTen, type LoaiSuKienChuyen, type LyDoDongSuat, type MA_LY_DO_HE_THONG, type MaLuatPhaLe, type MucChup, type NguonGioXayRa, type TrangThaiSuat,
@@ -67,6 +68,11 @@ const cong = (db: D1Database, l: LenhChung, tripId: string, version: number): Ca
   stmt: db.prepare(TRIP_GATE).bind(tripId, version, l.cmd, l.lucIso, l.nguoiId),
 });
 const ghi = (stmt: D1PreparedStatement): CauCoNhan => ({ nhan: "GHI", stmt });
+/** Câu cổng lệnh KẾ HOẠCH trên chuyến ĐANG CHẠY (ADR-0052 D5 — version đúng + RUNNING). */
+const congDangChayVersion = (db: D1Database, l: LenhChung, tripId: string, version: number): CauCoNhan => ({
+  nhan: "CONG",
+  stmt: db.prepare(TRIP_GATE_DANG_CHAY_VERSION).bind(tripId, version, l.cmd, l.lucIso, l.nguoiId),
+});
 
 // ---- Khuôn dữ liệu của các lệnh --------------------------------------------------------------------------------------------------------------------------
 /** Điểm MỚI dựng từ chặng (I40): khoá nơi của chặng; chữ tự do đã che (chỉ hiển thị). */
@@ -92,10 +98,11 @@ export interface SuatMoi {
 /** HT-01 (V1.2): đổi số thứ tự MỘT điểm chưa tới (sắp đón trước trả sau khi dựng điểm — `sapLaiDiem`). `gac` = chuyến mang dấu lệnh (lệnh dời: ĐÍCH). */
 const doiThuTuDiem = (db: D1Database, l: LenhChung, tripId: string, d: { id: string; seq: number }): CauCoNhan =>
   ghi(db.prepare(STOP_SET_SEQ).bind(d.id, tripId, l.cmd, d.seq, l.lucIso, l.nguoiId));
-const chenDiem = (db: D1Database, l: LenhChung, d: DiemMoi): CauCoNhan =>
-  ghi(db.prepare(STOP_INSERT).bind(d.id, d.tripId, d.seq, d.loai, d.locationId, d.placeText, d.placeKey, l.cmd, l.lucIso, l.nguoiId));
-const chenSuat = (db: D1Database, l: LenhChung, s: SuatMoi): CauCoNhan =>
-  ghi(db.prepare(ALLOC_INSERT).bind(s.id, s.tripId, s.loai, s.legId, s.personKey, s.crewPartyId, s.boardStopId, s.alightStopId, l.cmd, l.lucIso, l.nguoiId));
+/** `khiChay` = lệnh trên chuyến ĐANG CHẠY (ADR-0052 D5): điểm mang cờ `added_while_running`, suất mang cờ `added_after_departure` (LC-15 mới đòi). */
+const chenDiem = (db: D1Database, l: LenhChung, d: DiemMoi, khiChay = false): CauCoNhan =>
+  ghi(db.prepare(STOP_INSERT).bind(d.id, d.tripId, d.seq, d.loai, d.locationId, d.placeText, d.placeKey, l.cmd, l.lucIso, l.nguoiId, khiChay ? 1 : 0));
+const chenSuat = (db: D1Database, l: LenhChung, s: SuatMoi, khiChay = false): CauCoNhan =>
+  ghi(db.prepare(ALLOC_INSERT).bind(s.id, s.tripId, s.loai, s.legId, s.personKey, s.crewPartyId, s.boardStopId, s.alightStopId, l.cmd, l.lucIso, l.nguoiId, khiChay ? 1 : 0));
 const dongSuat = (db: D1Database, l: LenhChung, tripId: string, suatId: string, lyDo: LyDoDongSuat, gac = tripId): CauCoNhan =>
   ghi(db.prepare(ALLOC_CLOSE).bind(suatId, tripId, l.cmd, lyDo, l.lucIso, l.nguoiId, gac));
 const boQuaDiem = (db: D1Database, l: LenhChung, tripId: string, stopId: string, lyDo: string, gac = tripId): CauCoNhan =>
@@ -268,21 +275,75 @@ export interface LenhCapNhatDiem extends LenhChung {
   doiThuTu: { id: string; seq: number }[];
   diemBoQua: string[];
   detail: string;
+  /**
+   * ADR-0052 D5.3a (Đợt 5): chuyến ĐANG CHẠY — cổng có version + RUNNING; điểm mới mang cờ `added_while_running`, suất mở lại mang cờ `added_after_departure`;
+   * câu CHỐT `SET version = version` đứng CUỐI (trigger 0076 kiểm "đóng = mở cùng dấu lệnh"). Nơi gọi chỉ đưa suất WAITING ở điểm lên PENDING và KHÔNG bỏ
+   * qua điểm (`diemBoQua` rỗng — kế hoạch Task 3).
+   */
+  dangChay?: boolean;
 }
 export function loCapNhatDiem(db: D1Database, l: LenhCapNhatDiem): CauCoNhan[] {
+  const chay = l.dangChay === true;
   const lo: CauCoNhan[] = [
-    cong(db, l, l.tripId, l.version),
+    chay ? congDangChayVersion(db, l, l.tripId, l.version) : cong(db, l, l.tripId, l.version),
     nhatKy(db, l, "trip_stops_synced", l.tripId, l.detail),
     suKien(db, l, { tripId: l.tripId, loai: "ALLOCATION_STOP_CHANGED", soNguoi: l.cap.length }),
-    ...l.diemMoi.map((d) => chenDiem(db, l, d)),
+    ...l.diemMoi.map((d) => chenDiem(db, l, d, chay)),
     ...l.doiThuTu.map((d) => doiThuTuDiem(db, l, l.tripId, d)),
   ];
   for (const c of l.cap) {
     lo.push(dongSuat(db, l, l.tripId, c.dongId, LENH_DONG_SUAT.DOI_DIEM_THEO_CHANG));
-    lo.push(chenSuat(db, l, c.mo));
+    lo.push(chenSuat(db, l, c.mo, chay));
   }
   lo.push(...l.diemBoQua.map((id) => boQuaDiem(db, l, l.tripId, id, LY_DO_BO_QUA_KHONG_CON_KHACH)));
+  if (chay) lo.push({ nhan: "TRANG_THAI_CUOI", stmt: db.prepare(TRIP_CHOT).bind(l.tripId, l.cmd) });
   return lo;
+}
+
+// ---- Văn phòng thêm điểm / khách vào xe ĐANG CHẠY (ADR-0052 D5.1 — Đợt 5) --------------------------------------------------------------------------------
+export interface LenhThemDiemDangChay extends LenhChung {
+  tripId: string;
+  version: number;
+  diemMoi: DiemMoi[];
+  doiThuTu: { id: string; seq: number }[];
+  /** ADR-0051: mốc giờ hẹn của chặng — câu chụp chỉ ghi khi chặng CHƯA có mốc (trigger vc_trip_allocation_needs_appt). */
+  mocXep: { legId: string; ngay: string; gio: string | null }[];
+  suatMoi: SuatMoi[];
+  /** Bản chốt dòng thêm sau xuất bến — chỉ suất khách CÓ tên (suất chưa tên vào bản chốt khi được gắn tên). */
+  chot: { allocationId: string; passengerRowId: string }[];
+  phaLe: PhaLe | null;
+  policyId: string | null;
+  detail: string;
+}
+/** Cổng (version + RUNNING) → nhật ký → sự kiện STOP_ADDED_RUNNING (đường (1) của LC-15 mới) → điểm (cờ) → sắp thứ tự → mốc → suất (cờ) → bản chốt. */
+export function loThemDiemDangChay(db: D1Database, l: LenhThemDiemDangChay): CauCoNhan[] {
+  return [
+    congDangChayVersion(db, l, l.tripId, l.version),
+    nhatKy(db, l, "trip_stop_added_running", l.tripId, l.detail),
+    suKien(db, l, { tripId: l.tripId, loai: "STOP_ADDED_RUNNING", soNguoi: l.suatMoi.length, phaLe: l.phaLe, policyId: l.policyId }),
+    ...l.diemMoi.map((d) => chenDiem(db, l, d, true)),
+    ...l.doiThuTu.map((d) => doiThuTuDiem(db, l, l.tripId, d)),
+    ...l.mocXep.map((m) => ghi(db.prepare(MOC_XEP_INSERT).bind(crypto.randomUUID(), m.legId, m.ngay, m.gio, l.lucIso, l.nguoiId, l.tripId, l.cmd))),
+    ...l.suatMoi.map((s) => chenSuat(db, l, s, true)),
+    ...l.chot.map((m) => ghi(db.prepare(MANIFEST_THEM_SAU).bind(crypto.randomUUID(), l.tripId, m.allocationId, m.passengerRowId, l.lucIso, l.nguoiId, l.cmd))),
+  ];
+}
+
+// ---- Văn phòng báo huỷ MỘT suất (ADR-0052 D5.2 — Đợt 5): chỉ đặt cờ, suất vẫn chiếm chỗ tới khi tài xế ghi "Khách đã huỷ" / "Đã đón" ----------------------
+export interface LenhBaoHuy extends LenhChung {
+  tripId: string;
+  version: number;
+  suatId: string;
+  lyDo: string;
+  detail: string;
+}
+export function loBaoHuy(db: D1Database, l: LenhBaoHuy): CauCoNhan[] {
+  return [
+    congDangChayVersion(db, l, l.tripId, l.version),
+    nhatKy(db, l, "trip_allocation_office_cancelled", l.tripId, l.detail),
+    suKien(db, l, { tripId: l.tripId, loai: "ALLOCATION_OFFICE_CANCELLED", allocationId: l.suatId, soNguoi: 1 }),
+    ghi(db.prepare(ALLOC_OFFICE_CANCEL).bind(l.suatId, l.tripId, l.cmd, l.lucIso, l.nguoiId, l.lyDo)),
+  ];
 }
 
 // ---- Cập nhật khách theo đơn (route 41 — R-P29, chủ lần 16; khuôn route 40) --------------------------------------------------------------------------------

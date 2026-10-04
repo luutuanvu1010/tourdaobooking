@@ -64,6 +64,15 @@ const MAU: Record<string, { vao: Record<string, unknown>; gac: string }> = {
   loKetThuc: { vao: { ...L, tripId: T, xayRa: XR, policyId: null, detail: "d" }, gac: T },
   loKetThucGianDoan: { vao: { ...L, tripId: T, xayRa: XR, policyId: null, lyDo: "GIAN_DOAN_KHAC", soSuatDong: 1, detail: "d" }, gac: T },
   loDoiThuTu: { vao: { ...L, tripId: T, diem: [{ id: "d-2", seq: 5 }], policyId: null, detail: "d" }, gac: T },
+  // ADR-0052 D5 (Đợt 5): văn phòng thêm điểm / khách vào xe ĐANG CHẠY (có phá lệ mốc + bản chốt dòng thêm sau xuất bến); báo huỷ một suất.
+  loThemDiemDangChay: {
+    vao: {
+      ...L, tripId: T, version: 7, diemMoi: [diem("d-9")], doiThuTu: [{ id: "d-2", seq: 4 }], mocXep: [{ legId: "leg-1", ngay: "2027-03-11", gio: "09:00" }],
+      suatMoi: [suat("a-1"), suat("a-2")], chot: [{ allocationId: "a-1", passengerRowId: "row-1" }], phaLe: { luat: "MOC_TOI_THIEU", lyDo: "PHA_LE_SU_CO", policyId: "cs-1" }, policyId: "cs-1", detail: "d",
+    },
+    gac: T,
+  },
+  loBaoHuy: { vao: { ...L, tripId: T, version: 7, suatId: "a-1", lyDo: "BAO_HUY_KHONG_DI", detail: "d" }, gac: T },
   lenhDaGoiBao: { vao: { ...L, legId: "leg-1", phienBan: 1, moi: { ngay: "2027-03-11", gio: "09:15" }, cu: { ngay: "2027-03-11", gio: "09:00" }, tripId: T, detail: "d" }, gac: T },
   lenhBoDanhDauGoiBao: {
     vao: { ...L, legId: "leg-1", phienBan: 2, moi: { ngay: "2027-03-11", gio: "09:00" }, cu: { ngay: "2027-03-11", gio: "09:15" }, tripId: T, detail: "d", banChup: "null" }, gac: T,
@@ -158,4 +167,16 @@ test("TC-32: MỌI hàm dựng lô của dieu-phoi.ts (tự suy từ tên xuất
     loi.push(...(HO_LENH_MOC.includes(t) ? viPhamLoMoc(t, lo) : viPhamLo(t, lo, MAU[t]!.gac)));
   }
   assert.deepEqual(loi, []);
+});
+
+test("D5.3a (Đợt 5): loCapNhatDiem trên xe ĐANG CHẠY — cổng có version + chuyến đang chạy, câu CHỐT `SET version = version` đứng CUỐI (nhãn TRANG_THAI_CUOI), đúng bốn luật", () => {
+  const f = MOD.loCapNhatDiem as (db: unknown, l: unknown) => Cau[];
+  const lo = f(DB, { ...(MAU.loCapNhatDiem!.vao), diemBoQua: [], dangChay: true });
+  assert.deepEqual(viPhamLo("loCapNhatDiem(dangChay)", lo, T), []);
+  assert.match(lo[0]!.stmt.sql, /version = \?2 AND status = 'RUNNING'/, "cổng: đúng version + chuyến đang chạy");
+  const cuoi = lo[lo.length - 1]!;
+  assert.equal(cuoi.nhan, "TRANG_THAI_CUOI");
+  assert.match(cuoi.stmt.sql, /^UPDATE vc_trip SET version = version WHERE id = \?1 AND last_cmd_id = \?2$/);
+  // Không dangChay: không có câu chốt (chuyến chưa chạy giữ lô cũ).
+  assert.ok(!f(DB, MAU.loCapNhatDiem!.vao).some((c) => c.nhan === "TRANG_THAI_CUOI"));
 });

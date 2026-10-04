@@ -347,12 +347,15 @@ export const DRIVER_CLOSE = defineSql(
   `UPDATE vc_trip_driver SET valid_to_at = ?4, close_reason = ?3, closed_by = ?5, updated_at = ?4, updated_by = ?5
    WHERE trip_id = ?1 AND valid_to_at IS NULL AND EXISTS (SELECT 1 FROM vc_trip WHERE id = ?1 AND last_cmd_id = ?2)`,
 );
-/** Thêm điểm dừng. ?1 id, ?2 chuyến, ?3 thứ tự, ?4 loại, ?5 điểm danh mục, ?6 chữ tự do (đã che), ?7 khoá nơi, ?8 dấu lệnh, ?9 lúc, ?10 người. */
+/**
+ * Thêm điểm dừng. ?1 id, ?2 chuyến, ?3 thứ tự, ?4 loại, ?5 điểm danh mục, ?6 chữ tự do (đã che), ?7 khoá nơi, ?8 dấu lệnh, ?9 lúc, ?10 người, ?11 cờ thêm khi
+ * xe đang chạy (0076 — 1 chỉ ở lệnh Thêm điểm / Cập nhật điểm trên chuyến RUNNING; trigger LC-15 đòi cờ + sự kiện dấu lệnh).
+ */
 export const STOP_INSERT = defineSql(
   "van-chuyen",
   "stop_insert",
-  `INSERT INTO vc_trip_stop (id, trip_id, seq, kind, location_id, place_text, place_key, created_at, created_by, updated_at, updated_by)
-   SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?9, ?10, ?9, ?10 WHERE EXISTS (SELECT 1 FROM vc_trip WHERE id = ?2 AND last_cmd_id = ?8)`,
+  `INSERT INTO vc_trip_stop (id, trip_id, seq, kind, location_id, place_text, place_key, added_while_running, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?11, ?9, ?10, ?9, ?10 WHERE EXISTS (SELECT 1 FROM vc_trip WHERE id = ?2 AND last_cmd_id = ?8)`,
 );
 /** Thứ tự + giờ xe tới của MỘT điểm (thuộc tính kế hoạch — cập nhật). ?1 điểm, ?2 chuyến, ?3 dấu lệnh, ?4 thứ tự, ?5 ngày xe tới, ?6 giờ xe tới, ?7 lúc, ?8 người. */
 export const STOP_UPDATE_PLAN = defineSql(
@@ -380,27 +383,27 @@ export const STOPS_SKIP_ALL = defineSql(
 );
 /**
  * Mở MỘT suất (mỗi suất một câu — trigger sức chứa theo dòng). ?1 id, ?2 chuyến, ?3 loại, ?4 chặng, ?5 khoá người, ?6 người đi kèm, ?7 điểm lên, ?8 điểm xuống,
- * ?9 dấu lệnh, ?10 lúc, ?11 người.
+ * ?9 dấu lệnh (ghi vào `opened_cmd_id` — 0076, câu chốt D5.3a), ?10 lúc, ?11 người, ?12 cờ thêm sau xuất bến (1 chỉ trên chuyến RUNNING — LC-15 mới).
  */
 export const ALLOC_INSERT = defineSql(
   "van-chuyen",
   "alloc_insert",
   `INSERT INTO vc_trip_allocation (id, trip_id, kind, leg_id, passenger_key, crew_party_id, board_stop_id, alight_stop_id, status, valid_from_at, added_after_departure,
-     created_at, created_by, updated_at, updated_by)
-   SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, 'WAITING', ?10, 0, ?10, ?11, ?10, ?11 WHERE EXISTS (SELECT 1 FROM vc_trip WHERE id = ?2 AND last_cmd_id = ?9)`,
+     opened_cmd_id, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, 'WAITING', ?10, ?12, ?9, ?10, ?11, ?10, ?11 WHERE EXISTS (SELECT 1 FROM vc_trip WHERE id = ?2 AND last_cmd_id = ?9)`,
 );
-/** Đóng MỘT suất đang mở. ?1 suất, ?2 chuyến, ?3 dấu lệnh, ?4 lý do đóng, ?5 lúc, ?6 người, ?7 chuyến GÁC (xem STOP_SKIP). */
+/** Đóng MỘT suất đang mở (ghi `closed_cmd_id` = dấu lệnh — 0076). ?1 suất, ?2 chuyến, ?3 dấu lệnh, ?4 lý do đóng, ?5 lúc, ?6 người, ?7 chuyến GÁC (xem STOP_SKIP). */
 export const ALLOC_CLOSE = defineSql(
   "van-chuyen",
   "alloc_close",
-  `UPDATE vc_trip_allocation SET valid_to_at = ?5, close_reason = ?4, closed_by = ?6, updated_at = ?5, updated_by = ?6
+  `UPDATE vc_trip_allocation SET valid_to_at = ?5, close_reason = ?4, closed_by = ?6, closed_cmd_id = ?3, updated_at = ?5, updated_by = ?6
    WHERE id = ?1 AND trip_id = ?2 AND valid_to_at IS NULL AND EXISTS (SELECT 1 FROM vc_trip WHERE id = ?7 AND last_cmd_id = ?3)`,
 );
 /** Đóng MỌI suất đang mở của chuyến (huỷ chuyến). ?1 chuyến, ?2 dấu lệnh, ?3 lý do đóng, ?4 lúc, ?5 người. */
 export const ALLOCS_CLOSE_ALL = defineSql(
   "van-chuyen",
   "allocs_close_all",
-  `UPDATE vc_trip_allocation SET valid_to_at = ?4, close_reason = ?3, closed_by = ?5, updated_at = ?4, updated_by = ?5
+  `UPDATE vc_trip_allocation SET valid_to_at = ?4, close_reason = ?3, closed_by = ?5, closed_cmd_id = ?2, updated_at = ?4, updated_by = ?5
    WHERE trip_id = ?1 AND valid_to_at IS NULL AND EXISTS (SELECT 1 FROM vc_trip WHERE id = ?1 AND last_cmd_id = ?2)`,
 );
 
@@ -433,6 +436,33 @@ export const ALLOC_TIEN_DO = defineSql(
      AND EXISTS (SELECT 1 FROM vc_trip t WHERE t.id = ?2 AND t.status = 'RUNNING')
      AND (kind = 'CREW' OR EXISTS (SELECT 1 FROM vc_trip_stop s WHERE s.trip_id = ?2 AND s.status IN ('ARRIVED', 'DONE')
            AND s.id = CASE ?7 WHEN 'XUONG' THEN vc_trip_allocation.alight_stop_id ELSE vc_trip_allocation.board_stop_id END))`,
+);
+// ---- XE ĐANG CHẠY (ADR-0052 D5 — Đợt 5; migration 0076) ---------------------------------------------------------------------------------------------------
+/** Câu cổng lệnh KẾ HOẠCH trên chuyến ĐANG CHẠY (D5.1 thêm điểm, D5.2 báo huỷ, D5.3a cập nhật điểm): version đúng + còn RUNNING. Tham số như TRIP_GATE. */
+export const TRIP_GATE_DANG_CHAY_VERSION = defineSql(
+  "van-chuyen",
+  "trip_gate_dang_chay_version",
+  "UPDATE vc_trip SET version = version + 1, last_cmd_id = ?3, updated_at = ?4, updated_by = ?5 WHERE id = ?1 AND version = ?2 AND status = 'RUNNING'",
+);
+/** Văn phòng báo huỷ MỘT suất (D5.2): chỉ đặt cờ — không đổi trạng thái, không đóng suất. ?1 suất, ?2 chuyến, ?3 dấu lệnh, ?4 lúc, ?5 người, ?6 mã lý do. */
+export const ALLOC_OFFICE_CANCEL = defineSql(
+  "van-chuyen",
+  "alloc_office_cancel",
+  `UPDATE vc_trip_allocation SET office_cancel_at = ?4, office_cancel_by = ?5, office_cancel_reason_code = ?6, updated_at = ?4, updated_by = ?5
+   WHERE id = ?1 AND trip_id = ?2 AND valid_to_at IS NULL AND status = 'WAITING' AND office_cancel_at IS NULL
+     AND EXISTS (SELECT 1 FROM vc_trip WHERE id = ?2 AND last_cmd_id = ?3)`,
+);
+/** CÂU CHỐT cuối lô D5.3a (trigger vc_trip_stop_changed_balance kiểm "đóng = mở cùng dấu lệnh"). Không đổi gì. ?1 chuyến, ?2 dấu lệnh. */
+export const TRIP_CHOT = defineSql("van-chuyen", "trip_chot", "UPDATE vc_trip SET version = version WHERE id = ?1 AND last_cmd_id = ?2");
+/**
+ * Bản chốt dòng THÊM SAU xuất bến (check_id NULL, cờ 1 — CHECK của 0042) — suất khách CÓ tên văn phòng thêm vào xe đang chạy. ?1 id, ?2 chuyến, ?3 suất,
+ * ?4 dòng hành khách, ?5 lúc, ?6 người, ?7 dấu lệnh.
+ */
+export const MANIFEST_THEM_SAU = defineSql(
+  "van-chuyen",
+  "manifest_them_sau",
+  `INSERT INTO vc_trip_manifest (id, trip_id, check_id, allocation_id, passenger_row_id, crew_party_id, added_after_departure, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, NULL, ?3, ?4, NULL, 1, ?5, ?6, ?5, ?6 WHERE EXISTS (SELECT 1 FROM vc_trip WHERE id = ?2 AND last_cmd_id = ?7)`,
 );
 /** Câu CHUYỂN "xe đã tới điểm" — đứng ĐẦU lô, tự gác: điểm PENDING của chuyến đang chạy. ?1 điểm, ?2 chuyến, ?3 giờ xảy ra (chuỗi), ?4 lúc, ?5 người. */
 export const STOP_DA_TOI = defineSql(
@@ -506,7 +536,7 @@ export const TRIP_KET_THUC = defineSql(
 export const ALLOCS_DONG_GIAN_DOAN = defineSql(
   "van-chuyen",
   "allocs_dong_gian_doan",
-  `UPDATE vc_trip_allocation SET valid_to_at = ?3, close_reason = 'TRIP_INTERRUPTED', closed_by = ?4, updated_at = ?3, updated_by = ?4
+  `UPDATE vc_trip_allocation SET valid_to_at = ?3, close_reason = 'TRIP_INTERRUPTED', closed_by = ?4, closed_cmd_id = ?2, updated_at = ?3, updated_by = ?4
    WHERE trip_id = ?1 AND valid_to_at IS NULL AND status IN ('WAITING', 'BOARDED') AND EXISTS (SELECT 1 FROM vc_trip WHERE id = ?1 AND last_cmd_id = ?2)`,
 );
 /** Đổi thứ tự MỘT điểm chưa tới (chỉ `seq` — không đụng giờ xe tới): xe đang chạy (route 29 / 39), hoặc lệnh xếp / dời / cập nhật điểm sắp đón trước trả
