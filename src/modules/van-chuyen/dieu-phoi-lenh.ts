@@ -62,7 +62,13 @@ const lenhChung = (requestId: string, staff: StaffProfile, bayGioMs: number) => 
  * `lichChungChang`. Chặng rơi khỏi lịch (đơn huỷ, chặng bỏ…) không có dữ liệu cam kết và đã có lý do giữ riêng ⇒ bỏ qua.
  */
 function changTrenChuyen(nen: NenChuyen, chang: ReadonlyMap<string, ChangVao>): ChangVao[] {
-  const ids = [...new Set(nen.allocs.flatMap((a) => (a.valid_to_at === null && a.kind === "PASSENGER" && a.leg_id !== null ? [a.leg_id] : [])))];
+  return changCuaLeg(legKhachMo(nen.allocs), chang);
+}
+/** Chặng có suất KHÁCH MỞ (mở + PASSENGER + có chặng) — MỘT định nghĩa cho mọi nơi gọi luật cam kết. */
+const legKhachMo = (allocs: NenChuyen["allocs"]): string[] =>
+  allocs.flatMap((a) => (a.valid_to_at === null && a.kind === "PASSENGER" && a.leg_id !== null ? [a.leg_id] : []));
+function changCuaLeg(legIds: readonly string[], chang: ReadonlyMap<string, ChangVao>): ChangVao[] {
+  const ids = [...new Set(legIds)];
   return ids.flatMap((id) => {
     const c = chang.get(id);
     return c ? [c] : [];
@@ -385,9 +391,11 @@ export async function lenhRut(db: D1Database, nen: NenChuyen, lich: readonly Cha
   const maDon = new Map(lich.map((c) => [c.legId, c.orderCode]));
   const phaLe = moc.canPhaLe ? phaLeCua(chung, "MOC_TOI_THIEU", b.phaLe) : null;
   const ds = maDonGon(mo.filter((a) => b.suatIds.includes(a.id) && a.leg_id).map((a) => maDon.get(a.leg_id!) ?? ""));
+  const ck = await camKetSauGiam(db, t, legKhachMo(nen.allocs.filter((a) => !b.suatIds.includes(a.id))), lich, chung);
   const lo = loRut(db, {
     ...lenhChung(b.requestId, staff, bayGioMs), tripId: t.id, version: b.version, suatIds: b.suatIds, diemBoQua: diemKhongConKhach(nen.stops, t.id, conMo), phaLe,
-    policyId: chung.chinhSach?.id ?? null, detail: `${t.code}: rút ${b.suatIds.length} người${ds ? ` (${ds})` : ""}${phaLe ? phaLeNhatKy(phaLe.luat, nhanLyDo(chung, phaLe.lyDo)) : ""}`,
+    policyId: chung.chinhSach?.id ?? null, camKet: ck.lo,
+    detail: `${t.code}: rút ${b.suatIds.length} người${ds ? ` (${ds})` : ""}${phaLe ? phaLeNhatKy(phaLe.luat, nhanLyDo(chung, phaLe.lyDo)) : ""}${ck.nhatKy}`,
   });
   const r = await chayLo(db, lo, b.requestId);
   return r.ok ? null : r.res;
@@ -455,7 +463,7 @@ export async function lenhDoi(
   ]);
   const phaLe = kq.canPhaLe.some((l) => l.ma === "MOC_TOI_THIEU") ? phaLeCua(chung, "MOC_TOI_THIEU", b.phaLe) : null;
   const ckDich = camKetSauLenh(chung, kq.camKet, d.commitment_override_key, b.camKetPhaLe);
-  const ckNguon = await camKetNguonSauDoi(db, nen, lich, chung, b.suatIds);
+  const ckNguon = await camKetSauGiam(db, t, legKhachMo(nen.allocs.filter((a) => !b.suatIds.includes(a.id))), lich, chung);
   const ds = maDonGon(legIds.map((id) => nc.changLich.get(id)!.orderCode));
   const lo = loDoi(db, {
     ...lenhChung(b.requestId, staff, bayGioMs), nguon: { tripId: t.id, version: b.version }, dich: { tripId: d.id, version: b.denVersion }, cap, diemMoiDich, doiThuTuDich,
@@ -468,20 +476,20 @@ export async function lenhDoi(
 }
 
 /**
- * ADR-0056 VK3-A, C7: chuyến NGUỒN của lệnh dời chỉ GIẢM khách ⇒ không bao giờ bị CAM_KET chặn. Chuyến đang có cột phá lệ mà sau lệnh hết vi phạm thì xoá
- * cột trong cùng lô; còn vi phạm thì giữ cột (khoá khác ⇒ cổng xuất bến giữ chuyến). Chặng của khách còn lại đọc từ `lich` (route đọc khoảng ngày phủ cả hai
- * chuyến); chặng rơi khỏi lịch bỏ qua như `changTrenChuyen`.
+ * ADR-0056 VK3-A, C7: lệnh chỉ GIẢM khách (rút, chuyến NGUỒN của dời, cập nhật khách / điểm theo đơn) ⇒ không bao giờ bị CAM_KET chặn và không bao giờ GHI
+ * phá lệ mới. Chuyến đang có cột phá lệ mà sau lệnh hết vi phạm thì xoá cột trong cùng lô (có nhật ký); còn vi phạm thì giữ cột (khoá khác ⇒ cổng xuất bến
+ * giữ chuyến). `legIdsSau` = chặng có suất khách MỞ sau lệnh (`legKhachMo`); chặng đọc từ `lich` (route đọc sau `can()`), chặng rơi khỏi lịch bỏ qua như
+ * `changTrenChuyen`.
  */
-async function camKetNguonSauDoi(
-  db: D1Database, nen: NenChuyen, lich: readonly ChangLichChung[], chung: DuLieuChung, suatDi: readonly string[],
+async function camKetSauGiam(
+  db: D1Database, t: TripRow, legIdsSau: readonly string[], lich: readonly ChangLichChung[], chung: DuLieuChung,
 ): Promise<{ lo: CamKetLo | null; nhatKy: string }> {
-  const t = nen.trip;
   if (t.commitment_override_key === null) return { lo: null, nhatKy: "" };
   await boSungXe(db, chung, [t.vehicle_id]);
   const xeRow = chung.xe.find((x) => x.id === t.vehicle_id);
+  // Không đọc được xe của chuyến ⇒ không biết số chỗ để kết luận "hết vi phạm" ⇒ GIỮ cột (xoá nhầm là mất dấu phá lệ; cổng xuất bến vẫn tự kiểm lại).
   if (!xeRow) return { lo: null, nhatKy: "" };
-  const conLai = { ...nen, allocs: nen.allocs.filter((a) => !suatDi.includes(a.id)) };
-  const ck = kiemCamKet({ xe: { id: t.vehicle_id, soCho: xeRow.passenger_capacity }, chang: changTrenChuyen(conLai, new Map(lich.map((c) => [c.legId, changVao(c)]))), khoaDaPhaLe: t.commitment_override_key });
+  const ck = kiemCamKet({ xe: { id: t.vehicle_id, soCho: xeRow.passenger_capacity }, chang: changCuaLeg(legIdsSau, new Map(lich.map((c) => [c.legId, changVao(c)]))), khoaDaPhaLe: t.commitment_override_key });
   const r = camKetSauLenh(chung, ck, t.commitment_override_key, null);
   return { lo: r.lo, nhatKy: r.nhatKy };
 }
@@ -567,9 +575,12 @@ export async function lenhCapNhatDiem(
   const diemBoQua = chay ? [] : diemKhongConKhach(nen.stops, t.id, conMo);
   // HT-01 (V1.2): điểm mới của nơi đổi có thể đứng sau điểm trả dùng lại — sắp lại (điểm sắp bỏ qua không xét).
   const doiThuTu = sapLaiDiem(nen.stops, diemMoi, t.id, conMo, diemBoQua);
+  // C7: đổi điểm không đổi tập chặng trên xe (mở lại cùng chặng); vi phạm hết do SỬA ĐƠN thì lệnh có việc xoá cột. Xe ĐANG CHẠY: không chạm — cột là dấu phá lệ
+  // đã cho xe xuất bến (kiểm định kỳ đọc chuyến đang / đã chạy).
+  const ck = chay ? { lo: null, nhatKy: "" } : await camKetSauGiam(db, t, legKhachMo(nen.allocs), lich, chung);
   const lo = loCapNhatDiem(db, {
-    ...lenhChung(b.requestId, staff, bayGioMs), tripId: t.id, version: b.version, diemMoi, cap, doiThuTu, diemBoQua, dangChay: chay,
-    detail: `${t.code}: ${[...new Set(doi)].join("; ")}${chay ? " (xe đang chạy)" : ""}${sapNhatKy(doiThuTu)}`,
+    ...lenhChung(b.requestId, staff, bayGioMs), tripId: t.id, version: b.version, diemMoi, cap, doiThuTu, diemBoQua, dangChay: chay, camKet: ck.lo,
+    detail: `${t.code}: ${[...new Set(doi)].join("; ")}${chay ? " (xe đang chạy)" : ""}${sapNhatKy(doiThuTu)}${ck.nhatKy}`,
   });
   const r = await chayLo(db, lo, b.requestId);
   return r.ok ? { daCapNhat: cap.length, boQua } : r.res;
@@ -619,9 +630,12 @@ export async function lenhCapNhatKhach(
     ...nen.allocs.filter((a) => a.valid_to_at === null && !dong.has(a.id)).map((a) => ({ board: a.board_stop_id, alight: a.alight_stop_id })),
     ...cap.flatMap((c) => (c.mo ? [{ board: c.mo.boardStopId, alight: c.mo.alightStopId }] : [])),
   ];
+  // C7: tập chặng sau lệnh = suất khách mở chưa đóng + suất mở lại (cùng chặng).
+  const legSau = [...legKhachMo(nen.allocs.filter((a) => !dong.has(a.id))), ...cap.flatMap((c) => (c.mo?.legId ? [c.mo.legId] : []))];
+  const ck = await camKetSauGiam(db, t, legSau, lich, chung);
   const lo = loCapNhatKhach(db, {
-    ...lenhChung(b.requestId, staff, bayGioMs), tripId: t.id, version: b.version, cap, diemBoQua: diemKhongConKhach(nen.stops, t.id, conMo),
-    detail: `${t.code}: cập nhật khách theo đơn — ${doi.join("; ")}`,
+    ...lenhChung(b.requestId, staff, bayGioMs), tripId: t.id, version: b.version, cap, diemBoQua: diemKhongConKhach(nen.stops, t.id, conMo), camKet: ck.lo,
+    detail: `${t.code}: cập nhật khách theo đơn — ${doi.join("; ")}${ck.nhatKy}`,
   });
   const r = await chayLo(db, lo, b.requestId);
   return r.ok ? cap.length : r.res;

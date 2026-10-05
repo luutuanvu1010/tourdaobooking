@@ -47,6 +47,11 @@ function loiViPham(v: ViPhamCamKet, soCho: number, donXeRieng: string): string {
  * phạm (kể cả khi đã phá lệ — `daPhaLe` cho biết), khoá, và lý do `CAM_KET` cho từng vi phạm.
  */
 export function kiemCamKet(v: { xe: { id: string; soCho: number }; chang: readonly ChangCamKet[]; khoaDaPhaLe: string | null }): KetQuaCamKet {
+  // Global Constraints kế hoạch Đợt 7: trường cam kết BẮT BUỘC — `undefined` (bộ dựng thiếu trường, thân cũ) không được lặng lẽ hiểu là "không cam kết".
+  for (const c of v.chang) {
+    if (typeof c.xeRieng !== "boolean") throw new Error(`Dữ liệu cam kết sai: chặng ${c.legId} có xeRieng không phải true/false (${String(c.xeRieng)}).`);
+    if (!(c.choToiThieu === null || Number.isInteger(c.choToiThieu))) throw new Error(`Dữ liệu cam kết sai: chặng ${c.legId} có choToiThieu không phải null hay số nguyên (${String(c.choToiThieu)}).`);
+  }
   const chang = [...new Map(v.chang.map((c) => [c.legId, c])).values()];
   const ds: { x: ViPhamCamKet; loi: string }[] = [];
   const xr = new Map<string, { ch: ChangCamKet; donXeRieng: string }>();

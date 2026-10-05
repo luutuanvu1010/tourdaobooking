@@ -103,11 +103,13 @@ export async function lenhXuatBen(
   }
   const soKhach = mo.filter((a) => a.kind === "PASSENGER").length;
   const c = kq.chup;
+  // ADR-0056 VK3-A (C7): cổng đạt mà HẾT vi phạm cam kết (vd. đơn tắt xe riêng sau khi đã phá lệ) và chuyến còn cột phá lệ → xoá trong cùng lô, có nhật ký.
+  const xoaCamKet = kq.camKet.khoa === null && t.commitment_override_key !== null;
   const lo = loXuatBen(db, {
     ...l, tripId: t.id, version: t.version, xayRa: x, policyId: cs.id, ganTen: kq.ganTen,
     chup: { id: crypto.randomUUID(), xeId: c.xeId, bienSo: c.bienSo, soCho: c.soCho, chuXePartyId: c.chuXePartyId, taiXePartyId: c.taiXePartyId as string, nghiDaDung: c.nghiDaDung ?? t.rest_minutes_snapshot },
-    muc: c.muc, chot, soKhach,
-    detail: `${t.code}: xuất bến · xe ${c.bienSo} · ${soKhach} khách${duoi(nguoi, x)}`,
+    muc: c.muc, chot, soKhach, xoaCamKet,
+    detail: `${t.code}: xuất bến · xe ${c.bienSo} · ${soKhach} khách${xoaCamKet ? " · hết vi phạm cam kết — bỏ phá lệ cam kết" : ""}${duoi(nguoi, x)}`,
   });
   const r = await chayLo(db, lo, b.requestId);
   return r.ok ? null : r.res;

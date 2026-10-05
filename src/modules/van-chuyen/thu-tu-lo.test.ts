@@ -57,21 +57,21 @@ const MAU: Record<string, { vao: Record<string, unknown>; gac: string }> = {
     gac: T,
   },
   loXep: { vao: { ...L, tripId: T, version: 3, diemMoi: [diem("d-9")], doiThuTu: [{ id: "d-2", seq: 4 }], mocXep: [{ legId: "leg-1", ngay: "2027-03-11", gio: "09:00" }], suatMoi: [suat("a-1"), suat("a-2")], phaLe: null, policyId: null, camKet: CAM_KET_GHI, detail: "d" }, gac: T },
-  loRut: { vao: { ...L, tripId: T, version: 3, suatIds: ["a-1"], diemBoQua: ["d-1"], phaLe: null, policyId: null, detail: "d" }, gac: T },
+  loRut: { vao: { ...L, tripId: T, version: 3, suatIds: ["a-1"], diemBoQua: ["d-1"], phaLe: null, policyId: null, camKet: CAM_KET_XOA, detail: "d" }, gac: T },
   loDoi: {
     vao: { ...L, nguon: { tripId: T, version: 3 }, dich: { tripId: T2, version: 5 }, cap: [{ dongId: "a-1", mo: suat("a-9", T2) }], diemMoiDich: [diem("d-9", T2)], doiThuTuDich: [{ id: "d-8", seq: 4 }], diemBoQuaNguon: ["d-1"], phaLe: null, policyId: null, camKetNguon: CAM_KET_XOA, camKetDich: CAM_KET_GHI, detail: "d" },
     gac: T2,
   },
   loHuy: { vao: { ...L, tripId: T, version: 3, lyDo: "HUY_KHAC", phaLe: null, policyId: null, soSuatMo: 2, chiPhi: { ...CHI_PHI, chup: null }, phienBanChiPhi: 2, detail: "d" }, gac: T },
-  loCapNhatDiem: { vao: { ...L, tripId: T, version: 3, diemMoi: [diem("d-9")], doiThuTu: [{ id: "d-2", seq: 4 }], cap: [{ dongId: "a-1", mo: suat("a-9") }], diemBoQua: ["d-1"], detail: "d" }, gac: T },
+  loCapNhatDiem: { vao: { ...L, tripId: T, version: 3, diemMoi: [diem("d-9")], doiThuTu: [{ id: "d-2", seq: 4 }], cap: [{ dongId: "a-1", mo: suat("a-9") }], diemBoQua: ["d-1"], camKet: CAM_KET_XOA, detail: "d" }, gac: T },
   // R-P29 (chủ lần 16): "cập nhật khách theo đơn" — một suất đóng + mở lại, một suất chỉ đóng (đơn giảm người).
-  loCapNhatKhach: { vao: { ...L, tripId: T, version: 3, cap: [{ dongId: "a-1", mo: suat("a-9") }, { dongId: "a-2", mo: null }], diemBoQua: ["d-1"], detail: "d" }, gac: T },
+  loCapNhatKhach: { vao: { ...L, tripId: T, version: 3, cap: [{ dongId: "a-1", mo: suat("a-9") }, { dongId: "a-2", mo: null }], diemBoQua: ["d-1"], camKet: CAM_KET_XOA, detail: "d" }, gac: T },
   loXuatBen: {
     vao: {
       ...L, tripId: T, version: 3, xayRa: XR, policyId: "cs-1", ganTen: [{ suatId: "a-1", personKey: "pk-1" }],
       chup: { id: "ck-1", xeId: "x-1", bienSo: "79B00001", soCho: 15, chuXePartyId: "p-1", taiXePartyId: "p-tx", nghiDaDung: 30 },
       muc: [{ loai: "GPLX", vehicleDocumentId: null, personDocumentId: "g-1", documentTypeCode: "GPLX", licenseClassCode: "D1", expiryDate: null, ruleId: null }],
-      chot: [{ allocationId: "a-1", passengerRowId: "row-1", crewPartyId: null }], soKhach: 1, detail: "d",
+      chot: [{ allocationId: "a-1", passengerRowId: "row-1", crewPartyId: null }], soKhach: 1, xoaCamKet: true, detail: "d",
     },
     gac: T,
   },
@@ -239,7 +239,8 @@ test("D5.3a (Đợt 5): loCapNhatDiem trên xe ĐANG CHẠY — cổng có versi
 });
 
 test("Đợt 7 Task 4 (ADR-0056 VK3-A): câu ghi / xoá cột phá lệ cam kết mang nhãn CAM_KET_PHA_LE, đứng SAU nhật ký, TRƯỚC câu trạng thái cuối; mọi câu chạm commitment_override_* đều mang nhãn; lô dời: xoá nguồn + ghi đích, cùng gác chuyến ĐÍCH", () => {
-  const CO_CAM_KET = ["loXep", "loSuaChuyen", "loDoi", "loThemDiemDangChay"];
+  // Task 5: lệnh giảm khách + cổng xuất bến chỉ XOÁ (C7).
+  const CO_CAM_KET = ["loXep", "loSuaChuyen", "loDoi", "loThemDiemDangChay", "loRut", "loCapNhatDiem", "loCapNhatKhach", "loXuatBen"];
   for (const ten of Object.keys(MAU)) {
     const lo = (MOD[ten] as (db: unknown, l: unknown) => Cau[])(DB, MAU[ten]!.vao);
     const sai = lo.filter((c) => /commitment_override/.test(c.stmt.sql) !== (c.nhan === "CAM_KET_PHA_LE"));
@@ -258,7 +259,7 @@ test("Đợt 7 Task 4 (ADR-0056 VK3-A): câu ghi / xoá cột phá lệ cam kế
       assert.match(lo[i]!.stmt.sql, /^UPDATE vc_trip SET commitment_override_reason_code = \?3, commitment_override_key = \?4/);
     }
     // Không có câu cam kết khi lệnh không mang (null).
-    const khong = { ...MAU[ten]!.vao, camKet: null, camKetNguon: null, camKetDich: null };
+    const khong = { ...MAU[ten]!.vao, camKet: null, camKetNguon: null, camKetDich: null, xoaCamKet: false };
     assert.equal((MOD[ten] as (db: unknown, l: unknown) => Cau[])(DB, khong).filter((c) => c.nhan === "CAM_KET_PHA_LE").length, 0, `${ten}: null → không câu`);
   }
   const doi = (MOD.loDoi as (db: unknown, l: unknown) => Cau[])(DB, MAU.loDoi!.vao).filter((c) => c.nhan === "CAM_KET_PHA_LE");
@@ -268,4 +269,20 @@ test("Đợt 7 Task 4 (ADR-0056 VK3-A): câu ghi / xoá cột phá lệ cam kế
   // loSuaChuyen: câu chụp giá vẫn CUỐI (ADR-0057 C4) — câu cam kết đứng trước.
   const sua = (MOD.loSuaChuyen as (db: unknown, l: unknown) => Cau[])(DB, MAU.loSuaChuyen!.vao);
   assert.match(sua[sua.length - 1]!.stmt.sql, /'SNAPSHOT'/);
+});
+
+test("Đợt 7 Task 5 (C7): lô rút / cập nhật khách / cập nhật điểm / xuất bến chỉ XOÁ cột phá lệ cam kết (tham số null, null) — câu CAM_KET_PHA_LE sau nhật ký; xuất bến: TRƯỚC câu sang RUNNING; xe đang chạy: TRƯỚC câu chốt", () => {
+  for (const ten of ["loRut", "loCapNhatDiem", "loCapNhatKhach", "loXuatBen"]) {
+    const lo = (MOD[ten] as (db: unknown, l: unknown) => Cau[])(DB, MAU[ten]!.vao);
+    const ck = lo.filter((c) => c.nhan === "CAM_KET_PHA_LE");
+    assert.equal(ck.length, 1, ten);
+    assert.deepEqual([ck[0]!.stmt.args[0], ck[0]!.stmt.args[2], ck[0]!.stmt.args[3], ck[0]!.stmt.args[4]], [T, null, null, T], `${ten}: xoá về NULL, gác chính chuyến`);
+  }
+  const xb = (MOD.loXuatBen as (db: unknown, l: unknown) => Cau[])(DB, MAU.loXuatBen!.vao);
+  const iCk = xb.findIndex((c) => c.nhan === "CAM_KET_PHA_LE");
+  const iChay = xb.findIndex((c) => /SET status = 'RUNNING'/.test(c.stmt.sql));
+  assert.ok(iChay > 0 && iCk > xb.findIndex((c) => c.nhan === "NHAT_KY") && iCk < iChay, `xuất bến: câu xoá sau nhật ký, trước câu sang RUNNING (${iCk} / ${iChay})`);
+  const chay = (MOD.loCapNhatDiem as (db: unknown, l: unknown) => Cau[])(DB, { ...MAU.loCapNhatDiem!.vao, diemBoQua: [], dangChay: true });
+  assert.deepEqual(viPhamLo("loCapNhatDiem(dangChay, camKet)", chay, T), []);
+  assert.equal(chay[chay.length - 1]!.nhan, "TRANG_THAI_CUOI");
 });

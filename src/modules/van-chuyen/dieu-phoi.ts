@@ -237,6 +237,8 @@ export interface LenhRut extends LenhChung {
   diemBoQua: string[];
   phaLe: PhaLe | null;
   policyId: string | null;
+  /** ADR-0056 VK3-A, C7: lệnh chỉ GIẢM khách — chỉ XOÁ cột phá lệ cam kết khi hết vi phạm (`{ null, null }`); null = không chạm. */
+  camKet: CamKetLo | null;
   detail: string;
 }
 export function loRut(db: D1Database, l: LenhRut): CauCoNhan[] {
@@ -246,6 +248,7 @@ export function loRut(db: D1Database, l: LenhRut): CauCoNhan[] {
     suKien(db, l, { tripId: l.tripId, loai: "ALLOCATION_REMOVED", soNguoi: l.suatIds.length, phaLe: l.phaLe, policyId: l.policyId }),
     ...l.suatIds.map((id) => dongSuat(db, l, l.tripId, id, LENH_DONG_SUAT.RUT)),
     ...l.diemBoQua.map((id) => boQuaDiem(db, l, l.tripId, id, LY_DO_BO_QUA_KHONG_CON_KHACH)),
+    ...cauCamKet(db, l, l.tripId, l.camKet),
   ];
 }
 
@@ -326,6 +329,8 @@ export interface LenhCapNhatDiem extends LenhChung {
   /** HT-01 (V1.2): điểm ĐÃ CÓ đổi số thứ tự (`sapLaiDiem`; điểm sắp bỏ qua không xét). */
   doiThuTu: { id: string; seq: number }[];
   diemBoQua: string[];
+  /** ADR-0056 VK3-A, C7: lệnh chỉ GIẢM khách — chỉ XOÁ cột phá lệ cam kết khi hết vi phạm (`{ null, null }`); null = không chạm. */
+  camKet: CamKetLo | null;
   detail: string;
   /**
    * ADR-0052 D5.3a (Đợt 5): chuyến ĐANG CHẠY — cổng có version + RUNNING; điểm mới mang cờ `added_while_running`, suất mở lại mang cờ `added_after_departure`;
@@ -348,6 +353,7 @@ export function loCapNhatDiem(db: D1Database, l: LenhCapNhatDiem): CauCoNhan[] {
     lo.push(chenSuat(db, l, c.mo, chay));
   }
   lo.push(...l.diemBoQua.map((id) => boQuaDiem(db, l, l.tripId, id, LY_DO_BO_QUA_KHONG_CON_KHACH)));
+  lo.push(...cauCamKet(db, l, l.tripId, l.camKet)); // trước câu chốt (xe đang chạy) — nơi gọi không xoá khi xe đang chạy
   if (chay) lo.push({ nhan: "TRANG_THAI_CUOI", stmt: db.prepare(TRIP_CHOT).bind(l.tripId, l.cmd) });
   return lo;
 }
@@ -434,6 +440,8 @@ export interface LenhCapNhatKhach extends LenhChung {
   /** Từng suất khách đã đổi: đóng PASSENGER_CHANGED NGAY TRƯỚC khi mở lại (cùng chặng, cùng điểm, khoá rảnh hoặc null) — hoặc chỉ đóng (đơn giảm người). */
   cap: { dongId: string; mo: SuatMoi | null }[];
   diemBoQua: string[];
+  /** ADR-0056 VK3-A, C7: lệnh chỉ GIẢM khách — chỉ XOÁ cột phá lệ cam kết khi hết vi phạm (`{ null, null }`); null = không chạm. */
+  camKet: CamKetLo | null;
   detail: string;
 }
 export function loCapNhatKhach(db: D1Database, l: LenhCapNhatKhach): CauCoNhan[] {
@@ -447,6 +455,7 @@ export function loCapNhatKhach(db: D1Database, l: LenhCapNhatKhach): CauCoNhan[]
     if (c.mo) lo.push(chenSuat(db, l, c.mo));
   }
   lo.push(...l.diemBoQua.map((id) => boQuaDiem(db, l, l.tripId, id, LY_DO_BO_QUA_KHONG_CON_KHACH)));
+  lo.push(...cauCamKet(db, l, l.tripId, l.camKet));
   return lo;
 }
 
@@ -494,9 +503,14 @@ export interface LenhXuatBen extends LenhChung {
   /** Bản chốt: mỗi suất mở một dòng — khách trỏ DÒNG hành khách đã dùng, người đi kèm trỏ hồ sơ. */
   chot: readonly { allocationId: string; passengerRowId: string | null; crewPartyId: string | null }[];
   soKhach: number;
+  /** ADR-0056 VK3-A: cổng thấy HẾT vi phạm cam kết mà chuyến đang có cột phá lệ → xoá hai cột trong cùng lô (trước câu sang RUNNING). */
+  xoaCamKet: boolean;
   detail: string;
 }
-/** Thứ tự (mục 1.5): cổng → nhật ký → sự kiện DEPARTED → gắn tên còn thiếu → bản chụp + dòng con → bản chốt → sang RUNNING (sau bản chụp — LC-05). */
+/**
+ * Thứ tự (mục 1.5): cổng → nhật ký → sự kiện DEPARTED → gắn tên còn thiếu → bản chụp + dòng con → bản chốt → (xoá phá lệ cam kết) → sang RUNNING (sau bản
+ * chụp — LC-05).
+ */
 export function loXuatBen(db: D1Database, l: LenhXuatBen): CauCoNhan[] {
   const c = l.chup;
   return [
@@ -509,6 +523,7 @@ export function loXuatBen(db: D1Database, l: LenhXuatBen): CauCoNhan[] {
       crypto.randomUUID(), c.id, m.loai, m.vehicleDocumentId, m.personDocumentId, m.documentTypeCode, m.licenseClassCode, m.expiryDate, m.ruleId, l.lucIso, l.nguoiId, l.tripId, l.cmd,
     ))),
     ...l.chot.map((m) => ghi(db.prepare(MANIFEST_INSERT).bind(crypto.randomUUID(), l.tripId, c.id, m.allocationId, m.passengerRowId, m.crewPartyId, l.lucIso, l.nguoiId, l.cmd))),
+    ...cauCamKet(db, l, l.tripId, l.xoaCamKet ? { lyDo: null, khoa: null } : null),
     ghi(db.prepare(TRIP_XUAT_BEN).bind(l.tripId, l.cmd, l.xayRa.iso, l.xayRa.ms, l.lucIso, l.nguoiId)),
   ];
 }

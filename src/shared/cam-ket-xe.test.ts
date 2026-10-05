@@ -109,3 +109,19 @@ test("tệp luật thuần: không import modules/, import kèm đuôi .ts", () 
   assert.doesNotMatch(src, /from\s+["'][^"']*modules\//);
   for (const m of src.matchAll(/from\s+["'](\.[^"']+)["']/g)) assert.match(m[1]!, /\.ts$/, `import ${m[1]} phải kèm đuôi .ts`);
 });
+
+test("Global Constraints (Task 5): xeRieng không phải boolean hoặc choToiThieu không phải null | số nguyên → NÉM lỗi rõ ràng (undefined KHÔNG lặng lẽ thành 'không cam kết')", () => {
+  const sai: [string, Record<string, unknown>][] = [
+    ["xeRieng undefined", { xeRieng: undefined }],
+    ["xeRieng 1", { xeRieng: 1 }],
+    ["xeRieng null", { xeRieng: null }],
+    ["choToiThieu undefined", { choToiThieu: undefined }],
+    ["choToiThieu 7.5", { choToiThieu: 7.5 }],
+    ["choToiThieu '15'", { choToiThieu: "15" }],
+  ];
+  for (const [ten, v] of sai) {
+    assert.throws(() => ck([ch("a1", "a", v as Partial<ChangCK>)]), /cam kết.*chặng a1/i, ten);
+  }
+  // Giá trị hợp lệ biên: false / null / số nguyên — không ném.
+  assert.doesNotThrow(() => ck([ch("a1", "a", { xeRieng: false, choToiThieu: null }), ch("b1", "b", { choToiThieu: 1 })]));
+});
