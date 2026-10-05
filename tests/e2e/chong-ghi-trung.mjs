@@ -12,6 +12,7 @@ await ensureFakeCatalog();
 const A = await session(ACCOUNTS.salesA);
 const F = await session(ACCOUNTS.field);
 const ACC = await session(ACCOUNTS.accountant);
+const ADM = await session(ACCOUNTS.admin);
 const me = async (cookie) => (await call(cookie, "GET", "/api/auth/me")).body.staff;
 const fld = await me(F);
 const dem = async (q) => (await sqlRows(q))[0].n;
@@ -112,13 +113,17 @@ const TAG = randomUUID().slice(0, 6);
   console.log("✓ HD10: HDV ghi lần thu gửi lại cùng vé ⇒ một lần thu");
 }
 
-// ---- KT03: Kế toán ghi hoàn cho đơn huỷ, gửi lại cùng vé ⇒ 1 lần hoàn
+// ---- KT03: Kế toán ghi hoàn cho đơn huỷ, gửi lại cùng vé ⇒ 1 lần hoàn. Từ ADR-0089 (TNV-G1) đơn huỷ hoàn qua "Duyệt hoàn cọc" (Quản trị) rồi
+// "Ghi chi hoàn" (Kế toán) — lối ghi hoàn tự do trả 409 `coc_needs_approval`; tình huống gửi lại cùng vé nay đặt ở lệnh "Ghi chi hoàn".
 {
   const o = await lapDon(`KT03 Cùng Vé ${TAG}`);
   assert.equal((await call(A, "POST", `/api/orders/${o.id}/payments`, { soTien: 100000, hinhThuc: "CASH", nguoiThu: "toi" })).status, 201);
   await xacNhan(o.id);
   assert.equal((await call(A, "POST", `/api/orders/${o.id}/status`, { status: "cancelled", lyDo: "KHACH_DOI_Y" })).status, 200, "huỷ đơn");
-  await haiLanCungVe("KT03", ACC, "POST", "/api/ledger/refunds", { orderId: o.id, soTien: 40000, hinhThuc: "BANK_TRANSFER", nguoiTra: "cong_ty" });
+  assert.equal((await call(ACC, "POST", "/api/ledger/refunds", { orderId: o.id, soTien: 40000, hinhThuc: "BANK_TRANSFER", nguoiTra: "cong_ty" })).body?.error?.code, "coc_needs_approval", "KT03: đơn huỷ không ghi hoàn tự do");
+  const duyet = await call(ADM, "POST", `/api/orders/${o.id}/coc/duyet`, { loai: "hoan", soTien: 40000, lyDo: "Khách xin lại một phần cọc" });
+  assert.equal(duyet.status, 201, "KT03: duyệt hoàn cọc");
+  await haiLanCungVe("KT03", ACC, "POST", `/api/orders/${o.id}/coc/chi`, { duyetId: duyet.body.duyetId, soTien: 40000, hinhThuc: "BANK_TRANSFER", nguoiTra: "cong_ty" });
   assert.equal(await dem(`SELECT count(*) AS n FROM bil_payment_receipt WHERE order_id = '${o.id}' AND kind_code <> 'CUSTOMER_PAYMENT'`), 1, "KT03: một dòng hoàn");
   console.log("✓ KT03: ghi hoàn gửi lại cùng vé ⇒ một lần hoàn");
 }
