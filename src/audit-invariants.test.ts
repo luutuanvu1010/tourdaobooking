@@ -11,6 +11,7 @@ import { vnToday } from "./shared/vn-date.ts";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts — hàm gieo DÙNG CHUNG mốc giờ hẹn (ADR-0051)
 import { gieoMocXep } from "../tests/audit/gieo-vc.mjs";
 import { gieoLyDoHuy } from "../tests/audit/huy-don.mjs";
+import { gieoDongTienKhop } from "../tests/audit/dong-tien.mjs";
 
 interface Check {
   code: string;
@@ -1525,7 +1526,9 @@ const chuCongTy = (db: DatabaseSync): string => String((db.prepare("SELECT party
 function donBil(db: DatabaseSync, id: string): void {
   addOrder(db, id);
   db.prepare("INSERT INTO order_service (id, order_id, sort_order, catalog_code, name, unit, pax_adult, depart_date) VALUES (?, ?, 0, 'ZH1', 'Tour', 'perPax', 1, '2026-09-30')").run(`sv-${id}`, id);
-  db.prepare("UPDATE orders SET status = 'confirmed', confirmed_at = ?, total = 300000, subtotal = 300000, remaining_amount = 300000 WHERE id = ?").run(T1, id);
+  db.prepare("UPDATE orders SET total = 300000, subtotal = 300000, remaining_amount = 300000 WHERE id = ?").run(id);
+  gieoDongTienKhop(db, id); // 0081 (F-03): xác nhận cần tạm tính = Σ dòng tiền
+  db.prepare("UPDATE orders SET status = 'confirmed', confirmed_at = ? WHERE id = ?").run(T1, id);
 }
 function lanThuBil(db: DatabaseSync, o: { id: string; order: string; amount: number; at?: string; role?: string; party?: string | null; kind?: string; reverses?: string | null; forParty?: string }): void {
   const role = o.role ?? "STAFF";

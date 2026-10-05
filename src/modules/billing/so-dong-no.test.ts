@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { world, seedStaff } from "../../../tests/audit/harness.mjs";
 import { soDongNoCuaNguoiRow } from "./repository.ts";
+import { gieoDongTienKhop } from "../../../tests/audit/dong-tien.mjs";
 
 const SA = "77777777-7777-4777-8777-777777777777";
 const AT = "2026-09-30T01:00:00.000Z";
@@ -15,6 +16,7 @@ test("đếm dòng nợ còn hiệu lực theo người nợ hoặc người đ�
   w.sqlite.prepare(`INSERT INTO orders (id, order_code, staff_id, status, customer_name, customer_phone, subtotal, total, remaining_amount, created_at, updated_at)
     VALUES ('o1', 'TD-o1', ?, 'draft', 'K', '0900000099', 300000, 300000, 300000, ?, ?)`).run(SA, AT, AT);
   w.sqlite.prepare("INSERT INTO order_service (id, order_id, name, unit, pax_adult, depart_date) VALUES ('sv1', 'o1', 'Vé', 'perPax', 1, '2026-10-10')").run();
+  gieoDongTienKhop(w.sqlite, "o1");
   w.sqlite.prepare("UPDATE orders SET status = 'confirmed', confirmed_at = ? WHERE id = 'o1'").run(AT);
   w.sqlite.prepare(`INSERT INTO bil_posting (id, kind_code, order_id, reason, reverses_posting_id, occurred_date, due_snapshot, created_at, created_by, updated_at, updated_by)
     VALUES ('p1', 'RECEIPT', 'o1', NULL, NULL, '2026-09-30', NULL, ?, ?, ?, ?)`).run(AT, SA, AT, SA);

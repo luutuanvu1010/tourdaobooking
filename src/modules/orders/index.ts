@@ -1046,7 +1046,17 @@ export const ordersModule: AppModule = {
         const moc = await mocToiThieu();
         if (!moc) return MOC_CHUA_CO();
         const nowMs = Date.now();
-        if (!(await confirmOrder(env.DB, id, staff.id, today, meta.updatedAt, nguongMocVn(nowMs, moc.phut), detail))) {
+        let daXacNhan: boolean;
+        try {
+          daXacNhan = await confirmOrder(env.DB, id, staff.id, today, meta.updatedAt, nguongMocVn(nowMs, moc.phut), detail);
+        } catch (e) {
+          // F-03 (0081): tạm tính đã lưu lệch Σ thành tiền dòng (nháp cũ / SQL tay) — CSDL chặn; Lưu nháp lại thì máy chủ tính lại từ các dòng.
+          if (/order_subtotal_mismatch/.test(String((e as Error)?.message ?? e))) {
+            return error(409, "order_subtotal_mismatch", "Tiền của đơn chưa khớp các dòng dịch vụ — mở đơn, bấm Lưu rồi xác nhận lại.");
+          }
+          throw e;
+        }
+        if (!daXacNhan) {
           // Thua vì đơn đã đổi trạng thái, vì chưa đủ chuyến, hay vì còn chặng dưới mốc chưa đặt gấp? Đọc lại để trả đúng lý do (không ghi nhật ký).
           const now = await getMeta(env.DB, id);
           if (!now || now.status !== "draft") return RACED();

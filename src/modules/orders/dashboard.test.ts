@@ -8,6 +8,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { DatabaseSync, type SupportedValueType } from "node:sqlite";
 import * as esbuild from "esbuild";
 import { gieoLyDoHuy } from "../../../tests/audit/huy-don.mjs";
+import { gieoDongTienKhop } from "../../../tests/audit/dong-tien.mjs";
 
 const DIR = new URL("../../../migrations/", import.meta.url);
 const FILES = readdirSync(DIR).filter((f) => f.endsWith(".sql")).sort();
@@ -118,6 +119,7 @@ function insertCatalogService(sqlite: DatabaseSync, s: { id: string; orderId: st
 
 /** Chuyển đơn (đã có đủ dịch vụ hợp lệ — mọi dịch vụ có ngày + >=1 khách) sang xác nhận, đúng luồng trigger 0008/0017 cho phép. */
 function confirm(sqlite: DatabaseSync, id: string, at = "2026-09-24T00:00:00.000Z"): void {
+  gieoDongTienKhop(sqlite, id); // 0081 (F-03): xác nhận cần tạm tính = Σ dòng tiền
   sqlite.prepare(`UPDATE orders SET status = 'confirmed', confirmed_at = ?, updated_at = ? WHERE id = ?`).run(at, at, id);
 }
 

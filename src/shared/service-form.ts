@@ -2,7 +2,7 @@
 // Logic thuần, không DOM. Tiền xem trước dùng ĐÚNG buildLines/priceDeviation của máy chủ (order-lines.ts); số chính thức do máy chủ tính khi lưu (spec A1 §2.3).
 import type { CatalogStatus, OrderServiceDto, ServiceInput, TripInput } from "./contracts.ts";
 import {
-  MAX_AMOUNT_VND, MAX_GUESTS_PER_SERVICE, PAX_LABEL, PAX_ORDER, availableCodes, buildLines, parseUnit, paxTotal, payingGuests, priceDeviation,
+  MAX_AMOUNT_VND, MAX_GUESTS_PER_SERVICE, PAX_LABEL, PAX_ORDER, availableCodes, buildLines, parseUnit, paxTotal, payingGuests, priceDeviation, thanhTienDong,
   type CatalogService, type PaxCode, type PaxCounts, type Prices,
 } from "./order-lines.ts";
 import { MAX_LINES_PER_ORDER, MAX_SERVICES } from "./trip-rules.ts";
@@ -279,7 +279,7 @@ export function previewLines(d: ServiceDraft): Preview {
   if (d.kind === "manual") {
     return {
       ok: true,
-      lines: d.lines.map((l) => ({ pax: null, description: l.description, detail: l.detail, quantity: l.quantity, unitPrice: l.unitPrice, catalogPrice: null, lineTotal: l.quantity * l.unitPrice, deviation: null })),
+      lines: d.lines.map((l) => ({ pax: null, description: l.description, detail: l.detail, quantity: l.quantity, unitPrice: l.unitPrice, catalogPrice: null, lineTotal: thanhTienDong(l), deviation: null })),
     };
   }
   const built = buildLines(d.item, d.pax, d.unitPrices);
@@ -288,7 +288,7 @@ export function previewLines(d: ServiceDraft): Preview {
     ok: true,
     lines: built.lines.map((l) => ({
       pax: l.pax, description: l.description, detail: l.detail, quantity: l.quantity, unitPrice: l.unitPrice, catalogPrice: l.catalogPrice,
-      lineTotal: l.quantity * l.unitPrice, deviation: priceDeviation({ unitPrice: l.unitPrice, catalogPrice: l.catalogPrice }),
+      lineTotal: thanhTienDong(l), deviation: priceDeviation({ unitPrice: l.unitPrice, catalogPrice: l.catalogPrice }),
     })),
   };
 }
@@ -342,7 +342,7 @@ function draftIssuesTien(d: ServiceDraft): DraftIssue[] {
   d.lines.forEach((l, i) => {
     if (l.description.trim() === "") out.push({ code: "line_description", message: `Dòng ${i + 1}: nhập mô tả.` });
     if (l.quantity < 1) out.push({ code: "line_quantity", message: `Dòng ${i + 1}: số lượng tối thiểu là 1.` });
-    if (l.quantity * l.unitPrice > MAX_AMOUNT_VND) out.push({ code: "amount", message: `Dòng ${i + 1}: thành tiền vượt giới hạn.` });
+    if (thanhTienDong(l) > MAX_AMOUNT_VND) out.push({ code: "amount", message: `Dòng ${i + 1}: thành tiền vượt giới hạn.` });
   });
   return out;
 }

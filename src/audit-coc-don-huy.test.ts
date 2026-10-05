@@ -4,6 +4,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
+import { gieoDongTienKhop } from "../tests/audit/dong-tien.mjs";
 
 type Check = { code: string; sql: string; level: string; mode?: string };
 const { CHECKS } = (await import(new URL("../scripts/audit-checks.mjs", import.meta.url).href)) as { CHECKS: Check[] };
@@ -31,6 +32,7 @@ function don(db: DatabaseSync, id: string, huy?: { nhom: string; legacy?: number
   run(db, `INSERT INTO orders (id, order_code, staff_id, status, customer_name, customer_phone, subtotal, total, remaining_amount, created_at, updated_at)
     VALUES (?, ?, 's1', 'draft', 'Khách Giả', '0900000009', 2000000, 2000000, 2000000, ?, ?)`, id, `TD-${id}`, AT, AT);
   run(db, "INSERT INTO order_service (id, order_id, name, unit, pax_adult, depart_date) VALUES (?, ?, 'Tour', 'perPax', 1, ?)", `${id}-s`, id, depart);
+  gieoDongTienKhop(db, id);
   run(db, "UPDATE orders SET status = 'confirmed', confirmed_at = ? WHERE id = ?", AT, id);
   if (huy) {
     run(db, `INSERT INTO ord_cancel_reason (id, order_id, reason_code, group_code, note, cancelled_date, reclassifies_id, legacy, created_at, created_by, updated_at, updated_by)

@@ -1,7 +1,7 @@
 // Thẻ dịch vụ của form lập/sửa đơn (đặc tả 5.1). Giữ một ServiceDraft; mọi thay đổi đi qua hàm thuần của src/shared/service-form.ts.
 // KHÔNG dựng lại ô người dùng đang gõ: cấu trúc (bộ đếm, dòng tiền) chỉ dựng lại khi structKey đổi; còn lại refresh() cập nhật tại chỗ
 // và không ghi đè ô đang có focus (gõ tiếng Việt kiểu Telex/VNI không bị ngắt).
-import { PAX_LABEL, type PaxCode } from "../src/shared/order-lines";
+import { PAX_LABEL, thanhTienDong, type PaxCode } from "../src/shared/order-lines";
 import {
   addManualLine, cardCodes, draftIssues, soKhachNhap, draftSubtotal, groupInfo, guestDetail, isFrozenManual, isLocked, previewLines, removeManualLine, setGuests, setManualLine, setPax, setUnitPrice, unitLabel,
   type CatalogDraft, type ManualDraft, type ServiceDraft,
@@ -182,7 +182,7 @@ export function createServiceCard(o: CardOptions): ServiceCard {
         { class: "mline" },
         h("div", null, l.description),
         l.detail ? h("div", { class: "muted" }, l.detail) : null,
-        h("div", { class: "mline-nums" }, h("span", null, `${l.quantity} × ${vnd(l.unitPrice)} =`), h("output", { class: "line-total" }, vnd(l.quantity * l.unitPrice))),
+        h("div", { class: "mline-nums" }, h("span", null, `${l.quantity} × ${vnd(l.unitPrice)} =`), h("output", { class: "line-total" }, vnd(thanhTienDong(l)))),
       ),
     );
     return h(

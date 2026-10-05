@@ -6,6 +6,7 @@ import assert from "node:assert/strict";
 import { world, seedStaff } from "../../../tests/audit/harness.mjs";
 import { cauDoiNguoiDat, donCuaNguoiDat } from "./nguoi-dat-gop-repo.ts";
 import { gieoLyDoHuy } from "../../../tests/audit/huy-don.mjs";
+import { gieoDongTienKhop } from "../../../tests/audit/dong-tien.mjs";
 
 const SA = "77777777-7777-4777-8777-777777777777";
 const AT = "2026-09-01T00:00:00.000Z";
@@ -19,6 +20,7 @@ function don(w: any, id: string, booker: string, trangThai: "draft" | "confirmed
     VALUES (?, ?, ?, 'draft', 'Khách', '0900000099', 100000, 100000, 100000, ?, ?, ?)`).run(id, `TD-${id}`, SA, AT, AT, booker);
   w.sqlite.prepare("INSERT INTO order_service (id, order_id, name, unit, pax_adult, depart_date) VALUES (?, ?, 'Vé', 'perPax', 1, '2026-10-10')").run(`sv-${id}`, id);
   if (trangThai === "cancelled") { gieoLyDoHuy(w.sqlite, id); w.sqlite.prepare("UPDATE orders SET status = 'cancelled' WHERE id = ?").run(id); }
+  if (trangThai === "confirmed" || trangThai === "delivered") gieoDongTienKhop(w.sqlite, id);
   if (trangThai === "confirmed" || trangThai === "delivered") w.sqlite.prepare("UPDATE orders SET status = 'confirmed', confirmed_at = ? WHERE id = ?").run(AT, id);
   if (trangThai === "delivered") w.sqlite.prepare("UPDATE orders SET delivered_at = ?, delivered_by = ? WHERE id = ?").run(AT, SA, id);
 }
@@ -66,6 +68,7 @@ test("lính gác: A đã ngưng (lô khác vừa gộp) → câu đổi không c
 test("đơn chưa giao đang lệch tiền (dữ liệu cũ) → trả mã đơn để máy chủ từ chối gộp", async () => {
   const w = nen();
   w.sqlite.exec("DROP TRIGGER orders_money_update"); // chỉ trong DB thử: gieo dữ liệu cũ lệch tiền
+  w.sqlite.exec("DROP TRIGGER orders_money_frozen"); // 0081 (F-03): đơn đã xác nhận khoá cột tiền — dữ liệu cũ lệch tiền có trước khoá
   w.sqlite.prepare("UPDATE orders SET total = 1 WHERE id = 'o2'").run();
   assert.deepEqual((await donCuaNguoiDat(w.env.DB, "pa")).lechTien, ["TD-o2"]);
 });

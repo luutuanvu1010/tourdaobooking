@@ -357,6 +357,27 @@ export const CHECKS = [
     level: "fail",
   },
   {
+    // F-03 (GD-B-02; Hiến chương 5.1, 5.4): đơn đã xác nhận (kể cả đã giao / hoàn tất / huỷ SAU xác nhận) có tạm tính đã lưu = Σ thành tiền các dòng. Lưới thứ
+    // hai của trigger 0081 (`orders_confirm_subtotal_matches` + khoá dòng tiền / cột tiền khi đơn hết nháp). Mốc: MƯỢN mốc R-BIL-13 của 0080 (cùng một lần
+    // phát hành với 0081 — module orders không ghi bảng của billing): đơn xác nhận TỪ mốc lệch = LỖI; xác nhận trước mốc = cảnh báo (R-ORD-15w, kèm danh sách).
+    code: "R-ORD-15",
+    what: "đơn đã xác nhận có tạm tính khác tổng thành tiền các dòng (xác nhận từ mốc 0080/0081)",
+    sql: `SELECT count(*) FROM orders o WHERE o.status <> 'draft' AND o.confirmed_at IS NOT NULL
+       AND o.subtotal <> (SELECT COALESCE(SUM(i.line_total), 0) FROM order_item i WHERE i.order_id = o.id)
+       AND o.confirmed_at >= (SELECT cutoff_at FROM bil_audit_cutoff WHERE code = 'R-BIL-13')`,
+    level: "fail",
+  },
+  {
+    code: "R-ORD-15w",
+    what: "đơn đã xác nhận có tạm tính khác tổng thành tiền các dòng — xác nhận TRƯỚC mốc 0080/0081 (rà tay theo mã đơn)",
+    sql: `SELECT o.order_code, o.subtotal, (SELECT COALESCE(SUM(i.line_total), 0) FROM order_item i WHERE i.order_id = o.id) AS tong_dong
+       FROM orders o WHERE o.status <> 'draft' AND o.confirmed_at IS NOT NULL
+       AND o.subtotal <> (SELECT COALESCE(SUM(i.line_total), 0) FROM order_item i WHERE i.order_id = o.id)
+       AND o.confirmed_at < (SELECT cutoff_at FROM bil_audit_cutoff WHERE code = 'R-BIL-13')`,
+    mode: "rows",
+    level: "warn",
+  },
+  {
     // ADR-0092 Đ2, Đ2b, đ8 (TNV-VP01, KT04 của TNV-G4): số dư cặp (bên, công ty chủ) trên đơn KHÔNG âm do dòng giữ hộ / quyết toán (nộp quá số giữ, nộp cho
     // người không giữ, nộp rồi lại "Công ty đã nhận" cùng một khoản). Âm hợp lệ do công ty nợ (dòng REFUND — người ứng tiền hoàn khách) KHÔNG tính (chỉ cộng
     // HELD + SETTLEMENT). Mốc (bil_audit_cutoff, 0080): cặp có dòng ghi TỪ mốc = LỖI; cặp chỉ có dòng cũ hơn mốc = cảnh báo (R-BIL-13w, kèm danh sách).

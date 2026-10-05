@@ -1,7 +1,7 @@
 // Luật thuần cho "dòng điều chỉnh" số khách sau xác nhận (ADR-0014 điều 6, Phase B). Không I/O. Tái dùng nguyên `snapshotService`/`buildLines`
 // đã có (cơ chế "giá lúc lập đơn" của Q11) — KHÔNG viết logic tính giá mới. Dùng chung cho route ghi (dispatch) và overlay đọc (service.ts).
 import type { OrderDetailDto, OrderItemDto, OrderServiceDto } from "../../shared/contracts.ts";
-import { PAX_ORDER, availableCodes, type GeneratedLine, type PaxCode, type PaxCounts } from "../../shared/order-lines.ts";
+import { PAX_ORDER, availableCodes, thanhTienDong, type GeneratedLine, type PaxCode, type PaxCounts } from "../../shared/order-lines.ts";
 import { snapshotService, storedServiceLines, storedUnitPrices, type StoredService } from "./service-rules.ts";
 import { hasLongDigitRun, PHONE_IN_TEXT_MESSAGE } from "../../shared/text-guards.ts";
 
@@ -26,7 +26,7 @@ export function recomputeService(stored: StoredService, newPax: PaxCounts): Pars
   if (!snapshotService(stored)) return { ok: false, message: `Dịch vụ "${stored.name}" không sửa được qua đường này (nhập tay hoặc thiếu giá đã lưu).` };
   const built = storedServiceLines(stored, newPax);
   if (!built.ok) return { ok: false, message: `${stored.name}: ${built.message}` };
-  return { ok: true, pax: newPax, lines: built.lines, subtotal: built.lines.reduce((n, l) => n + l.quantity * l.unitPrice, 0) };
+  return { ok: true, pax: newPax, lines: built.lines, subtotal: built.lines.reduce((n, l) => n + thanhTienDong(l), 0) };
 }
 
 /** MỘT định nghĩa "pax hợp lệ" cho cả nơi GHI (`parseMoneyEditInput`, ở đây) và nơi ĐỌC (`parseAdjustmentAfter`, ngay dưới). */
@@ -124,7 +124,7 @@ const toItemDto = (l: GeneratedLine): OrderItemDto => ({
   quantity: l.quantity,
   unitPrice: l.unitPrice,
   catalogPrice: l.catalogPrice,
-  lineTotal: l.quantity * l.unitPrice,
+  lineTotal: thanhTienDong(l),
 });
 
 /**

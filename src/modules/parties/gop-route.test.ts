@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { world, seedStaff } from "../../../tests/audit/harness.mjs";
 import { gieoLyDoHuy } from "../../../tests/audit/huy-don.mjs";
+import { gieoDongTienKhop } from "../../../tests/audit/dong-tien.mjs";
 
 const SALES = "11111111-1111-4111-8111-111111111111";
 const ADM = "33333333-3333-4333-8333-333333333333";
@@ -51,6 +52,7 @@ function donCua(w: any, id: string, booker: string, trangThai: "draft" | "confir
     VALUES (?, ?, ?, 'draft', 'Khách', '0900000099', 100000, 100000, 100000, ?, ?, ?)`).run(id, `TD-${id.slice(-4)}`, SALES, AT, AT, booker);
   w.sqlite.prepare("INSERT INTO order_service (id, order_id, name, unit, pax_adult, depart_date) VALUES (?, ?, 'Vé', 'perPax', 1, '2026-12-10')").run(`sv-${id}`, id);
   if (trangThai === "cancelled") { gieoLyDoHuy(w.sqlite, id); w.sqlite.prepare("UPDATE orders SET status = 'cancelled' WHERE id = ?").run(id); }
+  if (trangThai !== "draft" && trangThai !== "cancelled") gieoDongTienKhop(w.sqlite, id);
   if (trangThai !== "draft" && trangThai !== "cancelled") w.sqlite.prepare("UPDATE orders SET status = 'confirmed', confirmed_at = ? WHERE id = ?").run(AT, id);
   if (trangThai === "delivered") w.sqlite.prepare("UPDATE orders SET delivered_at = ?, delivered_by = ? WHERE id = ?").run(AT, SUP, id);
 }

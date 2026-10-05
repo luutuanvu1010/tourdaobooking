@@ -117,9 +117,10 @@ test("NT-D3: đơn đã Đã giao — SQL chạy tay bị chặn: UPDATE orders 
   fails(db, "UPDATE order_service SET note = 'x' WHERE id = 'o1-svc'", lock);
   fails(db, "UPDATE order_service SET pickup_time = '08:00' WHERE id = 'o1-svc'", lock); // trường vận hành cũng khoá
   fails(db, "DELETE FROM order_service WHERE id = 'o1-svc'", lock);
-  fails(db, "INSERT INTO order_item (id, order_id, service_id, description, quantity, unit_price, line_total) VALUES ('i2', 'o1', 'o1-svc', 'Trẻ em', 1, 1, 1)", lock);
+  // Dòng tiền: từ 0081 (F-03) khoá "đơn hết nháp" cũng chặn — chấp nhận lời báo của khoá nào đến trước.
+  fails(db, "INSERT INTO order_item (id, order_id, service_id, description, quantity, unit_price, line_total) VALUES ('i2', 'o1', 'o1-svc', 'Trẻ em', 1, 1, 1)", /order_delivered:|order_money_frozen:/);
   fails(db, "UPDATE order_item SET detail = 'x' WHERE id = 'o1-it'", lock);
-  fails(db, "DELETE FROM order_item WHERE id = 'o1-it'", lock);
+  fails(db, "DELETE FROM order_item WHERE id = 'o1-it'", /order_delivered:|order_money_frozen:/);
   fails(db, "INSERT INTO order_money_adjustment (id, order_id, seq, before_json, after_json, subtotal_before, subtotal_after) VALUES ('m1', 'o1', 1, '[]', '[]', 0, 0)", lock);
   fails(db, `INSERT INTO ord_transfer_leg (id, order_id, order_service_id, direction, pickup_date, pickup_place, created_at, updated_at) VALUES ('l2', 'o1', 'o1-svc', 'RETURN', '2026-10-10', 'Bến', ?, ?)`, lock, AT, AT);
   fails(db, "UPDATE ord_transfer_leg SET pickup_time = '09:00' WHERE id = 'o1-leg'", lock);
@@ -149,6 +150,8 @@ test("NT-D3: được phép đúng MỘT lần đặt completed_at/completed_by/
  * thêm cột đó phải bị chặn. Trả danh sách cột LỌT (câu đi qua). Không phụ thuộc chữ trong thân trigger — thử hành vi.
  */
 function cotLotKhoa(db: DatabaseSync): string[] {
+  // 0081 (F-03) khoá thêm cột tiền của đơn hết nháp (`orders_money_frozen`) và báo lỗi TRƯỚC — gỡ nó để bài này đo RIÊNG trigger khoá Đã giao.
+  db.exec("DROP TRIGGER IF EXISTS orders_money_frozen");
   const cols = rows(db, "PRAGMA table_info(orders)").map((c) => String(c.name));
   const lot: string[] = [];
   for (const c of cols.filter((x) => !["completed_at", "completed_by", "updated_at"].includes(x))) {

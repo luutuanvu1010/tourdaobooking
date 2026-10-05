@@ -74,6 +74,14 @@ export interface GeneratedLine {
 export type LinesResult = { ok: true; lines: GeneratedLine[] } | { ok: false; message: string };
 
 /** Độ lệch đơn giá so với giá danh mục lúc lập dòng (dương = cao hơn); null = khớp hoặc dòng nhập tay. Một nguồn cho trang đơn, form và nhật ký. */
+/**
+ * THÀNH TIỀN một dòng = số lượng × đơn giá — MỘT công thức cho máy chủ, form xem trước và thẻ dịch vụ (F-03; Hiến chương 5.4). Trigger `0007` ép cùng
+ * công thức ở CSDL (`line_total = quantity * unit_price`); hàng rào `src/thanh-tien-mot-ham.test.ts` đỏ khi mã chạy thật tự nhân ở chỗ khác.
+ */
+export function thanhTienDong(l: { quantity: number; unitPrice: number }): number {
+  return l.quantity * l.unitPrice;
+}
+
 export function priceDeviation(line: { unitPrice: number; catalogPrice: number | null }): number | null {
   return line.catalogPrice !== null && line.catalogPrice !== line.unitPrice ? line.unitPrice - line.catalogPrice : null;
 }

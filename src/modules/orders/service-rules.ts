@@ -3,7 +3,7 @@
 import type { ChangDaLuu, ChangHopLe } from "../../shared/chang-dua-don.ts";
 import type { CatalogChangeDto, CatalogStatus, MissingReason, TripGapDto, TripInfoDto } from "../../shared/contracts.ts";
 import {
-  CATALOG_CODE_RE, MAX_AMOUNT_VND, MAX_GUESTS_PER_SERVICE, PAX_LABEL, PAX_ORDER, buildLines, paxTotal, payingGuests, priceDeviation,
+  CATALOG_CODE_RE, MAX_AMOUNT_VND, MAX_GUESTS_PER_SERVICE, PAX_LABEL, PAX_ORDER, buildLines, paxTotal, payingGuests, priceDeviation, thanhTienDong,
   type CatalogService, type EffectiveService, type LinesResult, type PaxCode, type PaxCounts, type Prices,
 } from "../../shared/order-lines.ts";
 import { MAX_LINES_PER_ORDER, MAX_SERVICES, ONE_DATE_MESSAGE, confirmWindow, tripUpdateKeepsOneDate } from "../../shared/trip-rules.ts";
@@ -220,7 +220,7 @@ function catalogService(s: Record<string, unknown>, at: string, index: number, p
 
   const items: ValidItem[] = [];
   for (const l of built.lines) {
-    const lineTotal = l.quantity * l.unitPrice;
+    const lineTotal = thanhTienDong(l);
     if (lineTotal > MAX_AMOUNT_VND) return fail(`${at}: thành tiền vượt giới hạn.`);
     items.push({ catalogCode: code, paxCode: l.pax, description: l.description, detail: l.detail || null, quantity: l.quantity, unitPrice: l.unitPrice, catalogPrice: l.catalogPrice, lineTotal });
   }
@@ -247,7 +247,7 @@ function manualService(s: Record<string, unknown>, at: string, pax: PaxCounts, t
     if (quantity.error) return fail(quantity.error);
     const unitPrice = int(it.unitPrice, `${line}: đơn giá`, 0, MAX_AMOUNT_VND);
     if (unitPrice.error) return fail(unitPrice.error);
-    const lineTotal = quantity.value * unitPrice.value;
+    const lineTotal = thanhTienDong({ quantity: quantity.value, unitPrice: unitPrice.value });
     if (lineTotal > MAX_AMOUNT_VND) return fail(`${line}: thành tiền vượt giới hạn.`);
     items.push({ catalogCode: null, paxCode: null, description: description.value!, detail: detail.value, quantity: quantity.value, unitPrice: unitPrice.value, catalogPrice: null, lineTotal });
   }

@@ -6,6 +6,7 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 import { soTienCoc, type DuyetRow, type HoanNgoaiRow, type LineRow, type ReceiptRow } from "./modules/billing/rules.ts";
+import { gieoDongTienKhop } from "../tests/audit/dong-tien.mjs";
 
 const DIR = new URL("../migrations/", import.meta.url);
 const files = readdirSync(DIR).filter((f) => f.endsWith(".sql")).sort();
@@ -28,6 +29,7 @@ function don(db: DatabaseSync, id: string, o: { huy?: string | null; depart?: st
   run(db, `INSERT INTO orders (id, order_code, staff_id, status, customer_name, customer_phone, subtotal, total, remaining_amount, created_at, updated_at)
     VALUES (?, ?, 's1', 'draft', 'Khách Giả', '0900000009', 2000000, 2000000, 2000000, ?, ?)`, id, `TD-${id}`, AT, AT);
   run(db, `INSERT INTO order_service (id, order_id, name, unit, pax_adult, depart_date) VALUES (?, ?, 'Tour', 'perPax', 1, ?)`, `${id}-s`, id, o.depart === undefined ? "2026-11-10" : o.depart);
+  gieoDongTienKhop(db, id);
   run(db, "UPDATE orders SET status = 'confirmed', confirmed_at = ? WHERE id = ?", AT, id);
   if (o.huy) {
     run(db, `INSERT INTO ord_cancel_reason (id, order_id, reason_code, group_code, note, cancelled_date, reclassifies_id, legacy, created_at, created_by, updated_at, updated_by)
