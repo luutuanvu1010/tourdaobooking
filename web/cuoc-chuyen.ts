@@ -27,7 +27,8 @@ import type { SuKienChuyen } from "../src/shared/bang-tin";
 import { cauLoiTienDo, dongMoc, veDiemChay, type LenhDiem } from "./tien-do-ui";
 import { msToVnLocal, ngayNgan, vnToday } from "../src/shared/vn-date";
 import { canhBaoNgayChay, hopXuatBen } from "../src/shared/xac-nhan-xuat-ben";
-import { diemMoiChuaXem } from "../src/shared/xe-dang-chay-man";
+import { diemMoiChuaXem, suatCuaKhach, type SuatTenDong } from "../src/shared/xe-dang-chay-man";
+import { can } from "../src/shared/permissions";
 import { dongVuaGhi, hopKetThuc, hopTraCaDiem, type HopXacNhan, type LenhVuaGhi } from "../src/shared/xac-nhan-tien-do";
 
 const errorEl = byId("error");
@@ -80,6 +81,76 @@ async function chay(khoa: string, viec: () => Promise<void>): Promise<void> {
     }
   }
   ve();
+}
+
+// ---- Đợt 5 A-1b (ADR-0052 D5b, bản vẽ V6 6.3–6.4 — CHỜ CHỦ DUYỆT): tài xế bổ sung tên khách chưa có tên -------------------------------------------------
+/** Ô `trip.passenger.add` (đặt ở `main`); máy chủ vẫn kiểm chuyến mình đang lái + trong ngày chạy. */
+let coBoSungTen = false;
+const lenhBoSung = new Map<string, ReturnType<typeof taoLenh>>();
+/** Khối "Suất của khách": chỉ trong ngày chạy và khi còn suất thiếu tên (`suatCuaKhach`); KHÔNG hiện tên khách. Link "Bổ sung tên" theo ô quyền. */
+function khoiSuatKhach(): HTMLElement | null {
+  const k = suatCuaKhach(duLieu!);
+  if (!k) return null;
+  return h(
+    "section",
+    { class: "vc-card dp-suat-khach", "aria-labelledby": "cc-sk-title" },
+    h("div", { class: "dp-card-head" }, h("h2", { id: "cc-sk-title", class: "dp-card-title" }, "Suất của khách"), chip(`Thiếu tên ${k.thieu}`, "warn")),
+    ...k.dong.map((d) => {
+      const nut = !d.coTen && coBoSungTen ? (h("button", { type: "button", class: "btn btn-link dp-bo-sung-link", "data-action": "bo-sung-ten", "data-suat": d.suatId }, "Bổ sung tên") as HTMLButtonElement) : null;
+      nut?.addEventListener("click", () => moBoSungTen(d, nut));
+      return h("div", { class: "dp-kc", "data-suat": d.suatId }, h("span", { class: "dp-kc-text" }, h("span", null, d.nhan)), chip(d.coTen ? "Đã có tên" : "Chưa có tên", d.coTen ? "ok" : "warn"), nut);
+    }),
+  );
+}
+/** Bản vẽ V6 6.4 (theo ADR D5b): "Bổ sung tên — Suất N" — Họ tên*, Năm sinh*; Lưu / Đóng. Không ô loại khách (gửi null). Lưu xong đọc lại chi tiết. */
+function moBoSungTen(d: SuatTenDong, opener: HTMLButtonElement): void {
+  const ten = h("input", { id: "cc-bs-ten", class: "vc-input", type: "text", autocomplete: "off", maxlength: "120", "aria-required": "true" }) as HTMLInputElement;
+  const nam = h("input", { id: "cc-bs-nam", class: "vc-input", type: "text", inputmode: "numeric", maxlength: "4", "aria-required": "true" }) as HTMLInputElement;
+  const loi = h("div", { class: "vc-field-error", role: "alert", hidden: true });
+  const luu = h("button", { type: "button", class: "vc-btn btn btn-primary", "data-action": "bo-sung-ten-luu" }, "Lưu") as HTMLButtonElement;
+  const dong = h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary" }, "Đóng");
+  const bang = moBangTruot({
+    title: `Bổ sung tên — ${d.nhan.split(" · ")[0]}`,
+    body: [
+      h("p", { class: "dp-sheet-text" }, "Nhập tên cho khách chưa có tên trong đơn."),
+      h("div", { class: "vc-field" }, h("label", { class: "vc-label", for: "cc-bs-ten" }, "Họ tên *"), ten),
+      h("div", { class: "vc-field" }, h("label", { class: "vc-label", for: "cc-bs-nam" }, "Năm sinh *"), nam),
+      loi,
+    ],
+    foot: [dong, luu],
+    footClass: "vc-foot-2",
+    opener,
+  });
+  if (!bang) return;
+  dong.addEventListener("click", () => bang.close());
+  luu.addEventListener("click", async () => {
+    const hoTen = ten.value.trim();
+    const namSinh = Number(nam.value.trim());
+    if (!hoTen || !/^\d{4}$/.test(nam.value.trim())) {
+      replaceChildren(loi, icon("alert", 16, 2), "Nhập họ tên và năm sinh (4 chữ số).");
+      loi.hidden = false;
+      return;
+    }
+    bang.setBusy(true);
+    luu.disabled = true;
+    loi.hidden = true;
+    try {
+      let l = lenhBoSung.get(d.suatId);
+      if (!l) lenhBoSung.set(d.suatId, (l = taoLenh()));
+      await l.gui(`${goc}/hanh-khach`, "POST", { suatId: d.suatId, fullName: hoTen, birthYear: namSinh, paxCode: null });
+      lenhBoSung.delete(d.suatId);
+      await nap().catch(() => undefined);
+      bang.close(false);
+      baoCao = dai("ok", "Đã bổ sung tên khách", ["Văn phòng thấy tên ở chuyến và ở đơn."]);
+      ve();
+    } catch (e) {
+      replaceChildren(loi, icon("alert", 16, 2), loiCua(e));
+      loi.hidden = false;
+      luu.disabled = false;
+    } finally {
+      bang.setBusy(false);
+    }
+  });
 }
 
 /** Dòng "Người đi kèm: <tên>" (hướng dẫn viên; chỉ tên, không SĐT) — ở mọi trạng thái chuyến. */
@@ -180,6 +251,7 @@ function ve(): void {
     dauTrang,
     dongDiKem(),
     khoiDiKem(),
+    chayDuoc ? khoiSuatKhach() : null,
     c.ketThucThat ? h("div", { class: "dp-ct-moc" }, dongMoc(c.trangThai === "ENDED_INTERRUPTED" ? "Kết thúc gián đoạn" : "Kết thúc", c.ketThucThat, ngay)) : null,
     ...diemCho.map((k) => h("div", { class: "dp-khach-cho" }, "Một lệnh ở điểm chưa gửi được", h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary", "data-action": "bam-lai" }, "Bấm lại"))),
     h("div", { class: "dp-run-list" }, ...diem),
@@ -351,6 +423,7 @@ function veXuatBen(dauMang: HTMLElement | null): void {
     lechNgay ? dai("danger", "Không phải chuyến của hôm nay", [lechNgay]) : null,
     h("div", { class: "dp-note dp-cc-meta" }, `${c.bienSo} · ${ngayNgan(c.gioBatDau.ngay, vnToday(new Date()))} ${c.gioBatDau.gio} · ${chiSuatKhach(r.suat).length} khách`),
     dongDiKem(),
+    khoiSuatKhach(),
     // Bản 1.39 (chủ quyết 30/9: "tài xế nên thấy điểm đón từ trước, ngày giờ đón, vị trí và số lượng khách"): các điểm của chuyến TRƯỚC khi xuất bến — thứ tự,
     // loại, tên nơi, giờ hẹn, số người; dùng lại cách vẽ điểm của màn đang chạy, KHÔNG nút tiến độ, KHÔNG khách từng người (`suat: []`) — tên / SĐT khách vẫn
     // chỉ trong ngày chạy (ADR-0053 D7.2). Chỉ vẽ dữ liệu route 20 đã gửi (`diem`), không đổi máy chủ.
@@ -403,6 +476,7 @@ function moXacNhanXuatBen(opener: HTMLElement): void {
 async function main(): Promise<void> {
   const staff = await initShell();
   if (!coCuocCuaToi(staff)) return showError(errorEl, "Tài khoản này không có cuốc xe.");
+  coBoSungTen = can(staff, "trip.passenger.add", { assigned: true });
   if (!id) return showError(errorEl, "Thiếu mã chuyến.");
   try {
     await nap();

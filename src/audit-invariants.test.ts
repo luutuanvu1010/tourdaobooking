@@ -1063,7 +1063,25 @@ test("R-ORD-11: chuỗi hành khách đúng → 0; dòng thay thế khác đơn 
   khach(db, { id: "x3", orderId: "o-1", prev: "b1", key: "sai" }); // dòng thay thế khác person_key với dòng trước
   assert.equal(violations(db, c), 3);
   khach(db, { id: "d1", orderId: "o-2", source: "DRIVER" });
-  assert.equal(violations(db, c), 4, "dòng nguồn DRIVER khi chưa ADR nào mở");
+  assert.equal(violations(db, c), 4, "dòng nguồn DRIVER mồ côi (không sự kiện PASSENGER_NAMED + suất mang khoá đó)");
+});
+
+test("R-ORD-11 (Đợt 5 A-1b — ADR-0052 D5b, CHỜ CHỦ DUYỆT, đề xuất luật A-1b mục 3): dòng nguồn DRIVER CÓ sự kiện PASSENGER_NAMED trên suất mang khoá đó → 0; mồ côi / sự kiện trỏ suất khoá khác / dòng DRIVER là dòng thay thế → vi phạm", () => {
+  const c = one("R-ORD-11");
+  const db = tho();
+  const d = donTho(db, { pax: 3, ten: 1 });
+  const t = chuyenTho(db, { status: "RUNNING", departed: Date.parse(T1) });
+  khach(db, { id: "drv-1", orderId: d.order, source: "DRIVER" });
+  const a = suatTho(db, { trip: t, leg: d.leg, key: "drv-1" });
+  suKienTho(db, { trip: t, kind: "PASSENGER_NAMED", alloc: a, nhatKy: "trip_passenger_named" });
+  assert.equal(violations(db, c), 0, "dòng tài xế nhập có sự kiện + suất mang khoá");
+  khach(db, { id: "drv-2", orderId: d.order, source: "DRIVER" });
+  assert.equal(violations(db, c), 1, "dòng DRIVER mồ côi");
+  const khac = suatTho(db, { trip: t, leg: d.leg, key: d.khach[0]! });
+  suKienTho(db, { trip: t, kind: "PASSENGER_NAMED", alloc: khac, nhatKy: "trip_passenger_named" });
+  assert.equal(violations(db, c), 1, "sự kiện trỏ suất mang khoá KHÁC không cứu dòng mồ côi");
+  khach(db, { id: "drv-3", orderId: d.order, source: "DRIVER", prev: "drv-1", key: "drv-1" });
+  assert.equal(violations(db, c), 2, "tài xế chỉ thêm đầu chuỗi — dòng thay thế nguồn DRIVER là vi phạm");
 });
 
 test("R-ORD-12: chặng mở của đơn chưa huỷ còn nơi đón tạm '(chưa ghi nơi đón)' → đếm (cảnh báo); đơn huỷ / chặng đóng → không", () => {

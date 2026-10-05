@@ -306,6 +306,7 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/van-chuyen/chuyen/:id/phan-bo/:aid/bao-huy", access: "office" }, // Đợt 5 ADR-0052 D5.2 — văn phòng báo khách huỷ (trip.dispatch)
   { method: "GET", path: "/api/van-chuyen/cuoc-cua-toi", access: "staff" }, // ADR-0049 Task A15 route 19 — tài xế (ô trip.view assigned)
   { method: "GET", path: "/api/van-chuyen/cuoc-cua-toi/:id", access: "staff" }, // route 20
+  { method: "POST", path: "/api/van-chuyen/cuoc-cua-toi/:id/hanh-khach", access: "staff" }, // Đợt 5 A-1b ADR-0052 D5b — tài xế bổ sung tên (trip.passenger.add) — CHỜ CHỦ DUYỆT
   { method: "POST", path: "/api/van-chuyen/cuoc-cua-toi/:id/xuat-ben", access: "staff" }, // route 21 — tài xế (trip.progress assigned)
   { method: "POST", path: "/api/van-chuyen/cuoc-cua-toi/:id/diem/:sid/da-toi", access: "staff" }, // route 22 — tài xế (trip.progress assigned)
   { method: "POST", path: "/api/van-chuyen/cuoc-cua-toi/:id/phan-bo/:aid/don", access: "staff" }, // route 23 — tài xế (trip.progress assigned)
@@ -416,9 +417,11 @@ test("mức truy cập của 213 route hiện có khớp ảnh chụp đã duy�
   // 2026-10-02 (ADR-0055 VK2-A, Vận chuyển Đợt 3): + GET/POST /api/van-chuyen/xe/:id/ban, POST …/ban/:bid/rut, GET /api/van-chuyen/ban-xe (office, vehicle.manage) = 220.
   // 2026-10-05 (Vận chuyển Đợt 5, ADR-0052 D5): + POST /api/van-chuyen/chuyen/:id/them-diem, POST …/phan-bo/:aid/bao-huy (office, trip.dispatch) = 222.
   // 2026-10-05 (Đợt 5 A-1b Task 15): + GET /api/van-chuyen/chuyen/:id/cuu-ho (office, trip.dispatch; chỉ đọc) = 223.
+  // 2026-10-05 (Đợt 5 A-1b Task 14 — CHỜ CHỦ DUYỆT): + POST /api/van-chuyen/cuoc-cua-toi/:id/hanh-khach (staff, trip.passenger.add) = 224.
   assert.deepEqual(actual, SNAPSHOT);
   // 2026-10-02 (Đợt 4 Task 4, ADR-0057 T1): + 9 route bảng giá thuê xe, tuyến, cỡ xe (office) = 225 (trên nền 216 của nhánh).
   // 2026-10-02 (Đợt 4 Task 10, ADR-0057 T2): + 6 route chi phí chuyến xe thuê + bảng kê (office) = 231 trên nhánh; gộp main ffed6f1c (1.78): main 220 + 15 route Đợt 4 = 238.
-  assert.equal(actual.length, 238, "số route thực tế lệch 238 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 238, "SNAPSHOT phải có đúng 238 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // 2026-10-05 (dot5-tang3): gộp tầng 3 Đợt 5 (POST …/cuoc-cua-toi/:id/hanh-khach) lên main 1.79 238 = 239.
+  assert.equal(actual.length, 239, "số route thực tế lệch 239 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 239, "SNAPSHOT phải có đúng 239 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

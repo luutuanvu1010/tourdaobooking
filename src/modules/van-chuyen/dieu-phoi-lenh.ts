@@ -14,7 +14,7 @@ import { addDays, msToVnLocal, vnLocalToMs } from "../../shared/vn-date";
 import { khungBanXeTrongKhoang } from "./khung-ban-repo";
 import type { LichChungResponse } from "../../shared/contracts";
 import { allocsByTrips, allocsOpenByLegs, eventsByTrips, legFlags, stopsByTrips, tenDiem, tripsTouching, type TripRow } from "./chuyen-repo";
-import { loBaoHuy, loCapNhatDiem, loCapNhatKhach, loDoi, loHuy, loRut, loSuaChuyen, loThemDiemDangChay, loXep, type DiemMoi, type PhaLe, type SuatMoi } from "./dieu-phoi";
+import { loBaoHuy, loBoSungTen, loCapNhatDiem, loCapNhatKhach, loDoi, loHuy, loRut, loSuaChuyen, loThemDiemDangChay, loXep, type DiemMoi, type PhaLe, type SuatMoi } from "./dieu-phoi";
 import {
   boSungXe, changVao, chinhSachVao, chuyenVao, diemVao, docChung, docNguCanh, khungBanVao, khungChuyen, lyDoChangNgoai, suatVao, taiXeVao, xeVao, type DuLieuChung, type NenChuyen,
 } from "./dieu-phoi-doc";
@@ -294,6 +294,35 @@ export async function lenhBaoHuy(
     detail: `${t.code}: văn phòng báo huỷ 1 khách${maDon ? ` (${maDon})` : ""} — ${nhanLyDo(chung, b.lyDo)}`,
   });
   const r = await chayLo(db, lo, b.requestId);
+  return r.ok ? null : r.res;
+}
+
+// ---- Tài xế bổ sung tên MỘT khách chưa có tên (ADR-0052 D5b — Đợt 5 A-1b, CHỜ CHỦ DUYỆT) ---------------------------------------------------------------
+/**
+ * Route đã kiểm: ô `trip.passenger.add` (assigned), người gọi đang lái, trong ngày chạy. Ở đây: chuyến còn lên kế hoạch hoặc đang chạy; suất khách MỞ của đúng
+ * chuyến (không có → 404), chưa có tên (409 `suat_da_co_ten`); đơn của chặng còn thiếu tên (409 `don_du_ten` — câu orders còn tự so trong lô). `cauHanhKhach`
+ * = lời gọi `cauThemHanhKhachTaiXe` của orders do ROUTE dựng (sau can() — bài src/orders-cong-bo.test.ts); nhận dấu lệnh (= id nhật ký gác câu) + id dòng mới.
+ * Nhật ký: mã chuyến, mã đơn, số người — không tên, năm sinh.
+ */
+export async function lenhBoSungTen(
+  db: D1Database, nen: NenChuyen, hk: readonly ChangChoChuyen[], suatId: string, requestId: string,
+  cauHanhKhach: (v: { cmd: string; id: string; orderId: string; lucIso: string }) => Promise<D1PreparedStatement>, staff: StaffProfile, bayGioMs: number,
+): Promise<Response | null> {
+  const t = nen.trip;
+  if (t.status !== "PLANNED" && t.status !== "RUNNING") return loi409("chuyen_da_ket_thuc", [lyDoGiu("CHUYEN_KHONG_CON_LEN_KE_HOACH", t.code)]);
+  const a = nen.allocs.find((x) => x.id === suatId && x.valid_to_at === null && x.kind === "PASSENGER" && x.leg_id !== null);
+  const c = a ? hk.find((x) => x.legId === a.leg_id) : undefined;
+  if (!a || !c) return error(404, "not_found", "Không tìm thấy khách này trên chuyến.");
+  if (a.passenger_key !== null) return loi409("suat_da_co_ten");
+  if (c.nguoi.length >= c.soNguoi) return loi409("don_du_ten");
+  const chung = lenhChung(requestId, staff, bayGioMs);
+  const id = crypto.randomUUID();
+  const lo = loBoSungTen(db, {
+    ...chung, tripId: t.id, version: t.version, dangChay: t.status === "RUNNING", suatId: a.id, personKey: id,
+    hanhKhach: await cauHanhKhach({ cmd: chung.cmd, id, orderId: c.orderId, lucIso: chung.lucIso }),
+    detail: `${t.code}: tài xế bổ sung tên 1 khách (${c.orderCode})`,
+  });
+  const r = await chayLo(db, lo, requestId);
   return r.ok ? null : r.res;
 }
 

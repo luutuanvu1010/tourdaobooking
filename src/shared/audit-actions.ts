@@ -124,6 +124,8 @@ export const AUDIT_ACTIONS = {
   // ADR-0052 D5 (Đợt 5): xe đang chạy — detail chỉ mã chuyến, mã đơn, SỐ người, nhãn lý do / tên nơi danh mục (không tên khách, không SĐT).
   trip_stop_added_running: { label: "Thêm điểm khi xe đang chạy", group: "trip" },
   trip_allocation_office_cancelled: { label: "Văn phòng báo huỷ khách", group: "trip" },
+  // ADR-0052 D5b (Đợt 5 A-1b — CHỜ CHỦ DUYỆT): tài xế bổ sung tên khách chưa có tên — detail mã chuyến, mã đơn, số người (không tên, năm sinh).
+  trip_passenger_named: { label: "Tài xế bổ sung tên khách", group: "trip" },
   // ADR-0051 GB1: mốc giờ hẹn của chặng — orderId NULL (I17); detail danh sách trắng (mã đơn, chiều, "giờ hẹn đón A → B", mã chuyến).
   trip_appt_called: { label: "Đã gọi báo khách giờ hẹn mới", group: "trip" },
   trip_appt_call_undone: { label: "Bỏ đánh dấu đã gọi báo", group: "trip" },

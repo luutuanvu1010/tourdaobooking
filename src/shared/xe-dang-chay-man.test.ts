@@ -1,7 +1,7 @@
 // Luật hiển thị THUẦN của "Xe đang chạy" (Vận chuyển Đợt 5, ADR-0052 D5; bản vẽ V11, V6 bổ sung) — src/shared/xe-dang-chay-man.ts.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { cauCapNhatDiem, chipDiemChay, chonThemDiem, chuyenDangChay, diemMoiChuaXem, khachDangCho, theCuuHo, theXeDangChay } from "./xe-dang-chay-man.ts";
+import { cauCapNhatDiem, chipDiemChay, chonThemDiem, chuyenDangChay, diemMoiChuaXem, khachDangCho, suatCuaKhach, theCuuHo, theXeDangChay } from "./xe-dang-chay-man.ts";
 import type { ChangLichDto, ChuyenTomTatDto, CuuHoResponse } from "./contracts.ts";
 import type { DiemVao, SuatVao } from "./tien-do-man.ts";
 
@@ -112,4 +112,22 @@ test("theCuuHo (CH.2 bản đơn giản, lời chủ 5.2b): tiêu đề 'Cứu h
   });
   const rong = theCuuHo({ ...r, chuyenHong: { ...r.chuyenHong, soKhachCanChuyen: 0 }, changChoXep: [], xeNhan: [] });
   assert.equal(rong.tieuDe, "Cứu hộ CX-07 · không còn khách cần chuyển");
+});
+
+test("suatCuaKhach (V6 6.3 — D5b): chỉ trong ngày chạy và khi còn suất thiếu tên; 'Suất N · Điểm M · nơi', theo thứ tự điểm lên; KHÔNG trả tên; suất đã xong / người đi kèm không tính", () => {
+  const d = [{ id: "p1", thuTu: 1, tenNoi: "Khách sạn A" }, { id: "p2", thuTu: 2, tenNoi: "Khách sạn B" }];
+  const s = (id: string, diemLen: string, o: Record<string, unknown> = {}) => ({ id, loai: "PASSENGER", diemLen, trangThai: "WAITING", ...o });
+  const suat = [s("a3", "p2"), s("a1", "p1", { hoTen: "Khách Có Tên", namSinh: 1990 }), s("a2", "p1"), s("a4", "p1", { trangThai: "DROPPED" }), { id: "c1", loai: "CREW", diemLen: null, trangThai: "WAITING" }];
+  const r = suatCuaKhach({ trongNgayChay: true, diem: d, suat } as never);
+  assert.deepEqual(r, {
+    thieu: 2,
+    dong: [
+      { suatId: "a1", nhan: "Suất 1 · Điểm 1 · Khách sạn A", coTen: true },
+      { suatId: "a2", nhan: "Suất 2 · Điểm 1 · Khách sạn A", coTen: false },
+      { suatId: "a3", nhan: "Suất 3 · Điểm 2 · Khách sạn B", coTen: false },
+    ],
+  });
+  assert.doesNotMatch(JSON.stringify(r), /Khách Có Tên|1990/);
+  assert.equal(suatCuaKhach({ trongNgayChay: false, diem: d, suat } as never), null, "ngoài ngày chạy: không có tên để so — ẩn");
+  assert.equal(suatCuaKhach({ trongNgayChay: true, diem: d, suat: [suat[1]] } as never), null, "đủ tên — ẩn");
 });

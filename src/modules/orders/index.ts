@@ -19,13 +19,14 @@ import {
 } from "./repository";
 import {
   legById, legDatGapByOrder, legLichChungNhapRows, legLichChungRows, legShortNotice, legTripRows, manualPolicy, manualPolicyInsert, orderContactRows, passengerRowsByOrders,
-  servicePaxByIds, nguoiDaLapDon, type DatGapWrite,
+  servicePaxByIds, servicePaxByOrder, passengerInsertDriver, nguoiDaLapDon, type DatGapWrite,
 } from "./chang-hanh-khach-repo";
 import { khoaNoi } from "../../shared/khoa-noi";
 import { CHIEU_LABEL, LY_DO_DAT_GAP } from "../../shared/chang-dua-don";
 import { nguongMocVn, type MocToiThieu } from "../../shared/moc-toi-thieu";
 import { canhBaoMocCua, chepDatGapNhap, docDatGap, duoiMocKhiSua, ghiDatGapNhatKy, lichSuTheoVai } from "./dat-gap";
-import { dongHienHanh } from "../../shared/hanh-khach";
+import { dongHienHanh, kiemHanhKhach, soKhachDoan } from "../../shared/hanh-khach";
+import type { PaxCode } from "../../shared/order-lines";
 import { soNguoiChang, tongKhach } from "../../shared/so-nguoi-chang";
 import { maskLongDigits } from "../../shared/text-guards";
 import { toPoolOrders } from "./pool";
@@ -232,6 +233,23 @@ export async function findOrderDepartDates(db: D1Database, id: string): Promise<
  */
 export async function soKhachHieuLuc(db: D1Database, serviceIds: readonly string[]): Promise<Map<string, PaxCounts>> {
   return effectivePax(db, await servicePaxByIds(db, serviceIds));
+}
+
+/**
+ * Đợt 5 A-1b (ADR-0052 D5b): câu ghi MỘT hành khách do tài xế nhập — van-chuyen đặt câu này vào lô của mình (sau dòng nhật ký `auditId`). Số tối đa = số khách
+ * hiệu lực của dịch vụ đông nhất của đơn (đọc lúc dựng câu; câu so lại số người hiện hành TRONG lô). KHÔNG tự kiểm quyền — chỉ gọi trong thân route, sau
+ * `can(staff, "trip.passenger.add", { assigned })` + trong ngày chạy (bài src/orders-cong-bo.test.ts). Thân kiểm bằng `kiemHanhKhachTaiXe`.
+ */
+export interface HanhKhachTaiXeVao { id: string; orderId: string; fullName: string; birthYear: number; paxCode: PaxCode | null; at: string; by: string }
+export async function cauThemHanhKhachTaiXe(db: D1Database, v: HanhKhachTaiXeVao, auditId: string): Promise<D1PreparedStatement> {
+  const pax = await effectivePax(db, await servicePaxByOrder(db, v.orderId));
+  const toiDa = soKhachDoan([...pax.values()]);
+  return passengerInsertDriver(db, { id: v.id, orderId: v.orderId, ten: v.fullName, birthYear: v.birthYear, paxCode: v.paxCode, at: v.at, by: v.by }, auditId, toiDa);
+}
+/** Thân "Bổ sung tên" của tài xế: họ tên, năm sinh, loại khách (được null) — cùng luật `kiemHanhKhach` của văn phòng. `today` = ngày VN. */
+export function kiemHanhKhachTaiXe(body: unknown, today: string): { ok: true; value: { fullName: string; birthYear: number; paxCode: PaxCode | null } } | { ok: false; message: string } {
+  const r = kiemHanhKhach(body, { at: "Khách", today });
+  return r.ok ? { ok: true, value: { fullName: r.value.fullName, birthYear: r.value.birthYear, paxCode: r.value.paxCode } } : r;
 }
 
 /** Một chặng cho tài xế / chuyến xe (ADR-0047 A3) — ĐÚNG các khoá này; thêm khoá = sửa bài liệt kê khoá ở src/modules/orders/ham-cong-bo.test.ts. */

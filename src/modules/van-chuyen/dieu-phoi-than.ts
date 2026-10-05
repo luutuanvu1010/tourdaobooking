@@ -250,6 +250,20 @@ export function docDoiThuTu(body: Record<string, unknown> | null): KetQuaTienDo<
   return { ok: true, value: { requestId: rid.value, diem } };
 }
 
+/**
+ * Thân "Bổ sung tên" của tài xế (ADR-0052 D5b — Đợt 5 A-1b): `{ requestId, suatId, fullName, birthYear, paxCode }`. Ở đây chỉ đọc mã yêu cầu + suất; họ tên,
+ * năm sinh, loại khách do route kiểm bằng `kiemHanhKhachTaiXe` của orders (CÙNG luật nhập tên ở đơn). Không nhận giờ xảy ra.
+ */
+export function docBoSungTen(body: Record<string, unknown> | null): KetQuaTienDo<{ requestId: string; suatId: string }> {
+  if (!body) return sai("Dữ liệu không hợp lệ.");
+  const x = docXayRa(body, false);
+  if (!x.ok) return x;
+  const rid = docRequestId(body);
+  if (!rid.ok) return sai(rid.message);
+  if (!idHopLe(body.suatId)) return sai("Chọn khách cần bổ sung tên.");
+  return { ok: true, value: { requestId: rid.value, suatId: body.suatId } };
+}
+
 // ---- Họ lệnh mốc giờ hẹn (ADR-0051 — "Đã gọi báo", "Bỏ đánh dấu") — chỉ mã / số / ngày giờ, không chữ tự do (lần 12 câu 1; I18) -----------------------------
 function docPhienBan(b: Record<string, unknown>): KetQua<number> {
   return typeof b.phienBan === "number" && Number.isInteger(b.phienBan) && b.phienBan >= 1 && b.phienBan <= 10_000 ? { ok: true, value: b.phienBan } : fail("Thiếu phiên bản mốc giờ hẹn — tải lại.");

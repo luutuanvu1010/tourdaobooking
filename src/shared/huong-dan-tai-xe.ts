@@ -52,6 +52,7 @@ Trên máy tính, menu bên trái có: [[Trang chủ]], [[Cuốc của tôi]], [
       noiDung: `- **Khách tới trễ sau khi đã bấm Vắng:** dòng khách đó vẫn còn nút [[Đã đón]].
 - **Bấm nhầm Đã đón hoặc Khách đã huỷ:** màn không còn nút sửa. Gọi văn phòng.
 - **Văn phòng vừa thêm điểm:** dải trên cùng báo điểm mới (giờ đón, số khách), điểm đó có nhãn **Mới thêm** và đã nằm trong lộ trình. Đọc xong bấm [[Đã xem]].
+- **Khách chưa có tên:** trong ngày chạy, khối **Suất của khách** báo thiếu tên. Hỏi khách, bấm [[Bổ sung tên]], nhập họ tên, năm sinh rồi bấm [[Lưu]].
 - **Văn phòng đã báo huỷ:** vẫn tới điểm. Gặp khách thì bấm [[Đã đón]]; không gặp thì bấm [[Khách đã huỷ]] để trả chỗ.
 - **Muốn ghé điểm khác trước:** khi xe đang chạy, điểm chưa tới có nút mũi tên lên và mũi tên xuống để đổi thứ tự.
 - **Xe hỏng, không đi tiếp được:**

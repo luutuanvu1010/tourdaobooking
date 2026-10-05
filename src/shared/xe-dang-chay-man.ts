@@ -125,3 +125,32 @@ export function theCuuHo(r: CuuHoResponse): { tieuDe: string; chang: string[]; x
     }));
   return { tieuDe: n > 0 ? `Cứu hộ ${r.chuyenHong.ma} · ${n} khách cần chuyển` : `Cứu hộ ${r.chuyenHong.ma} · không còn khách cần chuyển`, chang, xe };
 }
+
+/** Một dòng "Suất của khách" (bản vẽ V6 6.3 — ADR-0052 D5b): KHÔNG tên khách — chỉ số suất, điểm lên, có tên hay chưa. */
+export interface SuatTenDong {
+  suatId: string;
+  nhan: string;
+  coTen: boolean;
+}
+/**
+ * Khối "Suất của khách" ở màn tài xế: chỉ trong ngày chạy (ngoài ngày chạy DTO không có tên để biết ai thiếu) và chỉ khi còn suất khách CHƯA có tên. Suất
+ * khách còn chờ / đang trên xe, xếp theo thứ tự điểm lên rồi id; "Suất N · Điểm M · nơi". Người đi kèm, suất đã xong không tính.
+ */
+export function suatCuaKhach(r: {
+  trongNgayChay: boolean;
+  diem: readonly { id: string; thuTu: number; tenNoi: string }[];
+  suat: readonly { id: string; loai: "PASSENGER" | "CREW"; diemLen: string | null; trangThai: string; hoTen?: string }[];
+}): { thieu: number; dong: SuatTenDong[] } | null {
+  if (!r.trongNgayChay) return null;
+  const diem = new Map(r.diem.map((d) => [d.id, d]));
+  const thu = (id: string | null) => (id ? (diem.get(id)?.thuTu ?? 9999) : 9999);
+  const ds = r.suat
+    .filter((s) => s.loai === "PASSENGER" && (s.trangThai === "WAITING" || s.trangThai === "BOARDED"))
+    .sort((a, b) => thu(a.diemLen) - thu(b.diemLen) || a.id.localeCompare(b.id));
+  const dong = ds.map((s, i) => {
+    const d = s.diemLen ? diem.get(s.diemLen) : undefined;
+    return { suatId: s.id, nhan: [`Suất ${i + 1}`, d ? `Điểm ${d.thuTu}` : null, d?.tenNoi ?? null].filter(Boolean).join(" · "), coTen: s.hoTen !== undefined };
+  });
+  const thieu = dong.filter((x) => !x.coTen).length;
+  return thieu > 0 ? { thieu, dong } : null;
+}
