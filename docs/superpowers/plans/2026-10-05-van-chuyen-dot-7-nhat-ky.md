@@ -42,4 +42,10 @@ Làn này không gọi trợ lý con; người kiểm độc lập chỉ đọc 
 6. Số mã R-VC: kế hoạch ghi "hôm nay là R-VC-20"; thật là **R-VC-24** ⇒ dùng **R-VC-25**.
 7. `AI_XU_LY` chỉ có `VAN_PHONG | QUAN_TRI | TOAN_QUYEN` ⇒ C9 dùng `QUAN_TRI` (đúng như `MOC_TOI_THIEU`).
 
-## Task 1 — migration `0077` (ruling và kết quả ghi bên dưới khi làm)
+## Task 1 — migration `0077_cam_ket_chang.sql`
+- Đỏ trước: `node --test src/migrations-cam-ket.test.ts` → 5 bài đỏ (chưa có tệp / "no column named exclusive_vehicle"). Sau migration: 5/5 xanh.
+- Ruling: SQLite (node:sqlite) VÀ D1 local nhận CHECK nhắc cột khác (`commitment_override_key` nhắc `commitment_override_reason_code`) ngay trong `ALTER TABLE … ADD COLUMN` ⇒ KHÔNG cần trigger dự phòng; dùng đúng văn bản kế hoạch — vì bài TC-3 xanh và `npm run db:migrate:local` áp được — nếu sai: thay bằng hai trigger BEFORE INSERT/UPDATE ON vc_trip (migration mới, không sửa 0077 đã áp).
+- Ruling: bài TC-4 dùng chuyến CANCELLED (`HUY_KHAC`) thay ENDED vì cùng trigger `vc_trip_final_frozen` (LC-06) mà dựng gọn hơn (không cần chạy cả lô xuất bến/kết thúc) — nếu sai: thêm một ca ENDED ở bài khuôn `migrations-chuyen-xe.test.ts` đã có sẵn.
+- Không bài nào liệt kê migration theo tên cần thêm tên mới (`npm test` xanh, 0 đỏ, không sửa `migrations-n1.test.ts`).
+- Từ điển dữ liệu: bảng chưa có mục theo cột, nên thêm `note` cho `ord_transfer_leg` và `vc_trip` ở `docs/data-dictionary.json` rồi `npm run dict`.
+

@@ -168,7 +168,8 @@
     {
       "name": "ord_transfer_leg",
       "module": "orders",
-      "kind": "table"
+      "kind": "table",
+      "note": "CAM KẾT CỦA CHẶNG (ADR-0056 VK3-A, migration 0077, Đợt 7): exclusive_vehicle 0/1 (mặc định 0 = không cam kết xe riêng) và min_vehicle_seats NULL hoặc 1..100 (xe tối thiểu N chỗ; NULL = không cam kết). Không mang tiền, không mang tên người, không kể tài xế (không vào DTO tài xế). Ai ghi: theo ô của route chứa chặng (nháp qua order.modify, sau xác nhận qua order.trip.edit) — khoá vắng thì giữ giá trị cũ, không xét mốc 6 giờ. Chặng cũ = 0 / NULL. CHECK ngay ở cột; vận chuyển chỉ đọc qua hàm hẹp lichChungChang / hanhKhachChoChuyen"
     },
     {
       "name": "ord_passenger",
@@ -391,7 +392,8 @@
     {
       "name": "vc_trip",
       "module": "van-chuyen",
-      "kind": "table"
+      "kind": "table",
+      "note": "DẤU PHÁ LỆ CAM KẾT (ADR-0056 VK3-A A3, migration 0077, Đợt 7): commitment_override_reason_code (FK vc_reason, nhóm PHA_LE) + commitment_override_key (chuỗi nối id và con số, không tên, không tiền — khoá chỉ để so với tình trạng cam kết hiện tại, KHÔNG BAO GIỜ hiển thị / vào DTO / nhật ký). Đi CẶP: có cả hai hoặc không có cả hai (CHECK); key dài 3..4000. Ai ghi: lệnh chuyến của người có ô trip.override (Quản trị, Toàn quyền) — một lô với nhật ký; xoá cả hai khi hết vi phạm. Chuyến đã kết thúc / huỷ không sửa (trigger vc_trip_final_frozen). Luật cấu hình, không có trigger: lớp giữ là máy chủ + câu kiểm định kỳ mức warn"
     },
     {
       "name": "vc_trip_driver",
