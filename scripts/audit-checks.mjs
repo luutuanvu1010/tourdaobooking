@@ -703,6 +703,25 @@ export const CHECKS = [
                               AND a.closed_cmd_id IS NOT NULL AND b.opened_cmd_id = a.closed_cmd_id)`,
     level: "fail",
   },
+  // R-VC-25 (Đợt 7, ADR-0056 VK3-A — mã do điều phối cấp; lưới thứ hai của luật cấu hình `kiemCamKet`, luật này không có trigger): chuyến ĐÃ xuất bến (RUNNING / ENDED /
+  // ENDED_INTERRUPTED) trái cam kết của khách mà KHÔNG có dấu phá lệ cam kết. Khách mở lúc xuất bến = suất PASSENGER (suất CREW không tính) chưa đóng hoặc đóng SAU giờ xuất bến.
+  // (a) chặng xe riêng (exclusive_vehicle = 1) mà trên chuyến còn suất khách của đơn KHÁC; (b) min_vehicle_seats lớn hơn số chỗ trong bản chụp xuất bến (lần kiểm ĐẠT
+  // gần nhất, vc_trip_departure_check.passenger_capacity). Chuyến chưa chạy không xét (cổng xuất bến giữ). Mức warn: phá lệ hợp lệ có thể bị sửa tay sau này.
+  {
+    code: "R-VC-25",
+    what: "chuyến đang chạy / đã chạy trái cam kết xe riêng hoặc số chỗ tối thiểu của khách mà không có phá lệ cam kết",
+    sql: `SELECT count(*) FROM vc_trip t
+          WHERE t.status IN ('RUNNING', 'ENDED', 'ENDED_INTERRUPTED') AND t.departed_at IS NOT NULL AND t.commitment_override_reason_code IS NULL
+            AND (EXISTS (SELECT 1 FROM vc_trip_allocation a JOIN ord_transfer_leg l ON l.id = a.leg_id
+                         WHERE a.trip_id = t.id AND a.kind = 'PASSENGER' AND (a.valid_to_at IS NULL OR a.valid_to_at > t.departed_at) AND l.exclusive_vehicle = 1
+                           AND EXISTS (SELECT 1 FROM vc_trip_allocation b JOIN ord_transfer_leg m ON m.id = b.leg_id
+                                       WHERE b.trip_id = t.id AND b.kind = 'PASSENGER' AND (b.valid_to_at IS NULL OR b.valid_to_at > t.departed_at) AND m.order_id <> l.order_id))
+              OR EXISTS (SELECT 1 FROM vc_trip_allocation a JOIN ord_transfer_leg l ON l.id = a.leg_id
+                         WHERE a.trip_id = t.id AND a.kind = 'PASSENGER' AND (a.valid_to_at IS NULL OR a.valid_to_at > t.departed_at) AND l.min_vehicle_seats IS NOT NULL
+                           AND l.min_vehicle_seats > (SELECT k.passenger_capacity FROM vc_trip_departure_check k WHERE k.trip_id = t.id AND k.ket_qua = 'DAT' ORDER BY k.checked_at DESC LIMIT 1)))`,
+    level: "warn",
+    note: "cảnh báo: chuyến đã xuất bến trái cam kết xe riêng / số chỗ của khách mà không có phá lệ — rà lại chuyến và lý do",
+  },
 
   // ---- Người phụ trách đơn (ADR-0006 điều 3, ADR-0009). Migration 0014 trở lên: trên D1 chưa có 0014 các câu dưới lỗi "no such table" → script thoát mã 2. ----
   // R-DSP-1: chỉ mục duy nhất một phần đã chặn ở CSDL; kiểm này bắt trường hợp chỉ mục bị gỡ/sửa nhầm.

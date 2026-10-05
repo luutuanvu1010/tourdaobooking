@@ -2202,3 +2202,57 @@ test("R-VC-24 (Đợt 5 D5.3a): suất đóng STOP_CHANGED sau xuất bến có 
   mo({ leg: "leg-4", key: "pk-khac", cmd: "d0000000-0000-4000-8000-000000000003" });
   assert.equal(violations(db, c), 2, "mở lại người khác");
 });
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Vận chuyển Đợt 7 (ADR-0056 VK3-A — kế hoạch Task 6): R-VC-25 — chuyến đang chạy / đã chạy trái cam kết xe riêng / số chỗ tối thiểu mà không có phá lệ (warn).
+// ---------------------------------------------------------------------------------------------------------------------
+test("R-VC-25 (Đợt 7 VK3-A): chuyến đã xuất bến trái cam kết xe riêng / số chỗ mà KHÔNG phá lệ → đếm (warn); có phá lệ / suất CREW / suất đã đóng trước xuất bến / chuyến chưa chạy → không đếm", () => {
+  const c = one("R-VC-25");
+  assert.equal(c.level, "warn");
+  const db = tho();
+  const batCamKet = (leg: string, xeRieng: number, choToiThieu: number | null) =>
+    db.prepare("UPDATE ord_transfer_leg SET exclusive_vehicle = ?, min_vehicle_seats = ? WHERE id = ?").run(xeRieng, choToiThieu, leg);
+  const chup = (trip: string, soCho: number, ketQua = "DAT") =>
+    db.prepare(`INSERT INTO vc_trip_departure_check (id, trip_id, cmd_id, policy_id, ket_qua, vehicle_id, plate_number, passenger_capacity, owner_party_id, driver_party_id,
+        rest_minutes_used, checked_at, created_at, updated_at) VALUES (?, ?, ?, 'pol', ?, 'xe-1', '51A-12345', ?, 'p-cty', 'p-cty', 0, ?, ?, ?)`)
+      .run(`ck-${++soVc}`, trip, "c".repeat(36), ketQua, soCho, T2, T2, T2);
+  const phaLe = (trip: string) =>
+    db.prepare("UPDATE vc_trip SET commitment_override_reason_code = 'PHA_LE_SU_CO', commitment_override_key = 'xe:xe-1|x:XR:1:-' WHERE id = ?").run(trip);
+  const dep = Date.parse(T3);
+
+  // (a) xe riêng có suất khách của đơn KHÁC trên cùng chuyến.
+  const a = donTho(db, { ten: 1 });
+  const b = donTho(db, { ten: 1 });
+  const t1 = chuyenTho(db, { status: "RUNNING", departed: dep });
+  chup(t1, 16);
+  suatTho(db, { trip: t1, leg: a.leg, key: a.khach[0]! });
+  batCamKet(a.leg, 1, null);
+  assert.equal(violations(db, c), 0, "xe riêng một mình trên chuyến");
+  suatTho(db, { trip: t1, leg: a.leg, key: "pk-cung-don" });
+  assert.equal(violations(db, c), 0, "suất khác của CHÍNH đơn đó không tính");
+  suatTho(db, { trip: t1, kind: "CREW" });
+  assert.equal(violations(db, c), 0, "suất CREW (tài xế / phụ xe) không tính là khách đơn khác");
+  suatTho(db, { trip: t1, leg: b.leg, key: b.khach[0]!, tu: T1, den: T2 }); // đã đóng TRƯỚC xuất bến
+  assert.equal(violations(db, c), 0, "suất đơn khác đã đóng trước xuất bến không tính");
+  suatTho(db, { trip: t1, leg: b.leg, key: b.khach[0]! });
+  assert.equal(violations(db, c), 1, "đơn khác ghép vào xe riêng, không phá lệ");
+  phaLe(t1);
+  assert.equal(violations(db, c), 0, "có phá lệ cam kết thì sạch");
+
+  // (b) số chỗ tối thiểu lớn hơn số chỗ trong bản chụp xuất bến.
+  const d = donTho(db, { ten: 1 });
+  const t2 = chuyenTho(db, { status: "ENDED", departed: dep, ended: dep + H });
+  chup(t2, 7, "KHONG_DAT"); // lần kiểm KHÔNG ĐẠT không phải bản chụp xuất bến
+  chup(t2, 16);
+  suatTho(db, { trip: t2, leg: d.leg, key: d.khach[0]! });
+  batCamKet(d.leg, 0, 16);
+  assert.equal(violations(db, c), 0, "đủ chỗ (16 ≥ 16)");
+  batCamKet(d.leg, 0, 17);
+  assert.equal(violations(db, c), 1, "cần 17 chỗ, xe chụp 16");
+  // Chuyến chưa chạy không xét (cổng xuất bến lo).
+  const e = donTho(db, { ten: 1 });
+  const t3 = chuyenTho(db);
+  suatTho(db, { trip: t3, leg: e.leg, key: e.khach[0]! });
+  batCamKet(e.leg, 0, 100);
+  assert.equal(violations(db, c), 1, "chuyến PLANNED không đếm");
+});
