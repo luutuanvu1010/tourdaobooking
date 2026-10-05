@@ -23,7 +23,7 @@ Nguồn: đánh giá đối chiếu 5 bản vẽ (`docs/design/van-chuyen-dot-3-
 ## Câu chung
 
 - **0.1** 🔒 Toạ độ = **bảng phụ có kiểu** (A). Xác nhận? (Khác: B sửa Hiến chương 5.2; C chưa làm.) Cần soạn ADR nhỏ trước migration.
-- **0.2** 💰 Chia doanh thu với taxi đối tác — **khuyến nghị:** làm sau bằng ADR riêng, sổ riêng (không chen bảng chi phí xe thuê). Trước ADR cần chủ chốt: (a) % trên giá bán chặng hay sau phí; (b) ai thu tiền khách; (c) trả theo chuyến hay theo kỳ; (d) hợp đồng / hoá đơn / thuế (hỏi Kế toán).
+- **0.2** 💰 Chia doanh thu với taxi đối tác — **ĐÃ TRẢ LỜI 5/10 (a–c; d hoá đơn/thuế còn mở) — xem lộ trình "Lời chủ 5/10".** **Khuyến nghị cũ:** làm sau bằng ADR riêng, sổ riêng (không chen bảng chi phí xe thuê). Trước ADR cần chủ chốt: (a) % trên giá bán chặng hay sau phí; (b) ai thu tiền khách; (c) trả theo chuyến hay theo kỳ; (d) hợp đồng / hoá đơn / thuế (hỏi Kế toán).
 
 ## Đợt 3 — Lịch xe bận (trang lịch tuần)
 

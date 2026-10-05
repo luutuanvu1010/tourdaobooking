@@ -25,7 +25,7 @@ Bản vẽ Claude Design Đợt 3–7 đã nhận: `docs/design/van-chuyen-dot-3
 | 7 Xe riêng / số chỗ | Kế hoạch viết lại; chờ 7.1–7.2 | sau Đợt 3 + 4 gộp |
 | 8 Bỏ đường ghi cũ | Như cũ (cổng đếm thân cũ) | — |
 | **Mới: Toạ độ điểm** | Chủ chọn bảng phụ có kiểu (câu 0.1 xác nhận); cần ADR nhỏ (module `locations`, bảng chỉ thêm, vĩ độ −90…90 / kinh độ −180…180 `CHECK`, nguồn, không bắt buộc) trước migration | chưa cấp số; làm sau ADR |
-| **Mới: Chia doanh thu taxi** | Chưa ADR; chờ chủ chốt a–d (câu 0.2) | sổ riêng, không chạm `vc_trip_cost_line` |
+| **Mới: Chia doanh thu taxi** | Chưa ADR; câu 0.2 **ĐÃ TRẢ LỜI 5/10** (a–c, xem "Lời chủ 5/10"); còn mở: hoá đơn / thuế (d — hỏi Kế toán) | sổ riêng, không chạm `vc_trip_cost_line`; kế hoạch Đợt 6 dùng |
 
 Số migration đã cấp: 0070 (Đợt 2), 0071 (Đợt 3), 0072–0073 (Đợt 4). Số kế tiếp lấy theo L2.
 
@@ -155,6 +155,13 @@ Bối cảnh chủ nêu: công ty có **5 xe** (2 xe 16 chỗ, 3 xe 4–7 chỗ)
 2. **Toạ độ điểm đón / trả** — chủ: *"Có, cho bổ sung vào 1 trường linh động (Flex field)"*. ⚠ Xung đột **Hiến chương 5.2** (`docs/ARCHITECTURE.md:93` — cấm flexfield/JSON không lược đồ; ADR-0060 chủ từng giữ luật này). Đã hỏi lại chủ 2/10 với phương án hợp luật: **bảng phụ có kiểu** (vd `loc_location_geo`: vĩ độ / kinh độ có `CHECK` khoảng, nguồn, không bắt buộc) — không đụng bảng lõi, thêm sau được; hoặc chủ sửa Hiến chương 5.2. **Chờ chủ.**
 3. **Cách điều xe ở quy mô hợp tác xã** — chủ: *"kết hợp cả giao chuyến cả để tài xế tự nhận"* ⇒ hướng: văn phòng giao (kiểu A, đang có) **+** phát chuyến cho tài xế rảnh tự nhận (kiểu C, chưa có ADR); tài xế nhờ tài xế (kiểu B, ADR-0052 D4) là đường phụ khi sự cố. ADR kiểu C viết khi tới mốc ở mục 1.
 4. **Chia sẻ doanh thu với taxi đối tác** — chưa ADR nào có. Khuyến nghị (chủ chưa trả lời): Đợt 4 giữ nguyên (thuê theo chuyến = chi phí cố định); chia doanh thu làm **sổ riêng** bằng ADR riêng sau khi chủ chốt: (a) % trên giá bán chặng hay sau phí; (b) ai thu tiền khách; (c) trả theo chuyến hay theo kỳ (nối sổ công nợ / khoá kỳ); (d) hợp đồng, hoá đơn, thuế (hỏi Kế toán). Không chen vào `vc_trip_cost_line`.
+
+## Lời chủ 5/10 (sau Đợt 5 tầng 1+2 lên 1.79)
+
+Nguyên văn: "a- cho tài xế tự bổ sung tên khách, chỉ tài xế công ty. b- không, c-chấp nhận, d- bạn đã hiểu đúng, đối tác tự thu tiền, e- giữ". Phần thuộc lộ trình:
+- **Câu 0.2 — chia doanh thu taxi đối tác: ĐÃ TRẢ LỜI (vế d).** Khách trả **giá khách lẻ** cho đối tác; công ty nhận **tối thiểu 5% giá đó**; tính **theo từng chuyến**; **đối tác tự thu tiền khách**. Ứng với các điểm hỏi 2/10: (a) % trên giá bán (giá khách lẻ), không phải sau phí; (b) đối tác thu; (c) theo chuyến. **Còn mở:** (d) hợp đồng / hoá đơn / thuế (chưa hỏi — hỏi Kế toán trước ADR) và các điểm e–h của `2026-10-02-van-chuyen-cau-hoi-ban-ve.md` chưa được hỏi riêng. Kế hoạch Đợt 6 dùng câu trả lời này khi viết ADR sổ riêng (không chen `vc_trip_cost_line`).
+- Đợt 5: (a) tầng 3 tài xế bổ sung tên duyệt — CHỈ tài xế công ty (bản 1.80); (b) cập nhật điểm lúc xe chạy làm một điểm hết khách: máy không tự bỏ điểm; (c) chấp nhận danh sách xe cứu hộ gồm tài xế công ty chưa từng đăng nhập.
+- Đợt 4: (e) giữ ADR-0057 C7 — Quản trị ghi / đảo chi phí xe thuê, không tính là "tài khoản giữ quyền tiền" của ADR-0090.
 
 ## Cần chủ (gom từ 8 kế hoạch con; mỗi lượt tối đa 3 câu chạm dữ liệu/quyền/tiền)
 

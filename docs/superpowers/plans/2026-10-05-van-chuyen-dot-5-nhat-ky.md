@@ -98,3 +98,20 @@ Làn này KHÔNG gọi trợ lý con (kể cả người kiểm độc lập —
 - Nợ nay đủ điều kiện làm (KHÔNG làm trong lượt gộp): khối Cứu hộ chưa có form "Nhập giá thoả thuận" / dòng xe nhà xe (Task 16 hoãn vì Đợt 4 chưa gộp) — nay Đợt 4 đã ở nhánh này.
 - Kiểm sau gộp (HEAD gộp `7def792a`; người thi công tự chạy, CHƯA có người kiểm độc lập — N8): `npm run typecheck` 0 lỗi; `npm test` 3139 bài, 3138 đạt + 1 todo, 0 đỏ; `npm run test:e2e` ĐỦ BỘ **49/49** xanh (338 giây, 3 nhóm) + `audit-invariants` ba nhóm ĐẠT (một cảnh báo không chặn R-ORD-6a như các lần trước).
 - Chrome (axe `/private/tmp/axe.min.js`, ảnh ra thư mục tạm — không ghi vào `docs/evidence`): `dieu-phoi-smoke` 11 bước OK (lần đầu không nạp được vì lỗi dấu nháy do lượt gộp đưa vào — sửa ở commit riêng), `xe-dang-chay-smoke` 10 OK, `cuu-ho-smoke` 6 OK, `chuyen-smoke` 9 OK, `chinh-sach-dieu-phoi-smoke` 14 OK (xác nhận thứ tự nhóm lý do ở trên), `danh-muc-giay-to-smoke` 10 OK, `trang-chu-smoke` OK (Quản trị 21, Toàn quyền 27). `xe-smoke` 11 ✓ 2 ✗ (bước 8b, 9: `401 unauthenticated` — mất phiên giữa kịch bản); chạy CÙNG kịch bản trên commit Đợt 4 `7b7f295d` (đã chứa main): đúng 2 ✗ ấy ⇒ đỏ có sẵn (sổ phiên một máy), không do lượt gộp; không sửa.
+
+## Lời chủ 5/10 (sau khi 1.79 lên production)
+
+Nguyên văn: "a- cho tài xế tự bổ sung tên khách, chỉ tài xế công ty. b- không, c-chấp nhận, d- bạn đã hiểu đúng, đối tác tự thu tiền, e- giữ".
+- **(a)** DUYỆT tầng 3 (tài xế bổ sung tên) và cả ba chỗ nới luật của `2026-10-05-adr-0052-a1b-de-xuat-luat.md` (ô `trip.passenger.add` trong ghim DRIVER; ngoại lệ `GHI_NGOAI` + danh sách đọc `audit_log` + `KHONG_THE_LO`; đổi nghĩa vế DRIVER của R-ORD-11). CHỈ quyền `DRIVER` (tài xế công ty); `DRIVER_PARTNER` giữ `none`. Thi công: nhánh `dot5-tang3` (mục dưới).
+- **(b)** Văn phòng cập nhật điểm lúc xe đang chạy làm một điểm đón hết khách: máy **KHÔNG** tự bỏ điểm (giữ hành vi hiện tại của route 40 — "không tự bỏ qua điểm cũ"; điểm trống xử lý như mọi điểm).
+- **(c)** Chấp nhận danh sách "xe cùng ngày" của khối Cứu hộ gồm cả tài xế công ty chưa từng đăng nhập (nợ L3 của người kiểm — đóng, không sửa mã).
+- **(d)** Taxi đối tác: khách trả giá khách lẻ cho đối tác, công ty nhận tối thiểu 5% giá đó, tính theo từng chuyến; đối tác tự thu tiền khách. Chưa hỏi: hoá đơn / thuế. Dùng cho kế hoạch Đợt 6 (lộ trình câu 0.2).
+- **(e)** Giữ ADR-0057 C7: Quản trị ghi / đảo chi phí xe thuê, không tính là "tài khoản giữ quyền tiền" của ADR-0090 (câu người kiểm gộp Đợt 4 — đóng; ghi ở nhật ký Đợt 4). Không sửa ADR nào.
+
+## Tầng 3 lên nền main 1.79 (2026-10-05, nhánh `dot5-tang3`)
+
+- Cách làm: `dot5-tang3` từ `origin/main` `37c3cf5d` (1.79), `git merge worktree-agent-a51d501a3883b17a1` (merge `4f1fb899`). Không cherry-pick: gốc chung `7e68acbb` đã nằm trong main nên merge chỉ mang đúng 6 commit tầng 3, giữ nguyên SHA đã có báo cáo kiểm.
+- 7 tệp xung đột, giữ cả hai phía: `route-access` 238 + 1 = **239**; H2 route ghi có đăng nhập 143 + 1 = **144**; `KHONG_THE_LO` = bốn lệnh chi phí Đợt 4 + `${R}/hanh-khach`; ghim DRIVER_PARTNER / HR có cả ô tiền xe thuê lẫn `trip.passenger.add: none`; `tro-ly-cau-truc.ts` sinh lại; `SYSTEM-DESIGN.md` + nhật ký này giữ cả hai đoạn. Dòng changelog tầng 3 (tự gộp vào mục 1.79 đã phát hành) chuyển sang **1.80**. Lý do gieo không đổi (tầng 3 không thêm lý do).
+- Luật áp (commit `8e8964fe`): `src/CLAUDE.md:22` (bằng công cụ sửa tệp), `docs/SO-HANG-RAO.md` dòng R-ORD-11 + dòng mới `GHI_NGOAI`; tệp đề xuất đánh "ĐÃ DUYỆT 5/10"; nhãn "CHỜ CHỦ DUYỆT" trong chú thích mã đổi "chủ duyệt 5/10".
+- Nợ tầng 3 (commit `796d34a7`): L4 chữ điều kiện xuất bến (thiếu tên + tài xế công ty trong ngày chạy ⇒ chỉ chỗ tự bổ sung; tài xế đối tác / ngày khác vẫn "(văn phòng lo)"); Trợ giúp tài xế; L5 R-ORD-11 vế DRIVER đòi suất thuộc chặng của CÙNG đơn (đỏ trước 2 !== 3 → xanh); L1 tệp đề xuất ghi SHA `08a2e096`; L3 đóng theo lời chủ (c).
+
