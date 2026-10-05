@@ -151,11 +151,14 @@ test("toServiceInput (danh mục): KHÔNG có items/quantity; unitPrices và cat
 
 test("ADR-0047 Phần B: toServiceInput LUÔN có khoá legs (kể cả []) và KHÔNG có pickupTime/pickupPlace; chặng đã lưu giữ id; lỗi chặng chặn Lưu", () => {
   const leg = { id: "33333333-3333-4333-8333-333333333333", direction: "OUT" as const, pickupDate: "2026-09-20", pickupTime: "07:00", pickupLocationId: null, pickupPlace: "Sunrise", pickupLabel: "Sunrise",
-    dropoffLocationId: null, dropoffPlace: null, dropoffLabel: null, updatedAt: "t", flightCode: null, paxOverride: null, datGap: null };
+    dropoffLocationId: null, dropoffPlace: null, dropoffLabel: null, updatedAt: "t", flightCode: null, paxOverride: null, exclusiveVehicle: true, minVehicleSeats: 15, datGap: null };
   const d = draftFromDto({ ...savedTour, legs: [leg] }, live, "k1");
   const input = toServiceInput(d);
   assert.ok(!("pickupTime" in input) && !("pickupPlace" in input));
-  assert.deepEqual(input.legs, [{ id: leg.id, direction: "OUT", pickupDate: "2026-09-20", pickupTime: "07:00", pickupLocationId: null, pickupPlace: "Sunrise", dropoffLocationId: null, dropoffPlace: "", flightCode: "" }]);
+  assert.deepEqual(input.legs, [{ id: leg.id, direction: "OUT", pickupDate: "2026-09-20", pickupTime: "07:00", pickupLocationId: null, pickupPlace: "Sunrise", dropoffLocationId: null, dropoffPlace: "", flightCode: "", exclusiveVehicle: true, minVehicleSeats: 15 }]);
+  // Hai khoá cam kết đi với MỌI vai lập đơn (kể cả Đối tác / Thực tập: không có ô sửa chặng sau xác nhận) — không phụ thuộc guiSoVe.
+  assert.equal(toServiceInput(d, false).legs![0]!.exclusiveVehicle, true);
+  assert.equal(toServiceInput(d, false).legs![0]!.minVehicleSeats, 15);
   assert.deepEqual(toServiceInput(newCatalogDraft(tour, "k2")).legs, []);
   const loi = { ...d, legs: [{ ...d.legs[0]!, don: "" }] };
   assert.deepEqual(draftIssues(loi).map((i) => [i.code, i.message]), [["leg", "Chặng 1: chưa có nơi đón."]]);

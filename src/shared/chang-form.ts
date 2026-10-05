@@ -26,6 +26,10 @@ export interface ChangNhap {
   flightCode: string;
   /** Chỉ chiều về: chữ số; "" = cả đoàn. */
   soVe: string;
+  /** Cam kết "xe riêng" với khách (ADR-0056 VK3-A): công tắc Bật/Tắt; mặc định tắt. */
+  xeRieng: boolean;
+  /** Cam kết "xe tối thiểu N chỗ" (không kể tài xế): chữ số; "" = không yêu cầu. */
+  choToiThieu: string;
   /** Chữ nhỏ "gợi ý theo dịch vụ" ở ô giờ / ô nơi trả (mất khi người lập sửa ô đó). */
   goiYGio: boolean;
   goiYTra: boolean;
@@ -37,7 +41,7 @@ export interface ChangNhap {
 }
 
 const rong = (key: string, direction: LegDirection, pickupDate: string): ChangNhap => ({
-  key, id: null, direction, pickupDate, pickupTime: "", don: "", donTuDo: "", tra: "", traTuDo: "", flightCode: "", soVe: "",
+  key, id: null, direction, pickupDate, pickupTime: "", don: "", donTuDo: "", tra: "", traTuDo: "", flightCode: "", soVe: "", xeRieng: false, choToiThieu: "",
   goiYGio: false, goiYTra: false, theoDon: false, theoTra: false, goc: null,
 });
 
@@ -49,6 +53,7 @@ export function changTuDto(l: LegDto, key: string): ChangNhap {
     don: l.pickupLocationId ?? (l.pickupPlace && !tamDon ? TU_DO : ""), donTuDo: tamDon ? "" : (l.pickupPlace ?? ""),
     tra: l.dropoffLocationId ?? (l.dropoffPlace ? TU_DO : ""), traTuDo: l.dropoffPlace ?? "",
     flightCode: l.flightCode ?? "", soVe: l.paxOverride === null ? "" : String(l.paxOverride),
+    xeRieng: l.exclusiveVehicle, choToiThieu: l.minVehicleSeats === null ? "" : String(l.minVehicleSeats),
     goiYGio: false, goiYTra: false, theoDon: false, theoTra: false, goc: l,
   };
 }
@@ -87,7 +92,7 @@ export function themChieuVe(legs: readonly ChangNhap[], mau: MauChang | null, ng
   };
 }
 
-export type SuaChang = Partial<Pick<ChangNhap, "pickupDate" | "pickupTime" | "don" | "donTuDo" | "tra" | "traTuDo" | "flightCode" | "soVe">>;
+export type SuaChang = Partial<Pick<ChangNhap, "pickupDate" | "pickupTime" | "don" | "donTuDo" | "tra" | "traTuDo" | "flightCode" | "soVe" | "xeRieng" | "choToiThieu">>;
 
 /**
  * Sửa ô của chặng thứ `i` (trả mảng MỚI). Sửa ô nào thì bỏ chữ gợi ý / liên kết của ô đó. Sửa nơi đón / nơi trả của CHIỀU ĐI ĐẦU → chiều về còn đi theo
@@ -105,6 +110,7 @@ export function suaChang(legs: readonly ChangNhap[], i: number, p: SuaChang): Ch
     moi.goiYTra = false;
   }
   if ("soVe" in p) moi.soVe = (p.soVe ?? "").replace(/\D/g, "").slice(0, 3);
+  if ("choToiThieu" in p) moi.choToiThieu = (p.choToiThieu ?? "").replace(/\D/g, "").slice(0, 3);
   if ("flightCode" in p) moi.flightCode = (p.flightCode ?? "").toUpperCase();
   out[i] = moi;
   const dau = out.findIndex((l) => l.direction === "OUT");
@@ -142,7 +148,12 @@ export interface LoiChang {
   don: string | null;
   donTuDo: string | null;
   soVe: string | null;
+  /** Ô "Xe tối thiểu": "0" hoặc quá 100 → câu đúng chữ bản vẽ (Đợt 7). */
+  choToiThieu: string | null;
 }
+
+/** Câu lỗi ô "Xe tối thiểu" (đúng chữ bản vẽ). */
+export const CAU_LOI_CHO_TOI_THIEU = "Số chỗ từ 1 đến 100";
 
 /**
  * Lỗi của một chặng (số thứ tự `so` bắt đầu 1). Nơi đón chỉ báo sau lần bấm Lưu đầu (`daLuu`); số người chiều về quá số khách báo ngay. `soKhach` = số khách
@@ -154,6 +165,7 @@ export function loiChang(l: ChangNhap, so: number, soKhach: number, daLuu: boole
     don: daLuu && l.don === "" ? `Chặng ${so}: chưa có nơi đón.` : null,
     donTuDo: daLuu && l.don === TU_DO && l.donTuDo.trim() === "" ? `Chặng ${so}: chưa ghi địa chỉ đón.` : null,
     soVe: l.direction === "RETURN" && n !== null && n > soKhach ? `Số người chiều về không được quá ${soKhach}.` : null,
+    choToiThieu: l.choToiThieu !== "" && (Number(l.choToiThieu) < 1 || Number(l.choToiThieu) > 100) ? CAU_LOI_CHO_TOI_THIEU : null,
   };
 }
 
@@ -161,7 +173,7 @@ export function loiChang(l: ChangNhap, so: number, soKhach: number, daLuu: boole
 export function loiDanhSachChang(legs: readonly ChangNhap[], soKhach: number): string[] {
   return legs.flatMap((l, i) => {
     const e = loiChang(l, i + 1, soKhach, true);
-    return [e.don, e.donTuDo, e.soVe].filter((x): x is string => x !== null);
+    return [e.don, e.donTuDo, e.soVe, e.choToiThieu === null ? null : `Chặng ${i + 1}: số chỗ từ 1 đến 100.`].filter((x): x is string => x !== null);
   });
 }
 
@@ -183,6 +195,8 @@ export function legInput(l: ChangNhap, guiSoVe: boolean): LegInput {
     direction: l.direction, pickupDate: l.pickupDate, pickupTime: l.pickupTime,
     pickupLocationId: don.id, pickupPlace: don.place, dropoffLocationId: tra.id, dropoffPlace: tra.place,
     flightCode: l.flightCode.trim(),
+    // Cam kết với khách (ADR-0056 VK3-A): LUÔN gửi — Đối tác / Thực tập có `order.modify` nên sửa được trên nháp; không phụ thuộc `guiSoVe`.
+    exclusiveVehicle: l.xeRieng, minVehicleSeats: l.choToiThieu === "" ? null : Number(l.choToiThieu),
     ...(guiSoVe && l.direction === "RETURN" ? { paxOverride: l.soVe === "" ? null : Number(l.soVe) } : {}),
   };
 }
@@ -208,6 +222,6 @@ export function changDaDoi(l: ChangNhap, guiSoVe: boolean): boolean {
     moi.pickupDate !== (g.pickupDate ?? "") || moi.pickupTime !== (g.pickupTime ?? "") || moi.pickupLocationId !== g.pickupLocationId ||
     (moi.pickupLocationId === null && moi.pickupPlace !== (g.pickupPlace ?? "")) || moi.dropoffLocationId !== g.dropoffLocationId ||
     (moi.dropoffLocationId === null && moi.dropoffPlace !== (g.dropoffPlace ?? "")) || (moi.flightCode ?? "") !== (g.flightCode ?? "") ||
-    ("paxOverride" in moi && moi.paxOverride !== g.paxOverride)
+    ("paxOverride" in moi && moi.paxOverride !== g.paxOverride) || moi.exclusiveVehicle !== g.exclusiveVehicle || moi.minVehicleSeats !== g.minVehicleSeats
   );
 }

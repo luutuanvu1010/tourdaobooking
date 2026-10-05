@@ -54,7 +54,7 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
   const boXong: { leg: ChangNhap; lyDo: LyDoDongChang }[] = [];
   const root = h("div", { class: "dd", "data-dua-don": o.ma });
   /** Phần tử cập nhật tại chỗ theo từng chặng. */
-  let refs: { gioMo: HTMLElement; hintNgay: HTMLElement; hintGio: HTMLElement; loiDon: HTMLElement; loiDonTuDo: HTMLElement | null; loiSoVe: HTMLElement | null; don: HTMLSelectElement; donTuDo: HTMLInputElement | null; soVe: HTMLInputElement | null }[] = [];
+  let refs: { gioMo: HTMLElement; hintNgay: HTMLElement; hintGio: HTMLElement; loiDon: HTMLElement; loiDonTuDo: HTMLElement | null; loiSoVe: HTMLElement | null; loiChoToiThieu: HTMLElement; hintChoToiThieu: HTMLElement; hauTo: HTMLElement; don: HTMLSelectElement; donTuDo: HTMLInputElement | null; soVe: HTMLInputElement | null; choToiThieu: HTMLInputElement }[] = [];
 
   const laSanBay = (id: string) => o.diem().some((d) => d.id === id && d.sanBay);
   const commit = (next: ChangNhap[], rebuild: boolean) => {
@@ -202,7 +202,29 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
         );
       }
     }
-    refs[i] = { gioMo, hintNgay, hintGio, loiDon, loiDonTuDo, loiSoVe, don, donTuDo, soVe };
+    // Hai ô cam kết (ADR-0056 VK3-A; bản vẽ 2/10) — LUÔN ở cuối lưới, mọi chặng, mọi chiều. Đối tác / Thực tập sửa được trên nháp (không dùng khuôn "chỉ xem + ổ khoá").
+    const dangBat = l.xeRieng;
+    const congTac = h("button", { id: id("xe-rieng"), type: "button", role: "switch", class: "dp-switch", "aria-checked": String(dangBat), "data-o": `${l.key}:xe-rieng` },
+      h("span", { class: "dp-switch-knob", "aria-hidden": "true" }));
+    const chuCongTac = h("span", { class: "dd-switch-chu", "aria-hidden": "true" }, dangBat ? "Bật" : "Tắt");
+    congTac.addEventListener("click", () => {
+      const bat = congTac.getAttribute("aria-checked") !== "true";
+      congTac.setAttribute("aria-checked", String(bat));
+      chuCongTac.textContent = bat ? "Bật" : "Tắt";
+      sua(i, { xeRieng: bat }, false);
+    });
+    phu.push(h("div", { class: "dd-xem dd-switch-o" }, h("label", { class: "dd-nhan", for: congTac.id }, "Xe riêng"), h("span", { class: "dd-switch-khung" }, congTac, chuCongTac), hint("Không ghép khách đơn khác")));
+    const choToiThieu = h("input", { id: id("cho"), type: "text", inputMode: "numeric", maxLength: 3, autocomplete: "off", placeholder: "Để trống = không yêu cầu", value: l.choToiThieu, "data-o": `${l.key}:cho` });
+    const hauTo = h("span", { class: "dd-hau-to", "aria-hidden": "true" }, "chỗ");
+    hauTo.hidden = l.choToiThieu === "";
+    choToiThieu.addEventListener("input", () => {
+      sua(i, { choToiThieu: choToiThieu.value }, false);
+      if (choToiThieu.value !== legs[i]!.choToiThieu) choToiThieu.value = legs[i]!.choToiThieu;
+    });
+    const loiChoToiThieu = loiEl();
+    const hintChoToiThieu = hint("Không kể tài xế (xe 16 chỗ nhập 15)");
+    phu.push(h("label", { for: choToiThieu.id }, "Xe tối thiểu", h("span", { class: "dd-hau-to-khung" }, choToiThieu, hauTo), loiChoToiThieu, hintChoToiThieu));
+    refs[i] = { gioMo, hintNgay, hintGio, loiDon, loiDonTuDo, loiSoVe, loiChoToiThieu, hintChoToiThieu, hauTo, don, donTuDo, soVe, choToiThieu };
 
     return h(
       "div",
@@ -256,6 +278,9 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
       datLoi(r.loiDon, r.don, e.don);
       datLoi(r.loiDonTuDo, r.donTuDo, e.donTuDo);
       datLoi(r.loiSoVe, r.soVe, e.soVe);
+      datLoi(r.loiChoToiThieu, r.choToiThieu, e.choToiThieu);
+      r.hintChoToiThieu.hidden = e.choToiThieu !== null;
+      r.hauTo.hidden = l.choToiThieu === "";
     });
   }
 

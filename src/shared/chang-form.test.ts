@@ -15,7 +15,7 @@ let n = 0;
 const k = () => `c${++n}`;
 const dto = (o: Partial<LegDto> = {}): LegDto => ({
   id: "33333333-3333-4333-8333-333333333333", direction: "OUT", pickupDate: "2026-09-30", pickupTime: "07:30", pickupLocationId: KS, pickupPlace: null, pickupLabel: "KS",
-  dropoffLocationId: GA, dropoffPlace: null, dropoffLabel: "Ga", updatedAt: "t1", flightCode: null, paxOverride: null, datGap: null, ...o,
+  dropoffLocationId: GA, dropoffPlace: null, dropoffLabel: "Ga", updatedAt: "t1", flightCode: null, paxOverride: null, exclusiveVehicle: false, minVehicleSeats: null, datGap: null, ...o,
 });
 
 test("M6: mẫu Hai chiều tạo sẵn chiều đi + chiều về; nơi trả gợi ý; chiều về đi theo chiều đi; câu ghi chú đúng bản vẽ", () => {
@@ -80,7 +80,7 @@ test("dời ngày đón theo ngày đi mới; câu 'Đã dời ngày đón của
 
 test("lỗi dòng đúng chữ bản vẽ: nơi đón chỉ sau khi bấm Lưu; số người chiều về quá số khách báo ngay", () => {
   const l = themChangDi(null, "", k());
-  assert.deepEqual(loiChang(l, 1, 4, false), { don: null, donTuDo: null, soVe: null });
+  assert.deepEqual(loiChang(l, 1, 4, false), { don: null, donTuDo: null, soVe: null, choToiThieu: null });
   assert.equal(loiChang(l, 1, 4, true).don, "Chặng 1: chưa có nơi đón.");
   assert.equal(loiChang({ ...l, don: TU_DO }, 1, 4, true).donTuDo, "Chặng 1: chưa ghi địa chỉ đón.");
   const ve = { ...themChieuVe([l], null, "", k()), don: GA, soVe: "5" };
@@ -92,6 +92,7 @@ test("legInput: nơi đón ĐÚNG MỘT (điểm hoặc chữ); nơi trả trố
   const di = { ...themChangDi(null, "2026-09-30", k()), don: TU_DO, donTuDo: "  12 Số 5 ", pickupTime: "07:30", flightCode: "vn1553" };
   assert.deepEqual(legInput(di, true), {
     direction: "OUT", pickupDate: "2026-09-30", pickupTime: "07:30", pickupLocationId: null, pickupPlace: "12 Số 5", dropoffLocationId: null, dropoffPlace: "", flightCode: "vn1553",
+    exclusiveVehicle: false, minVehicleSeats: null,
   });
   const ve = changTuDto(dto({ direction: "RETURN", paxOverride: 2 }), k());
   assert.equal(legInput(ve, true).paxOverride, 2);
@@ -131,4 +132,51 @@ test("giuDatGapNhap: chặng đã đặt gấp giữ nguyên ngày/giờ/nơi �
   assert.equal(giuDatGapNhap(suaChang([l], 0, { flightCode: "VN1" })[0]!), true, "ô phụ không làm mất dấu");
   assert.equal(giuDatGapNhap(suaChang([l], 0, { pickupTime: "09:00" })[0]!), false);
   assert.equal(giuDatGapNhap(changTuDto(dto(), k())), false);
+});
+
+test("Đợt 7 / 8b: ô mới của chặng mới và của mẫu = tắt / để trống; changTuDto đọc từ chặng đã lưu", () => {
+  for (const l of [themChangDi(null, "", k()), themChieuVe([themChangDi(null, "", k())], null, "", k()), ...changTaoSan(HAI_CHIEU, "2026-09-30", k).legs]) {
+    assert.equal(l.xeRieng, false);
+    assert.equal(l.choToiThieu, "");
+  }
+  const c = changTuDto(dto({ exclusiveVehicle: true, minVehicleSeats: 15 }), k());
+  assert.deepEqual([c.xeRieng, c.choToiThieu], [true, "15"]);
+  assert.deepEqual([changTuDto(dto(), k()).xeRieng, changTuDto(dto(), k()).choToiThieu], [false, ""]);
+});
+
+test("Đợt 7 / 8b: legInput LUÔN gửi hai khoá cam kết (kể cả guiSoVe = false); ô trống → null", () => {
+  const l = changTuDto(dto(), k());
+  for (const gui of [true, false]) {
+    const x = legInput(l, gui);
+    assert.equal(x.exclusiveVehicle, false);
+    assert.equal(x.minVehicleSeats, null);
+  }
+  const co = suaChang([l], 0, { xeRieng: true, choToiThieu: "15" })[0]!;
+  assert.equal(legInput(co, false).exclusiveVehicle, true);
+  assert.equal(legInput(co, false).minVehicleSeats, 15);
+  assert.equal(legInput({ ...co, choToiThieu: "" }, false).minVehicleSeats, null);
+});
+
+test("Đợt 7 / 8b: suaChang lọc ô số chỗ chỉ còn chữ số, tối đa 3 ký tự", () => {
+  const l = themChangDi(null, "", k());
+  assert.equal(suaChang([l], 0, { choToiThieu: "1a5-" })[0]!.choToiThieu, "15");
+  assert.equal(suaChang([l], 0, { choToiThieu: "12345" })[0]!.choToiThieu, "123");
+});
+
+test("Đợt 7 / 8b: changDaDoi chỉ-bật-xe-riêng / chỉ-đổi-số-chỗ → true, kể cả guiSoVe = false", () => {
+  const l = changTuDto(dto(), k());
+  assert.equal(changDaDoi(suaChang([l], 0, { xeRieng: true })[0]!, false), true);
+  assert.equal(changDaDoi(suaChang([l], 0, { choToiThieu: "15" })[0]!, true), true);
+  assert.equal(changDaDoi(suaChang([l], 0, { choToiThieu: "15" })[0]!, false), true);
+  const co = changTuDto(dto({ exclusiveVehicle: true, minVehicleSeats: 15 }), k());
+  assert.equal(changDaDoi(co, false), false);
+});
+
+test("Đợt 7 / 8b: loiChang số chỗ — '0' và '120' báo 'Số chỗ từ 1 đến 100'; 1, 100, trống thì không; dải lỗi có tiền tố chặng", () => {
+  const l = themChangDi(null, "", k());
+  const loi = (v: string) => loiChang({ ...l, choToiThieu: v }, 2, 4, false).choToiThieu;
+  assert.equal(loi("0"), "Số chỗ từ 1 đến 100");
+  assert.equal(loi("120"), "Số chỗ từ 1 đến 100");
+  for (const ok of ["", "1", "15", "100"]) assert.equal(loi(ok), null, `"${ok}"`);
+  assert.deepEqual(loiDanhSachChang([{ ...l, don: GA, choToiThieu: "120" }], 4), ["Chặng 1: số chỗ từ 1 đến 100."]);
 });

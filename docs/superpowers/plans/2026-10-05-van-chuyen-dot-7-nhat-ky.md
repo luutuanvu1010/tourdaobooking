@@ -129,3 +129,9 @@ Làn này không gọi trợ lý con; người kiểm độc lập chỉ đọc 
 - Ruling: đường xếp / dời / thêm điểm giữ `phaLe` cho mọi mã khác cam kết (kể cả danh sách mã rỗng) — vì hành vi cũ — nếu sai: đổi cờ `rieng` thành true ở ba nơi gọi.
 - Ruling: `moPhaLe` không đổi; lời cam kết hiện qua dòng tóm tắt (`l.lyDo` → `loiNhan`) — vì khuôn có sẵn — nếu sai: thêm khối riêng ở hộp.
 - Kịch bản Chrome: `docs/evidence/2026-10-05-cam-ket-xe/kich-ban/cam-ket-xe-smoke.mjs` (5 bước, 1040 + 390, Bán hàng → Quản trị), ảnh ở `docs/evidence/2026-10-05-cam-ket-xe/anh/`. `dieu-phoi-smoke` 11/11, `chuyen-smoke` 9/9, `chuyen-sua-smoke` 13/13 xanh.
+
+## Task 8b — giao diện hai ô cam kết và nhãn (2026-10-05)
+
+- Ruling: `--w-dd-phu` 140px → 170px — vì ảnh 1040 cho thấy ô "Xe tối thiểu" cắt chữ gợi ý ("Để trống = khôn…") và chữ gợi ý ép nhiều dòng khi lưới chia hai cột trong thẻ hẹp; 170px cho lưới một cột trong thẻ hẹp, còn ở 390 vốn một cột. Ảnh hưởng cả ô "Số hiệu chuyến bay" và "Số người chiều về" (cũng xuống một cột ở thẻ hẹp) — nếu sai: trả 140px.
+- Ruling: đối chứng "đổi giờ dưới mốc" của kịch bản dùng tài khoản Bán hàng nên bị dải lỗi mốc chặn (không có khung đặt gấp, vì Bán hàng không có ô duyệt); điều cần chứng minh (chỉ đổi cam kết thì KHÔNG bị mốc chặn, KHÔNG gửi `datGap`) vẫn đạt.
+- Nợ: kịch bản cũ `dat-gap-smoke` (bước 3, 7, 8, 10) và `a2-smoke-order` / `a2-smoke-form` đỏ sẵn do `call()` đăng nhập lại làm phiên trình duyệt hết hạn (sổ phiên một máy, ADR-0075) hoặc kịch bản cũ chưa biết khối "Hành khách" — không do Task 8b.

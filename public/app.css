@@ -319,7 +319,7 @@
   --w-dp-khai-gio: 260px;      /* ô "Xảy ra lúc" (06, khung 6d) */
   /* — Riêng: đưa đón / hành khách — trang đơn (ADR-0047 Phần B, bản vẽ docs/design/2026-10-01-dua-don-hanh-khach — mục lục "Kích thước ngoài token"; D9) — */
   --w-dd-noi: 200px;           /* cột tối thiểu ô Nơi đón / Nơi trả (tự xuống một cột ở 390) */
-  --w-dd-phu: 140px;           /* cột tối thiểu ô Số hiệu chuyến bay / Số người chiều về */
+  --w-dd-phu: 170px;           /* cột tối thiểu ô Số hiệu chuyến bay / Số người chiều về */
   --w-hk-so: 28px;             /* bảng hành khách máy tính: cột # */
   --w-hk-nam: 112px;           /* cột Năm sinh */
   --w-hk-loai: 176px;          /* cột Loại khách */
@@ -2827,6 +2827,13 @@ label.check > input.o-tick { display: inline; width: auto; margin: 0 var(--s2) 0
 .dd-xem { display: flex; flex-direction: column; gap: var(--s1); }
 .dd-xem-gt { display: flex; align-items: center; min-height: var(--tap-min); padding: 0 var(--s3); font-weight: var(--fw-bold); color: var(--c-text); background: var(--c-surface-alt); border: 1px solid var(--c-border); border-radius: var(--radius-sm); }
 .dd-xem-khoa { display: flex; align-items: flex-start; gap: var(--s1); font-size: var(--fs-label); color: var(--c-text-muted); }
+/* Hai ô cam kết của chặng (ADR-0056 VK3-A; bản vẽ 2/10): công tắc "Xe riêng" trong khung ô cao như ô bên cạnh; hậu tố "chỗ" chồng ở mép phải ô số */
+.dd-switch-khung { display: flex; align-items: center; gap: var(--s2); min-height: var(--tap-min); padding: 0 var(--s3); background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius-sm); }
+.dd-switch-chu { font-size: var(--fs-ui); font-weight: var(--fw-semibold); color: var(--c-text); }
+.dd-switch-o .dp-switch:not([aria-checked="true"]) { background: var(--c-placeholder); } /* màu khi tắt của bản vẽ chưa có token: gần nhất --c-placeholder; không đổi .dp-switch chung (màn Chính sách điều phối dùng) */
+.dd-hau-to-khung { position: relative; display: block; }
+.dd-hau-to { position: absolute; top: 0; bottom: 0; right: var(--s3); display: flex; align-items: center; font-size: var(--fs-ui); color: var(--c-text-muted); pointer-events: none; }
+.dd-hau-to[hidden] { display: none; }
 .dd-nut { display: flex; flex-wrap: wrap; gap: var(--s2); }
 .dd-nut .pill-btn, .dd-trong .pill-btn { white-space: nowrap; }
 .dd-chang [aria-invalid="true"], .hk [aria-invalid="true"] { border-color: var(--c-danger); }

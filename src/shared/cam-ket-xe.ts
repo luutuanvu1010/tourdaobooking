@@ -78,3 +78,14 @@ export function kiemCamKet(v: { xe: { id: string; soCho: number }; chang: readon
   const khoa = khoaCamKet(v.xe.id, viPham);
   return { viPham, khoa, daPhaLe: khoa !== null && khoa === v.khoaDaPhaLe, lyDo: ds.map((d) => lyDoGiu("CAM_KET", d.loi)) };
 }
+
+/**
+ * Nhãn cam kết của một chặng, MỘT nguồn cho trang đơn và bảng điều phối (bản vẽ 2/10): [XE RIÊNG][≥ N chỗ]. `navy` = nền đậm (`.dp-chip-navy`), `unit` = nền nhạt
+ * (`.chip-unit` / `.dp-chip-unit`). Chỗ đặt nhãn trong hàng nhãn do từng màn quyết (trang đơn: trước ✈︎; bảng điều phối: sau ✈︎).
+ */
+export function nhanCamKet(xeRieng: boolean, choToiThieu: number | null): { nhan: string; tone: "navy" | "unit" }[] {
+  return [
+    ...(xeRieng ? [{ nhan: "XE RIÊNG", tone: "navy" as const }] : []),
+    ...(choToiThieu !== null ? [{ nhan: `≥ ${choToiThieu} chỗ`, tone: "unit" as const }] : []),
+  ];
+}

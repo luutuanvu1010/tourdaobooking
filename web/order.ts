@@ -21,6 +21,7 @@ import { openSheetHanhKhach } from "./sheet-hanh-khach";
 import { CAU_CAN_NOI_TRA, canhBaoXacNhan, thieuNoiTra } from "../src/shared/canh-bao-xac-nhan";
 import { PAX_LABEL } from "../src/shared/order-lines";
 import { CHIEU_LABEL } from "../src/shared/chang-dua-don";
+import { nhanCamKet } from "../src/shared/cam-ket-xe";
 import { can } from "../src/shared/permissions";
 import { cauMoc, changDuoiMoc, tomTatChanXacNhan, type ChangCanDatGap } from "../src/shared/dat-gap-hien-thi";
 import { NO_BOOKER_TEXT } from "../src/shared/booker";
@@ -186,6 +187,8 @@ function dongChang(l: Api.LegDto, vanPhong: boolean): HTMLElement {
       h("span", { class: "chip chip-unit" }, CHIEU_LABEL[l.direction]),
       h("span", { class: "dd-dong-gio" }, l.pickupTime ? `${ngay} · ${l.pickupTime}` : ngay),
       l.pickupTime ? null : canhEl("Chưa chốt giờ"),
+      // Trang đơn (bản vẽ M3): [XE RIÊNG][≥ N chỗ] TRƯỚC [✈︎]; ai xem được chặng đều thấy (ADR-0056 VK3-A; chủ 2/10).
+      ...nhanCamKet(l.exclusiveVehicle, l.minVehicleSeats).map((x) => h("span", { class: x.tone === "navy" ? "chip dp-chip-navy" : "chip chip-unit" }, x.nhan)),
       l.flightCode ? h("span", { class: "chip chip-code" }, `✈︎ ${l.flightCode}`) : null,
       l.paxOverride !== null ? h("span", { class: "chip chip-muted" }, `${l.paxOverride} người về`) : null,
     ),

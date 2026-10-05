@@ -18,6 +18,7 @@ import { NHAN_TU_CHOI_GOI_BAO, type MaTuChoiGoiBao } from "../src/shared/goi-bao
 import { ApiError } from "./api";
 import { can } from "../src/shared/permissions";
 import { thanPhaLe } from "../src/shared/dieu-phoi-man";
+import { nhanCamKet } from "../src/shared/cam-ket-xe";
 import { nhanThoiLuong } from "../src/shared/chinh-sach-hien-thi";
 import { addDays, isISODate, ngayNgan, vnToday } from "../src/shared/vn-date";
 import { api } from "./api";
@@ -165,12 +166,14 @@ function veChuaXep(): void {
 function theChang(c: ChangLichDto, conLai: number): HTMLElement {
   const noiDung: Child[] = [
     h("span", { class: "dp-leg-top" }, h("span", { class: "dp-leg-gio" }, c.gioDon ?? "Chưa chốt giờ"), ...chipChang(c).map((x) => chip(x.nhan, x.tone)),
-      c.soHieuChuyenBay ? h("span", { class: "chip chip-code" }, `✈︎ ${c.soHieuChuyenBay}`) : null),
+      c.soHieuChuyenBay ? h("span", { class: "chip chip-code" }, `✈︎ ${c.soHieuChuyenBay}`) : null,
+      // Bảng điều phối (bản vẽ DP): [✈︎][XE RIÊNG][≥ N chỗ] — SAU ✈︎ (khác trang đơn, đúng bản vẽ từng màn); thẻ chỉ xem (Kế toán) cũng hiện.
+      ...nhanCamKet(c.xeRieng, c.choToiThieu).map((x) => chip(x.nhan, x.tone))),
     h("span", { class: "dp-leg-tuyen" }, `${c.noiDon} → ${c.noiTra ?? "nơi trả chưa chốt"}`),
     h("span", { class: "dp-leg-meta" }, `${c.maDon} · ${conLai < c.soNguoi ? `còn ${conLai}/${c.soNguoi}` : conLai} khách`),
   ];
   if (!co.dieuPhoi) return h("div", { class: "dp-leg", "data-leg": c.legId }, ...noiDung);
-  const b = h("button", { type: "button", class: "dp-leg is-xep", draggable: "true", "data-leg": c.legId, "aria-label": `Xếp chặng ${c.gioDon ?? ""} ${c.noiDon}, ${c.maDon}, ${conLai} khách${c.soHieuChuyenBay ? `, chuyến bay ${c.soHieuChuyenBay}` : ""} vào chuyến` },
+  const b = h("button", { type: "button", class: "dp-leg is-xep", draggable: "true", "data-leg": c.legId, "aria-label": `Xếp chặng ${c.gioDon ?? ""} ${c.noiDon}, ${c.maDon}, ${conLai} khách${c.soHieuChuyenBay ? `, chuyến bay ${c.soHieuChuyenBay}` : ""}${c.xeRieng ? ", xe riêng" : ""}${c.choToiThieu !== null ? `, tối thiểu ${c.choToiThieu} chỗ` : ""} vào chuyến` },
     ...noiDung, h("span", { class: "dp-leg-pill", "aria-hidden": "true" }, "Xếp vào chuyến…"));
   b.addEventListener("click", () => moXep(c, conLai, null, b));
   b.addEventListener("dragstart", (e) => {

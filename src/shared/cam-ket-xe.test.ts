@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { khoaCamKet, kiemCamKet } from "./cam-ket-xe.ts";
+import { khoaCamKet, kiemCamKet, nhanCamKet } from "./cam-ket-xe.ts";
 import type { ChangVao, ChinhSachVao, ChuyenVao, SuatVao } from "./dieu-phoi-kieu.ts";
 import { kiemXuatBen } from "./dieu-phoi-kiem.ts";
 import { vnLocalToMs } from "./vn-date.ts";
@@ -124,4 +124,11 @@ test("Global Constraints (Task 5): xeRieng không phải boolean hoặc choToiTh
   }
   // Giá trị hợp lệ biên: false / null / số nguyên — không ném.
   assert.doesNotThrow(() => ck([ch("a1", "a", { xeRieng: false, choToiThieu: null }), ch("b1", "b", { choToiThieu: 1 })]));
+});
+
+test("nhanCamKet: XE RIÊNG (navy) rồi ≥ N chỗ (unit); không cam kết → []; chỉ một loại → một nhãn", () => {
+  assert.deepEqual(nhanCamKet(true, 15), [{ nhan: "XE RIÊNG", tone: "navy" }, { nhan: "≥ 15 chỗ", tone: "unit" }]);
+  assert.deepEqual(nhanCamKet(false, null), []);
+  assert.deepEqual(nhanCamKet(true, null), [{ nhan: "XE RIÊNG", tone: "navy" }]);
+  assert.deepEqual(nhanCamKet(false, 7), [{ nhan: "≥ 7 chỗ", tone: "unit" }]);
 });
