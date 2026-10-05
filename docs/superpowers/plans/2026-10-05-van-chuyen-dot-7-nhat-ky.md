@@ -114,3 +114,10 @@ Làn này không gọi trợ lý con; người kiểm độc lập chỉ đọc 
 - Ruling: "khách mở lúc xuất bến" = suất PASSENGER có `valid_to_at IS NULL OR > departed_at` (đúng kế hoạch, không lọc `valid_from_at`) nên suất thêm SAU xuất bến mà chưa đóng cũng tính — vì phá lệ khi chạy đã phải để lại dấu cột — nếu sai: thêm `valid_from_at <= departed_at`.
 - Ghi chú: `node scripts/audit-invariants.mjs --db local` thoát 1 chỉ vì `R-N1-5` (D1 local không có quản trị viên đang hoạt động, không liên quan Đợt 7); dòng R-VC-25 ✓.
 - Không có tài liệu liệt kê mã kiểm định kỳ (grep `R-VC-24` chỉ ra sổ hàng rào, CHANGE-GUIDE mô tả, nhật ký, bài) nên không sửa thêm; `docs/SYSTEM-DESIGN.md` để bước tài liệu.
+
+## Task 7 — e2e `tests/e2e/cam-ket-xe.mjs`
+- Kịch bản mới trên D1 local thật (Đối tác dùng một lần lập nháp xe riêng; xếp A, B, C; 409 / 403 / 200; rút B và C → hai cột trống đọc D1; minVehicleSeats 30 trên xe 15 chỗ → xuất bến 409 CAM_KET). Thêm tên vào `ALL` và `THOI_GIAN` của `run.mjs` (sau `khung-ban-xe`).
+- Chạy: `npm run test:e2e -- cam-ket-xe` 4/4 xanh; đủ bộ `npm run test:e2e` 50/50 xanh (3 nhóm, 406 giây, audit-invariants đạt).
+- Ruling: lập nháp của Đối tác trả 201 (không phải 200 như phiếu việc ghi) — vì route tạo đơn trả 201 — nếu sai: không ảnh hưởng.
+- Ruling: đơn A của Đối tác do Quản trị xác nhận (Bán hàng không phải người phụ trách) — vì không dựa vào ô `ownOrAssigned` — nếu sai: đổi người xác nhận.
+- Ghi chú: bài e2e đầu tiên chạy là xanh ngay (máy chủ đã đúng từ Task 2–6); hàng rào của bài là các đột biến đã ghi ở Task 3–6.
