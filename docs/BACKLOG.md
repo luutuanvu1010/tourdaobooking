@@ -186,3 +186,28 @@
 - **BL-GHI-CHU-CHUYEN — ô chữ tự do trong chuyến xe** (ghi chú cho tài xế, khi phá lệ, khi kết thúc gián đoạn, khi chọn lý do "Khác" của ADR-0097 nháp): chủ chọn *"Chưa làm"* 2026-09-29 — chi tiết ở mục 5 sổ này.
 - **BL-THAY-CTY-NHAN — cặp lệnh "Công ty đã nhận" × "Thay lần thu" (ADR-0088) trên cùng một khoản chuyển khoản chưa phân tích** (trang ghép lượt V0-A mục 4). Người soạn kế hoạch V2 điền quan hệ (độc lập / loại trừ / có thứ tự) trước khi thi công; nếu cần luật mới thì trình chủ cùng lượt duyệt 2a.
 - **BL-CUOC-XA — "Cuốc của tôi" xem trước quá ngày kia và xem lại cuốc cũ** (HT-15). Phạm vi ngày tài xế thấy chuyến là quyết định ADR-0049 D3 / ADR-0053 D7.2 ⇒ cần chủ.
+
+## 22. Vận chuyển — lộ trình ĐÃ KHOÁ 5/10: phần chưa làm và nợ kỹ thuật (mã `BL-VC-…`)
+
+- **Ngày:** 2026-10-05 · **Chủ quyết** (chat 5/10, sau Đợt 7): *"khoá sự thay đổi, không vẽ thêm nữa. những nợ kỹ thuật sẽ ghi nhanh vào backlog"* · **Trạng thái chung:** `tạm gác`.
+- **Nghĩa là:** lộ trình `docs/superpowers/plans/2026-10-01-van-chuyen-con-lai-00-lo-trinh.md` dừng ở Đợt 7 (Đợt 1–5 trên production 1.65 → 1.80; Đợt 7 đã gộp `main`, phát hành 1.81). Không vẽ thêm màn Vận chuyển, không mở đợt mới; muốn làm mục nào dưới đây thì mở lại theo CLAUDE.md §9 (ADR / kế hoạch riêng). Nợ chi tiết từng đợt vẫn ở nhật ký thi công (`docs/superpowers/plans/2026-10-05-van-chuyen-dot-7-nhat-ky.md` mục "Nợ / để sau" cho Đợt 7).
+
+**Phần của lộ trình chưa làm:**
+
+- **BL-VC-D6 — Đợt 6: tài xế đối tác dùng Nền tảng + chia doanh thu taxi.** Kế hoạch `…-06-tai-xe-doi-tac.md`; chủ đã trả lời câu 0.2 (a–c) ngày 5/10; còn thiếu ADR riêng cho sổ chia doanh thu và câu hoá đơn / thuế (d — hỏi Kế toán).
+- **BL-VC-D8 — Đợt 8 Phần C: cắt đường ghi chặng kiểu cũ (`pickupTime` / `pickupPlace`).** Bộ đếm thân cũ đã chạy từ Đợt 1 (`src/modules/orders/than-cu.ts`); cổng = chủ đếm dòng `client_outdated_body` trên production về 0 đủ 7 ngày rồi mới cắt (kế hoạch `…-08-bo-duong-ghi-cu.md` Task 2).
+- **BL-VC-TOA-DO — toạ độ điểm đón / trả.** Chủ đã chọn bảng phụ có kiểu (câu 0.1); cần ADR nhỏ (module `locations`) trước migration.
+- **BL-VC-D4 — phần hoãn của Đợt 5:** tài xế nhờ xe khác đón, hộp đề nghị cần duyệt, bảng kiểm luật (D4) và Dòng dữ liệu / Nhật ký quyết định (V4). Khi làm: mã luật dạng danh mục, không `CHECK` cứng (lời chủ 2/10).
+- **BL-VC-MAU-CAM-KET — mẫu chặng mang sẵn cam kết "xe riêng / số chỗ".** ADR-0056 chỉ nhắc ở "Phương án bị loại"; chặng tạo từ mẫu hôm nay luôn "không cam kết".
+
+**Nợ kỹ thuật của Đợt 7 (1.81):**
+
+- **BL-VC-SMOKE-CU — ba kịch bản Chrome cũ đỏ sẵn từ 1.80:** `a2-smoke-form` (thứ tự thẻ chưa biết khối "Hành khách"), `a2-smoke-order` (hết giờ "form mở lại đơn"), `dat-gap-smoke` bước 3/7/8/10 (`call()` đăng nhập lại làm phiên trình duyệt hết hạn — sổ phiên một máy ADR-0075). Đã chứng minh đỏ y hệt trên `dc1ef1fe` (trước Đợt 7). Sửa kịch bản, không sửa Nền tảng.
+- **BL-VC-TRO-GIUP — Trợ giúp bị cắt chữ để giữ trần 30 phút:** Bán hàng mất câu "Giờ đón sau giờ khởi hành" và câu ngày khởi hành đã qua; Quản trị mất ví dụ Đặt gấp và câu "Chỉ Quản trị và Toàn quyền duyệt Đặt gấp". Khôi phục khi chủ nâng trần hoặc gọn chỗ khác.
+- **BL-VC-BANG-KICH-BAN — `web/CLAUDE.md` chưa liệt kê hai kịch bản Chrome mới** (`docs/evidence/2026-10-05-cam-ket-xe/kich-ban/cam-ket-xe-smoke.mjs`, `cam-ket-form-smoke.mjs`). Tệp luật — chủ duyệt mới thêm (N9).
+- **BL-VC-CHROME-CAM-KET — Chrome chưa phủ hộp phá lệ cam kết ở sửa chuyến / thêm điểm khi xe chạy / dời** (chỉ có bài đơn vị cho `thanPhaLe`); chưa thử iPhone thật; chưa chạy axe trong lượt kiểm độc lập.
+- **BL-VC-COT-MO-COI — cột phá lệ cam kết có thể "mồ côi"** trên chuyến chưa chạy khi lệnh cập nhật khách / điểm thoát sớm (không có suất lệch); cổng xuất bến là lưới. Nếu đơn sửa về đúng tập vi phạm cũ thì phá lệ cũ có hiệu lực lại (đúng chữ "khớp tuyệt đối" của ADR) — chủ muốn khác thì thêm xoá cột ở lệnh thoát sớm.
+- **BL-VC-500-DONG-HONG — một dòng `min_vehicle_seats` hỏng do SQL tay làm `kiemCamKet` ném lỗi → bảng điều phối 500.** Đường thường bị CHECK của `0077` chặn; nếu cần thì bắt lỗi theo từng chuyến thay vì cả bảng.
+- **BL-VC-R-VC-25 — câu kiểm định kỳ R-VC-25:** vế số chỗ chỉ xét chuyến có lần kiểm xuất bến ĐẠT (bỏ sót, không báo giả); bản chụp lệch nếu đổi xe giữa chuyến; bài thiếu ca "vế số chỗ có phá lệ" và "không có bản chụp ĐẠT".
+- **BL-VC-BAI-MONG — bài kiểm còn mỏng (minor của người kiểm):** ca `exclusiveVehicle: null` → 400; ca 403 có đối chứng; ca thiếu khoảng nghỉ + trái cam kết cùng lúc; e2e chưa assert quyền Đối tác của tài khoản, chưa đếm suất sau 403, chưa kiểm `error.code` của 403; bài DTO chưa phủ tiền tố `xe:` của khoá; bài migration ghim lỏng `/constraint|commitment/`.
+- **BL-VC-CHU-NHO — chữ / mã nhỏ:** câu "Số chỗ từ 1 đến 100" còn viết cứng ở `src/shared/chang-form.ts` (ngưỡng đã dùng hằng chung); lời "ghép vào xe riêng của X" phụ thuộc thứ tự chặng khi có hai đơn xe riêng; DTO nhật ký chuyến trả `phaLe.luat` thô (`CAM_KET`) mà giao diện chưa đổi ra chữ; công thức z13 của `CHANGE-GUIDE` dùng ví dụ `b.khoaMoi` thay `b.camKetPhaLe`.

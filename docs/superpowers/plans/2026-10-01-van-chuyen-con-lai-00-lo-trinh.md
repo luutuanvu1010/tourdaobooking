@@ -10,7 +10,23 @@
 
 **Spec:** bản rà `docs/superpowers/specs/2026-10-01-ra-soat-phan-he-van-chuyen.md`; quyết định: ADR-0052, ADR-0053, ADR-0055, ADR-0056, ADR-0057, ADR-0047 §6 (Phần C), ADR-0049, ADR-0040; trang ghép `docs/superpowers/specs/2026-09-30-trang-ghep-luot-duyet-a-dieu-phoi.md`, `…-luot-duyet-b-kernel-tien.md`; lời chủ: `docs/superpowers/specs/2026-09-29-van-chuyen-hoi-dap-dieu-phoi.md`.
 
-## Trạng thái (cập nhật 2026-10-02 chiều)
+## Trạng thái — LỘ TRÌNH ĐÃ KHOÁ 2026-10-05
+
+> **Chủ quyết 5/10:** *"khoá sự thay đổi, không vẽ thêm nữa. những nợ kỹ thuật sẽ ghi nhanh vào backlog"*. Lộ trình dừng ở Đợt 7: không vẽ thêm, không mở đợt mới. Phần chưa làm và nợ kỹ thuật ở `docs/BACKLOG.md` mục 22 (mã `BL-VC-…`); muốn làm lại mục nào thì mở theo CLAUDE.md §9. Bảng "cập nhật 2/10" bên dưới giữ để tra, KHÔNG còn là trạng thái hiện hành.
+
+| Đợt | Trạng thái (5/10) | Phần còn lại |
+|---|---|---|
+| 1 Việc nhỏ | Đã lên production 1.65 | — |
+| 2 Tin báo chuyến | Đã lên production (giữa 1.65 và 1.80) | — |
+| 3 Lịch xe bận | Đã lên production (giữa 1.65 và 1.80) | — |
+| 4 Tiền xe thuê | Đã lên production (tới 1.80) | — |
+| 5 Xe đang chạy (thu gọn) | Đã lên production 1.79–1.80 | D4 + V4 hoãn ⇒ `BL-VC-D4` |
+| 6 Tài xế đối tác + chia doanh thu taxi | Không làm trong lộ trình này | `BL-VC-D6` (cần ADR riêng) |
+| 7 Xe riêng / số chỗ | Đã gộp `main` 5/10, phát hành 1.81 (migration 0077) | nợ ⇒ `BL-VC-SMOKE-CU`, `BL-VC-TRO-GIUP` … |
+| 8 Bỏ đường ghi cũ | Bộ đếm thân cũ chạy từ Đợt 1; bước cắt chưa làm | `BL-VC-D8` (cổng đếm 7 ngày) |
+| Toạ độ điểm | Không làm | `BL-VC-TOA-DO` (cần ADR nhỏ) |
+
+## Trạng thái cũ (cập nhật 2026-10-02 chiều — chỉ để tra)
 
 Bản vẽ Claude Design Đợt 3–7 đã nhận: `docs/design/van-chuyen-dot-3-7/` (đánh giá đối chiếu ở `danh-gia/`). **Câu hỏi còn mở gom một chỗ:** `docs/superpowers/plans/2026-10-02-van-chuyen-cau-hoi-ban-ve.md`. Kế hoạch con 03–07 đã viết lại theo bản vẽ + khuyến nghị (mục "Cập nhật 2026-10-02" đầu mỗi tệp).
 
