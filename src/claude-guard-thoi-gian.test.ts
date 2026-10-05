@@ -5,7 +5,7 @@
 // VẪN chạy — không có công tắc bỏ qua.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { evaluateBash } from "../.claude/hooks/guard-remote-lib.mjs";
+import { evaluateBash, scriptPaths } from "../.claude/hooks/guard-remote-lib.mjs";
 
 test("guard-remote: lệnh dị dạng không làm hook quá giờ (timeout 10 s của hook)", () => {
   // Đo thời gian CPU của chính tiến trình (process.cpuUsage), không đo đồng hồ: máy bận vì việc khác (nhiều phiên song song)
@@ -21,6 +21,11 @@ test("guard-remote: lệnh dị dạng không làm hook quá giờ (timeout 10 s
     const cpu = process.cpuUsage();
     evaluateBash("echo " + "$(".repeat(3000), { branch: "worktree-x" });
     evaluateBash("x".repeat(500_000), { branch: "worktree-x" });
+    // Luật docs/adr (30/9): đầu vào dị dạng CÓ chữ docs/adr để đi vào nhánh kiểm mới (lọc nhanh không bỏ qua được).
+    evaluateBash("python3 docs/adr " + "open(a ".repeat(40_000), { branch: "worktree-x" });
+    evaluateBash("echo > docs/adr/" + " > docs/adr".repeat(20_000), { branch: "worktree-x" });
+    // scriptPaths chạy TRƯỚC evaluateBash trong hook: nhiều cờ `--ab` từng làm nó quay lui mũ 2 (treo hook ⇒ mọi luật chặn bị bỏ qua).
+    scriptPaths("node" + " --ab".repeat(40) + " ;" + " python3 -x".repeat(20_000));
     const used = process.cpuUsage(cpu);
     runs.push(Math.round((used.user + used.system) / 1000));
   }

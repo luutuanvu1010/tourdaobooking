@@ -1,6 +1,7 @@
 // Đường ray cho mục "Git, triển khai, an toàn" của CLAUDE.md (Hiến pháp P16): chặn lệnh Bash mà AI KHÔNG được tự chạy khi chưa có lệnh rõ của chủ dự án —
 // git push, merge vào main, wrangler deploy/secret/rollback, ghi D1 remote, chạy kịch bản/curl ghi lên production.
-// Hàm thuần (không I/O) để test được: evaluateBash(command, { branch }) → { deny: false } | { deny: true, rule, reason }.
+// Hàm thuần (không I/O) để test được: evaluateBash(command, { branch, scripts }) → { deny: false } | { deny: true, rule, reason }
+// | { deny: false, ask: true, rule, reason } (luật HỎI `adr-bash-write`: Bash ghi vào docs/adr/, từ 2026-09-30 — xem khối "Luật HỎI" bên dưới).
 //
 // GIỚI HẠN (nói thẳng, không coi là an toàn tuyệt đối): đây là khớp mẫu chuỗi lệnh, chặn NHẦM/QUÊN chứ không chống người cố ý
 // lách (nháy quanh `push`, biến shell `$g push`, `| bash`, `node -e`, base64, script tự viết). Vì vậy nó chỉ là MỘT trong hai lớp:
@@ -193,13 +194,105 @@ export function candidates(raw0, depth = 0, seen = new Set()) {
   return [{ raw, outer: blank(raw) }, ...inner.flatMap((i) => candidates(i, depth + 1, seen))];
 }
 
+// ─── Luật HỎI: ghi vào docs/adr/ bằng Bash (chủ quyết "Siết lại" 30/9) ───────────────────────────────────────────────
+// `.claude/settings.json` có `ask: Edit(docs/adr/**)` nên sửa ADR bằng công cụ Edit/Write hiện hộp hỏi chủ. Ngày 29–30/9 trợ lý đã ghi
+// docs/adr/README.md và ADR-0057 bằng `python3 - <<'EOF' … open(p,'w') …` và `python3 ~/.claude/jobs/…/duyet_0057.py` qua Bash → hộp hỏi
+// KHÔNG hiện. Luật này trả `ask` (không `deny`) cho lệnh Bash có dấu hiệu GHI vào docs/adr/; đọc (cat/grep/git show/git diff/sed -n,
+// `cat docs/adr/x > /tmp/y`, python chỉ `open(p).read()`) cho qua.
+// QUAN HỆ VỚI guard-luat-lib.mjs (từ 2026-10-01, chặn hẳn sửa tệp luật bằng dòng lệnh): móc guard-remote.mjs hỏi guard-luat TRƯỚC khi xét `ask` —
+// đường ghi guard-luat thấy (`>`, `tee`, `sed -i`, `cp`, `mv`, `rm`, `git checkout -- …`) vẫn bị DENY; `ask` ở đây chỉ còn tác dụng cho các đường
+// guard-luat nói rõ không thấy: mã python/node/perl (`-c`/`-e`, heredoc nạp trình thông dịch, tệp script), vòng lặp / `xargs`, đường dẫn trong biến.
+// GIỚI HẠN (chặn nhầm/quên, không chống cố ý lách — CLAUDE.md §8): chỉ nhận chữ `docs/adr` (hoặc `'docs','adr'` / `'docs')/'adr'` trong mã
+// python/node); KHÔNG bắt: đường dẫn tương đối sau `cd docs`, đường dẫn ghép từ biến, `git checkout/restore`, `patch`, `dd` (ba thứ này guard-luat chặn),
+// `git merge/apply`,
+// `awk -i`, `ed`/`vim`, script tự viết mà hook không đọc được (hook chỉ đọc tệp script đứng ngay sau tên trình thông dịch, xem guard-remote.mjs).
+const ADR_PATH = "docs\\/+(?:\\.\\/)*adr(?![\\w.-])";
+const ADR_HINT = /docs\/+(?:\.\/)*adr|["']docs["']\s*(?:,|\)?\s*\/)\s*["']adr["']/; // lọc nhanh + os.path.join('docs','adr') / Path('docs')/'adr' / ROOT / "docs" / "adr"
+const ADR_IN = new RegExp(ADR_PATH);
+const ADR_REDIRECT = new RegExp(`(?:^|[^<>])>{1,2}\\|?\\s*[^\\s;&|<>()]{0,300}?${ADR_PATH}`);
+// Tên lệnh ở ĐẦU đoạn (sau && ; | xuống dòng), cho phép biến môi trường / sudo / xargs / command / exec đứng trước: `grep rm docs/adr/x` không phải xoá.
+const CMD_AT = (names) => new RegExp(`^\\s*(?:\\w+=\\S*\\s+)*(?:(?:sudo|command|exec|time|xargs(?:\\s+-\\S+){0,6})\\s+)?(?:\\S*\\/)?(?:${names})(?=\\s)`);
+const ADR_TEE = CMD_AT("tee");
+const ADR_INPLACE = new RegExp(`${CMD_AT("g?sed|perl").source}(?:\\s+\\S+){0,8}?\\s+(?:-[a-zA-Z]*i\\S*|--in-place\\S*)(?=\\s|$)`);
+const ADR_FILEOP = new RegExp(`${CMD_AT("rm|mv|touch|ln|truncate|mkdir|rmdir|unlink|chmod|shred").source}|^\\s*git(?:\\s+-\\S+){0,6}\\s+(?:rm|mv)(?=\\s)|(?<![\\w-])find\\s[^\\n]{0,500}?(?:-delete|-exec\\s+(?:rm|mv|g?sed\\s+-i|perl\\s+-\\S*i))`);
+const ADR_COPY = CMD_AT("cp|install|rsync|ditto");
+const INTERP = /(?<![\w/.-])(?:python[\d.]*|node|nodejs|perl|ruby|bun|deno|php)(?![\w-])/;
+const WRITE_MARK =
+  /open\s*\([^)]{0,300}?,\s*(?:mode\s*=\s*)?["'][wax+]|write_text|write_bytes|writeFile|appendFile|createWriteStream|writeSync|copyFile|cpSync|rmSync|unlinkSync|renameSync|shutil\.|os\.(?:remove|rename|replace|unlink)|\.(?:unlink|rename|touch)\s*\(|>>?\s*["']?[^\s"']{0,300}?docs\/adr/;
+const ADR_ASK_REASON =
+  "Sửa docs/adr/ phải qua công cụ Edit/Write để chủ duyệt (luật ask Edit(docs/adr/**) ở .claude/settings.json; ghi bằng Bash/python làm hộp hỏi không hiện — sự cố 30/9, CLAUDE.md §3 và §8). Chỉ bấm cho phép nếu chủ dự án đã đồng ý sửa ADR này.";
+
+/** Thân heredoc nạp vào trình thông dịch (`python3 - <<'EOF'`, `cat <<EOF | node`) — là MÃ, phải kiểm (stripHeredocs đã bỏ chúng). */
+function interpreterHeredocs(s) {
+  const out = [];
+  for (const m of s.matchAll(/(^|\n)([^\n]*?)<<-?\s*(['"]?)([A-Za-z_]\w*)\3([^\n]*)\n([\s\S]*?)\n[ \t]*\4(?=\n|$|\))/g)) {
+    if (INTERP.test(blank(m[2] + " " + m[5]))) out.push(m[6]);
+    if (out.length >= MAX_SUBSTITUTIONS) break;
+  }
+  return out;
+}
+
+/** Nội dung trong nháy không có khoảng trắng (đường dẫn như "docs/adr/x.md") được giữ; nháy có khoảng trắng (thông điệp, mã sed) bị bỏ —
+ * trừ khi nó BẮT ĐẦU bằng đường dẫn docs/adr (`"docs/adr/a b.md"`): giữ, khoảng trắng đổi thành `_`. */
+const keepPaths = (s) =>
+  s.replace(/"(?:[^"\\]|\\.)*"|'[^']*'/g, (q) => {
+    const inner = q.slice(1, -1);
+    if (!/\s/.test(inner)) return inner;
+    return /^\S*docs\/+(?:\.\/)*adr(?:\/|$)/.test(inner) ? inner.replace(/\s/g, "_") : '""';
+  });
+
+/** Thân vòng lặp / nhánh / xargs (`for f in docs/adr/*.md; do sed -i … "$f"`, `grep -l x docs/adr/* | xargs sed -i …`): đường dẫn
+ * docs/adr nằm ở đoạn KHÁC đoạn ghi — khi cả lệnh có nhắc docs/adr thì đoạn ghi mở đầu bằng do/then/else/xargs cũng bị hỏi. */
+const LOOP_BODY = /^\s*(?:do|then|else|xargs)(?=\s)/;
+const LOOP_STRIP = /^\s*(?:do|then|else)\s+/;
+
+function adrWriteIn(raw) {
+  const pathy = keepPaths(raw);
+  const whole = ADR_IN.test(pathy);
+  for (const seg of segments(pathy)) {
+    if (!ADR_IN.test(seg)) {
+      if (!whole || !LOOP_BODY.test(seg)) continue;
+      const body = seg.replace(LOOP_STRIP, "");
+      if (ADR_TEE.test(body) || ADR_INPLACE.test(body) || ADR_FILEOP.test(body) || ADR_COPY.test(body) || /(?:^|[^<>&\d])>{1,2}\s*["']?\$/.test(body)) return true;
+      continue;
+    }
+    if (ADR_REDIRECT.test(seg) || ADR_TEE.test(seg) || ADR_INPLACE.test(seg) || ADR_FILEOP.test(seg)) return true;
+    if (ADR_COPY.test(seg) && ADR_IN.test(seg.trim().split(/\s+/).pop() ?? "")) return true; // đích (đối số cuối) nằm trong docs/adr
+  }
+  return false;
+}
+
+const codeWritesAdr = (code) => ADR_HINT.test(code) && WRITE_MARK.test(code);
+
+function adrAsk(text, cands, scripts) {
+  if (!ADR_HINT.test(text) && !scripts.some((s) => ADR_HINT.test(s))) return null;
+  for (const { raw, outer } of cands) {
+    if (adrWriteIn(raw)) return { rule: "adr-bash-write" };
+    if (INTERP.test(outer) && codeWritesAdr(raw)) return { rule: "adr-bash-write" };
+  }
+  if (interpreterHeredocs(text).some(codeWritesAdr)) return { rule: "adr-bash-write" };
+  if (scripts.some(codeWritesAdr)) return { rule: "adr-bash-write" };
+  return null;
+}
+
 const DENY_TAIL = " Theo CLAUDE.md (mục Git, triển khai, an toàn) cần lệnh rõ của chủ dự án cho đúng việc đó; hook không có công tắc tạm nên chủ tự chạy bằng `! <lệnh>` trong phiên này.";
 const segments = (outer) => outer.split(/&&|\|\||;|\n|\|/);
 const deny = (rule, reason, tail = DENY_TAIL) => ({ deny: true, rule, reason: `Bị chặn: ${reason}.${tail}` });
 
-export function evaluateBash(command, { branch = null } = {}) {
+/** → { deny: false } | { deny: true, rule, reason } | { deny: false, ask: true, rule, reason }. `deny` luôn thắng `ask` (cả deny của
+ * guard-luat — móc guard-remote.mjs xét guard-luat trước khi in `ask`).
+ * `scripts`: nội dung các tệp script mà lệnh chạy bằng trình thông dịch (hook đọc giúp; hàm này không tự đọc tệp). */
+export function evaluateBash(command, { branch = null, scripts = [] } = {}) {
   const text = String(command ?? "").slice(0, MAX_LENGTH);
-  for (const { raw, outer } of candidates(text)) {
+  const cands = candidates(text);
+  const denied = evaluateDeny(cands, branch);
+  if (denied.deny) return denied;
+  const ask = adrAsk(text, cands, scripts.map((s) => String(s).slice(0, MAX_LENGTH)));
+  return ask ? { deny: false, ask: true, rule: ask.rule, reason: ADR_ASK_REASON } : { deny: false };
+}
+
+function evaluateDeny(cands, branch) {
+  for (const { raw, outer } of cands) {
     for (const rule of RULES) {
       if (rule.unlessLocal) {
         for (const seg of segments(outer)) if (rule.re.test(seg) && !/--local(?![\w-])/.test(seg)) return deny(rule.id, rule.reason);
@@ -224,3 +317,18 @@ export function evaluateBash(command, { branch = null } = {}) {
 
 /** Lệnh có nhắc tới `git merge` không — để hook chỉ phải hỏi git về nhánh khi thật sự cần. */
 export const mentionsGitMerge = (command) => candidates(String(command ?? "").slice(0, MAX_LENGTH)).some(({ outer }) => GIT_MERGE.test(outer));
+
+/** Đường dẫn tệp script chạy bằng trình thông dịch (`python3 /tmp/x.py`, `node tmp/y.mjs`) — để hook đọc nội dung cho luật docs/adr.
+ * Bỏ `--test` (tệp test chứa chuỗi làm dữ liệu). Tối đa 5 tệp. */
+export function scriptPaths(command) {
+  const text = String(command ?? "").slice(0, MAX_LENGTH);
+  const out = [];
+  // Cờ viết MỘT cách khớp duy nhất (`--?\w…`, tối đa 10) — dạng `-{1,2}[\w-]+` lặp không giới hạn từng làm hook treo (quay lui mũ 2).
+  const re = /(?<![\w/.-])(?:python[\d.]*|node|nodejs|perl|ruby|bun|deno|php)((?:\s+--?\w[\w-]*(?:=\S+)?){0,10})\s+["']?([^\s;&|<>'"()]+\.(?:py|m?js|cjs|m?ts|pl|rb|php))(?![\w.])/g;
+  for (const m of text.matchAll(re)) {
+    if (/--test(?![\w-])/.test(m[1])) continue;
+    out.push(m[2]);
+    if (out.length >= 5) break;
+  }
+  return out;
+}

@@ -3,10 +3,12 @@
 // (chặn nhầm cả phiên còn tệ hơn không chặn: chủ sẽ tắt hook). Kho ca lớn ở src/claude-guard.cases.json (người kiểm độc lập D soạn).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { evaluateBash } from "../.claude/hooks/guard-remote-lib.mjs";
+import { evaluateBash, scriptPaths } from "../.claude/hooks/guard-remote-lib.mjs";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 const read = (p: string) => readFileSync(new URL(`../${p}`, import.meta.url), "utf8");
@@ -207,6 +209,158 @@ test("guard-remote: script móc thật trả deny cho `npm run day-len` và `nod
     assert.equal(r.status, 0);
     assert.equal(JSON.parse(r.stdout || "{}").hookSpecificOutput?.permissionDecision, "deny", `móc phải chặn: ${command}`);
   }
+});
+
+// ─── Luật HỎI: ghi vào docs/adr/ bằng Bash (chủ quyết "Siết lại" 30/9) ─────────────────────────────────────────────
+// Sự cố thật 30/9 (nguyên văn rút gọn): trợ lý ghi docs/adr/README.md bằng python3 heredoc → hộp hỏi `ask: Edit(docs/adr/**)` không hiện.
+const SU_CO_30_9 = `python3 - <<'EOF'
+p='docs/adr/README.md';s=open(p,encoding='utf-8').read()
+a="| — | (số ADR mới kế tiếp là 0062) | | |"
+assert a in s
+s=s.replace(a,"""| — | (số ADR mới kế tiếp là 0066) | | |""")
+open(p,'w',encoding='utf-8').write(s)
+EOF
+echo done`;
+const ADR_MUST_ASK = [
+  SU_CO_30_9,
+  "echo x > docs/adr/README.md",
+  "echo x >> docs/adr/ADR-0001-x.md",
+  'echo x > "docs/adr/a b.md"',
+  "cat <<'EOF' > docs/adr/ADR-0099-moi.md\n# ADR\nEOF",
+  "printf a | tee -a docs/adr/README.md",
+  "sed -i '' 's/proposed/accepted/' docs/adr/ADR-0057-x.md",
+  "cd /repo && sed -i.bak -e 's/a/b/' docs/adr/README.md",
+  "perl -pi -e 's/a/b/' docs/adr/README.md",
+  "cp /tmp/adr-nhap/ADR-0062.md docs/adr/",
+  "mv docs/adr/ADR-0062-a.md docs/adr/ADR-0063-a.md",
+  "rm docs/adr/ADR-0062-a.md",
+  "touch docs/adr/ADR-0099.md",
+  "git rm docs/adr/ADR-0062-a.md",
+  "find docs/adr -name '*.bak' -delete",
+  "python3 -c \"open('docs/adr/x.md','w').write('a')\"",
+  "python3 -c \"import os; open(os.path.join('docs','adr','README.md'),'w')\"",
+  "node -e \"require('fs').writeFileSync('docs/adr/README.md', 'x')\"",
+  "cat <<'EOF' | node\nrequire('fs').appendFileSync('docs/adr/README.md', 'x')\nEOF",
+  "python3 - <<'PY'\nfrom pathlib import Path\nPath('docs/adr/README.md').write_text('x')\nPY",
+  "python3 -c \"from pathlib import Path; (Path('.') / 'docs' / 'adr' / 'README.md').write_text('x')\"",
+  // Đường dẫn và lệnh ghi ở hai đoạn khác nhau (vòng lặp, xargs).
+  "for f in docs/adr/*.md; do sed -i '' 's/a/b/' \"$f\"; done",
+  "grep -l proposed docs/adr/*.md | xargs sed -i '' 's/proposed/accepted/'",
+  "for f in docs/adr/ADR-00*.md; do echo x >> \"$f\"; done",
+];
+const ADR_MUST_PASS = [
+  "cat docs/adr/README.md",
+  "grep -rn accepted docs/adr",
+  "git show HEAD:docs/adr/README.md",
+  "git diff -- docs/adr",
+  "git log --oneline -- docs/adr",
+  "sed -n 1,40p docs/adr/ADR-0057-x.md",
+  "cat docs/adr/README.md > /tmp/y.md",
+  "cp docs/adr/ADR-0057-x.md /tmp/",
+  "ls docs/adr | tail -4",
+  "wc -l docs/adr/*.md",
+  "grep -n rm docs/adr/README.md",
+  "python3 -c \"print(open('docs/adr/README.md').read())\"",
+  "node -e \"console.log(require('fs').readFileSync('docs/adr/README.md','utf8'))\"",
+  "git add docs/adr/ADR-0099.md && git commit -F /tmp/msg.txt",
+  // Thông điệp commit (heredoc nạp vào `cat`, không phải trình thông dịch) nhắc python/docs/adr/open(…,'w') — dữ liệu, không phải lệnh.
+  "git commit -m \"$(cat <<'EOF'\nSiết: python3 ghi docs/adr bằng open(p,'w') hay writeFileSync phải hỏi chủ\nEOF\n)\"",
+  "cat > docs/superpowers/specs/x.md <<'EOF'\nTrợ lý chạy python3 open('docs/adr/README.md','w') qua Bash\nEOF",
+  "node --test src/claude-guard.test.ts",
+  'for f in docs/adr/*.md; do grep -c accepted "$f"; done',
+  "ls docs/adr | xargs -n1 basename",
+  'for f in docs/adr/*.md; do head -3 "$f" > /tmp/dau.txt; done',
+  // Giới hạn đã ghi (chặn nhầm/quên, không chống cố ý lách): git merge/checkout đưa thay đổi docs/adr vào KHÔNG bị luật HỎI bắt
+  // (ở mức móc thật, `git checkout -- docs/adr/…` vẫn bị guard-luat DENY — xem bài "deny thắng ask" ở mức móc bên dưới).
+  "git merge worktree-x",
+  "git checkout main -- docs/adr/README.md",
+];
+
+test("guard-remote: lệnh Bash GHI vào docs/adr/ trả ask (không deny), lý do chỉ sang công cụ Edit/Write", () => {
+  for (const cmd of ADR_MUST_ASK) {
+    const v = evaluateBash(cmd, { branch: "worktree-x" });
+    assert.equal(v.deny, false, `không được DENY: ${cmd}`);
+    assert.equal(v.ask, true, `phải HỎI: ${cmd}`);
+    assert.equal(v.rule, "adr-bash-write");
+    assert.match(v.reason ?? "", /Sửa docs\/adr\/ phải qua công cụ Edit\/Write để chủ duyệt/);
+  }
+});
+
+test("guard-remote: đọc docs/adr/ (cat, grep, git show/diff, sed -n, python chỉ đọc) và thông điệp commit không bị hỏi", () => {
+  for (const cmd of ADR_MUST_PASS) {
+    const v = evaluateBash(cmd, { branch: "worktree-x" });
+    assert.equal(v.deny, false, `không được DENY: ${cmd}`);
+    assert.ok(!v.ask, `không được HỎI: ${cmd}`);
+  }
+});
+
+test("guard-remote: deny thắng ask khi lệnh vừa ghi docs/adr vừa git push", () => {
+  const v = evaluateBash("echo x > docs/adr/README.md && git push origin main", { branch: "worktree-x" });
+  assert.equal(v.deny, true);
+  assert.equal(v.rule, "git-push");
+});
+
+test("guard-remote: luật docs/adr không làm lệnh nào trong các danh sách cho qua / kho ca nhóm A, H bị hỏi nhầm", () => {
+  const pass = [...MUST_ALLOW, ...RELEASE_MUST_ALLOW, ...CORPUS.filter((c) => c.group === "A" || c.group === "H").map((c) => c.cmd)];
+  const hoiNham = pass.filter((cmd) => evaluateBash(cmd, { branch: "worktree-x" }).ask);
+  assert.deepEqual(hoiNham, []);
+});
+
+test("guard-remote: script tệp (`python3 /tmp/x.py`) ghi docs/adr → hỏi; script chỉ đọc hoặc `node --test` → không hỏi", () => {
+  const ghi = 'D = "docs/adr/"\npath = D + "README.md"\ns = open(path, encoding="utf-8").read()\nopen(path, "w", encoding="utf-8").write(s)\n';
+  const doc = 'print(open("docs/adr/README.md", encoding="utf-8").read())\n';
+  assert.equal(evaluateBash("python3 /tmp/ghi_duyet.py && git status --short", { branch: "worktree-x", scripts: [ghi] }).ask, true);
+  assert.ok(!evaluateBash("python3 /tmp/doc.py", { branch: "worktree-x", scripts: [doc] }).ask);
+  assert.deepEqual(scriptPaths("python3 ~/.claude/jobs/x/tmp/duyet_0057.py && node --test src/a.test.ts && node scripts/b.mjs"), ["~/.claude/jobs/x/tmp/duyet_0057.py", "scripts/b.mjs"]);
+});
+
+test("guard-remote: script móc thật trả `ask` cho sự cố 30/9 và cho script tệp ghi ADR; im lặng khi chỉ đọc", () => {
+  const run = (command: string) =>
+    spawnSync("node", [".claude/hooks/guard-remote.mjs"], { cwd: ROOT, input: JSON.stringify({ tool_name: "Bash", tool_input: { command }, cwd: ROOT }), encoding: "utf8" });
+  const hoi = (command: string) => JSON.parse(run(command).stdout || "{}").hookSpecificOutput;
+  const o = hoi(SU_CO_30_9);
+  assert.equal(o?.permissionDecision, "ask");
+  assert.match(o?.permissionDecisionReason ?? "", /Sửa docs\/adr\/ phải qua công cụ Edit\/Write để chủ duyệt/);
+  const dir = mkdtempSync(join(tmpdir(), "guard-adr-"));
+  const tep = join(dir, "duyet.py");
+  writeFileSync(tep, 'D = "docs/adr/"\nopen(D + "README.md", "w", encoding="utf-8").write("x")\n');
+  assert.equal(hoi(`python3 ${tep} && git status --short`)?.permissionDecision, "ask", "script tệp ghi docs/adr phải hỏi");
+  writeFileSync(tep, 'print(open("docs/adr/README.md").read())\n');
+  assert.equal(run(`python3 ${tep}`).stdout, "", "script chỉ đọc phải im lặng");
+  assert.equal(run("cat docs/adr/README.md").stdout, "");
+  rmSync(dir, { recursive: true, force: true });
+  // Các đường guard-luat nói rõ không thấy (vòng lặp, xargs, node -e) — ở mức móc thật vẫn phải HỎI (không im lặng).
+  for (const command of [
+    "for f in docs/adr/*.md; do sed -i '' 's/a/b/' \"$f\"; done",
+    "grep -l proposed docs/adr/*.md | xargs sed -i '' 's/proposed/accepted/'",
+    "node -e \"require('fs').writeFileSync('docs/adr/README.md', 'x')\"",
+  ]) assert.equal(hoi(command)?.permissionDecision, "ask", `móc phải hỏi: ${command}`);
+});
+
+test("guard-remote: script móc thật — DENY (lệnh cấm hoặc guard-luat) luôn thắng ASK của luật docs/adr", () => {
+  const quyet = (command: string) =>
+    JSON.parse(
+      spawnSync("node", [".claude/hooks/guard-remote.mjs"], { cwd: ROOT, input: JSON.stringify({ tool_name: "Bash", tool_input: { command }, cwd: ROOT }), encoding: "utf8" }).stdout || "{}",
+    ).hookSpecificOutput;
+  // Thư viện tự nó trả ask cho các lệnh này; ở mức móc, guard-luat (chặn hẳn sửa tệp luật bằng dòng lệnh) phải thắng.
+  for (const command of [
+    "echo x > docs/adr/README.md",
+    "sed -i '' 's/proposed/accepted/' docs/adr/ADR-0057-x.md",
+    "rm docs/adr/ADR-0062-a.md",
+    "cp /tmp/adr-nhap/ADR-0062.md docs/adr/",
+    `${SU_CO_30_9}\nsed -i '' 's/a/b/' CLAUDE.md`,
+  ]) {
+    assert.equal(evaluateBash(command, { branch: "worktree-x" }).ask, true, `tiền đề: thư viện phải HỎI: ${command.slice(-60)}`);
+    const o = quyet(command);
+    assert.equal(o?.permissionDecision, "deny", `guard-luat phải thắng ask: ${command.slice(-60)}`);
+    assert.match(o?.permissionDecisionReason ?? "", /tệp luật/);
+  }
+  // Lệnh cấm của guard-remote (git push) đi kèm lệnh ghi ADR bằng python heredoc → deny, không ask.
+  const p = quyet(`${SU_CO_30_9} && git push origin main`);
+  assert.equal(p?.permissionDecision, "deny");
+  assert.match(p?.permissionDecisionReason ?? "", /git push/);
+  // `git checkout -- docs/adr/…` thư viện không hỏi, nhưng guard-luat chặn ⇒ móc deny (không bị nới).
+  assert.equal(quyet("git checkout main -- docs/adr/README.md")?.permissionDecision, "deny");
 });
 
 test(".gitignore: settings và móc phải được commit (không còn bỏ qua cả thư mục .claude/)", () => {
