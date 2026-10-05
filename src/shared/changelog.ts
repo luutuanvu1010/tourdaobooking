@@ -12,6 +12,19 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Năm lỗi tiền (TNV-G1 ADR-0089, F-03, TNV-G3 ADR-0088, TNV-G4 + TNV-VP01 ADR-0092), migration 0078–0083. Dựng lại 2026-10-06 lên trên bản 1.83 (Tốc độ đợt 1) đã vào main trước — số đổi thành 1.84 = main 1.83 + 1.
+    version: "1.84",
+    date: "2026-10-06",
+    items: [
+      { kind: "moi", text: "Huỷ đơn phải chọn lý do. Đơn huỷ không còn hiện \"còn lại\"; thông báo gửi khách ghi rõ khoản khách đã trả trước và khoản sẽ hoàn." },
+      { kind: "moi", text: "Hoàn cọc đơn huỷ đi hai bước: Quản trị duyệt, Kế toán chi. Có thể chuyển tiền đã trả sang đơn mới của cùng khách." },
+      { kind: "moi", text: "Kế toán có lệnh \"Thay lần thu\" để sửa lần thu ghi nhầm, kể cả sau Đã giao. Sau Đã giao không còn nút \"Đảo\"." },
+      { kind: "doi", text: "Sau Đã giao, hoàn tiền cho khách tạm thời bị chặn tới khi có bước phân định trách nhiệm; báo Quản trị." },
+      { kind: "sua", text: "Sổ tiền không còn bị âm hay trừ hai lần: không nộp và xác nhận cùng một khoản, không đảo lần thu đã hoàn, hoàn không quá số người trả đang giữ." },
+      { kind: "sua", text: "Tiền của đơn đã xác nhận được khoá chặt; điều chỉnh sổ có giới hạn số tiền và cần lý do ít nhất 10 ký tự." },
+    ],
+  },
+  {
     // Tốc độ đợt 1 (ADR-0102): trang không chờ tệp màu, gói giao diện gọn, quay lại app không tải lại, bớt một chặng chờ mỗi lời gọi, huy hiệu thanh bên nhẹ, Smart Placement. Số 1.83 = main 1.82 + 1.
     version: "1.83",
     date: "2026-10-05",

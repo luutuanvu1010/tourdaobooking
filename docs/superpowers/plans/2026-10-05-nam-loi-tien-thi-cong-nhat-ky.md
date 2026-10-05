@@ -127,3 +127,10 @@ _(ghi dần)_
 - **CAO** (màn "Thay lần thu" mặc định "Công ty" ⇒ chỉ sửa số tiền cũng xoá khoản nhân viên đang giữ; khoản "Công ty thu – CK" chờ xác nhận bị thay thì dòng giữ hộ của người khai mất): (1) máy chủ từ chối thay khoản CK đang chờ xác nhận — 409 `ck_cho_xac_nhan` (chữ ADR-0088 đ4 (i) "không đảo"); (2) `LanThuDto.nguoiThuPartyId` (chỉ Kế toán / Toàn quyền thấy) để màn mặc định đúng người thu và hình thức cũ, câu xác nhận nói rõ hệ quả đổi người thu; (3) nhật ký `ledger_receipt_replaced` ghi "đổi người thu" khi người thu mới khác người thu cũ.
 - **THẤP 3** (đơn đã lệch từ trước, mọi lần thu đã bị đảo ⇒ không có lần thu cũ để thay, Hoàn thành kẹt): lệnh Thay nhận N = 0 khi đơn đã Đã giao (I1 ép đúng số; trước Đã giao 400); trigger phiếu đánh dấu cho N = 0 chỉ khi đã có phiếu Đã giao; màn có nút "Ghi bù lần thu" khi đơn đã giao còn thiếu.
 - **Kiểm:** bài đỏ trước (migration 2 đỏ, route 2 đỏ) → xanh; `npm test` 3329 (3327 + 2 todo); typecheck 0; e2e `so-tien coc-don-huy chong-ghi-trung` 6/6. Đột biến ghi ở H-G3.
+
+### Rebase lên origin/main 3f611716 (1.82), nhật ký thay đổi 1.83, đóng hai mục sổ dừng dây chuyền — 2026-10-06
+- `git rebase origin/main` sạch (không xung đột); số migration vẫn 0078–0083 (main lớn nhất 0077; không ref nào khác có ≥ 0078).
+- Nhật ký thay đổi: mục **1.83** (= main 1.82 + 1) ở đầu `src/shared/changelog.ts`; bài ghim dòng phiên bản `src/shared/app-info.test.ts` đổi theo.
+- **Đóng F-03** (điều kiện trong mục: một hàm thành tiền, kiểm subtotal ở audit-invariants có quan sát chặn thật + dòng SO-HANG-RAO, lớp CSDL, người kiểm độc lập — vòng 3 kết luận "ĐỦ ĐIỀU KIỆN ĐÓNG").
+- **Đóng TNV-VP01** (điều kiện (i) bài lo-ghi hai thứ tự 409 + sổ người khai 0; (ii) trigger quan sát chặn thật + dòng H-VP1; (iii) R-BIL-13 mức lỗi xanh trên D1 local sau e2e — dòng "✓ R-BIL-13 …" ở phần audit-invariants cuối e2e trọn bộ; người kiểm độc lập vòng 3 "ĐỦ ĐIỀU KIỆN ĐÓNG").
+- **KHÔNG đóng** TNV-G1, TNV-G3, TNV-G4 — ghi "CÒN CHỜ" vào cuối `ke_hoach` của từng mục; không đổi hạn.
