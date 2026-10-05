@@ -91,6 +91,24 @@
       "han": "2026-10-31",
       "nguoi_chiu_trach_nhiem": "chủ dự án",
       "nguon": "docs/superpowers/specs/2026-10-02-kiem-theo-vai/BAO-CAO-LOI-DAY-DU.md (VP-01); docs/superpowers/specs/2026-10-02-kiem-theo-vai/NGUYEN-NHAN-GOC.md §3.1; chủ dự án chọn mục riêng 2026-10-03 (\"1- A\", ghi ở NGUYEN-NHAN-GOC.md §8)"
+    },
+    {
+      "ma": "HC-5.19",
+      "muc_do": "HIGH",
+      "ly_do": "Chưa từng diễn tập khôi phục dữ liệu. Mỗi lần triển khai có ghi điểm khôi phục Time Travel của D1, nhưng chưa ai khôi phục thử một lần để biết khôi phục chạy được, mất bao lâu, mất gì; Hiến chương hệ thống 5.19 (kho luật gốc v2.0.0) tính như chưa có sao lưu. Nếu sự cố mất dữ liệu xảy ra mà khôi phục không chạy, CRM có thể mất đơn hàng và sổ tiền.",
+      "ke_hoach": "Diễn tập một lần theo đặc tả docs/superpowers/specs/2026-09-22-dien-tap-khoi-phuc.md (cập nhật cho hiện trạng, chủ duyệt): khôi phục vào một chỗ KHÔNG phải D1 thật (ví dụ xuất D1 rồi nạp vào D1 cục bộ hoặc D1 tạm), đếm bảng và chạy scripts/audit-invariants.mjs trên bản khôi phục, ghi thời gian và kết quả vào docs/SO-HANG-RAO.md và docs/HANDOFF-N1.md. Không chạy `wrangler d1 time-travel restore` lên D1 thật trong diễn tập (lệnh đó ghi đè tại chỗ). Mọi lệnh remote do chủ chạy.",
+      "han": "2026-10-31",
+      "nguoi_chiu_trach_nhiem": "chủ dự án",
+      "nguon": "Tờ khai docs/kernel-18.md và đối chiếu docs/superpowers/specs/2026-10-05-doi-chieu-bo-luat-v2.md mục 3.3; chủ dự án đồng ý đưa vào sổ, hạn khuyến nghị 2026-10-05 (\"đồng ý hạn khuyến nghị\")."
+    },
+    {
+      "ma": "HC-5.11",
+      "muc_do": "HIGH",
+      "ly_do": "Tác vụ tự động không có định danh riêng: Cron đồng bộ danh mục ghi bằng syncCatalog(env, null) trong src/modules/catalog/index.ts, không qua route và can(), nhật ký ghi staff_id rỗng; Hiến chương hệ thống 5.11 đòi mỗi tác nhân tự động có định danh riêng và đi qua cùng cổng quyền. Mức HIGH do chủ dự án quyết đưa vào sổ 2026-10-05 để có hạn cưỡng chế; tự đánh giá kỹ thuật: trung bình (lỗ ở nhật ký, chưa phải nguy cơ mất tiền hay dữ liệu).",
+      "ke_hoach": "Một định danh tác nhân hệ thống cho Cron (và các tác vụ tự động khác nếu có), nhật ký ghi định danh đó thay cho rỗng; cân nhắc Trợ lý Mai cùng lúc. Chạm nhật ký và quyền nên là việc lớn: đặc tả ngắn, ADR nếu đổi luật (ADR-0010 đ3 đang chừa Cron ra), test đỏ trước xanh sau, người kiểm độc lập.",
+      "han": "2026-11-15",
+      "nguoi_chiu_trach_nhiem": "chủ dự án",
+      "nguon": "Tờ khai docs/kernel-18.md dòng 1 và đối chiếu docs/superpowers/specs/2026-10-05-doi-chieu-bo-luat-v2.md mục 3.3; chủ dự án đồng ý đưa vào sổ, hạn khuyến nghị 2026-10-05 (\"đồng ý hạn khuyến nghị\")."
     }
   ]
 }
