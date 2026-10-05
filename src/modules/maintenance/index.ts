@@ -37,8 +37,10 @@ export function maintenanceResponse(endsAt: string | null, now = Date.now()): Re
 export async function maintenanceBlock(
   db: D1Database,
   permissions: () => Promise<readonly PermissionCode[] | null> | readonly PermissionCode[] | null,
+  truoc?: MaintenanceState,
 ): Promise<Response | null> {
-  const state = await getMaintenanceState(db);
+  // `truoc`: trạng thái đã đọc SONG SONG với phiên (auth `currentStaff` — bớt một chặng D1 ở mọi lời gọi); vắng thì tự đọc như cũ (đăng nhập, Face ID).
+  const state = truoc ?? await getMaintenanceState(db);
   if (!state.on) return null;
   return isBlocked(state, await permissions()) ? maintenanceResponse(state.endsAt) : null;
 }

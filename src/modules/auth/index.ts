@@ -1,6 +1,6 @@
 // Module auth — phiên đăng nhập (cookie ký HMAC) + chống dò PIN + Cloudflare Turnstile ở đăng nhập (./turnstile.ts). Route: /api/auth/*.
 // Kiểm quyền từng route KHÔNG nằm ở đây: router (src/shared/router.ts) dùng `currentStaff` do gốc lắp ráp truyền vào.
-import { getMaintenanceState, maintenanceBlock, toStatus } from "../maintenance";
+import { getMaintenanceState, maintenanceBlock, toStatus, type MaintenanceState } from "../maintenance";
 import { ownerCompany } from "../parties";
 import { accountRoleCodesOf, authenticate, findStaffByPhone, getActiveStaff, isValidPin, normalizePhone, recordLogin, type StaffProfile } from "../staff";
 import { APP_VERSION } from "../../shared/app-info";
@@ -49,19 +49,27 @@ export function checkAuthConfig(env: Env): string | null {
  * Nhân viên + mã phiên của request, hoặc null (ADR-0075 điều 1). Kiểm: chữ ký → dòng aut_session còn sống (chưa kết thúc, chưa hết hạn) → tài khoản hoạt động
  * (lưới `credentials_changed_at`: phiên phát hành trước lần đổi PIN/gỡ Face ID gần nhất bị từ chối). `last_seen_at` ghi thưa (tối đa 5 phút một lần).
  */
-export async function currentStaff(request: Request, env: Env): Promise<{ staff: StaffProfile; sessionId: string } | null> {
+export async function currentStaff(request: Request, env: Env, exec?: ExecutionContext): Promise<{ staff: StaffProfile; sessionId: string; baoTri: MaintenanceState } | null> {
   const token = getCookie(request, SESSION_COOKIE);
   const t = token ? await verifySessionToken(env.SESSION_SECRET, token) : null;
-  if (!t) return null;
+  if (!t) return null; // chữ ký sai/hết hạn bị loại ở đây, TRƯỚC mọi truy vấn D1
   const now = Date.now();
   const nowIso = new Date(now).toISOString();
-  const [row, staff] = await Promise.all([findLiveSession(env.DB, t.sessionId, t.staffId, nowIso), getActiveStaff(env.DB, t.staffId, t.issuedAt)]);
+  // BA câu độc lập chạy CÙNG LÚC (một chuyến D1 thay vì hai nối đuôi): phiên, nhân viên, và trạng thái chế độ bảo trì (router cần ngay sau đó — chuyển qua `baoTri`).
+  // Quyết định chặn vẫn theo QUYỀN của phiên (xét ở cổng bảo trì sau khi phiên + nhân viên hợp lệ); đọc song song không đổi nghĩa.
+  const [row, staff, baoTri] = await Promise.all([
+    findLiveSession(env.DB, t.sessionId, t.staffId, nowIso), getActiveStaff(env.DB, t.staffId, t.issuedAt), getMaintenanceState(env.DB),
+  ]);
   if (!row || !staff) return null;
   if (Date.parse(row.last_seen_at) < now - SESSION_TOUCH_MS) {
-    await touchSessionStatement(env.DB, row.id, nowIso, new Date(now - SESSION_TOUCH_MS).toISOString()).run().catch((e: unknown) =>
+    // Ghi mốc hoạt động Ở NỀN (không chặn phản hồi): câu có điều kiện `last_seen_at < ?` nên lặp hay chậm đều vô hại; phiên đã bị lưới `credentials_changed_at` giết
+    // không bao giờ tới đây (đã bị từ chối ở getActiveStaff). Không có `exec` (bài kiểm gọi thẳng) thì chờ như cũ.
+    const ghi = touchSessionStatement(env.DB, row.id, nowIso, new Date(now - SESSION_TOUCH_MS).toISOString()).run().catch((e: unknown) =>
       console.error(JSON.stringify({ level: "error", event: "session_touch_failed", message: e instanceof Error ? e.message : String(e) })));
+    if (exec) exec.waitUntil(ghi);
+    else await ghi;
   }
-  return { staff, sessionId: t.sessionId };
+  return { staff, sessionId: t.sessionId, baoTri };
 }
 
 /**
@@ -339,7 +347,7 @@ export const authModule: AppModule = {
     }),
 
     // `maintenance` ở đây chỉ tới được Toàn quyền khi đang bảo trì (router chặn người khác trước — ADR-0071) — giao diện dùng để hiện dải "Đang ở chế độ bảo trì".
-    route("GET", "/api/auth/me", "staff", async ({ env, staff }) => json({ staff, maintenance: toStatus(await getMaintenanceState(env.DB)) } satisfies MeResponse)),
+    route("GET", "/api/auth/me", "staff", async ({ env, staff, baoTri }) => json({ staff, maintenance: toStatus((baoTri as MaintenanceState | undefined) ?? await getMaintenanceState(env.DB)) } satisfies MeResponse)),
 
     // Đăng xuất kết thúc dòng phiên (ADR-0075): cookie bị xoá VÀ cookie đã chép đi nơi khác cũng hết dùng được. Token rác/hết hạn → chỉ xoá cookie.
     route("POST", "/api/auth/logout", "public", async ({ request, env }) => {

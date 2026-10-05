@@ -26,7 +26,7 @@ import { giaoDienModule } from "./modules/giao-dien";
 import { checkLanGuiConfig, lanGuiNoi } from "./modules/lan-gui";
 import { locationsModule } from "./modules/locations";
 import { feedbackModule } from "./modules/feedback";
-import { maintenanceBlock, maintenanceModule } from "./modules/maintenance";
+import { maintenanceBlock, maintenanceModule, type MaintenanceState } from "./modules/maintenance";
 import { partiesModule } from "./modules/parties";
 import { cauDoiNguoiDat, donCuaNguoiDat, findOrderRef, ordersModule } from "./modules/orders";
 import { accountOfParty, listStaffAccounts, nhanNhanVienTheoId, soDangNhapTheoHoSo } from "./modules/staff";
@@ -65,7 +65,7 @@ const APP_OPTIONS: AppOptions = {
     newOrderHandler: (env, actor, staffId) => newOrderHandler(env.DB, actor.id, staffId),
     ordersWithHandler: (env, orderIds) => ordersWithHandler(env.DB, orderIds),
     handledOrderIdsOf: (env, staffId) => handledOrderIdsOf(env.DB, staffId),
-    maintenanceBlock: (env, staff) => maintenanceBlock(env.DB, () => staff.permissions), // ADR-0071 điều 3a: theo QUYỀN của phiên, không theo SĐT
+    maintenanceBlock: (env, staff, truoc) => maintenanceBlock(env.DB, () => staff.permissions, truoc as MaintenanceState | undefined), // ADR-0071 điều 3a: theo QUYỀN của phiên, không theo SĐT
     partyAccount: (env, staff, partyId) => accountOfParty(env.DB, staff, partyId),
     // BẢNG TIN (ADR-0022). Router gọi bắn-và-quên (exec.waitUntil + bắt lỗi → một dòng `bang_tin_loi`): việc phát được BẮT ĐẦU ở một microtask ngay khi route gọi, chạy SONG SONG
     // với việc dựng phản hồi HTTP nên khung tin có thể tới trình duyệt TRƯỚC hoặc SAU phản hồi của chính thao tác đó; lỗi ở đây không làm hỏng/chậm thao tác ghi (DP-3). `_actor` (người vừa thao tác) giữ trong chữ ký cho Web Push giai đoạn sau — KHÔNG đưa vào sự kiện (điều 4: đúng 5 khoá).

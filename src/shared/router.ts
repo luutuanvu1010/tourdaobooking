@@ -71,6 +71,12 @@ export interface Ctx<A extends Access = Access> {
   /** Mã phiên đăng nhập của request (dòng `aut_session`, ADR-0075) — có với mọi route cần đăng nhập; route công khai luôn `null` (router không đọc cookie ở đó). */
   sessionId: string | null;
   /**
+   * Trạng thái chế độ bảo trì mà `currentStaff` đã đọc SONG SONG với phiên (nghiên cứu tốc độ 2026-10-02: bớt một chặng D1 ở mọi lời gọi). Router không biết
+   * nghĩa của nó (module `maintenance` định kiểu) — chỉ chuyển từ `currentStaff` sang cổng bảo trì và sang handler (`/api/auth/me` dùng lại, khỏi hỏi lần hai).
+   * `undefined` = chưa đọc (route công khai, hoặc `currentStaff` giả của bài kiểm) ⇒ nơi dùng tự đọc.
+   */
+  baoTri?: unknown;
+  /**
    * Người đang đăng nhập có phải người phụ trách ĐANG MỞ của đơn `orderId` không — kết quả điền vào `can(staff, op, { ownerId, assigned })` cho các ô
    * `ownOrAssigned`/`assigned` (ADR-0007 điều 4(b), ADR-0009 điều 3). Do gốc lắp ráp tiêm (module `orders` không import `dispatch`). Là một HÀM (không phải giá trị
    * tính sẵn): MỖI LẦN GỌI là một truy vấn D1. Route phải truyền kết quả vào MỌI lời gọi `can()` có ô như vậy (quên là lặng lẽ tụt về `own`).
@@ -239,7 +245,7 @@ export interface LanGuiNoi {
 export interface AppOptions {
   modules: AppModule[];
   /** Nhân viên đang đăng nhập + mã phiên (sổ phiên ADR-0075) ứng với request (đọc cookie phiên), hoặc null. */
-  currentStaff: (request: Request, env: Env) => Promise<{ staff: StaffProfile; sessionId: string } | null>;
+  currentStaff: (request: Request, env: Env, exec?: ExecutionContext) => Promise<{ staff: StaffProfile; sessionId: string; baoTri?: unknown } | null>;
   /** Kiểm cấu hình bắt buộc trước khi xử lý; trả thông báo lỗi (→ 500) hoặc null. */
   checkConfig?: (env: Env) => string | null;
   /**
@@ -260,7 +266,7 @@ export interface AppOptions {
      * Chạy cho mọi route cần đăng nhập, ngay sau khi biết ai đang đăng nhập và TRƯỚC kiểm quyền admin/văn phòng (người bị chặn thấy "đang bảo trì", không phải "không đủ quyền").
      * Route công khai (`/api/auth/*` trừ `/me`, `/api/company`) không qua cổng. BẮT BUỘC: thiếu là chế độ bảo trì lặng lẽ không còn hiệu lực với phiên đang mở.
      */
-    maintenanceBlock: (env: Env, staff: StaffProfile) => Promise<Response | null>;
+    maintenanceBlock: (env: Env, staff: StaffProfile, truoc?: unknown) => Promise<Response | null>;
     /** ADR-0013 điều 4. BẮT BUỘC: thiếu là route Hồ sơ không biết hồ sơ nào gắn tài khoản. */
     partyAccount: (env: Env, actor: StaffProfile, partyId: string) => Promise<PartyAccountVerdict>;
     /** BẢNG TIN (ADR-0022). BẮT BUỘC: router gọi cho MỌI route có đăng nhập gọi `ctx.baoThayDoi`. Bản thật ở `src/index.ts` (trạm `BangTin` đã có); chỉ là no-op khi môi trường không có binding `BANG_TIN` (khung thử). */
@@ -349,12 +355,14 @@ export function createApp(opts: AppOptions) {
 
     let staff: StaffProfile | null = null;
     let sessionId: string | null = null;
+    let baoTri: unknown;
     if (hit.r.access !== "public") {
-      const cur = await opts.currentStaff(request, env);
+      const cur = await opts.currentStaff(request, env, exec);
       if (!cur) return error(401, "unauthenticated", "Chưa đăng nhập hoặc phiên đã hết hạn.");
       staff = cur.staff;
       sessionId = cur.sessionId;
-      const maintenance = await opts.injected.maintenanceBlock(env, staff);
+      baoTri = cur.baoTri;
+      const maintenance = await opts.injected.maintenanceBlock(env, staff, baoTri);
       if (maintenance) return maintenance;
       // ADR-0014 điều 2: SUPER_ADMIN = any ở mọi thao tác, kể cả admin.manage — không thay thế ADMIN, nên tài khoản chỉ giữ SUPER_ADMIN (không giữ ADMIN)
       // vẫn phải dùng được route access "admin" (bản đồ quyền — MATRIX — đã cho phép; cổng thô này chỉ đi theo, không siết chặt hơn).
@@ -367,7 +375,7 @@ export function createApp(opts: AppOptions) {
     // `envH` = env đưa cho handler và cho các hàm tiêm có câu đi vào CHÍNH lô của handler (ADR-0094 đặc tả §3.5 bẫy 6) — bản BỌC khi lệnh mang vé. Việc
     // bắn-và-quên (Bảng tin, đóng kết nối, gõ cửa) ghi trong waitUntil, KHÔNG thuộc lô của lệnh ⇒ luôn dùng `env` gốc (không ăn vé, không bị từ chối).
     const chayHandler = (envH: Env): Promise<Response> => hit.r.handler({
-      request, env: envH, exec, url, params: hit.params, staff, sessionId,
+      request, env: envH, exec, url, params: hit.params, staff, sessionId, baoTri,
       isAssigned: (orderId) => (who ? opts.injected.isAssigned(envH, who.id, orderId) : Promise.resolve(false)),
       newOrderHandler: (staffId) => (who ? opts.injected.newOrderHandler(envH, who, staffId) : Promise.resolve(NOT_SIGNED_IN)),
       ordersWithHandler: (orderIds) => opts.injected.ordersWithHandler(envH, orderIds),
