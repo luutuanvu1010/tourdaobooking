@@ -228,7 +228,7 @@ const POSTING_PLAIN = defineSql("billing", "posting_plain", `INSERT INTO bil_pos
 
 export interface NewPosting {
   id: string;
-  kind: "RECEIPT" | "DELIVERED" | "COMPLETED" | "COMPANY_RECEIVED" | "SETTLEMENT" | "REFUND" | "ADJUSTMENT" | "REVERSAL";
+  kind: "RECEIPT" | "DELIVERED" | "COMPLETED" | "COMPANY_RECEIVED" | "SETTLEMENT" | "REFUND" | "ADJUSTMENT" | "REVERSAL" | "REPLACEMENT";
   orderId: string | null;
   reason: string | null;
   reversesPostingId: string | null;

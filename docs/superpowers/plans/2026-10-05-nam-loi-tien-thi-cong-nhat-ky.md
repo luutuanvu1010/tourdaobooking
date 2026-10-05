@@ -108,3 +108,15 @@ _(ghi dần)_
 - **THẤP 1** (R-BIL-C0 không có câu SQL): giữ như đã ghi (không có cột "còn lại" để viết SQL; canh bằng `conLai` một nguồn + bài route).
 - **THẤP 2** (tên người duyệt / người ghi và lý do duyệt hiện cho Bán hàng / HDV / Đối tác xem đơn huỷ của mình): KHÔNG tự đổi — ADR-0089 chỉ che tên người giữ tiền; ghi ở báo cáo cuối để chủ quyết nếu muốn che.
 - **Kiểm:** `npm test` 3315 (3313 + 2 todo); typecheck 0; e2e `coc-don-huy so-tien chong-ghi-trung orders` 7/7.
+
+### TNV-G3 (phần thi công được) — ADR-0088 đ1–đ5, đ7, đ8 — 2026-10-05
+- **Số migration:** `0083_bil_thay_lan_thu.sql` (không ref nào khác có ≥ 0078).
+- **Đọc ADR trước khi làm (chữ ADR / suy luận):** chặn hoàn sau Đã giao là CHỮ ADR đ4 (iv) ("trước khi đ9 có mã, hoàn sau Đã giao bị chặn (409 …)") — làm, câu nguyên văn; R-BIL-1 mức lỗi được bật vì đã có một trong hai cách đ4 (iv) đòi. Spike đ6 LÀM ĐƯỢC bằng cột dấu nối `replacement_id` (lần thu mới + dòng đảo của lô mang id phiếu đánh dấu) — không cần ghi lệch 5.1.
+- **"Đã giao" trong trigger** = đơn đã có phiếu DELIVERED (lô "Đã giao" chèn lần thu lúc giao TRƯỚC phiếu nên không bị chặn — đọc thứ tự câu của `daGiao` trước khi viết).
+- **Lệnh Thay** (`thay-lan-thu.ts`, route `POST /api/ledger/receipt-replacements`, ô `ledger.write`): N → M (≤ 10 mỗi bên), chỉ lần thu của khách, đơn không huỷ, không cho lần thu thuộc lệnh chuyển; thứ tự lô ghi mới → đảo (dòng đảo lần thu TRƯỚC dòng đảo giữ hộ) → phiếu REPLACEMENT (trigger I1) → nhật ký `ledger_receipt_replaced` (số trước / sau). **Giả định bề mặt (ghi lại):** "tháng đang mở" = tháng hiện tại giờ VN (chưa có khoá kỳ — lượt 2 sổ tiền); trái thì 400, ngày thật ghi ở ghi chú lần thu.
+- **Hoàn thành (đ5):** máy chủ (`lyDoChuaHoanThanh` mã `due_mismatch`, nút tắt kèm lý do) + trigger RIÊNG `bil_posting_completed_due` (không viết lại trigger 0045 — khác hình thức với chữ "thêm điều kiện vào `bil_posting_completed_settled`", cùng hiệu lực; ghi ở H-G3).
+- **Câu báo (đ8):** đuôi "Sai sót thì Kế toán dùng “Thay lần thu”." ở ba chỗ (`orders`, `dispatch`, `billing`).
+- **Giao diện:** nút "Thay lần thu" trên từng lần thu của khách (Kế toán, Toàn quyền); sau Đã giao ẩn "Đảo". Chưa chạy lại kịch bản Chrome (kịch bản `so-tien-smoke.mjs` đỏ sẵn ở bước 4 cả trên main).
+- **DỪNG (chờ chủ):** đ9 phân định trách nhiệm (bảng T1–T11, hai bước, 3 ngày phản hồi) — việc lớn riêng; tin báo người thu cũ / mới (đ2) — cùng gốc thông báo.
+- **Bài cũ phải sửa:** luồng đúng R-BIL-* bỏ hoàn sau Đã giao; R-BIL-1 "tại mốc" → mọi lúc (mốc thời gian dữ liệu mẫu từ mốc 0083); số route 249 → 250, route ghi 151 → 152.
+- **Kiểm:** `npm test` 3326 (3324 + 2 todo); typecheck 0; e2e trọn bộ 51/51 xanh, `audit-invariants` cuối e2e R-BIL-1, R-BIL-8, R-BIL-13, R-ORD-15 ✓; đột biến ở H-G3 `docs/SO-HANG-RAO.md`.

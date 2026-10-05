@@ -468,13 +468,16 @@ export function lyDoChuaGiaoDuoc(input: {
   return null;
 }
 
-export type MaLyDoHoanThanh = "not_delivered" | "already_completed" | "unsettled";
+export type MaLyDoHoanThanh = "not_delivered" | "already_completed" | "unsettled" | "due_mismatch";
 /** Vì sao chưa "Hoàn thành" được (ADR-0025 điều 7): chưa Đã giao, đã Hoàn thành, hoặc còn bên nợ công ty. `tenBen` đổi id hồ sơ → tên (không SĐT). */
 export function lyDoChuaHoanThanh(input: {
   deliveredAt: string | null;
   completedAt: string | null;
   soDu: ReadonlyMap<string, number>;
   tenBen: (partyId: string) => string;
+  /** ADR-0088 đ1, đ5: đã thu ròng hiện tại và phải thu lúc Đã giao (bản chụp phiếu DELIVERED; null = chưa có phiếu). */
+  daThu: number;
+  phaiThuLucGiao: number | null;
 }): { ma: MaLyDoHoanThanh; cau: string; aiXuLy: AiXuLy } | null {
   if (!input.deliveredAt) return { ma: "not_delivered", cau: "Đơn chưa Đã giao – đã thu đủ.", aiXuLy: "Hướng dẫn viên" };
   if (input.completedAt) return { ma: "already_completed", cau: "Đơn đã Hoàn thành.", aiXuLy: "Kế toán" };
@@ -482,6 +485,12 @@ export function lyDoChuaHoanThanh(input: {
   if (no.length > 0) {
     const ds = no.map(([ben, so]) => `${input.tenBen(ben)} đang giữ ${dong(so)}`).join("; ");
     return { ma: "unsettled", cau: `Còn người giữ tiền của công ty: ${ds} — ghi nộp tiền / xác nhận công ty đã nhận trước.`, aiXuLy: "Kế toán" };
+  }
+  if (input.phaiThuLucGiao !== null && input.daThu !== input.phaiThuLucGiao) {
+    return {
+      ma: "due_mismatch", aiXuLy: "Kế toán",
+      cau: `Số đã thu (${dong(input.daThu)}) khác phải thu lúc Đã giao (${dong(input.phaiThuLucGiao)}) — Kế toán dùng “Thay lần thu” trước khi Hoàn thành.`,
+    };
   }
   return null;
 }

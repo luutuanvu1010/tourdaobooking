@@ -694,7 +694,34 @@ function nutKeToanLanThu(order: Order, t: Api.OrderPaymentsResponse, l: Api.LanT
       }),
     );
   }
-  if (!l.daDao && !l.laDongDao) {
+  // ADR-0088 đ2, đ3: "Thay lần thu" — đường sửa sai của lần thu (sau Đã giao là đường DUY NHẤT; "Đảo" đơn lẻ bị máy chủ chặn nên ẩn). Một lần thu cũ → một
+  // lần thu đúng (API nhận N → M; màn này làm ca hay gặp). Đơn huỷ đi qua khối cọc.
+  if (!l.daDao && !l.laDongDao && !l.traLai && order.status !== "cancelled") {
+    const so = h("input", { type: "text", inputmode: "numeric", autocomplete: "off", value: String(l.soTien) }) as HTMLInputElement;
+    regroupMoney(so);
+    so.addEventListener("input", () => regroupMoney(so));
+    const hinhThuc = h("select", null, ...(["CASH", "BANK_TRANSFER", "OTHER"] as const).map((m) => h("option", { value: m }, METHOD_LABEL[m]))) as HTMLSelectElement;
+    const nguoiThu = h("select", null, h("option", { value: "cong_ty" }, "Công ty"), ...t.keToan!.dangGiu.map((d) => h("option", { value: d.partyId }, d.ten))) as HTMLSelectElement;
+    const lyDoThay = h("input", { type: "text", autocomplete: "off", maxlength: "500", placeholder: "Vì sao thay (ít nhất 10 ký tự)" }) as HTMLInputElement;
+    nut.push(
+      hangXacNhan({
+        nhan: "Thay lần thu", action: "thay-lan-thu", nutGhi: "Ghi lần thu đúng",
+        cau: `Thay lần ${vnd(l.soTien)} (người thu: ${l.nguoiThu}) bằng lần thu đúng — sổ đảo lần cũ và ghi lần mới trong một lần ghi.${t.deliveredAt ? " Đơn đã Đã giao: tổng đã thu phải giữ nguyên." : ""}`,
+        o: [h("label", null, "Số tiền đúng (₫)", so), h("label", null, "Hình thức", hinhThuc), h("label", null, "Người thu đúng", nguoiThu), h("label", null, "Lý do", lyDoThay)],
+        kiem: () => (parseMoney(so.value) <= 0 ? "Nhập số tiền." : lyDoThay.value.trim().length >= 10 ? null : "Lý do ít nhất 10 ký tự."),
+        ghi: () =>
+          api("/api/ledger/receipt-replacements", {
+            method: "POST",
+            body: {
+              orderId: order.id, cu: [l.id], lyDo: lyDoThay.value.trim(),
+              moi: [{ soTien: parseMoney(so.value), hinhThuc: hinhThuc.value, nguoiThu: nguoiThu.value === "cong_ty" ? "cong_ty" : { partyId: nguoiThu.value } }],
+            },
+          }),
+        bao: "Đã thay lần thu.",
+      }),
+    );
+  }
+  if (!l.daDao && !l.laDongDao && !t.deliveredAt) {
     const lyDo = h("input", { type: "text", autocomplete: "off", maxlength: "500", placeholder: "Vì sao đảo (bắt buộc)" }) as HTMLInputElement;
     nut.push(
       hangXacNhan({

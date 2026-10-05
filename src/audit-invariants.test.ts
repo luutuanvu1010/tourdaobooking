@@ -1579,10 +1579,8 @@ test("R-BIL-*: đủ kiểm lượt 1, mức fail; R-BIL-2/5 'chưa áp dụng' 
 test("R-BIL-*: đơn đi đúng luồng (lần thu, đảo, Đã giao, hoàn khách SAU Đã giao, Hoàn thành sau khi nộp) → mọi kiểm 0 vi phạm", () => {
   const db = build();
   const ct = donDaGiao(db);
-  // Hoàn khách + đảo SAU Đã giao là phiếu riêng — R-BIL-1 so số tại thời điểm phiếu Đã giao, không đỏ.
-  lanThuBil(db, { id: "r3", order: "o-bil", amount: 20000, kind: "CUSTOMER_REFUND", at: BIL_SAU });
-  // ADR-0092 Đ1 (0082): đảo lần THU gốc sau khi đã hoàn làm đã thu ròng âm — bị chặn; luồng đúng đảo lần HOÀN.
-  lanThuBil(db, { id: "r3d", order: "o-bil", amount: 20000, kind: "CUSTOMER_REFUND", reverses: "r3", at: BIL_SAU });
+  // ADR-0088 đ3, đ4 (iv) (0083): sau Đã giao không còn lần hoàn / đảo đơn lẻ (hoàn chờ phân định đ9; sửa sai bằng "Thay lần thu") — luồng đúng chỉ còn nộp
+  // rồi Hoàn thành.
   phieuBil(db, { id: "pnop", order: "o-bil", kind: "SETTLEMENT", at: BIL_SAU });
   dongNoBil(db, { id: "l-nop", posting: "pnop", order: "o-bil", debtor: ct, creditor: "pty-s-an", amount: 300000 });
   db.prepare("UPDATE orders SET completed_at = ?, completed_by = 's-an' WHERE id = 'o-bil'").run(BIL_SAU);
@@ -1600,19 +1598,21 @@ test("R-BIL-1: phiếu Đã giao chụp số KHÁC tổng lần thu còn hiệu 
   donBil(db, "o-sai");
   lanThuBil(db, { id: "rs", order: "o-sai", amount: 100000 });
   db.prepare("UPDATE orders SET delivered_at = ?, delivered_by = 's-an' WHERE id = 'o-sai'").run(BIL_AT);
-  phieuBil(db, { id: "pds", order: "o-sai", kind: "DELIVERED", due: 300000 });
+  phieuBil(db, { id: "pds", order: "o-sai", kind: "DELIVERED", due: 300000, at: "2999-01-01T00:00:00.000Z" }); // ghi TỪ mốc 0083 ⇒ lỗi (trước mốc chỉ cảnh báo)
   assert.equal(violations(db, bil("R-BIL-1")), 1);
 });
 
-test("R-BIL-1: lần thu ghi SAU phiếu Đã giao (thời điểm lớn hơn) không được tính vào số tại mốc", () => {
+test("R-BIL-1 MỌI LÚC (ADR-0088 đ1, đ7 — bỏ 'tại mốc'): thiếu lúc Đã giao rồi bù đủ về sau → hết lệch; còn thiếu → vi phạm (từ mốc)", () => {
   const db = build();
   db.exec("DROP TRIGGER bil_posting_delivered_paid");
+  db.exec("DROP TRIGGER bil_receipt_after_delivered"); // dữ liệu SQL tay: lần thu sau Đã giao ngoài lô Thay
   donBil(db, "o-x");
   lanThuBil(db, { id: "rx1", order: "o-x", amount: 200000 });
   db.prepare("UPDATE orders SET delivered_at = ?, delivered_by = 's-an' WHERE id = 'o-x'").run(BIL_AT);
-  phieuBil(db, { id: "pdx", order: "o-x", kind: "DELIVERED", due: 300000 });
-  lanThuBil(db, { id: "rx2", order: "o-x", amount: 100000, at: BIL_SAU });
-  assert.equal(violations(db, bil("R-BIL-1")), 1, "bù sau mốc không che được lệch tại mốc");
+  phieuBil(db, { id: "pdx", order: "o-x", kind: "DELIVERED", due: 300000, at: "2999-01-01T00:00:00.000Z" });
+  assert.equal(violations(db, bil("R-BIL-1")), 1, "thiếu 100.000");
+  lanThuBil(db, { id: "rx2", order: "o-x", amount: 100000, at: "2999-01-01T00:00:01.000Z" });
+  assert.equal(violations(db, bil("R-BIL-1")), 0, "xét mọi lúc: đã thu nay bằng phải thu");
 });
 
 test("R-BIL-3a/3b: dòng đảo LỆCH gốc (khác số / không đổi chỗ hai bên) → vi phạm (gỡ trigger đảo)", () => {

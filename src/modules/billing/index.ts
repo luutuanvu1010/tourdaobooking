@@ -18,6 +18,7 @@ import { cocChoBienNhan, cocCuaDon, danhSachCoc, demCoc, doiChieuCoc, ghiChiHoan
 import {
   daGiao, ghiDieuChinh, ghiHoanKhach, ghiLanThu, ghiQuyetToan, hoanThanh, soCongNo, soCuaToi, tienCuaDon, tienNhieuDon, xacNhanCongTyNhan, type NguoiGoi,
 } from "./service";
+import { ghiThayLanThu } from "./thay-lan-thu";
 
 const NOT_FOUND = () => error(404, "not_found", "Không tìm thấy đơn.");
 const FORBIDDEN_VIEW = () => error(403, "forbidden", "Tài khoản này không được xem thông tin này.");
@@ -331,6 +332,16 @@ export const billingModule: AppModule = {
       if (!kq.ok) return kq.res;
       if (kq.value.orderId) baoThayDoi({ orderId: kq.value.orderId, thayDoi: "tien" });
       return json({ ok: true }, 201, { location: kq.value.orderId ? trangDon(kq.value.orderId) : "/home" });
+    }),
+
+    // "Thay lần thu" (ADR-0088 đ2): N lần thu cũ → M lần thu mới, MỘT lô; ô `ledger.write` (Kế toán, Toàn quyền — không thêm mã quyền). Đường sửa sai DUY NHẤT
+    // của lần thu sau Đã giao (đảo đơn lẻ bị chặn — đ3).
+    route("POST", "/api/ledger/receipt-replacements", "office", async ({ env, request, staff, baoThayDoi }) => {
+      if (!can(staff, "ledger.write")) return CANNOT_LEDGER();
+      const kq = await ghiThayLanThu(env.DB, { raw: await readJson(request), ai: nguoiGoi(staff) });
+      if (!kq.ok) return kq.res;
+      baoThayDoi({ orderId: kq.value.orderId, thayDoi: "tien" });
+      return json({ ok: true }, 201, { location: trangDon(kq.value.orderId) });
     }),
   ],
 };

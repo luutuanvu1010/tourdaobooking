@@ -159,6 +159,7 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/ledger/settlements", access: "office" }, // ledger.write
   { method: "POST", path: "/api/ledger/refunds", access: "office" }, // payment.refund
   { method: "POST", path: "/api/ledger/adjustments", access: "office" }, // ledger.write
+  { method: "POST", path: "/api/ledger/receipt-replacements", access: "office" }, // ledger.write — "Thay lần thu" (ADR-0088 đ2)
   { method: "GET", path: "/api/orders/:id/receipt", access: "orders" }, // module receipt: order.view + money.view + contact.view phạm vi đơn
   { method: "POST", path: "/api/orders/:id/status", access: "orders" },
   { method: "POST", path: "/api/orders/:id/cancel-reason", access: "orders" }, // ADR-0089 đ8: phân loại lý do huỷ — tự kiểm can(order.cancel.classify) bên trong
@@ -438,7 +439,7 @@ test("mức truy cập của 213 route hiện có khớp ảnh chụp đã duy�
   // 2026-10-05 (dot5-tang3): gộp tầng 3 Đợt 5 (POST …/cuoc-cua-toi/:id/hanh-khach) lên main 1.79 238 = 239.
   // 2026-10-05 (ADR-0102, nghiên cứu tốc độ đợt 1): + GET /giao-dien.css (public, cùng thân với /api/giao-dien.css) = 240.
   // 2026-10-05 (nghiên cứu tốc độ, đợt 1 việc 3): + GET /api/orders/dem-nhap (orders), GET /api/catalog/dem-xung-dot (admin) = 242.
-  // 2026-10-06 (dựng lại nhánh năm lỗi tiền lên main đã có tốc độ đợt 1): + POST /api/orders/:id/cancel-reason (orders; ADR-0089, phân loại lý do huỷ) = 243; Phần B: + 6 lệnh cọc /api/orders/:id/coc/* + 3 route đọc /api/ledger/coc* (office) = 252.
-  assert.equal(actual.length, 252, "số route thực tế lệch 252 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 252, "SNAPSHOT phải có đúng 252 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // 2026-10-06 (dựng lại nhánh năm lỗi tiền lên main đã có tốc độ đợt 1): + POST /api/orders/:id/cancel-reason (orders; ADR-0089, phân loại lý do huỷ) = 243; Phần B: + 6 lệnh cọc /api/orders/:id/coc/* + 3 route đọc /api/ledger/coc* (office) = 252; TNV-G3 (ADR-0088 đ2): + POST /api/ledger/receipt-replacements (office) = 253.
+  assert.equal(actual.length, 253, "số route thực tế lệch 253 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 253, "SNAPSHOT phải có đúng 253 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

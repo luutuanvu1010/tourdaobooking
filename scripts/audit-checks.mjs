@@ -223,17 +223,35 @@ export const CHECKS = [
   // đường chặn thứ nhất; các kiểm này là LƯỚI THỨ HAI cho SQL chạy tay (P21). Chỉ đếm, không in số tiền / tên. "Còn hiệu lực" = không phải dòng đảo và
   // chưa bị đảo. R-BIL-2, R-BIL-5 (lượt 2) và R-BIL-7 (= R-PTY-1) ở danh sách GHI_CHU cuối tệp — không kiểm trùng, không in "đạt".
   {
-    // R-BIL-1 (I1): tổng lần thu còn hiệu lực TẠI MỐC phiếu Đã giao = số phải thu phiếu đó chụp (due_snapshot). "Tại mốc" so theo created_at ≤ của
-    // phiếu (lần thu và phiếu cùng lô mang CÙNG một giờ máy chủ — service.ts `daGiao`); lần thu / đảo / hoàn khách ghi SAU đó là phiếu riêng, không làm đỏ.
-    // (Kế hoạch §3.2 ghi "so theo rowid" — không dùng được: rowid của hai bảng khác nhau không so với nhau; ghi ở sổ thi công.)
+    // R-BIL-1 (I1) — ADR-0088 đ1, đ7 (chủ chọn "Luôn luôn" 2/10): đơn đã Đã giao, MỌI LÚC: tổng lần thu còn hiệu lực = phải thu hiện hành = `due_snapshot`
+    // của phiếu Đã giao − giảm trừ đã phân định (đ9 chưa có ⇒ giảm trừ = 0). Mốc (bil_audit_cutoff 'R-BIL-1', 0083): phiếu Đã giao hoặc một lần thu của đơn
+    // ghi TỪ mốc ⇒ LỖI; dữ liệu cũ hơn mốc ⇒ cảnh báo kèm danh sách (R-BIL-1w) để Kế toán sửa bằng "Thay lần thu" (trước đây chỉ so "tại mốc" — bỏ, đ7).
     code: "R-BIL-1",
-    what: "đơn Đã giao: tổng lần thu còn hiệu lực tại mốc bằng đúng số phải thu phiếu Đã giao đã chụp",
+    what: "đơn Đã giao: tổng lần thu còn hiệu lực bằng phải thu phiếu Đã giao đã chụp, mọi lúc (ghi từ mốc 0083)",
     sql: `SELECT count(*) FROM bil_posting p
      WHERE p.kind_code = 'DELIVERED' AND NOT EXISTS (SELECT 1 FROM bil_posting x WHERE x.reverses_posting_id = p.id)
        AND COALESCE((SELECT SUM(CASE WHEN r.kind_code = 'CUSTOMER_REFUND' THEN -r.amount ELSE r.amount END) FROM bil_payment_receipt r
-                     WHERE r.order_id = p.order_id AND r.created_at <= p.created_at AND r.reverses_id IS NULL
-                       AND NOT EXISTS (SELECT 1 FROM bil_payment_receipt x WHERE x.reverses_id = r.id AND x.created_at <= p.created_at)), 0) IS NOT p.due_snapshot`,
+                     WHERE r.order_id = p.order_id AND r.reverses_id IS NULL
+                       AND NOT EXISTS (SELECT 1 FROM bil_payment_receipt x WHERE x.reverses_id = r.id)), 0) IS NOT p.due_snapshot
+       AND (p.created_at >= (SELECT cutoff_at FROM bil_audit_cutoff WHERE code = 'R-BIL-1')
+         OR EXISTS (SELECT 1 FROM bil_payment_receipt a WHERE a.order_id = p.order_id AND a.created_at >= (SELECT cutoff_at FROM bil_audit_cutoff WHERE code = 'R-BIL-1')))`,
     level: "fail",
+  },
+  {
+    code: "R-BIL-1w",
+    what: "đơn Đã giao lệch tiền (đã thu khác phải thu lúc giao) — dữ liệu TRƯỚC mốc 0083 (Kế toán sửa bằng “Thay lần thu”)",
+    sql: `SELECT p.order_id, p.due_snapshot, COALESCE((SELECT SUM(CASE WHEN r.kind_code = 'CUSTOMER_REFUND' THEN -r.amount ELSE r.amount END) FROM bil_payment_receipt r
+                     WHERE r.order_id = p.order_id AND r.reverses_id IS NULL
+                       AND NOT EXISTS (SELECT 1 FROM bil_payment_receipt x WHERE x.reverses_id = r.id)), 0) AS da_thu
+     FROM bil_posting p
+     WHERE p.kind_code = 'DELIVERED' AND NOT EXISTS (SELECT 1 FROM bil_posting x WHERE x.reverses_posting_id = p.id)
+       AND COALESCE((SELECT SUM(CASE WHEN r.kind_code = 'CUSTOMER_REFUND' THEN -r.amount ELSE r.amount END) FROM bil_payment_receipt r
+                     WHERE r.order_id = p.order_id AND r.reverses_id IS NULL
+                       AND NOT EXISTS (SELECT 1 FROM bil_payment_receipt x WHERE x.reverses_id = r.id)), 0) IS NOT p.due_snapshot
+       AND p.created_at < (SELECT cutoff_at FROM bil_audit_cutoff WHERE code = 'R-BIL-1')
+       AND NOT EXISTS (SELECT 1 FROM bil_payment_receipt a WHERE a.order_id = p.order_id AND a.created_at >= (SELECT cutoff_at FROM bil_audit_cutoff WHERE code = 'R-BIL-1'))`,
+    mode: "rows",
+    level: "warn",
   },
   {
     // R-BIL-3 (I3) phần lần thu: dòng đảo cùng đơn, cùng loại, cùng số với gốc; gốc không phải dòng đảo (mỗi gốc tối đa một lần — UNIQUE reverses_id).

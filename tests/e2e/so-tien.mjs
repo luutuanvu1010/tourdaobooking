@@ -153,3 +153,32 @@ const fldB = await me(await session(ACCOUNTS.fieldB));
   }
   console.log("✓ VP-01 (D1 local): nộp → xác nhận 409; xác nhận → nộp 409; sổ HDV = 0; SQL tay thêm dòng nộp bị trigger chặn");
 }
+
+// ---- TNV-G3 / ADR-0088 đ2, đ3, đ4 (iv), đ5 (năm lỗi tiền) trên D1 local thật: sau Đã giao "Đảo" đơn lẻ 409, "Thay lần thu" giữ I1 201, hoàn sau Đã giao 409;
+// SQL tay chèn lần thu sau Đã giao đi vòng máy chủ bị trigger 0083 chặn.
+{
+  const ACC = await session(ACCOUNTS.accountant);
+  const F = await session(ACCOUNTS.field);
+  const r = await call(A, "POST", "/api/orders", { ...orderInput({ services: [catalogService({ pax: { adult: 2 }, departDate: vnDate(0) })] }), handlerStaffId: fld.id });
+  assert.equal(r.status, 201, JSON.stringify(r.body));
+  const o = r.body.order;
+  assert.equal((await call(A, "POST", `/api/orders/${o.id}/status`, { status: "confirmed" })).status, 200);
+  const tong = o.total;
+  assert.equal((await call(F, "POST", `/api/orders/${o.id}/payments`, { soTien: tong, hinhThuc: "CASH", nguoiThu: "toi" })).status, 201, "HDV ghi nhầm: thật ra khách chuyển khoản cho công ty");
+  assert.equal((await call(F, "POST", `/api/orders/${o.id}/delivered`, {})).status, 200);
+  const cu = (await sqlRows(`SELECT id FROM bil_payment_receipt WHERE order_id = '${o.id}' AND reverses_id IS NULL`))[0].id;
+  const dao = await call(ACC, "POST", "/api/ledger/adjustments", { loai: "dao_lan_thu", receiptId: cu, lyDo: "ghi nhầm người thu" });
+  assert.equal(dao.body?.error?.code, "receipt_after_delivered", JSON.stringify(dao.body));
+  const lech = await call(ACC, "POST", "/api/ledger/receipt-replacements", { orderId: o.id, cu: [cu], moi: [{ soTien: tong - 1, hinhThuc: "BANK_TRANSFER", nguoiThu: "cong_ty" }], lyDo: "Khách chuyển khoản cho công ty" });
+  assert.equal(lech.body?.error?.code, "replacement_i1", JSON.stringify(lech.body));
+  const thay = await call(ACC, "POST", "/api/ledger/receipt-replacements", { orderId: o.id, cu: [cu], moi: [{ soTien: tong, hinhThuc: "BANK_TRANSFER", nguoiThu: "cong_ty" }], lyDo: "Khách chuyển khoản cho công ty" });
+  assert.equal(thay.status, 201, JSON.stringify(thay.body));
+  const p = (await call(ACC, "GET", `/api/orders/${o.id}/payments`)).body;
+  assert.deepEqual([p.daThu, p.keToan.dangGiu.length, p.coTheHoanThanh], [tong, 0, true], "đã thu giữ nguyên; HDV hết giữ; Hoàn thành được");
+  const hoan = await call(ACC, "POST", "/api/ledger/refunds", { orderId: o.id, soTien: 1000, hinhThuc: "CASH", nguoiTra: "cong_ty" });
+  assert.equal(hoan.body?.error?.code, "refund_after_delivered", JSON.stringify(hoan.body));
+  await assert.rejects(() => sql(`INSERT INTO bil_payment_receipt (id, order_id, kind_code, amount, collector_party_id, collector_role_code, method_code, collected_for_party_id, stage_code, occurred_date, created_at, updated_at)
+    SELECT 'e2e-g3-${o.id}', '${o.id}', 'CUSTOMER_PAYMENT', 1000, party_id, 'COMPANY', 'CASH', party_id, 'AT_DELIVERY', '2026-10-05', '2026-10-05T00:00:00.000Z', '2026-10-05T00:00:00.000Z' FROM v_pty_owner_company`), /receipt_after_delivered/);
+  assert.equal((await call(ACC, "POST", `/api/orders/${o.id}/completed`, {})).status, 200, "Hoàn thành sau khi thay");
+  console.log("✓ G3 (D1 local): sau Đã giao Đảo đơn lẻ 409, Thay lệch I1 409, Thay giữ I1 201, hoàn sau Đã giao 409, SQL tay chèn lần thu bị trigger chặn, Hoàn thành được");
+}
