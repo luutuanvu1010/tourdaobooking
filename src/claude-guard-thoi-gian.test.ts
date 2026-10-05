@@ -30,6 +30,10 @@ test("guard-remote: lệnh dị dạng không làm hook quá giờ (timeout 10 s
     // cho mỗi `<<` — bậc hai, ~6 s CPU riêng hàm này. Đo RIÊNG hàm (stripHeredocs của phần deny có chi phí tương tự từ trước — nợ ghi ở sổ hàng rào).
     interpreterHeredocs("cat docs/adr/x\n" + "python3 <<A\n".repeat(16_000));
     interpreterHeredocs("cat docs/adr/x\n" + "y <<A\n".repeat(33_000));
+    // ADR_HINT nhánh 2 (os.path.join('docs','adr') / Path('docs')/'adr'): `'docs'` theo sau bởi một dải dấu cách dài không có `,`/`/` để khớp hết
+    // từng làm bản cũ (hai \s* kẹp một nhóm tuỳ chọn) quay lui mũ ~37 s CPU (người kiểm độc lập vòng 2) — qua evaluateBash (không chỉ regex lẻ).
+    evaluateBash("'docs'" + " ".repeat(199_990), { branch: "worktree-x" });
+    evaluateBash("Path('docs')" + " ".repeat(199_980), { branch: "worktree-x" });
     const used = process.cpuUsage(cpu);
     runs.push(Math.round((used.user + used.system) / 1000));
   }

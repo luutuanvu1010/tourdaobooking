@@ -203,11 +203,13 @@ export function candidates(raw0, depth = 0, seen = new Set()) {
 // đường ghi guard-luat thấy (`>`, `tee`, `sed -i`, `cp`, `mv`, `rm`, `git checkout -- …`) vẫn bị DENY; `ask` ở đây chỉ còn tác dụng cho các đường
 // guard-luat nói rõ không thấy: mã python/node/perl (`-c`/`-e`, heredoc nạp trình thông dịch, tệp script), vòng lặp / `xargs`, đường dẫn trong biến.
 // GIỚI HẠN (chặn nhầm/quên, không chống cố ý lách — CLAUDE.md §8): chỉ nhận chữ `docs/adr` (hoặc `'docs','adr'` / `'docs')/'adr'` trong mã
-// python/node); KHÔNG bắt: đường dẫn tương đối sau `cd docs`, đường dẫn ghép từ biến, `git checkout/restore`, `patch`, `dd` (ba thứ này guard-luat chặn),
-// `git merge/apply`,
-// `awk -i`, `ed`/`vim`, script tự viết mà hook không đọc được (hook chỉ đọc tệp script đứng ngay sau tên trình thông dịch, xem guard-remote.mjs).
+// python/node); KHÔNG bắt: đường dẫn tương đối sau `cd docs`, đường dẫn ghép từ biến, `git checkout/restore` (guard-luat chặn), `git merge/apply`,
+// `patch`, `dd`, `awk -i`, `ed`/`vim`, script tự viết mà hook không đọc được (hook chỉ đọc tệp script đứng ngay sau tên trình thông dịch, xem guard-remote.mjs).
 const ADR_PATH = "docs\\/+(?:\\.\\/)*adr(?![\\w.-])";
-const ADR_HINT = /docs\/+(?:\.\/)*adr|["']docs["']\s*(?:,|\)?\s*\/)\s*["']adr["']/; // lọc nhanh + os.path.join('docs','adr') / Path('docs')/'adr' / ROOT / "docs" / "adr"
+// Nhánh 2 (os.path.join('docs','adr') / Path('docs')/'adr') tách riêng theo dấu phân cách (`,` hay `/`) và CHẶN khoảng trắng mỗi chỗ ở {0,20}
+// (không để hai \s* kề nhau tranh nhau khoảng trắng của CÙNG một dải) — người kiểm độc lập đo lệnh `'docs'` + ~200 000 dấu cách làm bản cũ
+// (`\s*(?:,|\)?\s*\/)\s*`) quay lui mũ ~37 s CPU; bản này đo lại cùng đầu vào: 0 ms.
+const ADR_HINT = /docs\/+(?:\.\/)*adr|["']docs["']\s{0,20}(?:,\s{0,20}["']adr["']|\)?\s{0,20}\/\s{0,20}["']adr["'])/; // lọc nhanh + os.path.join('docs','adr') / Path('docs')/'adr' / ROOT / "docs" / "adr"
 const ADR_IN = new RegExp(ADR_PATH);
 const ADR_REDIRECT = new RegExp(`(?:^|[^<>])>{1,2}\\|?\\s*[^\\s;&|<>()]{0,300}?${ADR_PATH}`);
 // Tên lệnh ở ĐẦU đoạn (sau && ; | xuống dòng), cho phép biến môi trường / sudo / xargs / command / exec đứng trước: `grep rm docs/adr/x` không phải xoá.
@@ -228,7 +230,8 @@ const ADR_ASK_REASON =
  * `<<` — bậc hai, từng làm móc chạy ~12 s CPU ở lệnh dài sát MAX_LENGTH (người kiểm độc lập đo 5/10) ⇒ quá hạn 10 s, mọi luật bị bỏ qua.
  * Xuất ra để bài đo giờ (src/claude-guard-thoi-gian.test.ts) đo RIÊNG hàm này. */
 export function interpreterHeredocs(s) {
-  const out = [];  const lines = s.split("\n");
+  const out = [];
+  const lines = s.split("\n");
   const ends = new Map(); // tên → các chỉ số dòng có thể kết thúc heredoc tên đó (tăng dần)
   lines.forEach((line, i) => {
     const m = /^[ \t]*([A-Za-z_]\w*)(?:\)|$)/.exec(line);
@@ -306,8 +309,16 @@ const DENY_TAIL = " Theo CLAUDE.md (mục Git, triển khai, an toàn) cần l�
 const segments = (outer) => outer.split(/&&|\|\||;|\n|\|/);
 const deny = (rule, reason, tail = DENY_TAIL) => ({ deny: true, rule, reason: `Bị chặn: ${reason}.${tail}` });
 
+/** Chỉ xét lệnh cấm (RULES, production-env/http-write, git-merge-main) — KHÔNG chạy adrAsk. Dùng ở bước (1) của móc, TRƯỚC khi hỏi guard-luat,
+ * để một regex chậm/hỏng trong adrAsk (khối docs/adr) không thể làm móc quá giờ TRƯỚC KHI guard-luat kịp deny (người kiểm độc lập 5/10: một
+ * lỗ quay lui mũ ở ADR_HINT — đã vá — từng chặn đường vào bước guard-luat kiểu này). */
+export function evaluateDenyOnly(command, { branch = null } = {}) {
+  const text = String(command ?? "").slice(0, MAX_LENGTH);
+  return evaluateDeny(candidates(text), branch);
+}
+
 /** → { deny: false } | { deny: true, rule, reason } | { deny: false, ask: true, rule, reason }. `deny` luôn thắng `ask` (cả deny của
- * guard-luat — móc guard-remote.mjs xét guard-luat trước khi in `ask`).
+ * guard-luat — móc guard-remote.mjs xét guard-luat TRƯỚC khi gọi hàm này, dùng evaluateDenyOnly ở bước (1) cho đúng thứ tự đó).
  * `scripts`: nội dung các tệp script mà lệnh chạy bằng trình thông dịch (hook đọc giúp; hàm này không tự đọc tệp). */
 export function evaluateBash(command, { branch = null, scripts = [] } = {}) {
   const text = String(command ?? "").slice(0, MAX_LENGTH);
