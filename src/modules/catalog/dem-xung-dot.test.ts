@@ -78,7 +78,8 @@ test("route đếm hỏi ĐÚNG cùng ô quyền với /api/catalog/admin (khoá
   const oQuyen = (duong: string) => {
     const i = nguon.indexOf(`route("GET", "${duong}"`);
     assert.ok(i !== -1, `không thấy route ${duong}`);
-    return [...nguon.slice(i, nguon.indexOf("\n    }),", i)).matchAll(/can\(staff, "([a-z.]+)"/g)].map((m) => m[1]!).sort();
+    const than = nguon.slice(i, nguon.indexOf("\n    }),", i)).replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, ""); // bỏ chú thích: `can(staff, "x")` trong chú thích không được tính là ô quyền
+    return [...than.matchAll(/can\(staff, "([a-z.]+)"/g)].map((m) => m[1]!).sort();
   };
   assert.deepEqual(oQuyen("/api/catalog/admin"), ["admin.manage"]);
   assert.deepEqual(oQuyen("/api/catalog/dem-xung-dot"), ["admin.manage"]);

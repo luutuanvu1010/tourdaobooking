@@ -88,7 +88,7 @@ function boOQuyen(duong: string): string[] {
   const i = nguon.indexOf(`route("GET", "${duong}"`);
   assert.ok(i !== -1, `không thấy route ${duong}`);
   const j = nguon.indexOf("\n    }),", i);
-  const than = nguon.slice(i, j);
+  const than = nguon.slice(i, j).replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, ""); // bỏ chú thích: `can(staff, "x")` trong chú thích không được tính là ô quyền
   return [...than.matchAll(/can\(staff, "([a-z.]+)"/g)].map((m) => m[1]!).sort();
 }
 

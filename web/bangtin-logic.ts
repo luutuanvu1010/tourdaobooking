@@ -269,7 +269,7 @@ export function taoBoDieuKhien(phu: Phu) {
     },
     /**
      * Trang hiện lại. TRƯỚC: luôn `noiNgay()` — đóng cả kết nối còn khoẻ rồi `can-tai-lai` làm mọi trang tải lại toàn bộ dữ liệu. NAY: đi lâu (≥ AN_LAU_MS)
-     * hoặc chưa có kết nối sống ⇒ nối lại + tải lại như cũ; còn lại chỉ GÕ CỬA (ping): có pong trong KIEM_NHANH_MS thì giữ nguyên (không đã lỡ tin nào —
+     * hoặc chưa có kết nối sống, hoặc socket không ở trạng thái mở (`readyState ≠ 1` — iOS để socket chết khi app bị treo mà `send` không ném lỗi) ⇒ nối lại + tải lại như cũ; còn lại chỉ GÕ CỬA (ping): có pong trong KIEM_NHANH_MS thì giữ nguyên (không đã lỡ tin nào —
      * tin tới qua kết nối đang mở), không pong hoặc `send` ném lỗi thì nối lại + tải lại.
      */
     hienLai(): void {

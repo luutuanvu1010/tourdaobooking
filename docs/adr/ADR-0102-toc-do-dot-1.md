@@ -38,7 +38,7 @@ Nghiên cứu 2026-10-02 tìm nguyên nhân chậm khi bấm và chuyển màn. 
 ## Ngoài phạm vi (ghi để không bị hiểu là đã làm)
 
 - Gộp / chạy song song các câu D1 của Trang chủ, Chi tiết chuyến, Điều phối; làm nhẹ chuông thông báo; chỉ mục D1 — đợt 2.
-- Thu gọn `public/app.css` ở bước đóng gói: đã cân nhắc và bỏ (lợi nhỏ — trình duyệt bỏ qua chú thích khi đọc, tệp đã nằm sẵn trên máy — mà phải đổi liên kết ở 33 trang và bài quét token).
-- Phát tin Bảng tin khi Toàn quyền đổi màu: không làm (đã chấp nhận hiệu lực ở lần chuyển trang kế tiếp).
+- Thu gọn `public/app.css` ở bước đóng gói: đã cân nhắc và bỏ (lợi nhỏ — trình duyệt bỏ qua chú thích khi đọc, tệp đã nằm sẵn trên máy — mà phải đổi liên kết ở 38 trang và bài quét token).
+- Phát tin Bảng tin khi Toàn quyền đổi màu: không làm (đã chấp nhận hiệu lực sau một đến hai lần chuyển trang).
 - Bản sao đọc D1 (read replica): bỏ — bản chính đã ở APAC.
 - Lệnh triển khai và kiểm sau triển khai (`cf-placement`, biểu đồ Request duration): chủ chạy theo `docs/HANDOFF-N1.md`.

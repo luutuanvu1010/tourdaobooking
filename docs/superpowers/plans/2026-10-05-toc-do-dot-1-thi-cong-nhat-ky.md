@@ -40,7 +40,7 @@ Người kiểm: không có phát hiện CAO; không kẽ hở an ninh (đã th�
 
 | Mã | Phát hiện | Xử lý |
 |---|---|---|
-| V1 | Ba kịch bản Chrome hỏng / đạt rỗng do đổi route và đường tệp màu | Sửa `trang-chu-smoke.mjs` (G-4, G-9, kiểm không gọi route đếm của Đối tác), `giao-dien-smoke.mjs` (thẻ link, bước 6 chặn cả hai đường), `doi-tac-lap-don-smoke.mjs`; **đã chạy lại trên Chromium** (kết quả ở mục dưới) |
+| V1 | Ba kịch bản Chrome hỏng / đạt rỗng do đổi route và đường tệp màu | Sửa `trang-chu-smoke.mjs` (G-4, G-9, kiểm không gọi route đếm của Đối tác), `giao-dien-smoke.mjs` (thẻ link, bước 6 chặn cả hai đường), `doi-tac-lap-don-smoke.mjs`; đã chạy lại trên Chromium đám mây — kết quả ở mục "Kết quả kịch bản Chrome" dưới đây |
 | V2 | Đổi màu tới máy khác chậm hơn một nhịp (bản đệm cũ phục vụ trước); kể cả máy Toàn quyền | `web/giao-dien.ts` làm mới bản đệm ngay sau "Áp dụng"; chữ ở ADR/tài liệu/màn Giao diện sửa thành "sau một đến hai lần chuyển trang" |
 | V3 | Ba chỗ tài liệu mô tả nói sai + vài chú thích cũ | Sửa `CHANGE-GUIDE` (công thức trang mới, bẫy 40), `SYSTEM-DESIGN`, `tests/e2e/README.md`, `src/shared/http.ts`, `web/CLAUDE.md` (chỉ tên đường dẫn) |
 | V4 | Bất biến "phiên bị lưới không ghi `last_seen_at`" chưa có bài | Hai bài mới; đột biến ghi trước khi loại → `not ok 7`, `not ok 8` |
@@ -48,6 +48,22 @@ Người kiểm: không có phát hiện CAO; không kẽ hở an ninh (đã th�
 | V6 | `--define` ở `build:web` không có bài canh | Bài mới; đột biến cắt hai tham số → `not ok 6` |
 | T1–T3 | Con số "tổng 4,9 MB" lệch; chú thích dính nhầm; socket đã chết ở iOS chờ 3 giây | Sửa ADR (5,6 → 3,26 MB), sửa chú thích, thêm `readyState` (nối lại ngay khi socket không mở) |
 | T4 | Thiếu sổ điều phối / HANDOFF | Sổ này + một dòng ở `docs/HANDOFF-N1.md`; mục nhật ký 1.82 làm ở bước A.0 |
+
+## Kết quả kịch bản Chrome (Chromium 1194 trên Linux đám mây, D1 tạm, khổ 390 và 1040, ngày 2026-10-05; trên mã ea1bb83)
+
+Chạy bằng `CHROME_BIN=<bọc Chromium --no-sandbox> AXE_JS=<axe-core 4.13 lấy bằng npm pack, ngoài repo> node <kịch bản>`. Đây là Chromium Linux, KHÔNG phải Chrome Mac / Safari iPhone — chủ hoặc phiên Local nên chạy lại trên máy thật.
+
+| Kịch bản | Kết quả | Ghi chú |
+|---|---|---|
+| `docs/evidence/2026-10-02-giao-dien/kich-ban/giao-dien-smoke.mjs` | ĐẠT 11/11 bước | gồm bước 5 (trang khác thấy màu mới), bước 6 (chặn tệp màu → thanh trên mặc định, trang không vỡ), bước 7 (về mặc định) |
+| `docs/evidence/2026-09-23-trang-chu-moi/kich-ban/trang-chu-smoke.mjs` | ĐẠT 44 bước, in "TRANG CHU SMOKE OK" (lần 2) | G-4: thanh bên 1040px gọi đúng `dem-xung-dot`, `dem-nhap`, `feedback/badge`; 390px không gọi gì. G-9 đạt. Lần 1 đỏ vì "database is locked" (còn `wrangler dev` mồ côi từ một lần chạy bị cắt giờ) — dọn tiến trình rồi chạy lại đạt |
+| `docs/evidence/2026-09-26-mo-danh-muc-doi-tac/kich-ban/doi-tac-lap-don-smoke.mjs` | ĐẠT 8 bước, in "ĐỐI TÁC LẬP ĐƠN SMOKE OK" (lần 2) | bước 6 có dòng "không gọi `dashboard` hay `dem-nhap`" đạt. Lần 1 đỏ vì "database is locked" ở lệnh gieo dữ liệu (xung đột với máy chủ thử, lỗi môi trường), chạy lại đạt |
+
+## Kiểm độc lập vòng 2 (soát ea1bb83)
+
+Người kiểm: V1–V6 và T1–T3 **ĐÃ SỬA ĐÚNG**, không hồi quy, không phát hiện CAO; chạy lại `typecheck` + `npm test` (3252 bài, thoát 0), cây sạch; thử 10 đột biến, không đột biến nào xanh mà đáng ra phải đỏ. Còn sót (đã xử lý ở commit kế): V1b (sổ nói "đã chạy" mà chưa ghi kết quả — mục trên), V3a (`CHANGE-GUIDE` mục "Tắt khẩn"), V3b / "33 trang" / "chín bài" / chú thích `readyState` ở ADR, sổ hàng rào, `bangtin-logic.ts`, `SYSTEM-DESIGN`; V1a (`giao-dien-smoke` thêm khẳng định "có ≥ 1 thẻ" và ghi chú vì sao bước 4 hỏi đường cũ); V1c (thông báo G-4); khoá bộ ô quyền bằng nguồn nay bỏ chú thích trước khi so (đột biến "bỏ ô nhưng để lại chú thích `can(...)`" → đỏ). Người kiểm KHÔNG kiểm được: V2 trên trình duyệt thật (service worker cập nhật bản đệm trong lần chuyển trang đầu — phép thử iPhone thật ở mục dưới), Smart Placement, đo mili-giây.
+
+Lưu ý cho chủ: `web/CLAUDE.md` bị sửa MỘT chữ (tên đường dẫn trong một ô bảng kịch bản Chrome, không đổi nghĩa quy tắc) — là tệp luật theo thư mục, chủ xem lại diff nếu muốn.
 
 ## Việc còn lại / chủ cần làm (dựa vào kỷ luật — chưa có hàng rào máy)
 

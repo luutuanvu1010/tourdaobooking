@@ -4,8 +4,8 @@
 //   3. Đổi "Nền thanh trên" sang #0c4a6e → thanh trên rgb(12, 74, 110) NGAY (xem trước); hiện lỗi "khó đọc"; "Áp dụng" khoá.
 //   3b. Chỉnh ô màu liên tiếp: ô chọn màu KHÔNG bị dựng lại (cùng một phần tử trước/sau).
 //   4. Đổi "Chữ thanh trên" sang #ffffff → hết lỗi, "Áp dụng" mở; bấm → hộp xác nhận trong trang → "Áp dụng" → lưu, không lỗi.
-//   5. Tải lại /orders → thanh trên rgb(12, 74, 110) ngay sau khi trang tải xong (kèm /api/giao-dien.css).
-//   6. Chặn /api/giao-dien.css (CDP Network.setBlockedURLs) → tải lại → thanh trên về mặc định, trang không vỡ.
+//   5. Tải lại /orders → thanh trên rgb(12, 74, 110) ngay sau khi trang tải xong (kèm /giao-dien.css — ADR-0102).
+//   6. Chặn /giao-dien.css và đường cũ /api/giao-dien.css (CDP Network.setBlockedURLs) → tải lại → thanh trên về mặc định, trang không vỡ.
 //   7. "Về mặc định toàn bộ" → Áp dụng → /orders thanh trên về mặc định.
 //   8. 390: không tràn ngang, ô gõ ≥ 16px, axe không có vi phạm serious/critical.
 // Mỗi bước dùng phiên riêng qua env.as và đóng trang trước khi mở trang kế (các trang dùng CHUNG kho cookie, CLAUDE.md §10).
@@ -72,6 +72,7 @@ try {
   assert.ok(soDong >= 20, `2. đủ dòng chỉnh: ${soDong}`);
   // Trang này tắt tệp giao diện công ty và chưa chỉnh gì → KHÔNG có biến --* nào đặt trên <html> (hiện đúng app.css mặc định).
   assert.equal(await p.ev("document.documentElement.style.length"), 0, "2. chưa chỉnh: không có biến --* inline trên <html>");
+  assert.ok(await p.ev("document.querySelectorAll('link[href^=\"/giao-dien.css\"]').length >= 1"), "2. trang có thẻ link /giao-dien.css (ADR-0102) — không thì phép kiểm 'bị tắt' dưới đây đạt rỗng");
   assert.equal(await p.ev("[...document.querySelectorAll('link[href^=\"/giao-dien.css\"]')].every((l) => l.disabled)"), true, "2. tệp giao diện công ty bị tắt ở màn này");
   // M3: xem trước có một thẻ đơn dựng bằng thành phần thẻ đơn thật.
   assert.equal(await p.ev("!!document.querySelector('#gd-xem-truoc .order-card .order-row-name') && document.querySelector('#gd-xem-truoc .order-row-name').textContent"), "Chị Nguyễn Thu Hà", "2. xem trước có thẻ đơn mẫu");
@@ -121,6 +122,8 @@ try {
   assert.deepEqual(await loiHien(p), [], "4. hết lỗi");
   assert.equal(await apDungDuoc(p), true, "4. 'Áp dụng' mở");
   await luuLenMayChu(p);
+  // Cố ý hỏi ĐƯỜNG CŨ `/api/giao-dien.css` (cùng thân với `/giao-dien.css`, ADR-0102) để lấy sự thật phía MÁY CHỦ: `/giao-dien.css` do service worker phục vụ bản đệm trước
+  // (có thể là bản cũ vài giây), còn đường cũ nằm trong /api nên không bao giờ qua bản đệm.
   const css = await p.ev("fetch('/api/giao-dien.css').then((r) => r.text())");
   assert.ok(css.includes("#0c4a6e"), `4. /api/giao-dien.css có giá trị mới: ${css.slice(0, 200)}`);
   assert.deepEqual(p.consoleErrors, [], "4. không lỗi JS");

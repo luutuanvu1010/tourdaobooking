@@ -1350,7 +1350,7 @@ try {
     const deskBadgeCalls = badgeCalls(pDeskBadge);
     assert.deepEqual(deskBadgeCalls, BADGE_ROUTES, `G-4 (1040px): phải gọi ĐỦ ba route huy hiệu khi thanh bên đang hiện — chỉ thấy ${JSON.stringify(deskBadgeCalls)}`);
     pDeskBadge.close();
-    ok(`G-4) Lời gọi huy hiệu theo khổ màn hình (/staff, ADMIN): 390px = ${JSON.stringify(mobBadgeCalls)} (không lời gọi nào), 1040px = ${JSON.stringify(deskBadgeCalls)}. Lưu ý: riêng trang "/" tự gọi /api/orders/dashboard nên ở máy tính trang đó có 2 lần gọi — chấp nhận được, giống /catalog.`);
+    ok(`G-4) Lời gọi huy hiệu theo khổ màn hình (/staff, ADMIN): 390px = ${JSON.stringify(mobBadgeCalls)} (không lời gọi nào), 1040px = ${JSON.stringify(deskBadgeCalls)}. Lưu ý: riêng trang "/" tự gọi /api/orders/dashboard (Bảng điều khiển đầy đủ) NGOÀI lời gọi đếm nhẹ /api/orders/dem-nhap của thanh bên — hai route khác nhau, mỗi route một lần (ADR-0102).`);
 
     // ================================================================================================
     // G-5 (A-1): ô tìm kiếm trên thanh công việc phải LỌC THẬT. Gõ SĐT của R1, Enter, rồi khẳng định

@@ -871,7 +871,7 @@ Núm = một ô chỉnh ở màn Giao diện công ty, ánh xạ tới MỘT tok
 3. Nếu giá trị `:root` của token là `var()` của núm khác → khai núm con → núm cha ở `CHA` (nếu không, kiểm tương phản chấm bằng màu mặc định cũ).
 4. Nếu đổi núm phải kéo thêm token khác (vd độ đậm, viền/hover của nút) → khai ở `KEO_THEO`.
 5. Chạy `node --test src/giao-dien-mac-dinh.test.ts src/shared/giao-dien.test.ts`. Không cần migration (`tokens` là JSON mở). Ghi nhật ký phiên bản như công thức t.
-- **Tắt khẩn** khi giao diện hỏng mà không vào được màn chỉnh: `UPDATE gd_setting SET tokens = '{}', version = version + 1 WHERE id = 'default'` (chủ tự chạy theo `docs/HANDOFF-N1.md`); mọi người thấy giao diện mặc định ở lần mở trang kế tiếp.
+- **Tắt khẩn** khi giao diện hỏng mà không vào được màn chỉnh: `UPDATE gd_setting SET tokens = '{}', version = version + 1 WHERE id = 'default'` (chủ tự chạy theo `docs/HANDOFF-N1.md`); mọi người thấy giao diện mặc định sau một đến hai lần chuyển trang (service worker phục vụ bản đệm cũ rồi cập nhật ở nền — ADR-0102; lệnh này đi vòng màn Giao diện nên không làm mới bản đệm của máy nào).
 - **Từ 1.70** (đặc tả `2026-10-02-thi-giac-nen-tang-design.md`): núm "Nền/Chữ nút lưu, xác nhận" (`--c-btn-primary-*`) điều khiển nút chính ĐẶC màu; nút `.btn-primary` còn lại nền nhạt đi theo `--c-btn-soft-*` (= "Màu chính nhạt" + "Màu chính"). `CHA`: `nen-nut-chinh → mau-chinh`; `chu-nut-chinh` không có cha (chữ trắng cố định).
 
 ### z10. Nút lưu / xác nhận chính đặc màu (thị giác 1.70)
