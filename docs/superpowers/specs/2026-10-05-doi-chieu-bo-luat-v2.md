@@ -104,7 +104,7 @@ GOVERNANCE và PLAYBOOK vẫn gọi tên QA1/QA2 nhưng đã mất bảng địn
 | 3 | QĐ-P08: ADR-0101 sửa lời khai "do Core sở hữu" (không chạm `playbook/`, manifest giữ xanh) | Chưa soạn | AI soạn, chủ duyệt (`docs/adr/**` là `ask`) |
 | 3b | ADR hoặc khai lệch cho các chỗ lỏng ở 3.3 (5.11 Cron, 5.12 tên trong nhật ký, 5.2, 4.2, 5.16, 5.19) | Chưa soạn; gom tối đa 3 quyết định mỗi lượt duyệt (bước ghép) | AI soạn, chủ duyệt |
 | 4 | Phiên hợp nhất luật thực thi ở kho gốc (đưa phần ở 4.1 lên, khôi phục QA1/QA2, PQ, FRAMEWORK hoặc phần 9–11, sửa 4.5), gắn tag mới | Chưa làm | Phiên ở kho gốc |
-| 5 | Môi trường thử giống thật (Worker và D1 staging) và lời khai trong sổ hàng rào (H12a) | Chưa có | Chủ quyết |
+| 5 | Môi trường thử giống thật (Worker và D1 staging) và lời khai trong sổ hàng rào (H12a) | Hoãn có điều kiện 2026-10-05; kích hoạt khi có migration chạm tiền, khi sắp nâng ghim, hoặc thêm một sự cố do khác biệt máy tính với Cloudflare (`docs/superpowers/specs/2026-10-05-moi-truong-thu.md`) | Chủ quyết |
 | 6 | Nâng ghim trong một commit riêng (mục 2 cơ chế ghim), người kiểm độc lập chạy lại `diff -r` rỗng | Chờ bước 4 và 5 | AI chuẩn bị, chủ chạy |
 | 7 | Rút Phần I thành "theo Hiến chương điều X" (mục 3.5), làm mới bảng thi hành và `SYSTEM-DESIGN.md` §17 | Chờ bước 6 | AI soạn, chủ duyệt |
 | 8 | Gọn lớp vận hành theo 4.3, 4.4 (§10 CLAUDE.md sang CHANGE-GUIDE hoặc skill, quét token vùng 535–776, bảng token) | Làm được bất cứ lúc nào | AI, chủ duyệt phần luật |
