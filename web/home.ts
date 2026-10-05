@@ -342,7 +342,7 @@ const ICON_O: Record<KhoaO, IconName> = {
   "tao-don": "plus", "don-hang": "orders", "danh-ba": "contact-card",
   "dich-vu": "services", "tai-khoan": "staff", phien: "lock", "dia-diem": "pin", "giay-to-nguoi": "guests", "nhat-ky": "history", "gui-thong-bao": "megaphone", "tro-ly": "chat",
   "giao-dien": "palette",
-  "dieu-phoi": "swap", cuoc: "clock", xe: "truck", "sap-het-han": "clock", "giay-to-xe": "doc-check", "chinh-sach": "checkCircle", "ly-do": "filePlus",
+  "dieu-phoi": "swap", "bang-gia-xe": "money", "bang-ke-xe": "doc-check", cuoc: "clock", xe: "truck", "sap-het-han": "clock", "giay-to-xe": "doc-check", "chinh-sach": "checkCircle", "ly-do": "filePlus",
   toi: "me", "gop-y": "chat", "tro-giup": "help",
 };
 /** Màu huy hiệu số theo bản vẽ: Đơn hàng xanh biển, giấy tờ sắp hết hạn + dịch vụ lệch Sheet màu cát, Góp ý san hô. Ô không có ở đây không bao giờ có số. */

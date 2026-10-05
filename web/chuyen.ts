@@ -21,6 +21,7 @@ import { api } from "./api";
 import { byId, h, replaceChildren, type Child } from "./dom";
 import { chip, dai, docLoiLenh, moHuyChuyen, moPhaLe, nhomChon, taoLenh, thuNgay } from "./dieu-phoi-ui";
 import { moBangTruot } from "./bang-truot";
+import { taoKhoiChiPhi } from "./chi-phi-chuyen";
 import { datCrumb, loiCua } from "./giay-to-ui";
 import { icon } from "./icons";
 import { initShell, setBarTitle, showError } from "./shell";
@@ -46,6 +47,17 @@ const coPhaLe = can(staff, "trip.override");
 const coTienDo = can(staff, "trip.progress");
 
 let duLieu: ChuyenChiTietResponse | null = null;
+/** Khối "Chi phí chuyến" (Đợt 4 G2): CHỈ có khi ô transport.cost.view; sau lệnh ghi chi phí đọc lại chuyến (lý do giữ "thiếu giá" có thể vừa hết). */
+const chiPhi = taoKhoiChiPhi(staff, async () => {
+  try {
+    await nap();
+    ve();
+  } catch {
+    /* giữ trang đang có — khối chi phí đã cập nhật từ phản hồi lệnh */
+  }
+});
+/** Mã chuyến + phiên bản đã đọc chi phí — đổi (sửa, huỷ, xuất bến…) thì đọc lại chi phí (lô chuyến có thể vừa chụp / đảo giá). */
+let khoaChiPhi = "";
 let baoCao: HTMLElement | null = null;
 /** Đợt 5 A-1b: dữ liệu khối "Cứu hộ" (chỉ chuyến ENDED_INTERRUPTED + ô trip.dispatch); `"loi"` = đọc hỏng (khối hiện câu báo, không chặn trang). */
 let cuuHo: CuuHoResponse | "loi" | null = null;
@@ -245,13 +257,18 @@ function ve(): void {
     khoa,
     baoCao,
     ...dais,
-    h("div", { class: "dp-ct-layout" }, h("div", { class: "dp-ct-main" }, dongDt, soLieu, chay ? h("div", { class: "dp-xc" }, theViecVanPhong(), theKhachCho()) : null, theCuuHoKhoi(), diem, keHoach ? theKhach() : null), h("div", { class: "dp-ct-side" }, dieuKien, nhatKy)),
+    h("div", { class: "dp-ct-layout" }, h("div", { class: "dp-ct-main" }, dongDt, soLieu, chay ? h("div", { class: "dp-xc" }, theViecVanPhong(), theKhachCho()) : null, theCuuHoKhoi(), diem, keHoach ? theKhach() : null, chiPhi.el), h("div", { class: "dp-ct-side" }, dieuKien, nhatKy)),
   );
   // Điện thoại: nút ở cuối trang, lưới hai cột (bản vẽ 2b); máy tính: nút ở đầu trang.
   const huyDay = nutHuy("vc-btn-danger");
   const xbDay = nutXuatBen("vc-btn-ghost-primary");
   replaceChildren(bottomEl, nutSua ? h("a", { class: "vc-btn vc-btn-ghost-primary", href: nutSua.getAttribute("href")!, "data-action": "sua-chuyen" }, "Sửa chuyến") : null, xbDay, huyDay);
   bottomEl.hidden = !(nutSua || huyDay || xbDay);
+  const khoaCp = `${c.id}:${c.version}:${c.trangThai}`;
+  if (chiPhi.el && khoaCp !== khoaChiPhi) {
+    khoaChiPhi = khoaCp;
+    void chiPhi.tai(c.id);
+  }
 }
 
 /**

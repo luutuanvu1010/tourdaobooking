@@ -156,17 +156,6 @@
 - **Làm khi chủ cần:** theo công thức z9 của `docs/CHANGE-GUIDE.md` (một dòng `NUM`, một giá trị `MAC_DINH`, cặp tương phản cho ngọc đậm trên ngọc nhạt và vàng "Còn lại" trên ngọc đậm). Không cần migration.
 - **Cùng đợt nên làm (kiểm độc lập 1.70, TH-1/TH-2):** màu rê chuột nút lưu đặc là hằng `#0b5c84` — Toàn quyền đổi "Màu chính" thì nút đổi màu nhưng rê chuột vẫn xanh biển; nên dẫn xuất màu rê từ nền nút và thêm cặp tương phản "chữ nút lưu / màu rê". Vàng "Còn lại" `#fcd34d` đang viết ở hai nơi (`app.css` và `CAP_TUONG_PHAN`) — nối bằng một bài kiểm.
 
-## 20. Vận chuyển Đợt 4 — tiền xe thuê: chờ Kế toán ký sổ vàng rồi mới đẩy
-
-- **Ngày:** 2026-10-02 · **Chủ chọn:** *"A nhưng ghi backlog lại để làm sau"* (A = đưa Đợt 3 lịch xe bận lên trước — thành 1.75 vì main đã có 1.74 quyền tiền; Đợt 4 chờ) · **Trạng thái:** `đã duyệt, chưa làm` — đã thi công xong, CHƯA lên main.
-- **Đã có:** ADR-0057 + ADR-0095 (accepted); nhánh `worktree-agent-a29831d6b479d7c89` @ 0c86f012 (máy chủ + giao diện G0–G5 + vòng vá 1; đã gộp origin/main e0d62688 và tài liệu ADR-0095). Kiểm độc lập ĐẠT cả máy chủ lẫn giao diện; typecheck 0 lỗi, `npm test` 2907/2907 + 1 todo (sổ vàng lớp 2). Migration `0072_vc_bang_gia_thue`, `0073_vc_chi_phi_chuyen` (chưa áp remote).
-- **Vì sao chờ:** ADR-0095 Q10 / ADR-0057 C12 (Hiến chương 5.17) — phát hành tiền xe thuê chờ **Kế toán ký** sổ vàng 22 ca (bản nháp ngoài kho `tmp/tra-loi/SO-VANG-KE-TOAN-KY.md` của phiên 2/10; đưa vào kho khi ký).
-- **Việc khi Kế toán ký xong:**
-  1. Chép sổ vàng đã ký vào kho, đổi trạng thái `cho_xac_nhan` → đã ký; gỡ bài `todo` sổ vàng lớp 2.
-  2. Gộp origin/main mới nhất (lúc đó có Đợt 3 = 1.75) vào nhánh; **đánh lại số 1.74 → 1.78** (main đã có 1.76 luồng L, 1.77 Trợ giúp Vận chuyển; kiểm lại số lớn nhất trên main / production lúc gộp) ở `src/shared/changelog.ts`, `src/shared/app-info.test.ts`, nhật ký thi công. Xung đột dự kiến: `changelog.ts`, `app-info.test.ts`, có thể `public/app.css`, `trang-chu-smoke.mjs`.
-  3. Chạy lại typecheck, `npm test`, e2e, Chrome (bang-gia-xe, chi-phi-chuyen, bang-ke-xe, trang-chu-smoke), `kiem-phien-ban.mjs`; rồi chủ `npm run day-len` + `npm run trien-khai` (có migration).
-- **Còn vướng kèm theo:** thêm 3 dòng kịch bản Chrome (bang-gia-xe, chi-phi-chuyen, bang-ke-xe) vào bảng của `web/CLAUDE.md` — tệp luật, chủ duyệt. Chủ có thể muốn hai ô tiền xe thuê lên hàng chính Trang chủ điện thoại của Kế toán (hiện nằm trong "Tất cả" theo thứ tự ưu tiên 1.73 — sửa một dòng).
-
 ## 21. Kiểm theo vai 2/10 — nợ đã hoãn và câu chờ chủ (mã `BL-…`)
 
 - **Ngày:** 2026-10-03 · **Nguồn:** `docs/superpowers/specs/2026-10-02-kiem-theo-vai/NGUYEN-NHAN-GOC.md` (gốc M2: "hoãn có chủ ý không có mã nợ" nên không ai quay lại) và bảng truy vết §10 của `docs/superpowers/plans/2026-10-03-khac-phuc-kiem-theo-vai-00-lo-trinh.md` · **AI ghi** khi soạn đợt V0 · **Trạng thái chung:** `tạm gác` — mỗi mục dưới có câu gốc và nơi sẽ xử lý.

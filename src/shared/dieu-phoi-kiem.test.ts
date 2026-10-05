@@ -6,7 +6,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { ChangVao, ChinhSachVao, ChuyenVao, DiemVao, DieuKienVao, HangBangVao, KhungBanVao, KhungChuyen, SuatVao, TaiXeVao, XeVao } from "./dieu-phoi-kieu.ts";
 import { changXetTheoDon, khoaNguoiRanh, kiemKetThuc, lyDoNoiTra, lyDoThieuTen, kiemTaoSuaChuyen, kiemXep, kiemXuatBen, noiLechCuaSuat, suatKhachDaDoi, tenLucXep, trongNgayChay, type KiemTaoSuaChuyenVao, type KiemXuatBenVao } from "./dieu-phoi-kiem.ts";
-import { NUT_CAP_NHAT_KHACH, type LyDoGiu } from "./ly-do-giu.ts";
+import { MA_GIU, NUT_CAP_NHAT_KHACH, type LyDoGiu } from "./ly-do-giu.ts";
+import { MA_LUAT_PHA_LE } from "./dieu-phoi-kieu.ts";
 import { batDauSomNhatSauDoiGio } from "./moc-toi-thieu.ts";
 import { vnLocalToMs } from "./vn-date.ts";
 
@@ -202,7 +203,7 @@ test("R-P6 khoá DÍNH — tái hiện chuỗi lách 3 bước (Q-A4-1, người
 // ---- kiemXuatBen --------------------------------------------------------------------------------------------------------------------------------------------
 const chuyenVao = (v: Partial<ChuyenVao> = {}): ChuyenVao => ({
   id: "cx-07", ma: "CX-3009-07", ngayChay: "2026-09-30", batDauMs: BAT_DAU, ketThucMs: KET_THUC, ketThucThatMs: null, trangThai: "PLANNED",
-  xe: xe(), taiXe: taiXe(), nghiChup: 30, nghiPhaLe: false, ...v,
+  xe: xe(), taiXe: taiXe(), nghiChup: 30, nghiPhaLe: false, thue: false, coNguonGia: false, ...v,
 });
 const BON_SUAT = [suat({ id: "s1", personKey: "p1" }), suat({ id: "s2", personKey: "p2" }), suat({ id: "s3" }), suat({ id: "s4" })];
 const LUC_XUAT_BEN = BAT_DAU - 5 * PHUT;
@@ -507,6 +508,16 @@ test("lyDoNoiTra / lyDoThieuTen — hai hàm dùng chung của cổng xuất b�
   assert.equal(lyDoThieuTen(chang({ nguoiCuaDon: [] }), false), null, "chính sách không bắt danh sách");
   assert.equal(lyDoThieuTen(chang({ nguoiCuaDon: ["p1", "p2"] }), true)?.loiNhan, "Chưa đủ tên khách: ĐH-1024 thiếu 2 tên");
   assert.equal(lyDoThieuTen(chang(), true, { chuaTen: 3, ranh: 1 })?.loiNhan, "Chưa đủ tên khách: ĐH-1024 thiếu 2 tên", "suất chưa tên trên chuyến nhiều hơn khoá rảnh");
+});
+
+test("ADR-0057 C5: kiemXuatBen — chuyến xe thuê không nguồn giá → giữ THIEU_GIA (Quản trị); có nguồn giá hoặc không thuê → không; KHÔNG trong MA_LUAT_PHA_LE", () => {
+  const vao = xb();
+  assert.deepEqual(kiemXuatBen({ ...vao, chuyen: { ...vao.chuyen, thue: true, coNguonGia: false } }).lyDo.map((l) => l.ma), ["THIEU_GIA"]);
+  assert.equal(kiemXuatBen({ ...vao, chuyen: { ...vao.chuyen, thue: true, coNguonGia: true } }).dat, true);
+  assert.equal(kiemXuatBen({ ...vao, chuyen: { ...vao.chuyen, thue: false, coNguonGia: false } }).dat, true);
+  assert.equal(MA_GIU.THIEU_GIA.aiXuLy, "QUAN_TRI");
+  assert.match(MA_GIU.THIEU_GIA.loiNhan, /Kế toán/);
+  assert.ok(!(MA_LUAT_PHA_LE as readonly string[]).includes("THIEU_GIA"));
 });
 
 // ---- Khung bận (ADR-0055 VK2-A A2 (i); ADR-0053 D9 B9.3 — kế hoạch Đợt 3 Task 2) ------------------------------------------------------------------------

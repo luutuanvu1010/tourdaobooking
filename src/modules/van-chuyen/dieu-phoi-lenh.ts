@@ -21,6 +21,13 @@ import {
 import { canhBaoDto, changLichDto, chuyenTomTat, lyDoDangDung, taiXeChon, xeChon } from "./dieu-phoi-dto";
 import { chayLo, diemChoKhoa, diemKhongConKhach, sapLaiDiem, gioNgan, loi409, loiKiem, lyDoHopLe, maDonGon, nhanLyDo, phaLeNhatKy } from "./dieu-phoi-route";
 import type { BaoHuyThan, DoiThan, HuyThan, RutThan, SuaChuyenThan, XepThan } from "./dieu-phoi-than";
+import { phanLoaiThue } from "./tien-xe";
+import { chiTietChiPhiNhatKy, keHoachChiPhiKhiDoi, keHoachChiPhiKhiHuy } from "./tien-xe-lo";
+import { docChiPhiChoLenh, tenNhaXePhiHuy, tenTuyen, tenTuyenDangDung } from "./tien-xe-lenh";
+import { cauNhaXeThoi } from "./rules";
+
+const TUYEN_KHONG_HOP_LE = () => error(400, "invalid_input", "Tuyến không có hoặc đã ngưng dùng.");
+const NHA_XE_THOI_HOP_TAC = (v: { doiTuyen: boolean; doiNgay: boolean }) => error(409, "carrier_inactive", cauNhaXeThoi(v));
 
 const NGAY_MS = 86_400_000;
 const nowIsoOf = (ms: number) => new Date(ms).toISOString();
@@ -49,6 +56,10 @@ export async function lenhSuaChuyen(db: D1Database, nen: NenChuyen, b: SuaChuyen
   const ketThucMs = b.ketThucMs ?? t.planned_end_ms;
   const xeRow = chung.xe.find((x) => x.id === xeId);
   if (!xeRow) return error(400, "invalid_input", "Xe không có hoặc đã ngừng dùng.");
+  // ADR-0057 C2: tuyến (vắng = giữ). Đổi sang tuyến khác phải là tuyến đang dùng.
+  const tuyenMoi = b.tuyen === undefined ? t.route_code : b.tuyen;
+  const doiTuyen = tuyenMoi !== t.route_code;
+  if (doiTuyen && tuyenMoi !== null && (await tenTuyenDangDung(db, tuyenMoi)) === null) return TUYEN_KHONG_HOP_LE();
   // LC-13 phần CHỈ máy chủ giữ (R-P8): tài xế MỚI không có trong `taiXeChoDieuPhoi` → chéo xe – tài xế (không báo nhầm "chưa có GPLX").
   if (b.taiXePartyId !== null && b.taiXePartyId !== t.driver_party_id && !chung.taiXe.some((x) => x.partyId === b.taiXePartyId)) {
     return loi409("cheo_xe_tai_xe", [lyDoGiu("CHEO_XE_TAI_XE")]);
@@ -58,6 +69,19 @@ export async function lenhSuaChuyen(db: D1Database, nen: NenChuyen, b: SuaChuyen
     if (!s) return error(400, "invalid_input", "Điểm không thuộc chuyến này.");
     if (s.status !== "PENDING") return error(409, "diem_da_toi", "Điểm đã tới hoặc đã bỏ qua — không đổi thứ tự, giờ xe tới.");
   }
+  // ADR-0057 C2a, C4 (Cần chủ 3 = A): cờ xe thuê CHỈ tính lại khi đổi xe (trigger vc_trip_rented_alone chặn đổi riêng cờ; chuyến cũ cờ 0 sửa giờ vẫn được); chi phí
+  // tính lại khi đổi xe / nhà xe / tuyến / NGÀY chạy (ngày VN của giờ bắt đầu — dời giờ trong cùng ngày không tính lại). Xét TRƯỚC luật chéo xe – tài xế: chuyến
+  // của nhà xe đã thôi hợp tác mà cần tính lại giá ⇒ 409 `carrier_inactive` bằng câu ADR C4 (không để lại dòng đảo lẻ).
+  const doiXe = xeId !== t.vehicle_id;
+  const ngayChayMoi = msToVnLocal(batDauMs).date;
+  const cp = await docChiPhiChoLenh(db, { tripId: t.id, chuXe: xeRow.owner_party_id, homNay: homNay(bayGioMs) });
+  const thue = doiXe ? phanLoaiThue({ chuXePartyId: xeRow.owner_party_id, congTyChuId: cp.congTyChuId, nhaXeDangMo: cp.nhaXeDangMo, cuRented: t.rented }) : t.rented;
+  const doiNgay = ngayChayMoi !== t.service_date;
+  const kh = keHoachChiPhiKhiDoi({
+    dong: cp.dong, homNay: homNay(bayGioMs), rentedMoi: thue, chuXeMoi: xeRow.owner_party_id, nhaXeDangMo: cp.nhaXeDangMo, laTaoMoi: false, doiXeHoacNhaXe: doiXe, doiTuyen,
+    doiNgay, tuyenMoi, soChoMoi: xeRow.passenger_capacity, ngayChayMoi, gia: cp.gia, coXe: cp.coXe,
+  });
+  if (!kh.ok) return NHA_XE_THOI_HOP_TAC({ doiTuyen, doiNgay: doiNgay && !doiXe });
   const khac = (await tripsTouching(db, Math.min(batDauMs, t.planned_start_ms) - NGAY_MS, Math.max(ketThucMs, t.planned_end_ms) + NGAY_MS)).filter((x) => x.id !== t.id);
   const tai = nen.allocs.filter((a) => a.valid_to_at === null && (a.status === "WAITING" || a.status === "BOARDED")).length;
   // ADR-0055 VK2-A A2 (i): khung bận còn hiệu lực giao giờ MỚI là khoảng chặn (lớp máy chủ nói trước bằng lời; trigger vc_trip_unavailable_upd là lưới thứ hai).
@@ -72,13 +96,12 @@ export async function lenhSuaChuyen(db: D1Database, nen: NenChuyen, b: SuaChuyen
   if (chan) return chan;
   if (ra) ra.nhacGioLai = kq.nhacGioLai;
   const doiGio = batDauMs !== t.planned_start_ms;
-  const doiXe = xeId !== t.vehicle_id;
   const doiTaiXe = taiXeId !== t.driver_party_id && taiXeId !== null;
   const diemDoi = b.diem.filter((d) => {
     const s = nen.stops.find((x) => x.id === d.id)!;
     return s.seq !== d.thuTu || s.planned_date !== (d.gioXeToi?.ngay ?? null) || s.planned_time !== (d.gioXeToi?.gio ?? null);
   });
-  if (!doiGio && ketThucMs === t.planned_end_ms && !doiXe && !doiTaiXe && diemDoi.length === 0 && !b.nghiPhaLe) return null; // không đổi gì — không ghi
+  if (!doiGio && ketThucMs === t.planned_end_ms && !doiXe && !doiTaiXe && !doiTuyen && diemDoi.length === 0 && !b.nghiPhaLe) return null; // không đổi gì — không ghi
   // R-P6 + R-P7: giờ sớm nhất sau khi đổi giờ — MỘT luật (`batDauSomNhatSauDoiGio`, mốc của chính sách HIỆN HÀNH lúc sửa); không đổi giờ thì giữ.
   const phut = chung.chinhSach?.min_lead_minutes ?? 0;
   const somNhat = doiGio ? batDauSomNhatSauDoiGio({ batDauMs: t.planned_start_ms, batDauSomNhatMs: t.earliest_start_ms }, batDauMs, bayGioMs, phut) : Math.min(t.earliest_start_ms, batDauMs);
@@ -88,13 +111,18 @@ export async function lenhSuaChuyen(db: D1Database, nen: NenChuyen, b: SuaChuyen
   if (doiTaiXe) thay.push("đổi tài xế");
   if (doiGio || ketThucMs !== t.planned_end_ms) thay.push(`giờ ${gioNgan(t.planned_start_ms, bayGioMs)}–${gioNgan(t.planned_end_ms, bayGioMs)} → ${gioNgan(batDauMs, bayGioMs)}–${gioNgan(ketThucMs, bayGioMs)}`);
   if (diemDoi.length > 0) thay.push(`${diemDoi.length} điểm đổi thứ tự / giờ xe tới`);
+  if (doiTuyen) thay.push(`tuyến ${await tenTuyen(db, t.route_code)} → ${await tenTuyen(db, tuyenMoi)}`);
   const lo = loSuaChuyen(db, {
     ...lenhChung(b.requestId, staff, bayGioMs), tripId: t.id, version: b.version,
-    moi: { xeId, chuXePartyId: xeRow.owner_party_id, ngayChay: msToVnLocal(batDauMs).date, batDauMs, ketThucMs, batDauSomNhatMs: somNhat, nghiPhaLeLyDo: b.nghiPhaLe?.lyDo ?? t.rest_override_reason_code },
+    moi: {
+      xeId, chuXePartyId: xeRow.owner_party_id, ngayChay: ngayChayMoi, batDauMs, ketThucMs, batDauSomNhatMs: somNhat, nghiPhaLeLyDo: b.nghiPhaLe?.lyDo ?? t.rest_override_reason_code,
+      thue, tuyen: tuyenMoi,
+    },
+    chiPhi: kh.kh, phienBanChiPhi: kh.kh.phienBan,
     doiTaiXe: doiTaiXe ? taiXeId : null,
     diem: diemDoi.map((d) => ({ id: d.id, seq: d.thuTu, ngayXeToi: d.gioXeToi?.ngay ?? null, gioXeToi: d.gioXeToi?.gio ?? null })),
     phaLe, policyId: chung.chinhSach?.id ?? null,
-    detail: `${t.code}: ${thay.join("; ") || "phá lệ khoảng nghỉ"}${phaLe ? phaLeNhatKy(phaLe.luat, nhanLyDo(chung, phaLe.lyDo)) : ""}`,
+    detail: `${t.code}: ${thay.join("; ") || "phá lệ khoảng nghỉ"}${phaLe ? phaLeNhatKy(phaLe.luat, nhanLyDo(chung, phaLe.lyDo)) : ""}${chiTietChiPhiNhatKy(kh.kh, thue, false, await tenNhaXePhiHuy(db, kh.kh.phiHuyBiDao))}`,
   });
   const r = await chayLo(db, lo, b.requestId);
   return r.ok ? null : r.res;
@@ -378,9 +406,13 @@ export async function lenhHuy(db: D1Database, nen: NenChuyen, b: HuyThan, staff:
   const chan = loiKiem({ ok: !moc, chan: [], canPhaLe: moc ? [lyDoGiu("MOC_TOI_THIEU", t.code)] : [] }, staff, t.status, { moc: b.phaLe !== null, nghi: true });
   if (chan) return chan;
   const phaLe = moc ? phaLeCua(chung, "MOC_TOI_THIEU", b.phaLe) : null;
+  // ADR-0057 C4: lô huỷ đảo MỌI dòng chi phí còn hiệu lực (âm → dương) trước câu trạng thái cuối; phiên bản chi phí ở câu cổng (TC-8).
+  const cp = await docChiPhiChoLenh(db, { tripId: t.id, chuXe: t.carrier_party_id, homNay: homNay(bayGioMs) });
+  const kh = keHoachChiPhiKhiHuy(cp.dong, homNay(bayGioMs));
   const lo = loHuy(db, {
     ...lenhChung(b.requestId, staff, bayGioMs), tripId: t.id, version: b.version, lyDo: b.lyDo, phaLe, policyId: chung.chinhSach?.id ?? null, soSuatMo: soMo,
-    detail: `${t.code}: huỷ — ${nhanLyDo(chung, b.lyDo)}${soMo > 0 ? ` · còn ${soMo} người` : ""}${phaLe ? phaLeNhatKy(phaLe.luat, nhanLyDo(chung, phaLe.lyDo)) : ""}`,
+    chiPhi: kh, phienBanChiPhi: kh.phienBan,
+    detail: `${t.code}: huỷ — ${nhanLyDo(chung, b.lyDo)}${soMo > 0 ? ` · còn ${soMo} người` : ""}${phaLe ? phaLeNhatKy(phaLe.luat, nhanLyDo(chung, phaLe.lyDo)) : ""}${chiTietChiPhiNhatKy(kh, t.rented, true, await tenNhaXePhiHuy(db, kh.phiHuyBiDao))}`,
   });
   const r = await chayLo(db, lo, b.requestId);
   return r.ok ? null : r.res;

@@ -61,7 +61,10 @@ const lienKetSau = [
   logoutBtn,
 ];
 const quanLyXe = can(staff, "vehicle.manage");
-if (quanLyXe || thayDieuPhoiXe(staff)) {
+// Tiền xe thuê (bản vẽ Đợt 4): "Bảng giá thuê xe" (ô transport.rate.view), "Bảng kê chi phí xe" (ô transport.cost.view) ngay sau "Điều phối xe".
+const bangGiaXe = can(staff, "transport.rate.view");
+const bangKeXe = can(staff, "transport.cost.view");
+if (quanLyXe || thayDieuPhoiXe(staff) || bangGiaXe || bangKeXe) {
   // Vận chuyển (ADR-0040 D1; bản vẽ 00, điện thoại): Danh bạ / Địa điểm / Loại giấy tờ cá nhân → nhãn "VẬN CHUYỂN" → Điều phối xe (ô trip.view — Q-B-4, cả Bán
   // hàng, Kế toán) / Xe / Giấy tờ sắp hết hạn (huy hiệu cát) / Loại giấy tờ xe (tách 2026-09-28; thêm ô admin.manage — route sửa danh mục hỏi ô này) → phần còn lại.
   // `#links` giữ phần còn lại (Góp ý, Trợ giúp, Đăng xuất…) để mọi chỗ đang tìm các dòng đó trong #links vẫn đúng; tài khoản không có ô nào của nhóm: DOM như cũ.
@@ -82,6 +85,8 @@ if (quanLyXe || thayDieuPhoiXe(staff)) {
       { id: "vc-links", class: "card list-card", "aria-labelledby": "vc-eyebrow" },
       thayDieuPhoiXe(staff) && h("a", { class: "row-link", href: "/dieu-phoi" }, h("span", { class: "vc-row-label" }, "Điều phối xe"), icon("next", 20)),
       thayDieuPhoiXe(staff) && h("a", { class: "row-link", href: "/xe-dang-chay" }, h("span", { class: "vc-row-label" }, "Xe đang chạy"), icon("next", 20)),
+      bangGiaXe && h("a", { class: "row-link", href: "/bang-gia-xe" }, h("span", { class: "vc-row-label" }, "Bảng giá thuê xe"), icon("next", 20)),
+      bangKeXe && h("a", { class: "row-link", href: "/bang-ke-xe" }, h("span", { class: "vc-row-label" }, "Bảng kê chi phí xe"), icon("next", 20)),
       // Kiểm độc lập K2b T2 (điều phối chốt, GA-K2b-T2): tài khoản vừa tài xế công ty vừa văn phòng — lối tới "Cuốc của tôi" ở điện thoại (tài khoản chỉ tài xế
       // có tab riêng; trang đầu của tổ hợp này KHÔNG đổi).
       coCuocCuaToi(staff) && !chiTaiXe(staff) && h("a", { class: "row-link", href: "/cuoc" }, h("span", { class: "vc-row-label" }, "Cuốc của tôi"), icon("next", 20)),

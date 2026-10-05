@@ -13,6 +13,7 @@ import { can, type PermissionHolder } from "../../shared/permissions";
 import { maskLongDigits } from "../../shared/text-guards";
 import { sapDonTruocTra } from "../../shared/thu-tu-diem";
 import { msToVnLocal, ngayNgan } from "../../shared/vn-date";
+import { findRoute } from "./tien-xe-repo";
 import { allocsByTrips, banChupCuoi, eventByRequest, eventsByTrips, stopsByTrips, tenNguoiDiKem, type StopRow, type TripRow } from "./chuyen-repo";
 import type { CauCoNhan, DiemMoi } from "./dieu-phoi";
 import {
@@ -187,12 +188,15 @@ export async function chiTietChuyen(
   if (kemTen) for (const ch of hk) for (const n of ch.nguoi) ten.set(n.personKey, { fullName: n.fullName, birthYear: n.birthYear });
   const lyDoNhan = new Map(c.lyDo.map((r) => [r.code, r.label]));
   const xeRow = c.xe.find((x) => x.id === t.vehicle_id);
+  // Đợt 4 G3: TÊN tuyến (kể cả đã ngưng dùng) để form sửa chuyến điền sẵn — chỉ tên, không giá.
+  const tuyenRow = t.route_code ? await findRoute(db, t.route_code) : null;
   return {
     chuyen: {
       ...chuyenTomTat(t, { xe: xeRow, chung: c, stops: nen.stops, allocs: nen.allocs, events: nen.events, lyDoGiu, nhan, bayGioMs }),
       nghiPhaLe: t.rest_override_reason_code !== null,
       lyDoHuy: t.cancel_reason_code ? (lyDoNhan.get(t.cancel_reason_code) ?? null) : null,
       lyDoKetThuc: t.end_reason_code ? (lyDoNhan.get(t.end_reason_code) ?? null) : null,
+      tuyen: t.route_code ? { ma: t.route_code, ten: tuyenRow?.name ?? t.route_code } : null,
     },
     diem: nen.stops.map((s) => diemChuyenDto(s, { allocs: nen.allocs, chang: nc.chang, stops: nen.stops, events: nen.events, nhan })),
     suat: nen.allocs.filter((a) => a.valid_to_at === null).map((a) => suatChuyenDto(a, { changLich: nc.changLich, changNgoai: nc.changNgoai, ten, events: nen.events, nhan, tenDiKem, lyDoNhan })),

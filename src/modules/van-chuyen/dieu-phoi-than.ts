@@ -28,8 +28,11 @@ function docPhaLe(v: unknown, ten: string): KetQua<{ lyDo: string } | null> {
   return typeof lyDo === "string" && MA_RE.test(lyDo) ? { ok: true, value: { lyDo } } : fail(`${ten}: chọn một lý do trong danh mục.`);
 }
 const idHopLe = (v: unknown): v is string => typeof v === "string" && v.length >= 3 && v.length <= 64 && /^[A-Za-z0-9-]+$/.test(v);
+/** ADR-0057 C2: mã tuyến (nhãn tra giá thuê) — chuỗi mã hoặc null (bỏ tuyến). Có / đang dùng: lệnh kiểm với danh mục. */
+const MA_TUYEN_RE = /^[A-Z0-9][A-Z0-9_-]{1,29}$/;
+const tuyenHopLe = (v: unknown): v is string | null => v === null || (typeof v === "string" && MA_TUYEN_RE.test(v));
 
-export interface TaoChuyenThan { requestId: string; xeId: string; taiXePartyId: string; batDauMs: number; ketThucMs: number; nghiPhaLe: { lyDo: string } | null }
+export interface TaoChuyenThan { requestId: string; xeId: string; taiXePartyId: string; batDauMs: number; ketThucMs: number; nghiPhaLe: { lyDo: string } | null; tuyen: string | null }
 export function docTaoChuyen(body: Record<string, unknown> | null): KetQua<TaoChuyenThan> {
   if (!body) return fail("Dữ liệu không hợp lệ.");
   const rid = docRequestId(body);
@@ -41,7 +44,8 @@ export function docTaoChuyen(body: Record<string, unknown> | null): KetQua<TaoCh
   if (batDauMs === null || ketThucMs === null) return fail("Giờ bắt đầu, giờ kết thúc dự kiến: ngày YYYY-MM-DD và giờ HH:MM.");
   const nghi = docPhaLe(body.nghiPhaLe, "Phá lệ khoảng nghỉ");
   if (!nghi.ok) return nghi;
-  return { ok: true, value: { requestId: rid.value, xeId: body.xeId, taiXePartyId: body.taiXePartyId, batDauMs, ketThucMs, nghiPhaLe: nghi.value } };
+  if (body.tuyen !== undefined && !tuyenHopLe(body.tuyen)) return fail("Tuyến không hợp lệ.");
+  return { ok: true, value: { requestId: rid.value, xeId: body.xeId, taiXePartyId: body.taiXePartyId, batDauMs, ketThucMs, nghiPhaLe: nghi.value, tuyen: (body.tuyen as string | null | undefined) ?? null } };
 }
 
 export interface SuaChuyenThan {
@@ -54,6 +58,8 @@ export interface SuaChuyenThan {
   diem: { id: string; thuTu: number; gioXeToi: { ngay: string; gio: string } | null }[];
   phaLe: { lyDo: string } | null;
   nghiPhaLe: { lyDo: string } | null;
+  /** ADR-0057 C2: vắng (undefined) = giữ tuyến; null = bỏ tuyến; mã = đổi tuyến. */
+  tuyen: string | null | undefined;
 }
 export function docSuaChuyen(body: Record<string, unknown> | null): KetQua<SuaChuyenThan> {
   if (!body) return fail("Dữ liệu không hợp lệ.");
@@ -83,11 +89,12 @@ export function docSuaChuyen(body: Record<string, unknown> | null): KetQua<SuaCh
   if (!phaLe.ok) return phaLe;
   const nghi = docPhaLe(body.nghiPhaLe, "Phá lệ khoảng nghỉ");
   if (!nghi.ok) return nghi;
+  if (body.tuyen !== undefined && !tuyenHopLe(body.tuyen)) return fail("Tuyến không hợp lệ.");
   return {
     ok: true,
     value: {
       version: v.value, requestId: rid.value, xeId: (body.xeId as string | undefined) ?? null, taiXePartyId: (body.taiXePartyId as string | undefined) ?? null, batDauMs, ketThucMs,
-      diem, phaLe: phaLe.value, nghiPhaLe: nghi.value,
+      diem, phaLe: phaLe.value, nghiPhaLe: nghi.value, tuyen: body.tuyen as string | null | undefined,
     },
   };
 }

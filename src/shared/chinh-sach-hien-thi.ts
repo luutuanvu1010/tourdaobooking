@@ -209,6 +209,7 @@ export function nhomLyDoHien(reasons: readonly TripReasonDto[]): NhomHien[] {
 /** Tiền tố mã theo nhóm — khớp mã gieo của migration 0041 (PHA_LE_…, HUY_…, GIAN_DOAN_…, DOI_GIO_XE_…, BO_QUA_…). */
 const TIEN_TO: Readonly<Record<NhomLyDo, string>> = {
   PHA_LE: "PHA_LE", HUY_CHUYEN: "HUY", KET_THUC_GIAN_DOAN: "GIAN_DOAN", DOI_GIO_XE: "DOI_GIO_XE", BO_QUA_DIEM: "BO_QUA", BAO_HUY_DIEM: "BAO_HUY", TU_CHOI_NHAN: "TU_CHOI", BAN_XE: "BAN_XE",
+  CHI_PHI_XE: "CPX", // ADR-0057 T2 (0073): lý do chi phí xe thuê — mã gieo CPX_…
 };
 const MA_TOI_DA = 40;
 /**

@@ -80,6 +80,10 @@ export const noOverflowX = `document.documentElement.scrollWidth <= window.inner
 /** Biểu thức: chữ hiển thị của `main` không lộ mã kỹ thuật (mã HOA có gạch dưới, trạng thái tiếng Anh). */
 export const noCode = `(() => { const t = document.querySelector('main').innerText; const m = t.match(/\\b[A-Z][A-Z0-9]*_[A-Z0-9_]+\\b|\\b(RUNNING|PLANNED|VEHICLE|DRIVER|PHA_LE|INSPECTION|TPL_INSURANCE|undefined|null|NaN)\\b/); return m ? m[0] : ''; })()`;
 /** Đường dẫn các lời gọi /api/* một trang đã gửi (kèm phương thức). */
+/** Gọi API BẰNG PHIÊN CỦA TRANG (ADR-0075: một phiên mỗi tài khoản — `call()` đăng nhập riêng sẽ đá phiên trình duyệt của cùng tài khoản và ngược lại). */
+export const fetchTrang = (pg, method, path, body) =>
+  pg.ev(`fetch(${JSON.stringify(path)}, { method: ${JSON.stringify(method)}, headers: { "content-type": "application/json" }${body === undefined ? "" : `, body: ${JSON.stringify(JSON.stringify(body))}`} })
+    .then(async (r) => { const text = await r.text(); let json = null; try { json = JSON.parse(text); } catch {} return { status: r.status, json, text }; })`);
 export const apiCalls = (p) => p.requests.map((r) => ({ method: r.method, path: new URL(r.url).pathname, body: r.postData })).filter((r) => r.path.startsWith("/api/"));
 
 /** Dựng môi trường + tài khoản thêm + hàm gọi API (khuôn vc-lib.mjs của lượt 1a). */

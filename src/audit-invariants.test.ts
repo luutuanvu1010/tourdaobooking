@@ -1882,6 +1882,199 @@ test("R-VC-20 (NT-D4): mẫu hiện hành trỏ điểm đang dùng → 0; đi�
 });
 
 // ---------------------------------------------------------------------------------------------------------------------
+// ADR-0057 T1 B4 (kế hoạch Đợt 4 Task 5): R-VC-RATE-1 — dòng giá còn hiệu lực của hồ sơ đã thôi vai nhà xe (warn).
+// ---------------------------------------------------------------------------------------------------------------------
+test("R-VC-RATE-1 (ADR-0057 B4): nhà xe đang hợp tác có giá mở → 0; thôi vai → 1 (warn); kết thúc dòng giá → 0; dòng đã hết hạn trước hôm nay không đếm", () => {
+  const c = one("R-VC-RATE-1");
+  assert.equal(c.level, "warn");
+  const db = build();
+  db.exec(`INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES ('p-nx', 'ORGANIZATION', 'Nhà xe', 1, '${T1}', '${T1}')`);
+  db.exec(`INSERT INTO pty_party_role (id, party_id, role_type_code, location_id, valid_from_date, created_at, updated_at) VALUES ('r-nx', 'p-nx', 'CARRIER', NULL, '2026-09-01', '${T1}', '${T1}')`);
+  db.exec(`INSERT INTO vc_route (code, name, created_at, updated_at) VALUES ('T001', 'Tuyến', '${T1}', '${T1}')`);
+  db.exec(`INSERT INTO vc_vehicle_size (code, label, min_passengers, max_passengers, created_at, updated_at) VALUES ('S001', '10–16 khách', 10, 16, '${T1}', '${T1}')`);
+  const gia = (id: string, tu: string, den: string | null) =>
+    db.prepare(`INSERT INTO vc_rental_rate (id, carrier_party_id, route_code, vehicle_size_code, amount, valid_from_date, valid_to_date, created_at, updated_at) VALUES (?, 'p-nx', 'T001', 'S001', 1000000, ?, ?, ?, ?)`)
+      .run(id, tu, den, T1, T1);
+  gia("g-cu", "2020-01-01", "2020-12-31");
+  gia("g-mo", "2026-09-01", null);
+  assert.equal(violations(db, c), 0);
+  db.exec("UPDATE pty_party_role SET valid_to_date = '2026-09-30' WHERE id = 'r-nx'");
+  assert.equal(violations(db, c), 1, "dòng mở của nhà xe đã thôi");
+  db.exec("UPDATE vc_rental_rate SET valid_to_date = '2026-09-15' WHERE id = 'g-mo'");
+  assert.equal(violations(db, c), 0, "đã kết thúc (ngày đã qua)");
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// ADR-0057 T2 C8 (kế hoạch Đợt 4 Task 11): R-VC-COST-1 … 6 — lưới thứ hai của chi phí chuyến xe thuê. Dựng thô (`tho()` gỡ mọi trigger vc_trip%, kể cả của
+// vc_trip_cost_line) để gieo vi phạm như SQL gõ tay trên D1.
+// ---------------------------------------------------------------------------------------------------------------------
+let soCp = 0;
+function cpTho(db: DatabaseSync, o: { trip: string; kind: string; amount: number; reverses?: string | null; reason?: string | null; at?: string; carrier?: string; cmd?: string; tay?: boolean }): string {
+  // `tay`: dòng do Kế toán ghi tay — id = dấu lệnh (khuôn route chi phí; R-VC-COST-8 phân biệt đảo tay / đảo do lô lệnh).
+  const id = o.tay ? crypto.randomUUID() : `cp-${++soCp}`;
+  const snap = o.kind === "SNAPSHOT";
+  db.prepare(`INSERT INTO vc_trip_cost_line (id, trip_id, carrier_party_id, kind, amount, rate_id, passenger_capacity_snapshot, unit_amount_snapshot, reason_code, reverses_id,
+      occurred_date, cmd_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '2026-09-21', ?, ?, ?)`)
+    .run(id, o.trip, o.carrier ?? "p-nx", o.kind, o.amount, snap ? "rate-1" : null, snap ? 16 : null, snap ? o.amount : null,
+      o.reason === undefined ? (snap ? null : o.kind === "AGREED" ? "CPX_GIA_THOA_THUAN" : "CPX_KHAC") : o.reason, o.reverses ?? null, o.tay ? id : (o.cmd ?? "c".repeat(36)), o.at ?? T2, o.at ?? T2);
+  return id;
+}
+const thue = (db: DatabaseSync, trip: string) => db.prepare("UPDATE vc_trip SET rented = 1 WHERE id = ?").run(trip);
+
+test("R-VC-COST-1 / 1b (ADR-0057 C8): chuyến xe thuê hai nguồn giá chưa đảo → 1 (fail); đảo một → 0; thiếu giá khi PLANNED → 1b (warn)", () => {
+  const c1 = one("R-VC-COST-1");
+  const c1b = one("R-VC-COST-1b");
+  assert.deepEqual([c1.level, c1b.level], ["fail", "warn"]);
+  const db = tho();
+  const t = chuyenTho(db, { carrier: "p-nx" });
+  thue(db, t);
+  assert.deepEqual([violations(db, c1), violations(db, c1b)], [0, 1], "thiếu giá");
+  const s = cpTho(db, { trip: t, kind: "SNAPSHOT", amount: 1_200_000 });
+  assert.deepEqual([violations(db, c1), violations(db, c1b)], [0, 0]);
+  cpTho(db, { trip: t, kind: "AGREED", amount: 1_350_000 });
+  assert.equal(violations(db, c1), 1, "hai nguồn giá");
+  cpTho(db, { trip: t, kind: "REVERSAL", amount: -1_200_000, reverses: s });
+  assert.equal(violations(db, c1), 0);
+});
+
+test("R-VC-COST-2: dòng đảo sai số / trỏ dòng không có / đảo dòng đảo → vi phạm (fail)", () => {
+  const c = one("R-VC-COST-2");
+  assert.equal(c.level, "fail");
+  const db = tho();
+  const t = chuyenTho(db, { carrier: "p-nx" });
+  const a = cpTho(db, { trip: t, kind: "ADJUSTMENT", amount: 150_000 });
+  const r = cpTho(db, { trip: t, kind: "REVERSAL", amount: -150_000, reverses: a });
+  assert.equal(violations(db, c), 0);
+  cpTho(db, { trip: t, kind: "REVERSAL", amount: 150_000, reverses: r });
+  assert.equal(violations(db, c), 1, "đảo dòng đảo");
+  const b = cpTho(db, { trip: t, kind: "ADJUSTMENT", amount: 70_000 });
+  cpTho(db, { trip: t, kind: "REVERSAL", amount: -70_001, reverses: b });
+  cpTho(db, { trip: t, kind: "REVERSAL", amount: -5, reverses: "khong-co" });
+  assert.equal(violations(db, c), 3);
+});
+
+test("R-VC-COST-3 (TC-10; ADR-0095 Q5): chuyến rented = 0 còn nguồn giá chưa đảo HOẶC tổng ≠ 0 ngoài 'Phí huỷ muộn' cho nhà xe cũ → vi phạm; đổi sang xe công ty với dòng đã đảo (tổng 0) → không; chuyến huỷ → không xét", () => {
+  const c = one("R-VC-COST-3");
+  assert.equal(c.level, "fail");
+  const db = tho();
+  const t = chuyenTho(db, { carrier: "p-cty" });
+  const s = cpTho(db, { trip: t, kind: "SNAPSHOT", amount: 1_200_000 });
+  assert.equal(violations(db, c), 1, "nguồn giá trên chuyến không thuê");
+  cpTho(db, { trip: t, kind: "REVERSAL", amount: -1_200_000, reverses: s });
+  assert.equal(violations(db, c), 0, "V13: dòng đã đảo, tổng 0");
+  const ph = cpTho(db, { trip: t, kind: "ADJUSTMENT", amount: 300_000, reason: "CPX_HUY_MUON" });
+  assert.equal(violations(db, c), 0, "4.7: tổng ≠ 0 CHỈ gồm phí huỷ muộn cho nhà xe cũ (p-nx ≠ p-cty) → hợp lệ");
+  const kh = cpTho(db, { trip: t, kind: "ADJUSTMENT", amount: 50_000, reason: "CPX_KHAC" });
+  assert.equal(violations(db, c), 1, "lý do khác trên chuyến không thuê → vi phạm");
+  cpTho(db, { trip: t, kind: "REVERSAL", amount: -50_000, reverses: kh, reason: "CPX_NHAP_SAI" });
+  assert.equal(violations(db, c), 0, "dòng lý do khác đã đảo → tổng phần còn lại = phí huỷ");
+  cpTho(db, { trip: t, kind: "REVERSAL", amount: -300_000, reverses: ph, reason: "CPX_NHAP_SAI" });
+  assert.equal(violations(db, c), 0, "đảo luôn phí huỷ → tổng 0");
+  const t3 = chuyenTho(db, { carrier: "p-cty" });
+  const s3 = cpTho(db, { trip: t3, kind: "SNAPSHOT", amount: 1_000_000 });
+  cpTho(db, { trip: t3, kind: "REVERSAL", amount: -1_000_000, reverses: s3 });
+  cpTho(db, { trip: t3, kind: "ADJUSTMENT", amount: 300_000, reason: "CPX_HUY_MUON", carrier: "p-khac" });
+  assert.equal(violations(db, c), 1, "vòng sửa 3: phí huỷ mang nhà xe CHƯA TỪNG có nguồn giá trên chuyến này → vi phạm");
+  db.prepare("UPDATE vc_trip SET status = 'CANCELLED', cancel_reason_code = 'HUY_KHAC' WHERE id = ?").run(t3);
+  const t2 = chuyenTho(db, { carrier: "p-cty" });
+  cpTho(db, { trip: t2, kind: "ADJUSTMENT", amount: 300_000, reason: "CPX_HUY_MUON", carrier: "p-cty" });
+  assert.equal(violations(db, c), 1, "phí huỷ muộn mang CHÍNH công ty chủ (không phải nhà xe cũ) → vi phạm");
+  db.prepare("UPDATE vc_trip SET status = 'CANCELLED', cancel_reason_code = 'HUY_KHAC' WHERE id = ?").run(t2);
+  cpTho(db, { trip: t, kind: "ADJUSTMENT", amount: 70_000, reason: "CPX_KHAC" });
+  assert.equal(violations(db, c), 1, "tổng ≠ 0 vì lý do khác");
+  db.prepare("UPDATE vc_trip SET status = 'CANCELLED', cancel_reason_code = 'HUY_KHAC' WHERE id = ?").run(t);
+  assert.equal(violations(db, c), 0, "chuyến huỷ do R-VC-COST-4 xét");
+});
+
+test("R-VC-COST-4 (vòng sửa 1 — phương án a): chuyến huỷ — tổng = cộng MỌI dòng ghi SAU lúc huỷ (ngoài lô huỷ) → 0; giá chưa đảo trong lô huỷ / dòng ghi TRƯỚC lúc huỷ còn treo → vi phạm (fail)", () => {
+  const c = one("R-VC-COST-4");
+  assert.equal(c.level, "fail");
+  const db = tho();
+  const t = chuyenTho(db, { carrier: "p-nx" });
+  thue(db, t);
+  const s = cpTho(db, { trip: t, kind: "SNAPSHOT", amount: 1_200_000, at: T1 });
+  const a = cpTho(db, { trip: t, kind: "ADJUSTMENT", amount: -200_000, reason: "CPX_NHAP_SAI", at: T1 });
+  db.prepare("UPDATE vc_trip SET status = 'CANCELLED', cancel_reason_code = 'HUY_KHAC' WHERE id = ?").run(t);
+  const ev = suKienTho(db, { trip: t, kind: "CANCELLED", ghi: T2, nhatKy: null });
+  assert.equal(violations(db, c), 1, "huỷ mà giá chưa đảo");
+  // Lô huỷ: dòng đảo CÙNG mốc giờ + CÙNG dấu lệnh với sự kiện huỷ — thuộc "trước / trong lúc huỷ".
+  cpTho(db, { trip: t, kind: "REVERSAL", amount: 200_000, reverses: a, reason: "CPX_HUY_CHUYEN", at: T2, cmd: ev });
+  assert.equal(violations(db, c), 1, "mới đảo một nửa");
+  cpTho(db, { trip: t, kind: "REVERSAL", amount: -1_200_000, reverses: s, reason: "CPX_HUY_CHUYEN", at: T2, cmd: ev });
+  assert.equal(violations(db, c), 0);
+  cpTho(db, { trip: t, kind: "ADJUSTMENT", amount: 300_000, reason: "CPX_HUY_MUON", at: T3 });
+  assert.equal(violations(db, c), 0, "V8b: phí huỷ ghi sau lúc huỷ");
+  cpTho(db, { trip: t, kind: "ADJUSTMENT", amount: -100_000, reason: "CPX_NHAP_SAI", at: T3 });
+  assert.equal(violations(db, c), 0, "luồng hợp lệ: phí huỷ rồi sửa sai (Nhập sai) — không báo nhầm (người kiểm V-1)");
+  cpTho(db, { trip: t, kind: "ADJUSTMENT", amount: 50_000, reason: "CPX_KHAC", at: T1 }); // dòng ghi TRƯỚC lúc huỷ (như gõ tay) còn treo
+  assert.equal(violations(db, c), 1, "dòng trước lúc huỷ chưa đảo");
+});
+
+test("R-VC-COST-5 (ADR tiêu chí 4c): GỠ TẠM trigger thieu_gia + insert_planned, đưa chuyến xe thuê không nguồn giá sang RUNNING → 1 (fail); khôi phục trigger trong cùng bài", () => {
+  const c = one("R-VC-COST-5");
+  assert.equal(c.level, "fail");
+  const db = build();
+  const sqlTrigger = (ten: string) => (db.prepare("SELECT sql FROM sqlite_master WHERE type = 'trigger' AND name = ?").get(ten) as { sql: string }).sql;
+  const goc = { thieuGia: sqlTrigger("vc_trip_thieu_gia"), insertPlanned: sqlTrigger("vc_trip_insert_planned") };
+  db.exec("PRAGMA foreign_keys = OFF");
+  // Chèn thẳng RUNNING (như SQL gõ tay) — trước hết thấy trigger chặn.
+  const chen = (id: string) => db.prepare(`INSERT INTO vc_trip (id, code, vehicle_id, carrier_party_id, service_date, planned_start_ms, planned_end_ms, earliest_start_ms,
+      rest_minutes_snapshot, status, departed_at, departed_ms, rented, last_cmd_id, created_at, updated_at) VALUES (?, ?, 'xe-1', 'p-nx', '2026-09-21', ?, ?, ?, 30, 'RUNNING', ?, ?, 1, ?, ?, ?)`)
+    .run(id, `CX-${id}`, Date.parse(T2), Date.parse(T3), Date.parse(T2), T2, Date.parse(T2), "c".repeat(36), T1, T1);
+  for (const t of db.prepare("SELECT name FROM sqlite_master WHERE type = 'trigger' AND tbl_name = 'vc_trip' AND name NOT IN ('vc_trip_thieu_gia', 'vc_trip_insert_planned')").all() as { name: string }[]) {
+    db.exec(`DROP TRIGGER ${t.name}`); // chỉ để chèn được dòng thô; hai trigger đang xét giữ lại tới bước gỡ tạm
+  }
+  assert.throws(() => chen("tr-cost5-a"), /vc_trip_insert_planned/);
+  db.exec("DROP TRIGGER vc_trip_thieu_gia; DROP TRIGGER vc_trip_insert_planned"); // gỡ TẠM
+  chen("tr-cost5-a");
+  assert.equal(violations(db, c), 1, "chuyến xe thuê đang chạy không nguồn giá");
+  db.exec(goc.thieuGia + ";" + goc.insertPlanned + ";"); // khôi phục
+  assert.throws(() => chen("tr-cost5-b"), /vc_trip_insert_planned/, "trigger đã khôi phục");
+  assert.ok(sqlTrigger("vc_trip_thieu_gia").includes("thieu_gia"));
+});
+
+test("R-VC-COST-6 (kẽ C2a — nợ N-T1, warn): chuyến chưa huỷ rented = 0 mà chủ xe không phải công ty chủ hiện tại → 1; xe công ty chủ → 0", () => {
+  const c = one("R-VC-COST-6");
+  assert.equal(c.level, "warn");
+  const db = tho();
+  const cty = (db.prepare("SELECT party_id FROM v_pty_owner_company").get() as { party_id: string } | undefined)?.party_id;
+  assert.ok(cty, "build() có công ty chủ");
+  chuyenTho(db, { carrier: cty });
+  assert.equal(violations(db, c), 0);
+  chuyenTho(db, { carrier: "p-nx-cu" });
+  assert.equal(violations(db, c), 1);
+});
+
+test("vòng sửa 3: MỘT mốc huỷ — R-VC-COST-4 và ngày huỷ mặc định của điều chỉnh (tien-xe-repo `vc_trip_cancelled_at`) cùng đọc created_at của sự kiện CANCELLED mới nhất", () => {
+  const sql4 = one("R-VC-COST-4").sql.replace(/\s+/g, " ");
+  assert.match(sql4, /SELECT e\.id, e\.created_at FROM vc_trip_event e WHERE e\.trip_id = t\.id AND e\.kind = 'CANCELLED' ORDER BY e\.created_at DESC LIMIT 1/);
+  const repo = readFileSync(new URL("./modules/van-chuyen/tien-xe-repo.ts", import.meta.url), "utf8");
+  assert.match(repo, /"vc_trip_cancelled_at", "SELECT created_at FROM vc_trip_event WHERE trip_id = \?1 AND kind = 'CANCELLED' ORDER BY created_at DESC LIMIT 1"/);
+});
+
+test("R-VC-COST-8 (ADR-0095 Q5b, warn): phí huỷ muộn của nhà xe cũ bị lô lệnh ĐẢO TỰ ĐỘNG mà chưa ghi lại cho cùng nhà xe → 1; ghi lại sau đó → 0; đảo TAY → 0", () => {
+  const c = one("R-VC-COST-8");
+  assert.equal(c.level, "warn");
+  const db = tho();
+  const L = (h: number) => `2026-09-21T${String(h).padStart(2, "0")}:00:00.000Z`;
+  const t = chuyenTho(db, { carrier: "p-cty" });
+  const s = cpTho(db, { trip: t, kind: "SNAPSHOT", amount: 1_200_000, at: L(1) });
+  cpTho(db, { trip: t, kind: "REVERSAL", amount: -1_200_000, reverses: s, at: L(2) });
+  const ph = cpTho(db, { trip: t, kind: "ADJUSTMENT", amount: 300_000, reason: "CPX_HUY_MUON", at: L(3), tay: true });
+  assert.equal(violations(db, c), 0, "phí huỷ còn hiệu lực");
+  cpTho(db, { trip: t, kind: "REVERSAL", amount: -300_000, reverses: ph, reason: "CPX_DOI_CHUYEN", at: L(4) }); // dấu lệnh ≠ id dòng ⇒ đảo do lô lệnh
+  assert.equal(violations(db, c), 1, "đảo tự động, chưa ghi lại");
+  cpTho(db, { trip: t, kind: "ADJUSTMENT", amount: 300_000, reason: "CPX_HUY_MUON", at: L(5), tay: true });
+  assert.equal(violations(db, c), 0, "Kế toán đã ghi lại phí huỷ cho cùng nhà xe");
+  const t2 = chuyenTho(db, { carrier: "p-cty" });
+  const s2 = cpTho(db, { trip: t2, kind: "SNAPSHOT", amount: 1_000_000, at: L(1) });
+  cpTho(db, { trip: t2, kind: "REVERSAL", amount: -1_000_000, reverses: s2, at: L(2) });
+  const ph2 = cpTho(db, { trip: t2, kind: "ADJUSTMENT", amount: 200_000, reason: "CPX_HUY_MUON", at: L(3), tay: true });
+  cpTho(db, { trip: t2, kind: "REVERSAL", amount: -200_000, reverses: ph2, reason: "CPX_NHAP_SAI", at: L(4), tay: true }); // đảo TAY: dấu lệnh = id dòng
+  assert.equal(violations(db, c), 0, "Kế toán tự đảo (nhập sai) — không cảnh báo");
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
 // ADR-0055 VK2-A hệ quả 10 (kế hoạch Đợt 3 Task 8): R-VC-21 — chuyến chưa kết thúc chồng khung bận còn hiệu lực của xe (warn, lưới thứ hai của trigger).
 // ---------------------------------------------------------------------------------------------------------------------
 test("R-VC-21 (ADR-0055 hệ quả 10): chuyến chưa huỷ, CHƯA kết thúc chồng khung bận còn hiệu lực của xe → đếm (warn); chuyến đã kết thúc / khung đã rút / khung DRIVER → không đếm", () => {

@@ -39,7 +39,12 @@ test("tạo chuyến 201 → 1 lời gọi; gửi lại cùng requestId (200) �
 test("bài quét: MỌI route POST/PUT lệnh chuyến của van-chuyen gọi baoThayDoiChuyen, và lời gọi nằm SAU `if (r) return r` / `if (!r.ok) return r.res`", () => {
   const src = readFileSync(new URL("./index.ts", import.meta.url), "utf8");
   const routes = [...src.matchAll(/route\("(POST|PUT)", "(\/api\/van-chuyen\/(?:chuyen|cuoc-cua-toi)[^"]*)"[\s\S]*?\n    \}\),/g)];
-  const lenh = routes.filter((m) => !/\/chang\//.test(m[2]!));
+  // Ngoại lệ có tên (kế hoạch Đợt 4 Task 10 bước 3b, ADR-0057 C9): route chi phí chuyến — Kế toán / Quản trị ghi TIỀN, không đổi chuyến (xe, tài xế, giờ, khách,
+  // trạng thái) ⇒ không báo tài xế / Bảng tin. Chụp / đảo giá do đổi chuyến đi trong lô tạo / sửa / huỷ chuyến — các route đó vẫn gọi baoThayDoiChuyen.
+  const KHONG_BAO = new Set(["/api/van-chuyen/chuyen/:id/chi-phi/dieu-chinh", "/api/van-chuyen/chuyen/:id/chi-phi/dao", "/api/van-chuyen/chuyen/:id/chi-phi/chup-lai",
+    "/api/van-chuyen/chuyen/:id/chi-phi/gia-thoa-thuan"]);
+  for (const k of KHONG_BAO) assert.ok(routes.some((m) => m[2] === k), `ngoại lệ ${k} không còn là route — gỡ khỏi danh sách`);
+  const lenh = routes.filter((m) => !/\/chang\//.test(m[2]!) && !KHONG_BAO.has(m[2]!));
   // Đo 2026-10-02 (sau Đợt 1, bản 1.65): 8 route kế hoạch văn phòng + 9 route tài xế + 9 route văn phòng bấm thay = 26 (kế hoạch ghi ≥ 27 là đếm nhầm).
   assert.ok(lenh.length >= 26, `chỉ thấy ${lenh.length} route lệnh chuyến`);
   const ten = new Set(lenh.map((m) => `${m[1]} ${m[2]}`));

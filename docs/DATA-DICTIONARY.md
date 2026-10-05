@@ -171,6 +171,10 @@
 | `vc_departure_rule` | bảng |  |
 | `vc_license_capacity` | bảng |  |
 | `vc_reason` | bảng tra cứu |  |
+| `vc_route` | bảng tra cứu |  |
+| `vc_vehicle_size` | bảng tra cứu |  |
+| `vc_rental_rate` | bảng |  |
+| `vc_trip_cost_line` | bảng |  |
 | `vc_unavailability` | bảng | KHUNG BẬN (ADR-0055 VK2-A; hình dùng chung ADR-0053 D9.1, migration 0071): subject VEHICLE (xe vào xưởng, đăng kiểm…) | DRIVER (Báo bận tài xế đối tác — CHƯA MỞ, trigger chặn tới Đợt 6). Đúng một đối tượng theo subject. start_ms/end_ms nửa mở, phút tròn; start_at/end_at ISO UTC cùng mốc. Chỉ thêm; một kiểu sửa: rút một lần (withdrawn_*, version + 1). Lý do: vc_reason nhóm BAN_XE (xe) / BAN_TAI_XE (tài xế). Trigger hai chiều với vc_trip: chuyến chưa huỷ không chồng khung còn hiệu lực; khung không chồng chuyến PLANNED/RUNNING. Không cột ghi chú tự do. Đọc đợt này luôn lọc subject = 'VEHICLE' |
 | `vc_trip` | bảng |  |
 | `vc_trip_driver` | bảng |  |

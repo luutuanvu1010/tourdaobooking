@@ -56,7 +56,10 @@ test("chặn tương phản dưới 4,5:1, câu lỗi nêu tên ô bằng tiến
 test("tương phản đi theo núm cha: đổi nền thẻ / màu chính / màu chính nhạt kéo thanh và nút theo", () => {
   const a = kiemGiaoDien({ "nen-the": "#0c4a6e" });
   assert.ok(a.some((l) => l.khoa === "nen-thanh-tren" && /khó đọc/.test(l.message)), JSON.stringify(a));
-  assert.ok(a.some((l) => l.khoa === "nen-thanh-ben"), JSON.stringify(a));
+  // Đợt 4 G5 (lời chủ 2/10): thanh bên theo NỀN TRANG (không còn theo nền thẻ) — đổi nền trang tối kéo thanh bên theo, đổi nền thẻ thì không.
+  assert.ok(!a.some((l) => l.khoa === "nen-thanh-ben"), JSON.stringify(a));
+  const c = kiemGiaoDien({ "nen-trang": "#0c4a6e" });
+  assert.ok(c.some((l) => l.khoa === "nen-thanh-ben"), JSON.stringify(c));
   const b = kiemGiaoDien({ "mau-chinh": "#dcebf6" });
   // Thị giác 1.70: nút lưu / xác nhận đặc màu có nền theo Màu chính (chữ trắng cố định) — màu chính nhạt làm chữ trắng của nút khó đọc, lỗi gắn vào ô nền nút.
   assert.ok(b.some((l) => l.khoa === "nen-nut-chinh" && /nút lưu, xác nhận/i.test(l.message)), JSON.stringify(b));

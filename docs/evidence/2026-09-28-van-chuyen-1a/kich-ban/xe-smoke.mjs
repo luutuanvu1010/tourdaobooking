@@ -35,9 +35,10 @@ try {
       const at = labels.indexOf("Địa điểm");
       // "Loại giấy tờ cá nhân" (sau Địa điểm) và mục con "Loại giấy tờ xe": tách "Danh mục giấy tờ" 2026-09-28 (chủ dự án), không có trong bản vẽ 00.
       // ADR-0049 B1 (vòng 3, bản vẽ Bảng điều phối vo-may-tinh): mục con "Điều phối xe" (ô trip.view) đứng ĐẦU dưới "Vận chuyển", trước "Xe".
-      assert.deepEqual(labels.slice(at, at + 9), ["Địa điểm", "Loại giấy tờ cá nhân", "Vận chuyển", "Điều phối xe", "Xe đang chạy", "Xe", "Lịch xe bận", "Sắp hết hạn", "Loại giấy tờ xe"], JSON.stringify(labels)); // + "Lịch xe bận" (Đợt 3, 2/10)
-      const [cha, dieuPhoi, xeChay, xe, lichBan, han, loaiXe] = qt.items.slice(at + 2, at + 9); // + "Xe đang chạy" (Đợt 5, 5/10)
+      assert.deepEqual(labels.slice(at, at + 11), ["Địa điểm", "Loại giấy tờ cá nhân", "Vận chuyển", "Điều phối xe", "Xe đang chạy", "Bảng giá thuê xe", "Bảng kê chi phí xe", "Xe", "Lịch xe bận", "Sắp hết hạn", "Loại giấy tờ xe"], JSON.stringify(labels));
+      const [cha, dieuPhoi, xeChay, bangGia, bangKe, xe, lichBan, han, loaiXe] = qt.items.slice(at + 2, at + 11); // + "Xe đang chạy" (Đợt 5) ngay sau "Điều phối xe", rồi hai mục tiền xe thuê (Đợt 4)
       assert.deepEqual([xeChay.href, xeChay.sub, xeChay.current], ["/xe-dang-chay", true, null]);
+      assert.deepEqual([bangGia.href, bangKe.href], ["/bang-gia-xe", "/bang-ke-xe"], "Đợt 4 G0: hai mục con tiền xe thuê sau Điều phối xe / Xe đang chạy");
       assert.deepEqual([lichBan.href, lichBan.sub, lichBan.current], ["/lich-xe-ban", true, null]); // Đợt 3 (2/10)
       assert.equal(cha.tag, "DIV", "mục cha không phải liên kết (bản vẽ: luôn mở, chỉ các mục con bấm được)");
       assert.equal(cha.current, null);
@@ -68,7 +69,7 @@ try {
       assert.deepEqual(s.top.map((r) => r.text), ["Danh bạ", "Địa điểm", "Loại giấy tờ cá nhân"]);
       assert.equal(s.eyebrow, "VẬN CHUYỂN");
       // ADR-0049 B8 (bản vẽ Bảng điều phối 08 khung 8d, 2026-09-29): Quản trị có thêm dòng "Lý do điều phối" cuối nhóm (không có "Chính sách điều phối" — chỉ Toàn quyền).
-      assert.deepEqual(s.vc, [{ href: "/dieu-phoi", text: "Điều phối xe" }, { href: "/xe-dang-chay", text: "Xe đang chạy" }, { href: "/xe", text: "Xe" }, { href: "/lich-xe-ban", text: "Lịch xe bận" }, { href: "/giay-to-sap-het-han", text: "Giấy tờ sắp hết hạn" }, { href: "/loai-giay-to-xe", text: "Loại giấy tờ xe" }, { href: "/ly-do-dieu-phoi", text: "Lý do điều phối" }]);
+      assert.deepEqual(s.vc, [{ href: "/dieu-phoi", text: "Điều phối xe" }, { href: "/xe-dang-chay", text: "Xe đang chạy" }, { href: "/bang-gia-xe", text: "Bảng giá thuê xe" }, { href: "/bang-ke-xe", text: "Bảng kê chi phí xe" }, { href: "/xe", text: "Xe" }, { href: "/lich-xe-ban", text: "Lịch xe bận" }, { href: "/giay-to-sap-het-han", text: "Giấy tờ sắp hết hạn" }, { href: "/loai-giay-to-xe", text: "Loại giấy tờ xe" }, { href: "/ly-do-dieu-phoi", text: "Lý do điều phối" }]);
       assert.ok(s.rest.some((r) => r.text?.startsWith("Góp ý")) && s.rest.some((r) => r.text === "Đăng xuất"), JSON.stringify(s.rest));
       const iTop = s.order.indexOf("links-top");
       assert.deepEqual(s.order.slice(iTop, iTop + 4), ["links-top", "vc-eyebrow", "vc-links", "links"], JSON.stringify(s.order));
@@ -243,8 +244,9 @@ try {
         assert.ok(await p.ev(clickVisible(".sheet-root", "Ngừng dùng")));
         await p.waitFor("!document.querySelector('.sheet-root') && !!document.querySelector('.vc-stopped')", "trạng thái Ngừng + Dùng lại xe", 8000);
         assert.equal(await p.ev(txt(".vc-stopped .vc-chip")), "Ngừng");
-        const r = await call(ADMIN, "GET", `/api/van-chuyen/xe/${target.id}`);
-        assert.equal(r.json.vehicle.status, "retired");
+        // ADR-0075 (một phiên mỗi tài khoản): đọc bằng phiên của trang — call() của Quản trị đã bị phiên trình duyệt đá (đỏ sẵn trước Đợt 4, sửa 2/10).
+        const r = await p.ev(`fetch(${JSON.stringify(`/api/van-chuyen/xe/${target.id}`)}).then((x) => x.json())`);
+        assert.equal(r.vehicle.status, "retired");
         await shotFull(p, `02-da-ngung-${ten}.png`);
       } finally {
         p.close();

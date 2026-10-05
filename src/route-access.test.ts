@@ -253,6 +253,23 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/van-chuyen/nguong-het-han", access: "admin" }, // ngưỡng "sắp hết hạn" (dòng chính sách mới) — CHỈ settings.ops (Toàn quyền), viết thẳng (luật 4)
   { method: "GET", path: "/api/van-chuyen/sap-het-han", access: "office" }, // danh sách giấy tờ sắp hết hạn (xe + tài xế, KHÔNG số) + count (R15); thân hỏi vehicle.manage
   { method: "GET", path: "/api/van-chuyen/nha-xe", access: "office" }, // ADR-0048 D1: nhà xe đang hợp tác + công ty chủ + số xe, số tài xế; thân hỏi vehicle.manage
+  // ADR-0057 T1 (kế hoạch Đợt 4 Task 4): bảng giá thuê xe — thân hỏi transport.rate.view / transport.rate.manage; tuyến, cỡ xe: đọc trip.dispatch HOẶC rate.view.
+  { method: "GET", path: "/api/van-chuyen/bang-gia", access: "office" },
+  { method: "POST", path: "/api/van-chuyen/bang-gia", access: "office" },
+  { method: "POST", path: "/api/van-chuyen/bang-gia/:id/ket-thuc", access: "office" },
+  { method: "GET", path: "/api/van-chuyen/tuyen", access: "office" },
+  { method: "POST", path: "/api/van-chuyen/tuyen", access: "office" },
+  { method: "PUT", path: "/api/van-chuyen/tuyen/:code", access: "office" },
+  { method: "GET", path: "/api/van-chuyen/co-xe", access: "office" },
+  { method: "POST", path: "/api/van-chuyen/co-xe", access: "office" },
+  { method: "PUT", path: "/api/van-chuyen/co-xe/:code", access: "office" },
+  // ADR-0057 T2 (kế hoạch Đợt 4 Task 10): chi phí chuyến xe thuê + bảng kê — thân hỏi transport.cost.view / transport.cost.adjust.
+  { method: "GET", path: "/api/van-chuyen/chuyen/:id/chi-phi", access: "office" },
+  { method: "POST", path: "/api/van-chuyen/chuyen/:id/chi-phi/dieu-chinh", access: "office" },
+  { method: "POST", path: "/api/van-chuyen/chuyen/:id/chi-phi/dao", access: "office" },
+  { method: "POST", path: "/api/van-chuyen/chuyen/:id/chi-phi/chup-lai", access: "office" },
+  { method: "POST", path: "/api/van-chuyen/chuyen/:id/chi-phi/gia-thoa-thuan", access: "office" },
+  { method: "GET", path: "/api/van-chuyen/chi-phi", access: "office" },
   // ADR-0049 D2, D3 (kế hoạch mục 1.7 route 9–18): chính sách điều phối, điều kiện xuất bến, hạng bằng — cổng office, thân hỏi settings.ops (chỉ Toàn quyền);
   // danh mục lý do — cổng admin, thân hỏi admin.manage viết thẳng (luật 4).
   { method: "GET", path: "/api/van-chuyen/chinh-sach-dieu-phoi", access: "office" }, // bản đang hiệu lực + lịch sử; thân hỏi settings.ops
@@ -400,6 +417,8 @@ test("mức truy cập của 213 route hiện có khớp ảnh chụp đã duy�
   // 2026-10-05 (Vận chuyển Đợt 5, ADR-0052 D5): + POST /api/van-chuyen/chuyen/:id/them-diem, POST …/phan-bo/:aid/bao-huy (office, trip.dispatch) = 222.
   // 2026-10-05 (Đợt 5 A-1b Task 15): + GET /api/van-chuyen/chuyen/:id/cuu-ho (office, trip.dispatch; chỉ đọc) = 223.
   assert.deepEqual(actual, SNAPSHOT);
-  assert.equal(actual.length, 223, "số route thực tế lệch 223 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 223, "SNAPSHOT phải có đúng 223 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // 2026-10-02 (Đợt 4 Task 4, ADR-0057 T1): + 9 route bảng giá thuê xe, tuyến, cỡ xe (office) = 225 (trên nền 216 của nhánh).
+  // 2026-10-02 (Đợt 4 Task 10, ADR-0057 T2): + 6 route chi phí chuyến xe thuê + bảng kê (office) = 231 trên nhánh; gộp main ffed6f1c (1.78): main 220 + 15 route Đợt 4 = 238.
+  assert.equal(actual.length, 238, "số route thực tế lệch 238 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 238, "SNAPSHOT phải có đúng 238 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

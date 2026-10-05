@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"><meta name="robots" content="noindex"><meta name="theme-color" content="#ffffff"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><link rel="stylesheet" href="/api/giao-dien.css"><title>Bảng kê chi phí xe thuê — Island Booking System</title></head>
+<body data-title="Bảng kê chi phí xe thuê" data-back="/account">
+<header id="topbar"></header>
+<main class="bk-trang">
+  <!-- Bảng kê chi phí xe thuê (ADR-0057 T2 C9) — bản vẽ docs/design/van-chuyen-dot-3-7/Chi phí xe thuê.dc.html màn 1c. Ô transport.cost.view. Số tiền do máy chủ tính — trang KHÔNG cộng. -->
+  <h1>Bảng kê chi phí xe thuê</h1>
+  <p class="muted">Chuyến nào, nhà xe nào, bao nhiêu — để trả tay cho nhà xe.</p>
+  <div id="error" class="alert" role="alert" hidden></div>
+  <div id="bk-trang"></div>
+</main>
+<script type="module" src="/js/bang-ke-xe.js"></script>
+</body></html>

@@ -82,7 +82,7 @@ Mỗi câu đã có khuyến nghị. Kế hoạch đang làm theo khuyến ngh�
 - **4.4** Bán hàng **không** thấy dải "chưa có giá". Họ chỉ thấy lý do giữ trong thẻ "Điều kiện xuất bến" có sẵn, không số tiền (G2).
 - **4.5** Nền thanh bên toàn app = `--c-surface-alt` + viền phải (G5). Đây là việc bề mặt chủ đã dặn; chỉ hỏi để chủ xác nhận bằng mắt.
 - **4.6** Sổ vàng 19 ca (`golden/van-chuyen-chi-phi.json`) chờ Kế toán / chủ ghi tên + ngày xác nhận. **Chặn phát hành**: chưa có ca xác nhận thì chưa nhận mã tiền.
-- **4.7** Phí cho nhà xe cũ trên chuyến đã đổi sang xe công ty (chưa huỷ): khuyến nghị **chặn** như nhánh đang làm (409 "Chuyến này không còn là xe thuê"). G2 ẩn nút "Điều chỉnh" khi `!thue`.
+- **4.7** Phí cho nhà xe cũ trên chuyến đã đổi sang xe công ty (chưa huỷ): khuyến nghị **chặn** như nhánh đang làm (409 "Chuyến này không còn là xe thuê"). ~~G2 ẩn nút "Điều chỉnh" khi `!thue`.~~ **Đã thay bởi ADR-0095 Q5** (chủ trả lời 4.7 "có"): Kế toán ghi được "Phí huỷ muộn" cho nhà xe cũ ⇒ nút "Điều chỉnh" hiện khi chuyến có dòng chi phí, kể cả `!thue`; máy chủ chỉ nhận lý do Phí huỷ muộn khi `rented = 0`.
 - **4.8** Ghi dòng trạng thái ADR-0057 trỏ lời chủ 2/10 "dời ngày chạy cũng tính lại giá" (C4 chỉ liệt kê đổi nhà xe / xe / tuyến). Kèm lời `carrier_inactive` theo ca dời ngày. Chủ / điều phối làm, người thi công không sửa ADR.
 
 <details><summary>Ba câu cũ (1/10) — ĐÃ TRẢ LỜI, giữ để tra</summary>
@@ -1368,7 +1368,7 @@ Phần **bề mặt** (chữ, thứ tự, nút, chip, bố cục) làm đúng b�
   - Gọi song song với `nap()` (`:39`). Lỗi tải chi phí không làm hỏng trang chuyến.
 - [ ] **Bước 3: Khi nào hiện khối.**
   - Ẩn hẳn khi `!thue && dong.length === 0` (xe công ty thuần; bản vẽ thiếu trạng thái này).
-  - `!thue && dong.length > 0` (V13: đổi sang xe công ty, mọi dòng đã đảo): hiện dòng, không nút giá, không "Điều chỉnh" `[chờ chủ xác nhận câu 4.7 — đang theo khuyến nghị]`.
+  - `!thue && dong.length > 0` (V13: đổi sang xe công ty, mọi dòng đã đảo): hiện dòng, không nút giá; **có** "Điều chỉnh" (ADR-0095 Q5 — chỉ Phí huỷ muộn cho nhà xe cũ, máy chủ chặn lý do khác).
 - [ ] **Bước 4: Dải cảnh báo** `[chờ chủ xác nhận câu 4.4 — đang theo khuyến nghị]`.
   - Hiện khi `thue && trangThai === "PLANNED" && nguonGia === null`, chỉ với người có `transport.cost.view`.
   - Dùng `.banner.banner-warning`. `.banner-title`: "Chuyến xe thuê chưa có giá — chưa được xuất bến". Lời: "Nhập giá thoả thuận với nhà xe, hoặc bổ sung giá vào Bảng giá thuê xe rồi lấy lại giá bảng."
@@ -1396,7 +1396,7 @@ Phần **bề mặt** (chữ, thứ tự, nút, chip, bố cục) làm đúng b�
 - [ ] **Bước 7: Hàng nút cuối khối**, chỉ khi `can(staff, "transport.cost.adjust")`:
   - "Nhập giá thoả thuận" (nút chính) khi `coTheNhapThoaThuan`.
   - "Lấy lại giá bảng" khi `coTheChupLai` `[chờ chủ xác nhận câu 4.3 — đang theo khuyến nghị]`. Kèm gợi ý "Bảng giá vừa có giá <vnd(giaBangCoThe)> cho tuyến này — bấm 'Lấy lại giá bảng' để dùng." Chủ chọn B (không làm Task 13) thì có nút, không có dòng gợi ý.
-  - "Điều chỉnh" khi `thue` `[chờ chủ xác nhận câu 4.7 — đang theo khuyến nghị]`. Gợi ý: "Điều chỉnh cộng hoặc trừ vào tổng; ghi sai thì 'Đảo dòng'." Chuyến đã huỷ thêm: "Chuyến đã huỷ vẫn ghi được phí huỷ."
+  - "Điều chỉnh" khi chuyến có dòng chi phí (`dong.length > 0`), kể cả `!thue` — ADR-0095 Q5 thay khuyến nghị 4.7 cũ. Gợi ý: "Điều chỉnh cộng hoặc trừ vào tổng; ghi sai thì 'Đảo dòng'." Chuyến đã huỷ thêm: "Chuyến đã huỷ vẫn ghi được phí huỷ."
 - [ ] **Bước 8: Ba form + một hộp.** Máy tính: thẻ nội tuyến nền `--c-soft-hover`. Điện thoại: `moBangTruot` (bản vẽ không vẽ form 390px).
   - **"Nhập giá thoả thuận":** Số tiền (₫) *, Ghi chú thoả thuận * (ô nhiều dòng, tối đa 300). Nút "Lưu giá thoả thuận".
   - **"Điều chỉnh chi phí":**

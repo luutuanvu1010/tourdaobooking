@@ -219,7 +219,7 @@ try {
   await b.step("7", `1f 1040 Quản trị: menu Vận chuyển đủ mục (Điều phối xe đầu); chặng quá mốc KHÔNG dòng khoá, KHÔNG nút "Phá lệ" riêng; xếp vào chuyến đang khoá → hộp Phá lệ → "Phá lệ và xếp" gửi lại kèm phaLe`, async () => {
     await cho(q);
     const nav = await q.ev(vcSub);
-    assert.deepEqual(nav.items, ["Điều phối xe", "Xe đang chạy", "Xe", "Lịch xe bận", "Sắp hết hạn", "Loại giấy tờ xe", "Lý do điều phối"]); // + "Lịch xe bận" (Đợt 3, 2/10)
+    assert.deepEqual(nav.items, ["Điều phối xe", "Xe đang chạy", "Bảng giá thuê xe", "Bảng kê chi phí xe", "Xe", "Lịch xe bận", "Sắp hết hạn", "Loại giấy tờ xe", "Lý do điều phối"]); // + Đợt 4 + "Lịch xe bận" (Đợt 3, 2/10)
     assert.equal(nav.current, "Điều phối xe");
     const qm = (await q.ev(viec)).find((x) => x.loai === "CHẶNG QUÁ MỐC");
     assert.deepEqual([qm.khoa, qm.nut], [null, []]);
@@ -268,7 +268,7 @@ try {
     assert.equal(await k.ev(txt(".dp-readonly")), "Chỉ xem — Kế toán không xếp xe, không phá lệ.");
     assert.equal(await k.ev(shown("#dp-moi")), false);
     assert.equal(await k.ev(`document.querySelectorAll('#dp-cot-chua-xep button, #dp-cot-can-xu-ly button, #dp-cot-can-xu-ly .vc-btn').length`), 0);
-    assert.deepEqual((await k.ev(vcSub)).items, ["Điều phối xe", "Xe đang chạy"]);
+    assert.deepEqual((await k.ev(vcSub)).items, ["Điều phối xe", "Xe đang chạy", "Bảng giá thuê xe", "Bảng kê chi phí xe"], "Kế toán: + "Xe đang chạy" (Đợt 5) + hai mục tiền xe thuê (Đợt 4 G0)");
     await k.ev(click(`.dp-khoi[data-chuyen="${d.T2.id}"]`));
     await k.waitFor(`!!document.querySelector('.dp-chon')`, "thẻ đang chọn");
     assert.deepEqual(await k.ev(`[...document.querySelectorAll('.dp-chon .vc-btn')].map((x) => x.innerText.trim())`), ["Mở chuyến"]);
@@ -280,7 +280,7 @@ try {
     // Trang Tôi của Kế toán: nhóm VẬN CHUYỂN chỉ "Điều phối xe"; thẻ liên kết đầu (#links-top) không rỗng.
     await k.send("Page.navigate", { url: env.base + "/account" });
     await k.waitFor(`!!document.querySelector('#vc-links')`, "trang Tôi Kế toán");
-    assert.deepEqual(await k.ev(`[...document.querySelectorAll('#vc-links .row-link')].map((a) => a.innerText.trim())`), ["Điều phối xe", "Xe đang chạy"]);
+    assert.deepEqual(await k.ev(`[...document.querySelectorAll('#vc-links .row-link')].map((a) => a.innerText.trim())`), ["Điều phối xe", "Xe đang chạy", "Bảng giá thuê xe", "Bảng kê chi phí xe"]);
     assert.ok(await k.ev(`document.querySelectorAll('#links-top .row-link').length > 0`), "thẻ #links-top không rỗng");
   });
   await k.close();

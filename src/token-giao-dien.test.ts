@@ -49,6 +49,10 @@ const VAI = [
   "--c-summary-bg", "--c-summary-bg-2", "--c-on-summary", "--c-summary-due",
   "--c-tile-vc-bg", "--c-tile-vc", "--c-tile-toi-bg", "--c-tile-toi", "--c-tile-all-bg", "--c-tile-all",
   "--c-focus", "--c-focus-ring", "--c-indicator", "--c-input-border", "--c-input-border-hover",
+  // Tiền xe thuê (bản vẽ Đợt 4): tab viên thuốc đang chọn, khối "TỔNG CỘNG" của bảng kê.
+  "--c-pill-on-bg", "--c-pill-on-text", "--c-total-bg", "--c-on-total", "--c-total-num",
+  // Vòng vá 1 Đợt 4 (L1): nền rê chuột mục thanh bên riêng, vì thanh bên nay cùng nền trang.
+  "--c-sidebar-hover",
 ];
 
 test("màu theo vai: mọi token vai khai ở :root", () => {
@@ -119,6 +123,10 @@ test("màu theo vai: mọi cặp chữ/nền của thanh, nút chính, mục đa
     ["--c-tile-vc", "--c-tile-vc-bg"],
     ["--c-tile-toi", "--c-tile-toi-bg"],
     ["--c-tile-all", "--c-tile-all-bg"],
+    ["--c-pill-on-text", "--c-pill-on-bg"],
+    ["--c-on-total", "--c-total-bg"],
+    ["--c-total-num", "--c-total-bg"],
+    ["--c-text", "--c-sidebar-hover"],
   ];
   const loi = cap.map(([chu, nen]) => `${chu} trên ${nen}: ${tuongPhan(chu, nen).toFixed(2)}:1`).filter((_, i) => tuongPhan(...cap[i]!) < 4.5);
   assert.deepEqual(loi, []);
@@ -189,4 +197,10 @@ test("body: độ đậm chữ gốc đọc token --fw-regular (sau viết tắt
   const body = /\nbody \{([^{}]*)\}/.exec(luat);
   assert.ok(body, "không thấy luật `body {`");
   assert.match(body[1]!, /font:[^;]*;[^}]*font-weight:\s*var\(--fw-regular\)/);
+});
+
+test("thanh bên: nền rê chuột mục khác hẳn nền thanh bên (≥ 1,08:1) — L1 vòng vá 1 Đợt 4", () => {
+  const r = tuongPhan("--c-sidebar-hover", "--c-sidebar-bg");
+  assert.ok(r >= 1.08, `nền rê chuột gần trùng nền thanh bên: ${r.toFixed(3)}:1`);
+  assert.match(css, /\.sidebar-item:not\(\[aria-current="page"\]\):not\(\.sidebar-parent\):hover \{[^}]*background: var\(--c-sidebar-hover\)/);
 });

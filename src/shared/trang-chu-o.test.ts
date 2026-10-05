@@ -15,7 +15,8 @@ test("Bán hàng: 6 ô, không có ô Tất cả (bản vẽ 1a + ô Điều ph�
 
 test("Kế toán: không có ô Tạo đơn (ADR-0007), không có ô Tất cả (bản vẽ 1d)", () => {
   const r = oTrangChu(who("ACCOUNTING"));
-  assert.deepEqual(khoa(r.luoi), ["don-hang", "danh-ba", "dieu-phoi", "gop-y", "tro-giup"]);
+  // Tiền xe thuê (bản vẽ Đợt 4): Kế toán thêm "Bảng giá thuê xe" (ô transport.rate.view), "Bảng kê chi phí xe" (ô transport.cost.view) — 7 ô, vẫn không "Tất cả".
+  assert.deepEqual(khoa(r.luoi), ["don-hang", "danh-ba", "dieu-phoi", "gop-y", "tro-giup", "bang-gia-xe", "bang-ke-xe"]);
   assert.equal(r.coTatCa, false);
 });
 
@@ -32,7 +33,7 @@ test("Quản trị: bảng trượt Tất cả chia bốn nhóm, mỗi nhóm đ�
     [
       ["Bán hàng", ["tao-don", "don-hang", "danh-ba"]],
       ["Quản lý", ["dich-vu", "tai-khoan", "dia-diem", "giay-to-nguoi"]],
-      ["Vận chuyển", ["dieu-phoi", "xe", "sap-het-han", "giay-to-xe", "ly-do"]],
+      ["Vận chuyển", ["dieu-phoi", "bang-gia-xe", "bang-ke-xe", "xe", "sap-het-han", "giay-to-xe", "ly-do"]],
       ["Của tôi", ["gop-y", "tro-giup"]],
     ],
   );
@@ -46,6 +47,11 @@ test("Toàn quyền: thêm Nhật ký, Phiên đăng nhập, Gửi thông báo, 
   // Quản trị không có các ô đó (ADR-0038: Nhật ký chỉ Toàn quyền; ADR-0075: sổ phiên chỉ Toàn quyền).
   const qt = oTrangChu(who("ADMIN")).nhom.flatMap((n) => khoa(n.o));
   for (const k of ["nhat-ky", "phien", "gui-thong-bao", "tro-ly", "chinh-sach"] as const) assert.ok(!qt.includes(k), `Quản trị không có ${k}`);
+});
+
+test("Bán hàng không có ô Bảng giá thuê xe / Bảng kê chi phí xe (ô transport.rate.view / transport.cost.view = none)", () => {
+  const tatCa = oTrangChu(who("SALES")).nhom.flatMap((n) => khoa(n.o));
+  for (const k of ["bang-gia-xe", "bang-ke-xe"] as const) assert.ok(!tatCa.includes(k), k);
 });
 
 test("Tài khoản chỉ Toàn quyền thấy GIỐNG HỆT Quản trị + Toàn quyền (bài học hỏi bảng quyền, 2026-10-01)", () => {
@@ -113,14 +119,14 @@ test("Máy tính, bản vẽ v2 (2/10): đúng các ô của ba vai đã vẽ", 
   assert.deepEqual(mt("ADMIN"), [
     ["Bán hàng", ["tao-don", "don-hang", "danh-ba"]],
     ["Quản lý", ["dich-vu", "tai-khoan", "dia-diem", "giay-to-nguoi"]],
-    ["Vận chuyển", ["dieu-phoi", "xe", "sap-het-han", "giay-to-xe", "ly-do"]],
+    ["Vận chuyển", ["dieu-phoi", "bang-gia-xe", "bang-ke-xe", "xe", "sap-het-han", "giay-to-xe", "ly-do"]],
     ["Của tôi", ["toi", "gop-y", "tro-giup"]],
   ]);
   // Toàn quyền: bản vẽ có 8 ô Quản lý (vẽ trước khi 1.67 thêm màn Giao diện); ô Giao diện đứng cuối nhóm.
   assert.deepEqual(mt("SUPER_ADMIN"), [
     ["Bán hàng", ["tao-don", "don-hang", "danh-ba"]],
     ["Quản lý", ["dich-vu", "tai-khoan", "phien", "dia-diem", "giay-to-nguoi", "nhat-ky", "gui-thong-bao", "tro-ly", "giao-dien"]],
-    ["Vận chuyển", ["dieu-phoi", "xe", "sap-het-han", "giay-to-xe", "chinh-sach", "ly-do"]],
+    ["Vận chuyển", ["dieu-phoi", "bang-gia-xe", "bang-ke-xe", "xe", "sap-het-han", "giay-to-xe", "chinh-sach", "ly-do"]],
     ["Của tôi", ["toi", "gop-y", "tro-giup"]],
   ]);
 });
@@ -139,10 +145,13 @@ test("Điện thoại 1.73: Quản trị / Toàn quyền — Danh bạ, Điều 
   }
 });
 
-test("Điện thoại 1.73: Bán hàng / Kế toán — đủ ô còn lại, không ô Tất cả", () => {
+test("Điện thoại 1.73: Bán hàng — đủ ô còn lại, không ô Tất cả; Kế toán (1.74) — 3 ô + Tất cả", () => {
   assert.deepEqual(khoa(luoiDienThoai(who("SALES")).luoi), ["danh-ba", "dieu-phoi", "gop-y", "tro-giup"]);
   assert.equal(luoiDienThoai(who("SALES")).coTatCa, false);
-  assert.deepEqual(khoa(luoiDienThoai(who("ACCOUNTING")).luoi), ["danh-ba", "dieu-phoi", "gop-y", "tro-giup"]);
+  // Đợt 4 (1.74): Kế toán có thêm Bảng giá thuê xe + Bảng kê chi phí xe ⇒ 6 ô còn lại > 4 chỗ ⇒ 3 ô đầu theo thứ tự ưu tiên của oTrangChu + "Tất cả" (luật 1.73 áp nguyên;
+  // hai ô tiền xe thuê nằm trong bảng "Tất cả").
+  assert.deepEqual(khoa(luoiDienThoai(who("ACCOUNTING")).luoi), ["danh-ba", "dieu-phoi", "gop-y"]);
+  assert.equal(luoiDienThoai(who("ACCOUNTING")).coTatCa, true);
 });
 
 test("Điện thoại 1.73, mọi tổ hợp quyền: không ô nào đã có tab, tối đa 4 chỗ, Tất cả chỉ khi thừa, bảng trượt giữ nguyên", () => {
@@ -183,7 +192,7 @@ test("Máy tính 1.73, mọi tổ hợp quyền: Lối tắt không có Tạo đ
 test("mauO: màu ô theo nhóm — Tạo đơn chốt, Vận chuyển ngọc, Của tôi (kể cả ô Tôi của máy tính) cát, còn lại màu biển", () => {
   assert.equal(mauO("tao-don"), "chot");
   for (const k of ["don-hang", "danh-ba", "dich-vu", "tai-khoan", "phien", "dia-diem", "giay-to-nguoi", "nhat-ky", "gui-thong-bao", "tro-ly", "giao-dien"] as const) assert.equal(mauO(k), null, k);
-  for (const k of ["dieu-phoi", "cuoc", "xe", "sap-het-han", "giay-to-xe", "chinh-sach", "ly-do"] as const) assert.equal(mauO(k), "vc", k);
+  for (const k of ["dieu-phoi", "bang-gia-xe", "bang-ke-xe", "cuoc", "xe", "sap-het-han", "giay-to-xe", "chinh-sach", "ly-do"] as const) assert.equal(mauO(k), "vc", k);
   for (const k of ["toi", "gop-y", "tro-giup"] as const) assert.equal(mauO(k), "toi", k);
   assert.equal(mauO(O_TOI.khoa), "toi");
   // Mọi ô của mọi nhóm đều có màu đúng theo nhóm của nó (tổ hợp quyền thấy gần đủ ô).

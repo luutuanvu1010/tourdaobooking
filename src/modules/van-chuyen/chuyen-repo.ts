@@ -31,10 +31,18 @@ export interface TripRow {
   updated_at: string;
   /** Tài xế ĐANG MỞ (dòng `vc_trip_driver` chưa đóng) — NULL = chưa có. */
   driver_party_id: string | null;
+  /** ADR-0057 C2a: cờ xe thuê CHỤP lúc xếp / đổi xe (0073). */
+  rented: 0 | 1;
+  /** ADR-0057 C2: tuyến (nhãn tra giá thuê) — NULL = chưa chọn. */
+  route_code: string | null;
+  /** ADR-0057 C5: 1 = có SNAPSHOT / AGREED chưa đảo (cờ, KHÔNG số tiền — cùng truy vấn, không N+1). */
+  co_nguon_gia: 0 | 1;
 }
 const COT_CHUYEN = `t.id, t.code, t.vehicle_id, t.carrier_party_id, t.service_date, t.planned_start_ms, t.planned_end_ms, t.earliest_start_ms, t.rest_minutes_snapshot,
   t.rest_override_reason_code, t.status, t.departed_at, t.departed_ms, t.ended_at, t.ended_ms, t.cancel_reason_code, t.end_reason_code, t.version, t.last_cmd_id, t.updated_at,
-  (SELECT d.driver_party_id FROM vc_trip_driver d WHERE d.trip_id = t.id AND d.valid_to_at IS NULL) AS driver_party_id`;
+  (SELECT d.driver_party_id FROM vc_trip_driver d WHERE d.trip_id = t.id AND d.valid_to_at IS NULL) AS driver_party_id, t.rented, t.route_code,
+  EXISTS (SELECT 1 FROM vc_trip_cost_line l WHERE l.trip_id = t.id AND l.kind IN ('SNAPSHOT', 'AGREED')
+    AND NOT EXISTS (SELECT 1 FROM vc_trip_cost_line r WHERE r.reverses_id = l.id)) AS co_nguon_gia`;
 const TRIP_BY_ID = defineSql("van-chuyen", "trip_by_id", `SELECT ${COT_CHUYEN} FROM vc_trip t WHERE t.id = ?1`);
 /** Chuyến của MỘT ngày chạy (lịch chung ngày D). */
 const TRIPS_BY_DATE = defineSql("van-chuyen", "trips_by_date", `SELECT ${COT_CHUYEN} FROM vc_trip t WHERE t.service_date = ?1 ORDER BY t.planned_start_ms, t.code`);
@@ -285,19 +293,32 @@ export async function banChupCuoi(db: D1Database, tripId: string): Promise<{ chu
 }
 
 // ---- Ghi (câu cổng + câu có lính gác dấu lệnh) -------------------------------------------------------------------------------------------------------------
-/** Tạo chuyến — CHÍNH câu INSERT là câu cổng (đặt last_cmd_id). ?1 id, ?2 mã, ?3 xe, ?4 chủ xe chụp, ?5 ngày chạy, ?6 bắt đầu, ?7 kết thúc, ?8 nghỉ chụp, ?9 phá lệ nghỉ, ?10 dấu lệnh, ?11 lúc, ?12 người. */
+/**
+ * Tạo chuyến — CHÍNH câu INSERT là câu cổng (đặt last_cmd_id). ?1 id, ?2 mã, ?3 xe, ?4 chủ xe chụp, ?5 ngày chạy, ?6 bắt đầu, ?7 kết thúc, ?8 nghỉ chụp, ?9 phá lệ nghỉ,
+ * ?10 dấu lệnh, ?11 lúc, ?12 người, ?13 cờ xe thuê (ADR-0057 C2a — `phanLoaiThue`; trigger vc_trip_rented_ins giữ khớp), ?14 tuyến.
+ */
 export const TRIP_INSERT = defineSql(
   "van-chuyen",
   "trip_insert",
   `INSERT INTO vc_trip (id, code, vehicle_id, carrier_party_id, service_date, planned_start_ms, planned_end_ms, earliest_start_ms, rest_minutes_snapshot, rest_override_reason_code,
-     status, version, last_cmd_id, created_at, created_by, updated_at, updated_by)
-   VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?6, ?8, ?9, 'PLANNED', 1, ?10, ?11, ?12, ?11, ?12)`,
+     status, version, last_cmd_id, created_at, created_by, updated_at, updated_by, rented, route_code)
+   VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?6, ?8, ?9, 'PLANNED', 1, ?10, ?11, ?12, ?11, ?12, ?13, ?14)`,
 );
 /** Câu cổng lệnh KẾ HOẠCH: version đúng + còn PLANNED → tăng version, đặt dấu lệnh. ?1 chuyến, ?2 version đã đọc, ?3 dấu lệnh, ?4 lúc, ?5 người. */
 export const TRIP_GATE = defineSql(
   "van-chuyen",
   "trip_gate",
   "UPDATE vc_trip SET version = version + 1, last_cmd_id = ?3, updated_at = ?4, updated_by = ?5 WHERE id = ?1 AND version = ?2 AND status = 'PLANNED'",
+);
+/**
+ * Câu cổng lệnh KẾ HOẠCH có chạm CHI PHÍ chuyến xe thuê (ADR-0057 C4 — sửa, huỷ; kế hoạch Đợt 4 TC-8): như TRIP_GATE + "số dòng chi phí của chuyến vẫn bằng ?6 đã
+ * đọc" (đếm MỌI dòng, lúc cổng — trước khi lô chèn gì). Có dòng chen giữa lúc đọc và lúc ghi ⇒ cổng 0 dòng ⇒ cả lô thua (409), không bao giờ "đảo một nửa".
+ */
+export const TRIP_GATE_CHI_PHI = defineSql(
+  "van-chuyen",
+  "trip_gate_chi_phi",
+  `UPDATE vc_trip SET version = version + 1, last_cmd_id = ?3, updated_at = ?4, updated_by = ?5
+   WHERE id = ?1 AND version = ?2 AND status = 'PLANNED' AND (SELECT count(*) FROM vc_trip_cost_line WHERE trip_id = ?1) = ?6`,
 );
 /**
  * Câu cổng THỨ HAI của lệnh chạm hai chuyến (dời — cổng đôi, [TK] §3.3): chỉ thắng khi câu cổng thứ nhất (chuyến nguồn) đã mang CHÍNH dấu lệnh này — không
@@ -323,14 +344,15 @@ export const EVENT_INSERT = defineSql(
    WHERE EXISTS (SELECT 1 FROM vc_trip WHERE id = ?2 AND last_cmd_id = ?1)`,
 );
 /**
- * Sửa kế hoạch chuyến (xe, chủ xe chụp, giờ, khoá dính, phá lệ nghỉ). ?1 chuyến, ?2 dấu lệnh, ?3 xe, ?4 chủ xe, ?5 ngày chạy, ?6 bắt đầu, ?7 kết thúc,
- * ?8 giờ sớm nhất (do `batDauSomNhatSauDoiGio` tính — R-P7), ?9 phá lệ nghỉ, ?10 lúc, ?11 người.
+ * Sửa kế hoạch chuyến (xe, chủ xe chụp, giờ, khoá dính, phá lệ nghỉ, cờ xe thuê, tuyến). ?1 chuyến, ?2 dấu lệnh, ?3 xe, ?4 chủ xe, ?5 ngày chạy, ?6 bắt đầu,
+ * ?7 kết thúc, ?8 giờ sớm nhất (do `batDauSomNhatSauDoiGio` tính — R-P7), ?9 phá lệ nghỉ, ?10 lúc, ?11 người, ?12 cờ xe thuê (ADR-0057 C2a — chỉ tính lại khi
+ * đổi xe; trigger vc_trip_rented_* giữ), ?13 tuyến.
  */
 export const TRIP_UPDATE_PLAN = defineSql(
   "van-chuyen",
   "trip_update_plan",
   `UPDATE vc_trip SET vehicle_id = ?3, carrier_party_id = ?4, service_date = ?5, planned_start_ms = ?6, planned_end_ms = ?7, earliest_start_ms = ?8,
-     rest_override_reason_code = ?9, updated_at = ?10, updated_by = ?11
+     rest_override_reason_code = ?9, updated_at = ?10, updated_by = ?11, rented = ?12, route_code = ?13
    WHERE id = ?1 AND last_cmd_id = ?2`,
 );
 /** Huỷ chuyến — câu TRẠNG THÁI CUỐI (đứng cuối lô). ?1 chuyến, ?2 dấu lệnh, ?3 lý do, ?4 lúc, ?5 người. */
