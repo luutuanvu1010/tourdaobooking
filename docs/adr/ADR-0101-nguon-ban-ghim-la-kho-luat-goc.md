@@ -9,7 +9,7 @@
 
 - Chủ dự án quyết: `Master-Project-Framework` là kho luật gốc duy nhất cho mọi dự án trong `Projects/`; dự án đang tự nhận hoặc khai sai sở hữu, nguồn, phiên bản phải đổi lời khai cho đúng sự thật, sớm, không chờ nâng ghim (QĐ-P08). Kho đã phát hành tag `v2.0.0` ngày 2026-10-05.
 - Hai nghĩa của "nguồn" cần tách: (a) nơi các tệp `playbook/` được chép ra: đúng là `CoreSchemaProject/playbook` (bảng dự án của tệp phân phối ghi "ADR-0012 (nguồn Core là đúng)"); (b) nơi luật chung được định nghĩa và sửa từ nay: kho luật gốc.
-- Chỗ sai theo QĐ-P08: `playbook/PIN-README.md` dòng 3 ghi `playbook/` là bản chép "do Core sở hữu". Cùng ý "sửa ở Core": `PIN-README.md` dòng 24 ("việc cần sửa ở nguồn được ghi ở ADR-0012"), dòng 28 ("sửa ở Core, chủ duyệt, chép lại, nâng ghim"), dòng 50–55 (cách nâng ghim bằng rsync từ Core); ADR-0012 dòng 5 ("nới qua Core"), 14 và 25 (việc cần sửa ở nguồn), 24 ("sửa ở Core"), 28–29 ("bản gốc ở Core", "Core tự nhận sở hữu").
+- Chỗ sai theo QĐ-P08: `playbook/PIN-README.md` dòng 3 ghi `playbook/` là bản chép "do Core sở hữu". Cùng ý "sửa ở Core": `PIN-README.md` dòng 24 ("việc cần sửa ở nguồn được ghi ở ADR-0012"), dòng 28 ("sửa ở Core, chủ duyệt, chép lại, nâng ghim"), dòng 50–55 (cách nâng ghim bằng rsync từ Core); ADR-0012 dòng 5 ("nới qua Core"), 25 (việc cần sửa ở nguồn), 24 ("sửa ở Core"), 28–29 ("bản gốc ở Core", "Core tự nhận sở hữu").
 - Dữ kiện xuất xứ ở `PIN-README.md` dòng 8–12 (chép từ đâu, HEAD nào, ngày nào) là đúng và giữ nguyên.
 - Không sửa `PIN-README.md` lúc này được: tệp nằm trong manifest băm (bài kiểm băm của `src/standards.test.ts` đỏ nếu sửa, người kiểm độc lập đã thử cố ý); việc viết lại thuộc lần nâng ghim.
 
@@ -30,7 +30,7 @@ Không có lệnh, không có thay đổi dữ liệu hay mã. Hoàn tác bằng
 | Văn bản | Câu cũ | Thay bằng |
 |---|---|---|
 | ADR-0012 dòng 5 | nới qua Core | sửa luật chung ở kho luật gốc (ADR-0101) |
-| ADR-0012 dòng 14, 25 | việc cần sửa ở nguồn | việc cần sửa ở kho luật gốc (ADR-0101) |
+| ADR-0012 dòng 25 | việc cần sửa ở nguồn | việc cần sửa ở kho luật gốc (ADR-0101) |
 | ADR-0012 dòng 24 | sửa ở Core | sửa ở kho luật gốc (ADR-0101) |
 | ADR-0012 dòng 28–29 | bản gốc ở Core; Core tự nhận sở hữu | bản chép từ Core v2.3.0, đã rẽ nhánh; luật chung thuộc kho luật gốc (ADR-0101) |
 | `playbook/PIN-README.md` dòng 3, 24, 28, 50–55 | do Core sở hữu; sửa ở Core; rsync từ Core | vô hiệu bằng lời theo ADR-0101; viết lại ở lần nâng ghim (dòng 8–12 giữ) |
