@@ -26,3 +26,9 @@ _(ghi dần)_
 - **Đỏ trước:** `src/modules/billing/coc-don-huy.test.ts` trên `rules.ts` cũ — `does not provide an export named 'conLaiCuaKhoan'`; `src/modules/billing/don-huy-route.test.ts` (NT-1, route thật) trên `service.ts` cũ — trang đơn trả `conLai` 1.500.000. **Xanh:** cả hai; `rules.test.ts`, `so-vang.test.ts` cập nhật tham số (`"confirmed"`).
 - `receipt/index.ts`: bỏ dự phòng `conLai: order.total` ⇒ thiếu số tiền trả 503 `money_unavailable` (NT-5).
 - Bài chập chờn có sẵn (không do việc này): `src/modules/orders/lich-chung-chang.test.ts` TC-20 đỏ một lần vì chuỗi "1911" trùng ngẫu nhiên trong mã/ngày sinh ra; chạy lại 3/3 xanh.
+
+### Đợt 1 — Task 3: luật lý do huỷ và nhãn tiền (2026-10-05)
+- `src/shared/ly-do-huy.ts`: danh sách đóng (mã lưu `KHACH_DOI_Y`, `KHACH_DAT_TRUNG`, `SAI_THONG_TIN`, `THOI_TIET`, `HET_CHO`, `SU_CO_NCC`, `LOI_CONG_TY`, `OTHER`; HDV `KHACH_YEU_CAU`, `KHONG_LIEN_HE`; gieo `LEGACY`), `luaChonLyDo`, `docLyDoHuy` (400/403, ghi chú "Khác" ≤ 300 ký tự, `hasLongDigitRun`), `lyDoHuyCuaHdv` (lời chủ (a): "không liên hệ được" = khách huỷ), `docPhanLoai`. Hàm nhận cờ, không tự hỏi quyền. Kiểu `NhomHuy` một nơi (billing/rules.ts dùng lại).
+- `src/shared/nhan-tien.ts`: `nhanTienDaTra` (NT-V1). Thiếu nhóm/hạn thì không đoán "giữ cọc".
+- Đỏ trước: `ly-do-huy.test.ts` — `ERR_MODULE_NOT_FOUND` (chưa có tệp); `nhan-tien.ts` viết cùng lượt với bài (đỏ cùng lý do thiếu tệp, không chạy riêng). Xanh 4 + 2 bài.
+- **GĐ (bề mặt):** mã lý do dạng chữ hoa không dấu như trên; ghi chú tối đa 300 ký tự.

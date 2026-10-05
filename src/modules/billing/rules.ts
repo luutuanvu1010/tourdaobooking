@@ -6,6 +6,8 @@
 // trigger `bil_posting_delivered_paid` (migration 0045) — bài đối chiếu ở rules.test.ts.
 // "Phải thu hiện hành" KHÔNG tính ở đây: `orders` công bố nó (một hàm tính tiền của đơn — `effectiveMoney`), billing nhận số.
 
+import type { NhomHuy } from "../../shared/ly-do-huy.ts";
+
 export type ReceiptKind = "CUSTOMER_PAYMENT" | "CUSTOMER_REFUND";
 export type CollectorRole = "COMPANY" | "STAFF" | "BOOKER" | "SUPPLIER" | "UNKNOWN";
 export type DebtKind = "HELD" | "SETTLEMENT" | "REFUND";
@@ -119,7 +121,7 @@ export interface HoanNgoaiRow {
   targetId: string | null;
   createdBy: string | null;
 }
-export type NhomHuy = "KHACH_HUY" | "CONG_TY_HUY" | "LAP_LAI" | "CHUA_KET_LUAN";
+export type { NhomHuy };
 
 export interface SoTienCoc {
   /** Đã trả = Σ lần thu của khách còn hiệu lực, ĐÃ XÁC NHẬN (bỏ khoản "Công ty thu – CK" chờ xác nhận — đ2). */
