@@ -28,9 +28,9 @@
 
 Bản vẽ: `docs/design/van-chuyen-dot-3-7/Dua don xe rieng.dc.html` (dự án Claude Design `f0f47482-c51a-4232-b5c0-d924871ce294`; mục M1 form lập đơn, M4 sửa đưa đón, M3 chi tiết đơn, DP bảng điều phối; token `docs/design/van-chuyen-dot-3-7/colors.css` = giá trị `public/app.css`). Mã đo lại ở HEAD `478058c9`. Câu hỏi chung: `docs/superpowers/plans/2026-10-02-van-chuyen-cau-hoi-ban-ve.md` (mã 7.x).
 - **Máy chủ (Task 0–7, 8a) không đổi:** bản vẽ không thêm trường dữ liệu nào ngoài ADR A5; mọi khoá giao diện cần đã có ở Task 2 (`LegDto`, `LegInput`) và Task 8a (`ChangLichDto`).
-- **Task 8b viết lại theo bản vẽ:** chỉ **chen hai ô** "Xe riêng" (công tắc trong khung ô, chữ "Bật"/"Tắt") và "Xe tối thiểu" (ô số, hậu tố "chỗ") vào **cuối** `.dd-luoi-phu` của `changEl` (`web/khoi-dua-don.ts`), có ở **mọi** chặng; các ô khác trong khung vẽ (Loại đưa đón, Ngày giờ gộp, Số khách mỗi chặng, Lưu chặng, hàng "Số khách" ở M3, nhãn "Chờ xếp") là **khung minh hoạ, không làm** `[chờ chủ xác nhận câu 7.1 — đang theo khuyến nghị]`.
+- **Task 8b viết lại theo bản vẽ:** chỉ **chen hai ô** "Xe riêng" (công tắc trong khung ô, chữ "Bật"/"Tắt") và "Xe tối thiểu" (ô số, hậu tố "chỗ") vào **cuối** `.dd-luoi-phu` của `changEl` (`web/khoi-dua-don.ts`), có ở **mọi** chặng; các ô khác trong khung vẽ (Loại đưa đón, Ngày giờ gộp, Số khách mỗi chặng, Lưu chặng, hàng "Số khách" ở M3, nhãn "Chờ xếp") là **khung minh hoạ, không làm** (chủ đồng ý 2/10).
 - Câu lỗi dưới ô lấy đúng bản vẽ "Số chỗ từ 1 đến 100", ẩn gợi ý khi lỗi. Nhãn chữ **"XE RIÊNG"** (viết hoa ở cả hai màn) và "≥ N chỗ"; **thứ tự theo từng màn như bản vẽ**: trang đơn [XE RIÊNG][≥ N chỗ][✈︎], bảng điều phối [✈︎][XE RIÊNG][≥ N chỗ]. Một hàm thuần chung cho chữ nhãn.
-- Ai thấy nhãn ở trang đơn: mọi người xem được chặng; tài xế không nhận `[chờ chủ xác nhận câu 7.2 — đang theo khuyến nghị]` — đúng Task 2 (không lọc theo vai).
+- Ai thấy nhãn ở trang đơn: mọi người xem được chặng; tài xế không nhận (chủ đồng ý 2/10) — đúng Task 2 (không lọc theo vai).
 - Màu công tắc khi tắt: bản vẽ `#9FB3C4` không có token ⇒ dùng token gần nhất `--c-placeholder` (#94a3b8) qua lớp bổ trợ cục bộ, **không** sửa `.dp-switch` chung.
 - C10, "Lệnh vẽ" (→ "Bản vẽ đã nhận 2/10"), "Cần chủ" sửa theo; đối chiếu từng mục đánh giá ở cuối tệp ("Tự rà sau cập nhật 2/10").
 
@@ -351,7 +351,7 @@ Hai việc này theo khuôn có sẵn nên không cần vẽ (C10). Làm ngay sa
 
 ## Task 8b: Ô nhập trên form đơn và nhãn trên bảng — theo bản vẽ đã nhận 2/10
 
-Máy chủ (Task 1–7, 8a) phát hành được trước, chạy ngầm (C10). Bản vẽ: `docs/design/van-chuyen-dot-3-7/Dua don xe rieng.dc.html` (Claude Design `f0f47482-c51a-4232-b5c0-d924871ce294`) — M1 (3 khung điện thoại: mặc định Bật/15, để trống, lỗi 120 + 1 khung máy tính), M4 (đã có cam kết, lỗi 0 + 1 máy tính), M3 (1 + 1), DP (1 + 1). BỀ MẶT làm đúng bản vẽ; **chỉ chen hai ô vào form có sẵn** `[chờ chủ xác nhận câu 7.1 — đang theo khuyến nghị]` — ô "Loại đưa đón", "Ngày giờ đón" gộp, "Số khách" mỗi chặng, nút "Lưu chặng"/"Lưu thay đổi", tiêu đề "TD-… · Chặng 1", hàng "Số khách 9 (6 NL · 3 TE)" ở M3, nhãn "Chờ xếp" và dòng chú "Nhãn ngắn cạnh chuyến bay…" ở DP, khung canvas 1040 đặt hai trạng thái cạnh nhau, phông Nunito của khối dựng là **khung minh hoạ, không làm**.
+Máy chủ (Task 1–7, 8a) phát hành được trước, chạy ngầm (C10). Bản vẽ: `docs/design/van-chuyen-dot-3-7/Dua don xe rieng.dc.html` (Claude Design `f0f47482-c51a-4232-b5c0-d924871ce294`) — M1 (3 khung điện thoại: mặc định Bật/15, để trống, lỗi 120 + 1 khung máy tính), M4 (đã có cam kết, lỗi 0 + 1 máy tính), M3 (1 + 1), DP (1 + 1). BỀ MẶT làm đúng bản vẽ; **chỉ chen hai ô vào form có sẵn** (chủ đồng ý 2/10) — ô "Loại đưa đón", "Ngày giờ đón" gộp, "Số khách" mỗi chặng, nút "Lưu chặng"/"Lưu thay đổi", tiêu đề "TD-… · Chặng 1", hàng "Số khách 9 (6 NL · 3 TE)" ở M3, nhãn "Chờ xếp" và dòng chú "Nhãn ngắn cạnh chuyến bay…" ở DP, khung canvas 1040 đặt hai trạng thái cạnh nhau, phông Nunito của khối dựng là **khung minh hoạ, không làm**.
 
 **Files:**
 - Modify: `src/shared/chang-form.ts` (đo 2/10: `ChangNhap` `:12`, `changTuDto` `:45`, `LoiChang` `:141`, `loiChang` `:151`, `legInput` `:178`, `changDaDoi` `:203`):
@@ -369,7 +369,7 @@ Máy chủ (Task 1–7, 8a) phát hành được trước, chạy ngầm (C10). 
   - Lưới 390px: giữ `--w-dd-phu: 140px` (`public/app.css:305`); xem ảnh 390, nếu chữ gợi ý bị ép thì đổi token lên 170px (ảnh hưởng cả ô số hiệu chuyến bay — ghi nhật ký).
 - Modify: `web/sheet-dua-don.ts`: không đổi bố cục — bảng "Sửa đưa đón" dùng chung `khoiDuaDon` (`che: "bang"`) nên tự có hai ô; `changDaDoi` / `legInput` gửi hai khoá qua `chang-form`. **Không** thêm câu nhắc kiểu "chặng đã xếp xe — bật xe riêng có thể làm chuyến bị giữ" (bản vẽ không có; nếu muốn → `docs/BACKLOG.md`).
 - Modify: hàm thuần chữ nhãn dùng chung, đề xuất `src/shared/cam-ket-xe.ts` (tệp Task 3 tạo) thêm `nhanCamKet(xeRieng: boolean, choToiThieu: number | null): { nhan: string; tone: "navy" | "unit" }[]` → `[{ "XE RIÊNG", navy }, { "≥ N chỗ", unit }]` theo thứ tự đó; test ở `src/shared/cam-ket-xe.test.ts`. Tránh "hai luật" chữ nhãn giữa hai màn.
-- Modify: `web/order.ts` — `dongChang` (`:179`): chèn nhãn từ `nhanCamKet` vào `.dd-dong-dau` **trước** nhãn "✈︎" (`:190`): `h("span", { class: "chip dp-chip-navy" }, "XE RIÊNG")` (nền `--c-primary`, chữ `--c-on-dark` — `.dp-chip-navy` `public/app.css:2203`), `h("span", { class: "chip chip-unit" }, "≥ 15 chỗ")` (`.chip-unit` `:963`). Thứ tự M3: [XE RIÊNG][≥ N chỗ][✈︎ …]. Hiện cho mọi vai xem được đơn `[chờ chủ xác nhận câu 7.2 — đang theo khuyến nghị]`.
+- Modify: `web/order.ts` — `dongChang` (`:179`): chèn nhãn từ `nhanCamKet` vào `.dd-dong-dau` **trước** nhãn "✈︎" (`:190`): `h("span", { class: "chip dp-chip-navy" }, "XE RIÊNG")` (nền `--c-primary`, chữ `--c-on-dark` — `.dp-chip-navy` `public/app.css:2203`), `h("span", { class: "chip chip-unit" }, "≥ 15 chỗ")` (`.chip-unit` `:963`). Thứ tự M3: [XE RIÊNG][≥ N chỗ][✈︎ …]. Hiện cho mọi vai xem được đơn (chủ đồng ý 2/10).
 - Modify: `web/dieu-phoi.ts` — `theChang` (`:162`): chèn vào `.dp-leg-top` **sau** nhãn "✈︎" (`:165`) bằng `chip(nhan, tone)` có sẵn (`web/dieu-phoi-ui.ts:16`, nhận `"navy"`). Thứ tự DP: [nhãn trạng thái `chipChang`…][✈︎ …][XE RIÊNG][≥ N chỗ] — **khác M3, đúng bản vẽ từng màn**. `aria-label` (`:170`) nối ", xe riêng" / ", tối thiểu N chỗ". Chế độ chỉ xem (thẻ `div`, Kế toán) cũng hiện nhãn.
 - Modify: `public/app.css` (sau mốc PWA, chỉ token): khung ô công tắc trong `.dd-luoi-phu`, hậu tố "chỗ", biến thể màu tắt cục bộ. Không token mới.
 - Test: `src/shared/chang-form.test.ts`, `src/shared/service-form.test.ts` (thân gửi lên có hai khoá với mọi vai lập đơn), `src/shared/cam-ket-xe.test.ts` (`nhanCamKet`).
@@ -440,7 +440,7 @@ Máy chủ (Task 1–7, 8a) phát hành được trước, chạy ngầm (C10). 
 
 ## Cần chủ (chỉ câu còn mở — cập nhật 2/10)
 
-1. **Câu bản vẽ** (tệp chung `docs/superpowers/plans/2026-10-02-van-chuyen-cau-hoi-ban-ve.md`): **7.1** chỉ chen hai ô vào form có sẵn, không làm lại form theo khung vẽ (Task 8b); **7.2** ai xem được chặng đều thấy nhãn, tài xế không nhận (Task 2, 8b). Chưa trả lời ⇒ thi công theo khuyến nghị (đánh dấu trong Task 8b).
+1. **Câu bản vẽ** (tệp chung `docs/superpowers/plans/2026-10-02-van-chuyen-cau-hoi-ban-ve.md`): **7.1** chỉ chen hai ô vào form có sẵn, không làm lại form theo khung vẽ (Task 8b); **7.2** ai xem được chặng đều thấy nhãn, tài xế không nhận (Task 2, 8b). Đã trả lời: chủ đồng ý 7.1, 7.2 tối 2/10 (thi công đúng khuyến nghị, đánh dấu trong Task 8b).
 2. *(Nhắc, không chặn duyệt — ADR-0056)* Việc ngoài app của chủ: hỏi người chuyên môn pháp lý về **ghép khách nhiều đơn trên xe hợp đồng** trước khi chạy chuyến ghép thật.
 
 ## Điều chưa chắc (người kiểm soi)
