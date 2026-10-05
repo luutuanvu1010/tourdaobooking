@@ -156,6 +156,16 @@ test("kiểm độc lập vòng 3 (THẤP 3): đơn Đã giao đã lệch từ t
   assert.equal((await thay(w, KT, { orderId: chua, cu: [], moi: [{ soTien: 1_000, hinhThuc: "CASH", nguoiThu: "cong_ty" }], lyDo: "Ghi bù khi chưa Đã giao" })).status, 400);
 });
 
+test("kiểm độc lập vòng 4: hồ sơ người thu (nguoiThuPartyId) CHỈ Kế toán / Toàn quyền thấy — Bán hàng và HDV nhận null", async () => {
+  const w = setup();
+  const id = don(w);
+  assert.equal((await thu(w, HDV, id, 300_000)).status, 201);
+  const ids = async (as: string) => (await w.call("GET", `/api/orders/${id}/payments`, { as })).json.lanThu.map((l: { nguoiThuPartyId: string | null }) => l.nguoiThuPartyId);
+  assert.deepEqual(await ids(KT), [`pty-${HDV}`]);
+  assert.deepEqual(await ids(SALES), [null]);
+  assert.deepEqual(await ids(HDV), [null]);
+});
+
 test("hai lớp tách riêng: gỡ trigger 0083 trong DB thử — máy chủ VẪN trả 409 cho đảo đơn lẻ và hoàn sau Đã giao (không dựa một mình vào CSDL)", async () => {
   const w = setup();
   const id = await daGiaoGhiNham(w);

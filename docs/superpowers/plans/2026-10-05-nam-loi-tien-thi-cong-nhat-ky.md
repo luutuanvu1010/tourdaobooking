@@ -134,3 +134,8 @@ _(ghi dần)_
 - **Đóng F-03** (điều kiện trong mục: một hàm thành tiền, kiểm subtotal ở audit-invariants có quan sát chặn thật + dòng SO-HANG-RAO, lớp CSDL, người kiểm độc lập — vòng 3 kết luận "ĐỦ ĐIỀU KIỆN ĐÓNG").
 - **Đóng TNV-VP01** (điều kiện (i) bài lo-ghi hai thứ tự 409 + sổ người khai 0; (ii) trigger quan sát chặn thật + dòng H-VP1; (iii) R-BIL-13 mức lỗi xanh trên D1 local sau e2e — dòng "✓ R-BIL-13 …" ở phần audit-invariants cuối e2e trọn bộ; người kiểm độc lập vòng 3 "ĐỦ ĐIỀU KIỆN ĐÓNG").
 - **KHÔNG đóng** TNV-G1, TNV-G3, TNV-G4 — ghi "CÒN CHỜ" vào cuối `ke_hoach` của từng mục; không đổi hạn.
+
+### Kiểm độc lập vòng 4 (hai commit cuối: sửa vòng 3 + đóng mục) — ĐẠT — 2026-10-06
+- Người kiểm tự chạy typecheck 0, `npm test` 3330 (3328 + 2 todo), bài hàng rào hook 33/33, `phat-hien-han` xanh (ba mục còn mở giữ hạn 31/10); bốn phép đột biến trên bản sao /tmp khớp lời khai; e2e trọn bộ `/tmp/nlt-e2e-final.txt` 51/51, R-BIL-1 / R-BIL-8 / R-BIL-13 / R-ORD-15 ✓.
+- TRUNG BÌNH (chưa bài nào khoá `nguoiThuPartyId` chỉ cho Kế toán / Toàn quyền): thêm bài trong `thay-lan-thu.test.ts`, bỏ điều kiện → ĐỎ `not ok 7` → hoàn nguyên → xanh.
+- THẤP: lô Thay "mở mãi" bằng SQL tay (dấu nối mới, không phiếu đánh dấu) — ghi vào giới hạn của H-G3 (R-BIL-1 kỳ sau bắt). Chưa chạy kịch bản Chrome cho nút "Thay lần thu" / "Ghi bù lần thu" (giữ ở phần chưa làm của báo cáo).
