@@ -105,5 +105,9 @@ test("R-ORD-15 (F-03): gỡ trigger 0081, xác nhận đơn lệch / sửa dòng
   don(db, "cu", 800_000);
   run(db, "UPDATE orders SET status = 'confirmed', confirmed_at = ? WHERE id = 'cu'", TRUOC_MOC);
   assert.equal(dem(), 2, "đơn xác nhận trước mốc không thành lỗi");
+  // Giới hạn của 0081: đơn CHÈN THẲNG ở trạng thái 'confirmed' (SQL tay, không mốc xác nhận) không qua trigger lúc xác nhận — R-ORD-15 bắt (mốc = lúc tạo).
+  run(db, `INSERT INTO orders (id, order_code, staff_id, status, customer_name, customer_phone, subtotal, total, remaining_amount, created_at, updated_at)
+    VALUES ('chen', 'TD-chen', 's1', 'confirmed', 'Khách Giả', '0900000009', 500000, 500000, 500000, ?, ?)`, SAU_MOC, SAU_MOC);
+  assert.equal(dem(), 3, "đơn chèn thẳng khác nháp, lệch tiền, tạo từ mốc → lỗi");
   assert.deepEqual(db.prepare(check("R-ORD-15w").sql).all().map((r) => ({ ...(r as object) })), [{ order_code: "TD-cu", subtotal: 800_000, tong_dong: 750_000 }]);
 });

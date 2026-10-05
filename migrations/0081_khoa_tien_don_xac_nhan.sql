@@ -27,3 +27,5 @@ CREATE TRIGGER orders_confirm_subtotal_matches BEFORE UPDATE OF status ON orders
 WHEN NEW.status = 'confirmed' AND OLD.status <> 'confirmed'
   AND NEW.subtotal IS NOT (SELECT COALESCE(SUM(i.line_total), 0) FROM order_item i WHERE i.order_id = NEW.id)
 BEGIN SELECT RAISE(ABORT, 'order_subtotal_mismatch: tạm tính của đơn khác tổng thành tiền các dòng'); END;
+-- Giới hạn có chủ ý: đơn CHÈN THẲNG ở trạng thái khác nháp (mã không làm — `createOrder` luôn chèn 'draft'; chỉ SQL tay) không qua (3). Không thêm trigger
+-- chặn vì 25 bài thử hiện có dựng đơn như vậy; lưới là R-ORD-15 (xét mọi đơn hết nháp, mốc theo COALESCE(confirmed_at, created_at)).
