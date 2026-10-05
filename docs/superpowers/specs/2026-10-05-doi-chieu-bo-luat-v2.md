@@ -110,6 +110,9 @@ GOVERNANCE và PLAYBOOK vẫn gọi tên QA1/QA2 nhưng đã mất bảng địn
 | 8 | Gọn lớp vận hành theo 4.3, 4.4 (§10 CLAUDE.md sang CHANGE-GUIDE hoặc skill, quét token vùng 535–776, bảng token) | Làm được bất cứ lúc nào | AI, chủ duyệt phần luật |
 
 ## 7. Câu cần chủ dự án quyết (gom một lần)
+
+Chủ dự án trả lời 2026-10-05: câu 1 đồng ý dựng môi trường thử; câu 2 làm phiên hợp nhất luật thực thi ở kho gốc ngay sau khi nhập nhánh này; câu 4 họ tên người trong nhật ký **không** tính là dữ liệu định danh phải che, vì minh bạch nghiệp vụ kinh doanh. Hệ quả câu 4: sửa Hiến chương hệ thống 5.12 ở kho gốc (nới một điều khoản, tăng số chính theo Hiến pháp 9.3, ghi rủi ro: nhật ký chỉ-thêm nên họ tên không xoá được khi chủ thể dữ liệu yêu cầu); số điện thoại, email, mã số thuế, số giấy tờ vẫn cấm. Câu 3, 5, 6 làm khi nâng ghim.
+
 1. Môi trường thử: dựng Worker và D1 staging cho CRM, hay giữ ghim v2.3.0 lâu dài. Khuyến nghị: dựng, vì Hiến pháp cả bản cũ lẫn bản mới đều đòi.
 2. Lịch phiên hợp nhất luật thực thi ở kho gốc (bước 4). Khuyến nghị: làm ngay sau khi duyệt tờ khai CRM, trước mọi dự án khác.
 3. Cách đọc các chỗ CRM lỏng hơn (3.5): (a) lệch ngay, hay (b) dọn trước nâng ghim. Khuyến nghị (b).
