@@ -512,7 +512,17 @@ test("Đợt 7 (khuôn nghiPhaLe): vi phạm sinh do SỬA ĐƠN — sửa chuy�
   const x = await xep(w, SALES, t, [{ legId: a.legId, soSuat: 2 }, { legId: b.legId, soSuat: 2 }]);
   assert.equal(x.status, 200, x.text);
   let c = x.json;
-  w.sqlite.prepare("UPDATE ord_transfer_leg SET exclusive_vehicle = 1 WHERE id = ?").run(a.legId); // mô phỏng sửa đơn sau khi đã ghép (đường route: Task 5)
+  // Sửa đơn sau khi đã ghép — đường thật của orders (`PUT /api/orders/:id/legs/:legId`, ô order.trip.edit): bật xe riêng cho chặng của A.
+  const oA = (await w.call("GET", `/api/orders/${a.id}`, { as: ADM })).json.order;
+  const lA = oA.services[0].legs[0];
+  const sa = await w.call("PUT", `/api/orders/${a.id}/legs/${a.legId}`, {
+    as: SALES,
+    body: {
+      expectedUpdatedAt: lA.updatedAt,
+      leg: { pickupDate: lA.pickupDate, pickupTime: lA.pickupTime, pickupLocationId: lA.pickupLocationId, pickupPlace: lA.pickupPlace ?? "", dropoffLocationId: lA.dropoffLocationId, dropoffPlace: lA.dropoffPlace ?? "", exclusiveVehicle: true },
+    },
+  });
+  assert.equal(sa.status, 200, sa.text);
   const sua = (as: string, body: Record<string, unknown>) => w.call("PUT", `/api/van-chuyen/chuyen/${t.chuyen.id}`, { as, body: { version: c.chuyen.version, requestId: uuid(), ...body } });
   const gio = await sua(SALES, { ketThuc: { ngay: inDays(2), gio: "09:30" } });
   assert.equal(gio.status, 200, gio.text);
