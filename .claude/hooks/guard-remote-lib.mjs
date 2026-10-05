@@ -222,12 +222,39 @@ const WRITE_MARK =
 const ADR_ASK_REASON =
   "Sửa docs/adr/ phải qua công cụ Edit/Write để chủ duyệt (luật ask Edit(docs/adr/**) ở .claude/settings.json; ghi bằng Bash/python làm hộp hỏi không hiện — sự cố 30/9, CLAUDE.md §3 và §8). Chỉ bấm cho phép nếu chủ dự án đã đồng ý sửa ADR này.";
 
-/** Thân heredoc nạp vào trình thông dịch (`python3 - <<'EOF'`, `cat <<EOF | node`) — là MÃ, phải kiểm (stripHeredocs đã bỏ chúng). */
-function interpreterHeredocs(s) {
-  const out = [];
-  for (const m of s.matchAll(/(^|\n)([^\n]*?)<<-?\s*(['"]?)([A-Za-z_]\w*)\3([^\n]*)\n([\s\S]*?)\n[ \t]*\4(?=\n|$|\))/g)) {
-    if (INTERP.test(blank(m[2] + " " + m[5]))) out.push(m[6]);
-    if (out.length >= MAX_SUBSTITUTIONS) break;
+/** Thân heredoc nạp vào trình thông dịch (`python3 - <<'EOF'`, `cat <<EOF | node`) — là MÃ, phải kiểm (stripHeredocs đã bỏ chúng).
+ * Đi theo DÒNG, tuyến tính: lập sẵn chỉ mục "dòng kết thúc" theo tên (`EOF`, `EOF)`, có thể thụt lề) rồi tra nhị phân dòng kết thúc đầu tiên sau
+ * dòng mở. KHÔNG dùng một regex `[\s\S]*?…\4` trên cả chuỗi: với heredoc không đóng (`y <<A` lặp lại), regex đó quét tới cuối chuỗi cho MỖI chỗ
+ * `<<` — bậc hai, từng làm móc chạy ~12 s CPU ở lệnh dài sát MAX_LENGTH (người kiểm độc lập đo 5/10) ⇒ quá hạn 10 s, mọi luật bị bỏ qua.
+ * Xuất ra để bài đo giờ (src/claude-guard-thoi-gian.test.ts) đo RIÊNG hàm này. */
+export function interpreterHeredocs(s) {
+  const out = [];  const lines = s.split("\n");
+  const ends = new Map(); // tên → các chỉ số dòng có thể kết thúc heredoc tên đó (tăng dần)
+  lines.forEach((line, i) => {
+    const m = /^[ \t]*([A-Za-z_]\w*)(?:\)|$)/.exec(line);
+    if (m) (ends.get(m[1]) ?? ends.set(m[1], []).get(m[1])).push(i);
+  });
+  const firstEndAfter = (tag, i) => {
+    const arr = ends.get(tag);
+    if (!arr) return -1;
+    let lo = 0;
+    let hi = arr.length;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (arr[mid] > i) hi = mid;
+      else lo = mid + 1;
+    }
+    return lo < arr.length ? arr[lo] : -1;
+  };
+  for (let i = 0; i < lines.length && out.length < MAX_SUBSTITUTIONS; i++) {
+    const line = lines[i];
+    for (const m of line.matchAll(/<<-?[ \t]*(['"]?)([A-Za-z_]\w*)\1/g)) {
+      const j = firstEndAfter(m[2], i + 1); // như regex cũ: dòng kết thúc sớm nhất là i+2 (thà quét dư còn hơn bỏ sót)
+      if (j === -1) continue;
+      if (INTERP.test(blank(line.slice(0, m.index) + " " + line.slice(m.index + m[0].length)))) out.push(lines.slice(i + 1, j).join("\n"));
+      i = j; // thân heredoc là dữ liệu: không tìm heredoc mới bên trong nó
+      break;
+    }
   }
   return out;
 }

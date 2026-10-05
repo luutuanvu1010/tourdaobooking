@@ -5,7 +5,7 @@
 // VẪN chạy — không có công tắc bỏ qua.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { evaluateBash, scriptPaths } from "../.claude/hooks/guard-remote-lib.mjs";
+import { evaluateBash, interpreterHeredocs, scriptPaths } from "../.claude/hooks/guard-remote-lib.mjs";
 
 test("guard-remote: lệnh dị dạng không làm hook quá giờ (timeout 10 s của hook)", () => {
   // Đo thời gian CPU của chính tiến trình (process.cpuUsage), không đo đồng hồ: máy bận vì việc khác (nhiều phiên song song)
@@ -24,8 +24,12 @@ test("guard-remote: lệnh dị dạng không làm hook quá giờ (timeout 10 s
     // Luật docs/adr (30/9): đầu vào dị dạng CÓ chữ docs/adr để đi vào nhánh kiểm mới (lọc nhanh không bỏ qua được).
     evaluateBash("python3 docs/adr " + "open(a ".repeat(40_000), { branch: "worktree-x" });
     evaluateBash("echo > docs/adr/" + " > docs/adr".repeat(20_000), { branch: "worktree-x" });
-    // scriptPaths chạy TRƯỚC evaluateBash trong hook: nhiều cờ `--ab` từng làm nó quay lui mũ 2 (treo hook ⇒ mọi luật chặn bị bỏ qua).
+    // scriptPaths chạy trong móc (sau hai bước deny, trước bước ask): nhiều cờ `--ab` từng làm nó quay lui mũ 2 (treo hook ⇒ luật bị bỏ qua).
     scriptPaths("node" + " --ab".repeat(40) + " ;" + " python3 -x".repeat(20_000));
+    // Heredoc KHÔNG ĐÓNG lặp lại, sát MAX_LENGTH, có chữ docs/adr (người kiểm độc lập 5/10): bản regex cũ của interpreterHeredocs quét tới cuối chuỗi
+    // cho mỗi `<<` — bậc hai, ~6 s CPU riêng hàm này. Đo RIÊNG hàm (stripHeredocs của phần deny có chi phí tương tự từ trước — nợ ghi ở sổ hàng rào).
+    interpreterHeredocs("cat docs/adr/x\n" + "python3 <<A\n".repeat(16_000));
+    interpreterHeredocs("cat docs/adr/x\n" + "y <<A\n".repeat(33_000));
     const used = process.cpuUsage(cpu);
     runs.push(Math.round((used.user + used.system) / 1000));
   }
