@@ -173,7 +173,7 @@ export function loiChang(l: ChangNhap, so: number, soKhach: number, daLuu: boole
 export function loiDanhSachChang(legs: readonly ChangNhap[], soKhach: number): string[] {
   return legs.flatMap((l, i) => {
     const e = loiChang(l, i + 1, soKhach, true);
-    return [e.don, e.donTuDo, e.soVe, e.choToiThieu === null ? null : `Chặng ${i + 1}: số chỗ từ 1 đến 100.`].filter((x): x is string => x !== null);
+    return [e.don, e.donTuDo, e.soVe, e.choToiThieu === null ? null : `Chặng ${i + 1}: ${CAU_LOI_CHO_TOI_THIEU.charAt(0).toLowerCase()}${CAU_LOI_CHO_TOI_THIEU.slice(1)}.`].filter((x): x is string => x !== null);
   });
 }
 
