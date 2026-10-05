@@ -2,7 +2,21 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 1.76 ĐÃ LÊN PRODUCTION (lớp chống ghi trùng chung ADR-0094 — Đợt 0 luồng L; gồm cả 1.73 Trang chủ Quản trị, 1.74 quyền tiền ADR-0090, 1.75 Vận chuyển Đợt 3) — migration `0074_lan_gui` đã áp (2026-10-02 22:08 giờ VN)
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 1.81 ĐÃ LÊN PRODUCTION (Vận chuyển Đợt 7: cam kết "xe riêng" / "xe tối thiểu N chỗ" trên chặng đưa đón, ADR-0056 VK3-A) — migration `0077_cam_ket_chang` đã áp (2026-10-05 18:43 giờ VN)
+
+AI (phiên điều phối Đợt 7) kiểm bằng lệnh chỉ đọc sau khi chủ báo đã `day-len` + `trien-khai` (5/10 tối):
+
+- **Phiên bản:** `node scripts/kiem-phien-ban.mjs --sau-deploy` → "ĐẠT: production đang chạy đúng bản 1.81."; `GET /api/auth/config` → `"version":"1.81"`. Mã 1.81 = `003774e9` (nhánh `van-chuyen-dot-7`, = `origin/main` lúc ghi).
+- **Worker** (`wrangler deployments list`): mới nhất **3a53ded5-76fb-42c2-b806-861fe2d7a4dc** (2026-10-05T11:43:16Z = 1.81). Trước đó 9969f186-fbaf-4391-8b2e-d7b9c57eb17c (07:16Z — trước Đợt 7, bản 1.80).
+- **Migration:** `wrangler d1 migrations list --remote` → "No migrations to apply!" (`0077` đã áp).
+- **Dữ liệu:** `audit-invariants --db remote` → "Mọi bất biến đạt, 3 cảnh báo" (R-CTL-1: 3 dịch vụ chưa gán nhóm; R-BIL-2/5 chưa áp dụng; R-BIL-7 dùng lại R-PTY-1), thoát 0; R-VC-25 (mới) đạt.
+- **Tệp công khai:** `/` → 200; `/js/order.js` → 200, có nhãn "XE RIÊNG" (`dp-chip-navy`) và ô "Xe tối thiểu".
+- **Bảo trì:** `GET /api/auth/config` báo đang BẬT tới 2026-10-10 16:37 giờ VN (`endsAt` 2026-10-10T09:37Z).
+- **Kiểm trước phát hành (nhánh `van-chuyen-dot-7`):** typecheck 0; npm test 3213 đạt / 0 đỏ; e2e đủ bộ 45/45 kịch bản; kiểm độc lập toàn nhánh ĐẠT (4 đột biến riêng) + lượt kiểm phần sau cùng ĐẠT. Sổ: `docs/superpowers/plans/2026-10-05-van-chuyen-dot-7-nhat-ky.md`.
+- **Lộ trình Vận chuyển ĐÃ KHOÁ 5/10** (chủ: không vẽ thêm); phần chưa làm + nợ ở `docs/BACKLOG.md` mục 22 (`BL-VC-…`).
+- **Chưa kiểm:** iPhone thật; ba kịch bản Chrome cũ đỏ sẵn từ 1.80 (`BL-VC-SMOKE-CU`). Các bản 1.77–1.80 chưa có mục riêng trong sổ này (phiên Đợt 4/5 ghi ở nhật ký đợt).
+
+## TRẠNG THÁI TRIỂN KHAI (cũ) — Phiên bản 1.76 ĐÃ LÊN PRODUCTION (lớp chống ghi trùng chung ADR-0094 — Đợt 0 luồng L; gồm cả 1.73 Trang chủ Quản trị, 1.74 quyền tiền ADR-0090, 1.75 Vận chuyển Đợt 3) — migration `0074_lan_gui` đã áp (2026-10-02 22:08 giờ VN)
 
 AI (phiên "Đợt 0 luồng L") kiểm bằng lệnh chỉ đọc sau khi chủ báo đã `day-len` + `trien-khai` (2/10 tối):
 
