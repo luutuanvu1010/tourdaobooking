@@ -11,6 +11,18 @@ import {
 
 const boSung = (w: any, tripId: string, than: Record<string, unknown>, as = DRIVER) =>
   w.call("POST", `/api/van-chuyen/cuoc-cua-toi/${tripId}/hanh-khach`, { as, body: { requestId: uuid(), fullName: "Khách Tài Xế Nhập", birthYear: 1977, paxCode: null, ...than } });
+// Kiểm định kỳ (scripts/audit-checks.mjs) trên dữ liệu DO LÔ THẬT ghi: R-ORD-11 (vế DRIVER đòi sự kiện PASSENGER_NAMED trên suất mang khoá người) + mọi R-VC-* mức
+// fail — lệch allocation_id / trip_id giữa sự kiện và suất thì `audit-invariants --db remote` đỏ ngay lần tài xế đầu tiên bổ sung tên.
+const { CHECKS } = (await import(new URL("../../../scripts/audit-checks.mjs", import.meta.url).href)) as { CHECKS: { code: string; sql: string; level: string; mode?: string }[] };
+function kiemDinhKySach(w: any) {
+  const ds = CHECKS.filter((c) => c.code === "R-ORD-11" || (c.code.startsWith("R-VC-") && c.level === "fail"));
+  assert.ok(ds.some((c) => c.code === "R-ORD-11"), "chống bài rỗng: có R-ORD-11");
+  for (const c of ds) {
+    const rows = w.q(c.sql.replace(/\s+/g, " ").trim());
+    const n = c.mode === "rows" ? rows.length : Number(Object.values(rows[0] ?? { n: 0 })[0]);
+    assert.equal(n, 0, `${c.code} có vi phạm`);
+  }
+}
 const suatChuaTen = (w: any, tripId: string): string[] =>
   w.q("SELECT id FROM vc_trip_allocation WHERE trip_id = ? AND kind = 'PASSENGER' AND valid_to_at IS NULL AND passenger_key IS NULL ORDER BY id", tripId).map((r: any) => r.id);
 
@@ -36,6 +48,7 @@ test("D5b chuyến LÊN KẾ HOẠCH trong ngày chạy: tài xế bổ sung tê
     assert.equal(nk.length, 1);
     assert.match(nk[0].detail, new RegExp(`${a.ma}.*${a.don.code}`));
     assert.doesNotMatch(nk[0].detail, /Khách Tài Xế Nhập|1977|Dò Tìm/);
+    kiemDinhKySach(w);
     // Lặp cùng requestId → kết quả cũ, không ghi thêm.
     assert.equal((await boSung(w, a.id, { suatId: s, requestId: rid })).status, 200);
     assert.equal(w.q("SELECT count(*) n FROM ord_passenger WHERE source = 'DRIVER'")[0].n, 1);
@@ -74,6 +87,7 @@ test("D5b xe ĐANG CHẠY: suất chưa tên do văn phòng thêm sau xuất b�
     assert.equal(hk.length, 1);
     const chot = w.q("SELECT check_id, added_after_departure, passenger_row_id FROM vc_trip_manifest WHERE allocation_id = ?", s);
     assert.deepEqual(chot.map((x: any) => ({ ...x })), [{ check_id: null, added_after_departure: 1, passenger_row_id: hk[0].id }]);
+    kiemDinhKySach(w);
   } finally {
     tat();
   }
