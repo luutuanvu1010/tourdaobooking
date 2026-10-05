@@ -11,6 +11,10 @@ export const GOP_MS = 1000;
 /** Ping mỗi 50 giây; không thấy pong trong 10 giây thì coi kết nối đã chết (TD-2). */
 export const PING_MS = 50_000;
 export const PONG_HAN_MS = 10_000;
+/** Hiện lại ứng dụng: gõ cửa kiểm kết nối, không thấy pong trong khoảng này thì coi đã chết và nối lại (ngắn hơn PONG_HAN_MS vì người đang chờ nhìn màn hình). */
+export const KIEM_NHANH_MS = 3000;
+/** Ẩn từ khoảng này trở lên thì khi hiện lại coi dữ liệu là cũ: nối lại + tải lại NGAY, không cần kiểm (đi lâu — đổi tab/khoá máy hàng phút). */
+export const AN_LAU_MS = 120_000;
 /**
  * Hoãn quyết định hiện thông báo nổi. Máy chủ phát tin SONG SONG với việc dựng phản hồi HTTP (khung WebSocket có thể tới trình duyệt trước HOẶC sau phản hồi) nên khung có thể tới trước khi
  * `api()` kịp parse phản hồi và ghi dấu "tab này vừa làm" — kiểm dấu LÚC HIỆN (sau khoảng này) chứ không lúc nhận khung; hoãn này đúng cho cả hai thứ tự. Chỉ hoãn thông báo
@@ -118,6 +122,8 @@ export interface Phu {
   khiDotChuyen(ds: SuKienChuyen[]): void;
   /** Nối lại thành công (phát `can-tai-lai`). */
   khiCanTaiLai(): void;
+  /** Đồng hồ (mili-giây) để đo thời gian ẩn; vắng thì dùng `Date.now`. Tiêm để bài kiểm tất định. */
+  bayGio?(): number;
 }
 
 /**
@@ -136,6 +142,8 @@ export function taoBoDieuKhien(phu: Phu) {
   let henNoi: unknown = null;
   let henPing: unknown = null;
   let henPong: unknown = null;
+  let henKiem: unknown = null; // đang chờ pong của lần gõ cửa kiểm khi hiện lại ứng dụng
+  let lucAn: number | null = null;
 
   const xoaHen = (id: unknown) => {
     if (id !== null) phu.huyHen(id);
@@ -143,8 +151,10 @@ export function taoBoDieuKhien(phu: Phu) {
   const dungPing = () => {
     xoaHen(henPing);
     xoaHen(henPong);
+    xoaHen(henKiem);
     henPing = null;
     henPong = null;
+    henKiem = null;
   };
   const boSocket = () => {
     // Gỡ TRƯỚC khi đóng để hàm gọi lại `onclose` của socket cũ không còn được tính.
@@ -218,6 +228,8 @@ export function taoBoDieuKhien(phu: Phu) {
       if (ev.data === "pong") {
         xoaHen(henPong);
         henPong = null;
+        xoaHen(henKiem); // còn sống: huỷ hẹn kiểm khi hiện lại — không đóng-mở lại cái khoẻ
+        henKiem = null;
         return;
       }
       if (typeof ev.data !== "string") return;
@@ -245,9 +257,40 @@ export function taoBoDieuKhien(phu: Phu) {
     lan = 0;
     noi();
   }
+  const bayGio = () => (phu.bayGio ? phu.bayGio() : Date.now());
   return {
     batDau: noi,
     noiNgay,
+    /** Trang bị ẩn (đổi tab, khoá máy, sang ứng dụng khác): ghi mốc để biết đã đi bao lâu. */
+    anDi(): void {
+      if (lucAn === null) lucAn = bayGio();
+    },
+    /**
+     * Trang hiện lại. TRƯỚC: luôn `noiNgay()` — đóng cả kết nối còn khoẻ rồi `can-tai-lai` làm mọi trang tải lại toàn bộ dữ liệu. NAY: đi lâu (≥ AN_LAU_MS)
+     * hoặc chưa có kết nối sống ⇒ nối lại + tải lại như cũ; còn lại chỉ GÕ CỬA (ping): có pong trong KIEM_NHANH_MS thì giữ nguyên (không đã lỡ tin nào —
+     * tin tới qua kết nối đang mở), không pong hoặc `send` ném lỗi thì nối lại + tải lại.
+     */
+    hienLai(): void {
+      const di = lucAn === null ? 0 : bayGio() - lucAn;
+      lucAn = null;
+      if (dung) return;
+      const mine = ws;
+      if (di >= AN_LAU_MS || !mine || henNoi !== null) {
+        noiNgay();
+        return;
+      }
+      if (henKiem !== null) return; // đang chờ pong của lần kiểm trước
+      try {
+        mine.send("ping");
+      } catch {
+        noiNgay();
+        return;
+      }
+      henKiem = phu.hen(() => {
+        henKiem = null;
+        if (ws === mine) noiNgay(); // không pong: coi như chết
+      }, KIEM_NHANH_MS);
+    },
     /** `pagehide`: đóng sạch, không nối lại (cho tới `tiepTuc`). */
     dung(): void {
       dung = true;

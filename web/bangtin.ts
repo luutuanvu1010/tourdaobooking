@@ -27,8 +27,10 @@ export function batDauBangTin(staff: StaffProfile): void {
     khiDotChuyen: (ds) => window.dispatchEvent(new CustomEvent<SuKienChuyen[]>("chuyen-thay-doi", { detail: ds })),
     khiCanTaiLai: () => window.dispatchEvent(new CustomEvent("can-tai-lai")),
   });
+  // Hiện lại ứng dụng: chỉ KIỂM kết nối (ping), không đóng-mở lại cái còn khoẻ — tránh mọi lần quay lại đều tải lại toàn bộ dữ liệu trang (xem `hienLai`).
   document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "visible") bo.noiNgay();
+    if (document.visibilityState === "visible") bo.hienLai();
+    else bo.anDi();
   });
   window.addEventListener("online", () => bo.noiNgay());
   window.addEventListener("pagehide", () => bo.dung());

@@ -6,6 +6,8 @@ import assert from "node:assert/strict";
 import {
   GOP_MS,
   HAN_TU_LAM_MS,
+  AN_LAU_MS,
+  KIEM_NHANH_MS,
   PING_MS,
   PONG_HAN_MS,
   TOI_DA_THONG_BAO,
@@ -96,6 +98,7 @@ function dungBo(ngauNhien = 0.5) {
     khiDot: (ds) => dot.push(ds),
     khiDotChuyen: () => {},
     khiCanTaiLai: () => canTaiLai++,
+    bayGio: dh.now,
   };
   const bo = taoBoDieuKhien(phu);
   return { dh, bo, sockets, dot, tungTin, canTaiLai: () => canTaiLai, cuoi: () => sockets[sockets.length - 1]! };
@@ -349,6 +352,115 @@ test("ping mỗi 50 giây; có pong thì không sao, không pong trong 10 giây 
   s.onclose?.();
   t.dh.tua(60_000 + 0);
   assert.equal(t.sockets.length, 2, "onclose muộn của socket chết không hẹn thêm lần nào");
+});
+
+// ---- hiện lại ứng dụng (nghiên cứu tốc độ 2026-10-02, đợt 1 việc 4): chỉ KIỂM kết nối, không đóng-mở lại cái còn sống -------------------------------------
+// Trước: mọi lần hiện lại đều `noiNgay()` — đóng cả socket còn khoẻ, mở lại, rồi `can-tai-lai` làm mọi trang tải lại TOÀN BỘ dữ liệu.
+function moVaChoNgoi() {
+  const t = dungBo();
+  t.bo.batDau();
+  const cu = t.cuoi();
+  cu.mo();
+  return { t, cu };
+}
+
+/** Tua `ms` mili giây nhưng socket giả TRẢ PONG cho mọi ping định kỳ (kết nối khoẻ suốt thời gian ẩn). */
+function tuaKhoe(t: ReturnType<typeof dungBo>, cu: SocketGia, ms: number) {
+  for (let da = 0; da < ms; da += 5000) {
+    t.dh.tua(Math.min(5000, ms - da));
+    cu.tin("pong");
+  }
+  cu.daGui.length = 0; // bỏ các ping định kỳ đã trả lời — bài chỉ quan tâm ping do hienLai gõ
+}
+
+test("hienLai khi kết nối còn sống (có pong): KHÔNG đóng, KHÔNG nối lại, KHÔNG phát can-tai-lai", () => {
+  const { t, cu } = moVaChoNgoi();
+  t.bo.anDi();
+  t.dh.tua(10_000);
+  t.bo.hienLai();
+  assert.deepEqual(cu.daGui, ["ping"], "chỉ gõ cửa kiểm");
+  cu.tin("pong");
+  t.dh.tua(KIEM_NHANH_MS + 1);
+  assert.equal(cu.daDong, false);
+  assert.equal(t.sockets.length, 1);
+  assert.equal(t.canTaiLai(), 0, "kết nối khoẻ ⇒ không tải lại dữ liệu");
+});
+
+test("hienLai khi KHÔNG có pong trong KIEM_NHANH_MS: đóng, nối lại ngay, mở lại phát can-tai-lai", () => {
+  const { t, cu } = moVaChoNgoi();
+  t.bo.hienLai();
+  t.dh.tua(KIEM_NHANH_MS - 1);
+  assert.equal(t.sockets.length, 1, "chưa hết hạn chờ pong");
+  t.dh.tua(1);
+  assert.equal(cu.daDong, true);
+  assert.equal(t.sockets.length, 2);
+  t.cuoi().mo();
+  assert.equal(t.canTaiLai(), 1);
+});
+
+test("hienLai sau khi ẩn đủ lâu (≥ AN_LAU_MS): nối lại + tải lại NGAY, không kiểm bằng ping", () => {
+  const { t, cu } = moVaChoNgoi();
+  t.bo.anDi();
+  tuaKhoe(t, cu, AN_LAU_MS);
+  t.bo.hienLai();
+  assert.equal(cu.daDong, true);
+  assert.deepEqual(cu.daGui, [], "không gõ cửa — đi lâu thì coi là cũ");
+  assert.equal(t.sockets.length, 2);
+  t.cuoi().mo();
+  assert.equal(t.canTaiLai(), 1);
+});
+
+test("hienLai sau khi ẩn ngắn hơn AN_LAU_MS vẫn chỉ kiểm bằng ping", () => {
+  const { t, cu } = moVaChoNgoi();
+  t.bo.anDi();
+  tuaKhoe(t, cu, AN_LAU_MS - 5000);
+  t.bo.hienLai();
+  assert.equal(cu.daDong, false);
+  assert.deepEqual(cu.daGui, ["ping"]);
+});
+
+test("hienLai khi chưa có socket sống (đang chờ nối lại sau lần hỏng): nối NGAY như trước", () => {
+  const t = dungBo();
+  t.bo.batDau();
+  t.cuoi().onclose?.(); // hỏng trước khi mở → hẹn nối lại
+  assert.equal(t.sockets.length, 1);
+  t.bo.hienLai();
+  assert.equal(t.sockets.length, 2, "không đợi hẹn");
+});
+
+test("hienLai gọi liên tiếp khi đang chờ pong: chỉ MỘT ping; pong về thì hẹn kiểm bị huỷ (không đóng muộn)", () => {
+  const { t, cu } = moVaChoNgoi();
+  t.bo.hienLai();
+  t.bo.hienLai();
+  t.bo.hienLai();
+  assert.deepEqual(cu.daGui, ["ping"]);
+  cu.tin("pong");
+  t.dh.tua(KIEM_NHANH_MS * 3);
+  assert.equal(cu.daDong, false);
+  assert.equal(t.sockets.length, 1);
+});
+
+test("hienLai khi send ném lỗi (socket đã đóng/đang mở dở): nối lại ngay", () => {
+  const { t, cu } = moVaChoNgoi();
+  cu.send = () => { throw new Error("InvalidStateError"); };
+  t.bo.hienLai();
+  assert.equal(cu.daDong, true);
+  assert.equal(t.sockets.length, 2);
+});
+
+test("hienLai sau dung (pagehide): không làm gì cả (chỉ tiepTuc mới mở lại)", () => {
+  const { t } = moVaChoNgoi();
+  t.bo.dung();
+  t.bo.hienLai();
+  assert.equal(t.sockets.length, 1);
+});
+
+test("pagehide trong lúc đang chờ pong kiểm: hẹn kiểm bị huỷ, không nối lại sau khi đã dừng", () => {
+  const { t } = moVaChoNgoi();
+  t.bo.hienLai();
+  t.bo.dung();
+  t.dh.tua(KIEM_NHANH_MS * 3);
+  assert.equal(t.sockets.length, 1);
 });
 
 test("dung (pagehide): đóng sạch, mọi hẹn giờ bị huỷ, KHÔNG nối lại kể cả khi noiNgay được gọi; tiepTuc (bộ nhớ đệm chuyển trang) mở lại", () => {
