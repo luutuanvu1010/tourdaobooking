@@ -3,7 +3,7 @@
 // "Người phụ trách" do module `dispatch` giữ: `orders` KHÔNG import `dispatch` mà hỏi qua `ctx.isAssigned(orderId)` (gốc lắp ráp tiêm — ADR-0007 điều 4(b)).
 import { auditStatement, getAuditTrail } from "../audit";
 import type {
-  CanhBaoMocDto, CatalogChangeDto, CatalogChangedBody, DashboardResponse, IncompleteTripBody, MyAssignmentDto, NhapTayResponse, OrderDetailDto, OrderDetailResponse,
+  CanhBaoMocDto, CatalogChangeDto, CatalogChangedBody, DashboardResponse, DraftCountResponse, IncompleteTripBody, MyAssignmentDto, NhapTayResponse, OrderDetailDto, OrderDetailResponse,
   OrderListResponse, MocToiThieuResponse, NguoiLapResponse, OrderResponse, PassengerListResponse, PaxCounts, PoolResponse, ShortNoticeRequiredBody,
 } from "../../shared/contracts";
 import { UUID_RE, error, intParam, json, readJson, trangDon } from "../../shared/http";
@@ -14,7 +14,7 @@ import { docLocDon } from "../../shared/loc-don";
 import { LOC_NHAP_TOI_DA_NGAY, LOC_NHAP_TOI_DA_UNG_VIEN, laDongNhapKeToan, soNgayKhoang } from "../../shared/nhap-ke-toan";
 import { editablePaxCodesOf, planMoneyEdit } from "./money-adjustment";
 import {
-  addLeg, cancelOrder, changeBooker, changeLeg, cocCuNhap, confirmOrder, createOrder, effectivePax, findOrder, getDashboard, getDepartDates, getLatestAdjustment, getMeta, getOrderRef,
+  addLeg, cancelOrder, changeBooker, changeLeg, cocCuNhap, confirmOrder, countDrafts, createOrder, effectivePax, findOrder, getDashboard, getDepartDates, getLatestAdjustment, getMeta, getOrderRef,
   demThanCu, getServicesForSubtotal, getStoredServices, insertMoneyAdjustment, listOrderIds, listOrders, listPoolSources, updateDraftOrder, updateTrip, writePassengerChange,
 } from "./repository";
 import {
@@ -576,6 +576,13 @@ export const ordersModule: AppModule = {
       const { from, to } = vnWeekRange(today);
       const data = await getDashboard(env.DB, staff.id, today, from, to, ordersWithHandler);
       return json({ ...data, revenueWeek: { ...data.revenueWeek, from, to } } satisfies DashboardResponse);
+    }),
+
+    // Huy hiệu "Đơn hàng" ở thanh bên: CHỈ số đơn chưa xác nhận, một câu D1 (trước: nguyên Bảng điều khiển ~15 câu ở mọi trang). CÙNG ba ô quyền với dashboard
+    // (bài `dem-nhap.test.ts` ép cùng mã trạng thái cho mọi loại tài khoản). PHẢI đứng TRƯỚC "GET /api/orders/:id" (":id" cũng khớp chữ "dem-nhap").
+    route("GET", "/api/orders/dem-nhap", "orders", async ({ env, staff }) => {
+      if (!can(staff, "order.view") || !can(staff, "money.view") || !can(staff, "contact.view")) return FORBIDDEN_VIEW();
+      return json({ draftCount: await countDrafts(env.DB) } satisfies DraftCountResponse);
     }),
 
     // Hàng chờ nhận (ADR-0030 S23-1, S23-2): PHẦN HẸP của các đơn chưa có người phụ trách, chưa huỷ, chưa qua ngày đi — hướng dẫn viên xem để bấm Nhận

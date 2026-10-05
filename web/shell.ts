@@ -171,16 +171,14 @@ export function feedbackBadge(): Promise<number> {
 }
 
 /**
- * Số dịch vụ đang lệch giá Sheet (huy hiệu "Dịch vụ & giá" trên thanh bên) — CÙNG PHÉP ĐẾM khối "Cần xem lại" của
- * Trang chủ (Đợt D Task 3, `src/shared/dashboard-review.ts` → `summarizeCatalogConflicts`: `items.filter(i =>
- * i.conflicts.length > 0).length`), không viết lại logic. Gọi thẳng `GET /api/catalog/admin` (đã tự khai
- * `access: "admin"`) TỪ TRÌNH DUYỆT — đúng cách web/home.ts đang làm, không thêm route mới. Chỉ gọi khi ĐÃ BIẾT
- * là admin (tránh 403 cho phần lớn tài khoản mở bất kỳ trang nào). Lỗi mạng → 0, giống feedbackBadge().
+ * Số dịch vụ đang lệch giá Sheet (huy hiệu "Dịch vụ & giá" trên thanh bên) — CÙNG PHÉP ĐẾM khối "Cần xem lại" của Trang chủ (`summarizeCatalogConflicts`: số dịch vụ
+ * có ít nhất một xung đột giá), nhưng gọi route đếm riêng `GET /api/catalog/dem-xung-dot` (cổng admin + `admin.manage`, MỘT con số) thay vì tải nguyên
+ * `GET /api/catalog/admin` (cả danh mục kèm giá) ở MỌI trang (nghiên cứu tốc độ 2026-10-02, đợt 1 việc 3). Chỉ gọi khi ĐÃ BIẾT là admin (tránh 403 cho phần lớn tài
+ * khoản mở bất kỳ trang nào). Lỗi mạng → 0, giống feedbackBadge().
  */
 async function catalogConflictBadge(): Promise<number> {
   try {
-    const { items } = await api<Api.CatalogAdminResponse>("/api/catalog/admin");
-    return items.filter((i) => i.conflicts.length > 0).length;
+    return (await api<Api.CatalogConflictCountResponse>("/api/catalog/dem-xung-dot")).conflictCount;
   } catch {
     return 0;
   }
@@ -188,14 +186,14 @@ async function catalogConflictBadge(): Promise<number> {
 
 /**
  * Huy hiệu "Đơn hàng" = SỐ ĐƠN CHƯA XÁC NHẬN, không phải tổng số đơn (quyết định 8 của chủ dự án,
- * `docs/superpowers/specs/2026-09-23-trang-chu-moi-quyet-dinh.md`). Số này ĐÃ CÓ SẴN ở `GET /api/orders/dashboard`
- * (`draftCount` — cùng số ô "Đơn chờ xác nhận" của Trang chủ), không thêm route mới. Lỗi mạng → 0, giống
- * feedbackBadge(). Route khai cổng "orders" (từ ADR-0019 phần B, hỏi `order.view` + `money.view` + `contact.view` trong thân) nên chỉ gắn cho người xem được mọi đơn (`seesAll`) — mục "Đơn hàng" của Đối tác/Thực tập không có huy hiệu.
+ * `docs/superpowers/specs/2026-09-23-trang-chu-moi-quyet-dinh.md`). Lấy bằng route đếm riêng `GET /api/orders/dem-nhap` (MỘT câu D1, cùng số `draftCount` của Trang chủ)
+ * thay vì tải nguyên `GET /api/orders/dashboard` (~15 câu) ở MỌI trang (nghiên cứu tốc độ 2026-10-02, đợt 1 việc 3). Lỗi mạng → 0, giống feedbackBadge(). Route khai cổng
+ * "orders" và hỏi cùng ba ô quyền với dashboard (`order.view` + `money.view` + `contact.view`) nên chỉ gắn cho người xem được mọi đơn (`seesAll`) — mục "Đơn hàng" của
+ * Đối tác/Thực tập không có huy hiệu.
  */
 async function draftOrderBadge(): Promise<number> {
   try {
-    const { draftCount } = await api<Api.DashboardResponse>("/api/orders/dashboard");
-    return draftCount;
+    return (await api<Api.DraftCountResponse>("/api/orders/dem-nhap")).draftCount;
   } catch {
     return 0;
   }

@@ -663,6 +663,12 @@ async function chuyenDonTrongNgay(db: D1Database, ngay: string): Promise<OrderSu
   ).map((s) => ({ ...s, trip: todayTripById.get(s.id) ?? s.trip }));
 }
 
+/** Số đơn nháp (chưa xác nhận) toàn công ty — MỘT câu; dùng chung cho Bảng điều khiển và huy hiệu thanh bên (`GET /api/orders/dem-nhap`). */
+export async function countDrafts(db: D1Database): Promise<number> {
+  const row = await db.prepare(`SELECT COUNT(*) AS n FROM orders WHERE status = 'draft'`).first<{ n: number }>();
+  return row?.n ?? 0;
+}
+
 /**
  * Dữ liệu Trang chủ mới (`GET /api/orders/dashboard`, route `index.ts`). `today` = ngày dân sự VN (`vnToday`). `weekFrom`/`weekTo` = ngày dân sự VN
  * (thứ Hai/Chủ nhật, `vnWeekRange`), hai đầu bao gồm — hàm này tự đổi sang mốc ISO UTC nửa-mở khi lọc `created_at` (đúng quy ước `vnLocalToIso` đã
@@ -689,7 +695,7 @@ export async function getDashboard(
   //    `GET /api/ledger/unpaid-summary` (module billing).
 
   // 3) Đơn nháp chưa xác nhận.
-  const draftCountRow = await db.prepare(`SELECT COUNT(*) AS n FROM orders WHERE status = 'draft'`).first<{ n: number }>();
+  const draftCount = await countDrafts(db);
 
   // 4) "Chưa phụ trách" (ADR-0020 điều 7, M1 = A; ADR-0030 S20-13): đơn NHÁP hoặc ĐÃ XÁC NHẬN (không tính đơn huỷ) chưa có người phụ trách đang mở.
   //    `orders` KHÔNG đọc dữ liệu phân công (không import `dispatch`, không đọc view của nó — `src/architecture.test.ts` canh): lấy id các đơn còn hiệu
@@ -734,7 +740,7 @@ export async function getDashboard(
     today: todaySummaries,
     tomorrow: tomorrowSummaries,
     dayAfter: dayAfterSummaries,
-    draftCount: draftCountRow?.n ?? 0,
+    draftCount,
     unassignedCount,
     revenueWeek: { total: revenueTotal, count: weekRows.length, daily },
   };

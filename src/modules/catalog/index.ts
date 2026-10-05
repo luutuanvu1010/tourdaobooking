@@ -5,7 +5,7 @@ import { error, json, readJson } from "../../shared/http";
 import { can, isOffice } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
 import type {
-  CatalogAdminGroupDto, CatalogAdminItemDto, CatalogAdminResponse, CatalogGroupAssignResponse, CatalogGroupHistoryResponse, CatalogGroupResponse,
+  CatalogAdminGroupDto, CatalogAdminItemDto, CatalogAdminResponse, CatalogConflictCountResponse, CatalogGroupAssignResponse, CatalogGroupHistoryResponse, CatalogGroupResponse,
   CatalogGroupsResponse, CatalogItemResponse, CatalogPublicResponse, CatalogServiceDto, CatalogSyncResponse,
 } from "../../shared/contracts";
 import { CATALOG_CODE_RE as CODE_RE, MAX_AMOUNT_VND as MAX_PRICE, PAX_LABEL, PAX_ORDER, parseUnit, type EffectiveService, type PaxCode } from "../../shared/order-lines";
@@ -145,6 +145,14 @@ export const catalogModule: AppModule = {
     }),
 
     // ---- Admin -----------------------------------------------------------------------------
+    // Huy hiệu "Dịch vụ & giá" ở thanh bên: CHỈ số dịch vụ lệch giá Sheet (trước: tải nguyên `/api/catalog/admin` ở mọi trang của Quản trị). Cùng cổng và cùng ô quyền
+    // `admin.manage`, cùng phép đếm (`conflicts.length > 0` của `adminItem`) — bài `dem-xung-dot.test.ts` ép. Khai TRƯỚC mọi route `/api/catalog/:code…`.
+    route("GET", "/api/catalog/dem-xung-dot", "admin", async ({ env, staff }) => {
+      if (!can(staff, "admin.manage")) return error(403, "forbidden", "Chỉ quản trị viên được thực hiện thao tác này.");
+      const items = await loadAll(env.DB);
+      return json({ conflictCount: items.filter((s) => adminItem(s, null).conflicts.length > 0).length } satisfies CatalogConflictCountResponse);
+    }),
+
     route("GET", "/api/catalog/admin", "admin", async ({ env, staff }) => {
       if (!can(staff, "admin.manage")) return error(403, "forbidden", "Chỉ quản trị viên được thực hiện thao tác này.");
       const [items, state, nhomTheoDichVu, nhoms] = await Promise.all([loadAll(env.DB), getSyncState(env.DB), nhomHienHanhTheoMa(env.DB), danhSachNhom(env.DB)]);

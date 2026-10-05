@@ -525,6 +525,8 @@ export interface PoolResponse { orders: PoolOrderDto[] }
  * `revenueWeek.daily`: ĐÚNG 7 phần tử (thứ Hai→Chủ nhật, cùng số hiện hành), ngày không có đơn vẫn có phần tử `total: 0` — dữ liệu cho
  * biểu đồ cột "Doanh thu của tôi" (Đợt D Task 2).
  */
+/** `GET /api/orders/dem-nhap` — số đơn CHƯA XÁC NHẬN (huy hiệu "Đơn hàng" ở thanh bên); cùng số `DashboardResponse.draftCount`, không kéo cả Bảng điều khiển. */
+export interface DraftCountResponse { draftCount: number }
 export interface DashboardResponse {
   today: OrderSummaryDto[];
   /** Chuyến đón ngày mai / ngày kia — cùng luật và cùng người xem như `today` (góp ý YC-0007). */
@@ -599,6 +601,8 @@ export interface CatalogSyncStateDto {
 }
 
 export interface CatalogPublicResponse { items: CatalogServiceDto[]; sync: { lastSuccessAt: string | null; error: string | null }; groups: CatalogGroupDto[] }
+/** `GET /api/catalog/dem-xung-dot` — số dịch vụ có xung đột giá với Sheet (huy hiệu "Dịch vụ & giá" ở thanh bên); không kéo cả danh mục. */
+export interface CatalogConflictCountResponse { conflictCount: number }
 export interface CatalogAdminResponse { items: CatalogAdminItemDto[]; sync: CatalogSyncStateDto; groups: CatalogAdminGroupDto[] }
 /** `GET /api/catalog/groups` — `chuaPhanLoai` = số dịch vụ của danh mục (kể cả ẩn / đã rời Sheet) không có nhóm hiện hành. */
 export interface CatalogGroupsResponse { groups: CatalogAdminGroupDto[]; chuaPhanLoai: number }

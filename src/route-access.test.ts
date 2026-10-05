@@ -108,6 +108,7 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/catalog/:code/ack", access: "admin" },
   { method: "DELETE", path: "/api/catalog/:code/override", access: "admin" },
   { method: "GET", path: "/api/catalog/admin", access: "admin" },
+  { method: "GET", path: "/api/catalog/dem-xung-dot", access: "admin" }, // huy hiệu thanh bên: CHỈ số dịch vụ lệch giá; cùng ô admin.manage (dem-xung-dot.test.ts)
   { method: "POST", path: "/api/catalog/sync", access: "admin" },
   // ADR-0058 Đ4 (2026-09-30, Task A3): năm route nhóm dịch vụ — cổng admin + can(admin.manage) dòng đầu thân
   { method: "GET", path: "/api/catalog/groups", access: "admin" },
@@ -169,7 +170,8 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   // ADR-0047 A2 (2026-09-29): danh sách hành khách — GET hỏi can(order.view) rồi can(contact.view); POST hỏi can(order.passenger.write) trước khi đọc thân
   { method: "GET", path: "/api/orders/:id/passengers", access: "orders" },
   { method: "POST", path: "/api/orders/:id/passengers", access: "orders" },
-  { method: "GET", path: "/api/orders/dashboard", access: "orders" }, // Trang chủ — ADR-0019 điều 1: màn đơn; Đối tác/Thực tập vẫn 403 nhờ can(order.view/money.view/contact.view) không ngữ cảnh trong thân
+  { method: "GET", path: "/api/orders/dashboard", access: "orders" },
+  { method: "GET", path: "/api/orders/dem-nhap", access: "orders" }, // huy hiệu thanh bên: CHỈ số đơn nháp; cùng ba ô quyền với dashboard (dem-nhap.test.ts) // Trang chủ — ADR-0019 điều 1: màn đơn; Đối tác/Thực tập vẫn 403 nhờ can(order.view/money.view/contact.view) không ngữ cảnh trong thân
   { method: "GET", path: "/api/orders/pool", access: "orders" }, // hàng chờ nhận (phần hẹp) — ADR-0030 S23-1/S23-2: thân hỏi can(order.pool.view) + !holdsPartner trước mọi đọc
   { method: "GET", path: "/api/orders/nguoi-lap", access: "orders" }, // ADR-0067: thân hỏi ba ô "xem mọi đơn" (order.view/money.view/contact.view, không ngữ cảnh) trước mọi đọc
   { method: "GET", path: "/api/orders/moc-toi-thieu", access: "orders" }, // ruling R-P15 (ADR-0049 I31 cách a): thân hỏi can(order.create) trước mọi đọc; mốc qua ctx.mocToiThieu
@@ -424,6 +426,7 @@ test("mức truy cập của 213 route hiện có khớp ảnh chụp đã duy�
   // 2026-10-02 (Đợt 4 Task 10, ADR-0057 T2): + 6 route chi phí chuyến xe thuê + bảng kê (office) = 231 trên nhánh; gộp main ffed6f1c (1.78): main 220 + 15 route Đợt 4 = 238.
   // 2026-10-05 (dot5-tang3): gộp tầng 3 Đợt 5 (POST …/cuoc-cua-toi/:id/hanh-khach) lên main 1.79 238 = 239.
   // 2026-10-05 (ADR-0102, nghiên cứu tốc độ đợt 1): + GET /giao-dien.css (public, cùng thân với /api/giao-dien.css) = 240.
-  assert.equal(actual.length, 240, "số route thực tế lệch 240 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 240, "SNAPSHOT phải có đúng 240 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // 2026-10-05 (nghiên cứu tốc độ, đợt 1 việc 3): + GET /api/orders/dem-nhap (orders), GET /api/catalog/dem-xung-dot (admin) = 242.
+  assert.equal(actual.length, 242, "số route thực tế lệch 242 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 242, "SNAPSHOT phải có đúng 242 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });
