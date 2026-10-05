@@ -29,7 +29,8 @@ const measure = (p) =>
       // cùng hàng, ngay bên phải nút Đăng nhập (chủ dự án 2026-09-24)
       passkeyBesideSubmit: vis(pk) ? Math.abs(rs.top - rp.top) < 1 && rp.left >= rs.right : null,
       submitText: submit.textContent,
-      submitBg: getComputedStyle(submit).backgroundColor,
+      // 1.70: nút chính KHOÁ dùng bộ màu nhạt (--c-btn-soft-*), MỞ dùng màu nút chính — so với biến màu, không viết cứng mã màu (giao diện công ty ADR-0087 đổi được)
+      submitBgDung: (() => { const tok = (v) => { const d = document.createElement('div'); d.style.background = 'var(' + v + ')'; document.body.append(d); const c = getComputedStyle(d).backgroundColor; d.remove(); return c; }; const co = getComputedStyle(submit).backgroundColor, can = tok(submit.disabled ? '--c-btn-soft-bg' : '--c-btn-primary-bg'); return co === can ? true : co + ' ≠ ' + can; })(), // true, hoặc chuỗi "thực tế ≠ mong đợi" để dễ đọc khi đỏ
       // VỪA MỘT MÀN HÌNH (chủ dự án 2026-09-24): cả trang lẫn vùng main đều không có gì để cuộn/kéo
       noVScroll: document.documentElement.scrollHeight <= window.innerHeight && main.scrollHeight <= main.clientHeight,
       pageOverflow: getComputedStyle(document.body).overflowY,
@@ -69,10 +70,12 @@ try {
     await p.waitFor("!document.getElementById('submit').disabled", "đủ SĐT + 6 số PIN (và có token): nút mở", 5000);
     await p.ev(setInput("document.getElementById('pin')", ""));
     await p.ev(setInput("document.getElementById('phone')", ""));
+    // nút đổi màu có chuyển tiếp (transition): đo khi chuyển xong, kẻo bắt được màu đang chuyển dở
+    await p.waitFor("document.getElementById('submit').getAnimations().length === 0", "nút Đăng nhập đổi màu xong", 5000);
     const m = await measure(p);
     assert.equal(m.passkeyBesideSubmit, true, `nút Face ID phải cùng hàng, bên phải nút Đăng nhập — ${JSON.stringify(m)}`);
     assert.equal(m.submitText, "Đăng nhập", `chữ nút — ${JSON.stringify(m)}`);
-    assert.equal(m.submitBg, "rgb(12, 74, 110)", `nút Đăng nhập luôn là nút chính (--c-primary) — ${JSON.stringify(m)}`);
+    assert.equal(m.submitBgDung, true, `nút Đăng nhập luôn là nút chính (màu theo trạng thái khoá/mở) — ${JSON.stringify(m)}`);
     assert.equal(m.noVScroll, true, `${vp.width}×${vp.height}: trang phải vừa một màn hình, không có gì để cuộn — ${JSON.stringify(m)}`);
     assert.equal(m.pageOverflow, "hidden", `body không cuộn — ${JSON.stringify(m)}`);
     const wide = vp.width >= 900;
@@ -95,7 +98,7 @@ try {
     await p.waitFor("!!document.querySelector('#turnstile-widget input[name=cf-turnstile-response]')", "widget dựng xong (không Face ID)", 20000);
     const m = await measure(p);
     assert.equal(m.passkeyBtn, false, `nút Face ID phải ẨN — ${JSON.stringify(m)}`);
-    assert.equal(m.submitBg, "rgb(12, 74, 110)", `nút Đăng nhập là nút chính (--c-primary) — ${JSON.stringify(m)}`);
+    assert.equal(m.submitBgDung, true, `nút Đăng nhập là nút chính (màu theo trạng thái khoá/mở) — ${JSON.stringify(m)}`);
     assert.equal(m.noVScroll, true, `390×844: vừa một màn hình — ${JSON.stringify(m)}`);
     await shot(p, "khong-face-id-dien-thoai.png");
 
@@ -128,6 +131,21 @@ try {
     await shot(p, `kho-${w}.png`);
     p.close();
     ok(`${w}px: không cuộn ngang${w === 375 ? `, khung widget ${m.widgetWidth}px (≥ 300, cỡ "flexible")` : ""}; vừa một màn hình ở ${w}×740: ${m.noVScroll ? "có" : "KHÔNG (vùng giữa tự cuộn, trang không kéo)"}`);
+  }
+  // 4) Máy cao có tai thỏ (giả lập vùng an toàn): iPhone 15/16 (393×852, tai thỏ 59pt) và máy của chủ dự án (428×926, tai thỏ 47pt), thanh vuốt 34pt.
+  //    Chân trang (thông tin công ty) nằm SÁT ĐÁY (chủ dự án 2026-09-24 "đặt nội dung công ty ở Bottom"), KHÔNG lẹm xuống dưới màn hình (lỗi cũ:
+  //    main cao 100% cộng dải tai thỏ của body::before → thừa đúng bằng tai thỏ), không phải kéo. Làm lại 2026-10-05 (bản sửa 24/9 chưa từng vào main).
+  for (const [w, h, tai] of [[393, 852, 59], [428, 926, 47]]) {
+    const p = await env.openPage(view(w, h, true));
+    await p.send("Emulation.setSafeAreaInsetsOverride", { insets: { top: tai, bottom: 34, left: 0, right: 0 } });
+    await p.send("Page.navigate", { url: env.localBase + "/login" });
+    await p.waitFor("!!document.querySelector('#turnstile-widget input[name=cf-turnstile-response]')", `widget dựng xong (${w}×${h})`, 20000);
+    await shot(p, `tai-tho-${w}x${h}.png`);
+    const m = await p.ev("(() => { const f = document.querySelector('.login-info').getBoundingClientRect(); const main = document.querySelector('main.login'); return { cachDay: Math.round(innerHeight - f.bottom), vua: main.scrollHeight <= main.clientHeight }; })()");
+    // đáy chân trang cách đáy màn hình đúng = thanh vuốt 34 + lề 20 (--login-side): sát đáy, không lơ lửng (lớn hơn), không lẹm (nhỏ hơn)
+    assert.deepEqual(m, { cachDay: 54, vua: true }, `${w}×${h}: chân trang sát đáy, không lẹm, không cuộn — ${JSON.stringify(m)}`);
+    p.close();
+    ok(`${w}×${h} (tai thỏ ${tai}, thanh vuốt 34): thông tin công ty nằm sát đáy, không lẹm, không phải kéo`);
   }
   console.log("DANG NHAP V2 OK");
 } finally {

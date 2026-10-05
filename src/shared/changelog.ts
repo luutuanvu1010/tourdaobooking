@@ -12,6 +12,15 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Làm nốt phát hiện của báo cáo kiểm tra giao diện 2026-09-23: giờ ở trang Góp ý theo giờ Việt Nam; bài src/gio-viet-nam-web.test.ts canh mọi chỗ định dạng ngày giờ. Số 1.82 = main 1.81 + 1 (nhánh khác nhập trước thì đánh lại số).
+    version: "1.82",
+    date: "2026-10-05",
+    items: [
+      { kind: "sua", text: "Giờ hiện ở trang Góp ý nay luôn theo giờ Việt Nam, kể cả khi máy đang đặt múi giờ khác." },
+      { kind: "sua", text: "Trang Đăng nhập trên iPhone màn hình cao: thông tin công ty nằm sát đáy màn hình, không còn lơ lửng giữa trang hay bị lẹm mất một phần." },
+    ],
+  },
+  {
     // Vận chuyển Đợt 7 — cam kết "xe riêng" / "xe tối thiểu N chỗ" trên chặng đưa đón (ADR-0056 VK3-A), migration 0077. Số 1.81 = main 1.80 + 1.
     version: "1.81",
     date: "2026-10-05",
