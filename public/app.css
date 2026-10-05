@@ -2677,6 +2677,9 @@ body.login-page main.login { display: flex; flex-direction: column; height: 100%
 .dp-kc-text { display: flex; flex: 1; flex-direction: column; gap: var(--gap-dp-hist); min-width: 0; overflow-wrap: anywhere; }
 .dp-kc-bh { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s1) var(--s2); }
 .dp-bao-huy-link { flex: none; min-height: var(--tap-min); font-weight: var(--fw-bold); color: var(--c-danger-text); }
+/* "Suất của khách" + "Bổ sung tên" ở màn tài xế (bản vẽ V6 6.3–6.4 — Đợt 5 A-1b). */
+.dp-suat-khach { overflow: hidden; }
+.dp-bo-sung-link { flex: none; min-height: var(--tap-min); font-weight: var(--fw-bold); }
 .dp-them-noi { min-height: var(--tap-min); padding: var(--s2) var(--s3); font-size: var(--fs-label); background: var(--c-surface-alt); border-radius: var(--radius-sm); overflow-wrap: anywhere; }
 .dp-them-khoa { margin-top: var(--s2); }
 .dp-sheet-them-diem .vc-reason { min-height: var(--h-dp-row); }

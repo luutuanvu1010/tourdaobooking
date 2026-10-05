@@ -21,6 +21,7 @@ export const CHANGELOG: readonly ReleaseNote[] = [
       { kind: "moi", text: "Tài xế đang lái nhận thông báo khi văn phòng thêm khách, báo khách huỷ hoặc đổi điểm đón." },
       { kind: "moi", text: "Trang Xe đang chạy (menu Vận chuyển): mọi xe đang chạy, bấm vào để thêm khách, báo huỷ hay cập nhật điểm." },
       { kind: "moi", text: "Xe hỏng: văn phòng bấm Cứu hộ để kết thúc gián đoạn, rồi thấy ngay khách cần chuyển và xe cùng ngày để xếp sang, hoặc tạo chuyến cứu hộ." },
+      { kind: "moi", text: "Tài xế bổ sung tên cho khách chưa có tên trong đơn, ngay trên màn chuyến trong ngày chạy." },
     ],
   },
   {
