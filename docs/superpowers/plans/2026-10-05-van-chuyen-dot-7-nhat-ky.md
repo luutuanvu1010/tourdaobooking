@@ -149,6 +149,7 @@ Làn này không gọi trợ lý con; người kiểm độc lập chỉ đọc 
 - Bốn đột biến riêng người kiểm tự gây rồi hoàn nguyên, đều đỏ đúng chỗ: biên R-CX, 403 của route thêm điểm, khoá C5, và `&& !ghiCamKet`.
 - `dat-gap-smoke` ở HEAD đỏ đúng các bước 3/7/8/10, y hệt bản trước Đợt 7 (`dc1ef1fe`) — đỏ sẵn, không phải hồi quy.
 - Trợ giúp bị cắt chữ để giữ trần 30 phút: Bán hàng mất câu "Giờ đón sau giờ khởi hành" và câu về ngày khởi hành đã qua; Quản trị mất ví dụ Đặt gấp và câu "Chỉ Quản trị và Toàn quyền duyệt Đặt gấp" (ghi ở "Nợ / để sau").
+- Số e2e: danh sách `ALL` của `tests/e2e/run.mjs` có 45 kịch bản (main 44 + `cam-ket-xe`). Dòng tổng "N/N kịch bản xanh" của bộ chạy cộng thêm tối đa 5 lượt kiểm phụ (bất biến cuối nhóm, `day_loi`, H5 ghi nhiều lần, lỗi lạ bảng vé, trợ lý) — vì vậy Task 7 in "50/50" còn người kiểm ghi "45/45 kịch bản"; cả hai lần đều chạy đủ bộ.
 - Minor đã sửa sau kiểm: ngưỡng số chỗ 1..100 ở `src/shared/chang-form.ts` nay dùng hằng `CHO_TOI_THIEU_MIN` / `CHO_TOI_THIEU_MAX` của `chang-dua-don.ts` (trùng máy chủ), kèm bài khoá ngưỡng trong `chang-form.test.ts`; thử đột biến đổi MAX thành 120 thì bộ bài đỏ, hoàn nguyên thì xanh.
 
 ## Nợ / để sau (gom từ các minor còn mở, Task 1–8b)
@@ -160,7 +161,16 @@ Làn này không gọi trợ lý con; người kiểm độc lập chỉ đọc 
 - Task 6: bài thiếu ca "vế (b) có phá lệ" và "không có bản chụp ĐẠT"; bản chụp lệch nếu đổi xe giữa chuyến; suất thêm sau xuất bến chưa đóng vẫn tính mở.
 - Task 7: không assert quyền PARTNER của tài khoản; không đếm suất B sau 403; 403 chỉ kiểm status, không `error.code`.
 - Task 8a: bài DTO chưa phủ tiền tố `xe:`; tam phân trong `thanPhaLe` khó đọc; thiếu ca `KHOANG_NGHI` `rieng=false`; Chrome chưa phủ cam kết ở sửa chuyến / thêm điểm / dời.
-- Task 8b: ngưỡng 1..100 trùng máy chủ chưa dùng chung hằng; ca đối chứng "đổi giờ dưới mốc" dùng Bán hàng yếu. Kịch bản cũ `dat-gap-smoke`, `a2-smoke-order`, `a2-smoke-form` đỏ sẵn trên bản trước Đợt 7 (không phải hồi quy).
-- Khác: DTO nhật ký chuyến có `phaLe.luat` thô (`CAM_KET`), `web/` chưa hiển thị nhãn `luat`; chưa thử trên iPhone thật; chưa có người kiểm độc lập cho Task 9 (việc tài liệu, nhưng nhật ký + Trợ giúp chạm test chặn A2/A4).
+- Task 8b: (ngưỡng 1..100 đã dùng chung hằng — sửa sau kiểm độc lập); ca đối chứng "đổi giờ dưới mốc" dùng Bán hàng yếu. Kịch bản cũ `dat-gap-smoke`, `a2-smoke-order`, `a2-smoke-form` đỏ sẵn trên bản trước Đợt 7 (không phải hồi quy).
+- Khác: DTO nhật ký chuyến có `phaLe.luat` thô (`CAM_KET`), `web/` chưa hiển thị nhãn `luat`; chưa thử trên iPhone thật; chưa chạy axe trong lượt kiểm độc lập (thiếu AXE_JS).
+
+## Quyết định của điều phối (2026-10-05) — để chủ xem lại
+- Ruling: lệnh "thêm điểm khi xe đang chạy" (THEM_KHI_CHAY, Đợt 5) cũng áp luật cam kết như xếp: route nhận `camKetPhaLe`, người không có `trip.override` gửi → 403, thiếu phá lệ → 409 `can_pha_le_cam_ket` — vì ADR VK3-A là MỘT luật cho mọi đường đưa khách lên xe — nếu sai: chủ muốn xe đang chạy không bị chặn → bỏ kiểm ở một route. ĐÂY LÀ QUYẾT ĐỊNH CHẠM QUYỀN/LUẬT, trình chủ.
+- Ruling: cột phá lệ có thể "mồ côi" trên chuyến chưa chạy khi lệnh cập nhật thoát sớm; nếu đơn sửa về ĐÚNG tập vi phạm cũ (khoá trùng) thì phá lệ cũ có hiệu lực lại — vì khoá trùng nghĩa là đúng tập Quản trị đã duyệt (chữ ADR "khớp tuyệt đối") — nếu sai: thêm xoá cột ở lệnh cập nhật thoát sớm.
+- Ruling: undefined trong cam kết không được hiểu lặng lẽ: `kiemCamKet` ném lỗi khi trường sai kiểu (Global Constraints) — nếu sai: không ảnh hưởng đường thật (CHECK 0077 + hàm hẹp đổi 0/1 → boolean).
+- Ruling: `--w-dd-phu` 140 → 170px (Task 8b), ảnh 390/1040 không vỡ — nếu sai: trả 140.
+- Ruling: ba kịch bản Chrome cũ đỏ sẵn trên `dc1ef1fe` — không sửa trong đợt này, ghi nợ.
+- Ruling: Trợ giúp cắt chữ để giữ trần 30 phút, không nới trần — trình chủ chọn giữ hay khôi phục.
+- Ruling: đề xuất thêm kịch bản `cam-ket-xe-smoke.mjs` và `cam-ket-form-smoke.mjs` vào bảng kịch bản `web/CLAUDE.md` — không tự sửa (tệp luật, N9).
 - Số đo sống lại: `src/shared/tro-ly-van-nghia.test.ts` bài C4 (đo trên kho Trợ giúp thật) đỏ sau khi thêm / bớt chữ Trợ giúp — "than phiền" Bán hàng 15 → 17; theo chú thích của chính bài (đo lại, sửa số kèm lý do, không nới luật) đã sửa số và ghi lý do; hành vi (trần 12, đoạn chọn) không đổi.
 - Kiểm độc lập toàn nhánh: Trợ giúp bị cắt chữ (trần 30 phút) — Bán hàng mất câu "Giờ đón sau giờ khởi hành" và câu ngày khởi hành đã qua; Quản trị mất ví dụ Đặt gấp và câu "Chỉ Quản trị và Toàn quyền duyệt Đặt gấp"; khôi phục khi nâng trần hoặc có chỗ khác trong Trợ giúp.
