@@ -1,7 +1,7 @@
 // Nhớ "đã xem nhật ký thay đổi" THEO TỪNG MÁY (localStorage, không lên máy chủ — đặc tả §3.3). localStorage bị chặn/ném lỗi ⇒ coi như ĐÃ xem (không chấm, không lỗi).
-import { APP_VERSION } from "../src/shared/app-info";
-import { hasUnseenRelease } from "../src/shared/changelog";
+import { hasUnseenRelease } from "../src/shared/phien-ban";
 import { h } from "./dom";
+import { APP_VERSION } from "./phien-ban";
 
 const KEY = "td_help_seen";
 

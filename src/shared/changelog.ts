@@ -1,6 +1,7 @@
 // Nhật ký thay đổi của ứng dụng (đặc tả docs/superpowers/specs/2026-09-23-nhat-ky-thay-doi-tro-giup-design.md). Thuần, không I/O.
 // NGUỒN DUY NHẤT của số phiên bản: app-info.ts dẫn xuất APP_VERSION/APP_RELEASE_DATE từ mục đầu. Mỗi lần deploy mã mới = thêm MỘT mục vào ĐẦU mảng,
 // số tăng 1 (1.N), lời thường cho nhân viên (công thức "Ghi nhật ký thay đổi" ở docs/CHANGE-GUIDE.md). changelog.test.ts chặn cách viết sai.
+import { compareVersions, hasUnseenRelease, parseVersion } from "./phien-ban.ts";
 import { isISODate } from "./vn-date.ts";
 
 export type ChangeKind = "moi" | "sua" | "doi";
@@ -828,25 +829,8 @@ export const CHANGELOG: readonly ReleaseNote[] = [
   },
 ];
 
-const VERSION_RE = /^(\d+)\.(\d+)$/;
-function parseVersion(v: string): [number, number] | null {
-  const m = VERSION_RE.exec(v);
-  return m ? [Number(m[1]), Number(m[2])] : null;
-}
-
-/** So hai số phiên bản `X.Y` theo SỐ (1.10 > 1.9). Sai dạng thì ném lỗi. */
-export function compareVersions(a: string, b: string): number {
-  const pa = parseVersion(a);
-  const pb = parseVersion(b);
-  if (!pa || !pb) throw new Error(`Số phiên bản không hợp lệ (cần dạng X.Y): "${pa ? b : a}"`);
-  return pa[0] - pb[0] || pa[1] - pb[1];
-}
-
-/** Chấm đỏ: chưa từng xem, giá trị lưu là rác, hoặc đã xem bản cũ hơn ⇒ true. */
-export function hasUnseenRelease(seen: string | null, current: string): boolean {
-  if (seen === null || !parseVersion(seen)) return true;
-  return compareVersions(seen, current) < 0;
-}
+// So sánh số phiên bản nằm ở `phien-ban.ts` (tách để giao diện không phải kéo cả nhật ký này vào gói mọi trang); xuất lại ở đây cho nơi đã nhập từ đây.
+export { compareVersions, hasUnseenRelease };
 
 /** Nhãn "Mới cập nhật" trên từng bản: chưa từng xem (hoặc rác) ⇒ chỉ bản mới nhất; đã xem X ⇒ mọi bản mới hơn X. */
 export function isNewForViewer(version: string, seen: string | null, latest: string): boolean {

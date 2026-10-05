@@ -6,6 +6,7 @@ import { append, byId, h, replaceChildren } from "./dom";
 import { initials } from "./format";
 import { batDauBangTin } from "./bangtin";
 import { helpHasNews, newDot } from "./help-seen";
+import { APP_NAME } from "./phien-ban"; // bản sao nhẹ của app-info (app-info kéo cả nhật ký thay đổi vào gói mọi trang); tests/e2e/pwa.mjs đối chiếu brand với manifest
 import { icon, type IconName } from "./icons";
 import { layKhungNho, luuKhungNho, xoaKhungNho } from "./khung-nho";
 import { demSapHetHan } from "./vc-dem";
@@ -372,9 +373,6 @@ function sidebar(admin: boolean, seesAll: boolean, office: boolean, canCreate: b
   );
 }
 
-
-// Bản sao tên app (nguồn: manifest / src/shared/app-info.ts): KHÔNG import app-info vì nó kéo cả nhật ký thay đổi vào bundle của mọi trang. tests/e2e/pwa.mjs đối chiếu brand với manifest.
-const APP_NAME = "Island Booking System";
 
 /**
  * Chữ breadcrumb trên thanh công việc: `data-title` của trang → nhãn mục điều hướng đang mở → tên app.

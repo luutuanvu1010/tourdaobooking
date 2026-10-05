@@ -10,7 +10,7 @@
 //    lấy từ PHIÊN (`staff.fullName`, Task 1.6) — KHÔNG gọi `GET /api/dispatch/handlers`, và KHÔNG dùng tên phiên cho đơn ở hàng chờ (chưa ai phụ trách).
 // Bảng tin (`don-thay-doi`, `can-tai-lai`): tải lại CẢ hai khối — đây là cách hàng chờ tự cập nhật lặng lẽ khi người khác Nhận (chủ dự án chọn: không
 // thông báo nổi cho người không liên quan). Không dựng lại dưới tay người đang dùng: hoãn khi bảng sửa/huỷ đang mở hoặc đang Nhận, thử lại khi xong.
-import { APP_NAME } from "../src/shared/app-info";
+import { APP_NAME } from "./phien-ban";
 import { handlerFailure, myJobActions } from "../src/shared/handler-view";
 import { PAX_LABEL, type PaxCode } from "../src/shared/order-lines";
 import { banner, type Banner } from "../src/shared/order-errors";

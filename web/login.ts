@@ -2,7 +2,7 @@ import { ApiError, api, safeNext, type Api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
 import { registerServiceWorker } from "./pwa";
 import { showError } from "./shell";
-import { APP_RELEASE_DATE, APP_VERSION } from "../src/shared/app-info";
+import { APP_RELEASE_DATE, APP_VERSION } from "./phien-ban";
 import { chanTrangCongTy } from "../src/shared/cong-ty-chu";
 import { MAINTENANCE_CODE } from "../src/shared/maintenance";
 import { SESSION_ENDED_KEY, parseSessionEnded, sessionEndedMessage } from "../src/shared/session-ended";
