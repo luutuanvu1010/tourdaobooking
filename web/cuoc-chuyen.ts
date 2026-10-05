@@ -29,6 +29,7 @@ import { msToVnLocal, ngayNgan, vnToday } from "../src/shared/vn-date";
 import { canhBaoNgayChay, hopXuatBen } from "../src/shared/xac-nhan-xuat-ben";
 import { diemMoiChuaXem, suatCuaKhach, type SuatTenDong } from "../src/shared/xe-dang-chay-man";
 import { can } from "../src/shared/permissions";
+import { chiThieuTenTuLam, hauToDieuKienTaiXe } from "../src/shared/dieu-phoi-hien-thi";
 import { dongVuaGhi, hopKetThuc, hopTraCaDiem, type HopXacNhan, type LenhVuaGhi } from "../src/shared/xac-nhan-tien-do";
 
 const errorEl = byId("error");
@@ -410,7 +411,7 @@ function veDiemTruoc(r: CuocChiTietResponse): HTMLElement[] {
   });
 }
 
-/** Xuất bến (bản vẽ 6b, 6c — màn tài xế): chỉ điều kiện CÒN THIẾU "(văn phòng lo)"; đạt hết → "Đủ điều kiện xuất bến". Không ô giờ. */
+/** Xuất bến (bản vẽ 6b, 6c — màn tài xế): chỉ điều kiện CÒN THIẾU "(văn phòng lo)" (thiếu tên + tự bổ sung được: chỉ chỗ tự làm — `hauToDieuKienTaiXe`); đạt hết → "Đủ điều kiện xuất bến". Không ô giờ. */
 function veXuatBen(dauMang: HTMLElement | null): void {
   const r = duLieu!;
   const c = r.chuyen;
@@ -434,14 +435,14 @@ function veXuatBen(dauMang: HTMLElement | null): void {
       h("div", { class: "dp-card-head" }, h("h2", { id: "cc-dk-title", class: "dp-card-title" }, "Điều kiện xuất bến"), thieu.length ? chip(`${thieu.length} chưa đạt`, "danger") : chip("Đạt hết", "ok")),
       ...(thieu.length
         ? thieu.map((x) => h("div", { class: "dp-cond", "data-dat": "false" }, h("span", { class: "dp-cond-mark is-chua", "aria-label": "Chưa đạt" }, "✕"),
-            h("span", { class: "dp-cond-text" }, h("span", { class: "dp-cond-nhan" }, `${x.loiNhan} (văn phòng lo)`))))
+            h("span", { class: "dp-cond-text" }, h("span", { class: "dp-cond-nhan" }, `${x.loiNhan} ${hauToDieuKienTaiXe(x.ma, coBoSungTen && r.trongNgayChay)}`))))
         : [h("div", { class: "dp-cond", "data-dat": "true" }, h("span", { class: "dp-cond-mark is-dat", "aria-label": "Đạt" }, "✓"), h("span", { class: "dp-cond-text" }, h("span", { class: "dp-cond-nhan" }, "Đủ điều kiện xuất bến")))]),
     ),
   );
   const nut = h("button", { type: "button", class: "vc-btn btn btn-accent", disabled: thieu.length > 0, "data-action": "xuat-ben" }, "Xuất bến");
   // HT-03: một chạm chỉ MỞ hộp xác nhận; lệnh chỉ gửi khi bấm nút trong hộp. Mất mạng lúc gửi: hộp đóng, "Bấm lại" ở dải đầu trang như cũ (`chay`).
   nut.addEventListener("click", () => moXacNhanXuatBen(nut));
-  replaceChildren(dayEl, nut, h("span", { class: "dp-note dp-cc-foot" }, thieu.length ? "Chưa xuất bến được — văn phòng đang lo." : `Bấm lúc xe lăn bánh — giờ ghi là lúc bấm (${msToVnLocal(Date.now()).time}).`));
+  replaceChildren(dayEl, nut, h("span", { class: "dp-note dp-cc-foot" }, thieu.length ? (chiThieuTenTuLam(thieu, coBoSungTen && r.trongNgayChay) ? "Chưa xuất bến được — bổ sung tên khách ở trên trước." : "Chưa xuất bến được — văn phòng đang lo.") : `Bấm lúc xe lăn bánh — giờ ghi là lúc bấm (${msToVnLocal(Date.now()).time}).`));
   dayEl.hidden = false;
 }
 

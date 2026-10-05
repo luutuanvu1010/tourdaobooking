@@ -131,6 +131,14 @@ test("nhomCuoc: 'Hôm nay' + 'Ngày mai' + 'Ngày kia' (luôn có ba nhóm, tr�
     ["06:40", "CX-a", "Đang chạy", "79B-123.45 · 9 khách · 2 điểm đón · 1 điểm trả", [], true],
     ["09:00", "CX-b", "Bị giữ", "79B-123.45 · 9 khách · 2 điểm đón · 1 điểm trả", ["Chưa đủ tên khách: TD-1 thiếu 2 tên (văn phòng lo)"], false],
   ]);
+  // Đợt 5 A-1b (chủ duyệt 5/10, chỉ tài xế công ty): tự bổ sung tên được ⇒ thẻ HÔM NAY chỉ chỗ tự làm; thẻ ngày khác vẫn "(văn phòng lo)" (khối chỉ có trong ngày chạy).
+  const thieuTen = { dieuKienConThieu: [{ ma: "THIEU_TEN", loiNhan: "Chưa đủ tên khách: TD-1 thiếu 2 tên", aiXuLy: "VAN_PHONG" as const }] };
+  const tu = nhomCuoc([it("b", "2026-09-30", "09:00", thieuTen), it("e", "2026-10-01", "09:00", thieuTen)], "2026-09-30", { tuBoSungTen: true });
+  assert.deepEqual(tu.map((x) => x.the.map((t) => t.canhBao)), [
+    [["Chưa đủ tên khách: TD-1 thiếu 2 tên (bấm Bổ sung tên ở khối Suất của khách, hoặc văn phòng lo)"]],
+    [["Chưa đủ tên khách: TD-1 thiếu 2 tên (văn phòng lo)"]],
+    [],
+  ]);
 });
 
 test("nhomCuoc HT-24 (kiểm theo vai 2/10): chuyến ĐANG CHẠY có ngày xuất bến khác ba ngày đang xem (qua nửa đêm, hoặc xuất bến sớm) vẫn vào 'Hôm nay', đứng ĐẦU, kèm nhãn 'Xuất bến dd/mm'", () => {

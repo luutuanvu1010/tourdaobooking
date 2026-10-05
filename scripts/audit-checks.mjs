@@ -909,6 +909,7 @@ export const CHECKS = [
   // R-ORD-11 (ADR-0047 A2): chuỗi hành khách đúng — dòng thay thế cùng đơn, cùng person_key với dòng trước; dòng đầu chuỗi có person_key = id. Trigger 0035
   // đã chặn — đây là lưới thứ hai. Vế DRIVER ĐỔI NGHĨA (Đợt 5 A-1b — ADR-0052 D5b, chủ duyệt 5/10, đề xuất luật A-1b mục 3): trước "không có dòng nguồn DRIVER";
   // nay dòng nguồn DRIVER phải là ĐẦU chuỗi và có sự kiện PASSENGER_NAMED trên một suất mang đúng khoá người đó (ADR-0052:221) — mồ côi = vi phạm.
+  // Siết L5 (5/10): suất đó phải thuộc chặng của CÙNG đơn với dòng hành khách.
   {
     code: "R-ORD-11",
     what: "chuỗi hành khách đúng (dòng thay thế cùng đơn + person_key; dòng đầu person_key = id); dòng nguồn DRIVER là đầu chuỗi và có sự kiện tài xế bổ sung tên",
@@ -917,6 +918,7 @@ export const CHECKS = [
       + (SELECT count(*) FROM ord_passenger WHERE previous_id IS NULL AND person_key <> id)
       + (SELECT count(*) FROM ord_passenger p WHERE p.source = 'DRIVER' AND (p.previous_id IS NOT NULL OR NOT EXISTS (
           SELECT 1 FROM vc_trip_event e JOIN vc_trip_allocation a ON a.id = e.allocation_id AND a.trip_id = e.trip_id
+           JOIN ord_transfer_leg l ON l.id = a.leg_id AND l.order_id = p.order_id
            WHERE e.kind = 'PASSENGER_NAMED' AND a.passenger_key = p.person_key)))`,
     level: "fail",
   },

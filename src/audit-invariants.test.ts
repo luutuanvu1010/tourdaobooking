@@ -1082,6 +1082,12 @@ test("R-ORD-11 (Đợt 5 A-1b — ADR-0052 D5b, chủ duyệt 5/10, đề xuất
   assert.equal(violations(db, c), 1, "sự kiện trỏ suất mang khoá KHÁC không cứu dòng mồ côi");
   khach(db, { id: "drv-3", orderId: d.order, source: "DRIVER", prev: "drv-1", key: "drv-1" });
   assert.equal(violations(db, c), 2, "tài xế chỉ thêm đầu chuỗi — dòng thay thế nguồn DRIVER là vi phạm");
+  // L5 (người kiểm Đợt 5, siết 5/10): sự kiện trên suất mang ĐÚNG khoá nhưng thuộc chặng của ĐƠN KHÁC không cứu dòng DRIVER (dữ liệu chép sai đơn).
+  const d2 = donTho(db, { pax: 3, ten: 0 });
+  khach(db, { id: "drv-4", orderId: d.order, source: "DRIVER" });
+  const lac = suatTho(db, { trip: t, leg: d2.leg, key: "drv-4" });
+  suKienTho(db, { trip: t, kind: "PASSENGER_NAMED", alloc: lac, nhatKy: "trip_passenger_named" });
+  assert.equal(violations(db, c), 3, "sự kiện trên suất cùng khoá nhưng chặng của đơn khác — vẫn vi phạm");
 });
 
 test("R-ORD-12: chặng mở của đơn chưa huỷ còn nơi đón tạm '(chưa ghi nơi đón)' → đếm (cảnh báo); đơn huỷ / chặng đóng → không", () => {

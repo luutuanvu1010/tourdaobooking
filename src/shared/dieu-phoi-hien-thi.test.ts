@@ -1,7 +1,7 @@
 // Khối hiển thị THUẦN cho các màn B1–B6 (chưa nối trang — chờ route A13 / A15): src/shared/dieu-phoi-hien-thi.ts. Hình dữ liệu theo kế hoạch mục 1.8.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { dongDieuKienTaiXe, gioVn, nhanMocTienDo } from "./dieu-phoi-hien-thi.ts";
+import { chiThieuTenTuLam, dongDieuKienTaiXe, gioVn, nhanMocTienDo } from "./dieu-phoi-hien-thi.ts";
 import { MA_GIO_XAY_RA, NHAN_GIO_XAY_RA } from "./gio-xay-ra.ts";
 import { lyDoGiu } from "./ly-do-giu.ts";
 import { vnLocalToMs } from "./vn-date.ts";
@@ -34,3 +34,21 @@ test("dongDieuKienTaiXe (V5 / V7 màn tài xế — bản đối chiếu 2.5, H1
   ]);
 });
 
+test("dongDieuKienTaiXe (Đợt 5 A-1b — chủ duyệt 5/10, chỉ tài xế công ty): tài xế tự bổ sung tên được (ô trip.passenger.add + trong ngày chạy) → dòng THIẾU TÊN chỉ chỗ tự làm; điều kiện khác và tài xế đối tác vẫn '(văn phòng lo)'", () => {
+  const thieu = [lyDoGiu("THIEU_TEN", "TD-1 thiếu 2 tên"), lyDoGiu("CHINH_SACH_RONG")];
+  assert.deepEqual(dongDieuKienTaiXe(thieu, true), [
+    "Chưa đủ tên khách: TD-1 thiếu 2 tên (bấm Bổ sung tên ở khối Suất của khách, hoặc văn phòng lo)",
+    "Chưa có chính sách điều phối đang hiệu lực (văn phòng lo)",
+  ]);
+  assert.deepEqual(dongDieuKienTaiXe(thieu, false), ["Chưa đủ tên khách: TD-1 thiếu 2 tên (văn phòng lo)", "Chưa có chính sách điều phối đang hiệu lực (văn phòng lo)"]);
+  assert.deepEqual(dongDieuKienTaiXe(thieu), dongDieuKienTaiXe(thieu, false), "mặc định = không tự bổ sung (tài xế đối tác, ngày khác)");
+  assert.deepEqual(dongDieuKienTaiXe([], true), ["Đủ điều kiện xuất bến"]);
+});
+
+
+test("chiThieuTenTuLam (Đợt 5 A-1b): chỉ khi MỌI điều kiện thiếu là thiếu tên VÀ tự bổ sung được", () => {
+  assert.equal(chiThieuTenTuLam([lyDoGiu("THIEU_TEN", "TD-1 thiếu 1 tên")], true), true);
+  assert.equal(chiThieuTenTuLam([lyDoGiu("THIEU_TEN", "TD-1 thiếu 1 tên")], false), false, "tài xế đối tác / ngày khác");
+  assert.equal(chiThieuTenTuLam([lyDoGiu("THIEU_TEN", "TD-1 thiếu 1 tên"), lyDoGiu("CHINH_SACH_RONG")], true), false, "còn việc văn phòng");
+  assert.equal(chiThieuTenTuLam([], true), false);
+});

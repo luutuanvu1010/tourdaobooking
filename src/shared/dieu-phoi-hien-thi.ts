@@ -37,8 +37,22 @@ export function nhanMocTienDo(m: MocTienDoVao): { chu: string; vanPhongKhai: boo
  * V5 / V7 trên màn TÀI XẾ (bản đối chiếu 2.5, H15): chỉ điều kiện CÒN THIẾU (`dieuKienConThieu[]` của DTO tài xế — mã, câu, ai xử lý; không hạn, không số giấy
  * tờ), mỗi dòng kèm "(văn phòng lo)" — với tài xế, Quản trị / Toàn quyền cũng là văn phòng. Đạt hết → một dòng "Đủ điều kiện xuất bến".
  */
-export function dongDieuKienTaiXe(conThieu: readonly Pick<LyDoGiu, "loiNhan">[]): string[] {
+export function dongDieuKienTaiXe(conThieu: readonly (Pick<LyDoGiu, "loiNhan"> & { readonly ma?: string })[], tuBoSungTen = false): string[] {
   if (conThieu.length === 0) return ["Đủ điều kiện xuất bến"];
-  return conThieu.map((d) => `${d.loiNhan} (văn phòng lo)`);
+  return conThieu.map((d) => `${d.loiNhan} ${hauToDieuKienTaiXe(d.ma, tuBoSungTen)}`);
 }
 
+/**
+ * Đuôi một dòng điều kiện còn thiếu trên màn tài xế. Đợt 5 A-1b (ADR-0052 D5b — chủ duyệt 5/10: "chỉ tài xế công ty"): `tuBoSungTen` = người xem giữ ô
+ * `trip.passenger.add` VÀ chuyến trong ngày chạy (khối "Suất của khách" chỉ hiện lúc đó) ⇒ dòng "Chưa đủ tên khách" chỉ chỗ tự làm. Tài xế đối tác, ngày
+ * khác, điều kiện khác: "(văn phòng lo)" như cũ. Máy chủ vẫn tự kiểm quyền + ngày chạy ở route bổ sung tên.
+ */
+export function hauToDieuKienTaiXe(ma: string | undefined, tuBoSungTen = false): string {
+  return ma === "THIEU_TEN" && tuBoSungTen ? "(bấm Bổ sung tên ở khối Suất của khách, hoặc văn phòng lo)" : "(văn phòng lo)";
+}
+
+
+/** Đợt 5 A-1b: mọi điều kiện còn thiếu đều là "Chưa đủ tên khách" VÀ người xem tự bổ sung được ⇒ dòng chân màn xuất bến nói việc của tài xế, không "văn phòng đang lo". */
+export function chiThieuTenTuLam(conThieu: readonly { readonly ma?: string }[], tuBoSungTen: boolean): boolean {
+  return tuBoSungTen && conThieu.length > 0 && conThieu.every((d) => d.ma === "THIEU_TEN");
+}

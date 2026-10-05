@@ -211,8 +211,9 @@ export interface TheCuoc {
 /** Ba nhóm "Hôm nay", "Ngày mai", "Ngày kia" (luôn có, trống vẫn hiện — góp ý T3: tài xế xem trước 2–3 ngày), mỗi nhóm theo giờ xuất bến. Không tên,
  *  không SĐT khách (R-P17; tên / năm sinh chỉ ở chi tiết chuyến TRONG ngày chạy — ADR-0053).
  *  HT-24 (kiểm theo vai 2/10): chuyến ĐANG CHẠY mà ngày xuất bến không thuộc ba ngày (máy chủ trả chuyến RUNNING bất kể ngày — route 19) vào "Hôm nay", đứng
- *  ĐẦU, kèm `nhanNgay` — không có thì chuyến vắt qua 0 giờ biến khỏi danh sách khi còn khách trên xe. */
-export function nhomCuoc(ds: readonly CuocCuaToiItemDto[], homNay: string): { tieuDe: string; ngay: string; iso: string; the: TheCuoc[] }[] {
+ *  ĐẦU, kèm `nhanNgay` — không có thì chuyến vắt qua 0 giờ biến khỏi danh sách khi còn khách trên xe.
+ *  `tuy.tuBoSungTen` (Đợt 5 A-1b, chủ duyệt 5/10): người xem giữ ô `trip.passenger.add` (chỉ tài xế công ty) ⇒ dòng "Chưa đủ tên khách" của chuyến HÔM NAY chỉ chỗ tự làm. */
+export function nhomCuoc(ds: readonly CuocCuaToiItemDto[], homNay: string, tuy: { readonly tuBoSungTen?: boolean } = {}): { tieuDe: string; ngay: string; iso: string; the: TheCuoc[] }[] {
   const mai = addDays(homNay, 1);
   const kia = addDays(homNay, 2);
   const the = (c: CuocCuaToiItemDto): TheCuoc => {
@@ -222,7 +223,7 @@ export function nhomCuoc(ds: readonly CuocCuaToiItemDto[], homNay: string): { ti
     return {
       id: c.id, ma: c.ma, gio: c.gioXuatBen.gio, chip,
       dong: `${c.bienSo} · ${c.soKhach} khách · ${c.soDiemDon} điểm đón · ${c.soDiemTra} điểm trả`,
-      canhBao: giu ? dongDieuKienTaiXe(c.dieuKienConThieu as readonly DieuKienConThieuDto[]) : [],
+      canhBao: giu ? dongDieuKienTaiXe(c.dieuKienConThieu as readonly DieuKienConThieuDto[], tuy.tuBoSungTen === true && c.gioXuatBen.ngay === homNay) : [],
       moChay: c.trangThai === "RUNNING",
     };
   };

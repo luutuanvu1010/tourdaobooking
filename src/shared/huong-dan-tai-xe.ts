@@ -29,7 +29,7 @@ Trên máy tính, menu bên trái có: [[Trang chủ]], [[Cuốc của tôi]], [
     {
       tieuDe: "Xem cuốc và chuẩn bị",
       noiDung: `1. Ở [[Cuốc của tôi]], mỗi thẻ có: giờ xuất bến, mã chuyến, trạng thái, biển số, số khách, số điểm đón, số điểm trả.
-2. Thẻ ghi **Bị giữ** kèm dòng "(văn phòng lo)": chuyến còn thiếu giấy tờ hay thông tin. Bạn không cần làm gì.
+2. Thẻ ghi **Bị giữ** kèm dòng "(văn phòng lo)": chuyến còn thiếu giấy tờ hay thông tin. Bạn không cần làm gì. Riêng thiếu tên khách của chuyến hôm nay: tài xế công ty tự bổ sung được (mục "Tình huống hay gặp").
 3. Bấm vào thẻ để mở chuyến.
 4. Trước khi chạy, bạn thấy các điểm theo thứ tự: điểm đón có giờ hẹn, điểm trả, số khách mỗi điểm.
 5. Mục **Điều kiện xuất bến** ghi đạt hay chưa. Còn thiếu thì nút [[Xuất bến]] bị khoá.
@@ -52,7 +52,7 @@ Trên máy tính, menu bên trái có: [[Trang chủ]], [[Cuốc của tôi]], [
       noiDung: `- **Khách tới trễ sau khi đã bấm Vắng:** dòng khách đó vẫn còn nút [[Đã đón]].
 - **Bấm nhầm Đã đón hoặc Khách đã huỷ:** màn không còn nút sửa. Gọi văn phòng.
 - **Văn phòng vừa thêm điểm:** dải trên cùng báo điểm mới (giờ đón, số khách), điểm đó có nhãn **Mới thêm** và đã nằm trong lộ trình. Đọc xong bấm [[Đã xem]].
-- **Khách chưa có tên:** trong ngày chạy, khối **Suất của khách** báo thiếu tên. Hỏi khách, bấm [[Bổ sung tên]], nhập họ tên, năm sinh rồi bấm [[Lưu]].
+- **Khách chưa có tên (chỉ tài xế công ty):** trong ngày chạy, khối **Suất của khách** báo thiếu tên. Hỏi khách, bấm [[Bổ sung tên]], nhập họ tên, năm sinh rồi bấm [[Lưu]].
 - **Văn phòng đã báo huỷ:** vẫn tới điểm. Gặp khách thì bấm [[Đã đón]]; không gặp thì bấm [[Khách đã huỷ]] để trả chỗ.
 - **Muốn ghé điểm khác trước:** khi xe đang chạy, điểm chưa tới có nút mũi tên lên và mũi tên xuống để đổi thứ tự.
 - **Xe hỏng, không đi tiếp được:**
@@ -66,7 +66,7 @@ Trên máy tính, menu bên trái có: [[Trang chủ]], [[Cuốc của tôi]], [
     {
       tieuDe: "Điều bạn không làm được — hỏi ai",
       noiDung: `- **Xem đơn, giá, tiền, danh bạ khách:** không được.
-- **Nhận chuyến, đổi xe, đổi giờ, thêm bớt khách:** văn phòng làm.
+- **Nhận chuyến, đổi xe, đổi giờ, thêm bớt khách:** văn phòng làm. Tài xế công ty chỉ bổ sung tên cho khách đã có chỗ.
 - **Sửa giấy tờ của mình:** báo văn phòng cập nhật.
 - **Chuyến Bị giữ:** văn phòng lo.
 - **Sửa giờ đã bấm:** không được, gọi văn phòng.`,

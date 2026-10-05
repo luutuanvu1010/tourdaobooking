@@ -1,10 +1,11 @@
 // Cuốc của tôi (/cuoc) — ADR-0049 V5 (route 19), trang mở đầu của tài xế công ty (Q5); bản vẽ docs/design/van-chuyen-dieu-phoi/project/04 Cuoc cua toi.dc.html
 // (4a, 4b điện thoại; 4c máy tính); bản đối chiếu 2.5, H15; ruling R-P17.
-// - Hôm nay + ngày mai + ngày kia (góp ý T3); mỗi chuyến: giờ xuất bến, trạng thái, mã, biển số, số khách, số điểm đón / trả; điều kiện còn thiếu "(văn phòng lo)".
+// - Hôm nay + ngày mai + ngày kia (góp ý T3); mỗi chuyến: giờ xuất bến, trạng thái, mã, biển số, số khách, số điểm đón / trả; điều kiện còn thiếu "(văn phòng lo)" (thiếu tên hôm nay + tài xế công ty: chỉ chỗ tự bổ sung — Đợt 5 A-1b).
 // - KHÔNG tên, KHÔNG SĐT khách ở màn này (DTO không có). Chuyến đang chạy: "Mở chuyến đang chạy". Bấm thẻ → /cuoc-chuyen?id= (xuất bến / đang chạy).
 // - HT-24: chuyến đang chạy vắt qua 0 giờ (hoặc xuất bến sớm) vẫn ở "Hôm nay", đứng đầu, dòng "Xuất bến dd/mm" (`nhomCuoc`).
 // - Giờ kết thúc dự kiến (bản vẽ "06:40 – 08:25") chưa có trong DTO route 19 — chỉ hiện giờ xuất bến (ghi câu hỏi Q-B-12 ở nhật ký).
 import { nhomCuoc } from "../src/shared/tien-do-man";
+import { can } from "../src/shared/permissions";
 import type { CuocCuaToiResponse } from "../src/shared/contracts";
 import { coCuocCuaToi } from "../src/shared/start-page";
 import { addDays, vnToday } from "../src/shared/vn-date";
@@ -20,11 +21,14 @@ const errorEl = byId("error");
 const dsEl = byId("cu-ds");
 
 let daMo = false;
+/** Đợt 5 A-1b (chủ duyệt 5/10 — chỉ tài xế công ty): ô `trip.passenger.add` ⇒ thẻ hôm nay thiếu tên chỉ chỗ tự bổ sung (`nhomCuoc`). */
+let tuBoSungTen = false;
 
 async function main(): Promise<void> {
   const staff = await initShell();
   if (!coCuocCuaToi(staff)) return showError(errorEl, "Tài khoản này không có cuốc xe.");
   daMo = true;
+  tuBoSungTen = can(staff, "trip.passenger.add", { assigned: true });
   await veDanhSach();
 }
 
@@ -43,7 +47,7 @@ async function veDanhSach(): Promise<void> {
   errorEl.hidden = true;
   replaceChildren(
     dsEl,
-    ...nhomCuoc(r.chuyen, homNay).map((g) =>
+    ...nhomCuoc(r.chuyen, homNay, { tuBoSungTen }).map((g) =>
       h(
         "section",
         { class: "dp-cuoc-day", "aria-labelledby": `cu-${g.iso}` },
