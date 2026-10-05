@@ -3,6 +3,7 @@
 import { UUID_RE } from "../../shared/http.ts";
 import { can, holdsPartner, MATRIX, type PermissionHolder } from "../../shared/permissions.ts";
 import { hasLongDigitRun, PHONE_IN_TEXT_MESSAGE } from "../../shared/text-guards.ts";
+import { GHI_CHU_HUY_TOI_DA } from "../../shared/ly-do-huy.ts";
 
 /** Số đơn tối đa của một lần tra `GET /api/dispatch/handlers` (danh sách đơn có trang tối đa 100 đơn). */
 export const MAX_HANDLER_LOOKUP = 100;
@@ -91,6 +92,8 @@ export function parseCancelReason(body: Record<string, unknown> | null): Parsed<
   const rawNote = body?.note;
   const note = typeof rawNote === "string" ? rawNote.trim() : "";
   if (note === "") return { ok: false, message: 'Cần nhập lý do khi chọn "Khác".' };
+  // ADR-0089: ghi chú lưu ở ord_cancel_reason.note (CHECK ≤ 300) — kiểm trước để trả câu tiếng Việt, không để lọt xuống CSDL thành lỗi 500.
+  if (note.length > GHI_CHU_HUY_TOI_DA) return { ok: false, message: `Lý do tối đa ${GHI_CHU_HUY_TOI_DA} ký tự.` };
   if (hasLongDigitRun(note)) return { ok: false, message: PHONE_IN_TEXT_MESSAGE };
   return { ok: true, reason, note };
 }

@@ -122,6 +122,12 @@ test("lý do huỷ: thiếu, sai kiểu, tự do, hoặc ngoài danh sách đón
   }
 });
 
+test('lý do "Khác" (ADR-0089, kiểm độc lập Phần A): ghi chú quá 300 ký tự → từ chối bằng câu tiếng Việt (trước đây lọt xuống CHECK của CSDL → 500); đúng 300 → được', () => {
+  const r = parseCancelReason({ reason: "other", note: "x".repeat(301) });
+  assert.deepEqual(r, { ok: false, message: "Lý do tối đa 300 ký tự." });
+  assert.deepEqual(parseCancelReason({ reason: "other", note: "x".repeat(300) }), { ok: true, reason: "other", note: "x".repeat(300) });
+});
+
 test('lý do "Khác": thiếu note, note rỗng, hoặc note toàn khoảng trắng → từ chối, nêu đúng lý do', () => {
   for (const body of [{ reason: "other" }, { reason: "other", note: "" }, { reason: "other", note: "   " }, { reason: "other", note: 5 }]) {
     const r = parseCancelReason(body as Record<string, unknown> | null);
