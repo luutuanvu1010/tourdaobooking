@@ -163,7 +163,7 @@ ADR-0047 (chặng, hành khách — orders)   ADR-0048 (nhà xe, tài xế đố
   - `last_cmd_id` — **dấu lệnh**: id của request vừa thắng câu cổng của lô (§3.3); câu ghi sau trong cùng lô chỉ chạy khi chuyến mang đúng dấu này. Cột kỹ thuật, không hiện cho người dùng;
   - đủ cột dấu vết.
 - **`vc_trip_driver`** (giữ G1b-1 của lượt 2): `trip_id`, `driver_party_id` (FK `pty_party`), `valid_from_at`, `valid_to_at`, `close_reason` tập đóng (`REASSIGNED`, `TRIP_CANCELLED`, `REFUSED` — mã cuối để sẵn cho D8), `closed_by`, dấu vết. Chỉ mục duy nhất: **một tài xế đang mở mỗi chuyến**.
-- Chiều về là **chuyến khác** (một chuyến chạy một lượt; chuyến có thể chở chặng chiều đi của đơn này và chặng chiều về của đơn khác nếu cùng lúc — máy không cấm).
+- Chiều về là **chuyến khác** (một chuyến chạy một lượt; chuyến có thể chở chặng chiều đi của đơn này và chặng chiều về của đơn khác nếu cùng lúc — máy không cấm, **trừ khi một chặng trên chuyến mang cam kết xe riêng** — ADR-0056 VK3-A; Quản trị phá lệ được kèm lý do).
 
 ### 1.5 Suất: mỗi người trên đúng một chuyến tại mỗi lúc, có hiệu lực theo thời gian
 

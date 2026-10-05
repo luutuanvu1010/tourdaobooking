@@ -129,9 +129,7 @@ Lọc: [[Đang ghi đè giá]], [[Sheet đã đổi giá (cần xem)]], [[Đã �
 3. Chọn lý do: [[Khách đoàn gọi gấp]], [[Chuyến bay đổi giờ]], [[Đơn bù cho khách bị lỡ chuyến]] hoặc [[Lý do khác]]. Gõ [[Ghi chú ngắn]] nếu cần.
 4. Bấm [[Duyệt đặt gấp]]. Sau đó đơn xác nhận được.
 
-Ở màn Tạo đơn, nút Đặt gấp hiện ngay trên thẻ dịch vụ; app lưu nháp rồi mới đặt gấp. Trên Điều phối xe có mục [[Đơn nháp chờ duyệt đặt gấp]].
-
-> Ví dụ: 14 giờ, đoàn khách gọi đặt xe đón 17 giờ ở khách sạn Biển Xanh. Nhân viên lập nháp, bạn bấm Đặt gấp, chọn Khách đoàn gọi gấp, bấm Duyệt đặt gấp.`,
+Ở màn Tạo đơn, nút Đặt gấp hiện ngay trên thẻ dịch vụ; app lưu nháp rồi mới đặt gấp. Trên Điều phối xe có mục [[Đơn nháp chờ duyệt đặt gấp]].`,
     },
     {
       tieuDe: "Xe và giấy tờ xe",
@@ -153,6 +151,8 @@ Mở [[Sắp hết hạn]] (điện thoại: [[Giấy tờ sắp hết hạn]] �
 1. Thao tác như thường trên [[Điều phối xe]] hoặc màn chuyến.
 2. Hộp hỏi hiện nút như [[Phá lệ và rút]], [[Phá lệ và chuyển]], [[Phá lệ và lưu]], [[Phá lệ và huỷ]], [[Phá lệ và thêm]].
 3. Chọn lý do phá lệ, bấm nút đó. Việc phá lệ ghi kèm tên bạn.
+
+Hộp này cũng hiện khi ghép khách hoặc xe nhỏ trái cam kết [[Xe riêng]] hay [[Xe tối thiểu]] của đơn; chọn lý do như trên.
 
 ### Lịch xe bận
 [[Lịch xe bận]]: ghi giờ xe vào xưởng; giờ đó không xếp chuyến cho xe được. Bấm ✕ để rút.`,
@@ -206,8 +206,7 @@ Mở [[Lý do điều phối]]. Lý do chia nhóm, như [[Đổi giờ xe tới]
       tieuDe: "Câu hỏi thường gặp",
       noiDung: `- **PIN vừa tạo bị mất, xem lại được không?** Không. Bấm [[Đặt lại PIN]] để tạo PIN khác.
 - **Xoá được tài khoản hay hồ sơ không?** Không. Chỉ ngưng tài khoản, hoặc bỏ tick Đang dùng ở hồ sơ.
-- **Đổi giá thì đơn cũ có đổi tiền không?** Không. Đơn đã lập giữ giá lúc lập.
-- **Ai duyệt Đặt gấp được?** Chỉ Quản trị và Toàn quyền.`,
+- **Đổi giá thì đơn cũ có đổi tiền không?** Không. Đơn đã lập giữ giá lúc lập.`,
     },
     {
       tieuDe: "Chỉ tài khoản Toàn quyền",

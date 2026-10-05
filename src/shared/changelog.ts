@@ -11,6 +11,16 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Vận chuyển Đợt 7 — cam kết "xe riêng" / "xe tối thiểu N chỗ" trên chặng đưa đón (ADR-0056 VK3-A), migration 0077. Số 1.81 = main 1.80 + 1.
+    version: "1.81",
+    date: "2026-10-05",
+    items: [
+      { kind: "moi", text: "Chặng đưa đón có thêm hai ô: Xe riêng (không ghép khách khác) và Xe tối thiểu … chỗ. Nhãn XE RIÊNG và ≥ N chỗ hiện trên trang đơn và bảng điều phối." },
+      { kind: "moi", text: "Bảng điều phối chặn ghép khách vào xe riêng, hoặc xếp khách vào xe nhỏ hơn số chỗ đã hứa. Quản trị vẫn cho phép được, kèm lý do." },
+      { kind: "doi", text: "Chuyến đã được phá lệ cam kết mà sau đó hết vi phạm thì Nền tảng tự bỏ dấu phá lệ; kiểm định kỳ báo chuyến đã chạy trái cam kết mà chưa có phá lệ." },
+    ],
+  },
+  {
     // Vận chuyển Đợt 5 tầng 3 — tài xế bổ sung tên khách (ADR-0052 D5b; chủ duyệt 5/10: chỉ tài xế công ty). Không migration. Số 1.80 = main 1.79 + 1.
     version: "1.80",
     date: "2026-10-05",

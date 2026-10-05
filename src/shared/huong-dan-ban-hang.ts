@@ -41,7 +41,7 @@ Bốn tab: [[Trang chủ]], [[Đơn hàng]], [[Tạo đơn]], [[Tôi]]. Trong tr
    - Dịch vụ tính theo nhóm chỉ có một ô [[Số khách]]; app tự tính số lượt.
    - Mỗi dịch vụ tối đa 50 khách, phải có ít nhất 1 khách không phải em bé.
    - Sửa được đơn giá; dòng khác giá danh mục hiện nhãn [[Khác giá danh mục]].
-5. Phần [[Đưa đón]] trên thẻ: mỗi chặng có [[Ngày đón]], [[Giờ đón]], [[Nơi đón]], [[Nơi trả]] (chọn điểm có sẵn hoặc [[Gõ tự do…]]). Dịch vụ có mẫu đưa đón thì app tạo sẵn chiều đi (và chiều về) — sửa hoặc bỏ nếu khác; không có thì bấm [[+ Thêm đưa đón]]. Bấm dòng [[Thông tin chuyến]] để điền [[Giờ khởi hành]] và nếu có thì [[Ngày check-in]], [[Giờ check-in]], [[Nơi check-in]], [[Ghi chú dịch vụ]].
+5. Phần [[Đưa đón]] trên thẻ: mỗi chặng có [[Ngày đón]], [[Giờ đón]], [[Nơi đón]], [[Nơi trả]] (chọn điểm có sẵn hoặc [[Gõ tự do…]]). Dịch vụ có mẫu đưa đón thì app tạo sẵn chiều đi (và chiều về) — sửa hoặc bỏ nếu khác; không có thì bấm [[+ Thêm đưa đón]]. Mỗi chặng có thêm [[Xe riêng]] (không ghép khách khác) và [[Xe tối thiểu]] (số chỗ, không kể tài xế). Bấm dòng [[Thông tin chuyến]] để điền [[Giờ khởi hành]] và nếu có thì [[Ngày check-in]], [[Giờ check-in]], [[Nơi check-in]], [[Ghi chú dịch vụ]].
 6. Cần thêm dịch vụ khác thì lặp lại bước 3 đến 5 (tối đa 20 dịch vụ). Bấm [[Xoá]] trên thẻ để bỏ một dịch vụ.
 7. Khối [[Thanh toán]]: [[Giảm giá (₫)]], [[Thanh toán trước (₫)]], [[Hình thức]] ([[Chuyển khoản]] — mặc định, [[Tiền mặt]], [[Khác]]), [[Người nhận tiền]], [[Ghi chú thanh toán]]. Tiền trả trước được ghi vào sổ ngay sau khi lưu đơn.
 8. Khối [[Thông tin khách hàng]]: điền **Tên khách**, [[Số điện thoại]] (bắt buộc), [[Email]], [[Ghi chú / yêu cầu đặc biệt]].
@@ -160,8 +160,6 @@ Sau xác nhận, dịch vụ, số khách và tiền **bị khoá** với Bán h
 ### Thiếu thông tin chuyến
 
 - Chưa biết giờ đón: vẫn lưu được; chặng ghi "Chưa chốt giờ". Bổ sung sau bằng [[Sửa]] (đơn chờ xác nhận) hoặc [[Sửa đưa đón]] (đơn đã xác nhận).
-- Ngày khởi hành đã qua hoặc quá 365 ngày: app cho lưu nhưng báo chưa thể xác nhận.
-- Giờ đón sau giờ khởi hành: app nhắc kiểm tra lại.
 
 ### Khách huỷ
 
