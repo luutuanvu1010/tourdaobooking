@@ -1409,6 +1409,16 @@ export interface CapNhatDiemRequest { version: number; requestId: string }
 /** `boQua` (Đợt 5 D5.3a — chỉ khi xe đang chạy): số suất lệch nơi KHÔNG đổi được vì khách đã lên xe / có kết quả hoặc điểm đón đã tới. */
 export interface CapNhatDiemResponse extends ChuyenChiTietResponse { daCapNhat: number; boQua?: number }
 /**
+ * GET /api/van-chuyen/chuyen/:id/cuu-ho — cứu hộ đơn giản (ADR-0052 D5c; Đợt 5 Task 15), chỉ chuyến ENDED_INTERRUPTED. KHÔNG tên khách, SĐT, mã đơn.
+ * `changChoXep`: chặng có suất đóng `TRIP_INTERRUPTED` trên chuyến hỏng mà còn người chưa xếp; `xeNhan`: chuyến cùng ngày PLANNED / RUNNING, tài xế công ty
+ * (lời chủ 5.2b) — `version` để màn gửi lệnh xếp / thêm điểm có sẵn.
+ */
+export interface CuuHoResponse {
+  chuyenHong: { id: string; ma: string; ngay: string; soKhachCanChuyen: number };
+  changChoXep: { legId: string; soNguoi: number; noiDon: string; gioHen: string | null; datGap: boolean }[];
+  xeNhan: { tripId: string; maChuyen: string; trangThai: "PLANNED" | "RUNNING"; tenTaiXe: string; choTrong: number; diemSapToi: string | null; version: number }[];
+}
+/**
  * `POST /api/van-chuyen/chuyen/:id/cap-nhat-khach` (R-P29, chủ lần 16 — khuôn route 40): thân như `CapNhatDiemRequest`. `daCapNhat` = số suất khách ĐÃ ĐỔI
  * được xử lý (đóng PASSENGER_CHANGED; mở lại tới số người của chặng). 0 = không có gì lệch (không ghi). Phản hồi KHÔNG tên (GA-55).
  */

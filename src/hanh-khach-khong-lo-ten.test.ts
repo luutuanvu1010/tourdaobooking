@@ -420,6 +420,11 @@ test("khối van-chuyen: đủ tuyến; tên hành khách chỉ ở GET /chuyen/
         await goi(`${V}/xuat-ben`, "văn phòng xuất bến E", "POST", `/api/van-chuyen/chuyen/${T.E.chuyen.id}/xuat-ben`, SALES, { requestId: rid() });
         await goi(`${V}/ket-thuc-gian-doan`, "văn phòng kết thúc gián đoạn E", "POST", `/api/van-chuyen/chuyen/${T.E.chuyen.id}/ket-thuc-gian-doan`, SALES, { requestId: rid(), lyDo: "GIAN_DOAN_XE_HONG" });
       },
+      // Đợt 5 A-1b (D5c cứu hộ đơn giản): xe D (có suất H, D gắn tên) đã Kết thúc gián đoạn ⇒ có chặng cần chuyển — DTO không được kèm tên / năm sinh.
+      "GET /api/van-chuyen/chuyen/:id/cuu-ho": async () => {
+        const r = await goi("GET /api/van-chuyen/chuyen/:id/cuu-ho", "cứu hộ xe D", "GET", `/api/van-chuyen/chuyen/${T.D.chuyen.id}/cuu-ho`, SALES);
+        assert.ok(r.changChoXep.length >= 1, "chống bài rỗng: xe D có chặng cần chuyển");
+      },
     };
 
     // (1) ĐỦ TUYẾN

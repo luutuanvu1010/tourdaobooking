@@ -41,12 +41,13 @@ import {
 
 // ADR-0049 D1–D3 (Task A13): chuyến xe — hàm hẹp của orders (chỉ gọi trong THÂN route, sau can() — bài src/orders-cong-bo.test.ts), đọc / dựng lô / DTO.
 import { hanhKhachChoChuyen, lichChungChang, lienHeChoTaiXe } from "../orders";
-import type { CapNhatDiemResponse, HuongDanVienListResponse, CapNhatKhachResponse, ChuyenChiTietResponse, CuocChiTietResponse, CuocCuaToiResponse, StaffProfile } from "../../shared/contracts";
+import type { CapNhatDiemResponse, CuuHoResponse, HuongDanVienListResponse, CapNhatKhachResponse, ChuyenChiTietResponse, CuocChiTietResponse, CuocCuaToiResponse, StaffProfile } from "../../shared/contracts";
 import { kiemTaoSuaChuyen, trongNgayChay } from "../../shared/dieu-phoi-kiem";
 import { lyDoGiu, type LyDoGiu } from "../../shared/ly-do-giu";
 import { isISODate, msToVnLocal } from "../../shared/vn-date";
 import { eventByRequest, eventsByTrips, tripCountByDate, tripsByDate, tripsCuaTaiXe, tripsTouching } from "./chuyen-repo";
 import { loTaoChuyen } from "./dieu-phoi";
+import { cuuHoTu } from "./cuu-ho";
 import { chinhSachVao, docChung, docNen, khungChuyen, taiXeVao, xeVao, type NenChuyen } from "./dieu-phoi-doc";
 import { dungLichNgay, lenhBaoHuy, lenhCapNhatDiem, lenhCapNhatKhach, lenhDoi, lenhHuy, lenhRut, lenhSuaChuyen, lenhThemDiemDangChay, lenhXep } from "./dieu-phoi-lenh";
 import {
@@ -1067,6 +1068,19 @@ export const vanChuyenModule: AppModule = {
       // Cảnh báo sớm (chỉ nhắc): chặng chưa có nơi trả / chưa đủ tên — xe sẽ bị giữ ở xuất bến nếu chưa bổ sung.
       const ct = await chiTietChuyen(env.DB, nen2, lich2.chang, hk, false, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), bayGioMs);
       return json({ ...ct, ...(canhBaoXep.length > 0 ? { canhBaoXep: canhBaoXep.map(lyDoGiuDto) } : {}) } satisfies ChuyenChiTietResponse);
+    }),
+
+    // Đợt 5 D5c (cứu hộ đơn giản — Task 15): văn phòng xem chặng cần chuyển + xe nhận cùng ngày của chuyến đã Kết thúc gián đoạn. Chỉ đọc; xếp lại bằng
+    // them-diem / phan-bo / tạo chuyến có sẵn. DTO không tên khách, SĐT, mã đơn.
+    route("GET", "/api/van-chuyen/chuyen/:id/cuu-ho", "office", async ({ env, params, staff, nhanNhanVien }) => {
+      if (!can(staff, "trip.dispatch")) return CAN_DIEU_PHOI();
+      const nen = await docNen(env.DB, params.id ?? "");
+      if (!nen) return KHONG_CO_CHUYEN();
+      if (nen.trip.status !== "ENDED_INTERRUPTED") return loi409("chua_gian_doan");
+      const ngay = nen.trip.service_date;
+      const [trips, lich] = await Promise.all([tripsByDate(env.DB, ngay), lichChungChang(env.DB, addDays(ngay, -1), addDays(ngay, 1))]);
+      const l = await dungLichNgay(env.DB, ngay, trips, lich, nhanNhanVien, Date.now(), false);
+      return json(cuuHoTu(nen, l) satisfies CuuHoResponse);
     }),
 
     // ADR-0052 D5.1 (Đợt 5): "Thêm điểm khi xe đang chạy" — ô trip.dispatch (+ trip.override khi phá lệ mốc). Thân như phan-bo, không người đi kèm. Chuyến

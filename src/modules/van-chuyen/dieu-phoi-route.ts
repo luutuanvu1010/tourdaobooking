@@ -41,6 +41,7 @@ const THONG_BAO_409: Record<string, string> = {
   cheo_xe_tai_xe: "Tài xế không thuộc chủ của xe này.",
   chuyen_da_ket_thuc: "Chuyến đã kết thúc hoặc đã huỷ.",
   xe_dang_chay: "Xe đang chạy — không đổi kế hoạch được.",
+  chua_gian_doan: "Chỉ tạo chuyến cứu hộ sau khi xe đã Kết thúc gián đoạn.", // Đợt 5 D5c (cứu hộ đơn giản)
   xe_khong_dung: "Xe đang bảo dưỡng hoặc đã ngừng dùng.",
   gio_chuyen_khong_hop_le: "Giờ kết thúc phải sau giờ bắt đầu và chuyến không quá 24 giờ.",
   chinh_sach_rong: "Chưa có chính sách điều phối đang hiệu lực — báo người phụ trách hệ thống.",
