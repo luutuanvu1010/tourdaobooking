@@ -11,6 +11,15 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Vận chuyển Đợt 5 tầng 3 — tài xế bổ sung tên khách (ADR-0052 D5b; chủ duyệt 5/10: chỉ tài xế công ty). Không migration. Số 1.80 = main 1.79 + 1.
+    version: "1.80",
+    date: "2026-10-05",
+    items: [
+      { kind: "moi", text: "Tài xế công ty bổ sung tên cho khách chưa có tên, ngay trên màn chuyến trong ngày chạy: hỏi khách, nhập họ tên và năm sinh." },
+      { kind: "doi", text: "Chuyến bị giữ vì thiếu tên khách: màn của tài xế công ty chỉ chỗ tự bổ sung tên, không còn chỉ ghi văn phòng lo." },
+    ],
+  },
+  {
     // Vận chuyển Đợt 5 "Xe đang chạy" (ADR-0052 D5), migration 0076. Số 1.79: gộp sau Đợt 4 (1.78, 5/10) — Đợt 4 lên main trước.
     version: "1.79",
     date: "2026-10-05",
