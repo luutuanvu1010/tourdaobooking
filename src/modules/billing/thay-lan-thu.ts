@@ -9,8 +9,8 @@ import { auditStatement } from "../audit";
 import { UUID_RE } from "../../shared/http";
 import { vnToday } from "../../shared/vn-date";
 import { transferInOf } from "./coc-repo";
-import { lineIfPostingStatement, linesOfReceipt, lineReversed, orderState, ownerCompanyId, postingIfReceiptStatement, postingPlainStatement, receiptsOfOrder } from "./repository";
-import { conLai, dong, sinhDongDao, sinhDongLanThu } from "./rules";
+import { lineIfPostingStatement, linesOfOrder, linesOfReceipt, lineReversed, orderState, ownerCompanyId, postingIfReceiptStatement, postingPlainStatement, receiptsOfOrder } from "./repository";
+import { conLai, dong, khoanChoXacNhan, sinhDongDao, sinhDongLanThu } from "./rules";
 import { CHUA_CO_CONG_TY, docLanThu, docLyDo, docNgay, lineOf, loi, loiTrigger, toLineRow, toReceiptRow, type KetQua, type LanThuHopLe, type NguoiGoi } from "./service";
 import { phaiThuLucGiao, receiptThayDaoStatement, receiptThayMoiStatement } from "./thay-lan-thu-repo";
 
@@ -41,8 +41,9 @@ export async function ghiThayLanThu(db: D1Database, input: { raw: unknown; ai: N
   const orderId = b.orderId;
   const cu = Array.isArray(b.cu) ? b.cu : [];
   const moiRaw = Array.isArray(b.moi) ? b.moi : [];
-  if (cu.length < 1 || cu.length > TOI_DA || !cu.every((x) => typeof x === "string" && UUID_RE.test(x)) || new Set(cu).size !== cu.length) {
-    return loi(400, "invalid_input", `Chọn từ 1 đến ${TOI_DA} lần thu cần thay.`);
+  // N = 0 (không lần thu cũ) chỉ cho đơn ĐÃ Đã giao đang lệch — đường ghi bù khi mọi lần thu đã bị đảo trước bản vá (kiểm độc lập vòng 3); I1 ép đúng số.
+  if (cu.length > TOI_DA || !cu.every((x) => typeof x === "string" && UUID_RE.test(x)) || new Set(cu).size !== cu.length) {
+    return loi(400, "invalid_input", `Chọn tối đa ${TOI_DA} lần thu cần thay.`);
   }
   if (moiRaw.length < 1 || moiRaw.length > TOI_DA) return loi(400, "invalid_input", `Nhập từ 1 đến ${TOI_DA} lần thu đúng.`);
   const lyDo = docLyDo(b.lyDo, true);
@@ -55,8 +56,12 @@ export async function ghiThayLanThu(db: D1Database, input: { raw: unknown; ai: N
   if (!kn.ok) return loi(400, "invalid_input", kn.cau);
   const congTyId = await ownerCompanyId(db);
   if (!congTyId) return CHUA_CO_CONG_TY();
-  const [st, receipts, due] = await Promise.all([orderState(db, orderId), receiptsOfOrder(db, orderId), phaiThuLucGiao(db, orderId)]);
+  const [st, receipts, due, dongDon] = await Promise.all([orderState(db, orderId), receiptsOfOrder(db, orderId), phaiThuLucGiao(db, orderId), linesOfOrder(db, orderId)]);
   if (!st) return loi(404, "not_found", "Không tìm thấy đơn.");
+  if (cu.length === 0 && due === null) return loi(400, "invalid_input", "Đơn chưa Đã giao — chọn lần thu cần thay, hoặc ghi lần thu như thường.");
+  // ADR-0088 đ4 (i) + kiểm độc lập vòng 3 (CAO): khoản "Công ty thu – CK" do người khác khai còn CHỜ XÁC NHẬN thì KHÔNG đảo — dòng giữ hộ trên người khai còn
+  // nguyên tới khi Kế toán xác nhận đã nhận hoặc người khai nộp (một lần thu mới do Kế toán ghi "Công ty thu" sẽ xoá khoản người khai đang giữ).
+  const choXacNhan = khoanChoXacNhan(receipts.map(toReceiptRow), dongDon.map(toLineRow));
   if (st.status === "cancelled") return loi(409, "invalid_state", "Đơn đã huỷ — tiền của đơn huỷ đi qua “Duyệt hoàn cọc” / “Chuyển tiền sang đơn mới”.");
   const cuRows = [];
   for (const id of cu as string[]) {
@@ -65,6 +70,9 @@ export async function ghiThayLanThu(db: D1Database, input: { raw: unknown; ai: N
     if (r.reverses_id || receipts.some((x) => x.reverses_id === r.id)) return loi(409, "invalid_state", "Lần thu cần thay đã bị đảo hoặc là dòng đảo.");
     if (r.kind_code !== "CUSTOMER_PAYMENT") return loi(409, "invalid_state", "Lệnh Thay chỉ dùng cho lần thu của khách (không cho lần hoàn).");
     if (r.approval_id || r.transfer_of_id || (await transferInOf(db, r.id)).length > 0) return loi(409, "coc_transfer_locked", "Lần thu thuộc lệnh chuyển tiền giữa hai đơn — không thay được.");
+    if (choXacNhan.has(r.id)) {
+      return loi(409, "ck_cho_xac_nhan", "Khoản “Công ty thu – CK” này đang chờ xác nhận — xác nhận công ty đã nhận, hoặc để người khai nộp; không thay khoản đang chờ.");
+    }
     cuRows.push(r);
   }
   const moi: LanThuHopLe[] = [];
@@ -114,7 +122,10 @@ export async function ghiThayLanThu(db: D1Database, input: { raw: unknown; ai: N
   }
   // 3. phiếu đánh dấu (trigger kiểm I1) — 4. nhật ký (chỉ khi phiếu đã chèn)
   stmts.push(postingPlainStatement(db, { id: markerId, kind: "REPLACEMENT", orderId, reason: lyDo.value, reversesPostingId: null, occurredDate: ngay.value, dueSnapshot: null, at, by }));
-  const chiTiet = `thay ${cuRows.length} lần thu (${dong(tongCu)}) bằng ${moi.length} lần thu (${dong(tongMoi)}) · đã thu trước ${dong(daThuTruoc)} → sau ${dong(daThuTruoc - tongCu + tongMoi)} · ${lyDo.value ?? ""}`;
+  // Đổi người thu (vd nhân viên → Công ty) xoá khoản người cũ đang giữ — ghi rõ trong nhật ký để Kế toán xem lại (kiểm độc lập vòng 3).
+  const nguoiCu = new Set(cuRows.map((r) => r.collector_party_id));
+  const doiNguoi = moi.some((m) => !nguoiCu.has(m.collectorPartyId));
+  const chiTiet = `thay ${cuRows.length} lần thu (${dong(tongCu)}) bằng ${moi.length} lần thu (${dong(tongMoi)}) · đã thu trước ${dong(daThuTruoc)} → sau ${dong(daThuTruoc - tongCu + tongMoi)}${doiNguoi && cuRows.length > 0 ? " · đổi người thu" : ""} · ${lyDo.value ?? ""}`;
   stmts.push(auditStatement(db, { orderId, staffId: by, action: "ledger_receipt_replaced", at, detail: chiTiet }, "changes() > 0"));
   try {
     await db.batch(stmts);

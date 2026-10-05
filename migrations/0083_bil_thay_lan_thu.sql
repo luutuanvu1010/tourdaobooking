@@ -10,24 +10,28 @@ INSERT INTO bil_posting_kind (code, name, sort_order, active) VALUES ('REPLACEME
 -- trigger phân biệt "đảo trong lô Thay" với "đảo đơn lẻ". NULL = mọi lần thu khác.
 ALTER TABLE bil_payment_receipt ADD COLUMN replacement_id TEXT;
 
--- (3) đ3 + đ4 (iv): đơn đã Đã giao — KHÔNG đảo đơn lẻ một lần thu, KHÔNG ghi lần thu / lần trả lại khách mới, trừ khi thuộc một lô Thay (có dấu nối; dòng đảo
--- phải đi cùng ít nhất một lần thu mới cùng dấu, cùng đơn — lô ghi lần thu mới TRƯỚC). Hoàn sau Đã giao chờ đ9 (phân định) — tới lúc đó bị chặn.
+-- (3) đ3 + đ4 (iv): đơn đã Đã giao — KHÔNG đảo đơn lẻ một lần thu, KHÔNG ghi lần thu / lần trả lại khách mới, trừ khi thuộc một lô Thay ĐANG GHI (có dấu nối
+-- mà phiếu đánh dấu CHƯA có — kiểm độc lập vòng 3: dấu nối của lô đã khép không dùng lại được; dòng đảo phải đi cùng ít nhất một lần thu mới cùng dấu, cùng
+-- đơn — lô ghi lần thu mới TRƯỚC). Hoàn sau Đã giao chờ đ9 (phân định) — tới lúc đó bị chặn.
 CREATE TRIGGER bil_receipt_after_delivered BEFORE INSERT ON bil_payment_receipt
 WHEN EXISTS (SELECT 1 FROM bil_posting p WHERE p.order_id = NEW.order_id AND p.kind_code = 'DELIVERED')
   AND (NEW.replacement_id IS NULL
+    OR EXISTS (SELECT 1 FROM bil_posting m WHERE m.id = NEW.replacement_id)
     OR (NEW.reverses_id IS NULL AND NEW.kind_code <> 'CUSTOMER_PAYMENT')
     OR (NEW.reverses_id IS NOT NULL AND NOT EXISTS (
       SELECT 1 FROM bil_payment_receipt n WHERE n.replacement_id = NEW.replacement_id AND n.order_id = NEW.order_id AND n.reverses_id IS NULL)))
 BEGIN SELECT RAISE(ABORT, 'receipt_after_delivered: đơn đã Đã giao — chỉ sửa lần thu bằng lệnh Thay lần thu'); END;
 
--- (4) đ2: phiếu đánh dấu — phải có ít nhất một lần thu mới VÀ một dòng đảo cùng dấu trên chính đơn; lý do ≥ 10 ký tự; đơn đã Đã giao thì sau lô
--- đã thu ròng = phải thu (`due_snapshot` − giảm trừ đã phân định; giảm trừ = 0 tới khi có đ9).
+-- (4) đ2: phiếu đánh dấu — phải có ít nhất một lần thu mới cùng dấu trên chính đơn; dòng đảo (N lần thu cũ) có thể 0 khi đơn ĐÃ Đã giao và đang lệch từ
+-- trước (kiểm độc lập vòng 3 — mọi lần thu đã bị đảo trước bản vá: lô Thay N = 0 là đường ghi bù duy nhất, I1 ép đúng số); lý do ≥ 10 ký tự; đơn đã Đã giao
+-- thì sau lô đã thu ròng = phải thu (`due_snapshot` − giảm trừ đã phân định; giảm trừ = 0 tới khi có đ9).
 CREATE TRIGGER bil_posting_replacement_check BEFORE INSERT ON bil_posting
 WHEN NEW.kind_code = 'REPLACEMENT' AND (
   NEW.order_id IS NULL
   OR length(trim(COALESCE(NEW.reason, ''))) < 10
   OR NOT EXISTS (SELECT 1 FROM bil_payment_receipt n WHERE n.replacement_id = NEW.id AND n.order_id = NEW.order_id AND n.reverses_id IS NULL)
-  OR NOT EXISTS (SELECT 1 FROM bil_payment_receipt d WHERE d.replacement_id = NEW.id AND d.order_id = NEW.order_id AND d.reverses_id IS NOT NULL)
+  OR (NOT EXISTS (SELECT 1 FROM bil_payment_receipt d WHERE d.replacement_id = NEW.id AND d.order_id = NEW.order_id AND d.reverses_id IS NOT NULL)
+      AND NOT EXISTS (SELECT 1 FROM bil_posting g WHERE g.order_id = NEW.order_id AND g.kind_code = 'DELIVERED'))
   OR EXISTS (SELECT 1 FROM bil_payment_receipt x WHERE x.replacement_id = NEW.id AND x.order_id IS NOT NEW.order_id)
   OR EXISTS (
     SELECT 1 FROM bil_posting g WHERE g.order_id = NEW.order_id AND g.kind_code = 'DELIVERED'

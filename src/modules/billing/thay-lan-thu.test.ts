@@ -120,6 +120,42 @@ test("đ4 (iv): hoàn cho khách SAU Đã giao ⇒ 409 câu nguyên văn ADR (ch
   assert.match(c.json.error.message, /Thay lần thu/);
 });
 
+test("kiểm độc lập vòng 3 (CAO): khoản 'Công ty thu – CK' do HDV khai còn CHỜ XÁC NHẬN ⇒ Thay bị từ chối 409 (ADR-0088 đ4 (i): không đảo — dòng giữ hộ còn nguyên); lần thu tiền mặt HDV giữ: Thay giữ đúng người thu thì HDV vẫn giữ", async () => {
+  const w = setup();
+  const id = don(w);
+  assert.equal((await thu(w, HDV, id, 600_000, "cong_ty", "BANK_TRANSFER")).status, 201, "HDV khai Công ty thu – CK");
+  assert.equal((await thu(w, HDV, id, 400_000)).status, 201);
+  const ck = lanThu(w, id, 600_000);
+  const r = await thay(w, KT, { orderId: id, cu: [ck], moi: [{ soTien: 500_000, hinhThuc: "BANK_TRANSFER", nguoiThu: "cong_ty" }], lyDo: "HDV khai nhầm số chuyển khoản" });
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "ck_cho_xac_nhan");
+  assert.deepEqual((await tien(w, id)).keToan.dangGiu.map((d: { soTien: number }) => d.soTien), [1_000_000], "HDV vẫn giữ (600.000 chờ xác nhận + 400.000)");
+  const giu = await thay(w, KT, { orderId: id, cu: [lanThu(w, id, 400_000)], moi: [{ soTien: 350_000, hinhThuc: "CASH", nguoiThu: { partyId: `pty-${HDV}` } }], lyDo: "HDV ghi nhầm số tiền mặt" });
+  assert.equal(giu.status, 201, giu.text);
+  assert.deepEqual((await tien(w, id)).keToan.dangGiu.map((d: { soTien: number }) => d.soTien), [950_000]);
+  const nk = String(w.q("SELECT detail FROM audit_log WHERE order_id = ? AND action = 'ledger_receipt_replaced'", id)[0].detail);
+  assert.doesNotMatch(nk, /đổi người thu/);
+});
+
+test("kiểm độc lập vòng 3 (THẤP 3): đơn Đã giao đã lệch từ trước (mọi lần thu bị đảo trước bản vá) — Thay KHÔNG lần thu cũ (N = 0) ghi bù đúng số ⇒ 201, Hoàn thành được; thừa ⇒ 409; đơn chưa Đã giao ⇒ 400 (ghi lần thu như thường)", async () => {
+  const w = setup();
+  const id = await daGiaoGhiNham(w);
+  w.sqlite.exec("DROP TRIGGER bil_receipt_after_delivered");
+  for (const so of [600_000, 400_000]) {
+    w.sqlite.prepare(`INSERT INTO bil_payment_receipt (id, order_id, kind_code, amount, collector_party_id, collector_role_code, method_code, collected_for_party_id, stage_code, occurred_date,
+      reverses_id, created_at, updated_at) SELECT ?, order_id, kind_code, amount, collector_party_id, collector_role_code, method_code, collected_for_party_id, stage_code, occurred_date, id, ?, ?
+      FROM bil_payment_receipt WHERE id = ?`).run(`dao-cu-${so}`, AT, AT, lanThu(w, id, so));
+  }
+  assert.equal((await tien(w, id)).daThu, 0, "dữ liệu cũ: tiền biến khỏi sổ");
+  const thua = await thay(w, KT, { orderId: id, cu: [], moi: [{ soTien: 1_100_000, hinhThuc: "CASH", nguoiThu: "cong_ty" }], lyDo: "Ghi bù hai lần thu bị đảo nhầm" });
+  assert.equal(thua.json.error.code, "replacement_i1");
+  const bu = await thay(w, KT, { orderId: id, cu: [], moi: [{ soTien: 1_000_000, hinhThuc: "CASH", nguoiThu: { partyId: `pty-${HDV}` } }], lyDo: "Ghi bù hai lần thu bị đảo nhầm" });
+  assert.equal(bu.status, 201, bu.text);
+  assert.equal((await tien(w, id)).daThu, 1_000_000);
+  const chua = don(w);
+  assert.equal((await thay(w, KT, { orderId: chua, cu: [], moi: [{ soTien: 1_000, hinhThuc: "CASH", nguoiThu: "cong_ty" }], lyDo: "Ghi bù khi chưa Đã giao" })).status, 400);
+});
+
 test("hai lớp tách riêng: gỡ trigger 0083 trong DB thử — máy chủ VẪN trả 409 cho đảo đơn lẻ và hoàn sau Đã giao (không dựa một mình vào CSDL)", async () => {
   const w = setup();
   const id = await daGiaoGhiNham(w);

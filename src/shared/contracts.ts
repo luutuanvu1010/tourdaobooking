@@ -1626,6 +1626,8 @@ export interface LanThuDto {
   hinhThuc: string;
   /** "Công ty", tên người thu, hoặc "Chưa rõ". */
   nguoiThu: string;
+  /** Hồ sơ người thu — CHỈ cho người xem là Kế toán / Toàn quyền (null với người khác): để "Thay lần thu" mặc định đúng người thu cũ (kiểm độc lập vòng 3). */
+  nguoiThuPartyId: string | null;
   nguoiThuChuaRo: boolean;
   giaiDoan: string;
   ngayPhatSinh: string;

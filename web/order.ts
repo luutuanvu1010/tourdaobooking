@@ -700,13 +700,23 @@ function nutKeToanLanThu(order: Order, t: Api.OrderPaymentsResponse, l: Api.LanT
     const so = h("input", { type: "text", inputmode: "numeric", autocomplete: "off", value: String(l.soTien) }) as HTMLInputElement;
     regroupMoney(so);
     so.addEventListener("input", () => regroupMoney(so));
-    const hinhThuc = h("select", null, ...(["CASH", "BANK_TRANSFER", "OTHER"] as const).map((m) => h("option", { value: m }, METHOD_LABEL[m]))) as HTMLSelectElement;
-    const nguoiThu = h("select", null, h("option", { value: "cong_ty" }, "Công ty"), ...t.keToan!.dangGiu.map((d) => h("option", { value: d.partyId }, d.ten))) as HTMLSelectElement;
+    // Kiểm độc lập vòng 3: mặc định ĐÚNG hình thức và người thu của lần thu cũ — chỉ sửa số tiền thì không vô tình đổi người thu (đổi sang "Công ty" xoá khoản
+    // nhân viên đang giữ).
+    const hinhThuc = h("select", null, ...(["CASH", "BANK_TRANSFER", "OTHER"] as const).map((m) => h("option", { value: m, selected: METHOD_LABEL[m] === l.hinhThuc }, METHOD_LABEL[m]))) as HTMLSelectElement;
+    const laCongTy = l.nguoiThu === "Công ty";
+    const nguoiKhac = t.keToan!.dangGiu.filter((d) => d.partyId !== l.nguoiThuPartyId);
+    const nguoiThu = h(
+      "select",
+      null,
+      h("option", { value: "cong_ty", selected: laCongTy }, "Công ty"),
+      !laCongTy && l.nguoiThuPartyId ? h("option", { value: l.nguoiThuPartyId, selected: true }, `${l.nguoiThu} (người thu cũ)`) : null,
+      ...nguoiKhac.map((d) => h("option", { value: d.partyId }, d.ten)),
+    ) as HTMLSelectElement;
     const lyDoThay = h("input", { type: "text", autocomplete: "off", maxlength: "500", placeholder: "Vì sao thay (ít nhất 10 ký tự)" }) as HTMLInputElement;
     nut.push(
       hangXacNhan({
         nhan: "Thay lần thu", action: "thay-lan-thu", nutGhi: "Ghi lần thu đúng",
-        cau: `Thay lần ${vnd(l.soTien)} (người thu: ${l.nguoiThu}) bằng lần thu đúng — sổ đảo lần cũ và ghi lần mới trong một lần ghi.${t.deliveredAt ? " Đơn đã Đã giao: tổng đã thu phải giữ nguyên." : ""}`,
+        cau: `Thay lần ${vnd(l.soTien)} (người thu: ${l.nguoiThu}) bằng lần thu đúng — sổ đảo lần cũ và ghi lần mới trong một lần ghi. Chỉ đổi người thu khi tiền thật sự ở người khác (đổi sang Công ty = người thu cũ hết giữ khoản này).${t.deliveredAt ? " Đơn đã Đã giao: tổng đã thu phải giữ nguyên." : ""}`,
         o: [h("label", null, "Số tiền đúng (₫)", so), h("label", null, "Hình thức", hinhThuc), h("label", null, "Người thu đúng", nguoiThu), h("label", null, "Lý do", lyDoThay)],
         kiem: () => (parseMoney(so.value) <= 0 ? "Nhập số tiền." : lyDoThay.value.trim().length >= 10 ? null : "Lý do ít nhất 10 ký tự."),
         ghi: () =>
@@ -779,13 +789,36 @@ function khoiKeToan(order: Order, t: Api.OrderPaymentsResponse): HTMLElement | n
       bao: "Đã ghi hoàn cho khách.",
     });
   }
-  if (dong.length === 0 && !hoan) return null;
+  // ADR-0088 đ2 + kiểm độc lập vòng 3: đơn đã Đã giao mà đã thu < phải thu (dữ liệu lệch từ trước bản vá) — ghi bù bằng lệnh Thay KHÔNG lần thu cũ.
+  let bu: HTMLElement | null = null;
+  if (t.deliveredAt && t.conLai > 0 && order.status !== "cancelled") {
+    const so = h("input", { type: "text", inputmode: "numeric", autocomplete: "off", value: String(t.conLai) }) as HTMLInputElement;
+    regroupMoney(so);
+    so.addEventListener("input", () => regroupMoney(so));
+    const hinhThuc = h("select", null, ...(["CASH", "BANK_TRANSFER", "OTHER"] as const).map((m) => h("option", { value: m }, METHOD_LABEL[m]))) as HTMLSelectElement;
+    const nguoiThu = h("select", null, h("option", { value: "cong_ty" }, "Công ty"), ...kt.dangGiu.map((d) => h("option", { value: d.partyId }, d.ten))) as HTMLSelectElement;
+    const lyDo = h("input", { type: "text", autocomplete: "off", maxlength: "500", placeholder: "Vì sao thiếu (ít nhất 10 ký tự)" }) as HTMLInputElement;
+    bu = hangXacNhan({
+      nhan: "Ghi bù lần thu", action: "ghi-bu-lan-thu", nutGhi: "Ghi bù",
+      cau: `Đơn đã Đã giao nhưng sổ còn thiếu ${vnd(t.conLai)} (dữ liệu cũ). Ghi lần thu bù để đã thu bằng phải thu:`,
+      o: [h("label", null, "Số tiền (₫)", so), h("label", null, "Hình thức", hinhThuc), h("label", null, "Người thu", nguoiThu), h("label", null, "Lý do", lyDo)],
+      kiem: () => (parseMoney(so.value) <= 0 ? "Nhập số tiền." : lyDo.value.trim().length >= 10 ? null : "Lý do ít nhất 10 ký tự."),
+      ghi: () =>
+        api("/api/ledger/receipt-replacements", {
+          method: "POST",
+          body: { orderId: order.id, cu: [], lyDo: lyDo.value.trim(), moi: [{ soTien: parseMoney(so.value), hinhThuc: hinhThuc.value, nguoiThu: nguoiThu.value === "cong_ty" ? "cong_ty" : { partyId: nguoiThu.value } }] },
+        }),
+      bao: "Đã ghi bù lần thu.",
+    });
+  }
+  if (dong.length === 0 && !hoan && !bu) return null;
   return h(
     "div",
     { class: "kt-khoi", "data-khoi": "ke-toan" },
     h("h3", null, "Kế toán"),
     dong.length ? h("ul", { class: "pay-list" }, ...dong) : null,
     hoan,
+    bu,
   );
 }
 

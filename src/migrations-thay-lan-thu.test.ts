@@ -79,8 +79,26 @@ test("đ2: lô Thay đúng thứ tự (lần thu mới → đảo → phiếu đ
   thu(db, ct, { amount: 600_000, reverses: r600, thay: "m2" });
   assert.throws(() => phieu(db, { id: "m2", kind: "REPLACEMENT", reason: "nhầm" }), /replacement_i1:/, "lý do ngắn");
   phieu(db, { id: "m2", kind: "REPLACEMENT", reason: "ghi nhầm người thu tiền" });
-  assert.throws(() => phieu(db, { id: "m3", kind: "REPLACEMENT", reason: "phiếu không có lô nào" }), /replacement_i1:/, "thiếu lần thu mới / dòng đảo");
-  void r400;
+  assert.throws(() => phieu(db, { id: "m3", kind: "REPLACEMENT", reason: "phiếu không có lô nào" }), /replacement_i1:/, "thiếu lần thu mới");
+  // Kiểm độc lập vòng 3 (TRUNG BÌNH): dùng lại dấu nối của một lô ĐÃ khép (phiếu m2 đã có) để đảo đơn lẻ lần thu còn lại bằng SQL tay → chặn.
+  assert.throws(() => thu(db, ct, { amount: 400_000, reverses: r400, thay: "m2" }), /receipt_after_delivered:/, "dấu nối của lô đã khép");
+  assert.throws(() => thu(db, ct, { amount: 1, thay: "m2" }), /receipt_after_delivered:/, "lần thu mới gắn lô đã khép");
+});
+
+test("kiểm độc lập vòng 3 (THẤP 3): đơn Đã giao đã lệch từ trước (mọi lần thu đã bị đảo) — lô Thay KHÔNG có lần thu cũ (N = 0) ghi bù đúng số → qua; ghi thừa → replacement_i1", () => {
+  const { db, ct } = moi();
+  const { r600, r400 } = daGiao(db, ct);
+  db.exec("DROP TRIGGER bil_receipt_after_delivered");
+  thu(db, ct, { amount: 600_000, reverses: r600 }); // dữ liệu cũ (trước 0083): đảo đơn lẻ sau Đã giao
+  thu(db, ct, { amount: 400_000, reverses: r400 });
+  db.exec(readFileSync(new URL(FILE!, DIR), "utf8").split("CREATE TRIGGER bil_receipt_after_delivered")[1]!.split("END;")[0]!.replace(/^/, "CREATE TRIGGER bil_receipt_after_delivered") + "END;");
+  db.exec("SAVEPOINT a");
+  thu(db, ct, { amount: 1_100_000, thay: "b1" });
+  assert.throws(() => phieu(db, { id: "b1", kind: "REPLACEMENT", reason: "ghi bù lần thu bị đảo nhầm" }), /replacement_i1:/, "thừa 100.000");
+  db.exec("ROLLBACK TO a");
+  thu(db, ct, { amount: 1_000_000, thay: "b2" });
+  phieu(db, { id: "b2", kind: "REPLACEMENT", reason: "ghi bù lần thu bị đảo nhầm" });
+  phieu(db, { kind: "COMPLETED" });
 });
 
 test("đ5: Hoàn thành khi đã thu ròng khác phải thu lúc Đã giao ⇒ completed_due_mismatch; khớp ⇒ qua", () => {

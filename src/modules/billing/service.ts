@@ -138,7 +138,7 @@ export const lineOf = (d: LineDraft, postingId: string, orderId: string, receipt
 // ---------------------------------------------------------------------------------------------------------------------------------------------------
 // Tiền của một đơn (màn đơn — NT-F11)
 // ---------------------------------------------------------------------------------------------------------------------------------------------------
-function lanThuDto(rows: readonly ReceiptDbRow[]): LanThuDto[] {
+function lanThuDto(rows: readonly ReceiptDbRow[], xemNguoiThu: boolean): LanThuDto[] {
   const biDao = new Set(rows.flatMap((r) => (r.reverses_id ? [r.reverses_id] : [])));
   return rows.map((r) => ({
     id: r.id,
@@ -146,6 +146,7 @@ function lanThuDto(rows: readonly ReceiptDbRow[]): LanThuDto[] {
     soTien: r.amount,
     hinhThuc: HINH_THUC[r.method_code] ?? "Khác",
     nguoiThu: r.collector_role_code === "UNKNOWN" ? "Chưa rõ" : r.collector_role_code === "COMPANY" ? "Công ty" : (r.collector_label ?? "—"),
+    nguoiThuPartyId: xemNguoiThu ? r.collector_party_id : null,
     nguoiThuChuaRo: r.collector_role_code === "UNKNOWN",
     giaiDoan: GIAI_DOAN[r.stage_code] ?? "",
     ngayPhatSinh: r.occurred_date,
@@ -189,7 +190,7 @@ export async function tienCuaDon(db: D1Database, info: ThongTinGiaoDon, ai: Nguo
     conLai: so.conLai,
     du: so.du,
     chuaRo: so.chuaRo,
-    lanThu: lanThuDto(receipts),
+    lanThu: lanThuDto(receipts, ai.laKeToan),
     deliveredAt: info.deliveredAt,
     completedAt: info.completedAt,
     lyDoChuaGiao: info.deliveredAt ? null : (lyGiao as LyDoGiuDonDto | null),
