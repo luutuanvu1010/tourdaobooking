@@ -368,6 +368,20 @@ export function idChoLenh(dangCho: { id: string; khoa: string } | null, khoa: st
   return dangCho && dangCho.khoa === khoa ? dangCho : { id: taoId(), khoa };
 }
 
+/**
+ * Thân phá lệ gửi lại lệnh chuyến theo CÁC mã lý do máy chủ báo còn thiếu (`lyDo[].ma` của 409): `MOC_TOI_THIEU` → `phaLe`, `KHOANG_NGHI` → `nghiPhaLe`,
+ * `CAM_KET` → `camKetPhaLe` (ADR-0056 VK3-A; Đợt 7 Task 8a), cùng một lý do chọn trong hộp. `rieng` = đường sửa chuyến (ba khoá riêng); xếp / dời / thêm điểm
+ * (`rieng` = false) chỉ có `phaLe` cho mọi mã khác cam kết — giữ hành vi cũ, kể cả khi danh sách mã rỗng. Cam kết KHÔNG bao giờ đi bằng `phaLe`.
+ */
+export function thanPhaLe(maLyDo: readonly string[], lyDo: string, rieng: boolean): Record<string, { lyDo: string }> {
+  const p = { lyDo };
+  const out: Record<string, { lyDo: string }> = {};
+  if (rieng ? maLyDo.includes("MOC_TOI_THIEU") : maLyDo.length === 0 || maLyDo.some((m) => m !== "CAM_KET")) out.phaLe = p;
+  if (rieng && maLyDo.includes("KHOANG_NGHI")) out.nghiPhaLe = p;
+  if (maLyDo.includes("CAM_KET")) out.camKetPhaLe = p;
+  return out;
+}
+
 // ---- ADR-0051: nhắc "gọi báo khách" khi giờ hẹn đổi (Task B-GB) ------------------------------------------------------------------------------------------
 /**
  * Mục "Giờ hẹn đổi — gọi báo khách" của cột Cần xử lý (danh sách riêng `GET /nhac-goi-khach` — hiện ở MỌI ngày đang xem; máy chủ đã sắp theo giờ mới). Nhãn,

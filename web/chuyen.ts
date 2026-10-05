@@ -11,7 +11,7 @@
 // - Đợt 5 A-1b (D5c cứu hộ đơn giản, lời chủ 5.2b): nút "Cứu hộ" ở "Việc của văn phòng" (ô trip.progress VÀ trip.dispatch) mở hộp "Kết thúc gián đoạn" bấm
 //   thay có sẵn; chuyến đã Kết thúc gián đoạn có khối "Cứu hộ" (ô trip.dispatch; GET …/cuu-ho): chặng cần chuyển, xe cùng ngày của tài xế công ty (bấm để mở
 //   chuyến đó rồi "Thêm điểm" / "Xếp"), "Tạo chuyến cứu hộ" (xe nhà xe). Form giá cứu hộ chưa dựng (phụ thuộc Đợt 4 — nợ).
-import { cauKhoaMoc, chuyenXepDuoc, dieuKienXuatBen, dongBanChup, dongGoiBao, dongNhatKy, gioHien, kieuChuyen, nhanDiem, nhomKhach, type NhomKhach } from "../src/shared/dieu-phoi-man";
+import { cauKhoaMoc, thanPhaLe, chuyenXepDuoc, dieuKienXuatBen, dongBanChup, dongGoiBao, dongNhatKy, gioHien, kieuChuyen, nhanDiem, nhomKhach, type NhomKhach } from "../src/shared/dieu-phoi-man";
 import { NHAN_TU_CHOI_GOI_BAO, type MaTuChoiGoiBao } from "../src/shared/goi-bao";
 import { ApiError } from "./api";
 import type { CapNhatDiemResponse, CapNhatKhachResponse, ChuyenChiTietResponse, CuuHoResponse, HuongDanVienListResponse, LichChungResponse } from "../src/shared/contracts";
@@ -711,11 +711,11 @@ async function moThemDiem(opener: HTMLButtonElement): Promise<void> {
   if (!bang) return;
   bang.dialog.classList.add("dp-sheet-them-diem");
   dong.addEventListener("click", () => bang.close());
-  const guiLenh = async (x: LuaChonThemDiem, soSuat: number, phaLe?: string): Promise<string> => {
+  const guiLenh = async (x: LuaChonThemDiem, soSuat: number, phaLe?: Record<string, { lyDo: string }>): Promise<string> => {
     let l = lenhThemDiem.get(x.legId);
     if (!l) lenhThemDiem.set(x.legId, (l = taoLenh()));
     duLieu = await docLai(await l.gui<ChuyenChiTietResponse>(`${goc()}/them-diem`, "POST", {
-      version: duLieu!.chuyen.version, chang: [{ legId: x.legId, soSuat }], ...(phaLe ? { phaLe: { lyDo: phaLe } } : {}),
+      version: duLieu!.chuyen.version, chang: [{ legId: x.legId, soSuat }], ...(phaLe ?? {}),
     }));
     lenhThemDiem.delete(x.legId);
     return `Đã thêm ${soSuat} khách của ${x.nhan.split(" · ")[0]} vào ${duLieu!.chuyen.ma} — tài xế nhận tin ngay.`;
@@ -738,7 +738,7 @@ async function moThemDiem(opener: HTMLButtonElement): Promise<void> {
         setTimeout(() => moPhaLe({
           lyDo: duLieu!.lyDo, opener, nutChinh: "Phá lệ và thêm",
           tomTat: [h("div", { class: "dp-sheet-sum-title" }, `Thêm ${soSuat} khách · ${x.nhan}`), h("div", { class: "dp-note" }, l.tieuDe)],
-          onXacNhan: async (code) => xong(dai("ok", await guiLenh(x, soSuat, code))),
+          onXacNhan: async (code) => xong(dai("ok", await guiLenh(x, soSuat, thanPhaLe(l.lyDo.map((m) => m.ma), code, false)))),
         }), 0);
         return;
       }
@@ -847,7 +847,7 @@ const loiTrongHop = (e: unknown): string => {
 };
 
 /** Hộp xác nhận chung (rút / chuyển): tóm tắt nhóm, phần riêng, nút chính; `gui(phaLe?)` ném lỗi → câu trong hộp; 409 cần phá lệ + có ô → hộp Phá lệ. */
-function hopLenh(o: { tieuDe: string; g: NhomKhach; them: Child[]; nutChinh: string; nutLop: string; khoaNut?: boolean; nutPhaLe: string; opener: HTMLElement; gui: (phaLe?: string) => Promise<string> }): { nut: HTMLButtonElement } | null {
+function hopLenh(o: { tieuDe: string; g: NhomKhach; them: Child[]; nutChinh: string; nutLop: string; khoaNut?: boolean; nutPhaLe: string; opener: HTMLElement; gui: (phaLe?: Record<string, { lyDo: string }>) => Promise<string> }): { nut: HTMLButtonElement } | null {
   const loi = h("div", { class: "vc-field-error", role: "alert", hidden: true });
   const chinh = h("button", { type: "button", class: `vc-btn ${o.nutLop}`, disabled: !!o.khoaNut, "data-action": "khach-gui" }, o.nutChinh);
   const dong = h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary" }, "Đóng");
@@ -876,7 +876,7 @@ function hopLenh(o: { tieuDe: string; g: NhomKhach; them: Child[]; nutChinh: str
         setTimeout(() => moPhaLe({
           lyDo: duLieu!.lyDo, opener: o.opener, nutChinh: o.nutPhaLe,
           tomTat: [h("div", { class: "dp-sheet-sum-title" }, `${o.tieuDe} · ${o.g.tieuDe}`), h("div", { class: "dp-note" }, l.lyDo.map((x) => x.loiNhan).join("; "))],
-          onXacNhan: async (code) => xong(dai("ok", await o.gui(code))),
+          onXacNhan: async (code) => xong(dai("ok", await o.gui(thanPhaLe(l.lyDo.map((m) => m.ma), code, false)))),
         }), 0);
         return;
       }
@@ -897,7 +897,7 @@ function moRut(g: NhomKhach, opener: HTMLElement): void {
     them: [h("p", { class: "dp-sheet-text" }, `${g.suatIds.length} khách trở về cột “Chưa xếp” của Điều phối xe. Điểm dừng không còn khách sẽ bỏ qua.`)],
     gui: async (phaLe) => {
       const url = `/api/van-chuyen/chuyen/${encodeURIComponent(c.id)}/rut`;
-      duLieu = await docLai(await lenhCua(`rut:${g.khoa}`).gui<ChuyenChiTietResponse>(url, "POST", { version: duLieu!.chuyen.version, suatIds: g.suatIds, ...(phaLe ? { phaLe: { lyDo: phaLe } } : {}) }));
+      duLieu = await docLai(await lenhCua(`rut:${g.khoa}`).gui<ChuyenChiTietResponse>(url, "POST", { version: duLieu!.chuyen.version, suatIds: g.suatIds, ...(phaLe ?? {}) }));
       return `Đã rút ${g.suatIds.length} khách khỏi ${c.ma} — về cột “Chưa xếp”.`;
     },
   });
@@ -931,7 +931,7 @@ async function moDoi(g: NhomKhach, opener: HTMLButtonElement): Promise<void> {
       const dich = ds.find((x) => x.chuyen.id === den)!.chuyen;
       const url = `/api/van-chuyen/chuyen/${encodeURIComponent(c.id)}/doi`;
       duLieu = await docLai(await lenhCua(`doi:${g.khoa}`).gui<ChuyenChiTietResponse>(url, "POST", {
-        version: duLieu!.chuyen.version, denChuyenId: dich.id, denVersion: dich.version, suatIds: g.suatIds, ...(phaLe ? { phaLe: { lyDo: phaLe } } : {}),
+        version: duLieu!.chuyen.version, denChuyenId: dich.id, denVersion: dich.version, suatIds: g.suatIds, ...(phaLe ?? {}),
       }));
       return `Đã chuyển ${g.suatIds.length} khách sang ${dich.ma} (${dich.xe.bienSo}).`;
     },

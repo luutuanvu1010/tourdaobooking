@@ -46,7 +46,7 @@ export interface LoiLenh {
   lyDo: LyDoGiuDto[];
   /** 409 `stale` — chuyến vừa bị người khác sửa (H10: câu chung, không tên người). */
   cu: boolean;
-  /** 409 `can_pha_le` / `chua_du_nghi` — lệnh cần phá lệ luật cấu hình. */
+  /** 409 `can_pha_le` / `chua_du_nghi` / `can_pha_le_cam_ket` (cam kết xe riêng / số chỗ — ADR-0056 VK3-A) — lệnh cần phá lệ luật cấu hình. */
   canPhaLe: boolean;
   /** Máy chủ nói người gọi có ô phá lệ (`canQuyen`). */
   duocPhaLe: boolean;
@@ -56,7 +56,7 @@ export function docLoiLenh(e: unknown): LoiLenh {
   if (!(e instanceof ApiError)) return { tieuDe: LOI_MANG, dong: [], lyDo: [], cu: false, canPhaLe: false, duocPhaLe: false, mang: true };
   const d = (e.details ?? {}) as { lyDo?: LyDoGiuDto[]; canQuyen?: boolean };
   const lyDo = Array.isArray(d.lyDo) ? d.lyDo : [];
-  const canPhaLe = e.status === 409 && (e.code === "can_pha_le" || e.code === "chua_du_nghi");
+  const canPhaLe = e.status === 409 && (e.code === "can_pha_le" || e.code === "chua_du_nghi" || e.code === "can_pha_le_cam_ket");
   const duocPhaLe = canPhaLe && d.canQuyen === true;
   const dong = lyDo.map((l) => `${l.loiNhan} · Ai xử lý: ${l.aiXuLyNhan}`);
   if (canPhaLe && !duocPhaLe) dong.push("Cần Quản trị phá lệ.");

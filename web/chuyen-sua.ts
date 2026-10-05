@@ -7,7 +7,7 @@
 // - Ô "Tuyến" (Đợt 4 G3 — không có trong bản vẽ, theo khuôn ô Xe): danh sách tuyến đang dùng (GET /api/van-chuyen/tuyen — chỉ tên, không giá); sửa chuyến gửi
 //   `tuyen` CHỈ khi đổi; tuyến cũ đã ngưng dùng vẫn hiện là lựa chọn đang chọn. Lỗi tải danh mục thì ẩn ô, không chặn form. Màn không báo số tiền nào.
 // - Cột phải "<biển số> trong ngày" (máy tính): các chuyến của xe đang chọn trong ngày (từ GET /lich); chuyến máy chủ báo trùng giờ tô đỏ.
-import { gioHien, truongLoiChuyen } from "../src/shared/dieu-phoi-man";
+import { gioHien, thanPhaLe, truongLoiChuyen } from "../src/shared/dieu-phoi-man";
 import type { ChuyenChiTietResponse, ChuyenTomTatDto, GioVnDto, LichChungResponse, LyDoDangDungDto, TaiXeChonDto, TuyenDto, TuyenListResponse, XeChonDto } from "../src/shared/contracts";
 import { can } from "../src/shared/permissions";
 import { addDays, isISODate, ngayNgan, vnToday } from "../src/shared/vn-date";
@@ -253,10 +253,7 @@ function dung(ngay: string, chuyen: ChuyenChiTietResponse["chuyen"] | null, xe: 
     location.replace(`/chuyen?id=${encodeURIComponent(r.chuyen.id)}`);
   }
   let lyDoCanPhaLe: string[] = [];
-  const phaLeCho = (code: string): Record<string, unknown> => ({
-    ...(lyDoCanPhaLe.includes("MOC_TOI_THIEU") ? { phaLe: { lyDo: code } } : {}),
-    ...(lyDoCanPhaLe.includes("KHOANG_NGHI") ? { nghiPhaLe: { lyDo: code } } : {}),
-  });
+  const phaLeCho = (code: string): Record<string, unknown> => thanPhaLe(lyDoCanPhaLe, code, true);
 
   formEl.addEventListener("submit", async (e) => {
     e.preventDefault();

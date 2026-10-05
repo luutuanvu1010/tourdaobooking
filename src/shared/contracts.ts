@@ -1236,6 +1236,10 @@ export interface ChangLichDto {
   soNguoiCoTen: number;
   /** Số hiệu chuyến bay của chặng (ADR-0055 C3 — không chỉ ra người); null = chưa có. Bảng điều phối hiện "✈︎ VN1553". */
   soHieuChuyenBay: string | null;
+  /** Cam kết xe riêng của chặng (ADR-0056 VK3-A) — chỉ cờ, không bao giờ kèm khoá phá lệ. */
+  xeRieng: boolean;
+  /** Cam kết xe tối thiểu N chỗ (không kể tài xế); null = không cam kết. */
+  choToiThieu: number | null;
   datGap: boolean;
   trangThai: string;
   trangThaiNhan: string;

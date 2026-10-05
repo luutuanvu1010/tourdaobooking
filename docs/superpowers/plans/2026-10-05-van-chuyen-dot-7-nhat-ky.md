@@ -121,3 +121,11 @@ Làn này không gọi trợ lý con; người kiểm độc lập chỉ đọc 
 - Ruling: lập nháp của Đối tác trả 201 (không phải 200 như phiếu việc ghi) — vì route tạo đơn trả 201 — nếu sai: không ảnh hưởng.
 - Ruling: đơn A của Đối tác do Quản trị xác nhận (Bán hàng không phải người phụ trách) — vì không dựa vào ô `ownOrAssigned` — nếu sai: đổi người xác nhận.
 - Ghi chú: bài e2e đầu tiên chạy là xanh ngay (máy chủ đã đúng từ Task 2–6); hàng rào của bài là các đột biến đã ghi ở Task 3–6.
+
+## Task 8a — hộp phá lệ nhận mã cam kết + DTO lịch chung
+- Đỏ trước: `lich-chung-cam-ket.test.ts` → đỏ (`xeRieng` undefined). Xanh sau `changLichDto` + `ChangLichDto`. Bài danh sách trắng khoá `GET /lich` (`dieu-phoi.test.ts`) phải sửa có chủ đích thêm `xeRieng`, `choToiThieu`.
+- Hàm thuần `thanPhaLe` (`src/shared/dieu-phoi-man.ts`) dựng thân gửi lại theo MÃ lý do của 409: `CAM_KET` → `camKetPhaLe`, không bao giờ qua `phaLe`. Nối ở: xếp (`web/dieu-phoi.ts`), thêm điểm khi xe đang chạy + rút + dời (`web/chuyen.ts`), sửa chuyến (`web/chuyen-sua.ts`).
+- Đột biến P16 (2026-10-05): vô hiệu dòng `CAM_KET → camKetPhaLe` trong `thanPhaLe` → bài `thanPhaLe` ĐỎ (28/29); hoàn nguyên → xanh.
+- Ruling: đường xếp / dời / thêm điểm giữ `phaLe` cho mọi mã khác cam kết (kể cả danh sách mã rỗng) — vì hành vi cũ — nếu sai: đổi cờ `rieng` thành true ở ba nơi gọi.
+- Ruling: `moPhaLe` không đổi; lời cam kết hiện qua dòng tóm tắt (`l.lyDo` → `loiNhan`) — vì khuôn có sẵn — nếu sai: thêm khối riêng ở hộp.
+- Kịch bản Chrome: `docs/evidence/2026-10-05-cam-ket-xe/kich-ban/cam-ket-xe-smoke.mjs` (5 bước, 1040 + 390, Bán hàng → Quản trị), ảnh ở `docs/evidence/2026-10-05-cam-ket-xe/anh/`. `dieu-phoi-smoke` 11/11, `chuyen-smoke` 9/9, `chuyen-sua-smoke` 13/13 xanh.

@@ -97,7 +97,7 @@ export function changLichDto(c: ChangLichChung, tt: TrangThaiChangRa, allocs: re
     .flatMap((id) => (trips.has(id) && trips.get(id)!.status !== "CANCELLED" ? [{ id, ma: trips.get(id)!.code }] : []));
   return {
     legId: c.legId, orderId: c.orderId, maDon: c.orderCode, tenDichVu: c.serviceName, chieu: c.direction, ngayDon: c.pickupDate, gioDon: c.pickupTime, noiDon: c.noiDon,
-    noiTra: c.noiTra, soNguoi: c.soNguoi, soNguoiCoTen: Math.min(c.soNguoi, c.nguoiCuaDon.length), soHieuChuyenBay: c.soHieuChuyenBay, datGap: c.datGap, trangThai: tt.trangThai,
+    noiTra: c.noiTra, soNguoi: c.soNguoi, soNguoiCoTen: Math.min(c.soNguoi, c.nguoiCuaDon.length), soHieuChuyenBay: c.soHieuChuyenBay, xeRieng: c.xeRieng, choToiThieu: c.choToiThieu, datGap: c.datGap, trangThai: tt.trangThai,
     trangThaiNhan: NHAN_TRANG_THAI_CHANG[tt.trangThai], nhan: [...tt.nhan], soDaXep: tt.soDaXep, soDaDon: tt.soDaDon, soDaTra: tt.soDaTra, soVang: tt.soVang,
     soKhachHuy: tt.soKhachHuy, chuyen,
   };

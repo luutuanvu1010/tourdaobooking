@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  cauKhoaMoc, changChuaXep, chipChang, dieuKienXuatBen, gioHien, hinhDongThoiGian, idChoLenh, kieuChuyen, nhanDiem, dongNhatKy, soLieuDieuPhoi, truongLoiChuyen,
+  cauKhoaMoc, changChuaXep, chipChang, dieuKienXuatBen, gioHien, hinhDongThoiGian, idChoLenh, thanPhaLe, kieuChuyen, nhanDiem, dongNhatKy, soLieuDieuPhoi, truongLoiChuyen,
   viecCanXuLy, thayDieuPhoiXe, tuyenChuyen, nhanNgayXem, chuyenXepDuoc, dongGoiBao, dongBanChup, nhomKhach,
 } from "./dieu-phoi-man.ts";
 import type { ChangLichDto, ChuyenTomTatDto, LichChungResponse, LyDoGiuDto, NhatKyChuyenDto } from "./contracts.ts";
@@ -15,7 +15,7 @@ const g = (gio: string, ngay = NGAY) => ({ ngay, gio });
 const ly = (ma: string, loiNhan: string, aiXuLy: LyDoGiuDto["aiXuLy"] = "VAN_PHONG"): LyDoGiuDto => ({ ma, loiNhan, aiXuLy, aiXuLyNhan: { VAN_PHONG: "Văn phòng", QUAN_TRI: "Quản trị", TOAN_QUYEN: "Toàn quyền" }[aiXuLy] });
 const chang = (o: Partial<ChangLichDto> = {}): ChangLichDto => ({
   legId: "l1", orderId: "o1", maDon: "TD-1", tenDichVu: "Tour", chieu: "OUT", ngayDon: NGAY, gioDon: "10:15", noiDon: "Sunrise Nha Trang", noiTra: "Ga cáp treo Vinpearl", soNguoi: 4,
-  soNguoiCoTen: 4, datGap: false, trangThai: "CHUA_XEP", trangThaiNhan: "Chưa xếp", nhan: [], soDaXep: 0, soDaDon: 0, soDaTra: 0, soVang: 0, soKhachHuy: 0, chuyen: [], ...o,
+  soNguoiCoTen: 4, soHieuChuyenBay: null, xeRieng: false, choToiThieu: null, datGap: false, trangThai: "CHUA_XEP", trangThaiNhan: "Chưa xếp", nhan: [], soDaXep: 0, soDaDon: 0, soDaTra: 0, soVang: 0, soKhachHuy: 0, chuyen: [], ...o,
 });
 const chuyen = (o: Partial<ChuyenTomTatDto> = {}): ChuyenTomTatDto => ({
   id: "t1", ma: "CX-3009-07", trangThai: "PLANNED", trangThaiNhan: "Lên kế hoạch", version: 1, ngayChay: NGAY, batDau: g("09:00"), ketThuc: g("10:45"), batDauMs: ms("09:00"), ketThucMs: ms("10:45"),
@@ -383,4 +383,17 @@ test("viecCanXuLy + giờ lái (ADR-0055 VK2-B): GIO_LAI_VUOT / CHUYEN_DAI_CAN_N
     ["Tài xế lái quá giờ tối đa trong ngày", "warn", "CX-3009-07", "/chuyen?id=t1", 0],
     ["Chuyến dài — nhớ cho tài xế nghỉ giữa chuyến", "warn", "CX-3009-07", "/chuyen?id=t1", 0],
   ]);
+});
+
+test("thanPhaLe (Đợt 7 Task 8a): mỗi mã lý do còn thiếu → đúng khoá phá lệ; CAM_KET → camKetPhaLe, không bao giờ tràn sang phaLe / nghiPhaLe", () => {
+  // đường sửa chuyến (ba khoá riêng)
+  assert.deepEqual(thanPhaLe(["CAM_KET"], "PHA_LE_SU_CO", true), { camKetPhaLe: { lyDo: "PHA_LE_SU_CO" } });
+  assert.deepEqual(thanPhaLe(["MOC_TOI_THIEU"], "X", true), { phaLe: { lyDo: "X" } });
+  assert.deepEqual(thanPhaLe(["KHOANG_NGHI"], "X", true), { nghiPhaLe: { lyDo: "X" } });
+  assert.deepEqual(thanPhaLe(["MOC_TOI_THIEU", "KHOANG_NGHI", "CAM_KET"], "X", true), { phaLe: { lyDo: "X" }, nghiPhaLe: { lyDo: "X" }, camKetPhaLe: { lyDo: "X" } });
+  // đường xếp / dời / thêm điểm (một khoá `phaLe` cho mốc; cam kết riêng)
+  assert.deepEqual(thanPhaLe(["CAM_KET"], "X", false), { camKetPhaLe: { lyDo: "X" } });
+  assert.deepEqual(thanPhaLe(["MOC_TOI_THIEU"], "X", false), { phaLe: { lyDo: "X" } });
+  assert.deepEqual(thanPhaLe(["MOC_TOI_THIEU", "CAM_KET"], "X", false), { phaLe: { lyDo: "X" }, camKetPhaLe: { lyDo: "X" } });
+  assert.deepEqual(thanPhaLe([], "X", false), { phaLe: { lyDo: "X" } }, "không biết mã: giữ hành vi cũ (phaLe)");
 });

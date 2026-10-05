@@ -362,15 +362,15 @@ test("R-P12: GET /lich trả mocToiThieuPhut, canhBaoPhut của chính sách hi�
 });
 
 // Danh sách trắng khoá của chặng trên lịch chung (ChangLichDto) — thêm khoá phải sửa ĐÚNG chỗ này, có chủ đích. `soHieuChuyenBay` (nợ nhỏ 2026-10-01,
-// ADR-0055 C3: số hiệu chuyến bay không chỉ ra người) thêm để bảng điều phối hiện "✈︎ VN1553" trên thẻ chặng. Không tên, năm sinh, liên hệ, khoá nơi.
+// ADR-0055 C3: số hiệu chuyến bay không chỉ ra người) thêm để bảng điều phối hiện "✈︎ VN1553" trên thẻ chặng. Không tên, năm sinh, liên hệ, khoá nơi. `xeRieng` / `choToiThieu` (Đợt 7 Task 8a, ADR-0056 VK3-A): hai cờ cam kết, KHÔNG khoá phá lệ.
 test("GET /lich: chặng có ĐÚNG các khoá trong danh sách trắng; soHieuChuyenBay = số hiệu đã lưu của chặng (null khi chưa có)", async () => {
   const w = setup();
   const d = await don(w, { ngay: inDays(2), gio: "06:30" });
   const doc = async () => (await w.call("GET", `/api/van-chuyen/lich?ngay=${inDays(2)}`, { as: SALES })).json.chang[0];
   const c0 = await doc();
   assert.deepEqual(Object.keys(c0).sort(), [
-    "chieu", "chuyen", "datGap", "gioDon", "legId", "maDon", "ngayDon", "nhan", "noiDon", "noiTra", "orderId", "soDaDon", "soDaTra", "soDaXep", "soHieuChuyenBay",
-    "soKhachHuy", "soNguoi", "soNguoiCoTen", "soVang", "tenDichVu", "trangThai", "trangThaiNhan",
+    "chieu", "choToiThieu", "chuyen", "datGap", "gioDon", "legId", "maDon", "ngayDon", "nhan", "noiDon", "noiTra", "orderId", "soDaDon", "soDaTra", "soDaXep", "soHieuChuyenBay",
+    "soKhachHuy", "soNguoi", "soNguoiCoTen", "soVang", "tenDichVu", "trangThai", "trangThaiNhan", "xeRieng",
   ]);
   assert.equal(c0.soHieuChuyenBay, null);
   w.sqlite.prepare("UPDATE ord_transfer_leg SET flight_code = 'VN1553' WHERE id = ?").run(d.legId);

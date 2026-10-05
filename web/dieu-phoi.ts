@@ -17,6 +17,7 @@ import { NUT_CAP_NHAT_KHACH } from "../src/shared/ly-do-giu";
 import { NHAN_TU_CHOI_GOI_BAO, type MaTuChoiGoiBao } from "../src/shared/goi-bao";
 import { ApiError } from "./api";
 import { can } from "../src/shared/permissions";
+import { thanPhaLe } from "../src/shared/dieu-phoi-man";
 import { nhanThoiLuong } from "../src/shared/chinh-sach-hien-thi";
 import { addDays, isISODate, ngayNgan, vnToday } from "../src/shared/vn-date";
 import { api } from "./api";
@@ -460,10 +461,10 @@ function moXep(c: ChangLichDto, conLai: number, chuyenId: string | null, opener:
   bang.dialog.classList.add("dp-sheet-xep");
   veKhoa();
   dong.addEventListener("click", () => bang.close());
-  const gui = async (phaLe?: string): Promise<ChuyenChiTietResponse> => {
+  const gui = async (phaLe?: Record<string, { lyDo: string }>): Promise<ChuyenChiTietResponse> => {
     const t = lich!.chuyen.find((x) => x.id === den)!;
     return lenhXep.gui<ChuyenChiTietResponse>(`/api/van-chuyen/chuyen/${encodeURIComponent(t.id)}/phan-bo`, "POST", {
-      version: t.version, chang: [{ legId: c.legId, soSuat: so }], ...(phaLe ? { phaLe: { lyDo: phaLe } } : {}),
+      version: t.version, chang: [{ legId: c.legId, soSuat: so }], ...(phaLe ?? {}),
     });
   };
   const xong = async (r: ChuyenChiTietResponse) => {
@@ -499,7 +500,7 @@ function moXep(c: ChangLichDto, conLai: number, chuyenId: string | null, opener:
           lyDo: lich!.lyDo, opener, nutChinh: "Phá lệ và xếp",
           tomTat: [h("div", { class: "dp-sheet-sum-title" }, `Xếp chặng ${tieuDe}`), h("div", { class: "dp-note" }, `${c.maDon} · ${so} khách → vào ${t.ma} (xuất bến ${gioChuyen(t).split("–")[0]})`), h("div", { class: "dp-note" }, l.lyDo.map((x) => x.loiNhan).join("; "))],
           onXacNhan: async (code) => {
-            const r = await gui(code);
+            const r = await gui(thanPhaLe(l.lyDo.map((x) => x.ma), code, false));
             await xong(r);
           },
         }), 0);
