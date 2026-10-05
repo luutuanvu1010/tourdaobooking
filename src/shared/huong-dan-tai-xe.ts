@@ -57,7 +57,7 @@ Trên máy tính, menu bên trái có: [[Trang chủ]], [[Cuốc của tôi]], [
 - **Xe hỏng, không đi tiếp được:**
   1. Bấm [[Kết thúc gián đoạn]].
   2. Chọn một lý do trong danh sách.
-  3. Bấm [[Kết thúc gián đoạn]] trong bảng. Rồi gọi văn phòng ngay.
+  3. Bấm [[Kết thúc gián đoạn]] trong bảng. Văn phòng nhận tin ngay và xếp xe cứu hộ; cần gấp thì gọi văn phòng.
 - **Mất mạng:** dòng chưa gửi ghi **Chưa gửi được** kèm nút [[Bấm lại]]. Có mạng thì bấm lại đúng dòng đó. Máy không tự gửi lại. **Đừng tắt app** trước khi bấm lại. Lỡ tắt thì gọi văn phòng bấm thay.
 - **Chỉ thấy "Khách 1", "Khách 2":** tên, năm sinh và số liên hệ khách chỉ hiện **trong ngày chạy**. Xuất bến từ tối hôm trước cũng không hiện sớm.
 - **Mở lại chuyến đang chạy:** ở [[Cuốc của tôi]], bấm [[Mở chuyến đang chạy]].`,

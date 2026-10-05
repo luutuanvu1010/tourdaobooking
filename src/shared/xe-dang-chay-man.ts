@@ -2,7 +2,7 @@
 // V6 bổ sung màn tài xế). Không I/O, không DOM; import kèm đuôi .ts. Test: xe-dang-chay-man.test.ts.
 // - Báo huỷ của văn phòng là THEO SUẤT và chỉ là cờ: suất vẫn chiếm chỗ tới khi tài xế bấm "Khách đã huỷ" (hoặc "Đã đón" khi báo nhầm).
 // - Tài xế thấy giờ đón + TỔNG khách, không tách người lớn / trẻ em (lời chủ 5.3).
-import type { CapNhatDiemResponse, ChangLichDto, ChuyenTomTatDto, GioVnDto, LichChungResponse } from "./contracts.ts";
+import type { CapNhatDiemResponse, ChangLichDto, ChuyenTomTatDto, CuuHoResponse, GioVnDto, LichChungResponse } from "./contracts.ts";
 import { changChuaXep } from "./dieu-phoi-man.ts";
 import type { DiemVao, SuatVao } from "./tien-do-man.ts";
 import { maskLongDigits } from "./text-guards.ts";
@@ -101,4 +101,27 @@ export function cauCapNhatDiem(r: CapNhatDiemResponse, dangChay: boolean): { ton
   return r.daCapNhat > 0
     ? { tone: "ok", tieuDe: "Đã cập nhật điểm theo đơn", dong: [`Đổi điểm cho ${r.daCapNhat} khách theo nơi đón / trả mới của đơn; điểm không còn khách chuyển “bỏ qua — không còn khách”.`] }
     : { tone: "info", tieuDe: "Không có điểm nào cần cập nhật", dong: ["Điểm dừng đã khớp các đơn trong chuyến."] };
+}
+
+/**
+ * Khối "Cứu hộ" của văn phòng trên chuyến đã Kết thúc gián đoạn (bản vẽ CH.2 bản đơn giản — ADR-0052 D5c, lời chủ 5.2b): chặng cần chuyển theo giờ hẹn (chưa
+ * có giờ đứng cuối); xe nhận = chuyến cùng ngày có tài xế công ty — còn chỗ trước, trong đó xe đang chạy trước; hết chỗ đứng cuối. Không km (không có dữ liệu
+ * đường đi), không dòng xe nhà xe (đi "Tạo chuyến cứu hộ"). Không tên khách.
+ */
+export function theCuuHo(r: CuuHoResponse): { tieuDe: string; chang: string[]; xe: { tripId: string; nhan: string; phu: string }[] } {
+  const n = r.chuyenHong.soKhachCanChuyen;
+  const chang = [...r.changChoXep]
+    .sort((a, b) => (a.gioHen ?? "99:99").localeCompare(b.gioHen ?? "99:99") || a.noiDon.localeCompare(b.noiDon, "vi") || a.legId.localeCompare(b.legId))
+    .map((c) => [c.noiDon, c.gioHen, `${c.soNguoi} khách`, c.datGap ? "đặt gấp" : null].filter(Boolean).join(" · "));
+  const hang = (x: CuuHoResponse["xeNhan"][number]) => (x.choTrong > 0 ? 0 : 2) + (x.trangThai === "RUNNING" ? 0 : 1);
+  const xe = [...r.xeNhan]
+    .sort((a, b) => hang(a) - hang(b) || a.maChuyen.localeCompare(b.maChuyen))
+    .map((x) => ({
+      tripId: x.tripId,
+      nhan: `${x.maChuyen} · ${x.tenTaiXe}`,
+      phu: [x.trangThai === "RUNNING" ? "Đang chạy" : "Chưa chạy", x.choTrong > 0 ? `còn ${x.choTrong} chỗ` : "hết chỗ", x.choTrong > 0 && x.diemSapToi ? `tiếp theo: ${x.diemSapToi}` : null]
+        .filter(Boolean)
+        .join(" · "),
+    }));
+  return { tieuDe: n > 0 ? `Cứu hộ ${r.chuyenHong.ma} · ${n} khách cần chuyển` : `Cứu hộ ${r.chuyenHong.ma} · không còn khách cần chuyển`, chang, xe };
 }

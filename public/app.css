@@ -2680,6 +2680,15 @@ body.login-page main.login { display: flex; flex-direction: column; height: 100%
 .dp-them-noi { min-height: var(--tap-min); padding: var(--s2) var(--s3); font-size: var(--fs-label); background: var(--c-surface-alt); border-radius: var(--radius-sm); overflow-wrap: anywhere; }
 .dp-them-khoa { margin-top: var(--s2); }
 .dp-sheet-them-diem .vc-reason { min-height: var(--h-dp-row); }
+/* Khối "Cứu hộ" trên chuyến đã Kết thúc gián đoạn (bản vẽ CH.2 bản đơn giản — Đợt 5 A-1b). */
+.dp-cuu-ho { overflow: hidden; border-color: var(--c-danger-border); }
+.dp-cuu-ho > .dp-note { padding: var(--s3) var(--s4); }
+.dp-cuu-ho-nhom { display: flex; flex-direction: column; gap: var(--s2); padding: var(--s3) var(--s4); border-top: 1px solid var(--c-border); }
+.dp-cuu-ho-nhom > .vc-btn { align-self: flex-start; min-height: var(--tap-min); }
+.dp-cuu-ho-nhan { margin: 0; font-size: var(--fs-label); font-weight: var(--fw-bold); }
+.dp-cuu-ho-dong { font-size: var(--fs-label); overflow-wrap: anywhere; }
+.dp-cuu-ho-xe { display: flex; flex-direction: column; gap: var(--gap-dp-hist); min-height: var(--tap-min); padding: var(--s2) var(--s3); font-size: var(--fs-label); color: inherit; text-decoration: none; border: 1px solid var(--c-border); border-radius: var(--radius-sm); overflow-wrap: anywhere; }
+.dp-cuu-ho-xe:hover, .dp-cuu-ho-xe:focus-visible { border-color: var(--c-primary); }
 /* Trang "Xe đang chạy" (V11 bảng 11.1). */
 .xdc-head { display: flex; align-items: center; gap: var(--s2); margin-bottom: var(--s3); }
 .xdc-list { display: flex; flex-direction: column; gap: var(--s2); }

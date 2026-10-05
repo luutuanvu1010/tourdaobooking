@@ -1,8 +1,8 @@
 // Luật hiển thị THUẦN của "Xe đang chạy" (Vận chuyển Đợt 5, ADR-0052 D5; bản vẽ V11, V6 bổ sung) — src/shared/xe-dang-chay-man.ts.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { cauCapNhatDiem, chipDiemChay, chonThemDiem, chuyenDangChay, diemMoiChuaXem, khachDangCho, theXeDangChay } from "./xe-dang-chay-man.ts";
-import type { ChangLichDto, ChuyenTomTatDto } from "./contracts.ts";
+import { cauCapNhatDiem, chipDiemChay, chonThemDiem, chuyenDangChay, diemMoiChuaXem, khachDangCho, theCuuHo, theXeDangChay } from "./xe-dang-chay-man.ts";
+import type { ChangLichDto, ChuyenTomTatDto, CuuHoResponse } from "./contracts.ts";
 import type { DiemVao, SuatVao } from "./tien-do-man.ts";
 
 const N = "2026-10-05";
@@ -86,4 +86,30 @@ test("theXeDangChay: 'mã · biển số · x/y chỗ' + tài xế, giờ xuất
   assert.deepEqual(theXeDangChay(c, N), { tieuDe: "CX-01", dong: "79B-123.45 · 7/16 chỗ", phu: "Anh Tư · xuất bến 08:05 · tiếp theo: Bến Cầu Đá" });
   const het = { ...c, taiXe: null, xuatBen: null, diem: [{ thuTu: 1, tenNoi: "A", trangThai: "DONE" }] } as unknown as ChuyenTomTatDto;
   assert.equal(theXeDangChay(het, N).phu, "Chưa có tài xế · đã tới mọi điểm");
+});
+
+test("theCuuHo (CH.2 bản đơn giản, lời chủ 5.2b): tiêu đề 'Cứu hộ <mã> · N khách cần chuyển'; chặng 'nơi · giờ · N khách · đặt gấp' theo giờ (chưa có giờ đứng cuối); xe '<mã> · tài xế' + 'Đang chạy / Chưa chạy · còn N chỗ · tiếp theo: X'; xe còn chỗ trước, trong đó xe đang chạy trước; xe hết chỗ đứng cuối", () => {
+  const r: CuuHoResponse = {
+    chuyenHong: { id: "t0", ma: "CX-07", ngay: N, soKhachCanChuyen: 5 },
+    changChoXep: [
+      { legId: "l2", soNguoi: 2, noiDon: "Khách sạn B", gioHen: "10:30", datGap: true },
+      { legId: "l1", soNguoi: 3, noiDon: "Khách sạn A", gioHen: null, datGap: false },
+    ],
+    xeNhan: [
+      { tripId: "t2", maChuyen: "CX-09", trangThai: "PLANNED", tenTaiXe: "Minh Khoa", choTrong: 0, diemSapToi: null, version: 1 },
+      { tripId: "t1", maChuyen: "CX-08", trangThai: "RUNNING", tenTaiXe: "Quốc Bảo", choTrong: 8, diemSapToi: "Bến Cầu Đá", version: 4 },
+      { tripId: "t3", maChuyen: "CX-10", trangThai: "PLANNED", tenTaiXe: "Hải", choTrong: 9, diemSapToi: "Khách sạn C", version: 2 },
+    ],
+  };
+  assert.deepEqual(theCuuHo(r), {
+    tieuDe: "Cứu hộ CX-07 · 5 khách cần chuyển",
+    chang: ["Khách sạn B · 10:30 · 2 khách · đặt gấp", "Khách sạn A · 3 khách"],
+    xe: [
+      { tripId: "t1", nhan: "CX-08 · Quốc Bảo", phu: "Đang chạy · còn 8 chỗ · tiếp theo: Bến Cầu Đá" },
+      { tripId: "t3", nhan: "CX-10 · Hải", phu: "Chưa chạy · còn 9 chỗ · tiếp theo: Khách sạn C" },
+      { tripId: "t2", nhan: "CX-09 · Minh Khoa", phu: "Chưa chạy · hết chỗ" },
+    ],
+  });
+  const rong = theCuuHo({ ...r, chuyenHong: { ...r.chuyenHong, soKhachCanChuyen: 0 }, changChoXep: [], xeNhan: [] });
+  assert.equal(rong.tieuDe, "Cứu hộ CX-07 · không còn khách cần chuyển");
 });

@@ -292,6 +292,8 @@ function moGianDoan(opener: HTMLElement): void {
     title: "Kết thúc gián đoạn",
     body: [
       h("p", { class: "dp-sheet-text" }, `${r.chuyen.ma} dừng ở đây. ${conTren} khách còn trên xe và ${chuaDon} khách chưa đón sẽ báo về văn phòng.`),
+      // Đợt 5 A-1b (câu 5.2c, lời chủ): tài xế chưa chọn xe cứu hộ (D4 hoãn) — văn phòng nhận tin trip_ended_interrupted và xếp.
+      h("p", { class: "dp-note", "data-cau": "cuu-ho" }, "Xe hỏng? Bấm Kết thúc gián đoạn — văn phòng nhận tin ngay và xếp xe cứu hộ"),
       nhomChon("cc-gd", "Lý do", r.lyDo.map((x) => ({ code: x.code, nhan: x.nhan })), (c) => {
         lyDo = c;
         chinh.disabled = false;

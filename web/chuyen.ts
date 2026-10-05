@@ -7,11 +7,14 @@
 // - CHỜ A15 (chưa có route trên nhánh): "Xuất bến thay tài xế", nút tiến độ bấm thay, "Kết thúc gián đoạn", "Mở màn Xuất bến ›" — chưa dựng (không để nút chết).
 // - Đợt 5 (ADR-0052 D5; bản vẽ V11 "Điều phối xe đang chạy"): chuyến ĐANG CHẠY có "Khách đang chờ" (link "Báo huỷ", ô trip.dispatch) và "Việc của văn
 //   phòng" (ô trip.dispatch): "Thêm điểm đón / thêm khách" (route them-diem; chặng không đặt gấp: Bán hàng thấy dòng khoá, Quản trị qua hộp Phá lệ) và
-//   "Cập nhật điểm theo đơn" (route 40 khi xe chạy — câu "Đã cập nhật N · bỏ qua M …"). Nút "Cứu hộ" thuộc A-1b, chưa dựng. Kế toán chỉ xem.
+//   "Cập nhật điểm theo đơn" (route 40 khi xe chạy — câu "Đã cập nhật N · bỏ qua M …"). Kế toán chỉ xem.
+// - Đợt 5 A-1b (D5c cứu hộ đơn giản, lời chủ 5.2b): nút "Cứu hộ" ở "Việc của văn phòng" (ô trip.progress VÀ trip.dispatch) mở hộp "Kết thúc gián đoạn" bấm
+//   thay có sẵn; chuyến đã Kết thúc gián đoạn có khối "Cứu hộ" (ô trip.dispatch; GET …/cuu-ho): chặng cần chuyển, xe cùng ngày của tài xế công ty (bấm để mở
+//   chuyến đó rồi "Thêm điểm" / "Xếp"), "Tạo chuyến cứu hộ" (xe nhà xe). Form giá cứu hộ chưa dựng (phụ thuộc Đợt 4 — nợ).
 import { cauKhoaMoc, chuyenXepDuoc, dieuKienXuatBen, dongBanChup, dongGoiBao, dongNhatKy, gioHien, kieuChuyen, nhanDiem, nhomKhach, type NhomKhach } from "../src/shared/dieu-phoi-man";
 import { NHAN_TU_CHOI_GOI_BAO, type MaTuChoiGoiBao } from "../src/shared/goi-bao";
 import { ApiError } from "./api";
-import type { CapNhatDiemResponse, CapNhatKhachResponse, ChuyenChiTietResponse, HuongDanVienListResponse, LichChungResponse } from "../src/shared/contracts";
+import type { CapNhatDiemResponse, CapNhatKhachResponse, ChuyenChiTietResponse, CuuHoResponse, HuongDanVienListResponse, LichChungResponse } from "../src/shared/contracts";
 import { NUT_CAP_NHAT_KHACH } from "../src/shared/ly-do-giu";
 import { can } from "../src/shared/permissions";
 import { api } from "./api";
@@ -28,7 +31,7 @@ import { giuTenKhach, ketThucDuoc, thanDoiThuTu, viecNguoiDiKem, type BuocDiem }
 import type { GioVnDto, GoiBaoChangDto } from "../src/shared/contracts";
 import { ngayNgan, vnToday } from "../src/shared/vn-date";
 import { canhBaoNgayChay } from "../src/shared/xac-nhan-xuat-ben";
-import { cauCapNhatDiem, chonThemDiem, khachDangCho, type KhachChoDong, type LuaChonThemDiem } from "../src/shared/xe-dang-chay-man";
+import { cauCapNhatDiem, chonThemDiem, khachDangCho, theCuuHo, type KhachChoDong, type LuaChonThemDiem } from "../src/shared/xe-dang-chay-man";
 import { counter } from "./counter";
 
 const errorEl = byId("error");
@@ -44,9 +47,21 @@ const coTienDo = can(staff, "trip.progress");
 
 let duLieu: ChuyenChiTietResponse | null = null;
 let baoCao: HTMLElement | null = null;
+/** Đợt 5 A-1b: dữ liệu khối "Cứu hộ" (chỉ chuyến ENDED_INTERRUPTED + ô trip.dispatch); `"loi"` = đọc hỏng (khối hiện câu báo, không chặn trang). */
+let cuuHo: CuuHoResponse | "loi" | null = null;
 
 async function nap(): Promise<void> {
   duLieu = await api<ChuyenChiTietResponse>(`/api/van-chuyen/chuyen/${encodeURIComponent(id)}`);
+  await napCuuHo();
+}
+async function napCuuHo(): Promise<void> {
+  cuuHo = null;
+  if (!coDieuPhoi || duLieu?.chuyen.trangThai !== "ENDED_INTERRUPTED") return;
+  try {
+    cuuHo = await api<CuuHoResponse>(`/api/van-chuyen/chuyen/${encodeURIComponent(duLieu.chuyen.id)}/cuu-ho`);
+  } catch {
+    cuuHo = "loi";
+  }
 }
 
 function ve(): void {
@@ -230,7 +245,7 @@ function ve(): void {
     khoa,
     baoCao,
     ...dais,
-    h("div", { class: "dp-ct-layout" }, h("div", { class: "dp-ct-main" }, dongDt, soLieu, chay ? h("div", { class: "dp-xc" }, theViecVanPhong(), theKhachCho()) : null, diem, keHoach ? theKhach() : null), h("div", { class: "dp-ct-side" }, dieuKien, nhatKy)),
+    h("div", { class: "dp-ct-layout" }, h("div", { class: "dp-ct-main" }, dongDt, soLieu, chay ? h("div", { class: "dp-xc" }, theViecVanPhong(), theKhachCho()) : null, theCuuHoKhoi(), diem, keHoach ? theKhach() : null), h("div", { class: "dp-ct-side" }, dieuKien, nhatKy)),
   );
   // Điện thoại: nút ở cuối trang, lưới hai cột (bản vẽ 2b); máy tính: nút ở đầu trang.
   const huyDay = nutHuy("vc-btn-danger");
@@ -336,17 +351,7 @@ function diemChay(): HTMLElement {
       xong(dai("ok", `Đã kết thúc ${duLieu!.chuyen.ma}`));
     },
   }));
-  gianDoan.addEventListener("click", () => moKhaiGio({
-    tieuDe: `Kết thúc gián đoạn ${c.ma} — bấm thay tài xế`,
-    moTa: `${moTaBamThay()} Khách còn trên xe và khách chưa đón sẽ báo về văn phòng.`,
-    nutChinh: "Kết thúc gián đoạn", nutLop: "vc-btn-danger",
-    lyDo: r.lyDo.filter((l) => l.nhom === "KET_THUC_GIAN_DOAN"),
-    somNhat: r.gioSomNhatKhai.ketThuc, ngayXem: c.ngayChay, opener: gianDoan,
-    onGui: async (xayRaLuc, lyDo) => {
-      await guiTienDo("ket-thuc-gian-doan", { lyDo, ...(xayRaLuc ? { xayRaLuc } : {}) });
-      xong(dai("info", `Đã kết thúc gián đoạn ${duLieu!.chuyen.ma}`));
-    },
-  }));
+  gianDoan.addEventListener("click", () => moGianDoan(gianDoan));
   return h(
     "section",
     { class: "dp-run-list", "aria-labelledby": "ct-diem-title" },
@@ -355,6 +360,29 @@ function diemChay(): HTMLElement {
     ...khoiDiKemVanPhong(),
     coTienDo ? h("div", { class: "dp-run-end thanh-hanh-dong-cuoi" }, ketThuc, ketThuc.disabled ? h("span", { class: "dp-note" }, "Bấm được khi đã trả hết khách và người đi kèm đã xuống.") : null, gianDoan) : null,
   );
+}
+
+/**
+ * Hộp "Kết thúc gián đoạn" bấm thay tài xế (route ket-thuc-gian-doan, nhóm lý do KET_THUC_GIAN_DOAN). `cuuHo` (nút "Cứu hộ" — Đợt 5 A-1b): thêm dòng giải
+ * thích; thành công thì đọc khối "Cứu hộ" và cuộn tới đó.
+ */
+function moGianDoan(opener: HTMLButtonElement, laCuuHo = false): void {
+  const r = duLieu!;
+  const c = r.chuyen;
+  moKhaiGio({
+    tieuDe: `Kết thúc gián đoạn ${c.ma} — bấm thay tài xế`,
+    ...(laCuuHo ? { dauHop: [dai("warning", "Xe hỏng: kết thúc gián đoạn rồi xếp khách sang xe cứu hộ.")] } : {}),
+    moTa: `${moTaBamThay()} Khách còn trên xe và khách chưa đón sẽ báo về văn phòng.`,
+    nutChinh: "Kết thúc gián đoạn", nutLop: "vc-btn-danger",
+    lyDo: r.lyDo.filter((l) => l.nhom === "KET_THUC_GIAN_DOAN"),
+    somNhat: r.gioSomNhatKhai.ketThuc, ngayXem: c.ngayChay, opener,
+    onGui: async (xayRaLuc, lyDo) => {
+      await guiTienDo("ket-thuc-gian-doan", { lyDo, ...(xayRaLuc ? { xayRaLuc } : {}) });
+      await napCuuHo();
+      xong(dai("info", `Đã kết thúc gián đoạn ${duLieu!.chuyen.ma}`, cuuHo && cuuHo !== "loi" ? ["Xếp khách sang xe cứu hộ ở khối “Cứu hộ” bên dưới."] : []));
+      if (laCuuHo) document.getElementById("ct-cuu-ho")?.scrollIntoView({ block: "start" });
+    },
+  });
 }
 
 /** Văn phòng bấm thay cho người đi kèm: "Đã lên xe" → "Đã xuống" (cùng lệnh suất của máy chủ; giờ ghi = giờ bấm). Cần "trip.progress"; không có thì chỉ xem. */
@@ -488,19 +516,55 @@ async function capNhatKhach(nut: HTMLButtonElement): Promise<void> {
 }
 
 // ---- Đợt 5: chuyến ĐANG CHẠY — "Việc của văn phòng", "Khách đang chờ", "Báo huỷ một suất", "Thêm điểm đón / thêm khách" (bản vẽ V11) ---------------------
-/** V11 bảng 11.3 + 11.6: chỉ người có ô trip.dispatch (Kế toán không thấy khối này). Nút "Cứu hộ" thuộc A-1b — chưa dựng (không để nút chết). */
+/** V11 bảng 11.3 + 11.6: chỉ người có ô trip.dispatch (Kế toán không thấy khối này). Nút "Cứu hộ" (A-1b): cần THÊM ô trip.progress (bấm thay gián đoạn). */
 function theViecVanPhong(): HTMLElement | null {
   if (!coDieuPhoi) return null;
   const them = h("button", { type: "button", class: "vc-btn btn btn-primary", "data-action": "them-diem" }, "Thêm điểm đón / thêm khách") as HTMLButtonElement;
   them.addEventListener("click", () => void moThemDiem(them));
   const capNhat = h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary", "data-action": "cap-nhat-diem" }, "Cập nhật điểm theo đơn") as HTMLButtonElement;
   capNhat.addEventListener("click", () => void capNhatDiem(capNhat));
+  const cuuHoNut = coTienDo ? (h("button", { type: "button", class: "vc-btn vc-btn-danger", "data-action": "cuu-ho" }, "Cứu hộ") as HTMLButtonElement) : null;
+  cuuHoNut?.addEventListener("click", () => moGianDoan(cuuHoNut, true));
   return h(
     "section",
     { class: "vc-card dp-viec-vp", "aria-labelledby": "ct-viec-title" },
     h("div", { class: "dp-card-head" }, h("h2", { id: "ct-viec-title", class: "dp-card-title" }, "Việc của văn phòng")),
-    h("div", { class: "dp-viec-vp-nut" }, them, capNhat),
+    h("div", { class: "dp-viec-vp-nut" }, them, capNhat, cuuHoNut),
     h("p", { class: "dp-note dp-viec-vp-note" }, "Tài xế nhận tin ngay khi văn phòng thêm khách, báo huỷ hay đổi điểm đón."),
+  );
+}
+
+/**
+ * Bản vẽ CH.2 bản đơn giản (lời chủ 5.2b): khối "Cứu hộ" trên chuyến đã Kết thúc gián đoạn — ô trip.dispatch. Danh sách xe = chuyến cùng ngày của tài xế công
+ * ty (bấm để mở chuyến đó rồi "Thêm điểm đón" / "Xếp khách"); xe nhà xe đi "Tạo chuyến cứu hộ". Không km, không form giá (Đợt 4 — nợ).
+ */
+function theCuuHoKhoi(): HTMLElement | null {
+  if (!cuuHo || !duLieu) return null;
+  const tieuDe = (chu: string) => h("div", { class: "dp-card-head" }, icon("alert", 16), h("h2", { id: "ct-cuu-ho-title", class: "dp-card-title" }, chu));
+  if (cuuHo === "loi") {
+    return h("section", { id: "ct-cuu-ho", class: "vc-card dp-cuu-ho", "aria-labelledby": "ct-cuu-ho-title" }, tieuDe("Cứu hộ"), h("p", { class: "dp-note" }, "Chưa tải được danh sách cứu hộ — tải lại trang để thử lại."));
+  }
+  const t = theCuuHo(cuuHo);
+  const ngay = duLieu.chuyen.ngayChay;
+  return h(
+    "section",
+    { id: "ct-cuu-ho", class: "vc-card dp-cuu-ho", "aria-labelledby": "ct-cuu-ho-title" },
+    tieuDe(t.tieuDe),
+    t.chang.length
+      ? h("div", { class: "dp-cuu-ho-nhom" }, h("h3", { class: "dp-cuu-ho-nhan" }, "Chặng cần chuyển"), ...t.chang.map((x) => h("div", { class: "dp-cuu-ho-dong" }, x)))
+      : h("p", { class: "dp-note" }, "Khách của chuyến này đã được xếp sang xe khác."),
+    t.chang.length
+      ? h(
+          "div",
+          { class: "dp-cuu-ho-nhom" },
+          h("h3", { class: "dp-cuu-ho-nhan" }, "Chọn xe cứu hộ"),
+          ...(t.xe.length
+            ? t.xe.map((x) => h("a", { class: "dp-cuu-ho-xe", href: `/chuyen?id=${encodeURIComponent(x.tripId)}`, "data-action": "cuu-ho-xe" }, h("strong", null, x.nhan), h("span", { class: "dp-note" }, x.phu)))
+            : [h("p", { class: "dp-note" }, "Cùng ngày chưa có xe nào của tài xế công ty.")]),
+          h("p", { class: "dp-note" }, "Mở xe rồi bấm “Thêm điểm đón / thêm khách” (xe đang chạy) hoặc xếp khách (xe chưa chạy)."),
+          h("a", { class: "vc-btn vc-btn-ghost-primary", href: `/chuyen-sua?ngay=${ngay}`, "data-action": "tao-chuyen-cuu-ho" }, "Tạo chuyến cứu hộ"),
+        )
+      : null,
   );
 }
 

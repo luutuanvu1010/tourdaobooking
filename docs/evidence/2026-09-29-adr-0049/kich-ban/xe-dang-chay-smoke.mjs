@@ -54,11 +54,11 @@ try {
     await shotView(s, "d5-xe-dang-chay-may-tinh.png");
   });
 
-  await b.step("2", `11.2 + 11.3 1040 Bán hàng mở T4: "Việc của văn phòng" (Thêm điểm đón / thêm khách, Cập nhật điểm theo đơn — không nút Cứu hộ), "Khách đang chờ" 2 dòng có "Báo huỷ"${axeNote()}`, async () => {
+  await b.step("2", `11.2 + 11.3 1040 Bán hàng mở T4: "Việc của văn phòng" (Thêm điểm đón / thêm khách, Cập nhật điểm theo đơn, Cứu hộ), "Khách đang chờ" 2 dòng có "Báo huỷ"${axeNote()}`, async () => {
     await s.ev(click(".xdc-the"));
     await moChuyen(s);
-    assert.deepEqual(await s.ev(`[...document.querySelectorAll('.dp-viec-vp button')].map((x) => x.innerText.trim())`), ["Thêm điểm đón / thêm khách", "Cập nhật điểm theo đơn"]);
-    assert.equal(await s.ev(`document.body.innerText.includes('Cứu hộ')`), false);
+    // A-1b (cứu hộ đơn giản): nút "Cứu hộ" ở cuối khối — kịch bản riêng cuu-ho-smoke.mjs kiểm hộp + khối CH.2.
+    assert.deepEqual(await s.ev(`[...document.querySelectorAll('.dp-viec-vp button')].map((x) => x.innerText.trim())`), ["Thêm điểm đón / thêm khách", "Cập nhật điểm theo đơn", "Cứu hộ"]);
     assert.equal(await s.ev(`document.querySelectorAll('.dp-kc').length`), 2);
     assert.equal(await s.ev(`document.querySelectorAll('.dp-kc [data-action="bao-huy"]').length`), 2);
     assert.match(await s.ev(txt(".dp-kc")), /^Hành Khách Thử 5-1 TD-\d{8}-\d{4} · Điểm 1 · Citadines Bayfront · 10:00 Báo huỷ$/);
