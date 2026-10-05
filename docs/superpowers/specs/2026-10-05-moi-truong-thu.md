@@ -1,6 +1,6 @@
 # Đặc tả: môi trường thử giống thật cho CRM (staging)
 
-- Ngày: 2026-10-05. Trạng thái: bản thảo, chờ chủ dự án chọn ở mục 6. Chủ dự án đã đồng ý dựng môi trường thử (2026-10-05).
+- Ngày: 2026-10-05. Trạng thái: chủ dự án đã chọn mục 6 (2026-10-05, "đồng ý cả bốn khuyến nghị"); kế hoạch thi công ở `docs/superpowers/plans/2026-10-05-moi-truong-thu-ke-hoach.md`. Chủ dự án đã đồng ý dựng môi trường thử (2026-10-05).
 - Vì sao: Hiến pháp N2 (cả v2.3.0 qua `playbook/FRAMEWORK.md:748` lẫn v4.1.0) cấm đưa thẳng ra bản thật mà không qua môi trường thử giống thật; QĐ-H12 giữ CRM ở ghim v2.3.0 cho tới khi có môi trường này và lời khai của nó được chủ duyệt (H12a). Xem `docs/superpowers/specs/2026-10-05-doi-chieu-bo-luat-v2.md` mục 2.
 - Loại việc: việc lớn (triển khai, cấu hình Cloudflare). AI soạn cấu hình và kịch bản trên nhánh; mọi lệnh tạo tài nguyên, áp migration, deploy, đặt bí mật do chủ tự chạy (CLAUDE.md §8). Thi công cần kế hoạch, ADR và người kiểm độc lập.
 
@@ -42,3 +42,5 @@ Giống ở: nền tảng (Workers, D1, Durable Object, Assets, custom domain, H
 2. Dữ liệu: chỉ dữ liệu gieo (khuyến nghị) hay thêm bản chép dữ liệu thật đã làm mờ.
 3. Ai được vào bản thử: chỉ chủ (khuyến nghị lúc đầu) hay thêm vài nhân viên thử.
 4. Cron đồng bộ danh mục trên bản thử: tắt (khuyến nghị) hay bật.
+
+Chủ dự án chọn 2026-10-05: tên miền `thu.booking.tourdao.vn`; chỉ dữ liệu gieo; lúc đầu chỉ chủ được vào (Cloudflare Access); cron đồng bộ danh mục tắt trên bản thử.
