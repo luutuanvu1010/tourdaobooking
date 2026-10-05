@@ -4,6 +4,12 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-09-01",
   "observability": { "enabled": true },
+  // TỐC ĐỘ (nghiên cứu 2026-10-02, đợt 1 việc 6; ADR-0102): mỗi lời gọi API hỏi D1 nhiều lần nối đuôi; cơ sở dữ liệu có MỘT bản chính ở vùng APAC (kiểm 2026-10-03 bằng
+  // `wrangler d1 info`: running_in_region APAC, read_replication disabled). Smart Placement cho Cloudflare tự đặt Worker gần cơ sở dữ liệu nếu đo thấy nhanh hơn (tài liệu
+  // Workers › Placement); nếu không đủ lưu lượng từ nhiều nơi để quyết thì giữ nguyên (không hại). Chỉ ảnh hưởng `fetch` (không ảnh hưởng Cron, Durable Object `BangTin`),
+  // tệp tĩnh luôn phục vụ gần người bấm. Kiểm: header `cf-placement` (remote-XXX = đã được đặt xa người bấm) và biểu đồ "Request duration"; muốn bỏ thì xoá dòng dưới (đảo ngược được).
+  // Không dùng `placement.region`/`host`: D1 không có mã vùng AWS/GCP/Azure.
+  "placement": { "mode": "smart" },
   // Tên miền chính thức (chủ dự án chốt 2026-09-19, thay trang fastbooking); đã deploy và chạy thật từ 2026-09-19. Deploy tự tạo bản ghi DNS và báo lỗi nếu hostname còn thuộc thứ khác. Khi khai `routes` mà không khai `workers_dev`, wrangler TẮT địa chỉ workers.dev và preview URL của Worker này (đã xảy ra ở lần deploy đầu: workers.dev trả 404). Muốn bật lại làm dự phòng thì thêm `"workers_dev": true`; hiện cố ý để tắt để chỉ có một địa chỉ vào app.
   "routes": [{ "pattern": "booking.tourdao.vn", "custom_domain": true }],
   // Tự đồng bộ danh mục dịch vụ từ Google Sheet mỗi 15 phút (ngoài nút "Đồng bộ ngay" của Admin).
