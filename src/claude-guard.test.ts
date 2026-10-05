@@ -363,6 +363,23 @@ test("guard-remote: script móc thật — DENY (lệnh cấm hoặc guard-luat)
   assert.equal(quyet("git checkout main -- docs/adr/README.md")?.permissionDecision, "deny");
 });
 
+test("guard-remote: móc GIỮ ĐÚNG THỨ TỰ 4 bước — evaluateDenyOnly (không chạm adrAsk) rồi guard-luat rồi mới evaluateBash đầy đủ", () => {
+  // Bài kiểm CẤU TRÚC (đọc mã nguồn như văn bản), theo đề xuất của người kiểm độc lập vòng 3 (5/10): phát hiện CAO ở ADR_HINT (vòng 2) từng
+  // lọt được vì adrAsk (có regex, có thể còn lỗ quay lui mũ chưa biết) được gọi ở bước (1), TRƯỚC khi guard-luat kịp deny. Vá bằng cách đổi
+  // THỨ TỰ móc (evaluateDenyOnly không chạm adrAsk, chạy trước guard-luat; adrAsk dồn vào bước (3)/(4), chạy SAU). Lớp phòng vệ này không tự
+  // lộ ra qua các bài hành vi khác (quay vị trí evaluateDenyOnly thành evaluateBash ở bước (1) vẫn 40/40 xanh — kiểm độc lập đã đo), nên phải
+  // canh ĐÚNG CẤU TRÚC bằng tên hàm, không chỉ hành vi.
+  const src = read(".claude/hooks/guard-remote.mjs");
+  const iDenyOnly = src.indexOf("evaluateDenyOnly(command");
+  const iLuat = src.indexOf("danhGiaGhiLuat(command");
+  const iFull = src.indexOf("evaluateBash(command");
+  assert.ok(iDenyOnly !== -1, "bước (1) phải gọi evaluateDenyOnly(command…) — không được đổi lại thành evaluateBash (bỏ lớp phòng vệ)");
+  assert.ok(iLuat !== -1, "thiếu lời gọi danhGiaGhiLuat(command…) (guard-luat)");
+  assert.ok(iFull !== -1, "thiếu lời gọi evaluateBash(command…) đầy đủ (có adrAsk)");
+  assert.ok(iDenyOnly < iLuat, "evaluateDenyOnly (bước 1, không chạm adrAsk) phải đứng TRƯỚC guard-luat (bước 2) trong mã nguồn");
+  assert.ok(iLuat < iFull, "evaluateBash đầy đủ (có adrAsk, bước 3/4) phải đứng SAU guard-luat (bước 2) — không để adrAsk chặn đường vào guard-luat");
+});
+
 test(".gitignore: settings và móc phải được commit (không còn bỏ qua cả thư mục .claude/)", () => {
   const lines = read(".gitignore").split("\n").map((l) => l.trim());
   assert.ok(!lines.includes(".claude/") && !lines.includes(".claude"), ".claude/ đang bị bỏ qua nguyên thư mục");
