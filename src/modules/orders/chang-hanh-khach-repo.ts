@@ -455,6 +455,25 @@ export const passengerInsert = (db: D1Database, p: PassengerWrite): D1PreparedSt
 export const passengerInsertGuarded = (db: D1Database, p: PassengerWrite, auditId: string): D1PreparedStatement =>
   db.prepare(PASSENGER_INSERT_GUARDED).bind(...passengerBinds(p), auditId);
 
+/**
+ * Đợt 5 A-1b (ADR-0052 D5b): hành khách do TÀI XẾ nhập — chuỗi mới (`previous_id` NULL, `person_key = id`), `source = 'DRIVER'`. Gác: dòng nhật ký `?8`
+ * (lô của van-chuyen ghi trước), đơn đã xác nhận + chưa giao, và số người có tên HIỆN HÀNH của đơn < `?9` (số khách hiệu lực của dịch vụ đông nhất — L-A1,
+ * cùng thước R-ORD-9). Không đạt → 0 dòng (lô bên gọi kiểm `changes`). KHÔNG tự kiểm quyền: nơi gọi đứng sau can(trip.passenger.add) — orders-cong-bo.test.ts.
+ */
+const PASSENGER_INSERT_DRIVER = defineSql(
+  "orders",
+  "passenger_insert_driver",
+  `INSERT INTO ord_passenger (${PASSENGER_INSERT_COLS})
+   SELECT ?1, ?2, ?3, ?4, ?5, NULL, ?1, NULL, 'DRIVER', ?6, ?7, ?6, ?7
+   WHERE EXISTS (SELECT 1 FROM audit_log WHERE id = ?8)
+     AND EXISTS (SELECT 1 FROM orders WHERE id = ?2 AND status = 'confirmed' AND delivered_at IS NULL)
+     AND (SELECT count(DISTINCT p.person_key) FROM ord_passenger p WHERE p.order_id = ?2 AND p.voided_at IS NULL
+            AND NOT EXISTS (SELECT 1 FROM ord_passenger n WHERE n.previous_id = p.id AND n.voided_at IS NULL)) < ?9`,
+);
+export interface PassengerDriverWrite { id: string; orderId: string; ten: string; birthYear: number; paxCode: string | null; at: string; by: string }
+export const passengerInsertDriver = (db: D1Database, p: PassengerDriverWrite, auditId: string, toiDa: number): D1PreparedStatement =>
+  db.prepare(PASSENGER_INSERT_DRIVER).bind(p.id, p.orderId, p.ten, p.birthYear, p.paxCode, p.at, p.by, auditId, toiDa);
+
 /** XOÁ CỨNG danh sách khách của ĐƠN NHÁP — ngoại lệ có tên `XOA_CUNG_NHAP` (ĐÃ DUYỆT 2026-09-29 (lần 5)); điều kiện nháp TRONG câu; trigger `ord_passenger_no_delete`. */
 const PASSENGER_DELETE_DRAFT = defineSql(
   "orders",
