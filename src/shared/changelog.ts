@@ -12,6 +12,17 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Tốc độ đợt 1 (ADR-0102): trang không chờ tệp màu, gói giao diện gọn, quay lại app không tải lại, bớt một chặng chờ mỗi lời gọi, huy hiệu thanh bên nhẹ, Smart Placement. Số 1.83 = main 1.82 + 1.
+    version: "1.83",
+    date: "2026-10-05",
+    items: [
+      { kind: "sua", text: "Mở trang và chuyển màn nhanh hơn: trang không còn chờ tải màu giao diện, và mỗi trang nhẹ hơn nhiều nên tải xong sớm hơn." },
+      { kind: "sua", text: "Quay lại ứng dụng (đổi tab, mở lại trên điện thoại) không còn tải lại toàn bộ dữ liệu khi kết nối vẫn tốt; để lâu quá 2 phút thì vẫn tải mới." },
+      { kind: "sua", text: "Các con số nhỏ ở thanh bên máy tính (đơn chờ xác nhận, dịch vụ lệch giá) nay tải nhẹ hơn nhiều, nên mọi trang bớt chậm." },
+      { kind: "doi", text: "Toàn quyền đổi màu giao diện công ty: máy khác sẽ thấy màu mới sau một đến hai lần chuyển trang, không còn thấy ngay." },
+    ],
+  },
+  {
     // Làm nốt phát hiện của báo cáo kiểm tra giao diện 2026-09-23: giờ ở trang Góp ý theo giờ Việt Nam; bài src/gio-viet-nam-web.test.ts canh mọi chỗ định dạng ngày giờ. Số 1.82 = main 1.81 + 1 (nhánh khác nhập trước thì đánh lại số).
     version: "1.82",
     date: "2026-10-05",
