@@ -43,10 +43,10 @@ let n = 0;
 const nid = (p: string) => `${p}-${++n}`;
 function receipt(db: DatabaseSync, r: { order: string; amount: number; kind?: string; role?: string; collector?: string | null; method?: string; reverses?: string | null; date?: string }): string {
   const id = nid("r");
-  const role = r.role ?? "STAFF";
+  const role = r.role ?? (r.kind === "CUSTOMER_REFUND" ? "COMPANY" : "STAFF"); // hoàn mặc định do công ty trả (0082 Đ3: người khác trả phải đang giữ)
   run(db, `INSERT INTO bil_payment_receipt (id, order_id, kind_code, amount, collector_party_id, collector_role_code, method_code, collected_for_party_id, stage_code,
     occurred_date, reverses_id, note, created_at, created_by, updated_at, updated_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'PREPAID', ?, ?, NULL, ?, 's1', ?, 's1')`,
-    id, r.order, r.kind ?? "CUSTOMER_PAYMENT", r.amount, r.collector === undefined ? (role === "UNKNOWN" ? null : "pty-h1") : r.collector, role, r.method ?? "CASH", OWNER,
+    id, r.order, r.kind ?? "CUSTOMER_PAYMENT", r.amount, r.collector === undefined ? (role === "UNKNOWN" ? null : role === "COMPANY" ? OWNER : "pty-h1") : r.collector, role, r.method ?? "CASH", OWNER,
     r.date ?? "2026-09-30", r.reverses ?? null, AT, AT);
   return id;
 }
@@ -259,7 +259,7 @@ test("điều chỉnh / đảo phải có lý do; phiếu gắn đơn thì phả
   const db = fresh();
   assert.throws(() => posting(db, { kind: "ADJUSTMENT", reason: null }), /bil_reason_required:/);
   assert.throws(() => posting(db, { kind: "REVERSAL", reason: "   " }), /bil_reason_required:/);
-  posting(db, { kind: "ADJUSTMENT", reason: "sai số khách" });
+  posting(db, { kind: "ADJUSTMENT", reason: "sai số khách của đơn" }); // 0082 Đ5c: lý do điều chỉnh ≥ 10 ký tự
   assert.throws(() => posting(db, { kind: "RECEIPT", order: null }), /bil_order_required:/);
   posting(db, { kind: "SETTLEMENT", order: null }); // phiếu nộp nhiều đơn
 });

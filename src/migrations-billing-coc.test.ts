@@ -12,7 +12,6 @@ const DIR = new URL("../migrations/", import.meta.url);
 const files = readdirSync(DIR).filter((f) => f.endsWith(".sql")).sort();
 const FILE = files.find((f) => f.endsWith("_billing_coc_don_huy.sql"));
 const AT = "2026-10-05T03:00:00.000Z";
-const CT = "cong-ty";
 type V = string | number | null;
 
 function moi(): DatabaseSync {
@@ -21,6 +20,8 @@ function moi(): DatabaseSync {
   for (const f of files) db.exec(readFileSync(new URL(f, DIR), "utf8"));
   return db;
 }
+/** Hồ sơ công ty chủ gieo ở migration (đọc qua view công bố, không viết cứng id) — 0082 `bil_refund_within_held` phân biệt công ty chủ với người giữ tiền. */
+const CT = String((moi().prepare("SELECT party_id FROM v_pty_owner_company").get() as { party_id: string }).party_id);
 const run = (db: DatabaseSync, sql: string, ...a: V[]) => db.prepare(sql).run(...a);
 const one = (db: DatabaseSync, sql: string, ...a: V[]) => ({ ...(db.prepare(sql).get(...a) as Record<string, unknown>) });
 
@@ -56,7 +57,8 @@ function thu(db: DatabaseSync, t: Thu): string {
 /** Dòng giữ hộ (HELD) của lần thu `receipt` trên `debtor` — "Công ty thu – CK" do người khác khai. */
 function held(db: DatabaseSync, order: string, receipt: string, debtor: string, amount: number, reverses: string | null = null): string {
   const id = `l${++n}`;
-  run(db, `INSERT INTO bil_posting (id, kind_code, order_id, occurred_date, created_at, updated_at) VALUES (?, 'RECEIPT', ?, '2026-10-05', ?, ?)`, `p${id}`, order, AT, AT);
+  // Dòng đảo = Kế toán bấm "Công ty đã nhận" (phiếu COMPANY_RECEIVED — 0082 Đ4 chỉ cho đảo riêng dòng giữ hộ qua phiếu này).
+  run(db, `INSERT INTO bil_posting (id, kind_code, order_id, occurred_date, created_at, updated_at) VALUES (?, ?, ?, '2026-10-05', ?, ?)`, `p${id}`, reverses ? "COMPANY_RECEIVED" : "RECEIPT", order, AT, AT);
   run(db, `INSERT INTO bil_debt_line (id, posting_id, debtor_party_id, creditor_party_id, amount, kind_code, order_id, receipt_id, reverses_line_id, created_at, updated_at)
     VALUES (?, ?, ?, ?, ?, 'HELD', ?, ?, ?, ?, ?)`, id, `p${id}`, reverses ? CT : debtor, reverses ? debtor : CT, amount, order, receipt, reverses, AT, AT);
   return id;
@@ -160,7 +162,7 @@ test("chuyển (đ6, NT-H8): nửa thu ở đơn nhận phải khớp nửa chi 
   don(db, "a", { huy: "CONG_TY_HUY" });
   don(db, "b");
   don(db, "c");
-  thu(db, { order: "a", amount: 500_000, role: "STAFF", collector: "hdv-x", by: "hdv-x" });
+  held(db, "a", thu(db, { order: "a", amount: 500_000, role: "STAFF", collector: "hdv-x", by: "hdv-x" }), "hdv-x", 500_000); // HDV đang giữ (0082 Đ3)
   const d = duyet(db, { order: "a", amount: 500_000, kind: "TRANSFER", target: "b" });
   const ra = thu(db, { order: "a", amount: 500_000, kind: "CUSTOMER_REFUND", role: "STAFF", collector: "hdv-x", approval: d, by: "kt" });
   assert.throws(() => thu(db, { order: "c", amount: 500_000, role: "STAFF", collector: "hdv-x", transferOf: ra }), /coc_transfer_mismatch:/, "sai đơn nhận");

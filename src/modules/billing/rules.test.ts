@@ -137,7 +137,8 @@ test("đối chiếu conLai ↔ v_bil_order_paid ↔ trigger bil_posting_deliver
   them(rc({ amount: 900_000 }));
   them(rc({ amount: 300_000, collectorRole: "UNKNOWN", collectorPartyId: null, reversesId: u.id }));
   them(rc({ amount: 300_000 }));
-  them(rc({ amount: 200_000, kind: "CUSTOMER_REFUND" }));
+  // Hoàn do CÔNG TY trả (0082 Đ3: người khác trả phải đang giữ tiền trên đơn — dữ liệu mẫu này không có dòng nợ).
+  them(rc({ amount: 200_000, kind: "CUSTOMER_REFUND", collectorRole: "COMPANY", collectorPartyId: String((db.prepare("SELECT party_id FROM v_pty_owner_company").get() as { party_id: string }).party_id) }));
   const ma = conLai(mau, 1_000_000, "confirmed");
   const view = db.prepare("SELECT paid_net, unknown_count FROM v_bil_order_paid WHERE order_id = 'o1'").get() as { paid_net: number; unknown_count: number };
   assert.deepEqual([view.paid_net, view.unknown_count], [ma.daThu, ma.chuaRo]);

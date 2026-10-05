@@ -131,6 +131,52 @@ export function kiemQuyetToan(input: { chieu: "nop" | "tra"; soDu: number; soTie
   return { ok: true };
 }
 
+type KetQuaKiem = { ok: true } | { ok: false; ma: string; cau: string };
+
+/**
+ * ADR-0092 Đ1 (A-B16): đảo một lần thu không được làm đã thu RÒNG của đơn < 0. `daThu` = `conLai(...).daThu` hiện tại (thu cộng, trả lại khách trừ — cùng
+ * công thức trigger 0045 / 0082). Đảo một lần TRẢ LẠI KHÁCH làm đã thu tăng — luôn qua.
+ */
+export function kiemDaoLanThu(input: { daThu: number; goc: Pick<ReceiptRow, "kind" | "amount"> }): KetQuaKiem {
+  if (input.goc.kind !== "CUSTOMER_REFUND" && input.goc.amount > input.daThu) {
+    return { ok: false, ma: "net_paid_negative", cau: `Đảo lần thu này làm số đã thu của đơn âm (đang thu ${dong(Math.max(0, input.daThu))}) — đảo lần hoàn khách trước rồi đảo lần thu.` };
+  }
+  return { ok: true };
+}
+
+/** ADR-0092 Đ3 (A-B7, KT09): người trả không phải công ty hoàn ≤ số người đó đang giữ trên đơn (`dangGiu` = `soDuCap(dòng của đơn, người trả, công ty)`). */
+export function kiemHoanNguoiGiu(input: { dangGiu: number; soTien: number }): KetQuaKiem {
+  if (input.soTien > Math.max(0, input.dangGiu)) {
+    return {
+      ok: false, ma: "refund_exceeds_held",
+      cau: `Số hoàn vượt số người này đang giữ cho đơn (đang giữ ${dong(Math.max(0, input.dangGiu))}). Nhân viên ứng tiền túi trả khách thì ghi người trả là Công ty.`,
+    };
+  }
+  return { ok: true };
+}
+
+/** ADR-0092 Đ5c: lý do điều chỉnh tối thiểu (ký tự, đã bỏ khoảng trắng hai đầu). Trigger 0082 ép cùng số. */
+export const LY_DO_DIEU_CHINH_TOI_THIEU = 10;
+
+/**
+ * ADR-0092 Đ5a, Đ5b (Q-A1): dòng điều chỉnh "`benNo` nợ `benDuocNo` thêm `soTien`". `nguoc` = số `benDuocNo` đang nợ `benNo` trên đơn
+ * (`soDuCap(dòng của đơn, benDuocNo, benNo)`). Còn nợ (> 0) ⇒ đây là GIẢM NỢ của `benDuocNo`: ≤ số đang nợ, không đổi dấu (Đ5a). Không còn nợ ⇒ TĂNG NỢ
+ * của `benNo`: ≤ max(phải thu, đã thu ròng) của đơn — chặn gõ thừa số 0 (Đ5b).
+ */
+export function kiemDieuChinh(input: { nguoc: number; soTien: number; phaiThu: number; daThu: number }): KetQuaKiem {
+  if (input.nguoc > 0) {
+    if (input.soTien > input.nguoc) {
+      return { ok: false, ma: "adjustment_flips_sign", cau: `Điều chỉnh giảm nợ vượt số đang nợ trên đơn (${dong(input.nguoc)}) — số dư không được đổi dấu.` };
+    }
+    return { ok: true };
+  }
+  const tran = Math.max(input.phaiThu, input.daThu);
+  if (input.soTien > tran) {
+    return { ok: false, ma: "adjustment_exceeds_cap", cau: `Điều chỉnh tăng nợ vượt trần của đơn (${dong(tran)} — số lớn hơn giữa phải thu và đã thu). Kiểm lại số tiền.` };
+  }
+  return { ok: true };
+}
+
 /** Câu chỉ đường khi "Công ty đã nhận" bị từ chối vì khoản đã được ghi nộp (ADR-0092 Đ2b — nguyên văn ví dụ của ADR). */
 export const CAU_DA_NOP = "Khoản này đã được ghi nộp — nếu tiền cũng đã về tài khoản công ty thì đảo lần nộp trước rồi xác nhận.";
 

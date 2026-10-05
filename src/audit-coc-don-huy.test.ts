@@ -46,7 +46,7 @@ function thu(db: DatabaseSync, o: { order: string; amount: number; kind?: string
   run(db, `INSERT INTO bil_payment_receipt (id, order_id, kind_code, amount, collector_party_id, collector_role_code, method_code, collected_for_party_id, stage_code,
       occurred_date, reverses_id, note, created_at, created_by, updated_at, updated_by, approval_id, transfer_of_id)
     VALUES (?, ?, ?, ?, ?, 'COMPANY', 'CASH', 'ct', 'PREPAID', '2026-10-05', NULL, NULL, ?, ?, ?, ?, ?, ?)`,
-    id, o.order, o.kind ?? "CUSTOMER_PAYMENT", o.amount, o.collector ?? "ct", o.at ?? AT, o.by ?? "kt", o.at ?? AT, o.by ?? "kt", o.approval ?? null, o.transferOf ?? null);
+    id, o.order, o.kind ?? "CUSTOMER_PAYMENT", o.amount, o.collector ?? congTy(db), o.at ?? AT, o.by ?? "kt", o.at ?? AT, o.by ?? "kt", o.approval ?? null, o.transferOf ?? null);
   return id;
 }
 function duyet(db: DatabaseSync, o: { order: string; amount: number; kind?: string; target?: string | null; by?: string; date?: string }): string {
@@ -191,7 +191,7 @@ const congTy = (db: DatabaseSync): string => {
 };
 function no(db: DatabaseSync, o: { order: string; debtor: string; creditor: string; amount: number; kind: string; reverses?: string | null; at: string }): string {
   const id = `l${++n}`;
-  run(db, "INSERT OR IGNORE INTO bil_posting (id, kind_code, order_id, reason, occurred_date, created_at, updated_at) VALUES (?, 'ADJUSTMENT', ?, 'khung thử', '2026-10-05', ?, ?)", `p-${o.order}`, o.order, AT, AT);
+  run(db, "INSERT OR IGNORE INTO bil_posting (id, kind_code, order_id, reason, occurred_date, created_at, updated_at) VALUES (?, 'ADJUSTMENT', ?, 'khung thử sổ tiền', '2026-10-05', ?, ?)", `p-${o.order}`, o.order, AT, AT);
   run(db, `INSERT INTO bil_debt_line (id, posting_id, debtor_party_id, creditor_party_id, amount, kind_code, order_id, receipt_id, reverses_line_id, created_at, updated_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?)`, id, `p-${o.order}`, o.debtor, o.creditor, o.amount, o.kind, o.order, o.reverses ?? null, o.at, o.at);
   return id;

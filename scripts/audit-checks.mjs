@@ -378,6 +378,27 @@ export const CHECKS = [
     level: "warn",
   },
   {
+    // ADR-0092 Đ1, đ8 (TNV-G4, KT06): đã thu RÒNG của mỗi đơn ≥ 0 (lần thu còn hiệu lực: thu cộng, trả lại khách trừ — cùng công thức trigger 0045 / 0082).
+    // Mốc (bil_audit_cutoff 'R-BIL-8', 0082): đơn có lần thu ghi TỪ mốc mà âm = LỖI; chỉ có lần thu cũ hơn mốc = cảnh báo (R-BIL-8w, kèm danh sách).
+    code: "R-BIL-8",
+    what: "đã thu ròng của đơn không âm (đơn có lần thu ghi từ mốc 0082)",
+    sql: `SELECT count(*) FROM (SELECT r.order_id, SUM(CASE WHEN r.kind_code = 'CUSTOMER_REFUND' THEN -r.amount ELSE r.amount END) AS rong
+       FROM bil_payment_receipt r WHERE r.reverses_id IS NULL AND NOT EXISTS (SELECT 1 FROM bil_payment_receipt x WHERE x.reverses_id = r.id)
+       GROUP BY r.order_id) t WHERE t.rong < 0
+       AND EXISTS (SELECT 1 FROM bil_payment_receipt a WHERE a.order_id = t.order_id AND a.created_at >= (SELECT cutoff_at FROM bil_audit_cutoff WHERE code = 'R-BIL-8'))`,
+    level: "fail",
+  },
+  {
+    code: "R-BIL-8w",
+    what: "đã thu ròng của đơn âm — chỉ có lần thu TRƯỚC mốc 0082 (Kế toán sửa bằng lệnh đảo lần hoàn)",
+    sql: `SELECT t.order_id, t.rong FROM (SELECT r.order_id, SUM(CASE WHEN r.kind_code = 'CUSTOMER_REFUND' THEN -r.amount ELSE r.amount END) AS rong
+       FROM bil_payment_receipt r WHERE r.reverses_id IS NULL AND NOT EXISTS (SELECT 1 FROM bil_payment_receipt x WHERE x.reverses_id = r.id)
+       GROUP BY r.order_id) t WHERE t.rong < 0
+       AND NOT EXISTS (SELECT 1 FROM bil_payment_receipt a WHERE a.order_id = t.order_id AND a.created_at >= (SELECT cutoff_at FROM bil_audit_cutoff WHERE code = 'R-BIL-8'))`,
+    mode: "rows",
+    level: "warn",
+  },
+  {
     // ADR-0092 Đ2, Đ2b, đ8 (TNV-VP01, KT04 của TNV-G4): số dư cặp (bên, công ty chủ) trên đơn KHÔNG âm do dòng giữ hộ / quyết toán (nộp quá số giữ, nộp cho
     // người không giữ, nộp rồi lại "Công ty đã nhận" cùng một khoản). Âm hợp lệ do công ty nợ (dòng REFUND — người ứng tiền hoàn khách) KHÔNG tính (chỉ cộng
     // HELD + SETTLEMENT). Mốc (bil_audit_cutoff, 0080): cặp có dòng ghi TỪ mốc = LỖI; cặp chỉ có dòng cũ hơn mốc = cảnh báo (R-BIL-13w, kèm danh sách).

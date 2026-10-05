@@ -1581,7 +1581,8 @@ test("R-BIL-*: đơn đi đúng luồng (lần thu, đảo, Đã giao, hoàn kh�
   const ct = donDaGiao(db);
   // Hoàn khách + đảo SAU Đã giao là phiếu riêng — R-BIL-1 so số tại thời điểm phiếu Đã giao, không đỏ.
   lanThuBil(db, { id: "r3", order: "o-bil", amount: 20000, kind: "CUSTOMER_REFUND", at: BIL_SAU });
-  lanThuBil(db, { id: "r1d", order: "o-bil", amount: 300000, reverses: "r1-o-bil", at: BIL_SAU });
+  // ADR-0092 Đ1 (0082): đảo lần THU gốc sau khi đã hoàn làm đã thu ròng âm — bị chặn; luồng đúng đảo lần HOÀN.
+  lanThuBil(db, { id: "r3d", order: "o-bil", amount: 20000, kind: "CUSTOMER_REFUND", reverses: "r3", at: BIL_SAU });
   phieuBil(db, { id: "pnop", order: "o-bil", kind: "SETTLEMENT", at: BIL_SAU });
   dongNoBil(db, { id: "l-nop", posting: "pnop", order: "o-bil", debtor: ct, creditor: "pty-s-an", amount: 300000 });
   db.prepare("UPDATE orders SET completed_at = ?, completed_by = 's-an' WHERE id = 'o-bil'").run(BIL_SAU);

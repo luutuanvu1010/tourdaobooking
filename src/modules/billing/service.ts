@@ -13,7 +13,7 @@ import {
   type NewLine, type NewReceipt, type ReceiptDbRow,
 } from "./repository";
 import {
-  CAU_DA_NOP, METHOD_CODES, conLai, khoanChoXacNhan, kiemQuyetToan, soDuCap, lyDoChuaGiaoDuoc, lyDoChuaHoanThanh, ngayPhatSinh, sinhDongDao, sinhDongHoanKhach, sinhDongLanThu, sinhDongQuyetToan, sinhDongXacNhanCongTy,
+  CAU_DA_NOP, LY_DO_DIEU_CHINH_TOI_THIEU, METHOD_CODES, conLai, dong, khoanChoXacNhan, kiemDaoLanThu, kiemDieuChinh, kiemHoanNguoiGiu, kiemQuyetToan, soDuCap, lyDoChuaGiaoDuoc, lyDoChuaHoanThanh, ngayPhatSinh, sinhDongDao, sinhDongHoanKhach, sinhDongLanThu, sinhDongQuyetToan, sinhDongXacNhanCongTy,
   soDuTheoBen, type LineDraft, type MethodCode, type ReceiptRow, type SoTienDon,
 } from "./rules";
 
@@ -441,6 +441,11 @@ export async function ghiHoanKhach(db: D1Database, input: { raw: unknown; ai: Ng
   if (state.status === "cancelled") return loi(409, "coc_needs_approval", "Đơn huỷ: hoàn qua “Duyệt hoàn cọc” rồi “Ghi chi hoàn”.");
   const daThu = conLai(receipts.map(toReceiptRow), 0, state.status).daThu;
   if (so.value > daThu) return loi(400, "invalid_input", "Không hoàn quá số khách đã trả.");
+  if (nguoiTra !== congTyId) {
+    // ADR-0092 Đ3 (KT09): người trả không phải công ty chỉ hoàn trong số đang giữ cho đơn (lớp CSDL: trigger bil_refund_within_held, 0082).
+    const giu = kiemHoanNguoiGiu({ dangGiu: soDuCap((await linesOfOrder(db, b.orderId)).map(toLineRow), nguoiTra, congTyId), soTien: so.value });
+    if (!giu.ok) return loi(409, giu.ma, giu.cau);
+  }
   const ngay = docNgay(b.ngayPhatSinh);
   if (!ngay.ok) return ngay;
   const ghiChu = docLyDo(b.ghiChu, false);
@@ -466,6 +471,7 @@ export async function ghiHoanKhach(db: D1Database, input: { raw: unknown; ai: Ng
     // Kiểm độc lập T-3: người khác vừa ghi hoàn / đảo lần thu giữa lúc đọc và lúc ghi → trigger bil_payment_receipt_refund_within_paid huỷ cả lô.
     if (loiTrigger(e, "refund_exceeds_paid")) return loi(409, "stale", "Không hoàn quá số khách đã trả — số đã thu vừa thay đổi, tải lại rồi thử lại.");
     if (loiTrigger(e, "coc_needs_approval")) return loi(409, "coc_needs_approval", "Đơn huỷ: hoàn qua “Duyệt hoàn cọc” rồi “Ghi chi hoàn”.");
+    if (loiTrigger(e, "refund_exceeds_held")) return loi(409, "refund_exceeds_held", "Số hoàn vượt số người này đang giữ cho đơn — số vừa thay đổi, tải lại rồi thử lại.");
     throw e;
   }
   return { ok: true, value: { orderId: b.orderId } };
@@ -491,15 +497,22 @@ export async function ghiDieuChinh(db: D1Database, input: { raw: unknown; ai: Ng
     const rc = await receiptById(db, b.receiptId);
     if (!rc) return loi(404, "not_found", "Không tìm thấy lần thu.");
     if (rc.reverses_id) return loi(409, "invalid_state", "Không đảo dòng đảo.");
-    const dong = [];
-    for (const l of await linesOfReceipt(db, rc.id)) if (l.reverses_line_id === null && !(await lineReversed(db, l.id))) dong.push(l);
+    // ADR-0092 Đ1 (KT06): đảo không được làm đã thu ròng của đơn âm (lớp CSDL: trigger bil_receipt_reversal_net_paid, 0082).
+    const [cacLanThu, st] = await Promise.all([receiptsOfOrder(db, rc.order_id), orderState(db, rc.order_id)]);
+    if (cacLanThu.some((r) => r.reverses_id === rc.id)) return loi(409, "stale", "Lần thu này đã được đảo.");
+    if (st) {
+      const rong = kiemDaoLanThu({ daThu: conLai(cacLanThu.map(toReceiptRow), 0, st.status).daThu, goc: toReceiptRow(rc) });
+      if (!rong.ok) return loi(409, rong.ma, rong.cau);
+    }
+    const dongDao = [];
+    for (const l of await linesOfReceipt(db, rc.id)) if (l.reverses_line_id === null && !(await lineReversed(db, l.id))) dongDao.push(l);
     const stmts = [
       receiptReversalStatement(db, { id: crypto.randomUUID(), occurredDate: ngay.value, note: lyDo.value, at, by, reversesId: rc.id }),
       auditStatement(db, { orderId: rc.order_id, staffId: by, action: "ledger_reversal", at, detail: lyDo.value ?? undefined }),
     ];
-    if (dong.length > 0) {
+    if (dongDao.length > 0) {
       stmts.push(postingPlainStatement(db, { id: postingId, kind: "REVERSAL", orderId: rc.order_id, reason: lyDo.value, reversesPostingId: null, occurredDate: ngay.value, dueSnapshot: null, at, by }));
-      for (const l of dong) stmts.push(lineIfPostingStatement(db, lineOf(sinhDongDao(toLineRow(l)), postingId, rc.order_id, rc.id, at, by)));
+      for (const l of dongDao) stmts.push(lineIfPostingStatement(db, lineOf(sinhDongDao(toLineRow(l)), postingId, rc.order_id, rc.id, at, by)));
     }
     try {
       await db.batch(stmts);
@@ -509,6 +522,7 @@ export async function ghiDieuChinh(db: D1Database, input: { raw: unknown; ai: Ng
       if (loiTrigger(e, "coc_paid_below_approved")) return loi(409, "coc_paid_below_approved", "Đơn đã duyệt hoàn cọc — huỷ duyệt phần chưa chi trước khi đảo lần thu.");
       // ADR-0092 Đ2b: khoản giữ hộ của lần thu đã được ghi nộp — đảo lần nộp trước (cùng thứ tự "ghi mới trước, đảo sau").
       if (loiTrigger(e, "held_already_settled")) return loi(409, "held_already_settled", "Khoản giữ hộ của lần thu này đã được ghi nộp — đảo lần nộp trước rồi đảo lần thu.");
+      if (loiTrigger(e, "net_paid_negative")) return loi(409, "net_paid_negative", "Đảo lần thu này làm số đã thu của đơn âm — số vừa thay đổi, tải lại rồi thử lại.");
       throw e;
     }
     return { ok: true, value: { orderId: rc.order_id } };
@@ -519,6 +533,8 @@ export async function ghiDieuChinh(db: D1Database, input: { raw: unknown; ai: Ng
     if (!l) return loi(404, "not_found", "Không tìm thấy dòng sổ.");
     if (l.reverses_line_id) return loi(409, "invalid_state", "Không đảo dòng đảo.");
     if (!l.order_id) return loi(409, "invalid_state", "Dòng không gắn đơn.");
+    // ADR-0092 Đ4: không đảo riêng dòng giữ hộ khi lần thu sinh ra nó còn hiệu lực (lớp CSDL: trigger bil_held_no_single_reversal, 0082).
+    if (l.kind_code === "HELD" && l.receipt_id !== null && !(await receiptsOfOrder(db, l.order_id)).some((r) => r.reverses_id === l.receipt_id)) return HELD_DON_LE();
     const stmts = [
       postingPlainStatement(db, { id: postingId, kind: "REVERSAL", orderId: l.order_id, reason: lyDo.value, reversesPostingId: null, occurredDate: ngay.value, dueSnapshot: null, at, by }),
       lineIfPostingStatement(db, lineOf(sinhDongDao(toLineRow(l)), postingId, l.order_id, l.receipt_id, at, by)),
@@ -529,6 +545,7 @@ export async function ghiDieuChinh(db: D1Database, input: { raw: unknown; ai: Ng
     } catch (e) {
       if (/UNIQUE constraint failed: bil_debt_line\.reverses_line_id/.test(e instanceof Error ? e.message : String(e))) return loi(409, "stale", "Dòng này đã được đảo.");
       if (loiTrigger(e, "held_already_settled")) return loi(409, "held_already_settled", "Khoản giữ hộ này đã được ghi nộp — đảo lần nộp trước.");
+      if (loiTrigger(e, "held_single_reversal")) return HELD_DON_LE();
       throw e;
     }
     return { ok: true, value: { orderId: l.order_id } };
@@ -544,16 +561,34 @@ export async function ghiDieuChinh(db: D1Database, input: { raw: unknown; ai: Ng
     const [ben, owners] = await Promise.all([partyLabels(db, [b.benNo, b.benDuocNo]), orderOwners(db, [b.orderId])]);
     if (!ben.get(b.benNo) || !ben.get(b.benDuocNo)) return loi(400, "invalid_input", "Không tìm thấy bên nợ / bên được nợ.");
     if (!owners.has(b.orderId)) return loi(404, "not_found", "Không tìm thấy đơn.");
+    // ADR-0092 Đ5c: lý do ≥ 10 ký tự (lớp CSDL: trigger bil_adjustment_reason_length, 0082).
+    if ((lyDo.value ?? "").trim().length < LY_DO_DIEU_CHINH_TOI_THIEU) return loi(400, "invalid_input", `Lý do điều chỉnh tối thiểu ${LY_DO_DIEU_CHINH_TOI_THIEU} ký tự.`);
+    // ADR-0092 Đ5a, Đ5b: giảm nợ không đổi dấu; tăng nợ ≤ max(phải thu, đã thu ròng). Hai lớp chưa có ở CSDL (ADR không đòi) — máy chủ.
+    const [dongDon, cacLanThu, base, congTyId] = await Promise.all([linesOfOrder(db, b.orderId), receiptsOfOrder(db, b.orderId), phaiThuNhieuDon(db, [b.orderId]), ownerCompanyId(db)]);
+    const dongSo = dongDon.map(toLineRow);
+    const bo = base.get(b.orderId);
+    const phaiThu = bo?.phaiThu ?? 0;
+    const kiem = kiemDieuChinh({ nguoc: soDuCap(dongSo, b.benDuocNo, b.benNo), soTien: so.value, phaiThu, daThu: conLai(cacLanThu.map(toReceiptRow), phaiThu, bo?.status ?? "confirmed").daThu });
+    if (!kiem.ok) return loi(409, kiem.ma, kiem.cau);
+    // Đ5d (phần nhật ký): số dư trước / sau của bên KHÔNG phải công ty chủ với bên kia. Tin báo người bị đổi số dư DỪNG chờ chủ (báo cáo năm lỗi tiền).
+    const benDoi = b.benNo === congTyId ? b.benDuocNo : b.benNo;
+    const benKia = benDoi === b.benNo ? b.benDuocNo : b.benNo;
+    const truoc = soDuCap(dongSo, benDoi, benKia);
+    const sau = truoc + (benDoi === b.benNo ? so.value : -so.value);
+    const chiTiet = `${lyDo.value ?? ""} · số dư trước ${dong(truoc)} → sau ${dong(sau)}`;
     const stmts = [
       postingPlainStatement(db, { id: postingId, kind: "ADJUSTMENT", orderId: b.orderId, reason: lyDo.value, reversesPostingId: null, occurredDate: ngay.value, dueSnapshot: null, at, by }),
       lineIfPostingStatement(db, lineOf({ debtorPartyId: b.benNo, creditorPartyId: b.benDuocNo, amount: so.value, kind: b.loaiDong, reversesLineId: null }, postingId, b.orderId, null, at, by)),
-      auditStatement(db, { orderId: b.orderId, staffId: by, action: "ledger_adjustment", at, detail: lyDo.value ?? undefined }),
+      auditStatement(db, { orderId: b.orderId, staffId: by, action: "ledger_adjustment", at, detail: chiTiet }),
     ];
     await db.batch(stmts);
     return { ok: true, value: { orderId: b.orderId } };
   }
   return loi(400, "invalid_input", "Chọn loại: đảo lần thu, đảo dòng sổ hoặc điều chỉnh.");
 }
+
+const HELD_DON_LE = () =>
+  loi(409, "held_single_reversal", "Không đảo riêng dòng giữ hộ khi lần thu còn hiệu lực — đảo lần thu, hoặc dùng “Công ty đã nhận” cho khoản chuyển khoản.");
 
 const LOAI_DONG: Record<string, string> = {
   RECEIPT: "Lần thu", DELIVERED: "Đã giao", COMPLETED: "Hoàn thành", COMPANY_RECEIVED: "Công ty đã nhận", SETTLEMENT: "Nộp / trả", REFUND: "Hoàn khách",

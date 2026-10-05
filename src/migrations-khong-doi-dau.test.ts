@@ -26,7 +26,7 @@ function moi(list = files): { db: DatabaseSync; ct: string } {
   }
   run(db, `INSERT INTO orders (id, order_code, staff_id, status, customer_name, customer_phone, subtotal, total, remaining_amount, created_at, updated_at)
     VALUES ('o', 'TD-o', 's1', 'confirmed', 'Khách Giả', '0900000009', 1000000, 1000000, 1000000, ?, ?)`, AT, AT);
-  run(db, "INSERT INTO bil_posting (id, kind_code, order_id, reason, occurred_date, created_at, updated_at) VALUES ('p', 'ADJUSTMENT', 'o', 'khung thử', '2026-10-05', ?, ?)", AT, AT);
+  run(db, "INSERT INTO bil_posting (id, kind_code, order_id, reason, occurred_date, created_at, updated_at) VALUES ('p', 'ADJUSTMENT', 'o', 'khung thử sổ tiền', '2026-10-05', ?, ?)", AT, AT);
   return { db, ct };
 }
 let n = 0;
@@ -73,7 +73,7 @@ test("(b) Đ2b (VP-01): đảo dòng giữ hộ khi người khai đã nộp bù
 
 test("mốc kiểm R-BIL-13: một dòng, chỉ-thêm", () => {
   const { db } = moi();
-  const r = db.prepare("SELECT code, cutoff_at FROM bil_audit_cutoff").all() as { code: string; cutoff_at: string }[];
+  const r = db.prepare("SELECT code, cutoff_at FROM bil_audit_cutoff WHERE code = 'R-BIL-13'").all() as { code: string; cutoff_at: string }[];
   assert.deepEqual(r.map((x) => x.code), ["R-BIL-13"]);
   assert.match(r[0]!.cutoff_at, /^\d{4}-\d{2}-\d{2}T/);
   assert.throws(() => db.exec("UPDATE bil_audit_cutoff SET cutoff_at = 'x'"), /bil_append_only:/);

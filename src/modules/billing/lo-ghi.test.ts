@@ -311,8 +311,12 @@ test("NT-S4: điều chỉnh / đảo — lý do bắt buộc; đảo lần thu 
   assert.equal((await thu(w, HDV, id, tienMat(700_000))).status, 201);
   assert.equal((await giao(w, HDV, id)).status, 200);
   assert.equal((await w.call("GET", "/api/ledger/mine", { as: HDV })).json.dangGiu, 1_000_000);
-  // Đảo một dòng nợ: cùng số, đổi chỗ, trỏ gốc.
-  const l = one(w, "SELECT id, amount, debtor_party_id, creditor_party_id FROM bil_debt_line WHERE order_id = ? ORDER BY rowid LIMIT 1", id)!;
+  // Đảo một dòng nợ: cùng số, đổi chỗ, trỏ gốc. ADR-0092 Đ4 (0082): dòng GIỮ HỘ của lần thu còn hiệu lực không đảo riêng được — đảo dòng NỘP.
+  const hdvParty = `pty-${HDV}`;
+  const giu = one(w, "SELECT id FROM bil_debt_line WHERE order_id = ? AND kind_code = 'HELD' ORDER BY rowid LIMIT 1", id)!;
+  assert.equal((await w.call("POST", "/api/ledger/adjustments", { as: KT, body: { loai: "dao_dong", lineId: giu.id, lyDo: "ghi nhầm" } })).json.error.code, "held_single_reversal");
+  assert.equal((await w.call("POST", "/api/ledger/settlements", { as: KT, body: { chieu: "nop", partyId: hdvParty, phanBo: [{ orderId: id, soTien: 100_000 }] } })).status, 201);
+  const l = one(w, "SELECT id, amount, debtor_party_id, creditor_party_id FROM bil_debt_line WHERE order_id = ? AND kind_code = 'SETTLEMENT' ORDER BY rowid LIMIT 1", id)!;
   assert.equal((await w.call("POST", "/api/ledger/adjustments", { as: KT, body: { loai: "dao_dong", lineId: l.id, lyDo: "ghi nhầm" } })).status, 201);
   const d = one(w, "SELECT amount, debtor_party_id, creditor_party_id FROM bil_debt_line WHERE reverses_line_id = ?", l.id)!;
   assert.deepEqual([d.amount, d.debtor_party_id, d.creditor_party_id], [l.amount, l.creditor_party_id, l.debtor_party_id]);
