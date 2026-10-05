@@ -1334,8 +1334,8 @@ body.maint-open { overflow: hidden; }
    Khác bản thiết kế (bắt buộc): khung widget Turnstile (lớp bảo mật đang chạy thật) nằm giữa ô PIN và hàng nút.
    KHÔNG KÉO ĐƯỢC (chủ dự án 2026-09-24): body cao đúng 100dvh, không cuộn; chỉ `main` tự cuộn khi màn thấp hơn nội dung. */
 html:has(body.login-page) { height: 100%; overflow: hidden; }
-body.login-page { height: 100vh; height: 100dvh; overflow: hidden; overscroll-behavior: none; background: var(--c-surface); }
-body.login-page main.login { display: flex; flex-direction: column; height: 100%; max-width: none; margin: 0; overflow-y: auto; overscroll-behavior: contain; padding: var(--s2) max(var(--login-side), env(safe-area-inset-right)) calc(var(--login-side) + env(safe-area-inset-bottom)) max(var(--login-side), env(safe-area-inset-left)); }
+body.login-page { display: flex; flex-direction: column; height: 100vh; height: 100dvh; overflow: hidden; overscroll-behavior: none; background: var(--c-surface); } /* cột dọc: dải vùng tai thỏ (::before) + main chia nhau đúng chiều cao màn hình — main KHÔNG được cao 100% (thừa đúng bằng tai thỏ, chân trang bị lẹm xuống dưới đáy ở iPhone 15/16) */
+body.login-page main.login { display: flex; flex-direction: column; flex: 1; min-height: 0; max-width: none; margin: 0; overflow-y: auto; overscroll-behavior: contain; padding: var(--s2) max(var(--login-side), env(safe-area-inset-right)) calc(var(--login-side) + env(safe-area-inset-bottom)) max(var(--login-side), env(safe-area-inset-left)); }
 .login-body { flex: 1 0 auto; display: flex; align-items: flex-start; justify-content: center; padding: var(--s6) 0 var(--login-body-bottom); }
 .login-col { display: flex; flex-direction: column; width: 100%; max-width: var(--w-login); min-width: 0; }
 .login-logo { display: block; width: var(--logo-login); height: var(--logo-login); margin: 0 auto var(--s4); border-radius: var(--radius-icon); box-shadow: var(--shadow-card); }
@@ -1375,10 +1375,11 @@ body.login-page main.login { display: flex; flex-direction: column; height: 100%
 .login-support a { display: flex; align-items: center; min-height: var(--tap-min); padding: 0 var(--s4); font-weight: var(--fw-heavy); color: var(--c-primary); text-decoration: none; background: var(--c-soft-hover); border-radius: var(--radius-pill); }
 .login-support a:hover { color: var(--c-primary-strong); text-decoration: underline; }
 .login-release { margin-top: var(--s2); font-size: var(--fs-badge); line-height: 1.5; color: var(--c-text-muted); text-align: center; }
-.login-info { flex: none; display: flex; flex-direction: column; align-items: center; padding-top: var(--s4); border-top: 1px solid var(--c-border); font-size: var(--fs-badge); line-height: 1.6; color: var(--c-text-muted); text-align: center; }
+.login-info { flex: none; margin-top: auto; display: flex; flex-direction: column; align-items: center; padding-top: var(--s4); border-top: 1px solid var(--c-border); font-size: var(--fs-badge); line-height: 1.6; color: var(--c-text-muted); text-align: center; }
 .login-company-name { font-weight: var(--fw-heavy); color: var(--c-text); }
 .login-address { text-wrap: balance; }
-/* Điện thoại — VỪA MỘT MÀN HÌNH kể cả Safari có thanh công cụ (390×664) và widget Turnstile (chủ dự án 2026-09-24: "không phải kéo" ở cả app cài lẫn Safari).
+/* (chân trang có `margin-top: auto`: máy cao thì thông tin công ty nằm SÁT ĐÁY — chủ dự án 2026-09-24; máy thấp thì đi ngay sau dòng phiên bản.)
+   Điện thoại — VỪA MỘT MÀN HÌNH kể cả Safari có thanh công cụ (390×664) và widget Turnstile (chủ dự án 2026-09-24: "không phải kéo" ở cả app cài lẫn Safari).
    Lệch bản thiết kế có chủ ý: khối giữa KHÔNG giãn (chân trang nằm ngay dưới dòng phiên bản), logo 48px, ô/nút 52px, khoảng cách gọn hơn. Máy tính giữ nguyên bản thiết kế. */
 @media (max-width: 899px) {
   .login-body { flex: none; padding-top: var(--s4); }

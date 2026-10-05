@@ -16,6 +16,7 @@ export const CHANGELOG: readonly ReleaseNote[] = [
     date: "2026-10-05",
     items: [
       { kind: "sua", text: "Giờ hiện ở trang Góp ý nay luôn theo giờ Việt Nam, kể cả khi máy đang đặt múi giờ khác." },
+      { kind: "sua", text: "Trang Đăng nhập trên iPhone màn hình cao: thông tin công ty nằm sát đáy màn hình, không còn lơ lửng giữa trang hay bị lẹm mất một phần." },
     ],
   },
   {
