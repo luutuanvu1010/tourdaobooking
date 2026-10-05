@@ -31,7 +31,7 @@ test("NT-B1 (luật): số lạ 480017 ở mọi ô KHÔNG được phép của 
   const r = dungBienNhan(donBiMat(), COMPANY, { daTra: 300_000, conLai: 700_000 });
   assert.equal(coLo(JSON.stringify(r)), false, JSON.stringify(r));
   assert.deepEqual(Object.keys(r).sort(), [
-    "company", "conLai", "createdAt", "customerEmail", "customerName", "customerNote", "customerPhone", "daTra", "discount", "orderCode", "services", "status", "subtotal", "total",
+    "company", "conLai", "createdAt", "customerEmail", "customerName", "customerNote", "customerPhone", "daTra", "discount", "huy", "orderCode", "services", "status", "subtotal", "total",
   ]);
   assert.deepEqual(Object.keys(r.services[0]!).sort(), ["checkinDate", "checkinPlace", "checkinTime", "departDate", "departTime", "items", "name", "pax", "pickupPlace", "pickupTime", "unit"]);
   assert.deepEqual(Object.keys(r.services[0]!.items[0]!).sort(), ["description", "detail", "lineTotal", "quantity", "unitPrice"]);

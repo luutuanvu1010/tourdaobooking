@@ -17,6 +17,7 @@ import { banner, type Banner } from "../src/shared/order-errors";
 import { can, holdsPartner } from "../src/shared/permissions";
 import { tripDeparted } from "../src/shared/trip-rules";
 import { ngayNgan, vnToday } from "../src/shared/vn-date";
+import { nhanTienDaTra } from "../src/shared/nhan-tien";
 import {
   EDIT_REASON_QUICK, departLabel, moneyEditServices, myJobChip, orderDepartDate, paxSummary, relLabel, sortMyJobs, telHref, type MyJobChipTone,
 } from "../src/shared/viec-cua-toi";
@@ -530,8 +531,9 @@ export async function initViecCuaToi(el: HTMLElement, staff: Staff): Promise<voi
         "dl",
         { class: "hdv-money" },
         h("div", null, h("dt", null, "Tổng tiền"), h("dd", null, vnd(a.total))),
-        // Sổ tiền lượt 1 (kiểm độc lập T-2): số là ĐÃ THU của billing (gồm cả tiền thu lúc giao) nên nhãn "Đã thu", không "Thanh toán trước" của bản 1.40.
-        h("div", null, h("dt", null, "Đã thu"), h("dd", null, tien ? vnd(tien.daThu) : "—")),
+        // Số là đã thu ròng của billing (gồm cả tiền thu lúc giao). Nhãn theo ADR-0089 đ3 (một luật ở src/shared/nhan-tien.ts): chưa Đã giao → "Khách hàng đã
+        // trả trước", sau Đã giao → "Đã thu" (Việc của tôi không có đơn huỷ).
+        h("div", null, h("dt", null, nhanTienDaTra({ status: a.status, deliveredAt: tien?.daGiao ? "x" : null }).nhan), h("dd", null, tien ? vnd(tien.daThu) : "—")),
         h("div", null, h("dt", null, "Còn lại"), h("dd", { class: tien && tien.conLai > 0 ? "money-due" : null }, tien ? vnd(tien.conLai) : "—")),
       ),
       tien?.daGiao ? h("p", { class: "hdv-note" }, tien.hoanThanh ? "Hoàn thành." : "Đã giao – đã thu đủ: đơn đã khoá.") : null,

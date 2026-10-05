@@ -151,10 +151,11 @@ try {
         overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
       };
     })()`);
-  // bản 1.39/1.40: "Còn lại"; sổ tiền lượt 1: "Đã thu" (số đã thu của billing — kiểm độc lập T-2).
+  // bản 1.39/1.40: "Còn lại"; sổ tiền lượt 1: số đã thu của billing (kiểm độc lập T-2); ADR-0089 đ3 (năm lỗi tiền 5/10): nhãn "Khách hàng đã trả trước"
+  // trước Đã giao, "Đã thu" sau Đã giao.
   const moneyOf = async (d) => {
     const t = await tienOf(d);
-    return [["Tổng tiền", vnd(d.total)], ["Đã thu", vnd(t.daThu)], ["Còn lại", vnd(t.conLai)]];
+    return [["Tổng tiền", vnd(d.total)], [t.deliveredAt ? "Đã thu" : "Khách hàng đã trả trước", vnd(t.daThu)], ["Còn lại", vnd(t.conLai)]];
   };
 
   // ==================================================================================================

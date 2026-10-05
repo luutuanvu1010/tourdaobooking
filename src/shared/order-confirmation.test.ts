@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import type { CompanyDto, OrderDetailDto, OrderItemDto, OrderServiceDto, OrderStatus } from "./contracts.ts";
-import { buildConfirmation, HANDLER_HIDDEN, PENDING_HANDLER_TEXT, type ConfirmationBlock, type ConfirmationModel } from "./order-confirmation.ts";
+import type { CompanyDto, OrderDetailDto, OrderItemDto, OrderServiceDto, OrderStatus, ReceiptDto } from "./contracts.ts";
+import { buildConfirmation, DIEU_KHOAN_HUY, HANDLER_HIDDEN, PENDING_HANDLER_TEXT, type ConfirmationBlock, type ConfirmationModel } from "./order-confirmation.ts";
 // Sổ tiền lượt 1 (Task 8): bộ dựng nhận BIÊN NHẬN (ReceiptDto) máy chủ dựng theo danh sách trắng — bài này dựng ReceiptDto bằng CHÍNH hàm của máy chủ
 // (`dungBienNhan`) từ dữ liệu mẫu dạng đơn, để phép thử "không lộ nội bộ" vẫn đưa MỌI ô nội bộ của đơn vào nguồn.
 import { dungBienNhan } from "../modules/receipt/rules.ts";
@@ -88,11 +88,11 @@ test("đủ trường: khối theo thứ tự đầu trang → tiêu đề → k
       kind: "summary",
       rows: [
         { label: "Tạm tính", value: "3.600.000 ₫", emphasis: false }, { label: "Giảm giá", value: "-100.000 ₫", emphasis: false },
-        { label: "Tổng cộng", value: "3.500.000 ₫", emphasis: true }, { label: "Thanh toán trước", value: "1.000.000 ₫", emphasis: false },
+        { label: "Tổng cộng", value: "3.500.000 ₫", emphasis: true }, { label: "Khách hàng đã trả trước", value: "1.000.000 ₫", emphasis: false },
         { label: "Còn lại", value: "2.500.000 ₫", emphasis: true },
       ],
     },
-    { kind: "footer", lines: ["Cảm ơn quý khách đã tin tưởng và lựa chọn dịch vụ của chúng tôi.", "Cần hỗ trợ, quý khách vui lòng liên hệ hotline 0845 256 256."] },
+    { kind: "footer", lines: [DIEU_KHOAN_HUY, "Cảm ơn quý khách đã tin tưởng và lựa chọn dịch vụ của chúng tôi.", "Cần hỗ trợ, quý khách vui lòng liên hệ hotline 0845 256 256."] },
   ]);
 });
 
@@ -110,7 +110,7 @@ test("chân trang/đầu trang: công ty không email → không dòng Email; kh
   const noHotline: CompanyDto = { ...COMPANY, hotline: "", taxCode: "", email: null };
   const m = build(order(), null, noHotline);
   assert.deepEqual(one(m, "header").lines, [COMPANY.address]);
-  assert.deepEqual(one(m, "footer").lines, ["Cảm ơn quý khách đã tin tưởng và lựa chọn dịch vụ của chúng tôi."]);
+  assert.deepEqual(one(m, "footer").lines, [DIEU_KHOAN_HUY, "Cảm ơn quý khách đã tin tưởng và lựa chọn dịch vụ của chúng tôi."]);
 });
 
 test("thông tin chuyến: từng mảnh vắng thì dòng rút gọn; chỉ ẩn dòng khi mọi mảnh của nó đều vắng", () => {
@@ -228,7 +228,7 @@ test("tổng kết: đúng số của đơn (không tự tính lại); chỉ T�
   const rows = (o: OrderDetailDto) => one(build(o), "summary").rows;
   const a = rows(order({ subtotal: 12345678, discount: 0, total: 12345678, paid: 5000000, remaining: 7345678 }));
   assert.deepEqual(a.map((r) => [r.label, r.value, r.emphasis]), [
-    ["Tạm tính", "12.345.678 ₫", false], ["Giảm giá", "0 ₫", false], ["Tổng cộng", "12.345.678 ₫", true], ["Thanh toán trước", "5.000.000 ₫", false], ["Còn lại", "7.345.678 ₫", true],
+    ["Tạm tính", "12.345.678 ₫", false], ["Giảm giá", "0 ₫", false], ["Tổng cộng", "12.345.678 ₫", true], ["Khách hàng đã trả trước", "5.000.000 ₫", false], ["Còn lại", "7.345.678 ₫", true],
   ]);
   const over = rows(order({ subtotal: 4000000, discount: 0, total: 4000000, paid: 5000000, remaining: -1000000 }));
   assert.equal(over.find((r) => r.label === "Còn lại")!.value, "-1.000.000 ₫");
@@ -327,4 +327,39 @@ test("làm sạch: chuỗi chỉ toàn ký tự điều khiển/bidi coi như r�
   const composed = value(one(build(order({ customerName: decomposed })), "customer").rows, "Họ tên");
   assert.equal(composed, `Nguy${cp(0x1ec5)}n Th${cp(0xe0)}nh`);
   assert.equal(composed!.length, "Nguyễn Thành".length);
+});
+
+// ---- ADR-0089 đ3, đ9a, đ10 (năm lỗi tiền Đợt 1 Phần C): nhãn tiền, thông báo huỷ, điều khoản huỷ ----
+const HUY = (h: Partial<NonNullable<ReceiptDto["huy"]>> = {}): NonNullable<ReceiptDto["huy"]> => ({ nhom: "KHACH_HUY", daTra: 500_000, dangDoiChieu: 0, daDuyet: 0, daChi: 0, daChuyen: 0, han: "2027-01-09", ...h });
+const buildHuy = (h: NonNullable<ReceiptDto["huy"]>) =>
+  buildConfirmation(dungBienNhan({ ...order(), status: "cancelled" }, COMPANY, { daTra: h.daTra, conLai: 0, huy: h }), null);
+
+test("NT-V2 (đ9a): đơn huỷ → tiêu đề THÔNG BÁO HUỶ, KHÔNG dòng 'Còn lại', có 'Khách hàng đã trả trước'; khách huỷ chưa duyệt → câu chính sách", () => {
+  const m = buildHuy(HUY());
+  assert.equal(one(m, "title").title, "THÔNG BÁO HUỶ ĐƠN DỊCH VỤ");
+  const rows = one(m, "summary").rows;
+  assert.ok(!rows.some((r) => r.label === "Còn lại"), JSON.stringify(rows));
+  assert.deepEqual(rows.at(-1), { label: "Khách hàng đã trả trước", value: "500.000 ₫", emphasis: true });
+  assert.equal(one(m, "footer").lines[0], "Theo chính sách của Tour Đảo, tiền cọc không được hoàn lại khi khách huỷ.");
+  assert.ok(!one(m, "footer").lines.includes(DIEU_KHOAN_HUY), "điều khoản huỷ chỉ ở ảnh xác nhận");
+});
+
+test("NT-V2 (đ9a): đã duyệt → 'Tour Đảo hoàn Y' (khách huỷ thêm 'chậm nhất ngày'); đã chi → 'Đã hoàn'; chuyển → 'Đã chuyển'; chưa xác nhận → 'Đang đối chiếu'; chưa kết luận → câu trung tính", () => {
+  const duyet = one(buildHuy(HUY({ daDuyet: 200_000 })), "summary").rows;
+  assert.deepEqual(duyet.find((r) => r.label.startsWith("Tour Đảo hoàn")), { label: "Tour Đảo hoàn (chậm nhất ngày 09/01/2027)", value: "200.000 ₫", emphasis: false });
+  const ctHuy = one(buildHuy(HUY({ nhom: "CONG_TY_HUY", daDuyet: 500_000, daChi: 300_000 })), "summary").rows;
+  assert.deepEqual(ctHuy.filter((r) => /hoàn/.test(r.label)).map((r) => [r.label, r.value]), [["Tour Đảo hoàn", "200.000 ₫"], ["Đã hoàn", "300.000 ₫"]], "công ty huỷ: không hứa ngày");
+  const chuyen = one(buildHuy(HUY({ nhom: "LAP_LAI", daDuyet: 500_000, daChuyen: 500_000 })), "summary").rows;
+  assert.deepEqual(chuyen.filter((r) => r.label !== "Tạm tính" && r.label !== "Giảm giá" && r.label !== "Tổng cộng").map((r) => r.label), ["Khách hàng đã trả trước", "Đã chuyển sang đơn mới"]);
+  const doi = one(buildHuy(HUY({ daTra: 0, dangDoiChieu: 300_000 })), "summary").rows;
+  assert.deepEqual(doi.find((r) => r.label === "Đang đối chiếu")?.value, "300.000 ₫");
+  assert.equal(one(buildHuy(HUY({ nhom: "CHUA_KET_LUAN" })), "footer").lines[0], "Tour Đảo sẽ liên hệ quý khách về khoản đã trả trước.");
+});
+
+test("NT-V1 + NT-V3 (đ3, đ10): ảnh xác nhận — 'Khách hàng đã trả trước' trước Đã giao, 'Đã thu' sau Đã giao; dòng điều khoản huỷ kèm đường dẫn", () => {
+  const truoc = one(build(order()), "summary").rows.map((r) => r.label);
+  assert.ok(truoc.includes("Khách hàng đã trả trước") && truoc.includes("Còn lại"));
+  const sau = one(buildConfirmation(dungBienNhan({ ...order(), status: "confirmed", deliveredAt: "2026-10-01T00:00:00.000Z" }, COMPANY, { daTra: 1_000_000, conLai: 0 }), null), "summary").rows.map((r) => r.label);
+  assert.ok(sau.includes("Đã thu") && !sau.includes("Khách hàng đã trả trước"));
+  assert.equal(one(build(order()), "footer").lines[0], "Khi khách huỷ, tiền cọc không được hoàn lại. Xem đầy đủ: tourdao.vn/chinh-sach-thanh-toan");
 });

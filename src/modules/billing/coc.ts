@@ -2,7 +2,7 @@
 // định nghĩa tiền cọc) → MỘT `db.batch()` mỗi lệnh (ADR-0094 V1). Lớp CSDL (trigger 0079) kiểm lại mọi luật tiền; lỗi trigger dịch sang câu tiếng Việt.
 // Route (index.ts) hỏi `can()` TRƯỚC rồi mới gọi các hàm ở đây. Không SQL thô (module nghiêm).
 import { auditStatement } from "../audit";
-import type { CocDemResponse, CocDoiChieuResponse, CocDonDto, CocListResponse, HoanNgoaiDto, KhoanDuyetDto } from "../../shared/contracts";
+import type { CocDemResponse, CocDoiChieuResponse, CocDonDto, CocListResponse, HoanNgoaiDto, KhoanDuyetDto, ReceiptDto } from "../../shared/contracts";
 import { UUID_RE } from "../../shared/http";
 import { nhanLyDoHuy, nhanNhomHuy, type NhomHuy } from "../../shared/ly-do-huy";
 import { nhanTienDaTra } from "../../shared/nhan-tien";
@@ -137,6 +137,16 @@ export async function cocCuaDon(db: D1Database, orderId: string, co: CoCoc): Pro
     coTheChuyen: co.coTheChuyen && khoanDuyet.some((k) => k.loai === "chuyen" && k.conLai > 0),
     coTheGhiHoanNgoai: co.coTheGhiHoanNgoai && d.huy.legacy === 1 && coHieuLuc.length === 0 && d.coc.conGiu > 0,
     coTheXacNhanHoanNgoai: co.coTheXacNhanHoanNgoai && choXacNhan,
+  };
+}
+
+/** Khối `huy` của biên nhận (ADR-0089 đ9a — danh sách trắng): null với đơn chưa huỷ. */
+export async function cocChoBienNhan(db: D1Database, orderId: string): Promise<ReceiptDto["huy"]> {
+  const d = await docCoc(db, orderId);
+  if (!d) return null;
+  return {
+    nhom: d.huy.group_code as NhomHuy, daTra: d.coc.daTra, dangDoiChieu: d.coc.dangDoiChieu, daDuyet: d.coc.daDuyet, daChi: d.coc.daChi, daChuyen: d.coc.daChuyen,
+    han: d.huy.refund_deadline,
   };
 }
 

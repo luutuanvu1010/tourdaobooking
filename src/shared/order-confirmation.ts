@@ -174,7 +174,8 @@ function titleBlock(order: ReceiptDto, handler: HandlerInput): TitleBlock {
   const noHandler = !hidden && clean(handlerName) === "";
   return {
     kind: "title",
-    title: "XÁC NHẬN ĐƠN DỊCH VỤ",
+    // ADR-0089 đ9a: đơn huỷ dùng mẫu "thông báo huỷ".
+    title: order.status.khoa === "cancelled" ? "THÔNG BÁO HUỶ ĐƠN DỊCH VỤ" : "XÁC NHẬN ĐƠN DỊCH VỤ",
     status: { code: order.status.khoa, text: clean(order.status.nhan) },
     rows: rowsOf([["Mã đơn", order.orderCode], ["Ngày lập", vnDate(order.createdAt)], ["Nhân viên phụ trách", handlerName]]),
     note: noHandler ? PENDING_HANDLER_TEXT : null,
@@ -209,23 +210,49 @@ function serviceBlock(s: ReceiptServiceDto, index: number): ServiceBlock {
 }
 
 function summaryBlock(order: ReceiptDto): SummaryBlock {
+  const dau = [
+    { label: "Tạm tính", value: money(order.subtotal), emphasis: false },
+    { label: "Giảm giá", value: money(order.discount > 0 ? -order.discount : order.discount), emphasis: false },
+    { label: "Tổng cộng", value: money(order.total), emphasis: true },
+  ];
+  const h = order.huy;
+  if (order.status.khoa === "cancelled" && h) {
+    // ADR-0089 đ9a: thông báo huỷ KHÔNG có dòng "Còn lại" (khách không còn nợ); số của billing (`soTienCoc`), máy chủ đặt vào ReceiptDto.
+    const rows = [...dau, { label: "Khách hàng đã trả trước", value: money(h.daTra), emphasis: true }];
+    if (h.dangDoiChieu > 0) rows.push({ label: "Đang đối chiếu", value: money(h.dangDoiChieu), emphasis: false });
+    const hoanDuyet = h.daDuyet - h.daChuyen;
+    if (hoanDuyet - h.daChi > 0) {
+      rows.push({ label: h.nhom === "KHACH_HUY" ? `Tour Đảo hoàn (chậm nhất ngày ${formatDmy(h.han)})` : "Tour Đảo hoàn", value: money(hoanDuyet - h.daChi), emphasis: false });
+    }
+    if (h.daChi > 0) rows.push({ label: "Đã hoàn", value: money(h.daChi), emphasis: false });
+    if (h.daChuyen > 0) rows.push({ label: "Đã chuyển sang đơn mới", value: money(h.daChuyen), emphasis: false });
+    return { kind: "summary", rows };
+  }
+  // ADR-0089 đ3: tiền khách trả trước là nghĩa vụ của công ty — "Khách hàng đã trả trước"; sau "Đã giao" là "Đã thu". Số của billing (một hàm `conLai`).
+  const daGiao = order.status.khoa === "delivered" || order.status.khoa === "completed";
   return {
     kind: "summary",
-    rows: [
-      { label: "Tạm tính", value: money(order.subtotal), emphasis: false },
-      { label: "Giảm giá", value: money(order.discount > 0 ? -order.discount : order.discount), emphasis: false },
-      { label: "Tổng cộng", value: money(order.total), emphasis: true },
-      // Sổ tiền lượt 1 (ADR-0026 đ9, đ11): "đã trả trước / còn lại" là số của billing (một hàm `conLai`), máy chủ đặt vào ReceiptDto.
-      { label: "Thanh toán trước", value: money(order.daTra), emphasis: false },
-      { label: "Còn lại", value: money(order.conLai), emphasis: true },
-    ],
+    rows: [...dau, { label: daGiao ? "Đã thu" : "Khách hàng đã trả trước", value: money(order.daTra), emphasis: false }, { label: "Còn lại", value: money(order.conLai), emphasis: true }],
   };
 }
 
-function footerBlock(company: CompanyDto): FooterBlock {
+/** ADR-0089 đ10 (chủ chốt chữ — bản nháp theo ví dụ của ADR, Q5): một dòng điều khoản huỷ IN LUÔN đường dẫn (Đ-5). */
+export const DIEU_KHOAN_HUY = "Khi khách huỷ, tiền cọc không được hoàn lại. Xem đầy đủ: tourdao.vn/chinh-sach-thanh-toan";
+/** ADR-0089 đ9a: câu chính sách trên thông báo huỷ — khách huỷ (chưa duyệt hoàn) / chưa kết luận (câu trung tính, không in "không hoàn"). */
+function cauHuy(order: ReceiptDto): string | null {
+  const h = order.huy;
+  if (order.status.khoa !== "cancelled" || !h) return null;
+  if (h.nhom === "KHACH_HUY" && h.daDuyet === 0) return "Theo chính sách của Tour Đảo, tiền cọc không được hoàn lại khi khách huỷ.";
+  if (h.nhom === "CHUA_KET_LUAN") return "Tour Đảo sẽ liên hệ quý khách về khoản đã trả trước.";
+  return null;
+}
+
+function footerBlock(company: CompanyDto, order: ReceiptDto): FooterBlock {
   // CompanyDto cố ý không có số Zalo (đặc tả việc 1): chân trang chỉ nêu hotline.
   const contact = clean(company.hotline) === "" ? "" : `Cần hỗ trợ, quý khách vui lòng liên hệ hotline ${clean(company.hotline)}.`;
-  return { kind: "footer", lines: ["Cảm ơn quý khách đã tin tưởng và lựa chọn dịch vụ của chúng tôi.", contact].filter((l) => l !== "") };
+  // ADR-0089: thông báo huỷ in câu chính sách (đ9a); ảnh xác nhận (đơn không huỷ) in điều khoản huỷ kèm đường dẫn (đ10).
+  const dau = order.status.khoa === "cancelled" ? cauHuy(order) : DIEU_KHOAN_HUY;
+  return { kind: "footer", lines: [dau ?? "", "Cảm ơn quý khách đã tin tưởng và lựa chọn dịch vụ của chúng tôi.", contact].filter((l) => l !== "") };
 }
 
 /** "xac-nhan-<mã đơn>.png"; ký tự ngoài chữ/số/gạch → gạch (gộp, bỏ ở hai đầu); mã trống → "xac-nhan.png". */
@@ -253,7 +280,7 @@ export function buildConfirmation(receipt: ReceiptDto, handlerName: HandlerInput
       customerBlock(order),
       ...order.services.map((s, i) => serviceBlock(s, i + 1)),
       summaryBlock(order),
-      footerBlock(company),
+      footerBlock(company, order),
     ],
   };
 }

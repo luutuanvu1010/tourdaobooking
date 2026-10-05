@@ -23,7 +23,9 @@ import { PAX_LABEL } from "../src/shared/order-lines";
 import { CHIEU_LABEL } from "../src/shared/chang-dua-don";
 import { nhanCamKet } from "../src/shared/cam-ket-xe";
 import { can } from "../src/shared/permissions";
-import { GHI_CHU_HUY_TOI_DA, luaChonLyDo, nhanNhomHuy } from "../src/shared/ly-do-huy";
+import { GHI_CHU_HUY_TOI_DA, NHOM_HUY_NHAN, luaChonLyDo, nhanNhomHuy } from "../src/shared/ly-do-huy";
+import { nhanTienDaTra as nhanTienLuat } from "../src/shared/nhan-tien";
+import { ngayDayDu } from "../src/shared/vn-date";
 import { cauMoc, changDuoiMoc, tomTatChanXacNhan, type ChangCanDatGap } from "../src/shared/dat-gap-hien-thi";
 import { NO_BOOKER_TEXT } from "../src/shared/booker";
 import { NO_HANDLER_TEXT, handlerControls, handlerFailure, handlerSaved, hoiDuocNguoiPhuTrach, nguoiPhuTrachTuPhien } from "../src/shared/handler-view";
@@ -419,9 +421,11 @@ function summaryBand(order: Order): HTMLElement {
       stat("ĐÓN", when, firstSvc?.pickupPlace ?? undefined),
       stat("KHÁCH", order.customerName, order.customerPhone),
       stat("SỐ KHÁCH", pax || "—", serviceLine),
-      tien
-        ? stat(tien.du > 0 ? "KHÁCH TRẢ DƯ" : "CÒN LẠI", vnd(tien.du > 0 ? tien.du : tien.conLai), `Tổng ${vnd(order.total)} · đã thu ${vnd(tien.daThu)}`, tien.conLai > 0 || tien.du > 0)
-        : stat("CÒN LẠI", "—", `Tổng ${vnd(order.total)}`),
+      tien?.coc
+        ? stat(tien.coc.nhan.toUpperCase(), vnd(tien.coc.daTra), tien.coc.nhanPhu ?? `Tổng ${vnd(order.total)}`)
+        : tien
+          ? stat(tien.du > 0 ? "KHÁCH TRẢ DƯ" : "CÒN LẠI", vnd(tien.du > 0 ? tien.du : tien.conLai), `Tổng ${vnd(order.total)} · ${nhanTienDaTra(order).nhan.toLowerCase()} ${vnd(tien.daThu)}`, tien.conLai > 0 || tien.du > 0)
+          : stat("CÒN LẠI", "—", `Tổng ${vnd(order.total)}`),
     ),
   );
 }
@@ -436,8 +440,10 @@ function badgeTrangThai(order: Order): HTMLElement {
 function tienCard(order: Order): HTMLElement {
   const t = tien;
   const rows: HTMLElement[] = [kv("Tạm tính", vnd(order.subtotal)), kv("Giảm giá", vnd(order.discount)), kv("Tổng cộng", vnd(order.total), "strong")];
-  if (t) {
-    rows.push(kv("Đã thu", vnd(t.daThu)));
+  if (t?.coc) {
+    // ADR-0089: đơn huỷ — không có "Còn lại" (khách không còn nợ); số cọc do máy chủ tính.
+  } else if (t) {
+    rows.push(kv(nhanTienDaTra(order).nhan, vnd(t.daThu)));
     rows.push(t.du > 0 ? kv("Khách trả dư", `${vnd(t.du)} — chờ Kế toán hoàn`, "strong") : kv("Còn lại", vnd(t.conLai), "strong"));
   } else rows.push(kv("Đã thu / còn lại", "Chưa tải được"));
   rows.push(kv("Ghi chú thanh toán", order.paymentNote));
@@ -465,6 +471,7 @@ function tienCard(order: Order): HTMLElement {
       ? h("p", { class: "dg-lock dg-lock-note", "data-khoi": "ly-do-giu" }, `Đang giữ đơn: ${lyDo.cau} Ai xử lý: ${lyDo.aiXuLy}.`)
       : null;
   const keToan = t?.keToan && !t.completedAt ? khoiKeToan(order, t) : null;
+  const coc = t?.coc ? khoiCoc(order, t.coc) : null;
   const nut: HTMLElement[] = [];
   if (t?.coTheGhiThu) nut.push(nutGhiThu(order, t));
   if (t && t.quyenGiao && !t.deliveredAt && order.status === "confirmed") nut.push(nutChot(order, "delivered", t));
@@ -474,6 +481,7 @@ function tienCard(order: Order): HTMLElement {
     { class: "card totals", "data-khoi": "thanh-toan" },
     h("h2", null, "Thanh toán"),
     ...rows,
+    coc,
     lanThu,
     keToan,
     giu,
@@ -519,6 +527,158 @@ function hangXacNhan(opts: { nhan: string; action: string; cau: string; nutGhi: 
   });
   wrap.append(mo);
   return wrap;
+}
+
+/** Nhãn khoản khách đã trả của đơn KHÔNG huỷ (ADR-0089 đ3: chưa "Đã giao" là "Khách hàng đã trả trước", sau đó "Đã thu") — một luật ở src/shared. */
+const nhanTienDaTra = (order: Order): { nhan: string } => nhanTienLuat({ status: order.status, deliveredAt: order.deliveredAt });
+
+/** Ô số tiền dùng chung cho các hàng thao tác cọc. */
+function oSoTien(macDinh: number | null): HTMLInputElement {
+  const o = h("input", { type: "text", inputmode: "numeric", autocomplete: "off", value: macDinh ? String(macDinh) : "" }) as HTMLInputElement;
+  regroupMoney(o);
+  o.addEventListener("input", () => regroupMoney(o));
+  return o;
+}
+const oLyDo = (goiY: string): HTMLInputElement => h("input", { type: "text", autocomplete: "off", maxlength: "500", placeholder: goiY }) as HTMLInputElement;
+
+/**
+ * Tiền cọc của ĐƠN HUỶ (ADR-0089 đ2, đ9b): nhãn "Cọc giữ lại – khách huỷ" / "Khách hàng đã trả trước", đã duyệt / đã hoàn / đã chuyển / còn giữ, khoản duyệt,
+ * dòng "đã hoàn ngoài hệ thống". Nút theo CỜ máy chủ (`can()` của đúng ô); máy chủ vẫn kiểm lại. Không vẽ màn mới (GĐ kế hoạch §3.5 — hàng nút cùng kiểu).
+ */
+function khoiCoc(order: Order, c: Api.CocDonDto): HTMLElement {
+  const rows: HTMLElement[] = [
+    kv("Lý do huỷ", `${c.lyDoNhan} · ${c.nhomNhan} · ngày ${ngayDayDu(c.ngayHuy)}`),
+    kv(c.nhan, `${vnd(c.daTra)}${c.nhanPhu ? ` — ${c.nhanPhu}` : ""}`, "strong"),
+  ];
+  if (c.dangDoiChieu > 0) rows.push(kv("Đang đối chiếu", `${vnd(c.dangDoiChieu)} (khách khai chuyển khoản, chưa xác nhận)`));
+  if (c.daDuyet > 0) rows.push(kv("Đã duyệt hoàn / chuyển", vnd(c.daDuyet)));
+  if (c.daChi > 0) rows.push(kv("Đã hoàn", vnd(c.daChi)));
+  if (c.daChuyen > 0) rows.push(kv("Đã chuyển sang đơn mới", vnd(c.daChuyen)));
+  if (c.choChi > 0) rows.push(kv("Chờ chi", vnd(c.choChi)));
+  rows.push(kv("Công ty còn giữ", vnd(c.conGiu), "strong"));
+  if (c.nguoiGiu?.length) rows.push(kv("Người đang giữ tiền", c.nguoiGiu.map((g) => `${g.ten}: ${vnd(g.soTien)}`).join("; ")));
+
+  const khoan = c.khoanDuyet.map((k) => {
+    const nut: HTMLElement[] = [];
+    if (k.loai === "hoan" && c.coTheChi && k.conLai > 0) {
+      const so = oSoTien(k.conLai);
+      const hinhThuc = h("select", null, ...(["BANK_TRANSFER", "CASH", "OTHER"] as const).map((m) => h("option", { value: m }, METHOD_LABEL[m]))) as HTMLSelectElement;
+      nut.push(hangXacNhan({
+        nhan: "Ghi chi hoàn", action: "coc-chi", nutGhi: "Ghi chi hoàn",
+        cau: `Ghi đã hoàn cho khách theo khoản duyệt ${vnd(k.soTien)} (còn ${vnd(k.conLai)}). Người duyệt không tự chi.`,
+        o: [h("label", null, "Số tiền (₫)", so), h("label", null, "Hình thức", hinhThuc)],
+        kiem: () => (parseMoney(so.value) > 0 ? null : "Nhập số tiền đã hoàn."),
+        ghi: () => api(`/api/orders/${encodeURIComponent(order.id)}/coc/chi`, { method: "POST", body: { duyetId: k.id, soTien: parseMoney(so.value), hinhThuc: hinhThuc.value, nguoiTra: "cong_ty" } }),
+        bao: "Đã ghi chi hoàn.",
+      }));
+    }
+    if (k.loai === "chuyen" && c.coTheChuyen && k.conLai > 0) {
+      const so = oSoTien(k.conLai);
+      nut.push(hangXacNhan({
+        nhan: "Chuyển tiền sang đơn mới", action: "coc-chuyen", nutGhi: "Ghi chuyển",
+        cau: `Chuyển ${vnd(k.conLai)} sang đơn ${k.donNhan ?? ""} (tiền do Công ty giữ). Người duyệt không tự chuyển.`,
+        o: [h("label", null, "Số tiền (₫)", so)],
+        kiem: () => (parseMoney(so.value) > 0 ? null : "Nhập số tiền chuyển."),
+        ghi: () => api(`/api/orders/${encodeURIComponent(order.id)}/coc/chuyen`, { method: "POST", body: { duyetId: k.id, soTien: parseMoney(so.value), nguoiGiu: "cong_ty" } }),
+        bao: "Đã chuyển tiền sang đơn mới.",
+      }));
+    }
+    if (c.coTheDuyet && k.conLai > 0 && k.daHuy === 0) {
+      const so = oSoTien(k.conLai);
+      const lyDo = oLyDo("Vì sao huỷ duyệt (bắt buộc)");
+      nut.push(hangXacNhan({
+        nhan: "Huỷ duyệt", action: "coc-huy-duyet", nutGhi: "Huỷ duyệt",
+        cau: `Huỷ phần chưa chi của khoản duyệt (tối đa ${vnd(k.conLai)}).`,
+        o: [h("label", null, "Số tiền (₫)", so), h("label", null, "Lý do", lyDo)],
+        kiem: () => (parseMoney(so.value) <= 0 ? "Nhập số tiền huỷ duyệt." : lyDo.value.trim() ? null : "Nhập lý do."),
+        ghi: () => api(`/api/orders/${encodeURIComponent(order.id)}/coc/duyet/${encodeURIComponent(k.id)}/huy`, { method: "POST", body: { soTien: parseMoney(so.value), lyDo: lyDo.value.trim() } }),
+        bao: "Đã huỷ duyệt phần chưa chi.",
+      }));
+    }
+    return h(
+      "li",
+      { "data-khoi": "khoan-duyet" },
+      `${ngayNganHomNay(k.ngayDuyet)} · ${k.loai === "chuyen" ? `Duyệt chuyển sang ${k.donNhan ?? "đơn mới"}` : "Duyệt hoàn"} ${vnd(k.soTien)}`,
+      k.daHuy > 0 ? ` (đã huỷ duyệt ${vnd(k.daHuy)})` : "",
+      ` — còn ${vnd(k.conLai)} · ${k.lyDo}${k.nguoiDuyet ? ` · ${k.nguoiDuyet}` : ""}`,
+      nut.length ? h("span", { class: "kt-actions" }, ...nut) : null,
+    );
+  });
+  const ngoai = c.hoanNgoaiDong.map((g) => {
+    const nhanTT = g.trangThai === "da_xac_nhan" ? "đã xác nhận" : g.trangThai === "tu_choi" ? "bị từ chối" : "chờ Quản trị xác nhận";
+    const nut: HTMLElement[] = [];
+    if (g.trangThai === "cho_xac_nhan" && c.coTheXacNhanHoanNgoai) {
+      nut.push(hangXacNhan({
+        nhan: "Xác nhận", action: "coc-xac-nhan-ngoai", nutGhi: "Xác nhận",
+        cau: `Xác nhận công ty đã trả tay ${vnd(g.soTien)} cho khách? Người ghi không tự xác nhận.`,
+        ghi: () => api(`/api/orders/${encodeURIComponent(order.id)}/coc/hoan-ngoai/${encodeURIComponent(g.id)}/xac-nhan`, { method: "POST", body: { dongY: true } }),
+        bao: "Đã xác nhận dòng đã hoàn ngoài hệ thống.",
+      }));
+      const lyDo = oLyDo("Vì sao từ chối (bắt buộc)");
+      nut.push(hangXacNhan({
+        nhan: "Từ chối", action: "coc-tu-choi-ngoai", nutGhi: "Từ chối",
+        cau: "Từ chối dòng này (Toàn quyền ghi lại được).", o: [h("label", null, "Lý do", lyDo)],
+        kiem: () => (lyDo.value.trim() ? null : "Nhập lý do từ chối."),
+        ghi: () => api(`/api/orders/${encodeURIComponent(order.id)}/coc/hoan-ngoai/${encodeURIComponent(g.id)}/xac-nhan`, { method: "POST", body: { dongY: false, lyDo: lyDo.value.trim() } }),
+        bao: "Đã từ chối dòng đã hoàn ngoài hệ thống.",
+      }));
+    }
+    return h("li", { "data-khoi": "hoan-ngoai" }, `Đã hoàn ngoài hệ thống ${vnd(g.soTien)} · ${nhanTT}${g.lyDo ? ` · ${g.lyDo}` : ""}`, nut.length ? h("span", { class: "kt-actions" }, ...nut) : null);
+  });
+
+  const nut: HTMLElement[] = [];
+  if (c.coThePhanLoai) {
+    const nhom = h("select", null, ...(["KHACH_HUY", "CONG_TY_HUY", "LAP_LAI"] as const).map((v) => h("option", { value: v }, NHOM_HUY_NHAN[v]))) as HTMLSelectElement;
+    const lyDo = oLyDo("Vì sao xếp nhóm này (bắt buộc)");
+    nut.push(hangXacNhan({
+      nhan: "Phân loại lý do", action: "phan-loai-huy", nutGhi: "Phân loại",
+      cau: "Lý do huỷ đang “chưa kết luận”. Chọn nhóm (quyết định giữ cọc và hạn hoàn):",
+      o: [h("label", null, "Nhóm", nhom), h("label", null, "Lý do", lyDo)],
+      kiem: () => (lyDo.value.trim() ? null : "Nhập lý do phân loại."),
+      ghi: () => api(`/api/orders/${encodeURIComponent(order.id)}/cancel-reason`, { method: "POST", body: { nhom: nhom.value, lyDo: lyDo.value.trim() } }),
+      bao: "Đã phân loại lý do huỷ.",
+    }));
+  }
+  if (c.coTheDuyet) {
+    const loai = h("select", null, h("option", { value: "hoan" }, "Hoàn cho khách"), h("option", { value: "chuyen" }, "Chuyển sang đơn mới")) as HTMLSelectElement;
+    const so = oSoTien(null);
+    const donNhan = h("input", { type: "text", autocomplete: "off", placeholder: "Mã đơn nhận (khi chuyển)" }) as HTMLInputElement;
+    const lyDo = oLyDo("Vì sao hoàn / chuyển (bắt buộc)");
+    nut.push(hangXacNhan({
+      nhan: "Duyệt hoàn cọc", action: "coc-duyet", nutGhi: "Duyệt",
+      cau: `Công ty còn giữ ${vnd(c.conGiu)}.${c.nhom === "KHACH_HUY" ? ` Hạn hoàn: ${ngayDayDu(c.han)}.` : ""} Người duyệt không tự chi.`,
+      o: [h("label", null, "Loại", loai), h("label", null, "Số tiền (₫)", so), h("label", null, "Đơn nhận", donNhan), h("label", null, "Lý do", lyDo)],
+      kiem: () => (parseMoney(so.value) <= 0 ? "Nhập số tiền." : !lyDo.value.trim() ? "Nhập lý do." : loai.value === "chuyen" && !donNhan.value.trim() ? "Nhập mã đơn nhận." : null),
+      ghi: () => api(`/api/orders/${encodeURIComponent(order.id)}/coc/duyet`, {
+        method: "POST",
+        body: loai.value === "chuyen"
+          ? { loai: "chuyen", soTien: parseMoney(so.value), lyDo: lyDo.value.trim(), donNhan: donNhan.value.trim() }
+          : { loai: "hoan", soTien: parseMoney(so.value), lyDo: lyDo.value.trim() },
+      }),
+      bao: "Đã duyệt.",
+    }));
+  }
+  if (c.coTheGhiHoanNgoai) {
+    const so = oSoTien(c.conGiu);
+    const lyDo = oLyDo("Đã trả tay khách thế nào (bắt buộc, không số tài khoản)");
+    nut.push(hangXacNhan({
+      nhan: "Ghi đã hoàn ngoài hệ thống", action: "coc-ghi-ngoai", nutGhi: "Ghi",
+      cau: "Đơn huỷ trước khi có lệnh hoàn cọc: ghi khoản công ty đã trả tay cho khách (cần Quản trị xác nhận mới tính).",
+      o: [h("label", null, "Số tiền (₫)", so), h("label", null, "Lý do", lyDo)],
+      kiem: () => (parseMoney(so.value) <= 0 ? "Nhập số tiền." : lyDo.value.trim() ? null : "Nhập lý do."),
+      ghi: () => api(`/api/orders/${encodeURIComponent(order.id)}/coc/hoan-ngoai`, { method: "POST", body: { soTien: parseMoney(so.value), lyDo: lyDo.value.trim() } }),
+      bao: "Đã ghi — chờ Quản trị xác nhận.",
+    }));
+  }
+  return h(
+    "div",
+    { class: "kt-khoi", "data-khoi": "coc-don-huy" },
+    h("h3", null, "Tiền của đơn huỷ"),
+    ...rows,
+    khoan.length ? h("ul", { class: "pay-list" }, ...khoan) : null,
+    ngoai.length ? h("ul", { class: "pay-list" }, ...ngoai) : null,
+    nut.length ? h("div", { class: "handler-actions" }, ...nut) : null,
+  );
 }
 
 /** Nút trên từng lần thu: "Xác nhận đã nhận" (Công ty thu – CK do người khác khai — H3), "Đảo" (ghi dòng đảo, bắt buộc lý do; gồm lần thu "chưa rõ" từ cọc cũ). */

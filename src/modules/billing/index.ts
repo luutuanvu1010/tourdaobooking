@@ -4,7 +4,8 @@
 // Mỗi route hỏi `can()` với ô của MATRIX TRƯỚC khi đọc thân / ghi (cổng router chỉ lọc thô — ADR-0019). Bảng tin (ADR-0022, ADR-0025 đ8): route ghi dưới
 // /api/orders/* báo `baoThayDoi` ĐÚNG MỘT lần, chỉ ở nhánh thành công, sau khi lô ghi xong (hàng rào src/bang-tin-guard.test.ts phủ tệp này).
 import type {
-  CocDemResponse, CocDoiChieuResponse, CocListResponse, LedgerBalancesResponse, NhapKeToanResponse, OrderPaymentsResponse, SoCongNoResponse, SoCuaToiResponse, UnpaidSummaryResponse,
+  CocDemResponse, CocDoiChieuResponse, CocListResponse, LedgerBalancesResponse, NhapKeToanResponse, OrderPaymentsResponse, ReceiptDto, SoCongNoResponse, SoCuaToiResponse,
+  UnpaidSummaryResponse,
 } from "../../shared/contracts";
 import { UUID_RE, error, json, readJson, trangDon } from "../../shared/http";
 import { docLenhNhapKeToan } from "../../shared/nhap-ke-toan";
@@ -13,7 +14,7 @@ import { route, type AppModule } from "../../shared/router";
 import { donDangThuTien, thongTinGiaoDon } from "../orders";
 import { donChoNhapKeToan, docNhapKeToan, ghiNhapKeToan } from "./nhap-ke-toan";
 import { accountingEnteredAmong, orderOwners, soDongNoCuaNguoiRow } from "./repository";
-import { cocCuaDon, danhSachCoc, demCoc, doiChieuCoc, ghiChiHoan, ghiChuyen, ghiDuyet, ghiHoanNgoai, ghiHuyDuyet, xacNhanHoanNgoai } from "./coc";
+import { cocChoBienNhan, cocCuaDon, danhSachCoc, demCoc, doiChieuCoc, ghiChiHoan, ghiChuyen, ghiDuyet, ghiHoanNgoai, ghiHuyDuyet, xacNhanHoanNgoai } from "./coc";
 import {
   daGiao, ghiDieuChinh, ghiHoanKhach, ghiLanThu, ghiQuyetToan, hoanThanh, soCongNo, soCuaToi, tienCuaDon, tienNhieuDon, xacNhanCongTyNhan, type NguoiGoi,
 } from "./service";
@@ -335,9 +336,9 @@ export const billingModule: AppModule = {
 };
 
 /** API công khai cho module `receipt` (biên nhận — Task 8): đã trả / còn lại của một đơn, cùng hàm `conLai` (một nguồn). KHÔNG tự kiểm quyền. */
-export async function soTienBienNhan(db: D1Database, orderId: string): Promise<{ daTra: number; conLai: number } | null> {
-  const t = (await tienNhieuDon(db, [orderId])).get(orderId);
-  return t ? { daTra: t.daThu, conLai: t.conLai } : null;
+export async function soTienBienNhan(db: D1Database, orderId: string): Promise<{ daTra: number; conLai: number; huy: ReceiptDto["huy"] } | null> {
+  const [t, huy] = await Promise.all([tienNhieuDon(db, [orderId]).then((m) => m.get(orderId)), cocChoBienNhan(db, orderId)]);
+  return t ? { daTra: t.daThu, conLai: t.conLai, huy } : null;
 }
 
 /**

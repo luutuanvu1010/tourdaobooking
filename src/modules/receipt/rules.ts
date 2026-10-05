@@ -3,7 +3,7 @@
 import type { CompanyDto, OrderDetailDto, ReceiptDto } from "../../shared/contracts.ts";
 import { trangThaiHienThi } from "../../shared/order-status-label.ts";
 
-export function dungBienNhan(order: OrderDetailDto, company: CompanyDto, tien: { daTra: number; conLai: number }): ReceiptDto {
+export function dungBienNhan(order: OrderDetailDto, company: CompanyDto, tien: { daTra: number; conLai: number; huy?: ReceiptDto["huy"] }): ReceiptDto {
   return {
     company: { name: company.name, taxCode: company.taxCode, address: company.address, hotline: company.hotline, email: company.email },
     orderCode: order.orderCode,
@@ -31,5 +31,9 @@ export function dungBienNhan(order: OrderDetailDto, company: CompanyDto, tien: {
     total: order.total,
     daTra: tien.daTra,
     conLai: tien.conLai,
+    // ADR-0089 đ9a — chép TỪNG trường (danh sách trắng), không trải đối tượng nguồn.
+    huy: tien.huy
+      ? { nhom: tien.huy.nhom, daTra: tien.huy.daTra, dangDoiChieu: tien.huy.dangDoiChieu, daDuyet: tien.huy.daDuyet, daChi: tien.huy.daChi, daChuyen: tien.huy.daChuyen, han: tien.huy.han }
+      : null,
   };
 }

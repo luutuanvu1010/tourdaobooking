@@ -33,9 +33,9 @@ try {
 
   // ---- 1) Bán hàng (390): khung Thanh toán đọc số của billing; có "Ghi lần thu"; KHÔNG có "Đã giao" (ô order.handover = none) ----
   const p = await env.as(ACCOUNTS.salesA, `/order?id=${o.id}`);
-  await p.waitFor("!!document.querySelector('[data-khoi=\"thanh-toan\"]') && /Đã thu/.test(document.querySelector('[data-khoi=\"thanh-toan\"]').textContent)", "khung Thanh toán có số billing");
+  await p.waitFor("!!document.querySelector('[data-khoi=\"thanh-toan\"]') && /Khách hàng đã trả trước/.test(document.querySelector('[data-khoi=\"thanh-toan\"]').textContent)", "khung Thanh toán có số billing (ADR-0089 đ3: nhãn trước Đã giao)");
   const r1 = await p.ev(kv);
-  assert.deepEqual(r1.slice(0, 5), [["Tạm tính", "1.350.000 ₫"], ["Giảm giá", "0 ₫"], ["Tổng cộng", "1.350.000 ₫"], ["Đã thu", "500.000 ₫"], ["Còn lại", "850.000 ₫"]], JSON.stringify(r1));
+  assert.deepEqual(r1.slice(0, 5), [["Tạm tính", "1.350.000 ₫"], ["Giảm giá", "0 ₫"], ["Tổng cộng", "1.350.000 ₫"], ["Khách hàng đã trả trước", "500.000 ₫"], ["Còn lại", "850.000 ₫"]] /* ADR-0089 đ3 */, JSON.stringify(r1));
   assert.equal(await p.ev("!!document.querySelector('[data-action=\"ghi-lan-thu\"]')"), true, "Bán hàng ghi được lần thu (own)");
   assert.equal(await p.ev("!!document.querySelector('[data-action=\"da-giao\"]')"), false, "Bán hàng KHÔNG có nút Đã giao");
   assert.equal(await p.ev("!!document.querySelector('[data-khoi=\"ke-toan\"], [data-action=\"dao-lan-thu\"], [data-action=\"xac-nhan-ck\"]')"), false, "Bán hàng KHÔNG thấy thao tác Kế toán");
@@ -43,7 +43,7 @@ try {
   assert.equal(await p.ev("document.documentElement.scrollWidth - document.documentElement.clientWidth <= 1"), true, "không tràn ngang 390");
   await p.shot(`${OUT}/1-ban-hang-390.png`);
   p.close();
-  ok("Bán hàng 390: Đã thu 500.000 / Còn lại 850.000 từ billing; có Ghi lần thu; không có Đã giao");
+  ok("Bán hàng 390: Khách hàng đã trả trước 500.000 / Còn lại 850.000 từ billing; có Ghi lần thu; không có Đã giao");
 
   // ---- 2) Quản trị (390, mở SAU CÙNG): Đã giao tắt + lý do; ghi lần thu 850.000 bằng giao diện; Đã giao → khoá ----
   const q = await env.as(ACCOUNTS.admin, `/order?id=${o.id}`);
