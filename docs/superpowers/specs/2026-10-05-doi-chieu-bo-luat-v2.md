@@ -46,6 +46,7 @@ Số điều 1.x–5.17 trùng; Điều 6 lệch một số (Phần I 6.k = Hi�
 |---|---|---|
 | K1, 5.11 | Phần I chỉ nói tác nhân "ghi thay người dùng"; chung nói "mỗi tác nhân tự động" | Cron `syncCatalog(env, null)` (`src/modules/catalog/index.ts:357`) ghi không qua `can()`, `staff_id` rỗng; ADR-0010 đ3 chừa Cron ra; lệch chưa có tên |
 | 2.1a | Khoá nhận dạng tự nhiên | Chưa ghi vào ADR-0010, 0068 |
+| Mô hình mục 5 | Sổ là một thực thể tường minh (mã, tên, mục đích, đơn vị tiền, hình dạng) | Chưa có; sổ chỉ ngụ ý qua tên bảng: công nợ là sổ hai bên (`bil_posting`, `bil_debt_line`), chi phí chuyến là sổ đơn tiền có dấu (`vc_trip_cost_line`) |
 | 4.2, 4.2a | Chung phủ mọi sổ tiền, cho bút toán người lập khi có chứng từ, người duyệt, nhật ký; mốc chốt | `vc_trip_cost_line` (migration 0073) nằm ngoài Phần I 4.2; bút toán điều chỉnh chưa có người duyệt riêng; `delivered_at` chưa khai là mốc chốt |
 | 5.2 | Thiếu ba vế: sinh phiên bản mới, hiệu lực không chồng, bản chưa duyệt không dùng để tính | `catalog_override` ghi đè và xoá cứng (ADR-0058 Đ6, hạn 2027-03-31); `prices_json`, `before_json` không có CHECK; bảng thi hành không có dòng 5.2 |
 | 5.12 | Chung cấm mọi dữ liệu định danh cá nhân ngoài mã tham chiếu, tách vết áp luật, không dựng vết giả | Nhật ký ghi họ tên (`src/modules/dispatch/service.ts:53`, `src/modules/parties/index.ts:896`); chưa tách vết áp luật; nhật ký cũ trên production còn số điện thoại |
