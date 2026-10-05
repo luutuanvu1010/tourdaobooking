@@ -162,6 +162,16 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "GET", path: "/api/orders/:id/receipt", access: "orders" }, // module receipt: order.view + money.view + contact.view phạm vi đơn
   { method: "POST", path: "/api/orders/:id/status", access: "orders" },
   { method: "POST", path: "/api/orders/:id/cancel-reason", access: "orders" }, // ADR-0089 đ8: phân loại lý do huỷ — tự kiểm can(order.cancel.classify) bên trong
+  // ADR-0089 (cọc đơn huỷ, migration 0079): sáu lệnh ghi văn phòng (tự kiểm ô bên trong) + ba route đọc của Kế toán (ledger.view any).
+  { method: "POST", path: "/api/orders/:id/coc/duyet", access: "office" },
+  { method: "POST", path: "/api/orders/:id/coc/duyet/:duyetId/huy", access: "office" },
+  { method: "POST", path: "/api/orders/:id/coc/chi", access: "office" },
+  { method: "POST", path: "/api/orders/:id/coc/chuyen", access: "office" },
+  { method: "POST", path: "/api/orders/:id/coc/hoan-ngoai", access: "office" },
+  { method: "POST", path: "/api/orders/:id/coc/hoan-ngoai/:ghiId/xac-nhan", access: "office" },
+  { method: "GET", path: "/api/ledger/coc", access: "office" },
+  { method: "GET", path: "/api/ledger/coc/doi-chieu", access: "office" },
+  { method: "GET", path: "/api/ledger/coc/dem", access: "office" },
   { method: "PUT", path: "/api/orders/:id/trip", access: "orders" },
   // ADR-0047 A1 (2026-09-29): chặng đưa đón SAU XÁC NHẬN — thân hỏi can(order.trip.edit, { ownerId, assigned }) trước khi đọc thân
   { method: "POST", path: "/api/orders/:id/legs", access: "orders" },
@@ -428,7 +438,7 @@ test("mức truy cập của 213 route hiện có khớp ảnh chụp đã duy�
   // 2026-10-05 (dot5-tang3): gộp tầng 3 Đợt 5 (POST …/cuoc-cua-toi/:id/hanh-khach) lên main 1.79 238 = 239.
   // 2026-10-05 (ADR-0102, nghiên cứu tốc độ đợt 1): + GET /giao-dien.css (public, cùng thân với /api/giao-dien.css) = 240.
   // 2026-10-05 (nghiên cứu tốc độ, đợt 1 việc 3): + GET /api/orders/dem-nhap (orders), GET /api/catalog/dem-xung-dot (admin) = 242.
-  // 2026-10-06 (dựng lại nhánh năm lỗi tiền lên main đã có tốc độ đợt 1): + POST /api/orders/:id/cancel-reason (orders; ADR-0089, phân loại lý do huỷ) = 243.
-  assert.equal(actual.length, 243, "số route thực tế lệch 243 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 243, "SNAPSHOT phải có đúng 243 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // 2026-10-06 (dựng lại nhánh năm lỗi tiền lên main đã có tốc độ đợt 1): + POST /api/orders/:id/cancel-reason (orders; ADR-0089, phân loại lý do huỷ) = 243; Phần B: + 6 lệnh cọc /api/orders/:id/coc/* + 3 route đọc /api/ledger/coc* (office) = 252.
+  assert.equal(actual.length, 252, "số route thực tế lệch 252 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 252, "SNAPSHOT phải có đúng 252 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

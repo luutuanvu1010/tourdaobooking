@@ -3,7 +3,9 @@
 // Chiều phụ thuộc: billing → orders, parties, staff, dispatch, audit. `orders` KHÔNG đọc bảng bil_; số "đã thu / còn lại" của mọi màn lấy qua route ở đây.
 // Mỗi route hỏi `can()` với ô của MATRIX TRƯỚC khi đọc thân / ghi (cổng router chỉ lọc thô — ADR-0019). Bảng tin (ADR-0022, ADR-0025 đ8): route ghi dưới
 // /api/orders/* báo `baoThayDoi` ĐÚNG MỘT lần, chỉ ở nhánh thành công, sau khi lô ghi xong (hàng rào src/bang-tin-guard.test.ts phủ tệp này).
-import type { LedgerBalancesResponse, NhapKeToanResponse, OrderPaymentsResponse, SoCongNoResponse, SoCuaToiResponse, UnpaidSummaryResponse } from "../../shared/contracts";
+import type {
+  CocDemResponse, CocDoiChieuResponse, CocListResponse, LedgerBalancesResponse, NhapKeToanResponse, OrderPaymentsResponse, SoCongNoResponse, SoCuaToiResponse, UnpaidSummaryResponse,
+} from "../../shared/contracts";
 import { UUID_RE, error, json, readJson, trangDon } from "../../shared/http";
 import { docLenhNhapKeToan } from "../../shared/nhap-ke-toan";
 import { can, seesOnlyAssignedOrders, type PermissionHolder } from "../../shared/permissions";
@@ -11,6 +13,7 @@ import { route, type AppModule } from "../../shared/router";
 import { donDangThuTien, thongTinGiaoDon } from "../orders";
 import { donChoNhapKeToan, docNhapKeToan, ghiNhapKeToan } from "./nhap-ke-toan";
 import { accountingEnteredAmong, orderOwners, soDongNoCuaNguoiRow } from "./repository";
+import { cocCuaDon, danhSachCoc, demCoc, doiChieuCoc, ghiChiHoan, ghiChuyen, ghiDuyet, ghiHoanNgoai, ghiHuyDuyet, xacNhanHoanNgoai } from "./coc";
 import {
   daGiao, ghiDieuChinh, ghiHoanKhach, ghiLanThu, ghiQuyetToan, hoanThanh, soCongNo, soCuaToi, tienCuaDon, tienNhieuDon, xacNhanCongTyNhan, type NguoiGoi,
 } from "./service";
@@ -23,6 +26,8 @@ const CANNOT_HANDOVER = () => error(403, "forbidden", "Chỉ hướng dẫn viê
 const CANNOT_COMPLETE = () => error(403, "forbidden", "Chỉ Kế toán hoặc Toàn quyền mới bấm được Hoàn thành.");
 const CANNOT_LEDGER = () => error(403, "forbidden", "Chỉ Kế toán hoặc Toàn quyền mới ghi được sổ công nợ.");
 const CANNOT_MARK_ENTRY = () => error(403, "forbidden", "Chỉ Kế toán hoặc Toàn quyền mới đánh dấu được đã nhập phần mềm kế toán.");
+const CANNOT_APPROVE = () => error(403, "forbidden", "Chỉ Quản trị hoặc Toàn quyền mới duyệt được hoàn cọc / xác nhận dòng đã hoàn ngoài hệ thống.");
+const CANNOT_OUTSIDE = () => error(403, "forbidden", "Chỉ Toàn quyền mới ghi được dòng đã hoàn ngoài hệ thống.");
 const CANNOT_REFUND = () => error(403, "forbidden", "Chỉ Kế toán hoặc Toàn quyền mới ghi được hoàn tiền cho khách.");
 
 /** Người gọi cho service: `laKeToan` = có ô `ledger.write` (Kế toán, Toàn quyền — ghi người thu là người khác, chọn ngày phát sinh). */
@@ -48,12 +53,24 @@ export const billingModule: AppModule = {
       const scope = { ownerId: info.ownerId, assigned };
       if (!can(staff, "order.view", scope)) return seesOnlyAssignedOrders(staff) ? NOT_FOUND() : FORBIDDEN_VIEW();
       if (!can(staff, "money.view", scope)) return FORBIDDEN_VIEW();
+      // ADR-0089: khối cọc của đơn huỷ — cờ nút theo ĐÚNG ô của route ghi; tên người giữ tiền chỉ cho `ledger.view` phạm vi any.
+      const coc = info.status === "cancelled"
+        ? await cocCuaDon(env.DB, id, {
+          coThePhanLoai: can(staff, "order.cancel.classify"),
+          coTheDuyet: can(staff, "deposit.refund.approve"),
+          coTheChi: can(staff, "payment.refund"),
+          coTheChuyen: can(staff, "ledger.write"),
+          coTheGhiHoanNgoai: can(staff, "deposit.outside.record"),
+          coTheXacNhanHoanNgoai: can(staff, "deposit.refund.approve"),
+          xemNguoiGiu: can(staff, "ledger.view"),
+        })
+        : null;
       const body = await tienCuaDon(env.DB, info, nguoiGoi(staff), {
         // Cờ theo ĐÚNG luật của route ghi (đ13): đơn huỷ thì thêm ô `ledger.write`.
         coTheGhiThu: can(staff, "payment.receive", scope) && (info.status !== "cancelled" || can(staff, "ledger.write")),
         coTheBamGiao: can(staff, "order.handover", { assigned }),
         coTheBamHoanThanh: can(staff, "order.complete"),
-      });
+      }, coc);
       return json(body satisfies OrderPaymentsResponse);
     }),
 
@@ -68,6 +85,81 @@ export const billingModule: AppModule = {
       // ADR-0089 đ13 (NT-H10, H-C9): lần thu lên ĐƠN ĐÃ HUỶ (khách chuyển khoản muộn) chỉ Kế toán, Toàn quyền.
       if (info.status === "cancelled" && !can(staff, "ledger.write")) return CANNOT_RECEIVE_CANCELLED();
       const kq = await ghiLanThu(env.DB, { orderId: id, deliveredAt: info.deliveredAt, raw: await readJson(request), ai: nguoiGoi(staff) });
+      if (!kq.ok) return kq.res;
+      baoThayDoi({ orderId: id, thayDoi: "tien" });
+      return json({ ok: true }, 201, { location: trangDon(id) });
+    }),
+
+    // ---- CỌC ĐƠN HUỶ (ADR-0089; migration 0079). Mỗi lệnh MỘT lô (ADR-0094 V1), 201 + Location trang đơn (V2). Luật tiền kiểm ở máy chủ (rules.ts) rồi
+    // trigger 0079 kiểm lại. Các route /coc/... không trùng tiền tố route nào khác của orders/billing.
+    // Duyệt hoàn / duyệt chuyển (đ4a, đ6, X-1): ô `deposit.refund.approve` (Quản trị, Toàn quyền). Thân { loai: "hoan" | "chuyen", soTien, lyDo, donNhan? (mã đơn) }.
+    route("POST", "/api/orders/:id/coc/duyet", "office", async ({ env, request, params, staff, baoThayDoi }) => {
+      if (!can(staff, "deposit.refund.approve")) return CANNOT_APPROVE();
+      const id = params.id!;
+      if (!UUID_RE.test(id)) return NOT_FOUND();
+      if (!(await thongTinGiaoDon(env.DB, id))) return NOT_FOUND();
+      const kq = await ghiDuyet(env.DB, { orderId: id, raw: await readJson(request), ai: nguoiGoi(staff) });
+      if (!kq.ok) return kq.res;
+      baoThayDoi({ orderId: id, thayDoi: "tien" });
+      return json({ ok: true, duyetId: kq.value.duyetId }, 201, { location: trangDon(id) });
+    }),
+
+    // Huỷ duyệt phần chưa chi (đ4c): ô `deposit.refund.approve`. Thân { soTien, lyDo }.
+    route("POST", "/api/orders/:id/coc/duyet/:duyetId/huy", "office", async ({ env, request, params, staff, baoThayDoi }) => {
+      if (!can(staff, "deposit.refund.approve")) return CANNOT_APPROVE();
+      const id = params.id!;
+      if (!UUID_RE.test(id)) return NOT_FOUND();
+      if (!(await thongTinGiaoDon(env.DB, id))) return NOT_FOUND();
+      const kq = await ghiHuyDuyet(env.DB, { orderId: id, duyetId: params.duyetId!, raw: await readJson(request), ai: nguoiGoi(staff) });
+      if (!kq.ok) return kq.res;
+      baoThayDoi({ orderId: id, thayDoi: "tien" });
+      return json({ ok: true }, 201, { location: trangDon(id) });
+    }),
+
+    // Ghi chi hoàn theo khoản duyệt (đ4b, đ4c): ô `payment.refund` (Kế toán, Toàn quyền); người chi ≠ người duyệt. Thân { duyetId, soTien, hinhThuc, nguoiTra, ngayPhatSinh?, ghiChu? }.
+    route("POST", "/api/orders/:id/coc/chi", "office", async ({ env, request, params, staff, baoThayDoi }) => {
+      if (!can(staff, "payment.refund")) return CANNOT_REFUND();
+      const id = params.id!;
+      if (!UUID_RE.test(id)) return NOT_FOUND();
+      if (!(await thongTinGiaoDon(env.DB, id))) return NOT_FOUND();
+      const kq = await ghiChiHoan(env.DB, { orderId: id, raw: await readJson(request), ai: nguoiGoi(staff) });
+      if (!kq.ok) return kq.res;
+      baoThayDoi({ orderId: id, thayDoi: "tien" });
+      return json({ ok: true }, 201, { location: trangDon(id) });
+    }),
+
+    // Chuyển tiền sang đơn mới (đ6): ô `ledger.write` (Kế toán, Toàn quyền); người chuyển ≠ người duyệt; MỘT lô hai đơn. Thân { duyetId, soTien, nguoiGiu, ngayPhatSinh? }.
+    // Bảng tin: báo CẢ hai đơn (một lời gọi trong vòng lặp — hàng rào đếm lời gọi theo văn bản).
+    route("POST", "/api/orders/:id/coc/chuyen", "office", async ({ env, request, params, staff, baoThayDoi }) => {
+      if (!can(staff, "ledger.write")) return CANNOT_LEDGER();
+      const id = params.id!;
+      if (!UUID_RE.test(id)) return NOT_FOUND();
+      if (!(await thongTinGiaoDon(env.DB, id))) return NOT_FOUND();
+      const kq = await ghiChuyen(env.DB, { orderId: id, raw: await readJson(request), ai: nguoiGoi(staff) });
+      if (!kq.ok) return kq.res;
+      for (const orderId of [id, kq.value.donNhanId]) baoThayDoi({ orderId, thayDoi: "tien" });
+      return json({ ok: true, donNhanId: kq.value.donNhanId }, 201, { location: trangDon(id) });
+    }),
+
+    // Ghi "đã hoàn ngoài hệ thống" cho đơn huỷ cũ (đ16, X-3): ô `deposit.outside.record` (chỉ Toàn quyền). Thân { soTien, lyDo, ngayPhatSinh? }.
+    route("POST", "/api/orders/:id/coc/hoan-ngoai", "office", async ({ env, request, params, staff, baoThayDoi }) => {
+      if (!can(staff, "deposit.outside.record")) return CANNOT_OUTSIDE();
+      const id = params.id!;
+      if (!UUID_RE.test(id)) return NOT_FOUND();
+      if (!(await thongTinGiaoDon(env.DB, id))) return NOT_FOUND();
+      const kq = await ghiHoanNgoai(env.DB, { orderId: id, raw: await readJson(request), ai: nguoiGoi(staff) });
+      if (!kq.ok) return kq.res;
+      baoThayDoi({ orderId: id, thayDoi: "tien" });
+      return json({ ok: true }, 201, { location: trangDon(id) });
+    }),
+
+    // Xác nhận / từ chối dòng "đã hoàn ngoài hệ thống" (X-4, lời chủ (b)): ô `deposit.refund.approve`; người xác nhận ≠ người ghi. Thân { dongY, lyDo? (bắt buộc khi từ chối) }.
+    route("POST", "/api/orders/:id/coc/hoan-ngoai/:ghiId/xac-nhan", "office", async ({ env, request, params, staff, baoThayDoi }) => {
+      if (!can(staff, "deposit.refund.approve")) return CANNOT_APPROVE();
+      const id = params.id!;
+      if (!UUID_RE.test(id)) return NOT_FOUND();
+      if (!(await thongTinGiaoDon(env.DB, id))) return NOT_FOUND();
+      const kq = await xacNhanHoanNgoai(env.DB, { orderId: id, ghiId: params.ghiId!, raw: await readJson(request), ai: nguoiGoi(staff) });
       if (!kq.ok) return kq.res;
       baoThayDoi({ orderId: id, thayDoi: "tien" });
       return json({ ok: true }, 201, { location: trangDon(id) });
@@ -186,6 +278,21 @@ export const billingModule: AppModule = {
     route("GET", "/api/ledger", "office", async ({ env, staff }) => {
       if (!can(staff, "ledger.view")) return FORBIDDEN_VIEW();
       return json((await soCongNo(env.DB)) satisfies SoCongNoResponse);
+    }),
+
+    // ---- Cọc đơn huỷ — danh sách / đối chiếu / ô đếm cho Kế toán (ADR-0089 đ5 nhắc, đ9c, đ11, đ16): ô `ledger.view` KHÔNG ngữ cảnh (= any — Kế toán,
+    // Toàn quyền). Tiền tố tĩnh; không có route `/api/ledger/:…` nào nuốt mất.
+    route("GET", "/api/ledger/coc", "office", async ({ env, staff }) => {
+      if (!can(staff, "ledger.view")) return FORBIDDEN_VIEW();
+      return json((await danhSachCoc(env.DB)) satisfies CocListResponse);
+    }),
+    route("GET", "/api/ledger/coc/doi-chieu", "office", async ({ env, staff }) => {
+      if (!can(staff, "ledger.view")) return FORBIDDEN_VIEW();
+      return json((await doiChieuCoc(env.DB)) satisfies CocDoiChieuResponse);
+    }),
+    route("GET", "/api/ledger/coc/dem", "office", async ({ env, staff }) => {
+      if (!can(staff, "ledger.view")) return FORBIDDEN_VIEW();
+      return json((await demCoc(env.DB)) satisfies CocDemResponse);
     }),
 
     // Kế toán bấm "Công ty đã nhận" (H3): khoản "Công ty thu" do người khác khai hết tính vào nợ người khai. Ô `ledger.write`.

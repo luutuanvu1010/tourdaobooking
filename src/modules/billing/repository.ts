@@ -12,14 +12,14 @@ import { defineSql } from "../../shared/sql-registry.ts";
 // Đọc
 // ---------------------------------------------------------------------------------------------------------------------------------------------------
 const RECEIPT_COLS = `r.id, r.order_id, r.kind_code, r.amount, r.collector_party_id, r.collector_role_code, r.method_code, r.stage_code, r.occurred_date,
-  r.reverses_id, r.note, r.created_at, r.created_by, pl.display_name AS collector_label, sl.label AS created_by_label`;
+  r.reverses_id, r.note, r.created_at, r.created_by, r.approval_id, r.transfer_of_id, pl.display_name AS collector_label, sl.label AS created_by_label`;
 const RECEIPT_JOIN = `FROM bil_payment_receipt r LEFT JOIN v_pty_party_label pl ON pl.id = r.collector_party_id LEFT JOIN v_stf_staff_label sl ON sl.id = r.created_by`;
 
 const RECEIPTS_OF_ORDER = defineSql("billing", "receipts_of_order", `SELECT ${RECEIPT_COLS} ${RECEIPT_JOIN} WHERE r.order_id = ?1 ORDER BY r.rowid`);
 const RECEIPTS_OF_ORDERS = defineSql(
   "billing",
   "receipts_of_orders",
-  `SELECT r.id, r.order_id, r.kind_code, r.amount, r.collector_party_id, r.collector_role_code, r.reverses_id FROM bil_payment_receipt r
+  `SELECT r.id, r.order_id, r.kind_code, r.amount, r.collector_party_id, r.collector_role_code, r.reverses_id, r.approval_id FROM bil_payment_receipt r
    WHERE r.order_id IN (SELECT value FROM json_each(?1)) ORDER BY r.rowid`,
 );
 const RECEIPT_BY_ID = defineSql("billing", "receipt_by_id", `SELECT ${RECEIPT_COLS} ${RECEIPT_JOIN} WHERE r.id = ?1`);
@@ -38,12 +38,16 @@ export interface ReceiptDbRow {
   note: string | null;
   created_at: string;
   created_by: string | null;
+  /** Khoản duyệt hoàn cọc (0079) — lần chi hoàn / nửa chi của lệnh chuyển. */
+  approval_id: string | null;
+  /** Nửa thu ở đơn nhận trỏ nửa chi ở đơn huỷ (0079). */
+  transfer_of_id: string | null;
   collector_label: string | null;
   created_by_label: string | null;
 }
 export const receiptsOfOrder = async (db: D1Database, orderId: string): Promise<ReceiptDbRow[]> =>
   (await db.prepare(RECEIPTS_OF_ORDER).bind(orderId).all<ReceiptDbRow>()).results;
-export async function receiptsOfOrders(db: D1Database, orderIds: readonly string[]): Promise<Pick<ReceiptDbRow, "id" | "order_id" | "kind_code" | "amount" | "collector_party_id" | "collector_role_code" | "reverses_id">[]> {
+export async function receiptsOfOrders(db: D1Database, orderIds: readonly string[]): Promise<Pick<ReceiptDbRow, "id" | "order_id" | "kind_code" | "amount" | "collector_party_id" | "collector_role_code" | "reverses_id" | "approval_id">[]> {
   if (orderIds.length === 0) return [];
   return (await db.prepare(RECEIPTS_OF_ORDERS).bind(JSON.stringify(orderIds)).all<ReceiptDbRow>()).results;
 }

@@ -301,6 +301,70 @@ export const CHECKS = [
     level: "fail",
   },
 
+  // ---- Đơn huỷ và cọc (ADR-0089; migration 0078 lý do huỷ, 0079 cọc đơn huỷ — năm lỗi tiền Đợt 1). LƯỚI THỨ HAI sau trigger (bắt trigger bị gỡ nhầm / SQL gõ
+  // tay đi vòng). "Còn lại = 0 của đơn huỷ" (R-BIL-C0 của kế hoạch) KHÔNG có câu SQL: "còn lại" không được lưu ở đâu — chỉ hàm `conLai` tính (H-C8, bài route).
+  {
+    // H-C6: đơn huỷ phải có dòng lý do; dòng lý do chỉ thuộc đơn đã huỷ (lô huỷ thua khoá lạc quan không để dòng mồ côi).
+    code: "R-ORD-H1",
+    what: "đơn huỷ có dòng lý do huỷ, và dòng lý do chỉ thuộc đơn đã huỷ",
+    sql: `SELECT (SELECT count(*) FROM orders o WHERE o.status = 'cancelled' AND NOT EXISTS (SELECT 1 FROM ord_cancel_reason r WHERE r.order_id = o.id))
+              + (SELECT count(DISTINCT r.order_id) FROM ord_cancel_reason r JOIN orders o ON o.id = r.order_id WHERE o.status <> 'cancelled')`,
+    level: "fail",
+  },
+  {
+    // H-C1 (đ15, mọi lúc): chi + chuyển ≤ duyệt ≤ tiền còn giữ lúc huỷ — đếm đơn lệch (view công bố v_bil_coc_don, cùng định nghĩa soTienCoc).
+    code: "R-BIL-C1",
+    what: "đơn huỷ: đã chi + đã chuyển ≤ đã duyệt ≤ tiền còn giữ lúc huỷ",
+    sql: `SELECT count(*) FROM v_bil_coc_don v JOIN v_ord_cancel_state c ON c.order_id = v.order_id
+     WHERE v.da_chi + v.da_chuyen > v.da_duyet OR v.da_duyet > v.con_giu_luc_huy`,
+    level: "fail",
+  },
+  {
+    // H-C7: đơn huỷ SAU bản này (dòng lý do legacy = 0) chỉ hoàn qua khoản duyệt — lần trả lại khách còn hiệu lực không gắn khoản duyệt, ghi SAU lúc huỷ.
+    code: "R-BIL-C2",
+    what: "đơn huỷ (sau bản cọc) không có lần trả lại khách tự do ghi sau lúc huỷ",
+    sql: `SELECT count(*) FROM bil_payment_receipt r JOIN ord_cancel_reason c ON c.order_id = r.order_id AND c.reclassifies_id IS NULL AND c.legacy = 0
+     WHERE r.kind_code = 'CUSTOMER_REFUND' AND r.approval_id IS NULL AND r.reverses_id IS NULL AND r.created_at > c.created_at
+       AND NOT EXISTS (SELECT 1 FROM bil_payment_receipt x WHERE x.reverses_id = r.id)`,
+    level: "fail",
+  },
+  {
+    // H-C2 (đ4c, X-4): người chi / chuyển ≠ người duyệt khoản; người xác nhận / từ chối ≠ người ghi dòng hoàn ngoài.
+    code: "R-BIL-C3",
+    what: "tách người: người chi / chuyển khác người duyệt; người xác nhận dòng hoàn ngoài khác người ghi",
+    sql: `SELECT (SELECT count(*) FROM bil_payment_receipt r JOIN bil_deposit_approval a ON a.id = r.approval_id WHERE r.created_by IS a.created_by)
+              + (SELECT count(*) FROM bil_outside_refund d JOIN bil_outside_refund g ON g.id = d.target_id WHERE d.created_by IS g.created_by)`,
+    level: "fail",
+  },
+  {
+    // H-C5 (đ16, lời chủ (b)): mỗi đơn tối đa MỘT dòng "đã hoàn ngoài hệ thống" đang hiệu lực (chưa bị từ chối); chỉ đơn huỷ cũ.
+    code: "R-BIL-C4",
+    what: "mỗi đơn tối đa một dòng đã hoàn ngoài hệ thống đang hiệu lực, chỉ đơn huỷ cũ",
+    sql: `SELECT (SELECT count(*) FROM (SELECT g.order_id FROM bil_outside_refund g WHERE g.kind_code = 'RECORD'
+                AND NOT EXISTS (SELECT 1 FROM bil_outside_refund x WHERE x.target_id = g.id AND x.kind_code = 'REJECT') GROUP BY g.order_id HAVING count(*) > 1))
+              + (SELECT count(*) FROM bil_outside_refund g WHERE g.kind_code = 'RECORD'
+                AND NOT EXISTS (SELECT 1 FROM ord_cancel_reason c WHERE c.order_id = g.order_id AND c.reclassifies_id IS NULL AND c.legacy = 1))`,
+    level: "fail",
+  },
+  {
+    // đ6: lệnh chuyển đủ hai nửa — mỗi lần chi gắn khoản TRANSFER còn hiệu lực có đúng một nửa thu ở đơn nhận, cùng số, cùng người giữ.
+    code: "R-BIL-C5",
+    what: "chuyển tiền sang đơn mới đủ hai nửa (đơn nhận, cùng số, cùng người giữ)",
+    sql: `SELECT count(*) FROM bil_payment_receipt o JOIN bil_deposit_approval a ON a.id = o.approval_id AND a.kind_code = 'TRANSFER'
+     WHERE o.kind_code = 'CUSTOMER_REFUND' AND o.reverses_id IS NULL
+       AND NOT EXISTS (SELECT 1 FROM bil_payment_receipt i WHERE i.transfer_of_id = o.id AND i.order_id = a.target_order_id AND i.amount = o.amount
+                         AND i.collector_party_id IS o.collector_party_id)`,
+    level: "fail",
+  },
+  {
+    // H-C3 (đ5): khoản duyệt của đơn KHÁCH HUỶ không ghi sau hạn hoàn cọc (ngày khởi hành muộn nhất / ngày huỷ + 60).
+    code: "R-BIL-C6",
+    what: "khoản duyệt hoàn cọc của đơn khách huỷ nằm trong hạn",
+    sql: `SELECT count(*) FROM bil_deposit_approval a JOIN v_ord_cancel_state c ON c.order_id = a.order_id
+     WHERE a.voids_id IS NULL AND c.group_code = 'KHACH_HUY' AND a.approved_date > c.refund_deadline`,
+    level: "fail",
+  },
+
   // ---- Giấy tờ của người + xe (ADR-0040, Vận chuyển lượt 1a). Migration *_giay_to_cua_nguoi / *_van_chuyen_xe trở lên: D1 chưa áp thì các câu dưới lỗi
   // "no such table" → script thoát mã 2 (không phải dữ liệu sạch) — `npm run trien-khai` chạy kiểm SAU khi áp migration. Là LƯỚI THỨ HAI sau trigger/chỉ mục
   // của migration (bắt trường hợp trigger/chỉ mục bị gỡ nhầm hay SQL gõ tay đi vòng).

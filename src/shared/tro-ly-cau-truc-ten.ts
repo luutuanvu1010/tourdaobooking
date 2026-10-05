@@ -78,6 +78,8 @@ export const TEN_THAO_TAC: Readonly<Record<OperationCode, TenLoiThuong>> = {
   "order.service.manual": { ten: "thêm dịch vụ nhập tay", moTa: "Gõ tên và giá một dịch vụ không có trong danh mục, khi Toàn quyền đang bật Dịch vụ nhập tay." },
   "task.progress": { ten: "cập nhật tiến độ việc được giao", moTa: "Báo tiến độ việc được giao trên đơn." },
   "order.money.edit": { ten: "sửa số khách sau xác nhận", moTa: "Hướng dẫn viên đang phụ trách sửa số khách của đơn đã xác nhận, tới hết ngày đi, kèm lý do; app ghi thành dòng điều chỉnh." },
+  "deposit.refund.approve": { ten: "duyệt hoàn cọc đơn huỷ", moTa: "Duyệt hoàn hoặc duyệt chuyển tiền khách đã trả của đơn huỷ sang đơn mới (có lý do, trong hạn), huỷ phần duyệt chưa chi, xác nhận dòng đã hoàn ngoài hệ thống. Người duyệt không tự chi." },
+  "deposit.outside.record": { ten: "ghi đã hoàn ngoài hệ thống", moTa: "Ghi một dòng “đã hoàn ngoài hệ thống” cho đơn huỷ cũ mà công ty đã trả tay cho khách; cần Quản trị xác nhận mới tính." },
   "order.cancel.classify": { ten: "chọn lý do “Công ty huỷ” và phân loại lý do huỷ", moTa: "Khi huỷ đơn, chọn được nhóm lý do “Công ty huỷ” (hoàn toàn bộ, không bị hạn 60 ngày); phân loại đơn huỷ “chưa kết luận” sang khách huỷ, công ty huỷ hoặc huỷ để lập lại." },
   "order.cancel": { ten: "huỷ đơn mình phụ trách theo quyền hướng dẫn viên (kèm lý do)", moTa: "Hướng dẫn viên huỷ đơn mình đang phụ trách (đơn đã xác nhận, trước ngày đi), luôn kèm lý do. Người lập đơn huỷ đơn bằng việc sửa, xác nhận, huỷ đơn." },
   "dispatch.assign": { ten: "giao, đổi người phụ trách", moTa: "Chọn hoặc đổi người phụ trách một đơn." },

@@ -1664,6 +1664,87 @@ export interface OrderPaymentsResponse {
    * `dangGiu` = ai đang giữ tiền của công ty VÌ ĐƠN NÀY (số dư dương của sổ, theo đơn); `choXacNhan` = id lần thu "Công ty thu – CK" chưa được xác nhận.
    */
   keToan: { dangGiu: { partyId: string; ten: string; soTien: number }[]; choXacNhan: string[] } | null;
+  /** ADR-0089: tiền cọc của ĐƠN HUỶ (null với đơn không huỷ). */
+  coc: CocDonDto | null;
+}
+
+/** Một khoản duyệt hoàn cọc (đ4a, đ6) trên trang đơn huỷ. */
+export interface KhoanDuyetDto {
+  id: string;
+  loai: "hoan" | "chuyen";
+  soTien: number;
+  /** Phần còn chi / chuyển được (số duyệt − huỷ duyệt − đã chi). */
+  conLai: number;
+  daHuy: number;
+  lyDo: string;
+  ngayDuyet: string;
+  nguoiDuyet: string | null;
+  /** Mã đơn nhận (chuyển). */
+  donNhan: string | null;
+}
+/** Dòng "đã hoàn ngoài hệ thống" (đ16) — trạng thái: chờ xác nhận / đã xác nhận / bị từ chối. */
+export interface HoanNgoaiDto {
+  id: string;
+  soTien: number;
+  lyDo: string | null;
+  trangThai: "cho_xac_nhan" | "da_xac_nhan" | "tu_choi";
+  nguoiGhi: string | null;
+  ngay: string;
+}
+/**
+ * Tiền cọc của đơn huỷ (ADR-0089 đ2, đ9b). Số đều do máy chủ tính (`soTienCoc`). Tên người giữ tiền (`nguoiGiu`) CHỈ cho `ledger.view` phạm vi any, còn lại
+ * null. Cờ nút theo ĐÚNG ô của route ghi (`can()` ở máy chủ); máy chủ vẫn kiểm lại.
+ */
+export interface CocDonDto {
+  nhom: "KHACH_HUY" | "CONG_TY_HUY" | "LAP_LAI" | "CHUA_KET_LUAN";
+  nhomNhan: string;
+  lyDoNhan: string;
+  ngayHuy: string;
+  /** Hạn hoàn cọc (YYYY-MM-DD) — chỉ CHẶN duyệt mới của nhóm khách huỷ. */
+  han: string;
+  quaHan: boolean;
+  /** Đơn huỷ trước khi có lệnh hoàn cọc (đ16, X-3). */
+  legacy: boolean;
+  nhan: string;
+  nhanPhu: string | null;
+  daTra: number;
+  dangDoiChieu: number;
+  daDuyet: number;
+  daChi: number;
+  daChuyen: number;
+  hoanNgoai: number;
+  conGiu: number;
+  choChi: number;
+  khoanDuyet: KhoanDuyetDto[];
+  hoanNgoaiDong: HoanNgoaiDto[];
+  nguoiGiu: { ten: string; soTien: number }[] | null;
+  coThePhanLoai: boolean;
+  coTheDuyet: boolean;
+  coTheChi: boolean;
+  coTheChuyen: boolean;
+  coTheGhiHoanNgoai: boolean;
+  coTheXacNhanHoanNgoai: boolean;
+}
+
+/** `GET /api/ledger/coc` — danh sách cho Kế toán (đ9c, đ11; màn sổ chờ bản vẽ). Không tên / SĐT khách. */
+export interface CocListResponse {
+  /** Khoản duyệt còn phần chưa chi ("Cần chi hoàn"). */
+  canChi: { duyetId: string; orderId: string; maDon: string; loai: "hoan" | "chuyen"; conLai: number; ngayDuyet: string; qua7Ngay: boolean; donNhan: string | null }[];
+  /** Đơn huỷ còn giữ tiền ("Đơn huỷ giữ cọc"). */
+  donHuyGiuCoc: { orderId: string; maDon: string; nhom: string; nhomNhan: string; conGiu: number; han: string; sapHetHan: boolean; legacy: boolean }[];
+  /** Đơn huỷ còn người giữ tiền mặt của công ty (đ11). */
+  conNguoiGiu: { orderId: string; maDon: string; nguoi: string; soTien: number }[];
+}
+/** `GET /api/ledger/coc/doi-chieu` — đơn huỷ CŨ còn giữ tiền để đối chiếu "đã hoàn ngoài hệ thống" (đ16). */
+export interface CocDoiChieuResponse {
+  don: { orderId: string; maDon: string; ngayHuy: string; daTra: number; conGiu: number; coDongHieuLuc: boolean }[];
+}
+/** `GET /api/ledger/coc/dem` — ô đếm Trang chủ Kế toán (NT-V6). */
+export interface CocDemResponse {
+  canChi: number;
+  duyetQua7Ngay: number;
+  sapHetHan: number;
+  conNguoiGiu: number;
 }
 
 /** Thân ghi một lần thu (`POST /api/orders/:id/payments`, và `lanThu` tuỳ chọn của `POST /api/orders/:id/delivered`). */

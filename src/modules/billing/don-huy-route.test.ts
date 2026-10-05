@@ -143,3 +143,216 @@ test("NT-H10 (đ13, H-C9): lần thu lên đơn ĐÃ HUỶ — Bán hàng, HDV �
   assert.equal((await thu(w, KT, id, 100_000, "cong_ty")).status, 201);
   assert.equal((await thu(w, SA, id, 50_000, "cong_ty")).status, 201);
 });
+
+// ---------------------------------------------------------------------------------------------------------------------------------------------------
+// Phần B — duyệt, chi, chuyển, hoàn ngoài (kế hoạch Task 8–10)
+// ---------------------------------------------------------------------------------------------------------------------------------------------------
+const tien = async (w: W, as: string, id: string) => (await w.call("GET", `/api/orders/${id}/payments`, { as })).json;
+const duyet = (w: W, as: string, id: string, body: Record<string, unknown>, ve?: string) =>
+  w.call("POST", `/api/orders/${id}/coc/duyet`, { as, body, headers: ve ? { "idempotency-key": ve } : {} });
+const chi = (w: W, as: string, id: string, body: Record<string, unknown>, ve?: string) =>
+  w.call("POST", `/api/orders/${id}/coc/chi`, { as, body: { hinhThuc: "BANK_TRANSFER", nguoiTra: "cong_ty", ...body }, headers: ve ? { "idempotency-key": ve } : {} });
+/** Đơn 2.000.000, Kế toán ghi Công ty thu `so`, rồi huỷ với `lyDo` bởi `nguoiHuy`. */
+async function donHuyCoTien(w: W, o: { so?: number; lyDo?: string; nguoiHuy?: string; ghiChu?: string; depart?: string | null } = {}): Promise<string> {
+  const id = donDaXacNhan(w, { depart: o.depart });
+  if ((o.so ?? 500_000) > 0) assert.equal((await thu(w, KT, id, o.so ?? 500_000, "cong_ty")).status, 201);
+  const h = await huy(w, o.nguoiHuy ?? SALES, id, o.lyDo ?? "KHACH_DOI_Y", o.ghiChu);
+  assert.equal(h.status, 200, h.text);
+  return id;
+}
+
+test("NT-H1/H2 (đ4a): duyệt hoàn — Quản trị, Toàn quyền 201 + Location; Kế toán, Bán hàng, HDV → 403; lý do bắt buộc; nhiều lần một phần; vượt tiền còn giữ → 409", async () => {
+  const w = setup();
+  const id = await donHuyCoTien(w);
+  for (const as of [KT, SALES, HDV]) assert.equal((await duyet(w, as, id, { loai: "hoan", soTien: 1, lyDo: "x" })).status, 403);
+  assert.equal((await duyet(w, ADMIN, id, { loai: "hoan", soTien: 100_000 })).status, 400, "lý do bắt buộc");
+  const r = await duyet(w, ADMIN, id, { loai: "hoan", soTien: 200_000, lyDo: "Khách xin lại một phần" });
+  assert.equal(r.status, 201, r.text);
+  assert.equal(r.headers.get("location"), `/order?id=${id}`);
+  assert.equal((await duyet(w, SA, id, { loai: "hoan", soTien: 300_000, lyDo: "Thêm phần còn lại" })).status, 201);
+  const vuot = await duyet(w, ADMIN, id, { loai: "hoan", soTien: 1, lyDo: "quá" });
+  assert.equal(vuot.status, 409, vuot.text);
+  assert.equal(vuot.json.error.code, "coc_exceeds_paid");
+  const c = (await tien(w, KT, id)).coc;
+  assert.deepEqual([c.daTra, c.daDuyet, c.choChi, c.conGiu, c.khoanDuyet.length], [500_000, 500_000, 500_000, 500_000, 2]);
+  assert.equal(w.q("SELECT count(*) AS n FROM audit_log WHERE order_id = ? AND action = 'deposit_refund_approved'", id)[0]!.n, 2);
+});
+
+test("NT-H3/H6 + SV-DH-02/09 (đ4b, đ4c): chi hoàn — Kế toán; vượt khoản → 409; tài khoản kiêm Quản trị + Kế toán tự chi khoản mình duyệt → 409; Kế toán khác → 201; huỷ duyệt chỉ phần chưa chi", async () => {
+  const w = setup();
+  const id = await donHuyCoTien(w);
+  const d = await duyet(w, QTKT, id, { loai: "hoan", soTien: 200_000, lyDo: "Hoàn một phần cho khách" });
+  assert.equal(d.status, 201, d.text);
+  const duyetId = d.json.duyetId;
+  assert.equal((await chi(w, ADMIN, id, { duyetId, soTien: 1 })).status, 403, "Quản trị không chi (payment.refund)");
+  const cung = await chi(w, QTKT, id, { duyetId, soTien: 100_000 });
+  assert.equal(cung.status, 409, cung.text);
+  assert.equal(cung.json.error.code, "coc_same_person");
+  assert.equal((await chi(w, KT, id, { duyetId, soTien: 150_000 })).status, 201);
+  const vuot = await chi(w, KT2, id, { duyetId, soTien: 50_001 });
+  assert.equal(vuot.status, 409);
+  assert.equal(vuot.json.error.code, "coc_exceeds_approved");
+  const huy1 = await w.call("POST", `/api/orders/${id}/coc/duyet/${duyetId}/huy`, { as: ADMIN, body: { soTien: 50_001, lyDo: "Bớt" } });
+  assert.equal(huy1.status, 409, huy1.text);
+  assert.equal(huy1.json.error.code, "coc_void_exceeds_unspent");
+  assert.equal((await w.call("POST", `/api/orders/${id}/coc/duyet/${duyetId}/huy`, { as: ADMIN, body: { soTien: 50_000, lyDo: "Khách không lấy nữa" } })).status, 201);
+  const c = (await tien(w, KT, id)).coc;
+  assert.deepEqual([c.daDuyet, c.daChi, c.conGiu, c.choChi], [150_000, 150_000, 350_000, 0]);
+  assert.equal((await tien(w, KT, id)).conLai, 0);
+});
+
+test("NT-H5 (H-C7): trả dư tự do (POST /api/ledger/refunds) trên đơn HUỶ → 409 chỉ đường; đơn không huỷ trả dư như cũ", async () => {
+  const w = setup();
+  const id = await donHuyCoTien(w);
+  const r = await w.call("POST", "/api/ledger/refunds", { as: KT, body: { orderId: id, soTien: 100_000, hinhThuc: "CASH", nguoiTra: "cong_ty" } });
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "coc_needs_approval");
+  const x = donDaXacNhan(w, { total: 100_000 });
+  assert.equal((await thu(w, KT, x, 150_000, "cong_ty")).status, 201);
+  assert.equal((await w.call("POST", "/api/ledger/refunds", { as: KT, body: { orderId: x, soTien: 50_000, hinhThuc: "CASH", nguoiTra: "cong_ty" } })).status, 201);
+});
+
+test("NT-D2/D3 (đ5, H-C3): khách huỷ — duyệt sau hạn → 409 'Đã quá hạn hoàn cọc'; công ty huỷ sau hạn → 201; nhóm chưa kết luận → 409 tới khi Quản trị phân loại (SV-DH-11)", async () => {
+  const w = setup();
+  const qua = await donHuyCoTien(w, { depart: vnNgay(-70) });
+  const r = await duyet(w, ADMIN, qua, { loai: "hoan", soTien: 100_000, lyDo: "trễ" });
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "coc_deadline");
+  assert.match(r.json.error.message, /^Đã quá hạn hoàn cọc \(hạn: \d{2}\/\d{2}\/\d{4}\)\.$/);
+  assert.equal((await tien(w, ADMIN, qua)).coc.coTheDuyet, false);
+  const ct = await donHuyCoTien(w, { depart: vnNgay(-70), lyDo: "THOI_TIET", nguoiHuy: ADMIN });
+  assert.equal((await duyet(w, ADMIN, ct, { loai: "hoan", soTien: 500_000, lyDo: "Công ty huỷ — hoàn toàn bộ" })).status, 201, "SV-DH-04");
+  const ck = await donHuyCoTien(w, { lyDo: "OTHER", ghiChu: "Khách ốm" });
+  const r2 = await duyet(w, ADMIN, ck, { loai: "hoan", soTien: 100_000, lyDo: "x" });
+  assert.equal(r2.json.error.code, "coc_unclassified");
+  assert.equal((await tien(w, ADMIN, ck)).coc.coThePhanLoai, true);
+  assert.equal((await w.call("POST", `/api/orders/${ck}/cancel-reason`, { as: ADMIN, body: { nhom: "KHACH_HUY", lyDo: "Đã gọi khách — khách đổi ý" } })).status, 201);
+  assert.equal((await duyet(w, ADMIN, ck, { loai: "hoan", soTien: 100_000, lyDo: "Hoàn một phần" })).status, 201);
+});
+
+test("NT-H7/H8/H9 + SV-DH-05 (đ6): duyệt chuyển + chuyển một lô hai đơn — tiền HDV giữ chuyển sang đơn mới, tổng HDV giữ không đổi; người chuyển = người duyệt → 409; nhật ký cả hai đơn; đơn nhận huỷ → 409", async () => {
+  const w = setup();
+  const a = donDaXacNhan(w);
+  assert.equal((await thu(w, HDV, a, 500_000)).status, 201);
+  assert.equal((await huy(w, ADMIN, a, "THOI_TIET")).status, 200);
+  const b = donDaXacNhan(w);
+  const maB = (w.q("SELECT order_code FROM orders WHERE id = ?", b)[0] as { order_code: string }).order_code;
+  const daHuy = await donHuyCoTien(w, { so: 0 });
+  const maHuy = (w.q("SELECT order_code FROM orders WHERE id = ?", daHuy)[0] as { order_code: string }).order_code;
+  assert.equal((await duyet(w, ADMIN, a, { loai: "chuyen", soTien: 500_000, lyDo: "Dời lịch", donNhan: maHuy })).json.error.code, "coc_bad_target");
+  const d = await duyet(w, QTKT, a, { loai: "chuyen", soTien: 500_000, lyDo: "Dời lịch do thời tiết", donNhan: maB });
+  assert.equal(d.status, 201, d.text);
+  const nguoiGiu = { partyId: `pty-${HDV}` };
+  const cung = await w.call("POST", `/api/orders/${a}/coc/chuyen`, { as: QTKT, body: { duyetId: d.json.duyetId, soTien: 500_000, nguoiGiu } });
+  assert.equal(cung.json.error.code, "coc_same_person");
+  assert.equal((await w.call("POST", `/api/orders/${a}/coc/chuyen`, { as: SALES, body: { duyetId: d.json.duyetId, soTien: 500_000, nguoiGiu } })).status, 403);
+  const r = await w.call("POST", `/api/orders/${a}/coc/chuyen`, { as: KT, body: { duyetId: d.json.duyetId, soTien: 500_000, nguoiGiu } });
+  assert.equal(r.status, 201, r.text);
+  const ca = (await tien(w, KT, a)).coc;
+  assert.deepEqual([ca.daChuyen, ca.conGiu, ca.choChi], [500_000, 0, 0]);
+  const tb = await tien(w, KT, b);
+  assert.equal(tb.daThu, 500_000, "đơn mới đã trả 500.000");
+  const giuA = w.q("SELECT balance FROM v_bil_party_balance WHERE party_id = ? AND order_id = ? AND counterparty_id IN (SELECT party_id FROM v_pty_owner_company)", `pty-${HDV}`, a)[0] as { balance: number } | undefined;
+  const giuB = w.q("SELECT balance FROM v_bil_party_balance WHERE party_id = ? AND order_id = ? AND counterparty_id IN (SELECT party_id FROM v_pty_owner_company)", `pty-${HDV}`, b)[0] as { balance: number } | undefined;
+  assert.deepEqual([giuA?.balance ?? 0, giuB?.balance ?? 0], [0, 500_000], "HDV giữ trên A 0, trên B 500.000 — tổng không đổi");
+  assert.equal(w.q("SELECT count(*) AS n FROM audit_log WHERE order_id = ? AND action = 'deposit_transferred_out'", a)[0]!.n, 1);
+  assert.equal(w.q("SELECT count(*) AS n FROM audit_log WHERE order_id = ? AND action = 'deposit_transferred_in'", b)[0]!.n, 1);
+});
+
+test("NT-N1–N4 (đ16, X-3, X-4, lời chủ (b)): đơn huỷ CŨ — đối chiếu liệt kê; Toàn quyền ghi (Quản trị/Kế toán 403); tự xác nhận 409; Quản trị từ chối → ghi lại; Quản trị xác nhận → còn giữ 0; đơn huỷ mới → 409", async () => {
+  const w = setup();
+  const cu = donDaXacNhan(w, { depart: vnNgay(-200) });
+  assert.equal((await thu(w, KT, cu, 300_000, "cong_ty")).status, 201);
+  // Đơn huỷ CŨ: dòng lý do legacy = 1 (như câu gieo của migration 0078).
+  w.sqlite.prepare(`INSERT INTO ord_cancel_reason (id, order_id, reason_code, group_code, note, cancelled_date, reclassifies_id, legacy, created_at, created_by, updated_at, updated_by)
+    VALUES ('lydo-cu', ?, 'LEGACY', 'CHUA_KET_LUAN', NULL, '2026-09-01', NULL, 1, ?, 'he-thong', ?, 'he-thong')`).run(cu, AT, AT);
+  w.sqlite.prepare("UPDATE orders SET status = 'cancelled' WHERE id = ?").run(cu);
+  const dc = await w.call("GET", "/api/ledger/coc/doi-chieu", { as: KT });
+  assert.equal(dc.status, 200, dc.text);
+  assert.deepEqual(dc.json.don.map((x: { orderId: string; conGiu: number }) => [x.orderId, x.conGiu]), [[cu, 300_000]]);
+  assert.equal((await w.call("GET", "/api/ledger/coc/doi-chieu", { as: SALES })).status, 403);
+  const ghi = (as: string, soTien: number) => w.call("POST", `/api/orders/${cu}/coc/hoan-ngoai`, { as, body: { soTien, lyDo: "Đã chuyển khoản trả khách ngày 10/9" } });
+  assert.equal((await ghi(ADMIN, 300_000)).status, 403);
+  assert.equal((await ghi(KT, 300_000)).status, 403);
+  assert.equal((await ghi(SA, 300_001)).json.error.code, "coc_outside_exceeds");
+  assert.equal((await ghi(SA, 200_000)).status, 201);
+  assert.equal((await ghi(SA, 1)).json.error.code, "coc_outside_once");
+  let c = (await tien(w, ADMIN, cu)).coc;
+  assert.deepEqual([c.conGiu, c.daDuyet, c.hoanNgoaiDong[0].trangThai, c.coTheXacNhanHoanNgoai], [300_000, 0, "cho_xac_nhan", true]);
+  const g1 = c.hoanNgoaiDong[0].id;
+  const xn = (as: string, ghiId: string, body: Record<string, unknown>) => w.call("POST", `/api/orders/${cu}/coc/hoan-ngoai/${ghiId}/xac-nhan`, { as, body });
+  assert.equal((await xn(SA, g1, { dongY: true })).json.error.code, "coc_same_person");
+  assert.equal((await xn(ADMIN, g1, { dongY: false })).status, 400, "từ chối phải có lý do");
+  assert.equal((await xn(ADMIN, g1, { dongY: false, lyDo: "Sai số — phải là 300.000" })).status, 201);
+  assert.equal((await ghi(SA, 300_000)).status, 201, "bị từ chối → ghi lại được");
+  c = (await tien(w, ADMIN, cu)).coc;
+  const g2 = c.hoanNgoaiDong.find((x: { trangThai: string }) => x.trangThai === "cho_xac_nhan").id;
+  assert.equal((await xn(ADMIN, g2, { dongY: true })).status, 201);
+  c = (await tien(w, ADMIN, cu)).coc;
+  assert.deepEqual([c.daDuyet, c.daChi, c.hoanNgoai, c.conGiu], [300_000, 300_000, 300_000, 0]);
+  const moi = await donHuyCoTien(w);
+  assert.equal((await w.call("POST", `/api/orders/${moi}/coc/hoan-ngoai`, { as: SA, body: { soTien: 1, lyDo: "Không phải đơn cũ" } })).json.error.code, "coc_outside_not_legacy");
+});
+
+test("NT-B2 + SV-DH-08 (đ15 mọi lúc): đảo lần thu khi đã duyệt → 409 câu tiếng Việt; huỷ duyệt rồi đảo → 201", async () => {
+  const w = setup();
+  const id = await donHuyCoTien(w);
+  const d = await duyet(w, ADMIN, id, { loai: "hoan", soTien: 400_000, lyDo: "Hoàn phần lớn" });
+  const thuId = (w.q("SELECT id FROM bil_payment_receipt WHERE order_id = ? AND kind_code = 'CUSTOMER_PAYMENT'", id)[0] as { id: string }).id;
+  const dao = () => w.call("POST", "/api/ledger/adjustments", { as: KT, body: { loai: "dao_lan_thu", receiptId: thuId, lyDo: "Ghi nhầm đơn" } });
+  const r = await dao();
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "coc_paid_below_approved");
+  assert.equal((await w.call("POST", `/api/orders/${id}/coc/duyet/${d.json.duyetId}/huy`, { as: ADMIN, body: { soTien: 400_000, lyDo: "Huỷ để đảo lần thu" } })).status, 201);
+  assert.equal((await dao()).status, 201);
+});
+
+test("NT-V6 + NT-D5 (máy chủ): danh sách / ô đếm chỉ ledger.view any (Kế toán, Toàn quyền); Quản trị, Bán hàng → 403; số đếm đúng", async () => {
+  const w = setup();
+  const id = await donHuyCoTien(w);
+  await duyet(w, ADMIN, id, { loai: "hoan", soTien: 100_000, lyDo: "Hoàn một phần" });
+  w.sqlite.prepare("INSERT INTO bil_deposit_approval (id, order_id, kind_code, amount, target_order_id, reason, approved_date, voids_id, created_at, created_by, updated_at, updated_by) VALUES ('d-cu', ?, 'REFUND', 50000, NULL, 'cũ', ?, NULL, ?, ?, ?, ?)").run(id, vnNgay(-9), AT, ADMIN, AT, ADMIN);
+  for (const as of [ADMIN, SALES, HDV]) assert.equal((await w.call("GET", "/api/ledger/coc/dem", { as })).status, 403);
+  const dem = await w.call("GET", "/api/ledger/coc/dem", { as: KT });
+  assert.equal(dem.status, 200, dem.text);
+  assert.deepEqual([dem.json.canChi, dem.json.duyetQua7Ngay], [2, 1]);
+  const ds = await w.call("GET", "/api/ledger/coc", { as: SA });
+  assert.equal(ds.status, 200);
+  assert.equal(ds.json.donHuyGiuCoc.length, 1);
+  assert.equal(ds.json.donHuyGiuCoc[0].conGiu, 500_000);
+});
+
+test("ADR-0094 V3: gửi lại CÙNG vé (duyệt, chi) → không ghi lần hai, nhận Idempotent-Replayed", async () => {
+  const w = setup();
+  const id = await donHuyCoTien(w);
+  const ve = crypto.randomUUID();
+  const body = { loai: "hoan", soTien: 100_000, lyDo: "Hoàn một phần" };
+  assert.equal((await duyet(w, ADMIN, id, body, ve)).status, 201);
+  await w.choNen();
+  const lai = await duyet(w, ADMIN, id, body, ve);
+  assert.equal(lai.status, 200, lai.text);
+  assert.equal(lai.headers.get("idempotent-replayed"), "true");
+  assert.equal(w.q("SELECT count(*) AS n FROM bil_deposit_approval WHERE order_id = ?", id)[0]!.n, 1);
+  const duyetId = (w.q("SELECT id FROM bil_deposit_approval WHERE order_id = ?", id)[0] as { id: string }).id;
+  const ve2 = crypto.randomUUID();
+  assert.equal((await chi(w, KT, id, { duyetId, soTien: 100_000 }, ve2)).status, 201);
+  await w.choNen();
+  assert.equal((await chi(w, KT, id, { duyetId, soTien: 100_000 }, ve2)).headers.get("idempotent-replayed"), "true");
+  assert.equal(w.q("SELECT count(*) AS n FROM bil_payment_receipt WHERE order_id = ? AND approval_id IS NOT NULL", id)[0]!.n, 1);
+});
+
+test("NT-H2 ca đua: hai Quản trị cùng duyệt phần cuối (đọc trước, ghi sau) → đúng một thắng, bên thua 409 (trigger chặn), không vượt trần", async () => {
+  const w = setup();
+  const id = await donHuyCoTien(w);
+  // Chen câu "của Quản trị kia" NGAY TRƯỚC lô của người này: cả hai đã đọc "còn duyệt được 500.000".
+  const goc = w.env.DB.batch;
+  w.env.DB.batch = async (stmts: unknown[]) => {
+    w.env.DB.batch = goc;
+    w.sqlite.prepare("INSERT INTO bil_deposit_approval (id, order_id, kind_code, amount, target_order_id, reason, approved_date, voids_id, created_at, created_by, updated_at, updated_by) VALUES ('d-chen', ?, 'REFUND', 400000, NULL, 'người kia', ?, NULL, ?, ?, ?, ?)").run(id, vnNgay(0), AT, SA, AT, SA);
+    return goc(stmts);
+  };
+  const r = await duyet(w, ADMIN, id, { loai: "hoan", soTien: 400_000, lyDo: "Hoàn phần lớn" });
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "coc_exceeds_paid");
+  assert.equal((await tien(w, KT, id)).coc.daDuyet, 400_000);
+});

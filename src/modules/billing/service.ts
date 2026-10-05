@@ -3,7 +3,7 @@
 import { auditStatement } from "../audit";
 import { cauBaoVeNguoiPhuTrach } from "../dispatch";
 import { datGiaoStatement, hoanThanhStatement, phaiThuNhieuDon, thongTinGiaoDon, type ThongTinGiaoDon } from "../orders";
-import type { LanThuDto, LanThuInput, LyDoGiuDonDto, OrderPaymentsResponse, SoCongNoResponse, SoCuaToiResponse } from "../../shared/contracts";
+import type { CocDonDto, LanThuDto, LanThuInput, LyDoGiuDonDto, OrderPaymentsResponse, SoCongNoResponse, SoCuaToiResponse } from "../../shared/contracts";
 import { UUID_RE, error } from "../../shared/http";
 import { vnToday } from "../../shared/vn-date";
 import {
@@ -18,15 +18,16 @@ import {
 } from "./rules";
 
 export const MAX_SO_TIEN = 10_000_000_000;
-const PARTY_ID_RE = /^[0-9A-Za-z_-]{1,64}$/;
+export const PARTY_ID_RE = /^[0-9A-Za-z_-]{1,64}$/;
 
 const HINH_THUC: Record<string, string> = { CASH: "Tiền mặt", BANK_TRANSFER: "Chuyển khoản", OTHER: "Khác" };
 const GIAI_DOAN: Record<string, string> = { PREPAID: "Trả trước", AT_DELIVERY: "Lúc Đã giao" };
 
-export const toReceiptRow = (r: Pick<ReceiptDbRow, "id" | "kind_code" | "amount" | "collector_role_code" | "collector_party_id" | "reverses_id">): ReceiptRow => ({
+export const toReceiptRow = (r: Pick<ReceiptDbRow, "id" | "kind_code" | "amount" | "collector_role_code" | "collector_party_id" | "reverses_id"> & { approval_id?: string | null }): ReceiptRow => ({
   id: r.id, kind: r.kind_code, amount: r.amount, collectorRole: r.collector_role_code, collectorPartyId: r.collector_party_id, reversesId: r.reverses_id,
+  approvalId: r.approval_id ?? null,
 });
-const toLineRow = (l: LineDbRow) => ({
+export const toLineRow = (l: LineDbRow) => ({
   id: l.id, debtorPartyId: l.debtor_party_id, creditorPartyId: l.creditor_party_id, amount: l.amount, kind: l.kind_code, orderId: l.order_id, receiptId: l.receipt_id,
   reversesLineId: l.reverses_line_id,
 });
@@ -39,7 +40,7 @@ export interface NguoiGoi {
 }
 
 export type KetQua<T> = { ok: true; value: T } | { ok: false; res: Response };
-const loi = (status: number, code: string, message: string): { ok: false; res: Response } => ({ ok: false, res: error(status, code, message) });
+export const loi = (status: number, code: string, message: string): { ok: false; res: Response } => ({ ok: false, res: error(status, code, message) });
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------
 // Đọc thân lần thu
@@ -161,7 +162,7 @@ export interface QuyenXemTien {
 }
 
 /** Dựng `OrderPaymentsResponse` cho người xem (đơn `info` đã đọc; quyền đã hỏi ở route). */
-export async function tienCuaDon(db: D1Database, info: ThongTinGiaoDon, ai: NguoiGoi, quyen: QuyenXemTien): Promise<OrderPaymentsResponse> {
+export async function tienCuaDon(db: D1Database, info: ThongTinGiaoDon, ai: NguoiGoi, quyen: QuyenXemTien, coc: CocDonDto | null = null): Promise<OrderPaymentsResponse> {
   const [receipts, lines, congTyId] = await Promise.all([receiptsOfOrder(db, info.orderId), linesOfOrder(db, info.orderId), ownerCompanyId(db)]);
   const so = conLai(receipts.map(toReceiptRow), info.phaiThu, info.status);
   const lyGiao = lyDoChuaGiaoDuoc({ status: info.status, deliveredAt: info.deliveredAt, homNay: vnToday(new Date()), ngayDi: info.ngayDi, dichVuThieuNgay: info.dichVuThieuNgay, coNguoiHuong: info.coNguoiHuong, so });
@@ -194,6 +195,7 @@ export async function tienCuaDon(db: D1Database, info: ThongTinGiaoDon, ai: Nguo
           choXacNhan,
         }
       : null,
+    coc,
   };
 }
 
@@ -214,7 +216,7 @@ export async function tienNhieuDon(db: D1Database, orderIds: readonly string[]):
 // Ghi lần thu trước "Đã giao" (ADR-0026 đ2, đ4; NT-S3)
 // ---------------------------------------------------------------------------------------------------------------------------------------------------
 const DA_GIAO = () => loi(409, "order_delivered", "Đơn đã Đã giao – đã thu đủ: không ghi thêm lần thu. Sai sót thì Kế toán ghi điều chỉnh trong sổ.");
-const CHUA_CO_CONG_TY = () => loi(503, "owner_company_missing", "Chưa có hồ sơ công ty chủ — báo người phụ trách hệ thống.");
+export const CHUA_CO_CONG_TY = () => loi(503, "owner_company_missing", "Chưa có hồ sơ công ty chủ — báo người phụ trách hệ thống.");
 
 export async function ghiLanThu(db: D1Database, input: { orderId: string; deliveredAt: string | null; raw: unknown; ai: NguoiGoi }): Promise<KetQua<null>> {
   if (input.deliveredAt) return DA_GIAO();
@@ -232,7 +234,7 @@ export async function ghiLanThu(db: D1Database, input: { orderId: string; delive
 // ---------------------------------------------------------------------------------------------------------------------------------------------------
 // "Đã giao – đã thu đủ" (ADR-0025 điều 3–4; kế hoạch §3.3 — MỘT lô: [câu bảo vệ dispatch] → câu orders → [lần thu] → phiếu Đã giao (trigger kiểm tiền) → nhật ký)
 // ---------------------------------------------------------------------------------------------------------------------------------------------------
-const loiTrigger = (e: unknown, ma: string): boolean => new RegExp(`\\b${ma}:`).test(e instanceof Error ? e.message : String(e));
+export const loiTrigger = (e: unknown, ma: string): boolean => new RegExp(`\\b${ma}:`).test(e instanceof Error ? e.message : String(e));
 
 export async function daGiao(
   db: D1Database,
@@ -311,16 +313,16 @@ export async function hoanThanh(db: D1Database, input: { orderId: string; info: 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------
 // Sổ của Kế toán (ADR-0026 điều 5, 8 — Kế toán / Toàn quyền ghi; "thận trọng": khoản chưa được Kế toán ghi thì chưa coi là đã nộp / đã trả)
 // ---------------------------------------------------------------------------------------------------------------------------------------------------
-const docLyDo = (raw: unknown, batBuoc: boolean): KetQua<string | null> => {
+export const docLyDo = (raw: unknown, batBuoc: boolean): KetQua<string | null> => {
   if (raw === undefined || raw === null || raw === "") return batBuoc ? loi(400, "invalid_input", "Cần ghi lý do.") : { ok: true, value: null };
   if (typeof raw !== "string" || raw.trim().length === 0) return batBuoc ? loi(400, "invalid_input", "Cần ghi lý do.") : { ok: true, value: null };
   if (raw.length > 500) return loi(400, "invalid_input", "Lý do / ghi chú tối đa 500 ký tự.");
   if (/\d{8,}/.test(raw.replace(/[\s.-]/g, ""))) return loi(400, "invalid_input", "Lý do / ghi chú không được chứa số điện thoại / số tài khoản.");
   return { ok: true, value: raw.trim() };
 };
-const docSoTien = (raw: unknown): KetQua<number> =>
+export const docSoTien = (raw: unknown): KetQua<number> =>
   typeof raw === "number" && Number.isInteger(raw) && raw > 0 && raw <= MAX_SO_TIEN ? { ok: true, value: raw } : loi(400, "invalid_input", "Số tiền phải là số nguyên dương (đồng).");
-const docNgay = (raw: unknown): KetQua<string> => {
+export const docNgay = (raw: unknown): KetQua<string> => {
   const n = ngayPhatSinh({ chon: raw, homNay: vnToday(new Date()), laKeToan: true });
   return n.ok ? { ok: true, value: n.value } : loi(400, "invalid_input", n.message);
 };
@@ -411,6 +413,8 @@ export async function ghiHoanKhach(db: D1Database, input: { raw: unknown; ai: Ng
   } else return loi(400, "invalid_input", "Chọn người trả tiền cho khách (Công ty hoặc người đang giữ tiền).");
   const [state, receipts] = await Promise.all([orderState(db, b.orderId), receiptsOfOrder(db, b.orderId)]);
   if (!state) return loi(404, "not_found", "Không tìm thấy đơn.");
+  // ADR-0089 (H-C7): đơn HUỶ không trả dư tự do — hoàn qua khoản duyệt (lớp CSDL: trigger coc_needs_approval).
+  if (state.status === "cancelled") return loi(409, "coc_needs_approval", "Đơn huỷ: hoàn qua “Duyệt hoàn cọc” rồi “Ghi chi hoàn”.");
   const daThu = conLai(receipts.map(toReceiptRow), 0, state.status).daThu;
   if (so.value > daThu) return loi(400, "invalid_input", "Không hoàn quá số khách đã trả.");
   const ngay = docNgay(b.ngayPhatSinh);
@@ -437,6 +441,7 @@ export async function ghiHoanKhach(db: D1Database, input: { raw: unknown; ai: Ng
   } catch (e) {
     // Kiểm độc lập T-3: người khác vừa ghi hoàn / đảo lần thu giữa lúc đọc và lúc ghi → trigger bil_payment_receipt_refund_within_paid huỷ cả lô.
     if (loiTrigger(e, "refund_exceeds_paid")) return loi(409, "stale", "Không hoàn quá số khách đã trả — số đã thu vừa thay đổi, tải lại rồi thử lại.");
+    if (loiTrigger(e, "coc_needs_approval")) return loi(409, "coc_needs_approval", "Đơn huỷ: hoàn qua “Duyệt hoàn cọc” rồi “Ghi chi hoàn”.");
     throw e;
   }
   return { ok: true, value: { orderId: b.orderId } };
@@ -476,6 +481,8 @@ export async function ghiDieuChinh(db: D1Database, input: { raw: unknown; ai: Ng
       await db.batch(stmts);
     } catch (e) {
       if (/UNIQUE constraint failed: bil_(payment_receipt\.reverses_id|debt_line\.reverses_line_id)/.test(e instanceof Error ? e.message : String(e))) return loi(409, "stale", "Lần thu này đã được đảo.");
+      // ADR-0089 đ15 (mọi lúc — NT-B2): đảo làm đã trả dưới tổng duyệt hoàn cọc của đơn huỷ.
+      if (loiTrigger(e, "coc_paid_below_approved")) return loi(409, "coc_paid_below_approved", "Đơn đã duyệt hoàn cọc — huỷ duyệt phần chưa chi trước khi đảo lần thu.");
       throw e;
     }
     return { ok: true, value: { orderId: rc.order_id } };

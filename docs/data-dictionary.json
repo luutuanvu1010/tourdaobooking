@@ -487,7 +487,19 @@
       "name": "bil_payment_receipt",
       "module": "billing",
       "kind": "table",
-      "note": "lần thu (ADR-0026 đ2), CHỈ-THÊM, dòng đảo trỏ reverses_id; migration 0045 chứa câu MỘT LẦN chép cọc cũ (orders.deposit_amount > 0) thành lần thu người thu CHƯA RÕ (ADR-0026 đ9, Q3)"
+      "note": "lần thu (ADR-0026 đ2), CHỈ-THÊM, dòng đảo trỏ reverses_id; migration 0045 chứa câu MỘT LẦN chép cọc cũ (orders.deposit_amount > 0) thành lần thu người thu CHƯA RÕ (ADR-0026 đ9, Q3). 0079 (ADR-0089): approval_id = khoản duyệt hoàn cọc của lần trả lại khách (lần chi hoàn / nửa chi của lệnh chuyển); transfer_of_id (UNIQUE) = nửa thu ở đơn nhận trỏ nửa chi ở đơn huỷ (trigger coc_transfer_mismatch: cùng đơn nhận, số, người giữ). Trigger 0079: đơn huỷ chỉ hoàn qua khoản duyệt; không vượt phần còn lại của khoản; người chi ≠ người duyệt; đảo lần thu không làm đã duyệt vượt tiền còn giữ lúc huỷ (đ15)"
+    },
+    {
+      "name": "bil_deposit_approval",
+      "module": "billing",
+      "kind": "table",
+      "note": "khoản duyệt hoàn cọc đơn huỷ (ADR-0089 đ4a, đ6, X-1; migration 0079), CHỈ-THÊM: kind_code REFUND (hoàn) | TRANSFER (chuyển sang target_order_id); dòng HUỶ DUYỆT trỏ khoản gốc bằng voids_id (UNIQUE — một lần), amount = phần huỷ ≤ phần chưa chi. approved_date = ngày VN. Trigger: chỉ đơn huỷ; nhóm chưa kết luận chặn (X-2); khách huỷ quá refund_deadline chặn (đ5); tổng duyệt ≤ tiền còn giữ lúc huỷ (đ15, lời chủ (c)); đơn nhận còn hiệu lực, chưa Đã giao. Người duyệt = created_by (tách với người chi)"
+    },
+    {
+      "name": "bil_outside_refund",
+      "module": "billing",
+      "kind": "table",
+      "note": "\"đã hoàn ngoài hệ thống\" của đơn huỷ CŨ (ADR-0089 đ16, X-3, X-4, lời chủ (b); migration 0079), CHỈ-THÊM: RECORD (Toàn quyền ghi, amount + lý do) → CONFIRM (Quản trị xác nhận) hoặc REJECT (từ chối, có lý do — ghi lại được); target_id UNIQUE (mỗi dòng ghi một quyết định). Trigger: chỉ đơn có dòng lý do legacy = 1; một RECORD đang hiệu lực mỗi đơn; amount ≤ còn giữ; người xác nhận/từ chối ≠ người ghi. Đã xác nhận tính CẢ là duyệt lẫn chi; không đụng số dư người giữ tiền"
     },
     {
       "name": "bil_posting",
@@ -795,6 +807,23 @@
         "order_id",
         "paid_net",
         "unknown_count"
+      ]
+    },
+    {
+      "name": "v_bil_coc_don",
+      "module": "billing",
+      "columns": [
+        "order_id",
+        "da_tra",
+        "dang_doi_chieu",
+        "hoan_truoc_huy",
+        "da_duyet",
+        "da_chi",
+        "da_chuyen",
+        "hoan_ngoai",
+        "con_giu_luc_huy",
+        "con_giu",
+        "cho_chi"
       ]
     },
     {

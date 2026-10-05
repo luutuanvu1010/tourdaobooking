@@ -106,6 +106,12 @@ export const MATRIX = {
   "payment.receive": row("own", "any", "any", "assigned", "own", "any", "own", "none", "none", "none"),
   // Ghi HOÀN KHÁCH (route POST /api/ledger/refunds, module billing) — ADR-0026 điều 10: ADMIN any → none (H4 "Kế toán ghi", thận trọng).
   "payment.refund": row("none", "any", "none", "none", "none", "any", "none", "none", "none", "none"),
+  // ADR-0089 đ4a, đ6, X-1, X-4 (cọc đơn huỷ — migration 0079): DUYỆT hoàn cọc / duyệt chuyển sang đơn mới / huỷ duyệt / XÁC NHẬN hoặc từ chối dòng "đã hoàn
+  // ngoài hệ thống" — Quản trị (lời chủ 3 câu 3), Toàn quyền. Người duyệt không tự chi (đ4c — kiểm theo người ở máy chủ + trigger, không ở ô này).
+  // Route: POST /api/orders/:id/coc/duyet, …/coc/duyet/:duyetId/huy, …/coc/hoan-ngoai/:ghiId/xac-nhan.
+  "deposit.refund.approve": row("none", "none", "any", "none", "none", "any", "none", "none", "none", "none"),
+  // ADR-0089 đ16, X-4: GHI "đã hoàn ngoài hệ thống" cho đơn huỷ cũ — chỉ Toàn quyền (Quản trị xác nhận). Route POST /api/orders/:id/coc/hoan-ngoai.
+  "deposit.outside.record": row("none", "none", "none", "none", "none", "any", "none", "none", "none", "none"),
   // Sổ tiền lượt 1 — BỐN Ô MỚI (bảng 9 cột bản làm mới §2, accepted 2026-09-29), mỗi ô có route hỏi nó ở module billing:
   // "Đã giao – đã thu đủ" (ADR-0025 đ2): HDV đang phụ trách (assigned), Quản trị, Toàn quyền — Bán hàng, Kế toán KHÔNG (chủ chọn A 30/9). Route POST /api/orders/:id/delivered.
   "order.handover": row("none", "none", "any", "assigned", "none", "any", "none", "none", "none", "none"),

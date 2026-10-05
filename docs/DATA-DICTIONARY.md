@@ -30,11 +30,14 @@
 | `bil_receipt_stage` | bảng tra cứu |  |
 | `bil_posting_kind` | bảng tra cứu |  |
 | `bil_debt_kind` | bảng tra cứu |  |
-| `bil_payment_receipt` | bảng | lần thu (ADR-0026 đ2), CHỈ-THÊM, dòng đảo trỏ reverses_id; migration 0045 chứa câu MỘT LẦN chép cọc cũ (orders.deposit_amount > 0) thành lần thu người thu CHƯA RÕ (ADR-0026 đ9, Q3) |
+| `bil_payment_receipt` | bảng | lần thu (ADR-0026 đ2), CHỈ-THÊM, dòng đảo trỏ reverses_id; migration 0045 chứa câu MỘT LẦN chép cọc cũ (orders.deposit_amount > 0) thành lần thu người thu CHƯA RÕ (ADR-0026 đ9, Q3). 0079 (ADR-0089): approval_id = khoản duyệt hoàn cọc của lần trả lại khách (lần chi hoàn / nửa chi của lệnh chuyển); transfer_of_id (UNIQUE) = nửa thu ở đơn nhận trỏ nửa chi ở đơn huỷ (trigger coc_transfer_mismatch: cùng đơn nhận, số, người giữ). Trigger 0079: đơn huỷ chỉ hoàn qua khoản duyệt; không vượt phần còn lại của khoản; người chi ≠ người duyệt; đảo lần thu không làm đã duyệt vượt tiền còn giữ lúc huỷ (đ15) |
+| `bil_deposit_approval` | bảng | khoản duyệt hoàn cọc đơn huỷ (ADR-0089 đ4a, đ6, X-1; migration 0079), CHỈ-THÊM: kind_code REFUND (hoàn) | TRANSFER (chuyển sang target_order_id); dòng HUỶ DUYỆT trỏ khoản gốc bằng voids_id (UNIQUE — một lần), amount = phần huỷ ≤ phần chưa chi. approved_date = ngày VN. Trigger: chỉ đơn huỷ; nhóm chưa kết luận chặn (X-2); khách huỷ quá refund_deadline chặn (đ5); tổng duyệt ≤ tiền còn giữ lúc huỷ (đ15, lời chủ (c)); đơn nhận còn hiệu lực, chưa Đã giao. Người duyệt = created_by (tách với người chi) |
+| `bil_outside_refund` | bảng | "đã hoàn ngoài hệ thống" của đơn huỷ CŨ (ADR-0089 đ16, X-3, X-4, lời chủ (b); migration 0079), CHỈ-THÊM: RECORD (Toàn quyền ghi, amount + lý do) → CONFIRM (Quản trị xác nhận) hoặc REJECT (từ chối, có lý do — ghi lại được); target_id UNIQUE (mỗi dòng ghi một quyết định). Trigger: chỉ đơn có dòng lý do legacy = 1; một RECORD đang hiệu lực mỗi đơn; amount ≤ còn giữ; người xác nhận/từ chối ≠ người ghi. Đã xác nhận tính CẢ là duyệt lẫn chi; không đụng số dư người giữ tiền |
 | `bil_posting` | bảng | phiếu sổ (ADR-0026 đ3), CHỈ-THÊM; due_snapshot = phải thu chụp lúc Đã giao (Q4); trigger kiểm tiền trong lô Đã giao / Hoàn thành |
 | `bil_accounting_entry` | bảng | dấu "đã nhập phần mềm kế toán" + "Số hoá đơn đã nhập" của một đơn (ADR-0060), CHỈ-THÊM (trigger cấm sửa/xoá); trạng thái hiện tại = dòng rowid lớn nhất của đơn; bỏ dấu bắt buộc lý do (CHECK); không tiền, không trạng thái hoá đơn ADR-0004 |
 | `bil_debt_line` | bảng | dòng nợ hai chân (ADR-0026 đ3), CHỈ-THÊM; nguồn = đơn HOẶC chuyến (ADR-0057 T3 — trip_id cột dự trữ, không khoá ngoại, lượt 1 luôn trống) |
 | `v_bil_order_paid` | view công bố | cột: order_id, paid_net, unknown_count |
+| `v_bil_coc_don` | view công bố | cột: order_id, da_tra, dang_doi_chieu, hoan_truoc_huy, da_duyet, da_chi, da_chuyen, hoan_ngoai, con_giu_luc_huy, con_giu, cho_chi |
 | `v_bil_party_balance` | view công bố | cột: party_id, counterparty_id, order_id, balance |
 
 ## catalog
