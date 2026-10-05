@@ -6,7 +6,8 @@
 --
 -- ĐỊNH NGHĨA (MỘT nơi trong mã: `soTienCoc` ở src/modules/billing/rules.ts; view `v_bil_coc_don` dưới đây theo ĐÚNG định nghĩa đó — bài đối chiếu hai nơi):
 --   lần thu CÒN HIỆU LỰC = không phải dòng đảo và chưa bị đảo;
---   CHỜ XÁC NHẬN = lần thu vai COMPANY còn dòng giữ hộ (HELD, dòng gốc) chưa bị đảo ("Công ty thu – CK" do người khác khai);
+--   CHỜ XÁC NHẬN = lần thu vai COMPANY còn dòng giữ hộ (HELD, dòng gốc) chưa bị đảo ("Công ty thu – CK" do người khác khai) VÀ người khai còn nợ công ty
+--     trên đơn ≥ số dòng đó (ADR-0092 Đ2b — khoản đã được "Nộp" bù không còn chờ xác nhận);
 --   đã trả = Σ thu còn hiệu lực KHÔNG chờ xác nhận; đang đối chiếu = Σ thu còn hiệu lực chờ xác nhận;
 --   hoàn trước huỷ = Σ trả lại khách còn hiệu lực KHÔNG gắn khoản duyệt (sau bản này đơn huỷ chỉ hoàn qua khoản duyệt — trigger coc_needs_approval);
 --   đã duyệt = Σ khoản gốc − Σ huỷ duyệt + Σ hoàn ngoài ĐÃ xác nhận; đã chi = Σ trả lại gắn khoản REFUND + hoàn ngoài đã xác nhận;
@@ -85,10 +86,16 @@ CREATE VIEW v_bil_coc_don AS
       SELECT r.order_id AS order_id,
              CASE WHEN r.collector_role_code = 'COMPANY' AND EXISTS (
                     SELECT 1 FROM bil_debt_line l WHERE l.receipt_id = r.id AND l.kind_code = 'HELD' AND l.reverses_line_id IS NULL
-                      AND NOT EXISTS (SELECT 1 FROM bil_debt_line d WHERE d.reverses_line_id = l.id)) THEN 0 ELSE r.amount END AS tra,
+                      AND NOT EXISTS (SELECT 1 FROM bil_debt_line d WHERE d.reverses_line_id = l.id)
+                      AND (SELECT COALESCE(SUM(CASE WHEN b.debtor_party_id = l.debtor_party_id THEN b.amount ELSE -b.amount END), 0) FROM bil_debt_line b
+                           WHERE b.order_id = l.order_id AND ((b.debtor_party_id = l.debtor_party_id AND b.creditor_party_id = l.creditor_party_id)
+                                                           OR (b.debtor_party_id = l.creditor_party_id AND b.creditor_party_id = l.debtor_party_id))) >= l.amount) THEN 0 ELSE r.amount END AS tra,
              CASE WHEN r.collector_role_code = 'COMPANY' AND EXISTS (
                     SELECT 1 FROM bil_debt_line l WHERE l.receipt_id = r.id AND l.kind_code = 'HELD' AND l.reverses_line_id IS NULL
-                      AND NOT EXISTS (SELECT 1 FROM bil_debt_line d WHERE d.reverses_line_id = l.id)) THEN r.amount ELSE 0 END AS doi_chieu,
+                      AND NOT EXISTS (SELECT 1 FROM bil_debt_line d WHERE d.reverses_line_id = l.id)
+                      AND (SELECT COALESCE(SUM(CASE WHEN b.debtor_party_id = l.debtor_party_id THEN b.amount ELSE -b.amount END), 0) FROM bil_debt_line b
+                           WHERE b.order_id = l.order_id AND ((b.debtor_party_id = l.debtor_party_id AND b.creditor_party_id = l.creditor_party_id)
+                                                           OR (b.debtor_party_id = l.creditor_party_id AND b.creditor_party_id = l.debtor_party_id))) >= l.amount) THEN r.amount ELSE 0 END AS doi_chieu,
              0 AS hoan_truoc, 0 AS duyet, 0 AS chi, 0 AS chuyen, 0 AS ngoai
       FROM bil_payment_receipt r
       WHERE r.kind_code = 'CUSTOMER_PAYMENT' AND r.reverses_id IS NULL AND NOT EXISTS (SELECT 1 FROM bil_payment_receipt x WHERE x.reverses_id = r.id)
@@ -196,7 +203,10 @@ WHEN NEW.reverses_id IS NOT NULL AND EXISTS (SELECT 1 FROM bil_deposit_approval 
     COALESCE((SELECT v.con_giu_luc_huy FROM v_bil_coc_don v WHERE v.order_id = NEW.order_id), 0)
     - (SELECT CASE WHEN g.kind_code = 'CUSTOMER_PAYMENT' AND NOT (g.collector_role_code = 'COMPANY' AND EXISTS (
                       SELECT 1 FROM bil_debt_line l WHERE l.receipt_id = g.id AND l.kind_code = 'HELD' AND l.reverses_line_id IS NULL
-                        AND NOT EXISTS (SELECT 1 FROM bil_debt_line d WHERE d.reverses_line_id = l.id))) THEN g.amount
+                        AND NOT EXISTS (SELECT 1 FROM bil_debt_line d WHERE d.reverses_line_id = l.id)
+                      AND (SELECT COALESCE(SUM(CASE WHEN b.debtor_party_id = l.debtor_party_id THEN b.amount ELSE -b.amount END), 0) FROM bil_debt_line b
+                           WHERE b.order_id = l.order_id AND ((b.debtor_party_id = l.debtor_party_id AND b.creditor_party_id = l.creditor_party_id)
+                                                           OR (b.debtor_party_id = l.creditor_party_id AND b.creditor_party_id = l.debtor_party_id))) >= l.amount)) THEN g.amount
                    WHEN g.kind_code = 'CUSTOMER_REFUND' AND g.approval_id IS NULL THEN -g.amount
                    ELSE 0 END
        FROM bil_payment_receipt g WHERE g.id = NEW.reverses_id))

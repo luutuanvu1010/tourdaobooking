@@ -86,6 +86,20 @@
         ]
       },
       "dap_an": { "da_thu": 2400000, "con_lai": 0, "du": 0, "chua_ro": 0, "no_tour_dao": { "HDV Nam": 0 }, "giao_duoc": true }
+    },
+    {
+      "ma": "SV-SC-06",
+      "mo_ta": "VP-01 (ADR-0092 Đ2b — một dòng giữ hộ tất toán MỘT lần). Khách lẻ, 1.000.000. HDV Nam KHAI 'Công ty thu – CK' 1.000.000 nhưng tiền không về; HDV nộp bù 1.000.000 tiền mặt (Kế toán ghi 'Đã nộp') → HDV hết nợ. Sau đó Kế toán bấm 'Xác nhận đã nhận' cho khoản đó → máy chủ TỪ CHỐI (409 'Khoản này đã được ghi nộp…'), sổ không đổi: HDV vẫn 0, KHÔNG âm 1.000.000.",
+      "nguon": "ADR-0092 Đ2, Đ2b; TNV-VP01 (kiểm theo vai 2/10, VP-01); lộ trình V2.7",
+      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "dau_vao": {
+        "phai_thu": 1000000,
+        "su_kien": [
+          { "loai": "thu", "vai_nguoi_thu": "cong_ty", "nguoi_thu": "Tour Đảo", "nguoi_ghi": "HDV Nam", "nguoi_ghi_la_ke_toan": false, "so": 1000000 },
+          { "loai": "nop", "ben": "HDV Nam", "so": 1000000 }
+        ]
+      },
+      "dap_an": { "da_thu": 1000000, "con_lai": 0, "du": 0, "chua_ro": 0, "no_tour_dao": { "HDV Nam": 0 }, "giao_duoc": true }
     }
   ]
 }

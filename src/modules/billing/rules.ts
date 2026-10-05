@@ -87,20 +87,52 @@ export function conLai(receipts: readonly ReceiptRow[], phaiThu: number, trangTh
 // Câu SQL của trigger và view `v_bil_coc_don` (migration Đợt 1 Phần B) theo ĐÚNG định nghĩa này — bài đối chiếu hai nơi ở rules.test.ts.
 // ---------------------------------------------------------------------------------------------------------------------------------------------------
 
+/** Số người `ben` đang nợ `chu` trên tập dòng (của MỘT đơn): dương = `ben` còn nợ; âm = `chu` còn nợ `ben`. */
+export function soDuCap(lines: readonly Pick<LineRow, "debtorPartyId" | "creditorPartyId" | "amount">[], ben: string, chu: string): number {
+  let so = 0;
+  for (const l of lines) {
+    if (l.debtorPartyId === ben && l.creditorPartyId === chu) so += l.amount;
+    else if (l.debtorPartyId === chu && l.creditorPartyId === ben) so -= l.amount;
+  }
+  return so;
+}
+
 /**
- * Lần thu "Công ty thu – CK" CHỜ XÁC NHẬN (MỘT định nghĩa — dùng cho `choXacNhan` của màn đơn VÀ cho "đang đối chiếu" của đơn huỷ): lần thu vai COMPANY
- * còn dòng giữ hộ (HELD, dòng gốc) chưa bị đảo. Trả tập id lần thu.
+ * Lần thu "Công ty thu – CK" CHỜ XÁC NHẬN (MỘT định nghĩa — dùng cho `choXacNhan` của màn đơn VÀ cho "đang đối chiếu" của đơn huỷ; view `v_bil_coc_don`
+ * và trigger đảo của 0079 theo đúng định nghĩa này): lần thu vai COMPANY còn dòng giữ hộ (HELD, dòng gốc) chưa bị đảo, VÀ người khai còn nợ công ty trên đơn
+ * ≥ số của dòng giữ hộ (ADR-0092 Đ2b — khoản đã được tất toán bằng "Nộp" không còn chờ xác nhận; một dòng giữ hộ chỉ tất toán MỘT lần). `lines` = dòng của
+ * MỘT đơn. Trả tập id lần thu.
  */
 export function khoanChoXacNhan(
   receipts: readonly Pick<ReceiptRow, "id" | "collectorRole">[],
-  lines: readonly Pick<LineRow, "id" | "kind" | "receiptId" | "reversesLineId">[],
+  lines: readonly Pick<LineRow, "id" | "kind" | "receiptId" | "reversesLineId" | "debtorPartyId" | "creditorPartyId" | "amount">[],
 ): Set<string> {
   const daoDong = new Set(lines.flatMap((l) => (l.reversesLineId ? [l.reversesLineId] : [])));
   const congTyThu = new Set(receipts.filter((r) => r.collectorRole === "COMPANY").map((r) => r.id));
   return new Set(
-    lines.filter((l) => l.kind === "HELD" && l.reversesLineId === null && !daoDong.has(l.id) && l.receiptId !== null && congTyThu.has(l.receiptId)).map((l) => l.receiptId!),
+    lines
+      .filter((l) => l.kind === "HELD" && l.reversesLineId === null && !daoDong.has(l.id) && l.receiptId !== null && congTyThu.has(l.receiptId)
+        && soDuCap(lines, l.debtorPartyId, l.creditorPartyId) >= l.amount)
+      .map((l) => l.receiptId!),
   );
 }
+
+/**
+ * Nộp / trả không đổi dấu số dư (ADR-0092 Đ2): `soDu` = số bên đó đang nợ công ty trên đơn. Nộp ≤ số đang nợ; trả ≤ số công ty đang nợ bên đó.
+ * Lớp CSDL: trigger `bil_debt_line_settlement_no_flip` (0080).
+ */
+export function kiemQuyetToan(input: { chieu: "nop" | "tra"; soDu: number; soTien: number; maDon: string }): { ok: true } | { ok: false; ma: string; cau: string } {
+  if (input.chieu === "nop" && input.soTien > Math.max(0, input.soDu)) {
+    return { ok: false, ma: "settlement_exceeds_held", cau: `Số tiền nộp vượt số người này đang giữ cho đơn ${input.maDon} (đang giữ ${dong(Math.max(0, input.soDu))}).` };
+  }
+  if (input.chieu === "tra" && input.soTien > Math.max(0, -input.soDu)) {
+    return { ok: false, ma: "settlement_exceeds_owed", cau: `Số tiền trả vượt số công ty đang nợ người này cho đơn ${input.maDon} (đang nợ ${dong(Math.max(0, -input.soDu))}).` };
+  }
+  return { ok: true };
+}
+
+/** Câu chỉ đường khi "Công ty đã nhận" bị từ chối vì khoản đã được ghi nộp (ADR-0092 Đ2b — nguyên văn ví dụ của ADR). */
+export const CAU_DA_NOP = "Khoản này đã được ghi nộp — nếu tiền cũng đã về tài khoản công ty thì đảo lần nộp trước rồi xác nhận.";
 
 export type LoaiDuyet = "REFUND" | "TRANSFER";
 /** Một dòng của sổ khoản duyệt (`bil_deposit_approval`): dòng gốc (`voidsId` null) hoặc dòng huỷ duyệt (trỏ gốc, `amount` = phần huỷ). */
@@ -166,7 +198,7 @@ export function hoanNgoaiTrangThai(rows: readonly HoanNgoaiRow[]): { daXacNhan: 
 /** HÀM DUY NHẤT tính tiền cọc của một đơn (ADR-0089 đ2, đ15). Dùng cho đơn huỷ; với đơn không huỷ các khoản duyệt/hoàn ngoài luôn rỗng. */
 export function soTienCoc(input: {
   receipts: readonly ReceiptRow[];
-  lines: readonly Pick<LineRow, "id" | "kind" | "receiptId" | "reversesLineId">[];
+  lines: readonly Pick<LineRow, "id" | "kind" | "receiptId" | "reversesLineId" | "debtorPartyId" | "creditorPartyId" | "amount">[];
   duyet: readonly DuyetRow[];
   hoanNgoai: readonly HoanNgoaiRow[];
 }): SoTienCoc {

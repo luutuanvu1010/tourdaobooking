@@ -280,3 +280,22 @@ test("NT-3 đối chiếu hai nơi: view v_bil_coc_don = soTienCoc (rules.ts) tr
   );
   assert.deepEqual([ma.daTra, ma.dangDoiChieu, ma.daDuyet, ma.daChi, ma.daChuyen, ma.conGiu], [750_000, 300_000, 370_000, 170_000, 100_000, 480_000], "số tay (chống cùng sai)");
 });
+
+test("NT-3 + ADR-0092 Đ2b (V2.3): khoản 'Công ty thu – CK' đã được người khai NỘP bù thì hết 'chờ xác nhận' ở CẢ hai nơi (view = soTienCoc)", () => {
+  const db = moi();
+  don(db, "a", { huy: "KHACH_HUY" });
+  const ck = thu(db, { order: "a", amount: 300_000, role: "COMPANY", by: "hdv" });
+  const lh = held(db, "a", ck, "hdv", 300_000);
+  const receipts: ReceiptRow[] = [{ id: ck, kind: "CUSTOMER_PAYMENT", amount: 300_000, collectorRole: "COMPANY", collectorPartyId: CT, reversesId: null, approvalId: null }];
+  const lines: LineRow[] = [{ id: lh, debtorPartyId: "hdv", creditorPartyId: CT, amount: 300_000, kind: "HELD", orderId: "a", receiptId: ck, reversesLineId: null }];
+  const so = (x: LineRow[]) => soTienCoc({ receipts, lines: x, duyet: [], hoanNgoai: [] });
+  assert.deepEqual([coc(db, "a").dang_doi_chieu, so(lines).dangDoiChieu], [300_000, 300_000], "trước khi nộp: đang đối chiếu ở cả hai nơi");
+  // Kế toán ghi "Đã nộp" 300.000 (dòng quyết toán công ty → người khai) — tiền đã về theo đường nộp bù.
+  run(db, `INSERT INTO bil_posting (id, kind_code, order_id, occurred_date, created_at, updated_at) VALUES ('pn', 'SETTLEMENT', 'a', '2026-10-05', ?, ?)`, AT, AT);
+  run(db, `INSERT INTO bil_debt_line (id, posting_id, debtor_party_id, creditor_party_id, amount, kind_code, order_id, receipt_id, reverses_line_id, created_at, updated_at)
+    VALUES ('ln', 'pn', ?, 'hdv', 300000, 'SETTLEMENT', 'a', NULL, NULL, ?, ?)`, CT, AT, AT);
+  const sau = [...lines, { id: "ln", debtorPartyId: CT, creditorPartyId: "hdv", amount: 300_000, kind: "SETTLEMENT" as const, orderId: "a", receiptId: null, reversesLineId: null }];
+  const v = coc(db, "a");
+  assert.deepEqual([v.da_tra, v.dang_doi_chieu], [so(sau).daTra, so(sau).dangDoiChieu]);
+  assert.deepEqual([so(sau).daTra, so(sau).dangDoiChieu], [300_000, 0], "đã nộp bù ⇒ tính vào đã trả, hết đối chiếu");
+});

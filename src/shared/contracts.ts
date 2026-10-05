@@ -1663,7 +1663,7 @@ export interface OrderPaymentsResponse {
    * Thao tác Kế toán đặt TẠM trên trang đơn (điều phối 30/9 — hai màn sổ riêng chờ chủ vẽ lại): CHỈ có khi `laKeToan`, còn lại `null`.
    * `dangGiu` = ai đang giữ tiền của công ty VÌ ĐƠN NÀY (số dư dương của sổ, theo đơn); `choXacNhan` = id lần thu "Công ty thu – CK" chưa được xác nhận.
    */
-  keToan: { dangGiu: { partyId: string; ten: string; soTien: number }[]; choXacNhan: string[] } | null;
+  keToan: { dangGiu: { partyId: string; ten: string; soTien: number; choXacNhan: number }[]; choXacNhan: string[] } | null;
   /** ADR-0089: tiền cọc của ĐƠN HUỶ (null với đơn không huỷ). */
   coc: CocDonDto | null;
 }

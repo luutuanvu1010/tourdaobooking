@@ -490,6 +490,12 @@
       "note": "lần thu (ADR-0026 đ2), CHỈ-THÊM, dòng đảo trỏ reverses_id; migration 0045 chứa câu MỘT LẦN chép cọc cũ (orders.deposit_amount > 0) thành lần thu người thu CHƯA RÕ (ADR-0026 đ9, Q3). 0079 (ADR-0089): approval_id = khoản duyệt hoàn cọc của lần trả lại khách (lần chi hoàn / nửa chi của lệnh chuyển); transfer_of_id (UNIQUE) = nửa thu ở đơn nhận trỏ nửa chi ở đơn huỷ (trigger coc_transfer_mismatch: cùng đơn nhận, số, người giữ). Trigger 0079: đơn huỷ chỉ hoàn qua khoản duyệt; không vượt phần còn lại của khoản; người chi ≠ người duyệt; đảo lần thu không làm đã duyệt vượt tiền còn giữ lúc huỷ (đ15)"
     },
     {
+      "name": "bil_audit_cutoff",
+      "module": "billing",
+      "kind": "table",
+      "note": "mốc của kiểm định kỳ sổ tiền (ADR-0092 đ8, khuôn ADR-0088 đ7 / ADR-0079 đ7a; migration 0080), CHỈ-THÊM: code (vd 'R-BIL-13') → cutoff_at = lúc áp migration. Vi phạm có dòng ghi TỪ mốc = LỖI (audit-invariants); cũ hơn mốc = cảnh báo kèm danh sách. Không tiền, không dữ liệu cá nhân"
+    },
+    {
       "name": "bil_deposit_approval",
       "module": "billing",
       "kind": "table",
@@ -517,7 +523,7 @@
       "name": "bil_debt_line",
       "module": "billing",
       "kind": "table",
-      "note": "dòng nợ hai chân (ADR-0026 đ3), CHỈ-THÊM; nguồn = đơn HOẶC chuyến (ADR-0057 T3 — trip_id cột dự trữ, không khoá ngoại, lượt 1 luôn trống)"
+      "note": "dòng nợ hai chân (ADR-0026 đ3), CHỈ-THÊM; nguồn = đơn HOẶC chuyến (ADR-0057 T3 — trip_id cột dự trữ, không khoá ngoại, lượt 1 luôn trống). 0080 (ADR-0092 Đ2, Đ2b): trigger bil_debt_line_settlement_no_flip — dòng quyết toán gốc gắn đơn không làm số dư cặp (bên, công ty chủ) đổi dấu; bil_debt_line_held_once — dòng đảo giữ hộ chỉ khi người giữ hộ còn nợ ≥ số dòng gốc (một dòng giữ hộ tất toán MỘT lần: \"Công ty đã nhận\" HOẶC \"Nộp\")"
     },
     {
       "name": "tl_luot_hoi",

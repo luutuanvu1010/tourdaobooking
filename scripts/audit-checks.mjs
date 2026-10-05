@@ -357,6 +357,32 @@ export const CHECKS = [
     level: "fail",
   },
   {
+    // ADR-0092 Đ2, Đ2b, đ8 (TNV-VP01, KT04 của TNV-G4): số dư cặp (bên, công ty chủ) trên đơn KHÔNG âm do dòng giữ hộ / quyết toán (nộp quá số giữ, nộp cho
+    // người không giữ, nộp rồi lại "Công ty đã nhận" cùng một khoản). Âm hợp lệ do công ty nợ (dòng REFUND — người ứng tiền hoàn khách) KHÔNG tính (chỉ cộng
+    // HELD + SETTLEMENT). Mốc (bil_audit_cutoff, 0080): cặp có dòng ghi TỪ mốc = LỖI; cặp chỉ có dòng cũ hơn mốc = cảnh báo (R-BIL-13w, kèm danh sách).
+    code: "R-BIL-13",
+    what: "số dư người giữ tiền trên đơn không âm do nộp / tất toán giữ hộ hai lần (ghi từ mốc 0080)",
+    sql: `SELECT count(*) FROM (SELECT x.ben, x.order_id, SUM(x.so) AS so, MAX(x.luc) AS luc FROM (
+       SELECT CASE WHEN l.creditor_party_id IN (SELECT party_id FROM v_pty_owner_company) THEN l.debtor_party_id ELSE l.creditor_party_id END AS ben, l.order_id,
+              CASE WHEN l.creditor_party_id IN (SELECT party_id FROM v_pty_owner_company) THEN l.amount ELSE -l.amount END AS so, l.created_at AS luc
+       FROM bil_debt_line l WHERE l.order_id IS NOT NULL AND l.kind_code IN ('HELD', 'SETTLEMENT')
+         AND (l.creditor_party_id IN (SELECT party_id FROM v_pty_owner_company) OR l.debtor_party_id IN (SELECT party_id FROM v_pty_owner_company))) x
+     GROUP BY x.ben, x.order_id) WHERE so < 0 AND luc >= (SELECT cutoff_at FROM bil_audit_cutoff WHERE code = 'R-BIL-13')`,
+    level: "fail",
+  },
+  {
+    code: "R-BIL-13w",
+    what: "số dư người giữ tiền âm do nộp / tất toán giữ hộ hai lần — dữ liệu TRƯỚC mốc 0080 (Kế toán sửa bằng lệnh đảo lần nộp)",
+    sql: `SELECT x.order_id, x.ben, SUM(x.so) AS so FROM (
+       SELECT CASE WHEN l.creditor_party_id IN (SELECT party_id FROM v_pty_owner_company) THEN l.debtor_party_id ELSE l.creditor_party_id END AS ben, l.order_id,
+              CASE WHEN l.creditor_party_id IN (SELECT party_id FROM v_pty_owner_company) THEN l.amount ELSE -l.amount END AS so, l.created_at AS luc
+       FROM bil_debt_line l WHERE l.order_id IS NOT NULL AND l.kind_code IN ('HELD', 'SETTLEMENT')
+         AND (l.creditor_party_id IN (SELECT party_id FROM v_pty_owner_company) OR l.debtor_party_id IN (SELECT party_id FROM v_pty_owner_company))) x
+     GROUP BY x.ben, x.order_id HAVING SUM(x.so) < 0 AND MAX(x.luc) < (SELECT cutoff_at FROM bil_audit_cutoff WHERE code = 'R-BIL-13')`,
+    mode: "rows",
+    level: "warn",
+  },
+  {
     // H-C3 (đ5): khoản duyệt của đơn KHÁCH HUỶ không ghi sau hạn hoàn cọc (ngày khởi hành muộn nhất / ngày huỷ + 60).
     code: "R-BIL-C6",
     what: "khoản duyệt hoàn cọc của đơn khách huỷ nằm trong hạn",

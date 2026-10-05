@@ -406,3 +406,68 @@ test("Kiểm độc lập vòng 2 (V-B): ghi nộp / xác nhận 'Công ty đã 
   assert.equal(r.json.keToan, null, "tài khoản lai không phải Kế toán");
   assert.equal(r.json.laKeToan, false);
 });
+
+// ---- TNV-VP01 / ADR-0092 Đ2, Đ2b (năm lỗi tiền V2): một dòng giữ hộ tất toán MỘT lần, bằng một trong hai đường; nộp / trả không đổi dấu số dư ----
+const soCuaToi = async (w: W, as: string) => (await w.call("GET", "/api/ledger/mine", { as })).json.dangGiu as number;
+const nopVe = (w: W, orderId: string, soTien: number, partyId = `pty-${HDV}`) =>
+  w.call("POST", "/api/ledger/settlements", { as: KT, body: { chieu: "nop", partyId, phanBo: [{ orderId, soTien }] } });
+const xacNhanCk = (w: W, receiptId: string) => w.call("POST", `/api/ledger/company-receipts/${receiptId}/confirm`, { as: KT, body: {} });
+
+test("VP-01 (Đ2b) thứ tự 1: HDV khai 'Công ty thu – CK' 1.000.000 → Kế toán ghi 'Đã nộp' 1.000.000 → 'Xác nhận đã nhận' → 409 kèm câu chỉ đường; sổ của HDV = 0 (không âm)", async () => {
+  const w = setup();
+  const id = donDaXacNhan(w, { total: 1_000_000 });
+  assert.equal((await thu(w, HDV, id, { soTien: 1_000_000, hinhThuc: "BANK_TRANSFER", nguoiThu: "cong_ty" })).status, 201);
+  const ck = one(w, "SELECT id FROM bil_payment_receipt WHERE order_id = ? AND collector_role_code = 'COMPANY'", id)!.id as string;
+  const kt0 = (await w.call("GET", `/api/orders/${id}/payments`, { as: KT })).json.keToan;
+  assert.deepEqual(kt0.dangGiu.map((d: { soTien: number; choXacNhan: number }) => [d.soTien, d.choXacNhan]), [[1_000_000, 1_000_000]], "V2.6: số đang giữ gồm phần chuyển khoản chờ xác nhận");
+  assert.equal((await nopVe(w, id, 1_000_000)).status, 201);
+  const r = await xacNhanCk(w, ck);
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "held_already_settled");
+  assert.equal(r.json.error.message, "Khoản này đã được ghi nộp — nếu tiền cũng đã về tài khoản công ty thì đảo lần nộp trước rồi xác nhận.");
+  assert.equal(await soCuaToi(w, HDV), 0, "sổ của HDV không âm");
+  assert.deepEqual((await w.call("GET", `/api/orders/${id}/payments`, { as: KT })).json.keToan.choXacNhan, [], "V2.3: sau khi nộp, khoản không còn ở danh sách chờ xác nhận");
+});
+
+test("VP-01 (Đ2, Đ2b) thứ tự 2 (qua API): 'Xác nhận đã nhận' → 'Đã nộp' 1.000.000 → 409 vượt số đang giữ; sổ của HDV = 0", async () => {
+  const w = setup();
+  const id = donDaXacNhan(w, { total: 1_000_000 });
+  assert.equal((await thu(w, HDV, id, { soTien: 1_000_000, hinhThuc: "BANK_TRANSFER", nguoiThu: "cong_ty" })).status, 201);
+  const ck = one(w, "SELECT id FROM bil_payment_receipt WHERE order_id = ? AND collector_role_code = 'COMPANY'", id)!.id as string;
+  assert.equal((await xacNhanCk(w, ck)).status, 200);
+  const r = await nopVe(w, id, 1_000_000);
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "settlement_exceeds_held");
+  assert.match(r.json.error.message, /vượt số người này đang giữ cho đơn/);
+  assert.equal(await soCuaToi(w, HDV), 0);
+});
+
+test("Đ2: nộp một phần trong số đang giữ được; nộp cho người KHÔNG giữ → 409; công ty 'trả' quá số công ty đang nợ → 409", async () => {
+  const w = setup();
+  const id = donDaXacNhan(w);
+  await thu(w, HDV, id, tienMat(400_000));
+  assert.equal((await nopVe(w, id, 150_000)).status, 201);
+  assert.equal((await nopVe(w, id, 250_001)).status, 409);
+  assert.equal((await nopVe(w, id, 250_000)).status, 201);
+  assert.equal((await nopVe(w, id, 1, `pty-${HDV2}`)).json.error.code, "settlement_exceeds_held", "người không giữ tiền");
+  const tra = await w.call("POST", "/api/ledger/settlements", { as: KT, body: { chieu: "tra", partyId: `pty-${HDV}`, phanBo: [{ orderId: id, soTien: 1 }] } });
+  assert.equal(tra.status, 409, tra.text);
+  assert.equal(tra.json.error.code, "settlement_exceeds_owed");
+  assert.equal(await soCuaToi(w, HDV), 0);
+});
+
+test("Đ2b: đảo một lần thu tiền mặt ĐÃ được nộp bù → 409 (đảo lần nộp trước); đảo lần nộp rồi đảo lần thu → được", async () => {
+  const w = setup();
+  const id = donDaXacNhan(w);
+  await thu(w, HDV, id, tienMat(300_000));
+  assert.equal((await nopVe(w, id, 300_000)).status, 201);
+  const thuId = one(w, "SELECT id FROM bil_payment_receipt WHERE order_id = ? AND kind_code = 'CUSTOMER_PAYMENT'", id)!.id as string;
+  const dao = (body: Record<string, unknown>) => w.call("POST", "/api/ledger/adjustments", { as: KT, body: { lyDo: "Ghi nhầm người thu", ...body } });
+  const r = await dao({ loai: "dao_lan_thu", receiptId: thuId });
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "held_already_settled");
+  const nopLine = one(w, "SELECT id FROM bil_debt_line WHERE order_id = ? AND kind_code = 'SETTLEMENT'", id)!.id as string;
+  assert.equal((await dao({ loai: "dao_dong", lineId: nopLine })).status, 201, "đảo lần nộp (sửa sai đường nhầm)");
+  assert.equal((await dao({ loai: "dao_lan_thu", receiptId: thuId })).status, 201);
+  assert.equal(await soCuaToi(w, HDV), 0);
+});

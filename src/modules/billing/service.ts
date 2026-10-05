@@ -13,7 +13,7 @@ import {
   type NewLine, type NewReceipt, type ReceiptDbRow,
 } from "./repository";
 import {
-  METHOD_CODES, conLai, khoanChoXacNhan, lyDoChuaGiaoDuoc, lyDoChuaHoanThanh, ngayPhatSinh, sinhDongDao, sinhDongHoanKhach, sinhDongLanThu, sinhDongQuyetToan, sinhDongXacNhanCongTy,
+  CAU_DA_NOP, METHOD_CODES, conLai, khoanChoXacNhan, kiemQuyetToan, soDuCap, lyDoChuaGiaoDuoc, lyDoChuaHoanThanh, ngayPhatSinh, sinhDongDao, sinhDongHoanKhach, sinhDongLanThu, sinhDongQuyetToan, sinhDongXacNhanCongTy,
   soDuTheoBen, type LineDraft, type MethodCode, type ReceiptRow, type SoTienDon,
 } from "./rules";
 
@@ -170,6 +170,13 @@ export async function tienCuaDon(db: D1Database, info: ThongTinGiaoDon, ai: Nguo
   const ten = await partyLabels(db, [...soDu.keys()]);
   // Lần thu "Công ty thu – CK" chờ xác nhận — MỘT định nghĩa (`khoanChoXacNhan`, dùng chung với "đang đối chiếu" của đơn huỷ — ADR-0089 đ2).
   const choXacNhan = [...khoanChoXacNhan(receipts.map(toReceiptRow), lines.map(toLineRow))];
+  // ADR-0092 Đ2b (V2.6): phần "Công ty thu – CK" CHỜ XÁC NHẬN của từng người khai — nút "Đã nộp" không gộp phần đó (nộp nó = tất toán bằng đường nộp bù).
+  const choCuaNguoi = new Map<string, number>();
+  for (const l of lines) {
+    if (l.kind_code === "HELD" && l.reverses_line_id === null && l.receipt_id !== null && choXacNhan.includes(l.receipt_id)) {
+      choCuaNguoi.set(l.debtor_party_id, (choCuaNguoi.get(l.debtor_party_id) ?? 0) + l.amount);
+    }
+  }
   const lyHoan = lyDoChuaHoanThanh({ deliveredAt: info.deliveredAt, completedAt: info.completedAt, soDu, tenBen: (id) => ten.get(id)?.label ?? "Một người" });
   return {
     phaiThu: info.phaiThu,
@@ -191,7 +198,7 @@ export async function tienCuaDon(db: D1Database, info: ThongTinGiaoDon, ai: Nguo
     laKeToan: ai.laKeToan,
     keToan: ai.laKeToan
       ? {
-          dangGiu: [...soDu].filter(([, v]) => v > 0).map(([partyId, soTien]) => ({ partyId, ten: ten.get(partyId)?.label ?? "Một người", soTien })),
+          dangGiu: [...soDu].filter(([, v]) => v > 0).map(([partyId, soTien]) => ({ partyId, ten: ten.get(partyId)?.label ?? "Một người", soTien, choXacNhan: Math.min(soTien, choCuaNguoi.get(partyId) ?? 0) })),
           choXacNhan,
         }
       : null,
@@ -335,6 +342,10 @@ export async function xacNhanCongTyNhan(db: D1Database, input: { receiptId: stri
   const cho = [];
   for (const l of await linesOfReceipt(db, rc.id)) if (l.kind_code === "HELD" && l.reverses_line_id === null && !(await lineReversed(db, l.id))) cho.push(l);
   if (cho.length === 0) return loi(409, "invalid_state", "Khoản này không còn chờ xác nhận.");
+  // ADR-0092 Đ2b (TNV-VP01): một dòng giữ hộ tất toán MỘT lần — "Công ty đã nhận" chỉ khi người khai còn nợ công ty trên đơn ≥ số dòng giữ hộ (chưa bị "Nộp").
+  const dongDon = (await linesOfOrder(db, rc.order_id)).map(toLineRow);
+  const conNo = soDuCap(dongDon, cho[0]!.debtor_party_id, cho[0]!.creditor_party_id);
+  if (conNo < cho.reduce((t, l) => t + l.amount, 0)) return loi(409, "held_already_settled", CAU_DA_NOP);
   const b = (input.raw ?? {}) as Record<string, unknown>;
   const ngay = docNgay(b.ngayPhatSinh);
   if (!ngay.ok) return ngay;
@@ -349,6 +360,7 @@ export async function xacNhanCongTyNhan(db: D1Database, input: { receiptId: stri
     await db.batch(stmts);
   } catch (e) {
     if (/UNIQUE constraint failed: bil_debt_line\.reverses_line_id/.test(e instanceof Error ? e.message : String(e))) return loi(409, "stale", "Khoản này vừa được xác nhận.");
+    if (loiTrigger(e, "held_already_settled")) return loi(409, "held_already_settled", CAU_DA_NOP);
     throw e;
   }
   return { ok: true, value: { orderId: rc.order_id } };
@@ -382,6 +394,12 @@ export async function ghiQuyetToan(db: D1Database, input: { raw: unknown; ai: Ng
   if (!ngay.ok) return ngay;
   const ghiChu = docLyDo(b.ghiChu, false);
   if (!ghiChu.ok) return ghiChu;
+  // ADR-0092 Đ2 (TNV-G4 KT04, TNV-VP01): nộp ≤ số người đó đang nợ công ty trên TỪNG đơn; trả ≤ số công ty đang nợ người đó. Lớp CSDL: trigger 0080.
+  for (const p of phanBo) {
+    const dongDon = await linesOfOrder(db, p.orderId);
+    const k = kiemQuyetToan({ chieu: b.chieu, soDu: soDuCap(dongDon.map(toLineRow), b.partyId, congTyId), soTien: p.amount, maDon: dongDon[0]?.order_code ?? "này" });
+    if (!k.ok) return loi(409, k.ma, k.cau);
+  }
   const at = new Date().toISOString();
   const postingId = crypto.randomUUID();
   const drafts = b.chieu === "nop"
@@ -392,7 +410,13 @@ export async function ghiQuyetToan(db: D1Database, input: { raw: unknown; ai: Ng
     ...drafts.map((d) => lineIfPostingStatement(db, lineOf(d, postingId, d.orderId, null, at, input.ai.staffId))),
     auditStatement(db, { staffId: input.ai.staffId, action: "ledger_settlement", at, targetType: "party", targetId: b.partyId, detail: `${b.chieu === "nop" ? "nộp về công ty" : "công ty trả"} · ${phanBo.length} đơn` }),
   ];
-  await db.batch(stmts);
+  try {
+    await db.batch(stmts);
+  } catch (e) {
+    // Người khác vừa ghi nộp / xác nhận giữa lúc đọc và lúc ghi → trigger 0080 huỷ cả lô.
+    if (loiTrigger(e, "settlement_sign_flip")) return loi(409, "stale", "Số tiền người này đang giữ vừa thay đổi — tải lại rồi thử lại.");
+    throw e;
+  }
   return { ok: true, value: { orderIds: phanBo.map((p) => p.orderId) } };
 }
 
@@ -483,6 +507,8 @@ export async function ghiDieuChinh(db: D1Database, input: { raw: unknown; ai: Ng
       if (/UNIQUE constraint failed: bil_(payment_receipt\.reverses_id|debt_line\.reverses_line_id)/.test(e instanceof Error ? e.message : String(e))) return loi(409, "stale", "Lần thu này đã được đảo.");
       // ADR-0089 đ15 (mọi lúc — NT-B2): đảo làm đã trả dưới tổng duyệt hoàn cọc của đơn huỷ.
       if (loiTrigger(e, "coc_paid_below_approved")) return loi(409, "coc_paid_below_approved", "Đơn đã duyệt hoàn cọc — huỷ duyệt phần chưa chi trước khi đảo lần thu.");
+      // ADR-0092 Đ2b: khoản giữ hộ của lần thu đã được ghi nộp — đảo lần nộp trước (cùng thứ tự "ghi mới trước, đảo sau").
+      if (loiTrigger(e, "held_already_settled")) return loi(409, "held_already_settled", "Khoản giữ hộ của lần thu này đã được ghi nộp — đảo lần nộp trước rồi đảo lần thu.");
       throw e;
     }
     return { ok: true, value: { orderId: rc.order_id } };
@@ -502,6 +528,7 @@ export async function ghiDieuChinh(db: D1Database, input: { raw: unknown; ai: Ng
       await db.batch(stmts);
     } catch (e) {
       if (/UNIQUE constraint failed: bil_debt_line\.reverses_line_id/.test(e instanceof Error ? e.message : String(e))) return loi(409, "stale", "Dòng này đã được đảo.");
+      if (loiTrigger(e, "held_already_settled")) return loi(409, "held_already_settled", "Khoản giữ hộ này đã được ghi nộp — đảo lần nộp trước.");
       throw e;
     }
     return { ok: true, value: { orderId: l.order_id } };

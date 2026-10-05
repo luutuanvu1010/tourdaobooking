@@ -176,3 +176,53 @@ test("R-BIL-C6: gỡ trigger hạn → khoản duyệt khách huỷ sau hạn = 
   duyet(db, { order: "ct", amount: 100_000, date: "2027-05-10" });
   assert.equal(dem(db, "R-BIL-C6"), 1);
 });
+
+// ---- R-BIL-13 (ADR-0092 Đ2, Đ2b, đ8; TNV-VP01): số dư không âm do giữ hộ / quyết toán; mốc 0080: từ mốc = lỗi, trước mốc = cảnh báo ----
+const congTy = (db: DatabaseSync): string => {
+  let ct = (db.prepare("SELECT party_id FROM v_pty_owner_company LIMIT 1").get() as { party_id: string } | undefined)?.party_id;
+  if (!ct) {
+    run(db, "INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES ('ct', 'ORGANIZATION', 'Tour Đảo', 1, ?, ?)", AT, AT);
+    run(db, "INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_at, created_at, updated_at) VALUES ('ct-r', 'ct', 'OWNER_COMPANY', ?, ?, ?)", AT, AT, AT);
+    ct = "ct";
+  }
+  return ct;
+};
+function no(db: DatabaseSync, o: { order: string; debtor: string; creditor: string; amount: number; kind: string; reverses?: string | null; at: string }): string {
+  const id = `l${++n}`;
+  run(db, "INSERT OR IGNORE INTO bil_posting (id, kind_code, order_id, reason, occurred_date, created_at, updated_at) VALUES (?, 'ADJUSTMENT', ?, 'khung thử', '2026-10-05', ?, ?)", `p-${o.order}`, o.order, AT, AT);
+  run(db, `INSERT INTO bil_debt_line (id, posting_id, debtor_party_id, creditor_party_id, amount, kind_code, order_id, receipt_id, reverses_line_id, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?)`, id, `p-${o.order}`, o.debtor, o.creditor, o.amount, o.kind, o.order, o.reverses ?? null, o.at, o.at);
+  return id;
+}
+const sauMoc = "2999-01-01T00:00:00.000Z";
+const truocMoc = "2000-01-01T00:00:00.000Z";
+
+test("R-BIL-13: đúng luồng (giữ hộ → nộp; giữ hộ → công ty đã nhận; công ty nợ người ứng tiền) → 0; có, mức fail; R-BIL-13w mức warn", () => {
+  assert.equal(check("R-BIL-13").level, "fail");
+  assert.equal(check("R-BIL-13w").level, "warn");
+  const db = moi();
+  const ct = congTy(db);
+  don(db, "a");
+  no(db, { order: "a", debtor: "hdv", creditor: ct, amount: 400_000, kind: "HELD", at: sauMoc });
+  no(db, { order: "a", debtor: ct, creditor: "hdv", amount: 400_000, kind: "SETTLEMENT", at: sauMoc });
+  const h = no(db, { order: "a", debtor: "hdv2", creditor: ct, amount: 300_000, kind: "HELD", at: sauMoc });
+  no(db, { order: "a", debtor: ct, creditor: "hdv2", amount: 300_000, kind: "HELD", reverses: h, at: sauMoc });
+  no(db, { order: "a", debtor: ct, creditor: "nv-ung", amount: 200_000, kind: "REFUND", at: sauMoc });
+  assert.equal(dem(db, "R-BIL-13"), 0);
+});
+
+test("R-BIL-13 (VP-01): gỡ hai trigger 0080 rồi 'nộp' rồi 'Công ty đã nhận' cùng một khoản → 1 (sau mốc); dữ liệu cũ trước mốc → 0 lỗi, R-BIL-13w liệt kê 1 dòng", () => {
+  const db = moi();
+  const ct = congTy(db);
+  go(db, "bil_debt_line_settlement_no_flip", "bil_debt_line_held_once");
+  don(db, "a");
+  const h = no(db, { order: "a", debtor: "hdv", creditor: ct, amount: 1_000_000, kind: "HELD", at: sauMoc });
+  no(db, { order: "a", debtor: ct, creditor: "hdv", amount: 1_000_000, kind: "SETTLEMENT", at: sauMoc });
+  no(db, { order: "a", debtor: ct, creditor: "hdv", amount: 1_000_000, kind: "HELD", reverses: h, at: sauMoc });
+  assert.equal(dem(db, "R-BIL-13"), 1);
+  don(db, "cu");
+  no(db, { order: "cu", debtor: ct, creditor: "hdv3", amount: 50_000, kind: "SETTLEMENT", at: truocMoc }); // nộp cho người không giữ, trước mốc
+  assert.equal(dem(db, "R-BIL-13"), 1, "dữ liệu trước mốc không thành lỗi");
+  const w = db.prepare(check("R-BIL-13w").sql.replace(/\s+/g, " ").trim()).all() as { order_id: string; so: number }[];
+  assert.deepEqual(w.map((x) => [x.order_id, x.so]), [["cu", -50_000]]);
+});

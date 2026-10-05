@@ -713,19 +713,25 @@ function nutKeToanLanThu(order: Order, t: Api.OrderPaymentsResponse, l: Api.LanT
 /** Khối Kế toán dưới danh sách lần thu: ai đang giữ tiền của công ty vì đơn này → "Đã nộp về công ty"; khách trả dư → "Ghi hoàn cho khách". */
 function khoiKeToan(order: Order, t: Api.OrderPaymentsResponse): HTMLElement | null {
   const kt = t.keToan!;
-  const dong: HTMLElement[] = kt.dangGiu.map((d) =>
-    h(
+  // ADR-0092 Đ2b (V2.6): "Đã nộp" chỉ gồm tiền mặt người đó đang giữ — phần "Công ty thu – CK" chờ xác nhận đi đường "Xác nhận đã nhận" (một dòng giữ hộ
+  // tất toán MỘT lần). Người khai nộp bù khoản chuyển khoản không về thì Kế toán ghi ở sổ (số máy chủ kẹp).
+  const dong: HTMLElement[] = kt.dangGiu.map((d) => {
+    const tienMat = d.soTien - d.choXacNhan;
+    return h(
       "li",
       { "data-khoi": "dang-giu" },
-      `${d.ten} đang giữ ${vnd(d.soTien)} của công ty `,
-      hangXacNhan({
-        nhan: "Đã nộp về công ty", action: "da-nop", nutGhi: "Ghi đã nộp",
-        cau: `Ghi ${d.ten} đã nộp ${vnd(d.soTien)} của đơn này về công ty?`,
-        ghi: () => api("/api/ledger/settlements", { method: "POST", body: { chieu: "nop", partyId: d.partyId, phanBo: [{ orderId: order.id, soTien: d.soTien }] } }),
-        bao: `Đã ghi ${d.ten} nộp ${vnd(d.soTien)}.`,
-      }),
-    ),
-  );
+      `${d.ten} đang giữ ${vnd(d.soTien)} của công ty`,
+      d.choXacNhan > 0 ? ` (gồm ${vnd(d.choXacNhan)} chuyển khoản chờ xác nhận) ` : " ",
+      tienMat > 0
+        ? hangXacNhan({
+          nhan: "Đã nộp về công ty", action: "da-nop", nutGhi: "Ghi đã nộp",
+          cau: `Ghi ${d.ten} đã nộp ${vnd(tienMat)} của đơn này về công ty?`,
+          ghi: () => api("/api/ledger/settlements", { method: "POST", body: { chieu: "nop", partyId: d.partyId, phanBo: [{ orderId: order.id, soTien: tienMat }] } }),
+          bao: `Đã ghi ${d.ten} nộp ${vnd(tienMat)}.`,
+        })
+        : null,
+    );
+  });
   let hoan: HTMLElement | null = null;
   if (t.du > 0) {
     const soTien = h("input", { type: "text", inputmode: "numeric", autocomplete: "off", value: String(t.du) }) as HTMLInputElement;
