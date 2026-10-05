@@ -334,7 +334,7 @@ test("ADR-0040 D3 + ADR-0049 D3: MỌI ô của Tài xế (DRIVER) — ghim nguy
     "transport.cost.view": "none", "transport.cost.adjust": "none", // ADR-0057 C7 — chi phí xe thuê: không
     // ADR-0049 D3 — NỚI (ĐÃ DUYỆT 2026-09-30 (lần 17), đề xuất luật mục 2): tài xế công ty xem + bấm tiến độ chuyến MÌNH ĐANG LÁI (`assigned` — A13 / A15).
     "trip.view": "assigned", "trip.dispatch": "none", "trip.override": "none", "trip.progress": "assigned", "trip.call_ack": "none",
-    // ADR-0052 D5b — NỚI (CHỜ CHỦ DUYỆT, đề xuất luật A-1b mục 1): tài xế công ty bổ sung tên khách chưa có tên trên chuyến MÌNH ĐANG LÁI (ô assigned thứ ba).
+    // ADR-0052 D5b — NỚI (chủ duyệt 5/10, đề xuất luật A-1b mục 1): tài xế công ty bổ sung tên khách chưa có tên trên chuyến MÌNH ĐANG LÁI (ô assigned thứ ba).
     "trip.passenger.add": "assigned",
     // Sổ tiền lượt 1 (bản làm mới §2): tài xế không thu tiền khách — none ở cả bốn ô mới (ledger.view none, không phải own: tài xế không bao giờ là người thu).
     "order.handover": "none", "order.complete": "none", "ledger.view": "none", "ledger.write": "none",

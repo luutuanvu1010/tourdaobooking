@@ -22,7 +22,7 @@ import {
  * mốc giờ hẹn (ADR-0051 — `lenhDaGoiBao`, `lenhBoDanhDauGoiBao`; không chạm vc_trip).
  */
 /**
- * `GHI_NGOAI` (Đợt 5 A-1b — CHỜ CHỦ DUYỆT, đề xuất luật A-1b mục 2): câu GHI do module KHÁC cấp (orders — dòng hành khách tài xế nhập), không chạm vc_trip nên
+ * `GHI_NGOAI` (Đợt 5 A-1b — chủ duyệt 5/10, đề xuất luật A-1b mục 2): câu GHI do module KHÁC cấp (orders — dòng hành khách tài xế nhập), không chạm vc_trip nên
  * gác bằng ID NHẬT KÝ của lô (`EXISTS (SELECT 1 FROM audit_log WHERE id = ?)` = dấu lệnh) thay cho `last_cmd_id`. Chỉ `loBoSungTen` được dùng (bài thứ tự lô).
  */
 export type NhanCau = "CONG" | "CONG_DOI" | "CHUYEN_TIEN_DO" | "CONG_MOC" | "NHAT_KY" | "SU_KIEN" | "GHI" | "GHI_NGOAI" | "TRANG_THAI_CUOI";
@@ -376,7 +376,7 @@ export function loBaoHuy(db: D1Database, l: LenhBaoHuy): CauCoNhan[] {
   ];
 }
 
-// ---- Tài xế bổ sung tên MỘT khách chưa có tên (ADR-0052 D5b — Đợt 5 A-1b, CHỜ CHỦ DUYỆT) ---------------------------------------------------------------
+// ---- Tài xế bổ sung tên MỘT khách chưa có tên (ADR-0052 D5b — Đợt 5 A-1b, chủ duyệt 5/10) ---------------------------------------------------------------
 export interface LenhBoSungTen extends LenhChung {
   tripId: string;
   /** version do MÁY CHỦ đọc (lệnh tài xế không nhận version từ màn). */

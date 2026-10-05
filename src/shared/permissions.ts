@@ -182,9 +182,9 @@ export const MATRIX = {
   // Tài xế công ty: CHỈ chuyến mình đang lái (`assigned` — route tài xế `…/cuoc-cua-toi/*`, cổng staff). Văn phòng (Bán hàng, Quản trị, Toàn quyền) bấm thay
   // qua route RIÊNG `…/chuyen/:id/<lệnh>` (cổng office — R-P1), cùng một hàm xử lý. Kế toán: không. NỚI bài ghim hàng DRIVER — ĐÃ DUYỆT 2026-09-30 (lần 17) (đề xuất luật mục 2).
   "trip.progress": row("any", "none", "any", "none", "none", "any", "none", "assigned", "none", "none"),
-  // ADR-0052 D5b (Vận chuyển Đợt 5 A-1b — CHỜ CHỦ DUYỆT, tệp đề xuất luật A-1b mục 1): tài xế công ty BỔ SUNG TÊN khách chưa có tên trên chuyến MÌNH ĐANG LÁI,
+  // ADR-0052 D5b (Vận chuyển Đợt 5 A-1b — chủ duyệt 5/10, tệp đề xuất luật A-1b mục 1): tài xế công ty BỔ SUNG TÊN khách chưa có tên trên chuyến MÌNH ĐANG LÁI,
   // trong ngày chạy (route POST /api/van-chuyen/cuoc-cua-toi/:id/hanh-khach). Văn phòng không có route riêng (nhập tên ở đơn) — Bán hàng, Quản trị none; Toàn
-  // quyền any. Tài xế đối tác none (câu hỏi chờ chủ — ADR-0053). NỚI bài ghim hàng DRIVER (3 ô assigned).
+  // quyền any. Tài xế đối tác none (chủ 5/10: chỉ tài xế công ty; ADR-0053 để Đợt 6). NỚI bài ghim hàng DRIVER (3 ô assigned).
   "trip.passenger.add": row("none", "none", "none", "none", "none", "any", "none", "assigned", "none", "none"),
   // ADR-0051 GB2 (Task A-GB): ghi / bỏ dấu "đã gọi báo khách" giờ hẹn mới của chặng đang trên xe — "đơn của ai người đó lo" (Hiến chương 5.8, ĐP6): Bán hàng
   // CHỈ đơn mình lập hoặc mình đang phụ trách (route truyền cả ownerId lẫn assigned — ctx.isAssigned của người phụ trách ĐƠN); Quản trị, Toàn quyền mọi chặng.

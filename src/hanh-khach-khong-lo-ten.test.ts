@@ -207,7 +207,7 @@ test("khối van-chuyen: đủ tuyến; tên hành khách chỉ ở GET /chuyen/
     const dF = await don(w, { soNguoi: 2, gio: "08:30", ngay: NGAY_SAU, namSinh: 1911 });
     // Đợt 5 (ADR-0052 D5.1, D5.2): đơn H thêm vào xe D ĐANG CHẠY (them-diem), rồi văn phòng báo huỷ một khách (bao-huy).
     const dH = await don(w, { soNguoi: 2, gio: "16:30", namSinh: 1911 });
-    // Đợt 5 A-1b (ADR-0052 D5b — CHỜ CHỦ DUYỆT): đơn J thiếu một tên — tài xế bổ sung tên trên chuyến J (tạo ở ca hanh-khach).
+    // Đợt 5 A-1b (ADR-0052 D5b — chủ duyệt 5/10): đơn J thiếu một tên — tài xế bổ sung tên trên chuyến J (tạo ở ca hanh-khach).
     const dJ = await don(w, { soNguoi: 2, ten: 1, gio: "21:10", namSinh: 1911 });
     const T: Record<string, any> = {};
     const S: Record<string, { don: string; tra: string; suat: string[] }> = {};
@@ -448,7 +448,7 @@ test("khối van-chuyen: đủ tuyến; tên hành khách chỉ ở GET /chuyen/
         const r = await goi("GET /api/van-chuyen/chuyen/:id/cuu-ho", "cứu hộ xe D", "GET", `/api/van-chuyen/chuyen/${T.D.chuyen.id}/cuu-ho`, SALES);
         assert.ok(r.changChoXep.length >= 1, "chống bài rỗng: xe D có chặng cần chuyển");
       },
-      // Đợt 5 A-1b (D5b — CHỜ CHỦ DUYỆT): tài xế bổ sung tên "Khách Dò Tìm 2" (năm 1912) — phản hồi ĐÚNG { ok, soNguoi }, không tên / năm sinh.
+      // Đợt 5 A-1b (D5b — chủ duyệt 5/10): tài xế bổ sung tên "Khách Dò Tìm 2" (năm 1912) — phản hồi ĐÚNG { ok, soNguoi }, không tên / năm sinh.
       [`${R}/hanh-khach`]: async () => {
         const j = await w.call("POST", "/api/van-chuyen/chuyen", { as: ADM, body: { requestId: rid(), xeId: xe(w), taiXePartyId: `pty-${DRIVER4}`, batDau: { ngay: NGAY, gio: "21:00" }, ketThuc: { ngay: NGAY, gio: "22:00" } } });
         assert.equal(j.status, 201, j.text);
@@ -482,7 +482,7 @@ test("khối van-chuyen: đủ tuyến; tên hành khách chỉ ở GET /chuyen/
     for (const r of TRA_TEN) assert.ok(than.some((t) => t.route === r && t.text.includes(TEN_VC[0]!)), `chống bài rỗng: ${r} CÓ tên`);
     // K2a V2: phép (2) chỉ có nghĩa khi thân CÓ suất đã gắn tên. Bốn route bản chất không còn suất mở có tên (tạo chuyến — chuyến rỗng; huỷ chuyến, kết thúc
     // gián đoạn ×2 — mọi suất đã đóng) do bài 3 (quét mã: đối `kemTen` / `hk` ở MỌI nơi gọi) canh.
-    // Đợt 5 A-1b (CHỜ CHỦ DUYỆT): `${R}/hanh-khach` trả ĐÚNG { ok, soNguoi } (không mảng suất — khoá tập khoá ở ca của nó) nên cũng không có cái để lộ.
+    // Đợt 5 A-1b (chủ duyệt 5/10): `${R}/hanh-khach` trả ĐÚNG { ok, soNguoi } (không mảng suất — khoá tập khoá ở ca của nó) nên cũng không có cái để lộ.
     const KHONG_THE_LO = new Set(["POST /api/van-chuyen/chuyen", "POST /api/van-chuyen/chuyen/:id/huy", `${R}/ket-thuc-gian-doan`, `${V}/ket-thuc-gian-doan`,
       // ADR-0057 T2: bốn lệnh ghi CHI PHÍ — phản hồi là DTO chi phí (không có mảng `suat` bao giờ), phép "không lộ tên" ở (2) vẫn quét thân.
       "POST /api/van-chuyen/chuyen/:id/chi-phi/dieu-chinh", "POST /api/van-chuyen/chuyen/:id/chi-phi/dao", "POST /api/van-chuyen/chuyen/:id/chi-phi/chup-lai",

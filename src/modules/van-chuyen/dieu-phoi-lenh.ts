@@ -297,7 +297,7 @@ export async function lenhBaoHuy(
   return r.ok ? null : r.res;
 }
 
-// ---- Tài xế bổ sung tên MỘT khách chưa có tên (ADR-0052 D5b — Đợt 5 A-1b, CHỜ CHỦ DUYỆT) ---------------------------------------------------------------
+// ---- Tài xế bổ sung tên MỘT khách chưa có tên (ADR-0052 D5b — Đợt 5 A-1b, chủ duyệt 5/10) ---------------------------------------------------------------
 /**
  * Route đã kiểm: ô `trip.passenger.add` (assigned), người gọi đang lái, trong ngày chạy. Ở đây: chuyến còn lên kế hoạch hoặc đang chạy; suất khách MỞ của đúng
  * chuyến (không có → 404), chưa có tên (409 `suat_da_co_ten`); đơn của chặng còn thiếu tên (409 `don_du_ten` — câu orders còn tự so trong lô). `cauHanhKhach`

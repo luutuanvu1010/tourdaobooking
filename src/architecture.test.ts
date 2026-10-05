@@ -172,7 +172,7 @@ const DOC_AUDIT_LOG_WONGUARD = {
   ten: [
     "orders.leg_delete_draft", "orders.leg_insert_guarded", "orders.leg_update_guarded", "orders.leg_close_guarded", "orders.passenger_delete_draft",
     "orders.passenger_insert_guarded", "orders.passenger_void_guarded", "orders.order_touch_guarded", "orders.service_mirror_update_guarded",
-    // CHỜ CHỦ DUYỆT (Đợt 5 A-1b, tệp đề xuất docs/superpowers/plans/2026-10-05-adr-0052-a1b-de-xuat-luat.md mục 2): câu ghi tên do TÀI XẾ nhập, gác id nhật ký.
+    // chủ duyệt 5/10 (Đợt 5 A-1b, tệp đề xuất docs/superpowers/plans/2026-10-05-adr-0052-a1b-de-xuat-luat.md mục 2): câu ghi tên do TÀI XẾ nhập, gác id nhật ký.
     "orders.passenger_insert_driver",
   ],
 } as const;

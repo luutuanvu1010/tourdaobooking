@@ -1646,7 +1646,7 @@ export const vanChuyenModule: AppModule = {
       return json(await cuocChiTiet(env.DB, nen2, lich2.chang, [], null, nhanNhanVien, bayGioMs, trongNgay) satisfies CuocChiTietResponse);
     }),
 
-    // ADR-0052 D5b (Vận chuyển Đợt 5 A-1b — CHỜ CHỦ DUYỆT): tài xế BỔ SUNG TÊN một khách chưa có tên trên chuyến mình đang lái, trong ngày chạy. Thứ tự:
+    // ADR-0052 D5b (Vận chuyển Đợt 5 A-1b — chủ duyệt 5/10): tài xế BỔ SUNG TÊN một khách chưa có tên trên chuyến mình đang lái, trong ngày chạy. Thứ tự:
     // can(trip.passenger.add) → chuyến mình đang lái → trong ngày chạy → thân (CÙNG luật nhập tên ở đơn) → suất / đơn (lenhBoSungTen). Phản hồi { ok, soNguoi }
     // — KHÔNG tên (màn đọc lại GET chi tiết). Câu ghi dòng hành khách do orders cấp, gọi trong thân route sau can() (bài src/orders-cong-bo.test.ts).
     route("POST", "/api/van-chuyen/cuoc-cua-toi/:id/hanh-khach", "staff", async ({ env, request, params, staff, baoThayDoiChuyen }) => {

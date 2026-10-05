@@ -1,4 +1,4 @@
-// TÀI XẾ BỔ SUNG TÊN KHÁCH (ADR-0052 D5b; Vận chuyển Đợt 5 A-1b Task 14 — CHỜ CHỦ DUYỆT): route `POST /api/van-chuyen/cuoc-cua-toi/:id/hanh-khach`, ô
+// TÀI XẾ BỔ SUNG TÊN KHÁCH (ADR-0052 D5b; Vận chuyển Đợt 5 A-1b Task 14 — chủ duyệt 5/10): route `POST /api/van-chuyen/cuoc-cua-toi/:id/hanh-khach`, ô
 // `trip.passenger.add` (tài xế công ty — assigned). Chạy CẢ ứng dụng trên SQLite thật, đồng hồ giả (ngày chạy 2027-03-11 — tests/audit/dieu-phoi-khung.mjs). Tên, SĐT GIẢ.
 // Luật: chuyến mình đang lái, trong ngày chạy, suất khách MỞ chưa có tên của đúng chuyến; lô: cổng (version máy chủ đọc) → nhật ký → sự kiện PASSENGER_NAMED →
 // câu orders (dòng hành khách source DRIVER, gác id nhật ký) → gắn tên suất → bản chốt dòng thêm sau xuất bến (nếu xe đang chạy). Phản hồi KHÔNG tên.

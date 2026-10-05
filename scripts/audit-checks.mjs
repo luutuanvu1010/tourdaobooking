@@ -907,7 +907,7 @@ export const CHECKS = [
     level: "fail",
   },
   // R-ORD-11 (ADR-0047 A2): chuỗi hành khách đúng — dòng thay thế cùng đơn, cùng person_key với dòng trước; dòng đầu chuỗi có person_key = id. Trigger 0035
-  // đã chặn — đây là lưới thứ hai. Vế DRIVER ĐỔI NGHĨA (Đợt 5 A-1b — ADR-0052 D5b, CHỜ CHỦ DUYỆT, đề xuất luật A-1b mục 3): trước "không có dòng nguồn DRIVER";
+  // đã chặn — đây là lưới thứ hai. Vế DRIVER ĐỔI NGHĨA (Đợt 5 A-1b — ADR-0052 D5b, chủ duyệt 5/10, đề xuất luật A-1b mục 3): trước "không có dòng nguồn DRIVER";
   // nay dòng nguồn DRIVER phải là ĐẦU chuỗi và có sự kiện PASSENGER_NAMED trên một suất mang đúng khoá người đó (ADR-0052:221) — mồ côi = vi phạm.
   {
     code: "R-ORD-11",

@@ -40,7 +40,7 @@ export const LOAI_SU_KIEN_CHUYEN = [
   "STOPS_REORDERED", "ENDED", "ENDED_INTERRUPTED",
   // ADR-0052 D5 (Đợt 5): văn phòng thêm điểm / khách vào xe ĐANG CHẠY (D5.1 — đường (1) của LC-15 mới); văn phòng báo huỷ MỘT suất (D5.2 — chỉ đặt cờ).
   "STOP_ADDED_RUNNING", "ALLOCATION_OFFICE_CANCELLED",
-  // ADR-0052 D5b (Đợt 5 A-1b — CHỜ CHỦ DUYỆT): tài xế bổ sung tên MỘT khách chưa có tên (gắn tên suất + dòng hành khách source DRIVER).
+  // ADR-0052 D5b (Đợt 5 A-1b — chủ duyệt 5/10): tài xế bổ sung tên MỘT khách chưa có tên (gắn tên suất + dòng hành khách source DRIVER).
   "PASSENGER_NAMED",
 ] as const;
 export type LoaiSuKienChuyen = (typeof LOAI_SU_KIEN_CHUYEN)[number];

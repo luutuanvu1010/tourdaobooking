@@ -83,7 +83,7 @@ async function chay(khoa: string, viec: () => Promise<void>): Promise<void> {
   ve();
 }
 
-// ---- Đợt 5 A-1b (ADR-0052 D5b, bản vẽ V6 6.3–6.4 — CHỜ CHỦ DUYỆT): tài xế bổ sung tên khách chưa có tên -------------------------------------------------
+// ---- Đợt 5 A-1b (ADR-0052 D5b, bản vẽ V6 6.3–6.4 — chủ duyệt 5/10): tài xế bổ sung tên khách chưa có tên -------------------------------------------------
 /** Ô `trip.passenger.add` (đặt ở `main`); máy chủ vẫn kiểm chuyến mình đang lái + trong ngày chạy. */
 let coBoSungTen = false;
 const lenhBoSung = new Map<string, ReturnType<typeof taoLenh>>();

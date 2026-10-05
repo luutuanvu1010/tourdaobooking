@@ -9,7 +9,7 @@
 //   (4) câu `TRANG_THAI_CUOI` (nếu có) đứng CUỐI, nhiều nhất một.
 // NGOẠI LỆ luật 3 (ruling VỪA-2 — ADR-0051 "Đã gọi báo", Task A-GB): họ lệnh trên mốc giờ hẹn KHÔNG chạm vc_trip — chỉ các hàm LIỆT KÊ TÊN ở HO_LENH_MOC
 // được dùng nhãn `CONG_MOC`, và phải ĐÚNG HAI câu: `CONG_MOC` (INSERT có điều kiện `max(seq)`) rồi `NHAT_KY` (`changes() > 0`). Hàm khác dùng CONG_MOC → đỏ.
-// NGOẠI LỆ luật 3 thứ hai (Đợt 5 A-1b — CHỜ CHỦ DUYỆT, đề xuất luật A-1b mục 2): nhãn `GHI_NGOAI` = câu ghi do module KHÁC cấp (orders — dòng hành khách tài xế
+// NGOẠI LỆ luật 3 thứ hai (Đợt 5 A-1b — chủ duyệt 5/10, đề xuất luật A-1b mục 2): nhãn `GHI_NGOAI` = câu ghi do module KHÁC cấp (orders — dòng hành khách tài xế
 // nhập), gác bằng ID NHẬT KÝ của lô `EXISTS (SELECT 1 FROM audit_log WHERE id = ?n)` với ?n = dấu lệnh. CHỈ hàm có tên ở CHO_GHI_NGOAI; hàm khác dùng → đỏ.
 // Danh sách hàm tự suy bằng quét MỌI `export function` của dieu-phoi.ts (không chỉ tên `lo…`).
 import { test } from "node:test";
@@ -107,7 +107,7 @@ export function viPhamLoMoc(ten: string, lo: readonly Cau[]): string[] {
   return loi;
 }
 
-/** Hàm được dùng nhãn GHI_NGOAI (câu module khác gác bằng id nhật ký) — LIỆT KÊ TÊN. Thêm tên = NỚI luật 3 — CHỜ CHỦ DUYỆT (đề xuất luật A-1b mục 2). */
+/** Hàm được dùng nhãn GHI_NGOAI (câu module khác gác bằng id nhật ký) — LIỆT KÊ TÊN. Thêm tên = NỚI luật 3 — chủ duyệt 5/10 (đề xuất luật A-1b mục 2). */
 const CHO_GHI_NGOAI = ["loBoSungTen"];
 const GAC_NHAT_KY = /EXISTS \(SELECT 1 FROM audit_log WHERE id = \?(\d+)\)/;
 const LINH_GAC = /EXISTS \(SELECT 1 FROM vc_trip WHERE id = \?(\d+) AND last_cmd_id = \?(\d+)\)/;

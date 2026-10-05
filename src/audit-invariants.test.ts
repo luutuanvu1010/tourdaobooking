@@ -1066,7 +1066,7 @@ test("R-ORD-11: chuỗi hành khách đúng → 0; dòng thay thế khác đơn 
   assert.equal(violations(db, c), 4, "dòng nguồn DRIVER mồ côi (không sự kiện PASSENGER_NAMED + suất mang khoá đó)");
 });
 
-test("R-ORD-11 (Đợt 5 A-1b — ADR-0052 D5b, CHỜ CHỦ DUYỆT, đề xuất luật A-1b mục 3): dòng nguồn DRIVER CÓ sự kiện PASSENGER_NAMED trên suất mang khoá đó → 0; mồ côi / sự kiện trỏ suất khoá khác / dòng DRIVER là dòng thay thế → vi phạm", () => {
+test("R-ORD-11 (Đợt 5 A-1b — ADR-0052 D5b, chủ duyệt 5/10, đề xuất luật A-1b mục 3): dòng nguồn DRIVER CÓ sự kiện PASSENGER_NAMED trên suất mang khoá đó → 0; mồ côi / sự kiện trỏ suất khoá khác / dòng DRIVER là dòng thay thế → vi phạm", () => {
   const c = one("R-ORD-11");
   const db = tho();
   const d = donTho(db, { pax: 3, ten: 1 });
