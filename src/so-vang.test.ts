@@ -132,7 +132,7 @@ function chayTrenMa(phaiThu: number, suKien: readonly SuKien[]) {
       for (const d of goc.dong) ghiDong([sinhDongDao(d)]);
     }
   }
-  const so = conLai(receipts, phaiThu);
+  const so = conLai(receipts, phaiThu, "confirmed");
   const ly = lyDoChuaGiaoDuoc({ status: "confirmed", deliveredAt: null, homNay: "2026-10-10", ngayDi: ["2026-10-10"], dichVuThieuNgay: [], coNguoiHuong: false, so });
   return { so, soDu: soDuTheoBen(lines, CONG_TY), giaoDuoc: ly === null };
 }

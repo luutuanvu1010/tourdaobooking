@@ -13,7 +13,7 @@ import {
   type NewLine, type NewReceipt, type ReceiptDbRow,
 } from "./repository";
 import {
-  METHOD_CODES, conLai, lyDoChuaGiaoDuoc, lyDoChuaHoanThanh, ngayPhatSinh, sinhDongDao, sinhDongHoanKhach, sinhDongLanThu, sinhDongQuyetToan, sinhDongXacNhanCongTy,
+  METHOD_CODES, conLai, khoanChoXacNhan, lyDoChuaGiaoDuoc, lyDoChuaHoanThanh, ngayPhatSinh, sinhDongDao, sinhDongHoanKhach, sinhDongLanThu, sinhDongQuyetToan, sinhDongXacNhanCongTy,
   soDuTheoBen, type LineDraft, type MethodCode, type ReceiptRow, type SoTienDon,
 } from "./rules";
 
@@ -163,14 +163,12 @@ export interface QuyenXemTien {
 /** Dựng `OrderPaymentsResponse` cho người xem (đơn `info` đã đọc; quyền đã hỏi ở route). */
 export async function tienCuaDon(db: D1Database, info: ThongTinGiaoDon, ai: NguoiGoi, quyen: QuyenXemTien): Promise<OrderPaymentsResponse> {
   const [receipts, lines, congTyId] = await Promise.all([receiptsOfOrder(db, info.orderId), linesOfOrder(db, info.orderId), ownerCompanyId(db)]);
-  const so = conLai(receipts.map(toReceiptRow), info.phaiThu);
+  const so = conLai(receipts.map(toReceiptRow), info.phaiThu, info.status);
   const lyGiao = lyDoChuaGiaoDuoc({ status: info.status, deliveredAt: info.deliveredAt, homNay: vnToday(new Date()), ngayDi: info.ngayDi, dichVuThieuNgay: info.dichVuThieuNgay, coNguoiHuong: info.coNguoiHuong, so });
   const soDu = congTyId ? soDuTheoBen(lines.map(toLineRow), congTyId) : new Map<string, number>();
   const ten = await partyLabels(db, [...soDu.keys()]);
-  // Lần thu "Công ty thu – CK" chờ xác nhận = lần thu vai COMPANY còn dòng giữ hộ (HELD) chưa bị đảo — cùng điều kiện `xacNhanCongTyNhan` kiểm.
-  const daoDong = new Set(lines.flatMap((l) => (l.reverses_line_id ? [l.reverses_line_id] : [])));
-  const congTyThu = new Set(receipts.filter((r) => r.collector_role_code === "COMPANY").map((r) => r.id));
-  const choXacNhan = [...new Set(lines.filter((l) => l.kind_code === "HELD" && l.reverses_line_id === null && !daoDong.has(l.id) && l.receipt_id !== null && congTyThu.has(l.receipt_id)).map((l) => l.receipt_id!))];
+  // Lần thu "Công ty thu – CK" chờ xác nhận — MỘT định nghĩa (`khoanChoXacNhan`, dùng chung với "đang đối chiếu" của đơn huỷ — ADR-0089 đ2).
+  const choXacNhan = [...khoanChoXacNhan(receipts.map(toReceiptRow), lines.map(toLineRow))];
   const lyHoan = lyDoChuaHoanThanh({ deliveredAt: info.deliveredAt, completedAt: info.completedAt, soDu, tenBen: (id) => ten.get(id)?.label ?? "Một người" });
   return {
     phaiThu: info.phaiThu,
@@ -207,7 +205,7 @@ export async function tienNhieuDon(db: D1Database, orderIds: readonly string[]):
   for (const r of receipts) theoDon.set(r.order_id, [...(theoDon.get(r.order_id) ?? []), toReceiptRow(r)]);
   const out = new Map<string, TienMotDon>();
   for (const [id, b] of base) {
-    out.set(id, { ...conLai(theoDon.get(id) ?? [], b.phaiThu), phaiThu: b.phaiThu, daGiao: b.deliveredAt !== null, hoanThanh: b.completedAt !== null, ngayDiSomNhat: b.ngayDiSomNhat });
+    out.set(id, { ...conLai(theoDon.get(id) ?? [], b.phaiThu, b.status), phaiThu: b.phaiThu, daGiao: b.deliveredAt !== null, hoanThanh: b.completedAt !== null, ngayDiSomNhat: b.ngayDiSomNhat });
   }
   return out;
 }
@@ -253,7 +251,7 @@ export async function daGiao(
   const receipts = (await receiptsOfOrder(db, input.orderId)).map(toReceiptRow);
   if (lt) receipts.push({ id: "moi", kind: "CUSTOMER_PAYMENT", amount: lt.soTien, collectorRole: lt.collectorRole, collectorPartyId: lt.collectorPartyId, reversesId: null });
   const homNay = vnToday(new Date());
-  const ly = lyDoChuaGiaoDuoc({ status: info.status, deliveredAt: info.deliveredAt, homNay, ngayDi: info.ngayDi, dichVuThieuNgay: info.dichVuThieuNgay, coNguoiHuong: info.coNguoiHuong, so: conLai(receipts, info.phaiThu) });
+  const ly = lyDoChuaGiaoDuoc({ status: info.status, deliveredAt: info.deliveredAt, homNay, ngayDi: info.ngayDi, dichVuThieuNgay: info.dichVuThieuNgay, coNguoiHuong: info.coNguoiHuong, so: conLai(receipts, info.phaiThu, info.status) });
   if (ly) return loi(409, ly.ma === "already_delivered" ? "order_delivered" : "not_deliverable", ly.cau);
   if (input.canCauBaoVe && !ai.partyId) return loi(403, "forbidden", "Chỉ hướng dẫn viên đang phụ trách đơn mới bấm được Đã giao.");
 
@@ -413,7 +411,7 @@ export async function ghiHoanKhach(db: D1Database, input: { raw: unknown; ai: Ng
   } else return loi(400, "invalid_input", "Chọn người trả tiền cho khách (Công ty hoặc người đang giữ tiền).");
   const [state, receipts] = await Promise.all([orderState(db, b.orderId), receiptsOfOrder(db, b.orderId)]);
   if (!state) return loi(404, "not_found", "Không tìm thấy đơn.");
-  const daThu = conLai(receipts.map(toReceiptRow), 0).daThu;
+  const daThu = conLai(receipts.map(toReceiptRow), 0, state.status).daThu;
   if (so.value > daThu) return loi(400, "invalid_input", "Không hoàn quá số khách đã trả.");
   const ngay = docNgay(b.ngayPhatSinh);
   if (!ngay.ok) return ngay;

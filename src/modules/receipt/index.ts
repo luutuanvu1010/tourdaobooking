@@ -28,7 +28,9 @@ export const receiptModule: AppModule = {
       if (!can(staff, "money.view", scope) || !can(staff, "contact.view", scope)) return FORBIDDEN_VIEW();
       const [company, tien] = await Promise.all([congTyChoBienNhan(env.DB), soTienBienNhan(env.DB, id)]);
       if (!company) return error(404, "not_found", "Chưa có thông tin công ty.");
-      return json({ receipt: dungBienNhan(order, company, tien ?? { daTra: 0, conLai: order.total }) } satisfies ReceiptResponse);
+      // ADR-0089 NT-5: thiếu số tiền thì báo, KHÔNG đoán "còn lại = tổng đơn" (đơn huỷ từng bị ghi "còn nợ" vì dự phòng này).
+      if (!tien) return error(503, "money_unavailable", "Chưa đọc được số tiền của đơn — tải lại rồi thử lại.");
+      return json({ receipt: dungBienNhan(order, company, tien) } satisfies ReceiptResponse);
     }),
   ],
 };

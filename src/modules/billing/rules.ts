@@ -22,6 +22,8 @@ export interface ReceiptRow {
   collectorRole: CollectorRole;
   collectorPartyId: string | null;
   reversesId: string | null;
+  /** Khoản duyệt hoàn cọc mà lần trả lại khách này thuộc về (ADR-0089 đ4 — lần chi hoàn / nửa "chi" của lệnh chuyển). Không có = trả dư tự do / hoàn trước huỷ. */
+  approvalId?: string | null;
 }
 
 export interface LineRow {
@@ -61,15 +63,195 @@ export interface SoTienDon {
   chuaRo: number;
 }
 
-/** HÀM DUY NHẤT tính đã thu / còn lại / dư của một đơn (NT-R9). `phaiThu` = tổng khách phải trả hiện hành do `orders` công bố. */
-export function conLai(receipts: readonly ReceiptRow[], phaiThu: number): SoTienDon {
+/**
+ * HÀM DUY NHẤT tính đã thu / còn lại / dư của một đơn (NT-R9). `phaiThu` = tổng khách phải trả hiện hành do `orders` công bố.
+ * `trangThai` BẮT BUỘC (ADR-0089 đ1, đ14 — hàng rào H-C8): đơn ĐÃ HUỶ thì "còn lại" = 0 (khách không còn nợ) và "dư chờ hoàn" = 0 (cọc mặc định giữ —
+ * hoàn chỉ qua khoản duyệt, xem `soTienCoc`). Tham số bắt buộc để mọi nơi gọi phải tự trả lời "đơn này huỷ chưa" — không có mặc định đoán.
+ */
+export function conLai(receipts: readonly ReceiptRow[], phaiThu: number, trangThai: "draft" | "confirmed" | "cancelled"): SoTienDon {
   const con = hieuLuc(receipts);
   const daThu = con.reduce((s, r) => s + (r.kind === "CUSTOMER_REFUND" ? -r.amount : r.amount), 0);
+  const huy = trangThai === "cancelled";
   return {
     daThu,
-    conLai: Math.max(0, phaiThu - daThu),
-    du: Math.max(0, daThu - phaiThu),
+    conLai: huy ? 0 : Math.max(0, phaiThu - daThu),
+    du: huy ? 0 : Math.max(0, daThu - phaiThu),
     chuaRo: con.filter((r) => r.collectorRole === "UNKNOWN").length,
+  };
+}
+
+// ---------------------------------------------------------------------------------------------------------------------------------------------------
+// Đơn huỷ và cọc (ADR-0089 đ2, đ4, đ5, đ15, đ16, X-2…X-4) — MỘT NƠI định nghĩa đã trả / đang đối chiếu / còn giữ / đã duyệt / đã chi / đã chuyển / chờ chi.
+// Câu SQL của trigger và view `v_bil_coc_don` (migration Đợt 1 Phần B) theo ĐÚNG định nghĩa này — bài đối chiếu hai nơi ở rules.test.ts.
+// ---------------------------------------------------------------------------------------------------------------------------------------------------
+
+/**
+ * Lần thu "Công ty thu – CK" CHỜ XÁC NHẬN (MỘT định nghĩa — dùng cho `choXacNhan` của màn đơn VÀ cho "đang đối chiếu" của đơn huỷ): lần thu vai COMPANY
+ * còn dòng giữ hộ (HELD, dòng gốc) chưa bị đảo. Trả tập id lần thu.
+ */
+export function khoanChoXacNhan(
+  receipts: readonly Pick<ReceiptRow, "id" | "collectorRole">[],
+  lines: readonly Pick<LineRow, "id" | "kind" | "receiptId" | "reversesLineId">[],
+): Set<string> {
+  const daoDong = new Set(lines.flatMap((l) => (l.reversesLineId ? [l.reversesLineId] : [])));
+  const congTyThu = new Set(receipts.filter((r) => r.collectorRole === "COMPANY").map((r) => r.id));
+  return new Set(
+    lines.filter((l) => l.kind === "HELD" && l.reversesLineId === null && !daoDong.has(l.id) && l.receiptId !== null && congTyThu.has(l.receiptId)).map((l) => l.receiptId!),
+  );
+}
+
+export type LoaiDuyet = "REFUND" | "TRANSFER";
+/** Một dòng của sổ khoản duyệt (`bil_deposit_approval`): dòng gốc (`voidsId` null) hoặc dòng huỷ duyệt (trỏ gốc, `amount` = phần huỷ). */
+export interface DuyetRow {
+  id: string;
+  kind: LoaiDuyet;
+  amount: number;
+  voidsId: string | null;
+  targetOrderId: string | null;
+  createdBy: string | null;
+  approvedDate: string;
+}
+/** Một dòng "đã hoàn ngoài hệ thống" (đ16, X-4): RECORD (Toàn quyền ghi) → CONFIRM (Quản trị xác nhận) hoặc REJECT (từ chối — ghi lại được, lời chủ (b)). */
+export interface HoanNgoaiRow {
+  id: string;
+  kind: "RECORD" | "CONFIRM" | "REJECT";
+  amount: number | null;
+  targetId: string | null;
+  createdBy: string | null;
+}
+export type NhomHuy = "KHACH_HUY" | "CONG_TY_HUY" | "LAP_LAI" | "CHUA_KET_LUAN";
+
+export interface SoTienCoc {
+  /** Đã trả = Σ lần thu của khách còn hiệu lực, ĐÃ XÁC NHẬN (bỏ khoản "Công ty thu – CK" chờ xác nhận — đ2). */
+  daTra: number;
+  /** Phần khách khai chuyển khoản chưa xác nhận (chưa tính vào đã trả). */
+  dangDoiChieu: number;
+  /** Lần trả lại khách còn hiệu lực KHÔNG gắn khoản duyệt = hoàn trước khi huỷ (sau phát hành, đơn huỷ chỉ hoàn qua khoản duyệt — H-C7). */
+  hoanTruocHuy: number;
+  /** Tiền còn giữ lúc huỷ = đã trả − hoàn trước khi huỷ: TRẦN của tổng duyệt (đ4a, đ15; lời chủ (c)). */
+  conGiuLucHuy: number;
+  /** Tổng duyệt (hoàn + chuyển) − phần huỷ duyệt + dòng hoàn ngoài ĐÃ xác nhận (X-4). */
+  daDuyet: number;
+  /** Đã chi hoàn (lần trả lại khách gắn khoản duyệt REFUND) + dòng hoàn ngoài đã xác nhận (X-4). */
+  daChi: number;
+  /** Đã chuyển sang đơn mới (lần trả lại khách gắn khoản duyệt TRANSFER — nửa "chi" của lệnh chuyển). */
+  daChuyen: number;
+  /** Phần hoàn ngoài hệ thống ĐÃ xác nhận (tính trong cả daDuyet lẫn daChi). */
+  hoanNgoai: number;
+  /** Còn giữ = đã trả − đã hoàn (trước huỷ + chi) − đã chuyển − hoàn ngoài (đ2). */
+  conGiu: number;
+  /** Chờ chi = đã duyệt − đã chi − đã chuyển. */
+  choChi: number;
+}
+
+/** Số còn lại của MỘT khoản duyệt gốc = số duyệt − phần huỷ duyệt − phần đã chi/chuyển (lần trả lại khách còn hiệu lực gắn khoản đó). */
+export function conLaiCuaKhoan(duyetId: string, duyet: readonly DuyetRow[], receipts: readonly ReceiptRow[]): number {
+  const goc = duyet.find((d) => d.id === duyetId && d.voidsId === null);
+  if (!goc) return 0;
+  const huy = duyet.filter((d) => d.voidsId === duyetId).reduce((s, d) => s + d.amount, 0);
+  const chi = hieuLuc(receipts).filter((r) => r.kind === "CUSTOMER_REFUND" && r.approvalId === duyetId).reduce((s, r) => s + r.amount, 0);
+  return goc.amount - huy - chi;
+}
+
+/** Dòng hoàn ngoài RECORD đã được xác nhận (có CONFIRM trỏ tới), và RECORD còn "đang hiệu lực" (chưa bị từ chối). */
+export function hoanNgoaiTrangThai(rows: readonly HoanNgoaiRow[]): { daXacNhan: HoanNgoaiRow[]; dangHieuLuc: HoanNgoaiRow[] } {
+  const xacNhan = new Set(rows.filter((r) => r.kind === "CONFIRM").map((r) => r.targetId));
+  const tuChoi = new Set(rows.filter((r) => r.kind === "REJECT").map((r) => r.targetId));
+  const ghi = rows.filter((r) => r.kind === "RECORD");
+  return { daXacNhan: ghi.filter((r) => xacNhan.has(r.id)), dangHieuLuc: ghi.filter((r) => !tuChoi.has(r.id)) };
+}
+
+/** HÀM DUY NHẤT tính tiền cọc của một đơn (ADR-0089 đ2, đ15). Dùng cho đơn huỷ; với đơn không huỷ các khoản duyệt/hoàn ngoài luôn rỗng. */
+export function soTienCoc(input: {
+  receipts: readonly ReceiptRow[];
+  lines: readonly Pick<LineRow, "id" | "kind" | "receiptId" | "reversesLineId">[];
+  duyet: readonly DuyetRow[];
+  hoanNgoai: readonly HoanNgoaiRow[];
+}): SoTienCoc {
+  const cho = khoanChoXacNhan(input.receipts, input.lines);
+  const con = hieuLuc(input.receipts);
+  const thu = con.filter((r) => r.kind === "CUSTOMER_PAYMENT");
+  const daTra = thu.filter((r) => !cho.has(r.id)).reduce((s, r) => s + r.amount, 0);
+  const dangDoiChieu = thu.filter((r) => cho.has(r.id)).reduce((s, r) => s + r.amount, 0);
+  const loai = new Map(input.duyet.filter((d) => d.voidsId === null).map((d) => [d.id, d.kind]));
+  const tra = con.filter((r) => r.kind === "CUSTOMER_REFUND");
+  const hoanTruocHuy = tra.filter((r) => !r.approvalId).reduce((s, r) => s + r.amount, 0);
+  const chiThat = tra.filter((r) => r.approvalId && loai.get(r.approvalId) === "REFUND").reduce((s, r) => s + r.amount, 0);
+  const daChuyen = tra.filter((r) => r.approvalId && loai.get(r.approvalId) === "TRANSFER").reduce((s, r) => s + r.amount, 0);
+  const hoanNgoai = hoanNgoaiTrangThai(input.hoanNgoai).daXacNhan.reduce((s, r) => s + (r.amount ?? 0), 0);
+  const duyetGoc = input.duyet.filter((d) => d.voidsId === null).reduce((s, d) => s + d.amount, 0);
+  const huyDuyet = input.duyet.filter((d) => d.voidsId !== null).reduce((s, d) => s + d.amount, 0);
+  const daDuyet = duyetGoc - huyDuyet + hoanNgoai;
+  const daChi = chiThat + hoanNgoai;
+  const conGiuLucHuy = daTra - hoanTruocHuy;
+  return { daTra, dangDoiChieu, hoanTruocHuy, conGiuLucHuy, daDuyet, daChi, daChuyen, hoanNgoai, conGiu: conGiuLucHuy - daChi - daChuyen, choChi: daDuyet - daChi - daChuyen };
+}
+
+const congNgay = (iso: string, ngay: number): string => new Date(Date.parse(`${iso}T00:00:00Z`) + ngay * 86_400_000).toISOString().slice(0, 10);
+
+/** Hạn hoàn cọc (đ5): ngày khởi hành MUỘN NHẤT + 60 ngày; đơn chưa có ngày đi nào thì ngày huỷ + 60. Cùng biểu thức với trigger (`date(…, '+60 days')`). */
+export function hanHoanCoc(input: { ngayDi: readonly (string | null)[]; ngayHuy: string }): string {
+  const co = input.ngayDi.filter((d): d is string => d !== null).sort();
+  return congNgay(co.at(-1) ?? input.ngayHuy, 60);
+}
+
+export type KiemCoc = { ok: true } | { ok: false; ma: string; cau: string };
+const sai = (ma: string, cau: string): KiemCoc => ({ ok: false, ma, cau });
+
+/** Duyệt hoàn / duyệt chuyển (đ4a, đ5, X-2): nhóm chưa kết luận → chặn; khách huỷ quá hạn → chặn; tổng duyệt vượt tiền còn giữ lúc huỷ → chặn. */
+export function kiemDuyet(input: { coc: SoTienCoc; nhom: NhomHuy; han: string; homNay: string; soTien: number }): KiemCoc {
+  if (input.nhom === "CHUA_KET_LUAN") return sai("coc_unclassified", "Lý do huỷ chưa được phân loại — Quản trị phân loại lý do trước khi duyệt hoàn cọc.");
+  if (input.nhom === "KHACH_HUY" && input.homNay > input.han) return sai("coc_deadline", `Đã quá hạn hoàn cọc (hạn: ${ngayVn(input.han)}).`);
+  const conDuyetDuoc = input.coc.conGiuLucHuy - input.coc.daDuyet;
+  if (input.soTien > conDuyetDuoc) return sai("coc_exceeds_paid", `Vượt số tiền còn giữ của đơn — còn duyệt được tối đa ${dong(Math.max(0, conDuyetDuoc))}.`);
+  return { ok: true };
+}
+
+/** Huỷ duyệt (đ4c): chỉ phần CHƯA chi của khoản gốc. */
+export function kiemHuyDuyet(input: { conLaiKhoan: number; soTien: number }): KiemCoc {
+  if (input.soTien > input.conLaiKhoan) return sai("coc_void_exceeds_unspent", `Chỉ huỷ được phần chưa chi của khoản duyệt (còn ${dong(Math.max(0, input.conLaiKhoan))}).`);
+  return { ok: true };
+}
+
+/**
+ * Chi hoàn / chuyển theo khoản duyệt (đ4b, đ4c, đ6): người chi khác người duyệt; không vượt phần còn lại của khoản; người trả không phải công ty thì không vượt
+ * số người đó đang giữ trên đơn.
+ */
+export function kiemChi(input: { conLaiKhoan: number; soTien: number; nguoiChi: string; nguoiDuyet: string | null; nguoiTraDangGiu: number | null }): KiemCoc {
+  if (input.nguoiDuyet !== null && input.nguoiChi === input.nguoiDuyet) return sai("coc_same_person", "Người duyệt không tự chi / chuyển khoản này — cần một người khác (tách nhiệm vụ).");
+  if (input.soTien > input.conLaiKhoan) return sai("coc_exceeds_approved", `Vượt phần đã duyệt còn lại (${dong(Math.max(0, input.conLaiKhoan))}).`);
+  if (input.nguoiTraDangGiu !== null && input.soTien > input.nguoiTraDangGiu) {
+    return sai("coc_exceeds_held", `Người trả chỉ đang giữ ${dong(Math.max(0, input.nguoiTraDangGiu))} của đơn này.`);
+  }
+  return { ok: true };
+}
+
+/** Ghi "đã hoàn ngoài hệ thống" (đ16, X-3): chỉ đơn huỷ cũ; một dòng đang hiệu lực; số ≤ còn giữ. Không bị hạn chặn. */
+export function kiemGhiHoanNgoai(input: { legacy: boolean; coDongHieuLuc: boolean; coc: SoTienCoc; soTien: number }): KiemCoc {
+  if (!input.legacy) return sai("coc_outside_not_legacy", "Chỉ ghi được cho đơn huỷ trước khi có lệnh hoàn cọc trong Nền tảng — đơn này hoàn qua Duyệt hoàn cọc.");
+  if (input.coDongHieuLuc) return sai("coc_outside_once", "Đơn này đã có một dòng đã hoàn ngoài hệ thống đang hiệu lực.");
+  if (input.soTien > input.coc.conGiu) return sai("coc_outside_exceeds", `Vượt số tiền còn giữ của đơn (${dong(Math.max(0, input.coc.conGiu))}).`);
+  return { ok: true };
+}
+
+/** Xác nhận / từ chối dòng hoàn ngoài (X-4): người xác nhận khác người ghi; xác nhận thì số vẫn ≤ còn giữ và ≤ phần còn duyệt được. */
+export function kiemXacNhanHoanNgoai(input: { nguoiXacNhan: string; nguoiGhi: string | null; xacNhan: boolean; coc: SoTienCoc; soTien: number }): KiemCoc {
+  if (input.nguoiGhi !== null && input.nguoiXacNhan === input.nguoiGhi) return sai("coc_same_person", "Người ghi không tự xác nhận dòng này — cần Quản trị khác (tách nhiệm vụ).");
+  if (input.xacNhan && (input.soTien > input.coc.conGiu || input.soTien > input.coc.conGiuLucHuy - input.coc.daDuyet)) {
+    return sai("coc_outside_exceeds", "Số tiền của dòng này nay vượt số còn giữ của đơn — từ chối và ghi lại.");
+  }
+  return { ok: true };
+}
+
+/** Nhắc Kế toán (đ5 — chỉ nhắc, không đẩy tin): khoản duyệt chưa chi quá 7 ngày (mọi nhóm); còn ≤ 10 ngày tới hạn (chỉ khách huỷ, còn giữ > 0). */
+export function nhacCoc(input: { nhom: NhomHuy; han: string; homNay: string; coc: SoTienCoc; khoanChuaChi: readonly { approvedDate: string; conLai: number }[] }): {
+  duyetQua7Ngay: number;
+  sapHetHan: boolean;
+} {
+  const moc7 = congNgay(input.homNay, -7);
+  return {
+    duyetQua7Ngay: input.khoanChuaChi.filter((k) => k.conLai > 0 && k.approvedDate < moc7).length,
+    sapHetHan: input.nhom === "KHACH_HUY" && input.coc.conGiu > 0 && input.homNay <= input.han && congNgay(input.homNay, 10) >= input.han,
   };
 }
 

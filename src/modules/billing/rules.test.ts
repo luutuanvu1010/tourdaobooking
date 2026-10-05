@@ -16,15 +16,15 @@ const rc = (p: Partial<ReceiptRow> & { amount: number }): ReceiptRow => ({ id: `
 const ghi = (ds: LineDraft[], rows: LineRow[] = []): LineRow[] => [...rows, ...ds.map((d) => ({ ...d, id: `l${++n}`, orderId: "o1", receiptId: null }))];
 
 test("conLai: đủ, thiếu, dư; hoàn khách trừ đã thu; cặp gốc/đảo bỏ; lần thu chưa rõ đếm riêng", () => {
-  assert.deepEqual(conLai([], 1_000_000), { daThu: 0, conLai: 1_000_000, du: 0, chuaRo: 0 });
+  assert.deepEqual(conLai([], 1_000_000, "confirmed"), { daThu: 0, conLai: 1_000_000, du: 0, chuaRo: 0 });
   const a = rc({ amount: 600_000 });
-  assert.deepEqual(conLai([a], 1_000_000), { daThu: 600_000, conLai: 400_000, du: 0, chuaRo: 0 });
+  assert.deepEqual(conLai([a], 1_000_000, "confirmed"), { daThu: 600_000, conLai: 400_000, du: 0, chuaRo: 0 });
   const u = rc({ amount: 400_000, collectorRole: "UNKNOWN", collectorPartyId: null });
-  assert.deepEqual(conLai([a, u], 1_000_000), { daThu: 1_000_000, conLai: 0, du: 0, chuaRo: 1 });
+  assert.deepEqual(conLai([a, u], 1_000_000, "confirmed"), { daThu: 1_000_000, conLai: 0, du: 0, chuaRo: 1 });
   const ud = rc({ amount: 400_000, collectorRole: "UNKNOWN", collectorPartyId: null, reversesId: u.id });
-  assert.deepEqual(conLai([a, u, ud], 1_000_000), { daThu: 600_000, conLai: 400_000, du: 0, chuaRo: 0 }, "đảo lần thu chưa rõ: cặp bỏ khỏi đã thu");
-  assert.deepEqual(conLai([a, rc({ amount: 500_000 })], 1_000_000), { daThu: 1_100_000, conLai: 0, du: 100_000, chuaRo: 0 }, "khách trả dư (M2)");
-  assert.deepEqual(conLai([a, rc({ amount: 500_000 }), rc({ amount: 100_000, kind: "CUSTOMER_REFUND" })], 1_000_000), { daThu: 1_000_000, conLai: 0, du: 0, chuaRo: 0 });
+  assert.deepEqual(conLai([a, u, ud], 1_000_000, "confirmed"), { daThu: 600_000, conLai: 400_000, du: 0, chuaRo: 0 }, "đảo lần thu chưa rõ: cặp bỏ khỏi đã thu");
+  assert.deepEqual(conLai([a, rc({ amount: 500_000 })], 1_000_000, "confirmed"), { daThu: 1_100_000, conLai: 0, du: 100_000, chuaRo: 0 }, "khách trả dư (M2)");
+  assert.deepEqual(conLai([a, rc({ amount: 500_000 }), rc({ amount: 100_000, kind: "CUSTOMER_REFUND" })], 1_000_000, "confirmed"), { daThu: 1_000_000, conLai: 0, du: 0, chuaRo: 0 });
   assert.deepEqual(hieuLuc([a, u, ud]).map((r) => r.id), [a.id]);
 });
 
@@ -70,7 +70,7 @@ test("phiếu Đã giao lượt 1 không có dòng thương mại; số dư: cô
 });
 
 const base = { status: "confirmed" as const, deliveredAt: null, homNay: "2026-10-10", ngayDi: ["2026-10-09", "2026-10-10"], dichVuThieuNgay: [], coNguoiHuong: false };
-const du = (daThu: number, phaiThu: number, chuaRo = 0) => ({ ...conLai([], phaiThu), daThu, conLai: Math.max(0, phaiThu - daThu), du: Math.max(0, daThu - phaiThu), chuaRo });
+const du = (daThu: number, phaiThu: number, chuaRo = 0) => ({ ...conLai([], phaiThu, "confirmed"), daThu, conLai: Math.max(0, phaiThu - daThu), du: Math.max(0, daThu - phaiThu), chuaRo });
 
 test("lyDoChuaGiaoDuoc (NT-F1, NT-F6c, M1 = A): thứ tự lý do cố định, câu tiếng Việt + ai xử lý; đủ điều kiện → null", () => {
   assert.equal(lyDoChuaGiaoDuoc({ ...base, so: du(1_000_000, 1_000_000) }), null);
@@ -138,7 +138,7 @@ test("đối chiếu conLai ↔ v_bil_order_paid ↔ trigger bil_posting_deliver
   them(rc({ amount: 300_000, collectorRole: "UNKNOWN", collectorPartyId: null, reversesId: u.id }));
   them(rc({ amount: 300_000 }));
   them(rc({ amount: 200_000, kind: "CUSTOMER_REFUND" }));
-  const ma = conLai(mau, 1_000_000);
+  const ma = conLai(mau, 1_000_000, "confirmed");
   const view = db.prepare("SELECT paid_net, unknown_count FROM v_bil_order_paid WHERE order_id = 'o1'").get() as { paid_net: number; unknown_count: number };
   assert.deepEqual([view.paid_net, view.unknown_count], [ma.daThu, ma.chuaRo]);
   const phieu = (due: number) => db.prepare(`INSERT INTO bil_posting (id, kind_code, order_id, occurred_date, due_snapshot, created_at, updated_at) VALUES (?, 'DELIVERED', 'o1', '2026-09-30', ?, ?, ?)`)
