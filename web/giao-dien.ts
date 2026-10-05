@@ -129,7 +129,7 @@ async function napLai(): Promise<void> {
 
 function hoiXacNhan(): void {
   replaceChildren(xacNhanEl,
-    h("p", null, "Áp dụng giao diện này cho mọi người? Mọi người sẽ thấy ở lần mở trang kế tiếp."),
+    h("p", null, "Áp dụng giao diện này cho mọi người? Mọi người sẽ thấy sau một đến hai lần chuyển trang."),
     h("div", { class: "actions" },
       h("button", { type: "button", class: "btn btn-primary btn-chinh", onclick: () => void apDung() }, "Áp dụng"),
       h("button", { type: "button", class: "btn", onclick: () => { xacNhanEl.hidden = true; } }, "Thôi")));
@@ -145,6 +145,8 @@ async function apDung(): Promise<void> {
     daLuu = { ...r.tokens };
     version = r.version;
     showError(errorEl, null);
+    // Làm mới bản đệm của service worker NGAY (nó phục vụ bản cũ rồi cập nhật ở nền, ADR-0102): yêu cầu bỏ qua bộ nhớ HTTP để lần chuyển trang kế tiếp của CHÍNH máy này thấy màu mới.
+    void fetch("/giao-dien.css", { cache: "reload" }).catch(() => undefined);
   } catch (err) {
     if (err instanceof ApiError && err.code === "stale") {
       try { await napLai(); showError(errorEl, err.message); } catch { showError(errorEl, "Không tải được cài đặt giao diện."); }

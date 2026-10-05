@@ -4,6 +4,7 @@
 // Chạy CẢ ứng dụng trên SQLite thật qua khung tests/audit/harness.mjs.
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { world, seedStaff } from "../../../tests/audit/harness.mjs";
 
@@ -77,4 +78,22 @@ test("route đếm làm ÍT câu D1 hơn dashboard nhiều lần (đếm bằng 
   const bangCau = so;
   assert.ok(demCau <= 4, `route đếm tốn ${demCau} câu (3 câu nền + 1 câu đếm)`);
   assert.ok(bangCau >= demCau + 3, `dashboard ${bangCau} câu so với route đếm ${demCau}`);
+});
+
+// Hôm nay ba ô `order.view` / `money.view` / `contact.view` cho CÙNG kết quả với mọi mã quyền (src/shared/permissions.ts), nên bài hành vi ở trên không phân biệt được
+// việc bỏ một ô (người kiểm độc lập 2026-10-05, V5). Nếu sau này một ô bị thu hẹp, route đếm KHÔNG được trôi lệch khỏi dashboard — khoá bằng CHỮ trong nguồn:
+// hai route phải hỏi ĐÚNG cùng một bộ ô.
+function boOQuyen(duong: string): string[] {
+  const nguon = readFileSync(new URL("./index.ts", import.meta.url), "utf8");
+  const i = nguon.indexOf(`route("GET", "${duong}"`);
+  assert.ok(i !== -1, `không thấy route ${duong}`);
+  const j = nguon.indexOf("\n    }),", i);
+  const than = nguon.slice(i, j);
+  return [...than.matchAll(/can\(staff, "([a-z.]+)"/g)].map((m) => m[1]!).sort();
+}
+
+test("route đếm hỏi ĐÚNG cùng bộ ô quyền với dashboard (khoá bằng nguồn — bỏ một ô thì đỏ)", () => {
+  const bang = boOQuyen("/api/orders/dashboard");
+  assert.deepEqual(bang, ["contact.view", "money.view", "order.view"], "dashboard đổi bộ ô: soát lại cả route đếm");
+  assert.deepEqual(boOQuyen("/api/orders/dem-nhap"), bang);
 });

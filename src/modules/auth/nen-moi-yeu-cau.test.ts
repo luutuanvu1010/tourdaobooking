@@ -125,3 +125,31 @@ test("cookie giả mạo: 401 và KHÔNG hỏi cơ sở dữ liệu câu nào (c
   assert.equal(r.status, 401);
   assert.deepEqual(su, []);
 });
+
+// Bất biến mà ADR-0075 điều 9 và ADR-0102 điều 5 dựa vào (người kiểm độc lập 2026-10-05, V4): nhãn "Đang hiệu lực" của màn Phiên đăng nhập tính theo
+// max(created_at, last_seen_at), nên phiên ĐÃ BỊ lưới từ chối (đổi PIN/gỡ Face ID sau khi cấp phiên, hoặc tài khoản ngưng) KHÔNG BAO GIỜ được ghi last_seen_at —
+// kể cả khi việc ghi nay chạy ở nền. Mã đúng nhờ `if (!row || !staff) return null` đứng TRƯỚC khối ghi; bài này khoá thứ tự đó.
+const MOC_CU = "2026-01-01T00:00:00.000Z";
+const lastSeen = (w: any, id: string) => (w.sqlite.prepare("SELECT last_seen_at FROM aut_session WHERE staff_id = ?").get(id) as { last_seen_at: string }).last_seen_at;
+
+test("phiên cấp TRƯỚC lần đổi PIN/gỡ Face ID (credentials_changed_at > thời điểm phát hành): 401 và KHÔNG ghi last_seen_at (kể cả ở nền)", async () => {
+  const w = dung();
+  await w.token(AN);
+  cuHoa(w, AN);
+  w.sqlite.prepare("UPDATE staff SET credentials_changed_at = ? WHERE id = ?").run(Date.now() + 60_000, AN);
+  const r = await w.call("GET", "/api/auth/me", { as: AN });
+  assert.equal(r.status, 401);
+  await w.choNen();
+  assert.equal(lastSeen(w, AN), MOC_CU, "phiên bị lưới từ chối không được chạm last_seen_at");
+});
+
+test("tài khoản đã ngưng (active = 0): 401 và KHÔNG ghi last_seen_at", async () => {
+  const w = dung();
+  await w.token(AN);
+  cuHoa(w, AN);
+  w.sqlite.prepare("UPDATE staff SET active = 0 WHERE id = ?").run(AN);
+  const r = await w.call("GET", "/api/auth/me", { as: AN });
+  assert.equal(r.status, 401);
+  await w.choNen();
+  assert.equal(lastSeen(w, AN), MOC_CU);
+});

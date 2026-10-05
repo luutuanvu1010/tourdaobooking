@@ -440,6 +440,25 @@ test("hienLai gọi liên tiếp khi đang chờ pong: chỉ MỘT ping; pong v�
   assert.equal(t.sockets.length, 1);
 });
 
+test("hienLai khi socket KHÔNG ở trạng thái mở (readyState ≠ 1: iOS để socket chết, `send` không ném lỗi): nối lại NGAY, không chờ KIEM_NHANH_MS", () => {
+  for (const trangThai of [0, 2, 3]) {
+    const { t, cu } = moVaChoNgoi();
+    (cu as { readyState?: number }).readyState = trangThai;
+    t.bo.hienLai();
+    assert.equal(cu.daDong, true, `readyState ${trangThai}`);
+    assert.equal(t.sockets.length, 2, `readyState ${trangThai}: nối lại ngay`);
+    assert.deepEqual(cu.daGui, [], `readyState ${trangThai}: không gõ cửa trên socket chết`);
+  }
+});
+
+test("hienLai khi readyState = 1 (mở) vẫn chỉ gõ cửa kiểm", () => {
+  const { t, cu } = moVaChoNgoi();
+  (cu as { readyState?: number }).readyState = 1;
+  t.bo.hienLai();
+  assert.equal(cu.daDong, false);
+  assert.deepEqual(cu.daGui, ["ping"]);
+});
+
 test("hienLai khi send ném lỗi (socket đã đóng/đang mở dở): nối lại ngay", () => {
   const { t, cu } = moVaChoNgoi();
   cu.send = () => { throw new Error("InvalidStateError"); };

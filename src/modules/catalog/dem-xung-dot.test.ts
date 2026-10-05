@@ -3,6 +3,7 @@
 // ô quyền (`admin.manage`) và cùng phép đếm (số dịch vụ có ít nhất một xung đột giá). Chạy CẢ ứng dụng trên SQLite thật (tests/audit/harness.mjs).
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { world, seedStaff } from "../../../tests/audit/harness.mjs";
 
@@ -68,4 +69,17 @@ test("route đếm làm ÍT câu D1 hơn /api/catalog/admin (đếm bằng bọc
   so = 0;
   await w.call("GET", "/api/catalog/admin", { as: ADM });
   assert.ok(dem < so, `đếm ${dem} câu, admin ${so} câu`);
+});
+
+// Người kiểm độc lập 2026-10-05 (V5): bỏ `can(staff, "admin.manage")` khỏi route đếm không làm bài hành vi đỏ (tài khoản nào có ADMIN cũng giữ ô này, cổng "admin" đã chặn
+// phần còn lại). Khoá bằng CHỮ trong nguồn: route đếm và route danh mục phải hỏi đúng cùng ô.
+test("route đếm hỏi ĐÚNG cùng ô quyền với /api/catalog/admin (khoá bằng nguồn — bỏ ô thì đỏ)", () => {
+  const nguon = readFileSync(new URL("./index.ts", import.meta.url), "utf8");
+  const oQuyen = (duong: string) => {
+    const i = nguon.indexOf(`route("GET", "${duong}"`);
+    assert.ok(i !== -1, `không thấy route ${duong}`);
+    return [...nguon.slice(i, nguon.indexOf("\n    }),", i)).matchAll(/can\(staff, "([a-z.]+)"/g)].map((m) => m[1]!).sort();
+  };
+  assert.deepEqual(oQuyen("/api/catalog/admin"), ["admin.manage"]);
+  assert.deepEqual(oQuyen("/api/catalog/dem-xung-dot"), ["admin.manage"]);
 });

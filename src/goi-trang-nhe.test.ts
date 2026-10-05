@@ -51,3 +51,11 @@ test("trang nào nhập thẳng app-info/changelog (ngoài Trợ giúp) đều b
   const nhap = TRANG.filter((t) => !CHO_PHEP_NHAT_KY.has(t)).filter((t) => /from "\.\.\/src\/shared\/(app-info|changelog)"/.test(readFileSync(new URL(t, goc), "utf8")));
   assert.deepEqual(nhap, []);
 });
+
+// Người kiểm độc lập 2026-10-05 (V6): bỏ hai `--define` khỏi `build:web` không làm bài nào đỏ (bài dựng gói ở trên tự đưa `define` riêng) — trang Đăng nhập lặng lẽ hiện
+// "0.0 / 1970-01-01" và chấm đỏ "Có gì mới" không bao giờ bật lại. Khoá: lệnh esbuild của trang phải chứa cả hai.
+test("build:web truyền --define:__APP_VERSION__ và __APP_RELEASE_DATE__ (lấy từ scripts/in-phien-ban.mjs) cho gói các trang", () => {
+  const lenhTrang = kichBan.split("&&").find((c) => c.includes("esbuild web/login.ts"))!;
+  assert.match(lenhTrang, /--define:__APP_VERSION__=\\*"\$\(node scripts\/in-phien-ban\.mjs version\)\\*"/);
+  assert.match(lenhTrang, /--define:__APP_RELEASE_DATE__=\\*"\$\(node scripts\/in-phien-ban\.mjs date\)\\*"/);
+});

@@ -72,7 +72,7 @@ try {
   assert.ok(soDong >= 20, `2. đủ dòng chỉnh: ${soDong}`);
   // Trang này tắt tệp giao diện công ty và chưa chỉnh gì → KHÔNG có biến --* nào đặt trên <html> (hiện đúng app.css mặc định).
   assert.equal(await p.ev("document.documentElement.style.length"), 0, "2. chưa chỉnh: không có biến --* inline trên <html>");
-  assert.equal(await p.ev("[...document.querySelectorAll('link[href^=\"/api/giao-dien.css\"]')].every((l) => l.disabled)"), true, "2. tệp giao diện công ty bị tắt ở màn này");
+  assert.equal(await p.ev("[...document.querySelectorAll('link[href^=\"/giao-dien.css\"]')].every((l) => l.disabled)"), true, "2. tệp giao diện công ty bị tắt ở màn này");
   // M3: xem trước có một thẻ đơn dựng bằng thành phần thẻ đơn thật.
   assert.equal(await p.ev("!!document.querySelector('#gd-xem-truoc .order-card .order-row-name') && document.querySelector('#gd-xem-truoc .order-row-name').textContent"), "Chị Nguyễn Thu Hà", "2. xem trước có thẻ đơn mẫu");
   assert.equal(await p.ev("!!document.querySelector('#gd-xem-truoc .order-card .badge')"), true, "2. thẻ đơn mẫu có huy hiệu trạng thái");
@@ -138,11 +138,11 @@ try {
   p.close();
   ok("5b. 390: thanh trên cũng rgb(12, 74, 110)");
 
-  // ---- 6. mất /api/giao-dien.css
+  // ---- 6. mất /giao-dien.css (ADR-0102: tệp màu ở /giao-dien.css; đường cũ /api/giao-dien.css vẫn phục vụ — chặn cả hai)
   p = await env.openPage(DESK);
   const ck = await env.login(ACCOUNTS.chu);
   await p.send("Network.setCookie", { name: ck.name, value: ck.value, url: env.base, httpOnly: true });
-  await p.send("Network.setBlockedURLs", { urls: ["*/api/giao-dien.css*"] });
+  await p.send("Network.setBlockedURLs", { urls: ["*/giao-dien.css*", "*/api/giao-dien.css*"] });
   await p.send("Page.navigate", { url: env.base + "/orders" });
   await p.waitFor("document.readyState === 'complete'", "6. /orders tải xong");
   await khungThat(p, DESK);
@@ -150,7 +150,7 @@ try {
   assert.ok(p.failed.length > 0, "6. yêu cầu bị chặn thật");
   assert.equal(await p.ev("document.querySelectorAll('#sidebar .sidebar-item').length > 3"), true, "6. trang không vỡ (thanh bên vẫn dựng)");
   p.close();
-  ok(`6. chặn /api/giao-dien.css → thanh trên ${macDinhBar} (mặc định), trang vẫn dựng`);
+  ok(`6. chặn /giao-dien.css → thanh trên ${macDinhBar} (mặc định), trang vẫn dựng`);
 
   // ---- 7. về mặc định toàn bộ
   p = await env.as(ACCOUNTS.chu, "/giao-dien", DESK);

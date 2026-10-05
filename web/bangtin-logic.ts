@@ -107,6 +107,8 @@ export interface OSocket {
   onerror: (() => void) | null;
   send(s: string): void;
   close(): void;
+  /** WebSocket thật có (0 đang nối, 1 mở, 2 đang đóng, 3 đã đóng); socket giả của bài kiểm có thể vắng. */
+  readonly readyState?: number;
 }
 
 export interface Phu {
@@ -276,6 +278,11 @@ export function taoBoDieuKhien(phu: Phu) {
       if (dung) return;
       const mine = ws;
       if (di >= AN_LAU_MS || !mine || henNoi !== null) {
+        noiNgay();
+        return;
+      }
+      // Socket đã chết / đang nối dở (iOS để socket chết khi ứng dụng bị treo — `send` trên socket đã đóng KHÔNG ném lỗi): nối lại ngay, khỏi chờ KIEM_NHANH_MS.
+      if (typeof mine.readyState === "number" && mine.readyState !== 1) {
         noiNgay();
         return;
       }

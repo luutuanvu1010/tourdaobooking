@@ -307,7 +307,7 @@ try {
   const LOCK_KHONG_SUA_CHUYEN = "Đơn đã xác nhận: dịch vụ, số khách và tiền đã khoá. Chỉ sửa được danh sách hành khách.";
   const TABS = [["Đơn hàng", "/orders", "page"], ["Tạo đơn", "/order-form", null], ["Tôi", "/account", null]];
   const goiHandlers = (p) => p.requests.filter((r) => r.url.includes("/api/dispatch/handlers")).map((r) => r.url);
-  const goiDashboard = (p) => p.requests.filter((r) => r.url.includes("/api/orders/dashboard")).map((r) => r.url);
+  const goiDashboard = (p) => p.requests.filter((r) => r.url.includes("/api/orders/dashboard") || r.url.includes("/api/orders/dem-nhap")).map((r) => r.url); // ADR-0102: huy hiệu nay qua /api/orders/dem-nhap
   const kiemTrangDon = async (p, nhan) => {
     await p.waitFor("document.querySelector('#order .badge')?.textContent === 'Đã xác nhận' && !!document.querySelector('#actions')", `${nhan}: đơn đã xác nhận hiện`, 15000);
     await sleep(600);
@@ -330,7 +330,7 @@ try {
     const donHang = sd.side.find(([t]) => t === "Đơn hàng");
     assert.ok(donHang, `thanh bên có mục "Đơn hàng" — ${JSON.stringify(sd.side)}`);
     assert.equal(donHang[1], null, `mục "Đơn hàng" của Đối tác không huy hiệu — ${JSON.stringify(donHang)}`);
-    assert.deepEqual(goiDashboard(d), [], "không gọi /api/orders/dashboard (huy hiệu văn phòng)");
+    assert.deepEqual(goiDashboard(d), [], "không gọi /api/orders/dashboard hay /api/orders/dem-nhap (huy hiệu văn phòng)");
     noteErrorLogs(d, "Đối tác /order máy tính");
     await d.shot(join(OUT, "anh", "doi-tac-don-da-xac-nhan-may-tinh.png"));
     d.close();

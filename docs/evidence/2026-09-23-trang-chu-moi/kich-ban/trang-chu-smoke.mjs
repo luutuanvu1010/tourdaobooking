@@ -1333,7 +1333,8 @@ try {
     // G-4 (C-5): huy hiệu chỉ được nạp khi thanh bên THẬT SỰ hiện. Đo LỜI GỌI MẠNG THẬT trên /staff (trang
     // này không tự gọi ba route đó — "/" tự gọi dashboard nên không dùng được để đo).
     // ================================================================================================
-    const BADGE_ROUTES = ["/api/catalog/admin", "/api/orders/dashboard", "/api/feedback/badge"];
+    // ADR-0102 (2026-10-05): thanh bên gọi hai route ĐẾM NHẸ thay cho /api/catalog/admin và /api/orders/dashboard (không còn tải cả danh mục / cả Bảng điều khiển ở mọi trang).
+    const BADGE_ROUTES = ["/api/catalog/dem-xung-dot", "/api/orders/dem-nhap", "/api/feedback/badge"];
     const badgeCalls = (page) => BADGE_ROUTES.filter((r) => page.requests.some((q) => q.url.includes(r)));
 
     const pMobBadge = await env.as(ACCOUNTS.admin, "/staff", MOB);
@@ -1487,7 +1488,7 @@ try {
     // Lỗi "thiếu người nghe sự kiện đổi khổ" đã cắn dự án ba lần — từ nay có khẳng định riêng cho nó.
     // ================================================================================================
     {
-      const BADGE_ROUTES_R = ["/api/catalog/admin", "/api/orders/dashboard", "/api/feedback/badge"];
+      const BADGE_ROUTES_R = ["/api/catalog/dem-xung-dot", "/api/orders/dem-nhap", "/api/feedback/badge"]; // ADR-0102: route đếm nhẹ
       const pRot = await env.as(ACCOUNTS.admin, "/parties", MOB);
       await pRot.waitFor("document.querySelector('#sidebar') !== null", "thanh bên dựng xong (/parties, 390px)");
       await sleep(1500); // để lời gọi (nếu có) chắc chắn đã bắn — vắng mặt phải là vắng THẬT
@@ -1640,8 +1641,8 @@ try {
       assert.ok(m.rows.includes(true), `${label}: danh sách phải có đơn "Khách Của Đối Tác" — ${JSON.stringify(m)}`);
       assert.equal(m.errorHidden, true, `${label}: KHÔNG được có banner lỗi — ${JSON.stringify(m)}`);
       assert.equal(m.dashGrid, false, `${label}: trang cuối không được là Trang chủ — ${JSON.stringify(m)}`);
-      const dashCalls = p.requests.filter((r) => r.url.includes("/api/orders/dashboard")).map((r) => r.url);
-      assert.deepEqual(dashCalls, [], `${label}: KHÔNG được gọi /api/orders/dashboard (route văn phòng → 403) — đã gọi ${JSON.stringify(dashCalls)}`);
+      const dashCalls = p.requests.filter((r) => r.url.includes("/api/orders/dashboard") || r.url.includes("/api/orders/dem-nhap")).map((r) => r.url);
+      assert.deepEqual(dashCalls, [], `${label}: KHÔNG được gọi /api/orders/dashboard hay /api/orders/dem-nhap (route văn phòng → 403) — đã gọi ${JSON.stringify(dashCalls)}`);
       assert.deepEqual(p.consoleErrors, [], `lỗi console (${label}): ${p.consoleErrors}`);
       return m;
     };

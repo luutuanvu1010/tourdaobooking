@@ -170,8 +170,8 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   // ADR-0047 A2 (2026-09-29): danh sách hành khách — GET hỏi can(order.view) rồi can(contact.view); POST hỏi can(order.passenger.write) trước khi đọc thân
   { method: "GET", path: "/api/orders/:id/passengers", access: "orders" },
   { method: "POST", path: "/api/orders/:id/passengers", access: "orders" },
-  { method: "GET", path: "/api/orders/dashboard", access: "orders" },
-  { method: "GET", path: "/api/orders/dem-nhap", access: "orders" }, // huy hiệu thanh bên: CHỈ số đơn nháp; cùng ba ô quyền với dashboard (dem-nhap.test.ts) // Trang chủ — ADR-0019 điều 1: màn đơn; Đối tác/Thực tập vẫn 403 nhờ can(order.view/money.view/contact.view) không ngữ cảnh trong thân
+  { method: "GET", path: "/api/orders/dashboard", access: "orders" }, // Trang chủ — ADR-0019 điều 1: màn đơn; Đối tác/Thực tập vẫn 403 nhờ can(order.view/money.view/contact.view) không ngữ cảnh trong thân
+  { method: "GET", path: "/api/orders/dem-nhap", access: "orders" }, // huy hiệu thanh bên: CHỈ số đơn nháp; cùng ba ô quyền với dashboard (dem-nhap.test.ts)
   { method: "GET", path: "/api/orders/pool", access: "orders" }, // hàng chờ nhận (phần hẹp) — ADR-0030 S23-1/S23-2: thân hỏi can(order.pool.view) + !holdsPartner trước mọi đọc
   { method: "GET", path: "/api/orders/nguoi-lap", access: "orders" }, // ADR-0067: thân hỏi ba ô "xem mọi đơn" (order.view/money.view/contact.view, không ngữ cảnh) trước mọi đọc
   { method: "GET", path: "/api/orders/moc-toi-thieu", access: "orders" }, // ruling R-P15 (ADR-0049 I31 cách a): thân hỏi can(order.create) trước mọi đọc; mốc qua ctx.mocToiThieu
