@@ -820,7 +820,7 @@ Ba phương án, chủ dự án chọn một (chưa chọn thay):
     - lộ trình 8 đợt + bảng truy vết + cổng "xong": `docs/superpowers/plans/2026-10-02-khac-phuc-audit-00-lo-trinh.md`;
     - kế hoạch chi tiết Đợt 0 (`…-01-dot-0-chong-ghi-trung-quyen-tien.md`) và Đợt 1 (`…-02-dot-1-don-huy-coc.md`).
   - **Hạn:**
-    - F-02 **15/10**: Đợt 0, lịch triển khai 13/10. Chủ đặt khoá `LAN_GUI_SECRET` trước.
+    - F-02: **ĐÃ ĐÓNG 2026-10-05** (xoá khỏi `docs/quyen-hoan.json`; điều kiện ADR-0094 A-9 đạt: lớp chống ghi trùng lên production từ 1.76, production đang 1.81, T12 4/4 xanh; chủ dự án giao đóng 2026-10-05).
     - TNV-G1 **15/10**: Đợt 1 khó kịp; chủ quyết gia hạn ngày 10/10.
     - F-03, TNV-G3, TNV-G4 **31/10**: Đợt 2, cần chủ "Duyệt" ADR-0088 + ADR-0092.
   - **Checklist theo dõi** (ai làm gì, đánh dấu từng việc): `docs/superpowers/plans/2026-10-02-khac-phuc-audit-checklist.md`.
