@@ -813,15 +813,18 @@ export const CHECKS = [
       OR replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(detail, ' ', ''), '0', ''), '1', ''), '2', ''), '3', ''), '4', ''), '5', ''), '6', ''), '7', ''), '8', ''), '9', '') <> 'thêm,sửa,huỷkhách')`,
     level: "fail",
   },
-  // R-ORD-11 (ADR-0047 A2): chuỗi hành khách đúng — dòng thay thế cùng đơn, cùng person_key với dòng trước; dòng đầu chuỗi có person_key = id; KHÔNG có dòng
-  // nguồn 'DRIVER' (định sẵn trong CHECK, chỉ dùng khi ADR lượt 2 mở đường ghi cho tài xế). Trigger 0035 đã chặn — đây là lưới thứ hai.
+  // R-ORD-11 (ADR-0047 A2): chuỗi hành khách đúng — dòng thay thế cùng đơn, cùng person_key với dòng trước; dòng đầu chuỗi có person_key = id. Trigger 0035
+  // đã chặn — đây là lưới thứ hai. Vế DRIVER ĐỔI NGHĨA (Đợt 5 A-1b — ADR-0052 D5b, CHỜ CHỦ DUYỆT, đề xuất luật A-1b mục 3): trước "không có dòng nguồn DRIVER";
+  // nay dòng nguồn DRIVER phải là ĐẦU chuỗi và có sự kiện PASSENGER_NAMED trên một suất mang đúng khoá người đó (ADR-0052:221) — mồ côi = vi phạm.
   {
     code: "R-ORD-11",
-    what: "chuỗi hành khách đúng (dòng thay thế cùng đơn + person_key; dòng đầu person_key = id); chưa có dòng nguồn DRIVER",
+    what: "chuỗi hành khách đúng (dòng thay thế cùng đơn + person_key; dòng đầu person_key = id); dòng nguồn DRIVER là đầu chuỗi và có sự kiện tài xế bổ sung tên",
     sql: `SELECT
       (SELECT count(*) FROM ord_passenger p JOIN ord_passenger prev ON prev.id = p.previous_id WHERE prev.order_id <> p.order_id OR prev.person_key <> p.person_key)
       + (SELECT count(*) FROM ord_passenger WHERE previous_id IS NULL AND person_key <> id)
-      + (SELECT count(*) FROM ord_passenger WHERE source = 'DRIVER')`,
+      + (SELECT count(*) FROM ord_passenger p WHERE p.source = 'DRIVER' AND (p.previous_id IS NOT NULL OR NOT EXISTS (
+          SELECT 1 FROM vc_trip_event e JOIN vc_trip_allocation a ON a.id = e.allocation_id AND a.trip_id = e.trip_id
+           WHERE e.kind = 'PASSENGER_NAMED' AND a.passenger_key = p.person_key)))`,
     level: "fail",
   },
   // R-ORD-12 (ADR-0047 A1, câu hỏi Q1 (a) — ĐÓNG 2026-09-29: chủ chạy truy vấn chỉ đọc, 2 dịch vụ giờ-không-nơi đều thuộc đơn đã huỷ (`docs/superpowers/plans/2026-09-29-adr-0047-thi-cong-nhat-ky.md:37`)): chặng mở của đơn chưa huỷ còn chữ tạm "(chưa ghi nơi đón)" (dịch vụ cũ có

@@ -37,6 +37,8 @@ test("LOAI_SU_KIEN_CHUYEN: đủ 17 loại tương ứng các hành động trip
     "STOPS_REORDERED", "ENDED", "ENDED_INTERRUPTED",
     // ADR-0052 D5 (Đợt 5): văn phòng thêm điểm / báo huỷ khi xe đang chạy
     "STOP_ADDED_RUNNING", "ALLOCATION_OFFICE_CANCELLED",
+    // ADR-0052 D5b (Đợt 5 A-1b): tài xế bổ sung tên khách chưa có tên
+    "PASSENGER_NAMED",
   ]);
   assert.equal(NHAN_SU_KIEN_CHUYEN.ALLOCATION_PASSENGER_CHANGED, "Cập nhật khách theo đơn");
   assert.equal(NHAN_SU_KIEN_CHUYEN.STOP_ADDED_RUNNING, "Văn phòng thêm điểm khi xe đang chạy");

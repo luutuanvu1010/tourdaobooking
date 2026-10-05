@@ -20,7 +20,11 @@ import {
  * đang chạy" + trạng thái nguồn (không có dấu lệnh — chưa có câu cổng), câu cổng đứng ngay sau với `changes() > 0`. `CONG_MOC` = câu cổng của họ lệnh trên
  * mốc giờ hẹn (ADR-0051 — `lenhDaGoiBao`, `lenhBoDanhDauGoiBao`; không chạm vc_trip).
  */
-export type NhanCau = "CONG" | "CONG_DOI" | "CHUYEN_TIEN_DO" | "CONG_MOC" | "NHAT_KY" | "SU_KIEN" | "GHI" | "TRANG_THAI_CUOI";
+/**
+ * `GHI_NGOAI` (Đợt 5 A-1b — CHỜ CHỦ DUYỆT, đề xuất luật A-1b mục 2): câu GHI do module KHÁC cấp (orders — dòng hành khách tài xế nhập), không chạm vc_trip nên
+ * gác bằng ID NHẬT KÝ của lô (`EXISTS (SELECT 1 FROM audit_log WHERE id = ?)` = dấu lệnh) thay cho `last_cmd_id`. Chỉ `loBoSungTen` được dùng (bài thứ tự lô).
+ */
+export type NhanCau = "CONG" | "CONG_DOI" | "CHUYEN_TIEN_DO" | "CONG_MOC" | "NHAT_KY" | "SU_KIEN" | "GHI" | "GHI_NGOAI" | "TRANG_THAI_CUOI";
 export interface CauCoNhan {
   nhan: NhanCau;
   stmt: D1PreparedStatement;
@@ -343,6 +347,32 @@ export function loBaoHuy(db: D1Database, l: LenhBaoHuy): CauCoNhan[] {
     nhatKy(db, l, "trip_allocation_office_cancelled", l.tripId, l.detail),
     suKien(db, l, { tripId: l.tripId, loai: "ALLOCATION_OFFICE_CANCELLED", allocationId: l.suatId, soNguoi: 1 }),
     ghi(db.prepare(ALLOC_OFFICE_CANCEL).bind(l.suatId, l.tripId, l.cmd, l.lucIso, l.nguoiId, l.lyDo)),
+  ];
+}
+
+// ---- Tài xế bổ sung tên MỘT khách chưa có tên (ADR-0052 D5b — Đợt 5 A-1b, CHỜ CHỦ DUYỆT) ---------------------------------------------------------------
+export interface LenhBoSungTen extends LenhChung {
+  tripId: string;
+  /** version do MÁY CHỦ đọc (lệnh tài xế không nhận version từ màn). */
+  version: number;
+  /** Xe đang chạy: cổng RUNNING + bản chốt dòng thêm sau xuất bến; chưa chạy (trong ngày chạy): cổng PLANNED, bản chốt có lúc xuất bến. */
+  dangChay: boolean;
+  suatId: string;
+  /** Khoá người MỚI = id dòng hành khách mới (person_key = id — chuỗi mới). */
+  personKey: string;
+  /** Câu ghi dòng hành khách do orders cấp (`cauThemHanhKhachTaiXe`) — gác bằng id nhật ký = `cmd`. */
+  hanhKhach: D1PreparedStatement;
+  detail: string;
+}
+/** Cổng → nhật ký → sự kiện PASSENGER_NAMED → câu orders (GHI_NGOAI) → gắn tên suất (một lần) → bản chốt dòng thêm sau xuất bến (xe đang chạy). */
+export function loBoSungTen(db: D1Database, l: LenhBoSungTen): CauCoNhan[] {
+  return [
+    l.dangChay ? congDangChayVersion(db, l, l.tripId, l.version) : cong(db, l, l.tripId, l.version),
+    nhatKy(db, l, "trip_passenger_named", l.tripId, l.detail),
+    suKien(db, l, { tripId: l.tripId, loai: "PASSENGER_NAMED", allocationId: l.suatId, soNguoi: 1 }),
+    { nhan: "GHI_NGOAI", stmt: l.hanhKhach },
+    ghi(db.prepare(ALLOC_GAN_TEN).bind(l.suatId, l.personKey, l.cmd, l.lucIso, l.nguoiId, l.tripId)),
+    ...(l.dangChay ? [ghi(db.prepare(MANIFEST_THEM_SAU).bind(crypto.randomUUID(), l.tripId, l.suatId, l.personKey, l.lucIso, l.nguoiId, l.cmd))] : []),
   ];
 }
 

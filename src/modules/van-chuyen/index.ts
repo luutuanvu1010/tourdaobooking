@@ -40,7 +40,7 @@ import {
 } from "./repository";
 
 // ADR-0049 D1–D3 (Task A13): chuyến xe — hàm hẹp của orders (chỉ gọi trong THÂN route, sau can() — bài src/orders-cong-bo.test.ts), đọc / dựng lô / DTO.
-import { hanhKhachChoChuyen, lichChungChang, lienHeChoTaiXe } from "../orders";
+import { cauThemHanhKhachTaiXe, hanhKhachChoChuyen, kiemHanhKhachTaiXe, lichChungChang, lienHeChoTaiXe } from "../orders";
 import type { CapNhatDiemResponse, CuuHoResponse, HuongDanVienListResponse, CapNhatKhachResponse, ChuyenChiTietResponse, CuocChiTietResponse, CuocCuaToiResponse, StaffProfile } from "../../shared/contracts";
 import { kiemTaoSuaChuyen, trongNgayChay } from "../../shared/dieu-phoi-kiem";
 import { lyDoGiu, type LyDoGiu } from "../../shared/ly-do-giu";
@@ -49,12 +49,12 @@ import { eventByRequest, eventsByTrips, tripCountByDate, tripsByDate, tripsCuaTa
 import { loTaoChuyen } from "./dieu-phoi";
 import { cuuHoTu } from "./cuu-ho";
 import { chinhSachVao, docChung, docNen, khungChuyen, taiXeVao, xeVao, type NenChuyen } from "./dieu-phoi-doc";
-import { dungLichNgay, lenhBaoHuy, lenhCapNhatDiem, lenhCapNhatKhach, lenhDoi, lenhHuy, lenhRut, lenhSuaChuyen, lenhThemDiemDangChay, lenhXep } from "./dieu-phoi-lenh";
+import { dungLichNgay, lenhBaoHuy, lenhBoSungTen, lenhCapNhatDiem, lenhCapNhatKhach, lenhDoi, lenhHuy, lenhRut, lenhSuaChuyen, lenhThemDiemDangChay, lenhXep } from "./dieu-phoi-lenh";
 import {
   CAN_DIEU_PHOI, CAN_PHA_LE, CAN_XEM_CHUYEN, KHONG_CO_CHUYEN, chayLo, chiTietChuyen, cuocChiTiet, danhSachCuoc, gioNgan, loi409, loiKiem, lyDoHopLe, nhanLyDo, phaLeNhatKy,
 } from "./dieu-phoi-route";
 import {
-  docBaoHuy, docCapNhatDiem, docDoi, docDoiThuTu, docHuy, docKetThucGianDoan, docRut, docSuaChuyen, docTaoChuyen, docThemDiem, docTienDo, docXep,
+  docBaoHuy, docBoSungTen, docCapNhatDiem, docDoi, docDoiThuTu, docHuy, docKetThucGianDoan, docRut, docSuaChuyen, docTaoChuyen, docThemDiem, docTienDo, docXep,
 } from "./dieu-phoi-than";
 // Task A15: lệnh tiến độ — MỘT hàm mỗi lệnh cho cả route tài xế lẫn route văn phòng bấm thay (R-P1).
 import {
@@ -1469,6 +1469,32 @@ export const vanChuyenModule: AppModule = {
       const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
       // Phản hồi lệnh tiến độ KHÔNG kèm họ tên / liên hệ — chỉ GET /cuoc-cua-toi/:id (TC-39: đúng hai route van-chuyen trả tên); màn tải lại chi tiết.
       return json(await cuocChiTiet(env.DB, nen2, lich2.chang, [], null, nhanNhanVien, bayGioMs, trongNgay) satisfies CuocChiTietResponse);
+    }),
+
+    // ADR-0052 D5b (Vận chuyển Đợt 5 A-1b — CHỜ CHỦ DUYỆT): tài xế BỔ SUNG TÊN một khách chưa có tên trên chuyến mình đang lái, trong ngày chạy. Thứ tự:
+    // can(trip.passenger.add) → chuyến mình đang lái → trong ngày chạy → thân (CÙNG luật nhập tên ở đơn) → suất / đơn (lenhBoSungTen). Phản hồi { ok, soNguoi }
+    // — KHÔNG tên (màn đọc lại GET chi tiết). Câu ghi dòng hành khách do orders cấp, gọi trong thân route sau can() (bài src/orders-cong-bo.test.ts).
+    route("POST", "/api/van-chuyen/cuoc-cua-toi/:id/hanh-khach", "staff", async ({ env, request, params, staff, baoThayDoiChuyen }) => {
+      if (!can(staff, "trip.passenger.add", { assigned: true })) return error(403, "forbidden", "Tài khoản này không bổ sung tên khách được.");
+      const nen = await docNen(env.DB, params.id ?? "");
+      const assigned = dangLai(nen, staff);
+      if (!nen || !assigned || !can(staff, "trip.passenger.add", { assigned })) return KHONG_CO_CHUYEN();
+      const bayGioMs = Date.now();
+      const homNay = vnToday(new Date(bayGioMs));
+      if (!trongNgayChay({ ngayChay: nen.trip.service_date, trangThai: nen.trip.status, xuatBenMs: nen.trip.departed_ms }, homNay)) return KHONG_CO_CHUYEN();
+      const body = await readJson(request);
+      const than = docBoSungTen(body);
+      if (!than.ok) return error(400, than.code, than.message);
+      const nguoi = kiemHanhKhachTaiXe(body, homNay);
+      if (!nguoi.ok) return error(400, "invalid_input", nguoi.message);
+      if (!(await eventByRequest(env.DB, than.value.requestId))) {
+        const hk = await hanhKhachChoChuyen(env.DB, nen.legIds);
+        const r = await lenhBoSungTen(env.DB, nen, hk, than.value.suatId, than.value.requestId, (v) =>
+          cauThemHanhKhachTaiXe(env.DB, { id: v.id, orderId: v.orderId, ...nguoi.value, at: v.lucIso, by: staff.id }, v.cmd), staff, bayGioMs);
+        if (r) return r;
+        baoThayDoiChuyen({ tripId: nen.trip.id, requestId: than.value.requestId }); // ADR-0052 D6.3: sau lô thành công, bắn-và-quên; không gọi khi 4xx / lệnh lặp
+      }
+      return json({ ok: true, soNguoi: 1 });
     }),
 
     // ---- LỆNH TIẾN ĐỘ — route VĂN PHÒNG BẤM THAY (cổng office; kế hoạch mục 1.7 route 31–39; R-P1 — Task A15) ---------------------------------------------

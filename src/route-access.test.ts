@@ -289,6 +289,7 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/van-chuyen/chuyen/:id/phan-bo/:aid/bao-huy", access: "office" }, // Đợt 5 ADR-0052 D5.2 — văn phòng báo khách huỷ (trip.dispatch)
   { method: "GET", path: "/api/van-chuyen/cuoc-cua-toi", access: "staff" }, // ADR-0049 Task A15 route 19 — tài xế (ô trip.view assigned)
   { method: "GET", path: "/api/van-chuyen/cuoc-cua-toi/:id", access: "staff" }, // route 20
+  { method: "POST", path: "/api/van-chuyen/cuoc-cua-toi/:id/hanh-khach", access: "staff" }, // Đợt 5 A-1b ADR-0052 D5b — tài xế bổ sung tên (trip.passenger.add) — CHỜ CHỦ DUYỆT
   { method: "POST", path: "/api/van-chuyen/cuoc-cua-toi/:id/xuat-ben", access: "staff" }, // route 21 — tài xế (trip.progress assigned)
   { method: "POST", path: "/api/van-chuyen/cuoc-cua-toi/:id/diem/:sid/da-toi", access: "staff" }, // route 22 — tài xế (trip.progress assigned)
   { method: "POST", path: "/api/van-chuyen/cuoc-cua-toi/:id/phan-bo/:aid/don", access: "staff" }, // route 23 — tài xế (trip.progress assigned)
@@ -399,7 +400,8 @@ test("mức truy cập của 213 route hiện có khớp ảnh chụp đã duy�
   // 2026-10-02 (ADR-0055 VK2-A, Vận chuyển Đợt 3): + GET/POST /api/van-chuyen/xe/:id/ban, POST …/ban/:bid/rut, GET /api/van-chuyen/ban-xe (office, vehicle.manage) = 220.
   // 2026-10-05 (Vận chuyển Đợt 5, ADR-0052 D5): + POST /api/van-chuyen/chuyen/:id/them-diem, POST …/phan-bo/:aid/bao-huy (office, trip.dispatch) = 222.
   // 2026-10-05 (Đợt 5 A-1b Task 15): + GET /api/van-chuyen/chuyen/:id/cuu-ho (office, trip.dispatch; chỉ đọc) = 223.
+  // 2026-10-05 (Đợt 5 A-1b Task 14 — CHỜ CHỦ DUYỆT): + POST /api/van-chuyen/cuoc-cua-toi/:id/hanh-khach (staff, trip.passenger.add) = 224.
   assert.deepEqual(actual, SNAPSHOT);
-  assert.equal(actual.length, 223, "số route thực tế lệch 223 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 223, "SNAPSHOT phải có đúng 223 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  assert.equal(actual.length, 224, "số route thực tế lệch 224 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 224, "SNAPSHOT phải có đúng 224 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

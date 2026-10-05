@@ -9,6 +9,8 @@
 //   (4) câu `TRANG_THAI_CUOI` (nếu có) đứng CUỐI, nhiều nhất một.
 // NGOẠI LỆ luật 3 (ruling VỪA-2 — ADR-0051 "Đã gọi báo", Task A-GB): họ lệnh trên mốc giờ hẹn KHÔNG chạm vc_trip — chỉ các hàm LIỆT KÊ TÊN ở HO_LENH_MOC
 // được dùng nhãn `CONG_MOC`, và phải ĐÚNG HAI câu: `CONG_MOC` (INSERT có điều kiện `max(seq)`) rồi `NHAT_KY` (`changes() > 0`). Hàm khác dùng CONG_MOC → đỏ.
+// NGOẠI LỆ luật 3 thứ hai (Đợt 5 A-1b — CHỜ CHỦ DUYỆT, đề xuất luật A-1b mục 2): nhãn `GHI_NGOAI` = câu ghi do module KHÁC cấp (orders — dòng hành khách tài xế
+// nhập), gác bằng ID NHẬT KÝ của lô `EXISTS (SELECT 1 FROM audit_log WHERE id = ?n)` với ?n = dấu lệnh. CHỈ hàm có tên ở CHO_GHI_NGOAI; hàm khác dùng → đỏ.
 // Danh sách hàm tự suy bằng quét MỌI `export function` của dieu-phoi.ts (không chỉ tên `lo…`).
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -73,6 +75,11 @@ const MAU: Record<string, { vao: Record<string, unknown>; gac: string }> = {
     gac: T,
   },
   loBaoHuy: { vao: { ...L, tripId: T, version: 7, suatId: "a-1", lyDo: "BAO_HUY_KHONG_DI", detail: "d" }, gac: T },
+  // Đợt 5 A-1b (ADR-0052 D5b): tài xế bổ sung tên — xe đang chạy (có bản chốt dòng thêm sau xuất bến). Câu orders mô phỏng đúng khuôn gác id nhật ký.
+  loBoSungTen: {
+    vao: { ...L, tripId: T, version: 7, dangChay: true, suatId: "a-1", personKey: "pk-moi", hanhKhach: { sql: "INSERT INTO ord_passenger (id) SELECT ?1 WHERE EXISTS (SELECT 1 FROM audit_log WHERE id = ?8)", args: ["pk-moi", 0, 0, 0, 0, 0, 0, CMD] }, detail: "d" },
+    gac: T,
+  },
   lenhDaGoiBao: { vao: { ...L, legId: "leg-1", phienBan: 1, moi: { ngay: "2027-03-11", gio: "09:15" }, cu: { ngay: "2027-03-11", gio: "09:00" }, tripId: T, detail: "d" }, gac: T },
   lenhBoDanhDauGoiBao: {
     vao: { ...L, legId: "leg-1", phienBan: 2, moi: { ngay: "2027-03-11", gio: "09:00" }, cu: { ngay: "2027-03-11", gio: "09:15" }, tripId: T, detail: "d", banChup: "null" }, gac: T,
@@ -89,6 +96,9 @@ export function viPhamLoMoc(ten: string, lo: readonly Cau[]): string[] {
   return loi;
 }
 
+/** Hàm được dùng nhãn GHI_NGOAI (câu module khác gác bằng id nhật ký) — LIỆT KÊ TÊN. Thêm tên = NỚI luật 3 — CHỜ CHỦ DUYỆT (đề xuất luật A-1b mục 2). */
+const CHO_GHI_NGOAI = ["loBoSungTen"];
+const GAC_NHAT_KY = /EXISTS \(SELECT 1 FROM audit_log WHERE id = \?(\d+)\)/;
 const LINH_GAC = /EXISTS \(SELECT 1 FROM vc_trip WHERE id = \?(\d+) AND last_cmd_id = \?(\d+)\)/;
 const SUA_CHUYEN = /^UPDATE vc_trip SET[\s\S]*WHERE id = \?(\d+) AND last_cmd_id = \?(\d+)$/;
 
@@ -115,6 +125,13 @@ export function viPhamLo(ten: string, lo: readonly Cau[], gac: string): string[]
   // (3) lính gác dấu lệnh ở MỌI câu sau nhật ký
   for (let i = sauCong + 1; i < lo.length; i++) {
     const { sql, args } = lo[i]!.stmt;
+    if (lo[i]!.nhan === "GHI_NGOAI") {
+      if (!CHO_GHI_NGOAI.includes(ten)) loi.push(`${ten}: dùng nhãn GHI_NGOAI mà không có tên trong CHO_GHI_NGOAI`);
+      const g = GAC_NHAT_KY.exec(sql);
+      if (!g) loi.push(`${ten}: câu ${i} (GHI_NGOAI) thiếu gác id nhật ký`);
+      else if (args[Number(g[1]) - 1] !== CMD) loi.push(`${ten}: câu ${i} (GHI_NGOAI) gác bằng tham số không phải dấu lệnh của lô`);
+      continue;
+    }
     const m = LINH_GAC.exec(sql) ?? SUA_CHUYEN.exec(sql.trim());
     if (!m) {
       loi.push(`${ten}: câu ${i} (${lo[i]!.nhan}) thiếu lính gác dấu lệnh`);
@@ -152,6 +169,13 @@ test("bộ bắt TC-32: đảo nhật ký với cổng, bỏ lính gác một c�
   assert.ok(viPhamLoMoc("moc", [...moc, dung[2]!]).length > 0, "câu thứ ba");
   assert.ok(viPhamLoMoc("moc", [{ nhan: "CONG_MOC", stmt: g("INSERT INTO vc_leg_appt_ack (id) SELECT ?1", []) }, moc[1]!]).length > 0, "bỏ điều kiện max(seq)");
   assert.ok(viPhamLo("la", moc, T).some((l) => /CONG_MOC mà không có tên/.test(l)), "hàm lạ dùng CONG_MOC");
+  // GHI_NGOAI (Đợt 5 A-1b): hàm lạ dùng → đỏ; thiếu gác id nhật ký → đỏ; gác bằng tham số lạ → đỏ; loBoSungTen đúng khuôn → xanh.
+  const coNgoai = (sql: string, args: unknown[]) => [dung[0]!, dung[1]!, { nhan: "GHI_NGOAI", stmt: g(sql, args) }];
+  const NGOAI = "INSERT INTO ord_passenger (id) SELECT ?1 WHERE EXISTS (SELECT 1 FROM audit_log WHERE id = ?2)";
+  assert.ok(viPhamLo("la", coNgoai(NGOAI, ["p", CMD]), T).some((l) => /GHI_NGOAI mà không có tên/.test(l)), "hàm lạ dùng GHI_NGOAI");
+  assert.ok(viPhamLo("loBoSungTen", coNgoai("INSERT INTO ord_passenger (id) SELECT ?1", ["p"]), T).some((l) => /thiếu gác id nhật ký/.test(l)), "thiếu gác");
+  assert.ok(viPhamLo("loBoSungTen", coNgoai(NGOAI, ["p", "lạ"]), T).some((l) => /không phải dấu lệnh/.test(l)), "tham số lạ");
+  assert.deepEqual(viPhamLo("loBoSungTen", coNgoai(NGOAI, ["p", CMD]), T), []);
 });
 
 test("TC-32: MỌI hàm dựng lô của dieu-phoi.ts (tự suy từ tên xuất) có mẫu, ≥ 12 lệnh, và đúng bốn luật thứ tự lô", () => {
