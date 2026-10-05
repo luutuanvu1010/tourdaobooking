@@ -7,6 +7,7 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { DatabaseSync, type SupportedValueType } from "node:sqlite";
 import * as esbuild from "esbuild";
+import { gieoLyDoHuy } from "../../../tests/audit/huy-don.mjs";
 
 const DIR = new URL("../../../migrations/", import.meta.url);
 const FILES = readdirSync(DIR).filter((f) => f.endsWith(".sql")).sort();
@@ -146,6 +147,7 @@ function insertHandler(sqlite: DatabaseSync, o: { id: string; orderId: string; p
 
 /** Huỷ một đơn (nháp → huỷ hoặc đã xác nhận → huỷ — hai đường trigger `orders_status_transition`, 0017, cho phép). */
 function cancel(sqlite: DatabaseSync, id: string, at = "2026-09-24T00:00:00.000Z"): void {
+  gieoLyDoHuy(sqlite, id);
   sqlite.prepare(`UPDATE orders SET status = 'cancelled', updated_at = ? WHERE id = ?`).run(at, id);
 }
 

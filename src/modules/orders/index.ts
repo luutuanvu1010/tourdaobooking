@@ -29,6 +29,8 @@ import { dongHienHanh, kiemHanhKhach, soKhachDoan } from "../../shared/hanh-khac
 import type { PaxCode } from "../../shared/order-lines";
 import { soNguoiChang, tongKhach } from "../../shared/so-nguoi-chang";
 import { maskLongDigits } from "../../shared/text-guards";
+import { docLyDoHuy, docPhanLoai, nhanNhomHuy, type LyDoHuy } from "../../shared/ly-do-huy";
+import { lyDoHienHanh, phanLoaiStatement } from "./huy-don-repo";
 import { toPoolOrders } from "./pool";
 import { laThanDonCu, laThanTripCu } from "./than-cu";
 import {
@@ -428,8 +430,8 @@ export async function lienHeChoTaiXe(db: D1Database, orderIds: readonly string[]
  * `status === "confirmed"` bằng `findOrderOwner`; hàm này chỉ còn lo tranh chấp (khoá lạc quan khoá theo CẢ `status` VÀ `updated_at`, T1d) nên vẫn
  * ràng buộc `from: "confirmed"` cho chắc.
  */
-export async function cancelOrderByHandler(db: D1Database, id: string, staffId: string, prevUpdatedAt: string, reasonLabel: string): Promise<boolean> {
-  return cancelOrder(db, id, staffId, "confirmed", prevUpdatedAt, { action: "order_cancelled_by_field", detail: reasonLabel });
+export async function cancelOrderByHandler(db: D1Database, id: string, staffId: string, prevUpdatedAt: string, lyDo: LyDoHuy, reasonLabel: string): Promise<boolean> {
+  return cancelOrder(db, id, staffId, "confirmed", prevUpdatedAt, lyDo, { action: "order_cancelled_by_field", detail: reasonLabel });
 }
 
 // ---- Sổ tiền lượt 1 (ADR-0024 điều 3–4, ADR-0025): `orders` công bố trạng thái + "phải thu hiện hành" + hai câu mốc CHƯA CHẠY cho billing gộp vào
@@ -1027,7 +1029,10 @@ export const ordersModule: AppModule = {
       if (!canTransition(from, to)) return error(409, "invalid_transition", `Không thể chuyển đơn từ "${from}" sang "${to}".`);
 
       if (to === "cancelled") {
-        if (!(await cancelOrder(env.DB, id, staff.id, from, meta.updatedAt))) return RACED();
+        // ADR-0089 đ8 (H-C4): lý do bắt buộc; nhóm "Công ty huỷ" chỉ khi có ô `order.cancel.classify` (Quản trị, Toàn quyền — Đ-2).
+        const lyDo = docLyDoHuy(body, { coTheChonCongTy: can(staff, "order.cancel.classify") });
+        if (!lyDo.ok) return error(lyDo.status, lyDo.status === 403 ? "forbidden" : "invalid_input", lyDo.message);
+        if (!(await cancelOrder(env.DB, id, staff.id, from, meta.updatedAt, lyDo.lyDo))) return RACED();
       } else {
         const today = vnToday(new Date());
         const order = await findOrder(env.DB, id);
@@ -1062,6 +1067,30 @@ export const ordersModule: AppModule = {
       }
       baoThayDoi({ orderId: id, thayDoi: to === "cancelled" ? "huy" : "xac_nhan" });
       return json({ order: (await loadOrderView(env.DB, id, xemDuDatGap(staff)))! } satisfies OrderResponse);
+    }),
+
+    // PHÂN LOẠI lý do huỷ "chưa kết luận" (ADR-0089 đ8, X-2; NT-L5, NT-L6): ô `order.cancel.classify` (Quản trị, Toàn quyền — Đ-2), không phạm vi đơn.
+    // Chỉ từ "chưa kết luận" sang nhóm khác, lý do bắt buộc. MỘT lô: dòng phân loại (chỉ chèn khi dòng hiện hành đã đọc còn hiện hành) → nhật ký
+    // `changes() > 0`. Thua (người khác vừa phân loại) ⇒ 409, không dòng nào. Trigger `ord_cancel_reason_reclassify` là lưới cuối.
+    route("POST", "/api/orders/:id/cancel-reason", "orders", async ({ env, request, params, staff, baoThayDoi }) => {
+      if (!can(staff, "order.cancel.classify")) return error(403, "forbidden", "Chỉ Quản trị hoặc Toàn quyền mới phân loại được lý do huỷ.");
+      const id = params.id!;
+      if (!UUID_RE.test(id)) return NOT_FOUND();
+      const meta = await getMeta(env.DB, id);
+      if (!meta) return NOT_FOUND();
+      if (meta.status !== "cancelled") return error(409, "invalid_state", "Đơn chưa huỷ — không có lý do huỷ để phân loại.");
+      const doc = docPhanLoai(await readJson(request));
+      if (!doc.ok) return error(400, "invalid_input", doc.message);
+      const hien = await lyDoHienHanh(env.DB, id);
+      if (!hien || hien.group_code !== "CHUA_KET_LUAN") return error(409, "invalid_state", "Lý do huỷ của đơn này đã được phân loại.");
+      const at = new Date().toISOString();
+      const kq = await env.DB.batch([
+        phanLoaiStatement(env.DB, { orderId: id, hienHanhId: hien.id, nhom: doc.nhom, ghiChu: doc.ghiChu, at, staffId: staff.id }),
+        auditStatement(env.DB, { orderId: id, staffId: staff.id, action: "order_cancel_reason_classified", at, detail: `${nhanNhomHuy(doc.nhom)}: ${doc.ghiChu}` }, "changes() > 0"),
+      ]);
+      if ((kq[0]!.meta.changes ?? 0) === 0) return error(409, "stale", "Lý do huỷ vừa được người khác phân loại — tải lại.");
+      baoThayDoi({ orderId: id, thayDoi: "huy" });
+      return json({ ok: true }, 201, { location: trangDon(id) });
     }),
   ],
 };

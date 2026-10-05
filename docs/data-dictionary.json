@@ -172,6 +172,12 @@
       "note": "CAM KẾT CỦA CHẶNG (ADR-0056 VK3-A, migration 0077, Đợt 7): exclusive_vehicle 0/1 (mặc định 0 = không cam kết xe riêng) và min_vehicle_seats NULL hoặc 1..100 (xe tối thiểu N chỗ; NULL = không cam kết). Không mang tiền, không mang tên người, không kể tài xế (không vào DTO tài xế). Ai ghi: theo ô của route chứa chặng (nháp qua order.modify, sau xác nhận qua order.trip.edit) — khoá vắng thì giữ giá trị cũ, không xét mốc 6 giờ. Chặng cũ = 0 / NULL. CHECK ngay ở cột; vận chuyển chỉ đọc qua hàm hẹp lichChungChang / hanhKhachChoChuyen"
     },
     {
+      "name": "ord_cancel_reason",
+      "module": "orders",
+      "kind": "table",
+      "note": "lý do huỷ đơn (ADR-0089 đ8, X-2, X-3; migration 0078), CHỈ-THÊM (trigger cấm sửa/xoá). Mỗi đơn huỷ đúng một dòng gốc (chỉ mục duy nhất một phần) + tối đa một dòng PHÂN LOẠI trỏ dòng gốc 'chưa kết luận' (reclassifies_id; giữ ngày huỷ và cờ legacy). reason_code / group_code (KHACH_HUY, CONG_TY_HUY, LAP_LAI, CHUA_KET_LUAN) kiểm ở mã (src/shared/ly-do-huy.ts); note = ghi chú 'Khác' / lý do phân loại, không SĐT. cancelled_date = ngày VN. legacy = 1: đơn huỷ trước bản này — gieo MỘT LẦN trong migration 0078 (nhóm chưa kết luận, mã LEGACY, ngày = ngày VN của nhật ký huỷ mới nhất, không có thì của updated_at; người ghi 'he-thong'). Trigger orders_cancel_requires_reason: đơn chỉ chuyển sang huỷ khi đã có dòng lý do. Đọc xuyên module qua v_ord_cancel_state (nhóm hiện hành + hạn hoàn cọc refund_deadline)"
+    },
+    {
       "name": "ord_passenger",
       "module": "orders",
       "kind": "table"
@@ -730,6 +736,19 @@
         "status",
         "delivered_at",
         "completed_at"
+      ]
+    },
+    {
+      "name": "v_ord_cancel_state",
+      "module": "orders",
+      "columns": [
+        "order_id",
+        "group_code",
+        "reason_code",
+        "cancelled_date",
+        "legacy",
+        "depart_last_date",
+        "refund_deadline"
       ]
     },
     {

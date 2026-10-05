@@ -178,7 +178,7 @@ assert.equal(r.body.order.bookerPartyId, null);
 console.log("✓ quyền đổi khách = quyền sửa chuyến");
 
 // đơn đã huỷ → 409 not_editable; id lạ → 404; đầu vào sai → 400
-r = await call(SALES, "POST", `/api/orders/${cur.id}/status`, { status: "cancelled" });
+r = await call(SALES, "POST", `/api/orders/${cur.id}/status`, { status: "cancelled", lyDo: "KHACH_DOI_Y" });
 assert.equal(r.status, 200, JSON.stringify(r.body));
 cur = r.body.order;
 r = await call(SALES, "PUT", B(cur.id), { customerName: "Y", customerPhone: "0909000111", bookerPartyId: null, expectedUpdatedAt: cur.updatedAt });

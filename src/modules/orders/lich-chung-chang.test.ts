@@ -54,7 +54,7 @@ test("TC-20 lichChungChang: ĐÚNG các khoá của chặng (có khoaNoiDon / kh
   const o = await order(w, true, [OUT(NOI_A), RET]);
   const nhap = await order(w, false, [OUT("Khách sạn nháp")]);
   const huy = await order(w, true, [OUT("Khách sạn huỷ")]);
-  assert.equal((await w.call("POST", `/api/orders/${huy.id}/status`, { as: SALES, body: { status: "cancelled" } })).status, 200);
+  assert.equal((await w.call("POST", `/api/orders/${huy.id}/status`, { as: SALES, body: { status: "cancelled", lyDo: "KHACH_DOI_Y" } })).status, 200);
   const dong = o.services[0].legs.find((l: any) => l.direction === "RETURN");
   const kq = await lichChungChang(w.env.DB, D, inDays(4));
   assert.deepEqual(kq.chang.map((c: any) => c.legId).sort(), o.services[0].legs.map((l: any) => l.id).sort(), "chỉ chặng của đơn đã xác nhận, chưa huỷ");

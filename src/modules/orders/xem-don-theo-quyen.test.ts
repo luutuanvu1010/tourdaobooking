@@ -213,7 +213,7 @@ async function poolWorld() {
   });
   const coNguoi = await orderHandledBy(w, FIELD);
   const daHuy = await newOrder(w, SALES);
-  assert.equal((await w.call("POST", `/api/orders/${daHuy}/status`, { as: SALES, body: { status: "cancelled" } })).status, 200);
+  assert.equal((await w.call("POST", `/api/orders/${daHuy}/status`, { as: SALES, body: { status: "cancelled", lyDo: "KHACH_DOI_Y" } })).status, 200);
   const quaNgay = await newOrder(w, PARTNER, {}, inDays(-1));
   const chuaCoNgay = await newOrder(w, PARTNER, {}, "");
   const lech = await newOrder(w, SALES, {
@@ -276,7 +276,7 @@ test("ADR-0030 Review Focus 3: GET /api/orders/pool KHÔNG rơi vào route chi t
 test("ADR-0030 L1-12: MỌI ô của Đối tác (PARTNER) giữ nguyên — ghim nguyên dòng, kể cả ô mới order.pool.view = none", () => {
   const PARTNER_ROW: Record<string, string> = {
     "order.view": "own", "money.view": "own", "order.history.view": "own", "contact.view": "ownOrAssigned", "order.create": "any", "order.modify": "own",
-    "order.trip.edit": "none", "task.progress": "assigned", "order.money.edit": "none", "order.cancel": "none", "dispatch.assign": "none", "dispatch.claim": "none",
+    "order.trip.edit": "none", "task.progress": "assigned", "order.money.edit": "none", "order.cancel": "none", "order.cancel.classify": "none", "dispatch.assign": "none", "dispatch.claim": "none",
     "dispatch.guides.view": "any", "payment.receive": "own" /* ADR-0026 đ10: thay ô cọc trên form đơn của mình */, "payment.refund": "none", "invoice.request": "none", "invoice.issue": "none",
     "accounting.entry.mark": "none", "accounting.entry.view": "none" /* ADR-0060 Q-2 "Không": Đối tác không thấy dấu kế toán / số hoá đơn */, "party.view": "none",
     "party.write": "none", "party.staff.write": "none", "admin.manage": "none", "admin.manage.superadmin": "none", "feedback.submit": "any", "feedback.view": "own",

@@ -17,6 +17,8 @@ import type { PoolSourceOrder, PoolSourceService } from "./pool";
 import type { FrozenLine } from "./price-guards";
 import { NHAN_THAN_CU, type LoaiThanCu } from "./than-cu";
 import { orderCodePrefix, type OrderStatus, type ValidOrder } from "./rules";
+import { cauHuyCoLyDo } from "./huy-don-repo";
+import { nhanLyDoHuy, nhanNhomHuy, type LyDoHuy } from "../../shared/ly-do-huy";
 import { confirmWindow, summarizeDeviations, type StoredService, type ValidService, type ValidTrip } from "./service-rules";
 
 interface OrderRow {
@@ -1023,16 +1025,21 @@ export async function confirmOrder(
  * Huỷ đơn có điều kiện `status = from` VÀ `updated_at = prevUpdatedAt` (khoá lạc quan, chống hai người đổi cùng lúc — kể cả khi người kia chỉ đổi
  * `updated_at` mà KHÔNG đổi `status`, ví dụ `PUT /trip` chen giữa lúc route đọc và lúc gọi hàm này). Trả false nếu điều kiện không còn đúng — KHÔNG
  * đổi gì, KHÔNG ghi nhật ký (T1d, điều kiện tiên quyết ADR-0030 lượt 1: trước bản sửa này câu UPDATE chỉ khoá theo `status`, để lọt ca chen giữa
- * trên). Mốc `updated_at` mới = `nextStamp(prevUpdatedAt)` (xem `confirmOrder`). `opts` cho phép đường huỷ hẹp của FIELD (ADR-0014 điều 11) ghi một
- * hành động nhật ký riêng kèm lý do — mặc định vẫn là `cancelled` không detail, giữ nguyên hành vi cũ của mọi lời gọi khác.
+ * trên). Mốc `updated_at` mới = `nextStamp(prevUpdatedAt)` (xem `confirmOrder`). `lyDo` BẮT BUỘC (ADR-0089 đ8). `opts` cho phép đường huỷ hẹp của FIELD
+ * (ADR-0014 điều 11) ghi hành động nhật ký riêng + nhãn lý do cũ của nó; mặc định `cancelled` kèm nhãn lý do (nhóm).
  */
-export async function cancelOrder(db: D1Database, id: string, staffId: string, from: OrderStatus, prevUpdatedAt: string, opts?: { action?: AuditAction; detail?: string }): Promise<boolean> {
+export async function cancelOrder(
+  db: D1Database, id: string, staffId: string, from: OrderStatus, prevUpdatedAt: string, lyDo: LyDoHuy, opts?: { action?: AuditAction; detail?: string },
+): Promise<boolean> {
   const at = nextStamp(prevUpdatedAt);
+  // ADR-0089 đ8 (H-C6): lô huỷ = [dòng lý do (cùng điều kiện khoá lạc quan)] → [đổi trạng thái] → [nhật ký changes() > 0] — câu SQL ở tệp nửa nghiêm.
+  // Nhật ký ghi NHÃN lý do (không mã thô); "Khác" ghi chính ghi chú đã kiểm (khuôn HDV — ADR-0030 điều 2).
+  const nhan = lyDo.ma === "OTHER" ? `${lyDo.ghiChu} (${nhanNhomHuy(lyDo.nhom)})` : `${nhanLyDoHuy(lyDo.ma)} (${nhanNhomHuy(lyDo.nhom)})`;
   const results = await db.batch([
-    db.prepare(`UPDATE orders SET status = 'cancelled', updated_at = ? WHERE id = ? AND status = ? AND updated_at = ?`).bind(at, id, from, prevUpdatedAt),
-    auditStatement(db, { orderId: id, staffId, action: opts?.action ?? "cancelled", at, detail: opts?.detail }, "changes() > 0"),
+    ...cauHuyCoLyDo(db, { orderId: id, staffId, from, prevUpdatedAt, at, homNay: vnToday(new Date()), lyDo }),
+    auditStatement(db, { orderId: id, staffId, action: opts?.action ?? "cancelled", at, detail: opts?.detail ?? nhan }, "changes() > 0"),
   ]);
-  return (results[0]!.meta.changes ?? 0) > 0;
+  return (results[1]!.meta.changes ?? 0) > 0;
 }
 
 interface LatestAdjustment {

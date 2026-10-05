@@ -101,12 +101,14 @@
 | `order_service` | bảng | tên cũ, giữ nguyên (ADR-0002 điều 2) |
 | `orders` | bảng | tên cũ, giữ nguyên (ADR-0002 điều 2); cột chết: deposit_amount, deposit_method, remaining_amount; ba cột cọc KHÔNG DÙNG NỮA — xem ADR-0026 điều 9 (đơn mới ghi 0 / NULL / total để thoả trigger 0007; số đã thu, còn lại lấy từ billing). Cột mốc delivered_at/_by, completed_at/_by từ 0044 (ADR-0024 điều 3) |
 | `ord_transfer_leg` | bảng | CAM KẾT CỦA CHẶNG (ADR-0056 VK3-A, migration 0077, Đợt 7): exclusive_vehicle 0/1 (mặc định 0 = không cam kết xe riêng) và min_vehicle_seats NULL hoặc 1..100 (xe tối thiểu N chỗ; NULL = không cam kết). Không mang tiền, không mang tên người, không kể tài xế (không vào DTO tài xế). Ai ghi: theo ô của route chứa chặng (nháp qua order.modify, sau xác nhận qua order.trip.edit) — khoá vắng thì giữ giá trị cũ, không xét mốc 6 giờ. Chặng cũ = 0 / NULL. CHECK ngay ở cột; vận chuyển chỉ đọc qua hàm hẹp lichChungChang / hanhKhachChoChuyen |
+| `ord_cancel_reason` | bảng | lý do huỷ đơn (ADR-0089 đ8, X-2, X-3; migration 0078), CHỈ-THÊM (trigger cấm sửa/xoá). Mỗi đơn huỷ đúng một dòng gốc (chỉ mục duy nhất một phần) + tối đa một dòng PHÂN LOẠI trỏ dòng gốc 'chưa kết luận' (reclassifies_id; giữ ngày huỷ và cờ legacy). reason_code / group_code (KHACH_HUY, CONG_TY_HUY, LAP_LAI, CHUA_KET_LUAN) kiểm ở mã (src/shared/ly-do-huy.ts); note = ghi chú 'Khác' / lý do phân loại, không SĐT. cancelled_date = ngày VN. legacy = 1: đơn huỷ trước bản này — gieo MỘT LẦN trong migration 0078 (nhóm chưa kết luận, mã LEGACY, ngày = ngày VN của nhật ký huỷ mới nhất, không có thì của updated_at; người ghi 'he-thong'). Trigger orders_cancel_requires_reason: đơn chỉ chuyển sang huỷ khi đã có dòng lý do. Đọc xuyên module qua v_ord_cancel_state (nhóm hiện hành + hạn hoàn cọc refund_deadline) |
 | `ord_passenger` | bảng |  |
 | `ord_manual_service_policy` | bảng | công tắc "Dịch vụ nhập tay" (ADR-0061, migration 0052), CHỈ-THÊM; dòng hiệu lực = valid_from_at lớn nhất ≤ bây giờ, bảng rỗng = TẮT; gieo một dòng TẮT; chỉ Toàn quyền thêm dòng mới (settings.ops) |
 | `v_ord_order_label` | view công bố | cột: id, order_code |
 | `v_ord_order_owner` | view công bố | cột: id, staff_id |
 | `v_ord_order_flag` | view công bố | cột: id, is_confirmed, is_cancelled |
 | `v_ord_order_state` | view công bố | cột: id, status, delivered_at, completed_at |
+| `v_ord_cancel_state` | view công bố | cột: order_id, group_code, reason_code, cancelled_date, legacy, depart_last_date, refund_deadline |
 | `v_ord_leg_key` | view công bố | cột: id, order_id, order_service_id, is_open |
 | `v_ord_passenger_key` | view công bố | cột: person_key, order_id, has_current_row |
 | `v_ord_passenger_row` | view công bố | cột: id, person_key, order_id, is_current |

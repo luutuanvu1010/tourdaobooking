@@ -105,7 +105,7 @@ test("route đặt gấp: đơn / chặng lạ → 404; chặng đã đóng → 
   const dong = await datGap(w, o, ADM, { lyDo: "KHAC" }, l.id);
   assert.equal(dong.status, 409, dong.text);
   const o2 = await nhap(w, SALES, vnSau(24 * 60 * 3));
-  assert.equal((await w.call("POST", `/api/orders/${o2.id}/status`, { as: SALES, body: { status: "cancelled" } })).status, 200);
+  assert.equal((await w.call("POST", `/api/orders/${o2.id}/status`, { as: SALES, body: { status: "cancelled", lyDo: "KHACH_DOI_Y" } })).status, 200);
   assert.equal((await datGap(w, o2, ADM, { lyDo: "KHAC" })).status, 409);
   // Khung thử KHÔNG tiêm mốc (TC-26): đơn + chặng dựng thẳng bằng SQL (lập nháp có chặng cũng bị chặn 503 ở thế giới này).
   const k = setup({ khongTiemMoc: true });

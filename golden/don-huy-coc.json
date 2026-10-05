@@ -1,0 +1,272 @@
+{
+  "_mo_ta": "Sổ vàng — đơn huỷ và cọc (ADR-0089 đ1–đ16, X-1…X-4; lời chủ (a)–(d) 2026-10-02; kế hoạch docs/superpowers/plans/2026-10-02-khac-phuc-audit-02-dot-1-don-huy-coc.md §1.8). Mỗi ca là CHUỖI SỰ KIỆN tiền trên MỘT đơn bị huỷ (thu, công ty xác nhận đã nhận, hoàn dư trước huỷ, huỷ kèm nhóm lý do, phân loại, duyệt hoàn / duyệt chuyển, huỷ duyệt, chi hoàn, chuyển sang đơn mới, ghi + xác nhận 'đã hoàn ngoài hệ thống', đảo lần thu). Bước có `ky_vong_loi` là bước BỊ TỪ CHỐI (không ghi gì). Đáp án đúng tới từng đồng: đã trả, đang đối chiếu, còn lại (luôn 0), chờ hoàn mặc định (luôn 0), hoàn trước huỷ, đã duyệt, đã chi, đã chuyển, hoàn ngoài, còn giữ, chờ chi, hạn hoàn cọc, nhãn hiện, số dư từng bên. AI soạn 2026-10-05 (người thi công năm lỗi tiền), MỌI ca CHỜ Kế toán / chủ dự án xác nhận — AI không tự xác nhận (Hiến pháp N8). Mã tiền đơn huỷ chỉ phát hành khi 100% ca đã xác nhận đi qua LỚP 2 của src/so-vang.test.ts.",
+  "luat": "don-huy-coc",
+  "quy_uoc": {
+    "su_kien.loai": "thu (vai_nguoi_thu nhan_vien | cong_ty; nguoi_thu; nguoi_ghi; nguoi_ghi_la_ke_toan; so) · xac_nhan_cong_ty (thu_so) · hoan_tu_do (Kế toán trả dư TRƯỚC khi huỷ: nguoi_tra, so) · huy (nhom KHACH_HUY | CONG_TY_HUY | LAP_LAI | CHUA_KET_LUAN; ma; ngay; nguoi; legacy = đơn huỷ trước bản này) · phan_loai (nhom; nguoi) · duyet (loai hoan | chuyen; so; nguoi; ngay; don_nhan khi chuyển) · huy_duyet (duyet_so; so; nguoi) · chi (duyet_so; so; nguoi; nguoi_tra) · chuyen (duyet_so; so; nguoi; nguoi_giu = người đang giữ tiền, cùng người ở hai đơn) · ghi_hoan_ngoai (so; nguoi) · xac_nhan_hoan_ngoai (nguoi) · dao_thu (thu_so) · chup (đáp án GIỮA chừng, chỉ các khoá ghi ra). thu_so / duyet_so đếm từ 1 theo thứ tự sự kiện cùng loại đã thành công.",
+    "ky_vong_loi": "mã lỗi máy chủ trả ở bước đó (coc_deadline, coc_exceeds_paid, coc_exceeds_approved, coc_same_person, coc_unclassified, coc_outside_once, coc_paid_below_approved, forbidden); bước bị từ chối không đổi số nào",
+    "con_giu": "đã trả − hoàn trước huỷ − đã chi (gồm hoàn ngoài đã xác nhận) − đã chuyển",
+    "cho_chi": "đã duyệt (gồm hoàn ngoài đã xác nhận) − đã chi − đã chuyển",
+    "han": "ngày khởi hành muộn nhất + 60 ngày; đơn chưa có ngày đi thì ngày huỷ + 60 (chỉ CHẶN duyệt mới của nhóm khách huỷ)",
+    "so_du": "số dư từng bên với Tour Đảo trên đơn này: dương = bên đó đang giữ tiền của Tour Đảo"
+  },
+  "cac_ca": [
+    {
+      "ma": "SV-DH-01",
+      "mo_ta": "Khách huỷ, giữ cọc. Đơn 2.000.000, đi 10/11/2026. Kế toán ghi Công ty thu 500.000. Bán hàng huỷ, lý do “Khách đổi ý”.",
+      "nguon": "ADR-0089 đ1, đ2, đ5, đ9b",
+      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "dau_vao": {
+        "phai_thu": 2000000, "ngay_di": ["2026-11-10"], "hom_nay": "2026-10-20",
+        "su_kien": [
+          { "loai": "thu", "vai_nguoi_thu": "cong_ty", "nguoi_thu": "Tour Đảo", "nguoi_ghi": "Lan Kế Toán", "nguoi_ghi_la_ke_toan": true, "so": 500000 },
+          { "loai": "huy", "nhom": "KHACH_HUY", "ma": "KHACH_DOI_Y", "ngay": "2026-10-20", "nguoi": "An Bán", "legacy": false }
+        ]
+      },
+      "dap_an": {
+        "da_tra": 500000, "dang_doi_chieu": 0, "con_lai": 0, "cho_hoan_mac_dinh": 0, "hoan_truoc_huy": 0, "da_duyet": 0, "da_chi": 0, "da_chuyen": 0, "hoan_ngoai": 0,
+        "con_giu": 500000, "cho_chi": 0, "han": "2027-01-09", "nhan": "Cọc giữ lại – khách huỷ", "nhan_phu": "còn có thể hoàn tới 09/01/2027", "so_du": {}
+      }
+    },
+    {
+      "ma": "SV-DH-02",
+      "mo_ta": "Hoàn một phần. Như SV-DH-01, rồi Quản trị duyệt hoàn 200.000; Kế toán chi 200.000 (Công ty, chuyển khoản); Kế toán chi thêm 1 đồng → bị từ chối (vượt phần đã duyệt).",
+      "nguon": "ADR-0089 đ4a, đ4b, đ15",
+      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "dau_vao": {
+        "phai_thu": 2000000, "ngay_di": ["2026-11-10"], "hom_nay": "2026-10-26",
+        "su_kien": [
+          { "loai": "thu", "vai_nguoi_thu": "cong_ty", "nguoi_thu": "Tour Đảo", "nguoi_ghi": "Lan Kế Toán", "nguoi_ghi_la_ke_toan": true, "so": 500000 },
+          { "loai": "huy", "nhom": "KHACH_HUY", "ma": "KHACH_DOI_Y", "ngay": "2026-10-20", "nguoi": "An Bán", "legacy": false },
+          { "loai": "duyet", "loai_duyet": "hoan", "so": 200000, "nguoi": "Quản Trị", "ngay": "2026-10-25" },
+          { "loai": "chi", "duyet_so": 1, "so": 200000, "nguoi": "Lan Kế Toán", "nguoi_tra": "Tour Đảo" },
+          { "loai": "chi", "duyet_so": 1, "so": 1, "nguoi": "Lan Kế Toán", "nguoi_tra": "Tour Đảo", "ky_vong_loi": "coc_exceeds_approved" }
+        ]
+      },
+      "dap_an": {
+        "da_tra": 500000, "dang_doi_chieu": 0, "con_lai": 0, "cho_hoan_mac_dinh": 0, "hoan_truoc_huy": 0, "da_duyet": 200000, "da_chi": 200000, "da_chuyen": 0, "hoan_ngoai": 0,
+        "con_giu": 300000, "cho_chi": 0, "han": "2027-01-09", "nhan": "Cọc giữ lại – khách huỷ", "nhan_phu": "còn có thể hoàn tới 09/01/2027", "so_du": {}
+      }
+    },
+    {
+      "ma": "SV-DH-03",
+      "mo_ta": "Quá hạn (chỉ khách huỷ). Như SV-DH-01. Duyệt 100.000 ngày 09/01/2027 (đúng hạn) → được; duyệt 100.000 ngày 10/01/2027 → bị từ chối “Đã quá hạn hoàn cọc (hạn: 09/01/2027)”; khoản duyệt ngày 09/01 được chi ngày 15/01.",
+      "nguon": "ADR-0089 đ5 (khoản đã duyệt trước hạn vẫn chi được sau hạn)",
+      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "dau_vao": {
+        "phai_thu": 2000000, "ngay_di": ["2026-11-10"], "hom_nay": "2027-01-15",
+        "su_kien": [
+          { "loai": "thu", "vai_nguoi_thu": "cong_ty", "nguoi_thu": "Tour Đảo", "nguoi_ghi": "Lan Kế Toán", "nguoi_ghi_la_ke_toan": true, "so": 500000 },
+          { "loai": "huy", "nhom": "KHACH_HUY", "ma": "KHACH_DOI_Y", "ngay": "2026-10-20", "nguoi": "An Bán", "legacy": false },
+          { "loai": "duyet", "loai_duyet": "hoan", "so": 100000, "nguoi": "Quản Trị", "ngay": "2027-01-09" },
+          { "loai": "duyet", "loai_duyet": "hoan", "so": 100000, "nguoi": "Quản Trị", "ngay": "2027-01-10", "ky_vong_loi": "coc_deadline" },
+          { "loai": "chi", "duyet_so": 1, "so": 100000, "nguoi": "Lan Kế Toán", "nguoi_tra": "Tour Đảo" }
+        ]
+      },
+      "dap_an": {
+        "da_tra": 500000, "dang_doi_chieu": 0, "con_lai": 0, "cho_hoan_mac_dinh": 0, "hoan_truoc_huy": 0, "da_duyet": 100000, "da_chi": 100000, "da_chuyen": 0, "hoan_ngoai": 0,
+        "con_giu": 400000, "cho_chi": 0, "han": "2027-01-09", "nhan": "Cọc giữ lại", "nhan_phu": null, "so_du": {}
+      }
+    },
+    {
+      "ma": "SV-DH-04",
+      "mo_ta": "Công ty huỷ, hoàn toàn bộ. Kế toán ghi Công ty thu 500.000. Bán hàng huỷ chọn “Thời tiết / cấm biển” → bị từ chối (chỉ Quản trị, Toàn quyền chọn nhóm Công ty huỷ). Quản trị huỷ lý do đó. Ngày 20/01/2027 (sau hạn) Quản trị duyệt hoàn 500.000 → được; Kế toán chi 500.000.",
+      "nguon": "ADR-0089 đ6, đ8 (Đ-2), đ5 (công ty huỷ không bị hạn chặn)",
+      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "dau_vao": {
+        "phai_thu": 2000000, "ngay_di": ["2026-11-10"], "hom_nay": "2027-01-21",
+        "su_kien": [
+          { "loai": "thu", "vai_nguoi_thu": "cong_ty", "nguoi_thu": "Tour Đảo", "nguoi_ghi": "Lan Kế Toán", "nguoi_ghi_la_ke_toan": true, "so": 500000 },
+          { "loai": "huy", "nhom": "CONG_TY_HUY", "ma": "THOI_TIET", "ngay": "2026-11-09", "nguoi": "An Bán", "legacy": false, "ky_vong_loi": "forbidden" },
+          { "loai": "huy", "nhom": "CONG_TY_HUY", "ma": "THOI_TIET", "ngay": "2026-11-09", "nguoi": "Quản Trị", "legacy": false },
+          { "loai": "duyet", "loai_duyet": "hoan", "so": 500000, "nguoi": "Quản Trị", "ngay": "2027-01-20" },
+          { "loai": "chi", "duyet_so": 1, "so": 500000, "nguoi": "Lan Kế Toán", "nguoi_tra": "Tour Đảo" }
+        ]
+      },
+      "dap_an": {
+        "da_tra": 500000, "dang_doi_chieu": 0, "con_lai": 0, "cho_hoan_mac_dinh": 0, "hoan_truoc_huy": 0, "da_duyet": 500000, "da_chi": 500000, "da_chuyen": 0, "hoan_ngoai": 0,
+        "con_giu": 0, "cho_chi": 0, "han": "2027-01-09", "nhan": "Khách hàng đã trả trước", "nhan_phu": null, "so_du": {}
+      }
+    },
+    {
+      "ma": "SV-DH-05",
+      "mo_ta": "Công ty huỷ, dời lịch: HDV Nam thu 500.000 tiền mặt (Nam đang giữ). Quản trị huỷ “Thời tiết / cấm biển”, duyệt chuyển 500.000 sang đơn B. Kế toán ghi chuyển (người giữ: Nam). Đơn A: đã chuyển 500.000, còn giữ 0; Nam giữ trên A = 0. Đơn B: đã trả 500.000, Nam giữ trên B = 500.000 (tổng Nam giữ không đổi).",
+      "nguon": "ADR-0089 đ6 (Đ-1: chuyển tính như chi, Quản trị duyệt trước, người duyệt không tự chuyển, một lô hai đơn)",
+      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "dau_vao": {
+        "phai_thu": 2000000, "ngay_di": ["2026-11-10"], "hom_nay": "2026-11-10",
+        "su_kien": [
+          { "loai": "thu", "vai_nguoi_thu": "nhan_vien", "nguoi_thu": "HDV Nam", "nguoi_ghi": "HDV Nam", "nguoi_ghi_la_ke_toan": false, "so": 500000 },
+          { "loai": "huy", "nhom": "CONG_TY_HUY", "ma": "THOI_TIET", "ngay": "2026-11-09", "nguoi": "Quản Trị", "legacy": false },
+          { "loai": "duyet", "loai_duyet": "chuyen", "so": 500000, "nguoi": "Quản Trị", "ngay": "2026-11-09", "don_nhan": "B" },
+          { "loai": "chuyen", "duyet_so": 1, "so": 500000, "nguoi": "Lan Kế Toán", "nguoi_giu": "HDV Nam" }
+        ]
+      },
+      "dap_an": {
+        "da_tra": 500000, "dang_doi_chieu": 0, "con_lai": 0, "cho_hoan_mac_dinh": 0, "hoan_truoc_huy": 0, "da_duyet": 500000, "da_chi": 0, "da_chuyen": 500000, "hoan_ngoai": 0,
+        "con_giu": 0, "cho_chi": 0, "han": "2027-01-09", "nhan": "Khách hàng đã trả trước", "nhan_phu": null, "so_du": { "HDV Nam": 0 },
+        "don_nhan": { "da_tra": 500000, "so_du": { "HDV Nam": 500000 } }
+      }
+    },
+    {
+      "ma": "SV-DH-06",
+      "mo_ta": "Huỷ để lập lại, chuyển tiền: Kế toán ghi Công ty thu 300.000. Bán hàng huỷ “Sai thông tin — lập lại đơn”. Sau hạn (01/02/2027) Quản trị duyệt chuyển 300.000 sang đơn C → được (nhóm này không bị hạn chặn); Kế toán ghi chuyển.",
+      "nguon": "ADR-0089 đ7 (Đ-3: lập lại / trùng không bị hạn chặn, chỉ nhắc)",
+      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "dau_vao": {
+        "phai_thu": 1000000, "ngay_di": ["2026-11-10"], "hom_nay": "2027-02-01",
+        "su_kien": [
+          { "loai": "thu", "vai_nguoi_thu": "cong_ty", "nguoi_thu": "Tour Đảo", "nguoi_ghi": "Lan Kế Toán", "nguoi_ghi_la_ke_toan": true, "so": 300000 },
+          { "loai": "huy", "nhom": "LAP_LAI", "ma": "SAI_THONG_TIN", "ngay": "2026-10-20", "nguoi": "An Bán", "legacy": false },
+          { "loai": "duyet", "loai_duyet": "chuyen", "so": 300000, "nguoi": "Quản Trị", "ngay": "2027-02-01", "don_nhan": "C" },
+          { "loai": "chuyen", "duyet_so": 1, "so": 300000, "nguoi": "Lan Kế Toán", "nguoi_giu": "Tour Đảo" }
+        ]
+      },
+      "dap_an": {
+        "da_tra": 300000, "dang_doi_chieu": 0, "con_lai": 0, "cho_hoan_mac_dinh": 0, "hoan_truoc_huy": 0, "da_duyet": 300000, "da_chi": 0, "da_chuyen": 300000, "hoan_ngoai": 0,
+        "con_giu": 0, "cho_chi": 0, "han": "2027-01-09", "nhan": "Khách hàng đã trả trước", "nhan_phu": null, "so_du": {},
+        "don_nhan": { "da_tra": 300000, "so_du": {} }
+      }
+    },
+    {
+      "ma": "SV-DH-07",
+      "mo_ta": "Đơn huỷ CŨ (trước bản này), công ty đã trả tay 300.000 cho khách. Toàn quyền ghi “đã hoàn ngoài hệ thống” 300.000 → chưa tính; Toàn quyền tự xác nhận → bị từ chối (tách người); Quản trị xác nhận → tính cả là duyệt lẫn chi; Toàn quyền ghi lần hai → bị từ chối (một dòng đang hiệu lực mỗi đơn).",
+      "nguon": "ADR-0089 đ16, X-3, X-4, lời chủ (b)",
+      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "dau_vao": {
+        "phai_thu": 800000, "ngay_di": ["2026-09-20"], "hom_nay": "2026-12-01",
+        "su_kien": [
+          { "loai": "thu", "vai_nguoi_thu": "cong_ty", "nguoi_thu": "Tour Đảo", "nguoi_ghi": "Lan Kế Toán", "nguoi_ghi_la_ke_toan": true, "so": 300000 },
+          { "loai": "huy", "nhom": "CHUA_KET_LUAN", "ma": "LEGACY", "ngay": "2026-09-15", "nguoi": "he-thong", "legacy": true },
+          { "loai": "ghi_hoan_ngoai", "so": 300000, "nguoi": "Toàn Quyền" },
+          { "loai": "chup", "con_giu": 300000, "da_duyet": 0, "da_chi": 0 },
+          { "loai": "xac_nhan_hoan_ngoai", "nguoi": "Toàn Quyền", "ky_vong_loi": "coc_same_person" },
+          { "loai": "xac_nhan_hoan_ngoai", "nguoi": "Quản Trị" },
+          { "loai": "ghi_hoan_ngoai", "so": 1, "nguoi": "Toàn Quyền", "ky_vong_loi": "coc_outside_once" }
+        ]
+      },
+      "dap_an": {
+        "da_tra": 300000, "dang_doi_chieu": 0, "con_lai": 0, "cho_hoan_mac_dinh": 0, "hoan_truoc_huy": 0, "da_duyet": 300000, "da_chi": 300000, "da_chuyen": 0, "hoan_ngoai": 300000,
+        "con_giu": 0, "cho_chi": 0, "han": "2026-11-19", "nhan": "Khách hàng đã trả trước", "nhan_phu": null, "so_du": {}
+      }
+    },
+    {
+      "ma": "SV-DH-08",
+      "mo_ta": "Bất biến mọi lúc: Kế toán ghi Công ty thu 500.000; khách huỷ; Quản trị duyệt hoàn 400.000. Đảo lần thu 500.000 → bị từ chối (đã trả sẽ dưới tổng duyệt); huỷ duyệt 400.000 (chưa chi) → được; đảo lần thu → được.",
+      "nguon": "ADR-0089 đ15 (đúng mọi lúc, kể cả đảo lần thu)",
+      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "dau_vao": {
+        "phai_thu": 2000000, "ngay_di": ["2026-11-10"], "hom_nay": "2026-10-26",
+        "su_kien": [
+          { "loai": "thu", "vai_nguoi_thu": "cong_ty", "nguoi_thu": "Tour Đảo", "nguoi_ghi": "Lan Kế Toán", "nguoi_ghi_la_ke_toan": true, "so": 500000 },
+          { "loai": "huy", "nhom": "KHACH_HUY", "ma": "KHACH_DOI_Y", "ngay": "2026-10-20", "nguoi": "An Bán", "legacy": false },
+          { "loai": "duyet", "loai_duyet": "hoan", "so": 400000, "nguoi": "Quản Trị", "ngay": "2026-10-25" },
+          { "loai": "dao_thu", "thu_so": 1, "ky_vong_loi": "coc_paid_below_approved" },
+          { "loai": "huy_duyet", "duyet_so": 1, "so": 400000, "nguoi": "Quản Trị" },
+          { "loai": "dao_thu", "thu_so": 1 }
+        ]
+      },
+      "dap_an": {
+        "da_tra": 0, "dang_doi_chieu": 0, "con_lai": 0, "cho_hoan_mac_dinh": 0, "hoan_truoc_huy": 0, "da_duyet": 0, "da_chi": 0, "da_chuyen": 0, "hoan_ngoai": 0,
+        "con_giu": 0, "cho_chi": 0, "han": "2027-01-09", "nhan": "Cọc giữ lại – khách huỷ", "nhan_phu": "còn có thể hoàn tới 09/01/2027", "so_du": {}
+      }
+    },
+    {
+      "ma": "SV-DH-09",
+      "mo_ta": "Tách người: Kế toán ghi Công ty thu 500.000; khách huỷ. Tài khoản kiêm Quản trị + Kế toán duyệt hoàn 100.000 → được; chính tài khoản đó chi → bị từ chối; Kế toán khác chi → được.",
+      "nguon": "ADR-0089 đ4c",
+      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "dau_vao": {
+        "phai_thu": 2000000, "ngay_di": ["2026-11-10"], "hom_nay": "2026-10-26",
+        "su_kien": [
+          { "loai": "thu", "vai_nguoi_thu": "cong_ty", "nguoi_thu": "Tour Đảo", "nguoi_ghi": "Lan Kế Toán", "nguoi_ghi_la_ke_toan": true, "so": 500000 },
+          { "loai": "huy", "nhom": "KHACH_HUY", "ma": "KHACH_DOI_Y", "ngay": "2026-10-20", "nguoi": "An Bán", "legacy": false },
+          { "loai": "duyet", "loai_duyet": "hoan", "so": 100000, "nguoi": "Kiêm Hai Việc", "ngay": "2026-10-25" },
+          { "loai": "chi", "duyet_so": 1, "so": 100000, "nguoi": "Kiêm Hai Việc", "nguoi_tra": "Tour Đảo", "ky_vong_loi": "coc_same_person" },
+          { "loai": "chi", "duyet_so": 1, "so": 100000, "nguoi": "Mai Kế Toán", "nguoi_tra": "Tour Đảo" }
+        ]
+      },
+      "dap_an": {
+        "da_tra": 500000, "dang_doi_chieu": 0, "con_lai": 0, "cho_hoan_mac_dinh": 0, "hoan_truoc_huy": 0, "da_duyet": 100000, "da_chi": 100000, "da_chuyen": 0, "hoan_ngoai": 0,
+        "con_giu": 400000, "cho_chi": 0, "han": "2027-01-09", "nhan": "Cọc giữ lại – khách huỷ", "nhan_phu": "còn có thể hoàn tới 09/01/2027", "so_du": {}
+      }
+    },
+    {
+      "ma": "SV-DH-10",
+      "mo_ta": "Khoản chưa xác nhận: HDV Nam khai “Công ty thu – chuyển khoản” 300.000; khách huỷ. Trước khi Kế toán xác nhận: đã trả 0, đang đối chiếu 300.000, duyệt 1 đồng → bị từ chối. Kế toán bấm “Công ty đã nhận” → duyệt 300.000 được.",
+      "nguon": "ADR-0089 đ2 (chỉ khoản đã xác nhận tính vào đã trả), đ9a (ảnh gửi khách ghi “đang đối chiếu”)",
+      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "dau_vao": {
+        "phai_thu": 2000000, "ngay_di": ["2026-11-10"], "hom_nay": "2026-10-26",
+        "su_kien": [
+          { "loai": "thu", "vai_nguoi_thu": "cong_ty", "nguoi_thu": "Tour Đảo", "nguoi_ghi": "HDV Nam", "nguoi_ghi_la_ke_toan": false, "so": 300000 },
+          { "loai": "huy", "nhom": "KHACH_HUY", "ma": "KHACH_DOI_Y", "ngay": "2026-10-20", "nguoi": "An Bán", "legacy": false },
+          { "loai": "chup", "da_tra": 0, "dang_doi_chieu": 300000, "con_giu": 0 },
+          { "loai": "duyet", "loai_duyet": "hoan", "so": 1, "nguoi": "Quản Trị", "ngay": "2026-10-25", "ky_vong_loi": "coc_exceeds_paid" },
+          { "loai": "xac_nhan_cong_ty", "thu_so": 1 },
+          { "loai": "duyet", "loai_duyet": "hoan", "so": 300000, "nguoi": "Quản Trị", "ngay": "2026-10-26" }
+        ]
+      },
+      "dap_an": {
+        "da_tra": 300000, "dang_doi_chieu": 0, "con_lai": 0, "cho_hoan_mac_dinh": 0, "hoan_truoc_huy": 0, "da_duyet": 300000, "da_chi": 0, "da_chuyen": 0, "hoan_ngoai": 0,
+        "con_giu": 300000, "cho_chi": 300000, "han": "2027-01-09", "nhan": "Cọc giữ lại – khách huỷ", "nhan_phu": "còn có thể hoàn tới 09/01/2027", "so_du": { "HDV Nam": 0 }
+      }
+    },
+    {
+      "ma": "SV-DH-11",
+      "mo_ta": "Chưa kết luận: Kế toán ghi Công ty thu 400.000; Bán hàng huỷ lý do “Khác” (ghi chú). Duyệt hoàn 100.000 → bị từ chối (chưa phân loại). Quản trị phân loại “Khách huỷ” → duyệt 100.000 được.",
+      "nguon": "ADR-0089 đ8, X-2",
+      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "dau_vao": {
+        "phai_thu": 2000000, "ngay_di": ["2026-11-10"], "hom_nay": "2026-10-26",
+        "su_kien": [
+          { "loai": "thu", "vai_nguoi_thu": "cong_ty", "nguoi_thu": "Tour Đảo", "nguoi_ghi": "Lan Kế Toán", "nguoi_ghi_la_ke_toan": true, "so": 400000 },
+          { "loai": "huy", "nhom": "CHUA_KET_LUAN", "ma": "OTHER", "ngay": "2026-10-20", "nguoi": "An Bán", "legacy": false },
+          { "loai": "duyet", "loai_duyet": "hoan", "so": 100000, "nguoi": "Quản Trị", "ngay": "2026-10-25", "ky_vong_loi": "coc_unclassified" },
+          { "loai": "phan_loai", "nhom": "KHACH_HUY", "nguoi": "Quản Trị" },
+          { "loai": "duyet", "loai_duyet": "hoan", "so": 100000, "nguoi": "Quản Trị", "ngay": "2026-10-26" }
+        ]
+      },
+      "dap_an": {
+        "da_tra": 400000, "dang_doi_chieu": 0, "con_lai": 0, "cho_hoan_mac_dinh": 0, "hoan_truoc_huy": 0, "da_duyet": 100000, "da_chi": 0, "da_chuyen": 0, "hoan_ngoai": 0,
+        "con_giu": 400000, "cho_chi": 100000, "han": "2027-01-09", "nhan": "Cọc giữ lại – khách huỷ", "nhan_phu": "còn có thể hoàn tới 09/01/2027", "so_du": {}
+      }
+    },
+    {
+      "ma": "SV-DH-12",
+      "mo_ta": "Đơn nháp chưa có ngày đi: Kế toán ghi Công ty thu 200.000; huỷ ngày 05/10/2026 (khách huỷ) → hạn hoàn cọc = ngày huỷ + 60 = 04/12/2026.",
+      "nguon": "ADR-0089 đ5",
+      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "dau_vao": {
+        "phai_thu": 600000, "ngay_di": [null], "hom_nay": "2026-10-05",
+        "su_kien": [
+          { "loai": "thu", "vai_nguoi_thu": "cong_ty", "nguoi_thu": "Tour Đảo", "nguoi_ghi": "Lan Kế Toán", "nguoi_ghi_la_ke_toan": true, "so": 200000 },
+          { "loai": "huy", "nhom": "KHACH_HUY", "ma": "KHACH_DOI_Y", "ngay": "2026-10-05", "nguoi": "An Bán", "legacy": false }
+        ]
+      },
+      "dap_an": {
+        "da_tra": 200000, "dang_doi_chieu": 0, "con_lai": 0, "cho_hoan_mac_dinh": 0, "hoan_truoc_huy": 0, "da_duyet": 0, "da_chi": 0, "da_chuyen": 0, "hoan_ngoai": 0,
+        "con_giu": 200000, "cho_chi": 0, "han": "2026-12-04", "nhan": "Cọc giữ lại – khách huỷ", "nhan_phu": "còn có thể hoàn tới 04/12/2026", "so_du": {}
+      }
+    },
+    {
+      "ma": "SV-DH-13",
+      "mo_ta": "Đã hoàn dư trước khi huỷ (lời chủ (c) 2026-10-02: giới hạn duyệt = tiền còn giữ lúc huỷ). Đơn 1.000.000, khách trả 1.200.000, Kế toán hoàn dư 200.000, rồi khách huỷ. Duyệt hoàn 1.000.000 → được; duyệt thêm 1 → bị từ chối.",
+      "nguon": "ADR-0089 đ4a, đ15 + lời chủ (c)",
+      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "dau_vao": {
+        "phai_thu": 1000000, "ngay_di": ["2026-11-10"], "hom_nay": "2026-10-26",
+        "su_kien": [
+          { "loai": "thu", "vai_nguoi_thu": "cong_ty", "nguoi_thu": "Tour Đảo", "nguoi_ghi": "Lan Kế Toán", "nguoi_ghi_la_ke_toan": true, "so": 1200000 },
+          { "loai": "hoan_tu_do", "nguoi_tra": "Tour Đảo", "so": 200000 },
+          { "loai": "huy", "nhom": "KHACH_HUY", "ma": "KHACH_DOI_Y", "ngay": "2026-10-20", "nguoi": "An Bán", "legacy": false },
+          { "loai": "duyet", "loai_duyet": "hoan", "so": 1000000, "nguoi": "Quản Trị", "ngay": "2026-10-25" },
+          { "loai": "duyet", "loai_duyet": "hoan", "so": 1, "nguoi": "Quản Trị", "ngay": "2026-10-26", "ky_vong_loi": "coc_exceeds_paid" }
+        ]
+      },
+      "dap_an": {
+        "da_tra": 1200000, "dang_doi_chieu": 0, "con_lai": 0, "cho_hoan_mac_dinh": 0, "hoan_truoc_huy": 200000, "da_duyet": 1000000, "da_chi": 0, "da_chuyen": 0, "hoan_ngoai": 0,
+        "con_giu": 1000000, "cho_chi": 1000000, "han": "2027-01-09", "nhan": "Cọc giữ lại – khách huỷ", "nhan_phu": "còn có thể hoàn tới 09/01/2027", "so_du": {}
+      }
+    }
+  ]
+}

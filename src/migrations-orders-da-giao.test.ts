@@ -5,6 +5,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
+import { gieoLyDoHuy } from "../tests/audit/huy-don.mjs";
 
 const DIR = new URL("../migrations/", import.meta.url);
 const files = readdirSync(DIR).filter((f) => f.endsWith(".sql")).sort();
@@ -40,6 +41,7 @@ function seedOrder(db: DatabaseSync, id: string, status: "draft" | "confirmed" |
     `${id}-leg`, id, `${id}-svc`, AT, AT);
   run(db, `INSERT INTO ord_passenger (id, order_id, full_name, birth_year, pax_code, previous_id, person_key, voided_at, source, created_at, created_by, updated_at, updated_by)
     VALUES (?, ?, 'Khách Giả', 1990, 'adult', NULL, ?, NULL, 'OFFICE', ?, NULL, ?, NULL)`, `${id}-p1`, id, `${id}-p1`, AT, AT);
+  if (status === "cancelled") gieoLyDoHuy(db, id);
   if (status !== "draft") run(db, "UPDATE orders SET status = ?, confirmed_at = ?, updated_at = ? WHERE id = ?", status === "cancelled" ? "cancelled" : "confirmed", AT, AT, id);
 }
 const deliver = (db: DatabaseSync, id: string) => run(db, "UPDATE orders SET delivered_at = ?, delivered_by = 's1', updated_at = ? WHERE id = ?", AT, AT, id);
@@ -84,6 +86,7 @@ test("NT-D4: Đã giao chỉ từ đơn đã xác nhận; Hoàn thành chỉ sau
   fails(db, "UPDATE orders SET delivered_at = ?, delivered_by = 's1' WHERE id = 'huy'", /order_delivered:/, AT);
   fails(db, "UPDATE orders SET delivered_at = ? WHERE id = 'xn'", /order_delivered:/, AT); // thiếu người bấm
   fails(db, "UPDATE orders SET completed_at = ?, completed_by = 's1' WHERE id = 'xn'", /order_completed:/, AT); // nhảy cóc
+  gieoLyDoHuy(db, "xn"); // có lý do huỷ — để chính khoá Đã giao (không phải khoá lý do 0078) là lớp chặn được kiểm
   fails(db, "UPDATE orders SET delivered_at = ?, delivered_by = 's1', status = 'cancelled' WHERE id = 'xn'", /order_delivered:/, AT); // huỷ cùng lúc
   deliver(db, "xn");
   assert.equal(rows(db, "SELECT delivered_at FROM v_ord_order_state WHERE id = 'xn'")[0]!.delivered_at, AT);
@@ -105,6 +108,7 @@ test("NT-D3: đơn đã Đã giao — SQL chạy tay bị chặn: UPDATE orders 
     VALUES ('a1', 'o1', 'HANDLE', 'pty-s1', 'PENDING', ?, ?, NULL, ?, NULL)`, AT, AT, AT);
   deliver(db, "o1");
   const lock = /order_delivered:/;
+  gieoLyDoHuy(db, "o1"); // có lý do huỷ — để chính khoá Đã giao là lớp chặn được kiểm
   fails(db, "UPDATE orders SET status = 'cancelled' WHERE id = 'o1'", lock);
   fails(db, "UPDATE orders SET customer_name = 'Khác' WHERE id = 'o1'", lock);
   fails(db, "UPDATE orders SET updated_at = '2026-10-01T00:00:00.000Z' WHERE id = 'o1'", lock);
@@ -183,6 +187,7 @@ test("luồng hợp lệ không bị chặn trước Đã giao: xác nhận, s�
   run(db, `INSERT INTO dsp_assignment (id, order_id, task_kind_code, party_id, status_code, valid_from_at, created_at, created_by, updated_at, updated_by)
     VALUES ('a1', 'o1', 'HANDLE', 'pty-s1', 'PENDING', ?, ?, NULL, ?, NULL)`, AT, AT, AT);
   run(db, "UPDATE dsp_assignment SET valid_to_at = ?, updated_at = ? WHERE id = 'a1'", AT, AT);
+  gieoLyDoHuy(db, "o1"); // ADR-0089 đ8: lô huỷ thật chèn lý do trước câu đổi trạng thái
   run(db, "UPDATE orders SET status = 'cancelled', updated_at = ? WHERE id = 'o1'", AT);
   seedOrder(db, "o2", "draft");
   run(db, "UPDATE orders SET status = 'confirmed', confirmed_at = ?, updated_at = ? WHERE id = 'o2'", AT, AT);

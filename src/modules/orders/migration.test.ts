@@ -4,6 +4,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
+import { gieoLyDoHuy } from "../../../tests/audit/huy-don.mjs";
 
 const DIR = new URL("../../../migrations/", import.meta.url);
 const files = readdirSync(DIR).filter((f) => f.endsWith(".sql")).sort();
@@ -123,6 +124,7 @@ test("chỉ khi CHUYỂN sang xác nhận mới đòi đủ ngày + khách + có
   db.exec(`INSERT INTO order_service (id, order_id, name, unit, depart_date, pax_child) VALUES ('d', 'ok', 'T2', 'manual', '2026-09-21', 1)`);
   db.exec(`UPDATE orders SET status = 'confirmed' WHERE id = 'ok'`);
   db.exec(`UPDATE orders SET updated_at = '2026-09-20T00:00:00.000Z' WHERE id = 'ok'`); // cập nhật sau xác nhận không bị chặn lại
+  gieoLyDoHuy(db, "ok");
   db.exec(`UPDATE orders SET status = 'cancelled' WHERE id = 'ok'`);
 });
 
@@ -133,5 +135,6 @@ test("đơn cũ đã xác nhận trước migration (không có ngày/khách) v�
   db.exec(`INSERT INTO order_item (id, order_id, description, quantity, unit_price, line_total) VALUES ('i1', 'old', 'Tour', 1, 10, 10)`);
   db.exec(sqlOf("0008_order_service.sql"));
   db.exec(`UPDATE orders SET updated_at = '2026-09-20T00:00:00.000Z' WHERE id = 'old'`);
+  gieoLyDoHuy(db, "old");
   db.exec(`UPDATE orders SET status = 'cancelled' WHERE id = 'old'`);
 });

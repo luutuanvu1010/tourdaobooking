@@ -436,7 +436,7 @@ assert.equal(r.body.error.code, "departed");
 assert.match(r.body.error.message, /đã qua ngày đi/);
 r = await call(SUPER, "POST", `/api/orders/${oPast.id}/handler-money-edit`, paxBody("Toàn quyền chỉnh sau tour"));
 assert.equal(r.status, 200, `Toàn quyền vẫn sửa số khách sau ngày đi: ${JSON.stringify(r.body)}`);
-r = await call(A, "POST", `/api/orders/${oPast.id}/status`, { status: "cancelled" });
+r = await call(A, "POST", `/api/orders/${oPast.id}/status`, { status: "cancelled", lyDo: "KHACH_DOI_Y" });
 assert.equal(r.status, 200, "văn phòng (người lập) vẫn huỷ được tour đã qua ngày đi");
 console.log("✓ DK-T4-02: tour đã qua ngày đi → HDV huỷ 409 departed (trước 400, sau 403), đơn vẫn xác nhận; HDV sửa số khách 409 departed, Toàn quyền 200; văn phòng huỷ được");
 
@@ -543,7 +543,7 @@ try {
   assert.equal((await setHandler(A, o16.id, fld.id)).status, 200);
   r = await moneyEdit(FIELD, o16.id, { reason: "Trước khi huỷ", services: [{ id: o16.services[0].id, pax: pax(4) }] });
   assert.equal(r.status, 200, JSON.stringify(r.body));
-  assert.equal((await call(A, "POST", `/api/orders/${o16.id}/status`, { status: "cancelled" })).status, 200);
+  assert.equal((await call(A, "POST", `/api/orders/${o16.id}/status`, { status: "cancelled", lyDo: "KHACH_DOI_Y" })).status, 200);
   const viewedCancelled = await orderView(A, o16.id);
   assert.equal(viewedCancelled.status, "cancelled");
   assert.equal(viewedCancelled.subtotal, 1200000, "đơn đã huỷ vẫn phải hiện SỐ ĐÃ SỬA gần nhất (4 khách × 300,000), không lùi về số gốc (2 khách)");
@@ -1140,7 +1140,7 @@ try {
   assert.deepEqual(await rowsOf(q2.id), [], "đơn chờ nhận vẫn không có dòng HANDLE nào (kể cả đã đóng)");
   // L1-1 trên route thật: HDV Nhận đơn ĐÃ HUỶ → 409 cancelled; đơn ĐÃ QUA NGÀY ĐI → 409 departed (mốc tripDeparted; ngày dời bằng SQL như mục 13b).
   const qCancelled = await newOrder(A);
-  assert.equal((await call(A, "POST", `/api/orders/${qCancelled.id}/status`, { status: "cancelled" })).status, 200);
+  assert.equal((await call(A, "POST", `/api/orders/${qCancelled.id}/status`, { status: "cancelled", lyDo: "KHACH_DOI_Y" })).status, 200);
   const qPast = await newOrder(A);
   await setDepart(qPast.id, vnDate(-1));
   for (const [label, orderId, code] of [["đơn đã huỷ", qCancelled.id, "cancelled"], ["đơn đã qua ngày đi", qPast.id, "departed"]]) {

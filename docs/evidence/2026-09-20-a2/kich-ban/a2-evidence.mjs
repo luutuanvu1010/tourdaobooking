@@ -207,7 +207,7 @@ try {
 
   // đơn đã huỷ
   const cancelled = await create({ ...base, customerName: "Khách Đã Huỷ", services: [svcTour()] });
-  assert.equal((await call(ACCOUNTS.salesA, "POST", `/api/orders/${cancelled.id}/status`, { status: "cancelled" })).status, 200);
+  assert.equal((await call(ACCOUNTS.salesA, "POST", `/api/orders/${cancelled.id}/status`, { status: "cancelled", lyDo: "KHACH_DOI_Y" })).status, 200);
   p = await open(ACCOUNTS.salesA, `/order?id=${cancelled.id}`);
   await p.waitFor(`${items}.length === 1 && document.querySelector('#order .badge').textContent === 'Đã huỷ'`, "đơn đã huỷ");
   await full(p, "tt-don-da-huy.png");

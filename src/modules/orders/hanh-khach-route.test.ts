@@ -138,7 +138,7 @@ test("POST /passengers: đơn nháp → 409 use_order_form; đơn huỷ → 409 
   const noop = await change(w, o.id, SALES, o.updatedAt, { sua: [{ personKey: same.personKey, fullName: same.fullName, birthYear: same.birthYear, paxCode: same.paxCode }] });
   assert.equal(noop.status, 200, noop.text);
   assert.equal(w.q("SELECT count(*) n FROM audit_log WHERE order_id = ?", o.id)[0].n, logs, "không đổi gì → không nhật ký");
-  assert.equal((await w.call("POST", `/api/orders/${o.id}/status`, { as: SALES, body: { status: "cancelled" } })).status, 200);
+  assert.equal((await w.call("POST", `/api/orders/${o.id}/status`, { as: SALES, body: { status: "cancelled", lyDo: "KHACH_DOI_Y" } })).status, 200);
   const c = (await w.call("GET", `/api/orders/${o.id}`, { as: SALES })).json.order;
   assert.equal((await change(w, o.id, SALES, c.updatedAt, { them: [P(2)] })).json.error.code, "not_editable");
 });

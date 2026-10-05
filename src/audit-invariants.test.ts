@@ -10,6 +10,7 @@ import { OWNER_COMPANY_ROLE } from "./shared/cong-ty-chu.ts";
 import { vnToday } from "./shared/vn-date.ts";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts — hàm gieo DÙNG CHUNG mốc giờ hẹn (ADR-0051)
 import { gieoMocXep } from "../tests/audit/gieo-vc.mjs";
+import { gieoLyDoHuy } from "../tests/audit/huy-don.mjs";
 
 interface Check {
   code: string;
@@ -449,6 +450,7 @@ test("R-ORD-6a: nhiều đơn — một đơn lệch, một đơn khoẻ → đ�
 test("R-ORD-6a: đơn ĐÃ HUỶ (status cancelled) vẫn kiểm bình thường — orders.subtotal đứng yên, không phải trường hợp đặc biệt", () => {
   const db = build();
   addOrderWithSubtotal(db, "o-1", 200000);
+  gieoLyDoHuy(db, "o-1");
   db.exec(`UPDATE orders SET status = 'cancelled' WHERE id = 'o-1'`); // draft → cancelled là chuyển hợp lệ (0017), không cần qua 'confirmed'
   addAdjustmentMoney(db, { id: "a1", orderId: "o-1", seq: 1, before: 200000, after: 200000 });
   assert.equal(violations(db, one("R-ORD-6a")), 0, "huỷ đơn không đụng orders.subtotal — vẫn khớp bình thường");
@@ -1101,6 +1103,7 @@ test("R-ORD-12: chặng mở của đơn chưa huỷ còn nơi đón tạm '(ch�
   addOrder(db, "o-2");
   dvDon(db, { id: "s2", orderId: "o-2" });
   chang(db, { id: "l3", orderId: "o-2", svc: "s2", place: "(chưa ghi nơi đón)" });
+  gieoLyDoHuy(db, "o-2");
   db.prepare("UPDATE orders SET status = 'cancelled' WHERE id = 'o-2'").run();
   assert.equal(violations(db, c), 1);
 });
@@ -1670,6 +1673,7 @@ test("R-BIL-M1/M2 (ADR-0025 NT 8): Hoàn thành mà chưa Đã giao; Đã giao m
   db.prepare("UPDATE orders SET completed_at = ?, completed_by = 's-an' WHERE id = 'o-m1'").run(BIL_SAU);
   assert.equal(violations(db, bil("R-BIL-M1")), 1);
   db.exec("DROP TRIGGER orders_delivered_lock");
+  gieoLyDoHuy(db, "o-bil");
   db.prepare("UPDATE orders SET status = 'cancelled' WHERE id = 'o-bil'").run();
   assert.equal(violations(db, bil("R-BIL-M2")), 1);
 });
@@ -1800,6 +1804,7 @@ test("R-PTY-MERGE-4 + 5: hồ sơ đã gộp còn phụ trách đơn chưa xong 
   db.prepare("UPDATE orders SET booker_party_id = 'pa' WHERE id = 'o-1'").run();
   addOrder(db, "o-2");
   db.prepare("UPDATE orders SET booker_party_id = 'pa' WHERE id = 'o-2'").run();
+  gieoLyDoHuy(db, "o-2");
   db.prepare("UPDATE orders SET status = 'cancelled' WHERE id = 'o-2'").run();
   gopThang(db, "pa", "pb");
   assert.equal(violations(db, one("R-PTY-MERGE-4")), 1);
@@ -1862,6 +1867,7 @@ test("R-ORD-14 (L-R1): chặng về có số người ≤ số khách hiệu l�
   const b = donTho(db, { pax: 1 });
   thanhChangVe(db, b.leg, 2);
   assert.equal(violations(db, c), 1);
+  gieoLyDoHuy(db, b.order);
   db.prepare("UPDATE orders SET status = 'cancelled' WHERE id = ?").run(b.order);
   assert.equal(violations(db, c), 0, "đơn huỷ không đếm");
 });

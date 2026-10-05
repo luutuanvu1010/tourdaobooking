@@ -15,6 +15,8 @@ const FILES = readdirSync(DIR).filter((f) => f.endsWith(".sql")).sort();
 const HERE = new URL("./", import.meta.url).pathname;
 
 type Mod = typeof import("./repository.ts");
+/** ADR-0089 đ8: lô huỷ nay bắt buộc lý do (nhóm khách huỷ). */
+const LY_DO = { ma: "KHACH_DOI_Y", nhom: "KHACH_HUY" as const, ghiChu: null };
 async function loadModule(): Promise<Mod> {
   const built = await esbuild.build({
     stdin: { contents: 'export * from "./repository";', resolveDir: HERE, loader: "ts" },
@@ -90,6 +92,7 @@ const orderRow = (sqlite: DatabaseSync, id: string) => ({ ...(sqlite.prepare(`SE
 const auditCount = (sqlite: DatabaseSync, id: string) => (sqlite.prepare(`SELECT COUNT(*) AS n FROM audit_log WHERE order_id = ?`).get(id) as { n: number }).n;
 
 const M1 = "2026-09-27T01:00:00.000Z"; // mốc route đã đọc lúc kiểm quyền
+const lyDoCount = (sqlite: DatabaseSync, id: string): number => Number((sqlite.prepare("SELECT count(*) AS n FROM ord_cancel_reason WHERE order_id = ?").get(id) as { n: number }).n);
 const M2 = "2026-09-27T02:00:00.000Z"; // mốc mới do một request PUT /trip chen giữa ghi ra
 
 test("cancelOrder: request PUT /trip chen giữa đổi updated_at (KHÔNG đổi status) → huỷ với mốc CŨ (M1) phải thua khoá lạc quan: trả false, status vẫn confirmed, KHÔNG có dòng audit_log mới", async () => {
@@ -98,11 +101,12 @@ test("cancelOrder: request PUT /trip chen giữa đổi updated_at (KHÔNG đổ
   // Mô phỏng PUT /trip chen giữa: đổi updated_at nhưng KHÔNG đổi status.
   sqlite.prepare(`UPDATE orders SET updated_at = ? WHERE id = ?`).run(M2, "o-1");
 
-  const ok = await cancelOrder(fakeD1(sqlite), "o-1", "s-a", "confirmed", M1);
+  const ok = await cancelOrder(fakeD1(sqlite), "o-1", "s-a", "confirmed", M1, LY_DO);
 
   assert.equal(ok, false, "huỷ với mốc cũ phải thua khoá lạc quan");
   assert.deepEqual(orderRow(sqlite, "o-1"), { status: "confirmed", updated_at: M2 }, "đơn KHÔNG bị huỷ, updated_at giữ mốc M2 (không bị ghi đè)");
   assert.equal(auditCount(sqlite, "o-1"), 0, "không có dòng nhật ký huỷ nào được ghi khi thua khoá lạc quan");
+  assert.equal(lyDoCount(sqlite, "o-1"), 0, "ADR-0089 đ8: thua khoá lạc quan → KHÔNG để lại dòng lý do huỷ mồ côi");
 });
 
 test("cancelOrder: ca 'order_cancelled_by_field' (đường huỷ hẹp của HDV, ADR-0014 điều 11) cũng thua khoá lạc quan như ca mặc định", async () => {
@@ -110,20 +114,22 @@ test("cancelOrder: ca 'order_cancelled_by_field' (đường huỷ hẹp của HD
   insertConfirmedOrder(sqlite, "o-2", M1);
   sqlite.prepare(`UPDATE orders SET updated_at = ? WHERE id = ?`).run(M2, "o-2");
 
-  const ok = await cancelOrder(fakeD1(sqlite), "o-2", "s-a", "confirmed", M1, { action: "order_cancelled_by_field", detail: "Khách đổi lịch" });
+  const ok = await cancelOrder(fakeD1(sqlite), "o-2", "s-a", "confirmed", M1, LY_DO, { action: "order_cancelled_by_field", detail: "Khách đổi lịch" });
 
   assert.equal(ok, false, "huỷ với mốc cũ (đường HDV) phải thua khoá lạc quan");
   assert.deepEqual(orderRow(sqlite, "o-2"), { status: "confirmed", updated_at: M2 });
   assert.equal(auditCount(sqlite, "o-2"), 0, "không ghi dòng order_cancelled_by_field khi thua khoá lạc quan");
+  assert.equal(lyDoCount(sqlite, "o-2"), 0, "không dòng lý do mồ côi");
 });
 
 test("cancelOrder: huỷ với mốc ĐÚNG (khớp updated_at hiện tại, không có ai chen giữa) → vẫn thắng như trước: trả true, status = cancelled, có 1 dòng audit_log", async () => {
   const sqlite = seed();
   insertConfirmedOrder(sqlite, "o-3", M1);
 
-  const ok = await cancelOrder(fakeD1(sqlite), "o-3", "s-a", "confirmed", M1);
+  const ok = await cancelOrder(fakeD1(sqlite), "o-3", "s-a", "confirmed", M1, LY_DO);
 
   assert.equal(ok, true, "không ai chen giữa → huỷ bình thường");
   assert.equal(orderRow(sqlite, "o-3").status, "cancelled");
   assert.equal(auditCount(sqlite, "o-3"), 1);
+  assert.equal(lyDoCount(sqlite, "o-3"), 1, "đúng một dòng lý do cùng lô");
 });

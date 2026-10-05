@@ -39,7 +39,7 @@ const assignTo = (w: any, orderId: string, as: string, staffId: string) => w.cal
 test("Nhận đơn ĐÃ HUỶ, chưa có người phụ trách → 409 cancelled (chốt Nhận N-2, ADR-0030 S20-5) — hôm nay (đỏ) trả 200", async () => {
   const w = setup();
   const orderId = await newUnhandledOrder(w);
-  const cancel = await w.call("POST", `/api/orders/${orderId}/status`, { as: ADM, body: { status: "cancelled" } });
+  const cancel = await w.call("POST", `/api/orders/${orderId}/status`, { as: ADM, body: { status: "cancelled", lyDo: "KHACH_DOI_Y" } });
   assert.equal(cancel.status, 200, cancel.text);
 
   const r = await claim(w, orderId, SALES);
@@ -61,7 +61,7 @@ test("Nhận đơn có ngày đi HÔM QUA (giờ VN), chưa có người phụ t
 test("Quản trị GIAO Bán hàng cho đơn ĐÃ HUỶ (không phải Nhận) → vẫn 200 (không đổi hành vi giao)", async () => {
   const w = setup();
   const orderId = await newUnhandledOrder(w);
-  assert.equal((await w.call("POST", `/api/orders/${orderId}/status`, { as: ADM, body: { status: "cancelled" } })).status, 200);
+  assert.equal((await w.call("POST", `/api/orders/${orderId}/status`, { as: ADM, body: { status: "cancelled", lyDo: "KHACH_DOI_Y" } })).status, 200);
 
   const r = await assignTo(w, orderId, ADM, SALES);
   assert.equal(r.status, 200, r.text);

@@ -86,7 +86,7 @@ test("hanhKhachChoChuyen: chặng ĐÃ ĐÓNG / đơn NHÁP / đơn HUỶ / id l
   assert.equal(huy.status, 200, huy.text);
   const draft = await order(w, false);
   const cancelled = await order(w, true);
-  assert.equal((await w.call("POST", `/api/orders/${cancelled.id}/status`, { as: SALES, body: { status: "cancelled" } })).status, 200);
+  assert.equal((await w.call("POST", `/api/orders/${cancelled.id}/status`, { as: SALES, body: { status: "cancelled", lyDo: "KHACH_DOI_Y" } })).status, 200);
   const got = await hanhKhachChoChuyen(w.env.DB, [a.id, b.id, draft.services[0].legs[0].id, cancelled.services[0].legs[0].id, "00000000-0000-4000-8000-000000000000"]);
   assert.deepEqual(got.map((g: any) => g.legId), [a.id]);
   assert.equal(got[0]!.nguoi.length, 1);

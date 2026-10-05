@@ -14,6 +14,7 @@ import { assigneeRoleLabel } from "../../shared/assignee-pick";
 import { thayDoiCuaHandler, type TrangThaiPhuTrach } from "../../shared/bang-tin";
 import { UUID_RE, error, json, readJson } from "../../shared/http";
 import { can, hasPermission, holdsPartner, MATRIX } from "../../shared/permissions";
+import { lyDoHuyCuaHdv } from "../../shared/ly-do-huy";
 import { route, type AppModule, type NewOrderHandler } from "../../shared/router";
 import { tripDeparted } from "../../shared/trip-rules";
 import { vnToday } from "../../shared/vn-date";
@@ -228,7 +229,8 @@ export const dispatchModule: AppModule = {
       // "Khác" (ADR-0030 điều 2, sửa đổi sau khi duyệt 2026-09-27): nhãn nhật ký CHÍNH LÀ note đã kiểm (không chứa dãy số dài) — hai mã cũ vẫn dùng
       // nhãn cố định của CANCEL_REASON_LABEL.
       const label = input.reason === "other" ? input.note! : CANCEL_REASON_LABEL[input.reason];
-      const ok = await cancelOrderByHandler(env.DB, orderId, staff.id, order.updatedAt, label);
+      // ADR-0089 đ8 + lời chủ (a): lý do HDV ánh xạ nhóm ("không liên hệ được khách" = khách huỷ) — lưu cùng lô huỷ.
+      const ok = await cancelOrderByHandler(env.DB, orderId, staff.id, order.updatedAt, lyDoHuyCuaHdv(input.reason, input.note), label);
       if (!ok) {
         const now = await findOrderOwner(env.DB, orderId);
         return now?.status === "confirmed" ? HANDLER_RACED() : NOT_CONFIRMED();

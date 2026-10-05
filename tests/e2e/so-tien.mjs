@@ -76,7 +76,7 @@ const fldB = await me(await session(ACCOUNTS.fieldB));
   assert.deepEqual(phieu.map((x) => [x.kind_code, x.due_snapshot]), [["DELIVERED", tong]], "phiếu Đã giao chụp số phải thu");
 
   // Đơn khoá: route ghi của orders trả 409 order_delivered; trigger CSDL cũng chặn sửa thẳng.
-  const sua = await call(A, "POST", `/api/orders/${o.id}/status`, { status: "cancelled" });
+  const sua = await call(A, "POST", `/api/orders/${o.id}/status`, { status: "cancelled", lyDo: "KHACH_DOI_Y" });
   assert.equal(sua.status, 409, JSON.stringify(sua.body));
   assert.equal(sua.body.error.code, "order_delivered");
   await assert.rejects(sql(`UPDATE order_service SET pax_adult = 9 WHERE order_id = '${o.id}'`), /order_delivered/, "trigger 0044 chặn sửa dịch vụ sau Đã giao");

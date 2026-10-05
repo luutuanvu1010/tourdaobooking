@@ -23,6 +23,7 @@ import { PAX_LABEL } from "../src/shared/order-lines";
 import { CHIEU_LABEL } from "../src/shared/chang-dua-don";
 import { nhanCamKet } from "../src/shared/cam-ket-xe";
 import { can } from "../src/shared/permissions";
+import { GHI_CHU_HUY_TOI_DA, luaChonLyDo, nhanNhomHuy } from "../src/shared/ly-do-huy";
 import { cauMoc, changDuoiMoc, tomTatChanXacNhan, type ChangCanDatGap } from "../src/shared/dat-gap-hien-thi";
 import { NO_BOOKER_TEXT } from "../src/shared/booker";
 import { NO_HANDLER_TEXT, handlerControls, handlerFailure, handlerSaved, hoiDuocNguoiPhuTrach, nguoiPhuTrachTuPhien } from "../src/shared/handler-view";
@@ -794,7 +795,7 @@ function render(order: Order, history: AuditEntry[], canModify: boolean, handler
     btns.push(nut);
   }
   if (a.editTrip) btns.push(editTripButton(order));
-  if (a.cancel) btns.push(change("Huỷ đơn", "cancelled", "Huỷ đơn này? Việc huỷ không thể hoàn tác.", "btn btn-danger"));
+  if (a.cancel) btns.push(nutHuyDon());
   for (const cau of canhBaoXN) btns.push(h("p", { class: "dd-canh-xn", "data-canh-bao": "xac-nhan" }, icon("alert", 16), cau));
   if (chanXacNhan) btns.push(duocDatGap ? h("p", { class: "dg-lock dg-lock-note", "data-chan": "xac-nhan" }, chanXacNhan) : h("p", { class: "dg-lock", "data-chan": "xac-nhan" }, icon("lock", 16), chanXacNhan));
   replaceChildren(actions, ...btns);
@@ -847,6 +848,64 @@ function editTripButton(order: Order): HTMLButtonElement {
     ),
   );
   return btn;
+}
+
+/**
+ * "Huỷ đơn" (ADR-0089 đ8): bấm ra một hàng chọn lý do ngay dưới nút (khuôn `hangXacNhan`, không màn mới). Lý do bắt buộc; nhóm "Công ty huỷ" chỉ hiện khi
+ * bảng quyền cho `order.cancel.classify` (cùng ô máy chủ hỏi — máy chủ vẫn kiểm lại). "Khác" bắt ghi rõ; máy chủ chặn số điện thoại.
+ */
+function nutHuyDon(): HTMLElement {
+  const wrap = h("div", { class: "huy-don" });
+  const mo = h("button", { type: "button", class: "btn btn-danger", "data-action": "cancel-order" }, "Huỷ đơn");
+  mo.addEventListener("click", () => {
+    let chon: string | null = null;
+    const ghiChu = h("input", {
+      type: "text", maxlength: GHI_CHU_HUY_TOI_DA, autocomplete: "off", placeholder: "Ghi rõ lý do (không nhập số điện thoại)", "aria-label": "Lý do khác", hidden: true,
+    });
+    const nut = h("button", { type: "submit", class: "btn btn-danger", disabled: true }, "Huỷ đơn");
+    const giu = h("button", { type: "button", class: "btn" }, "Giữ đơn");
+    const capNhat = (): void => {
+      nut.disabled = chon === null || (chon === "OTHER" && ghiChu.value.trim() === "");
+    };
+    const lua = luaChonLyDo({ coTheChonCongTy: can(staff!, "order.cancel.classify") }).map((l) => {
+      const input = h("input", { type: "radio", name: "huy-ly-do", value: l.ma });
+      input.addEventListener("change", () => {
+        chon = l.ma;
+        ghiChu.hidden = l.ma !== "OTHER";
+        if (!ghiChu.hidden) ghiChu.focus();
+        capNhat();
+      });
+      return h("label", { class: "pick" }, input, h("span", { class: "pick-mark", "aria-hidden": "true" }), h("span", { class: "pick-name" }, l.nhan, h("span", { class: "muted" }, ` · ${nhanNhomHuy(l.nhom)}`)));
+    });
+    ghiChu.addEventListener("input", capNhat);
+    const form = h(
+      "form",
+      { class: "pay-form", "data-khoi": "huy-don" },
+      h("p", null, "Huỷ đơn này? Việc huỷ không hoàn tác được."),
+      h("fieldset", { class: "pick-list" }, h("legend", { class: "pick-legend" }, "Chọn lý do huỷ (bắt buộc)"), ...lua, ghiChu),
+      h("div", { class: "handler-actions" }, nut, giu),
+    ) as HTMLFormElement;
+    giu.addEventListener("click", () => replaceChildren(wrap, mo));
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (chon === null || (chon === "OTHER" && ghiChu.value.trim() === "")) return;
+      nut.disabled = true;
+      show(null);
+      try {
+        await api(`/api/orders/${encodeURIComponent(id!)}/status`, {
+          method: "POST",
+          body: chon === "OTHER" ? { status: "cancelled", lyDo: chon, ghiChu: ghiChu.value.trim() } : { status: "cancelled", lyDo: chon },
+        });
+        await load();
+      } catch (err) {
+        show(errorBanner(err));
+        capNhat();
+      }
+    });
+    replaceChildren(wrap, form);
+  });
+  wrap.append(mo);
+  return wrap;
 }
 
 /** `canhBao` (chỉ "Xác nhận đơn"): câu cảnh báo sớm — thêm vào câu hỏi trước khi xác nhận, và hiện lại sau khi xác nhận xong (không chặn). */

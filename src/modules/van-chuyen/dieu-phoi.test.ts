@@ -330,7 +330,7 @@ test("TC-51: TRONG 6 giờ Bán hàng cập nhật điểm → 200 không cần 
 test("I38 (R-P9): xếp rồi HUỶ ĐƠN → chi tiết chuyến giữ DON_DA_HUY (không NOI_HEN_DOI); xếp rồi BỎ CHẶNG → CHANG_DA_DONG; xếp chặng của đơn NHÁP → 409 lý do cụ thể", async () => {
   const w = setup();
   const { t, d } = await daXep(w, "Khách sạn A");
-  assert.equal((await w.call("POST", `/api/orders/${d.id}/status`, { as: SALES, body: { status: "cancelled" } })).status, 200);
+  assert.equal((await w.call("POST", `/api/orders/${d.id}/status`, { as: SALES, body: { status: "cancelled", lyDo: "KHACH_DOI_Y" } })).status, 200);
   const ct = await chiTiet(w, t.chuyen.id);
   assert.deepEqual(ct.chuyen.lyDoGiu.map((l: any) => l.ma), ["DON_DA_HUY"]);
   assert.match(ct.chuyen.lyDoGiu[0].loiNhan, new RegExp(d.code));

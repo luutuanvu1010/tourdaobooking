@@ -4,6 +4,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { world, seedStaff } from "../../../tests/audit/harness.mjs";
+import { gieoLyDoHuy } from "../../../tests/audit/huy-don.mjs";
 
 const ID = {
   SALES: "10000000-0000-4000-8000-000000000001",
@@ -153,6 +154,7 @@ test("ADR-0060 A-3: đơn nháp / đã huỷ → đánh dấu 409 (không dòng)
   assert.equal(trung.status, 200);
   assert.equal(trung.json.doi, false);
   assert.equal(soDong(w, id), 1);
+  gieoLyDoHuy(w.sqlite, id);
   w.sqlite.prepare("UPDATE orders SET status = 'cancelled', updated_at = ? WHERE id = ?").run(AT, id);
   assert.equal((await danhDau(w, ID.ACC, id, { daNhap: true, soHoaDon: "HD-2", truocDo: cur })).status, 409);
   const bo = await danhDau(w, ID.ACC, id, { daNhap: false, lyDo: "đơn đã huỷ", truocDo: cur });

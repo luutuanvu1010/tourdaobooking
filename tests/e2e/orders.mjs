@@ -102,7 +102,7 @@ r = await call(A, "GET", `/api/orders/${o.id}`);
 assert.equal(r.body.canModify, true);
 assert.equal((await call(Bc, "PUT", `/api/orders/${o.id}`, input)).status, 403);
 assert.equal((await call(Bc, "POST", `/api/orders/${o.id}/status`, { status: "confirmed" })).status, 403);
-assert.equal((await call(Bc, "POST", `/api/orders/${o.id}/status`, { status: "cancelled" })).status, 403);
+assert.equal((await call(Bc, "POST", `/api/orders/${o.id}/status`, { status: "cancelled", lyDo: "KHACH_DOI_Y" })).status, 403);
 assert.equal((await call(null, "PUT", `/api/orders/${o.id}`, input)).status, 401);
 r = await call(A, "GET", `/api/orders/${o.id}`);
 assert.equal(r.body.order.status, "draft"); assert.equal(r.body.history.length, 1); // bị từ chối → không đổi gì, không ghi log
@@ -126,10 +126,10 @@ assert.equal((await call(A, "PUT", `/api/orders/${o.id}`, input)).status, 409);
 assert.equal((await call(A, "POST", `/api/orders/${o.id}/status`, { status: "draft" })).status, 400);
 assert.equal((await call(A, "POST", `/api/orders/${o.id}/status`, { status: "confirmed" })).status, 409);
 // B vẫn không huỷ được; admin huỷ được
-assert.equal((await call(Bc, "POST", `/api/orders/${o.id}/status`, { status: "cancelled" })).status, 403);
-r = await call(ADMIN, "POST", `/api/orders/${o.id}/status`, { status: "cancelled" });
+assert.equal((await call(Bc, "POST", `/api/orders/${o.id}/status`, { status: "cancelled", lyDo: "KHACH_DOI_Y" })).status, 403);
+r = await call(ADMIN, "POST", `/api/orders/${o.id}/status`, { status: "cancelled", lyDo: "KHACH_DOI_Y" });
 assert.equal(r.body.order.status, "cancelled");
-assert.equal((await call(A, "POST", `/api/orders/${o.id}/status`, { status: "cancelled" })).status, 409);
+assert.equal((await call(A, "POST", `/api/orders/${o.id}/status`, { status: "cancelled", lyDo: "KHACH_DOI_Y" })).status, 409);
 r = await call(A, "GET", `/api/orders/${o.id}`);
 console.log("lịch sử:", r.body.history.map((h) => `${h.action}/${h.staffName}`).join(", "));
 assert.deepEqual(r.body.history.map((h) => h.action), ["created", "updated", "updated", "confirmed", "cancelled"]);
@@ -214,7 +214,7 @@ for (let round = 0; round < 3; round++) {
   const d = (await call(A, "POST", "/api/orders", { ...input, customerName: `Tranh chấp ${round}` })).body.order;
   const [c1, c2] = await Promise.all([
     call(A, "POST", `/api/orders/${d.id}/status`, { status: "confirmed" }),
-    call(ADMIN, "POST", `/api/orders/${d.id}/status`, { status: "cancelled" }),
+    call(ADMIN, "POST", `/api/orders/${d.id}/status`, { status: "cancelled", lyDo: "KHACH_DOI_Y" }),
   ]);
   const wins = [c1, c2].filter((x) => x.status === 200).length;
   const hist = (await call(A, "GET", `/api/orders/${d.id}`)).body.history.map((h) => h.action);
@@ -246,7 +246,8 @@ const assign = async (cookie, order, staffId) => {
 };
 const detail = async (cookie, order) => (await call(cookie, "GET", `/api/orders/${order.id}`)).body;
 const putOrder = (cookie, order, extra) => call(cookie, "PUT", `/api/orders/${order.id}`, { ...input, ...extra, expectedUpdatedAt: order.updatedAt });
-const setStatus = (cookie, order, status) => call(cookie, "POST", `/api/orders/${order.id}/status`, { status });
+// ADR-0089 đ8: huỷ bắt buộc lý do — kịch bản này kiểm quyền / chuyển trạng thái, dùng lý do "Khách đổi ý" (nhóm khách huỷ).
+const setStatus = (cookie, order, status) => call(cookie, "POST", `/api/orders/${order.id}/status`, status === "cancelled" ? { status, lyDo: "KHACH_DOI_Y" } : { status });
 const tripOf = (sv) => ({
   departDate: sv.departDate ?? "", departTime: sv.departTime ?? "", pickupTime: sv.pickupTime ?? "", pickupPlace: sv.pickupPlace ?? "",
   checkinDate: sv.checkinDate ?? "", checkinTime: sv.checkinTime ?? "", checkinPlace: sv.checkinPlace ?? "", note: sv.note ?? "",

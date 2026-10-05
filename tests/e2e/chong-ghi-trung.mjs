@@ -117,7 +117,7 @@ const TAG = randomUUID().slice(0, 6);
   const o = await lapDon(`KT03 Cùng Vé ${TAG}`);
   assert.equal((await call(A, "POST", `/api/orders/${o.id}/payments`, { soTien: 100000, hinhThuc: "CASH", nguoiThu: "toi" })).status, 201);
   await xacNhan(o.id);
-  assert.equal((await call(A, "POST", `/api/orders/${o.id}/status`, { status: "cancelled" })).status, 200, "huỷ đơn");
+  assert.equal((await call(A, "POST", `/api/orders/${o.id}/status`, { status: "cancelled", lyDo: "KHACH_DOI_Y" })).status, 200, "huỷ đơn");
   await haiLanCungVe("KT03", ACC, "POST", "/api/ledger/refunds", { orderId: o.id, soTien: 40000, hinhThuc: "BANK_TRANSFER", nguoiTra: "cong_ty" });
   assert.equal(await dem(`SELECT count(*) AS n FROM bil_payment_receipt WHERE order_id = '${o.id}' AND kind_code <> 'CUSTOMER_PAYMENT'`), 1, "KT03: một dòng hoàn");
   console.log("✓ KT03: ghi hoàn gửi lại cùng vé ⇒ một lần hoàn");

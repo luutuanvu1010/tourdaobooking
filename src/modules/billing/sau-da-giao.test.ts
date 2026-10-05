@@ -25,6 +25,8 @@ const MIEN: { route: string; lyDo: string }[] = [
   { route: "POST /api/orders", lyDo: "tạo đơn MỚI — không có đơn đã Đã giao nào để khoá" },
   // ADR-0061 điều 6 (miễn trừ có tên, chủ duyệt kèm ADR): bảng ord_manual_service_policy thuộc orders nên route nằm ở orders (chỉ module chủ ghi bảng).
   { route: "POST /api/cai-dat/nhap-tay", lyDo: "đổi chính sách nhập tay toàn hệ thống, không ghi đơn nào, không có đơn để khoá" },
+  // ADR-0089 đ8: phân loại lý do huỷ chỉ chạy trên ĐƠN ĐÃ HUỶ; đơn đã Đã giao không huỷ được (ADR-0025 đ1) ⇒ route trả 409 invalid_state "đơn chưa huỷ".
+  { route: "POST /api/orders/:id/cancel-reason", lyDo: "chỉ đơn đã huỷ — đơn đã Đã giao không bao giờ huỷ được (ADR-0025 đ1), route trả 409 invalid_state" },
 ];
 
 const SA = "55555555-5555-4555-8555-555555555555";
@@ -110,7 +112,7 @@ test("T-1 (kiểm độc lập): ĐUA — route đọc 'chưa Đã giao', ngư�
   console.warn = () => {};
   let res;
   try {
-    res = await w.call("POST", `/api/orders/${id}/status`, { as: SA, body: { status: "cancelled" } });
+    res = await w.call("POST", `/api/orders/${id}/status`, { as: SA, body: { status: "cancelled", lyDo: "KHACH_DOI_Y" } });
   } finally {
     console.warn = orig;
   }

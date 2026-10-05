@@ -6,6 +6,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
+import { gieoLyDoHuy } from "../tests/audit/huy-don.mjs";
 
 const DIR = new URL("../migrations/", import.meta.url);
 const files = readdirSync(DIR).filter((f) => f.endsWith(".sql")).sort();
@@ -38,7 +39,10 @@ function order(db: DatabaseSync, id: string) {
     .run(id, `TD-${id}`, AT, AT);
   db.prepare(`INSERT INTO order_service (id, order_id, name, unit, pax_adult, depart_date) VALUES (?, ?, 'Tour', 'perPax', 2, '2026-10-10')`).run(`svc-${id}`, id);
 }
-const setStatus = (db: DatabaseSync, id: string, status: string) => db.prepare("UPDATE orders SET status = ?, updated_at = ? WHERE id = ?").run(status, AT, id);
+const setStatus = (db: DatabaseSync, id: string, status: string) => {
+  if (status === "cancelled") gieoLyDoHuy(db, id);
+  return db.prepare("UPDATE orders SET status = ?, updated_at = ? WHERE id = ?").run(status, AT, id);
+};
 
 interface P { id: string; order?: string; name?: string; year?: number; pax?: string | null; prev?: string | null; key?: string; voided?: string | null; source?: string }
 function pax(db: DatabaseSync, p: P): string {

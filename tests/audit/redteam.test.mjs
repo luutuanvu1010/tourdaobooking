@@ -113,7 +113,7 @@ test("R4 PASS IDOR: SALES khác biết id đơn — xem được (thiết kế: 
   assert.equal((await w.call("PUT", `/api/orders/${o.id}/handler`, { as: A, body: { staffId: A } })).status, 200);
   assert.equal((await w.call("GET", `/api/orders/${o.id}`, { as: B })).status, 200);
   assert.equal((await w.call("PUT", `/api/orders/${o.id}`, { as: B, body: { ...orderBody(), expectedUpdatedAt: o.updatedAt } })).status, 403);
-  assert.equal((await w.call("POST", `/api/orders/${o.id}/status`, { as: B, body: { status: "cancelled" } })).status, 403);
+  assert.equal((await w.call("POST", `/api/orders/${o.id}/status`, { as: B, body: { status: "cancelled", lyDo: "KHACH_DOI_Y" } })).status, 403);
   assert.equal((await w.call("PUT", `/api/orders/${o.id}/trip`, { as: B, body: { updates: [], expectedUpdatedAt: o.updatedAt } })).status, 403);
   assert.equal((await w.call("PUT", `/api/orders/${o.id}/booker`, { as: B, body: { customerName: "X", customerPhone: "0912345679", expectedUpdatedAt: o.updatedAt } })).status, 403);
   // Tự "nhận" đơn ĐÃ có người phụ trách: 409 stale theo thiết kế (dispatch/index.ts, handlerChangeVerdict), không ghi gì.
@@ -149,8 +149,8 @@ test("R7 PASS retry xác nhận/huỷ: lần 2 không đổi kết quả nghiệ
   const o = (await w.call("POST", "/api/orders", { as: A, body: orderBody() })).json.order;
   assert.equal((await w.call("POST", `/api/orders/${o.id}/status`, { as: A, body: { status: "confirmed" } })).status, 200);
   assert.equal((await w.call("POST", `/api/orders/${o.id}/status`, { as: A, body: { status: "confirmed" } })).status, 409);
-  assert.equal((await w.call("POST", `/api/orders/${o.id}/status`, { as: A, body: { status: "cancelled" } })).status, 200);
-  assert.equal((await w.call("POST", `/api/orders/${o.id}/status`, { as: A, body: { status: "cancelled" } })).status, 409);
+  assert.equal((await w.call("POST", `/api/orders/${o.id}/status`, { as: A, body: { status: "cancelled", lyDo: "KHACH_DOI_Y" } })).status, 200);
+  assert.equal((await w.call("POST", `/api/orders/${o.id}/status`, { as: A, body: { status: "cancelled", lyDo: "KHACH_DOI_Y" } })).status, 409);
   const acts = w.q("SELECT action FROM audit_log WHERE order_id = ? ORDER BY created_at", o.id).map((r) => r.action);
   assert.deepEqual(acts.filter((a) => a === "confirmed").length, 1);
   assert.deepEqual(acts.filter((a) => a === "cancelled").length, 1);
@@ -164,7 +164,7 @@ test("R8 PASS (đã vá — sổ tiền lượt 1) money: đơn đã HUỶ — c
   const thu = await w.call("POST", `/api/orders/${o.id}/payments`, { as: A, body: { soTien: 200000, hinhThuc: "CASH", nguoiThu: "cong_ty" } });
   assert.equal(thu.status, 201, thu.text);
   await w.call("POST", `/api/orders/${o.id}/status`, { as: A, body: { status: "confirmed" } });
-  await w.call("POST", `/api/orders/${o.id}/status`, { as: A, body: { status: "cancelled" } });
+  await w.call("POST", `/api/orders/${o.id}/status`, { as: A, body: { status: "cancelled", lyDo: "KHACH_DOI_Y" } });
   const r = w.q("SELECT status, deposit_amount FROM orders WHERE id = ?", o.id)[0];
   assert.deepEqual({ ...r }, { status: "cancelled", deposit_amount: 0 });
   assert.equal(w.q("SELECT count(*) AS n FROM bil_payment_receipt WHERE order_id = ?", o.id)[0].n, 1);

@@ -66,7 +66,7 @@ async function duLieu() {
   const b1 = await donMoi(w, SALES_B, { handlerStaffId: FIELD });
   const p1 = await donMoi(w, PARTNER);
   const n1 = await donMoi(w, NGHI);
-  assert.equal((await w.call("POST", `/api/orders/${a2}/status`, { as: SALES, body: { status: "cancelled", reason: "Khách đổi ý" } })).status, 200);
+  assert.equal((await w.call("POST", `/api/orders/${a2}/status`, { as: SALES, body: { status: "cancelled", lyDo: "KHACH_DOI_Y", reason: "Khách đổi ý" } })).status, 200);
   // Mốc lập đơn cố định (đơn huỷ vẫn tính — danh sách đơn của người xem mọi đơn cũng gồm đơn huỷ): An gần nhất = a2, 29/9 18:30 UTC = 30/9 giờ VN.
   datGio(w, a1, "2026-09-20T03:00:00.000Z");
   datGio(w, a2, "2026-09-29T18:30:00.000Z");

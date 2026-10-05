@@ -168,6 +168,7 @@ try {
   // huỷ đơn nháp → huy hiệu Đã huỷ, không còn nút, hết nhãn
   await p.ev("window.confirm = () => true; true");
   await p.ev(clickText("#actions", "Huỷ đơn"));
+  await p.ev(`(() => { const f = document.querySelector('[data-khoi="huy-don"]'); f.querySelector('input[value="KHACH_DOI_Y"]').click(); f.querySelector('button[type=submit]').click(); return true; })()`); // ADR-0089 đ8: chọn lý do huỷ rồi bấm "Huỷ đơn" của hàng lý do
   await p.waitFor("document.querySelector('#order .badge')?.textContent === 'Đã huỷ'", "đã huỷ");
   assert.equal(await p.ev("document.querySelector('#order .badge').classList.contains('badge-cancelled')"), true);
   assert.equal(await p.ev("document.querySelectorAll('#actions .btn').length"), 0);
@@ -191,6 +192,7 @@ try {
   // sau lời gọi POST /status đầu tiên, mọi GET /api/orders/<id> ném TypeError (mất mạng đúng lúc tải lại)
   await p.ev(`(() => { window.confirm = () => true; window.__fetch = window.fetch; let afterStatus = false; window.fetch = (u, o) => { const method = o?.method ?? 'GET'; if (afterStatus && method === 'GET' && /^\\/api\\/orders\\/[^/]+$/.test(String(u))) return Promise.reject(new TypeError('offline')); if (method === 'POST' && /\\/status$/.test(String(u))) afterStatus = true; return window.__fetch(u, o); }; return true; })()`);
   await p.ev(clickText("#actions", "Huỷ đơn"));
+  await p.ev(`(() => { const f = document.querySelector('[data-khoi="huy-don"]'); f.querySelector('input[value="KHACH_DOI_Y"]').click(); f.querySelector('button[type=submit]').click(); return true; })()`); // ADR-0089 đ8: chọn lý do huỷ rồi bấm "Huỷ đơn" của hàng lý do
   await p.waitFor("!document.getElementById('error').hidden && /Không tải được đơn\\./.test(document.getElementById('error').textContent)", "banner 'Không tải được đơn.'");
   assert.equal(await p.ev("[...document.querySelectorAll('#error button')].some((b) => b.textContent === 'Tải lại đơn')"), true, "banner 'Không tải được đơn.' có nút 'Tải lại đơn'");
   await p.ev("window.fetch = window.__fetch; true");
@@ -205,9 +207,10 @@ try {
   assert.equal(fourth.status, 201, JSON.stringify(fourth.json));
   p = await env.as(ACCOUNTS.salesA, `/order?id=${fourth.json.order.id}`);
   await p.waitFor("document.querySelectorAll('#order .svc-view').length === 1", "đơn nháp thứ tư");
-  assert.equal((await call(ACCOUNTS.salesA, "POST", `/api/orders/${fourth.json.order.id}/status`, { status: "cancelled" })).status, 200, "đơn bị huỷ ở nơi khác");
+  assert.equal((await call(ACCOUNTS.salesA, "POST", `/api/orders/${fourth.json.order.id}/status`, { status: "cancelled", lyDo: "KHACH_DOI_Y" })).status, 200, "đơn bị huỷ ở nơi khác");
   await p.ev("window.confirm = () => true; true");
   await p.ev(clickText("#actions", "Huỷ đơn")); // trang cũ vẫn tưởng đơn còn nháp → 409 invalid_transition
+  await p.ev(`(() => { const f = document.querySelector('[data-khoi="huy-don"]'); f.querySelector('input[value="KHACH_DOI_Y"]').click(); f.querySelector('button[type=submit]').click(); return true; })()`); // ADR-0089 đ8: chọn lý do huỷ rồi bấm "Huỷ đơn" của hàng lý do
   await p.waitFor("!document.getElementById('error').hidden && /Không thể chuyển đơn từ/.test(document.getElementById('error').textContent)", "banner 409 invalid_transition");
   assert.equal(await p.ev("[...document.querySelectorAll('#error button')].some((b) => b.textContent === 'Tải lại đơn')"), true, "409 ở trang đơn có nút 'Tải lại đơn'");
   await p.ev(clickText("#error", "Tải lại đơn"));

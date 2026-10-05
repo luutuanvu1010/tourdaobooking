@@ -209,6 +209,18 @@ export function kiemDuyet(input: { coc: SoTienCoc; nhom: NhomHuy; han: string; h
   return { ok: true };
 }
 
+/**
+ * Bất biến đ15 — đúng MỌI LÚC (kể cả sau đảo lần thu / "Thay lần thu"): chi + chuyển ≤ duyệt ≤ tiền còn giữ lúc huỷ. Trả lỗi khi số SAU một lệnh vỡ bất
+ * biến (máy chủ kiểm trước khi ghi; trigger lần thu là lớp CSDL — `coc_paid_below_approved`).
+ */
+export function kiemBatBien(sau: SoTienCoc): KiemCoc {
+  if (sau.daDuyet > sau.conGiuLucHuy) {
+    return sai("coc_paid_below_approved", `Đơn đã duyệt hoàn ${dong(sau.daDuyet)} — huỷ duyệt phần chưa chi trước khi đảo lần thu.`);
+  }
+  if (sau.daChi + sau.daChuyen > sau.daDuyet) return sai("coc_exceeds_approved", "Số đã chi / đã chuyển vượt số đã duyệt.");
+  return { ok: true };
+}
+
 /** Huỷ duyệt (đ4c): chỉ phần CHƯA chi của khoản gốc. */
 export function kiemHuyDuyet(input: { conLaiKhoan: number; soTien: number }): KiemCoc {
   if (input.soTien > input.conLaiKhoan) return sai("coc_void_exceeds_unspent", `Chỉ huỷ được phần chưa chi của khoản duyệt (còn ${dong(Math.max(0, input.conLaiKhoan))}).`);

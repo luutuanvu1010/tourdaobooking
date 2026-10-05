@@ -4,6 +4,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
+import { gieoLyDoHuy } from "../tests/audit/huy-don.mjs";
 
 const DIR = new URL("../migrations/", import.meta.url);
 const files = readdirSync(DIR).filter((f) => f.endsWith(".sql")).sort();
@@ -34,7 +35,9 @@ test("0017: ba cặp chuyển hợp lệ đi qua (nháp→xác nhận, nháp→h
   seedDraft(db, "a");
   seedDraft(db, "b");
   db.exec("UPDATE orders SET status = 'confirmed' WHERE id = 'a'");
+  gieoLyDoHuy(db, "a");
   db.exec("UPDATE orders SET status = 'cancelled' WHERE id = 'a'");
+  gieoLyDoHuy(db, "b");
   db.exec("UPDATE orders SET status = 'cancelled' WHERE id = 'b'");
   assert.equal(statusOf(db, "a"), "cancelled");
   assert.equal(statusOf(db, "b"), "cancelled");
@@ -46,6 +49,7 @@ test("0017: mọi đường quay lại bị chặn ở CSDL", () => {
   seedDraft(db, "c");
   db.exec("UPDATE orders SET status = 'confirmed' WHERE id = 'c'");
   fails(db, "UPDATE orders SET status = 'draft' WHERE id = 'c'", /invalid_transition/);
+  gieoLyDoHuy(db, "c");
   db.exec("UPDATE orders SET status = 'cancelled' WHERE id = 'c'");
   fails(db, "UPDATE orders SET status = 'confirmed' WHERE id = 'c'", /invalid_transition/); // đơn đã huỷ "sống lại": lỗ hổng mà 0008 để lọt
   fails(db, "UPDATE orders SET status = 'draft' WHERE id = 'c'", /invalid_transition/);

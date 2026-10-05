@@ -73,7 +73,7 @@ test("cauThemHanhKhachTaiXe: 0 dòng khi không có dòng nhật ký gác / đơ
   assert.equal(await chay(w, await cauThemHanhKhachTaiXe(w.env.DB, vao(nhap, "aaaaaaaa-0000-4000-8000-000000000003"), nhatKy(w, nhap))), 0, "đơn nháp");
   const huy = await don(w);
   const cur = (await w.call("GET", `/api/orders/${huy}`, { as: SALES })).json.order;
-  assert.equal((await w.call("POST", `/api/orders/${huy}/status`, { as: SALES, body: { status: "cancelled", reason: "Khách huỷ", expectedUpdatedAt: cur.updatedAt } })).status, 200);
+  assert.equal((await w.call("POST", `/api/orders/${huy}/status`, { as: SALES, body: { status: "cancelled", lyDo: "KHACH_DOI_Y", reason: "Khách huỷ", expectedUpdatedAt: cur.updatedAt } })).status, 200);
   assert.equal(await chay(w, await cauThemHanhKhachTaiXe(w.env.DB, vao(huy, "aaaaaaaa-0000-4000-8000-000000000004"), nhatKy(w, huy))), 0, "đơn huỷ");
   const du = await don(w, { pax: 2, ten: 2 });
   assert.equal(await chay(w, await cauThemHanhKhachTaiXe(w.env.DB, vao(du, "aaaaaaaa-0000-4000-8000-000000000005"), nhatKy(w, du))), 0, "đủ người có tên");

@@ -56,7 +56,7 @@ async function duLieu() {
   const f4 = await donMoi(w, SALES_B, "ZA1", D4, { handlerStaffId: FIELD }); // Bình, Tour đảo, D4, HDV phụ trách
   const p3 = await donMoi(w, PARTNER, "ZA1", D3); // Đối tác lập
   assert.equal((await w.call("POST", `/api/orders/${a4}/status`, { as: SALES, body: { status: "confirmed" } })).status, 200);
-  assert.equal((await w.call("POST", `/api/orders/${b6}/status`, { as: SALES_B, body: { status: "cancelled", reason: "Khách đổi ý" } })).status, 200);
+  assert.equal((await w.call("POST", `/api/orders/${b6}/status`, { as: SALES_B, body: { status: "cancelled", lyDo: "KHACH_DOI_Y", reason: "Khách đổi ý" } })).status, 200);
   return { w, a3, a4, b6, f4, p3 };
 }
 

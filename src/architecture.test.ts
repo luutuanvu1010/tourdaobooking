@@ -146,6 +146,8 @@ const NUA_NGHIEM: readonly { module: string; file: string }[] = [
   { module: "orders", file: "modules/orders/hoan-tat-repo.ts" },
   // ADR-0068 Đ1 bước 5 (SIẾT): đọc đơn theo người đặt + câu đổi người đặt khi gộp hồ sơ — mọi câu qua defineSql + EXPLAIN.
   { module: "orders", file: "modules/orders/nguoi-dat-gop-repo.ts" },
+  // ADR-0089 đ8 (SIẾT — năm lỗi tiền Đợt 1): lô huỷ có lý do + phân loại lý do huỷ, mọi câu qua defineSql + EXPLAIN.
+  { module: "orders", file: "modules/orders/huy-don-repo.ts" },
   // ADR-0058 Đ6: SQL MỚI của `catalog` (hai bảng `ctl_`) chỉ ở tệp này; `repository.ts` cũ còn LEGACY tới CATALOG_LEGACY_HAN.
   { module: "catalog", file: "modules/catalog/nhom-repo.ts" },
 ];

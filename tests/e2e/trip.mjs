@@ -295,7 +295,7 @@ try {
   assert.equal(r.status, 200, JSON.stringify(r.body));
   assert.equal((await trip(r.body.order, { departDate: vnDate(-2) })).status, 400, "ĐỔI sang ngày quá khứ vẫn bị chặn");
   // đơn huỷ: không sửa được chuyến
-  r = await call(ADMIN, "POST", `/api/orders/${c.id}/status`, { status: "cancelled" });
+  r = await call(ADMIN, "POST", `/api/orders/${c.id}/status`, { status: "cancelled", lyDo: "KHACH_DOI_Y" });
   assert.equal(r.status, 200);
   assert.equal((await trip(r.body.order, { note: "sau huỷ" })).status, 409);
   console.log("✓ sửa trường vận hành sau xác nhận: có nhật ký, khoá số khách/dịch vụ, chặn ngày sai");

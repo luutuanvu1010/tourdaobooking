@@ -8,6 +8,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts — hàm gieo DÙNG CHUNG mốc giờ hẹn (ADR-0051, 0043: suất khách đòi chặng có mốc)
 import { gieoMocXep } from "../tests/audit/gieo-vc.mjs";
+import { gieoLyDoHuy } from "../tests/audit/huy-don.mjs";
 
 const DIR = new URL("../migrations/", import.meta.url);
 const files = readdirSync(DIR).filter((f) => f.endsWith(".sql")).sort();
@@ -301,6 +302,7 @@ test("TC-7 LC-09: mở suất cho chặng của đơn NHÁP / đơn ĐÃ HUỶ /
   const nhap = don(db, { xacNhan: false });
   loi(() => suat(db, c, nhap.legs[0]!), /lc09_leg/, "đơn nháp");
   const huy = don(db);
+  gieoLyDoHuy(db, huy.id);
   run(db, "UPDATE orders SET status = 'cancelled' WHERE id = ?", huy.id);
   loi(() => suat(db, c, huy.legs[0]!), /lc09_leg/, "đơn đã huỷ");
   const dong = don(db, { soChang: 2 });

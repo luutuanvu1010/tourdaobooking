@@ -94,6 +94,9 @@ export const MATRIX = {
   "task.progress": row("none", "none", "any", "assigned", "assigned", "any", "none", "none", "none", "none"), // cập nhật trạng thái việc được giao — PARTNER chỉ có tác dụng khi đang phụ trách (ADR-0014 điều 10)
   "order.money.edit": row("own", "any", "any", "assigned", "none", "any", "none", "none", "none", "none"), // số khách, dịch vụ, tiền sau xác nhận — ADR-0014 điều 6, route: POST /api/orders/:id/handler-money-edit (module dispatch, FIELD)
   "order.cancel": row("none", "none", "none", "assigned", "none", "any", "none", "none", "none", "none"), // huỷ đơn đang phụ trách, lý do bắt buộc — ADR-0014 điều 11, route: POST /api/orders/:id/handler-cancel (module dispatch)
+  // ADR-0089 đ8 (lời chủ 5 Đ-2): chọn lý do nhóm "Công ty huỷ" khi huỷ (route POST /api/orders/:id/status) và PHÂN LOẠI lý do "chưa kết luận" (route
+  // POST /api/orders/:id/cancel-reason) — chỉ Quản trị, Toàn quyền, vì nhóm này kéo theo hoàn toàn bộ và miễn hạn 60 ngày. Không phạm vi đơn.
+  "order.cancel.classify": row("none", "none", "any", "none", "none", "any", "none", "none", "none", "none"),
   "dispatch.assign": row("ownOrAssigned", "none", "any", "none", "none", "any", "none", "none", "none", "none"), // đặt/đổi người phụ trách và nhiệm vụ (ADR-0009: cả người phụ trách hiện tại)
   "dispatch.claim": row("any", "none", "any", "any", "none", "any", "none", "none", "none", "none"), // nhận phụ trách đơn CHƯA có người (ADR-0009; điều kiện "chưa có người" do dịch vụ của dispatch kiểm, không phải ô này) — FIELD any (ADR-0030 S20-6/S20-12); chốt Nhận (đã huỷ/qua ngày đi) + chặn tài khoản có quyền Đối tác ở route PUT /api/orders/:id/handler
   "dispatch.guides.view": row("none", "none", "none", "none", "any", "any", "none", "none", "none", "none"), // danh sách hẹp hướng dẫn viên nội bộ — thao tác MỚI (ADR-0014 điều 9, chưa có route)

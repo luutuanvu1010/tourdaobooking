@@ -137,7 +137,7 @@ test("đơn nháp → 409 use_order_form; đơn huỷ → 409 not_editable; mố
   const badSvc = await w.call("POST", `/api/orders/${o.id}/legs`, { as: SALES, body: { expectedUpdatedAt: o.updatedAt, serviceId: other.services[0].id, leg: RET } });
   assert.equal(badSvc.status, 400, badSvc.text);
 
-  assert.equal((await w.call("POST", `/api/orders/${o.id}/status`, { as: SALES, body: { status: "cancelled" } })).status, 200);
+  assert.equal((await w.call("POST", `/api/orders/${o.id}/status`, { as: SALES, body: { status: "cancelled", lyDo: "KHACH_DOI_Y" } })).status, 200);
   const cancelled = (await w.call("GET", `/api/orders/${o.id}`, { as: SALES })).json.order;
   const r2 = await addLeg(w, cancelled, SALES);
   assert.equal(r2.status, 409, r2.text);

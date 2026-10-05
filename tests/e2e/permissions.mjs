@@ -41,7 +41,7 @@ assert.equal(r.status, 404, `FIELD mở chi tiết đơn KHÔNG phụ trách →
 assert.equal(r.body.error.code, "not_found");
 const fieldDenied = [
   ["POST", "/api/orders", orderInput()], ["PUT", `/api/orders/${order.id}`, orderInput()],
-  ["PUT", `/api/orders/${order.id}/trip`, {}], ["POST", `/api/orders/${order.id}/status`, { status: "cancelled" }], ["GET", "/api/catalog"],
+  ["PUT", `/api/orders/${order.id}/trip`, {}], ["POST", `/api/orders/${order.id}/status`, { status: "cancelled", lyDo: "KHACH_DOI_Y" }], ["GET", "/api/catalog"],
   ["GET", "/api/parties"], ["GET", "/api/parties/meta"], ["GET", "/api/parties/lookup?phone=0901234567"], ["POST", "/api/parties", { kind: "PERSON", fullName: "A" }],
   ["GET", "/api/staff"], ["GET", "/api/audit"], ["POST", "/api/locations", {}],
 ];
@@ -74,7 +74,7 @@ r = await call(ACC, "GET", `/api/orders/${order.id}`);
 assert.equal(r.status, 200); assert.ok(r.body.history.length >= 1, "kế toán xem nhật ký mọi đơn (đối chiếu tiền)"); assert.equal(r.body.canModify, false);
 assert.equal((await call(ACC, "POST", "/api/orders", orderInput())).status, 403, "kế toán không lập đơn");
 assert.equal((await call(ACC, "PUT", `/api/orders/${order.id}`, orderInput())).status, 403);
-assert.equal((await call(ACC, "POST", `/api/orders/${order.id}/status`, { status: "cancelled" })).status, 403);
+assert.equal((await call(ACC, "POST", `/api/orders/${order.id}/status`, { status: "cancelled", lyDo: "KHACH_DOI_Y" })).status, 403);
 assert.equal((await call(ACC, "POST", "/api/parties", { kind: "PERSON", fullName: "Khách Kế Toán Tạo" })).status, 201, "kế toán tạo hồ sơ khách");
 for (const [method, path, body] of [["GET", "/api/staff"], ["GET", "/api/audit"], ["POST", "/api/locations", {}], ["GET", "/api/catalog/admin"]]) {
   assert.equal((await call(ACC, method, path, body)).status, 403, `ACCOUNTING ${method} ${path}`);

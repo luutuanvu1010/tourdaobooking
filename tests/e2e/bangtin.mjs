@@ -172,7 +172,7 @@ const P2 = await taoTaiKhoanDungMotLan("Đối Tác Bảng Tin 2 (test)", ["PART
     r = await call(salesACookie, "POST", `/api/orders/${o4.id}/status`, { status: "confirmed" });
     assert.equal(r.status, 200, `ca 4 (b): văn phòng xác nhận đơn HDV B đang phụ trách: ${JSON.stringify(r.body)}`);
     assert.ok(await cho(() => tinCuaFieldB("xac_nhan") === 1, 2000), "ca 4 (b): fieldB phải nhận tin 'xac_nhan' trong 2 giây");
-    r = await call(salesACookie, "POST", `/api/orders/${o4.id}/status`, { status: "cancelled" });
+    r = await call(salesACookie, "POST", `/api/orders/${o4.id}/status`, { status: "cancelled", lyDo: "KHACH_DOI_Y" });
     assert.equal(r.status, 200, `ca 4 (b): văn phòng huỷ đơn HDV B đang phụ trách: ${JSON.stringify(r.body)}`);
     assert.ok(await cho(() => tinCuaFieldB("huy") === 1, 2000), "ca 4 (b): fieldB phải nhận tin 'huy' trong 2 giây");
     await yen(1500); // tin sai (nếu có) tới cùng lúc với tin của fieldB — chờ đủ như kiểm âm của ca 5 trước khi khẳng định

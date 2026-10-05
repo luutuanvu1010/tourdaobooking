@@ -303,7 +303,7 @@ async function fx() {
     assert.equal((await call(ACCOUNTS.salesA, "POST", `/api/orders/${confirmed.id}/status`, { status: "confirmed" })).status, 200, "xác nhận đơn dựng sẵn");
     f.confirmed = confirmed;
     const cancelled = await create(ACCOUNTS.salesA, { ...cust("Vũ Đã Huỷ"), services: [tour()] });
-    assert.equal((await call(ACCOUNTS.salesA, "POST", `/api/orders/${cancelled.id}/status`, { status: "cancelled" })).status, 200, "huỷ đơn dựng sẵn");
+    assert.equal((await call(ACCOUNTS.salesA, "POST", `/api/orders/${cancelled.id}/status`, { status: "cancelled", lyDo: "KHACH_DOI_Y" })).status, 200, "huỷ đơn dựng sẵn");
     f.cancelled = cancelled;
     return f;
   })();

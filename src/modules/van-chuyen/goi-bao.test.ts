@@ -160,7 +160,7 @@ test("TC-GB-6: quyền — người lập / người phụ trách / Quản trị
     const d2 = await don(w, { soNguoi: 1 });
     await xepHet(w, c, d2, 1);
     await doiGio(w, d2.id, "13:20");
-    assert.equal((await w.call("POST", `/api/orders/${d2.id}/status`, { as: ADM, body: { status: "cancelled", reason: "Khách huỷ" } })).status, 200);
+    assert.equal((await w.call("POST", `/api/orders/${d2.id}/status`, { as: ADM, body: { status: "cancelled", lyDo: "KHACH_DOI_Y", reason: "Khách huỷ" } })).status, 200);
     assert.equal((await baoGoi(w, d2.legId, { phienBan: 1, gioMoi: { ngay: NGAY, gio: "13:20" } }, ACC)).status, 403);
     assert.equal((await baoGoi(w, d2.legId, { phienBan: 1, gioMoi: { ngay: NGAY, gio: "13:20" } }, SALES3)).status, 403);
     assert.equal((await baoGoi(w, d2.legId, { phienBan: 1, gioMoi: { ngay: NGAY, gio: "13:20" } })).json.error.code, "khong_con_can_goi");
