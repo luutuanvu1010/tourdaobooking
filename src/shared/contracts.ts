@@ -1838,7 +1838,7 @@ export interface ReceiptDto {
    * ADR-0089 đ9a: tiền của ĐƠN HUỶ cho "thông báo huỷ" (null với đơn không huỷ) — danh sách trắng, chỉ số + nhóm + hạn. `daTra` = khách đã trả (đã xác nhận),
    * `dangDoiChieu` = khoản khai chuyển khoản chưa xác nhận, `daDuyet` / `daChi` / `daChuyen` theo khoản duyệt, `han` = hạn hoàn cọc (chỉ nhóm khách huỷ hứa ngày).
    */
-  huy: { nhom: "KHACH_HUY" | "CONG_TY_HUY" | "LAP_LAI" | "CHUA_KET_LUAN"; daTra: number; dangDoiChieu: number; daDuyet: number; daChi: number; daChuyen: number; han: string } | null;
+  huy: { nhom: "KHACH_HUY" | "CONG_TY_HUY" | "LAP_LAI" | "CHUA_KET_LUAN"; daTra: number; dangDoiChieu: number; daDuyet: number; daChi: number; daChuyen: number; daDuyetChuyen: number; han: string } | null;
 }
 export interface ReceiptResponse { receipt: ReceiptDto }
 

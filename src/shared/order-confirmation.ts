@@ -220,11 +220,13 @@ function summaryBlock(order: ReceiptDto): SummaryBlock {
     // ADR-0089 đ9a: thông báo huỷ KHÔNG có dòng "Còn lại" (khách không còn nợ); số của billing (`soTienCoc`), máy chủ đặt vào ReceiptDto.
     const rows = [...dau, { label: "Khách hàng đã trả trước", value: money(h.daTra), emphasis: true }];
     if (h.dangDoiChieu > 0) rows.push({ label: "Đang đối chiếu", value: money(h.dangDoiChieu), emphasis: false });
-    const hoanDuyet = h.daDuyet - h.daChuyen;
+    // Kiểm độc lập vòng 2: khoản duyệt CHUYỂN chưa thực hiện không phải "hoàn" — tách riêng dòng "chờ chuyển".
+    const hoanDuyet = h.daDuyet - h.daDuyetChuyen;
     if (hoanDuyet - h.daChi > 0) {
       rows.push({ label: h.nhom === "KHACH_HUY" ? `Tour Đảo hoàn (chậm nhất ngày ${formatDmy(h.han)})` : "Tour Đảo hoàn", value: money(hoanDuyet - h.daChi), emphasis: false });
     }
     if (h.daChi > 0) rows.push({ label: "Đã hoàn", value: money(h.daChi), emphasis: false });
+    if (h.daDuyetChuyen - h.daChuyen > 0) rows.push({ label: "Sẽ chuyển sang đơn mới", value: money(h.daDuyetChuyen - h.daChuyen), emphasis: false });
     if (h.daChuyen > 0) rows.push({ label: "Đã chuyển sang đơn mới", value: money(h.daChuyen), emphasis: false });
     return { kind: "summary", rows };
   }

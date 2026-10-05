@@ -66,24 +66,30 @@ const tien = async (cookie, id) => (await call(cookie, "GET", `/api/orders/${id}
   assert.equal((await call(F, "POST", `/api/orders/${a.id}/payments`, { soTien: 150000, hinhThuc: "CASH", nguoiThu: "toi" })).status, 201);
   assert.equal((await call(ADM, "POST", `/api/orders/${a.id}/status`, { status: "cancelled", lyDo: "THOI_TIET" })).status, 200);
   const b = await donXacNhan(25);
+  // Kiểm độc lập vòng 2 CAO-1 — cơ chế THẬT (không cài trigger giả): đơn nhận bị huỷ SAU lúc duyệt chuyển → "Chuyển" 409, không nửa nào được lưu.
+  const c = await donXacNhan(26);
+  const dc = await call(ADM, "POST", `/api/orders/${a.id}/coc/duyet`, { loai: "chuyen", soTien: 1, lyDo: "Dời lịch thử đơn nhận hỏng", donNhan: c.orderCode });
+  assert.equal(dc.status, 201, JSON.stringify(dc.body));
+  assert.equal((await call(ADM, "POST", `/api/orders/${c.id}/status`, { status: "cancelled", lyDo: "THOI_TIET" })).status, 200);
+  const hong = await call(ACC, "POST", `/api/orders/${a.id}/coc/chuyen`, { duyetId: dc.body.duyetId, soTien: 1, nguoiGiu: { partyId: fldParty } });
+  assert.equal(hong.body?.error?.code, "coc_transfer_target_invalid", `${hong.status} ${JSON.stringify(hong.body)}`);
+  assert.equal((await sqlRows(`SELECT count(*) AS n FROM bil_payment_receipt WHERE approval_id = '${dc.body.duyetId}'`))[0].n, 0, "nửa chi KHÔNG được lưu");
+  assert.equal((await call(ADM, "POST", `/api/orders/${a.id}/coc/duyet/${dc.body.duyetId}/huy`, { soTien: 1, lyDo: "Đơn nhận đã huỷ" })).status, 201, "huỷ khoản duyệt hỏng");
   const d = await call(ADM, "POST", `/api/orders/${a.id}/coc/duyet`, { loai: "chuyen", soTien: 150000, lyDo: "Dời lịch do thời tiết", donNhan: b.orderCode });
   assert.equal(d.status, 201, JSON.stringify(d.body));
-  // RAISE của trigger cặp chuyển huỷ CẢ lô: cài tạm trigger chặn nửa thu ở đơn nhận → không đơn nào có dòng.
-  await sql(`CREATE TRIGGER e2e_chan_nua_thu BEFORE INSERT ON bil_payment_receipt WHEN NEW.transfer_of_id IS NOT NULL BEGIN SELECT RAISE(ABORT, 'e2e_chan_nua_thu'); END`);
-  try {
-    const hong = await call(ACC, "POST", `/api/orders/${a.id}/coc/chuyen`, { duyetId: d.body.duyetId, soTien: 150000, nguoiGiu: { partyId: fldParty } });
-    assert.equal(hong.status, 500, `nửa thu bị RAISE → lỗi máy chủ: ${hong.status} ${JSON.stringify(hong.body)}`);
-    assert.equal((await sqlRows(`SELECT count(*) AS n FROM bil_payment_receipt WHERE approval_id = '${d.body.duyetId}'`))[0].n, 0, "nửa chi KHÔNG được lưu khi nửa thu RAISE");
-  } finally {
-    await sql("DROP TRIGGER IF EXISTS e2e_chan_nua_thu");
-  }
   const r = await call(ACC, "POST", `/api/orders/${a.id}/coc/chuyen`, { duyetId: d.body.duyetId, soTien: 150000, nguoiGiu: { partyId: fldParty } });
   assert.equal(r.status, 201, JSON.stringify(r.body));
   assert.deepEqual([(await tien(ACC, a.id)).coc.conGiu, (await tien(ACC, b.id)).daThu], [0, 150000]);
   const giu = await sqlRows(`SELECT order_id, balance FROM v_bil_party_balance WHERE party_id = '${fldParty}' AND order_id IN ('${a.id}', '${b.id}')
     AND counterparty_id IN (SELECT party_id FROM v_pty_owner_company) ORDER BY order_id = '${b.id}'`);
   assert.deepEqual(giu.map((x) => x.balance), [0, 150000], "HDV giữ trên đơn huỷ 0, trên đơn mới 150.000");
-  console.log("✓ công ty huỷ → duyệt chuyển → chuyển một lô hai đơn; RAISE ở nửa thu huỷ cả lô (D1 local); tổng HDV giữ không đổi");
+  // Kiểm độc lập vòng 2 CAO-2: không đảo riêng một nửa của lệnh chuyển đã xong (trigger + máy chủ trên D1 thật).
+  const ra = (await sqlRows(`SELECT id FROM bil_payment_receipt WHERE approval_id = '${d.body.duyetId}' AND reverses_id IS NULL`))[0].id;
+  const dao = await call(ACC, "POST", "/api/ledger/adjustments", { loai: "dao_lan_thu", receiptId: ra, lyDo: "đảo thử nửa chi của lệnh chuyển" });
+  assert.equal(dao.body?.error?.code, "coc_transfer_locked", `${dao.status} ${JSON.stringify(dao.body)}`);
+  await assert.rejects(sql(`INSERT INTO bil_payment_receipt (id, order_id, kind_code, amount, collector_party_id, collector_role_code, method_code, collected_for_party_id, stage_code, occurred_date, reverses_id, created_at, updated_at)
+    SELECT 'e2e-dao-${ra}', order_id, kind_code, amount, collector_party_id, collector_role_code, method_code, collected_for_party_id, stage_code, occurred_date, id, created_at, updated_at FROM bil_payment_receipt WHERE id = '${ra}'`), /coc_transfer_locked/, "SQL tay đảo nửa chi bị trigger chặn");
+  console.log("✓ công ty huỷ → duyệt chuyển → chuyển một lô hai đơn; đơn nhận huỷ sau duyệt → 409 không nửa nào lưu; không đảo riêng một nửa (D1 local); tổng HDV giữ không đổi");
 }
 
 // ---- 4) Đơn huỷ CŨ (dòng lý do legacy, như câu gieo 0078): đối chiếu → Toàn quyền ghi hoàn ngoài → Quản trị xác nhận

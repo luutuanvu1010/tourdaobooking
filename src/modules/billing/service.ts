@@ -12,6 +12,7 @@ import {
   receiptBeforeDeliveredStatement, receiptById, receiptRefundStatement, receiptReversalStatement, receiptsOfOrder, receiptsOfOrders, unknownReceipts, type LineDbRow,
   type NewLine, type NewReceipt, type ReceiptDbRow,
 } from "./repository";
+import { transferInOf } from "./coc-repo";
 import {
   CAU_DA_NOP, LY_DO_DIEU_CHINH_TOI_THIEU, METHOD_CODES, conLai, dong, khoanChoXacNhan, kiemDaoLanThu, kiemDieuChinh, kiemHoanNguoiGiu, kiemQuyetToan, soDuCap, lyDoChuaGiaoDuoc, lyDoChuaHoanThanh, ngayPhatSinh, sinhDongDao, sinhDongHoanKhach, sinhDongLanThu, sinhDongQuyetToan, sinhDongXacNhanCongTy,
   soDuTheoBen, type LineDraft, type MethodCode, type ReceiptRow, type SoTienDon,
@@ -500,6 +501,8 @@ export async function ghiDieuChinh(db: D1Database, input: { raw: unknown; ai: Ng
     // ADR-0092 Đ1 (KT06): đảo không được làm đã thu ròng của đơn âm (lớp CSDL: trigger bil_receipt_reversal_net_paid, 0082).
     const [cacLanThu, st] = await Promise.all([receiptsOfOrder(db, rc.order_id), orderState(db, rc.order_id)]);
     if (cacLanThu.some((r) => r.reverses_id === rc.id)) return loi(409, "stale", "Lần thu này đã được đảo.");
+    // Kiểm độc lập vòng 2 CAO-2: không đảo riêng một nửa của lệnh chuyển đã ghép đôi (lớp CSDL: trigger coc_transfer_locked).
+    if (rc.transfer_of_id || (await transferInOf(db, rc.id)).length > 0) return CHUYEN_KHOA();
     if (st) {
       const rong = kiemDaoLanThu({ daThu: conLai(cacLanThu.map(toReceiptRow), 0, st.status).daThu, goc: toReceiptRow(rc) });
       if (!rong.ok) return loi(409, rong.ma, rong.cau);
@@ -523,6 +526,7 @@ export async function ghiDieuChinh(db: D1Database, input: { raw: unknown; ai: Ng
       // ADR-0092 Đ2b: khoản giữ hộ của lần thu đã được ghi nộp — đảo lần nộp trước (cùng thứ tự "ghi mới trước, đảo sau").
       if (loiTrigger(e, "held_already_settled")) return loi(409, "held_already_settled", "Khoản giữ hộ của lần thu này đã được ghi nộp — đảo lần nộp trước rồi đảo lần thu.");
       if (loiTrigger(e, "net_paid_negative")) return loi(409, "net_paid_negative", "Đảo lần thu này làm số đã thu của đơn âm — số vừa thay đổi, tải lại rồi thử lại.");
+      if (loiTrigger(e, "coc_transfer_locked")) return CHUYEN_KHOA();
       throw e;
     }
     return { ok: true, value: { orderId: rc.order_id } };
@@ -587,6 +591,8 @@ export async function ghiDieuChinh(db: D1Database, input: { raw: unknown; ai: Ng
   return loi(400, "invalid_input", "Chọn loại: đảo lần thu, đảo dòng sổ hoặc điều chỉnh.");
 }
 
+const CHUYEN_KHOA = () =>
+  loi(409, "coc_transfer_locked", "Tiền này đã chuyển sang đơn mới — không đảo riêng một nửa của lệnh chuyển. Cần sửa thì báo Toàn quyền.");
 const HELD_DON_LE = () =>
   loi(409, "held_single_reversal", "Không đảo riêng dòng giữ hộ khi lần thu còn hiệu lực — đảo lần thu, hoặc dùng “Công ty đã nhận” cho khoản chuyển khoản.");
 

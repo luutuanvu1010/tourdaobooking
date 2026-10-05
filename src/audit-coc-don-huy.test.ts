@@ -41,12 +41,12 @@ function don(db: DatabaseSync, id: string, huy?: { nhom: string; legacy?: number
   }
 }
 let n = 0;
-function thu(db: DatabaseSync, o: { order: string; amount: number; kind?: string; by?: string; approval?: string | null; transferOf?: string | null; collector?: string; at?: string }): string {
+function thu(db: DatabaseSync, o: { order: string; amount: number; kind?: string; by?: string; approval?: string | null; transferOf?: string | null; collector?: string; at?: string; reverses?: string | null }): string {
   const id = `r${++n}`;
   run(db, `INSERT INTO bil_payment_receipt (id, order_id, kind_code, amount, collector_party_id, collector_role_code, method_code, collected_for_party_id, stage_code,
       occurred_date, reverses_id, note, created_at, created_by, updated_at, updated_by, approval_id, transfer_of_id)
-    VALUES (?, ?, ?, ?, ?, 'COMPANY', 'CASH', 'ct', 'PREPAID', '2026-10-05', NULL, NULL, ?, ?, ?, ?, ?, ?)`,
-    id, o.order, o.kind ?? "CUSTOMER_PAYMENT", o.amount, o.collector ?? congTy(db), o.at ?? AT, o.by ?? "kt", o.at ?? AT, o.by ?? "kt", o.approval ?? null, o.transferOf ?? null);
+    VALUES (?, ?, ?, ?, ?, 'COMPANY', 'CASH', 'ct', 'PREPAID', '2026-10-05', ?, NULL, ?, ?, ?, ?, ?, ?)`,
+    id, o.order, o.kind ?? "CUSTOMER_PAYMENT", o.amount, o.collector ?? congTy(db), o.reverses ?? null, o.at ?? AT, o.by ?? "kt", o.at ?? AT, o.by ?? "kt", o.approval ?? null, o.transferOf ?? null);
   return id;
 }
 function duyet(db: DatabaseSync, o: { order: string; amount: number; kind?: string; target?: string | null; by?: string; date?: string }): string {
@@ -165,6 +165,31 @@ test("R-BIL-C5: nửa chi của lệnh chuyển không có nửa thu (lô bị c
   const d = duyet(db, { order: "a", amount: 500_000, kind: "TRANSFER", target: "b" });
   thu(db, { order: "a", amount: 500_000, kind: "CUSTOMER_REFUND", approval: d });
   assert.equal(dem(db, "R-BIL-C5"), 1);
+});
+
+test("R-BIL-C5 hai chiều (kiểm độc lập vòng 2 CAO-2): gỡ trigger khoá → đảo riêng nửa chi (nửa thu còn) = 1; đảo riêng nửa thu (nửa chi còn) = 1; cặp đủ hoặc nửa chi lẻ đã đảo = 0", () => {
+  for (const nua of ["chi", "thu"] as const) {
+    const db = moi();
+    don(db, "a", { nhom: "CONG_TY_HUY" });
+    don(db, "b");
+    thu(db, { order: "a", amount: 500_000 });
+    const d = duyet(db, { order: "a", amount: 500_000, kind: "TRANSFER", target: "b" });
+    const ra = thu(db, { order: "a", amount: 500_000, kind: "CUSTOMER_REFUND", approval: d });
+    const vao = thu(db, { order: "b", amount: 500_000, transferOf: ra });
+    assert.equal(dem(db, "R-BIL-C5"), 0, "cặp đủ");
+    go(db, "bil_payment_receipt_coc_transfer_locked");
+    if (nua === "chi") thu(db, { order: "a", amount: 500_000, kind: "CUSTOMER_REFUND", reverses: ra });
+    else thu(db, { order: "b", amount: 500_000, reverses: vao });
+    assert.equal(dem(db, "R-BIL-C5"), 1, `đảo riêng nửa ${nua}`);
+  }
+  const db = moi();
+  don(db, "a", { nhom: "CONG_TY_HUY" });
+  don(db, "b");
+  thu(db, { order: "a", amount: 500_000 });
+  const d = duyet(db, { order: "a", amount: 500_000, kind: "TRANSFER", target: "b" });
+  const le = thu(db, { order: "a", amount: 500_000, kind: "CUSTOMER_REFUND", approval: d });
+  thu(db, { order: "a", amount: 500_000, kind: "CUSTOMER_REFUND", reverses: le });
+  assert.equal(dem(db, "R-BIL-C5"), 0, "nửa chi lẻ đã đảo (sửa xong)");
 });
 
 test("R-BIL-C6: gỡ trigger hạn → khoản duyệt khách huỷ sau hạn = 1; công ty huỷ sau hạn không đếm", () => {

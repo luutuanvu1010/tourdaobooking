@@ -11,12 +11,15 @@ import {
   approvalInsertStatement, approvalsOfOrder, approvalsOpen, approvalVoidStatement, cancelledHolders, cancelStateOf, cocCancelledOrders, orderByCode, outsideDecideStatement,
   outsideOfOrder, outsideRecordStatement, receiptPayoutStatement, receiptTransferInStatement, type ApprovalDbRow, type CancelStateRow, type OutsideDbRow,
 } from "./coc-repo";
-import { linesOfOrder, ownerCompanyId, partyLabels, postingIfReceiptStatement, receiptsOfOrder, lineIfPostingStatement } from "./repository";
+import { linesOfOrder, orderState, ownerCompanyId, partyLabels, postingIfReceiptStatement, receiptsOfOrder, lineIfPostingStatement } from "./repository";
 import {
   conLaiCuaKhoan, hoanNgoaiTrangThai, kiemChi, kiemDuyet, kiemGhiHoanNgoai, kiemHuyDuyet, kiemXacNhanHoanNgoai, METHOD_CODES, nhacCoc, sinhDongHoanKhach, sinhDongLanThu,
   soDuTheoBen, soTienCoc, type DuyetRow, type HoanNgoaiRow, type KiemCoc, type SoTienCoc,
 } from "./rules";
 import { CHUA_CO_CONG_TY, PARTY_ID_RE, docLyDo, docNgay, docSoTien, lineOf, loi, toLineRow, toReceiptRow, type KetQua, type NguoiGoi } from "./service";
+
+/** Kiểm độc lập vòng 2 CAO-1: đơn nhận đổi trạng thái giữa lúc duyệt chuyển và lúc chuyển. */
+const CAU_DON_NHAN_HONG = "Đơn nhận đã huỷ hoặc đã giao — huỷ khoản duyệt chuyển rồi duyệt lại sang đơn khác.";
 
 const toDuyetRow = (a: ApprovalDbRow): DuyetRow => ({
   id: a.id, kind: a.kind_code, amount: a.amount, voidsId: a.voids_id, targetOrderId: a.target_order_id, createdBy: a.created_by, approvedDate: a.approved_date,
@@ -37,6 +40,7 @@ const CAU_TRIGGER: [string, string][] = [
   ["coc_exceeds_approved", "Vượt phần đã duyệt còn lại — tải lại rồi thử lại."],
   ["coc_same_person", "Người duyệt không tự chi / chuyển / xác nhận khoản này — cần một người khác (tách nhiệm vụ)."],
   ["coc_transfer_mismatch", "Lệnh chuyển không khớp đơn nhận, số tiền hoặc người giữ tiền."],
+  ["coc_transfer_target_invalid", CAU_DON_NHAN_HONG],
   ["coc_paid_below_approved", "Đơn đã duyệt hoàn cọc — huỷ duyệt phần chưa chi trước khi đảo lần thu."],
   ["coc_outside_not_legacy", "Chỉ ghi được cho đơn huỷ trước khi có lệnh hoàn cọc trong Nền tảng."],
   ["coc_outside_once", "Đơn này đã có một dòng đã hoàn ngoài hệ thống đang hiệu lực."],
@@ -146,7 +150,7 @@ export async function cocChoBienNhan(db: D1Database, orderId: string): Promise<R
   if (!d) return null;
   return {
     nhom: d.huy.group_code as NhomHuy, daTra: d.coc.daTra, dangDoiChieu: d.coc.dangDoiChieu, daDuyet: d.coc.daDuyet, daChi: d.coc.daChi, daChuyen: d.coc.daChuyen,
-    han: d.huy.refund_deadline,
+    daDuyetChuyen: d.coc.daDuyetChuyen, han: d.huy.refund_deadline,
   };
 }
 
@@ -285,6 +289,9 @@ export async function ghiChuyen(db: D1Database, input: { orderId: string; raw: u
   const goc = d.duyet.find((x) => x.id === b.duyetId && x.voidsId === null);
   if (!goc) return KHOAN_KHONG_CO();
   if (goc.kind !== "TRANSFER" || !goc.targetOrderId) return loi(409, "invalid_state", "Khoản này là duyệt hoàn — dùng “Ghi chi hoàn”.");
+  // Kiểm độc lập vòng 2 CAO-1: đơn nhận có thể đã huỷ / Đã giao sau lúc duyệt (lớp CSDL: trigger coc_transfer_target_invalid huỷ cả lô).
+  const nhan = await orderState(db, goc.targetOrderId);
+  if (!nhan || nhan.status === "cancelled" || nhan.delivered_at !== null) return loi(409, "coc_transfer_target_invalid", CAU_DON_NHAN_HONG);
   const giu = await docBen(db, b.nguoiGiu, d.congTyId, "Chọn người đang giữ khoản tiền này (Công ty hoặc nhân viên).");
   if (!giu.ok) return giu;
   const tc = tuChoi(kiemChi({

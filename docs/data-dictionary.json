@@ -488,7 +488,7 @@
       "name": "bil_payment_receipt",
       "module": "billing",
       "kind": "table",
-      "note": "lần thu (ADR-0026 đ2), CHỈ-THÊM, dòng đảo trỏ reverses_id; migration 0045 chứa câu MỘT LẦN chép cọc cũ (orders.deposit_amount > 0) thành lần thu người thu CHƯA RÕ (ADR-0026 đ9, Q3). 0079 (ADR-0089): approval_id = khoản duyệt hoàn cọc của lần trả lại khách (lần chi hoàn / nửa chi của lệnh chuyển); transfer_of_id (UNIQUE) = nửa thu ở đơn nhận trỏ nửa chi ở đơn huỷ (trigger coc_transfer_mismatch: cùng đơn nhận, số, người giữ). Trigger 0079: đơn huỷ chỉ hoàn qua khoản duyệt; không vượt phần còn lại của khoản; người chi ≠ người duyệt; đảo lần thu không làm đã duyệt vượt tiền còn giữ lúc huỷ (đ15)"
+      "note": "lần thu (ADR-0026 đ2), CHỈ-THÊM, dòng đảo trỏ reverses_id; migration 0045 chứa câu MỘT LẦN chép cọc cũ (orders.deposit_amount > 0) thành lần thu người thu CHƯA RÕ (ADR-0026 đ9, Q3). 0079 (ADR-0089): approval_id = khoản duyệt hoàn cọc của lần trả lại khách (lần chi hoàn / nửa chi của lệnh chuyển); transfer_of_id (UNIQUE) = nửa thu ở đơn nhận trỏ nửa chi ở đơn huỷ (trigger coc_transfer_mismatch: cùng đơn nhận, số, người giữ). Trigger 0079: đơn huỷ chỉ hoàn qua khoản duyệt; không vượt phần còn lại của khoản; người chi ≠ người duyệt; đảo lần thu không làm đã duyệt vượt tiền còn giữ lúc huỷ (đ15); nửa thu chỉ vào đơn nhận còn hiệu lực, chưa Đã giao (coc_transfer_target_invalid — RAISE huỷ cả lô); không đảo riêng một nửa của lệnh chuyển đã ghép đôi (coc_transfer_locked). Trigger 0082 (ADR-0092): đảo lần thu không làm đã thu ròng < 0 (net_paid_negative); lần trả lại khách do người không phải công ty chủ trả ≤ số người đó đang giữ trên đơn (refund_exceeds_held)"
     },
     {
       "name": "bil_audit_cutoff",

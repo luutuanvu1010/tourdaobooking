@@ -330,7 +330,7 @@ test("làm sạch: chuỗi chỉ toàn ký tự điều khiển/bidi coi như r�
 });
 
 // ---- ADR-0089 đ3, đ9a, đ10 (năm lỗi tiền Đợt 1 Phần C): nhãn tiền, thông báo huỷ, điều khoản huỷ ----
-const HUY = (h: Partial<NonNullable<ReceiptDto["huy"]>> = {}): NonNullable<ReceiptDto["huy"]> => ({ nhom: "KHACH_HUY", daTra: 500_000, dangDoiChieu: 0, daDuyet: 0, daChi: 0, daChuyen: 0, han: "2027-01-09", ...h });
+const HUY = (h: Partial<NonNullable<ReceiptDto["huy"]>> = {}): NonNullable<ReceiptDto["huy"]> => ({ nhom: "KHACH_HUY", daTra: 500_000, dangDoiChieu: 0, daDuyet: 0, daChi: 0, daChuyen: 0, daDuyetChuyen: 0, han: "2027-01-09", ...h });
 const buildHuy = (h: NonNullable<ReceiptDto["huy"]>) =>
   buildConfirmation(dungBienNhan({ ...order(), status: "cancelled" }, COMPANY, { daTra: h.daTra, conLai: 0, huy: h }), null);
 
@@ -349,8 +349,12 @@ test("NT-V2 (đ9a): đã duyệt → 'Tour Đảo hoàn Y' (khách huỷ thêm '
   assert.deepEqual(duyet.find((r) => r.label.startsWith("Tour Đảo hoàn")), { label: "Tour Đảo hoàn (chậm nhất ngày 09/01/2027)", value: "200.000 ₫", emphasis: false });
   const ctHuy = one(buildHuy(HUY({ nhom: "CONG_TY_HUY", daDuyet: 500_000, daChi: 300_000 })), "summary").rows;
   assert.deepEqual(ctHuy.filter((r) => /hoàn/.test(r.label)).map((r) => [r.label, r.value]), [["Tour Đảo hoàn", "200.000 ₫"], ["Đã hoàn", "300.000 ₫"]], "công ty huỷ: không hứa ngày");
-  const chuyen = one(buildHuy(HUY({ nhom: "LAP_LAI", daDuyet: 500_000, daChuyen: 500_000 })), "summary").rows;
+  const chuyen = one(buildHuy(HUY({ nhom: "LAP_LAI", daDuyet: 500_000, daDuyetChuyen: 500_000, daChuyen: 500_000 })), "summary").rows;
   assert.deepEqual(chuyen.filter((r) => r.label !== "Tạm tính" && r.label !== "Giảm giá" && r.label !== "Tổng cộng").map((r) => r.label), ["Khách hàng đã trả trước", "Đã chuyển sang đơn mới"]);
+  // Kiểm độc lập vòng 2: duyệt CHUYỂN chưa thực hiện không in "Tour Đảo hoàn" (trước đây in "Tour Đảo hoàn 500.000 ₫").
+  const choChuyen = one(buildHuy(HUY({ nhom: "LAP_LAI", daDuyet: 500_000, daDuyetChuyen: 500_000 })), "summary").rows;
+  assert.ok(!choChuyen.some((r) => r.label.startsWith("Tour Đảo hoàn")), JSON.stringify(choChuyen));
+  assert.deepEqual(choChuyen.find((r) => r.label === "Sẽ chuyển sang đơn mới")?.value, "500.000 ₫");
   const doi = one(buildHuy(HUY({ daTra: 0, dangDoiChieu: 300_000 })), "summary").rows;
   assert.deepEqual(doi.find((r) => r.label === "Đang đối chiếu")?.value, "300.000 ₫");
   assert.equal(one(buildHuy(HUY({ nhom: "CHUA_KET_LUAN" })), "footer").lines[0], "Tour Đảo sẽ liên hệ quý khách về khoản đã trả trước.");

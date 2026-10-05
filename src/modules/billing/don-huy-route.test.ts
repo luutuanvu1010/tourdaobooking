@@ -259,6 +259,66 @@ test("NT-H7/H8/H9 + SV-DH-05 (đ6): duyệt chuyển + chuyển một lô hai đ
   assert.equal(w.q("SELECT count(*) AS n FROM audit_log WHERE order_id = ? AND action = 'deposit_transferred_in'", b)[0]!.n, 1);
 });
 
+/** Đơn huỷ A có 500.000 HDV giữ + đơn nhận B + khoản duyệt chuyển 500.000 A → B (Quản trị). */
+async function duyetChuyen(w: W) {
+  const a = donDaXacNhan(w);
+  assert.equal((await thu(w, HDV, a, 500_000)).status, 201);
+  assert.equal((await huy(w, ADMIN, a, "THOI_TIET")).status, 200);
+  const b = donDaXacNhan(w);
+  const maB = (w.q("SELECT order_code FROM orders WHERE id = ?", b)[0] as { order_code: string }).order_code;
+  const d = await duyet(w, ADMIN, a, { loai: "chuyen", soTien: 500_000, lyDo: "Dời lịch do thời tiết", donNhan: maB });
+  assert.equal(d.status, 201, d.text);
+  return { a, b, duyetId: d.json.duyetId as string, body: { duyetId: d.json.duyetId, soTien: 500_000, nguoiGiu: { partyId: `pty-${HDV}` } } };
+}
+const soLanThu = (w: W, ...ids: string[]) => Number(w.q(`SELECT count(*) AS n FROM bil_payment_receipt WHERE order_id IN (${ids.map(() => "?").join(", ")})`, ...ids)[0]!.n);
+
+test("kiểm độc lập vòng 2 CAO-1: đơn nhận bị huỷ SAU khi duyệt chuyển → 'Chuyển' trả 409 coc_transfer_target_invalid, KHÔNG ghi nửa chi (trước đây: 500, nửa chi đã ghi, tiền biến mất)", async () => {
+  const w = setup();
+  const { a, b, body } = await duyetChuyen(w);
+  assert.equal((await huy(w, ADMIN, b, "THOI_TIET")).status, 200, "người khác huỷ đơn nhận");
+  const truoc = soLanThu(w, a, b);
+  const r = await w.call("POST", `/api/orders/${a}/coc/chuyen`, { as: KT, body });
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "coc_transfer_target_invalid");
+  assert.equal(soLanThu(w, a, b), truoc, "không ghi gì ở cả hai đơn");
+  assert.deepEqual([(await tien(w, KT, a)).coc.daChuyen, (await tien(w, KT, a)).coc.conGiu], [0, 500_000]);
+});
+
+test("kiểm độc lập vòng 2 CAO-1 (ca đua): đơn nhận bị huỷ NGAY TRƯỚC lô 'Chuyển' (sau khi máy chủ đã đọc) → CSDL huỷ cả lô hai đơn, 409, không lệch", async () => {
+  const w = setup();
+  const { a, b, body } = await duyetChuyen(w);
+  const truoc = soLanThu(w, a, b);
+  const goc = w.env.DB.batch;
+  w.env.DB.batch = async (stmts: unknown[]) => {
+    w.env.DB.batch = goc;
+    w.sqlite.prepare(`INSERT INTO ord_cancel_reason (id, order_id, reason_code, group_code, note, cancelled_date, reclassifies_id, legacy, created_at, created_by, updated_at, updated_by)
+      VALUES ('lydo-dua', ?, 'THOI_TIET', 'CONG_TY_HUY', NULL, '2026-10-05', NULL, 0, ?, 'x', ?, 'x')`).run(b, AT, AT);
+    w.sqlite.prepare("UPDATE orders SET status = 'cancelled' WHERE id = ?").run(b);
+    return goc(stmts);
+  };
+  const r = await w.call("POST", `/api/orders/${a}/coc/chuyen`, { as: KT, body });
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "coc_transfer_target_invalid");
+  assert.equal(soLanThu(w, a, b), truoc, "lô huỷ cả hai nửa");
+});
+
+test("kiểm độc lập vòng 2 CAO-2: đảo riêng nửa chi (đơn huỷ) hoặc nửa thu (đơn nhận) của lệnh chuyển đã xong → 409 coc_transfer_locked; không ghi; không chuyển lại được lần hai", async () => {
+  const w = setup();
+  const { a, b, body } = await duyetChuyen(w);
+  assert.equal((await w.call("POST", `/api/orders/${a}/coc/chuyen`, { as: KT, body })).status, 201);
+  const ra = String(w.q("SELECT id FROM bil_payment_receipt WHERE order_id = ? AND kind_code = 'CUSTOMER_REFUND'", a)[0]!.id);
+  const vao = String(w.q("SELECT id FROM bil_payment_receipt WHERE transfer_of_id = ?", ra)[0]!.id);
+  const truoc = soLanThu(w, a, b);
+  for (const receiptId of [ra, vao]) {
+    const r = await w.call("POST", "/api/ledger/adjustments", { as: KT, body: { loai: "dao_lan_thu", receiptId, lyDo: "đảo thử một nửa lệnh chuyển" } });
+    assert.equal(r.status, 409, r.text);
+    assert.equal(r.json.error.code, "coc_transfer_locked");
+  }
+  assert.equal(soLanThu(w, a, b), truoc);
+  assert.equal((await w.call("POST", `/api/orders/${a}/coc/chuyen`, { as: KT, body })).status, 409, "khoản duyệt đã chuyển hết");
+  assert.equal((await tien(w, KT, b)).daThu, 500_000);
+});
+
 test("NT-N1–N4 (đ16, X-3, X-4, lời chủ (b)): đơn huỷ CŨ — đối chiếu liệt kê; Toàn quyền ghi (Quản trị/Kế toán 403); tự xác nhận 409; Quản trị từ chối → ghi lại; Quản trị xác nhận → còn giữ 0; đơn huỷ mới → 409", async () => {
   const w = setup();
   const cu = donDaXacNhan(w, { depart: vnNgay(-200) });

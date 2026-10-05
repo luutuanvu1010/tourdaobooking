@@ -179,7 +179,8 @@ export const receiptPayoutStatement = (
 ) => db.prepare(RECEIPT_COC_PAYOUT).bind(r.id, r.orderId, r.amount, r.collectorPartyId, r.collectorRole, r.method, r.occurredDate, r.note, r.at, r.by, r.approvalId);
 
 /**
- * Nửa "THU" của lệnh chuyển ở đơn nhận — lính gác: nửa chi ?11 đã chèn trong lô VÀ đơn nhận còn hiệu lực, chưa Đã giao (v_ord_order_state). Trigger
+ * Nửa "THU" của lệnh chuyển ở đơn nhận — lính gác: nửa chi ?11 đã chèn trong lô. Đơn nhận còn hiệu lực, chưa Đã giao do trigger
+ * `coc_transfer_target_invalid` ép bằng RAISE (huỷ cả lô hai đơn — kiểm độc lập vòng 2 CAO-1: điều kiện im lặng cũ để nửa chi ghi một mình). Trigger
  * `coc_transfer_mismatch` kiểm khớp đơn nhận, số, người giữ.
  */
 const RECEIPT_COC_TRANSFER_IN = defineSql(
@@ -187,8 +188,7 @@ const RECEIPT_COC_TRANSFER_IN = defineSql(
   "coc_receipt_transfer_in",
   `INSERT INTO bil_payment_receipt (${RECEIPT_COC_COLS})
    SELECT ?1, ?2, 'CUSTOMER_PAYMENT', ?3, ?4, ?5, ?6, (SELECT party_id FROM v_pty_owner_company LIMIT 1), 'PREPAID', ?7, NULL, ?8, ?9, ?10, ?9, ?10, NULL, ?11
-   WHERE EXISTS (SELECT 1 FROM bil_payment_receipt o WHERE o.id = ?11)
-     AND EXISTS (SELECT 1 FROM v_ord_order_state s WHERE s.id = ?2 AND s.status <> 'cancelled' AND s.delivered_at IS NULL)`,
+   WHERE EXISTS (SELECT 1 FROM bil_payment_receipt o WHERE o.id = ?11)`,
 );
 export const receiptTransferInStatement = (
   db: D1Database,
@@ -209,3 +209,9 @@ const OUTSIDE_DECIDE = defineSql(
 );
 export const outsideDecideStatement = (db: D1Database, o: { id: string; orderId: string; recordId: string; kind: "CONFIRM" | "REJECT"; reason: string | null; occurredDate: string; at: string; by: string }) =>
   db.prepare(OUTSIDE_DECIDE).bind(o.id, o.orderId, o.recordId, o.kind, o.reason, o.occurredDate, o.at, o.by);
+
+/** Nửa thu của lệnh chuyển trỏ tới lần thu `?1` (nửa chi) — rỗng nếu `?1` không phải nửa chi đã ghép đôi (kiểm độc lập vòng 2 CAO-2). */
+const TRANSFER_IN_OF = defineSql("billing", "coc_transfer_in_of", `SELECT id FROM bil_payment_receipt WHERE transfer_of_id = ?1`);
+export async function transferInOf(db: D1Database, receiptId: string): Promise<string[]> {
+  return (await db.prepare(TRANSFER_IN_OF).bind(receiptId).all<{ id: string }>()).results.map((r) => r.id);
+}

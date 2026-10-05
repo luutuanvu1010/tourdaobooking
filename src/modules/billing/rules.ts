@@ -216,6 +216,8 @@ export interface SoTienCoc {
   daChi: number;
   /** Đã chuyển sang đơn mới (lần trả lại khách gắn khoản duyệt TRANSFER — nửa "chi" của lệnh chuyển). */
   daChuyen: number;
+  /** Phần của `daDuyet` là duyệt CHUYỂN (khoản TRANSFER − phần huỷ duyệt của chúng) — để biên nhận không gọi khoản chuyển chưa thực hiện là "hoàn" (kiểm độc lập vòng 2). */
+  daDuyetChuyen: number;
   /** Phần hoàn ngoài hệ thống ĐÃ xác nhận (tính trong cả daDuyet lẫn daChi). */
   hoanNgoai: number;
   /** Còn giữ = đã trả − đã hoàn (trước huỷ + chi) − đã chuyển − hoàn ngoài (đ2). */
@@ -262,9 +264,10 @@ export function soTienCoc(input: {
   const duyetGoc = input.duyet.filter((d) => d.voidsId === null).reduce((s, d) => s + d.amount, 0);
   const huyDuyet = input.duyet.filter((d) => d.voidsId !== null).reduce((s, d) => s + d.amount, 0);
   const daDuyet = duyetGoc - huyDuyet + hoanNgoai;
+  const daDuyetChuyen = input.duyet.reduce((s, d) => (loai.get(d.voidsId ?? d.id) === "TRANSFER" ? s + (d.voidsId === null ? d.amount : -d.amount) : s), 0);
   const daChi = chiThat + hoanNgoai;
   const conGiuLucHuy = daTra - hoanTruocHuy;
-  return { daTra, dangDoiChieu, hoanTruocHuy, conGiuLucHuy, daDuyet, daChi, daChuyen, hoanNgoai, conGiu: conGiuLucHuy - daChi - daChuyen, choChi: daDuyet - daChi - daChuyen };
+  return { daTra, dangDoiChieu, hoanTruocHuy, conGiuLucHuy, daDuyet, daChi, daChuyen, daDuyetChuyen, hoanNgoai, conGiu: conGiuLucHuy - daChi - daChuyen, choChi: daDuyet - daChi - daChuyen };
 }
 
 const congNgay = (iso: string, ngay: number): string => new Date(Date.parse(`${iso}T00:00:00Z`) + ngay * 86_400_000).toISOString().slice(0, 10);

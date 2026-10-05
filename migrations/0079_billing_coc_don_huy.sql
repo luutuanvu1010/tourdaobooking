@@ -235,3 +235,18 @@ WHEN NEW.kind_code = 'CONFIRM' AND (SELECT g.amount FROM bil_outside_refund g WH
   COALESCE((SELECT v.con_giu FROM v_bil_coc_don v WHERE v.order_id = NEW.order_id), 0),
   COALESCE((SELECT v.con_giu_luc_huy - v.da_duyet FROM v_bil_coc_don v WHERE v.order_id = NEW.order_id), 0))
 BEGIN SELECT RAISE(ABORT, 'coc_outside_exceeds: số của dòng này nay vượt số còn giữ của đơn'); END;
+
+-- Kiểm độc lập vòng 2 (CAO-1): nửa THU của lệnh chuyển chỉ vào đơn nhận còn hiệu lực, chưa Đã giao — RAISE (không chèn-có-điều-kiện im lặng) để lô HUỶ cả
+-- hai nửa khi đơn nhận vừa bị huỷ / Đã giao sau lúc duyệt; trước đây nửa chi vẫn ghi và tiền biến khỏi sổ cả hai đơn.
+CREATE TRIGGER bil_payment_receipt_coc_transfer_target BEFORE INSERT ON bil_payment_receipt
+WHEN NEW.transfer_of_id IS NOT NULL AND NOT EXISTS (
+  SELECT 1 FROM v_ord_order_state s WHERE s.id = NEW.order_id AND s.status <> 'cancelled' AND s.delivered_at IS NULL)
+BEGIN SELECT RAISE(ABORT, 'coc_transfer_target_invalid: đơn nhận đã huỷ hoặc đã giao'); END;
+
+-- Kiểm độc lập vòng 2 (CAO-2): không đảo RIÊNG một nửa của lệnh chuyển đã ghép đôi (nửa thu trỏ nửa chi qua transfer_of_id) — đảo một nửa làm tiền nhân đôi
+-- hoặc biến mất giữa hai đơn. Nửa chi KHÔNG có nửa thu (dữ liệu lệch — R-BIL-C5) vẫn đảo được để sửa.
+CREATE TRIGGER bil_payment_receipt_coc_transfer_locked BEFORE INSERT ON bil_payment_receipt
+WHEN NEW.reverses_id IS NOT NULL AND (
+  (SELECT transfer_of_id FROM bil_payment_receipt WHERE id = NEW.reverses_id) IS NOT NULL
+  OR EXISTS (SELECT 1 FROM bil_payment_receipt i WHERE i.transfer_of_id = NEW.reverses_id))
+BEGIN SELECT RAISE(ABORT, 'coc_transfer_locked: không đảo riêng một nửa của lệnh chuyển tiền sang đơn mới'); END;

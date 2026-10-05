@@ -349,11 +349,14 @@ export const CHECKS = [
   {
     // đ6: lệnh chuyển đủ hai nửa — mỗi lần chi gắn khoản TRANSFER còn hiệu lực có đúng một nửa thu ở đơn nhận, cùng số, cùng người giữ.
     code: "R-BIL-C5",
-    what: "chuyển tiền sang đơn mới đủ hai nửa (đơn nhận, cùng số, cùng người giữ)",
+    what: "chuyển tiền sang đơn mới đủ hai nửa (đơn nhận, cùng số, cùng người giữ) — nửa chi còn hiệu lực ⇔ nửa thu khớp còn hiệu lực",
+    // Hai chiều (kiểm độc lập vòng 2 CAO-2): (1) nửa chi còn hiệu lực mà không có nửa thu khớp còn hiệu lực (lô bị cắt, hoặc nửa thu bị đảo riêng);
+    // (2) nửa chi đã bị đảo mà nửa thu vẫn còn hiệu lực (tiền tính hai lần). Nửa chi lẻ đã đảo (sửa dữ liệu lệch) = đạt.
     sql: `SELECT count(*) FROM bil_payment_receipt o JOIN bil_deposit_approval a ON a.id = o.approval_id AND a.kind_code = 'TRANSFER'
      WHERE o.kind_code = 'CUSTOMER_REFUND' AND o.reverses_id IS NULL
-       AND NOT EXISTS (SELECT 1 FROM bil_payment_receipt i WHERE i.transfer_of_id = o.id AND i.order_id = a.target_order_id AND i.amount = o.amount
-                         AND i.collector_party_id IS o.collector_party_id)`,
+       AND (CASE WHEN EXISTS (SELECT 1 FROM bil_payment_receipt d WHERE d.reverses_id = o.id) THEN 0 ELSE 1 END)
+        <> (CASE WHEN EXISTS (SELECT 1 FROM bil_payment_receipt i WHERE i.transfer_of_id = o.id AND i.order_id = a.target_order_id AND i.amount = o.amount
+                         AND i.collector_party_id IS o.collector_party_id AND NOT EXISTS (SELECT 1 FROM bil_payment_receipt di WHERE di.reverses_id = i.id)) THEN 1 ELSE 0 END)`,
     level: "fail",
   },
   {

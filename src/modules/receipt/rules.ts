@@ -33,7 +33,7 @@ export function dungBienNhan(order: OrderDetailDto, company: CompanyDto, tien: {
     conLai: tien.conLai,
     // ADR-0089 đ9a — chép TỪNG trường (danh sách trắng), không trải đối tượng nguồn.
     huy: tien.huy
-      ? { nhom: tien.huy.nhom, daTra: tien.huy.daTra, dangDoiChieu: tien.huy.dangDoiChieu, daDuyet: tien.huy.daDuyet, daChi: tien.huy.daChi, daChuyen: tien.huy.daChuyen, han: tien.huy.han }
+      ? { nhom: tien.huy.nhom, daTra: tien.huy.daTra, dangDoiChieu: tien.huy.dangDoiChieu, daDuyet: tien.huy.daDuyet, daChi: tien.huy.daChi, daChuyen: tien.huy.daChuyen, daDuyetChuyen: tien.huy.daDuyetChuyen, han: tien.huy.han }
       : null,
   };
 }

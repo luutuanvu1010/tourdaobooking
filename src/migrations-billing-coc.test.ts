@@ -175,6 +175,28 @@ test("chuyển (đ6, NT-H8): nửa thu ở đơn nhận phải khớp nửa chi 
   assert.equal(coc(db, "b").da_tra, 500_000);
 });
 
+test("kiểm độc lập vòng 2: nửa thu vào đơn nhận đã huỷ / Đã giao → RAISE coc_transfer_target_invalid (lô huỷ cả hai nửa); đảo riêng một nửa đã ghép đôi → coc_transfer_locked; nửa chi lẻ (không nửa thu) vẫn đảo được để sửa", () => {
+  const db = moi();
+  don(db, "a", { huy: "CONG_TY_HUY" });
+  don(db, "b");
+  don(db, "c", { huy: "CONG_TY_HUY" });
+  thu(db, { order: "a", amount: 300_000 });
+  const d = duyet(db, { order: "a", amount: 100_000, kind: "TRANSFER", target: "b" });
+  const ra = thu(db, { order: "a", amount: 100_000, kind: "CUSTOMER_REFUND", approval: d, by: "kt" });
+  run(db, "UPDATE orders SET delivered_at = ?, delivered_by = 's1' WHERE id = 'b'", AT);
+  assert.throws(() => thu(db, { order: "b", amount: 100_000, transferOf: ra }), /coc_transfer_target_invalid:/, "đơn nhận đã giao");
+  assert.throws(() => thu(db, { order: "c", amount: 100_000, transferOf: ra }), /coc_transfer_target_invalid:|coc_transfer_mismatch:/, "đơn huỷ");
+  // Nửa chi lẻ (lô cũ bị cắt / SQL tay): đảo được để sửa.
+  thu(db, { order: "a", amount: 100_000, kind: "CUSTOMER_REFUND", reverses: ra, by: "kt" });
+  // Lệnh chuyển đủ hai nửa sang đơn nhận còn hiệu lực rồi thử đảo từng nửa.
+  don(db, "e");
+  const d2 = duyet(db, { order: "a", amount: 200_000, kind: "TRANSFER", target: "e" });
+  const ra2 = thu(db, { order: "a", amount: 200_000, kind: "CUSTOMER_REFUND", approval: d2, by: "kt" });
+  const vao2 = thu(db, { order: "e", amount: 200_000, transferOf: ra2 });
+  assert.throws(() => thu(db, { order: "a", amount: 200_000, kind: "CUSTOMER_REFUND", reverses: ra2, by: "kt" }), /coc_transfer_locked:/, "đảo nửa chi");
+  assert.throws(() => thu(db, { order: "e", amount: 200_000, reverses: vao2 }), /coc_transfer_locked:/, "đảo nửa thu");
+});
+
 test("NT-B2/B3 (đ15 MỌI LÚC): đảo lần thu làm đã trả dưới tổng duyệt → chặn; huỷ duyệt rồi đảo → qua; 'Thay lần thu' giả lập (thu mới TRƯỚC, đảo SAU, một lô) → qua", () => {
   const db = moi();
   don(db, "a", { huy: "KHACH_HUY" });
