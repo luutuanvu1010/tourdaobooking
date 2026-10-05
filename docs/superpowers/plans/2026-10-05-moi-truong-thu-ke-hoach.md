@@ -1,5 +1,7 @@
 # Kế hoạch: dựng môi trường thử giống thật cho CRM
 
+> Hồ sơ đóng băng ngày 2026-10-05, dùng lại khi kích hoạt. Trạng thái hiện hành chỉ ghi ở đặc tả `docs/superpowers/specs/2026-10-05-moi-truong-thu.md`.
+
 - Trạng thái: hoãn có điều kiện (chủ dự án quyết 2026-10-05, sau khi xem số liệu: khoảng 80 phiên bản trong 17 ngày, vài sự cố đều do khác biệt máy tính với Cloudflare, không có lần mất dữ liệu hay sai tiền). Dựng khi một trong ba điều xảy ra: (1) sắp phát hành một migration chạm tiền (ví dụ khoá kỳ sổ tiền); (2) sắp nâng ghim CRM lên bộ luật mới; (3) thêm một sự cố do khác biệt máy tính với Cloudflare. Kế hoạch giữ nguyên để dùng khi kích hoạt.
 - Đặc tả: `docs/superpowers/specs/2026-10-05-moi-truong-thu.md` (chủ chọn đủ bốn câu 2026-10-05).
 - Loại: việc lớn (triển khai). AI làm trên nhánh riêng, test đỏ trước xanh sau, người kiểm độc lập chỉ đọc; chủ chạy mọi lệnh tạo tài nguyên, đặt bí mật, deploy (CLAUDE.md §8).

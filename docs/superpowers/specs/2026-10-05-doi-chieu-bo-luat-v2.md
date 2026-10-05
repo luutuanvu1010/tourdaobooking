@@ -1,5 +1,7 @@
 # Đối chiếu CRM Tour Đảo với bộ luật v2.0.0 của kho luật gốc
 
+> **Hồ sơ đóng băng ngày 2026-10-05**: đúng tại ngày viết, không sửa cho khớp hiện trạng (cách làm tài liệu chủ dự án chốt 2026-10-05). Hiện trạng phần luật của CRM ở `docs/kernel-18.md`; trạng thái môi trường thử ở `docs/superpowers/specs/2026-10-05-moi-truong-thu.md`.
+
 - Ngày: 2026-10-05. Người soạn: AI (phiên tourdao-sales), tổng hợp ba báo cáo chỉ đọc chạy song song (Hiến pháp; Hiến chương; lớp vận hành). Trạng thái: bản đối chiếu, chưa đổi luật nào đang áp ở CRM.
 - Nguồn đối chiếu: `Master-Project-Framework` tag `v2.0.0` (commit 8fae544): Hiến pháp v4.1.0, Hiến chương hệ thống v1.1.0 (nền chuẩn cho mọi dự án), Mô hình dữ liệu lõi v1.0.1, Kernel 18 v1.0.0, GOVERNANCE v1.0.0, PLAYBOOK v1.1.0; hồ sơ `archive/2026-09-26-*.md` của kho.
 - Mục tiêu của chủ dự án: CRM đang chạy thật; không bỏ cái đang có, mà làm nó tốt hơn theo khung mới. Hai lớp phải đối chiếu: (a) tư duy Oracle cho phần mềm doanh nghiệp (Hiến chương, Kernel 18); (b) kiến trúc vận hành chuẩn doanh nghiệp cho đội một người cùng AI (CLAUDE.md, Hiến pháp, kiến trúc, token thiết kế, luật thực thi, quy trình, hàng rào).
