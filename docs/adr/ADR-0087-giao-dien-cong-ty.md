@@ -1,6 +1,6 @@
 # ADR-0087 — Giao diện công ty do Toàn quyền chỉnh (màu, phông, cỡ chữ, độ đậm)
 
-- **Trạng thái:** **accepted** 2026-10-02 (chủ dự án duyệt đặc tả kèm bản nháp này bằng lời "1- duyet", sau một hộp hỏi 4 câu — đều chọn phương án khuyến nghị).
+- **Trạng thái:** **accepted** 2026-10-02 (chủ dự án duyệt đặc tả kèm bản nháp này bằng lời "1- duyet", sau một hộp hỏi 4 câu — đều chọn phương án khuyến nghị). **Điều 3 (cách nạp tệp màu) được ADR-0102 sửa ngày 2026-10-05:** tệp nay ở `/giao-dien.css` và do service worker đệm; đường `/api/giao-dien.css` giữ làm đường cũ.
 - **Ngày:** 2026-10-02.
 - **Số:** 0087 — kiểm `git log --all` lúc chép (2026-10-02): còn trống; `ADR-0086` đã có trên nhánh `van-chuyen-dot-1` / `worktree-doi-chieu-phieu-giam-doc` (chưa gộp). Migration: số lớn nhất mọi nhánh + 1 lúc thi công (`0068` đã có trên `van-chuyen-dot-1` ⇒ dự kiến `0069`).
 - **Đặc tả:** `docs/superpowers/specs/2026-10-02-giao-dien-cong-ty-design.md` (núm chỉnh, cách đưa tới trang, kiểm hợp lệ, màn, kiểm). Một quyết định, một bảng mới một loại dữ liệu, dùng lại ô quyền có sẵn ⇒ không cần trang ghép (CLAUDE.md §9).

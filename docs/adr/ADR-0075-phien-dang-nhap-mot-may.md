@@ -1,6 +1,6 @@
 # ADR-0075 — Phiên đăng nhập có sổ: mỗi tài khoản một máy (trừ IT và Toàn quyền), IT/Toàn quyền xem và gỡ phiên
 
-- **Trạng thái:** **accepted** 2026-10-01 (chủ dự án duyệt bằng lời "duyệt" trong phiên, sau hộp hỏi gom: máy mới vào thì máy cũ bị đăng xuất; mọi tài khoản trừ IT và Toàn quyền; đăng nhập lại một lần khi phát hành; IT + Toàn quyền xem/gỡ của mọi người, mỗi người xem của mình; Q5 = A nhật ký im lặng). Bản nháp gốc giữ ở `docs/superpowers/specs/2026-10-01-adr-0075-phien-dang-nhap-mot-may.md`.
+- **Trạng thái:** **accepted** 2026-10-01 (điều 9, ghi `last_seen_at`: ADR-0102 điều 5 sửa ngày 2026-10-05 — ghi ở nền, không chặn phản hồi; luật "thưa, tối đa 5 phút một lần" không đổi) (chủ dự án duyệt bằng lời "duyệt" trong phiên, sau hộp hỏi gom: máy mới vào thì máy cũ bị đăng xuất; mọi tài khoản trừ IT và Toàn quyền; đăng nhập lại một lần khi phát hành; IT + Toàn quyền xem/gỡ của mọi người, mỗi người xem của mình; Q5 = A nhật ký im lặng). Bản nháp gốc giữ ở `docs/superpowers/specs/2026-10-01-adr-0075-phien-dang-nhap-mot-may.md`.
 - **Ngày:** 2026-10-01 (soạn và duyệt).
 - **Thuộc gói:** đặc tả `docs/superpowers/specs/2026-10-01-xac-thuc-hai-lop-dac-ta.md` (§5b, trang ghép §13) + ADR-0074 + ADR này (trần 3).
 - **Số:** 0075 (bản nháp viết 0072, đổi số khi gộp main 1.52 — xem ADR-0074).
