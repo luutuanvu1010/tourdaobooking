@@ -15,15 +15,15 @@ export const CACHE_NAME = `td-shell-${CACHE_VERSION}`;
 /** Các trang của app (đường dẫn đúng như trình duyệt yêu cầu, không có .html). Test đối chiếu với các file HTML trong public/ nên không lệch khi thêm/bớt trang. */
 export const PAGES: readonly string[] = ["/", "/orders", "/home", "/login", "/order-form", "/order", "/account", "/catalog", "/staff", "/audit", "/parties", "/locations", "/feedback", "/help", "/gui-thong-bao", "/tai-xe", "/xe", "/xe-sua", "/xe-chi-tiet", "/giay-to-sap-het-han", "/danh-muc-giay-to", "/loai-giay-to-xe", "/loai-giay-to-nguoi", "/chinh-sach-dieu-phoi", "/ly-do-dieu-phoi", "/dieu-kien-xuat-ben", "/chuyen-sua", "/chuyen", "/dieu-phoi", "/cuoc", "/cuoc-chuyen", "/tro-ly-cai-dat", "/sessions", "/giao-dien", "/lich-xe-ban", "/bang-gia-xe", "/bang-ke-xe", "/xe-dang-chay"];
 
-/** Tệp tĩnh đúng mẫu: CSS, manifest, JS của trang, font woff2, icon PNG. Không cho phép thư mục lồng nhau hay ký tự lạ. */
-const STATIC_FILE = /^\/(?:app\.css|manifest\.webmanifest|js\/[A-Za-z0-9_-]+\.js|fonts\/[A-Za-z0-9_-]+\.woff2|icons\/[A-Za-z0-9_-]+\.png)$/;
+/** Tệp tĩnh đúng mẫu: CSS (kể cả `/giao-dien.css` — màu giao diện công ty, ADR-0102: do Worker dựng nhưng ĐẶT NGOÀI /api để service worker đệm được; không dữ liệu cá nhân), manifest, JS của trang, font woff2, icon PNG. Không cho phép thư mục lồng nhau hay ký tự lạ. */
+const STATIC_FILE = /^\/(?:app\.css|giao-dien\.css|manifest\.webmanifest|js\/[A-Za-z0-9_-]+\.js|fonts\/[A-Za-z0-9_-]+\.woff2|icons\/[A-Za-z0-9_-]+\.png)$/;
 
 /** Nạp sẵn lúc cài: MỌI trang và MỌI tệp JS của trang (tối ưu tải 2026-09-27, ~250 KB nén, một lần mỗi bản dựng) — sau mỗi lần
  *  triển khai, không lần bấm nào phải kéo cả trang qua mạng; mỗi lần bấm chỉ còn chờ dữ liệu. Test đối chiếu với `PAGES` và script
  *  `build:web` nên thêm trang mới mà quên dòng này thì `npm test` đỏ. */
 export const PRECACHE: readonly string[] = [
   "/", "/orders", "/home", "/login", "/order-form", "/order", "/account", "/catalog", "/staff", "/audit", "/parties", "/locations", "/feedback", "/help", "/gui-thong-bao", "/tai-xe", "/xe", "/xe-sua", "/xe-chi-tiet", "/giay-to-sap-het-han", "/danh-muc-giay-to", "/loai-giay-to-xe", "/loai-giay-to-nguoi", "/chinh-sach-dieu-phoi", "/ly-do-dieu-phoi", "/dieu-kien-xuat-ben", "/chuyen-sua", "/chuyen", "/dieu-phoi", "/cuoc", "/cuoc-chuyen", "/tro-ly-cai-dat", "/sessions", "/giao-dien", "/lich-xe-ban", "/bang-gia-xe", "/bang-ke-xe", "/xe-dang-chay",
-  "/app.css",
+  "/app.css", "/giao-dien.css",
   "/fonts/be-vietnam-pro-400.woff2", "/fonts/be-vietnam-pro-500.woff2", "/fonts/be-vietnam-pro-600.woff2",
   "/fonts/be-vietnam-pro-700.woff2", "/fonts/be-vietnam-pro-800.woff2",
   "/js/login.js", "/js/home.js", "/js/orders.js", "/js/order-form.js", "/js/order.js", "/js/account.js",

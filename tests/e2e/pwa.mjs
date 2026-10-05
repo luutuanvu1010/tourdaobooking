@@ -99,7 +99,7 @@ const NEEDLES = [
   'name="apple-mobile-web-app-status-bar-style" content="default"',
   `name="apple-mobile-web-app-title" content="${SHORT}"`,
   `<meta name="theme-color" content="${STATUS}">`,
-  '<link rel="stylesheet" href="/app.css"><link rel="stylesheet" href="/api/giao-dien.css">',
+  '<link rel="stylesheet" href="/app.css"><link rel="stylesheet" href="/giao-dien.css">',
   `— ${NAME}</title>`,
 ];
 for (const path of PAGES) {

@@ -130,3 +130,14 @@ test("mã phiên bản do build chèn; ngoài bản build (như test này) là '
   assert.equal(CACHE_VERSION, "dev");
   assert.equal(CACHE_NAME, "td-shell-dev");
 });
+
+// Nghiên cứu tốc độ 2026-10-02 / ADR-0102: tệp màu giao diện công ty từng đi qua /api/giao-dien.css (mạng + D1 ở MỌI lần mở trang, chặn vẽ). Nay ở /giao-dien.css
+// (ngoài /api) và do service worker phục vụ "dùng ngay bản có sẵn, làm mới ở nền". Bất biến /api/* không bao giờ vào cache vẫn GIỮ NGUYÊN, kể cả đường cũ.
+test("tệp màu giao diện: /giao-dien.css vào cache khung và nạp sẵn; đường cũ /api/giao-dien.css vẫn đi thẳng ra mạng", () => {
+  assert.equal(shell("/giao-dien.css"), "shell");
+  assert.ok(PRECACHE.includes("/giao-dien.css"), "thiếu trong PRECACHE");
+  assert.equal(shell("/api/giao-dien.css"), "pass");
+  assert.equal(shell("//api/giao-dien.css"), "pass");
+  assert.equal(shell("/giao-dien.css/x"), "pass");
+  assert.equal(shell("/giao-dien.js"), "pass");
+});

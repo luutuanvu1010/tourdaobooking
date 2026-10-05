@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { ACCOUNTS, BASE, call, session, sql, sqlRows } from "./lib.mjs";
 
-const getCss = (etag) => fetch(`${BASE}/api/giao-dien.css`, { headers: etag ? { "if-none-match": etag } : {} });
+const getCss = (etag, duong = "/giao-dien.css") => fetch(`${BASE}${duong}`, { headers: etag ? { "if-none-match": etag } : {} });
 const restore = () => sql("UPDATE gd_setting SET tokens = '{}', version = version + 1 WHERE id = 'default'");
 let r;
 try {
@@ -17,6 +17,10 @@ try {
   assert.equal(await c.text(), ":root{}");
   const etag0 = c.headers.get("etag");
   assert.equal((await getCss(etag0)).status, 304, "cùng ETag → 304");
+  // ADR-0102: đường cũ /api/giao-dien.css (cho trang đã đệm trước khi đổi) cùng thân, cùng ETag.
+  const cu = await getCss(undefined, "/api/giao-dien.css");
+  assert.equal(cu.status, 200, "đường cũ vẫn phục vụ");
+  assert.equal(cu.headers.get("etag"), etag0, "đường cũ cùng ETag");
   console.log("✓ CSS công khai, mặc định rỗng, 304 theo ETag");
 
   // 2) Quyền: Quản trị, Bán hàng 403 cả GET lẫn PUT; Toàn quyền 200

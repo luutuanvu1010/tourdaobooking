@@ -128,7 +128,8 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "GET", path: "/api/feedback/mine", access: "staff" },
   { method: "GET", path: "/api/giao-dien", access: "admin" }, // ADR-0087: chỉ Toàn quyền (ô settings.ops viết thẳng trong thân route)
   { method: "PUT", path: "/api/giao-dien", access: "admin" },
-  { method: "GET", path: "/api/giao-dien.css", access: "public" }, // CÔNG KHAI có chủ đích: trang Đăng nhập cần CSS trước khi có phiên; chỉ màu/phông/cỡ, không dữ liệu cá nhân (ADR-0087)
+  { method: "GET", path: "/giao-dien.css", access: "public" }, // ADR-0102: đường MỚI (ngoài /api, service worker đệm được); cùng thân với đường cũ ngay dưới
+  { method: "GET", path: "/api/giao-dien.css", access: "public" }, // CÔNG KHAI có chủ đích: trang Đăng nhập cần CSS trước khi có phiên; chỉ màu/phông/cỡ, không dữ liệu cá nhân (ADR-0087) — GIỮ làm đường cũ cho trang đã đệm trước khi đổi (ADR-0102)
   { method: "GET", path: "/api/locations", access: "staff" },
   { method: "POST", path: "/api/locations", access: "admin" },
   { method: "PUT", path: "/api/locations/:id", access: "admin" },
@@ -422,6 +423,7 @@ test("mức truy cập của 213 route hiện có khớp ảnh chụp đã duy�
   // 2026-10-02 (Đợt 4 Task 4, ADR-0057 T1): + 9 route bảng giá thuê xe, tuyến, cỡ xe (office) = 225 (trên nền 216 của nhánh).
   // 2026-10-02 (Đợt 4 Task 10, ADR-0057 T2): + 6 route chi phí chuyến xe thuê + bảng kê (office) = 231 trên nhánh; gộp main ffed6f1c (1.78): main 220 + 15 route Đợt 4 = 238.
   // 2026-10-05 (dot5-tang3): gộp tầng 3 Đợt 5 (POST …/cuoc-cua-toi/:id/hanh-khach) lên main 1.79 238 = 239.
-  assert.equal(actual.length, 239, "số route thực tế lệch 239 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 239, "SNAPSHOT phải có đúng 239 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // 2026-10-05 (ADR-0102, nghiên cứu tốc độ đợt 1): + GET /giao-dien.css (public, cùng thân với /api/giao-dien.css) = 240.
+  assert.equal(actual.length, 240, "số route thực tế lệch 240 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 240, "SNAPSHOT phải có đúng 240 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

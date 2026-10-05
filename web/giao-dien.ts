@@ -24,9 +24,9 @@ const daApLenTrang = new Set<string>();
 /** Phần tử của từng dòng — để capNhat() sửa tại chỗ thay vì dựng lại. */
 const dong = new Map<string, { hang: HTMLElement; input: HTMLElement; veMacDinh: HTMLButtonElement; loi: HTMLElement }>();
 
-/** Tắt thẻ link /api/giao-dien.css của trang này: bản đã lưu không được che bản đang chỉnh. */
+/** Tắt thẻ link /giao-dien.css (hoặc đường cũ /api/giao-dien.css) của trang này: bản đã lưu không được che bản đang chỉnh. */
 function tatBanDaLuu(): void {
-  for (const l of document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]')) if (l.getAttribute("href")?.startsWith("/api/giao-dien.css")) l.disabled = true;
+  for (const l of document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]')) if (/^\/(api\/)?giao-dien\.css/.test(l.getAttribute("href") ?? "")) l.disabled = true;
 }
 
 /** Giá trị đang HIỆU LỰC của núm (ghi đè riêng, nếu không thì theo núm cha, nếu không thì mặc định) — ô hiện đúng thứ trang đang dùng. */
