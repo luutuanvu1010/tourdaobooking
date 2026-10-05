@@ -1140,7 +1140,7 @@ export const vanChuyenModule: AppModule = {
           lenh: "TAO", chuyen: { id: null, batDauMs: t.batDauMs, ketThucMs: t.ketThucMs, xe: xeVao(xeRow, chung.giayToXe), taiXe: taiXeVao(t.taiXePartyId, chung.taiXe), nghiPhaLe: t.nghiPhaLe !== null },
           chuyenKhac: khac.map(khungChuyen), khungBan, chinhSach: chinhSachVao(chung.chinhSach), hangBang: chung.hangBang, bayGioMs,
         });
-        const chan = loiKiem(kq, staff, null, { moc: false, nghi: t.nghiPhaLe !== null });
+        const chan = loiKiem(kq, staff, null, { moc: false, nghi: t.nghiPhaLe !== null, camKet: true }); // tạo chuyến chưa có khách — không xét cam kết
         if (chan) return chan;
         const ngayChay = msToVnLocal(t.batDauMs).date;
         // ADR-0057 C2a, C4: cờ xe thuê + chụp giá bảng LÚC XẾP xe nhà xe (cùng lô); thiếu giá ⇒ không dòng nào (chuyến bị giữ THIEU_GIA tới khi có giá).
@@ -1191,7 +1191,7 @@ export const vanChuyenModule: AppModule = {
       const than = docSuaChuyen(await readJson(request));
       if (!than.ok) return error(400, "invalid_input", than.message);
       const b = than.value;
-      if ((b.phaLe || b.nghiPhaLe) && !can(staff, "trip.override")) return CAN_PHA_LE();
+      if ((b.phaLe || b.nghiPhaLe || b.camKetPhaLe) && !can(staff, "trip.override")) return CAN_PHA_LE();
       const nen = await docNen(env.DB, params.id ?? "");
       if (!nen) return KHONG_CO_CHUYEN();
       const bayGioMs = Date.now();
@@ -1222,7 +1222,7 @@ export const vanChuyenModule: AppModule = {
       const than = docXep(await readJson(request));
       if (!than.ok) return error(400, "invalid_input", than.message);
       const b = than.value;
-      if (b.phaLe && !can(staff, "trip.override")) return CAN_PHA_LE();
+      if ((b.phaLe || b.camKetPhaLe) && !can(staff, "trip.override")) return CAN_PHA_LE(); // ADR-0056 VK3-A: phá lệ cam kết cũng chỉ Quản trị / Toàn quyền
       const nen = await docNen(env.DB, params.id ?? "");
       if (!nen) return KHONG_CO_CHUYEN();
       const bayGioMs = Date.now();
@@ -1267,7 +1267,7 @@ export const vanChuyenModule: AppModule = {
       const than = docThemDiem(await readJson(request));
       if (!than.ok) return error(400, "invalid_input", than.message);
       const b = than.value;
-      if (b.phaLe && !can(staff, "trip.override")) return CAN_PHA_LE();
+      if ((b.phaLe || b.camKetPhaLe) && !can(staff, "trip.override")) return CAN_PHA_LE(); // ADR-0056 VK3-A: phá lệ cam kết cũng chỉ Quản trị / Toàn quyền
       const nen = await docNen(env.DB, params.id ?? "");
       if (!nen) return KHONG_CO_CHUYEN();
       const bayGioMs = Date.now();
@@ -1332,7 +1332,7 @@ export const vanChuyenModule: AppModule = {
       const than = docDoi(await readJson(request));
       if (!than.ok) return error(400, "invalid_input", than.message);
       const b = than.value;
-      if (b.phaLe && !can(staff, "trip.override")) return CAN_PHA_LE();
+      if ((b.phaLe || b.camKetPhaLe) && !can(staff, "trip.override")) return CAN_PHA_LE(); // ADR-0056 VK3-A: phá lệ cam kết cũng chỉ Quản trị / Toàn quyền
       const nen = await docNen(env.DB, params.id ?? "");
       if (!nen) return KHONG_CO_CHUYEN();
       const bayGioMs = Date.now();

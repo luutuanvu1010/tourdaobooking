@@ -5,7 +5,7 @@ import type { ChangChoChuyen, ChangLichChung, LienHeTaiXe } from "../orders";
 import type { ChuyenChiTietResponse, CuocChiTietResponse, CuocCuaToiItemDto, GoiBaoChangDto, LenhChuyenLoiBody } from "../../shared/contracts";
 import { docGoiBao, goiBaoChang, nguoiBamGoiBao, type QuyenGoiBao } from "./goi-bao-lenh";
 import { kiemXuatBen, type KiemXuatBenVao } from "../../shared/dieu-phoi-kiem";
-import type { KetQuaKiem, TrangThaiChuyen } from "../../shared/dieu-phoi-kieu";
+import type { KetQuaKiem, MaLuatPhaLe, TrangThaiChuyen } from "../../shared/dieu-phoi-kieu";
 import { dungLichChung } from "../../shared/dieu-phoi-lich-chung";
 import { error, json } from "../../shared/http";
 import type { LyDoGiu, MaGiu } from "../../shared/ly-do-giu";
@@ -50,6 +50,7 @@ const THONG_BAO_409: Record<string, string> = {
   chinh_sach_rong: "Chưa có chính sách điều phối đang hiệu lực — báo người phụ trách hệ thống.",
   can_pha_le: "Trong mốc tối thiểu trước giờ xuất bến — cần Quản trị phá lệ.",
   chua_du_nghi: "Chưa đủ khoảng nghỉ giữa hai chuyến — cần Quản trị phá lệ.",
+  can_pha_le_cam_ket: "Chuyến trái cam kết xe riêng / số chỗ của khách — cần Quản trị phá lệ kèm lý do.", // ADR-0056 VK3-A (kế hoạch Đợt 7 C9)
   con_khach_chua_xong: "Còn khách hoặc điểm chưa xong.",
   chua_du_dieu_kien_xuat_ben: "Chuyến chưa đủ điều kiện xuất bến.",
   // Lệnh tiến độ (A15)
@@ -74,20 +75,23 @@ export function loi409(code: string, lyDo: readonly LyDoGiu[] = [], extra: Omit<
 }
 /**
  * Kết quả luật thuần → 409 (kế hoạch mục 1.1 bảng mã lỗi — lớp ROUTE): `chan` → mã theo lý do ĐẦU (mọi lý do đi kèm); chỉ `canPhaLe` còn thiếu phá lệ →
- * `can_pha_le` (mốc) hoặc `chua_du_nghi` (chỉ khoảng nghỉ), kèm `canQuyen` = người gọi có ô `trip.override`. `null` = cho qua.
+ * `can_pha_le` (mốc) > `chua_du_nghi` (khoảng nghỉ) > `can_pha_le_cam_ket` (cam kết xe riêng / số chỗ — ADR-0056 VK3-A; thứ tự ưu tiên C6), danh sách lý do
+ * mang ĐỦ mọi mã còn thiếu, kèm `canQuyen` = người gọi có ô `trip.override`. `co.*` = lệnh đã có phá lệ cho luật đó (lệnh không thể sinh luật đó: true).
+ * `null` = cho qua.
  */
 export function loiKiem(
-  kq: KetQuaKiem, staff: PermissionHolder, trangThai: TrangThaiChuyen | null, co: { moc: boolean; nghi: boolean }, thongBaoMoc?: string,
+  kq: KetQuaKiem, staff: PermissionHolder, trangThai: TrangThaiChuyen | null, co: { moc: boolean; nghi: boolean; camKet: boolean }, thongBaoMoc?: string,
 ): Response | null {
   if (kq.chan.length > 0) {
     const dau = kq.chan[0]!.ma;
     const code = dau === "CHUYEN_KHONG_CON_LEN_KE_HOACH" ? (trangThai === "RUNNING" ? "xe_dang_chay" : "chuyen_da_ket_thuc") : (MA_LOI_THEO_GIU[dau] ?? "chang_khong_hop_le");
     return loi409(code, kq.chan);
   }
-  const thieu = kq.canPhaLe.filter((l) => (l.ma === "MOC_TOI_THIEU" && !co.moc) || (l.ma === "KHOANG_NGHI" && !co.nghi));
+  const thieu = kq.canPhaLe.filter((l) => (l.ma === "MOC_TOI_THIEU" && !co.moc) || (l.ma === "KHOANG_NGHI" && !co.nghi) || (l.ma === "CAM_KET" && !co.camKet));
   if (thieu.length === 0) return null;
   const moc = thieu.some((l) => l.ma === "MOC_TOI_THIEU");
-  return loi409(moc ? "can_pha_le" : "chua_du_nghi", thieu, { canQuyen: can(staff, "trip.override") }, moc ? thongBaoMoc : undefined);
+  const code = moc ? "can_pha_le" : thieu.some((l) => l.ma === "KHOANG_NGHI") ? "chua_du_nghi" : "can_pha_le_cam_ket";
+  return loi409(code, thieu, { canQuyen: can(staff, "trip.override") }, moc ? thongBaoMoc : undefined);
 }
 /** Mã lý do phá lệ / huỷ hợp lệ: đang dùng, đúng nhóm. */
 export const lyDoHopLe = (chung: DuLieuChung, code: string, nhom: string): boolean => chung.lyDo.some((r) => r.code === code && r.reason_group === nhom);
@@ -156,7 +160,8 @@ export const gioNgan = (ms: number, bayGioMs: number): string => {
   const { date, time } = msToVnLocal(ms);
   return `${time} ${ngayNgan(date, msToVnLocal(bayGioMs).date)}`;
 };
-export const phaLeNhatKy = (luat: string, nhan: string): string => ` · phá lệ ${luat === "MOC_TOI_THIEU" ? "mốc tối thiểu" : "khoảng nghỉ"}: ${nhan}`;
+const TEN_LUAT_PHA_LE: Record<MaLuatPhaLe, string> = { MOC_TOI_THIEU: "mốc tối thiểu", KHOANG_NGHI: "khoảng nghỉ", CAM_KET: "cam kết" };
+export const phaLeNhatKy = (luat: MaLuatPhaLe, nhan: string): string => ` · phá lệ ${TEN_LUAT_PHA_LE[luat]}: ${nhan}`;
 export const maDonGon = (codes: readonly string[]): string => [...new Set(codes)].sort().join(", ");
 
 // ---- Chi tiết chuyến ---------------------------------------------------------------------------------------------------------------------------------------

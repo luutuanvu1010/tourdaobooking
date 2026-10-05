@@ -51,20 +51,20 @@ export function kiemCamKet(v: { xe: { id: string; soCho: number }; chang: readon
   const ds: { x: ViPhamCamKet; loi: string }[] = [];
   const xr = new Map<string, { ch: ChangCamKet; donXeRieng: string }>();
   // R-XR: mỗi chặng xe riêng của đơn A — mọi chặng của đơn khác vi phạm, và chính chặng xe riêng vi phạm.
-  for (const r of chang.filter((c) => c.xeRieng === true)) {
+  for (const r of chang.filter((c) => c.xeRieng)) {
     const khac = chang.filter((c) => c.orderId !== r.orderId);
     if (khac.length === 0) continue;
     if (!xr.has(r.legId)) xr.set(r.legId, { ch: r, donXeRieng: r.orderCode });
     for (const c of khac) if (!xr.has(c.legId)) xr.set(c.legId, { ch: c, donXeRieng: r.orderCode });
   }
   for (const { ch, donXeRieng } of xr.values()) {
-    const x: ViPhamCamKet = { legId: ch.legId, loai: "XR", xeRieng: ch.xeRieng === true, choToiThieu: ch.choToiThieu ?? null, orderCode: ch.orderCode };
+    const x: ViPhamCamKet = { legId: ch.legId, loai: "XR", xeRieng: ch.xeRieng, choToiThieu: ch.choToiThieu, orderCode: ch.orderCode };
     ds.push({ x, loi: loiViPham(x, v.xe.soCho, donXeRieng) });
   }
   // R-CX: mỗi chặng đòi nhiều chỗ hơn xe.
   for (const ch of chang) {
-    if (typeof ch.choToiThieu !== "number" || ch.choToiThieu <= v.xe.soCho) continue;
-    const x: ViPhamCamKet = { legId: ch.legId, loai: "CX", xeRieng: ch.xeRieng === true, choToiThieu: ch.choToiThieu, orderCode: ch.orderCode };
+    if (ch.choToiThieu === null || ch.choToiThieu <= v.xe.soCho) continue;
+    const x: ViPhamCamKet = { legId: ch.legId, loai: "CX", xeRieng: ch.xeRieng, choToiThieu: ch.choToiThieu, orderCode: ch.orderCode };
     ds.push({ x, loi: loiViPham(x, v.xe.soCho, "") });
   }
   // Thứ tự tất định theo dòng khoá — cùng trạng thái cho cùng danh sách lý do ở mọi nơi gọi (bài "MỘT luật hai nơi").

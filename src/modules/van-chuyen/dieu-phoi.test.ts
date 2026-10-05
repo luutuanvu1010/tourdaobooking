@@ -67,13 +67,13 @@ function xe(w: any, cho = 15): string {
 const leg = (ngay: string, gio: string, noiDon: { place?: string; locId?: string } = {}) =>
   ({ direction: "OUT", pickupDate: ngay, pickupTime: gio, pickupLocationId: noiDon.locId ?? null, pickupPlace: noiDon.locId ? "" : (noiDon.place ?? "Khách sạn Dò Tìm"), dropoffLocationId: LOC, dropoffPlace: "" });
 /** Đơn ĐÃ XÁC NHẬN (Bán hàng lập, xác nhận) — một dịch vụ `soNguoi` người lớn, một chặng chiều đi; `ten` hành khách có tên (GIẢ). */
-async function don(w: any, v: { ngay: string; gio: string; soNguoi?: number; ten?: number; noiDon?: { place?: string; locId?: string }; handler?: string; xacNhan?: boolean }) {
+async function don(w: any, v: { ngay: string; gio: string; soNguoi?: number; ten?: number; noiDon?: { place?: string; locId?: string }; handler?: string; xacNhan?: boolean; camKet?: { exclusiveVehicle?: boolean; minVehicleSeats?: number | null } }) {
   const soNguoi = v.soNguoi ?? 2;
   const r = await w.call("POST", "/api/orders", {
     as: SALES,
     body: {
       customerName: "Khách Thử", customerPhone: "0912345678", ...(v.handler ? { handlerStaffId: v.handler } : {}),
-      services: [{ kind: "catalog", catalogCode: "ZA1", pax: { adult: soNguoi, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: v.ngay, legs: [leg(v.ngay, v.gio, v.noiDon)] }],
+      services: [{ kind: "catalog", catalogCode: "ZA1", pax: { adult: soNguoi, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: v.ngay, legs: [{ ...leg(v.ngay, v.gio, v.noiDon), ...(v.camKet ?? {}) }] }],
       passengers: Array.from({ length: v.ten ?? soNguoi }, (_x, i) => ({ fullName: `Khách Dò Tìm ${i + 1}`, birthYear: 1990 + i, paxCode: "adult" })),
     },
   });
@@ -420,4 +420,178 @@ test("TC-34 (I17, bài tĩnh): nơi DUY NHẤT ghi nhật ký chuyến (`nhatKy`
   assert.ok(than.includes("auditStatement("), "chống bài rỗng: tìm thấy thân nhatKy");
   assert.doesNotMatch(than, /orderId/);
   assert.equal((src.match(/auditStatement\(/g) ?? []).length, 1, "chỉ một nơi gọi auditStatement trong dieu-phoi.ts");
+});
+
+// ---- Đợt 7 Task 4 — cam kết xe riêng / số chỗ (ADR-0056 VK3-A; kế hoạch C4, C6, C7, C8, C9) ---------------------------------------------------------------
+const PL = { lyDo: "PHA_LE_SU_CO" };
+const camKetCua = (w: any, tripId: string) => ({ ...w.q("SELECT commitment_override_reason_code r, commitment_override_key k FROM vc_trip WHERE id = ?", tripId)[0] });
+const ngoai6Gio = () => ({ ngay: inDays(2), gio: "07:00" });
+
+test("Đợt 7 bài 2–3 (tiêu chí 1): xếp đơn B vào chuyến có chặng XE RIÊNG của A, không phá lệ → 409 can_pha_le_cam_ket; Quản trị camKetPhaLe → 200, cột phá lệ có, sự kiện ALLOCATED mang CAM_KET; khoá không ra nhật ký / phản hồi; C8: gửi phá lệ khi không vi phạm → bỏ qua", async () => {
+  const w = setup();
+  const t = (await taoChuyen(w, SALES, { xe: xe(w), taiXe: taiXe(w, "Tài Xế An"), batDau: ngoai6Gio() })).json;
+  const a = await don(w, { ngay: inDays(2), gio: "07:30", camKet: { exclusiveVehicle: true } });
+  const b = await don(w, { ngay: inDays(2), gio: "07:30" });
+  // C8: chuyến chưa vi phạm (chỉ đơn A) — Quản trị gửi kèm phá lệ cam kết → lệnh chạy, cột KHÔNG ghi.
+  const r1 = await xep(w, ADM, t, [{ legId: a.legId, soSuat: 2 }], { camKetPhaLe: PL });
+  assert.equal(r1.status, 200, r1.text);
+  assert.deepEqual(camKetCua(w, t.chuyen.id), { r: null, k: null });
+  const r = await xep(w, SALES, r1.json, [{ legId: b.legId, soSuat: 2 }]);
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "can_pha_le_cam_ket");
+  assert.equal(r.json.error.message, "Chuyến trái cam kết xe riêng / số chỗ của khách — cần Quản trị phá lệ kèm lý do.");
+  assert.equal(r.json.error.canQuyen, false);
+  assert.ok(r.json.error.lyDo.length >= 2 && r.json.error.lyDo.every((l: any) => l.ma === "CAM_KET"), JSON.stringify(r.json.error.lyDo));
+  assert.equal((await xep(w, ADM, r1.json, [{ legId: b.legId, soSuat: 2 }])).json.error.canQuyen, true);
+  assert.equal(w.q("SELECT count(*) n FROM vc_trip_event WHERE kind = 'ALLOCATED'")[0].n, 1, "từ chối thì không ghi");
+  const ok = await xep(w, ADM, r1.json, [{ legId: b.legId, soSuat: 2 }], { camKetPhaLe: PL });
+  assert.equal(ok.status, 200, ok.text);
+  const ck = camKetCua(w, t.chuyen.id);
+  assert.equal(ck.r, "PHA_LE_SU_CO");
+  assert.ok(typeof ck.k === "string" && ck.k.startsWith("xe:") && ck.k.includes(a.legId) && ck.k.includes(b.legId), ck.k);
+  const ev = w.q("SELECT override_rule_code r, override_reason_code l FROM vc_trip_event WHERE kind = 'ALLOCATED' ORDER BY rowid DESC")[0];
+  assert.deepEqual({ ...ev }, { r: "CAM_KET", l: "PHA_LE_SU_CO" });
+  const nk = w.q("SELECT detail FROM audit_log WHERE action = 'trip_allocated' ORDER BY rowid DESC")[0].detail as string;
+  assert.match(nk, /phá lệ cam kết: Sự cố vận hành/);
+  assert.ok(!nk.includes(ck.k) && !nk.includes("xe:"), `C4: khoá không vào nhật ký — ${nk}`);
+  assert.ok(!ok.text.includes(ck.k) && !ok.text.includes("commitment"), "C4: khoá không vào phản hồi");
+});
+
+test("Đợt 7 bài 4 (tiêu chí 4, Review Focus 2, hàng rào 2): Bán hàng gửi CHỈ camKetPhaLe ở sửa chuyến / xếp / dời / thêm điểm khi chạy → 403 (không ghi)", async () => {
+  const w = setup();
+  const t = (await taoChuyen(w, SALES, { xe: xe(w), taiXe: taiXe(w, "Tài Xế An"), batDau: ngoai6Gio() })).json;
+  const a = await don(w, { ngay: inDays(2), gio: "07:30" });
+  const id = t.chuyen.id;
+  const v = t.chuyen.version;
+  const ca: [string, string, Record<string, unknown>][] = [
+    ["PUT", `/api/van-chuyen/chuyen/${id}`, { version: v, requestId: uuid(), camKetPhaLe: PL }],
+    ["POST", `/api/van-chuyen/chuyen/${id}/phan-bo`, { version: v, requestId: uuid(), chang: [{ legId: a.legId, soSuat: 2 }], camKetPhaLe: PL }],
+    ["POST", `/api/van-chuyen/chuyen/${id}/doi`, { version: v, requestId: uuid(), suatIds: [uuid()], denChuyenId: uuid(), denVersion: 1, camKetPhaLe: PL }],
+    ["POST", `/api/van-chuyen/chuyen/${id}/them-diem`, { version: v, requestId: uuid(), chang: [{ legId: a.legId, soSuat: 2 }], camKetPhaLe: PL }],
+  ];
+  for (const [m, url, body] of ca) {
+    const r = await w.call(m, url, { as: SALES, body });
+    assert.equal(r.status, 403, `${m} ${url}: ${r.text}`);
+    assert.match(r.json.error.message, /Chỉ Quản trị hoặc Toàn quyền phá lệ/);
+  }
+  assert.equal(w.q("SELECT count(*) n FROM vc_trip_event WHERE kind <> 'CREATED'")[0].n, 0);
+});
+
+test("Đợt 7 bài 5 (tiêu chí 2): chặng cần ≥ 15 chỗ — đổi sang xe 7 chỗ → 409 can_pha_le_cam_ket; Quản trị kèm phá lệ → 200, khoá mang id xe MỚI; sửa giờ (không đổi xe) không bị chặn", async () => {
+  const w = setup();
+  const t = (await taoChuyen(w, SALES, { xe: xe(w, 15), taiXe: taiXe(w, "Tài Xế An"), batDau: ngoai6Gio() })).json;
+  const a = await don(w, { ngay: inDays(2), gio: "07:30", camKet: { minVehicleSeats: 15 } });
+  const x = await xep(w, SALES, t, [{ legId: a.legId, soSuat: 2 }]);
+  assert.equal(x.status, 200, x.text);
+  let c = x.json;
+  const xe7 = xe(w, 7);
+  const sua = (as: string, body: Record<string, unknown>) => w.call("PUT", `/api/van-chuyen/chuyen/${t.chuyen.id}`, { as, body: { version: c.chuyen.version, requestId: uuid(), ...body } });
+  const r = await sua(SALES, { xeId: xe7 });
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "can_pha_le_cam_ket");
+  assert.deepEqual(r.json.error.lyDo.map((l: any) => l.ma), ["CAM_KET"]);
+  assert.match(JSON.stringify(r.json.error.lyDo), /≥ 15 chỗ, xe 7 chỗ/);
+  const ok = await sua(ADM, { xeId: xe7, camKetPhaLe: { lyDo: "PHA_LE_KHAC" } });
+  assert.equal(ok.status, 200, ok.text);
+  c = ok.json;
+  const ck = camKetCua(w, t.chuyen.id);
+  assert.equal(ck.r, "PHA_LE_KHAC");
+  assert.ok(ck.k.startsWith(`xe:${xe7}|`) && ck.k.includes(`${a.legId}:CX:0:15`), ck.k);
+  assert.equal(w.q("SELECT override_rule_code r FROM vc_trip_event WHERE kind = 'UPDATED' ORDER BY rowid DESC")[0].r, "CAM_KET");
+  // Sửa giờ (không đổi xe) trên chuyến đã phá lệ: không chặn, cột giữ nguyên.
+  const gio = await sua(SALES, { ketThuc: { ngay: inDays(2), gio: "09:30" } });
+  assert.equal(gio.status, 200, gio.text);
+  assert.deepEqual(camKetCua(w, t.chuyen.id), ck);
+});
+
+test("Đợt 7 (khuôn nghiPhaLe): vi phạm sinh do SỬA ĐƠN — sửa chuyến không đổi xe KHÔNG bị chặn; Quản trị gửi CHỈ camKetPhaLe → 200, cột ghi khoá hiện tại, nhật ký 'phá lệ cam kết'; gửi lại khi khoá đã khớp → không ghi", async () => {
+  const w = setup();
+  const t = (await taoChuyen(w, SALES, { xe: xe(w), taiXe: taiXe(w, "Tài Xế An"), batDau: ngoai6Gio() })).json;
+  const a = await don(w, { ngay: inDays(2), gio: "07:30" });
+  const b = await don(w, { ngay: inDays(2), gio: "07:30" });
+  const x = await xep(w, SALES, t, [{ legId: a.legId, soSuat: 2 }, { legId: b.legId, soSuat: 2 }]);
+  assert.equal(x.status, 200, x.text);
+  let c = x.json;
+  w.sqlite.prepare("UPDATE ord_transfer_leg SET exclusive_vehicle = 1 WHERE id = ?").run(a.legId); // mô phỏng sửa đơn sau khi đã ghép (đường route: Task 5)
+  const sua = (as: string, body: Record<string, unknown>) => w.call("PUT", `/api/van-chuyen/chuyen/${t.chuyen.id}`, { as, body: { version: c.chuyen.version, requestId: uuid(), ...body } });
+  const gio = await sua(SALES, { ketThuc: { ngay: inDays(2), gio: "09:30" } });
+  assert.equal(gio.status, 200, gio.text);
+  c = gio.json;
+  assert.deepEqual(camKetCua(w, t.chuyen.id), { r: null, k: null });
+  const ok = await sua(ADM, { camKetPhaLe: PL });
+  assert.equal(ok.status, 200, ok.text);
+  c = ok.json;
+  const ck = camKetCua(w, t.chuyen.id);
+  assert.equal(ck.r, "PHA_LE_SU_CO");
+  assert.ok(ck.k.includes(`${a.legId}:XR:1:-`) && ck.k.includes(`${b.legId}:XR:0:-`), ck.k);
+  const nk = w.q("SELECT detail FROM audit_log WHERE action = 'trip_edited' ORDER BY rowid DESC")[0].detail as string;
+  assert.match(nk, /phá lệ cam kết: Sự cố vận hành/);
+  assert.ok(!nk.includes("xe:"), nk);
+  // Gửi lại phá lệ khi khoá đã khớp → không đổi gì, không ghi thêm.
+  const n = w.q("SELECT count(*) n FROM vc_trip_event")[0].n;
+  assert.equal((await sua(ADM, { camKetPhaLe: { lyDo: "PHA_LE_KHAC" } })).status, 200);
+  assert.equal(w.q("SELECT count(*) n FROM vc_trip_event")[0].n, n);
+  assert.equal(camKetCua(w, t.chuyen.id).r, "PHA_LE_SU_CO");
+});
+
+test("Đợt 7 bài 6 (C6): xếp cần CẢ mốc lẫn cam kết — thiếu cả hai → can_pha_le (lý do đủ hai mã); chỉ phá lệ mốc → can_pha_le_cam_ket; đủ hai → 200, sự kiện mang MOC_TOI_THIEU, cột mang lý do cam kết, nhật ký hai đoạn phá lệ", async () => {
+  const w = setup();
+  const t = (await taoChuyen(w, SALES, { xe: xe(w), taiXe: taiXe(w, "Tài Xế An"), batDau: vnSau(120) })).json;
+  const a = await don(w, { ngay: inDays(1), gio: "23:00", camKet: { exclusiveVehicle: true } });
+  const b = await don(w, { ngay: inDays(1), gio: "23:00" });
+  assert.equal((await w.call("POST", `/api/orders/${a.id}/legs/${a.legId}/short-notice`, { as: ADM, body: { lyDo: "KHACH_DOAN_GOI_GAP" } })).status, 200);
+  const x = await xep(w, SALES, t, [{ legId: a.legId, soSuat: 2 }]);
+  assert.equal(x.status, 200, x.text);
+  const c = x.json;
+  const r0 = await xep(w, ADM, c, [{ legId: b.legId, soSuat: 2 }]);
+  assert.equal(r0.status, 409, r0.text);
+  assert.equal(r0.json.error.code, "can_pha_le");
+  assert.deepEqual([...new Set(r0.json.error.lyDo.map((l: any) => l.ma))].sort(), ["CAM_KET", "MOC_TOI_THIEU"]);
+  const r1 = await xep(w, ADM, c, [{ legId: b.legId, soSuat: 2 }], { phaLe: PL });
+  assert.equal(r1.json.error.code, "can_pha_le_cam_ket", r1.text);
+  const r2 = await xep(w, ADM, c, [{ legId: b.legId, soSuat: 2 }], { camKetPhaLe: PL });
+  assert.equal(r2.json.error.code, "can_pha_le", r2.text);
+  assert.deepEqual(r2.json.error.lyDo.map((l: any) => l.ma), ["MOC_TOI_THIEU"]);
+  const ok = await xep(w, ADM, c, [{ legId: b.legId, soSuat: 2 }], { phaLe: PL, camKetPhaLe: { lyDo: "PHA_LE_KHAC" } });
+  assert.equal(ok.status, 200, ok.text);
+  const ev = w.q("SELECT override_rule_code r, override_reason_code l FROM vc_trip_event WHERE kind = 'ALLOCATED' ORDER BY rowid DESC")[0];
+  assert.deepEqual({ ...ev }, { r: "MOC_TOI_THIEU", l: "PHA_LE_SU_CO" });
+  assert.equal(camKetCua(w, t.chuyen.id).r, "PHA_LE_KHAC");
+  const nk = w.q("SELECT detail FROM audit_log WHERE action = 'trip_allocated' ORDER BY rowid DESC")[0].detail as string;
+  assert.match(nk, /phá lệ mốc tối thiểu: Sự cố vận hành/);
+  assert.match(nk, /phá lệ cam kết: Khác/);
+});
+
+test("Đợt 7 dời (Task 4): dời B sang chuyến có XE RIÊNG của A → 409 can_pha_le_cam_ket; Quản trị phá lệ → 200, cột chuyến ĐÍCH ghi; dời B tiếp sang chuyến trống → nguồn hết vi phạm, cột về trống trong cùng lô (C7), Bán hàng làm được", async () => {
+  const w = setup();
+  const t1 = (await taoChuyen(w, SALES, { xe: xe(w), taiXe: taiXe(w, "Tài Xế An"), batDau: ngoai6Gio() })).json;
+  const t2 = (await taoChuyen(w, SALES, { xe: xe(w), taiXe: taiXe(w, "Tài Xế Bình"), batDau: ngoai6Gio() })).json;
+  const t3 = (await taoChuyen(w, SALES, { xe: xe(w), taiXe: taiXe(w, "Tài Xế Cường"), batDau: ngoai6Gio() })).json;
+  const a = await don(w, { ngay: inDays(2), gio: "07:30", camKet: { exclusiveVehicle: true } });
+  const b = await don(w, { ngay: inDays(2), gio: "07:30" });
+  const c1 = (await xep(w, SALES, t1, [{ legId: b.legId, soSuat: 2 }])).json;
+  const c2 = (await xep(w, SALES, t2, [{ legId: a.legId, soSuat: 2 }])).json;
+  const doi = (as: string, tu: any, suatIds: string[], den: any, extra: Record<string, unknown> = {}) =>
+    w.call("POST", `/api/van-chuyen/chuyen/${tu.chuyen.id}/doi`, {
+      as, body: { version: tu.chuyen.version, requestId: uuid(), suatIds, denChuyenId: den.chuyen.id, denVersion: den.chuyen.version, ...extra },
+    });
+  const suatB1 = c1.suat.map((s: any) => s.id);
+  const r = await doi(SALES, c1, suatB1, c2);
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "can_pha_le_cam_ket");
+  const ok = await doi(ADM, c1, suatB1, c2, { camKetPhaLe: PL });
+  assert.equal(ok.status, 200, ok.text);
+  assert.equal(camKetCua(w, t2.chuyen.id).r, "PHA_LE_SU_CO");
+  assert.deepEqual(camKetCua(w, t1.chuyen.id), { r: null, k: null });
+  assert.equal(w.q("SELECT override_rule_code r FROM vc_trip_event WHERE kind = 'ALLOCATION_MOVED' ORDER BY rowid DESC")[0].r, "CAM_KET");
+  // Dời B tiếp từ t2 sang t3 (trống): nguồn t2 hết vi phạm → hai cột về trống trong cùng lô; Bán hàng làm được (C7 — không cần phá lệ).
+  const c2b = await chiTiet(w, t2.chuyen.id);
+  const suatB2 = c2b.suat.filter((s: any) => s.legId === b.legId).map((s: any) => s.id);
+  assert.equal(suatB2.length, 2, JSON.stringify(c2b.suat));
+  const di = await doi(SALES, c2b, suatB2, await chiTiet(w, t3.chuyen.id));
+  assert.equal(di.status, 200, di.text);
+  assert.deepEqual(camKetCua(w, t2.chuyen.id), { r: null, k: null });
+  assert.deepEqual(camKetCua(w, t3.chuyen.id), { r: null, k: null });
+  const nk = w.q("SELECT detail FROM audit_log WHERE action = 'trip_allocation_moved' ORDER BY rowid DESC")[0].detail as string;
+  assert.match(nk, /bỏ phá lệ cam kết/);
 });

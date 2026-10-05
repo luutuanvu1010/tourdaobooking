@@ -254,3 +254,29 @@ test("D5.1 chặng về 'chưa xếp' sau khi xe kia kết thúc gián đoạn �
     tat();
   }
 });
+
+test("Đợt 7 (THEM_KHI_CHAY — ADR-0056 VK3-A, ruling điều phối): thêm chặng đơn B vào xe đang chạy chở XE RIÊNG của A — Quản trị chỉ phá lệ mốc → 409 can_pha_le_cam_ket; kèm camKetPhaLe → 200, sự kiện mang MOC_TOI_THIEU (C6), cột phá lệ cam kết ghi, nhật ký hai đoạn", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const { a, b } = await xeDangChay(w);
+    w.sqlite.prepare("UPDATE ord_transfer_leg SET exclusive_vehicle = 1 WHERE id = ?").run(a.don.legId);
+    const r1 = await themDiem(w, a.id, ADM, [{ legId: b.legId, soSuat: 2 }], PHA_LE);
+    assert.equal(r1.status, 409, r1.text);
+    assert.equal(r1.json.error.code, "can_pha_le_cam_ket");
+    assert.equal(r1.json.error.canQuyen, true);
+    const r = await themDiem(w, a.id, ADM, [{ legId: b.legId, soSuat: 2 }], { ...PHA_LE, camKetPhaLe: { lyDo: "PHA_LE_KHAC" } });
+    assert.equal(r.status, 200, r.text);
+    assert.deepEqual(dong(w.q("SELECT override_rule_code, override_reason_code FROM vc_trip_event WHERE kind = 'STOP_ADDED_RUNNING'")), [{ override_rule_code: "MOC_TOI_THIEU", override_reason_code: "PHA_LE_SU_CO" }]);
+    const t = w.q("SELECT commitment_override_reason_code r, commitment_override_key k FROM vc_trip WHERE id = ?", a.id)[0];
+    assert.equal(t.r, "PHA_LE_KHAC");
+    assert.ok(t.k.includes(a.don.legId) && t.k.includes(b.legId), t.k);
+    const nk = w.q("SELECT detail FROM audit_log WHERE action = 'trip_stop_added_running'")[0].detail as string;
+    assert.match(nk, /phá lệ mốc tối thiểu: Sự cố vận hành/);
+    assert.match(nk, /phá lệ cam kết: Khác/);
+    assert.ok(!nk.includes(t.k) && !r.text.includes(t.k), "C4: khoá không ra nhật ký / phản hồi");
+    kiemDinhKySach(w);
+  } finally {
+    tat();
+  }
+});

@@ -60,6 +60,8 @@ export interface SuaChuyenThan {
   nghiPhaLe: { lyDo: string } | null;
   /** ADR-0057 C2: vắng (undefined) = giữ tuyến; null = bỏ tuyến; mã = đổi tuyến. */
   tuyen: string | null | undefined;
+  /** ADR-0056 VK3-A: phá lệ cam kết xe riêng / số chỗ (Quản trị / Toàn quyền). Vắng → null. */
+  camKetPhaLe: { lyDo: string } | null;
 }
 export function docSuaChuyen(body: Record<string, unknown> | null): KetQua<SuaChuyenThan> {
   if (!body) return fail("Dữ liệu không hợp lệ.");
@@ -89,17 +91,23 @@ export function docSuaChuyen(body: Record<string, unknown> | null): KetQua<SuaCh
   if (!phaLe.ok) return phaLe;
   const nghi = docPhaLe(body.nghiPhaLe, "Phá lệ khoảng nghỉ");
   if (!nghi.ok) return nghi;
+  const camKet = docPhaLe(body.camKetPhaLe, "Phá lệ cam kết");
+  if (!camKet.ok) return camKet;
   if (body.tuyen !== undefined && !tuyenHopLe(body.tuyen)) return fail("Tuyến không hợp lệ.");
   return {
     ok: true,
     value: {
       version: v.value, requestId: rid.value, xeId: (body.xeId as string | undefined) ?? null, taiXePartyId: (body.taiXePartyId as string | undefined) ?? null, batDauMs, ketThucMs,
-      diem, phaLe: phaLe.value, nghiPhaLe: nghi.value, tuyen: body.tuyen as string | null | undefined,
+      diem, phaLe: phaLe.value, nghiPhaLe: nghi.value, tuyen: body.tuyen as string | null | undefined, camKetPhaLe: camKet.value,
     },
   };
 }
 
-export interface XepThan { version: number; requestId: string; chang: { legId: string; soSuat: number; personKeys: string[] }[]; nguoiDiKem: string[]; phaLe: { lyDo: string } | null }
+export interface XepThan {
+  version: number; requestId: string; chang: { legId: string; soSuat: number; personKeys: string[] }[]; nguoiDiKem: string[]; phaLe: { lyDo: string } | null;
+  /** ADR-0056 VK3-A: phá lệ cam kết xe riêng / số chỗ (xếp và thêm khi xe đang chạy). Vắng → null. */
+  camKetPhaLe: { lyDo: string } | null;
+}
 export function docXep(body: Record<string, unknown> | null): KetQua<XepThan> {
   if (!body) return fail("Dữ liệu không hợp lệ.");
   const v = docVersion(body);
@@ -125,7 +133,9 @@ export function docXep(body: Record<string, unknown> | null): KetQua<XepThan> {
   if (chang.length === 0 && kem.length === 0) return fail("Chọn chặng hoặc người đi kèm để xếp.");
   const phaLe = docPhaLe(body.phaLe, "Phá lệ");
   if (!phaLe.ok) return phaLe;
-  return { ok: true, value: { version: v.value, requestId: rid.value, chang, nguoiDiKem: [...(kem as string[])], phaLe: phaLe.value } };
+  const camKet = docPhaLe(body.camKetPhaLe, "Phá lệ cam kết");
+  if (!camKet.ok) return camKet;
+  return { ok: true, value: { version: v.value, requestId: rid.value, chang, nguoiDiKem: [...(kem as string[])], phaLe: phaLe.value, camKetPhaLe: camKet.value } };
 }
 function docSuatIds(v: unknown): KetQua<string[]> {
   return Array.isArray(v) && v.length >= 1 && v.length <= 100 && v.every(idHopLe) && new Set(v).size === v.length ? { ok: true, value: [...(v as string[])] } : fail("Chọn ít nhất một suất.");
@@ -143,14 +153,17 @@ export function docRut(body: Record<string, unknown> | null): KetQua<RutThan> {
   if (!phaLe.ok) return phaLe;
   return { ok: true, value: { version: v.value, requestId: rid.value, suatIds: ids.value, phaLe: phaLe.value } };
 }
-export interface DoiThan extends RutThan { denChuyenId: string; denVersion: number }
+/** `camKetPhaLe` (ADR-0056 VK3-A): chỉ chuyến ĐÍCH cần (dời đến xét như xếp); rút không nhận khoá này (C7). */
+export interface DoiThan extends RutThan { denChuyenId: string; denVersion: number; camKetPhaLe: { lyDo: string } | null }
 export function docDoi(body: Record<string, unknown> | null): KetQua<DoiThan> {
   const r = docRut(body);
   if (!r.ok) return r;
   const b = body!;
   if (!idHopLe(b.denChuyenId)) return fail("Chọn chuyến đích.");
   if (typeof b.denVersion !== "number" || !Number.isInteger(b.denVersion) || b.denVersion < 1) return fail("Thiếu phiên bản chuyến đích — tải lại trang rồi làm lại.");
-  return { ok: true, value: { ...r.value, denChuyenId: b.denChuyenId, denVersion: b.denVersion } };
+  const camKet = docPhaLe(b.camKetPhaLe, "Phá lệ cam kết");
+  if (!camKet.ok) return camKet;
+  return { ok: true, value: { ...r.value, denChuyenId: b.denChuyenId, denVersion: b.denVersion, camKetPhaLe: camKet.value } };
 }
 export interface HuyThan { version: number; requestId: string; lyDo: string; phaLe: { lyDo: string } | null }
 export function docHuy(body: Record<string, unknown> | null): KetQua<HuyThan> {

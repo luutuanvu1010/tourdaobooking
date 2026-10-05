@@ -8,7 +8,7 @@ import { auditStatement, type AuditAction } from "../audit";
 import {
   ALLOC_CLOSE, ALLOC_GAN_TEN, ALLOC_INSERT, ALLOC_TIEN_DO, ALLOCS_CLOSE_ALL, ALLOCS_DONG_GIAN_DOAN, CHECK_INSERT, CHECK_ITEM_INSERT, DRIVER_CLOSE, DRIVER_INSERT,
   EVENT_INSERT, MANIFEST_INSERT, MOC_GOI_INSERT, MOC_XEP_INSERT, STOP_DA_TOI, STOP_INSERT, STOP_SET_SEQ, STOP_SKIP, STOP_UPDATE_PLAN, STOP_XONG_NEU_HET, STOPS_SKIP_ALL, TRIP_CANCEL, TRIP_GATE,
-  TRIP_GATE_CHI_PHI, TRIP_GATE_DANG_CHAY, TRIP_GATE_DOI, TRIP_GATE_TIEN_DO, TRIP_INSERT, TRIP_KET_THUC, TRIP_UPDATE_PLAN, TRIP_XUAT_BEN,
+  TRIP_CAM_KET_PHA_LE, TRIP_GATE_CHI_PHI, TRIP_GATE_DANG_CHAY, TRIP_GATE_DOI, TRIP_GATE_TIEN_DO, TRIP_INSERT, TRIP_KET_THUC, TRIP_UPDATE_PLAN, TRIP_XUAT_BEN,
   ALLOC_OFFICE_CANCEL, MANIFEST_THEM_SAU, TRIP_CHOT, TRIP_GATE_DANG_CHAY_VERSION,
 } from "./chuyen-repo";
 import { cauChiPhi, type KeHoachChiPhi } from "./tien-xe-lo";
@@ -25,7 +25,8 @@ import {
  * `GHI_NGOAI` (Đợt 5 A-1b — chủ duyệt 5/10, đề xuất luật A-1b mục 2): câu GHI do module KHÁC cấp (orders — dòng hành khách tài xế nhập), không chạm vc_trip nên
  * gác bằng ID NHẬT KÝ của lô (`EXISTS (SELECT 1 FROM audit_log WHERE id = ?)` = dấu lệnh) thay cho `last_cmd_id`. Chỉ `loBoSungTen` được dùng (bài thứ tự lô).
  */
-export type NhanCau = "CONG" | "CONG_DOI" | "CHUYEN_TIEN_DO" | "CONG_MOC" | "NHAT_KY" | "SU_KIEN" | "GHI" | "GHI_NGOAI" | "TRANG_THAI_CUOI";
+/** `CAM_KET_PHA_LE` (ADR-0056 VK3-A, Đợt 7 Task 4): câu ghi / xoá cột phá lệ cam kết của chuyến — có lính gác dấu lệnh như GHI, nhãn riêng để bài thứ tự lô soi. */
+export type NhanCau = "CONG" | "CONG_DOI" | "CHUYEN_TIEN_DO" | "CONG_MOC" | "NHAT_KY" | "SU_KIEN" | "GHI" | "GHI_NGOAI" | "CAM_KET_PHA_LE" | "TRANG_THAI_CUOI";
 export interface CauCoNhan {
   nhan: NhanCau;
   stmt: D1PreparedStatement;
@@ -73,6 +74,17 @@ const cong = (db: D1Database, l: LenhChung, tripId: string, version: number): Ca
   stmt: db.prepare(TRIP_GATE).bind(tripId, version, l.cmd, l.lucIso, l.nguoiId),
 });
 const ghi = (stmt: D1PreparedStatement): CauCoNhan => ({ nhan: "GHI", stmt });
+/**
+ * Cột phá lệ cam kết của chuyến sau lệnh (ADR-0056 VK3-A; kế hoạch C6–C8): `{ lyDo, khoa }` = ghi (Quản trị phá lệ tập vi phạm hiện tại); `{ null, null }` = xoá
+ * (lệnh kiểm thấy hết vi phạm mà cột đang có). `null` ở lệnh = không chạm cột.
+ */
+export interface CamKetLo {
+  lyDo: string | null;
+  khoa: string | null;
+}
+/** Câu CAM_KET_PHA_LE: chuyến `tripId`, gác bằng chuyến `gac` mang dấu lệnh (lệnh dời: chuyến ĐÍCH). */
+const cauCamKet = (db: D1Database, l: LenhChung, tripId: string, ck: CamKetLo | null, gac = tripId): CauCoNhan[] =>
+  ck ? [{ nhan: "CAM_KET_PHA_LE", stmt: db.prepare(TRIP_CAM_KET_PHA_LE).bind(tripId, l.cmd, ck.lyDo, ck.khoa, gac) }] : [];
 /** Câu cổng lệnh KẾ HOẠCH trên chuyến ĐANG CHẠY (ADR-0052 D5 — version đúng + RUNNING). */
 const congDangChayVersion = (db: D1Database, l: LenhChung, tripId: string, version: number): CauCoNhan => ({
   nhan: "CONG",
@@ -161,9 +173,11 @@ export interface LenhSuaChuyen extends LenhChung {
   /** ADR-0057 C4: đảo + chụp lại khi đổi xe / nhà xe / tuyến / ngày chạy; `phienBanChiPhi` = số dòng chi phí đã đọc (câu cổng — TC-8). */
   chiPhi: KeHoachChiPhi;
   phienBanChiPhi: number;
+  /** ADR-0056 VK3-A: ghi / xoá cột phá lệ cam kết (null = không chạm). */
+  camKet: CamKetLo | null;
   detail: string;
 }
-/** Thứ tự: cổng (+ phiên bản chi phí) → nhật ký → sự kiện → ĐẢO (âm → dương) → đóng tài xế cũ → ghi chuyến → mở tài xế mới → điểm → CHỤP. */
+/** Thứ tự: cổng (+ phiên bản chi phí) → nhật ký → sự kiện → ĐẢO (âm → dương) → đóng tài xế cũ → ghi chuyến → mở tài xế mới → điểm → CAM KẾT → CHỤP. */
 export function loSuaChuyen(db: D1Database, l: LenhSuaChuyen): CauCoNhan[] {
   const m = l.moi;
   const cp = cauChiPhi(db, l, l.tripId, l.chiPhi);
@@ -179,6 +193,7 @@ export function loSuaChuyen(db: D1Database, l: LenhSuaChuyen): CauCoNhan[] {
   lo.push(ghi(db.prepare(TRIP_UPDATE_PLAN).bind(l.tripId, l.cmd, m.xeId, m.chuXePartyId, m.ngayChay, m.batDauMs, m.ketThucMs, m.batDauSomNhatMs, m.nghiPhaLeLyDo, l.lucIso, l.nguoiId, m.thue, m.tuyen)));
   if (l.doiTaiXe !== null) lo.push(ghi(db.prepare(DRIVER_INSERT).bind(crypto.randomUUID(), l.tripId, l.doiTaiXe, l.cmd, l.lucIso, l.nguoiId)));
   for (const d of l.diem) lo.push(ghi(db.prepare(STOP_UPDATE_PLAN).bind(d.id, l.tripId, l.cmd, d.seq, d.ngayXeToi, d.gioXeToi, l.lucIso, l.nguoiId)));
+  lo.push(...cauCamKet(db, l, l.tripId, l.camKet));
   lo.push(...cp.chup);
   return lo;
 }
@@ -195,6 +210,8 @@ export interface LenhXep extends LenhChung {
   suatMoi: SuatMoi[];
   phaLe: PhaLe | null;
   policyId: string | null;
+  /** ADR-0056 VK3-A: ghi / xoá cột phá lệ cam kết (null = không chạm). */
+  camKet: CamKetLo | null;
   detail: string;
 }
 export function loXep(db: D1Database, l: LenhXep): CauCoNhan[] {
@@ -207,6 +224,7 @@ export function loXep(db: D1Database, l: LenhXep): CauCoNhan[] {
     // ADR-0051: chụp mốc giờ hẹn TRƯỚC câu mở suất (trigger vc_trip_allocation_needs_appt đòi chặng có mốc).
     ...l.mocXep.map((m) => ghi(db.prepare(MOC_XEP_INSERT).bind(crypto.randomUUID(), m.legId, m.ngay, m.gio, l.lucIso, l.nguoiId, l.tripId, l.cmd))),
     ...l.suatMoi.map((s) => chenSuat(db, l, s)), // mỗi suất MỘT câu (trigger sức chứa theo dòng)
+    ...cauCamKet(db, l, l.tripId, l.camKet),
   ];
 }
 
@@ -243,6 +261,9 @@ export interface LenhDoi extends LenhChung {
   diemBoQuaNguon: string[];
   phaLe: PhaLe | null;
   policyId: string | null;
+  /** ADR-0056 VK3-A: chuyến NGUỒN chỉ xoá (C7 — hết vi phạm); chuyến ĐÍCH ghi (phá lệ) hoặc xoá. null = không chạm. */
+  camKetNguon: CamKetLo | null;
+  camKetDich: CamKetLo | null;
   detail: string;
 }
 /**
@@ -264,6 +285,7 @@ export function loDoi(db: D1Database, l: LenhDoi): CauCoNhan[] {
     lo.push(chenSuat(db, l, c.mo));
   }
   lo.push(...l.diemBoQuaNguon.map((id) => boQuaDiem(db, l, l.nguon.tripId, id, LY_DO_BO_QUA_KHONG_CON_KHACH, gac)));
+  lo.push(...cauCamKet(db, l, l.nguon.tripId, l.camKetNguon, gac), ...cauCamKet(db, l, gac, l.camKetDich));
   return lo;
 }
 
@@ -343,6 +365,8 @@ export interface LenhThemDiemDangChay extends LenhChung {
   chot: { allocationId: string; passengerRowId: string }[];
   phaLe: PhaLe | null;
   policyId: string | null;
+  /** ADR-0056 VK3-A: ghi / xoá cột phá lệ cam kết (null = không chạm). */
+  camKet: CamKetLo | null;
   detail: string;
 }
 /** Cổng (version + RUNNING) → nhật ký → sự kiện STOP_ADDED_RUNNING (đường (1) của LC-15 mới) → điểm (cờ) → sắp thứ tự → mốc → suất (cờ) → bản chốt. */
@@ -356,6 +380,7 @@ export function loThemDiemDangChay(db: D1Database, l: LenhThemDiemDangChay): Cau
     ...l.mocXep.map((m) => ghi(db.prepare(MOC_XEP_INSERT).bind(crypto.randomUUID(), m.legId, m.ngay, m.gio, l.lucIso, l.nguoiId, l.tripId, l.cmd))),
     ...l.suatMoi.map((s) => chenSuat(db, l, s, true)),
     ...l.chot.map((m) => ghi(db.prepare(MANIFEST_THEM_SAU).bind(crypto.randomUUID(), l.tripId, m.allocationId, m.passengerRowId, l.lucIso, l.nguoiId, l.cmd))),
+    ...cauCamKet(db, l, l.tripId, l.camKet),
   ];
 }
 

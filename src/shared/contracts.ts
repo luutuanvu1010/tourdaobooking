@@ -1405,6 +1405,8 @@ export interface SuaChuyenRequest {
   nghiPhaLe?: PhaLeRequest;
   /** ADR-0057 C2: vắng = giữ tuyến; null = bỏ tuyến; mã = đổi tuyến (đổi tuyến trên chuyến xe thuê làm máy chủ đảo + chụp lại giá). Đợt 4 G3 — khai kiểu. */
   tuyen?: string | null;
+  /** ADR-0056 VK3-A: phá lệ cam kết xe riêng / số chỗ (Quản trị / Toàn quyền; luật CAM_KET). Gửi khi không vi phạm → bỏ qua. */
+  camKetPhaLe?: PhaLeRequest;
 }
 /** GET /api/van-chuyen/huong-dan-vien — người gắn được làm "người đi kèm" (lời chủ 2026-10-01: chỉ tài khoản Hướng dẫn viên đang hoạt động). Hồ sơ + tên, KHÔNG SĐT. */
 export interface HuongDanVienListResponse { nguoi: { partyId: string; ten: string }[] }
@@ -1416,9 +1418,11 @@ export interface XepRequest {
   chang?: { legId: string; soSuat: number; personKeys?: string[] }[];
   nguoiDiKem?: string[];
   phaLe?: PhaLeRequest;
+  /** ADR-0056 VK3-A: phá lệ cam kết xe riêng / số chỗ (cũng dùng cho thêm điểm khi xe đang chạy). */
+  camKetPhaLe?: PhaLeRequest;
 }
 export interface RutRequest { version: number; requestId: string; suatIds: string[]; phaLe?: PhaLeRequest }
-export interface DoiRequest { version: number; requestId: string; denChuyenId: string; denVersion: number; suatIds: string[]; phaLe?: PhaLeRequest }
+export interface DoiRequest { version: number; requestId: string; denChuyenId: string; denVersion: number; suatIds: string[]; phaLe?: PhaLeRequest; camKetPhaLe?: PhaLeRequest }
 export interface HuyChuyenRequest { version: number; requestId: string; lyDo: string; phaLe?: PhaLeRequest }
 export interface CapNhatDiemRequest { version: number; requestId: string }
 /** Phản hồi "cập nhật điểm theo đơn" (I42): số suất đã đổi điểm (0 = không suất nào lệch — không ghi gì). */

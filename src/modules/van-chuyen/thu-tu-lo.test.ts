@@ -36,6 +36,9 @@ const DAO_AM = { id: "cl-r1", goc: { id: "cl-a", amount: -200000, carrierPartyId
 const DAO_DUONG = { id: "cl-r2", goc: { id: "cl-s", amount: 1200000, carrierPartyId: "p-1" }, lyDo: "CPX_DOI_CHUYEN", ngay: "2027-03-11" };
 const CHUP = { id: "cl-s2", rateId: "rate-1", amount: 900000, carrierPartyId: "p-1", routeCode: "T001", sizeCode: "S001", soCho: 16, ngayChay: "2027-03-11" };
 const CHI_PHI = { dao: [DAO_AM, DAO_DUONG], chup: CHUP, phienBan: 2, daoDieuChinh: 1, tongTruoc: 1000000, tongSau: 900000 };
+// ADR-0056 VK3-A (Đợt 7 Task 4): câu ghi / xoá cột phá lệ cam kết của chuyến — nhãn CAM_KET_PHA_LE.
+const CAM_KET_GHI = { lyDo: "PHA_LE_SU_CO", khoa: "xe:x-1|leg-1:XR:1:-|leg-2:XR:0:-" };
+const CAM_KET_XOA = { lyDo: null, khoa: null };
 
 /** Mẫu đầu vào của TỪNG hàm dựng lô (đủ nhánh: có đổi tài xế, có điểm mới, có điểm bỏ qua…) + chuyến mà câu cổng gác. */
 const MAU: Record<string, { vao: Record<string, unknown>; gac: string }> = {
@@ -49,14 +52,14 @@ const MAU: Record<string, { vao: Record<string, unknown>; gac: string }> = {
   loSuaChuyen: {
     vao: {
       ...L, tripId: T, version: 3, moi: { xeId: "x-1", chuXePartyId: "p-1", ngayChay: "2027-03-11", batDauMs: 1, ketThucMs: 2, batDauSomNhatMs: 1, nghiPhaLeLyDo: null, thue: 1, tuyen: "T001" },
-      doiTaiXe: "p-tx2", diem: [{ id: "d-1", seq: 2, ngayXeToi: null, gioXeToi: null }], phaLe: null, policyId: null, chiPhi: CHI_PHI, phienBanChiPhi: 2, detail: "d",
+      doiTaiXe: "p-tx2", diem: [{ id: "d-1", seq: 2, ngayXeToi: null, gioXeToi: null }], phaLe: null, policyId: null, chiPhi: CHI_PHI, phienBanChiPhi: 2, camKet: CAM_KET_GHI, detail: "d",
     },
     gac: T,
   },
-  loXep: { vao: { ...L, tripId: T, version: 3, diemMoi: [diem("d-9")], doiThuTu: [{ id: "d-2", seq: 4 }], mocXep: [{ legId: "leg-1", ngay: "2027-03-11", gio: "09:00" }], suatMoi: [suat("a-1"), suat("a-2")], phaLe: null, policyId: null, detail: "d" }, gac: T },
+  loXep: { vao: { ...L, tripId: T, version: 3, diemMoi: [diem("d-9")], doiThuTu: [{ id: "d-2", seq: 4 }], mocXep: [{ legId: "leg-1", ngay: "2027-03-11", gio: "09:00" }], suatMoi: [suat("a-1"), suat("a-2")], phaLe: null, policyId: null, camKet: CAM_KET_GHI, detail: "d" }, gac: T },
   loRut: { vao: { ...L, tripId: T, version: 3, suatIds: ["a-1"], diemBoQua: ["d-1"], phaLe: null, policyId: null, detail: "d" }, gac: T },
   loDoi: {
-    vao: { ...L, nguon: { tripId: T, version: 3 }, dich: { tripId: T2, version: 5 }, cap: [{ dongId: "a-1", mo: suat("a-9", T2) }], diemMoiDich: [diem("d-9", T2)], doiThuTuDich: [{ id: "d-8", seq: 4 }], diemBoQuaNguon: ["d-1"], phaLe: null, policyId: null, detail: "d" },
+    vao: { ...L, nguon: { tripId: T, version: 3 }, dich: { tripId: T2, version: 5 }, cap: [{ dongId: "a-1", mo: suat("a-9", T2) }], diemMoiDich: [diem("d-9", T2)], doiThuTuDich: [{ id: "d-8", seq: 4 }], diemBoQuaNguon: ["d-1"], phaLe: null, policyId: null, camKetNguon: CAM_KET_XOA, camKetDich: CAM_KET_GHI, detail: "d" },
     gac: T2,
   },
   loHuy: { vao: { ...L, tripId: T, version: 3, lyDo: "HUY_KHAC", phaLe: null, policyId: null, soSuatMo: 2, chiPhi: { ...CHI_PHI, chup: null }, phienBanChiPhi: 2, detail: "d" }, gac: T },
@@ -81,7 +84,7 @@ const MAU: Record<string, { vao: Record<string, unknown>; gac: string }> = {
   loThemDiemDangChay: {
     vao: {
       ...L, tripId: T, version: 7, diemMoi: [diem("d-9")], doiThuTu: [{ id: "d-2", seq: 4 }], mocXep: [{ legId: "leg-1", ngay: "2027-03-11", gio: "09:00" }],
-      suatMoi: [suat("a-1"), suat("a-2")], chot: [{ allocationId: "a-1", passengerRowId: "row-1" }], phaLe: { luat: "MOC_TOI_THIEU", lyDo: "PHA_LE_SU_CO", policyId: "cs-1" }, policyId: "cs-1", detail: "d",
+      suatMoi: [suat("a-1"), suat("a-2")], chot: [{ allocationId: "a-1", passengerRowId: "row-1" }], phaLe: { luat: "MOC_TOI_THIEU", lyDo: "PHA_LE_SU_CO", policyId: "cs-1" }, policyId: "cs-1", camKet: CAM_KET_GHI, detail: "d",
     },
     gac: T,
   },
@@ -233,4 +236,36 @@ test("D5.3a (Đợt 5): loCapNhatDiem trên xe ĐANG CHẠY — cổng có versi
   assert.match(cuoi.stmt.sql, /^UPDATE vc_trip SET version = version WHERE id = \?1 AND last_cmd_id = \?2$/);
   // Không dangChay: không có câu chốt (chuyến chưa chạy giữ lô cũ).
   assert.ok(!f(DB, MAU.loCapNhatDiem!.vao).some((c) => c.nhan === "TRANG_THAI_CUOI"));
+});
+
+test("Đợt 7 Task 4 (ADR-0056 VK3-A): câu ghi / xoá cột phá lệ cam kết mang nhãn CAM_KET_PHA_LE, đứng SAU nhật ký, TRƯỚC câu trạng thái cuối; mọi câu chạm commitment_override_* đều mang nhãn; lô dời: xoá nguồn + ghi đích, cùng gác chuyến ĐÍCH", () => {
+  const CO_CAM_KET = ["loXep", "loSuaChuyen", "loDoi", "loThemDiemDangChay"];
+  for (const ten of Object.keys(MAU)) {
+    const lo = (MOD[ten] as (db: unknown, l: unknown) => Cau[])(DB, MAU[ten]!.vao);
+    const sai = lo.filter((c) => /commitment_override/.test(c.stmt.sql) !== (c.nhan === "CAM_KET_PHA_LE"));
+    assert.deepEqual(sai.map((c) => c.nhan), [], `${ten}: câu chạm cột phá lệ cam kết phải mang nhãn CAM_KET_PHA_LE (và ngược lại)`);
+    const vt = lo.flatMap((c, i) => (c.nhan === "CAM_KET_PHA_LE" ? [i] : []));
+    if (!CO_CAM_KET.includes(ten)) {
+      assert.equal(vt.length, 0, `${ten}: không có câu cam kết`);
+      continue;
+    }
+    assert.equal(vt.length, ten === "loDoi" ? 2 : 1, `${ten}: số câu cam kết`);
+    const nk = lo.findIndex((c) => c.nhan === "NHAT_KY");
+    const cuoi = lo.findIndex((c) => c.nhan === "TRANG_THAI_CUOI");
+    for (const i of vt) {
+      assert.ok(i > nk, `${ten}: câu cam kết sau nhật ký`);
+      if (cuoi >= 0) assert.ok(i < cuoi, `${ten}: câu cam kết trước trạng thái cuối`);
+      assert.match(lo[i]!.stmt.sql, /^UPDATE vc_trip SET commitment_override_reason_code = \?3, commitment_override_key = \?4/);
+    }
+    // Không có câu cam kết khi lệnh không mang (null).
+    const khong = { ...MAU[ten]!.vao, camKet: null, camKetNguon: null, camKetDich: null };
+    assert.equal((MOD[ten] as (db: unknown, l: unknown) => Cau[])(DB, khong).filter((c) => c.nhan === "CAM_KET_PHA_LE").length, 0, `${ten}: null → không câu`);
+  }
+  const doi = (MOD.loDoi as (db: unknown, l: unknown) => Cau[])(DB, MAU.loDoi!.vao).filter((c) => c.nhan === "CAM_KET_PHA_LE");
+  assert.deepEqual(doi.map((c) => [c.stmt.args[0], c.stmt.args[2], c.stmt.args[3]]), [[T, null, null], [T2, CAM_KET_GHI.lyDo, CAM_KET_GHI.khoa]], "xoá nguồn, ghi đích");
+  const xep = (MOD.loXep as (db: unknown, l: unknown) => Cau[])(DB, MAU.loXep!.vao).find((c) => c.nhan === "CAM_KET_PHA_LE")!;
+  assert.deepEqual([xep.stmt.args[0], xep.stmt.args[2], xep.stmt.args[3]], [T, CAM_KET_GHI.lyDo, CAM_KET_GHI.khoa]);
+  // loSuaChuyen: câu chụp giá vẫn CUỐI (ADR-0057 C4) — câu cam kết đứng trước.
+  const sua = (MOD.loSuaChuyen as (db: unknown, l: unknown) => Cau[])(DB, MAU.loSuaChuyen!.vao);
+  assert.match(sua[sua.length - 1]!.stmt.sql, /'SNAPSHOT'/);
 });

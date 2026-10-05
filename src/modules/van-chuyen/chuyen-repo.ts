@@ -359,6 +359,17 @@ export const TRIP_UPDATE_PLAN = defineSql(
      rest_override_reason_code = ?9, updated_at = ?10, updated_by = ?11, rented = ?12, route_code = ?13
    WHERE id = ?1 AND last_cmd_id = ?2`,
 );
+/**
+ * ADR-0056 VK3-A (Đợt 7 Task 4): ghi (Quản trị / Toàn quyền phá lệ — lý do + khoá) hoặc xoá về NULL (lệnh kiểm thấy hết vi phạm) cột phá lệ cam kết của chuyến
+ * ?1. Gác: chuyến ?5 mang dấu lệnh ?2 (lệnh dời: ?5 = chuyến ĐÍCH, ?1 có thể là chuyến NGUỒN — cổng nguồn cũng đã mang cùng dấu lệnh). ?3 lý do, ?4 khoá —
+ * đi CẶP (CHECK của 0077). Khoá chỉ để so, không bao giờ vào DTO / nhật ký (kế hoạch C4).
+ */
+export const TRIP_CAM_KET_PHA_LE = defineSql(
+  "van-chuyen",
+  "trip_cam_ket_pha_le",
+  `UPDATE vc_trip SET commitment_override_reason_code = ?3, commitment_override_key = ?4
+   WHERE id = ?1 AND EXISTS (SELECT 1 FROM vc_trip WHERE id = ?5 AND last_cmd_id = ?2)`,
+);
 /** Huỷ chuyến — câu TRẠNG THÁI CUỐI (đứng cuối lô). ?1 chuyến, ?2 dấu lệnh, ?3 lý do, ?4 lúc, ?5 người. */
 export const TRIP_CANCEL = defineSql(
   "van-chuyen",
