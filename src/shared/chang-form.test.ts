@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import {
   TU_DO, cauDoiNgay, giuDatGapNhap, changDaDoi, changTaoSan, changTuDto, coOSoHieu, doiNgayDi, goiYChang, legInput, loiChang, loiDanhSachChang, suaChang, themChangDi, themChieuVe,
 } from "./chang-form.ts";
-import { NOI_DON_CHUA_GHI } from "./chang-dua-don.ts";
+import { CHO_TOI_THIEU_MAX, CHO_TOI_THIEU_MIN, NOI_DON_CHUA_GHI } from "./chang-dua-don.ts";
 import type { MauChang } from "./chang-mac-dinh.ts";
 import type { LegDto } from "./contracts.ts";
 
@@ -76,6 +76,15 @@ test("dời ngày đón theo ngày đi mới; câu 'Đã dời ngày đón của
   assert.equal(goiYChang(r.legs[1]!, "2026-10-02").ngay, "Khác ngày đi (02/10)");
   // Chưa có ngày đi → điền ngày mới cho chặng chưa có ngày.
   assert.deepEqual(doiNgayDi([themChangDi(null, "", k())], "", "2026-10-02").legs.map((l) => l.pickupDate), ["2026-10-02"]);
+});
+
+test("ngưỡng số chỗ tối thiểu của form trùng hằng phía máy chủ (không viết cứng)", () => {
+  const l = themChangDi(null, "", k());
+  const loi = (v: number) => loiChang({ ...l, choToiThieu: String(v) }, 1, 4, false).choToiThieu;
+  assert.equal(loi(CHO_TOI_THIEU_MIN), null);
+  assert.equal(loi(CHO_TOI_THIEU_MAX), null);
+  assert.notEqual(loi(CHO_TOI_THIEU_MIN - 1), null);
+  assert.notEqual(loi(CHO_TOI_THIEU_MAX + 1), null);
 });
 
 test("lỗi dòng đúng chữ bản vẽ: nơi đón chỉ sau khi bấm Lưu; số người chiều về quá số khách báo ngay", () => {

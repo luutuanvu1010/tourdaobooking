@@ -1,7 +1,7 @@
 // Khối "Đưa đón" của thẻ dịch vụ (bản vẽ docs/design/2026-10-01-dua-don-hanh-khach/the-dua-don.dc.html — M1, M4, M6). Mô hình THUẦN của bản nháp chặng:
 // giá trị ô nhập, chữ gợi ý nhỏ, lỗi dòng, liên kết chiều về ↔ chiều đi, dời ngày, thân `LegInput`. Không DOM. Luật chặng thật ở chang-dua-don.ts (máy chủ
 // vẫn là nơi quyết định); mẫu gợi ý ở chang-mac-dinh.ts.
-import { doiNgayChang, NOI_DON_CHUA_GHI } from "./chang-dua-don.ts";
+import { CHO_TOI_THIEU_MAX, CHO_TOI_THIEU_MIN, doiNgayChang, NOI_DON_CHUA_GHI } from "./chang-dua-don.ts";
 import { changMacDinh, type MauChang } from "./chang-mac-dinh.ts";
 import type { LegDirection, LegDto, LegInput } from "./contracts.ts";
 import { ngayNgan } from "./vn-date.ts";
@@ -165,7 +165,7 @@ export function loiChang(l: ChangNhap, so: number, soKhach: number, daLuu: boole
     don: daLuu && l.don === "" ? `Chặng ${so}: chưa có nơi đón.` : null,
     donTuDo: daLuu && l.don === TU_DO && l.donTuDo.trim() === "" ? `Chặng ${so}: chưa ghi địa chỉ đón.` : null,
     soVe: l.direction === "RETURN" && n !== null && n > soKhach ? `Số người chiều về không được quá ${soKhach}.` : null,
-    choToiThieu: l.choToiThieu !== "" && (Number(l.choToiThieu) < 1 || Number(l.choToiThieu) > 100) ? CAU_LOI_CHO_TOI_THIEU : null,
+    choToiThieu: l.choToiThieu !== "" && (Number(l.choToiThieu) < CHO_TOI_THIEU_MIN || Number(l.choToiThieu) > CHO_TOI_THIEU_MAX) ? CAU_LOI_CHO_TOI_THIEU : null,
   };
 }
 

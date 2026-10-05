@@ -144,6 +144,13 @@ Làn này không gọi trợ lý con; người kiểm độc lập chỉ đọc 
 - Ruling: số công thức z13 và bẫy 60 đặt theo số lớn nhất hiện có + 1 (z12 đã có; bẫy 59 là lớn nhất) — nếu một nhánh khác đã lấy, đánh lại lúc gộp.
 - Đề xuất cho chủ (KHÔNG tự sửa — CLAUDE.md thuộc luật, N9): (a) `web/CLAUDE.md` bảng kịch bản Chrome (dòng ~68, ~70) thêm `docs/evidence/2026-10-05-cam-ket-xe/kich-ban/cam-ket-xe-smoke.mjs`; (b) CLAUDE.md gốc không có số migration hay tên tệp lệch vì Đợt 7 (`0077`), nên chưa cần đổi.
 
+## Kiểm độc lập toàn nhánh (2026-10-05)
+- Kết luận: ĐẠT (người kiểm độc lập, chỉ đọc; báo cáo gốc `.superpowers/sdd/dot-7/kiem-doc-lap.md`). `npm run typecheck` 0 lỗi; `npm test` 3212 đạt / 0 đỏ / 1 todo; e2e đủ bộ 45/45; `audit-invariants --db local` chỉ R-N1-5 đỏ sẵn (dữ liệu local, không do Đợt 7).
+- Bốn đột biến riêng người kiểm tự gây rồi hoàn nguyên, đều đỏ đúng chỗ: biên R-CX, 403 của route thêm điểm, khoá C5, và `&& !ghiCamKet`.
+- `dat-gap-smoke` ở HEAD đỏ đúng các bước 3/7/8/10, y hệt bản trước Đợt 7 (`dc1ef1fe`) — đỏ sẵn, không phải hồi quy.
+- Trợ giúp bị cắt chữ để giữ trần 30 phút: Bán hàng mất câu "Giờ đón sau giờ khởi hành" và câu về ngày khởi hành đã qua; Quản trị mất ví dụ Đặt gấp và câu "Chỉ Quản trị và Toàn quyền duyệt Đặt gấp" (ghi ở "Nợ / để sau").
+- Minor đã sửa sau kiểm: ngưỡng số chỗ 1..100 ở `src/shared/chang-form.ts` nay dùng hằng `CHO_TOI_THIEU_MIN` / `CHO_TOI_THIEU_MAX` của `chang-dua-don.ts` (trùng máy chủ), kèm bài khoá ngưỡng trong `chang-form.test.ts`; thử đột biến đổi MAX thành 120 thì bộ bài đỏ, hoàn nguyên thì xanh.
+
 ## Nợ / để sau (gom từ các minor còn mở, Task 1–8b)
 - Task 1: regex TC-3 lỏng `/constraint|commitment/` nên ghim "CHECK constraint failed"; đột biến P16 riêng cho migration chưa làm.
 - Task 2: bài 3 thiếu ca `exclusiveVehicle: null` → 400; bài 4 ca 403 thiếu đối chứng; dòng `sau` trong `planEditLeg` dài; chú thích `LEG_SET_DAT_GAP` chưa nhắc cam kết.
@@ -156,3 +163,4 @@ Làn này không gọi trợ lý con; người kiểm độc lập chỉ đọc 
 - Task 8b: ngưỡng 1..100 trùng máy chủ chưa dùng chung hằng; ca đối chứng "đổi giờ dưới mốc" dùng Bán hàng yếu. Kịch bản cũ `dat-gap-smoke`, `a2-smoke-order`, `a2-smoke-form` đỏ sẵn trên bản trước Đợt 7 (không phải hồi quy).
 - Khác: DTO nhật ký chuyến có `phaLe.luat` thô (`CAM_KET`), `web/` chưa hiển thị nhãn `luat`; chưa thử trên iPhone thật; chưa có người kiểm độc lập cho Task 9 (việc tài liệu, nhưng nhật ký + Trợ giúp chạm test chặn A2/A4).
 - Số đo sống lại: `src/shared/tro-ly-van-nghia.test.ts` bài C4 (đo trên kho Trợ giúp thật) đỏ sau khi thêm / bớt chữ Trợ giúp — "than phiền" Bán hàng 15 → 17; theo chú thích của chính bài (đo lại, sửa số kèm lý do, không nới luật) đã sửa số và ghi lý do; hành vi (trần 12, đoạn chọn) không đổi.
+- Kiểm độc lập toàn nhánh: Trợ giúp bị cắt chữ (trần 30 phút) — Bán hàng mất câu "Giờ đón sau giờ khởi hành" và câu ngày khởi hành đã qua; Quản trị mất ví dụ Đặt gấp và câu "Chỉ Quản trị và Toàn quyền duyệt Đặt gấp"; khôi phục khi nâng trần hoặc có chỗ khác trong Trợ giúp.
