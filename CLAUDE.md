@@ -72,6 +72,7 @@ Chủ dự án không phải lập trình viên. Quy tắc này áp cho **câu t
 | Luồng nghiệp vụ (lập đơn, xác nhận, phân công…) | `docs/SYSTEM-DESIGN.md` §6; nghiệp vụ và quyết định của chủ: `docs/SPEC-tourdao-sales.md`, `docs/superpowers/specs/` |
 | Dữ liệu: bảng, quan hệ, migration | `docs/SYSTEM-DESIGN.md` §5; từng cột: `docs/DATA-DICTIONARY.md` (nguồn `docs/data-dictionary.json`) |
 | API, quyền, bảo mật | `docs/SYSTEM-DESIGN.md` §7, §8, §11 |
+| Phần nào của Hiến chương hệ thống chung (kho luật gốc, tag v2.0.0) áp cho CRM; đối chiếu với bộ luật mới và lộ trình nâng ghim | `docs/kernel-18.md` (tờ khai Kernel 18); `docs/superpowers/specs/2026-10-05-doi-chieu-bo-luat-v2.md` |
 | Thiết kế mới (dữ liệu, vai, quyền, tiền, luồng) — **đọc đầu tiên** | Hiến chương `docs/ARCHITECTURE.md` Phần I; hiện trạng `docs/SYSTEM-DESIGN.md` §17 |
 | Kiến trúc: ranh giới module, nơi đặt mã | `docs/ARCHITECTURE.md` Phần II; quyết định đã duyệt: mục lục `docs/adr/README.md` rồi ADR liên quan |
 | Hồ sơ khách/đại lý/đối tác, danh tính | ADR-0001, ADR-0010; đối chiếu Oracle TCA (bản nháp): `docs/superpowers/specs/2026-09-21-doi-chieu-oracle-tca.md` |
