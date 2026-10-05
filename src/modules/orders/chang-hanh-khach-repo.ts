@@ -50,7 +50,7 @@ export async function servicePaxByOrder(db: D1Database, orderId: string): Promis
 const LEG_COLS = `l.id, l.order_id, l.order_service_id, l.direction, l.pickup_date, l.pickup_time, l.pickup_location_id, l.pickup_place,
   COALESCE(pl.name, l.pickup_place) AS pickup_label, l.dropoff_location_id, l.dropoff_place, COALESCE(dl.name, l.dropoff_place) AS dropoff_label,
   l.closed_at, l.created_at, l.created_by, l.updated_at,
-  l.short_notice_reason, l.short_notice_note, l.short_notice_at, sl.label AS short_notice_by_label, l.flight_code, l.pax_override`;
+  l.short_notice_reason, l.short_notice_note, l.short_notice_at, sl.label AS short_notice_by_label, l.flight_code, l.pax_override, l.exclusive_vehicle, l.min_vehicle_seats`;
 // Người duyệt đặt gấp: TÊN HIỂN THỊ qua view công bố của staff (không SĐT) — chủ H4 / N-14; lớp route quyết ai thấy tên (ô order.leg.short_notice.view).
 const LEG_JOIN = `FROM ord_transfer_leg l
   LEFT JOIN v_loc_location_label pl ON pl.id = l.pickup_location_id
@@ -88,6 +88,10 @@ export interface LegRow {
   flight_code: string | null;
   /** Số người riêng của chặng VỀ (0057, ADR-0054 D10.3) — NULL = theo số khách dịch vụ. */
   pax_override: number | null;
+  /** Cam kết xe riêng (0077, ADR-0056 VK3-A): 0 / 1. */
+  exclusive_vehicle: number;
+  /** Cam kết xe tối thiểu N chỗ (0077) — NULL = không cam kết. */
+  min_vehicle_seats: number | null;
 }
 
 export async function openLegsByOrders(db: D1Database, orderIds: readonly string[]): Promise<LegRow[]> {
@@ -132,6 +136,10 @@ export interface LegWrite {
   flightCode: string | null;
   /** Số người riêng của chặng VỀ (0057) — giá trị ĐÃ GIẢI ở route (quyền + L-R1 đã kiểm). */
   paxOverride: number | null;
+  /** Cam kết xe riêng (0077) — giá trị ĐÃ GIẢI ở route (khoá vắng → giá trị đang lưu / false). */
+  exclusiveVehicle: boolean;
+  /** Cam kết xe tối thiểu N chỗ (0077) — giá trị ĐÃ GIẢI ở route (khoá vắng → giá trị đang lưu / NULL). */
+  minVehicleSeats: number | null;
   /**
    * Dấu ĐẶT GẤP (ADR-0049 D2) ghi cùng dòng — CHỈ từ: nhánh `datGap` của lệnh sửa / thêm chặng (Quản trị, Toàn quyền), hoặc dấu CŨ của chính chặng khớp
    * đúng một-một khi lưu lại đơn nháp (Q1 = (a) — giá trị đọc từ CSDL). Không bao giờ từ thân trình duyệt của lập / sửa nháp (I16). null = không dấu.
@@ -140,28 +148,28 @@ export interface LegWrite {
 }
 
 const LEG_INSERT_COLS = `id, order_id, order_service_id, direction, pickup_date, pickup_time, pickup_location_id, pickup_place, dropoff_location_id, dropoff_place,
-  closed_at, close_reason_code, created_at, created_by, updated_at, updated_by, flight_code, pax_override`;
+  closed_at, close_reason_code, created_at, created_by, updated_at, updated_by, flight_code, pax_override, exclusive_vehicle, min_vehicle_seats`;
 /** Chèn chặng KHÔNG lính gác — chỉ dùng khi LẬP đơn (lô mới hoàn toàn, không có câu thắng/thua). */
 const LEG_INSERT = defineSql(
   "orders",
   "leg_insert",
-  `INSERT INTO ord_transfer_leg (${LEG_INSERT_COLS}) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, NULL, NULL, ?11, ?12, ?13, ?14, ?15, ?16)`,
+  `INSERT INTO ord_transfer_leg (${LEG_INSERT_COLS}) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, NULL, NULL, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18)`,
 );
 /**
  * Chèn chặng CÓ lính gác (lưu nháp, route thêm chặng, `PUT /trip` tương thích): chỉ chạy khi dòng nhật ký ?17 của lô này đã được chèn. Thứ tự tham số: 1–16 = cột
- * của `LEG_INSERT_COLS` (15, 16 = hai ô phụ 0057), ?17 = id nhật ký, ?18–?22 = năm cột đặt gấp.
+ * của `LEG_INSERT_COLS` (15, 16 = hai ô phụ 0057; 17, 18 = hai ô cam kết 0077), ?19 = id nhật ký, ?20–?24 = năm cột đặt gấp.
  */
 const LEG_INSERT_GUARDED = defineSql(
   "orders",
   "leg_insert_guarded",
   `INSERT INTO ord_transfer_leg (${LEG_INSERT_COLS}, short_notice_reason, short_notice_note, short_notice_by, short_notice_at, short_notice_lead_minutes)
-   SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, NULL, NULL, ?11, ?12, ?13, ?14, ?15, ?16, ?18, ?19, ?20, ?21, ?22 WHERE EXISTS (SELECT 1 FROM audit_log WHERE id = ?17)`,
+   SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, NULL, NULL, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?20, ?21, ?22, ?23, ?24 WHERE EXISTS (SELECT 1 FROM audit_log WHERE id = ?19)`,
 );
 /** Năm giá trị cột đặt gấp (null cả năm = không dấu / bỏ dấu). */
 const datGapBinds = (d: DatGapWrite | null | undefined) => (d ? [d.lyDo, d.ghiChu, d.by, d.at, d.phut] : [null, null, null, null, null]);
 const legBinds = (l: LegWrite) => [
   l.id, l.orderId, l.serviceId, l.direction, l.pickupDate, l.pickupTime, l.pickupLocationId, l.pickupPlace, l.dropoffLocationId, l.dropoffPlace,
-  l.createdAt, l.createdBy, l.updatedAt, l.updatedBy, l.flightCode, l.paxOverride,
+  l.createdAt, l.createdBy, l.updatedAt, l.updatedBy, l.flightCode, l.paxOverride, l.exclusiveVehicle ? 1 : 0, l.minVehicleSeats,
 ];
 export const legInsert = (db: D1Database, l: LegWrite): D1PreparedStatement => db.prepare(LEG_INSERT).bind(...legBinds(l));
 export const legInsertGuarded = (db: D1Database, l: LegWrite, auditId: string): D1PreparedStatement =>
@@ -189,10 +197,11 @@ const LEG_SET_DAT_GAP = `short_notice_reason = CASE WHEN ?21 = 1 THEN short_noti
   short_notice_note = CASE WHEN ?21 = 1 THEN short_notice_note ELSE ?13 END, short_notice_by = CASE WHEN ?21 = 1 THEN short_notice_by ELSE ?14 END,
   short_notice_at = CASE WHEN ?21 = 1 THEN short_notice_at ELSE ?15 END, short_notice_lead_minutes = CASE WHEN ?21 = 1 THEN short_notice_lead_minutes ELSE ?16 END`;
 /**
- * Hai ô PHỤ (0057) — đoạn SET RIÊNG có cờ "ghi" (kế hoạch Task 3.2, phát hiện C1): cờ = 0 GIỮ giá trị đang lưu. Chỉ route sửa chặng truyền 1 khi thân CÓ khoá;
+ * Các ô PHỤ (0057: số hiệu, số người về; 0077: xe riêng, số chỗ tối thiểu) — đoạn SET RIÊNG có cờ "ghi" (kế hoạch Task 3.2, phát hiện C1): cờ = 0 GIỮ giá trị đang lưu. Chỉ route sửa chặng truyền 1 khi thân CÓ khoá;
  * `PUT /trip` (`legUpdateGuarded`) luôn 0 — dời ngày / đổi giờ không bao giờ xoá số hiệu, số người. KHÔNG nhét vào `LEG_SET` dùng chung.
  */
-const LEG_SET_O_PHU = `flight_code = CASE WHEN ?17 = 1 THEN ?18 ELSE flight_code END, pax_override = CASE WHEN ?19 = 1 THEN ?20 ELSE pax_override END`;
+const LEG_SET_O_PHU = `flight_code = CASE WHEN ?17 = 1 THEN ?18 ELSE flight_code END, pax_override = CASE WHEN ?19 = 1 THEN ?20 ELSE pax_override END,
+  exclusive_vehicle = CASE WHEN ?22 = 1 THEN ?23 ELSE exclusive_vehicle END, min_vehicle_seats = CASE WHEN ?24 = 1 THEN ?25 ELSE min_vehicle_seats END`;
 /** Sửa trường vận hành của chặng MỞ, CÓ lính gác (`PUT /trip`: dời ngày, trộn giờ/nơi cũ). */
 const LEG_UPDATE_GUARDED = defineSql(
   "orders",
@@ -219,14 +228,20 @@ export interface LegFields {
   dropoffPlace: string | null;
 }
 const fieldBinds = (f: LegFields, at: string, by: string | null) => [f.pickupDate, f.pickupTime, f.pickupLocationId, f.pickupPlace, f.dropoffLocationId, f.dropoffPlace, at, by];
-/** Hai ô phụ sẽ GHI (khoá vắng = giữ giá trị đang lưu). */
+/** Các ô phụ sẽ GHI (khoá vắng = giữ giá trị đang lưu): số hiệu, số người về, và hai ô cam kết (0077, ADR-0056 VK3-A). */
 export interface OPhuGhi {
   flightCode?: string | null;
   paxOverride?: number | null;
+  exclusiveVehicle?: boolean;
+  minVehicleSeats?: number | null;
 }
-/** ?17–?21: cờ ghi + giá trị số hiệu, cờ ghi + giá trị số người, cờ GIỮ dấu đặt gấp. */
+/**
+ * ?17–?21: cờ ghi + giá trị số hiệu, cờ ghi + giá trị số người, cờ GIỮ dấu đặt gấp; ?22–?25 (0077): cờ ghi + giá trị xe riêng, cờ ghi + giá trị số chỗ tối
+ * thiểu (hai cột mới đứng SAU cờ ?21 để không đánh số lại các tham số cũ).
+ */
 const oPhuBinds = (o: OPhuGhi, giuDatGap: boolean) => [
   o.flightCode !== undefined ? 1 : 0, o.flightCode ?? null, o.paxOverride !== undefined ? 1 : 0, o.paxOverride ?? null, giuDatGap ? 1 : 0,
+  o.exclusiveVehicle !== undefined ? 1 : 0, o.exclusiveVehicle ? 1 : 0, o.minVehicleSeats !== undefined ? 1 : 0, o.minVehicleSeats ?? null,
 ];
 /** `PUT /trip`: cờ ô phụ = 0 (giữ), cờ giữ dấu = 0 (luật I16 cũ). */
 export const legUpdateGuarded = (db: D1Database, legId: string, orderId: string, f: LegFields, at: string, by: string, auditId: string, datGap: DatGapWrite | null = null): D1PreparedStatement =>
@@ -501,7 +516,7 @@ const LEG_TRIP_VIEW = defineSql(
   "orders",
   "leg_trip_view",
   `SELECT l.id, l.order_id, o.order_code, s.id AS service_id, s.name AS service_name, l.direction, l.pickup_date, l.pickup_time,
-     COALESCE(pl.name, l.pickup_place) AS noi_don, COALESCE(dl.name, l.dropoff_place) AS noi_tra, l.pax_override
+     COALESCE(pl.name, l.pickup_place) AS noi_don, COALESCE(dl.name, l.dropoff_place) AS noi_tra, l.pax_override, l.exclusive_vehicle, l.min_vehicle_seats
    FROM ord_transfer_leg l
    JOIN orders o ON o.id = l.order_id
    JOIN order_service s ON s.id = l.order_service_id
@@ -522,6 +537,9 @@ export interface LegTripRow {
   noi_tra: string | null;
   /** Số người riêng của chặng về — CHỈ để tính `soNguoiChang` (không trả ra nguyên cột). */
   pax_override: number | null;
+  /** Cam kết xe riêng / xe tối thiểu N chỗ (0077, ADR-0056 VK3-A → khoá `xeRieng` / `choToiThieu`). */
+  exclusive_vehicle: number;
+  min_vehicle_seats: number | null;
 }
 export async function legTripRows(db: D1Database, legIds: readonly string[]): Promise<LegTripRow[]> {
   if (legIds.length === 0) return [];
@@ -541,7 +559,7 @@ const LEG_LICH_CHUNG = defineSql(
   `SELECT l.id, l.order_id, o.order_code, s.id AS service_id, s.name AS service_name, l.direction, l.pickup_date, l.pickup_time,
      l.pickup_location_id, l.pickup_place, COALESCE(pl.name, l.pickup_place) AS noi_don,
      l.dropoff_location_id, l.dropoff_place, COALESCE(dl.name, l.dropoff_place) AS noi_tra,
-     l.short_notice_reason IS NOT NULL AS dat_gap, l.flight_code, l.pax_override
+     l.short_notice_reason IS NOT NULL AS dat_gap, l.flight_code, l.pax_override, l.exclusive_vehicle, l.min_vehicle_seats
    FROM ord_transfer_leg l
    JOIN orders o ON o.id = l.order_id
    JOIN order_service s ON s.id = l.order_service_id
@@ -569,6 +587,9 @@ export interface LegLichChungRow {
   flight_code: string | null;
   /** Số người riêng của chặng về — CHỈ để tính `soNguoiChang`. */
   pax_override: number | null;
+  /** Cam kết xe riêng / xe tối thiểu N chỗ (0077, ADR-0056 VK3-A → khoá `xeRieng` / `choToiThieu`). */
+  exclusive_vehicle: number;
+  min_vehicle_seats: number | null;
 }
 export async function legLichChungRows(db: D1Database, tuNgay: string, denNgay: string): Promise<LegLichChungRow[]> {
   return (await db.prepare(LEG_LICH_CHUNG).bind(tuNgay, denNgay).all<LegLichChungRow>()).results;

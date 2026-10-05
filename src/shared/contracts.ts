@@ -376,6 +376,13 @@ export interface LegInput {
    * Chỉ văn phòng ghi (`order.trip.edit`) — lưu nháp gửi giá trị KHÁC bản đang lưu mà không có ô → 403; VẮNG khoá = giữ. Không xét mốc 6 giờ.
    */
   paxOverride?: number | null;
+  /**
+   * Cam kết "xe riêng" với khách (ADR-0056 VK3-A): đúng kiểu `boolean`. VẮNG khoá = GIỮ giá trị đang lưu; chặng mới vắng = false. Ghi theo ô của route chứa
+   * chặng (nháp `order.modify`, sau xác nhận `order.trip.edit`); không xét mốc 6 giờ.
+   */
+  exclusiveVehicle?: boolean;
+  /** Cam kết "xe tối thiểu N chỗ" KHÔNG kể tài xế (ADR-0056 VK3-A): số nguyên 1..100; `null` hoặc "" = bỏ. VẮNG khoá = GIỮ giá trị đang lưu. */
+  minVehicleSeats?: number | null;
 }
 /** `PUT /api/orders/:id/legs/:legId` — sửa trường vận hành của chặng (không đổi chiều, không đổi dịch vụ). */
 export type LegEditInput = Omit<LegInput, "id" | "direction">;
@@ -397,6 +404,10 @@ export interface LegDto {
   flightCode: string | null;
   /** Số người riêng của chặng VỀ (ADR-0054 D10.3); null = theo số khách dịch vụ. */
   paxOverride: number | null;
+  /** Cam kết xe riêng (ADR-0056 VK3-A) — ai xem được chặng thì thấy (không lọc theo vai). */
+  exclusiveVehicle: boolean;
+  /** Cam kết xe tối thiểu N chỗ, không kể tài xế (ADR-0056 VK3-A); null = không cam kết. */
+  minVehicleSeats: number | null;
   /**
    * Dấu ĐẶT GẤP của chặng (ADR-0049 D2; chủ H4 / N-14, 29/9): `null` = chặng không đặt gấp. Văn phòng (ô `order.leg.short_notice.view`) nhận ĐỦ
    * (`DatGapDayDuDto`); Đối tác, HDV, Thực tập CHỈ nhận cờ `{ daDuyet: true }` — khoá lý do, người, lúc, ghi chú VẮNG MẶT.

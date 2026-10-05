@@ -97,8 +97,14 @@ function noiCua(l: LegFields, names: ReadonlyMap<string, string>): { noiDon: str
     noiTra: l.dropoffLocationId ? (names.get(l.dropoffLocationId) ?? null) : l.dropoffPlace,
   };
 }
-const moTaVao = (l: LegFields & { direction: "OUT" | "RETURN"; flightCode?: string | null; paxOverride?: number | null }, names: ReadonlyMap<string, string>) =>
-  ({ direction: l.direction, pickupDate: l.pickupDate, pickupTime: l.pickupTime, ...noiCua(l, names), soHieu: l.flightCode ?? null, soNguoiVe: l.paxOverride ?? null });
+const moTaVao = (
+  l: LegFields & { direction: "OUT" | "RETURN"; flightCode?: string | null; paxOverride?: number | null; exclusiveVehicle?: boolean; minVehicleSeats?: number | null },
+  names: ReadonlyMap<string, string>,
+) =>
+  ({
+    direction: l.direction, pickupDate: l.pickupDate, pickupTime: l.pickupTime, ...noiCua(l, names), soHieu: l.flightCode ?? null, soNguoiVe: l.paxOverride ?? null,
+    xeRieng: l.exclusiveVehicle ?? false, choToiThieu: l.minVehicleSeats ?? null,
+  });
 
 /** Số khách HIỆU LỰC của một dịch vụ (L-R1 — ADR-0054 D10.3): `effectivePax` (một nguồn với `soKhachHieuLuc`, bài học Đợt E). */
 async function soKhachDichVu(db: D1Database, serviceId: string): Promise<number> {
@@ -163,7 +169,7 @@ export interface EditLegPlan {
   mirror: Pickup;
   /** Ngày / giờ đón ĐANG LƯU — xét "sửa dưới mốc" theo min(giờ cũ, giờ mới) (ADR-0049 I14). */
   cu: { pickupDate: string | null; pickupTime: string | null };
-  /** Hai ô phụ sẽ ghi — CHỈ khoá có trong thân (vắng = giữ). */
+  /** Các ô phụ sẽ ghi (số hiệu, số người về, xe riêng, số chỗ tối thiểu) — CHỈ khoá có trong thân (vắng = giữ). */
   oPhu: OPhuGhi;
   /** Ngày, giờ, nơi đón, nơi trả y nguyên (`chiDoiOPhu`) — route không xét mốc, giữ dấu đặt gấp nếu thân không có `datGap` (chủ Q-B 1/10). */
   chiOPhu: boolean;
@@ -190,13 +196,16 @@ export async function planEditLeg(db: D1Database, orderId: string, legId: string
   const oPhu: OPhuGhi = {
     ...(k.value.flightCode !== undefined ? { flightCode: k.value.flightCode } : {}),
     ...(k.value.paxOverride !== undefined ? { paxOverride: k.value.paxOverride } : {}),
+    ...(k.value.exclusiveVehicle !== undefined ? { exclusiveVehicle: k.value.exclusiveVehicle } : {}),
+    ...(k.value.minVehicleSeats !== undefined ? { minVehicleSeats: k.value.minVehicleSeats } : {}),
   };
   // L-R1 CHỈ cho giá trị MỚI / ĐỔI (TC-P10): so số khách HIỆU LỰC (có điều chỉnh) của dịch vụ.
   if (oPhu.paxOverride != null && oPhu.paxOverride !== old.paxOverride) {
     const vuot = vuotLR1(oPhu.paxOverride, await soKhachDichVu(db, svc.id));
     if (vuot) return { ok: false, code: "invalid_input", message: vuot };
   }
-  const sau = { ...fields, direction: old.direction, flightCode: oPhu.flightCode !== undefined ? oPhu.flightCode : old.flightCode, paxOverride: oPhu.paxOverride !== undefined ? oPhu.paxOverride : old.paxOverride };
+  const sau = { ...fields, direction: old.direction, flightCode: oPhu.flightCode !== undefined ? oPhu.flightCode : old.flightCode, paxOverride: oPhu.paxOverride !== undefined ? oPhu.paxOverride : old.paxOverride,
+    exclusiveVehicle: oPhu.exclusiveVehicle !== undefined ? oPhu.exclusiveVehicle : old.exclusiveVehicle, minVehicleSeats: oPhu.minVehicleSeats !== undefined ? oPhu.minVehicleSeats : old.minVehicleSeats };
   const detail = moTaChang(svc.name, moTaVao(old, named.names), moTaVao(sau, named.names));
   const mirror = dauSau(svc.legs.map((l) => (l.id === legId ? { ...l, ...fields } : l)), named.names);
   return {

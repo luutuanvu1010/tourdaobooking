@@ -61,8 +61,9 @@ export function khoangNgayDon(departDate: string): { from: string; to: string } 
 /**
  * Chặng đã kiểm, dạng GHI (rỗng → null). `id` null = chặng mới.
  * Hai ô PHỤ (kế hoạch 2026-10-01-may-chu-o-moi-chang): `flightCode` (số hiệu chuyến bay, ADR-0055 VK2-C) và `paxOverride` (số người riêng của chặng VỀ,
- * ADR-0054 D10.3). `undefined` = thân KHÔNG có khoá (máy chưa tải bản mới) — nơi ghi CHÉP giá trị đang lưu ("khoá vắng = giữ"); `null` = gửi tường minh để
- * xoá. Hai ô này KHÔNG phải trường vận hành (không xét mốc 6 giờ — `chiDoiOPhu`).
+ * ADR-0054 D10.3), cộng hai ô CAM KẾT (ADR-0056 VK3-A): `exclusiveVehicle` (xe riêng) và `minVehicleSeats` (xe tối thiểu N chỗ, 1..100, không kể tài xế).
+ * `undefined` = thân KHÔNG có khoá (máy chưa tải bản mới) — nơi ghi CHÉP giá trị đang lưu ("khoá vắng = giữ"); `null` = gửi tường minh để xoá (cam kết
+ * `exclusiveVehicle` không có `null`: chỉ true / false). Các ô này KHÔNG phải trường vận hành (không xét mốc 6 giờ — `chiDoiOPhu`).
  */
 export interface ChangHopLe {
   id: string | null;
@@ -75,6 +76,8 @@ export interface ChangHopLe {
   dropoffPlace: string | null;
   flightCode?: string | null;
   paxOverride?: number | null;
+  exclusiveVehicle?: boolean;
+  minVehicleSeats?: number | null;
 }
 
 /** Chặng CÒN HIỆU LỰC đã lưu (đọc từ CSDL): dạng ghi + nhãn đọc (tên điểm danh mục hoặc chữ); hai ô phụ LUÔN có (đọc từ cột). */
@@ -84,6 +87,8 @@ export interface ChangDaLuu extends ChangHopLe {
   dropoffLabel: string | null;
   flightCode: string | null;
   paxOverride: number | null;
+  exclusiveVehicle: boolean;
+  minVehicleSeats: number | null;
 }
 
 /** Khuôn số hiệu chuyến bay SAU chuẩn hoá (ADR-0055 C1): 2 ký tự hãng (chữ hoặc số) + 1–4 chữ số + tối đa một chữ cái đuôi. CSDL chỉ giữ chữ HOA, 3..8. */
@@ -99,12 +104,27 @@ export function chuanHoaSoHieuChuyenBay(raw: unknown): { ok: true; value: string
   return { ok: true, value: v };
 }
 
+/** Số chỗ tối thiểu của xe (ADR-0056 VK3-A) — khớp CHECK của migration 0077. */
+export const CHO_TOI_THIEU_MIN = 1;
+export const CHO_TOI_THIEU_MAX = 100;
+/** Đọc `minVehicleSeats` (khoá CÓ mặt): `null` / "" → null (bỏ); số nguyên 1..100 (không kể tài xế); còn lại → câu tiếng Việt có tiền tố chặng `at`. */
+export function docChoToiThieu(raw: unknown, at: string): { ok: true; value: number | null } | { ok: false; message: string } {
+  if (raw === null || raw === "") return { ok: true, value: null };
+  if (typeof raw !== "number" || !Number.isInteger(raw) || raw < CHO_TOI_THIEU_MIN || raw > CHO_TOI_THIEU_MAX) {
+    return { ok: false, message: `${at}: số chỗ tối thiểu là số nguyên từ ${CHO_TOI_THIEU_MIN} đến ${CHO_TOI_THIEU_MAX} (không kể tài xế).` };
+  }
+  return { ok: true, value: raw };
+}
+
+/** Bốn ô phụ của thân chặng (số hiệu, số người về, hai ô cam kết). */
+type OPhuKhoa = "flightCode" | "paxOverride" | "exclusiveVehicle" | "minVehicleSeats";
+
 /**
- * Hai ô phụ của thân chặng: CHỈ đọc khoá CÓ MẶT (vắng → không có khoá trong kết quả). `paxOverride`: số nguyên ≥ 1, chỉ chặng VỀ (0 người thì bỏ chặng —
+ * Các ô phụ của thân chặng: CHỈ đọc khoá CÓ MẶT (vắng → không có khoá trong kết quả). `paxOverride`: số nguyên ≥ 1, chỉ chặng VỀ (0 người thì bỏ chặng —
  * ADR-0054 D10.3); `null` / "" = xoá. "≤ số khách hiệu lực" (L-R1) là việc của máy chủ (cần số khách).
  */
-function oPhu(r: Record<string, unknown>, direction: LegDirection, at: string): { ok: true; value: Pick<ChangHopLe, "flightCode" | "paxOverride"> } | { ok: false; message: string } {
-  const out: Pick<ChangHopLe, "flightCode" | "paxOverride"> = {};
+function oPhu(r: Record<string, unknown>, direction: LegDirection, at: string): { ok: true; value: Pick<ChangHopLe, OPhuKhoa> } | { ok: false; message: string } {
+  const out: Pick<ChangHopLe, OPhuKhoa> = {};
   if ("flightCode" in r) {
     const f = chuanHoaSoHieuChuyenBay(r.flightCode);
     if (!f.ok) return { ok: false, message: `${at}: ${f.message}` };
@@ -114,6 +134,15 @@ function oPhu(r: Record<string, unknown>, direction: LegDirection, at: string): 
     const p = docSoNguoiVe(r.paxOverride, direction, at);
     if (!p.ok) return p;
     out.paxOverride = p.value;
+  }
+  if ("exclusiveVehicle" in r) {
+    if (typeof r.exclusiveVehicle !== "boolean") return { ok: false, message: `${at}: xe riêng phải là có / không.` };
+    out.exclusiveVehicle = r.exclusiveVehicle;
+  }
+  if ("minVehicleSeats" in r) {
+    const c = docChoToiThieu(r.minVehicleSeats, at);
+    if (!c.ok) return c;
+    out.minVehicleSeats = c.value;
   }
   return { ok: true, value: out };
 }
@@ -127,7 +156,7 @@ export function docSoNguoiVe(p: unknown, direction: LegDirection, at: string): {
 }
 
 /**
- * Lệnh sửa chặng CHỈ đổi ô phụ (số hiệu chuyến bay / số người chiều về) — ngày, giờ, nơi đón, nơi trả y nguyên ⇒ KHÔNG xét mốc 6 giờ (ADR-0055 C2, ADR-0054
+ * Lệnh sửa chặng CHỈ đổi ô phụ (số hiệu chuyến bay / số người chiều về / cam kết xe riêng, số chỗ tối thiểu — ADR-0056 VK3-A) — ngày, giờ, nơi đón, nơi trả y nguyên ⇒ KHÔNG xét mốc 6 giờ (ADR-0055 C2, ADR-0054
  * D10.3: mốc chỉ xét bốn trường vận hành — ADR-0049 D2) và GIỮ dấu đặt gấp cũ (chủ Q-B 1/10 "Giữ dấu đặt gấp cũ"). Không đổi gì cũng trả true.
  */
 export function chiDoiOPhu(
@@ -278,6 +307,8 @@ const toGhi = (l: ChangDaLuu): ChangHopLe => ({
   dropoffLocationId: l.dropoffLocationId, dropoffPlace: l.dropoffPlace,
   ...(l.flightCode !== undefined ? { flightCode: l.flightCode } : {}),
   ...(l.paxOverride !== undefined ? { paxOverride: l.paxOverride } : {}),
+  ...(l.exclusiveVehicle !== undefined ? { exclusiveVehicle: l.exclusiveVehicle } : {}),
+  ...(l.minVehicleSeats !== undefined ? { minVehicleSeats: l.minVehicleSeats } : {}),
 });
 
 /**
@@ -326,6 +357,10 @@ export interface MoTaChangVao {
   soHieu?: string | null;
   /** Số người riêng của chiều về; null = theo số khách dịch vụ. Vắng = như null. */
   soNguoiVe?: number | null;
+  /** Cam kết xe riêng (ADR-0056 VK3-A). Vắng = như false. */
+  xeRieng?: boolean;
+  /** Cam kết xe tối thiểu N chỗ; null = không. Vắng = như null. */
+  choToiThieu?: number | null;
 }
 
 /**
@@ -341,11 +376,15 @@ export function moTaChang(tenDichVu: string, truoc: MoTaChangVao | null, sau: Mo
   const n = (x: string | null, empty: string) => (x === null ? empty : maskLongDigits(x));
   const soHieu = (x: MoTaChangVao) => x.soHieu ?? null;
   const soVe = (x: MoTaChangVao) => x.soNguoiVe ?? null;
+  const xeRieng = (x: MoTaChangVao) => x.xeRieng === true;
+  const choTT = (x: MoTaChangVao) => x.choToiThieu ?? null;
   const veNhan = (x: number | null) => (x === null ? "theo số khách dịch vụ" : String(x));
   if (truoc === null && sau !== null) {
     const phu = [
       ...(soHieu(sau) !== null ? [`số hiệu chuyến bay ${soHieu(sau)}`] : []),
       ...(soVe(sau) !== null ? [`số người chiều về ${soVe(sau)}`] : []),
+      ...(xeRieng(sau) ? ["xe riêng"] : []),
+      ...(choTT(sau) !== null ? [`xe tối thiểu ${choTT(sau)} chỗ`] : []),
     ];
     return `${head}: thêm — ngày đón ${v(sau.pickupDate, "(chưa có)")}, giờ đón ${v(sau.pickupTime, "(chưa chốt)")}, nơi đón ${n(sau.noiDon, "(trống)")}, nơi trả ${n(sau.noiTra, "(chưa chốt)")}${phu.map((x) => `, ${x}`).join("")}`;
   }
@@ -358,5 +397,7 @@ export function moTaChang(tenDichVu: string, truoc: MoTaChangVao | null, sau: Mo
   if (truoc.noiTra !== sau.noiTra) parts.push(`nơi trả ${n(truoc.noiTra, "(trống)")} → ${n(sau.noiTra, "(trống)")}`);
   if (soHieu(truoc) !== soHieu(sau)) parts.push(`số hiệu chuyến bay ${v(soHieu(truoc), "(trống)")} → ${v(soHieu(sau), "(trống)")}`);
   if (soVe(truoc) !== soVe(sau)) parts.push(`số người chiều về ${veNhan(soVe(truoc))} → ${veNhan(soVe(sau))}`);
+  if (xeRieng(truoc) !== xeRieng(sau)) parts.push(`xe riêng: ${xeRieng(truoc) ? "có" : "không"} → ${xeRieng(sau) ? "có" : "không"}`);
+  if (choTT(truoc) !== choTT(sau)) parts.push(`xe tối thiểu: ${choTT(truoc) === null ? "—" : `${choTT(truoc)} chỗ`} → ${choTT(sau) === null ? "—" : `${choTT(sau)} chỗ`}`);
   return parts.length ? `${head}: ${parts.join("; ")}` : null;
 }

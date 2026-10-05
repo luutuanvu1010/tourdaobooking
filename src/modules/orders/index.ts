@@ -70,7 +70,7 @@ const CANNOT_PAX_OVERRIDE = () => error(403, "forbidden", "Chỉ văn phòng đ�
  * chiều về ĐỔI (403, trước khi ghi) và L-R1 (400). Trả dịch vụ đã giải.
  */
 function oPhuNhap(
-  staff: PermissionHolder, scope: { ownerId: string; assigned: boolean }, order: ValidOrder, storedLegs: readonly { id: string; flightCode: string | null; paxOverride: number | null }[],
+  staff: PermissionHolder, scope: { ownerId: string; assigned: boolean }, order: ValidOrder, storedLegs: readonly { id: string; flightCode: string | null; paxOverride: number | null; exclusiveVehicle: boolean; minVehicleSeats: number | null }[],
 ): { ok: true; value: ValidOrder } | { ok: false; res: Response } {
   const g = giaiOPhuNhap(order.services, storedLegs);
   if (g.doiSoNguoi && !can(staff, "order.trip.edit", scope)) return { ok: false, res: CANNOT_PAX_OVERRIDE() };
@@ -267,6 +267,10 @@ export interface ChangChoChuyen {
   noiTra: string | null;
   /** Số người HIỆU LỰC của CHẶNG (`soNguoiChang` — ADR-0054 D10.3: chặng về có số riêng → min(số riêng, số khách hiệu lực của dịch vụ)). */
   soNguoi: number;
+  /** Cam kết xe riêng của chặng (ADR-0056 VK3-A, ADR A4). */
+  xeRieng: boolean;
+  /** Cam kết xe tối thiểu N chỗ, không kể tài xế (ADR-0056 VK3-A); null = không cam kết. */
+  choToiThieu: number | null;
   /** Người có tên (dòng hiện hành): khoá bền `personKey`, bản tên đã dùng `rowId`. */
   nguoi: { personKey: string; rowId: string; fullName: string; birthYear: number }[];
 }
@@ -303,6 +307,8 @@ export async function hanhKhachChoChuyen(db: D1Database, legIds: readonly string
       noiDon: maskLongDigits(l.noi_don),
       noiTra: maskLongDigits(l.noi_tra),
       soNguoi: soNguoiChang({ direction: l.direction, paxOverride: l.pax_override }, p ? tongKhach(p) : 0),
+      xeRieng: l.exclusive_vehicle === 1,
+      choToiThieu: l.min_vehicle_seats,
       nguoi: (current.get(l.order_id) ?? []).map((n) => ({ personKey: n.personKey, rowId: n.rowId, fullName: n.fullName, birthYear: n.birthYear })),
     };
   });
@@ -327,6 +333,10 @@ export interface ChangLichChung {
   soNguoi: number;
   /** Số hiệu chuyến bay của chặng (ADR-0055 VK2-C C3); null = chưa có. */
   soHieuChuyenBay: string | null;
+  /** Cam kết xe riêng của chặng (ADR-0056 VK3-A, ADR A4). */
+  xeRieng: boolean;
+  /** Cam kết xe tối thiểu N chỗ, không kể tài xế (ADR-0056 VK3-A); null = không cam kết. */
+  choToiThieu: number | null;
   /** Khoá người (`person_key`) của hành khách HIỆN HÀNH của đơn — chỉ khoá, không tên (I12). */
   nguoiCuaDon: string[];
   /** Chặng mang dấu đặt gấp. */
@@ -382,6 +392,8 @@ export async function lichChungChang(db: D1Database, tuNgay: string, denNgay: st
       noiTraDiemId: l.dropoff_location_id,
       soNguoi: soNguoiChang({ direction: l.direction, paxOverride: l.pax_override }, p ? tongKhach(p) : 0),
       soHieuChuyenBay: l.flight_code,
+      xeRieng: l.exclusive_vehicle === 1,
+      choToiThieu: l.min_vehicle_seats,
       nguoiCuaDon: [...(khoaNguoi.get(l.order_id) ?? [])],
       datGap: l.dat_gap === 1,
       khoaNoiDon: (await khoaNoi({ locationId: l.pickup_location_id, placeText: l.pickup_place }))!,

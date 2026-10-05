@@ -49,3 +49,11 @@ Làn này không gọi trợ lý con; người kiểm độc lập chỉ đọc 
 - Không bài nào liệt kê migration theo tên cần thêm tên mới (`npm test` xanh, 0 đỏ, không sửa `migrations-n1.test.ts`).
 - Từ điển dữ liệu: bảng chưa có mục theo cột, nên thêm `note` cho `ord_transfer_leg` và `vc_trip` ở `docs/data-dictionary.json` rồi `npm run dict`.
 
+
+## Task 2 — orders nhận / lưu / trả hai ô cam kết
+- Đỏ trước: `node --test` bốn tệp (cam-ket-chang, lich-chung-chang, ham-cong-bo, chang-dua-don) → 14 đỏ / 20. Xanh sau mã: 47/47; `npm test` 0 đỏ (3169 xanh + 1 todo có sẵn), typecheck 0 lỗi.
+- Đột biến P16 (2026-10-05): đổi `(old?.exclusiveVehicle ?? false)` trong `giaiOPhuNhap` thành `false` → bài 2 và 3 của `cam-ket-chang.test.ts` ĐỎ; hoàn nguyên → xanh.
+- Ruling: hai cột mới của `LEG_SET_O_PHU` nhận `?22`–`?25` (không phải `?21`–`?24` như ghi chú Task 0), vì `?21` là cờ giữ dấu đặt gấp — vì dồn vào sau để không đánh số lại tham số cũ — nếu sai: đổi số trong `oPhuBinds` và hai hằng SET.
+- Ruling: `LEG_INSERT_GUARDED` dời id nhật ký từ `?17` sang `?19` và năm cột đặt gấp sang `?20`–`?24` (hai cột cam kết chen vào `?17`, `?18`) — vì cột chèn đứng cùng nhóm với hai ô phụ — nếu sai: đặt hai cột cuối danh sách chèn.
+- Ruling: `kiemChang` từ chối `exclusiveVehicle: null` (chỉ `true`/`false`) — vì kế hoạch ghi "đúng kiểu boolean" — nếu sai: cho `null` = false.
+- Ruling: chặng đổi chiều trong lưu nháp vẫn GIỮ cam kết của chặng cùng id (khác `paxOverride` chỉ gắn chiều về) — vì cam kết không gắn với chiều — nếu sai: đặt NULL khi đổi chiều.

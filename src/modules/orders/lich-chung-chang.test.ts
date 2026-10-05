@@ -60,8 +60,8 @@ test("TC-20 lichChungChang: ĐÚNG các khoá của chặng (có khoaNoiDon / kh
   assert.deepEqual(kq.chang.map((c: any) => c.legId).sort(), o.services[0].legs.map((l: any) => l.id).sort(), "chỉ chặng của đơn đã xác nhận, chưa huỷ");
   for (const c of kq.chang) {
     assert.deepEqual(Object.keys(c).sort(), [
-      "datGap", "direction", "khoaNoiDon", "khoaNoiTra", "legId", "nguoiCuaDon", "noiDon", "noiDonDiemId", "noiTra", "noiTraDiemId", "orderCode", "orderId", "pickupDate",
-      "pickupTime", "serviceName", "soHieuChuyenBay", "soNguoi",
+      "choToiThieu", "datGap", "direction", "khoaNoiDon", "khoaNoiTra", "legId", "nguoiCuaDon", "noiDon", "noiDonDiemId", "noiTra", "noiTraDiemId", "orderCode", "orderId", "pickupDate",
+      "pickupTime", "serviceName", "soHieuChuyenBay", "soNguoi", "xeRieng",
     ]);
   }
   assert.deepEqual(kq.nhap, [{ legId: nhap.services[0].legs[0].id, orderId: nhap.id, orderCode: nhap.orderCode, pickupDate: D, pickupTime: "06:30", datGap: false }]);
@@ -175,4 +175,27 @@ test("kế hoạch ô mới TC-F7 + TC-P8: lichChungChang có `soHieuChuyenBay`;
   assert.equal(kq2.chang.find((c: any) => c.legId === ve.legId)!.soNguoi, 4);
   assert.equal((await hanhKhachChoChuyen(w.env.DB, [ve.legId]))[0]!.soNguoi, 4);
   assert.equal(w.q("SELECT pax_override FROM ord_transfer_leg WHERE id = ?", ve.legId)[0].pax_override, 6);
+});
+
+test("Đợt 7 (ADR-0056 VK3-A): lichChungChang + hanhKhachChoChuyen trả `xeRieng` / `choToiThieu` từ hai cột; mặc định false / null", async () => {
+  const w = setup();
+  const r = await w.call("POST", "/api/orders", {
+    as: SALES,
+    body: {
+      customerName: "Khách Thử", customerPhone: "0912345678",
+      services: [{ kind: "catalog", catalogCode: "ZA1", pax: { adult: 4, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: D,
+        legs: [{ ...OUT("Sân bay Cam Ranh"), exclusiveVehicle: true, minVehicleSeats: 15 }, RET] }],
+    },
+  });
+  assert.equal(r.status, 201, r.text);
+  assert.equal((await w.call("POST", `/api/orders/${r.json.order.id}/status`, { as: SALES, body: { status: "confirmed" } })).status, 200);
+  const kq = await lichChungChang(w.env.DB, D, inDays(4));
+  const di = kq.chang.find((c: any) => c.direction === "OUT")!;
+  const ve = kq.chang.find((c: any) => c.direction === "RETURN")!;
+  assert.deepEqual([di.xeRieng, di.choToiThieu], [true, 15]);
+  assert.deepEqual([ve.xeRieng, ve.choToiThieu], [false, null]);
+  const hk = await hanhKhachChoChuyen(w.env.DB, [di.legId, ve.legId]);
+  assert.deepEqual(hk.map((c: any) => [c.direction, c.xeRieng, c.choToiThieu]).sort(), [["OUT", true, 15], ["RETURN", false, null]]);
+  w.sqlite.prepare("UPDATE ord_transfer_leg SET exclusive_vehicle = 1, min_vehicle_seats = 15 WHERE id = ?").run(ve.legId);
+  assert.deepEqual((await hanhKhachChoChuyen(w.env.DB, [ve.legId])).map((c: any) => [c.xeRieng, c.choToiThieu]), [[true, 15]]);
 });

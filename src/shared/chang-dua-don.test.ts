@@ -3,7 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   CHIEU_LABEL, GHI_CHU_DAT_GAP_TOI_DA, LY_DO_DAT_GAP, LY_DO_DONG_CHANG, MAX_CHANG_MOI_DICH_VU, NGAY_DON_SAU_NGAY_DI, NGAY_DON_TRUOC_NGAY_DI, NOI_DON_CHUA_GHI, chieuDiDau, doiNgayChang, isLyDoDongChang,
-  isLyDoDatGap, khoangNgayDon, kiemChang, moTaChang, tronChangCu, type ChangDaLuu, chuanHoaSoHieuChuyenBay, chiDoiOPhu,
+  isLyDoDatGap, khoangNgayDon, kiemChang, moTaChang, tronChangCu, type ChangDaLuu, chuanHoaSoHieuChuyenBay, chiDoiOPhu, docChoToiThieu,
 } from "./chang-dua-don.ts";
 
 test("R-P18 (điều phối 29/9, theo bản vẽ của chủ 07:140-145): LY_DO_DAT_GAP đúng bốn mã + nhãn, thứ tự như bản vẽ; ghi chú tối đa 120 (khớp 0040)", () => {
@@ -300,4 +300,67 @@ test("tronChangCu (thân CŨ, PWA chưa tải bản mới): ô mới của chặ
   const r = tronChangCu(stored, {}, "2026-10-10");
   assert.equal(r.legs[0]!.flightCode, "VN1553");
   assert.equal(r.legs[0]!.paxOverride, 2);
+});
+
+// ---- Đợt 7 (ADR-0056 VK3-A): cam kết xe riêng / số chỗ tối thiểu ---------------------------------------------------------------------------------------------
+test("kiemChang + cam kết: khoá VẮNG → không có khoá; có khoá → boolean / số nguyên 1..100 / null; sai kiểu → câu tiếng Việt có tiền tố chặng", () => {
+  const vang = kiemChang({ ...base, pickupPlace: "KS A" }, ctx);
+  assert.ok(vang.ok);
+  assert.equal("exclusiveVehicle" in vang.value, false);
+  assert.equal("minVehicleSeats" in vang.value, false);
+  const co = kiemChang({ ...base, pickupPlace: "KS A", exclusiveVehicle: true, minVehicleSeats: 15 }, ctx);
+  assert.ok(co.ok, JSON.stringify(co));
+  assert.equal(co.value.exclusiveVehicle, true);
+  assert.equal(co.value.minVehicleSeats, 15);
+  for (const rong of [null, ""]) {
+    const x = kiemChang({ ...base, pickupPlace: "KS A", minVehicleSeats: rong }, ctx);
+    assert.ok(x.ok);
+    assert.equal(x.value.minVehicleSeats, null, `"${rong}" = bỏ`);
+  }
+  for (const bien of [1, 100]) assert.ok(kiemChang({ ...base, pickupPlace: "KS A", minVehicleSeats: bien }, ctx).ok, String(bien));
+  for (const bad of [0, 101, -1, 1.5, "abc", "15", true]) {
+    const r = kiemChang({ ...base, pickupPlace: "KS A", minVehicleSeats: bad }, ctx);
+    assert.equal(r.ok, false, String(bad));
+    if (!r.ok) assert.equal(r.message, "Dịch vụ 1, chặng 1: số chỗ tối thiểu là số nguyên từ 1 đến 100 (không kể tài xế).");
+  }
+  for (const bad of ["1", 1, 0, null, "true"]) {
+    const r = kiemChang({ ...base, pickupPlace: "KS A", exclusiveVehicle: bad }, ctx);
+    assert.equal(r.ok, false, String(bad));
+    if (!r.ok) assert.equal(r.message, "Dịch vụ 1, chặng 1: xe riêng phải là có / không.");
+  }
+});
+
+test("docChoToiThieu: null / '' → null; 1..100 → số; còn lại → lỗi", () => {
+  assert.deepEqual(docChoToiThieu(null, "X"), { ok: true, value: null });
+  assert.deepEqual(docChoToiThieu("", "X"), { ok: true, value: null });
+  assert.deepEqual(docChoToiThieu(15, "X"), { ok: true, value: 15 });
+  assert.equal(docChoToiThieu(0, "X").ok, false);
+  assert.equal(docChoToiThieu(101, "X").ok, false);
+});
+
+test("moTaChang + cam kết: sửa → 'xe riêng: không → có', 'xe tối thiểu: — → 15 chỗ'; thêm → ', xe riêng, xe tối thiểu 15 chỗ'; vắng ở hai phía = không đổi", () => {
+  const truoc = { direction: "OUT" as const, pickupDate: "2026-10-10", pickupTime: "06:30", noiDon: "A", noiTra: "B", xeRieng: false, choToiThieu: null };
+  assert.equal(moTaChang("Tour", truoc, { ...truoc, xeRieng: true })!, "Chiều đi · Tour: xe riêng: không → có");
+  assert.equal(moTaChang("Tour", truoc, { ...truoc, choToiThieu: 15 })!, "Chiều đi · Tour: xe tối thiểu: — → 15 chỗ");
+  assert.equal(moTaChang("Tour", { ...truoc, xeRieng: true, choToiThieu: 15 }, truoc)!, "Chiều đi · Tour: xe riêng: có → không; xe tối thiểu: 15 chỗ → —");
+  assert.match(moTaChang("Tour", null, { ...truoc, xeRieng: true, choToiThieu: 15 })!, /nơi trả B, xe riêng, xe tối thiểu 15 chỗ$/);
+  assert.doesNotMatch(moTaChang("Tour", null, truoc)!, /xe riêng|xe tối thiểu/);
+  const { xeRieng: _x, choToiThieu: _c, ...vang } = truoc;
+  assert.equal(moTaChang("Tour", vang, { ...vang }), null);
+  assert.equal(moTaChang("Tour", vang, truoc), null, "vắng = không cam kết");
+});
+
+test("tronChangCu: cam kết của chặng đang lưu được CHÉP sang dạng ghi", () => {
+  const stored: ChangDaLuu[] = [
+    { id: LEG, direction: "RETURN", pickupDate: "2026-10-12", pickupTime: "16:00", pickupLocationId: LOC, pickupPlace: null, dropoffLocationId: null, dropoffPlace: "KS A",
+      pickupLabel: "Bến", dropoffLabel: "KS A", flightCode: null, paxOverride: null, exclusiveVehicle: true, minVehicleSeats: 15 },
+  ];
+  const r = tronChangCu(stored, {}, "2026-10-10");
+  assert.equal(r.legs[0]!.exclusiveVehicle, true);
+  assert.equal(r.legs[0]!.minVehicleSeats, 15);
+});
+
+test("chiDoiOPhu: đổi cam kết không làm đổi bốn trường vận hành → vẫn true (không xét mốc)", () => {
+  const cu = { pickupDate: "2026-10-10", pickupTime: "06:30", pickupLocationId: null, pickupPlace: "KS A", dropoffLocationId: LOC, dropoffPlace: null };
+  assert.equal(chiDoiOPhu(cu, { ...cu, ...{ exclusiveVehicle: true, minVehicleSeats: 15 } }), true);
 });

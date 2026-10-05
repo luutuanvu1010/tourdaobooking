@@ -55,7 +55,7 @@ test("hanhKhachChoChuyen: ĐÚNG các khoá (phần tử + từng người); nơ
   const got = await hanhKhachChoChuyen(w.env.DB, legIds);
   assert.equal(got.length, 2);
   for (const g of got) {
-    assert.deepEqual(Object.keys(g).sort(), ["direction", "legId", "nguoi", "noiDon", "noiTra", "orderCode", "orderId", "pickupDate", "pickupTime", "serviceName", "soNguoi"]);
+    assert.deepEqual(Object.keys(g).sort(), ["choToiThieu", "direction", "legId", "nguoi", "noiDon", "noiTra", "orderCode", "orderId", "pickupDate", "pickupTime", "serviceName", "soNguoi", "xeRieng"]);
     for (const p of g.nguoi) assert.deepEqual(Object.keys(p).sort(), ["birthYear", "fullName", "personKey", "rowId"]);
     assert.equal(g.orderId, o.id);
     assert.equal(g.orderCode, o.orderCode);

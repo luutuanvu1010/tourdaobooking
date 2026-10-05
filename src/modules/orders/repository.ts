@@ -208,6 +208,8 @@ export const toStoredLeg = (r: LegRow): StoredLeg => ({
   dropoffLabel: r.dropoff_label,
   flightCode: r.flight_code,
   paxOverride: r.pax_override,
+  exclusiveVehicle: r.exclusive_vehicle === 1,
+  minVehicleSeats: r.min_vehicle_seats,
   serviceId: r.order_service_id,
   createdAt: r.created_at,
   createdBy: r.created_by,
@@ -232,6 +234,8 @@ const toLegDto = (l: StoredLeg): LegDto => ({
   updatedAt: l.updatedAt,
   flightCode: l.flightCode,
   paxOverride: l.paxOverride,
+  exclusiveVehicle: l.exclusiveVehicle,
+  minVehicleSeats: l.minVehicleSeats,
   datGap: l.datGap
     ? {
         daDuyet: true,
@@ -844,6 +848,8 @@ function legWriteOf(
     pickupPlace: l.pickupPlace, dropoffLocationId: l.dropoffLocationId, dropoffPlace: l.dropoffPlace,
     // Ô phụ (0057): route đã GIẢI khoá vắng (lưu nháp: chép giá trị đang lưu; thêm chặng / chặng mới của `/trip`: NULL) — ở đây vắng = NULL.
     flightCode: l.flightCode ?? null, paxOverride: l.paxOverride ?? null,
+    // Cam kết (0077): cùng khuôn — route đã giải khoá vắng; ở đây vắng = không cam kết.
+    exclusiveVehicle: l.exclusiveVehicle ?? false, minVehicleSeats: l.minVehicleSeats ?? null,
     createdAt: m?.createdAt ?? at, createdBy: m ? m.createdBy : staffId, updatedAt: at, updatedBy: staffId, datGap,
   };
 }

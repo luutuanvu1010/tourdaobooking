@@ -325,9 +325,10 @@ export function validateTripUpdate(
   if (b.services.length > MAX_SERVICES) return { ok: false, message: `Tối đa ${MAX_SERVICES} dịch vụ.` };
   // Kế hoạch ô mới Task 3.5b (phát hiện C1): số hiệu chuyến bay / số người chiều về là của TỪNG CHẶNG — đường "Sửa thông tin chuyến" cũ không nhận (không
   // đoán chặng nào), để `updateTrip` luôn giữ hai ô (cờ ghi = 0).
-  const oPhu = (o: Record<string, unknown>) => "flightCode" in o || "paxOverride" in o;
+  // ADR-0056 VK3-A: hai ô cam kết (xe riêng, số chỗ tối thiểu) cũng là của TỪNG CHẶNG — cùng khuôn.
+  const oPhu = (o: Record<string, unknown>) => "flightCode" in o || "paxOverride" in o || "exclusiveVehicle" in o || "minVehicleSeats" in o;
   if (oPhu(b) || b.services.some((x) => !!x && typeof x === "object" && oPhu(x as Record<string, unknown>))) {
-    return { ok: false, message: "Số hiệu chuyến bay và số người chiều về sửa ở từng chặng đưa đón, không sửa ở đây." };
+    return { ok: false, message: "Số hiệu chuyến bay, số người chiều về, xe riêng, số chỗ tối thiểu sửa ở từng chặng đưa đón, không sửa ở đây." };
   }
   const { from, to } = confirmWindow(today);
   const seen = new Set<string>();
@@ -401,11 +402,13 @@ export function describeTripUpdates(stored: readonly { id: string; name: string;
  *   thi công); có khoá mà KHÁC bản đang lưu (kể cả `null` để xoá, kể cả chặng mới có số) → `doiSoNguoi` (route hỏi `order.trip.edit`, không có → 403).
  * - L-R1 CHỈ cho giá trị gửi MỚI / ĐỔI: ≤ số khách của dịch vụ TRONG THÂN (nháp chưa có điều chỉnh tiền) — vượt → `vuot` (400). Giá trị chép lại hoặc gửi bằng
  *   bản cũ KHÔNG kiểm (Đối tác / Thực tập không sửa được ô này — trả 400 là bế tắc; phần vượt do `soNguoiChang` kẹp lúc đọc + kiểm định kỳ báo — TC-P10).
- * Trả dịch vụ MỚI với mọi chặng mang ĐỦ hai ô (không còn `undefined`).
+ * - Cam kết (ADR-0056 VK3-A): `exclusiveVehicle` / `minVehicleSeats` — khoá có → dùng (ô `order.modify` đã hỏi, KHÔNG có luật quyền riêng); vắng → CHÉP giá trị đang
+ *   lưu của chặng CÙNG id (thân cũ / PWA cũ không xoá — Review Focus 5); chặng mới vắng → false / NULL. Chặng đổi chiều vẫn giữ cam kết (không gắn với chiều).
+ * Trả dịch vụ MỚI với mọi chặng mang ĐỦ các ô (không còn `undefined`).
  */
 export function giaiOPhuNhap(
   services: readonly ValidService[],
-  storedLegs: readonly { id: string; flightCode: string | null; paxOverride: number | null }[],
+  storedLegs: readonly { id: string; flightCode: string | null; paxOverride: number | null; exclusiveVehicle: boolean; minVehicleSeats: number | null }[],
 ): { services: ValidService[]; doiSoNguoi: boolean; vuot: string | null } {
   const cu = new Map(storedLegs.map((l) => [l.id, l] as const));
   let doiSoNguoi = false;
@@ -427,7 +430,9 @@ export function giaiOPhuNhap(
           }
         }
       }
-      return { ...l, flightCode, paxOverride };
+      const exclusiveVehicle = l.exclusiveVehicle !== undefined ? l.exclusiveVehicle : (old?.exclusiveVehicle ?? false);
+      const minVehicleSeats = l.minVehicleSeats !== undefined ? l.minVehicleSeats : (old?.minVehicleSeats ?? null);
+      return { ...l, flightCode, paxOverride, exclusiveVehicle, minVehicleSeats };
     }),
   }));
   return { services: out, doiSoNguoi, vuot };
