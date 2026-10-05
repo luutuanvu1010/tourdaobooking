@@ -10,7 +10,7 @@
 - Mười quyền của Nền tảng, một tài khoản có nhiều quyền: `SALES`, `ACCOUNTING`, `ADMIN`, `FIELD`, `PARTNER`, `SUPER_ADMIN`, `INTERN`, `DRIVER` (Tài xế công ty — ADR-0040), `DRIVER_PARTNER` (Tài xế đối tác — ADR-0048; đứng một mình, không kèm quyền nào khác), `HR` (Nhân sự — vai Hành chính nhân sự, ADR-0071; chỉ tạo/xem/sửa tài khoản). Từ vựng: `docs/SYSTEM-DESIGN.md` §15.
 
 ## 2. Thứ tự ưu tiên khi mâu thuẫn (Hiến pháp Điều 3.1)
-Hiến pháp → ràng buộc dự án → ADR → quy trình/playbook → đặc tả → mã. Hiến pháp v2.3.0 nằm ngay trong repo ở `playbook/CONSTITUTION.md` (bản chép chỉ-đọc từ Core, ADR-0012 đã accepted; cách dùng và điều cấm: `playbook/PIN-README.md`). **Không sửa `playbook/`.**
+Hiến pháp → ràng buộc dự án → ADR → quy trình/playbook → đặc tả → mã. Hiến pháp v2.3.0 nằm ngay trong repo ở `playbook/CONSTITUTION.md` (bản chép chỉ-đọc từ Core, ADR-0012 đã accepted; luật chung thuộc kho luật gốc Master-Project-Framework, ADR-0101; cách dùng và điều cấm: `playbook/PIN-README.md`). **Không sửa `playbook/`.**
 - Tài liệu **chuẩn tắc** (Hiến pháp; **Hiến chương + luật ở `docs/ARCHITECTURE.md`**, đứng trên mọi ADR; ADR đã duyệt; `docs/SPEC-tourdao-sales.md` đã duyệt) **thắng mã**: mã lệch là lỗi, sửa mã.
 - **Câu hỏi thiết kế mới: tra Hiến chương (`docs/ARCHITECTURE.md` Phần I) trước**, chỉ các điều dòng Trạng thái ghi **đã duyệt**. Điều đã duyệt trả lời được **nguyên tắc** thì không hỏi lại chủ về nguyên tắc đó. Áp nó vào một quyết định cụ thể chạm dữ liệu, quyền, tiền, hợp đồng hay bất biến **vẫn dừng và hỏi / qua ADR chủ duyệt** như §3 (Hiến pháp P8, N3).
 - Tài liệu **mô tả** (`docs/SYSTEM-DESIGN.md`, `docs/DATA-DICTIONARY.md`, `docs/CHANGE-GUIDE.md`) **thua mã**: sửa tài liệu trong cùng commit.

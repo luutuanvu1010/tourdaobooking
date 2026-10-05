@@ -1,6 +1,6 @@
 # ADR-0101: Luật chung thuộc kho luật gốc; bản ghim là bản chép từ Core, không phải do Core sở hữu
 
-- **Trạng thái:** **proposed** — chờ chủ dự án duyệt. Soạn 2026-10-05 theo QĐ-P08 (duyệt tạm 2026-09-26, chốt 2026-10-03 theo Hiến pháp 9.2; `Master-Project-Framework/archive/2026-09-26-phan-phoi-ban-chi-doc.md` mục 5 ý 6 và bảng QĐ-P08) và bản đối chiếu `docs/superpowers/specs/2026-10-05-doi-chieu-bo-luat-v2.md` mục 2. Người kiểm độc lập (chỉ đọc) đã đọc bản đầu; bản này sửa theo bốn phát hiện của vòng kiểm đó.
+- **Trạng thái:** **accepted** 2026-10-05 (chủ dự án trả lời trong chat: "1- duyệt"; trước đó `proposed`). Soạn 2026-10-05 theo QĐ-P08 (duyệt tạm 2026-09-26, chốt 2026-10-03 theo Hiến pháp 9.2; `Master-Project-Framework/archive/2026-09-26-phan-phoi-ban-chi-doc.md` mục 5 ý 6 và bảng QĐ-P08) và bản đối chiếu `docs/superpowers/specs/2026-10-05-doi-chieu-bo-luat-v2.md` mục 2. Người kiểm độc lập (chỉ đọc) đã đọc bản đầu; bản này sửa theo bốn phát hiện của vòng kiểm đó.
 - **Ngày:** 2026-10-05
 - **Phạm vi:** lời khai về sở hữu và đường sửa luật của `playbook/`; không đổi tệp nào trong `playbook/`, không đổi manifest, không đổi `src/standards.test.ts`.
 - **Cửa:** hai chiều (chỉ đổi lời khai; nội dung luật đang áp không đổi).
