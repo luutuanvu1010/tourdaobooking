@@ -136,6 +136,8 @@ for (const f of FILES) {
     for (const b of tep.cac_buoc.filter((x) => x.ham === "kiemXuatBen")) {
       const c = giai(b.dau_vao.chuyen!, tep.nen) as Record<string, unknown>;
       assert.ok("camKetPhaLeKhoa" in c, `${b.ma}: chuyến thiếu camKetPhaLeKhoa`);
+      // ADR-0057 C5 (Đợt 4): hai cờ xe thuê / nguồn giá cũng BẮT BUỘC — thiếu thì `thue` undefined lặng lẽ thành "không thuê".
+      assert.ok(typeof c.thue === "boolean" && typeof c.coNguonGia === "boolean", `${b.ma}: chuyến thiếu thue / coNguonGia`);
     }
     for (const b of tep.cac_buoc.filter((x) => x.ham === "kiemXep")) {
       assert.ok(Array.isArray(b.dau_vao.changTrenChuyen) && typeof b.dau_vao.xeId === "string" && "camKetPhaLeKhoa" in b.dau_vao, `${b.ma}: bước xếp thiếu trường cam kết`);

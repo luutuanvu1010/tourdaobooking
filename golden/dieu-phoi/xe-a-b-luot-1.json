@@ -69,7 +69,7 @@
     ],
     "cx07": {
       "id": "cx-3009-07", "ma": "CX-3009-07", "ngayChay": "2026-09-30", "batDauMs": "2026-09-30 05:50", "ketThucMs": "2026-09-30 08:30", "ketThucThatMs": null, "trangThai": "PLANNED",
-      "xe": "$nen.xe.A", "taiXe": "$nen.taiXe.A", "nghiChup": 30, "nghiPhaLe": false, "camKetPhaLeKhoa": null
+      "xe": "$nen.xe.A", "taiXe": "$nen.taiXe.A", "nghiChup": 30, "nghiPhaLe": false, "camKetPhaLeKhoa": null, "thue": false, "coNguonGia": false
     },
     "diemCx07": [
       { "id": "d-sheraton", "tripId": "cx-3009-07", "seq": 1, "loai": "PICKUP", "trangThai": "PENDING", "placeKey": "L:loc-sheraton", "gioXeToiMs": null },
@@ -320,21 +320,21 @@
       "ma": "B21-NGHI-THEO-GIO-XAY-RA-THIEU",
       "mo_ta": "CX-3009-07 kết thúc thật 07:50 (khai). CX-3009-08 cùng xe A, văn phòng bấm Xuất bến lúc 08:45 và khai xuất bến 08:10 → nghỉ 20 < 30 phút tính theo giờ XẢY RA → GIỮ (Quản trị phá lệ)",
       "ham": "kiemXuatBen",
-      "dau_vao": {"chuyen": {"id": "cx-3009-08", "ma": "CX-3009-08", "ngayChay": "2026-09-30", "batDauMs": "2026-09-30 08:10", "ketThucMs": "2026-09-30 10:00", "ketThucThatMs": null, "trangThai": "PLANNED", "xe": "$nen.xe.A", "taiXe": "$nen.taiXe.A", "nghiChup": 30, "nghiPhaLe": false, "camKetPhaLeKhoa": null}, "suat": [], "chang": [], "suatMoCuaChang": [], "diem": [], "chuyenKhac": [{"id": "cx-3009-07", "ma": "CX-3009-07", "xeId": "xe-a", "taiXePartyId": "tx-a", "batDauMs": "2026-09-30 05:50", "ketThucMs": "2026-09-30 08:30", "ketThucThatMs": "2026-09-30 07:50", "trangThai": "ENDED"}], "chinhSach": "$nen.chinhSach", "hangBang": "$nen.hangBang", "dieuKien": "$nen.dieuKien", "bayGioMs": "2026-09-30 08:45", "xuatBenMs": "2026-09-30 08:10"},
+      "dau_vao": {"chuyen": {"id": "cx-3009-08", "ma": "CX-3009-08", "ngayChay": "2026-09-30", "batDauMs": "2026-09-30 08:10", "ketThucMs": "2026-09-30 10:00", "ketThucThatMs": null, "trangThai": "PLANNED", "xe": "$nen.xe.A", "taiXe": "$nen.taiXe.A", "nghiChup": 30, "nghiPhaLe": false, "camKetPhaLeKhoa": null, "thue": false, "coNguonGia": false}, "suat": [], "chang": [], "suatMoCuaChang": [], "diem": [], "chuyenKhac": [{"id": "cx-3009-07", "ma": "CX-3009-07", "xeId": "xe-a", "taiXePartyId": "tx-a", "batDauMs": "2026-09-30 05:50", "ketThucMs": "2026-09-30 08:30", "ketThucThatMs": "2026-09-30 07:50", "trangThai": "ENDED"}], "chinhSach": "$nen.chinhSach", "hangBang": "$nen.hangBang", "dieuKien": "$nen.dieuKien", "bayGioMs": "2026-09-30 08:45", "xuatBenMs": "2026-09-30 08:10"},
       "dap_an": {"quyet_dinh": "GIU", "ma_luat": ["NGHI_THIEU"], "ai_xu_ly": ["QUAN_TRI"], "so_gan_ten": 0}
     },
     {
       "ma": "B22-NGHI-THEO-GIO-XAY-RA-DU",
       "mo_ta": "Như trên nhưng khai xuất bến 08:20 → nghỉ đủ 30 phút theo giờ xảy ra → ĐẠT",
       "ham": "kiemXuatBen",
-      "dau_vao": {"chuyen": {"id": "cx-3009-08", "ma": "CX-3009-08", "ngayChay": "2026-09-30", "batDauMs": "2026-09-30 08:10", "ketThucMs": "2026-09-30 10:00", "ketThucThatMs": null, "trangThai": "PLANNED", "xe": "$nen.xe.A", "taiXe": "$nen.taiXe.A", "nghiChup": 30, "nghiPhaLe": false, "camKetPhaLeKhoa": null}, "suat": [], "chang": [], "suatMoCuaChang": [], "diem": [], "chuyenKhac": [{"id": "cx-3009-07", "ma": "CX-3009-07", "xeId": "xe-a", "taiXePartyId": "tx-a", "batDauMs": "2026-09-30 05:50", "ketThucMs": "2026-09-30 08:30", "ketThucThatMs": "2026-09-30 07:50", "trangThai": "ENDED"}], "chinhSach": "$nen.chinhSach", "hangBang": "$nen.hangBang", "dieuKien": "$nen.dieuKien", "bayGioMs": "2026-09-30 08:45", "xuatBenMs": "2026-09-30 08:20"},
+      "dau_vao": {"chuyen": {"id": "cx-3009-08", "ma": "CX-3009-08", "ngayChay": "2026-09-30", "batDauMs": "2026-09-30 08:10", "ketThucMs": "2026-09-30 10:00", "ketThucThatMs": null, "trangThai": "PLANNED", "xe": "$nen.xe.A", "taiXe": "$nen.taiXe.A", "nghiChup": 30, "nghiPhaLe": false, "camKetPhaLeKhoa": null, "thue": false, "coNguonGia": false}, "suat": [], "chang": [], "suatMoCuaChang": [], "diem": [], "chuyenKhac": [{"id": "cx-3009-07", "ma": "CX-3009-07", "xeId": "xe-a", "taiXePartyId": "tx-a", "batDauMs": "2026-09-30 05:50", "ketThucMs": "2026-09-30 08:30", "ketThucThatMs": "2026-09-30 07:50", "trangThai": "ENDED"}], "chinhSach": "$nen.chinhSach", "hangBang": "$nen.hangBang", "dieuKien": "$nen.dieuKien", "bayGioMs": "2026-09-30 08:45", "xuatBenMs": "2026-09-30 08:20"},
       "dap_an": {"quyet_dinh": "DAT", "ma_luat": [], "so_gan_ten": 0}
     },
     {
       "ma": "B23-XE-NHA-XE-THIEU-BAO-HIEM",
       "mo_ta": "ADR-0050 VK1-C: xe 45 chỗ của nhà xe Minh Phát có Kiểm định nhưng CHƯA nhập Bảo hiểm trách nhiệm dân sự → Xuất bến bị GIỮ 'xe thiếu giấy tờ bắt buộc', Quản trị xử lý",
       "ham": "kiemXuatBen",
-      "dau_vao": {"chuyen": {"id": "cx-3009-08", "ma": "CX-3009-08", "ngayChay": "2026-09-30", "batDauMs": "2026-09-30 09:00", "ketThucMs": "2026-09-30 11:00", "ketThucThatMs": null, "trangThai": "PLANNED", "xe": "$nen.xe.MP_THIEU_BH", "taiXe": "$nen.taiXe.MP", "nghiChup": 30, "nghiPhaLe": false, "camKetPhaLeKhoa": null}, "suat": [], "chang": [], "suatMoCuaChang": [], "diem": [], "chuyenKhac": [], "chinhSach": "$nen.chinhSach", "hangBang": "$nen.hangBang", "dieuKien": "$nen.dieuKien", "bayGioMs": "2026-09-30 08:55", "xuatBenMs": "2026-09-30 08:55"},
+      "dau_vao": {"chuyen": {"id": "cx-3009-08", "ma": "CX-3009-08", "ngayChay": "2026-09-30", "batDauMs": "2026-09-30 09:00", "ketThucMs": "2026-09-30 11:00", "ketThucThatMs": null, "trangThai": "PLANNED", "xe": "$nen.xe.MP_THIEU_BH", "taiXe": "$nen.taiXe.MP", "nghiChup": 30, "nghiPhaLe": false, "camKetPhaLeKhoa": null, "thue": false, "coNguonGia": false}, "suat": [], "chang": [], "suatMoCuaChang": [], "diem": [], "chuyenKhac": [], "chinhSach": "$nen.chinhSach", "hangBang": "$nen.hangBang", "dieuKien": "$nen.dieuKien", "bayGioMs": "2026-09-30 08:55", "xuatBenMs": "2026-09-30 08:55"},
       "dap_an": {"quyet_dinh": "GIU", "ma_luat": ["DIEU_KIEN_GIAY_TO_XE"], "ai_xu_ly": ["QUAN_TRI"], "so_gan_ten": 0}
     }
   ]
