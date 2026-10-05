@@ -106,9 +106,30 @@ assert.equal(r.status, 200, JSON.stringify(r.body));
 assert.deepEqual([r.body.daCapNhat, r.body.boQua], [0, 0]);
 console.log("✓ cập nhật điểm khi xe chạy: không lệch → 200 / 0");
 
+// --- 4. Cứu hộ đơn giản (D5c, A-1b — lời chủ 5.2b): GET …/cuu-ho chỉ đọc. Xe nhận: chuyến thứ hai cùng ngày, cùng tài xế công ty (14:00, sau giờ chuyến này). ---
+const c2 = await call(SALES, "POST", "/api/van-chuyen/chuyen", { requestId: uuid(), xeId, taiXePartyId: txParty, batDau: { ngay: D, gio: "14:00" }, ketThuc: { ngay: D, gio: "15:00" } });
+assert.equal(c2.status, 201, JSON.stringify(c2.body));
+r = await call(SALES, "GET", `/api/van-chuyen/chuyen/${id}/cuu-ho`);
+assert.deepEqual([r.status, r.body.error?.code], [409, "chua_gian_doan"], JSON.stringify(r.body));
+console.log("✓ cứu hộ: xe còn chạy → 409 chua_gian_doan");
+
 // --- Dọn: kết thúc gián đoạn (đóng mọi suất). ---
 r = await call(TX, "POST", `/api/van-chuyen/cuoc-cua-toi/${id}/ket-thuc-gian-doan`, { requestId: uuid(), lyDo: "GIAN_DOAN_KHAC" });
 assert.equal(r.status, 200, JSON.stringify(r.body));
+assert.equal((await call(KE_TOAN, "GET", `/api/van-chuyen/chuyen/${id}/cuu-ho`)).status, 403);
+assert.equal((await call(TX, "GET", `/api/van-chuyen/chuyen/${id}/cuu-ho`)).status, 403);
+r = await call(SALES, "GET", `/api/van-chuyen/chuyen/${id}/cuu-ho`);
+assert.equal(r.status, 200, JSON.stringify(r.body));
+assert.equal(r.body.chuyenHong.id, id);
+const changCH = Object.fromEntries(r.body.changChoXep.map((x) => [x.legId, x.soNguoi]));
+assert.equal(changCH[dA.legId], 2, JSON.stringify(r.body.changChoXep));
+assert.ok(changCH[dB.legId] >= 1, "chặng B (một suất đã báo huỷ, vẫn đóng gián đoạn) cần chuyển");
+assert.equal(r.body.chuyenHong.soKhachCanChuyen, r.body.changChoXep.reduce((a, x) => a + x.soNguoi, 0));
+assert.ok(r.body.xeNhan.some((x) => x.tripId === c2.body.chuyen.id && x.trangThai === "PLANNED" && x.choTrong === 15), JSON.stringify(r.body.xeNhan));
+assert.ok(!r.body.xeNhan.some((x) => x.tripId === id), "chuyến hỏng không là xe nhận");
+assert.doesNotMatch(JSON.stringify(r.body), /Khách Xe Chạy|0913579248|TD-\d{8}/, "DTO cứu hộ không tên, SĐT, mã đơn");
+r = await call(SALES, "POST", `/api/van-chuyen/chuyen/${c2.body.chuyen.id}/huy`, { version: c2.body.chuyen.version, requestId: uuid(), lyDo: "HUY_KHAC" });
+console.log(`✓ cứu hộ: Kế toán / tài xế 403; sau gián đoạn 200 — chặng cần chuyển, xe nhận cùng ngày (tài xế công ty), không tên / SĐT / mã đơn; dọn chuyến thứ hai: ${r.status}`);
 const [nk] = await sqlRows(`SELECT count(*) AS n FROM audit_log WHERE target_id = '${id}' AND action IN ('trip_stop_added_running', 'trip_allocation_office_cancelled') AND (detail LIKE '%Khách Xe Chạy%' OR detail LIKE '%0913579248%')`);
 assert.equal(nk.n, 0, "nhật ký không tên / SĐT");
 console.log("✓ dọn: kết thúc gián đoạn; nhật ký thêm điểm / báo huỷ không tên, không SĐT");
