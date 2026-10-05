@@ -1,4 +1,4 @@
-// Vận chuyển Đợt 5 A-1b — TÀI XẾ BỔ SUNG TÊN khách chưa có tên (ADR-0052 D5b — CHỜ CHỦ DUYỆT; bản vẽ docs/design/van-chuyen-dot-3-7/Điều phối xe đang chạy.dc.html
+// Vận chuyển Đợt 5 A-1b — TÀI XẾ BỔ SUNG TÊN khách chưa có tên (ADR-0052 D5b — chủ duyệt 5/10, chỉ tài xế công ty; bản vẽ docs/design/van-chuyen-dot-3-7/Điều phối xe đang chạy.dc.html
 // V6 6.3 "Suất của khách", 6.4 "Bổ sung tên — Suất N"): chuyến HÔM NAY (trong ngày chạy) có một suất chưa tên → khối "Suất của khách" (không tên khách), link
 // "Bổ sung tên" → hộp Họ tên / Năm sinh (16px) → Lưu → máy chủ ghi, màn đọc lại: khối ẩn, điều kiện "thiếu tên" hết.
 // Chạy từ GỐC repo, sau `npm run build:web` (không cần mạng ngoài). Dựng chuyến HÔM NAY lúc bây giờ + 2 giờ 30 ⇒ chạy TRƯỚC 19:00 giờ VN:
@@ -45,6 +45,9 @@ try {
     assert.ok(dong.every((x) => /^Suất [12] · Điểm 1 · Sheraton Nha Trang (Đã có tên|Chưa có tên( Bổ sung tên)?)$/.test(x)), JSON.stringify(dong));
     assert.equal(await p.ev(`document.querySelectorAll('.dp-suat-khach [data-action="bo-sung-ten"]').length`), 1);
     assert.equal(await p.ev(`document.querySelector('.dp-suat-khach').innerText.includes('Hành Khách Đủ Tên')`), false, "khối không hiện tên");
+    // Nợ L4 (dot5-tang3): tài xế công ty trong ngày chạy — dòng điều kiện thiếu tên chỉ chỗ tự bổ sung, không chỉ "(văn phòng lo)".
+    const dk = await p.ev(`[...document.querySelectorAll('.dp-cond-nhan')].map((x) => x.innerText.trim())`);
+    assert.ok(dk.some((x) => /^Chưa đủ tên khách.* \(bấm Bổ sung tên ở khối Suất của khách, hoặc văn phòng lo\)$/.test(x)), JSON.stringify(dk));
     assert.equal(await p.ev(noCode), "");
     assert.ok(await p.ev(noOverflowX));
     await axe(p, "Suất của khách 390");
