@@ -84,6 +84,7 @@ export const khungChuyen = (t: TripRow): KhungChuyen => ({
 export const chuyenVao = (t: TripRow, xe: XeVao, taiXe: TaiXeVao | null): ChuyenVao => ({
   id: t.id, ma: t.code, ngayChay: t.service_date, batDauMs: t.planned_start_ms, ketThucMs: t.planned_end_ms, ketThucThatMs: t.ended_ms, trangThai: t.status, xuatBenMs: t.departed_ms, xe, taiXe,
   nghiChup: t.rest_minutes_snapshot, nghiPhaLe: t.rest_override_reason_code !== null, thue: t.rented === 1, coNguonGia: t.co_nguon_gia === 1,
+  camKetPhaLeKhoa: t.commitment_override_key, // ADR-0056 VK3-A: chỉ để so với khoá của kiemCamKet
 });
 export const suatVao = (a: AllocRow): SuatVao => ({
   id: a.id, tripId: a.trip_id, loai: a.kind, legId: a.leg_id, personKey: a.passenger_key, crewPartyId: a.crew_party_id, boardStopId: a.board_stop_id,
@@ -97,6 +98,7 @@ export const diemVao = (s: StopRow): DiemVao => ({
 export const changVao = (c: ChangLichChung): ChangVao => ({
   legId: c.legId, orderId: c.orderId, orderCode: c.orderCode, chieu: c.direction, ngayDon: c.pickupDate, gioDon: c.pickupTime, coNoiTra: c.noiTra !== null,
   donDaXacNhan: true, donDaHuy: false, changMo: true, soNguoi: c.soNguoi, nguoiCuaDon: [...c.nguoiCuaDon], datGap: c.datGap, khoaNoiDon: c.khoaNoiDon, khoaNoiTra: c.khoaNoiTra,
+  xeRieng: c.xeRieng, choToiThieu: c.choToiThieu, // ADR-0056 VK3-A A4
 });
 /** I38 (R-P9): lý do CỤ THỂ cho chặng có suất mà rơi khỏi `lichChungChang` — theo cờ view công bố; còn mở + đã xác nhận ⇒ ngày đón dời ra ngoài khoảng đọc. */
 export function lyDoChangNgoai(f: LegFlagRow): "DON_DA_HUY" | "CHANG_DA_DONG" | "GIO_HEN_NGOAI_CHUYEN" | "CHANG_KHONG_HOP_LE" {

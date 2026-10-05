@@ -1197,7 +1197,9 @@ export const vanChuyenModule: AppModule = {
       const bayGioMs = Date.now();
       const ra: { nhacGioLai?: CanhBaoGioLai[] } = {}; // ADR-0055 VK2-B B3: nhắc giờ lái của chuyến sau sửa (chỉ lần đầu)
       if (!(await eventByRequest(env.DB, b.requestId))) {
-        const r = await lenhSuaChuyen(env.DB, nen, b, staff, bayGioMs, ra);
+        // ADR-0056 VK3-A: chặng quanh ngày chạy (sau `can()`) — đổi xe thì luật cam kết xét khách đang trên chuyến.
+        const lich = await lichChungChang(env.DB, nen.tu, nen.den);
+        const r = await lenhSuaChuyen(env.DB, nen, lich.chang, b, staff, bayGioMs, ra);
         if (r) return r;
         baoThayDoiChuyen({ tripId: nen.trip.id, requestId: b.requestId }); // ADR-0052 D6.3: sau lô thành công, bắn-và-quên; không gọi khi 4xx / lệnh lặp
       }

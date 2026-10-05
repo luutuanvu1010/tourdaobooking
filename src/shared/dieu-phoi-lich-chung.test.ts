@@ -15,7 +15,7 @@ const tx = (v: Partial<TaiXeVao> = {}): TaiXeVao => ({ partyId: "tx-an", display
 const chang = (legId: string, v: Partial<ChangVao> = {}): ChangVao => ({
   legId, orderId: `don-${legId}`, orderCode: `ĐH-${legId}`, chieu: "OUT", ngayDon: "2026-09-30", gioDon: "06:30", coNoiTra: true,
   donDaXacNhan: true, donDaHuy: false, changMo: true, soNguoi: 2, nguoiCuaDon: [`${legId}-p1`, `${legId}-p2`], datGap: false,
-  khoaNoiDon: "L:noi-d1", khoaNoiTra: "L:noi-d9", ...v, // khoá so sánh nơi GIẢ (ADR-0050 VK1-B)
+  khoaNoiDon: "L:noi-d1", khoaNoiTra: "L:noi-d9", xeRieng: false, choToiThieu: null, ...v, // khoá so sánh nơi GIẢ (ADR-0050 VK1-B)
 });
 const suat = (id: string, legId: string, tripId: string, v: Partial<SuatVao> = {}): SuatVao => ({
   id, tripId, loai: "PASSENGER", legId, personKey: null, crewPartyId: null, boardStopId: "d1", alightStopId: "d9", trangThai: "WAITING", mo: true,
@@ -23,7 +23,7 @@ const suat = (id: string, legId: string, tripId: string, v: Partial<SuatVao> = {
 });
 const chuyen = (id: string, v: Partial<ChuyenVao> = {}): ChuyenVao => ({
   id, ma: `CX-${id}`, ngayChay: "2026-09-30", batDauMs: ms("2026-09-30", "06:00"), ketThucMs: ms("2026-09-30", "08:30"), ketThucThatMs: null, trangThai: "PLANNED",
-  xe: xe(), taiXe: tx(), nghiChup: 30, nghiPhaLe: false, thue: false, coNguonGia: false, ...v,
+  xe: xe(), taiXe: tx(), nghiChup: 30, nghiPhaLe: false, thue: false, coNguonGia: false, camKetPhaLeKhoa: null, ...v,
 });
 const BAY_GIO = ms("2026-09-29", "20:00");
 /** Điểm mặc định của một chuyến: d1 (đón) / d9 (trả) với khoá so sánh nơi GIẢ khớp khung `chang()` (ADR-0050 VK1-B). */
@@ -224,4 +224,18 @@ test("HT-01 (V1.2) TRA_TRUOC_DON: suất CHỜ ĐÓN có điểm xuống đứng
   const dung = dungLichChung(vao({ chang: [chang("a", { nguoiCuaDon: ["a-p1"], soNguoi: 1 })], chuyen: [chuyen("07")], suat: [suat("s1", "a", "07", { personKey: "a-p1" })] }));
   assert.equal(dung.canhBao.filter((c) => c.loai === "TRA_TRUOC_DON").length, 0);
   assert.ok(NHAN_CANH_BAO_LICH.TRA_TRUOC_DON.length > 0);
+});
+
+test("Đợt 7 (ADR-0056 VK3-A, Review Focus 3): chuyến chưa chạy vi phạm cam kết xe riêng, không phá lệ → lịch chung hiện 'giữ' CAM_KET (Quản trị) bằng lời; khoá phá lệ khớp → không giữ", () => {
+  const ds = [chang("a", { xeRieng: true, soNguoi: 1, nguoiCuaDon: ["a-p1"] }), chang("b", { soNguoi: 1, nguoiCuaDon: ["b-p1"] })];
+  const suatAB = [suat("s1", "a", "07", { personKey: "a-p1" }), suat("s2", "b", "07", { personKey: "b-p1" })];
+  const giu = dungLichChung(vao({ chang: ds, chuyen: [chuyen("07")], suat: suatAB }));
+  const c = giu.chuyen[0]!;
+  assert.deepEqual(c.lyDoGiu.map((l) => `${l.ma}:${l.aiXuLy}`), ["CAM_KET:QUAN_TRI", "CAM_KET:QUAN_TRI"]);
+  assert.ok(c.lyDoGiu.some((l) => /xe riêng/.test(l.loiNhan) && /ĐH-a/.test(l.loiNhan)));
+  assert.deepEqual(giu.canhBao.filter((x) => x.loai === "CHUYEN_GIU").map((x) => x.tripId), ["07"]);
+  // Khoá đúng tập vi phạm (xe-a + hai dòng XR — C5) → đã phá lệ, không giữ.
+  const khoa = "xe:xe-a|a:XR:1:-|b:XR:0:-";
+  const daPhaLe = dungLichChung(vao({ chang: ds, chuyen: [chuyen("07", { camKetPhaLeKhoa: khoa })], suat: suatAB }));
+  assert.deepEqual(daPhaLe.chuyen[0]!.lyDoGiu, []);
 });

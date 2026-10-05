@@ -25,15 +25,15 @@
       "MP": { "partyId": "tx-mp", "displayName": "Tài xế nhà xe Minh Phát", "loai": "NHA_XE", "carrierPartyIds": ["nx-minh-phat"], "giayTo": [{ "rowId": "gplx-mp", "typeCode": "GPLX", "classCode": "D", "expiryDate": null }] }
     },
     "chang": {
-      "SHERATON": { "legId": "leg-sheraton", "orderId": "don-1001", "orderCode": "ĐH-1001", "chieu": "OUT", "ngayDon": "2026-09-30", "gioDon": "06:00", "coNoiTra": true, "donDaXacNhan": true, "donDaHuy": false, "changMo": true, "soNguoi": 4, "nguoiCuaDon": ["k1-1", "k1-2"], "datGap": false, "khoaNoiDon": "L:loc-sheraton", "khoaNoiTra": "L:loc-cang" },
-      "SHERATON_DU_TEN": { "legId": "leg-sheraton", "orderId": "don-1001", "orderCode": "ĐH-1001", "chieu": "OUT", "ngayDon": "2026-09-30", "gioDon": "06:00", "coNoiTra": true, "donDaXacNhan": true, "donDaHuy": false, "changMo": true, "soNguoi": 4, "nguoiCuaDon": ["k1-1", "k1-2", "k1-3", "k1-4"], "datGap": false, "khoaNoiDon": "L:loc-sheraton", "khoaNoiTra": "L:loc-cang" },
-      "SHERATON_DOI_AMIANA": { "legId": "leg-sheraton", "orderId": "don-1001", "orderCode": "ĐH-1001", "chieu": "OUT", "ngayDon": "2026-09-30", "gioDon": "06:00", "coNoiTra": true, "donDaXacNhan": true, "donDaHuy": false, "changMo": true, "soNguoi": 4, "nguoiCuaDon": ["k1-1", "k1-2", "k1-3", "k1-4"], "datGap": false, "khoaNoiDon": "L:loc-amiana", "khoaNoiTra": "L:loc-cang" },
-      "AMIANA": { "legId": "leg-amiana", "orderId": "don-1002", "orderCode": "ĐH-1002", "chieu": "OUT", "ngayDon": "2026-09-30", "gioDon": "06:15", "coNoiTra": true, "donDaXacNhan": true, "donDaHuy": false, "changMo": true, "soNguoi": 3, "nguoiCuaDon": ["k2-1", "k2-2", "k2-3"], "datGap": false, "khoaNoiDon": "L:loc-amiana", "khoaNoiTra": "L:loc-ben" },
-      "MUONG_THANH": { "legId": "leg-muong-thanh", "orderId": "don-1003", "orderCode": "ĐH-1003", "chieu": "OUT", "ngayDon": "2026-09-30", "gioDon": "06:30", "coNoiTra": true, "donDaXacNhan": true, "donDaHuy": false, "changMo": true, "soNguoi": 5, "nguoiCuaDon": [], "datGap": false, "khoaNoiDon": "L:loc-muong-thanh", "khoaNoiTra": "L:loc-cang" },
-      "MUONG_THANH_DU_TEN": { "legId": "leg-muong-thanh", "orderId": "don-1003", "orderCode": "ĐH-1003", "chieu": "OUT", "ngayDon": "2026-09-30", "gioDon": "06:30", "coNoiTra": true, "donDaXacNhan": true, "donDaHuy": false, "changMo": true, "soNguoi": 5, "nguoiCuaDon": ["k3-1", "k3-2", "k3-3", "k3-4", "k3-5"], "datGap": false, "khoaNoiDon": "L:loc-muong-thanh", "khoaNoiTra": "L:loc-cang" },
-      "THEM_4": { "legId": "leg-them", "orderId": "don-1004", "orderCode": "ĐH-1004", "chieu": "OUT", "ngayDon": "2026-09-30", "gioDon": "06:40", "coNoiTra": true, "donDaXacNhan": true, "donDaHuy": false, "changMo": true, "soNguoi": 4, "nguoiCuaDon": [], "datGap": false, "khoaNoiDon": "L:loc-them", "khoaNoiTra": "L:loc-cang" },
-      "THEM_2": { "legId": "leg-them", "orderId": "don-1004", "orderCode": "ĐH-1004", "chieu": "OUT", "ngayDon": "2026-09-30", "gioDon": "06:40", "coNoiTra": true, "donDaXacNhan": true, "donDaHuy": false, "changMo": true, "soNguoi": 2, "nguoiCuaDon": [], "datGap": false, "khoaNoiDon": "L:loc-them", "khoaNoiTra": "L:loc-cang" },
-      "DAT_GAP": { "legId": "leg-gap", "orderId": "don-1005", "orderCode": "ĐH-1005", "chieu": "OUT", "ngayDon": "2026-09-30", "gioDon": "07:00", "coNoiTra": true, "donDaXacNhan": true, "donDaHuy": false, "changMo": true, "soNguoi": 2, "nguoiCuaDon": [], "datGap": true, "khoaNoiDon": "L:loc-gap", "khoaNoiTra": "L:loc-cang" }
+      "SHERATON": { "legId": "leg-sheraton", "orderId": "don-1001", "orderCode": "ĐH-1001", "chieu": "OUT", "ngayDon": "2026-09-30", "gioDon": "06:00", "coNoiTra": true, "donDaXacNhan": true, "donDaHuy": false, "changMo": true, "soNguoi": 4, "nguoiCuaDon": ["k1-1", "k1-2"], "datGap": false, "khoaNoiDon": "L:loc-sheraton", "khoaNoiTra": "L:loc-cang", "xeRieng": false, "choToiThieu": null },
+      "SHERATON_DU_TEN": { "legId": "leg-sheraton", "orderId": "don-1001", "orderCode": "ĐH-1001", "chieu": "OUT", "ngayDon": "2026-09-30", "gioDon": "06:00", "coNoiTra": true, "donDaXacNhan": true, "donDaHuy": false, "changMo": true, "soNguoi": 4, "nguoiCuaDon": ["k1-1", "k1-2", "k1-3", "k1-4"], "datGap": false, "khoaNoiDon": "L:loc-sheraton", "khoaNoiTra": "L:loc-cang", "xeRieng": false, "choToiThieu": null },
+      "SHERATON_DOI_AMIANA": { "legId": "leg-sheraton", "orderId": "don-1001", "orderCode": "ĐH-1001", "chieu": "OUT", "ngayDon": "2026-09-30", "gioDon": "06:00", "coNoiTra": true, "donDaXacNhan": true, "donDaHuy": false, "changMo": true, "soNguoi": 4, "nguoiCuaDon": ["k1-1", "k1-2", "k1-3", "k1-4"], "datGap": false, "khoaNoiDon": "L:loc-amiana", "khoaNoiTra": "L:loc-cang", "xeRieng": false, "choToiThieu": null },
+      "AMIANA": { "legId": "leg-amiana", "orderId": "don-1002", "orderCode": "ĐH-1002", "chieu": "OUT", "ngayDon": "2026-09-30", "gioDon": "06:15", "coNoiTra": true, "donDaXacNhan": true, "donDaHuy": false, "changMo": true, "soNguoi": 3, "nguoiCuaDon": ["k2-1", "k2-2", "k2-3"], "datGap": false, "khoaNoiDon": "L:loc-amiana", "khoaNoiTra": "L:loc-ben", "xeRieng": false, "choToiThieu": null },
+      "MUONG_THANH": { "legId": "leg-muong-thanh", "orderId": "don-1003", "orderCode": "ĐH-1003", "chieu": "OUT", "ngayDon": "2026-09-30", "gioDon": "06:30", "coNoiTra": true, "donDaXacNhan": true, "donDaHuy": false, "changMo": true, "soNguoi": 5, "nguoiCuaDon": [], "datGap": false, "khoaNoiDon": "L:loc-muong-thanh", "khoaNoiTra": "L:loc-cang", "xeRieng": false, "choToiThieu": null },
+      "MUONG_THANH_DU_TEN": { "legId": "leg-muong-thanh", "orderId": "don-1003", "orderCode": "ĐH-1003", "chieu": "OUT", "ngayDon": "2026-09-30", "gioDon": "06:30", "coNoiTra": true, "donDaXacNhan": true, "donDaHuy": false, "changMo": true, "soNguoi": 5, "nguoiCuaDon": ["k3-1", "k3-2", "k3-3", "k3-4", "k3-5"], "datGap": false, "khoaNoiDon": "L:loc-muong-thanh", "khoaNoiTra": "L:loc-cang", "xeRieng": false, "choToiThieu": null },
+      "THEM_4": { "legId": "leg-them", "orderId": "don-1004", "orderCode": "ĐH-1004", "chieu": "OUT", "ngayDon": "2026-09-30", "gioDon": "06:40", "coNoiTra": true, "donDaXacNhan": true, "donDaHuy": false, "changMo": true, "soNguoi": 4, "nguoiCuaDon": [], "datGap": false, "khoaNoiDon": "L:loc-them", "khoaNoiTra": "L:loc-cang", "xeRieng": false, "choToiThieu": null },
+      "THEM_2": { "legId": "leg-them", "orderId": "don-1004", "orderCode": "ĐH-1004", "chieu": "OUT", "ngayDon": "2026-09-30", "gioDon": "06:40", "coNoiTra": true, "donDaXacNhan": true, "donDaHuy": false, "changMo": true, "soNguoi": 2, "nguoiCuaDon": [], "datGap": false, "khoaNoiDon": "L:loc-them", "khoaNoiTra": "L:loc-cang", "xeRieng": false, "choToiThieu": null },
+      "DAT_GAP": { "legId": "leg-gap", "orderId": "don-1005", "orderCode": "ĐH-1005", "chieu": "OUT", "ngayDon": "2026-09-30", "gioDon": "07:00", "coNoiTra": true, "donDaXacNhan": true, "donDaHuy": false, "changMo": true, "soNguoi": 2, "nguoiCuaDon": [], "datGap": true, "khoaNoiDon": "L:loc-gap", "khoaNoiTra": "L:loc-cang", "xeRieng": false, "choToiThieu": null }
     },
     "suatCx07": [
       { "id": "s-sh-1", "tripId": "cx-3009-07", "loai": "PASSENGER", "legId": "leg-sheraton", "personKey": "k1-1", "crewPartyId": null, "boardStopId": "d-sheraton", "alightStopId": "d-cang", "trangThai": "WAITING", "mo": true },
@@ -69,7 +69,7 @@
     ],
     "cx07": {
       "id": "cx-3009-07", "ma": "CX-3009-07", "ngayChay": "2026-09-30", "batDauMs": "2026-09-30 05:50", "ketThucMs": "2026-09-30 08:30", "ketThucThatMs": null, "trangThai": "PLANNED",
-      "xe": "$nen.xe.A", "taiXe": "$nen.taiXe.A", "nghiChup": 30, "nghiPhaLe": false
+      "xe": "$nen.xe.A", "taiXe": "$nen.taiXe.A", "nghiChup": 30, "nghiPhaLe": false, "camKetPhaLeKhoa": null
     },
     "diemCx07": [
       { "id": "d-sheraton", "tripId": "cx-3009-07", "seq": 1, "loai": "PICKUP", "trangThai": "PENDING", "placeKey": "L:loc-sheraton", "gioXeToiMs": null },
@@ -119,7 +119,7 @@
           { "chang": "$nen.chang.AMIANA", "soSuatMoi": 3, "personKeys": ["k2-1", "k2-2", "k2-3"], "suatMoCuaChang": [] },
           { "chang": "$nen.chang.MUONG_THANH", "soSuatMoi": 5, "personKeys": [], "suatMoCuaChang": [] }
         ],
-        "chinhSach": "$nen.chinhSach", "bayGioMs": "2026-09-29 21:15"
+        "changTrenChuyen": [], "xeId": "xe-a", "camKetPhaLeKhoa": null, "chinhSach": "$nen.chinhSach", "bayGioMs": "2026-09-29 21:15"
       },
       "dap_an": { "quyet_dinh": "CHO_QUA", "ma_luat": [] }
     },
@@ -130,7 +130,7 @@
       "dau_vao": {
         "chuyen": { "id": "cx-3009-07", "ma": "CX-3009-07", "trangThai": "PLANNED", "batDauMs": "2026-09-30 05:50", "batDauSomNhatMs": "2026-09-30 05:50", "soCho": 15, "tai": 12 },
         "them": [{ "chang": "$nen.chang.THEM_4", "soSuatMoi": 4, "personKeys": [], "suatMoCuaChang": [] }],
-        "chinhSach": "$nen.chinhSach", "bayGioMs": "2026-09-29 21:20"
+        "changTrenChuyen": [], "xeId": "xe-a", "camKetPhaLeKhoa": null, "chinhSach": "$nen.chinhSach", "bayGioMs": "2026-09-29 21:20"
       },
       "dap_an": { "quyet_dinh": "CHAN", "ma_luat": ["VUOT_SO_CHO"] }
     },
@@ -163,7 +163,7 @@
       "dau_vao": {
         "chuyen": { "id": "cx-3009-07", "ma": "CX-3009-07", "trangThai": "PLANNED", "batDauMs": "2026-09-30 05:50", "batDauSomNhatMs": "2026-09-30 05:50", "soCho": 15, "tai": 12 },
         "them": [{ "chang": "$nen.chang.THEM_2", "soSuatMoi": 2, "personKeys": [], "suatMoCuaChang": [] }],
-        "chinhSach": "$nen.chinhSach", "bayGioMs": "2026-09-30 02:00"
+        "changTrenChuyen": [], "xeId": "xe-a", "camKetPhaLeKhoa": null, "chinhSach": "$nen.chinhSach", "bayGioMs": "2026-09-30 02:00"
       },
       "dap_an": { "quyet_dinh": "CAN_PHA_LE", "ma_luat": ["MOC_TOI_THIEU"] }
     },
@@ -174,7 +174,7 @@
       "dau_vao": {
         "chuyen": { "id": "cx-3009-07", "ma": "CX-3009-07", "trangThai": "PLANNED", "batDauMs": "2026-09-30 05:50", "batDauSomNhatMs": "2026-09-30 05:50", "soCho": 15, "tai": 12 },
         "them": [{ "chang": "$nen.chang.DAT_GAP", "soSuatMoi": 2, "personKeys": [], "suatMoCuaChang": [] }],
-        "chinhSach": "$nen.chinhSach", "bayGioMs": "2026-09-30 02:00"
+        "changTrenChuyen": [], "xeId": "xe-a", "camKetPhaLeKhoa": null, "chinhSach": "$nen.chinhSach", "bayGioMs": "2026-09-30 02:00"
       },
       "dap_an": { "quyet_dinh": "CHO_QUA", "ma_luat": [] }
     },
@@ -185,7 +185,7 @@
       "dau_vao": {
         "chuyen": { "id": "cx-3009-07", "ma": "CX-3009-07", "trangThai": "PLANNED", "batDauMs": "2026-09-30 12:00", "batDauSomNhatMs": "2026-09-30 05:50", "soCho": 15, "tai": 12 },
         "them": [{ "chang": "$nen.chang.THEM_2", "soSuatMoi": 2, "personKeys": [], "suatMoCuaChang": [] }],
-        "chinhSach": "$nen.chinhSach", "bayGioMs": "2026-09-30 02:40"
+        "changTrenChuyen": [], "xeId": "xe-a", "camKetPhaLeKhoa": null, "chinhSach": "$nen.chinhSach", "bayGioMs": "2026-09-30 02:40"
       },
       "dap_an": { "quyet_dinh": "CAN_PHA_LE", "ma_luat": ["MOC_TOI_THIEU"] }
     },
@@ -284,7 +284,7 @@
       "dau_vao": {
         "chuyen": { "id": "cx-3009-12", "ma": "CX-3009-12", "trangThai": "PLANNED", "batDauMs": "2026-09-30 07:30", "batDauSomNhatMs": "2026-09-30 07:30", "soCho": 45, "tai": 0 },
         "them": [{ "chang": "$nen.chang.MUONG_THANH_DU_TEN", "soSuatMoi": 5, "personKeys": ["k3-1", "k3-2", "k3-3", "k3-4", "k3-5"], "suatMoCuaChang": [] }],
-        "chinhSach": "$nen.chinhSach", "bayGioMs": "2026-09-30 07:12"
+        "changTrenChuyen": [], "xeId": "xe-mp", "camKetPhaLeKhoa": null, "chinhSach": "$nen.chinhSach", "bayGioMs": "2026-09-30 07:12"
       },
       "dap_an": { "quyet_dinh": "CAN_PHA_LE", "ma_luat": ["MOC_TOI_THIEU"] }
     },
@@ -320,21 +320,21 @@
       "ma": "B21-NGHI-THEO-GIO-XAY-RA-THIEU",
       "mo_ta": "CX-3009-07 kết thúc thật 07:50 (khai). CX-3009-08 cùng xe A, văn phòng bấm Xuất bến lúc 08:45 và khai xuất bến 08:10 → nghỉ 20 < 30 phút tính theo giờ XẢY RA → GIỮ (Quản trị phá lệ)",
       "ham": "kiemXuatBen",
-      "dau_vao": {"chuyen": {"id": "cx-3009-08", "ma": "CX-3009-08", "ngayChay": "2026-09-30", "batDauMs": "2026-09-30 08:10", "ketThucMs": "2026-09-30 10:00", "ketThucThatMs": null, "trangThai": "PLANNED", "xe": "$nen.xe.A", "taiXe": "$nen.taiXe.A", "nghiChup": 30, "nghiPhaLe": false}, "suat": [], "chang": [], "suatMoCuaChang": [], "diem": [], "chuyenKhac": [{"id": "cx-3009-07", "ma": "CX-3009-07", "xeId": "xe-a", "taiXePartyId": "tx-a", "batDauMs": "2026-09-30 05:50", "ketThucMs": "2026-09-30 08:30", "ketThucThatMs": "2026-09-30 07:50", "trangThai": "ENDED"}], "chinhSach": "$nen.chinhSach", "hangBang": "$nen.hangBang", "dieuKien": "$nen.dieuKien", "bayGioMs": "2026-09-30 08:45", "xuatBenMs": "2026-09-30 08:10"},
+      "dau_vao": {"chuyen": {"id": "cx-3009-08", "ma": "CX-3009-08", "ngayChay": "2026-09-30", "batDauMs": "2026-09-30 08:10", "ketThucMs": "2026-09-30 10:00", "ketThucThatMs": null, "trangThai": "PLANNED", "xe": "$nen.xe.A", "taiXe": "$nen.taiXe.A", "nghiChup": 30, "nghiPhaLe": false, "camKetPhaLeKhoa": null}, "suat": [], "chang": [], "suatMoCuaChang": [], "diem": [], "chuyenKhac": [{"id": "cx-3009-07", "ma": "CX-3009-07", "xeId": "xe-a", "taiXePartyId": "tx-a", "batDauMs": "2026-09-30 05:50", "ketThucMs": "2026-09-30 08:30", "ketThucThatMs": "2026-09-30 07:50", "trangThai": "ENDED"}], "chinhSach": "$nen.chinhSach", "hangBang": "$nen.hangBang", "dieuKien": "$nen.dieuKien", "bayGioMs": "2026-09-30 08:45", "xuatBenMs": "2026-09-30 08:10"},
       "dap_an": {"quyet_dinh": "GIU", "ma_luat": ["NGHI_THIEU"], "ai_xu_ly": ["QUAN_TRI"], "so_gan_ten": 0}
     },
     {
       "ma": "B22-NGHI-THEO-GIO-XAY-RA-DU",
       "mo_ta": "Như trên nhưng khai xuất bến 08:20 → nghỉ đủ 30 phút theo giờ xảy ra → ĐẠT",
       "ham": "kiemXuatBen",
-      "dau_vao": {"chuyen": {"id": "cx-3009-08", "ma": "CX-3009-08", "ngayChay": "2026-09-30", "batDauMs": "2026-09-30 08:10", "ketThucMs": "2026-09-30 10:00", "ketThucThatMs": null, "trangThai": "PLANNED", "xe": "$nen.xe.A", "taiXe": "$nen.taiXe.A", "nghiChup": 30, "nghiPhaLe": false}, "suat": [], "chang": [], "suatMoCuaChang": [], "diem": [], "chuyenKhac": [{"id": "cx-3009-07", "ma": "CX-3009-07", "xeId": "xe-a", "taiXePartyId": "tx-a", "batDauMs": "2026-09-30 05:50", "ketThucMs": "2026-09-30 08:30", "ketThucThatMs": "2026-09-30 07:50", "trangThai": "ENDED"}], "chinhSach": "$nen.chinhSach", "hangBang": "$nen.hangBang", "dieuKien": "$nen.dieuKien", "bayGioMs": "2026-09-30 08:45", "xuatBenMs": "2026-09-30 08:20"},
+      "dau_vao": {"chuyen": {"id": "cx-3009-08", "ma": "CX-3009-08", "ngayChay": "2026-09-30", "batDauMs": "2026-09-30 08:10", "ketThucMs": "2026-09-30 10:00", "ketThucThatMs": null, "trangThai": "PLANNED", "xe": "$nen.xe.A", "taiXe": "$nen.taiXe.A", "nghiChup": 30, "nghiPhaLe": false, "camKetPhaLeKhoa": null}, "suat": [], "chang": [], "suatMoCuaChang": [], "diem": [], "chuyenKhac": [{"id": "cx-3009-07", "ma": "CX-3009-07", "xeId": "xe-a", "taiXePartyId": "tx-a", "batDauMs": "2026-09-30 05:50", "ketThucMs": "2026-09-30 08:30", "ketThucThatMs": "2026-09-30 07:50", "trangThai": "ENDED"}], "chinhSach": "$nen.chinhSach", "hangBang": "$nen.hangBang", "dieuKien": "$nen.dieuKien", "bayGioMs": "2026-09-30 08:45", "xuatBenMs": "2026-09-30 08:20"},
       "dap_an": {"quyet_dinh": "DAT", "ma_luat": [], "so_gan_ten": 0}
     },
     {
       "ma": "B23-XE-NHA-XE-THIEU-BAO-HIEM",
       "mo_ta": "ADR-0050 VK1-C: xe 45 chỗ của nhà xe Minh Phát có Kiểm định nhưng CHƯA nhập Bảo hiểm trách nhiệm dân sự → Xuất bến bị GIỮ 'xe thiếu giấy tờ bắt buộc', Quản trị xử lý",
       "ham": "kiemXuatBen",
-      "dau_vao": {"chuyen": {"id": "cx-3009-08", "ma": "CX-3009-08", "ngayChay": "2026-09-30", "batDauMs": "2026-09-30 09:00", "ketThucMs": "2026-09-30 11:00", "ketThucThatMs": null, "trangThai": "PLANNED", "xe": "$nen.xe.MP_THIEU_BH", "taiXe": "$nen.taiXe.MP", "nghiChup": 30, "nghiPhaLe": false}, "suat": [], "chang": [], "suatMoCuaChang": [], "diem": [], "chuyenKhac": [], "chinhSach": "$nen.chinhSach", "hangBang": "$nen.hangBang", "dieuKien": "$nen.dieuKien", "bayGioMs": "2026-09-30 08:55", "xuatBenMs": "2026-09-30 08:55"},
+      "dau_vao": {"chuyen": {"id": "cx-3009-08", "ma": "CX-3009-08", "ngayChay": "2026-09-30", "batDauMs": "2026-09-30 09:00", "ketThucMs": "2026-09-30 11:00", "ketThucThatMs": null, "trangThai": "PLANNED", "xe": "$nen.xe.MP_THIEU_BH", "taiXe": "$nen.taiXe.MP", "nghiChup": 30, "nghiPhaLe": false, "camKetPhaLeKhoa": null}, "suat": [], "chang": [], "suatMoCuaChang": [], "diem": [], "chuyenKhac": [], "chinhSach": "$nen.chinhSach", "hangBang": "$nen.hangBang", "dieuKien": "$nen.dieuKien", "bayGioMs": "2026-09-30 08:55", "xuatBenMs": "2026-09-30 08:55"},
       "dap_an": {"quyet_dinh": "GIU", "ma_luat": ["DIEU_KIEN_GIAY_TO_XE"], "ai_xu_ly": ["QUAN_TRI"], "so_gan_ten": 0}
     }
   ]

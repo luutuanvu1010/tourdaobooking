@@ -81,7 +81,8 @@ export const NGUON_GIO_XAY_RA = ["MAY_CHU", "VAN_PHONG_KHAI"] as const;
 export type NguonGioXayRa = (typeof NGUON_GIO_XAY_RA)[number];
 
 /** Luật CẤU HÌNH được phá lệ (ADR-0049 D2; [TK] §2.4) — mỗi mã cũng là một mã của `MA_GIU` (cùng chữ, một chỗ sống). Luật lõi LC-01…18 không ai phá lệ. */
-export const MA_LUAT_PHA_LE = ["MOC_TOI_THIEU", "KHOANG_NGHI"] as const;
+// ADR-0056 VK3-A A3: thêm CAM_KET (cam kết xe riêng / số chỗ tối thiểu của khách). THIEU_GIA (ADR-0057 C5) KHÔNG phá lệ được — không thuộc tập này.
+export const MA_LUAT_PHA_LE = ["MOC_TOI_THIEU", "KHOANG_NGHI", "CAM_KET"] as const;
 export type MaLuatPhaLe = (typeof MA_LUAT_PHA_LE)[number];
 export const isMaLuatPhaLe = (v: unknown): v is MaLuatPhaLe => typeof v === "string" && (MA_LUAT_PHA_LE as readonly string[]).includes(v);
 
@@ -211,6 +212,13 @@ export interface ChangVao {
    */
   khoaNoiDon: string;
   khoaNoiTra: string | null;
+  /**
+   * ADR-0056 VK3-A (A4): cam kết "xe riêng" của chặng (`exclusive_vehicle`) — chuyến chở chặng này không chở khách của đơn khác. BẮT BUỘC (không `?`):
+   * `undefined` không được lặng lẽ hiểu là "không cam kết".
+   */
+  xeRieng: boolean;
+  /** ADR-0056 VK3-A: số chỗ tối thiểu (`min_vehicle_seats`, cùng nghĩa `soCho` — không kể tài xế); null = không cam kết. BẮT BUỘC. */
+  choToiThieu: number | null;
 }
 /** Suất trên chuyến (`vc_trip_allocation`). `mo` = dòng còn hiệu lực (`valid_to_at IS NULL`). */
 export interface SuatVao {
@@ -285,6 +293,11 @@ export interface ChuyenVao {
   thue: boolean;
   /** ADR-0057 C5: có nguồn giá (SNAPSHOT / AGREED chưa đảo) — CHỈ cờ, không số tiền (bài số lạ). */
   coNguonGia: boolean;
+  /**
+   * ADR-0056 VK3-A: khoá tập vi phạm cam kết đã được Quản trị phá lệ (`vc_trip.commitment_override_key`, C4 — chuỗi nối id + con số); null = chưa phá lệ.
+   * CHỈ để so với `kiemCamKet(...).khoa` — không bao giờ vào DTO, nhật ký. BẮT BUỘC.
+   */
+  camKetPhaLeKhoa: string | null;
 }
 
 // ---- Kiểu RA của luật thuần -------------------------------------------------------------------------------------------------------------------------------

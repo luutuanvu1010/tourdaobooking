@@ -80,8 +80,10 @@ test("LENH_DONG_SUAT (bảng lệnh → mã đóng suất, một chỗ): 'cập 
   }
 });
 
-test("MA_LUAT_PHA_LE: đúng hai luật cấu hình được phá lệ (mốc tối thiểu, khoảng nghỉ); mỗi mã cũng là một mã 'giữ' (một chỗ sống — K9)", () => {
-  assert.deepEqual([...MA_LUAT_PHA_LE], ["MOC_TOI_THIEU", "KHOANG_NGHI"]);
+// ADR-0056 VK3-A A3: ĐỔI GIÁ TRỊ GHIM theo ADR (thêm CAM_KET), không nới. THIEU_GIA (ADR-0057 C5) KHÔNG phá lệ được — không thuộc tập này.
+test("MA_LUAT_PHA_LE: đúng ba luật cấu hình được phá lệ (mốc tối thiểu, khoảng nghỉ, cam kết xe riêng / số chỗ); mỗi mã cũng là một mã 'giữ' (một chỗ sống — K9)", () => {
+  assert.deepEqual([...MA_LUAT_PHA_LE], ["MOC_TOI_THIEU", "KHOANG_NGHI", "CAM_KET"]);
+  assert.equal(isMaLuatPhaLe("THIEU_GIA"), false);
   for (const m of MA_LUAT_PHA_LE) {
     assert.equal(isMaLuatPhaLe(m), true);
     assert.ok(Object.hasOwn(MA_GIU, m), `${m} phải có trong MA_GIU`);

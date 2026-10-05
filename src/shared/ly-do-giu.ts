@@ -13,7 +13,7 @@ export const NHAN_AI_XU_LY: Readonly<Record<AiXuLy, string>> = { VAN_PHONG: "Vă
 /**
  * Bộ mã ĐÓNG (thêm mã = sửa tệp này, có test). "Ai xử lý" = ai gỡ được: giấy tờ (GPLX, giấy tờ theo điều kiện xuất bến) → Quản trị (người giữ hồ sơ,
  * ô `vehicle.manage` / giấy tờ); chính sách, bảng hạng bằng, hợp đồng → Toàn quyền (ô `settings.ops`); xếp, tên khách, chặng, xe, tài xế → văn phòng
- * (người xếp xe, người phụ trách đơn); phá lệ mốc / khoảng nghỉ → Quản trị (ô `trip.override` — chỉ Quản trị, Toàn quyền: ĐP3).
+ * (người xếp xe, người phụ trách đơn); phá lệ mốc / khoảng nghỉ / cam kết xe → Quản trị (ô `trip.override` — chỉ Quản trị, Toàn quyền: ĐP3).
  */
 export const MA_GIU = {
   // Tên, suất, chặng, đơn (văn phòng)
@@ -58,6 +58,9 @@ export const MA_GIU = {
   MOC_TOI_THIEU: { loiNhan: "Trong mốc tối thiểu trước giờ xuất bến — cần Quản trị phá lệ", aiXuLy: "QUAN_TRI" },
   KHOANG_NGHI: { loiNhan: "Chưa đủ khoảng nghỉ giữa hai chuyến — cần Quản trị phá lệ", aiXuLy: "QUAN_TRI" },
   NGHI_THIEU: { loiNhan: "Chưa đủ thời gian nghỉ sau chuyến trước", aiXuLy: "QUAN_TRI" },
+  // ADR-0056 VK3-A (Đợt 7, C9): chuyến trái cam kết "xe riêng" / "xe tối thiểu N chỗ" của khách — Quản trị / Toàn quyền phá lệ (ô `trip.override`). Chi
+  // tiết chỉ mã đơn + loại + con số (`kiemCamKet`), không tên.
+  CAM_KET: { loiNhan: "Trái cam kết xe riêng / số chỗ tối thiểu", aiXuLy: "QUAN_TRI" },
   // Chính sách (Toàn quyền)
   CHINH_SACH_RONG: { loiNhan: "Chưa có chính sách điều phối đang hiệu lực", aiXuLy: "TOAN_QUYEN" },
   KHONG_CO_HANG_BANG: { loiNhan: "Chưa có quy định số khách cho hạng bằng lái này", aiXuLy: "TOAN_QUYEN" },

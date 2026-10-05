@@ -27,6 +27,13 @@ test("ai xử lý đúng vai: giấy tờ → Quản trị; chính sách / bản
   for (const m of ["MOC_TOI_THIEU", "KHOANG_NGHI", "NGHI_THIEU"] as const) assert.equal(ai(m), "QUAN_TRI", m);
 });
 
+test("ADR-0056 VK3-A (Đợt 7, C9): CAM_KET — trái cam kết xe riêng / số chỗ → Quản trị phá lệ; THIEU_GIA của Đợt 4 vẫn giữ (Quản trị)", () => {
+  assert.deepEqual({ ...MA_GIU.CAM_KET }, { loiNhan: "Trái cam kết xe riêng / số chỗ tối thiểu", aiXuLy: "QUAN_TRI" });
+  assert.deepEqual(lyDoGiu("CAM_KET", "ĐH-1024 xe riêng"), { ma: "CAM_KET", loiNhan: "Trái cam kết xe riêng / số chỗ tối thiểu: ĐH-1024 xe riêng", aiXuLy: "QUAN_TRI" });
+  assert.equal(MA_GIU.THIEU_GIA.aiXuLy, "QUAN_TRI");
+  assert.ok(isMaGiu("CAM_KET") && isMaGiu("THIEU_GIA"));
+});
+
 test("lyDoGiu(ma, chiTiet): dựng đúng khoá; chi tiết nối vào câu; mã lạ bị isMaGiu từ chối", () => {
   assert.deepEqual(lyDoGiu("THIEU_TEN"), { ma: "THIEU_TEN", loiNhan: MA_GIU.THIEU_TEN.loiNhan, aiXuLy: "VAN_PHONG" });
   const r = lyDoGiu("THIEU_TEN", "ĐH-1024 thiếu 2");

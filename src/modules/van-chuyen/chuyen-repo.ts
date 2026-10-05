@@ -37,12 +37,16 @@ export interface TripRow {
   route_code: string | null;
   /** ADR-0057 C5: 1 = có SNAPSHOT / AGREED chưa đảo (cờ, KHÔNG số tiền — cùng truy vấn, không N+1). */
   co_nguon_gia: 0 | 1;
+  /** ADR-0056 VK3-A (0077): lý do Quản trị phá lệ cam kết xe riêng / số chỗ (nhóm `PHA_LE`) — NULL = chưa phá lệ. */
+  commitment_override_reason_code: string | null;
+  /** ADR-0056 VK3-A (0077, C4): khoá tập vi phạm lúc phá lệ — CHỈ để so, không bao giờ vào DTO / nhật ký. */
+  commitment_override_key: string | null;
 }
 const COT_CHUYEN = `t.id, t.code, t.vehicle_id, t.carrier_party_id, t.service_date, t.planned_start_ms, t.planned_end_ms, t.earliest_start_ms, t.rest_minutes_snapshot,
   t.rest_override_reason_code, t.status, t.departed_at, t.departed_ms, t.ended_at, t.ended_ms, t.cancel_reason_code, t.end_reason_code, t.version, t.last_cmd_id, t.updated_at,
   (SELECT d.driver_party_id FROM vc_trip_driver d WHERE d.trip_id = t.id AND d.valid_to_at IS NULL) AS driver_party_id, t.rented, t.route_code,
   EXISTS (SELECT 1 FROM vc_trip_cost_line l WHERE l.trip_id = t.id AND l.kind IN ('SNAPSHOT', 'AGREED')
-    AND NOT EXISTS (SELECT 1 FROM vc_trip_cost_line r WHERE r.reverses_id = l.id)) AS co_nguon_gia`;
+    AND NOT EXISTS (SELECT 1 FROM vc_trip_cost_line r WHERE r.reverses_id = l.id)) AS co_nguon_gia, t.commitment_override_reason_code, t.commitment_override_key`;
 const TRIP_BY_ID = defineSql("van-chuyen", "trip_by_id", `SELECT ${COT_CHUYEN} FROM vc_trip t WHERE t.id = ?1`);
 /** Chuyến của MỘT ngày chạy (lịch chung ngày D). */
 const TRIPS_BY_DATE = defineSql("van-chuyen", "trips_by_date", `SELECT ${COT_CHUYEN} FROM vc_trip t WHERE t.service_date = ?1 ORDER BY t.planned_start_ms, t.code`);

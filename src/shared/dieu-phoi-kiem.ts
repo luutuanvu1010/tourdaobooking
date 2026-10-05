@@ -14,6 +14,7 @@ import type {
   TrangThaiChuyen, XeVao,
 } from "./dieu-phoi-kieu.ts";
 import { KET_QUA_CUOI_SUAT } from "./dieu-phoi-kieu.ts";
+import { kiemCamKet, type KetQuaCamKet } from "./cam-ket-xe.ts";
 import { LOAI_CO_DINH } from "./giay-to.ts";
 import { canhBaoGioLai, type CanhBaoGioLai, type ChuyenGioLai } from "./gio-lai.ts";
 import { chongNuaMo, nhanKhoangGio } from "./khung-ban.ts";
@@ -88,13 +89,18 @@ export interface KiemTaoSuaChuyenVao {
   chinhSach: ChinhSachVao | null;
   hangBang: HangBangVao[];
   bayGioMs: number;
+  /**
+   * ADR-0056 VK3-A: cam kết của khách trên chuyến — chỉ xét khi SỬA mà ĐỔI XE (R-CX theo xe mới; khoá mang id xe nên phá lệ cũ không còn khớp).
+   * `changTrenChuyen` = chặng có suất khách mở trên chuyến; `khoaDaPhaLe` = `vc_trip.commitment_override_key`. Vắng = không xét (tạo chuyến: chưa có khách).
+   */
+  camKet?: { changTrenChuyen: ChangVao[]; khoaDaPhaLe: string | null };
 }
 
 /**
  * Kết quả kiểm tạo / sửa chuyến + nhắc giờ lái của CHÍNH chuyến đó (ADR-0055 VK2-B B3 — chỉ cảnh báo, không đổi `ok`). Tên KHÁC `kiemXep.canhBao` có chủ
  * đích (K14): cảnh báo xếp là `LyDoGiu` (mã `MA_GIU`), còn giờ lái không được thêm mã vào `MA_GIU` (ADR-0055).
  */
-export type KetQuaTaoSua = KetQuaKiem & { nhacGioLai: CanhBaoGioLai[] };
+export type KetQuaTaoSua = KetQuaKiem & { nhacGioLai: CanhBaoGioLai[]; /** null = lệnh không đổi xe (hoặc tạo chuyến) — không xét cam kết. */ camKet: KetQuaCamKet | null };
 /** Kiểm lệnh tạo / sửa chuyến: giờ hợp lệ, xe dùng được, sức chứa, LC-03, khung bận, CH-02 (cần phá lệ), LC-12, LC-13, mốc lúc xếp khi đổi xe / tài xế (cần phá lệ). */
 export function kiemTaoSuaChuyen(v: KiemTaoSuaChuyenVao): KetQuaTaoSua {
   const chan: LyDoGiu[] = [];
@@ -145,12 +151,18 @@ export function kiemTaoSuaChuyen(v: KiemTaoSuaChuyenVao): KetQuaTaoSua {
     if (v.cu.taiXePartyId !== (c.taiXe?.partyId ?? null)) lenh.push("DOI_TAI_XE");
     if (lenh.some((loai) => kiemMocXep({ batDauMs: batDau, batDauSomNhatMs: batDau }, v.bayGioMs, v.chinhSach!.minLeadMinutes, { loai }).canPhaLe)) canPhaLe.push(lyDoGiu("MOC_TOI_THIEU"));
   }
+  // ADR-0056 VK3-A: đổi xe → chạy lại MỘT luật cam kết trên chuyến với xe MỚI (khoá có id xe ⇒ phá lệ cũ không còn khớp ⇒ cần phá lệ lại).
+  let camKet: KetQuaCamKet | null = null;
+  if (v.lenh === "SUA" && v.cu && v.camKet && v.cu.xeId !== c.xe.id) {
+    camKet = kiemCamKet({ xe: c.xe, chang: v.camKet.changTrenChuyen, khoaDaPhaLe: v.camKet.khoaDaPhaLe });
+    if (!camKet.daPhaLe) canPhaLe.push(...camKet.lyDo);
+  }
   // ADR-0055 VK2-B B3: nhắc giờ lái cho chuyến đang tạo / sửa (MỘT hàm với lịch chung — canhBaoGioLai). "__moi__" = id tạm của chuyến chưa có id.
   const id = c.id ?? "__moi__";
   const ung: ChuyenGioLai = { id, ma: "", taiXePartyId: c.taiXe?.partyId ?? null, batDauMs: c.batDauMs, ketThucMs: c.ketThucMs, ketThucThatMs: null, trangThai: "PLANNED", xuatBenMs: null };
   const cs = v.chinhSach ? { dutyDayMaxMinutes: v.chinhSach.dutyDayMaxMinutes, tripNoBreakMaxMinutes: v.chinhSach.tripNoBreakMaxMinutes } : null;
   const nhacGioLai = canhBaoGioLai([ung, ...v.chuyenKhac.filter((k) => k.id !== c.id)], cs, v.bayGioMs, new Set([id]));
-  return { ...ketQua(khongTrung(chan), khongTrung(canPhaLe)), nhacGioLai };
+  return { ...ketQua(khongTrung(chan), khongTrung(canPhaLe)), nhacGioLai, camKet };
 }
 
 // ---- Xếp (mở suất) ----------------------------------------------------------------------------------------------------------------------------------------
@@ -217,6 +229,15 @@ export interface KiemXepVao {
    * chuyến RUNNING; mốc như dòng "Xếp" (đặt gấp qua) với xe LUÔN trong mốc (giờ xét = min(giờ dự kiến, bây giờ)).
    */
   lenh?: "XEP" | "DOI_DEN" | "THEM_KHI_CHAY";
+  /**
+   * ADR-0056 VK3-A: chặng có suất khách MỞ trên chuyến TRƯỚC lệnh (đích của lệnh dời). Tập sau lệnh = `changTrenChuyen` ∪ `them[].chang` (chặng có suất mới).
+   * BẮT BUỘC — mọi đường đưa khách lên xe (xếp, dời đến, thêm khi xe đang chạy) xét cùng một luật.
+   */
+  changTrenChuyen: ChangVao[];
+  /** Xe của chuyến (id vào khoá phá lệ — C5). */
+  xeId: string;
+  /** `vc_trip.commitment_override_key` đang lưu; null = chưa phá lệ. */
+  camKetPhaLeKhoa: string | null;
   chinhSach: ChinhSachVao | null;
   bayGioMs: number;
 }
@@ -240,7 +261,7 @@ export function lyDoThieuTen(ch: Pick<ChangVao, "orderCode" | "soNguoi" | "nguoi
 }
 
 /** Kết quả kiểm lệnh xếp: như `KetQuaKiem` + `canhBao` (CHUA_CO_NOI_TRA, THIEU_TEN của chặng được xếp) — CHỈ nhắc, không vào `chan` / `canPhaLe`, không đổi `ok`. */
-export type KetQuaXep = KetQuaKiem & { canhBao: LyDoGiu[] };
+export type KetQuaXep = KetQuaKiem & { canhBao: LyDoGiu[]; /** ADR-0056 VK3-A: cam kết trên chuyến SAU lệnh (vi phạm kể cả khi đã phá lệ; khoá). */ camKet: KetQuaCamKet };
 
 /**
  * Kiểm lệnh xếp: LC-09 (chặng mở của đơn đã xác nhận, chưa huỷ), I13 (có giờ), L-D1, LC-02, LC-10, LC-01 theo tên, mốc lúc xếp (đặt gấp qua). Cảnh báo
@@ -276,7 +297,11 @@ export function kiemXep(v: KiemXepVao): KetQuaXep {
     for (const x of [lyDoNoiTra(c), lyDoThieuTen(c, v.chinhSach?.requireManifest ?? false)]) if (x) canhBao.push(x);
   }
   if (v.chuyen.tai + moi > v.chuyen.soCho) chan.push(lyDoGiu("VUOT_SO_CHO", `${v.chuyen.tai + moi}/${v.chuyen.soCho}`));
-  return { ...ketQua(khongTrung(chan), khongTrung(canPhaLe)), canhBao: khongTrung(canhBao) };
+  // ADR-0056 VK3-A: cam kết xe riêng / số chỗ trên chuyến SAU lệnh — còn vi phạm mà khoá khác khoá đã phá lệ → cần Quản trị phá lệ (CAM_KET).
+  const sau = [...v.changTrenChuyen, ...v.them.filter((t) => t.soSuatMoi > 0).map((t) => t.chang)];
+  const camKet = kiemCamKet({ xe: { id: v.xeId, soCho: v.chuyen.soCho }, chang: sau, khoaDaPhaLe: v.camKetPhaLeKhoa });
+  if (!camKet.daPhaLe) canPhaLe.push(...camKet.lyDo);
+  return { ...ketQua(khongTrung(chan), khongTrung(canPhaLe)), canhBao: khongTrung(canhBao), camKet };
 }
 
 // ---- So nơi hẹn (ADR-0050 VK1-B; I41, I47) ----------------------------------------------------------------------------------------------------------------
@@ -328,7 +353,7 @@ export interface KiemXuatBenVao {
  * nghỉ đủ (từ giờ kết thúc thật), xe / tài xế không đang chạy chuyến khác, LC-13, hợp đồng (khoá 0). Trả bản chụp (khoá + hạng + hạn, không số) và danh
  * sách gắn tên còn thiếu (I19b). `dat` ⇔ không lý do nào.
  */
-export function kiemXuatBen(v: KiemXuatBenVao): KetQuaXuatBen {
+export function kiemXuatBen(v: KiemXuatBenVao): KetQuaXuatBen & { camKet: KetQuaCamKet } {
   const lyDo: LyDoGiu[] = [];
   const c = v.chuyen;
   const cs = v.chinhSach;
@@ -408,6 +433,10 @@ export function kiemXuatBen(v: KiemXuatBenVao): KetQuaXuatBen {
     const thieuTen = lyDoThieuTen(ch, cs?.requireManifest ?? false, { chuaTen: chuaTen.length, ranh: ranh.length });
     if (thieuTen) lyDo.push(thieuTen);
   }
+  // ADR-0056 VK3-A: cam kết xe riêng / số chỗ — MỘT luật với lúc xếp; chặng = chặng có suất khách MỞ trên chuyến (`legIds`) có trong `v.chang` (chặng rơi
+  // khỏi lịch đã có lý do giữ riêng ở trên). Còn vi phạm mà khoá khác khoá đã phá lệ → giữ (bắt cả cam kết bật SAU khi xếp — không cần lệnh chuyến nào chạy).
+  const camKet = kiemCamKet({ xe: c.xe, chang: v.chang.filter((x) => legIds.includes(x.legId)), khoaDaPhaLe: c.camKetPhaLeKhoa });
+  if (!camKet.daPhaLe) lyDo.push(...camKet.lyDo);
   // Xe / tài xế đang chạy chuyến khác (LC-03 "một chuyến đang chạy mỗi xe, mỗi tài xế"); nghỉ đủ từ giờ kết thúc THẬT của chuyến trước (CH-02).
   for (const k of v.chuyenKhac) {
     if (k.id === c.id) continue;
@@ -432,7 +461,7 @@ export function kiemXuatBen(v: KiemXuatBenVao): KetQuaXuatBen {
     muc,
   };
   const ds = khongTrung(lyDo);
-  return { dat: ds.length === 0, lyDo: ds, chup, ganTen };
+  return { dat: ds.length === 0, lyDo: ds, chup, ganTen, camKet };
 }
 
 // ---- Kết thúc (LC-16), "trong ngày chạy" -----------------------------------------------------------------------------------------------------------------

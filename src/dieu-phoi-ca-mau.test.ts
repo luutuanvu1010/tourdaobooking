@@ -118,6 +118,30 @@ for (const f of FILES) {
     }
   });
 
+  // ADR-0056 VK3-A (Đợt 7): trường BẮT BUỘC của cam kết — `undefined` không được lặng lẽ hiểu là "không cam kết" (tệp JSON không qua typecheck).
+  test(`ca mẫu ${f}: đầu vào đủ trường cam kết của ADR-0056 — chặng có xeRieng / choToiThieu, chuyến xuất bến có camKetPhaLeKhoa, bước xếp có changTrenChuyen / xeId / camKetPhaLeKhoa`, () => {
+    let nChang = 0;
+    (function walk(o: unknown): void {
+      if (Array.isArray(o)) return o.forEach(walk);
+      if (o === null || typeof o !== "object") return;
+      const r = o as Record<string, unknown>;
+      if ("legId" in r && "orderCode" in r) {
+        nChang++;
+        assert.equal(typeof r.xeRieng, "boolean", `chặng ${String(r.legId)}: thiếu xeRieng`);
+        assert.ok("choToiThieu" in r && (r.choToiThieu === null || typeof r.choToiThieu === "number"), `chặng ${String(r.legId)}: thiếu choToiThieu`);
+      }
+      Object.values(r).forEach(walk);
+    })(tep);
+    assert.ok(nChang > 0, "bài không rỗng");
+    for (const b of tep.cac_buoc.filter((x) => x.ham === "kiemXuatBen")) {
+      const c = giai(b.dau_vao.chuyen!, tep.nen) as Record<string, unknown>;
+      assert.ok("camKetPhaLeKhoa" in c, `${b.ma}: chuyến thiếu camKetPhaLeKhoa`);
+    }
+    for (const b of tep.cac_buoc.filter((x) => x.ham === "kiemXep")) {
+      assert.ok(Array.isArray(b.dau_vao.changTrenChuyen) && typeof b.dau_vao.xeId === "string" && "camKetPhaLeKhoa" in b.dau_vao, `${b.ma}: bước xếp thiếu trường cam kết`);
+    }
+  });
+
   for (const b of tep.cac_buoc) {
     test(`ca mẫu ${f} / ${b.ma}: ${b.mo_ta}`, () => {
       assert.deepEqual(chay(b, tep.nen), b.dap_an);
