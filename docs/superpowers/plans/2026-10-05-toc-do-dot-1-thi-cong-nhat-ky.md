@@ -65,6 +65,16 @@ Người kiểm: V1–V6 và T1–T3 **ĐÃ SỬA ĐÚNG**, không hồi quy, kh
 
 Lưu ý cho chủ: `web/CLAUDE.md` bị sửa MỘT chữ (tên đường dẫn trong một ô bảng kịch bản Chrome, không đổi nghĩa quy tắc) — là tệp luật theo thư mục, chủ xem lại diff nếu muốn.
 
+## Triển khai (ghi 2026-10-06, chỉ lệnh đọc)
+
+- Đợt 1 đã gộp vào `main` (commit đầu nhánh `20167ef`) và đi lên production cùng bản **1.84** (năm lỗi tiền, migration 0078–0083). Không có lần triển khai riêng chỉ-1.83: bản phát hành trước đó là `3a53ded5` (2026-10-05T11:43Z = 1.81).
+- `main` = `origin/main` = `f6e2e735`; `git merge-base --is-ancestor 20167ef main` → CÓ.
+- `node scripts/kiem-phien-ban.mjs --sau-deploy` → "ĐẠT: production đang chạy đúng bản 1.84."; `wrangler d1 migrations list … --remote` → "No migrations to apply!".
+- `wrangler deployments list`: hai bản phát hành sau 1.81 — `b30a2356` (2026-10-05T22:32Z) và mới nhất `72d2dc12` (2026-10-05T23:40Z = 06:40 giờ VN 6/10). Chưa đối chiếu được bản nào ứng với lần chủ chạy lại `trien-khai`.
+- GET công khai (01:47Z 2026-10-06): `/giao-dien.css` và `/api/giao-dien.css` → 200, `text/css; charset=utf-8`, `etag "v3"`, `cache-control: no-cache`; `/orders` có `href="/giao-dien.css"`.
+- `cf-placement` trên `/api/auth/config` và hai đường CSS → `local-SIN`; chưa thấy `remote-…`. Không kết luận gì về Smart Placement từ một lần thử (lưu lượng chủ yếu từ Việt Nam, phân tích có thể mất ~15 phút hoặc không đổi).
+- **Chưa kiểm:** iPhone thật, hiệu quả Smart Placement, số giây tải trang.
+
 ## Việc còn lại / chủ cần làm (dựa vào kỷ luật — chưa có hàng rào máy)
 
 1. **Gộp và triển khai** theo `docs/HANDOFF-N1.md` (bước A.0 thêm mục nhật ký thay đổi 1.82 bằng lời thường). Lưu ý trong lần mở đầu sau triển khai máy nhân viên vẫn chạy khung cũ một lượt (service worker "dùng ngay, làm mới ở nền").
