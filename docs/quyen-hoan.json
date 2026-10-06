@@ -91,6 +91,15 @@
       "han": "2026-11-15",
       "nguoi_chiu_trach_nhiem": "chủ dự án",
       "nguon": "Tờ khai docs/kernel-18.md dòng 1 và đối chiếu docs/superpowers/specs/2026-10-05-doi-chieu-bo-luat-v2.md mục 3.3; chủ dự án đồng ý đưa vào sổ, hạn khuyến nghị 2026-10-05 (\"đồng ý hạn khuyến nghị\")."
+    },
+    {
+      "ma": "HC-4.2",
+      "muc_do": "HIGH",
+      "ly_do": "Bút toán điều chỉnh sổ tiền (công nợ, chi phí chuyến) chưa có người duyệt khác người tạo: Hiến chương hệ thống 4.2 (kho luật gốc) đòi bút toán điều chỉnh phải có người duyệt riêng, nhưng ADR-0092 (đã lên mã, migration 0080/0082, chưa triển khai) chỉ thêm trần mức, lý do bắt buộc và báo người bị đổi số dư (Đ3, Đ4, Đ5a–c) — không thêm bước người khác duyệt trước khi ghi. Một người vừa tạo vừa coi như duyệt bút toán điều chỉnh của chính mình.",
+      "ke_hoach": "Thêm bước duyệt hai lớp cho bút toán điều chỉnh (người tạo khác người duyệt), theo khuôn đã dùng cho hoàn cọc ở TNV-G1 (duyệt/chi khác người) — cần đặc tả ngắn rồi ADR sửa/bổ sung ADR-0092, vì chạm cả tiền và quyền (việc lớn, cần người kiểm độc lập sau khi thi công).",
+      "han": "2026-10-31",
+      "nguoi_chiu_trach_nhiem": "chủ dự án",
+      "nguon": "docs/kernel-18.md dòng 13 (nợ); chủ dự án đồng ý nâng thành mục có hạn 2026-10-06"
     }
   ]
 }
