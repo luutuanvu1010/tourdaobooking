@@ -65,6 +65,9 @@ Khách chuyển xong, người bán bấm **"Khách đã chuyển khoản"**. N�
 - **Chặn** khi cùng mã đã chuẩn hoá đã gắn vào một lần thu còn hiệu lực **của cùng đơn**.
 - **Chặn** khi tổng các lần thu còn hiệu lực gắn cùng một mã vượt **số tiền thực chuyển** do Kế toán nhập theo sao kê (mã nhập lần đầu thì Kế toán nhập luôn số tiền thực chuyển).
 - Hai lớp như mọi luật tiền: máy chủ kiểm trước, trigger CSDL là lớp 2 (Hiến chương 5.1).
+- **"Còn hiệu lực"** ở mọi luật trên dùng **đúng** vị từ `hieuLuc` của `billing/rules.ts`, tức vị từ mà `conLai` đang dùng: lần thu không phải dòng đảo và chưa bị đảo. Như vậy tổng theo mã và "còn lại" không bao giờ lệch nhau (5.4). Lần thu bị "Thay lần thu" (ADR-0088) đi qua cặp đảo, nên cũng rơi khỏi `hieuLuc`. Kế hoạch phải có bài khoá điều này. Trigger CSDL viết lại cùng vị từ bằng SQL, và có ca so trigger với hàm thuần.
+- **Sửa khi Kế toán gõ nhầm** (ADR-0092 Đ6 ghi "điền **hoặc sửa**"): lưu chỉ-thêm, nên sửa = **dòng thay thế** trỏ về dòng cũ. Áp cho cả mã của một lần thu lẫn số thực chuyển của một mã. Chỉ người có `ledger.write` được sửa, lý do bắt buộc, ghi nhật ký. Sau khi thay, hai luật chặn chạy lại; ví dụ hạ số thực chuyển xuống dưới tổng đã gắn thì bị chặn. Dòng thay thế **không sinh dòng nợ, không đổi số dư của ai**, nên không phải "bút toán điều chỉnh" theo HC-4.2. Nếu người kiểm độc lập hoặc chủ xếp nó vào HC-4.2 thì đặc tả này đứng thêm trên HC-4.2.
+- **Lối ra khi khai trùng bị chặn:** người bán khai "Khách đã chuyển khoản" hai lần cho cùng một khoản, Kế toán xác nhận lần thứ hai thì bị chặn. Lần khai thừa vẫn để người khai đứng tên giữ hộ. Lối ra là đường có sẵn: trước "Đã giao", Kế toán **đảo lần thu** thừa (dòng giữ hộ đảo theo, ADR-0092 Đ4); sau "Đã giao", Kế toán dùng **"Thay lần thu"** (ADR-0088). Không mở đường mới. Hộp báo chặn nói rõ hai lối này.
 - **Câu chờ chủ C1** (§9): mã có **bắt buộc** khi Kế toán xác nhận hoặc ghi chuyển khoản không.
 
 ## 6. Dữ liệu (chi tiết cột chốt ở kế hoạch; migration chỉ thêm)
@@ -80,7 +83,9 @@ Không thêm cột vào `orders`, `bil_payment_receipt` gốc chỉ nhận cột
 ## 7. Kỹ thuật
 
 - **Payload VietQR dựng ở máy chủ** bằng một hàm thuần (`src/shared/`, không import module). Payload theo chuẩn EMVCo QR của NAPAS: mã tổ chức VietQR, BIN, số tài khoản, dịch vụ chuyển tới tài khoản, tiền tệ 704, số tiền, quốc gia VN, nội dung, CRC-16. Kế hoạch phải đối chiếu **từng trường với tài liệu VietQR chính thức** (không theo trí nhớ) và có **sổ vàng**: bộ đầu vào cố định → chuỗi payload kỳ vọng, kèm ít nhất một chuỗi lấy từ nguồn công khai đã biết đúng.
-- **Trình duyệt chỉ vẽ ma trận QR** từ chuỗi payload máy chủ trả. Bộ vẽ: chép nguyên tệp `qrcode-generator` (Kazuhiko Arase, MIT) vào `web/vendor/qrcode.js`, giữ dòng giấy phép, đọc hết trước khi chép (không gọi mạng, không `eval`), không thêm vào `package.json`. Kế hoạch đăng nhập hai lớp 2026-10-01 Task 7 đã chọn đúng cách này. Vẽ bằng `<canvas>`, không `innerHTML`.
+- **Trình duyệt chỉ vẽ ma trận QR** từ chuỗi payload máy chủ trả. Vẽ bằng `<canvas>`, không `innerHTML`. Bộ vẽ ma trận là **câu chờ chủ C3** (§9), vì đây sẽ là mã của bên thứ ba **đầu tiên** chạy trên máy người dùng: dự án đang ghi "không có dependency runtime". Lựa chọn trong kế hoạch đăng nhập hai lớp 2026-10-01 Task 7 chỉ là quyết định bề mặt trong một kế hoạch chưa thi công, chưa được chủ duyệt.
+  - (a) Chép nguyên tệp `qrcode-generator` (Kazuhiko Arase, giấy phép MIT) vào `web/vendor/qrcode.js`. Giữ dòng giấy phép, đọc hết trước khi chép (không gọi mạng, không `eval`), không thêm vào `package.json`.
+  - (b) Tự viết bộ mã hoá QR trong `src/shared/` (chế độ byte, mức sửa lỗi M, phiên bản đủ cho payload VietQR), kèm sổ vàng so với ma trận chuẩn.
 - **Không đổi CSP** (`public/_headers`): không ảnh hay lời gọi tới tên miền ngoài. `img-src data: blob:` đã đủ cho ảnh lưu.
 - **Route** (tên chốt ở kế hoạch):
   - `GET /api/orders/:id/qr-thanh-toan?soTien=` đọc, hỏi `can(money.view)` theo phạm vi đơn. Đặt ở module `receipt` (hạng không bảng, đã đọc `orders`/`billing`/`parties` cho biên nhận) nếu luật kiến trúc cho phép, kế hoạch kiểm `src/architecture.test.ts`.
@@ -105,7 +110,8 @@ Không thêm cột vào `orders`, `bil_payment_receipt` gốc chỉ nhận cột
 ## 9. Câu chờ chủ (hỏi một lần, kèm khuyến nghị)
 
 - **C1. Mã giao dịch ngân hàng có bắt buộc không?** Khuyến nghị: **bắt buộc** khi Kế toán bấm "Công ty đã nhận" và khi Kế toán tự ghi lần thu chuyển khoản, kể từ ngày phát hành. Lý do: để trống được thì chặn trùng không có tác dụng. Khoản cũ đã xác nhận trước ngày phát hành không bị đòi bổ sung.
-- **C2. Lý do duyệt khi đứng trên lỗ TNV-G4.** Khuyến nghị câu: "Duyệt vì bản này vá phần chặn trùng chuyển khoản của TNV-G4; phần còn lại giữ hạn 31/10."
+- **C2. Đặc tả đứng trên lỗ đang mở TNV-G4.** Luật "dừng dây chuyền" chỉ có hai đường. **(a)** Vá xong lỗ rồi mới duyệt: làm luôn Đ6a và phần cảnh báo khác đơn (đặc tả 2026-10-06, còn một câu chờ chủ) trước hoặc cùng bản này. **(b)** Chủ **gia hạn** TNV-G4 kèm lý do ghi vào `docs/quyen-hoan.json`. Khuyến nghị **(b)**, lý do đề xuất: "bản QR tự thi công phần Đ6 lõi nằm trong chính kế hoạch vá TNV-G4; phần còn lại (Đ6a, cảnh báo khác đơn) làm theo đặc tả 2026-10-06", hạn mới do chủ chọn. Bản này thực hiện một phần mục `ke_hoach` của TNV-G4 ("ô mã giao dịch ngân hàng").
+- **C3. Bộ vẽ ma trận QR** (§7). Khuyến nghị **(a) chép tệp MIT**: thư viện dùng rất rộng, ít rủi ro sai hơn tự viết. Đổi lại là một tệp mã ngoài trong kho, cần người kiểm đọc hết. (b) tự viết thì không có mã ngoài, nhưng thêm vài trăm dòng mã tự làm, dễ sai ở phần sửa lỗi.
 
 ## 10. Giả định đã tự đặt (bề mặt, đảo được; ghi để chủ xem)
 

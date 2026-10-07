@@ -48,6 +48,8 @@ Không ô nào đổi giá trị. Không thêm ô mới. `docs/quyen-hoan.json` 
 | Đọc QR của đơn | cổng `orders`/`office` của router + `can(money.view, phạm vi đơn)` trong thân, **trước** mọi truy vấn tài khoản; số tiền do `conLai` | nút "QR thanh toán" hiện khi `can(money.view)` **và** DTO đơn cho còn lại > 0. Ẩn nút **không** phải là hàng rào: route tự kiểm |
 | Ghi lần thu từ QR | route có sẵn `POST /api/orders/:id/payments` + `can(payment.receive)`; luật giữ hộ H3 / Đ2b không đổi | nút "Khách đã chuyển khoản" hiện khi `can(payment.receive)` với đơn và `coTheGhiThu` |
 | "Công ty đã nhận" + mã giao dịch | route có sẵn `POST /api/ledger/company-receipts/:id/confirm` + `can(ledger.write)`; luật Đ6 ở máy chủ **và** trigger | ô mã + số thực chuyển chỉ có trong hộp xác nhận của Kế toán |
+| Sửa mã / số thực chuyển (dòng thay thế) | route mới + `can(ledger.write)`; lý do bắt buộc; hai luật Đ6 chạy lại; trigger lớp 2 | nút "Sửa mã giao dịch" chỉ ở màn của Kế toán / Toàn quyền |
+| Gỡ khai trùng bị chặn | đường có sẵn: đảo lần thu (`ledger.write`) trước "Đã giao"; "Thay lần thu" (ADR-0088) sau | hộp báo chặn nêu hai lối này |
 | Ghi / đọc tài khoản nhận tiền | route mới + `can(company.legal.write)`; trigger vai `OWNER_COMPANY`; một lô đóng + mở + nhật ký | mục "Tài khoản nhận tiền" trong hồ sơ công ty chỉ hiện cho người có ô này (giao diện hỏi `can()`, không viết cứng mã quyền) |
 | Ảnh QR gửi khách | DTO danh sách trường được phép (4.4) | ảnh dựng từ đúng DTO đó, không thêm trường từ màn đơn |
 

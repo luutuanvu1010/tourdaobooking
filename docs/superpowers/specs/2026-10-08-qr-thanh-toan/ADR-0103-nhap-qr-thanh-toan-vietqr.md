@@ -45,11 +45,14 @@
 3. **Hiện QR.**
    - (a) Route đọc QR trên đơn hỏi **`can(money.view)`** theo phạm vi đơn hiện hành, không thêm ô mới.
    - (b) Số tiền **máy chủ tính**: mặc định = `conLai`; người gọi gửi số nguyên dương ≤ còn lại thì dùng số đó; trái điều kiện ⇒ 400; còn lại = 0 ⇒ 409; chưa có tài khoản ⇒ 409 (5.4).
-   - (c) Payload VietQR dựng ở máy chủ bằng **hàm thuần có sổ vàng** (5.15). Trình duyệt chỉ vẽ ma trận bằng thư viện MIT chép vào `web/vendor/`, không gọi mạng, CSP giữ nguyên (5.16).
+   - (c) Payload VietQR dựng ở máy chủ bằng **hàm thuần có sổ vàng** (5.15). Trình duyệt chỉ vẽ ma trận, không gọi mạng, CSP giữ nguyên (5.16). Bộ vẽ ma trận là câu C3 của đặc tả: chép tệp MIT `qrcode-generator` vào `web/vendor/` hoặc tự viết. Đây là mã bên thứ ba đầu tiên chạy trên máy người dùng, nên chủ phải chọn.
    - (d) DTO và ảnh lưu là **danh sách trường được phép** (4.4).
    - (e) Nội dung chuyển khoản = mã đơn bỏ dấu gạch, chỉ `[A-Z0-9]`.
    - (f) Nút "Khách đã chuyển khoản" đi **đường ghi lần thu có sẵn** (`payment.receive`), không mở đường ghi mới.
 4. **Phát hành cùng ADR-0092 Đ6 phần lõi.** Phần lõi gồm: ô mã giao dịch ngân hàng ở "Công ty đã nhận" và ở lần thu chuyển khoản do Kế toán ghi; miễn luật ≥ 8 chữ số; chặn trùng (mã, đơn); chặn tổng theo mã > số thực chuyển. Có hai lớp: máy chủ và trigger. Nội dung Đ6 không đổi. Phần cảnh báo khác đơn và Đ6a đi theo đặc tả 2026-10-06. Mã có bắt buộc hay không: theo câu C1 của đặc tả.
+   - "Còn hiệu lực" = đúng vị từ `hieuLuc` mà `conLai` đang dùng (5.4).
+   - "Sửa" của Đ6 = dòng thay thế chỉ-thêm, người có `ledger.write`, lý do bắt buộc, nhật ký. Dòng này không sinh dòng nợ nên không phải bút toán điều chỉnh của HC-4.2 (người kiểm phản bác được).
+   - Khai trùng bị chặn thì gỡ bằng đường có sẵn: đảo lần thu trước "Đã giao", "Thay lần thu" sau đó.
 
 ## Thay câu nào
 
