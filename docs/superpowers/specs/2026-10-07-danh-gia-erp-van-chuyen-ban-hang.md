@@ -31,11 +31,13 @@ Hai yêu cầu của bạn được đáp ứng như sau, theo kết quả chạ
 
 Tuy vậy có bốn chỗ gãy lớn, và một chỗ gãy về quản trị:
 
-1. **Pháp lý.** Kiểu chạy "ghép khách nhiều đơn, lịch chạy định sẵn" trên xe hợp đồng trùng với hành vi mà nghị định cấm và có mức phạt riêng từ 15/8/2026. Chở "C + 2" cũng bị phạt theo từng người vượt. Chi tiết ở mục cảnh báo bên dưới.
+1. **Pháp lý.** Kiểu chạy "ghép khách nhiều đơn, lịch chạy định sẵn" trên xe hợp đồng giống hành vi mà Nghị định 158 (bản sửa năm 2026) cấm, và từ 15/8/2026 có mức phạt riêng. Nếu C là số người xe được phép chở trên giấy, thì chở "C + 2" bị phạt theo từng người vượt. Chi tiết ở mục cảnh báo bên dưới.
 2. **Thay đổi sát giờ bị khoá.** Trong 6 giờ trước giờ xe chạy (giá trị gieo sẵn), Bán hàng không tự thêm, bớt hay xếp lại khách được, mà phải nhờ Quản trị hoặc Toàn quyền. Một đơn bị huỷ trong khoảng đó làm cả xe ghép không xuất bến được cho tới khi có Quản trị. Thay đổi trên đơn cũng không tự chảy sang chuyến: chuyến chỉ bị "giữ" và chờ người xử lý tay.
 3. **Chưa có tầng lập kế hoạch.** Không có chuyến lên lịch sẵn, không có chuyện máy biết "xe rảnh từ mấy giờ", không có mở chuyến tự động hay bán tự động. Mỗi chuyến phải chọn ngay một xe và một tài xế cụ thể. Xe quay đầu ở cảng còn bị tính như tài xế cần nghỉ 30 phút. "C + 2" thì máy chặn cứng ở đúng số chỗ.
 4. **Chưa sửa sai được ngoài hiện trường.** Tài xế bấm nhầm "Khách đã huỷ" hay "Đã đón" thì không ai sửa được. Khách đã bị bấm "Vắng" không xếp sang xe khác được. Khi mất mạng, màn tài xế có thể trắng trơn, mất cả danh sách điểm và số điện thoại.
-5. **Quản trị.** Bảy văn bản quyết định đã duyệt còn phần chưa thi công: ADR-0007 và ADR-0014 (văn phòng sửa số khách), ADR-0052 (chuyển khách giữa hai xe, cứu hộ có nơi gặp, tin cho tài xế), ADR-0053 (tài xế đối tác), ADR-0062 (tin khi đơn đổi), ADR-0096 (thứ tự đón trước trả, cửa sổ xuất bến), ADR-0097 (sửa sai có lý do). Trong khi đó phân hệ đã được đóng sổ ngày 5/10. Theo luật dự án, văn bản đã duyệt thắng mã, nên đây là mã còn thiếu chứ không phải tính năng tuỳ chọn.
+5. **Quản trị.** Bảy văn bản quyết định đã duyệt (ADR) còn phần chưa thi công, trong khi phân hệ đã được đóng sổ ngày 5/10. Các phần này chia làm hai nhóm:
+   - **Chủ đã chủ ý hoãn, có ghi trong sổ việc để sau (BACKLOG):** ADR-0052 D4 và D5c (chuyển khách giữa hai xe, cứu hộ có nơi gặp; mục BL-VC-D4) và ADR-0053 (tài xế đối tác; mục BL-VC-D6 "tạm gác"). Nhóm này chờ bạn quyết có mở lại không.
+   - **Không có dòng hoãn nào:** ADR-0007 và ADR-0014 (văn phòng sửa số khách), ADR-0062 (tin khi đơn đổi), ADR-0052 MQ-07 (tin cho tài xế khi giờ hẹn đổi), ADR-0096 (thứ tự đón trước trả, cửa sổ xuất bến), ADR-0097 (sửa sai có lý do). Theo luật dự án, văn bản đã duyệt thắng mã, nên nhóm này là mã còn thiếu chứ không phải tính năng tuỳ chọn.
 
 ### Cảnh báo pháp lý (nói một lần — Hiến pháp P18)
 
@@ -44,11 +46,15 @@ Bản hợp nhất Nghị định 158/2024 (số 58/VBHN-BXD, đã gồm phần 
 - Khoản 4 điểm b cấm lái xe gom khách ngoài danh sách đính kèm hợp đồng.
 - Khoản 3 bắt xe từ 8 chỗ (không kể chỗ lái) phải có hợp đồng thuê cả chuyến.
 
-Nghị định 238/2026 (hiệu lực 15/8/2026) thêm mức phạt 20–24 triệu đồng với tổ chức có đúng các hành vi đó.
+Nghị định 238/2026 (hiệu lực 15/8/2026) thêm mức phạt 20–24 triệu đồng với tổ chức. Vế phạt chia làm hai, khác nhau ở một điều kiện:
+- Xác nhận chỗ cho từng khách, bán vé, thu tiền: chỉ bị phạt khi làm **ngoài hợp đồng đã ký**.
+- Ấn định lịch trình cố định cho nhiều khách hoặc nhiều người thuê khác nhau: **không có** điều kiện "ngoài hợp đồng".
 
 Về chở quá số người, NĐ 168/2024 có hai mức phạt và không ghi mức dung sai nào:
 - Điều 20 khoản 2 phạt người lái 400–600 nghìn đồng cho mỗi người vượt.
 - Điều 32 khoản 5 phạt chủ xe là tổ chức 1,6–2,4 triệu đồng cho mỗi người vượt.
+
+Hai mức này áp cho "C + 2" khi C đúng là số người xe được phép chở trên giấy. Bạn dùng chữ C theo nghĩa nào (số ghế ghi trên giấy, có kể ghế lái hay không) thì chưa rõ, nên đây cũng là một câu cần hỏi.
 
 Nền tảng hiện cho ghép khách nhiều đơn lên một xe và không hỏi hợp đồng vận tải nào: công tắc "phải có hợp đồng" bị khoá ở 0. Các câu luật này áp vào mô hình của Tour Đảo ra sao, kể cả khi công ty thuê cả xe của nhà xe, thì **cần luật sư hoặc Sở Xây dựng Khánh Hoà xác nhận**. Bản này chỉ trích văn bản, không kết luận Tour Đảo đang vi phạm. Nguồn: Phụ lục B; chi tiết ở C70 và C71.
 
@@ -319,8 +325,10 @@ Lộ trình Vận chuyển đã khoá ngày 5/10. Mọi gói dưới đây chỉ
 | A1 Sửa sai có lý do, thu hồi xuất bến; đón trước trả, cửa sổ xuất bến, nút thứ tự cho chuyến kế hoạch | 0097, 0096 (xác nhận chữ Đ3 trước) | `van-chuyen`: `dieu-phoi-tien-do.ts`, `dieu-phoi-kiem.ts`, migration mới, `web/chuyen.ts` | C50, C31, C30, C58 |
 | A2 Văn phòng sửa số khách sau xác nhận | 0007, 0014 (thiết kế ADR-0063) | `orders`: route `money-edit`, `order_money_adjustment`, `web/order.ts` | C02, C07 |
 | A3 Tin "đơn đổi"; tin giờ hẹn đổi cho tài xế | 0062, 0052 MQ-07 | `thongbao`: view `v_aud_order_change`, hàm tiêm `chuyenChoTin` | C08 (1, 2) |
-| A4 Tài xế đối tác dùng Nền tảng; báo bận | 0053 D7.1, D8, D9 | `permissions.ts`, `start-page.ts`, migration bỏ trigger, câu đọc khung bận tài xế | C24, C25 |
-| A5 Chuyển khách giữa hai xe; cứu hộ có nơi gặp | 0052 D4, D5c | `van-chuyen`: `vc_transfer_request` | C51 (2), C52 |
+| A4 Tài xế đối tác dùng Nền tảng; báo bận — **chủ đã hoãn** (BL-VC-D6) | 0053 D7.1, D8, D9 | `permissions.ts`, `start-page.ts`, migration bỏ trigger, câu đọc khung bận tài xế | C24, C25 |
+| A5 Chuyển khách giữa hai xe; cứu hộ có nơi gặp — **chủ đã hoãn** (BL-VC-D4) | 0052 D4, D5c | `van-chuyen`: `vc_transfer_request` | C51 (2), C52 |
+
+A1, A2, A3 không có dòng hoãn nào trong BACKLOG, nên là mã còn thiếu so với văn bản đã duyệt. A4, A5 là phần chủ đã chủ ý hoãn; làm hay không là quyết định mở lại của chủ.
 
 **Gói B — Cần ADR mới, chủ duyệt** (mỗi lượt tối đa 3 quyết định chạm quyền hoặc dữ liệu, kèm trang ghép)
 | Việc | Module, chỗ chạm | Phát hiện |
@@ -354,7 +362,9 @@ Lộ trình Vận chuyển đã khoá ngày 5/10. Mọi gói dưới đây chỉ
   - xe thật có phù hiệu xe hợp đồng hay không;
   - đơn đối tác thường ghi số điện thoại của ai.
 - **Bảng tin và Web Push tới máy thật** chưa kiểm, vì khung thử không có binding. **Tranh chấp đồng thời thật trên D1** chưa kiểm.
-- **Pháp lý:** chỉ trích văn bản gốc từ chinhphu.vn. Chưa đọc Luật Đường bộ 2024 và Luật Trật tự, an toàn giao thông 2024 về cách tính trẻ em. **Chưa có luật sư.**
+- **Pháp lý:** chỉ trích văn bản gốc từ chinhphu.vn. Chưa đọc Luật Đường bộ 2024 và Luật Trật tự, an toàn giao thông 2024 về cách tính trẻ em. **Chưa có luật sư.** Mức độ tin cậy của từng văn bản:
+  - Điều 7 bản hợp nhất NĐ 158: điều phối đã tự đối chiếu với lớp chữ của tệp PDF; khớp.
+  - NĐ 168/2024 và NĐ 238/2026: là bản quét. Một người kiểm đọc bằng ảnh trang; điều phối chưa tự đọc lại.
 - **Số thao tác ước tính:** "34–44 thao tác cho 10 đơn vào 2 chuyến" là ước tính, chưa đo bằng tay.
 - **Kịch bản chưa chạy lại:** `rut-doi-smoke`, `cap-nhat-khach-smoke`, `goi-bao-smoke`, `dat-gap-smoke` và các kịch bản Đợt 5.
 
