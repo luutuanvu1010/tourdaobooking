@@ -30,6 +30,19 @@ export type NhanCau = "CONG" | "CONG_DOI" | "CHUYEN_TIEN_DO" | "CONG_MOC" | "NHA
 export interface CauCoNhan {
   nhan: NhanCau;
   stmt: D1PreparedStatement;
+  /**
+   * Chỉ câu `SU_KIEN`: khoá của sự kiện lô này sẽ ghi (chuyến, chuyến liên quan, loại, điểm, suất) — `chayLo` so với sự kiện đã mang CÙNG request_id khi lô
+   * thua cổng / đụng UNIQUE, để chỉ coi là lệnh lặp khi đúng lệnh này (C38); lệch ⇒ 409 `request_id_reused`.
+   */
+  suKien?: SuKienCuaLo;
+}
+/** Khoá sự kiện của một lô (xem `CauCoNhan.suKien`). */
+export interface SuKienCuaLo {
+  tripId: string;
+  relatedTripId: string | null;
+  loai: LoaiSuKienChuyen;
+  stopId: string | null;
+  allocationId: string | null;
 }
 
 /** Phần chung của MỌI lệnh: dấu lệnh (id riêng của request = id sự kiện = id nhật ký), request_id của màn hình, MỘT mốc giờ của request (I33), người bấm. */
@@ -68,6 +81,7 @@ const suKien = (db: D1Database, l: LenhChung, e: SuKienVao): CauCoNhan => ({
     l.cmd, e.tripId, e.relatedTripId ?? null, e.loai, e.stopId ?? null, e.allocationId ?? null, e.soNguoi ?? null, l.requestId, null, e.decided ?? "NGUOI",
     e.phaLe?.luat ?? null, e.phaLe?.lyDo ?? null, e.phaLe?.policyId ?? e.policyId ?? null, l.lucIso, Date.parse(l.lucIso), "MAY_CHU", l.lucIso, l.nguoiId,
   ),
+  suKien: { tripId: e.tripId, relatedTripId: e.relatedTripId ?? null, loai: e.loai, stopId: e.stopId ?? null, allocationId: e.allocationId ?? null },
 });
 const cong = (db: D1Database, l: LenhChung, tripId: string, version: number): CauCoNhan => ({
   nhan: "CONG",
@@ -488,6 +502,7 @@ const suKienTienDo = (db: D1Database, l: LenhChung, e: SuKienTienDoVao): CauCoNh
     l.cmd, e.tripId, null, e.loai, e.stopId ?? null, e.allocationId ?? null, e.soNguoi ?? null, l.requestId, null, "NGUOI", null, null, e.policyId,
     e.xayRa.iso, e.xayRa.ms, e.xayRa.nguon, l.lucIso, l.nguoiId,
   ),
+  suKien: { tripId: e.tripId, relatedTripId: null, loai: e.loai, stopId: e.stopId ?? null, allocationId: e.allocationId ?? null },
 });
 const congTienDo = (db: D1Database, l: LenhChung, tripId: string): CauCoNhan => ({ nhan: "CONG", stmt: db.prepare(TRIP_GATE_TIEN_DO).bind(tripId, l.cmd, l.lucIso, l.nguoiId) });
 const congDangChay = (db: D1Database, l: LenhChung, tripId: string): CauCoNhan => ({ nhan: "CONG", stmt: db.prepare(TRIP_GATE_DANG_CHAY).bind(tripId, l.cmd, l.lucIso, l.nguoiId) });

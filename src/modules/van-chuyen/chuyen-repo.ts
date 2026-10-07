@@ -63,8 +63,15 @@ const TRIPS_TOUCHING = defineSql(
 );
 /** Số chuyến đã có của một ngày chạy (đặt mã CX-DDMM-NN). */
 const TRIP_COUNT_BY_DATE = defineSql("van-chuyen", "trip_count_by_date", "SELECT count(*) AS n FROM vc_trip WHERE service_date = ?1");
-/** Sự kiện của lệnh lặp (LC-11): cùng request_id → 200 kết quả hiện tại. */
-const EVENT_BY_REQUEST = defineSql("van-chuyen", "event_by_request", "SELECT id, trip_id, related_trip_id, kind FROM vc_trip_event WHERE request_id = ?1");
+/**
+ * Sự kiện của lệnh lặp (LC-11): cùng request_id → 200 kết quả hiện tại — CHỈ khi sự kiện khớp chuyến + loại (+ suất / điểm) của lệnh đang gửi (C38;
+ * `traLenhLap` / `chayLo` ở dieu-phoi-route.ts so), lệch → 409 `request_id_reused`.
+ */
+const EVENT_BY_REQUEST = defineSql(
+  "van-chuyen",
+  "event_by_request",
+  "SELECT id, trip_id, related_trip_id, kind, stop_id, allocation_id FROM vc_trip_event WHERE request_id = ?1",
+);
 
 export async function tripById(db: D1Database, id: string): Promise<TripRow | null> {
   return db.prepare(TRIP_BY_ID).bind(id).first<TripRow>();
@@ -78,8 +85,17 @@ export async function tripsTouching(db: D1Database, tuMs: number, denMs: number)
 export async function tripCountByDate(db: D1Database, ngay: string): Promise<number> {
   return (await db.prepare(TRIP_COUNT_BY_DATE).bind(ngay).first<{ n: number }>())?.n ?? 0;
 }
-export async function eventByRequest(db: D1Database, requestId: string): Promise<{ id: string; trip_id: string; related_trip_id: string | null; kind: string } | null> {
-  return db.prepare(EVENT_BY_REQUEST).bind(requestId).first();
+/** Một dòng `vc_trip_event` tra theo request_id (đủ để so với lệnh đang gửi — C38). */
+export interface SuKienYeuCauRow {
+  id: string;
+  trip_id: string;
+  related_trip_id: string | null;
+  kind: string;
+  stop_id: string | null;
+  allocation_id: string | null;
+}
+export async function eventByRequest(db: D1Database, requestId: string): Promise<SuKienYeuCauRow | null> {
+  return db.prepare(EVENT_BY_REQUEST).bind(requestId).first<SuKienYeuCauRow>();
 }
 
 export interface StopRow {

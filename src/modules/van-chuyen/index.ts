@@ -52,6 +52,7 @@ import { chinhSachVao, docChung, docNen, khungChuyen, taiXeVao, xeVao, type NenC
 import { dungLichNgay, lenhBaoHuy, lenhBoSungTen, lenhCapNhatDiem, lenhCapNhatKhach, lenhDoi, lenhHuy, lenhRut, lenhSuaChuyen, lenhThemDiemDangChay, lenhXep } from "./dieu-phoi-lenh";
 import {
   CAN_DIEU_PHOI, CAN_PHA_LE, CAN_XEM_CHUYEN, KHONG_CO_CHUYEN, chayLo, chiTietChuyen, cuocChiTiet, danhSachCuoc, gioNgan, loi409, loiKiem, lyDoHopLe, nhanLyDo, phaLeNhatKy,
+  traLenhLap,
 } from "./dieu-phoi-route";
 import {
   docBaoHuy, docBoSungTen, docCapNhatDiem, docDoi, docDoiThuTu, docHuy, docKetThucGianDoan, docRut, docSuaChuyen, docTaoChuyen, docThemDiem, docTienDo, docXep,
@@ -1121,7 +1122,9 @@ export const vanChuyenModule: AppModule = {
       if (!than.ok) return error(400, "invalid_input", than.message);
       const t = than.value;
       if (t.nghiPhaLe && !can(staff, "trip.override")) return CAN_PHA_LE();
-      const lap = await eventByRequest(env.DB, t.requestId);
+      // LC-11 + C38: lệnh lặp chỉ khi mã lệnh thuộc sự kiện TẠO chuyến (chưa có chuyến để so); mã của thao tác khác → 409 request_id_reused.
+      const lap = await traLenhLap(env.DB, t.requestId, { tripId: null, loai: ["CREATED"] });
+      if (lap instanceof Response) return lap;
       const bayGioMs = Date.now();
       const nowIso = new Date(bayGioMs).toISOString();
       let canhBaoLenh: CanhBaoLichDto[] = []; // ADR-0055 VK2-B B3: chỉ nhắc, chỉ lần đầu (khuôn canhBaoXep)
@@ -1196,7 +1199,9 @@ export const vanChuyenModule: AppModule = {
       if (!nen) return KHONG_CO_CHUYEN();
       const bayGioMs = Date.now();
       const ra: { nhacGioLai?: CanhBaoGioLai[] } = {}; // ADR-0055 VK2-B B3: nhắc giờ lái của chuyến sau sửa (chỉ lần đầu)
-      if (!(await eventByRequest(env.DB, b.requestId))) {
+      const lap = await traLenhLap(env.DB, b.requestId, { tripId: nen.trip.id, loai: ["UPDATED"] });
+      if (lap instanceof Response) return lap;
+      if (!lap) {
         // ADR-0056 VK3-A: chặng quanh ngày chạy (sau `can()`) — đổi xe thì luật cam kết xét khách đang trên chuyến.
         const lich = await lichChungChang(env.DB, nen.tu, nen.den);
         const r = await lenhSuaChuyen(env.DB, nen, lich.chang, b, staff, bayGioMs, ra);
@@ -1227,7 +1232,9 @@ export const vanChuyenModule: AppModule = {
       if (!nen) return KHONG_CO_CHUYEN();
       const bayGioMs = Date.now();
       let canhBaoXep: LyDoGiu[] = [];
-      if (!(await eventByRequest(env.DB, b.requestId))) {
+      const lap = await traLenhLap(env.DB, b.requestId, { tripId: nen.trip.id, loai: ["ALLOCATED"] });
+      if (lap instanceof Response) return lap;
+      if (!lap) {
         // Lời chủ 2026-10-01: người đi kèm phải là hướng dẫn viên đang có tài khoản (gửi lại cùng requestId không kiểm lại — lô đã chạy).
         if (b.nguoiDiKem.length > 0) {
           const duoc = new Set((await huongDanVien()).map((x) => x.partyId));
@@ -1271,7 +1278,9 @@ export const vanChuyenModule: AppModule = {
       const nen = await docNen(env.DB, params.id ?? "");
       if (!nen) return KHONG_CO_CHUYEN();
       const bayGioMs = Date.now();
-      if (!(await eventByRequest(env.DB, b.requestId))) {
+      const lap = await traLenhLap(env.DB, b.requestId, { tripId: nen.trip.id, loai: ["STOP_ADDED_RUNNING"] });
+      if (lap instanceof Response) return lap;
+      if (!lap) {
         const lich = await lichChungChang(env.DB, nen.tu, nen.den);
         const hkMoi = await hanhKhachChoChuyen(env.DB, b.chang.map((c) => c.legId)); // dòng hành khách hiện hành — chỉ để ghi bản chốt (không ra phản hồi)
         const r = await lenhThemDiemDangChay(env.DB, nen, lich.chang, hkMoi, b, staff, bayGioMs);
@@ -1294,7 +1303,9 @@ export const vanChuyenModule: AppModule = {
       const nen = await docNen(env.DB, params.id ?? "");
       if (!nen) return KHONG_CO_CHUYEN();
       const bayGioMs = Date.now();
-      if (!(await eventByRequest(env.DB, b.requestId))) {
+      const lap = await traLenhLap(env.DB, b.requestId, { tripId: nen.trip.id, loai: ["ALLOCATION_OFFICE_CANCELLED"], suatId: params.aid ?? "" });
+      if (lap instanceof Response) return lap;
+      if (!lap) {
         const lich = await lichChungChang(env.DB, nen.tu, nen.den);
         const r = await lenhBaoHuy(env.DB, nen, lich.chang, params.aid ?? "", b, staff, bayGioMs);
         if (r) return r;
@@ -1315,7 +1326,9 @@ export const vanChuyenModule: AppModule = {
       const nen = await docNen(env.DB, params.id ?? "");
       if (!nen) return KHONG_CO_CHUYEN();
       const bayGioMs = Date.now();
-      if (!(await eventByRequest(env.DB, b.requestId))) {
+      const lap = await traLenhLap(env.DB, b.requestId, { tripId: nen.trip.id, loai: ["ALLOCATION_REMOVED"] });
+      if (lap instanceof Response) return lap;
+      if (!lap) {
         const lich = await lichChungChang(env.DB, nen.tu, nen.den);
         const r = await lenhRut(env.DB, nen, lich.chang, b, staff, bayGioMs);
         if (r) return r;
@@ -1336,7 +1349,9 @@ export const vanChuyenModule: AppModule = {
       const nen = await docNen(env.DB, params.id ?? "");
       if (!nen) return KHONG_CO_CHUYEN();
       const bayGioMs = Date.now();
-      if (!(await eventByRequest(env.DB, b.requestId))) {
+      const lap = await traLenhLap(env.DB, b.requestId, { tripId: nen.trip.id, loai: ["ALLOCATION_MOVED"] });
+      if (lap instanceof Response) return lap;
+      if (!lap) {
         const dich = b.denChuyenId === nen.trip.id ? null : await docNen(env.DB, b.denChuyenId);
         if (!dich) return error(400, "invalid_input", "Chuyến đích không hợp lệ.");
         const lich = await lichChungChang(env.DB, nen.tu < dich.tu ? nen.tu : dich.tu, nen.den > dich.den ? nen.den : dich.den);
@@ -1359,7 +1374,9 @@ export const vanChuyenModule: AppModule = {
       const nen = await docNen(env.DB, params.id ?? "");
       if (!nen) return KHONG_CO_CHUYEN();
       const bayGioMs = Date.now();
-      if (!(await eventByRequest(env.DB, b.requestId))) {
+      const lap = await traLenhLap(env.DB, b.requestId, { tripId: nen.trip.id, loai: ["CANCELLED"] });
+      if (lap instanceof Response) return lap;
+      if (!lap) {
         const r = await lenhHuy(env.DB, nen, b, staff, bayGioMs);
         if (r) return r;
         baoThayDoiChuyen({ tripId: nen.trip.id, requestId: b.requestId }); // ADR-0052 D6.3: sau lô thành công, bắn-và-quên; không gọi khi 4xx / lệnh lặp
@@ -1383,7 +1400,8 @@ export const vanChuyenModule: AppModule = {
       const bayGioMs = Date.now();
       let daCapNhat = 0;
       let boQua: number | undefined;
-      const lap = await eventByRequest(env.DB, b.requestId);
+      const lap = await traLenhLap(env.DB, b.requestId, { tripId: nen.trip.id, loai: ["ALLOCATION_STOP_CHANGED"] });
+      if (lap instanceof Response) return lap;
       if (!lap) {
         const lich = await lichChungChang(env.DB, nen.tu, nen.den);
         const r = await lenhCapNhatDiem(env.DB, nen, lich.chang, b, staff, bayGioMs);
@@ -1411,7 +1429,8 @@ export const vanChuyenModule: AppModule = {
       if (!nen) return KHONG_CO_CHUYEN();
       const bayGioMs = Date.now();
       let daCapNhat = 0;
-      const lap = await eventByRequest(env.DB, b.requestId);
+      const lap = await traLenhLap(env.DB, b.requestId, { tripId: nen.trip.id, loai: ["ALLOCATION_PASSENGER_CHANGED"] });
+      if (lap instanceof Response) return lap;
       if (!lap) {
         const lich = await lichChungChang(env.DB, nen.tu, nen.den);
         const r = await lenhCapNhatKhach(env.DB, nen, lich.chang, b, staff, bayGioMs);
@@ -1466,7 +1485,9 @@ export const vanChuyenModule: AppModule = {
       const than = docTienDo(await readJson(request), { nhanXayRa: false });
       if (!than.ok) return error(400, than.code, than.message);
       const bayGioMs = Date.now();
-      if (!(await eventByRequest(env.DB, than.value.requestId))) {
+      const lap = await traLenhLap(env.DB, than.value.requestId, { tripId: nen.trip.id, loai: ["DEPARTED"] });
+      if (lap instanceof Response) return lap;
+      if (!lap) {
         const lich = await lichChungChang(env.DB, nen.tu, nen.den);
         const hk = await hanhKhachChoChuyen(env.DB, nen.legIds);
         const r = await lenhXuatBen(env.DB, nen, lich.chang, hk, than.value, { id: staff.id, bamThay: false }, bayGioMs);
@@ -1489,7 +1510,9 @@ export const vanChuyenModule: AppModule = {
       const than = docTienDo(await readJson(request), { nhanXayRa: false });
       if (!than.ok) return error(400, than.code, than.message);
       const bayGioMs = Date.now();
-      if (!(await eventByRequest(env.DB, than.value.requestId))) {
+      const lap = await traLenhLap(env.DB, than.value.requestId, { tripId: nen.trip.id, loai: ["STOP_ARRIVED"], diemId: params.sid ?? "" });
+      if (lap instanceof Response) return lap;
+      if (!lap) {
         const r = await lenhDaToi(env.DB, nen, params.sid ?? "", than.value, { id: staff.id, bamThay: false }, bayGioMs);
         if (r) return r;
         baoThayDoiChuyen({ tripId: nen.trip.id, requestId: than.value.requestId }); // ADR-0052 D6.3: sau lô thành công, bắn-và-quên; không gọi khi 4xx / lệnh lặp
@@ -1510,7 +1533,9 @@ export const vanChuyenModule: AppModule = {
       const than = docTienDo(await readJson(request), { nhanXayRa: false });
       if (!than.ok) return error(400, than.code, than.message);
       const bayGioMs = Date.now();
-      if (!(await eventByRequest(env.DB, than.value.requestId))) {
+      const lap = await traLenhLap(env.DB, than.value.requestId, { tripId: nen.trip.id, loai: ["PASSENGER_BOARDED"], suatId: params.aid ?? "" });
+      if (lap instanceof Response) return lap;
+      if (!lap) {
         const r = await lenhDaDon(env.DB, nen, params.aid ?? "", than.value, { id: staff.id, bamThay: false }, bayGioMs);
         if (r) return r;
         baoThayDoiChuyen({ tripId: nen.trip.id, requestId: than.value.requestId }); // ADR-0052 D6.3: sau lô thành công, bắn-và-quên; không gọi khi 4xx / lệnh lặp
@@ -1531,7 +1556,9 @@ export const vanChuyenModule: AppModule = {
       const than = docTienDo(await readJson(request), { nhanXayRa: false });
       if (!than.ok) return error(400, than.code, than.message);
       const bayGioMs = Date.now();
-      if (!(await eventByRequest(env.DB, than.value.requestId))) {
+      const lap = await traLenhLap(env.DB, than.value.requestId, { tripId: nen.trip.id, loai: ["PASSENGER_NO_SHOW"], suatId: params.aid ?? "" });
+      if (lap instanceof Response) return lap;
+      if (!lap) {
         const r = await lenhVang(env.DB, nen, params.aid ?? "", than.value, { id: staff.id, bamThay: false }, bayGioMs);
         if (r) return r;
         baoThayDoiChuyen({ tripId: nen.trip.id, requestId: than.value.requestId }); // ADR-0052 D6.3: sau lô thành công, bắn-và-quên; không gọi khi 4xx / lệnh lặp
@@ -1552,7 +1579,9 @@ export const vanChuyenModule: AppModule = {
       const than = docTienDo(await readJson(request), { nhanXayRa: false });
       if (!than.ok) return error(400, than.code, than.message);
       const bayGioMs = Date.now();
-      if (!(await eventByRequest(env.DB, than.value.requestId))) {
+      const lap = await traLenhLap(env.DB, than.value.requestId, { tripId: nen.trip.id, loai: ["PASSENGER_CANCELLED_AT_STOP"], suatId: params.aid ?? "" });
+      if (lap instanceof Response) return lap;
+      if (!lap) {
         const r = await lenhKhachHuy(env.DB, nen, params.aid ?? "", than.value, { id: staff.id, bamThay: false }, bayGioMs);
         if (r) return r;
         baoThayDoiChuyen({ tripId: nen.trip.id, requestId: than.value.requestId }); // ADR-0052 D6.3: sau lô thành công, bắn-và-quên; không gọi khi 4xx / lệnh lặp
@@ -1573,7 +1602,9 @@ export const vanChuyenModule: AppModule = {
       const than = docTienDo(await readJson(request), { nhanXayRa: false });
       if (!than.ok) return error(400, than.code, than.message);
       const bayGioMs = Date.now();
-      if (!(await eventByRequest(env.DB, than.value.requestId))) {
+      const lap = await traLenhLap(env.DB, than.value.requestId, { tripId: nen.trip.id, loai: ["PASSENGER_DROPPED"], suatId: params.aid ?? "" });
+      if (lap instanceof Response) return lap;
+      if (!lap) {
         const r = await lenhDaTra(env.DB, nen, params.aid ?? "", than.value, { id: staff.id, bamThay: false }, bayGioMs);
         if (r) return r;
         baoThayDoiChuyen({ tripId: nen.trip.id, requestId: than.value.requestId }); // ADR-0052 D6.3: sau lô thành công, bắn-và-quên; không gọi khi 4xx / lệnh lặp
@@ -1594,7 +1625,9 @@ export const vanChuyenModule: AppModule = {
       const than = docTienDo(await readJson(request), { nhanXayRa: false });
       if (!than.ok) return error(400, than.code, than.message);
       const bayGioMs = Date.now();
-      if (!(await eventByRequest(env.DB, than.value.requestId))) {
+      const lap = await traLenhLap(env.DB, than.value.requestId, { tripId: nen.trip.id, loai: ["ENDED"] });
+      if (lap instanceof Response) return lap;
+      if (!lap) {
         const r = await lenhKetThuc(env.DB, nen, than.value, { id: staff.id, bamThay: false }, bayGioMs);
         if (r) return r;
         baoThayDoiChuyen({ tripId: nen.trip.id, requestId: than.value.requestId }); // ADR-0052 D6.3: sau lô thành công, bắn-và-quên; không gọi khi 4xx / lệnh lặp
@@ -1615,7 +1648,9 @@ export const vanChuyenModule: AppModule = {
       const than = docKetThucGianDoan(await readJson(request), { nhanXayRa: false });
       if (!than.ok) return error(400, than.code, than.message);
       const bayGioMs = Date.now();
-      if (!(await eventByRequest(env.DB, than.value.requestId))) {
+      const lap = await traLenhLap(env.DB, than.value.requestId, { tripId: nen.trip.id, loai: ["ENDED_INTERRUPTED"] });
+      if (lap instanceof Response) return lap;
+      if (!lap) {
         const r = await lenhKetThucGianDoan(env.DB, nen, than.value, { id: staff.id, bamThay: false }, bayGioMs);
         if (r) return r;
         baoThayDoiChuyen({ tripId: nen.trip.id, requestId: than.value.requestId }); // ADR-0052 D6.3: sau lô thành công, bắn-và-quên; không gọi khi 4xx / lệnh lặp
@@ -1636,7 +1671,9 @@ export const vanChuyenModule: AppModule = {
       const than = docDoiThuTu(await readJson(request));
       if (!than.ok) return error(400, than.code, than.message);
       const bayGioMs = Date.now();
-      if (!(await eventByRequest(env.DB, than.value.requestId))) {
+      const lap = await traLenhLap(env.DB, than.value.requestId, { tripId: nen.trip.id, loai: ["STOPS_REORDERED"] });
+      if (lap instanceof Response) return lap;
+      if (!lap) {
         const r = await lenhDoiThuTu(env.DB, nen, than.value, { id: staff.id, bamThay: false }, bayGioMs);
         if (r) return r;
         baoThayDoiChuyen({ tripId: nen.trip.id, requestId: than.value.requestId }); // ADR-0052 D6.3: sau lô thành công, bắn-và-quên; không gọi khi 4xx / lệnh lặp
@@ -1664,7 +1701,9 @@ export const vanChuyenModule: AppModule = {
       if (!than.ok) return error(400, than.code, than.message);
       const nguoi = kiemHanhKhachTaiXe(body, homNay);
       if (!nguoi.ok) return error(400, "invalid_input", nguoi.message);
-      if (!(await eventByRequest(env.DB, than.value.requestId))) {
+      const lap = await traLenhLap(env.DB, than.value.requestId, { tripId: nen.trip.id, loai: ["PASSENGER_NAMED"], suatId: than.value.suatId });
+      if (lap instanceof Response) return lap;
+      if (!lap) {
         const hk = await hanhKhachChoChuyen(env.DB, nen.legIds);
         const r = await lenhBoSungTen(env.DB, nen, hk, than.value.suatId, than.value.requestId, (v) =>
           cauThemHanhKhachTaiXe(env.DB, { id: v.id, orderId: v.orderId, ...nguoi.value, at: v.lucIso, by: staff.id }, v.cmd), staff, bayGioMs);
@@ -1686,7 +1725,9 @@ export const vanChuyenModule: AppModule = {
       const nen = await docNen(env.DB, params.id ?? "");
       if (!nen) return KHONG_CO_CHUYEN();
       const bayGioMs = Date.now();
-      if (!(await eventByRequest(env.DB, than.value.requestId))) {
+      const lap = await traLenhLap(env.DB, than.value.requestId, { tripId: nen.trip.id, loai: ["DEPARTED"] });
+      if (lap instanceof Response) return lap;
+      if (!lap) {
         const lich = await lichChungChang(env.DB, nen.tu, nen.den);
         const hk = await hanhKhachChoChuyen(env.DB, nen.legIds);
         const r = await lenhXuatBen(env.DB, nen, lich.chang, hk, than.value, nguoiBamVanPhong(staff, nen), bayGioMs);
@@ -1707,7 +1748,9 @@ export const vanChuyenModule: AppModule = {
       const nen = await docNen(env.DB, params.id ?? "");
       if (!nen) return KHONG_CO_CHUYEN();
       const bayGioMs = Date.now();
-      if (!(await eventByRequest(env.DB, than.value.requestId))) {
+      const lap = await traLenhLap(env.DB, than.value.requestId, { tripId: nen.trip.id, loai: ["STOP_ARRIVED"], diemId: params.sid ?? "" });
+      if (lap instanceof Response) return lap;
+      if (!lap) {
         const r = await lenhDaToi(env.DB, nen, params.sid ?? "", than.value, nguoiBamVanPhong(staff, nen), bayGioMs);
         if (r) return r;
         baoThayDoiChuyen({ tripId: nen.trip.id, requestId: than.value.requestId }); // ADR-0052 D6.3: sau lô thành công, bắn-và-quên; không gọi khi 4xx / lệnh lặp
@@ -1726,7 +1769,9 @@ export const vanChuyenModule: AppModule = {
       const nen = await docNen(env.DB, params.id ?? "");
       if (!nen) return KHONG_CO_CHUYEN();
       const bayGioMs = Date.now();
-      if (!(await eventByRequest(env.DB, than.value.requestId))) {
+      const lap = await traLenhLap(env.DB, than.value.requestId, { tripId: nen.trip.id, loai: ["PASSENGER_BOARDED"], suatId: params.aid ?? "" });
+      if (lap instanceof Response) return lap;
+      if (!lap) {
         const r = await lenhDaDon(env.DB, nen, params.aid ?? "", than.value, nguoiBamVanPhong(staff, nen), bayGioMs);
         if (r) return r;
         baoThayDoiChuyen({ tripId: nen.trip.id, requestId: than.value.requestId }); // ADR-0052 D6.3: sau lô thành công, bắn-và-quên; không gọi khi 4xx / lệnh lặp
@@ -1745,7 +1790,9 @@ export const vanChuyenModule: AppModule = {
       const nen = await docNen(env.DB, params.id ?? "");
       if (!nen) return KHONG_CO_CHUYEN();
       const bayGioMs = Date.now();
-      if (!(await eventByRequest(env.DB, than.value.requestId))) {
+      const lap = await traLenhLap(env.DB, than.value.requestId, { tripId: nen.trip.id, loai: ["PASSENGER_NO_SHOW"], suatId: params.aid ?? "" });
+      if (lap instanceof Response) return lap;
+      if (!lap) {
         const r = await lenhVang(env.DB, nen, params.aid ?? "", than.value, nguoiBamVanPhong(staff, nen), bayGioMs);
         if (r) return r;
         baoThayDoiChuyen({ tripId: nen.trip.id, requestId: than.value.requestId }); // ADR-0052 D6.3: sau lô thành công, bắn-và-quên; không gọi khi 4xx / lệnh lặp
@@ -1764,7 +1811,9 @@ export const vanChuyenModule: AppModule = {
       const nen = await docNen(env.DB, params.id ?? "");
       if (!nen) return KHONG_CO_CHUYEN();
       const bayGioMs = Date.now();
-      if (!(await eventByRequest(env.DB, than.value.requestId))) {
+      const lap = await traLenhLap(env.DB, than.value.requestId, { tripId: nen.trip.id, loai: ["PASSENGER_CANCELLED_AT_STOP"], suatId: params.aid ?? "" });
+      if (lap instanceof Response) return lap;
+      if (!lap) {
         const r = await lenhKhachHuy(env.DB, nen, params.aid ?? "", than.value, nguoiBamVanPhong(staff, nen), bayGioMs);
         if (r) return r;
         baoThayDoiChuyen({ tripId: nen.trip.id, requestId: than.value.requestId }); // ADR-0052 D6.3: sau lô thành công, bắn-và-quên; không gọi khi 4xx / lệnh lặp
@@ -1783,7 +1832,9 @@ export const vanChuyenModule: AppModule = {
       const nen = await docNen(env.DB, params.id ?? "");
       if (!nen) return KHONG_CO_CHUYEN();
       const bayGioMs = Date.now();
-      if (!(await eventByRequest(env.DB, than.value.requestId))) {
+      const lap = await traLenhLap(env.DB, than.value.requestId, { tripId: nen.trip.id, loai: ["PASSENGER_DROPPED"], suatId: params.aid ?? "" });
+      if (lap instanceof Response) return lap;
+      if (!lap) {
         const r = await lenhDaTra(env.DB, nen, params.aid ?? "", than.value, nguoiBamVanPhong(staff, nen), bayGioMs);
         if (r) return r;
         baoThayDoiChuyen({ tripId: nen.trip.id, requestId: than.value.requestId }); // ADR-0052 D6.3: sau lô thành công, bắn-và-quên; không gọi khi 4xx / lệnh lặp
@@ -1802,7 +1853,9 @@ export const vanChuyenModule: AppModule = {
       const nen = await docNen(env.DB, params.id ?? "");
       if (!nen) return KHONG_CO_CHUYEN();
       const bayGioMs = Date.now();
-      if (!(await eventByRequest(env.DB, than.value.requestId))) {
+      const lap = await traLenhLap(env.DB, than.value.requestId, { tripId: nen.trip.id, loai: ["ENDED"] });
+      if (lap instanceof Response) return lap;
+      if (!lap) {
         const r = await lenhKetThuc(env.DB, nen, than.value, nguoiBamVanPhong(staff, nen), bayGioMs);
         if (r) return r;
         baoThayDoiChuyen({ tripId: nen.trip.id, requestId: than.value.requestId }); // ADR-0052 D6.3: sau lô thành công, bắn-và-quên; không gọi khi 4xx / lệnh lặp
@@ -1821,7 +1874,9 @@ export const vanChuyenModule: AppModule = {
       const nen = await docNen(env.DB, params.id ?? "");
       if (!nen) return KHONG_CO_CHUYEN();
       const bayGioMs = Date.now();
-      if (!(await eventByRequest(env.DB, than.value.requestId))) {
+      const lap = await traLenhLap(env.DB, than.value.requestId, { tripId: nen.trip.id, loai: ["ENDED_INTERRUPTED"] });
+      if (lap instanceof Response) return lap;
+      if (!lap) {
         const r = await lenhKetThucGianDoan(env.DB, nen, than.value, nguoiBamVanPhong(staff, nen), bayGioMs);
         if (r) return r;
         baoThayDoiChuyen({ tripId: nen.trip.id, requestId: than.value.requestId }); // ADR-0052 D6.3: sau lô thành công, bắn-và-quên; không gọi khi 4xx / lệnh lặp
@@ -1840,7 +1895,9 @@ export const vanChuyenModule: AppModule = {
       const nen = await docNen(env.DB, params.id ?? "");
       if (!nen) return KHONG_CO_CHUYEN();
       const bayGioMs = Date.now();
-      if (!(await eventByRequest(env.DB, than.value.requestId))) {
+      const lap = await traLenhLap(env.DB, than.value.requestId, { tripId: nen.trip.id, loai: ["STOPS_REORDERED"] });
+      if (lap instanceof Response) return lap;
+      if (!lap) {
         const r = await lenhDoiThuTu(env.DB, nen, than.value, nguoiBamVanPhong(staff, nen), bayGioMs);
         if (r) return r;
         baoThayDoiChuyen({ tripId: nen.trip.id, requestId: than.value.requestId }); // ADR-0052 D6.3: sau lô thành công, bắn-và-quên; không gọi khi 4xx / lệnh lặp

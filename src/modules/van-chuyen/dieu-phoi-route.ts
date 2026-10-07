@@ -5,7 +5,7 @@ import type { ChangChoChuyen, ChangLichChung, LienHeTaiXe } from "../orders";
 import type { ChuyenChiTietResponse, CuocChiTietResponse, CuocCuaToiItemDto, GoiBaoChangDto, LenhChuyenLoiBody } from "../../shared/contracts";
 import { docGoiBao, goiBaoChang, nguoiBamGoiBao, type QuyenGoiBao } from "./goi-bao-lenh";
 import { kiemXuatBen, type KiemXuatBenVao } from "../../shared/dieu-phoi-kiem";
-import type { KetQuaKiem, MaLuatPhaLe, TrangThaiChuyen } from "../../shared/dieu-phoi-kieu";
+import type { KetQuaKiem, LoaiSuKienChuyen, MaLuatPhaLe, TrangThaiChuyen } from "../../shared/dieu-phoi-kieu";
 import { dungLichChung } from "../../shared/dieu-phoi-lich-chung";
 import { error, json } from "../../shared/http";
 import type { LyDoGiu, MaGiu } from "../../shared/ly-do-giu";
@@ -14,8 +14,8 @@ import { maskLongDigits } from "../../shared/text-guards";
 import { sapDonTruocTra } from "../../shared/thu-tu-diem";
 import { msToVnLocal, ngayNgan } from "../../shared/vn-date";
 import { findRoute } from "./tien-xe-repo";
-import { allocsByTrips, banChupCuoi, eventByRequest, eventsByTrips, stopsByTrips, tenNguoiDiKem, type StopRow, type TripRow } from "./chuyen-repo";
-import type { CauCoNhan, DiemMoi } from "./dieu-phoi";
+import { allocsByTrips, banChupCuoi, eventByRequest, eventsByTrips, stopsByTrips, tenNguoiDiKem, type StopRow, type SuKienYeuCauRow, type TripRow } from "./chuyen-repo";
+import type { CauCoNhan, DiemMoi, SuKienCuaLo } from "./dieu-phoi";
 import {
   banChupDto, canhBaoDto, chuyenTomTat, diemChuyenDto, lyDoDangDung, lyDoGiuDto, nhatKyChuyenDto, suatChuyenDto, taiXeChon, xeChon,
 } from "./dieu-phoi-dto";
@@ -56,6 +56,8 @@ const THONG_BAO_409: Record<string, string> = {
   // Lệnh tiến độ (A15)
   da_xuat_ben: "Chuyến đã xuất bến.",
   chua_xuat_ben: "Chuyến chưa xuất bến — lệnh này chỉ dùng khi xe đang chạy (đổi thứ tự khi chưa chạy: sửa chuyến).",
+  // C38 (báo cáo ERP 2026-10-07): mã lệnh (requestId) đã thuộc sự kiện của chuyến / loại lệnh / suất / điểm khác.
+  request_id_reused: "Mã lệnh đã dùng cho thao tác khác — tải lại trang rồi thử lại.",
   diem_da_toi: "Điểm đã tới hoặc đã bỏ qua.",
   diem_chua_toi: "Xe chưa tới điểm của khách này — bấm \"Đã tới\" trước.",
   suat_da_co_ket_qua: "Khách này đã có kết quả — không đổi được.",
@@ -97,21 +99,78 @@ export function loiKiem(
 export const lyDoHopLe = (chung: DuLieuChung, code: string, nhom: string): boolean => chung.lyDo.some((r) => r.code === code && r.reason_group === nhom);
 export const nhanLyDo = (chung: DuLieuChung, code: string): string => chung.lyDo.find((r) => r.code === code)?.label ?? code;
 
+// ---- Lệnh lặp (LC-11) — mã lệnh dùng lại (C38) ------------------------------------------------------------------------------------------------------------
+/** 409 khi mã lệnh (requestId) đã thuộc sự kiện của một thao tác KHÁC — không ghi gì. */
+export const MA_LENH_DUNG_LAI = () => loi409("request_id_reused");
+/**
+ * Lệnh đang gửi, để so với sự kiện đã mang cùng request_id (C38 — báo cáo ERP 2026-10-07): `tripId` = chuyến của lệnh (null: lệnh tạo — chưa có chuyến);
+ * `loai` = các loại sự kiện lệnh này sinh ra (mỗi lệnh hôm nay sinh đúng MỘT loại — đọc ở các hàm `lo*` của dieu-phoi.ts); `suatId` / `diemId` = suất / điểm
+ * mà lệnh nhắm (đường dẫn `:aid` / `:sid`, thân `suatId`) — vắng = không so.
+ */
+export interface LenhCanLap {
+  tripId: string | null;
+  loai: readonly LoaiSuKienChuyen[];
+  suatId?: string;
+  diemId?: string;
+}
+/**
+ * Sự kiện `ev` (cùng request_id) có phải của CHÍNH lệnh `k` không: đúng chuyến (`trip_id` hoặc `related_trip_id` — lệnh dời ghi ở chuyến đích, nguồn ở
+ * `related_trip_id`), đúng loại, đúng suất / điểm khi lệnh nhắm một suất / điểm. Hàm thuần.
+ */
+export function khopLenhLap(ev: SuKienYeuCauRow, k: LenhCanLap): boolean {
+  if (k.tripId !== null && ev.trip_id !== k.tripId && ev.related_trip_id !== k.tripId) return false;
+  if (!(k.loai as readonly string[]).includes(ev.kind)) return false;
+  if (k.suatId !== undefined && ev.allocation_id !== k.suatId) return false;
+  if (k.diemId !== undefined && ev.stop_id !== k.diemId) return false;
+  return true;
+}
+/**
+ * Tra lệnh lặp trước khi chạy lệnh (route): `null` = mã mới → chạy lệnh; dòng sự kiện = lệnh lặp ĐÚNG lệnh này → trả kết quả hiện tại (không ghi); `Response`
+ * 409 `request_id_reused` = mã đã thuộc thao tác khác (trước đây trả 200 mà không làm gì).
+ */
+export async function traLenhLap(db: D1Database, requestId: string, k: LenhCanLap): Promise<SuKienYeuCauRow | null | Response> {
+  const ev = await eventByRequest(db, requestId);
+  if (!ev) return null;
+  return khopLenhLap(ev, k) ? ev : MA_LENH_DUNG_LAI();
+}
+/**
+ * Lệnh của một lô, suy từ câu `SU_KIEN` (khoá dựng cùng câu ghi — `suKien` / `suKienTienDo`): đúng chuyến, loại, điểm, suất mà lô định ghi. Lệnh tạo chuyến
+ * không so chuyến — id chuyến mới sinh riêng mỗi request, nên lần gửi lặp đồng thời mang id khác. Lô không có câu sự kiện → null (giữ cách cũ).
+ */
+function lenhCuaLo(lo: readonly CauCoNhan[]): LenhCanLap | null {
+  const sk: SuKienCuaLo | undefined = lo.find((c) => c.suKien)?.suKien;
+  if (!sk) return null;
+  return {
+    tripId: sk.loai === "CREATED" ? null : sk.tripId, loai: [sk.loai],
+    ...(sk.allocationId !== null ? { suatId: sk.allocationId } : {}), ...(sk.stopId !== null ? { diemId: sk.stopId } : {}),
+  };
+}
+
 // ---- Chạy lô -----------------------------------------------------------------------------------------------------------------------------------------------
 /**
  * Chạy MỘT lô (`db.batch` — nguyên tử). Câu cổng thua (câu 0; lệnh dời: cả câu 1) → lệnh lặp cùng requestId (LC-11) thì coi như đã làm, không thì 409 stale.
- * Lỗi ràng buộc CSDL (lớp thứ hai) → 409 `trip_rule`; UNIQUE request_id → lệnh lặp. Lỗi lạ ném lên.
+ * Lỗi ràng buộc CSDL (lớp thứ hai) → 409 `trip_rule`; UNIQUE request_id → lệnh lặp. Lỗi lạ ném lên. "Lệnh lặp" chỉ khi sự kiện đã có khớp lệnh của lô
+ * (`khopLenhLap` với `lenhCuaLo`) — mã lệnh của thao tác khác gửi đồng thời → 409 `request_id_reused` (C38).
  */
 export async function chayLo(db: D1Database, lo: readonly CauCoNhan[], requestId: string, soCong = 1): Promise<{ ok: true } | { ok: false; res: Response }> {
+  const lap = async (): Promise<{ ok: true } | { ok: false; res: Response } | null> => {
+    const ev = await eventByRequest(db, requestId);
+    if (!ev) return null;
+    const k = lenhCuaLo(lo);
+    return k === null || khopLenhLap(ev, k) ? { ok: true } : { ok: false, res: MA_LENH_DUNG_LAI() };
+  };
   try {
     const kq = await db.batch(lo.map((c) => c.stmt));
     for (let i = 0; i < soCong; i++) {
-      if ((kq[i]?.meta.changes ?? 0) === 0) return (await eventByRequest(db, requestId)) ? { ok: true } : { ok: false, res: CHUYEN_CU() };
+      if ((kq[i]?.meta.changes ?? 0) === 0) return (await lap()) ?? { ok: false, res: CHUYEN_CU() };
     }
     return { ok: true };
   } catch (e) {
     const m = e instanceof Error ? e.message : String(e);
-    if (/UNIQUE constraint failed: vc_trip_event\.request_id/.test(m) && (await eventByRequest(db, requestId))) return { ok: true };
+    if (/UNIQUE constraint failed: vc_trip_event\.request_id/.test(m)) {
+      const r = await lap();
+      if (r) return r;
+    }
     const r = loiRangBuocChuyen(m);
     if (r) return { ok: false, res: error(r.status, r.code, r.message) };
     throw e;
