@@ -273,12 +273,15 @@ export interface ReplaceLegPlan {
   detailDong: string;
   detailThem: string;
   mirror: Pickup;
+  /** Ngày / giờ đón ĐANG LƯU của chặng cũ — route xét mốc theo min(giờ cũ, giờ mới), như lệnh sửa chặng (ADR-0049 D2, I14). */
+  cu: { pickupDate: string | null; pickupTime: string | null };
 }
 /**
  * `POST /api/orders/:id/legs/:legId/replace` (C14 — đánh giá ERP 2026-10-07): thân `{ expectedUpdatedAt (của ĐƠN), leg }`. Chặng cũ phải còn mở; chặng mới
  * thuộc CÙNG dịch vụ với chặng cũ (khoá `serviceId` của thân, nếu có, bị bỏ qua) và CÙNG chiều (khác chiều → 400 — giả định: "thay" là đổi đúng chỗ đó;
  * đổi chiều thì bỏ + thêm rời như cũ). Kiểm chặng mới như route thêm (ngày đón đã qua → 400, điểm đang dùng, L-R1). Trần chặng và GHI KÉP tính trên tập
  * chặng SAU khi bỏ chặng cũ (dịch vụ đủ trần vẫn thay được; chặng cũ là chiều đi đầu thì hai cột cũ lấy nơi của chặng mới). Lý do đóng cố định REPLACED.
+ * Trả kèm ngày / giờ của chặng cũ: thay chặng thực chất là sửa chặng đó, nên mốc xét CẢ chặng cũ lẫn chặng mới (người điều phối quyết 2026-10-08).
  */
 export async function planReplaceLeg(db: D1Database, orderId: string, legId: string, body: Record<string, unknown> | null, today: string): Promise<{ ok: true; value: ReplaceLegPlan } | Failed> {
   const row = await legById(db, legId, orderId);
@@ -305,7 +308,7 @@ export async function planReplaceLeg(db: D1Database, orderId: string, legId: str
   const detailDong = moTaChang(svc.name, moTaVao(old, named.names), null, "REPLACED")!;
   const detailThem = moTaChang(svc.name, null, moTaVao(k.value, named.names))!;
   const mirror = dauSau([...conLai, { ...k.value, id: "~moi" }], named.names);
-  return { ok: true, value: { legId, serviceId: svc.id, leg: k.value, expected, detailDong, detailThem, mirror } };
+  return { ok: true, value: { legId, serviceId: svc.id, leg: k.value, expected, detailDong, detailThem, mirror, cu: { pickupDate: old.pickupDate, pickupTime: old.pickupTime } } };
 }
 
 // ---- Danh sách hành khách (ADR-0047 A2) ---------------------------------------------------------------------------------------------------------

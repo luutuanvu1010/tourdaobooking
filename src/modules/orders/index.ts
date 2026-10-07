@@ -927,9 +927,10 @@ export const ordersModule: AppModule = {
 
     // ---- THAY chặng (C14 — đánh giá ERP 2026-10-07): "Đổi sang chặng khác" = đóng chặng cũ (lý do REPLACED) + thêm chặng mới cùng dịch vụ, cùng chiều, trong
     // MỘT lô và MỘT khoá lạc quan (mốc ĐƠN) — không còn cảnh bỏ được mà thêm bị chặn (đơn đã xác nhận còn 0 chặng). Ô, thứ tự từ chối như route thêm chặng.
-    // Mốc 6 giờ (ADR-0049 I14) xét cho chặng MỚI, TRƯỚC khi ghi: dưới mốc → 409 `short_notice_required` (Quản trị, Toàn quyền kèm `datGap` thì qua — dấu ghi lên
-    // chặng mới) và chặng cũ KHÔNG bị đóng. Bỏ chặng cũ không có luật mốc riêng (ADR-0049 D2 không nói). Phản hồi 200 `{ order }` như route sửa / bỏ chặng: lệnh
-    // đổi chặng của một đơn có sẵn, trả lại chính đơn đó (không có tài nguyên mới để trỏ `Location`).
+    // Mốc 6 giờ (ADR-0049 D2, I14) xét như lệnh SỬA chặng — min(giờ chặng cũ, giờ chặng mới) — vì thay chặng thực chất là sửa chặng đó (người điều phối quyết
+    // 2026-10-08), TRƯỚC khi ghi: dưới mốc → 409 `short_notice_required` (Quản trị, Toàn quyền kèm `datGap` thì qua — dấu ghi lên chặng mới) và chặng cũ KHÔNG
+    // bị đóng. Lệnh BỎ chặng đứng riêng vẫn không có luật mốc. Phản hồi 200 `{ order }` như route sửa / bỏ chặng: lệnh đổi chặng của một đơn có sẵn, trả lại
+    // chính đơn đó (không có tài nguyên mới để trỏ `Location`).
     route("POST", "/api/orders/:id/legs/:legId/replace", "orders", async ({ env, request, params, staff, isAssigned, baoThayDoi, mocToiThieu }) => {
       const id = params.id!;
       const legId = params.legId!;
@@ -946,7 +947,7 @@ export const ordersModule: AppModule = {
       if (!plan.ok) return legFailure(plan);
       const moc = await mocToiThieu();
       if (!moc) return MOC_CHUA_CO();
-      const x = xetDatGapSua(staff, body, duoiMocKhiSua(null, plan.value.leg, Date.now(), moc.phut), moc);
+      const x = xetDatGapSua(staff, body, duoiMocKhiSua(plan.value.cu, plan.value.leg, Date.now(), moc.phut), moc);
       if (!x.ok) return x.res;
       if (!(await replaceLeg(env.DB, id, staff.id, { ...plan.value, detailThem: kemDatGap(plan.value.detailThem, x.value), datGap: x.value }))) return legRaced(env.DB, id, legId);
       baoThayDoi({ orderId: id, thayDoi: "chuyen" });

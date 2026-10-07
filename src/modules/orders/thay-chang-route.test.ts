@@ -1,7 +1,7 @@
 // C14 (đánh giá ERP 2026-10-07, đã kiểm phản biện): "Đổi sang chặng khác" ở bảng "Sửa đưa đón" từng gửi HAI lệnh rời — bỏ chặng (không xét mốc 6 giờ)
 // rồi thêm chặng (có xét mốc). Sát giờ, Bán hàng bỏ được mà thêm bị 409 ⇒ đơn đã xác nhận còn 0 chặng. Route mới `POST /api/orders/:id/legs/:legId/replace`
-// đóng chặng cũ (lý do REPLACED) VÀ thêm chặng mới trong MỘT lô, MỘT khoá lạc quan (mốc ĐƠN); xét mốc cho chặng MỚI TRƯỚC khi ghi — bị chặn thì chặng cũ
-// KHÔNG bị đóng. Chạy CẢ ứng dụng trên SQLite thật, mốc 6 giờ THẬT (không mốc giả), đồng hồ giả của khung điều phối (06:00 giờ VN ngày NGAY).
+// đóng chặng cũ (lý do REPLACED) VÀ thêm chặng mới trong MỘT lô, MỘT khoá lạc quan (mốc ĐƠN); xét mốc như lệnh SỬA chặng — min(giờ chặng cũ, giờ chặng
+// mới) — TRƯỚC khi ghi: bị chặn thì chặng cũ KHÔNG bị đóng. Chạy CẢ ứng dụng trên SQLite thật, mốc 6 giờ THẬT (không mốc giả), đồng hồ giả của khung điều phối (06:00 giờ VN ngày NGAY).
 import { test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
@@ -46,6 +46,27 @@ test("(a) C14: Bán hàng thay chặng dưới mốc (08:00, đón 13:00) → 40
     const gap = await thay(w, d.id, d.legId, SALES, { expectedUpdatedAt: truoc.updatedAt, leg: MOI, datGap: DAT_GAP });
     assert.equal(gap.status, 403, gap.text);
     khongGhiGi(w, d, truoc);
+  } finally {
+    tat();
+  }
+});
+
+test("(k) mốc xét CẢ chặng cũ (giống PUT …/legs/:legId — ADR-0049 D2): Bán hàng thay chặng ĐANG dưới mốc sang giờ trên mốc → 409, không ghi gì; Quản trị kèm datGap → 200", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const d = await don(w, { gio: "13:00", noiDon: "Khách sạn Cũ" });
+    denGio("08:00"); // chặng cũ còn 5 giờ — dưới mốc; chặng mới 16:00 còn 8 giờ — trên mốc
+    const truoc = await chup(w, d);
+    const sau = { ...MOI, pickupTime: "16:00" };
+    const r = await thay(w, d.id, d.legId, SALES, { expectedUpdatedAt: truoc.updatedAt, leg: sau });
+    assert.equal(r.status, 409, r.text);
+    assert.equal(r.json.error.code, "short_notice_required");
+    khongGhiGi(w, d, truoc);
+    const q = await thay(w, d.id, d.legId, ADM, { expectedUpdatedAt: truoc.updatedAt, leg: sau, datGap: DAT_GAP });
+    assert.equal(q.status, 200, q.text);
+    assert.equal(dongLeg(w, d.legId).close_reason_code, "REPLACED");
+    assert.deepEqual(q.json.order.services[0].legs.map((l: any) => [l.pickupTime, l.pickupLabel, l.datGap !== null]), [["16:00", "Khách sạn Mới", true]]);
   } finally {
     tat();
   }
