@@ -52,4 +52,4 @@ Sổ điều phối (CLAUDE.md §9, P19). Trạng thái sống ở đây, không
 - Đặc tả `docs/superpowers/specs/2026-09-29-*` tự mâu thuẫn về lúc chụp khoảng nghỉ (dòng 159 "lúc tạo" vs dòng 373 "tạo/sửa") — mã theo dòng 373.
 - N3 còn ca: dời chuyến hàng xóm A sát B thì B không chụp lại → thuộc B4 (cần ADR).
 - C38 chưa xét hai route `chang/:legId/da-goi-bao`, `bo-danh-dau-goi-bao` (tự xử lý `request_id` trên bảng mốc).
-- e2e chưa chạy cho Giai đoạn 1 (cần mạng).
+- e2e Giai đoạn 1 trên nhánh đã gộp (`a4488bf9`): `npm run test:e2e -- dieu-phoi dieu-phoi-chay-dua tai-xe-cuoc xe-dang-chay tin-chuyen chong-ghi-trung van-chuyen cam-ket-xe dua-don-dau-cuoi chang-hanh-khach` → "E2E: 13/13 kịch bản xanh" (195 giây). Không có kịch bản e2e nào gọi route thay chặng (phủ bằng bài khung thử + Chrome `dua-don-smoke` bước 7b).
