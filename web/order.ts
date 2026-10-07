@@ -254,7 +254,7 @@ function nutSuaDuaDon(order: Order): HTMLButtonElement {
     btn.disabled = false;
     openSheetDuaDon(
       {
-        order, diem, coDatGap: can(staff!, "order.leg.short_notice"),
+        order, diem, coDatGap: can(staff!, "order.leg.short_notice"), mocPhut,
         onSaved: () =>
           void load().then(() => {
             if (bannerEl.hidden) show(banner("info", "Đã lưu đưa đón."));

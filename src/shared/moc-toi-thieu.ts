@@ -50,6 +50,18 @@ export function kiemMocDat(chang: ChangMoc, bayGioMs: number, phut: number): Ket
 }
 
 /**
+ * I14 (Q3 chủ: "Chỉ Quản trị, Toàn quyền"): sửa ngày / giờ / nơi của chặng đơn ĐÃ XÁC NHẬN khi min(giờ cũ, giờ mới) dưới mốc → cần ô `order.leg.short_notice`
+ * + lý do trong CHÍNH lệnh sửa. Dấu cũ KHÔNG miễn (nó duyệt nội dung cũ). Chặng chưa chốt giờ ở cả hai phía → không xét (I13). `cu` null = thêm chặng.
+ * MỘT luật cho máy chủ (route thêm / sửa / thay chặng, `PUT /trip` của orders) và bảng Sửa đưa đón (kiểm cả kế hoạch trước lệnh đầu — C14); chuyển từ
+ * src/modules/orders/dat-gap.ts sang đây ngày 2026-10-08, không đổi nghĩa.
+ */
+export function duoiMocKhiSua(cu: { pickupDate: string | null; pickupTime: string | null } | null, moi: { pickupDate: string | null; pickupTime: string | null } | null, bayGioMs: number, phut: number): boolean {
+  const xet = (l: { pickupDate: string | null; pickupTime: string | null } | null) =>
+    l !== null && kiemMocDat({ ngayDon: l.pickupDate, gioDon: l.pickupTime, datGap: false }, bayGioMs, phut).duoiMoc;
+  return xet(cu) || xet(moi);
+}
+
+/**
  * Loại lệnh lúc XẾP (một chuyến chưa chạy). `DOI_DI` = dời suất RA khỏi chuyến này; `DOI_DEN` = dời suất VÀO chuyến này (route dời gọi hai lần, mỗi chuyến
  * một lần). `HUY_CO_KHACH` / `HUY_KHONG_KHACH` = huỷ chuyến còn / không còn suất mở (kế hoạch mục 1.7 route 8).
  */

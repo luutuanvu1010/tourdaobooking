@@ -3,7 +3,7 @@
 // nhận đơn — I15) và `kiemMocDat` (máy chủ + màn hình) là HAI cách nói của MỘT luật — bài tương đương dưới đây khoá điều đó (bẫy "hai luật", Đợt E).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { LENH_KHOA_THEO_MOC, LENH_XEP, batDauSomNhatSauDoiGio, kiemMocDat, kiemMocXep, mucMoc, nguongMocVn } from "./moc-toi-thieu.ts";
+import { LENH_KHOA_THEO_MOC, LENH_XEP, batDauSomNhatSauDoiGio, duoiMocKhiSua, kiemMocDat, kiemMocXep, mucMoc, nguongMocVn } from "./moc-toi-thieu.ts";
 import { vnLocalToMs } from "./vn-date.ts";
 
 const PHUT = 60_000;
@@ -174,4 +174,16 @@ test("mucMoc: quá mốc (dưới mốc) → đỏ; sát mốc (dưới mốc + 
   assert.equal(mucMoc(leg, leg - 100 * PHUT, 1, 120), "SAT_MOC", "mốc 1 phút: còn 100 phút < 1 + 120 → sát mốc");
   assert.equal(mucMoc(leg, leg - 100 * PHUT, 1, 0), "BINH_THUONG");
   assert.equal(mucMoc(leg, leg + 10 * PHUT, 0, 0), "QUA_MOC", "không còn nhánh 'mốc 0 = tắt': giờ đã qua luôn quá mốc");
+});
+
+test("duoiMocKhiSua (chuyển từ orders/dat-gap.ts sang đây — một luật cho máy chủ và bảng Sửa đưa đón): dưới mốc nếu chặng CŨ hoặc chặng MỚI dưới mốc; chưa chốt giờ thì không xét", () => {
+  const bayGio = ms("2027-03-11", "08:00");
+  const g = (d: string | null, t: string | null) => ({ pickupDate: d, pickupTime: t });
+  assert.equal(duoiMocKhiSua(null, g("2027-03-11", "13:00"), bayGio, 360), true, "thêm dưới mốc");
+  assert.equal(duoiMocKhiSua(null, g("2027-03-11", "14:00"), bayGio, 360), false, "đúng mốc là đạt");
+  assert.equal(duoiMocKhiSua(g("2027-03-11", "13:00"), g("2027-03-11", "16:00"), bayGio, 360), true, "cũ dưới mốc, mới trên mốc → vẫn dưới");
+  assert.equal(duoiMocKhiSua(g("2027-03-11", "16:00"), g("2027-03-11", "13:00"), bayGio, 360), true, "mới dưới mốc");
+  assert.equal(duoiMocKhiSua(g("2027-03-11", "16:00"), g("2027-03-12", "09:00"), bayGio, 360), false);
+  assert.equal(duoiMocKhiSua(g("2027-03-11", null), g("2027-03-11", null), bayGio, 360), false, "chưa chốt giờ cả hai phía");
+  assert.equal(duoiMocKhiSua(null, null, bayGio, 360), false);
 });

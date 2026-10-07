@@ -4,8 +4,10 @@
 // mốc CHẶNG), thêm (`POST …/legs`, mốc ĐƠN mới nhất). "Thay": trong một dịch vụ, theo từng chiều, ĐÚNG một chặng đã lưu bỏ với lý do "Đổi sang chặng khác"
 // hoặc "Nhập nhầm" + ĐÚNG một chặng mới cùng chiều (luật ghép `ghepThayChang`, src/shared/thay-chang.ts) → MỘT lệnh mang đúng lý do đó, máy chủ đóng + thêm
 // cùng lô — dưới mốc 6 giờ thì cả lệnh bị chặn, chặng cũ còn nguyên (trước C14: bỏ được, thêm bị chặn ⇒ đơn mất chặng). Ca khác (bỏ hai thêm một, "Không cần
-// nữa", khác chiều) vẫn gửi lệnh rời. Lệnh hỏng thì DỪNG, báo lỗi; lệnh trước đó đã lưu (nút "Tải lại đơn" để xem bản mới). 409 `short_notice_required` → Quản trị / Toàn quyền duyệt
-// đặt gấp ngay trong bảng rồi gửi lại ĐÚNG lệnh đó (khuôn bảng "Sửa thông tin chuyến" — 07).
+// nữa", khác chiều) vẫn gửi lệnh rời. Người KHÔNG có ô đặt gấp: trước lệnh đầu, bảng kiểm mốc CẢ kế hoạch (`lenhChanMoc` — cùng luật `duoiMocKhiSua` của máy
+// chủ, mốc lấy từ chi tiết đơn); có lệnh chắc chắn bị chặn thì không gửi lệnh nào và báo ngay "… — cần Quản trị duyệt đặt gấp; chưa lưu gì." (máy chủ vẫn là
+// cổng thật). Lệnh hỏng thì DỪNG, báo lỗi; lệnh trước đó đã lưu (nút "Tải lại đơn" để xem bản mới). 409 `short_notice_required` → Quản trị / Toàn quyền
+// duyệt đặt gấp ngay trong bảng rồi gửi lại ĐÚNG lệnh đó (khuôn bảng "Sửa thông tin chuyến" — 07).
 import { ApiError, api, type Api, type Order } from "./api";
 import { moBangTruot } from "./bang-truot";
 import { renderBanner } from "./banner";
@@ -17,18 +19,21 @@ import { taoKhoiDuaDon, type DiemChon, type KhoiDuaDon } from "./khoi-dua-don";
 import { CHIEU_LABEL, type LyDoDatGap } from "../src/shared/chang-dua-don";
 import { changDaDoi, changTuDto, legInput, loiDanhSachChang, type ChangNhap } from "../src/shared/chang-form";
 import { tongKhach } from "../src/shared/so-nguoi-chang";
-import { ghepThayChang } from "../src/shared/thay-chang";
+import { cauChanMoc, ghepThayChang, lenhChanMoc, xetMocLenh, type XetMoc } from "../src/shared/thay-chang";
 import { NETWORK_BANNER, classifyOrderError, type Banner } from "../src/shared/order-errors";
 
 export interface SheetDuaDonOptions {
   order: Order;
   diem: readonly DiemChon[];
   coDatGap: boolean;
+  /** Mốc tối thiểu (phút) từ chi tiết đơn (`mocToiThieuPhut`); null = chưa có — không kiểm trước, máy chủ quyết. */
+  mocPhut: number | null;
   onSaved: () => void;
   onReload: () => void;
 }
 
-type Lenh = { ten: string; goi: (order: Order, datGap?: { lyDo: LyDoDatGap; ghiChu: string | null }) => Promise<Order> };
+/** `nhan` + `xet`: tên chặng và cặp (cũ, mới) máy chủ sẽ xét mốc (null = không xét) — cho bước kiểm cả kế hoạch trước lệnh đầu. */
+type Lenh = { ten: string; nhan: string; xet: XetMoc; goi: (order: Order, datGap?: { lyDo: LyDoDatGap; ghiChu: string | null }) => Promise<Order> };
 
 export function openSheetDuaDon(o: SheetDuaDonOptions, opener: HTMLElement): void {
   let seq = 0;
@@ -89,26 +94,28 @@ export function openSheetDuaDon(o: SheetDuaDonOptions, opener: HTMLElement): voi
     const thayDs: Lenh[] = [];
     const ds: Lenh[] = [];
     for (const k of khoi) {
+      const ngayDiSvc = k.svc.departDate ?? (ngayDi || null);
+      const nhan = (chieu: Api.LegDto["direction"]) => `${CHIEU_LABEL[chieu]} · ${k.svc.name}`;
       const ghep = ghepThayChang(k.ui.daBo(), k.legs.filter((l) => !l.goc));
       for (const { bo, moi } of ghep.thay) {
         const g = bo.leg.goc!;
         const leg = legInput(moi, true);
-        thayDs.push({ ten: "thay", goi: async (order, datGap) => (await api<Api.OrderResponse>(`/api/orders/${encodeURIComponent(order.id)}/legs/${encodeURIComponent(g.id)}/replace`, { method: "POST", body: { expectedUpdatedAt: order.updatedAt, reasonCode: bo.lyDo, leg, ...(datGap ? { datGap } : {}) } })).order });
+        thayDs.push({ ten: "thay", nhan: nhan(g.direction), xet: xetMocLenh({ loai: "thay", cu: g, moi: leg }, ngayDiSvc), goi: async (order, datGap) => (await api<Api.OrderResponse>(`/api/orders/${encodeURIComponent(order.id)}/legs/${encodeURIComponent(g.id)}/replace`, { method: "POST", body: { expectedUpdatedAt: order.updatedAt, reasonCode: bo.lyDo, leg, ...(datGap ? { datGap } : {}) } })).order });
       }
       const daGhep = new Set(ghep.thay.map((c) => c.moi));
       for (const b of ghep.boLe) {
         const g = b.leg.goc!;
-        ds.push({ ten: "bo", goi: async (order) => (await api<Api.OrderResponse>(`/api/orders/${encodeURIComponent(order.id)}/legs/${encodeURIComponent(g.id)}/close`, { method: "POST", body: { expectedUpdatedAt: g.updatedAt, reasonCode: b.lyDo } })).order });
+        ds.push({ ten: "bo", nhan: nhan(g.direction), xet: null, goi: async (order) => (await api<Api.OrderResponse>(`/api/orders/${encodeURIComponent(order.id)}/legs/${encodeURIComponent(g.id)}/close`, { method: "POST", body: { expectedUpdatedAt: g.updatedAt, reasonCode: b.lyDo } })).order });
       }
       for (const l of k.legs) {
         if (daGhep.has(l) || !changDaDoi(l, true)) continue;
         const { id: _id, direction: _d, ...leg } = legInput(l, true);
         if (l.goc) {
           const g = l.goc;
-          ds.push({ ten: "sua", goi: async (order, datGap) => (await api<Api.OrderResponse>(`/api/orders/${encodeURIComponent(order.id)}/legs/${encodeURIComponent(g.id)}`, { method: "PUT", body: { expectedUpdatedAt: g.updatedAt, leg, ...(datGap ? { datGap } : {}) } })).order });
+          ds.push({ ten: "sua", nhan: nhan(g.direction), xet: xetMocLenh({ loai: "sua", cu: g, moi: legInput(l, true) }, ngayDiSvc), goi: async (order, datGap) => (await api<Api.OrderResponse>(`/api/orders/${encodeURIComponent(order.id)}/legs/${encodeURIComponent(g.id)}`, { method: "PUT", body: { expectedUpdatedAt: g.updatedAt, leg, ...(datGap ? { datGap } : {}) } })).order });
         } else {
           const full = legInput(l, true);
-          ds.push({ ten: "them", goi: async (order, datGap) => (await api<Api.OrderResponse>(`/api/orders/${encodeURIComponent(order.id)}/legs`, { method: "POST", body: { expectedUpdatedAt: order.updatedAt, serviceId: k.svc.id, leg: full, ...(datGap ? { datGap } : {}) } })).order });
+          ds.push({ ten: "them", nhan: nhan(l.direction), xet: xetMocLenh({ loai: "them", moi: full }, ngayDiSvc), goi: async (order, datGap) => (await api<Api.OrderResponse>(`/api/orders/${encodeURIComponent(order.id)}/legs`, { method: "POST", body: { expectedUpdatedAt: order.updatedAt, serviceId: k.svc.id, leg: full, ...(datGap ? { datGap } : {}) } })).order });
         }
       }
     }
@@ -151,6 +158,13 @@ export function openSheetDuaDon(o: SheetDuaDonOptions, opener: HTMLElement): voi
     const ds = lapLenh();
     if (ds.length === 0) {
       bt.close();
+      return;
+    }
+    // Người không có ô đặt gấp: lệnh nào chắc chắn bị chặn vì dưới mốc → không gửi gì (khỏi lưu dở), báo ngay. Có ô đặt gấp → máy chủ trả 409, mở khung duyệt.
+    const chan = !o.coDatGap && o.mocPhut !== null ? lenhChanMoc(ds, o.mocPhut, Date.now()) : [];
+    if (chan.length > 0) {
+      renderBanner(bannerEl, { tone: "danger", title: cauChanMoc(chan.map((l) => l.nhan), o.mocPhut!), lines: [], action: "none", focusService: null, refreshCatalog: false });
+      bannerEl.scrollIntoView({ block: "nearest" });
       return;
     }
     void chay(o.order, ds);
