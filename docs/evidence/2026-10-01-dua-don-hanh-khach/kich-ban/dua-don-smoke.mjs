@@ -20,6 +20,10 @@ env.sql(`INSERT INTO loc_location (id, code, name, location_type_code, sort_orde
   ('${KS}', 'KS_MUONG_THANH', 'Khách sạn Mường Thanh Luxury Nha Trang', 'HOTEL', 20, ${T}, ${T}),
   ('${SB}', 'SB_CAM_RANH', 'Sân bay Cam Ranh', 'AIRPORT', 21, ${T}, ${T}),
   ('${GA}', 'GA_CAP_TREO', 'Ga cáp treo Vinpearl', 'CABLE_CAR', 22, ${T}, ${T});`);
+// Kịch bản đăng nhập Bán hàng, Đối tác ở CẢ lời gọi API (`call`) lẫn Chrome (`env.as` — mỗi lần một phiên mới). Luật "một máy" (ADR-0075, ADR-0085) đóng phiên
+// API khi Chrome đăng nhập ⇒ bước 6 và 12 từng đỏ 401 (2026-10-08). Chỉ trên D1 TẠM của kịch bản: chính sách đăng nhập của hai quyền này = "Nhiều máy".
+env.sql(`INSERT INTO aut_session_policy (id, permission_code, multi, valid_from_at, created_at, updated_at) VALUES
+  ('kich-ban-sales-nhieu-may', 'SALES', 1, ${T}, ${T}, ${T}), ('kich-ban-partner-nhieu-may', 'PARTNER', 1, ${T}, ${T}, ${T});`);
 const NO_TRIP = { departDate: NGAY, departTime: "", checkinDate: "", checkinTime: "", checkinPlace: "", note: "" };
 const base = { customerEmail: "", customerNote: "", discount: 0, paymentNote: "" };
 const leg = (o) => ({ direction: "OUT", pickupDate: NGAY, pickupTime: "07:30", pickupLocationId: KS, pickupPlace: "", dropoffLocationId: null, dropoffPlace: "", ...o });
@@ -216,6 +220,35 @@ try {
     assert.ok(calls.some((c) => c.method === "PUT" && /\/legs\/[^/]+$/.test(c.path) && JSON.parse(c.body).leg.dropoffLocationId === SB), "sửa nơi trả");
     const o = (await call(ACCOUNTS.salesA, "GET", `/api/orders/${o2.id}`)).json.order;
     assert.deepEqual(o.services[0].legs.map((l) => [l.direction, l.dropoffLabel]), [["OUT", "Sân bay Cam Ranh"]]);
+    await m.waitFor(`document.getElementById('error').innerText.includes('Đã lưu đưa đón.')`, "báo đã lưu");
+  });
+
+  await b.step("7b", "C14 (1040, Bán hàng): bỏ chiều đi với lý do 'Đổi sang chặng khác' + thêm chặng mới trong cùng lần Lưu → ĐÚNG MỘT lệnh POST /legs/:id/replace (reasonCode REPLACED), không gửi /close, không gửi POST /legs; đơn còn đúng chặng mới; lịch sử có 'bỏ — Đổi sang chặng khác'", async () => {
+    await m.waitFor(shown('[data-action="sua-dua-don"]'), "nút Sửa đưa đón (sau khi tải lại)");
+    await m.ev(click('[data-action="sua-dua-don"]'));
+    await m.waitFor(shown('.sheet[role=dialog] .dd-chang[data-chieu="OUT"]'), "bảng Sửa đưa đón");
+    await m.ev(click(`.sheet .dd-chang[data-chieu="OUT"] [data-action="bo-chang"]`));
+    await m.waitFor(shown(".sheet .dd-bo"), "hộp lý do bỏ chặng");
+    await m.ev(`(() => { const r = document.querySelector('.sheet .dd-bo input[value="REPLACED"]'); r.checked = true; r.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
+    await m.ev(click('.sheet [data-action="xac-nhan-bo"]'));
+    await m.waitFor(`document.querySelectorAll('.sheet .dd-chang').length === 0`, "đã bỏ chiều đi");
+    await m.ev(click('.sheet [data-action="them-dua-don"]'));
+    await m.waitFor(`document.querySelectorAll('.sheet .dd-chang[data-chieu="OUT"]').length === 1`, "chặng đi mới");
+    await m.ev(typeInto(`.sheet .dd-chang[data-chieu="OUT"] [data-o$=":don"]`, SB));
+    await m.ev(typeInto(`.sheet .dd-chang[data-chieu="OUT"] [data-o$=":tra"]`, KS));
+    await m.ev(typeInto(`.sheet .dd-chang[data-chieu="OUT"] [data-o$=":gio"]`, "09:15"));
+    const truoc = apiCalls(m).filter((c) => c.path.includes("/legs")).length;
+    await m.ev(click('.sheet [data-action="luu-dua-don"]'));
+    await m.waitFor(`!document.querySelector('.sheet[role=dialog]')`, "bảng đóng sau khi lưu", 15000);
+    const calls = apiCalls(m).filter((c) => c.path.includes("/legs")).slice(truoc);
+    assert.deepEqual(calls.map((c) => `${c.method} ${c.path.replace(/[0-9a-f-]{36}/g, ":id")}`), ["POST /api/orders/:id/legs/:id/replace"], JSON.stringify(calls.map((c) => c.path)));
+    const than = JSON.parse(calls[0].body);
+    assert.equal(than.reasonCode, "REPLACED");
+    assert.equal(than.leg.pickupLocationId, SB);
+    const { order: o, history } = (await call(ACCOUNTS.salesA, "GET", `/api/orders/${o2.id}`)).json;
+    assert.deepEqual(o.services[0].legs.map((l) => [l.direction, l.pickupTime, l.pickupLabel]), [["OUT", "09:15", "Sân bay Cam Ranh"]]);
+    assert.ok(history.some((e) => e.action === "order_leg_closed" && /bỏ — Đổi sang chặng khác$/.test(e.detail ?? "")), "lịch sử: bỏ — Đổi sang chặng khác");
+    assert.ok(history.some((e) => e.action === "order_leg_added" && /nơi đón Sân bay Cam Ranh/.test(e.detail ?? "")), "lịch sử: thêm chặng mới");
     await m.waitFor(`document.getElementById('error').innerText.includes('Đã lưu đưa đón.')`, "báo đã lưu");
   });
 
