@@ -51,7 +51,7 @@ const MAU: Record<string, { vao: Record<string, unknown>; gac: string }> = {
   },
   loSuaChuyen: {
     vao: {
-      ...L, tripId: T, version: 3, moi: { xeId: "x-1", chuXePartyId: "p-1", ngayChay: "2027-03-11", batDauMs: 1, ketThucMs: 2, batDauSomNhatMs: 1, nghiPhaLeLyDo: null, thue: 1, tuyen: "T001" },
+      ...L, tripId: T, version: 3, moi: { xeId: "x-1", chuXePartyId: "p-1", ngayChay: "2027-03-11", batDauMs: 1, ketThucMs: 2, batDauSomNhatMs: 1, nghiPhaLeLyDo: null, thue: 1, tuyen: "T001", nghiChup: 45 },
       doiTaiXe: "p-tx2", diem: [{ id: "d-1", seq: 2, ngayXeToi: null, gioXeToi: null }], phaLe: null, policyId: null, chiPhi: CHI_PHI, phienBanChiPhi: 2, camKet: CAM_KET_GHI, detail: "d",
     },
     gac: T,
@@ -224,6 +224,45 @@ test("TC-32: MỌI hàm dựng lô của dieu-phoi.ts (tự suy từ tên xuất
     loi.push(...(HO_LENH_MOC.includes(t) ? viPhamLoMoc(t, lo) : viPhamLo(t, lo, MAU[t]!.gac)));
   }
   assert.deepEqual(loi, []);
+});
+
+// C38 + phiếu kiểm V2(c): đường chạy đua của `chayLo` (cổng thua / vỡ UNIQUE request_id) so sự kiện đã có với câu SU_KIEN của CHÍNH lô (`suKien` trên CauCoNhan).
+// Lô thiếu nhãn, có hai câu sự kiện, hay nhãn lệch tham số của câu chèn ⇒ "lệnh lặp" so nhầm thao tác.
+test("C38: mỗi lô (trừ họ lệnh mốc) có ĐÚNG một câu chèn vc_trip_event và đúng câu đó mang `suKien`, khớp tham số đã gắn (chuyến, chuyến liên quan, loại, điểm, suất); lô sửa ghi `nghiChup` vào rest_minutes_snapshot", () => {
+  type CauSk = Cau & { suKien?: { tripId: string; relatedTripId: string | null; loai: string; stopId: string | null; allocationId: string | null } };
+  const loi: string[] = [];
+  for (const ten of Object.keys(MAU)) {
+    const lo = (MOD[ten] as (db: unknown, l: unknown) => CauSk[])(DB, MAU[ten]!.vao);
+    const chen = lo.filter((c) => /^\s*INSERT INTO vc_trip_event\b/.test(c.stmt.sql));
+    const coNhan = lo.filter((c) => c.suKien !== undefined);
+    if (HO_LENH_MOC.includes(ten)) {
+      if (chen.length + coNhan.length > 0) loi.push(`${ten}: họ lệnh mốc không có sự kiện chuyến`);
+      continue;
+    }
+    if (chen.length !== 1) loi.push(`${ten}: ${chen.length} câu chèn vc_trip_event (phải đúng 1)`);
+    if (coNhan.length !== 1 || coNhan[0] !== chen[0]) {
+      loi.push(`${ten}: nhãn suKien phải nằm ở đúng câu chèn sự kiện (thấy ${coNhan.length} câu có nhãn)`);
+      continue;
+    }
+    const { suKien: sk, stmt, nhan } = coNhan[0]!;
+    if (nhan !== "SU_KIEN") loi.push(`${ten}: câu sự kiện mang nhãn ${nhan}`);
+    const a = stmt.args;
+    const thuc = { tripId: a[1], relatedTripId: a[2], loai: a[3], stopId: a[4], allocationId: a[5] };
+    try {
+      assert.deepEqual({ ...sk }, thuc);
+    } catch {
+      loi.push(`${ten}: suKien ${JSON.stringify(sk)} lệch tham số câu chèn ${JSON.stringify(thuc)}`);
+    }
+    if (a[7] !== L.requestId) loi.push(`${ten}: câu sự kiện không mang requestId của lệnh`);
+  }
+  assert.deepEqual(loi, []);
+  // Lô dời: sự kiện ở chuyến ĐÍCH, chuyến nguồn ở related_trip_id (cặp mà traLenhLap / chayLo so — phiếu kiểm V1).
+  const doi = (MOD.loDoi as (db: unknown, l: unknown) => CauSk[])(DB, MAU.loDoi!.vao).find((c) => c.suKien)!;
+  assert.deepEqual([doi.suKien!.tripId, doi.suKien!.relatedTripId, doi.suKien!.loai], [T2, T, "ALLOCATION_MOVED"]);
+  // N3: câu sửa kế hoạch ghi ĐÚNG số chụp của lệnh (tsc không phủ tệp bài — thiếu khoá thì ràng buộc undefined lặng lẽ).
+  const sua = (MOD.loSuaChuyen as (db: unknown, l: unknown) => Cau[])(DB, MAU.loSuaChuyen!.vao).find((c) => /^\s*UPDATE vc_trip SET vehicle_id/.test(c.stmt.sql))!;
+  assert.match(sua.stmt.sql, /rest_minutes_snapshot = \?14/);
+  assert.equal(sua.stmt.args[13], 45);
 });
 
 test("D5.3a (Đợt 5): loCapNhatDiem trên xe ĐANG CHẠY — cổng có version + chuyến đang chạy, câu CHỐT `SET version = version` đứng CUỐI (nhãn TRANG_THAI_CUOI), đúng bốn luật", () => {
