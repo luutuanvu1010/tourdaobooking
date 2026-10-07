@@ -73,6 +73,7 @@ test("gửi lặp đúng lệnh vẫn 200: tạo chuyến (cùng chuyến cũ) v
     const t2 = await w.call("POST", "/api/van-chuyen/chuyen", { as: SALES, body: thanTao });
     assert.equal(t2.status, 200, t2.text);
     assert.equal(t2.json.chuyen.id, t1.json.chuyen.id);
+    assert.equal(soSuKien(w, ridTao), 1, "tạo lặp: đúng một sự kiện CREATED");
     const ridDoi = uuid();
     const thanDoi = { version: dongChuyen(w, pId).version, requestId: ridDoi, suatIds: [suatP[0]], denChuyenId: qId, denVersion: dongChuyen(w, qId).version };
     const d1 = await w.call("POST", `/api/van-chuyen/chuyen/${pId}/doi`, { as: SALES, body: thanDoi });

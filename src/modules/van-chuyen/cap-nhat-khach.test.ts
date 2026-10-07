@@ -204,6 +204,7 @@ test("R-P29: lệnh lặp cùng requestId → 200 cùng daCapNhat, không ghi th
     const r2 = await capNhat(w, t.chuyen.id, SALES, { requestId: rid, version: vCu });
     assert.equal(r2.status, 200, r2.text);
     assert.equal(r2.json.daCapNhat, 1, "lệnh lặp → kết quả cũ");
+    assert.equal(w.q("SELECT count(*) n FROM vc_trip_event WHERE request_id = ?", rid)[0].n, 1, "lặp: đúng một sự kiện");
     assert.equal(w.q("SELECT count(*) n FROM vc_trip_allocation WHERE trip_id = ?", t.chuyen.id)[0].n, soDong, "không ghi thêm");
     assert.equal(w.q("SELECT count(*) n FROM audit_log WHERE action = 'trip_passengers_synced'")[0].n, 1);
   } finally {
