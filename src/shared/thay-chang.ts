@@ -1,11 +1,20 @@
 // Luật THUẦN ghép "Đổi sang chặng khác" của bảng "Sửa đưa đón" (C14 — đánh giá ERP 2026-10-07; route `POST /api/orders/:id/legs/:legId/replace`). Không I/O,
 // không import module (src/shared/). Import kèm đuôi .ts (chạy trực tiếp bằng `node --test`). Test cạnh tệp: thay-chang.test.ts.
 //
-// Trong MỘT dịch vụ, theo TỪNG chiều: có ĐÚNG một chặng đã lưu bị bỏ với lý do "Đổi sang chặng khác" (REPLACED) VÀ ĐÚNG một chặng mới cùng chiều → ghép
-// thành MỘT lệnh "thay" (đóng + thêm cùng lô ở máy chủ). Mọi trường hợp khác giữ lệnh rời như cũ — không đoán: bỏ hai thêm một, bỏ một thêm hai, bỏ hai chặng
-// cùng chiều mà chỉ một chặng có lý do REPLACED, lý do khác (Nhập nhầm, Không cần nữa — ghép thì máy chủ ghi đè lý do thành REPLACED), khác chiều.
+// Trong MỘT dịch vụ, theo TỪNG chiều: có ĐÚNG một chặng đã lưu bị bỏ với lý do thuộc `LY_DO_THAY_CHANG` ("Đổi sang chặng khác" hoặc "Nhập nhầm") VÀ ĐÚNG
+// một chặng mới cùng chiều → ghép thành MỘT lệnh "thay" (đóng + thêm cùng lô ở máy chủ; lệnh mang đúng lý do người dùng chọn). Mọi trường hợp khác giữ lệnh
+// rời như cũ — không đoán: bỏ hai thêm một, bỏ một thêm hai, bỏ hai chặng cùng chiều, lý do "Không cần nữa" (khách bỏ chặng cũ; chặng mới là việc riêng),
+// khác chiều.
 import type { LyDoDongChang } from "./chang-dua-don.ts";
 import type { LegDirection } from "./contracts.ts";
+
+/**
+ * Lý do bỏ chặng mà lệnh thay nhận (`reasonCode` của `POST …/legs/:legId/replace`; vắng = REPLACED) — một nguồn cho máy chủ và giao diện (người điều phối quyết
+ * 2026-10-08: thêm "Nhập nhầm" để chặng nhập sai được sửa bằng một lệnh, không lưu dở dưới mốc).
+ */
+export const LY_DO_THAY_CHANG = ["REPLACED", "WRONG_ENTRY"] as const satisfies readonly LyDoDongChang[];
+export type LyDoThayChang = (typeof LY_DO_THAY_CHANG)[number];
+export const laLyDoThayChang = (v: unknown): v is LyDoThayChang => typeof v === "string" && (LY_DO_THAY_CHANG as readonly string[]).includes(v);
 
 export interface KetQuaGhepThay<B, M> {
   /** Cặp bỏ ↔ thêm gửi bằng MỘT lệnh "thay" — theo thứ tự của danh sách bỏ. */
@@ -24,7 +33,7 @@ export function ghepThayChang<B extends { leg: { direction: LegDirection }; lyDo
   for (const chieu of ["OUT", "RETURN"] as const) {
     const boChieu = bo.filter((b) => b.leg.direction === chieu);
     const moiChieu = moi.filter((m) => m.direction === chieu);
-    if (boChieu.length === 1 && moiChieu.length === 1 && boChieu[0]!.lyDo === "REPLACED") cap.set(boChieu[0]!, moiChieu[0]!);
+    if (boChieu.length === 1 && moiChieu.length === 1 && laLyDoThayChang(boChieu[0]!.lyDo)) cap.set(boChieu[0]!, moiChieu[0]!);
   }
   const daGhep = new Set<M>(cap.values());
   return {

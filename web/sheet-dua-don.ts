@@ -1,10 +1,10 @@
 // Bảng trượt "Sửa đưa đón" của đơn ĐÃ XÁC NHẬN (bản vẽ M4 — docs/design/2026-10-01-dua-don-hanh-khach/M4 Sua dua don.dc.html). Khuôn bảng trượt có sẵn
 // (`web/bang-truot.ts`). Mỗi dịch vụ một khối "Đưa đón" (`che: "bang"` — bỏ chặng đã lưu phải chọn lý do). Lưu gửi lần lượt từng lệnh của route chặng
 // (ADR-0047 A1): THAY trước (`POST …/legs/:id/replace`, mốc ĐƠN mới nhất — C14), rồi bỏ chặng (`POST …/legs/:id/close`, mốc CHẶNG), sửa (`PUT …/legs/:id`,
-// mốc CHẶNG), thêm (`POST …/legs`, mốc ĐƠN mới nhất). "Thay" = "Đổi sang chặng khác": trong một dịch vụ, theo từng chiều, ĐÚNG một chặng đã lưu bỏ với lý do
-// REPLACED + ĐÚNG một chặng mới cùng chiều (luật ghép `ghepThayChang`, src/shared/thay-chang.ts) → MỘT lệnh, máy chủ đóng + thêm cùng lô — dưới mốc 6 giờ
-// thì cả lệnh bị chặn, chặng cũ còn nguyên (trước C14: bỏ được, thêm bị chặn ⇒ đơn mất chặng). Ca khác (bỏ hai thêm một, lý do khác, khác chiều) vẫn gửi
-// lệnh rời. Lệnh hỏng thì DỪNG, báo lỗi; lệnh trước đó đã lưu (nút "Tải lại đơn" để xem bản mới). 409 `short_notice_required` → Quản trị / Toàn quyền duyệt
+// mốc CHẶNG), thêm (`POST …/legs`, mốc ĐƠN mới nhất). "Thay": trong một dịch vụ, theo từng chiều, ĐÚNG một chặng đã lưu bỏ với lý do "Đổi sang chặng khác"
+// hoặc "Nhập nhầm" + ĐÚNG một chặng mới cùng chiều (luật ghép `ghepThayChang`, src/shared/thay-chang.ts) → MỘT lệnh mang đúng lý do đó, máy chủ đóng + thêm
+// cùng lô — dưới mốc 6 giờ thì cả lệnh bị chặn, chặng cũ còn nguyên (trước C14: bỏ được, thêm bị chặn ⇒ đơn mất chặng). Ca khác (bỏ hai thêm một, "Không cần
+// nữa", khác chiều) vẫn gửi lệnh rời. Lệnh hỏng thì DỪNG, báo lỗi; lệnh trước đó đã lưu (nút "Tải lại đơn" để xem bản mới). 409 `short_notice_required` → Quản trị / Toàn quyền duyệt
 // đặt gấp ngay trong bảng rồi gửi lại ĐÚNG lệnh đó (khuôn bảng "Sửa thông tin chuyến" — 07).
 import { ApiError, api, type Api, type Order } from "./api";
 import { moBangTruot } from "./bang-truot";
@@ -93,7 +93,7 @@ export function openSheetDuaDon(o: SheetDuaDonOptions, opener: HTMLElement): voi
       for (const { bo, moi } of ghep.thay) {
         const g = bo.leg.goc!;
         const leg = legInput(moi, true);
-        thayDs.push({ ten: "thay", goi: async (order, datGap) => (await api<Api.OrderResponse>(`/api/orders/${encodeURIComponent(order.id)}/legs/${encodeURIComponent(g.id)}/replace`, { method: "POST", body: { expectedUpdatedAt: order.updatedAt, leg, ...(datGap ? { datGap } : {}) } })).order });
+        thayDs.push({ ten: "thay", goi: async (order, datGap) => (await api<Api.OrderResponse>(`/api/orders/${encodeURIComponent(order.id)}/legs/${encodeURIComponent(g.id)}/replace`, { method: "POST", body: { expectedUpdatedAt: order.updatedAt, reasonCode: bo.lyDo, leg, ...(datGap ? { datGap } : {}) } })).order });
       }
       const daGhep = new Set(ghep.thay.map((c) => c.moi));
       for (const b of ghep.boLe) {

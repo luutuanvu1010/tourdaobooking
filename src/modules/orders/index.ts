@@ -925,7 +925,8 @@ export const ordersModule: AppModule = {
       return json({ order: (await loadOrderView(env.DB, id, xemDuDatGap(staff)))! } satisfies OrderResponse);
     }),
 
-    // ---- THAY chặng (C14 — đánh giá ERP 2026-10-07): "Đổi sang chặng khác" = đóng chặng cũ (lý do REPLACED) + thêm chặng mới cùng dịch vụ, cùng chiều, trong
+    // ---- THAY chặng (C14 — đánh giá ERP 2026-10-07): "Đổi sang chặng khác" / "Nhập nhầm" = đóng chặng cũ (`reasonCode` REPLACED | WRONG_ENTRY, vắng = REPLACED)
+    // + thêm chặng mới cùng dịch vụ, cùng chiều, trong
     // MỘT lô và MỘT khoá lạc quan (mốc ĐƠN) — không còn cảnh bỏ được mà thêm bị chặn (đơn đã xác nhận còn 0 chặng). Ô, thứ tự từ chối như route thêm chặng.
     // Mốc 6 giờ (ADR-0049 D2, I14) xét như lệnh SỬA chặng — min(giờ chặng cũ, giờ chặng mới) — vì thay chặng thực chất là sửa chặng đó (người điều phối quyết
     // 2026-10-08), TRƯỚC khi ghi: dưới mốc → 409 `short_notice_required` (Quản trị, Toàn quyền kèm `datGap` thì qua — dấu ghi lên chặng mới) và chặng cũ KHÔNG

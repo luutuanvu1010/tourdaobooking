@@ -12,9 +12,10 @@ import { datGapTheoVai } from "./dat-gap";
 import { getEffectiveServices } from "../catalog";
 import { composePersonName, newPersonStatements, validatePersonFullName, type ContactInput, type RoleInput } from "../parties";
 import {
-  MAX_CHANG_MOI_DICH_VU, chiDoiOPhu, chieuDiDau, docSoNguoiVe, doiNgayChang, isLyDoDongChang, kiemChang, moTaChang, tronChangCu, type ChangHopLe, type LyDoDongChang,
+  LY_DO_DONG_CHANG, MAX_CHANG_MOI_DICH_VU, chiDoiOPhu, chieuDiDau, docSoNguoiVe, doiNgayChang, isLyDoDongChang, kiemChang, moTaChang, tronChangCu, type ChangHopLe, type LyDoDongChang,
 } from "../../shared/chang-dua-don";
 import { tongKhach } from "../../shared/so-nguoi-chang";
+import { laLyDoThayChang, type LyDoThayChang } from "../../shared/thay-chang";
 import {
   activeLocations, legById, passengerRowsByOrders, servicePaxByIds, servicePaxByOrder, type LegFields, type OPhuGhi, type PassengerRow,
 } from "./chang-hanh-khach-repo";
@@ -270,6 +271,8 @@ export interface ReplaceLegPlan {
   leg: ChangHopLe;
   /** Mốc cập nhật CỦA ĐƠN (một khoá lạc quan cho cả lệnh đóng + thêm). */
   expected: string;
+  /** Lý do đóng chặng cũ — `reasonCode` của thân thuộc `LY_DO_THAY_CHANG`; vắng / null = REPLACED. */
+  reason: LyDoThayChang;
   detailDong: string;
   detailThem: string;
   mirror: Pickup;
@@ -280,8 +283,8 @@ export interface ReplaceLegPlan {
  * `POST /api/orders/:id/legs/:legId/replace` (C14 — đánh giá ERP 2026-10-07): thân `{ expectedUpdatedAt (của ĐƠN), leg }`. Chặng cũ phải còn mở; chặng mới
  * thuộc CÙNG dịch vụ với chặng cũ (khoá `serviceId` của thân, nếu có, bị bỏ qua) và CÙNG chiều (khác chiều → 400 — giả định: "thay" là đổi đúng chỗ đó;
  * đổi chiều thì bỏ + thêm rời như cũ). Kiểm chặng mới như route thêm (ngày đón đã qua → 400, điểm đang dùng, L-R1). Trần chặng và GHI KÉP tính trên tập
- * chặng SAU khi bỏ chặng cũ (dịch vụ đủ trần vẫn thay được; chặng cũ là chiều đi đầu thì hai cột cũ lấy nơi của chặng mới). Lý do đóng cố định REPLACED.
- * Trả kèm ngày / giờ của chặng cũ: thay chặng thực chất là sửa chặng đó, nên mốc xét CẢ chặng cũ lẫn chặng mới (người điều phối quyết 2026-10-08).
+ * chặng SAU khi bỏ chặng cũ (dịch vụ đủ trần vẫn thay được; chặng cũ là chiều đi đầu thì hai cột cũ lấy nơi của chặng mới). Lý do đóng: `reasonCode`
+ * thuộc `LY_DO_THAY_CHANG` (Đổi sang chặng khác / Nhập nhầm), vắng = REPLACED, mã khác → 400 (người điều phối quyết 2026-10-08). Trả kèm ngày / giờ của chặng cũ: thay chặng thực chất là sửa chặng đó, nên mốc xét CẢ chặng cũ lẫn chặng mới (người điều phối quyết 2026-10-08).
  */
 export async function planReplaceLeg(db: D1Database, orderId: string, legId: string, body: Record<string, unknown> | null, today: string): Promise<{ ok: true; value: ReplaceLegPlan } | Failed> {
   const row = await legById(db, legId, orderId);
@@ -289,6 +292,10 @@ export async function planReplaceLeg(db: D1Database, orderId: string, legId: str
   if (row.closed_at !== null) return { ok: false, code: "leg_closed", message: "Chặng đưa đón này đã bỏ rồi." };
   const expected = expectedOf(body);
   if (!expected) return { ok: false, code: "invalid_input", message: "Thiếu expectedUpdatedAt (mốc cập nhật của đơn mà trang đã đọc)." };
+  const lyDoRaw = body!.reasonCode ?? "REPLACED";
+  if (!laLyDoThayChang(lyDoRaw)) {
+    return { ok: false, code: "invalid_input", message: `Lý do bỏ chặng khi thay chỉ là “${LY_DO_DONG_CHANG.REPLACED}” hoặc “${LY_DO_DONG_CHANG.WRONG_ENTRY}”.` };
+  }
   const svc = (await getStoredServices(db, orderId)).find((s) => s.id === row.order_service_id)!;
   // `svc.legs` chỉ có chặng MỞ: chặng vừa bị bỏ ở lệnh khác giữa hai lần đọc → báo "đã bỏ" (409), không đổ lỗi hệ thống.
   const old = svc.legs.find((l) => l.id === legId);
@@ -305,10 +312,10 @@ export async function planReplaceLeg(db: D1Database, orderId: string, legId: str
     const vuot = vuotLR1(k.value.paxOverride, await soKhachDichVu(db, svc.id));
     if (vuot) return { ok: false, code: "invalid_input", message: vuot };
   }
-  const detailDong = moTaChang(svc.name, moTaVao(old, named.names), null, "REPLACED")!;
+  const detailDong = moTaChang(svc.name, moTaVao(old, named.names), null, lyDoRaw)!;
   const detailThem = moTaChang(svc.name, null, moTaVao(k.value, named.names))!;
   const mirror = dauSau([...conLai, { ...k.value, id: "~moi" }], named.names);
-  return { ok: true, value: { legId, serviceId: svc.id, leg: k.value, expected, detailDong, detailThem, mirror, cu: { pickupDate: old.pickupDate, pickupTime: old.pickupTime } } };
+  return { ok: true, value: { legId, serviceId: svc.id, leg: k.value, expected, reason: lyDoRaw, detailDong, detailThem, mirror, cu: { pickupDate: old.pickupDate, pickupTime: old.pickupTime } } };
 }
 
 // ---- Danh sách hành khách (ADR-0047 A2) ---------------------------------------------------------------------------------------------------------

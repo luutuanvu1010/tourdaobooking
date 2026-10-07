@@ -72,6 +72,33 @@ test("(k) mốc xét CẢ chặng cũ (giống PUT …/legs/:legId — ADR-0049 
   }
 });
 
+test("(l) reasonCode: WRONG_ENTRY → đóng lý do 'Nhập nhầm', nhật ký 'bỏ — Nhập nhầm'; thiếu → REPLACED; NOT_NEEDED / mã lạ → 400, không ghi gì", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const d = await don(w, { gio: "13:00" });
+    const truoc = await chup(w, d);
+    for (const reasonCode of ["NOT_NEEDED", "cancelled", 1]) {
+      const x = await thay(w, d.id, d.legId, SALES, { expectedUpdatedAt: truoc.updatedAt, leg: MOI, reasonCode });
+      assert.equal(x.status, 400, `${reasonCode}: ${x.text}`);
+      assert.match(x.json.error.message, /Đổi sang chặng khác.*Nhập nhầm/);
+    }
+    khongGhiGi(w, d, truoc);
+    const r = await thay(w, d.id, d.legId, SALES, { expectedUpdatedAt: truoc.updatedAt, leg: MOI, reasonCode: "WRONG_ENTRY" });
+    assert.equal(r.status, 200, r.text);
+    assert.equal(dongLeg(w, d.legId).close_reason_code, "WRONG_ENTRY");
+    assert.deepEqual(nhatKy(w, d.id, "order_leg_closed"), ["Chiều đi · Tour đảo: bỏ — Nhập nhầm"]);
+    assert.equal(nhatKy(w, d.id, "order_leg_added").length, 1);
+    const d2 = await don(w, { gio: "13:00" });
+    const o2 = await lay(w, d2.id);
+    const r2 = await thay(w, d2.id, d2.legId, SALES, { expectedUpdatedAt: o2.updatedAt, leg: MOI, reasonCode: null });
+    assert.equal(r2.status, 200, r2.text);
+    assert.equal(dongLeg(w, d2.legId).close_reason_code, "REPLACED", "reasonCode null/thiếu → REPLACED");
+  } finally {
+    tat();
+  }
+});
+
 test("(b) Quản trị kèm datGap dưới mốc → 200 { order }; chặng cũ đóng REPLACED, chặng mới mở mang dấu đặt gấp; đúng 2 dòng nhật ký trong cùng lô; ghi kép = nơi mới", async () => {
   const tat = batDongHo();
   try {
