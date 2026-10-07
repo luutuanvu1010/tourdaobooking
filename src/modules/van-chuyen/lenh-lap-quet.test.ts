@@ -37,7 +37,7 @@ const BANG: Record<string, { loai: string; giu: Giu }> = {
     ["cuoc-cua-toi", "chuyen"].flatMap((goc) => Object.entries(TIEN_DO).map(([duoi, loai]) => [`POST ${VC}/${goc}/:id/${duoi}`, { loai, giu: "quét" as Giu }])),
   ),
 };
-/** Route có `requestId` trong thân nhưng KHÔNG đi qua `traLenhLap` — ngoại lệ có tên (họ "gọi báo", tra `mocByRequest`; nợ ghi ở sổ thi công). */
+/** Route có `requestId` trong thân nhưng KHÔNG đi qua `traLenhLap` — ngoại lệ có tên (họ "gọi báo", tra `mocByRequest`; nợ ghi ở `docs/BACKLOG.md` mục 22, `BL-VC-MA-LENH`). */
 const NGOAI_LE = [`POST ${VC}/chang/:legId/da-goi-bao`, `POST ${VC}/chang/:legId/bo-danh-dau-goi-bao`];
 
 const doc = (tep: string) => readFileSync(new URL(`./${tep}`, import.meta.url), "utf8");
@@ -56,6 +56,9 @@ test("bảng lệnh lặp: route nào của index.ts gọi `traLenhLap` thì có
       return;
     }
     assert.equal(goi.length, 1, `${khoa}: một route một lần traLenhLap`);
+    // Phiếu kiểm độc lập vòng 2 (V5, 8/10): xoá dòng trả 409 ngay sau `traLenhLap` thì `lap` (một Response, truthy) bị coi là "lệnh lặp" ⇒ route trả 200
+    // lặng lẽ — đúng lỗi C38 gốc; bài hành vi chỉ bắt được ở 8/29 route. Giữ bằng cấu trúc: dòng kế tiếp lời gọi PHẢI là câu trả 409.
+    assert.match(than, /const lap = await traLenhLap\([^;]*\);\s*if \(lap instanceof Response\) return lap;/, `${khoa}: ngay sau traLenhLap phải là "if (lap instanceof Response) return lap;"`);
     khai[khoa] = [...goi[0]![1]!.matchAll(/"([A-Z_]+)"/g)].map((x) => x[1]).join(",");
   });
   assert.deepEqual(khai, Object.fromEntries(Object.entries(BANG).map(([k, v]) => [k, v.loai])), "route lệnh chuyến ↔ BANG (thêm route mới thì thêm dòng và cách giữ)");

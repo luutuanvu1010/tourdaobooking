@@ -200,6 +200,10 @@
 - **BL-VC-D4 — phần hoãn của Đợt 5:** tài xế nhờ xe khác đón, hộp đề nghị cần duyệt, bảng kiểm luật (D4) và Dòng dữ liệu / Nhật ký quyết định (V4). Khi làm: mã luật dạng danh mục, không `CHECK` cứng (lời chủ 2/10).
 - **BL-VC-MAU-CAM-KET — mẫu chặng mang sẵn cam kết "xe riêng / số chỗ".** ADR-0056 chỉ nhắc ở "Phương án bị loại"; chặng tạo từ mẫu hôm nay luôn "không cam kết".
 
+**Nợ cùng họ C38 — mã lệnh dùng lại (đánh giá ERP 7/10; kiểm độc lập 8/10):**
+
+- **BL-VC-MA-LENH — so mã lệnh còn hở ngoài 29 route lệnh chuyến.** (1) Lệnh nhắm nhiều đối tượng (rút / xếp / thêm điểm / cập nhật) chỉ so chuyến + loại: rút suất 2 bằng mã của lần rút suất 1 trả 200 không làm gì. (2) Họ "Đã gọi báo" / "Bỏ đánh dấu" (`mocByRequest`) không so chặng. (3) Bảng giá xe thuê `findRate(requestId)` (`tien-xe-lenh.ts`) trả dòng cũ khi thân khác. (4) Tham số `tripId` / `suatId` / `diemId` từng route chưa có bài giữ riêng. Phơi nhiễm thấp: giao diện không dùng lại mã khi thân khác (`idChoLenh`).
+
 **Nợ kỹ thuật của Đợt 7 (1.81):**
 
 - **BL-VC-SMOKE-CU — ba kịch bản Chrome cũ đỏ sẵn từ 1.80:** `a2-smoke-form` (thứ tự thẻ chưa biết khối "Hành khách"), `a2-smoke-order` (hết giờ "form mở lại đơn"), `dat-gap-smoke` bước 3/7/8/10 (`call()` đăng nhập lại làm phiên trình duyệt hết hạn — sổ phiên một máy ADR-0075). Đã chứng minh đỏ y hệt trên `dc1ef1fe` (trước Đợt 7). Sửa kịch bản, không sửa Nền tảng.

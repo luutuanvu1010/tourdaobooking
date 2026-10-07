@@ -178,3 +178,22 @@ test("chỉ đổi TÀI XẾ (giữ giờ, giữ xe) ⇒ chụp lại khoảng n
     tat();
   }
 });
+
+// Phiếu kiểm độc lập vòng 2 (THẤP, 8/10): bỏ riêng vế "đổi giờ BẮT ĐẦU" vẫn xanh vì mọi bài dời giờ đều đổi luôn giờ kết thúc — bài này giữ riêng vế đó.
+test("chỉ đổi GIỜ BẮT ĐẦU (giữ giờ kết thúc, xe, tài xế) ⇒ chụp lại khoảng nghỉ của chính sách hiện hành", async () => {
+  const tat = batDongHo(vnMs("2027-03-10", "22:00"));
+  try {
+    const w = setup();
+    const id = await motChuyen(w);
+    const truoc = keHoach(w, id);
+    assert.equal((await chinhSach(w, 15)).status, 201);
+    const p = await sua(w, id, gio("08:10", "09:00"));
+    assert.equal(p.status, 200, p.text);
+    const sau = keHoach(w, id);
+    assert.equal(sau.planned_end_ms, truoc.planned_end_ms, "giờ kết thúc giữ nguyên");
+    assert.equal(sau.planned_start_ms - truoc.planned_start_ms, 10 * 60_000, "chỉ dời giờ bắt đầu 10 phút");
+    assert.equal(dongChuyen(w, id).rest_minutes_snapshot, 15);
+  } finally {
+    tat();
+  }
+});
