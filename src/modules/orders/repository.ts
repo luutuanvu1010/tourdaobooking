@@ -5,7 +5,7 @@ import { escapeLike } from "../../shared/http";
 import { dbNgoaiVe } from "../../shared/lan-gui-boc";
 import { moTaDanhSachNhap, type HanhKhachHopLe } from "../../shared/hanh-khach";
 import {
-  legCloseChecked, legCloseGuarded, legDeleteDraft, legFillDateOnConfirm, legInsert, legInsertGuarded, legPaxOverrideChecked, legUpdateChecked, legUpdateGuarded, openLegsByOrders,
+  legCloseChecked, legCloseGuarded, legCloseReplaceChecked, legDeleteDraft, legFillDateOnConfirm, legInsert, legInsertGuarded, legPaxOverrideChecked, legUpdateChecked, legUpdateGuarded, openLegsByOrders,
   openLegsStatement, orderConfirm, orderTouch, orderTouchGuarded, passengerDeleteDraft, passengerInsert, passengerInsertGuarded, passengerVoidGuarded,
   serviceMirrorUpdateGuarded, type DatGapWrite, type LegFields, type LegRow, type LegWrite, type OPhuGhi, type PassengerWrite, type ServicePaxRow,
 } from "./chang-hanh-khach-repo";
@@ -1333,6 +1333,34 @@ export async function addLeg(
     orderTouch(db, orderId, at, plan.expected),
     auditStatement(db, { id: auditId, orderId, staffId, action: "order_leg_added", at, detail: plan.detail }, "changes() > 0"),
     legInsertGuarded(db, legWriteOf({ ...plan.leg, id: null }, plan.serviceId, orderId, staffId, at, new Map(), plan.datGap ?? null), auditId),
+    serviceMirrorUpdateGuarded(db, plan.serviceId, orderId, plan.mirror, auditId),
+  ]);
+  return (results[0]!.meta.changes ?? 0) > 0;
+}
+
+/**
+ * THAY chặng (C14 — đánh giá ERP 2026-10-07): đóng chặng cũ (lý do REPLACED) VÀ thêm chặng mới của CÙNG dịch vụ trong MỘT lô, MỘT khoá lạc quan theo
+ * `orders.updated_at`. Câu đầu `leg_close_replace_checked` vừa đóng vừa khoá (chặng còn mở + đơn đã xác nhận + đúng mốc đơn) — lô thua thì không ghi gì.
+ * Sau đó: nhật ký bỏ chặng (`changes() > 0`) → nhật ký thêm chặng (`changes() > 0` của dòng nhật ký trước — lô thua không để dòng mồ côi) → đẩy mốc đơn →
+ * chèn chặng mới (dấu đặt gấp nếu có) → GHI KÉP hai cột cũ; mọi câu sau nhật ký mang lính gác của dòng nhật ký ĐẦU. Trả true ⇔ câu đầu đã áp dụng.
+ */
+export async function replaceLeg(
+  db: D1Database,
+  orderId: string,
+  staffId: string,
+  plan: {
+    legId: string; serviceId: string; leg: ChangHopLe; expected: string; detailDong: string; detailThem: string; mirror: { pickupTime: string | null; pickupPlace: string | null };
+    datGap: DatGapWrite | null;
+  },
+): Promise<boolean> {
+  const at = nextStamp(plan.expected);
+  const auditId = crypto.randomUUID();
+  const results = await db.batch([
+    legCloseReplaceChecked(db, plan.legId, orderId, "REPLACED" satisfies LyDoDongChang, at, staffId, plan.expected),
+    auditStatement(db, { id: auditId, orderId, staffId, action: "order_leg_closed", at, detail: plan.detailDong }, "changes() > 0"),
+    auditStatement(db, { orderId, staffId, action: "order_leg_added", at, detail: plan.detailThem }, "changes() > 0"),
+    orderTouchGuarded(db, orderId, at, plan.expected, auditId),
+    legInsertGuarded(db, legWriteOf({ ...plan.leg, id: null }, plan.serviceId, orderId, staffId, at, new Map(), plan.datGap), auditId),
     serviceMirrorUpdateGuarded(db, plan.serviceId, orderId, plan.mirror, auditId),
   ]);
   return (results[0]!.meta.changes ?? 0) > 0;

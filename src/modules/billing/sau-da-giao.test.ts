@@ -38,6 +38,7 @@ const CA: Record<string, unknown> = {
   "POST /api/orders/:id/legs": {},
   "PUT /api/orders/:id/legs/:legId": {},
   "POST /api/orders/:id/legs/:legId/close": {},
+  "POST /api/orders/:id/legs/:legId/replace": {},
   "POST /api/orders/:id/legs/:legId/short-notice": { lyDo: "KHAC" },
   "POST /api/orders/:id/passengers": {},
   "PUT /api/orders/:id/booker": {},

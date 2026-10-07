@@ -264,6 +264,50 @@ export async function planCloseLeg(db: D1Database, orderId: string, legId: strin
   return { ok: true, value: { legId, serviceId: svc.id, reason: body!.reasonCode, expected, detail, mirror } };
 }
 
+export interface ReplaceLegPlan {
+  legId: string;
+  serviceId: string;
+  leg: ChangHopLe;
+  /** Mốc cập nhật CỦA ĐƠN (một khoá lạc quan cho cả lệnh đóng + thêm). */
+  expected: string;
+  detailDong: string;
+  detailThem: string;
+  mirror: Pickup;
+}
+/**
+ * `POST /api/orders/:id/legs/:legId/replace` (C14 — đánh giá ERP 2026-10-07): thân `{ expectedUpdatedAt (của ĐƠN), leg }`. Chặng cũ phải còn mở; chặng mới
+ * thuộc CÙNG dịch vụ với chặng cũ (khoá `serviceId` của thân, nếu có, bị bỏ qua) và CÙNG chiều (khác chiều → 400 — giả định: "thay" là đổi đúng chỗ đó;
+ * đổi chiều thì bỏ + thêm rời như cũ). Kiểm chặng mới như route thêm (ngày đón đã qua → 400, điểm đang dùng, L-R1). Trần chặng và GHI KÉP tính trên tập
+ * chặng SAU khi bỏ chặng cũ (dịch vụ đủ trần vẫn thay được; chặng cũ là chiều đi đầu thì hai cột cũ lấy nơi của chặng mới). Lý do đóng cố định REPLACED.
+ */
+export async function planReplaceLeg(db: D1Database, orderId: string, legId: string, body: Record<string, unknown> | null, today: string): Promise<{ ok: true; value: ReplaceLegPlan } | Failed> {
+  const row = await legById(db, legId, orderId);
+  if (!row) return { ok: false, code: "leg_not_found", message: "Không tìm thấy chặng đưa đón của đơn này." };
+  if (row.closed_at !== null) return { ok: false, code: "leg_closed", message: "Chặng đưa đón này đã bỏ rồi." };
+  const expected = expectedOf(body);
+  if (!expected) return { ok: false, code: "invalid_input", message: "Thiếu expectedUpdatedAt (mốc cập nhật của đơn mà trang đã đọc)." };
+  const svc = (await getStoredServices(db, orderId)).find((s) => s.id === row.order_service_id)!;
+  // `svc.legs` chỉ có chặng MỞ: chặng vừa bị bỏ ở lệnh khác giữa hai lần đọc → báo "đã bỏ" (409), không đổ lỗi hệ thống.
+  const old = svc.legs.find((l) => l.id === legId);
+  if (!old) return { ok: false, code: "leg_closed", message: "Chặng đưa đón này đã bỏ rồi." };
+  const conLai = svc.legs.filter((l) => l.id !== legId);
+  if (conLai.length >= MAX_CHANG_MOI_DICH_VU) return { ok: false, code: "invalid_input", message: `Mỗi dịch vụ tối đa ${MAX_CHANG_MOI_DICH_VU} chặng đưa đón.` };
+  const raw = body!.leg && typeof body!.leg === "object" && !Array.isArray(body!.leg) ? { ...(body!.leg as Record<string, unknown>), id: undefined } : body!.leg;
+  const k = kiemChang(raw, { at: "Chặng đưa đón", departDate: svc.trip.departDate, today });
+  if (!k.ok) return { ok: false, code: "invalid_input", message: k.message };
+  if (k.value.direction !== old.direction) return { ok: false, code: "invalid_input", message: "Chặng thay phải cùng chiều với chặng cũ — đổi chiều thì bỏ chặng cũ rồi thêm chặng mới." };
+  const named = await tenDiem(db, svc.legs, [k.value.pickupLocationId, k.value.dropoffLocationId], new Set());
+  if (!named.ok) return named;
+  if (k.value.paxOverride != null) {
+    const vuot = vuotLR1(k.value.paxOverride, await soKhachDichVu(db, svc.id));
+    if (vuot) return { ok: false, code: "invalid_input", message: vuot };
+  }
+  const detailDong = moTaChang(svc.name, moTaVao(old, named.names), null, "REPLACED")!;
+  const detailThem = moTaChang(svc.name, null, moTaVao(k.value, named.names))!;
+  const mirror = dauSau([...conLai, { ...k.value, id: "~moi" }], named.names);
+  return { ok: true, value: { legId, serviceId: svc.id, leg: k.value, expected, detailDong, detailThem, mirror } };
+}
+
 // ---- Danh sách hành khách (ADR-0047 A2) ---------------------------------------------------------------------------------------------------------
 
 const toDong = (r: PassengerRow): DongHanhKhach => ({

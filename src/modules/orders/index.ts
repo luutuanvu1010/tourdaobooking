@@ -15,7 +15,7 @@ import { LOC_NHAP_TOI_DA_NGAY, LOC_NHAP_TOI_DA_UNG_VIEN, laDongNhapKeToan, soNga
 import { editablePaxCodesOf, planMoneyEdit } from "./money-adjustment";
 import {
   addLeg, cancelOrder, changeBooker, changeLeg, cocCuNhap, confirmOrder, countDrafts, createOrder, effectivePax, findOrder, getDashboard, getDepartDates, getLatestAdjustment, getMeta, getOrderRef,
-  demThanCu, getServicesForSubtotal, getStoredServices, insertMoneyAdjustment, listOrderIds, listOrders, listPoolSources, updateDraftOrder, updateTrip, writePassengerChange,
+  demThanCu, getServicesForSubtotal, getStoredServices, insertMoneyAdjustment, listOrderIds, listOrders, listPoolSources, replaceLeg, updateDraftOrder, updateTrip, writePassengerChange,
 } from "./repository";
 import {
   legById, legDatGapByOrder, legLichChungNhapRows, legLichChungRows, legShortNotice, legTripRows, manualPolicy, manualPolicyInsert, orderContactRows, passengerRowsByOrders,
@@ -39,7 +39,8 @@ import {
 } from "./price-guards";
 import { canTransition, hasHandlerPick, parseHandlerPick, validateBookerChange, validateOrder, type Failure, type OrderStatus, type ValidOrder } from "./rules";
 import {
-  keHoachChangTrip, loadOrderView, passengerList, planAddLeg, planCloseLeg, planEditLeg, planPassengerChange, planPaxOverrideNhap, resolveBooker, resolveLegPlaces, validationContext,
+  keHoachChangTrip, loadOrderView, passengerList, planAddLeg, planCloseLeg, planEditLeg, planPassengerChange, planPaxOverrideNhap, planReplaceLeg, resolveBooker, resolveLegPlaces,
+  validationContext,
   type OrderValidationContext,
 } from "./service";
 import { confirmGaps, describeTripUpdates, giaiOPhuNhap, summarizeDeviations, validateTripUpdate } from "./service-rules";
@@ -920,6 +921,34 @@ export const ordersModule: AppModule = {
       const plan = await planCloseLeg(env.DB, id, legId, await readJson(request));
       if (!plan.ok) return legFailure(plan);
       if (!(await changeLeg(env.DB, id, staff.id, meta.updatedAt, { kind: "close", ...plan.value }))) return legRaced(env.DB, id, legId);
+      baoThayDoi({ orderId: id, thayDoi: "chuyen" });
+      return json({ order: (await loadOrderView(env.DB, id, xemDuDatGap(staff)))! } satisfies OrderResponse);
+    }),
+
+    // ---- THAY chặng (C14 — đánh giá ERP 2026-10-07): "Đổi sang chặng khác" = đóng chặng cũ (lý do REPLACED) + thêm chặng mới cùng dịch vụ, cùng chiều, trong
+    // MỘT lô và MỘT khoá lạc quan (mốc ĐƠN) — không còn cảnh bỏ được mà thêm bị chặn (đơn đã xác nhận còn 0 chặng). Ô, thứ tự từ chối như route thêm chặng.
+    // Mốc 6 giờ (ADR-0049 I14) xét cho chặng MỚI, TRƯỚC khi ghi: dưới mốc → 409 `short_notice_required` (Quản trị, Toàn quyền kèm `datGap` thì qua — dấu ghi lên
+    // chặng mới) và chặng cũ KHÔNG bị đóng. Bỏ chặng cũ không có luật mốc riêng (ADR-0049 D2 không nói). Phản hồi 200 `{ order }` như route sửa / bỏ chặng: lệnh
+    // đổi chặng của một đơn có sẵn, trả lại chính đơn đó (không có tài nguyên mới để trỏ `Location`).
+    route("POST", "/api/orders/:id/legs/:legId/replace", "orders", async ({ env, request, params, staff, isAssigned, baoThayDoi, mocToiThieu }) => {
+      const id = params.id!;
+      const legId = params.legId!;
+      if (!UUID_RE.test(id)) return NOT_FOUND();
+      const [meta, assigned] = await Promise.all([getMeta(env.DB, id), isAssigned(id)]);
+      if (!meta) return NOT_FOUND();
+      if (!can(staff, "order.trip.edit", { ownerId: meta.staffId, assigned })) return FORBIDDEN();
+      if (meta.deliveredAt) return DA_GIAO();
+      if (meta.status === "draft") return USE_ORDER_FORM();
+      if (meta.status === "cancelled") return CANCELLED();
+      if (!UUID_RE.test(legId)) return LEG_NOT_FOUND();
+      const body = await readJson(request);
+      const plan = await planReplaceLeg(env.DB, id, legId, body, vnToday(new Date()));
+      if (!plan.ok) return legFailure(plan);
+      const moc = await mocToiThieu();
+      if (!moc) return MOC_CHUA_CO();
+      const x = xetDatGapSua(staff, body, duoiMocKhiSua(null, plan.value.leg, Date.now(), moc.phut), moc);
+      if (!x.ok) return x.res;
+      if (!(await replaceLeg(env.DB, id, staff.id, { ...plan.value, detailThem: kemDatGap(plan.value.detailThem, x.value), datGap: x.value }))) return legRaced(env.DB, id, legId);
       baoThayDoi({ orderId: id, thayDoi: "chuyen" });
       return json({ order: (await loadOrderView(env.DB, id, xemDuDatGap(staff)))! } satisfies OrderResponse);
     }),

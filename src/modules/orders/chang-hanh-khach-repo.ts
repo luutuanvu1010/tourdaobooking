@@ -279,8 +279,21 @@ const LEG_CLOSE_CHECKED = defineSql(
   `UPDATE ord_transfer_leg SET closed_at = ?1, close_reason_code = ?2, updated_at = ?1, updated_by = ?3
    WHERE id = ?4 AND order_id = ?5 AND closed_at IS NULL AND updated_at = ?6 AND EXISTS (SELECT 1 FROM orders WHERE id = ?5 AND status = 'confirmed')`,
 );
+/**
+ * Đóng chặng — CÂU ĐẦU LÔ của route THAY chặng (C14): khoá lạc quan theo `updated_at` CỦA ĐƠN (một khoá cho cả lệnh đóng + thêm), đơn đã xác nhận, chặng
+ * còn mở. Đóng VÀ khoá trong MỘT câu: lô chỉ thắng khi chặng cũ thật sự được đóng ở chính câu này — chặng vừa bị bỏ ở lệnh khác (mà mốc đơn chưa kịp đẩy)
+ * thì lô thua, không thêm chặng mới. Không đọc `audit_log`, không lính gác (chính nó quyết định thắng/thua; nhật ký theo sau bằng `changes() > 0`).
+ */
+const LEG_CLOSE_REPLACE_CHECKED = defineSql(
+  "orders",
+  "leg_close_replace_checked",
+  `UPDATE ord_transfer_leg SET closed_at = ?1, close_reason_code = ?2, updated_at = ?1, updated_by = ?3
+   WHERE id = ?4 AND order_id = ?5 AND closed_at IS NULL AND EXISTS (SELECT 1 FROM orders WHERE id = ?5 AND status = 'confirmed' AND updated_at = ?6)`,
+);
 export const legCloseGuarded = (db: D1Database, legId: string, orderId: string, reason: string, at: string, by: string, auditId: string): D1PreparedStatement =>
   db.prepare(LEG_CLOSE_GUARDED).bind(at, reason, by, legId, orderId, auditId);
+export const legCloseReplaceChecked = (db: D1Database, legId: string, orderId: string, reason: string, at: string, by: string, expectedOrderUpdatedAt: string): D1PreparedStatement =>
+  db.prepare(LEG_CLOSE_REPLACE_CHECKED).bind(at, reason, by, legId, orderId, expectedOrderUpdatedAt);
 export const legCloseChecked = (db: D1Database, legId: string, orderId: string, reason: string, at: string, by: string, expectedLegUpdatedAt: string): D1PreparedStatement =>
   db.prepare(LEG_CLOSE_CHECKED).bind(at, reason, by, legId, orderId, expectedLegUpdatedAt);
 

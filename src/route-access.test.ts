@@ -178,6 +178,8 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/orders/:id/legs", access: "orders" },
   { method: "PUT", path: "/api/orders/:id/legs/:legId", access: "orders" },
   { method: "POST", path: "/api/orders/:id/legs/:legId/close", access: "orders" },
+  // C14 (đánh giá ERP 2026-10-07): thay chặng = đóng + thêm một lô — cùng ô can(order.trip.edit, { ownerId, assigned }) hỏi trước khi đọc thân
+  { method: "POST", path: "/api/orders/:id/legs/:legId/replace", access: "orders" },
   { method: "POST", path: "/api/orders/:id/legs/:legId/short-notice", access: "orders" },
   // ADR-0047 A2 (2026-09-29): danh sách hành khách — GET hỏi can(order.view) rồi can(contact.view); POST hỏi can(order.passenger.write) trước khi đọc thân
   { method: "GET", path: "/api/orders/:id/passengers", access: "orders" },
@@ -440,6 +442,7 @@ test("mức truy cập của 213 route hiện có khớp ảnh chụp đã duy�
   // 2026-10-05 (ADR-0102, nghiên cứu tốc độ đợt 1): + GET /giao-dien.css (public, cùng thân với /api/giao-dien.css) = 240.
   // 2026-10-05 (nghiên cứu tốc độ, đợt 1 việc 3): + GET /api/orders/dem-nhap (orders), GET /api/catalog/dem-xung-dot (admin) = 242.
   // 2026-10-06 (dựng lại nhánh năm lỗi tiền lên main đã có tốc độ đợt 1): + POST /api/orders/:id/cancel-reason (orders; ADR-0089, phân loại lý do huỷ) = 243; Phần B: + 6 lệnh cọc /api/orders/:id/coc/* + 3 route đọc /api/ledger/coc* (office) = 252; TNV-G3 (ADR-0088 đ2): + POST /api/ledger/receipt-replacements (office) = 253.
-  assert.equal(actual.length, 253, "số route thực tế lệch 253 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 253, "SNAPSHOT phải có đúng 253 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // 2026-10-08 (C14, đánh giá ERP 7/10): + POST /api/orders/:id/legs/:legId/replace (orders; thay chặng một lô) = 254.
+  assert.equal(actual.length, 254, "số route thực tế lệch 254 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 254, "SNAPSHOT phải có đúng 254 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

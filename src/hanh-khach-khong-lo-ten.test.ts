@@ -107,6 +107,14 @@ test("họ tên, năm sinh hành khách chỉ rời máy chủ ở GET/POST /pas
       const l = (await doc()).services[0].legs.find((x: any) => x.direction === "RETURN");
       await goi("đóng chặng", "POST", `/api/orders/${id}/legs/${l.id}/close`, SALES, { expectedUpdatedAt: l.updatedAt, reasonCode: "NOT_NEEDED" }, 200);
     },
+    "POST /api/orders/:id/legs/:legId/replace": async () => {
+      // C14: thay chặng (đóng + thêm một lô) — nơi chữ của chặng MỚI chứa SĐT; hai dòng nhật ký (bỏ + thêm) phải che dãy số như route thêm / bỏ.
+      const o = await doc();
+      const l = o.services[0].legs.find((x: any) => x.direction === "OUT");
+      await goi("thay chặng", "POST", `/api/orders/${id}/legs/${l.id}/replace`, SALES, {
+        expectedUpdatedAt: o.updatedAt, leg: { direction: "OUT", pickupDate: D, pickupTime: "07:15", pickupLocationId: null, pickupPlace: `Sảnh khách sạn gọi ${SDT}`, dropoffLocationId: LOC, dropoffPlace: "" },
+      }, 200);
+    },
   };
 
   // (1) ĐỦ TUYẾN
