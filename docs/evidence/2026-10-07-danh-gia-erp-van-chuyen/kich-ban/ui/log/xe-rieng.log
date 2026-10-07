@@ -1,0 +1,6 @@
+   [chang] {"THUONG":false,"RIENG":true}
+   [a1_xepThuong] {"status":200,"code":null,"message":null}
+   [a2_xepRiengVaoChuyenCoKhachKhac] {"status":409,"code":"can_pha_le_cam_ket","message":"Chuyến trái cam kết xe riêng / số chỗ của khách — cần Quản trị phá lệ kèm lý do."}
+   [b1_xepRiengVaoChuyenTrong] {"status":200,"code":null,"message":null}
+   [b2_xepThuongVaoChuyenXeRieng] {"status":409,"code":"can_pha_le_cam_ket","message":"Chuyến trái cam kết xe riêng / số chỗ của khách — cần Quản trị phá lệ kèm lý do."}
+   [SQL] [{"code":"CX-1210-01","suat":3},{"code":"CX-1210-02","suat":4}]

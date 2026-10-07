@@ -1,0 +1,51 @@
+TAP version 13
+# (node:10816) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:10816) ExperimentalWarning: The MockTimers API is an experimental feature and might change at any time
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# OBS C01.lapDon {"status":201,"code":null,"msg":null,"soChang":2}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# OBS C01.xacNhan {"status":200,"code":null,"msg":null}
+# OBS C01a.lichTruocXep {"A":{"trangThai":"CHUA_XEP","soNguoi":5,"soDaXep":0},"B":{"trangThai":"CHUA_XEP","soNguoi":5,"soDaXep":0}}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# OBS C01a.xep3cong2 {"status":200,"code":null,"msg":null,"taiSql":5}
+# OBS C01a.sauXep {"lyDoGiu":["THIEU_SUAT|Chặng chưa xếp đủ người lên xe: TD-20270310-0001 2/5","THIEU_SUAT|Chặng chưa xếp đủ người lên xe: TD-20270310-0001 3/5"],"A":{"trangThai":"DA_XEP","soNguoi":5,"soDaXep":3},"B":{"trangThai":"DA_XEP","soNguoi":5,"soDaXep":2}}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# OBS C01a.xepThemB3 {"status":200,"code":null,"msg":null,"taiSql":8}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# OBS C01a.xepThemA2 {"status":200,"code":null,"msg":null,"taiSql":10,"lyDoGiu":[]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/xuat-ben"}
+# OBS C01a.xuatBen2 {"status":200,"code":null,"msg":null,"taiSql":10}
+# Subtest: C01(a) xếp đúng thực tế 3 người ở A + 2 người ở B
+ok 1 - C01(a) xếp đúng thực tế 3 người ở A + 2 người ở B
+  ---
+  duration_ms: 108.230875
+  type: 'test'
+  ...
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# OBS C01.lapDon {"status":201,"code":null,"msg":null,"soChang":2}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# OBS C01.xacNhan {"status":200,"code":null,"msg":null}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# OBS C01b.xep5A {"status":200,"code":null,"msg":null,"taiSql":5}
+# OBS C01b.sauXep {"lyDoGiu":[],"A":{"trangThai":"DA_XEP","soNguoi":5,"soDaXep":5},"B":{"trangThai":"CHUA_XEP","soNguoi":5,"soDaXep":0},"diem":["1.PICKUP Khách sạn A Dò Tìm","2.DROPOFF Bến tàu du lịch Nha Trang"]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/xuat-ben"}
+# OBS C01b.xuatBen {"status":200,"code":null,"msg":null}
+# OBS C01b.lichSauXuatBen {"B":{"trangThai":"CHUA_XEP","soNguoi":5,"soDaXep":0}}
+# Subtest: C01(b) xếp 'cho lọt' 5 người ở A, B để trống
+ok 2 - C01(b) xếp 'cho lọt' 5 người ở A, B để trống
+  ---
+  duration_ms: 73.667208
+  type: 'test'
+  ...
+1..2
+# tests 2
+# suites 0
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 292.988125

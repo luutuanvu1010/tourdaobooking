@@ -1,0 +1,7 @@
+s6-adm exit 0
+s6-chinh-sach exit 0
+s6-them exit 0
+s11b-don-doi exit 0
+s11-bao-tai-xe exit 0
+s6-moc exit 0
+s2-bien-dong exit 0

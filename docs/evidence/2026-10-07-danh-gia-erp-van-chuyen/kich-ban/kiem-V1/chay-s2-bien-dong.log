@@ -1,0 +1,161 @@
+TAP version 13
+# (node:4088) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:4088) ExperimentalWarning: The MockTimers API is an experimental feature and might change at any time
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# {"event":"thieu_ma_lan_gui","duong":"PUT /api/orders/:id"}
+# OBS S2a.PUT_order.SALES {"status":409,"code":"not_editable","msg":"Chỉ sửa được đơn đang chờ xác nhận. Muốn đổi đơn đã xác nhận, hãy huỷ và tạo đơn mới."}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/handler-money-edit"}
+# OBS S2a.moneyEdit.SALES {"status":403,"code":"forbidden","msg":"Chỉ hướng dẫn viên đang phụ trách đơn mới sửa được số khách theo cách này."}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/handler-money-edit"}
+# OBS S2a.moneyEdit.ADM {"status":403,"code":"forbidden","msg":"Chỉ hướng dẫn viên đang phụ trách đơn mới sửa được số khách theo cách này."}
+# {"event":"thieu_ma_lan_gui","duong":"PUT /api/orders/:id/handler"}
+# OBS S2a.giaoHDV {"status":200,"code":null,"msg":null}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/handler-money-edit"}
+# OBS S2a.moneyEdit.FIELD_dangPhuTrach {"status":200,"code":null,"msg":null,"json":{"ok":true}}
+# OBS S2a.sau.chuyen {"taiSql":8,"suat":2,"lyDoGiu":["THIEU_SUAT|Chặng chưa xếp đủ người lên xe: TD-20270310-0002 2/3","THIEU_TEN|Chưa đủ tên khách: TD-20270310-0002 thiếu 1 tên"],"lich":{"trangThai":"DA_XEP","nhan":"Đã xếp","soNguoi":3,"soDaXep":2}}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/cap-nhat-khach"}
+# OBS S2a.capNhatKhach {"status":200,"code":null,"msg":null,"daCapNhat":0,"taiSql":8}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# OBS S2a.xepThem1 {"status":200,"code":null,"msg":null,"taiSql":9,"lyDoGiu":["THIEU_TEN|Chưa đủ tên khách: TD-20270310-0002 thiếu 1 tên"],"canhBaoXep":["THIEU_TEN"]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/passengers"}
+# OBS S2a.themTen {"status":200,"code":null,"msg":null}
+# OBS S2a.cuoi {"lyDoGiu":[],"lich":{"trangThai":"DA_XEP","nhan":"Đã xếp","soNguoi":3,"soDaXep":3},"suat":[{"id":"d56e01bb-2ca2-46ce-9468-9f70199235c0","k":"3de7164d-4e0a-4d8f-aecb-447ad3e926c1","status":"WAITING"},{"id":"8bc8b02c-cf3b-4557-8bed-1c95ae0c4491","k":"64975657-d663-4731-a370-8fa67d1c01b5","status":"WAITING"},{"id":"eecef696-f9f1-4cce-a4fe-28c9d038dd88","k":null,"status":"WAITING"}]}
+# OBS S2a.demGoi {"PUT /api/orders/:id":1,"POST /api/orders/:id/handler-money-edit":3,"PUT /api/orders/:id/handler":1,"GET /api/van-chuyen/chuyen/:id":4,"GET /api/van-chuyen/lich?ngay=2027-03-11":2,"POST /api/van-chuyen/chuyen/:id/cap-nhat-khach":1,"POST /api/van-chuyen/chuyen/:id/phan-bo":1,"GET /api/orders/:id/passengers":1,"POST /api/orders/:id/passengers":1}
+# Subtest: S2(a) thêm 1 khách vào đơn đã xếp
+ok 1 - S2(a) thêm 1 khách vào đơn đã xếp
+  ---
+  duration_ms: 200.620625
+  type: 'test'
+  ...
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/passengers"}
+# OBS S2a2.themTenVuot {"status":200,"code":null,"msg":null,"keys":["passengers","soNguoiCoTen","soKhachDoan","vuotSoKhach","orderUpdatedAt"],"vuot":true}
+# OBS S2a2.chuyen {"taiSql":8,"lyDoGiu":[],"lich":{"trangThai":"DA_XEP","nhan":"Đã xếp","soNguoi":2,"soDaXep":2}}
+# Subtest: S2(a') thêm TÊN khách vượt số khách (không đổi số khách) — chuyến có biết không
+ok 2 - S2(a') thêm TÊN khách vượt số khách (không đổi số khách) — chuyến có biết không
+  ---
+  duration_ms: 93.263
+  type: 'test'
+  ...
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/handler-money-edit"}
+# OBS S2b.moneyEdit.SUP {"status":200,"code":null,"msg":null}
+# OBS S2b.sau {"taiSql":8,"lyDoGiu":["THUA_SUAT|Chặng đang xếp nhiều người hơn số khách: TD-20270310-0003 2/1"],"lich":{"trangThai":"DA_XEP","nhan":"Đã xếp","soNguoi":1,"soDaXep":2}}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/cap-nhat-khach"}
+# OBS S2b.capNhatKhach {"status":200,"code":null,"msg":null,"daCapNhat":0,"taiSql":8}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/rut"}
+# OBS S2b.rut1 {"status":200,"code":null,"msg":null,"taiSql":7,"lyDoGiu":[]}
+# OBS S2b.demGoi {"POST /api/orders/:id/handler-money-edit":1,"GET /api/van-chuyen/chuyen/:id":3,"GET /api/van-chuyen/lich?ngay=2027-03-11":1,"POST /api/van-chuyen/chuyen/:id/cap-nhat-khach":1,"POST /api/van-chuyen/chuyen/:id/rut":1}
+# Subtest: S2(b) bớt 1 khách của đơn đã xếp
+ok 3 - S2(b) bớt 1 khách của đơn đã xếp
+  ---
+  duration_ms: 88.568042
+  type: 'test'
+  ...
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# {"event":"thieu_ma_lan_gui","duong":"PUT /api/orders/:id/legs/:legId"}
+# OBS S2c.suaChang {"status":200,"code":null,"msg":null}
+# OBS S2c.sau {"lyDoGiu":["NOI_HEN_DOI|Nơi đón / trả đã đổi sau khi xếp — cập nhật điểm: TD-20270310-0004"],"diem":["1.Khách sạn Sheraton","2.Khách sạn Havana","3.Khách sạn Liberty","4.Khách sạn Novotel [lệch]","5.Bến tàu du lịch Nha Trang"]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/cap-nhat-diem"}
+# OBS S2c.capNhatDiem {"status":200,"code":null,"msg":null,"daCapNhat":2,"diem":["1.PICKUP Khách sạn Sheraton 07:00 PENDING","2.PICKUP Khách sạn Havana 07:10 PENDING","3.PICKUP Khách sạn Liberty 07:20 PENDING","4.PICKUP Khách sạn Novotel - SKIPPED","5.PICKUP Khách sạn Mới Đổi 07:30 PENDING","6.DROPOFF Bến tàu du lịch Nha Trang - PENDING"],"lyDoGiu":[]}
+# {"event":"thieu_ma_lan_gui","duong":"PUT /api/orders/:id/legs/:legId"}
+# OBS S2c.suaGio {"status":200,"code":null,"msg":null}
+# OBS S2c.sauSuaGio {"lyDoGiu":[],"goiBao":[{"maDon":"TD-20270310-0004","cu":"07:30","moi":"09:30"}],"diem":["1.Khách sạn Sheraton 07:00","2.Khách sạn Havana 07:10","3.Khách sạn Liberty 07:20","4.Khách sạn Novotel -","5.Khách sạn Mới Đổi 09:30","6.Bến tàu du lịch Nha Trang -"]}
+# OBS S2c.demGoi {"PUT /api/orders/:id/legs/:id":2,"GET /api/van-chuyen/chuyen/:id":3,"POST /api/van-chuyen/chuyen/:id/cap-nhat-diem":1,"GET /api/orders/:id":1}
+# Subtest: S2(c) đổi nơi đón của một đơn đã xếp
+ok 4 - S2(c) đổi nơi đón của một đơn đã xếp
+  ---
+  duration_ms: 85.667083
+  type: 'test'
+  ...
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# OBS S2d.huy {"status":200,"code":null,"msg":null}
+# OBS S2d.sau {"taiSql":8,"suatD1":[{"id":"d642cd60-a4c0-4b55-ae2e-d26fc4c62b4c","k":"048541a4-3432-4601-8e8c-4a48e3398bef","status":"WAITING"},{"id":"1c439962-87bd-4f39-9e90-7e7c7407d431","k":"f09ad2cd-8db0-460c-bacb-5129a8363fcd","status":"WAITING"}],"lyDoGiu":["DON_DA_HUY|Có đơn đã huỷ còn khách trên chuyến: TD-20270310-0001"],"tai":8}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/cap-nhat-khach"}
+# OBS S2d.capNhatKhach {"status":200,"code":null,"msg":null,"daCapNhat":0,"taiSql":8}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/rut"}
+# OBS S2d.rut {"status":200,"code":null,"msg":null,"taiSql":6,"lyDoGiu":[],"diem":["1.Khách sạn Sheraton SKIPPED","2.Khách sạn Havana PENDING","3.Khách sạn Liberty PENDING","4.Khách sạn Novotel PENDING","5.Bến tàu du lịch Nha Trang PENDING"]}
+# OBS S2d.demGoi {"POST /api/orders/:id/status":1,"GET /api/van-chuyen/chuyen/:id":3,"POST /api/van-chuyen/chuyen/:id/cap-nhat-khach":1,"POST /api/van-chuyen/chuyen/:id/rut":1}
+# Subtest: S2(d) huỷ đơn đã xếp (ngoài mốc)
+ok 5 - S2(d) huỷ đơn đã xếp (ngoài mốc)
+  ---
+  duration_ms: 82.016167
+  type: 'test'
+  ...
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# OBS S2e.xep {"status":200,"code":null,"msg":null,"taiSql":11,"diem":["1.PICKUP Khách sạn Sheraton 07:00","2.PICKUP Khách sạn Havana 07:10","3.PICKUP Khách sạn Liberty 07:20","4.PICKUP Khách sạn Novotel 07:30","5.PICKUP Nhà riêng 45 Hùng Vương 07:05","6.DROPOFF Bến tàu du lịch Nha Trang -"]}
+# OBS S2e.demGoi {"GET /api/van-chuyen/chuyen/:id":1,"POST /api/van-chuyen/chuyen/:id/phan-bo":1}
+# Subtest: S2(e) thêm đơn MỚI vào chuyến đã có
+ok 6 - S2(e) thêm đơn MỚI vào chuyến đã có
+  ---
+  duration_ms: 78.576875
+  type: 'test'
+  ...
+1..6
+# tests 6
+# suites 0
+# pass 6
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 914.969542

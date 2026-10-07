@@ -1,0 +1,16 @@
+{"nhan":"cot_cam_ket_A","rows":[{"exclusive_vehicle":1,"min_vehicle_seats":15,"pax_override":null}]}
+{"nhan":"lich_chua_xep_A","status":200,"topKeys":["ngay","mocToiThieuPhut","canhBaoPhut","chang","chuyen","soNhap","nhapChoDatGap","canhBao","lyDo","xe","taiXe","khungBanXe"],"changA":{"legId":"499a9791-b9ce-4189-8316-9e2be32a311a","orderId":"abc2ffaa-8aa7-4f7a-ab0f-cce5269d2309","maDon":"TD-20270310-0001","tenDichVu":"Tour đảo","chieu":"OUT","ngayDon":"2027-03-11","gioDon":"09:10","noiDon":"Biệt thự Riêng A","noiTra":"Bến tàu du lịch Nha Trang","soNguoi":4,"soNguoiCoTen":4,"soHieuChuyenBay":null,"xeRieng":true,"choToiThieu":15,"datGap":false,"trangThai":"CHUA_XEP","trangThaiNhan":"Chưa xếp","nhan":[],"soDaXep":0,"soDaDon":0,"soDaTra":0,"soVang":0,"soKhachHuy":0,"chuyen":[]},"coChuXeRieng":true}
+{"nhan":"xep_A_vao_xe16","status":200,"code":null,"message":null,"lyDo":[],"lyDoGiu":[]}
+{"nhan":"xep_B_ghep_vao_xe_rieng_SALES","status":409,"code":"can_pha_le_cam_ket","message":"Chuyến trái cam kết xe riêng / số chỗ của khách — cần Quản trị phá lệ kèm lý do.","lyDo":["CAM_KET: Trái cam kết xe riêng / số chỗ tối thiểu: TD-20270310-0001 xe riêng","CAM_KET: Trái cam kết xe riêng / số chỗ tối thiểu: TD-20270310-0002 ghép vào xe riêng của TD-20270310-0001"],"canQuyen":false}
+{"nhan":"xep_B_ghep_ADM_pha_le","status":200,"code":null,"message":null,"lyDo":[],"lyDoGiu":[]}
+{"nhan":"db_trip_pha_le_cam_ket","rows":[{"code":"CX-1103-01","commitment_override_reason_code":"PHA_LE_KHAC","len_khoa":128}]}
+{"nhan":"db_suat","rows":[{"kind":"PASSENGER","la_A":0,"n":2},{"kind":"PASSENGER","la_A":1,"n":4}]}
+{"nhan":"tao_chuyen_xe7_ok_khong_xet_cam_ket","ma":"CX-1103-01"}
+{"nhan":"xep_A_vao_xe7_SALES","status":409,"code":"can_pha_le_cam_ket","message":"Chuyến trái cam kết xe riêng / số chỗ của khách — cần Quản trị phá lệ kèm lý do.","lyDo":["CAM_KET: Trái cam kết xe riêng / số chỗ tối thiểu: TD-20270310-0001 cần ≥ 15 chỗ, xe 7 chỗ"],"canQuyen":false}
+{"nhan":"xep_A_vao_xe7_ADM_pha_le","status":200,"code":null,"message":null,"lyDo":[],"lyDoGiu":[]}
+{"nhan":"doi_sang_xe16_SALES","status":200,"code":null,"message":null,"lyDo":[],"lyDoGiu":[]}
+{"nhan":"db_sau_doi","rows":[{"commitment_override_reason_code":null,"co_khoa":0}]}
+{"nhan":"xep_A_B_ghep_thuong","status":200,"code":null,"message":null,"lyDo":[]}
+{"nhan":"bat_xe_rieng_sau_khi_ghep","status":200,"code":null}
+{"nhan":"chuyen_bi_giu_sau_bat","lyDoGiu":["CAM_KET: Trái cam kết xe riêng / số chỗ tối thiểu: TD-20270310-0001 xe riêng","CAM_KET: Trái cam kết xe riêng / số chỗ tối thiểu: TD-20270310-0002 ghép vào xe riêng của TD-20270310-0001"]}
+{"nhan":"xuat_ben_sau_bat_xe_rieng","status":409,"code":"chua_du_dieu_kien_xuat_ben","message":"Chuyến chưa đủ điều kiện xuất bến.","lyDo":["CAM_KET: Trái cam kết xe riêng / số chỗ tối thiểu: TD-20270310-0001 xe riêng","CAM_KET: Trái cam kết xe riêng / số chỗ tối thiểu: TD-20270310-0002 ghép vào xe riêng của TD-20270310-0001"]}

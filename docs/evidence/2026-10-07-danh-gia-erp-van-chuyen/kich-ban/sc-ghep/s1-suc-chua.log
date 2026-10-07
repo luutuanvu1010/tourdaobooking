@@ -1,0 +1,115 @@
+TAP version 13
+# (node:31712) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:31712) ExperimentalWarning: The MockTimers API is an experimental feature and might change at any time
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# OBS S1.taoChuyen16 {"status":201,"code":null,"msg":null,"soCho":16,"lyDoGiu":[]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# OBS S1.xep15 {"status":200,"code":null,"msg":null,"tai":15,"taiSql":15}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# OBS S1.xep16 {"status":200,"code":null,"msg":null,"tai":16,"taiSql":16}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# OBS S1.xep18.SALES {"status":409,"code":"vuot_so_cho","msg":"Vượt số chỗ của xe.","lyDo":["VUOT_SO_CHO|Vượt số chỗ của xe: 18/16"],"taiSql":16}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# OBS S1.xep17.SALES {"status":409,"code":"vuot_so_cho","msg":"Vượt số chỗ của xe.","lyDo":["VUOT_SO_CHO|Vượt số chỗ của xe: 17/16"],"taiSql":16}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# OBS S1.xep17.ADM_phaLe {"status":409,"code":"vuot_so_cho","msg":"Vượt số chỗ của xe.","lyDo":["VUOT_SO_CHO|Vượt số chỗ của xe: 17/16"],"taiSql":16}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# OBS S1.xep17.SUP_phaLe {"status":409,"code":"vuot_so_cho","msg":"Vượt số chỗ của xe.","lyDo":["VUOT_SO_CHO|Vượt số chỗ của xe: 17/16"],"taiSql":16}
+# OBS S1.sql17.trigger {"loiSql":"lc02_capacity: vượt số chỗ của xe","taiSql":16}
+# OBS S1.lich.don9 {"coTrongLich":true,"trangThai":"CHUA_XEP","soNguoi":2,"soDaXep":0,"keys":["legId","orderId","maDon","tenDichVu","chieu","ngayDon","gioDon","noiDon","noiTra","soNguoi","soNguoiCoTen","soHieuChuyenBay","xeRieng","choToiThieu","datGap","trangThai","trangThaiNhan","nhan","soDaXep","soDaDon","soDaTra","soVang","soKhachHuy","chuyen"]}
+# OBS S1.chiTiet.sau {"tai":16,"soCho":16,"lyDoGiu":[],"soDiem":10}
+# Subtest: S1: 10 đơn / 18 khách — xe 16 chỗ: 15, 16, 17, 18 suất; phá lệ Quản trị / Toàn quyền
+ok 1 - S1: 10 đơn / 18 khách — xe 16 chỗ: 15, 16, 17, 18 suất; phá lệ Quản trị / Toàn quyền
+  ---
+  duration_ms: 137.002666
+  type: 'test'
+  ...
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# OBS S1.motPhan.xep {"status":200,"code":null,"msg":null,"taiSql":16}
+# OBS S1.motPhan.lyDoGiu {"lyDoGiu":["THIEU_SUAT|Chặng chưa xếp đủ người lên xe: TD-20270310-0002 2/3"]}
+# Subtest: S1: xếp MỘT PHẦN đơn để lấp đủ 16 (đơn 3 khách chỉ xếp 2) → giữ THIEU_SUAT?
+ok 2 - S1: xếp MỘT PHẦN đơn để lấp đủ 16 (đơn 3 khách chỉ xếp 2) → giữ THIEU_SUAT?
+  ---
+  duration_ms: 71.330791
+  type: 'test'
+  ...
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# OBS S1.infant.lapDon {"status":201,"code":null,"msg":null}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# OBS S1.infant.xacNhan {"status":200,"code":null,"msg":null}
+# OBS S1.infant.lich {"soNguoi":3}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# OBS S1.infant.xep2 {"status":200,"code":null,"msg":null,"taiSql":2}
+# OBS S1.infant.lyDoGiu.sau2 {"lyDoGiu":["THIEU_SUAT|Chặng chưa xếp đủ người lên xe: TD-20270310-0001 2/3"]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# OBS S1.infant.xepThem1 {"status":200,"code":null,"msg":null,"taiSql":3}
+# OBS S1.infant.lyDoGiu.sau3 {"lyDoGiu":[]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# OBS S1.infant.xepThem1nua {"status":409,"code":"vuot_so_nguoi_chang","msg":"Xếp quá số khách của chặng.","lyDo":["VUOT_SO_NGUOI_CHANG|Xếp quá số khách của chặng: TD-20270310-0001 4/3"],"taiSql":3}
+# Subtest: S1: em bé (infant) — có tính vào số người chặng và chiếm suất không
+ok 3 - S1: em bé (infant) — có tính vào số người chặng và chiếm suất không
+  ---
+  duration_ms: 76.027375
+  type: 'test'
+  ...
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# OBS S1.xe4.tao {"status":201,"code":null,"msg":null,"soCho":4}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# OBS S1.xe7.tao {"status":201,"code":null,"msg":null,"soCho":7}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# OBS S1.xe4.xep5 {"status":409,"code":"vuot_so_cho","msg":"Vượt số chỗ của xe.","lyDo":["VUOT_SO_CHO|Vượt số chỗ của xe: 5/4"],"taiSql":0}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# OBS S1.xe4.xep4 {"status":200,"code":null,"msg":null,"taiSql":4}
+# OBS S1.xe4.lyDoGiu {"lyDoGiu":["THIEU_SUAT|Chặng chưa xếp đủ người lên xe: TD-20270310-0001 4/5"]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# OBS S1.xe7.xep8 {"status":409,"code":"vuot_so_cho","msg":"Vượt số chỗ của xe.","lyDo":["VUOT_SO_CHO|Vượt số chỗ của xe: 8/7"],"taiSql":0}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# OBS S1.xe7.xep7 {"status":200,"code":null,"msg":null,"taiSql":7}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# OBS S1.xe7.xep8_ADM_phaLe {"status":409,"code":"vuot_so_cho","msg":"Vượt số chỗ của xe.","lyDo":["VUOT_SO_CHO|Vượt số chỗ của xe: 8/7"],"taiSql":7}
+# Subtest: S1: xe 4 chỗ và 7 chỗ — tạo chuyến (tài xế hạng D1) và xếp quá số chỗ
+ok 4 - S1: xe 4 chỗ và 7 chỗ — tạo chuyến (tài xế hạng D1) và xếp quá số chỗ
+  ---
+  duration_ms: 81.492916
+  type: 'test'
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 477.202667

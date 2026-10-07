@@ -1,0 +1,34 @@
+TAP version 13
+# (node:47358) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:47358) ExperimentalWarning: The MockTimers API is an experimental feature and might change at any time
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# OBS {"nhan":"A","ma":"CX-1103-01"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# OBS {"nhan":"cung_TX_xe_khac_chong_1000_1200","status":409,"code":"trung_gio_tai_xe","message":"Tài xế trùng giờ với chuyến khác.","lyDo":["TRUNG_GIO_TAI_XE: Tài xế trùng giờ với chuyến khác: CX-1103-01"]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# OBS {"nhan":"cung_xe_TX_khac_chong_1000_1200","status":409,"code":"trung_gio_xe","message":"Xe trùng giờ với chuyến khác.","lyDo":["TRUNG_GIO_XE: Xe trùng giờ với chuyến khác: CX-1103-01"]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# OBS {"nhan":"cung_TX_xe_khac_ADM_pha_le_nghi","status":409,"code":"trung_gio_tai_xe","message":"Tài xế trùng giờ với chuyến khác.","lyDo":["TRUNG_GIO_TAI_XE: Tài xế trùng giờ với chuyến khác: CX-1103-01"]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# OBS {"nhan":"chuyen_bao_trum_0800_1200_TX2_X2","status":201,"code":null,"message":null,"lyDo":[]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# {"event":"thieu_ma_lan_gui","duong":"PUT /api/van-chuyen/chuyen/:id"}
+# OBS {"nhan":"sua_B_doi_TX_va_gio_vao_chong","status":409,"code":"trung_gio_xe","message":"Xe trùng giờ với chuyến khác.","lyDo":["TRUNG_GIO_XE: Xe trùng giờ với chuyến khác: CX-1103-02","TRUNG_GIO_TAI_XE: Tài xế trùng giờ với chuyến khác: CX-1103-01"]}
+# OBS {"nhan":"csdl_chen_thang_chuyen_trung_xe","loi":"lc03_overlap: xe đã có chuyến trùng giờ"}
+# OBS {"nhan":"db_trips","rows":[{"code":"CX-1103-01","x1":1,"status":"PLANNED","planned_start_ms":1804730400000,"bd":"09:00"},{"code":"CX-1103-02","x1":0,"status":"PLANNED","planned_start_ms":1804726800000,"bd":"08:00"},{"code":"CX-1103-03","x1":0,"status":"PLANNED","planned_start_ms":1804748400000,"bd":"14:00"}]}
+# Subtest: S9 trùng giờ xe / tài xế
+ok 1 - S9 trùng giờ xe / tài xế
+  ---
+  duration_ms: 87.50275
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 200.266

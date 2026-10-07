@@ -1,0 +1,69 @@
+TAP version 13
+# (node:34423) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:34423) ExperimentalWarning: The MockTimers API is an experimental feature and might change at any time
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# OBS {"nhan":"cot_cam_ket_A","rows":[{"exclusive_vehicle":1,"min_vehicle_seats":15,"pax_override":null}]}
+# OBS {"nhan":"lich_chua_xep_A","status":200,"topKeys":["ngay","mocToiThieuPhut","canhBaoPhut","chang","chuyen","soNhap","nhapChoDatGap","canhBao","lyDo","xe","taiXe","khungBanXe"],"changA":{"legId":"499a9791-b9ce-4189-8316-9e2be32a311a","orderId":"abc2ffaa-8aa7-4f7a-ab0f-cce5269d2309","maDon":"TD-20270310-0001","tenDichVu":"Tour đảo","chieu":"OUT","ngayDon":"2027-03-11","gioDon":"09:10","noiDon":"Biệt thự Riêng A","noiTra":"Bến tàu du lịch Nha Trang","soNguoi":4,"soNguoiCoTen":4,"soHieuChuyenBay":null,"xeRieng":true,"choToiThieu":15,"datGap":false,"trangThai":"CHUA_XEP","trangThaiNhan":"Chưa xếp","nhan":[],"soDaXep":0,"soDaDon":0,"soDaTra":0,"soVang":0,"soKhachHuy":0,"chuyen":[]},"coChuXeRieng":true}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# OBS {"nhan":"xep_A_vao_xe16","status":200,"code":null,"message":null,"lyDo":[],"lyDoGiu":[]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# OBS {"nhan":"xep_B_ghep_vao_xe_rieng_SALES","status":409,"code":"can_pha_le_cam_ket","message":"Chuyến trái cam kết xe riêng / số chỗ của khách — cần Quản trị phá lệ kèm lý do.","lyDo":["CAM_KET: Trái cam kết xe riêng / số chỗ tối thiểu: TD-20270310-0001 xe riêng","CAM_KET: Trái cam kết xe riêng / số chỗ tối thiểu: TD-20270310-0002 ghép vào xe riêng của TD-20270310-0001"],"canQuyen":false}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# OBS {"nhan":"xep_B_ghep_ADM_pha_le","status":200,"code":null,"message":null,"lyDo":[],"lyDoGiu":[]}
+# OBS {"nhan":"db_trip_pha_le_cam_ket","rows":[{"code":"CX-1103-01","commitment_override_reason_code":"PHA_LE_KHAC","len_khoa":128}]}
+# OBS {"nhan":"db_suat","rows":[{"kind":"PASSENGER","la_A":0,"n":2},{"kind":"PASSENGER","la_A":1,"n":4}]}
+# Subtest: S5.1 đơn xe riêng ≥15 chỗ: xếp lên xe 16 chỗ; ghép đơn khác; Quản trị phá lệ; xuất bến
+ok 1 - S5.1 đơn xe riêng ≥15 chỗ: xếp lên xe 16 chỗ; ghép đơn khác; Quản trị phá lệ; xuất bến
+  ---
+  duration_ms: 99.765375
+  type: 'test'
+  ...
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# OBS {"nhan":"tao_chuyen_xe7_ok_khong_xet_cam_ket","ma":"CX-1103-01"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# OBS {"nhan":"xep_A_vao_xe7_SALES","status":409,"code":"can_pha_le_cam_ket","message":"Chuyến trái cam kết xe riêng / số chỗ của khách — cần Quản trị phá lệ kèm lý do.","lyDo":["CAM_KET: Trái cam kết xe riêng / số chỗ tối thiểu: TD-20270310-0001 cần ≥ 15 chỗ, xe 7 chỗ"],"canQuyen":false}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# OBS {"nhan":"xep_A_vao_xe7_ADM_pha_le","status":200,"code":null,"message":null,"lyDo":[],"lyDoGiu":[]}
+# {"event":"thieu_ma_lan_gui","duong":"PUT /api/van-chuyen/chuyen/:id"}
+# OBS {"nhan":"doi_sang_xe16_SALES","status":200,"code":null,"message":null,"lyDo":[],"lyDoGiu":[]}
+# OBS {"nhan":"db_sau_doi","rows":[{"commitment_override_reason_code":null,"co_khoa":0}]}
+# Subtest: S5.2 đơn xe riêng ≥15 chỗ xếp lên xe 7 chỗ / xe 16 chỗ của tài xế khác; tạo chuyến có xét cam kết không
+ok 2 - S5.2 đơn xe riêng ≥15 chỗ xếp lên xe 7 chỗ / xe 16 chỗ của tài xế khác; tạo chuyến có xét cam kết không
+  ---
+  duration_ms: 75.5115
+  type: 'test'
+  ...
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# OBS {"nhan":"xep_A_B_ghep_thuong","status":200,"code":null,"message":null,"lyDo":[]}
+# {"event":"thieu_ma_lan_gui","duong":"PUT /api/orders/:id/legs/:legId"}
+# OBS {"nhan":"bat_xe_rieng_sau_khi_ghep","status":200,"code":null}
+# OBS {"nhan":"chuyen_bi_giu_sau_bat","lyDoGiu":["CAM_KET: Trái cam kết xe riêng / số chỗ tối thiểu: TD-20270310-0001 xe riêng","CAM_KET: Trái cam kết xe riêng / số chỗ tối thiểu: TD-20270310-0002 ghép vào xe riêng của TD-20270310-0001"]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/xuat-ben"}
+# OBS {"nhan":"xuat_ben_sau_bat_xe_rieng","status":409,"code":"chua_du_dieu_kien_xuat_ben","message":"Chuyến chưa đủ điều kiện xuất bến.","lyDo":["CAM_KET: Trái cam kết xe riêng / số chỗ tối thiểu: TD-20270310-0001 xe riêng","CAM_KET: Trái cam kết xe riêng / số chỗ tối thiểu: TD-20270310-0002 ghép vào xe riêng của TD-20270310-0001"]}
+# Subtest: S5.3 đơn xe riêng: tắt cam kết SAU khi đã ghép (sửa chặng) / bật cam kết SAU khi đã ghép → cổng xuất bến
+ok 3 - S5.3 đơn xe riêng: tắt cam kết SAU khi đã ghép (sửa chặng) / bật cam kết SAU khi đã ghép → cổng xuất bến
+  ---
+  duration_ms: 74.469459
+  type: 'test'
+  ...
+1..3
+# tests 3
+# suites 0
+# pass 3
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 363.6665

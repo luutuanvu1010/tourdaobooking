@@ -1,0 +1,118 @@
+TAP version 13
+# (node:9707) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:9707) ExperimentalWarning: The MockTimers API is an experimental feature and might change at any time
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# OBS C20.hdv_tren_xe_day {"status":409,"code":"vuot_so_cho","msg":"Vượt số chỗ của xe.","lyDo":["VUOT_SO_CHO|Vượt số chỗ của xe: 3/2"]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# OBS C20.xe3_2khach_1hdv {"status":200,"code":null,"msg":null,"lyDo":[],"tai":3}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# OBS C20.xe3_them_khach_sau_hdv {"status":409,"code":"vuot_so_cho","msg":"Vượt số chỗ của xe.","lyDo":["VUOT_SO_CHO|Vượt số chỗ của xe: 4/3"]}
+# Subtest: C20: người đi kèm (HDV) có chiếm chỗ không — xe 2 chỗ đã đủ 2 khách, thêm 1 HDV
+ok 1 - C20: người đi kèm (HDV) có chiếm chỗ không — xe 2 chỗ đã đủ 2 khách, thêm 1 HDV
+  ---
+  duration_ms: 107.193
+  type: 'test'
+  ...
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# OBS C27.tao_chuyen_xe_bao_duong {"status":201,"code":null,"msg":null,"lyDo":[],"lyDoGiu":["XE_KHONG_DUNG"]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# OBS C27.xep_vao_xe_bao_duong {"status":200,"code":null,"msg":null,"lyDo":[]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/xuat-ben"}
+# OBS C27.xuat_ben_xe_bao_duong {"status":409,"code":"chua_du_dieu_kien_xuat_ben","msg":"Chuyến chưa đủ điều kiện xuất bến.","lyDo":["XE_KHONG_DUNG|Xe đang bảo dưỡng hoặc đã ngừng dùng: 79C00007"]}
+# OBS C27.lich_xe {"xe":[{"trangThai":"maintenance"}]}
+# Subtest: C27: xe trạng thái Bảo dưỡng — máy chủ có cho tạo chuyến không; cổng xuất bến
+ok 2 - C27: xe trạng thái Bảo dưỡng — máy chủ có cho tạo chuyến không; cổng xuất bến
+  ---
+  duration_ms: 69.3085
+  type: 'test'
+  ...
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# OBS C26.tao_chuyen_khong_tai_xe {"status":400,"code":"invalid_input","msg":"Chọn tài xế.","lyDo":[]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/xe"}
+# OBS C26.them_xe_nha_xe_khong_so_khung {"status":400,"code":"invalid_input","msg":"Cần số khung (in trên giấy đăng ký xe).","lyDo":[]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/xe"}
+# OBS C26.them_xe_nha_xe_co_so_khung {"status":201,"code":null,"msg":null,"lyDo":[]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# OBS C26.tao_chuyen_tai_xe_nha_xe_chua_gplx {"status":409,"code":"khong_du_dieu_kien_lai","msg":"Tài xế chưa đủ điều kiện lái xe này.","lyDo":["GPLX_THIEU|Tài xế chưa có giấy phép lái xe còn dùng được"]}
+# Subtest: C26: tạo chuyến thiếu tài xế; thêm xe nhà xe không số khung; tài xế nhà xe thiếu GPLX lúc TẠO chuyến
+ok 3 - C26: tạo chuyến thiếu tài xế; thêm xe nhà xe không số khung; tài xế nhà xe thiếu GPLX lúc TẠO chuyến
+  ---
+  duration_ms: 61.864917
+  type: 'test'
+  ...
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# OBS C23.lich_2200_truoc {"A":{"trangThai":"PLANNED","canhBao":[],"lyDoGiu":[]},"B":{"trangThai":"PLANNED","canhBao":[],"lyDoGiu":[]},"tatCaLoai":[]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/xuat-ben"}
+# OBS C23.lich_0700_A_chay_dung_gio {"A":{"trangThai":"RUNNING","canhBao":[],"lyDoGiu":[]},"B":{"trangThai":"PLANNED","canhBao":["CHUYEN_GIU"],"lyDoGiu":["TRUNG_GIO_XE","TRUNG_GIO_TAI_XE"]},"tatCaLoai":["CHUYEN_GIU"]}
+# OBS C23.lich_0745_A_qua_gio_ket_thuc {"A":{"trangThai":"RUNNING","canhBao":[],"lyDoGiu":[]},"B":{"trangThai":"PLANNED","canhBao":["CHUYEN_GIU"],"lyDoGiu":["TRUNG_GIO_XE","TRUNG_GIO_TAI_XE"]},"tatCaLoai":["CHUYEN_GIU"]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/ket-thuc"}
+# OBS C23.ket_thuc_A_con_khach {"status":409,"code":"con_khach_chua_xong","msg":"Còn khách hoặc điểm chưa xong.","lyDo":[],"goiY":"KET_THUC_GIAN_DOAN"}
+# Subtest: C23: chuyến A đang chạy (đúng giờ và quá giờ kết thúc dự kiến) — lịch chung báo gì cho chuyến B cùng xe
+ok 4 - C23: chuyến A đang chạy (đúng giờ và quá giờ kết thúc dự kiến) — lịch chung báo gì cho chuyến B cùng xe
+  ---
+  duration_ms: 80.03075
+  type: 'test'
+  ...
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chinh-sach-dieu-phoi"}
+# OBS C21p.sup_ha_nghi_0 {"status":201,"code":null,"msg":null,"lyDo":[]}
+# {"event":"thieu_ma_lan_gui","duong":"PUT /api/van-chuyen/chuyen/:id"}
+# OBS C21p.sales_doi_B_0735 {"status":200,"code":null,"msg":null,"lyDo":[]}
+# OBS C21p.db_B {"rows":[{"code":"CX-1103-02","rest_minutes_snapshot":30,"rest_override_reason_code":null}]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/xuat-ben"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/diem/:sid/da-toi"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/phan-bo/:aid/don"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/phan-bo/:aid/don"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/diem/:sid/da-toi"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/phan-bo/:aid/tra"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/phan-bo/:aid/tra"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/ket-thuc"}
+# OBS C21p.A_ket_thuc_0730 {"status":200,"code":null,"msg":null,"lyDo":[]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/xuat-ben"}
+# OBS C21p.B_xuat_ben_0735 {"status":409,"code":"chua_du_dieu_kien_xuat_ben","msg":"Chuyến chưa đủ điều kiện xuất bến.","lyDo":["NGHI_THIEU|Chưa đủ thời gian nghỉ sau chuyến trước: CX-1103-01"]}
+# OBS C21p.lich_B_lyDoGiu {"lyDoGiu":["NGHI_THIEU"]}
+# {"event":"thieu_ma_lan_gui","duong":"PUT /api/van-chuyen/chuyen/:id"}
+# OBS C21p.adm_pha_le_nghi_qua_PUT {"status":200,"code":null,"msg":null,"lyDo":[]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/xuat-ben"}
+# OBS C21p.B_xuat_ben_sau_pha_le {"status":200,"code":null,"msg":null,"lyDo":[]}
+# Subtest: C21-phụ: Toàn quyền hạ khoảng nghỉ về 0 SAU khi chuyến B đã tạo — B dời sát A được, nhưng xuất bến có bị giữ theo số nghỉ đã chụp không
+ok 5 - C21-phụ: Toàn quyền hạ khoảng nghỉ về 0 SAU khi chuyến B đã tạo — B dời sát A được, nhưng xuất bến có bị giữ theo số nghỉ đã chụp không
+  ---
+  duration_ms: 97.798
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 528.593875

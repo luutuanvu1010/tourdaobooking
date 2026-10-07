@@ -1,0 +1,138 @@
+TAP version 13
+# (node:4089) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:4089) ExperimentalWarning: The MockTimers API is an experimental feature and might change at any time
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# OBS S6i.chuyen.khoaMoc {"khoaMoc":true,"mocPhut":360}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# OBS S6i.lap {"status":201,"code":null,"msg":null,"canhBaoMoc":[{"legKey":"5abc861e-159c-4a79-80c2-b1f4d48fd21e","phutConLai":60}]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# OBS S6i.xacNhan.SALES {"status":409,"code":"short_notice_required","msg":"Có chặng đón dưới mốc tối thiểu — cần Quản trị hoặc Toàn quyền đặt gấp trước khi xác nhận.","legs":[{"legId":"5abc861e-159c-4a79-80c2-b1f4d48fd21e","phutConLai":60}]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/legs/:legId/short-notice"}
+# OBS S6i.datGap.SALES {"status":403,"code":"forbidden","msg":"Chỉ Quản trị hoặc Toàn quyền được đặt gấp chặng đưa đón."}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/legs/:legId/short-notice"}
+# OBS S6i.datGap.ADM {"status":200,"code":null,"msg":null}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# OBS S6i.xacNhan2.SALES {"status":200,"code":null,"msg":null}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# OBS S6i.xep.SALES {"status":200,"code":null,"msg":null,"taiSql":8,"diem":["1.Khách sạn Sheraton 07:00","2.Khách sạn Havana 07:10","3.Khách sạn Liberty 07:20","4.Khách sạn Gấp 07:00","5.Bến tàu du lịch Nha Trang -"]}
+# OBS S6i.buoc {"buoc":[["SALES lập đơn (nháp)",201],["SALES xác nhận",409,"short_notice_required"],["SALES đặt gấp",403,"forbidden"],["ADM đặt gấp",200],["SALES xác nhận lại",200],["SALES xếp vào chuyến trong vùng khoá",200,null]],"soLenhGhi":6}
+# Subtest: S6(i) đơn GẤP mới đón 07:00 lúc 06:00 → xác nhận, đặt gấp, xếp vào chuyến 06:45
+ok 1 - S6(i) đơn GẤP mới đón 07:00 lúc 06:00 → xác nhận, đặt gấp, xếp vào chuyến 06:45
+  ---
+  duration_ms: 174.806834
+  type: 'test'
+  ...
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/handler-money-edit"}
+# OBS S6ii.moneyEdit.SALES {"status":403,"code":"forbidden","msg":"Chỉ hướng dẫn viên đang phụ trách đơn mới sửa được số khách theo cách này."}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/handler-money-edit"}
+# OBS S6ii.moneyEdit.ADM {"status":403,"code":"forbidden","msg":"Chỉ hướng dẫn viên đang phụ trách đơn mới sửa được số khách theo cách này."}
+# {"event":"thieu_ma_lan_gui","duong":"PUT /api/orders/:id/handler"}
+# OBS S6ii.giaoHDV.SALES {"status":200,"code":null,"msg":null}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/handler-money-edit"}
+# OBS S6ii.moneyEdit.FIELD {"status":200,"code":null,"msg":null}
+# OBS S6ii.sauSua {"lyDoGiu":["THIEU_SUAT|Chặng chưa xếp đủ người lên xe: TD-20270310-0001 2/3","THIEU_TEN|Chưa đủ tên khách: TD-20270310-0001 thiếu 1 tên"]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# OBS S6ii.xep.SALES {"status":409,"code":"can_pha_le","msg":"Trong mốc tối thiểu trước giờ xuất bến — cần Quản trị phá lệ.","lyDo":["MOC_TOI_THIEU|Trong mốc tối thiểu trước giờ xuất bến — cần Quản trị phá lệ: TD-20270310-0001"],"canQuyen":false}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# OBS S6ii.xep.SALES_phaLe {"status":403,"code":"forbidden","msg":"Chỉ Quản trị hoặc Toàn quyền phá lệ được."}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/legs/:legId/short-notice"}
+# OBS S6ii.A.datGap.ADM {"status":200,"code":null,"msg":null}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# OBS S6ii.A.xep.SALES {"status":200,"code":null,"msg":null,"taiSql":7,"lyDoGiu":["THIEU_TEN|Chưa đủ tên khách: TD-20270310-0001 thiếu 1 tên"]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/handler-money-edit"}
+# OBS S6ii.B.moneyEdit.SUP {"status":200,"code":null,"msg":null}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# OBS S6ii.B.xep.ADM_phaLe {"status":200,"code":null,"msg":null,"taiSql":8,"lyDoGiu":["THIEU_TEN|Chưa đủ tên khách: TD-20270310-0002 thiếu 1 tên","THIEU_TEN|Chưa đủ tên khách: TD-20270310-0001 thiếu 1 tên"]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/passengers"}
+# OBS S6ii.themTen.d1 {"status":200,"code":null,"msg":null}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/passengers"}
+# OBS S6ii.themTen.d2 {"status":200,"code":null,"msg":null}
+# OBS S6ii.cuoi {"lyDoGiu":[],"taiSql":8}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/xuat-ben"}
+# OBS S6ii.xuatBen {"status":200,"code":null,"msg":null}
+# Subtest: S6(ii) thêm 1 khách vào đơn ĐÃ XẾP lúc 06:00 (chuyến 06:45) — đường A (đặt gấp) và đường B (phá lệ)
+ok 2 - S6(ii) thêm 1 khách vào đơn ĐÃ XẾP lúc 06:00 (chuyến 06:45) — đường A (đặt gấp) và đường B (phá lệ)
+  ---
+  duration_ms: 122.18375
+  type: 'test'
+  ...
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/handler-money-edit"}
+# OBS S6iii.moneyEdit.SUP {"status":200,"code":null,"msg":null}
+# OBS S6iii.sau {"lyDoGiu":["THUA_SUAT|Chặng đang xếp nhiều người hơn số khách: TD-20270310-0002 2/1"]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/rut"}
+# OBS S6iii.rut.SALES {"status":409,"code":"can_pha_le","msg":"Trong mốc tối thiểu trước giờ xuất bến — cần Quản trị phá lệ.","lyDo":["MOC_TOI_THIEU|Trong mốc tối thiểu trước giờ xuất bến — cần Quản trị phá lệ: CX-1103-01"],"canQuyen":false}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# OBS S6iv.huy.SALES {"status":200,"code":null,"msg":null}
+# OBS S6iv.sau {"taiSql":6,"suatD3":["WAITING","WAITING"],"lyDoGiu":["THUA_SUAT|Chặng đang xếp nhiều người hơn số khách: TD-20270310-0002 2/1","DON_DA_HUY|Có đơn đã huỷ còn khách trên chuyến: TD-20270310-0003"]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/rut"}
+# OBS S6iv.rut.SALES {"status":409,"code":"can_pha_le","msg":"Trong mốc tối thiểu trước giờ xuất bến — cần Quản trị phá lệ.","lyDo":["MOC_TOI_THIEU|Trong mốc tối thiểu trước giờ xuất bến — cần Quản trị phá lệ: CX-1103-01"],"canQuyen":false}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/xuat-ben"}
+# OBS S6iv.xuatBen.chuaRut.vanPhong {"status":409,"code":"chua_du_dieu_kien_xuat_ben","msg":"Chuyến chưa đủ điều kiện xuất bến.","lyDo":["THUA_SUAT|Chặng đang xếp nhiều người hơn số khách: TD-20270310-0002 2/1","DON_DA_HUY|Có đơn đã huỷ còn khách trên chuyến: TD-20270310-0003"]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/xuat-ben"}
+# OBS S6iv.xuatBen.chuaRut.taiXe {"status":409,"code":"chua_du_dieu_kien_xuat_ben","msg":"Chuyến chưa đủ điều kiện xuất bến.","lyDo":["THUA_SUAT|Chặng đang xếp nhiều người hơn số khách: TD-20270310-0002 2/1","DON_DA_HUY|Có đơn đã huỷ còn khách trên chuyến: TD-20270310-0003"]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/rut"}
+# OBS S6iv.rut.ADM_phaLe {"status":200,"code":null,"msg":null,"taiSql":3,"lyDoGiu":[]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/xuat-ben"}
+# OBS S6iv.xuatBen.sauRut {"status":200,"code":null,"msg":null}
+# Subtest: S6(iii) bớt 1 khách và (iv) huỷ đơn đã xếp lúc 06:00 — rút suất trong vùng khoá; xuất bến khi chưa rút
+ok 3 - S6(iii) bớt 1 khách và (iv) huỷ đơn đã xếp lúc 06:00 — rút suất trong vùng khoá; xuất bến khi chưa rút
+  ---
+  duration_ms: 92.35875
+  type: 'test'
+  ...
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/xuat-ben"}
+# OBS S6v.xuatBen {"status":200,"code":null,"msg":null}
+# {"event":"thieu_ma_lan_gui","duong":"PUT /api/orders/:id/handler"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/handler-money-edit"}
+# OBS S6v.moneyEdit.FIELD {"giao":200,"status":200,"code":null,"msg":null}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/them-diem"}
+# OBS S6v.themDiem.SALES {"status":409,"code":"can_pha_le","msg":"Khách không đặt gấp — cần Quản trị phá lệ.","lyDo":["MOC_TOI_THIEU|Trong mốc tối thiểu trước giờ xuất bến — cần Quản trị phá lệ: TD-20270310-0001"],"canQuyen":false}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/them-diem"}
+# OBS S6v.themDiem.ADM_phaLe {"status":200,"code":null,"msg":null,"taiSql":7}
+# Subtest: S6(v) xe ĐÃ xuất bến (06:46): thêm 1 khách đơn đã có / đơn gấp mới bằng them-diem
+ok 4 - S6(v) xe ĐÃ xuất bến (06:46): thêm 1 khách đơn đã có / đơn gấp mới bằng them-diem
+  ---
+  duration_ms: 82.652542
+  type: 'test'
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 759.626792

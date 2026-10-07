@@ -1,0 +1,32 @@
+TAP version 13
+# (node:23244) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:23244) ExperimentalWarning: The MockTimers API is an experimental feature and might change at any time
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/xuat-ben"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/diem/:sid/da-toi"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/phan-bo/:aid/vang"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/phan-bo/:aid/don"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/ket-thuc-gian-doan"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# === C51b.ket_qua {"gian_doan":{"status":200,"code":null,"message":null},"suat_t1":[{"status":"BOARDED","dong":1,"close_reason":"TRIP_INTERRUPTED"},{"status":"NO_SHOW","dong":0,"close_reason":null}],"xep_lai_ca_2_sang_t2_ADM_pha_le":{"status":409,"code":"vuot_so_nguoi_chang","message":"Xếp quá số khách của chặng.","extra":{"lyDo":[{"ma":"VUOT_SO_NGUOI_CHANG","loiNhan":"Xếp quá số khách của chặng: TD-20270311-0001 3/2","aiXuLy":"VAN_PHONG","aiXuLyNhan":"Văn phòng"}]}},"xep_lai_1_sang_t2_ADM_pha_le":{"status":200,"code":null,"message":null},"suat_t2":[{"status":"WAITING","dong":0}]}
+# Subtest: C51b vắng rồi kết thúc gián đoạn
+ok 1 - C51b vắng rồi kết thúc gián đoạn
+  ---
+  duration_ms: 109.950542
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 223.656667

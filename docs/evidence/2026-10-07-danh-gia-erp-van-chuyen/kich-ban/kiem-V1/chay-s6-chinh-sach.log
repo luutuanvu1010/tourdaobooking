@@ -1,0 +1,42 @@
+TAP version 13
+# (node:4092) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:4092) ExperimentalWarning: The MockTimers API is an experimental feature and might change at any time
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# OBS S6cs.chinhSach.hienHanh {"keys":["current","history"],"hienHanh":null}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chinh-sach-dieu-phoi"}
+# OBS S6cs.doi.ADM {"status":403,"code":"forbidden","msg":"Chỉ người phụ trách hệ thống xem và đổi được chính sách điều phối xe."}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chinh-sach-dieu-phoi"}
+# OBS S6cs.doi.SUP {"status":201,"code":null,"msg":null}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# OBS S6cs.xacNhanGap.SALES {"status":200,"code":null,"msg":null}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# OBS S6cs.xepGap.SALES {"status":200,"code":null,"msg":null,"taiSql":6}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# OBS S6cs.huy.SALES {"status":200,"code":null,"msg":null}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/rut"}
+# OBS S6cs.rut.SALES {"status":200,"code":null,"msg":null,"taiSql":4,"lyDoGiu":[]}
+# OBS S6cs.06h20.khoaMoc {"dangKhoa":true}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/xuat-ben"}
+# OBS S6cs.xuatBen.06h20 {"status":200,"code":null,"msg":null}
+# Subtest: S6 chính sách: mốc 30 phút — Bán hàng tự xác nhận đơn gấp, tự rút khách huỷ lúc T-45
+ok 1 - S6 chính sách: mốc 30 phút — Bán hàng tự xác nhận đơn gấp, tự rút khách huỷ lúc T-45
+  ---
+  duration_ms: 186.240084
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 473.736459

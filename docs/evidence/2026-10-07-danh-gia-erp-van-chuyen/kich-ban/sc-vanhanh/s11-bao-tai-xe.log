@@ -1,0 +1,41 @@
+TAP version 13
+# (node:51348) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:51348) ExperimentalWarning: The MockTimers API is an experimental feature and might change at any time
+# === S11.0. tạo đơn (chưa có chuyến) {"nhan":"0. tạo đơn (chưa có chuyến)","kq":null,"soLoiGoiBangTin":0,"tinMoi":{"DRIVER":[],"DRIVER2":[],"SALES":[]}}
+# === S11.1. tạo chuyến T1 cho DRIVER {"nhan":"1. tạo chuyến T1 cho DRIVER","kq":null,"soLoiGoiBangTin":1,"tinMoi":{"DRIVER":["Bạn được xếp lái chuyến CX-1103-01 ngày 11/03"],"DRIVER2":[],"SALES":[]}}
+# === S11.2. xếp 2 khách A lên T1 (chưa chạy) {"nhan":"2. xếp 2 khách A lên T1 (chưa chạy)","kq":{"status":200,"code":null,"message":null},"soLoiGoiBangTin":1,"tinMoi":{"DRIVER":[],"DRIVER2":[],"SALES":[]}}
+# === S11.3. sửa giờ kết thúc T1 {"nhan":"3. sửa giờ kết thúc T1","kq":{"status":200,"code":null,"message":null},"soLoiGoiBangTin":1,"tinMoi":{"DRIVER":["Văn phòng vừa sửa chuyến CX-1103-01 ngày 11/03 — mở để xem giờ, xe, điểm"],"DRIVER2":[],"SALES":[]}}
+# === S11.4. rút 1 khách A khỏi T1 {"nhan":"4. rút 1 khách A khỏi T1","kq":{"status":200,"code":null,"message":null},"soLoiGoiBangTin":1,"tinMoi":{"DRIVER":[],"DRIVER2":[],"SALES":[]}}
+# === S11.4b. xếp lại khách A vừa rút {"nhan":"4b. xếp lại khách A vừa rút","kq":{"status":200,"code":null,"message":null},"soLoiGoiBangTin":1,"tinMoi":{"DRIVER":[],"DRIVER2":[],"SALES":[]}}
+# === S11.5. tạo chuyến T2 cho DRIVER2 {"nhan":"5. tạo chuyến T2 cho DRIVER2","kq":null,"soLoiGoiBangTin":1,"tinMoi":{"DRIVER":[],"DRIVER2":["Bạn được xếp lái chuyến CX-1103-02 ngày 11/03"],"SALES":[]}}
+# === S11.6. xếp B lên T2 {"nhan":"6. xếp B lên T2","kq":{"status":200,"code":null,"message":null},"soLoiGoiBangTin":1,"tinMoi":{"DRIVER":[],"DRIVER2":[],"SALES":[]}}
+# === S11.7. dời 2 khách B từ T2 (DRIVER2) sang T1 (DRIVER) {"nhan":"7. dời 2 khách B từ T2 (DRIVER2) sang T1 (DRIVER)","kq":{"status":200,"code":null,"message":null},"soLoiGoiBangTin":1,"tinMoi":{"DRIVER":[],"DRIVER2":[],"SALES":[]}}
+# === S11.8. tạo chuyến T3 cho DRIVER2 {"nhan":"8. tạo chuyến T3 cho DRIVER2","kq":null,"soLoiGoiBangTin":1,"tinMoi":{"DRIVER":[],"DRIVER2":["Bạn được xếp lái chuyến CX-1103-03 ngày 11/03"],"SALES":[]}}
+# === S11.9. đổi tài xế T3: DRIVER2 → DRIVER {"nhan":"9. đổi tài xế T3: DRIVER2 → DRIVER","kq":{"status":200,"code":null,"message":null},"soLoiGoiBangTin":1,"tinMoi":{"DRIVER":["Bạn được xếp lái chuyến CX-1103-03 ngày 11/03"],"DRIVER2":["Bạn không còn lái chuyến CX-1103-03 ngày 11/03"],"SALES":[]}}
+# === S11.10. huỷ T3 {"nhan":"10. huỷ T3","kq":{"status":200,"code":null,"message":null},"soLoiGoiBangTin":1,"tinMoi":{"DRIVER":["Chuyến CX-1103-03 ngày 11/03 đã bị huỷ"],"DRIVER2":[],"SALES":[]}}
+# === S11.11. huỷ T2 (rỗng, DRIVER2) {"nhan":"11. huỷ T2 (rỗng, DRIVER2)","kq":{"status":200,"code":null,"message":null},"soLoiGoiBangTin":1,"tinMoi":{"DRIVER":[],"DRIVER2":["Chuyến CX-1103-02 ngày 11/03 đã bị huỷ"],"SALES":[]}}
+# === S11.11b. (đọc đơn A để biết cách sửa giờ đón) {"nhan":"11b. (đọc đơn A để biết cách sửa giờ đón)","kq":{"status":200,"khoa":["order","history","canModify","mocToiThieuPhut"]}}
+# === S11.12. DRIVER xuất bến T1 {"nhan":"12. DRIVER xuất bến T1","kq":{"status":200,"code":null,"message":null},"soLoiGoiBangTin":1,"tinMoi":{"DRIVER":[],"DRIVER2":[],"SALES":[]}}
+# === S11.13. ADM thêm điểm E khi xe chạy (phá lệ) {"nhan":"13. ADM thêm điểm E khi xe chạy (phá lệ)","kq":{"status":200,"code":null,"message":null},"soLoiGoiBangTin":1,"tinMoi":{"DRIVER":["Văn phòng vừa thêm khách vào chuyến CX-1103-01 ngày 11/03 — mở để xem điểm, giờ đón và số khách"],"DRIVER2":[],"SALES":[]}}
+# === S11.14. SALES báo huỷ 1 khách E {"nhan":"14. SALES báo huỷ 1 khách E","kq":{"status":200,"code":null,"message":null},"soLoiGoiBangTin":1,"tinMoi":{"DRIVER":["Văn phòng báo có khách huỷ ở chuyến CX-1103-01 ngày 11/03 — mở để xem"],"DRIVER2":[],"SALES":[]}}
+# === S11.15. SALES đổi thứ tự điểm khi xe chạy {"nhan":"15. SALES đổi thứ tự điểm khi xe chạy","kq":{"status":200,"code":null,"message":null},"soLoiGoiBangTin":1,"tinMoi":{"DRIVER":[],"DRIVER2":[],"SALES":[]}}
+# === S11.16. SALES bấm thay 'Đã tới' A {"nhan":"16. SALES bấm thay 'Đã tới' A","kq":{"status":200,"code":null,"message":null},"soLoiGoiBangTin":1,"tinMoi":{"DRIVER":[],"DRIVER2":[],"SALES":[]}}
+# === S11.17. DRIVER bấm 'Vắng' 1 khách A {"nhan":"17. DRIVER bấm 'Vắng' 1 khách A","kq":{"status":200,"code":null,"message":null},"soLoiGoiBangTin":1,"tinMoi":{"DRIVER":[],"DRIVER2":[],"SALES":["Có khách vắng ở chuyến CX-1103-01 ngày 11/03 (đơn TD-20270311-0001)"]}}
+# === S11.18. DRIVER kết thúc gián đoạn {"nhan":"18. DRIVER kết thúc gián đoạn","kq":{"status":200,"code":null,"message":null},"soLoiGoiBangTin":1,"tinMoi":{"DRIVER":[],"DRIVER2":[],"SALES":["Chuyến CX-1103-01 ngày 11/03 kết thúc giữa chừng — cần xếp xe cho khách còn lại"]}}
+# === S11.audit_actions [{"action":"trip_allocated","n":3},{"action":"trip_allocation_moved","n":1},{"action":"trip_allocation_office_cancelled","n":1},{"action":"trip_allocation_removed","n":1},{"action":"trip_cancelled","n":2},{"action":"trip_created","n":3},{"action":"trip_departed","n":1},{"action":"trip_edited","n":2},{"action":"trip_ended_interrupted","n":1},{"action":"trip_passenger_no_show","n":1},{"action":"trip_stop_added_running","n":1},{"action":"trip_stop_arrived","n":1},{"action":"trip_stops_reordered","n":1}]
+# Subtest: S11 tin cho tài xế
+ok 1 - S11 tin cho tài xế
+  ---
+  duration_ms: 181.506916
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 291.769584

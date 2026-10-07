@@ -1,0 +1,23 @@
+# HEAD: 4d98a205
+## 1. Cron / scheduled / alarm trong wrangler + src (trừ *.test.ts)
+16:  "triggers": { "crons": ["*/15 * * * *"] },
+src/index.ts:205:  async scheduled(_event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
+src/modules/bangtin/tram.ts:85:    if (baoThuc === null || baoThuc > ganKem.hetHan) await this.ctx.storage.setAlarm(ganKem.hetHan);
+src/modules/bangtin/tram.ts:123:    if (bt === null || bt > Date.now()) await this.ctx.storage.setAlarm(Date.now());
+src/modules/bangtin/tram.ts:133:  async alarm(): Promise<void> {
+src/modules/bangtin/tram.ts:146:    if (ke !== null) await this.ctx.storage.setAlarm(ke); // đặt cả khi không còn kết nối nào
+## 2. Hàm runScheduledSync làm gì
+src/modules/catalog/index.ts:364:export async function runScheduledSync(env: Env): Promise<void> {
+src/modules/catalog/index.ts-365-  await syncCatalog(env, null);
+src/modules/catalog/index.ts-366-}
+## 3. Route van-chuyen có chữ mo/tu-dong/ranh/lap/mau-chuyen
+(không có route nào khớp)
+## 4. Từ khoá nghiệp vụ trong src (trừ test)
+(không khớp)
+## 5. mau-chang = mẫu đưa đón cho FORM LẬP ĐƠN, không phải mẫu chuyến
+    // ---- MẪU ĐƯA ĐÓN THEO DỊCH VỤ (ADR-0054 D10.1–D10.2; nơi trả mặc định — ADR nháp docs/superpowers/specs/2026-10-01-de-xuat-adr-noi-tra-mac-dinh.md, chủ duyệt
+    // 1/10 Q-D = A). Màn Danh mục (Quản trị, Toàn quyền): cổng admin + `admin.manage` ĐẦU thân (luật (4) hàng rào 2) — xem lịch sử, thêm bản mới (hiệu lực ngay).
+    // Form lập đơn: cổng orders + `order.create` ĐẦU thân — CHỈ mẫu hiện hành, ba khoá mỗi mã. van-chuyen KHÔNG đọc bảng catalog (mã dịch vụ = tham chiếu logic).
+    route("GET", "/api/van-chuyen/mau-chang", "orders", async ({ env, staff }) => {
+## 6. Mọi route POST của van-chuyen tạo chuyến
+1118:    route("POST", "/api/van-chuyen/chuyen", "office", async ({ env, request, staff, nhanNhanVien, isAssigned, baoThayDoiChuyen }) => {

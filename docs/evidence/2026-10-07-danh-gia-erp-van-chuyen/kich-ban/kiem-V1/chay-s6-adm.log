@@ -1,0 +1,35 @@
+TAP version 13
+# (node:4091) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:4091) ExperimentalWarning: The MockTimers API is an experimental feature and might change at any time
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/legs/:legId/short-notice"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# OBS S6adm.donGap {"buoc":[["ADM lập đơn",201,null],["ADM xác nhận",409,"short_notice_required"],["ADM đặt gấp",200,null],["ADM xác nhận lại",200,null],["ADM xếp",200,null]],"demGoi":{"POST /api/orders":1,"POST /api/orders/:id/status":2,"POST /api/orders/:id/legs/:id/short-notice":1,"GET /api/van-chuyen/chuyen/:id":1,"POST /api/van-chuyen/chuyen/:id/phan-bo":1},"taiSql":4}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/handler-money-edit"}
+# OBS S6adm.themKhach.moneyEdit {"status":403,"code":"forbidden","msg":"Chỉ hướng dẫn viên đang phụ trách đơn mới sửa được số khách theo cách này."}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/legs/:legId/short-notice"}
+# OBS S6adm.duongA.datGapChangCu {"status":200,"code":null,"msg":null}
+# OBS S6adm.nhatKy {"dong":[{"action":"trip_created","detail":"CX-1103-01 · xe 79C00003 (16 chỗ) · 06:45 11/03 → 09:00 11/03"},{"action":"trip_allocated","detail":"CX-1103-01: xếp 2 người (TD-20270310-0001)"},{"action":"order_leg_short_notice","detail":"TD-20270311-0001 · Chiều đi · đặt gấp: Khách đoàn gọi gấp"},{"action":"trip_allocated","detail":"CX-1103-01: xếp 2 người (TD-20270311-0001); sắp lại thứ tự 1 điểm (đón trước trả)"},{"action":"order_leg_short_notice","detail":"TD-20270310-0001 · Chiều đi · đặt gấp: Khách đoàn gọi gấp"}]}
+# OBS S6adm.suKien {"dong":[{"loai":"CREATED","phaLe":null,"keys":["id","trip_id","related_trip_id","kind","stop_id","allocation_id","count","request_id","client_at","decided_mode","override_rule_code","override_reason_code","policy_id","occurred_at","occurred_ms","occurred_source","created_at","created_by","updated_at","updated_by"]},{"loai":"ALLOCATED","phaLe":null,"keys":["id","trip_id","related_trip_id","kind","stop_id","allocation_id","count","request_id","client_at","decided_mode","override_rule_code","override_reason_code","policy_id","occurred_at","occurred_ms","occurred_source","created_at","created_by","updated_at","updated_by"]},{"loai":"ALLOCATED","phaLe":null,"keys":["id","trip_id","related_trip_id","kind","stop_id","allocation_id","count","request_id","client_at","decided_mode","override_rule_code","override_reason_code","policy_id","occurred_at","occurred_ms","occurred_source","created_at","created_by","updated_at","updated_by"]}]}
+# Subtest: S6 ADM một mình
+ok 1 - S6 ADM một mình
+  ---
+  duration_ms: 158.165958
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 456.919916

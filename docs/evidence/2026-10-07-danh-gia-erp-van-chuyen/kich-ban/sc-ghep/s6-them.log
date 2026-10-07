@@ -1,0 +1,50 @@
+TAP version 13
+# (node:48881) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:48881) ExperimentalWarning: The MockTimers API is an experimental feature and might change at any time
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# {"event":"thieu_ma_lan_gui","duong":"PUT /api/orders/:id/handler"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/handler-money-edit"}
+# OBS S6+a.moneyEdit.FIELD {"status":200,"code":null,"msg":null}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/xuat-ben"}
+# OBS S6+a.xuatBen.taiXe {"status":409,"code":"chua_du_dieu_kien_xuat_ben","msg":"Chuyến chưa đủ điều kiện xuất bến.","lyDo":["THIEU_SUAT|Chặng chưa xếp đủ người lên xe: TD-20270310-0001 2/3","THIEU_TEN|Chưa đủ tên khách: TD-20270310-0001 thiếu 1 tên"]}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/handler-money-edit"}
+# OBS S6+a.moneyEdit.FIELD.hoanTac {"status":200,"code":null,"msg":null}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/xuat-ben"}
+# OBS S6+a.xuatBen.taiXe.sauHoanTac {"status":200,"code":null,"msg":null}
+# Subtest: S6+(a) HDV +1 khách lúc 06:00, không ai xếp → xuất bến 06:45
+ok 1 - S6+(a) HDV +1 khách lúc 06:00, không ai xếp → xuất bến 06:45
+  ---
+  duration_ms: 98.153417
+  type: 'test'
+  ...
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/handler-money-edit"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/passengers"}
+# OBS S6+b.SUP {"moneyEdit":200,"xep":{"status":200,"code":null,"msg":null},"themTen":200,"taiSql":5,"lyDoGiu":[],"demGoi":{"POST /api/orders/:id/handler-money-edit":1,"GET /api/van-chuyen/chuyen/:id":2,"POST /api/van-chuyen/chuyen/:id/phan-bo":1,"GET /api/orders/:id/passengers":1,"POST /api/orders/:id/passengers":1}}
+# Subtest: S6+(b) Toàn quyền một mình thêm 1 khách lúc 06:00 (chuyến 06:45)
+ok 2 - S6+(b) Toàn quyền một mình thêm 1 khách lúc 06:00 (chuyến 06:45)
+  ---
+  duration_ms: 82.967
+  type: 'test'
+  ...
+1..2
+# tests 2
+# suites 0
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 295.146959

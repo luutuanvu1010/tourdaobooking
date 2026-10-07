@@ -1,0 +1,72 @@
+TAP version 13
+# (node:15655) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:15655) ExperimentalWarning: The MockTimers API is an experimental feature and might change at any time
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/xuat-ben"}
+# === K1 {"xep":{"status":200,"code":null},"lyDoGiu":[],"canhBaoLich":["GIO_HEN_NGOAI_CHUYEN"],"dieuKienTaiXe":[],"xuatBen":{"status":200,"code":null},"trangThai":"RUNNING"}
+# Subtest: K1 (LC-21, ADR-0096 Đ3): giờ hẹn đón 12:00 sớm hơn giờ khởi hành 12:30 — xếp, cảnh báo, xuất bến
+ok 1 - K1 (LC-21, ADR-0096 Đ3): giờ hẹn đón 12:00 sớm hơn giờ khởi hành 12:30 — xếp, cảnh báo, xuất bến
+  ---
+  duration_ms: 106.854667
+  type: 'test'
+  ...
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# === K2 {"xep":{"status":200,"code":null},"canhBaoXep":null,"canhBaoChiTiet":[],"diem":[{"id":"bac115fd-019d-4a99-a77d-e2236d5b2896","thuTu":1,"loai":"PICKUP","tenNoi":"Khách sạn A","gioHen":"13:00","soNguoi":2,"trangThai":"PENDING"},{"id":"43d6044d-122d-49c4-9935-131b4bbdf330","thuTu":2,"loai":"PICKUP","tenNoi":"Khách sạn B","gioHen":"13:20","soNguoi":2,"trangThai":"PENDING"},{"id":"c8fabc6e-8190-489a-b528-18044978a7a8","thuTu":3,"loai":"PICKUP","tenNoi":"Khách sạn Gấp","gioHen":"12:40","soNguoi":2,"trangThai":"PENDING"},{"id":"92ea3f38-9564-49dc-a364-9a1d960c1b9f","thuTu":4,"loai":"DROPOFF","tenNoi":"Bến tàu du lịch Nha Trang","gioHen":null,"soNguoi":6,"trangThai":"PENDING"}]}
+# Subtest: K2 (C30): đơn gấp đón 12:40 xếp thêm vào chuyến đã có điểm 13:00, 13:20 — đứng ở đâu; có cảnh báo không
+ok 2 - K2 (C30): đơn gấp đón 12:40 xếp thêm vào chuyến đã có điểm 13:00, 13:20 — đứng ở đâu; có cảnh báo không
+  ---
+  duration_ms: 89.807958
+  type: 'test'
+  ...
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# === K3 {"xep":{"status":200,"code":null},"diemVP":[{"id":"f80f81ee-3a3c-4e7d-9f09-fb17d8fe5afd","thuTu":1,"loai":"PICKUP","tenNoi":"Văn phòng Trần Phú","gioHen":"13:00","soNguoi":5,"trangThai":"PENDING"},{"id":"2a1bc549-bdd2-4224-aaeb-d9864696de1b","thuTu":2,"loai":"DROPOFF","tenNoi":"Bến tàu du lịch Nha Trang","gioHen":null,"soNguoi":5,"trangThai":"PENDING"}],"diemTaiXe":[{"thuTu":1,"loai":"PICKUP","tenNoi":"Văn phòng Trần Phú","gioHen":"13:00","soNguoi":5},{"thuTu":2,"loai":"DROPOFF","tenNoi":"Bến tàu du lịch Nha Trang","gioHen":null,"soNguoi":5}],"khoaSuatTaiXe":["daDon","daTra","diemLen","diemXuong","hoTen","id","loai","maDon","namSinh","soHieuChuyenBay","trangThai","vanPhongBaoHuy"]}
+# Subtest: K3 (C33): hai nhóm đón cùng ĐIỂM DANH MỤC lúc 07:00 và 07:30 — gộp một điểm, giờ hiện; DTO tài xế có giờ riêng từng nhóm không
+ok 3 - K3 (C33): hai nhóm đón cùng ĐIỂM DANH MỤC lúc 07:00 và 07:30 — gộp một điểm, giờ hiện; DTO tài xế có giờ riêng từng nhóm không
+  ---
+  duration_ms: 83.6855
+  type: 'test'
+  ...
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/xuat-ben"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/thu-tu"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/thu-tu"}
+# === K4 {"vanPhong":{"status":200,"code":null},"sauVanPhong":["Khách sạn A","Khách sạn C","Khách sạn B","Bến tàu du lịch Nha Trang"],"taiXeManCu":{"status":200,"code":null},"sauTaiXe":["Khách sạn B","Khách sạn A","Khách sạn C","Bến tàu du lịch Nha Trang"],"soSuKienDoiThuTu":2,"idA":true}
+# Subtest: K4 (C38): tài xế bấm ↑ trên màn cũ sau khi văn phòng vừa đổi thứ tự khác — thân đủ mọi điểm chờ với số thứ tự tuyệt đối
+ok 4 - K4 (C38): tài xế bấm ↑ trên màn cũ sau khi văn phòng vừa đổi thứ tự khác — thân đủ mọi điểm chờ với số thứ tự tuyệt đối
+  ---
+  duration_ms: 86.424667
+  type: 'test'
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 529.566959

@@ -1,0 +1,27 @@
+TAP version 13
+# (node:67685) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:67685) ExperimentalWarning: The MockTimers API is an experimental feature and might change at any time
+# === S11b.ket_qua {"tin0":["Bạn được xếp lái chuyến CX-1103-01 ngày 11/03"],"sua_gio_A_13_40":{"status":200,"code":null,"message":null},"tin_sau_sua_gio":["Bạn được xếp lái chuyến CX-1103-01 ngày 11/03"],"sua_noi_B":{"status":200,"code":null,"message":null},"tin_sau_sua_noi":["Bạn được xếp lái chuyến CX-1103-01 ngày 11/03"],"dto_tai_xe_sau_sua":{"diem":[{"thuTu":1,"tenNoi":"Khách sạn A","gioHen":{"ngay":"2027-03-11","gio":"13:40"},"soNguoi":2},{"thuTu":2,"tenNoi":"Khách sạn B","gioHen":{"ngay":"2027-03-11","gio":"13:20"},"soNguoi":2},{"thuTu":3,"tenNoi":"Bến tàu du lịch Nha Trang","gioHen":null,"soNguoi":4}],"dieuKienConThieu":[{"ma":"NOI_HEN_DOI","loiNhan":"Nơi đón / trả đã đổi sau khi xếp — cập nhật điểm: TD-20270311-0002","aiXuLy":"VAN_PHONG"}]},"van_phong_ly_do_giu":[{"ma":"NOI_HEN_DOI","loiNhan":"Nơi đón / trả đã đổi sau khi xếp — cập nhật điểm: TD-20270311-0002","aiXuLy":"VAN_PHONG","aiXuLyNhan":"Văn phòng"}],"huy_don_A":{"status":200,"code":null,"message":null},"tin_sau_huy_don":["Bạn được xếp lái chuyến CX-1103-01 ngày 11/03"],"dto_tai_xe_sau_huy_don":{"diem":[{"tenNoi":"Khách sạn A","soNguoi":2,"trangThai":"PENDING"},{"tenNoi":"Khách sạn B","soNguoi":2,"trangThai":"PENDING"},{"tenNoi":"Bến tàu du lịch Nha Trang","soNguoi":4,"trangThai":"PENDING"}],"soSuat":4,"dieuKienConThieu":[{"ma":"DON_DA_HUY","loiNhan":"Có đơn đã huỷ còn khách trên chuyến: TD-20270311-0001","aiXuLy":"VAN_PHONG"},{"ma":"NOI_HEN_DOI","loiNhan":"Nơi đón / trả đã đổi sau khi xếp — cập nhật điểm: TD-20270311-0002","aiXuLy":"VAN_PHONG"}]},"SALES_rut_khach_don_huy_11h":{"status":409,"code":"can_pha_le","message":"Trong mốc tối thiểu trước giờ xuất bến — cần Quản trị phá lệ.","extra":{"lyDo":[{"ma":"MOC_TOI_THIEU","loiNhan":"Trong mốc tối thiểu trước giờ xuất bến — cần Quản trị phá lệ: CX-1103-01","aiXuLy":"QUAN_TRI","aiXuLyNhan":"Quản trị"}],"canQuyen":false}},"SALES_cap_nhat_khach_11h":{"status":200,"code":null,"message":null},"SALES_cap_nhat_diem_11h":{"status":200,"code":null,"message":null},"suat_A_con_mo_sau":2,"dieu_kien_sau":["DON_DA_HUY"]}
+# Subtest: S11b đơn đổi sau khi xếp
+ok 1 - S11b đơn đổi sau khi xếp
+  ---
+  duration_ms: 117.733709
+  type: 'test'
+  ...
+# === S4e.ket_qua {"SALES_them_B_11h":{"status":409,"code":"can_pha_le","message":"Trong mốc tối thiểu trước giờ xuất bến — cần Quản trị phá lệ.","extra":{"lyDo":[{"ma":"MOC_TOI_THIEU","loiNhan":"Trong mốc tối thiểu trước giờ xuất bến — cần Quản trị phá lệ: TD-20270311-0002","aiXuLy":"QUAN_TRI","aiXuLyNhan":"Quản trị"}],"canQuyen":false}},"SALES_rut_A_11h":{"status":409,"code":"can_pha_le","message":"Trong mốc tối thiểu trước giờ xuất bến — cần Quản trị phá lệ.","extra":{"lyDo":[{"ma":"MOC_TOI_THIEU","loiNhan":"Trong mốc tối thiểu trước giờ xuất bến — cần Quản trị phá lệ: CX-1103-01","aiXuLy":"QUAN_TRI","aiXuLyNhan":"Quản trị"}],"canQuyen":false}},"SALES_bao_huy_khi_chua_chay":{"status":409,"code":"chuyen_chua_chay","message":"Chuyến chưa xuất bến — dùng Xếp khách / Rút khách.","extra":{"lyDo":[]}},"ADM_dat_gap_B":{"status":200,"code":null,"message":null},"SALES_them_B_sau_dat_gap":{"status":200,"code":null,"message":null},"ADM_rut_A_pha_le":{"status":200,"code":null,"message":null}}
+# Subtest: S4e thêm/bớt khách trong mốc 6 giờ (chuyến chưa chạy)
+ok 2 - S4e thêm/bớt khách trong mốc 6 giờ (chuyến chưa chạy)
+  ---
+  duration_ms: 85.781875
+  type: 'test'
+  ...
+1..2
+# tests 2
+# suites 0
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 312.846792

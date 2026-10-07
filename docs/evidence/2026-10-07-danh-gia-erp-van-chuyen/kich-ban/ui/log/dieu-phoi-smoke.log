@@ -1,0 +1,13 @@
+✓ 1) 1a 1040 Bán hàng: đầu trang (ngày, "+ Chuyến mới"), dải số liệu, ba cột; menu "Vận chuyển › Điều phối xe" đang sáng; không nút Gọi / Đã gọi báo / Phá lệ (chưa chạy axe: thiếu AXE_JS)
+✓ 2) bấm khối CX-1210-03 → thẻ "đang chọn" (xe · tài xế · giờ · tải, tuyến, "Mở chuyến", "Cập nhật điểm theo đơn") → bấm cập nhật → dải kết quả, chuyến hết bị giữ, mục Cần xử lý biến mất
+✓ 3) bấm thẻ chặng O5 → hộp "Xếp vào chuyến" (chỉ chuyến lên kế hoạch, theo giờ; nút khoá tới khi chọn) → xếp 3/5 vào CX-1210-04 (tách đoàn) → thẻ còn "còn 2/5" (chưa chạy axe: thiếu AXE_JS)
+✓ 4) kéo thẻ O5 (còn 2) thả vào khối CX-1210-04 → hộp xếp mở với CX-1210-04 đã chọn → xếp nốt → cột Chưa xếp trống
+✓ 5) ngày trong vùng khoá (Bán hàng): đổi ngày bằng ô ngày → địa chỉ đổi; chặng 'Quá mốc' + dòng khoá 'Cần Quản trị phá lệ' ở Cần xử lý; khối chuyến mang ổ khoá theo khoaMoc; xếp vào chuyến đang khoá → máy chủ đòi phá lệ → câu trong hộp, không hộp phá lệ
+✓ 6a) 390 Bán hàng trang Tôi: nhóm VẬN CHUYỂN có đúng một dòng 'Điều phối xe'
+✓ 6) 1b–1d 390 Bán hàng: ba thẻ (tablist, phím mũi tên), mỗi lúc một cột; dải số liệu 4 ô; dòng thời gian cuộn ngang TRONG thẻ, trang không tràn (chưa chạy axe: thiếu AXE_JS)
+✓ 7) 1f 1040 Quản trị: menu Vận chuyển đủ mục (Điều phối xe đầu); chặng quá mốc KHÔNG dòng khoá, KHÔNG nút "Phá lệ" riêng; xếp vào chuyến đang khoá → hộp Phá lệ → "Phá lệ và xếp" gửi lại kèm phaLe
+✓ 7b) K2b T1: tài xế gõ thẳng /dieu-phoi → câu từ chối, KHÔNG ô ngày / nút đổi ngày; bấm đổi ngày (nếu còn) cũng KHÔNG gọi /api/van-chuyen/*
+✓ 8) 1e Kế toán: dải "Chỉ xem", không "+ Chuyến mới", thẻ chặng / việc không nút; bấm khối chỉ có "Mở chuyến"; menu chỉ Điều phối xe; không lệnh ghi (chưa chạy axe: thiếu AXE_JS)
+✓ 9) không lỗi console ở mọi trang đã mở
+
+DIEU PHOI SMOKE OK (11 bước)

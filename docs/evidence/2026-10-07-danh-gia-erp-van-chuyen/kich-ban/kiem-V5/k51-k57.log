@@ -1,0 +1,55 @@
+TAP version 13
+# (node:1772) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:1772) ExperimentalWarning: The MockTimers API is an experimental feature and might change at any time
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/xuat-ben"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/diem/:sid/da-toi"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/phan-bo/:aid/vang"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/phan-bo/:aid/don"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/diem/:sid/da-toi"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/phan-bo/:aid/tra"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/ket-thuc"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# === C51.ket_qua {"lich_chang_A_sau_vang":{"trangThai":"DA_DON","soNguoi":2,"soDaXep":2,"nhan":["VANG"]},"suat_t1_sau_vang":[{"status":"BOARDED","dong":0,"close_reason":null,"co_ten":1},{"status":"NO_SHOW","dong":0,"close_reason":null,"co_ten":1}],"t1_RUNNING_xep_1_suat_sang_t2_SALES":{"status":409,"code":"vuot_so_nguoi_chang","message":"Xếp quá số khách của chặng.","extra":{"lyDo":[{"ma":"VUOT_SO_NGUOI_CHANG","loiNhan":"Xếp quá số khách của chặng: TD-20270311-0001 3/2","aiXuLy":"VAN_PHONG","aiXuLyNhan":"Văn phòng"}]}},"t1_RUNNING_xep_1_suat_sang_t2_ADM_pha_le":{"status":409,"code":"vuot_so_nguoi_chang","message":"Xếp quá số khách của chặng.","extra":{"lyDo":[{"ma":"VUOT_SO_NGUOI_CHANG","loiNhan":"Xếp quá số khách của chặng: TD-20270311-0001 3/2","aiXuLy":"VAN_PHONG","aiXuLyNhan":"Văn phòng"}]}},"t1_den_ben":{"status":200,"code":null,"message":null},"t1_tra":{"status":200,"code":null,"message":null},"t1_ket_thuc":{"status":200,"code":null,"message":null},"suat_t1_sau_ket_thuc":[{"status":"DROPPED","dong":0,"close_reason":null},{"status":"NO_SHOW","dong":0,"close_reason":null}],"lich_chang_A_sau_ket_thuc":{"trangThai":"XONG","soNguoi":2,"soDaXep":2,"nhan":["VANG"]},"t1_ENDED_xep_1_suat_sang_t2_SALES":{"status":409,"code":"vuot_so_nguoi_chang","message":"Xếp quá số khách của chặng.","extra":{"lyDo":[{"ma":"VUOT_SO_NGUOI_CHANG","loiNhan":"Xếp quá số khách của chặng: TD-20270311-0001 3/2","aiXuLy":"VAN_PHONG","aiXuLyNhan":"Văn phòng"}]}},"t1_ENDED_xep_1_suat_sang_t2_ADM_pha_le":{"status":409,"code":"vuot_so_nguoi_chang","message":"Xếp quá số khách của chặng.","extra":{"lyDo":[{"ma":"VUOT_SO_NGUOI_CHANG","loiNhan":"Xếp quá số khách của chặng: TD-20270311-0001 3/2","aiXuLy":"VAN_PHONG","aiXuLyNhan":"Văn phòng"}]}}}
+# Subtest: C51 khách Vắng trên xe 1 → xếp lại sang xe 2 (xe 1 đang chạy, rồi đã kết thúc)
+ok 1 - C51 khách Vắng trên xe 1 → xếp lại sang xe 2 (xe 1 đang chạy, rồi đã kết thúc)
+  ---
+  duration_ms: 121.514583
+  type: 'test'
+  ...
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/orders/:id/status"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/phan-bo"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/xuat-ben"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/diem/:sid/da-toi"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/phan-bo/:aid/vang"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/phan-bo/:aid/vang"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/ket-thuc"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/chuyen/:id/ket-thuc"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/diem/:sid/da-toi"}
+# {"event":"thieu_ma_lan_gui","duong":"POST /api/van-chuyen/cuoc-cua-toi/:id/ket-thuc"}
+# === C57.ket_qua {"diem_sau_vang_het":[{"loai":"PICKUP","trangThai":"DONE"},{"loai":"DROPOFF","trangThai":"PENDING"}],"man_ketThucDuoc":true,"may_chu_ket_thuc_tai_xe":{"status":409,"code":"con_khach_chua_xong","message":"Còn khách hoặc điểm chưa xong.","extra":{"lyDo":[],"goiY":"KET_THUC_GIAN_DOAN","conSuat":0,"conDiem":1}},"may_chu_ket_thuc_van_phong_ADM":{"status":409,"code":"con_khach_chua_xong","message":"Còn khách hoặc điểm chưa xong.","extra":{"lyDo":[],"goiY":"KET_THUC_GIAN_DOAN","conSuat":0,"conDiem":1}},"da_toi_diem_tra_0_khach":{"status":200,"code":null,"message":null},"diem_sau_da_toi_tra":[{"kind":"PICKUP","status":"DONE"},{"kind":"DROPOFF","status":"DONE"}],"ket_thuc_sau_da_toi_tra":{"status":200,"code":null,"message":null}}
+# Subtest: C57 cả đoàn của điểm trả vắng → nút màn vs máy chủ
+ok 2 - C57 cả đoàn của điểm trả vắng → nút màn vs máy chủ
+  ---
+  duration_ms: 86.822791
+  type: 'test'
+  ...
+1..2
+# tests 2
+# suites 0
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 341.560208
