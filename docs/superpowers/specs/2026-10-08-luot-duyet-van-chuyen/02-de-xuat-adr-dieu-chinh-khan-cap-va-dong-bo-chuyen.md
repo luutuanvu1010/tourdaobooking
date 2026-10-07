@@ -112,6 +112,11 @@ Nhật ký của máy ghi tên người đã sửa đơn, vì máy chạy trong 
 2. **Điểm gọi:** route đơn gọi hook **trước** khi ghi, rồi gộp câu trả về vào **cùng** `db.batch` với câu ghi đơn; `await` trong request (không `waitUntil`, không hàng đợi — ĐP8, ADR-0049 `:364`).
    - Thứ tự lô: câu ghi đơn (cổng của đơn đứng đầu như hôm nay) → với mỗi chuyến bị chạm: câu cổng chuyến (`version`, trạng thái chuyến như lúc đọc, **và** điều kiện "cổng đơn đã thắng") → nhật ký `changes() > 0` → các câu suất / sự kiện mang `EXISTS (… last_cmd_id = :cmd)` (ADR-0049 `:98-108`).
    - Thua cổng chuyến → các câu của chuyến đó không làm gì, câu ghi đơn vẫn ghi, chuyến giữ như hôm nay. Thua cổng đơn → không câu nào ghi.
+   - **Chỗ khó, người lập kế hoạch chọn, người kiểm soi:** điều kiện "cổng đơn đã thắng".
+     - Các route sửa đơn **thua lặng lẽ** chứ không làm hỏng lô: `wonGuard` = `EXISTS (SELECT 1 FROM audit_log WHERE id = ?)` (`src/modules/orders/repository.ts:769`, `:944`). Tạo đơn thì khác: là `INSERT`, đụng thì cả lô hỏng, nên tiền lệ ở mục 1 không phủ ca này.
+     - Câu của `van-chuyen` lại không được đọc `audit_log` (ADR-0049 `:107`, module nghiêm). Nếu thiếu điều kiện này, đơn thua mà câu chuyến vẫn chạy → **đóng ghế của đơn không hề bị huỷ**, tệ hơn hôm nay.
+     - Ba cách, chọn một: (a) một view công bố `v_ord_*` hay `v_aud_*` lộ dấu thắng của lệnh; (b) `orders` cấp sẵn biểu thức điều kiện để gắn vào câu chuyến, sau khi kiểm `src/architecture.test.ts` có cho hay không; (c) cổng đơn ở bảy route đổi sang **làm hỏng lô** khi thua (khuôn `INSERT` của tạo đơn).
+   - Hai route `dispatch` (`handler-cancel`, `handler-money-edit`) không tự dựng lô; chúng gọi hàm công bố của `orders`, ví dụ `cancelOrderByHandler` (`src/modules/dispatch/index.ts:233`). Vì vậy các hàm đó của `orders` phải nhận thêm câu ngoài, như `createOrder` nhận `handler?.statements` (`src/modules/orders/index.ts:734`).
    - Danh sách điểm gọi:
    - `orders`: `POST /api/orders/:id/status` (huỷ, `src/modules/orders/index.ts:1018`), `POST …/legs/:legId/close` (`:909`), `PUT …/legs/:legId` (`:891`, số người chặng), `POST …/passengers` (`:973`), route văn phòng sửa số khách của ADR-0063 D1;
    - `dispatch`: `handler-cancel` (`src/modules/dispatch/index.ts:218`), `handler-money-edit` (`:247`).
@@ -227,6 +232,7 @@ Mỗi rào phải quan sát chặn thật: sửa cố ý → đỏ → hoàn ngu
 ### Chưa kiểm
 - Số lần phá lệ thật trên production, ai xếp xe ban đêm, giá trị mốc thật (báo cáo ERP Phần 8 cũng chưa biết).
 - Lệnh huỷ đơn chậm thêm bao nhiêu khi phải chờ đồng bộ chuyến; giới hạn số câu trong một `db.batch` của D1 khi một đơn có khách trên nhiều chuyến.
+- Cách gắn điều kiện "cổng đơn đã thắng" vào câu chuyến mà không phạm luật module nghiêm (Đ2 mục 2, ba cách a/b/c) — **chưa giải**, việc của người lập kế hoạch.
 - Mỗi route trong bảy điểm gọi có sẵn đủ trạng thái `sau` trong bản kế hoạch của nó hay phải đọc thêm (người soạn chỉ đọc phần đầu route huỷ đơn và route khách, chưa đọc thân đầy đủ của route nào).
 - Bảng tin và tin điện thoại tới máy thật.
 - Tranh chấp đồng thời thật trên D1.

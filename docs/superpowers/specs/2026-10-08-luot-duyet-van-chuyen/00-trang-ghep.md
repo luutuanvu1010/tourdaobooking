@@ -112,7 +112,7 @@ Sổ "dừng dây chuyền" (danh sách lỗ an ninh đang mở có hạn vá) k
 | #2 (Q-3 a) + mốc | Bán hàng đóng dấu đặt gấp sớm để né mốc | kiểm "đang dưới mốc lúc gửi" |
 | #4 + tài xế đối tác (Đợt 6) | thấy địa chỉ nhà khách ngoài khung | khoá theo `trongKhungXemKhach` (ADR-0053 D7.2) |
 | #4 + chữ tự do có SĐT | SĐT ra Google | `maskLongDigits` (≥ 8 chữ số); SĐT viết tách nhóm ngắn hơn 8 chữ số **không** bị che — chỉ có dòng nhắc (dựa vào kỷ luật) |
-| #3 ghi đơn và ghi chuyến | hai lô sẽ lệch Hiến chương 1.2 "một lô ghi nguyên khối" (`docs/ARCHITECTURE.md:25`) | đã chọn **một lô**: câu chưa chạy do `van-chuyen` cấp (5.3), theo tiền lệ tạo đơn gộp câu người phụ trách (`src/modules/orders/index.ts:730-734`). Chuyến thua cổng → phần chuyến không làm gì, đơn vẫn ghi. Người kiểm soi việc route tính trạng thái `sau` |
+| #3 ghi đơn và ghi chuyến | hai lô sẽ lệch Hiến chương 1.2 "một lô ghi nguyên khối" (`docs/ARCHITECTURE.md:25`) | đã chọn **một lô**: câu chưa chạy do `van-chuyen` cấp (5.3), theo tiền lệ tạo đơn gộp câu người phụ trách (`src/modules/orders/index.ts:730-734`). Chuyến thua cổng → phần chuyến không làm gì, đơn vẫn ghi. **Còn mở:** điều kiện "cổng đơn đã thắng" cho câu chuyến — `wonGuard` đọc `audit_log` mà module nghiêm không được đọc (tệp 02 Đ2 mục 2, ba cách a/b/c); thiếu điều kiện này thì đơn thua mà ghế vẫn bị đóng. Người kiểm soi cả việc route tính trạng thái `sau` |
 
 ### 6. Sổ dừng dây chuyền (`docs/quyen-hoan.json`, đọc 2026-10-08)
 - Mục HIGH đang mở:
