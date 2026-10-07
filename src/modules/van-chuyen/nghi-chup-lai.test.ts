@@ -6,7 +6,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
-import { ADM, DRIVER, NGAY, SALES, SUP, batDongHo, chiTiet, denGio, don, setup, taoChuyen, tienDo, uuid, vnMs, xe, xepHet } from "../../../tests/audit/dieu-phoi-khung.mjs";
+import { ADM, DRIVER, DRIVER2, NGAY, SALES, SUP, batDongHo, chiTiet, denGio, don, setup, taoChuyen, tienDo, uuid, vnMs, xe, xepHet } from "../../../tests/audit/dieu-phoi-khung.mjs";
 
 /** Chính sách gieo (0041) — chỉ đổi khoảng nghỉ. */
 const chinhSach = (w: any, restMinutes: number) =>
@@ -126,6 +126,54 @@ test("kiểm lúc sửa xét khoảng nghỉ theo SỐ SẼ GHI: chính sách n�
     const p = await sua(w, bId, { diem: [{ id: donB.id, thuTu: donB.thuTu, gioXeToi: { ngay: NGAY, gio: "08:05" } }] });
     assert.equal(p.status, 200, p.text);
     assert.equal(dongChuyen(w, bId).rest_minutes_snapshot, 30, "không dời giờ ⇒ giữ số đã chụp");
+  } finally {
+    tat();
+  }
+});
+
+// Phiếu kiểm độc lập V2(b): mỗi vế của điều kiện chụp lại có một bài riêng — bỏ riêng vế `doiXe` hay riêng vế `doiTaiXe` đều phải đỏ.
+/** Một chuyến B 08:00–09:00 (không khách) chụp 30 lúc tạo. */
+async function motChuyen(w: any) {
+  const B = await taoChuyen(w, { xe: xe(w, 16), taiXe: `pty-${DRIVER}`, bd: "08:00", kt: "09:00" });
+  const id = B.chuyen.id as string;
+  assert.equal(dongChuyen(w, id).rest_minutes_snapshot, 30, "chụp 30 lúc tạo");
+  return id;
+}
+const keHoach = (w: any, id: string) => ({
+  ...w.q(
+    `SELECT t.planned_start_ms, t.planned_end_ms, t.vehicle_id,
+       (SELECT d.driver_party_id FROM vc_trip_driver d WHERE d.trip_id = t.id AND d.valid_to_at IS NULL) AS driver_party_id
+     FROM vc_trip t WHERE t.id = ?`, id)[0],
+});
+
+test("chỉ đổi XE (giữ giờ, giữ tài xế) ⇒ chụp lại khoảng nghỉ của chính sách hiện hành", async () => {
+  const tat = batDongHo(vnMs("2027-03-10", "22:00"));
+  try {
+    const w = setup();
+    const id = await motChuyen(w);
+    const truoc = keHoach(w, id);
+    assert.equal((await chinhSach(w, 0)).status, 201);
+    const xeMoi = xe(w, 16);
+    const p = await sua(w, id, { xeId: xeMoi });
+    assert.equal(p.status, 200, p.text);
+    assert.deepEqual(keHoach(w, id), { ...truoc, vehicle_id: xeMoi }, "lệnh chỉ đổi xe");
+    assert.equal(dongChuyen(w, id).rest_minutes_snapshot, 0);
+  } finally {
+    tat();
+  }
+});
+
+test("chỉ đổi TÀI XẾ (giữ giờ, giữ xe) ⇒ chụp lại khoảng nghỉ của chính sách hiện hành", async () => {
+  const tat = batDongHo(vnMs("2027-03-10", "22:00"));
+  try {
+    const w = setup();
+    const id = await motChuyen(w);
+    const truoc = keHoach(w, id);
+    assert.equal((await chinhSach(w, 45)).status, 201);
+    const p = await sua(w, id, { taiXePartyId: `pty-${DRIVER2}` });
+    assert.equal(p.status, 200, p.text);
+    assert.deepEqual(keHoach(w, id), { ...truoc, driver_party_id: `pty-${DRIVER2}` }, "lệnh chỉ đổi tài xế");
+    assert.equal(dongChuyen(w, id).rest_minutes_snapshot, 45);
   } finally {
     tat();
   }
