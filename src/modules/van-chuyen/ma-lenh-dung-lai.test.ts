@@ -89,6 +89,68 @@ test("gửi lặp đúng lệnh vẫn 200: tạo chuyến (cùng chuyến cũ) v
   }
 });
 
+/**
+ * Ba chuyến kế hoạch P, Q (haiChuyenKeHoach) và Z (19:00–20:00, có 2 khách riêng); một suất của P đã DỜI sang Q bằng mã R. Lệnh dời so ĐÚNG CẶP: sự kiện
+ * ALLOCATION_MOVED ghi trip_id = chuyến ĐÍCH, related_trip_id = chuyến NGUỒN — mã R chỉ là "lệnh lặp" của đúng cặp P→Q.
+ */
+async function daDoiPQ(w: any) {
+  const { pId, qId, suatP } = await haiChuyenKeHoach(w);
+  const dZ = await don(w, { soNguoi: 2, gio: "19:30", noiDon: "Khách sạn Zét" });
+  const Z = await taoChuyen(w, { xe: xe(w, 16), taiXe: `pty-${DRIVER2}`, bd: "19:00", kt: "20:00" });
+  const sauZ = await xepHet(w, Z, dZ, 2);
+  const zId = Z.chuyen.id as string;
+  const suatZ = sauZ.suat.filter((s: any) => s.loai === "PASSENGER").map((s: any) => s.id as string);
+  const R = uuid();
+  const doi = async (tu: string, den: string, suatIds: string[]) =>
+    w.call("POST", `/api/van-chuyen/chuyen/${tu}/doi`, { as: SALES, body: { version: dongChuyen(w, tu).version, requestId: R, suatIds, denChuyenId: den, denVersion: dongChuyen(w, den).version } });
+  const dau = await doi(pId, qId, [suatP[0]!]);
+  assert.equal(dau.status, 200, dau.text);
+  const moTren = (suatId: string, trip: string): number =>
+    w.q("SELECT count(*) AS n FROM vc_trip_allocation WHERE id = ? AND trip_id = ? AND valid_to_at IS NULL", suatId, trip)[0].n;
+  const suatQ = w.q("SELECT id FROM vc_trip_allocation WHERE trip_id = ? AND valid_to_at IS NULL", qId)[0].id as string;
+  return { pId, qId, zId, suatP, suatQ, suatZ, R, doi, moTren };
+}
+
+test("lệnh dời, cùng mã, dời NGƯỢC Q→P ⇒ 409 request_id_reused, suất vẫn ở Q (trước đây 200 vì trip_id của sự kiện = Q)", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const { pId, qId, suatQ, R, doi, moTren } = await daDoiPQ(w);
+    laDungLai(await doi(qId, pId, [suatQ]));
+    assert.equal(moTren(suatQ, qId), 1, "suất vẫn ở Q");
+    assert.equal(soSuKien(w, R), 1);
+  } finally {
+    tat();
+  }
+});
+
+test("lệnh dời, cùng mã, dời P→Z (chuyến thứ ba) ⇒ 409 request_id_reused, suất vẫn ở P (trước đây 200 vì related_trip_id của sự kiện = P)", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const { pId, zId, suatP, R, doi, moTren } = await daDoiPQ(w);
+    laDungLai(await doi(pId, zId, [suatP[1]!]));
+    assert.equal(moTren(suatP[1]!, pId), 1, "suất thứ hai vẫn ở P");
+    assert.equal(w.q("SELECT count(*) AS n FROM vc_trip_allocation WHERE trip_id = ? AND valid_to_at IS NULL", zId)[0].n, 2, "Z chỉ còn hai suất của nó");
+    assert.equal(soSuKien(w, R), 1);
+  } finally {
+    tat();
+  }
+});
+
+test("lệnh dời, cùng mã, dời Z→Q (cùng ĐÍCH, KHÁC nguồn) ⇒ 409 request_id_reused, suất vẫn ở Z", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const { qId, zId, suatZ, R, doi, moTren } = await daDoiPQ(w);
+    laDungLai(await doi(zId, qId, [suatZ[0]!]));
+    assert.equal(moTren(suatZ[0]!, zId), 1, "suất vẫn ở Z");
+    assert.equal(soSuKien(w, R), 1);
+  } finally {
+    tat();
+  }
+});
+
 /** Chuyến 12:30–15:00 chở hai đơn (A đón 13:00, B đón 13:10), đã xuất bến 12:35, đã tới A (12:40) và B (12:44). */
 async function chuyenDangChay(w: any) {
   const dA = await don(w, { soNguoi: 2, gio: "13:00", noiDon: "Khách sạn A" });

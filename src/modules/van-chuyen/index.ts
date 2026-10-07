@@ -1349,7 +1349,8 @@ export const vanChuyenModule: AppModule = {
       const nen = await docNen(env.DB, params.id ?? "");
       if (!nen) return KHONG_CO_CHUYEN();
       const bayGioMs = Date.now();
-      const lap = await traLenhLap(env.DB, b.requestId, { tripId: nen.trip.id, loai: ["ALLOCATION_MOVED"] });
+      // C38 + phiếu kiểm V1: sự kiện dời ghi ở chuyến ĐÍCH, nguồn ở related_trip_id — so đúng cặp (dời ngược, dời sang chuyến khác cùng mã đều lệch).
+      const lap = await traLenhLap(env.DB, b.requestId, { tripId: b.denChuyenId, nguonId: nen.trip.id, loai: ["ALLOCATION_MOVED"] });
       if (lap instanceof Response) return lap;
       if (!lap) {
         const dich = b.denChuyenId === nen.trip.id ? null : await docNen(env.DB, b.denChuyenId);

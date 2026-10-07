@@ -13,11 +13,18 @@ const ev = (o: Partial<{ trip_id: string; related_trip_id: string | null; kind: 
   id: "e-1", trip_id: "t-1", related_trip_id: null, kind: "PASSENGER_BOARDED", stop_id: "d-1", allocation_id: "s-1", ...o,
 });
 
-test("khopLenhLap: đúng chuyến (trip_id hoặc related_trip_id), đúng loại, đúng suất / điểm khi lệnh nhắm; tripId null (lệnh tạo) không so chuyến", () => {
+test("khopLenhLap: đúng CẶP chuyến (trip_id, related_trip_id), đúng loại, đúng suất / điểm khi lệnh nhắm; tripId null (lệnh tạo) không so chuyến", () => {
   const k = { tripId: "t-1", loai: ["PASSENGER_BOARDED"], suatId: "s-1" };
   assert.equal(r.khopLenhLap(ev(), k), true);
   assert.equal(r.khopLenhLap(ev({ trip_id: "t-2" }), k), false, "khác chuyến");
-  assert.equal(r.khopLenhLap(ev({ trip_id: "t-2", related_trip_id: "t-1" }), k), true, "lệnh dời: chuyến của lệnh nằm ở related_trip_id");
+  assert.equal(r.khopLenhLap(ev({ trip_id: "t-2", related_trip_id: "t-1" }), k), false, "chuyến của lệnh chỉ nằm ở related_trip_id ⇒ lệch");
+  // Lệnh dời P→Q: sự kiện ghi ở Q (trip_id), nguồn P (related_trip_id) — chỉ đúng cặp mới khớp.
+  const doi = { tripId: "t-q", nguonId: "t-p", loai: ["ALLOCATION_MOVED"] };
+  const evDoi = (trip_id: string, related_trip_id: string) => ev({ kind: "ALLOCATION_MOVED", trip_id, related_trip_id, stop_id: null, allocation_id: null });
+  assert.equal(r.khopLenhLap(evDoi("t-q", "t-p"), doi), true, "dời P→Q lặp");
+  assert.equal(r.khopLenhLap(evDoi("t-p", "t-q"), doi), false, "sự kiện của dời ngược Q→P");
+  assert.equal(r.khopLenhLap(evDoi("t-q", "t-z"), doi), false, "cùng đích, khác nguồn");
+  assert.equal(r.khopLenhLap(evDoi("t-z", "t-p"), doi), false, "cùng nguồn, khác đích");
   assert.equal(r.khopLenhLap(ev({ kind: "PASSENGER_NO_SHOW" }), k), false, "khác loại");
   assert.equal(r.khopLenhLap(ev({ allocation_id: "s-2" }), k), false, "cùng loại, khác suất");
   assert.equal(r.khopLenhLap(ev({ allocation_id: "s-2" }), { tripId: "t-1", loai: ["PASSENGER_BOARDED"] }), true, "lệnh không nhắm suất: không so suất");

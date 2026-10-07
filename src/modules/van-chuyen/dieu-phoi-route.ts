@@ -103,22 +103,25 @@ export const nhanLyDo = (chung: DuLieuChung, code: string): string => chung.lyDo
 /** 409 khi mã lệnh (requestId) đã thuộc sự kiện của một thao tác KHÁC — không ghi gì. */
 export const MA_LENH_DUNG_LAI = () => loi409("request_id_reused");
 /**
- * Lệnh đang gửi, để so với sự kiện đã mang cùng request_id (C38 — báo cáo ERP 2026-10-07): `tripId` = chuyến của lệnh (null: lệnh tạo — chưa có chuyến);
- * `loai` = các loại sự kiện lệnh này sinh ra (mỗi lệnh hôm nay sinh đúng MỘT loại — đọc ở các hàm `lo*` của dieu-phoi.ts); `suatId` / `diemId` = suất / điểm
- * mà lệnh nhắm (đường dẫn `:aid` / `:sid`, thân `suatId`) — vắng = không so.
+ * Lệnh đang gửi, để so với sự kiện đã mang cùng request_id (C38 — báo cáo ERP 2026-10-07): `tripId` = chuyến mà sự kiện của lệnh GHI vào (`trip_id`; lệnh
+ * dời: chuyến ĐÍCH; null: lệnh tạo — chưa có chuyến); `nguonId` = chuyến liên quan (`related_trip_id`; chỉ lệnh dời: chuyến NGUỒN; vắng = sự kiện không có
+ * chuyến liên quan); `loai` = các loại sự kiện lệnh này sinh ra (mỗi lệnh hôm nay sinh đúng MỘT loại — đọc ở các hàm `lo*` của dieu-phoi.ts); `suatId` /
+ * `diemId` = suất / điểm mà lệnh nhắm (đường dẫn `:aid` / `:sid`, thân `suatId`) — vắng = không so.
  */
 export interface LenhCanLap {
   tripId: string | null;
+  nguonId?: string;
   loai: readonly LoaiSuKienChuyen[];
   suatId?: string;
   diemId?: string;
 }
 /**
- * Sự kiện `ev` (cùng request_id) có phải của CHÍNH lệnh `k` không: đúng chuyến (`trip_id` hoặc `related_trip_id` — lệnh dời ghi ở chuyến đích, nguồn ở
- * `related_trip_id`), đúng loại, đúng suất / điểm khi lệnh nhắm một suất / điểm. Hàm thuần.
+ * Sự kiện `ev` (cùng request_id) có phải của CHÍNH lệnh `k` không: đúng CẶP chuyến (`trip_id` = `tripId`, `related_trip_id` = `nguonId` — lệnh dời P→Q chỉ
+ * khớp sự kiện ghi ở Q có nguồn P; dời ngược Q→P hay P→Z cùng mã đều lệch), đúng loại, đúng suất / điểm khi lệnh nhắm một suất / điểm. Hàm thuần.
  */
 export function khopLenhLap(ev: SuKienYeuCauRow, k: LenhCanLap): boolean {
-  if (k.tripId !== null && ev.trip_id !== k.tripId && ev.related_trip_id !== k.tripId) return false;
+  if (k.tripId !== null && ev.trip_id !== k.tripId) return false;
+  if (ev.related_trip_id !== (k.nguonId ?? null)) return false;
   if (!(k.loai as readonly string[]).includes(ev.kind)) return false;
   if (k.suatId !== undefined && ev.allocation_id !== k.suatId) return false;
   if (k.diemId !== undefined && ev.stop_id !== k.diemId) return false;
@@ -141,7 +144,7 @@ function lenhCuaLo(lo: readonly CauCoNhan[]): LenhCanLap | null {
   const sk: SuKienCuaLo | undefined = lo.find((c) => c.suKien)?.suKien;
   if (!sk) return null;
   return {
-    tripId: sk.loai === "CREATED" ? null : sk.tripId, loai: [sk.loai],
+    tripId: sk.loai === "CREATED" ? null : sk.tripId, ...(sk.relatedTripId !== null ? { nguonId: sk.relatedTripId } : {}), loai: [sk.loai],
     ...(sk.allocationId !== null ? { suatId: sk.allocationId } : {}), ...(sk.stopId !== null ? { diemId: sk.stopId } : {}),
   };
 }
