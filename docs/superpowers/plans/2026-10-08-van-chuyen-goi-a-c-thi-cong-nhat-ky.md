@@ -26,8 +26,8 @@ Sổ điều phối (CLAUDE.md §9, P19). Trạng thái sống ở đây, không
 |---|---|---|
 | C55 | Lần tải nền lỗi: 403/404 ẩn trang; mất mạng / 5xx giữ danh sách điểm, tên, số liên hệ, nút; dải "Mất mạng — dữ liệu lúc HH:MM" + "Tải lại"; không ghi xuống trình duyệt | **Xong** `f68cd3a3`. Bài thuần đỏ → xanh; Chrome bước 5b đỏ trên mã cũ, xanh sau sửa |
 | C60 | `cuoc-smoke.mjs` xanh toàn bộ trên mã hiện tại | **Xong** `f68cd3a3` — "CUOC SMOKE OK (16 bước)"; log trước/sau ở `docs/evidence/2026-10-08-goi-c-giai-doan-1/log/` |
-| N3 | Sửa chuyến đổi giờ / xe / tài xế → `rest_minutes_snapshot` = chính sách hiện hành; sửa khác giữ số cũ; `kiemXuatBen` không đổi | **Đã thi công** `8a9e8d73` (trợ lý). Chờ kiểm độc lập |
-| C38 | `requestId` dùng lại cho lệnh khác (khác chuyến / loại / suất / điểm) → 409 `request_id_reused`, không ghi; lặp đúng lệnh vẫn 200 | **Đã thi công** `809918d5` (trợ lý, 29 route + bài quét hàng rào). Chờ kiểm độc lập |
+| N3 | Sửa chuyến đổi giờ / xe / tài xế → `rest_minutes_snapshot` = chính sách hiện hành; sửa khác giữ số cũ; `kiemXuatBen` không đổi | **Đã thi công** `8a9e8d73`. Kiểm độc lập: ĐẠT CÓ ĐIỀU KIỆN — **mốc chụp chưa có ADR** (Hiến chương 5.6 đòi ADR quy định mốc; đặc tả 2026-09-29 chưa duyệt, tự mâu thuẫn) → hỏi chủ ở lượt duyệt kế; nhánh "đổi xe / tài xế" chưa có bài giữ → đang bổ sung |
+| C38 | `requestId` dùng lại cho lệnh khác (khác chuyến / loại / suất / điểm) → 409 `request_id_reused`, không ghi; lặp đúng lệnh vẫn 200 | **Đã thi công** `809918d5` (29 route + bài quét). Kiểm độc lập: ĐẠT CÓ ĐIỀU KIỆN — lệnh dời còn lọt "khác chuyến" (V1); danh sách loại sự kiện từng route và thuộc tính `suKien` chưa có bài giữ (V2); tài liệu mô tả chưa sửa (V4) → trợ lý đang sửa |
 | C27 | Có khoảng trống người dùng gặp được thì cảnh báo không chặn; không có thì ghi "không cần sửa" | **Không cần sửa**: màn tạo/sửa tắt xe không `active`; xe đổi sang Bảo dưỡng sau khi có chuyến thì chi tiết và bảng điều phối hiện lý do giữ ngay (bài nháp của trợ lý, không commit) |
 | C14 | Route "thay chặng" một `db.batch`: chặng mới dưới mốc → 409, chặng cũ còn mở; Quản trị + `datGap` qua; ba route cũ giữ nguyên; bảng "Sửa đưa đón" dùng route mới cho "Đổi sang chặng khác" | Đang thi công (trợ lý, worktree riêng) |
 
@@ -36,6 +36,9 @@ Sổ điều phối (CLAUDE.md §9, P19). Trạng thái sống ở đây, không
 - Soạn ba văn bản cho lượt duyệt kế: `docs/superpowers/specs/2026-10-08-luot-duyet-van-chuyen/` (tóm ADR-0063 phần số khách; ADR mới điều chỉnh khẩn cấp + đồng bộ chuyến; ADR mới nút Chỉ đường; trang ghép). Chưa có người kiểm độc lập.
 
 ## Nợ / để sau
+
+- Cùng họ C38, ngoài 29 route (phiếu kiểm 8/10, THẤP): lệnh nhắm nhiều đối tượng (rút / xếp / thêm điểm / cập nhật) chỉ so chuyến + loại — rút suất 2 bằng mã của lần rút suất 1 trả 200 không làm gì; `mocByRequest` ("Đã gọi báo" / "Bỏ đánh dấu") không so chặng; `findRate(requestId)` của bảng giá xe thuê trả dòng cũ khi thân khác. Ghi BACKLOG khi đóng giai đoạn.
+- Nhật ký sửa chuyến không ghi số nghỉ cũ → mới khi chụp lại (truy vết qua `policy_id` của sự kiện).
 
 - Hàng rào mới cần dòng ở `docs/SO-HANG-RAO.md` (sau khi kiểm độc lập ĐẠT): bài quét cuối `src/modules/van-chuyen/ma-lenh-dung-lai.test.ts` — chặn route lệnh chuyến tự tra `eventByRequest` bỏ qua `traLenhLap`; quan sát chặn thật 2026-10-08 (người thi công báo; người kiểm xác nhận).
 - `web/CLAUDE.md` bảng kịch bản ghi `cuoc-smoke.mjs` "11 bước" — nay 16 (số đếm lạc hậu từ trước).
