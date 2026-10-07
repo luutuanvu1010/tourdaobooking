@@ -348,15 +348,15 @@ export const EVENT_INSERT = defineSql(
    WHERE EXISTS (SELECT 1 FROM vc_trip WHERE id = ?2 AND last_cmd_id = ?1)`,
 );
 /**
- * Sửa kế hoạch chuyến (xe, chủ xe chụp, giờ, khoá dính, phá lệ nghỉ, cờ xe thuê, tuyến). ?1 chuyến, ?2 dấu lệnh, ?3 xe, ?4 chủ xe, ?5 ngày chạy, ?6 bắt đầu,
- * ?7 kết thúc, ?8 giờ sớm nhất (do `batDauSomNhatSauDoiGio` tính — R-P7), ?9 phá lệ nghỉ, ?10 lúc, ?11 người, ?12 cờ xe thuê (ADR-0057 C2a — chỉ tính lại khi
- * đổi xe; trigger vc_trip_rented_* giữ), ?13 tuyến.
+ * Sửa kế hoạch chuyến (xe, chủ xe chụp, giờ, khoá dính, phá lệ nghỉ, cờ xe thuê, tuyến, khoảng nghỉ chụp). ?1 chuyến, ?2 dấu lệnh, ?3 xe, ?4 chủ xe, ?5 ngày chạy,
+ * ?6 bắt đầu, ?7 kết thúc, ?8 giờ sớm nhất (do `batDauSomNhatSauDoiGio` tính — R-P7), ?9 phá lệ nghỉ, ?10 lúc, ?11 người, ?12 cờ xe thuê (ADR-0057 C2a — chỉ tính
+ * lại khi đổi xe; trigger vc_trip_rented_* giữ), ?13 tuyến, ?14 khoảng nghỉ chụp (N3 — chụp lại khi lệnh đổi giờ / xe / tài xế, không thì số cũ).
  */
 export const TRIP_UPDATE_PLAN = defineSql(
   "van-chuyen",
   "trip_update_plan",
   `UPDATE vc_trip SET vehicle_id = ?3, carrier_party_id = ?4, service_date = ?5, planned_start_ms = ?6, planned_end_ms = ?7, earliest_start_ms = ?8,
-     rest_override_reason_code = ?9, updated_at = ?10, updated_by = ?11, rented = ?12, route_code = ?13
+     rest_override_reason_code = ?9, updated_at = ?10, updated_by = ?11, rented = ?12, route_code = ?13, rest_minutes_snapshot = ?14
    WHERE id = ?1 AND last_cmd_id = ?2`,
 );
 /**

@@ -120,19 +120,25 @@ export async function lenhSuaChuyen(
   // ADR-0055 VK2-A A2 (i): khung bận còn hiệu lực giao giờ MỚI là khoảng chặn (lớp máy chủ nói trước bằng lời; trigger vc_trip_unavailable_upd là lưới thứ hai).
   const khungBan = (await khungBanXeTrongKhoang(db, batDauMs, ketThucMs)).map(khungBanVao);
   const changCamKet = changTrenChuyen(nen, new Map(lich.map((c) => [c.legId, changVao(c)])));
+  const doiGio = batDauMs !== t.planned_start_ms;
+  const doiKetThuc = ketThucMs !== t.planned_end_ms;
+  const doiTaiXe = taiXeId !== t.driver_party_id && taiXeId !== null;
+  // N3 (báo cáo ERP 2026-10-07; đặc tả 2026-09-29 CH-02 "tạo/sửa chuyến, gán tài xế; chụp vào rest_minutes_snapshot"): lệnh đổi giờ (bắt đầu hoặc kết thúc), xe
+  // hoặc tài xế CHỤP LẠI khoảng nghỉ của chính sách HIỆN HÀNH (cùng chỗ lệnh tạo đọc); lệnh khác giữ số đã chụp. Luật kiểm xét khoảng nghỉ theo ĐÚNG số sẽ ghi —
+  // cổng xuất bến đọc lại số này (`ChuyenVao.nghiChup`), nên kiểm lúc sửa và xuất bến dùng một con số.
+  const nghiChup = doiGio || doiKetThuc || doiXe || doiTaiXe ? (chung.chinhSach?.rest_minutes ?? t.rest_minutes_snapshot) : t.rest_minutes_snapshot;
+  const cs = chinhSachVao(chung.chinhSach);
   const kq = kiemTaoSuaChuyen({
     lenh: "SUA",
     chuyen: { id: t.id, batDauMs, ketThucMs, xe: xeVao(xeRow, chung.giayToXe), taiXe: taiXeId ? taiXeVao(taiXeId, chung.taiXe) : null, nghiPhaLe: b.nghiPhaLe !== null || t.rest_override_reason_code !== null },
     cu: { batDauMs: t.planned_start_ms, batDauSomNhatMs: t.earliest_start_ms, xeId: t.vehicle_id, taiXePartyId: t.driver_party_id, trangThai: t.status },
-    taiTrenChuyen: tai, chuyenKhac: khac.map(khungChuyen), khungBan, chinhSach: chinhSachVao(chung.chinhSach), hangBang: chung.hangBang, bayGioMs,
+    taiTrenChuyen: tai, chuyenKhac: khac.map(khungChuyen), khungBan, chinhSach: cs ? { ...cs, restMinutes: nghiChup } : null, hangBang: chung.hangBang, bayGioMs,
     // ADR-0056 VK3-A: đổi xe → cam kết của khách đang trên chuyến xét lại với xe mới (luật thuần chỉ CHẶN khi đổi xe).
     camKet: doiXe ? { changTrenChuyen: changCamKet, khoaDaPhaLe: t.commitment_override_key } : undefined,
   });
   const chan = loiKiem(kq, staff, t.status, { moc: b.phaLe !== null, nghi: b.nghiPhaLe !== null || t.rest_override_reason_code !== null, camKet: b.camKetPhaLe !== null });
   if (chan) return chan;
   if (ra) ra.nhacGioLai = kq.nhacGioLai;
-  const doiGio = batDauMs !== t.planned_start_ms;
-  const doiTaiXe = taiXeId !== t.driver_party_id && taiXeId !== null;
   const diemDoi = b.diem.filter((d) => {
     const s = nen.stops.find((x) => x.id === d.id)!;
     return s.seq !== d.thuTu || s.planned_date !== (d.gioXeToi?.ngay ?? null) || s.planned_time !== (d.gioXeToi?.gio ?? null);
@@ -142,7 +148,7 @@ export async function lenhSuaChuyen(
   const camKetKq = kq.camKet ?? kiemCamKet({ xe: { id: xeId, soCho: xeRow.passenger_capacity }, chang: changCamKet, khoaDaPhaLe: t.commitment_override_key });
   const ck = camKetSauLenh(chung, camKetKq, t.commitment_override_key, b.camKetPhaLe);
   const ghiCamKet = ck.lo !== null && ck.lo.khoa !== null;
-  if (!doiGio && ketThucMs === t.planned_end_ms && !doiXe && !doiTaiXe && !doiTuyen && diemDoi.length === 0 && !b.nghiPhaLe && !ghiCamKet) return null; // không đổi gì — không ghi
+  if (!doiGio && !doiKetThuc && !doiXe && !doiTaiXe && !doiTuyen && diemDoi.length === 0 && !b.nghiPhaLe && !ghiCamKet) return null; // không đổi gì — không ghi
   // R-P6 + R-P7: giờ sớm nhất sau khi đổi giờ — MỘT luật (`batDauSomNhatSauDoiGio`, mốc của chính sách HIỆN HÀNH lúc sửa); không đổi giờ thì giữ.
   const phut = chung.chinhSach?.min_lead_minutes ?? 0;
   const somNhat = doiGio ? batDauSomNhatSauDoiGio({ batDauMs: t.planned_start_ms, batDauSomNhatMs: t.earliest_start_ms }, batDauMs, bayGioMs, phut) : Math.min(t.earliest_start_ms, batDauMs);
@@ -150,14 +156,14 @@ export async function lenhSuaChuyen(
   const thay: string[] = [];
   if (doiXe) thay.push(`xe ${chung.xe.find((x) => x.id === t.vehicle_id)?.plate_number ?? "?"} → ${xeRow.plate_number}`);
   if (doiTaiXe) thay.push("đổi tài xế");
-  if (doiGio || ketThucMs !== t.planned_end_ms) thay.push(`giờ ${gioNgan(t.planned_start_ms, bayGioMs)}–${gioNgan(t.planned_end_ms, bayGioMs)} → ${gioNgan(batDauMs, bayGioMs)}–${gioNgan(ketThucMs, bayGioMs)}`);
+  if (doiGio || doiKetThuc) thay.push(`giờ ${gioNgan(t.planned_start_ms, bayGioMs)}–${gioNgan(t.planned_end_ms, bayGioMs)} → ${gioNgan(batDauMs, bayGioMs)}–${gioNgan(ketThucMs, bayGioMs)}`);
   if (diemDoi.length > 0) thay.push(`${diemDoi.length} điểm đổi thứ tự / giờ xe tới`);
   if (doiTuyen) thay.push(`tuyến ${await tenTuyen(db, t.route_code)} → ${await tenTuyen(db, tuyenMoi)}`);
   const lo = loSuaChuyen(db, {
     ...lenhChung(b.requestId, staff, bayGioMs), tripId: t.id, version: b.version,
     moi: {
       xeId, chuXePartyId: xeRow.owner_party_id, ngayChay: ngayChayMoi, batDauMs, ketThucMs, batDauSomNhatMs: somNhat, nghiPhaLeLyDo: b.nghiPhaLe?.lyDo ?? t.rest_override_reason_code,
-      thue, tuyen: tuyenMoi,
+      thue, tuyen: tuyenMoi, nghiChup,
     },
     chiPhi: kh.kh, phienBanChiPhi: kh.kh.phienBan,
     doiTaiXe: doiTaiXe ? taiXeId : null,

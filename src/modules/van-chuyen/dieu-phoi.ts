@@ -164,7 +164,11 @@ export function loTaoChuyen(db: D1Database, l: LenhTaoChuyen): CauCoNhan[] {
 export interface LenhSuaChuyen extends LenhChung {
   tripId: string;
   version: number;
-  moi: { xeId: string; chuXePartyId: string; ngayChay: string; batDauMs: number; ketThucMs: number; batDauSomNhatMs: number; nghiPhaLeLyDo: string | null; thue: 0 | 1; tuyen: string | null };
+  /** `nghiChup` (N3): khoảng nghỉ chụp sau lệnh — số của chính sách hiện hành khi lệnh đổi giờ / xe / tài xế, không thì số đã chụp. */
+  moi: {
+    xeId: string; chuXePartyId: string; ngayChay: string; batDauMs: number; ketThucMs: number; batDauSomNhatMs: number; nghiPhaLeLyDo: string | null; thue: 0 | 1; tuyen: string | null;
+    nghiChup: number;
+  };
   /** Tài xế MỚI khi đổi (đóng dòng cũ REASSIGNED + mở dòng mới); null = giữ. */
   doiTaiXe: string | null;
   diem: { id: string; seq: number; ngayXeToi: string | null; gioXeToi: string | null }[];
@@ -190,7 +194,7 @@ export function loSuaChuyen(db: D1Database, l: LenhSuaChuyen): CauCoNhan[] {
   // Đổi tài xế: ĐÓNG dòng cũ TRƯỚC câu ghi chuyến (trigger LC-13 vc_trip_vehicle_carrier_upd so tài xế ĐANG MỞ với chủ xe MỚI — đổi xe nhà xe ↔ xe công ty /
   // nhà xe khác kèm đổi tài xế trước đây vấp lc13_cross; phát hiện khi thi công ADR-0057 RF1-e/f), MỞ dòng mới SAU.
   if (l.doiTaiXe !== null) lo.push(ghi(db.prepare(DRIVER_CLOSE).bind(l.tripId, l.cmd, "REASSIGNED", l.lucIso, l.nguoiId)));
-  lo.push(ghi(db.prepare(TRIP_UPDATE_PLAN).bind(l.tripId, l.cmd, m.xeId, m.chuXePartyId, m.ngayChay, m.batDauMs, m.ketThucMs, m.batDauSomNhatMs, m.nghiPhaLeLyDo, l.lucIso, l.nguoiId, m.thue, m.tuyen)));
+  lo.push(ghi(db.prepare(TRIP_UPDATE_PLAN).bind(l.tripId, l.cmd, m.xeId, m.chuXePartyId, m.ngayChay, m.batDauMs, m.ketThucMs, m.batDauSomNhatMs, m.nghiPhaLeLyDo, l.lucIso, l.nguoiId, m.thue, m.tuyen, m.nghiChup)));
   if (l.doiTaiXe !== null) lo.push(ghi(db.prepare(DRIVER_INSERT).bind(crypto.randomUUID(), l.tripId, l.doiTaiXe, l.cmd, l.lucIso, l.nguoiId)));
   for (const d of l.diem) lo.push(ghi(db.prepare(STOP_UPDATE_PLAN).bind(d.id, l.tripId, l.cmd, d.seq, d.ngayXeToi, d.gioXeToi, l.lucIso, l.nguoiId)));
   lo.push(...cauCamKet(db, l, l.tripId, l.camKet));
