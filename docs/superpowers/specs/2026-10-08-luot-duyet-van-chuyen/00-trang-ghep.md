@@ -13,10 +13,10 @@ Ba văn bản trong thư mục này chứa bốn quyết định đụng tới q
 
 1. **Người không có quyền xếp xe vẫn làm ghế trên xe thay đổi.** Khi hướng dẫn viên, đối tác hay thực tập huỷ đơn hoặc bớt khách, máy trả ghế trên xe. Việc này cố ý (tệp 02), và máy chỉ chạm ghế của đúng đơn đó, không bao giờ đổi xe, tài xế hay giờ chạy.
 2. **Hai người cùng sửa một chuyến đúng lúc.** Ví dụ Bán hàng đang Điều chỉnh khẩn cấp thì Kế toán sửa số khách của một đơn trên xe đó. Máy chỉ cho một người ghi trước; việc của người kia không ghi gì, và chuyến bị giữ như hôm nay để người xếp xe xem lại. Không có trường hợp ghi đè lẫn nhau.
-3. **Một lần sửa đơn thành hai bước ghi.** Máy ghi đơn trước, sau đó mới ghi chuyến. Nếu bước sau hỏng, đơn vẫn đúng còn chuyến bị giữ. Luật nền đòi mỗi lệnh "tất cả hoặc không có gì", nên người kiểm độc lập phải xác nhận cách làm này khớp luật nền. Nếu không khớp thì phải dùng cách ghi chung một lần, phức tạp hơn.
+3. **Sửa đơn và sửa chuyến ghi chung một lần.** Luật nền đòi mỗi lệnh "tất cả hoặc không có gì", nên phần chuyến được ghi cùng lần với phần đơn. Nếu đúng lúc đó chuyến đang bị người khác sửa, phần chuyến tự bỏ qua và chuyến bị giữ, còn phần đơn vẫn ghi. Cách này phức tạp hơn cách ghi hai lần, nên người kiểm độc lập cần soi kỹ.
 4. **Địa chỉ nhà khách ra ngoài** qua nút Chỉ đường (tệp 03). Đây là chỗ duy nhất dữ liệu đi khỏi Nền tảng; tôi đã giới hạn trong ngày chạy.
 
-Sổ "dừng dây chuyền" (danh sách lỗ an ninh đang mở có hạn vá) không có lỗ nào nằm dưới ba việc này, với điều kiện máy đồng bộ chuyến trong chính lần bấm của người, không chạy ngầm. Có hai lỗ đứng sát bên sổ tiền, đã ghi ở tệp 01.
+Sổ "dừng dây chuyền" (danh sách lỗ an ninh đang mở có hạn vá) không có lỗ nào nằm dưới ba việc này, với điều kiện máy đồng bộ chuyến trong chính lần bấm của người, không chạy ngầm. Riêng việc sửa số khách (tệp 01) đứng sát mục "điều chỉnh sổ tiền phải có người thứ hai duyệt". Tôi đọc mục đó là không áp cho số khách trên đơn, nhưng người kiểm độc lập phải chốt; nếu họ đọc khác thì tệp 01 phải chờ vá mục đó hoặc bạn gia hạn, và lượt thứ nhất chỉ còn tệp 02.
 
 **Câu duyệt gợi ý cho cách chia:** "Lượt này duyệt tệp 01 và 02; tệp 03 duyệt lượt sau." Nếu bạn muốn duyệt cả bốn quyết định một lần thì cần nói rõ là bạn cho phép vượt trần lần này.
 
@@ -86,6 +86,11 @@ Sổ "dừng dây chuyền" (danh sách lỗ an ninh đang mở có hạn vá) k
 | Chỗ | Hôm nay nói / làm | Phải đổi |
 |---|---|---|
 | `canQuyen` (`src/modules/van-chuyen/dieu-phoi-route.ts:96`) → mở hộp "Phá lệ" (`web/dieu-phoi-ui.ts:57-60`) | = `can(trip.override)` | = người gọi có **đủ** ô cho mọi luật đang thiếu: mốc theo lớp lệnh, khoảng nghỉ và cam kết cần `trip.override`. Bán hàng thiếu cả mốc lẫn khoảng nghỉ → không mở hộp. |
+| Chi tiết chuyến `web/chuyen.ts:44-45` (`coPhaLe = can(trip.override)`), dùng ở `:121` (dải khoá), `:685` (chọn chặng bị khoá), `:763` (có nút rút / chuyển trong vùng khoá), `:772` ("rút hay chuyển khách cần Quản trị") | nút rút / chuyển khách trong vùng khoá chỉ hiện cho người có `trip.override` | hiện theo `trip.urgent_adjust` cho lệnh khách; chữ bỏ "cần Quản trị" |
+| Bảng điều phối `web/dieu-phoi.ts:47` (`co.phaLe`), dùng ở `:438` (ghi chú vùng khoá khi xếp) | câu "bạn sẽ chọn lý do phá lệ" chỉ cho người có `trip.override` | theo `trip.urgent_adjust` |
+| Sửa chuyến `web/chuyen-sua.ts:181` | "Đổi xe, đổi tài xế cần Quản trị phá lệ" | **không đổi** nếu Q-1 a |
+| Nút đặt gấp `web/order-form.ts:599`, `web/order.ts:257, :930, :1065` (`can(order.leg.short_notice)`) | chỉ Quản trị, Toàn quyền thấy | (Q-3 a) Bán hàng thấy; nút chỉ bật khi chặng đang dưới mốc |
+| Tên ô cho trợ lý Mai `src/shared/tro-ly-cau-truc-ten.ts:75, :124-125` | "duyệt Đặt gấp"; "phá lệ khi điều xe … mốc tối thiểu, khoảng nghỉ" | thêm mục `trip.urgent_adjust`; sửa mô tả `trip.override` (bỏ mốc lệnh khách) và `order.leg.short_notice` (Q-3); chưa kiểm bài `src/shared/tro-ly-cau-truc.test.ts` có đòi mọi ô đều có tên hay không |
 | `src/shared/ly-do-giu.ts:58-59` | `MOC_TOI_THIEU` "cần Quản trị phá lệ", `aiXuLy: "QUAN_TRI"` | "người xếp xe điều chỉnh khẩn cấp" (lệnh khách); giữ Quản trị cho `KHOANG_NGHI` |
 | `src/shared/dieu-phoi-man.ts:118, :212` | "Cần Quản trị phá lệ" | theo lớp lệnh |
 | `src/shared/dat-gap-hien-thi.ts:28, :59` (Q-3 a) | "Đặt gấp — Quản trị đã duyệt"; "Cần Quản trị duyệt đặt gấp" | "Điều chỉnh khẩn cấp"; nút hiện cho Bán hàng |
@@ -107,14 +112,14 @@ Sổ "dừng dây chuyền" (danh sách lỗ an ninh đang mở có hạn vá) k
 | #2 (Q-3 a) + mốc | Bán hàng đóng dấu đặt gấp sớm để né mốc | kiểm "đang dưới mốc lúc gửi" |
 | #4 + tài xế đối tác (Đợt 6) | thấy địa chỉ nhà khách ngoài khung | khoá theo `trongKhungXemKhach` (ADR-0053 D7.2) |
 | #4 + chữ tự do có SĐT | SĐT ra Google | `maskLongDigits` (≥ 8 chữ số); SĐT viết tách nhóm ngắn hơn 8 chữ số **không** bị che — chỉ có dòng nhắc (dựa vào kỷ luật) |
-| #3 hai lô (đơn, rồi chuyến) | lệch Hiến chương 1.2 "một lô ghi nguyên khối" (`docs/ARCHITECTURE.md:25`) nếu đọc chặt | **chưa giải** — người kiểm độc lập và chủ xác nhận cách đọc; phương án chặt: câu chưa chạy chung lô (5.3) |
+| #3 ghi đơn và ghi chuyến | hai lô sẽ lệch Hiến chương 1.2 "một lô ghi nguyên khối" (`docs/ARCHITECTURE.md:25`) | đã chọn **một lô**: câu chưa chạy do `van-chuyen` cấp (5.3), theo tiền lệ tạo đơn gộp câu người phụ trách (`src/modules/orders/index.ts:730-734`). Chuyến thua cổng → phần chuyến không làm gì, đơn vẫn ghi. Người kiểm soi việc route tính trạng thái `sau` |
 
 ### 6. Sổ dừng dây chuyền (`docs/quyen-hoan.json`, đọc 2026-10-08)
 - Mục HIGH đang mở:
   - TNV-G1, TNV-G3, TNV-G4, HC-5.19, HC-4.2 (hạn 2026-10-31);
   - HC-5.11 (hạn 2026-11-15, tác vụ tự động không định danh).
 - **#2, #3, #4: không xây trên lỗ đang hở.** Điều kiện của #3: chạy trong request của người, ghi `staff_id` người đó. Đổi sang chạy nền thì phải ghi "xây trên lỗ đang hở: HC-5.11".
-- **#1:** đứng sát TNV-G4 (sổ thiếu ràng buộc) và HC-4.2 (điều chỉnh không có người duyệt thứ hai). Tệp 01 mục C ghi: không xây trực tiếp, nhưng cách đọc HC-4.2 cần người kiểm và chủ xác nhận.
+- **#1:** đứng sát TNV-G4 (sổ thiếu ràng buộc) và HC-4.2 (điều chỉnh không có người duyệt thứ hai). Tệp 01 mục C lập luận "không xây trên lỗ": phạm vi HC-4.2 là sổ `bil_*` / `vc_trip_cost_line`, ADR-0080 `:70` nói `order_money_adjustment` "không phải sổ", và billing không đọc bảng đó. Chữ gốc Hiến chương hệ thống 4.2 **chưa đọc** (kho luật gốc). Nếu người kiểm đọc khác thì #1 mang dòng "xây trên lỗ đang hở: HC-4.2" và rời lượt 8a.
 - Mục hoãn `thao_tac` (`task.progress`, `dispatch.guides.view`, `invoice.request`, `invoice.issue`): không dùng.
 
 ### 7. Lời chủ mâu thuẫn với quyết định đã duyệt

@@ -21,7 +21,7 @@ Hôm nay, sau khi đơn đã xác nhận, chỉ hướng dẫn viên đang phụ
 **Điều bạn nên biết trước khi duyệt.** Tôi đã đối chiếu đề xuất ngày 30/9 với mã hôm nay và các quyết định sổ tiền duyệt sau đó (ADR-0077 tới 0081, 0089, 0090, 0092). Không quyết định nào cấm hay đổi việc này; riêng ADR-0090 không liên quan vì ô "sửa số khách" không thuộc nhóm "quyền tiền" của nó. Có ba điều cần nói rõ:
 1. Đọc mã, tôi thấy một chỗ có thể sai tiền mà đề xuất chưa nói tới: nếu đơn có giảm giá lớn và văn phòng bớt khách tới mức tiền dịch vụ nhỏ hơn số giảm giá, tổng tiền của đơn sẽ ra số âm và sổ báo "dư" sai. Tôi chưa chạy thử. Khuyến nghị là chặn trường hợp này kèm một câu dễ hiểu, và tôi đã đưa điều đó vào câu duyệt.
 2. Bán hàng đang phụ trách một đơn do người khác lập sẽ không sửa được số khách, đúng lời bạn ngày 30/9 là "người lập đơn". Trong khi đó, một câu ở ADR-0014 điều 6 lại liệt kê việc sửa số khách trong phần của "người phụ trách cấp đầy đủ". Tôi giữ theo lời bạn; nếu bạn muốn mở thêm cho người phụ trách thì chỉ cần nói.
-3. Việc này đụng tiền và quyền, nên sau khi thi công phải có người kiểm độc lập, và phải có bộ ca mẫu đúng tới từng đồng để Kế toán xác nhận.
+3. Việc này đụng tiền và quyền, nên sau khi thi công phải có người kiểm độc lập, và phải có bộ ca mẫu đúng tới từng đồng để Kế toán xác nhận. Ngoài ra, sổ lỗ đang mở có một mục đòi mọi điều chỉnh sổ tiền phải có người thứ hai duyệt. Tôi đọc mục đó là chỉ nói về sổ công nợ và chi phí chuyến, không nói về số khách trên đơn, nhưng người kiểm độc lập sẽ chốt lại. Nếu người kiểm đọc khác, việc này phải chờ vá mục đó (hạn 31/10) hoặc bạn gia hạn.
 
 **Câu duyệt gợi ý:** "Duyệt D1 của ADR-0063: Kế toán, Quản trị sửa số khách mọi đơn đã xác nhận, Bán hàng sửa đơn mình lập; máy tính tiền; lý do chọn từ danh sách; chặn trường hợp tổng tiền âm; đây không phải đường thêm dịch vụ nhập tay; phần đổi giờ 2 lần để lượt sau."
 
@@ -62,11 +62,21 @@ Hôm nay, sau khi đơn đã xác nhận, chỉ hướng dẫn viên đang phụ
 - Không có mục HIGH nào nói về sửa số khách. Mục gần nhất:
   - **TNV-G4** (sổ tiền thiếu ràng buộc, hạn 2026-10-31);
   - **HC-4.2** (bút toán điều chỉnh sổ tiền chưa có người duyệt khác người tạo, hạn 2026-10-31).
-- Người soạn đọc ADR-0080 `:70` ("không phải sổ") nên kết luận D1 **không** thuộc HC-4.2. Tuy vậy, D1 cho một người tự đổi "phải thu" của đơn mà không cần người thứ hai duyệt. **Người kiểm và chủ cần xác nhận cách đọc này**, vì người soạn chưa đối chiếu với chữ gốc Hiến chương hệ thống 4.2 ở kho luật gốc.
-- Ghi theo luật CLAUDE.md §3: **không xây trên lỗ đang hở** (theo cách đọc trên); đứng cạnh TNV-G4 và HC-4.2.
+- **HC-4.2: không xây trên lỗ này, theo cách đọc dưới đây.**
+  - Phạm vi ghi ở chính mục sổ: "Bút toán điều chỉnh sổ tiền (công nợ, chi phí chuyến)". Mục nói rõ phần thiếu là ADR-0092 Đ3, Đ4, Đ5a–c "không thêm bước người khác duyệt".
+  - Tờ khai `docs/kernel-18.md:25` gắn nợ này vào hàng "Hình chiếu tiền (sổ)", tức các sổ `bil_posting`, `bil_debt_line`, `vc_trip_cost_line`.
+  - ADR-0080 `:70` (đã duyệt) xếp `order_money_adjustment` vào loại "không phải sổ".
+  - Đọc mã: `src/modules/billing/` không đọc hay ghi `order_money_adjustment` (grep 2026-10-08), nên D1 không sinh bút toán sổ nào.
+  - Điều còn lại: D1 cho **một người** đổi "phải thu" của đơn mà không có người thứ hai duyệt. Nếu chủ coi "phải thu của đơn" là công nợ theo nghĩa Hiến chương 4.2 thì D1 **là** xây trên lỗ đang hở HC-4.2, và không được duyệt trước khi vá hoặc chủ gia hạn. Chữ gốc Hiến chương hệ thống 4.2 nằm ở kho luật gốc, không có trong `playbook/`, nên người soạn **chưa đọc**. **Người kiểm độc lập phải đọc chữ gốc và chốt.**
+- **TNV-G4: không xây trên lỗ này.**
+  - Phần mã của TNV-G4 đã có trên `main` (migration `0080`, `0082`; ADR-0092 Đ1–Đ5c), nhưng chưa lên production.
+  - Phần còn mở là Đ5d (tin báo người bị đổi số dư), Đ6 (mã giao dịch ngân hàng) và Đ6a (cảnh báo trùng), đều không nằm trên đường D1.
+  - D1 làm đường "khách trả dư → chờ hoàn" hay gặp hơn. Đường hoàn chịu trần "hoàn ≤ người trả đang giữ" (ADR-0092, theo mục sổ TNV-G4); đơn huỷ thì thêm luật hoàn hai lớp của ADR-0089.
+  - Vì vậy D1 phải **phát hành sau** Sổ tiền (mục B6).
+- Ghi theo luật CLAUDE.md §3: **không xây trên lỗ đang hở** (theo cách đọc trên, chờ người kiểm chốt HC-4.2); đứng cạnh TNV-G4 và HC-4.2.
 
 ### D. Nối với tệp 02 (Đồng bộ chuyến theo đơn)
-- Nếu ADR-0103 Đ2 được duyệt, route D1 là một **điểm gọi** của hàm tiêm đồng bộ, gọi sau khi lô ghi điều chỉnh thành công. Bài tĩnh "mọi route đổi số người phải gọi hook" phủ route này.
+- Nếu ADR-0103 Đ2 được duyệt, route D1 là một **điểm gọi** của hàm tiêm đồng bộ: route lấy câu chưa chạy từ hook rồi gộp vào CÙNG lô ghi điều chỉnh (tệp 02 Đ2 mục 1–2). Bài tĩnh "mọi route đổi số người phải gọi hook" phủ route này.
 - Nếu Đ2 không được duyệt, chuyến giữ `THIEU_SUAT` hoặc `THUA_SUAT` như hôm nay (`src/shared/dieu-phoi-kiem.ts:424-425`).
 
 ### E. Việc lớn, kiểm

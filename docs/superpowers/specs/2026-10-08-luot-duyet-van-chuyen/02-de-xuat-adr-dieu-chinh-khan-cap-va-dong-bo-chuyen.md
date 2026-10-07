@@ -14,34 +14,22 @@
 
 Hôm nay, trong 6 giờ trước giờ xe chạy, Bán hàng không tự xếp, rút hay dời khách được mà phải nhờ Quản trị. Thêm vào đó, khi đơn bị huỷ hay bớt khách, chuyến xe không tự đổi theo, nên có lúc cả xe ghép không xuất bến được cho tới khi có Quản trị. Văn bản này làm hai việc theo lời bạn. Việc thứ nhất là "Điều chỉnh khẩn cấp": Bán hàng và Quản trị tự làm các việc với khách sát giờ, bắt buộc chọn lý do, máy ghi nhật ký, và không còn khái niệm "xin phá lệ". Việc thứ hai là "Đồng bộ chuyến theo đơn": khi đơn bị huỷ hay bớt khách, máy tự trả ghế trên xe chưa chạy mà không vướng mốc 6 giờ. Bạn cần trả lời ba câu ở cuối phần này rồi duyệt.
 
-**Việc 1 — Điều chỉnh khẩn cấp.**
-- **Ai làm được:** Bán hàng, Quản trị, Toàn quyền. Kế toán, hướng dẫn viên, đối tác, thực tập và tài xế không làm được. Bán hàng làm được cho mọi đơn, vì người trực đêm phải lo cả đơn của người khác.
-- **Làm được gì trong 6 giờ trước giờ chạy:** xếp khách lên xe, rút khách khỏi xe, dời khách sang xe khác, thêm khách vào xe đang chạy.
-- **Lý do:** mỗi lần bấm phải chọn một lý do từ danh sách, và Quản trị sửa danh sách đó trong màn "Lý do". Mục "Khác" không có ô gõ chữ, giống lựa chọn "Chưa làm" của bạn ngày 29/9 về ô chữ tự do trong chuyến xe.
-- **Nhật ký:** máy ghi ai, lúc nào, lệnh gì, mã chuyến, mã đơn, số khách, lý do, và còn bao nhiêu phút tới giờ chạy. Nhật ký không ghi tên, năm sinh hay số điện thoại của khách.
-- **Nhãn:** chuyến và đơn mang nhãn riêng "Điều chỉnh khẩn cấp", đúng ý bạn ngày 2/10 là "phải có nhãn riêng". Tài xế không thấy nhãn này.
-- **Tin cho tài xế:** tài xế đang được xếp lái chuyến đó nhận tin "khách trên xe vừa thay đổi". Hôm nay việc xếp hay rút khách không có tin nào gửi tài xế.
-- **Giới hạn:** không ai được chở quá số chỗ của xe, kể cả Toàn quyền. Con số mốc 6 giờ giữ nguyên.
+**Việc 1 — Điều chỉnh khẩn cấp.** Trong 6 giờ trước giờ chạy, Bán hàng, Quản trị và Toàn quyền tự xếp khách lên xe, rút khách, dời khách sang xe khác, hay thêm khách vào xe đang chạy. Bán hàng làm được cho mọi đơn, vì người trực đêm phải lo cả đơn của người khác; còn Kế toán, hướng dẫn viên, đối tác, thực tập và tài xế thì không làm được. Mỗi lần bấm, người làm phải chọn một lý do trong danh sách do Quản trị quản lý ở màn "Lý do". Mục "Khác" không có ô gõ chữ, vì ngày 29/9 bạn đã chọn chưa làm ô chữ tự do trong chuyến xe.
 
-**Việc 2 — Đồng bộ chuyến theo đơn.**
-- **Khi nào máy chạy:** ngay trong lần bấm của người vừa huỷ đơn, bớt khách, đổi danh sách khách hay bỏ một chặng đưa đón trên đơn. Không có việc chạy ngầm về sau.
-- **Xe chưa chạy:** máy trả ghế của khách không còn đi, không cần Quản trị và không vướng mốc 6 giờ, vì máy chỉ làm theo đơn. Máy trả ghế chưa gắn tên trước. Nếu mọi ghế còn lại đều mang tên người vẫn còn trong đơn, máy không đoán mà giữ xe và báo người xếp xe bỏ tên người không đi trên đơn.
-- **Xe đang chạy:** máy không rút ghế, vì luật xe đang chạy cấm việc đó. Máy chỉ đánh dấu "văn phòng báo huỷ" cho khách của đơn bị huỷ và báo tài xế; tài xế vẫn tới điểm và bấm "Khách đã huỷ".
-- **Thêm khách trên đơn:** xem câu Q-2.
-- **Nhật ký:** máy ghi tên người đã sửa đơn, vì máy chạy trong chính lệnh của người đó, kèm dòng "máy cập nhật chuyến theo đơn". Tài xế cũng nhận tin.
-- **Khi máy không làm được** (ví dụ hai người cùng sửa một chuyến đúng lúc đó): chuyến bị giữ như hôm nay, và nút "Cập nhật khách theo đơn" vẫn còn để bấm tay.
+Máy ghi nhật ký gồm ai làm, lúc nào, lệnh gì, mã chuyến, mã đơn, số khách, lý do và còn bao nhiêu phút tới giờ chạy, nhưng không ghi tên, năm sinh hay số điện thoại của khách. Chuyến và đơn mang nhãn riêng "Điều chỉnh khẩn cấp", đúng ý bạn ngày 2/10 là phải có nhãn để nhận ra; tài xế không thấy nhãn này. Tài xế đang được xếp lái chuyến đó sẽ nhận tin "khách trên xe vừa thay đổi", điều mà hôm nay chưa có. Giới hạn vẫn giữ: không ai được chở quá số chỗ của xe, kể cả Toàn quyền, và con số 6 giờ không đổi.
 
-**Điều bạn cần biết (nói một lần — Hiến pháp P18).**
-- **Đảo hai lựa chọn cũ của bạn.** Ngày 29/9 bạn chọn chỉ Quản trị, Toàn quyền được vượt mốc 6 giờ (ADR-0049). Ngày 29–30/9 bạn chọn "giữ chuyến + nút cập nhật" thay vì để máy tự sửa chuyến (ADR-0050; sổ hỏi đáp lần 16). Văn bản này thay đúng các câu đó.
-- **Máy sửa chuyến thay người.** Tôi cho máy chạy trong chính lệnh của người sửa đơn và ghi tên người đó, không chạy ngầm. Cách này tránh rơi vào lỗ "tác vụ tự động không có định danh" đang mở trong sổ (HC-5.11, hạn 15/11). Hệ quả là khi hướng dẫn viên hay đối tác huỷ hoặc bớt khách, máy cũng trả ghế trên xe, dù họ không có quyền xếp xe; nhưng máy chỉ chạm ghế của đúng đơn đó.
-- **Số quyết định vượt trần.** Lượt duyệt hôm nay có bốn quyết định đụng quyền hoặc dữ liệu, mà luật chỉ cho tối đa ba mỗi lượt. Xem trang ghép (tệp 00) để chọn cách chia lượt.
+**Việc 2 — Đồng bộ chuyến theo đơn.** Máy chạy ngay trong lần bấm của người vừa huỷ đơn, bớt khách, đổi danh sách khách hay bỏ một chặng đưa đón, chứ không có việc chạy ngầm về sau. Trên xe chưa chạy, máy trả ghế của khách không còn đi mà không cần Quản trị và không vướng mốc 6 giờ, vì máy chỉ làm theo đơn. Máy trả ghế chưa gắn tên trước; nếu mọi ghế còn lại đều mang tên người vẫn còn trong đơn thì máy không đoán, mà giữ xe và báo người xếp xe sửa tên trên đơn. Trên xe đang chạy, máy không rút ghế vì luật xe đang chạy cấm việc đó; máy chỉ đánh dấu "văn phòng báo huỷ" cho khách của đơn bị huỷ và báo tài xế, rồi tài xế vẫn tới điểm và bấm "Khách đã huỷ". Việc đơn thêm khách thì tuỳ câu Q-2.
+
+Nhật ký của máy ghi tên người đã sửa đơn, vì máy chạy trong chính lệnh của người đó, và tài xế cũng nhận tin. Khi máy không làm được, ví dụ hai người cùng sửa một chuyến đúng lúc đó, chuyến bị giữ như hôm nay và nút "Cập nhật khách theo đơn" vẫn còn để bấm tay.
+
+**Điều bạn cần biết (nói một lần — Hiến pháp P18).** Văn bản này đảo hai lựa chọn cũ của bạn: ngày 29/9 bạn chọn chỉ Quản trị, Toàn quyền được vượt mốc 6 giờ, và ngày 29–30/9 bạn chọn "giữ chuyến, có nút cập nhật" thay vì để máy tự sửa chuyến. Tôi cho máy chạy trong lệnh của người và ghi tên người đó, vì một việc tự chạy ngầm mà không có tài khoản riêng là đúng loại lỗ đang có hạn vá trong sổ. Hệ quả là khi hướng dẫn viên hay đối tác huỷ hoặc bớt khách, máy cũng trả ghế trên xe dù họ không có quyền xếp xe; máy chỉ chạm ghế của đúng đơn đó. Ngoài ra, lượt duyệt hôm nay có bốn quyết định đụng quyền hoặc dữ liệu, trong khi luật chỉ cho tối đa ba, nên cách chia lượt nằm ở trang ghép (tệp 00).
 
 **Ba câu hỏi.**
 - **Q-1.** Ngoài việc với khách, Bán hàng có được Điều chỉnh khẩn cấp các việc sau sát giờ không: đổi xe, đổi tài xế, huỷ chuyến còn khách, bỏ qua khoảng nghỉ giữa hai chuyến, bỏ qua cam kết xe riêng?
   - (a) **Không, vẫn chỉ Quản trị, Toàn quyền (khuyến nghị).** Lời bạn nói "điều động/rút khách"; đổi xe hay tài xế sát giờ là việc nặng hơn.
   - (b) Có.
 - **Q-2.** Khi đơn thêm khách, máy có tự thêm ghế trên cùng xe nếu xe còn chỗ không?
-  - (a) **Có (khuyến nghị):** chỉ trên đúng xe đó, cùng điểm đón, còn chỗ và không phạm cam kết xe riêng. Không đủ chỗ thì giữ xe và báo người xếp xe.
+  - (a) **Có (khuyến nghị):** chỉ thêm đúng số khách vừa thêm trên đơn, trên đúng xe đó, cùng điểm đón, khi xe còn chỗ và không phạm cam kết xe riêng. Không đủ chỗ thì giữ xe và báo người xếp xe.
   - (b) Không: máy chỉ tự trả ghế; thêm ghế do người xếp xe làm (dùng Điều chỉnh khẩn cấp nếu đã sát giờ).
 - **Q-3.** Xác nhận một đơn đặt sát giờ (hôm nay cần Quản trị bấm "Đặt gấp") — Bán hàng có tự làm bằng Điều chỉnh khẩn cấp không?
   - (a) **Có, cùng danh sách lý do và cùng nhãn (khuyến nghị).** Bạn đã cho phép điều này ngày 2/10; nếu không mở thì đơn sát giờ vẫn kẹt khi vắng Quản trị.
@@ -116,16 +104,26 @@ Hôm nay, trong 6 giờ trước giờ xe chạy, Bán hàng không tự xếp, 
 
 ### Đ2. Đồng bộ chuyến theo đơn
 
-1. **Nơi chạy:**
-   - Hàm công bố mới của `van-chuyen` (tên đề xuất `dongBoChuyenTheoDon(db, { orderId, actor, bayGioMs, tangTheoChang })`). `tangTheoChang` = số người **lệnh đơn này** vừa tăng ở từng chặng (route đơn tính từ trước/sau của chính lô nó vừa ghi); vắng = không tăng.
-   - Gốc lắp ráp tiêm `ctx.dongBoChuyen(env, actor, { orderId, tangTheoChang })` theo khuôn `mocToiThieu` (`src/index.ts:158-159`). `orders` và `dispatch` không import `van-chuyen`.
-2. **Điểm gọi:** sau khi lô ghi đơn **thành công**; `await` trong cùng request (không `waitUntil`, không hàng đợi — ĐP8, ADR-0049 `:364`). Lỗi được bắt và ghi một dòng log, không làm hỏng phản hồi của lệnh đơn. Danh sách điểm gọi:
+1. **Nơi chạy — câu chưa chạy, CÙNG một lô với lệnh đơn** (Hiến chương 1.2 "một lô ghi nguyên khối" `docs/ARCHITECTURE.md:25`; 5.3 "câu lệnh chưa chạy do module chủ cấp" `:95`):
+   - Hàm công bố mới của `van-chuyen` (tên đề xuất `cauDongBoChuyen(db, { orderId, actor, cmdId, bayGioMs, sau, tangTheoChang })`) **trả danh sách câu chưa chạy**, không tự ghi.
+   - `sau` = trạng thái đơn **sau** lệnh, do route đơn lấy từ bản kế hoạch của chính nó: đơn huỷ hay không, chặng nào đóng, số người và khoá người theo chặng. `tangTheoChang` = số người lệnh này tăng ở từng chặng; vắng = không tăng.
+   - Gốc lắp ráp tiêm `ctx.dongBoChuyen(env, actor, {…})` theo khuôn `mocToiThieu` (`src/index.ts:158-159`). `orders` và `dispatch` không import `van-chuyen`.
+   - **Tiền lệ đã có:** tạo đơn gộp câu "người phụ trách" của `dispatch` vào cùng `db.batch` (`src/modules/orders/index.ts:730-734`; `src/modules/dispatch/service.ts:42-45`).
+2. **Điểm gọi:** route đơn gọi hook **trước** khi ghi, rồi gộp câu trả về vào **cùng** `db.batch` với câu ghi đơn; `await` trong request (không `waitUntil`, không hàng đợi — ĐP8, ADR-0049 `:364`).
+   - Thứ tự lô: câu ghi đơn (cổng của đơn đứng đầu như hôm nay) → với mỗi chuyến bị chạm: câu cổng chuyến (`version`, trạng thái chuyến như lúc đọc, **và** điều kiện "cổng đơn đã thắng") → nhật ký `changes() > 0` → các câu suất / sự kiện mang `EXISTS (… last_cmd_id = :cmd)` (ADR-0049 `:98-108`).
+   - Thua cổng chuyến → các câu của chuyến đó không làm gì, câu ghi đơn vẫn ghi, chuyến giữ như hôm nay. Thua cổng đơn → không câu nào ghi.
+   - Danh sách điểm gọi:
    - `orders`: `POST /api/orders/:id/status` (huỷ, `src/modules/orders/index.ts:1018`), `POST …/legs/:legId/close` (`:909`), `PUT …/legs/:legId` (`:891`, số người chặng), `POST …/passengers` (`:973`), route văn phòng sửa số khách của ADR-0063 D1;
    - `dispatch`: `handler-cancel` (`src/modules/dispatch/index.ts:218`), `handler-money-edit` (`:247`).
    - Bài tĩnh mới: route ghi đơn đã xác nhận mà đổi trạng thái, số người, danh sách khách hay đóng chặng phải gọi hook (khuôn hàng rào Bảng tin `src/bang-tin-guard.test.ts`).
+   - Danh sách trên đã đối chiếu với **mọi** khai báo `route("POST"|"PUT"…)` của `src/modules/orders/index.ts` và `src/modules/dispatch/index.ts`. Không cần hook:
+     - `POST /api/orders` (`:705`) và `PUT /api/orders/:id` (`:766`, chỉ đơn nháp — `NOT_EDITABLE` khi khác `draft`), vì đơn nháp không có suất;
+     - `PUT …/trip` (`:823`) và `POST …/legs` (`:866`), vì chặng mới chưa có suất; đổi giờ / nơi giữ VK1-B (giữ + nút);
+     - `short-notice` (`:930`), `booker` (`:994`), `cancel-reason` (`:1085`), `PUT …/handler` (`dispatch :157`).
+   - `POST …/passengers` (`:973`) là **một** route cho cả thêm, sửa, huỷ dòng khách (`planPassengerChange`).
+   - Route tài xế ghi tên khách `POST /api/van-chuyen/cuoc-cua-toi/:id/hanh-khach` (`src/modules/van-chuyen/index.ts:1691`) nằm trong `van-chuyen`. Lệnh này có tự gắn suất hay phải gọi luật đồng bộ: **chưa kiểm**, người lập kế hoạch xác định.
 3. **Phạm vi:**
-   - Chỉ các chuyến có suất mở của chặng thuộc **đúng đơn đó**; mỗi chuyến một lô.
-   - Câu cổng `version` và thứ tự lô theo ADR-0049 `:98-108`.
+   - Chỉ các chuyến có suất mở của chặng thuộc **đúng đơn đó**; mỗi chuyến một câu cổng riêng trong lô chung.
    - Lệnh mới `DONG_BO_THEO_DON` có trong `LENH_XEP`, **ngoài** `LENH_KHOA_THEO_MOC` (khuôn `DOI_KHACH_THEO_DON`, `moc-toi-thieu.ts:60-61`).
    - **Không** miễn luật lõi (LC-01, 02, 09, 10, 15).
 4. **Luật trên chuyến `PLANNED`.** Một hàm thuần ở `src/shared/`, mở rộng `suatKhachDaDoi` / `moLaiSauDoiKhach`, dùng chung cho máy và cho nút tay:
@@ -149,7 +147,7 @@ Hôm nay, trong 6 giờ trước giờ xe chạy, Bán hàng không tự xếp, 
 9. **Nút tay "Cập nhật khách theo đơn"** (`POST …/cap-nhat-khach`, `src/modules/van-chuyen/index.ts:1423`):
    - Dùng **cùng** hàm thuần, nên bấm tay gỡ được cả `DON_DA_HUY`, `CHANG_DA_DONG`, `THUA_SUAT` (hôm nay bỏ qua, `dieu-phoi-lenh.ts:619`). Ô `trip.dispatch` giữ nguyên.
    - Cách này gỡ **N2**: một nguyên tắc là "đổi theo đơn → miễn mốc; đổi theo ý người (rút một khách vẫn còn trong đơn) → Điều chỉnh khẩn cấp".
-10. **Thua đua:** lô thua câu cổng `version` thì không ghi, chuyến giữ như hôm nay, lệnh đơn vẫn thành công. Không thử lại tự động.
+10. **Thua đua:** chuyến thua câu cổng thì phần chuyến không ghi, chuyến giữ như hôm nay, lệnh đơn vẫn thành công (mục 2). Không thử lại tự động. Trigger lõi (LC-02, LC-15) chặn → cả lô hỏng, lệnh đơn trả 409 để người bấm lại; vì cổng chuyến đã kèm trạng thái chuyến, ca này chỉ xảy ra khi mã có lỗi.
 11. **Ngoại lệ có tên (quyền ghép):** người không có `trip.dispatch` vẫn làm máy ghi suất trên chuyến, gồm HDV (`handler-cancel`, `handler-money-edit`), Đối tác và Thực tập (huỷ đơn của mình qua `order.modify`). Giới hạn:
     - chỉ suất của chặng thuộc đúng đơn họ vừa sửa;
     - chỉ đóng, hoặc (Q-2 a) mở trong giới hạn số người đơn đã khai và số chỗ của xe;
@@ -202,7 +200,7 @@ Mỗi rào phải quan sát chặn thật: sửa cố ý → đỏ → hoàn ngu
    - HDV huỷ qua `handler-cancel` → như trên, và HDV gọi route xếp vẫn 403.
    - Chuyến `RUNNING` → cờ báo huỷ, không đóng suất.
    - Bớt khách khi có suất chưa tên → đóng suất chưa tên; mọi suất mang tên người còn trong đơn → giữ `THUA_SUAT`; chặng trên hai chuyến → giữ.
-   - Thua `version` → giữ, lệnh đơn vẫn 200.
+   - Thua cổng chuyến → chuyến giữ, lệnh đơn vẫn 200; thua cổng đơn → không suất nào đổi (lô chung).
 5. **Bài tĩnh điểm gọi hook:** bỏ một lời gọi → đỏ.
 6. **LC-18:** bài quét nhật ký hiện có phủ hành động mới.
 7. **Bộ kiểm chung:** `npm test`, `npm run typecheck` (0 lỗi), `npm run test:e2e`, `node scripts/audit-invariants.mjs --db local`.
@@ -213,11 +211,11 @@ Mỗi rào phải quan sát chặn thật: sửa cố ý → đỏ → hoàn ngu
 - **Đồng bộ chạy nền, Cron hay hàng đợi:**
   - là tác nhân tự động không định danh, tức xây trên lỗ đang hở HC-5.11;
   - trái ĐP8 (ADR-0049 `:364`).
-- **Đồng bộ chung một lô với lệnh đơn** (câu chưa chạy do `van-chuyen` cấp, Hiến chương 5.3):
-  - bảy điểm gọi ở hai module, mỗi nơi một khuôn lô;
-  - `van-chuyen` phải tính trên trạng thái đơn chưa ghi;
-  - lỗi phía chuyến sẽ làm hỏng cả lệnh huỷ đơn.
-  - Hai lô kèm "giữ" làm lưới (Hiến chương 5.7) đủ an toàn. **Người kiểm soi lại điểm này** so với Hiến chương 1.2 ("một lô ghi nguyên khối").
+- **Hai lô: ghi đơn xong rồi mới gọi máy ghi chuyến** (bản nháp đầu của người soạn):
+  - đơn giản hơn, vì `van-chuyen` đọc trạng thái đơn đã ghi;
+  - nhưng một lệnh thành hai lô, lệch Hiến chương 1.2, và ngược tiền lệ gộp lô của tạo đơn (mục 1);
+  - lỗi giữa hai lô để lại đơn đã đổi mà chuyến chưa đổi (vẫn an toàn nhờ "giữ", nhưng hai sự thật lệch nhau).
+  - Giá của phương án được chọn: route đơn phải đưa `sau` cho hook, và bảy điểm gọi phải gộp lô. **Người kiểm soi** việc route tính `sau` đúng ở cả bảy điểm.
 - **Mã đóng mới cho đồng bộ:** phải dựng lại bảng (xem Cửa một chiều).
 - **Hạ con số mốc cho cả hệ thống:** áp cả lúc đặt đơn, cộng lỗi N3 (báo cáo ERP Gói 0 mục 3).
 
@@ -228,7 +226,8 @@ Mỗi rào phải quan sát chặn thật: sửa cố ý → đỏ → hoàn ngu
 
 ### Chưa kiểm
 - Số lần phá lệ thật trên production, ai xếp xe ban đêm, giá trị mốc thật (báo cáo ERP Phần 8 cũng chưa biết).
-- Lệnh huỷ đơn chậm thêm bao nhiêu khi phải chờ đồng bộ chuyến.
+- Lệnh huỷ đơn chậm thêm bao nhiêu khi phải chờ đồng bộ chuyến; giới hạn số câu trong một `db.batch` của D1 khi một đơn có khách trên nhiều chuyến.
+- Mỗi route trong bảy điểm gọi có sẵn đủ trạng thái `sau` trong bản kế hoạch của nó hay phải đọc thêm (người soạn chỉ đọc phần đầu route huỷ đơn và route khách, chưa đọc thân đầy đủ của route nào).
 - Bảng tin và tin điện thoại tới máy thật.
 - Tranh chấp đồng thời thật trên D1.
 - Thân ADR-0096, ADR-0097 (người soạn chưa đọc): luật mới đón trước trả, cửa sổ xuất bến, sự kiện `CORRECTION` có thể chạm hàm đồng bộ, nên người lập kế hoạch phải đối chiếu.

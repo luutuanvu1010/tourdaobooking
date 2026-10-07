@@ -12,16 +12,9 @@
 
 Văn bản này thêm nút "Chỉ đường" cạnh từng điểm đón, điểm trả trên màn chuyến của tài xế. Tài xế bấm thì điện thoại mở Google Maps, đã điền sẵn điểm đến, rồi Google Maps tự dẫn đường. Thứ duy nhất Nền tảng gửi sang Google là điểm đến: địa chỉ của điểm trong danh mục, hoặc dòng chữ điểm đón mà Bán hàng đã gõ trên đơn. Nền tảng không gửi vị trí của tài xế, không gửi tên hay số điện thoại khách, không cần khoá dịch vụ của Google và không tốn tiền. Bạn cần trả lời hai câu ở cuối rồi duyệt.
 
-**Cách làm.**
-- **Ai thấy nút:** tài xế công ty, chỉ trên chuyến mình đang được xếp lái, và chỉ **trong ngày chạy** (cùng khung giờ với tên khách và số điện thoại người liên hệ). Ngoài ngày chạy, nút không hiện.
-- **Điểm trong danh mục** (văn phòng, bến tàu, sân bay, khách sạn…): gửi địa chỉ Quản trị đã nhập ở màn "Địa điểm"; điểm nào chưa có địa chỉ thì gửi tên điểm. Vì vậy Quản trị nên nhập địa chỉ cho các điểm hay dùng.
-- **Điểm đón gõ tay:** gửi đúng dòng chữ tài xế đang thấy, với các dãy số dài đã bị che như hôm nay. Bán hàng nên ghi địa chỉ vào ô này, không ghi tên hay số điện thoại khách; ô sẽ có dòng nhắc như vậy.
-- **Không có theo dõi vị trí xe.** Phần đó để văn bản sau. Hiện Nền tảng còn tự cấm trang đọc vị trí của điện thoại, và nút này không đổi điều đó.
+Nút chỉ hiện cho tài xế công ty, trên chuyến mình đang được xếp lái, và chỉ trong ngày chạy, tức cùng khung giờ tài xế được thấy tên khách và số điện thoại người liên hệ. Với điểm trong danh mục như văn phòng, bến tàu, sân bay hay khách sạn, Nền tảng gửi địa chỉ Quản trị đã nhập ở màn "Địa điểm"; điểm nào chưa có địa chỉ thì gửi tên điểm, nên Quản trị nên nhập địa chỉ cho các điểm hay dùng. Với điểm đón gõ tay, Nền tảng gửi đúng dòng chữ tài xế đang thấy, trong đó các dãy số dài đã bị che như hôm nay. Vì vậy Bán hàng nên chỉ ghi địa chỉ vào ô này, không ghi tên hay số điện thoại khách, và ô sẽ có dòng nhắc như vậy. Văn bản này không làm theo dõi vị trí xe; phần đó để văn bản sau. Hiện Nền tảng còn tự cấm trang đọc vị trí điện thoại, và nút này không đổi điều đó.
 
-**Điều bạn cần biết (nói một lần — Hiến pháp P18).**
-- **Địa chỉ nhà khách có thể ra ngoài.** Danh mục khách sạn hiện còn trống, nên phần lớn lần bấm sẽ gửi dòng chữ gõ tay, có khi là địa chỉ nhà riêng của khách. Google nhận địa chỉ đó, và lịch sử tìm kiếm trong tài khoản Google trên máy tài xế có thể giữ lại; Nền tảng không xoá được phần ấy. Tôi chưa kiểm việc này đã khớp luật bảo vệ dữ liệu cá nhân hay chưa.
-- **Một chiều.** Địa chỉ đã gửi sang Google thì không thu lại được, dù sau này gỡ nút.
-- **Chưa nằm trong lượt duyệt hôm nay.** Việc này đứng riêng, không phụ thuộc hai văn bản kia, nên tôi đề nghị duyệt ở lượt sau để không vượt trần ba quyết định mỗi lượt (xem trang ghép, tệp 00).
+**Điều bạn cần biết (nói một lần — Hiến pháp P18).** Danh mục khách sạn hiện còn trống, nên phần lớn lần bấm sẽ gửi dòng chữ gõ tay, có khi là địa chỉ nhà riêng của khách. Google nhận địa chỉ đó, và lịch sử tìm kiếm trong tài khoản Google trên máy tài xế có thể giữ lại mà Nền tảng không xoá được. Địa chỉ đã gửi đi thì không thu lại được, dù sau này gỡ nút. Tôi chưa kiểm việc này đã khớp luật bảo vệ dữ liệu cá nhân hay chưa. Việc này đứng riêng, không phụ thuộc hai văn bản kia, nên tôi đề nghị duyệt ở lượt sau để không vượt trần ba quyết định mỗi lượt (xem trang ghép, tệp 00).
 
 **Hai câu hỏi.**
 - **Q-1.** Mở bằng bản đồ nào?
