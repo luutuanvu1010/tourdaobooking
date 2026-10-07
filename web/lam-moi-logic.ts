@@ -1,6 +1,7 @@
 // BẢNG TIN (ADR-0022, Task 9) — logic THUẦN cho các trang làm mới khi có tin (`don-thay-doi` / `can-tai-lai`): không đụng DOM/window (test bằng
 // `node --test`, src/lam-moi-web.test.ts). Import kèm đuôi `.ts` vì Node chạy trực tiếp tệp này; esbuild/tsc của web/ chấp nhận.
 import type { SuKienDon } from "../src/shared/bang-tin.ts";
+import { msToVnLocal } from "../src/shared/vn-date.ts";
 
 /**
  * Bộ gộp lần tải (chống dồn đập, Review Focus #4): MỘT đợt tin và `can-tai-lai` ngay sau khi nối lại có thể đến gần nhau; trang không được chạy
@@ -56,4 +57,31 @@ export function coODaSua(cacO: readonly { value: string; goc: string }[]): boole
  */
 export function nenHoanLamMoi(t: { dangGo: boolean; coODaSua: boolean; hopHuyMo: boolean }): boolean {
   return t.dangGo || t.coODaSua || t.hopHuyMo;
+}
+
+/**
+ * C55 (đánh giá ERP 7/10, `docs/superpowers/specs/2026-10-07-danh-gia-erp-van-chuyen-ban-hang.md`): lần tải lại CHẠY NỀN của màn chuyến tài xế gặp lỗi thì
+ * có ẩn trang không. Chỉ ẨN khi máy chủ nói rõ chuyến không còn mở được cho người này — 403 (mất quyền), 404 (bị đổi ra / không còn chuyến). `null` = không
+ * có trạng thái HTTP (mất mạng, hết giờ — không phải `ApiError`) và mọi mã khác (5xx, 409, 429…) → GIỮ dữ liệu đang có trong bộ nhớ trang: mất mạng không
+ * được làm biến mất điểm đón, tên khách, số liên hệ, nút "Bấm lại".
+ */
+export function loiTaiNenAnTrang(loi: { status: number } | null): boolean {
+  return loi !== null && (loi.status === 403 || loi.status === 404);
+}
+
+/**
+ * C55: dải cảnh báo mất mạng của màn chuyến tài xế. `duLieuLuc` = lúc của lần tải thành công cuối KHI lần tải nền sau đó hỏng (null = dữ liệu không cũ);
+ * `matMang` = lỗi không phải của máy chủ; `soChoGui` = số thao tác chưa gửi được. Có thao tác chờ thì tiêu đề giữ số thao tác (thứ cần làm), dữ liệu cũ
+ * thêm dòng "Dữ liệu lúc"; chỉ dữ liệu cũ thì tiêu đề nói giờ dữ liệu và có nút "Tải lại". Giờ theo giờ Việt Nam. Không có gì → `null` (không dải).
+ */
+export function daiMatMang(t: { duLieuLuc: number | null; matMang: boolean; soChoGui: number }): { tieuDe: string; dong: string[]; taiLai: boolean } | null {
+  const gio = t.duLieuLuc === null ? null : msToVnLocal(t.duLieuLuc).time;
+  const bamLai = "Bấm lại ở dòng đó, hoặc bấm lại nút vừa bấm, khi có mạng — máy không tự gửi lại.";
+  if (t.soChoGui > 0) return { tieuDe: `Mất mạng — ${t.soChoGui} thao tác chưa gửi được`, dong: gio ? [`Dữ liệu lúc ${gio} — chưa tải lại được.`, bamLai] : [bamLai], taiLai: false };
+  if (gio === null) return null;
+  return {
+    tieuDe: `${t.matMang ? "Mất mạng" : "Chưa tải lại được"} — dữ liệu lúc ${gio}`,
+    dong: [`Danh sách dưới đây là bản tải lúc ${gio}. Bấm “Tải lại” khi có mạng.`],
+    taiLai: true,
+  };
 }

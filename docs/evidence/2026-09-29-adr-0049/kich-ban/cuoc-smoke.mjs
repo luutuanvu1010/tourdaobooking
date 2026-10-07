@@ -8,7 +8,7 @@
 import { randomUUID } from "node:crypto";
 import {
   ACCOUNTS, CHU, DESK, MOB, apiCalls, assert, axe, axeNote, boDem, click, dungDuLieuDieuPhoi, dungMoiTruong, noCode, noOverflowX, shotFull, shotView, shown, sleep, txt,
-  typeInto, LOC_BEN_TAU, vnDate,
+  typeInto, LOC_BEN_TAU, vnDate, fetchTrang,
 } from "./dp-lib.mjs";
 
 // Task 8 Đợt 1 — người đi kèm: hướng dẫn viên (FIELD) giả; tên hiện ở màn tài xế, SĐT thì không.
@@ -190,7 +190,7 @@ try {
     await p.send("Page.navigate", { url: `${env.base}/cuoc-chuyen?id=${TH.id}` });
     await p.waitFor(`!!document.querySelector('[data-action="xuat-ben"]') && location.search.includes('${TH.id}')`, "màn xuất bến TH");
     // bản 1.39: chuyến HÔM NAY trước xuất bến — máy chủ ĐÃ gửi tên khách (trong ngày chạy) nhưng danh sách điểm trước xuất bến KHÔNG vẽ tên / SĐT / liên hệ
-    const cth = (await call(d.CUONG.account, "GET", `/api/van-chuyen/cuoc-cua-toi/${TH.id}`)).json;
+    const cth = (await fetchTrang(p, "GET", `/api/van-chuyen/cuoc-cua-toi/${TH.id}`)).json; // phiên của chính trang: đăng nhập thêm bằng dòng lệnh sẽ đá phiên đang mở (ADR-0075, một phiên mỗi tài khoản)
     assert.ok(cth.suat.some((x) => x.hoTen), "ca này phân biệt được: máy chủ có gửi tên khách");
     assert.ok((await p.ev("document.querySelectorAll('.dp-cc-diem .dp-run').length")) >= 2, "có danh sách điểm trước xuất bến");
     const hTruoc = await html(p);
@@ -257,6 +257,21 @@ try {
     assert.equal(await p.ev(`!!document.querySelector('#cc-trang > .banner-warning')`), false);
   });
 
+  await b.step("5b", `C55 (đánh giá ERP 7/10): mất mạng mà trang tự tải lại (tin chuyến / nối lại) → trang KHÔNG ẩn: còn tên khách, số liên hệ, nút; dải "Mất mạng — dữ liệu lúc HH:MM"; có mạng tải lại → dải mất`, async () => {
+    const tenTruoc = (await p.ev(`[...document.querySelectorAll('.dp-khach-ten')].map((x) => x.innerText)`)).sort();
+    await p.send("Network.emulateNetworkConditions", { offline: true, latency: 0, downloadThroughput: -1, uploadThroughput: -1 });
+    await p.ev(`window.dispatchEvent(new Event("can-tai-lai")), true`);
+    await p.waitFor(`/^Mất mạng — dữ liệu lúc \\d\\d:\\d\\d$/.test(document.querySelector('#cc-trang > .banner-warning .banner-title')?.textContent ?? '')`, "dải dữ liệu cũ");
+    assert.equal(await p.ev(`document.querySelector('#cc-trang').hidden`), false, "trang chuyến không bị ẩn khi mất mạng");
+    assert.equal(await p.ev(`document.querySelector('#error')?.hidden !== false`), true, "không câu lỗi che trang");
+    assert.deepEqual((await p.ev(`[...document.querySelectorAll('.dp-khach-ten')].map((x) => x.innerText)`)).sort(), tenTruoc, "tên khách còn");
+    assert.ok(await p.ev(`document.querySelectorAll('.dp-run-lien-he a[href^="tel:"]').length > 0`), "số liên hệ (gọi một chạm) còn");
+    await shotFull(p, "b5-mat-mang-tai-nen-dien-thoai.png");
+    await p.send("Network.emulateNetworkConditions", { offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1 });
+    await p.ev(`window.dispatchEvent(new Event("can-tai-lai")), true`);
+    await p.waitFor(`!document.querySelector('#cc-trang > .banner-warning')`, "dải dữ liệu cũ mất khi có mạng");
+  });
+
   await b.step("6", `5a: điểm trả "Đã trả" (tới điểm rồi trả khách trên xe) → "Kết thúc chuyến" mở → kết thúc; hộp "Kết thúc gián đoạn" có lý do nhóm Kết thúc gián đoạn, KHÔNG ô ghi chú`, async () => {
     await p.ev(click('[data-action="ket-thuc-gian-doan"]'));
     await p.waitFor(`!!document.querySelector('[data-action="gian-doan-gui"]')`, "hộp gián đoạn");
@@ -268,8 +283,13 @@ try {
     await p.ev(click(".sheet .vc-btn-ghost-primary"));
     await sleep(500);
     await p.ev(click('.dp-run [data-action="tra-het"]'));
+    // Kiểu A (V1.4, 3/10): "Đã trả" cả điểm và "Kết thúc chuyến" mở hộp xác nhận — lệnh chỉ gửi khi bấm nút trong hộp.
+    await p.waitFor(`!!document.querySelector('[data-action="tra-het-xac-nhan"]')`, "hộp xác nhận đã trả");
+    await p.ev(click('[data-action="tra-het-xac-nhan"]'));
     await p.waitFor(`!document.querySelector('[data-action="ket-thuc"]').disabled`, "kết thúc mở");
     await p.ev(click('[data-action="ket-thuc"]'));
+    await p.waitFor(`!!document.querySelector('[data-action="ket-thuc-xac-nhan"]')`, "hộp xác nhận kết thúc");
+    await p.ev(click('[data-action="ket-thuc-xac-nhan"]'));
     await p.waitFor(`/^Hoàn tất|^Đã kết thúc|^Kết thúc/.test(${txt(".dp-cc-head .chip")} ?? '')`, "chuyến đã kết thúc");
     assert.ok(await p.ev(`!!document.querySelector('.dp-ct-moc')`), "có mốc kết thúc");
     assert.equal(await p.ev(`document.querySelectorAll('.dp-run-btn, .dp-khach-btn').length`), 0);
@@ -386,7 +406,8 @@ try {
   await s.close();
 
   // ---- Tài khoản vừa tài xế công ty vừa Bán hàng (kiểm độc lập K2b T2 — giả định bề mặt GA-K2b-T2 do điều phối chốt) ------------------------------------
-  const tl = await call(ACCOUNTS.admin, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Lai Tài Xế Bán Hàng", phone: "0900000469", roles: ["DRIVER_INTERNAL", "SALES_STAFF"] });
+  const tl = await call(ACCOUNTS.chu, "POST", "/api/staff", { // ADR-0071: chỉ Nhân sự / Toàn quyền tạo tài khoản
+    taoHoSoMoi: true, fullName: "Lai Tài Xế Bán Hàng", phone: "0900000469", roles: ["DRIVER_INTERNAL", "SALES_STAFF"] });
   assert.equal(tl.status, 201, `tạo tài khoản lai: ${tl.text}`);
   const LAI = { name: "Lai Tài Xế Bán Hàng", phone: tl.json.staff.phone, pin: tl.json.pin, permissions: ["DRIVER", "SALES"] };
   const l = await env.as(LAI, "/", DESK);

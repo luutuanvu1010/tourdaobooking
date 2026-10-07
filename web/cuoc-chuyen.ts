@@ -12,6 +12,8 @@
 // - Đợt 5 (bản vẽ V6 bổ sung): điểm văn phòng thêm khi xe chạy → dải "Văn phòng vừa thêm điểm" (giờ đón + tổng khách — lời chủ 5.3) tới khi bấm "Đã xem"
 //   (máy này nhớ, `localStorage` bọc try/catch); chip "Mới thêm" / "Văn phòng đã báo huỷ — vẫn tới điểm" ở `veDiemChay`.
 // - Mất mạng: dòng đó "Chưa gửi được" + "Bấm lại" (CÙNG requestId — bấm lại hai lần vẫn một lệnh); máy KHÔNG tự gửi lại (lệnh điều phối, khác câu 5a).
+//   C55 (đánh giá ERP 7/10): lần tải NỀN hỏng chỉ ẩn trang khi 403 / 404 (`loiTaiNenAnTrang`); mất mạng / lỗi máy chủ GIỮ dữ liệu đang có (chỉ bộ nhớ trang
+//   — ADR-0053 D7.2) và hiện dải "Mất mạng — dữ liệu lúc HH:MM" (`daiMatMang`) có nút "Tải lại".
 import { giuTenKhach, ketThucDuoc, chiSuatKhach, soHieuTaiDiemDon, tenNguoiDiKemCuaChuyen, thanDoiThuTu, viecNguoiDiKem, type BuocDiem } from "../src/shared/tien-do-man";
 import type { CuocChiTietResponse } from "../src/shared/contracts";
 import { coCuocCuaToi } from "../src/shared/start-page";
@@ -22,7 +24,7 @@ import { chip, dai, nhomChon, taoLenh } from "./dieu-phoi-ui";
 import { loiCua } from "./giay-to-ui";
 import { icon } from "./icons";
 import { initShell, setBarTitle, showError } from "./shell";
-import { taoBoLamMoi } from "./lam-moi-logic";
+import { daiMatMang, loiTaiNenAnTrang, taoBoLamMoi } from "./lam-moi-logic";
 import type { SuKienChuyen } from "../src/shared/bang-tin";
 import { cauLoiTienDo, dongMoc, veDiemChay, type LenhDiem } from "./tien-do-ui";
 import { msToVnLocal, ngayNgan, vnToday } from "../src/shared/vn-date";
@@ -41,6 +43,10 @@ const goc = `/api/van-chuyen/cuoc-cua-toi/${encodeURIComponent(id)}`;
 let duLieu: CuocChiTietResponse | null = null;
 /** Liên hệ của đơn — CHỈ từ GET trong ngày chạy; lệnh tiến độ không trả lại khoá này (R-P11). Chỉ giữ trong bộ nhớ trang. */
 let lienHe: NonNullable<CuocChiTietResponse["lienHe"]> = [];
+/** Lúc của lần tải chi tiết thành công cuối (đồng hồ máy). */
+let napLuc: number | null = null;
+/** C55: lần tải nền sau `napLuc` hỏng (không phải 403 / 404) — trang đang hiện dữ liệu cũ. `null` = dữ liệu mới. Chỉ trong bộ nhớ trang. */
+let duLieuCu: { luc: number; matMang: boolean } | null = null;
 let baoCao: HTMLElement | null = null;
 /** Kiểu A (V1.4): lệnh suất một chạm vừa ghi xong — dòng "Vừa ghi …" dưới đúng dòng khách / người đi kèm; lệnh kế tiếp xoá. Chỉ trong bộ nhớ trang. */
 let vuaGhi: { suatId: string; cau: string } | null = null;
@@ -64,6 +70,8 @@ const gui = async (duoi: string, than: Record<string, unknown> = {}): Promise<vo
 async function nap(): Promise<void> {
   duLieu = await api<CuocChiTietResponse>(goc);
   lienHe = duLieu.lienHe ?? [];
+  napLuc = Date.now();
+  duLieuCu = null;
 }
 
 /** Chạy một lệnh: mất mạng → ghi vào `choGui` (dòng đó hiện "Chưa gửi được" + "Bấm lại"); lỗi khác → dải báo. */
@@ -213,7 +221,8 @@ function ve(): void {
   document.title = `${c.ma} — Island Booking System`;
   setBarTitle(c.trangThai === "PLANNED" ? `Xuất bến ${c.ma}` : c.ma);
   const ngay = c.gioBatDau.ngay;
-  const dauMang = choGui.size ? dai("warning", `Mất mạng — ${choGui.size} thao tác chưa gửi được`, ["Bấm lại ở dòng đó khi có mạng — máy không tự gửi lại."]) : null;
+  const mang = daiMatMang({ duLieuLuc: duLieuCu?.luc ?? null, matMang: duLieuCu?.matMang ?? true, soChoGui: choGui.size });
+  const dauMang = mang ? dai("warning", mang.tieuDe, mang.dong, mang.taiLai ? () => void lamMoi.yeuCau() : undefined) : null;
   if (c.trangThai === "PLANNED") return veXuatBen(dauMang);
   const trenXe = r.suat.filter((s) => s.trangThai === "BOARDED").length;
   const dauTrang = h(
@@ -496,8 +505,14 @@ const lamMoi = taoBoLamMoi(async () => {
   try {
     await nap();
   } catch (e) {
-    trangEl.hidden = true; // chuyến không còn mở được (bị đổi ra, không còn quyền) — không để màn cũ trông như còn đúng
-    return showError(errorEl, loiCua(e));
+    if (loiTaiNenAnTrang(e instanceof ApiError ? { status: e.status } : null)) {
+      trangEl.hidden = true; // chuyến không còn mở được (bị đổi ra, không còn quyền) — không để màn cũ trông như còn đúng
+      return showError(errorEl, loiCua(e));
+    }
+    // C55: mất mạng / lỗi máy chủ thoáng qua — giữ nguyên danh sách điểm, tên khách, số liên hệ, nút; chỉ thêm dải "dữ liệu lúc HH:MM".
+    duLieuCu = { luc: napLuc ?? Date.now(), matMang: !(e instanceof ApiError) };
+    if (!trangEl.hidden) ve();
+    return;
   }
   // Vòng sửa 1 (T2): tải lại được (vd sau một lần lỗi mạng) thì hiện lại trang, ẩn câu lỗi cũ.
   trangEl.hidden = false;

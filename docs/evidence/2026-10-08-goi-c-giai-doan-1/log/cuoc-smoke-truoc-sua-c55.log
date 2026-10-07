@@ -1,0 +1,37 @@
+✓ 1) 4a 390 tài xế mở "/" → /cuoc: "Hôm nay" (trống) + "Ngày mai" (2 chuyến theo giờ) + "Ngày kia" (trống — góp ý T3); chuyến thiếu giấy xe "Bị giữ" + "(văn phòng lo)"; KHÔNG tên / SĐT khách; ba tab (chưa chạy axe: thiếu AXE_JS)
+✓ 2) 6b 390 chuyến bị giữ: CHỈ điều kiện còn thiếu "(văn phòng lo)", không hạn giấy tờ; "Xuất bến" khoá + "Chưa xuất bến được — văn phòng đang lo."
+✓ 3) 6c → 5a 390, Q-L3-B phía "không tên": chuyến NGÀY MAI (T4) đủ điều kiện ("Đủ điều kiện xuất bến"), trước xuất bến KHÔNG tên khách; bấm "Xuất bến" (không ô giờ, thân không có xayRaLuc) = xuất bến SỚM → đang chạy nhưng màn hiện "Khách N", KHÔNG tên, năm sinh, liên hệ
+✓ 3b) 5a 390, Q-L3-B phía "có tên": chuyến HÔM NAY (TH, tài xế Cường) — bấm "Xuất bến" → đang chạy: tên + năm sinh + liên hệ của đơn hiện (chưa chạy axe: thiếu AXE_JS)
+✓ 4) 5a: "Đã tới" → khách có Đã đón / Vắng / Khách đã huỷ; "Đã đón" khách 1 → "Đã đón"; phản hồi lệnh không kèm liên hệ — màn GIỮ dòng liên hệ của lần tải
+✗ 5) mất mạng: bấm "Vắng" → dòng "Chưa gửi được" + "Bấm lại" + dải "Mất mạng — 1 thao tác chưa gửi được"; máy KHÔNG tự gửi lại; có mạng, bấm lại → "Vắng", CÙNG requestId
+    Error: hết giờ chờ: khách vắng
+    !!document.querySelector('.dp-khach-kq.is-vang')
+        at Object.waitFor (file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/tourdaobooking-erp-assessment-34c6a7/docs/evidence/2026-09-20-a2/kich-ban/a2-cdp.mjs:186:37)
+        at async file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/tourdaobooking-erp-assessment-34c6a7/docs/evidence/2026-09-29-adr-0049/kich-ban/cuoc-smoke.mjs:253:5
+        at async Object.step (file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/tourdaobooking-erp-assessment-34c6a7/docs/evidence/2026-09-29-adr-0049/kich-ban/dp-lib.mjs:28:9)
+        at async file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/tourdaobooking-erp-assessment-34c6a7/docs/evidence/2026-09-29-adr-0049/kich-ban/cuoc-smoke.mjs:242:3
+✗ 5b) C55 (đánh giá ERP 7/10): mất mạng mà trang tự tải lại (tin chuyến / nối lại) → trang KHÔNG ẩn: còn tên khách, số liên hệ, nút; dải "Mất mạng — dữ liệu lúc HH:MM"; có mạng tải lại → dải mất
+    Error: hết giờ chờ: dải dữ liệu cũ
+    /^Mất mạng — dữ liệu lúc \d\d:\d\d$/.test(document.querySelector('#cc-trang > .banner-warning .banner-title')?.textContent ?? '')
+        at Object.waitFor (file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/tourdaobooking-erp-assessment-34c6a7/docs/evidence/2026-09-20-a2/kich-ban/a2-cdp.mjs:186:37)
+        at async file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/tourdaobooking-erp-assessment-34c6a7/docs/evidence/2026-09-29-adr-0049/kich-ban/cuoc-smoke.mjs:264:5
+        at async Object.step (file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/tourdaobooking-erp-assessment-34c6a7/docs/evidence/2026-09-29-adr-0049/kich-ban/dp-lib.mjs:28:9)
+        at async file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/tourdaobooking-erp-assessment-34c6a7/docs/evidence/2026-09-29-adr-0049/kich-ban/cuoc-smoke.mjs:260:3
+✗ 6) 5a: điểm trả "Đã trả" (tới điểm rồi trả khách trên xe) → "Kết thúc chuyến" mở → kết thúc; hộp "Kết thúc gián đoạn" có lý do nhóm Kết thúc gián đoạn, KHÔNG ô ghi chú
+    Error: hết giờ chờ: hộp gián đoạn
+    !!document.querySelector('[data-action="gian-doan-gui"]')
+        at Object.waitFor (file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/tourdaobooking-erp-assessment-34c6a7/docs/evidence/2026-09-20-a2/kich-ban/a2-cdp.mjs:186:37)
+        at async file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/tourdaobooking-erp-assessment-34c6a7/docs/evidence/2026-09-29-adr-0049/kich-ban/cuoc-smoke.mjs:277:5
+        at async Object.step (file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/tourdaobooking-erp-assessment-34c6a7/docs/evidence/2026-09-29-adr-0049/kich-ban/dp-lib.mjs:28:9)
+        at async file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/tourdaobooking-erp-assessment-34c6a7/docs/evidence/2026-09-29-adr-0049/kich-ban/cuoc-smoke.mjs:275:3
+✓ 7) 6d 1040 Bán hàng: "Xuất bến thay tài xế" → hộp: "Đạt đủ … điều kiện", "Ghi thay tài xế …", ô "Xảy ra lúc" mặc định lúc bấm + "Sớm nhất" của máy chủ; giờ ngoài khoảng → câu dưới ô; khai đúng "Sớm nhất" → gửi xayRaLuc, mốc xuất bến HAI giờ + "giờ do văn phòng khai" (chưa chạy axe: thiếu AXE_JS)
+   [7b] dải sau ↓ điểm đầu: "Đã đổi thứ tự điểm" — Đã đổi thứ tự điểm
+✓ 7b) 5c 1040 Bán hàng: nút ↑/↓ ở điểm chưa tới (4 nút, ↑ điểm đầu + ↓ điểm cuối khoá); bấm ↓ điểm đầu → POST /thu-tu thân chỉ requestId + diem (không xayRaLuc), thứ tự đảo, dải báo; bấm ↑ trả lại (chưa chạy axe: thiếu AXE_JS)
+✓ 7c) 5c 1040: điểm trả vừa được ghi "Đã tới" bằng API, trang chưa tải lại → bấm ↓ ở điểm đón → "Chưa đổi được thứ tự điểm" + "Điểm đã tới hoặc đã bỏ qua…"; sau đó điểm đã tới không còn nút, điểm đón còn hai nút khoá
+✓ 8b) Ruling 2/10 — văn phòng bấm thay người đi kèm (T1 đang chạy): dòng 'chưa lên xe' + nút 'Đã lên xe' → 'đang trên xe' + 'Đã xuống' → 'đã xuống', hết nút; dòng giải thích 'Kết thúc chuyến' nhắc người đi kèm
+✓ 8) 5c 1040 Bán hàng: chuyến đang chạy — "Đã tới" để nguyên giờ → thân KHÔNG có xayRaLuc (I34), mốc MỘT giờ; GA-55: sau lệnh tên khách vẫn hiện đúng
+✓ 9b) K2b T2: tài khoản DRIVER + SALES — trang đầu KHÔNG đổi (ở Trang chủ); thanh bên có "Cuốc của tôi" → mở /cuoc; điện thoại: trang Tôi có dòng "Cuốc của tôi", thanh tab KHÔNG thêm tab, ở /cuoc tab "Tôi" sáng
+✓ 9) Kế toán mở chuyến đang chạy: thấy điểm, mốc; KHÔNG nút bấm thay nào (ô trip.progress)
+✓ 10) không lỗi console ở mọi trang đã mở
+
+CUOC SMOKE: 13 ✓, 3 ✗: 5) mất mạng: bấm "Vắng" → dòng "Chưa gửi được" + "Bấm lại" + dải "Mất mạng — 1 thao tác chưa gửi được"; máy KHÔNG tự gửi lại; có mạng, bấm lại → "Vắng", CÙNG requestId | 5b) C55 (đánh giá ERP 7/10): mất mạng mà trang tự tải lại (tin chuyến / nối lại) → trang KHÔNG ẩn: còn tên khách, số liên hệ, nút; dải "Mất mạng — dữ liệu lúc HH:MM"; có mạng tải lại → dải mất | 6) 5a: điểm trả "Đã trả" (tới điểm rồi trả khách trên xe) → "Kết thúc chuyến" mở → kết thúc; hộp "Kết thúc gián đoạn" có lý do nhóm Kết thúc gián đoạn, KHÔNG ô ghi chú
