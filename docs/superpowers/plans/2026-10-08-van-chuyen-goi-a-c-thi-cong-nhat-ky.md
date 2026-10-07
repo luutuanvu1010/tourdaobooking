@@ -31,9 +31,16 @@ Sổ điều phối (CLAUDE.md §9, P19). Trạng thái sống ở đây, không
 | C27 | Có khoảng trống người dùng gặp được thì cảnh báo không chặn; không có thì ghi "không cần sửa" | **Không cần sửa**: màn tạo/sửa tắt xe không `active`; xe đổi sang Bảo dưỡng sau khi có chuyến thì chi tiết và bảng điều phối hiện lý do giữ ngay (bài nháp của trợ lý, không commit) |
 | C14 | Route "thay chặng" một `db.batch`: chặng mới dưới mốc → 409, chặng cũ còn mở; Quản trị + `datGap` qua; ba route cũ giữ nguyên; bảng "Sửa đưa đón" dùng route mới cho "Đổi sang chặng khác" | Lần 1 xong (`c99c3fa0`, `29612c6b` ở nhánh `c14-thay-chang`; e2e 5 kịch bản xanh). Đang sửa lần 2: xét mốc chặng cũ (G3), nhận lý do "Nhập nhầm", bảng trượt kiểm mốc cả kế hoạch trước lệnh đầu. Sau đó kiểm độc lập |
 
+## Giai đoạn 2 — bắt đầu 8/10 (phần đã duyệt, không chờ câu trả lời)
+
+- **Số migration giữ chỗ** (đo 8/10 trên mọi nhánh: lớn nhất `0083`): A1 = `0084` (+ `0085` nếu tách); A3 = `0086`. Đo lại trước khi gộp `main`.
+- **A1** (ADR-0097 Đ1–Đ5; ADR-0096 Đ1 LC-19, Đ2 LC-20; nút ↑/↓ cho chuyến PLANNED — C30; HT-02, HT-16, C50, C58): trợ lý thi công, nhánh `a1-luat-loi-chuyen`. Theo lộ trình `2026-10-03-khac-phuc-kiem-theo-vai-00-lo-trinh.md` §5 V3.1–V3.8; ADR thắng kế hoạch khi lệch.
+- **A3** (ADR-0062 tin "đơn đổi" qua view `v_aud_order_change`; ADR-0052 D6.2 MQ-07 tin giờ hẹn đổi cho tài xế): trợ lý thi công, nhánh `a3-tin-don-doi`. Không làm đếm lượt đổi giờ (thuộc ADR-0063, chờ duyệt), không làm ma trận V5.
+- **A2** chờ chủ duyệt bản tóm ADR-0063 (tệp 01 của lượt duyệt 8/10).
+
 ## Việc song song
 
-- Soạn ba văn bản cho lượt duyệt kế: `docs/superpowers/specs/2026-10-08-luot-duyet-van-chuyen/` (tóm ADR-0063 phần số khách; ADR mới điều chỉnh khẩn cấp + đồng bộ chuyến; ADR mới nút Chỉ đường; trang ghép). Chưa có người kiểm độc lập.
+- Lượt duyệt kế đã soạn: `docs/superpowers/specs/2026-10-08-luot-duyet-van-chuyen/` (01 tóm ADR-0063 D1; 02 đề xuất ADR-0103 điều chỉnh khẩn cấp + đồng bộ chuyến; 03 đề xuất ADR-0104 nút Chỉ đường; 00 trang ghép). Người soạn đề nghị chia lượt 8a (01 + 02) / 8b (03) vì trần 3 quyết định. Đang kiểm độc lập. Gộp thêm câu "mốc chụp khoảng nghỉ" (N3) vào lượt hỏi.
 
 ## Nợ / để sau
 
