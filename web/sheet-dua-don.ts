@@ -1,8 +1,11 @@
 // Bảng trượt "Sửa đưa đón" của đơn ĐÃ XÁC NHẬN (bản vẽ M4 — docs/design/2026-10-01-dua-don-hanh-khach/M4 Sua dua don.dc.html). Khuôn bảng trượt có sẵn
-// (`web/bang-truot.ts`). Mỗi dịch vụ một khối "Đưa đón" (`che: "bang"` — bỏ chặng đã lưu phải chọn lý do). Không có lệnh gộp: Lưu gửi lần lượt từng lệnh của
-// route chặng (ADR-0047 A1) — bỏ chặng (`POST …/legs/:id/close`, mốc CHẶNG), sửa (`PUT …/legs/:id`, mốc CHẶNG), thêm (`POST …/legs`, mốc ĐƠN mới nhất).
-// Lệnh hỏng thì DỪNG, báo lỗi; lệnh trước đó đã lưu (nút "Tải lại đơn" để xem bản mới). 409 `short_notice_required` → Quản trị / Toàn quyền duyệt đặt gấp
-// ngay trong bảng rồi gửi lại ĐÚNG lệnh đó (khuôn bảng "Sửa thông tin chuyến" — 07).
+// (`web/bang-truot.ts`). Mỗi dịch vụ một khối "Đưa đón" (`che: "bang"` — bỏ chặng đã lưu phải chọn lý do). Lưu gửi lần lượt từng lệnh của route chặng
+// (ADR-0047 A1): THAY trước (`POST …/legs/:id/replace`, mốc ĐƠN mới nhất — C14), rồi bỏ chặng (`POST …/legs/:id/close`, mốc CHẶNG), sửa (`PUT …/legs/:id`,
+// mốc CHẶNG), thêm (`POST …/legs`, mốc ĐƠN mới nhất). "Thay" = "Đổi sang chặng khác": trong một dịch vụ, theo từng chiều, ĐÚNG một chặng đã lưu bỏ với lý do
+// REPLACED + ĐÚNG một chặng mới cùng chiều (luật ghép `ghepThayChang`, src/shared/thay-chang.ts) → MỘT lệnh, máy chủ đóng + thêm cùng lô — dưới mốc 6 giờ
+// thì cả lệnh bị chặn, chặng cũ còn nguyên (trước C14: bỏ được, thêm bị chặn ⇒ đơn mất chặng). Ca khác (bỏ hai thêm một, lý do khác, khác chiều) vẫn gửi
+// lệnh rời. Lệnh hỏng thì DỪNG, báo lỗi; lệnh trước đó đã lưu (nút "Tải lại đơn" để xem bản mới). 409 `short_notice_required` → Quản trị / Toàn quyền duyệt
+// đặt gấp ngay trong bảng rồi gửi lại ĐÚNG lệnh đó (khuôn bảng "Sửa thông tin chuyến" — 07).
 import { ApiError, api, type Api, type Order } from "./api";
 import { moBangTruot } from "./bang-truot";
 import { renderBanner } from "./banner";
@@ -14,6 +17,7 @@ import { taoKhoiDuaDon, type DiemChon, type KhoiDuaDon } from "./khoi-dua-don";
 import { CHIEU_LABEL, type LyDoDatGap } from "../src/shared/chang-dua-don";
 import { changDaDoi, changTuDto, legInput, loiDanhSachChang, type ChangNhap } from "../src/shared/chang-form";
 import { tongKhach } from "../src/shared/so-nguoi-chang";
+import { ghepThayChang } from "../src/shared/thay-chang";
 import { NETWORK_BANNER, classifyOrderError, type Banner } from "../src/shared/order-errors";
 
 export interface SheetDuaDonOptions {
@@ -77,16 +81,27 @@ export function openSheetDuaDon(o: SheetDuaDonOptions, opener: HTMLElement): voi
     luu.textContent = busy ? "Đang lưu…" : "Lưu";
   };
 
-  /** Lập danh sách lệnh từ bản nháp (bỏ trước, sửa sau, thêm cuối). */
+  /**
+   * Lập danh sách lệnh từ bản nháp: THAY trước (mọi dịch vụ — bị chặn dưới mốc thì chưa có gì được lưu, nút Lưu không khoá), rồi theo từng dịch vụ bỏ, sửa,
+   * thêm (chặng đã ghép vào lệnh thay không gửi lại lệnh rời).
+   */
   function lapLenh(): Lenh[] {
+    const thayDs: Lenh[] = [];
     const ds: Lenh[] = [];
     for (const k of khoi) {
-      for (const b of k.ui.daBo()) {
+      const ghep = ghepThayChang(k.ui.daBo(), k.legs.filter((l) => !l.goc));
+      for (const { bo, moi } of ghep.thay) {
+        const g = bo.leg.goc!;
+        const leg = legInput(moi, true);
+        thayDs.push({ ten: "thay", goi: async (order, datGap) => (await api<Api.OrderResponse>(`/api/orders/${encodeURIComponent(order.id)}/legs/${encodeURIComponent(g.id)}/replace`, { method: "POST", body: { expectedUpdatedAt: order.updatedAt, leg, ...(datGap ? { datGap } : {}) } })).order });
+      }
+      const daGhep = new Set(ghep.thay.map((c) => c.moi));
+      for (const b of ghep.boLe) {
         const g = b.leg.goc!;
         ds.push({ ten: "bo", goi: async (order) => (await api<Api.OrderResponse>(`/api/orders/${encodeURIComponent(order.id)}/legs/${encodeURIComponent(g.id)}/close`, { method: "POST", body: { expectedUpdatedAt: g.updatedAt, reasonCode: b.lyDo } })).order });
       }
       for (const l of k.legs) {
-        if (!changDaDoi(l, true)) continue;
+        if (daGhep.has(l) || !changDaDoi(l, true)) continue;
         const { id: _id, direction: _d, ...leg } = legInput(l, true);
         if (l.goc) {
           const g = l.goc;
@@ -97,7 +112,7 @@ export function openSheetDuaDon(o: SheetDuaDonOptions, opener: HTMLElement): voi
         }
       }
     }
-    return ds;
+    return [...thayDs, ...ds];
   }
 
   let daLuuSo = 0;
