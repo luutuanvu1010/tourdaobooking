@@ -1,6 +1,6 @@
 # ADR-0105 — Hai nút "Chỉ đường" (Google Maps, Apple Maps) trên màn tài xế
 
-- **Trạng thái:** **accepted** 2026-10-08 — chủ dự án trả lời lượt duyệt 8b qua câu hỏi chọn phương án; nhãn đã chọn nguyên văn: Q-1 **"Duyệt, hai nút Google và Apple"**, tức **Q-1 = b** (khác khuyến nghị); Q-2 **"Có, trong khung giờ đã được phép (Recommended)"**, tức **Q-2 = a**. Câu hỏi đã nói với chủ một lần (Hiến pháp P18) rủi ro một chiều: địa chỉ, thường là nhà riêng của khách, ra bên thứ ba, có thể nằm lại trong lịch sử tài khoản, không thu lại được, chưa kiểm theo luật bảo vệ dữ liệu cá nhân; nút không phải theo dõi xe thời gian thực. Chủ chấp nhận rủi ro đó; nay bên thứ ba gồm cả Google lẫn Apple. Ghi ở sổ thi công `docs/superpowers/plans/2026-10-08-van-chuyen-goi-a-c-thi-cong-nhat-ky.md`, mục "Lượt duyệt 8b" (nhánh `claude/van-chuyen-goi-a-c` @ `19de847a`). Người soạn không có nguyên văn câu hỏi và phương án; nội dung lấy theo sổ thi công. Thân văn bản trình duyệt (tệp 03) viết theo Q-1 a; bản này viết lại mọi chỗ theo Q-1 b. AI soạn bản chép, không tự duyệt (Hiến pháp N3, Điều 7.2). Từ mốc này chỉ sửa dòng trạng thái; đổi nội dung = ADR mới trỏ về ADR này.
+- **Trạng thái:** **accepted** 2026-10-08 — chủ dự án trả lời câu 1 và câu 2 của hộp hỏi lượt duyệt 8b: câu 1 chọn **"Duyệt, hai nút Google và Apple"**, tức **Q-1 = b** (khác khuyến nghị "Duyệt, chỉ Google Maps (Recommended)"); câu 2 chọn **"Có, trong khung giờ đã được phép (Recommended)"**, tức **Q-2 = a**. Nguyên văn câu hỏi và phương án ở mục "Lời chủ dự án". Câu 1 đã nói với chủ một lần (Hiến pháp P18) rủi ro một chiều của việc gửi điểm đến ra ngoài; chủ chấp nhận, nay bên thứ ba gồm cả Google lẫn Apple. Nút Apple chỉ hiện trên máy Apple, theo mô tả phương án chủ chọn "Thêm nút Apple Maps cho người dùng iPhone" (phán quyết G13); nới bài khoá DTO tài xế đúng một khoá nằm trong lời duyệt câu 1 (phán quyết G12). Ghi ở sổ thi công `docs/superpowers/plans/2026-10-08-van-chuyen-goi-a-c-thi-cong-nhat-ky.md`, mục "Lượt duyệt 8b" (nhánh `claude/van-chuyen-goi-a-c` @ `19de847a`; phán quyết G12, G13 ở cùng sổ). Thân văn bản trình duyệt (tệp 03) viết theo Q-1 a; bản này viết lại mọi chỗ theo Q-1 b. AI soạn bản chép, không tự duyệt (Hiến pháp N3, Điều 7.2). Từ mốc này chỉ sửa dòng trạng thái; đổi nội dung = ADR mới trỏ về ADR này.
 - **Ngày:** 2026-10-08.
 - **Văn bản trình duyệt:** `docs/superpowers/specs/2026-10-08-luot-duyet-van-chuyen/03-de-xuat-adr-nut-chi-duong.md`; trang ghép `docs/superpowers/specs/2026-10-08-luot-duyet-van-chuyen/00-trang-ghep.md` (hai hồ sơ có ngày, đóng băng).
 - **Sửa:** ADR-0049 D3 (danh sách trường cho tài xế), ADR-0053 D7.2, D7.3 — từng câu ở mục "Câu ADR bị thay".
@@ -12,7 +12,19 @@
 
 - Nhiệm vụ gốc (2026-10-08): *"GPS & Bản đồ: Cho phép truyền địa chỉ/tọa độ ra dịch vụ bản đồ (Google/Apple Maps) làm nút 'Chỉ đường'…"*
 - Chat 2026-10-08: làm *"Nút Chỉ đường trước"*; theo dõi vị trí xe theo thời gian thực viết ở văn bản sau.
-- Lượt duyệt 8b (2026-10-08): Q-1 **"Duyệt, hai nút Google và Apple"**; Q-2 **"Có, trong khung giờ đã được phép (Recommended)"** (xem dòng Trạng thái).
+- Lượt duyệt 8b, câu 1 (2026-10-08). Nguyên văn câu hỏi:
+
+  > Lượt 8b, câu 1 — Bạn có duyệt nút "Chỉ đường" trên màn tài xế không? Tài xế bấm thì Google Maps mở sẵn điểm đến, chỉ trong ngày chạy; Nền tảng không gửi vị trí tài xế, không gửi tên hay số điện thoại khách. Nút này không phải theo dõi xe thời gian thực, phần đó để sau. Rủi ro một chiều: điểm đến thường là địa chỉ nhà riêng của khách, Google có thể giữ lại trong lịch sử tài khoản trên máy tài xế, đã gửi thì không thu lại được, và chưa ai kiểm việc này theo luật bảo vệ dữ liệu cá nhân.
+
+  - Chủ chọn: **"Duyệt, hai nút Google và Apple"** — "Thêm nút Apple Maps cho người dùng iPhone; cùng rủi ro, màn hình đông nút hơn."
+  - Khuyến nghị lúc hỏi (không chọn): "Duyệt, chỉ Google Maps (Recommended)" — "Một nút, dùng được cả iPhone lẫn Android, tài xế quen. Bạn chấp nhận rủi ro địa chỉ khách ra Google như mô tả."
+  - Không chọn: "Chưa duyệt, kiểm luật trước" — "Hoãn nút này, nhờ người rành luật dữ liệu cá nhân xem trước rồi mới trình lại."
+- Lượt duyệt 8b, câu 2 (2026-10-08). Nguyên văn câu hỏi:
+
+  > Lượt 8b, câu 2 — Khi tài xế đối tác (nhà xe ngoài) bắt đầu dùng Nền tảng ở đợt sau, họ có thấy nút "Chỉ đường" không? (Nếu câu 1 chọn "Chưa duyệt" thì câu này để sau.)
+
+  - Chủ chọn: **"Có, trong khung giờ đã được phép (Recommended)"** — "Chỉ trong khung giờ họ đã được xem tên khách, đúng luật bạn đã duyệt cho tài xế đối tác."
+  - Không chọn: "Không, chỉ tài xế công ty" — "Tài xế đối tác tự tìm đường; địa chỉ khách ra ngoài ít hơn."
 
 ## Bối cảnh mã (đo @ `19de847a`)
 
@@ -43,7 +55,7 @@
 | Điểm xuất phát | không gửi. Tài liệu ghi: vắng `origin` thì bản đồ lấy điểm đầu phù hợp nhất, "such as device location, if available". Đó là việc giữa điện thoại và Google, ngoài Nền tảng | không gửi. Tài liệu ghi: vắng `source` thì Maps chỉ đường "from a person's current location". Đó là việc giữa điện thoại và Apple, ngoài Nền tảng |
 | Khoá dịch vụ, tiền | tài liệu ghi "You don't need a Google API key to use Maps URLs". Không tốn tiền | tài liệu **không nêu** khoá hay phí; không có bước đăng ký nào trong tài liệu |
 | iPhone | có ứng dụng Google Maps thì mở ứng dụng; không có thì mở Google Maps trong trình duyệt (tài liệu Google) | dạng `/directions` được tài liệu ghi cho **iOS 18.4 trở lên** (macOS 15.4, watchOS 11.4). iOS cũ hơn: **chưa kiểm** |
-| Android | có ứng dụng Google Maps thì mở ứng dụng; không có hoặc bị tắt thì mở trình duyệt (tài liệu Google) | không có ứng dụng Apple Maps. Trang hỗ trợ Apple (đăng 2026-04-16) ghi "Maps on the web" chạy trên trình duyệt "On your mobile device": Safari (chỉ iOS, iPadOS), Edge, Chrome, Firefox — trang **không** nêu tên Android — và "Feature availability can vary by platform, language, and region". Liên kết `/directions` có dẫn đường được trên Android không, có tiếng Việt không, có ở Việt Nam không: **chưa kiểm** |
+| Android | có ứng dụng Google Maps thì mở ứng dụng; không có hoặc bị tắt thì mở trình duyệt (tài liệu Google) | không có ứng dụng Apple Maps; nút Apple **không hiện** trên Android (Quyết định mục 1). Trang hỗ trợ Apple (đăng 2026-04-16) liệt kê trình duyệt di động cho "Maps on the web" nhưng không nêu tên Android; ADR này không dựa vào trang đó |
 | Giới hạn độ dài | 2 048 ký tự cho cả liên kết | tài liệu không nêu: **chưa kiểm** |
 | Nền tảng cài lên màn hình chính của iPhone | liên kết `target="_blank"` mở ứng dụng bản đồ hay Safari: **chưa kiểm** | như cột bên: **chưa kiểm** |
 
@@ -52,8 +64,10 @@ Dạng cũ `maps.apple.com/?daddr=…` chỉ thấy qua nguồn thứ cấp (tà
 ## Quyết định
 
 1. **Hai nút** (Q-1 b):
-   - Trên màn chuyến của tài xế (`/cuoc-chuyen`, `web/cuoc-chuyen.ts`), mỗi điểm `PICKUP` / `DROPOFF` chưa xong (trạng thái `PENDING` hoặc `ARRIVED`) có hai liên kết "Google Maps" và "Apple Maps", đặt cạnh nhau, chung nhãn nhóm "Chỉ đường".
-   - Hai nút hiện trên mọi máy, đúng lời chủ. Nếu người thi công thấy trên Android nút Apple không dẫn đường được, điều phối quyết có ẩn nút đó trên Android hay không (bề mặt, đảo ngược được) và ghi lại.
+   - Trên màn chuyến của tài xế (`/cuoc-chuyen`, `web/cuoc-chuyen.ts`), mỗi điểm `PICKUP` / `DROPOFF` chưa xong (trạng thái `PENDING` hoặc `ARRIVED`) có liên kết "Google Maps" và, trên máy Apple, liên kết "Apple Maps" đặt cạnh, chung nhãn nhóm "Chỉ đường".
+   - Nút chỉ hiện ở điểm chưa xong của chuyến trong ngày chạy. Chuyến ở trạng thái nào thì hiện nút (`PLANNED` hay chỉ `RUNNING`; màn hiện có chỉ cho bấm điểm khi chuyến `RUNNING`, `web/cuoc-chuyen.ts:234`, `:299`) do kế hoạch chốt theo màn hiện có; đây là chữ bề mặt.
+   - **Nút Google hiện trên mọi máy; nút Apple chỉ hiện trên máy Apple** (phán quyết G13), theo mô tả phương án chủ chọn: "Thêm nút Apple Maps cho người dùng iPhone". "Máy Apple" rộng hơn chữ "iPhone": gồm iPhone, iPad và máy Mac, vì cả ba có sẵn Apple Maps, và iPadOS có lúc tự báo mình là Mac (chuỗi nhận dạng trình duyệt ghi `Macintosh`) nên không tách chắc chắn được iPad khỏi Mac. Máy Android và máy khác (Windows…) không thấy nút Apple. Ẩn nút là bề mặt, đảo ngược được (hoàn tác: bỏ điều kiện ẩn).
+   - Nhận biết máy Apple bằng một hàm thuần ở `src/shared/` nhận chuỗi nhận dạng trình duyệt (tên đề xuất `laMayApple(ua)`; khớp `iPhone`, `iPad`, `iPod`, `Macintosh`). Hàm không tự đọc `navigator`, để `node --test` kiểm được; màn hình truyền `navigator.userAgent` vào.
    - Liên kết mở `target="_blank"`, `rel="noreferrer noopener"`.
 2. **Một chuỗi đích, hai liên kết, một hàm:**
    - Hai liên kết dựng **trong trình duyệt** từ **cùng một** chuỗi đích, bằng một hàm thuần ở `src/shared/` (tên đề xuất `lienKetChiDuong(chuoiDich)` → `{ google, apple } | null`), có `*.test.ts`.
@@ -85,7 +99,7 @@ ADR-0049 `:234` cho tài xế thấy tên nơi, kể cả chữ tự do, **mọi
 
 ## Hệ quả và rủi ro
 
-- **Dữ liệu ra hai bên thứ ba (một chiều; chủ đã nghe và chấp nhận — Hiến pháp P18, không nhắc lại):** mỗi lần tài xế bấm, chuỗi đích (có khi là địa chỉ nhà riêng của khách, vì danh mục khách sạn còn trống theo báo cáo ngày 7/10 — chưa kiểm trên dữ liệu thật) đi tới Google hoặc Apple. Phía Google, lịch sử tìm kiếm trong tài khoản Google trên máy tài xế có thể giữ lại. Phía Apple, Apple lưu hay không, lưu bao lâu: **chưa kiểm**. Khi bản đồ mở trong trình duyệt (máy không có ứng dụng, hoặc nút Apple trên Android), liên kết mang địa chỉ còn nằm trong lịch sử trình duyệt của máy tài xế. Nền tảng không xoá được những chỗ đó, và gỡ nút cũng không thu lại được.
+- **Dữ liệu ra hai bên thứ ba (một chiều; chủ đã nghe và chấp nhận — Hiến pháp P18, không nhắc lại):** mỗi lần tài xế bấm, chuỗi đích (có khi là địa chỉ nhà riêng của khách, vì danh mục khách sạn còn trống theo báo cáo ngày 7/10 — chưa kiểm trên dữ liệu thật) đi tới Google hoặc Apple. Phía Google, lịch sử tìm kiếm trong tài khoản Google trên máy tài xế có thể giữ lại. Phía Apple, Apple lưu hay không, lưu bao lâu: **chưa kiểm**. Khi bản đồ mở trong trình duyệt (máy không có ứng dụng bản đồ), liên kết mang địa chỉ còn nằm trong lịch sử trình duyệt của máy tài xế. Nền tảng không xoá được những chỗ đó, và gỡ nút cũng không thu lại được.
 - **Chữ tự do có SĐT viết tách nhóm:** `maskLongDigits` chỉ che dãy ≥ 8 chữ số; SĐT viết tách nhóm ngắn hơn 8 chữ số không bị che, nên có thể ra Google hoặc Apple. Lớp bù là dòng nhắc trên ô (mục 7) — dựa vào kỷ luật.
 - **Quản trị nên nhập địa chỉ** cho các điểm hay dùng ở màn "Địa điểm"; điểm chưa có địa chỉ thì gửi tên điểm, bản đồ có thể tìm sai.
 - **Migration:** một view (mục "Migration").
@@ -110,7 +124,7 @@ Dòng có dấu ★ là thêm so với văn bản trình duyệt: câu "vắng m
 - **Một chiều:**
   - mỗi chuỗi đích đã gửi sang Google hoặc Apple (không thu lại; lịch sử tài khoản, lịch sử trình duyệt trên máy tài xế);
   - view công bố mới là hợp đồng giữa hai module (gỡ phải theo expand–contract).
-- **Hai chiều:** hai nút, dạng liên kết của từng bản đồ, khoá DTO (bỏ được trong một lần phát hành), dòng nhắc, ngưỡng độ dài.
+- **Hai chiều:** hai nút, điều kiện ẩn nút Apple ngoài máy Apple, dạng liên kết của từng bản đồ, khoá DTO (bỏ được trong một lần phát hành), dòng nhắc, ngưỡng độ dài.
 
 ## Migration
 
@@ -120,23 +134,28 @@ Một tệp chỉ `CREATE VIEW v_loc_location_dia_chi`. Số = số lớn nhất
 
 Mỗi rào quan sát chặn thật: sửa cố ý → đỏ → hoàn nguyên, có dòng `docs/SO-HANG-RAO.md`.
 
-1. `src/modules/van-chuyen/tai-xe-dto.test.ts`: `KHOA_DIEM` trong ngày chạy = 10 khoá + `diaChiChiDuong` ở **mọi** điểm; ngoài ngày chạy giữ đúng 10 khoá. Đây là **nới có tên** bài ghim (Điều 9.4), đúng một khoá, ghi lý do ADR-0105 ở chú thích. Người soạn không có nguyên văn phương án chủ chọn; câu "đồng ý nới bài khoá … đúng một trường" nằm trong câu duyệt gợi ý của tệp 03 — điều phối xác nhận phương án chủ chọn có mang nội dung này (mục "Chưa kiểm").
+1. `src/modules/van-chuyen/tai-xe-dto.test.ts`: `KHOA_DIEM` trong ngày chạy = 10 khoá + `diaChiChiDuong` ở **mọi** điểm; ngoài ngày chạy giữ đúng 10 khoá. Đây là **nới có tên** bài ghim (Điều 9.4), đúng một khoá, chỉ trong ngày chạy, ghi lý do ADR-0105 ở chú thích. Căn cứ (phán quyết G12): câu 1 **không** có câu "đồng ý nới bài khoá" của câu duyệt gợi ý tệp 03, nhưng việc nới vẫn nằm trong lời duyệt vì hai lẽ. Thứ nhất, nút không thể có nếu chuỗi đích không tới được trình duyệt của tài xế. Thứ hai, rủi ro mà bài khoá canh (dữ liệu khách ra ngoài) chính là rủi ro câu 1 đã tả và chủ đã chấp nhận. Với chữ tự do, khoá mới chỉ lặp lại `tenNoi` tài xế đang thấy; dữ liệu mới duy nhất tới máy tài xế là địa chỉ của điểm danh mục (địa chỉ nơi kinh doanh). Hoàn tác: bỏ khoá khỏi DTO.
 2. Bài mới: chuỗi đích của điểm chữ tự do chứa dãy ≥ 8 chữ số → đã che; không bao giờ trùng `place_key`; điểm danh mục có địa chỉ → địa chỉ, không có → tên.
 3. Bài hàm thuần `lienKetChiDuong`:
    - hai liên kết giải mã ra **cùng** chuỗi đích;
    - mã hoá đúng chữ có dấu, dấu cách, `&`, `#`, `+`, `/`, `?`;
    - không có tham số điểm xuất phát (`origin`, `source`, `saddr`) hay điểm giữa;
    - chuỗi rỗng → `null`; chuỗi dài làm liên kết Google vượt 2 048 ký tự → `null` cho cả hai.
-4. Bài tĩnh:
+4. Bài hàm thuần nhận biết máy Apple (`laMayApple`, mục 1), mỗi ca một chuỗi nhận dạng trình duyệt mẫu: iPhone → đúng; iPad tự báo là Mac (`Macintosh`) → đúng; Android → sai; Windows → sai.
+5. Bài tĩnh:
    - không tệp `web/` nào gọi `navigator.geolocation`; `public/_headers` vẫn có `geolocation=()`; `connect-src` không thêm miền bản đồ;
-   - chuỗi `google.com/maps` và `maps.apple.com` chỉ xuất hiện trong hàm `lienKetChiDuong` (một chỗ dựng liên kết).
-5. Kịch bản Chrome màn tài xế: thấy hai nút trong ngày chạy ở điểm chưa xong, không thấy ở điểm đã xong, không thấy hôm trước; ảnh thật iPhone theo thói quen duyệt giao diện.
-6. Thử tay trên máy thật, ghi kết quả vào sổ thi công: iPhone (Nền tảng cài lên màn hình chính) bấm từng nút — mở ứng dụng hay Safari; Android bấm nút Apple — có dẫn đường không.
-7. `npm test`, `npm run typecheck`, `npm run test:e2e`.
+   - chuỗi `google.com/maps` và `maps.apple.com` chỉ xuất hiện trong hàm `lienKetChiDuong` (một chỗ dựng liên kết);
+   - chỗ dựng liên kết bản đồ ở `web/` gán `rel="noreferrer noopener"`.
+6. Bài ghim cột view `v_loc_location_dia_chi` = đúng `id, address, active`, theo khuôn bài ghim cột `v_loc_location_label` (`src/migrations-n1.test.ts:57-60`).
+7. Kịch bản Chrome màn tài xế, kết quả theo chuỗi nhận dạng trình duyệt: Chrome trên máy Mac của người thi công báo `Macintosh` nên điểm chưa xong trong ngày chạy có cả hai nút; giả lập Android (ví dụ chế độ điện thoại của khung xem trước, chuỗi nhận dạng Android Chrome) chỉ thấy nút Google; điểm đã xong và chuyến hôm trước không thấy nút nào. Ảnh thật iPhone theo thói quen duyệt giao diện.
+8. Thử tay trên máy thật, ghi kết quả vào sổ thi công: iPhone (Nền tảng cài lên màn hình chính) bấm từng nút — mở ứng dụng hay Safari; Android chỉ thấy nút Google, bấm thì mở Google Maps.
+9. `npm test`, `npm run typecheck`, `npm run test:e2e`.
 
 ## Phương án bị loại
 
-- **Một nút Google (Q-1 a, khuyến nghị của văn bản trình duyệt)** và **một nút Apple (Q-1 c):** chủ chọn hai nút ngày 2026-10-08.
+- **Một nút Google (Q-1 a, khuyến nghị lúc hỏi)** và **"Chưa duyệt, kiểm luật trước"** (phương án thứ ba của hộp hỏi): chủ chọn hai nút ngày 2026-10-08. **Chỉ Apple Maps** (Q-1 c của tệp 03) không đưa vào hộp hỏi.
+- **Nút Apple trên mọi máy:** mô tả phương án chủ chọn nói nút Apple là "cho người dùng iPhone", và Apple Maps trên web chạy trên Android hay không chưa kiểm (phán quyết G13).
+- **Gửi tên điểm** (không khoá DTO mới, không view mới, không nới bài khoá — nút dựng từ `tenNoi` tài xế đã có): bị loại vì địa chỉ chính xác hơn tên điểm; bản đồ tìm theo tên dễ ra sai nơi.
 - **Gửi toạ độ:** chưa có dữ liệu toạ độ (BL-VC-TOA-DO).
 - **Bản đồ nhúng trong Nền tảng** (Google Maps JavaScript API, MapKit JS): cần khoá, có thể tốn tiền, phải mở CSP `script-src`, và bên thứ ba thấy cả màn của tài xế.
 - **Máy chủ tự gọi dịch vụ chỉ đường:** cần khoá, là bí mật (N10), và máy chủ thành bên chuyển dữ liệu khách.
@@ -162,8 +181,8 @@ Các mục HIGH đang mở (TNV-G1, TNV-G3, TNV-G4, HC-5.19, HC-4.2, HC-5.11) th
 
 ## Chưa kiểm
 
-- Apple: dạng `/directions` trên iOS cũ hơn 18.4; giới hạn độ dài liên kết; Apple lưu chuỗi đích hay không; nút Apple trên Android có dẫn đường, có tiếng Việt, có phủ Việt Nam không.
+- Apple: dạng `/directions` trên iOS cũ hơn 18.4; giới hạn độ dài liên kết; Apple lưu chuỗi đích hay không; Apple Maps có tiếng Việt, có phủ Việt Nam không.
+- iPad đời mới gửi chuỗi nhận dạng `Macintosh`: người soạn dựa vào hiểu biết chung, chưa đo trên máy thật (bài 4 dùng chuỗi mẫu).
 - Nền tảng cài lên màn hình chính iPhone: liên kết mở ứng dụng bản đồ hay Safari (cả hai nút).
 - Production có bao nhiêu điểm danh mục đã có địa chỉ; tỉ lệ chặng dùng chữ tự do (báo cáo ERP C09, C10 chỉ đo trên dữ liệu thử).
 - Vị thế pháp lý của việc gửi địa chỉ nhà khách sang Google và Apple theo luật bảo vệ dữ liệu cá nhân.
-- Nguyên văn câu hỏi và phương án Q-1 của lượt 8b, nhất là phương án chủ chọn có kèm câu "đồng ý nới bài khoá danh sách trường điểm dừng" như câu duyệt gợi ý của tệp 03 hay không (bài kiểm 1 dựa vào câu đó).

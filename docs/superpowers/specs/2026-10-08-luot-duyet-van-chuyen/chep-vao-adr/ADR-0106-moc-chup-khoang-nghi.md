@@ -1,6 +1,6 @@
 # ADR-0106 — Mốc chụp khoảng nghỉ của chuyến xe
 
-- **Trạng thái:** **accepted** 2026-10-08 — chủ dự án trả lời lượt duyệt 8b qua câu hỏi chọn phương án; nhãn đã chọn nguyên văn: **"Duyệt đúng như mã đang làm (Recommended)"**. Ghi ở sổ thi công `docs/superpowers/plans/2026-10-08-van-chuyen-goi-a-c-thi-cong-nhat-ky.md`, mục "Lượt duyệt 8b" (nhánh `claude/van-chuyen-goi-a-c` @ `19de847a`). Người soạn không có nguyên văn câu hỏi; nội dung theo văn bản trình duyệt (tệp 04) và sổ thi công. "Mã đang làm" ở đây là mã @ `19de847a`, mô tả ở mục "Bối cảnh mã". AI soạn bản chép, không tự duyệt (Hiến pháp N3, Điều 7.2). Từ mốc này chỉ sửa dòng trạng thái; đổi nội dung = ADR mới trỏ về ADR này.
+- **Trạng thái:** **accepted** 2026-10-08 — chủ dự án trả lời câu 3 của hộp hỏi lượt duyệt 8b, chọn **"Duyệt đúng như mã đang làm (Recommended)"**; nguyên văn câu hỏi và phương án ở mục "Lời chủ dự án". Ghi ở sổ thi công `docs/superpowers/plans/2026-10-08-van-chuyen-goi-a-c-thi-cong-nhat-ky.md`, mục "Lượt duyệt 8b" (nhánh `claude/van-chuyen-goi-a-c` @ `19de847a`). "Mã đang làm" ở đây là mã @ `19de847a`, mô tả ở mục "Bối cảnh mã". AI soạn bản chép, không tự duyệt (Hiến pháp N3, Điều 7.2). Từ mốc này chỉ sửa dòng trạng thái; đổi nội dung = ADR mới trỏ về ADR này.
 - **Ngày:** 2026-10-08.
 - **Văn bản trình duyệt:** `docs/superpowers/specs/2026-10-08-luot-duyet-van-chuyen/04-moc-chup-khoang-nghi.md`; trang ghép `docs/superpowers/specs/2026-10-08-luot-duyet-van-chuyen/00-trang-ghep.md` (hai hồ sơ có ngày, đóng băng).
 - **Sửa:** ADR-0049 D2 "Khoảng nghỉ" (`:171`, câu "Chụp vào …"). Chốt chỗ tự mâu thuẫn của đặc tả `docs/superpowers/specs/2026-09-29-bang-dieu-phoi-chung-design.md` (`:159`, `:1327` "lúc tạo chuyến" ↔ `:373` "tạo/sửa chuyến, gán tài xế"): theo `:373`.
@@ -10,7 +10,12 @@
 
 ## Lời chủ dự án
 
-- Lượt duyệt 8b (2026-10-08): **"Duyệt đúng như mã đang làm (Recommended)"**.
+- Lượt duyệt 8b, câu 3 (2026-10-08). Nguyên văn câu hỏi:
+
+  > Lượt 8b, câu 3 — Bạn có duyệt quy tắc chép khoảng nghỉ vào chuyến không? Máy chép số phút nghỉ tối thiểu của tài xế vào chuyến lúc tạo, và chép lại khi sửa chuyến đổi giờ bắt đầu, giờ kết thúc, xe hoặc tài xế; các kiểu sửa khác giữ số cũ. Mã đang chạy đúng như vậy, chỉ thiếu quyết định ghi thành văn.
+
+  - Chủ chọn: **"Duyệt đúng như mã đang làm (Recommended)"** — "Ghi thành quyết định chính thức; không đổi gì trong mã."
+  - Không chọn: "Chỉ chép lúc tạo chuyến" — "Sửa chuyến không chép lại số nghỉ mới; phải gỡ bản sửa lỗi gần đây, chuyến sửa giờ có thể giữ số nghỉ cũ đã lỗi thời."
 - Câu duyệt gợi ý của tệp 04: *"Duyệt ADR-0106: khoảng nghỉ chép vào chuyến lúc tạo, và chép lại khi sửa chuyến đổi giờ bắt đầu, giờ kết thúc, xe hoặc đổi sang tài xế khác; các lệnh sửa khác giữ số cũ."*
 
 ## Bối cảnh
