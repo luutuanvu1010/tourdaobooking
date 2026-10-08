@@ -231,7 +231,11 @@ export const hetHanStatement = (db: D1Database, endpoints: string[], at: string)
 const LIST_TIN_CHUYEN = defineSql("thongbao", "list_tin_chuyen", `
   SELECT e.id, e.trip_id, e.staff_id AS actor_id, e.action, e.created_at AS luc FROM v_aud_trip_event e
   WHERE e.created_at >= ?1 AND e.action IN (SELECT value FROM json_each(?2)) ORDER BY e.created_at DESC LIMIT 3000`);
-/** Trần riêng của ba lệnh khách: tin khẩn cấp chỉ có nghĩa trong vài giờ trước giờ chạy — 1000 dòng xếp / rút / dời gần nhất của cả công ty là đủ. */
+/**
+ * Trần riêng của ba lệnh khách: 1000 dòng xếp / rút / dời gần nhất của cả công ty. Tin khẩn cấp (mốc) chỉ có nghĩa trong vài giờ trước giờ chạy; từ CAO-C
+ * (2026-10-08) tin trung tính của lệnh bỏ qua luật khác (có thể xa giờ chạy) dùng CHUNG trần này — dòng cũ hơn 1000 dòng gần nhất thì rơi khỏi hộp (lời gõ cửa
+ * lúc ra lệnh thì đã gửi rồi). Chưa đo lượng thật; xem lại nếu tài xế báo mất tin.
+ */
 export const GIOI_HAN_TIN_KHACH = 1000;
 const LIST_TIN_CHUYEN_KHACH = defineSql("thongbao", "list_tin_chuyen_khach", `
   SELECT e.id, e.trip_id, e.staff_id AS actor_id, e.action, e.created_at AS luc FROM v_aud_trip_event e

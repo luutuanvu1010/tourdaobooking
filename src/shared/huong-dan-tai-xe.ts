@@ -85,7 +85,7 @@ Trên máy tính, menu bên trái có: [[Trang chủ]], [[Cuốc của tôi]], [
 Văn phòng chưa xếp bạn lái chuyến nào. Khi được xếp, đổi hay huỷ chuyến, bạn nhận thông báo (nếu đã bật).
 
 ### Thông báo "Văn phòng vừa điều chỉnh chuyến" là gì? (tài xế công ty)
-Văn phòng vừa xếp thêm, rút hay chuyển khách trên chuyến bạn lái, và đã bỏ qua một luật xếp xe (có ghi lý do). Thông báo ghi "điều chỉnh khẩn cấp" nghĩa là việc này làm sát giờ chạy. Bạn mở thông báo để xem lại điểm đón và số khách.
+Văn phòng vừa xếp thêm, rút hay chuyển khách trên chuyến bạn lái, và đã bỏ qua một luật (có ghi lý do). Thông báo ghi "điều chỉnh khẩn cấp" nghĩa là việc này làm sát giờ chạy. Bạn mở thông báo để xem lại điểm đón và số khách.
 
 ### Giờ ghi có phải giờ tôi bấm không?
 Đúng. Bạn không tự sửa giờ được.
