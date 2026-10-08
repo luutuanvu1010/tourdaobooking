@@ -1,5 +1,7 @@
 # Trang ghép — lượt duyệt Vận chuyển 2026-10-08 (lượt 8a và 8b)
 
+> **Chủ đã duyệt 2026-10-08: tệp 01 (Duyệt), Q-1 b, Q-2 a — bản chép ở `chep-vao-adr/`.** Lượt 8b chưa trình.
+
 > **Hồ sơ có ngày 2026-10-08, vai soạn, vòng 4** (đã sửa theo phiếu kiểm độc lập vòng 1–3 và quyết định của người điều phối). Bắt buộc theo `CLAUDE.md` §9 ("bước ghép khi duyệt"): lượt có ≥ 2 quyết định, và bảng suất `vc_trip_allocation` nhận thêm một **người ghi** mới (máy, thay mặt người sửa đơn). Trang này ghép năm văn bản cùng thư mục:
 > - lượt **8a**:
 >   - `01-tom-adr-0063-so-khach.md` — ADR-0063 D1, văn phòng sửa số khách sau xác nhận;

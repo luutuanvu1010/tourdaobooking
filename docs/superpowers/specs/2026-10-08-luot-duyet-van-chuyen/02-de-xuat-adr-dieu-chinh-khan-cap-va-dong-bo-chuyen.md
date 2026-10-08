@@ -1,5 +1,7 @@
 # ADR-0104 (số tạm, chốt khi gộp) — Điều chỉnh khẩn cấp sát giờ và Đồng bộ chuyến theo đơn
 
+> **Chủ đã duyệt 2026-10-08: Q-1 b, Q-2 a — bản chép ở `chep-vao-adr/`.**
+
 > **Trạng thái:** **proposed**, bản nháp vòng 2 của người soạn ngày 2026-10-08, đã sửa theo phiếu kiểm độc lập. Chủ chưa duyệt; AI không tự duyệt (Hiến pháp N3, Điều 7.2). Chủ duyệt rồi người điều phối mới chép vào `docs/adr/`.
 > **Số tạm 0104, chốt khi gộp.** Số 0103 đã có nhánh `claude/ticket-sales-qr-payment-cf8e18` dùng ở commit `dd8fdbdd` (đề xuất VietQR). Đầu nhánh đó nay ghi số tạm `00xx`, nhưng người điều phối đã chốt 0104 cho tệp này. Kiểm ngày 8/10 sau `git fetch --all`: `git grep -E "ADR-010[3-9]"` trong `docs/` trên 24 nhánh cục bộ và `origin/main` chỉ gặp chính các tệp của thư mục này. Không sửa `docs/adr/README.md`.
 > **Thay đề xuất ADR-0091** ("Bán hàng phá lệ mốc 6 giờ, nhãn 'Ngoại lệ 6 giờ'", `docs/superpowers/specs/2026-10-02-luot-duyet-3-pin-tam-va-ngoai-le-6-gio.md`, chưa từng được duyệt) **ở phần xếp xe**. Phần đặt gấp phía đơn chuyển sang tệp 05 (lượt 8b). ADR-0093 trong cùng tệp đó không bị đụng.
