@@ -1,11 +1,11 @@
 # Đặc tả: mã QR thanh toán (VietQR) trên đơn + mã giao dịch ngân hàng khi Kế toán xác nhận
 
 - **Ngày:** 2026-10-08. **Người soạn:** AI (phiên lập kế hoạch, nhánh `claude/ticket-sales-qr-payment-cf8e18`, mốc `main` @`4d98a205`).
-- **Trạng thái:** bản nháp vòng 3, chờ chủ duyệt. Người kiểm độc lập vòng 1 và vòng 2 đều kết luận ĐẠT CÓ ĐIỀU KIỆN; mọi mục đã sửa, bảng theo dõi ở §12. Bản vòng 3 **chưa** được kiểm lại. Kèm: ADR nháp `ADR-00xx-qr-thanh-toan-vietqr.md` và trang ghép `trang-ghep.md` cùng thư mục.
+- **Trạng thái:** bản nháp vòng 4, chờ chủ duyệt. Người kiểm độc lập vòng 1, 2, 3 đều kết luận ĐẠT CÓ ĐIỀU KIỆN; vòng 3 không còn mục CAO (đã chạy thử lối ra trên mã thật bằng khung thử). Mọi mục đã sửa, bảng theo dõi ở §12; điều kiện còn lại là câu C4 (§9). Bản vòng 4 chỉ sửa chữ, chưa kiểm lại. Kèm: ADR nháp `ADR-00xx-qr-thanh-toan-vietqr.md` và trang ghép `trang-ghep.md` cùng thư mục.
 - **Loại việc:** việc lớn (tiền, quyền, dữ liệu): sau thi công bắt buộc người kiểm độc lập chỉ đọc (CLAUDE.md §3).
 - **Xây trên lỗ đang hở: TNV-G1, TNV-G3, TNV-G4, HC-4.2** (`docs/quyen-hoan.json`, cả bốn mức HIGH, hạn 2026-10-31):
   - **TNV-G1:** nút QR ẩn ở đơn huỷ nhờ `conLai` trả 0, mà đó là phần sửa của G1 (migration 0078–0079).
-  - **TNV-G3:** đường sửa nhập nhầm sau "Đã giao" là lệnh "Thay lần thu" (migration 0083); lối gỡ khai trùng sau "Đã giao" chờ đ9 phân định trách nhiệm, nằm trong phần còn chờ của G3 (§5).
+  - **TNV-G3:** đường sửa nhập nhầm sau "Đã giao" là lệnh "Thay lần thu" (migration 0083); lối gỡ khai trùng sau "Đã giao" là người khai nộp qua quyết toán có sẵn; đ9 phân định trách nhiệm (phần còn chờ của G3) sẽ thêm một lối nữa khi có (§5).
   - **TNV-G4:** QR làm số khoản chuyển khoản tăng mạnh, đụng đúng ca KT02 "hai người khai cùng một khoản". Bản này **thi công luôn phần Đ6** nằm trong `ke_hoach` của G4. Sau bản này, Đ5d, Đ6a và phần cảnh báo khác đơn vẫn còn hở.
   - **HC-4.2:** trần "số tiền thực chuyển" do một Kế toán nhập, không có người thứ hai duyệt; chống cố ý nhập sai thuộc luật hai người của HC-4.2 (§5).
   - **Điều kiện phát hành:** migration 0078–0083 đã có trên production, kiểm bằng lệnh chỉ đọc lúc phát hành (`wrangler d1 migrations list … --remote`), không tin tài liệu. Chủ đã chọn C2 = "Cho phép, có ghi lý do" (2026-10-08). Lý do ghi ở thông điệp commit `17e795da` và trường `xay_tren_cho_phep` của bốn mục trong `docs/quyen-hoan.json`. **Đây là ngoại lệ do chủ quyết, không phải gia hạn**: hạn 31/10 giữ nguyên, còn luật CLAUDE.md §3 chỉ ghi hai đường (vá, hoặc gia hạn có lý do).
@@ -83,7 +83,7 @@ Phần lõi là thi công **một điều đã duyệt** (ADR-0092 Đ6, accepted
 
 **Đường ghi phải đòi mã (T1, C1).** Chỉ áp cho lần thu hình thức **chuyển khoản**, người thu **Công ty**; Công ty thu bằng tiền mặt không áp.
 1. Kế toán / Toàn quyền bấm **"Công ty đã nhận"** cho khoản do người khác khai.
-2. Kế toán / Toàn quyền **tự ghi** lần thu, kể cả lần thu ghi kèm lúc bấm **"Đã giao"** (`billing/index.ts`, nhánh ghi lần thu cùng lô Đã giao).
+2. Kế toán / Toàn quyền **tự ghi** lần thu (`POST /api/orders/:id/payments`, nhánh Kế toán: không sinh dòng giữ hộ), và **Toàn quyền** ghi lần thu kèm lúc bấm **"Đã giao"** (`POST /api/orders/:id/delivered`, ô `order.handover` + `payment.receive`; Kế toán thuần không bấm được Đã giao). Quản trị hay hướng dẫn viên ghi kèm Đã giao thì sinh dòng giữ hộ như khai thường, mã đến ở đường 1.
 3. Lần thu mới trong lô **"Thay lần thu"** (ADR-0088).
 
 Khoản do người không phải Kế toán khai (dòng giữ hộ) **chưa** cần mã. Mã đến lúc Kế toán xác nhận (đường 1).
@@ -94,7 +94,7 @@ Khoản do người không phải Kế toán khai (dòng giữ hộ) **chưa** c
 - **Chặn số thực chuyển lệch:** mã đã có dòng nối còn hiệu lực ghi số thực chuyển A, lần nhập mới ghi số khác A ⇒ chặn, câu báo nêu A. Giao diện điền sẵn A khi Kế toán gõ một mã đã biết.
 - **Chặn vượt số thực chuyển:** tổng các lần thu còn hiệu lực gắn cùng mã (mọi đơn) > A ⇒ chặn.
 - **"Còn hiệu lực"** = đúng vị từ `hieuLuc` của `billing/rules.ts`, tức vị từ `conLai` đang dùng: không phải dòng đảo và chưa bị đảo. Dòng nối của lần thu đã bị đảo **tự rơi khỏi** mọi phép kiểm. Như vậy tổng theo mã và "còn lại" không bao giờ lệch nhau (5.4). Trigger CSDL viết lại cùng vị từ bằng SQL, có ca so trigger với hàm thuần.
-- **Trong lô "Thay lần thu"** (lô chạy: ghi lần thu mới → ghi dòng đảo của lần thu cũ → phiếu): dòng nối mã của lần thu mới được chèn **sau** bước ghi dòng đảo. Lúc đó lần thu cũ đã rơi khỏi `hieuLuc`, nên vị từ thường là đủ, không cần dấu riêng của lô. Kế toán nhập mã cho **từng** lần thu mới là chuyển khoản – Công ty thu. Giao diện điền sẵn mã cũ khi thay một-đổi-một; máy chủ không tự chép.
+- **Trong lô "Thay lần thu"** (lô chạy: ghi lần thu mới → ghi dòng đảo của lần thu cũ → phiếu): dòng nối mã của lần thu mới được chèn **sau** bước ghi dòng đảo. Lúc đó lần thu cũ đã rơi khỏi `hieuLuc`, nên trigger dùng vị từ thường là đủ, không cần dấu riêng của lô. **Máy chủ** kiểm trước lô, khi lần thu cũ còn hiệu lực: nó phải **loại các lần thu trong danh sách cần thay** (`cu`) khi kiểm trùng, lệch và tổng. Kế toán nhập mã cho **từng** lần thu mới là chuyển khoản – Công ty thu. Giao diện điền sẵn mã cũ khi thay một-đổi-một; máy chủ không tự chép.
 - **Sửa khi nhập nhầm** (mã hoặc số thực chuyển): **không có đường sửa riêng**, dùng đường sửa sai sổ tiền đã có. Trước "Đã giao": Kế toán **đảo lần thu** rồi ghi lại đúng. Sau "Đã giao": **"Thay lần thu"**. Cả hai đều là lệnh sổ đã có kiểm soát (ô `ledger.write`, nhật ký). Dòng nối của lần thu bị đảo rơi khỏi kiểm, nên số thực chuyển của mã được nhập lại đúng nếu không còn lần thu nào khác giữ mã đó. Lưu ý: trần A **không** chống được việc một Kế toán cố ý nhập sai ngay lần đầu. Nó chống khai trùng và gõ nhầm giữa các lần nhập. Chống cố ý thuộc luật hai người của HC-4.2 khi được vá.
 - **Lối ra khi khai trùng bị chặn.** Ví dụ: người bán khai "Khách đã chuyển khoản" hai lần cho cùng một khoản, Kế toán xác nhận lần thứ hai thì bị chặn. Lần khai thừa vẫn để người khai đứng tên giữ hộ. Đó đúng là sự thật trên sổ: người đó đã khai một khoản tiền không về tài khoản.
   - **Trước "Đã giao":** Kế toán **đảo lần thu** thừa, dòng giữ hộ đảo theo (ADR-0092 Đ4).
@@ -102,7 +102,7 @@ Khoản do người không phải Kế toán khai (dòng giữ hộ) **chưa** c
   - Hộp báo chặn nói rõ lối ra theo từng trường hợp.
 - **Ai thấy mã và số thực chuyển:** chỉ người có `ledger.write` (Kế toán, Toàn quyền). Người khác chỉ thấy "đã xác nhận".
 - **Nhật ký** của gắn mã ghi mã dòng, **không** chép mã giao dịch hay số tài khoản.
-- **Hai lớp:** mọi luật chặn có ở máy chủ và ở trigger trên dòng nối (Hiến chương 5.1). Riêng điều "**bắt buộc** có mã" (C1): máy chủ kiểm ở cả ba đường. Lớp CSDL do kế hoạch thiết kế (ví dụ trigger trên phiếu cuối lô, khuôn `bil_posting` của migration 0083). Nếu không làm được thì kế hoạch ghi "chỉ máy chủ" và khai ở bảng thi hành.
+- **Hai lớp:** mọi luật chặn có ở máy chủ và ở trigger trên dòng nối (Hiến chương 5.1). Riêng điều "**bắt buộc** có mã" (C1): máy chủ kiểm ở cả ba đường. Lớp CSDL: đường 1 và 3 có phiếu cuối lô (`COMPANY_RECEIVED`, `REPLACEMENT`) để gắn trigger theo khuôn `bil_posting` của migration 0083; **đường 2 (Kế toán tự ghi trước Đã giao) chỉ có lần thu + nhật ký, không có phiếu**, nên ghi thẳng là **"chỉ máy chủ"** và khai ở bảng thi hành (dựa vào kỷ luật ở lớp CSDL).
 - Thêm luật vào `scripts/audit-invariants.mjs` (mỗi mã: các dòng còn hiệu lực cùng số thực chuyển, tổng ≤ số đó). Thêm dòng vào `docs/SO-HANG-RAO.md` sau khi quan sát chặn thật.
 - **C1** (§9): mã bắt buộc từ mốc cắt cứng lưu trong CSDL lúc phát hành.
 
@@ -120,7 +120,7 @@ Khoản do người không phải Kế toán khai (dòng giữ hộ) **chưa** c
 ## 7. Kỹ thuật
 
 - **Payload VietQR dựng ở máy chủ** bằng một hàm thuần (`src/shared/`, không import module). Payload theo chuẩn EMVCo QR của NAPAS: mã tổ chức VietQR, BIN, số tài khoản, dịch vụ chuyển tới tài khoản, tiền tệ 704, số tiền, quốc gia VN, nội dung, CRC-16. Kế hoạch phải đối chiếu **từng trường với tài liệu VietQR chính thức** (không theo trí nhớ) và có **sổ vàng**: bộ đầu vào cố định → chuỗi payload kỳ vọng, kèm ít nhất một chuỗi lấy từ nguồn công khai đã biết đúng.
-- **Trình duyệt chỉ vẽ ma trận QR** từ chuỗi payload máy chủ trả, bằng `<canvas>`, không `innerHTML`. Bộ vẽ ma trận là **câu chờ chủ C3** (§9), vì đây sẽ là mã của bên thứ ba **đầu tiên** chạy trên máy người dùng, trong khi dự án đang ghi "không có dependency runtime". Lựa chọn trong kế hoạch đăng nhập hai lớp 2026-10-01 Task 7 chỉ là quyết định bề mặt trong một kế hoạch chưa thi công, chưa được chủ duyệt.
+- **Trình duyệt chỉ vẽ ma trận QR** từ chuỗi payload máy chủ trả, bằng `<canvas>`, không `innerHTML`. Bộ vẽ ma trận là **câu C3** (§9, chủ đã chọn (a)), vì đây sẽ là mã của bên thứ ba **đầu tiên** chạy trên máy người dùng, trong khi dự án đang ghi "không có dependency runtime". Lựa chọn trong kế hoạch đăng nhập hai lớp 2026-10-01 Task 7 chỉ là quyết định bề mặt trong một kế hoạch chưa thi công, chưa được chủ duyệt.
   - (a) Chép nguyên tệp `qrcode-generator` (Kazuhiko Arase, giấy phép MIT) vào `web/vendor/qrcode.js`. Giữ dòng giấy phép, đọc hết trước khi chép (không gọi mạng, không `eval`, không `innerHTML`), không thêm vào `package.json`. Thêm bài kiểm quét tệp này không có `innerHTML` / `eval` / `fetch`, vì hiện chưa bài nào quét `.js` trong `web/` cho các chữ đó.
   - (b) Tự viết bộ mã hoá QR trong `src/shared/` (chế độ byte, mức sửa lỗi M, phiên bản đủ cho payload VietQR), kèm sổ vàng so với ma trận chuẩn.
 - **Không đổi CSP** (`public/_headers`) và **không gọi mạng ra ngoài**: `img-src data: blob:` đã đủ cho ảnh lưu. Service worker không đệm `/api/*` (`sw-policy.ts` danh sách cho phép, `cache-control: no-store`), nên số tiền QR không thể là số cũ do đệm.
@@ -151,7 +151,7 @@ Khoản do người không phải Kế toán khai (dòng giữ hộ) **chưa** c
    - trùng mã cùng đơn ⇒ chặn; số thực chuyển khác số đã ghi cho mã ⇒ chặn; tổng theo mã vượt số thực chuyển ⇒ chặn;
    - "Thay lần thu" một lần thu có mã, lần thu mới nhập lại **cùng** mã ⇒ **không** bị chặn (dòng nối chèn sau dòng đảo);
    - đảo lần thu có mã rồi ghi lại với số thực chuyển khác ⇒ được khi không còn lần thu nào khác giữ mã đó;
-   - ba đường ghi (Công ty đã nhận, Kế toán tự ghi kể cả kèm Đã giao, Thay lần thu) thiếu mã sau mốc cắt ⇒ 400; Công ty thu bằng tiền mặt ⇒ không đòi mã;
+   - ba đường ghi (Công ty đã nhận; Kế toán / Toàn quyền tự ghi, Toàn quyền ghi kèm Đã giao; Thay lần thu) thiếu mã sau mốc cắt ⇒ 400; Quản trị ghi kèm Đã giao ⇒ dòng giữ hộ, không đòi mã; Công ty thu bằng tiền mặt ⇒ không đòi mã;
    - khai trùng bị chặn sau "Đã giao" ⇒ khoản thừa nằm ở người khai; người khai nộp (quyết toán) xong thì đơn Hoàn thành được;
    - ô mã nhận chuỗi 12 chữ số, còn ghi chú / lý do vẫn chặn chuỗi ≥ 8 chữ số;
    - người không có `ledger.write` không thấy mã và số thực chuyển trong DTO;
@@ -168,6 +168,8 @@ Khoản do người không phải Kế toán khai (dòng giữ hộ) **chưa** c
 | C2 | "Cho phép, có ghi lý do" | trường `xay_tren_cho_phep` ở bốn mục TNV-G1, G3, G4, HC-4.2 của `docs/quyen-hoan.json` (hạn giữ nguyên 31/10) |
 | C3 | "Chép bộ vẽ miễn phí" | §7 phương án (a) |
 
+**C4 — chờ chủ (sau người kiểm vòng 3).** Ca kẹt "mã dùng chung nhiều đơn đã giao, số thực chuyển nhập sai" (§10 "Hạn chế đã biết"). Khuyến nghị: **chấp nhận là hạn chế đã biết**; lối ra tạm là người phụ trách hệ thống sửa bằng SQL theo sổ tay, có nhật ký; đường sửa trong Nền tảng làm cùng việc vá HC-4.2. Phương án khác: làm đường sửa ngay, thêm một quyết định nên phải tách lượt duyệt, chậm hơn.
+
 Nội dung câu hỏi gốc (giữ để đối chiếu):
 
 - **C1. Mã giao dịch ngân hàng có bắt buộc không?** Khuyến nghị: **bắt buộc** khi Kế toán bấm "Công ty đã nhận" và khi Kế toán tự ghi lần thu chuyển khoản. Áp với lần thu **ghi sau mốc cắt cứng** lưu trong CSDL lúc phát hành (khuôn `bil_audit_cutoff` của migration 0083). Lần thu cũ trước mốc không bị đòi bổ sung. Lý do: để trống được thì chặn trùng không có tác dụng.
@@ -182,6 +184,7 @@ Nội dung câu hỏi gốc (giữ để đối chiếu):
 - **Đối soát đại lý làm sau QR** (§3, §11). Lời chủ "chỉ QR + đối soát" được thi hành bằng hai bản phát hành liên tiếp, không bỏ phần nào.
 - **Nút QR dùng ô `money.view`** (sau `order.view`), đúng câu đã trình chủ ("ai đang xem được tiền của đơn đó"). **Nút "Khách đã chuyển khoản" dùng `payment.receive`.** Hai ô này khác nhau ở Bán hàng: xem tiền mọi đơn nhưng chỉ ghi lần thu đơn mình lập, cho tới khi ADR-0099 được thi công. Vì vậy nhân viên kinh doanh mở được QR cho đơn người khác nhưng không bấm được "Khách đã chuyển khoản" ở đơn đó.
 - **Tên chủ tài khoản** do Toàn quyền gõ, Nền tảng không tra ngân hàng để kiểm.
+- **Hạn chế đã biết — mã dùng chung nhiều đơn đã giao (câu C4):** một lần chuyển trả cho hai đơn trở lên, cả hai đã "Đã giao", và số thực chuyển bị nhập sai ngay từ đầu. Khi đó không lệnh nào trong Nền tảng sửa được: đảo lẻ bị chặn sau Đã giao, còn "Thay lần thu" chỉ trong một đơn nên dòng nối mới luôn lệch với dòng của đơn kia. Lối ra tạm thời là người phụ trách hệ thống sửa bằng SQL theo sổ tay, có nhật ký, tới khi HC-4.2 có luật hai người và đường sửa riêng. Ca này hiếm, vì QR mỗi đơn một mã, nên chỉ xảy ra khi khách tự gộp hai đơn vào một lần chuyển. Thêm route hay luật mới để gỡ ngay thì lượt duyệt thành 4 quyết định.
 - **Bỏ đường sửa riêng (T3 của vòng 2)** cho mã và số thực chuyển; sửa đi qua đảo lần thu / Thay lần thu có sẵn. Hoàn tác: thêm đường sửa riêng ở lượt sau, khi HC-4.2 đã có luật hai người.
 - **Danh sách ngân hàng** gieo các ngân hàng phổ biến. Thêm ngân hàng = thêm dòng bằng migration mới, không sửa mã.
 - **Tin báo khi đổi tài khoản nhận tiền** (cho Kế toán) chưa có ở bản này: hộp thông báo chưa có loại tin từ sổ tiền. Đề xuất ghi vào `docs/superpowers/specs/2026-10-06-tin-bao-so-tien.md` như một loại tin cần có. Trong lúc chờ, nhật ký và lịch sử dòng là dấu vết.
@@ -194,6 +197,23 @@ Nội dung câu hỏi gốc (giữ để đối chiếu):
 - **Khi phát hành:** cập nhật phần "CÒN CHỜ" của TNV-G4 trong `docs/quyen-hoan.json` (bỏ Đ6, giữ Đ5d, Đ6a, cảnh báo khác đơn).
 
 ## 12. Theo dõi góp ý người kiểm độc lập
+
+### Vòng 3 (2026-10-08) — sửa ở bản vòng 4
+
+Kết luận vòng 3: ĐẠT CÓ ĐIỀU KIỆN, **không CAO**. Người kiểm dựng kịch bản bằng `tests/audit/harness.mjs` (tệp thử ngoài kho) và xác nhận:
+- nộp qua quyết toán tất toán được khoản chờ xác nhận trên đơn đã giao, sau đó Hoàn thành được;
+- đảo lần thu đã xác nhận chạy trước Đã giao; "Thay lần thu" khoản đã xác nhận chạy sau Đã giao;
+- thứ tự lô Thay cho phép chèn dòng nối sau dòng đảo.
+
+| Mục | Sửa ở |
+|---|---|
+| TRUNG-1 kẹt mã dùng chung nhiều đơn đã giao | §10 "Hạn chế đã biết"; câu C4 cho chủ |
+| THẤP-2 ai ghi kèm Đã giao | §5 đường 2 (chỉ Toàn quyền không giữ hộ; Kế toán 403), §8.8; trang ghép §3 thêm hàng route Đã giao |
+| THẤP-3 lớp CSDL đường 2 | §5 "Hai lớp": đường 2 chỉ máy chủ |
+| THẤP-4 chữ cũ | đầu tệp (G3), §7 (C3), ADR dòng lỗ đang hở và đ3(c) |
+| THẤP-5 máy chủ khi Thay | §5: máy chủ loại lần thu trong `cu` |
+| THẤP-6 cách đếm | trang ghép §0 ghi "3 nhóm" |
+
 
 ### Vòng 2 (2026-10-08) — sửa ở bản vòng 3
 

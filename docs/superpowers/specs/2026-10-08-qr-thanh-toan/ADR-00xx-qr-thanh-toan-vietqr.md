@@ -8,7 +8,7 @@
 - **Nguồn, lời chủ đã chốt (chat 2026-10-08, áp dụng, không hỏi lại):** bảng §2 của đặc tả.
 - **ADR liên quan:** ADR-0004 (phạm vi: "không tích hợp cổng thanh toán" — **làm rõ**), ADR-0026 ("đối soát ngân hàng vẫn không" — **giữ**), ADR-0019 (cổng router), ADR-0043 (đổi công ty chủ), ADR-0088 (Thay lần thu), ADR-0090 (quyền tiền chỉ Toàn quyền), ADR-0092 Đ6 (mã giao dịch ngân hàng — **thi công, kèm T1, T2, T4**), ADR-0024 (module `receipt` hạng không bảng), ADR-0099 (Bán hàng ghi lần thu `ownOrAssigned`).
 - **Hiến chương áp dụng (Phần I, đã duyệt):** 2.2, 2.3, 4.4, 5.1, 5.2, 5.4, 5.5, 5.12, 5.15. Điều 5.16 chỉ áp theo nghĩa phủ định: bản này **không** gọi hệ thống ngoài, nên không cần hộp thư đi.
-- **Xây trên lỗ đang hở:** **TNV-G1, TNV-G3, TNV-G4, HC-4.2** (HIGH, hạn 2026-10-31). Chi tiết ở đầu đặc tả. Duyệt cần chủ chọn câu C2 của đặc tả.
+- **Xây trên lỗ đang hở:** **TNV-G1, TNV-G3, TNV-G4, HC-4.2** (HIGH, hạn 2026-10-31). Chi tiết ở đầu đặc tả. Chủ đã chọn C2 = "Cho phép, có ghi lý do" (2026-10-08), là ngoại lệ do chủ quyết, hạn giữ nguyên.
 - **Loại quyết định:** **hai chiều** (thêm bảng và route, không đổi dữ liệu cũ; bỏ tính năng = ẩn nút + ngưng route).
 
 ---
@@ -46,14 +46,14 @@
 3. **Hiện QR.**
    - (a) Route đọc QR ở module `receipt`, **cổng `orders`**. Thân hỏi `order.view` trước (404 khi không thấy đơn, như biên nhận), rồi `money.view` theo phạm vi đơn, trước mọi truy vấn tài khoản và tiền. Không thêm ô mới.
    - (b) Số tiền **máy chủ tính**: mặc định = `conLai`; người gọi gửi số nguyên dương ≤ còn lại thì dùng số đó; trái điều kiện ⇒ 400; đơn đã "Đã giao" ⇒ 409; còn lại = 0 ⇒ 409; chưa có tài khoản ⇒ 409 (5.4).
-   - (c) Payload VietQR dựng ở máy chủ bằng **hàm thuần có sổ vàng** (5.15). Trình duyệt chỉ vẽ ma trận, không gọi mạng, CSP giữ nguyên. Bộ vẽ ma trận là câu C3 của đặc tả: chép tệp MIT `qrcode-generator` vào `web/vendor/` hoặc tự viết. Đây là mã bên thứ ba đầu tiên chạy trên máy người dùng, nên chủ phải chọn.
+   - (c) Payload VietQR dựng ở máy chủ bằng **hàm thuần có sổ vàng** (5.15). Trình duyệt chỉ vẽ ma trận, không gọi mạng, CSP giữ nguyên. Bộ vẽ ma trận: chép tệp MIT `qrcode-generator` vào `web/vendor/` (câu C3, chủ đã chọn 2026-10-08). Đây là mã bên thứ ba đầu tiên chạy trên máy người dùng; người kiểm đọc hết tệp, có bài kiểm cấm `innerHTML` / `eval` / `fetch` trong tệp.
    - (d) DTO và ảnh lưu là **danh sách trường được phép** (4.4).
    - (e) Nội dung chuyển khoản = mã đơn bỏ dấu gạch, chỉ `[A-Z0-9]`.
    - (f) Nút "Khách đã chuyển khoản" đi **đường ghi lần thu có sẵn** (`payment.receive`), không mở đường ghi mới.
 4. **Phát hành cùng ADR-0092 Đ6 (module `billing`).**
    - Giữ từ Đ6: ô mã giao dịch; miễn luật ≥ 8 chữ số; chặn trùng (mã, đơn); chặn tổng theo mã > số thực chuyển; hai lớp máy chủ + trigger.
    - **Đổi so với chữ Đ6** (T1, T2, T4 của đặc tả §5), chủ duyệt cùng ADR này:
-     - T1: đòi mã ở mọi đường làm lần thu chuyển khoản – Công ty thu thành "công ty đã nhận": "Công ty đã nhận", Kế toán / Toàn quyền tự ghi (kể cả kèm "Đã giao"), lần thu mới trong "Thay lần thu";
+     - T1: đòi mã ở mọi đường làm lần thu chuyển khoản – Công ty thu thành "công ty đã nhận": "Công ty đã nhận", Kế toán / Toàn quyền tự ghi, Toàn quyền ghi kèm "Đã giao", lần thu mới trong "Thay lần thu";
      - T2: số thực chuyển lưu trên dòng nối chỉ-thêm `bil_receipt_bank_txn` (`receipt_id` duy nhất); mọi dòng còn hiệu lực của cùng mã phải cùng số;
      - T4: **bớt** phần cảnh báo khác đơn của Đ6, chuyển sang đặc tả 2026-10-06.
    - **Không** mở đường sửa riêng cho mã / số thực chuyển (bản vòng 2 có, đã bỏ vì bị lách và vượt trần 3). Sửa nhập nhầm = đảo lần thu rồi ghi lại (trước "Đã giao") hoặc "Thay lần thu" (sau). Đây là cách hiểu "điền **hoặc sửa** lúc Công ty đã nhận" của Đ6: sửa trong hộp trước khi lưu, còn sau khi lưu thì đi lệnh sửa sai sổ.
@@ -62,6 +62,7 @@
    - Mã bắt buộc từ mốc cắt cứng trong CSDL (câu C1, chủ đã chọn).
    - Chỉ người có `ledger.write` thấy mã và số thực chuyển.
    - Trần số thực chuyển chống khai trùng và gõ nhầm, **không** chống một Kế toán cố ý nhập sai lần đầu; phần đó thuộc luật hai người của HC-4.2.
+   - Hạn chế đã biết: mã dùng chung nhiều đơn đã giao mà số thực chuyển nhập sai thì không sửa được trong Nền tảng tới khi có đường sửa theo HC-4.2 (đặc tả §10, câu C4).
 
 ## Thay câu nào
 

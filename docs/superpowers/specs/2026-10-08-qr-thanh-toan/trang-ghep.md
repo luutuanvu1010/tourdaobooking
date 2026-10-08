@@ -12,7 +12,7 @@
 | 2 | Route đọc QR mới: cổng `orders`, `order.view` rồi `money.view`, không ô mới | ADR-00xx đ3 |
 | 3 | Mã giao dịch ngân hàng (`billing`): ADR-0092 Đ6 + T1 (ba đường ghi đòi mã), T2 (số thực chuyển trên bảng nối `bil_receipt_bank_txn`), T4 (bớt cảnh báo khác đơn) + C1 (bắt buộc từ mốc cắt cứng). Ba luật chặn; ai thấy mã. **Không** route mới, **không** đường sửa riêng | ADR-00xx đ4 |
 
-Tổng **3**, trong trần. Bản vòng 2 có thêm đường sửa riêng (T3, một route mới + luật "người khác nâng số"), người kiểm vòng 2 đếm chặt thành 4; T3 đã bỏ nên đếm chặt vẫn là 3. C1 là điều kiện của cùng ô mã, cùng dữ liệu, nên đi trong quyết định 3. Điều 1 của ADR-00xx (làm rõ phạm vi) không chạm quyền hay dữ liệu.
+Tổng **3 nhóm**, trong trần (đếm theo nhóm quyết định; nhóm 3 gom T1, T2, T4, C1 vì cùng một ô dữ liệu, cùng ô quyền `ledger.write`). Bản vòng 2 có thêm đường sửa riêng (T3, một route mới + luật "người khác nâng số") và tự ghi rằng đếm chặt là 4; T3 đã bỏ. Nếu gỡ ca kẹt C4 bằng route hay luật mới thì đếm thành 4 và phải tách lượt. C1 là điều kiện của cùng ô mã, cùng dữ liệu, nên đi trong quyết định 3. Điều 1 của ADR-00xx (làm rõ phạm vi) không chạm quyền hay dữ liệu.
 
 ## 1. Bảng bị chạm chứa những loại thực thể nào
 
@@ -26,7 +26,7 @@ Tổng **3**, trong trần. Bản vòng 2 có thêm đường sửa riêng (T3, 
 | `bil_payment_receipt` | `billing` | **không đổi** (không thêm cột) | chỉ đọc |
 | `bil_receipt_bank_txn` (mới) | `billing` | một loại: nối lần thu ↔ mã + số thực chuyển; `receipt_id` duy nhất; chỉ lần thu **chuyển khoản**, người thu = **Công ty**; không dòng thay thế | tạo, chỉ-thêm |
 | dòng cấu hình mốc cắt C1 (mới) | `billing` | một loại: mốc thời gian bắt đầu đòi mã | tạo, chỉ-thêm |
-| `bil_posting` (`COMPANY_RECEIVED`, `DELIVERED`, `REPLACEMENT`) | `billing` | không thêm loại phiếu | ba lệnh "Công ty đã nhận", ghi lần thu (kể cả kèm Đã giao), "Thay lần thu" nhận mã |
+| `bil_posting` (`COMPANY_RECEIVED`, `DELIVERED`, `REPLACEMENT`) | `billing` | không thêm loại phiếu | ba lệnh "Công ty đã nhận", ghi lần thu (Kế toán / Toàn quyền; Toàn quyền kèm Đã giao), "Thay lần thu" nhận mã |
 | `audit_log` | `audit` | thêm hành động: đổi tài khoản nhận tiền; gắn mã giao dịch. **Chi tiết không chứa số tài khoản, không chứa mã giao dịch** | ghi cùng lô |
 
 ## 2. Từng dòng bản đồ quyền chạm các bảng trên
@@ -53,7 +53,8 @@ Không ô nào đổi giá trị. Không thêm ô mới. `docs/quyen-hoan.json` 
 | Đọc QR của đơn | **cổng `orders`** (gồm FIELD, PARTNER, INTERN; cổng `office` sẽ chặn họ) → `order.view` (404) → `can(money.view, phạm vi đơn)` → chặn đơn đã giao (409) → `conLai` | nút "QR thanh toán" hiện khi qua `money.view`, đơn chưa giao, còn lại > 0. Ẩn nút **không** phải là hàng rào: route tự kiểm |
 | Ghi lần thu từ QR | route có sẵn `POST /api/orders/:id/payments` + `can(payment.receive)`; luật giữ hộ H3 / Đ2b không đổi | nút "Khách đã chuyển khoản" hiện khi `can(payment.receive)` với đơn và `coTheGhiThu` |
 | "Công ty đã nhận" + mã giao dịch | route có sẵn `POST /api/ledger/company-receipts/:id/confirm` + `can(ledger.write)`; luật Đ6 ở máy chủ **và** trigger | ô mã + số thực chuyển chỉ có trong hộp xác nhận của Kế toán |
-| Kế toán tự ghi lần thu chuyển khoản (T1) | route có sẵn ghi lần thu, nhánh Kế toán; luật Đ6 như trên | ô mã chỉ hiện khi người ghi có `ledger.write` |
+| Kế toán / Toàn quyền tự ghi lần thu chuyển khoản (T1) | route có sẵn `POST /api/orders/:id/payments`, nhánh Kế toán (không giữ hộ); luật Đ6 như trên; "bắt buộc có mã" **chỉ máy chủ** (không có phiếu để gắn trigger) | ô mã chỉ hiện khi người ghi có `ledger.write` |
+| Ghi lần thu kèm "Đã giao" | route có sẵn `POST /api/orders/:id/delivered`: `order.handover` + `payment.receive`. Toàn quyền ⇒ không giữ hộ ⇒ đòi mã; Quản trị / HDV ⇒ dòng giữ hộ, mã đến lúc "Công ty đã nhận"; Kế toán thuần ⇒ 403 | ô mã chỉ hiện cho người có `ledger.write` |
 | "Thay lần thu" có mã | lệnh có sẵn (ADR-0088) + `ledger.write`; dòng nối của lần thu mới chèn **sau** dòng đảo, nên `hieuLuc` thường là đủ; khoản còn chờ xác nhận vẫn bị từ chối (`ck_cho_xac_nhan`, như hôm nay) | ô mã cho từng lần thu mới; điền sẵn mã cũ khi thay một-đổi-một |
 | Sửa nhập nhầm mã / số thực chuyển | **không route mới**: đảo lần thu rồi ghi lại (trước Đã giao), "Thay lần thu" (sau) | không có nút "sửa mã" riêng |
 | Gỡ khai trùng bị chặn | trước "Đã giao": đảo lần thu (`ledger.write`); sau: khoản thừa là nợ của người khai, nộp qua quyết toán có sẵn (`ledger.write`) hoặc đ9 khi có; đơn chưa Hoàn thành được tới lúc tất toán | hộp báo chặn nêu lối ra theo từng trường hợp |
