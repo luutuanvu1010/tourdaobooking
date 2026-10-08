@@ -1844,6 +1844,33 @@ export interface ReceiptDto {
 }
 export interface ReceiptResponse { receipt: ReceiptDto }
 
+/** Một ngân hàng trong danh sách chọn (ADR-0108 đ2). */
+export interface NganHangDto {
+  ma: string;
+  ten: string;
+}
+/** Tài khoản nhận tiền đang mở của công ty chủ — CHỈ người giữ ô `company.legal.write` đọc được (route có kiểm). */
+export interface TaiKhoanNhanTienDto {
+  id: string;
+  maNganHang: string;
+  nganHang: string;
+  soTaiKhoan: string;
+  chuTaiKhoan: string;
+  tuLuc: string;
+}
+/** `GET|PUT /api/parties/:id/tai-khoan-nhan-tien`. */
+export interface TaiKhoanNhanTienResponse {
+  hienTai: TaiKhoanNhanTienDto | null;
+  nganHang: NganHangDto[];
+}
+/** Thân `PUT /api/parties/:id/tai-khoan-nhan-tien`. `truocDo` = id dòng đang mở mà người sửa đã thấy (null = chưa có). */
+export interface TaiKhoanNhanTienInput {
+  maNganHang: string;
+  soTaiKhoan: string;
+  chuTaiKhoan: string;
+  truocDo: string | null;
+}
+
 // ---- Trợ lý Hỗ trợ (ADR-0066, module tro-ly) ----
 /** Thân `POST /api/tro-ly/hoi`. Máy chủ che SĐT / email / số giấy tờ và cắt 500 ký tự trước khi gửi đi. `cuocTroChuyen` (ADR-0073 Đ4): mã ngẫu nhiên khung sinh —
  *  máy chủ tự lấy ≤ 3 lượt trước của CHÍNH người hỏi cùng mã; trình duyệt KHÔNG gửi nội dung lượt trước. Sai dạng ⇒ 400; thiếu / null ⇒ không nhớ. */

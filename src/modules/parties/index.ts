@@ -5,6 +5,7 @@ import { auditStatement } from "../audit";
 import type {
   ContactPointDto, MergeItemDto, MergePreviewResponse, PartyDto, PartyDuplicatesResponse, PartyListItemDto, PartyListResponse, PartyLookupResponse, PartyMergeRef, PartyMetaResponse,
   PartyRelationshipDto, PartyResponse, PartyRoleDto, PersonDocumentDto, PersonDocumentListResponse, PersonDocumentMetaResponse, PersonDocumentRevealResponse,
+  TaiKhoanNhanTienResponse,
 } from "../../shared/contracts";
 import { LOAI_CO_DINH, MA_LOAI_GIAY_TO_RE, kiemLoaiGiayToMoi, kiemSuaLoaiGiayTo, soNgayConLai } from "../../shared/giay-to";
 import { OWNER_COMPANY_ROLE, thieuChoCongTyChu } from "../../shared/cong-ty-chu";
@@ -18,16 +19,18 @@ import type { DonCuaNguoiDatTom, PartyAccountVerdict } from "../../shared/router
 import { vnToday } from "../../shared/vn-date";
 import { gioiTinhHopLe } from "../../shared/xung-ho";
 import {
+  activeBanks, bankAccountCloseStatement, bankAccountInsertStatement, bankAccountOpenOf, bankActive, ownerBankAccountRows,
   accountRolesOf as accountRoleRows, addContactStatements, addRelationshipStatement, addRoleStatement, endContactStatement, endRelationshipStatement, endRoleStatement,
   companyIdentityOf, docsForMerge, driverDocsForDispatch, driversForDispatch, expiringDocumentsOfRoles, findLicenseClass, findParty, findPartiesByPhone, findPersonDocument, findPersonDocumentNumber, findPersonDocumentType, getPartyDetail,
   insertLicenseClassStatement, insertPersonDocTypeStatement, updateLicenseClassStatement, updatePersonDocTypeStatement, insertPersonDocStatement, isCarrierParty, isOwnerCompanyParty, listLicenseClasses, listParties,
   listCarriers, listPartiesByIds, openPersonPhones, personsForMatch, listPersonDocumentTypes, listPersonDocuments, listRelationshipTypes, listRoleTypes, mergedFromOf, newOrganizationStatements, newPersonStatements, updatePersonDocStatement,
   voidPersonDocStatement,
   openRoleCodesFor, ownerCompanyRows, relationshipEnds, renamePersonStatements, reopenRoleStatement, roleRowOf, roleTypeOf, updatePartyStatements,
-  type GopDocRow, type PartyListRow, type PartyRow, type ContactRow, type PersonDocFull, type PersonDocRow, type PersonDocValues, type RelationshipRow, type RoleRow,
+  type BankAccountRow, type BankRow, type GopDocRow, type PartyListRow, type PartyRow, type ContactRow, type PersonDocFull, type PersonDocRow, type PersonDocValues, type RelationshipRow, type RoleRow,
 } from "./repository";
 import { chanCo, keHoachGop, type CongViecGop, type GiayToGop, type HoSoGop, type KeHoachGop, type NhomVai } from "./gop";
 import { loGop } from "./gop-lo";
+import { docTaiKhoanNhanTien } from "./tai-khoan-nhan-tien";
 import { MA_HANG_RE, cheSo, chiTietNhatKy, chuanHoaSo, kiemGiaHan, kiemHangMoi, kiemSuaHang, kiemSuaSai, kiemThemGiayTo, type DanhMucGiayTo, type GiayToNhap } from "./giay-to";
 import {
   PARTY_ID_RE, QUAN_HE_TAI_XE_CUA, ROW_ID_RE, composePersonName, ownerCompanyAssignProblem, splitPersonName, validateContact, validateEndDate, validatePartyCreate, validatePartyUpdate,
@@ -102,6 +105,16 @@ export async function ownerCompany(db: D1Database): Promise<OwnerCompany | null>
   if (rows.length !== 1) return null;
   const r = rows[0]!;
   return { partyId: r.id, displayName: r.display_name, legalName: r.legal_name, taxCode: r.tax_code, address: r.address, hotline: r.hotline, email: r.email };
+}
+
+/** Tài khoản nhận tiền HIỆN HÀNH của công ty chủ (ADR-0108 đ2) — HÀM CÔNG BỐ cho module `receipt` (QR thanh toán). Theo công ty chủ HIỆN TẠI: đổi công ty chủ
+ * sang hồ sơ chưa cài ⇒ null (không dùng tài khoản của công ty cũ — đặc tả §4.1). KHÔNG tự kiểm quyền; nơi gọi không ghi số này vào nhật ký. */
+export interface TaiKhoanNhanTien { congTy: string; nganHang: string; bin: string; soTaiKhoan: string; chuTaiKhoan: string }
+export async function taiKhoanNhanTienHienHanh(db: D1Database): Promise<TaiKhoanNhanTien | null> {
+  const rows = await ownerBankAccountRows(db, OWNER_COMPANY_ROLE);
+  if (rows.length !== 1) return null;
+  const r = rows[0]!;
+  return { congTy: r.cong_ty, nganHang: r.bank_short_name, bin: r.bin, soTaiKhoan: r.account_number, chuTaiKhoan: r.account_name };
 }
 
 /** Mã vai tài khoản "Tài xế công ty" (ADR-0040 D3; Ruling R12) — lấy kiểu từ ROLE_CODES để không viết chuỗi rời lệch danh mục vai. */
@@ -189,6 +202,13 @@ const OWNER_COMPANY_FORBIDDEN = () =>
   error(403, "forbidden", "Chỉ người phụ trách hệ thống được sửa hồ sơ công ty chủ (tên, mã số thuế, địa chỉ, liên hệ, công việc) và đổi công ty chủ.");
 /** Hồ sơ `id` có đang giữ vai "Công ty chủ" không — câu tra dữ liệu (không phải kiểm quyền), KHÔNG xuất ra ngoài module. */
 const laCongTyChu = (db: D1Database, id: string): Promise<boolean> => isOwnerCompanyParty(db, id, OWNER_COMPANY_ROLE);
+const NOT_OWNER_COMPANY = () => error(409, "not_owner_company", "Chỉ hồ sơ đang là công ty chủ có tài khoản nhận tiền.");
+const taiKhoanDto = (r: BankAccountRow) => ({ id: r.id, maNganHang: r.bank_code, nganHang: r.bank_short_name, soTaiKhoan: r.account_number, chuTaiKhoan: r.account_name, tuLuc: r.valid_from });
+const nganHangDto = (b: BankRow) => ({ ma: b.code, ten: `${b.short_name} — ${b.name}` });
+async function tlTaiKhoan(db: D1Database, id: string): Promise<Response> {
+  const [hienTai, banks] = await Promise.all([bankAccountOpenOf(db, id), activeBanks(db)]);
+  return json({ hienTai: hienTai ? taiKhoanDto(hienTai) : null, nganHang: banks.map(nganHangDto) } satisfies TaiKhoanNhanTienResponse);
+}
 // Chủ dự án 2026-09-28 ("cho Super Admin đổi"): vai "Công ty chủ" không kết thúc được — đổi bằng cách gán cho hồ sơ tổ chức khác. Lớp route (lớp 1) của bất
 // biến "đúng một, không lúc nào trống"; lớp CSDL là trigger *_keep_last của migration *_ho_so_cong_ty_chu (ánh xạ riêng ở constraintProblem).
 const KHONG_KET_THUC_CONG_TY_CHU = "Không kết thúc được công việc “Công ty chủ”: hệ thống luôn cần một công ty chủ. Muốn đổi thì gán “Công ty chủ” cho hồ sơ tổ chức khác.";
@@ -984,6 +1004,45 @@ export const partiesModule: AppModule = {
       ]);
       if ((results[0]!.meta.changes ?? 0) === 0) return NOT_OPEN();
       return respondParty(ctx, id);
+    }),
+
+    // ---- Tài khoản nhận tiền của công ty chủ (ADR-0108 đ2; đặc tả QR §4.1): ô company.legal.write (chỉ Toàn quyền — ô MỞ RỘNG NGHĨA sang tài khoản nhận
+    // tiền); chỉ hồ sơ ĐANG là công ty chủ. Đổi = đóng dòng cũ + mở dòng mới + nhật ký trong MỘT lô; nhật ký KHÔNG chép số tài khoản (Hiến chương 5.12).
+    route("GET", "/api/parties/:id/tai-khoan-nhan-tien", "office", async ({ env, params, staff }) => {
+      if (!can(staff, "company.legal.write")) return OWNER_COMPANY_FORBIDDEN();
+      const id = idParam(params, "id", PARTY_ID_RE);
+      if (!id || !(await findParty(env.DB, id))) return NOT_FOUND();
+      if (!(await laCongTyChu(env.DB, id))) return NOT_OWNER_COMPANY();
+      return tlTaiKhoan(env.DB, id);
+    }),
+
+    route("PUT", "/api/parties/:id/tai-khoan-nhan-tien", "office", async ({ env, request, params, staff }) => {
+      if (!can(staff, "company.legal.write")) return OWNER_COMPANY_FORBIDDEN();
+      const id = idParam(params, "id", PARTY_ID_RE);
+      if (!id || !(await findParty(env.DB, id))) return NOT_FOUND();
+      if (!(await laCongTyChu(env.DB, id))) return NOT_OWNER_COMPANY();
+      const doc = docTaiKhoanNhanTien(await readJson(request));
+      if (!doc.ok) return error(400, "invalid_input", doc.cau);
+      const v = doc.value;
+      if (!(await bankActive(env.DB, v.maNganHang))) return error(400, "invalid_input", "Chọn ngân hàng trong danh sách.");
+      const at = new Date().toISOString();
+      const moiId = crypto.randomUUID();
+      const stmts = [
+        ...(v.truocDo ? [bankAccountCloseStatement(env.DB, { id: v.truocDo, partyId: id, at, by: staff.id })] : []),
+        bankAccountInsertStatement(env.DB, { id: moiId, partyId: id, bankCode: v.maNganHang, accountNumber: v.soTaiKhoan, accountName: v.chuTaiKhoan, at, by: staff.id }),
+        auditStatement(env.DB, { staffId: staff.id, action: "party_bank_account_changed", at, targetType: "party", targetId: id, detail: `${v.truocDo ? "đổi" : "cài"} tài khoản nhận tiền` }, "changes() > 0"),
+      ];
+      let kq: D1Result[];
+      try {
+        kq = await env.DB.batch(stmts);
+      } catch (e) {
+        const m = e instanceof Error ? e.message : String(e);
+        if (/bank_account_not_owner/.test(m)) return NOT_OWNER_COMPANY();
+        if (/UNIQUE constraint failed: pty_bank_account/.test(m)) return STALE();
+        throw e;
+      }
+      if ((kq[stmts.length - 2]!.meta.changes ?? 0) === 0) return STALE();
+      return tlTaiKhoan(env.DB, id);
     }),
 
     // ---- Vai trò theo nơi (chỉ quản trị viên: ADR-0007 "vai trò hồ sơ") ----------------------------------------------------------

@@ -111,7 +111,7 @@ export const TEN_THAO_TAC: Readonly<Record<OperationCode, TenLoiThuong>> = {
   "settings.ops": { ten: "cài đặt vận hành", moTa: "Bảo trì, chính sách điều phối, trợ lý Hỗ trợ và các cài đặt chung." },
   "order.pool.view": { ten: "xem hàng chờ nhận", moTa: "Xem các đơn chưa có người phụ trách để bấm nhận." },
   "notice.send": { ten: "gửi thông báo thủ công", moTa: "Gửi, thu hồi thông báo và xem ai đã bấm Đã hiểu." },
-  "company.legal.write": { ten: "sửa thông tin công ty chủ", moTa: "Sửa tên, mã số thuế, địa chỉ, liên hệ của công ty chủ hoặc đổi công ty chủ." },
+  "company.legal.write": { ten: "sửa thông tin công ty chủ", moTa: "Sửa tên, mã số thuế, địa chỉ, liên hệ, tài khoản nhận tiền của công ty chủ hoặc đổi công ty chủ." },
   "party.document.view": { ten: "xem giấy tờ của mình", moTa: "Xem giấy tờ của chính mình ở trang Tôi (số bị che)." },
   "party.document.write": { ten: "ghi giấy tờ của người", moTa: "Thêm, gia hạn, sửa sai giấy tờ của người và xem danh sách giấy tờ (số bị che)." },
   "party.document.reveal": { ten: "xem đủ số giấy tờ", moTa: "Bấm Xem đủ số; mỗi lần xem được ghi lại." },

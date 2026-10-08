@@ -91,6 +91,8 @@ export const AUDIT_ACTIONS = {
   party_document_corrected: { label: "Sửa sai giấy tờ của người", group: "party" },
   party_document_number_viewed: { label: "Xem đủ số giấy tờ", group: "party" },
   party_document_catalog_changed: { label: "Sửa danh mục giấy tờ của người", group: "party" },
+  // ADR-0108 đ2: cài / đổi tài khoản nhận tiền của công ty chủ — target = hồ sơ công ty; `detail` = "cài|đổi tài khoản nhận tiền" (chữ cố định); KHÔNG chép số tài khoản (5.12).
+  party_bank_account_changed: { label: "Đổi tài khoản nhận tiền", group: "party" },
   vehicle_created: { label: "Thêm xe", group: "vehicle" },
   vehicle_updated: { label: "Sửa xe", group: "vehicle" },
   // Giấy tờ xe — `detail` mở đầu bằng biển số, KHÔNG số giấy tờ (một luật chung với giấy tờ của người — giả định G4).

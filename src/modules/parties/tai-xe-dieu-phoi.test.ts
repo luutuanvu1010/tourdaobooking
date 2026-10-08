@@ -145,11 +145,11 @@ test("TC-3 câu SQL của taiXeChoDieuPhoi (đã đăng ký defineSql) không ch
   for (const c of cau) for (const cot of ["document_number", "number_key", "issued_place", "issued_date"]) assert.ok(!c.sql.includes(cot), `${c.name}: không chọn ${cot}`);
 });
 
-test("TC-3 parties/index.ts xuất đúng hai hàm mới (taiXeChoDieuPhoi; hoSoCaNhanKhop — ADR-0068 Đ9) so với trước ADR-0049 — mọi tên khác giữ nguyên (thêm tên = đổi hợp đồng công bố, sửa bài có chủ đích)", () => {
+test("TC-3 parties/index.ts xuất đúng ba hàm mới (taiXeChoDieuPhoi; hoSoCaNhanKhop — ADR-0068 Đ9; taiKhoanNhanTienHienHanh — ADR-0108 đ2) so với trước ADR-0049 — mọi tên khác giữ nguyên (thêm tên = đổi hợp đồng công bố, sửa bài có chủ đích)", () => {
   const TRUOC_ADR_0049 = [
     "accountRolesOf", "closeAccountRoleStatement", "composePersonName", "expiringDriverDocuments", "findPartiesByPhone", "newOrganizationStatements", "newPersonStatements",
     "nhaXeDangHopTac", "openAccountRoleStatement", "openRoleCodesByParty", "ownerCompany", "partiesModule", "partySummary", "renamePersonStatements",
     "reopenAccountRoleStatement", "splitPersonName", "validatePersonFullName",
   ];
-  assert.deepEqual(Object.keys(parties).sort(), [...TRUOC_ADR_0049, "taiXeChoDieuPhoi", "hoSoCaNhanKhop"].sort());
+  assert.deepEqual(Object.keys(parties).sort(), [...TRUOC_ADR_0049, "taiXeChoDieuPhoi", "hoSoCaNhanKhop", "taiKhoanNhanTienHienHanh"].sort());
 });
