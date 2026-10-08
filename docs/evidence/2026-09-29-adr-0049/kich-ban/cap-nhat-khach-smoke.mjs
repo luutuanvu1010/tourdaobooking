@@ -35,7 +35,9 @@ const TIEU_DE_GIU = "Chuyến bị giữ: Khách trong đơn đã đổi — c�
 const nhom = `[...document.querySelectorAll('.dp-khach-nhom')].map((x) => ({ khoa: x.dataset.nhom, ten: x.querySelector('.dp-khach-nhom-ten').innerText.trim() }))`;
 const tenCua = async (p, legId) => (await p.ev(nhom)).find((x) => x.khoa === legId)?.ten.split(" · ").sort();
 const daiGiu = `[...document.querySelectorAll('#ct-trang > .banner-danger .banner-title')].map((x) => x.innerText.trim())`;
-const dieuKien = `[...document.querySelectorAll('.dp-cond[data-dat]')].filter((r) => r.dataset.dat !== 'true').map((r) => ({ nhan: r.querySelector('.dp-cond-nhan').innerText, sub: r.querySelector('.dp-cond-sub')?.innerText ?? '' }))`;
+// Gói A1 (ADR-0096 Đ2, LC-20): chuyến 13/10 nằm ngoài cửa sổ xuất bến 48 giờ của bản gieo nên màn CHI TIẾT hiện thêm dòng "Trong giờ được xuất bến" ✕
+// (không tô "Bị giữ" — `kieuChuyen`). Kịch bản này chỉ kiểm khách đổi / thiếu tên nên bỏ dòng đó ra; dòng cửa sổ có kiểm riêng ở chuyen-smoke và cuoc-smoke.
+const dieuKien = `[...document.querySelectorAll('.dp-cond[data-dat]')].filter((r) => r.dataset.dat !== 'true' && r.querySelector('.dp-cond-nhan').innerText !== 'Trong giờ được xuất bến').map((r) => ({ nhan: r.querySelector('.dp-cond-nhan').innerText, sub: r.querySelector('.dp-cond-sub')?.innerText ?? '' }))`;
 const viec = `[...document.querySelectorAll('#dp-cot-can-xu-ly .dp-cxl')].map((x) => ({ tieuDe: x.querySelector('.dp-cxl-tieu-de').innerText.trim(), text: x.querySelector('.dp-cxl-text')?.innerText.trim() ?? '', ai: x.querySelector('.dp-cxl-ai').innerText.trim(), nut: [...x.querySelectorAll('.dp-cxl-actions .vc-btn')].map((n) => n.innerText.trim()) }))`;
 const ghi = (p) => apiCalls(p).filter((r) => r.method === "POST" && r.path.endsWith("/cap-nhat-khach")).map((r) => JSON.parse(r.body));
 const cho = (p) => p.waitFor(`!!document.querySelector('.dp-ct-title')`, "trang chi tiết dựng xong");

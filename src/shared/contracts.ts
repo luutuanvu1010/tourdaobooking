@@ -1107,6 +1107,8 @@ export interface DispatchPolicyDto {
   dutyDayMaxMinutes: number;
   /** ADR-0055 VK2-B (0071): chuyến dài hơn (phút, 30…720; gieo 240) → nhắc nghỉ — chỉ cảnh báo. */
   tripNoBreakMaxMinutes: number;
+  /** ADR-0096 Đ2 (0084): cửa sổ xuất bến (phút, 60…2880; mặc định nằm trong bảng chính sách) — chỉ xuất bến từ giờ khởi hành dự kiến − cửa sổ. */
+  departureWindowMinutes: number;
   validFrom: string;
   current: boolean;
   /** R-P23: "ai lưu" — TÊN hiển thị người lưu bản này (hàm tiêm nhãn R-P20; không SĐT, không id); null = bản gieo / khung thử không tiêm nhãn. */
@@ -1125,6 +1127,8 @@ export interface DispatchPolicyCreateRequest {
   dutyDayMaxMinutes: number;
   /** BẮT BUỘC (I43, ADR-0055 VK2-B). */
   tripNoBreakMaxMinutes: number;
+  /** BẮT BUỘC (I43, ADR-0096 Đ2.3): phút, 60…2880 — màn nhập giờ (1–48). */
+  departureWindowMinutes: number;
   requireContract?: false;
 }
 export interface DepartureRuleDto {

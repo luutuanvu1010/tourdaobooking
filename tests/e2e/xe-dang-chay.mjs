@@ -1,9 +1,9 @@
-// XE ĐANG CHẠY (ADR-0052 D5.1, D5.2, D5.3a — Vận chuyển Đợt 5) trên API THẬT (wrangler dev, D1 local tạm): chuyến NGÀY KIA, tài xế công ty bấm Xuất bến sớm
+// XE ĐANG CHẠY (ADR-0052 D5.1, D5.2, D5.3a — Vận chuyển Đợt 5) trên API THẬT (wrangler dev, D1 local tạm): chuyến NGÀY MAI, tài xế công ty bấm Xuất bến sớm
 // (xe đang chạy); văn phòng thêm đơn thứ hai vào xe (Bán hàng không phá lệ → 409 "cần Quản trị phá lệ"; Quản trị phá lệ → 200, điểm mới mang cờ, bản chốt
 // thêm dòng sau xuất bến); Bán hàng báo huỷ một khách (suất vẫn chiếm chỗ; lần hai 409; Kế toán 403); cập nhật điểm khi xe chạy không có gì lệch → 200 / 0;
 // dọn: tài xế kết thúc gián đoạn. Dữ liệu dùng một lần (SĐT ngẫu nhiên, biển số theo Date.now()). Tên, số GIẢ.
 import assert from "node:assert/strict";
-import { ACCOUNTS, call, catalogService, ensureFakeCatalog, login, orderInput, randomPhone, session, sql, sqlRows, vnDate } from "./lib.mjs";
+import { ACCOUNTS, call, catalogService, ensureFakeCatalog, login, orderInput, randomPhone, session, sql, sqlRows, vnDate, moCuaSoXuatBen48Gio } from "./lib.mjs";
 
 await ensureFakeCatalog();
 const ADMIN = await session(ACCOUNTS.admin);
@@ -11,7 +11,8 @@ const TAO_TK = await session(ACCOUNTS.superAdmin);
 const SALES = await session(ACCOUNTS.salesA);
 const KE_TOAN = await session(ACCOUNTS.accountant);
 const LOC = "a941dd7d-faab-4098-9ab9-1df7fa6dd551";
-const D = vnDate(2);
+const D = vnDate(1); // ADR-0096 Đ2 (LC-20): chuyến NGÀY MAI + cửa sổ 48 giờ — xuất bến ngay được, giờ đón vẫn ngoài mốc 6 giờ
+await moCuaSoXuatBen48Gio();
 const duoi = String(Date.now()).slice(-6);
 const uuid = () => crypto.randomUUID();
 const AT = new Date().toISOString();

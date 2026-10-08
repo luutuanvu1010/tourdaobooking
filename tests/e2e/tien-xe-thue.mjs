@@ -5,7 +5,7 @@
 //   (3) Kế toán nhập giá thoả thuận cho chuyến thiếu giá → xuất bến được; bảng kê có hai chuyến, tổng do máy chủ; Bán hàng xem chi phí → 403.
 // Dữ liệu độc nhất theo lần chạy (tên theo Date.now()). Tên nhà xe là GIẢ.
 import assert from "node:assert/strict";
-import { ACCOUNTS, call, session, sql, sqlRows, vnDate } from "./lib.mjs";
+import { ACCOUNTS, call, session, sql, sqlRows, vnDate, moCuaSoXuatBen48Gio } from "./lib.mjs";
 
 // Số tiền xuất hiện như MỘT số đứng riêng (không phải mẩu của số dài hơn) hoặc dạng có dấu chấm. Gộp main ffed6f1c (5/10): `includes("1200000")` cũ đỏ giả
 // khi ngày chạy rơi vào 2026-10-07 — 07:00 giờ VN = 1791331200000 ms (mốc giờ trong phản hồi chứa chuỗi "1200000").
@@ -53,7 +53,8 @@ assert.equal(t, "integer", "tiền là INTEGER trên D1");
 console.log("✓ (1) bảng giá thuê xe: tuyến, giá, chồng 409, Bán hàng chỉ đọc tên tuyến");
 
 // --- (2) T2 ---
-const D = vnDate(2);
+const D = vnDate(1); // ADR-0096 Đ2 (LC-20): chuyến NGÀY MAI + cửa sổ 48 giờ — xuất bến ngay được, giờ đón vẫn ngoài mốc 6 giờ
+await moCuaSoXuatBen48Gio();
 const tx = uuid();
 await sql(`INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES ('${tx}', 'PERSON', 'Tài xế nhà xe E2E ${duoi}', 1, '${AT}', '${AT}')`);
 await sql(`INSERT INTO pty_person (party_id, given_name, created_at, updated_at) VALUES ('${tx}', 'Tài xế nhà xe E2E ${duoi}', '${AT}', '${AT}')`);

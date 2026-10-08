@@ -142,6 +142,26 @@ export function vnDate(days = 0) {
 }
 
 /**
+ * ADR-0096 Đ2 (LC-20, gói A1): lệnh xuất bến chỉ được trong cửa sổ trước giờ khởi hành (chính sách `departureWindowMinutes`, gieo 720 phút). Kịch bản đi tới
+ * xuất bến chạy chuyến NGÀY MAI (`vnDate(1)` — luôn ngoài mốc 6 giờ cho giờ đón từ 06:30) nên gọi hàm này ở đầu: Toàn quyền THÊM một dòng chính sách giữ
+ * nguyên mọi giá trị đang áp, chỉ mở cửa sổ lên 2880 phút (48 giờ — trần của cột) — đường thật qua route, không chèn SQL. Bảng chỉ thêm, D1 tạm: không khôi
+ * phục; kịch bản cần giá trị gieo tự thêm dòng (chinh-sach-dieu-phoi khôi phục ở `finally`). Trả số phút cửa sổ trước khi đổi.
+ */
+export async function moCuaSoXuatBen48Gio() {
+  const toanQuyen = await session(ACCOUNTS.superAdmin);
+  const g = await call(toanQuyen, "GET", "/api/van-chuyen/chinh-sach-dieu-phoi");
+  if (g.status !== 200) throw new Error(`Không đọc được chính sách điều phối: ${g.status} ${JSON.stringify(g.body)}`);
+  const c = g.body.current;
+  await new Promise((res) => setTimeout(res, 5)); // valid_from_at duy nhất theo mili-giây
+  const r = await call(toanQuyen, "POST", "/api/van-chuyen/chinh-sach-dieu-phoi", {
+    minLeadMinutes: c.minLeadMinutes, warnLeadMinutes: c.warnLeadMinutes, restMinutes: c.restMinutes, requireManifest: c.requireManifest,
+    proxyBackdateMaxMinutes: c.proxyBackdateMaxMinutes, dutyDayMaxMinutes: c.dutyDayMaxMinutes, tripNoBreakMaxMinutes: c.tripNoBreakMaxMinutes, departureWindowMinutes: 2880,
+  });
+  if (r.status !== 201) throw new Error(`Không mở được cửa sổ xuất bến 48 giờ: ${r.status} ${JSON.stringify(r.body)}`);
+  return c.departureWindowMinutes;
+}
+
+/**
  * Dịch vụ nhập tay (thân gửi API). TỪ 2026-09-26 máy chủ KHÔNG nhận dịch vụ nhập tay MỚI (chủ dự án: "loại bỏ hoàn toàn dịch vụ nhập tay" — DK-T3-01):
  * chỉ dùng để thử chính luật đó, hoặc gửi lại NGUYÊN dịch vụ nhập tay cũ (kèm `id`) của một đơn dựng bằng `makeLegacyManual`. Đơn thường dùng `catalogService`.
  */

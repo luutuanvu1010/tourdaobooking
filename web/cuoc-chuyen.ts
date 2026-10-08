@@ -14,7 +14,7 @@
 // - Mất mạng: dòng đó "Chưa gửi được" + "Bấm lại" (CÙNG requestId — bấm lại hai lần vẫn một lệnh); máy KHÔNG tự gửi lại (lệnh điều phối, khác câu 5a).
 //   C55 (đánh giá ERP 7/10): lần tải NỀN hỏng chỉ ẩn trang khi 403 / 404 (`loiTaiNenAnTrang`); mất mạng / lỗi máy chủ GIỮ dữ liệu đang có (chỉ bộ nhớ trang
 //   — ADR-0053 D7.2) và hiện dải "Mất mạng — dữ liệu lúc HH:MM" (`daiMatMang`) có nút "Tải lại".
-import { giuTenKhach, ketThucDuoc, chiSuatKhach, soHieuTaiDiemDon, tenNguoiDiKemCuaChuyen, thanDoiThuTu, viecNguoiDiKem, type BuocDiem } from "../src/shared/tien-do-man";
+import { CAU_THU_TU_DAO, doiThuTuDuoc, giuTenKhach, ketThucDuoc, chiSuatKhach, soHieuTaiDiemDon, tenNguoiDiKemCuaChuyen, viecNguoiDiKem, type BuocDiem } from "../src/shared/tien-do-man";
 import type { CuocChiTietResponse } from "../src/shared/contracts";
 import { coCuocCuaToi } from "../src/shared/start-page";
 import { ApiError, api } from "./api";
@@ -298,9 +298,10 @@ function nutThuTu(b: BuocDiem): HTMLElement | null {
   const r = duLieu!;
   if (r.chuyen.trangThai !== "RUNNING" || b.diem.trangThai !== "PENDING") return null;
   const nut = (huong: -1 | 1, kyHieu: string, nhan: string, action: string) => {
-    const than = thanDoiThuTu(r.diem, b.diem.id, huong);
-    const x = h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary dp-thu-tu", disabled: !than, "aria-label": nhan, "data-action": action }, kyHieu);
-    x.addEventListener("click", () => { if (than) void chay("thu-tu", () => gui("thu-tu", than)); });
+    // C30 (ADR-0096 Đ1.3c): khoá khi lệnh làm khách chờ lên bị đảo mới — cùng luật 409 `thu_tu_dao` của máy chủ.
+    const { than, daoMoi } = doiThuTuDuoc(r.diem, r.suat, b.diem.id, huong);
+    const x = h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary dp-thu-tu", disabled: !than || daoMoi, "aria-label": daoMoi ? `${nhan} — ${CAU_THU_TU_DAO}` : nhan, title: daoMoi ? CAU_THU_TU_DAO : null, "data-action": action }, kyHieu);
+    x.addEventListener("click", () => { if (than && !daoMoi) void chay("thu-tu", () => gui("thu-tu", than)); });
     return x;
   };
   return h("span", { class: "dp-thu-tu-nhom" }, nut(-1, "↑", `Đưa ${b.diem.tenNoi} lên trước`, "len"), nut(1, "↓", `Đưa ${b.diem.tenNoi} xuống sau`, "xuong"));

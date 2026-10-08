@@ -22,7 +22,7 @@ test("R-XR: đơn A có chặng xe riêng và chỉ suất của A → không vi
   assert.deepEqual(r, { viPham: [], khoa: null, daPhaLe: false, lyDo: [] });
   // CREW không có chặng: cổng xuất bến THẬT với một suất CREW (legId null) trên chuyến chỉ có khách đơn A xe riêng → không CAM_KET.
   const ms = (d: string, t: string) => vnLocalToMs(d, t)!;
-  const CS: ChinhSachVao = { id: "cs", minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes: 30, requireManifest: false, requireContract: false, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240 };
+  const CS: ChinhSachVao = { id: "cs", minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes: 30, requireManifest: false, requireContract: false, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240, departureWindowMinutes: 720 };
   const changA: ChangVao = {
     legId: "a1", orderId: "a", orderCode: "ĐH-A", chieu: "OUT", ngayDon: "2026-09-30", gioDon: "06:30", coNoiTra: true, donDaXacNhan: true, donDaHuy: false, changMo: true,
     soNguoi: 1, nguoiCuaDon: ["p1"], datGap: false, khoaNoiDon: "L:d", khoaNoiTra: null, xeRieng: true, choToiThieu: null,

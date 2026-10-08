@@ -230,3 +230,37 @@ test("chuyenCuaChangLuc: chỉ suất của ĐÚNG chặng MỞ lúc sự kiện
   assert.deepEqual(chuyenCuaChangLuc(f, "leg-9", T1), []);
   assert.deepEqual(chuyenCuaChangLuc({ chuyen: f.chuyen, vang: [] }, "leg-1", T1), [], "không có suatChang (dữ kiện cũ) → []");
 });
+
+// ---- ADR-0097 Đ5 (gói A1, V3-B): điều chỉnh kết quả một khách / thu hồi xuất bến → tài xế đang lái + người có trip.dispatch; người bấm không tự nhận ----
+test("ADR-0097 Đ5: điều chỉnh kết quả khách (xe đang chạy) → tài xế đang lái 'xe_chay_doi' + Bán hàng / Quản trị / Toàn quyền 'dieu_chinh'; không Kế toán, tài xế đã gỡ, người bấm", () => {
+  assert.ok((HANH_DONG_TIN_CHUYEN as readonly string[]).includes("trip_allocation_corrected"));
+  const d = dangChay({ action: "trip_allocation_corrected", actorId: "sales" });
+  const tx = tinChuyenCho(TX_B, d);
+  assert.equal(tx?.loai, "xe_chay_doi");
+  assert.equal(tx!.cau, "Văn phòng vừa điều chỉnh kết quả một khách ở chuyến CX-1103-02 ngày 11/03 — mở để xem");
+  assert.equal(tx!.lienKet, "/cuoc-chuyen?id=t1");
+  assert.equal(tinChuyenCho(TX_A, d), null, "tài xế bị gỡ trước sự kiện");
+  for (const p of ["SALES", "ADMIN", "SUPER_ADMIN"] as const) {
+    const t = tinChuyenCho(nguoi("x", [p]), d);
+    assert.equal(t?.loai, "dieu_chinh", p);
+    assert.equal(t!.cau, "Chuyến CX-1103-02 ngày 11/03: văn phòng vừa điều chỉnh kết quả một khách — mở để xem");
+    assert.equal(t!.lienKet, "/chuyen?id=t1");
+  }
+  assert.equal(tinChuyenCho(nguoi("sales", ["SALES"]), d), null, "người bấm không tự nhận (E3)");
+  assert.equal(tinChuyenCho(nguoi("kt", ["ACCOUNTING"]), d), null);
+  assert.equal(thayDoiCuaHanhDongChuyen("trip_allocation_corrected", true), "xe_chay");
+});
+test("ADR-0097 Đ5: thu hồi xuất bến (sau lệnh chuyến không còn giờ xuất bến) → tài xế đang lái 'thu_hoi_xuat_ben' + điều phối 'dieu_chinh'; Bảng tin 'sua'", () => {
+  assert.ok((HANH_DONG_TIN_CHUYEN as readonly string[]).includes("trip_departure_revoked"));
+  const d = dong({ action: "trip_departure_revoked", actorId: "adm", luc: T2, xuatBen: null });
+  const tx = tinChuyenCho(TX_B, d);
+  assert.equal(tx?.loai, "thu_hoi_xuat_ben");
+  assert.equal(tx!.cau, "Văn phòng vừa thu hồi xuất bến chuyến CX-1103-02 ngày 11/03 — chuyến về chưa chạy, bấm Xuất bến lại khi xe thật sự chạy");
+  assert.equal(tx!.lienKet, "/cuoc-chuyen?id=t1");
+  assert.equal(tinChuyenCho(TX_A, d), null);
+  assert.equal(tinChuyenCho(nguoi("x", ["SALES"]), d)?.cau, "Chuyến CX-1103-02 ngày 11/03 vừa được thu hồi xuất bến — mở để xem");
+  assert.equal(tinChuyenCho(nguoi("adm", ["ADMIN"]), d), null, "người bấm");
+  assert.equal(tinChuyenCho(nguoi("kt", ["ACCOUNTING"]), d), null);
+  assert.equal(thayDoiCuaHanhDongChuyen("trip_departure_revoked", dangChayLucSuKien(d)), "sua");
+  assert.doesNotMatch(tx!.cau, /\d{8,}|L:|T:/);
+});

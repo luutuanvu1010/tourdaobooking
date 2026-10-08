@@ -74,7 +74,8 @@ export function kiemGioXayRa(v: KiemGioXayRaVao): KetQuaGioXayRa {
 
   // 3. Thứ tự trong chuyến — chỉ so với sự kiện TIẾN ĐỘ đã có (giờ xảy ra).
   const tienDo = v.suKien.filter((e) => isSuKienKhaiGio(e.loai));
-  const xuatBen = tienDo.find((e) => e.loai === "DEPARTED");
+  // ADR-0097 Đ3: thu hồi xuất bến rồi xuất bến lại ⇒ nhiều DEPARTED — so với lần CUỐI (giờ xảy ra lớn nhất; lần sau luôn muộn hơn sự kiện thu hồi — VK1-A).
+  const xuatBen = tienDo.filter((e) => e.loai === "DEPARTED").reduce<SuKienDaCo | undefined>((m, e) => (m === undefined || e.xayRaMs > m.xayRaMs ? e : m), undefined);
   if (v.loai === "DEPARTED") {
     if (tienDo.some((e) => e.loai !== "DEPARTED" && e.xayRaMs < x)) chan.add("DAO_THU_TU");
   } else if (isSuKienKhaiGio(v.loai) && xuatBen && x < xuatBen.xayRaMs) chan.add("DAO_THU_TU");

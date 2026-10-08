@@ -58,7 +58,7 @@ export function cuocChiTietDto(v: {
       gioKetThuc: gioVn(t.planned_end_ms),
       trangThai: t.status,
       trangThaiNhan: NHAN_TRANG_THAI_CHUYEN[t.status],
-      xuatBen: mocTienDo(suKienCuoi(v.events, t.id, ["DEPARTED"]), v.nhan),
+      xuatBen: t.departed_at === null ? null : mocTienDo(suKienCuoi(v.events, t.id, ["DEPARTED"]), v.nhan), // ADR-0097 Đ3: thu hồi xuất bến → chưa xuất bến
       ketThucThat: mocTienDo(suKienCuoi(v.events, t.id, ["ENDED", "ENDED_INTERRUPTED"]), v.nhan),
     },
     diem: v.diem.map((d) => ({

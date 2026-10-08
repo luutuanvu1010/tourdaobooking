@@ -7,10 +7,10 @@
 //       409 gio_xay_ra_ngoai_khoang kèm giờ sớm nhất; Kế toán → 403;
 //   (5) lớp CSDL trên D1 thật: giờ xảy ra MÁY CHỦ khác giờ ghi nhận → CHECK chặn; sửa sự kiện → trigger chặn;
 //   (9) HT-01 (kiểm theo vai 2/10 — V1.2): hai đơn cùng xuống Bến tàu → điểm đón đứng TRƯỚC điểm trả chung (một lần xếp, và xếp thêm lần sau).
-// Dữ liệu độc nhất theo lần chạy (SĐT ngẫu nhiên, biển số theo Date.now()). Chuyến chạy NGÀY KIA (xếp không vướng mốc 6 giờ); xuất bến sớm là hợp lệ.
+// Dữ liệu độc nhất theo lần chạy (SĐT ngẫu nhiên, biển số theo Date.now()). Chuyến chạy NGÀY MAI (xếp không vướng mốc 6 giờ); xuất bến sớm là hợp lệ.
 // Tên khách, số giấy tờ là GIẢ.
 import assert from "node:assert/strict";
-import { ACCOUNTS, call, catalogService, ensureFakeCatalog, orderInput, randomPhone, session, sql, sqlRows, vnDate } from "./lib.mjs";
+import { ACCOUNTS, call, catalogService, ensureFakeCatalog, orderInput, randomPhone, session, sql, sqlRows, vnDate, moCuaSoXuatBen48Gio } from "./lib.mjs";
 
 await ensureFakeCatalog();
 const ADMIN = await session(ACCOUNTS.admin);
@@ -18,7 +18,8 @@ const TAO_TK = await session(ACCOUNTS.superAdmin); // ADR-0071: chỉ Hành chí
 const SALES = await session(ACCOUNTS.salesA);
 const ACC = await session(ACCOUNTS.accountant);
 const LOC = "a941dd7d-faab-4098-9ab9-1df7fa6dd551"; // Bến tàu du lịch Nha Trang (0010)
-const D = vnDate(2);
+const D = vnDate(1); // ADR-0096 Đ2 (LC-20): chuyến NGÀY MAI + cửa sổ 48 giờ — xuất bến ngay được, giờ đón vẫn ngoài mốc 6 giờ
+await moCuaSoXuatBen48Gio();
 const duoi = String(Date.now()).slice(-6);
 const uuid = () => crypto.randomUUID();
 const P = (n) => ({ fullName: `Khách Điều Phối E2E ${n}`, birthYear: 1933, paxCode: null });

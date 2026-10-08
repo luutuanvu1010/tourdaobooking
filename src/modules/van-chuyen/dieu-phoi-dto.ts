@@ -83,7 +83,7 @@ export function chuyenTomTat(
     tai,
     lyDoGiu: v.lyDoGiu.map(lyDoGiuDto),
     khoaMoc: khoaMoc(t, v.bayGioMs, v.chung.chinhSach?.min_lead_minutes ?? null),
-    xuatBen: mocTienDo(suKienCuoi(v.events, t.id, ["DEPARTED"]), v.nhan),
+    xuatBen: t.departed_at === null ? null : mocTienDo(suKienCuoi(v.events, t.id, ["DEPARTED"]), v.nhan), // ADR-0097 Đ3: thu hồi xuất bến → chưa xuất bến
     ketThucThat: mocTienDo(suKienCuoi(v.events, t.id, ["ENDED", "ENDED_INTERRUPTED"]), v.nhan),
     diem: v.stops.filter((s) => s.trip_id === t.id).map((s) => ({
       id: s.id, thuTu: s.seq, loai: s.kind, tenNoi: tenNoi(s), trangThai: s.status, daToi: mocTienDo(suKienCuoi(v.events, t.id, ["STOP_ARRIVED"], (e) => e.stop_id === s.id), v.nhan),

@@ -4,7 +4,7 @@
 //    gợi ý "Sớm nhất" lấy từ máy chủ (`gioSomNhatKhai`, R-P14); 409 giờ → câu dưới ô; mất mạng → "Chưa gửi được — kiểm tra mạng rồi bấm lại." (hộp giữ
 //    nguyên, giờ đã khai giữ nguyên, bấm lại dùng CÙNG requestId — không tự gửi lại).
 //  - `veDiemChay`: điểm dừng + khách của chuyến đang chạy (bản vẽ 5a / 5c) — nút gọi `onLenh`, màn quyết có hỏi giờ hay gửi ngay.
-import { buocDiem, cauConKhach, cauTuChoiKhaiGio, goiYKhaiGio, NHAN_LENH_SUAT, xayRaLucTu, type BuocDiem, type DiemVao, type LenhSuat, type SuatVao } from "../src/shared/tien-do-man";
+import { buocDiem, cauConKhach, cauTuChoiKhaiGio, goiYKhaiGio, NHAN_LENH_SUAT, xayRaLucTu, type BuocDiem, type DiemVao, type KhachDiem, type LenhSuat, type SuatVao } from "../src/shared/tien-do-man";
 import { nhanMocTienDo } from "../src/shared/dieu-phoi-hien-thi";
 import { chipDiemChay } from "../src/shared/xe-dang-chay-man";
 import type { GioVnDto, LyDoDangDungDto, MocTienDoDto } from "../src/shared/contracts";
@@ -141,6 +141,8 @@ export function veDiemChay(o: {
   coNut: boolean;
   onLenh: (l: LenhDiem, nut: HTMLButtonElement) => void;
   phuDiem?: (b: BuocDiem) => { ben?: Child; duoi?: Child[] };
+  /** ADR-0097 Đ2: phần thêm của màn ở dòng một khách (văn phòng: link "Điều chỉnh…"; tài xế không truyền). */
+  phuKhach?: (k: KhachDiem) => Child | null;
   choGui?: ReadonlySet<string>;
   /** Kiểu A (V1.4): dòng "Vừa ghi … — Sai? Báo văn phòng." ngay dưới dòng khách vừa bấm (màn tài xế; văn phòng không truyền). */
   vuaGhi?: { suatId: string; cau: string } | null;
@@ -174,6 +176,7 @@ export function veDiemChay(o: {
       ...(phu.duoi ?? []),
       ...b.khach.map((k) => {
         const cho = o.choGui?.has(k.suatId) ?? false;
+        const them = o.phuKhach && !cho ? o.phuKhach(k) : null;
         const nut = o.coNut && !cho ? k.nut.map((l) => {
           const x = h("button", { type: "button", class: `vc-btn ${l === "don" ? "btn btn-primary" : "vc-btn-ghost-primary"} dp-khach-btn`, "data-action": l, "data-suat": k.suatId }, NHAN_LENH_SUAT[l]);
           x.addEventListener("click", () => o.onLenh({ loai: l, buoc: b, suatId: k.suatId, ten: k.ten }, x));
@@ -187,10 +190,12 @@ export function veDiemChay(o: {
             k.ketQua ? h("span", { class: `dp-khach-kq${k.ketQua === "Vắng" ? " is-vang" : k.ketQua === "Đã đón" || k.ketQua === "Đã trả" ? " is-ok" : ""}` }, k.ketQua) : null),
           o.vuaGhi?.suatId === k.suatId ? h("div", { class: "dp-vua-ghi", role: "status" }, icon("check", 16, 2), h("span", null, o.vuaGhi.cau)) : null,
           cho ? h("div", { class: "dp-khach-cho" }, "Chưa gửi được", h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary", "data-action": "bam-lai", "data-suat": k.suatId }, "Bấm lại")) : null,
-          nut.length ? h("div", { class: "dp-khach-nut" }, ...nut) : null,
+          nut.length || them ? h("div", { class: "dp-khach-nut" }, ...nut, them) : null,
         );
       }),
       nutDiem ? h("div", { class: "dp-run-foot" }, nutDiem, h("span", { class: "dp-note" }, b.nut!.goiY)) : null,
+      // HT-16: điểm trả chưa tới mà còn khách chờ lên ở điểm đón chưa tới — câu chỉ đường thay nút "Đã trả" (chỉ người bấm được mới thấy).
+      o.coNut && b.choDon ? h("div", { class: "dp-run-foot" }, h("span", { class: "dp-note", "data-cho-don": d.id }, b.choDon)) : null,
     );
   });
 }

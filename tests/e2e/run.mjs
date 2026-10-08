@@ -29,13 +29,13 @@ const ROOT = join(HERE, "..", "..");
 // "chinh-sach-dieu-phoi" (ADR-0049 lát 1.1) đứng SAU "tai-xe-doi-tac", TRƯỚC "passkey": đổi chính sách điều phối / hạng bằng / điều kiện xuất bến (bảng CHỈ THÊM)
 // rồi ở `finally` THÊM dòng khôi phục giá trị gieo và đóng điều kiện đã thêm; không đụng salesB/field của passkey.
 // "dieu-phoi", "tai-xe-cuoc" (ADR-0049 Task A13 / A15) đứng SAU "chinh-sach-dieu-phoi" (chính sách, điều kiện gieo đã khôi phục), TRƯỚC "passkey": tạo tài khoản
-// tài xế / xe / đơn / chuyến dùng một lần (SĐT ngẫu nhiên, biển số theo Date.now()), chuyến chạy NGÀY KIA; không đụng salesB/field của passkey.
+// tài xế / xe / đơn / chuyến dùng một lần (SĐT ngẫu nhiên, biển số theo Date.now()), chuyến chạy NGÀY MAI (cửa sổ xuất bến 48 giờ — ADR-0096); không đụng salesB/field của passkey.
 // "khung-ban-xe" (ADR-0055 VK2-A, Vận chuyển Đợt 3) ngay sau "dieu-phoi", cùng khuôn: tài xế / xe / chuyến dùng một lần (D+3…D+5); rút mọi khung bận của xe thử
 // ở `finally`; chuyến của tài xế thử nằm trên xe thử nên không chạm kịch bản khác.
-// "cam-ket-xe" (ADR-0056 VK3-A, Vận chuyển Đợt 7) ngay sau "khung-ban-xe", cùng khuôn: Đối tác / tài xế / xe / đơn / chuyến dùng một lần, chuyến NGÀY KIA; không đụng salesB/field.
-// "dua-don-dau-cuoi" (kế hoạch giao diện Đưa đón 2026-10-01, tiêu chí 5) ngay sau "dieu-phoi", cùng khuôn: tài xế / xe / đơn / chuyến dùng một lần, chuyến NGÀY KIA.
-// "xe-tren-don" (ADR-0059) ngay sau "tai-xe-cuoc", cùng khuôn: tài xế / xe / đơn / chuyến / tài khoản lai dùng một lần, chuyến NGÀY KIA; không đụng salesB/field.
-// "xe-dang-chay" (ADR-0052 D5 — Vận chuyển Đợt 5) ngay sau "xe-tren-don", cùng khuôn: tài xế / xe / đơn / chuyến dùng một lần, chuyến NGÀY KIA (xuất bến sớm);
+// "cam-ket-xe" (ADR-0056 VK3-A, Vận chuyển Đợt 7) ngay sau "khung-ban-xe", cùng khuôn: Đối tác / tài xế / xe / đơn / chuyến dùng một lần, chuyến NGÀY MAI; không đụng salesB/field.
+// "dua-don-dau-cuoi" (kế hoạch giao diện Đưa đón 2026-10-01, tiêu chí 5) ngay sau "dieu-phoi", cùng khuôn: tài xế / xe / đơn / chuyến dùng một lần, chuyến NGÀY MAI.
+// "xe-tren-don" (ADR-0059) ngay sau "tai-xe-cuoc", cùng khuôn: tài xế / xe / đơn / chuyến / tài khoản lai dùng một lần, chuyến NGÀY MAI; không đụng salesB/field.
+// "xe-dang-chay" (ADR-0052 D5 — Vận chuyển Đợt 5) ngay sau "xe-tren-don", cùng khuôn: tài xế / xe / đơn / chuyến dùng một lần, chuyến NGÀY MAI (xuất bến sớm);
 // dọn bằng kết thúc gián đoạn; không đụng salesB/field.
 // "dieu-phoi-chay-dua" (TC-33, Task A14) sau đó: 10 yêu cầu xếp song song vào chuyến 3 chỗ trên dữ liệu dùng một lần (chạy riêng: npm run test:e2e -- dieu-phoi-chay-dua).
 // "coc-don-huy" (ADR-0089, năm lỗi tiền Đợt 1) đứng ngay sau "so-tien", TRƯỚC "passkey": dùng salesA/admin/kế toán/superAdmin/field, tự cài/gỡ trigger thử.

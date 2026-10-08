@@ -25,6 +25,8 @@ const vnSau = (phut: number) => {
 };
 const inDays = (n: number) => new Date(Date.now() + 7 * 3600e3 + n * 86400e3).toISOString().slice(0, 10);
 const uuid = () => crypto.randomUUID();
+/** ADR-0096 Đ2.5 (gói A1): màn chi tiết xét cửa sổ xuất bến theo GIỜ THẬT — chuyến 2 ngày tới luôn có NGOAI_CUA_SO_XUAT_BEN; bài nào xét lý do KHÁC thì bỏ mã này. */
+const khongCuaSo = (m: string) => m !== "NGOAI_CUA_SO_XUAT_BEN";
 let so = 0;
 
 function setup(tuyChon: Record<string, unknown> = {}) {
@@ -167,7 +169,11 @@ test("TC-42 / TC-31: xếp chặng ĐÃ ĐẶT GẤP vào chuyến trong 6 giờ
   assert.equal(rut.json.error.code, "can_pha_le");
   const huy = await w.call("POST", `/api/van-chuyen/chuyen/${t.chuyen.id}/huy`, { as: SALES, body: { version: c.chuyen.version, requestId: uuid(), lyDo: "HUY_KHAC" } });
   assert.equal(huy.status, 409, huy.text);
-  const diem = c.diem.map((x: any, i: number) => ({ id: x.id, thuTu: c.diem.length - i, gioXeToi: null }));
+  // ADR-0096 Đ1.3c (gói A1): đảo ngược [ĐÓN, TRẢ] → TRẢ trước ĐÓN của khách chờ lên → 409 thu_tu_dao (không ghi); đổi số giữ thứ tự tương đối → 200 trong mốc.
+  const dao = await sua({ diem: c.diem.map((x: any, i: number) => ({ id: x.id, thuTu: c.diem.length - i, gioXeToi: null })) });
+  assert.equal(dao.status, 409, dao.text);
+  assert.equal(dao.json.error.code, "thu_tu_dao");
+  const diem = c.diem.map((x: any) => ({ id: x.id, thuTu: x.thuTu + 10, gioXeToi: null }));
   const thuTu = await sua({ diem });
   assert.equal(thuTu.status, 200, thuTu.text);
   c = thuTu.json;
@@ -257,12 +263,12 @@ async function doiNoiDon(w: any, d: any, noiDon: string) {
 test("TC-48 (máy chủ thật, khoá do lichChungChang tính): hai nơi tự do CHỈ khác ở dãy 8 chữ số (chữ đã che giống nhau) → vẫn giữ NOI_HEN_DOI; R-P16 cờ lechDon; TC-53 cảnh báo NOI_HEN_KHAC_DIEM", async () => {
   const w = setup();
   const { t, d, c } = await daXep(w, "Căn hộ 12345678 Trần Phú");
-  assert.deepEqual(c.chuyen.lyDoGiu.map((l: any) => l.ma), [], JSON.stringify(c.chuyen.lyDoGiu));
+  assert.deepEqual(c.chuyen.lyDoGiu.map((l: any) => l.ma).filter(khongCuaSo), [], JSON.stringify(c.chuyen.lyDoGiu));
   assert.equal(c.diem.find((x: any) => x.loai === "PICKUP").lechDon, false);
   await doiNoiDon(w, d, "Căn hộ 87654321 Trần Phú");
   const sau = await chiTiet(w, t.chuyen.id);
   assert.equal(sau.diem.find((x: any) => x.loai === "PICKUP").tenNoi, "Căn hộ •••••••• Trần Phú", "chữ hiển thị đã che");
-  assert.deepEqual(sau.chuyen.lyDoGiu.map((l: any) => l.ma), ["NOI_HEN_DOI"]);
+  assert.deepEqual(sau.chuyen.lyDoGiu.map((l: any) => l.ma).filter(khongCuaSo), ["NOI_HEN_DOI"]);
   assert.equal(sau.diem.find((x: any) => x.loai === "PICKUP").lechDon, true, "R-P16");
   assert.ok(sau.canhBao.some((x: any) => x.loai === "NOI_HEN_KHAC_DIEM"));
   const lich = (await w.call("GET", `/api/van-chuyen/lich?ngay=${inDays(2)}`, { as: SALES })).json;
@@ -292,7 +298,7 @@ test("TC-51 cập nhật điểm theo đơn: đổi nơi đón sau khi xếp →
   const cap = await w.call("POST", `/api/van-chuyen/chuyen/${t.chuyen.id}/cap-nhat-diem`, { as: SALES, body: { version: c.chuyen.version, requestId: uuid() } });
   assert.equal(cap.status, 200, cap.text);
   assert.equal(cap.json.daCapNhat, 2);
-  assert.deepEqual(cap.json.chuyen.lyDoGiu.map((l: any) => l.ma), []);
+  assert.deepEqual(cap.json.chuyen.lyDoGiu.map((l: any) => l.ma).filter(khongCuaSo), []);
   const dong = w.q("SELECT close_reason r, passenger_key k, leg_id l FROM vc_trip_allocation WHERE valid_to_at IS NOT NULL ORDER BY passenger_key");
   assert.deepEqual(dong.map((x: any) => x.r), ["STOP_CHANGED", "STOP_CHANGED"]);
   const mo = w.q("SELECT passenger_key k, leg_id l, board_stop_id b, status s FROM vc_trip_allocation WHERE valid_to_at IS NULL ORDER BY passenger_key");
@@ -332,14 +338,14 @@ test("I38 (R-P9): xếp rồi HUỶ ĐƠN → chi tiết chuyến giữ DON_DA_H
   const { t, d } = await daXep(w, "Khách sạn A");
   assert.equal((await w.call("POST", `/api/orders/${d.id}/status`, { as: SALES, body: { status: "cancelled", lyDo: "KHACH_DOI_Y" } })).status, 200);
   const ct = await chiTiet(w, t.chuyen.id);
-  assert.deepEqual(ct.chuyen.lyDoGiu.map((l: any) => l.ma), ["DON_DA_HUY"]);
-  assert.match(ct.chuyen.lyDoGiu[0].loiNhan, new RegExp(d.code));
+  assert.deepEqual(ct.chuyen.lyDoGiu.map((l: any) => l.ma).filter(khongCuaSo), ["DON_DA_HUY"]);
+  assert.match(ct.chuyen.lyDoGiu.find((l: any) => l.ma === "DON_DA_HUY").loiNhan, new RegExp(d.code));
   const w2 = setup();
   const b = await daXep(w2, "Khách sạn B");
   const o = (await w2.call("GET", `/api/orders/${b.d.id}`, { as: SALES })).json.order;
   const dongChang = await w2.call("POST", `/api/orders/${b.d.id}/legs/${b.d.legId}/close`, { as: SALES, body: { expectedUpdatedAt: o.services[0].legs[0].updatedAt, reasonCode: "NOT_NEEDED" } });
   assert.equal(dongChang.status, 200, dongChang.text);
-  assert.deepEqual((await chiTiet(w2, b.t.chuyen.id)).chuyen.lyDoGiu.map((l: any) => l.ma), ["CHANG_DA_DONG"]);
+  assert.deepEqual((await chiTiet(w2, b.t.chuyen.id)).chuyen.lyDoGiu.map((l: any) => l.ma).filter(khongCuaSo), ["CHANG_DA_DONG"]);
   const nhap = await don(w2, { ngay: inDays(2), gio: "06:30", xacNhan: false });
   const c2 = await chiTiet(w2, b.t.chuyen.id);
   const r = await xep(w2, SALES, c2, [{ legId: nhap.legId, soSuat: 1 }]);

@@ -158,6 +158,7 @@ test("dieuKienXuatBen: danh mục cố định, ✕ kèm câu + ai xử lý từ
   const dk = dieuKienXuatBen([ly("THIEU_TEN", "Chưa đủ tên khách: TD-8 thiếu 2 tên"), ly("NOI_HEN_DOI", "Nơi đón / trả đã đổi sau khi xếp — cập nhật điểm: TD-8")]);
   assert.deepEqual(dk.map((d) => [d.nhan, d.dat]), [
     ["Giấy tờ xe", true], ["Giấy phép lái xe", true], ["Đủ tên khách", false], ["Không có đơn đã huỷ", true], ["Điểm khớp đơn", false], ["Đủ chỗ", true], ["Đủ giờ nghỉ", true],
+    ["Đón trước trả", true], ["Trong giờ được xuất bến", true],
   ]);
   assert.equal(dk[2]!.chiTiet, "Chưa đủ tên khách: TD-8 thiếu 2 tên · Ai xử lý: Văn phòng");
   assert.equal(dk[0]!.chiTiet, "");
@@ -396,4 +397,14 @@ test("thanPhaLe (Đợt 7 Task 8a): mỗi mã lý do còn thiếu → đúng kho
   assert.deepEqual(thanPhaLe(["MOC_TOI_THIEU"], "X", false), { phaLe: { lyDo: "X" } });
   assert.deepEqual(thanPhaLe(["MOC_TOI_THIEU", "CAM_KET"], "X", false), { phaLe: { lyDo: "X" }, camKetPhaLe: { lyDo: "X" } });
   assert.deepEqual(thanPhaLe([], "X", false), { phaLe: { lyDo: "X" } }, "không biết mã: giữ hành vi cũ (phaLe)");
+});
+
+test("ADR-0096 (gói A1): TRA_TRUOC_DON → dòng 'Đón trước trả', NGOAI_CUA_SO_XUAT_BEN → dòng 'Trong giờ được xuất bến' (không rơi 'Khác'); kieuChuyen KHÔNG coi 'chưa tới giờ' là bị giữ (chip lên kế hoạch), còn lý do khác thì vẫn giữ", () => {
+  const tra = ly("TRA_TRUOC_DON", "Điểm trả đứng trước điểm đón — đổi thứ tự điểm rồi xuất bến: TD-8 (điểm trả số 1 đứng trước điểm đón số 2)");
+  const cuaSo = ly("NGOAI_CUA_SO_XUAT_BEN", "Chưa tới giờ được xuất bến: chuyến khởi hành lúc 07:00 ngày 12/03, được xuất bến từ 19:00 ngày 11/03. Xe thật sự chạy sớm thì văn phòng sửa giờ chuyến.");
+  const dk = dieuKienXuatBen([tra, cuaSo]).filter((d) => !d.dat).map((d) => d.nhan);
+  assert.deepEqual(dk, ["Đón trước trả", "Trong giờ được xuất bến"]);
+  assert.deepEqual(kieuChuyen(chuyen({ lyDoGiu: [cuaSo] })), { kieu: "plan", nhan: "Lên kế hoạch" });
+  assert.deepEqual(kieuChuyen(chuyen({ lyDoGiu: [cuaSo, tra] })), { kieu: "held", nhan: "Bị giữ" });
+  assert.deepEqual(kieuChuyen(chuyen({ taiXe: null, lyDoGiu: [cuaSo, ly("CHUA_CO_TAI_XE", "x")] })), { kieu: "nodrv", nhan: "Chưa có tài xế" });
 });

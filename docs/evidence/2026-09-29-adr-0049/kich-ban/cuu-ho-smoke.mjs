@@ -17,7 +17,7 @@ const dung = (r, ma, viec) => assert.equal(r.status, ma, `${viec}: ${r.status} $
 // T4 (NGÀY MAI 10:00–11:30, An, 79A-111.11) + O4 (2 khách có tên) xếp bằng phá lệ, mốc về 6 giờ, T5 (cùng ngày, Cường, 79A-222.22 — tài xế công ty, trống)
 // làm xe nhận, rồi văn phòng xuất bến T4 (sớm). Mọi lệnh API làm TRƯỚC khi mở trình duyệt (đăng nhập trình duyệt thay phiên API — ADR-0075).
 dung(await call(ACCOUNTS.admin, "POST", `/api/van-chuyen/chuyen/${d.T4.id}/phan-bo`, { version: d.T4.version, requestId: randomUUID(), chang: [{ legId: d.O4.legId, soSuat: 2 }], phaLe: { lyDo: "PHA_LE_SU_CO" } }), 200, "xếp O4 vào T4");
-dung(await call(CHU, "POST", "/api/van-chuyen/chinh-sach-dieu-phoi", { minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes: 30, requireManifest: true, proxyBackdateMaxMinutes: 180, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240 }), 201, "mốc 6 giờ");
+dung(await call(CHU, "POST", "/api/van-chuyen/chinh-sach-dieu-phoi", { minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes: 30, requireManifest: true, proxyBackdateMaxMinutes: 180, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240, departureWindowMinutes: 2880 }), 201, "mốc 6 giờ");
 const t5 = await call(ACCOUNTS.admin, "POST", "/api/van-chuyen/chuyen", { requestId: randomUUID(), xeId: d.XE_B.id, taiXePartyId: d.CUONG.partyId, batDau: { ngay: d.NGAY_KHOA, gio: "10:00" }, ketThuc: { ngay: d.NGAY_KHOA, gio: "11:30" } });
 dung(t5, 201, "tạo T5");
 const T5 = t5.json.chuyen;

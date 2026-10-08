@@ -69,6 +69,8 @@ const HANH_DONG_CO_SU_KIEN = [
   "trip_created", "trip_edited", "trip_cancelled", "trip_allocated", "trip_allocation_removed", "trip_allocation_moved", "trip_passengers_synced", "trip_stops_synced", "trip_departed",
   "trip_stop_arrived", "trip_passenger_boarded", "trip_passenger_no_show", "trip_passenger_cancelled_at_stop", "trip_passenger_dropped", "trip_stops_reordered",
   "trip_ended", "trip_ended_interrupted",
+  // ADR-0097 (gói A1, V3-B): sự kiện điều chỉnh có lý do của văn phòng.
+  "trip_allocation_corrected", "trip_departure_revoked",
 ];
 
 /** @type {{ code: string, what: string, sql: string, level: 'fail' | 'warn-unless-strict' | 'warn', mode?: 'rows', note?: string }[]} */
@@ -874,6 +876,39 @@ export const CHECKS = [
                            AND l.min_vehicle_seats > (SELECT k.passenger_capacity FROM vc_trip_departure_check k WHERE k.trip_id = t.id AND k.ket_qua = 'DAT' ORDER BY k.checked_at DESC LIMIT 1)))`,
     level: "warn",
     note: "cảnh báo: chuyến đã xuất bến trái cam kết xe riêng / số chỗ của khách mà không có phá lệ — rà lại chuyến và lý do",
+  },
+  // R-VC-THU-TU (ADR-0096 Đ1.5, gói A1 — 0084): chuyến ĐANG CHẠY có suất mở CHỜ LÊN mà điểm xuống đứng trước / bằng số điểm lên. Lưới thứ hai của đường đổi thứ
+  // tự khi đang chạy — đường này KHÔNG có trigger theo dòng (Đ1.6: lô đổi nhiều điểm đi qua trạng thái trung gian), lớp máy chủ là `chanDaoMoi`. Chuyến kế hoạch
+  // vi phạm là "đang bị giữ" hợp lệ (cổng xuất bến LC-19 chặn) — không đếm. Chỉ đếm, không tên.
+  {
+    code: "R-VC-THU-TU",
+    what: "chuyến đang chạy có khách chờ lên mà điểm trả đứng trước điểm đón (ADR-0096 Đ1)",
+    sql: `SELECT count(*) FROM vc_trip_allocation a JOIN vc_trip t ON t.id = a.trip_id AND t.status = 'RUNNING'
+          JOIN vc_trip_stop b ON b.id = a.board_stop_id JOIN vc_trip_stop d ON d.id = a.alight_stop_id
+          WHERE a.valid_to_at IS NULL AND a.status = 'WAITING' AND d.seq <= b.seq`,
+    level: "fail",
+  },
+
+  // R-VC-SUA-1 (ADR-0097 "Hệ quả", gói A1 — 0085): lưới thứ hai sau trigger LC-15 / câu chốt vc_trip_correction_balance / vc_trip_revoke_no_progress. Đếm (a) suất
+  // đóng bởi lô CORRECTION (đóng REMOVED, dấu lệnh = sự kiện CORRECTION trỏ chính nó) mà không có ĐÚNG một suất thay thế trỏ về nó cùng chặng, người, điểm lên,
+  // điểm xuống, mở cùng dấu lệnh — hoặc suất có tên mà suất thay thế thiếu dòng bản chốt thêm sau xuất bến; (b) suất mang corrects_allocation_id mà không do
+  // lô CORRECTION mở; (c) DEPARTURE_REVOKED không đứng sau một DEPARTED, hoặc đứng sau một sự kiện tiến độ của lần chạy đó (thứ tự chèn — rowid). Chỉ đếm.
+  {
+    code: "R-VC-SUA-1",
+    what: "điều chỉnh kết quả khách thiếu / thừa suất thay thế hoặc bản chốt; thu hồi xuất bến sau khi đã có tiến độ (ADR-0097)",
+    sql: `SELECT (SELECT count(*) FROM vc_trip_allocation c JOIN vc_trip_event e ON e.id = c.closed_cmd_id AND e.kind = 'CORRECTION' AND e.allocation_id = c.id
+                  WHERE (SELECT count(*) FROM vc_trip_allocation n WHERE n.corrects_allocation_id = c.id AND n.trip_id = c.trip_id AND n.opened_cmd_id = e.id
+                           AND n.leg_id IS c.leg_id AND n.passenger_key IS c.passenger_key AND n.board_stop_id IS c.board_stop_id AND n.alight_stop_id IS c.alight_stop_id) <> 1
+                     OR (c.passenger_key IS NOT NULL AND NOT EXISTS (SELECT 1 FROM vc_trip_allocation n JOIN vc_trip_manifest m ON m.allocation_id = n.id AND m.added_after_departure = 1
+                                                                     WHERE n.corrects_allocation_id = c.id)))
+          + (SELECT count(*) FROM vc_trip_allocation n WHERE n.corrects_allocation_id IS NOT NULL AND NOT EXISTS (
+                  SELECT 1 FROM vc_trip_event e JOIN vc_trip_allocation c ON c.id = e.allocation_id
+                   WHERE e.id = n.opened_cmd_id AND e.kind = 'CORRECTION' AND e.allocation_id = n.corrects_allocation_id AND c.closed_cmd_id = e.id AND c.close_reason = 'REMOVED'))
+          + (SELECT count(*) FROM vc_trip_event r WHERE r.kind = 'DEPARTURE_REVOKED' AND (
+                  NOT EXISTS (SELECT 1 FROM vc_trip_event d WHERE d.trip_id = r.trip_id AND d.kind = 'DEPARTED' AND d.rowid < r.rowid)
+                  OR EXISTS (SELECT 1 FROM vc_trip_event x WHERE x.trip_id = r.trip_id AND x.rowid < r.rowid AND x.kind NOT IN ('DEPARTED', 'DEPARTURE_REVOKED')
+                               AND x.rowid > (SELECT max(d.rowid) FROM vc_trip_event d WHERE d.trip_id = r.trip_id AND d.kind = 'DEPARTED' AND d.rowid < r.rowid))))`,
+    level: "fail",
   },
 
   // ---- Người phụ trách đơn (ADR-0006 điều 3, ADR-0009). Migration 0014 trở lên: trên D1 chưa có 0014 các câu dưới lỗi "no such table" → script thoát mã 2. ----

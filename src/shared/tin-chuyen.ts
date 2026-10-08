@@ -9,11 +9,18 @@ export const HANH_DONG_TIN_CHUYEN = [
   "trip_created", "trip_edited", "trip_cancelled", "trip_ended_interrupted", "trip_passenger_no_show",
   // Vận chuyển Đợt 5 (ADR-0052 D5, D6): văn phòng thay đổi xe ĐANG CHẠY → tài xế đang lái nhận tin. `trip_stops_synced` CHỈ khi chuyến đã xuất bến lúc sự kiện.
   "trip_stop_added_running", "trip_allocation_office_cancelled", "trip_stops_synced",
+  // ADR-0097 Đ5 (gói A1, V3-B — chính ADR này là văn bản cho phép mở danh sách đóng, ADR-0052 :210): văn phòng điều chỉnh kết quả một khách / thu hồi xuất
+  // bến → tài xế đang lái (dòng lái mở lúc sự kiện) + người có trip.dispatch. Người lập / phụ trách đơn KHÔNG nhận (đợt V5 — BL-CREW-TIN).
+  "trip_allocation_corrected", "trip_departure_revoked",
 ] as const;
 export const laHanhDongTinChuyen = (a: string): boolean => (HANH_DONG_TIN_CHUYEN as readonly string[]).includes(a);
-export type LoaiTinChuyen = "xep_lai" | "go_lai" | "doi_chuyen" | "huy_chuyen" | "gian_doan" | "khach_vang" | "xe_chay_doi";
-/** Đợt 5: ba hành động văn phòng trên xe đang chạy — loại tin `xe_chay_doi`, loại Bảng tin `xe_chay` (khi chuyến đã xuất bến lúc sự kiện). */
-const HANH_DONG_XE_CHAY: ReadonlySet<string> = new Set(["trip_stop_added_running", "trip_allocation_office_cancelled", "trip_stops_synced"]);
+export type LoaiTinChuyen = "xep_lai" | "go_lai" | "doi_chuyen" | "huy_chuyen" | "gian_doan" | "khach_vang" | "xe_chay_doi" | "thu_hoi_xuat_ben" | "dieu_chinh";
+/**
+ * Đợt 5: hành động văn phòng trên xe đang chạy — loại tin `xe_chay_doi`, loại Bảng tin `xe_chay` (khi chuyến đã xuất bến lúc sự kiện). ADR-0097: điều chỉnh kết
+ * quả một khách cùng họ (luôn trên xe đang chạy). Thu hồi xuất bến KHÔNG ở đây: sau lệnh chuyến không còn giờ xuất bến (`xuatBen` null) — nhánh riêng.
+ */
+const HANH_DONG_XE_CHAY: ReadonlySet<string> = new Set(["trip_stop_added_running", "trip_allocation_office_cancelled", "trip_stops_synced", "trip_allocation_corrected"]);
+const HANH_DONG_DIEU_CHINH: ReadonlySet<string> = new Set(["trip_allocation_corrected", "trip_departure_revoked"]);
 
 export interface KhoangLai { partyId: string; tu: string; den: string | null }
 export interface DonCuaTin { orderId: string; maDon: string; ownerId: string; handlerStaffId: string | null }
@@ -54,9 +61,11 @@ function loaiCho(n: NguoiNhanChuyen, d: DongChuyen): LoaiTinChuyen | null {
     // Dòng ĐÓNG đúng mốc xét trước dòng MỞ đúng mốc: dòng vừa tạo rồi bị đổi ra trong cùng mili-giây (chỉ xảy ra ở đồng hồ giả) vẫn là "không còn lái".
     if (d.action === "trip_edited") return k.den === d.luc ? "go_lai" : k.tu === d.luc ? "xep_lai" : "doi_chuyen";
     if (HANH_DONG_XE_CHAY.has(d.action) && dangChayLucSuKien(d)) return "xe_chay_doi";
+    if (d.action === "trip_departure_revoked") return "thu_hoi_xuat_ben";
   }
   if (!can(n, "trip.view")) return null; // không ngữ cảnh = ô any (văn phòng). DRIVER (assigned) / FIELD / PARTNER / INTERN / DRIVER_PARTNER dừng ở đây.
   if (d.action === "trip_ended_interrupted" && can(n, "trip.dispatch")) return "gian_doan";
+  if (HANH_DONG_DIEU_CHINH.has(d.action) && can(n, "trip.dispatch")) return "dieu_chinh"; // ADR-0097 Đ5 (khuôn tin "gián đoạn")
   if (d.action === "trip_passenger_no_show" && d.don.some((x) => x.ownerId === n.id || x.handlerStaffId === n.id)) return "khach_vang";
   return null;
 }
@@ -80,8 +89,14 @@ export function tinChuyenCho(n: NguoiNhanChuyen, d: DongChuyen): { loai: LoaiTin
       // Lời chủ 5.3: tài xế xem giờ đón + tổng khách ở màn chuyến (liên kết) — câu tin không mang nơi / số / tên.
       const cau = d.action === "trip_stop_added_running" ? `Văn phòng vừa thêm khách vào ${c} — mở để xem điểm, giờ đón và số khách`
         : d.action === "trip_allocation_office_cancelled" ? `Văn phòng báo có khách huỷ ở ${c} — mở để xem`
+        : d.action === "trip_allocation_corrected" ? `Văn phòng vừa điều chỉnh kết quả một khách ở ${c} — mở để xem`
         : `Văn phòng vừa đổi điểm đón ở ${c} — mở để xem`;
       return { loai, cau, lienKet: `/cuoc-chuyen?id=${id}` };
+    }
+    case "thu_hoi_xuat_ben": return { loai, cau: `Văn phòng vừa thu hồi xuất bến ${c} — chuyến về chưa chạy, bấm Xuất bến lại khi xe thật sự chạy`, lienKet: `/cuoc-chuyen?id=${id}` };
+    case "dieu_chinh": {
+      const cau = d.action === "trip_departure_revoked" ? `${hoa(c)} vừa được thu hồi xuất bến — mở để xem` : `${hoa(c)}: văn phòng vừa điều chỉnh kết quả một khách — mở để xem`;
+      return { loai, cau, lienKet: `/chuyen?id=${id}` };
     }
     case "khach_vang": {
       const ma = d.don.find((x) => x.ownerId === n.id || x.handlerStaffId === n.id)!.maDon;
@@ -151,6 +166,8 @@ const THAY_DOI_CUA: Record<string, ThayDoiChuyen> = {
   trip_passenger_boarded: "tien_do", trip_passenger_no_show: "vang", trip_passenger_cancelled_at_stop: "tien_do", trip_passenger_dropped: "tien_do",
   trip_stops_reordered: "tien_do", trip_ended: "ket_thuc", trip_ended_interrupted: "gian_doan",
   trip_stop_added_running: "xe_chay", trip_allocation_office_cancelled: "xe_chay",
+  // ADR-0097: điều chỉnh khi xe đang chạy → "xe_chay" (họ HANH_DONG_XE_CHAY); thu hồi xuất bến → "sua" (văn phòng sửa chuyến; loại sẵn có tin — chuông gọi lại).
+  trip_allocation_corrected: "xe_chay", trip_departure_revoked: "sua",
 };
 /** `dangChay` (Đợt 5): chuyến đã xuất bến lúc sự kiện — ba hành động xe đang chạy mang loại `xe_chay` (chuông tài xế gọi lại); còn lại như cũ. */
 export const thayDoiCuaHanhDongChuyen = (action: string, dangChay = false): ThayDoiChuyen =>
