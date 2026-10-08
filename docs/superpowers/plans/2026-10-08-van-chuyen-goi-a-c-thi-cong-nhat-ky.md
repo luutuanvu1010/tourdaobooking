@@ -1,5 +1,7 @@
 # Nhật ký thi công — Vận chuyển & Bán hàng, Gói A và Gói C (mở 2026-10-08)
 
+> **Danh sách việc còn lại (nguồn duy nhất, từ 2026-10-08):** `2026-10-08-van-chuyen-goi-a-c-danh-sach-viec.md` cùng thư mục. Sổ này chỉ ghi lý do, ruling và bằng chứng.
+
 Sổ điều phối (CLAUDE.md §9, P19). Trạng thái sống ở đây, không trong trí nhớ phiên. Nguồn phát hiện: báo cáo `docs/superpowers/specs/2026-10-07-danh-gia-erp-van-chuyen-ban-hang.md` (mã `Cxx`, `Nx`) và `docs/evidence/2026-10-07-danh-gia-erp-van-chuyen/du-lieu/verify.json`.
 
 ## Lời chủ (nguyên văn phần quyết định, chat 2026-10-08)
