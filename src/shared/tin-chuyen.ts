@@ -20,11 +20,15 @@ export const HANH_DONG_TIN_CHUYEN = [
   // ADR-0104 Đ1 mục 6 (văn bản cho phép mở danh sách đóng): lệnh khách xếp / rút / dời — sinh tin CÓ ĐIỀU KIỆN: chỉ khi sự kiện mang luật vượt MOC_TOI_THIEU
   // (điều chỉnh khẩn cấp, `DongChuyen.khanCap`) và chỉ cho tài xế có dòng lái lúc sự kiện. Không vượt mốc → không ai nhận.
   ...HANH_DONG_TIN_KHACH,
+  // ADR-0104 Đ2.10 (văn bản cho phép mở danh sách đóng): máy đồng bộ chuyến theo đơn — chỉ tài xế có dòng lái lúc sự kiện nhận ("khach_doi"); nhóm tin THƯỜNG
+  // (không thuộc ba lệnh khách: không lọc theo luật vượt mốc). Máy không ghi lên xe đang chạy (Đ2.7) nên chuyến luôn chưa xuất bến lúc sự kiện.
+  "trip_order_synced",
 ] as const;
 /** Phiếu kiểm D1 CAO-3: hành động sinh tin NGOÀI ba lệnh khách — nhóm cũ của hộp thông báo (trần riêng, không bị dòng xếp / rút / dời đẩy ra). */
 export const HANH_DONG_TIN_THUONG: readonly string[] = HANH_DONG_TIN_CHUYEN.filter((a) => !(HANH_DONG_TIN_KHACH as readonly string[]).includes(a));
 export const laHanhDongTinChuyen = (a: string): boolean => (HANH_DONG_TIN_CHUYEN as readonly string[]).includes(a);
-export type LoaiTinChuyen = "xep_lai" | "go_lai" | "doi_chuyen" | "huy_chuyen" | "gian_doan" | "khach_vang" | "xe_chay_doi" | "thu_hoi_xuat_ben" | "dieu_chinh" | "khan_cap";
+export type LoaiTinChuyen =
+  | "xep_lai" | "go_lai" | "doi_chuyen" | "huy_chuyen" | "gian_doan" | "khach_vang" | "xe_chay_doi" | "thu_hoi_xuat_ben" | "dieu_chinh" | "khan_cap" | "khach_doi";
 /**
  * Đợt 5: hành động văn phòng trên xe đang chạy — loại tin `xe_chay_doi`, loại Bảng tin `xe_chay` (khi chuyến đã xuất bến lúc sự kiện). ADR-0097: điều chỉnh kết
  * quả một khách cùng họ (luôn trên xe đang chạy). Thu hồi xuất bến KHÔNG ở đây: sau lệnh chuyến không còn giờ xuất bến (`xuatBen` null) — nhánh riêng.
@@ -93,6 +97,7 @@ function loaiCho(n: NguoiNhanChuyen, d: DongChuyen): LoaiTinChuyen | null {
     if (HANH_DONG_XE_CHAY.has(d.action) && dangChayLucSuKien(d)) return "xe_chay_doi";
     if (d.action === "trip_departure_revoked") return "thu_hoi_xuat_ben";
     if (d.khanCap && HANH_DONG_KHAN_CAP.has(d.action)) return "khan_cap"; // ADR-0104 Đ1 mục 6: chỉ tài xế đang lái; văn phòng không nhận
+    if (d.action === "trip_order_synced") return "khach_doi"; // ADR-0104 Đ2.10: chỉ tài xế đang lái; người sửa đơn (E3) và văn phòng không nhận
   }
   if (!can(n, "trip.view")) return null; // không ngữ cảnh = ô any (văn phòng). DRIVER (assigned) / FIELD / PARTNER / INTERN / DRIVER_PARTNER dừng ở đây.
   if (d.action === "trip_ended_interrupted" && can(n, "trip.dispatch")) return "gian_doan";
@@ -140,6 +145,7 @@ export function tinChuyenCho(n: NguoiNhanChuyen, d: DongChuyen): { loai: LoaiTin
       return { loai, cau, lienKet: `/cuoc-chuyen?id=${id}` };
     }
     case "khan_cap": return { loai, cau: `Văn phòng vừa điều chỉnh khẩn cấp ${c} (${CAU_KHAN_CAP[d.action] ?? "đổi khách"}) — mở để xem`, lienKet: `/cuoc-chuyen?id=${id}` };
+    case "khach_doi": return { loai, cau: `Đơn vừa đổi khách ở ${c} — mở để xem`, lienKet: `/cuoc-chuyen?id=${id}` };
     case "thu_hoi_xuat_ben": return { loai, cau: `Văn phòng vừa thu hồi xuất bến ${c} — chuyến về chưa chạy, bấm Xuất bến lại khi xe thật sự chạy`, lienKet: `/cuoc-chuyen?id=${id}` };
     case "dieu_chinh": {
       const cau = d.action === "trip_departure_revoked" ? `${hoa(c)} vừa được thu hồi xuất bến — mở để xem` : `${hoa(c)}: văn phòng vừa điều chỉnh kết quả một khách — mở để xem`;
@@ -219,6 +225,8 @@ const THAY_DOI_CUA: Record<string, ThayDoiChuyen> = {
   trip_stop_added_running: "xe_chay", trip_allocation_office_cancelled: "xe_chay",
   // ADR-0097: điều chỉnh khi xe đang chạy → "xe_chay" (họ HANH_DONG_XE_CHAY); thu hồi xuất bến → "sua" (văn phòng sửa chuyến; loại sẵn có tin — chuông gọi lại).
   trip_allocation_corrected: "xe_chay", trip_departure_revoked: "sua",
+  // ADR-0104 Đ2.10: máy đồng bộ chuyến theo đơn — loại "cập nhật" (khuôn trip_passengers_synced; kế hoạch T2.15).
+  trip_order_synced: "cap_nhat",
 };
 /** `dangChay` (Đợt 5): chuyến đã xuất bến lúc sự kiện — ba hành động xe đang chạy mang loại `xe_chay` (chuông tài xế gọi lại); còn lại như cũ. */
 export const thayDoiCuaHanhDongChuyen = (action: string, dangChay = false): ThayDoiChuyen =>
@@ -226,8 +234,12 @@ export const thayDoiCuaHanhDongChuyen = (action: string, dangChay = false): Thay
 
 /** Loại thay đổi Bảng tin của các hành động CÓ THỂ sinh tin (suy từ HANH_DONG_TIN_CHUYEN — một nguồn; xét lúc xe đang chạy). Chuông chỉ gọi lại khi đợt có loại này. */
 const THAY_DOI_CO_TIN: ReadonlySet<ThayDoiChuyen> = new Set(HANH_DONG_TIN_CHUYEN.map((a) => thayDoiCuaHanhDongChuyen(a, true)));
-/** Loại thay đổi của ba lệnh khách — chỉ sinh tin cho TÀI XẾ đang lái (`khan_cap`, ADR-0104 Đ1.6). */
-const THAY_DOI_CHI_TAI_XE: ReadonlySet<ThayDoiChuyen> = new Set(HANH_DONG_TIN_KHACH.map((a) => thayDoiCuaHanhDongChuyen(a, true)));
+/**
+ * Loại thay đổi của hành động chỉ sinh tin cho TÀI XẾ đang lái: ba lệnh khách (`khan_cap`, ADR-0104 Đ1.6) và máy đồng bộ theo đơn (`khach_doi`, Đ2.10 — loại
+ * "cap_nhat", chung với cập nhật điểm / khách trên chuyến chưa chạy: không sinh tin cho ai ⇒ máy văn phòng vẫn không gọi lại).
+ */
+const HANH_DONG_TIN_CHI_TAI_XE: readonly string[] = [...HANH_DONG_TIN_KHACH, "trip_order_synced"];
+const THAY_DOI_CHI_TAI_XE: ReadonlySet<ThayDoiChuyen> = new Set(HANH_DONG_TIN_CHI_TAI_XE.map((a) => thayDoiCuaHanhDongChuyen(a, true)));
 /**
  * Chuông có cần gọi lại `/tom-tat` sau đợt sự kiện loại `t` không. `coTheLai` = máy của người có quyền Tài xế (`coCuocCuaToi`): xếp / rút / dời chỉ sinh tin
  * cho tài xế đang lái — máy văn phòng KHÔNG gọi lại sau mỗi lệnh xếp / rút / dời (phiếu kiểm D1 CAO-3; không đổi hợp đồng `SuKienChuyen`).

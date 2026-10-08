@@ -4,8 +4,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
-import { DRIVER, DRIVER2, FIELD, LOC, NGAY, SALES, batDongHo, chiTiet, chuyenSan, denGio, don, setup, taoChuyen, thanhTaiXe, tienDo, uuid, xe, xepHet } from "../../../tests/audit/dieu-phoi-khung.mjs";
-import { seedStaff } from "../../../tests/audit/harness.mjs";
+import { ADM, DRIVER, DRIVER2, FIELD, LOC, NGAY, SALES, batDongHo, chiTiet, chuyenSan, denGio, don, setup, taoChuyen, thanhTaiXe, tienDo, uuid, xe, xepHet } from "../../../tests/audit/dieu-phoi-khung.mjs";
+import { app, seedStaff } from "../../../tests/audit/harness.mjs";
+import { nguoiNhanDay } from "../../shared/web-push.ts";
 import { CAU_NHAC_XE_DANG_CHAY } from "../../shared/dong-bo-chuyen.ts";
 
 type W = any;
@@ -20,6 +21,19 @@ const lyDo = async (w: W, tripId: string): Promise<string[]> => (await chiTiet(w
 const nhatKyDongBo = (w: W): { id: string; staff_id: string; detail: string; order_id: string | null }[] =>
   w.q("SELECT id, staff_id, detail, order_id FROM audit_log WHERE action = 'trip_order_synced' ORDER BY rowid").map((r: any) => ({ ...r }));
 const suKien = (w: W, id: string) => ({ ...w.q("SELECT kind, created_by, count, decided_mode, trip_id, request_id FROM vc_trip_event WHERE id = ?", id)[0] });
+/** Tin chuyến "khách đổi" (ADR-0104 Đ2.10) trong hộp thông báo của `as`. */
+const tinKhachDoi = async (w: W, as: string): Promise<{ cau: string; lienKet: string }[]> =>
+  (await w.call("GET", "/api/thong-bao", { as })).json.tin.filter((x: any) => x.loai === "chuyen" && /Đơn vừa đổi khách/.test(x.cau)).map((x: any) => ({ cau: x.cau, lienKet: x.lienKet }));
+/** Người nhận gõ cửa cho dòng nhật ký `id` (đường gốc lắp ráp `baoThayDoiChuyen`: `dongChuyenTheoId` → `nguoiNhanDay`, cùng hàm với hộp). */
+const TAI_KHOAN = [
+  { id: DRIVER, permissions: ["DRIVER"], partyId: `pty-${DRIVER}` }, { id: DRIVER2, permissions: ["DRIVER"], partyId: `pty-${DRIVER2}` },
+  { id: SALES, permissions: ["SALES"], partyId: null }, { id: FIELD, permissions: ["FIELD"], partyId: null },
+];
+async function goCua(w: W, id: string): Promise<string[]> {
+  const kq = await app.dongChuyenTheoId(w.env.DB, id, (q: any) => app.chuyenChoTinTheoId(w.env.DB, q));
+  assert.ok(kq, "có dòng gõ cửa");
+  return nguoiNhanDay(TAI_KHOAN as any, { chuyen: kq.dong }, new Date(Date.parse(kq.dong.luc) + 1).toISOString()).sort();
+}
 const svcId = (w: W, orderId: string): string => w.q("SELECT id FROM order_service WHERE order_id = ?", orderId)[0].id;
 /** Văn phòng sửa số khách (ADR-0063 D1) — `adult` người lớn cho dịch vụ duy nhất của đơn. */
 const suaSoKhach = (w: W, orderId: string, adult: number, as = SALES) =>
@@ -192,6 +206,15 @@ test("NT-5 huỷ đơn (văn phòng), chặng trên HAI chuyến PLANNED dưới
     assert.equal(new Set(ev.map((e) => e.request_id)).size, 2, "request_id riêng từng khúc");
     assert.equal(new Set(nk.map((x) => x.id)).size, 2, "dấu lệnh riêng từng khúc");
     assert.match(nk[0]!.detail, new RegExp(`máy cập nhật theo đơn — ${d.code} \\(đơn huỷ\\): trả 1 ghế$`));
+    // Đ2.10 (T2.15): mỗi tài xế đang lái nhận ĐÚNG MỘT tin cho chuyến của mình; người huỷ (Bán hàng), Quản trị không; gõ cửa đúng tài xế của khúc.
+    assert.deepEqual(await tinKhachDoi(w, DRIVER), [{ cau: `Đơn vừa đổi khách ở chuyến ${a.chuyen.ma} ngày 11/03 — mở để xem`, lienKet: `/cuoc-chuyen?id=${a.chuyen.id}` }]);
+    assert.deepEqual(await tinKhachDoi(w, DRIVER2), [{ cau: `Đơn vừa đổi khách ở chuyến ${b.chuyen.ma} ngày 11/03 — mở để xem`, lienKet: `/cuoc-chuyen?id=${b.chuyen.id}` }]);
+    assert.deepEqual(await tinKhachDoi(w, SALES), [], "người huỷ không tự nhận");
+    assert.deepEqual(await tinKhachDoi(w, ADM), [], "văn phòng không nhận");
+    for (const x of nk) {
+      const tripId = suKien(w, x.id).trip_id;
+      assert.deepEqual(await goCua(w, x.id), [tripId === a.chuyen.id ? DRIVER : DRIVER2], "gõ cửa đúng tài xế đang lái chuyến của khúc");
+    }
   } finally {
     tat();
   }
@@ -216,6 +239,9 @@ test("NT-5 huỷ đơn qua đường HDV (handler-cancel) → như văn phòng: 
     assert.equal(nk[0]!.staff_id, FIELD);
     assert.equal(suKien(w, nk[0]!.id).created_by, FIELD);
     assert.doesNotMatch(r.text, new RegExp(`${t.chuyen.ma}|79C|Tài Xế`), "phản hồi cho HDV không dữ liệu chuyến");
+    // Đ2.10: tài xế đang lái nhận đúng một tin; HDV (người huỷ, không trip.view) không.
+    assert.equal((await tinKhachDoi(w, DRIVER)).length, 1);
+    assert.deepEqual(await tinKhachDoi(w, FIELD), []);
   } finally {
     tat();
   }
