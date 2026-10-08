@@ -93,6 +93,14 @@ Sổ điều phối (CLAUDE.md §9, P19). Trạng thái sống ở đây, không
 - Hộp 4 `Tình huống` (xác nhận, không tính trần): **"Đúng hết (Recommended)"** → `golden/dieu-phoi-luot-2/xe-a-b-luot-2-chuyen-khach.json` ghi xác nhận của chủ (trừ bước TH02-4 phụ thuộc hộp 7 / Đ6).
 - Việc kế: hỏi 8d-2 ngay (ba hộp: Cứu hộ, Thu hồi, Đặt gấp); sau đó chép ADR-0111 vào `docs/adr/` (lời chủ nguyên văn ở dòng Trạng thái), mục lục (số kế tiếp 0112), câu trỏ ADR-0052 (và ADR khác mà "Câu ADR bị thay" chạm). Bộ 24 bước lượt 1 (`golden/dieu-phoi/xe-a-b-luot-1.json`) vẫn chờ xác nhận — không gộp vào 8d-2 (24 bước quá dài cho một ô hỏi), hỏi riêng khi nghiệm thu A5.
 
+## Lượt duyệt 8d-2 — chủ trả lời 2026-10-08 (AskUserQuestion, nguyên văn nhãn đã chọn)
+
+- Ba hộp dán nguyên văn từ `00-trang-trinh.md` @ `2bbb1632` (Hộp 5–7).
+- Hộp 5 `Cứu hộ` (Đ4): **"Duyệt (Recommended)"** — cứu hộ khách đang ngồi trên xe chỉ sang xe đang chạy.
+- Hộp 6 `Thu hồi` (Đ5): **"Duyệt (Recommended)"** — xe đã giao khách không thu hồi xuất bến được; lần nhờ chưa thành không chặn xe nhận; thu hồi xuất bến làm tự huỷ mọi lần nhờ đang chờ / chờ Quản trị liên quan xe đó.
+- Hộp 7 `Đặt gấp` (Đ6, câu hỏi thật): **"Vẫn chờ Quản trị (Recommended)"** — chặng đặt gấp chuyển sang xe chưa chạy dưới mốc vẫn chờ Quản trị / Toàn quyền duyệt; lần nhờ chờ duyệt không tự hết hạn (lời chủ đã thấy trong mô tả phương án).
+- **ADR-0111 đủ lời duyệt (8d-1 + 8d-2).** Việc kế: người soạn chuẩn bị bản chép (trạng thái accepted, lời chủ nguyên văn cả hai lượt, dòng mục lục, câu trỏ ADR cũ) + ghi xác nhận của chủ vào `golden/dieu-phoi-luot-2/xe-a-b-luot-2-chuyen-khach.json` (TH02-4 theo hộp 7); **kiểm độc lập bản chép một vòng** (việc luật — CLAUDE.md §3); điều phối chép vào `docs/adr/` bằng công cụ sửa tệp + `cmp`. Thi công A5 phần sau 8d mở khoá sau khi chép.
+
 ## Giai đoạn 2 — bắt đầu 8/10 (phần đã duyệt, không chờ câu trả lời)
 
 - **Số migration giữ chỗ** (đo 8/10 trên mọi nhánh: lớn nhất `0083`): A1 = `0084` (+ `0085` nếu tách); A3 = `0086`. Đo lại trước khi gộp `main`.
