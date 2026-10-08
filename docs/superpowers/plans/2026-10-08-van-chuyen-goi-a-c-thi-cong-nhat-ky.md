@@ -150,6 +150,10 @@ Sổ điều phối (CLAUDE.md §9, P19). Trạng thái sống ở đây, không
 - BACKLOG mục 22 đã ghi "mở lại 8/10" ở BL-VC-D6 (chỉ phần A4) và BL-VC-D4 (A5).
 - Lập kế hoạch A4 (ADR-0053 D7.1, D8, D9) và A5 (ADR-0052 D4, D5c): workflow `wf_66b081f5-d64`, hai trợ lý chỉ đọc đo trên nhánh chính, mỗi kế hoạch có một người phản biện chỉ-đọc (tiền đề sai về mã, lệch ADR, câu hỏi chủ nên giữ/bỏ). Câu hỏi thật cần chủ sẽ gom một lần hỏi; tối đa 3 quyết định chạm quyền/dữ liệu mỗi lượt, kèm trang ghép.
 - Thứ tự thi công dự kiến: Đ1 gộp → Đ2 → (ADR-0105, ADR-0109 song song khi không cùng tệp) → G17 → A4/A5 theo kế hoạch đã phản biện.
+- **Kế hoạch bản đầu + phiếu phản biện (8/10):** `2026-10-08-giai-doan-3-a4-ke-hoach.md` / `-a4-phan-bien.md`, `-a5-ke-hoach.md` / `-a5-phan-bien.md` — cả hai "dùng được sau khi sửa".
+  - A4: không có câu bắt buộc hỏi chủ. CAO: mã đơn phải theo khung xem tên khách (ADR-0053 :30, :70, :171 — cửa một chiều, đọc chặt). Sáu tiền đề sai (thứ tự thêm ô quyền / route; requestId lặp vs 404; trigger B8.3 với đồng hồ giả; `can()` không ngữ cảnh làm nút Từ chối / tab Báo bận không hiện; danh sách bài đỏ; rủi ro "lệnh tiến độ lộ tên" không có thật). Câu "Hạn từ chối" chỉ hỏi nếu lớp CSDL của B8.3 không dựng được trên D1 local. **Báo chủ (không phải hộp hỏi):** pháp lý của việc đưa danh sách khách cho tài xế nhà xe vẫn "chưa kiểm" (ADR-0053); chủ thử bằng tài khoản tài xế nhà xe thật trên iPhone trước khi báo nhà xe.
+  - A5: cần ADR mới qua lượt duyệt riêng (dự kiến 8d), chia ≤ 3 quyết định/lượt kèm trang ghép. Bảy chỗ sửa (thứ tự lô xe B; lời chủ P4 nhiều đề nghị chờ; đường tin không dùng lại Đ1 CAO-2; ô `trip.transfer` cùng commit route; "mỗi suất một câu INSERT"; Hộp 1 có hai phương án không hợp lệ; công tắc tự nhận đọc theo chính sách hiện hành). Hai câu thật cần chủ: mười tình huống mẫu xe A/B (golden `xe-a-b-luot-1.json`, xác nhận trước nghiệm thu); chặng đặt gấp chuyển sang xe chưa chạy dưới 6 giờ.
+  - Đang sửa kế hoạch theo phiếu (workflow `wf_5d51dffd-971`).
 
 ## Việc song song
 
