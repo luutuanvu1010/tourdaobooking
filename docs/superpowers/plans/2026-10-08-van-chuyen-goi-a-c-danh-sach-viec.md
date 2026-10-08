@@ -15,8 +15,8 @@
 | # | Việc | Xong khi | Trạng thái |
 |---|---|---|---|
 | 1 | ADR-0104 Đ2 — máy tự cập nhật chuyến khi đơn sửa / huỷ (nhánh `adr-0104-d2`) | Phiếu kiểm độc lập không còn CHẶN / CAO; đã gộp; `npm test`, typecheck, e2e đủ bộ xanh trên nhánh làm việc | Kiểm độc lập đạt có điều kiện, điều kiện đã làm (`aea0c542`); **đã gộp `78fd5752`**; typecheck 0, `npm test` 3723 / 0 đỏ + 1 / 0. Còn: e2e đủ bộ (chạy sau việc 2 để không tranh máy) |
-| 2 | Màu nút gửi hộp "Điều chỉnh kết quả" (`web/chuyen.ts`, `dieu-chinh-gui`) | `cuoc-smoke` chạy **có `AXE_JS`** in "CUOC SMOKE OK (18 bước)" | Chưa làm |
-| 3 | CAO-C — báo tài xế mọi lệnh có bỏ qua luật (chủ duyệt "Báo mọi lệnh có bỏ qua luật") | Đủ sáu phần ghi ở sổ thi công (câu cờ, chữ tin trung tính, hướng dẫn tài xế, đảo bài ghim, dòng §16, câu trỏ ADR-0104 chép SAU câu 8d); test xanh; kiểm độc lập | Chưa làm |
+| 2 | Màu nút gửi hộp "Điều chỉnh kết quả" (`web/chuyen.ts`, `dieu-chinh-gui`) | `cuoc-smoke` chạy **có `AXE_JS`** in "CUOC SMOKE OK (18 bước)" | **Xong** — gộp `58cbd77b` (`b3da7d1e`): nút `.vc-btn.btn` thôi chuyển dần màu nền; tương phản lúc mở khoá 1,09:1 → 9,45:1; `cuoc-smoke` có `AXE_JS` "CUOC SMOKE OK (18 bước)" + sáu kịch bản Vận chuyển khác OK có `AXE_JS` |
+| 3 | CAO-C — báo tài xế mọi lệnh có bỏ qua luật (chủ duyệt "Báo mọi lệnh có bỏ qua luật") | Đủ sáu phần ghi ở sổ thi công (câu cờ, chữ tin trung tính, hướng dẫn tài xế, đảo bài ghim, dòng §16, câu trỏ ADR-0104 chép SAU câu 8d); test xanh; kiểm độc lập | **Xong** — gộp (`684a3b52`, `fad5fe62`, `c8054558`); kiểm độc lập ĐẠT CÓ ĐIỀU KIỆN, điều kiện (hướng dẫn sửa mã) đã sửa; câu trỏ ADR-0104 đã chép |
 | 4 | ADR-0105 — hai nút Chỉ đường (migration 0090) | Theo kế hoạch ADR-0105; thêm dòng bản đồ vào `RANG_BUOC_NGOAI.md`; kịch bản Chrome nhóm Chỉ đường xanh có `AXE_JS`; kiểm độc lập | Chưa làm |
 | 5 | ADR-0109 — phải thu không âm | Theo kế hoạch ADR-0109; phiếu phản biện là danh sách bắt buộc; kiểm độc lập (tiền) | Chưa làm |
 | 6 | G17 — báo tài xế khi `PUT /api/orders/:id/trip` đổi ngày / giờ đón chặng đã xếp | Bài đỏ trước, xanh sau; e2e liên quan xanh | Chưa làm |
@@ -40,4 +40,7 @@
 - Hướng dẫn Bán hàng `src/shared/huong-dan-ban-hang.ts:140` lạc hậu từ trước (nói "app chưa tự báo … khi giờ hoặc nơi đón đổi", trong khi ADR-0062 đã có tin) và dùng chữ "app" — chữ hiển thị, chủ duyệt riêng.
 - Nợ bài từ phiếu kiểm Đ2: vế `status = 'PLANNED'` của cổng chuyến; biên trần 74/75; `order_id` của câu cổng chỉ khoá bằng chuỗi; luật (iv) cam kết chỉ có bài thuần; bốn hàm ghi cũ còn xuất mà không qua máy đồng bộ (`cancelOrder`, `writePassengerChange`, `replaceLeg`, `changeLeg`); bài quyền ghép Đối tác / Thực tập; tên tham số `sn` né bài canh `so-nguoi-chang-mot-luat`.
 - `golden/README.md`, `ADR-0110:71` có chữ cũ; sổ hàng rào chép quan sát chặn K1–K8, M-A, M-B, M-D.
+- `cuoc-smoke` bước 5 (mất mạng) chập chờn: dải cảnh báo còn sau khi có mạng lại, đỏ 3/7 lần, cả trên CSS cũ — chưa rõ nguyên nhân.
+- Cùng lỗi tương phản lúc vừa mở khoá ở nút ngoài Vận chuyển `.sheet-foot .btn-primary` (luật khoá `public/app.css` :573), ví dụ `luu-so-khach` (`web/sheet-so-khach.ts`).
+- Chú thích `docs/SYSTEM-DESIGN.md` mục "Điều chỉnh khẩn cấp và phá lệ" chưa nhắc tin trung tính (THẤP-2 phiếu CAO-C).
 - Câu chờ lượt sau: tài khoản nhiều quyền tự duyệt đề nghị của mình; văn phòng gửi thay không nhận tin bác / hết hạn.
