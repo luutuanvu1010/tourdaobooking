@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  CAU_NHAC_XE_DANG_CHAY, TRAN_CAU_CHUYEN, changTheoSau, demCau, dongBoChuyenTheoDon, moTaKhuc, tongCauChuyen,
+  CAU_NHAC_XE_DANG_CHAY, TRAN_CAU_CHUYEN, changChoNutTay, changTheoSau, demCau, dongBoChuyenTheoDon, moTaKhuc, tongCauChuyen,
   type ChangDongBo, type ChuyenDongBo, type KhucDongBo,
 } from "./dong-bo-chuyen.ts";
 import type { DiemVao, SuatVao } from "./dieu-phoi-kieu.ts";
@@ -233,4 +233,37 @@ test("LC-18: mô tả khúc chỉ mã chuyến, mã đơn, nhãn nguyên nhân c
   const k2 = chay([chang("L1", { nguoi: ["n1"], soNguoi: 3, tang: 1 })], [chuyen("T1", "CX-01", [suat("a1", "T1", "L1", "cu"), suat("a2", "T1", "L1", null)])]).khuc[0]!;
   assert.equal(moTaKhuc(k2), "CX-01: máy cập nhật theo đơn — TD-1 (đổi người, thêm khách): trả 1 ghế, thêm 2 ghế");
   assert.doesNotMatch(moTaKhuc(k2), /khoa-bi-mat|n1|cu/);
+});
+
+test("S12 (kế hoạch mục 6): đơn KHÔNG còn `confirmed` (huỷ, nháp, đã giao, hoàn thành) → không bao giờ chèn suất, dù lệnh vừa tăng người hay đổi người (vị từ lc09)", () => {
+  const doc = [{ legId: "L1", orderId: "o1", orderCode: "TD-1", moTruoc: true }];
+  for (const trangThai of ["cancelled", "draft", "delivered", "completed"]) {
+    const kq = dongBoChuyenTheoDon({
+      chang: changTheoSau({ doc, sau: { trangThai, soNguoiTheoChang: { L1: 4 }, nguoi: ["p9", "p8", "p7", "p6"] }, nguoiDoc: [], tangTheoChang: { L1: 2 } }),
+      chuyen: [chuyen("T1", "CX-1", [suat("a1", "T1", "L1", "p1"), suat("a2", "T1", "L1", null)])],
+      suatMoCuaChang: [suat("a1", "T1", "L1", "p1"), suat("a2", "T1", "L1", null)],
+      newId: () => "moi",
+    });
+    assert.equal(kq.khuc.flatMap((k) => k.mo).length, 0, `${trangThai}: không mở suất nào`);
+    assert.deepEqual(kq.khuc.flatMap((k) => k.dong.map((d) => d.lyDo)), ["REMOVED", "REMOVED"], `${trangThai}: đóng hết (luật (i))`);
+  }
+});
+
+test("changChoNutTay (Đ2.11): chặng trong lịch theo cờ — huỷ → không xác nhận → bỏ chặng (cùng thứ tự lý do giữ); chặng rơi khỏi lịch theo I38; chỉ dời ngày / không đọc được cờ → bỏ qua", () => {
+  const vao = (o: Partial<{ donDaHuy: boolean; donDaXacNhan: boolean; changMo: boolean }>) => ({
+    orderId: "o1", orderCode: "TD-1", donDaHuy: false, donDaXacNhan: true, changMo: true, soNguoi: 2, nguoiCuaDon: ["p1", "p2"], ...o,
+  });
+  const chang = new Map([
+    ["L1", vao({})], ["L2", vao({ donDaHuy: true, donDaXacNhan: false, changMo: false })], ["L3", vao({ donDaXacNhan: false, changMo: false })], ["L4", vao({ changMo: false })],
+  ]);
+  const changNgoai = [
+    { legId: "N1", orderId: "o2", orderCode: "TD-2", lyDo: "DON_DA_HUY" as const }, { legId: "N2", orderId: "o2", orderCode: "TD-2", lyDo: "CHANG_DA_DONG" as const },
+    { legId: "N3", orderId: "o2", orderCode: "TD-2", lyDo: "CHANG_KHONG_HOP_LE" as const }, { legId: "N4", orderId: "o2", orderCode: "TD-2", lyDo: "GIO_HEN_NGOAI_CHUYEN" as const },
+  ];
+  const kq = changChoNutTay({ legIds: ["L1", "L2", "L3", "L4", "N1", "N2", "N3", "N4", "LA"], chang, changNgoai });
+  assert.deepEqual(kq.map((c) => [c.legId, c.dong, c.soNguoi, c.tang]), [
+    ["L1", null, 2, 0], ["L2", "DON_HUY", 2, 0], ["L3", "DON_KHONG_XAC_NHAN", 2, 0], ["L4", "BO_CHANG", 2, 0],
+    ["N1", "DON_HUY", null, 0], ["N2", "BO_CHANG", null, 0], ["N3", "DON_KHONG_XAC_NHAN", null, 0],
+  ], "N4 (chỉ dời ngày) và LA (không đọc được cờ) bị bỏ qua — không đoán");
+  assert.deepEqual(kq[0]!.nguoi, ["p1", "p2"]);
 });

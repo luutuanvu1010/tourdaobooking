@@ -5,7 +5,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import * as esbuild from "esbuild";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
-import { ACC, DRIVER, DRIVER2, FIELD, NGAY, SALES, SUP, batDongHo, chiTiet, denGio, don, setup, taoChuyen, tienDo, uuid, xe } from "../../../tests/audit/dieu-phoi-khung.mjs";
+import { ACC, DRIVER, DRIVER2, FIELD, LOC, NGAY, SALES, SUP, batDongHo, chiTiet, denGio, don, setup, taoChuyen, tienDo, uuid, xe } from "../../../tests/audit/dieu-phoi-khung.mjs";
 
 // ADR-0104 Đ2 (kế hoạch N9 — đổi cách DỰNG, không nới luật): sửa khách nay tự đồng bộ chuyến (máy, bài src/modules/van-chuyen/dong-bo-chuyen-route.test.ts). Các
 // bài NÚT TAY dưới đây cần trạng thái GIỮ (khách đã đổi còn trên chuyến) nên dựng thế giới không tiêm máy (`khongDongBoChuyen`) — vẫn phải thấy lý do giữ.
@@ -65,7 +65,8 @@ test("R-P29 kịch bản K2d: huỷ A, thêm C → màn + lịch chung + xuất 
     const nk = w.q("SELECT id, detail, order_id FROM audit_log WHERE action = 'trip_passengers_synced'");
     assert.equal(nk.length, 1);
     assert.equal(nk[0].order_id, null);
-    assert.match(nk[0].detail, new RegExp(`${d.code}: 1 khách`));
+    // ADR-0104 Đ2.11 (kế hoạch §10 "detail thêm nguyên nhân" — sửa có tên): câu chung với máy (`moTaTheoDon`) thay "<mã đơn>: 1 khách".
+    assert.equal(nk[0].detail, `${t.chuyen.ma}: cập nhật khách theo đơn — ${d.code} (đổi người): trả 1 ghế, thêm 1 ghế`);
     assert.doesNotMatch(nk[0].detail, /Khách|1980|19[89]\d|09\d{8}/);
     assert.deepEqual({ ...w.q("SELECT kind, count FROM vc_trip_event WHERE id = ?", nk[0].id)[0] }, { kind: "ALLOCATION_PASSENGER_CHANGED", count: 1 });
     const x2 = await tienDo(w, "van-phong", t.chuyen.id, "xuat-ben");
@@ -209,6 +210,144 @@ test("R-P29: lệnh lặp cùng requestId → 200 cùng daCapNhat, không ghi th
     assert.equal(w.q("SELECT count(*) n FROM vc_trip_event WHERE request_id = ?", rid)[0].n, 1, "lặp: đúng một sự kiện");
     assert.equal(w.q("SELECT count(*) n FROM vc_trip_allocation WHERE trip_id = ?", t.chuyen.id)[0].n, soDong, "không ghi thêm");
     assert.equal(w.q("SELECT count(*) n FROM audit_log WHERE action = 'trip_passengers_synced'")[0].n, 1);
+  } finally {
+    tat();
+  }
+});
+
+// ---- ADR-0104 Đ2.11 (kế hoạch T2.14): nút tay dùng CHUNG luật thuần với máy (`dongBoChuyenTheoDon`) — gỡ được cả DON_DA_HUY, CHANG_DA_DONG, THUA_SUAT ----------
+// (hôm trước nút bỏ qua chặng `!changXetTheoDon`). Thế giới KHÔNG tiêm máy (`khongDongBoChuyen`) để dựng trạng thái giữ — như khi máy vượt trần / thua cổng.
+const daDongCua = (w: any, tripId: string): { r: string; k: string | null }[] =>
+  w.q("SELECT close_reason r, passenger_key k FROM vc_trip_allocation WHERE trip_id = ? AND valid_to_at IS NOT NULL ORDER BY id", tripId).map((r: any) => ({ ...r }));
+const nhatKyNut = (w: any): { id: string; detail: string }[] =>
+  w.q("SELECT id, detail FROM audit_log WHERE action = 'trip_passengers_synced' ORDER BY rowid").map((r: any) => ({ ...r }));
+const suaSoKhach = (w: any, orderId: string, adult: number) => {
+  const svc = w.q("SELECT id FROM order_service WHERE order_id = ?", orderId)[0].id;
+  return w.call("POST", `/api/orders/${orderId}/money-edit`, { as: SALES, body: { lyDo: "KHAC", services: [{ id: svc, pax: { adult, child: 0, senior: 0, infant: 0 } }] } });
+};
+
+test("Đ2.11 nút tay gỡ DON_DA_HUY: đơn huỷ khi máy không chạy → giữ DON_DA_HUY → Bán hàng TRONG vùng khoá mốc bấm → 200, đóng MỌI suất của chặng REMOVED, điểm hết khách bỏ qua, hết giữ; nhật ký nêu nguyên nhân, không tên", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup({ khongDongBoChuyen: true });
+    const d = await don(w, { soNguoi: 2 });
+    const t = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER}` });
+    await xep(w, t.chuyen.id, d.legId, 2);
+    denGio("07:00"); // xuất bến 12:30 − 6 giờ = 06:30 → trong vùng khoá (N2 của ADR: đổi theo đơn miễn mốc)
+    assert.equal((await w.call("POST", `/api/orders/${d.id}/status`, { as: SALES, body: { status: "cancelled", lyDo: "KHACH_DOI_Y" } })).status, 200);
+    assert.ok((await lyDo(w, t.chuyen.id)).includes("DON_DA_HUY"), "chống bài rỗng: chuyến giữ DON_DA_HUY");
+    const r = await capNhat(w, t.chuyen.id, SALES);
+    assert.equal(r.status, 200, r.text);
+    assert.equal(r.json.daCapNhat, 2);
+    assert.deepEqual(daDongCua(w, t.chuyen.id).map((x) => x.r), ["REMOVED", "REMOVED"]);
+    assert.deepEqual(khoaSuat(w, t.chuyen.id, d.legId), []);
+    assert.ok(!(await lyDo(w, t.chuyen.id)).includes("DON_DA_HUY"), "hết giữ DON_DA_HUY");
+    assert.equal(w.q("SELECT count(*) n FROM vc_trip_stop WHERE trip_id = ? AND status <> 'SKIPPED'", t.chuyen.id)[0].n, 0, "điểm hết khách → bỏ qua");
+    const nk = nhatKyNut(w);
+    assert.equal(nk.length, 1);
+    assert.equal(nk[0]!.detail, `${t.chuyen.ma}: cập nhật khách theo đơn — ${d.code} (đơn huỷ): trả 2 ghế`);
+    assert.deepEqual({ ...w.q("SELECT kind, count FROM vc_trip_event WHERE id = ?", nk[0]!.id)[0] }, { kind: "ALLOCATION_PASSENGER_CHANGED", count: 2 });
+  } finally {
+    tat();
+  }
+});
+
+test("Đ2.11 nút tay gỡ CHANG_DA_DONG: bỏ chặng khi máy không chạy → bấm → đóng suất của chặng REMOVED, hết giữ; nhật ký 'bỏ chặng'", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup({ khongDongBoChuyen: true });
+    const d = await don(w, { soNguoi: 2 });
+    const t = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER}` });
+    await xep(w, t.chuyen.id, d.legId, 2);
+    const o = (await w.call("GET", `/api/orders/${d.id}`, { as: SALES })).json.order;
+    const bo = await w.call("POST", `/api/orders/${d.id}/legs/${d.legId}/close`, { as: SALES, body: { expectedUpdatedAt: o.services[0].legs[0].updatedAt, reasonCode: "NOT_NEEDED" } });
+    assert.equal(bo.status, 200, bo.text);
+    assert.ok((await lyDo(w, t.chuyen.id)).includes("CHANG_DA_DONG"), "chống bài rỗng: chuyến giữ CHANG_DA_DONG");
+    const r = await capNhat(w, t.chuyen.id);
+    assert.equal(r.status, 200, r.text);
+    assert.equal(r.json.daCapNhat, 2);
+    assert.deepEqual(daDongCua(w, t.chuyen.id).map((x) => x.r), ["REMOVED", "REMOVED"]);
+    assert.ok(!(await lyDo(w, t.chuyen.id)).includes("CHANG_DA_DONG"), "hết giữ CHANG_DA_DONG");
+    assert.equal(nhatKyNut(w)[0]!.detail, `${t.chuyen.ma}: cập nhật khách theo đơn — ${d.code} (bỏ chặng): trả 2 ghế`);
+  } finally {
+    tat();
+  }
+});
+
+test("Đ2.11 nút tay gỡ THUA_SUAT: bớt khách khi máy không chạy, còn suất CHƯA TÊN → bấm → đóng suất chưa tên REMOVED, hết giữ; mọi suất mang tên người vẫn trong đơn → KHÔNG đoán: 0, không ghi, vẫn giữ", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup({ khongDongBoChuyen: true });
+    const d = await don(w, { soNguoi: 3, ten: 2 });
+    const t = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER}` });
+    await xep(w, t.chuyen.id, d.legId, 3);
+    assert.equal((await suaSoKhach(w, d.id, 2)).status, 200);
+    assert.ok((await lyDo(w, t.chuyen.id)).includes("THUA_SUAT"), "chống bài rỗng: chuyến giữ THUA_SUAT");
+    const r = await capNhat(w, t.chuyen.id);
+    assert.equal(r.status, 200, r.text);
+    assert.equal(r.json.daCapNhat, 1);
+    assert.deepEqual(daDongCua(w, t.chuyen.id), [{ r: "REMOVED", k: null }], "đóng đúng suất chưa tên");
+    assert.equal(khoaSuat(w, t.chuyen.id, d.legId).filter((k) => k !== null).length, 2, "hai suất có tên còn nguyên");
+    assert.deepEqual(await lyDo(w, t.chuyen.id), [], "hết giữ");
+    assert.equal(nhatKyNut(w)[0]!.detail, `${t.chuyen.ma}: cập nhật khách theo đơn — ${d.code} (bớt khách): trả 1 ghế`);
+    // Mọi suất mang tên người vẫn trong đơn: bớt tiếp xuống 1 → nút không đoán người nào rời xe.
+    assert.equal((await suaSoKhach(w, d.id, 1)).status, 200);
+    assert.ok((await lyDo(w, t.chuyen.id)).includes("THUA_SUAT"));
+    const truoc = khoaSuat(w, t.chuyen.id, d.legId);
+    const r2 = await capNhat(w, t.chuyen.id);
+    assert.equal(r2.status, 200, r2.text);
+    assert.equal(r2.json.daCapNhat, 0);
+    assert.deepEqual(khoaSuat(w, t.chuyen.id, d.legId), truoc, "không suất nào đổi");
+    assert.equal(nhatKyNut(w).length, 1, "không ghi thêm");
+    assert.ok((await lyDo(w, t.chuyen.id)).includes("THUA_SUAT"), "vẫn giữ — người xếp xe tự rút");
+  } finally {
+    tat();
+  }
+});
+
+test("Đ2.11 lô riêng từng chuyến: chặng của đơn huỷ nằm trên HAI chuyến → bấm ở chuyến 1 chỉ đóng suất của chuyến 1; chuyến 2 không đổi, vẫn giữ DON_DA_HUY", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup({ khongDongBoChuyen: true });
+    const d = await don(w, { soNguoi: 2 });
+    const t1 = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER}` });
+    const t2 = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER2}` });
+    await xep(w, t1.chuyen.id, d.legId, 1);
+    await xep(w, t2.chuyen.id, d.legId, 1);
+    assert.equal((await w.call("POST", `/api/orders/${d.id}/status`, { as: SALES, body: { status: "cancelled", lyDo: "KHACH_DOI_Y" } })).status, 200);
+    const v2 = (await chiTiet(w, t2.chuyen.id)).chuyen.version;
+    const r = await capNhat(w, t1.chuyen.id);
+    assert.equal(r.status, 200, r.text);
+    assert.equal(r.json.daCapNhat, 1);
+    assert.deepEqual(khoaSuat(w, t1.chuyen.id, d.legId), []);
+    assert.equal(khoaSuat(w, t2.chuyen.id, d.legId).length, 1, "chuyến 2 không đổi");
+    assert.equal((await chiTiet(w, t2.chuyen.id)).chuyen.version, v2, "chuyến 2 không có lệnh nào");
+    assert.ok((await lyDo(w, t2.chuyen.id)).includes("DON_DA_HUY"));
+  } finally {
+    tat();
+  }
+});
+
+test("Đ2.11 chặng dời NGÀY ra ngoài chuyến (GIO_HEN_NGOAI_CHUYEN — khách vẫn đi, chỉ khác ngày) → nút KHÔNG đoán: 0, không ghi, vẫn giữ", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup({ khongDongBoChuyen: true });
+    const d = await don(w, { soNguoi: 2 });
+    const t = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER}` });
+    await xep(w, t.chuyen.id, d.legId, 2);
+    const l = (await w.call("GET", `/api/orders/${d.id}`, { as: SALES })).json.order.services[0].legs[0];
+    const doi = await w.call("PUT", `/api/orders/${d.id}/legs/${d.legId}`, {
+      as: SALES, body: { expectedUpdatedAt: l.updatedAt, leg: { direction: "OUT", pickupDate: "2027-03-15", pickupTime: "13:00", pickupLocationId: null, pickupPlace: "Khách sạn Dò Tìm", dropoffLocationId: LOC, dropoffPlace: "" } },
+    });
+    assert.equal(doi.status, 200, doi.text);
+    assert.ok((await lyDo(w, t.chuyen.id)).includes("GIO_HEN_NGOAI_CHUYEN"), "chống bài rỗng: chuyến giữ GIO_HEN_NGOAI_CHUYEN");
+    const truoc = khoaSuat(w, t.chuyen.id, d.legId);
+    const r = await capNhat(w, t.chuyen.id);
+    assert.equal(r.status, 200, r.text);
+    assert.equal(r.json.daCapNhat, 0);
+    assert.deepEqual(khoaSuat(w, t.chuyen.id, d.legId), truoc);
+    assert.deepEqual(nhatKyNut(w), []);
+    assert.ok((await lyDo(w, t.chuyen.id)).includes("GIO_HEN_NGOAI_CHUYEN"));
   } finally {
     tat();
   }

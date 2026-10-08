@@ -518,30 +518,30 @@ export function loThuHoiXuatBen(db: D1Database, l: LenhThuHoiXuatBen): CauCoNhan
   ];
 }
 
-// ---- Cập nhật khách theo đơn (route 41 — R-P29, chủ lần 16; khuôn route 40) --------------------------------------------------------------------------------
+// ---- Cập nhật khách theo đơn (route 41 — R-P29, chủ lần 16; khuôn route 40; ADR-0104 Đ2.11 nút tay dùng chung luật thuần) -----------------------------------
 export interface LenhCapNhatKhach extends LenhChung {
   tripId: string;
   version: number;
-  /** Từng suất khách đã đổi: đóng PASSENGER_CHANGED NGAY TRƯỚC khi mở lại (cùng chặng, cùng điểm, khoá rảnh hoặc null) — hoặc chỉ đóng (đơn giảm người). */
-  cap: { dongId: string; mo: SuatMoi | null }[];
+  /** Suất đóng, mã theo luật của từng chặng (`dongBoChuyenTheoDon`): REMOVED (đơn huỷ / bỏ chặng / đơn không xác nhận / thừa suất chưa tên), PASSENGER_CHANGED (khách đổi). */
+  dong: { suatId: string; lyDo: LyDoDongSuat }[];
+  /** Suất mở lại sau khi đổi khách (cùng chặng, cùng điểm, khoá rảnh hoặc null). */
+  mo: SuatMoi[];
   diemBoQua: string[];
   /** ADR-0056 VK3-A, C7: lệnh chỉ GIẢM khách — chỉ XOÁ cột phá lệ cam kết khi hết vi phạm (`{ null, null }`); null = không chạm. */
   camKet: CamKetLo | null;
   detail: string;
 }
+/** Cổng → nhật ký → MỘT sự kiện (số = số suất đóng) → ĐÓNG hết rồi MỚI MỞ (LC-02 đếm theo dòng — khuôn khúc của `loDongBoChuyen`) → bỏ điểm → cam kết. */
 export function loCapNhatKhach(db: D1Database, l: LenhCapNhatKhach): CauCoNhan[] {
-  const lo: CauCoNhan[] = [
+  return [
     cong(db, l, l.tripId, l.version),
     nhatKy(db, l, "trip_passengers_synced", l.tripId, l.detail),
-    suKien(db, l, { tripId: l.tripId, loai: "ALLOCATION_PASSENGER_CHANGED", soNguoi: l.cap.length }),
+    suKien(db, l, { tripId: l.tripId, loai: "ALLOCATION_PASSENGER_CHANGED", soNguoi: l.dong.length }),
+    ...l.dong.map((d) => dongSuat(db, l, l.tripId, d.suatId, d.lyDo)),
+    ...l.mo.map((s) => chenSuat(db, l, s)),
+    ...l.diemBoQua.map((id) => boQuaDiem(db, l, l.tripId, id, LY_DO_BO_QUA_KHONG_CON_KHACH)),
+    ...cauCamKet(db, l, l.tripId, l.camKet),
   ];
-  for (const c of l.cap) {
-    lo.push(dongSuat(db, l, l.tripId, c.dongId, LENH_DONG_SUAT.DOI_KHACH_THEO_DON));
-    if (c.mo) lo.push(chenSuat(db, l, c.mo));
-  }
-  lo.push(...l.diemBoQua.map((id) => boQuaDiem(db, l, l.tripId, id, LY_DO_BO_QUA_KHONG_CON_KHACH)));
-  lo.push(...cauCamKet(db, l, l.tripId, l.camKet));
-  return lo;
 }
 
 // ---- Đồng bộ chuyến theo đơn (ADR-0104 Đ2 — máy; lô CHUNG với lệnh đơn) -------------------------------------------------------------------------------

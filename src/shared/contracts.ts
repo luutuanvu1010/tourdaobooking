@@ -1482,8 +1482,9 @@ export interface CuuHoResponse {
   xeNhan: { tripId: string; maChuyen: string; trangThai: "PLANNED" | "RUNNING"; tenTaiXe: string; choTrong: number; diemSapToi: string | null; version: number }[];
 }
 /**
- * `POST /api/van-chuyen/chuyen/:id/cap-nhat-khach` (R-P29, chủ lần 16 — khuôn route 40): thân như `CapNhatDiemRequest`. `daCapNhat` = số suất khách ĐÃ ĐỔI
- * được xử lý (đóng PASSENGER_CHANGED; mở lại tới số người của chặng). 0 = không có gì lệch (không ghi). Phản hồi KHÔNG tên (GA-55).
+ * `POST /api/van-chuyen/chuyen/:id/cap-nhat-khach` (R-P29, chủ lần 16 — khuôn route 40; ADR-0104 Đ2.11): thân như `CapNhatDiemRequest`. `daCapNhat` = số suất
+ * khách ĐÃ ĐÓNG theo đơn (khách đổi: PASSENGER_CHANGED rồi mở lại tới số người của chặng; đơn huỷ / chặng bỏ / đơn không xác nhận / thừa suất chưa tên:
+ * REMOVED) — bằng cột `count` của sự kiện (lệnh lặp đọc lại số này). 0 = không có gì cần đổi (không ghi). Phản hồi KHÔNG tên (GA-55).
  */
 export interface CapNhatKhachResponse extends ChuyenChiTietResponse { daCapNhat: number }
 /**

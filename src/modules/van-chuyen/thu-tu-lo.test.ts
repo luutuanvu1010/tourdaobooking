@@ -82,8 +82,12 @@ const MAU: Record<string, { vao: Record<string, unknown>; gac: string }> = {
   },
   loHuy: { vao: { ...L, tripId: T, version: 3, lyDo: "HUY_KHAC", phaLe: null, policyId: null, soSuatMo: 2, chiPhi: { ...CHI_PHI, chup: null }, phienBanChiPhi: 2, detail: "d" }, gac: T },
   loCapNhatDiem: { vao: { ...L, tripId: T, version: 3, diemMoi: [diem("d-9")], doiThuTu: [{ id: "d-2", seq: 4 }], cap: [{ dongId: "a-1", mo: suat("a-9") }], diemBoQua: ["d-1"], camKet: CAM_KET_XOA, detail: "d" }, gac: T },
-  // R-P29 (chủ lần 16): "cập nhật khách theo đơn" — một suất đóng + mở lại, một suất chỉ đóng (đơn giảm người).
-  loCapNhatKhach: { vao: { ...L, tripId: T, version: 3, cap: [{ dongId: "a-1", mo: suat("a-9") }, { dongId: "a-2", mo: null }], diemBoQua: ["d-1"], camKet: CAM_KET_XOA, detail: "d" }, gac: T },
+  // R-P29 (chủ lần 16): "cập nhật khách theo đơn" — ADR-0104 Đ2.11: nút tay dùng chung luật thuần ⇒ đóng theo mã của từng luật (khách đổi PASSENGER_CHANGED, đơn
+  // huỷ / thừa suất REMOVED), ĐÓNG hết rồi mới MỞ lại.
+  loCapNhatKhach: {
+    vao: { ...L, tripId: T, version: 3, dong: [{ suatId: "a-1", lyDo: "PASSENGER_CHANGED" }, { suatId: "a-2", lyDo: "REMOVED" }], mo: [suat("a-9")], diemBoQua: ["d-1"], camKet: CAM_KET_XOA, detail: "d" },
+    gac: T,
+  },
   // ADR-0104 Đ2: lô ĐỒNG BỘ THEO ĐƠN — hai câu orders (cổng đơn + nhật ký đơn) rồi HAI khúc chuyến, mỗi khúc dấu lệnh + request_id riêng (gác theo từng khúc).
   loDongBoChuyen: { vao: { cauDon: CAU_DON_MAU, khuc: [KHUC_1, KHUC_2] }, gac: "" },
   loXuatBen: {

@@ -140,7 +140,7 @@ export interface NguCanhChuyen {
   /** Chặng (của `lichChungChang`) theo id — kể cả chặng của lệnh đang xét. */
   chang: Map<string, ChangVao>;
   changLich: Map<string, ChangLichChung>;
-  changNgoai: { legId: string; orderCode: string; lyDo: "DON_DA_HUY" | "CHANG_DA_DONG" | "GIO_HEN_NGOAI_CHUYEN" | "CHANG_KHONG_HOP_LE" }[];
+  changNgoai: { legId: string; orderId: string; orderCode: string; lyDo: "DON_DA_HUY" | "CHANG_DA_DONG" | "GIO_HEN_NGOAI_CHUYEN" | "CHANG_KHONG_HOP_LE" }[];
   suatMoCuaChang: SuatVao[];
   chuyenKhac: KhungChuyen[];
   chuyenKhacRow: TripRow[];
@@ -184,7 +184,7 @@ export async function docNguCanh(
     diem: nen.stops.map(diemVao),
     chang: new Map([...changLich].map(([k, v]) => [k, changVao(v)])),
     changLich,
-    changNgoai: flags.map((f) => ({ legId: f.id, orderCode: f.order_code ?? "", lyDo: lyDoChangNgoai(f) })),
+    changNgoai: flags.map((f) => ({ legId: f.id, orderId: f.order_id, orderCode: f.order_code ?? "", lyDo: lyDoChangNgoai(f) })),
     suatMoCuaChang: moCuaChang.map(suatVao),
     chuyenKhac: chuyenKhacRow.map(khungChuyen),
     chuyenKhacRow,

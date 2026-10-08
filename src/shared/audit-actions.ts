@@ -117,7 +117,7 @@ export const AUDIT_ACTIONS = {
   // ADR-0054 D10.1 (+ ADR nháp nơi trả mặc định, đã duyệt 1/10): mẫu đưa đón theo dịch vụ — `detail` = mã dịch vụ, chế độ cũ → mới, giờ gợi ý, nơi trả mặc định
   // (TÊN điểm danh mục). Không order_id, không dữ liệu cá nhân.
   transfer_template_set: { label: "Đổi mẫu đưa đón của dịch vụ", group: "trip" },
-  trip_passengers_synced: { label: "Cập nhật khách theo đơn", group: "trip" }, // R-P29 (chủ lần 16) — route `cap-nhat-khach`; detail chỉ mã chuyến, mã đơn, SỐ khách
+  trip_passengers_synced: { label: "Cập nhật khách theo đơn", group: "trip" }, // R-P29 (chủ lần 16) — route `cap-nhat-khach`; detail chỉ mã chuyến, mã đơn, nhãn nguyên nhân, SỐ ghế (ADR-0104 Đ2.11)
   trip_stops_synced: { label: "Cập nhật điểm theo đơn", group: "trip" },
   // ADR-0104 Đ2.9: máy cập nhật chuyến theo đơn — một dòng mỗi KHÚC chuyến của lô đồng bộ (cùng lô với lệnh đơn); staff_id = người vừa sửa đơn; detail chỉ mã
   // chuyến, mã đơn, nhãn nguyên nhân cố định, số ghế trả / thêm (LC-18). KHÔNG phải một trong ba hành động tin có điều kiện (HANH_DONG_TIN_KHACH).

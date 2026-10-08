@@ -13,8 +13,8 @@
 // kết thúc / huỷ: không gì (Đ2.8).
 import { kiemCamKet, type ChangCamKet } from "./cam-ket-xe.ts";
 import type { DongBoChuyenDto } from "./contracts.ts";
-import { khoaNguoiRanh, moLaiSauDoiKhach } from "./dieu-phoi-kiem.ts";
-import { LENH_DONG_SUAT, type DiemVao, type LyDoDongSuat, type SuatVao, type TrangThaiChuyen } from "./dieu-phoi-kieu.ts";
+import { khoaNguoiRanh, moLaiSauDoiKhach, suatKhachDaDoi } from "./dieu-phoi-kiem.ts";
+import { LENH_DONG_SUAT, type ChangVao, type DiemVao, type LyDoDongSuat, type SuatVao, type TrangThaiChuyen } from "./dieu-phoi-kieu.ts";
 
 /**
  * Hành động nhật ký của CÂU CỔNG ĐƠN mà câu cổng chuyến hỏi (`v_aud_order_cmd`, ADR-0104 Đ2.2). Bằng ĐÚNG danh sách `IN (…)` của migration view (bài
@@ -135,8 +135,34 @@ export function changTheoSau(v: {
   }));
 }
 
+/** Lý do "chặng rơi khỏi lịch" (cờ đọc qua view — I38, `lyDoChangNgoai`) → lý do đóng của luật (i). Chỉ dời ngày (khách vẫn đi) → null: không đoán. */
+const DONG_THEO_NGOAI: Readonly<Record<"DON_DA_HUY" | "CHANG_DA_DONG" | "CHANG_KHONG_HOP_LE" | "GIO_HEN_NGOAI_CHUYEN", LyDoDongChang | null>> = {
+  DON_DA_HUY: "DON_HUY", CHANG_DA_DONG: "BO_CHANG", CHANG_KHONG_HOP_LE: "DON_KHONG_XAC_NHAN", GIO_HEN_NGOAI_CHUYEN: null,
+};
+/**
+ * Chặng vào luật cho NÚT TAY "Cập nhật khách theo đơn" (ADR-0104 Đ2.11): mỗi chặng có suất khách mở trên chuyến. Chặng trong lịch → cờ đơn / chặng theo CÙNG
+ * thứ tự với lý do giữ của `kiemXuatBen` (đơn huỷ → đơn không xác nhận → bỏ chặng); chặng rơi khỏi lịch → theo lý do I38; chặng không đọc được cờ, hoặc chỉ
+ * dời ngày ra ngoài chuyến → bỏ qua (không đoán). Nút không tăng người (`tang` = 0 — (iv) chỉ cho lệnh đơn vừa tăng).
+ */
+export function changChoNutTay(v: {
+  legIds: readonly string[];
+  chang: ReadonlyMap<string, Pick<ChangVao, "orderId" | "orderCode" | "donDaHuy" | "donDaXacNhan" | "changMo" | "soNguoi" | "nguoiCuaDon">>;
+  changNgoai: readonly { legId: string; orderId: string; orderCode: string; lyDo: keyof typeof DONG_THEO_NGOAI }[];
+}): ChangDongBo[] {
+  return v.legIds.flatMap((legId): ChangDongBo[] => {
+    const ch = v.chang.get(legId);
+    if (ch) {
+      const dong: LyDoDongChang | null = ch.donDaHuy ? "DON_HUY" : !ch.donDaXacNhan ? "DON_KHONG_XAC_NHAN" : !ch.changMo ? "BO_CHANG" : null;
+      return [{ legId, orderId: ch.orderId, orderCode: ch.orderCode, dong, soNguoi: ch.soNguoi, nguoi: [...ch.nguoiCuaDon], tang: 0 }];
+    }
+    const ngoai = v.changNgoai.find((x) => x.legId === legId);
+    const dong = ngoai ? DONG_THEO_NGOAI[ngoai.lyDo] : null;
+    return ngoai && dong ? [{ legId, orderId: ngoai.orderId, orderCode: ngoai.orderCode, dong, soNguoi: null, nguoi: [], tang: 0 }] : [];
+  });
+}
+
 const soSanh = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
-const chiemCho = (s: SuatVao) => s.mo && (s.trangThai === "WAITING" || s.trangThai === "BOARDED");
+const chiemCho =(s: SuatVao) => s.mo && (s.trangThai === "WAITING" || s.trangThai === "BOARDED");
 
 /** Luật đồng bộ (Đ2.6) — xem chú thích đầu tệp. Khúc sắp theo mã chuyến; trong khúc đóng trước, mở sau. */
 export function dongBoChuyenTheoDon(v: VaoDongBo): KetQuaDongBo {
@@ -201,8 +227,7 @@ export function dongBoChuyenTheoDon(v: VaoDongBo): KetQuaDongBo {
       }
       continue;
     }
-    const nguoi = new Set(ch.nguoi);
-    const lech = moAll.filter((s) => s.personKey !== null && !nguoi.has(s.personKey));
+    const lech = suatKhachDaDoi({ legId: ch.legId, nguoiCuaDon: ch.nguoi, suat: moAll }); // MỘT định nghĩa "khách đã đổi" với lý do giữ KHACH_DA_DOI
     if (lech.some(canNhac)) nhac = true;
     const lechGhi = lech.filter((s) => ghiDuoc(s.tripId));
     if (lechGhi.length > 0) {
