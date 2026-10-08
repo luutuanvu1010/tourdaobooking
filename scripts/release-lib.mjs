@@ -133,10 +133,28 @@ async function maDaDoi(run, goc) {
   if (h !== goc) return `mã hiện tại ${h.slice(0, 8)} khác mã lúc bắt đầu ${goc.slice(0, 8)}`;
   const st = await run("git", ["status", "--porcelain"]);
   if (st.code !== 0) return "không đọc được trạng thái thư mục (`git status` lỗi)";
-  if (trimOut(st) !== "") return "thư mục có thay đổi chưa commit";
+  const tep = trimOut(st);
+  if (tep !== "") {
+    const dong = tep.split("\n");
+    return `thư mục có thay đổi chưa commit: ${dong.slice(0, 10).join("; ")}${dong.length > 10 ? `; … (${dong.length} tệp)` : ""}`;
+  }
   return null;
 }
 const MA_DOI_HUONG_DAN = "Thường do `npm run day-len` hay lệnh git khác chạy ở CÙNG thư mục trong lúc triển khai. Chờ việc đó xong rồi chạy lại `npm run trien-khai` từ đầu.";
+
+/** Migration ĐÃ áp mà Worker chưa deploy: in lệnh deploy ĐÚNG mã đã qua kiểm (không tự chạy). Kiểm cây sạch trước và sau khi đổi sang mã đó — `git switch`
+ *  mang theo thay đổi chưa commit, deploy lúc đó đưa mã chưa kiểm lên production. */
+function inLenhDeployDungMa(log, ma) {
+  log(`${RED}${BOLD}CẢNH BÁO: migration ĐÃ ÁP lên production nhưng Worker CHƯA deploy. Mã cũ đang chạy trên dữ liệu mới — deploy NGAY đúng mã đã kiểm (${ma.slice(0, 8)}).${RESET}`);
+  log(`${RED}Chờ lệnh git đang chạy ở thư mục này (nếu có) xong, rồi chạy lần lượt, mỗi dòng một lệnh:${RESET}`);
+  log(`${RED}  git status --short        (phải KHÔNG in dòng nào — in ra thì DỪNG, hỏi người phụ trách kỹ thuật)${RESET}`);
+  log(`${RED}  git switch --detach ${ma}${RESET}`);
+  log(`${RED}  git status --short        (lại phải KHÔNG in dòng nào)${RESET}`);
+  log(`${RED}  ${DEPLOY_CMD}${RESET}`);
+  log(`${RED}  node scripts/audit-invariants.mjs --db remote${RESET}`);
+  log(`${RED}  ${GATE_POST_CMD}${RESET}`);
+  log(`${RED}  git switch main${RESET}`);
+}
 
 // ─────────────────────────────── day-len ───────────────────────────────
 
@@ -375,9 +393,7 @@ export async function trienKhai({ run, ask, isTTY, log, now = () => new Date(), 
   const q = applied.length ? `Migration đã áp — PHẢI deploy ngay. Triển khai Worker lên production? (c/k) ` : "Triển khai Worker lên production? (c/k) ";
   if (!yes(await ask(q))) {
     if (applied.length) {
-      log(`${RED}${BOLD}CẢNH BÁO: migration ĐÃ ÁP lên production nhưng Worker CHƯA deploy. Mã cũ đang chạy trên dữ liệu mới — deploy NGAY:${RESET}`);
-      log(`${RED}  ${DEPLOY_CMD}${RESET}`);
-      log(`${RED}  rồi: node scripts/audit-invariants.mjs --db remote${RESET}`);
+      inLenhDeployDungMa(log, local);
       return 1;
     }
     return stop("Không deploy.");
@@ -386,12 +402,7 @@ export async function trienKhai({ run, ask, isTTY, log, now = () => new Date(), 
   if (doiTruocDeploy) {
     if (applied.length) {
       log(`${RED}${BOLD}DỪNG: mã trong thư mục đã đổi sau khi kiểm (${doiTruocDeploy}) — KHÔNG deploy mã chưa qua kiểm.${RESET}`);
-      log(`${RED}${BOLD}CẢNH BÁO: migration ĐÃ ÁP lên production nhưng Worker CHƯA deploy. Mã cũ đang chạy trên dữ liệu mới — deploy NGAY đúng mã đã kiểm (${local.slice(0, 8)}).${RESET}`);
-      log(`${RED}Chờ lệnh git đang chạy ở thư mục này xong, rồi chạy lần lượt (cây làm việc phải sạch; git từ chối thì hỏi người phụ trách kỹ thuật):${RESET}`);
-      log(`${RED}  git switch --detach ${local}${RESET}`);
-      log(`${RED}  ${DEPLOY_CMD}${RESET}`);
-      log(`${RED}  node scripts/audit-invariants.mjs --db remote${RESET}`);
-      log(`${RED}  git switch main${RESET}`);
+      inLenhDeployDungMa(log, local);
       return 1;
     }
     return stop(`mã trong thư mục đã đổi sau khi kiểm (${doiTruocDeploy}) — không deploy.`, MA_DOI_HUONG_DAN);

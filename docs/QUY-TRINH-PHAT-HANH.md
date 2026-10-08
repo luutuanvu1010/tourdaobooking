@@ -121,6 +121,8 @@ Lệnh chạy vài phút, vì nó tự chạy toàn bộ kiểm thử, kể cả
 
 **Nếu lệnh dừng ở bước 1c ("Chưa đặt khoá …")**: chưa có gì bị đổi. Chạy đúng dòng lệnh nó in ra (ở thư mục `tourdao-sales`, trong Terminal), rồi chạy lại `npm run trien-khai`. Khoá sinh ngẫu nhiên, không cần ghi lại.
 
+**Trong lúc `npm run trien-khai` đang chạy, đừng chạy `npm run day-len` (hay lệnh git nào) ở cùng thư mục `tourdao-sales`**, kể cả khi một phiên AI khác nhờ. Ngày 8/10 đã xảy ra: phần mã mới nhập vào giữa chừng làm kiểm thử đỏ giả. Từ 8/10 lệnh tự so lại mã ở ba lúc (sau kiểm thử, trước khi áp thay đổi dữ liệu, trước khi phát hành). Mã đã đổi thì lệnh **dừng, không hỏi**, và in câu "mã trong thư mục đã đổi". Khi đó chờ việc kia xong rồi chạy lại `npm run trien-khai` từ đầu. Nếu lệnh dừng kiểu này **sau khi đã áp thay đổi dữ liệu**, nó in một khối chữ đỏ gồm các lệnh phát hành đúng bản đã kiểm. Chép khối đó gửi AI trước khi chạy.
+
 **Nếu lệnh dừng giữa chừng** ở bước 1–3b: chưa có gì bị đổi trên hệ thống thật. Chép thông báo gửi AI. Hay gặp nhất: một test đo tốc độ báo đỏ khi máy đang bận. Khi đó đóng bớt ứng dụng nặng rồi chạy lại `npm run trien-khai`.
 
 **Nếu gặp lỗi Cloudflare 7403** ("The given account is not valid or is not authorized to access this service"), đã gặp 26/9, 29/9, 1/10:

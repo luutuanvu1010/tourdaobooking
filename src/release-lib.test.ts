@@ -298,6 +298,16 @@ function tkScript(over: Record<string, RunResult | RunResult[]> = {}): Record<st
 const CHECK = ["git rev-parse HEAD", "git status --porcelain"];
 const TK_PREFIX = ["git rev-parse --abbrev-ref HEAD", "git status --porcelain", "git fetch origin", "git rev-parse main", "git rev-parse origin/main", "git log -1 --oneline --no-decorate main", WHOAMI, SECRETS, LIST, GATE_PRE, "npm test", "npm run typecheck", "npm run build:web", E2E, ...CHECK];
 const NOW = () => new Date("2026-09-23T03:04:05.000Z");
+/** Lệnh in cho chủ tự chạy khi migration ĐÃ áp mà Worker chưa deploy: kiểm cây sạch → về đúng mã đã kiểm → kiểm lại → deploy → kiểm dữ liệu → cổng sau. */
+function assertLenhDeployDungMa(t: string) {
+  const thuTu = ["git status --short", `git switch --detach ${HEAD}`, "git status --short", "CI=1 npx wrangler deploy", "node scripts/audit-invariants.mjs --db remote", "node scripts/kiem-phien-ban.mjs --sau-deploy", "git switch main"];
+  let tu = 0;
+  for (const l of thuTu) {
+    const i = t.indexOf(l, tu);
+    assert.ok(i >= 0, `thiếu hoặc sai thứ tự lệnh "${l}" trong hướng dẫn deploy tay`);
+    tu = i + l.length;
+  }
+}
 
 test("trien-khai (tiêu chí 4): còn migration + trả lời c, c → áp migration → deploy → kiểm dữ liệu, đúng thứ tự", async () => {
   const h = harness(tkScript(), ["c", "c"]);
@@ -355,6 +365,8 @@ test("trien-khai: ĐÃ áp migration mà trả lời k ở câu deploy → cản
   assert.deepEqual(h.calls, [...TK_PREFIX, TT, ...CHECK, APPLY]);
   assert.match(h.text(), /\x1b\[31m/, "cảnh báo phải có màu đỏ");
   assert.match(h.text(), /CI=1 npx wrangler deploy/);
+  // Lệnh tự chạy phải đưa về ĐÚNG mã đã qua kiểm và kiểm cây sạch TRƯỚC (git switch mang theo thay đổi chưa commit) — review 2026-10-08 M-a.
+  assertLenhDeployDungMa(h.text());
 });
 
 const TK_REFUSALS: { name: string; over?: Record<string, RunResult>; tty?: boolean; answers?: string[]; reason: RegExp; lastCall?: string }[] = [
@@ -722,7 +734,7 @@ test("trien-khai (mã đổi): cây làm việc có thay đổi chưa commit sau
   assert.deepEqual(h.calls, TK_PREFIX);
   assert.deepEqual(h.questions, []);
   assertNothingDangerous(h.calls);
-  assert.match(h.text(), /thay đổi chưa commit/);
+  assert.match(h.text(), /thay đổi chưa commit: M src\/index\.ts/, "nêu tên tệp để chủ biết vì sao dừng");
 });
 
 test("trien-khai (mã đổi): lệnh git lỗi lúc so lại → coi là đổi, dừng (không đoán là còn đúng)", async () => {
@@ -762,4 +774,16 @@ test("trien-khai (mã đổi): migration ĐÃ áp rồi mã đổi lúc chờ c�
   assert.ok(t.includes(`git switch --detach ${HEAD}`), "chỉ đúng mã đã qua kiểm");
   assert.match(t, /CI=1 npx wrangler deploy/);
   assert.match(t, /audit-invariants\.mjs --db remote/);
+  assertLenhDeployDungMa(t);
+  assert.doesNotMatch(t, /chạy lại `npm run trien-khai` từ đầu/, "migration đã áp thì KHÔNG được bảo chạy lại từ đầu");
+});
+
+test("trien-khai (mã đổi): migration ĐÃ áp rồi cây bẩn (HEAD không đổi) lúc chờ câu deploy → KHÔNG deploy; nêu tệp; lệnh tự chạy kiểm cây sạch trước khi đổi mã (review I1)", async () => {
+  const h = harness(tkScript({ "git status --porcelain": [out(""), out(""), out(""), out(" M src/index.ts\n")] }), ["c", "c"]);
+  assert.notEqual(await lib.trienKhai({ ...h.deps, now: NOW }), 0);
+  assert.deepEqual(h.calls, [...TK_PREFIX, TT, ...CHECK, APPLY, ...CHECK]);
+  const t = h.text();
+  assert.match(t, /thay đổi chưa commit: M src\/index\.ts/);
+  assertLenhDeployDungMa(t);
+  assert.doesNotMatch(t, /chạy lại `npm run trien-khai` từ đầu/);
 });
