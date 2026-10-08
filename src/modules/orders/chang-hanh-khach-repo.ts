@@ -359,12 +359,15 @@ export async function legDatGapByOrder(db: D1Database, orderId: string): Promise
  * (có dịch vụ; mọi dịch vụ có ngày đi trong [?3, ?4] và ≥ 1 khách) + vế MỐC TỐI THIỂU LÚC ĐẶT (ADR-0049 D2): không còn chặng MỞ nào có giờ, KHÔNG mang dấu đặt
  * gấp, có `ngày giờ` < ngưỡng ?5 (chuỗi 'YYYY-MM-DD HH:MM' giờ VN của bây giờ + mốc, tính bằng `nguongMocVn` — MỘT luật với `kiemMocDat`). Chặng chưa chốt
  * giờ không bị xét (I13). Câu ĐẦU quyết định thắng/thua (sau câu điền ngày chặng); không đọc `audit_log` (nhật ký theo sau bằng `changes() > 0`).
+ * KHOÁ PHIÊN BẢN (Task 4b — lời chủ 2026-10-08, "báo tải lại, bấm lại"): thêm `updated_at = ?6` = mốc route đã đọc TRƯỚC khi dựng bản chụp mức. Lưu nháp luôn
+ * đẩy `updated_at` (`updateDraftOrder`, `changeBooker`, gộp hồ sơ…), nên nếu đơn đổi sau lúc route đọc thì câu này không đổi dòng nào ⇒ cả lô không ghi gì (chuỗi
+ * `changes() > 0`) và route trả 409 "vừa được người khác sửa". Không có vế này, bản chụp (bên hưởng, mã dòng danh mục) có thể lệch đơn vừa lưu.
  */
 const ORDER_CONFIRM = defineSql(
   "orders",
   "order_confirm",
   `UPDATE orders SET status = 'confirmed', updated_at = ?1, confirmed_at = ?1
-   WHERE id = ?2 AND status = 'draft'
+   WHERE id = ?2 AND status = 'draft' AND updated_at = ?6
      AND EXISTS (SELECT 1 FROM order_service WHERE order_id = orders.id)
      AND NOT EXISTS (
        SELECT 1 FROM order_service s WHERE s.order_id = orders.id
@@ -373,8 +376,8 @@ const ORDER_CONFIRM = defineSql(
        SELECT 1 FROM ord_transfer_leg l WHERE l.order_id = orders.id AND l.closed_at IS NULL AND l.pickup_time IS NOT NULL
          AND l.short_notice_reason IS NULL AND l.pickup_date || ' ' || l.pickup_time < ?5)`,
 );
-export const orderConfirm = (db: D1Database, orderId: string, at: string, from: string, to: string, nguongMoc: string): D1PreparedStatement =>
-  db.prepare(ORDER_CONFIRM).bind(at, orderId, from, to, nguongMoc);
+export const orderConfirm = (db: D1Database, orderId: string, at: string, from: string, to: string, nguongMoc: string, prevUpdatedAt: string): D1PreparedStatement =>
+  db.prepare(ORDER_CONFIRM).bind(at, orderId, from, to, nguongMoc, prevUpdatedAt);
 
 // ---- Ghi kép hai cột cũ (Ruling R3, phát hành 1) ---------------------------------------------------------------------------------------------
 

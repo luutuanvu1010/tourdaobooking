@@ -1004,6 +1004,7 @@ export async function updateDraftOrder(
  * Trigger `orders_confirm_requires_trip` (0008) là lưới thứ hai cho phần không đổi của luật. Trả false nếu điều kiện không còn đúng.
  * `prevUpdatedAt` là mốc `updated_at` route đọc lúc kiểm quyền: mốc mới đi qua `nextStamp` nên luôn lớn hơn nó (như `updateDraftOrder`/`updateTrip`),
  * để client còn giữ mốc cũ không lọt qua khoá lạc quan của `PUT /trip` dù xác nhận rơi vào cùng mili-giây với một lần ghi khác.
+ * Task 4b: `prevUpdatedAt` cũng là KHOÁ của câu xác nhận (`updated_at = ?`): đơn đổi sau lúc route đọc ⇒ false, không ghi gì (bản chụp mức dựng từ dữ liệu cũ không lọt).
  * ADR-0047 Ruling R4c: câu ĐẦU lô điền ngày đón = ngày đi cho chặng mở còn trống ngày (trigger `orders_confirm_requires_leg_date` xét lúc đổi trạng thái)
  * — nên câu UPDATE đổi trạng thái nay là `results[1]`. Không thêm lý do "chưa đủ chuyến" mới cho người dùng (`confirmGaps` không đổi).
  * `alsoConfirm(at)` (Sổ đại lý đợt 1, ADR-0077 điều 8): các câu kèm do route dựng, dùng đúng mốc `at` của lô.
@@ -1017,7 +1018,7 @@ export async function confirmOrder(
   // ADR-0049 D2 (I15): câu xác nhận ở tệp nửa nghiêm (`order_confirm`), thêm vế mốc tối thiểu lúc đặt — ngưỡng chuỗi do route tính bằng `nguongMocVn`.
   const results = await db.batch([
     legFillDateOnConfirm(db, id, at),
-    orderConfirm(db, id, at, from, to, nguongMoc),
+    orderConfirm(db, id, at, from, to, nguongMoc, prevUpdatedAt),
     auditStatement(db, { orderId: id, staffId, action: "confirmed", at, detail }, "changes() > 0"),
     // Câu kèm (bản chụp thương mại — ADR-0077) đứng SAU nhật ký confirmed: chuỗi changes() > 0 nối từ UPDATE orders → nhật ký → từng câu chụp;
     // results[1] vẫn quyết định thắng thua.
