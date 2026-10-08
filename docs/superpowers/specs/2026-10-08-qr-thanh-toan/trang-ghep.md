@@ -1,6 +1,6 @@
 # Trang ghép — QR thanh toán (ADR-00xx) + ADR-0092 Đ6
 
-- **Loại:** trang ghép theo `CLAUDE.md` §9 "Bước ghép khi duyệt" (lượt duyệt gồm ADR-00xx + đặc tả; bảng `bil_*` nhận thêm loại dữ liệu mới là mã giao dịch ngân hàng). Bản vòng 2, sau người kiểm độc lập vòng 1 (ĐẠT CÓ ĐIỀU KIỆN).
+- **Loại:** trang ghép theo `CLAUDE.md` §9 "Bước ghép khi duyệt" (lượt duyệt gồm ADR-00xx + đặc tả; bảng `bil_*` nhận thêm loại dữ liệu mới là mã giao dịch ngân hàng). Bản vòng 3, sau người kiểm độc lập vòng 1 và vòng 2 (cả hai ĐẠT CÓ ĐIỀU KIỆN); vòng 3 chưa kiểm lại.
 - **Mốc mã:** `main` @`4d98a205`. Thứ tự cột quyền: `SALES, ACCOUNTING, ADMIN, FIELD, PARTNER, SUPER_ADMIN, INTERN, DRIVER, DRIVER_PARTNER, HR` (`src/shared/permissions.ts` `PERMISSION_CODES`).
 - **Xây trên lỗ đang hở:** TNV-G1, TNV-G3, TNV-G4, HC-4.2 (xem đầu README).
 
@@ -10,9 +10,9 @@
 |---|---|---|
 | 1 | `pty_bank` + `pty_bank_account` gắn hồ sơ công ty chủ (`parties`); ghi bằng `company.legal.write`, **mở rộng nghĩa ô** sang tài khoản nhận tiền | ADR-00xx đ2 |
 | 2 | Route đọc QR mới: cổng `orders`, `order.view` rồi `money.view`, không ô mới | ADR-00xx đ3 |
-| 3 | Mã giao dịch ngân hàng (`billing`): ADR-0092 Đ6 + bốn chi tiết thêm T1–T4. Gồm: bảng `bil_bank_txn` + `bil_receipt_bank_txn`; hai luật chặn; đường sửa bằng dòng thay thế (`ledger.write`, nâng số cần người khác); ai thấy mã | ADR-00xx đ4 |
+| 3 | Mã giao dịch ngân hàng (`billing`): ADR-0092 Đ6 + T1 (ba đường ghi đòi mã), T2 (số thực chuyển trên bảng nối `bil_receipt_bank_txn`), T4 (bớt cảnh báo khác đơn) + C1 (bắt buộc từ mốc cắt cứng). Ba luật chặn; ai thấy mã. **Không** route mới, **không** đường sửa riêng | ADR-00xx đ4 |
 
-Tổng **3**, trong trần. **Cách đếm:** T3 (sửa) được tính chung trong quyết định 3, vì Đ6 đã viết "điền **hoặc sửa**" — đây là cách sửa của chính ô đó, cùng dữ liệu, cùng ô `ledger.write`. Nếu chủ muốn đếm chặt (tách "sửa" thành quyết định riêng) thì lượt này là 4, khi đó tách T3 sang lượt sau và bản phát hành chỉ có "điền". Điều 1 của ADR-00xx (làm rõ phạm vi) không chạm quyền hay dữ liệu.
+Tổng **3**, trong trần. Bản vòng 2 có thêm đường sửa riêng (T3, một route mới + luật "người khác nâng số"), người kiểm vòng 2 đếm chặt thành 4; T3 đã bỏ nên đếm chặt vẫn là 3. C1 là điều kiện của cùng ô mã, cùng dữ liệu, nên đi trong quyết định 3. Điều 1 của ADR-00xx (làm rõ phạm vi) không chạm quyền hay dữ liệu.
 
 ## 1. Bảng bị chạm chứa những loại thực thể nào
 
@@ -24,10 +24,10 @@ Tổng **3**, trong trần. **Cách đếm:** T3 (sửa) được tính chung tr
 | `pty_party`, `pty_party_role` | `parties` | không đổi | chỉ đọc |
 | `orders` | `orders` | không đổi | chỉ đọc mã đơn, phạm vi; **tìm kiếm** thêm khớp mã không gạch |
 | `bil_payment_receipt` | `billing` | **không đổi** (không thêm cột) | chỉ đọc |
-| `bil_bank_txn` (mới) | `billing` | một loại: mã giao dịch ngân hàng đã chuẩn hoá + số thực chuyển, chuỗi thay thế | tạo, chỉ-thêm |
-| `bil_receipt_bank_txn` (mới) | `billing` | một loại: nối lần thu ↔ mã, chuỗi thay thế; chỉ lần thu **chuyển khoản**, người thu = **Công ty** | tạo, chỉ-thêm |
-| `bil_posting` (`COMPANY_RECEIVED`), lô "Thay lần thu" | `billing` | không thêm loại phiếu | lệnh "Công ty đã nhận" và "Thay lần thu" nhận / chép mã |
-| `audit_log` | `audit` | thêm hành động: đổi tài khoản nhận tiền; gắn / sửa mã giao dịch. **Chi tiết không chứa số tài khoản, không chứa mã giao dịch** | ghi cùng lô |
+| `bil_receipt_bank_txn` (mới) | `billing` | một loại: nối lần thu ↔ mã + số thực chuyển; `receipt_id` duy nhất; chỉ lần thu **chuyển khoản**, người thu = **Công ty**; không dòng thay thế | tạo, chỉ-thêm |
+| dòng cấu hình mốc cắt C1 (mới) | `billing` | một loại: mốc thời gian bắt đầu đòi mã | tạo, chỉ-thêm |
+| `bil_posting` (`COMPANY_RECEIVED`, `DELIVERED`, `REPLACEMENT`) | `billing` | không thêm loại phiếu | ba lệnh "Công ty đã nhận", ghi lần thu (kể cả kèm Đã giao), "Thay lần thu" nhận mã |
+| `audit_log` | `audit` | thêm hành động: đổi tài khoản nhận tiền; gắn mã giao dịch. **Chi tiết không chứa số tài khoản, không chứa mã giao dịch** | ghi cùng lô |
 
 ## 2. Từng dòng bản đồ quyền chạm các bảng trên
 
@@ -36,7 +36,7 @@ Tổng **3**, trong trần. **Cách đếm:** T3 (sửa) được tính chung tr
 | `order.view` | any | any | any | assigned | own | any | own | none | none | none | bước đầu của route QR: không thấy đơn ⇒ 404 (FIELD chỉ đơn đang phụ trách) |
 | `money.view` | any | any | any | assigned | own | any | own | none | none | none | đọc QR của **một đơn** (DTO QR: số tiền + tài khoản công ty) |
 | `payment.receive` | own | any | any | assigned | own | any | own | none | none | none | nút "Khách đã chuyển khoản" → **route ghi lần thu có sẵn** |
-| `ledger.write` | none | any | none | none | none | any | none | none | none | none | "Công ty đã nhận" + nhập / sửa / xem **mã giao dịch và số thực chuyển** |
+| `ledger.write` | none | any | none | none | none | any | none | none | none | none | "Công ty đã nhận", tự ghi, "Thay lần thu" + nhập / xem **mã giao dịch và số thực chuyển**; đảo lần thu để sửa nhập nhầm |
 | `company.legal.write` | none | none | none | none | none | any | none | none | none | none | đọc / ghi **tài khoản nhận tiền** ở màn quản trị (**nghĩa ô mở rộng**) |
 
 Không ô nào đổi giá trị. Không thêm ô mới. `docs/quyen-hoan.json` `thao_tac` không có ô nào ở trên. Nhãn ô `company.legal.write` (`src/shared/tro-ly-cau-truc-ten.ts`) và `docs/SYSTEM-DESIGN.md` phải cập nhật theo nghĩa mới.
@@ -54,9 +54,9 @@ Không ô nào đổi giá trị. Không thêm ô mới. `docs/quyen-hoan.json` 
 | Ghi lần thu từ QR | route có sẵn `POST /api/orders/:id/payments` + `can(payment.receive)`; luật giữ hộ H3 / Đ2b không đổi | nút "Khách đã chuyển khoản" hiện khi `can(payment.receive)` với đơn và `coTheGhiThu` |
 | "Công ty đã nhận" + mã giao dịch | route có sẵn `POST /api/ledger/company-receipts/:id/confirm` + `can(ledger.write)`; luật Đ6 ở máy chủ **và** trigger | ô mã + số thực chuyển chỉ có trong hộp xác nhận của Kế toán |
 | Kế toán tự ghi lần thu chuyển khoản (T1) | route có sẵn ghi lần thu, nhánh Kế toán; luật Đ6 như trên | ô mã chỉ hiện khi người ghi có `ledger.write` |
-| "Thay lần thu" có mã | lệnh có sẵn (ADR-0088) + `ledger.write`; phép chặn Đ6 loại trừ lần thu bị đảo cùng lô | ô mã điền sẵn mã cũ trong hộp Thay |
-| Sửa mã / số thực chuyển (T3) | route mới + `can(ledger.write)`; lý do bắt buộc; nâng số thực chuyển: người làm ≠ người nhập số hiện hành; hai luật Đ6 chạy lại; trigger lớp 2 | nút "Sửa mã giao dịch" chỉ ở màn của Kế toán / Toàn quyền |
-| Gỡ khai trùng bị chặn | đường có sẵn: đảo lần thu (`ledger.write`) trước "Đã giao"; "Thay lần thu" (ADR-0088) sau | hộp báo chặn nêu hai lối này |
+| "Thay lần thu" có mã | lệnh có sẵn (ADR-0088) + `ledger.write`; dòng nối của lần thu mới chèn **sau** dòng đảo, nên `hieuLuc` thường là đủ; khoản còn chờ xác nhận vẫn bị từ chối (`ck_cho_xac_nhan`, như hôm nay) | ô mã cho từng lần thu mới; điền sẵn mã cũ khi thay một-đổi-một |
+| Sửa nhập nhầm mã / số thực chuyển | **không route mới**: đảo lần thu rồi ghi lại (trước Đã giao), "Thay lần thu" (sau) | không có nút "sửa mã" riêng |
+| Gỡ khai trùng bị chặn | trước "Đã giao": đảo lần thu (`ledger.write`); sau: khoản thừa là nợ của người khai, nộp qua quyết toán có sẵn (`ledger.write`) hoặc đ9 khi có; đơn chưa Hoàn thành được tới lúc tất toán | hộp báo chặn nêu lối ra theo từng trường hợp |
 | Xem mã và số thực chuyển | DTO lần thu chỉ kèm hai trường này khi `can(ledger.write)` | không hiện cho người khác |
 | Ghi / đọc tài khoản nhận tiền | route mới + `can(company.legal.write)`; trigger vai `OWNER_COMPANY`; một lô đóng + mở + nhật ký | mục "Tài khoản nhận tiền" trong hồ sơ công ty chỉ hiện cho người có ô này (giao diện hỏi `can()`, không viết cứng mã quyền) |
 | Ảnh QR gửi khách | DTO danh sách trường được phép (4.4) | ảnh dựng từ đúng DTO đó, không thêm trường từ màn đơn |
