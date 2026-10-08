@@ -107,7 +107,7 @@ test("parseMoneyEditInput: thân không phải object, services không phải m�
 
 // --- applyAdjustmentToOrder ----------------------------------------------------------------------------------------
 const baseOrder = (): OrderDetailDto => ({
-  id: "o1", orderCode: "TD-1", staffId: "s1", staffName: "A", bookerPartyId: null, bookerName: null,
+  id: "o1", orderCode: "TD-1", staffId: "s1", staffName: "A", bookerPartyId: null, bookerName: null, bookerLaDoiTac: false,
   status: "confirmed", customerName: "K", customerPhone: "090", customerEmail: null, customerNote: null,
   subtotal: 600000, discount: 0, total: 600000,
   paymentNote: null, createdAt: "t", updatedAt: "t", confirmedAt: "t", deliveredAt: null, completedAt: null,

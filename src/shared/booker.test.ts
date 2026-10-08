@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { bookerPayload, canPickMatch, describeBookerChange, lookupReady, matchNote, parseBooker } from "./booker.ts";
+import { benDatChoTaiKhoan, bookerPayload, canPickMatch, describeBookerChange, lookupReady, matchNote, parseBooker } from "./booker.ts";
 
 const U = "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0";
 
@@ -58,4 +58,18 @@ test("describeBookerChange: chỉ tên, null khi không đổi", () => {
   assert.equal(describeBookerChange(none, b), "gắn hồ sơ khách “Trần B”");
   assert.equal(describeBookerChange(a, none), "bỏ gắn hồ sơ khách “Nguyễn A”");
   assert.equal(describeBookerChange(a, b), "đổi hồ sơ khách “Nguyễn A” → “Trần B”");
+});
+
+test("benDatChoTaiKhoan (ADR-0077 đ3 (i), thu hẹp): Đối tác có hồ sơ được hưởng ⇒ chính hồ sơ đó, bất kể thân gửi gì", () => {
+  const nhieu = [{ kind: "none" }, { kind: "existing", partyId: "pty-khac" }, { kind: "new", fullName: "A", phone: "0901234567" }] as const;
+  for (const guiLen of nhieu) assert.deepEqual(benDatChoTaiKhoan({ laDoiTac: true, partyId: "pty-minh", laNguoiHuong: true, guiLen }), { kind: "existing", partyId: "pty-minh" });
+});
+
+test("benDatChoTaiKhoan: Đối tác có hồ sơ nhưng KHÔNG được hưởng, Đối tác chưa gắn hồ sơ, hoặc không phải Đối tác ⇒ giữ nguyên điều thân gửi", () => {
+  const guiLen = { kind: "existing", partyId: "pty-khac" } as const;
+  assert.equal(benDatChoTaiKhoan({ laDoiTac: true, partyId: "pty-minh", laNguoiHuong: false, guiLen }), guiLen);
+  assert.equal(benDatChoTaiKhoan({ laDoiTac: true, partyId: null, laNguoiHuong: false, guiLen }), guiLen);
+  assert.equal(benDatChoTaiKhoan({ laDoiTac: true, partyId: null, laNguoiHuong: true, guiLen }), guiLen, "không có hồ sơ thì không thể ghi hồ sơ của tài khoản");
+  assert.equal(benDatChoTaiKhoan({ laDoiTac: false, partyId: "pty-minh", laNguoiHuong: true, guiLen }), guiLen, "tài khoản không giữ quyền Đối tác không bị ép");
+  assert.equal(benDatChoTaiKhoan({ laDoiTac: false, partyId: "pty-minh", laNguoiHuong: false, guiLen: { kind: "none" } }).kind, "none");
 });

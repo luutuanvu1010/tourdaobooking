@@ -456,7 +456,7 @@ export function lyDoChuaGiaoDuoc(input: {
     return { ma: "before_departure", cau: `Chưa tới ngày đi (${ngayVn(muonNhat)}) — bấm từ ngày đi trở đi.`, aiXuLy: "Hướng dẫn viên" };
   }
   if (input.coNguoiHuong) {
-    return { ma: "booker_partner", cau: "Đơn của đối tác (có người hưởng hoa hồng) — chưa bấm Đã giao được cho tới khi có phần hoa hồng.", aiXuLy: "Văn phòng" };
+    return { ma: "booker_partner", cau: "Đơn của đối tác (có người hưởng hoa hồng) — chưa bấm Đã giao được cho tới bản cập nhật sổ đại lý.", aiXuLy: "Văn phòng" };
   }
   if (input.so.chuaRo > 0) {
     return { ma: "unknown_collector", cau: "Còn tiền trả trước chưa rõ người thu — Kế toán xác nhận lại người thu trước.", aiXuLy: "Kế toán" };

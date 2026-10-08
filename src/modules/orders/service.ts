@@ -11,6 +11,7 @@ import { auditStatement } from "../audit";
 import { datGapTheoVai } from "./dat-gap";
 import { getEffectiveServices } from "../catalog";
 import { composePersonName, newPersonStatements, validatePersonFullName, type ContactInput, type RoleInput } from "../parties";
+import { laNguoiHuong } from "../pricing";
 import {
   MAX_CHANG_MOI_DICH_VU, chiDoiOPhu, chieuDiDau, docSoNguoiVe, doiNgayChang, isLyDoDongChang, kiemChang, moTaChang, tronChangCu, type ChangHopLe, type LyDoDongChang,
 } from "../../shared/chang-dua-don";
@@ -376,7 +377,8 @@ export async function loadOrderView(db: D1Database, id: string, xemDuDatGap: boo
 export type ResolvedBooker = { ok: true; write: BookerWrite } | { ok: false; message: string };
 
 /**
- * Người đặt đã kiểm dạng → câu ghi. Hồ sơ có sẵn phải là CÁ NHÂN ĐANG HOẠT ĐỘNG (view công bố `v_pty_party_label`). Hồ sơ mới: cá nhân + SĐT chính +
+ * Người đặt đã kiểm dạng → câu ghi. Hồ sơ có sẵn phải ĐANG HOẠT ĐỘNG và là CÁ NHÂN, hoặc là TỔ CHỨC đang mang vai được hưởng hoa hồng (view công bố
+ * `v_pty_party_label`; `laNguoiHuong` của pricing — sổ đại lý đợt 1). Hồ sơ mới: cá nhân + SĐT chính +
  * vai CUSTOMER bằng câu của `parties`, CÙNG batch với đơn — ADR-0011 điều 1 (ngoại lệ hẹp của ADR-0007: chỉ hồ sơ MỚI, chỉ CUSTOMER). `current` = người đặt
  * đang lưu trên đơn (để viết mẩu nhật ký "từ A sang B"; tạo đơn = không có).
  */
@@ -394,7 +396,7 @@ export async function resolveBooker(
       .bind(booker.partyId)
       .first<{ display_name: string; party_kind: "PERSON" | "ORGANIZATION"; active: number }>();
     if (!row || row.active !== 1) return { ok: false, message: "Hồ sơ khách không còn dùng được, hãy chọn lại." };
-    if (row.party_kind !== "PERSON") return { ok: false, message: "Chưa gắn được đại lý vào đơn ở bản này." };
+    if (row.party_kind !== "PERSON" && !(await laNguoiHuong(db, booker.partyId))) return { ok: false, message: "Hồ sơ tổ chức này không phải đối tác được hưởng hoa hồng." };
     return { ok: true, write: { partyId: booker.partyId, before: [], note: describeBookerChange(current, { id: booker.partyId, name: row.display_name }) } };
   }
   const name = validatePersonFullName(booker.fullName);

@@ -10,6 +10,15 @@ export type BookerInput = { kind: "none" } | { kind: "existing"; partyId: string
 /** Lựa chọn trên giao diện (chưa gửi): hồ sơ có sẵn mang theo tên để hiển thị. */
 export type BookerChoice = { kind: "none" } | { kind: "existing"; partyId: string; name: string } | { kind: "new" };
 
+/**
+ * ADR-0077 điều 3 (i), THU HẸP theo lời chủ (đặc tả sổ đại lý đợt 1 §7): tài khoản Đối tác mà hồ sơ cá nhân đang mang vai được hưởng ⇒ bên đặt = chính hồ sơ đó,
+ * bỏ qua bên đặt trình duyệt gửi. Tài khoản lai (LC-1 cấm vai bên ngoài trên hồ sơ của nó) và Đối tác khác giữ hành vi cũ.
+ * `laDoiTac` = giữ mã quyền Đối tác (`holdsPartner`); `laNguoiHuong` = hồ sơ của tài khoản đang mang vai được hưởng (máy chủ tính, `laNguoiHuong` của pricing).
+ */
+export function benDatChoTaiKhoan(v: { laDoiTac: boolean; partyId: string | null; laNguoiHuong: boolean; guiLen: BookerInput }): BookerInput {
+  return v.laDoiTac && v.partyId !== null && v.laNguoiHuong ? { kind: "existing", partyId: v.partyId } : v.guiLen;
+}
+
 export const NO_BOOKER_TEXT = "Chưa gắn hồ sơ khách";
 const MAX_NAME = 200;
 

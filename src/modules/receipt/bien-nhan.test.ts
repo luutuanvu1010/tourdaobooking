@@ -15,7 +15,7 @@ const coLo = (json: string) => json.includes(LA) || json.includes("480.017");
 const COMPANY: CompanyDto = { name: "CÔNG TY TNHH TOUR ĐẢO", taxCode: "4201969169", address: "Nha Trang", hotline: "0845 256 256", email: null };
 
 const donBiMat = (): OrderDetailDto => ({
-  id: `ord-${LA}`, orderCode: "TD-20260930-0001", staffId: `stf-${LA}`, staffName: `NV ${LA}`, bookerPartyId: `pty-${LA}`, bookerName: `Đại lý ${LA}`,
+  id: `ord-${LA}`, orderCode: "TD-20260930-0001", staffId: `stf-${LA}`, staffName: `NV ${LA}`, bookerPartyId: `pty-${LA}`, bookerName: `Đại lý ${LA}`, bookerLaDoiTac: true,
   status: "confirmed", customerName: "Trần Văn Bình", customerPhone: "0901234567", customerEmail: null, customerNote: null,
   subtotal: 1_000_000, discount: 0, total: 1_000_000, paymentNote: `ghi chú thanh toán ${LA}`, createdAt: "2026-09-30T01:00:00.000Z", updatedAt: `upd-${LA}`,
   confirmedAt: `cf-${LA}`, deliveredAt: null, completedAt: null,
