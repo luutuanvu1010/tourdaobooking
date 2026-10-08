@@ -4,15 +4,15 @@
 
 ## Cho chủ dự án
 
-Khoảng nghỉ là số phút tối thiểu một xe và tài xế phải nghỉ giữa hai chuyến; máy chép con số này vào từng chuyến lúc tạo, để sau này đổi cài đặt cũng không làm đổi các chuyến đã xếp. Bản sửa lỗi gần đây (N3) cho máy chép lại con số mới khi người xếp xe sửa chuyến mà đổi giờ bắt đầu, giờ kết thúc, xe, gán tài xế mới hoặc đổi tài xế; các kiểu sửa khác, kể cả bỏ tài xế, giữ số cũ. Luật nền đòi thời điểm chép này phải ghi trong một quyết định được duyệt, nhưng hiện chưa quyết định nào ghi. Tôi khuyến nghị bạn duyệt đúng thời điểm mà mã đang làm.
+Khoảng nghỉ là số phút tối thiểu một xe và tài xế phải nghỉ giữa hai chuyến; máy chép con số này vào từng chuyến lúc tạo, để sau này đổi cài đặt cũng không làm đổi các chuyến đã xếp. Bản sửa lỗi gần đây (N3) cho máy chép lại con số mới khi người xếp xe sửa chuyến mà đổi giờ bắt đầu, giờ kết thúc, xe hoặc đổi sang tài xế khác; các kiểu sửa khác giữ số cũ. Luật nền đòi thời điểm chép này phải ghi trong một quyết định được duyệt, nhưng hiện chưa quyết định nào ghi. Tôi khuyến nghị bạn duyệt đúng thời điểm mà mã đang làm.
 
-**Câu duyệt gợi ý:** "Duyệt ADR-0106: khoảng nghỉ chép vào chuyến lúc tạo, và chép lại khi sửa chuyến đổi giờ bắt đầu, giờ kết thúc, xe, gán tài xế mới hoặc đổi tài xế (bỏ tài xế thì không); các lệnh sửa khác giữ số cũ."
+**Câu duyệt gợi ý:** "Duyệt ADR-0106: khoảng nghỉ chép vào chuyến lúc tạo, và chép lại khi sửa chuyến đổi giờ bắt đầu, giờ kết thúc, xe hoặc đổi sang tài xế khác; các lệnh sửa khác giữ số cũ."
 
 ---
 
 ## Phần kỹ thuật
-- **Mã:** `lenhSuaChuyen` tính `nghiChup` = khoảng nghỉ của chính sách hiện hành khi `doiGio || doiKetThuc || doiXe || doiTaiXe`, ngược lại giữ `rest_minutes_snapshot` (`src/modules/van-chuyen/dieu-phoi-lenh.ts:123-129`; `doiXe` ở `:108`). `doiTaiXe` đúng khi tài xế mới **khác** tài xế cũ và **khác rỗng** (`:125`), tức gồm cả gán tài xế cho chuyến chưa có tài xế; **bỏ** tài xế (`taiXeId` null) thì **không** chụp lại. Commit `8a9e8d73` (đã có trên `claude/van-chuyen-goi-a-c`, `c14-thay-chang`, `a1-luat-loi-chuyen`, `a3-tin-don-doi`), bài `src/modules/van-chuyen/nghi-chup-lai.test.ts`. Lệnh tạo chụp lúc tạo (`src/modules/van-chuyen/chuyen-repo.ts:323`).
+- **Mã:** `lenhSuaChuyen` tính `nghiChup` = khoảng nghỉ của chính sách hiện hành khi `doiGio || doiKetThuc || doiXe || doiTaiXe`, ngược lại giữ `rest_minutes_snapshot` (`src/modules/van-chuyen/dieu-phoi-lenh.ts:123-129`; `doiXe` ở `:108`, `doiTaiXe` ở `:125`). Lệnh sửa chuyến chỉ đổi được sang tài xế khác: thân gửi `taiXePartyId: null` bị trả "Chọn tài xế." (`src/modules/van-chuyen/dieu-phoi-than.ts:73`), để vắng thì giữ tài xế cũ (`dieu-phoi-lenh.ts:87`). Commit `8a9e8d73` (đã có trên `claude/van-chuyen-goi-a-c`, `c14-thay-chang`, `a1-luat-loi-chuyen`, `a3-tin-don-doi`), bài `src/modules/van-chuyen/nghi-chup-lai.test.ts`. Lệnh tạo chụp lúc tạo (`src/modules/van-chuyen/chuyen-repo.ts:323`).
 - **Luật:** Hiến chương 5.6 (`docs/ARCHITECTURE.md:101`): chính sách chụp vào đối tượng "tại **một mốc cố định do ADR của nghiệp vụ đó quy định**". ADR-0049 `:171` chỉ ghi "Chụp vào `vc_trip.rest_minutes_snapshot`", không ghi mốc.
-- **Câu bổ sung (không sửa ADR cũ):** ADR-0049 `:171` + "Mốc chụp: lúc tạo chuyến; chụp lại khi lệnh sửa chuyến đổi giờ bắt đầu, giờ kết thúc, xe, gán tài xế mới hoặc đổi tài xế (bỏ tài xế không tính); lệnh sửa khác giữ số đã chụp. Lý do phá lệ nghỉ (`rest_override_reason_code`) không đổi theo (ADR-0106)."
+- **Câu bổ sung (không sửa ADR cũ):** ADR-0049 `:171` + "Mốc chụp: lúc tạo chuyến; chụp lại khi lệnh sửa chuyến đổi giờ bắt đầu, giờ kết thúc, xe hoặc đổi sang tài xế khác; lệnh sửa khác giữ số đã chụp. Lý do phá lệ nghỉ (`rest_override_reason_code`) không đổi theo (ADR-0106)."
 - **Cửa:** hai chiều (luật ở mã, không đổi dữ liệu cũ); không migration.
 - **Chưa kiểm:** phiếu kiểm độc lập của N3 nằm ở sổ thi công nhánh `claude/van-chuyen-goi-a-c` (commit `f5010889`, "đạt có điều kiện"); người soạn chưa đọc điều kiện của phiếu đó.
