@@ -112,13 +112,26 @@ try {
 
   // ---- Bán hàng, điện thoại (vùng khoá) ----------------------------------------------------------------------------------------------------------------------
   const pm = await env.as(ACCOUNTS.salesA, `/chuyen?id=${d.T4.id}`, MOB);
-  await b.step("4", `390 Bán hàng ${d.T4.ma} (trong vùng khoá): câu "cần Quản trị phá lệ", KHÔNG nút rút / chuyển; không tràn ngang${axeNote()}`, async () => {
-    await pm.waitFor(`!!document.querySelector('.dp-khach-nhom')`, "thẻ khách");
-    assert.equal(await pm.ev(txt(".dp-khach-khoa")), "Trong vùng khoá trước giờ xuất bến — rút hay chuyển khách cần Quản trị phá lệ.");
-    assert.deepEqual((await pm.ev(nhom)).map((x) => x.nut), [[]]);
+  // ADR-0104 Đ1 (NỚI có tên, 2026-10-08): rút / chuyển trong vùng khoá = điều chỉnh khẩn cấp — Bán hàng có ô trip.urgent_adjust: KHÔNG còn câu khoá, CÓ nút;
+  // bấm rút → máy chủ đòi điều chỉnh khẩn cấp → hộp "Điều chỉnh khẩn cấp" (Bán hàng chỉ mở rồi đóng; Quản trị rút thật ở bước 5).
+  await b.step("4", `390 Bán hàng ${d.T4.ma} (trong vùng khoá): KHÔNG câu khoá, CÓ nút rút / chuyển (ADR-0104 Đ1); "Rút khỏi xe" → hộp "Điều chỉnh khẩn cấp" ("Điều chỉnh khẩn cấp và rút"); đóng, không gửi; không tràn ngang${axeNote()}`, async () => {
+    await pm.waitFor(`!!document.querySelector('.dp-khach-nhom [data-action="rut"]')`, "thẻ khách có nút");
+    assert.equal(await pm.ev(`!!document.querySelector('.dp-khach-khoa')`), false, "Bán hàng: không câu khoá (có ô điều chỉnh khẩn cấp)");
+    assert.deepEqual((await pm.ev(nhom)).map((x) => x.nut), [["Rút khỏi xe", "Chuyển sang xe khác"]]);
     assert.ok(await pm.ev(noOverflowX));
     await axe(pm, "khách trong chuyến khoá 390");
     await shotFull(pm, "b5b-vung-khoa-ban-hang-dien-thoai.png");
+    await pm.ev(click('.dp-khach-nhom [data-action="rut"]'));
+    await pm.waitFor(`!!document.querySelector('.dp-sheet-khach [data-action="khach-gui"]')`, "hộp rút");
+    await pm.ev(click('.dp-sheet-khach [data-action="khach-gui"]'));
+    await pm.waitFor(`!!document.querySelector('[data-action="pha-le-gui"]') && !document.querySelector('.dp-sheet-khach')`, "hộp điều chỉnh khẩn cấp thay hộp rút");
+    await sleep(600);
+    assert.equal(await pm.ev(txt('[data-action="pha-le-gui"]')), "Điều chỉnh khẩn cấp và rút");
+    assert.equal(await pm.ev(txt("#dp-pha-le-label")), "Lý do điều chỉnh khẩn cấp");
+    await shotView(pm, "b5b-khan-cap-rut-ban-hang-dien-thoai.png");
+    await pm.ev(`[...document.querySelectorAll('.dp-sheet-pha-le button')].find((x) => x.innerText.trim() === 'Đóng').click()`);
+    await pm.waitFor(`!document.querySelector('[data-action="pha-le-gui"]')`, "đóng hộp, không gửi");
+    assert.equal(ghi(pm, "/rut").filter((x) => x.phaLe).length, 0, "Bán hàng đóng hộp: không lệnh rút kèm lý do");
   });
   await pm.close();
   const pm2 = await env.as(ACCOUNTS.salesA, `/chuyen?id=${d.T3.id}`, MOB);
@@ -142,7 +155,7 @@ try {
 
   // ---- Quản trị, máy tính (vùng khoá → phá lệ) ----------------------------------------------------------------------------------------------------------------
   const q = await env.as(ACCOUNTS.admin, `/chuyen?id=${d.T4.id}`, DESK);
-  await b.step("5", `1040 Quản trị ${d.T4.ma} (trong vùng khoá): có nút; "Rút khỏi xe" → máy chủ đòi phá lệ → hộp rút đóng, hộp "Phá lệ" mở → "Phá lệ và rút" gửi lại kèm phaLe (requestId mới) → rút được, O4 về "Chưa xếp"${axeNote()}`, async () => {
+  await b.step("5", `1040 Quản trị ${d.T4.ma} (trong vùng khoá): có nút; "Rút khỏi xe" → máy chủ đòi điều chỉnh khẩn cấp → hộp rút đóng, hộp "Điều chỉnh khẩn cấp" mở → "Điều chỉnh khẩn cấp và rút" gửi lại kèm phaLe (requestId mới) → rút được, O4 về "Chưa xếp"${axeNote()}`, async () => {
     await q.waitFor(`!!document.querySelector('.dp-khach-nhom [data-action="rut"]')`, "nút rút");
     assert.equal(await q.ev(`!!document.querySelector('.dp-khach-khoa')`), false, "Quản trị: không câu khoá (có ô phá lệ)");
     await q.ev(click('.dp-khach-nhom [data-action="rut"]'));
@@ -150,7 +163,7 @@ try {
     await q.ev(click('.dp-sheet-khach [data-action="khach-gui"]'));
     await q.waitFor(`!!document.querySelector('[data-action="pha-le-gui"]') && !document.querySelector('.dp-sheet-khach')`, "hộp phá lệ thay hộp rút");
     await sleep(600);
-    assert.equal(await q.ev(txt('[data-action="pha-le-gui"]')), "Phá lệ và rút");
+    assert.equal(await q.ev(txt('[data-action="pha-le-gui"]')), "Điều chỉnh khẩn cấp và rút"); // ADR-0104 Đ1: rút chỉ vượt mốc ⇒ lớp khẩn cấp
     assert.match(await q.ev(txt(".dp-sheet-pha-le .dp-sheet-sum")), new RegExp(`^Rút khỏi xe · ${d.O4.ma} · 2 khách `));
     await axe(q, "hộp phá lệ rút 1040");
     await shotView(q, "b5b-pha-le-rut-may-tinh.png");

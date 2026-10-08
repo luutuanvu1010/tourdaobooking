@@ -8,8 +8,8 @@ import { kiemXuatBen, type KiemXuatBenVao } from "../../shared/dieu-phoi-kiem";
 import type { KetQuaKiem, LoaiSuKienChuyen, MaLuatPhaLe, TrangThaiChuyen } from "../../shared/dieu-phoi-kieu";
 import { dungLichChung } from "../../shared/dieu-phoi-lich-chung";
 import { error, json } from "../../shared/http";
-import { lyDoGiu, type LyDoGiu, type MaGiu } from "../../shared/ly-do-giu";
-import { can, type PermissionHolder } from "../../shared/permissions";
+import { lyDoGiu, lyDoTheoMoc, type LyDoGiu, type MaGiu } from "../../shared/ly-do-giu";
+import { chuyenDuoiMoc, duQuyen, lopCanCho, lopCuaLuat, lopVuotMoc, lopVuotNghiCamKet, type LenhVuotMoc, type LopVuot } from "../../shared/moc-toi-thieu";
 import { maskLongDigits } from "../../shared/text-guards";
 import { daoMoiSauDoi, diemDonChuaToiCuaDiemTra, sapDonTruocTra } from "../../shared/thu-tu-diem";
 import { msToVnLocal, ngayNgan } from "../../shared/vn-date";
@@ -19,7 +19,7 @@ import {
 } from "./chuyen-repo";
 import type { CauCoNhan, DiemMoi, SuKienCuaLo } from "./dieu-phoi";
 import {
-  banChupDto, canhBaoDto, chuyenTomTat, diemChuyenDto, lyDoDangDung, lyDoGiuDto, nhatKyChuyenDto, suatChuyenDto, taiXeChon, xeChon,
+  banChupDto, canhBaoDto, chuyenTomTat, diemChuyenDto, lyDoDangDung, lyDoGiuCuaChuyen, lyDoGiuDto, nhatKyChuyenDto, suatChuyenDto, taiXeChon, xeChon,
 } from "./dieu-phoi-dto";
 import { boSungXe, chinhSachVao, docChung, docNguCanh, type DuLieuChung, type NenChuyen, type NguCanhChuyen } from "./dieu-phoi-doc";
 import { gioSomNhatKhaiDto, ketThucTruoc } from "./dieu-phoi-gio";
@@ -29,7 +29,16 @@ import { loiRangBuocChuyen } from "./rules";
 // ---- Lỗi ----------------------------------------------------------------------------------------------------------------------------------------------------
 export const CAN_XEM_CHUYEN = () => error(403, "forbidden", "Tài khoản này không xem được lịch xe.");
 export const CAN_DIEU_PHOI = () => error(403, "forbidden", "Tài khoản này không xếp xe được.");
-export const CAN_PHA_LE = () => error(403, "forbidden", "Chỉ Quản trị hoặc Toàn quyền phá lệ được.");
+/**
+ * 403 khi người gọi gửi cờ vượt luật mà không có ô của LỚP (ADR-0104 Đ1 mục 2): QUAN_TRI giữ nguyên câu cũ ("Phá lệ" — khoảng nghỉ, cam kết khi chuyến
+ * ngoài mốc); KHAN_CAP câu "điều chỉnh khẩn cấp". Ô `trip.urgent_adjust` bằng `trip.dispatch` (bài ghim ⊆) nên câu KHAN_CAP hôm nay không ai chạm tới được
+ * (người không xếp xe đã bị 403 `CAN_DIEU_PHOI` trước) — giữ để tách lớp sau không thiếu câu.
+ */
+const CAU_CAN_VUOT: Record<LopVuot, string> = {
+  QUAN_TRI: "Chỉ Quản trị hoặc Toàn quyền phá lệ được.",
+  KHAN_CAP: "Chỉ Bán hàng, Quản trị, Toàn quyền điều chỉnh khẩn cấp được.",
+};
+export const canVuot = (lop: LopVuot) => error(403, "forbidden", CAU_CAN_VUOT[lop]);
 export const KHONG_CO_CHUYEN = () => error(404, "not_found", "Không tìm thấy chuyến.");
 export const CHUYEN_CU = () => error(409, "stale", "Chuyến vừa được người khác sửa, tải lại.");
 const THONG_BAO_409: Record<string, string> = {
@@ -50,6 +59,7 @@ const THONG_BAO_409: Record<string, string> = {
   xe_khong_dung: "Xe đang bảo dưỡng hoặc đã ngừng dùng.",
   gio_chuyen_khong_hop_le: "Giờ kết thúc phải sau giờ bắt đầu và chuyến không quá 24 giờ.",
   chinh_sach_rong: "Chưa có chính sách điều phối đang hiệu lực — báo người phụ trách hệ thống.",
+  // Ba câu dưới là lớp QUAN_TRI ("Phá lệ" — ADR-0104 Đ1); lớp KHAN_CAP dùng `THONG_BAO_KHAN_CAP`. Mã lỗi (code) không đổi theo lớp.
   can_pha_le: "Trong mốc tối thiểu trước giờ xuất bến — cần Quản trị phá lệ.",
   chua_du_nghi: "Chưa đủ khoảng nghỉ giữa hai chuyến — cần Quản trị phá lệ.",
   can_pha_le_cam_ket: "Chuyến trái cam kết xe riêng / số chỗ của khách — cần Quản trị phá lệ kèm lý do.", // ADR-0056 VK3-A (kế hoạch Đợt 7 C9)
@@ -79,6 +89,12 @@ const THONG_BAO_409: Record<string, string> = {
   da_co_tien_do: "Chuyến đã có tiến độ sau xuất bến nên không thu hồi được — sửa từng khách bằng \"Điều chỉnh…\", hoặc \"Kết thúc gián đoạn\" nếu xe thật sự không chạy tiếp.",
   qua_gio_thu_hoi: "Đã quá thời gian được thu hồi xuất bến.",
 };
+/** ADR-0104 Đ1: câu 409 khi mọi luật đang thiếu thuộc lớp KHAN_CAP (chuyến dưới mốc) — người xếp xe tự điều chỉnh khẩn cấp kèm lý do. */
+const THONG_BAO_KHAN_CAP: Record<"can_pha_le" | "chua_du_nghi" | "can_pha_le_cam_ket", string> = {
+  can_pha_le: "Trong mốc tối thiểu trước giờ xuất bến — cần điều chỉnh khẩn cấp kèm lý do.",
+  chua_du_nghi: "Chưa đủ khoảng nghỉ giữa hai chuyến — cần điều chỉnh khẩn cấp kèm lý do.",
+  can_pha_le_cam_ket: "Chuyến trái cam kết xe riêng / số chỗ của khách — cần điều chỉnh khẩn cấp kèm lý do.",
+};
 const MA_LOI_THEO_GIU: Partial<Record<MaGiu, string>> = {
   NGUOI_DA_O_CHUYEN_KHAC: "nguoi_da_o_chuyen_khac", VUOT_SO_NGUOI_CHANG: "vuot_so_nguoi_chang", VUOT_SO_CHO: "vuot_so_cho", TRUNG_GIO_XE: "trung_gio_xe",
   TRUNG_GIO_TAI_XE: "trung_gio_tai_xe", GPLX_THIEU: "khong_du_dieu_kien_lai", GPLX_THIEU_HANG: "khong_du_dieu_kien_lai", GPLX_HET_HAN: "khong_du_dieu_kien_lai",
@@ -89,14 +105,46 @@ const MA_LOI_THEO_GIU: Partial<Record<MaGiu, string>> = {
 export function loi409(code: string, lyDo: readonly LyDoGiu[] = [], extra: Omit<LenhChuyenLoiBody["error"], "code" | "message" | "lyDo"> = {}, thongBao?: string): Response {
   return json({ error: { code, message: thongBao ?? THONG_BAO_409[code] ?? "Lệnh chưa làm được.", lyDo: lyDo.map(lyDoGiuDto), ...extra } } satisfies LenhChuyenLoiBody, 409);
 }
+/** Route đổi lớp ra ô bằng chữ viết thẳng (ADR-0104 Đ1 mục 2; bài lop-vuot.test.ts) rồi truyền hàm này xuống lệnh. */
+export type QuyenVuot = (lop: LopVuot) => boolean;
 /**
- * Kết quả luật thuần → 409 (kế hoạch mục 1.1 bảng mã lỗi — lớp ROUTE): `chan` → mã theo lý do ĐẦU (mọi lý do đi kèm); chỉ `canPhaLe` còn thiếu phá lệ →
- * `can_pha_le` (mốc) > `chua_du_nghi` (khoảng nghỉ) > `can_pha_le_cam_ket` (cam kết xe riêng / số chỗ — ADR-0056 VK3-A; thứ tự ưu tiên C6), danh sách lý do
- * mang ĐỦ mọi mã còn thiếu, kèm `canQuyen` = người gọi có ô `trip.override`. `co.*` = lệnh đã có phá lệ cho luật đó (lệnh không thể sinh luật đó: true).
- * `null` = cho qua.
+ * Ngữ cảnh lớp của MỘT lệnh (ADR-0104 Đ1 mục 0, 2): `duoiMoc` = chuyến dưới mốc theo định nghĩa của lệnh (`chuyenDuoiMoc`); `conPhut` = số phút (làm tròn
+ * xuống) từ lúc lệnh chạy tới giờ xét mốc của lệnh, null = xe đang chạy — chỉ để ghi nhật ký (mục 4); `lenhMoc` = lệnh bị khoá theo mốc mà request này làm
+ * (rỗng = lệnh không sinh luật mốc); `quyenVuot` = hàm của route.
+ */
+export interface VuotLenh {
+  duoiMoc: boolean;
+  conPhut: number | null;
+  lenhMoc: readonly LenhVuotMoc[];
+  quyenVuot: QuyenVuot;
+}
+/** Dựng `VuotLenh` từ giờ xét mốc của lệnh — MỘT chỗ tính "dưới mốc" và "còn N phút" (không có chính sách → ngoài mốc, `chuyenDuoiMoc`). */
+export function vuotLenh(
+  c: { dangChay: boolean; gioXetMs: number }, bayGioMs: number, phut: number | null, lenhMoc: readonly LenhVuotMoc[], quyenVuot: QuyenVuot,
+): VuotLenh {
+  return { duoiMoc: chuyenDuoiMoc(c, bayGioMs, phut), conPhut: c.dangChay ? null : Math.floor((c.gioXetMs - bayGioMs) / 60000), lenhMoc, quyenVuot };
+}
+/**
+ * Cờ vượt người gọi GỬI (`phaLe` → luật mốc; `nghiPhaLe` / `camKetPhaLe` → khoảng nghỉ, cam kết) mà thiếu ô của lớp → 403, kiểm TRƯỚC luật (ADR-0104 Đ1
+ * mục 2). Chạy sau khi lệnh đọc chuyến + chính sách (cần "dưới mốc"). Thứ tự HIỆN TRẠNG (ghim ở `dieu-chinh-khan-cap.test.ts` — phiếu D1 THẤP-2, THẤP-3):
+ * 403 ô xếp xe, 400 đọc thân, 404 chuyến, lệnh lặp (LC-11: gửi lại mã lệnh cũ kèm cờ → 200, không ghi — kể cả người thiếu ô) luôn đi TRƯỚC 403 này; xếp,
+ * rút, dời, huỷ, thêm khi chạy còn đặt 409 trạng thái chuyến trước nó (rút, dời thêm 400 "suất không thuộc chuyến"; xếp thêm 409 người đi kèm). Sửa chuyến và
+ * route tạo chuyến đặt 403 này TRƯỚC mọi 400 ngữ nghĩa (lý do ngoài nhóm, xe / tuyến không có, điểm lạ), và sửa chuyến đặt nó trước 409 chuyến hết kế hoạch
+ * (luật thuần chặn sau cổng).
+ */
+export function chanCoVuot(co: { moc: boolean; nghiCamKet: boolean }, v: VuotLenh): Response | null {
+  if (co.moc && !v.quyenVuot(lopVuotMoc(...v.lenhMoc))) return canVuot(lopVuotMoc(...v.lenhMoc));
+  if (co.nghiCamKet && !v.quyenVuot(lopVuotNghiCamKet(v.duoiMoc))) return canVuot(lopVuotNghiCamKet(v.duoiMoc));
+  return null;
+}
+/**
+ * Kết quả luật thuần → 409 (kế hoạch mục 1.1 bảng mã lỗi — lớp ROUTE): `chan` → mã theo lý do ĐẦU (mọi lý do đi kèm); chỉ `canPhaLe` còn thiếu → `can_pha_le`
+ * (mốc) > `chua_du_nghi` (khoảng nghỉ) > `can_pha_le_cam_ket` (cam kết xe riêng / số chỗ — ADR-0056 VK3-A; thứ tự ưu tiên C6), danh sách lý do mang ĐỦ mọi mã
+ * còn thiếu. ADR-0104 Đ1: kèm `lop` (KHAN_CAP / QUAN_TRI — `lopCanCho`, hộp xác nhận chọn chữ) và `canQuyen` = người gọi đủ ô cho MỌI luật đang thiếu theo
+ * lớp (`duQuyen`); câu theo lớp. `co.*` = lệnh đã có cờ cho luật đó (lệnh không thể sinh luật đó: true). `null` = cho qua.
  */
 export function loiKiem(
-  kq: KetQuaKiem, staff: PermissionHolder, trangThai: TrangThaiChuyen | null, co: { moc: boolean; nghi: boolean; camKet: boolean }, thongBaoMoc?: string,
+  kq: KetQuaKiem, v: VuotLenh, trangThai: TrangThaiChuyen | null, co: { moc: boolean; nghi: boolean; camKet: boolean }, thongBaoMoc?: string,
 ): Response | null {
   if (kq.chan.length > 0) {
     const dau = kq.chan[0]!.ma;
@@ -105,9 +153,13 @@ export function loiKiem(
   }
   const thieu = kq.canPhaLe.filter((l) => (l.ma === "MOC_TOI_THIEU" && !co.moc) || (l.ma === "KHOANG_NGHI" && !co.nghi) || (l.ma === "CAM_KET" && !co.camKet));
   if (thieu.length === 0) return null;
-  const moc = thieu.some((l) => l.ma === "MOC_TOI_THIEU");
-  const code = moc ? "can_pha_le" : thieu.some((l) => l.ma === "KHOANG_NGHI") ? "chua_du_nghi" : "can_pha_le_cam_ket";
-  return loi409(code, thieu, { canQuyen: can(staff, "trip.override") }, moc ? thongBaoMoc : undefined);
+  const luat = [...new Set(thieu.map((l) => l.ma as MaLuatPhaLe))];
+  const moc = luat.includes("MOC_TOI_THIEU");
+  const code = moc ? "can_pha_le" : luat.includes("KHOANG_NGHI") ? "chua_du_nghi" : "can_pha_le_cam_ket";
+  const lop = lopCanCho(luat, v.duoiMoc, v.lenhMoc);
+  const cau = lop === "QUAN_TRI" ? undefined : moc && thongBaoMoc ? thongBaoMoc : THONG_BAO_KHAN_CAP[code];
+  // Đ1 mục 9 ★: lý do kèm theo cùng lớp với câu — dưới mốc thì khoảng nghỉ / cam kết do người xếp xe điều chỉnh khẩn cấp (`lyDoTheoMoc`).
+  return loi409(code, thieu.map((l) => lyDoTheoMoc(l, v.duoiMoc)), { canQuyen: duQuyen(luat, v.duoiMoc, v.lenhMoc, v.quyenVuot), lop }, cau);
 }
 // ---- Thứ tự điểm (ADR-0096 Đ1, gói A1) -----------------------------------------------------------------------------------------------------------------
 /**
@@ -279,7 +331,21 @@ export const gioNgan = (ms: number, bayGioMs: number): string => {
   return `${time} ${ngayNgan(date, msToVnLocal(bayGioMs).date)}`;
 };
 const TEN_LUAT_PHA_LE: Record<MaLuatPhaLe, string> = { MOC_TOI_THIEU: "mốc tối thiểu", KHOANG_NGHI: "khoảng nghỉ", CAM_KET: "cam kết" };
-export const phaLeNhatKy = (luat: MaLuatPhaLe, nhan: string): string => ` · phá lệ ${TEN_LUAT_PHA_LE[luat]}: ${nhan}`;
+/**
+ * Đuôi nhật ký của MỘT luật bị vượt (ADR-0104 Đ1 mục 4) — lớp quyết LÚC GHI theo luật (`lopCuaLuat`): `KHAN_CAP` " · điều chỉnh khẩn cấp <luật>: <lý do>",
+ * `QUAN_TRI` " · phá lệ <luật>: <lý do>". Số phút còn lại đi riêng, một lần mỗi lô (`gioKhanCapNhatKy`). Chỉ tên luật + nhãn lý do (LC-18).
+ */
+export const phaLeNhatKy = (luat: MaLuatPhaLe, nhan: string, v: Pick<VuotLenh, "duoiMoc" | "lenhMoc">): string =>
+  ` · ${lopCuaLuat(luat, v.duoiMoc, v.lenhMoc) === "KHAN_CAP" ? "điều chỉnh khẩn cấp" : "phá lệ"} ${TEN_LUAT_PHA_LE[luat]}: ${nhan}`;
+/**
+ * ADR-0104 Đ1 mục 4: "cộng số phút còn lại tới giờ xuất bến" — MỘT lần mỗi lô, khi lô ghi ít nhất một luật lớp `KHAN_CAP` (`luatDaGhi` = các luật lô này ghi
+ * đuôi). " · còn N phút" (N = `conPhut`, giờ xét mốc của lệnh); quá giờ mà xe chưa chạy " · quá giờ xuất bến N phút"; xe đang chạy " · xe đang chạy".
+ */
+export function gioKhanCapNhatKy(luatDaGhi: readonly (MaLuatPhaLe | null | undefined)[], v: Pick<VuotLenh, "duoiMoc" | "lenhMoc" | "conPhut">): string {
+  if (!luatDaGhi.some((l) => l && lopCuaLuat(l, v.duoiMoc, v.lenhMoc) === "KHAN_CAP")) return "";
+  if (v.conPhut === null) return " · xe đang chạy";
+  return v.conPhut >= 0 ? ` · còn ${v.conPhut} phút` : ` · quá giờ xuất bến ${-v.conPhut} phút`;
+}
 export const maDonGon = (codes: readonly string[]): string => [...new Set(codes)].sort().join(", ");
 
 // ---- Chi tiết chuyến ---------------------------------------------------------------------------------------------------------------------------------------
@@ -293,7 +359,7 @@ export async function chiTietChuyen(
 ): Promise<ChuyenChiTietResponse> {
   const nowIso = new Date(bayGioMs).toISOString();
   const c = chung ?? (await docChung(db, nowIso, msToVnLocal(bayGioMs).date));
-  const nc: NguCanhChuyen = await docNguCanh(db, nen, lich, c);
+  const nc: NguCanhChuyen = await docNguCanh(db, nen, lich, c, [], bayGioMs);
   const t = nen.trip;
   const cs = chinhSachVao(c.chinhSach);
   const lyDoGiu = lyDoGiuDuPhong(t, nc, c, bayGioMs, true);
@@ -365,7 +431,7 @@ export async function cuocChiTiet(
   nhanNhanVien: (ids: readonly string[]) => Promise<Map<string, string> | null>, bayGioMs: number, trongNgay: boolean,
 ): Promise<CuocChiTietResponse> {
   const c = await docChung(db, new Date(bayGioMs).toISOString(), msToVnLocal(bayGioMs).date);
-  const nc = await docNguCanh(db, nen, lich, c);
+  const nc = await docNguCanh(db, nen, lich, c, [], bayGioMs);
   const t = nen.trip;
   const nhan = await nhanNhanVien([...new Set(nen.events.flatMap((e) => (e.created_by && e.occurred_source === "VAN_PHONG_KHAI" ? [e.created_by] : [])))]);
   const tenDiKem = nen.allocs.some((a) => a.kind === "CREW" && a.valid_to_at === null) ? await tenNguoiDiKem(db, nen.trip.id) : undefined;
@@ -376,7 +442,7 @@ export async function cuocChiTiet(
     trip: t, xe: c.xe.find((x) => x.id === t.vehicle_id), events: nen.events,
     diem: nen.stops.map((s) => diemChuyenDto(s, { allocs: nen.allocs, chang: nc.chang, stops: nen.stops, events: nen.events, nhan })),
     suat: nen.allocs.filter((a) => a.valid_to_at === null).map((a) => suatChuyenDto(a, { changLich: nc.changLich, changNgoai: nc.changNgoai, ten, events: nen.events, nhan, tenDiKem, lyDoNhan })),
-    lienHe, conThieu: lyDoGiuDuPhong(t, nc, c, bayGioMs, true), lyDo: c.lyDo.filter((r) => r.reason_group === "KET_THUC_GIAN_DOAN"), nhan, trongNgay,
+    lienHe, conThieu: lyDoGiuCuaChuyen(t, lyDoGiuDuPhong(t, nc, c, bayGioMs, true), bayGioMs, c.chinhSach?.min_lead_minutes ?? null), lyDo: c.lyDo.filter((r) => r.reason_group === "KET_THUC_GIAN_DOAN"), nhan, trongNgay,
   });
 }
 /** "Cuốc của tôi" (route 19, R-P17): mỗi chuyến — không tên, không SĐT; điều kiện còn thiếu = lý do giữ dự phóng (chuyến chưa chạy). */
@@ -393,7 +459,9 @@ export async function danhSachCuoc(db: D1Database, trips: readonly TripRow[], li
       trip: t, stops: stops.filter((x) => x.trip_id === t.id), allocs: a, events: events.filter((e) => e.trip_id === t.id || e.related_trip_id === t.id),
       legIds: [...new Set(a.flatMap((x) => (x.kind === "PASSENGER" && x.leg_id !== null ? [x.leg_id] : [])))], tu: "", den: "",
     };
-    const conThieu = t.status === "PLANNED" ? lyDoGiuDuPhong(t, await docNguCanh(db, nen, lich, c), c, bayGioMs, false) : [];
+    const conThieu = t.status === "PLANNED"
+      ? lyDoGiuCuaChuyen(t, lyDoGiuDuPhong(t, await docNguCanh(db, nen, lich, c, [], bayGioMs), c, bayGioMs, false), bayGioMs, c.chinhSach?.min_lead_minutes ?? null)
+      : [];
     ra.push(cuocCuaToiItem(t, { xe: c.xe.find((x) => x.id === t.vehicle_id), stops: nen.stops, allocs: a, conThieu }));
   }
   return ra;

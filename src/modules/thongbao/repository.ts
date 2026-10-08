@@ -3,7 +3,7 @@
 // Không DELETE, không OR REPLACE (R-N1-9).
 import { defineSql } from "../../shared/sql-registry.ts";
 import type { DongDon, DongThuCong } from "../../shared/thong-bao.ts";
-import { HANH_DONG_TIN_CHUYEN, type DonCuaTin, type DongChuyenTho } from "../../shared/tin-chuyen.ts";
+import { HANH_DONG_TIN_KHACH, HANH_DONG_TIN_THUONG, type DonCuaTin, type DongChuyenTho } from "../../shared/tin-chuyen.ts";
 
 const LIST_DON = defineSql("thongbao", "list_don", `
   SELECT e.id, e.order_id, o.order_code AS ma_don, e.action, e.staff_id AS actor_id, s.label AS ten_nguoi_lam, e.created_at AS luc,
@@ -224,9 +224,17 @@ export const hetHanStatement = (db: D1Database, endpoints: string[], at: string)
   db.prepare(HET_HAN).bind(JSON.stringify(endpoints), at);
 
 // ADR-0052 D6.1: tin chuyến đọc v_aud_trip_event (audit) — chỉ khoá; danh sách hành động truyền bằng tham số JSON từ HANH_DONG_TIN_CHUYEN (một nguồn).
+// Phiếu kiểm D1 CAO-3: HAI lần đọc, mỗi lần một trần — nhóm cũ (`HANH_DONG_TIN_THUONG`, trần 3000 như trước) và ba lệnh khách (`HANH_DONG_TIN_KHACH`, trần
+// riêng `GIOI_HAN_TIN_KHACH`) — dòng xếp / rút / dời (đa số không sinh tin) không đẩy tin huỷ chuyến, xếp lái, khách vắng… ra khỏi hộp. Không lọc được "chỉ dòng
+// mang cờ mốc" ở câu này: cờ ở `vc_trip_event` (van-chuyen), thongbao chỉ đọc view audit — lọc cờ do dữ kiện tiêm (`khanCap`) làm như cũ.
 const LIST_TIN_CHUYEN = defineSql("thongbao", "list_tin_chuyen", `
   SELECT e.id, e.trip_id, e.staff_id AS actor_id, e.action, e.created_at AS luc FROM v_aud_trip_event e
   WHERE e.created_at >= ?1 AND e.action IN (SELECT value FROM json_each(?2)) ORDER BY e.created_at DESC LIMIT 3000`);
+/** Trần riêng của ba lệnh khách: tin khẩn cấp chỉ có nghĩa trong vài giờ trước giờ chạy — 1000 dòng xếp / rút / dời gần nhất của cả công ty là đủ. */
+export const GIOI_HAN_TIN_KHACH = 1000;
+const LIST_TIN_CHUYEN_KHACH = defineSql("thongbao", "list_tin_chuyen_khach", `
+  SELECT e.id, e.trip_id, e.staff_id AS actor_id, e.action, e.created_at AS luc FROM v_aud_trip_event e
+  WHERE e.created_at >= ?1 AND e.action IN (SELECT value FROM json_each(?2)) ORDER BY e.created_at DESC LIMIT ${GIOI_HAN_TIN_KHACH}`);
 const TIN_CHUYEN_THEO_ID = defineSql("thongbao", "tin_chuyen_theo_id",
   `SELECT e.id, e.trip_id, e.staff_id AS actor_id, e.action, e.created_at AS luc FROM v_aud_trip_event e WHERE e.id = ?1`);
 const DON_CHO_TIN = defineSql("thongbao", "don_cho_tin", `
@@ -237,7 +245,12 @@ const DON_CHO_TIN = defineSql("thongbao", "don_cho_tin", `
 interface TinChuyenRow { id: string; trip_id: string; actor_id: string | null; action: string; luc: string }
 const tho = (r: TinChuyenRow): DongChuyenTho => ({ id: r.id, tripId: r.trip_id, actorId: r.actor_id, action: r.action, luc: r.luc });
 export async function listTinChuyen(db: D1Database, tu: string): Promise<DongChuyenTho[]> {
-  return (await db.prepare(LIST_TIN_CHUYEN).bind(tu, JSON.stringify(HANH_DONG_TIN_CHUYEN)).all<TinChuyenRow>()).results.map(tho);
+  const [cu, khach] = await Promise.all([
+    db.prepare(LIST_TIN_CHUYEN).bind(tu, JSON.stringify(HANH_DONG_TIN_THUONG)).all<TinChuyenRow>(),
+    db.prepare(LIST_TIN_CHUYEN_KHACH).bind(tu, JSON.stringify(HANH_DONG_TIN_KHACH)).all<TinChuyenRow>(),
+  ]);
+  // Giữ thứ tự cũ (mới trước) cho người đọc sau — hai nhóm rời nhau theo hành động nên không trùng dòng.
+  return [...cu.results, ...khach.results].sort((a, b) => (a.luc < b.luc ? 1 : a.luc > b.luc ? -1 : 0)).map(tho);
 }
 export async function tinChuyenTheoId(db: D1Database, id: string): Promise<DongChuyenTho | null> {
   const r = await db.prepare(TIN_CHUYEN_THEO_ID).bind(id).first<TinChuyenRow>();

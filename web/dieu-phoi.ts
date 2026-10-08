@@ -2,14 +2,16 @@
 // (1a–1g) + dp-chua-xep, dp-dong-thoi-gian, dp-can-xu-ly; bản đối chiếu 2.1, 2.9, 2.13, H6–H8, H14, mục 4 (khoảng giờ theo dữ liệu).
 // - Ba cột (máy tính): Chưa xếp · Dòng thời gian theo xe (+ thẻ chuyến đang chọn) · Cần xử lý. Điện thoại: ba thẻ (tablist) — "Chưa xếp", "Xe", "Cần xử lý".
 // - Xếp khách: bấm thẻ chặng (hoặc kéo thả thẻ chặng vào một khối chuyến) → hộp "Xếp vào chuyến" (chọn chuyến, số khách — ít hơn = tách đoàn) → route 5.
-//   Máy chủ đòi phá lệ (409 `canQuyen`) → Quản trị qua hộp "Phá lệ"; không có nút "Phá lệ" đứng riêng (2.13); chặng đặt gấp không cần phá lệ (máy chủ quyết — 2.1).
+//   Máy chủ đòi vượt luật (409 `canQuyen` + `lop` — ADR-0104 Đ1): người đủ ô của lớp qua hộp "Điều chỉnh khẩn cấp" (vượt mốc; khoảng nghỉ / cam kết khi chuyến
+//   dưới mốc — Bán hàng, Quản trị, Toàn quyền) hoặc "Phá lệ" (khoảng nghỉ / cam kết ngoài mốc — Quản trị, Toàn quyền); không có nút vượt đứng riêng (2.13);
+//   chặng đặt gấp không cần vượt mốc (máy chủ quyết — 2.1).
 // - Khoá theo mốc: chỉ theo cờ `khoaMoc` của từng chuyến (R-P13). Vạch mốc trên dòng thời gian vẽ từ `mocToiThieuPhut` (R-P12) — chỉ để nhìn, KHÔNG tô vùng
 //   khoá theo giờ hiện tại (lệnh điều phối vòng 3).
 // - Kế toán (ô trip.view, không trip.dispatch): xem đủ, không nút, dải "Chỉ xem". Không "Gọi tài xế" (H7), không "Đã gọi báo" (Q2 / ADR-0051 — Task B-GB sau).
 // - CHỜ A15: thẻ chuyến đang chạy (mốc tiến độ, "giờ do văn phòng khai") — chưa dựng.
 import { daiBanTrenLich } from "../src/shared/khung-ban-hien-thi";
 import {
-  cauKhoaMoc, changChuaXep, chipChang, chuyenXepDuoc, hinhDongThoiGian, kieuChuyen, nhanNgayXem, soLieuDieuPhoi, tuyenChuyen, viecCanXuLy,
+  NHAN_KHAN_CAP, NUT_VUOT, cauKhoaMoc, changChuaXep, chipChang, chuyenXepDuoc, hinhDongThoiGian, kieuChuyen, nhanNgayXem, soLieuDieuPhoi, tuyenChuyen, viecCanXuLy,
   type HangXe, type KhoiChuyen, type ViecCanXuLy,
 } from "../src/shared/dieu-phoi-man";
 import type { ChangLichDto, ChuyenChiTietResponse, ChuyenTomTatDto, CapNhatDiemResponse, CapNhatKhachResponse, GoiBaoChangDto, LichChungResponse, NhacGoiKhachResponse } from "../src/shared/contracts";
@@ -44,7 +46,8 @@ const oNgay = byId<HTMLInputElement>("dp-ngay");
 const nutMoi = byId<HTMLAnchorElement>("dp-moi");
 
 const staff = await initShell();
-const co = { dieuPhoi: can(staff, "trip.dispatch"), phaLe: can(staff, "trip.override"), quanLyXe: can(staff, "vehicle.manage") };
+// ADR-0104 Đ1 mục 9: khoá theo mốc chỉ hỏi ô điều chỉnh khẩn cấp (vượt mốc luôn thuộc lớp này); lớp phá lệ do 409 `lop` quyết.
+const co = { dieuPhoi: can(staff, "trip.dispatch"), khanCap: can(staff, "trip.urgent_adjust"), quanLyXe: can(staff, "vehicle.manage") };
 const homNay = vnToday(new Date());
 const tu = new URLSearchParams(location.search).get("ngay");
 let ngay = tu && isISODate(tu) ? tu : homNay;
@@ -310,7 +313,7 @@ function theChon(): HTMLElement | null {
   return h(
     "section",
     { class: "vc-card dp-chon", "aria-label": `Chuyến đang chọn ${c.ma}` },
-    h("div", { class: "dp-chon-head" }, h("span", { class: "dp-chon-ma" }, c.ma), chip(k.nhan, TONE_KIEU[k.kieu]), h("span", { class: "dp-chon-tag" }, "Đang chọn")),
+    h("div", { class: "dp-chon-head" }, h("span", { class: "dp-chon-ma" }, c.ma), chip(k.nhan, TONE_KIEU[k.kieu]), c.khanCap ? chip(NHAN_KHAN_CAP, "warn") : null, h("span", { class: "dp-chon-tag" }, "Đang chọn")),
     h("div", { class: "dp-chon-line" }, `${c.xe.bienSo} · ${c.xe.soCho} chỗ · ${c.taiXe?.ten ?? "Chưa có tài xế"} · `, gioChuyen(c), " · tải ", h("strong", null, `${c.tai}/${c.xe.soCho}`)),
     tuyen.length ? h("div", { class: "dp-route" }, ...tuyen) : null,
     c.trangThai === "PLANNED" && c.lyDoGiu.length ? h("div", { class: "dp-chon-giu" }, c.lyDoGiu.map((x) => x.loiNhan).join("; ")) : null,
@@ -325,7 +328,7 @@ function veCanXuLy(viec: ViecCanXuLy[]): void {
   replaceChildren(
     cotCxl,
     dauCot("Cần xử lý", viec.length),
-    co.dieuPhoi ? null : h("div", { class: "dp-readonly" }, "Chỉ xem — Kế toán không xếp xe, không phá lệ."),
+    co.dieuPhoi ? null : h("div", { class: "dp-readonly" }, "Chỉ xem — Kế toán không xếp xe, không điều chỉnh khẩn cấp hay phá lệ."),
     ...(viec.length ? viec.map(mucViec) : [h("div", { class: "dp-col-empty" }, "Không có việc cần xử lý.")]),
   );
 }
@@ -435,7 +438,7 @@ function moXep(c: ChangLichDto, conLai: number, chuyenId: string | null, opener:
     const x = ds.find((v) => v.chuyen.id === den);
     const khoa = !!x?.khoa && !c.datGap;
     ghiChuKhoa.hidden = !khoa;
-    replaceChildren(ghiChuKhoa, ...(khoa ? [icon("lock", 14), co.phaLe ? "Chuyến đã vào vùng khoá trước giờ xuất bến — khi xếp, bạn sẽ chọn lý do phá lệ." : "Chuyến đã vào vùng khoá trước giờ xuất bến — cần Quản trị phá lệ."] : []));
+    replaceChildren(ghiChuKhoa, ...(khoa ? [icon("lock", 14), co.khanCap ? "Chuyến đã vào vùng khoá trước giờ xuất bến — khi xếp, bạn sẽ chọn lý do điều chỉnh khẩn cấp." : "Chuyến đã vào vùng khoá trước giờ xuất bến — cần người xếp xe điều chỉnh khẩn cấp."] : []));
   };
   const nhom = ds.length
     ? nhomChon("dp-xep-chuyen", "Chuyến", ds.map((x) => ({ code: x.chuyen.id, nhan: x.nhan, phu: x.khoa ? "đang khoá" : undefined })), (id) => {
@@ -500,7 +503,7 @@ function moXep(c: ChangLichDto, conLai: number, chuyenId: string | null, opener:
         const t = lich!.chuyen.find((x) => x.id === den)!;
         bang.close(false);
         setTimeout(() => moPhaLe({
-          lyDo: lich!.lyDo, opener, nutChinh: "Phá lệ và xếp",
+          lyDo: lich!.lyDo, opener, nutChinh: NUT_VUOT.xep[l.lop], lop: l.lop,
           tomTat: [h("div", { class: "dp-sheet-sum-title" }, `Xếp chặng ${tieuDe}`), h("div", { class: "dp-note" }, `${c.maDon} · ${so} khách → vào ${t.ma} (xuất bến ${gioChuyen(t).split("–")[0]})`), h("div", { class: "dp-note" }, l.lyDo.map((x) => x.loiNhan).join("; "))],
           onXacNhan: async (code) => {
             const r = await gui(thanPhaLe(l.lyDo.map((x) => x.ma), code, false));

@@ -3,7 +3,9 @@
 //   (2) xếp A → 200; xếp B (đơn khác) vào cùng chuyến → 409 can_pha_le_cam_ket (canQuyen theo vai, lý do CAM_KET); Bán hàng gửi camKetPhaLe → 403
 //       (không ghi); Quản trị gửi camKetPhaLe → 200, hai cột phá lệ của chuyến CÓ (lý do thuộc nhóm PHA_LE);
 //   (3) xếp C → 409; Quản trị phá lệ → 200; rút B và C → hết vi phạm → hai cột về trống (kiểm trực tiếp D1) và ghép lại B → 409 cần phá lệ MỚI;
-//   (4) bật minVehicleSeats = 30 trên chặng A (xe 15 chỗ; đường thật PUT /legs) → xuất bến 409 chua_du_dieu_kien_xuat_ben có lý do CAM_KET.
+//   (4) bật minVehicleSeats = 30 trên chặng A (xe 15 chỗ; đường thật PUT /legs) → xuất bến 409 chua_du_dieu_kien_xuat_ben có lý do CAM_KET;
+//   (5) ADR-0104 Đ1 (NỚI có tên N5): chuyến DƯỚI mốc (bắt đầu sau 2 giờ 30) — Bán hàng xếp đơn thường vào chuyến có xe riêng: 409 lớp KHAN_CAP (canQuyen
+//       đúng); kèm điều chỉnh khẩn cấp (mốc + cam kết) → 200, cột phá lệ cam kết có. Vế (2) — chuyến NGÀY MAI, ngoài mốc — Bán hàng vẫn 403.
 // Dữ liệu độc nhất theo lần chạy (SĐT ngẫu nhiên, biển số theo Date.now()). Chuyến chạy NGÀY MAI (xếp không vướng mốc 6 giờ). Tên khách, giấy tờ là GIẢ.
 import assert from "node:assert/strict";
 import { ACCOUNTS, call, catalogService, ensureFakeCatalog, login, orderInput, randomPhone, session, sql, sqlRows, vnDate, moCuaSoXuatBen48Gio } from "./lib.mjs";
@@ -60,7 +62,7 @@ const c = await donThuong([P(5), P(6)], `Khách sạn Cam Kết C ${duoi}`);
 const legA = a.services[0].legs[0].id, legB = b.services[0].legs[0].id, legC = c.services[0].legs[0].id;
 console.log("✓ (1) Đối tác lập nháp có xe riêng → 201, cờ đọc lại đúng; văn phòng xác nhận A, B, C");
 
-// --- (2) xếp A; xếp B → 409; Bán hàng phá lệ → 403; Quản trị phá lệ → 200 ---
+// --- (2) xếp A; xếp B → 409; Bán hàng phá lệ → 403 (chuyến NGÀY MAI — ngoài mốc, lớp QUAN_TRI; ADR-0104 Đ1); Quản trị phá lệ → 200 ---
 r = await call(SALES, "POST", "/api/van-chuyen/chuyen", { requestId: uuid(), xeId, taiXePartyId: txParty, batDau: { ngay: D, gio: "09:30" }, ketThuc: { ngay: D, gio: "12:00" } });
 assert.equal(r.status, 201, JSON.stringify(r.body));
 const tripId = r.body.chuyen.id;
@@ -73,6 +75,7 @@ r = await xep(SALES, ch, legB);
 assert.equal(r.status, 409, JSON.stringify(r.body));
 assert.equal(r.body.error.code, "can_pha_le_cam_ket");
 assert.equal(r.body.error.canQuyen, false, "Bán hàng không có quyền phá lệ");
+assert.equal(r.body.error.lop, "QUAN_TRI", "ADR-0104 Đ1: chuyến ngoài mốc — cam kết chỉ Quản trị, Toàn quyền");
 assert.ok(r.body.error.lyDo.length >= 1 && r.body.error.lyDo.every((l) => l.ma === "CAM_KET"), JSON.stringify(r.body.error.lyDo));
 assert.equal((await xep(ADMIN, ch, legB)).body.error.canQuyen, true, "Quản trị có quyền phá lệ");
 r = await xep(SALES, ch, legB, { camKetPhaLe: PL });
@@ -124,3 +127,32 @@ assert.equal(r.body.error.code, "chua_du_dieu_kien_xuat_ben");
 assert.ok(r.body.error.lyDo.some((l) => l.ma === "CAM_KET"), JSON.stringify(r.body.error.lyDo));
 assert.equal((await sqlRows(`SELECT status AS x FROM vc_trip WHERE id = '${tripId}'`))[0].x, "PLANNED", "chuyến chưa xuất bến");
 console.log("✓ (4) bật minVehicleSeats 30 trên xe 15 chỗ → xuất bến 409 chua_du_dieu_kien_xuat_ben có lý do CAM_KET; chuyến vẫn PLANNED");
+
+// --- (5) ADR-0104 Đ1: chuyến DƯỚI mốc — Bán hàng điều chỉnh khẩn cấp cả mốc lẫn cam kết ---
+// Không phụ thuộc giờ chạy: đơn E, F đón NGÀY MAI 10:00 nên lúc xác nhận luôn còn ≥ 10 giờ (ngoài mốc, không cần đặt gấp); chuyến bắt đầu sau 2 giờ 30 (luôn
+// dưới mốc) — chạy sau 21:30 giờ VN thì chuyến qua nửa đêm (máy chủ không chặn chuyến qua đêm) và vẫn cách chuyến (2) ngày mai 09:30 nhiều giờ.
+const vnSau = (phut) => {
+  const iso = new Date(Date.now() + 7 * 3600e3 + phut * 60e3).toISOString();
+  return { ngay: iso.slice(0, 10), gio: iso.slice(11, 16) };
+};
+r = await call(SALES, "POST", "/api/orders", orderInput({ services: [catalogService({ pax: { adult: 2 }, departDate: D, legs: [leg(`Khách sạn Cam Kết E ${duoi}`, { exclusiveVehicle: true })] })], passengers: [P(9), P(10)] }));
+assert.equal(r.status, 201, JSON.stringify(r.body));
+assert.equal((await call(SALES, "POST", `/api/orders/${r.body.order.id}/status`, { status: "confirmed" })).status, 200);
+const legE = r.body.order.services[0].legs[0].id;
+const f = await donThuong([P(11), P(12)], `Khách sạn Cam Kết F ${duoi}`);
+const legF = f.services[0].legs[0].id;
+r = await call(SALES, "POST", "/api/van-chuyen/chuyen", { requestId: uuid(), xeId, taiXePartyId: txParty, batDau: vnSau(150), ketThuc: vnSau(240) });
+assert.equal(r.status, 201, JSON.stringify(r.body));
+assert.equal(r.body.chuyen.khoaMoc.dangKhoa, true, "chuyến dưới mốc 6 giờ");
+const gan = r.body.chuyen.id;
+const xepGan = (chuyen, legId, extra = {}) => call(SALES, "POST", `/api/van-chuyen/chuyen/${gan}/phan-bo`, { version: chuyen.version, requestId: uuid(), chang: [{ legId, soSuat: 2 }], ...extra });
+r = await xepGan(r.body.chuyen, legE, { phaLe: PL });
+assert.equal(r.status, 200, JSON.stringify(r.body));
+let chGan = r.body.chuyen;
+r = await xepGan(chGan, legF, { phaLe: PL });
+assert.equal(r.status, 409, JSON.stringify(r.body));
+assert.deepEqual([r.body.error.code, r.body.error.lop, r.body.error.canQuyen], ["can_pha_le_cam_ket", "KHAN_CAP", true]);
+r = await xepGan(chGan, legF, { phaLe: PL, camKetPhaLe: PL });
+assert.equal(r.status, 200, JSON.stringify(r.body));
+assert.equal((await cot(gan)).r, PL.lyDo, "cột phá lệ cam kết có (lớp điều chỉnh khẩn cấp)");
+console.log("✓ (5) chuyến dưới mốc: Bán hàng xếp đơn thường vào chuyến xe riêng → 409 lớp KHAN_CAP (canQuyen đúng); kèm điều chỉnh khẩn cấp → 200, cột cam kết có");

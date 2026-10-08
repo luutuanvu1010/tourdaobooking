@@ -1240,6 +1240,12 @@ export interface ChuyenTomTatDto {
   xuatBen: MocTienDoDto | null;
   ketThucThat: MocTienDoDto | null;
   diem: { id: string; thuTu: number; loai: "PICKUP" | "DROPOFF"; tenNoi: string; trangThai: string; daToi: MocTienDoDto | null }[];
+  /**
+   * ADR-0104 Đ1 mục 5: nhãn "Điều chỉnh khẩn cấp" — chuyến có sự kiện (mọi loại, kể cả dời khách vào / ra — GA-35) mang luật vượt `MOC_TOI_THIEU`; tính lúc
+   * đọc. Vượt khoảng nghỉ / cam kết mà không vượt mốc → false (nhãn "Phá lệ" ở nhật ký) — kể cả bốn ca Bán hàng làm dưới mốc (lệch đã biết Đ1.5). CHỈ DTO
+   * văn phòng (lịch chung, chi tiết chuyến); không vào DTO tài xế.
+   */
+  khanCap: boolean;
 }
 export interface ChangLichDto {
   legId: string;
@@ -1401,7 +1407,10 @@ export interface NhacGoiKhachResponse { tu: string; den: string; muc: MucNhacGoi
 export interface DaGoiBaoRequest { requestId: string; phienBan: number; gioMoi: GioHenDto }
 /** `POST /api/van-chuyen/chang/:legId/bo-danh-dau-goi-bao`. */
 export interface BoDanhDauGoiBaoRequest { requestId: string; phienBan: number }
-/** Phá lệ đi kèm lệnh (I2) — chỉ ô `trip.override` (Quản trị, Toàn quyền); `lyDo` = mã lý do nhóm PHA_LE đang dùng. */
+/**
+ * Cờ vượt luật đi kèm lệnh (I2): `phaLe` (mốc), `nghiPhaLe` (khoảng nghỉ), `camKetPhaLe` (cam kết). ADR-0104 Đ1: mốc → ô `trip.urgent_adjust` (Điều chỉnh khẩn
+ * cấp); khoảng nghỉ, cam kết → `trip.urgent_adjust` khi chuyến dưới mốc, `trip.override` (Phá lệ) khi ngoài mốc. `lyDo` = mã lý do nhóm PHA_LE đang dùng.
+ */
 export interface PhaLeRequest { lyDo: string }
 /** POST /api/van-chuyen/chuyen — tạo chuyến. */
 export interface TaoChuyenRequest {
@@ -1468,7 +1477,9 @@ export interface CuuHoResponse {
  */
 export interface CapNhatKhachResponse extends ChuyenChiTietResponse { daCapNhat: number }
 /**
- * 409 của lệnh chuyến: `lyDo` = mọi lý do (luật thuần); `canQuyen` (can_pha_le) = người gọi có ô trip.override (đưa hộp phá lệ).
+ * 409 của lệnh chuyến: `lyDo` = mọi lý do (luật thuần). `can_pha_le` / `chua_du_nghi` / `can_pha_le_cam_ket` kèm `canQuyen` = người gọi đủ ô cho MỌI luật đang
+ * thiếu theo lớp (đưa hộp xác nhận) và `lop` (ADR-0104 Đ1 — chỉ THÊM, không đổi khoá cũ): `KHAN_CAP` = "Điều chỉnh khẩn cấp" (chuyến dưới mốc — Bán hàng, Quản
+ * trị, Toàn quyền), `QUAN_TRI` = "Phá lệ" (khoảng nghỉ / cam kết khi chuyến ngoài mốc — Quản trị, Toàn quyền).
  * A15: `gio_xay_ra_ngoai_khoang` kèm `maGio` (mã kiemGioXayRa), `somNhat` (giờ sớm nhất khai được — R-P14; null = không phút nào) và `mocChan` (mốc gây chặn:
  * mã chuyến trước + giờ, hoặc nhãn sự kiện + giờ — không tên người); `con_khach_chua_xong` kèm `goiY` "KET_THUC_GIAN_DOAN" + số suất / điểm còn dở.
  */
@@ -1478,6 +1489,7 @@ export interface LenhChuyenLoiBody {
     message: string;
     lyDo?: LyDoGiuDto[];
     canQuyen?: boolean;
+    lop?: "KHAN_CAP" | "QUAN_TRI";
     maGio?: string[];
     somNhat?: GioVnDto | null;
     mocChan?: MocChanDto | null;

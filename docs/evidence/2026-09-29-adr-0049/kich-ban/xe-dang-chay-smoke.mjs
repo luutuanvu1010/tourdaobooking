@@ -1,6 +1,6 @@
 // Vận chuyển Đợt 5 "Xe đang chạy" (ADR-0052 D5; bản vẽ docs/design/van-chuyen-dot-3-7/Điều phối xe đang chạy.dc.html — V11 bảng 11.1–11.6, V6 bổ sung 6.1, 6.2):
 // trang /xe-dang-chay, khối "Việc của văn phòng" + "Khách đang chờ" ở Chi tiết chuyến đang chạy, hộp "Báo huỷ một suất", form "Thêm điểm đón / thêm khách"
-// (Bán hàng: dòng khoá; Quản trị: hộp Phá lệ), "Cập nhật điểm theo đơn" khi xe chạy, Kế toán chỉ xem, màn tài xế: dải "Văn phòng vừa thêm điểm" + chip.
+// (ADR-0104 Đ1: Bán hàng và Quản trị đều qua hộp "Điều chỉnh khẩn cấp" — Bán hàng mở rồi đóng), "Cập nhật điểm theo đơn" khi xe chạy, Kế toán chỉ xem, màn tài xế: dải "Văn phòng vừa thêm điểm" + chip.
 // Chạy từ GỐC repo, sau `npm run build:web` (không cần mạng ngoài):
 //   AXE_JS=<…/axe.min.js> CHROME_BIN=docs/evidence/2026-09-20-a2/kich-ban/chrome-wrap.sh OUT=<thư mục ảnh> node docs/evidence/2026-09-29-adr-0049/kich-ban/xe-dang-chay-smoke.mjs
 // Kho cookie của Chrome dùng CHUNG: Bán hàng → Quản trị → Kế toán → Tài xế (trang mở sau cùng là của tài xế).
@@ -15,7 +15,7 @@ const d = await dungDuLieuDieuPhoi(env, call);
 const dung = (r, ma, viec) => assert.equal(r.status, ma, `${viec}: ${r.status} ${r.text}`);
 // Chuyến chạy: T4 (NGÀY MAI 10:00–11:30, An, 79A-111.11) + O4 (2 khách có tên) xếp bằng phá lệ (đã trong mốc 48 giờ), rồi văn phòng xuất bến thay (sớm) —
 // trang Xe đang chạy đọc hôm qua / hôm nay / ngày mai. Mốc trả về 6 giờ để xác nhận được O6 (ngày mai 10:40 ngoài mốc 6 giờ, KHÔNG đặt gấp); xe đang chạy vẫn
-// luôn trong mốc ⇒ Bán hàng thấy dòng khoá, Quản trị qua hộp Phá lệ.
+// luôn trong mốc ⇒ thêm khách không đặt gấp là điều chỉnh khẩn cấp (ADR-0104 Đ1 — trước đây Bán hàng thấy dòng khoá, Quản trị qua hộp Phá lệ).
 dung(await call(ACCOUNTS.admin, "POST", `/api/van-chuyen/chuyen/${d.T4.id}/phan-bo`, { version: d.T4.version, requestId: randomUUID(), chang: [{ legId: d.O4.legId, soSuat: 2 }], phaLe: { lyDo: "PHA_LE_SU_CO" } }), 200, "xếp O4 vào T4");
 dung(await call(CHU, "POST", "/api/van-chuyen/chinh-sach-dieu-phoi", { minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes: 30, requireManifest: true, proxyBackdateMaxMinutes: 180, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240, departureWindowMinutes: 2880 }), 201, "mốc 6 giờ");
 const T = d.T4;
@@ -67,7 +67,9 @@ try {
     await shotFull(s, "d5-chuyen-dang-chay-ban-hang-may-tinh.png");
   });
 
-  await b.step("3", `11.4 Bán hàng "Thêm điểm đón / thêm khách": chọn chặng ${O6_MA} → điểm đón chỉ đọc, số khách 2; chặng không đặt gấp → dòng khoá "Khách không đặt gấp — cần Quản trị phá lệ.", nút khoá; không gửi lệnh${axeNote()}`, async () => {
+  // ADR-0104 Đ1 (NỚI có tên, 2026-10-08): xe đang chạy luôn dưới mốc ⇒ thêm khách không đặt gấp = điều chỉnh khẩn cấp — Bán hàng có ô trip.urgent_adjust:
+  // KHÔNG dòng khoá, nút gửi mở; máy chủ 409 lớp KHAN_CAP → hộp "Điều chỉnh khẩn cấp" (Bán hàng mở rồi đóng — không gửi kèm lý do; Quản trị thêm thật ở bước 5).
+  await b.step("3", `11.4 Bán hàng "Thêm điểm đón / thêm khách": chọn chặng ${O6_MA} → điểm đón chỉ đọc, số khách 2; chặng không đặt gấp → KHÔNG dòng khoá (ADR-0104 Đ1); gửi → hộp "Điều chỉnh khẩn cấp" ("Điều chỉnh khẩn cấp và thêm"); đóng, không gửi kèm lý do${axeNote()}`, async () => {
     await s.ev(click('[data-action="them-diem"]'));
     await s.waitFor(`!!document.querySelector('.dp-sheet-them-diem')`, "bảng thêm điểm");
     await sleep(500);
@@ -79,14 +81,21 @@ try {
     assert.equal(await s.ev(txt(".dp-them-noi")), "Vinpearl Condotel · 10:40");
     assert.equal(await s.ev(`document.querySelector('.dp-sheet-them-diem .counter-field').value`), "2");
     assert.equal(await s.ev(`getComputedStyle(document.querySelector('.dp-sheet-them-diem .counter-field')).fontSize`), "16px");
-    assert.equal(await s.ev(`document.querySelector('.dp-them-khoa').hidden`), false);
-    assert.equal(await s.ev(txt(".dp-them-khoa")), "Khách không đặt gấp — cần Quản trị phá lệ.");
-    assert.equal(await s.ev(`document.querySelector('[data-action="them-diem-gui"]').disabled`), true);
+    assert.equal(await s.ev(`document.querySelector('.dp-them-khoa').hidden`), true, "Bán hàng: không dòng khoá");
+    assert.equal(await s.ev(`document.querySelector('[data-action="them-diem-gui"]').disabled`), false);
     await axe(s, "Thêm điểm 1040");
-    await shotView(s, "d5-them-diem-ban-hang-khoa-may-tinh.png");
-    await s.ev(click(".sheet-close"));
-    await sleep(400);
-    assert.deepEqual(posts(s, "/them-diem"), []);
+    await shotView(s, "d5-them-diem-ban-hang-may-tinh.png");
+    await s.ev(click('[data-action="them-diem-gui"]'));
+    await s.waitFor(`!!document.querySelector('[data-action="pha-le-gui"]')`, "hộp điều chỉnh khẩn cấp", 8000);
+    await sleep(500);
+    assert.equal(await s.ev(txt('[data-action="pha-le-gui"]')), "Điều chỉnh khẩn cấp và thêm");
+    assert.equal(await s.ev(txt(".dp-sheet-pha-le .sheet-title")), "Điều chỉnh khẩn cấp");
+    await shotView(s, "d5-them-diem-khan-cap-ban-hang-may-tinh.png");
+    await s.ev(`[...document.querySelectorAll('.dp-sheet-pha-le button')].find((x) => x.innerText.trim() === 'Đóng').click()`);
+    await s.waitFor(`!document.querySelector('[data-action="pha-le-gui"]')`, "đóng hộp, không gửi");
+    const gui = posts(s, "/them-diem").map((r) => JSON.parse(r.body));
+    assert.equal(gui.length, 1, "một lệnh không kèm lý do (409)");
+    assert.equal(gui[0].phaLe, undefined);
   });
 
   await b.step("4", `11.5 Bán hàng "Báo huỷ" dòng đầu: hộp 4 lý do + "Thẻ vẫn chiếm chỗ…", nút Báo huỷ khoá tới khi chọn; gửi { version, lyDo, requestId } → dòng có chip "Văn phòng đã báo huỷ" + "Vẫn chiếm chỗ…", hết link; điểm đón hiện "1/2 khách văn phòng đã báo huỷ — vẫn tới điểm"${axeNote()}`, async () => {
@@ -114,7 +123,7 @@ try {
 
   // ---- Quản trị (máy tính → điện thoại) --------------------------------------------------------------------------------------------------------------------------
   const q = await env.as(ACCOUNTS.admin, `/chuyen?id=${T.id}`, DESK);
-  await b.step("5", `11.4 Quản trị thêm ${O6_MA} (2 khách) vào xe đang chạy: không dòng khoá; máy chủ đòi phá lệ → hộp Phá lệ "Phá lệ và thêm" → gửi lại kèm phaLe → báo "Đã thêm 2 khách…", điểm mới có chip "Mới thêm"${axeNote()}`, async () => {
+  await b.step("5", `11.4 Quản trị thêm ${O6_MA} (2 khách) vào xe đang chạy: không dòng khoá; máy chủ đòi điều chỉnh khẩn cấp → hộp "Điều chỉnh khẩn cấp và thêm" (ADR-0104 Đ1) → gửi lại kèm phaLe → báo "Đã thêm 2 khách…", điểm mới có chip "Mới thêm"${axeNote()}`, async () => {
     await moChuyen(q);
     await q.ev(click('[data-action="them-diem"]'));
     await q.waitFor(`!!document.querySelector('.dp-sheet-them-diem')`, "bảng thêm điểm");
@@ -125,7 +134,7 @@ try {
     await q.ev(click('[data-action="them-diem-gui"]'));
     await q.waitFor(`!!document.querySelector('[data-action="pha-le-gui"]')`, "hộp phá lệ", 8000);
     await sleep(500);
-    assert.equal(await q.ev(txt('[data-action="pha-le-gui"]')), "Phá lệ và thêm");
+    assert.equal(await q.ev(txt('[data-action="pha-le-gui"]')), "Điều chỉnh khẩn cấp và thêm");
     await shotView(q, "d5-them-diem-pha-le-may-tinh.png");
     await q.ev(click(".dp-sheet-pha-le .vc-reason"));
     await q.ev(click('[data-action="pha-le-gui"]'));

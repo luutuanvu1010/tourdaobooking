@@ -240,11 +240,11 @@ test("TC-2 route 16–18 danh mục lý do: Quản trị thêm → 201; Bán hà
   assert.equal(r.status, 200, r.text);
   assert.equal(r.json.reasons.length, 33); // 13 lý do gieo của 0041 + 4 lý do xe bận của 0071 (ADR-0055) + 9 lý do nhóm CHI_PHI_XE (ADR-0057 T2, 0073) + 4 lý do báo huỷ của 0076 (ADR-0052 D5.2) + 3 lý do điều chỉnh của 0085 (ADR-0097 Đ2.5)
   assert.deepEqual(r.json.reasons.find((x: any) => x.code === "PHA_LE_SU_CO"), {
-    code: "PHA_LE_SU_CO", group: "PHA_LE", groupLabel: "Phá lệ", label: "Sự cố vận hành", active: true, sortOrder: 1, updatedAt: "2026-09-29T00:00:00.000Z", heThong: false,
+    code: "PHA_LE_SU_CO", group: "PHA_LE", groupLabel: "Điều chỉnh khẩn cấp, phá lệ", label: "Sự cố vận hành", active: true, sortOrder: 1, updatedAt: "2026-09-29T00:00:00.000Z", heThong: false,
   });
   r = await w.call("POST", "/api/van-chuyen/ly-do", { as: ADM, body: { code: "PHA_LE_MUA_LON", group: "PHA_LE", label: "Mưa lớn", sortOrder: 3 } });
   assert.equal(r.status, 201, r.text);
-  assert.equal(nhatKyCuoi(w, "trip_reason_added").detail, "lý do PHA_LE_MUA_LON (Phá lệ): Mưa lớn");
+  assert.equal(nhatKyCuoi(w, "trip_reason_added").detail, "lý do PHA_LE_MUA_LON (Điều chỉnh khẩn cấp, phá lệ): Mưa lớn");
   assert.equal((await w.call("POST", "/api/van-chuyen/ly-do", { as: SUP, body: { code: "HUY_TROI_XAU", group: "HUY_CHUYEN", label: "Trời xấu" } })).status, 201, "Toàn quyền cũng được");
   const n1 = soNhatKy(w);
   for (const as of [SALES, ACC, FIELD, DRIVER, PARTNER, INTERN]) {
@@ -263,7 +263,7 @@ test("TC-2 route 16–18 danh mục lý do: Quản trị thêm → 201; Bán hà
   r = await w.call("PUT", "/api/van-chuyen/ly-do/PHA_LE_KHAC", { as: ADM, body: { label: "Lý do khác", sortOrder: 99, active: false, expectedUpdatedAt: moc } });
   assert.equal(r.status, 200, r.text);
   assert.deepEqual({ ...w.q("SELECT label, active, reason_group g FROM vc_reason WHERE code = 'PHA_LE_KHAC'")[0] }, { label: "Lý do khác", active: 0, g: "PHA_LE" });
-  assert.equal(nhatKyCuoi(w, "trip_reason_updated").detail, "lý do PHA_LE_KHAC (Phá lệ): Lý do khác — ngưng dùng");
+  assert.equal(nhatKyCuoi(w, "trip_reason_updated").detail, "lý do PHA_LE_KHAC (Điều chỉnh khẩn cấp, phá lệ): Lý do khác — ngưng dùng");
   const cu = await w.call("PUT", "/api/van-chuyen/ly-do/PHA_LE_KHAC", { as: ADM, body: { label: "Khác nữa", sortOrder: 99, active: true, expectedUpdatedAt: moc } });
   assert.equal(cu.status, 409, cu.text);
   assert.equal(cu.json.error.code, "stale");

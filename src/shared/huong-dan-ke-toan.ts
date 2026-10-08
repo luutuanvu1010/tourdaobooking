@@ -100,7 +100,7 @@ Nếu giảm giá lớn hơn tiền dịch vụ còn lại, **Tổng cộng** th
       noiDung: `1. Máy tính: bấm [[Vận chuyển]] rồi [[Điều phối xe]]. Điện thoại: bấm tab [[Tôi]], tìm nhóm VẬN CHUYỂN, bấm [[Điều phối xe]].
 2. Chọn ngày ở ô ngày trên cùng. Bấm mũi tên trái hoặc phải để lùi hay tiến một ngày.
 3. Màn có ba phần: **Chưa xếp**, **Xe**, **Cần xử lý**. Trên điện thoại, ba phần này là ba thẻ để bấm qua lại.
-4. Bạn sẽ thấy dải chữ "Chỉ xem — Kế toán không xếp xe, không phá lệ." Bạn không có nút [[+ Chuyến mới]], không xếp khách, không sửa chuyến.
+4. Bạn sẽ thấy dải chữ "Chỉ xem — Kế toán không xếp xe, không điều chỉnh khẩn cấp hay phá lệ." Bạn không có nút [[+ Chuyến mới]], không xếp khách, không sửa chuyến.
 5. Bấm vào một chuyến để xem **Chi tiết chuyến**.
 6. [[Xe đang chạy]] liệt kê xe đang chạy; bạn chỉ xem, không thêm khách hay báo huỷ.`,
     },

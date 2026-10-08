@@ -3,7 +3,8 @@
 //  - `taoLenh`: mọi lệnh ghi đi qua đây — requestId mới mỗi ý định; mất mạng thì bấm lại CÙNG thân dùng lại requestId (không tạo hai chuyến — LC-11).
 //  - `docLoiLenh`: 409 / 400 của lệnh chuyến → câu lời thường (câu máy chủ + từng lý do), cờ "cần phá lệ" và `canQuyen` của máy chủ (không đoán theo vai).
 //  - `moPhaLe`: hộp "Phá lệ" (khuôn 1f của bản vẽ 01 — chọn lý do nhóm Phá lệ; KHÔNG ô ghi chú: chủ trả lời Q1); `moHuyChuyen`: hộp "Huỷ chuyến" (bản vẽ 2f).
-import { idChoLenh, type Tone } from "../src/shared/dieu-phoi-man";
+import { HOP_VUOT, idChoLenh, lopHop, type Tone } from "../src/shared/dieu-phoi-man";
+import type { LopVuot } from "../src/shared/moc-toi-thieu";
 import { thuNgayNgan, vnToday } from "../src/shared/vn-date";
 import { nenDongVe } from "../src/shared/lan-gui-ve";
 import type { LyDoDangDungDto, LyDoGiuDto } from "../src/shared/contracts";
@@ -50,17 +51,20 @@ export interface LoiLenh {
   canPhaLe: boolean;
   /** Máy chủ nói người gọi có ô phá lệ (`canQuyen`). */
   duocPhaLe: boolean;
+  /** ADR-0104 Đ1: lớp của 409 cần vượt (`lop`) — KHAN_CAP "Điều chỉnh khẩn cấp", QUAN_TRI "Phá lệ"; 409 không kèm lớp → QUAN_TRI (`lopHop`). */
+  lop: LopVuot;
   mang: boolean;
 }
 export function docLoiLenh(e: unknown): LoiLenh {
-  if (!(e instanceof ApiError)) return { tieuDe: LOI_MANG, dong: [], lyDo: [], cu: false, canPhaLe: false, duocPhaLe: false, mang: true };
-  const d = (e.details ?? {}) as { lyDo?: LyDoGiuDto[]; canQuyen?: boolean };
+  if (!(e instanceof ApiError)) return { tieuDe: LOI_MANG, dong: [], lyDo: [], cu: false, canPhaLe: false, duocPhaLe: false, lop: "QUAN_TRI", mang: true };
+  const d = (e.details ?? {}) as { lyDo?: LyDoGiuDto[]; canQuyen?: boolean; lop?: unknown };
   const lyDo = Array.isArray(d.lyDo) ? d.lyDo : [];
   const canPhaLe = e.status === 409 && (e.code === "can_pha_le" || e.code === "chua_du_nghi" || e.code === "can_pha_le_cam_ket");
   const duocPhaLe = canPhaLe && d.canQuyen === true;
   const dong = lyDo.map((l) => `${l.loiNhan} · Ai xử lý: ${l.aiXuLyNhan}`);
-  if (canPhaLe && !duocPhaLe) dong.push("Cần Quản trị phá lệ.");
-  return { tieuDe: e.message, dong, lyDo, cu: e.status === 409 && e.code === "stale", canPhaLe, duocPhaLe, mang: false };
+  const lop = lopHop(d.lop);
+  if (canPhaLe && !duocPhaLe) dong.push(HOP_VUOT[lop].canNguoi);
+  return { tieuDe: e.message, dong, lyDo, cu: e.status === 409 && e.code === "stale", canPhaLe, duocPhaLe, lop, mang: false };
 }
 
 /** Dải báo (khuôn `.banner` sẵn có). `taiLai` → nút "Tải lại". */
@@ -109,22 +113,24 @@ export function nhomChon(id: string, nhanNhom: string, ds: readonly { code: stri
 
 /**
  * Hộp "Phá lệ" (khuôn 1f, bản vẽ 01): tóm tắt lệnh, chọn lý do (danh mục nhóm Phá lệ đang dùng), nút chính khoá tới khi chọn. `onXacNhan(code)` gửi lại
- * CHÍNH lệnh kèm phá lệ; lỗi thì hộp giữ nguyên và hiện câu. Không có ô ghi chú (chủ trả lời Q1: phá lệ chỉ chọn lý do).
+ * CHÍNH lệnh kèm phá lệ; lỗi thì hộp giữ nguyên và hiện câu. Không có ô ghi chú (chủ trả lời Q1: phá lệ chỉ chọn lý do). ADR-0104 Đ1 mục 9: tiêu đề, nhãn
+ * nhóm lý do, ghi chú theo `lop` của 409 (`HOP_VUOT`) — nơi gọi truyền `lop` và chữ nút cùng lớp (`NUT_VUOT`).
  */
-export function moPhaLe(o: { lyDo: readonly LyDoDangDungDto[]; tomTat: Child[]; nutChinh: string; opener?: HTMLElement | null; onXacNhan: (code: string) => Promise<void> }): void {
+export function moPhaLe(o: { lyDo: readonly LyDoDangDungDto[]; tomTat: Child[]; nutChinh: string; lop: LopVuot; opener?: HTMLElement | null; onXacNhan: (code: string) => Promise<void> }): void {
+  const chu = HOP_VUOT[o.lop];
   let code: string | null = null;
   const loi = h("div", { class: "vc-field-error", role: "alert", hidden: true });
   const chinh = h("button", { type: "button", class: "vc-btn btn btn-accent", disabled: true, "data-action": "pha-le-gui" }, o.nutChinh);
   const dong = h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary" }, "Đóng");
   const goiY = h("div", { class: "dp-note" }, "Chọn một lý do để tiếp tục.");
-  const nhom = nhomChon("dp-pha-le-label", "Lý do phá lệ", o.lyDo.filter((l) => l.nhom === "PHA_LE").map((l) => ({ code: l.code, nhan: l.nhan })), (c) => {
+  const nhom = nhomChon("dp-pha-le-label", chu.nhanLyDo, o.lyDo.filter((l) => l.nhom === "PHA_LE").map((l) => ({ code: l.code, nhan: l.nhan })), (c) => {
     code = c;
     chinh.disabled = false;
     goiY.hidden = true;
   });
   const bang = moBangTruot({
-    title: "Phá lệ",
-    body: [h("div", { class: "dp-sheet-sum" }, ...o.tomTat), nhom, h("div", { class: "dp-note" }, "Việc phá lệ ghi vào nhật ký chuyến kèm tên bạn."), goiY, loi],
+    title: chu.tieuDe,
+    body: [h("div", { class: "dp-sheet-sum" }, ...o.tomTat), nhom, h("div", { class: "dp-note" }, chu.ghiChu), goiY, loi],
     foot: [dong, chinh],
     footClass: "vc-foot-2",
     opener: o.opener,

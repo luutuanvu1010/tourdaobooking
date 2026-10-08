@@ -49,10 +49,10 @@ import { eventByRequest, eventsByTrips, tripCountByDate, tripsByDate, tripsCuaTa
 import { loTaoChuyen } from "./dieu-phoi";
 import { cuuHoTu } from "./cuu-ho";
 import { chinhSachVao, docChung, docNen, khungChuyen, taiXeVao, xeVao, type NenChuyen } from "./dieu-phoi-doc";
-import { dungLichNgay, lenhBaoHuy, lenhBoSungTen, lenhCapNhatDiem, lenhCapNhatKhach, lenhDoi, lenhHuy, lenhRut, lenhSuaChuyen, lenhThemDiemDangChay, lenhXep } from "./dieu-phoi-lenh";
+import { CAU_LY_DO_VUOT_LA, dungLichNgay, lenhBaoHuy, lenhBoSungTen, lenhCapNhatDiem, lenhCapNhatKhach, lenhDoi, lenhHuy, lenhRut, lenhSuaChuyen, lenhThemDiemDangChay, lenhXep } from "./dieu-phoi-lenh";
 import {
-  CAN_DIEU_PHOI, CAN_PHA_LE, CAN_XEM_CHUYEN, KHONG_CO_CHUYEN, chayLo, chiTietChuyen, cuocChiTiet, danhSachCuoc, gioNgan, loi409, loiKiem, lyDoHopLe, nhanLyDo, phaLeNhatKy,
-  traLenhLap,
+  CAN_DIEU_PHOI, CAN_XEM_CHUYEN, KHONG_CO_CHUYEN, chanCoVuot, chayLo, chiTietChuyen, cuocChiTiet, danhSachCuoc, gioNgan, loi409, loiKiem, lyDoHopLe, nhanLyDo, phaLeNhatKy,
+  gioKhanCapNhatKy, traLenhLap, vuotLenh, type QuyenVuot,
 } from "./dieu-phoi-route";
 import {
   docBaoHuy, docBoSungTen, docCapNhatDiem, docDieuChinhSuat, docDoi, docDoiThuTu, docHuy, docKetThucGianDoan, docRut, docSuaChuyen, docTaoChuyen, docThemDiem, docThuHoiXuatBen,
@@ -1126,7 +1126,7 @@ export const vanChuyenModule: AppModule = {
       const than = docTaoChuyen(await readJson(request));
       if (!than.ok) return error(400, "invalid_input", than.message);
       const t = than.value;
-      if (t.nghiPhaLe && !can(staff, "trip.override")) return CAN_PHA_LE();
+      const quyenVuot: QuyenVuot = (lop) => (lop === "KHAN_CAP" ? can(staff, "trip.urgent_adjust") : can(staff, "trip.override")); // ADR-0104 Đ1: lớp → ô
       // LC-11 + C38: lệnh lặp chỉ khi mã lệnh thuộc sự kiện TẠO chuyến (chưa có chuyến để so); mã của thao tác khác → 409 request_id_reused.
       const lap = await traLenhLap(env.DB, t.requestId, { tripId: null, loai: ["CREATED"] });
       if (lap instanceof Response) return lap;
@@ -1135,9 +1135,13 @@ export const vanChuyenModule: AppModule = {
       let canhBaoLenh: CanhBaoLichDto[] = []; // ADR-0055 VK2-B B3: chỉ nhắc, chỉ lần đầu (khuôn canhBaoXep)
       if (!lap) {
         const chung = await docChung(env.DB, nowIso, vnToday(new Date(bayGioMs)));
+        // ADR-0104 Đ1 mục 0: tạo chuyến không có luật mốc; "dưới mốc" = giờ bắt đầu của chuyến mới — quyết lớp của cờ vượt khoảng nghỉ.
+        const vuot = vuotLenh({ dangChay: false, gioXetMs: t.batDauMs }, bayGioMs, chung.chinhSach?.min_lead_minutes ?? null, [], quyenVuot);
+        const cam = chanCoVuot({ moc: false, nghiCamKet: t.nghiPhaLe !== null }, vuot);
+        if (cam) return cam;
         const xeRow = chung.xe.find((x) => x.id === t.xeId);
         if (!xeRow) return error(400, "invalid_input", "Xe không có hoặc đã ngừng dùng.");
-        if (t.nghiPhaLe && !lyDoHopLe(chung, t.nghiPhaLe.lyDo, "PHA_LE")) return error(400, "invalid_input", "Lý do phá lệ không có trong danh mục.");
+        if (t.nghiPhaLe && !lyDoHopLe(chung, t.nghiPhaLe.lyDo, "PHA_LE")) return error(400, "invalid_input", CAU_LY_DO_VUOT_LA);
         if (t.tuyen !== null && (await tenTuyenDangDung(env.DB, t.tuyen)) === null) return error(400, "invalid_input", "Tuyến không có hoặc đã ngừng dùng.");
         // LC-13 phần CHỈ máy chủ giữ (R-P8): hồ sơ không có trong `taiXeChoDieuPhoi` (không mở vai tài xế công ty, không thuộc nhà xe nào) → chéo xe – tài xế.
         if (!chung.taiXe.some((x) => x.partyId === t.taiXePartyId)) return loi409("cheo_xe_tai_xe", [lyDoGiu("CHEO_XE_TAI_XE")]);
@@ -1148,7 +1152,7 @@ export const vanChuyenModule: AppModule = {
           lenh: "TAO", chuyen: { id: null, batDauMs: t.batDauMs, ketThucMs: t.ketThucMs, xe: xeVao(xeRow, chung.giayToXe), taiXe: taiXeVao(t.taiXePartyId, chung.taiXe), nghiPhaLe: t.nghiPhaLe !== null },
           chuyenKhac: khac.map(khungChuyen), khungBan, chinhSach: chinhSachVao(chung.chinhSach), hangBang: chung.hangBang, bayGioMs,
         });
-        const chan = loiKiem(kq, staff, null, { moc: false, nghi: t.nghiPhaLe !== null, camKet: true }); // tạo chuyến chưa có khách — không xét cam kết
+        const chan = loiKiem(kq, vuot, null, { moc: false, nghi: t.nghiPhaLe !== null, camKet: true }); // tạo chuyến chưa có khách — không xét cam kết
         if (chan) return chan;
         const ngayChay = msToVnLocal(t.batDauMs).date;
         // ADR-0057 C2a, C4: cờ xe thuê + chụp giá bảng LÚC XẾP xe nhà xe (cùng lô); thiếu giá ⇒ không dòng nào (chuyến bị giữ THIEU_GIA tới khi có giá).
@@ -1173,7 +1177,7 @@ export const vanChuyenModule: AppModule = {
             chiPhi: kh.kh,
             taiXePartyId: t.taiXePartyId, policyId: chung.chinhSach?.id ?? null,
             phaLeNghi: t.nghiPhaLe ? { luat: "KHOANG_NGHI", lyDo: t.nghiPhaLe.lyDo, policyId: chung.chinhSach?.id ?? null } : null,
-            detail: `${ma} · xe ${xeRow.plate_number} (${xeRow.passenger_capacity} chỗ) · ${gioNgan(t.batDauMs, bayGioMs)} → ${gioNgan(t.ketThucMs, bayGioMs)}${tenT}${t.nghiPhaLe ? phaLeNhatKy("KHOANG_NGHI", nhanLyDo(chung, t.nghiPhaLe.lyDo)) : ""}${chiTietChiPhiNhatKy(kh.kh, thue)}`,
+            detail: `${ma} · xe ${xeRow.plate_number} (${xeRow.passenger_capacity} chỗ) · ${gioNgan(t.batDauMs, bayGioMs)} → ${gioNgan(t.ketThucMs, bayGioMs)}${tenT}${t.nghiPhaLe ? phaLeNhatKy("KHOANG_NGHI", nhanLyDo(chung, t.nghiPhaLe.lyDo), vuot) + gioKhanCapNhatKy(["KHOANG_NGHI"], vuot) : ""}${chiTietChiPhiNhatKy(kh.kh, thue)}`,
           });
           try {
             const r = await chayLo(env.DB, lo, t.requestId);
@@ -1199,7 +1203,7 @@ export const vanChuyenModule: AppModule = {
       const than = docSuaChuyen(await readJson(request));
       if (!than.ok) return error(400, "invalid_input", than.message);
       const b = than.value;
-      if ((b.phaLe || b.nghiPhaLe || b.camKetPhaLe) && !can(staff, "trip.override")) return CAN_PHA_LE();
+      const quyenVuot: QuyenVuot = (lop) => (lop === "KHAN_CAP" ? can(staff, "trip.urgent_adjust") : can(staff, "trip.override")); // ADR-0104 Đ1: lớp → ô
       const nen = await docNen(env.DB, params.id ?? "");
       if (!nen) return KHONG_CO_CHUYEN();
       const bayGioMs = Date.now();
@@ -1209,7 +1213,7 @@ export const vanChuyenModule: AppModule = {
       if (!lap) {
         // ADR-0056 VK3-A: chặng quanh ngày chạy (sau `can()`) — đổi xe thì luật cam kết xét khách đang trên chuyến.
         const lich = await lichChungChang(env.DB, nen.tu, nen.den);
-        const r = await lenhSuaChuyen(env.DB, nen, lich.chang, b, staff, bayGioMs, ra);
+        const r = await lenhSuaChuyen(env.DB, nen, lich.chang, b, staff, bayGioMs, quyenVuot, ra);
         if (r) return r;
         baoThayDoiChuyen({ tripId: nen.trip.id, requestId: b.requestId }); // ADR-0052 D6.3: sau lô thành công, bắn-và-quên; không gọi khi 4xx / lệnh lặp
       }
@@ -1232,7 +1236,7 @@ export const vanChuyenModule: AppModule = {
       const than = docXep(await readJson(request));
       if (!than.ok) return error(400, "invalid_input", than.message);
       const b = than.value;
-      if ((b.phaLe || b.camKetPhaLe) && !can(staff, "trip.override")) return CAN_PHA_LE(); // ADR-0056 VK3-A: phá lệ cam kết cũng chỉ Quản trị / Toàn quyền
+      const quyenVuot: QuyenVuot = (lop) => (lop === "KHAN_CAP" ? can(staff, "trip.urgent_adjust") : can(staff, "trip.override")); // ADR-0104 Đ1: lớp → ô
       const nen = await docNen(env.DB, params.id ?? "");
       if (!nen) return KHONG_CO_CHUYEN();
       const bayGioMs = Date.now();
@@ -1246,7 +1250,7 @@ export const vanChuyenModule: AppModule = {
           if (!b.nguoiDiKem.every((p) => duoc.has(p))) return error(409, "nguoi_di_kem_khong_hop_le", "Chỉ gắn được hướng dẫn viên đang có tài khoản làm người đi kèm.");
         }
         const lich = await lichChungChang(env.DB, nen.tu, nen.den);
-        const r = await lenhXep(env.DB, nen, lich.chang, b, staff, bayGioMs);
+        const r = await lenhXep(env.DB, nen, lich.chang, b, staff, bayGioMs, quyenVuot);
         if (r.loi) return r.loi;
         canhBaoXep = r.canhBao;
         baoThayDoiChuyen({ tripId: nen.trip.id, requestId: b.requestId }); // ADR-0052 D6.3: sau lô thành công, bắn-và-quên; không gọi khi 4xx / lệnh lặp
@@ -1272,14 +1276,15 @@ export const vanChuyenModule: AppModule = {
       return json(cuuHoTu(nen, l) satisfies CuuHoResponse);
     }),
 
-    // ADR-0052 D5.1 (Đợt 5): "Thêm điểm khi xe đang chạy" — ô trip.dispatch (+ trip.override khi phá lệ mốc). Thân như phan-bo, không người đi kèm. Chuyến
-    // RUNNING (chưa chạy → 409 dùng Xếp). Mốc: chặng đặt gấp qua; chặng khác → 409 "Khách không đặt gấp — cần Quản trị phá lệ." trừ khi Quản trị phá lệ.
+    // ADR-0052 D5.1 (Đợt 5): "Thêm điểm khi xe đang chạy" — ô xếp xe (+ ô theo lớp khi vượt mốc / cam kết — ADR-0104 Đ1: xe đang chạy luôn dưới mốc nên
+    // là điều chỉnh khẩn cấp). Thân như phan-bo, không người đi kèm. Chuyến RUNNING (chưa chạy → 409 dùng Xếp). Mốc: chặng đặt gấp qua; chặng khác → 409
+    // "Khách không đặt gấp — cần điều chỉnh khẩn cấp kèm lý do." trừ khi gửi điều chỉnh khẩn cấp.
     route("POST", "/api/van-chuyen/chuyen/:id/them-diem", "office", async ({ env, request, params, staff, nhanNhanVien, isAssigned, baoThayDoiChuyen }) => {
       if (!can(staff, "trip.dispatch")) return CAN_DIEU_PHOI();
       const than = docThemDiem(await readJson(request));
       if (!than.ok) return error(400, "invalid_input", than.message);
       const b = than.value;
-      if ((b.phaLe || b.camKetPhaLe) && !can(staff, "trip.override")) return CAN_PHA_LE(); // ADR-0056 VK3-A: phá lệ cam kết cũng chỉ Quản trị / Toàn quyền
+      const quyenVuot: QuyenVuot = (lop) => (lop === "KHAN_CAP" ? can(staff, "trip.urgent_adjust") : can(staff, "trip.override")); // ADR-0104 Đ1: lớp → ô
       const nen = await docNen(env.DB, params.id ?? "");
       if (!nen) return KHONG_CO_CHUYEN();
       const bayGioMs = Date.now();
@@ -1288,7 +1293,7 @@ export const vanChuyenModule: AppModule = {
       if (!lap) {
         const lich = await lichChungChang(env.DB, nen.tu, nen.den);
         const hkMoi = await hanhKhachChoChuyen(env.DB, b.chang.map((c) => c.legId)); // dòng hành khách hiện hành — chỉ để ghi bản chốt (không ra phản hồi)
-        const r = await lenhThemDiemDangChay(env.DB, nen, lich.chang, hkMoi, b, staff, bayGioMs);
+        const r = await lenhThemDiemDangChay(env.DB, nen, lich.chang, hkMoi, b, staff, bayGioMs, quyenVuot);
         if (r) return r;
         baoThayDoiChuyen({ tripId: nen.trip.id, requestId: b.requestId }); // ADR-0052 D6.3: sau lô thành công, bắn-và-quên; không gọi khi 4xx / lệnh lặp
       }
@@ -1327,7 +1332,7 @@ export const vanChuyenModule: AppModule = {
       const than = docRut(await readJson(request));
       if (!than.ok) return error(400, "invalid_input", than.message);
       const b = than.value;
-      if (b.phaLe && !can(staff, "trip.override")) return CAN_PHA_LE();
+      const quyenVuot: QuyenVuot = (lop) => (lop === "KHAN_CAP" ? can(staff, "trip.urgent_adjust") : can(staff, "trip.override")); // ADR-0104 Đ1: lớp → ô
       const nen = await docNen(env.DB, params.id ?? "");
       if (!nen) return KHONG_CO_CHUYEN();
       const bayGioMs = Date.now();
@@ -1335,7 +1340,7 @@ export const vanChuyenModule: AppModule = {
       if (lap instanceof Response) return lap;
       if (!lap) {
         const lich = await lichChungChang(env.DB, nen.tu, nen.den);
-        const r = await lenhRut(env.DB, nen, lich.chang, b, staff, bayGioMs);
+        const r = await lenhRut(env.DB, nen, lich.chang, b, staff, bayGioMs, quyenVuot);
         if (r) return r;
         baoThayDoiChuyen({ tripId: nen.trip.id, requestId: b.requestId }); // ADR-0052 D6.3: sau lô thành công, bắn-và-quên; không gọi khi 4xx / lệnh lặp
       }
@@ -1350,7 +1355,7 @@ export const vanChuyenModule: AppModule = {
       const than = docDoi(await readJson(request));
       if (!than.ok) return error(400, "invalid_input", than.message);
       const b = than.value;
-      if ((b.phaLe || b.camKetPhaLe) && !can(staff, "trip.override")) return CAN_PHA_LE(); // ADR-0056 VK3-A: phá lệ cam kết cũng chỉ Quản trị / Toàn quyền
+      const quyenVuot: QuyenVuot = (lop) => (lop === "KHAN_CAP" ? can(staff, "trip.urgent_adjust") : can(staff, "trip.override")); // ADR-0104 Đ1: lớp → ô
       const nen = await docNen(env.DB, params.id ?? "");
       if (!nen) return KHONG_CO_CHUYEN();
       const bayGioMs = Date.now();
@@ -1361,7 +1366,7 @@ export const vanChuyenModule: AppModule = {
         const dich = b.denChuyenId === nen.trip.id ? null : await docNen(env.DB, b.denChuyenId);
         if (!dich) return error(400, "invalid_input", "Chuyến đích không hợp lệ.");
         const lich = await lichChungChang(env.DB, nen.tu < dich.tu ? nen.tu : dich.tu, nen.den > dich.den ? nen.den : dich.den);
-        const r = await lenhDoi(env.DB, nen, dich, lich.chang, b, staff, bayGioMs);
+        const r = await lenhDoi(env.DB, nen, dich, lich.chang, b, staff, bayGioMs, quyenVuot);
         if (r) return r;
         baoThayDoiChuyen({ tripId: nen.trip.id, requestId: b.requestId }); // ADR-0052 D6.3: sau lô thành công, bắn-và-quên; không gọi khi 4xx / lệnh lặp
       }
@@ -1376,14 +1381,14 @@ export const vanChuyenModule: AppModule = {
       const than = docHuy(await readJson(request));
       if (!than.ok) return error(400, "invalid_input", than.message);
       const b = than.value;
-      if (b.phaLe && !can(staff, "trip.override")) return CAN_PHA_LE();
+      const quyenVuot: QuyenVuot = (lop) => (lop === "KHAN_CAP" ? can(staff, "trip.urgent_adjust") : can(staff, "trip.override")); // ADR-0104 Đ1: lớp → ô
       const nen = await docNen(env.DB, params.id ?? "");
       if (!nen) return KHONG_CO_CHUYEN();
       const bayGioMs = Date.now();
       const lap = await traLenhLap(env.DB, b.requestId, { tripId: nen.trip.id, loai: ["CANCELLED"] });
       if (lap instanceof Response) return lap;
       if (!lap) {
-        const r = await lenhHuy(env.DB, nen, b, staff, bayGioMs);
+        const r = await lenhHuy(env.DB, nen, b, staff, bayGioMs, quyenVuot);
         if (r) return r;
         baoThayDoiChuyen({ tripId: nen.trip.id, requestId: b.requestId }); // ADR-0052 D6.3: sau lô thành công, bắn-và-quên; không gọi khi 4xx / lệnh lặp
       }
