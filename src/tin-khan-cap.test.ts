@@ -8,7 +8,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { app } from "../tests/audit/harness.mjs";
-import { ADM, DRIVER, DRIVER2, NGAY_SAU, SALES, batDongHo, chiTiet, don, setup, taoChuyen, uuid, xe } from "../tests/audit/dieu-phoi-khung.mjs";
+import { ADM, DRIVER, DRIVER2, NGAY_SAU, SALES, batDongHo, chiTiet, denGio, don, setup, taoChuyen, uuid, xe } from "../tests/audit/dieu-phoi-khung.mjs";
 import { nguoiNhanDay } from "./shared/web-push.ts";
 
 const PL = { lyDo: "PHA_LE_SU_CO" };
@@ -126,6 +126,31 @@ test("Phiếu D1 CAO-2: dời KHÔNG vượt mốc (hai chuyến ngoài mốc, k
     assert.deepEqual(await tinKhanCap(w, DRIVER), []);
     assert.deepEqual(await tinKhanCap(w, DRIVER2), []);
     assert.deepEqual(await goCuaDoi(w, dich.chuyen.id, nguon.chuyen.id), []);
+  } finally {
+    tat();
+  }
+});
+
+test("Phiếu D1 CAO-3 (a): 3001 dòng xếp KHÔNG khẩn cấp MỚI HƠN (vượt trần 3000 của nhóm tin cũ) không đẩy tin huỷ chuyến CŨ của tài xế ra khỏi hộp", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const t = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER}`, ngay: NGAY_SAU, bd: "08:00", kt: "12:00" });
+    denGio("06:10");
+    const h = await goi(w, ADM, "POST", `/${t.chuyen.id}/huy`, { version: await phienBan(w, t.chuyen.id), lyDo: "HUY_KHAC" });
+    assert.equal(h.status, 200, h.text);
+    const cauHuy = `Chuyến ${t.chuyen.ma} ngày 12/03 đã bị huỷ`;
+    const soTinHuy = async () => (await w.call("GET", "/api/thong-bao", { as: DRIVER })).json.tin.filter((x: any) => x.loai === "chuyen" && x.cau === cauHuy).length;
+    assert.equal(await soTinHuy(), 1, "trước: tài xế có tin huỷ");
+    denGio("07:00");
+    // Dòng nhật ký xếp GIẢ (hình chiếu v_aud_trip_event — không sự kiện mang cờ mốc ⇒ không sinh tin), mới hơn dòng huỷ, nhiều hơn trần cũ (3000).
+    const base = Date.now() - 40 * 60_000; // 06:20 giờ VN — sau dòng huỷ (06:10), trước giờ đọc (07:00)
+    const chen = w.sqlite.prepare("INSERT INTO audit_log (id, order_id, staff_id, action, target_type, target_id, detail, created_at) VALUES (?, NULL, ?, 'trip_allocated', 'trip', ?, 'x', ?)");
+    w.sqlite.exec("BEGIN");
+    for (let i = 0; i < 3001; i++) chen.run(`gia-xep-${i}`, SALES, t.chuyen.id, new Date(base + 60_000 + i * 100).toISOString());
+    w.sqlite.exec("COMMIT");
+    assert.equal(w.q("SELECT count(*) n FROM v_aud_trip_event WHERE action = 'trip_allocated' AND created_at > (SELECT created_at FROM v_aud_trip_event WHERE action = 'trip_cancelled')")[0].n, 3001);
+    assert.equal(await soTinHuy(), 1, "sau 3001 dòng xếp mới hơn: tin huỷ vẫn còn trong hộp");
   } finally {
     tat();
   }

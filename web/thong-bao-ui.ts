@@ -8,6 +8,7 @@ import { icon, type IconName } from "./icons";
 import { taoBoLamMoi } from "./lam-moi-logic";
 import type { SuKienChuyen } from "../src/shared/bang-tin";
 import { thayDoiCoTheCoTin } from "../src/shared/tin-chuyen";
+import { coCuocCuaToi } from "../src/shared/start-page";
 import { gioVN, nhanSo, nhomTheoNgay, thoiGian } from "./thong-bao-logic";
 
 const KIND_ICON: Record<LoaiTin, IconName> = {
@@ -190,7 +191,8 @@ function veDai(danh: TomTatThongBaoResponse["quanTrongChuaHieu"], moTheoId: (id:
 }
 
 export function ganThongBao(topbar: HTMLElement, staff: Staff): void {
-  void staff; // giữ đúng chữ ký đã duyệt — người xem là ai do máy chủ quyết (locHopThongBao), Task 7 chưa cần dùng riêng ở đây
+  // Người xem là ai do máy chủ quyết (locHopThongBao). `staff` chỉ dùng để máy KHÔNG có quyền Tài xế khỏi gọi lại chuông sau xếp / rút / dời (phiếu D1 CAO-3).
+  const coTheLai = coCuocCuaToi(staff);
   const bell = h("button", { type: "button", class: "bell", "aria-expanded": "false", "aria-label": "Thông báo" }, icon("bell", 22));
   const count = h("span", { class: "bell-count", hidden: true });
   bell.append(count);
@@ -233,8 +235,9 @@ export function ganThongBao(topbar: HTMLElement, staff: Staff): void {
   const lamMoi = taoBoLamMoi(taiTomTat);
   window.addEventListener("don-thay-doi", () => void lamMoi.yeuCau());
   // ADR-0052 D6: chỉ gọi lại khi đợt có loại thay đổi CÓ THỂ sinh tin (tạo, sửa, huỷ, gián đoạn, khách vắng) — tiến độ khác chỉ làm mới màn (vòng sửa 1, V1).
+  // Xếp / rút / dời (ADR-0104 Đ1.6) chỉ sinh tin cho tài xế đang lái ⇒ chỉ máy có quyền Tài xế gọi lại (phiếu D1 CAO-3).
   window.addEventListener("chuyen-thay-doi", (ev) => {
-    if ((ev as CustomEvent<SuKienChuyen[]>).detail.some((e) => thayDoiCoTheCoTin(e.thayDoi))) void lamMoi.yeuCau();
+    if ((ev as CustomEvent<SuKienChuyen[]>).detail.some((e) => thayDoiCoTheCoTin(e.thayDoi, coTheLai))) void lamMoi.yeuCau();
   });
   window.addEventListener("can-tai-lai", () => void lamMoi.yeuCau());
 

@@ -3,9 +3,11 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { PERMISSION_CODES, can, type PermissionCode } from "./permissions.ts";
 import {
-  HANH_DONG_TIN_CHUYEN, chuyenCuaChangLuc, dangChayLucSuKien, dungDongChuyen, laiLucSuKien, taiXeNhanSuKien, thayDoiCoTheCoTin, thayDoiCuaHanhDongChuyen,
+  HANH_DONG_TIN_CHUYEN, chuyenCuaChangLuc, dangChayLucSuKien, dongCoTheSinhTin, dungDongChuyen, laiLucSuKien, taiXeNhanSuKien, thayDoiCoTheCoTin, thayDoiCuaHanhDongChuyen,
   tinChuyenCho, tinGioHenCho, type DongChuyen, type DongGioHen, type NguoiNhanChuyen,
 } from "./tin-chuyen.ts";
+import { THAY_DOI_CHUYEN } from "./bang-tin.ts";
+import { readFileSync } from "node:fs";
 
 const T0 = "2027-03-11T01:00:00.000Z", T1 = "2027-03-11T02:00:00.000Z", T2 = "2027-03-11T03:00:00.000Z";
 const nguoi = (id: string, permissions: PermissionCode[], partyId: string | null = null): NguoiNhanChuyen => ({ id, permissions, partyId });
@@ -136,9 +138,9 @@ test("thayDoiCoTheCoTin: đúng loại thay đổi của 5 hành động sinh ti
   for (const a of moi) {
     // Đợt 5: trip_stops_synced sinh tin CHỈ khi xe đang chạy — chuyến chưa chạy giữ loại "cap_nhat" (không gọi lại chuông).
     const coTin = (HANH_DONG_TIN_CHUYEN as readonly string[]).includes(a) && a !== "trip_stops_synced";
-    assert.equal(thayDoiCoTheCoTin(thayDoiCuaHanhDongChuyen(a)), coTin, a);
+    assert.equal(thayDoiCoTheCoTin(thayDoiCuaHanhDongChuyen(a), true), coTin, a); // phiếu D1 CAO-3: máy có quyền Tài xế (đối số thứ hai)
   }
-  for (const a of HANH_DONG_TIN_CHUYEN) assert.equal(thayDoiCoTheCoTin(thayDoiCuaHanhDongChuyen(a, true)), true, `${a} khi xe đang chạy`);
+  for (const a of HANH_DONG_TIN_CHUYEN) assert.equal(thayDoiCoTheCoTin(thayDoiCuaHanhDongChuyen(a, true), true), true, `${a} khi xe đang chạy`);
   assert.equal(thayDoiCuaHanhDongChuyen("trip_passengers_synced", true), "cap_nhat", "chỉ ba hành động xe đang chạy đổi loại");
   assert.equal(thayDoiCuaHanhDongChuyen("trip_passenger_no_show"), "vang");
 });
@@ -292,6 +294,32 @@ test("NT-11: dungDongChuyen gắn khanCap theo id sự kiện của dữ kiện 
   assert.deepEqual(r.map((x) => [x.id, x.khanCap]), [["e1", true], ["e2", false]]);
   for (const a of KHAN_CAP) assert.ok((HANH_DONG_TIN_CHUYEN as readonly string[]).includes(a), a);
 });
+// ---- Phiếu kiểm D1 CAO-3: dòng xếp / rút / dời KHÔNG khẩn cấp không làm chuông văn phòng gọi lại, không gõ cửa ----
+test("CAO-3: thayDoiCoTheCoTin — tập CỤ THỂ (viết tay, không suy từ danh sách): máy có quyền Tài xế gọi lại chuông ở tao/sua/huy/gian_doan/vang/xe_chay + xep/rut/doi; máy KHÔNG có quyền Tài xế bỏ xep/rut/doi", () => {
+  const TAI_XE = ["tao", "sua", "huy", "gian_doan", "vang", "xe_chay", "xep", "rut", "doi"];
+  const VAN_PHONG = ["tao", "sua", "huy", "gian_doan", "vang", "xe_chay"];
+  for (const t of THAY_DOI_CHUYEN) {
+    assert.equal(thayDoiCoTheCoTin(t, true), TAI_XE.includes(t), `có quyền Tài xế: ${t}`);
+    assert.equal(thayDoiCoTheCoTin(t, false), VAN_PHONG.includes(t), `không quyền Tài xế: ${t}`);
+  }
+  // Chuông (web/thong-bao-ui.ts) truyền "máy có quyền Tài xế" bằng CHÍNH vị từ menu "Cuốc của tôi" — không hằng true.
+  const chuong = readFileSync(new URL("../../web/thong-bao-ui.ts", import.meta.url), "utf8");
+  assert.match(chuong, /const coTheLai = coCuocCuaToi\(staff\);/);
+  assert.match(chuong, /thayDoiCoTheCoTin\(e\.thayDoi, coTheLai\)/);
+});
+test("CAO-3: dongCoTheSinhTin — ba lệnh khách chỉ khi sự kiện mang cờ khẩn cấp; hành động sinh tin khác luôn; hành động ngoài danh sách không; gốc lắp ráp gõ cửa qua hàm này", () => {
+  for (const a of ["trip_allocated", "trip_allocation_removed", "trip_allocation_moved"]) {
+    assert.equal(dongCoTheSinhTin({ action: a, khanCap: false }), false, `${a} không cờ`);
+    assert.equal(dongCoTheSinhTin({ action: a, khanCap: true }), true, `${a} có cờ`);
+  }
+  for (const a of ["trip_created", "trip_edited", "trip_cancelled", "trip_ended_interrupted", "trip_passenger_no_show", "trip_departure_revoked"]) {
+    assert.equal(dongCoTheSinhTin({ action: a, khanCap: false }), true, a);
+  }
+  for (const a of ["trip_departed", "trip_ended", "trip_stop_arrived"]) assert.equal(dongCoTheSinhTin({ action: a, khanCap: true }), false, a);
+  const goc = readFileSync(new URL("../index.ts", import.meta.url), "utf8");
+  assert.match(goc, /\["day", dongCoTheSinhTin\(dong\) \? dayGoCua\(env, \{ chuyen: dong/, "baoThayDoiChuyen gõ cửa chỉ khi dòng có thể sinh tin");
+});
+
 // ---- Phiếu kiểm D1 CAO-2 (ADR-0104 Đ1.6 :95, :232): dời điều chỉnh khẩn cấp → cả tài xế chuyến NGUỒN ("chuyển khách đi") ----
 test("CAO-2: dời khẩn cấp — tài xế đang lái chuyến NGUỒN lúc sự kiện nhận 'khan_cap' (câu, liên kết chuyến nguồn); tài xế nguồn đã gỡ, người làm, văn phòng, không cờ, hành động khác không; người lái cả hai chuyến nhận tin chuyến đích", () => {
   const nguon = { tripId: "t0", ma: "CX-1103-01", ngayChay: "2027-03-11", lai: [{ partyId: "p-c", tu: T0, den: null }, { partyId: "p-a", tu: T0, den: T1 }] };

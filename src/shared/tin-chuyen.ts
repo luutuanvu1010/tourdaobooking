@@ -5,6 +5,11 @@ import { can, type PermissionHolder } from "./permissions.ts";
 import type { ThayDoiChuyen } from "./bang-tin.ts";
 import { msToVnLocal, ngayNgan } from "./vn-date.ts";
 
+/**
+ * ADR-0104 Đ1 mục 6: ba lệnh khách (xếp / rút / dời) — sinh tin CÓ ĐIỀU KIỆN (sự kiện mang luật vượt MOC_TOI_THIEU), chỉ cho tài xế đang lái. Phiếu kiểm D1
+ * CAO-3: hộp thông báo đọc nhóm này RIÊNG (trần riêng) để dòng xếp / rút / dời không đẩy tin của nhóm cũ ra khỏi hộp.
+ */
+export const HANH_DONG_TIN_KHACH = ["trip_allocated", "trip_allocation_removed", "trip_allocation_moved"] as const;
 export const HANH_DONG_TIN_CHUYEN = [
   "trip_created", "trip_edited", "trip_cancelled", "trip_ended_interrupted", "trip_passenger_no_show",
   // Vận chuyển Đợt 5 (ADR-0052 D5, D6): văn phòng thay đổi xe ĐANG CHẠY → tài xế đang lái nhận tin. `trip_stops_synced` CHỈ khi chuyến đã xuất bến lúc sự kiện.
@@ -14,8 +19,10 @@ export const HANH_DONG_TIN_CHUYEN = [
   "trip_allocation_corrected", "trip_departure_revoked",
   // ADR-0104 Đ1 mục 6 (văn bản cho phép mở danh sách đóng): lệnh khách xếp / rút / dời — sinh tin CÓ ĐIỀU KIỆN: chỉ khi sự kiện mang luật vượt MOC_TOI_THIEU
   // (điều chỉnh khẩn cấp, `DongChuyen.khanCap`) và chỉ cho tài xế có dòng lái lúc sự kiện. Không vượt mốc → không ai nhận.
-  "trip_allocated", "trip_allocation_removed", "trip_allocation_moved",
+  ...HANH_DONG_TIN_KHACH,
 ] as const;
+/** Phiếu kiểm D1 CAO-3: hành động sinh tin NGOÀI ba lệnh khách — nhóm cũ của hộp thông báo (trần riêng, không bị dòng xếp / rút / dời đẩy ra). */
+export const HANH_DONG_TIN_THUONG: readonly string[] = HANH_DONG_TIN_CHUYEN.filter((a) => !(HANH_DONG_TIN_KHACH as readonly string[]).includes(a));
 export const laHanhDongTinChuyen = (a: string): boolean => (HANH_DONG_TIN_CHUYEN as readonly string[]).includes(a);
 export type LoaiTinChuyen = "xep_lai" | "go_lai" | "doi_chuyen" | "huy_chuyen" | "gian_doan" | "khach_vang" | "xe_chay_doi" | "thu_hoi_xuat_ben" | "dieu_chinh" | "khan_cap";
 /**
@@ -29,7 +36,7 @@ const CAU_KHAN_CAP: Readonly<Record<string, string>> = {
   trip_allocated: "xếp thêm khách", trip_allocation_removed: "rút khách", trip_allocation_moved: "chuyển khách tới",
 };
 /** Dòng cần hỏi dữ kiện THEO SỰ KIỆN (`HoiChuyenChoTin.suKienIds`): khách vắng (đơn của suất) và lệnh khách có thể là điều chỉnh khẩn cấp (cờ khanCap). */
-const HANH_DONG_KHAN_CAP: ReadonlySet<string> = new Set(Object.keys(CAU_KHAN_CAP));
+const HANH_DONG_KHAN_CAP: ReadonlySet<string> = new Set(HANH_DONG_TIN_KHACH);
 export const canHoiTheoSuKien = (action: string): boolean => action === "trip_passenger_no_show" || HANH_DONG_KHAN_CAP.has(action);
 
 export interface KhoangLai { partyId: string; tu: string; den: string | null }
@@ -219,4 +226,15 @@ export const thayDoiCuaHanhDongChuyen = (action: string, dangChay = false): Thay
 
 /** Loại thay đổi Bảng tin của các hành động CÓ THỂ sinh tin (suy từ HANH_DONG_TIN_CHUYEN — một nguồn; xét lúc xe đang chạy). Chuông chỉ gọi lại khi đợt có loại này. */
 const THAY_DOI_CO_TIN: ReadonlySet<ThayDoiChuyen> = new Set(HANH_DONG_TIN_CHUYEN.map((a) => thayDoiCuaHanhDongChuyen(a, true)));
-export const thayDoiCoTheCoTin = (t: ThayDoiChuyen): boolean => THAY_DOI_CO_TIN.has(t);
+/** Loại thay đổi của ba lệnh khách — chỉ sinh tin cho TÀI XẾ đang lái (`khan_cap`, ADR-0104 Đ1.6). */
+const THAY_DOI_CHI_TAI_XE: ReadonlySet<ThayDoiChuyen> = new Set(HANH_DONG_TIN_KHACH.map((a) => thayDoiCuaHanhDongChuyen(a, true)));
+/**
+ * Chuông có cần gọi lại `/tom-tat` sau đợt sự kiện loại `t` không. `coTheLai` = máy của người có quyền Tài xế (`coCuocCuaToi`): xếp / rút / dời chỉ sinh tin
+ * cho tài xế đang lái — máy văn phòng KHÔNG gọi lại sau mỗi lệnh xếp / rút / dời (phiếu kiểm D1 CAO-3; không đổi hợp đồng `SuKienChuyen`).
+ */
+export const thayDoiCoTheCoTin = (t: ThayDoiChuyen, coTheLai: boolean): boolean => THAY_DOI_CO_TIN.has(t) && (coTheLai || !THAY_DOI_CHI_TAI_XE.has(t));
+/**
+ * Dòng nhật ký chuyến này CÓ THỂ sinh tin cho ai đó — gốc lắp ráp chỉ gõ cửa khi đúng (phiếu kiểm D1 CAO-3): hành động trong danh sách; ba lệnh khách chỉ khi
+ * sự kiện mang cờ khẩn cấp (không có cờ thì `tinChuyenCho` không trả tin cho ai — đỡ một lượt đọc máy nhận + tài khoản mỗi lệnh xếp / rút / dời).
+ */
+export const dongCoTheSinhTin = (d: Pick<DongChuyen, "action" | "khanCap">): boolean => laHanhDongTinChuyen(d.action) && (!HANH_DONG_KHAN_CAP.has(d.action) || d.khanCap);
