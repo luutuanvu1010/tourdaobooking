@@ -1,6 +1,7 @@
 # ADR-0107 (số tạm, chốt khi gộp) — Bán hàng tự đóng dấu đặt gấp cho đơn sát giờ (câu Q-3 cũ)
 
 > **Trạng thái:** **proposed**, vai soạn, 2026-10-08. Chủ chưa duyệt (Hiến pháp N3). **Thuộc lượt 8b**; tách khỏi tệp 02 theo quyết định của người điều phối để lượt 8a đúng ba quyết định. Thay **phần đặt gấp** của đề xuất ADR-0091 (chưa duyệt). Mốc đo mã: `claude/van-chuyen-goi-a-c` @ `809918d5`.
+> **Phụ thuộc lượt 8a:** tệp này dùng lại nhãn "Điều chỉnh khẩn cấp" và danh sách lý do của ADR-0104 (tệp 02). Nếu ADR-0104 không được duyệt, dấu giữ nhãn "Đặt gấp" và lý do `LY_DO_DAT_GAP` như hôm nay; phần còn lại của tệp này (ô cho Bán hàng, điều kiện "dưới mốc lúc gửi") vẫn áp dụng.
 > **Lời chủ 2026-10-02** (câu 5, lượt 3): *"cho phép (nhưng phải có nhãn hoặc ký hiệu riêng để nhận biết đây là ngoại lệ được cho phép và/hoặc đáng chú ý, không phải đơn bình thường)"*.
 
 ## Cho chủ dự án
