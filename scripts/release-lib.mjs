@@ -33,18 +33,22 @@ export function parseSecretNames(output) {
  * lần phát hành ĐẦU TIÊN mang migration 0086 mà mốc còn cũ thì dòng đổi của tối đa 30 ngày trước hiện thành tin hàng loạt ngay ngày triển khai; mốc xa về sau
  * (gõ nhầm năm) thì tin bị câm tới lúc đó. Hàm thuần: 0086 không còn chờ áp ⇒ không kiểm (các lần phát hành sau không vướng); còn chờ ⇒ mốc phải đúng dạng
  * toISOString và nằm trong [lúc chạy − 24 giờ, lúc chạy + 24 giờ].
+ * Nhận migration theo ĐUÔI tên (số migration đổi được lúc gộp — CHANGE-GUIDE công thức d; viết cứng "0086_…" thì đổi số là cổng chết lặng lẽ). Bài
+ * src/release-lib.test.ts khoá: migrations/ có đúng MỘT tệp mang đuôi này và cổng nhận đúng tệp đó.
  */
-export const MIGRATION_TIN_DOI = "0086_aud_order_change.sql";
+export const DUOI_MIGRATION_TIN_DOI = "_aud_order_change.sql";
+export const coMigrationTinDoi = (pending) => pending.some((n) => n.endsWith(DUOI_MIGRATION_TIN_DOI));
 const MOC_TIN_DOI_LECH_TOI_DA_MS = 24 * 3600e3;
 export function kiemMocTinDoi(pending, mocIso, nowMs) {
-  if (!pending.includes(MIGRATION_TIN_DOI)) return { ok: true, kiem: false };
+  const tep = pending.find((n) => n.endsWith(DUOI_MIGRATION_TIN_DOI));
+  if (tep === undefined) return { ok: true, kiem: false };
   const sua = "sửa hằng MOC_TIN_DOI trong src/shared/thong-bao.ts thành thời điểm phát hành (giờ UTC, dạng 2026-10-10T03:00:00.000Z)";
   const ms = typeof mocIso === "string" && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(mocIso) ? Date.parse(mocIso) : NaN;
   if (Number.isNaN(ms) || new Date(ms).toISOString() !== mocIso) {
     return { ok: false, reason: `MOC_TIN_DOI không đúng dạng thời điểm ISO (${String(mocIso)}) — ${sua}.` };
   }
   const lech = ms - nowMs;
-  if (lech < -MOC_TIN_DOI_LECH_TOI_DA_MS) return { ok: false, reason: `MOC_TIN_DOI (${mocIso}) cũ hơn 24 giờ so với lúc phát hành — lần phát hành đầu mang ${MIGRATION_TIN_DOI} sẽ hiện tin đổi cũ hàng loạt; ${sua}.` };
+  if (lech < -MOC_TIN_DOI_LECH_TOI_DA_MS) return { ok: false, reason: `MOC_TIN_DOI (${mocIso}) cũ hơn 24 giờ so với lúc phát hành — lần phát hành đầu mang ${tep} sẽ hiện tin đổi cũ hàng loạt; ${sua}.` };
   if (lech > MOC_TIN_DOI_LECH_TOI_DA_MS) return { ok: false, reason: `MOC_TIN_DOI (${mocIso}) xa hơn 24 giờ về sau — tin đổi sẽ không hiện tới lúc đó; ${sua}.` };
   return { ok: true, kiem: true };
 }
@@ -317,9 +321,9 @@ export async function trienKhai({ run, ask, isTTY, log, now = () => new Date(), 
   const pending = parsed.names;
   log(pending.length ? `Còn ${pending.length} migration chưa áp: ${pending.join(", ")}` : "Không còn migration nào chưa áp.");
 
-  // 2a. cổng mốc tin đổi (ADR-0062; phiếu kiểm A3 C1) — CHỈ khi lần này mang 0086; chỉ đọc một hằng trong mã, không gọi gì ra ngoài.
-  if (pending.includes(MIGRATION_TIN_DOI)) {
-    log("\n▶ Cổng mốc tin đổi (lần phát hành đầu mang 0086)");
+  // 2a. cổng mốc tin đổi (ADR-0062; phiếu kiểm A3 C1) — CHỈ khi lần này mang migration *_aud_order_change.sql; chỉ đọc một hằng trong mã, không gọi ra ngoài.
+  if (coMigrationTinDoi(pending)) {
+    log("\n▶ Cổng mốc tin đổi (lần phát hành đầu mang migration view tin đổi)");
     let moc;
     try {
       moc = await docMocTinDoi();

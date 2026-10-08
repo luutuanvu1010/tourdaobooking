@@ -101,7 +101,7 @@ Lệnh chạy vài phút, vì nó tự chạy toàn bộ kiểm thử, kể cả
 | 1b | **Kiểm đăng nhập Cloudflare** và làm mới vé đăng nhập | Phòng lỗi 7403 (xem dưới) |
 | 1c | **Kiểm khoá bí mật bắt buộc** đã đặt chưa (`SESSION_SECRET`, `LAN_GUI_SECRET` — chỉ đọc TÊN, không đọc giá trị) | Thiếu khoá thì sau khi phát hành mọi màn hình báo lỗi. Lệnh dừng và in đúng câu `npx wrangler secret put …` cần chạy |
 | 2 | Đọc xem hệ thống thật còn **thay đổi dữ liệu** nào chưa áp | Phát hành mã cần dữ liệu mới khi dữ liệu chưa có là hỏng app |
-| 2a | **Chỉ lần phát hành đầu mang `0086_aud_order_change.sql`**: kiểm mốc `MOC_TIN_DOI` (trong `src/shared/thong-bao.ts`) lệch không quá 24 giờ so với lúc chạy | Trước lần phát hành đó phải đặt `MOC_TIN_DOI` = thời điểm phát hành; mốc cũ thì mọi lần sửa đơn của tháng trước hiện thành thông báo hàng loạt. Các lần phát hành sau không kiểm nữa |
+| 2a | **Chỉ lần phát hành đầu mang migration `…_aud_order_change.sql`** (hôm nay số `0086`; lệnh nhận theo đuôi tên nên đổi số lúc gộp vẫn kiểm): kiểm mốc `MOC_TIN_DOI` (trong `src/shared/thong-bao.ts`) lệch không quá 24 giờ so với lúc chạy | Trước lần phát hành đó phải đặt `MOC_TIN_DOI` = thời điểm phát hành; mốc cũ thì mọi lần sửa đơn của tháng trước hiện thành thông báo hàng loạt. Các lần phát hành sau không kiểm nữa |
 | 2b | **So số phiên bản**: bản trên máy phải **mới hơn** bản đang chạy | Bắt lỗi quên ghi nhật ký |
 | 3 | Chạy test, kiểm lỗi, dựng giao diện | Không phát hành mã hỏng |
 | 3b | Chạy **toàn bộ kiểm thử đầu-cuối** (cần mạng) | Thử app như người dùng thật, trên dữ liệu tạm |

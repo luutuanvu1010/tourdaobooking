@@ -140,9 +140,11 @@ test("NT-B8 cùng đơn + cùng người + cùng mốc → MỘT tin (nối ph�
 // sau khi chủ đặt mốc thật).
 test("NT-B16 MOC_TIN_DOI: đúng dạng ISO đủ mili-giây; cổng phát hành chặn lần đầu mang 0086 khi mốc cũ hơn 24 giờ, cho qua khi mốc đúng lúc phát hành", async () => {
   type K = { ok: true; kiem: boolean } | { ok: false; reason: string };
-  const { kiemMocTinDoi, MIGRATION_TIN_DOI } = (await import(new URL("../../scripts/release-lib.mjs", import.meta.url).href)) as {
-    kiemMocTinDoi: (p: string[], m: unknown, n: number) => K; MIGRATION_TIN_DOI: string;
+  const { kiemMocTinDoi, DUOI_MIGRATION_TIN_DOI } = (await import(new URL("../../scripts/release-lib.mjs", import.meta.url).href)) as {
+    kiemMocTinDoi: (p: string[], m: unknown, n: number) => K; DUOI_MIGRATION_TIN_DOI: string;
   };
+  const { readdirSync } = await import("node:fs");
+  const MIGRATION_TIN_DOI = readdirSync(new URL("../../migrations/", import.meta.url)).find((f) => f.endsWith(DUOI_MIGRATION_TIN_DOI))!; // tên THẬT trong migrations/
   assert.match(MOC_TIN_DOI, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
   assert.equal(new Date(MOC_TIN_DOI).toISOString(), MOC_TIN_DOI);
   const t = Date.parse(MOC_TIN_DOI);

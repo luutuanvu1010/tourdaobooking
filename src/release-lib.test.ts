@@ -5,7 +5,7 @@
 // Mẫu đầu ra wrangler ở src/release-lib.fixtures/ là đầu ra THẬT của `wrangler d1 migrations list … --local --persist-to <thư mục tạm>` (wrangler 4.135.0).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 
 type RunResult = { code: number; stdout: string; stderr: string };
 type RunOpts = { env?: Record<string, string>; stream?: boolean; tee?: boolean };
@@ -21,7 +21,8 @@ type Lib = {
   parseVersionId: (out: string) => string | null;
   dayLen: (deps: Deps & { target?: string }) => Promise<number>;
   trienKhai: (deps: Deps & { now?: () => Date; sleep?: (ms: number) => Promise<void>; version?: string; docMocTinDoi?: () => Promise<string> }) => Promise<number>;
-  MIGRATION_TIN_DOI: string;
+  DUOI_MIGRATION_TIN_DOI: string;
+  coMigrationTinDoi: (pending: string[]) => boolean;
   kiemMocTinDoi: (pending: string[], mocIso: unknown, nowMs: number) => { ok: true; kiem: boolean } | { ok: false; reason: string };
   docMocTinDoiMacDinh: () => Promise<string>;
 };
@@ -704,10 +705,23 @@ test("trien-khai (7403): bước GHI gặp 7403 (áp migration, deploy) → KHÔ
 const LIST_0086 = LIST_0023.replace("0023_auth_passkey.sql", "0086_aud_order_change.sql");
 const GIO = 3600e3;
 
-test("kiemMocTinDoi: không có 0086 trong danh sách chờ → không kiểm (kể cả mốc hỏng); có 0086 → mốc phải trong [lúc chạy − 24 giờ, lúc chạy + 24 giờ]", () => {
+// Cổng nhận migration theo ĐUÔI tên (số migration đổi được lúc gộp — CHANGE-GUIDE công thức d; người kiểm 8/10 đổi 0086 → 0087 thì cổng viết cứng tên CHẾT
+// mà mọi bài vẫn xanh). Bài này khoá: trong migrations/ có ĐÚNG MỘT tệp mang đuôi cổng dùng, cổng nhận đúng tệp đó, và nhận cả khi tệp bị đổi số.
+test("cổng mốc tin đổi nhận migration theo đuôi: migrations/ có ĐÚNG MỘT tệp *_aud_order_change.sql, cổng nhận tệp đó và mọi số khác của nó", () => {
+  const tep = readdirSync(new URL("../migrations/", import.meta.url)).filter((f) => f.endsWith(lib.DUOI_MIGRATION_TIN_DOI));
+  assert.equal(lib.DUOI_MIGRATION_TIN_DOI, "_aud_order_change.sql");
+  assert.equal(tep.length, 1, `đúng một tệp mang đuôi cổng dùng: ${JSON.stringify(tep)}`);
   const t = Date.parse("2026-10-10T03:00:00.000Z");
-  const co = [lib.MIGRATION_TIN_DOI];
-  assert.equal(lib.MIGRATION_TIN_DOI, "0086_aud_order_change.sql");
+  for (const ten of [tep[0]!, "0087_aud_order_change.sql", "0123_aud_order_change.sql"]) {
+    assert.equal(lib.coMigrationTinDoi(["0001_x.sql", ten]), true, ten);
+    assert.equal(lib.kiemMocTinDoi([ten], "2026-09-30T00:00:00.000Z", t).ok, false, `${ten}: mốc cũ phải dừng`);
+  }
+  assert.equal(lib.coMigrationTinDoi(["0086_aud_order_change_v2.sql", "0086_aud_order_event.sql"]), false, "đuôi khác không phải migration tin đổi");
+});
+
+test("kiemMocTinDoi: không có migration tin đổi trong danh sách chờ → không kiểm (kể cả mốc hỏng); có → mốc phải trong [lúc chạy − 24 giờ, lúc chạy + 24 giờ]", () => {
+  const t = Date.parse("2026-10-10T03:00:00.000Z");
+  const co = ["0086_aud_order_change.sql"];
   assert.deepEqual(lib.kiemMocTinDoi([], "rác", t), { ok: true, kiem: false });
   assert.deepEqual(lib.kiemMocTinDoi(["0087_x.sql"], "2026-09-30T00:00:00.000Z", t), { ok: true, kiem: false }, "các lần phát hành SAU (0086 đã áp) không vướng");
   assert.deepEqual(lib.kiemMocTinDoi(co, new Date(t - 24 * GIO).toISOString(), t), { ok: true, kiem: true }, "đúng biên −24 giờ vẫn đạt");
