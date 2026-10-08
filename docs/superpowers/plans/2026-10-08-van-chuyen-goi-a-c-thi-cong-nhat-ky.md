@@ -40,7 +40,7 @@ Sổ điều phối (CLAUDE.md §9, P19). Trạng thái sống ở đây, không
 
 ## Việc song song
 
-- Lượt duyệt kế đã soạn: `docs/superpowers/specs/2026-10-08-luot-duyet-van-chuyen/` (01 tóm ADR-0063 D1; 02 đề xuất ADR-0103 điều chỉnh khẩn cấp + đồng bộ chuyến; 03 đề xuất ADR-0104 nút Chỉ đường; 00 trang ghép). Người soạn đề nghị chia lượt 8a (01 + 02) / 8b (03) vì trần 3 quyết định. Đang kiểm độc lập. Gộp thêm câu "mốc chụp khoảng nghỉ" (N3) vào lượt hỏi.
+- Lượt duyệt kế đã soạn: `docs/superpowers/specs/2026-10-08-luot-duyet-van-chuyen/`. Kiểm độc lập lần 1: tệp 02 KHÔNG ĐẠT (C1: nhánh "xe đang chạy" của đồng bộ chuyến vấp trigger `0076` — chỉ cho cờ báo huỷ sau sự kiện `ALLOCATION_OFFICE_CANCELLED`; C2: số 0103 trùng đề xuất VietQR ở nhánh `claude/ticket-sales-qr-payment-cf8e18`), tệp 00, 01, 03 ĐẠT CÓ ĐIỀU KIỆN. **Điều phối chốt:** bỏ nhánh xe đang chạy (máy chỉ báo tin, văn phòng bấm "Báo huỷ"); đổi số thành 0104 (điều chỉnh khẩn cấp + đồng bộ) và 0105 (Chỉ đường); cơ chế "cổng đơn đã thắng" chọn phương án (a) — van-chuyen kiểm qua view audit hẹp (khoá + nhãn); chia lượt **8a** = tệp 01 + 02 Đ1 + 02 Đ2 (3 quyết định), **8b** = Q-3 (Bán hàng tự xác nhận đơn sát giờ) + tệp 03 + mốc chụp khoảng nghỉ N3. Người soạn đang sửa.
 
 ## Nợ / để sau
 
