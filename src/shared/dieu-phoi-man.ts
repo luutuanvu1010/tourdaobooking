@@ -89,8 +89,11 @@ export function soLieuDieuPhoi(l: LichChungResponse, canXuLy: number): SoLieu {
 export type KieuChuyen = "plan" | "run" | "done" | "held" | "nodrv" | "cancel";
 /** Màu / nhãn chuyến (bản vẽ dp-dong-thoi-gian: lên kế hoạch / đang chạy / xong / bị giữ / chưa có tài xế). */
 export function kieuChuyen(c: Pick<ChuyenTomTatDto, "trangThai" | "trangThaiNhan" | "lyDoGiu">): { kieu: KieuChuyen; nhan: string } {
-  if (c.trangThai === "PLANNED" && c.lyDoGiu.length > 0) {
-    return c.lyDoGiu.every((l) => l.ma === "CHUA_CO_TAI_XE") ? { kieu: "nodrv", nhan: "Chưa có tài xế" } : { kieu: "held", nhan: "Bị giữ" };
+  // ADR-0096 Đ2 (gói A1): "chưa tới giờ được xuất bến" là cổng THỜI GIAN, không phải lỗi phải sửa — chuyến ngày mai không đổi màu "Bị giữ" vì nó (lý do vẫn
+  // hiện ở bảng điều kiện xuất bến của chi tiết chuyến). Chọn của người thi công A1, ghi ở báo cáo.
+  const giu = c.lyDoGiu.filter((l) => l.ma !== "NGOAI_CUA_SO_XUAT_BEN");
+  if (c.trangThai === "PLANNED" && giu.length > 0) {
+    return giu.every((l) => l.ma === "CHUA_CO_TAI_XE") ? { kieu: "nodrv", nhan: "Chưa có tài xế" } : { kieu: "held", nhan: "Bị giữ" };
   }
   const kieu: KieuChuyen = c.trangThai === "RUNNING" ? "run" : c.trangThai === "PLANNED" ? "plan" : c.trangThai === "CANCELLED" ? "cancel" : "done";
   return { kieu, nhan: c.trangThaiNhan };
@@ -294,6 +297,9 @@ const NHOM_DIEU_KIEN: readonly { nhan: string; ma: readonly string[] }[] = [
   { nhan: "Điểm khớp đơn", ma: ["NOI_HEN_DOI", "CHUA_CO_GIO", "CHUA_CO_NOI_TRA", "GIO_HEN_NGOAI_CHUYEN", "THIEU_SUAT", "THUA_SUAT"] },
   { nhan: "Đủ chỗ", ma: ["VUOT_SO_CHO", "VUOT_SO_NGUOI_CHANG"] },
   { nhan: "Đủ giờ nghỉ", ma: ["NGHI_THIEU", "KHOANG_NGHI", "TRUNG_GIO_XE", "TRUNG_GIO_TAI_XE"] },
+  // ADR-0096 Đ1 (LC-19), Đ2 (LC-20) — gói A1.
+  { nhan: "Đón trước trả", ma: ["TRA_TRUOC_DON"] },
+  { nhan: "Trong giờ được xuất bến", ma: ["NGOAI_CUA_SO_XUAT_BEN"] },
 ];
 const chiTietLoi = (ds: readonly LyDoGiuDto[]): string => `${ds.map((d) => d.loiNhan).join("; ")} · Ai xử lý: ${[...new Set(ds.map((d) => d.aiXuLyNhan))].join(", ")}`;
 /** "Điều kiện xuất bến" của chi tiết chuyến (bản vẽ 02): danh mục cố định; chưa đạt = có lý do giữ thuộc nhóm (câu + ai xử lý); đạt không kèm chi tiết. */

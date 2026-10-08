@@ -151,6 +151,10 @@ export const CAU_LUAT_CHUYEN = "Chuyến vừa thay đổi hoặc lệnh vi ph�
 /** ADR-0051 (0043): họ lệnh trên mốc giờ hẹn thua đua / chuỗi đổi giữa chừng → MỘT câu "tải lại" (khuôn H10). */
 export const CAU_GIO_HEN_VUA_DOI = "Giờ hẹn vừa đổi hoặc đã có người báo — tải lại.";
 export function loiRangBuocChuyen(message: string): { status: number; code: string; message: string } | null {
+  // ADR-0096 (0084): trigger cổng xuất bến LC-19 / LC-20 — lớp máy chủ (`kiemXuatBen`) đã kiểm trước; tới đây là dữ liệu đổi giữa lúc đọc và lúc ghi → câu
+  // của đúng lý do giữ (không câu chung), đường khắc phục đi kèm.
+  if (/\blc19_/.test(message)) return { status: 409, code: "trip_rule", message: `${MA_GIU.TRA_TRUOC_DON.loiNhan}.` };
+  if (/\blc20_/.test(message)) return { status: 409, code: "trip_rule", message: `${MA_GIU.NGOAI_CUA_SO_XUAT_BEN.loiNhan}. Xe thật sự chạy sớm thì văn phòng sửa giờ chuyến.` };
   if (/\b(lc0[1-9]|lc1[0-6])_|\bvk1a_|vc_trip_append_only|\bgb_(needs_appt|snapshot)/.test(message)) return { status: 409, code: "trip_rule", message: CAU_LUAT_CHUYEN };
   // ADR-0051: chuỗi mốc, "còn khách chờ", chỉ-thêm, hai người bấm cùng lúc (UNIQUE (leg_id, seq)) — lớp CSDL của "Đã gọi báo" / "Bỏ đánh dấu".
   if (/\bgb_(chain|active|append_only)|UNIQUE constraint failed: vc_leg_appt_ack\./.test(message)) return { status: 409, code: "gio_hen_vua_doi", message: CAU_GIO_HEN_VUA_DOI };

@@ -6,16 +6,17 @@
 //   (2) xếp chuyến: KHÔNG cảnh báo sớm (canhBaoXep rỗng), lý do giữ không có CHUA_CO_NOI_TRA / THIEU_TEN;
 //   (3) "Cập nhật điểm theo đơn" 200 → xuất bến (văn phòng bấm thay) 200, RUNNING — không bị giữ CHUA_CO_NOI_TRA / THIEU_TEN;
 //   (4) đối chứng (P16): đơn KHÔNG nơi trả, thiếu tên → xác nhận VẪN 200 (cảnh báo chỉ ở giao diện), xếp được kèm canhBaoXep, xuất bến 409 giữ đúng hai mã.
-// Dữ liệu dùng một lần (SĐT ngẫu nhiên, biển số theo Date.now()); chuyến chạy NGÀY KIA (xếp không vướng mốc 6 giờ). Tên khách GIẢ.
+// Dữ liệu dùng một lần (SĐT ngẫu nhiên, biển số theo Date.now()); chuyến chạy NGÀY MAI (xếp không vướng mốc 6 giờ). Tên khách GIẢ.
 import assert from "node:assert/strict";
-import { ACCOUNTS, call, catalogService, ensureFakeCatalog, orderInput, randomPhone, session, sql, sqlRows, vnDate } from "./lib.mjs";
+import { ACCOUNTS, call, catalogService, ensureFakeCatalog, orderInput, randomPhone, session, sql, sqlRows, vnDate, moCuaSoXuatBen48Gio } from "./lib.mjs";
 
 await ensureFakeCatalog();
 const ADMIN = await session(ACCOUNTS.admin);
 const TAO_TK = await session(ACCOUNTS.superAdmin);
 const SALES = await session(ACCOUNTS.salesA);
 const LOC = "a941dd7d-faab-4098-9ab9-1df7fa6dd551"; // Bến tàu du lịch Nha Trang (0010)
-const D = vnDate(2);
+const D = vnDate(1); // ADR-0096 Đ2 (LC-20): chuyến NGÀY MAI + cửa sổ 48 giờ — xuất bến ngay được, giờ đón vẫn ngoài mốc 6 giờ
+await moCuaSoXuatBen48Gio();
 const duoi = String(Date.now()).slice(-6);
 const uuid = () => crypto.randomUUID();
 const P = (n) => ({ fullName: `Khách Đầu Cuối E2E ${n}`, birthYear: 1990, paxCode: n === 1 ? "adult" : null });

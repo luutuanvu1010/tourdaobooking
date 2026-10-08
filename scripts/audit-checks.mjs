@@ -875,6 +875,17 @@ export const CHECKS = [
     level: "warn",
     note: "cảnh báo: chuyến đã xuất bến trái cam kết xe riêng / số chỗ của khách mà không có phá lệ — rà lại chuyến và lý do",
   },
+  // R-VC-THU-TU (ADR-0096 Đ1.5, gói A1 — 0084): chuyến ĐANG CHẠY có suất mở CHỜ LÊN mà điểm xuống đứng trước / bằng số điểm lên. Lưới thứ hai của đường đổi thứ
+  // tự khi đang chạy — đường này KHÔNG có trigger theo dòng (Đ1.6: lô đổi nhiều điểm đi qua trạng thái trung gian), lớp máy chủ là `chanDaoMoi`. Chuyến kế hoạch
+  // vi phạm là "đang bị giữ" hợp lệ (cổng xuất bến LC-19 chặn) — không đếm. Chỉ đếm, không tên.
+  {
+    code: "R-VC-THU-TU",
+    what: "chuyến đang chạy có khách chờ lên mà điểm trả đứng trước điểm đón (ADR-0096 Đ1)",
+    sql: `SELECT count(*) FROM vc_trip_allocation a JOIN vc_trip t ON t.id = a.trip_id AND t.status = 'RUNNING'
+          JOIN vc_trip_stop b ON b.id = a.board_stop_id JOIN vc_trip_stop d ON d.id = a.alight_stop_id
+          WHERE a.valid_to_at IS NULL AND a.status = 'WAITING' AND d.seq <= b.seq`,
+    level: "fail",
+  },
 
   // ---- Người phụ trách đơn (ADR-0006 điều 3, ADR-0009). Migration 0014 trở lên: trên D1 chưa có 0014 các câu dưới lỗi "no such table" → script thoát mã 2. ----
   // R-DSP-1: chỉ mục duy nhất một phần đã chặn ở CSDL; kiểm này bắt trường hợp chỉ mục bị gỡ/sửa nhầm.

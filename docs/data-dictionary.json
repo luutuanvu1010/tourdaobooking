@@ -347,7 +347,7 @@
       "name": "vc_dispatch_policy",
       "module": "van-chuyen",
       "kind": "table",
-      "note": "duty_day_max_minutes (480, 60–1440) tổng giờ lái một ngày chạy; trip_no_break_max_minutes (240, 30–720) chuyến dài hơn → nhắc nghỉ — chỉ cảnh báo (ADR-0055 VK2-B); thêm bằng ADD COLUMN có DEFAULT ở 0071 (lệch khuôn I43 có ghi — bù bằng bài 'câu chèn liệt kê đủ cột' và thân yêu cầu bắt buộc hai số)"
+      "note": "duty_day_max_minutes (480, 60–1440) tổng giờ lái một ngày chạy; trip_no_break_max_minutes (240, 30–720) chuyến dài hơn → nhắc nghỉ — chỉ cảnh báo (ADR-0055 VK2-B); thêm bằng ADD COLUMN có DEFAULT ở 0071 (lệch khuôn I43 có ghi — bù bằng bài 'câu chèn liệt kê đủ cột' và thân yêu cầu bắt buộc hai số). departure_window_minutes (720 = 12 giờ, 60–2880; 0084, ADR-0096 Đ2 LC-20) cửa sổ xuất bến — chỉ xuất bến khi giờ xuất bến ≥ giờ khởi hành dự kiến − cửa sổ của dòng hiệu lực TẠI giờ xuất bến; 720 là DEFAULT của cột (giá trị mặc định trong bảng, không hằng trong mã — bài src/cua-so-khong-hang.test.ts); Toàn quyền đổi ở màn Chính sách điều phối (ô theo giờ 1–48); không phá lệ; trigger vc_trip_departure_window trên cạnh PLANNED → RUNNING (không có dòng chính sách → chặn)"
     },
     {
       "name": "vc_leg_template",
@@ -400,7 +400,7 @@
       "name": "vc_trip",
       "module": "van-chuyen",
       "kind": "table",
-      "note": "DẤU PHÁ LỆ CAM KẾT (ADR-0056 VK3-A A3, migration 0077, Đợt 7): commitment_override_reason_code (FK vc_reason, nhóm PHA_LE) + commitment_override_key (chuỗi nối id và con số, không tên, không tiền — khoá chỉ để so với tình trạng cam kết hiện tại, KHÔNG BAO GIỜ hiển thị / vào DTO / nhật ký). Đi CẶP: có cả hai hoặc không có cả hai (CHECK); key dài 3..4000. Ai ghi: lệnh chuyến của người có ô trip.override (Quản trị, Toàn quyền) — một lô với nhật ký; xoá cả hai khi hết vi phạm. Chuyến đã kết thúc / huỷ không sửa (trigger vc_trip_final_frozen). Luật cấu hình, không có trigger: lớp giữ là máy chủ + câu kiểm định kỳ mức warn"
+      "note": "DẤU PHÁ LỆ CAM KẾT (ADR-0056 VK3-A A3, migration 0077, Đợt 7): commitment_override_reason_code (FK vc_reason, nhóm PHA_LE) + commitment_override_key (chuỗi nối id và con số, không tên, không tiền — khoá chỉ để so với tình trạng cam kết hiện tại, KHÔNG BAO GIỜ hiển thị / vào DTO / nhật ký). Đi CẶP: có cả hai hoặc không có cả hai (CHECK); key dài 3..4000. Ai ghi: lệnh chuyến của người có ô trip.override (Quản trị, Toàn quyền) — một lô với nhật ký; xoá cả hai khi hết vi phạm. Chuyến đã kết thúc / huỷ không sửa (trigger vc_trip_final_frozen). Luật cấu hình, không có trigger: lớp giữ là máy chủ + câu kiểm định kỳ mức warn. CỔNG XUẤT BẾN ADR-0096 (0084): trigger vc_trip_departure_stop_order (LC-19 — không lên RUNNING khi còn suất mở WAITING có seq điểm xuống ≤ seq điểm lên) và vc_trip_departure_window (LC-20 — departed_ms ≥ planned_start_ms − cửa sổ của vc_dispatch_policy hiệu lực tại departed_at; không có dòng → chặn); kiểm định kỳ R-VC-THU-TU cho chuyến đang chạy"
     },
     {
       "name": "vc_trip_driver",

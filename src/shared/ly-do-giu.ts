@@ -35,6 +35,12 @@ export const MA_GIU = {
   KHACH_DA_DOI: { loiNhan: `Khách trong xe không còn trong đơn — bấm ${NUT_CAP_NHAT_KHACH}`, aiXuLy: "VAN_PHONG" },
   // I38 (R-P9): chặng có suất trên chuyến mà ngày đón đã dời ra ngoài khoảng đọc quanh ngày chạy (không còn thuộc chuyến này).
   GIO_HEN_NGOAI_CHUYEN: { loiNhan: "Ngày đón của chặng đã đổi ra ngoài ngày chạy của chuyến", aiXuLy: "VAN_PHONG" },
+  // ADR-0096 Đ1 (LC-19): khách CHỜ LÊN có điểm trả đứng trước (hoặc bằng số) điểm đón — văn phòng đổi thứ tự điểm (nút ↑/↓). Chi tiết: mã đơn + số thứ tự
+  // điểm (không tên nơi — chọn của người thi công A1, câu ADR có {nơi trả}). Không ai phá lệ (không thuộc MA_LUAT_PHA_LE).
+  TRA_TRUOC_DON: { loiNhan: "Điểm trả đứng trước điểm đón — đổi thứ tự điểm rồi xuất bến", aiXuLy: "VAN_PHONG" },
+  // ADR-0096 Đ2 (LC-20): giờ xuất bến sớm hơn giờ khởi hành dự kiến − cửa sổ của chính sách hiệu lực. Chi tiết dựng ở `lyDoNgoaiCuaSo` (dieu-phoi-kiem.ts):
+  // giờ + ngày khởi hành, giờ + ngày được xuất bến, đường khắc phục (văn phòng sửa giờ chuyến). Không ai phá lệ.
+  NGOAI_CUA_SO_XUAT_BEN: { loiNhan: "Chưa tới giờ được xuất bến", aiXuLy: "VAN_PHONG" },
   // Chuyến, xe, tài xế (văn phòng)
   CHUYEN_KHONG_CON_LEN_KE_HOACH: { loiNhan: "Chuyến đã chạy, đã kết thúc hoặc đã huỷ", aiXuLy: "VAN_PHONG" },
   GIO_CHUYEN_KHONG_HOP_LE: { loiNhan: "Giờ kết thúc phải sau giờ bắt đầu và chuyến không quá 24 giờ", aiXuLy: "VAN_PHONG" },

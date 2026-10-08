@@ -79,7 +79,7 @@ function baoLoi(o: O, cau: string | null): void {
 function capNhatGoiYSatMoc(): void {
   const o = oSo.find((x) => x.truong === "satMocGio");
   if (!o) return;
-  const r = docFormChinhSach({ ...st, mocGio: "1", nghiPhut: "0", khaiLuiPhut: "1", gioLaiGio: "8", chuyenDaiGio: "4" }); // chỉ đọc ô sát mốc
+  const r = docFormChinhSach({ ...st, mocGio: "1", nghiPhut: "0", khaiLuiPhut: "1", gioLaiGio: "8", chuyenDaiGio: "4", cuaSoGio: "1" }); // chỉ đọc ô sát mốc
   const khoang = r.ok ? nhanThoiLuong(r.value.warnLeadMinutes) : "khoảng này";
   o.hint.textContent = `Chặng chưa xếp trong ${khoang} trước mốc hiện nhãn “Sát mốc”.`;
 }
@@ -146,6 +146,8 @@ function dung(): void {
     // ADR-0055 VK2-B: hai con số giờ lái — chỉ nhắc, không chặn (khuôn ô có sẵn; không cần bản vẽ).
     taoO("gioLaiGio", "Giờ lái tối đa một ngày (giờ)", "Vượt thì chỉ cảnh báo, không chặn. Mặc định 8.", true),
     taoO("chuyenDaiGio", "Nhắc nghỉ khi chuyến dài hơn (giờ)", "Chỉ nhắc. Mặc định 4.", true),
+    // ADR-0096 Đ2.3: cửa sổ xuất bến — không ai phá lệ; xe thật sự chạy sớm thì văn phòng sửa giờ chuyến. Gợi ý KHÔNG ghi con số mặc định (con số ở bảng).
+    taoO("cuaSoGio", "Cửa sổ xuất bến (giờ)", "Chỉ xuất bến được từ giờ khởi hành trừ số giờ này, từ 1 đến 48. Không ai phá lệ.", true),
   );
   capNhatGoiYSatMoc();
   const toggles = h(

@@ -2,7 +2,7 @@
   "mo_ta": "Bộ ca mẫu điều phối xe — ví dụ xe A / xe B của chủ dự án ([HĐ] mục 2; [MH] dữ liệu mẫu), PHẦN LƯỢT DUYỆT 1 của ADR-0049: tạo chuyến, xếp, giữ thiếu tên, nhập tên, xuất bến, mốc 6 giờ, vắng, đón muộn, kết thúc gián đoạn, chuyến cứu hộ. Mỗi bước: đầu vào, quyết định mong đợi, danh sách mã luật. Chạy qua luật thuần src/shared/dieu-phoi-kiem.ts, dieu-phoi-trang-thai.ts, gio-xay-ra.ts (src/dieu-phoi-ca-mau.test.ts). Bước B17–B23 thêm theo ADR-0050 (nơi hẹn đổi sau khi xếp, cập nhật điểm theo đơn, văn phòng khai giờ xảy ra, khoảng nghỉ theo giờ xảy ra, giấy tờ xe bắt buộc) — cùng CHỜ CHỦ XÁC NHẬN. Giờ viết dạng 'YYYY-MM-DD HH:MM' GIỜ VIỆT NAM ở mọi khoá tận cùng 'Ms'. '$nen.<đường>' trỏ dữ liệu nền bên dưới. Tên người là tên giả; không số giấy tờ.",
   "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
   "nen": {
-    "chinhSach": { "id": "cs-goc", "minLeadMinutes": 360, "warnLeadMinutes": 120, "restMinutes": 30, "requireManifest": true, "requireContract": false },
+    "chinhSach": { "id": "cs-goc", "minLeadMinutes": 360, "warnLeadMinutes": 120, "restMinutes": 30, "requireManifest": true, "requireContract": false, "departureWindowMinutes": 720 },
     "hangBang": [
       { "classCode": "B", "maxPassengers": 8 }, { "classCode": "D1", "maxPassengers": 16 }, { "classCode": "D2", "maxPassengers": 29 }, { "classCode": "D", "maxPassengers": null },
       { "classCode": "B2_OLD", "maxPassengers": 8 }, { "classCode": "C_OLD", "maxPassengers": 8 }, { "classCode": "D_OLD", "maxPassengers": 29 }, { "classCode": "E_OLD", "maxPassengers": null }

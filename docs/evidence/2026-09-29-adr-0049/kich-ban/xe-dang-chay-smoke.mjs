@@ -17,7 +17,7 @@ const dung = (r, ma, viec) => assert.equal(r.status, ma, `${viec}: ${r.status} $
 // trang Xe đang chạy đọc hôm qua / hôm nay / ngày mai. Mốc trả về 6 giờ để xác nhận được O6 (ngày mai 10:40 ngoài mốc 6 giờ, KHÔNG đặt gấp); xe đang chạy vẫn
 // luôn trong mốc ⇒ Bán hàng thấy dòng khoá, Quản trị qua hộp Phá lệ.
 dung(await call(ACCOUNTS.admin, "POST", `/api/van-chuyen/chuyen/${d.T4.id}/phan-bo`, { version: d.T4.version, requestId: randomUUID(), chang: [{ legId: d.O4.legId, soSuat: 2 }], phaLe: { lyDo: "PHA_LE_SU_CO" } }), 200, "xếp O4 vào T4");
-dung(await call(CHU, "POST", "/api/van-chuyen/chinh-sach-dieu-phoi", { minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes: 30, requireManifest: true, proxyBackdateMaxMinutes: 180, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240 }), 201, "mốc 6 giờ");
+dung(await call(CHU, "POST", "/api/van-chuyen/chinh-sach-dieu-phoi", { minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes: 30, requireManifest: true, proxyBackdateMaxMinutes: 180, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240, departureWindowMinutes: 2880 }), 201, "mốc 6 giờ");
 const T = d.T4;
 const o6 = await call(ACCOUNTS.salesA, "POST", "/api/orders", {
   customerName: "Khách Xe Chạy", customerPhone: "0903 100 296", customerEmail: "", customerNote: "", discount: 0, depositAmount: 0, depositMethod: null, paymentNote: "",

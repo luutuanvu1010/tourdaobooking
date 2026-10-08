@@ -2266,3 +2266,33 @@ test("R-VC-25 (Đợt 7 VK3-A): chuyến đã xuất bến trái cam kết xe ri
   batCamKet(e.leg, 0, 100);
   assert.equal(violations(db, c), 1, "chuyến PLANNED không đếm");
 });
+
+// ADR-0096 Đ1.5 (gói A1 — 0084): R-VC-THU-TU — chuyến ĐANG CHẠY có suất mở CHỜ LÊN mà điểm trả đứng trước / bằng số điểm đón (fail; lưới thứ hai của đường đổi thứ
+// tự khi đang chạy — không trigger theo dòng, Đ1.6). Chuyến kế hoạch vi phạm = "đang bị giữ" hợp lệ, không đếm.
+test("R-VC-THU-TU (ADR-0096 Đ1.5): chuyến đang chạy, khách chờ lên, điểm trả ≤ điểm đón → đếm (fail); đúng thứ tự / đã lên xe / suất đóng / chuyến kế hoạch → không", () => {
+  const c = one("R-VC-THU-TU");
+  assert.equal(c.level, "fail");
+  const db = tho();
+  const diem = (trip: string, kind: string, seq: number) => {
+    const id = `st-${++soVc}`;
+    db.prepare("INSERT INTO vc_trip_stop (id, trip_id, seq, kind, location_id, place_key, created_at, updated_at) VALUES (?, ?, ?, ?, 'loc-x', 'L:loc-x', ?, ?)").run(id, trip, seq, kind, T1, T1);
+    return id;
+  };
+  const chay = chuyenTho(db, { status: "RUNNING", departed: NOW_MS });
+  const don = diem(chay, "PICKUP", 1);
+  const tra = diem(chay, "DROPOFF", 2);
+  suatTho(db, { trip: chay, board: don, alight: tra });
+  assert.equal(violations(db, c), 0, "đúng thứ tự");
+  const don2 = diem(chay, "PICKUP", 3);
+  suatTho(db, { trip: chay, board: don2, alight: tra, status: "BOARDED" });
+  suatTho(db, { trip: chay, board: don2, alight: tra, den: T2 });
+  assert.equal(violations(db, c), 0, "đã lên xe / suất đã đóng: không xét");
+  suatTho(db, { trip: chay, board: don2, alight: tra });
+  assert.equal(violations(db, c), 1, "khách chờ lên ở điểm 3 xuống ở điểm 2");
+  const bang = diem(chay, "DROPOFF", 3);
+  suatTho(db, { trip: chay, board: don2, alight: bang });
+  assert.equal(violations(db, c), 2, "bằng số cũng là vi phạm");
+  const keHoach = chuyenTho(db);
+  suatTho(db, { trip: keHoach, board: diem(keHoach, "PICKUP", 2), alight: diem(keHoach, "DROPOFF", 1) });
+  assert.equal(violations(db, c), 2, "chuyến kế hoạch: đang bị giữ, không đếm");
+});

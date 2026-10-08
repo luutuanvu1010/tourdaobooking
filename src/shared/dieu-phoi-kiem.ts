@@ -20,7 +20,8 @@ import { canhBaoGioLai, type CanhBaoGioLai, type ChuyenGioLai } from "./gio-lai.
 import { chongNuaMo, nhanKhoangGio } from "./khung-ban.ts";
 import { lyDoGiu, type LyDoGiu } from "./ly-do-giu.ts";
 import { kiemMocXep, type LenhXep } from "./moc-toi-thieu.ts";
-import { msToVnLocal, vnToday } from "./vn-date.ts";
+import { suatTraTruocDon } from "./thu-tu-diem.ts";
+import { msToVnLocal, ngayNgan, vnToday } from "./vn-date.ts";
 
 const PHUT = 60_000;
 const NGAY_MS = 24 * 3600e3;
@@ -345,6 +346,49 @@ export interface KiemXuatBenVao {
    * đo từ lúc bấm là lệch khi văn phòng khai lùi (kế hoạch mục 4 điểm 23).
    */
   xuatBenMs: number;
+  /**
+   * ADR-0096 Đ2 (LC-20): mốc so với cửa sổ xuất bến. Thiếu → `xuatBenMs` (lệnh xuất bến thật). Màn đọc dự phóng `xuatBenMs = max(bây giờ, giờ bắt đầu)` —
+   * luôn trong cửa sổ — nên màn chi tiết chuyến / cuốc tài xế truyền GIỜ THẬT ở đây để lý do hiện ngay khi đọc (Đ2.5).
+   */
+  cuaSoXetMs?: number;
+}
+
+/**
+ * ADR-0096 Đ2 (LC-20) — lý do giữ khi `xetMs` sớm hơn giờ khởi hành − cửa sổ; null khi trong cửa sổ. Câu: giờ + ngày khởi hành, giờ + ngày được xuất bến
+ * (ngày "dd/mm", có năm khi khác năm của `xetMs`), đường khắc phục. Cửa sổ thiếu / không phải số → giữ CHINH_SACH_RONG (không đoán con số).
+ */
+export function lyDoNgoaiCuaSo(batDauMs: number, cuaSoPhut: number | undefined, xetMs: number): LyDoGiu | null {
+  if (typeof cuaSoPhut !== "number" || !Number.isFinite(cuaSoPhut)) return lyDoGiu("CHINH_SACH_RONG");
+  const moMs = batDauMs - cuaSoPhut * PHUT;
+  if (xetMs >= moMs) return null;
+  const homNay = ngayVn(xetMs);
+  const kh = msToVnLocal(batDauMs);
+  const mo = msToVnLocal(moMs);
+  return lyDoGiu(
+    "NGOAI_CUA_SO_XUAT_BEN",
+    `chuyến khởi hành lúc ${kh.time} ngày ${ngayNgan(kh.date, homNay)}, được xuất bến từ ${mo.time} ngày ${ngayNgan(mo.date, homNay)}. Xe thật sự chạy sớm thì văn phòng sửa giờ chuyến.`,
+  );
+}
+
+/**
+ * ADR-0096 Đ1.2 (LC-19) — lý do giữ TRA_TRUOC_DON, MỘT lý do mỗi đơn (theo thứ tự gặp suất), cho suất MỞ đang CHỜ LÊN có số điểm xuống ≤ số điểm lên.
+ * Chi tiết: mã đơn (khi biết) + SỐ THỨ TỰ điểm (cột "#" của màn chuyến và số trên màn tài xế = `seq`) — không tên nơi, không khoá nơi.
+ */
+export function lyDoTraTruocDon(suat: readonly SuatVao[], diem: readonly DiemVao[], chang: readonly Pick<ChangVao, "legId" | "orderCode">[]): LyDoGiu[] {
+  const cho = suat.filter((s) => s.mo && s.trangThai === "WAITING");
+  const viTri = new Map(diem.map((d) => [d.id, d.seq]));
+  const daoChiSo = suatTraTruocDon(diem, cho.map((s) => ({ diemLen: s.boardStopId, diemXuong: s.alightStopId })));
+  const out: LyDoGiu[] = [];
+  const daCo = new Set<string>();
+  for (const i of daoChiSo) {
+    const s = cho[i]!;
+    const ma = chang.find((x) => x.legId === s.legId)?.orderCode ?? "";
+    if (daCo.has(ma)) continue;
+    daCo.add(ma);
+    const viTriDiem = `điểm trả số ${viTri.get(s.alightStopId!)} đứng trước điểm đón số ${viTri.get(s.boardStopId!)}`;
+    out.push(lyDoGiu("TRA_TRUOC_DON", ma ? `${ma} (${viTriDiem})` : viTriDiem));
+  }
+  return out;
 }
 
 /**
@@ -361,6 +405,11 @@ export function kiemXuatBen(v: KiemXuatBenVao): KetQuaXuatBen & { camKet: KetQua
   const mucRong = { vehicleDocumentId: null, personDocumentId: null, documentTypeCode: null, licenseClassCode: null, expiryDate: null, ruleId: null };
   if (!cs) lyDo.push(lyDoGiu("CHINH_SACH_RONG"));
   else if (cs.requireContract) lyDo.push(lyDoGiu("HOP_DONG"));
+  // ADR-0096 Đ2 (LC-20): cửa sổ xuất bến của chính sách đang dùng — không phá lệ. Lớp CSDL: trigger vc_trip_departure_window (0084).
+  if (cs) {
+    const cuaSo = lyDoNgoaiCuaSo(c.batDauMs, cs.departureWindowMinutes, v.cuaSoXetMs ?? v.xuatBenMs);
+    if (cuaSo) lyDo.push(cuaSo);
+  }
   if (c.xe.trangThai !== "active") lyDo.push(lyDoGiu("XE_KHONG_DUNG", c.xe.bienSo));
   if (!c.taiXe) lyDo.push(lyDoGiu("CHUA_CO_TAI_XE", c.ma));
   else {
@@ -433,6 +482,8 @@ export function kiemXuatBen(v: KiemXuatBenVao): KetQuaXuatBen & { camKet: KetQua
     const thieuTen = lyDoThieuTen(ch, cs?.requireManifest ?? false, { chuaTen: chuaTen.length, ranh: ranh.length });
     if (thieuTen) lyDo.push(thieuTen);
   }
+  // ADR-0096 Đ1.2 (LC-19): điểm đón của suất chờ lên đứng trước điểm trả — không phá lệ. Lớp CSDL: trigger vc_trip_departure_stop_order (0084).
+  lyDo.push(...lyDoTraTruocDon(v.suat, v.diem, [...v.chang, ...(v.changNgoai ?? [])]));
   // ADR-0056 VK3-A: cam kết xe riêng / số chỗ — MỘT luật với lúc xếp; chặng = chặng có suất khách MỞ trên chuyến (`legIds`) có trong `v.chang` (chặng rơi
   // khỏi lịch đã có lý do giữ riêng ở trên). Còn vi phạm mà khoá khác khoá đã phá lệ → giữ (bắt cả cam kết bật SAU khi xếp — không cần lệnh chuyến nào chạy).
   const camKet = kiemCamKet({ xe: c.xe, chang: v.chang.filter((x) => legIds.includes(x.legId)), khoaDaPhaLe: c.camKetPhaLeKhoa });

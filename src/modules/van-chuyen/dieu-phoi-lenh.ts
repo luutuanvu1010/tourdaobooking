@@ -22,7 +22,7 @@ import {
   boSungXe, changVao, chinhSachVao, chuyenVao, diemVao, docChung, docNguCanh, khungBanVao, khungChuyen, lyDoChangNgoai, suatVao, taiXeVao, xeVao, type DuLieuChung, type NenChuyen,
 } from "./dieu-phoi-doc";
 import { canhBaoDto, changLichDto, chuyenTomTat, lyDoDangDung, taiXeChon, xeChon } from "./dieu-phoi-dto";
-import { chayLo, diemChoKhoa, diemKhongConKhach, sapLaiDiem, gioNgan, loi409, loiKiem, lyDoHopLe, maDonGon, nhanLyDo, phaLeNhatKy } from "./dieu-phoi-route";
+import { chanDaoMoi, chayLo, diemChoKhoa, diemKhongConKhach, sapLaiDiem, gioNgan, loi409, loiKiem, lyDoHopLe, maDonGon, nhanLyDo, phaLeNhatKy } from "./dieu-phoi-route";
 import type { BaoHuyThan, DoiThan, HuyThan, RutThan, SuaChuyenThan, XepThan } from "./dieu-phoi-than";
 import { phanLoaiThue } from "./tien-xe";
 import { chiTietChiPhiNhatKy, keHoachChiPhiKhiDoi, keHoachChiPhiKhiHuy } from "./tien-xe-lo";
@@ -102,6 +102,10 @@ export async function lenhSuaChuyen(
     if (!s) return error(400, "invalid_input", "Điểm không thuộc chuyến này.");
     if (s.status !== "PENDING") return error(409, "diem_da_toi", "Điểm đã tới hoặc đã bỏ qua — không đổi thứ tự, giờ xe tới.");
   }
+  // ADR-0096 Đ1.3b/c (gói A1): đổi thứ tự điểm của chuyến KẾ HOẠCH (nút ↑ ↓ của văn phòng đi qua lệnh này) không được làm khách chờ lên bị đảo MỚI — cùng
+  // luật với đổi thứ tự khi đang chạy (`chanDaoMoi`). Thứ tự đảo từ trước vẫn sửa dần được.
+  const dao = await chanDaoMoi(db, nen.stops, nen.allocs, b.diem.map((d) => ({ id: d.id, seq: d.thuTu })));
+  if (dao) return dao;
   // ADR-0057 C2a, C4 (Cần chủ 3 = A): cờ xe thuê CHỈ tính lại khi đổi xe (trigger vc_trip_rented_alone chặn đổi riêng cờ; chuyến cũ cờ 0 sửa giờ vẫn được); chi phí
   // tính lại khi đổi xe / nhà xe / tuyến / NGÀY chạy (ngày VN của giờ bắt đầu — dời giờ trong cùng ngày không tính lại). Xét TRƯỚC luật chéo xe – tài xế: chuyến
   // của nhà xe đã thôi hợp tác mà cần tính lại giá ⇒ 409 `carrier_inactive` bằng câu ADR C4 (không để lại dòng đảo lẻ).

@@ -230,7 +230,7 @@ test("khối van-chuyen: đủ tuyến; tên hành khách chỉ ở GET /chuyen/
       },
       "POST /api/van-chuyen/chinh-sach-dieu-phoi": async () => {
         const r = await w.call("POST", "/api/van-chuyen/chinh-sach-dieu-phoi", {
-          as: SUP, body: { minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes: 30, requireManifest: true, proxyBackdateMaxMinutes: 180, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240 },
+          as: SUP, body: { minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes: 30, requireManifest: true, proxyBackdateMaxMinutes: 180, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240, departureWindowMinutes: 720 },
         });
         assert.ok(r.status < 300, r.text);
         than.push({ route: "POST /api/van-chuyen/chinh-sach-dieu-phoi", khoa: "lưu chính sách", text: r.text, json: r.json, coCaiDeLo: false });

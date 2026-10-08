@@ -14,8 +14,8 @@ import {
 } from "./dieu-phoi";
 import { chinhSachVao, diemVao, docChung, docNguCanh, suatVao, type NenChuyen } from "./dieu-phoi-doc";
 import { kiemGioLenh, ketThucTruoc, vaoGio, type NenGio } from "./dieu-phoi-gio";
-import { CHUYEN_CU, chayLo, loi409 } from "./dieu-phoi-route";
-import { chinhSachHienHanh } from "./repository";
+import { CHUYEN_CU, chanDaoMoi, chanToiDiemTra, chayLo, loi409 } from "./dieu-phoi-route";
+import { chinhSachHienHanh, currentDispatchPolicy } from "./repository";
 import type { DoiThuTuThan, KetThucGianDoanThan, TienDoThan } from "./dieu-phoi-than";
 
 const NGAY_MS = 86_400_000;
@@ -70,9 +70,15 @@ export async function lenhXuatBen(
   const x = xayRaCua(l, b.xayRaMs);
   const gio = kiemGioLenh(n, vaoGio(n, "DEPARTED"), x.ms, b.xayRaMs !== null);
   if (gio) return gio;
+  // ADR-0096 Đ2.2 (LC-20): cửa sổ xuất bến theo dòng chính sách hiệu lực TẠI GIỜ XUẤT BẾN — văn phòng khai lùi có thể rơi vào dòng trước; CÙNG dòng trigger
+  // vc_trip_departure_window đọc (valid_from_at ≤ departed_at). Không có dòng nào tại giờ đó → chặn (không đoán).
+  const csCuaSo = b.xayRaMs === null ? cs : await currentDispatchPolicy(db, x.iso);
+  if (cs && !csCuaSo) return loi409("chua_du_dieu_kien_xuat_ben", [lyDoGiu("CHINH_SACH_RONG")]);
+  const csVao = chinhSachVao(cs);
   const vao = {
     chuyen: nc.chuyen, suat: nc.suat, chang: [...nc.chang.values()], changNgoai: nc.changNgoai, suatMoCuaChang: nc.suatMoCuaChang, diem: nc.diem, chuyenKhac: nc.chuyenKhac,
-    chinhSach: chinhSachVao(cs), hangBang: chung.hangBang, dieuKien: chung.dieuKien, bayGioMs, xuatBenMs: x.ms,
+    chinhSach: csVao && csCuaSo ? { ...csVao, departureWindowMinutes: csCuaSo.departure_window_minutes } : csVao, hangBang: chung.hangBang, dieuKien: chung.dieuKien, bayGioMs,
+    xuatBenMs: x.ms,
   };
   const kq = kiemXuatBen(vao);
   if (!kq.dat || !cs || kq.chup.taiXePartyId === null) return loi409("chua_du_dieu_kien_xuat_ben", kq.lyDo);
@@ -123,6 +129,11 @@ export async function lenhDaToi(db: D1Database, nen: NenChuyen, stopId: string, 
   const s = nen.stops.find((x) => x.id === stopId);
   if (!s) return KHONG_CO_DIEM();
   if (s.status !== "PENDING") return loi409("diem_da_toi");
+  // ADR-0096 Đ1.4 (HT-02): điểm TRẢ còn khách chờ lên mà điểm đón chưa tới → tới điểm đón trước. Mọi suất đã vắng / huỷ → bấm được như cũ.
+  if (s.kind === "DROPOFF") {
+    const chanTra = chanToiDiemTra(nen.stops, nen.allocs, s.id);
+    if (chanTra) return chanTra;
+  }
   const n = await nenGio(db, nen, bayGioMs, false);
   if (b.xayRaMs !== null && n.kepLuiPhut === null) return CHUA_CO_KEP();
   const l = lenh(b.requestId, nguoi, bayGioMs);
@@ -144,6 +155,8 @@ async function lenhSuat(lenhSuatLoai: LoaiLenhSuat, db: D1Database, nen: NenChuy
   const a: AllocRow | undefined = nen.allocs.find((x) => x.id === suatId && x.valid_to_at === null);
   if (!a) return KHONG_CO_SUAT();
   const k = LENH_SUAT[lenhSuatLoai];
+  // HT-16 (ADR-0096 Đ1.4): "Đã trả" khách còn CHỜ LÊN → nói đúng việc phải làm (bấm Đã đón), không "đã có kết quả".
+  if (lenhSuatLoai === "DA_TRA" && a.status === "WAITING") return loi409("khach_chua_len");
   if (!(k.tu as readonly string[]).includes(a.status)) return loi409("suat_da_co_ket_qua");
   const diemId = k.phia === "XUONG" ? a.alight_stop_id : a.board_stop_id;
   // "Đã đón / vắng / khách huỷ" đòi xe đã tới điểm LÊN; "đã trả" đòi đã tới điểm XUỐNG (người đi kèm không có điểm) — cùng điều kiện câu chuyển ALLOC_TIEN_DO.
@@ -223,6 +236,9 @@ export async function lenhDoiThuTu(db: D1Database, nen: NenChuyen, b: DoiThuTuTh
   if (new Set(sauCung).size !== sauCung.length) return error(400, "invalid_input", "Thứ tự mới trùng với thứ tự của điểm khác.");
   const doi = b.diem.filter((d) => nen.stops.find((s) => s.id === d.id)!.seq !== d.thuTu);
   if (doi.length === 0) return null; // không đổi gì — không ghi
+  // ADR-0096 Đ1.3c (LC-19 lớp máy chủ; đường này không có trigger theo dòng — Đ1.6): thứ tự mới làm khách chờ lên bị đảo mới → 409.
+  const dao = await chanDaoMoi(db, nen.stops, nen.allocs, doi.map((d) => ({ id: d.id, seq: d.thuTu })));
+  if (dao) return dao;
   const cs = await chinhSachHienHanh(db);
   const l = lenh(b.requestId, nguoi, bayGioMs);
   const lo = loDoiThuTu(db, {

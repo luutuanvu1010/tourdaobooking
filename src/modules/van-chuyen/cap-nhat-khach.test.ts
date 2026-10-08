@@ -287,7 +287,7 @@ test("K2f THẤP-2 lưới thứ hai, chính sách không bắt đủ danh sách
   try {
     const w = setup();
     const cs = await w.call("POST", "/api/van-chuyen/chinh-sach-dieu-phoi", {
-      as: SUP, body: { minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes: 30, requireManifest: false, proxyBackdateMaxMinutes: 180, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240 },
+      as: SUP, body: { minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes: 30, requireManifest: false, proxyBackdateMaxMinutes: 180, dutyDayMaxMinutes: 480, tripNoBreakMaxMinutes: 240, departureWindowMinutes: 720 },
     });
     assert.equal(cs.status, 201, cs.text);
     assert.equal(cs.json.current.requireManifest, false, "chính sách hiện hành không bắt đủ danh sách");

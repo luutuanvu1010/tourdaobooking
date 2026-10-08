@@ -141,6 +141,11 @@ export interface ChinhSachVao {
   dutyDayMaxMinutes: number;
   /** ADR-0055 VK2-B (0071): chuyến dài hơn (phút) → nhắc nghỉ — chỉ cảnh báo. */
   tripNoBreakMaxMinutes: number;
+  /**
+   * ADR-0096 Đ2 (0084): cửa sổ xuất bến (phút) — chỉ được xuất bến từ giờ khởi hành dự kiến − cửa sổ. Đọc từ dòng chính sách hiệu lực, KHÔNG có hằng trong
+   * mã. Thiếu / không phải số → `kiemXuatBen` giữ CHINH_SACH_RONG (không đoán).
+   */
+  departureWindowMinutes: number;
 }
 /** Dòng hạng bằng đang hiệu lực của MỘT hạng (`vc_license_capacity`). `maxPassengers` null = không giới hạn. Hạng không có dòng → CHẶN (không đoán). */
 export interface HangBangVao {

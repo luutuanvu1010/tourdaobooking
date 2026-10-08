@@ -155,3 +155,10 @@ test("loiRangBuocChuyen: bản chụp 'Bỏ đánh dấu' sai (GA-59 — trigger
   assert.equal(loiRangBuocChuyen("gb_chain: chuỗi mốc giờ hẹn không liền mạch")?.code, "gio_hen_vua_doi");
   assert.equal(loiRangBuocChuyen("không liên quan"), null);
 });
+
+test("ADR-0096 (gói A1): RAISE lc19_ / lc20_ của trigger cổng xuất bến (0084) → 409 trip_rule mang ĐÚNG câu của lý do giữ (không câu chung)", () => {
+  const r19 = loiRangBuocChuyen("D1_ERROR: lc19_tra_truoc_don: điểm trả đứng trước điểm đón của khách chờ lên — đổi thứ tự điểm rồi xuất bến: SQLITE_CONSTRAINT");
+  assert.deepEqual(r19, { status: 409, code: "trip_rule", message: "Điểm trả đứng trước điểm đón — đổi thứ tự điểm rồi xuất bến." });
+  const r20 = loiRangBuocChuyen("D1_ERROR: lc20_ngoai_cua_so: chưa tới giờ được xuất bến theo cửa sổ của chính sách điều phối: SQLITE_CONSTRAINT");
+  assert.deepEqual(r20, { status: 409, code: "trip_rule", message: "Chưa tới giờ được xuất bến. Xe thật sự chạy sớm thì văn phòng sửa giờ chuyến." });
+});

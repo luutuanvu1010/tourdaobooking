@@ -3,14 +3,15 @@
 // chạy không tên / liên hệ, sau xuất bến (đang chạy) có; tài xế khác / Bán hàng gọi route tài xế cho chuyến không lái → 404; tài khoản chỉ-DRIVER_PARTNER gọi
 // MỌI route tài xế → 403; `xayRaLuc` → 400 `xay_ra_khong_nhan`; "đã đón" hai lần cùng requestId → một sự kiện. Dữ liệu độc nhất theo lần chạy. Tên, số GIẢ.
 import assert from "node:assert/strict";
-import { ACCOUNTS, call, catalogService, ensureFakeCatalog, login, orderInput, randomPhone, session, sql, sqlRows, vnDate } from "./lib.mjs";
+import { ACCOUNTS, call, catalogService, ensureFakeCatalog, login, orderInput, randomPhone, session, sql, sqlRows, vnDate, moCuaSoXuatBen48Gio } from "./lib.mjs";
 
 await ensureFakeCatalog();
 const ADMIN = await session(ACCOUNTS.admin);
 const TAO_TK = await session(ACCOUNTS.superAdmin); // ADR-0071: chỉ Hành chính nhân sự / Toàn quyền tạo tài khoản (Quản trị không còn)
 const SALES = await session(ACCOUNTS.salesA);
 const LOC = "a941dd7d-faab-4098-9ab9-1df7fa6dd551";
-const D = vnDate(2);
+const D = vnDate(1); // ADR-0096 Đ2 (LC-20): chuyến NGÀY MAI + cửa sổ 48 giờ — xuất bến ngay được, giờ đón vẫn ngoài mốc 6 giờ
+await moCuaSoXuatBen48Gio();
 const duoi = String(Date.now()).slice(-6);
 const uuid = () => crypto.randomUUID();
 const AT = new Date().toISOString();
@@ -41,15 +42,15 @@ const xe = async (hau) => {
   }
   return id;
 };
-const chuyen = async (taiXe, hau) => {
+const chuyen = async (taiXe, hau, ngay = D) => {
   const o = await call(SALES, "POST", "/api/orders", orderInput({
     customerName: "Liên Hệ Cuốc E2E", customerPhone: "0913579246",
-    services: [catalogService({ pax: { adult: 2 }, departDate: D, legs: [{ direction: "OUT", pickupDate: D, pickupTime: "10:00", pickupLocationId: null, pickupPlace: `Khách sạn Cuốc E2E ${duoi}`, dropoffLocationId: LOC, dropoffPlace: "" }] })],
+    services: [catalogService({ pax: { adult: 2 }, departDate: ngay, legs: [{ direction: "OUT", pickupDate: ngay, pickupTime: "10:00", pickupLocationId: null, pickupPlace: `Khách sạn Cuốc E2E ${duoi}`, dropoffLocationId: LOC, dropoffPlace: "" }] })],
     passengers: [{ fullName: "Khách Cuốc E2E 1", birthYear: 1944, paxCode: null }, { fullName: "Khách Cuốc E2E 2", birthYear: 1945, paxCode: null }],
   }));
   assert.equal(o.status, 201, JSON.stringify(o.body));
   assert.equal((await call(SALES, "POST", `/api/orders/${o.body.order.id}/status`, { status: "confirmed" })).status, 200);
-  let c = await call(SALES, "POST", "/api/van-chuyen/chuyen", { requestId: uuid(), xeId: await xe(hau), taiXePartyId: taiXe.party, batDau: { ngay: D, gio: "09:30" }, ketThuc: { ngay: D, gio: "12:00" } });
+  let c = await call(SALES, "POST", "/api/van-chuyen/chuyen", { requestId: uuid(), xeId: await xe(hau), taiXePartyId: taiXe.party, batDau: { ngay, gio: "09:30" }, ketThuc: { ngay, gio: "12:00" } });
   assert.equal(c.status, 201, JSON.stringify(c.body));
   c = await call(SALES, "POST", `/api/van-chuyen/chuyen/${c.body.chuyen.id}/phan-bo`, { version: c.body.chuyen.version, requestId: uuid(), chang: [{ legId: o.body.order.services[0].legs[0].id, soSuat: 2 }] });
   assert.equal(c.status, 200, JSON.stringify(c.body));
@@ -79,13 +80,25 @@ assert.equal((await call(TXDT.cookie, "GET", `/api/van-chuyen/cuoc-cua-toi/${id}
 for (const d of DUOI) assert.equal((await call(TXDT.cookie, "POST", `/api/van-chuyen/cuoc-cua-toi/${id}/${d}`, { requestId: uuid() })).status, 403, d);
 console.log("✓ tài xế đối tác: 403 ở cả 11 route tài xế");
 
+// --- 2b. ADR-0096 Đ2 (LC-20) trên D1 thật: chuyến BA ngày sau (ngoài cửa sổ 48 giờ mở ở đầu kịch bản) → tài xế bấm Xuất bến 409 NGOAI_CUA_SO_XUAT_BEN
+// (Ai xử lý: Văn phòng), không ghi sự kiện, chuyến vẫn kế hoạch. Lớp trigger (vc_trip_departure_window): src/modules/van-chuyen/cua-so-thu-tu-csdl.test.ts.
+const xa = await chuyen(TX2, "X", vnDate(3));
+r = await call(TX2.cookie, "POST", `/api/van-chuyen/cuoc-cua-toi/${xa.chuyen.id}/xuat-ben`, { requestId: uuid() });
+assert.equal(r.status, 409, JSON.stringify(r.body));
+assert.deepEqual([r.body.error.code, r.body.error.lyDo.map((l) => l.ma)], ["chua_du_dieu_kien_xuat_ben", ["NGOAI_CUA_SO_XUAT_BEN"]], JSON.stringify(r.body));
+assert.match(r.body.error.lyDo[0].loiNhan, /được xuất bến từ 09:30 ngày \d{2}\/\d{2}\. Xe thật sự chạy sớm thì văn phòng sửa giờ chuyến\./);
+assert.equal(r.body.error.lyDo[0].aiXuLy, "VAN_PHONG");
+assert.equal((await sqlRows(`SELECT count(*) AS n FROM vc_trip_event WHERE trip_id = '${xa.chuyen.id}' AND kind = 'DEPARTED'`))[0].n, 0, "không ghi");
+assert.equal((await sqlRows(`SELECT status FROM vc_trip WHERE id = '${xa.chuyen.id}'`))[0].status, "PLANNED");
+console.log("✓ LC-20 (ADR-0096 Đ2): chuyến ba ngày sau → xuất bến 409 NGOAI_CUA_SO_XUAT_BEN (Văn phòng xử lý), không ghi, chuyến vẫn kế hoạch");
+
 // --- 3. Lệnh tiến độ của tài xế ---
 r = await call(TX.cookie, "POST", `/api/van-chuyen/cuoc-cua-toi/${id}/xuat-ben`, { requestId: uuid(), xayRaLuc: new Date().toISOString() });
 assert.deepEqual([r.status, r.body.error.code], [400, "xay_ra_khong_nhan"]);
 r = await call(TX.cookie, "POST", `/api/van-chuyen/cuoc-cua-toi/${id}/xuat-ben`, { requestId: uuid() });
 assert.equal(r.status, 200, JSON.stringify(r.body));
 assert.equal(r.body.chuyen.trangThai, "RUNNING");
-// Chuyến ngày D = hôm nay + 2, tài xế bấm Xuất bến HÔM NAY (xuất bến sớm): Q-L3-B (ADR-0053 D7.2, kẽ G3-9) — đang chạy nhưng xuất bến TRƯỚC ngày chạy
+// Chuyến ngày D = hôm nay + 1, tài xế bấm Xuất bến HÔM NAY (xuất bến sớm, trong cửa sổ 48 giờ — ADR-0096 Đ2.6 giữ nguyên nghĩa D7.2): Q-L3-B (ADR-0053 D7.2, kẽ G3-9) — đang chạy nhưng xuất bến TRƯỚC ngày chạy
 // → KHÔNG trong ngày chạy; tên / liên hệ vẫn vắng. Ca "có tên" trong ngày chạy trên API thật: mục 4 dưới; qua nửa đêm dùng đồng hồ giả: src/modules/van-chuyen/tai-xe-dto.test.ts.
 assert.equal(r.body.trongNgayChay, false, "xuất bến sớm (trước ngày chạy) → KHÔNG trong ngày chạy");
 assert.ok(r.body.suat.length > 0 && r.body.suat.every((s) => !("hoTen" in s) && !("namSinh" in s)) && !("lienHe" in r.body), "phản hồi lệnh tiến độ không kèm tên / liên hệ (TC-39 — chỉ GET chi tiết)");
