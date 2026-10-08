@@ -2,6 +2,7 @@
 // → phản hồi. Thân route ở index.ts chỉ hỏi `can()` rồi gọi các hàm ở đây. Lỗi CSDL dịch sang 409 bằng lời ở `loiTienXe` (KHÔNG đụng `loiRangBuocChuyen`).
 import { auditStatement } from "../audit";
 import { nhaXeDangHopTac, ownerCompany } from "../parties";
+import { cauKyKhoa, cauTriggerKhoa, kyDaKhoaTu, thangDaKhoa } from "../ky-so";
 import type { BangGiaResponse, StaffProfile } from "../../shared/contracts";
 import { error } from "../../shared/http";
 import { addDays } from "../../shared/vn-date";
@@ -29,14 +30,31 @@ export async function tenNhaXePhiHuy(db: D1Database, ids: readonly string[]): Pr
   return Promise.all(ids.map(async (id) => (await partyName(db, id)) ?? "(không rõ tên)"));
 }
 export async function docChiPhiChoLenh(db: D1Database, v: { tripId: string | null; chuXe: string; homNay: string }): Promise<{
-  dong: DongLo[]; gia: DongGiaThue[]; coXe: CoXe[]; congTyChuId: string | null; nhaXeDangMo: ReadonlySet<string>;
+  dong: DongLo[]; gia: DongGiaThue[]; coXe: CoXe[]; congTyChuId: string | null; nhaXeDangMo: ReadonlySet<string>; kyDaKhoa: (ngay: string) => boolean;
 }> {
-  const [dong, gia, co, pl] = await Promise.all([
-    v.tripId ? costLinesOfTrip(db, v.tripId) : Promise.resolve([]), ratesOfCarrier(db, v.chuXe), listSizes(db, v.homNay), docPhanLoai(db),
+  const [dong, gia, co, pl, daKhoa] = await Promise.all([
+    v.tripId ? costLinesOfTrip(db, v.tripId) : Promise.resolve([]), ratesOfCarrier(db, v.chuXe), listSizes(db, v.homNay), docPhanLoai(db), docKyDaKhoa(db),
   ]);
   return {
     dong: dong.map(dongCua), gia: gia.map(dongGia), coXe: co.map((c) => ({ code: c.code, min: c.min_passengers, max: c.max_passengers, active: c.active === 1 })), ...pl,
+    kyDaKhoa: daKhoa,
   };
+}
+
+// ---- Khoá tháng (ADR-0080; sổ đại lý đợt 1, Task 8) -----------------------------------------------------------------------------------------------------------
+/** Tháng đã khoá, đọc MỘT lần cho một lệnh: trả hàm "ngày này thuộc tháng đã khoá chưa" (`kyDaKhoaTu`). Lệnh chuyến đọc kèm `docChiPhiChoLenh` (không thêm câu vào lô). */
+export async function docKyDaKhoa(db: D1Database): Promise<(ngay: string) => boolean> {
+  return kyDaKhoaTu(new Set(await thangDaKhoa(db)));
+}
+/** 409 `period_closed` với CÂU DUY NHẤT của `ky-so` (`cauKyKhoa`) — cho kiểm trước lô (ngày tự chọn, chụp giá) ở route và lệnh chuyến. */
+export const loiThangDaKhoa = (thang: string): Response => error(409, "period_closed", cauKyKhoa(thang));
+/**
+ * Lỗi trigger `period_closed:` (tháng bị khoá GIỮA lúc đọc và lúc ghi — Review Focus 3) của một lô có dòng chi phí xe ⇒ 409 đúng câu của tháng vừa khoá, thay vì 500.
+ * `ngays` = ngày của các dòng chi phí MỚI trong lô (để chọn đúng tháng); lỗi khác ⇒ null (nơi gọi ném lại). Gọi ĐẦU khối `catch`.
+ */
+export async function loiKhoaThangXe(db: D1Database, e: unknown, ngays: readonly string[]): Promise<Response | null> {
+  const cau = await cauTriggerKhoa(db, e, ngays);
+  return cau === null ? null : error(409, "period_closed", cau);
 }
 /** Tuyến chọn khi xếp phải có và đang dùng (400 nếu không) — trả tên để ghi nhật ký. */
 export async function tenTuyenDangDung(db: D1Database, code: string): Promise<string | null> {

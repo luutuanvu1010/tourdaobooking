@@ -408,7 +408,7 @@ test("RF2 chen giữa (TC-8): lô huỷ dựng với phiên bản chi phí đã 
       const t = w.q("SELECT version, service_date FROM vc_trip WHERE id = ?", id)[0];
       const dong = w.q("SELECT id, kind, amount, reverses_id, reason_code, created_at, carrier_party_id, occurred_date FROM vc_trip_cost_line WHERE trip_id = ? ORDER BY rowid", id)
         .map((r: any) => ({ id: r.id, kind: r.kind, amount: r.amount, reversesId: r.reverses_id, reasonCode: r.reason_code, createdAt: r.created_at, carrierPartyId: r.carrier_party_id, occurredDate: r.occurred_date }));
-      const kh = dp.keHoachChiPhiKhiHuy(dong, t.service_date);
+      const kh = dp.keHoachChiPhiKhiHuy(dong, t.service_date, () => false);
       return dp.loHuy(w.env.DB, {
         cmd: uuid(), requestId: uuid(), lucIso: new Date().toISOString(), nguoiId: SALES, tripId: id, version: t.version, lyDo: "HUY_KHAC", phaLe: null, policyId: null,
         soSuatMo: 0, chiPhi: kh, phienBanChiPhi: phienBan ?? kh.phienBan, detail: "thử chen giữa",
