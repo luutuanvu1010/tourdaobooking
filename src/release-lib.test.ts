@@ -298,9 +298,15 @@ function tkScript(over: Record<string, RunResult | RunResult[]> = {}): Record<st
 const CHECK = ["git rev-parse HEAD", "git status --porcelain"];
 const TK_PREFIX = ["git rev-parse --abbrev-ref HEAD", "git status --porcelain", "git fetch origin", "git rev-parse main", "git rev-parse origin/main", "git log -1 --oneline --no-decorate main", WHOAMI, SECRETS, LIST, GATE_PRE, "npm test", "npm run typecheck", "npm run build:web", E2E, ...CHECK];
 const NOW = () => new Date("2026-09-23T03:04:05.000Z");
-/** Lệnh in cho chủ tự chạy khi migration ĐÃ áp mà Worker chưa deploy: kiểm cây sạch → về đúng mã đã kiểm → kiểm lại → deploy → kiểm dữ liệu → cổng sau. */
+/** Lệnh in cho chủ tự chạy khi migration ĐÃ áp mà Worker chưa deploy: (kiểm cây sạch → về đúng mã đã kiểm → kiểm lại → deploy) → kiểm dữ liệu → cổng sau → về main. */
 function assertLenhDeployDungMa(t: string) {
-  const thuTu = ["git status --short", `git switch --detach ${HEAD}`, "git status --short", "CI=1 npx wrangler deploy", "node scripts/audit-invariants.mjs --db remote", "node scripts/kiem-phien-ban.mjs --sau-deploy", "git switch main"];
+  // Dòng đầu móc `&&`: cây bẩn (trước hoặc sau khi đổi mã) ⇒ máy tự dừng trước deploy, kể cả khi chủ dán cả khối một lần (đã thử trong `zsh -f -i` thật 8/10).
+  const thuTu = [
+    `test -z "$(git status --short)" && git switch --detach ${HEAD} && test -z "$(git status --short)" && CI=1 npx wrangler deploy || echo "DỪNG: chưa phát hành, hỏi người phụ trách kỹ thuật"`,
+    "node scripts/audit-invariants.mjs --db remote",
+    "node scripts/kiem-phien-ban.mjs --sau-deploy",
+    "git switch main",
+  ];
   // Mỗi lệnh phải là MỘT DÒNG TRƠN (bỏ mã màu và khoảng trắng đầu/cuối thì đúng bằng lệnh): chép-dán chạy được trong zsh, không chú thích cùng dòng.
   const dong = t.replace(/\x1b\[[0-9;]*m/g, "").split("\n").map((x) => x.trim());
   let tu = 0;
@@ -737,6 +743,15 @@ test("trien-khai (mã đổi): cây làm việc có thay đổi chưa commit sau
   assert.deepEqual(h.questions, []);
   assertNothingDangerous(h.calls);
   assert.match(h.text(), /thay đổi chưa commit: M src\/index\.ts/, "nêu tên tệp để chủ biết vì sao dừng");
+});
+
+test("trien-khai (mã đổi): nhiều tệp bẩn → nêu tối đa 10 tệp đầu và tổng số (review M1)", async () => {
+  const tep = Array.from({ length: 12 }, (_, i) => `?? tam${i + 1}.txt`).join("\n");
+  const h = harness(tkScript({ "git status --porcelain": [out(""), out(`${tep}\n`)] }), ["c", "c"]);
+  assert.notEqual(await lib.trienKhai({ ...h.deps, now: NOW }), 0);
+  const t = h.text();
+  assert.match(t, /tam10\.txt; … \(12 tệp\)/);
+  assert.doesNotMatch(t, /tam11\.txt/);
 });
 
 test("trien-khai (mã đổi): lệnh git lỗi lúc so lại → coi là đổi, dừng (không đoán là còn đúng)", async () => {

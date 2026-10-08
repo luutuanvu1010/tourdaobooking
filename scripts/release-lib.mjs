@@ -146,14 +146,16 @@ const MA_DOI_HUONG_DAN = "Thường do `npm run day-len` hay lệnh git khác ch
  *  mang theo thay đổi chưa commit, deploy lúc đó đưa mã chưa kiểm lên production. */
 function inLenhDeployDungMa(log, ma) {
   log(`${RED}${BOLD}CẢNH BÁO: migration ĐÃ ÁP lên production nhưng Worker CHƯA deploy. Mã cũ đang chạy trên dữ liệu mới — deploy NGAY đúng mã đã kiểm (${ma.slice(0, 8)}).${RESET}`);
-  // Mỗi lệnh một dòng TRƠN (chép-dán chạy được trong zsh): lời giải thích ở dòng riêng, không ngoặc / dấu nháy / `#` cạnh lệnh — zsh tương tác không coi
-  // `#` là chú thích, `git status --short # …` sẽ lọc theo đường dẫn và báo "sạch" giả.
+  // Mỗi lệnh một dòng TRƠN (chép-dán chạy được trong zsh): lời giải thích ở dòng riêng, không ngoặc / `#` cạnh lệnh — zsh tương tác không coi `#` là
+  // chú thích, `git status --short # …` sẽ lọc theo đường dẫn và báo "sạch" giả. Kiểm cây sạch + đổi mã + deploy là MỘT dòng móc `&&`: chủ dán cả khối
+  // một lần thì máy vẫn tự dừng trước deploy khi cây bẩn (không dựa vào mắt người đọc kết quả `git status`). Không dùng dấu `!` (zsh mở rộng lịch sử).
   const buoc = [
-    ["Bước 1, kiểm thư mục sạch. Lệnh này phải KHÔNG in dòng nào, in ra thì DỪNG và hỏi người phụ trách kỹ thuật", ["git status --short"]],
-    ["Bước 2, về đúng mã đã kiểm", [`git switch --detach ${ma}`]],
-    ["Bước 3, kiểm lại, vẫn phải KHÔNG in dòng nào", ["git status --short"]],
-    ["Bước 4, phát hành, kiểm dữ liệu, so số phiên bản", [DEPLOY_CMD, "node scripts/audit-invariants.mjs --db remote", GATE_POST_CMD]],
-    ["Bước 5, về lại nhánh chính", ["git switch main"]],
+    [
+      "Bước 1, kiểm thư mục sạch, về đúng mã đã kiểm, phát hành. Dòng này tự dừng trước khi phát hành nếu thư mục có thay đổi chưa commit",
+      [`test -z "$(git status --short)" && git switch --detach ${ma} && test -z "$(git status --short)" && ${DEPLOY_CMD} || echo "DỪNG: chưa phát hành, hỏi người phụ trách kỹ thuật"`],
+    ],
+    ["Bước 2, kiểm dữ liệu và so số phiên bản", ["node scripts/audit-invariants.mjs --db remote", GATE_POST_CMD]],
+    ["Bước 3, về lại nhánh chính", ["git switch main"]],
   ];
   log(`${RED}Chờ lệnh git đang chạy ở thư mục này xong (nếu có). Rồi ở thư mục tourdao-sales, chạy LẦN LƯỢT từng dòng lệnh thụt vào dưới đây:${RESET}`);
   for (const [giaiThich, lenh] of buoc) {
