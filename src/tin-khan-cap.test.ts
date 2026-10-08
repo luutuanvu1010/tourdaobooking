@@ -1,12 +1,15 @@
 // TIN ĐIỀU CHỈNH KHẨN CẤP CHO TÀI XẾ (ADR-0104 Đ1 mục 6; kế hoạch NT-11, T1.7). Máy chủ thật (khung thử harness + D1 node:sqlite; chính sách gieo: mốc
 // 360 phút), đồng hồ giả 2027-03-11 06:00 giờ VN. Lệnh khách (xếp / rút / dời) mang luật vượt `MOC_TOI_THIEU` trên chuyến có dòng lái mở → tài xế đang lái
-// có tin (không tên, không SĐT); cùng lệnh không vượt mốc → không tin; người làm, văn phòng không nhận. Nguồn: hộp thông báo `GET /api/thong-bao` +
-// dữ kiện `chuyenChoTinTheoId` (khoá `khanCap` = id sự kiện) + dòng gõ cửa `dongChuyenTheoId`.
+// có tin (không tên, không SĐT); cùng lệnh không vượt mốc → không tin; người làm, văn phòng không nhận. Dời (phiếu kiểm D1 CAO-2, ADR-0104 Đ1.6 :95, :232):
+// tài xế chuyến ĐÍCH ("chuyển khách tới") và tài xế chuyến NGUỒN ("chuyển khách đi" — nguồn = `related_trip_id` của sự kiện, không thêm hành động, không thêm
+// dòng nhật ký). Nguồn: hộp thông báo `GET /api/thong-bao` + dữ kiện `chuyenChoTinTheoId` (khoá `khanCap` = id sự kiện) + dòng gõ cửa `dongChuyenTheoId`
+// + người nhận gõ cửa `nguoiNhanDay` (cùng hàm với hộp).
 import { test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { app } from "../tests/audit/harness.mjs";
 import { ADM, DRIVER, DRIVER2, NGAY_SAU, SALES, batDongHo, chiTiet, don, setup, taoChuyen, uuid, xe } from "../tests/audit/dieu-phoi-khung.mjs";
+import { nguoiNhanDay } from "./shared/web-push.ts";
 
 const PL = { lyDo: "PHA_LE_SU_CO" };
 const goi = (w: any, as: string, m: string, duoi: string, body: Record<string, unknown>) => w.call(m, `/api/van-chuyen/chuyen${duoi}`, { as, body: { requestId: uuid(), ...body } });
@@ -15,6 +18,20 @@ const xep = async (w: any, as: string, tripId: string, chang: unknown[], extra: 
   goi(w, as, "POST", `/${tripId}/phan-bo`, { version: await phienBan(w, tripId), chang, ...extra });
 const tinKhanCap = async (w: any, as: string): Promise<string[]> =>
   (await w.call("GET", "/api/thong-bao", { as })).json.tin.filter((x: any) => x.loai === "chuyen" && /điều chỉnh khẩn cấp/.test(x.cau)).map((x: any) => x.cau);
+const lienKetTin = async (w: any, as: string, mau: RegExp): Promise<string[]> =>
+  (await w.call("GET", "/api/thong-bao", { as })).json.tin.filter((x: any) => x.loai === "chuyen" && mau.test(x.cau)).map((x: any) => x.lienKet);
+/** Tài khoản cho người nhận gõ cửa (cùng quyền với khung thử — dieu-phoi-khung.mjs). */
+const TAI_KHOAN = [
+  { id: DRIVER, permissions: ["DRIVER"], partyId: `pty-${DRIVER}` }, { id: DRIVER2, permissions: ["DRIVER"], partyId: `pty-${DRIVER2}` },
+  { id: SALES, permissions: ["SALES"], partyId: null }, { id: ADM, permissions: ["ADMIN"], partyId: null },
+];
+/** Ai được gõ cửa cho sự kiện dời (đường gốc lắp ráp: `dongChuyenTheoId` với chuyến đích + chuyến nguồn, như `baoThayDoiChuyen` ở src/index.ts). */
+async function goCuaDoi(w: any, dichId: string, nguonId: string): Promise<string[]> {
+  const ev = w.q("SELECT id, occurred_at FROM vc_trip_event WHERE trip_id = ? AND kind = 'ALLOCATION_MOVED' ORDER BY rowid DESC", dichId)[0];
+  const kq = await app.dongChuyenTheoId(w.env.DB, ev.id, (q: any) => app.chuyenChoTinTheoId(w.env.DB, q), [dichId, nguonId]);
+  assert.ok(kq, "có dòng gõ cửa");
+  return nguoiNhanDay(TAI_KHOAN as any, { chuyen: kq.dong }, new Date(Date.parse(kq.dong.luc) + 1).toISOString()).sort();
+}
 
 test("NT-11 (ADR-0104 Đ1 mục 6): xếp / rút dưới mốc có điều chỉnh khẩn cấp → tài xế đang lái có tin; Bán hàng (người làm), Quản trị không; câu không tên, không SĐT", async () => {
   const tat = batDongHo();
@@ -62,7 +79,7 @@ test("NT-11: cùng lệnh KHÔNG vượt mốc → không tin — xếp chuyến
   }
 });
 
-test("NT-11: dời có điều chỉnh khẩn cấp → tài xế chuyến ĐÍCH (sự kiện ghi ở đích) có tin; tài xế chuyến NGUỒN không (giả định — câu hỏi ở báo cáo thi công)", async () => {
+test("NT-11 + phiếu D1 CAO-2 (ADR-0104 Đ1.6 :95, :232): dời có điều chỉnh khẩn cấp → tài xế chuyến ĐÍCH 'chuyển khách tới' và tài xế chuyến NGUỒN đúng MỘT tin 'chuyển khách đi' (liên kết chuyến nguồn); văn phòng không; gõ cửa tới cả hai tài xế", async () => {
   const tat = batDongHo();
   try {
     const w = setup();
@@ -76,7 +93,56 @@ test("NT-11: dời có điều chỉnh khẩn cấp → tài xế chuyến ĐÍC
     });
     assert.equal(d.status, 200, d.text);
     assert.deepEqual(await tinKhanCap(w, DRIVER2), [`Văn phòng vừa điều chỉnh khẩn cấp chuyến ${dich.chuyen.ma} ngày 11/03 (chuyển khách tới) — mở để xem`]);
-    assert.equal((await tinKhanCap(w, DRIVER)).filter((c) => /chuyển khách/.test(c)).length, 0, "tài xế nguồn không có tin dời");
+    assert.deepEqual((await tinKhanCap(w, DRIVER)).filter((c) => /chuyển khách/.test(c)), [`Văn phòng vừa điều chỉnh khẩn cấp chuyến ${nguon.chuyen.ma} ngày 11/03 (chuyển khách đi) — mở để xem`], "tài xế nguồn: đúng một tin dời");
+    assert.deepEqual(await lienKetTin(w, DRIVER, /chuyển khách đi/), [`/cuoc-chuyen?id=${encodeURIComponent(nguon.chuyen.id)}`]);
+    assert.deepEqual(await tinKhanCap(w, ADM), [], "văn phòng không nhận");
+    assert.deepEqual(await tinKhanCap(w, SALES), [], "người làm không tự nhận");
+    assert.deepEqual(await goCuaDoi(w, dich.chuyen.id, nguon.chuyen.id), [DRIVER, DRIVER2].sort(), "gõ cửa tới cả hai tài xế");
+    // Dữ kiện: hỏi CHỈ chuyến đích + sự kiện dời → chuyến nguồn (kèm khoảng lái) tự có trong dữ kiện, khanCapNguon chỉ đúng nguồn — hộp không phải tự biết nguồn.
+    const evDoi = w.q("SELECT id FROM vc_trip_event WHERE trip_id = ? AND kind = 'ALLOCATION_MOVED'", dich.chuyen.id)[0].id;
+    const f = await app.chuyenChoTinTheoId(w.env.DB, { tripIds: [dich.chuyen.id], suKienIds: [evDoi] });
+    assert.deepEqual(f.khanCapNguon, [{ suKienId: evDoi, tripId: nguon.chuyen.id }]);
+    const cn = f.chuyen.find((c: any) => c.tripId === nguon.chuyen.id);
+    assert.ok(cn, "chuyến nguồn có trong dữ kiện");
+    assert.deepEqual(cn.lai.map((l: any) => l.partyId), [`pty-${DRIVER}`]);
+  } finally {
+    tat();
+  }
+});
+
+test("Phiếu D1 CAO-2: dời KHÔNG vượt mốc (hai chuyến ngoài mốc, không cờ) → không tin cho cả tài xế nguồn lẫn tài xế đích; không gõ cửa", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const a = await don(w, { ngay: NGAY_SAU, gio: "09:00", soNguoi: 2 });
+    const nguon = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER}`, ngay: NGAY_SAU, bd: "08:00", kt: "12:00" });
+    const dich = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER2}`, ngay: NGAY_SAU, bd: "08:10", kt: "12:00" });
+    const x = await xep(w, SALES, nguon.chuyen.id, [{ legId: a.legId, soSuat: 2 }]);
+    assert.equal(x.status, 200, x.text);
+    const d = await goi(w, SALES, "POST", `/${nguon.chuyen.id}/doi`, {
+      version: await phienBan(w, nguon.chuyen.id), suatIds: x.json.suat.map((s: any) => s.id), denChuyenId: dich.chuyen.id, denVersion: await phienBan(w, dich.chuyen.id),
+    });
+    assert.equal(d.status, 200, d.text);
+    assert.deepEqual(await tinKhanCap(w, DRIVER), []);
+    assert.deepEqual(await tinKhanCap(w, DRIVER2), []);
+    assert.deepEqual(await goCuaDoi(w, dich.chuyen.id, nguon.chuyen.id), []);
+  } finally {
+    tat();
+  }
+});
+
+test("Phiếu D1 THẤP-7 (ghim hiện trạng — tin bám mã luật MOC_TOI_THIEU, không bám lớp): Bán hàng xếp chặng ĐẶT GẤP vào chuyến dưới mốc có tài xế, CHỈ kèm camKetPhaLe (lớp điều chỉnh khẩn cấp) → 200, tài xế KHÔNG có tin", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const gap = await don(w, { gio: "13:00", soNguoi: 2 });
+    assert.equal((await w.call("POST", `/api/orders/${gap.id}/legs/${gap.legId}/short-notice`, { as: ADM, body: { lyDo: "KHACH_DOAN_GOI_GAP" } })).status, 200);
+    w.sqlite.prepare("UPDATE ord_transfer_leg SET min_vehicle_seats = 30 WHERE id = ?").run(gap.legId); // xe 15 chỗ trái cam kết số chỗ
+    const t = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER}`, bd: "11:00", kt: "15:00" }); // dưới mốc
+    const r = await xep(w, SALES, t.chuyen.id, [{ legId: gap.legId, soSuat: 2 }], { camKetPhaLe: PL });
+    assert.equal(r.status, 200, r.text);
+    assert.deepEqual(w.q("SELECT override_rule_code r FROM vc_trip_event WHERE trip_id = ? AND kind = 'ALLOCATED'", t.chuyen.id).map((x: any) => x.r), ["CAM_KET"]);
+    assert.deepEqual(await tinKhanCap(w, DRIVER), [], "hiện trạng: không tin (cùng gốc bốn ca lệch nhãn — ADR :90)");
   } finally {
     tat();
   }

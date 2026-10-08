@@ -111,6 +111,29 @@ test("NT-4 (ADR-0104 Đ1 mục 4, 5): Bán hàng xếp chặng thường dưới
   }
 });
 
+test("Phiếu D1 THẤP-6 (ADR-0104 Đ1 mục 5, GA-35): chuyến NGUỒN chưa có sự kiện mốc (chặng đặt gấp xếp không cờ), rồi Bán hàng dời khẩn cấp sang chuyến khác → nhãn ở CẢ nguồn (chỉ qua related_trip_id của sự kiện ghi ở đích) lẫn đích", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const gap = await don(w, { gio: "13:00", soNguoi: 2 });
+    await datGap(w, gap);
+    const nguon = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER}`, bd: "11:00", kt: "15:00" }); // dưới mốc
+    const dich = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER2}`, bd: "11:10", kt: "15:00" });
+    const x = await xep(w, SALES, nguon.chuyen.id, [{ legId: gap.legId, soSuat: 2 }]);
+    assert.equal(x.status, 200, `đặt gấp — xếp không cần cờ: ${x.text}`);
+    assert.equal(await nhan(w, nguon.chuyen.id), false, "trước dời: nguồn chưa có sự kiện mốc");
+    const d = await goi(w, SALES, "POST", `/${nguon.chuyen.id}/doi`, {
+      version: await phienBan(w, nguon.chuyen.id), suatIds: x.json.suat.map((s: any) => s.id), denChuyenId: dich.chuyen.id, denVersion: await phienBan(w, dich.chuyen.id), phaLe: PL,
+    });
+    assert.equal(d.status, 200, d.text);
+    assert.equal(w.q("SELECT count(*) n FROM vc_trip_event WHERE trip_id = ? AND override_rule_code = 'MOC_TOI_THIEU'", nguon.chuyen.id)[0].n, 0, "nguồn không có sự kiện mốc của chính nó");
+    assert.equal(await nhan(w, nguon.chuyen.id), true, "nguồn: nhãn qua related_trip_id");
+    assert.equal(await nhan(w, dich.chuyen.id), true);
+  } finally {
+    tat();
+  }
+});
+
 test("NT-4 (ADR-0104 Đ1 mục 4, 5): Quản trị vượt khoảng nghỉ NGOÀI mốc → khanCap false; nhật ký giữ ' · phá lệ khoảng nghỉ: …' (không 'còn N phút'); nhật ký chuyến văn phòng có mã luật", async () => {
   const tat = batDongHo();
   try {

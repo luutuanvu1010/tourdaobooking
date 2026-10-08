@@ -44,6 +44,11 @@ export interface ChuyenChoTin {
   /** ADR-0104 Đ1 mục 6: id sự kiện (trong `suKienIds` được hỏi) mang luật vượt `MOC_TOI_THIEU` — điều chỉnh khẩn cấp. Vắng = không có. */
   khanCap?: string[];
   /**
+   * Phiếu kiểm D1 CAO-2 (ADR-0104 Đ1.6 :95, :232): sự kiện DỜI điều chỉnh khẩn cấp (id trong `khanCap`) → chuyến NGUỒN (`related_trip_id`; sự kiện ghi ở đích).
+   * Chuyến nguồn có mặt trong `chuyen` (kèm khoảng lái). Vắng = không có.
+   */
+  khanCapNguon?: { suKienId: string; tripId: string }[];
+  /**
    * MQ-07 (ADR-0052 D6.2): mọi suất KHÁCH của các chặng được hỏi (`legIds`), kèm khoảng hiệu lực — chuyến của chúng có mặt trong `chuyen`. Lọc "mở lúc sự kiện"
    * ở `chuyenCuaChangLuc` (thuần). Vắng = không hỏi chặng nào.
    */
@@ -57,6 +62,8 @@ export interface DongChuyen extends DongChuyenTho {
   maChuyen: string; ngayChay: string; lai: KhoangLai[]; don: DonCuaTin[]; xuatBen: string | null;
   /** ADR-0104 Đ1 mục 6: sự kiện của dòng mang luật vượt `MOC_TOI_THIEU` (chỉ cờ — không lý do, không người). */
   khanCap: boolean;
+  /** Phiếu kiểm D1 CAO-2: dời điều chỉnh khẩn cấp — chuyến NGUỒN (mã, ngày, khoảng lái) cho tin "chuyển khách đi" của tài xế nguồn. Vắng / null = không có. */
+  nguon?: ChuyenCuaChang | null;
 }
 export interface NguoiNhanChuyen extends PermissionHolder { readonly partyId: string | null }
 
@@ -91,9 +98,24 @@ const hoa = (s: string) => s.charAt(0).toLocaleUpperCase("vi-VN") + s.slice(1);
 /** "chuyến <mã> ngày <dd/mm>" — năm khi khác năm của lúc sự kiện (Kiểu D). Một chỗ cho tin chuyến và tin MQ-07. */
 const moTaChuyen = (ma: string, ngayChay: string, luc: string) => `chuyến ${ma} ngày ${ngayNgan(ngayChay, msToVnLocal(Date.parse(luc)).date)}`;
 
+/**
+ * Phiếu kiểm D1 CAO-2 (ADR-0104 Đ1.6 :95 "tin tới tài xế đang lái", :232 "chỉ chuyến có tài xế"; tiền lệ ADR-0052 D6.2 "tài xế nguồn, tài xế đích"): dời điều
+ * chỉnh khẩn cấp — với chuyến NGUỒN lệnh dời là một lần rút khách ⇒ tài xế đang lái chuyến nguồn lúc sự kiện cũng nhận tin `khan_cap` ("chuyển khách đi",
+ * liên kết chuyến nguồn). Cùng dòng nhật ký, không thêm hành động. Người làm không nhận; người lái cả hai chuyến nhận tin chuyến đích (một tin mỗi dòng).
+ */
+function tinNguonCho(n: NguoiNhanChuyen, d: DongChuyen): { loai: LoaiTinChuyen; cau: string; lienKet: string } | null {
+  const g = d.nguon;
+  if (!g || !d.khanCap || d.action !== "trip_allocation_moved" || d.actorId === n.id || n.partyId === null) return null;
+  if (!laiLucSuKien(g.lai, n.partyId, d.luc) || !can(n, "trip.view", { assigned: true })) return null;
+  return {
+    loai: "khan_cap", cau: `Văn phòng vừa điều chỉnh khẩn cấp ${moTaChuyen(g.ma, g.ngayChay, d.luc)} (chuyển khách đi) — mở để xem`,
+    lienKet: `/cuoc-chuyen?id=${encodeURIComponent(g.tripId)}`,
+  };
+}
+
 export function tinChuyenCho(n: NguoiNhanChuyen, d: DongChuyen): { loai: LoaiTinChuyen; cau: string; lienKet: string } | null {
   const loai = loaiCho(n, d);
-  if (!loai) return null;
+  if (!loai) return tinNguonCho(n, d);
   const c = moTaChuyen(d.maChuyen, d.ngayChay, d.luc);
   const id = encodeURIComponent(d.tripId);
   switch (loai) {
@@ -162,12 +184,15 @@ export function dungDongChuyen(tho: readonly DongChuyenTho[], f: ChuyenChoTin, d
   const chuyen = new Map(f.chuyen.map((c) => [c.tripId, c]));
   const donTheoId = new Map(don.map((x) => [x.orderId, x]));
   const khanCap = new Set(f.khanCap ?? []);
+  const nguonCua = new Map((f.khanCapNguon ?? []).map((x) => [x.suKienId, x.tripId]));
   const out: DongChuyen[] = [];
   for (const t of tho) {
     const c = chuyen.get(t.tripId);
     if (!c) continue;
     const ds = f.vang.filter((v) => v.suKienId === t.id).map((v) => donTheoId.get(v.orderId)).filter((x): x is DonCuaTin => x !== undefined);
-    out.push({ ...t, maChuyen: c.ma, ngayChay: c.ngayChay, lai: c.lai, don: ds, xuatBen: c.xuatBen ?? null, khanCap: khanCap.has(t.id) });
+    const n = chuyen.get(nguonCua.get(t.id) ?? "");
+    const nguon = n ? { tripId: n.tripId, ma: n.ma, ngayChay: n.ngayChay, lai: n.lai } : null;
+    out.push({ ...t, maChuyen: c.ma, ngayChay: c.ngayChay, lai: c.lai, don: ds, xuatBen: c.xuatBen ?? null, khanCap: khanCap.has(t.id), nguon });
   }
   return out;
 }

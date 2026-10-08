@@ -818,17 +818,24 @@ export async function viecXeCuaNguoi(db: D1Database, partyId: string): Promise<{
 
 // ---- TIN CHUYẾN (ADR-0052 D6.3): dữ kiện cho thongbao / gốc lắp ráp qua hàm tiêm — chỉ khoá, mã chuyến, ngày, khoảng lái, đơn của suất vắng. ----
 const SU_KIEN_THEO_YEU_CAU = defineSql("van-chuyen", "su_kien_theo_yeu_cau", `SELECT id, trip_id, related_trip_id FROM vc_trip_event WHERE request_id = ?1`);
+// Phiếu kiểm D1 CAO-2 (ADR-0104 Đ1.6): chuyến được hỏi (?1) CỘNG chuyến NGUỒN của các sự kiện dời điều chỉnh khẩn cấp trong số sự kiện được hỏi (?2) — sự kiện ghi
+// ở chuyến đích, nguồn = `related_trip_id`; tài xế nguồn cũng nhận tin. Một tập cho cả hai câu (chuyến + khoảng lái) — `CHUYEN_NGUON_KHAN_CAP`.
+const CHUYEN_NGUON_KHAN_CAP = `SELECT e.related_trip_id FROM vc_trip_event e
+  WHERE e.id IN (SELECT value FROM json_each(?2)) AND e.kind = 'ALLOCATION_MOVED' AND e.override_rule_code = 'MOC_TOI_THIEU' AND e.related_trip_id IS NOT NULL`;
 const CHUYEN_CHO_TIN = defineSql("van-chuyen", "chuyen_cho_tin",
-  `SELECT t.id AS trip_id, t.code AS ma, t.service_date AS ngay_chay, t.departed_at AS xuat_ben FROM vc_trip t WHERE t.id IN (SELECT value FROM json_each(?1))`);
+  `SELECT t.id AS trip_id, t.code AS ma, t.service_date AS ngay_chay, t.departed_at AS xuat_ben FROM vc_trip t
+   WHERE t.id IN (SELECT value FROM json_each(?1)) OR t.id IN (${CHUYEN_NGUON_KHAN_CAP})`);
 const LAI_CHO_TIN = defineSql("van-chuyen", "lai_cho_tin",
-  `SELECT d.trip_id, d.driver_party_id AS party_id, d.valid_from_at AS tu, d.valid_to_at AS den FROM vc_trip_driver d WHERE d.trip_id IN (SELECT value FROM json_each(?1))`);
+  `SELECT d.trip_id, d.driver_party_id AS party_id, d.valid_from_at AS tu, d.valid_to_at AS den FROM vc_trip_driver d
+   WHERE d.trip_id IN (SELECT value FROM json_each(?1)) OR d.trip_id IN (${CHUYEN_NGUON_KHAN_CAP})`);
 const VANG_CHO_TIN = defineSql("van-chuyen", "vang_cho_tin", `
   SELECT e.id AS su_kien_id, k.order_id FROM vc_trip_event e
   JOIN vc_trip_allocation a ON a.id = e.allocation_id JOIN v_ord_leg_key k ON k.id = a.leg_id
   WHERE e.id IN (SELECT value FROM json_each(?1)) AND e.kind = 'PASSENGER_NO_SHOW'`);
-// ADR-0104 Đ1 mục 6: sự kiện (trong số được hỏi) mang luật vượt MOC_TOI_THIEU — cờ tin điều chỉnh khẩn cấp; chỉ id.
+// ADR-0104 Đ1 mục 6: sự kiện (trong số được hỏi) mang luật vượt MOC_TOI_THIEU — cờ tin điều chỉnh khẩn cấp; id + chuyến nguồn khi là sự kiện dời (CAO-2).
 const KHAN_CAP_CHO_TIN = defineSql("van-chuyen", "khan_cap_cho_tin",
-  `SELECT e.id FROM vc_trip_event e WHERE e.id IN (SELECT value FROM json_each(?1)) AND e.override_rule_code = 'MOC_TOI_THIEU'`);
+  `SELECT e.id, CASE WHEN e.kind = 'ALLOCATION_MOVED' THEN e.related_trip_id END AS nguon FROM vc_trip_event e
+   WHERE e.id IN (SELECT value FROM json_each(?1)) AND e.override_rule_code = 'MOC_TOI_THIEU'`);
 // MQ-07 (ADR-0052 D6.2): MỌI suất khách (mở lẫn đã đóng — kèm khoảng hiệu lực) của các chặng được hỏi; thongbao lọc "mở lúc sự kiện" bằng hàm thuần.
 const SUAT_CHANG_CHO_TIN = defineSql("van-chuyen", "suat_chang_cho_tin", `
   SELECT a.leg_id, a.trip_id, a.valid_from_at AS tu, a.valid_to_at AS den FROM vc_trip_allocation a
@@ -846,16 +853,17 @@ export async function chuyenChoTinTheoId(db: D1Database, q: HoiChuyenChoTin): Pr
   const tj = JSON.stringify([...new Set([...q.tripIds, ...(suat ?? []).map((x) => x.trip_id)])]);
   const sk = JSON.stringify([...new Set(q.suKienIds)]);
   const [t, l, v, k] = await Promise.all([
-    db.prepare(CHUYEN_CHO_TIN).bind(tj).all<{ trip_id: string; ma: string; ngay_chay: string; xuat_ben: string | null }>(),
-    db.prepare(LAI_CHO_TIN).bind(tj).all<{ trip_id: string; party_id: string; tu: string; den: string | null }>(),
+    db.prepare(CHUYEN_CHO_TIN).bind(tj, sk).all<{ trip_id: string; ma: string; ngay_chay: string; xuat_ben: string | null }>(),
+    db.prepare(LAI_CHO_TIN).bind(tj, sk).all<{ trip_id: string; party_id: string; tu: string; den: string | null }>(),
     q.suKienIds.length ? db.prepare(VANG_CHO_TIN).bind(sk).all<{ su_kien_id: string; order_id: string }>() : Promise.resolve({ results: [] }),
-    q.suKienIds.length ? db.prepare(KHAN_CAP_CHO_TIN).bind(sk).all<{ id: string }>() : Promise.resolve({ results: [] }),
+    q.suKienIds.length ? db.prepare(KHAN_CAP_CHO_TIN).bind(sk).all<{ id: string; nguon: string | null }>() : Promise.resolve({ results: [] }),
   ]);
   return {
     chuyen: t.results.map((c) => ({ tripId: c.trip_id, ma: c.ma, ngayChay: c.ngay_chay, xuatBen: c.xuat_ben,
       lai: l.results.filter((x) => x.trip_id === c.trip_id).map((x) => ({ partyId: x.party_id, tu: x.tu, den: x.den })) })),
     vang: v.results.map((x) => ({ suKienId: x.su_kien_id, orderId: x.order_id })),
     khanCap: k.results.map((x) => x.id),
+    khanCapNguon: k.results.flatMap((x) => (x.nguon ? [{ suKienId: x.id, tripId: x.nguon }] : [])),
     ...(suat ? { suatChang: suat.map((x) => ({ legId: x.leg_id, tripId: x.trip_id, tu: x.tu, den: x.den })) } : {}),
   };
 }

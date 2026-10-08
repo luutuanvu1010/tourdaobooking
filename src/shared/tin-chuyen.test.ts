@@ -292,3 +292,27 @@ test("NT-11: dungDongChuyen gắn khanCap theo id sự kiện của dữ kiện 
   assert.deepEqual(r.map((x) => [x.id, x.khanCap]), [["e1", true], ["e2", false]]);
   for (const a of KHAN_CAP) assert.ok((HANH_DONG_TIN_CHUYEN as readonly string[]).includes(a), a);
 });
+// ---- Phiếu kiểm D1 CAO-2 (ADR-0104 Đ1.6 :95, :232): dời điều chỉnh khẩn cấp → cả tài xế chuyến NGUỒN ("chuyển khách đi") ----
+test("CAO-2: dời khẩn cấp — tài xế đang lái chuyến NGUỒN lúc sự kiện nhận 'khan_cap' (câu, liên kết chuyến nguồn); tài xế nguồn đã gỡ, người làm, văn phòng, không cờ, hành động khác không; người lái cả hai chuyến nhận tin chuyến đích", () => {
+  const nguon = { tripId: "t0", ma: "CX-1103-01", ngayChay: "2027-03-11", lai: [{ partyId: "p-c", tu: T0, den: null }, { partyId: "p-a", tu: T0, den: T1 }] };
+  const d = dong({ action: "trip_allocation_moved", actorId: "sales", luc: T2, khanCap: true, nguon });
+  const TX_C = nguoi("tx-c", ["DRIVER"], "p-c");
+  assert.deepEqual(tinChuyenCho(TX_C, d), { loai: "khan_cap", cau: "Văn phòng vừa điều chỉnh khẩn cấp chuyến CX-1103-01 ngày 11/03 (chuyển khách đi) — mở để xem", lienKet: "/cuoc-chuyen?id=t0" });
+  assert.equal(tinChuyenCho(TX_B, d)?.cau, "Văn phòng vừa điều chỉnh khẩn cấp chuyến CX-1103-02 ngày 11/03 (chuyển khách tới) — mở để xem", "tài xế đích giữ nguyên");
+  assert.equal(tinChuyenCho(TX_A, d), null, "tài xế nguồn đã gỡ trước sự kiện");
+  assert.equal(tinChuyenCho({ ...TX_C, id: "sales" }, d), null, "người tự làm");
+  assert.equal(tinChuyenCho(nguoi("adm", ["ADMIN"]), d), null, "văn phòng");
+  assert.equal(tinChuyenCho(nguoi("tx-dt", ["DRIVER_PARTNER"], "p-c"), d), null, "chỉ-DRIVER_PARTNER");
+  assert.equal(tinChuyenCho(TX_C, { ...d, khanCap: false }), null, "không vượt mốc");
+  assert.equal(tinChuyenCho(TX_C, { ...d, action: "trip_allocated" }), null, "chỉ sự kiện dời");
+  const caHai = { ...nguon, lai: [{ partyId: "p-b", tu: T0, den: null }] };
+  assert.match(tinChuyenCho(TX_B, { ...d, nguon: caHai })!.cau, /CX-1103-02 .*chuyển khách tới/, "lái cả hai chuyến: một tin — chuyến đích");
+});
+test("CAO-2: dungDongChuyen gắn chuyến nguồn theo `khanCapNguon` (id sự kiện → chuyến nguồn có trong dữ kiện); sự kiện khác → nguon null", () => {
+  const f = {
+    chuyen: [{ tripId: "t1", ma: "CX-1", ngayChay: "2027-03-11", lai: [], xuatBen: null }, { tripId: "t0", ma: "CX-0", ngayChay: "2027-03-11", lai: [{ partyId: "p", tu: T0, den: null }], xuatBen: null }],
+    vang: [], khanCap: ["e1"], khanCapNguon: [{ suKienId: "e1", tripId: "t0" }],
+  };
+  const r = dungDongChuyen([{ id: "e1", tripId: "t1", actorId: "a", action: "trip_allocation_moved", luc: T1 }, { id: "e2", tripId: "t1", actorId: "a", action: "trip_allocation_moved", luc: T1 }], f, []);
+  assert.deepEqual(r.map((x) => [x.id, x.nguon?.tripId ?? null, x.nguon?.ma ?? null]), [["e1", "t0", "CX-0"], ["e2", null, null]]);
+});
