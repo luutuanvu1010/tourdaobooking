@@ -826,6 +826,9 @@ const VANG_CHO_TIN = defineSql("van-chuyen", "vang_cho_tin", `
   SELECT e.id AS su_kien_id, k.order_id FROM vc_trip_event e
   JOIN vc_trip_allocation a ON a.id = e.allocation_id JOIN v_ord_leg_key k ON k.id = a.leg_id
   WHERE e.id IN (SELECT value FROM json_each(?1)) AND e.kind = 'PASSENGER_NO_SHOW'`);
+// ADR-0104 Đ1 mục 6: sự kiện (trong số được hỏi) mang luật vượt MOC_TOI_THIEU — cờ tin điều chỉnh khẩn cấp; chỉ id.
+const KHAN_CAP_CHO_TIN = defineSql("van-chuyen", "khan_cap_cho_tin",
+  `SELECT e.id FROM vc_trip_event e WHERE e.id IN (SELECT value FROM json_each(?1)) AND e.override_rule_code = 'MOC_TOI_THIEU'`);
 // MQ-07 (ADR-0052 D6.2): MỌI suất khách (mở lẫn đã đóng — kèm khoảng hiệu lực) của các chặng được hỏi; thongbao lọc "mở lúc sự kiện" bằng hàm thuần.
 const SUAT_CHANG_CHO_TIN = defineSql("van-chuyen", "suat_chang_cho_tin", `
   SELECT a.leg_id, a.trip_id, a.valid_from_at AS tu, a.valid_to_at AS den FROM vc_trip_allocation a
@@ -841,15 +844,18 @@ export async function chuyenChoTinTheoId(db: D1Database, q: HoiChuyenChoTin): Pr
     ? (await db.prepare(SUAT_CHANG_CHO_TIN).bind(JSON.stringify([...new Set(q.legIds)])).all<{ leg_id: string; trip_id: string; tu: string; den: string | null }>()).results
     : null;
   const tj = JSON.stringify([...new Set([...q.tripIds, ...(suat ?? []).map((x) => x.trip_id)])]);
-  const [t, l, v] = await Promise.all([
+  const sk = JSON.stringify([...new Set(q.suKienIds)]);
+  const [t, l, v, k] = await Promise.all([
     db.prepare(CHUYEN_CHO_TIN).bind(tj).all<{ trip_id: string; ma: string; ngay_chay: string; xuat_ben: string | null }>(),
     db.prepare(LAI_CHO_TIN).bind(tj).all<{ trip_id: string; party_id: string; tu: string; den: string | null }>(),
-    q.suKienIds.length ? db.prepare(VANG_CHO_TIN).bind(JSON.stringify([...new Set(q.suKienIds)])).all<{ su_kien_id: string; order_id: string }>() : Promise.resolve({ results: [] }),
+    q.suKienIds.length ? db.prepare(VANG_CHO_TIN).bind(sk).all<{ su_kien_id: string; order_id: string }>() : Promise.resolve({ results: [] }),
+    q.suKienIds.length ? db.prepare(KHAN_CAP_CHO_TIN).bind(sk).all<{ id: string }>() : Promise.resolve({ results: [] }),
   ]);
   return {
     chuyen: t.results.map((c) => ({ tripId: c.trip_id, ma: c.ma, ngayChay: c.ngay_chay, xuatBen: c.xuat_ben,
       lai: l.results.filter((x) => x.trip_id === c.trip_id).map((x) => ({ partyId: x.party_id, tu: x.tu, den: x.den })) })),
     vang: v.results.map((x) => ({ suKienId: x.su_kien_id, orderId: x.order_id })),
+    khanCap: k.results.map((x) => x.id),
     ...(suat ? { suatChang: suat.map((x) => ({ legId: x.leg_id, tripId: x.trip_id, tu: x.tu, den: x.den })) } : {}),
   };
 }

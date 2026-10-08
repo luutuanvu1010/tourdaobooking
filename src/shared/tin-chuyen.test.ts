@@ -11,7 +11,7 @@ const T0 = "2027-03-11T01:00:00.000Z", T1 = "2027-03-11T02:00:00.000Z", T2 = "20
 const nguoi = (id: string, permissions: PermissionCode[], partyId: string | null = null): NguoiNhanChuyen => ({ id, permissions, partyId });
 const dong = (v: Partial<DongChuyen>): DongChuyen => ({
   id: "ev", tripId: "t1", maChuyen: "CX-1103-02", ngayChay: "2027-03-11", action: "trip_edited", actorId: "sales", luc: T1,
-  lai: [{ partyId: "p-a", tu: T0, den: T1 }, { partyId: "p-b", tu: T1, den: null }], don: [], xuatBen: null, ...v,
+  lai: [{ partyId: "p-a", tu: T0, den: T1 }, { partyId: "p-b", tu: T1, den: null }], don: [], xuatBen: null, khanCap: false, ...v,
 });
 const TX_A = nguoi("tx-a", ["DRIVER"], "p-a"), TX_B = nguoi("tx-b", ["DRIVER"], "p-b");
 
@@ -93,7 +93,8 @@ test("câu tin không chứa gì ngoài mã chuyến, ngày, mã đơn — khoá
   const d = dong({ action: "trip_passenger_no_show", don: [{ orderId: "o1", maDon: "DH-0001", ownerId: "lap", handlerStaffId: null }] });
   const t = tinChuyenCho(nguoi("lap", ["SALES"]), d)!;
   assert.equal(t.cau, "Có khách vắng ở chuyến CX-1103-02 ngày 11/03 (đơn DH-0001)");
-  assert.deepEqual(Object.keys(d).sort(), ["action", "actorId", "don", "id", "lai", "luc", "maChuyen", "ngayChay", "tripId", "xuatBen"]);
+  // ADR-0104 Đ1 mục 6 (thêm có tên): `khanCap` — cờ boolean (sự kiện mang luật vượt MOC_TOI_THIEU), không phải dữ kiện người.
+  assert.deepEqual(Object.keys(d).sort(), ["action", "actorId", "don", "id", "khanCap", "lai", "luc", "maChuyen", "ngayChay", "tripId", "xuatBen"]);
   assert.doesNotMatch(t.cau, /\d{8,}/);
 });
 
@@ -110,6 +111,7 @@ test("dungDongChuyen: ghép mã/ngày/khoảng lái theo chuyến, đơn theo s�
     [{ orderId: "o1", maDon: "DH-1", ownerId: "lap", handlerStaffId: null }],
   );
   assert.equal(r.length, 1);
+  assert.equal(r[0]!.khanCap, false, "dữ kiện không có khanCap → false");
   assert.deepEqual(r[0]!.don.map((x) => x.maDon), ["DH-1"]);
   assert.equal(r[0]!.xuatBen, T0, "giờ xuất bến của chuyến đi theo dòng (Đợt 5 — tin chỉ khi xe đang chạy)");
 });
@@ -263,4 +265,28 @@ test("ADR-0097 Đ5: thu hồi xuất bến (sau lệnh chuyến không còn gi�
   assert.equal(tinChuyenCho(nguoi("kt", ["ACCOUNTING"]), d), null);
   assert.equal(thayDoiCuaHanhDongChuyen("trip_departure_revoked", dangChayLucSuKien(d)), "sua");
   assert.doesNotMatch(tx!.cau, /\d{8,}|L:|T:/);
+});
+
+// ---- ADR-0104 Đ1 mục 6 (kế hoạch NT-11): lệnh khách lớp KHAN_CAP (xếp / rút / dời có sự kiện vượt MOC_TOI_THIEU) → tài xế đang lái ----
+const KHAN_CAP = ["trip_allocated", "trip_allocation_removed", "trip_allocation_moved"] as const;
+test("NT-11: xếp / rút / dời có điều chỉnh khẩn cấp (khanCap) → ĐÚNG tài xế có dòng lái lúc sự kiện nhận 'khan_cap'; không khanCap → không ai; người tự làm, văn phòng, tài xế đã gỡ không", () => {
+  for (const action of KHAN_CAP) {
+    const d = dong({ action, actorId: "sales", luc: T2, khanCap: true });
+    const t = tinChuyenCho(TX_B, d);
+    assert.equal(t?.loai, "khan_cap", action);
+    assert.equal(t!.lienKet, "/cuoc-chuyen?id=t1");
+    assert.match(t!.cau, /^Văn phòng vừa điều chỉnh khẩn cấp chuyến CX-1103-02 ngày 11\/03 \((xếp thêm khách|rút khách|chuyển khách tới)\) — mở để xem$/, action);
+    assert.equal(tinChuyenCho(TX_A, d), null, `${action}: tài xế đã gỡ trước sự kiện`);
+    assert.equal(tinChuyenCho(nguoi("sales2", ["SALES"]), d), null, `${action}: văn phòng không nhận`);
+    assert.equal(tinChuyenCho(nguoi("adm", ["ADMIN"]), d), null, `${action}: Quản trị không nhận (không tin cho Quản trị — Đ1 mục 5)`);
+    assert.equal(tinChuyenCho(nguoi("tx-dt", ["DRIVER_PARTNER"], "p-b"), d), null, `${action}: chỉ-DRIVER_PARTNER`);
+    assert.equal(tinChuyenCho({ ...TX_B, id: "sales" }, d), null, `${action}: người tự làm không tự nhận (E3)`);
+    assert.equal(tinChuyenCho(TX_B, dong({ action, actorId: "sales", luc: T2, khanCap: false })), null, `${action}: không vượt mốc → không tin`);
+  }
+});
+test("NT-11: dungDongChuyen gắn khanCap theo id sự kiện của dữ kiện (`khanCap` = id sự kiện mang MOC_TOI_THIEU); HANH_DONG_TIN_CHUYEN có ba lệnh khách", () => {
+  const f = { chuyen: [{ tripId: "t1", ma: "CX-1", ngayChay: "2027-03-11", lai: [], xuatBen: null }], vang: [], khanCap: ["e1"] };
+  const r = dungDongChuyen([{ id: "e1", tripId: "t1", actorId: "a", action: "trip_allocated", luc: T1 }, { id: "e2", tripId: "t1", actorId: "a", action: "trip_allocated", luc: T1 }], f, []);
+  assert.deepEqual(r.map((x) => [x.id, x.khanCap]), [["e1", true], ["e2", false]]);
+  for (const a of KHAN_CAP) assert.ok((HANH_DONG_TIN_CHUYEN as readonly string[]).includes(a), a);
 });

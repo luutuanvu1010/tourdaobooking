@@ -14,7 +14,7 @@ import {
 } from "../../shared/thong-bao";
 import { guiLo, imLang, khoaVapid, kiemDiaChi, nguoiNhanDay } from "../../shared/web-push";
 import { route, type AppModule, type Ctx } from "../../shared/router";
-import { chuyenCuaChangLuc, dungDongChuyen, type ChuyenChoTin, type DongChuyen, type DongChuyenTho, type HoiChuyenChoTin } from "../../shared/tin-chuyen";
+import { canHoiTheoSuKien, chuyenCuaChangLuc, dungDongChuyen, type ChuyenChoTin, type DongChuyen, type DongChuyenTho, type HoiChuyenChoTin } from "../../shared/tin-chuyen";
 import {
   batMayStatements, demMay, findByRequest, getMark, getNotice, getThuCong, hetHanStatement, insertAckStatement, insertNoticeStatement,
   insertTargetStatement, listAcks, listDoi, listDon, listMayDangBat, doiVuaGhi, listSent, listThuCong, listTinChuyen, listTinTaiKhoan, donChoTin, mayDangBat, tinChuyenTheoId, revokeStatement, tatMayStatement,
@@ -45,7 +45,7 @@ type NoiChuyen = (q: HoiChuyenChoTin) => Promise<ChuyenChoTin | null>;
 /** Ghép dòng nhật ký chuyến với dữ kiện van-chuyen (hàm tiêm) + đơn của suất vắng. Không tiêm → []. */
 export async function ghepTinChuyen(db: D1Database, tho: readonly DongChuyenTho[], noi: NoiChuyen): Promise<DongChuyen[]> {
   if (tho.length === 0) return [];
-  const f = await noi({ tripIds: tho.map((t) => t.tripId), suKienIds: tho.filter((t) => t.action === "trip_passenger_no_show").map((t) => t.id) });
+  const f = await noi({ tripIds: tho.map((t) => t.tripId), suKienIds: tho.filter((t) => canHoiTheoSuKien(t.action)).map((t) => t.id) });
   if (!f) return [];
   return dungDongChuyen(tho, f, await donChoTin(db, f.vang.map((v) => v.orderId)));
 }
@@ -59,7 +59,7 @@ export async function dongChuyenTheoId(
 ): Promise<{ dong: DongChuyen; f: ChuyenChoTin } | null> {
   const t = await tinChuyenTheoId(db, id);
   if (!t) return null;
-  const f = await noi({ tripIds: [t.tripId, ...themChuyen], suKienIds: t.action === "trip_passenger_no_show" ? [t.id] : [] });
+  const f = await noi({ tripIds: [t.tripId, ...themChuyen], suKienIds: canHoiTheoSuKien(t.action) ? [t.id] : [] });
   if (!f) return null;
   const dong = dungDongChuyen([t], f, await donChoTin(db, f.vang.map((v) => v.orderId)))[0];
   return dong ? { dong, f } : null;

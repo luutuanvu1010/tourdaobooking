@@ -12,15 +12,25 @@ export const HANH_DONG_TIN_CHUYEN = [
   // ADR-0097 Đ5 (gói A1, V3-B — chính ADR này là văn bản cho phép mở danh sách đóng, ADR-0052 :210): văn phòng điều chỉnh kết quả một khách / thu hồi xuất
   // bến → tài xế đang lái (dòng lái mở lúc sự kiện) + người có trip.dispatch. Người lập / phụ trách đơn KHÔNG nhận (đợt V5 — BL-CREW-TIN).
   "trip_allocation_corrected", "trip_departure_revoked",
+  // ADR-0104 Đ1 mục 6 (văn bản cho phép mở danh sách đóng): lệnh khách xếp / rút / dời — sinh tin CÓ ĐIỀU KIỆN: chỉ khi sự kiện mang luật vượt MOC_TOI_THIEU
+  // (điều chỉnh khẩn cấp, `DongChuyen.khanCap`) và chỉ cho tài xế có dòng lái lúc sự kiện. Không vượt mốc → không ai nhận.
+  "trip_allocated", "trip_allocation_removed", "trip_allocation_moved",
 ] as const;
 export const laHanhDongTinChuyen = (a: string): boolean => (HANH_DONG_TIN_CHUYEN as readonly string[]).includes(a);
-export type LoaiTinChuyen = "xep_lai" | "go_lai" | "doi_chuyen" | "huy_chuyen" | "gian_doan" | "khach_vang" | "xe_chay_doi" | "thu_hoi_xuat_ben" | "dieu_chinh";
+export type LoaiTinChuyen = "xep_lai" | "go_lai" | "doi_chuyen" | "huy_chuyen" | "gian_doan" | "khach_vang" | "xe_chay_doi" | "thu_hoi_xuat_ben" | "dieu_chinh" | "khan_cap";
 /**
  * Đợt 5: hành động văn phòng trên xe đang chạy — loại tin `xe_chay_doi`, loại Bảng tin `xe_chay` (khi chuyến đã xuất bến lúc sự kiện). ADR-0097: điều chỉnh kết
  * quả một khách cùng họ (luôn trên xe đang chạy). Thu hồi xuất bến KHÔNG ở đây: sau lệnh chuyến không còn giờ xuất bến (`xuatBen` null) — nhánh riêng.
  */
 const HANH_DONG_XE_CHAY: ReadonlySet<string> = new Set(["trip_stop_added_running", "trip_allocation_office_cancelled", "trip_stops_synced", "trip_allocation_corrected"]);
 const HANH_DONG_DIEU_CHINH: ReadonlySet<string> = new Set(["trip_allocation_corrected", "trip_departure_revoked"]);
+/** ADR-0104 Đ1 mục 6: lệnh khách có thể là điều chỉnh khẩn cấp — câu theo hành động (không tên, không SĐT, không nơi). */
+const CAU_KHAN_CAP: Readonly<Record<string, string>> = {
+  trip_allocated: "xếp thêm khách", trip_allocation_removed: "rút khách", trip_allocation_moved: "chuyển khách tới",
+};
+/** Dòng cần hỏi dữ kiện THEO SỰ KIỆN (`HoiChuyenChoTin.suKienIds`): khách vắng (đơn của suất) và lệnh khách có thể là điều chỉnh khẩn cấp (cờ khanCap). */
+const HANH_DONG_KHAN_CAP: ReadonlySet<string> = new Set(Object.keys(CAU_KHAN_CAP));
+export const canHoiTheoSuKien = (action: string): boolean => action === "trip_passenger_no_show" || HANH_DONG_KHAN_CAP.has(action);
 
 export interface KhoangLai { partyId: string; tu: string; den: string | null }
 export interface DonCuaTin { orderId: string; maDon: string; ownerId: string; handlerStaffId: string | null }
@@ -31,17 +41,23 @@ export interface ChuyenChoTin {
   /** `xuatBen` = giờ xuất bến (ISO) của chuyến, null = chưa xuất bến (Đợt 5 — tin "cập nhật điểm" chỉ khi xe đang chạy). */
   chuyen: { tripId: string; ma: string; ngayChay: string; lai: KhoangLai[]; xuatBen: string | null }[];
   vang: { suKienId: string; orderId: string }[];
+  /** ADR-0104 Đ1 mục 6: id sự kiện (trong `suKienIds` được hỏi) mang luật vượt `MOC_TOI_THIEU` — điều chỉnh khẩn cấp. Vắng = không có. */
+  khanCap?: string[];
   /**
    * MQ-07 (ADR-0052 D6.2): mọi suất KHÁCH của các chặng được hỏi (`legIds`), kèm khoảng hiệu lực — chuyến của chúng có mặt trong `chuyen`. Lọc "mở lúc sự kiện"
    * ở `chuyenCuaChangLuc` (thuần). Vắng = không hỏi chặng nào.
    */
   suatChang?: { legId: string; tripId: string; tu: string; den: string | null }[];
 }
-/** Câu hỏi dữ kiện chuyến của thongbao (hàm tiêm `ctx.chuyenChoTin`): theo chuyến, theo sự kiện vắng, và (MQ-07) theo chặng. */
+/** Câu hỏi dữ kiện chuyến của thongbao (hàm tiêm `ctx.chuyenChoTin`): theo chuyến, theo sự kiện (vắng; cờ điều chỉnh khẩn cấp — `canHoiTheoSuKien`), và (MQ-07) theo chặng. */
 export interface HoiChuyenChoTin { tripIds: readonly string[]; suKienIds: readonly string[]; legIds?: readonly string[] }
 /** MQ-07: một chuyến đang giữ suất MỞ của chặng lúc sự kiện — ghép sẵn (mã, ngày, khoảng lái) để hộp thông báo lẫn gõ cửa dùng chung một hàm. */
 export interface ChuyenCuaChang { tripId: string; ma: string; ngayChay: string; lai: KhoangLai[] }
-export interface DongChuyen extends DongChuyenTho { maChuyen: string; ngayChay: string; lai: KhoangLai[]; don: DonCuaTin[]; xuatBen: string | null }
+export interface DongChuyen extends DongChuyenTho {
+  maChuyen: string; ngayChay: string; lai: KhoangLai[]; don: DonCuaTin[]; xuatBen: string | null;
+  /** ADR-0104 Đ1 mục 6: sự kiện của dòng mang luật vượt `MOC_TOI_THIEU` (chỉ cờ — không lý do, không người). */
+  khanCap: boolean;
+}
 export interface NguoiNhanChuyen extends PermissionHolder { readonly partyId: string | null }
 
 /** Dòng lái của `partyId` bao mốc `luc`: mở ≤ t và (còn mở hoặc đóng ≥ t) — so CHUỖI ISO (cùng `lucIso` của lệnh). */
@@ -62,6 +78,7 @@ function loaiCho(n: NguoiNhanChuyen, d: DongChuyen): LoaiTinChuyen | null {
     if (d.action === "trip_edited") return k.den === d.luc ? "go_lai" : k.tu === d.luc ? "xep_lai" : "doi_chuyen";
     if (HANH_DONG_XE_CHAY.has(d.action) && dangChayLucSuKien(d)) return "xe_chay_doi";
     if (d.action === "trip_departure_revoked") return "thu_hoi_xuat_ben";
+    if (d.khanCap && HANH_DONG_KHAN_CAP.has(d.action)) return "khan_cap"; // ADR-0104 Đ1 mục 6: chỉ tài xế đang lái; văn phòng không nhận
   }
   if (!can(n, "trip.view")) return null; // không ngữ cảnh = ô any (văn phòng). DRIVER (assigned) / FIELD / PARTNER / INTERN / DRIVER_PARTNER dừng ở đây.
   if (d.action === "trip_ended_interrupted" && can(n, "trip.dispatch")) return "gian_doan";
@@ -93,6 +110,7 @@ export function tinChuyenCho(n: NguoiNhanChuyen, d: DongChuyen): { loai: LoaiTin
         : `Văn phòng vừa đổi điểm đón ở ${c} — mở để xem`;
       return { loai, cau, lienKet: `/cuoc-chuyen?id=${id}` };
     }
+    case "khan_cap": return { loai, cau: `Văn phòng vừa điều chỉnh khẩn cấp ${c} (${CAU_KHAN_CAP[d.action] ?? "đổi khách"}) — mở để xem`, lienKet: `/cuoc-chuyen?id=${id}` };
     case "thu_hoi_xuat_ben": return { loai, cau: `Văn phòng vừa thu hồi xuất bến ${c} — chuyến về chưa chạy, bấm Xuất bến lại khi xe thật sự chạy`, lienKet: `/cuoc-chuyen?id=${id}` };
     case "dieu_chinh": {
       const cau = d.action === "trip_departure_revoked" ? `${hoa(c)} vừa được thu hồi xuất bến — mở để xem` : `${hoa(c)}: văn phòng vừa điều chỉnh kết quả một khách — mở để xem`;
@@ -143,12 +161,13 @@ export function tinGioHenCho(n: NguoiNhanChuyen, d: DongGioHen): { cau: string; 
 export function dungDongChuyen(tho: readonly DongChuyenTho[], f: ChuyenChoTin, don: readonly DonCuaTin[]): DongChuyen[] {
   const chuyen = new Map(f.chuyen.map((c) => [c.tripId, c]));
   const donTheoId = new Map(don.map((x) => [x.orderId, x]));
+  const khanCap = new Set(f.khanCap ?? []);
   const out: DongChuyen[] = [];
   for (const t of tho) {
     const c = chuyen.get(t.tripId);
     if (!c) continue;
     const ds = f.vang.filter((v) => v.suKienId === t.id).map((v) => donTheoId.get(v.orderId)).filter((x): x is DonCuaTin => x !== undefined);
-    out.push({ ...t, maChuyen: c.ma, ngayChay: c.ngayChay, lai: c.lai, don: ds, xuatBen: c.xuatBen ?? null });
+    out.push({ ...t, maChuyen: c.ma, ngayChay: c.ngayChay, lai: c.lai, don: ds, xuatBen: c.xuatBen ?? null, khanCap: khanCap.has(t.id) });
   }
   return out;
 }
