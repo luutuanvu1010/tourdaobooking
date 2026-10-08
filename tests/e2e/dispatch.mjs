@@ -384,7 +384,8 @@ console.log("✓ SALES (không dùng route này, dù là người lập) → 403
 const beforeMoney = await orderMoney(o11.id);
 r = await handlerCancel(FIELD, o11.id, { reason: "customer_requested" });
 assert.equal(r.status, 200, JSON.stringify(r.body));
-assert.deepEqual(r.body, { ok: true });
+// ADR-0104 Đ2.13: phản hồi HDV kèm phần "chuyến" — chỉ câu cố định + cờ, không dữ liệu chuyến (đơn này không có suất trên chuyến nào).
+assert.deepEqual(r.body, { ok: true, dongBoChuyen: { nhac: null, capNhatTay: false } });
 const afterMoney = await orderMoney(o11.id);
 assert.equal(afterMoney.status, "cancelled");
 assert.deepEqual([afterMoney.subtotal, afterMoney.total, afterMoney.deposit_amount], [beforeMoney.subtotal, beforeMoney.total, beforeMoney.deposit_amount], "huỷ không đổi cột tiền");
@@ -501,7 +502,8 @@ try {
   const beforePax = await storedPax(o14.id);
   r = await moneyEdit(FIELD, o14.id, { reason: "Khách báo thêm 1 người", services: [{ id: svcId, pax: pax(3) }] });
   assert.equal(r.status, 200, JSON.stringify(r.body));
-  assert.deepEqual(r.body, { ok: true }, "không lộ giá cho FIELD");
+  // ADR-0104 Đ2.13: phần "chuyến" chỉ câu cố định + cờ — vẫn không giá, không dữ liệu chuyến.
+  assert.deepEqual(r.body, { ok: true, dongBoChuyen: { nhac: null, capNhatTay: false } }, "không lộ giá cho FIELD");
   assert.equal(await storedPax(o14.id), beforePax, "order_service GỐC không đổi (chỉ ghi dòng điều chỉnh)");
 
   const viewed = await orderView(A, o14.id);
