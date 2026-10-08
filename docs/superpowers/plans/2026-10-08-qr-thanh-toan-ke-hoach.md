@@ -18,7 +18,7 @@
 - **Câu chữ nguyên văn của đặc tả:** "Công ty chưa cài tài khoản nhận tiền — báo người phụ trách hệ thống" · "Đơn đã giao — không thu thêm" · "Đơn không còn tiền cần thu". Câu lỗi nói "người phụ trách hệ thống", **không** nói "Toàn quyền" (vai ẩn).
 - **Nội dung chuyển khoản** = mã đơn bỏ mọi ký tự ngoài `[A-Z0-9]`: `TD-20261008-0012` → `TD202610080012`.
 - **Số tiền trên QR và ảnh lưu** in theo đặc tả `1.000.000đ` (không dùng `vnd()` có `₫` ở hai chỗ này).
-- **Nhật ký** không chép số tài khoản, không chép mã giao dịch, không SĐT/email/MST.
+- **Nhật ký** không chép số tài khoản, không chép mã giao dịch, không SĐT/email/MST. `detail` của hai hành động mới **chỉ là chữ cố định**, không kèm mã dòng (UUID ngẫu nhiên đôi khi có dãy ≥ 8 chữ số, giống SĐT); mã của đối tượng để ở `target_type`/`target_id`.
 - **Không đổi CSP** (`public/_headers`); trình duyệt không gọi tên miền ngoài.
 - **Đ6 không thêm route mới** (trang ghép §0, trần 3 quyết định). "Điền sẵn số thực chuyển đã biết" đi qua lỗi 409 mang số đó, không qua route tra mã.
 - **Mã giao dịch:** chuẩn hoá NFKC → bỏ dấu cách, `-`, `.`, `/` → in hoa → phải khớp `^[A-Z0-9]{4,40}$`. Ô mã **được miễn** luật chặn dãy ≥ 8 chữ số; ghi chú và lý do vẫn chặn.
@@ -706,9 +706,11 @@ test("Toàn quyền cài rồi đổi: đúng một dòng mở, dòng cũ có va
   assert.equal(dong.length, 2);
   assert.ok(dong[0].valid_to, "dòng cũ đã đóng");
   assert.equal(dong[1].valid_to, null, "dòng mới mở");
-  const nk = w.q("SELECT detail FROM audit_log WHERE action = 'party_bank_account_changed' AND target_id = ?", ct);
+  const nk = w.q("SELECT detail FROM audit_log WHERE action = 'party_bank_account_changed' AND target_id = ? ORDER BY created_at, rowid", ct);
   assert.equal(nk.length, 2);
-  for (const x of nk) assert.doesNotMatch(String(x.detail), /0011001234567|1234567890|\d{8,}/, "nhật ký không chép số tài khoản");
+  // Khẳng định HÌNH DẠNG (chữ cố định), không quét \d{8,} trên chuỗi có thể chứa mã ngẫu nhiên.
+  assert.deepEqual(nk.map((x: { detail: string }) => x.detail), ["cài tài khoản nhận tiền", "đổi tài khoản nhận tiền"]);
+  for (const x of nk) assert.doesNotMatch(String(x.detail), /0011001234567|1234567890/, "nhật ký không chép số tài khoản");
 });
 
 test("khoá lạc quan: truocDo cũ / null khi đã có tài khoản ⇒ 409 stale, không ghi gì", async () => {
@@ -777,7 +779,7 @@ export interface TaiKhoanNhanTienInput {
 - [ ] **Bước 8: Hành động nhật ký.** Trong `src/shared/audit-actions.ts`, sau `party_document_catalog_changed`, thêm:
 
 ```ts
-  // ADR-0108 đ2: cài / đổi tài khoản nhận tiền của công ty chủ — `detail` = "cài|đổi tài khoản nhận tiền · dòng <id>"; KHÔNG chép số tài khoản (5.12).
+  // ADR-0108 đ2: cài / đổi tài khoản nhận tiền của công ty chủ — target = hồ sơ công ty; `detail` = "cài|đổi tài khoản nhận tiền" (chữ cố định); KHÔNG chép số tài khoản (5.12).
   party_bank_account_changed: { label: "Đổi tài khoản nhận tiền", group: "party" },
 ```
 
@@ -912,7 +914,7 @@ async function tlTaiKhoan(db: D1Database, id: string): Promise<Response> {
       const stmts = [
         ...(v.truocDo ? [bankAccountCloseStatement(env.DB, { id: v.truocDo, partyId: id, at, by: staff.id })] : []),
         bankAccountInsertStatement(env.DB, { id: moiId, partyId: id, bankCode: v.maNganHang, accountNumber: v.soTaiKhoan, accountName: v.chuTaiKhoan, at, by: staff.id }),
-        auditStatement(env.DB, { staffId: staff.id, action: "party_bank_account_changed", at, targetType: "party", targetId: id, detail: `${v.truocDo ? "đổi" : "cài"} tài khoản nhận tiền · dòng ${moiId}` }, "changes() > 0"),
+        auditStatement(env.DB, { staffId: staff.id, action: "party_bank_account_changed", at, targetType: "party", targetId: id, detail: `${v.truocDo ? "đổi" : "cài"} tài khoản nhận tiền` }, "changes() > 0"),
       ];
       let kq: D1Result[];
       try {
@@ -929,6 +931,8 @@ async function tlTaiKhoan(db: D1Database, id: string): Promise<Response> {
 ```
 
 (Câu đóng với `truocDo` sai không lỗi mà `changes = 0`; câu mở thấy dòng cũ còn mở nên cũng `changes = 0` ⇒ 409 stale, đúng bài Bước 5.)
+
+Lớp chống ghi trùng (ADR-0094) **tự áp** cho route `PUT` này: router bọc mọi route ghi có đăng nhập, không công khai, không nằm trong `src/shared/lan-gui-mien.ts`; bài `src/lan-gui-phu-route.test.ts` canh việc đó. Bộ bọc trả đúng kết quả các câu nơi gọi gửi, nên chỉ số `kq[stmts.length - 2]` không lệch. Route chỉ được ghi **một** lô mỗi request (một `env.DB.batch`), để không rơi vào danh sách nợ "ghi > 1 lần" (`src/shared/lan-gui-no.ts`). Không thêm route vào tệp miễn.
 
 - [ ] **Bước 11: Nhãn ô quyền.** Trong `src/shared/tro-ly-cau-truc-ten.ts`, đổi dòng `company.legal.write` thành:
 
@@ -955,8 +959,8 @@ git add src/modules/parties src/shared/contracts.ts src/shared/audit-actions.ts 
 git commit -m "Tài khoản nhận tiền: hàm công bố và hai route của Toàn quyền
 
 Chỉ người giữ ô sửa thông tin công ty chủ đọc và đổi được. Đổi là đóng dòng cũ, mở
-dòng mới và ghi nhật ký trong một lô, có khoá lạc quan. Nhật ký chỉ ghi mã dòng, không
-chép số tài khoản.
+dòng mới và ghi nhật ký trong một lô, có khoá lạc quan. Nhật ký chỉ ghi chữ cố định,
+không chép số tài khoản.
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 ```
@@ -1374,7 +1378,7 @@ function moi(list = files): { db: DatabaseSync; ct: string } {
   const ct = (db.prepare("SELECT party_id FROM v_pty_owner_company LIMIT 1").get() as { party_id: string }).party_id;
   for (const o of ["o1", "o2", "o3"]) {
     run(db, `INSERT INTO orders (id, order_code, staff_id, status, customer_name, customer_phone, subtotal, total, remaining_amount, created_at, updated_at)
-      VALUES (?, ?, 's1', 'confirmed', 'Khách Giả', '0900000009', 1000000, 1000000, 1000000, ?, ?)`, o, `TD-${o}`, SAU, SAU);
+      VALUES (?, ?, 's1', 'draft', 'Khách Giả', '0900000009', 1000000, 1000000, 1000000, ?, ?)`, o, `TD-${o}`, SAU, SAU); // trạng thái không ảnh hưởng trigger sổ tiền
   }
   return { db, ct };
 }
@@ -1773,7 +1777,8 @@ export async function mocMaGiaoDich(db: D1Database): Promise<string | null> {
 - [ ] **Bước 6: Hành động nhật ký + hợp đồng.** Trong `src/shared/audit-actions.ts`, sau `ledger_reversal`, thêm:
 
 ```ts
-  // ADR-0092 Đ6 (migration 0088): gắn mã giao dịch ngân hàng vào lần thu — `detail` = "dòng nối <id>"; KHÔNG chép mã giao dịch, không số tài khoản.
+  // ADR-0092 Đ6 (migration 0088): gắn mã giao dịch ngân hàng vào lần thu — target = lần thu (`ledger`, id lần thu); `detail` = "gắn mã giao dịch ngân hàng"
+  // (chữ cố định); KHÔNG chép mã giao dịch, không số tài khoản.
   ledger_bank_txn_linked: { label: "Gắn mã giao dịch ngân hàng", group: "ledger" },
 ```
 
@@ -1845,7 +1850,7 @@ export function cauGanMa(db: D1Database, i: { receiptId: string; orderId: string
   const id = crypto.randomUUID();
   return [
     bankTxnInsertStatement(db, { id, receiptId: i.receiptId, ma: i.gd.ma, soThucChuyen: i.gd.soThucChuyen, at: i.at, by: i.by }),
-    auditStatement(db, { orderId: i.orderId, staffId: i.by, action: "ledger_bank_txn_linked", at: i.at, detail: `dòng nối ${id}` }, "changes() > 0"),
+    auditStatement(db, { orderId: i.orderId, staffId: i.by, action: "ledger_bank_txn_linked", at: i.at, targetType: "ledger", targetId: i.receiptId, detail: "gắn mã giao dịch ngân hàng" }, "changes() > 0"),
   ];
 }
 
@@ -2219,7 +2224,8 @@ git commit -m "Sổ tiền: đòi mã giao dịch ngân hàng ở ba đường g
 Công ty đã nhận, Kế toán hoặc Toàn quyền tự ghi (kể cả kèm Đã giao) và lần thu mới
 trong Thay lần thu đều đòi mã khi là chuyển khoản vào tài khoản công ty. Máy chủ kiểm
 trùng, lệch, vượt trước lô; lỗi lệch mang số đã ghi để giao diện điền sẵn. Chỉ người
-có quyền ghi sổ thấy mã; nhật ký chỉ ghi mã dòng nối. Sửa các bài cũ cho luật mới.
+có quyền ghi sổ thấy mã; nhật ký chỉ ghi chữ cố định, không chép mã. Sửa các bài cũ
+cho luật mới.
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 ```
@@ -2327,6 +2333,8 @@ test("R-BIL-D6b: Kế toán tự ghi CK – Công ty thu sau mốc không mã �
   {
     // C1 đường 2 (Kế toán / Toàn quyền tự ghi — CHỈ máy chủ đòi mã, không có phiếu để gắn trigger): lần thu CK – Công ty thu còn hiệu lực ghi TỪ mốc 'R-BIL-D6'
     // đã là "công ty nhận" (không có dòng giữ hộ, hoặc dòng giữ hộ đã được "Công ty đã nhận") mà KHÔNG có mã. Bỏ nửa thu của lệnh chuyển cọc (transfer_of_id).
+    // Đã lần mọi câu chèn bil_payment_receipt (lập kế hoạch 2026-10-08): lần thu CUSTOMER_PAYMENT gốc chỉ sinh ở ghiLanThu, daGiao, Thay lần thu (đều đòi mã)
+    // và nửa thu chuyển cọc (có transfer_of_id); chi hoàn cọc / hoàn khách là CUSTOMER_REFUND. Thêm đường ghi lần thu mới ⇒ xét lại luật này.
     code: "R-BIL-D6b",
     what: "lần thu chuyển khoản – Công ty thu ghi từ mốc 0088 đã được công ty nhận đều có mã giao dịch ngân hàng",
     sql: `SELECT count(*) FROM bil_payment_receipt r
@@ -3230,3 +3238,5 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - [ ] **Bước 8: Chủ quét thử (§8.6 — AI không tự xác nhận).** Đưa chủ các bước: (1) chạy `node scripts/dev-iphone.mjs` để mở Nền tảng trên D1 tạm trong mạng nội bộ; (2) đăng nhập tài khoản Toàn quyền thử, cài **tài khoản thật của công ty** ở mục "Tài khoản nhận tiền"; (3) mở một đơn thử, bấm "QR thanh toán" với số tiền nhỏ (vd 1.000đ); (4) quét bằng **ít nhất hai ứng dụng ngân hàng khác nhau**, kiểm đúng ngân hàng, tên chủ tài khoản, số tiền, nội dung — **không cần bấm chuyển**. Ghi kết quả chủ báo vào sổ thi công.
 
 - [ ] **Bước 9: Báo cáo cuối việc cho chủ** theo bốn mục của CLAUDE.md §4 (Đã làm — Đã kiểm, nói rõ người kiểm độc lập đã đạt chưa — Chưa làm/chưa kiểm — Cần bạn quyết), và nói rõ: cần triển khai (`npm run trien-khai` sau `npm run day-len`), có hai migration, điều kiện phát hành là migration 0078–0083 đã có trên production (kiểm bằng lệnh chỉ đọc lúc phát hành), mục nhật ký thay đổi (bước A.0) do phiên phát hành viết.
+
+  Ghi thêm vào runbook phát hành và nói với chủ **khoảng hở giữa migration và deploy**: từ lúc áp `0088` tới lúc `wrangler deploy` xong (vài phút, `npm run trien-khai` chạy liền nhau), mã cũ vẫn chạy. Trong khoảng đó (a) Kế toán bấm "Công ty đã nhận" hoặc "Thay lần thu" cho khoản chuyển khoản sẽ bị trigger chặn; mã cũ không dịch lỗi `bank_txn_required` nên Kế toán thấy lỗi chung, bấm lại sau khi bản mới lên là được. (b) Lần thu chuyển khoản – Công ty thu do Kế toán tự ghi bằng mã cũ sẽ không có mã, và `audit-invariants --db remote` ngay sau deploy báo `R-BIL-D6b`. Cách tránh: báo Kế toán không ghi tiền trong lúc phát hành. Nếu vẫn bị báo, Kế toán sửa bằng "Thay lần thu" có nhập mã. Bản mới khi đã lên thì luồng không còn hở.
