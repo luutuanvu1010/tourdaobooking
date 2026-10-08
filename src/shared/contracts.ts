@@ -493,9 +493,10 @@ export interface NguoiLapResponse { nguoiLap: NguoiLapDto[] }
 export interface CanhBaoMocDto { legKey: string; phutConLai: number }
 /**
  * `canhBaoMoc`, `mocToiThieuPhut` (ADR-0049 I27, I31) có ở phản hồi LẬP / SỬA NHÁP (`POST/PUT /api/orders`) — màn hình hiện cảnh báo sau lần lưu; vắng ở các
- * route khác. `mocToiThieuPhut` null = nháp không chặng (không hỏi mốc).
+ * route khác. `mocToiThieuPhut` null = nháp không chặng (không hỏi mốc). `dongBoChuyen` (ADR-0104 Đ2) chỉ có ở phản hồi lệnh đơn nối máy đồng bộ chuyến (huỷ đơn,
+ * bỏ / thay / sửa chặng).
  */
-export interface OrderResponse { order: OrderDetailDto; canhBaoMoc?: CanhBaoMocDto[]; mocToiThieuPhut?: number | null }
+export interface OrderResponse { order: OrderDetailDto; canhBaoMoc?: CanhBaoMocDto[]; mocToiThieuPhut?: number | null; dongBoChuyen?: DongBoChuyenDto }
 /** `mocToiThieuPhut` (ADR-0049 I31): mốc tối thiểu đang hiệu lực (phút) để biểu mẫu cảnh báo trước khi xác nhận; null = chưa có chính sách. */
 /**
  * ADR-0063 D1 — một dịch vụ TỪ DANH MỤC của bảng "Sửa số khách dịch vụ" (văn phòng): loại khách sửa được tính từ BẢN CHỤP GỐC (`editablePaxCodesOf` — loại đã về 0
@@ -688,8 +689,9 @@ export interface AssigneesResponse { assignees: AssigneeDto[] }
 /** `PUT /api/orders/:id/handler` — đặt/đổi người phụ trách (hoặc tự nhận khi đơn chưa có người: `staffId` = chính mình). */
 export interface SetHandlerInput { staffId: string }
 export interface SetHandlerResponse { handler: HandlerDto }
-export interface HandlerCancelResponse { ok: true }
-export interface HandlerMoneyEditResponse { ok: true }
+/** Đường HDV huỷ đơn / sửa số khách: `dongBoChuyen` = phần "chuyến" (ADR-0104 Đ2) — chỉ câu cố định + cờ, không dữ liệu chuyến (HDV không có trip.view). */
+export interface HandlerCancelResponse { ok: true; dongBoChuyen?: DongBoChuyenDto }
+export interface HandlerMoneyEditResponse { ok: true; dongBoChuyen?: DongBoChuyenDto }
 
 /**
  * Màn "việc của tôi" (`GET /api/dispatch/mine`, module dispatch — ADR-0014 điều 6/11, ADR-0030 S23-8). Viết ĐỘC LẬP, KHÔNG `Pick`/`Omit` từ

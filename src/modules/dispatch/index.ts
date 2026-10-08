@@ -215,7 +215,7 @@ export const dispatchModule: AppModule = {
     // = ngày khởi hành lớn nhất trong các dịch vụ, đã qua ⇔ < hôm nay giờ VN; ngay trong ngày đi vẫn huỷ được; từ hôm sau chỉ văn phòng huỷ qua
     // /status) → 400 (lý do) → ghi. Đổi ngày giữa lúc đọc và lúc ghi (PUT /trip) làm đổi `updated_at` (KHÔNG đổi `status`) → khoá lạc quan của
     // cancelOrderByHandler (khoá theo CẢ `status` VÀ `updated_at`, T1d) thua → 409.
-    route("POST", "/api/orders/:id/handler-cancel", "staff", async ({ env, request, params, staff, isAssigned, baoThayDoi }) => {
+    route("POST", "/api/orders/:id/handler-cancel", "staff", async ({ env, request, params, staff, isAssigned, baoThayDoi, dongBoChuyen }) => {
       const orderId = params.id!;
       if (!UUID_RE.test(orderId)) return NOT_FOUND();
       const [order, assigned] = await Promise.all([findOrderOwner(env.DB, orderId), isAssigned(orderId)]);
@@ -230,13 +230,15 @@ export const dispatchModule: AppModule = {
       // nhãn cố định của CANCEL_REASON_LABEL.
       const label = input.reason === "other" ? input.note! : CANCEL_REASON_LABEL[input.reason];
       // ADR-0089 đ8 + lời chủ (a): lý do HDV ánh xạ nhóm ("không liên hệ được khách" = khách huỷ) — lưu cùng lô huỷ.
-      const ok = await cancelOrderByHandler(env.DB, orderId, staff.id, order.updatedAt, lyDoHuyCuaHdv(input.reason, input.note), label);
-      if (!ok) {
+      // ADR-0104 Đ2 (điểm gọi 2): máy đồng bộ chuyến nối khúc chuyến vào CHÍNH lô huỷ (HDV không có trip.view — phản hồi chỉ câu cố định + cờ, Đ2.13).
+      const r = await cancelOrderByHandler(env.DB, orderId, staff.id, order.updatedAt, lyDoHuyCuaHdv(input.reason, input.note), label, (x) => dongBoChuyen(x));
+      if (r.kq === "loi") return r.res;
+      if (r.kq === "thua") {
         const now = await findOrderOwner(env.DB, orderId);
         return now?.status === "confirmed" ? HANDLER_RACED() : NOT_CONFIRMED();
       }
       baoThayDoi({ orderId, thayDoi: "huy" });
-      return json({ ok: true } satisfies HandlerCancelResponse);
+      return json({ ok: true, dongBoChuyen: r.dongBoChuyen } satisfies HandlerCancelResponse);
     }),
 
     // Sửa số khách của đơn đang phụ trách CẤP HẸP (FIELD — ADR-0014 điều 6). Ghi thêm dòng điều chỉnh, KHÔNG sửa đè order_service/order_item/cột

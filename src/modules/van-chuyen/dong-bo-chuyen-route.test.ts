@@ -4,7 +4,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
-import { DRIVER, DRIVER2, SALES, batDongHo, chiTiet, don, setup, taoChuyen, uuid, xe, xepHet } from "../../../tests/audit/dieu-phoi-khung.mjs";
+import { DRIVER, DRIVER2, FIELD, SALES, batDongHo, chiTiet, chuyenSan, denGio, don, setup, taoChuyen, tienDo, uuid, xe, xepHet } from "../../../tests/audit/dieu-phoi-khung.mjs";
 import { CAU_NHAC_XE_DANG_CHAY } from "../../shared/dong-bo-chuyen.ts";
 
 type W = any;
@@ -156,5 +156,107 @@ test("NT-5 thua cổng chuyến (chuyến đổi phiên bản giữa lúc máy �
   }
 });
 
-void DRIVER2;
-void CAU_NHAC_XE_DANG_CHAY;
+/** Xếp `soSuat` người của chặng lên chuyến (qua route). */
+async function xep(w: W, tripId: string, legId: string, soSuat: number) {
+  const r = await w.call("POST", `/api/van-chuyen/chuyen/${tripId}/phan-bo`, { as: SALES, body: { version: (await chiTiet(w, tripId)).chuyen.version, requestId: uuid(), chang: [{ legId, soSuat }] } });
+  assert.equal(r.status, 200, r.text);
+}
+const huyVanPhong = (w: W, orderId: string, as = SALES) => w.call("POST", `/api/orders/${orderId}/status`, { as, body: { status: "cancelled", lyDo: "KHACH_DOI_Y" } });
+const huyHdv = (w: W, orderId: string) => w.call("POST", `/api/orders/${orderId}/handler-cancel`, { as: FIELD, body: { reason: "customer_requested" } });
+
+test("NT-5 huỷ đơn (văn phòng), chặng trên HAI chuyến PLANNED dưới mốc → cả hai chuyến đóng suất REMOVED cùng lệnh, mỗi chuyến dấu lệnh + request_id riêng; DON_DA_HUY biến mất; nhật ký + sự kiện mang người huỷ", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const d = await don(w, { soNguoi: 2 });
+    const a = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER}` });
+    const b = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER2}` });
+    await xep(w, a.chuyen.id, d.legId, 1);
+    await xep(w, b.chuyen.id, d.legId, 1);
+    denGio("08:00"); // chuyến 12:30 — dưới mốc 6 giờ: máy không hỏi mốc
+    const r = await huyVanPhong(w, d.id);
+    assert.equal(r.status, 200, r.text);
+    assert.deepEqual(r.json.dongBoChuyen, { nhac: null, capNhatTay: false });
+    for (const t of [a, b]) {
+      assert.deepEqual(moCua(w, t.chuyen.id, d.legId), [], `${t.chuyen.ma}: không còn suất mở`);
+      assert.deepEqual(daDong(w, t.chuyen.id).map((x) => x.r), ["REMOVED"]);
+      assert.deepEqual(await lyDo(w, t.chuyen.id), [], `${t.chuyen.ma}: không giữ DON_DA_HUY`);
+    }
+    const nk = nhatKyDongBo(w);
+    assert.equal(nk.length, 2);
+    assert.ok(nk.every((x) => x.staff_id === SALES));
+    const ev = nk.map((x) => suKien(w, x.id));
+    assert.deepEqual(ev.map((e) => e.trip_id).sort(), [a.chuyen.id, b.chuyen.id].sort());
+    assert.ok(ev.every((e) => e.kind === "ALLOCATION_ORDER_SYNCED" && e.created_by === SALES));
+    assert.equal(new Set(ev.map((e) => e.request_id)).size, 2, "request_id riêng từng khúc");
+    assert.equal(new Set(nk.map((x) => x.id)).size, 2, "dấu lệnh riêng từng khúc");
+    assert.match(nk[0]!.detail, new RegExp(`máy cập nhật theo đơn — ${d.code} \\(đơn huỷ\\): trả 1 ghế$`));
+  } finally {
+    tat();
+  }
+});
+
+test("NT-5 huỷ đơn qua đường HDV (handler-cancel) → như văn phòng: suất đóng REMOVED, nhật ký mang HDV; HDV gọi route xếp → 403", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const d = await don(w, { soNguoi: 2, handler: FIELD });
+    const t = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER}` });
+    await xepHet(w, t, d, 2);
+    const cam = await w.call("POST", `/api/van-chuyen/chuyen/${t.chuyen.id}/phan-bo`, { as: FIELD, body: { version: (await chiTiet(w, t.chuyen.id)).chuyen.version, requestId: uuid(), chang: [{ legId: d.legId, soSuat: 1 }] } });
+    assert.equal(cam.status, 403, cam.text);
+    const r = await huyHdv(w, d.id);
+    assert.equal(r.status, 200, r.text);
+    assert.deepEqual(r.json.dongBoChuyen, { nhac: null, capNhatTay: false });
+    assert.deepEqual(moCua(w, t.chuyen.id, d.legId), []);
+    assert.deepEqual(daDong(w, t.chuyen.id).map((x) => x.r), ["REMOVED", "REMOVED"]);
+    const nk = nhatKyDongBo(w);
+    assert.equal(nk.length, 1);
+    assert.equal(nk[0]!.staff_id, FIELD);
+    assert.equal(suKien(w, nk[0]!.id).created_by, FIELD);
+    assert.doesNotMatch(r.text, new RegExp(`${t.chuyen.ma}|79C|Tài Xế`), "phản hồi cho HDV không dữ liệu chuyến");
+  } finally {
+    tat();
+  }
+});
+
+test("NT-5 huỷ đơn có khách CHỜ ĐÓN trên xe ĐANG CHẠY → không suất, không cờ báo huỷ nào đổi; phản hồi đúng câu nhắc Báo huỷ, không mã chuyến / biển số / tài xế", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const c = await chuyenSan(w, { soNguoi: 2 });
+    denGio("12:40");
+    const x = await tienDo(w, "van-phong", c.id, "xuat-ben");
+    assert.equal(x.status, 200, x.text);
+    const truoc = w.q("SELECT id, valid_to_at, status, office_cancel_at FROM vc_trip_allocation WHERE trip_id = ? ORDER BY id", c.id).map((r: any) => ({ ...r }));
+    const r = await huyVanPhong(w, c.don.id);
+    assert.equal(r.status, 200, r.text);
+    assert.deepEqual(r.json.dongBoChuyen, { nhac: CAU_NHAC_XE_DANG_CHAY, capNhatTay: false });
+    assert.equal(r.json.dongBoChuyen.nhac, "Đơn có khách trên xe đang chạy — văn phòng bấm Báo huỷ");
+    assert.deepEqual(w.q("SELECT id, valid_to_at, status, office_cancel_at FROM vc_trip_allocation WHERE trip_id = ? ORDER BY id", c.id).map((r: any) => ({ ...r })), truoc);
+    assert.deepEqual(nhatKyDongBo(w), []);
+    assert.doesNotMatch(JSON.stringify(r.json.dongBoChuyen), new RegExp(`${c.ma}|79C|Tài Xế`));
+  } finally {
+    tat();
+  }
+});
+
+test("NT-5 thua cổng đơn (huỷ: người khác vừa sửa đơn — đổi updated_at — giữa lúc đọc và lúc ghi) → 409, KHÔNG suất nào đổi, không nhật ký chuyến", async () => {
+  const tat = batDongHo();
+  let orderId = "";
+  try {
+    const w = setup({ chenGiuaDocVaGhi: async () => void w.sqlite.prepare("UPDATE orders SET updated_at = ? WHERE id = ?").run(new Date(Date.now() + 1000).toISOString(), orderId) });
+    const d = await don(w, { soNguoi: 2 });
+    orderId = d.id;
+    const t = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER}` });
+    await xepHet(w, t, d, 2);
+    const truoc = moCua(w, t.chuyen.id, d.legId);
+    const r = await huyVanPhong(w, d.id);
+    assert.equal(r.status, 409, r.text);
+    assert.equal(w.q("SELECT status FROM orders WHERE id = ?", d.id)[0].status, "confirmed");
+    assert.deepEqual(moCua(w, t.chuyen.id, d.legId), truoc);
+    assert.deepEqual(nhatKyDongBo(w), []);
+  } finally {
+    tat();
+  }
+});

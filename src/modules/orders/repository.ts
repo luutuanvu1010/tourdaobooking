@@ -1032,16 +1032,32 @@ export async function confirmOrder(
 export async function cancelOrder(
   db: D1Database, id: string, staffId: string, from: OrderStatus, prevUpdatedAt: string, lyDo: LyDoHuy, opts?: { action?: AuditAction; detail?: string },
 ): Promise<boolean> {
+  return daHuy(await db.batch(soanHuyDon(db, id, staffId, from, prevUpdatedAt, lyDo, opts).cau));
+}
+
+/**
+ * SOẠN (chưa chạy) lô huỷ đơn của `cancelOrder` — cho điểm gọi nối máy đồng bộ chuyến (ADR-0104 Đ2, điểm gọi 1 và 2): `auditId` = id dòng nhật ký của câu cổng
+ * đơn (sinh trước — câu cổng chuyến hỏi "dòng này đã có"), `cau` = [dòng lý do] → [đổi trạng thái] → [nhật ký changes() > 0]. Chạy MỘT `db.batch` với câu
+ * đơn ĐỨNG ĐẦU rồi đọc thắng bằng `daHuy(kq)` (chỉ số câu đổi trạng thái không đổi khi nối khúc chuyến phía sau).
+ */
+export function soanHuyDon(
+  db: D1Database, id: string, staffId: string, from: OrderStatus, prevUpdatedAt: string, lyDo: LyDoHuy, opts?: { action?: AuditAction; detail?: string },
+): { auditId: string; cau: D1PreparedStatement[] } {
   const at = nextStamp(prevUpdatedAt);
+  const auditId = crypto.randomUUID();
   // ADR-0089 đ8 (H-C6): lô huỷ = [dòng lý do (cùng điều kiện khoá lạc quan)] → [đổi trạng thái] → [nhật ký changes() > 0] — câu SQL ở tệp nửa nghiêm.
   // Nhật ký ghi NHÃN lý do (không mã thô); "Khác" ghi chính ghi chú đã kiểm (khuôn HDV — ADR-0030 điều 2).
   const nhan = lyDo.ma === "OTHER" ? `${lyDo.ghiChu} (${nhanNhomHuy(lyDo.nhom)})` : `${nhanLyDoHuy(lyDo.ma)} (${nhanNhomHuy(lyDo.nhom)})`;
-  const results = await db.batch([
-    ...cauHuyCoLyDo(db, { orderId: id, staffId, from, prevUpdatedAt, at, homNay: vnToday(new Date()), lyDo }),
-    auditStatement(db, { orderId: id, staffId, action: opts?.action ?? "cancelled", at, detail: opts?.detail ?? nhan }, "changes() > 0"),
-  ]);
-  return (results[1]!.meta.changes ?? 0) > 0;
+  return {
+    auditId,
+    cau: [
+      ...cauHuyCoLyDo(db, { orderId: id, staffId, from, prevUpdatedAt, at, homNay: vnToday(new Date()), lyDo }),
+      auditStatement(db, { id: auditId, orderId: id, staffId, action: opts?.action ?? "cancelled", at, detail: opts?.detail ?? nhan }, "changes() > 0"),
+    ],
+  };
 }
+/** Lô huỷ (do `soanHuyDon` soạn, câu đơn đứng đầu) đã thắng ⇔ câu đổi trạng thái (thứ 2) đổi một dòng. */
+export const daHuy = (kq: readonly D1Result[]): boolean => (kq[1]?.meta.changes ?? 0) > 0;
 
 interface LatestAdjustment {
   id: string;

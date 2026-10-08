@@ -3,7 +3,7 @@
 // "Người phụ trách" do module `dispatch` giữ: `orders` KHÔNG import `dispatch` mà hỏi qua `ctx.isAssigned(orderId)` (gốc lắp ráp tiêm — ADR-0007 điều 4(b)).
 import { auditStatement, getAuditTrail } from "../audit";
 import type {
-  CanhBaoMocDto, CatalogChangeDto, CatalogChangedBody, DashboardResponse, DraftCountResponse, IncompleteTripBody, MoneyEditResponse, MyAssignmentDto, NhapTayResponse, OrderDetailDto,
+  CanhBaoMocDto, CatalogChangeDto, CatalogChangedBody, DashboardResponse, DongBoChuyenDto, DraftCountResponse, IncompleteTripBody, MoneyEditResponse, MyAssignmentDto, NhapTayResponse, OrderDetailDto,
   OrderDetailResponse, OrderListResponse, MocToiThieuResponse, NguoiLapResponse, OrderResponse, PassengerListResponse, PaxCounts, PoolResponse, ShortNoticeRequiredBody,
   SuaSoKhachDichVuDto,
 } from "../../shared/contracts";
@@ -15,7 +15,7 @@ import { docLocDon } from "../../shared/loc-don";
 import { LOC_NHAP_TOI_DA_NGAY, LOC_NHAP_TOI_DA_UNG_VIEN, laDongNhapKeToan, soNgayKhoang } from "../../shared/nhap-ke-toan";
 import { editablePaxCodesOf, planMoneyEdit, type AdjustmentEntry } from "./money-adjustment";
 import {
-  addLeg, cancelOrder, changeBooker, changeLeg, cocCuNhap, confirmOrder, countDrafts, createOrder, effectivePax, findOrder, getDashboard, getDepartDates, getLatestAdjustment, getMeta, getOrderRef,
+  addLeg, cancelOrder, changeBooker, daHuy, soanHuyDon, changeLeg, cocCuNhap, confirmOrder, countDrafts, createOrder, effectivePax, findOrder, getDashboard, getDepartDates, getLatestAdjustment, getMeta, getOrderRef,
   chayLoSuaSoKhach, demThanCu, getServicesForSubtotal, getStoredServices, insertMoneyAdjustment, listOrderIds, listOrders, listPoolSources, replaceLeg, updateDraftOrder, updateTrip, writePassengerChange,
 } from "./repository";
 import {
@@ -37,6 +37,7 @@ import { docLyDoHuy, docPhanLoai, nhanNhomHuy, type LyDoHuy } from "../../shared
 import { lyDoHienHanh, phanLoaiStatement } from "./huy-don-repo";
 import { toPoolOrders } from "./pool";
 import { soNguoiSauSuaKhach, type ChangSoNguoi } from "./dong-bo-chuyen-don";
+import type { DongBoTheoDon, NoiChuyen } from "../../shared/dong-bo-chuyen";
 import { laThanDonCu, laThanTripCu } from "./than-cu";
 import {
   PARTNER_DISCOUNT_CAP, PARTNER_DISCOUNT_MESSAGE, RETAIL_PRICE_MESSAGE, discountWithinCap, duocNhapTay, holdsPartner, lyDoKhongNhapTay, manualFreezeViolation,
@@ -439,8 +440,30 @@ export async function lienHeChoTaiXe(db: D1Database, orderIds: readonly string[]
  * `status === "confirmed"` bằng `findOrderOwner`; hàm này chỉ còn lo tranh chấp (khoá lạc quan khoá theo CẢ `status` VÀ `updated_at`, T1d) nên vẫn
  * ràng buộc `from: "confirmed"` cho chắc.
  */
-export async function cancelOrderByHandler(db: D1Database, id: string, staffId: string, prevUpdatedAt: string, lyDo: LyDoHuy, reasonLabel: string): Promise<boolean> {
-  return cancelOrder(db, id, staffId, "confirmed", prevUpdatedAt, lyDo, { action: "order_cancelled_by_field", detail: reasonLabel });
+export async function cancelOrderByHandler(
+  db: D1Database, id: string, staffId: string, prevUpdatedAt: string, lyDo: LyDoHuy, reasonLabel: string, noiChuyen: NoiChuyen,
+): Promise<KetQuaLenhDon> {
+  // ADR-0104 Đ2 (điểm gọi 2): route dispatch truyền `noiChuyen` = ctx.dongBoChuyen (orders không xuất hàm soạn, không import van-chuyen). MỘT lô: câu huỷ đứng
+  // đầu, khúc chuyến sau.
+  const huy = soanHuyDon(db, id, staffId, "confirmed", prevUpdatedAt, lyDo, { action: "order_cancelled_by_field", detail: reasonLabel });
+  const dong = await noiChuyen({ orderId: id, auditIdDon: huy.auditId, bayGioMs: Date.now(), sau: { trangThai: "cancelled" }, cauDon: huy.cau });
+  return chayLoNoiChuyen(db, dong, daHuy);
+}
+
+/** Kết quả lệnh đơn có nối máy đồng bộ chuyến, cho route của module KHÁC (dispatch): thắng kèm phần "chuyến" của phản hồi; thua khoá lạc quan; lỗi đã dịch. */
+export type KetQuaLenhDon = { kq: "thang"; dongBoChuyen: DongBoChuyenDto } | { kq: "thua" } | { kq: "loi"; res: Response };
+
+/** Chạy MỘT lô (câu đơn + khúc chuyến) rồi hỏi `thang(kq)` (đọc câu đơn ở chỉ số cũ); lỗi phần chuyến → 409 `trip_rule` qua `dichLoi`, lỗi khác ném tiếp. */
+async function chayLoNoiChuyen(db: D1Database, dong: DongBoTheoDon, thang: (kq: readonly D1Result[]) => boolean): Promise<KetQuaLenhDon> {
+  let kq: D1Result[];
+  try {
+    kq = await db.batch(dong.lo);
+  } catch (e) {
+    const res = dong.dichLoi(e);
+    if (res) return { kq: "loi", res };
+    throw e;
+  }
+  return thang(kq) ? { kq: "thang", dongBoChuyen: dong.sauKhiGhi(kq).dto } : { kq: "thua" };
 }
 
 // ---- Sổ tiền lượt 1 (ADR-0024 điều 3–4, ADR-0025): `orders` công bố trạng thái + "phải thu hiện hành" + hai câu mốc CHƯA CHẠY cho billing gộp vào
@@ -1138,7 +1161,7 @@ export const ordersModule: AppModule = {
       return json({ order: (await loadOrderView(env.DB, id, xemDuDatGap(staff)))! } satisfies OrderResponse);
     }),
 
-    route("POST", "/api/orders/:id/status", "orders", async ({ env, request, params, staff, isAssigned, baoThayDoi, mocToiThieu }) => {
+    route("POST", "/api/orders/:id/status", "orders", async ({ env, request, params, staff, isAssigned, baoThayDoi, mocToiThieu, dongBoChuyen }) => {
       const id = params.id!;
       if (!UUID_RE.test(id)) return NOT_FOUND();
       const body = await readJson(request);
@@ -1151,11 +1174,24 @@ export const ordersModule: AppModule = {
       const from = meta.status;
       if (!canTransition(from, to)) return error(409, "invalid_transition", `Không thể chuyển đơn từ "${from}" sang "${to}".`);
 
+      let dongBo: DongBoChuyenDto | undefined;
       if (to === "cancelled") {
         // ADR-0089 đ8 (H-C4): lý do bắt buộc; nhóm "Công ty huỷ" chỉ khi có ô `order.cancel.classify` (Quản trị, Toàn quyền — Đ-2).
         const lyDo = docLyDoHuy(body, { coTheChonCongTy: can(staff, "order.cancel.classify") });
         if (!lyDo.ok) return error(lyDo.status, lyDo.status === 403 ? "forbidden" : "invalid_input", lyDo.message);
-        if (!(await cancelOrder(env.DB, id, staff.id, from, meta.updatedAt, lyDo.lyDo))) return RACED();
+        // ADR-0104 Đ2 (điểm gọi 1): lô huỷ (câu đơn đứng đầu) + khúc chuyến của máy đồng bộ — MỘT db.batch. Chỉ nhánh huỷ nối máy (xác nhận không đụng chuyến).
+        const huy = soanHuyDon(env.DB, id, staff.id, from, meta.updatedAt, lyDo.lyDo);
+        const dong = await dongBoChuyen({ orderId: id, auditIdDon: huy.auditId, bayGioMs: Date.now(), sau: { trangThai: "cancelled" }, cauDon: huy.cau });
+        let kq: D1Result[];
+        try {
+          kq = await env.DB.batch(dong.lo);
+        } catch (e) {
+          const loi = dong.dichLoi(e);
+          if (loi) return loi;
+          throw e;
+        }
+        if (!daHuy(kq)) return RACED();
+        dongBo = dong.sauKhiGhi(kq).dto;
       } else {
         const today = vnToday(new Date());
         const order = await findOrder(env.DB, id);
@@ -1199,7 +1235,7 @@ export const ordersModule: AppModule = {
         }
       }
       baoThayDoi({ orderId: id, thayDoi: to === "cancelled" ? "huy" : "xac_nhan" });
-      return json({ order: (await loadOrderView(env.DB, id, xemDuDatGap(staff)))! } satisfies OrderResponse);
+      return json({ order: (await loadOrderView(env.DB, id, xemDuDatGap(staff)))!, ...(dongBo ? { dongBoChuyen: dongBo } : {}) } satisfies OrderResponse);
     }),
 
     // PHÂN LOẠI lý do huỷ "chưa kết luận" (ADR-0089 đ8, X-2; NT-L5, NT-L6): ô `order.cancel.classify` (Quản trị, Toàn quyền — Đ-2), không phạm vi đơn.

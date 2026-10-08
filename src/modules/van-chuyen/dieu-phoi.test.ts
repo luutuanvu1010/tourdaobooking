@@ -343,14 +343,16 @@ test("TC-51: TRONG 6 giờ Bán hàng cập nhật điểm → 200 không cần 
 });
 
 // ---- I38 lý do cụ thể ---------------------------------------------------------------------------------------------------------------------------------------
+// ADR-0104 Đ2 (kế hoạch N9 — đổi cách DỰNG, không nới luật): máy đồng bộ chuyến nay tự đóng suất khi huỷ đơn / bỏ chặng ⇒ bài cần TRẠNG THÁI GIỮ dựng thế
+// giới không tiêm máy (`khongDongBoChuyen`) — vẫn phải thấy đúng lý do giữ. Máy tự dọn: src/modules/van-chuyen/dong-bo-chuyen-route.test.ts.
 test("I38 (R-P9): xếp rồi HUỶ ĐƠN → chi tiết chuyến giữ DON_DA_HUY (không NOI_HEN_DOI); xếp rồi BỎ CHẶNG → CHANG_DA_DONG; xếp chặng của đơn NHÁP → 409 lý do cụ thể", async () => {
-  const w = setup();
+  const w = setup({ khongDongBoChuyen: true });
   const { t, d } = await daXep(w, "Khách sạn A");
   assert.equal((await w.call("POST", `/api/orders/${d.id}/status`, { as: SALES, body: { status: "cancelled", lyDo: "KHACH_DOI_Y" } })).status, 200);
   const ct = await chiTiet(w, t.chuyen.id);
   assert.deepEqual(ct.chuyen.lyDoGiu.map((l: any) => l.ma).filter(khongCuaSo), ["DON_DA_HUY"]);
   assert.match(ct.chuyen.lyDoGiu.find((l: any) => l.ma === "DON_DA_HUY").loiNhan, new RegExp(d.code));
-  const w2 = setup();
+  const w2 = setup({ khongDongBoChuyen: true });
   const b = await daXep(w2, "Khách sạn B");
   const o = (await w2.call("GET", `/api/orders/${b.d.id}`, { as: SALES })).json.order;
   const dongChang = await w2.call("POST", `/api/orders/${b.d.id}/legs/${b.d.legId}/close`, { as: SALES, body: { expectedUpdatedAt: o.services[0].legs[0].updatedAt, reasonCode: "NOT_NEEDED" } });
