@@ -38,6 +38,7 @@ Sổ điều phối (CLAUDE.md §9, P19). Trạng thái sống ở đây, không
 - Tệp 02 Đ2 (ADR-0104 Đồng bộ chuyến theo đơn): **"Duyệt, máy tự thêm ghế khi còn chỗ (Recommended)"**, tức Q-2 = **a**, kèm việc nới đúng một chỗ của bài kiểm thứ tự ghi (phần ghi của đơn được đứng đầu lô).
 - **Cách đọc của điều phối (giả định, chỉ siết):** câu hỏi Q-1 ghi "các việc sau **sát giờ**". Vì vậy Bán hàng chỉ được bỏ qua khoảng nghỉ và cam kết xe riêng khi chuyến đang dưới mốc 6 giờ; ngoài mốc thì hai việc đó vẫn hỏi `trip.override` (Quản trị, Toàn quyền). Nếu chủ muốn mở cả ngoài mốc thì phải nói thêm.
 - **P18 (đã nói với chủ một lần):** luật giao thông yêu cầu tài xế lái liên tục không quá 4 giờ và nghỉ ít nhất 15 phút giữa hai lần lái (ghi nhớ tra cứu 27/9, chưa có luật sư xác nhận). Nền tảng hiện không kiểm riêng giờ lái theo luật. Khi Bán hàng được bỏ qua khoảng nghỉ thì người chịu trách nhiệm giữ quy định đó gồm cả Bán hàng.
+- **Câu hỏi thêm 8/10 (sau phiếu kiểm bản chép, mục I-2), chủ trả lời:** cam kết xe là **"Cho bỏ qua cả hai (Recommended)"** (mã `CAM_KET` gồm cả xe riêng lẫn số chỗ tối thiểu, không tách); lúc nào là **"Chỉ khi chuyến còn dưới 6 giờ (Recommended)"**. Cách đọc "sát giờ" nay là lời chủ.
 - Việc kế: chép ADR-0063 (D1 accepted) và ADR-0104 vào `docs/adr/` (người soạn chuẩn bị bản chép theo Q-1 b, Q-2 a; điều phối chép bằng công cụ sửa tệp để chủ được hỏi). A2 bắt đầu thi công. ADR-0104 thi công SAU khi A1 gộp, vì cả hai cùng sửa `van-chuyen/dieu-phoi*`.
 
 ## Giai đoạn 2 — bắt đầu 8/10 (phần đã duyệt, không chờ câu trả lời)
