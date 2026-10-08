@@ -2,7 +2,7 @@
 // Lớp CSDL cùng bảng: trigger vc_trip_running_locked_alloc_ins (0085) — bài dieu-chinh-csdl.test.ts.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { cauDieuChinh, dichDieuChinh, kiemDieuChinh, nhanTrangThaiDieuChinh } from "./dieu-chinh-suat.ts";
+import { cauDieuChinh, coTienDoSauXuatBen, dichDieuChinh, kiemDieuChinh, nhanTrangThaiDieuChinh } from "./dieu-chinh-suat.ts";
 
 const DIEM = (len: string, xuong: string | null) => ({ diemLen: len, diemXuong: xuong });
 
@@ -62,4 +62,13 @@ test("nhãn + câu nhật ký (Đ2.6): 'một suất Đã đón → Vắng · B�
   assert.equal(nhanTrangThaiDieuChinh("CANCELLED_AT_STOP"), "Khách huỷ tại điểm");
   assert.equal(cauDieuChinh("BOARDED", "NO_SHOW", "Bấm nhầm"), "một suất Đã đón → Vắng · Bấm nhầm");
   assert.equal(cauDieuChinh("DROPPED", "BOARDED", "Khác"), "một suất Đã trả → Còn trên xe · Khác");
+});
+
+test("coTienDoSauXuatBen (Đ3.2 — MỘT luật cho máy chủ 409 da_co_tien_do và nút 'Thu hồi xuất bến'): chỉ xét sự kiện SAU lần xuất bến cuối; DEPARTED / DEPARTURE_REVOKED không tính", () => {
+  assert.equal(coTienDoSauXuatBen(["CREATED", "ALLOCATED", "DEPARTED"]), false, "vừa xuất bến");
+  assert.equal(coTienDoSauXuatBen(["CREATED", "DEPARTED", "STOP_ARRIVED"]), true, "đã tới một điểm");
+  assert.equal(coTienDoSauXuatBen(["DEPARTED", "STOPS_REORDERED"]), true, "đổi thứ tự cũng là tiến độ (ADR Đ3.2)");
+  assert.equal(coTienDoSauXuatBen(["DEPARTED", "STOP_ADDED_RUNNING"]), true, "thêm điểm khi xe chạy — thu hồi sẽ để cờ thêm-khi-chạy trên chuyến chưa chạy");
+  assert.equal(coTienDoSauXuatBen(["DEPARTED", "STOP_ARRIVED", "DEPARTURE_REVOKED", "DEPARTED"]), false, "chỉ tính từ lần xuất bến CUỐI");
+  assert.equal(coTienDoSauXuatBen(["DEPARTED", "DEPARTURE_REVOKED", "DEPARTED", "DEPARTED"]), false);
 });

@@ -2,9 +2,9 @@
 // có nhật ký không số, CCCD một người, gia hạn chép số, sửa sai chỉ dòng hiện hành), xe (biển số / dùng lại xe — R15), giấy tờ xe, danh sách sắp hết hạn
 // (có count — R15), ngưỡng (chỉ Toàn quyền, khôi phục 30 ở `finally`), và LỚP CSDL trên D1 THẬT (local): SQL gõ tay bị trigger / chỉ mục chặn (tiêu chí
 // nghiệm thu 13 — node:sqlite đã thử ở src/migrations-*.test.ts, đây là D1). Dữ liệu độc nhất theo lần chạy (SĐT ngẫu nhiên, biển số có Date.now()).
-// Mọi số giấy tờ là số GIẢ.
+// Mọi số giấy tờ là số GIẢ. Mục 11 (ADR-0097): ba kịch bản sửa sai trên xe đang chạy — mở cửa sổ xuất bến 48 giờ rồi khôi phục giá trị cũ ở cuối mục.
 import assert from "node:assert/strict";
-import { ACCOUNTS, call, login, randomPhone, session, sql, sqlRows, vnDate } from "./lib.mjs";
+import { ACCOUNTS, call, catalogService, ensureFakeCatalog, login, moCuaSoXuatBen48Gio, orderInput, randomPhone, session, sql, sqlRows, vnDate } from "./lib.mjs";
 
 const ADMIN = await session(ACCOUNTS.admin);
 const SALES = await session(ACCOUNTS.salesA);
@@ -157,5 +157,127 @@ await assert.rejects(
 await assert.rejects(sql(`DELETE FROM vc_vehicle WHERE id = '${xe1.id}'`), /vehicle_no_delete/);
 await assert.rejects(sql("UPDATE vc_expiry_policy SET warn_days = 5"), /expiry_policy_append_only/);
 console.log("✓ D1 local: xoá giấy tờ, sửa đè dòng đã gia hạn, CCCD của người khác, biển số trùng, xoá xe, sửa chính sách — đều bị CSDL chặn");
+
+// --- 11. ADR-0097 (gói A1, V3-B): sửa sai trên xe đang chạy bằng lô điều chỉnh có lý do — ba kịch bản của ADR, API thật trên D1 local ---
+// Chuyến NGÀY MAI + cửa sổ 48 giờ (ADR-0096 Đ2) để xuất bến ngay được. Tài xế công ty mới, xe 15 chỗ đủ Kiểm định + Bảo hiểm. Tên, SĐT GIẢ.
+await ensureFakeCatalog();
+const cuaSoCu = await moCuaSoXuatBen48Gio(); // khôi phục ở cuối mục (bảng chính sách CHỈ THÊM — thêm dòng giá trị cũ)
+const KE_TOAN = await session(ACCOUNTS.accountant);
+const uuid = () => crypto.randomUUID();
+const NGAY = vnDate(1);
+const AT = new Date().toISOString();
+const tk = await call(TOAN_QUYEN, "POST", "/api/staff", { taoHoSoMoi: true, fullName: `Điều Chỉnh E2E ${duoi}`, phone: randomPhone(), roles: ["DRIVER_INTERNAL"] });
+assert.equal(tk.status, 201, JSON.stringify(tk.body));
+const lgDc = await login(tk.body.staff.phone, tk.body.pin);
+assert.equal(lgDc.status, 200, JSON.stringify(lgDc.body));
+const TXDC = lgDc.cookie;
+const [{ party_id: txDcParty }] = await sqlRows(`SELECT party_id FROM staff WHERE id = '${tk.body.staff.id}'`);
+r = await call(ADMIN, "POST", `/api/parties/${txDcParty}/documents`, { typeCode: "GPLX", number: `76${String(Date.now()).slice(-9)}${Math.floor(Math.random() * 10)}`, classCode: "D1", expiryDate: vnDate(400) });
+assert.equal(r.status, 201, JSON.stringify(r.body));
+const [{ party_id: chuCty }] = await sqlRows("SELECT party_id FROM v_pty_owner_company");
+const xeDc = uuid();
+await sql(`INSERT INTO vc_vehicle (id, plate_number, plate_key, chassis_number, chassis_key, name, model_year, passenger_capacity, owner_party_id, status, valid_from_date, created_at, updated_at)
+  VALUES ('${xeDc}', '79K-${duoi.slice(0, 3)}.${duoi.slice(3)}', '79K${duoi}', 'E2EDIEUCHINH${duoi}', 'E2EDIEUCHINH${duoi}', 'Xe điều chỉnh E2E', 2022, 15, '${chuCty}', 'active', '2026-09-01', '${AT}', '${AT}')`);
+for (const loai of ["INSPECTION", "TPL_INSURANCE"]) {
+  await sql(`INSERT INTO vc_vehicle_document (id, vehicle_id, document_type_code, expiry_date, created_at, updated_at) VALUES ('${uuid()}', '${xeDc}', '${loai}', '${vnDate(400)}', '${AT}', '${AT}')`);
+}
+const LOC_TRA = "a941dd7d-faab-4098-9ab9-1df7fa6dd551";
+const donDc = async (gio, noi, ten) => {
+  const o = await call(SALES, "POST", "/api/orders", orderInput({
+    customerName: "Liên Hệ Điều Chỉnh E2E", customerPhone: "0913579248",
+    services: [catalogService({ pax: { adult: ten.length }, departDate: NGAY, legs: [{ direction: "OUT", pickupDate: NGAY, pickupTime: gio, pickupLocationId: null, pickupPlace: `${noi} ${duoi}`, dropoffLocationId: LOC_TRA, dropoffPlace: "" }] })],
+    passengers: ten.map((t, i) => ({ fullName: t, birthYear: 1970 + i, paxCode: null })),
+  }));
+  assert.equal(o.status, 201, JSON.stringify(o.body));
+  assert.equal((await call(SALES, "POST", `/api/orders/${o.body.order.id}/status`, { status: "confirmed" })).status, 200);
+  return { code: o.body.order.orderCode, legId: o.body.order.services[0].legs[0].id };
+};
+const dcA = await donDc("10:00", "Khách sạn Điều Chỉnh A", ["Khách Điều Chỉnh A1", "Khách Điều Chỉnh A2"]);
+const dcB = await donDc("10:30", "Khách sạn Điều Chỉnh B", ["Khách Điều Chỉnh B1"]);
+// Chuyến ĐÚNG (09:30, hai đơn) và chuyến KHÁC cùng tài xế (06:00, không khách) — tài xế bấm nhầm chuyến 06:00.
+let cDung = await call(SALES, "POST", "/api/van-chuyen/chuyen", { requestId: uuid(), xeId: xeDc, taiXePartyId: txDcParty, batDau: { ngay: NGAY, gio: "09:30" }, ketThuc: { ngay: NGAY, gio: "12:00" } });
+assert.equal(cDung.status, 201, JSON.stringify(cDung.body));
+const idDung = cDung.body.chuyen.id;
+cDung = await call(SALES, "POST", `/api/van-chuyen/chuyen/${idDung}/phan-bo`, { version: cDung.body.chuyen.version, requestId: uuid(), chang: [{ legId: dcA.legId, soSuat: 2 }, { legId: dcB.legId, soSuat: 1 }] });
+assert.equal(cDung.status, 200, JSON.stringify(cDung.body));
+const cNham = await call(SALES, "POST", "/api/van-chuyen/chuyen", { requestId: uuid(), xeId: xeDc, taiXePartyId: txDcParty, batDau: { ngay: NGAY, gio: "06:00" }, ketThuc: { ngay: NGAY, gio: "07:00" } });
+assert.equal(cNham.status, 201, JSON.stringify(cNham.body));
+const idNham = cNham.body.chuyen.id;
+const chiTietVp = async (id) => (await call(SALES, "GET", `/api/van-chuyen/chuyen/${id}`)).body;
+
+// (a) HT-03: xuất bến nhầm → thu hồi → xuất bến chuyến đúng
+r = await call(TXDC, "POST", `/api/van-chuyen/cuoc-cua-toi/${idNham}/xuat-ben`, { requestId: uuid() });
+assert.equal(r.status, 200, JSON.stringify(r.body));
+assert.equal(r.body.chuyen.trangThai, "RUNNING");
+r = await call(TXDC, "POST", `/api/van-chuyen/cuoc-cua-toi/${idDung}/xuat-ben`, { requestId: uuid() });
+assert.equal(r.status, 409, `một tài xế một chuyến đang chạy: ${JSON.stringify(r.body)}`);
+const thanThuHoi = async () => ({ version: (await chiTietVp(idNham)).chuyen.version, requestId: uuid(), lyDo: "DIEU_CHINH_BAM_NHAM" });
+assert.equal((await call(KE_TOAN, "POST", `/api/van-chuyen/chuyen/${idNham}/thu-hoi-xuat-ben`, await thanThuHoi())).status, 403, "Kế toán");
+assert.equal((await call(TXDC, "POST", `/api/van-chuyen/chuyen/${idNham}/thu-hoi-xuat-ben`, await thanThuHoi())).status, 403, "tài xế");
+r = await call(SALES, "POST", `/api/van-chuyen/chuyen/${idNham}/thu-hoi-xuat-ben`, { ...(await thanThuHoi()), lyDo: "BAO_HUY_KHONG_DI" });
+assert.equal(r.status, 400, `lý do ngoài nhóm Điều chỉnh: ${JSON.stringify(r.body)}`);
+const thanTh = await thanThuHoi();
+r = await call(SALES, "POST", `/api/van-chuyen/chuyen/${idNham}/thu-hoi-xuat-ben`, thanTh);
+assert.equal(r.status, 201, JSON.stringify(r.body));
+assert.deepEqual([r.body.chuyen.trangThai, r.body.chuyen.xuatBen], ["PLANNED", null]);
+assert.equal((await call(SALES, "POST", `/api/van-chuyen/chuyen/${idNham}/thu-hoi-xuat-ben`, thanTh)).status, 200, "gửi lại cùng requestId → kết quả cũ");
+const [thDb] = await sqlRows(`SELECT t.status, t.departed_at, (SELECT count(*) FROM vc_trip_event e WHERE e.trip_id = t.id AND e.kind = 'DEPARTURE_REVOKED' AND e.reason_code = 'DIEU_CHINH_BAM_NHAM') AS n FROM vc_trip t WHERE t.id = '${idNham}'`);
+assert.deepEqual([thDb.status, thDb.departed_at, thDb.n], ["PLANNED", null, 1]);
+r = await call(TXDC, "POST", `/api/van-chuyen/cuoc-cua-toi/${idDung}/xuat-ben`, { requestId: uuid() });
+assert.equal(r.status, 200, JSON.stringify(r.body));
+assert.equal(r.body.chuyen.trangThai, "RUNNING");
+console.log("✓ ADR-0097 HT-03: xuất bến nhầm → Kế toán / tài xế 403, lý do ngoài nhóm 400; văn phòng thu hồi 201 (chuyến về chưa chạy, lặp → 200, một sự kiện có lý do); xuất bến chuyến đúng 200");
+
+// (b) HT-04: đã đón nhầm → điều chỉnh thành vắng
+let ct = await chiTietVp(idDung);
+const suatA = ct.suat.filter((s) => s.loai === "PASSENGER" && s.maDon === dcA.code);
+const suatBDc = ct.suat.find((s) => s.loai === "PASSENGER" && s.maDon === dcB.code);
+assert.equal(suatA.length, 2);
+const diemDonA = suatA[0].diemLen;
+const diemDonB = suatBDc.diemLen;
+const diemTra = suatA[0].diemXuong;
+assert.equal(suatBDc.diemXuong, diemTra, "hai đơn chung một điểm trả");
+assert.equal((await call(TXDC, "POST", `/api/van-chuyen/cuoc-cua-toi/${idDung}/diem/${diemDonA}/da-toi`, { requestId: uuid() })).status, 200);
+for (const s of suatA) assert.equal((await call(TXDC, "POST", `/api/van-chuyen/cuoc-cua-toi/${idDung}/phan-bo/${s.id}/don`, { requestId: uuid() })).status, 200);
+r = await call(TXDC, "POST", `/api/van-chuyen/chuyen/${idDung}/phan-bo/${suatA[0].id}/dieu-chinh`, { version: (await chiTietVp(idDung)).chuyen.version, requestId: uuid(), trangThai: "NO_SHOW", lyDo: "DIEU_CHINH_BAM_NHAM" });
+assert.equal(r.status, 403, "tài xế không có route điều chỉnh");
+r = await call(SALES, "POST", `/api/van-chuyen/chuyen/${idDung}/phan-bo/${suatA[0].id}/dieu-chinh`, { version: (await chiTietVp(idDung)).chuyen.version, requestId: uuid(), trangThai: "NO_SHOW", lyDo: "DIEU_CHINH_BAM_NHAM" });
+assert.equal(r.status, 201, JSON.stringify(r.body));
+assert.doesNotMatch(JSON.stringify(r.body), /Khách Điều Chỉnh|0913579248/, "phản hồi lệnh ghi không kèm tên / SĐT");
+const thayA1 = r.body.suat.find((s) => s.loai === "PASSENGER" && s.maDon === dcA.code && !suatA.some((x) => x.id === s.id));
+assert.equal(thayA1.trangThai, "NO_SHOW");
+const [a1Db] = await sqlRows(`SELECT (SELECT close_reason FROM vc_trip_allocation WHERE id = '${suatA[0].id}') AS dong, (SELECT corrects_allocation_id FROM vc_trip_allocation WHERE id = '${thayA1.id}') AS tro`);
+assert.deepEqual([a1Db.dong, a1Db.tro], ["REMOVED", suatA[0].id]);
+r = await call(SALES, "POST", `/api/van-chuyen/chuyen/${idDung}/thu-hoi-xuat-ben`, { version: (await chiTietVp(idDung)).chuyen.version, requestId: uuid(), lyDo: "DIEU_CHINH_BAM_NHAM" });
+assert.deepEqual([r.status, r.body.error?.code], [409, "da_co_tien_do"], "đã đón khách → không thu hồi xuất bến được");
+console.log("✓ ADR-0097 HT-04: Đã đón nhầm → văn phòng điều chỉnh thành Vắng 201 (tài xế 403; suất cũ đóng, suất thay thế trỏ về; không tên); đã có tiến độ → thu hồi 409");
+
+// (c) HT-04: khách huỷ nhầm → điều chỉnh thành đã đón → đã trả → kết thúc
+assert.equal((await call(TXDC, "POST", `/api/van-chuyen/cuoc-cua-toi/${idDung}/diem/${diemDonB}/da-toi`, { requestId: uuid() })).status, 200);
+assert.equal((await call(TXDC, "POST", `/api/van-chuyen/cuoc-cua-toi/${idDung}/phan-bo/${suatBDc.id}/khach-huy`, { requestId: uuid() })).status, 200);
+r = await call(ADMIN, "POST", `/api/van-chuyen/chuyen/${idDung}/phan-bo/${suatBDc.id}/dieu-chinh`, { version: (await chiTietVp(idDung)).chuyen.version, requestId: uuid(), trangThai: "BOARDED", lyDo: "DIEU_CHINH_KHACH_DOI_Y" });
+assert.equal(r.status, 201, JSON.stringify(r.body));
+const thayB1 = r.body.suat.find((s) => s.loai === "PASSENGER" && s.maDon === dcB.code);
+assert.deepEqual([thayB1.trangThai, thayB1.id === suatBDc.id], ["BOARDED", false]);
+assert.equal((await call(TXDC, "POST", `/api/van-chuyen/cuoc-cua-toi/${idDung}/diem/${diemTra}/da-toi`, { requestId: uuid() })).status, 200);
+for (const id of [suatA[1].id, thayB1.id]) assert.equal((await call(TXDC, "POST", `/api/van-chuyen/cuoc-cua-toi/${idDung}/phan-bo/${id}/tra`, { requestId: uuid() })).status, 200, id);
+r = await call(TXDC, "POST", `/api/van-chuyen/cuoc-cua-toi/${idDung}/ket-thuc`, { requestId: uuid() });
+assert.equal(r.status, 200, JSON.stringify(r.body));
+assert.equal(r.body.chuyen.trangThai, "ENDED");
+const [ev] = await sqlRows(`SELECT count(*) AS n FROM vc_trip_event WHERE trip_id = '${idDung}' AND kind = 'CORRECTION'`);
+assert.equal(ev.n, 2, "hai lô điều chỉnh, mỗi lô một sự kiện");
+const [nkDc] = await sqlRows(`SELECT count(*) AS n, sum(CASE WHEN detail LIKE '%Khách Điều Chỉnh%' OR detail LIKE '%0913579248%' THEN 1 ELSE 0 END) AS lo FROM audit_log WHERE target_id IN ('${idDung}', '${idNham}') AND action IN ('trip_allocation_corrected', 'trip_departure_revoked')`);
+assert.deepEqual([nkDc.n, nkDc.lo], [3, 0], "ba dòng nhật ký điều chỉnh / thu hồi, không tên, không SĐT");
+r = await call(SALES, "POST", `/api/van-chuyen/chuyen/${idNham}/huy`, { version: (await chiTietVp(idNham)).chuyen.version, requestId: uuid(), lyDo: "HUY_KHAC" });
+console.log(`✓ ADR-0097 HT-04: Khách huỷ nhầm → Quản trị điều chỉnh thành Đã đón 201 → tài xế trả khách → Kết thúc 200; nhật ký không tên / SĐT; dọn chuyến bấm nhầm: ${r.status}`);
+{
+  const cs = (await call(TOAN_QUYEN, "GET", "/api/van-chuyen/chinh-sach-dieu-phoi")).body.current;
+  await new Promise((res) => setTimeout(res, 5)); // valid_from_at duy nhất theo mili-giây
+  const kp = await call(TOAN_QUYEN, "POST", "/api/van-chuyen/chinh-sach-dieu-phoi", {
+    minLeadMinutes: cs.minLeadMinutes, warnLeadMinutes: cs.warnLeadMinutes, restMinutes: cs.restMinutes, requireManifest: cs.requireManifest,
+    proxyBackdateMaxMinutes: cs.proxyBackdateMaxMinutes, dutyDayMaxMinutes: cs.dutyDayMaxMinutes, tripNoBreakMaxMinutes: cs.tripNoBreakMaxMinutes, departureWindowMinutes: cuaSoCu,
+  });
+  assert.equal(kp.status, 201, `khôi phục cửa sổ xuất bến: ${JSON.stringify(kp.body)}`);
+}
 
 console.log("E2E VAN CHUYEN OK");

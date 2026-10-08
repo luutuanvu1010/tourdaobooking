@@ -49,3 +49,13 @@ export function dichDieuChinh(tu: TrangThaiSuat, d: DiemCuaSuat): TrangThaiSuat[
 
 /** Đuôi câu nhật ký / tin (Đ2.6 — không tên khách): "một suất Đã đón → Vắng · Bấm nhầm". */
 export const cauDieuChinh = (tu: TrangThaiSuat, den: TrangThaiSuat, nhanLyDo: string): string => `một suất ${NHAN[tu]} → ${nhanDichDieuChinh(tu, den)} · ${nhanLyDo}`;
+
+/**
+ * ADR-0097 Đ3.2 — đã có sự kiện nào SAU lần xuất bến cuối (trừ DEPARTED / DEPARTURE_REVOKED)? `loai` = loại sự kiện của chuyến theo thứ tự ghi. MỘT luật cho
+ * máy chủ (`lenhThuHoiXuatBen` → 409 `da_co_tien_do`) và màn văn phòng (ẩn nút "Thu hồi xuất bến"); lớp CSDL: trigger vc_trip_revoke_no_progress (thứ tự chèn).
+ * Mọi loại sự kiện đều tính (kể cả thêm điểm / báo huỷ / đổi thứ tự khi xe chạy): thu hồi sau chúng sẽ để cờ "thêm khi xe chạy" trên chuyến chưa chạy.
+ */
+export function coTienDoSauXuatBen(loai: readonly string[]): boolean {
+  const cuoi = loai.lastIndexOf("DEPARTED");
+  return loai.slice(cuoi + 1).some((k) => k !== "DEPARTED" && k !== "DEPARTURE_REVOKED");
+}

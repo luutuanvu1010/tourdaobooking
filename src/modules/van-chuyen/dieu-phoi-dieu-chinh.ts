@@ -3,7 +3,7 @@
 // tien-do-mot-luat.test.ts, R-P1). Luật lõi ở CẢ máy chủ (dưới đây — câu tiếng Việt chỉ đường) lẫn trigger 0085 (lớp thứ hai). Giờ ghi = lúc bấm (không khai
 // giờ — MỘT mốc giờ mỗi request). Không gọi hàm hẹp của orders: dòng hành khách (`hk`) do thân route đọc sau `can()`.
 import type { ChangChoChuyen } from "../orders";
-import { cauDieuChinh, kiemDieuChinh } from "../../shared/dieu-chinh-suat";
+import { cauDieuChinh, coTienDoSauXuatBen, kiemDieuChinh } from "../../shared/dieu-chinh-suat";
 import { error } from "../../shared/http";
 import { legFlags, lyDoDangDung, type TripRow } from "./chuyen-repo";
 import { loDieuChinh, loThuHoiXuatBen, type LenhChung } from "./dieu-phoi";
@@ -80,10 +80,7 @@ export async function lenhThuHoiXuatBen(db: D1Database, nen: NenChuyen, b: ThuHo
   if (chan) return chan;
   const lyDo = await lyDoDieuChinh(db, b.lyDo);
   if (!lyDo) return LY_DO_DIEU_CHINH_SAI();
-  const cua = nen.events.filter((e) => e.trip_id === t.id);
-  let cuoi = -1;
-  for (let i = 0; i < cua.length; i++) if (cua[i]!.kind === "DEPARTED") cuoi = i;
-  if (cua.slice(cuoi + 1).some((e) => e.kind !== "DEPARTED" && e.kind !== "DEPARTURE_REVOKED")) return loi409("da_co_tien_do");
+  if (coTienDoSauXuatBen(nen.events.filter((e) => e.trip_id === t.id).map((e) => e.kind))) return loi409("da_co_tien_do");
   const cs = await chinhSachHienHanh(db);
   if (!cs) return CHUA_CO_KEP();
   if (t.departed_ms === null || bayGioMs > t.departed_ms + cs.proxy_backdate_max_minutes * 60_000) {
