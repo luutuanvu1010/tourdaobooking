@@ -12,6 +12,7 @@ import { route, type AppModule } from "../../shared/router";
 import { vnToday, vnWeekRange } from "../../shared/vn-date";
 import { docLocDon } from "../../shared/loc-don";
 import { LOC_NHAP_TOI_DA_NGAY, LOC_NHAP_TOI_DA_UNG_VIEN, laDongNhapKeToan, soNgayKhoang } from "../../shared/nhap-ke-toan";
+import { maDonTuNoiDung } from "../../shared/noi-dung-chuyen-khoan";
 import { editablePaxCodesOf, planMoneyEdit } from "./money-adjustment";
 import {
   addLeg, cancelOrder, changeBooker, changeLeg, cocCuNhap, confirmOrder, countDrafts, createOrder, effectivePax, findOrder, getDashboard, getDepartDates, getLatestAdjustment, getMeta, getOrderRef,
@@ -663,8 +664,10 @@ export const ordersModule: AppModule = {
       const xemNhapCuaMinh = can(staff, "accounting.entry.view", mine);
       const xemNhapPhuTrach = can(staff, "accounting.entry.view", handling);
       const phuTrach = handled || (!xemNhapMoi && xemNhapPhuTrach) ? await myHandledOrderIds() : null;
+      // Đặc tả QR §4.3: chữ tìm chứa nội dung chuyển khoản (mã đơn bỏ gạch) ⇒ tìm theo mã đơn chuẩn; câu SQL không đổi (query-plan.test.mjs ghim nó).
+      const qGo = (url.searchParams.get("q") ?? "").trim().slice(0, 100);
       const phamVi = {
-        q: (url.searchParams.get("q") ?? "").trim().slice(0, 100),
+        q: maDonTuNoiDung(qGo) ?? qGo,
         loc: loc.loc,
         ownerId: own ? staff.id : null,
         // Tập rỗng (chưa phụ trách đơn nào) = danh sách rỗng, KHÔNG phải "không lọc" (listOrders coi [] là "không đơn nào").
