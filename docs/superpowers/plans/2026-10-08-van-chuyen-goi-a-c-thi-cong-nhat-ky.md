@@ -20,6 +20,9 @@ Sổ điều phối (CLAUDE.md §9, P19). Trạng thái sống ở đây, không
 - **G5 — C38:** so cả suất / điểm (vượt tiêu chí "chuyến + loại") để bắt ca văn phòng; không thêm khoá phiên bản cho lệnh đổi thứ tự (đổi ADR-0049 dòng 108 cần ADR).
 - **G6 — A1:** làm ADR-0097 + ADR-0096 Đ1 (LC-19), Đ2 (LC-20). Đ3 (LC-21) không có trong nhiệm vụ gốc và chủ chưa đọc chữ Đ3 → để sau, nhắc trong báo cáo Giai đoạn 2.
 
+- **G7 — ADR-0104 Đ2 (iii), mã đóng ghế thừa** (câu hỏi 1 của kế hoạch `2026-10-08-adr-0104-ke-hoach.md`): `REMOVED` ("rút khách"). ADR (iii) không nêu mã; (i) cùng họ "máy trả ghế" đã chốt `REMOVED`; mã mới phải dựng lại bảng suất (CHECK đóng `0042:133`). Hoàn tác: đổi một hằng trong hàm thuần + bảng `LENH_DONG_SUAT`; dòng cũ vẫn đúng nghĩa.
+- **G8 — `PUT /api/orders/:id/trip` không gọi máy đồng bộ** (câu hỏi 2 của kế hoạch): áp đúng chữ ADR-0104 Đ2.4 đã duyệt ("Không cần hook … Đổi giờ / nơi vẫn theo VK1-B (giữ + nút)"). Chặng do `legOps` đóng ở route này để lại lý do giữ `CHANG_DA_DONG`, người xếp xe gỡ bằng nút tay (nay gỡ được, Đ2.11). Ghi nợ để chủ xét thêm điểm gọi ở một ADR sau nếu ca này hay gặp.
+
 ## Giai đoạn 1 — tiêu chí nghiệm thu và trạng thái
 
 | Mã | Tiêu chí (hành vi kiểm được) | Trạng thái |
