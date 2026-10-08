@@ -12,6 +12,17 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // QR thanh toán VietQR (ADR-0108) + mã giao dịch ngân hàng bắt buộc (ADR-0092 Đ6), migration 0087–0088. Chủ duyệt nhật ký 2026-10-08. Số 1.86 = main 1.85 + 1.
+    version: "1.86",
+    date: "2026-10-08",
+    items: [
+      { kind: "moi", text: "Trang đơn có nút \"QR thanh toán\": khách quét bằng ứng dụng ngân hàng là đúng số tiền và nội dung là mã đơn. Lưu được ảnh mã để gửi khách." },
+      { kind: "moi", text: "Bấm \"Khách đã chuyển khoản\" dưới mã QR thì form ghi tiền tự điền sẵn số tiền, hình thức Chuyển khoản và người nhận Công ty." },
+      { kind: "moi", text: "Kế toán xác nhận tiền chuyển khoản về công ty phải nhập mã giao dịch và số tiền thực chuyển như sao kê; một khoản chuyển không ghi được hai lần." },
+      { kind: "doi", text: "Kế toán và người phụ trách hệ thống không còn ô trả trước ở màn tạo đơn; ghi khoản khách trả trước ở trang đơn, mục Thanh toán." },
+    ],
+  },
+  {
     // Vòng focus của ô số bộ đếm (bị luật focus ô nhập của 1c718023 đè — a2-smoke-form bước 4b). Số 1.85 = main 1.84 + 1.
     version: "1.85",
     date: "2026-10-08",
