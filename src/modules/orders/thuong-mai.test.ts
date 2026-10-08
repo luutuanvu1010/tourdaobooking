@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { apGhiTay, banChupTuDb, dongGhiTuChup, dungThuongMai, kiemGhiTayVoiBanChup, kiemThanGhiTay, moTaChup, moTaGhiTay } from "./thuong-mai.ts";
+import { apGhiTay, banChupTuDb, cheDoThuongMai, dongGhiTuChup, dungThuongMai, kiemGhiTayVoiBanChup, kiemThanGhiTay, moTaChup, moTaGhiTay, type CheDoThuongMai } from "./thuong-mai.ts";
+import { PERMISSION_CODES, can, holdsPartner, seesOnlyAssignedOrders, type PermissionCode } from "../../shared/permissions.ts";
 
 const set = { serviceId: "s1", beneficiaryPartyId: "dla", hoaHong: { status: "SET" as const, kind: "RATE" as const, rateBp: 1000, perPax: null, ruleId: "m1" },
   cungUng: { status: "SET" as const, termId: "d1", sellerPartyId: "ct", supplierPartyId: null, costRateBp: null } };
@@ -243,4 +244,79 @@ test("moTaGhiTay: một dòng, mức trước → sau, người bán chỉ TÊN 
   const giuNguyen = apGhiTay(muoi, { lyDo: "ghi lại cho chắc, mức giữ nguyên", hoaHong: { kieu: "RATE", tyLeBp: 1200 } }, "ct");
   assert.equal(moTaGhiTay(muoi, giuNguyen, "Vé Hòn Tằm", ten2), "Vé Hòn Tằm: 12% (đánh dấu ghi tay)");
   assert.doesNotMatch(moTaGhiTay(thieuMuc, muoiLam, "Vé Hòn Tằm", ten2), /thoả thuận|CTV/, "lý do không vào nhật ký (nằm ở bản chụp)");
+});
+
+// ===== Vòng sửa 1 của Task 5: luật "của mình" của GET /api/orders/:id/thuong-mai (Ruling 18) — một hàm thuần quyết 404 / 403 / DTO Đối tác / DTO văn phòng =====
+
+const dauVao = { laDoiTac: false, laDonCuaMinh: true, coXemDon: true, coXemThuongMai: true, chiXemDonDuocGiao: false, partyId: "pty-me" as string | null, nguoiHuong: [] as (string | null)[] };
+const che = (v: Partial<typeof dauVao>): CheDoThuongMai => cheDoThuongMai({ ...dauVao, ...v });
+
+test("cheDoThuongMai: thứ tự luật — Đối tác & đơn người khác ⇒ 404 TRƯỚC mọi câu hỏi ô quyền; rồi xem đơn; rồi xem phần đối tác; rồi người hưởng khác ⇒ 404", () => {
+  // Văn phòng (không giữ quyền Đối tác): không dính luật "của mình".
+  assert.equal(che({}), "vanPhong");
+  assert.equal(che({ laDonCuaMinh: false }), "vanPhong", "Kế toán / Bán hàng xem đơn người khác");
+  assert.equal(che({ coXemDon: false }), "403");
+  assert.equal(che({ coXemDon: false, chiXemDonDuocGiao: true }), "404", "chỉ-HDV không phụ trách: như đơn không tồn tại");
+  assert.equal(che({ coXemThuongMai: false }), "403");
+  assert.equal(che({ nguoiHuong: ["pty-khac"] }), "vanPhong", "văn phòng thấy mọi người hưởng");
+  // Đối tác (kể cả tài khoản lai): luật "của mình".
+  assert.equal(che({ laDoiTac: true }), "doiTac", "đơn của mình, chưa biết người hưởng");
+  assert.equal(che({ laDoiTac: true, laDonCuaMinh: false }), "404", "(a) đơn người khác");
+  assert.equal(che({ laDoiTac: true, laDonCuaMinh: false, coXemDon: false }), "404", "(a) đứng TRƯỚC câu hỏi xem đơn: không 403 dò được");
+  assert.equal(che({ laDoiTac: true, laDonCuaMinh: false, coXemDon: true, coXemThuongMai: false }), "404");
+  assert.equal(che({ laDoiTac: true, coXemThuongMai: false }), "403");
+  assert.equal(che({ laDoiTac: true, nguoiHuong: [null] }), "doiTac", "khách lẻ / không người hưởng: DTO Đối tác như cũ");
+  assert.equal(che({ laDoiTac: true, nguoiHuong: ["pty-me"] }), "doiTac", "(b2) người hưởng là hồ sơ của mình");
+  assert.equal(che({ laDoiTac: true, nguoiHuong: ["pty-khac"] }), "404", "(b2) người hưởng là người khác");
+  assert.equal(che({ laDoiTac: true, nguoiHuong: [null, "pty-khac"] }), "404", "(b2) một dòng của người khác là đủ — cả đơn 404");
+  assert.equal(che({ laDoiTac: true, nguoiHuong: ["pty-me", "pty-khac"] }), "404");
+  assert.equal(che({ laDoiTac: true, nguoiHuong: ["pty-me", null, "pty-me"] }), "doiTac");
+  assert.equal(che({ laDoiTac: true, partyId: null, nguoiHuong: ["pty-khac"] }), "404", "chưa gắn hồ sơ: không có gì là 'của mình'");
+  assert.equal(che({ laDoiTac: true, partyId: null, nguoiHuong: [null] }), "doiTac");
+});
+
+// Tiêu chí 7 của đặc tả (kế hoạch bỏ sót; người kiểm Task 5 xác nhận hai bài 1024 cũ không chạm ô mới): duyệt MỌI tập con của 10 mã quyền, dùng can() / holdsPartner() /
+// seesOnlyAssignedOrders() THẬT của permissions.ts để dựng đầu vào — nên đổi một ô order.view / order.terms.view của cột nào làm lệch kết quả là bài này đỏ.
+test("cheDoThuongMai trên cả 1024 tập quyền × {đơn của mình, đơn người khác} × {được giao, không} × {hồ sơ có, không} × sáu dạng người hưởng: có PARTNER thì không bao giờ ra DTO văn phòng", () => {
+  const DANG_NGUOI_HUONG: { ten: string; ds: (string | null)[]; khac: boolean }[] = [
+    { ten: "không dòng nào (chưa đọc)", ds: [], khac: false },
+    { ten: "khách lẻ (null)", ds: [null], khac: false },
+    { ten: "chính hồ sơ mình", ds: ["pty-me"], khac: false },
+    { ten: "hồ sơ người khác", ds: ["pty-khac"], khac: true },
+    { ten: "null rồi người khác", ds: [null, "pty-khac"], khac: true },
+    { ten: "mình rồi người khác", ds: ["pty-me", "pty-khac"], khac: true },
+  ];
+  const thay = new Set<CheDoThuongMai>();
+  let tapCon = 0;
+  let caKiem = 0;
+  for (let mask = 0; mask < 1 << PERMISSION_CODES.length; mask++) {
+    const permissions: PermissionCode[] = PERMISSION_CODES.filter((_, i) => mask & (1 << i));
+    tapCon++;
+    const coPartner = permissions.includes("PARTNER");
+    for (const donCuaMinh of [true, false]) for (const assigned of [true, false]) for (const partyId of ["pty-me", null] as (string | null)[]) for (const dang of DANG_NGUOI_HUONG) {
+      if (partyId === null && dang.ds.includes("pty-me")) continue; // tài khoản chưa gắn hồ sơ thì không thể là người hưởng "pty-me"
+      const staff = { id: "nv", permissions, partyId };
+      const scope = { ownerId: donCuaMinh ? "nv" : "nguoi-khac", assigned };
+      const coXemDon = can(staff, "order.view", scope);
+      const coXemThuongMai = can(staff, "order.terms.view", scope);
+      const kq = cheDoThuongMai({ laDoiTac: holdsPartner(staff), laDonCuaMinh: donCuaMinh, coXemDon, coXemThuongMai, chiXemDonDuocGiao: seesOnlyAssignedOrders(staff), partyId, nguoiHuong: dang.ds });
+      const nhan = `${permissions.join("+") || "(không quyền)"} · ${donCuaMinh ? "đơn của mình" : "đơn người khác"} · ${assigned ? "được giao" : "không giao"} · hồ sơ ${partyId ?? "null"} · ${dang.ten}`;
+      thay.add(kq);
+      caKiem++;
+      if (coPartner) {
+        assert.notEqual(kq, "vanPhong", `(i) có PARTNER không bao giờ ra DTO văn phòng: ${nhan}`);
+        if (!donCuaMinh) assert.equal(kq, "404", `(ii) có PARTNER + đơn người khác ⇒ 404: ${nhan}`);
+        else if (dang.khac) assert.equal(kq, "404", `(iii) có PARTNER + người hưởng người khác ⇒ 404: ${nhan}`);
+        else assert.equal(kq, "doiTac", `đơn của mình, người hưởng là mình / null ⇒ DTO Đối tác: ${nhan}`);
+      } else {
+        // (iv) không PARTNER: người hưởng nào cũng không đổi kết quả; vanPhong ⇔ xem được đơn VÀ xem được phần đối tác theo phạm vi.
+        assert.notEqual(kq, "doiTac", `chỉ tài khoản giữ PARTNER mới ra DTO Đối tác: ${nhan}`);
+        if (coXemDon && coXemThuongMai) assert.equal(kq, "vanPhong", `(iv) ${nhan}`);
+        else assert.equal(kq, !coXemDon && seesOnlyAssignedOrders(staff) ? "404" : "403", `từ chối đúng mã: ${nhan}`);
+      }
+    }
+  }
+  assert.equal(tapCon, 1024);
+  assert.ok(caKiem > 40_000, `số ca ${caKiem}`);
+  assert.deepEqual([...thay].sort(), ["403", "404", "doiTac", "vanPhong"], "bài có đủ bốn kết quả (không kiểm rỗng)");
 });

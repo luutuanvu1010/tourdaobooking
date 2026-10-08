@@ -1,6 +1,6 @@
 // Bài quyền xuyên suốt của sổ đại lý đợt 1 (tiêu chí 7; Step 10b của Task 7, làm ở Task 5 khi đủ 12 route mới): Tài xế công ty (DRIVER), Tài xế đối tác (DRIVER_PARTNER) và Nhân sự (HR),
 // mỗi tài khoản giữ ĐÚNG MỘT quyền đó (DRIVER_PARTNER đứng một mình theo ADR-0048), gọi lần lượt cả 12 route mới ⇒ bị từ chối, không route nào trả 2xx, không để lại dòng nào
-// ở prc_*, ord_service_terms, ky_period_close, audit_log. Đường có :id dùng id CÓ THẬT (một mức, một điều khoản, một đơn đã xác nhận, một dòng dịch vụ, tháng 2026-08) —
+// ở prc_* (cả prc_beneficiary_role), ord_service_terms, ky_period_close, audit_log. Đường có :id dùng id CÓ THẬT (một mức, một điều khoản, một đơn đã xác nhận, một dòng dịch vụ, tháng 2026-08) —
 // để bị từ chối vì QUYỀN chứ không vì "không tìm thấy". Có "răng": cùng 12 lời gọi do Kế toán (riêng tìm người hưởng: Bán hàng) gọi thì KHÔNG bị 403 (route có thật, tới được logic riêng).
 //
 // Mã thật mà cổng trả (src/shared/router.ts, createApp): route cổng "office" ⇒ 403 `forbidden` "Tài khoản này chỉ dùng cho việc được giao, không dùng màn hình này.";
@@ -22,7 +22,7 @@ const GATE_VAN_PHONG = "Tài khoản này chỉ dùng cho việc được giao, 
 const GATE_DON = "Tài khoản này không dùng được màn hình đơn.";
 type W = ReturnType<typeof world>;
 
-const BANG = ["prc_commission_rule", "prc_supply_term", "ord_service_terms", "ky_period_close", "audit_log"] as const;
+const BANG = ["prc_commission_rule", "prc_supply_term", "prc_beneficiary_role", "ord_service_terms", "ky_period_close", "audit_log"] as const;
 const dem = (w: W): Record<string, number> => Object.fromEntries(BANG.map((b) => [b, Number(w.q(`SELECT count(*) AS n FROM ${b}`)[0].n)]));
 
 async function dungThe() {

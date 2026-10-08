@@ -20,6 +20,7 @@ const TXDT = "66666666-6666-4666-8666-666666666662"; // DRIVER_PARTNER
 const NS = "66666666-6666-4666-8666-666666666663"; // HR
 const LAI_BAN = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1"; // SALES + PARTNER
 const LAI_KT = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2"; // ACCOUNTING + PARTNER
+const TTS = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb1"; // INTERN (Thực tập): order.view / order.terms.view = own, không giữ PARTNER
 const AT = "2026-10-01T00:00:00.000Z";
 // Ngày đi = hôm nay (giờ VN): cửa sổ xác nhận chỉ nhận dịch vụ có ngày đi từ hôm nay trở đi.
 const vnHomNay = () => new Date(Date.now() + 7 * 3600_000).toISOString().slice(0, 10);
@@ -35,10 +36,11 @@ function setup(): W {
     [KT, "0900000004", "Lan Kế Toán", ["ACCOUNTING"]], [KT2, "0900000005", "Mai Kế Toán", ["ACCOUNTING"]], [SUP, "0900000006", "Chủ", ["SUPER_ADMIN"]],
     [DT_A, "0900000007", "Đại Lý A", ["PARTNER"]], [DT_B, "0900000008", "Đại Lý B", ["PARTNER"]],
     [TXC, "0900000009", "Tài Xế Công Ty", ["DRIVER"]], [TXDT, "0900000010", "Tài Xế Đối Tác", ["DRIVER_PARTNER"]], [NS, "0900000011", "Hà Nhân Sự", ["HR"]],
-    [LAI_BAN, "0900000012", "Sơn Lai Bán", ["SALES", "PARTNER"]], [LAI_KT, "0900000013", "Khoa Lai Kế", ["ACCOUNTING", "PARTNER"]],
+    [LAI_BAN, "0900000012", "Sơn Lai Bán", ["SALES", "PARTNER"]], [LAI_KT, "0900000013", "Khoa Lai Kế", ["ACCOUNTING", "PARTNER"]], [TTS, "0900000014", "Thu Thực Tập", ["INTERN"]],
   ] as const) seedStaff(w.sqlite, { id, phone, name, perms: [...perms] });
-  // Vai bên ngoài chèn SAU quyền (trigger LC-1 chặn quyền nội bộ trên hồ sơ đã mang vai bên ngoài). Tài khoản lai KHÔNG mang vai ngoài.
-  for (const [r, p] of [["r-dta", DT_A], ["r-dtb", DT_B]] as const) {
+  // Vai bên ngoài chèn SAU quyền (trigger LC-1 chặn quyền nội bộ trên hồ sơ đã mang vai bên ngoài). Tài khoản lai Bán hàng + Đối tác (LAI_BAN) cũng được chèn vai sau quyền:
+  // đường quản trị cũ gán PARTNER cùng quyền nội bộ mà LC-1 không chạy, nên dữ liệu thật CÓ thể có tài khoản như vậy (xem holdsPartner) — cần để thử "đơn do chính hồ sơ mình hưởng".
+  for (const [r, p] of [["r-dta", DT_A], ["r-dtb", DT_B], ["r-lai", LAI_BAN]] as const) {
     w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES (?, ?, 'TRAVEL_AGENCY', '2026-01-01', ?, ?)").run(r, `pty-${p}`, AT, AT);
   }
   w.sqlite.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES ('pty-dla', 'ORGANIZATION', 'Đại lý C', 1, ?, ?)").run(AT, AT);
@@ -147,7 +149,7 @@ test("(2) đơn nháp ⇒ duKien = true, tính theo bảng hôm nay, KHÔNG ghi 
 
 // ---- (3) Đối tác ----
 
-test("(3) Đối tác xem đơn của mình ⇒ DTO hẹp `doiTac` (số tiền hoa hồng, không tỷ lệ); đơn của đại lý khác ⇒ cùng mã lỗi với trang chi tiết đơn", async () => {
+test("(3) Đối tác xem đơn của mình ⇒ DTO hẹp `doiTac` (số tiền hoa hồng, không tỷ lệ); đơn của đại lý khác ⇒ 404 (không dò được đơn của người khác, không lộ số)", async () => {
   const w = setup();
   await muc(w, mucVai(1000));
   const cuaA = await daXacNhan(w, `pty-${DT_A}`, [["HONTAM", 2_000_000]], DT_A);
@@ -160,22 +162,25 @@ test("(3) Đối tác xem đơn của mình ⇒ DTO hẹp `doiTac` (số tiền 
   assert.equal(r.json.doiTac.tong.hoaHong, 200_000);
   assert.equal(r.json.doiTac.choCongTyCaiMuc, false);
   assert.doesNotMatch(r.text, /%|đ\/khách|nhaCungCap|giaVon|tyLe|rule|source/i, "Đối tác không thấy tỷ lệ, đ/khách, giá vốn, nguồn");
-  const chiTiet = await w.call("GET", `/api/orders/${cuaB}`, { as: DT_A });
+  // Vòng sửa 1 (Ruling 18, đặc tả tiêu chí 7): "Đối tác gọi phần thương mại đơn người khác ⇒ 404" — đứng TRƯỚC câu hỏi ô quyền, nên không còn 403 dò được sự tồn tại của đơn.
   const thuongMai = await xem(w, cuaB, DT_A);
-  assert.notEqual(chiTiet.status, 200);
-  assert.equal(thuongMai.status, chiTiet.status, "cùng mã lỗi với trang chi tiết đơn (không dò được đơn của người khác)");
-  assert.equal(thuongMai.json.error.code, chiTiet.json.error.code);
+  assert.equal(thuongMai.status, 404, thuongMai.text);
+  assert.equal(thuongMai.json.error.code, "not_found");
+  assert.doesNotMatch(thuongMai.text, /100000|doiTac|hoaHong/, "thân 404 không lộ số");
+  assert.equal((await xem(w, cuaB, DT_B)).status, 200, "chính chủ vẫn xem được");
 });
 
-test("(3b) tài khoản lai Bán hàng + Đối tác ⇒ DTO hẹp; ghi mức tay 403; lịch sử đơn không còn dòng order_terms_*; Kế toán vẫn thấy dòng đó", async () => {
+test("(3b) tài khoản lai Bán hàng + Đối tác, đơn do CHÍNH hồ sơ mình hưởng ⇒ DTO hẹp; ghi mức tay 403; lịch sử đơn không còn dòng order_terms_*; Kế toán vẫn thấy dòng đó", async () => {
   const w = setup();
   await muc(w, mucVai(1000));
-  const id = await daXacNhan(w, "pty-dla", [["HONTAM", 2_000_000]], LAI_BAN); // đơn của chính tài khoản lai ⇒ lịch sử đơn hiện cho họ (order.history.view = ownOrAssigned)
+  // Đơn của chính tài khoản lai, bên đặt là chính hồ sơ của họ (đã mang vai Đại lý lữ hành) ⇒ người hưởng = mình ⇒ qua luật "của mình"; lịch sử đơn hiện cho họ (order.history.view = ownOrAssigned).
+  const id = await daXacNhan(w, `pty-${LAI_BAN}`, [["HONTAM", 2_000_000]], LAI_BAN);
   assert.equal((await ghi(w, id, dv(id), KT, tay15)).status, 200);
   const r = await xem(w, id, LAI_BAN);
   assert.equal(r.status, 200, r.text);
   assert.deepEqual(Object.keys(r.json), ["doiTac"], "có quyền Đối tác là áp DTO hẹp, dù còn quyền Bán hàng");
   assert.equal(r.json.doiTac.dong[0].hoaHong, 300_000, "số tiền hoa hồng theo mức tay 15% của 2.000.000");
+  assert.deepEqual(khoaCua(r.json).filter((k) => /rate|perPax|cost|ruleId|termId|source|supplier/i.test(k)), [], "không khoá tỷ lệ / đ/khách / giá vốn / mã mức / nguồn / nhà cung cấp");
   assert.doesNotMatch(r.text, /%|đ\/khách|nhaCungCap|giaVon|tyLe/);
   const truocGhi = bangChup(w, id).length;
   assert.equal((await ghi(w, id, dv(id), LAI_BAN, tay15)).status, 403);
@@ -189,16 +194,18 @@ test("(3b) tài khoản lai Bán hàng + Đối tác ⇒ DTO hẹp; ghi mức ta
   assert.ok(ketoan.json.history.some((e: { action: string }) => e.action === "order_terms_captured"));
 });
 
-test("(3d) GHIM HIỆN TRẠNG: tài khoản lai Bán hàng + Đối tác mở được phần đối tác của đơn đại lý KHÁC (ô order.view của Bán hàng = mọi đơn) và chỉ nhận DTO hẹp — số tiền, không tỷ lệ (cần chủ xác nhận phạm vi)", async () => {
+test("(3b2) tài khoản lai, đơn của mình nhưng bên đặt là đại lý khác (người hưởng khác mình) ⇒ 404 cả đơn xác nhận lẫn đơn nháp; không thân có số", async () => {
   const w = setup();
   await muc(w, mucVai(1000));
-  const cuaB = await daXacNhan(w, `pty-${DT_B}`, [["HONTAM", 2_000_000]], DT_B);
-  const r = await xem(w, cuaB, LAI_BAN);
-  assert.equal(r.status, 200, r.text);
-  assert.deepEqual(Object.keys(r.json), ["doiTac"]);
-  assert.equal(r.json.doiTac.dong[0].hoaHong, 200_000);
-  assert.doesNotMatch(r.text, /%|đ\/khách|nhaCungCap|giaVon|tyLe/);
-  assert.equal((await xem(w, cuaB, DT_A)).status, 403, "Đối tác thuần thì không mở được đơn của đại lý khác");
+  const xacNhanCuaMinh = await daXacNhan(w, "pty-dla", [["HONTAM", 2_000_000]], LAI_BAN);
+  const nhapCuaMinh = nhap(w, LAI_BAN, "pty-dla", [["HONTAM", 2_000_000]]);
+  for (const [ten, id] of [["xác nhận", xacNhanCuaMinh], ["nháp", nhapCuaMinh]] as const) {
+    const r = await xem(w, id, LAI_BAN);
+    assert.equal(r.status, 404, `${ten}: ${r.text}`);
+    assert.equal(r.json.error.code, "not_found", ten);
+    assert.doesNotMatch(r.text, /200000|300000|doiTac|hoaHong/, `${ten}: thân 404 không lộ số`);
+    assert.equal((await xem(w, id, KT)).status, 200, `${ten}: văn phòng vẫn xem được`);
+  }
 });
 
 test("(3c) tài khoản lai Kế toán + Đối tác ⇒ POST ghi mức tay 403, không bản chụp mới, không nhật ký", async () => {
@@ -211,8 +218,90 @@ test("(3c) tài khoản lai Kế toán + Đối tác ⇒ POST ghi mức tay 403,
   assert.equal(r.json.error.code, "forbidden");
   assert.equal(bangChup(w, id).length, truoc);
   assert.equal(nhatKy(w, id, "order_terms_manual").length, nhatKyTruoc);
-  const doc = await xem(w, id, LAI_KT);
-  assert.deepEqual(Object.keys(doc.json), ["doiTac"], "đọc cũng chỉ thấy DTO hẹp");
+  // Vòng sửa 1: đọc đơn CỦA NGƯỜI KHÁC (đơn của Bán hàng) cũng là 404 — luật "của mình"; DTO hẹp chỉ cho đơn của chính tài khoản lai (ở đây: đơn khách lẻ của Kế toán + Đối tác).
+  assert.equal((await xem(w, id, LAI_KT)).status, 404, "đơn của Bán hàng: tài khoản lai Kế toán + Đối tác không mở được");
+  const cuaMinh = await daXacNhan(w, null, [["HONTAM", 1_000_000]], LAI_KT);
+  const doc = await xem(w, cuaMinh, LAI_KT);
+  assert.equal(doc.status, 200, doc.text);
+  assert.deepEqual(Object.keys(doc.json), ["doiTac"], "đọc đơn của mình cũng chỉ thấy DTO hẹp");
+});
+
+test("(3d) tài khoản lai Bán hàng + Đối tác KHÔNG mở được phần đối tác của đơn người khác (dù ô order.view của Bán hàng = mọi đơn) ⇒ 404 — đơn đại lý B xác nhận, đơn nháp của B, đơn khách lẻ của Bán hàng; không thân có số", async () => {
+  const w = setup();
+  await muc(w, mucVai(1000));
+  const cuaB = await daXacNhan(w, `pty-${DT_B}`, [["HONTAM", 2_000_000]], DT_B);
+  const nhapB = nhap(w, DT_B, `pty-${DT_B}`, [["HONTAM", 2_000_000]]);
+  // Đơn khách lẻ (không người hưởng) của người khác: người hưởng null KHÔNG cứu được — luật (a) "đơn của mình" đứng riêng, tách khỏi (b2). Tắt (a) là ca này ra 200.
+  const khachLe = await daXacNhan(w, null, [["HONTAM", 2_000_000]], SALES);
+  for (const [ten, id] of [["đơn B đã xác nhận", cuaB], ["đơn B nháp", nhapB], ["đơn khách lẻ của Bán hàng", khachLe]] as const) {
+    for (const as of [LAI_BAN, LAI_KT]) {
+      const r = await xem(w, id, as);
+      assert.equal(r.status, 404, `${ten} · ${as}: ${r.text}`);
+      assert.equal(r.json.error.code, "not_found", `${ten} · ${as}`);
+      assert.doesNotMatch(r.text, /200000|2000000|doiTac|hoaHong/, `${ten} · ${as}: thân 404 không lộ số`);
+    }
+  }
+  assert.equal((await xem(w, cuaB, DT_A)).status, 404, "Đối tác thuần cũng 404 (không còn 403 dò được)");
+  assert.equal((await xem(w, cuaB, KT)).status, 200, "văn phòng không giữ quyền Đối tác vẫn xem được");
+});
+
+test("(3e) Đối tác A có hồ sơ được hưởng, đơn của mình, người hưởng = mình ⇒ 200 DTO Đối tác đúng số — đơn xác nhận lẫn đơn nháp (tính thử)", async () => {
+  const w = setup();
+  await muc(w, mucVai(1000));
+  const xacNhanA = await daXacNhan(w, `pty-${DT_A}`, [["HONTAM", 2_000_000]], DT_A);
+  const nhapA = nhap(w, DT_A, `pty-${DT_A}`, [["HONTAM", 2_000_000]]);
+  for (const [ten, id, duKien] of [["xác nhận", xacNhanA, false], ["nháp", nhapA, true]] as const) {
+    const r = await xem(w, id, DT_A);
+    assert.equal(r.status, 200, `${ten}: ${r.text}`);
+    assert.deepEqual(Object.keys(r.json), ["doiTac"], ten);
+    assert.equal(r.json.doiTac.duKien, duKien, ten);
+    assert.deepEqual([r.json.doiTac.dong[0].thanhTien, r.json.doiTac.dong[0].hoaHong, r.json.doiTac.dong[0].giaDaiLy], [2_000_000, 200_000, 1_800_000], ten);
+  }
+});
+
+test("(3f) Đối tác A, đơn của mình nhưng bên đặt là hồ sơ đại lý B (gieo bằng SQL) ⇒ 404 cả đơn xác nhận lẫn đơn nháp; không thân có số (số tiền riêng của B không lộ cho A)", async () => {
+  const w = setup();
+  assert.equal((await muc(w, { ...mucVai(), doiTuong: { loai: "DOI_TAC", partyId: `pty-${DT_B}` }, kieu: "PER_PAX", tyLeBp: undefined, moiKhach: 480_017 })).status, 201);
+  const nhapAB = nhap(w, DT_A, `pty-${DT_B}`, [["HONTAM", 2_000_000]]);
+  // Đơn xác nhận của A mà bên đặt là B (đơn nháp gieo bằng SQL như người kiểm; xác nhận bằng route thật ⇒ bản chụp có người hưởng B và mức riêng 480.017đ/khách của B).
+  const xacNhanAB = await daXacNhan(w, `pty-${DT_B}`, [["HONTAM", 2_000_000]], DT_A);
+  assert.equal(dongHienHanh(w, xacNhanAB)[0].beneficiary_party_id, `pty-${DT_B}`, "bài tự kiểm: bản chụp có người hưởng là B");
+  for (const [ten, id] of [["nháp", nhapAB], ["xác nhận", xacNhanAB]] as const) {
+    const r = await xem(w, id, DT_A);
+    assert.equal(r.status, 404, `${ten}: ${r.text}`);
+    assert.equal(r.json.error.code, "not_found", ten);
+    assert.doesNotMatch(r.text, /480017|480\.017|doiTac|hoaHong/, `${ten}: thân 404 không lộ số`);
+    assert.equal((await xem(w, id, KT)).status, 200, `${ten}: văn phòng vẫn xem được (đơn tồn tại)`);
+  }
+  assert.equal((await xem(w, xacNhanAB, KT)).json.vanPhong.dong[0].hoaHong, 480_017, "răng: số của B có thật, văn phòng thấy");
+});
+
+test("(3g) Đối tác (thuần hoặc lai) mở đơn của chính mình, khách lẻ (không người hưởng) ⇒ 200 DTO hẹp như cũ — không có người hưởng khác thì không có gì để giấu", async () => {
+  const w = setup();
+  await muc(w, mucVai(1000));
+  const a = await daXacNhan(w, null, [["HONTAM", 2_000_000]], DT_A);
+  const lai = await daXacNhan(w, null, [["HONTAM", 2_000_000]], LAI_BAN);
+  const nhapA = nhap(w, DT_A, null, [["HONTAM", 2_000_000]]);
+  for (const [as, id] of [[DT_A, a], [LAI_BAN, lai], [DT_A, nhapA]] as const) {
+    const r = await xem(w, id, as);
+    assert.equal(r.status, 200, `${as}: ${r.text}`);
+    assert.deepEqual(Object.keys(r.json), ["doiTac"]);
+    assert.equal(r.json.doiTac.dong[0].hoaHong, 0, "không người hưởng ⇒ hoa hồng 0");
+    assert.equal(r.json.doiTac.choCongTyCaiMuc, false);
+  }
+});
+
+test("(3h) tài khoản Đối tác chưa gắn hồ sơ (partyId null): đơn của mình không người hưởng ⇒ 200; đơn có người hưởng ⇒ 404 (không có hồ sơ nào là 'của mình')", async () => {
+  const w = setup();
+  await muc(w, mucVai(1000));
+  const khachLe = await daXacNhan(w, null, [["HONTAM", 2_000_000]], DT_A);
+  const coHuong = await daXacNhan(w, `pty-${DT_A}`, [["HONTAM", 2_000_000]], DT_A);
+  w.sqlite.prepare("UPDATE staff SET party_id = NULL WHERE id = ?").run(DT_A);
+  const a = await xem(w, khachLe, DT_A);
+  assert.equal(a.status, 200, a.text);
+  assert.deepEqual(Object.keys(a.json), ["doiTac"]);
+  const b = await xem(w, coHuong, DT_A);
+  assert.equal(b.status, 404, b.text);
 });
 
 // ---- (4) vai ngoài phạm vi ----
@@ -229,6 +318,19 @@ test("(4) Tài xế công ty, Tài xế đối tác, Nhân sự ⇒ 403 ở cả
   }
   assert.equal(bangChup(w, id).length, truoc);
   assert.equal(nhatKy(w, id, "order_terms_manual").length, 0);
+});
+
+test("(4b) Thực tập (không giữ quyền Đối tác): đơn của người khác ⇒ 403 giữ nguyên câu của trang chi tiết đơn; đơn của chính mình ⇒ 200 DTO văn phòng — luật 'của mình' chỉ siết tài khoản giữ PARTNER", async () => {
+  const w = setup();
+  const cuaSales = await daXacNhan(w, "pty-dla", [["HONTAM", 1_000_000]]);
+  const cuaMinh = await daXacNhan(w, "pty-dla", [["HONTAM", 1_000_000]], TTS);
+  const cuaNguoiKhac = await xem(w, cuaSales, TTS);
+  assert.equal(cuaNguoiKhac.status, 403, cuaNguoiKhac.text);
+  assert.equal(cuaNguoiKhac.json.error.code, "forbidden");
+  assert.equal(cuaNguoiKhac.json.error.message,"Chỉ người lập đơn, người phụ trách đơn hoặc quản trị viên mới được thay đổi đơn này.", "câu 403 có sẵn của khuôn chi tiết đơn (nợ Task 14: đổi câu)");
+  const minh = await xem(w, cuaMinh, TTS);
+  assert.equal(minh.status, 200, minh.text);
+  assert.deepEqual(Object.keys(minh.json), ["vanPhong"]);
 });
 
 // ---- (5) A-4: CTV, thiếu mức → Kế toán ghi tay ----
@@ -420,6 +522,31 @@ test("(6e) người bán ghi tay: nhà cung cấp thiếu a% 400; công ty chủ
   assert.equal(ok.json.vanPhong.dong[0].nguoiBan.laCongTy, true);
 });
 
+test("(6f) luật X3 ở đường ghi tay: dòng nhóm Thuê xe mà thân ghi người bán là nhà cung cấp kèm a% ⇒ 409 `prc_transfer_no_supplier` với ĐÚNG câu của route cung-ung; không dòng thừa; công ty chủ bán thì được", async () => {
+  const w = setup();
+  // Mã dịch vụ nằm trong nhóm Thuê xe (TXE) theo CÙNG nguồn mà trigger prc_supply_term_x3 đọc: view v_ctl_service_group. Test world không gieo sẵn bản đồ nhóm ⇒ gieo một dòng.
+  w.sqlite.exec(`INSERT INTO catalog_item (code, name, unit, price_adult, price_child, price_infant, in_sheet, first_seen_at, updated_at) VALUES ('XE16', 'Thuê xe 16 chỗ', 'perPax', 1000000, 0, 0, 1, '2026-01-01', '2026-01-01')`);
+  w.sqlite.prepare("INSERT INTO ctl_service_group (id, service_code, group_code, seq, valid_from_at, created_at, updated_at) VALUES ('g-xe16', 'XE16', 'TXE', 1, ?, ?, ?)").run(AT, AT, AT);
+  assert.equal(w.q("SELECT group_code FROM v_ctl_service_group WHERE catalog_code = 'XE16'")[0].group_code, "TXE", "bài tự kiểm: mã XE16 thật sự thuộc nhóm Thuê xe");
+  const id = await daXacNhan(w, "pty-dla", [["XE16", 1_000_000]]);
+  const truoc = bangChup(w, id).length;
+  const ly = "mua lại xe từ i-resort theo hợp đồng";
+  const r = await ghi(w, id, dv(id), KT, { lyDo: ly, nguoiBan: { partyId: "pty-ncc", tyLeMuaBp: 8000 } });
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "prc_transfer_no_supplier");
+  // Cùng một câu với route điều khoản (một nguồn, không viết câu mới): lấy câu từ chính route cung-ung bằng điều khoản nhóm TXE.
+  const tuCungUng = await w.call("POST", "/api/pricing/cung-ung", { as: KT, body: { phamVi: "GROUP", groupCode: "TXE", nguoiBanPartyId: "pty-ncc", tyLeMuaBp: 8000, tuNgay: "2026-10-01" } });
+  assert.equal(tuCungUng.status, 409, tuCungUng.text);
+  assert.equal(r.json.error.message, tuCungUng.json.error.message);
+  assert.match(r.json.error.message, /Thuê xe/);
+  assert.equal(bangChup(w, id).length, truoc, "không dòng thừa");
+  assert.equal(nhatKy(w, id, "order_terms_manual").length, 0);
+  // Công ty chủ bán dòng Thuê xe (không a%) thì được; đổi riêng mức hoa hồng của dòng Thuê xe cũng được (không đụng nhà cung cấp).
+  const congTy = await ghi(w, id, dv(id), KT, { lyDo: ly, nguoiBan: { partyId: congTyChu(w) } });
+  assert.equal(congTy.status, 200, congTy.text);
+  assert.equal((await ghi(w, id, dv(id), KT, tay15)).status, 200);
+});
+
 // ---- (7) hai người cùng ghi ----
 
 test("(7a) hai Kế toán ghi cùng một dòng cùng lúc ⇒ không 500; mỗi lệnh thắng thêm đúng một bản + một dòng nhật ký; luôn đúng một bản hiện hành", async () => {
@@ -477,6 +604,27 @@ test("(7d) xác định: một lệnh ghi tay THẬT chạy trọn vẹn giữa 
   assert.equal(bangChup(w, id).length, 2);
   assert.equal(dongHienHanh(w, id)[0].commission_rate_bp, 2000);
   assert.equal(nhatKy(w, id, "order_terms_manual").length, 1);
+});
+
+test("(7e) đơn bị huỷ NGAY SAU lô ghi tay (trước khi dựng phản hồi) ⇒ 409 `stale`, không 500", async () => {
+  const w = setup();
+  const id = await daXacNhan(w, "pty-dla", [["HONTAM", 1_000_000]]);
+  const goc = w.env.DB.batch;
+  let huy: { status: number } | null = null;
+  w.env.DB.batch = async (stmts: { sql: string }[]) => {
+    const kq = await goc(stmts);
+    if (stmts.some((s) => /INSERT INTO ord_service_terms/.test(s.sql))) {
+      w.env.DB.batch = goc;
+      // Người khác huỷ đơn (bằng route thật: CSDL đòi lý do huỷ) giữa lô ghi và lúc route dựng phản hồi: `phanThuongMaiCuaDon` ⇒ null.
+      huy = await w.call("POST", `/api/orders/${id}/status`, { as: SALES, body: { status: "cancelled", lyDo: "KHACH_DOI_Y" } });
+    }
+    return kq;
+  };
+  const r = await ghi(w, id, dv(id), KT, tay15);
+  assert.equal(huy!.status, 200, "bài tự kiểm: lệnh huỷ chen vào chạy thật");
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "stale");
+  assert.equal(nhatKy(w, id, "order_terms_manual").length, 1, "lô ghi tay đã vào sổ trước khi đơn bị huỷ (chỉ phản hồi là 409)");
 });
 
 // ---- (8) A-2: mức theo đầu khách, số khách đổi sau xác nhận ----

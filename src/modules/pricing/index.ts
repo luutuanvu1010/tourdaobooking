@@ -7,7 +7,7 @@ import type { CommissionRuleDto, CommissionRuleListResponse, NguoiHuongTimRespon
 import { error, escapeLike, json, kemLocation, readJson } from "../../shared/http";
 import { can, holdsPartner } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
-import { NHAN_LY_DO_THIEU } from "../../shared/so-dai-ly-nhan";
+import { CAU_X3_THUE_XE, NHAN_LY_DO_THIEU } from "../../shared/so-dai-ly-nhan";
 import { vnToday } from "../../shared/vn-date";
 import { allRules, allTerms, beneficiaryRoles, closeRuleStatement, closeTermStatement, findBeneficiaries, groupsOf, insertRuleStatement, insertTermStatement, isBeneficiary,
   openRolesOf, ruleById, rulesOn, suppliers, termById, termsOn, type RuleRow, type TermRow } from "./repository";
@@ -43,7 +43,7 @@ function loiBang(e: unknown): Response | null {
   if (/\bprc_seller_not_supplier:/.test(m)) return error(400, "invalid_input", "Người bán phải là Tour Đảo hoặc hồ sơ mang vai Nhà cung cấp.");
   if (/\bprc_supplier_mismatch:/.test(m)) return error(400, "invalid_input", CAU_TY_LE_MUA_LAI);
   if (/\bprc_all_owner_only:/.test(m)) return error(400, "invalid_input", "Dòng \"mọi dịch vụ\" chỉ dành cho Tour Đảo.");
-  if (/\bprc_transfer_no_supplier:/.test(m)) return error(409, "prc_transfer_no_supplier", "Dịch vụ nhóm Thuê xe không ghi nhà cung cấp mua lại (để khỏi tính tiền xe hai lần).");
+  if (/\bprc_transfer_no_supplier:/.test(m)) return error(409, "prc_transfer_no_supplier", CAU_X3_THUE_XE);
   if (/\bprc_append_only:/.test(m)) return error(409, "stale", "Dòng này vừa được người khác đóng — tải lại.");
   if (/FOREIGN KEY constraint failed/.test(m)) return error(400, "invalid_input", "Nhóm dịch vụ hoặc hồ sơ không có.");
   return null;

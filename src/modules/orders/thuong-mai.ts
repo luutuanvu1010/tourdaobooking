@@ -62,6 +62,29 @@ export interface PhanThuongMai {
   /** Mã dịch vụ mà bản chụp hiện hành là bản GHI TAY (cột `source = 'MANUAL'`); vắng = không dòng nào. */
   ghiTay?: ReadonlySet<string>;
 }
+/** Kết quả của luật "ai thấy phần thương mại của đơn nào, bằng DTO nào" — xem `cheDoThuongMai`. */
+export type CheDoThuongMai = "404" | "403" | "doiTac" | "vanPhong";
+/**
+ * LUẬT "CỦA MÌNH" của `GET /api/orders/:id/thuong-mai` (vòng sửa 1 của Task 5, Ruling 18; đặc tả Phần A: "Đại lý mở đơn của mình chỉ thấy số tiền hoa hồng của mình … không thấy phần của người khác",
+ * tiêu chí 7: "Đối tác gọi phần thương mại đơn người khác ⇒ 404"). MỘT hàm thuần quyết hết — route chỉ truyền các câu trả lời của `can()` / `holdsPartner()` vào và làm theo kết quả:
+ *  1. `laDoiTac` (= `holdsPartner(staff)`, KỂ CẢ tài khoản lai) mà đơn không phải của chính tài khoản ⇒ "404", đứng TRƯỚC mọi câu hỏi ô quyền (không còn 403 dò được sự tồn tại của đơn). (a)
+ *  2. Không xem được đơn ⇒ "404" nếu tài khoản chỉ xem đơn được giao (như đơn không tồn tại), còn lại "403".
+ *  3. Không xem được phần đối tác ⇒ "403".
+ *  4. `laDoiTac` và có dòng mà người hưởng KHÁC null VÀ khác hồ sơ của tài khoản (kể cả tài khoản chưa gắn hồ sơ) ⇒ "404" cho cả đơn. (b2) Người hưởng null (khách lẻ) không phải lý do từ chối.
+ *  5. `laDoiTac` ⇒ "doiTac" (DTO hẹp); còn lại ⇒ "vanPhong".
+ * `nguoiHuong` = người hưởng của từng dòng (bản chụp hiện hành, hoặc bản dự kiến của đơn nháp); gọi lần đầu với mảng rỗng để chặn TRƯỚC khi đọc đơn, rồi gọi lại với mảng thật.
+ * Mặc định từ chối: route chỉ trả DTO khi kết quả đúng là "doiTac" hoặc "vanPhong".
+ */
+export function cheDoThuongMai(v: {
+  laDoiTac: boolean; laDonCuaMinh: boolean; coXemDon: boolean; coXemThuongMai: boolean; chiXemDonDuocGiao: boolean; partyId: string | null; nguoiHuong: readonly (string | null)[];
+}): CheDoThuongMai {
+  if (v.laDoiTac && !v.laDonCuaMinh) return "404";
+  if (!v.coXemDon) return v.chiXemDonDuocGiao ? "404" : "403";
+  if (!v.coXemThuongMai) return "403";
+  if (v.laDoiTac) return v.nguoiHuong.some((b) => b !== null && b !== v.partyId) ? "404" : "doiTac";
+  return "vanPhong";
+}
+
 const HO_SO_KHONG_CON = "Hồ sơ không còn";
 /** Dòng của đơn xác nhận trước đợt 1 (hoặc dòng không có bản chụp): thiếu mức vì "chưa chụp" — KHÔNG bao giờ lặng lẽ 0. */
 export const chuaCoBanChup = (serviceId: string): BanChup => ({ serviceId, beneficiaryPartyId: null, hoaHong: { status: "MISSING", reason: "NOT_CAPTURED" }, cungUng: { status: "MISSING" } });

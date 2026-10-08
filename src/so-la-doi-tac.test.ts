@@ -34,7 +34,7 @@ function setup(): W {
     [SALES, "0900000001", "An Bán", ["SALES"]], [KT, "0900000004", "Lan Kế Toán", ["ACCOUNTING"]], [SUP, "0900000006", "Chủ", ["SUPER_ADMIN"]],
     [DT_A, "0900000007", "Đại Lý A", ["PARTNER"]], [DT_B, "0900000008", "Đại Lý B", ["PARTNER"]], [LAI_BAN, "0900000012", "Sơn Lai Bán", ["SALES", "PARTNER"]],
   ] as const) seedStaff(w.sqlite, { id, phone, name, perms: [...perms] });
-  for (const [r, p] of [["r-dta", DT_A], ["r-dtb", DT_B]] as const) {
+  for (const [r, p] of [["r-dta", DT_A], ["r-dtb", DT_B], ["r-lai", LAI_BAN]] as const) { // r-lai: tài khoản lai cũng có thể mang vai này (quyền gán bằng đường cũ không qua LC-1) — để thử đơn do CHÍNH hồ sơ họ hưởng
     w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES (?, ?, 'TRAVEL_AGENCY', '2026-01-01', ?, ?)").run(r, `pty-${p}`, AT, AT);
   }
   w.sqlite.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES ('pty-ncc', 'ORGANIZATION', 'i-resort', 1, ?, ?)").run(AT, AT);
@@ -133,6 +133,7 @@ test("số lạ: Đối tác A gọi mọi bề mặt có tiền / lịch sử /
   // các bề mặt chính phải thật sự trả nội dung (không chỉ lỗi)
   assert.ok(trangThai.includes(`200 /api/orders/${cuaA}`) && trangThai.includes(`200 /api/orders/${cuaA}/thuong-mai`) && trangThai.includes("200 /api/orders"), trangThai.join(" | "));
   assert.ok(trangThai.includes(`403 /api/orders/${cuaB}`), "đơn của đại lý khác bị từ chối");
+  assert.ok(trangThai.includes(`404 /api/orders/${cuaB}/thuong-mai`), "phần đối tác của đơn đại lý khác: 404 (Ruling 18 — không dò được)");
 
   // ---- Danh sách trắng: DTO của Đối tác không có khoá nào của tỷ lệ / đ/khách / giá vốn / nguồn.
   const khoaCam = khoaCua(doc.json).filter((k) => /rate|perPax|cost|ruleId|termId|source|supplier/i.test(k));
@@ -145,28 +146,46 @@ test("số lạ: Đối tác A gọi mọi bề mặt có tiền / lịch sử /
   assert.ok(nkVanPhong.json.history.some((e: { action: string }) => e.action === "order_terms_captured"), "văn phòng vẫn thấy dòng đã chụp mức");
 });
 
-test("số lạ: tài khoản lai Bán hàng + Đối tác (chủ đơn) cũng không thấy số lạ ở đơn của mình — chi tiết, lịch sử, phần đối tác, biên nhận, danh sách", async () => {
-  const w = setup();
-  await w.call("POST", "/api/pricing/hoa-hong", { as: KT, body: { tuNgay: "2026-01-01", doiTuong: { loai: "VAI", code: "TRAVEL_AGENCY" }, phamVi: "ALL", kieu: "RATE", tyLeBp: 1000 } });
-  w.sqlite.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES ('pty-dla', 'ORGANIZATION', 'Đại lý C', 1, ?, ?)").run(AT, AT);
-  w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES ('r-dla', 'pty-dla', 'TRAVEL_AGENCY', '2026-01-01', ?, ?)").run(AT, AT);
-  w.sqlite.prepare(`INSERT INTO prc_supply_term (id, scope, catalog_code, seller_party_id, supplier_party_id, cost_rate_bp, valid_from_date, created_at, updated_at)
-    VALUES ('st-ncc', 'SERVICE', 'HONTAM', 'pty-ncc', 'pty-ncc', 4817, '2026-01-01', ?, ?)`).run(AT, AT);
-  const id = await daXacNhan(w, "pty-dla", [["HONTAM", GIA_DON]], LAI_BAN);
-  const ghi = await w.call("POST", `/api/orders/${id}/thuong-mai/${id}-s0`, { as: KT, body: { lyDo: "Thoả thuận riêng với đại lý này", hoaHong: { kieu: "RATE", tyLeBp: 4817 } } });
+test("số lạ: tài khoản lai Bán hàng + Đối tác quét đơn của B và đơn của A (xác nhận lẫn nháp) ⇒ 404 ở phần đối tác, không số lạ ở bất kỳ bề mặt nào; đơn do chính hồ sơ mình hưởng thì thấy đúng số của mình", async () => {
+  const { w, cuaA, cuaB } = await dungThe();
+  // Đơn NHÁP của B (bên đặt B ⇒ bản tính thử có mức riêng 480.017đ/khách của B) và đơn của chính tài khoản lai (bên đặt là hồ sơ của họ, Kế toán ghi tay 48,17%).
+  const nhapB = nhap(w, DT_B, `pty-${DT_B}`, [["HONTAM", GIA_DON]]);
+  const cuaMinh = await daXacNhan(w, `pty-${LAI_BAN}`, [["HONTAM", GIA_DON]], LAI_BAN);
+  const ghi = await w.call("POST", `/api/orders/${cuaMinh}/thuong-mai/${cuaMinh}-s0`, { as: KT, body: { lyDo: "Thoả thuận riêng với đại lý này", hoaHong: { kieu: "RATE", tyLeBp: 4817 } } });
   assert.equal(ghi.status, 200, ghi.text);
-  for (const duong of ["/api/orders", `/api/orders/${id}`, `/api/orders/${id}/thuong-mai`, `/api/orders/${id}/receipt`, `/api/orders/${id}/qr-thanh-toan`, "/api/thong-bao", "/api/thong-bao/tom-tat"]) {
-    const r = await w.call("GET", duong, { as: LAI_BAN });
+
+  // Có răng: văn phòng THẤY số lạ của B ở đúng các đơn mà tài khoản lai không được thấy (nên một chỗ rò sẽ bị bài bắt).
+  assert.equal((await w.call("GET", `/api/orders/${cuaB}/thuong-mai`, { as: KT })).json.vanPhong.dong[0].hoaHong, 480_017, "đơn B đã xác nhận: 1 khách × 480.017đ");
+  assert.equal((await w.call("GET", `/api/orders/${nhapB}/thuong-mai`, { as: KT })).json.vanPhong.dong[0].hoaHong, 480_017, "đơn B nháp (tính thử): cùng số");
+
+  const trangThai: string[] = [];
+  const quet = async (duong: string, as = LAI_BAN) => {
+    const r = await w.call("GET", duong, { as });
+    trangThai.push(`${r.status} ${duong}`);
     assert.ok(r.status < 500, `${duong}: ${r.status} ${r.text}`);
     assert.deepEqual(soLaTrong(r.text), [], `${duong} (${r.status}) lộ số lạ cho tài khoản lai: ${r.text}`);
+    return r;
+  };
+  // Tài khoản lai mở được CHI TIẾT đơn người khác (Bán hàng xem mọi đơn) nhưng KHÔNG được thấy phần đối tác của chúng: 404, và không bề mặt nào kèm số lạ.
+  for (const id of [cuaB, nhapB, cuaA]) { // đơn B trước: nếu rò thì số lạ 480017 hiện ngay ở bề mặt đầu tiên
+    for (const duong of [`/api/orders/${id}`, `/api/orders/${id}/receipt`, `/api/orders/${id}/qr-thanh-toan`]) await quet(duong);
+    const doc = await quet(`/api/orders/${id}/thuong-mai`);
+    assert.equal(doc.status, 404, `phần đối tác của đơn người khác phải 404: ${doc.text}`);
+    assert.equal(doc.json.error.code, "not_found");
+    const chiTiet = await w.call("GET", `/api/orders/${id}`, { as: LAI_BAN });
+    if (chiTiet.status === 200) assert.deepEqual(chiTiet.json.history.filter((e: { action: string }) => e.action.startsWith("order_terms_")), [], "lịch sử đơn người khác cũng lọc order_terms_*");
   }
-  const chiTiet = await w.call("GET", `/api/orders/${id}`, { as: LAI_BAN });
+  // Đơn của chính tài khoản lai: DTO hẹp, đúng số của mình (mức tay 48,17% × 2.000.000 = 963.400), không số lạ ở bề mặt nào.
+  for (const duong of ["/api/orders", `/api/orders/${cuaMinh}`, `/api/orders/${cuaMinh}/receipt`, `/api/orders/${cuaMinh}/qr-thanh-toan`, "/api/thong-bao", "/api/thong-bao/tom-tat", "/api/ledger/mine"]) await quet(duong);
+  const chiTiet = await w.call("GET", `/api/orders/${cuaMinh}`, { as: LAI_BAN });
   assert.equal(chiTiet.status, 200, chiTiet.text);
   assert.ok(chiTiet.json.history.length > 0);
   assert.deepEqual(chiTiet.json.history.filter((e: { action: string }) => e.action.startsWith("order_terms_")), []);
-  const doc = await w.call("GET", `/api/orders/${id}/thuong-mai`, { as: LAI_BAN });
+  const doc = await w.call("GET", `/api/orders/${cuaMinh}/thuong-mai`, { as: LAI_BAN });
   assert.deepEqual(Object.keys(doc.json), ["doiTac"]);
   assert.equal(doc.json.doiTac.dong[0].hoaHong, 963_400);
+  assert.deepEqual(khoaCua(doc.json).filter((k) => /rate|perPax|cost|ruleId|termId|source|supplier/i.test(k)), []);
+  assert.ok(trangThai.includes(`404 /api/orders/${cuaB}/thuong-mai`) && trangThai.includes(`404 /api/orders/${nhapB}/thuong-mai`) && trangThai.includes(`404 /api/orders/${cuaA}/thuong-mai`), trangThai.join(" | "));
 });
 
 test("số lạ: nhật ký ghi mức KHÔNG sinh thông báo / tin Bảng tin — không hành động order_terms_* nào nằm trong các danh sách sinh tin", () => {
