@@ -7,6 +7,8 @@ import * as esbuild from "esbuild";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { ACC, DRIVER, DRIVER2, FIELD, NGAY, SALES, SUP, batDongHo, chiTiet, denGio, don, setup, taoChuyen, tienDo, uuid, xe } from "../../../tests/audit/dieu-phoi-khung.mjs";
 
+// ADR-0104 Đ2 (kế hoạch N9 — đổi cách DỰNG, không nới luật): sửa khách nay tự đồng bộ chuyến (máy, bài src/modules/van-chuyen/dong-bo-chuyen-route.test.ts). Các
+// bài NÚT TAY dưới đây cần trạng thái GIỮ (khách đã đổi còn trên chuyến) nên dựng thế giới không tiêm máy (`khongDongBoChuyen`) — vẫn phải thấy lý do giữ.
 const khoaCuaDon = (w: any, orderId: string): string[] =>
   w.q(`SELECT p.person_key k FROM ord_passenger p WHERE p.order_id = ? AND p.voided_at IS NULL
          AND NOT EXISTS (SELECT 1 FROM ord_passenger n WHERE n.previous_id = p.id AND n.voided_at IS NULL) ORDER BY p.person_key`, orderId).map((r: any) => r.k);
@@ -39,7 +41,7 @@ const capNhat = async (w: any, tripId: string, as = SALES, v: { version?: number
 test("R-P29 kịch bản K2d: huỷ A, thêm C → màn + lịch chung + xuất bến CÙNG giữ KHACH_DA_DOI → Cập nhật khách theo đơn → A đóng PASSENGER_CHANGED, suất mới mang C → màn sạch → xuất bến 200, bản chốt có C không có A; nhật ký chỉ số lượng", async () => {
   const tat = batDongHo();
   try {
-    const w = setup();
+    const w = setup({ khongDongBoChuyen: true }); // N9: cần trạng thái giữ (máy đồng bộ không tiêm)
     const d = await don(w, { soNguoi: 2 });
     const t = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER}` });
     await xep(w, t.chuyen.id, d.legId, 2);
@@ -78,7 +80,7 @@ test("R-P29 kịch bản K2d: huỷ A, thêm C → màn + lịch chung + xuất 
 test("R-P29: huỷ A, KHÔNG thêm ai (số khách của đơn vẫn 2) → đóng A, mở lại suất CHƯA TÊN (đơn còn 2 người) → giữ THIEU_TEN ở CẢ màn lẫn lệnh (GA-62: \"xuất bến được với 1 khách\" chỉ khi đơn giảm người — bài kế)", async () => {
   const tat = batDongHo();
   try {
-    const w = setup();
+    const w = setup({ khongDongBoChuyen: true }); // N9: cần trạng thái giữ (máy đồng bộ không tiêm)
     const d = await don(w, { soNguoi: 2, handler: FIELD });
     const t = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER}` });
     await xep(w, t.chuyen.id, d.legId, 2);
@@ -101,7 +103,7 @@ test("R-P29: huỷ A, KHÔNG thêm ai (số khách của đơn vẫn 2) → đó
 test("R-P29: huỷ A + giảm số khách của đơn xuống 1 → Cập nhật khách: CHỈ đóng A (không mở lại) → màn sạch → xuất bến 200 với 1 khách", async () => {
   const tat = batDongHo();
   try {
-    const w = setup();
+    const w = setup({ khongDongBoChuyen: true }); // N9: cần trạng thái giữ (máy đồng bộ không tiêm)
     const d = await don(w, { soNguoi: 2, handler: FIELD });
     const t = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER}` });
     await xep(w, t.chuyen.id, d.legId, 2);
@@ -128,7 +130,7 @@ test("R-P29: huỷ A + giảm số khách của đơn xuống 1 → Cập nhật
 test("R-P29: khoá rảnh không còn (khách mới C đã có suất ở CHUYẾN KHÁC cùng chặng) → mở lại suất CHƯA TÊN theo luật số người; không gắn trùng C (LC-01)", async () => {
   const tat = batDongHo();
   try {
-    const w = setup();
+    const w = setup({ khongDongBoChuyen: true }); // N9: cần trạng thái giữ (máy đồng bộ không tiêm)
     const d = await don(w, { soNguoi: 3, ten: 2 });
     const t1 = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER}` });
     const t2 = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER2}` });
@@ -151,7 +153,7 @@ test("R-P29: khoá rảnh không còn (khách mới C đã có suất ở CHUY�
 test("R-P29: Bán hàng TRONG vùng khoá mốc gọi Cập nhật khách → 200, không cần phá lệ (lệnh rút cùng lúc cần phá lệ); Kế toán → 403; chuyến ĐANG CHẠY → 409 xe_dang_chay", async () => {
   const tat = batDongHo();
   try {
-    const w = setup();
+    const w = setup({ khongDongBoChuyen: true }); // N9: cần trạng thái giữ (máy đồng bộ không tiêm)
     const d = await don(w, { soNguoi: 2 });
     const t = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER}` });
     await xep(w, t.chuyen.id, d.legId, 2);
@@ -181,7 +183,7 @@ test("R-P29: Bán hàng TRONG vùng khoá mốc gọi Cập nhật khách → 20
 test("R-P29: lệnh lặp cùng requestId → 200 cùng daCapNhat, không ghi thêm; version cũ khi còn lệch → 409 stale; không lệch → 200 daCapNhat 0, không ghi (kể cả version cũ)", async () => {
   const tat = batDongHo();
   try {
-    const w = setup();
+    const w = setup({ khongDongBoChuyen: true }); // N9: cần trạng thái giữ (máy đồng bộ không tiêm)
     const d = await don(w, { soNguoi: 2 });
     const t = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER}` });
     await xep(w, t.chuyen.id, d.legId, 2);

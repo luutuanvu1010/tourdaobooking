@@ -15,8 +15,8 @@ import { docLocDon } from "../../shared/loc-don";
 import { LOC_NHAP_TOI_DA_NGAY, LOC_NHAP_TOI_DA_UNG_VIEN, laDongNhapKeToan, soNgayKhoang } from "../../shared/nhap-ke-toan";
 import { editablePaxCodesOf, planMoneyEdit, type AdjustmentEntry } from "./money-adjustment";
 import {
-  addLeg, cancelOrder, changeBooker, daHuy, soanHuyDon, soanSuaChang, soanThayChang, thangCauDau, changeLeg, cocCuNhap, confirmOrder, countDrafts, createOrder, effectivePax, findOrder, getDashboard, getDepartDates, getLatestAdjustment, getMeta, getOrderRef,
-  chayLoSuaSoKhach, demThanCu, getServicesForSubtotal, getStoredServices, insertMoneyAdjustment, listOrderIds, listOrders, listPoolSources, updateDraftOrder, updateTrip, writePassengerChange,
+  addLeg, cancelOrder, changeBooker, daHuy, soanDoiKhach, soanHuyDon, soanSuaChang, soanThayChang, thangCauDau, changeLeg, cocCuNhap, confirmOrder, countDrafts, createOrder, effectivePax, findOrder, getDashboard, getDepartDates, getLatestAdjustment, getMeta, getOrderRef,
+  chayLoSuaSoKhach, demThanCu, getServicesForSubtotal, getStoredServices, insertMoneyAdjustment, listOrderIds, listOrders, listPoolSources, updateDraftOrder, updateTrip,
 } from "./repository";
 import {
   legById, legDatGapByOrder, legLichChungNhapRows, legLichChungRows, legShortNotice, legTripRows, manualPolicy, manualPolicyInsert, openLegsByOrders, orderContactRows, passengerRowsByOrders,
@@ -1096,7 +1096,7 @@ export const ordersModule: AppModule = {
 
     // GHI (đơn ĐÃ XÁC NHẬN — Ruling R1; đơn nháp đi trong thân PUT /api/orders): ô `order.passenger.write` { ownerId, assigned } TRƯỚC khi đọc thân; khoá
     // lạc quan theo `orders.updated_at`; chỉ-thêm (R8); nhật ký ĐÚNG khuôn "thêm N, sửa N, huỷ N khách"; Bảng tin "sua" đúng một lần.
-    route("POST", "/api/orders/:id/passengers", "orders", async ({ env, request, params, staff, isAssigned, baoThayDoi }) => {
+    route("POST", "/api/orders/:id/passengers", "orders", async ({ env, request, params, staff, isAssigned, baoThayDoi, dongBoChuyen }) => {
       const id = params.id!;
       if (!UUID_RE.test(id)) return NOT_FOUND();
       const [meta, assigned] = await Promise.all([getMeta(env.DB, id), isAssigned(id)]);
@@ -1108,12 +1108,17 @@ export const ordersModule: AppModule = {
       const plan = await planPassengerChange(env.DB, id, await readJson(request), vnToday(new Date()));
       if (!plan.ok) return error(400, "invalid_input", plan.message);
       if (plan.value.none) return json((await passengerList(env.DB, id)) satisfies PassengerListResponse); // không đổi gì
-      if (!(await writePassengerChange(env.DB, id, staff.id, plan.value))) {
+      // ADR-0104 Đ2 (điểm gọi 5): lô sửa khách (câu đơn đứng đầu) + khúc chuyến của máy — khoá người của đơn SAU lệnh; số người không đổi ở route này.
+      const soan = soanDoiKhach(env.DB, id, staff.id, plan.value);
+      const dong = await dongBoChuyen({ orderId: id, auditIdDon: soan.auditId, bayGioMs: Date.now(), cauDon: soan.cau, sau: { trangThai: meta.status, nguoi: plan.value.nguoiSau } });
+      const r = await chayLoNoiChuyen(env.DB, dong, thangCauDau);
+      if (r.kq === "loi") return r.res;
+      if (r.kq === "thua") {
         const now = await getMeta(env.DB, id);
         return now?.status === "cancelled" ? CANCELLED() : STALE();
       }
       baoThayDoi({ orderId: id, thayDoi: "sua" });
-      return json((await passengerList(env.DB, id)) satisfies PassengerListResponse);
+      return json({ ...(await passengerList(env.DB, id)), dongBoChuyen: r.dongBoChuyen } satisfies PassengerListResponse);
     }),
 
     // ---- VĂN PHÒNG SỬA SỐ KHÁCH sau xác nhận (ADR-0063 D1, chủ duyệt 2026-10-08). Ô `order.money.edit` hỏi KHÔNG truyền `assigned`: Bán hàng chỉ đơn MÌNH lập

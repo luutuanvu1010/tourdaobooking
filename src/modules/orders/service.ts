@@ -345,7 +345,11 @@ export async function passengerList(db: D1Database, orderId: string): Promise<Pa
   return { passengers, soNguoiCoTen: passengers.length, soKhachDoan: soKhach, vuotSoKhach: vuotSoKhach(passengers.length, soKhach), orderUpdatedAt: meta?.updatedAt ?? "" };
 }
 
-export interface PassengerChangePlan { expected: string; chen: KeHoach["chen"]; huy: KeHoach["huy"]; detail: string; none: boolean }
+export interface PassengerChangePlan {
+  expected: string; chen: KeHoach["chen"]; huy: KeHoach["huy"]; detail: string; none: boolean;
+  /** Khoá người HIỆN HÀNH của đơn SAU lệnh (`dongHienHanh` trên dòng đã đọc + dòng chèn − dòng huỷ) — đầu vào `sau.nguoi` của máy đồng bộ chuyến (ADR-0104 Đ2 điểm gọi 5). */
+  nguoiSau: string[];
+}
 /**
  * `POST /api/orders/:id/passengers` (đơn ĐÃ XÁC NHẬN — R1): thân `{ expectedUpdatedAt (của đơn), them: [...], sua: [{ personKey, ... }], huy: [personKey] }`.
  * Kiểm từng người (`kiemHanhKhach`), lập kế hoạch chỉ-thêm (`keHoachHanhKhach` — R8). `none` = không có gì để ghi (sửa y nguyên).
@@ -371,7 +375,12 @@ export async function planPassengerChange(db: D1Database, orderId: string, body:
   const plan = keHoachHanhKhach(rows, { them: them.value.map((t) => ({ ...t, id: null })), sua, huy: huy as string[] }, () => crypto.randomUUID());
   if (!plan.ok) return plan;
   const none = plan.value.chen.length === 0 && plan.value.huy.length === 0;
-  return { ok: true, value: { expected, chen: plan.value.chen, huy: plan.value.huy, detail: moTaThayDoiKhach(plan.value.dem), none } };
+  const huySet = new Set(plan.value.huy);
+  const nguoiSau = dongHienHanh([
+    ...rows.map((r) => (huySet.has(r.id) ? { ...r, voided: true } : r)),
+    ...plan.value.chen.map((c) => ({ ...c, voided: false, updatedAt: "" })),
+  ]).map((p) => p.personKey);
+  return { ok: true, value: { expected, chen: plan.value.chen, huy: plan.value.huy, detail: moTaThayDoiKhach(plan.value.dem), none, nguoiSau } };
 }
 
 /**

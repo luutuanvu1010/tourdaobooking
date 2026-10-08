@@ -1334,17 +1334,29 @@ export async function writePassengerChange(
   staffId: string,
   plan: { expected: string; chen: readonly { id: string; personKey: string; previousId: string | null; fullName: string; birthYear: number; paxCode: PaxCode | null }[]; huy: readonly string[]; detail: string },
 ): Promise<boolean> {
+  return thangCauDau(await db.batch(soanDoiKhach(db, orderId, staffId, plan).cau));
+}
+
+/**
+ * SOẠN (chưa chạy) lô sửa danh sách khách của `writePassengerChange` — `auditId` = id dòng nhật ký `order_passenger_changed` (câu cổng đơn cho máy đồng bộ
+ * chuyến, ADR-0104 Đ2 điểm gọi 5). Chạy với câu đơn ĐỨNG ĐẦU, đọc thắng bằng `thangCauDau`.
+ */
+export function soanDoiKhach(
+  db: D1Database,
+  orderId: string,
+  staffId: string,
+  plan: Parameters<typeof writePassengerChange>[3],
+): { auditId: string; cau: D1PreparedStatement[] } {
   const at = nextStamp(plan.expected);
   const auditId = crypto.randomUUID();
-  const results = await db.batch([
+  return { auditId, cau: [
     orderTouch(db, orderId, at, plan.expected),
     auditStatement(db, { id: auditId, orderId, staffId, action: "order_passenger_changed", at, detail: plan.detail }, "changes() > 0"),
     ...plan.chen.map((p) =>
       passengerInsertGuarded(db, { id: p.id, orderId, ten: p.fullName, birthYear: p.birthYear, paxCode: p.paxCode, previousId: p.previousId, personKey: p.personKey, at, by: staffId }, auditId),
     ),
     ...plan.huy.map((rowId) => passengerVoidGuarded(db, rowId, orderId, at, staffId, auditId)),
-  ]);
-  return (results[0]!.meta.changes ?? 0) > 0;
+  ] };
 }
 
 // ---- Route chặng SAU XÁC NHẬN (ADR-0047 A1) ---------------------------------------------------------------------------------------------------

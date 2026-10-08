@@ -402,3 +402,64 @@ test("NT-5 vượt trần 74 câu phần chuyến (huỷ đơn 2 dịch vụ × 
     tat();
   }
 });
+
+// ---- Sửa danh sách khách (điểm gọi 5) ---------------------------------------------------------------------------------------------------------------------
+const khoaCuaDon = (w: W, orderId: string): string[] =>
+  w.q(`SELECT p.person_key k FROM ord_passenger p WHERE p.order_id = ? AND p.voided_at IS NULL
+         AND NOT EXISTS (SELECT 1 FROM ord_passenger n WHERE n.previous_id = p.id AND n.voided_at IS NULL) ORDER BY p.person_key`, orderId).map((r: any) => r.k);
+async function doiKhach(w: W, orderId: string, huy: string[], them: string[]) {
+  const ds = (await w.call("GET", `/api/orders/${orderId}/passengers`, { as: SALES })).json;
+  return w.call("POST", `/api/orders/${orderId}/passengers`, {
+    as: SALES, body: { expectedUpdatedAt: ds.orderUpdatedAt, them: them.map((fullName) => ({ fullName, birthYear: 1980, paxCode: "adult" })), sua: [], huy },
+  });
+}
+
+test("NT-5 đổi người (huỷ A, thêm C trong MỘT lệnh) → suất mang A đóng PASSENGER_CHANGED, suất mới mang C cùng lô; không giữ KHACH_DA_DOI; nhật ký 'đổi người', không tên", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const d = await don(w, { soNguoi: 2 });
+    const t = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER}` });
+    await xepHet(w, t, d, 2);
+    const [a, b] = khoaCuaDon(w, d.id);
+    const r = await doiKhach(w, d.id, [a!], ["Khách Thay Thế"]);
+    assert.equal(r.status, 200, r.text);
+    assert.deepEqual(r.json.dongBoChuyen, { nhac: null, capNhatTay: false });
+    const c = khoaCuaDon(w, d.id).find((k) => k !== b)!;
+    assert.deepEqual(daDong(w, t.chuyen.id), [{ r: "PASSENGER_CHANGED", k: a }]);
+    assert.deepEqual(moCua(w, t.chuyen.id, d.legId).map((x) => x.k).sort(), [b, c].sort());
+    assert.deepEqual(await lyDo(w, t.chuyen.id), []);
+    const nk = nhatKyDongBo(w);
+    assert.equal(nk.length, 1);
+    assert.match(nk[0]!.detail, new RegExp(`${d.code} \\(đổi người\\): trả 1 ghế, thêm 1 ghế$`));
+    assert.doesNotMatch(nk[0]!.detail, /Khách|1980/);
+  } finally {
+    tat();
+  }
+});
+
+test("NT-5 (thêm từ kế hoạch) hai chuyến CÙNG chặng, đổi hai người trong MỘT lệnh → khoá người mở lại không trùng nhau (không vấp chỉ mục chặng + người), lệnh đơn 200", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const d = await don(w, { soNguoi: 2 });
+    const x1 = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER}` });
+    const x2 = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER2}` });
+    await xep(w, x1.chuyen.id, d.legId, 1);
+    await xep(w, x2.chuyen.id, d.legId, 1);
+    const [a, b] = khoaCuaDon(w, d.id);
+    const r = await doiKhach(w, d.id, [a!, b!], ["Khách Thay Một", "Khách Thay Hai"]);
+    assert.equal(r.status, 200, r.text);
+    assert.deepEqual(r.json.dongBoChuyen, { nhac: null, capNhatTay: false });
+    const moi = khoaCuaDon(w, d.id);
+    const k1 = moCua(w, x1.chuyen.id, d.legId).map((x) => x.k);
+    const k2 = moCua(w, x2.chuyen.id, d.legId).map((x) => x.k);
+    assert.equal(k1.length, 1);
+    assert.equal(k2.length, 1);
+    assert.notEqual(k1[0], k2[0], "hai khúc không cấp trùng khoá");
+    assert.deepEqual([...k1, ...k2].sort(), [...moi].sort());
+    assert.equal(nhatKyDongBo(w).length, 2);
+  } finally {
+    tat();
+  }
+});

@@ -189,7 +189,14 @@ function moiKhoa(x: unknown, ra = new Set<string>()): Set<string> {
 test("khối van-chuyen: đủ tuyến; tên hành khách chỉ ở GET /chuyen/:id + GET /cuoc-cua-toi/:id (trong ngày chạy); nhật ký + cột vc_* sạch; không khoá nơi (TC-39, TC-50)", async () => {
   const tat = batDongHo();
   try {
-    const w = setup();
+    // ADR-0104 Đ2 (kế hoạch N9 — đổi cách DỰNG, không nới luật): máy đồng bộ chuyến THẬT chạy cho mọi lệnh đơn; RIÊNG lúc dựng "khách đã đổi" cho nút tay ở
+    // chuyến C, `giuChuyenC` giả một người khác vừa đổi chuyến C giữa lúc máy đọc và lúc ghi (khúc của máy thua cổng → chuyến giữ KHACH_DA_DOI như hôm nay).
+    let giuChuyenC = false;
+    const w = setup({
+      chenGiuaDocVaGhi: async () => {
+        if (giuChuyenC) w.sqlite.prepare("UPDATE vc_trip SET version = version + 1 WHERE id = ?").run(T.C.chuyen.id);
+      },
+    });
     seedStaff(w.sqlite, { id: DRIVER3, phone: "0900000036", name: "Tài Xế Ba", perms: ["DRIVER"] });
     seedStaff(w.sqlite, { id: DRIVER4, phone: "0900000046", name: "Tài Xế Bốn", perms: ["DRIVER"] });
     thanhTaiXe(w, `pty-${DRIVER3}`);
@@ -332,6 +339,8 @@ test("khối van-chuyen: đủ tuyến; tên hành khách chỉ ở GET /chuyen/
       },
       "POST /api/van-chuyen/chuyen/:id/cap-nhat-khach": async () => {
         // R-P29 (chủ lần 16): người lập bỏ một khách của đơn C và thêm một khách (năm sinh đánh dấu) → chuyến C giữ KHACH_DA_DOI → "Cập nhật khách theo đơn".
+        // (ADR-0104 Đ2: giữ được vì khúc của máy thua cổng — `giuChuyenC`.)
+        giuChuyenC = true;
         let ds = (await w.call("GET", `/api/orders/${dC.id}/passengers`, { as: SALES })).json;
         const bo = [...ds.passengers].sort((x: any, y: any) => (x.fullName < y.fullName ? -1 : 1))[2].personKey;
         ds = (await w.call("POST", `/api/orders/${dC.id}/passengers`, { as: SALES, body: { expectedUpdatedAt: ds.orderUpdatedAt, them: [], sua: [], huy: [bo] } })).json;
@@ -340,8 +349,21 @@ test("khối van-chuyen: đủ tuyến; tên hành khách chỉ ở GET /chuyen/
         });
         assert.equal(them.status, 200, them.text);
         const c = await ct(T.C.chuyen.id);
+        giuChuyenC = false;
         const r = await goi("POST /api/van-chuyen/chuyen/:id/cap-nhat-khach", "cập nhật khách C", "POST", `/api/van-chuyen/chuyen/${T.C.chuyen.id}/cap-nhat-khach`, SALES, { version: c.chuyen.version, requestId: rid() });
         assert.equal(r.daCapNhat, 1, "chống bài rỗng: có suất khách đã đổi được cập nhật");
+        // NT-9 (ADR-0104 Đ2.9): MÁY đồng bộ theo đơn — đổi lại một khách của đơn C trong MỘT lệnh (huỷ khách vừa thêm, thêm khách năm sinh đánh dấu) → khúc
+        // `trip_order_synced` trên chuyến C (nhật ký + cột vc_* do phần (3) quét); phản hồi phần "chuyến" chỉ câu cố định + cờ.
+        ds = (await w.call("GET", `/api/orders/${dC.id}/passengers`, { as: SALES })).json;
+        const moi = ds.passengers.find((p: any) => p.fullName === TEN_VC[2]).personKey;
+        const doi = await w.call("POST", `/api/orders/${dC.id}/passengers`, {
+          as: SALES, body: { expectedUpdatedAt: ds.orderUpdatedAt, them: [{ fullName: TEN_VC[1], birthYear: 1912, paxCode: "adult" }], sua: [], huy: [moi] },
+        });
+        assert.equal(doi.status, 200, doi.text);
+        assert.deepEqual(doi.json.dongBoChuyen, { nhac: null, capNhatTay: false });
+        const dongBo = w.q("SELECT detail FROM audit_log WHERE action = 'trip_order_synced'");
+        assert.equal(dongBo.length, 1, "chống bài rỗng: máy đồng bộ có nhật ký để quét");
+        assert.match(dongBo[0].detail, /^[^:]+: máy cập nhật theo đơn — [A-Z0-9-]+ \(đổi người\): trả 1 ghế, thêm 1 ghế$/);
       },
       "GET /api/van-chuyen/nhac-goi-khach": async () => {
         const r = await goi("GET /api/van-chuyen/nhac-goi-khach", "nhắc gọi khách", "GET", "/api/van-chuyen/nhac-goi-khach", SALES);
