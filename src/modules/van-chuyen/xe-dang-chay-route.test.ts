@@ -286,3 +286,33 @@ test("Đợt 7 (THEM_KHI_CHAY — ADR-0056 VK3-A, ruling điều phối): thêm 
     tat();
   }
 });
+
+// Phiếu kiểm D1 THẤP-5 (ca thay thế cho N4 — đột biến V1b: cổng cờ ở /them-diem tính "dưới mốc" theo giờ dự kiến thay vì "xe đang chạy"): xe xuất bến SỚM nên
+// giờ dự kiến còn cách hơn 6 giờ, vẫn là xe đang chạy ⇒ dưới mốc ⇒ cờ cam kết lớp KHAN_CAP — Bán hàng gửi { phaLe, camKetPhaLe } → 200.
+test("Phiếu D1 THẤP-5 (N4): xe ĐANG CHẠY có giờ dự kiến còn cách hơn 6 giờ (xuất bến sớm) — Bán hàng thêm chặng vượt cam kết: thiếu cờ cam kết 409 lớp KHAN_CAP (canQuyen true); gửi { phaLe, camKetPhaLe } → 200", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const a = await chuyenSan(w, { bd: "13:00", kt: "17:00", gio: "13:30" });
+    const b = await don(w, { gio: "14:00", soNguoi: 2, ten: 1, noiDon: "Khách sạn Hai Dò Tìm" });
+    w.sqlite.prepare("UPDATE ord_transfer_leg SET min_vehicle_seats = 30 WHERE id = ?").run(b.legId); // chặng đòi xe ≥ 30 chỗ, xe 15 chỗ ⇒ vượt cam kết
+    const xb = await tienDo(w, "tai-xe", a.id, "xuat-ben");
+    assert.equal(xb.status, 200, xb.text);
+    denGio("06:01");
+    const [c] = w.q("SELECT status, planned_start_ms FROM vc_trip WHERE id = ?", a.id);
+    assert.equal(c.status, "RUNNING");
+    assert.ok(c.planned_start_ms - Date.now() > 6 * 3_600_000, "giờ dự kiến còn cách hơn 6 giờ");
+    const r0 = await themDiem(w, a.id, SALES, [{ legId: b.legId, soSuat: 2 }], PHA_LE);
+    assert.equal(r0.status, 409, r0.text);
+    assert.equal(r0.json.error.code, "can_pha_le_cam_ket");
+    assert.equal(r0.json.error.lop, "KHAN_CAP", "xe đang chạy luôn dưới mốc — kể cả khi giờ dự kiến còn xa");
+    assert.equal(r0.json.error.canQuyen, true);
+    const r = await themDiem(w, a.id, SALES, [{ legId: b.legId, soSuat: 2 }], { ...PHA_LE, camKetPhaLe: { lyDo: "PHA_LE_SU_CO" } });
+    assert.equal(r.status, 200, r.text);
+    const ev = w.q("SELECT override_rule_code, override_reason_code, created_by FROM vc_trip_event WHERE kind = 'STOP_ADDED_RUNNING'");
+    assert.deepEqual(dong(ev), [{ override_rule_code: "MOC_TOI_THIEU", override_reason_code: "PHA_LE_SU_CO", created_by: SALES }]);
+    kiemDinhKySach(w);
+  } finally {
+    tat();
+  }
+});

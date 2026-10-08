@@ -245,7 +245,7 @@ test("NT-1 dời hỗn hợp (ADR-0104 Đ1 mục 0: dời xét 'dưới mốc' �
   }
 });
 
-test("NT-1: Kế toán (không có ô xếp xe) → 403 ở mọi lệnh có cờ vượt; Quản trị xếp dưới mốc kèm lý do → 200", async () => {
+test("NT-1: Kế toán (không có ô xếp xe) → 403 ở mọi lệnh có cờ vượt, và huỷ chuyến KHÔNG cờ (phiếu D1 THẤP-4); Quản trị xếp dưới mốc kèm lý do → 200", async () => {
   const tat = batDongHo();
   try {
     const w = setup();
@@ -261,6 +261,8 @@ test("NT-1: Kế toán (không có ô xếp xe) → 403 ở mọi lệnh có c�
       ["POST", `/${id}/rut`, { version: v, suatIds: [uuid()], phaLe: PL }],
       ["POST", `/${id}/doi`, { version: v, suatIds: [uuid()], denChuyenId: uuid(), denVersion: 1, phaLe: PL }],
       ["POST", `/${id}/huy`, { version: v, lyDo: "HUY_KHAC", phaLe: PL }],
+      // Phiếu D1 THẤP-4: cổng ô xếp xe của route huỷ (chuyến chưa có khách — không cờ nào cần) — thiếu cổng thì Kế toán huỷ được.
+      ["POST", `/${id}/huy`, { version: v, lyDo: "HUY_KHAC" }],
     ];
     for (const [m, duoi, body] of ca) {
       const r = await goi(w, ACC, m, duoi, body);
@@ -269,6 +271,98 @@ test("NT-1: Kế toán (không có ô xếp xe) → 403 ở mọi lệnh có c�
     assert.equal(w.q("SELECT count(*) n FROM vc_trip_event WHERE kind <> 'CREATED'")[0].n, 0);
     const ok = await xep(w, ADM, id, [{ legId: a.legId, soSuat: 2 }], { phaLe: PL });
     assert.equal(ok.status, 200, ok.text);
+  } finally {
+    tat();
+  }
+});
+
+// ---- Phiếu kiểm D1 THẤP-2, THẤP-3: thứ tự lỗi quanh cổng cờ vượt — ghim HIỆN TRẠNG (không đổi thứ tự) -----------------------------------------------
+/** Đếm sự kiện chuyến (mọi loại) — lệnh lặp / bị từ chối không được ghi thêm. */
+const soSuKien = (w: any) => w.q("SELECT count(*) n FROM vc_trip_event")[0].n;
+test("Phiếu D1 THẤP-2: lệnh lặp đứng TRƯỚC cổng cờ vượt — Quản trị xếp / sửa chuyến NGOÀI mốc kèm cờ (mã lệnh R) → 200; Bán hàng gửi lại R kèm cờ → 200, không ghi thêm; Bán hàng gửi lệnh MỚI kèm cờ → 403", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    // Xếp: chặng ngày hôm sau (ngoài mốc) đòi xe ≥ 30 chỗ, xe 15 chỗ ⇒ vượt cam kết lớp QUAN_TRI.
+    const a = await don(w, { ngay: NGAY_SAU, gio: "13:00" });
+    w.sqlite.prepare("UPDATE ord_transfer_leg SET min_vehicle_seats = 30 WHERE id = ?").run(a.legId);
+    const t = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER}`, ngay: NGAY_SAU, bd: "11:00", kt: "15:00" });
+    const can = await xep(w, SALES, t.chuyen.id, [{ legId: a.legId, soSuat: 2 }]);
+    assert.equal(can.status, 409, can.text);
+    assert.equal(can.json.error.code, "can_pha_le_cam_ket");
+    assert.equal(can.json.error.lop, "QUAN_TRI", "chuyến ngoài mốc");
+    const R = uuid();
+    const q = await xep(w, ADM, t.chuyen.id, [{ legId: a.legId, soSuat: 2 }], { requestId: R, camKetPhaLe: PL });
+    assert.equal(q.status, 200, q.text);
+    const truoc = soSuKien(w);
+    const lai = await xep(w, SALES, t.chuyen.id, [{ legId: a.legId, soSuat: 2 }], { requestId: R, camKetPhaLe: PL });
+    assert.equal(lai.status, 200, `xếp — Bán hàng gửi lại R: ${lai.text}`);
+    assert.equal(soSuKien(w), truoc, "xếp — gửi lại không ghi gì");
+    const moi = await xep(w, SALES, t.chuyen.id, [{ legId: a.legId, soSuat: 2 }], { camKetPhaLe: PL });
+    assert.equal(moi.status, 403, moi.text);
+    assert.equal(moi.json.error.message, CAU_QUAN_TRI);
+    // Sửa chuyến: B (ngày hôm sau) dời giờ sát chuyến trước cùng xe ⇒ vượt khoảng nghỉ lớp QUAN_TRI.
+    const x1 = xe(w);
+    await taoChuyen(w, { xe: x1, taiXe: `pty-${DRIVER}`, ngay: NGAY_SAU, bd: "08:00", kt: "10:00" });
+    const b = await taoChuyen(w, { xe: x1, taiXe: `pty-${DRIVER2}`, ngay: NGAY_SAU, bd: "11:00", kt: "12:00" });
+    const gio = { batDau: { ngay: NGAY_SAU, gio: "10:10" }, ketThuc: { ngay: NGAY_SAU, gio: "12:00" }, nghiPhaLe: PL };
+    const R2 = uuid();
+    const s = await goi(w, ADM, "PUT", `/${b.chuyen.id}`, { requestId: R2, version: b.chuyen.version, ...gio });
+    assert.equal(s.status, 200, s.text);
+    const truoc2 = soSuKien(w);
+    const sLai = await goi(w, SALES, "PUT", `/${b.chuyen.id}`, { requestId: R2, version: b.chuyen.version, ...gio });
+    assert.equal(sLai.status, 200, `sửa — Bán hàng gửi lại R: ${sLai.text}`);
+    assert.equal(soSuKien(w), truoc2, "sửa — gửi lại không ghi gì");
+    const sMoi = await goi(w, SALES, "PUT", `/${b.chuyen.id}`, { version: await phienBan(w, b.chuyen.id), ...gio, batDau: { ngay: NGAY_SAU, gio: "10:15" } });
+    assert.equal(sMoi.status, 403, sMoi.text);
+    assert.equal(sMoi.json.error.message, CAU_QUAN_TRI);
+  } finally {
+    tat();
+  }
+});
+
+test("Phiếu D1 THẤP-3: thứ tự lỗi quanh cổng cờ vượt — chuyến lạ + cờ → 404; xếp vào chuyến đã huỷ + cờ → 409 (trạng thái trước cổng); sửa chuyến và tạo chuyến: cổng 403 đứng TRƯỚC lỗi 400 ngữ nghĩa, sửa chuyến còn trước 409 trạng thái", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const a = await don(w, { ngay: NGAY_SAU, gio: "13:00" });
+    // 404: chuyến không có (xếp kèm cờ cam kết; sửa kèm cờ nghỉ).
+    const la = await goi(w, SALES, "POST", `/${uuid()}/phan-bo`, { version: 1, chang: [{ legId: a.legId, soSuat: 2 }], camKetPhaLe: PL });
+    assert.equal(la.status, 404, la.text);
+    assert.equal((await goi(w, SALES, "PUT", `/${uuid()}`, { version: 1, nghiPhaLe: PL })).status, 404);
+    // Chuyến ngày hôm sau (ngoài mốc ⇒ cờ nghỉ / cam kết của Bán hàng bị 403 NẾU tới cổng) đã huỷ.
+    const t = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER}`, ngay: NGAY_SAU, bd: "11:00", kt: "15:00" });
+    const h = await goi(w, ADM, "POST", `/${t.chuyen.id}/huy`, { version: t.chuyen.version, lyDo: "HUY_KHAC" });
+    assert.equal(h.status, 200, h.text);
+    const t2 = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER2}`, ngay: NGAY_SAU, bd: "11:00", kt: "15:00" });
+    const truoc = soSuKien(w);
+    // Xếp (khuôn chung của xếp / rút / dời / huỷ / thêm khi chạy): 409 trạng thái chuyến đứng TRƯỚC 403 cờ vượt.
+    const x = await xep(w, SALES, t.chuyen.id, [{ legId: a.legId, soSuat: 2 }], { camKetPhaLe: PL });
+    assert.equal(x.status, 409, x.text);
+    assert.equal(x.json.error.code, "chuyen_da_ket_thuc");
+    // Sửa chuyến KHÔNG có bước trạng thái riêng — chuyến hết kế hoạch bị luật thuần chặn SAU cổng: Bán hàng 403, Quản trị (đủ ô) 409.
+    const v = await phienBan(w, t.chuyen.id);
+    const s = await goi(w, SALES, "PUT", `/${t.chuyen.id}`, { version: v, nghiPhaLe: PL });
+    assert.equal(s.status, 403, s.text);
+    assert.equal(s.json.error.message, CAU_QUAN_TRI);
+    const s2 = await goi(w, ADM, "PUT", `/${t.chuyen.id}`, { version: v, nghiPhaLe: PL });
+    assert.equal(s2.status, 409, s2.text);
+    assert.equal(s2.json.error.code, "chuyen_da_ket_thuc");
+    // Sửa chuyến còn kế hoạch (t2), lý do ngoài nhóm: Bán hàng 403 (cổng trước), Quản trị 400.
+    const sai = { lyDo: "KHONG_CO_MA_NAY" };
+    const s3 = await goi(w, SALES, "PUT", `/${t2.chuyen.id}`, { version: t2.chuyen.version, nghiPhaLe: sai });
+    assert.equal(s3.status, 403, s3.text);
+    const s4 = await goi(w, ADM, "PUT", `/${t2.chuyen.id}`, { version: t2.chuyen.version, nghiPhaLe: sai });
+    assert.equal(s4.status, 400, s4.text);
+    assert.equal(s4.json.error.message, CAU_LY_DO_LA);
+    // Tạo chuyến ngoài mốc, xe không có: Bán hàng 403 (cổng trước), Quản trị 400.
+    const tao = { xe: uuid(), taiXe: `pty-${DRIVER2}`, ngay: NGAY_SAU, bd: "18:00", kt: "19:00", nghiPhaLe: PL };
+    const c1 = await taoTho(w, SALES, tao);
+    assert.equal(c1.status, 403, c1.text);
+    const c2 = await taoTho(w, ADM, tao);
+    assert.equal(c2.status, 400, c2.text);
+    assert.equal(c2.json.error.message, "Xe không có hoặc đã ngừng dùng.");
+    assert.equal(soSuKien(w), truoc, "từ chối thì không ghi");
   } finally {
     tat();
   }

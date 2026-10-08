@@ -126,7 +126,11 @@ export function vuotLenh(
 }
 /**
  * Cờ vượt người gọi GỬI (`phaLe` → luật mốc; `nghiPhaLe` / `camKetPhaLe` → khoảng nghỉ, cam kết) mà thiếu ô của lớp → 403, kiểm TRƯỚC luật (ADR-0104 Đ1
- * mục 2). Chạy sau khi lệnh đọc chuyến + chính sách (cần "dưới mốc"), nên 404 chuyến, lệnh lặp (LC-11), 409 trạng thái, 400 thân đi trước 403 này.
+ * mục 2). Chạy sau khi lệnh đọc chuyến + chính sách (cần "dưới mốc"). Thứ tự HIỆN TRẠNG (ghim ở `dieu-chinh-khan-cap.test.ts` — phiếu D1 THẤP-2, THẤP-3):
+ * 403 ô xếp xe, 400 đọc thân, 404 chuyến, lệnh lặp (LC-11: gửi lại mã lệnh cũ kèm cờ → 200, không ghi — kể cả người thiếu ô) luôn đi TRƯỚC 403 này; xếp,
+ * rút, dời, huỷ, thêm khi chạy còn đặt 409 trạng thái chuyến trước nó (rút, dời thêm 400 "suất không thuộc chuyến"; xếp thêm 409 người đi kèm). Sửa chuyến và
+ * route tạo chuyến đặt 403 này TRƯỚC mọi 400 ngữ nghĩa (lý do ngoài nhóm, xe / tuyến không có, điểm lạ), và sửa chuyến đặt nó trước 409 chuyến hết kế hoạch
+ * (luật thuần chặn sau cổng).
  */
 export function chanCoVuot(co: { moc: boolean; nghiCamKet: boolean }, v: VuotLenh): Response | null {
   if (co.moc && !v.quyenVuot(lopVuotMoc(...v.lenhMoc))) return canVuot(lopVuotMoc(...v.lenhMoc));
