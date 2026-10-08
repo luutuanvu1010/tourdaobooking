@@ -2,7 +2,7 @@
 // Bài đơn vị cùng hành vi: src/modules/orders/so-khach-van-phong-route.test.ts (quyền đủ 12 tài khoản, thứ tự từ chối, nhật ký, tin); sổ vàng
 // golden/sua-so-khach-van-phong.json. Kịch bản này chứng minh trên wrangler thật: (1) Kế toán bớt khách sau khi khách đã trả → dư chờ hoàn, nhật ký đúng
 // khuôn; (2) quyền: Bán hàng không phải người lập, HDV đang phụ trách, tài khoản lai Bán hàng + HDV đang phụ trách → 403; người lập, Quản trị, Toàn quyền
-// → 200; (3) lý do chỉ từ danh sách; (4) tổng âm không chặn, có câu cảnh báo; (5) sau Đã giao → 409, và SQL chèn tay bị trigger 0044 chặn.
+// → 200; (3) lý do chỉ từ danh sách; (4) giảm giá > tạm tính không chặn, có câu cảnh báo, phải thu kẹp 0 (ADR-0109); (5) sau Đã giao → 409, và SQL chèn tay bị trigger 0044 chặn.
 import assert from "node:assert/strict";
 import { ACCOUNTS, call, catalogService, ensureFakeCatalog, gieoTaiKhoanLai, orderInput, session, sqlRows, sql, vnDate } from "./lib.mjs";
 
@@ -77,16 +77,16 @@ const tienDon = async (id) => (await call(ACC, "GET", `/api/orders/${id}/payment
   console.log("✓ CA 2: Bán hàng khác / HDV / lai đang phụ trách → 403; người lập, Quản trị, Toàn quyền → 200; lý do ngoài danh sách → 400");
 }
 
-// ---- CA 3: tổng âm KHÔNG bị chặn; phản hồi có câu cảnh báo; "dư" = đã trả − tổng âm.
+// ---- CA 3: giảm giá > tạm tính sau khi bớt khách KHÔNG bị chặn; phản hồi có câu cảnh báo; phải thu KẸP 0 (ADR-0109), dư = đúng số khách đã trả.
 {
   const don = await donXacNhan({ adult: 2, discount: 150000, daTra: 50000 });
   const r = await sua(ACC, don, 1);
   assert.equal(r.status, 200, JSON.stringify(r.body));
-  assert.equal(r.body.order.total, -50000);
+  assert.deepEqual([r.body.order.total, r.body.order.giamGiaHieuLuc, r.body.order.discount], [0, 100000, 150000]);
   assert.match(r.body.canhBaoTongAm ?? "", /Giảm giá lớn hơn tiền dịch vụ sau khi bớt khách/);
   const p = await tienDon(don.id);
-  assert.deepEqual([p.phaiThu, p.daThu, p.conLai, p.du], [-50000, 50000, 0, 100000]);
-  console.log("✓ CA 3: tổng âm −50.000 vẫn lưu, có câu cảnh báo; dư 100.000 (lớn hơn tiền khách thật đã trả — xem báo cáo gói A2)");
+  assert.deepEqual([p.phaiThu, p.daThu, p.conLai, p.du], [0, 50000, 0, 50000]);
+  console.log("✓ CA 3: giảm giá 150.000 > tạm tính 100.000 vẫn lưu, có câu cảnh báo; phải thu 0, dư 50.000 = đúng số khách đã trả (ADR-0109)");
 }
 
 // ---- CA 4: đơn nháp → 409 (sửa trong form); sau Đã giao → 409 order_delivered; SQL chèn tay dòng điều chỉnh bị trigger 0044 chặn (lưới cuối).

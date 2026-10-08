@@ -107,7 +107,7 @@ try {
   p.close();
   ok("4) người lập (Bán hàng) thấy nút");
 
-  // ---- 5) tổng âm ở 1040: 2 NL × 1.350.000 = 2.700.000, giảm 2.000.000 → 700.000, khách trả đủ; Kế toán bớt còn 1 NL → −650.000 ----
+  // ---- 5) tổng âm ở 1040: 2 NL × 1.350.000 = 2.700.000, giảm 2.000.000 → 700.000, khách trả đủ; Kế toán bớt còn 1 NL → 1.350.000 − 2.000.000: phải thu kẹp 0 (ADR-0109) ----
   const don2 = await donXacNhan({ services: [td101(2)], discount: 2000000, daTra: 700000 });
   p = await env.as(ACCOUNTS.accounting, `/order?id=${don2}`, { width: 1040, height: 900, mobile: false });
   await p.waitFor(nutCo, "Kế toán thấy nút (1040)");
@@ -120,11 +120,11 @@ try {
   await p.waitFor("document.querySelector('.sheet-root') === null && document.getElementById('error').classList.contains('banner-warning')", "dải vàng tổng âm");
   assert.match(await p.ev("document.getElementById('error').textContent"), /Đã lưu số khách mới — giảm giá đang lớn hơn tiền dịch vụ\..*Giảm giá lớn hơn tiền dịch vụ sau khi bớt khách/);
   assert.match(await p.ev("document.querySelector('[data-canh-bao=\"tong-am\"]')?.textContent ?? ''"), /nếu chưa hoàn thì Kế toán hoàn lại cho khách/);
-  assert.deepEqual((await p.ev(pairs)).slice(0, 3), [["Tạm tính", "1.350.000 ₫"], ["Giảm giá", "2.000.000 ₫"], ["Tổng cộng", "-650.000 ₫"]]);
+  assert.deepEqual((await p.ev(pairs)).slice(0, 3), [["Tạm tính", "1.350.000 ₫"], ["Giảm giá", "2.000.000 ₫"], ["Tổng cộng", "0 ₫"]]);
   assert.deepEqual(p.consoleErrors, [], `lỗi console: ${p.consoleErrors}`);
   await p.shot(`${OUT}/03-tong-am-1040.png`);
   p.close();
-  ok("5) tổng âm (1040): dải vàng kèm câu cảnh báo, câu thường trực ở khối Thanh toán, Tổng cộng −650.000");
+  ok("5) giảm giá vượt tạm tính (1040): dải vàng kèm câu cảnh báo, câu thường trực ở khối Thanh toán, Tổng cộng 0 (ADR-0109)");
 
   // ---- 6) đơn Đã giao: không có nút (Kế toán) ----
   const don3 = await donXacNhan({ services: [{ ...td101(1), departDate: vnDate(0) }], daTra: 1350000 });

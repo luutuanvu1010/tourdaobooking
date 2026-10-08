@@ -38,7 +38,7 @@ export const khuonKhop = (dong: string): string[] => KHUON.filter((k) => k.re.te
  * Rộng hơn ADR-0109 "Bối cảnh mã" (chỉ nêu phép TRỪ): khuôn P2/P3 bắt cả phép SO SÁNH, nên các chỗ so giảm giá với tạm tính / trần cũng phải có tên ở đây.
  */
 const CHO_PHEP: { file: string; khuon: RegExp; lyDo: string }[] = [
-  { file: "src/modules/orders/money-adjustment.ts", khuon: /return \{ total: subtotal - discount \};/, lyDo: "effectiveMoney — ĐỊNH NGHĨA phải thu (một hàm)" },
+  { file: "src/modules/orders/money-adjustment.ts", khuon: /return \{ total: Math\.max\(0, subtotal - discount\), giamGiaHieuLuc: Math\.min\(discount, subtotal\) \};/, lyDo: "effectiveMoney — ĐỊNH NGHĨA phải thu kẹp ≥ 0 và giảm giá hiệu lực (một hàm, ADR-0109)" },
   { file: "src/modules/orders/rules.ts", khuon: /if \(discount\.value > subtotal\) return fail\(/, lyDo: "lập / lưu nháp: chặn giảm giá > tạm tính (giảm giá ≤ tạm tính lúc lập)" },
   { file: "src/modules/orders/rules.ts", khuon: /const total = subtotal - discount\.value;/, lyDo: "lập / lưu nháp: total đã lưu (đã chặn giảm giá ≤ tạm tính ở dòng trên; trigger 0007 giữ total = subtotal − discount ≥ 0)" },
   { file: "src/shared/service-form.ts", khuon: /const total = subtotal - discount;/, lyDo: "xem trước trên biểu mẫu nháp (chưa lưu; máy chủ tính lại khi lưu)" },

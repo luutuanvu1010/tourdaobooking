@@ -242,8 +242,16 @@ export interface OrderDto {
   customerNote: string | null;
   subtotal: number;
   discount: number;
-  /** Tổng khách phải trả HIỆN HÀNH (sau điều chỉnh). Ba cột cọc cũ KHÔNG còn trong DTO (ADR-0026 đ9): "đã thu / còn lại" lấy qua route của billing. */
+  /**
+   * Tổng khách phải trả HIỆN HÀNH (sau điều chỉnh) = max(0, tạm tính − giảm giá) — không bao giờ âm (ADR-0109). Ba cột cọc cũ KHÔNG còn trong DTO (ADR-0026 đ9):
+   * "đã thu / còn lại" lấy qua route của billing.
+   */
   total: number;
+  /**
+   * Giảm giá hiệu lực = min(giảm giá, tạm tính hiện hành) — ADR-0109 QĐ2; máy chủ tính bằng `effectiveMoney` (không bề mặt nào tự tính). Bằng `discount` trừ khi bớt
+   * khách làm tạm tính nhỏ hơn giảm giá. Trang đơn nội bộ vẫn hiện `discount` (giảm giá đã lưu) kèm cảnh báo; biên nhận gửi khách in số này.
+   */
+  giamGiaHieuLuc: number;
   paymentNote: string | null;
   createdAt: string;
   updatedAt: string;
