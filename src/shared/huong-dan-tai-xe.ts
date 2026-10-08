@@ -55,6 +55,7 @@ Trên máy tính, menu bên trái có: [[Trang chủ]], [[Cuốc của tôi]], [
 - **Khách chưa có tên (chỉ tài xế công ty):** trong ngày chạy, khối **Suất của khách** báo thiếu tên. Hỏi khách, bấm [[Bổ sung tên]], nhập họ tên, năm sinh rồi bấm [[Lưu]].
 - **Văn phòng đã báo huỷ:** vẫn tới điểm. Gặp khách thì bấm [[Đã đón]]; không gặp thì bấm [[Khách đã huỷ]] để trả chỗ.
 - **Muốn ghé điểm khác trước:** khi xe đang chạy, điểm chưa tới có nút mũi tên lên và mũi tên xuống để đổi thứ tự.
+- **Cần đường tới điểm:** trong ngày chạy, mỗi điểm chưa xong có nhóm **Chỉ đường**. Bấm [[Google Maps]] để mở bản đồ với điểm đến điền sẵn; iPhone, iPad, máy Mac có thêm [[Apple Maps]]. Bản đồ chỉ nhận địa chỉ điểm đến, không nhận tên hay số điện thoại khách. Điểm đã xong hoặc chuyến đã kết thúc thì không còn nút. Điểm chưa có địa chỉ thì bản đồ tìm theo tên điểm, có thể sai — báo văn phòng.
 - **Xe hỏng, không đi tiếp được:**
   1. Bấm [[Kết thúc gián đoạn]].
   2. Chọn một lý do trong danh sách.
