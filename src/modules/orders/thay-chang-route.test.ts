@@ -6,6 +6,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { ACC, ADM, DRIVER, FIELD, LOC, NGAY, PARTNER, SALES, batDongHo, chiTiet, denGio, don, setup, taoChuyen, xe, xepHet } from "../../../tests/audit/dieu-phoi-khung.mjs";
+import { seedStaff } from "../../../tests/audit/harness.mjs";
 import { legCloseReplaceChecked } from "./chang-hanh-khach-repo.ts";
 
 const NO_SUCH = "00000000-0000-4000-8000-000000000000";
@@ -184,7 +185,7 @@ test("(d) khoá lạc quan: mốc đơn cũ → 409 stale, không ghi gì; chặ
   }
 });
 
-test("(e) đơn nháp → 409 use_order_form; đơn huỷ → 409 not_editable; Kế toán, Đối tác, Hướng dẫn viên không phụ trách → 403; không ghi gì", async () => {
+test("(e) đơn nháp → 409 use_order_form; đơn huỷ → 409 not_editable; Kế toán, Đối tác, Hướng dẫn viên (cả khi đang phụ trách), Bán hàng khác người lập → 403; 403 TRƯỚC 400 / 404 (thân hỏng, legId hỏng); không ghi gì", async () => {
   const tat = batDongHo();
   try {
     const w = setup();
@@ -204,7 +205,28 @@ test("(e) đơn nháp → 409 use_order_form; đơn huỷ → 409 not_editable; 
       const x = await thay(w, d.id, d.legId, as, { expectedUpdatedAt: truoc.updatedAt, leg: MOI });
       assert.equal(x.status, 403, `${as}: ${x.text}`);
     }
+    // Bán hàng KHÁC người lập (ô ownOrAssigned: không phải chủ đơn, không phụ trách) → 403 (người kiểm L4, 2026-10-08).
+    const SALES_KHAC = "22222222-2222-4222-8222-222222222222";
+    seedStaff(w.sqlite, { id: SALES_KHAC, phone: "0900000002", name: "Bình", perms: ["SALES"] });
+    const bk = await thay(w, d.id, d.legId, SALES_KHAC, { expectedUpdatedAt: truoc.updatedAt, leg: MOI });
+    assert.equal(bk.status, 403, bk.text);
+    assert.equal(bk.json.error.code, "forbidden");
+    // Thứ tự từ chối (người kiểm L5): ô quyền hỏi TRƯỚC khi đọc thân và trước khi xét legId — Kế toán gửi thân hỏng / legId hỏng vẫn 403, không 400 / 404.
+    const thanHong = await w.call("POST", `/api/orders/${d.id}/legs/${d.legId}/replace`, { as: ACC, body: "rác" });
+    assert.equal(thanHong.status, 403, thanHong.text);
+    const thanRong = await thay(w, d.id, d.legId, ACC, {});
+    assert.equal(thanRong.status, 403, thanRong.text);
+    const legHong = await thay(w, d.id, "khong-phai-uuid", ACC, { expectedUpdatedAt: truoc.updatedAt, leg: MOI });
+    assert.equal(legHong.status, 403, legHong.text);
     khongGhiGi(w, d, truoc);
+    // Hướng dẫn viên ĐANG phụ trách đơn: ô `order.trip.edit` của quyền FIELD là none — phụ trách không mở ô → 403.
+    const pt = await don(w, { gio: "13:00", handler: FIELD });
+    const nguoiPt = (await w.call("GET", `/api/dispatch/handlers?orderIds=${pt.id}`, { as: ADM })).json.handlers[pt.id];
+    assert.equal(nguoiPt?.staffId, FIELD, "HDV thật sự đang phụ trách đơn (ca có nghĩa)");
+    const truocPt = await chup(w, pt);
+    const hdv = await thay(w, pt.id, pt.legId, FIELD, { expectedUpdatedAt: truocPt.updatedAt, leg: MOI });
+    assert.equal(hdv.status, 403, hdv.text);
+    khongGhiGi(w, pt, truocPt);
 
     assert.equal((await w.call("POST", `/api/orders/${d.id}/status`, { as: SALES, body: { status: "cancelled", lyDo: "KHACH_DOI_Y" } })).status, 200);
     const huy = await lay(w, d.id);
