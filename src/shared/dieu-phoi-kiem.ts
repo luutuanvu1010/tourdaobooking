@@ -19,7 +19,7 @@ import { LOAI_CO_DINH } from "./giay-to.ts";
 import { canhBaoGioLai, type CanhBaoGioLai, type ChuyenGioLai } from "./gio-lai.ts";
 import { chongNuaMo, nhanKhoangGio } from "./khung-ban.ts";
 import { lyDoGiu, type LyDoGiu } from "./ly-do-giu.ts";
-import { kiemMocXep, type LenhXep } from "./moc-toi-thieu.ts";
+import { gioXetSuaChuyen, kiemMocXep, type LenhXep } from "./moc-toi-thieu.ts";
 import { suatTraTruocDon } from "./thu-tu-diem.ts";
 import { msToVnLocal, ngayNgan, vnToday } from "./vn-date.ts";
 
@@ -146,7 +146,7 @@ export function kiemTaoSuaChuyen(v: KiemTaoSuaChuyenVao): KetQuaTaoSua {
   // Mốc lúc xếp: chỉ khi SỬA mà đổi xe / đổi tài xế (Q2 = (a): tạo chuyến trong mốc không khoá). Giờ xét = sớm nhất của cũ / mới / giờ sớm nhất từng có —
   // không lách mốc bằng cách dời giờ trong CÙNG lệnh, cũng không bằng chuỗi lệnh "dời ra → đổi → dời về" (khoá dính R-P6). Dời giờ một mình không khoá.
   if (v.lenh === "SUA" && v.cu && v.chinhSach) {
-    const batDau = Math.min(v.cu.batDauMs, c.batDauMs, v.cu.batDauSomNhatMs ?? v.cu.batDauMs);
+    const batDau = gioXetSuaChuyen(v.cu.batDauMs, c.batDauMs, v.cu.batDauSomNhatMs); // một phép với "dưới mốc" của lớp vượt (ADR-0104 Đ1 mục 0)
     const lenh: LenhXep[] = [];
     if (v.cu.xeId !== c.xe.id) lenh.push("DOI_XE");
     if (v.cu.taiXePartyId !== (c.taiXe?.partyId ?? null)) lenh.push("DOI_TAI_XE");
