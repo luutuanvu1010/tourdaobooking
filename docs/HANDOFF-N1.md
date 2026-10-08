@@ -14,7 +14,21 @@ Khối do `npm run trien-khai` in ra (chủ chạy), kèm phần AI tự kiểm 
 - **Kiểm trước phát hành (nhánh `claude/so-tien-luot-2-dai-ly`):** typecheck 0; `npm test` 3799 bài / 0 đỏ (một bài `standards` chỉ đỏ khi chạy ngoài kho git); e2e ĐỦ BỘ 54/54 + `audit-invariants --strict` đạt ở cả ba nhóm; Chrome `so-dai-ly-smoke` 80/80 và `a2-smoke-order` 11/11 có `AXE_JS`; 14 phép phá cố ý đều đỏ đúng chỗ; kiểm độc lập toàn nhánh (mô hình mạnh nhất) ĐẠT — `docs/superpowers/specs/2026-10-08-so-dai-ly-dot-1/kiem-doc-lap-thi-cong.md`. Sổ: `docs/superpowers/plans/2026-10-08-so-dai-ly-dot-1-thi-cong-nhat-ky.md`.
 - **Giới hạn đã biết:** đợt 1 chỉ gắn được hoa hồng cho đại lý là hồ sơ CÁ NHÂN có tài khoản đối tác (hồ sơ tổ chức chưa mang được vai được hưởng — cần ADR); mức ghi tay bị tính lại khi đổi bên đặt đơn đã xác nhận (chủ chọn «ghi nợ» 12/10); đợt 2, đợt 3 chưa làm. Nợ và việc treo: `docs/BACKLOG.md` mục 26–27, mục «Việc còn treo» cuối tệp này.
 - **Chưa kiểm:** iPhone thật; các màn mới trên production bằng tài khoản thật (chưa ai mở sau triển khai).
-- Các bản 1.82–1.86 chưa có mục riêng trong tệp này.
+- Bản 1.86 có mục riêng ngay bên dưới (gồm cả 1.85); các bản 1.82–1.84 xem ghi chú ở mục 1.81 phía dưới nữa.
+
+## TRẠNG THÁI TRIỂN KHAI (cũ) — Phiên bản 1.86 ĐÃ LÊN PRODUCTION (QR thanh toán VietQR — ADR-0108; mã giao dịch ngân hàng bắt buộc — ADR-0092 Đ6; gồm cả 1.85) — migration `0087_pty_tai_khoan_nhan_tien`, `0088_bil_ma_giao_dich` đã áp (2026-10-08 17:35 giờ VN)
+
+Chủ dự án tự chạy `npm run day-len -- claude/ticket-sales-qr-payment-cf8e18` rồi `npm run trien-khai` (2026-10-08 chiều). Kết quả do `trien-khai` in ra và AI kiểm lại bằng lệnh chỉ đọc ngay sau đó:
+
+- **Phiên bản:** `kiem-phien-ban.mjs` trước deploy ĐẠT (máy 1.86 > production 1.84), sau deploy ĐẠT ("production đang chạy đúng bản 1.86"); `GET /api/auth/config` → `"version":"1.86"`. Mã = `43857d7a` (= `origin/main` lúc phát hành).
+- **Worker** (`wrangler deployments list`): mới nhất **d5c6d6a8-e4b4-47ef-b937-9234b6d290fe** (2026-10-08T10:35Z). Trước đó 72d2dc12-92aa-4149-ab97-97905f0b747d (2026-10-05T23:40Z, bản 1.84).
+- **Migration:** `0087`, `0088` áp lúc phát hành; `wrangler d1 migrations list --remote` sau đó → "No migrations to apply!". Điểm khôi phục Time Travel trước khi áp: `00000cc3-00000000-000050fe-4e5b8fb1acc4d276bbc1e552d0f72f84`.
+- **Dữ liệu:** `audit-invariants --db remote` → "Mọi bất biến đạt, 3 cảnh báo" (R-VC-14: 7 xe thiếu giấy tờ điều kiện xuất bến; R-CTL-1: 3 dịch vụ chưa gán nhóm; thông tin 22 lần thu người thu chưa rõ — cả ba có từ trước); **R-BIL-D6a, R-BIL-D6b (mới) đạt** — không lần thu nào ghi thiếu mã trong khoảng giữa migration và deploy.
+- **Kiểm trước phát hành:** typecheck 0; npm test 3445 (3443 đạt, 0 đỏ, 2 để dành); e2e đủ bộ 52/52 (483 giây, trong `trien-khai`); người kiểm độc lập + người kiểm cuối nhánh ĐẠT sau một lượt sửa; chủ quét QR thật bằng MB Bank và Vietcombank đúng cả bốn thứ. Sổ: `docs/superpowers/plans/2026-10-08-qr-thanh-toan-thi-cong-nhat-ky.md`.
+- **Route mới:** `GET /api/orders/:id/qr-thanh-toan` và `GET /api/parties/:id/tai-khoan-nhan-tien` không đăng nhập → 401 (lần gọi đầu ngay sau deploy có một lần 404 do bản cũ còn ở vài nơi, gọi lại 401).
+- **Bảo trì:** `GET /api/auth/config` báo đang BẬT tới 2026-10-10 11:50 giờ VN (`endsAt` 2026-10-10T04:50Z) — chủ bật từ trước, không do lần phát hành này.
+- **Việc của chủ sau phát hành:** cài tài khoản nhận tiền thật ở Danh bạ → Công ty TNHH Tour Đảo → "Tài khoản nhận tiền" (chưa cài thì nút QR báo "Công ty chưa cài tài khoản nhận tiền"). AI không kiểm được việc này (không đăng nhập production).
+- **Chưa kiểm:** nút "Lưu ảnh" trên iPhone thật.
 
 ## TRẠNG THÁI TRIỂN KHAI (cũ) — Phiên bản 1.81 ĐÃ LÊN PRODUCTION (Vận chuyển Đợt 7: cam kết "xe riêng" / "xe tối thiểu N chỗ" trên chặng đưa đón, ADR-0056 VK3-A) — migration `0077_cam_ket_chang` đã áp (2026-10-05 18:43 giờ VN)
 
@@ -747,7 +761,7 @@ npm run trien-khai
 
 ## Lần phát hành kế tiếp: QR thanh toán + mã giao dịch ngân hàng (ADR-0108, ADR-0092 Đ6; migration `0087`, `0088`) — RUNBOOK
 
-**Trạng thái: CHƯA phát hành** (nhánh `claude/ticket-sales-qr-payment-cf8e18`). Mọi bước sau A.0 do `npm run trien-khai` làm như thường; mục này chỉ ghi điều KHÁC. Đặc tả: `docs/superpowers/specs/2026-10-08-qr-thanh-toan/README.md`; nhật ký thi công: `docs/superpowers/plans/2026-10-08-qr-thanh-toan-thi-cong-nhat-ky.md`; công thức và bẫy: `docs/CHANGE-GUIDE.md` (QR / mã giao dịch).
+**Trạng thái: ĐÃ phát hành bản 1.86 ngày 2026-10-08 17:35 giờ VN** (xem mục "TRẠNG THÁI TRIỂN KHAI" ở đầu tệp; phần dưới giữ làm hướng dẫn điểm lùi). Mọi bước sau A.0 do `npm run trien-khai` làm như thường; mục này chỉ ghi điều KHÁC. Đặc tả: `docs/superpowers/specs/2026-10-08-qr-thanh-toan/README.md`; nhật ký thi công: `docs/superpowers/plans/2026-10-08-qr-thanh-toan-thi-cong-nhat-ky.md`; công thức và bẫy: `docs/CHANGE-GUIDE.md` (QR / mã giao dịch).
 
 **Điều kiện phát hành (kiểm LÚC phát hành bằng lệnh chỉ đọc, không tin tài liệu):** migration `0078`–`0083` đã có trên production — `npx wrangler d1 migrations list tourdao-sales-db --remote` chỉ được liệt kê `0087_pty_tai_khoan_nhan_tien`, `0088_bil_ma_giao_dich` (và migration của nhánh khác gộp sau) là chưa áp. Không đổi bí mật, không đổi `vars`, không đổi CSP, không migration Durable Object.
 
