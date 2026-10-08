@@ -83,6 +83,24 @@ Sổ điều phối (CLAUDE.md §9, P19). Trạng thái sống ở đây, không
   - **Nợ mới (THẤP, phát hiện khi dò lỗi trên):** khung đọc chuyến lân cận `tripsTouching(batDau − 1 ngày, ketThuc + 1 ngày)` tính theo giờ KẾ HOẠCH, còn luật nghỉ so giờ THẬT. Khi Toàn quyền đặt cửa sổ xuất bến > 24 giờ (cho tới 48 giờ), một chuyến xuất bến sớm hơn một ngày có thể không thấy chuyến vừa kết thúc của cùng tài xế → không kiểm nghỉ. Mặc định 12 giờ thì không xảy ra. Đây là **mã lệch luật đã duyệt** (ADR-0049 `:171` "từ giờ kết thúc thật", ADR-0050 VK1-B giờ xảy ra; LC-20 cho cửa sổ tới 48 giờ) → sửa mã theo CLAUDE.md §2, bài đỏ trước (khung đọc phải phủ mọi chuyến kết thúc thật trong `[xuất bến − nghỉ, xuất bến]`); không phải câu hỏi cho chủ. Việc riêng nhỏ, làm sau khi giao thi công ADR-0104 (cùng chạm `van-chuyen`).
   - Sửa chữ A2 V-1, V-2 + chú thích cũ dispatch (`d6db7dd4`): npm test 3602 bài 0 đỏ (bước đo giờ xanh), typecheck 0; Chrome sau `build:web`: `cuoc-smoke` **"CUOC SMOKE OK (18 bước)"**, `dua-don-smoke` OK (16 bước, câu khoá mới cho người lập / Kế toán / Đối tác), `hdv-viec-cua-toi-smoke` OK, `doi-tac-lap-don-smoke` OK, `sua-so-khach-smoke` thoát 0; `a2-smoke-order` vẫn đỏ ở chỗ cũ "form mở lại đơn" (trước bước câu khoá — cùng lỗi đỏ sẵn).
 
+## ADR-0104 — thi công (bắt đầu 8/10)
+
+- Kế hoạch: `docs/superpowers/plans/2026-10-08-adr-0104-ke-hoach.md` (trợ lý lập kế hoạch, chỉ đọc; bốn câu hỏi cuối tệp đã xử lý ở G7–G10, không câu nào cần chủ).
+- **Đ1 — đang thi công**, nhánh `adr-0104-d1` từ `1eb7de36`. Commit đầu (C0) là sửa khung đọc chuyến lân cận theo giờ thật (nợ mới ở "Kiểm cuối Giai đoạn 2"). Lý do gộp vào đây: cùng tệp `van-chuyen`, cùng được kiểm độc lập. Điều phối nhắc riêng người thi công:
+  - đối chiếu ô `trip.urgent_adjust` với chữ ký `row()`;
+  - ngân sách phút đọc của hướng dẫn Bán hàng;
+  - mỗi bài bị nới phải thêm ca ngoài mốc trả 403;
+  - báo việc đổi thứ tự 404/403.
+
+  **Người kiểm Đ1 phải đối chiếu ô quyền với ADR-0104 Q-1 b và lời chủ 8a**, không đối chiếu với kế hoạch.
+- **Đ2 — chờ Đ1 gộp** (kế hoạch mục 0: tuần tự).
+- **Lượt duyệt 8c — đang soạn**, nhánh `luot-duyet-8c`, ba quyết định kèm trang ghép:
+  - tổng tiền âm sau khi bớt khách (ADR mới 0109, chặn phát hành A2);
+  - hai chỗ mã lệch ADR-0096 ở §16;
+  - `PUT /api/orders/:id/trip` (G8 + A3 V3 MQ-07).
+  
+  Soạn xong kiểm một vòng rồi mới trình chủ.
+
 ## Việc song song
 
 - Lượt duyệt kế đã soạn: `docs/superpowers/specs/2026-10-08-luot-duyet-van-chuyen/`. Kiểm độc lập lần 1: tệp 02 KHÔNG ĐẠT (C1: nhánh "xe đang chạy" của đồng bộ chuyến vấp trigger `0076` — chỉ cho cờ báo huỷ sau sự kiện `ALLOCATION_OFFICE_CANCELLED`; C2: số 0103 trùng đề xuất VietQR ở nhánh `claude/ticket-sales-qr-payment-cf8e18`), tệp 00, 01, 03 ĐẠT CÓ ĐIỀU KIỆN. **Điều phối chốt:** bỏ nhánh xe đang chạy (máy chỉ báo tin, văn phòng bấm "Báo huỷ"); đổi số thành 0104 (điều chỉnh khẩn cấp + đồng bộ) và 0105 (Chỉ đường); cơ chế "cổng đơn đã thắng" chọn phương án (a) — van-chuyen kiểm qua view audit hẹp (khoá + nhãn); chia lượt **8a** = tệp 01 + 02 Đ1 + 02 Đ2 (3 quyết định), **8b** = Q-3 (Bán hàng tự xác nhận đơn sát giờ) + tệp 03 + mốc chụp khoảng nghỉ N3. Vòng 2 (`fc988062`) và vòng 3 (`9b6eca85`) đã chép sang nhánh (`d9fab1b2`, `6a2b2d0c`). Phiếu kiểm vòng 3 ghi 8a SẴN SÀNG. Điều phối đã tự đọc diff `fc988062..9b6eca85` của tệp 00 và 02: câu duyệt khớp thân; chiều ghép lô (van-chuyen nhận câu đơn qua `ctx.dongBoChuyen`, orders chạy một `db.batch`) không trái luật module. Không mở thêm vòng kiểm nào, theo luật chung "văn bản đề xuất kiểm một vòng". **8a trình chủ 8/10** thành ba câu hỏi: tệp 01; Đ1 kèm Q-1; Đ2 kèm Q-2. 8b chờ: đến lúc trình, điều phối tự đọc hai chỗ người soạn thêm ngoài phiếu ở tệp 05, là mã 409 mới `short_notice_not_needed` và việc bỏ điều kiện `chiOPhu`.
