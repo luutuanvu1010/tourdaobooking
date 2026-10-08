@@ -5,7 +5,8 @@
 //   (6) route chặng sau xác nhận: thêm/sửa/đóng; 403 cho kế toán, hướng dẫn viên; đơn nháp 409 `use_order_form`; mốc cũ 409 `stale`;
 //   (7) hành khách: nháp 3 → giữ → rỗng; sau xác nhận thêm/sửa (dòng mới cùng person_key)/huỷ (mọi dòng); kế toán GET 200 POST 403; HDV phụ trách GET 200,
 //       đơn khác 404;
-//   (8) cờ vượt số khách dùng số khách HIỆU LỰC (HDV sửa số khách).
+//   (8) cờ vượt số khách dùng số khách HIỆU LỰC (HDV sửa số khách);
+//   (10) THAY chặng (C14): một lô đóng chặng cũ + thêm chặng mới; mốc đơn cũ 409 `stale` không ghi gì; dưới mốc 409 `short_notice_required`.
 // Dùng danh mục GIẢ `ZE1` (`ensureFakeCatalog`, không cần Sheet — DK-T3-01 cấm dịch vụ nhập tay mới). Tên khách là tên GIẢ có đánh dấu, năm sinh hiếm.
 import assert from "node:assert/strict";
 import { ACCOUNTS, call, catalogService, ensureFakeCatalog, orderInput, session, sql, sqlRows, vnDate } from "./lib.mjs";
@@ -173,6 +174,57 @@ console.log("✓ (8) cờ vượt số khách dùng số khách hiệu lực (HD
   const legId2 = (await sqlRows(`SELECT id FROM ord_transfer_leg WHERE order_id = '${g.id}' AND closed_at IS NULL`))[0].id;
   await assert.rejects(sql(`UPDATE ord_transfer_leg SET short_notice_lead_minutes = NULL WHERE id = '${legId2}'`), /CHECK constraint failed/);
   console.log("✓ (9) mốc 6 giờ: lưu nháp có cảnh báo, xác nhận 409 short_notice_required; Bán hàng đặt gấp 403; Quản trị đặt gấp 200 (360 phút, ghi chú che số); xác nhận 200; CHECK 0040 giữ trên D1");
+}
+
+// (10) C14 — THAY CHẶNG trên D1 THẬT (`POST /api/orders/:id/legs/:legId/replace`; người kiểm độc lập V3, 2026-10-08): đóng chặng cũ + thêm chặng mới
+// trong MỘT lô, MỘT khoá lạc quan theo mốc ĐƠN. Thắng: 200, chặng cũ đóng REPLACED (dòng còn), chặng mới mở, ghi kép = chặng mới, đúng hai dòng nhật ký.
+// Thua: mốc ĐƠN cũ → 409 `stale`, đọc lại đơn thấy mốc, chặng, ghi kép, nhật ký y nguyên. Dưới mốc: chặng mới đón sau 2 giờ, Bán hàng không `datGap` →
+// 409 `short_notice_required`, chặng cũ vẫn mở, không ghi gì.
+{
+  const nhatKyDon = async (id) => sqlRows(`SELECT action, detail FROM audit_log WHERE order_id = '${id}' ORDER BY rowid`);
+  const chupDon = async (id) => ({ updatedAt: (await get(id)).updatedAt, legs: await legsSql(id), mirror: await mirror(id), nhatKy: (await nhatKyDon(id)).length });
+
+  r = await call(A, "POST", "/api/orders", orderInput({ services: [svc({ legs: [OUT] })] }));
+  assert.equal(r.status, 201, JSON.stringify(r.body));
+  const t = r.body.order;
+  assert.equal((await call(A, "POST", `/api/orders/${t.id}/status`, { status: "confirmed" })).status, 200);
+  const truocThay = await get(t.id);
+  const cuId = truocThay.services[0].legs[0].id;
+  const soNhatKyTruoc = (await nhatKyDon(t.id)).length;
+  const MOI = { ...OUT, pickupDate: D, pickupTime: "08:15", pickupPlace: "Khách sạn Thay E2E" };
+  r = await call(A, "POST", `/api/orders/${t.id}/legs/${cuId}/replace`, { expectedUpdatedAt: truocThay.updatedAt, leg: MOI });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  const moiLegs = r.body.order.services[0].legs;
+  assert.deepEqual(moiLegs.map((l) => [l.direction, l.pickupTime, l.id === cuId]), [["OUT", "08:15", false]], "còn đúng chặng mới");
+  const cuSql = (await legsSql(t.id)).find((l) => l.id === cuId);
+  assert.ok(cuSql && cuSql.closed_at !== null, "chặng cũ đóng, dòng còn trong CSDL");
+  assert.equal(cuSql.close_reason_code, "REPLACED");
+  assert.deepEqual(await mirror(t.id), [{ pickup_time: "08:15", pickup_place: "Khách sạn Thay E2E" }], "ghi kép = chặng mới");
+  const nkMoi = (await nhatKyDon(t.id)).slice(soNhatKyTruoc);
+  assert.deepEqual(nkMoi.map((x) => x.action), ["order_leg_closed", "order_leg_added"], "đúng hai dòng nhật ký của lô thay");
+  assert.match(nkMoi[0].detail, /bỏ — Đổi sang chặng khác/);
+
+  const sauThang = await chupDon(t.id);
+  r = await call(A, "POST", `/api/orders/${t.id}/legs/${moiLegs[0].id}/replace`, { expectedUpdatedAt: truocThay.updatedAt, leg: { ...MOI, pickupTime: "09:30" } });
+  assert.equal(r.status, 409, JSON.stringify(r.body));
+  assert.equal(r.body.error.code, "stale");
+  assert.deepEqual(await chupDon(t.id), sauThang, "lô thua (mốc đơn cũ): mốc đơn, chặng, ghi kép, nhật ký y nguyên");
+
+  // Dưới mốc: đơn đi ngày mai, chặng 20:00 (luôn ≥ 20 giờ nữa → xác nhận được); thay bằng chặng đón sau 2 giờ (cách lấy giờ VN như khối (9)).
+  const ngayDi = vnDate(1);
+  r = await call(A, "POST", "/api/orders", orderInput({ services: [catalogService({ pax: { adult: 2 }, departDate: ngayDi, legs: [{ ...OUT, pickupDate: ngayDi, pickupTime: "20:00" }] })] }));
+  assert.equal(r.status, 201, JSON.stringify(r.body));
+  const m = r.body.order;
+  assert.equal((await call(A, "POST", `/api/orders/${m.id}/status`, { status: "confirmed" })).status, 200);
+  const mc = await get(m.id);
+  const mLegId = mc.services[0].legs[0].id;
+  const truocMoc = await chupDon(m.id);
+  const sau2 = new Date(Date.now() + 7 * 3600e3 + 120 * 60e3).toISOString();
+  r = await call(A, "POST", `/api/orders/${m.id}/legs/${mLegId}/replace`, { expectedUpdatedAt: mc.updatedAt, leg: { ...OUT, pickupDate: sau2.slice(0, 10), pickupTime: sau2.slice(11, 16) } });
+  assert.equal(r.status, 409, JSON.stringify(r.body));
+  assert.equal(r.body.error.code, "short_notice_required");
+  assert.deepEqual(await chupDon(m.id), truocMoc, "dưới mốc: chặng cũ vẫn mở, không ghi gì");
+  console.log("✓ (10) thay chặng: 200 một lô (chặng cũ đóng REPLACED, chặng mới mở, ghi kép, 2 dòng nhật ký); mốc đơn cũ 409 stale không ghi gì; dưới mốc 409 short_notice_required không ghi gì");
 }
 
 console.log("\nE2E CHẶNG + HÀNH KHÁCH OK");
