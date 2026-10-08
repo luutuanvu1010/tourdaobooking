@@ -291,3 +291,28 @@ test("Task 4b: lưu nháp chen vào mà KHÔNG đổi gì liên quan chụp (ch�
   assert.equal((await xacNhan(w, id)).status, 200);
   assert.equal(chup(w, id).length, 1);
 });
+
+test("Task 4b qua route thật: PUT /api/orders/:id/booker (bỏ bên đặt) chen vào khe giữa lúc đọc và lúc lô chạy ⇒ xác nhận 409, đơn còn nháp, 0 bản chụp; bấm lại ⇒ 200 và bản chụp KHÔNG có hoa hồng đại lý", async () => {
+  const w = setup();
+  await muc(w, { doiTuong: { loai: "VAI", code: "TRAVEL_AGENCY" }, phamVi: "ALL", kieu: "RATE", tyLeBp: 1000 });
+  const id = nhap(w, "pty-dla", [["HONTAM", 1_000_000]]);
+  await w.token(SALES); // mở phiên trước: lời gọi route lồng trong khe là lời gọi thứ hai của cùng tài khoản
+  let put: { status: number; text: string } | null = null;
+  // Lời gọi route THẬT (không viết SQL tay): bên đặt bị bỏ, mốc `updated_at` đơn do `changeBooker` đẩy.
+  chenTruocLoCho(w, /UPDATE orders SET status = 'confirmed'/, async () => {
+    const hienTai = String(w.q("SELECT updated_at FROM orders WHERE id = ?", id)[0].updated_at);
+    put = await w.call("PUT", `/api/orders/${id}/booker`, { as: SALES, body: { customerName: "Khách Giả", customerPhone: "0900000099", expectedUpdatedAt: hienTai } });
+  });
+  const r = await xacNhan(w, id);
+  assert.equal(put!.status, 200, put!.text);
+  assert.equal(w.q("SELECT booker_party_id FROM orders WHERE id = ?", id)[0].booker_party_id, null, "bên đặt đã bị bỏ");
+  assert.equal(r.status, 409, r.text);
+  cauBaoSach(r);
+  khongGhiGi(w, id);
+  const lai = await xacNhan(w, id);
+  assert.equal(lai.status, 200, lai.text);
+  const ds = chup(w, id);
+  assert.equal(ds.length, 1);
+  assert.equal(ds[0].commission_status, "NONE", "khách lẻ không bị ghi hoa hồng đại lý");
+  assert.equal(ds[0].beneficiary_party_id, null);
+});
