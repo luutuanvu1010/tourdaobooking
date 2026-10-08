@@ -648,7 +648,7 @@ const syntheticOrder = (money, big = true) => {
     id: "o1", orderCode: "TD-20260921-9999", staffId: "st", staffName: "Nguyễn Thị Người Lập", status: "confirmed",
     customerName: `${LONG_WORD}-${LONG_WORD}`, customerPhone: "0901 234 567", customerEmail: `${LONG_WORD.replace(/-/g, ".")}@example.com`.toLowerCase(),
     customerNote: Array.from({ length: 12 }, (_, i) => `Ghi chú khách dòng ${i + 1}: yêu cầu đặc biệt khá dài cần ngắt dòng đúng chỗ, dấu tiếng Việt không được cắt, ${LONG_WORD}`).join("\n"),
-    subtotal: money, discount: money, total: money, paymentNote: "NOI-BO", createdAt: "2026-09-20T18:30:00.000Z", updatedAt: "2026-09-20T18:30:00.000Z", confirmedAt: null, deliveredAt: null, completedAt: null, services,
+    subtotal: money, discount: money, total: money, giamGiaHieuLuc: money, paymentNote: "NOI-BO", createdAt: "2026-09-20T18:30:00.000Z", updatedAt: "2026-09-20T18:30:00.000Z", confirmedAt: null, deliveredAt: null, completedAt: null, services,
   };
 };
 await step("h", "đơn cỡ tối đa (20 dịch vụ, 50 dòng, tên 100+ ký tự liền, tiền 100.000.000.000 ₫, ghi chú dài) và tiền rộng quá cột: không lỗi, không tràn lề, không chữ chồng nhau, mọi chữ có mực, đúng giới hạn diện tích canvas", async () => {

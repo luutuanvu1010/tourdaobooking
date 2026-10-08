@@ -1884,6 +1884,7 @@ export interface ReceiptDto {
   customerNote: string | null;
   services: ReceiptServiceDto[];
   subtotal: number;
+  /** Giảm giá IN TRÊN BIÊN NHẬN = giảm giá hiệu lực (`OrderDto.giamGiaHieuLuc`, ADR-0109 QĐ4); bằng giảm giá đã lưu trừ khi tạm tính hiện hành nhỏ hơn. subtotal − discount = total. */
   discount: number;
   total: number;
   /** Đã trả trước (billing `conLai` — một hàm). */

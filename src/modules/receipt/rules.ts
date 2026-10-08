@@ -27,7 +27,9 @@ export function dungBienNhan(order: OrderDetailDto, company: CompanyDto, tien: {
       items: s.items.map((it) => ({ description: it.description, detail: it.detail, quantity: it.quantity, unitPrice: it.unitPrice, lineTotal: it.lineTotal })),
     })),
     subtotal: order.subtotal,
-    discount: order.discount,
+    // ADR-0109 QĐ4: dòng "Giảm giá" gửi khách = giảm giá HIỆU LỰC (min(giảm giá, tạm tính hiện hành), máy chủ tính bằng `effectiveMoney`) để Tạm tính − Giảm giá =
+    // Tổng cộng; bằng giảm giá đã lưu trừ khi bớt khách làm tạm tính nhỏ hơn. Không suy ngược `subtotal − total` (chỗ tính thứ hai — Hiến chương 5.4).
+    discount: order.giamGiaHieuLuc,
     total: order.total,
     daTra: tien.daTra,
     conLai: tien.conLai,
