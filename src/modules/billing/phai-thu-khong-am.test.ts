@@ -66,3 +66,11 @@ test("ADR-0109 (SV-SK-09): chưa trả đồng nào, bớt khách tới giảm g
   assert.equal(giao.status, 200, giao.text);
   assert.deepEqual(banChup(w, id), [0]);
 });
+
+test("ADR-0109 'Số trên báo cáo': ô 'Còn thiếu tiền' (GET /api/ledger/unpaid-summary) không đếm đơn có phải thu 0 sau khi bớt khách (không đổi so với trước — còn lại vốn đã 0)", async () => {
+  const w = setup();
+  await donTongAm(w, 0);
+  const r = await w.call("GET", "/api/ledger/unpaid-summary", { as: ACC });
+  assert.equal(r.status, 200, r.text);
+  assert.deepEqual([r.json.count, r.json.total], [0, 0]);
+});

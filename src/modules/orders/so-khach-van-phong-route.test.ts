@@ -364,6 +364,19 @@ test("TC8c (ADR-0109, phiếu kiểm 5b): khách CHƯA trả đồng nào, bớt
   assert.equal(giaoR.status, 200, giaoR.text);
 });
 
+test("TC8d (ADR-0109 QĐ5, bài 6): bớt khách tới giảm giá > tạm tính rồi HUỶ → chi tiết đơn Tổng cộng 0 (không âm); khối Thanh toán còn lại 0, dư 0; số cọc khách đã trả 200.000 không đổi", async () => {
+  const w = setup();
+  const d = await taoDon(w, { discount: 800000 });
+  assert.equal((await w.call("POST", `/api/orders/${d.id}/payments`, { as: ID.ACC, body: { soTien: 200000, hinhThuc: "BANK_TRANSFER", nguoiThu: "cong_ty" } })).status, 201);
+  assert.equal((await sua(w, ID.ACC, d.id, than(d.svc, P(1), "BOT_NGUOI"))).status, 200);
+  const huy = await w.call("POST", `/api/orders/${d.id}/status`, { as: ID.SALES, body: { status: "cancelled", lyDo: "KHACH_DOI_Y" } });
+  assert.equal(huy.status, 200, huy.text);
+  const g = (await w.call("GET", `/api/orders/${d.id}`, { as: ID.ACC })).json.order;
+  assert.deepEqual([g.status, g.total, g.giamGiaHieuLuc], ["cancelled", 0, 500000]);
+  const p = (await w.call("GET", `/api/orders/${d.id}/payments`, { as: ID.ACC })).json;
+  assert.deepEqual([p.conLai, p.du, p.coc?.daTra], [0, 0, 200000], "đơn huỷ đi nhánh huỷ của conLai (0/0); cọc giữ đúng số khách đã trả");
+});
+
 test("TC8e (ADR-0109 NT-12): GET chi tiết đơn có khoá giamGiaHieuLuc ở CẢ đơn chưa điều chỉnh (= discount) lẫn đơn đã điều chỉnh; tạm tính − giảm giá hiệu lực = tổng", async () => {
   const w = setup();
   const d = await taoDon(w, { discount: 100000 });
