@@ -506,9 +506,9 @@ export interface SuaSoKhachDichVuDto { serviceId: string; loaiKhach: PaxCode[] }
 export interface OrderDetailResponse { order: OrderDetailDto; history: AuditEntryDto[]; canModify: boolean; mocToiThieuPhut: number | null; suaSoKhach: SuaSoKhachDichVuDto[] | null }
 /**
  * `POST /api/orders/:id/money-edit` (ADR-0063 D1): đơn HIỆN HÀNH sau lần sửa; `daGhi` false = số khách y nguyên, không ghi gì; `canhBaoTongAm` = câu cảnh báo khi
- * tổng tiền âm (không chặn — `canhBaoTongAm` của src/shared/so-khach-van-phong.ts), null khi không âm.
+ * tổng tiền âm (không chặn — `canhBaoTongAm` của src/shared/so-khach-van-phong.ts), null khi không âm. `dongBoChuyen` chỉ có khi đã ghi (`daGhi`) — ADR-0104 Đ2.
  */
-export interface MoneyEditResponse { order: OrderDetailDto; daGhi: boolean; canhBaoTongAm: string | null }
+export interface MoneyEditResponse { order: OrderDetailDto; daGhi: boolean; canhBaoTongAm: string | null; dongBoChuyen?: DongBoChuyenDto }
 /** 409 xác nhận đơn khi còn chặng dưới mốc chưa đặt gấp (ADR-0049 D2). */
 /** `GET /api/orders/moc-toi-thieu` (ruling R-P15): mốc tối thiểu + cảnh báo sát mốc (phút) của chính sách HIỆN HÀNH — chỉ để biểu mẫu đơn chưa lưu hiển thị. */
 export interface MocToiThieuResponse { mocToiThieuPhut: number; canhBaoPhut: number }

@@ -1241,16 +1241,16 @@ export function insertMoneyAdjustment(
 }
 
 /**
- * Chạy lô sửa số khách trong MỘT `db.batch` — lô = câu do `insertMoneyAdjustment` soạn, sau này có thể nối thêm câu của module khác (ADR-0104 Đ2: phần chuyến
- * do `ctx.dongBoChuyen` nối SAU câu đơn). Đụng chỉ mục `seq` (người khác vừa ghi) → false (nơi gọi trả 409 stale); lỗi khác ném tiếp (trigger 0044 "Đã giao"
- * được router đổi thành 409 câu cố định).
+ * Chạy lô sửa số khách trong MỘT `db.batch` — lô = câu do `insertMoneyAdjustment` soạn, rồi phần chuyến do `ctx.dongBoChuyen` nối SAU câu đơn (ADR-0104 Đ2).
+ * Trả kết quả lô (để máy đồng bộ đọc khúc nào thắng — câu đơn đứng đầu, chỉ số không đổi). Đụng chỉ mục `seq` (người khác vừa ghi) → null (nơi gọi trả 409
+ * stale; cả lô huỷ nên không câu chuyến nào chạy); lỗi khác ném tiếp (nơi gọi thử `dichLoi` của máy đồng bộ trước; trigger 0044 "Đã giao" được router đổi
+ * thành 409 câu cố định).
  */
-export async function chayLoSuaSoKhach(db: D1Database, lo: readonly D1PreparedStatement[]): Promise<boolean> {
+export async function chayLoSuaSoKhach(db: D1Database, lo: readonly D1PreparedStatement[]): Promise<D1Result[] | null> {
   try {
-    await db.batch([...lo]);
-    return true;
+    return await db.batch([...lo]);
   } catch (e) {
-    if (isAdjustmentSeqCollision(e)) return false;
+    if (isAdjustmentSeqCollision(e)) return null;
     throw e;
   }
 }
