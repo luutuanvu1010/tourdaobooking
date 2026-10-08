@@ -39,7 +39,7 @@ const moLichSuGiayTo = new Set<string>();
 const STALE_NOTICE = "Hồ sơ vừa được người khác thay đổi nên bản đang xem đã cũ. Đã nạp bản mới — hãy kiểm tra rồi Lưu lại nếu vẫn cần.";
 /** Câu xác nhận trước khi đổi công ty chủ (ADR-0024 6.2: trang đăng nhập và biên nhận đọc hồ sơ công ty chủ). Không nói "Toàn quyền" (vai ẩn). */
 const XAC_NHAN_DOI_CONG_TY_CHU =
-  "Đặt hồ sơ này làm công ty chủ? Trang đăng nhập và biên nhận sẽ dùng thông tin của hồ sơ này từ hôm nay (tên, mã số thuế, địa chỉ, liên hệ ghi chú “Hotline”, email). Công ty chủ hiện tại sẽ thôi giữ công việc này.";
+  "Đặt hồ sơ này làm công ty chủ? Trang đăng nhập và biên nhận sẽ dùng thông tin của hồ sơ này từ hôm nay (tên, mã số thuế, địa chỉ, liên hệ ghi chú “Hotline”, email). Công ty chủ hiện tại sẽ thôi giữ công việc này. Sau khi đổi, kiểm lại mục “Tài khoản nhận tiền” của hồ sơ mới — chưa cài thì mã QR thanh toán báo lỗi.";
 const fail = (err: unknown) => showError(errorEl, err instanceof ApiError ? err.message : "Không kết nối được máy chủ.");
 
 /**
@@ -354,6 +354,11 @@ async function openDetail(id: string): Promise<void> {
   // Mục "Giấy tờ" (ADR-0040 D2; bản vẽ 04): chỉ hồ sơ CÁ NHÂN, chỉ người giữ ô party.document.write (Quản trị, Toàn quyền) — party.view KHÔNG mở giấy tờ.
   const giayTo = can(me, "party.document.write") && p.kind === "PERSON" ? h("section", { id: "giay-to", class: "vc-gt-section", "aria-labelledby": "giay-to-title" }) : null;
   if (giayTo) void veGiayTo(giayTo, p);
+  // Mục "Tài khoản nhận tiền" (ADR-0108 đ2): chỉ hồ sơ ĐANG là công ty chủ, chỉ người giữ ô company.legal.write. Số tài khoản không viết thẳng ở mã (kho tri thức
+  // Trợ lý chỉ gom chữ viết thẳng) — luôn đọc từ máy chủ.
+  const laChu = p.roles.some((x) => x.roleTypeCode === OWNER_COMPANY_ROLE && x.validTo === null);
+  const taiKhoan = can(me, "company.legal.write") && laChu ? h("section", { id: "tai-khoan-nhan-tien", "aria-labelledby": "tknt-title" }) : null;
+  if (taiKhoan) void veTaiKhoanNhanTien(taiKhoan, p);
 
   // -- gộp hồ sơ (ADR-0068; đặc tả §5)
   const khoiGop: Child[] = [];
@@ -387,6 +392,7 @@ async function openDetail(id: string): Promise<void> {
     quanTri ? h("div", null, h("div", { class: "grid three" }, field("Loại", relDir), field("Tìm hồ sơ", relQ), field("Chọn", relPick)), h("div", { class: "actions" }, addRel)) : null,
     ...mucDaGop,
     giayTo,
+    taiKhoan,
     h("div", { class: "actions", style: "margin-top:12px" }, nutGop, button("Đóng", () => { boCheSo.che(); detailEl.hidden = true; mergeEl.hidden = true; openId = null; }, "btn")),
   );
   detailEl.hidden = false;
@@ -710,6 +716,41 @@ async function veGiayTo(sec: HTMLElement, p: Api.PartyDto): Promise<void> {
     );
   };
   ve();
+}
+
+/** Mục "Tài khoản nhận tiền" của hồ sơ công ty chủ (ADR-0108 đ2; đặc tả QR §4.1): xem tài khoản đang dùng, cài / đổi (máy chủ đóng dòng cũ + mở dòng mới). */
+async function veTaiKhoanNhanTien(sec: HTMLElement, p: Api.PartyDto): Promise<void> {
+  const url = `/api/parties/${encodeURIComponent(p.id)}/tai-khoan-nhan-tien`;
+  const tieuDe = h("h3", { id: "tknt-title" }, "Tài khoản nhận tiền");
+  let r: Api.TaiKhoanNhanTienResponse;
+  try {
+    r = await api<Api.TaiKhoanNhanTienResponse>(url);
+  } catch (err) {
+    replaceChildren(sec, tieuDe, h("p", { class: "alert danger", role: "alert" }, err instanceof ApiError ? err.message : "Không tải được tài khoản nhận tiền."));
+    return;
+  }
+  const hienTai = r.hienTai
+    ? h("p", { "data-khoi": "tknt-hien-tai" }, `${r.hienTai.nganHang} · ${r.hienTai.soTaiKhoan} · ${r.hienTai.chuTaiKhoan}`)
+    : h("p", { class: "muted", "data-khoi": "tknt-hien-tai" }, "Chưa cài tài khoản — mã QR thanh toán chưa dùng được.");
+  const nh = select(r.nganHang.map((b) => ({ value: b.ma, label: b.ten })), r.hienTai?.maNganHang);
+  const so = input("", { inputmode: "numeric", autocomplete: "off", maxlength: "23", id: "tknt-so" }) as HTMLInputElement;
+  const ten = input("", { autocomplete: "off", maxlength: "100", id: "tknt-ten", placeholder: "Như ngân hàng in, vd CONG TY TNHH TOUR DAO" }) as HTMLInputElement;
+  const luu = button(r.hienTai ? "Đổi tài khoản" : "Lưu tài khoản", (b) => {
+    if (!so.value.trim() || !ten.value.trim()) return showError(errorEl, "Nhập số tài khoản và tên chủ tài khoản.");
+    if (r.hienTai && !confirm("Đổi tài khoản nhận tiền? Từ lúc này mã QR mới sẽ chỉ tiền về tài khoản mới; tài khoản cũ được lưu lại trong lịch sử.")) return;
+    const body: Api.TaiKhoanNhanTienInput = { maNganHang: nh.value, soTaiKhoan: so.value.trim(), chuTaiKhoan: ten.value.trim(), truocDo: r.hienTai?.id ?? null };
+    void act(async () => {
+      await api(url, { method: "PUT", body });
+      await veTaiKhoanNhanTien(sec, p);
+    }, b, () => veTaiKhoanNhanTien(sec, p));
+  }, "btn btn-primary");
+  replaceChildren(
+    sec,
+    tieuDe,
+    hienTai,
+    h("div", { class: "grid three" }, field("Ngân hàng", nh), field("Số tài khoản", so), field("Tên chủ tài khoản", ten)),
+    h("div", { class: "actions" }, luu),
+  );
 }
 
 byId<HTMLFormElement>("search-form").addEventListener("submit", (e) => {
