@@ -21,6 +21,8 @@ try {
   assert.equal(await p.ev("document.getElementById('form-title').textContent"), "Tạo đơn");
   // YC-0001 (chủ duyệt 30/9): Thanh toán TRƯỚC khách. ADR-0047 Phần B (2026-10-01, bản vẽ điện thoại M2 — d045311f, 2d28cf85): dưới 960px khối "Hành khách"
   // nằm NGAY SAU thẻ "Dịch vụ" (máy tính: trải ngang sau lưới 2 cột, ngoài .form-main) — danh sách dưới ghim cả vị trí đó ở 390px.
+  // Khối đó do mã trang dựng SAU khi khởi động (bước 1 chỉ chờ phần HTML tĩnh) → chờ nó hiện rồi mới đếm (8/10: một lần chạy đếm sớm còn 4 mục).
+  await p.waitFor("!document.getElementById('hk-card').hidden", "khối Hành khách dựng xong");
   assert.deepEqual(await p.ev("[...document.querySelectorAll('.form-main > .card > h2')].map((x) => x.textContent)"), ["Chọn ngày", "Dịch vụ", "Hành khách", "Thanh toán", "Thông tin khách hàng"]);
   assert.equal(await p.ev("document.getElementById('add-manual').hidden"), true, "nút '+ Dịch vụ nhập tay' ẩn khi danh mục tải được");
   assert.equal(await p.ev("document.getElementById('prepaidMethod').value"), "BANK_TRANSFER", "hình thức trả trước mặc định Chuyển khoản (YC-0002, chủ duyệt 30/9)");

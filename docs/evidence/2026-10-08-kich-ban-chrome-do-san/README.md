@@ -41,3 +41,10 @@ Cách chạy: Chrome headless trên macOS, `axe-core` 4.13.0 lấy bằng `npm p
 - `v1-xac-nhan-png.mjs` bước j (cùng `meta-viewport`, nhật ký 1/10) — chưa chạy lại, chưa sửa.
 - Các kịch bản khác dùng `call` nhớ phiên của `dp-lib.mjs` cùng `env.as` có thể vấp cùng kiểu — chưa rà.
 - Đã chạy trên nhánh: `npm run typecheck` 0 lỗi; `npm test` 3375 đạt / 0 đỏ (cộng bài đo giờ 1/1). Không chạy e2e (không chạm API).
+
+## Cập nhật cùng ngày — chủ dự án quyết (8/10)
+
+- **Vi phạm khoá phóng to:** giữ cách đang làm (kịch bản bỏ đúng vi phạm `meta-viewport` đã duyệt, không tắt hẳn luật của axe).
+- **Lỗi ô số bộ đếm:** cho sửa. Bộ chọn ô số nâng lên `.counter .counter-field:focus:focus-visible` (0,4,0); luật TB-1 giữ nguyên. Mục nhật ký thay đổi 1.85; `kiem-phien-ban.mjs` ĐẠT (1.85 > production 1.84).
+- `a2-smoke-form.mjs` sau bản sửa: **25/25 ✓**, gồm bước 4b chạy thật (không bỏ qua). Một lần chạy giữa chừng đỏ ở bước 1b vì đếm mục trước khi trang dựng xong khối "Hành khách" (cuộc đua thời gian của kịch bản); thêm bước chờ khối đó hiện rồi mới đếm — khối không hiện thì vẫn đỏ.
+- Bộ kiểm chính lần cuối: bước 1 đạt 3375 / 0 đỏ; bài đo giờ của hook (`claude-guard-thoi-gian`) đỏ "quá chậm 2043 ms" khi tải máy trung bình ~182 do phiên khác chạy bộ kiểm cùng lúc — chạy lại một mình khi máy rảnh (kết quả ở báo cáo của phiên).
