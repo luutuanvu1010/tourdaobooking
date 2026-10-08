@@ -150,11 +150,17 @@ export function loiRangBuocXe(message: string): { status: number; code: string; 
 export const CAU_LUAT_CHUYEN = "Chuyến vừa thay đổi hoặc lệnh vi phạm luật chuyến xe — tải lại rồi làm lại.";
 /** ADR-0051 (0043): họ lệnh trên mốc giờ hẹn thua đua / chuỗi đổi giữa chừng → MỘT câu "tải lại" (khuôn H10). */
 export const CAU_GIO_HEN_VUA_DOI = "Giờ hẹn vừa đổi hoặc đã có người báo — tải lại.";
+/** ADR-0097 Đ3.2: thu hồi xuất bến khi chuyến đã có tiến độ (lớp CSDL — trigger vc_trip_revoke_no_progress). */
+export const CAU_THU_HOI_DA_CO_TIEN_DO = "Chuyến vừa có tiến độ sau xuất bến nên không thu hồi được — tải lại, rồi sửa từng khách bằng \"Điều chỉnh…\" hoặc \"Kết thúc gián đoạn\".";
 export function loiRangBuocChuyen(message: string): { status: number; code: string; message: string } | null {
   // ADR-0096 (0084): trigger cổng xuất bến LC-19 / LC-20 — lớp máy chủ (`kiemXuatBen`) đã kiểm trước; tới đây là dữ liệu đổi giữa lúc đọc và lúc ghi → câu
   // của đúng lý do giữ (không câu chung), đường khắc phục đi kèm.
   if (/\blc19_/.test(message)) return { status: 409, code: "trip_rule", message: `${MA_GIU.TRA_TRUOC_DON.loiNhan}.` };
   if (/\blc20_/.test(message)) return { status: 409, code: "trip_rule", message: `${MA_GIU.NGOAI_CUA_SO_XUAT_BEN.loiNhan}. Xe thật sự chạy sớm thì văn phòng sửa giờ chuyến.` };
+  // ADR-0097 (0085): sự kiện điều chỉnh — lớp máy chủ (`lenhThuHoiXuatBen`, `lenhDieuChinh`) đã kiểm trước; tới đây là chuyến vừa có tiến độ giữa lúc đọc và lúc
+  // ghi (câu chỉ đường riêng) hoặc lô sai hình (câu chung "tải lại").
+  if (/\bdc_revoke_progress:/.test(message)) return { status: 409, code: "trip_rule", message: CAU_THU_HOI_DA_CO_TIEN_DO };
+  if (/\bdc_(scope|balance):/.test(message)) return { status: 409, code: "trip_rule", message: CAU_LUAT_CHUYEN };
   if (/\b(lc0[1-9]|lc1[0-6])_|\bvk1a_|vc_trip_append_only|\bgb_(needs_appt|snapshot)/.test(message)) return { status: 409, code: "trip_rule", message: CAU_LUAT_CHUYEN };
   // ADR-0051: chuỗi mốc, "còn khách chờ", chỉ-thêm, hai người bấm cùng lúc (UNIQUE (leg_id, seq)) — lớp CSDL của "Đã gọi báo" / "Bỏ đánh dấu".
   if (/\bgb_(chain|active|append_only)|UNIQUE constraint failed: vc_leg_appt_ack\./.test(message)) return { status: 409, code: "gio_hen_vua_doi", message: CAU_GIO_HEN_VUA_DOI };

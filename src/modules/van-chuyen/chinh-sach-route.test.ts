@@ -238,7 +238,7 @@ test("TC-2 route 16–18 danh mục lý do: Quản trị thêm → 201; Bán hà
   const w = setup();
   let r = await w.call("GET", "/api/van-chuyen/ly-do", { as: ADM });
   assert.equal(r.status, 200, r.text);
-  assert.equal(r.json.reasons.length, 30); // 13 lý do gieo của 0041 + 4 lý do xe bận của 0071 (ADR-0055) + 9 lý do nhóm CHI_PHI_XE (ADR-0057 T2, 0073) + 4 lý do báo huỷ của 0076 (ADR-0052 D5.2)
+  assert.equal(r.json.reasons.length, 33); // 13 lý do gieo của 0041 + 4 lý do xe bận của 0071 (ADR-0055) + 9 lý do nhóm CHI_PHI_XE (ADR-0057 T2, 0073) + 4 lý do báo huỷ của 0076 (ADR-0052 D5.2) + 3 lý do điều chỉnh của 0085 (ADR-0097 Đ2.5)
   assert.deepEqual(r.json.reasons.find((x: any) => x.code === "PHA_LE_SU_CO"), {
     code: "PHA_LE_SU_CO", group: "PHA_LE", groupLabel: "Phá lệ", label: "Sự cố vận hành", active: true, sortOrder: 1, updatedAt: "2026-09-29T00:00:00.000Z", heThong: false,
   });

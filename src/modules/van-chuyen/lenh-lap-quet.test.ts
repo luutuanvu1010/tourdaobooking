@@ -33,6 +33,9 @@ const BANG: Record<string, { loai: string; giu: Giu }> = {
   [`POST ${VC}/chuyen/:id/cap-nhat-diem`]: { loai: "ALLOCATION_STOP_CHANGED", giu: "quét" },
   [`POST ${VC}/chuyen/:id/cap-nhat-khach`]: { loai: "ALLOCATION_PASSENGER_CHANGED", giu: { tep: "cap-nhat-khach.test.ts", bai: "R-P29: lệnh lặp cùng requestId" } },
   [`POST ${VC}/cuoc-cua-toi/:id/hanh-khach`]: { loai: "PASSENGER_NAMED", giu: { tep: "bo-sung-ten.test.ts", bai: "D5b chuyến LÊN KẾ HOẠCH trong ngày chạy" } },
+  // ADR-0097 (gói A1, V3-B): hai lệnh điều chỉnh của văn phòng — lần đầu 201 (+ Location), lần lặp 200 (quét bên dưới với `lan1` = 201).
+  [`POST ${VC}/chuyen/:id/phan-bo/:aid/dieu-chinh`]: { loai: "CORRECTION", giu: "quét" },
+  [`POST ${VC}/chuyen/:id/thu-hoi-xuat-ben`]: { loai: "DEPARTURE_REVOKED", giu: "quét" },
   ...Object.fromEntries(
     ["cuoc-cua-toi", "chuyen"].flatMap((goc) => Object.entries(TIEN_DO).map(([duoi, loai]) => [`POST ${VC}/${goc}/:id/${duoi}`, { loai, giu: "quét" as Giu }])),
   ),
@@ -59,7 +62,7 @@ test("bảng lệnh lặp: route nào của index.ts gọi `traLenhLap` thì có
     khai[khoa] = [...goi[0]![1]!.matchAll(/"([A-Z_]+)"/g)].map((x) => x[1]).join(",");
   });
   assert.deepEqual(khai, Object.fromEntries(Object.entries(BANG).map(([k, v]) => [k, v.loai])), "route lệnh chuyến ↔ BANG (thêm route mới thì thêm dòng và cách giữ)");
-  assert.equal(Object.keys(BANG).length, 29);
+  assert.equal(Object.keys(BANG).length, 31);
   assert.deepEqual(khongQua, NGOAI_LE, "route mới nhận requestId phải đi qua traLenhLap");
   for (const [khoa, { giu }] of Object.entries(BANG)) {
     if (giu === "quét") continue;
@@ -72,15 +75,16 @@ const daQuet = new Set<string>();
 const soSuKien = (w: any, rid: string): number => w.q("SELECT count(*) AS n FROM vc_trip_event WHERE request_id = ?", rid)[0].n;
 const ver = async (w: any, id: string) => (await chiTiet(w, id, ADM)).chuyen.version as number;
 
-/** Gửi HAI lần cùng thân cùng requestId; `mau` là đường dẫn như index.ts khai (":sid", ":aid"), `thamSo` điền chỗ trống. */
-async function lapOk(w: any, method: string, mau: string, thamSo: Record<string, string>, than: Record<string, unknown>, as: string) {
+/** Gửi HAI lần cùng thân cùng requestId; `mau` là đường dẫn như index.ts khai (":sid", ":aid"), `thamSo` điền chỗ trống. `lan1` = mã lần đầu (lệnh tạo bản
+ *  ghi mới trả 201 — ADR-0097); lần lặp luôn 200. */
+async function lapOk(w: any, method: string, mau: string, thamSo: Record<string, string>, than: Record<string, unknown>, as: string, lan1 = 200) {
   const khoa = `${method} ${VC}/${mau}`;
   assert.ok(BANG[khoa], `${khoa} không có trong BANG`);
   const duong = `${VC}/${mau.replace(/:(\w+)/g, (_, k) => thamSo[k] ?? assert.fail(`thiếu ${k}`))}`;
   const rid = uuid();
   const r1 = await w.call(method, duong, { as, body: { ...than, requestId: rid } });
   const r2 = await w.call(method, duong, { as, body: { ...than, requestId: rid } });
-  assert.equal(r1.status, 200, `${khoa} lần 1: ${r1.text}`);
+  assert.equal(r1.status, lan1, `${khoa} lần 1: ${r1.text}`);
   assert.equal(r2.status, 200, `${khoa} lần 2 (lặp đúng lệnh): ${r2.text}`);
   assert.equal(soSuKien(w, rid), 1, `${khoa}: đúng một sự kiện`);
   daQuet.add(khoa);
@@ -176,6 +180,25 @@ test("quét lặp đúng lệnh (xe đang chạy): thêm điểm, văn phòng b�
     denGio("12:41");
     await lapOk(w, "POST", "chuyen/:id/them-diem", { id: a.id }, { version: await ver(w, a.id), chang: [{ legId: b.legId, soSuat: 2 }], phaLe: { lyDo: "PHA_LE_SU_CO" } }, ADM);
     await lapOk(w, "POST", "chuyen/:id/phan-bo/:aid/bao-huy", { id: a.id, aid: a.suat[0] }, { version: await ver(w, a.id), lyDo: "BAO_HUY_KHONG_DI" }, ADM);
+  } finally {
+    tat();
+  }
+});
+
+test("quét lặp đúng lệnh (điều chỉnh — ADR-0097): thu hồi xuất bến, điều chỉnh kết quả một khách — lần đầu 201, lần lặp 200, đúng một sự kiện", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const { id, sA } = await chuyenAB(w);
+    denGio("12:35");
+    assert.equal((await tienDo(w, "van-phong", id, "xuat-ben")).status, 200);
+    await lapOk(w, "POST", "chuyen/:id/thu-hoi-xuat-ben", { id }, { version: await ver(w, id), lyDo: "DIEU_CHINH_BAM_NHAM" }, SALES, 201);
+    denGio("12:38");
+    assert.equal((await tienDo(w, "van-phong", id, "xuat-ben")).status, 200);
+    denGio("12:40");
+    assert.equal((await tienDo(w, "van-phong", id, `diem/${sA[0].diemLen}/da-toi`)).status, 200);
+    assert.equal((await tienDo(w, "van-phong", id, `phan-bo/${sA[0].id}/don`)).status, 200);
+    await lapOk(w, "POST", "chuyen/:id/phan-bo/:aid/dieu-chinh", { id, aid: sA[0].id }, { version: await ver(w, id), trangThai: "NO_SHOW", lyDo: "DIEU_CHINH_BAM_NHAM" }, SALES, 201);
   } finally {
     tat();
   }

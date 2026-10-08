@@ -94,6 +94,13 @@ const MAU: Record<string, { vao: Record<string, unknown>; gac: string }> = {
     vao: { ...L, tripId: T, version: 7, dangChay: true, suatId: "a-1", personKey: "pk-moi", hanhKhach: { sql: "INSERT INTO ord_passenger (id) SELECT ?1 WHERE EXISTS (SELECT 1 FROM audit_log WHERE id = ?8)", args: ["pk-moi", 0, 0, 0, 0, 0, 0, CMD] }, detail: "d" },
     gac: T,
   },
+  // ADR-0097 (gói A1, V3-B): văn phòng điều chỉnh kết quả một suất (suất có tên → bản chốt dòng thêm sau xuất bến; hai điểm tự xong; câu CHỐT cuối) và thu hồi
+  // xuất bến (trạng thái cuối RUNNING → PLANNED).
+  loDieuChinh: {
+    vao: { ...L, tripId: T, version: 7, suatId: "a-1", suatMoiId: "a-9", trangThaiMoi: "NO_SHOW", lyDo: "DIEU_CHINH_BAM_NHAM", passengerRowId: "row-1", diemXet: ["d-1", "d-2"], detail: "d" },
+    gac: T,
+  },
+  loThuHoiXuatBen: { vao: { ...L, tripId: T, version: 7, lyDo: "DIEU_CHINH_BAM_NHAM", detail: "d" }, gac: T },
   lenhDaGoiBao: { vao: { ...L, legId: "leg-1", phienBan: 1, moi: { ngay: "2027-03-11", gio: "09:15" }, cu: { ngay: "2027-03-11", gio: "09:00" }, tripId: T, detail: "d" }, gac: T },
   lenhBoDanhDauGoiBao: {
     vao: { ...L, legId: "leg-1", phienBan: 2, moi: { ngay: "2027-03-11", gio: "09:00" }, cu: { ngay: "2027-03-11", gio: "09:15" }, tripId: T, detail: "d", banChup: "null" }, gac: T,

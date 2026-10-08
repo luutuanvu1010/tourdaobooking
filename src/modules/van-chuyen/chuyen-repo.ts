@@ -523,6 +523,41 @@ export const MANIFEST_THEM_SAU = defineSql(
   `INSERT INTO vc_trip_manifest (id, trip_id, check_id, allocation_id, passenger_row_id, crew_party_id, added_after_departure, created_at, created_by, updated_at, updated_by)
    SELECT ?1, ?2, NULL, ?3, ?4, NULL, 1, ?5, ?6, ?5, ?6 WHERE EXISTS (SELECT 1 FROM vc_trip WHERE id = ?2 AND last_cmd_id = ?7)`,
 );
+// ---- SỰ KIỆN ĐIỀU CHỈNH CÓ LÝ DO (ADR-0097 — gói A1, V3-B; migration 0085) --------------------------------------------------------------------------------
+/**
+ * Sự kiện điều chỉnh (CORRECTION / DEPARTURE_REVOKED) — ĐÚNG khuôn tham số ?1…?18 của EVENT_INSERT (bài C38 của thu-tu-lo.test.ts đọc theo vị trí) + ?19
+ * mã lý do (`reason_code`, nhóm DIEU_CHINH — trigger vc_trip_event_dieu_chinh_scope). Lính gác: chuyến ?2 mang dấu lệnh ?1.
+ */
+export const EVENT_DIEU_CHINH_INSERT = defineSql(
+  "van-chuyen",
+  "event_dieu_chinh_insert",
+  `INSERT INTO vc_trip_event (id, trip_id, related_trip_id, kind, stop_id, allocation_id, count, request_id, client_at, decided_mode, override_rule_code, override_reason_code,
+     policy_id, occurred_at, occurred_ms, occurred_source, created_at, created_by, updated_at, updated_by, reason_code)
+   SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?17, ?18, ?19
+   WHERE EXISTS (SELECT 1 FROM vc_trip WHERE id = ?2 AND last_cmd_id = ?1)`,
+);
+/**
+ * Suất THAY THẾ của lô điều chỉnh (Đ2.3): cùng chặng / người / điểm lên / điểm xuống với suất cũ, trạng thái mới (bảng Đ2.4 — máy chủ `kiemDieuChinh` + trigger
+ * vc_trip_running_locked_alloc_ins), cờ thêm sau xuất bến, trỏ suất cũ. ?1 id, ?2 chuyến, ?3 suất cũ (corrects_allocation_id), ?4 trạng thái mới, ?5 dấu lệnh,
+ * ?6 lúc, ?7 người. Các cột chép từ CHÍNH suất cũ (không nhận từ trình duyệt). Lính gác: chuyến ?2 mang dấu lệnh ?5.
+ */
+export const ALLOC_DIEU_CHINH_INSERT = defineSql(
+  "van-chuyen",
+  "alloc_dieu_chinh_insert",
+  `INSERT INTO vc_trip_allocation (id, trip_id, kind, leg_id, passenger_key, crew_party_id, board_stop_id, alight_stop_id, status, valid_from_at, added_after_departure,
+     opened_cmd_id, corrects_allocation_id, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, c.trip_id, c.kind, c.leg_id, c.passenger_key, c.crew_party_id, c.board_stop_id, c.alight_stop_id, ?4, ?6, 1, ?5, c.id, ?6, ?7, ?6, ?7
+   FROM vc_trip_allocation c WHERE c.id = ?3 AND c.trip_id = ?2 AND EXISTS (SELECT 1 FROM vc_trip WHERE id = ?2 AND last_cmd_id = ?5)`,
+);
+/**
+ * Thu hồi xuất bến (Đ3.3) — TRẠNG THÁI CUỐI của lô: RUNNING → PLANNED, xoá giờ xuất bến (CHECK của vc_trip). Trigger vc_trip_status_forward chỉ cho cạnh này khi
+ * sự kiện của dấu lệnh là DEPARTURE_REVOKED; vc_trip_revoke_no_progress chặn khi đã có tiến độ. ?1 chuyến, ?2 dấu lệnh, ?3 lúc, ?4 người.
+ */
+export const TRIP_THU_HOI_XUAT_BEN = defineSql(
+  "van-chuyen",
+  "trip_thu_hoi_xuat_ben",
+  "UPDATE vc_trip SET status = 'PLANNED', departed_at = NULL, departed_ms = NULL, updated_at = ?3, updated_by = ?4 WHERE id = ?1 AND last_cmd_id = ?2",
+);
 /** Câu CHUYỂN "xe đã tới điểm" — đứng ĐẦU lô, tự gác: điểm PENDING của chuyến đang chạy. ?1 điểm, ?2 chuyến, ?3 giờ xảy ra (chuỗi), ?4 lúc, ?5 người. */
 export const STOP_DA_TOI = defineSql(
   "van-chuyen",

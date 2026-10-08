@@ -9,7 +9,7 @@ import {
   ALLOC_CLOSE, ALLOC_GAN_TEN, ALLOC_INSERT, ALLOC_TIEN_DO, ALLOCS_CLOSE_ALL, ALLOCS_DONG_GIAN_DOAN, CHECK_INSERT, CHECK_ITEM_INSERT, DRIVER_CLOSE, DRIVER_INSERT,
   EVENT_INSERT, MANIFEST_INSERT, MOC_GOI_INSERT, MOC_XEP_INSERT, STOP_DA_TOI, STOP_INSERT, STOP_SET_SEQ, STOP_SKIP, STOP_UPDATE_PLAN, STOP_XONG_NEU_HET, STOPS_SKIP_ALL, TRIP_CANCEL, TRIP_GATE,
   TRIP_CAM_KET_PHA_LE, TRIP_GATE_CHI_PHI, TRIP_GATE_DANG_CHAY, TRIP_GATE_DOI, TRIP_GATE_TIEN_DO, TRIP_INSERT, TRIP_KET_THUC, TRIP_UPDATE_PLAN, TRIP_XUAT_BEN,
-  ALLOC_OFFICE_CANCEL, MANIFEST_THEM_SAU, TRIP_CHOT, TRIP_GATE_DANG_CHAY_VERSION,
+  ALLOC_OFFICE_CANCEL, MANIFEST_THEM_SAU, TRIP_CHOT, TRIP_GATE_DANG_CHAY_VERSION, ALLOC_DIEU_CHINH_INSERT, EVENT_DIEU_CHINH_INSERT, TRIP_THU_HOI_XUAT_BEN,
 } from "./chuyen-repo";
 import { cauChiPhi, type KeHoachChiPhi } from "./tien-xe-lo";
 import {
@@ -448,6 +448,67 @@ export function loBoSungTen(db: D1Database, l: LenhBoSungTen): CauCoNhan[] {
     { nhan: "GHI_NGOAI", stmt: l.hanhKhach },
     ghi(db.prepare(ALLOC_GAN_TEN).bind(l.suatId, l.personKey, l.cmd, l.lucIso, l.nguoiId, l.tripId)),
     ...(l.dangChay ? [ghi(db.prepare(MANIFEST_THEM_SAU).bind(crypto.randomUUID(), l.tripId, l.suatId, l.personKey, l.lucIso, l.nguoiId, l.cmd))] : []),
+  ];
+}
+
+// ---- SỰ KIỆN ĐIỀU CHỈNH CÓ LÝ DO (ADR-0097 — gói A1, V3-B; migration 0085). Chỉ văn phòng bấm (ô trip.progress không ngữ cảnh), chuyến ĐANG CHẠY. ----------
+/** Câu sự kiện điều chỉnh (giờ xảy ra = giờ ghi nhận — MAY_CHU), mang mã lý do nhóm DIEU_CHINH. */
+const suKienDieuChinh = (db: D1Database, l: LenhChung, tripId: string, loai: "CORRECTION" | "DEPARTURE_REVOKED", allocationId: string | null, lyDo: string): CauCoNhan => ({
+  nhan: "SU_KIEN",
+  stmt: db.prepare(EVENT_DIEU_CHINH_INSERT).bind(
+    l.cmd, tripId, null, loai, null, allocationId, 1, l.requestId, null, "NGUOI", null, null, null, l.lucIso, Date.parse(l.lucIso), "MAY_CHU", l.lucIso, l.nguoiId, lyDo,
+  ),
+  suKien: { tripId, relatedTripId: null, loai, stopId: null, allocationId },
+});
+export interface LenhDieuChinh extends LenhChung {
+  tripId: string;
+  /** version màn văn phòng đang thấy (khuôn lệnh văn phòng trên xe đang chạy — D5): tài xế vừa bấm gì thì lệnh thua cổng → "tải lại". */
+  version: number;
+  /** Suất cũ (ghi nhầm) — sự kiện CORRECTION trỏ nó; đóng REMOVED rồi mở suất thay thế trỏ về nó (Đ2.3). */
+  suatId: string;
+  suatMoiId: string;
+  trangThaiMoi: TrangThaiSuat;
+  lyDo: string;
+  /** Bản chốt dòng thêm sau xuất bến cho suất thay thế — chỉ khi suất CÓ tên (dòng hành khách hiện hành của đúng chặng, đúng người). */
+  passengerRowId: string | null;
+  /** Điểm lên / xuống của suất — bước "điểm tự xong" (Đ2.3: "Đã đón → Vắng" không để điểm trả kẹt ARRIVED). */
+  diemXet: string[];
+  detail: string;
+}
+/**
+ * Cổng (version + RUNNING) → nhật ký → sự kiện CORRECTION (suất cũ, lý do) → đóng suất cũ (REMOVED, dấu lệnh) → mở suất thay thế (trạng thái mới, cờ thêm sau
+ * xuất bến, trỏ suất cũ) → bản chốt (suất có tên) → điểm tự xong → câu CHỐT (trigger vc_trip_correction_balance: đóng đúng một, mở đúng một). Thứ tự đóng TRƯỚC
+ * mở: chỉ mục một-suất-mở-mỗi-người và trigger sức chứa cần vậy (ADR-0097 Đ2.3).
+ */
+export function loDieuChinh(db: D1Database, l: LenhDieuChinh): CauCoNhan[] {
+  const xayRa: XayRa = { iso: l.lucIso, ms: Date.parse(l.lucIso), nguon: "MAY_CHU" };
+  return [
+    congDangChayVersion(db, l, l.tripId, l.version),
+    nhatKy(db, l, "trip_allocation_corrected", l.tripId, l.detail),
+    suKienDieuChinh(db, l, l.tripId, "CORRECTION", l.suatId, l.lyDo),
+    dongSuat(db, l, l.tripId, l.suatId, LENH_DONG_SUAT.RUT), // ADR-0097 lựa chọn (b): đóng REMOVED (không thêm giá trị CHECK) — sự kiện CORRECTION phân biệt
+    ghi(db.prepare(ALLOC_DIEU_CHINH_INSERT).bind(l.suatMoiId, l.tripId, l.suatId, l.trangThaiMoi, l.cmd, l.lucIso, l.nguoiId)),
+    ...(l.passengerRowId ? [ghi(db.prepare(MANIFEST_THEM_SAU).bind(crypto.randomUUID(), l.tripId, l.suatMoiId, l.passengerRowId, l.lucIso, l.nguoiId, l.cmd))] : []),
+    ...l.diemXet.map((d) => xongNeuHet(db, l, l.tripId, d, xayRa)),
+    { nhan: "TRANG_THAI_CUOI", stmt: db.prepare(TRIP_CHOT).bind(l.tripId, l.cmd) },
+  ];
+}
+export interface LenhThuHoiXuatBen extends LenhChung {
+  tripId: string;
+  version: number;
+  lyDo: string;
+  detail: string;
+}
+/**
+ * Cổng (version + RUNNING) → nhật ký → sự kiện DEPARTURE_REVOKED (lý do) → RUNNING → PLANNED, xoá giờ xuất bến (trạng thái cuối). Bản chụp lúc xuất bến, bản
+ * chốt, sự kiện DEPARTED giữ nguyên (Đ3.4) — xuất bến lại tạo bản chụp mới mang dấu lệnh mới.
+ */
+export function loThuHoiXuatBen(db: D1Database, l: LenhThuHoiXuatBen): CauCoNhan[] {
+  return [
+    congDangChayVersion(db, l, l.tripId, l.version),
+    nhatKy(db, l, "trip_departure_revoked", l.tripId, l.detail),
+    suKienDieuChinh(db, l, l.tripId, "DEPARTURE_REVOKED", null, l.lyDo),
+    { nhan: "TRANG_THAI_CUOI", stmt: db.prepare(TRIP_THU_HOI_XUAT_BEN).bind(l.tripId, l.cmd, l.lucIso, l.nguoiId) },
   ];
 }
 

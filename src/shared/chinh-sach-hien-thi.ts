@@ -222,6 +222,7 @@ export function nhomLyDoHien(reasons: readonly TripReasonDto[]): NhomHien[] {
 const TIEN_TO: Readonly<Record<NhomLyDo, string>> = {
   PHA_LE: "PHA_LE", HUY_CHUYEN: "HUY", KET_THUC_GIAN_DOAN: "GIAN_DOAN", DOI_GIO_XE: "DOI_GIO_XE", BO_QUA_DIEM: "BO_QUA", BAO_HUY_DIEM: "BAO_HUY", TU_CHOI_NHAN: "TU_CHOI", BAN_XE: "BAN_XE",
   CHI_PHI_XE: "CPX", // ADR-0057 T2 (0073): lý do chi phí xe thuê — mã gieo CPX_…
+  DIEU_CHINH: "DIEU_CHINH", // ADR-0097 Đ2.5 (0085): mã gieo DIEU_CHINH_…
 };
 const MA_TOI_DA = 40;
 /**

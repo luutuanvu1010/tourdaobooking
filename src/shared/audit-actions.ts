@@ -138,6 +138,10 @@ export const AUDIT_ACTIONS = {
   trip_allocation_office_cancelled: { label: "Văn phòng báo huỷ khách", group: "trip" },
   // ADR-0052 D5b (Đợt 5 A-1b — chủ duyệt 5/10): tài xế bổ sung tên khách chưa có tên — detail mã chuyến, mã đơn, số người (không tên, năm sinh).
   trip_passenger_named: { label: "Tài xế bổ sung tên khách", group: "trip" },
+  // ADR-0097 Đ2, Đ3 (gói A1, V3-B): văn phòng sửa sai bằng sự kiện điều chỉnh có lý do — detail: mã chuyến, mã đơn, "một suất A → B · nhãn lý do" / nhãn lý do
+  // thu hồi (không tên khách, không SĐT — Đ2.6).
+  trip_allocation_corrected: { label: "Văn phòng điều chỉnh kết quả khách", group: "trip" },
+  trip_departure_revoked: { label: "Văn phòng thu hồi xuất bến", group: "trip" },
   // ADR-0051 GB1: mốc giờ hẹn của chặng — orderId NULL (I17); detail danh sách trắng (mã đơn, chiều, "giờ hẹn đón A → B", mã chuyến).
   trip_appt_called: { label: "Đã gọi báo khách giờ hẹn mới", group: "trip" },
   trip_appt_call_undone: { label: "Bỏ đánh dấu đã gọi báo", group: "trip" },

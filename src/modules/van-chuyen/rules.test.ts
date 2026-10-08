@@ -162,3 +162,13 @@ test("ADR-0096 (gói A1): RAISE lc19_ / lc20_ của trigger cổng xuất bến 
   const r20 = loiRangBuocChuyen("D1_ERROR: lc20_ngoai_cua_so: chưa tới giờ được xuất bến theo cửa sổ của chính sách điều phối: SQLITE_CONSTRAINT");
   assert.deepEqual(r20, { status: 409, code: "trip_rule", message: "Chưa tới giờ được xuất bến. Xe thật sự chạy sớm thì văn phòng sửa giờ chuyến." });
 });
+
+test("ADR-0097 (gói A1, V3-B): RAISE dc_revoke_progress → câu chỉ đường riêng; dc_scope / dc_balance → câu chung 'tải lại'; không lộ mã", () => {
+  const thuHoi = loiRangBuocChuyen("D1_ERROR: dc_revoke_progress: chuyến đã có tiến độ sau xuất bến — không thu hồi được: SQLITE_CONSTRAINT");
+  assert.equal(thuHoi?.status, 409);
+  assert.equal(thuHoi?.code, "trip_rule");
+  assert.match(thuHoi!.message, /^Chuyến vừa có tiến độ sau xuất bến nên không thu hồi được — tải lại, rồi sửa từng khách bằng "Điều chỉnh…" hoặc "Kết thúc gián đoạn"\.$/);
+  for (const m of ["dc_scope: điều chỉnh chỉ trên chuyến đang chạy", "dc_balance: điều chỉnh phải đóng đúng một suất"]) {
+    assert.deepEqual(loiRangBuocChuyen(`D1_ERROR: ${m}: SQLITE_CONSTRAINT`), { status: 409, code: "trip_rule", message: "Chuyến vừa thay đổi hoặc lệnh vi phạm luật chuyến xe — tải lại rồi làm lại." }, m);
+  }
+});

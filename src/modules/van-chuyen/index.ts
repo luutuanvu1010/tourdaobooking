@@ -55,12 +55,15 @@ import {
   traLenhLap,
 } from "./dieu-phoi-route";
 import {
-  docBaoHuy, docBoSungTen, docCapNhatDiem, docDoi, docDoiThuTu, docHuy, docKetThucGianDoan, docRut, docSuaChuyen, docTaoChuyen, docThemDiem, docTienDo, docXep,
+  docBaoHuy, docBoSungTen, docCapNhatDiem, docDieuChinhSuat, docDoi, docDoiThuTu, docHuy, docKetThucGianDoan, docRut, docSuaChuyen, docTaoChuyen, docThemDiem, docThuHoiXuatBen,
+  docTienDo, docXep,
 } from "./dieu-phoi-than";
 // Task A15: lệnh tiến độ — MỘT hàm mỗi lệnh cho cả route tài xế lẫn route văn phòng bấm thay (R-P1).
 import {
   lenhDaDon, lenhDaToi, lenhDaTra, lenhDoiThuTu, lenhKetThuc, lenhKetThucGianDoan, lenhKhachHuy, lenhVang, lenhXuatBen, type NguoiBam,
 } from "./dieu-phoi-tien-do";
+// ADR-0097 (gói A1, V3-B): hai lệnh điều chỉnh CHỈ văn phòng — tệp riêng (không phải cặp route tiến độ).
+import { lenhDieuChinhSuat, lenhThuHoiXuatBen } from "./dieu-phoi-dieu-chinh";
 import type { GoiBaoChangDto, NhacGoiKhachResponse } from "../../shared/contracts";
 // Mẫu đưa đón theo dịch vụ (ADR-0054 D10.1; ADR nháp nơi trả mặc định — kế hoạch 2026-10-01-may-chu-o-moi-chang Task 6, 7).
 import type { MauChangBanDto, MauChangFormResponse, MauChangLichSuResponse } from "../../shared/contracts";
@@ -1909,6 +1912,53 @@ export const vanChuyenModule: AppModule = {
       const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
       const hk2 = await hanhKhachChoChuyen(env.DB, nen2.legIds);
       return json(await chiTietChuyen(env.DB, nen2, lich2.chang, hk2, false, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), bayGioMs) satisfies ChuyenChiTietResponse);
+    }),
+
+    // ---- SỰ KIỆN ĐIỀU CHỈNH CÓ LÝ DO (ADR-0097 Đ2, Đ3 — gói A1, V3-B): CHỈ văn phòng — cổng office + ô trip.progress KHÔNG ngữ cảnh ĐẦU thân (Kế toán → 403;
+    // tài xế không có route — cổng office đã chặn). Qua lớp vé chống ghi trùng (ADR-0094) như mọi route ghi. Ghi được → 201 + Location trang chuyến; lệnh lặp
+    // cùng requestId → 200 chi tiết hiện tại (không ghi lần hai). Phản hồi không kèm tên khách (Đ2.6 — chi tiết chuyến của văn phòng như mọi lệnh khác).
+    route("POST", "/api/van-chuyen/chuyen/:id/phan-bo/:aid/dieu-chinh", "office", async ({ env, request, params, staff, nhanNhanVien, isAssigned, baoThayDoiChuyen }) => {
+      if (!can(staff, "trip.progress")) return CAN_BAM_THAY();
+      const than = docDieuChinhSuat(await readJson(request));
+      if (!than.ok) return error(400, "invalid_input", than.message);
+      const b = than.value;
+      const nen = await docNen(env.DB, params.id ?? "");
+      if (!nen) return KHONG_CO_CHUYEN();
+      const bayGioMs = Date.now();
+      const lap = await traLenhLap(env.DB, b.requestId, { tripId: nen.trip.id, loai: ["CORRECTION"], suatId: params.aid ?? "" });
+      if (lap instanceof Response) return lap;
+      if (!lap) {
+        const hk = await hanhKhachChoChuyen(env.DB, nen.legIds);
+        const r = await lenhDieuChinhSuat(env.DB, nen, hk, params.aid ?? "", b, nguoiBamVanPhong(staff, nen), bayGioMs);
+        if (r) return r;
+        baoThayDoiChuyen({ tripId: nen.trip.id, requestId: b.requestId }); // ADR-0097 Đ5: tin cho tài xế đang lái + người có trip.dispatch (tin-chuyen.ts)
+      }
+      const nen2 = (await docNen(env.DB, nen.trip.id))!;
+      const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
+      const hk2 = await hanhKhachChoChuyen(env.DB, nen2.legIds);
+      const body = (await chiTietChuyen(env.DB, nen2, lich2.chang, hk2, false, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), bayGioMs)) satisfies ChuyenChiTietResponse;
+      return json(body, lap ? 200 : 201, { location: `/chuyen?id=${nen2.trip.id}` });
+    }),
+    route("POST", "/api/van-chuyen/chuyen/:id/thu-hoi-xuat-ben", "office", async ({ env, request, params, staff, nhanNhanVien, isAssigned, baoThayDoiChuyen }) => {
+      if (!can(staff, "trip.progress")) return CAN_BAM_THAY();
+      const than = docThuHoiXuatBen(await readJson(request));
+      if (!than.ok) return error(400, "invalid_input", than.message);
+      const b = than.value;
+      const nen = await docNen(env.DB, params.id ?? "");
+      if (!nen) return KHONG_CO_CHUYEN();
+      const bayGioMs = Date.now();
+      const lap = await traLenhLap(env.DB, b.requestId, { tripId: nen.trip.id, loai: ["DEPARTURE_REVOKED"] });
+      if (lap instanceof Response) return lap;
+      if (!lap) {
+        const r = await lenhThuHoiXuatBen(env.DB, nen, b, nguoiBamVanPhong(staff, nen), bayGioMs);
+        if (r) return r;
+        baoThayDoiChuyen({ tripId: nen.trip.id, requestId: b.requestId }); // ADR-0097 Đ5
+      }
+      const nen2 = (await docNen(env.DB, nen.trip.id))!;
+      const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
+      const hk2 = await hanhKhachChoChuyen(env.DB, nen2.legIds);
+      const body = (await chiTietChuyen(env.DB, nen2, lich2.chang, hk2, false, nhanNhanVien, quyenGoiBaoCua(staff, isAssigned), bayGioMs)) satisfies ChuyenChiTietResponse;
+      return json(body, lap ? 200 : 201, { location: `/chuyen?id=${nen2.trip.id}` });
     }),
 
     // ---- XE TRÊN CHI TIẾT ĐƠN (ADR-0059) — màn chi tiết đơn gọi THÊM route này (khuôn ADR-0024 điều 4). HAI lần hỏi quyền KHÔNG ngữ cảnh, TRƯỚC mọi truy vấn

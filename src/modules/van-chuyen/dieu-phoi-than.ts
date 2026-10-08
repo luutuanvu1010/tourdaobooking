@@ -208,6 +208,32 @@ export function docCapNhatDiem(body: Record<string, unknown> | null): KetQua<{ v
   return { ok: true, value: { version: v.value, requestId: rid.value } };
 }
 
+// ---- Sự kiện điều chỉnh có lý do (ADR-0097 — gói A1, V3-B) --------------------------------------------------------------------------------------------
+// Không nhận giờ xảy ra (giờ ghi = lúc bấm), không nhận chữ tự do (Đ2.5 — chỉ MÃ lý do nhóm DIEU_CHINH; route kiểm nhóm + đang dùng — sai 400).
+const TRANG_THAI_DICH = ["WAITING", "BOARDED", "NO_SHOW", "CANCELLED_AT_STOP"] as const;
+export interface DieuChinhSuatThan { version: number; requestId: string; trangThai: (typeof TRANG_THAI_DICH)[number]; lyDo: string }
+export function docDieuChinhSuat(body: Record<string, unknown> | null): KetQua<DieuChinhSuatThan> {
+  if (!body) return fail("Dữ liệu không hợp lệ.");
+  const v = docVersion(body);
+  if (!v.ok) return v;
+  const rid = docRequestId(body);
+  if (!rid.ok) return rid;
+  const tt = body.trangThai;
+  if (typeof tt !== "string" || !(TRANG_THAI_DICH as readonly string[]).includes(tt)) return fail("Chọn kết quả đúng của khách.");
+  if (typeof body.lyDo !== "string" || !MA_RE.test(body.lyDo)) return fail("Chọn lý do điều chỉnh.");
+  return { ok: true, value: { version: v.value, requestId: rid.value, trangThai: tt as DieuChinhSuatThan["trangThai"], lyDo: body.lyDo } };
+}
+export interface ThuHoiXuatBenThan { version: number; requestId: string; lyDo: string }
+export function docThuHoiXuatBen(body: Record<string, unknown> | null): KetQua<ThuHoiXuatBenThan> {
+  if (!body) return fail("Dữ liệu không hợp lệ.");
+  const v = docVersion(body);
+  if (!v.ok) return v;
+  const rid = docRequestId(body);
+  if (!rid.ok) return rid;
+  if (typeof body.lyDo !== "string" || !MA_RE.test(body.lyDo)) return fail("Chọn lý do thu hồi xuất bến.");
+  return { ok: true, value: { version: v.value, requestId: rid.value, lyDo: body.lyDo } };
+}
+
 // ---- Lệnh TIẾN ĐỘ (Task A15; ADR-0050 VK1-A, I34) ----------------------------------------------------------------------------------------------------------
 // `xayRaLuc` — giờ XẢY RA văn phòng khai: CHỈ route văn phòng 31–38 nhận (`nhanXayRa: true`). Route tài xế 21–29 và route 39 (đổi thứ tự) gửi khoá này →
 // 400 `xay_ra_khong_nhan` (không lặng lẽ bỏ qua — TC-38). Chuỗi ISO BẮT BUỘC có múi giờ; máy chủ chỉ giữ mili-giây rồi tự định dạng lại (I33).

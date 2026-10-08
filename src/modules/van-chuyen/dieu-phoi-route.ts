@@ -71,6 +71,13 @@ const THONG_BAO_409: Record<string, string> = {
   // Xe đang chạy (Đợt 5 — ADR-0052 D5)
   chuyen_chua_chay: "Chuyến chưa xuất bến — dùng Xếp khách / Rút khách.",
   da_bao_huy: "Khách này đã được báo huỷ.",
+  // ADR-0097 (gói A1, V3-B): điều chỉnh kết quả một khách / thu hồi xuất bến — câu cụ thể của bảng Đ2.4 dựng ở `kiemDieuChinh` (src/shared/dieu-chinh-suat.ts).
+  chi_suat_khach: "Chỉ điều chỉnh được kết quả của khách — người đi kèm không có kết quả đón / trả.",
+  dieu_chinh_ngoai_bang: "Kết quả này không điều chỉnh được theo cách này.",
+  diem_da_xong: "Điểm đã xong nên không đưa khách về trạng thái chờ được.",
+  don_khong_con: "Đơn của khách này đã huỷ hoặc chặng không còn hiệu lực — không điều chỉnh được; xử lý theo luồng huỷ đơn.",
+  da_co_tien_do: "Chuyến đã có tiến độ sau xuất bến nên không thu hồi được — sửa từng khách bằng \"Điều chỉnh…\", hoặc \"Kết thúc gián đoạn\" nếu xe thật sự không chạy tiếp.",
+  qua_gio_thu_hoi: "Đã quá thời gian được thu hồi xuất bến.",
 };
 const MA_LOI_THEO_GIU: Partial<Record<MaGiu, string>> = {
   NGUOI_DA_O_CHUYEN_KHAC: "nguoi_da_o_chuyen_khac", VUOT_SO_NGUOI_CHANG: "vuot_so_nguoi_chang", VUOT_SO_CHO: "vuot_so_cho", TRUNG_GIO_XE: "trung_gio_xe",
