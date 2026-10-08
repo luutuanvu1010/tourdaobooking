@@ -77,7 +77,7 @@ export const TEN_THAO_TAC: Readonly<Record<OperationCode, TenLoiThuong>> = {
   "order.passenger.write": { ten: "nhập danh sách hành khách", moTa: "Thêm, sửa, huỷ dòng họ tên và năm sinh hành khách của đơn." },
   "order.service.manual": { ten: "thêm dịch vụ nhập tay", moTa: "Gõ tên và giá một dịch vụ không có trong danh mục, khi Toàn quyền đang bật Dịch vụ nhập tay." },
   "task.progress": { ten: "cập nhật tiến độ việc được giao", moTa: "Báo tiến độ việc được giao trên đơn." },
-  "order.money.edit": { ten: "sửa số khách sau xác nhận", moTa: "Hướng dẫn viên đang phụ trách sửa số khách của đơn đã xác nhận, tới hết ngày đi, kèm lý do; app ghi thành dòng điều chỉnh." },
+  "order.money.edit": { ten: "sửa số khách sau xác nhận", moTa: "Sửa số khách của đơn đã xác nhận, chưa Đã giao, kèm lý do: người lập đơn (Bán hàng), Kế toán, Quản trị bấm Sửa số khách dịch vụ trên trang đơn và chọn lý do từ danh sách, kể cả sau ngày đi; hướng dẫn viên đang phụ trách sửa ở Việc của tôi tới hết ngày đi. Nền tảng tự tính lại tiền và ghi thành dòng điều chỉnh." },
   "deposit.refund.approve": { ten: "duyệt hoàn cọc đơn huỷ", moTa: "Duyệt hoàn hoặc duyệt chuyển tiền khách đã trả của đơn huỷ sang đơn mới (có lý do, trong hạn), huỷ phần duyệt chưa chi, xác nhận dòng đã hoàn ngoài hệ thống. Người duyệt không tự chi." },
   "deposit.outside.record": { ten: "ghi đã hoàn ngoài hệ thống", moTa: "Ghi một dòng “đã hoàn ngoài hệ thống” cho đơn huỷ cũ mà công ty đã trả tay cho khách; cần Quản trị xác nhận mới tính." },
   "order.cancel.classify": { ten: "chọn lý do “Công ty huỷ” và phân loại lý do huỷ", moTa: "Khi huỷ đơn, chọn được nhóm lý do “Công ty huỷ” (hoàn toàn bộ, không bị hạn 60 ngày); phân loại đơn huỷ “chưa kết luận” sang khách huỷ, công ty huỷ hoặc huỷ để lập lại." },
@@ -138,10 +138,6 @@ export const TEN_THAO_TAC: Readonly<Record<OperationCode, TenLoiThuong>> = {
  * "none" (ô hẹp chỉ được THU HẸP, không được mở rộng). Khi route rộng được làm: xoá dòng ở đây trong cùng commit.
  */
 export const O_HEP: Readonly<Partial<Record<OperationCode, { readonly chiVai: readonly PermissionCode[]; readonly lyDo: string }>>> = {
-  "order.money.edit": {
-    chiVai: ["FIELD", "SUPER_ADMIN"],
-    lyDo: "Route duy nhất hỏi ô này là POST /api/orders/:id/handler-money-edit (module dispatch): chỉ quyền có ô CHÍNH XÁC 'assigned' và đang được giao, cộng Toàn quyền. Ô 'own'/'any' của Bán hàng, Kế toán, Quản trị dành cho route khác CHƯA làm.",
-  },
   "order.service.manual": {
     chiVai: ["SALES", "ADMIN", "SUPER_ADMIN"],
     lyDo: "permissions.ts: ô 'any' của Kế toán CHƯA có tác dụng — Kế toán không lập / sửa đơn (order.create, order.modify = none); chờ việc C2.",
@@ -174,7 +170,7 @@ export const LUONG_CHINH: readonly BuocLuong[] = [
   },
   {
     ten: "Xác nhận đơn",
-    moTa: "Trên trang đơn bấm Xác nhận đơn. Sau khi xác nhận, dịch vụ, số khách và tiền bị khoá với người lập đơn, chỉ còn sửa được thông tin chuyến; riêng hướng dẫn viên đang phụ trách vẫn sửa được số khách tới hết ngày đi.",
+    moTa: "Trên trang đơn bấm Xác nhận đơn. Sau khi xác nhận, dịch vụ và tiền bị khoá với người lập đơn: còn sửa được thông tin chuyến, và số khách qua nút Sửa số khách dịch vụ (Nền tảng tự tính lại tiền; Kế toán, Quản trị cũng sửa được); riêng hướng dẫn viên đang phụ trách vẫn sửa được số khách tới hết ngày đi.",
     viSao: "Xác nhận là lúc chốt với khách: từ đây app mới báo cho người liên quan, và chỉ đơn đã xác nhận mới xếp lên chuyến xe. Không xác nhận được thường vì: tài khoản không phải người lập hay người phụ trách đơn (hoặc vai không có quyền sửa đơn); giờ đón cách hiện tại dưới 6 giờ mà Quản trị chưa duyệt Đặt gấp; đơn đã huỷ.",
     thaoTac: ["order.modify", "order.leg.short_notice"],
     trang: "/order",

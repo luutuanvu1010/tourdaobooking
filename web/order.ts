@@ -18,6 +18,7 @@ import { khoiNhapKeToan } from "./nhap-ke-toan-ui";
 import type { DiemChon } from "./khoi-dua-don";
 import { openSheetDuaDon } from "./sheet-dua-don";
 import { openSheetHanhKhach } from "./sheet-hanh-khach";
+import { openSheetSoKhach } from "./sheet-so-khach";
 import { CAU_CAN_NOI_TRA, canhBaoXacNhan, thieuNoiTra } from "../src/shared/canh-bao-xac-nhan";
 import { PAX_LABEL } from "../src/shared/order-lines";
 import { CHIEU_LABEL } from "../src/shared/chang-dua-don";
@@ -34,6 +35,8 @@ import { type PaxCounts } from "../src/shared/order-lines";
 import { banner, classifyOrderError, type Banner } from "../src/shared/order-errors";
 import { cauKhoaXacNhan, khongQuyenSuaText, orderActions, paxFullText, suaChuyenDuoc, suaKhachDuoc } from "../src/shared/order-view";
 import { CHUA_XEP_XE, dongXeTrenDon, duocXemXeTrenDon } from "../src/shared/xe-tren-don";
+import { canhBaoTongAm, duocSuaSoKhachVanPhong, nguonBangSuaSoKhach } from "../src/shared/so-khach-van-phong";
+import type { MoneyEditSource } from "../src/shared/viec-cua-toi";
 import type { SuKienDon } from "../src/shared/bang-tin";
 
 const id = new URLSearchParams(location.search).get("id");
@@ -53,6 +56,8 @@ let xeDon: Api.XeCuaDonResponse | null = null;
 let nhapKt: Api.NhapKeToanResponse | null = null;
 /** Danh sách hành khách (ADR-0047 A2, `GET /passengers`); null = chưa tải được — ẩn khối "Hành khách", bỏ cảnh báo thiếu tên (không đoán). */
 let khachDon: Api.PassengerListResponse | null = null;
+/** Loại khách văn phòng sửa được sau xác nhận (ADR-0063 D1) — máy chủ gửi kèm đơn; `null` = không có nút "Sửa số khách dịch vụ". */
+let suaSoKhach: Api.SuaSoKhachDichVuDto[] | null = null;
 
 // Form lập đơn ghi tiền trả trước ở BƯỚC HAI (sổ tiền lượt 1, NT-S6); bước đó hỏng thì chuyển tới đây kèm `thutruoc=loi` — báo một lần, bỏ tham số ngay.
 let baoThuTruocLoi = new URLSearchParams(location.search).get("thutruoc") === "loi";
@@ -447,6 +452,9 @@ function tienCard(order: Order): HTMLElement {
     rows.push(t.du > 0 ? kv("Khách trả dư", `${vnd(t.du)} — chờ Kế toán hoàn`, "strong") : kv("Còn lại", vnd(t.conLai), "strong"));
   } else rows.push(kv("Đã thu / còn lại", "Chưa tải được"));
   rows.push(kv("Ghi chú thanh toán", order.paymentNote));
+  // ADR-0063 D1: bớt khách làm tổng âm KHÔNG bị chặn — câu cảnh báo hiện thường trực trên khối tiền để Kế toán xem lại trước khi hoàn.
+  const tongAm = order.status === "confirmed" ? canhBaoTongAm(order.total) : null;
+  if (tongAm) rows.push(h("p", { class: "dd-canh-xn", "data-canh-bao": "tong-am" }, icon("alert", 16), tongAm));
   const lanThu =
     t && t.lanThu.length
       ? h(
@@ -1021,6 +1029,10 @@ function render(order: Order, history: AuditEntry[], canModify: boolean, handler
     btns.push(nut);
   }
   if (a.editTrip) btns.push(editTripButton(order));
+  // ADR-0063 D1: người lập đơn (Bán hàng), Kế toán, Quản trị, Toàn quyền sửa số khách đơn đã xác nhận, chưa Đã giao — cùng luật ẩn/hiện với máy chủ
+  // (`duocSuaSoKhachVanPhong`, hỏi bảng quyền) VÀ máy chủ phải gửi loại khách sửa được (`suaSoKhach`); không dịch vụ nào sửa được thì không có nút.
+  const nguonSoKhach = duocSuaSoKhachVanPhong(staff!, order) ? nguonBangSuaSoKhach(order.services, suaSoKhach) : null;
+  if (nguonSoKhach) btns.push(nutSuaSoKhach(order, nguonSoKhach));
   if (a.cancel) btns.push(nutHuyDon());
   for (const cau of canhBaoXN) btns.push(h("p", { class: "dd-canh-xn", "data-canh-bao": "xac-nhan" }, icon("alert", 16), cau));
   if (chanXacNhan) btns.push(duocDatGap ? h("p", { class: "dg-lock dg-lock-note", "data-chan": "xac-nhan" }, chanXacNhan) : h("p", { class: "dg-lock", "data-chan": "xac-nhan" }, icon("lock", 16), chanXacNhan));
@@ -1046,6 +1058,32 @@ function bookerButton(order: Order): HTMLButtonElement {
             focusChangeBooker();
           }),
         onReload: () => void load().then(focusChangeBooker),
+      },
+      btn,
+    ),
+  );
+  return btn;
+}
+
+const focusSoKhach = (): void => document.querySelector<HTMLElement>('[data-action="sua-so-khach"]')?.focus();
+
+/** Đơn đã xác nhận, chưa Đã giao: mở bảng "Sửa số khách dịch vụ" (web/sheet-so-khach.ts). Lưu xong tải lại đơn; tổng âm thì dải vàng kèm câu cảnh báo. */
+function nutSuaSoKhach(order: Order, nguon: MoneyEditSource[]): HTMLButtonElement {
+  const btn = h("button", { type: "button", class: "btn", "data-action": "sua-so-khach" }, "Sửa số khách dịch vụ");
+  btn.addEventListener("click", () =>
+    openSheetSoKhach(
+      {
+        orderId: order.id,
+        tenDichVu: order.services.map((s) => s.name),
+        nguon,
+        onSaved: (r) =>
+          void load().then(() => {
+            if (!bannerEl.hidden) return; // tải lại lỗi thì giữ banner lỗi, không đè
+            if (r.canhBaoTongAm) show(banner("warning", "Đã lưu số khách mới — tổng tiền của đơn đang âm.", { lines: [{ text: r.canhBaoTongAm }] }));
+            else show(banner("info", r.daGhi ? "Đã lưu số khách mới, Nền tảng đã tính lại tiền." : "Số khách không đổi nên không ghi gì."));
+            focusSoKhach();
+          }),
+        onReload: () => void load().then(focusSoKhach),
       },
       btn,
     ),
@@ -1159,9 +1197,10 @@ async function load(quiet = false): Promise<void> {
   const seq = ++loadSeq;
   try {
     // Người phụ trách tải song song với đơn; lời gọi của nó không bao giờ ném lỗi (xem loadHandler) nên đơn luôn hiển thị được.
-    const [{ order, history, canModify, mocToiThieuPhut }, handler, tienDon, xe, nhapKtDon, khach] = await Promise.all([layDon!(), layNguoiPhuTrach(id!), layTien(id!), layXe(id!), layNhapKt(id!), layKhach(id!)]);
+    const [{ order, history, canModify, mocToiThieuPhut, suaSoKhach: soKhach }, handler, tienDon, xe, nhapKtDon, khach] = await Promise.all([layDon!(), layNguoiPhuTrach(id!), layTien(id!), layXe(id!), layNhapKt(id!), layKhach(id!)]);
     if (seq !== loadSeq) return;
     mocPhut = mocToiThieuPhut;
+    suaSoKhach = soKhach;
     tien = tienDon;
     xeDon = xe;
     nhapKt = nhapKtDon;

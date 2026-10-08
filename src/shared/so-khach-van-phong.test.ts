@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  CAU_TONG_AM, LY_DO_SUA_SO_KHACH, MA_LY_DO_SUA_SO_KHACH, canhBaoTongAm, docThanSuaSoKhach, duocSuaSoKhachVanPhong,
+  CAU_TONG_AM, LY_DO_SUA_SO_KHACH, MA_LY_DO_SUA_SO_KHACH, canhBaoTongAm, docThanSuaSoKhach, duocSuaSoKhachVanPhong, nguonBangSuaSoKhach, thanSuaSoKhach,
 } from "./so-khach-van-phong.ts";
 import { EDIT_REASON_QUICK } from "./viec-cua-toi.ts";
 import { PERMISSION_CODES, type PermissionCode } from "./permissions.ts";
@@ -81,4 +81,35 @@ test("tổng âm: chỉ cảnh báo (câu tiếng Việt nói Kế toán xem l�
   assert.match(CAU_TONG_AM, /Kế toán/);
   assert.match(CAU_TONG_AM, /hoàn/);
   assert.doesNotMatch(CAU_TONG_AM, /\d/, "câu cố định, không số tiền");
+});
+
+// ---- Bảng "Sửa số khách dịch vụ" trên trang đơn (web/sheet-so-khach.ts): nguồn dòng + thân gửi đi — luật thuần để bài khoá được không cần trình duyệt.
+const P = (adult: number, child = 0, senior = 0, infant = 0) => ({ adult, child, senior, infant });
+const DV_TOUR = { id: "s-tour", catalogCode: "ZA1", pax: P(2, 1) };
+const DV_TAY = { id: "s-tay", catalogCode: null, pax: P(0) };
+const DV_THIEU_GIA = { id: "s-thieu", catalogCode: "ZB2", pax: P(3) };
+
+test("bảng: máy chủ không gửi suaSoKhach (người xem không có ô / đơn không đủ điều kiện) → không có bảng, không có nút", () => {
+  assert.equal(nguonBangSuaSoKhach([DV_TOUR], null), null);
+});
+
+test("bảng: không dịch vụ nào có loại khách sửa được (chỉ nhập tay / thiếu giá đã lưu) → không có nút (không mở bảng rỗng)", () => {
+  assert.equal(nguonBangSuaSoKhach([DV_TAY, DV_THIEU_GIA], [{ serviceId: "s-thieu", loaiKhach: [] }]), null);
+});
+
+test("bảng: dịch vụ danh mục lấy loại khách sửa được TỪ MÁY CHỦ; dịch vụ nhập tay luôn chỉ xem, kể cả khi máy chủ (lỗi) gửi loại khách cho nó", () => {
+  const n = nguonBangSuaSoKhach([DV_TOUR, DV_TAY, DV_THIEU_GIA], [
+    { serviceId: "s-tour", loaiKhach: ["adult", "child"] },
+    { serviceId: "s-tay", loaiKhach: ["adult"] },
+    { serviceId: "s-thieu", loaiKhach: [] },
+  ]);
+  assert.deepEqual(n?.map((s) => [s.id, [...s.editablePaxCodes]]), [["s-tour", ["adult", "child"]], ["s-tay", []], ["s-thieu", []]]);
+});
+
+test("thân: { lyDo: mã, services: ĐỦ mọi dịch vụ danh mục (kể cả không sửa được — giữ số đang có), KHÔNG dịch vụ nhập tay } — bộ đọc thân của máy chủ nhận nguyên", () => {
+  const n = nguonBangSuaSoKhach([DV_TOUR, DV_TAY, DV_THIEU_GIA], [{ serviceId: "s-tour", loaiKhach: ["adult", "child"] }, { serviceId: "s-thieu", loaiKhach: [] }])!;
+  const than = thanSuaSoKhach("BOT_NGUOI", n, new Map([["s-tour", { adult: 1 }], ["s-thieu", { adult: 9 }]]));
+  assert.deepEqual(than, { lyDo: "BOT_NGUOI", services: [{ id: "s-tour", pax: P(1, 1) }, { id: "s-thieu", pax: P(3) }] }, "loại khách không sửa được giữ số đang có, kể cả khi bản nháp có số");
+  const doc = docThanSuaSoKhach(than);
+  assert.ok(doc.ok && doc.nhan === "Khách bớt người" && doc.services === than.services);
 });

@@ -10,7 +10,7 @@ import { CAU_TU_CHOI, chiaKho, chonDoan, dinhDangDoan, dungLoiNhac, uocToken, vi
 import { viPhamKyThuat } from "./tro-ly-loc-ky-thuat.ts";
 import { LOI_NHAC_MAC_DINH } from "./tro-ly-bo-nao.ts";
 import { xungHo } from "./xung-ho.ts";
-import { LUONG_CHINH, TEN_PHAN_HE, TEN_THAO_TAC } from "./tro-ly-cau-truc-ten.ts";
+import { LUONG_CHINH, O_HEP, TEN_PHAN_HE, TEN_THAO_TAC } from "./tro-ly-cau-truc-ten.ts";
 import { MATRIX, PERMISSION_CODES, PERMISSION_LABEL } from "./permissions.ts";
 import { CAU_TRUC } from "./tro-ly-cau-truc.ts";
 import { SO_DO_TRANG } from "./so-do-trang.ts";
@@ -86,13 +86,17 @@ test("Đ2 kho (d): vai làm được / không làm được đúng MATRIX (dịc
 const lamDuoc = (vai: string): string => cauTruc(`Vai ${vai} làm được gì`).chu.split("\n").find((l) => l.startsWith("Làm được:"))!;
 const khongLamDuoc = (vai: string): string => cauTruc(`Vai ${vai} làm được gì`).chu.split("\n").find((l) => l.startsWith("Không làm được:"))!;
 
-test("I-1: 'sửa số khách sau xác nhận' chỉ Hướng dẫn viên (đang phụ trách) + Toàn quyền — route hẹp handler-money-edit; Bán hàng, Kế toán, Quản trị KHÔNG", () => {
-  assert.match(cauTruc("Việc: sửa số khách sau xác nhận").chu, /Ai làm được: Hướng dẫn viên \(chỉ phần đang được giao cho mình\), Toàn quyền\./);
+test("I-1: 'sửa số khách sau xác nhận' — gói A2 (ADR-0063 D1) đã làm route văn phòng: Bán hàng (đơn mình lập), Kế toán, Quản trị, HDV (đang phụ trách), Toàn quyền; vai khác KHÔNG", () => {
+  assert.match(cauTruc("Việc: sửa số khách sau xác nhận").chu, /Ai làm được: Bán hàng \(phần của mình\), Kế toán, Quản trị, Hướng dẫn viên \(chỉ phần đang được giao cho mình\), Toàn quyền\./);
+  assert.match(cauTruc("Việc: sửa số khách sau xác nhận").chu, /Không làm được: Đối tác, Thực tập, Tài xế, Tài xế đối tác, Nhân sự\./);
   for (const v of ["Bán hàng", "Kế toán", "Quản trị"]) {
-    assert.ok(!lamDuoc(v).includes("sửa số khách sau xác nhận"), `${v}: ${lamDuoc(v)}`);
-    assert.ok(khongLamDuoc(v).includes("sửa số khách sau xác nhận"), v);
+    assert.ok(lamDuoc(v).includes("sửa số khách sau xác nhận"), `${v}: ${lamDuoc(v)}`);
+    assert.ok(!khongLamDuoc(v).includes("sửa số khách sau xác nhận"), v);
   }
+  assert.ok(lamDuoc("Bán hàng").includes("sửa số khách sau xác nhận (phần của mình)"));
   assert.ok(lamDuoc("Hướng dẫn viên").includes("sửa số khách sau xác nhận (chỉ phần đang được giao cho mình)"));
+  // Ô hết "rộng trên bảng, hẹp ở máy chủ" ⇒ không còn trong danh sách ô hẹp (dòng O_HEP xoá cùng commit làm route rộng).
+  assert.equal(O_HEP["order.money.edit"], undefined);
 });
 
 test("I-2: 'thêm dịch vụ nhập tay' — Kế toán KHÔNG (ô any chưa có tác dụng vì Kế toán không lập / sửa đơn)", () => {

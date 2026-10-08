@@ -2,7 +2,8 @@
 // Route: `POST /api/orders/:id/money-edit` (module orders, cổng office). Tiền KHÔNG tính ở đây: máy chủ tính bằng `planMoneyEdit` (một luật với đường HDV).
 // Bài canh: so-khach-van-phong.test.ts (luật thuần) + src/modules/orders/so-khach-van-phong-route.test.ts (route thật).
 import { can, type PermissionHolder } from "./permissions.ts";
-import type { OrderStatus } from "./contracts.ts";
+import type { OrderStatus, PaxCode, PaxCounts, SuaSoKhachDichVuDto } from "./contracts.ts";
+import { moneyEditServices, type MoneyEditSource } from "./viec-cua-toi.ts";
 
 /**
  * Lý do sửa số khách — MÃ ĐÓNG theo ADR-0023 điều 4 (ADR-0030 S23-9): "Khác" KHÔNG kèm ô chữ. Nhật ký ghi NHÃN (chữ cố định do máy chủ chọn), nên không bao
@@ -52,3 +53,25 @@ export function duocSuaSoKhachVanPhong(viewer: PermissionHolder, don: { staffId:
 export const CAU_TONG_AM =
   "Tổng tiền của đơn đang âm vì giảm giá lớn hơn tiền dịch vụ sau khi bớt khách. Số “khách trả dư” vì vậy lớn hơn tiền khách thật đã trả — Kế toán xem lại trước khi hoàn tiền cho khách.";
 export const canhBaoTongAm = (total: number): string | null => (total < 0 ? CAU_TONG_AM : null);
+
+/**
+ * Nguồn dòng của bảng "Sửa số khách dịch vụ" (web/sheet-so-khach.ts): mỗi dịch vụ của đơn (số khách HIỆN HÀNH — đã áp dòng điều chỉnh gần nhất) kèm loại
+ * khách sửa được do MÁY CHỦ gửi (`suaSoKhach` của GET /api/orders/:id — tính từ bản chụp gốc, `editablePaxCodesOf`). Dịch vụ nhập tay luôn chỉ xem.
+ * `null` = không có nút: máy chủ không gửi (người xem không có ô / đơn không đủ điều kiện) hoặc không dịch vụ nào có loại khách sửa được.
+ */
+export function nguonBangSuaSoKhach(
+  services: readonly { id: string; catalogCode: string | null; pax: PaxCounts }[],
+  suaSoKhach: readonly SuaSoKhachDichVuDto[] | null,
+): MoneyEditSource[] | null {
+  if (!suaSoKhach) return null;
+  const loai = new Map(suaSoKhach.map((s) => [s.serviceId, s.loaiKhach] as const));
+  const nguon = services.map((s) => ({ id: s.id, catalogCode: s.catalogCode, pax: s.pax, editablePaxCodes: s.catalogCode === null ? [] : (loai.get(s.id) ?? []) }));
+  return nguon.some((s) => s.editablePaxCodes.length > 0) ? nguon : null;
+}
+
+/** Thân `POST /api/orders/:id/money-edit`: mã lý do + ĐỦ mọi dịch vụ danh mục (dùng lại `moneyEditServices` của đường HDV — một luật dựng danh sách). */
+export const thanSuaSoKhach = (
+  lyDo: MaLyDoSuaSoKhach,
+  nguon: readonly MoneyEditSource[],
+  nhap: ReadonlyMap<string, Partial<Record<PaxCode, number>>>,
+): { lyDo: MaLyDoSuaSoKhach; services: { id: string; pax: PaxCounts }[] } => ({ lyDo, services: moneyEditServices(nguon, nhap) });
