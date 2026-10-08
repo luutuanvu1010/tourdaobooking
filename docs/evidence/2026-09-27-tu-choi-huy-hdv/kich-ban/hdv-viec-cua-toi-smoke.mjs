@@ -218,7 +218,7 @@ try {
       const r = await q.ev("({ band: !!document.querySelector('.order-summary-band'), lock: document.querySelector('.lock-note')?.textContent ?? null, editTrip: !!document.querySelector('[data-action=\"edit-trip\"]') })");
       assert.equal(r.band, true, `${o.orderCode}: HDV mở được trang đơn`);
       assert.equal(r.editTrip, false, "HDV không có nút sửa chuyến");
-      if (daXacNhan) assert.equal(r.lock, "Đơn đã xác nhận: dịch vụ, số khách và tiền đã khoá.", r.lock);
+      if (daXacNhan) assert.equal(r.lock, "Đơn đã xác nhận: dịch vụ và đơn giá đã khoá.", r.lock); // phiếu kiểm A2 V-1: không còn nói "số khách đã khoá"
       else assert.equal(r.lock, null);
     }
   });

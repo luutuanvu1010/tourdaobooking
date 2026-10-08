@@ -68,7 +68,7 @@ Thanh tab dưới đáy có [[Trang chủ]], [[Đơn hàng]] và [[Tôi]]. Các 
    - Từng lần thu: ngày, số tiền, hình thức, người thu
 4. Khối **Lịch sử** ở cuối trang ghi ai đã làm gì với đơn, lúc nào. Ai sửa số khách (hướng dẫn viên, người lập đơn, Kế toán, Quản trị) thì lý do cũng hiện ở đây.
 
-Đơn đã xác nhận có dòng khoá: "Đơn đã xác nhận: dịch vụ, số khách và tiền đã khoá."
+Đơn đã xác nhận có dòng khoá bắt đầu bằng "Đơn đã xác nhận: dịch vụ và đơn giá đã khoá." Số khách vẫn sửa được (mục "Sửa số khách đơn đã xác nhận").
 
 > Ví dụ: Chị Lan thấy số Còn lại của một đơn khác với số khách báo. Chị xem Lịch sử thì thấy hướng dẫn viên đã bớt 1 khách, lý do "khách ốm không đi". Chị ghi lại để đối chiếu cuối ngày.`,
     },
@@ -154,7 +154,7 @@ Chuông ở thanh trên báo khi có đơn mới, có người nhận đơn, đ�
       tieuDe: "Điều bạn không làm được — hỏi ai",
       noiDung: `- Lập đơn mới: không. Nhờ nhân viên bán hàng.
 - Sửa, xác nhận, huỷ đơn: không. Nhờ người lập đơn, người phụ trách đơn hoặc Quản trị.
-- Sửa tiền sau khi xác nhận: không, chỉ tài khoản Toàn quyền. Số khách thì bạn sửa được (mục "Sửa số khách đơn đã xác nhận").
+- Thêm dịch vụ, đổi giá sau khi xác nhận: Nền tảng chưa có cách sửa, kể cả tài khoản Toàn quyền — báo Quản trị. Số khách thì bạn sửa được (mục "Sửa số khách đơn đã xác nhận").
 - Nhận phụ trách, giao đơn cho người khác: không. Nhờ nhân viên bán hàng hoặc Quản trị.
 - Duyệt "Đặt gấp": không. Nhờ Quản trị.
 - Xếp xe, tạo chuyến, bấm tiến độ chuyến: không, bạn chỉ xem. Nhờ nhân viên bán hàng hoặc Quản trị.

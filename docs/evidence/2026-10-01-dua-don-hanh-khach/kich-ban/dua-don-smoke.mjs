@@ -196,7 +196,7 @@ try {
   const m = await env.as(ACCOUNTS.salesA, `/order?id=${o2.id}`, DESK);
   await b.step("7", `M3 + M4 (1040, Bán hàng, đơn đã xác nhận): câu khoá theo vai; 'Sửa đưa đón' mở bảng — đổi nơi trả chiều đi, bỏ chiều về phải chọn lý do ('Chọn lý do bỏ chặng.'), Lưu → PUT /legs/:id + POST /legs/:id/close (tiêu chí 4)${axeNote()}`, async () => {
     await m.waitFor(shown('[data-action="sua-dua-don"]'), "nút Sửa đưa đón");
-    assert.equal(await m.ev(txt(".lock-note")), "Đơn đã xác nhận: dịch vụ, số khách và tiền đã khoá. Chỉ sửa được thông tin chuyến, đưa đón và danh sách hành khách.");
+    assert.equal(await m.ev(txt(".lock-note")), "Đơn đã xác nhận: dịch vụ và đơn giá đã khoá. Còn sửa được số khách (nút “Sửa số khách dịch vụ”), thông tin chuyến, đưa đón và danh sách hành khách."); // người lập: có nút sửa số khách (ADR-0063 D1)
     assert.match(await m.ev(txt('[data-khoi="dua-don"]')), /Chiều về .*16:30 2 người về/);
     await shotFull(m, "m3-don-xac-nhan-1040.png");
     await m.ev(click('[data-action="sua-dua-don"]'));
@@ -359,7 +359,7 @@ try {
     const p = await env.as(ACCOUNTS.accounting, `/order?id=${o2.id}`, MOB);
     await p.waitFor(shown('[data-khoi="dua-don"]'), "khối Đưa đón");
     assert.equal(await p.ev(`!!document.querySelector('[data-action="sua-dua-don"], [data-action="sua-danh-sach"]')`), false);
-    assert.equal(await p.ev(txt(".lock-note")), "Đơn đã xác nhận: dịch vụ, số khách và tiền đã khoá.");
+    assert.equal(await p.ev(txt(".lock-note")), "Đơn đã xác nhận: dịch vụ và đơn giá đã khoá. Còn sửa được số khách (nút “Sửa số khách dịch vụ”)."); // Kế toán: chỉ nút sửa số khách (ADR-0063 D1)
     assert.ok(await p.ev(shown('[data-khoi="hanh-khach"]')));
     await shotFull(p, "m3-ke-toan-390.png");
     p.close();
@@ -394,7 +394,7 @@ try {
     await p.waitFor(shown('[data-khoi="hanh-khach"]'), "khối Hành khách");
     assert.equal(await p.ev(`!!document.querySelector('[data-action="sua-danh-sach"]')`), true, "Đối tác có Sửa danh sách");
     assert.equal(await p.ev(`!!document.querySelector('[data-action="sua-dua-don"]')`), false, "Đối tác không có Sửa đưa đón");
-    assert.equal(await p.ev(txt(".lock-note")), "Đơn đã xác nhận: dịch vụ, số khách và tiền đã khoá. Chỉ sửa được danh sách hành khách.");
+    assert.equal(await p.ev(txt(".lock-note")), "Đơn đã xác nhận: dịch vụ và đơn giá đã khoá. Còn sửa được danh sách hành khách.");
     assert.ok(await p.ev(noOverflowX));
     await shotFull(p, "tc7-doi-tac-don-xac-nhan-390.png");
     p.close();

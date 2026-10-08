@@ -135,7 +135,7 @@ try {
   await p.ev("window.confirm = () => true; true");
   await p.ev(clickText("#actions", "Xác nhận đơn"));
   await p.waitFor("document.querySelector('#order .badge')?.textContent === 'Đã xác nhận'", "đã xác nhận");
-  assert.match(await p.ev("document.querySelector('.lock-note').textContent"), /Đơn đã xác nhận: dịch vụ, số khách và tiền đã khoá\. Chỉ sửa được thông tin chuyến, đưa đón và danh sách hành khách\./); // D5 (bản vẽ M3, 2026-10-01)
+  assert.equal(await p.ev("document.querySelector('.lock-note').textContent"), "Đơn đã xác nhận: dịch vụ và đơn giá đã khoá. Còn sửa được số khách (nút “Sửa số khách dịch vụ”), thông tin chuyến, đưa đón và danh sách hành khách."); // phiếu kiểm A2 V-1
   assert.equal(await p.ev("document.querySelectorAll('#order .svc-view .lock').length"), 4, "mỗi dịch vụ: khoá ở Số khách và ở Tổng dịch vụ");
   const confirmedBtns = await p.ev("[...document.querySelectorAll('#actions .btn')].map((b) => b.textContent)");
   assert.ok(confirmedBtns.includes("Huỷ đơn") && !confirmedBtns.includes("Sửa") && !confirmedBtns.includes("Xác nhận đơn"), `đơn đã xác nhận: có 'Huỷ đơn', không còn 'Sửa'/'Xác nhận đơn' (từ Task 9 có thêm 'Sửa thông tin chuyến'): ${confirmedBtns}`);

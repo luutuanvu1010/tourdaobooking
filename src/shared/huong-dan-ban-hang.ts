@@ -65,7 +65,7 @@ Bốn tab: [[Trang chủ]], [[Đơn hàng]], [[Tạo đơn]], [[Tôi]]. Trong tr
     {
       tieuDe: "Xác nhận đơn",
       noiDung: `1. Mở đơn đang [[Chờ xác nhận]].
-2. Bấm [[Xác nhận đơn]]. App hỏi lại và nhắc: sau khi xác nhận, dịch vụ, số khách và tiền sẽ bị khoá — chỉ còn sửa được thông tin chuyến. Bấm đồng ý.
+2. Bấm [[Xác nhận đơn]]. Nền tảng hỏi lại: sau khi xác nhận, dịch vụ và đơn giá bị khoá. Bấm đồng ý.
 3. Đơn chuyển sang [[Đã xác nhận]].
 
 App chỉ cho xác nhận khi mỗi dịch vụ có ngày khởi hành, ngày đó chưa qua và không quá 365 ngày tới, mỗi dịch vụ có khách, và không còn chặng đón sát giờ chưa được duyệt (xem "Đơn sát giờ — Đặt gấp"). Thiếu thì app báo [[Chưa đủ thông tin chuyến để xác nhận đơn.]] kèm từng dịch vụ và liên kết [[Sửa]].
@@ -149,7 +149,7 @@ Sau xác nhận, dịch vụ và tiền **bị khoá**. Số khách của đơn 
 2. Bấm **+** hoặc **−**; dịch vụ nhập tay chỉ để xem.
 3. Chọn lý do ([[Khách thêm người]], [[Khách bớt người]], [[Đổi dịch vụ]], [[Khác]]) rồi bấm [[Lưu số khách]].
 
-Nền tảng tự tính lại tiền (giảm giá giữ nguyên), ghi vào [[Lịch sử]] và báo người phụ trách. Đơn người khác lập: nhờ người lập, Kế toán hoặc Quản trị. Thêm dịch vụ, đổi giá: chỉ tài khoản Toàn quyền.
+Nền tảng tự tính lại tiền (giảm giá giữ nguyên), ghi vào [[Lịch sử]] và báo người phụ trách. Đơn người khác lập: nhờ người lập, Kế toán hoặc Quản trị. Thêm dịch vụ, đổi giá: chưa sửa được, báo Quản trị.
 
 ### Đơn sát giờ — Đặt gấp
 
@@ -198,7 +198,7 @@ Huỷ được cả đơn chờ xác nhận lẫn đã xác nhận, nếu là đ
       tieuDe: "Điều bạn không làm được — hỏi ai",
       noiDung: `- Duyệt đặt gấp cho đơn sát giờ; sửa giờ đón sát giờ sau xác nhận → **Quản trị**.
 - Sửa, xác nhận, huỷ đơn người khác lập mà bạn không phụ trách → người lập đơn, người phụ trách, hoặc **Quản trị** (đơn đang [[Chờ nhận]] thì bạn tự bấm [[Nhận phụ trách]]).
-- Sửa số khách sau khi đã xác nhận của đơn người khác lập → người lập đơn, **Kế toán** hoặc **Quản trị** (đơn bạn lập thì tự bấm [[Sửa số khách dịch vụ]]). Dịch vụ, tiền → chỉ tài khoản Toàn quyền.
+- Sửa số khách sau khi đã xác nhận của đơn người khác lập → người lập đơn, **Kế toán** hoặc **Quản trị** (đơn bạn lập thì tự bấm [[Sửa số khách dịch vụ]]). Dịch vụ, giá → chưa sửa được, báo **Quản trị**.
 - Thêm, sửa dịch vụ và giá trong danh mục; dịch vụ "chưa có giá" → **Quản trị**.
 - Khách trả thêm: bấm [[Ghi lần thu]] trên đơn bạn lập. Hoàn tiền, hoá đơn → **Kế toán**.
 - Quên mã PIN, bị khoá đăng nhập → **Quản trị**.

@@ -250,7 +250,7 @@ export const dispatchModule: AppModule = {
       const [order, assigned] = await Promise.all([findOrderOwner(env.DB, orderId), isAssigned(orderId)]);
       if (!order) return NOT_FOUND();
       // CỐ Ý không dùng can(staff, "order.money.edit", { assigned }) trần: ô order.money.edit của ACCOUNTING/ADMIN trong MATRIX là "any" (dành cho
-      // một route KHÁC, chưa làm — N3, sửa tiền MỌI đơn không cần đang phụ trách) — can() hợp nhiều quyền nên sẽ cho ACCOUNTING/ADMIN qua route HẸP
+      // route văn phòng `POST /api/orders/:id/money-edit` — ADR-0063 D1, cổng office; sửa số khách MỌI đơn không cần đang phụ trách) — can() hợp nhiều quyền nên sẽ cho ACCOUNTING/ADMIN qua route HẸP
       // này dù không phải người phụ trách (lỗ đã bị kiểm độc lập bắt: đổi số khách/tiền của BẤT KỲ đơn đã xác nhận nào). Route hẹp này CHỈ dành cho
       // cấp hẹp thật (ô CHÍNH XÁC = "assigned", tức FIELD) VÀ đang được giao, cộng SUPER_ADMIN (ADR-0014 điều 2: any ở MỌI thao tác, không ngoại lệ).
       const narrowEligible = assigned && staff.permissions.some((p) => MATRIX["order.money.edit"][p] === "assigned");

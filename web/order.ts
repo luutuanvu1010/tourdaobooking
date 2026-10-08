@@ -915,6 +915,9 @@ function render(order: Order, history: AuditEntry[], canModify: boolean, handler
   const suaChuyen = suaChuyenDuoc(staff!, order.staffId, canModify);
   const a = orderActions(order.status, canModify, suaChuyen);
   const suaKhach = suaKhachDuoc(staff!, order.staffId, canModify) && order.deliveredAt === null;
+  // ADR-0063 D1: người lập đơn (Bán hàng), Kế toán, Quản trị, Toàn quyền sửa số khách đơn đã xác nhận, chưa Đã giao — cùng luật ẩn/hiện với máy chủ
+  // (`duocSuaSoKhachVanPhong`, hỏi bảng quyền) VÀ máy chủ phải gửi loại khách sửa được (`suaSoKhach`); không dịch vụ nào sửa được thì không có nút.
+  const nguonSoKhach = duocSuaSoKhachVanPhong(staff!, order) ? nguonBangSuaSoKhach(order.services, suaSoKhach) : null;
   // Nút sửa của hai khối mới: đơn đã xác nhận → bảng trượt (M4, M5); đơn nháp → về biểu mẫu đơn (M1, M2).
   const formHref = `/order-form?id=${encodeURIComponent(order.id)}`;
   const nutDuaDon =
@@ -947,7 +950,7 @@ function render(order: Order, history: AuditEntry[], canModify: boolean, handler
     order.deliveredAt
       ? h("p", { class: "lock-note" }, icon("lock", 18), order.completedAt ? "Đơn đã Hoàn thành — đơn đã khoá." : "Đơn đã Đã giao – đã thu đủ — đơn đã khoá, không sửa, huỷ hay đổi người phụ trách được nữa.")
       : a.locked
-        ? h("p", { class: "lock-note" }, icon("lock", 18), cauKhoaXacNhan(a.editTrip, suaKhach)) // D5 (bản vẽ M3): câu khoá theo những gì người xem còn sửa được
+        ? h("p", { class: "lock-note" }, icon("lock", 18), cauKhoaXacNhan(a.editTrip, suaKhach, nguonSoKhach !== null)) // D5 (bản vẽ M3): câu khoá theo những gì người xem còn sửa được
         : null,
 
     h(
@@ -1019,19 +1022,16 @@ function render(order: Order, history: AuditEntry[], canModify: boolean, handler
   const btns: HTMLElement[] = [];
   // Quyền sửa/xác nhận/huỷ do MÁY CHỦ quyết (`canModify`, kể cả người phụ trách — ADR-0009); câu này chỉ giải thích cho người không có quyền.
   // Hướng dẫn viên LÀ người phụ trách mà không sửa được (order.modify FIELD = none) → câu riêng, không nói "người phụ trách đơn … mới được sửa" (`khongQuyenSuaText`).
-  if (a.noPermission && !order.deliveredAt) btns.push(h("p", { class: "muted" }, khongQuyenSuaText({ ownerName: order.staffName, status: order.status, viewer: staff! })));
+  if (a.noPermission && !order.deliveredAt) btns.push(h("p", { class: "muted" }, khongQuyenSuaText({ ownerName: order.staffName, status: order.status, viewer: staff!, suaSoKhach: nguonSoKhach !== null })));
   if (a.edit) btns.push(h("a", { class: "btn", href: `/order-form?id=${encodeURIComponent(order.id)}` }, "Sửa"));
   // Bản vẽ 7a / 7b: còn chặng phải đặt gấp → nút Xác nhận khoá + dòng nói vì sao (Bán hàng: "Cần Quản trị duyệt đặt gấp"; Quản trị: "Duyệt đặt gấp xong thì xác nhận được.").
   const chanXacNhan = a.confirm ? tomTatChanXacNhan(canDatGap, duocDatGap) : null;
   if (a.confirm) {
-    const nut = change("Xác nhận đơn", "confirmed", "Xác nhận đơn này? Sau khi xác nhận, dịch vụ, số khách và tiền sẽ bị khoá — chỉ còn sửa được thông tin chuyến.", "btn btn-accent", canhBaoXN);
+    const nut = change("Xác nhận đơn", "confirmed", "Xác nhận đơn này? Sau khi xác nhận, dịch vụ và đơn giá sẽ bị khoá; đổi số khách phải ghi lý do.", "btn btn-accent", canhBaoXN);
     nut.disabled = chanXacNhan !== null;
     btns.push(nut);
   }
   if (a.editTrip) btns.push(editTripButton(order));
-  // ADR-0063 D1: người lập đơn (Bán hàng), Kế toán, Quản trị, Toàn quyền sửa số khách đơn đã xác nhận, chưa Đã giao — cùng luật ẩn/hiện với máy chủ
-  // (`duocSuaSoKhachVanPhong`, hỏi bảng quyền) VÀ máy chủ phải gửi loại khách sửa được (`suaSoKhach`); không dịch vụ nào sửa được thì không có nút.
-  const nguonSoKhach = duocSuaSoKhachVanPhong(staff!, order) ? nguonBangSuaSoKhach(order.services, suaSoKhach) : null;
   if (nguonSoKhach) btns.push(nutSuaSoKhach(order, nguonSoKhach));
   if (a.cancel) btns.push(nutHuyDon());
   for (const cau of canhBaoXN) btns.push(h("p", { class: "dd-canh-xn", "data-canh-bao": "xac-nhan" }, icon("alert", 16), cau));
