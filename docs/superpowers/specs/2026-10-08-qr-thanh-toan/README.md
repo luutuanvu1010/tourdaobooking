@@ -8,7 +8,7 @@
   - **TNV-G3:** lối gỡ khai trùng sau "Đã giao" là lệnh "Thay lần thu" (migration 0083).
   - **TNV-G4:** QR làm số khoản chuyển khoản tăng mạnh, đụng đúng ca KT02 "hai người khai cùng một khoản". Bản này **thi công luôn phần Đ6** nằm trong `ke_hoach` của G4. Sau bản này, Đ5d, Đ6a và phần cảnh báo khác đơn vẫn còn hở.
   - **HC-4.2:** lệnh sửa "số tiền thực chuyển" đứng sát luật "điều chỉnh cần người duyệt khác người tạo" (§5).
-  - **Điều kiện phát hành:** migration 0078–0083 đã có trên production, kiểm bằng lệnh chỉ đọc lúc phát hành (`wrangler d1 migrations list … --remote`), không tin tài liệu. Theo luật dừng dây chuyền, duyệt đặc tả này cần chủ chọn câu C2 (§9).
+  - **Điều kiện phát hành:** migration 0078–0083 đã có trên production, kiểm bằng lệnh chỉ đọc lúc phát hành (`wrangler d1 migrations list … --remote`), không tin tài liệu. Chủ đã chọn C2 = "Cho phép, có ghi lý do" (2026-10-08); lý do ghi ở `docs/quyen-hoan.json`.
 
 ## 1. Tóm tắt cho chủ (lời thường)
 
@@ -147,7 +147,15 @@ Luật:
 10. Ảnh lưu không chứa chữ "hoa hồng", "giá vốn", tên người thu (bài kiểm danh sách trường như `bien-nhan.test.ts`). Kịch bản Chrome không thấy request nào ra tên miền ngoài khi mở QR.
 11. `npm test`, `npm run typecheck`, `npm run test:e2e` xanh; `audit-invariants` có luật tổng-theo-mã và không lỗi mới; dòng mới ở `docs/SO-HANG-RAO.md` có ngày quan sát chặn thật; người kiểm độc lập ĐẠT.
 
-## 9. Câu chờ chủ (hỏi một lần, kèm khuyến nghị)
+## 9. Câu hỏi chủ — ĐÃ TRẢ LỜI 2026-10-08 (chat, cả ba theo khuyến nghị)
+
+| Câu | Chủ chọn | Đã thi hành ở |
+|---|---|---|
+| C1 | "Bắt buộc từ ngày phát hành" | §5 luật; kế hoạch thêm mốc cắt cứng trong CSDL |
+| C2 | "Cho phép, có ghi lý do" | trường `xay_tren_cho_phep` ở bốn mục TNV-G1, G3, G4, HC-4.2 của `docs/quyen-hoan.json` (hạn giữ nguyên 31/10) |
+| C3 | "Chép bộ vẽ miễn phí" | §7 phương án (a) |
+
+Nội dung câu hỏi gốc (giữ để đối chiếu):
 
 - **C1. Mã giao dịch ngân hàng có bắt buộc không?** Khuyến nghị: **bắt buộc** khi Kế toán bấm "Công ty đã nhận" và khi Kế toán tự ghi lần thu chuyển khoản. Áp với lần thu **ghi sau mốc cắt cứng** lưu trong CSDL lúc phát hành (khuôn `bil_audit_cutoff` của migration 0083). Lần thu cũ trước mốc không bị đòi bổ sung. Lý do: để trống được thì chặn trùng không có tác dụng.
 - **C2. Đặc tả đứng trên bốn lỗ đang mở (TNV-G1, G3, G4, HC-4.2).** Luật "dừng dây chuyền" chỉ có hai đường:

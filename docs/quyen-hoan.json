@@ -54,7 +54,8 @@
       "ke_hoach": "Theo ADR-0089 (accepted 2026-10-02 — docs/adr/ADR-0089-don-huy-coc-mac-dinh-giu-hoan-tuy-chon.md): hàm duy nhất billing.conLai nhận cờ đơn huỷ → còn lại 0, cọc mặc định giữ; hoàn tuỳ chọn hai bước (duyệt / chi, khác người), tổng chi ≤ tổng duyệt ≤ đã trả, hạn 60 ngày; lý do huỷ ba nhóm bắt buộc; trạng thái cọc ở biên nhận + trang đơn + màn sổ. Chủ ĐÃ DUYỆT văn bản lượt 1a + 1b (2/10); còn QH5 (dữ liệu cũ). Thi công sau khi chuyển vào docs/adr/; người kiểm độc lập. Thi công 2026-10-05 (nhánh worktree-agent-a705a660a33db03ca, migration 0078–0079, CHƯA lên production): còn lại 0 ở mọi bề mặt, lý do huỷ bắt buộc, duyệt / chi / chuyển / hoàn ngoài hai lớp, biên nhận huỷ; kiểm độc lập 3 vòng (lỗi đã sửa). CÒN CHỜ để đóng: Kế toán xác nhận 13 ca sổ vàng golden/don-huy-coc.json (đang cho_xac_nhan); triển khai; chạy kịch bản Chrome; tin báo \"Đã duyệt hoàn cọc\" (chờ chủ); ô đếm trên Trang chủ.",
       "han": "2026-10-31",
       "nguoi_chiu_trach_nhiem": "chủ dự án",
-      "nguon": "~/Documents/danh-gia-ux/2026-10-01/BAO-CAO.md G1; chủ dự án đồng ý đưa vào sổ 2026-10-02"
+      "nguon": "~/Documents/danh-gia-ux/2026-10-01/BAO-CAO.md G1; chủ dự án đồng ý đưa vào sổ 2026-10-02",
+      "xay_tren_cho_phep": "chủ dự án 2026-10-08 (chat, chọn 'Cho phép, có ghi lý do'): đặc tả docs/superpowers/specs/2026-10-08-qr-thanh-toan/ được duyệt dù lỗ này còn mở — QR chỉ dùng phần vá đã thi công (migration 0078–0083), chỉ phát hành sau khi các migration đó lên production (kiểm bằng lệnh chỉ đọc), và tự thi công ADR-0092 Đ6 thuộc kế hoạch vá TNV-G4; phần còn lại của lỗ giữ hạn cũ."
     },
     {
       "ma": "TNV-G3",
@@ -63,7 +64,8 @@
       "ke_hoach": "Theo ADR-0088 (accepted 2026-10-03 — docs/adr/ADR-0088-sua-sai-sau-da-giao-thay-lan-thu-phan-dinh-trach-nhiem.md; hồ sơ trình lượt duyệt 2a —docs/superpowers/specs/2026-10-02-luot-duyet-2-sua-sai-sau-da-giao-va-so-khong-doi-dau.md; chủ chọn I1 xét LUÔN LUÔN 2026-10-02): I1 = due_snapshot − giảm trừ đã phân định; lệnh Thay lần thu (một lô); chặn đảo đơn lẻ sau Đã giao; chặn Hoàn thành khi lệch (máy chủ + trigger); phân định trách nhiệm đ9 (lời chủ: ai làm người đó chịu); R-BIL-1 mọi lúc (cảnh báo trước mốc, lỗi sau mốc); người kiểm độc lập. Thi công 2026-10-05 (cùng nhánh, migration 0083, CHƯA lên production): lệnh Thay lần thu (N → M, N = 0 ghi bù đơn đã lệch), chặn đảo đơn lẻ và hoàn sau Đã giao, Hoàn thành kiểm I1 (máy chủ + trigger), R-BIL-1 mọi lúc có mốc. CÒN CHỜ để đóng: đ9 phân định trách nhiệm (chờ chủ), tin báo người thu cũ / mới, triển khai.",
       "han": "2026-10-31",
       "nguoi_chiu_trach_nhiem": "chủ dự án",
-      "nguon": "~/Documents/danh-gia-ux/2026-10-01/BAO-CAO.md G3; chủ dự án đồng ý 2026-10-02"
+      "nguon": "~/Documents/danh-gia-ux/2026-10-01/BAO-CAO.md G3; chủ dự án đồng ý 2026-10-02",
+      "xay_tren_cho_phep": "chủ dự án 2026-10-08 (chat, chọn 'Cho phép, có ghi lý do'): đặc tả docs/superpowers/specs/2026-10-08-qr-thanh-toan/ được duyệt dù lỗ này còn mở — QR chỉ dùng phần vá đã thi công (migration 0078–0083), chỉ phát hành sau khi các migration đó lên production (kiểm bằng lệnh chỉ đọc), và tự thi công ADR-0092 Đ6 thuộc kế hoạch vá TNV-G4; phần còn lại của lỗ giữ hạn cũ."
     },
     {
       "ma": "TNV-G4",
@@ -72,7 +74,8 @@
       "ke_hoach": "Theo ADR-0092 (accepted 2026-10-03 — docs/adr/ADR-0092-so-tien-khong-doi-dau-dieu-chinh-co-kiem-soat.md; hồ sơ trình lượt duyệt 2b —docs/superpowers/specs/2026-10-02-luot-duyet-2-sua-sai-sau-da-giao-va-so-khong-doi-dau.md): đã thu ròng ≥ 0, quyết toán không đổi dấu (R-BIL-13 lên mức lỗi), hoàn ≤ người trả đang giữ, điều chỉnh có trần + lý do + báo người bị đổi, ô mã giao dịch ngân hàng; người kiểm độc lập. Thi công 2026-10-05 (cùng nhánh, migration 0080, 0082, CHƯA lên production): Đ1, Đ2/Đ2b (R-BIL-13 mức lỗi), Đ3, Đ4, Đ5a–c, R-BIL-8. CÒN CHỜ để đóng: Đ5d tin báo người bị đổi số dư, Đ6 mã giao dịch ngân hàng, Đ6a cảnh báo trùng qua bảng luật chung (chờ chủ), triển khai.",
       "han": "2026-10-31",
       "nguoi_chiu_trach_nhiem": "chủ dự án",
-      "nguon": "~/Documents/danh-gia-ux/2026-10-01/BAO-CAO.md G4; chủ dự án đồng ý 2026-10-02"
+      "nguon": "~/Documents/danh-gia-ux/2026-10-01/BAO-CAO.md G4; chủ dự án đồng ý 2026-10-02",
+      "xay_tren_cho_phep": "chủ dự án 2026-10-08 (chat, chọn 'Cho phép, có ghi lý do'): đặc tả docs/superpowers/specs/2026-10-08-qr-thanh-toan/ được duyệt dù lỗ này còn mở — QR chỉ dùng phần vá đã thi công (migration 0078–0083), chỉ phát hành sau khi các migration đó lên production (kiểm bằng lệnh chỉ đọc), và tự thi công ADR-0092 Đ6 thuộc kế hoạch vá TNV-G4; phần còn lại của lỗ giữ hạn cũ."
     },
     {
       "ma": "HC-5.19",
@@ -99,7 +102,8 @@
       "ke_hoach": "Thêm bước duyệt hai lớp cho bút toán điều chỉnh (người tạo khác người duyệt), theo khuôn đã dùng cho hoàn cọc ở TNV-G1 (duyệt/chi khác người) — cần đặc tả ngắn rồi ADR sửa/bổ sung ADR-0092, vì chạm cả tiền và quyền (việc lớn, cần người kiểm độc lập sau khi thi công).",
       "han": "2026-10-31",
       "nguoi_chiu_trach_nhiem": "chủ dự án",
-      "nguon": "docs/kernel-18.md dòng 13 (nợ); chủ dự án đồng ý nâng thành mục có hạn 2026-10-06"
+      "nguon": "docs/kernel-18.md dòng 13 (nợ); chủ dự án đồng ý nâng thành mục có hạn 2026-10-06",
+      "xay_tren_cho_phep": "chủ dự án 2026-10-08 (chat, chọn 'Cho phép, có ghi lý do'): đặc tả docs/superpowers/specs/2026-10-08-qr-thanh-toan/ được duyệt dù lỗ này còn mở — QR chỉ dùng phần vá đã thi công (migration 0078–0083), chỉ phát hành sau khi các migration đó lên production (kiểm bằng lệnh chỉ đọc), và tự thi công ADR-0092 Đ6 thuộc kế hoạch vá TNV-G4; phần còn lại của lỗ giữ hạn cũ."
     }
   ]
 }
