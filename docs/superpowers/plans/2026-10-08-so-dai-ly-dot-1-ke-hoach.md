@@ -996,3 +996,1430 @@ git commit -m "Luật thuần sổ đại lý: chọn mức sáu bậc, người
 ```
 
 ---
+
+### Task 3: Module `pricing`: repository, tám route, bốn ô quyền, nhật ký, tên lời thường
+
+**Files:**
+- Create: `src/modules/pricing/repository.ts`, `src/modules/pricing/index.ts`, `src/modules/pricing/route.test.ts`
+- Modify: `src/modules/pricing/rules.ts` (thêm `kiemThanMuc`, `kiemThanDieuKhoan`, `kiemNgayDong`, `moTaMuc`) + `rules.test.ts`
+- Modify: `src/modules/parties/index.ts`, `src/modules/parties/repository.ts` (hàm công bố `tenLoaiVai`) + `src/modules/parties/tai-xe-dieu-phoi.test.ts` (danh sách tên xuất ghim)
+- Modify: `src/shared/permissions.ts`, `src/shared/permissions.test.ts`, `src/shared/contracts.ts`, `src/shared/audit-actions.ts`, `src/shared/tro-ly-cau-truc-ten.ts`, `src/shared/tro-ly-cau-truc.ts` (sinh)
+- Modify: `src/index.ts` (mảng `modules`), `src/architecture.test.ts` (`STRICT` thêm pricing), `src/route-access.test.ts` (+8 dòng, 256 → 264), `src/lan-gui-phu-route.test.ts` (+4 route ghi, 153 → 157)
+
+**Interfaces:**
+- Consumes: Task 1 (bảng, view, mã lỗi trigger), Task 2 (luật thuần `chonMuc`, `nguoiHuongCua`, `hieuLuc`, kiểu `DongMuc`, `DongDieuKhoan`, `NguoiHuong`, `PhamVi`, `KieuMuc`); `ownerCompany` (parties, trả `{ partyId, displayName, … } | null`), `getEffectiveServices(db, codes?)` (catalog, trả `Map<code, …>`), `auditStatement(db, { staffId, action, at, detail?, orderId? }, onlyIf?)` (audit), `can`, `holdsPartner` (permissions).
+- Produces:
+  - `pricing/index.ts`: `pricingModule: AppModule`; `docBangChoChup(db, { bookerPartyId: string | null; catalogCodes: readonly string[]; ngay: string }): Promise<DuLieuChup>` với `DuLieuChup = { nguoiHuong: NguoiHuong; muc: DongMuc[]; dieuKhoan: DongDieuKhoan[]; nhom: ReadonlyMap<string, string | null> }`; `laNguoiHuong(db, partyId): Promise<boolean>`; tái xuất `chupDon`, `tinhDongDoiTac`, `soKhachTinhHoaHong` và các kiểu `BanChup`, `NguoiHuong`, `DongPhanDoiTac`, `KieuMuc`, `LyDoThieu`.
+  - `parties/index.ts`: `tenLoaiVai(db): Promise<Map<string, string>>` (mã vai → tên tiếng Việt, đọc `pty_role_type` của chính parties).
+  - `contracts.ts`: `DoiTuongMucDto`, `CommissionRuleDto`, `CommissionRuleListResponse`, `SupplyTermDto`, `SupplyTermListResponse`, `ThuTraResponse`, `NguoiHuongTimResponse`.
+  - Bốn ô: `partner.commission.view`, `partner.commission.write`, `supply.terms.view`, `supply.terms.write` (giá trị đúng bảng §6 đặc tả).
+  - Bốn hành động nhật ký nhóm `ledger`: `prc_commission_rule_added` ("Thêm mức hoa hồng"), `prc_commission_rule_closed` ("Đóng mức hoa hồng"), `prc_supply_term_added` ("Thêm điều khoản người bán"), `prc_supply_term_closed` ("Đóng điều khoản người bán").
+
+- [ ] **Step 1: Bài đỏ cho luật kiểm thân** (thêm vào `src/modules/pricing/rules.test.ts`):
+
+```ts
+import { kiemNgayDong, kiemThanDieuKhoan, kiemThanMuc, moTaMuc } from "./rules.ts";
+
+test("kiemThanMuc: đúng một đối tượng, phạm vi khớp mã, tỷ lệ phần vạn 0…10000 hoặc đ/khách ≥ 0, ngày hợp lệ, ghi chú không chứa dãy số dài", () => {
+  const goc = { doiTuong: { loai: "VAI", code: "TRAVEL_AGENCY" }, phamVi: "GROUP", groupCode: "DTH", kieu: "RATE", tyLeBp: 1500, tuNgay: "2026-10-10" };
+  const ok = kiemThanMuc(goc);
+  assert.ok(ok.ok);
+  assert.deepEqual(ok.ok && ok.value, { targetPartyId: null, targetRoleCode: "TRAVEL_AGENCY", scope: "GROUP", catalogCode: null, groupCode: "DTH", kind: "RATE", rateBp: 1500, perPaxAmount: null,
+    validFrom: "2026-10-10", validTo: null, note: null });
+  assert.equal(kiemThanMuc({ ...goc, tyLeBp: 10001 }).ok, false);
+  assert.equal(kiemThanMuc({ ...goc, tyLeBp: 12.5 }).ok, false, "phần vạn phải là số nguyên");
+  assert.equal(kiemThanMuc({ ...goc, phamVi: "SERVICE" }).ok, false, "phạm vi dịch vụ mà không có mã");
+  assert.equal(kiemThanMuc({ ...goc, kieu: "PER_PAX", tyLeBp: undefined, moiKhach: -1 }).ok, false);
+  assert.equal(kiemThanMuc({ ...goc, tuNgay: "2026-02-30" }).ok, false);
+  assert.equal(kiemThanMuc({ ...goc, denNgay: "2026-10-09" }).ok, false, "ngày kết thúc trước ngày bắt đầu");
+  assert.equal(kiemThanMuc({ ...goc, ghiChu: "gọi 0905123456" }).ok, false);
+  assert.equal(kiemThanMuc({ ...goc, doiTuong: { loai: "DOI_TAC", partyId: "x y" } }).ok, false);
+});
+
+test("kiemThanDieuKhoan: người bán bắt buộc; tỷ lệ mua lại phần vạn khi có", () => {
+  assert.ok(kiemThanDieuKhoan({ phamVi: "SERVICE", catalogCode: "IRESORT", nguoiBanPartyId: "pty-1", tyLeMuaBp: 8000, tuNgay: "2026-10-10" }).ok);
+  assert.equal(kiemThanDieuKhoan({ phamVi: "SERVICE", catalogCode: "IRESORT", tuNgay: "2026-10-10" }).ok, false);
+  assert.equal(kiemThanDieuKhoan({ phamVi: "ALL", nguoiBanPartyId: "pty-1", tyLeMuaBp: -5, tuNgay: "2026-10-10" }).ok, false);
+});
+
+test("kiemNgayDong: ngày đóng ≥ ngày bắt đầu của dòng", () => {
+  assert.ok(kiemNgayDong({ denNgay: "2026-10-31" }, "2026-10-01").ok);
+  assert.equal(kiemNgayDong({ denNgay: "2026-09-30" }, "2026-10-01").ok, false);
+  assert.equal(kiemNgayDong({}, "2026-10-01").ok, false);
+});
+
+test("moTaMuc: lời thường cho nhật ký, không SĐT, tỷ lệ bỏ số 0 thừa", () => {
+  assert.equal(moTaMuc({ doiTuong: "Công ty lữ hành", scope: "GROUP", catalogCode: null, groupCode: "DTH", kind: "RATE", rateBp: 1250, perPaxAmount: null }), "Công ty lữ hành · nhóm DTH · 12,5%");
+  assert.equal(moTaMuc({ doiTuong: "đối tác pty-1", scope: "SERVICE", catalogCode: "HONTAM", groupCode: null, kind: "PER_PAX", rateBp: null, perPaxAmount: 50_000 }), "đối tác pty-1 · dịch vụ HONTAM · 50.000đ/khách");
+  assert.equal(moTaMuc({ doiTuong: "Cộng tác viên", scope: "ALL", catalogCode: null, groupCode: null, kind: "RATE", rateBp: 1000, perPaxAmount: null }), "Cộng tác viên · mọi dịch vụ · 10%");
+});
+```
+
+- [ ] **Step 2: Chạy đỏ** `node --test src/modules/pricing/rules.test.ts` — FAIL (chưa có bốn hàm).
+
+- [ ] **Step 3: Viết bốn hàm** cuối `src/modules/pricing/rules.ts`:
+
+```ts
+type Ket<T> = { ok: true; value: T } | { ok: false; message: string };
+const NGAY_RE = /^\d{4}-\d{2}-\d{2}$/;
+const PARTY_RE = /^[A-Za-z0-9-]{1,64}$/;
+const MA_RE = /^[A-Za-z0-9_]{1,40}$/;
+const laNgay = (s: unknown): s is string => typeof s === "string" && NGAY_RE.test(s) && new Date(`${s}T00:00:00Z`).toISOString().slice(0, 10) === s;
+const laPhanVan = (n: unknown): n is number => typeof n === "number" && Number.isInteger(n) && n >= 0 && n <= 10_000;
+/** Ghi chú tuỳ chọn ≤ 200 ký tự, không dãy ≥ 8 chữ số (khuôn billing: không SĐT / số tài khoản). */
+function docGhiChu(raw: unknown): Ket<string | null> {
+  if (raw === undefined || raw === null || raw === "") return { ok: true, value: null };
+  if (typeof raw !== "string" || raw.length > 200) return { ok: false, message: "Ghi chú tối đa 200 ký tự." };
+  if (/\d{8,}/.test(raw.replace(/[\s.-]/g, ""))) return { ok: false, message: "Ghi chú không được chứa số điện thoại / số tài khoản." };
+  return { ok: true, value: raw.trim() || null };
+}
+function docPhamVi(b: Record<string, unknown>): Ket<{ scope: PhamVi; catalogCode: string | null; groupCode: string | null }> {
+  if (b.phamVi === "ALL") return { ok: true, value: { scope: "ALL", catalogCode: null, groupCode: null } };
+  if (b.phamVi === "SERVICE" && typeof b.catalogCode === "string" && MA_RE.test(b.catalogCode)) return { ok: true, value: { scope: "SERVICE", catalogCode: b.catalogCode, groupCode: null } };
+  if (b.phamVi === "GROUP" && typeof b.groupCode === "string" && MA_RE.test(b.groupCode)) return { ok: true, value: { scope: "GROUP", catalogCode: null, groupCode: b.groupCode } };
+  return { ok: false, message: "Chọn phạm vi: một dịch vụ, một nhóm dịch vụ, hoặc mọi dịch vụ." };
+}
+function docKhoangNgay(b: Record<string, unknown>): Ket<{ validFrom: string; validTo: string | null }> {
+  if (!laNgay(b.tuNgay)) return { ok: false, message: "Ngày bắt đầu không hợp lệ." };
+  if (b.denNgay === undefined || b.denNgay === null || b.denNgay === "") return { ok: true, value: { validFrom: b.tuNgay, validTo: null } };
+  if (!laNgay(b.denNgay) || b.denNgay < b.tuNgay) return { ok: false, message: "Ngày kết thúc không hợp lệ hoặc trước ngày bắt đầu." };
+  return { ok: true, value: { validFrom: b.tuNgay, validTo: b.denNgay } };
+}
+
+export type ThanMuc = Omit<DongMuc, "id" | "validFrom" | "validTo"> & { validFrom: string; validTo: string | null; note: string | null };
+/** Thân `POST /api/pricing/hoa-hong`: { doiTuong: { loai: "VAI", code } | { loai: "DOI_TAC", partyId }, phamVi, catalogCode?, groupCode?, kieu, tyLeBp? | moiKhach?, tuNgay, denNgay?, ghiChu? }. */
+export function kiemThanMuc(raw: unknown): Ket<ThanMuc> {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return { ok: false, message: "Thiếu thông tin mức hoa hồng." };
+  const b = raw as Record<string, unknown>;
+  const dt = b.doiTuong as Record<string, unknown> | undefined;
+  let targetPartyId: string | null = null;
+  let targetRoleCode: string | null = null;
+  if (dt?.loai === "VAI" && typeof dt.code === "string" && MA_RE.test(dt.code)) targetRoleCode = dt.code;
+  else if (dt?.loai === "DOI_TAC" && typeof dt.partyId === "string" && PARTY_RE.test(dt.partyId)) targetPartyId = dt.partyId;
+  else return { ok: false, message: "Chọn áp cho một loại đối tác hoặc một đối tác cụ thể." };
+  const pv = docPhamVi(b);
+  if (!pv.ok) return pv;
+  let kind: KieuMuc;
+  let rateBp: number | null = null;
+  let perPaxAmount: number | null = null;
+  if (b.kieu === "RATE" && laPhanVan(b.tyLeBp)) { kind = "RATE"; rateBp = b.tyLeBp; }
+  else if (b.kieu === "PER_PAX" && typeof b.moiKhach === "number" && Number.isInteger(b.moiKhach) && b.moiKhach >= 0 && b.moiKhach <= 100_000_000) { kind = "PER_PAX"; perPaxAmount = b.moiKhach; }
+  else return { ok: false, message: "Mức phải là tỷ lệ từ 0% tới 100% (tối đa hai chữ số thập phân) hoặc số tiền mỗi khách không âm." };
+  const kn = docKhoangNgay(b);
+  if (!kn.ok) return kn;
+  const gc = docGhiChu(b.ghiChu);
+  if (!gc.ok) return gc;
+  return { ok: true, value: { targetPartyId, targetRoleCode, ...pv.value, kind, rateBp, perPaxAmount, ...kn.value, note: gc.value } };
+}
+
+export type ThanDieuKhoan = { scope: PhamVi; catalogCode: string | null; groupCode: string | null; sellerPartyId: string; costRateBp: number | null; validFrom: string; validTo: string | null; note: string | null };
+/** Thân `POST /api/pricing/cung-ung`: { phamVi, catalogCode?, groupCode?, nguoiBanPartyId, tyLeMuaBp?, tuNgay, denNgay?, ghiChu? }. Nhà cung cấp = người bán (máy chủ suy). */
+export function kiemThanDieuKhoan(raw: unknown): Ket<ThanDieuKhoan> {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return { ok: false, message: "Thiếu thông tin điều khoản." };
+  const b = raw as Record<string, unknown>;
+  const pv = docPhamVi(b);
+  if (!pv.ok) return pv;
+  if (typeof b.nguoiBanPartyId !== "string" || !PARTY_RE.test(b.nguoiBanPartyId)) return { ok: false, message: "Chọn người bán." };
+  let costRateBp: number | null = null;
+  if (b.tyLeMuaBp !== undefined && b.tyLeMuaBp !== null) {
+    if (!laPhanVan(b.tyLeMuaBp)) return { ok: false, message: "Tỷ lệ mua lại phải từ 0% tới 100%." };
+    costRateBp = b.tyLeMuaBp;
+  }
+  const kn = docKhoangNgay(b);
+  if (!kn.ok) return kn;
+  const gc = docGhiChu(b.ghiChu);
+  if (!gc.ok) return gc;
+  return { ok: true, value: { ...pv.value, sellerPartyId: b.nguoiBanPartyId, costRateBp, ...kn.value, note: gc.value } };
+}
+
+export function kiemNgayDong(raw: unknown, tuNgay: string): Ket<string> {
+  const d = (raw as { denNgay?: unknown } | null)?.denNgay;
+  if (!laNgay(d) || d < tuNgay) return { ok: false, message: "Ngày kết thúc không hợp lệ hoặc trước ngày bắt đầu của dòng." };
+  return { ok: true, value: d };
+}
+
+const nhanBp = (bp: number): string => {
+  const nguyen = Math.floor(bp / 100);
+  const le = String(bp % 100).padStart(2, "0").replace(/0+$/, "");
+  return le ? `${nguyen},${le}%` : `${nguyen}%`;
+};
+const nhanDong = (n: number): string => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+/** Mô tả một dòng mức cho nhật ký: "<đối tượng> · <phạm vi> · <mức>". Không SĐT, không tiền khách. */
+export function moTaMuc(v: { doiTuong: string; scope: PhamVi; catalogCode: string | null; groupCode: string | null; kind: KieuMuc; rateBp: number | null; perPaxAmount: number | null }): string {
+  const pv = v.scope === "ALL" ? "mọi dịch vụ" : v.scope === "GROUP" ? `nhóm ${v.groupCode}` : `dịch vụ ${v.catalogCode}`;
+  const muc = v.kind === "RATE" ? nhanBp(v.rateBp ?? 0) : `${nhanDong(v.perPaxAmount ?? 0)}đ/khách`;
+  return `${v.doiTuong} · ${pv} · ${muc}`;
+}
+```
+
+Ghi chú: `DongMuc` của Task 2 có `validFrom`/`validTo`; nếu tên trường ở Task 2 khác thì dùng đúng tên của Task 2 (Task 2 là nguồn) và sửa `ThanMuc` theo.
+
+- [ ] **Step 4: Xanh** `node --test src/modules/pricing/rules.test.ts`.
+
+- [ ] **Step 5: Bốn ô quyền.** `src/shared/permissions.ts`, thêm sau khối ô `ledger.*` (giữ thứ tự nhóm của tệp; cột theo `PERMISSION_CODES`: SALES, ACCOUNTING, ADMIN, FIELD, PARTNER, SUPER_ADMIN, INTERN, DRIVER, DRIVER_PARTNER, HR):
+
+```ts
+  // Sổ đại lý đợt 1 (ADR-0077 điều 11, ADR-0078 điều 6; đặc tả 2026-10-08 §6). Cột HR = none (ADR-0071).
+  "partner.commission.view": row("any", "any", "any", "none", "none", "any", "none", "none", "none", "none"),
+  "partner.commission.write": row("none", "any", "any", "none", "none", "any", "none", "none", "none", "none"),
+  "supply.terms.view": row("none", "any", "any", "none", "none", "any", "none", "none", "none", "none"),
+  "supply.terms.write": row("none", "any", "any", "none", "none", "any", "none", "none", "none", "none"),
+```
+
+`src/shared/permissions.test.ts`: thêm bốn dòng vào bảng `ADR` (đúng giá trị trên); thêm bốn ô `none` vào các bài ghim nguyên dòng `DRIVER`, `DRIVER_PARTNER`, `HR` (`grep -n "DRIVER_PARTNER\|\"HR\"" src/shared/permissions.test.ts` để tìm). `src/shared/tro-ly-cau-truc-ten.ts`, `TEN_THAO_TAC`:
+
+```ts
+  "partner.commission.view": { ten: "xem bảng mức hoa hồng đối tác", moTa: "Xem mức hoa hồng theo loại đối tác, theo đối tác, theo dịch vụ hoặc nhóm dịch vụ." },
+  "partner.commission.write": { ten: "đặt mức hoa hồng đối tác", moTa: "Thêm mức hoa hồng mới, đóng mức cũ (không sửa, không xoá)." },
+  "supply.terms.view": { ten: "xem người bán dịch vụ", moTa: "Xem dịch vụ nào do Tour Đảo bán, dịch vụ nào do nhà cung cấp bán và tỷ lệ mua lại." },
+  "supply.terms.write": { ten: "đặt người bán dịch vụ", moTa: "Thêm điều khoản người bán mới, đóng điều khoản cũ." },
+```
+
+và `TEN_PHAN_HE`: `"pricing": { ten: "Bảng mức hoa hồng và người bán", moTa: "Mức hoa hồng cho đối tác theo dịch vụ, người bán của từng dịch vụ, cách tính hoa hồng và giá đại lý." }`.
+
+- [ ] **Step 6: Hàm công bố của `parties`.** SQL ở `parties/repository.ts`, hàm ở `parties/index.ts` (cuối các hàm công bố, trước `partiesModule`):
+
+```ts
+// parties/repository.ts
+const TEN_LOAI_VAI = defineSql("parties", "ten_loai_vai", "SELECT code, name FROM pty_role_type");
+export const tenLoaiVaiRows = async (db: D1Database): Promise<{ code: string; name: string }[]> => (await db.prepare(TEN_LOAI_VAI).all<{ code: string; name: string }>()).results;
+// parties/index.ts
+/** Tên tiếng Việt của mọi mã vai hồ sơ (chỉ nhãn — không phải điều kiện cho phép). Dùng ở màn bảng mức hoa hồng (pricing). */
+export async function tenLoaiVai(db: D1Database): Promise<Map<string, string>> {
+  return new Map((await tenLoaiVaiRows(db)).map((r) => [r.code, r.name]));
+}
+```
+
+Kiểm tên cột thật của `pty_role_type` (`grep -n "CREATE TABLE pty_role_type" -A 8 migrations/*.sql`); khác `name` thì dùng đúng tên cột, giữ tên khoá `name` bằng `AS name`. Thêm `tenLoaiVai` vào danh sách tên xuất ghim của `src/modules/parties/tai-xe-dieu-phoi.test.ts`.
+
+- [ ] **Step 7: Kiểu DTO** (`src/shared/contracts.ts`, khối mới "Sổ đại lý đợt 1"):
+
+```ts
+export type DoiTuongMucDto = { loai: "VAI"; code: string; ten: string } | { loai: "DOI_TAC"; partyId: string; ten: string };
+export interface CommissionRuleDto {
+  id: string; doiTuong: DoiTuongMucDto; phamVi: "SERVICE" | "GROUP" | "ALL"; catalogCode: string | null; groupCode: string | null;
+  kieu: "RATE" | "PER_PAX"; tyLeBp: number | null; moiKhach: number | null; tuNgay: string; denNgay: string | null; ghiChu: string | null; conHieuLuc: boolean;
+}
+export interface CommissionRuleListResponse { homNay: string; dong: CommissionRuleDto[]; vai: { code: string; ten: string }[] }
+export interface SupplyTermDto {
+  id: string; phamVi: "SERVICE" | "GROUP" | "ALL"; catalogCode: string | null; groupCode: string | null; nguoiBan: { partyId: string; ten: string; laCongTy: boolean };
+  tyLeMuaBp: number | null; tuNgay: string; denNgay: string | null; ghiChu: string | null; conHieuLuc: boolean;
+}
+export interface SupplyTermListResponse { homNay: string; dong: SupplyTermDto[]; nhaCungCap: { partyId: string; ten: string }[]; congTyChu: { partyId: string; ten: string } | null }
+export interface ThuTraResponse {
+  ngay: string;
+  nguoiHuong: { loai: "NONE" | "HUONG" | "KHONG_HUONG"; vai: string[] };
+  ketQua: { trangThai: "NONE" } | { trangThai: "SET"; bac: 1 | 2 | 3 | 4 | 5 | 6; muc: CommissionRuleDto } | { trangThai: "MISSING"; lyDo: string };
+}
+export interface NguoiHuongTimResponse { ketQua: { partyId: string; ten: string; loai: "PERSON" | "ORGANIZATION" }[] }
+```
+
+`lyDo` của `ThuTraResponse` là câu tiếng Việt (nhãn của Task 5 chưa có ⇒ ở task này dùng bảng tạm trong `pricing/index.ts` với đúng năm câu của `NHAN_LY_DO_THIEU` Task 5; Task 5 chuyển sang dùng `src/shared/so-dai-ly-nhan.ts` và xoá bảng tạm — ghi trong Interfaces của Task 5).
+
+- [ ] **Step 8: Bài route đỏ** `src/modules/pricing/route.test.ts`:
+
+```ts
+// Route pricing qua khung thử (đặc tả §6, §12 tiêu chí 4, 7). Bốn ô: partner.commission.*, supply.terms.*; route nguoi-huong.
+import { test } from "node:test";
+import assert from "node:assert/strict";
+// tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
+import { world, seedStaff } from "../../../tests/audit/harness.mjs";
+
+const SALES = "11111111-1111-4111-8111-111111111111";
+const HDV = "22222222-2222-4222-8222-222222222222";
+const ADM = "33333333-3333-4333-8333-333333333333";
+const KT = "44444444-4444-4444-8444-444444444444";
+const DT = "55555555-5555-4555-8555-555555555555";
+const HR = "66666666-6666-4666-8666-666666666666";
+const SA = "77777777-7777-4777-8777-777777777777";
+const NOW = "2026-10-01T00:00:00.000Z";
+type W = ReturnType<typeof world>;
+function setup(): W {
+  const w = world();
+  for (const [id, phone, name, perms] of [
+    [SALES, "0900000001", "An Bán", ["SALES"]], [HDV, "0900000002", "Nam HDV", ["FIELD"]], [ADM, "0900000003", "Quản Trị", ["ADMIN"]],
+    [KT, "0900000005", "Lan Kế Toán", ["ACCOUNTING"]], [DT, "0900000006", "Đại Lý A", ["PARTNER"]], [HR, "0900000008", "Hà Nhân Sự", ["HR"]], [SA, "0900000007", "Chủ", ["SUPER_ADMIN"]],
+  ] as const) seedStaff(w.sqlite, { id, phone, name, perms: [...perms] });
+  w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES ('r-dt', ?, 'TRAVEL_AGENCY', '2026-01-01', ?, ?)").run(`pty-${DT}`, NOW, NOW);
+  w.sqlite.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES ('pty-ncc', 'ORGANIZATION', 'i-resort', 1, ?, ?)").run(NOW, NOW);
+  w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES ('r-ncc', 'pty-ncc', 'SUPPLIER', '2026-01-01', ?, ?)").run(NOW, NOW);
+  return w;
+}
+const mucVai = { doiTuong: { loai: "VAI", code: "TRAVEL_AGENCY" }, phamVi: "ALL", kieu: "RATE", tyLeBp: 1000, tuNgay: "2026-10-01" };
+
+test("thêm mức: Kế toán 201 + Location + nhật ký; trùng khoảng 409 câu tiếng Việt; Bán hàng 403 khi ghi, 200 khi xem; HDV, Đối tác, Nhân sự 403", async () => {
+  const w = setup();
+  const r = await w.call("POST", "/api/pricing/hoa-hong", { as: KT, body: mucVai });
+  assert.equal(r.status, 201, r.text);
+  assert.equal(r.headers.get("location"), "/hoa-hong");
+  assert.equal(Number(w.q("SELECT count(*) AS n FROM audit_log WHERE action = 'prc_commission_rule_added'")[0].n), 1);
+  const lap = await w.call("POST", "/api/pricing/hoa-hong", { as: KT, body: { ...mucVai, tuNgay: "2026-11-01" } });
+  assert.equal(lap.status, 409);
+  assert.match(lap.json.error.message, /Đã có mức/);
+  assert.equal((await w.call("POST", "/api/pricing/hoa-hong", { as: SALES, body: mucVai })).status, 403);
+  for (const as of [HDV, DT, HR]) assert.equal((await w.call("GET", "/api/pricing/hoa-hong", { as })).status, 403);
+  assert.equal((await w.call("GET", "/api/pricing/hoa-hong", { as: SALES })).status, 200);
+  assert.equal((await w.call("POST", "/api/pricing/hoa-hong", { as: ADM, body: { ...mucVai, doiTuong: { loai: "VAI", code: "COLLABORATOR" } } })).status, 201);
+});
+
+test("mức riêng cho hồ sơ không mang vai được hưởng ⇒ 400; đóng mức ⇒ 200, đóng lần hai ⇒ 409", async () => {
+  const w = setup();
+  assert.equal((await w.call("POST", "/api/pricing/hoa-hong", { as: KT, body: { ...mucVai, doiTuong: { loai: "DOI_TAC", partyId: `pty-${SALES}` } } })).status, 400);
+  const id = (await w.call("POST", "/api/pricing/hoa-hong", { as: KT, body: { ...mucVai, doiTuong: { loai: "DOI_TAC", partyId: `pty-${DT}` } } })).json.dong.id;
+  assert.equal((await w.call("POST", `/api/pricing/hoa-hong/${id}/dong`, { as: KT, body: { denNgay: "2026-12-31" } })).status, 200);
+  assert.equal((await w.call("POST", `/api/pricing/hoa-hong/${id}/dong`, { as: KT, body: { denNgay: "2026-12-31" } })).status, 409);
+});
+
+test("thử tra: đối tác A + dịch vụ ⇒ mức thắng và bậc", async () => {
+  const w = setup();
+  await w.call("POST", "/api/pricing/hoa-hong", { as: KT, body: mucVai });
+  const r = await w.call("GET", `/api/pricing/thu-tra?doiTac=pty-${DT}&dichVu=HONTAM&ngay=2026-10-10`, { as: SALES });
+  assert.equal(r.status, 200, r.text);
+  assert.equal(r.json.ketQua.trangThai, "SET");
+  assert.equal(r.json.ketQua.bac, 6);
+});
+
+test("điều khoản người bán: nhà cung cấp 80% ⇒ 201; nhóm Thuê xe ⇒ 409 X3; Bán hàng không xem được; Quản trị xem được", async () => {
+  const w = setup();
+  const b = { phamVi: "SERVICE", catalogCode: "IRESORT", nguoiBanPartyId: "pty-ncc", tyLeMuaBp: 8000, tuNgay: "2026-10-01" };
+  assert.equal((await w.call("POST", "/api/pricing/cung-ung", { as: KT, body: b })).status, 201);
+  const x3 = await w.call("POST", "/api/pricing/cung-ung", { as: KT, body: { ...b, catalogCode: undefined, phamVi: "GROUP", groupCode: "TXE" } });
+  assert.equal(x3.status, 409);
+  assert.match(x3.json.error.message, /Thuê xe/);
+  assert.equal((await w.call("GET", "/api/pricing/cung-ung", { as: SALES })).status, 403);
+  assert.equal((await w.call("GET", "/api/pricing/cung-ung", { as: ADM })).status, 200);
+});
+
+test("tìm người hưởng theo tên: Bán hàng thấy đại lý, không thấy nhà cung cấp; Đối tác 403", async () => {
+  const w = setup();
+  const r = await w.call("GET", `/api/pricing/nguoi-huong?q=${encodeURIComponent("Đại")}`, { as: SALES });
+  assert.equal(r.status, 200, r.text);
+  assert.ok(r.json.ketQua.some((x: { partyId: string }) => x.partyId === `pty-${DT}`));
+  assert.ok(!r.json.ketQua.some((x: { partyId: string }) => x.partyId === "pty-ncc"), "nhà cung cấp không phải người hưởng");
+  assert.equal((await w.call("GET", `/api/pricing/nguoi-huong?q=${encodeURIComponent("Đại")}`, { as: DT })).status, 403);
+});
+```
+
+Ghi chú: (1) cột `pty_party`, `pty_party_role` ở bài là cột NOT NULL tối thiểu; thiếu cột thì đọc `PRAGMA table_info` và bổ sung, không nới mã. Tên hiển thị của hồ sơ `pty-${DT}` do `seedStaff` đặt — nếu không phải "Đại Lý A" thì đổi từ khoá tìm cho khớp. (2) Mã `IRESORT`, `HONTAM` phải có trong danh mục khung thử nếu route kiểm mã qua `getEffectiveServices`; nếu khung thử chưa gieo danh mục thì gieo một dòng theo khuôn ở `src/modules/catalog/*.test.ts` — không bỏ kiểm mã ở route.
+
+- [ ] **Step 9: Chạy đỏ** `node --test src/modules/pricing/route.test.ts` — FAIL 404 (route chưa có).
+
+- [ ] **Step 10: Viết `src/modules/pricing/repository.ts`** (STRICT, mọi câu qua `defineSql`, tham số đánh số, câu tĩnh):
+
+```ts
+// SQL của module pricing (ADR-0077, ADR-0078 B1): ba bảng prc_* + đọc view công bố của parties (v_pty_open_role, v_pty_party_label) và catalog
+// (v_ctl_service_group). Không JOIN bảng của module khác (Hiến chương 5.3). Câu TĨNH.
+import { defineSql } from "../../shared/sql-registry.ts";
+
+export interface RuleRow {
+  id: string; target_party_id: string | null; target_role_code: string | null; scope: "SERVICE" | "GROUP" | "ALL"; catalog_code: string | null; group_code: string | null;
+  kind: "RATE" | "PER_PAX"; rate_bp: number | null; per_pax_amount: number | null; valid_from_date: string; valid_to_date: string | null; note: string | null; target_name: string | null;
+}
+export interface TermRow {
+  id: string; scope: "SERVICE" | "GROUP" | "ALL"; catalog_code: string | null; group_code: string | null; seller_party_id: string; supplier_party_id: string | null;
+  cost_rate_bp: number | null; valid_from_date: string; valid_to_date: string | null; note: string | null; seller_name: string | null;
+}
+const COT_MUC = `r.id, r.target_party_id, r.target_role_code, r.scope, r.catalog_code, r.group_code, r.kind, r.rate_bp, r.per_pax_amount, r.valid_from_date, r.valid_to_date, r.note`;
+const COT_DK = `t.id, t.scope, t.catalog_code, t.group_code, t.seller_party_id, t.supplier_party_id, t.cost_rate_bp, t.valid_from_date, t.valid_to_date, t.note`;
+const MUC_TAT_CA = defineSql("pricing", "rules_all",
+  `SELECT ${COT_MUC}, l.display_name AS target_name FROM prc_commission_rule r LEFT JOIN v_pty_party_label l ON l.id = r.target_party_id
+   ORDER BY (r.valid_to_date IS NOT NULL), r.valid_from_date DESC, r.id`);
+const MUC_NGAY = defineSql("pricing", "rules_on",
+  `SELECT ${COT_MUC}, NULL AS target_name FROM prc_commission_rule r WHERE r.valid_from_date <= ?1 AND (r.valid_to_date IS NULL OR r.valid_to_date >= ?1)`);
+const MUC_ID = defineSql("pricing", "rule_by_id", `SELECT ${COT_MUC}, l.display_name AS target_name FROM prc_commission_rule r LEFT JOIN v_pty_party_label l ON l.id = r.target_party_id WHERE r.id = ?1`);
+const MUC_THEM = defineSql("pricing", "rule_insert",
+  `INSERT INTO prc_commission_rule (id, target_party_id, target_role_code, scope, catalog_code, group_code, kind, rate_bp, per_pax_amount, valid_from_date, valid_to_date, note,
+     created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?13, ?14)`);
+const MUC_DONG = defineSql("pricing", "rule_close",
+  `UPDATE prc_commission_rule SET valid_to_date = ?2, updated_at = ?3, updated_by = ?4 WHERE id = ?1 AND valid_to_date IS NULL`);
+const DK_TAT_CA = defineSql("pricing", "terms_all",
+  `SELECT ${COT_DK}, l.display_name AS seller_name FROM prc_supply_term t LEFT JOIN v_pty_party_label l ON l.id = t.seller_party_id
+   ORDER BY (t.valid_to_date IS NOT NULL), t.valid_from_date DESC, t.id`);
+const DK_NGAY = defineSql("pricing", "terms_on",
+  `SELECT ${COT_DK}, NULL AS seller_name FROM prc_supply_term t WHERE t.valid_from_date <= ?1 AND (t.valid_to_date IS NULL OR t.valid_to_date >= ?1)`);
+const DK_ID = defineSql("pricing", "term_by_id", `SELECT ${COT_DK}, l.display_name AS seller_name FROM prc_supply_term t LEFT JOIN v_pty_party_label l ON l.id = t.seller_party_id WHERE t.id = ?1`);
+const DK_THEM = defineSql("pricing", "term_insert",
+  `INSERT INTO prc_supply_term (id, scope, catalog_code, group_code, seller_party_id, supplier_party_id, cost_rate_bp, valid_from_date, valid_to_date, note,
+     created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?11, ?12)`);
+const DK_DONG = defineSql("pricing", "term_close",
+  `UPDATE prc_supply_term SET valid_to_date = ?2, updated_at = ?3, updated_by = ?4 WHERE id = ?1 AND valid_to_date IS NULL`);
+const VAI_HUONG = defineSql("pricing", "beneficiary_roles", "SELECT role_type_code FROM prc_beneficiary_role WHERE active = 1 ORDER BY role_type_code");
+const VAI_MO = defineSql("pricing", "open_roles_of", "SELECT role_type_code, role_group FROM v_pty_open_role WHERE party_id = ?1");
+const LA_HUONG = defineSql("pricing", "is_beneficiary",
+  `SELECT 1 AS ok FROM v_pty_open_role r JOIN prc_beneficiary_role b ON b.role_type_code = r.role_type_code AND b.active = 1 WHERE r.party_id = ?1 LIMIT 1`);
+const NHOM_CUA = defineSql("pricing", "groups_of", "SELECT catalog_code, group_code FROM v_ctl_service_group WHERE catalog_code IN (SELECT value FROM json_each(?1))");
+const TIM_HUONG = defineSql("pricing", "find_beneficiaries",
+  `SELECT l.id, l.display_name, l.party_kind FROM v_pty_party_label l
+   WHERE l.active = 1 AND EXISTS (SELECT 1 FROM v_pty_open_role r JOIN prc_beneficiary_role b ON b.role_type_code = r.role_type_code AND b.active = 1 WHERE r.party_id = l.id)
+     AND (?1 = '' OR l.display_name LIKE '%' || ?1 || '%') ORDER BY l.display_name LIMIT 20`);
+const NHA_CUNG_CAP = defineSql("pricing", "suppliers",
+  `SELECT l.id, l.display_name FROM v_pty_party_label l WHERE l.active = 1 AND EXISTS (SELECT 1 FROM v_pty_open_role r WHERE r.party_id = l.id AND r.role_type_code = 'SUPPLIER')
+   ORDER BY l.display_name`);
+
+export const allRules = async (db: D1Database) => (await db.prepare(MUC_TAT_CA).all<RuleRow>()).results;
+export const rulesOn = async (db: D1Database, ngay: string) => (await db.prepare(MUC_NGAY).bind(ngay).all<RuleRow>()).results;
+export const ruleById = (db: D1Database, id: string) => db.prepare(MUC_ID).bind(id).first<RuleRow>();
+export const insertRuleStatement = (db: D1Database, id: string, v: { targetPartyId: string | null; targetRoleCode: string | null; scope: string; catalogCode: string | null; groupCode: string | null;
+  kind: string; rateBp: number | null; perPaxAmount: number | null; validFrom: string; validTo: string | null; note: string | null }, at: string, by: string) =>
+  db.prepare(MUC_THEM).bind(id, v.targetPartyId, v.targetRoleCode, v.scope, v.catalogCode, v.groupCode, v.kind, v.rateBp, v.perPaxAmount, v.validFrom, v.validTo, v.note, at, by);
+export const closeRuleStatement = (db: D1Database, id: string, den: string, at: string, by: string) => db.prepare(MUC_DONG).bind(id, den, at, by);
+export const allTerms = async (db: D1Database) => (await db.prepare(DK_TAT_CA).all<TermRow>()).results;
+export const termsOn = async (db: D1Database, ngay: string) => (await db.prepare(DK_NGAY).bind(ngay).all<TermRow>()).results;
+export const termById = (db: D1Database, id: string) => db.prepare(DK_ID).bind(id).first<TermRow>();
+export const insertTermStatement = (db: D1Database, id: string, v: { scope: string; catalogCode: string | null; groupCode: string | null; sellerPartyId: string; supplierPartyId: string | null;
+  costRateBp: number | null; validFrom: string; validTo: string | null; note: string | null }, at: string, by: string) =>
+  db.prepare(DK_THEM).bind(id, v.scope, v.catalogCode, v.groupCode, v.sellerPartyId, v.supplierPartyId, v.costRateBp, v.validFrom, v.validTo, v.note, at, by);
+export const closeTermStatement = (db: D1Database, id: string, den: string, at: string, by: string) => db.prepare(DK_DONG).bind(id, den, at, by);
+export const beneficiaryRoles = async (db: D1Database): Promise<string[]> => (await db.prepare(VAI_HUONG).all<{ role_type_code: string }>()).results.map((r) => r.role_type_code);
+export const openRolesOf = async (db: D1Database, partyId: string) => (await db.prepare(VAI_MO).bind(partyId).all<{ role_type_code: string; role_group: string }>()).results;
+export const isBeneficiary = async (db: D1Database, partyId: string): Promise<boolean> => (await db.prepare(LA_HUONG).bind(partyId).first()) !== null;
+export const groupsOf = async (db: D1Database, codes: readonly string[]): Promise<Map<string, string | null>> =>
+  new Map((await db.prepare(NHOM_CUA).bind(JSON.stringify(codes)).all<{ catalog_code: string; group_code: string | null }>()).results.map((r) => [r.catalog_code, r.group_code]));
+export const findBeneficiaries = async (db: D1Database, q: string) => (await db.prepare(TIM_HUONG).bind(q).all<{ id: string; display_name: string; party_kind: "PERSON" | "ORGANIZATION" }>()).results;
+export const suppliers = async (db: D1Database) => (await db.prepare(NHA_CUNG_CAP).all<{ id: string; display_name: string }>()).results;
+```
+
+Tên cột của `v_pty_open_role`, `v_ctl_service_group` là đúng tên Task 1 tạo; lệch thì theo Task 1.
+
+- [ ] **Step 11: Viết `src/modules/pricing/index.ts`.** Phần đầu và hàm công bố:
+
+```ts
+// Module pricing — bảng mức hoa hồng, điều khoản người bán (ADR-0077, ADR-0078 B1; đặc tả 2026-10-08 sổ đại lý đợt 1). Route: /api/pricing/*.
+// Hàm công bố cho orders: docBangChoChup (đọc mọi thứ để chụp lúc Xác nhận / đổi bên đặt), laNguoiHuong (bên đặt tổ chức có được gắn vào đơn không).
+import { auditStatement } from "../audit";
+import { getEffectiveServices } from "../catalog";
+import { ownerCompany, tenLoaiVai } from "../parties";
+import type { CommissionRuleDto, CommissionRuleListResponse, NguoiHuongTimResponse, SupplyTermDto, SupplyTermListResponse, ThuTraResponse } from "../../shared/contracts";
+import { error, json, readJson } from "../../shared/http";
+import { can, holdsPartner } from "../../shared/permissions";
+import { route, type AppModule } from "../../shared/router";
+import { vnToday } from "../../shared/vn-date";
+import { allRules, allTerms, beneficiaryRoles, closeRuleStatement, closeTermStatement, findBeneficiaries, groupsOf, insertRuleStatement, insertTermStatement, isBeneficiary,
+  openRolesOf, ruleById, rulesOn, suppliers, termById, termsOn, type RuleRow, type TermRow } from "./repository";
+import { chonMuc, hieuLuc, kiemNgayDong, kiemThanDieuKhoan, kiemThanMuc, moTaMuc, nguoiHuongCua, type DongDieuKhoan, type DongMuc, type NguoiHuong } from "./rules";
+
+export { chupDon, soKhachTinhHoaHong, tinhDongDoiTac, type BanChup, type DongPhanDoiTac, type KieuMuc, type LyDoThieu, type NguoiHuong } from "./rules";
+
+const dongMuc = (r: RuleRow): DongMuc => ({ id: r.id, targetPartyId: r.target_party_id, targetRoleCode: r.target_role_code, scope: r.scope, catalogCode: r.catalog_code,
+  groupCode: r.group_code, kind: r.kind, rateBp: r.rate_bp, perPaxAmount: r.per_pax_amount, validFrom: r.valid_from_date, validTo: r.valid_to_date });
+const dongDk = (r: TermRow): DongDieuKhoan => ({ id: r.id, scope: r.scope, catalogCode: r.catalog_code, groupCode: r.group_code, sellerPartyId: r.seller_party_id,
+  supplierPartyId: r.supplier_party_id, costRateBp: r.cost_rate_bp, validFrom: r.valid_from_date, validTo: r.valid_to_date });
+
+export interface DuLieuChup { nguoiHuong: NguoiHuong; muc: DongMuc[]; dieuKhoan: DongDieuKhoan[]; nhom: ReadonlyMap<string, string | null> }
+/** Đọc MỘT lần mọi thứ để chụp một đơn ở `ngay` (đặc tả §5): vai của bên đặt, mức và điều khoản hiệu lực ở `ngay`, nhóm hiện hành của các mã. */
+export async function docBangChoChup(db: D1Database, v: { bookerPartyId: string | null; catalogCodes: readonly string[]; ngay: string }): Promise<DuLieuChup> {
+  const [vai, duocHuong, cty, muc, dk, nhom] = await Promise.all([
+    v.bookerPartyId ? openRolesOf(db, v.bookerPartyId) : Promise.resolve([]), beneficiaryRoles(db), ownerCompany(db), rulesOn(db, v.ngay), termsOn(db, v.ngay), groupsOf(db, v.catalogCodes),
+  ]);
+  const nguoiHuong = nguoiHuongCua({ bookerPartyId: v.bookerPartyId, vaiMo: vai.map((r) => ({ roleTypeCode: r.role_type_code, roleGroup: r.role_group })), vaiDuocHuong: new Set(duocHuong), congTyChuId: cty?.partyId ?? null });
+  return { nguoiHuong, muc: muc.map(dongMuc), dieuKhoan: dk.map(dongDk), nhom };
+}
+export const laNguoiHuong = (db: D1Database, partyId: string): Promise<boolean> => isBeneficiary(db, partyId);
+
+/** Lỗi trigger của prc_* → câu tiếng Việt; không khớp → null (ném lại). */
+function loiBang(e: unknown): Response | null {
+  const m = e instanceof Error ? e.message : String(e);
+  if (/\bprc_overlap:/.test(m)) return error(409, "prc_overlap", "Đã có mức / điều khoản cùng đối tượng, cùng phạm vi trong khoảng ngày này — đóng dòng cũ trước.");
+  if (/\bprc_target_not_beneficiary:/.test(m)) return error(400, "invalid_input", "Hồ sơ này không mang vai được hưởng hoa hồng.");
+  if (/\bprc_role_not_beneficiary:/.test(m)) return error(400, "invalid_input", "Loại đối tác này không nằm trong danh sách được hưởng hoa hồng.");
+  if (/\bprc_seller_not_supplier:/.test(m)) return error(400, "invalid_input", "Người bán phải là Tour Đảo hoặc hồ sơ mang vai Nhà cung cấp.");
+  if (/\bprc_supplier_mismatch:/.test(m)) return error(400, "invalid_input", "Tour Đảo bán thì không ghi tỷ lệ mua lại; nhà cung cấp bán thì phải ghi.");
+  if (/\bprc_all_owner_only:/.test(m)) return error(400, "invalid_input", "Dòng \"mọi dịch vụ\" chỉ dành cho Tour Đảo.");
+  if (/\bprc_transfer_no_supplier:/.test(m)) return error(409, "prc_transfer_no_supplier", "Dịch vụ nhóm Thuê xe không ghi nhà cung cấp mua lại (để khỏi tính tiền xe hai lần).");
+  if (/\bprc_append_only:/.test(m)) return error(409, "stale", "Dòng này vừa được người khác đóng — tải lại.");
+  if (/FOREIGN KEY constraint failed/.test(m)) return error(400, "invalid_input", "Nhóm dịch vụ hoặc hồ sơ không có.");
+  return null;
+}
+async function chayLo(db: D1Database, lo: D1PreparedStatement[]): Promise<D1Result[] | Response> {
+  try { return await db.batch(lo); } catch (e) { const r = loiBang(e); if (r) return r; throw e; }
+}
+const FORBIDDEN = () => error(403, "forbidden", "Bạn không có quyền với bảng mức này.");
+```
+
+Tám route (đặt đường cố định TRƯỚC đường có `:id`; mọi route hỏi `can()` ở dòng đầu thân):
+
+1. `GET /api/pricing/hoa-hong` (`office`) — `if (!can(staff, "partner.commission.view")) return FORBIDDEN();` → `allRules` + `beneficiaryRoles` + `tenLoaiVai`; DTO `CommissionRuleDto` (`conHieuLuc = hieuLuc(dong, vnToday(new Date()))`; tên đối tượng: vai ⇒ tên vai, đối tác ⇒ `target_name`); `vai` = các vai được hưởng kèm tên.
+2. `POST /api/pricing/hoa-hong` (`office`) — `can(staff, "partner.commission.write")` → `kiemThanMuc` (400 câu của nó) → phạm vi `SERVICE` thì mã phải có trong danh mục (`(await getEffectiveServices(env.DB, [code])).has(code)`, không thì 400 "Không có dịch vụ này trong danh mục.") → `const at = new Date().toISOString(); const id = crypto.randomUUID();` → `chayLo(env.DB, [insertRuleStatement(env.DB, id, v, at, staff.id), auditStatement(env.DB, { staffId: staff.id, action: "prc_commission_rule_added", at, detail: moTaMuc({ doiTuong: …, …v }) })])` → `Response` thì trả luôn → 201 `{ dong }` (DTO đọc lại bằng `ruleById`) với header `Location: /hoa-hong` (dùng hàm `kemLocation` của `src/shared/http.ts` như route tạo khác).
+3. `POST /api/pricing/hoa-hong/:id/dong` (`office`) — `can(staff, "partner.commission.write")` → `ruleById` (404 "Không tìm thấy dòng mức.") → `kiemNgayDong(await readJson(request), row.valid_from_date)` (400) → lô `[closeRuleStatement(...), auditStatement(env.DB, { staffId, action: "prc_commission_rule_closed", at, detail: moTaMuc(...) + " · đến " + denNgay }, "changes() > 0")]`; `results[0].meta.changes === 0` ⇒ 409 `stale` "Dòng mức vừa được đóng — tải lại." → 200 `{ dong }`.
+4. `GET /api/pricing/thu-tra` (`office`) — `can(staff, "partner.commission.view")`; tham số `doiTac` (id hồ sơ, `PARTY_RE`), `dichVu` (mã, `MA_RE`), `ngay` (mặc định `vnToday`); sai dạng ⇒ 400 → `docBangChoChup(env.DB, { bookerPartyId: doiTac, catalogCodes: [dichVu], ngay })` → `chonMuc({ nguoiHuong, ngay, catalogCode: dichVu, groupCode: nhom.get(dichVu) ?? null, muc })` → `ThuTraResponse` (mức thắng dựng lại thành `CommissionRuleDto` bằng `ruleById`).
+5. `GET /api/pricing/cung-ung` (`office`) — `can(staff, "supply.terms.view")` → `allTerms` + `suppliers` + `ownerCompany`; `laCongTy = seller_party_id === congTyChu.partyId`.
+6. `POST /api/pricing/cung-ung` (`office`) — `can(staff, "supply.terms.write")` → `kiemThanDieuKhoan` → `const cty = await ownerCompany(env.DB)` (null ⇒ 503 "Chưa có hồ sơ công ty chủ — báo người phụ trách hệ thống.") → `supplierPartyId = v.sellerPartyId === cty.partyId ? null : v.sellerPartyId` (trigger kiểm vai `SUPPLIER` và tỷ lệ) → phạm vi `SERVICE` kiểm mã trong danh mục → lô `[insertTermStatement, auditStatement(… "prc_supply_term_added" …)]` qua `chayLo` → 201 `{ dong }`, `Location: /nguoi-ban`.
+7. `POST /api/pricing/cung-ung/:id/dong` (`office`) — `can(staff, "supply.terms.write")`; khuôn bước 3 với `termById`, `closeTermStatement`, nhật ký `prc_supply_term_closed`. Dòng gieo sẵn `prc-st-goc-all` đóng được (giao diện có hộp xác nhận).
+8. `GET /api/pricing/nguoi-huong` (`orders`) — `if (!can(staff, "order.create") || holdsPartner(staff)) return FORBIDDEN();` → `q` cắt khoảng trắng, tối đa 60 ký tự → `findBeneficiaries` → `NguoiHuongTimResponse` (chỉ id, tên, loại; không SĐT).
+
+Đăng ký: `pricingModule` vào mảng `modules` của `src/index.ts` (sau `billingModule`). `src/architecture.test.ts`: `STRICT` thêm `{ module: "pricing", file: "modules/pricing/repository.ts" }` (sửa chú thích ở `ALLOWED_EDGES.pricing` thành "ADR-0077 — tạo ở sổ đại lý đợt 1"). Bốn hành động nhật ký vào `AUDIT_ACTIONS` nhóm `ledger` (`src/shared/audit-actions.ts`).
+
+- [ ] **Step 12: Số đếm route.** `src/route-access.test.ts`: thêm tám dòng SNAPSHOT (đúng khuôn dòng hiện có: phương thức, đường, cổng) và nâng 256 → 264; `src/lan-gui-phu-route.test.ts`: 153 → 157, nối chú thích "; sổ đại lý đợt 1 (ADR-0077/0078): +4 POST /api/pricing/{hoa-hong, hoa-hong/:id/dong, cung-ung, cung-ung/:id/dong} = 157".
+
+- [ ] **Step 13: Sinh lại kho trợ lý.** `npm run build:web` (sinh `src/shared/tro-ly-cau-truc.ts`).
+
+- [ ] **Step 14: Xanh.** `node --test src/modules/pricing/*.test.ts src/shared/permissions.test.ts` rồi `npm run typecheck && npm test`.
+
+- [ ] **Step 15: P16.** (a) Xoá dòng `can(staff, "supply.terms.view")` khỏi `GET /api/pricing/cung-ung` → bài "Bán hàng không xem được" đỏ VÀ `src/route-write-guard.test.ts` đỏ → hoàn nguyên. (b) Đổi ô `supply.terms.view` cột SALES thành `any` → bài khoá bảng `ADR` đỏ → hoàn nguyên. Ghi sổ thi công.
+
+- [ ] **Step 16: Commit.**
+
+```bash
+git add src/modules/pricing src/modules/parties src/shared src/index.ts src/architecture.test.ts src/route-access.test.ts src/lan-gui-phu-route.test.ts docs/superpowers/plans/2026-10-08-so-dai-ly-dot-1-thi-cong-nhat-ky.md
+git commit -m "Module pricing: bảng mức hoa hồng, người bán dịch vụ, thử tra, tìm người hưởng" -m "Kế toán / Quản trị / Toàn quyền đặt mức theo loại đối tác hoặc đối tác cụ thể, theo dịch vụ / nhóm / mọi dịch vụ, chỉ thêm và đóng (không sửa, không xoá). Bốn ô quyền mới đi cùng route hỏi chúng; lỗi trigger dịch sang câu tiếng Việt." -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
+```
+
+---
+
+### Task 4: Chụp mức vào đơn trong lô Xác nhận
+
+**Files:**
+- Create: `src/modules/orders/thuong-mai-repo.ts` (nửa nghiêm), `src/modules/orders/thuong-mai.ts`, `src/modules/orders/thuong-mai.test.ts`, `src/modules/orders/chup-xac-nhan.test.ts`
+- Modify: `src/modules/orders/repository.ts` (`confirmOrder`), `src/modules/orders/index.ts` (route xác nhận), `src/architecture.test.ts` (`NUA_NGHIEM`), `src/shared/audit-actions.ts`
+
+**Interfaces:**
+- Consumes: `docBangChoChup`, `chupDon`, `BanChup`, `LyDoThieu` (Task 3 tái xuất từ `pricing/index.ts`); `findOrder` (orders) trả `OrderDetailDto` có `bookerPartyId`, `services[]` (`id`, `catalogCode`).
+- Produces:
+  - `thuong-mai.ts`: `interface DongGhiChup` (đủ cột bảng), `dongGhiTuChup(c: BanChup, v: { id; orderId; ngay; at; by; source: "AUTO" | "MANUAL"; reason: string | null; supersedesId: string | null }): DongGhiChup`, `interface TermRowDb`, `banChupTuDb(r: TermRowDb): BanChup`, `moTaChup(chup: readonly BanChup[]): string`.
+  - `thuong-mai-repo.ts`: `cauChupChuoi(db, rows: readonly DongGhiChup[]): D1PreparedStatement[]` (mỗi câu `INSERT … SELECT … WHERE changes() > 0`), `cauGhiTay(db, row: DongGhiChup): D1PreparedStatement` (gác đơn đã xác nhận, chưa giao), `banChupHienHanh(db, orderId): Promise<TermRowDb[]>`, `demBanChup(db, orderId): Promise<number>`.
+  - `confirmOrder(db, id, staffId, today, prevUpdatedAt, nguongMoc, detail?, alsoConfirm?: (at: string) => D1PreparedStatement[])`.
+  - Hành động nhật ký `order_terms_captured` ("Chụp mức hoa hồng lúc xác nhận", nhóm `order`).
+
+- [ ] **Step 1: Bài đỏ thuần** `src/modules/orders/thuong-mai.test.ts`:
+
+```ts
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { banChupTuDb, dongGhiTuChup, moTaChup } from "./thuong-mai.ts";
+
+const set = { serviceId: "s1", beneficiaryPartyId: "dla", hoaHong: { status: "SET" as const, kind: "RATE" as const, rateBp: 1000, perPax: null, ruleId: "m1" },
+  cungUng: { status: "SET" as const, termId: "d1", sellerPartyId: "ct", supplierPartyId: null, costRateBp: null } };
+const thieu = { serviceId: "s2", beneficiaryPartyId: "dla", hoaHong: { status: "MISSING" as const, reason: "MANUAL_LINE" as const }, cungUng: { status: "MISSING" as const } };
+
+test("dongGhiTuChup ↔ banChupTuDb: đi rồi về giữ nguyên bản chụp", () => {
+  const v = { id: "t1", orderId: "o1", ngay: "2026-10-10", at: "2026-10-10T01:00:00.000Z", by: "kt", source: "AUTO" as const, reason: null, supersedesId: null };
+  for (const c of [set, thieu]) {
+    const d = dongGhiTuChup(c, v);
+    const db = { id: d.id, order_service_id: d.serviceId, beneficiary_party_id: d.beneficiaryPartyId, commission_status: d.commissionStatus, missing_reason: d.missingReason,
+      commission_kind: d.commissionKind, commission_rate_bp: d.rateBp, commission_per_pax: d.perPax, commission_rule_id: d.ruleId, supply_status: d.supplyStatus,
+      seller_party_id: d.sellerPartyId, supplier_party_id: d.supplierPartyId, cost_rate_bp: d.costRateBp, supply_term_id: d.termId, source: d.source, captured_date: d.capturedDate };
+    assert.deepEqual(banChupTuDb(db), c);
+  }
+});
+
+test("moTaChup: đếm dòng, không tỷ lệ, không tiền", () => {
+  assert.equal(moTaChup([set, thieu]), "2 dòng: 1 có mức, 1 thiếu mức");
+  assert.equal(moTaChup([{ ...set, hoaHong: { status: "NONE" as const } }]), "không người hưởng");
+  assert.doesNotMatch(moTaChup([set, thieu]), /%|đ/);
+});
+```
+
+- [ ] **Step 2: Bài đỏ route** `src/modules/orders/chup-xac-nhan.test.ts`:
+
+```ts
+// Chụp mức trong lô Xác nhận (đặc tả §5, §12 tiêu chí 3; Review Focus 1, 5). Route thật qua khung thử.
+import { test } from "node:test";
+import assert from "node:assert/strict";
+// tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
+import { world, seedStaff } from "../../../tests/audit/harness.mjs";
+
+const SALES = "11111111-1111-4111-8111-111111111111";
+const KT = "44444444-4444-4444-8444-444444444444";
+const AT = "2026-10-01T00:00:00.000Z";
+let seq = 0;
+const uuid = () => `99999999-9999-4999-8999-${String(++seq).padStart(12, "0")}`;
+type W = ReturnType<typeof world>;
+function setup(): W {
+  const w = world();
+  seedStaff(w.sqlite, { id: SALES, phone: "0900000001", name: "An Bán", perms: ["SALES"] });
+  seedStaff(w.sqlite, { id: KT, phone: "0900000005", name: "Lan Kế Toán", perms: ["ACCOUNTING"] });
+  w.sqlite.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES ('pty-dla', 'ORGANIZATION', 'Đại lý A', 1, ?, ?)").run(AT, AT);
+  w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES ('r-dla', 'pty-dla', 'TRAVEL_AGENCY', '2026-01-01', ?, ?)").run(AT, AT);
+  return w;
+}
+/** Đơn NHÁP của SALES, bên đặt `booker`, các dịch vụ [mã | null (nhập tay), thành tiền]. */
+function nhap(w: W, booker: string | null, dv: [string | null, number][]): string {
+  const id = uuid();
+  const tong = dv.reduce((s, [, t]) => s + t, 0);
+  w.sqlite.prepare(`INSERT INTO orders (id, order_code, staff_id, status, customer_name, customer_phone, subtotal, total, remaining_amount, booker_party_id, created_at, updated_at)
+    VALUES (?, ?, ?, 'draft', 'Khách Giả', '0900000099', ?, ?, ?, ?, ?, ?)`).run(id, `TD-${seq}`, SALES, tong, tong, tong, booker, AT, AT);
+  dv.forEach(([code, t], i) => {
+    const s = `${id}-s${i}`;
+    w.sqlite.prepare(`INSERT INTO order_service (id, order_id, sort_order, catalog_code, name, unit, pax_adult) VALUES (?, ?, ?, ?, ?, ?, 1)`).run(s, id, i, code, `DV ${i}`, code ? "perPax" : "manual");
+    w.sqlite.prepare(`INSERT INTO order_item (id, order_id, service_id, catalog_code, pax_code, description, quantity, unit_price, catalog_price, line_total) VALUES (?, ?, ?, ?, ?, 'Người lớn', 1, ?, ?, ?)`)
+      .run(`${s}-i`, id, s, code, code ? "adult" : null, t, code ? t : null, t);
+  });
+  return id;
+}
+const xacNhan = (w: W, id: string, as = SALES) => w.call("POST", `/api/orders/${id}/status`, { as, body: { status: "confirmed" } });
+const muc = (w: W, body: Record<string, unknown>) => w.call("POST", "/api/pricing/hoa-hong", { as: KT, body: { tuNgay: "2026-01-01", ...body } });
+const chup = (w: W, id: string) => w.q("SELECT * FROM ord_service_terms WHERE order_id = ? ORDER BY order_service_id", id);
+/** Chạy `truoc()` đúng một lần ngay trước lô đầu tiên có câu khớp `re` (mô phỏng "người khác ghi giữa lúc route đọc và lúc route ghi"). */
+function chenTruocLo(w: W, re: RegExp, truoc: () => void): void {
+  const goc = w.env.DB.batch;
+  w.env.DB.batch = async (stmts: { sql: string }[]) => {
+    if (stmts.some((s) => re.test(s.sql))) { w.env.DB.batch = goc; truoc(); }
+    return goc(stmts);
+  };
+}
+
+test("xác nhận đơn đại lý ⇒ mọi dòng có bản chụp AUTO cùng lô; nhật ký order_terms_captured một dòng", async () => {
+  const w = setup();
+  await muc(w, { doiTuong: { loai: "VAI", code: "TRAVEL_AGENCY" }, phamVi: "ALL", kieu: "RATE", tyLeBp: 1000 });
+  const id = nhap(w, "pty-dla", [["HONTAM", 2_000_000], [null, 300_000]]);
+  const r = await xacNhan(w, id);
+  assert.equal(r.status, 200, r.text);
+  const ds = chup(w, id);
+  assert.equal(ds.length, 2);
+  assert.equal(ds[0].commission_status, "SET");
+  assert.equal(ds[0].commission_rate_bp, 1000);
+  assert.equal(ds[0].source, "AUTO");
+  assert.equal(ds[1].commission_status, "MISSING");
+  assert.equal(ds[1].missing_reason, "MANUAL_LINE");
+  assert.equal(ds[1].supply_status, "MISSING", "dòng nhập tay: người bán thiếu (A-14)");
+  assert.equal(Number(w.q("SELECT count(*) AS n FROM audit_log WHERE order_id = ? AND action = 'order_terms_captured'", id)[0].n), 1);
+});
+
+test("đơn khách lẻ (bên đặt trống) ⇒ bản chụp NONE, người bán = công ty", async () => {
+  const w = setup();
+  const id = nhap(w, null, [["HONTAM", 1_000_000]]);
+  assert.equal((await xacNhan(w, id)).status, 200);
+  const [c] = chup(w, id);
+  assert.equal(c.commission_status, "NONE");
+  assert.equal(c.supply_status, "SET");
+  assert.equal(c.supplier_party_id, null);
+});
+
+test("câu chụp hỏng ⇒ cả lô rơi: đơn vẫn nháp, không nhật ký confirmed, không bản chụp (tiêu chí 3)", async () => {
+  const w = setup();
+  const id = nhap(w, "pty-dla", [["HONTAM", 1_000_000]]);
+  w.sqlite.exec(`CREATE TRIGGER hong_cu_y BEFORE INSERT ON ord_service_terms WHEN NEW.order_id = '${id}' BEGIN SELECT RAISE(ABORT, 'hong_cu_y'); END;`);
+  const r = await xacNhan(w, id);
+  assert.notEqual(r.status, 200);
+  assert.equal(w.q("SELECT status FROM orders WHERE id = ?", id)[0].status, "draft");
+  assert.equal(Number(w.q("SELECT count(*) AS n FROM audit_log WHERE order_id = ? AND action = 'confirmed'", id)[0].n), 0);
+  assert.equal(chup(w, id).length, 0);
+});
+
+test("Review Focus 5: dòng mức bị đóng giữa lúc đọc và lúc ghi ⇒ 409 'Bảng mức vừa đổi — thử lại', đơn vẫn nháp", async () => {
+  const w = setup();
+  const m = (await muc(w, { doiTuong: { loai: "VAI", code: "TRAVEL_AGENCY" }, phamVi: "ALL", kieu: "RATE", tyLeBp: 1000 })).json.dong.id;
+  const id = nhap(w, "pty-dla", [["HONTAM", 1_000_000]]);
+  chenTruocLo(w, /INSERT INTO ord_service_terms/, () => w.sqlite.prepare("UPDATE prc_commission_rule SET valid_to_date = '2026-01-02' WHERE id = ?").run(m));
+  const r = await xacNhan(w, id);
+  assert.equal(r.status, 409, r.text);
+  assert.match(r.json.error.message, /Bảng mức vừa đổi — thử lại/);
+  assert.equal(w.q("SELECT status FROM orders WHERE id = ?", id)[0].status, "draft");
+});
+
+test("Review Focus 1: hai người bấm Xác nhận cùng lúc ⇒ một 200, một 409, không 500, đúng một bộ bản chụp", async () => {
+  const w = setup();
+  const id = nhap(w, "pty-dla", [["HONTAM", 1_000_000]]);
+  const [a, b] = await Promise.all([xacNhan(w, id), xacNhan(w, id)]);
+  assert.deepEqual([a.status, b.status].sort(), [200, 409]);
+  assert.equal(chup(w, id).length, 1);
+});
+```
+
+Ghi chú: (1) cột `orders`, `order_service`, `order_item` theo khuôn `src/modules/billing/ma-giao-dich-route.test.ts`; thiếu cột thì bổ sung theo `PRAGMA table_info` — không nới mã. (2) Ca "đóng giữa chừng" dùng `chenTruocLo`, nên ngày đóng `2026-01-02` hợp lệ với trigger `close_only` (≥ ngày bắt đầu `2026-01-01`) và làm dòng mức hết hiệu lực ở ngày xác nhận (hôm nay) ⇒ câu chụp gặp `terms_rule_stale`. (3) Khung thử chạy SQLite đồng bộ; hai lời gọi `Promise.all` đan nhau ở các chỗ `await` — lệnh sau thấy đơn đã `confirmed` ở câu `UPDATE orders` (0 dòng) ⇒ 409 cũ của route. Nếu người sau trả mã khác 409 (vd 400 "đơn không còn nháp" ở bước kiểm trước lô) thì giữ mã route hiện có và sửa bài cho khớp, ghi ruling — mục tiêu là "không 500, một bộ bản chụp".
+
+- [ ] **Step 3: Đỏ** `node --test src/modules/orders/thuong-mai.test.ts src/modules/orders/chup-xac-nhan.test.ts` — FAIL.
+
+- [ ] **Step 4: `thuong-mai.ts`** (thuần, không SQL):
+
+```ts
+// Ánh xạ bản chụp thương mại ↔ dòng bảng ord_service_terms (đặc tả §5). Thuần — câu SQL ở thuong-mai-repo.ts.
+import type { BanChup, LyDoThieu } from "../pricing";
+
+export interface DongGhiChup {
+  id: string; orderId: string; serviceId: string; beneficiaryPartyId: string | null;
+  commissionStatus: "NONE" | "SET" | "MISSING"; missingReason: LyDoThieu | null; commissionKind: "RATE" | "PER_PAX" | null; rateBp: number | null; perPax: number | null; ruleId: string | null;
+  supplyStatus: "SET" | "MISSING"; sellerPartyId: string | null; supplierPartyId: string | null; costRateBp: number | null; termId: string | null;
+  source: "AUTO" | "MANUAL"; reason: string | null; supersedesId: string | null; capturedDate: string; at: string; by: string;
+}
+export function dongGhiTuChup(c: BanChup, v: { id: string; orderId: string; ngay: string; at: string; by: string; source: "AUTO" | "MANUAL"; reason: string | null; supersedesId: string | null }): DongGhiChup {
+  const h = c.hoaHong;
+  const cu = c.cungUng;
+  return {
+    id: v.id, orderId: v.orderId, serviceId: c.serviceId, beneficiaryPartyId: c.beneficiaryPartyId,
+    commissionStatus: h.status, missingReason: h.status === "MISSING" ? h.reason : null,
+    commissionKind: h.status === "SET" ? h.kind : null, rateBp: h.status === "SET" ? h.rateBp : null, perPax: h.status === "SET" ? h.perPax : null, ruleId: h.status === "SET" ? h.ruleId : null,
+    supplyStatus: cu.status, sellerPartyId: cu.status === "SET" ? cu.sellerPartyId : null, supplierPartyId: cu.status === "SET" ? cu.supplierPartyId : null,
+    costRateBp: cu.status === "SET" ? cu.costRateBp : null, termId: cu.status === "SET" ? cu.termId : null,
+    source: v.source, reason: v.reason, supersedesId: v.supersedesId, capturedDate: v.ngay, at: v.at, by: v.by,
+  };
+}
+export interface TermRowDb {
+  id: string; order_service_id: string; beneficiary_party_id: string | null; commission_status: "NONE" | "SET" | "MISSING"; missing_reason: LyDoThieu | null;
+  commission_kind: "RATE" | "PER_PAX" | null; commission_rate_bp: number | null; commission_per_pax: number | null; commission_rule_id: string | null;
+  supply_status: "SET" | "MISSING"; seller_party_id: string | null; supplier_party_id: string | null; cost_rate_bp: number | null; supply_term_id: string | null;
+  source: "AUTO" | "MANUAL"; captured_date: string;
+}
+export function banChupTuDb(r: TermRowDb): BanChup {
+  return {
+    serviceId: r.order_service_id, beneficiaryPartyId: r.beneficiary_party_id,
+    hoaHong: r.commission_status === "NONE" ? { status: "NONE" } : r.commission_status === "MISSING" ? { status: "MISSING", reason: r.missing_reason! }
+      : { status: "SET", kind: r.commission_kind!, rateBp: r.commission_rate_bp, perPax: r.commission_per_pax, ruleId: r.commission_rule_id },
+    cungUng: r.supply_status === "SET" ? { status: "SET", termId: r.supply_term_id, sellerPartyId: r.seller_party_id!, supplierPartyId: r.supplier_party_id, costRateBp: r.cost_rate_bp } : { status: "MISSING" },
+  };
+}
+/** Mô tả bản chụp cho nhật ký: chỉ đếm dòng — không tỷ lệ, không tiền (nhật ký đơn đọc được ở nhiều nơi). */
+export function moTaChup(chup: readonly BanChup[]): string {
+  if (chup.every((c) => c.hoaHong.status === "NONE")) return "không người hưởng";
+  const co = chup.filter((c) => c.hoaHong.status === "SET").length;
+  return `${chup.length} dòng: ${co} có mức, ${chup.length - co} thiếu mức`;
+}
+```
+
+Thứ tự trường và tên trường của `BanChup` là của Task 2 (nguồn); nếu Task 2 đặt khác (vd `cungUng.termId` vị trí khác) thì `deepEqual` vẫn đúng vì so theo khoá.
+
+- [ ] **Step 5: `thuong-mai-repo.ts`** (nửa nghiêm — mọi câu qua `defineSql`, chỉ chạm `ord_service_terms` và đọc `orders`):
+
+```ts
+// SQL bản chụp thương mại (ord_service_terms — đặc tả §5). Tệp NỬA NGHIÊM của orders (src/architecture.test.ts NUA_NGHIEM): defineSql + EXPLAIN.
+// Câu chụp trong lô gác bằng CHUỖI changes() > 0 (CHANGE-GUIDE f) — không đọc audit_log, không so updated_at.
+import { defineSql } from "../../shared/sql-registry.ts";
+import type { DongGhiChup, TermRowDb } from "./thuong-mai.ts";
+
+const COT = `id, order_id, order_service_id, beneficiary_party_id, commission_status, missing_reason, commission_kind, commission_rate_bp, commission_per_pax, commission_rule_id,
+  supply_status, seller_party_id, supplier_party_id, cost_rate_bp, supply_term_id, source, reason, supersedes_id, captured_date, created_at, created_by, updated_at, updated_by`;
+const CHUP_CHUOI = defineSql("orders", "terms_insert_chain",
+  `INSERT INTO ord_service_terms (${COT}) SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?20, ?21 WHERE changes() > 0`);
+const GHI_TAY = defineSql("orders", "terms_insert_manual",
+  `INSERT INTO ord_service_terms (${COT}) SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?20, ?21
+   WHERE EXISTS (SELECT 1 FROM orders o WHERE o.id = ?2 AND o.status = 'confirmed' AND o.delivered_at IS NULL)`);
+const HIEN_HANH = defineSql("orders", "terms_current",
+  `SELECT t.id, t.order_service_id, t.beneficiary_party_id, t.commission_status, t.missing_reason, t.commission_kind, t.commission_rate_bp, t.commission_per_pax, t.commission_rule_id,
+     t.supply_status, t.seller_party_id, t.supplier_party_id, t.cost_rate_bp, t.supply_term_id, t.source, t.captured_date
+   FROM ord_service_terms t WHERE t.order_id = ?1 AND NOT EXISTS (SELECT 1 FROM ord_service_terms n WHERE n.supersedes_id = t.id)`);
+const DEM = defineSql("orders", "terms_count", "SELECT count(*) AS n FROM ord_service_terms WHERE order_id = ?1");
+
+const bindDong = (st: D1PreparedStatement, d: DongGhiChup) => st.bind(d.id, d.orderId, d.serviceId, d.beneficiaryPartyId, d.commissionStatus, d.missingReason, d.commissionKind, d.rateBp, d.perPax,
+  d.ruleId, d.supplyStatus, d.sellerPartyId, d.supplierPartyId, d.costRateBp, d.termId, d.source, d.reason, d.supersedesId, d.capturedDate, d.at, d.by);
+export const cauChupChuoi = (db: D1Database, rows: readonly DongGhiChup[]): D1PreparedStatement[] => rows.map((d) => bindDong(db.prepare(CHUP_CHUOI), d));
+export const cauGhiTay = (db: D1Database, d: DongGhiChup): D1PreparedStatement => bindDong(db.prepare(GHI_TAY), d);
+export const banChupHienHanh = async (db: D1Database, orderId: string): Promise<TermRowDb[]> => (await db.prepare(HIEN_HANH).bind(orderId).all<TermRowDb>()).results;
+export const demBanChup = async (db: D1Database, orderId: string): Promise<number> => Number((await db.prepare(DEM).bind(orderId).first<{ n: number }>())?.n ?? 0);
+```
+
+Tên cột phải khớp đúng bảng `ord_service_terms` của Task 1 (đọc lại migration; lệch thì sửa ở đây, không sửa migration đã qua kiểm). Thêm vào `NUA_NGHIEM` của `src/architecture.test.ts`: `{ module: "orders", file: "modules/orders/thuong-mai-repo.ts" }` kèm chú thích "Sổ đại lý đợt 1 (ADR-0077 điều 8 — đặc tả §5 cho phép): SQL bản chụp thương mại, mọi câu qua defineSql + EXPLAIN".
+
+- [ ] **Step 6: `confirmOrder` nhận câu kèm** (`src/modules/orders/repository.ts`): thêm tham số cuối `alsoConfirm?: (at: string) => D1PreparedStatement[]` và trải `...(alsoConfirm?.(at) ?? [])` vào CUỐI mảng lô (sau câu nhật ký `confirmed`). Chú thích: "Câu kèm (bản chụp thương mại — ADR-0077) đứng SAU nhật ký confirmed: chuỗi changes() > 0 nối từ UPDATE orders → nhật ký → từng câu chụp; results[1] vẫn quyết định thắng thua." Nếu câu cuối hiện có của lô KHÔNG phải nhật ký `confirmed` có `changes() > 0` thì dừng, đọc lô, chèn câu kèm ngay sau câu nhật ký đó và ghi ruling.
+
+- [ ] **Step 7: Route xác nhận** (`src/modules/orders/index.ts`, nhánh `confirmed`, ngay trước `confirmOrder`; import `docBangChoChup`, `chupDon` từ `../pricing`, `cauChupChuoi` từ `./thuong-mai-repo`, `dongGhiTuChup`, `moTaChup` từ `./thuong-mai`):
+
+```ts
+      // Sổ đại lý đợt 1 (ADR-0077 điều 8; đặc tả §5): đọc bảng ở ngày xác nhận rồi gửi các câu chụp trong CÙNG lô. Đơn đang nháp nên
+      // dịch vụ đọc từ `order` là số hiện hành (chưa có dòng điều chỉnh). Câu chụp lỗi ⇒ cả lô rơi (đơn vẫn nháp).
+      const bang = order ? await docBangChoChup(env.DB, { bookerPartyId: order.bookerPartyId, catalogCodes: order.services.flatMap((s) => (s.catalogCode ? [s.catalogCode] : [])), ngay: today }) : null;
+      const chup = order && bang ? chupDon({
+        nguoiHuong: bang.nguoiHuong, ngay: today, muc: bang.muc, dieuKhoan: bang.dieuKhoan,
+        dong: order.services.map((s) => ({ serviceId: s.id, catalogCode: s.catalogCode, groupCode: s.catalogCode ? (bang.nhom.get(s.catalogCode) ?? null) : null })),
+      }) : [];
+      const kemChup = (at: string): D1PreparedStatement[] => [
+        ...cauChupChuoi(env.DB, chup.map((c) => dongGhiTuChup(c, { id: crypto.randomUUID(), orderId: id, ngay: today, at, by: staff.id, source: "AUTO", reason: null, supersedesId: null }))),
+        auditStatement(env.DB, { orderId: id, staffId: staff.id, action: "order_terms_captured", at, detail: moTaChup(chup) }, "changes() > 0"),
+      ];
+```
+
+Tên tham số của `chupDon` (`nguoiHuong`, `ngay`, `muc`, `dieuKhoan`, `dong`) là của Task 2; lệch thì theo Task 2. Gọi `confirmOrder(…, detail, kemChup)`; trong `catch` hiện có của route thêm trước `throw e`:
+
+```ts
+        if (/\bterms_(rule|term)_stale:/.test(e instanceof Error ? e.message : String(e))) return error(409, "bang_muc_doi", "Bảng mức vừa đổi — thử lại");
+```
+
+Hành động `order_terms_captured` vào `AUDIT_ACTIONS` nhóm `order`, nhãn "Chụp mức hoa hồng lúc xác nhận".
+
+- [ ] **Step 8: Xanh.** `node --test src/modules/orders/thuong-mai.test.ts src/modules/orders/chup-xac-nhan.test.ts` rồi `npm run typecheck && npm test`. Bài cũ đếm đúng số câu trong lô xác nhận (`grep -rln "confirmOrder\|thu-tu-lo" src/*.test.ts src/modules/orders/*.test.ts`) thì cập nhật có chủ đích (đơn khách lẻ giờ thêm một câu chụp + một nhật ký) và ghi sổ.
+
+- [ ] **Step 9: P16.** (a) Đưa câu chụp lên TRƯỚC nhật ký `confirmed` trong `confirmOrder` → ca "câu chụp hỏng" hoặc "hai người bấm" đỏ → hoàn nguyên. (b) Bỏ `WHERE changes() > 0` khỏi `terms_insert_chain` → ca "hai người bấm" đỏ (500 / hai bộ) → hoàn nguyên. Ghi sổ.
+
+- [ ] **Step 10: Commit.**
+
+```bash
+git add src/modules/orders src/architecture.test.ts src/shared/audit-actions.ts docs/superpowers/plans/2026-10-08-so-dai-ly-dot-1-thi-cong-nhat-ky.md
+git commit -m "Chụp mức hoa hồng và người bán vào đơn trong lô Xác nhận" -m "Bản chụp đi cùng lô với câu xác nhận, gác bằng chuỗi changes() để lệnh thua không ghi gì và câu chụp hỏng thì đơn vẫn nháp. Bảng mức đổi giữa lúc đọc và lúc ghi ⇒ 409 'Bảng mức vừa đổi — thử lại' (trigger terms_rule_stale)." -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
+```
+
+---
+
+### Task 5: Phần thương mại của đơn: đọc hai DTO, ghi mức tay, hai ô quyền, lọc lịch sử
+
+**Files:**
+- Create: `src/shared/so-dai-ly-nhan.ts` (+ `.test.ts`), `src/modules/orders/thuong-mai-route.test.ts`, `src/so-la-doi-tac.test.ts`
+- Modify: `src/modules/orders/thuong-mai.ts` (+ `thuong-mai.test.ts`), `src/modules/orders/thuong-mai-repo.ts` (câu tên nhãn), `src/modules/orders/index.ts`, `src/modules/pricing/index.ts` (bỏ bảng tạm câu lý do, dùng `NHAN_LY_DO_THIEU`), `src/shared/contracts.ts`, `src/shared/permissions.ts` (+ test), `src/shared/audit-actions.ts`, `src/shared/tro-ly-cau-truc-ten.ts` (+ sinh), `src/route-access.test.ts` (264 → 266), `src/lan-gui-phu-route.test.ts` (157 → 158)
+
+**Interfaces:**
+- Consumes: Task 3 (`docBangChoChup`, `chupDon`, `tinhDongDoiTac`, `soKhachTinhHoaHong`, `laNguoiHuong`), Task 4 (`banChupHienHanh`, `cauGhiTay`, `dongGhiTuChup`, `banChupTuDb`, `TermRowDb`); `loadOrderView` (DTO đơn hiện hành đã áp dòng điều chỉnh), `getMeta`, `holdsPartner`, `seesOnlyAssignedOrders`.
+- Produces:
+  - Ô `order.terms.view` = `row("any", "any", "any", "assigned", "own", "any", "own", "none", "none", "none")`, `order.terms.override` = `row("none", "any", "any", "none", "none", "any", "none", "none", "none", "none")`.
+  - `contracts.ts`: `ThuongMaiDongVanPhong`, `ThuongMaiVanPhongDto`, `ThuongMaiDoiTacDto`, `ThuongMaiResponse = { vanPhong: ThuongMaiVanPhongDto } | { doiTac: ThuongMaiDoiTacDto }`.
+  - `orders/index.ts`: hàm công bố `phanThuongMaiCuaDon(db, orderId): Promise<PhanThuongMai | null>` với `PhanThuongMai = { duKien: boolean; chuaChup: boolean; chup: BanChup[]; dichVu: { id: string; name: string; thanhTien: number; soKhachTinh: number }[]; ten: Map<string, string>; congTyChuId: string | null }` (đợt 2 billing dùng lại).
+  - `so-dai-ly-nhan.ts`: `NHAN_LY_DO_THIEU`, `CAU_THIEU_MUC`, `nhanMuc({ kind, rateBp, perPax })` ("12,5%" / "50.000đ/khách"), `nhanTyLeBp(bp)`, `laDongThuongMai(action)`.
+  - `thuong-mai.ts`: `dungThuongMai(v: { laDoiTac: boolean; xemNguoiBan: boolean } & PhanThuongMai): ThuongMaiResponse`, `kiemThanGhiTay(raw): Ket<ThanGhiTay>`, `moTaGhiTay(truoc: BanChup, sau: BanChup, tenDichVu: string): string`.
+  - Hành động `order_terms_manual` ("Ghi mức hoa hồng tay", nhóm `order`).
+
+- [ ] **Step 1: Bài đỏ nhãn** `src/shared/so-dai-ly-nhan.test.ts`:
+
+```ts
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { NHAN_LY_DO_THIEU, laDongThuongMai, nhanMuc, nhanTyLeBp } from "./so-dai-ly-nhan.ts";
+test("nhãn tiếng Việt, không lộ mã thô", () => {
+  assert.equal(nhanTyLeBp(1250), "12,5%");
+  assert.equal(nhanTyLeBp(1000), "10%");
+  assert.equal(nhanTyLeBp(1), "0,01%");
+  assert.equal(nhanTyLeBp(0), "0%");
+  assert.equal(nhanMuc({ kind: "PER_PAX", rateBp: null, perPax: 50_000 }), "50.000đ/khách");
+  for (const v of Object.values(NHAN_LY_DO_THIEU)) assert.doesNotMatch(v, /[A-Z]{3,}/);
+  assert.equal(NHAN_LY_DO_THIEU.NO_RULE, "Chưa có mức cho dịch vụ này");
+});
+test("laDongThuongMai: ba hành động order_terms_*", () => {
+  for (const a of ["order_terms_captured", "order_terms_recaptured", "order_terms_manual"]) assert.ok(laDongThuongMai(a));
+  assert.equal(laDongThuongMai("confirmed"), false);
+});
+```
+
+`src/shared/so-dai-ly-nhan.ts`:
+
+```ts
+// Nhãn tiếng Việt của sổ đại lý (đặc tả §11: không lộ mã thô). Thuần, dùng ở máy chủ (DTO) và giao diện.
+export const NHAN_LY_DO_THIEU = {
+  NO_RULE: "Chưa có mức cho dịch vụ này",
+  RULE_CONFLICT: "Hai mức khác nhau cùng áp — Kế toán chọn một",
+  MANUAL_LINE: "Dòng nhập tay — Kế toán ghi mức",
+  BOOKER_NOT_BENEFICIARY: "Bên đặt không thuộc loại được hưởng hoa hồng",
+  NOT_CAPTURED: "Đơn xác nhận trước khi có bảng mức",
+} as const;
+export const CAU_THIEU_MUC = "Thiếu mức — Kế toán xử lý";
+const nhanDong = (n: number): string => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+export const nhanTyLeBp = (bp: number): string => {
+  const nguyen = Math.floor(bp / 100);
+  const le = String(bp % 100).padStart(2, "0").replace(/0+$/, "");
+  return le ? `${nguyen},${le}%` : `${nguyen}%`;
+};
+export const nhanMuc = (m: { kind: "RATE" | "PER_PAX"; rateBp: number | null; perPax: number | null }): string =>
+  m.kind === "RATE" ? nhanTyLeBp(m.rateBp ?? 0) : `${nhanDong(m.perPax ?? 0)}đ/khách`;
+export const laDongThuongMai = (action: string): boolean => action.startsWith("order_terms_");
+```
+
+Sau đó `pricing/rules.ts` `moTaMuc` dùng `nhanTyLeBp`/`nhanMuc` thay hàm riêng (xoá `nhanBp`, `nhanDong` ở đó — một nguồn), và `pricing/index.ts` dùng `NHAN_LY_DO_THIEU` cho `ThuTraResponse.lyDo`.
+
+- [ ] **Step 2: Bài đỏ DTO** (thêm vào `src/modules/orders/thuong-mai.test.ts`):
+
+```ts
+import { dungThuongMai, kiemThanGhiTay } from "./thuong-mai.ts";
+
+const chupHai = [
+  { serviceId: "s1", beneficiaryPartyId: "dla", hoaHong: { status: "SET" as const, kind: "RATE" as const, rateBp: 1200, perPax: null, ruleId: "m1" },
+    cungUng: { status: "SET" as const, termId: "d1", sellerPartyId: "ct", supplierPartyId: null, costRateBp: null } },
+  { serviceId: "s2", beneficiaryPartyId: "dla", hoaHong: { status: "MISSING" as const, reason: "NO_RULE" as const },
+    cungUng: { status: "SET" as const, termId: "d2", sellerPartyId: "ncc", supplierPartyId: "ncc", costRateBp: 8000 } },
+];
+const dichVu = [{ id: "s1", name: "Vé Hòn Tằm", thanhTien: 2_000_000, soKhachTinh: 2 }, { id: "s2", name: "Tắm bùn", thanhTien: 300_000, soKhachTinh: 1 }];
+const ten = new Map([["dla", "Đại lý A"], ["ct", "Tour Đảo"], ["ncc", "i-resort"]]);
+const phan = { duKien: false, chuaChup: false, chup: chupHai, dichVu, ten, congTyChuId: "ct" };
+
+test("DTO văn phòng: mức, hoa hồng, giá đại lý, cờ thiếu; khối nhà cung cấp chỉ khi xemNguoiBan; tổng null khi còn dòng thiếu", () => {
+  const a = dungThuongMai({ laDoiTac: false, xemNguoiBan: true, ...phan });
+  assert.ok("vanPhong" in a);
+  const vp = a.vanPhong;
+  assert.equal(vp.dong[0]!.hoaHong, 240_000);
+  assert.equal(vp.dong[0]!.giaDaiLy, 1_760_000);
+  assert.equal(vp.dong[0]!.muc, "12%");
+  assert.equal(vp.dong[1]!.thieu, "Chưa có mức cho dịch vụ này");
+  assert.equal(vp.dong[1]!.nhaCungCap?.giaVon, 240_000);
+  assert.equal(vp.dong[1]!.nhaCungCap?.tyLeMua, "80%");
+  assert.equal(vp.tong.hoaHong, null);
+  const b = dungThuongMai({ laDoiTac: false, xemNguoiBan: false, ...phan });
+  assert.ok("vanPhong" in b && b.vanPhong.dong[1]!.nhaCungCap === undefined);
+});
+
+test("DTO Đối tác: chỉ số tiền hoa hồng của mình; không khoá rate/perPax/cost/ruleId/termId/source/supplier/muc", () => {
+  const a = dungThuongMai({ laDoiTac: true, xemNguoiBan: false, ...phan });
+  assert.ok("doiTac" in a);
+  const s = JSON.stringify(a);
+  for (const k of ["rate", "perPax", "cost", "ruleId", "termId", "source", "supplier", "muc", "nhaCungCap", "1200", "8000"]) assert.doesNotMatch(s, new RegExp(k, "i"), k);
+  assert.equal(a.doiTac.dong[0]!.hoaHong, 240_000);
+  assert.equal(a.doiTac.dong[1]!.hoaHong, null);
+  assert.equal(a.doiTac.choCongTyCaiMuc, true);
+});
+
+test("kiemThanGhiTay: lý do ≥ 10 ký tự; ít nhất một phần; số hợp lệ; không dãy số dài", () => {
+  assert.equal(kiemThanGhiTay({ lyDo: "ngắn", hoaHong: { kieu: "RATE", tyLeBp: 1500 } }).ok, false);
+  assert.equal(kiemThanGhiTay({ lyDo: "thoả thuận miệng với CTV Lan" }).ok, false, "không gửi phần nào");
+  assert.ok(kiemThanGhiTay({ lyDo: "thoả thuận miệng với CTV Lan", hoaHong: { kieu: "RATE", tyLeBp: 1500 } }).ok);
+  assert.ok(kiemThanGhiTay({ lyDo: "nhà cung cấp mới cho vé này", nguoiBan: { partyId: "ncc", tyLeMuaBp: 7500 } }).ok);
+  assert.equal(kiemThanGhiTay({ lyDo: "gọi 0905123456 xác nhận", hoaHong: { kieu: "RATE", tyLeBp: 1500 } }).ok, false);
+});
+```
+
+DTO (thêm vào `contracts.ts`):
+
+```ts
+export interface ThuongMaiDongVanPhong {
+  serviceId: string; ten: string; thanhTien: number; soKhachTinh: number;
+  /** "12%" / "50.000đ/khách"; null khi thiếu mức hoặc không người hưởng. */
+  muc: string | null; hoaHong: number | null; giaDaiLy: number | null; ghiTay: boolean;
+  /** Câu tiếng Việt khi thiếu mức; null khi đủ. Giao diện ghi thêm "Thiếu mức — Kế toán xử lý". */
+  thieu: string | null;
+  nguoiBan: { ten: string; laCongTy: boolean } | null;
+  /** Chỉ khi người gọi có `supply.terms.view` VÀ người bán là nhà cung cấp. */
+  nhaCungCap?: { tyLeMua: string; giaVon: number };
+}
+export interface ThuongMaiVanPhongDto {
+  duKien: boolean; chuaChup: boolean; nguoiHuong: { ten: string } | null;
+  dong: ThuongMaiDongVanPhong[]; tong: { thanhTien: number; hoaHong: number | null; giaDaiLy: number | null };
+}
+export interface ThuongMaiDoiTacDto {
+  duKien: boolean; choCongTyCaiMuc: boolean;
+  dong: { serviceId: string; ten: string; thanhTien: number; hoaHong: number | null; giaDaiLy: number | null }[];
+  tong: { thanhTien: number; hoaHong: number | null; giaDaiLy: number | null };
+}
+export type ThuongMaiResponse = { vanPhong: ThuongMaiVanPhongDto } | { doiTac: ThuongMaiDoiTacDto };
+```
+
+Tổng `hoaHong` / `giaDaiLy` = null khi còn dòng thiếu mức (không cộng nửa vời). `chuaChup = true` cho đơn đã xác nhận mà không có bản chụp.
+
+- [ ] **Step 3: Viết `dungThuongMai`, `kiemThanGhiTay`, `moTaGhiTay`** ở `src/modules/orders/thuong-mai.ts`. Tính tiền từng dòng bằng `tinhDongDoiTac` của pricing (Task 2 — một công thức; đặt `import { tinhDongDoiTac } from "../pricing"`); nhãn bằng `nhanMuc`, `nhanTyLeBp`, `NHAN_LY_DO_THIEU`. Hai nhánh dựng đối tượng MỚI bằng chép từng trường (danh sách trắng), không trải `...` từ kiểu rộng. Thân ghi tay: `{ lyDo: string; hoaHong?: { kieu: "RATE"; tyLeBp: number } | { kieu: "PER_PAX"; moiKhach: number }; nguoiBan?: { partyId: string; tyLeMuaBp?: number } }`; lý do ≥ 10 ký tự sau `trim`, ≤ 300, không dãy ≥ 8 chữ số (khuôn `docGhiChu` của Task 3). `moTaGhiTay(truoc, sau, tenDichVu)` = "Vé Hòn Tằm: thiếu mức → 15%" / "Vé Hòn Tằm: 10% → 15%" / "Vé Hòn Tằm: người bán Tour Đảo → i-resort" (dùng `nhanMuc`; nhật ký này bị lọc khỏi lịch sử của Đối tác ở Bước 6).
+
+- [ ] **Step 4: Bài route đỏ** `src/modules/orders/thuong-mai-route.test.ts` (chép `setup`, `nhap`, `xacNhan`, `muc`, `chup`, `chenTruocLo` của `chup-xac-nhan.test.ts` vào đầu tệp; thêm tài khoản Đối tác `DT` gắn hồ sơ `pty-${DT}` mang `TRAVEL_AGENCY`, HDV `FIELD`, `DRIVER`, `DRIVER_PARTNER`, `HR`). Tám ca, mỗi ca một `test(...)`:
+  1. Kế toán GET đơn đã xác nhận có dòng do nhà cung cấp bán (gieo điều khoản `IRESORT` 80% qua `POST /api/pricing/cung-ung` trước khi xác nhận) ⇒ 200 `vanPhong`, dòng đó có `nhaCungCap.tyLeMua === "80%"`; Bán hàng ⇒ 200 `vanPhong`, KHÔNG có `nhaCungCap`.
+  2. Đơn nháp ⇒ 200, `duKien: true`; đếm `ord_service_terms` của đơn = 0 sau lời gọi.
+  3. Đối tác GET đơn do chính tài khoản lập (gieo `orders.staff_id = DT`) ⇒ 200 `doiTac`; GET đơn của SALES ⇒ đúng mã mà `GET /api/orders/:id` trả cho Đối tác ở cùng tình huống (đọc route chi tiết đơn; hôm nay là 404).
+  4. `DRIVER`, `DRIVER_PARTNER`, `HR` ⇒ 403.
+  5. A-4: đơn bên đặt CTV (hồ sơ mang `COLLABORATOR`, không mức) xác nhận ⇒ dòng thiếu; Kế toán POST `{ lyDo: "thoả thuận miệng với CTV Lan", hoaHong: { kieu: "RATE", tyLeBp: 1500 } }` vào dịch vụ thành tiền 1.000.000 ⇒ 200; GET ⇒ `hoaHong === 150_000`; bản cũ còn, bản mới `source = 'MANUAL'`, `supersedes_id` = id bản cũ; nhật ký `order_terms_manual` một dòng.
+  6. Thiếu lý do ⇒ 400; đơn nháp ⇒ 409; đơn đã giao (đặt `delivered_at` theo cột mà trigger `0044` đòi) ⇒ 409; Bán hàng, HDV, Đối tác ⇒ 403; đơn `confirmed` gieo thẳng bằng SQL không bản chụp ⇒ 409 câu "Đơn xác nhận trước khi có bảng mức — chờ chụp bù ở bản sau".
+  7. Hai Kế toán ghi tay cùng dòng cùng lúc (`Promise.all`) ⇒ một 200, một 409, không 500.
+  8. A-2: mức `PER_PAX` 50.000 cho `HOTEL_RECEPTION`, đơn 2 NL + 1 TE + 1 EB (khách tính 3) xác nhận ⇒ `hoaHong === 150_000`; thêm dòng điều chỉnh số khách thành 3 NL + 1 TE qua route điều chỉnh của orders đang có (`grep -n "adjust" src/modules/orders/index.ts`) ⇒ GET ⇒ `hoaHong === 200_000`, bản chụp không đổi (đếm dòng như trước).
+
+- [ ] **Step 5: Route** (`src/modules/orders/index.ts`):
+
+```ts
+    // Sổ đại lý đợt 1 (ADR-0077 điều 10–11; đặc tả §6): phần thương mại của đơn. Đối tác (holdsPartner, kể cả tài khoản lai) nhận DTO hẹp (C9 = A).
+    route("GET", "/api/orders/:id/thuong-mai", "orders", async ({ env, params, staff, isAssigned }) => {
+      const id = params.id!;
+      if (!UUID_RE.test(id)) return NOT_FOUND();
+      const [meta, assigned] = await Promise.all([getMeta(env.DB, id), isAssigned(id)]);
+      if (!meta) return NOT_FOUND();
+      const scope = { ownerId: meta.staffId, assigned };
+      if (!can(staff, "order.view", scope)) return seesOnlyAssignedOrders(staff) ? NOT_FOUND() : FORBIDDEN();
+      if (!can(staff, "order.terms.view", scope)) return FORBIDDEN_VIEW();
+      const phan = await phanThuongMaiCuaDon(env.DB, id);
+      if (!phan) return NOT_FOUND();
+      return json(dungThuongMai({ laDoiTac: holdsPartner(staff), xemNguoiBan: can(staff, "supply.terms.view"), ...phan }) satisfies ThuongMaiResponse);
+    }),
+```
+
+Tên hằng `UUID_RE`, `NOT_FOUND`, `FORBIDDEN`, `FORBIDDEN_VIEW`, `getMeta`, `seesOnlyAssignedOrders` là tên đang dùng trong `orders/index.ts`; tên nào khác thì dùng đúng tên trong tệp (route `GET /api/orders/:id` là khuôn).
+
+`phanThuongMaiCuaDon(db, orderId)` (hàm công bố cuối `orders/index.ts`): `loadOrderView` (DTO HIỆN HÀNH) → đơn `cancelled` ⇒ null; `banChupHienHanh`; đơn `confirmed` có bản chụp ⇒ `chup = rows.map(banChupTuDb)`; đơn `draft` ⇒ `docBangChoChup(… ngay: vnToday(new Date()))` + `chupDon` (`duKien: true`, không ghi); đơn `confirmed` không bản chụp ⇒ `chuaChup: true`, mọi dòng `{ hoaHong: { status: "MISSING", reason: "NOT_CAPTURED" }, cungUng: { status: "MISSING" } }`. Thành tiền dòng = tổng `items[].lineTotal`; số khách = `soKhachTinhHoaHong({ unit, pax, items })` (chữ ký của Task 2). Tên người hưởng / người bán: câu mới `party_labels` ở `thuong-mai-repo.ts` (`SELECT id, display_name FROM v_pty_party_label WHERE id IN (SELECT value FROM json_each(?1))`, `defineSql`). `congTyChuId` từ `ownerCompany` (orders → parties đã có cạnh).
+
+Route ghi tay:
+
+```ts
+    route("POST", "/api/orders/:id/thuong-mai/:serviceId", "office", async ({ env, request, params, staff, baoThayDoi }) => {
+      if (!can(staff, "order.terms.override")) return FORBIDDEN();
+      const id = params.id!;
+      if (!UUID_RE.test(id)) return NOT_FOUND();
+      const than = kiemThanGhiTay(await readJson(request));
+      if (!than.ok) return error(400, "invalid_input", than.message);
+      const meta = await getMeta(env.DB, id);
+      if (!meta) return NOT_FOUND();
+      if (meta.status !== "confirmed") return error(409, "not_confirmed", "Chỉ ghi mức tay cho đơn đã xác nhận.");
+      if (meta.deliveredAt) return error(409, "order_delivered", "Đơn đã Đã giao — không ghi mức tay.");
+      const hienHanh = (await banChupHienHanh(env.DB, id)).find((r) => r.order_service_id === params.serviceId);
+      if (!hienHanh) return error(409, "chua_chup", "Đơn xác nhận trước khi có bảng mức — chờ chụp bù ở bản sau");
+      const truoc = banChupTuDb(hienHanh);
+      const cty = await ownerCompany(env.DB);
+      if (than.value.nguoiBan && than.value.nguoiBan.partyId !== cty?.partyId && !(await laNhaCungCap(env.DB, than.value.nguoiBan.partyId)))
+        return error(400, "invalid_input", "Người bán phải là Tour Đảo hoặc hồ sơ mang vai Nhà cung cấp.");
+      const sau = apGhiTay(truoc, than.value, cty?.partyId ?? null);
+      const at = new Date().toISOString();
+      const dong = dongGhiTuChup(sau, { id: crypto.randomUUID(), orderId: id, ngay: vnToday(new Date()), at, by: staff.id, source: "MANUAL", reason: than.value.lyDo, supersedesId: hienHanh.id });
+      const tenDv = (await loadOrderView(env.DB, id))?.services.find((s) => s.id === params.serviceId)?.name ?? "";
+      let kq: D1Result[];
+      try {
+        kq = await env.DB.batch([cauGhiTay(env.DB, dong), auditStatement(env.DB, { orderId: id, staffId: staff.id, action: "order_terms_manual", at, detail: moTaGhiTay(truoc, sau, tenDv) }, "changes() > 0")]);
+      } catch (e) {
+        const m = e instanceof Error ? e.message : String(e);
+        if (/UNIQUE constraint failed: ord_service_terms\.supersedes_id|\bterms_one_current:/.test(m)) return error(409, "stale", "Mức của dòng này vừa được người khác ghi — tải lại.");
+        if (/\bterms_order_delivered:/.test(m)) return error(409, "order_delivered", "Đơn đã Đã giao — không ghi mức tay.");
+        throw e;
+      }
+      if ((kq[0]!.meta.changes ?? 0) === 0) return error(409, "stale", "Đơn vừa đổi trạng thái — tải lại.");
+      baoThayDoi({ orderId: id, thayDoi: "tien" });
+      const phan = await phanThuongMaiCuaDon(env.DB, id);
+      return json(dungThuongMai({ laDoiTac: false, xemNguoiBan: can(staff, "supply.terms.view"), ...phan! }) satisfies ThuongMaiResponse);
+    }),
+```
+
+Hai hàm phụ: `apGhiTay(truoc: BanChup, than: ThanGhiTay, congTyChuId: string | null): BanChup` (thuần, `thuong-mai.ts`, có bài: phần không gửi chép từ `truoc`; hoa hồng gửi lên ⇒ `SET` với `ruleId: null`; người bán = công ty ⇒ `supplierPartyId: null`, `costRateBp: null`, `termId: null`; người bán khác ⇒ `supplierPartyId = partyId`, `costRateBp` bắt buộc — thiếu thì `kiemThanGhiTay` đã trả 400) và `laNhaCungCap(db, partyId)` (câu `defineSql` ở `thuong-mai-repo.ts` đọc `v_pty_open_role` với `role_type_code = 'SUPPLIER'`). Kiểm loại thay đổi `"tien"` có trong kiểu tham số `baoThayDoi` (`grep -n "thayDoi" src/shared/router.ts`); không có thì dùng loại đang dùng cho "sửa tiền" và ghi ruling.
+
+- [ ] **Step 6: Lọc lịch sử** (`GET /api/orders/:id`, dòng dựng `history` đang lọc `laDongNhapKeToan`): nối thêm `.filter((e) => !holdsPartner(staff) || !laDongThuongMai(e.action))`. Rà các đường khác trả nhật ký đơn cho Đối tác: `grep -rn "getAuditTrail\|lichSuTheoVai" src/modules | grep -v test` — mỗi chỗ trả cho người giữ PARTNER phải lọc cùng cách. Thông báo / Bảng tin chỉ dùng danh sách hành động khai sẵn: xác nhận `order_terms_*` không nằm trong danh sách đó (bài ở Bước 7).
+
+- [ ] **Step 7: Bài số lạ** `src/so-la-doi-tac.test.ts` (tiêu chí 8, Review Focus 4). `rate_bp` tối đa 10000 nên số lạ đi qua hai cột khác: mức riêng `PER_PAX` **480017** đ/khách cho đối tác B, và điều khoản nhà cung cấp `cost_rate_bp = 4817` cho dịch vụ có trong đơn của A. Đơn của A (tài khoản Đối tác A tự lập, bên đặt A, có dịch vụ do nhà cung cấp đó bán) xác nhận; Kế toán ghi tay một dòng của đơn A (để có nhật ký `order_terms_manual`). Tài khoản Đối tác A gọi: `GET /api/orders`, `GET /api/orders/:id` (chi tiết + lịch sử), `GET /api/orders/:id/thuong-mai`, route biên nhận (`grep -n "receipt" src/modules/receipt/index.ts` — route GET biên nhận của đơn), `GET /api/orders/:id/qr-thanh-toan` (nếu đơn còn tiền thu; route trả 4xx thì vẫn quét thân), `GET /api/ledger/mine` ⇒ thân phản hồi KHÔNG chứa `480017`, `480.017`, `4817`, `48,17`. DTO `thuong-mai` của A quét đệ quy tên khoá: không khoá nào khớp `/rate|perPax|cost|ruleId|termId|source|supplier/i`. Thêm ca: mọi danh sách hành động của thông báo / Bảng tin (`grep -rn "AUDIT_GROUPS\|HANH_DONG_\|THONG_BAO" src/shared src/modules | grep -v test` để tìm) không chứa chuỗi bắt đầu `order_terms_`.
+
+- [ ] **Step 8: Ô quyền + tên + nhật ký.** `permissions.ts` thêm `order.terms.view`, `order.terms.override` (giá trị ở Interfaces); `permissions.test.ts`: bảng `ADR`, các bài ghim nguyên dòng, và bài khoá mới:
+
+```ts
+test("sổ đại lý: supply.terms.view ⊆ order.terms.view ⊆ money.view ở mọi cột; DRIVER, DRIVER_PARTNER, HR = none ở các ô mới", () => {
+  // Thứ tự rộng hẹp: none ⊂ own, assigned ⊂ ownOrAssigned ⊂ any.
+  const le = (a: string, b: string) => a === "none" || b === "any" || a === b || (b === "ownOrAssigned" && (a === "own" || a === "assigned"));
+  for (const p of PERMISSION_CODES) {
+    assert.ok(le(MATRIX["supply.terms.view"][p], MATRIX["order.terms.view"][p]), `${p}: supply.terms.view ⊆ order.terms.view`);
+    assert.ok(le(MATRIX["order.terms.view"][p], MATRIX["money.view"][p]), `${p}: order.terms.view ⊆ money.view`);
+  }
+  for (const op of ["partner.commission.view", "partner.commission.write", "order.terms.view", "order.terms.override", "supply.terms.view", "supply.terms.write"] as const)
+    for (const p of ["DRIVER", "DRIVER_PARTNER", "HR"] as const) assert.equal(MATRIX[op][p], "none", `${op}/${p}`);
+});
+```
+
+(`ledger.period.close` thêm vào vòng thứ hai của bài này ở Task 7.) `TEN_THAO_TAC`: `"order.terms.view": { ten: "xem phần đối tác của đơn", moTa: "Xem hoa hồng, giá đại lý của từng dịch vụ trên đơn; Đối tác chỉ thấy số tiền hoa hồng của mình." }`, `"order.terms.override": { ten: "ghi mức hoa hồng tay", moTa: "Ghi mức hoa hồng hoặc người bán cho một dịch vụ của đơn đã xác nhận, có lý do." }`. Nhật ký `order_terms_manual` (nhóm `order`). Bài tập con 1024 tập quyền (`grep -rln "1024\|tập con" src/*.test.ts src/shared/*.test.ts`) tự phủ ô mới — chạy để chắc. `npm run build:web`. Số route 264 → 266, route ghi 157 → 158 (chú thích "+1 POST /api/orders/:id/thuong-mai/:serviceId").
+
+- [ ] **Step 9: Xanh.** `node --test src/shared/so-dai-ly-nhan.test.ts src/modules/orders/thuong-mai*.test.ts src/so-la-doi-tac.test.ts src/shared/permissions.test.ts` rồi `npm run typecheck && npm test`.
+
+- [ ] **Step 10: P16.** (a) Bỏ `.filter(… laDongThuongMai …)` ở lịch sử ⇒ bài số lạ đỏ ⇒ hoàn nguyên. (b) Trong `dungThuongMai` nhánh Đối tác, thêm trường `muc` vào dòng ⇒ bài DTO Đối tác đỏ ⇒ hoàn nguyên. (c) Bỏ `if (!can(staff, "order.terms.view", scope))` ⇒ ca `HR`/`DRIVER` 403 vẫn xanh nhờ cổng nhưng `route-write-guard`/`permission-enforcement` đỏ ⇒ hoàn nguyên. Ghi sổ.
+
+- [ ] **Step 11: Commit.**
+
+```bash
+git add src docs/superpowers/plans/2026-10-08-so-dai-ly-dot-1-thi-cong-nhat-ky.md
+git commit -m "Phần đối tác của đơn: hai DTO danh sách trắng, ghi mức tay có lý do, Đối tác không thấy tỷ lệ" -m "Văn phòng thấy mức, hoa hồng, giá đại lý, cờ thiếu mức; Đối tác chỉ thấy số tiền hoa hồng của mình (C9 = A) — kể cả lịch sử đơn lọc bỏ dòng order_terms_*. Ghi tay thay bản hiện hành bằng bản MANUAL trỏ bản cũ; hai người ghi cùng lúc ⇒ 409." -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
+```
+
+---
+
+### Task 6: Bên đặt là đối tác: tổ chức được gắn, tài khoản Đối tác tự ghi, chụp lại khi đổi bên đặt, nhãn trên đơn
+
+> **Phụ thuộc lời chủ (điểm 1, 2 cuối Phần A đặc tả).** Viết theo khuyến nghị (điểm 1 = a, điểm 2 = thu hẹp). Chủ chọn (b) ở điểm 1 thì BỎ Bước 4 (tài khoản Đối tác tự ghi) và ca 2–3 của Bước 1; phần còn lại giữ.
+
+**Files:**
+- Create: `src/modules/orders/ben-dat-doi-tac.test.ts`, `src/shared/booker.test.ts` (nếu chưa có; có rồi thì thêm ca)
+- Modify: `src/modules/orders/service.ts` (`resolveBooker`), `src/modules/orders/repository.ts` (`BOOKER_VALUE`, `changeBooker` nhận câu kèm, cờ `bookerLaDoiTac`), `src/modules/orders/index.ts` (lập đơn, lưu nháp, đổi bên đặt), `src/shared/booker.ts` (`benDatChoTaiKhoan`), `src/modules/billing/rules.ts` (chữ `booker_partner`) + bài của nó, `src/shared/contracts.ts` (`OrderDetailDto.bookerLaDoiTac`), `src/shared/audit-actions.ts`
+
+**Interfaces:**
+- Consumes: `laNguoiHuong` (pricing, Task 3), `docBangChoChup`/`chupDon` (Task 3), `cauChupChuoi`/`banChupHienHanh`/`demBanChup`/`dongGhiTuChup`/`moTaChup` (Task 4).
+- Produces: `OrderDetailDto.bookerLaDoiTac: boolean` (bên đặt đang mở vai được hưởng — máy chủ tính); `changeBooker(…, alsoChange?: (at: string) => D1PreparedStatement[])`; `benDatChoTaiKhoan(v: { laDoiTac: boolean; partyId: string | null; laNguoiHuong: boolean; guiLen: BookerInput }): BookerInput`; hành động `order_terms_recaptured` ("Chụp lại mức khi đổi bên đặt", nhóm `order`).
+
+- [ ] **Step 1: Bài đỏ** `src/modules/orders/ben-dat-doi-tac.test.ts` (khung thử; chép `setup`, `nhap`, `xacNhan`, `muc`, `chup` của Task 4; thêm tài khoản Đối tác `DT` mà hồ sơ `pty-${DT}` được đổi thành `ORGANIZATION` mang `TRAVEL_AGENCY`, và tài khoản Đối tác `DT2` có hồ sơ chỉ mang `CUSTOMER`). Thân lập đơn lấy khuôn từ bài lập đơn đang có (`grep -rln "POST\", \"/api/orders\"" src/**/*.test.ts tests/e2e`). Sáu ca:
+  1. Bán hàng lập đơn với `bookerPartyId = "pty-dla"` (tổ chức mang `TRAVEL_AGENCY`) ⇒ 201, `orders.booker_party_id = 'pty-dla'`; tổ chức `pty-kxh` không mang vai được hưởng ⇒ 400 câu "Hồ sơ tổ chức này không phải đối tác được hưởng hoa hồng.".
+  2. **Review Focus 2:** `DT` lập đơn, thân gửi `bookerPartyId = "pty-dla"` ⇒ 201, `booker_party_id = 'pty-${DT}'` (không NULL, không `pty-dla`); `customer_name` = tên khách gửi lên. `DT` lưu nháp (`PUT /api/orders/:id`) gửi bên đặt khác ⇒ vẫn `pty-${DT}`.
+  3. `DT2` lập đơn ⇒ bên đặt theo thân gửi lên (hành vi hôm nay). Tài khoản Đối tác không gắn hồ sơ (`staff.party_id` NULL — gieo bằng SQL) lập đơn với `bookerPartyId = "pty-dla"` ⇒ 409 "Tài khoản đối tác chưa gắn hồ sơ — nhờ văn phòng"; không gửi bên đặt ⇒ hành vi hôm nay.
+  4. Đơn khách lẻ đã xác nhận (có bản chụp `NONE`), Bán hàng `PUT /api/orders/:id/booker` sang `pty-dla` ⇒ 200; mỗi dòng có bản chụp mới trỏ `supersedes_id`, bản cũ còn; nhật ký `order_terms_recaptured` một dòng. Đơn `confirmed` gieo SQL không bản chụp, đổi bên đặt ⇒ 200 và `ord_service_terms` của đơn vẫn 0 dòng (N15).
+  5. `GET /api/orders/:id` của đơn bên đặt `pty-dla` ⇒ `bookerLaDoiTac: true`; đơn khách lẻ ⇒ `false`; biên nhận của đơn `pty-dla` in tên khách (`customer_name`), không in "Đại lý A".
+  6. Câu báo mã `booker_partner` của "Đã giao" = câu ở Global Constraints (bài thuần ở `src/modules/billing/rules.test.ts`, sửa bài đang ghim câu cũ).
+
+Bài thuần `src/shared/booker.test.ts` cho `benDatChoTaiKhoan`: (a) Đối tác + có hồ sơ + được hưởng ⇒ `{ kind: "existing", partyId }` bất kể `guiLen`; (b) Đối tác + có hồ sơ + không được hưởng ⇒ `guiLen`; (c) không phải Đối tác ⇒ `guiLen`.
+
+- [ ] **Step 2: Đỏ.** `node --test src/modules/orders/ben-dat-doi-tac.test.ts src/shared/booker.test.ts`.
+
+- [ ] **Step 3: Nhận tổ chức được hưởng.** `resolveBooker` (`service.ts`, nhánh `existing`): thay dòng loại hồ sơ không phải `PERSON` bằng
+
+```ts
+    if (row.party_kind !== "PERSON" && !(await laNguoiHuong(db, booker.partyId))) return { ok: false, message: "Hồ sơ tổ chức này không phải đối tác được hưởng hoa hồng." };
+```
+
+`BOOKER_VALUE` (`repository.ts`) đổi thành MỘT tham số, đọc view công bố của parties và pricing (cạnh `orders → parties, pricing` đã khai):
+
+```ts
+const BOOKER_VALUE = `(SELECT l.id FROM v_pty_party_label l WHERE l.id = ? AND l.active = 1 AND (l.party_kind = 'PERSON'
+  OR EXISTS (SELECT 1 FROM v_pty_open_role r JOIN v_prc_beneficiary_role b ON b.role_type_code = r.role_type_code WHERE r.party_id = l.id)))`;
+```
+
+Sửa MỌI chỗ bind `BOOKER_VALUE` từ hai tham số (cùng id) còn một (`grep -n "BOOKER_VALUE" src/modules/orders/*.ts`); đổi chú thích "hai tham số: cùng id" theo. `v_prc_beneficiary_role` là view Task 1 tạo (chỉ vai `active = 1`); khác tên thì theo Task 1.
+
+- [ ] **Step 4: Tài khoản Đối tác tự ghi bên đặt.** `src/shared/booker.ts`:
+
+```ts
+/** ADR-0077 điều 3 (i), thu hẹp theo lời chủ (đặc tả §7): tài khoản Đối tác mà hồ sơ đang mang vai được hưởng ⇒ bên đặt = chính hồ sơ đó, bỏ qua bên đặt trình duyệt gửi.
+ * Tài khoản lai (LC-1 cấm vai bên ngoài trên hồ sơ của nó) và Đối tác khác giữ hành vi cũ. */
+export function benDatChoTaiKhoan(v: { laDoiTac: boolean; partyId: string | null; laNguoiHuong: boolean; guiLen: BookerInput }): BookerInput {
+  return v.laDoiTac && v.partyId !== null && v.laNguoiHuong ? { kind: "existing", partyId: v.partyId } : v.guiLen;
+}
+```
+
+(`BookerInput` là kiểu bên đặt đang dùng ở `booker.ts`; tên khác thì dùng đúng tên.) Ở `POST /api/orders` và `PUT /api/orders/:id`, ngay TRƯỚC `resolveBooker`:
+
+```ts
+      const laDoiTac = holdsPartner(staff);
+      const huong = laDoiTac && staff.partyId !== null && (await laNguoiHuong(env.DB, staff.partyId));
+      if (laDoiTac && staff.partyId === null && guiBenDatDuocHuong) return error(409, "partner_no_party", "Tài khoản đối tác chưa gắn hồ sơ — nhờ văn phòng");
+      const benDat = benDatChoTaiKhoan({ laDoiTac, partyId: staff.partyId, laNguoiHuong: huong, guiLen: placed.value.booker });
+```
+
+với `guiBenDatDuocHuong = placed.value.booker.kind === "existing" && (await laNguoiHuong(env.DB, placed.value.booker.partyId))` (chỉ tính khi `laDoiTac && staff.partyId === null`). Truyền `benDat` thay `placed.value.booker`. Ở `PUT`, nhánh "thân không có khoá bên đặt ⇒ giữ bên đặt cũ" cũng nhường cho `huong` (Đối tác được hưởng luôn ghi hồ sơ của mình). Tên trường hồ sơ của tài khoản (`staff.partyId`) và tên biến thân (`placed.value.booker`) là tên đang có; khác thì dùng đúng tên.
+
+- [ ] **Step 5: Chụp lại khi đổi bên đặt** (`PUT /api/orders/:id/booker`): khi `meta.status === "confirmed"` VÀ `await demBanChup(env.DB, id) > 0` VÀ bên đặt đổi thật (id mới ≠ `meta.bookerPartyId`):
+
+```ts
+      const view = await loadOrderView(env.DB, id);
+      const cu = new Map((await banChupHienHanh(env.DB, id)).map((r) => [r.order_service_id, r.id]));
+      const homNay = vnToday(new Date());
+      const bang = await docBangChoChup(env.DB, { bookerPartyId: benDatMoi, catalogCodes: view!.services.flatMap((s) => (s.catalogCode ? [s.catalogCode] : [])), ngay: homNay });
+      const chup = chupDon({ nguoiHuong: bang.nguoiHuong, ngay: homNay, muc: bang.muc, dieuKhoan: bang.dieuKhoan,
+        dong: view!.services.map((s) => ({ serviceId: s.id, catalogCode: s.catalogCode, groupCode: s.catalogCode ? (bang.nhom.get(s.catalogCode) ?? null) : null })) });
+      const kemChup = (at: string): D1PreparedStatement[] => [
+        ...cauChupChuoi(env.DB, chup.map((c) => dongGhiTuChup(c, { id: crypto.randomUUID(), orderId: id, ngay: homNay, at, by: staff.id, source: "AUTO", reason: null, supersedesId: cu.get(c.serviceId) ?? null }))),
+        auditStatement(env.DB, { orderId: id, staffId: staff.id, action: "order_terms_recaptured", at, detail: moTaChup(chup) }, "changes() > 0"),
+      ];
+```
+
+Truyền `kemChup` vào `changeBooker` (tham số mới `alsoChange`, trải CUỐI lô, sau câu nhật ký đổi bên đặt có `changes() > 0`). Đọc `changeBooker` trước: nếu câu cuối của lô không phải nhật ký có `changes() > 0` nối từ câu quyết định thì chèn câu kèm ngay sau nhật ký đó và ghi ruling. Dòng dịch vụ không có bản hiện hành (`cu.get` trả undefined) chỉ xảy ra khi đơn có dòng thêm sau xác nhận — đợt 1 không có đường thêm dòng sau xác nhận; gặp thì `supersedesId: null` là đúng (dòng mới). Catch `terms_(rule|term)_stale` ⇒ 409 "Bảng mức vừa đổi — thử lại".
+
+- [ ] **Step 6: Cờ DTO** `bookerLaDoiTac` trong DTO chi tiết đơn (`loadOrderView`/`findOrder`): một câu đọc `v_pty_open_role` ⨝ `v_prc_beneficiary_role` cho `booker_party_id` (đặt ở tệp SQL đang chứa câu đọc đơn của orders, qua `defineSql` nếu tệp đó là nửa nghiêm); `false` khi không bên đặt. Rà bài khoá danh sách khoá DTO đơn (`grep -rn "bookerName" src --include=*.test.ts` — nếu zsh báo "no matches", dùng `grep -rn "bookerName" src | grep test`) và thêm khoá có chủ đích.
+
+- [ ] **Step 7: Chữ câu báo** `billing/rules.ts` mã `booker_partner` → câu ở Global Constraints; sửa bài đang ghim câu cũ.
+
+- [ ] **Step 8: Xanh.** `node --test src/modules/orders/ben-dat-doi-tac.test.ts src/shared/booker.test.ts src/modules/billing/rules.test.ts` rồi `npm run typecheck && npm test`.
+
+- [ ] **Step 9: P16.** (a) Trả `BOOKER_VALUE` về chỉ `PERSON` ⇒ ca 1 đỏ (bên đặt NULL) ⇒ hoàn nguyên. (b) Bỏ `benDatChoTaiKhoan` (dùng thẳng `placed.value.booker`) ⇒ ca 2 đỏ ⇒ hoàn nguyên. Ghi sổ.
+
+- [ ] **Step 10: Commit.**
+
+```bash
+git add src docs/superpowers/plans/2026-10-08-so-dai-ly-dot-1-thi-cong-nhat-ky.md
+git commit -m "Bên đặt là đối tác: gắn được tổ chức được hưởng, tài khoản Đối tác tự ghi, chụp lại khi đổi bên đặt" -m "Trước đây hồ sơ tổ chức bị loại và BOOKER_VALUE ghi NULL lặng lẽ; nay tổ chức mang vai được hưởng gắn được. Tài khoản Đối tác có hồ sơ được hưởng luôn là bên đặt của đơn mình lập (thu hẹp theo lời chủ, tài khoản lai giữ hành vi cũ). Đơn xác nhận trước đợt 1 đổi bên đặt không chụp (để đợt 2 chụp bù)." -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
+```
+
+---
+
+### Task 7: Module `ky-so` và khoá tháng ở sổ tiền (`billing`)
+
+**Files:**
+- Create: `src/modules/ky-so/rules.ts`, `src/modules/ky-so/rules.test.ts`, `src/modules/ky-so/repository.ts`, `src/modules/ky-so/index.ts`, `src/modules/billing/khoa-thang.test.ts`, `src/modules/billing/lo-dich-khoa-ky.test.ts`
+- Modify: `src/modules/billing/rules.ts` (`ngayPhatSinh`) + `rules.test.ts`, `src/modules/billing/service.ts` (`docLanThu`, `docNgay`, `loiKhoaKy`, mọi `catch` của lô), `src/modules/billing/coc.ts`, `src/modules/billing/thay-lan-thu.ts`, `src/modules/billing/repository.ts` (câu số dư cuối tháng, câu tháng của dòng sổ sớm nhất), `src/modules/billing/index.ts` (hai route), `src/shared/contracts.ts` (`KySoResponse`), `src/shared/permissions.ts` (+ test), `src/shared/audit-actions.ts`, `src/shared/tro-ly-cau-truc-ten.ts` (+ sinh), `src/architecture.test.ts` (`ALLOWED_EDGES`, `STRICT`), `src/route-access.test.ts` (266 → 268), `src/lan-gui-phu-route.test.ts` (158 → 159)
+
+**Interfaces:**
+- Consumes: Task 1 (`ky_period_close`, `v_ky_closed_period`, trigger `ky_period_close_adjacent` mã `period_not_adjacent`, `ky_append_only`, bốn trigger `*_period_closed` mã `period_closed`); `auditStatement` (audit).
+- Produces:
+  - `ky-so/rules.ts`: `kyCua(ngay: string): string` ("YYYY-MM"), `thangKeTiep(period: string): string`, `cauKyKhoa(period: string): string`, `kyDaKhoaTu(daKhoa: ReadonlySet<string>): (ngay: string) => boolean`, `kiemKhoaKy(v: { period: string; homNay: string; daKhoa: readonly string[]; thangSoSomNhat: string | null }): { ok: true } | { ok: false; status: 400 | 409; code: string; message: string }`, `thangKhoaDuocKeTiep(v: { homNay: string; daKhoa: readonly string[]; thangSoSomNhat: string | null }): string | null`.
+  - `ky-so/index.ts`: `thangDaKhoa(db): Promise<string[]>` (tăng dần), `khoaKyStatements(db, { period: string; note: string | null; at: string; by: string }): D1PreparedStatement[]` (câu chèn + nhật ký `ledger_period_closed` có `changes() > 0`), `cauTriggerKhoa(db, e: unknown, ngays: readonly string[]): Promise<string | null>` (lỗi `period_closed:` ⇒ câu `cauKyKhoa` của tháng đã khoá đầu tiên trong `ngays`, đọc lại `thangDaKhoa`; không phải lỗi đó ⇒ null); tái xuất các hàm thuần.
+  - `billing/rules.ts`: `ngayPhatSinh(input: { chon: unknown; homNay: string; laKeToan: boolean; kyDaKhoa: (ngay: string) => boolean }): { ok: true; value: string } | { ok: false; message: string; khoa?: true }`.
+  - `billing/service.ts`: `docNgay(raw: unknown, kyDaKhoa: (ngay: string) => boolean): KetQua<string>` (tháng khoá ⇒ 409 `period_closed`), `loiKhoaKy(db, e, ngays): Promise<{ ok: false; res: Response } | null>`.
+  - Ô `ledger.period.close` = `row("none", "any", "none", "none", "none", "any", "none", "none", "none", "none")`; hành động `ledger_period_closed` ("Khoá sổ tháng", nhóm `ledger`).
+  - Route `GET /api/ledger/ky` (`office`, `can(staff, "ledger.view")` không ngữ cảnh = any) và `POST /api/ledger/ky/:period/khoa` (`office`, `can(staff, "ledger.period.close")`).
+  - `contracts.ts`: `KySoResponse = { daKhoa: string[]; keTiep: string | null; coTheKhoa: boolean; bangKiem: { thang: string; choXacNhanCongTy: { orderCode: string | null; amount: number; ngay: string }[]; chuaRoNguoiThu: { orderCode: string | null; amount: number; ngay: string }[]; soDuCuoiThang: { ten: string; soDu: number }[] } | null }`.
+
+**Bảng đường ghi tiền của `billing`** (mọi lô có bốn bảng có trigger khoá tháng; cột "dịch lỗi" = `catch` gọi `loiKhoaKy(db, e, [ngày])` TRƯỚC mọi xử lý khác):
+
+| Đường ghi (hàm) | Ngày phát sinh lấy từ | Kiểm trước lô | Bài kiểm |
+|---|---|---|---|
+| Lần thu (`ghiLanThu`, `docLanThu`) | thân `ngayPhatSinh` (Kế toán) hoặc hôm nay | `ngayPhatSinh` với `kyDaKhoa` ⇒ 409 | ca 3, ca 5 |
+| Đã giao (`daGiao`) | hôm nay (`homNay`) | không cần (tháng hiện tại không khoá được) | ca 6 (chỉ dịch lỗi) |
+| Hoàn thành (`hoanThanh`) | hôm nay | không cần | quét mã (bài nguồn) |
+| Công ty đã nhận (`xacNhanCongTyNhan`) | `docNgay` | `docNgay` ⇒ 409 | ca 3 |
+| Quyết toán (`ghiQuyetToan`) | `docNgay` | `docNgay` ⇒ 409 | ca 3 |
+| Hoàn khách (`ghiHoanKhach`) | `docNgay` | `docNgay` ⇒ 409 | ca 3 |
+| Điều chỉnh (`ghiDieuChinh`) | `docNgay` | `docNgay` ⇒ 409 | ca 3 |
+| Thay lần thu (`ghiThayLanThu`) | `docNgay`; dòng đảo mang ngày mới (ADR-0080 điều 5) | `docNgay` ⇒ 409 | ca 3 |
+| Cọc: chi hoàn / chuyển / hoàn ngoài (`ghiChiHoan`, `ghiChuyen`, `ghiHoanNgoai`) | `docNgay` | `docNgay` ⇒ 409 | ca 3 |
+| Cọc: duyệt / huỷ duyệt / xác nhận hoàn ngoài (`ghiDuyet`, `ghiHuyDuyet`, `xacNhanHoanNgoai`) | hôm nay | không cần | quét mã |
+
+Người thi công rà lại bằng `grep -n "db.batch\|\.batch(" src/modules/billing/*.ts | grep -v test` (bỏ `nhap-ke-toan` — ADR-0080 điều 7) và thêm dòng nếu có đường chưa ở bảng.
+
+- [ ] **Step 1: Bài đỏ thuần** `src/modules/ky-so/rules.test.ts`:
+
+```ts
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { cauKyKhoa, kiemKhoaKy, kyCua, kyDaKhoaTu, thangKeTiep, thangKhoaDuocKeTiep } from "./rules.ts";
+
+test("kyCua, thangKeTiep, cauKyKhoa", () => {
+  assert.equal(kyCua("2026-10-08"), "2026-10");
+  assert.equal(thangKeTiep("2026-12"), "2027-01");
+  assert.equal(thangKeTiep("2026-09"), "2026-10");
+  assert.equal(cauKyKhoa("2026-10"), "Tháng 10/2026 đã khoá sổ — ghi vào tháng đang mở (điều chỉnh, có lý do)");
+  assert.equal(kyDaKhoaTu(new Set(["2026-09"]))("2026-09-30"), true);
+  assert.equal(kyDaKhoaTu(new Set(["2026-09"]))("2026-10-01"), false);
+});
+
+test("kiemKhoaKy: chỉ tháng đã qua (400); trùng / không liền kề / sau tháng sổ sớm nhất (409)", () => {
+  const goc = { homNay: "2026-10-08", daKhoa: [] as string[], thangSoSomNhat: "2026-08" };
+  assert.deepEqual(kiemKhoaKy({ ...goc, period: "2026-08" }), { ok: true });
+  assert.equal((kiemKhoaKy({ ...goc, period: "2026-10" }) as { status: number }).status, 400, "tháng hiện tại");
+  assert.equal((kiemKhoaKy({ ...goc, period: "2026-11" }) as { status: number }).status, 400, "tháng tương lai");
+  assert.equal((kiemKhoaKy({ ...goc, period: "2026-13" }) as { status: number }).status, 400);
+  assert.equal((kiemKhoaKy({ ...goc, period: "2026-09" }) as { status: number }).status, 409, "tháng đầu sau tháng có dòng sổ sớm nhất");
+  assert.deepEqual(kiemKhoaKy({ ...goc, period: "2026-07" }), { ok: true }, "tháng đầu trước tháng sổ sớm nhất: được");
+  assert.equal((kiemKhoaKy({ ...goc, daKhoa: ["2026-08"], period: "2026-08" }) as { status: number }).status, 409, "trùng");
+  assert.equal((kiemKhoaKy({ ...goc, daKhoa: ["2026-07"], period: "2026-09" }) as { status: number }).status, 409, "không liền kề");
+  assert.deepEqual(kiemKhoaKy({ ...goc, daKhoa: ["2026-07", "2026-08"], period: "2026-09" }), { ok: true });
+  assert.deepEqual(kiemKhoaKy({ ...goc, thangSoSomNhat: null, period: "2026-09" }), { ok: true }, "chưa có dòng sổ nào");
+});
+
+test("thangKhoaDuocKeTiep", () => {
+  assert.equal(thangKhoaDuocKeTiep({ homNay: "2026-10-08", daKhoa: ["2026-08"], thangSoSomNhat: "2026-08" }), "2026-09");
+  assert.equal(thangKhoaDuocKeTiep({ homNay: "2026-10-08", daKhoa: ["2026-09"], thangSoSomNhat: "2026-08" }), null, "tháng 10 chưa qua");
+  assert.equal(thangKhoaDuocKeTiep({ homNay: "2026-10-08", daKhoa: [], thangSoSomNhat: "2026-08" }), "2026-08");
+  assert.equal(thangKhoaDuocKeTiep({ homNay: "2026-10-08", daKhoa: [], thangSoSomNhat: null }), "2026-09");
+});
+```
+
+- [ ] **Step 2: Đỏ** `node --test src/modules/ky-so/rules.test.ts`.
+
+- [ ] **Step 3: `src/modules/ky-so/rules.ts`**:
+
+```ts
+// Luật thuần khoá tháng (ADR-0080 phần D1; đặc tả 2026-10-08 §8). MỘT nguồn cho câu báo tháng đã khoá.
+export const kyCua = (ngay: string): string => ngay.slice(0, 7);
+export function thangKeTiep(period: string): string {
+  const y = Number(period.slice(0, 4));
+  const m = Number(period.slice(5, 7));
+  return m === 12 ? `${y + 1}-01` : `${y}-${String(m + 1).padStart(2, "0")}`;
+}
+const thangTruoc = (period: string): string => {
+  const y = Number(period.slice(0, 4));
+  const m = Number(period.slice(5, 7));
+  return m === 1 ? `${y - 1}-12` : `${y}-${String(m - 1).padStart(2, "0")}`;
+};
+const nhanThang = (period: string): string => `${period.slice(5, 7)}/${period.slice(0, 4)}`;
+export const cauKyKhoa = (period: string): string => `Tháng ${nhanThang(period)} đã khoá sổ — ghi vào tháng đang mở (điều chỉnh, có lý do)`;
+export const kyDaKhoaTu = (daKhoa: ReadonlySet<string>) => (ngay: string): boolean => daKhoa.has(kyCua(ngay));
+
+export function kiemKhoaKy(v: { period: string; homNay: string; daKhoa: readonly string[]; thangSoSomNhat: string | null }):
+  { ok: true } | { ok: false; status: 400 | 409; code: string; message: string } {
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(v.period)) return { ok: false, status: 400, code: "invalid_input", message: "Tháng không hợp lệ." };
+  if (v.period >= kyCua(v.homNay)) return { ok: false, status: 400, code: "period_not_past", message: "Chỉ khoá được tháng đã qua." };
+  if (v.daKhoa.includes(v.period)) return { ok: false, status: 409, code: "period_already_closed", message: `Tháng ${nhanThang(v.period)} đã khoá rồi.` };
+  const cuoi = v.daKhoa.length ? [...v.daKhoa].sort().at(-1)! : null;
+  if (cuoi !== null && v.period !== thangKeTiep(cuoi)) return { ok: false, status: 409, code: "period_not_adjacent", message: `Phải khoá lần lượt — tháng khoá được kế tiếp là ${nhanThang(thangKeTiep(cuoi))}.` };
+  if (cuoi === null && v.thangSoSomNhat !== null && v.period > v.thangSoSomNhat)
+    return { ok: false, status: 409, code: "period_not_adjacent", message: `Lần khoá đầu tiên phải bắt đầu từ tháng ${nhanThang(v.thangSoSomNhat)} (tháng có dòng sổ sớm nhất) hoặc trước đó.` };
+  return { ok: true };
+}
+
+export function thangKhoaDuocKeTiep(v: { homNay: string; daKhoa: readonly string[]; thangSoSomNhat: string | null }): string | null {
+  const cuoi = v.daKhoa.length ? [...v.daKhoa].sort().at(-1)! : null;
+  const keTiep = cuoi !== null ? thangKeTiep(cuoi) : (v.thangSoSomNhat ?? thangTruoc(kyCua(v.homNay)));
+  return keTiep < kyCua(v.homNay) ? keTiep : null;
+}
+```
+
+- [ ] **Step 4: Xanh** `node --test src/modules/ky-so/rules.test.ts`.
+
+- [ ] **Step 5: `ky-so/repository.ts` + `index.ts`**:
+
+```ts
+// ky-so/repository.ts — SQL của module ky-so (ADR-0080 D1). Câu TĨNH, defineSql.
+import { defineSql } from "../../shared/sql-registry.ts";
+const DA_KHOA = defineSql("ky-so", "closed_periods", "SELECT period FROM ky_period_close ORDER BY period");
+const KHOA = defineSql("ky-so", "close_period",
+  "INSERT INTO ky_period_close (period, closed_at, closed_by, note, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?4, ?2, ?3, ?2, ?3)");
+export const closedPeriods = async (db: D1Database): Promise<string[]> => (await db.prepare(DA_KHOA).all<{ period: string }>()).results.map((r) => r.period);
+export const closePeriodStatement = (db: D1Database, v: { period: string; at: string; by: string; note: string | null }) => db.prepare(KHOA).bind(v.period, v.at, v.by, v.note);
+```
+
+```ts
+// ky-so/index.ts — Module ky-so: tháng đã khoá sổ (ADR-0080 phần D1). Không route (route ở billing). Phụ thuộc: audit.
+import { auditStatement } from "../audit";
+import { closedPeriods, closePeriodStatement } from "./repository";
+import { cauKyKhoa, kyCua } from "./rules";
+export { cauKyKhoa, kiemKhoaKy, kyCua, kyDaKhoaTu, thangKeTiep, thangKhoaDuocKeTiep } from "./rules";
+
+export const thangDaKhoa = (db: D1Database): Promise<string[]> => closedPeriods(db);
+/** Câu khoá tháng + nhật ký, gửi trong MỘT lô. Nhật ký chỉ ghi khi câu chèn thắng. */
+export function khoaKyStatements(db: D1Database, v: { period: string; note: string | null; at: string; by: string }): D1PreparedStatement[] {
+  return [closePeriodStatement(db, v), auditStatement(db, { staffId: v.by, action: "ledger_period_closed", at: v.at, detail: `Khoá sổ tháng ${v.period.slice(5, 7)}/${v.period.slice(0, 4)}` }, "changes() > 0")];
+}
+/** Lỗi trigger `period_closed:` (tháng bị khoá giữa lúc kiểm và lúc ghi) ⇒ đúng câu `cauKyKhoa` của tháng vừa khoá; lỗi khác ⇒ null. */
+export async function cauTriggerKhoa(db: D1Database, e: unknown, ngays: readonly string[]): Promise<string | null> {
+  if (!/\bperiod_closed:/.test(e instanceof Error ? e.message : String(e))) return null;
+  const daKhoa = new Set(await closedPeriods(db));
+  const thang = ngays.map(kyCua).find((k) => daKhoa.has(k)) ?? (ngays[0] ? kyCua(ngays[0]) : [...daKhoa].sort().at(-1)!);
+  return cauKyKhoa(thang);
+}
+```
+
+Nếu `src/architecture.test.ts` hoặc bài khác đòi mỗi thư mục module có `AppModule` thì khai `export const kySoModule: AppModule = { name: "ky-so", routes: [] }` và thêm vào mảng `modules`; ghi ruling. `src/architecture.test.ts`: `ALLOWED_EDGES` thêm `"ky-so": ["audit"]`, `billing` thêm `"ky-so"`; `STRICT` thêm `{ module: "ky-so", file: "modules/ky-so/repository.ts" }` (chú thích "NỚI hàng rào đã duyệt (Điều 9.4) — chủ duyệt C12 2026-10-01, xem `docs/superpowers/specs/2026-10-01-de-xuat-adr-so-tien-luot-2/de-xuat-luat.md`"). Cạnh `van-chuyen → ky-so` thêm ở Task 8.
+
+- [ ] **Step 6: Bài đỏ `ngayPhatSinh`** (thêm vào `src/modules/billing/rules.test.ts`):
+
+```ts
+test("ngayPhatSinh: Kế toán chọn ngày thuộc tháng đã khoá ⇒ lỗi khoa với câu cauKyKhoa", () => {
+  const kyDaKhoa = (n: string) => n.startsWith("2026-09");
+  const r = ngayPhatSinh({ chon: "2026-09-30", homNay: "2026-10-08", laKeToan: true, kyDaKhoa });
+  assert.deepEqual(r, { ok: false, message: "Tháng 09/2026 đã khoá sổ — ghi vào tháng đang mở (điều chỉnh, có lý do)", khoa: true });
+  assert.deepEqual(ngayPhatSinh({ chon: "2026-10-01", homNay: "2026-10-08", laKeToan: true, kyDaKhoa }), { ok: true, value: "2026-10-01" });
+  assert.deepEqual(ngayPhatSinh({ chon: undefined, homNay: "2026-10-08", laKeToan: false, kyDaKhoa }), { ok: true, value: "2026-10-08" });
+});
+```
+
+Sửa mọi bài `ngayPhatSinh` đang có: thêm `kyDaKhoa: () => false`.
+
+- [ ] **Step 7: Sửa `ngayPhatSinh`** (`billing/rules.ts`; `billing → ky-so` đã khai): thêm tham số bắt buộc `kyDaKhoa: (ngay: string) => boolean` và, ngay trước `return { ok: true, value: input.chon }` cuối hàm (và cho nhánh mặc định hôm nay — tháng hiện tại không khoá được nên không cần):
+
+```ts
+  if (input.kyDaKhoa(input.chon)) return { ok: false, message: cauKyKhoa(kyCua(input.chon)), khoa: true };
+```
+
+`billing/service.ts`: `docLanThu` đọc `const daKhoa = new Set(await thangDaKhoa(db));` rồi truyền `kyDaKhoa: kyDaKhoaTu(daKhoa)`; lỗi có `khoa` ⇒ `loi(409, "period_closed", message)`, không thì 400 như cũ. `docNgay(raw, kyDaKhoa)` cùng cách. Mọi nơi gọi `docNgay` (service.ts bốn chỗ, coc.ts ba chỗ, thay-lan-thu.ts một chỗ — `grep -n "docNgay(" src/modules/billing/*.ts`) đọc `kyDaKhoaTu(new Set(await thangDaKhoa(db)))` một lần đầu hàm rồi truyền vào.
+
+- [ ] **Step 8: Dịch lỗi trigger ở MỌI lô** (`billing/service.ts`):
+
+```ts
+/** Lỗi trigger khoá tháng (tháng vừa khoá giữa lúc kiểm và lúc ghi — Review Focus 3) ⇒ 409 đúng câu của tháng đó. Gọi ĐẦU mọi `catch` của lô ghi tiền. */
+export async function loiKhoaKy(db: D1Database, e: unknown, ngays: readonly string[]): Promise<{ ok: false; res: Response } | null> {
+  const cau = await cauTriggerKhoa(db, e, ngays);
+  return cau ? loi(409, "period_closed", cau) : null;
+}
+```
+
+Mỗi `catch` quanh `db.batch` ở `service.ts`, `coc.ts` (hàm `chayLo` nhận thêm tham số `ngays`), `thay-lan-thu.ts` thêm dòng đầu `const k = await loiKhoaKy(db, e, [<ngày của lô>]); if (k) return k;`. Lô chưa có `try` thì bọc `try/catch` (catch: `loiKhoaKy` rồi `throw e`).
+
+Bài nguồn `src/modules/billing/lo-dich-khoa-ky.test.ts` (hàng rào chặn quên, ghi vào sổ hàng rào ở Task 14):
+
+```ts
+// Mọi lô ghi tiền của billing phải dịch lỗi khoá tháng (đặc tả §8: "không bao giờ 500"). Đếm trong mã nguồn: số `db.batch(` = số `loiKhoaKy(`.
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+for (const tep of ["service.ts", "coc.ts", "thay-lan-thu.ts"]) {
+  test(`${tep}: mỗi db.batch có loiKhoaKy trong catch`, () => {
+    const src = readFileSync(new URL(`./${tep}`, import.meta.url), "utf8").split("\n").filter((l) => !l.trim().startsWith("//")).join("\n");
+    const lo = (src.match(/\bdb\.batch\(/g) ?? []).length;
+    const dich = (src.match(/\bloiKhoaKy\(db, e,/g) ?? []).length;
+    assert.ok(lo > 0, "không thấy lô nào — đổi tên biến db?");
+    assert.equal(dich, lo, `${tep}: ${lo} lô nhưng ${dich} chỗ dịch lỗi khoá tháng`);
+  });
+}
+```
+
+(`coc.ts` có MỘT `db.batch(` trong `chayLo` ⇒ một `loiKhoaKy(db, e,` ở đó. Định nghĩa `loiKhoaKy` trong `service.ts` dùng chữ ký `(db: D1Database, e: unknown, …)`, không khớp mẫu `loiKhoaKy(db, e,` nên không bị đếm thừa.)
+
+- [ ] **Step 9: Hai route kỳ** (`billing/index.ts`; câu đọc mới ở `billing/repository.ts`):
+
+```ts
+// billing/repository.ts
+const THANG_SO_SOM_NHAT = defineSql("billing", "earliest_ledger_month",
+  `SELECT substr(min(d), 1, 7) AS thang FROM (SELECT min(occurred_date) AS d FROM bil_payment_receipt UNION ALL SELECT min(occurred_date) FROM bil_posting
+   UNION ALL SELECT min(occurred_date) FROM bil_outside_refund)`);
+export const earliestLedgerMonth = async (db: D1Database): Promise<string | null> => (await db.prepare(THANG_SO_SOM_NHAT).first<{ thang: string | null }>())?.thang ?? null;
+```
+
+Số dư cuối tháng: câu mới `balances_at` theo đúng quy ước dấu của `v_bil_party_balance` (đọc định nghĩa view ở migration `0045` trước khi viết): cùng phép cộng như view nhưng chỉ lấy dòng nợ có ngày phát sinh (của lần thu / phiếu nguồn) `<= ?1` (ngày cuối tháng), lọc đối ứng công ty chủ như `BALANCES_WITH_OWNER`, `HAVING SUM <> 0`. Bài: không có dòng sau tháng đó ⇒ số dư cuối tháng = `balancesWithOwner` hiện tại.
+
+Route:
+1. `GET /api/ledger/ky` (`office`): `if (!can(staff, "ledger.view")) return FORBIDDEN_VIEW();` → `daKhoa = await thangDaKhoa`, `som = await earliestLedgerMonth`, `keTiep = thangKhoaDuocKeTiep({ homNay, daKhoa, thangSoSomNhat: som })`; `bangKiem` khi `keTiep !== null`: `pendingCompany` và `unknownReceipts` (đã có) lọc `kyCua(occurred_date) === keTiep`, `soDuCuoiThang` từ `balances_at`; `coTheKhoa = can(staff, "ledger.period.close") && keTiep !== null`. Không SĐT, không mã giao dịch.
+2. `POST /api/ledger/ky/:period/khoa` (`office`): `if (!can(staff, "ledger.period.close")) return FORBIDDEN();` → `kiemKhoaKy({ period: params.period, homNay: vnToday(new Date()), daKhoa, thangSoSomNhat: som })` (lỗi ⇒ `error(status, code, message)`) → thân `{ ghiChu? }` (tuỳ chọn, ≤ 200, khuôn `docGhiChu`) → lô `khoaKyStatements(env.DB, { period, note, at, by: staff.id })`; `catch`: `UNIQUE constraint failed: ky_period_close.period` hoặc `\bky_append_only:` ⇒ 409 "Tháng này vừa được khoá — tải lại."; `\bperiod_not_adjacent:` ⇒ 409 câu của `kiemKhoaKy` (đọc lại `thangDaKhoa`) → 201, `Location: /khoa-thang`, thân là `KySoResponse` mới.
+
+`permissions.ts`: ô `ledger.period.close` (Interfaces); `permissions.test.ts`: bảng `ADR` + các bài ghim dòng + thêm ô vào vòng `DRIVER`/`DRIVER_PARTNER`/`HR` của bài khoá sổ đại lý (Task 5). `TEN_THAO_TAC`: `"ledger.period.close": { ten: "khoá sổ tháng", moTa: "Khoá một tháng đã qua: không ghi thêm tiền có ngày trong tháng đó; không mở lại được." }`; `TEN_PHAN_HE` `"ky-so": { ten: "Khoá sổ tháng", moTa: "Các tháng đã khoá sổ và luật ghi lùi ngày." }`. Nhật ký `ledger_period_closed` nhóm `ledger`. Số route 266 → 268, route ghi 158 → 159. `npm run build:web`.
+
+- [ ] **Step 10: Bài route đỏ → xanh** `src/modules/billing/khoa-thang.test.ts` (khung thử; tài khoản KT `ACCOUNTING`, ADM `ADMIN`, SALES; đơn đã xác nhận gieo bằng route như Task 4; một lần thu tháng 8 gieo qua route lần thu với `ngayPhatSinh: "2026-08-15"` để `thangSoSomNhat = "2026-08"`). Ca:
+  1. KT khoá tháng hiện tại (`kyCua(vnToday)`) ⇒ 400; tháng sau ⇒ 400.
+  2. KT khoá `2026-09` khi chưa khoá gì và dòng sổ sớm nhất ở `2026-08` ⇒ 409; khoá `2026-08` ⇒ 201 + `Location: /khoa-thang` + nhật ký `ledger_period_closed`; khoá `2026-08` lần hai ⇒ 409; ADM khoá ⇒ 403; SALES `GET /api/ledger/ky` ⇒ 403.
+  3. Sau khi khoá `2026-08`: KT ghi lần thu `ngayPhatSinh: "2026-08-20"` ⇒ 409 câu "Tháng 08/2026 đã khoá sổ — ghi vào tháng đang mở (điều chỉnh, có lý do)"; quyết toán, hoàn khách, điều chỉnh, thay lần thu, cọc chi hoàn với ngày tháng 8 ⇒ cùng câu 409 (mỗi đường một `assert`, thân lấy khuôn từ bài route hiện có của từng đường).
+  4. Ngày tháng 9 (chưa khoá) ⇒ ghi được.
+  5. **Review Focus 3:** tháng `2026-09` chưa khoá; dùng `chenTruocLo(w, /INSERT INTO bil_payment_receipt/, () => w.sqlite.exec("INSERT INTO ky_period_close (period, closed_at, closed_by, created_at, updated_at) VALUES ('2026-09', '…', 'kt', '…', '…')"))` (thêm cột theo bảng Task 1) rồi KT ghi lần thu `ngayPhatSinh: "2026-09-10"` ⇒ 409 câu "Tháng 09/2026 đã khoá sổ — …", không 500; không dòng sổ nào được ghi.
+  6. `GET /api/ledger/ky` (KT) ⇒ `daKhoa: ["2026-08"]`, `keTiep: "2026-09"`, `bangKiem.thang === "2026-09"`.
+
+- [ ] **Step 11: Xanh.** `node --test src/modules/ky-so/*.test.ts src/modules/billing/*.test.ts src/shared/permissions.test.ts` rồi `npm run typecheck && npm test`.
+
+- [ ] **Step 12: P16.** (a) Xoá một `loiKhoaKy` trong `service.ts` ⇒ bài nguồn đỏ ⇒ hoàn nguyên. (b) Bỏ kiểm `kyDaKhoa` trong `ngayPhatSinh` ⇒ ca 3 vẫn 409 nhờ trigger nhưng câu đến từ đường dịch lỗi — bài thuần Bước 6 đỏ ⇒ hoàn nguyên. (c) Thêm `ledger.period.close` cho cột ADMIN ⇒ bài bảng `ADR` đỏ ⇒ hoàn nguyên. Ghi sổ.
+
+- [ ] **Step 13: Commit.**
+
+```bash
+git add src docs/superpowers/plans/2026-10-08-so-dai-ly-dot-1-thi-cong-nhat-ky.md
+git commit -m "Khoá sổ tháng: module ky-so, hai route kỳ, mọi đường ghi tiền chặn ngày thuộc tháng đã khoá" -m "Kế toán / Toàn quyền khoá lần lượt từng tháng đã qua, không mở lại. Ghi lùi ngày vào tháng đã khoá ⇒ 409 tiếng Việt; tháng bị khoá giữa lúc kiểm và lúc ghi thì trigger chặn và lỗi dịch ra cùng câu, không 500 (bài quét mã ghim mọi lô)." -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
+```
+
+---
+
+### Task 8: Khoá tháng ở chi phí xe thuê (`van-chuyen`)
+
+**Files:**
+- Modify: `src/modules/van-chuyen/tien-xe.ts` (`ngayGhiDao` bắt buộc `kyDaKhoa`, `ngayDieuChinhMacDinh` nhận `homNay` + `kyDaKhoa`), `tien-xe-lo.ts` (`keHoachChiPhiKhiDoi`, `keHoachChiPhiKhiHuy` nhận `kyDaKhoa`, trả `"period_closed"` khi chụp giá rơi vào tháng khoá), `tien-xe-chi-phi.ts` (bốn đường Kế toán), `tien-xe-lenh.ts` (`loiTienXe`), `index.ts` (nơi gọi `keHoachChiPhiKhiDoi`), `dieu-phoi-lenh.ts` (nơi gọi hai kế hoạch + dịch lỗi lô chuyến), các bài `tien-xe.test.ts`, `so-vang-chi-phi-xe.test.ts`, `tien-xe-route.test.ts`; `src/architecture.test.ts` (`ALLOWED_EDGES.van-chuyen` thêm `ky-so`)
+- Create: `src/modules/van-chuyen/khoa-thang-xe.test.ts`
+
+**Interfaces:**
+- Consumes: Task 7 (`thangDaKhoa`, `kyDaKhoaTu`, `cauKyKhoa`, `kyCua`, `cauTriggerKhoa` từ `ky-so/index.ts`).
+- Produces: `ngayGhiDao(goc, v: { homNay: string; kyDaKhoa: (ngay: string) => boolean })` (bắt buộc — typecheck chỉ ra mọi chỗ quên); `ngayDieuChinhMacDinh(v: { trangThai; ngayHuy; ngayChay; homNay: string; kyDaKhoa: (ngay: string) => boolean })`; `keHoachChiPhiKhiDoi(v: { …; kyDaKhoa })`, `keHoachChiPhiKhiHuy(dong, homNay, kyDaKhoa)`; kiểu `KeHoachChiPhi | { loi: "period_closed"; thang: string }` cho `keHoachChiPhiKhiDoi` khi phải chụp giá cho chuyến có ngày chạy thuộc tháng đã khoá.
+
+**Bảng đường ghi chi phí xe** (đặc tả §8, sửa N2; câu SQL ở `tien-xe-repo.ts`):
+
+| Đường ghi | Câu | Ngày lấy từ | Luật khi tháng đã khoá | Kiểm ở | Dịch lỗi trigger ở | Bài (ca của `khoa-thang-xe.test.ts`) |
+|---|---|---|---|---|---|---|
+| Đảo khi đổi chuyến (`keHoachChiPhiKhiDoi`, lô chuyến) | `COST_REVERSE` | ngày dòng gốc | dùng hôm nay | `ngayGhiDao` | catch lô chuyến (`index.ts`, `dieu-phoi-lenh.ts`) | ca 1 |
+| Đảo khi huỷ chuyến (`keHoachChiPhiKhiHuy`) | `COST_REVERSE` | ngày dòng gốc | dùng hôm nay | `ngayGhiDao` | catch lô huỷ (`dieu-phoi-lenh.ts`) | ca 2 |
+| Chụp giá khi đổi sang xe thuê (`keHoachChiPhiKhiDoi`) | `COST_SNAPSHOT` | ngày chạy | 409 cả lệnh | kế hoạch trả `period_closed` | catch lô chuyến | ca 3 |
+| Kế toán điều chỉnh (`tien-xe-chi-phi.ts`) | `COST_ADJUST_KT` | thân `ngay` hoặc `ngayDieuChinhMacDinh` | chọn ⇒ 409; mặc định ⇒ hôm nay | route | catch route | ca 4, 5 |
+| Kế toán đảo tay | `COST_REVERSE_KT` | ngày dòng gốc | dùng hôm nay | `ngayGhiDao` | catch route | ca 6 |
+| Kế toán lấy lại giá bảng | `COST_SNAPSHOT_KT` | ngày chạy | 409 | route | catch route | ca 7 |
+| Kế toán giá thoả thuận | `COST_AGREED_KT` | ngày chạy | 409 | route | catch route | ca 7 |
+
+Rà lại bằng `grep -n "INSERT INTO vc_trip_cost_line" src/modules/van-chuyen/*.ts | grep -v test` (hôm nay sáu câu); có câu mới thì thêm dòng.
+
+- [ ] **Step 1: Bài thuần đỏ** (thêm vào `src/modules/van-chuyen/tien-xe.test.ts`):
+
+```ts
+test("ngayGhiDao / ngayDieuChinhMacDinh: tháng đã khoá ⇒ hôm nay; tháng mở ⇒ ngày gốc", () => {
+  const kyDaKhoa = (n: string) => n.startsWith("2026-09");
+  assert.equal(ngayGhiDao({ occurredDate: "2026-09-20" }, { homNay: "2026-10-08", kyDaKhoa }), "2026-10-08");
+  assert.equal(ngayGhiDao({ occurredDate: "2026-10-02" }, { homNay: "2026-10-08", kyDaKhoa }), "2026-10-02");
+  assert.equal(ngayDieuChinhMacDinh({ trangThai: "DONE", ngayHuy: null, ngayChay: "2026-09-28", homNay: "2026-10-08", kyDaKhoa }), "2026-10-08");
+  assert.equal(ngayDieuChinhMacDinh({ trangThai: "CANCELLED", ngayHuy: "2026-10-01", ngayChay: "2026-09-28", homNay: "2026-10-08", kyDaKhoa }), "2026-10-01");
+});
+```
+
+(Giá trị `trangThai` lấy từ kiểu `TrangThaiChuyenTien` thật; "DONE" chỉ là ví dụ — dùng một trạng thái không phải `CANCELLED` có trong kiểu.) Thêm ca cho `keHoachChiPhiKhiDoi`: dòng gốc tháng 9 đã khoá ⇒ dòng đảo mang `homNay`; đổi sang xe thuê với ngày chạy tháng 9 đã khoá ⇒ trả `{ loi: "period_closed", thang: "2026-09" }`. Mọi bài cũ gọi các hàm này (`tien-xe.test.ts`, `so-vang-chi-phi-xe.test.ts`, `tien-xe-route.test.ts`) truyền `kyDaKhoa: () => false` — sổ vàng chi phí xe giữ nguyên số.
+
+- [ ] **Step 2: Đỏ** `node --test src/modules/van-chuyen/tien-xe.test.ts`.
+
+- [ ] **Step 3: Sửa hàm thuần.** `ngayGhiDao`: tham số `kyDaKhoa` bắt buộc (bỏ `?`), thân giữ nguyên; xoá chú thích "CHỖ NỐI khoá kỳ … CHƯA có trên main". `ngayDieuChinhMacDinh`: `const mac = <như cũ>; return v.kyDaKhoa(mac) ? v.homNay : mac;`. `keHoachChiPhiKhiDoi`: nhận `kyDaKhoa`, truyền vào `ngayGhiDao`; nếu kế hoạch có `chup` mà `kyDaKhoa(ngayChay)` ⇒ trả `{ loi: "period_closed", thang: kyCua(ngayChay) }` (đọc hàm để biết ngày chạy nằm ở trường nào của tham số; thêm trường `ngayChay` vào tham số nếu chưa có). `keHoachChiPhiKhiHuy(dong, homNay, kyDaKhoa)`.
+
+- [ ] **Step 4: Nơi gọi.** `index.ts` (gọi `keHoachChiPhiKhiDoi`) và `dieu-phoi-lenh.ts` (gọi `keHoachChiPhiKhiDoi`, `keHoachChiPhiKhiHuy`): đọc `const kyDaKhoa = kyDaKhoaTu(new Set(await thangDaKhoa(env.DB)))` MỘT lần trước khi lập kế hoạch; kế hoạch trả `loi: "period_closed"` ⇒ `error(409, "period_closed", cauKyKhoa(thang))` trước khi gửi lô. `tien-xe-chi-phi.ts`: điều chỉnh — `b.ngay` thuộc tháng khoá ⇒ 409 `cauKyKhoa`; mặc định qua `ngayDieuChinhMacDinh` mới; đảo tay — `ngayGhiDao` với `kyDaKhoa`; lấy lại giá bảng và giá thoả thuận — `kyDaKhoa(nc.trip.service_date)` ⇒ 409 `cauKyKhoa(kyCua(service_date))`.
+
+- [ ] **Step 5: Dịch lỗi trigger.** Mỗi `catch` quanh lô có câu chi phí xe (`grep -n "batch(" src/modules/van-chuyen/*.ts | grep -v test` — lô chuyến ở `index.ts`, `dieu-phoi-lenh.ts`, lô Kế toán ở `tien-xe-chi-phi.ts`) gọi ĐẦU catch: `const cau = await cauTriggerKhoa(env.DB, e, [<các ngày của dòng chi phí trong lô>]); if (cau) return error(409, "period_closed", cau);`. `loiTienXe` (đồng bộ) không đổi — nó không biết ngày; đường dịch khoá tháng đi qua `cauTriggerKhoa` ở catch. Lô chuyến KHÔNG có dòng chi phí xe (vd đổi giờ chuyến xe công ty) không cần đọc tháng khoá.
+
+`src/architecture.test.ts`: `ALLOWED_EDGES["van-chuyen"]` thêm `"ky-so"` (chú thích NỚI như Task 7); `VIEW_CHO_TRIGGER_VC` thêm `v_ky_closed_period` nếu Task 1 chưa thêm (trigger `vc_trip_cost_line_period_closed` đọc view này).
+
+- [ ] **Step 6: Bài route** `src/modules/van-chuyen/khoa-thang-xe.test.ts` (khung thử; khuôn gieo chuyến xe thuê có chi phí lấy từ `tien-xe-route.test.ts` — chép hàm gieo; khoá tháng bằng route `POST /api/ledger/ky/2026-09/khoa` của KT sau khi gieo dòng chi phí tháng 9). Bảy ca theo bảng trên; thêm ca 8 **Review Focus 3**: `chenTruocLo(w, /INSERT INTO vc_trip_cost_line/, () => <chèn ky_period_close '2026-09'>)` rồi Kế toán ghi điều chỉnh ngày `2026-09-25` (tháng chưa khoá lúc route kiểm) ⇒ 409 "Tháng 09/2026 đã khoá sổ — …", không 500.
+
+Khung thử có thể không chạy được route Kế toán chi phí xe cho ngày quá khứ nếu chuyến phải "đã chạy": khi đó gieo chuyến với `service_date` tháng 9 bằng SQL theo khuôn `tien-xe-route.test.ts`, không nới luật.
+
+- [ ] **Step 7: Xanh.** `node --test src/modules/van-chuyen/*.test.ts` rồi `npm run typecheck && npm test`.
+
+- [ ] **Step 8: P16.** (a) Bỏ `kyDaKhoa` khỏi một nơi gọi `ngayGhiDao` (truyền `() => false`) ⇒ ca 1 hoặc 6 đỏ (409 thay vì dòng đảo mang hôm nay — trigger chặn) ⇒ hoàn nguyên. (b) Bỏ `cauTriggerKhoa` ở catch của `tien-xe-chi-phi.ts` ⇒ ca 8 đỏ (500) ⇒ hoàn nguyên. Ghi sổ.
+
+- [ ] **Step 9: Commit.**
+
+```bash
+git add src docs/superpowers/plans/2026-10-08-so-dai-ly-dot-1-thi-cong-nhat-ky.md
+git commit -m "Khoá sổ tháng ở chi phí xe thuê: dòng đảo và ngày mặc định sang hôm nay, ngày tự chọn và chụp giá vào tháng khoá bị chặn" -m "Chi phí xe không dùng hôm nay làm mặc định (ADR-0095), nên khoá tháng phải có luật ngày riêng (đặc tả §8, N2). Lỗi trigger khi tháng bị khoá giữa chừng dịch ra câu tiếng Việt ở mọi lô có dòng chi phí." -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
+```
+
+---
+
+### Task 9: Kiểm định kỳ: R-PRC-1…5, R-ORD-T1, R-ORD-T1w, R-ORD-T2, R-KY-1, R-KY-2
+
+**Files:**
+- Modify: `scripts/audit-checks.mjs`, `src/audit-invariants.test.ts`
+
+**Interfaces:**
+- Consumes: bảng / view Task 1 (`prc_*`, `ord_service_terms`, `ord_audit_cutoff`, `ky_period_close`); hàm phụ `overlap(table, keyCols, from)` và khuôn mục `{ code, what, sql, level, mode?, note? }` của `scripts/audit-checks.mjs`; trong bài: `one(code)`, `violations(db, check)`, `build()`.
+- Produces: mười mã kiểm mới, mỗi mã có ca đỏ và ca xanh.
+
+- [ ] **Step 1: Bài đỏ** (thêm vào `src/audit-invariants.test.ts`; `build()` dựng CSDL đủ migration, gieo dữ liệu tối thiểu bằng SQL theo khuôn bài đang có). Mỗi mã một `test`, mỗi test hai nửa: dữ liệu sạch ⇒ `violations(db, one(code)).length === 0`; một dòng vi phạm ⇒ `=== 1` (trigger nào chặn việc tạo vi phạm thì tạm `DROP TRIGGER` của đúng trigger đó trong bài — kiểm định kỳ là lớp thứ hai cho chính trường hợp trigger bị lách, ghi chú dòng đó trong bài):
+  - `R-PRC-1` (lỗi): hai dòng mức cùng (áp cho, phạm vi, mã) chồng hiệu lực — dùng `overlap("prc_commission_rule", [...], "valid_from_date")` nếu hàm phụ nhận đúng dạng; không thì viết SQL tự nối.
+  - `R-PRC-2` (lỗi): `target_role_code` không thuộc `prc_beneficiary_role` đang bật.
+  - `R-PRC-3` (lỗi): dòng điều khoản có `cost_rate_bp` mà người bán là công ty chủ, hoặc người bán ≠ công ty chủ mà không mở vai `SUPPLIER`, hoặc người bán ≠ công ty chủ mà không có `cost_rate_bp`.
+  - `R-PRC-4` (lỗi): dòng có `cost_rate_bp` cho nhóm `TXE` hoặc cho mã thuộc nhóm `TXE` (qua `v_ctl_service_group`).
+  - `R-PRC-5` (cảnh báo): mức còn hiệu lực hôm nay có `target_party_id` không còn mở vai được hưởng nào.
+  - `R-ORD-T1` (lỗi): dòng dịch vụ của đơn `confirmed` có `confirmed_at >= cutoff + 60 phút` (cutoff = `ord_audit_cutoff.cutoff_at` dòng `R-ORD-T1`) mà không có đúng một bản chụp hiện hành. Ca: đơn xác nhận trước mốc thiếu chụp ⇒ không lỗi; đơn trong ân hạn thiếu chụp ⇒ không lỗi; đơn sau ân hạn thiếu chụp ⇒ lỗi; đơn sau ân hạn đủ chụp ⇒ sạch. So giờ bằng `julianday` hoặc `strftime('%s', …)` cho cả hai vế (chuỗi ISO có `Z` của máy chủ — không so chuỗi thô với `datetime()` vì khác định dạng).
+  - `R-ORD-T1w` (cảnh báo, `mode` liệt kê): đơn `confirmed` chưa "Đã giao", `confirmed_at < cutoff + 60 phút`, thiếu bản chụp — kèm mã đơn.
+  - `R-ORD-T2` (lỗi): bản chụp `MANUAL` có `reason` rỗng; bản `SET` không có đúng một trong `commission_rate_bp` / `commission_per_pax`.
+  - `R-KY-1` (lỗi): dòng ở `bil_payment_receipt`, `bil_posting`, `bil_outside_refund`, `vc_trip_cost_line` có tháng của `occurred_date` đã khoá và `created_at > closed_at` của tháng đó.
+  - `R-KY-2` (lỗi): các tháng đã khoá không liền nhau (tháng `p` mà `p` không phải tháng nhỏ nhất và tháng liền trước `p` không có trong bảng).
+
+- [ ] **Step 2: Đỏ** `node --test src/audit-invariants.test.ts`.
+
+- [ ] **Step 3: Viết mười mục** trong `scripts/audit-checks.mjs` theo đúng khuôn mục hiện có (mỗi mục có `what` tiếng Việt nói rõ hỏng gì, `note` trỏ đặc tả §9). Câu SQL chỉ đọc.
+
+- [ ] **Step 4: Xanh** `node --test src/audit-invariants.test.ts`, rồi `npm run db:migrate:local` trên D1 local tạm của e2e (hoặc chạy ở Task 13) và `node scripts/audit-invariants.mjs --db local` ⇒ thoát 0.
+
+- [ ] **Step 5: P16.** Đổi `+ 60 phút` của `R-ORD-T1` thành `+ 0` ⇒ ca "trong ân hạn" đỏ ⇒ hoàn nguyên. Ghi sổ.
+
+- [ ] **Step 6: Commit.**
+
+```bash
+git add scripts/audit-checks.mjs src/audit-invariants.test.ts docs/superpowers/plans/2026-10-08-so-dai-ly-dot-1-thi-cong-nhat-ky.md
+git commit -m "Kiểm định kỳ sổ đại lý: bảng mức, bản chụp đơn, khoá tháng" -m "Lớp thứ hai sau trigger: phát hiện dòng mức chồng, điều khoản người bán sai, đơn xác nhận sau đợt 1 mà thiếu bản chụp (mốc lúc migration + 60 phút ân hạn), tiền ghi vào tháng đã khoá." -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
+```
+
+---
