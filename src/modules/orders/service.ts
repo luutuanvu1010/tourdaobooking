@@ -59,6 +59,19 @@ const fieldsOf = (l: LegFields): LegFields => ({
 });
 
 /**
+ * G17 (ADR-0052 D6.2 dòng MQ-07; kế hoạch docs/superpowers/plans/2026-10-09-g17-bao-tai-xe-doi-ngay.md): chặng của `PUT /trip` đổi NGÀY hoặc GIỜ đón → chữ
+ * nhật ký `order_leg_updated` theo khuôn chặng (`moTaChang` — cùng hàm viết của route sửa chặng, hàm đọc tin `phanDoiCuaTin` nhận ra, `gioHen`). Nơi đón / trả
+ * truyền GIỐNG NHAU hai bên ⇒ không bao giờ có giá trị nơi (luật cũ của PUT /trip: nhật ký không chứa địa điểm; đổi nơi vẫn chỉ là "đổi điểm đón" ở
+ * `trip_updated`). Không đổi ngày / giờ → `{}` (không dòng chặng).
+ */
+function nhatKyGioChang(tenDichVu: string, cu: LegFields & { direction: "OUT" | "RETURN" }, moi: LegFields): { nhatKy?: string } {
+  if (cu.pickupDate === moi.pickupDate && cu.pickupTime === moi.pickupTime) return {};
+  const vao = (l: LegFields) => ({ direction: cu.direction, pickupDate: l.pickupDate, pickupTime: l.pickupTime, noiDon: "", noiTra: null });
+  const nhatKy = moTaChang(tenDichVu, vao(cu), vao(moi));
+  return nhatKy === null ? {} : { nhatKy };
+}
+
+/**
  * `PUT /api/orders/:id/trip` (bảng "Sửa thông tin chuyến" CŨ — ADR-0047 R2c, R4e; THUẦN): với mỗi dịch vụ, dời chặng đang lưu theo ngày đi mới
  * (`doiNgayChang`), trộn hai khoá cũ CÓ MẶT vào chặng chiều đi đầu (`tronChangCu` — vắng thì không đụng), rồi so với chặng đang lưu ra danh sách thao tác:
  * sửa (trường vận hành đổi), thêm (chiều đi mới), ĐÓNG (giờ + nơi đều rỗng → lý do NOT_NEEDED — cả đơn nháp: không xoá ở đường này). Trả `trip` mới với
@@ -74,7 +87,10 @@ export function keHoachChangTrip(
     const merged = tronChangCu(doiNgayChang(st.legs, st.trip.departDate, u.trip.departDate), u.cu, u.trip.departDate);
     for (const l of merged.legs) {
       if (l.id === null) ops.push({ kind: "insert", serviceId: u.id, leg: l });
-      else if (!sameFields(st.legs.find((x) => x.id === l.id)!, l)) ops.push({ kind: "update", legId: l.id, fields: fieldsOf(l) });
+      else {
+        const cu = st.legs.find((x) => x.id === l.id)!;
+        if (!sameFields(cu, l)) ops.push({ kind: "update", legId: l.id, fields: fieldsOf(l), ...nhatKyGioChang(st.name, cu, l) });
+      }
     }
     if (merged.boChieuDi) ops.push({ kind: "close", legId: merged.boChieuDi, reason: "NOT_NEEDED" });
     const labelled = merged.legs.map((l) => {

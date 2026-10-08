@@ -952,7 +952,9 @@ export const ordersModule: AppModule = {
         datGap = x.value;
       }
       const detail = kemDatGap(moTa, datGap);
-      if (!(await updateTrip(env.DB, id, staff.id, planned.updates, parsed.value.expectedUpdatedAt, detail, planned.ops, datGap))) {
+      // G17: dòng `order_leg_updated` của chặng đổi ngày / giờ mang cùng đuôi đặt gấp như route sửa chặng (hàm đọc tin bóc đuôi — `bocDatGap`).
+      const ops = planned.ops.map((op) => (op.kind === "update" && op.nhatKy !== undefined ? { ...op, nhatKy: kemDatGap(op.nhatKy, datGap) } : op));
+      if (!(await updateTrip(env.DB, id, staff.id, planned.updates, parsed.value.expectedUpdatedAt, detail, ops, datGap))) {
         const now = await getMeta(env.DB, id);
         return now?.status === "cancelled" ? CANCELLED() : STALE();
       }
