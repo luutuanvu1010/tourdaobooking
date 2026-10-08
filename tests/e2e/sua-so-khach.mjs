@@ -83,7 +83,7 @@ const tienDon = async (id) => (await call(ACC, "GET", `/api/orders/${id}/payment
   const r = await sua(ACC, don, 1);
   assert.equal(r.status, 200, JSON.stringify(r.body));
   assert.equal(r.body.order.total, -50000);
-  assert.match(r.body.canhBaoTongAm ?? "", /Tổng tiền của đơn đang âm/);
+  assert.match(r.body.canhBaoTongAm ?? "", /Giảm giá lớn hơn tiền dịch vụ sau khi bớt khách/);
   const p = await tienDon(don.id);
   assert.deepEqual([p.phaiThu, p.daThu, p.conLai, p.du], [-50000, 50000, 0, 100000]);
   console.log("✓ CA 3: tổng âm −50.000 vẫn lưu, có câu cảnh báo; dư 100.000 (lớn hơn tiền khách thật đã trả — xem báo cáo gói A2)");

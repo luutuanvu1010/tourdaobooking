@@ -118,8 +118,8 @@ try {
   await p.ev("document.querySelector('.sheet-root input[name=\"so-khach-ly-do\"][value=\"BOT_NGUOI\"]').click()");
   await p.ev("document.querySelector('[data-action=\"luu-so-khach\"]').click()");
   await p.waitFor("document.querySelector('.sheet-root') === null && document.getElementById('error').classList.contains('banner-warning')", "dải vàng tổng âm");
-  assert.match(await p.ev("document.getElementById('error').textContent"), /Đã lưu số khách mới — tổng tiền của đơn đang âm\..*Tổng tiền của đơn đang âm vì giảm giá lớn hơn tiền dịch vụ/);
-  assert.match(await p.ev("document.querySelector('[data-canh-bao=\"tong-am\"]')?.textContent ?? ''"), /Kế toán xem lại trước khi hoàn tiền cho khách/);
+  assert.match(await p.ev("document.getElementById('error').textContent"), /Đã lưu số khách mới — giảm giá đang lớn hơn tiền dịch vụ\..*Giảm giá lớn hơn tiền dịch vụ sau khi bớt khách/);
+  assert.match(await p.ev("document.querySelector('[data-canh-bao=\"tong-am\"]')?.textContent ?? ''"), /nếu chưa hoàn thì Kế toán hoàn lại cho khách/);
   assert.deepEqual((await p.ev(pairs)).slice(0, 3), [["Tạm tính", "1.350.000 ₫"], ["Giảm giá", "2.000.000 ₫"], ["Tổng cộng", "-650.000 ₫"]]);
   assert.deepEqual(p.consoleErrors, [], `lỗi console: ${p.consoleErrors}`);
   await p.shot(`${OUT}/03-tong-am-1040.png`);

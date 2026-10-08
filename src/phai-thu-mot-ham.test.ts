@@ -46,6 +46,7 @@ const CHO_PHEP: { file: string; khuon: RegExp; lyDo: string }[] = [
   { file: "src/modules/orders/nguoi-dat-gop-repo.ts", khuon: /o\.total IS NOT o\.subtotal - o\.discount/, lyDo: "kiểm dữ liệu ĐÃ LƯU (SQL) — cùng luật trigger 0007, không phải phải thu hiện hành" },
   { file: "src/shared/order-confirmation.ts", khuon: /order\.discount > 0 \? -order\.discount : order\.discount/, lyDo: "đổi dấu để in dòng Giảm giá của biên nhận (số máy chủ đặt vào ReceiptDto)" },
   { file: "web/order-form.ts", khuon: /if \(s\.discount > s\.subtotal\) lines\.push\(/, lyDo: "báo lỗi biểu mẫu nháp (máy chủ chặn lại ở rules.ts)" },
+  { file: "src/shared/so-khach-van-phong.ts", khuon: /canhBaoGiamGiaVuot = \(don: \{ subtotal: number; discount: number \}\): string \| null => \(don\.discount > don\.subtotal \?/, lyDo: "điều kiện cảnh báo giảm giá vượt tạm tính (ADR-0109 QĐ3) — một hàm dùng chung máy chủ ↔ giao diện, không tính tiền" },
   { file: "src/modules/orders/price-guards.ts", khuon: /discountWithinCap = \(discount: number, maxDiscount: number\): boolean => discount <= maxDiscount/, lyDo: "trần giảm giá của tài khoản Đối tác (ADR-0027), không phải phải thu" },
 ];
 

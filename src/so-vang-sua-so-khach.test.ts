@@ -1,7 +1,7 @@
 // Sổ vàng golden/sua-so-khach-van-phong.json (Hiến chương 5.17; ADR-0063 D1 — gói A2). Khuôn src/so-vang-don-huy.test.ts:
 //  LỚP 1 tự cân MỌI ca bằng số học viết tay (bắt CA MẪU viết sai — không gọi mã).
 //  LỚP 2 chạy từng ca qua CHÍNH luật thật: bộ đọc thân văn phòng `docThanSuaSoKhach` (mã lý do → nhãn), `planMoneyEdit` (luật tiền chung HDV + văn phòng),
-//  `effectiveSubtotal` / `effectiveMoney` (phải thu), `billing/rules.ts:conLai` (còn lại, dư chờ hoàn), `canhBaoTongAm`, `doanSoKhach` + `ghepLyDo` (dòng nhật ký —
+//  `effectiveSubtotal` / `effectiveMoney` (phải thu), `billing/rules.ts:conLai` (còn lại, dư chờ hoàn), `canhBaoGiamGiaVuot`, `doanSoKhach` + `ghepLyDo` (dòng nhật ký —
 //  cùng cách `orders/index.ts:soanSuaSoKhach` ghép). CHỈ ca "da_xac_nhan" được tính đạt (chưa có ⇒ `todo`, không "xanh vì rỗng"); ca chờ xác nhận chỉ in chẩn đoán
 //  "khớp / lệch mã". Hoa hồng PER_PAX (ADR-0077) CHỈ TRÊN GIẤY: mã `hoaHongDong` chưa thi công ⇒ lớp 2 bỏ qua phần đó, in "chưa chạy trên mã".
 // Hành vi QUA ROUTE THẬT (cùng các con số SV-SK-02, 03, 04) đã khoá ở src/modules/orders/so-khach-van-phong-route.test.ts (TC4, TC8).
@@ -12,7 +12,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { isISODate } from "./shared/vn-date.ts";
 import { PAX_ORDER, type PaxCode, type PaxCounts } from "./shared/order-lines.ts";
-import { MA_LY_DO_SUA_SO_KHACH, LY_DO_SUA_SO_KHACH, canhBaoTongAm, docThanSuaSoKhach, type MaLyDoSuaSoKhach } from "./shared/so-khach-van-phong.ts";
+import { MA_LY_DO_SUA_SO_KHACH, LY_DO_SUA_SO_KHACH, canhBaoGiamGiaVuot, docThanSuaSoKhach, type MaLyDoSuaSoKhach } from "./shared/so-khach-van-phong.ts";
 import { doanSoKhach, ghepLyDo } from "./shared/tin-doi-don.ts";
 import { effectiveMoney, effectiveSubtotal, planMoneyEdit, type SubtotalServiceInput } from "./modules/orders/money-adjustment.ts";
 import { conLai, type ReceiptRow } from "./modules/billing/rules.ts";
@@ -144,7 +144,7 @@ function chayTrenMa(c: Ca): DapAn | string {
     ghi_dong_dieu_chinh: plan.write,
     truoc,
     sau,
-    canh_bao_tong_am: canhBaoTongAm(sau.phai_thu) !== null,
+    canh_bao_tong_am: canhBaoGiamGiaVuot({ subtotal: sau.tam_tinh, discount: v.giam_gia }) !== null,
     nhat_ky: plan.write ? ghepLyDo(doanSoKhach(plan.before, plan.after, services), plan.reason) : null,
   };
   if (plan.write && plan.subtotalBefore !== hienHanh) return `subtotalBefore ${plan.subtotalBefore} ≠ tạm tính hiện hành ${hienHanh}`;

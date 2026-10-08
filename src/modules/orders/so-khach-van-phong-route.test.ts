@@ -29,7 +29,7 @@ import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { world, seedStaff } from "../../../tests/audit/harness.mjs";
 import { AUDIT_ACTIONS } from "../../shared/audit-actions.ts";
-import { CAU_TONG_AM, LY_DO_SUA_SO_KHACH, MA_LY_DO_SUA_SO_KHACH, duocSuaSoKhachVanPhong } from "../../shared/so-khach-van-phong.ts";
+import { CAU_GIAM_GIA_VUOT, LY_DO_SUA_SO_KHACH, MA_LY_DO_SUA_SO_KHACH, duocSuaSoKhachVanPhong } from "../../shared/so-khach-van-phong.ts";
 import { PERMISSION_CODES, type PermissionCode } from "../../shared/permissions.ts";
 
 const ID = {
@@ -317,7 +317,7 @@ test("TC8: tổng âm sau khi bớt khách — KHÔNG chặn: 200, dòng đượ
   const r = await sua(w, ID.ACC, d.id, than(d.svc, P(1), "BOT_NGUOI"));
   assert.equal(r.status, 200, r.text);
   assert.equal(r.json.daGhi, true);
-  assert.equal(r.json.canhBaoTongAm, CAU_TONG_AM);
+  assert.equal(r.json.canhBaoTongAm, CAU_GIAM_GIA_VUOT);
   assert.equal(r.json.order.total, -300000, "500.000 − 800.000");
   assert.equal(soDong(w, d.id), 1);
   const p = (await w.call("GET", `/api/orders/${d.id}/payments`, { as: ID.ACC })).json;
