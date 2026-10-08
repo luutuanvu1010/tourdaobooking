@@ -1,4 +1,5 @@
 import { auditStatement, type AuditAction } from "../audit";
+import type { HanhDongDoiSoKhach } from "../../shared/audit-actions";
 import { LY_DO_DAT_GAP, chieuDiDau, isLyDoDatGap, xepChang, type ChangDaLuu, type ChangHopLe, type LyDoDongChang } from "../../shared/chang-dua-don";
 import type { LegDto, OrderDetailDto, OrderDto, OrderItemDto, OrderServiceDto, OrderSummaryDto, OrderSummaryTripDto } from "../../shared/contracts";
 import { escapeLike } from "../../shared/http";
@@ -1220,7 +1221,10 @@ export async function insertMoneyAdjustment(
   after: AdjustmentEntry[],
   subtotalBefore: number,
   subtotalAfter: number,
-  reason: string,
+  /** ADR-0062 Đ1-a: chỉ hành động mang cờ `doiSoKhach` (kiểu dẫn từ AUDIT_ACTIONS) — mọi đường ghi dòng này tự vào tập nguồn tin "đơn đổi sau xác nhận". */
+  action: HanhDongDoiSoKhach,
+  /** ADR-0062 Đ2: "số khách: <phần đổi> · lý do: <lý do>" — nơi gọi dựng bằng doanSoKhach + ghepLyDo (src/shared/tin-doi-don.ts). */
+  detail: string,
 ): Promise<boolean> {
   const id = crypto.randomUUID();
   const at = new Date().toISOString();
@@ -1229,7 +1233,7 @@ export async function insertMoneyAdjustment(
       db
         .prepare(`INSERT INTO order_money_adjustment (id, order_id, seq, before_json, after_json, subtotal_before, subtotal_after) VALUES (?, ?, ?, ?, ?, ?, ?)`)
         .bind(id, orderId, expectedSeq, JSON.stringify(before), JSON.stringify(after), subtotalBefore, subtotalAfter),
-      auditStatement(db, { id, orderId, staffId, action: "order_money_adjusted_by_field", at, detail: reason }),
+      auditStatement(db, { id, orderId, staffId, action, at, detail }),
     ]);
     return true;
   } catch (e) {

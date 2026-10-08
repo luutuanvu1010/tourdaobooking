@@ -33,7 +33,11 @@ export const AUDIT_ACTIONS = {
   cancelled: { label: "Huỷ đơn", group: "order" },
   order_cancelled_by_field: { label: "Huỷ đơn (hướng dẫn viên đang phụ trách)", group: "order" },
   order_cancel_reason_classified: { label: "Phân loại lý do huỷ", group: "order" },
-  order_money_adjusted_by_field: { label: "Sửa số khách (hướng dẫn viên đang phụ trách)", group: "order" },
+  // ADR-0062 Đ1-a: `doiSoKhach: true` = hành động ghi dòng `order_money_adjustment` (một cửa insertMoneyAdjustment) — tự vào tập nguồn tin "đơn đổi sau xác
+  // nhận". `detail` dòng mới: "số khách: <phần đổi> · lý do: <lý do>" (khuôn có hàm đọc canh — src/shared/tin-doi-don.ts).
+  order_money_adjusted_by_field: { label: "Sửa số khách (hướng dẫn viên đang phụ trách)", group: "order", doiSoKhach: true },
+  // ADR-0062 Đ1 cách (a): KHAI TRƯỚC cho đường văn phòng sửa số khách (ADR-0063 D1 — chưa duyệt, chưa route nào ghi). Bị bác thì nằm chết, vô hại.
+  order_money_adjusted: { label: "Sửa số khách (văn phòng)", group: "order", doiSoKhach: true },
   // Sổ tiền lượt 1 (ADR-0025, ADR-0026) — `detail` không SĐT, không số tiền chi tiết (kế hoạch §3.4).
   order_delivered: { label: "Đã giao – đã thu đủ", group: "order" },
   order_completed: { label: "Hoàn thành", group: "order" },
@@ -182,9 +186,15 @@ export const AUDIT_ACTIONS = {
   notice_acknowledged: { label: "Xác nhận đã hiểu thông báo", group: "notice" },
   session_policy_changed: { label: "Đổi chính sách đăng nhập", group: "staff" }, // ADR-0085 điều 9: quyền đổi + giá trị mới + số máy/số người — KHÔNG tên, SĐT, IP
   session_revoked: { label: "Gỡ phiên đăng nhập", group: "staff" }, // ADR-0075 điều 8: ai gỡ, tài khoản bị gỡ (target), mã phiên (detail) — KHÔNG IP/User-Agent
-} as const satisfies Record<string, { label: string; group: AuditGroup }>;
+} as const satisfies Record<string, { label: string; group: AuditGroup; doiSoKhach?: true }>;
 
 export type AuditAction = keyof typeof AUDIT_ACTIONS;
+
+/** ADR-0062 Đ1-a: hành động mang cờ `doiSoKhach` — kiểu DẪN từ AUDIT_ACTIONS (tham số hành động của insertMoneyAdjustment chỉ nhận kiểu này). */
+export type HanhDongDoiSoKhach = { [K in AuditAction]: (typeof AUDIT_ACTIONS)[K] extends { doiSoKhach: true } ? K : never }[AuditAction];
+export const HANH_DONG_DOI_SO_KHACH: readonly HanhDongDoiSoKhach[] = (Object.keys(AUDIT_ACTIONS) as AuditAction[]).filter(
+  (a): a is HanhDongDoiSoKhach => (AUDIT_ACTIONS[a] as { doiSoKhach?: true }).doiSoKhach === true,
+);
 
 /** Loại đối tượng của một dòng nhật ký — trùng với nhóm hành động. */
 export type AuditTargetType = AuditGroup;
