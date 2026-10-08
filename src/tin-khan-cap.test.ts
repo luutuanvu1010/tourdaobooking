@@ -172,3 +172,55 @@ test("Phiếu D1 THẤP-7 (ghim hiện trạng — tin bám mã luật MOC_TOI_T
     tat();
   }
 });
+
+// ---- Phiếu kiểm hẹp D1 CAO-C: tin bám mã luật MOC_TOI_THIEU, không bám lớp — ghim HIỆN TRẠNG ở ca DỜI ---------------------------------------------------------
+/** Đánh dấu ĐẶT GẤP cho chặng (đường thật — Quản trị). */
+async function datGap(w: any, d: { id: string; legId: string }) {
+  const r = await w.call("POST", `/api/orders/${d.id}/legs/${d.legId}/short-notice`, { as: ADM, body: { lyDo: "KHACH_DOAN_GOI_GAP" } });
+  assert.equal(r.status, 200, r.text);
+}
+/** Dời mọi suất mở của `nguon` sang `dich` (Bán hàng), `co` = cờ vượt gửi kèm. */
+async function doiHet(w: any, nguon: string, dich: string, suatIds: string[], co: Record<string, unknown>) {
+  return goi(w, SALES, "POST", `/${nguon}/doi`, { version: await phienBan(w, nguon), suatIds, denChuyenId: dich, denVersion: await phienBan(w, dich), ...co });
+}
+// HIỆN TRẠNG CHỜ CHỦ QUYẾT (ADR-0104 :95 "lệnh khách lớp KHAN_CAP … → tin tới tài xế đang lái" vs :90 hoãn lưu lớp vào sự kiện) — bài này ĐỔI MÀU khi chủ chọn
+// (ghi lệch ở SYSTEM-DESIGN §16 thì giữ; tin theo mọi luật hoặc lưu lớp thì đổi kỳ vọng thành "có tin" cùng quyết định đó).
+test("Phiếu hẹp D1 CAO-C (ghim HIỆN TRẠNG chờ chủ quyết — ADR-0104 :95 vs :90): Bán hàng DỜI chặng ĐẶT GẤP từ chuyến NGOÀI mốc sang chuyến DƯỚI mốc, CHỈ kèm camKetPhaLe (lớp điều chỉnh khẩn cấp) → 200, sự kiện mang CAM_KET; tài xế đích và tài xế nguồn đều KHÔNG có tin", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const gap = await don(w, { gio: "13:00", soNguoi: 2 });
+    await datGap(w, gap);
+    const nguon = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER}`, bd: "12:30", kt: "16:00" }); // ngoài mốc (còn 6 giờ 30)
+    const dich = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER2}`, bd: "11:00", kt: "15:00" }); // dưới mốc
+    const x = await xep(w, SALES, nguon.chuyen.id, [{ legId: gap.legId, soSuat: 2 }]);
+    assert.equal(x.status, 200, x.text);
+    w.sqlite.prepare("UPDATE ord_transfer_leg SET min_vehicle_seats = 30 WHERE id = ?").run(gap.legId); // xe 15 chỗ của chuyến đích trái cam kết số chỗ
+    const d = await doiHet(w, nguon.chuyen.id, dich.chuyen.id, x.json.suat.map((s: any) => s.id), { camKetPhaLe: PL });
+    assert.equal(d.status, 200, d.text);
+    assert.deepEqual(w.q("SELECT override_rule_code r FROM vc_trip_event WHERE trip_id = ? AND kind = 'ALLOCATION_MOVED'", dich.chuyen.id).map((r: any) => r.r), ["CAM_KET"]);
+    assert.deepEqual(await tinKhanCap(w, DRIVER2), [], "hiện trạng: tài xế đích không tin");
+    assert.deepEqual(await tinKhanCap(w, DRIVER), [], "hiện trạng: tài xế nguồn không tin");
+  } finally {
+    tat();
+  }
+});
+
+test("Phiếu hẹp D1 CAO-C (ca biên): dời chặng thường từ chuyến NGOÀI mốc sang chuyến DƯỚI mốc kèm phaLe → sự kiện mang MOC_TOI_THIEU; tài xế nguồn (chuyến ngoài mốc) VẪN nhận 'chuyển khách đi', tài xế đích nhận 'chuyển khách tới'", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const a = await don(w, { gio: "13:00", soNguoi: 2 });
+    const nguon = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER}`, bd: "12:30", kt: "16:00" }); // ngoài mốc
+    const dich = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER2}`, bd: "11:00", kt: "15:00" }); // dưới mốc
+    const x = await xep(w, SALES, nguon.chuyen.id, [{ legId: a.legId, soSuat: 2 }]);
+    assert.equal(x.status, 200, x.text);
+    const d = await doiHet(w, nguon.chuyen.id, dich.chuyen.id, x.json.suat.map((s: any) => s.id), { phaLe: PL });
+    assert.equal(d.status, 200, d.text);
+    assert.deepEqual(w.q("SELECT override_rule_code r FROM vc_trip_event WHERE trip_id = ? AND kind = 'ALLOCATION_MOVED'", dich.chuyen.id).map((r: any) => r.r), ["MOC_TOI_THIEU"]);
+    assert.deepEqual(await tinKhanCap(w, DRIVER), [`Văn phòng vừa điều chỉnh khẩn cấp chuyến ${nguon.chuyen.ma} ngày 11/03 (chuyển khách đi) — mở để xem`]);
+    assert.deepEqual(await tinKhanCap(w, DRIVER2), [`Văn phòng vừa điều chỉnh khẩn cấp chuyến ${dich.chuyen.ma} ngày 11/03 (chuyển khách tới) — mở để xem`]);
+  } finally {
+    tat();
+  }
+});
