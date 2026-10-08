@@ -43,25 +43,52 @@ function catDong(ctx: CanvasRenderingContext2D, chu: string, rong: number): stri
   return out;
 }
 
+/** Độ đậm chữ trên ảnh và thời gian chờ tối đa cho việc nạp phông (quá hạn thì vẽ bằng phông dự phòng, nút "Lưu ảnh" không kẹt). */
+const DO_DAM = 500;
+const HAN_NAP_PHONG_MS = 5_000;
+
+const hoPhongCua = (chong: string): string[] => chong.split(",").map((x) => x.trim().replace(/^["']|["']$/g, "")).filter((x) => x !== "");
+
+/** Chồng phông của trang: token `--font` ở `:root` (cùng nguồn với web/confirmation-image.ts — màn Giao diện công ty đổi được phông), rơi về phông của thân trang. */
+function chongPhongTrang(): string {
+  const token = getComputedStyle(document.documentElement).getPropertyValue("--font").trim();
+  return token || getComputedStyle(document.body).fontFamily || "sans-serif";
+}
+
+/**
+ * Nạp ĐÚNG họ phông × độ đậm sắp dùng, kèm chính chữ sẽ vẽ (phông tách tập con unicode-range nên chữ tiếng Việt cần nạp theo mẫu) — `document.fonts.ready` một mình
+ * không đủ vì chưa có phần tử nào trên trang đòi họ phông ở độ đậm này. Mọi lỗi / quá hạn bị nuốt: ảnh vẫn ra, chỉ bằng phông dự phòng.
+ */
+async function napPhong(chong: string, mau: string): Promise<void> {
+  if (!("fonts" in document)) return;
+  let hen: ReturnType<typeof setTimeout> | undefined;
+  try {
+    const xong = Promise.all(hoPhongCua(chong).map((ho) => document.fonts.load(`${DO_DAM} 16px "${ho}"`, mau))).then(() => document.fonts.ready);
+    await Promise.race([xong, new Promise<void>((ok) => (hen = setTimeout(ok, HAN_NAP_PHONG_MS)))]);
+  } catch {
+    // phông chưa sẵn thì vẽ bằng phông dự phòng
+  } finally {
+    clearTimeout(hen);
+  }
+}
+
 /** Ảnh PNG gửi khách: mã QR + ĐÚNG các dòng của `dongThongTinQr` (danh sách trắng — không thêm trường nào từ màn đơn). */
 export async function dungAnhQr(dto: Api.QrThanhToanDto): Promise<Blob> {
   const RONG = 720;
   const LE = 40;
   const CO_CHU = 28;
   const DONG_CAO = 40;
-  try {
-    await document.fonts.ready;
-  } catch {
-    // phông chưa sẵn thì vẽ bằng phông dự phòng
-  }
-  const font = `500 ${CO_CHU}px ${getComputedStyle(document.body).fontFamily || "sans-serif"}`;
+  const dongGoc = dongThongTinQr(dto);
+  const chong = chongPhongTrang();
+  await napPhong(chong, [...new Set(dongGoc.join(""))].join(""));
+  const font = `${DO_DAM} ${CO_CHU}px ${chong}`;
   const ma = h("canvas", null) as HTMLCanvasElement;
   veMaQr(ma, dto.payload, RONG - 2 * LE);
   const anh = h("canvas", null) as HTMLCanvasElement;
   const ctx = anh.getContext("2d");
   if (!ctx) throw new Error("Trình duyệt không vẽ được ảnh.");
   ctx.font = font;
-  const cacDong = dongThongTinQr(dto).flatMap((d) => catDong(ctx, d, RONG - 2 * LE));
+  const cacDong = dongGoc.flatMap((d) => catDong(ctx, d, RONG - 2 * LE));
   anh.width = RONG;
   anh.height = LE + ma.height + 24 + cacDong.length * DONG_CAO + LE;
   ctx.fillStyle = TRANG;

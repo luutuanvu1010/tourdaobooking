@@ -126,6 +126,7 @@
   --bar-h: 60px;            /* thanh đầu trang, chưa tính vùng an toàn — chủ dự án duyệt tăng từ 52px theo bản thiết kế mới (đặc tả §16 mục 3) */
   --w-gd-o: 160px;         /* ADR-0087: bề rộng ô chọn phông / độ đậm / cỡ chữ ở màn Giao diện */
   --w-gd-xem: 360px;        /* ADR-0087: bề rộng cột xem trước ở màn Giao diện (máy tính) */
+  --w-qr: 18rem;            /* QR thanh toán (ADR-0108): bề rộng tối đa ảnh mã trong bảng QR ở trang đơn */
   --tabbar-h: 56px;         /* thanh tab dưới đáy, chưa tính vùng an toàn */
   --h-trang-toi-thieu: calc(100vh + env(safe-area-inset-bottom)); /* trang có thanh tab luôn cao ≥ cả màn hình kể cả vùng vạch vuốt: iPhone (app cài ra màn hình chính) đặt thanh tab cao hơn đúng một vùng an toàn khi trang NGẮN hơn màn hình → thanh nhảy khi dữ liệu về (video của chủ dự án 2026-09-27) */
   --tab-icon: 36px;
@@ -676,6 +677,11 @@ textarea { min-height: 72px; resize: vertical; }
 .pay-inline { display: contents; }
 .kt-actions { display: inline-flex; flex-wrap: wrap; gap: var(--s2); margin-left: var(--s2); } /* nút Kế toán trên từng lần thu (sổ tiền lượt 1, đặt tạm) */
 .kt-khoi { margin-top: var(--s3); } .kt-khoi h3 { margin: 0 0 var(--s2); font-size: var(--fs-label); }
+.qr-khung { display: flex; justify-content: center; margin: var(--s3) 0; }
+.qr-anh { width: min(100%, var(--w-qr)); height: auto; image-rendering: pixelated; }
+.qr-dong p { margin: 0 0 var(--s1); }
+.sheet-foot.qr-foot { display: flex; flex-wrap: wrap; gap: var(--s2); } /* hai nút chân bảng QR cách nhau (chân bảng mặc định không có khoảng cách) */
+.sheet-foot.qr-foot .btn { min-height: var(--tap-min); }
 .empty { padding: var(--s6) var(--s4); text-align: center; color: var(--c-muted); }
 
 .summary { display: grid; gap: var(--s2); margin-top: var(--s4); }

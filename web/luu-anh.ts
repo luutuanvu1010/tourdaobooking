@@ -3,9 +3,20 @@
 // kịch bản ảnh xác nhận).
 import { h } from "./dom";
 
+/** Tệp chia sẻ được, hoặc null (trình duyệt không có `File` / `canShare` / `share`, hoặc `canShare` ném lỗi) ⇒ rơi sang đường tải về — cùng khuôn `shareFile` của confirmation-dialog.ts. */
+function tepChiaSeDuoc(blob: Blob, tenTep: string): File | null {
+  try {
+    if (typeof navigator.canShare !== "function" || typeof navigator.share !== "function") return null;
+    const tep = new File([blob], tenTep, { type: "image/png" });
+    return navigator.canShare({ files: [tep] }) ? tep : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function luuHoacChiaSe(blob: Blob, tenTep: string, tieuDe: string, noiChua: HTMLElement): Promise<"chia-se" | "tai" | "huy"> {
-  const tep = new File([blob], tenTep, { type: "image/png" });
-  if (typeof navigator.canShare === "function" && typeof navigator.share === "function" && navigator.canShare({ files: [tep] })) {
+  const tep = tepChiaSeDuoc(blob, tenTep);
+  if (tep) {
     try {
       await navigator.share({ files: [tep], title: tieuDe });
       return "chia-se";
