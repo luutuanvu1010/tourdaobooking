@@ -84,7 +84,7 @@ Trên máy tính, menu bên trái có: [[Trang chủ]], [[Cuốc của tôi]], [
       noiDung: `### Sao hôm nay không có cuốc nào?
 Văn phòng chưa xếp bạn lái chuyến nào. Khi được xếp, đổi hay huỷ chuyến, bạn nhận thông báo (nếu đã bật).
 
-### Thông báo "Văn phòng vừa điều chỉnh khẩn cấp" là gì?
+### Thông báo "Văn phòng vừa điều chỉnh khẩn cấp" là gì? (tài xế công ty)
 Sát giờ chạy, văn phòng vừa xếp thêm, rút hay chuyển khách trên chuyến bạn lái. Bạn mở thông báo để xem lại điểm đón và số khách.
 
 ### Giờ ghi có phải giờ tôi bấm không?
