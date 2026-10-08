@@ -10,7 +10,7 @@
 
 **Spec:** `docs/superpowers/specs/2026-10-08-so-dai-ly-dot-1/README.md` (ĐÃ DUYỆT 2026-10-08; hai điểm "Chờ bạn xác nhận lại" ở cuối Phần A) + báo cáo kiểm độc lập `kiem-doc-lap.md` cùng thư mục + ADR-0077, ADR-0078, ADR-0080 (`docs/adr/`). Người thi công đọc đặc tả và báo cáo kiểm trước Task 1. Đặc tả thắng kế hoạch khi lệch.
 
-**Hai điểm chờ chủ (ảnh hưởng đúng Task 6):** kế hoạch viết theo bản khuyến nghị — điểm 1 = (a) "chấp nhận đơn đại lý tự lập bị giữ ở Đã giao tới đợt 2", điểm 2 = "chỉ ghi bên đặt là chính tài khoản khi hồ sơ của tài khoản mang vai được hưởng". Chủ chọn (b) ở điểm 1 thì Task 6 bỏ Bước 3–4 (luật Đối tác), giữ phần còn lại.
+**Lời chủ 2026-10-08 (chat, một lượt):** duyệt kế hoạch này; cách thi công = phiên lập kế hoạch chỉ ĐIỀU PHỐI (trợ lý con thi công từng việc, trợ lý con khác kiểm, người kiểm độc lập chỉ đọc cả nhánh cuối cùng); điểm 1 = (a) "chấp nhận đơn đại lý tự lập bị giữ ở Đã giao tới đợt 2"; điểm 2 = "chỉ ghi bên đặt là chính tài khoản khi hồ sơ của tài khoản mang vai được hưởng". Trang ghép của lượt duyệt: bảng "Những chỗ đọc `booker_party_id`" ở §7 đặc tả.
 
 ## Global Constraints
 
@@ -1989,7 +1989,7 @@ git commit -m "Phần đối tác của đơn: hai DTO danh sách trắng, ghi m
 
 ### Task 6: Bên đặt là đối tác: tổ chức được gắn, tài khoản Đối tác tự ghi, chụp lại khi đổi bên đặt, nhãn trên đơn
 
-> **Phụ thuộc lời chủ (điểm 1, 2 cuối Phần A đặc tả).** Viết theo khuyến nghị (điểm 1 = a, điểm 2 = thu hẹp). Chủ chọn (b) ở điểm 1 thì BỎ Bước 4 (tài khoản Đối tác tự ghi) và ca 2–3 của Bước 1; phần còn lại giữ.
+> **Lời chủ 2026-10-08:** điểm 1 = (a) chấp nhận khoảng chờ, điểm 2 = thu hẹp — làm đủ mọi bước dưới đây.
 
 **Files:**
 - Create: `src/modules/orders/ben-dat-doi-tac.test.ts`, `src/shared/booker.test.ts` (nếu chưa có; có rồi thì thêm ca)
