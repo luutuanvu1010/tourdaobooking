@@ -194,10 +194,10 @@
 
 **Phần của lộ trình chưa làm:**
 
-- **BL-VC-D6 — Đợt 6: tài xế đối tác dùng Nền tảng + chia doanh thu taxi.** Kế hoạch `…-06-tai-xe-doi-tac.md`; chủ đã trả lời câu 0.2 (a–c) ngày 5/10; còn thiếu ADR riêng cho sổ chia doanh thu và câu hoá đơn / thuế (d — hỏi Kế toán).
+- **BL-VC-D6 — Đợt 6: tài xế đối tác dùng Nền tảng + chia doanh thu taxi.** Kế hoạch `…-06-tai-xe-doi-tac.md`; chủ đã trả lời câu 0.2 (a–c) ngày 5/10; còn thiếu ADR riêng cho sổ chia doanh thu và câu hoá đơn / thuế (d — hỏi Kế toán). **Mở lại 8/10, chỉ một phần** (nhiệm vụ "Vận chuyển & Bán hàng Gói A & C", Giai đoạn 3 mục A4): tài xế đối tác dùng Nền tảng + báo bận (ADR-0053 D7.1, D8, D9). Phần chia doanh thu taxi và câu (d) **vẫn hoãn**. Sổ: `docs/superpowers/plans/2026-10-08-van-chuyen-goi-a-c-thi-cong-nhat-ky.md`.
 - **BL-VC-D8 — Đợt 8 Phần C: cắt đường ghi chặng kiểu cũ (`pickupTime` / `pickupPlace`).** Bộ đếm thân cũ đã chạy từ Đợt 1 (`src/modules/orders/than-cu.ts`); cổng = chủ đếm dòng `client_outdated_body` trên production về 0 đủ 7 ngày rồi mới cắt (kế hoạch `…-08-bo-duong-ghi-cu.md` Task 2).
 - **BL-VC-TOA-DO — toạ độ điểm đón / trả.** Chủ đã chọn bảng phụ có kiểu (câu 0.1); cần ADR nhỏ (module `locations`) trước migration.
-- **BL-VC-D4 — phần hoãn của Đợt 5:** tài xế nhờ xe khác đón, hộp đề nghị cần duyệt, bảng kiểm luật (D4) và Dòng dữ liệu / Nhật ký quyết định (V4). Khi làm: mã luật dạng danh mục, không `CHECK` cứng (lời chủ 2/10).
+- **BL-VC-D4 — phần hoãn của Đợt 5:** tài xế nhờ xe khác đón, hộp đề nghị cần duyệt, bảng kiểm luật (D4) và Dòng dữ liệu / Nhật ký quyết định (V4). Khi làm: mã luật dạng danh mục, không `CHECK` cứng (lời chủ 2/10). **Mở lại 8/10** (nhiệm vụ "Vận chuyển & Bán hàng Gói A & C", Giai đoạn 3 mục A5: ADR-0052 D4, D5c). Sổ: `docs/superpowers/plans/2026-10-08-van-chuyen-goi-a-c-thi-cong-nhat-ky.md`.
 - **BL-VC-MAU-CAM-KET — mẫu chặng mang sẵn cam kết "xe riêng / số chỗ".** ADR-0056 chỉ nhắc ở "Phương án bị loại"; chặng tạo từ mẫu hôm nay luôn "không cam kết".
 
 **Nợ cùng họ C38 — mã lệnh dùng lại (đánh giá ERP 7/10; kiểm độc lập 8/10):**
