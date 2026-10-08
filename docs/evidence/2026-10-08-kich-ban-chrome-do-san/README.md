@@ -2,13 +2,13 @@
 
 Hồ sơ có ngày (không sửa lại cho khớp hiện trạng). Gốc: `main` 4d98a205. Phiên làm nhánh QR thanh toán (2026-10-08) phát hiện bốn kịch bản đỏ sẵn, sau đó báo thêm `dat-gap-smoke.mjs`.
 
-Cách chạy: Chrome headless trên macOS, `axe-core` 4.13.0 lấy bằng `npm pack` ngoài kho, D1 local tạm của `a2-cdp.mjs`, `OUT=<thư mục tạm>` (không đè ảnh/kết quả của hồ sơ cũ). Lần chạy cuối mỗi kịch bản chạy MỘT MÌNH: lần đầu chạy bốn kịch bản cùng lúc, `v1-nguoi-phu-trach` đỏ thêm bước p, q vì `wrangler d1 execute` lỗi khi máy bận (chạy lại riêng `ONLY=p,q` thì qua — cùng hiện tượng nhật ký 1/10 đã ghi).
+Cách chạy: Chrome headless trên macOS, `axe-core` 4.13.0 lấy bằng `npm pack` ngoài kho, D1 local tạm của `a2-cdp.mjs`, `OUT=<thư mục tạm>` (không đè ảnh/kết quả của hồ sơ cũ). Lần chạy cuối của mỗi kịch bản không chạy song song với kịch bản khác của phiên này (phiên QR vẫn chạy kịch bản của nó trên cùng máy): lần đầu chạy bốn kịch bản cùng lúc, `v1-nguoi-phu-trach` đỏ thêm bước p, q vì `wrangler d1 execute` lỗi khi máy bận (chạy lại riêng `ONLY=p,q` thì qua — cùng hiện tượng nhật ký 1/10 đã ghi).
 
 ## Kết quả trước / sau
 
 | Kịch bản | Trước (main 4d98a205) | Sau (nhánh này) |
 |---|---|---|
-| `2026-09-20-a2/kich-ban/a2-smoke-form.mjs` | dừng ở bước 1b (đếm 4 mục, thực tế 5) | **còn đỏ ở bước 4b — lỗi giao diện thật** (dưới); bản sao tạm bỏ qua riêng 4b: 26 bước còn lại ✓ |
+| `2026-09-20-a2/kich-ban/a2-smoke-form.mjs` | dừng ở bước 1b (đếm 4 mục, thực tế 5) | **còn đỏ ở bước 4b — lỗi giao diện thật** (dưới); bản sao tạm bỏ qua riêng 4b: 24 bước còn lại ✓ (25 dòng ✓ gồm cả 4b đã bỏ qua) |
 | `2026-09-20-a2/kich-ban/a2-smoke-order.mjs` | 2 ✓, dừng ở bước 3 "form mở lại đơn" | 11/11 ✓ |
 | `2026-09-20-a2/kich-ban/a2-smoke-sheet.mjs` | 7 ✓, dừng ở bước 5 "đóng bảng + banner đã lưu" | 14/14 ✓ |
 | `2026-09-21-v1-0/kich-ban/v1-nguoi-phu-trach.mjs` | 12 ✓ / 5 ✗ (h, j, l; p, q do máy bận) | 17/17 ✓ |
@@ -34,10 +34,10 @@ Cách chạy: Chrome headless trên macOS, `axe-core` 4.13.0 lấy bằng `npm p
 
 ## Lỗi giao diện thật (chưa sửa, chờ chủ dự án)
 
-`a2-smoke-form` bước 4b đỏ đúng chỗ: ô số của bộ đếm số khách mất dấu focus. Đo trong Chrome (390px): nút "Tăng" có khung 2px lùi vào trong; ô số `outline-style: none`, `box-shadow` trong suốt, viền trái vẫn màu thường, khung `.counter` `overflow: hidden`. Gốc: lần sửa 1c718023 (2/10, vòng kiểm thị giác 1.69, mục TB-1) đổi `input:focus` thành `input:not([type="checkbox"]):not([type="radio"]):focus` (độ ưu tiên 0,3,1) — đè luật `.counter .counter-field:focus-visible` (0,3,0) mà ghi chú cạnh nó vẫn tính là "thắng `input:focus`".
+`a2-smoke-form` bước 4b đỏ đúng chỗ: ô số của bộ đếm số khách mất dấu focus. Đo trong Chrome (390px): nút "Tăng" có khung 2px lùi vào trong; ô số `outline-style: none`, `box-shadow` trong suốt, viền trái vẫn màu thường, khung `.counter` `overflow: hidden`. Gốc: lần sửa 1c718023 (2/10, vòng kiểm thị giác 1.69, mục TB-1) đổi `input:focus` thành `input:not([type="checkbox"]):not([type="radio"]):focus` (độ ưu tiên 0,3,1) — đè luật `.counter .counter-field:focus-visible` (0,3,0) — ghi chú cạnh luật đó ("thắng `input:focus`") nay sai. Đã rà mọi luật `:focus` / `:focus-visible` chạm ô nhập trong `public/app.css`: chỉ ô số bộ đếm bị đè (các luật khác tô phần tử khác, vd `.pick-mark`, `.dd-che-do`). Chưa rà khung `overflow: hidden` khác có thể cắt vòng `box-shadow` của ô nhập. Bản sửa (nếu chủ cho) phải giữ TB-1 (ô tích / ô chọn một vẫn dùng khung `:focus-visible` chung) và giữ xanh bài `src/token-giao-dien.test.ts`.
 
 ## Chưa làm / chưa kiểm
 
 - `v1-xac-nhan-png.mjs` bước j (cùng `meta-viewport`, nhật ký 1/10) — chưa chạy lại, chưa sửa.
 - Các kịch bản khác dùng `call` nhớ phiên của `dp-lib.mjs` cùng `env.as` có thể vấp cùng kiểu — chưa rà.
-- `npm test`, `npm run typecheck` chạy ở cuối phiên (kết quả ở báo cáo của phiên); không chạy e2e (không chạm API).
+- Đã chạy trên nhánh: `npm run typecheck` 0 lỗi; `npm test` 3375 đạt / 0 đỏ (cộng bài đo giờ 1/1). Không chạy e2e (không chạm API).
