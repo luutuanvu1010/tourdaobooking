@@ -21,8 +21,10 @@ const NGAN = ai("ngan", "INTERN");
 const TX = { id: "tx", permissions: ["DRIVER"] as PermissionCode[], partyId: "p-tx" };
 const TX2 = { id: "tx2", permissions: ["DRIVER"] as PermissionCode[], partyId: "p-tx2" };
 
+// id CỐ ĐỊNH theo bộ đếm (không ngẫu nhiên): bài "không SĐT" quét CẢ JSON của hộp bằng /09\d{8}/ — id "d0.09…" ngẫu nhiên từng khớp (đỏ ~5–7%, phiếu kiểm A3 V1).
+let soId = 0;
 const doi = (o: Partial<DongDon> = {}): DongDon => ({
-  id: "d" + Math.random(), orderId: "o1", maDon: "TD-1", action: "trip_updated", actorId: "qt", tenNguoiLam: "Quản Trị", luc: LUC, ownerId: "lan",
+  id: `d${++soId}`, orderId: "o1", maDon: "TD-1", action: "trip_updated", actorId: "qt", tenNguoiLam: "Quản Trị", luc: LUC, ownerId: "lan",
   phuTrach: { coNguoi: true, staffId: "tam" }, lapChuaCoNguoi: false, cungLoLap: false,
   detail: "Tour đảo: giờ đón 07:00 → 06:30", sauXacNhan: true, legId: null, ...o,
 });
