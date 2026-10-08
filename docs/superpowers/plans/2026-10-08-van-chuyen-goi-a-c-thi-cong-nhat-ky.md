@@ -56,3 +56,4 @@ Sổ điều phối (CLAUDE.md §9, P19). Trạng thái sống ở đây, không
 - N3 còn ca: dời chuyến hàng xóm A sát B thì B không chụp lại → thuộc B4 (cần ADR).
 - C38 chưa xét hai route `chang/:legId/da-goi-bao`, `bo-danh-dau-goi-bao` (tự xử lý `request_id` trên bảng mốc).
 - e2e Giai đoạn 1 trên nhánh đã gộp (`a4488bf9`): `npm run test:e2e -- dieu-phoi dieu-phoi-chay-dua tai-xe-cuoc xe-dang-chay tin-chuyen chong-ghi-trung van-chuyen cam-ket-xe dua-don-dau-cuoi chang-hanh-khach` → "E2E: 13/13 kịch bản xanh" (195 giây). Không có kịch bản e2e nào gọi route thay chặng (phủ bằng bài khung thử + Chrome `dua-don-smoke` bước 7b).
+- e2e ĐẦY ĐỦ cuối Giai đoạn 1 trên `711322ab` (`npm run test:e2e`, không kèm tên): "E2E: 51/51 kịch bản xanh" (551 giây, 3 nhóm), gồm `audit-invariants` và bốn kiểm log cuối (không `day_loi`, H5 ghi nhiều lần, không lỗi lạ bảng vé, không lộ câu hỏi trợ lý).
