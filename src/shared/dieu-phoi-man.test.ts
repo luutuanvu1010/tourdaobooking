@@ -359,6 +359,24 @@ test("vòng 5e: KHACH_DA_DOI → hành động 'Cập nhật khách theo đơn' 
   assert.deepEqual(viecCanXuLy(L, { dieuPhoi: false, khanCap: false, quanLyXe: false }).flatMap((x) => x.hanhDong), []);
 });
 
+test("ADR-0104 Đ2.11: nút 'Cập nhật khách theo đơn' ở Cần xử lý cho MỌI lý do giữ nút gỡ được (đơn huỷ, chặng đã bỏ, đơn không xác nhận, thừa suất, khách đổi) — chỉ khi có ô điều phối; lý do khác không có nút", () => {
+  const L = lich({
+    chuyen: [
+      chuyen({ lyDoGiu: [ly("DON_DA_HUY", "Có đơn đã huỷ còn khách trên chuyến: TD-8")] }),
+      chuyen({ id: "t2", ma: "CX-3009-04", lyDoGiu: [ly("CHANG_DA_DONG", "Có chặng đã bỏ còn khách trên chuyến: TD-9")] }),
+      chuyen({ id: "t3", ma: "CX-3009-05", lyDoGiu: [ly("CHANG_KHONG_HOP_LE", "Chặng chưa xếp được: TD-7")] }),
+      chuyen({ id: "t4", ma: "CX-3009-06", lyDoGiu: [ly("THUA_SUAT", "Chặng đang xếp nhiều người hơn số khách: TD-6 3/2")] }),
+      chuyen({ id: "t5", ma: "CX-3009-08", lyDoGiu: [ly("GIO_HEN_NGOAI_CHUYEN", "Ngày đón của chặng đã đổi ra ngoài ngày chạy của chuyến: TD-5"), ly("THIEU_SUAT", "Chặng chưa xếp đủ người lên xe: TD-5 1/2")] }),
+    ],
+  });
+  const v = viecCanXuLy(L, { dieuPhoi: true, khanCap: false, quanLyXe: false });
+  for (const id of ["t1", "t2", "t3", "t4"]) {
+    assert.deepEqual(v.find((x) => x.href === `/chuyen?id=${id}`)!.hanhDong, [{ nhan: "Cập nhật khách theo đơn", kieu: "cap-nhat-khach", tripId: id }], id);
+  }
+  assert.deepEqual(v.find((x) => x.href === "/chuyen?id=t5")!.hanhDong, [], "chỉ dời ngày / thiếu suất: nút không gỡ được → không nút");
+  assert.deepEqual(viecCanXuLy(L, { dieuPhoi: false, khanCap: false, quanLyXe: false }).flatMap((x) => x.hanhDong), [], "không ô điều phối → không nút");
+});
+
 test("vòng 5e: câu khoá nói cả hai lệnh 'theo đơn' không cần điều chỉnh khẩn cấp; KHACH_DA_DOI thuộc dòng 'Đủ tên khách'", () => {
   assert.match(cauKhoaMoc(360, { khanCap: false, dieuPhoi: true }), /Cập nhật điểm theo đơn và cập nhật khách theo đơn không cần điều chỉnh khẩn cấp\.$/);
   assert.match(cauKhoaMoc(360, { khanCap: true, dieuPhoi: true }), /Cập nhật điểm theo đơn và cập nhật khách theo đơn không cần điều chỉnh khẩn cấp\.$/);

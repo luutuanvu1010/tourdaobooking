@@ -19,7 +19,7 @@ import { NHAN_KHAN_CAP, NUT_VUOT, cauKhoaMoc, thanPhaLe, chuyenXepDuoc, dieuKien
 import { NHAN_TU_CHOI_GOI_BAO, type MaTuChoiGoiBao } from "../src/shared/goi-bao";
 import { ApiError } from "./api";
 import type { CapNhatDiemResponse, CapNhatKhachResponse, ChuyenChiTietResponse, CuuHoResponse, DiemChuyenDto, HuongDanVienListResponse, LichChungResponse } from "../src/shared/contracts";
-import { NUT_CAP_NHAT_KHACH } from "../src/shared/ly-do-giu";
+import { NUT_CAP_NHAT_KHACH, giuCapNhatKhach } from "../src/shared/ly-do-giu";
 import { can } from "../src/shared/permissions";
 import { api } from "./api";
 import { byId, h, replaceChildren, type Child } from "./dom";
@@ -149,11 +149,13 @@ function ve(): void {
     ], undefined, nut ? [h("div", { class: "banner-actions" }, nut)] : []));
   }
   // Vòng 5e (R-P29): lý do giữ "Khách trong xe không còn trong đơn" + nút "Cập nhật khách theo đơn" — khuôn dải trên (không phá lệ, kể cả trong vùng khoá).
-  const khachDoi = c.lyDoGiu.filter((l) => l.ma === "KHACH_DA_DOI");
+  // ADR-0104 Đ2.11: nút cũng gỡ đơn huỷ / chặng đã bỏ / đơn không xác nhận / thừa suất (`giuCapNhatKhach`) — tiêu đề trung tính khi không có khách đổi.
+  const khachDoi = giuCapNhatKhach(c.lyDoGiu);
   if (keHoach && khachDoi.length) {
     const nut = coDieuPhoi ? h("button", { type: "button", class: "vc-btn btn btn-primary", "data-action": "cap-nhat-khach" }, NUT_CAP_NHAT_KHACH) : null;
     nut?.addEventListener("click", () => capNhatKhach(nut));
-    dais.push(dai("danger", "Chuyến bị giữ: Khách trong đơn đã đổi — cập nhật khách", [
+    const tieuDe = khachDoi.some((l) => l.ma === "KHACH_DA_DOI") ? "Chuyến bị giữ: Khách trong đơn đã đổi — cập nhật khách" : "Chuyến bị giữ: Đơn đã đổi sau khi xếp — cập nhật khách";
+    dais.push(dai("danger", tieuDe, [
       ...khachDoi.map((l) => l.loiNhan),
       `Ai xử lý: ${khachDoi[0]!.aiXuLyNhan}. Không cần điều chỉnh khẩn cấp hay phá lệ, kể cả trong vùng khoá trước giờ xuất bến.`,
     ], undefined, nut ? [h("div", { class: "banner-actions" }, nut)] : []));
@@ -692,7 +694,7 @@ async function capNhatKhach(nut: HTMLButtonElement): Promise<void> {
     duLieu = await docLai(r);
     baoCao = r.daCapNhat > 0
       ? dai("ok", "Đã cập nhật khách theo đơn", [`Cập nhật ${r.daCapNhat} chỗ theo khách hiện có của đơn.`])
-      : dai("info", "Không có khách nào cần cập nhật", ["Khách trong xe đã khớp các đơn trong chuyến."]);
+      : dai("info", "Không có khách nào cần cập nhật", ["Không còn chỗ nào cập nhật được theo đơn. Thừa chỗ mà chỗ nào cũng đã có tên khách thì người xếp xe tự rút bớt."]);
   } catch (e) {
     const l = docLoiLenh(e);
     baoCao = l.cu ? dai("warning", "Chuyến vừa được người khác sửa — tải lại", ["Tải lại để xem bản mới rồi bấm lại."], () => location.reload()) : dai("danger", l.tieuDe, l.dong);

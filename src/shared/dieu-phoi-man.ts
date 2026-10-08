@@ -7,7 +7,7 @@
 import { nhanThoiLuong } from "./chinh-sach-hien-thi.ts";
 import type { CanhBaoLichDto, ChangLichDto, ChuyenTomTatDto, DiemChuyenDto, GioHenDto, GioVnDto, GoiBaoChangDto, LichChungResponse, LyDoGiuDto, MucNhacGoiDto, NhatKyChuyenDto } from "./contracts.ts";
 import { AI_XU_LY_GIO_HEN_DOI, NHAN_GIO_HEN_DOI, moTaDoiGio } from "./goi-bao.ts";
-import { NUT_CAP_NHAT_KHACH } from "./ly-do-giu.ts";
+import { NUT_CAP_NHAT_KHACH, giuCapNhatKhach } from "./ly-do-giu.ts";
 import type { LopVuot } from "./moc-toi-thieu.ts";
 import { can, type PermissionHolder } from "./permissions.ts";
 import { maskLongDigits } from "./text-guards.ts";
@@ -153,7 +153,7 @@ export const lopHop = (lop: unknown): LopVuot => (lop === "KHAN_CAP" ? "KHAN_CAP
 export type HanhDong =
   | { nhan: string; kieu: "link"; href: string }
   | { nhan: string; kieu: "cap-nhat-diem"; tripId: string }
-  /** Vòng 5e (R-P29, chủ lần 16): "Cập nhật khách theo đơn" — lý do giữ KHACH_DA_DOI; khuôn "cap-nhat-diem". */
+  /** Vòng 5e (R-P29, chủ lần 16): "Cập nhật khách theo đơn" — lý do giữ nút gỡ được (`MA_GIU_CAP_NHAT_KHACH`, ADR-0104 Đ2.11); khuôn "cap-nhat-diem". */
   | { nhan: string; kieu: "cap-nhat-khach"; tripId: string }
   /** ADR-0051: "Đã gọi báo" — gửi lại `phienBan` + giờ "mới" màn đã hiện. */
   | { nhan: string; kieu: "goi-bao"; legId: string; phienBan: number; gioMoi: GioHenDto; maDon: string };
@@ -193,7 +193,7 @@ export function viecCanXuLy(l: LichChungResponse, co: { dieuPhoi: boolean; khanC
     const ma = new Set(c.lyDoGiu.map((x) => x.ma));
     const hanhDong: HanhDong[] = [];
     if (ma.has("NOI_HEN_DOI") && co.dieuPhoi) hanhDong.push({ nhan: "Cập nhật điểm theo đơn", kieu: "cap-nhat-diem", tripId: c.id });
-    if (ma.has("KHACH_DA_DOI") && co.dieuPhoi) hanhDong.push({ nhan: NUT_CAP_NHAT_KHACH, kieu: "cap-nhat-khach", tripId: c.id });
+    if (giuCapNhatKhach(c.lyDoGiu).length > 0 && co.dieuPhoi) hanhDong.push({ nhan: NUT_CAP_NHAT_KHACH, kieu: "cap-nhat-khach", tripId: c.id }); // ADR-0104 Đ2.11
     if (ma.has("DIEU_KIEN_GIAY_TO_XE") && co.quanLyXe) hanhDong.push({ nhan: "Mở giấy tờ xe", kieu: "link", href: `/xe-chi-tiet?id=${encodeURIComponent(c.xe.id)}` });
     if (ma.has("CHUA_CO_TAI_XE") && co.dieuPhoi) hanhDong.push({ nhan: "Chọn tài xế", kieu: "link", href: `/chuyen-sua?id=${encodeURIComponent(c.id)}` });
     out.push({

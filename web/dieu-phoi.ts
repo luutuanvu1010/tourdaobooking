@@ -15,7 +15,7 @@ import {
   type HangXe, type KhoiChuyen, type ViecCanXuLy,
 } from "../src/shared/dieu-phoi-man";
 import type { ChangLichDto, ChuyenChiTietResponse, ChuyenTomTatDto, CapNhatDiemResponse, CapNhatKhachResponse, GoiBaoChangDto, LichChungResponse, NhacGoiKhachResponse } from "../src/shared/contracts";
-import { NUT_CAP_NHAT_KHACH } from "../src/shared/ly-do-giu";
+import { NUT_CAP_NHAT_KHACH, giuCapNhatKhach } from "../src/shared/ly-do-giu";
 import { NHAN_TU_CHOI_GOI_BAO, type MaTuChoiGoiBao } from "../src/shared/goi-bao";
 import { ApiError } from "./api";
 import { can } from "../src/shared/permissions";
@@ -306,8 +306,9 @@ function theChon(): HTMLElement | null {
   const noiDoi = c.trangThai === "PLANNED" && c.lyDoGiu.some((x) => x.ma === "NOI_HEN_DOI") && co.dieuPhoi;
   const capNhat = noiDoi ? h("button", { type: "button", class: "vc-btn btn btn-primary", "data-action": "cap-nhat-diem" }, "Cập nhật điểm theo đơn") : null;
   capNhat?.addEventListener("click", () => void capNhatDiem(c, capNhat));
-  // Vòng 5e (R-P29): "Cập nhật khách theo đơn" cạnh "Cập nhật điểm theo đơn" — cùng điều kiện (chuyến lên kế hoạch + ô điều phối), lý do giữ KHACH_DA_DOI.
-  const khachDoi = c.trangThai === "PLANNED" && c.lyDoGiu.some((x) => x.ma === "KHACH_DA_DOI") && co.dieuPhoi;
+  // Vòng 5e (R-P29): "Cập nhật khách theo đơn" cạnh "Cập nhật điểm theo đơn" — cùng điều kiện (chuyến lên kế hoạch + ô điều phối); lý do giữ nút gỡ được
+  // (ADR-0104 Đ2.11 — `giuCapNhatKhach`: khách đổi, đơn huỷ, chặng đã bỏ, đơn không xác nhận, thừa suất).
+  const khachDoi = c.trangThai === "PLANNED" && giuCapNhatKhach(c.lyDoGiu).length > 0 && co.dieuPhoi;
   const capNhatKh = khachDoi ? h("button", { type: "button", class: "vc-btn btn btn-primary", "data-action": "cap-nhat-khach" }, NUT_CAP_NHAT_KHACH) : null;
   capNhatKh?.addEventListener("click", () => void capNhatKhach(c, capNhatKh));
   return h(
