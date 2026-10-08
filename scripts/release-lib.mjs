@@ -28,6 +28,31 @@ export function parseSecretNames(output) {
     return null;
   }
 }
+/**
+ * CỔNG MỐC TIN ĐỔI (ADR-0062; phiếu kiểm A3 C1, 2026-10-08). Tin "đơn đổi sau xác nhận" chỉ tính dòng nhật ký từ MOC_TIN_DOI (src/shared/thong-bao.ts) —
+ * lần phát hành ĐẦU TIÊN mang migration 0086 mà mốc còn cũ thì dòng đổi của tối đa 30 ngày trước hiện thành tin hàng loạt ngay ngày triển khai; mốc xa về sau
+ * (gõ nhầm năm) thì tin bị câm tới lúc đó. Hàm thuần: 0086 không còn chờ áp ⇒ không kiểm (các lần phát hành sau không vướng); còn chờ ⇒ mốc phải đúng dạng
+ * toISOString và nằm trong [lúc chạy − 24 giờ, lúc chạy + 24 giờ].
+ */
+export const MIGRATION_TIN_DOI = "0086_aud_order_change.sql";
+const MOC_TIN_DOI_LECH_TOI_DA_MS = 24 * 3600e3;
+export function kiemMocTinDoi(pending, mocIso, nowMs) {
+  if (!pending.includes(MIGRATION_TIN_DOI)) return { ok: true, kiem: false };
+  const sua = "sửa hằng MOC_TIN_DOI trong src/shared/thong-bao.ts thành thời điểm phát hành (giờ UTC, dạng 2026-10-10T03:00:00.000Z)";
+  const ms = typeof mocIso === "string" && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(mocIso) ? Date.parse(mocIso) : NaN;
+  if (Number.isNaN(ms) || new Date(ms).toISOString() !== mocIso) {
+    return { ok: false, reason: `MOC_TIN_DOI không đúng dạng thời điểm ISO (${String(mocIso)}) — ${sua}.` };
+  }
+  const lech = ms - nowMs;
+  if (lech < -MOC_TIN_DOI_LECH_TOI_DA_MS) return { ok: false, reason: `MOC_TIN_DOI (${mocIso}) cũ hơn 24 giờ so với lúc phát hành — lần phát hành đầu mang ${MIGRATION_TIN_DOI} sẽ hiện tin đổi cũ hàng loạt; ${sua}.` };
+  if (lech > MOC_TIN_DOI_LECH_TOI_DA_MS) return { ok: false, reason: `MOC_TIN_DOI (${mocIso}) xa hơn 24 giờ về sau — tin đổi sẽ không hiện tới lúc đó; ${sua}.` };
+  return { ok: true, kiem: true };
+}
+/** Đọc hằng thật bằng import (Node 22 chạy .ts trực tiếp) — không chép giá trị (bài src/release-lib.test.ts "docMocTinDoiMacDinh"). */
+export async function docMocTinDoiMacDinh() {
+  return (await import(new URL("../src/shared/thong-bao.ts", import.meta.url).href)).MOC_TIN_DOI;
+}
+
 const RED = "\x1b[31m";
 const BOLD = "\x1b[1m";
 const RESET = "\x1b[0m";
@@ -232,7 +257,7 @@ const RETRY_7403_MS = 5_000;
  * @param version số phiên bản ở máy (mục đầu CHANGELOG) — vỏ scripts/trien-khai.mjs truyền vào; lib không tự import mã ứng dụng.
  * @param sleep chờ trước khi thử lại cổng sau; test truyền hàm tức thì.
  */
-export async function trienKhai({ run, ask, isTTY, log, now = () => new Date(), sleep = realSleep, version }) {
+export async function trienKhai({ run, ask, isTTY, log, now = () => new Date(), sleep = realSleep, version, docMocTinDoi = docMocTinDoiMacDinh }) {
   const stop = makeStop(log);
   if (!isTTY) return stop(NOT_TTY);
 
@@ -291,6 +316,20 @@ export async function trienKhai({ run, ask, isTTY, log, now = () => new Date(), 
   if (!parsed.ok) return stop(`đầu ra \`migrations list\` ${parsed.reason}.`, String(list.stdout ?? "").slice(0, 800));
   const pending = parsed.names;
   log(pending.length ? `Còn ${pending.length} migration chưa áp: ${pending.join(", ")}` : "Không còn migration nào chưa áp.");
+
+  // 2a. cổng mốc tin đổi (ADR-0062; phiếu kiểm A3 C1) — CHỈ khi lần này mang 0086; chỉ đọc một hằng trong mã, không gọi gì ra ngoài.
+  if (pending.includes(MIGRATION_TIN_DOI)) {
+    log("\n▶ Cổng mốc tin đổi (lần phát hành đầu mang 0086)");
+    let moc;
+    try {
+      moc = await docMocTinDoi();
+    } catch (e) {
+      return stop("không đọc được MOC_TIN_DOI trong src/shared/thong-bao.ts — CHƯA có gì bị đổi trên production.", String(e?.message ?? e).slice(0, 300));
+    }
+    const k = kiemMocTinDoi(pending, moc, now().getTime());
+    if (!k.ok) return stop(`${k.reason} CHƯA có gì bị đổi trên production.`, "Báo AI sửa mốc (một dòng trong src/shared/thong-bao.ts), gộp lại vào main, rồi chạy lại `npm run trien-khai`.");
+    log(`MOC_TIN_DOI = ${moc}: đạt.`);
+  }
 
   // 2b. cổng số phiên bản TRƯỚC deploy (chỉ đọc): bản ở máy phải MỚI HƠN production — bắt lỗi quên thêm mục nhật ký thay đổi.
   // 1 = chưa đạt: hỏi (deploy lại đúng bản đang chạy là trường hợp hợp lệ duy nhất). 2 hay mã lạ = không chạy được: DỪNG, không bao giờ coi là đạt.

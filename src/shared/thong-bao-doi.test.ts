@@ -125,7 +125,21 @@ test("NT-B8 cùng đơn + cùng người + cùng mốc → MỘT tin (nối ph�
   assert.equal(typeof MOC_TIN_DOI, "string");
 });
 
-test.todo("NT-B16 MOC_TIN_DOI ≠ giá trị tạm '2026-09-30T00:00:00.000Z' và ≥ ngày mục đầu CHANGELOG — bật ở K1B (đặt mốc thật lúc gộp)");
+// NT-B16 (phiếu kiểm A3 C1): mốc thật do CỔNG MÁY ở `npm run trien-khai` canh (kiemMocTinDoi, scripts/release-lib.mjs) — không dựa trí nhớ người gộp. Bài này
+// khoá: hằng đúng dạng toISOString (cổng đọc được), và cổng chặn khi lần phát hành đầu mang 0086 chạy hơn 24 giờ sau mốc (viết tương đối theo hằng: đúng cả
+// sau khi chủ đặt mốc thật).
+test("NT-B16 MOC_TIN_DOI: đúng dạng ISO đủ mili-giây; cổng phát hành chặn lần đầu mang 0086 khi mốc cũ hơn 24 giờ, cho qua khi mốc đúng lúc phát hành", async () => {
+  type K = { ok: true; kiem: boolean } | { ok: false; reason: string };
+  const { kiemMocTinDoi, MIGRATION_TIN_DOI } = (await import(new URL("../../scripts/release-lib.mjs", import.meta.url).href)) as {
+    kiemMocTinDoi: (p: string[], m: unknown, n: number) => K; MIGRATION_TIN_DOI: string;
+  };
+  assert.match(MOC_TIN_DOI, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
+  assert.equal(new Date(MOC_TIN_DOI).toISOString(), MOC_TIN_DOI);
+  const t = Date.parse(MOC_TIN_DOI);
+  assert.equal(kiemMocTinDoi([MIGRATION_TIN_DOI], MOC_TIN_DOI, t + 25 * 3600e3).ok, false, "quên đặt mốc (phát hành > 24 giờ sau mốc) → dừng");
+  assert.deepEqual(kiemMocTinDoi([MIGRATION_TIN_DOI], MOC_TIN_DOI, t + 3600e3), { ok: true, kiem: true }, "mốc = lúc phát hành → đạt");
+  assert.deepEqual(kiemMocTinDoi([], MOC_TIN_DOI, t + 400 * 24 * 3600e3), { ok: true, kiem: false }, "0086 đã áp → không kiểm nữa");
+});
 
 // ---- NT-B9: Đối tác / Thực tập mở hẹp ĐÚNG loại tin mới, đúng đơn họ lập -------------------------------------------------------------------------
 
