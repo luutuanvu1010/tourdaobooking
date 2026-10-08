@@ -3,8 +3,9 @@
 // "Người phụ trách" do module `dispatch` giữ: `orders` KHÔNG import `dispatch` mà hỏi qua `ctx.isAssigned(orderId)` (gốc lắp ráp tiêm — ADR-0007 điều 4(b)).
 import { auditStatement, getAuditTrail } from "../audit";
 import type {
-  CanhBaoMocDto, CatalogChangeDto, CatalogChangedBody, DashboardResponse, DraftCountResponse, IncompleteTripBody, MyAssignmentDto, NhapTayResponse, OrderDetailDto, OrderDetailResponse,
-  OrderListResponse, MocToiThieuResponse, NguoiLapResponse, OrderResponse, PassengerListResponse, PaxCounts, PoolResponse, ShortNoticeRequiredBody,
+  CanhBaoMocDto, CatalogChangeDto, CatalogChangedBody, DashboardResponse, DraftCountResponse, IncompleteTripBody, MoneyEditResponse, MyAssignmentDto, NhapTayResponse, OrderDetailDto,
+  OrderDetailResponse, OrderListResponse, MocToiThieuResponse, NguoiLapResponse, OrderResponse, PassengerListResponse, PaxCounts, PoolResponse, ShortNoticeRequiredBody,
+  SuaSoKhachDichVuDto,
 } from "../../shared/contracts";
 import { UUID_RE, error, intParam, json, readJson, trangDon } from "../../shared/http";
 import { can, seesOnlyAssignedOrders, type PermissionHolder } from "../../shared/permissions";
@@ -12,10 +13,10 @@ import { route, type AppModule } from "../../shared/router";
 import { vnToday, vnWeekRange } from "../../shared/vn-date";
 import { docLocDon } from "../../shared/loc-don";
 import { LOC_NHAP_TOI_DA_NGAY, LOC_NHAP_TOI_DA_UNG_VIEN, laDongNhapKeToan, soNgayKhoang } from "../../shared/nhap-ke-toan";
-import { editablePaxCodesOf, planMoneyEdit } from "./money-adjustment";
+import { editablePaxCodesOf, planMoneyEdit, type AdjustmentEntry } from "./money-adjustment";
 import {
   addLeg, cancelOrder, changeBooker, changeLeg, cocCuNhap, confirmOrder, countDrafts, createOrder, effectivePax, findOrder, getDashboard, getDepartDates, getLatestAdjustment, getMeta, getOrderRef,
-  demThanCu, getServicesForSubtotal, getStoredServices, insertMoneyAdjustment, listOrderIds, listOrders, listPoolSources, replaceLeg, updateDraftOrder, updateTrip, writePassengerChange,
+  chayLoSuaSoKhach, demThanCu, getServicesForSubtotal, getStoredServices, insertMoneyAdjustment, listOrderIds, listOrders, listPoolSources, replaceLeg, updateDraftOrder, updateTrip, writePassengerChange,
 } from "./repository";
 import {
   legById, legDatGapByOrder, legLichChungNhapRows, legLichChungRows, legShortNotice, legTripRows, manualPolicy, manualPolicyInsert, orderContactRows, passengerRowsByOrders,
@@ -30,6 +31,8 @@ import type { PaxCode } from "../../shared/order-lines";
 import { soNguoiChang, tongKhach } from "../../shared/so-nguoi-chang";
 import { maskLongDigits } from "../../shared/text-guards";
 import { doanSoKhach, ghepLyDo } from "../../shared/tin-doi-don";
+import type { HanhDongDoiSoKhach } from "../../shared/audit-actions";
+import { canhBaoTongAm, docThanSuaSoKhach, duocSuaSoKhachVanPhong } from "../../shared/so-khach-van-phong";
 import { docLyDoHuy, docPhanLoai, nhanNhomHuy, type LyDoHuy } from "../../shared/ly-do-huy";
 import { lyDoHienHanh, phanLoaiStatement } from "./huy-don-repo";
 import { toPoolOrders } from "./pool";
@@ -58,6 +61,9 @@ const CANCELLED = () => error(409, "not_editable", "Đơn đã huỷ, không s�
 /** Sổ tiền lượt 1 (ADR-0025 đ5): đơn đã "Đã giao – đã thu đủ" bị khoá — mọi route ghi từ chối SỚM bằng câu tiếng Việt (trigger 0044 là lưới cuối). */
 const DA_GIAO = () => error(409, "order_delivered", "Đơn đã Đã giao – đã thu đủ: không sửa, huỷ hay đổi người phụ trách được nữa. Sai sót thì Kế toán dùng “Thay lần thu”.");
 const STALE = () => error(409, "stale", "Đơn vừa được người khác sửa, hãy tải lại rồi sửa tiếp.");
+/** ADR-0063 D1: văn phòng sửa số khách — ô `order.money.edit` KHÔNG ngữ cảnh "đang phụ trách" (Bán hàng chỉ đơn mình lập; HDV dùng "Việc của tôi"). */
+const MONEY_EDIT_FORBIDDEN = () => error(403, "forbidden", "Chỉ người lập đơn (Bán hàng), Kế toán, Quản trị hoặc Toàn quyền mới sửa được số khách của đơn này.");
+const MONEY_EDIT_DRAFT = () => error(409, "use_order_form", "Đơn nháp: sửa số khách ngay trong form đơn.");
 const RACED = () => error(409, "invalid_transition", "Đơn vừa được người khác đổi trạng thái, hãy tải lại.");
 const PARTNER_PRICE = () => error(403, "forbidden", RETAIL_PRICE_MESSAGE);
 const PARTNER_DISCOUNT = () => error(403, "forbidden", PARTNER_DISCOUNT_MESSAGE);
@@ -451,35 +457,60 @@ export const donChoBienNhan = (db: D1Database, id: string): Promise<OrderDetailD
 export type MoneyEditResult = { ok: true; detail?: string } | { ok: false; code: "not_found" | "not_confirmed" | "invalid_input" | "stale"; message?: string };
 
 /**
- * Sửa số khách qua đường hẹp của người phụ trách CẤP HẸP (FIELD, ADR-0014 điều 6) — CHỈ ghi thêm một dòng điều chỉnh, không đụng
- * order_service/order_item/cột tiền của orders. `body` là thân JSON THÔ (đã đọc từ request, route chưa kiểm). Mọi quyết định (kiểm dạng, lưu y
- * nguyên thì không ghi, tiền trước/sau theo ĐƠN GIÁ ĐÃ THOẢ THUẬN) nằm ở luật thuần `money-adjustment.ts:planMoneyEdit`; hàm
- * này chỉ đọc D1 → gọi luật → ghi. Tiền trước/sau tính bằng `effectiveSubtotal` trên MỌI dịch vụ (kể cả nhập tay — bài học Đợt E task 7/9, lưới
- * e2e ở `tests/e2e/dispatch.mjs` khối D3 đọc thẳng cột đã lưu).
+ * Kết quả SOẠN một lần sửa số khách (chưa chạy gì): `cau` = câu ghi đơn chưa chạy (dòng điều chỉnh + nhật ký cùng id), `auditId` = id đó (sinh trước),
+ * `truoc` / `sau` = số khách từng dịch vụ trước / sau (để nối đồng bộ chuyến — ADR-0104 Đ2, thi công sau — tính "số người lệnh này tăng ở từng chặng").
  */
-export async function editMoneyAsHandler(db: D1Database, orderId: string, staffId: string, body: Record<string, unknown> | null): Promise<MoneyEditResult> {
-  const meta = await getMeta(db, orderId);
-  if (!meta) return { ok: false, code: "not_found" };
-  if (meta.status !== "confirmed") return { ok: false, code: "not_confirmed" };
+export type SoanSuaSoKhach =
+  | { ok: true; ghi: false }
+  | { ok: true; ghi: true; auditId: string; cau: D1PreparedStatement[]; detail: string; truoc: AdjustmentEntry[]; sau: AdjustmentEntry[] }
+  | { ok: false; code: "invalid_input"; message: string };
 
+/**
+ * MỘT đường soạn lần sửa số khách cho CẢ HAI route (HDV `handler-money-edit` qua `editMoneyAsHandler`, văn phòng `money-edit` — ADR-0063 D1): đọc D1 → luật
+ * thuần `money-adjustment.ts:planMoneyEdit` (kiểm dạng, y nguyên thì không ghi, tiền trước/sau theo ĐƠN GIÁ ĐÃ THOẢ THUẬN bằng `effectiveSubtotal` trên MỌI
+ * dịch vụ kể cả nhập tay — Hiến chương 5.4 một luật tiền) → `detail` khuôn A3 → câu ghi CHƯA chạy (`insertMoneyAdjustment`). Nơi gọi chạy MỘT `db.batch`
+ * (`chayLoSuaSoKhach`). Không tự kiểm quyền / trạng thái đơn — route đã làm trước khi gọi.
+ */
+async function soanSuaSoKhach(
+  db: D1Database,
+  orderId: string,
+  staffId: string,
+  body: Record<string, unknown> | null,
+  action: HanhDongDoiSoKhach,
+): Promise<SoanSuaSoKhach> {
   const [stored, latest, servicesByOrder] = await Promise.all([
     getStoredServices(db, orderId),
     getLatestAdjustment(db, orderId),
     getServicesForSubtotal(db, [orderId]),
   ]);
+  const services = servicesByOrder.get(orderId) ?? [];
   const plan = planMoneyEdit({
-    services: servicesByOrder.get(orderId) ?? [],
+    services,
     storedPax: new Map(stored.map((s) => [s.id, s.pax])),
     latestAfter: latest?.after ?? null,
     body,
   });
   if (!plan.ok) return { ok: false, code: plan.code, message: plan.message };
-  if (!plan.write) return { ok: true }; // y nguyên số khách: không ghi dòng điều chỉnh, không đổi tiền (DK-T2-01)
+  if (!plan.write) return { ok: true, ghi: false }; // y nguyên số khách: không ghi dòng điều chỉnh, không đổi tiền (DK-T2-01)
+  // ADR-0062 Đ2: đoạn đầu có khuôn "số khách: …" (tên danh mục, hoặc nhãn "dịch vụ nhập tay"), lý do LUÔN ở cuối.
+  const detail = ghepLyDo(doanSoKhach(plan.before, plan.after, services), plan.reason);
+  const { auditId, cau } = insertMoneyAdjustment(db, orderId, staffId, (latest?.seq ?? 0) + 1, plan.before, plan.after, plan.subtotalBefore, plan.subtotalAfter, action, detail);
+  return { ok: true, ghi: true, auditId, cau, detail, truoc: plan.before, sau: plan.after };
+}
 
-  // ADR-0062 Đ2: đoạn đầu có khuôn "số khách: …" (tên danh mục, hoặc nhãn "dịch vụ nhập tay"), lý do tự gõ LUÔN ở cuối.
-  const detail = ghepLyDo(doanSoKhach(plan.before, plan.after, servicesByOrder.get(orderId) ?? []), plan.reason);
-  const ok = await insertMoneyAdjustment(db, orderId, staffId, (latest?.seq ?? 0) + 1, plan.before, plan.after, plan.subtotalBefore, plan.subtotalAfter, "order_money_adjusted_by_field", detail);
-  return ok ? { ok: true, detail } : { ok: false, code: "stale" };
+/**
+ * Sửa số khách qua đường hẹp của người phụ trách CẤP HẸP (FIELD, ADR-0014 điều 6) — CHỈ ghi thêm một dòng điều chỉnh, không đụng
+ * order_service/order_item/cột tiền của orders. `body` là thân JSON THÔ (đã đọc từ request, route chưa kiểm; lý do chữ tự gõ — hành vi cũ, chưa đổi sang mã).
+ * Soạn qua `soanSuaSoKhach` (một đường với văn phòng), chạy MỘT lô. Lưới e2e ở `tests/e2e/dispatch.mjs` khối D3 đọc thẳng cột đã lưu.
+ */
+export async function editMoneyAsHandler(db: D1Database, orderId: string, staffId: string, body: Record<string, unknown> | null): Promise<MoneyEditResult> {
+  const meta = await getMeta(db, orderId);
+  if (!meta) return { ok: false, code: "not_found" };
+  if (meta.status !== "confirmed") return { ok: false, code: "not_confirmed" };
+  const soan = await soanSuaSoKhach(db, orderId, staffId, body, "order_money_adjusted_by_field");
+  if (!soan.ok) return { ok: false, code: soan.code, message: soan.message };
+  if (!soan.ghi) return { ok: true };
+  return (await chayLoSuaSoKhach(db, soan.cau)) ? { ok: true, detail: soan.detail } : { ok: false, code: "stale" };
 }
 
 /**
@@ -764,8 +795,15 @@ export const ordersModule: AppModule = {
       const history = can(staff, "order.history.view", scope)
         ? lichSuTheoVai(await getAuditTrail(env.DB, order.id), xemDuDatGap(staff)).filter((e) => xemNhapKeToan || !laDongNhapKeToan(e.action))
         : [];
+      // ADR-0063 D1: dữ liệu bảng "Sửa số khách dịch vụ" — chỉ khi người xem sửa được (cùng hàm ẩn/hiện của giao diện); loại khách sửa được tính từ BẢN CHỤP GỐC
+      // (`findOrder`, trước điều chỉnh — loại đã về 0 vẫn còn ô, cùng cách "Việc của tôi").
+      const suaSoKhach: SuaSoKhachDichVuDto[] | null = duocSuaSoKhachVanPhong(staff, order)
+        ? ((await findOrder(env.DB, order.id))?.services ?? []).filter((s) => s.catalogCode !== null).map((s) => ({ serviceId: s.id, loaiKhach: [...editablePaxCodesOf(s)] }))
+        : null;
       // Đơn đã "Đã giao" bị khoá (ADR-0025 đ5) ⇒ không còn nút sửa (giao diện chỉ ẩn/hiện; máy chủ từ chối ở mọi route ghi).
-      return json({ order, history, canModify: can(staff, "order.modify", scope) && order.deliveredAt === null, mocToiThieuPhut: moc?.phut ?? null } satisfies OrderDetailResponse);
+      return json({
+        order, history, canModify: can(staff, "order.modify", scope) && order.deliveredAt === null, mocToiThieuPhut: moc?.phut ?? null, suaSoKhach,
+      } satisfies OrderDetailResponse);
     }),
 
     route("PUT", "/api/orders/:id", "orders", async ({ env, request, params, staff, isAssigned, baoThayDoi, mocToiThieu }) => {
@@ -1023,6 +1061,39 @@ export const ordersModule: AppModule = {
       }
       baoThayDoi({ orderId: id, thayDoi: "sua" });
       return json((await passengerList(env.DB, id)) satisfies PassengerListResponse);
+    }),
+
+    // ---- VĂN PHÒNG SỬA SỐ KHÁCH sau xác nhận (ADR-0063 D1, chủ duyệt 2026-10-08). Ô `order.money.edit` hỏi KHÔNG truyền `assigned`: Bán hàng chỉ đơn MÌNH lập
+    // (own), Kế toán / Quản trị / Toàn quyền mọi đơn (any); HDV giữ route hẹp `handler-money-edit` (dispatch). Thứ tự: 404 → 403 → 409 Đã giao (trước khi đọc
+    // thân; trigger 0044 là lưới cuối) → 409 nháp / huỷ → 400 thân (lý do MÃ ĐÓNG ADR-0023 điều 4, không chữ tự gõ, không số tiền) → 409 stale. KHÔNG chặn theo
+    // ngày đi; KHÔNG chặn tổng âm (chỉ cảnh báo). Tiền: `planMoneyEdit` (một luật với đường HDV) — không bao giờ tin số từ trình duyệt. Đây không phải đường
+    // thêm / sửa dịch vụ nhập tay (chỉ số khách của dịch vụ danh mục đã có — ADR-0061 điều 5 không áp, câu duyệt của chủ).
+    route("POST", "/api/orders/:id/money-edit", "office", async ({ env, request, params, staff, baoThayDoi }) => {
+      const id = params.id!;
+      if (!UUID_RE.test(id)) return NOT_FOUND();
+      const meta = await getMeta(env.DB, id);
+      if (!meta) return NOT_FOUND();
+      if (!can(staff, "order.money.edit", { ownerId: meta.staffId })) return MONEY_EDIT_FORBIDDEN();
+      if (meta.deliveredAt) return DA_GIAO();
+      if (meta.status === "draft") return MONEY_EDIT_DRAFT();
+      if (meta.status === "cancelled") return CANCELLED();
+      const than = docThanSuaSoKhach(await readJson(request));
+      if (!than.ok) return error(400, "invalid_input", than.message);
+      // Lý do đi vào luật chung dưới dạng NHÃN cố định do máy chủ chọn (planMoneyEdit nhận `reason` chữ — cùng bộ đọc với đường HDV).
+      const soan = await soanSuaSoKhach(env.DB, id, staff.id, { reason: than.nhan, services: than.services }, "order_money_adjusted");
+      if (!soan.ok) return error(400, "invalid_input", soan.message);
+      if (!soan.ghi) {
+        const order = (await loadOrderView(env.DB, id, xemDuDatGap(staff)))!;
+        return json({ order, daGhi: false, canhBaoTongAm: canhBaoTongAm(order.total) } satisfies MoneyEditResponse);
+      }
+      // ADR-0104 Đ2 (Đồng bộ chuyến theo đơn — chủ đã duyệt, thi công SAU): chèn ĐÚNG ở đây
+      //   `const lo = await dongBoChuyen({ orderId: id, auditIdDon: soan.auditId, ..., cauDon: soan.cau })` (hàm tiêm của gốc lắp ráp, trả danh sách đầy đủ),
+      // rồi chạy `lo` thay cho `soan.cau`. Hôm nay lô chỉ có câu đơn.
+      const lo = soan.cau;
+      if (!(await chayLoSuaSoKhach(env.DB, lo))) return STALE();
+      baoThayDoi({ orderId: id, thayDoi: "tien" });
+      const order = (await loadOrderView(env.DB, id, xemDuDatGap(staff)))!;
+      return json({ order, daGhi: true, canhBaoTongAm: canhBaoTongAm(order.total) } satisfies MoneyEditResponse);
     }),
 
     // Đổi khách (hồ sơ người đặt + tên/SĐT trên đơn) — đơn nháp HOẶC đã xác nhận: coi như thông tin vận hành, cùng quyền với sửa chuyến (ADR-0011 điều 2).

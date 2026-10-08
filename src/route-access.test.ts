@@ -184,6 +184,7 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   // ADR-0047 A2 (2026-09-29): danh sách hành khách — GET hỏi can(order.view) rồi can(contact.view); POST hỏi can(order.passenger.write) trước khi đọc thân
   { method: "GET", path: "/api/orders/:id/passengers", access: "orders" },
   { method: "POST", path: "/api/orders/:id/passengers", access: "orders" },
+  { method: "POST", path: "/api/orders/:id/money-edit", access: "office" }, // ADR-0063 D1 — văn phòng sửa số khách sau xác nhận; thân route hỏi can(order.money.edit, { ownerId }) KHÔNG assigned
   { method: "GET", path: "/api/orders/dashboard", access: "orders" }, // Trang chủ — ADR-0019 điều 1: màn đơn; Đối tác/Thực tập vẫn 403 nhờ can(order.view/money.view/contact.view) không ngữ cảnh trong thân
   { method: "GET", path: "/api/orders/dem-nhap", access: "orders" }, // huy hiệu thanh bên: CHỈ số đơn nháp; cùng ba ô quyền với dashboard (dem-nhap.test.ts)
   { method: "GET", path: "/api/orders/pool", access: "orders" }, // hàng chờ nhận (phần hẹp) — ADR-0030 S23-1/S23-2: thân hỏi can(order.pool.view) + !holdsPartner trước mọi đọc
@@ -446,6 +447,7 @@ test("mức truy cập của 213 route hiện có khớp ảnh chụp đã duy�
   // 2026-10-06 (dựng lại nhánh năm lỗi tiền lên main đã có tốc độ đợt 1): + POST /api/orders/:id/cancel-reason (orders; ADR-0089, phân loại lý do huỷ) = 243; Phần B: + 6 lệnh cọc /api/orders/:id/coc/* + 3 route đọc /api/ledger/coc* (office) = 252; TNV-G3 (ADR-0088 đ2): + POST /api/ledger/receipt-replacements (office) = 253.
   // 2026-10-08 (C14, đánh giá ERP 7/10): + POST /api/orders/:id/legs/:legId/replace (orders; thay chặng một lô) = 254.
   // 2026-10-08 (gói A1 vận chuyển, ADR-0097 Đ2, Đ3): + POST /api/van-chuyen/chuyen/:id/phan-bo/:aid/dieu-chinh, POST …/thu-hoi-xuat-ben (office, trip.progress) = 256 (cộng C14 = 254 + 2).
-  assert.equal(actual.length, 256, "số route thực tế lệch 256 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 256, "SNAPSHOT phải có đúng 256 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // 2026-10-08 (gói A2, ADR-0063 D1): + POST /api/orders/:id/money-edit (office; văn phòng sửa số khách sau xác nhận) = 257 (cộng C14 + A1 = 256 + 1).
+  assert.equal(actual.length, 257, "số route thực tế lệch 257 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 257, "SNAPSHOT phải có đúng 257 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

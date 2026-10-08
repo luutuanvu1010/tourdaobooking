@@ -143,7 +143,13 @@ Mục "Giờ hẹn đổi — gọi báo khách" ở [[Cần xử lý]]: gọi k
 
 ### Khách đổi số người hoặc dịch vụ sau khi đã xác nhận
 
-Sau xác nhận, dịch vụ, số khách và tiền **bị khoá** với Bán hàng. Hiện chỉ hướng dẫn viên đang phụ trách đơn sửa được số khách, tới **hết ngày đi**. Hãy báo hướng dẫn viên đó; qua ngày đi thì nhờ tài khoản Toàn quyền. Quản trị cũng KHÔNG sửa được. Tiền của đơn đã xác nhận không ai sửa được trong app, trừ tài khoản Toàn quyền. Việc cho người lập đơn, Quản trị, Kế toán sửa số khách sau xác nhận đang chờ làm (chưa có ở bản này).
+Sau xác nhận, dịch vụ và tiền **bị khoá**. Số khách của đơn **bạn lập** thì sửa được tới khi đơn **Đã giao**, kể cả sau ngày đi:
+
+1. Trên trang đơn, bấm [[Sửa số khách dịch vụ]].
+2. Bấm **+** hoặc **−**; dịch vụ nhập tay chỉ để xem.
+3. Chọn lý do ([[Khách thêm người]], [[Khách bớt người]], [[Đổi dịch vụ]], [[Khác]]) rồi bấm [[Lưu số khách]].
+
+Nền tảng tự tính lại tiền (giảm giá giữ nguyên), ghi vào [[Lịch sử]] và báo người phụ trách. Đơn người khác lập: nhờ người lập, Kế toán hoặc Quản trị. Thêm dịch vụ, đổi giá: chỉ tài khoản Toàn quyền.
 
 ### Đơn sát giờ — Đặt gấp
 
@@ -173,7 +179,7 @@ Huỷ được cả đơn chờ xác nhận lẫn đã xác nhận, nếu là đ
 
 - **HDV bấm Nhận**: thẻ đơn đổi từ [[Chờ nhận]] sang "HDV: tên"; bạn nhận tin nếu đơn liên quan tới bạn.
 - **HDV huỷ đơn** (họ phải chọn lý do): đơn thành [[Đã huỷ]], bạn nhận tin huỷ; khối [[Lịch sử]] của trang đơn có dòng huỷ đơn kèm lý do.
-- **HDV sửa số khách**: khối [[Lịch sử]] có dòng sửa số khách kèm lý do. App không gửi thông báo cho bạn về việc này (chưa có ở bản này) — hãy xem Lịch sử.
+- **HDV sửa số khách**: bạn nhận tin đơn đổi; khối [[Lịch sử]] có dòng sửa kèm lý do.
 - **HDV từ chối đơn**: chưa có nút này (chưa có ở bản này).`,
     },
     {
@@ -185,14 +191,14 @@ Huỷ được cả đơn chờ xác nhận lẫn đã xác nhận, nếu là đ
 - **Không chọn người phụ trách** khi lập đơn: khối [[Người phụ trách]] không hiện, đơn luôn ở [[Chờ nhận]].
 - **Không thấy ai phụ trách đơn**: trang đơn không có khối Người phụ trách, thẻ đơn ở danh sách không có dòng "HDV: tên". Ảnh biên nhận cũng không có dòng người phụ trách.
 - Ô tra hồ sơ khách có thể báo không tra được hồ sơ — vẫn lưu đơn bình thường.
-- **Sau khi xác nhận, Thực tập không sửa được thông tin chuyến và không đổi khách.** Trang đơn không có nút [[Sửa thông tin chuyến]] và [[Đổi khách]]. Cần đổi giờ đón thì nhờ Bán hàng phụ trách hoặc Quản trị.
+- **Sau khi xác nhận, Thực tập không sửa được thông tin chuyến, không đổi khách, không sửa số khách.** Trang đơn không có nút [[Sửa thông tin chuyến]], [[Đổi khách]] và [[Sửa số khách dịch vụ]]. Cần đổi giờ đón thì nhờ Bán hàng phụ trách hoặc Quản trị.
 - **Thực tập không nhận phụ trách và không giao đơn**: không có nút [[Nhận phụ trách]]; cần người phụ trách thì nhờ Bán hàng.`,
     },
     {
       tieuDe: "Điều bạn không làm được — hỏi ai",
       noiDung: `- Duyệt đặt gấp cho đơn sát giờ; sửa giờ đón sát giờ sau xác nhận → **Quản trị**.
 - Sửa, xác nhận, huỷ đơn người khác lập mà bạn không phụ trách → người lập đơn, người phụ trách, hoặc **Quản trị** (đơn đang [[Chờ nhận]] thì bạn tự bấm [[Nhận phụ trách]]).
-- Sửa số khách sau khi đã xác nhận → hướng dẫn viên đang phụ trách đơn, tới hết ngày đi (Quản trị không sửa được); qua ngày đi → tài khoản Toàn quyền. Dịch vụ, tiền → chỉ tài khoản Toàn quyền.
+- Sửa số khách sau khi đã xác nhận của đơn người khác lập → người lập đơn, **Kế toán** hoặc **Quản trị** (đơn bạn lập thì tự bấm [[Sửa số khách dịch vụ]]). Dịch vụ, tiền → chỉ tài khoản Toàn quyền.
 - Thêm, sửa dịch vụ và giá trong danh mục; dịch vụ "chưa có giá" → **Quản trị**.
 - Khách trả thêm: bấm [[Ghi lần thu]] trên đơn bạn lập. Hoàn tiền, hoá đơn → **Kế toán**.
 - Quên mã PIN, bị khoá đăng nhập → **Quản trị**.

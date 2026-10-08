@@ -18,7 +18,8 @@ test("NT-B3: mọi INSERT INTO order_money_adjustment trong mã chạy chỉ n�
     .flatMap((f) => [...readFileSync(f, "utf8").matchAll(/INSERT INTO order_money_adjustment\b/g)].map(() => f));
   assert.deepEqual(hits, ["src/modules/orders/repository.ts"]);
   const src = readFileSync("src/modules/orders/repository.ts", "utf8");
-  const dau = src.indexOf("export async function insertMoneyAdjustment");
+  // Gói A2 (ADR-0063 D1, chỗ cho ADR-0104 Đ2): insertMoneyAdjustment nay SOẠN lô chưa chạy (không async) — cửa vẫn là MỘT hàm này.
+  const dau = src.indexOf("export function insertMoneyAdjustment");
   assert.ok(dau >= 0, "không thấy insertMoneyAdjustment");
   const than = src.slice(dau, src.indexOf("\n}\n", dau));
   assert.match(than, /INSERT INTO order_money_adjustment\b/);
@@ -32,7 +33,8 @@ test("NT-B3: hành động mang cờ doiSoKhach = đúng hai hành động sửa
 
 test("NT-B3: insertMoneyAdjustment nhận tham số hành động kiểu chỉ-cờ (HanhDongDoiSoKhach) và ghi đúng hành động được truyền", () => {
   const src = readFileSync("src/modules/orders/repository.ts", "utf8");
-  const dau = src.indexOf("export async function insertMoneyAdjustment");
+  const dau = src.indexOf("export function insertMoneyAdjustment");
+  assert.ok(dau >= 0, "không thấy insertMoneyAdjustment");
   const than = src.slice(dau, src.indexOf("\n}\n", dau));
   assert.match(than, /action: HanhDongDoiSoKhach/);
   assert.doesNotMatch(than, /action: "order_money_adjusted_by_field"/, "không viết cứng hành động trong hàm ghi");

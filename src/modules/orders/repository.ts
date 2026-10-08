@@ -1205,14 +1205,15 @@ export async function cocCuNhap(db: D1Database, id: string): Promise<number> {
 }
 
 /**
- * Ghi một dòng điều chỉnh MỚI tại đúng `expectedSeq` (= `(dòng gần nhất.seq ?? 0) + 1`, route tính lúc đọc). KHÔNG dùng WHERE-guard so sánh
- * "dòng gần nhất còn đúng không" (không đáng tin cậy giữa hai lời gọi `db.batch()` RIÊNG BIỆT của hai request khác nhau — đã thử, quan sát được
- * hai request cùng thắng khi chạy thật). Thay vào đó dựa thẳng vào chỉ mục duy nhất `idx_order_money_adjustment_seq`: hai request cùng nhắm
- * `expectedSeq` giống nhau, chỉ MỘT lần INSERT thắng, lần kia bị CSDL tự chặn (`isAdjustmentSeqCollision`) → 409 stale, không cần đoán trước ai thắng.
- * `id` dùng CHUNG cho dòng điều chỉnh và dòng audit_log (ADR-0007 điều 2 — không lặp ai/khi nào/lý do). Batch thất bại thì cả hai câu đều không
- * được ghi (giao dịch), nên audit không cần `onlyIf` như `cancelOrder`/`updateDraftOrder`.
+ * SOẠN (chưa chạy) lô ghi một dòng điều chỉnh MỚI tại đúng `expectedSeq` (= `(dòng gần nhất.seq ?? 0) + 1`, nơi gọi tính lúc đọc) — MỘT cửa chèn
+ * `order_money_adjustment` (bài NT-B3 `src/doi-so-khach-mot-cua.test.ts`). KHÔNG dùng WHERE-guard so sánh "dòng gần nhất còn đúng không" (không đáng tin cậy
+ * giữa hai lời gọi `db.batch()` RIÊNG BIỆT của hai request khác nhau — đã thử, quan sát được hai request cùng thắng khi chạy thật). Thay vào đó dựa thẳng vào
+ * chỉ mục duy nhất `idx_order_money_adjustment_seq`: hai request cùng nhắm `expectedSeq` giống nhau, chỉ MỘT lần INSERT thắng, lần kia bị CSDL tự chặn
+ * (`isAdjustmentSeqCollision` ở `chayLoSuaSoKhach`) → 409 stale. `id` dùng CHUNG cho dòng điều chỉnh và dòng audit_log (ADR-0007 điều 2 — không lặp ai/khi
+ * nào/lý do), sinh TRƯỚC và trả ra là `auditId`: ADR-0104 Đ2 (đồng bộ chuyến theo đơn — thi công sau) cần mã nhật ký của câu đơn để câu cổng chuyến hỏi
+ * "lệnh đơn đã thắng". Lô thất bại thì mọi câu đều không được ghi (giao dịch), nên audit không cần `onlyIf` như `cancelOrder`/`updateDraftOrder`.
  */
-export async function insertMoneyAdjustment(
+export function insertMoneyAdjustment(
   db: D1Database,
   orderId: string,
   staffId: string,
@@ -1225,16 +1226,28 @@ export async function insertMoneyAdjustment(
   action: HanhDongDoiSoKhach,
   /** ADR-0062 Đ2: "số khách: <phần đổi> · lý do: <lý do>" — nơi gọi dựng bằng doanSoKhach + ghepLyDo (src/shared/tin-doi-don.ts). */
   detail: string,
-): Promise<boolean> {
+): { auditId: string; cau: D1PreparedStatement[] } {
   const id = crypto.randomUUID();
   const at = new Date().toISOString();
-  try {
-    await db.batch([
+  return {
+    auditId: id,
+    cau: [
       db
         .prepare(`INSERT INTO order_money_adjustment (id, order_id, seq, before_json, after_json, subtotal_before, subtotal_after) VALUES (?, ?, ?, ?, ?, ?, ?)`)
         .bind(id, orderId, expectedSeq, JSON.stringify(before), JSON.stringify(after), subtotalBefore, subtotalAfter),
       auditStatement(db, { id, orderId, staffId, action, at, detail }),
-    ]);
+    ],
+  };
+}
+
+/**
+ * Chạy lô sửa số khách trong MỘT `db.batch` — lô = câu do `insertMoneyAdjustment` soạn, sau này có thể nối thêm câu của module khác (ADR-0104 Đ2: phần chuyến
+ * do `ctx.dongBoChuyen` nối SAU câu đơn). Đụng chỉ mục `seq` (người khác vừa ghi) → false (nơi gọi trả 409 stale); lỗi khác ném tiếp (trigger 0044 "Đã giao"
+ * được router đổi thành 409 câu cố định).
+ */
+export async function chayLoSuaSoKhach(db: D1Database, lo: readonly D1PreparedStatement[]): Promise<boolean> {
+  try {
+    await db.batch([...lo]);
     return true;
   } catch (e) {
     if (isAdjustmentSeqCollision(e)) return false;
