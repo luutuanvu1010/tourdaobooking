@@ -352,6 +352,12 @@ export async function soTienBienNhan(db: D1Database, orderId: string): Promise<{
   return t ? { daTra: t.daThu, conLai: t.conLai, huy } : null;
 }
 
+/** API công khai cho `receipt` (QR thanh toán — ADR-0108 đ3): còn lại + đơn đã "Đã giao" chưa, cùng hàm `conLai` (một nguồn). KHÔNG tự kiểm quyền. */
+export async function soTienChoQr(db: D1Database, orderId: string): Promise<{ conLai: number; daGiao: boolean } | null> {
+  const t = (await tienNhieuDon(db, [orderId])).get(orderId);
+  return t ? { conLai: t.conLai, daGiao: t.daGiao } : null;
+}
+
 /**
  * ADR-0060 điều 5 — hàm đọc tập id do GỐC LẮP RÁP tiêm vào `ctx.nhapKeToanCuaDon` (orders không đọc bảng bil_): trong các đơn `orderIds`, đơn nào có trạng
  * thái hiện tại = đã nhập phần mềm kế toán. KHÔNG tự kiểm quyền — route của orders hỏi `accounting.entry.view` trước khi dùng kết quả. Một truy vấn, MỘT tham số.

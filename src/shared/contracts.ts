@@ -1871,6 +1871,25 @@ export interface TaiKhoanNhanTienInput {
   truocDo: string | null;
 }
 
+/**
+ * `GET /api/orders/:id/qr-thanh-toan` (ADR-0108 đ3; đặc tả QR §4.2, §7). DANH SÁCH TRẮNG: chuỗi VietQR + đúng các dòng in dưới mã. KHÔNG hoa hồng, giá vốn,
+ * nợ nội bộ, tên người thu (Hiến chương 4.4). Thêm trường = sửa bài khoá khoá ở src/modules/receipt/qr-thanh-toan.test.ts.
+ */
+export interface QrThanhToanDto {
+  payload: string;
+  soTien: number;
+  conLai: number;
+  maDon: string;
+  noiDung: string;
+  congTy: string;
+  nganHang: string;
+  soTaiKhoan: string;
+  chuTaiKhoan: string;
+}
+export interface QrThanhToanResponse {
+  qr: QrThanhToanDto;
+}
+
 // ---- Trợ lý Hỗ trợ (ADR-0066, module tro-ly) ----
 /** Thân `POST /api/tro-ly/hoi`. Máy chủ che SĐT / email / số giấy tờ và cắt 500 ký tự trước khi gửi đi. `cuocTroChuyen` (ADR-0073 Đ4): mã ngẫu nhiên khung sinh —
  *  máy chủ tự lấy ≤ 3 lượt trước của CHÍNH người hỏi cùng mã; trình duyệt KHÔNG gửi nội dung lượt trước. Sai dạng ⇒ 400; thiếu / null ⇒ không nhớ. */
