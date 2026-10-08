@@ -156,14 +156,15 @@ export async function lenhSuaChuyen(
   // cổng xuất bến đọc lại số này (`ChuyenVao.nghiChup`), nên kiểm lúc sửa và xuất bến dùng một con số.
   const nghiChup = doiGio || doiKetThuc || doiXe || doiTaiXe ? (chung.chinhSach?.rest_minutes ?? t.rest_minutes_snapshot) : t.rest_minutes_snapshot;
   const cs = chinhSachVao(chung.chinhSach);
-  const kq = kiemTaoSuaChuyen({
+  const vaoKiem: Parameters<typeof kiemTaoSuaChuyen>[0] = {
     lenh: "SUA",
     chuyen: { id: t.id, batDauMs, ketThucMs, xe: xeVao(xeRow, chung.giayToXe), taiXe: taiXeId ? taiXeVao(taiXeId, chung.taiXe) : null, nghiPhaLe: b.nghiPhaLe !== null || t.rest_override_reason_code !== null },
     cu: { batDauMs: t.planned_start_ms, batDauSomNhatMs: t.earliest_start_ms, xeId: t.vehicle_id, taiXePartyId: t.driver_party_id, trangThai: t.status },
     taiTrenChuyen: tai, chuyenKhac: khac.map(khungChuyen), khungBan, chinhSach: cs ? { ...cs, restMinutes: nghiChup } : null, hangBang: chung.hangBang, bayGioMs,
     // ADR-0056 VK3-A: đổi xe → cam kết của khách đang trên chuyến xét lại với xe mới (luật thuần chỉ CHẶN khi đổi xe).
     camKet: doiXe ? { changTrenChuyen: changCamKet, khoaDaPhaLe: t.commitment_override_key } : undefined,
-  });
+  };
+  const kq = kiemTaoSuaChuyen(vaoKiem);
   const chan = loiKiem(kq, vuot, t.status, { moc: b.phaLe !== null, nghi: b.nghiPhaLe !== null || t.rest_override_reason_code !== null, camKet: b.camKetPhaLe !== null });
   if (chan) return chan;
   if (ra) ra.nhacGioLai = kq.nhacGioLai;
@@ -180,15 +181,20 @@ export async function lenhSuaChuyen(
   // R-P6 + R-P7: giờ sớm nhất sau khi đổi giờ — MỘT luật (`batDauSomNhatSauDoiGio`, mốc của chính sách HIỆN HÀNH lúc sửa); không đổi giờ thì giữ.
   const phut = chung.chinhSach?.min_lead_minutes ?? 0;
   const somNhat = doiGio ? batDauSomNhatSauDoiGio({ batDauMs: t.planned_start_ms, batDauSomNhatMs: t.earliest_start_ms }, batDauMs, bayGioMs, phut) : Math.min(t.earliest_start_ms, batDauMs);
-  const phaLe = kq.canPhaLe.some((l) => l.ma === "MOC_TOI_THIEU") ? phaLeCua(chung, "MOC_TOI_THIEU", b.phaLe) : kq.canPhaLe.some((l) => l.ma === "KHOANG_NGHI") ? phaLeCua(chung, "KHOANG_NGHI", b.nghiPhaLe) : null;
+  // Phiếu kiểm D1 CAO-1 (ADR-0104 Đ1.4 :78 — "lưu ở cột sẵn có override_rule_code"; Đ1.5 :85-90; bài kiểm 4 :281): cờ nghỉ đi vào luật thuần nên `kq` không
+  // báo KHOANG_NGHI — kiểm nghỉ LẠI không tính cờ (cùng luật thuần, chỉ tắt cờ) để biết lệnh này có thật sự vượt khoảng nghỉ không. Có cờ + vượt thật ⇒ sự
+  // kiện mang KHOANG_NGHI (thứ tự C6: MOC_TOI_THIEU > KHOANG_NGHI > CAM_KET). Gửi cờ mà không vi phạm ⇒ sự kiện không mang luật (cột vẫn lưu — hiện trạng).
+  const nghiViPham = b.nghiPhaLe !== null && kiemTaoSuaChuyen({ ...vaoKiem, chuyen: { ...vaoKiem.chuyen, nghiPhaLe: false } }).canPhaLe.some((l) => l.ma === "KHOANG_NGHI");
+  const phaLe = kq.canPhaLe.some((l) => l.ma === "MOC_TOI_THIEU") ? phaLeCua(chung, "MOC_TOI_THIEU", b.phaLe) : nghiViPham ? phaLeCua(chung, "KHOANG_NGHI", b.nghiPhaLe) : null;
   const thay: string[] = [];
   if (doiXe) thay.push(`xe ${chung.xe.find((x) => x.id === t.vehicle_id)?.plate_number ?? "?"} → ${xeRow.plate_number}`);
   if (doiTaiXe) thay.push("đổi tài xế");
   if (doiGio || doiKetThuc) thay.push(`giờ ${gioNgan(t.planned_start_ms, bayGioMs)}–${gioNgan(t.planned_end_ms, bayGioMs)} → ${gioNgan(batDauMs, bayGioMs)}–${gioNgan(ketThucMs, bayGioMs)}`);
   if (diemDoi.length > 0) thay.push(`${diemDoi.length} điểm đổi thứ tự / giờ xe tới`);
   if (doiTuyen) thay.push(`tuyến ${await tenTuyen(db, t.route_code)} → ${await tenTuyen(db, tuyenMoi)}`);
-  // ADR-0104 Đ1 mục 4 ("mọi luật bị vượt"): cờ khoảng nghỉ gửi kèm luôn ghi lý do vào cột `rest_override_reason_code` (lô bên dưới) nhưng KHÔNG lên sự kiện
-  // (luật thuần nhận cờ nên không báo KHOANG_NGHI còn thiếu) — đuôi nhật ký ghi theo cột đó để nhật ký có đủ luật bị vượt. Sự kiện không đổi (lệch Đ1.5 ca 3).
+  // ADR-0104 Đ1 mục 4 ("mọi luật bị vượt"): cờ khoảng nghỉ gửi kèm luôn ghi lý do vào cột `rest_override_reason_code` (lô bên dưới). Sự kiện mang KHOANG_NGHI
+  // khi luật nghỉ thật sự bị vượt và không có luật ưu tiên hơn (`phaLe` ở trên — CAO-1); còn lại (mốc ưu tiên, hoặc gửi cờ mà không vi phạm) đuôi nhật ký ghi
+  // theo cột để nhật ký có đủ luật bị vượt — không ghi hai lần khi sự kiện đã mang KHOANG_NGHI.
   const nghiNhatKy = b.nghiPhaLe && phaLe?.luat !== "KHOANG_NGHI" ? phaLeNhatKy("KHOANG_NGHI", nhanLyDo(chung, b.nghiPhaLe.lyDo), vuot) : "";
   const lo = loSuaChuyen(db, {
     ...lenhChung(b.requestId, staff, bayGioMs), tripId: t.id, version: b.version,

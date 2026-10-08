@@ -5,7 +5,9 @@
 //   - Đuôi `detail` nhật ký theo LỚP lúc ghi: KHAN_CAP " · điều chỉnh khẩn cấp <luật>: <lý do>" + MỘT lần " · còn N phút" (xe đang chạy: " · xe đang chạy");
 //     QUAN_TRI " · phá lệ <luật>: <lý do>".
 //   - Bốn ca LỆCH ĐÃ BIẾT (ADR-0104 Đ1.5 — sự kiện chỉ lưu một mã luật, không lưu lớp): Bán hàng làm dưới mốc → 200 nhưng nhãn chuyến vẫn "Phá lệ" (`khanCap`
-//     false). Đổi có chủ ý = đổi bài này cùng một ADR mới (lưu lớp vào sự kiện).
+//     false, dòng nhật ký chuyến có `phaLe` khác null). Đổi có chủ ý = đổi bài này cùng một ADR mới (lưu lớp vào sự kiện).
+//   - Lệnh sửa chuyến kèm `nghiPhaLe` (phiếu kiểm D1 CAO-1, theo chữ ADR-0104 Đ1.4 :78, Đ1.5 :85-90, bài kiểm 4 :281): sự kiện UPDATED mang `KHOANG_NGHI` khi
+//     luật nghỉ THẬT SỰ bị vượt (kiểm nghỉ không tính cờ); gửi cờ mà không vi phạm → sự kiện không mang luật (cột vẫn lưu — đường vòng THẤP-1, không đổi).
 // Tên, SĐT là GIẢ.
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -30,6 +32,11 @@ async function nhan(w: any, tripId: string, ngay = NGAY): Promise<boolean> {
   assert.equal(o.khanCap, ct, "lịch và chi tiết cùng một nhãn");
   assert.equal(typeof ct, "boolean");
   return ct;
+}
+/** `phaLe` của các dòng nhật ký chuyến (chi tiết văn phòng) loại `loai`, theo thứ tự sự kiện — dòng KHÔNG mang luật bị bỏ khi có dòng mang luật (xếp lần 2). */
+async function phaLeDong(w: any, tripId: string, loai: string): Promise<unknown[]> {
+  const ds = (await chiTiet(w, tripId, SALES)).nhatKy.filter((n: any) => n.loai === loai).map((n: any) => n.phaLe);
+  return ds.some((p: unknown) => p !== null) ? ds.filter((p: unknown) => p !== null) : ds;
 }
 /** Đánh dấu ĐẶT GẤP cho chặng (đường thật — Quản trị): miễn luật mốc lúc xếp, KHÔNG đưa chuyến ra ngoài mốc. */
 async function datGap(w: any, d: { id: string; legId: string }) {
@@ -138,6 +145,7 @@ test("NT-4 lệch đã biết ADR-0104 Đ1.5 (bốn ca): Bán hàng làm dưới
       assert.deepEqual(luatSuKien(w, "CREATED", r.json.chuyen.id), ["KHOANG_NGHI"], "ca 1");
       assert.equal(await nhan(w, r.json.chuyen.id), false, "ca 1: lệch đã biết — nhãn 'Phá lệ'");
       assert.match(nhatKy(w, "trip_created", r.json.chuyen.id), / · điều chỉnh khẩn cấp khoảng nghỉ: Sự cố vận hành · còn 250 phút/, "ca 1: nhật ký đúng lớp");
+      assert.deepEqual(await phaLeDong(w, r.json.chuyen.id, "CREATED"), [{ luat: "KHOANG_NGHI", lyDoNhan: "Sự cố vận hành" }], "ca 1: dòng nhật ký có nhãn Phá lệ");
     }
     // Ca 2: xếp chặng ĐÃ ĐẶT GẤP kèm vượt cam kết (chuyến vẫn dưới mốc).
     {
@@ -153,6 +161,7 @@ test("NT-4 lệch đã biết ADR-0104 Đ1.5 (bốn ca): Bán hàng làm dưới
       assert.deepEqual(luatSuKien(w, "ALLOCATED", t.chuyen.id), [null, "CAM_KET"], "ca 2");
       assert.equal(await nhan(w, t.chuyen.id), false, "ca 2: lệch đã biết — nhãn 'Phá lệ'");
       assert.match(nhatKy(w, "trip_allocated", t.chuyen.id), / · điều chỉnh khẩn cấp cam kết: Sự cố vận hành · còn 300 phút$/, "ca 2: nhật ký đúng lớp");
+      assert.deepEqual(await phaLeDong(w, t.chuyen.id, "ALLOCATED"), [{ luat: "CAM_KET", lyDoNhan: "Sự cố vận hành" }], "ca 2: dòng xếp thứ hai có nhãn Phá lệ");
     }
     // Ca 3: sửa chuyến CHỈ đổi giờ (vào sát chuyến trước) kèm vượt khoảng nghỉ.
     {
@@ -162,12 +171,15 @@ test("NT-4 lệch đã biết ADR-0104 Đ1.5 (bốn ca): Bán hàng làm dưới
       const t = await taoChuyen(w, { xe: x1, taiXe: `pty-${DRIVER2}`, bd: "11:00", kt: "12:00" });
       const r = await goi(w, SALES, "PUT", `/${t.chuyen.id}`, { version: t.chuyen.version, batDau: { ngay: NGAY, gio: "10:10" }, ketThuc: { ngay: NGAY, gio: "12:00" }, nghiPhaLe: PL });
       assert.equal(r.status, 200, `ca 3: ${r.text}`);
-      // Mã hiện có (trước ADR-0104): lệnh sửa KHÔNG ghi KHOANG_NGHI lên sự kiện (cờ nghỉ đi vào luật thuần nên luật không báo thiếu) — chỉ cột
-      // `rest_override_reason_code`. ADR-0104 Đ1.5 ca 3 giả định sự kiện mang KHOANG_NGHI; bài ghim hiện trạng, câu hỏi ở báo cáo thi công.
-      assert.deepEqual(luatSuKien(w, "UPDATED", t.chuyen.id), [null], "ca 3: sự kiện không mang luật");
+      // Phiếu kiểm D1 CAO-1 (chữ ADR Đ1.4 :78, Đ1.5 :85-90, bài kiểm 4 :281): sự kiện UPDATED mang KHOANG_NGHI (luật nghỉ thật sự bị vượt) — trước đây null
+      // vì cờ nghỉ đi vào luật thuần nên luật không báo thiếu.
+      assert.deepEqual(luatSuKien(w, "UPDATED", t.chuyen.id), ["KHOANG_NGHI"], "ca 3: sự kiện mang luật nghỉ");
       assert.equal(w.q("SELECT rest_override_reason_code r FROM vc_trip WHERE id = ?", t.chuyen.id)[0].r, "PHA_LE_SU_CO", "ca 3: cột nghỉ có lý do");
-      assert.equal(await nhan(w, t.chuyen.id), false, "ca 3: lệch đã biết — không nhãn khẩn cấp");
-      assert.match(nhatKy(w, "trip_edited", t.chuyen.id), / · điều chỉnh khẩn cấp khoảng nghỉ: Sự cố vận hành · còn 250 phút/, "ca 3: nhật ký đúng lớp (giờ xét = min(cũ, mới, sớm nhất) = 10:10)");
+      assert.equal(await nhan(w, t.chuyen.id), false, "ca 3: lệch đã biết — nhãn 'Phá lệ'");
+      assert.deepEqual(await phaLeDong(w, t.chuyen.id, "UPDATED"), [{ luat: "KHOANG_NGHI", lyDoNhan: "Sự cố vận hành" }], "ca 3: dòng nhật ký có nhãn Phá lệ");
+      const nk3 = nhatKy(w, "trip_edited", t.chuyen.id);
+      assert.match(nk3, / · điều chỉnh khẩn cấp khoảng nghỉ: Sự cố vận hành · còn 250 phút/, "ca 3: nhật ký đúng lớp (giờ xét = min(cũ, mới, sớm nhất) = 10:10)");
+      assert.equal(nk3.split("khoảng nghỉ:").length, 2, `ca 3: luật nghỉ ghi MỘT lần — ${nk3}`);
     }
     // Ca 4: sửa chuyến CHỈ gửi camKetPhaLe (vi phạm sinh do SỬA ĐƠN — chặng đòi xe ≥ 30 chỗ, xe 15 chỗ).
     {
@@ -181,9 +193,48 @@ test("NT-4 lệch đã biết ADR-0104 Đ1.5 (bốn ca): Bán hàng làm dưới
       assert.equal(r.status, 200, `ca 4: ${r.text}`);
       assert.deepEqual(luatSuKien(w, "UPDATED", t.chuyen.id), ["CAM_KET"], "ca 4");
       assert.equal(await nhan(w, t.chuyen.id), false, "ca 4: lệch đã biết — nhãn 'Phá lệ'");
+      assert.deepEqual(await phaLeDong(w, t.chuyen.id, "UPDATED"), [{ luat: "CAM_KET", lyDoNhan: "Sự cố vận hành" }], "ca 4: dòng nhật ký có nhãn Phá lệ");
       const nk = nhatKy(w, "trip_edited", t.chuyen.id);
       assert.match(nk, /: điều chỉnh khẩn cấp cam kết · điều chỉnh khẩn cấp cam kết: Sự cố vận hành · còn 300 phút/, `ca 4: nhật ký đúng lớp — ${nk}`);
     }
+  } finally {
+    tat();
+  }
+});
+
+test("Phiếu D1 CAO-1 (ADR-0104 Đ1.4 :78, bài kiểm 4 :280-281): Quản trị sửa chuyến NGOÀI mốc chỉ đổi giờ kèm nghiPhaLe (vượt khoảng nghỉ thật) → sự kiện UPDATED mang KHOANG_NGHI, khanCap false, nhật ký ' · phá lệ khoảng nghỉ' một lần", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const x1 = xe(w);
+    await taoChuyen(w, { xe: x1, taiXe: `pty-${DRIVER}`, ngay: NGAY_SAU, bd: "08:00", kt: "10:00" });
+    const t = await taoChuyen(w, { xe: x1, taiXe: `pty-${DRIVER2}`, ngay: NGAY_SAU, bd: "11:00", kt: "12:00" });
+    const r = await goi(w, ADM, "PUT", `/${t.chuyen.id}`, { version: t.chuyen.version, batDau: { ngay: NGAY_SAU, gio: "10:10" }, ketThuc: { ngay: NGAY_SAU, gio: "12:00" }, nghiPhaLe: PL });
+    assert.equal(r.status, 200, r.text);
+    assert.deepEqual(luatSuKien(w, "UPDATED", t.chuyen.id), ["KHOANG_NGHI"]);
+    assert.equal(await nhan(w, t.chuyen.id, NGAY_SAU), false);
+    assert.deepEqual(await phaLeDong(w, t.chuyen.id, "UPDATED"), [{ luat: "KHOANG_NGHI", lyDoNhan: "Sự cố vận hành" }]);
+    const nk = nhatKy(w, "trip_edited", t.chuyen.id);
+    assert.match(nk, / · phá lệ khoảng nghỉ: Sự cố vận hành/);
+    assert.equal(nk.split("khoảng nghỉ:").length, 2, `luật nghỉ ghi MỘT lần — ${nk}`);
+    assert.doesNotMatch(nk, /điều chỉnh khẩn cấp|còn \d+ phút/);
+  } finally {
+    tat();
+  }
+});
+
+test("Phiếu D1 CAO-1: sửa chuyến gửi nghiPhaLe mà KHÔNG vi phạm khoảng nghỉ → sự kiện UPDATED không mang KHOANG_NGHI (dòng nhật ký không nhãn); cột vẫn lưu lý do (đường vòng THẤP-1 — hiện trạng, không đổi)", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const x1 = xe(w);
+    await taoChuyen(w, { xe: x1, taiXe: `pty-${DRIVER}`, ngay: NGAY_SAU, bd: "08:00", kt: "10:00" });
+    const t = await taoChuyen(w, { xe: x1, taiXe: `pty-${DRIVER2}`, ngay: NGAY_SAU, bd: "11:00", kt: "12:00" });
+    const r = await goi(w, ADM, "PUT", `/${t.chuyen.id}`, { version: t.chuyen.version, batDau: { ngay: NGAY_SAU, gio: "11:30" }, ketThuc: { ngay: NGAY_SAU, gio: "12:30" }, nghiPhaLe: PL });
+    assert.equal(r.status, 200, r.text);
+    assert.deepEqual(luatSuKien(w, "UPDATED", t.chuyen.id), [null]);
+    assert.deepEqual(await phaLeDong(w, t.chuyen.id, "UPDATED"), [null]);
+    assert.equal(w.q("SELECT rest_override_reason_code r FROM vc_trip WHERE id = ?", t.chuyen.id)[0].r, "PHA_LE_SU_CO", "THẤP-1: cột vẫn lưu (hiện trạng)");
   } finally {
     tat();
   }
