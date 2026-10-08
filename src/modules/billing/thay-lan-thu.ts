@@ -13,8 +13,8 @@ import { lineIfPostingStatement, linesOfOrder, linesOfReceipt, lineReversed, ord
 import type { GiaoDich } from "./ma-giao-dich";
 import { conLai, dong, khoanChoXacNhan, sinhDongDao, sinhDongLanThu } from "./rules";
 import {
-  CHUA_CO_CONG_TY, cauGanMa, docGiaoDichCuaLanThu, docLanThu, docLyDo, docNgay, kiemCacMa, lineOf, loi, loiMaTrigger, loiTrigger, toLineRow, toReceiptRow, type KetQua, type LanThuHopLe,
-  type NguoiGoi,
+  CHUA_CO_CONG_TY, cauGanMa, docGiaoDichCuaLanThu, docLanThu, docLyDo, docNgay, kiemCacMa, layKyDaKhoa, lineOf, loi, loiKhoaKy, loiMaTrigger, loiTrigger, toLineRow, toReceiptRow, type KetQua,
+  type LanThuHopLe, type NguoiGoi,
 } from "./service";
 import { phaiThuLucGiao, receiptThayDaoStatement, receiptThayMoiStatement } from "./thay-lan-thu-repo";
 
@@ -53,7 +53,7 @@ export async function ghiThayLanThu(db: D1Database, input: { raw: unknown; ai: N
   const lyDo = docLyDo(b.lyDo, true);
   if (!lyDo.ok) return lyDo;
   if ((lyDo.value ?? "").trim().length < LY_DO_THAY_TOI_THIEU) return loi(400, "invalid_input", `Lý do thay lần thu tối thiểu ${LY_DO_THAY_TOI_THIEU} ký tự.`);
-  const ngay = docNgay(b.ngayPhatSinh);
+  const ngay = docNgay(b.ngayPhatSinh, await layKyDaKhoa(db));
   if (!ngay.ok) return ngay;
   const homNay = vnToday(new Date());
   const kn = kiemNgayThay(ngay.value, homNay);
@@ -149,6 +149,8 @@ export async function ghiThayLanThu(db: D1Database, input: { raw: unknown; ai: N
   try {
     await db.batch(stmts);
   } catch (e) {
+    const k = await loiKhoaKy(db, e, [ngay.value]);
+    if (k) return k;
     const m = loiMaTrigger(e);
     if (m) return m;
     if (/UNIQUE constraint failed: bil_(payment_receipt\.reverses_id|debt_line\.reverses_line_id)/.test(e instanceof Error ? e.message : String(e))) return loi(409, "stale", "Lần thu cần thay vừa bị đảo — tải lại rồi thử lại.");

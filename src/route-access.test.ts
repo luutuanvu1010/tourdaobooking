@@ -161,6 +161,8 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/ledger/refunds", access: "office" }, // payment.refund
   { method: "POST", path: "/api/ledger/adjustments", access: "office" }, // ledger.write
   { method: "POST", path: "/api/ledger/receipt-replacements", access: "office" }, // ledger.write — "Thay lần thu" (ADR-0088 đ2)
+  { method: "GET", path: "/api/ledger/ky", access: "office" }, // khoá sổ tháng (ADR-0080 D1): ledger.view any — tháng đã khoá, tháng khoá kế tiếp, bảng kiểm
+  { method: "POST", path: "/api/ledger/ky/:period/khoa", access: "office" }, // ledger.period.close (Kế toán, Toàn quyền — Quản trị không)
   { method: "GET", path: "/api/orders/:id/receipt", access: "orders" }, // module receipt: order.view + money.view + contact.view phạm vi đơn
   { method: "GET", path: "/api/orders/:id/qr-thanh-toan", access: "orders" }, // ADR-0108 đ3, module receipt: order.view (HDV không phụ trách → 404) rồi money.view phạm vi đơn
   // Sổ đại lý đợt 1 (module pricing — ADR-0077, ADR-0078 B1): 8 route; mỗi route tự hỏi can() ở dòng đầu thân (partner.commission.*, supply.terms.*; route tìm người hưởng hỏi order.create).
@@ -456,6 +458,7 @@ test("mức truy cập của 213 route hiện có khớp ảnh chụp đã duy�
   // 2026-10-08 (ADR-0108 đ2): + GET/PUT /api/parties/:id/tai-khoan-nhan-tien (office) = 255.
   // 2026-10-08 (ADR-0108 đ3): + GET /api/orders/:id/qr-thanh-toan (orders) = 256.
   // 2026-10-08 (sổ đại lý đợt 1, module pricing — ADR-0077/0078): + 8 route /api/pricing/* (hoa-hong ×3, thu-tra, cung-ung ×3, nguoi-huong) = 264.
-  assert.equal(actual.length, 264, "số route thực tế lệch 264 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 264, "SNAPSHOT phải có đúng 264 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // 2026-10-08 (sổ đại lý đợt 1, Task 7 — khoá sổ tháng, module billing; ADR-0080 D1): + GET /api/ledger/ky, POST /api/ledger/ky/:period/khoa (office) = HIỆU +2 trên nền 264 (= 266 nếu đứng riêng; điều phối chỉnh số tuyệt đối lúc gộp).
+  assert.equal(actual.length, 266, "số route thực tế lệch 266 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 266, "SNAPSHOT phải có đúng 266 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

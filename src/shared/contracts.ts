@@ -1798,6 +1798,23 @@ export interface SoCongNoResponse {
   chuaRo: { receiptId: string; orderId: string; maDon: string | null; soTien: number; ngay: string }[];
 }
 
+/**
+ * `GET /api/ledger/ky` và thân `201` của `POST /api/ledger/ky/:period/khoa` (khoá sổ tháng — ADR-0080 D1; Kế toán, Toàn quyền). `keTiep` = tháng khoá được kế tiếp (null = hết
+ * tháng đã qua để khoá); `bangKiem` = bảng kiểm của tháng đó trước khi bấm khoá (null khi `keTiep` null): khoản "Công ty thu" còn chờ xác nhận, lần thu chưa rõ người thu
+ * (chỉ mã đơn, số tiền, ngày — không SĐT, không mã giao dịch) và số dư mỗi bên với công ty tính đến cuối tháng. `coTheKhoa` = người xem có ô khoá VÀ còn tháng để khoá.
+ */
+export interface KySoResponse {
+  daKhoa: string[];
+  keTiep: string | null;
+  coTheKhoa: boolean;
+  bangKiem: {
+    thang: string;
+    choXacNhanCongTy: { orderCode: string | null; amount: number; ngay: string }[];
+    chuaRoNguoiThu: { orderCode: string | null; amount: number; ngay: string }[];
+    soDuCuoiThang: { ten: string; soDu: number }[];
+  } | null;
+}
+
 // ---- Biên nhận (module receipt — ADR-0024 đ1, ADR-0026 đ11) -------------------------------------------------------------------------------------
 // DANH SÁCH TRẮNG: máy chủ dựng TỪNG trường dưới đây từ dữ liệu của orders / billing / company — KHÔNG trải đối tượng nguồn. KHÔNG BAO GIỜ có: a%, giá vốn,
 // giá danh mục, chiết khấu, hoa hồng, công nợ, tên người thu, hình thức thu, ghi chú nội bộ, mã danh mục, id. Thêm trường = sửa bài

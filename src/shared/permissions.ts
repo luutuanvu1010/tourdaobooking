@@ -121,6 +121,9 @@ export const MATRIX = {
   "ledger.view": row("own", "any", "own", "own", "none", "any", "own", "none", "none", "none"),
   // Ghi sổ (ADR-0026 đ5, đ8): xác nhận công ty đã nhận, nộp/trả, điều chỉnh, đảo; cũng là "Kế toán" khi ghi lần thu (ghi người thu khác, chọn ngày phát sinh).
   "ledger.write": row("none", "any", "none", "none", "none", "any", "none", "none", "none", "none"),
+  // Khoá sổ tháng (ADR-0080 phần D1; đặc tả sổ đại lý đợt 1 §6): khoá MỘT tháng đã qua, lần lượt, không mở lại — CHỈ Kế toán, Toàn quyền (Quản trị KHÔNG; cột HR, DRIVER, DRIVER_PARTNER = none).
+  // KHÔNG đổi `O_GHI_TIEN` (đặc tả §6, N6). Route: POST /api/ledger/ky/:period/khoa (module billing); xem kỳ dùng ô `ledger.view` any.
+  "ledger.period.close": row("none", "any", "none", "none", "none", "any", "none", "none", "none", "none"),
   // Sổ đại lý đợt 1 (ADR-0077 điều 11, ADR-0078 điều 6; đặc tả 2026-10-08 §6). Cột HR = none (ADR-0071). Route: /api/pricing/* (module pricing).
   "partner.commission.view": row("any", "any", "any", "none", "none", "any", "none", "none", "none", "none"),
   "partner.commission.write": row("none", "any", "any", "none", "none", "any", "none", "none", "none", "none"),
