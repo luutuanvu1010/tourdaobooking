@@ -3124,3 +3124,12 @@ a.bk-hang:hover, a.bk-the:hover { background: var(--c-soft-hover); }
 .bk-tong-so { font-family: var(--font-display); font-weight: var(--fw-heavy); font-size: var(--fs-step-11); color: var(--c-total-num); white-space: nowrap; }
 @media (min-width: 900px) { .bk-the-ds { display: none; } }
 @media (max-width: 899px) { .bk-bang { display: none; } }
+
+/* Khoá sổ tháng (web/khoa-thang.ts; sổ đại lý đợt 1 Task 12): chip tháng đã khoá, các khối của bảng kiểm, dòng khoản (mã đơn · số tiền · ngày — ngày xuống dòng ở điện thoại). Chỉ token. */
+.ky-thang { display: flex; flex-wrap: wrap; gap: var(--s2); margin: 0; padding: 0; list-style: none; }
+.ky-khoi p { margin: 0 0 var(--s2); }
+.ky-dong-ds { margin: 0; padding: 0; list-style: none; }
+.ky-dong { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--s1) var(--s3); padding: var(--s2) 0; border-bottom: 1px solid var(--c-line); }
+.ky-dong:last-child { border-bottom: 0; }
+.ky-dong-tien { white-space: nowrap; font-weight: var(--fw-bold); }
+#ky-khoa-khu { margin-top: var(--s4); }
