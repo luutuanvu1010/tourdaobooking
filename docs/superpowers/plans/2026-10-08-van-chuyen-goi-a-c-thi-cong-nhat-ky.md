@@ -161,7 +161,7 @@ Sổ điều phối (CLAUDE.md §9, P19). Trạng thái sống ở đây, không
     - A4 không theo hai chỗ: (1) "chín chỗ cờ khung chỉ cần boolean, không đổi gì về an toàn" — cờ đó quyết `maDon` của tài xế đối tác, khoá chỉ đường và hai chỗ giao diện, nên T1 vẫn thay cả chín chỗ, chỉ bỏ câu rủi ro "lộ tên"; (2) "cập nhật đếm H2 ở `route-write-guard.test.ts`" — tệp đó không đếm route; số cứng thật ở ba bài khác, đã đưa vào T7, T8.
     - A5 không theo một chỗ: G-A5-23 (`trip_transfer_declined`) vẫn vào văn bản duyệt vì ADR-0052 :210 ghi danh sách việc sinh tin là cửa một chiều; không hỏi riêng.
   - **Lượt duyệt 8d (A5, kế hoạch §1b):** một ADR mới (số tạm 0111), hai lượt. 8d-1 = điều kiện chuyển khách thành danh mục + hai điều kiện bắt buộc + dấu vết/tin (kèm hộp xác nhận mười tình huống, không tính trần, chặn nghiệm thu). 8d-2 = hai chỗ siết (cứu hộ chỉ tới xe đang chạy; xe đã chuyển khách không thu hồi xuất bến) + câu đặt gấp. Mã "Đ1–Đ6" trong kế hoạch A5 là quyết định của ADR mới, **không** phải Đ1/Đ2 của ADR-0104. Việc không phụ thuộc 8d (hàm thuần, ô `trip.transfer` + route xem xe nhận, hàm người nhận tin) thi công được trước.
-  - Văn bản ADR mới cho 8d chưa soạn; giao người soạn sau khi Đ1 gộp, để không chồng tệp với lượt sửa Đ1.
+  - Văn bản ADR mới cho 8d (task T1 của kế hoạch A5, chỉ tài liệu) đã giao người soạn chạy nền 8/10, ở worktree riêng, thư mục `docs/superpowers/specs/2026-10-08-luot-duyet-8d/` + `golden/dieu-phoi/xe-a-b-luot-2-chuyen-khach.json`. Không chồng tệp với lượt sửa Đ1 (Đ1 chỉ đổi mã và sổ hàng rào). Về thì kiểm độc lập một vòng rồi mới trình; 8d không hỏi chung lần với câu 8c còn lại vì trần 3 quyết định mỗi lượt.
 
 ## Việc song song
 
