@@ -234,8 +234,8 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
       h(
         "div",
         { class: "dd-luoi-noi" },
-        h("div", { class: "dd-cot" }, h("label", { for: don.id }, "Nơi đón", don, loiDon, g.don ? hint(g.don) : null), donTuDo && h("label", { for: donTuDo.id }, "Địa chỉ đón", donTuDo, loiDonTuDo, hint("Chỉ hiện trong trang đơn."))),
-        h("div", { class: "dd-cot" }, h("label", { for: tra.id }, "Nơi trả", tra, g.tra ? hint(g.tra) : null), traTuDo && h("label", { for: traTuDo.id }, "Địa chỉ trả", traTuDo, hint("Chỉ hiện trong trang đơn."))),
+        h("div", { class: "dd-cot" }, h("label", { for: don.id }, "Nơi đón", don, loiDon, g.don ? hint(g.don) : null), donTuDo && h("label", { for: donTuDo.id }, "Địa chỉ đón", donTuDo, loiDonTuDo, hint("Chỉ ghi địa chỉ — không ghi tên, số điện thoại khách"))),
+        h("div", { class: "dd-cot" }, h("label", { for: tra.id }, "Nơi trả", tra, g.tra ? hint(g.tra) : null), traTuDo && h("label", { for: traTuDo.id }, "Địa chỉ trả", traTuDo, hint("Chỉ ghi địa chỉ — không ghi tên, số điện thoại khách"))),
       ),
       phu.length ? h("div", { class: "dd-luoi-phu" }, ...phu) : null,
       boMo.has(l.key) ? lyDoBo(l, i) : null,
