@@ -251,6 +251,18 @@
       "kind": "table"
     },
     {
+      "name": "pty_bank",
+      "module": "parties",
+      "kind": "lookup",
+      "note": "ngân hàng Việt Nam: mã, BIN 6 số (NAPAS), tên ngắn, tên đầy đủ (ADR-0108 đ2; migration 0087). Nguồn gieo: danh sách công khai VietQR.io, đối chiếu khi gieo. Thêm ngân hàng = migration mới"
+    },
+    {
+      "name": "pty_bank_account",
+      "module": "parties",
+      "kind": "table",
+      "note": "tài khoản nhận tiền của CÔNG TY CHỦ (ADR-0108 đ2; migration 0087), chính sách có hiệu lực: tối đa một dòng mở mỗi hồ sơ, chỉ đóng một lần (valid_to), không sửa, không xoá; trigger chỉ cho hồ sơ đang mở vai OWNER_COMPANY. Ghi bằng ô company.legal.write. Số tài khoản KHÔNG vào nhật ký, KHÔNG vào CompanyDto công khai, KHÔNG vào kho tri thức Trợ lý"
+    },
+    {
       "name": "staff",
       "module": "staff",
       "kind": "table",
