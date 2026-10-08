@@ -72,6 +72,6 @@ BEGIN SELECT RAISE(ABORT, 'bank_txn_required: lần thu chuyển khoản mới t
 -- Đường 2 (Kế toán / Toàn quyền tự ghi lần thu trước Đã giao) KHÔNG có phiếu để gắn trigger: "bắt buộc mã" ở đó CHỈ máy chủ; lưới thứ hai là R-BIL-D6b
 -- của scripts/audit-checks.mjs (khai ở docs/SO-HANG-RAO.md — dựa vào kỷ luật ở lớp CSDL).
 
--- C1: mốc cắt cứng — lần thu ghi TỪ mốc mới bị đòi mã; dòng cũ không đòi bổ sung. Cũng là mốc của R-BIL-D6a/D6b. Chỉ-thêm.
+-- C1: mốc cắt cứng — lần thu ghi TỪ mốc mới bị đòi mã; dòng cũ không đòi bổ sung. Cũng là mốc của R-BIL-D6b (R-BIL-D6a không dùng mốc). Chỉ-thêm.
 INSERT INTO bil_audit_cutoff (code, cutoff_at, created_at, created_by, updated_at, updated_by)
 VALUES ('R-BIL-D6', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), 'he-thong', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), 'he-thong');
