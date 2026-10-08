@@ -21,7 +21,7 @@ Khi một đơn được **xác nhận**, Nền tảng tự ghi lại mức đan
 | Tour đảo | 1.000.000 | công ty lữ hành, mọi dịch vụ: 10% | 100.000 | 900.000 |
 | **Cộng** | **6.000.000** | | **790.000** | **5.210.000** |
 
-Dịch vụ nào chưa có mức thì khối này ghi rõ "Thiếu mức — Kế toán xử lý", và Kế toán ghi mức tay cho đúng dịch vụ đó, có lý do. Nền tảng **không bao giờ tự lấy 0%**. Đại lý mở đơn của mình chỉ thấy số tiền hoa hồng của mình, không thấy tỷ lệ %, giá mua của nhà cung cấp hay phần của người khác. Đơn đại lý tự lập từ nay ghi **bên đặt là chính đại lý**; tên và số điện thoại khách đi tour vẫn ghi như cũ. Nhân viên lập hộ thì chọn được công ty lữ hành làm bên đặt.
+Dịch vụ nào chưa có mức thì khối này ghi rõ "Thiếu mức — Kế toán xử lý", và Kế toán ghi mức tay cho đúng dịch vụ đó, có lý do. Nền tảng **không bao giờ tự lấy 0%**. Đại lý mở đơn của mình chỉ thấy số tiền hoa hồng của mình, không thấy tỷ lệ %, giá mua của nhà cung cấp hay phần của người khác. Đơn đại lý tự lập từ nay ghi **bên đặt là chính đại lý**; tên và số điện thoại khách đi tour vẫn ghi như cũ, và biên nhận gửi khách vẫn in tên khách (không in tên đại lý). Form lập đơn của nhân viên có thêm ô **"Đặt qua đối tác"** để chọn đại lý (kể cả công ty lữ hành) làm bên đặt mà không đè mất tên khách đi tour. Trang đơn đổi chữ "Hồ sơ khách" thành "Bên đặt (đối tác)" khi bên đặt là đối tác.
 
 Kế toán còn có nút **"Khoá tháng"**: tháng đã khoá thì không ai ghi thêm khoản tiền nào có ngày thuộc tháng đó, kể cả Kế toán. Sai sót phát hiện sau thì ghi điều chỉnh vào tháng đang mở. Tháng đã khoá không mở lại được.
 
@@ -29,7 +29,7 @@ Kế toán còn có nút **"Khoá tháng"**: tháng đã khoá thì không ai gh
 
 **Ba điều cần bạn quyết khi duyệt** (mỗi điều có khuyến nghị; đổi lại sau được):
 1. **Làm tròn hoa hồng: làm tròn nửa lên, tính theo từng dịch vụ** (khuyến nghị). Ví dụ đã duyệt A-5: mức 12,5% trên 999.999đ ra 124.999,875đ, làm tròn thành **125.000đ**. Nếu làm tròn xuống thì ra 124.999đ.
-2. **Dịch vụ đưa đón không được ghi nhà cung cấp mua lại** (luật X3 đã chốt). Tôi đề xuất hiểu "dịch vụ đưa đón" là **mọi dịch vụ trong nhóm "Thuê xe"** (các mã xe sân bay SB…); "Buýt City Tour" không tính là đưa đón (khuyến nghị).
+2. **Dịch vụ đưa đón không được ghi nhà cung cấp mua lại** (luật X3 đã chốt, để khỏi tính tiền xe hai lần). Tôi đề xuất hiểu "dịch vụ đưa đón" là **mọi dịch vụ trong nhóm "Thuê xe"** (các mã xe sân bay SB…); "Buýt City Tour" không tính là đưa đón (khuyến nghị). Lý do không dùng cách "dịch vụ nào có cài xe đón": Quản trị cài xe đón cho cả tour có đón tại khách sạn, nên vé nhà cung cấp có cài xe đón (như vé i-resort trong ví dụ đã duyệt) sẽ không ghi được nhà cung cấp.
 3. **Màn hình:** tôi dựng theo khuôn các màn quản trị đang có, dùng hai nhãn **"Hoa hồng"** và **"Giá đại lý"**, rồi gửi ảnh chụp thật trên máy tính và điện thoại để bạn duyệt một lượt trước khi phát hành (khuyến nghị). Bạn đổi nhãn được khi xem ảnh.
 
 **Lộ trình ba đợt** (bạn chốt ngày 8/10): đợt 1 là đặc tả này; **đợt 2** mở "Đã giao" cho đơn đại lý, sổ tự ghi ai nợ ai trên từng đơn, ghi được tiền khách trả cho đại lý hoặc tại quầy nhà cung cấp, biên nhận chia hai phần theo người bán, thêm giới hạn giảm giá của đại lý, và xử lý đơn cũ; **đợt 3** làm quyết toán gộp tháng và "Sổ của tôi" cho đại lý. Mỗi đợt có đặc tả, người kiểm độc lập và lần phát hành riêng.
@@ -158,7 +158,20 @@ Mọi bảng / view mới vào `docs/data-dictionary.json` rồi `npm run dict`.
 ### 7. Bên đặt cho đơn mới (C13 = A, phần đơn mới)
 
 - **Tài khoản giữ quyền Đối tác** (`holdsPartner`) lập đơn hoặc lưu nháp: máy chủ đặt `booker_party_id = staff.partyId`, bỏ qua bên đặt trình duyệt gửi. Tên, SĐT khách đi tour vẫn vào các cột chụp `customer_*` của đơn như hôm nay. Tài khoản không gắn hồ sơ ⇒ 409 "Tài khoản đối tác chưa gắn hồ sơ — nhờ văn phòng". Form lập đơn của Đối tác thay ô chọn người đặt bằng dòng chỉ đọc "Bên đặt: <tên đối tác>".
-- **Nhân viên lập hộ:** `resolveBooker` và `BOOKER_VALUE` nhận thêm hồ sơ **tổ chức** đang hoạt động **khi** hồ sơ đó mở ít nhất một vai trong danh sách được hưởng; tổ chức không mang vai đó ⇒ 400. Ô chọn bên đặt tìm được các tổ chức này.
+- **Nhân viên lập hộ:** `resolveBooker` và `BOOKER_VALUE` nhận thêm hồ sơ **tổ chức** đang hoạt động **khi** hồ sơ đó mở ít nhất một vai trong danh sách được hưởng; tổ chức không mang vai đó ⇒ 400.
+- **Giao diện chọn bên đặt (ruling AI):** ô "hồ sơ khách" hôm nay (`web/booker-picker.ts`) tra theo **SĐT khách** và tự điền tên khách vào `customer_name`, nên không dùng để chọn đại lý được (sẽ đè tên, SĐT khách đi tour bằng của đại lý, và biên nhận in tên đại lý). Thêm ô riêng **"Đặt qua đối tác"** ở form lập đơn và bảng đổi bên đặt (`web/booker-sheet.ts`): tìm theo tên trong các hồ sơ (cá nhân hoặc tổ chức) mang vai được hưởng; khi đã chọn thì ô tra hồ sơ khách ẩn đi, hai ô tên + SĐT khách vẫn là của khách đi tour; bỏ chọn thì trở lại như cũ. Ô tra hồ sơ khách theo SĐT giữ nguyên hành vi hôm nay. Thân yêu cầu vẫn dùng trường `bookerPartyId` sẵn có. `changeBooker` hôm nay ghi cùng lúc `customer_name`, `customer_phone` và bên đặt: giữ nguyên, vì hai ô khách luôn gửi kèm.
+- **Những chỗ đọc `booker_party_id` và việc phải làm** (rà `grep` 2026-10-08 trên `src/`, `web/`, trừ tệp test):
+
+| Chỗ đọc | Sau đợt 1 hiện gì | Việc |
+|---|---|---|
+| Biên nhận (`receipt/rules.ts`) | đọc `customer_name`, không đọc bên đặt | không đổi; bài kiểm: đơn Đối tác ⇒ biên nhận in tên khách |
+| Trang đơn, dòng "Hồ sơ khách" (`web/order.ts`) | tên đại lý | đổi nhãn thành "Bên đặt (đối tác)" khi bên đặt mang vai được hưởng (cờ do máy chủ trả trong DTO đơn, không suy ở giao diện) |
+| Form lập đơn, bảng đổi bên đặt (`web/order-form.ts`, `web/booker-sheet.ts`) | — | ô "Đặt qua đối tác" như trên; tài khoản Đối tác thấy dòng chỉ đọc |
+| Chặn "Đã giao" (`orders/hoan-tat-repo.ts`, `billing/rules.ts`) | đơn đại lý mới bị chặn | giữ nguyên tới đợt 2 |
+| Gộp hồ sơ trùng (`orders/nguoi-dat-gop-repo.ts`, ADR-0068) | đổi bên đặt của đơn chưa giao sang hồ sơ giữ lại | **chưa xử lý ở đợt 1:** bản chụp giữ `beneficiary_party_id` cũ; ghi rủi ro, đợt 2 quyết (chụp lại hoặc theo chuỗi gộp) |
+| Đọc / sửa nháp, đổi bên đặt (`orders/index.ts`, `repository.ts`) | — | theo §5, §7 |
+
+  Trợ lý, Bảng tin, thông báo, QR thanh toán không đọc bên đặt.
 - Đơn mới có bên đặt là đối tác sẽ bị chặn "Đã giao" bởi luật hiện có cho tới đợt 2. Chấp nhận vì dữ liệu hiện tại là dữ liệu thử (lời chủ 2026-10-08).
 - **Giả định của AI:** tài khoản **lai** Đối tác + nội bộ (ADR-0027) cũng theo luật trên, đúng chữ ADR-0077 điều 3 (i). Nếu sau này cần lập đơn khách lẻ bằng tài khoản lai thì phải có ADR riêng.
 
@@ -203,9 +216,11 @@ Mọi bảng / view mới vào `docs/data-dictionary.json` rồi `npm run dict`.
 6. Ghi mức tay: thiếu lý do ⇒ 400; đơn nháp ⇒ 409; đơn đã "Đã giao" ⇒ 409; Bán hàng, HDV, Đối tác ⇒ 403.
 7. Quyền: bài tập con 1024 tập quyền cho bảy ô; Đối tác gọi phần thương mại đơn người khác ⇒ 404; `DRIVER`, `DRIVER_PARTNER`, `HR` ⇒ 403 ở mọi route mới; khoá ⊆ ở §6.
 8. Bài **số lạ**: gieo `480.017` làm mức riêng của đối tác B và làm a% của một nhà cung cấp; tài khoản Đối tác A gọi mọi route nó vào được (kể cả phần thương mại đơn của chính A, biên nhận) ⇒ không thấy số đó; DTO Đối tác không có khoá tên `rate`, `perPax`, `cost`, `ruleId`.
-9. Bên đặt: tài khoản Đối tác lập đơn mà trình duyệt gửi bên đặt khác ⇒ máy chủ ghi hồ sơ của tài khoản; nhân viên chọn tổ chức mang vai được hưởng ⇒ được; tổ chức không mang vai ⇒ 400.
+9. Bên đặt: tài khoản Đối tác lập đơn mà trình duyệt gửi bên đặt khác ⇒ máy chủ ghi hồ sơ của tài khoản; nhân viên chọn tổ chức mang vai được hưởng ⇒ được; tổ chức không mang vai ⇒ 400; đơn có bên đặt là đại lý ⇒ biên nhận vẫn in tên khách đi tour, trang đơn hiện nhãn "Bên đặt (đối tác)".
 10. Khoá tháng: khoá tháng hiện tại ⇒ 409; khoá tháng đầu sau tháng có dòng sổ sớm nhất ⇒ 409; Kế toán ghi lùi ngày vào tháng đã khoá ⇒ 409 câu tiếng Việt; đảo chi phí xe có dòng gốc ở tháng đã khoá ⇒ dòng đảo mang ngày hôm nay; Quản trị gọi khoá ⇒ 403.
 11. Kiểm định kỳ: mỗi mã mới có ca đỏ và ca xanh trong `src/audit-invariants.test.ts`; `audit-invariants --db local` sau e2e xanh.
+11b. **Sổ vàng:** tạo `golden/so-cong-no-luot-2.json` với các ca A-1…A-5, B-3, trạng thái `cho_xac_nhan`, thêm dòng ở `golden/README.md`. AI không tự đánh dấu ca nào đã xác nhận (N8). Câu trả lời của chủ cho điều A1 chỉ xác nhận cách làm tròn (ca A-5); các ca còn lại chờ chủ hoặc Kế toán xác nhận riêng. Test mã dùng thẳng số của ví dụ đã duyệt trong ADR, không phụ thuộc trạng thái sổ vàng.
+11c. **Khoá tháng trong e2e:** tháng đã khoá không mở lại được, mà các kịch bản e2e dùng chung một D1 tạm. Kịch bản khoá tháng phải chạy trên D1 riêng của nó, hoặc chỉ khoá một tháng mà không kịch bản nào khác ghi vào (cùng khuôn bẫy "đừng đổi công ty chủ trong e2e chung").
 12. `npm test`, `npm run typecheck`, `npm run test:e2e` xanh; kịch bản Chrome các màn ở §11 chạy được; người kiểm độc lập chỉ đọc ĐẠT.
 
 ### 13. Rủi ro phát hành (đưa vào runbook ở `docs/HANDOFF-N1.md` khi thi công)
