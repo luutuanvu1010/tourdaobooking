@@ -3,7 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { PERMISSION_CODES, can, type PermissionCode } from "./permissions.ts";
 import {
-  HANH_DONG_TIN_CHUYEN, chuyenCuaChangLuc, dangChayLucSuKien, dongCoTheSinhTin, dungDongChuyen, laiLucSuKien, taiXeNhanSuKien, thayDoiCoTheCoTin, thayDoiCuaHanhDongChuyen,
+  HANH_DONG_TIN_CHUYEN, HANH_DONG_TIN_KHACH, HANH_DONG_TIN_THUONG, chuyenCuaChangLuc, dangChayLucSuKien, dongCoTheSinhTin, dungDongChuyen, laiLucSuKien, taiXeNhanSuKien, thayDoiCoTheCoTin, thayDoiCuaHanhDongChuyen,
   tinChuyenCho, tinGioHenCho, type DongChuyen, type DongGioHen, type NguoiNhanChuyen,
 } from "./tin-chuyen.ts";
 import { THAY_DOI_CHUYEN } from "./bang-tin.ts";
@@ -136,9 +136,13 @@ test("thayDoiCoTheCoTin: đúng loại thay đổi của 5 hành động sinh ti
     "trip_passengers_synced", "trip_departed", "trip_stop_arrived", "trip_passenger_boarded", "trip_passenger_no_show", "trip_passenger_cancelled_at_stop",
     "trip_passenger_dropped", "trip_stops_reordered", "trip_ended", "trip_ended_interrupted"];
   for (const a of moi) {
-    // Đợt 5: trip_stops_synced sinh tin CHỈ khi xe đang chạy — chuyến chưa chạy giữ loại "cap_nhat" (không gọi lại chuông).
-    const coTin = (HANH_DONG_TIN_CHUYEN as readonly string[]).includes(a) && a !== "trip_stops_synced";
+    // Đợt 5: trip_stops_synced sinh tin CHỈ khi xe đang chạy — chuyến chưa chạy giữ loại "cap_nhat".
+    // ADR-0104 Đ2.10 (NỚI có tên N7, kế hoạch mục 6): "cap_nhat" nay cũng là loại của trip_order_synced (sinh tin cho tài xế đang lái) ⇒ chuông MÁY CÓ QUYỀN
+    // TÀI XẾ gọi lại cả sau cập nhật điểm / khách trên chuyến chưa chạy (một lần đọc /tom-tat thừa, không tin nào); máy văn phòng vẫn không (dòng dưới + CAO-3).
+    const capNhat = thayDoiCuaHanhDongChuyen(a) === "cap_nhat";
+    const coTin = ((HANH_DONG_TIN_CHUYEN as readonly string[]).includes(a) && a !== "trip_stops_synced") || capNhat;
     assert.equal(thayDoiCoTheCoTin(thayDoiCuaHanhDongChuyen(a), true), coTin, a); // phiếu D1 CAO-3: máy có quyền Tài xế (đối số thứ hai)
+    if (capNhat) assert.equal(thayDoiCoTheCoTin("cap_nhat", false), false, `${a}: máy văn phòng không gọi lại`);
   }
   for (const a of HANH_DONG_TIN_CHUYEN) assert.equal(thayDoiCoTheCoTin(thayDoiCuaHanhDongChuyen(a, true), true), true, `${a} khi xe đang chạy`);
   assert.equal(thayDoiCuaHanhDongChuyen("trip_passengers_synced", true), "cap_nhat", "chỉ ba hành động xe đang chạy đổi loại");
@@ -296,7 +300,8 @@ test("NT-11: dungDongChuyen gắn khanCap theo id sự kiện của dữ kiện 
 });
 // ---- Phiếu kiểm D1 CAO-3: dòng xếp / rút / dời KHÔNG khẩn cấp không làm chuông văn phòng gọi lại, không gõ cửa ----
 test("CAO-3: thayDoiCoTheCoTin — tập CỤ THỂ (viết tay, không suy từ danh sách): máy có quyền Tài xế gọi lại chuông ở tao/sua/huy/gian_doan/vang/xe_chay + xep/rut/doi; máy KHÔNG có quyền Tài xế bỏ xep/rut/doi", () => {
-  const TAI_XE = ["tao", "sua", "huy", "gian_doan", "vang", "xe_chay", "xep", "rut", "doi"];
+  // ADR-0104 Đ2.10 (NỚI có tên N7): + "cap_nhat" (máy đồng bộ chuyến theo đơn — tin "khach_doi" chỉ cho tài xế đang lái) — máy văn phòng KHÔNG thêm.
+  const TAI_XE = ["tao", "sua", "huy", "gian_doan", "vang", "xe_chay", "xep", "rut", "doi", "cap_nhat"];
   const VAN_PHONG = ["tao", "sua", "huy", "gian_doan", "vang", "xe_chay"];
   for (const t of THAY_DOI_CHUYEN) {
     assert.equal(thayDoiCoTheCoTin(t, true), TAI_XE.includes(t), `có quyền Tài xế: ${t}`);
@@ -345,4 +350,23 @@ test("CAO-2: dungDongChuyen gắn chuyến nguồn theo `khanCapNguon` (id sự 
   };
   const r = dungDongChuyen([{ id: "e1", tripId: "t1", actorId: "a", action: "trip_allocation_moved", luc: T1 }, { id: "e2", tripId: "t1", actorId: "a", action: "trip_allocation_moved", luc: T1 }], f, []);
   assert.deepEqual(r.map((x) => [x.id, x.nguon?.tripId ?? null, x.nguon?.ma ?? null]), [["e1", "t0", "CX-0"], ["e2", null, null]]);
+});
+
+// ---- ADR-0104 Đ2.10 (kế hoạch T2.15): máy đồng bộ chuyến theo đơn (`trip_order_synced`) → tài xế đang lái nhận tin "khach_doi" ----
+test("Đ2.10: trip_order_synced → ĐÚNG tài xế có dòng lái lúc sự kiện nhận 'khach_doi' (câu cố định, liên kết /cuoc-chuyen); người sửa đơn, văn phòng, Quản trị, Kế toán, Toàn quyền, tài xế đã gỡ, chỉ-DRIVER_PARTNER không", () => {
+  const d = dong({ action: "trip_order_synced", actorId: "sales", luc: T2 });
+  assert.deepEqual(tinChuyenCho(TX_B, d), { loai: "khach_doi", cau: "Đơn vừa đổi khách ở chuyến CX-1103-02 ngày 11/03 — mở để xem", lienKet: "/cuoc-chuyen?id=t1" });
+  assert.equal(tinChuyenCho(TX_A, d), null, "tài xế đã gỡ trước sự kiện");
+  for (const p of ["SALES", "ADMIN", "ACCOUNTING", "SUPER_ADMIN", "FIELD", "PARTNER", "INTERN", "HR"] as const) assert.equal(tinChuyenCho(nguoi("x", [p]), d), null, p);
+  assert.equal(tinChuyenCho(nguoi("tx-dt", ["DRIVER_PARTNER"], "p-b"), d), null, "chỉ-DRIVER_PARTNER");
+  assert.equal(tinChuyenCho({ ...TX_B, id: "sales" }, d), null, "người sửa đơn là tài xế đang lái: không tự nhận (E3)");
+});
+test("Đ2.10: trip_order_synced thuộc nhóm tin THƯỜNG (hộp đọc trần 3000), KHÔNG thuộc ba lệnh khách (trần 1000, chỉ sự kiện MOC_TOI_THIEU); gõ cửa luôn xét; Bảng tin 'cap_nhat' — chuông máy văn phòng không gọi lại (tin chỉ cho tài xế)", () => {
+  assert.ok((HANH_DONG_TIN_CHUYEN as readonly string[]).includes("trip_order_synced"));
+  assert.ok(HANH_DONG_TIN_THUONG.includes("trip_order_synced"));
+  assert.ok(!(HANH_DONG_TIN_KHACH as readonly string[]).includes("trip_order_synced"));
+  assert.equal(dongCoTheSinhTin({ action: "trip_order_synced", khanCap: false }), true);
+  assert.equal(thayDoiCuaHanhDongChuyen("trip_order_synced"), "cap_nhat");
+  assert.equal(thayDoiCoTheCoTin("cap_nhat", true), true, "máy có quyền Tài xế gọi lại chuông");
+  assert.equal(thayDoiCoTheCoTin("cap_nhat", false), false, "máy văn phòng không gọi lại (khuôn CAO-3)");
 });

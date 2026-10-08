@@ -77,6 +77,13 @@ export const MA_GIU = {
 } as const satisfies Record<string, { loiNhan: string; aiXuLy: AiXuLy }>;
 
 export type MaGiu = keyof typeof MA_GIU;
+/**
+ * ADR-0104 Đ2.11: lý do giữ mà nút "Cập nhật khách theo đơn" gỡ được (luật thuần chung với máy đồng bộ — `dongBoChuyenTheoDon`): khách đổi, đơn huỷ, chặng đã
+ * bỏ, đơn không còn xác nhận, thừa suất (khi còn suất chưa tên; mọi suất có tên người vẫn trong đơn thì nút không đoán — người xếp xe rút). MỘT tập cho ba
+ * chỗ hiện nút (Cần xử lý, thẻ chuyến đang chọn, dải ở Chi tiết chuyến). Ô quyền không đổi (`trip.dispatch`).
+ */
+export const MA_GIU_CAP_NHAT_KHACH: readonly MaGiu[] = ["KHACH_DA_DOI", "DON_DA_HUY", "CHANG_DA_DONG", "CHANG_KHONG_HOP_LE", "THUA_SUAT"];
+export const giuCapNhatKhach = <T extends { ma: string }>(lyDo: readonly T[]): T[] => lyDo.filter((x) => (MA_GIU_CAP_NHAT_KHACH as readonly string[]).includes(x.ma));
 export const isMaGiu = (v: unknown): v is MaGiu => typeof v === "string" && Object.hasOwn(MA_GIU, v);
 
 export interface LyDoGiu {

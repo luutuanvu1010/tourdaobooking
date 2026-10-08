@@ -383,7 +383,10 @@ export async function chiTietChuyen(
   const tuyenRow = t.route_code ? await findRoute(db, t.route_code) : null;
   return {
     chuyen: {
-      ...chuyenTomTat(t, { xe: xeRow, chung: c, stops: nen.stops, allocs: nen.allocs, events: nen.events, lyDoGiu, nhan, bayGioMs }),
+      ...chuyenTomTat(t, {
+        xe: xeRow, chung: c, stops: nen.stops, allocs: nen.allocs, events: nen.events, lyDoGiu, nhan, bayGioMs,
+        legDonHuy: new Set(nc.changNgoai.filter((x) => x.lyDo === "DON_DA_HUY").map((x) => x.legId)), // ADR-0104 Đ2.7 — cùng nguồn lý do giữ DON_DA_HUY
+      }),
       nghiPhaLe: t.rest_override_reason_code !== null,
       lyDoHuy: t.cancel_reason_code ? (lyDoNhan.get(t.cancel_reason_code) ?? null) : null,
       lyDoKetThuc: t.end_reason_code ? (lyDoNhan.get(t.end_reason_code) ?? null) : null,

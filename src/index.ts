@@ -32,7 +32,7 @@ import { cauDoiNguoiDat, donCuaNguoiDat, findOrderRef, ordersModule } from "./mo
 import { accountOfParty, listStaffAccounts, nhanNhanVienTheoId, soDangNhapTheoHoSo } from "./modules/staff";
 import { dayGoCua, dayGoCuaDoi, dongChuyenTheoId, tatMayCuaCacPhienStatement, tatMayCuaPhienStatement, tatMayStatement, tatMayTruPhienStatement, thongbaoModule } from "./modules/thongbao";
 import { troLyModule } from "./modules/tro-ly";
-import { chuyenChoTinTheoId, mocToiThieuHienHanh, nguongHetHanHienHanh, suKienTheoYeuCau, vanChuyenModule, viecXeCuaNguoi } from "./modules/van-chuyen";
+import { chuyenChoTinTheoId, dongBoChuyenChoDon, mocToiThieuHienHanh, nguongHetHanHienHanh, suKienTheoYeuCau, vanChuyenModule, viecXeCuaNguoi } from "./modules/van-chuyen";
 import { HANDLER_TRUOC_KHONG_BIET, nhanSuKien, nhanSuKienChuyen } from "./shared/bang-tin";
 import { dangChayLucSuKien, dongCoTheSinhTin, taiXeNhanSuKien, thayDoiCuaHanhDongChuyen } from "./shared/tin-chuyen";
 import { hanhDongCuaThayDoi, khoaVapid } from "./shared/web-push";
@@ -163,6 +163,9 @@ const APP_OPTIONS: AppOptions = {
     giaoLoDay: (env, ds) => xepHangDay(env, ds),
     // MỐC TỐI THIỂU (ADR-0049 D2, I25): `orders` không đọc bảng vc_ — gốc lắp ráp là NƠI DUY NHẤT gọi hàm công bố của van-chuyen (TC-26, A12 quét nơi gọi).
     mocToiThieu: (env) => mocToiThieuHienHanh(env.DB),
+    // ĐỒNG BỘ CHUYẾN THEO ĐƠN (ADR-0104 Đ2.1): orders / dispatch không import van-chuyen — gốc lắp ráp là NƠI DUY NHẤT gọi hàm công bố (bài siết architecture.test.ts).
+    // `env` ở đây là env BỌC của lệnh (router truyền envH): câu chuyến đi vào CHÍNH lô của lệnh đơn. Không gọi hàm hẹp của orders (src/CLAUDE.md, phán quyết G10).
+    dongBoChuyen: (env, actor, x) => dongBoChuyenChoDon(env.DB, actor, x),
     // TIN CHUYẾN (ADR-0052 D6.3): thongbao không đọc bảng vc_ — gốc lắp ráp là NƠI DUY NHẤT gọi hàm công bố của van-chuyen (bài siết architecture.test.ts).
     chuyenChoTin: (env, q) => chuyenChoTinTheoId(env.DB, q),
     // MỐC SẮP HẾT HẠN (ADR-0040 D1, GB2/R23): parties không đọc bảng vc_ — gốc lắp ráp là NƠI DUY NHẤT gọi hàm công bố của van-chuyen.

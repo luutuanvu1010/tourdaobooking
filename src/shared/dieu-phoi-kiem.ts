@@ -169,13 +169,15 @@ export function kiemTaoSuaChuyen(v: KiemTaoSuaChuyenVao): KetQuaTaoSua {
 // ---- Xếp (mở suất) ----------------------------------------------------------------------------------------------------------------------------------------
 /**
  * Chặng được xét "theo đơn" (nơi hẹn đổi — VK1-B; khách đã đổi — R-P29): đơn đã xác nhận, chưa huỷ, chặng còn mở. Đơn huỷ / chặng bỏ / đơn chưa xác nhận có
- * lý do giữ RIÊNG (DON_DA_HUY, CHANG_DA_DONG, …) — không bắt văn phòng "cập nhật theo đơn" cho khách không còn đi (I38). MỘT điều kiện cho cổng xuất bến và
- * hai lệnh "cập nhật … theo đơn".
+ * lý do giữ RIÊNG (DON_DA_HUY, CHANG_DA_DONG, …) — không bắt văn phòng "cập nhật điểm theo đơn" cho khách không còn đi (I38). Điều kiện của lý do giữ
+ * NOI_HEN_DOI / KHACH_DA_DOI ở cổng xuất bến. ADR-0104 Đ2.11: lệnh "Cập nhật khách theo đơn" KHÔNG còn bỏ qua chặng ngoài điều kiện này — nó dùng luật thuần
+ * `dongBoChuyenTheoDon` (dong-bo-chuyen.ts), đóng suất của đơn huỷ / chặng bỏ / đơn không xác nhận.
  */
 export const changXetTheoDon = (ch: ChangVao): boolean => ch.donDaXacNhan && !ch.donDaHuy && ch.changMo;
 /**
  * R-P29 (chủ lần 16): suất KHÁCH MỞ của chặng `legId` trong `suat` (suất của CHUYẾN này) mang khoá người KHÔNG còn là hành khách hiện hành của đơn
- * (`nguoiCuaDon`) — khách bị bỏ / thay sau khi gắn tên. MỘT định nghĩa cho lý do giữ KHACH_DA_DOI (`kiemXuatBen`) và lệnh "Cập nhật khách theo đơn".
+ * (`nguoiCuaDon`) — khách bị bỏ / thay sau khi gắn tên. MỘT định nghĩa cho lý do giữ KHACH_DA_DOI (`kiemXuatBen`) và luật (ii) của `dongBoChuyenTheoDon`
+ * (máy đồng bộ + nút "Cập nhật khách theo đơn" — ADR-0104 Đ2.6, Đ2.11).
  */
 export function suatKhachDaDoi(v: { legId: string; nguoiCuaDon: readonly string[]; suat: readonly SuatVao[] }): SuatVao[] {
   const hienHanh = new Set(v.nguoiCuaDon);

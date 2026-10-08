@@ -229,7 +229,9 @@ test("màn hình khoá (gõ cửa THẬT qua gốc lắp ráp, fetch giả): s�
     const sua = (adult: number) => w.call("POST", `/api/orders/${a.don.id}/handler-money-edit`, { as: FIELD, body: { reason: "Khách báo thêm", services: [{ id: sv, pax: { adult, child: 0, senior: 0, infant: 0 } }] } });
     const s1 = await sua(3);
     assert.equal(s1.status, 200, s1.text);
-    assert.deepEqual(await nguoiDuocGo(), [SALES], "HDV sửa số khách → người lập");
+    // ADR-0104 Đ2.10 (NỚI có tên N7 — danh sách hành động sinh tin rộng hơn): số khách tăng 2 → 3 ⇒ máy đồng bộ mở thêm một suất trên chuyến của DRIVER
+    // (khúc `trip_order_synced`) ⇒ tài xế đang lái cũng được gõ cửa (tin "khach_doi"); HDV (người sửa) vẫn không.
+    assert.deepEqual(await nguoiDuocGo(), [SALES, DRIVER].sort(), "HDV sửa số khách → người lập (tin đơn đổi) + tài xế đang lái (máy đồng bộ chuyến)");
     denGio("06:12");
     const thu = await w.call("POST", `/api/orders/${a.don.id}/payments`, { as: FIELD, body: { soTien: 200000, hinhThuc: "CASH", nguoiThu: "cong_ty" } });
     assert.equal(thu.status, 201, thu.text);

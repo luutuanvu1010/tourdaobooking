@@ -8,7 +8,7 @@ import { auditStatement, type AuditAction } from "../audit";
 import {
   ALLOC_CLOSE, ALLOC_GAN_TEN, ALLOC_INSERT, ALLOC_TIEN_DO, ALLOCS_CLOSE_ALL, ALLOCS_DONG_GIAN_DOAN, CHECK_INSERT, CHECK_ITEM_INSERT, DRIVER_CLOSE, DRIVER_INSERT,
   EVENT_INSERT, MANIFEST_INSERT, MOC_GOI_INSERT, MOC_XEP_INSERT, STOP_DA_TOI, STOP_INSERT, STOP_SET_SEQ, STOP_SKIP, STOP_UPDATE_PLAN, STOP_XONG_NEU_HET, STOPS_SKIP_ALL, TRIP_CANCEL, TRIP_GATE,
-  TRIP_CAM_KET_PHA_LE, TRIP_GATE_CHI_PHI, TRIP_GATE_DANG_CHAY, TRIP_GATE_DOI, TRIP_GATE_TIEN_DO, TRIP_INSERT, TRIP_KET_THUC, TRIP_UPDATE_PLAN, TRIP_XUAT_BEN,
+  TRIP_CAM_KET_PHA_LE, TRIP_GATE_CHI_PHI, TRIP_GATE_DANG_CHAY, TRIP_GATE_DOI, TRIP_GATE_THEO_DON, TRIP_GATE_TIEN_DO, TRIP_INSERT, TRIP_KET_THUC, TRIP_UPDATE_PLAN, TRIP_XUAT_BEN,
   ALLOC_OFFICE_CANCEL, MANIFEST_THEM_SAU, TRIP_CHOT, TRIP_GATE_DANG_CHAY_VERSION, ALLOC_DIEU_CHINH_INSERT, EVENT_DIEU_CHINH_INSERT, TRIP_THU_HOI_XUAT_BEN,
 } from "./chuyen-repo";
 import { cauChiPhi, type KeHoachChiPhi } from "./tien-xe-lo";
@@ -26,10 +26,16 @@ import {
  * gác bằng ID NHẬT KÝ của lô (`EXISTS (SELECT 1 FROM audit_log WHERE id = ?)` = dấu lệnh) thay cho `last_cmd_id`. Chỉ `loBoSungTen` được dùng (bài thứ tự lô).
  */
 /** `CAM_KET_PHA_LE` (ADR-0056 VK3-A, Đợt 7 Task 4): câu ghi / xoá cột phá lệ cam kết của chuyến — có lính gác dấu lệnh như GHI, nhãn riêng để bài thứ tự lô soi. */
-export type NhanCau = "CONG" | "CONG_DOI" | "CHUYEN_TIEN_DO" | "CONG_MOC" | "NHAT_KY" | "SU_KIEN" | "GHI" | "GHI_NGOAI" | "CAM_KET_PHA_LE" | "TRANG_THAI_CUOI";
+/**
+ * `CAU_DON` (ADR-0104 Đ2.3 — nới có tên N1): câu của orders (cổng đơn + nhật ký đơn + câu ghi đơn, đã soạn, CHƯA chạy) đứng ĐẦU lô đồng bộ chuyến theo đơn.
+ * Chỉ `loDongBoChuyen` được dùng (bài thứ tự lô — CHO_CAU_DON); van-chuyen chỉ NỐI, không soạn câu nào trên bảng ord_* hay audit_log.
+ */
+export type NhanCau = "CONG" | "CONG_DOI" | "CHUYEN_TIEN_DO" | "CONG_MOC" | "NHAT_KY" | "SU_KIEN" | "GHI" | "GHI_NGOAI" | "CAM_KET_PHA_LE" | "TRANG_THAI_CUOI" | "CAU_DON";
 export interface CauCoNhan {
   nhan: NhanCau;
   stmt: D1PreparedStatement;
+  /** Lô nhiều khúc (`loDongBoChuyen`): dấu lệnh của KHÚC chứa câu — bài thứ tự lô tách khúc theo trường này. Lô một lệnh để trống. */
+  cmd?: string;
   /**
    * Chỉ câu `SU_KIEN`: khoá của sự kiện lô này sẽ ghi (chuyến, chuyến liên quan, loại, điểm, suất) — `chayLo` so với sự kiện đã mang CÙNG request_id khi lô
    * thua cổng / đụng UNIQUE, để chỉ coi là lệnh lặp khi đúng lệnh này (C38); lệch ⇒ 409 `request_id_reused`.
@@ -512,30 +518,68 @@ export function loThuHoiXuatBen(db: D1Database, l: LenhThuHoiXuatBen): CauCoNhan
   ];
 }
 
-// ---- Cập nhật khách theo đơn (route 41 — R-P29, chủ lần 16; khuôn route 40) --------------------------------------------------------------------------------
+// ---- Cập nhật khách theo đơn (route 41 — R-P29, chủ lần 16; khuôn route 40; ADR-0104 Đ2.11 nút tay dùng chung luật thuần) -----------------------------------
 export interface LenhCapNhatKhach extends LenhChung {
   tripId: string;
   version: number;
-  /** Từng suất khách đã đổi: đóng PASSENGER_CHANGED NGAY TRƯỚC khi mở lại (cùng chặng, cùng điểm, khoá rảnh hoặc null) — hoặc chỉ đóng (đơn giảm người). */
-  cap: { dongId: string; mo: SuatMoi | null }[];
+  /** Suất đóng, mã theo luật của từng chặng (`dongBoChuyenTheoDon`): REMOVED (đơn huỷ / bỏ chặng / đơn không xác nhận / thừa suất chưa tên), PASSENGER_CHANGED (khách đổi). */
+  dong: { suatId: string; lyDo: LyDoDongSuat }[];
+  /** Suất mở lại sau khi đổi khách (cùng chặng, cùng điểm, khoá rảnh hoặc null). */
+  mo: SuatMoi[];
   diemBoQua: string[];
   /** ADR-0056 VK3-A, C7: lệnh chỉ GIẢM khách — chỉ XOÁ cột phá lệ cam kết khi hết vi phạm (`{ null, null }`); null = không chạm. */
   camKet: CamKetLo | null;
   detail: string;
 }
+/** Cổng → nhật ký → MỘT sự kiện (số = số suất đóng) → ĐÓNG hết rồi MỚI MỞ (LC-02 đếm theo dòng — khuôn khúc của `loDongBoChuyen`) → bỏ điểm → cam kết. */
 export function loCapNhatKhach(db: D1Database, l: LenhCapNhatKhach): CauCoNhan[] {
-  const lo: CauCoNhan[] = [
+  return [
     cong(db, l, l.tripId, l.version),
     nhatKy(db, l, "trip_passengers_synced", l.tripId, l.detail),
-    suKien(db, l, { tripId: l.tripId, loai: "ALLOCATION_PASSENGER_CHANGED", soNguoi: l.cap.length }),
+    suKien(db, l, { tripId: l.tripId, loai: "ALLOCATION_PASSENGER_CHANGED", soNguoi: l.dong.length }),
+    ...l.dong.map((d) => dongSuat(db, l, l.tripId, d.suatId, d.lyDo)),
+    ...l.mo.map((s) => chenSuat(db, l, s)),
+    ...l.diemBoQua.map((id) => boQuaDiem(db, l, l.tripId, id, LY_DO_BO_QUA_KHONG_CON_KHACH)),
+    ...cauCamKet(db, l, l.tripId, l.camKet),
   ];
-  for (const c of l.cap) {
-    lo.push(dongSuat(db, l, l.tripId, c.dongId, LENH_DONG_SUAT.DOI_KHACH_THEO_DON));
-    if (c.mo) lo.push(chenSuat(db, l, c.mo));
-  }
-  lo.push(...l.diemBoQua.map((id) => boQuaDiem(db, l, l.tripId, id, LY_DO_BO_QUA_KHONG_CON_KHACH)));
-  lo.push(...cauCamKet(db, l, l.tripId, l.camKet));
-  return lo;
+}
+
+// ---- Đồng bộ chuyến theo đơn (ADR-0104 Đ2 — máy; lô CHUNG với lệnh đơn) -------------------------------------------------------------------------------
+/** Một KHÚC chuyến của lô đồng bộ: dấu lệnh + request_id RIÊNG (Đ2.3 — `vc_trip_event.request_id` UNIQUE), cổng hỏi nhật ký đơn `auditIdDon` của đơn `orderId`. */
+export interface KhucLoDongBo extends LenhChung {
+  tripId: string;
+  version: number;
+  auditIdDon: string;
+  orderId: string;
+  /** Đóng trước (mã theo luật: REMOVED / PASSENGER_CHANGED), mở sau — LC-02 đếm theo dòng. */
+  dong: { suatId: string; lyDo: LyDoDongSuat }[];
+  mo: SuatMoi[];
+  diemBoQua: string[];
+  /** Chỉ XOÁ cột phá lệ cam kết khi hết vi phạm (`{ null, null }`); null = không chạm. */
+  camKet: CamKetLo | null;
+  /** Số ghế đổi (đóng + mở) — cột `count` của sự kiện. */
+  soNguoi: number;
+  detail: string;
+}
+/**
+ * Lô ĐỒNG BỘ CHUYẾN THEO ĐƠN (ADR-0104 Đ2.1, Đ2.3): `[câu đơn…, khúc chuyến 1…, khúc chuyến 2…]`. Câu đơn (`cauDon` — orders soạn, chưa chạy) đứng ĐẦU, giữ
+ * nguyên thứ tự (chỉ số kết quả mà route đơn đọc để biết thắng không đổi). Mỗi khúc: cổng theo đơn (`TRIP_GATE_THEO_DON` — đơn thua lặng lẽ ⇒ cổng chuyến
+ * thua theo) → nhật ký `trip_order_synced` (`changes() > 0`) → MỘT sự kiện `ALLOCATION_ORDER_SYNCED` (request_id của khúc) → đóng → mở → bỏ điểm → cam kết,
+ * mọi câu sau cổng gác `last_cmd_id` = dấu lệnh của khúc. Không câu nào chạm bảng ord_* hay audit_log ngoài phần `cauDon` nối nguyên.
+ */
+export function loDongBoChuyen(db: D1Database, l: { cauDon: readonly D1PreparedStatement[]; khuc: readonly KhucLoDongBo[] }): CauCoNhan[] {
+  return [
+    ...l.cauDon.map((stmt): CauCoNhan => ({ nhan: "CAU_DON", stmt })),
+    ...l.khuc.flatMap((k) => [
+      { nhan: "CONG" as const, stmt: db.prepare(TRIP_GATE_THEO_DON).bind(k.tripId, k.version, k.cmd, k.lucIso, k.nguoiId, k.auditIdDon, k.orderId) },
+      nhatKy(db, k, "trip_order_synced", k.tripId, k.detail),
+      suKien(db, k, { tripId: k.tripId, loai: "ALLOCATION_ORDER_SYNCED", soNguoi: k.soNguoi }), // decided NGUOI: created_by = người sửa đơn (Đ2.9) hiện trên lịch sử chuyến
+      ...k.dong.map((d) => dongSuat(db, k, k.tripId, d.suatId, d.lyDo)),
+      ...k.mo.map((s) => chenSuat(db, k, s)),
+      ...k.diemBoQua.map((id) => boQuaDiem(db, k, k.tripId, id, LY_DO_BO_QUA_KHONG_CON_KHACH)),
+      ...cauCamKet(db, k, k.tripId, k.camKet),
+    ].map((c): CauCoNhan => ({ ...c, cmd: k.cmd }))),
+  ];
 }
 
 // =========================================================================================================================================================

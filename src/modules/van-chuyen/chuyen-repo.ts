@@ -1,7 +1,9 @@
 // SQL CHUYẾN XE của van-chuyen (ADR-0049 D1, D2; ADR-0050 VK1-A, VK1-B; kế hoạch mục 1.3–1.5, Task A13 / A15). Tệp thứ HAI của module nghiêm (STRICT —
 // src/architecture.test.ts nạp và EXPLAIN từng câu; R-P4 (ii) đã thử thật "bài nhận hai tệp"). Mọi câu TĨNH qua defineSql, tham số ?N; import đuôi .ts.
 // - Chỉ đọc bảng vc_ của mình và VIEW công bố: v_ord_leg_key / v_ord_order_flag (cờ chặng — lý do giữ cụ thể, I38), v_loc_location_label (tên điểm danh
-//   mục), v_pty_party_label / v_pty_owner_company (tên chủ xe). Không đọc audit_log (lính gác lô = DẤU LỆNH `last_cmd_id` trên vc_trip — ADR-0049 D1).
+//   mục), v_pty_party_label / v_pty_owner_company (tên chủ xe). Không đọc thẳng audit_log (lính gác lô = DẤU LỆNH `last_cmd_id` trên vc_trip — ADR-0049 D1);
+//   riêng câu cổng của máy đồng bộ chuyến theo đơn (`TRIP_GATE_THEO_DON`, ADR-0104 Đ2.2) hỏi "câu cổng đơn đã thắng" qua view công bố v_aud_order_cmd (0089),
+//   và câu đọc cam kết chặng qua v_ord_leg_commit (0089, phán quyết G10).
 // - Câu GHI sau câu cổng đều mang `EXISTS (SELECT 1 FROM vc_trip WHERE id = ?T AND last_cmd_id = ?cmd)` (bài thứ tự lô — Task A14). Mỗi suất MỘT câu INSERT
 //   (trigger sức chứa theo dòng — kế hoạch mục 4 điểm 3). Không câu DELETE nào (không xoá cứng).
 import { defineSql } from "../../shared/sql-registry.ts";
@@ -232,6 +234,43 @@ export async function legFlags(db: D1Database, legIds: readonly string[]): Promi
   return (await db.prepare(LEG_FLAGS).bind(JSON.stringify(legIds)).all<LegFlagRow>()).results;
 }
 
+// ---- Đọc của máy ĐỒNG BỘ CHUYẾN THEO ĐƠN (ADR-0104 Đ2; gốc lắp ráp gọi — người sửa đơn có thể KHÔNG có trip.view: không câu nào trả dữ liệu ra ngoài) ----
+/** Mọi chặng của MỘT đơn (kể cả chặng đã đóng) + mã đơn — qua view công bố của orders. */
+const CHANG_CUA_DON_DONG_BO = defineSql(
+  "van-chuyen",
+  "chang_cua_don_dong_bo",
+  `SELECT k.id, k.order_id, o.order_code, k.is_open FROM v_ord_leg_key k LEFT JOIN v_ord_order_label o ON o.id = k.order_id WHERE k.order_id = ?1 ORDER BY k.id`,
+);
+export async function changCuaDonDongBo(db: D1Database, orderId: string): Promise<{ id: string; order_id: string; order_code: string | null; is_open: number }[]> {
+  return (await db.prepare(CHANG_CUA_DON_DONG_BO).bind(orderId).all<{ id: string; order_id: string; order_code: string | null; is_open: number }>()).results;
+}
+/** Khoá người HIỆN HÀNH của đơn (view công bố — cùng nguồn trigger LC-10). Không tên. */
+const NGUOI_CUA_DON = defineSql(
+  "van-chuyen",
+  "nguoi_cua_don",
+  "SELECT person_key FROM v_ord_passenger_key WHERE order_id = ?1 AND has_current_row = 1 ORDER BY person_key",
+);
+export async function nguoiCuaDon(db: D1Database, orderId: string): Promise<string[]> {
+  return (await db.prepare(NGUOI_CUA_DON).bind(orderId).all<{ person_key: string }>()).results.map((r) => r.person_key);
+}
+/** Bốn cột cam kết của các chặng (0089 `v_ord_leg_commit` — phán quyết G10) + mã đơn (nhãn lý do cam kết). */
+const CAM_KET_CHANG = defineSql(
+  "van-chuyen",
+  "cam_ket_chang",
+  `SELECT c.id, c.order_id, o.order_code, c.exclusive_vehicle, c.min_vehicle_seats
+   FROM v_ord_leg_commit c LEFT JOIN v_ord_order_label o ON o.id = c.order_id WHERE c.id IN (SELECT value FROM json_each(?1))`,
+);
+export async function camKetChang(db: D1Database, legIds: readonly string[]): Promise<{ id: string; order_id: string; order_code: string | null; exclusive_vehicle: number; min_vehicle_seats: number | null }[]> {
+  if (legIds.length === 0) return [];
+  return (await db.prepare(CAM_KET_CHANG).bind(JSON.stringify(legIds)).all<{ id: string; order_id: string; order_code: string | null; exclusive_vehicle: number; min_vehicle_seats: number | null }>()).results;
+}
+/** Chuyến theo danh sách id. */
+const TRIPS_BY_IDS = defineSql("van-chuyen", "trips_by_ids", `SELECT ${COT_CHUYEN} FROM vc_trip t WHERE t.id IN (SELECT value FROM json_each(?1)) ORDER BY t.code, t.id`);
+export async function tripsByIds(db: D1Database, ids: readonly string[]): Promise<TripRow[]> {
+  if (ids.length === 0) return [];
+  return (await db.prepare(TRIPS_BY_IDS).bind(JSON.stringify(ids)).all<TripRow>()).results;
+}
+
 /** Xe chưa ngừng + chủ (tên, cờ công ty chủ hiện tại) — danh sách chọn xe của văn phòng và dữ liệu vào luật thuần. */
 export interface XeDieuPhoiRow {
   id: string;
@@ -344,6 +383,17 @@ export const TRIP_GATE = defineSql(
   "van-chuyen",
   "trip_gate",
   "UPDATE vc_trip SET version = version + 1, last_cmd_id = ?3, updated_at = ?4, updated_by = ?5 WHERE id = ?1 AND version = ?2 AND status = 'PLANNED'",
+);
+/**
+ * Câu cổng của MỘT khúc chuyến trong lô ĐỒNG BỘ THEO ĐƠN (ADR-0104 Đ2.2, Đ2.3): như TRIP_GATE + "câu cổng đơn đứng trước trong CÙNG lô đã thắng" — dòng
+ * nhật ký ?6 của ĐÚNG đơn ?7 có trong v_aud_order_cmd (đơn thua lặng lẽ thì không có dòng ⇒ cổng chuyến thua theo, không câu chuyến nào chạy). Điều kiện
+ * `order_id` chặn truyền nhầm mã nhật ký của đơn khác. ?1 chuyến, ?2 version đã đọc, ?3 dấu lệnh của khúc, ?4 lúc, ?5 người sửa đơn, ?6 id nhật ký đơn, ?7 đơn.
+ */
+export const TRIP_GATE_THEO_DON = defineSql(
+  "van-chuyen",
+  "trip_gate_theo_don",
+  `UPDATE vc_trip SET version = version + 1, last_cmd_id = ?3, updated_at = ?4, updated_by = ?5
+   WHERE id = ?1 AND version = ?2 AND status = 'PLANNED' AND EXISTS (SELECT 1 FROM v_aud_order_cmd WHERE id = ?6 AND order_id = ?7)`,
 );
 /**
  * Câu cổng lệnh KẾ HOẠCH có chạm CHI PHÍ chuyến xe thuê (ADR-0057 C4 — sửa, huỷ; kế hoạch Đợt 4 TC-8): như TRIP_GATE + "số dòng chi phí của chuyến vẫn bằng ?6 đã

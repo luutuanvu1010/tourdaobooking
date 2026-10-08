@@ -1316,6 +1316,16 @@ test("R-VC-6: sự kiện ↔ nhật ký lệnh chuyến cùng id → 0; sự ki
   assert.equal(violations(db, c), 2, "nhật ký lệnh chuyến không sự kiện");
 });
 
+test("S10 / NT-12 (ADR-0104 Đ2.9): R-VC-6 phủ hành động mới trip_order_synced — khúc máy có sự kiện ALLOCATION_ORDER_SYNCED cùng id → 0; nhật ký không sự kiện → 1", () => {
+  const c = one("R-VC-6");
+  const db = tho();
+  const t = chuyenTho(db);
+  suKienTho(db, { trip: t, kind: "ALLOCATION_ORDER_SYNCED", nhatKy: "trip_order_synced" });
+  assert.equal(violations(db, c), 0, "khúc máy đúng khuôn");
+  db.prepare("INSERT INTO audit_log (id, action, target_type, target_id, detail, created_at) VALUES ('l-may-mo-coi', 'trip_order_synced', 'trip', ?, 'x', ?)").run(t, T2);
+  assert.equal(violations(db, c), 1, "nhật ký máy đồng bộ không có sự kiện cùng id");
+});
+
 test("R-VC-7: chặng đã vào mốc (6 giờ) mà chưa xếp đủ → 1 (warn); xếp đủ / chưa vào mốc / đã qua giờ đón → 0", () => {
   const c = one("R-VC-7");
   assert.equal(c.level, "warn");

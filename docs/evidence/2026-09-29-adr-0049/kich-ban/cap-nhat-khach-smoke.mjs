@@ -17,12 +17,25 @@ const d = await dungDuLieuDieuPhoi(env, call);
 const x4 = await call(ACCOUNTS.admin, "POST", `/api/van-chuyen/chuyen/${d.T4.id}/phan-bo`, { version: d.T4.version, requestId: randomUUID(), chang: [{ legId: d.O4.legId, soSuat: 2 }], phaLe: { lyDo: "PHA_LE_SU_CO" } });
 assert.equal(x4.status, 200, x4.text);
 
-/** Đổi danh sách khách của đơn qua API đơn (đường thật của văn phòng): bỏ khách theo tên, thêm khách mới. */
+/**
+ * Đổi danh sách khách của đơn: thêm khách mới qua API đơn (đường thật của văn phòng), bỏ khách theo tên.
+ * ADR-0104 Đ2 (kế hoạch N9 — đổi cách DỰNG, không nới luật): sửa khách qua route nay tự đồng bộ chuyến (máy) nên trạng thái GIỮ KHACH_DA_DOI dựng bằng gieo
+ * SQL trên D1 tạm (tiền lệ moc-chua-co-smoke): thêm người qua route TRƯỚC (máy không có gì lệch), rồi HUỶ dòng khách cũ bằng một câu UPDATE `voided_at` —
+ * đúng cột route huỷ ghi, trigger 0035 cho phép — như khi máy vượt trần / thua cổng chuyến.
+ * Gọi API bằng Quản trị (không bao giờ mở trang trong Chrome của kịch bản này): Bán hàng đăng nhập trên Chrome ở bước 1 thì luật một máy (ADR-0075) đá cookie API
+ * của Bán hàng — bước 3 từng đỏ "unauthenticated" từ trước Đ2 vì vậy.
+ */
 const doiKhach = async (don, boTen, them = []) => {
-  const ds = (await call(ACCOUNTS.salesA, "GET", `/api/orders/${don.id}/passengers`)).json;
+  const g = await call(ACCOUNTS.admin, "GET", `/api/orders/${don.id}/passengers`);
+  assert.equal(g.status, 200, `đọc danh sách khách ${don.ma}: ${g.text}`);
+  const ds = g.json;
   const huy = boTen.map((t) => ds.passengers.find((x) => x.fullName === t).personKey);
-  const r = await call(ACCOUNTS.salesA, "POST", `/api/orders/${don.id}/passengers`, { expectedUpdatedAt: ds.orderUpdatedAt, them, sua: [], huy });
-  assert.equal(r.status, 200, `đổi khách ${don.ma}: ${r.text}`);
+  if (them.length) {
+    const r = await call(ACCOUNTS.admin, "POST", `/api/orders/${don.id}/passengers`, { expectedUpdatedAt: ds.orderUpdatedAt, them, sua: [], huy: [] });
+    assert.equal(r.status, 200, `thêm khách ${don.ma}: ${r.text}`);
+  }
+  const luc = new Date().toISOString();
+  for (const k of huy) env.sql(`UPDATE ord_passenger SET voided_at = '${luc}', updated_at = '${luc}' WHERE order_id = '${don.id}' AND person_key = '${k}' AND voided_at IS NULL`);
 };
 const moi = (fullName, birthYear) => ({ fullName, birthYear, paxCode: null });
 // T1 (ngoài khoá): bỏ "1-2", thêm "Khách Mới Thay" (đơn vẫn 3 người) → KHACH_DA_DOI. T4 (trong khoá): bỏ "5-1", thêm "Khách Mới Khoá". T3 (cho Kế toán xem).

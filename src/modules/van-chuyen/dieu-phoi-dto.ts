@@ -71,7 +71,9 @@ export const lyDoDangDung = (chung: DuLieuChung): LyDoDangDungDto[] =>
 /** Tóm tắt một chuyến (lịch chung + đầu chi tiết). */
 export function chuyenTomTat(
   t: TripRow, v: { xe: XeDieuPhoiRow | undefined; chung: DuLieuChung; stops: readonly StopRow[]; allocs: readonly AllocRow[]; events: readonly EventRow[]; lyDoGiu: readonly LyDoGiu[];
-    nhan: ReadonlyMap<string, string> | null; bayGioMs: number },
+    nhan: ReadonlyMap<string, string> | null; bayGioMs: number;
+    /** ADR-0104 Đ2.7: chặng (có suất trên các chuyến đang dựng) thuộc đơn ĐÃ HUỶ — cờ `is_cancelled` của view công bố (cùng nguồn lý do giữ DON_DA_HUY). */
+    legDonHuy: ReadonlySet<string> },
 ): ChuyenTomTatDto {
   const tx = t.driver_party_id ? v.chung.taiXe.find((x) => x.partyId === t.driver_party_id) : undefined;
   const tai = v.allocs.filter((a) => a.trip_id === t.id && a.valid_to_at === null && (a.status === "WAITING" || a.status === "BOARDED")).length;
@@ -98,6 +100,9 @@ export function chuyenTomTat(
     })),
     // ADR-0104 Đ1 mục 5: từ sự kiện ĐÃ ĐỌC (`eventsByTrips` — sự kiện của chuyến kể cả dời vào / ra, GA-35); không câu đọc mới.
     khanCap: v.events.some((e) => (e.trip_id === t.id || e.related_trip_id === t.id) && e.override_rule_code === "MOC_TOI_THIEU"),
+    // ADR-0104 Đ2.7 (T2.16): xe đang chạy còn khách CHỜ ĐÓN của đơn huỷ mà văn phòng chưa Báo huỷ (khuôn `daBaoHuy` của máy — nhắc tới khi báo huỷ hết).
+    coKhachDonHuy: t.status === "RUNNING" && v.allocs.some((a) =>
+      a.trip_id === t.id && a.valid_to_at === null && a.kind === "PASSENGER" && a.status === "WAITING" && a.office_cancel_at === null && a.leg_id !== null && v.legDonHuy.has(a.leg_id)),
   };
 }
 

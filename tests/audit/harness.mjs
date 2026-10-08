@@ -37,7 +37,7 @@ async function bundle(entry) {
 export const app = (await bundle(
   'export { default, taoAppChoKhungThu } from "./index"; export { createSessionToken } from "./modules/auth/session"; export { listAll } from "./modules/audit/repository"; export { xoaBoNhoVanNghia } from "./modules/tro-ly/van-nghia";' +
     ' export { isSingleDevice } from "./modules/auth/session-ledger"; export { accountRoleCodesOf, getActiveStaff } from "./modules/staff"; export { docTapNhieuMay } from "./modules/auth";' +
-    ' export { chuyenChoTinTheoId, suKienTheoYeuCau } from "./modules/van-chuyen"; export { dongChuyenTheoId } from "./modules/thongbao";',
+    ' export { chuyenChoTinTheoId, dongBoChuyenChoDon, suKienTheoYeuCau } from "./modules/van-chuyen"; export { dongChuyenTheoId } from "./modules/thongbao";',
 ));
 
 const isRead = (sql) => /^\s*(SELECT|WITH|PRAGMA|EXPLAIN)\b/i.test(sql);
@@ -108,6 +108,11 @@ export const MOC_GIA_POLICY_ID = "moc-gia-khung-thu";
  *   `mocToiThieu` — lách hàng rào N-9) → ném lỗi; dùng chung với tuỳ chọn khác → ném lỗi (không lặng lẽ bỏ). Không nới luật cho môi trường thử.
  * - `khongTiemNhan: true` — bỏ hàm tiêm nhãn người bấm (ruling R-P20: route để trống nhãn, không đoán). `demNhan: true` — nhãn GIẢ có ĐẾM số lần gọi
  *   (`w.soLanGoiNhan()`, mỗi lần một mảng id) — "một lần mỗi request cho cả danh sách".
+ * - `khongDongBoChuyen: true` — ADR-0104 Đ2 (kế hoạch N9 "đổi cách dựng, không nới luật"): bỏ hàm tiêm máy đồng bộ chuyến ⇒ router dùng `dongBoDiThang` (lô = câu
+ *   đơn, phản hồi `capNhatTay`). CHỈ cho bài cần TRẠNG THÁI GIỮ (suất của đơn huỷ / khách đã đổi còn trên chuyến) để kiểm lý do giữ hay nút tay — bài đó vẫn phải
+ *   thấy lý do giữ.
+ * - `chenGiuaDocVaGhi: async ({ x }) => …` — ADR-0104 Đ2 (NT-5 "thua cổng"): máy đồng bộ THẬT đọc + lập khúc, rồi hàm này chạy TRƯỚC khi route chạy lô (giả một
+ *   người khác vừa đổi chuyến / đơn giữa lúc đọc và lúc ghi). Không thay luật nào.
  */
 const GHI_DE_DUOC_PHEP = ["dongBangTin", "baoThayDoiChuyen"]; // baoThayDoiChuyen: CHỈ để bài NHÌN lời gọi hàm tiêm (ADR-0052 D6.3) — không nới luật nghiệp vụ
 export function world(tuyChon = {}) {
@@ -134,6 +139,17 @@ export function world(tuyChon = {}) {
     ungDung = app.taoAppChoKhungThu({ nhanNhanVien: undefined });
   } else if (tuyChon.ghiDe) {
     ungDung = app.taoAppChoKhungThu(tuyChon.ghiDe); // bài cần NHÌN lời gọi hàm tiêm (vd dongBangTin lúc đăng nhập — ADR-0075 điều 6)
+  } else if (tuyChon.khongDongBoChuyen) {
+    ungDung = app.taoAppChoKhungThu({ dongBoChuyen: undefined });
+  } else if (tuyChon.chenGiuaDocVaGhi) {
+    const chen = tuyChon.chenGiuaDocVaGhi;
+    ungDung = app.taoAppChoKhungThu({
+      dongBoChuyen: async (env, actor, x) => {
+        const d = await app.dongBoChuyenChoDon(env.DB, actor, x);
+        await chen({ x });
+        return d;
+      },
+    });
   } else if (tuyChon.demNhan) {
     ungDung = app.taoAppChoKhungThu({ nhanNhanVien: async (_env, ids) => (goiNhan.push([...ids]), new Map(ids.map((id) => [id, `Nhãn ${id.slice(0, 4)}`]))) });
   }

@@ -1032,16 +1032,32 @@ export async function confirmOrder(
 export async function cancelOrder(
   db: D1Database, id: string, staffId: string, from: OrderStatus, prevUpdatedAt: string, lyDo: LyDoHuy, opts?: { action?: AuditAction; detail?: string },
 ): Promise<boolean> {
+  return daHuy(await db.batch(soanHuyDon(db, id, staffId, from, prevUpdatedAt, lyDo, opts).cau));
+}
+
+/**
+ * SOẠN (chưa chạy) lô huỷ đơn của `cancelOrder` — cho điểm gọi nối máy đồng bộ chuyến (ADR-0104 Đ2, điểm gọi 1 và 2): `auditId` = id dòng nhật ký của câu cổng
+ * đơn (sinh trước — câu cổng chuyến hỏi "dòng này đã có"), `cau` = [dòng lý do] → [đổi trạng thái] → [nhật ký changes() > 0]. Chạy MỘT `db.batch` với câu
+ * đơn ĐỨNG ĐẦU rồi đọc thắng bằng `daHuy(kq)` (chỉ số câu đổi trạng thái không đổi khi nối khúc chuyến phía sau).
+ */
+export function soanHuyDon(
+  db: D1Database, id: string, staffId: string, from: OrderStatus, prevUpdatedAt: string, lyDo: LyDoHuy, opts?: { action?: AuditAction; detail?: string },
+): { auditId: string; cau: D1PreparedStatement[] } {
   const at = nextStamp(prevUpdatedAt);
+  const auditId = crypto.randomUUID();
   // ADR-0089 đ8 (H-C6): lô huỷ = [dòng lý do (cùng điều kiện khoá lạc quan)] → [đổi trạng thái] → [nhật ký changes() > 0] — câu SQL ở tệp nửa nghiêm.
   // Nhật ký ghi NHÃN lý do (không mã thô); "Khác" ghi chính ghi chú đã kiểm (khuôn HDV — ADR-0030 điều 2).
   const nhan = lyDo.ma === "OTHER" ? `${lyDo.ghiChu} (${nhanNhomHuy(lyDo.nhom)})` : `${nhanLyDoHuy(lyDo.ma)} (${nhanNhomHuy(lyDo.nhom)})`;
-  const results = await db.batch([
-    ...cauHuyCoLyDo(db, { orderId: id, staffId, from, prevUpdatedAt, at, homNay: vnToday(new Date()), lyDo }),
-    auditStatement(db, { orderId: id, staffId, action: opts?.action ?? "cancelled", at, detail: opts?.detail ?? nhan }, "changes() > 0"),
-  ]);
-  return (results[1]!.meta.changes ?? 0) > 0;
+  return {
+    auditId,
+    cau: [
+      ...cauHuyCoLyDo(db, { orderId: id, staffId, from, prevUpdatedAt, at, homNay: vnToday(new Date()), lyDo }),
+      auditStatement(db, { id: auditId, orderId: id, staffId, action: opts?.action ?? "cancelled", at, detail: opts?.detail ?? nhan }, "changes() > 0"),
+    ],
+  };
 }
+/** Lô huỷ (do `soanHuyDon` soạn, câu đơn đứng đầu) đã thắng ⇔ câu đổi trạng thái (thứ 2) đổi một dòng. */
+export const daHuy = (kq: readonly D1Result[]): boolean => (kq[1]?.meta.changes ?? 0) > 0;
 
 interface LatestAdjustment {
   id: string;
@@ -1241,16 +1257,16 @@ export function insertMoneyAdjustment(
 }
 
 /**
- * Chạy lô sửa số khách trong MỘT `db.batch` — lô = câu do `insertMoneyAdjustment` soạn, sau này có thể nối thêm câu của module khác (ADR-0104 Đ2: phần chuyến
- * do `ctx.dongBoChuyen` nối SAU câu đơn). Đụng chỉ mục `seq` (người khác vừa ghi) → false (nơi gọi trả 409 stale); lỗi khác ném tiếp (trigger 0044 "Đã giao"
- * được router đổi thành 409 câu cố định).
+ * Chạy lô sửa số khách trong MỘT `db.batch` — lô = câu do `insertMoneyAdjustment` soạn, rồi phần chuyến do `ctx.dongBoChuyen` nối SAU câu đơn (ADR-0104 Đ2).
+ * Trả kết quả lô (để máy đồng bộ đọc khúc nào thắng — câu đơn đứng đầu, chỉ số không đổi). Đụng chỉ mục `seq` (người khác vừa ghi) → null (nơi gọi trả 409
+ * stale; cả lô huỷ nên không câu chuyến nào chạy); lỗi khác ném tiếp (nơi gọi thử `dichLoi` của máy đồng bộ trước; trigger 0044 "Đã giao" được router đổi
+ * thành 409 câu cố định).
  */
-export async function chayLoSuaSoKhach(db: D1Database, lo: readonly D1PreparedStatement[]): Promise<boolean> {
+export async function chayLoSuaSoKhach(db: D1Database, lo: readonly D1PreparedStatement[]): Promise<D1Result[] | null> {
   try {
-    await db.batch([...lo]);
-    return true;
+    return await db.batch([...lo]);
   } catch (e) {
-    if (isAdjustmentSeqCollision(e)) return false;
+    if (isAdjustmentSeqCollision(e)) return null;
     throw e;
   }
 }
@@ -1318,17 +1334,29 @@ export async function writePassengerChange(
   staffId: string,
   plan: { expected: string; chen: readonly { id: string; personKey: string; previousId: string | null; fullName: string; birthYear: number; paxCode: PaxCode | null }[]; huy: readonly string[]; detail: string },
 ): Promise<boolean> {
+  return thangCauDau(await db.batch(soanDoiKhach(db, orderId, staffId, plan).cau));
+}
+
+/**
+ * SOẠN (chưa chạy) lô sửa danh sách khách của `writePassengerChange` — `auditId` = id dòng nhật ký `order_passenger_changed` (câu cổng đơn cho máy đồng bộ
+ * chuyến, ADR-0104 Đ2 điểm gọi 5). Chạy với câu đơn ĐỨNG ĐẦU, đọc thắng bằng `thangCauDau`.
+ */
+export function soanDoiKhach(
+  db: D1Database,
+  orderId: string,
+  staffId: string,
+  plan: Parameters<typeof writePassengerChange>[3],
+): { auditId: string; cau: D1PreparedStatement[] } {
   const at = nextStamp(plan.expected);
   const auditId = crypto.randomUUID();
-  const results = await db.batch([
+  return { auditId, cau: [
     orderTouch(db, orderId, at, plan.expected),
     auditStatement(db, { id: auditId, orderId, staffId, action: "order_passenger_changed", at, detail: plan.detail }, "changes() > 0"),
     ...plan.chen.map((p) =>
       passengerInsertGuarded(db, { id: p.id, orderId, ten: p.fullName, birthYear: p.birthYear, paxCode: p.paxCode, previousId: p.previousId, personKey: p.personKey, at, by: staffId }, auditId),
     ),
     ...plan.huy.map((rowId) => passengerVoidGuarded(db, rowId, orderId, at, staffId, auditId)),
-  ]);
-  return (results[0]!.meta.changes ?? 0) > 0;
+  ] };
 }
 
 // ---- Route chặng SAU XÁC NHẬN (ADR-0047 A1) ---------------------------------------------------------------------------------------------------
@@ -1370,9 +1398,24 @@ export async function replaceLeg(
     mirror: { pickupTime: string | null; pickupPlace: string | null }; datGap: DatGapWrite | null;
   },
 ): Promise<boolean> {
+  return thangCauDau(await db.batch(soanThayChang(db, orderId, staffId, plan).cau));
+}
+
+/** Lô chặng (sửa / đóng / thay — câu đơn đứng đầu) đã thắng ⇔ câu ĐẦU (khoá lạc quan) đổi một dòng. Chỉ số không đổi khi nối khúc chuyến phía sau (ADR-0104 Đ2). */
+export const thangCauDau = (kq: readonly D1Result[]): boolean => (kq[0]?.meta.changes ?? 0) > 0;
+
+/**
+ * SOẠN (chưa chạy) lô THAY chặng của `replaceLeg` — `auditId` = id dòng nhật ký `order_leg_closed` (câu cổng đơn cho máy đồng bộ chuyến, ADR-0104 Đ2 điểm gọi 8).
+ */
+export function soanThayChang(
+  db: D1Database,
+  orderId: string,
+  staffId: string,
+  plan: Parameters<typeof replaceLeg>[3],
+): { auditId: string; cau: D1PreparedStatement[] } {
   const at = nextStamp(plan.expected);
   const auditId = crypto.randomUUID();
-  const results = await db.batch([
+  return { auditId, cau: [
     legCloseReplaceChecked(db, plan.legId, orderId, plan.reason, at, staffId, plan.expected),
     // target_id = id chặng CŨ — cùng khuôn với changeLeg (cột leg_id của v_aud_order_change, 0086).
     auditStatement(db, { id: auditId, orderId, staffId, action: "order_leg_closed", targetType: "order", targetId: plan.legId, at, detail: plan.detailDong }, "changes() > 0"),
@@ -1380,8 +1423,7 @@ export async function replaceLeg(
     orderTouchGuarded(db, orderId, at, plan.expected, auditId),
     legInsertGuarded(db, legWriteOf({ ...plan.leg, id: null }, plan.serviceId, orderId, staffId, at, new Map(), plan.datGap), auditId),
     serviceMirrorUpdateGuarded(db, plan.serviceId, orderId, plan.mirror, auditId),
-  ]);
-  return (results[0]!.meta.changes ?? 0) > 0;
+  ] };
 }
 
 /**
@@ -1406,6 +1448,20 @@ export async function changeLeg(
     | { kind: "paxNhap"; legId: string; serviceId: string; paxOverride: number | null; expected: string; detail: string; mirror: { pickupTime: string | null; pickupPlace: string | null } }
     | { kind: "close"; legId: string; serviceId: string; reason: LyDoDongChang; expected: string; detail: string; mirror: { pickupTime: string | null; pickupPlace: string | null } },
 ): Promise<boolean> {
+  return thangCauDau(await db.batch(soanSuaChang(db, orderId, staffId, orderUpdatedAt, plan).cau));
+}
+
+/**
+ * SOẠN (chưa chạy) lô sửa / đóng chặng của `changeLeg` — `auditId` = id dòng nhật ký `order_leg_updated` / `order_leg_closed` (câu cổng đơn cho máy đồng bộ
+ * chuyến, ADR-0104 Đ2 điểm gọi 3 và 4). Chạy với câu đơn ĐỨNG ĐẦU, đọc thắng bằng `thangCauDau`.
+ */
+export function soanSuaChang(
+  db: D1Database,
+  orderId: string,
+  staffId: string,
+  orderUpdatedAt: string,
+  plan: Parameters<typeof changeLeg>[4],
+): { auditId: string; cau: D1PreparedStatement[] } {
   const at = nextStamp(later(plan.expected, orderUpdatedAt));
   const auditId = crypto.randomUUID();
   const first =
@@ -1414,14 +1470,13 @@ export async function changeLeg(
       : plan.kind === "paxNhap"
         ? legPaxOverrideChecked(db, plan.legId, orderId, plan.paxOverride, at, staffId, plan.expected)
         : legCloseChecked(db, plan.legId, orderId, plan.reason, at, staffId, plan.expected);
-  const results = await db.batch([
+  return { auditId, cau: [
     first,
     // target_id = id CHẶNG (target_type vẫn "order" — mặc định của audit): khoá của tin MQ-07 (ADR-0052 D6.2) qua cột leg_id của v_aud_order_change (0086).
     auditStatement(db, { id: auditId, orderId, staffId, action: plan.kind === "close" ? "order_leg_closed" : "order_leg_updated", targetType: "order", targetId: plan.legId, at, detail: plan.detail }, "changes() > 0"),
     orderTouchGuarded(db, orderId, at, orderUpdatedAt, auditId),
     serviceMirrorUpdateGuarded(db, plan.serviceId, orderId, plan.mirror, auditId),
-  ]);
-  return (results[0]!.meta.changes ?? 0) > 0;
+  ] };
 }
 
 /**

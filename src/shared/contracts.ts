@@ -444,7 +444,15 @@ export interface PassengerListResponse {
   soKhachDoan: number;
   vuotSoKhach: boolean;
   orderUpdatedAt: string;
+  /** Chỉ phản hồi của lệnh GHI (`POST`) — ADR-0104 Đ2. */
+  dongBoChuyen?: DongBoChuyenDto;
 }
+/**
+ * ADR-0104 Đ2 — phần "chuyến" của phản hồi lệnh đơn có nối máy đồng bộ chuyến (huỷ đơn, bỏ / thay chặng, sửa chặng, sửa khách, sửa số khách — cả đường HDV).
+ * KHÔNG mang dữ liệu chuyến nào (Đ2.13 — không mã chuyến, biển số, tài xế). `nhac` = câu cố định khi đơn có khách chờ đón trên xe ĐANG CHẠY (văn phòng bấm
+ * Báo huỷ); `capNhatTay` = máy không nối được phần chuyến (vượt trần câu, hoặc chuyến vừa đổi giữa lúc đọc và lúc ghi) — người xếp xe bấm "Cập nhật khách theo đơn".
+ */
+export interface DongBoChuyenDto { nhac: string | null; capNhatTay: boolean }
 /** `POST /api/orders/:id/passengers` (đơn đã xác nhận): thêm dòng mới, sửa = dòng mới trỏ dòng hiện hành, huỷ = mọi dòng của người đó. */
 export interface PassengerChangeInput {
   expectedUpdatedAt: string;
@@ -485,9 +493,10 @@ export interface NguoiLapResponse { nguoiLap: NguoiLapDto[] }
 export interface CanhBaoMocDto { legKey: string; phutConLai: number }
 /**
  * `canhBaoMoc`, `mocToiThieuPhut` (ADR-0049 I27, I31) có ở phản hồi LẬP / SỬA NHÁP (`POST/PUT /api/orders`) — màn hình hiện cảnh báo sau lần lưu; vắng ở các
- * route khác. `mocToiThieuPhut` null = nháp không chặng (không hỏi mốc).
+ * route khác. `mocToiThieuPhut` null = nháp không chặng (không hỏi mốc). `dongBoChuyen` (ADR-0104 Đ2) chỉ có ở phản hồi lệnh đơn nối máy đồng bộ chuyến (huỷ đơn,
+ * bỏ / thay / sửa chặng).
  */
-export interface OrderResponse { order: OrderDetailDto; canhBaoMoc?: CanhBaoMocDto[]; mocToiThieuPhut?: number | null }
+export interface OrderResponse { order: OrderDetailDto; canhBaoMoc?: CanhBaoMocDto[]; mocToiThieuPhut?: number | null; dongBoChuyen?: DongBoChuyenDto }
 /** `mocToiThieuPhut` (ADR-0049 I31): mốc tối thiểu đang hiệu lực (phút) để biểu mẫu cảnh báo trước khi xác nhận; null = chưa có chính sách. */
 /**
  * ADR-0063 D1 — một dịch vụ TỪ DANH MỤC của bảng "Sửa số khách dịch vụ" (văn phòng): loại khách sửa được tính từ BẢN CHỤP GỐC (`editablePaxCodesOf` — loại đã về 0
@@ -498,9 +507,9 @@ export interface SuaSoKhachDichVuDto { serviceId: string; loaiKhach: PaxCode[] }
 export interface OrderDetailResponse { order: OrderDetailDto; history: AuditEntryDto[]; canModify: boolean; mocToiThieuPhut: number | null; suaSoKhach: SuaSoKhachDichVuDto[] | null }
 /**
  * `POST /api/orders/:id/money-edit` (ADR-0063 D1): đơn HIỆN HÀNH sau lần sửa; `daGhi` false = số khách y nguyên, không ghi gì; `canhBaoTongAm` = câu cảnh báo khi
- * tổng tiền âm (không chặn — `canhBaoTongAm` của src/shared/so-khach-van-phong.ts), null khi không âm.
+ * tổng tiền âm (không chặn — `canhBaoTongAm` của src/shared/so-khach-van-phong.ts), null khi không âm. `dongBoChuyen` chỉ có khi đã ghi (`daGhi`) — ADR-0104 Đ2.
  */
-export interface MoneyEditResponse { order: OrderDetailDto; daGhi: boolean; canhBaoTongAm: string | null }
+export interface MoneyEditResponse { order: OrderDetailDto; daGhi: boolean; canhBaoTongAm: string | null; dongBoChuyen?: DongBoChuyenDto }
 /** 409 xác nhận đơn khi còn chặng dưới mốc chưa đặt gấp (ADR-0049 D2). */
 /** `GET /api/orders/moc-toi-thieu` (ruling R-P15): mốc tối thiểu + cảnh báo sát mốc (phút) của chính sách HIỆN HÀNH — chỉ để biểu mẫu đơn chưa lưu hiển thị. */
 export interface MocToiThieuResponse { mocToiThieuPhut: number; canhBaoPhut: number }
@@ -680,8 +689,9 @@ export interface AssigneesResponse { assignees: AssigneeDto[] }
 /** `PUT /api/orders/:id/handler` — đặt/đổi người phụ trách (hoặc tự nhận khi đơn chưa có người: `staffId` = chính mình). */
 export interface SetHandlerInput { staffId: string }
 export interface SetHandlerResponse { handler: HandlerDto }
-export interface HandlerCancelResponse { ok: true }
-export interface HandlerMoneyEditResponse { ok: true }
+/** Đường HDV huỷ đơn / sửa số khách: `dongBoChuyen` = phần "chuyến" (ADR-0104 Đ2) — chỉ câu cố định + cờ, không dữ liệu chuyến (HDV không có trip.view). */
+export interface HandlerCancelResponse { ok: true; dongBoChuyen?: DongBoChuyenDto }
+export interface HandlerMoneyEditResponse { ok: true; dongBoChuyen?: DongBoChuyenDto }
 
 /**
  * Màn "việc của tôi" (`GET /api/dispatch/mine`, module dispatch — ADR-0014 điều 6/11, ADR-0030 S23-8). Viết ĐỘC LẬP, KHÔNG `Pick`/`Omit` từ
@@ -1246,6 +1256,12 @@ export interface ChuyenTomTatDto {
    * văn phòng (lịch chung, chi tiết chuyến); không vào DTO tài xế.
    */
   khanCap: boolean;
+  /**
+   * ADR-0104 Đ2.7 (kế hoạch T2.16): chuyến ĐANG CHẠY còn suất khách CHỜ ĐÓN (mở, chưa "văn phòng báo huỷ") thuộc đơn ĐÃ HUỶ — máy đồng bộ không ghi lên xe
+   * đang chạy nên màn "Xe đang chạy" nhắc văn phòng bấm Báo huỷ. Tính lúc đọc, cùng nguồn trạng thái đơn với lý do giữ DON_DA_HUY (`v_ord_order_flag` qua
+   * `legFlags`). Chuyến không chạy → false. Chỉ cờ — không mã đơn, không tên.
+   */
+  coKhachDonHuy: boolean;
 }
 export interface ChangLichDto {
   legId: string;
@@ -1472,8 +1488,9 @@ export interface CuuHoResponse {
   xeNhan: { tripId: string; maChuyen: string; trangThai: "PLANNED" | "RUNNING"; tenTaiXe: string; choTrong: number; diemSapToi: string | null; version: number }[];
 }
 /**
- * `POST /api/van-chuyen/chuyen/:id/cap-nhat-khach` (R-P29, chủ lần 16 — khuôn route 40): thân như `CapNhatDiemRequest`. `daCapNhat` = số suất khách ĐÃ ĐỔI
- * được xử lý (đóng PASSENGER_CHANGED; mở lại tới số người của chặng). 0 = không có gì lệch (không ghi). Phản hồi KHÔNG tên (GA-55).
+ * `POST /api/van-chuyen/chuyen/:id/cap-nhat-khach` (R-P29, chủ lần 16 — khuôn route 40; ADR-0104 Đ2.11): thân như `CapNhatDiemRequest`. `daCapNhat` = số suất
+ * khách ĐÃ ĐÓNG theo đơn (khách đổi: PASSENGER_CHANGED rồi mở lại tới số người của chặng; đơn huỷ / chặng bỏ / đơn không xác nhận / thừa suất chưa tên:
+ * REMOVED) — bằng cột `count` của sự kiện (lệnh lặp đọc lại số này). 0 = không có gì cần đổi (không ghi). Phản hồi KHÔNG tên (GA-55).
  */
 export interface CapNhatKhachResponse extends ChuyenChiTietResponse { daCapNhat: number }
 /**

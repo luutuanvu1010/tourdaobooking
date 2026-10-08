@@ -71,6 +71,8 @@ const HANH_DONG_CO_SU_KIEN = [
   "trip_ended", "trip_ended_interrupted",
   // ADR-0097 (gói A1, V3-B): sự kiện điều chỉnh có lý do của văn phòng.
   "trip_allocation_corrected", "trip_departure_revoked",
+  // ADR-0104 Đ2.9 (NT-12): khúc của máy đồng bộ chuyến theo đơn — nhật ký + sự kiện ALLOCATION_ORDER_SYNCED cùng dấu lệnh của khúc.
+  "trip_order_synced",
 ];
 
 /** @type {{ code: string, what: string, sql: string, level: 'fail' | 'warn-unless-strict' | 'warn', mode?: 'rows', note?: string }[]} */
