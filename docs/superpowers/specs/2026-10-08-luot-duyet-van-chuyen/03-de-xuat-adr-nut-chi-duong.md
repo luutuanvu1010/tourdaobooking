@@ -1,7 +1,7 @@
-# ADR-0104 (số tạm) — Nút "Chỉ đường" trên màn tài xế
+# ADR-0105 (số tạm, chốt khi gộp) — Nút "Chỉ đường" trên màn tài xế
 
 > **Trạng thái:** **proposed**, bản nháp của người soạn ngày 2026-10-08. Chủ chưa duyệt; AI không tự duyệt (Hiến pháp N3). Chủ duyệt rồi người điều phối mới chép vào `docs/adr/`.
-> **Số tạm 0104:** đi liền sau ADR-0103 (tệp 02); cách kiểm số như tệp 02.
+> **Số tạm 0105, chốt khi gộp** (người điều phối chốt; tệp 02 lấy 0104). Kiểm ngày 8/10 sau khi tải mới mọi nhánh: tìm "ADR-0103" tới "ADR-0109" trong `docs/` của mọi nhánh cục bộ và `origin/main` chỉ gặp các tệp của thư mục này. **Thuộc lượt 8b.**
 > **Mốc đo mã:** nhánh `claude/van-chuyen-goi-a-c` @ `809918d5`.
 > **Lời chủ:**
 > - Nhiệm vụ gốc: *"GPS & Bản đồ: Cho phép truyền địa chỉ/tọa độ ra dịch vụ bản đồ (Google/Apple Maps) làm nút 'Chỉ đường'…"*
@@ -25,7 +25,7 @@ Nút chỉ hiện cho tài xế công ty, trên chuyến mình đang được x�
   - (a) **Có, chỉ trong khung giờ họ đã được phép thấy tên khách (khuyến nghị):** cùng luật đã duyệt cho tài xế đối tác.
   - (b) Không, chỉ tài xế công ty.
 
-**Câu duyệt gợi ý:** "Duyệt ADR-0104: nút Chỉ đường trên màn tài xế, chỉ gửi điểm đến sang Google Maps, chỉ trong ngày chạy, không gửi vị trí tài xế, không theo dõi thời gian thực; Q-1 a, Q-2 a."
+**Câu duyệt gợi ý:** "Duyệt ADR-0105: nút Chỉ đường trên màn tài xế, chỉ gửi điểm đến sang Google Maps, chỉ trong ngày chạy, không gửi vị trí tài xế, không theo dõi thời gian thực; Q-1 a, Q-2 a. Tôi đồng ý nới bài khoá danh sách trường điểm dừng của tài xế để thêm đúng một trường địa chỉ chỉ đường trong ngày chạy. Tôi chấp nhận rủi ro một chiều: địa chỉ, có khi là nhà riêng của khách, gửi sang Google rồi thì không thu lại được, và việc này chưa được kiểm theo luật bảo vệ dữ liệu cá nhân."
 
 ---
 
@@ -81,8 +81,8 @@ ADR-0049 `:234` cho tài xế thấy tên nơi, kể cả chữ tự do, **mọi
 
 | Nguồn | Nguyên văn | Mới |
 |---|---|---|
-| ADR-0049 `:234` (danh sách trường cho tài xế, "Được") | "điểm dừng (tên nơi; chữ tự do che dãy số), giờ hẹn, giờ xe tới;" | + "**trong ngày chạy:** chuỗi đích chỉ đường của điểm (địa chỉ danh mục, hoặc tên nơi đã che) — ADR-0104" |
-| ADR-0053 `:69` (D7.3, tài xế đối tác "Thấy") | "như tài xế công ty ở ADR-0049 D3 …" | + "chuỗi đích chỉ đường trong khung D7.2 (ADR-0104, Q-2 a)" |
+| ADR-0049 `:234` (danh sách trường cho tài xế, "Được") | "điểm dừng (tên nơi; chữ tự do che dãy số), giờ hẹn, giờ xe tới;" | + "**trong ngày chạy:** chuỗi đích chỉ đường của điểm (địa chỉ danh mục, hoặc tên nơi đã che) — ADR-0105" |
+| ADR-0053 `:69` (D7.3, tài xế đối tác "Thấy") | "như tài xế công ty ở ADR-0049 D3 …" | + "chuỗi đích chỉ đường trong khung D7.2 (ADR-0105, Q-2 a)" |
 
 ### Cửa một chiều / hai chiều
 - **Một chiều:**
@@ -91,11 +91,11 @@ ADR-0049 `:234` cho tài xế thấy tên nơi, kể cả chữ tự do, **mọi
 - **Hai chiều:** nút, khoá DTO (bỏ được trong một lần phát hành), dòng nhắc, chọn bản đồ.
 
 ### Migration
-Một tệp chỉ `CREATE VIEW v_loc_location_dia_chi`. Số = số lớn nhất trong `migrations/` + 1 lúc thi công (hôm nay lớn nhất `0083`). Nếu ADR-0103 Đ2 thi công cùng đợt, mỗi tệp một số, cùng quét mọi nhánh.
+Một tệp chỉ `CREATE VIEW v_loc_location_dia_chi`. Số = số lớn nhất trong `migrations/` + 1 lúc thi công (hôm nay lớn nhất `0083`). Nếu ADR-0104 Đ2 (view `v_aud_order_cmd`) thi công cùng đợt, mỗi tệp một số, cùng quét mọi nhánh.
 
 ### Bài kiểm / hàng rào
 Mỗi rào quan sát chặn thật: sửa cố ý → đỏ → hoàn nguyên, có dòng `docs/SO-HANG-RAO.md`.
-1. `tai-xe-dto.test.ts`: `KHOA_DIEM` trong ngày chạy = 10 khoá + `diaChiChiDuong`; ngoài ngày chạy giữ đúng 10 khoá. Đây là **nới có tên** bài ghim, ghi lý do ADR-0104 ở chú thích.
+1. `tai-xe-dto.test.ts`: `KHOA_DIEM` trong ngày chạy = 10 khoá + `diaChiChiDuong`; ngoài ngày chạy giữ đúng 10 khoá. Đây là **nới có tên** bài ghim, ghi lý do ADR-0105 ở chú thích (chủ đã đồng ý trong câu duyệt).
 2. Bài mới: chuỗi đích của điểm chữ tự do chứa dãy ≥ 8 chữ số → đã che; không bao giờ trùng `place_key`.
 3. Bài hàm thuần `lienKetChiDuong`: mã hoá, chuỗi rỗng.
 4. Bài tĩnh: không tệp `web/` nào gọi `navigator.geolocation`, và `public/_headers` vẫn có `geolocation=()`.
