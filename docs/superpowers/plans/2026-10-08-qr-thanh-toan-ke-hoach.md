@@ -2389,7 +2389,7 @@ Hỏi chủ trong chat, nêu: tên gói `qrcode-generator`, phiên bản, nguồ
 - [ ] **Bước 2: Tải vào thư mục nháp, kiểm mã toàn vẹn, đọc hết tệp.**
 
 ```bash
-cd "$TMPDIR" && npm pack qrcode-generator@2.0.4 && tar -xzf qrcode-generator-2.0.4.tgz && shasum -a 512 qrcode-generator-2.0.4.tgz | xxd -r -p | base64
+cd "$TMPDIR" && npm pack qrcode-generator@2.0.4 && tar -xzf qrcode-generator-2.0.4.tgz && openssl dgst -sha512 -binary qrcode-generator-2.0.4.tgz | openssl base64 -A
 ```
 
 So chuỗi cuối với `dist.integrity` (phần sau `sha512-`). Khớp mới dùng. Lúc lập kế hoạch (2026-10-08) bản mới nhất là **2.0.4**: `exports.import` = `./dist/qrcode.mjs` (bản mô-đun ES), `exports.types` = `./dist/qrcode.d.ts`, integrity `sha512-mZSiP6RnbHl4xL2Ap5HfkjLnmxfKcPWpWe/c+5XxCuetEenqmNFf1FH/ftXPCtFG5/TDobjsjz6sSNL0Sr8Z9g==`, cả gói giải nén 555.539 byte. Bản khác 2.0.4 thì dừng, báo chủ (chủ duyệt đúng một phiên bản). Mở `package/dist/qrcode.mjs` (tệp mà `exports.import` của `package/package.json` chỉ tới). **Đọc hết tệp**: không gọi mạng, không chạy chuỗi thành mã, không ghi HTML thô. Thấy `innerHTML`, `eval`, `new Function`, `fetch`, `XMLHttpRequest` thì DỪNG và báo chủ; không sửa tệp (C3 là chép nguyên). Ghi dung lượng chính xác của tệp này vào sổ thi công.
