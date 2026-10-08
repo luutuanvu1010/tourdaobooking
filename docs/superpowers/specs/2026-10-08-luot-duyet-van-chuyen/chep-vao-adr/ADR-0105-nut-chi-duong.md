@@ -39,11 +39,11 @@
 | | Google Maps | Apple Maps |
 |---|---|---|
 | Liên kết | `https://www.google.com/maps/dir/?api=1&destination=<chuỗi đích đã mã hoá>&travelmode=driving` | `https://maps.apple.com/directions?destination=<chuỗi đích đã mã hoá>&mode=driving` |
-| Nguồn (hạng [A], đã đọc bản gốc) | developers.google.com/maps/documentation/urls/get-started | developer.apple.com/documentation/mapkit/unified-map-urls ("Adopting unified Maps URLs"); support.apple.com/en-us/120585 |
+| Nguồn (hạng [A]: đọc bản gốc ngày 2026-10-08 — tải trang thô rồi tìm đúng câu trích; trang Apple đọc qua tệp dữ liệu JSON của chính trang) | developers.google.com/maps/documentation/urls/get-started | developer.apple.com/documentation/mapkit/unified-map-urls ("Adopting unified Maps URLs"); support.apple.com/en-us/120585 ("Maps on the web is compatible with these web browsers", ngày đăng April 16, 2026) |
 | Điểm xuất phát | không gửi. Tài liệu ghi: vắng `origin` thì bản đồ lấy điểm đầu phù hợp nhất, "such as device location, if available". Đó là việc giữa điện thoại và Google, ngoài Nền tảng | không gửi. Tài liệu ghi: vắng `source` thì Maps chỉ đường "from a person's current location". Đó là việc giữa điện thoại và Apple, ngoài Nền tảng |
 | Khoá dịch vụ, tiền | tài liệu ghi "You don't need a Google API key to use Maps URLs". Không tốn tiền | tài liệu **không nêu** khoá hay phí; không có bước đăng ký nào trong tài liệu |
 | iPhone | có ứng dụng Google Maps thì mở ứng dụng; không có thì mở Google Maps trong trình duyệt (tài liệu Google) | dạng `/directions` được tài liệu ghi cho **iOS 18.4 trở lên** (macOS 15.4, watchOS 11.4). iOS cũ hơn: **chưa kiểm** |
-| Android | có ứng dụng Google Maps thì mở ứng dụng; không có hoặc bị tắt thì mở trình duyệt (tài liệu Google) | không có ứng dụng Apple Maps. Trang hỗ trợ Apple (đăng 2026-04-16) ghi "Maps on the web" chạy trên trình duyệt di động Edge, Chrome, Firefox, và "Feature availability can vary by platform, language, and region". Liên kết `/directions` có dẫn đường được trên Android không, có tiếng Việt không, có ở Việt Nam không: **chưa kiểm** |
+| Android | có ứng dụng Google Maps thì mở ứng dụng; không có hoặc bị tắt thì mở trình duyệt (tài liệu Google) | không có ứng dụng Apple Maps. Trang hỗ trợ Apple (đăng 2026-04-16) ghi "Maps on the web" chạy trên trình duyệt "On your mobile device": Safari (chỉ iOS, iPadOS), Edge, Chrome, Firefox — trang **không** nêu tên Android — và "Feature availability can vary by platform, language, and region". Liên kết `/directions` có dẫn đường được trên Android không, có tiếng Việt không, có ở Việt Nam không: **chưa kiểm** |
 | Giới hạn độ dài | 2 048 ký tự cho cả liên kết | tài liệu không nêu: **chưa kiểm** |
 | Nền tảng cài lên màn hình chính của iPhone | liên kết `target="_blank"` mở ứng dụng bản đồ hay Safari: **chưa kiểm** | như cột bên: **chưa kiểm** |
 
@@ -77,7 +77,7 @@ Dạng cũ `maps.apple.com/?daddr=…` chỉ thấy qua nguồn thứ cấp (tà
    - `chuyen-repo.ts` thêm `LEFT JOIN` view mới vào câu đọc điểm dừng;
    - cập nhật `docs/data-dictionary.json` (mục view, ví dụ `v_loc_location_label` ở `:592`) + `npm run dict`, bảng view `docs/SYSTEM-DESIGN.md:258`.
 7. **Giao diện đơn:** ô điểm đón gõ tay có dòng nhắc "Chỉ ghi địa chỉ — không ghi tên, số điện thoại khách" (chữ, không phải luật máy; dựa vào kỷ luật).
-8. **Tài xế đối tác (Q-2 a):** khi Đợt 6 mở, khoá `diaChiChiDuong` đi theo `trongKhungXemKhach` (ADR-0053 D7.2, tên đề xuất, chưa có trong mã) thay cho `trongNgayChay`, cùng chỗ với `hoTen`. Hôm nay tài xế đối tác chưa vào được route chuyến nào (ô `trip.view` của `DRIVER_PARTNER` là `none`), nên không có gì đổi cho họ trước Đợt 6.
+8. **Tài xế đối tác (Q-2 a):** khi Đợt 6 mở, khoá `diaChiChiDuong` đi theo `trongKhungXemKhach` (ADR-0053 D7.2, tên đề xuất, chưa có trong mã) thay cho `trongNgayChay`, cùng chỗ với `hoTen`. Hôm nay tài xế đối tác chưa vào được route chuyến nào (ô `trip.view` của `DRIVER_PARTNER` là `none`, `src/shared/permissions.ts:187`), nên không có gì đổi cho họ trước Đợt 6.
 9. **Ngoài phạm vi:** theo dõi vị trí xe thời gian thực, lưu toạ độ, ước giờ tới, nút cho văn phòng.
 
 ### Vì sao chặn theo ngày chạy dù tên nơi đã hiện mọi lúc

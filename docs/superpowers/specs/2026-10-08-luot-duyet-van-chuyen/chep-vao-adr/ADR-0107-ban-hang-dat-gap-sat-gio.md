@@ -38,6 +38,8 @@
 | thêm chặng | `POST /api/orders/:id/legs` | `order.trip.edit` | `:909`, gọi hàm ở `:924` |
 | thay chặng (C14) | `POST /api/orders/:id/legs/:legId/replace` | `order.trip.edit` | `:977`, gọi hàm ở `:993` |
 
+**Đường chép dấu cũ của đơn nháp (không phải cửa đóng dấu):** lưu lại đơn nháp xoá–chèn lại chặng; chặng mới khớp đúng một chặng cũ đã đặt gấp (cùng dịch vụ, chiều, ngày, giờ, nơi) thì mang lại năm cột dấu lấy từ dòng cũ trong CSDL, không bao giờ từ thân trình duyệt (`chepDatGapNhap`, `src/modules/orders/dat-gap.ts:30-55`; gọi ở `src/modules/orders/index.ts:851`; ghi qua `src/modules/orders/repository.ts:873-875`, `:960`, `:994`). Đường này không hỏi ô và không tạo dấu mới; người lưu nháp có thể là Đối tác, Thực tập.
+
 **Giao diện:** `web/trip-sheet.ts:134` và `web/sheet-dua-don.ts:132` gửi `datGap` chỉ sau khi máy chủ trả 409 `short_notice_required` (`web/trip-sheet.ts:150`, `web/sheet-dua-don.ts:141`), và chuỗi lệnh của bảng "Sửa đưa đón" chỉ gắn `datGap` cho lệnh đầu của lần gửi lại (`web/sheet-dua-don.ts:132`). Người không có ô bị chặn sẵn ở trình duyệt (`web/sheet-dua-don.ts:164`, câu `src/shared/thay-chang.ts:106`).
 
 ## Quyết định
@@ -55,6 +57,7 @@
 3. **Bất biến:** dấu đặt gấp chỉ được ghi lên một chặng khi chính chặng đó đang dưới mốc tối thiểu lúc máy chủ nhận lệnh; với lệnh sửa / thay chặng, "dưới mốc" xét theo giờ sớm hơn giữa cũ và mới (`duoiMocKhiSua`). Áp cho Bán hàng, Quản trị, Toàn quyền.
 4. **Hướng A (điều phối chốt trước lượt duyệt):** điều kiện đặt trong **chính** `xetDatGapSua`; nút Đặt gấp đi qua **cùng** hàm (với `duoiMoc` tính trên giờ hiện tại của chặng, tức `duoiMocKhiSua(null, chặng)`). Một chỗ canh cả năm cửa, mỗi cửa một bài kiểm. Thứ tự trong hàm khi thân có `datGap`: ô (403) → lý do hợp lệ (400) → `duoiMoc` sai → **409 mã mới `short_notice_not_needed`**, câu "Chặng chưa dưới mốc tối thiểu, không cần đặt gấp." → ghi dấu.
    - Chặng chưa chốt giờ không bao giờ "dưới mốc" (`duoiMocKhiSua` trả sai), nên nút Đặt gấp trên chặng đó trả 409, kể cả với Quản trị; xác nhận đơn cũng không đòi đặt gấp cho chặng đó (luật I13 hôm nay).
+   - **"Năm cửa" chỉ là năm chỗ đóng dấu MỚI.** Đường chép dấu cũ khi lưu lại đơn nháp (`chepDatGapNhap`, mục "Bối cảnh mã") **giữ nguyên**: không đi qua `xetDatGapSua`, không hỏi ô, không xét mốc — nó chỉ mang lại dấu đã được đóng hợp lệ trước đó cho đúng chặng không đổi giờ, nơi. Nếu cho đường này đi qua `xetDatGapSua` thì Đối tác, Thực tập lưu lại nháp của mình sẽ bị 403 hoặc làm mất dấu Bán hàng, Quản trị vừa đóng. Ngoại lệ có tên này phải có trong bài kiểm 7.
 5. **Bỏ ép `!plan.value.chiOPhu &&`** ở `src/modules/orders/index.ts:169`: hôm nay vô hại vì nhánh có `datGap` không đọc cờ, còn lệnh chỉ đổi ô phụ mà vắng `datGap` không gọi hàm (`:164`, giữ dấu cũ); khi cờ thành điều kiện thì phải tính trên giờ thật của chặng.
 6. **`PUT …/trip` nhiều chặng — chỗ mã hôm nay chưa khớp bất biến mục 3 (★, ngoài văn bản trình duyệt):** cờ `duoi` của route là "có ít nhất một chặng dưới mốc" (`index.ts:892`), còn kho ghi dấu mới lên **mọi** chặng đổi / thêm của lệnh (`repository.ts:1271`). Nếu chỉ đặt điều kiện vào `xetDatGapSua` như Hướng A, một lệnh đổi hai chặng — một chặng dưới mốc, một chặng còn xa — kèm `datGap` sẽ trả 200 và chặng xa cũng nhận dấu, tức đóng dấu cho chặng không dưới mốc. Văn bản trình duyệt (bài kiểm "`PUT …/trip`: có chặng dưới mốc kèm `datGap` → 200") không nêu ca này. Mã phải giữ bất biến mục 3 bằng một trong hai cách; **điều phối chọn** khi giao lập kế hoạch:
    - (a) chỉ chặng nào tự nó dưới mốc nhận dấu mới; chặng khác trong cùng lệnh xử như lệnh không có `datGap` (dấu cũ bỏ theo I16). Người soạn nghiêng về cách này vì giao diện gửi `datGap` cho cả lệnh `PUT …/trip` sau một lần 409 (`web/trip-sheet.ts:150`);
@@ -68,8 +71,8 @@
    - người xem đủ dấu (ô `order.leg.short_notice.view`): "Đặt gấp — <lý do> — <người> duyệt <giờ>" (`src/shared/dat-gap-hien-thi.ts:26-30`) → "Điều chỉnh khẩn cấp — <lý do> — <người> <giờ>" (bỏ chữ "duyệt": người đóng dấu có thể là chính Bán hàng lập đơn) — **giả định bề mặt của người soạn**, tệp 05 chỉ nêu nhãn rút gọn;
    - người chỉ thấy cờ (Đối tác, HDV, Thực tập): "Đặt gấp — Quản trị đã duyệt" (`dat-gap-hien-thi.ts:28`) → **"Điều chỉnh khẩn cấp (văn phòng)"** (đúng chữ tệp 05);
    - lịch sử đơn của người chỉ thấy cờ: đuôi " · Đặt gấp — Quản trị đã duyệt" và người làm "Quản trị" (`src/modules/orders/dat-gap.ts:85`, `:97`) → đuôi " · Điều chỉnh khẩn cấp (văn phòng)", người làm "Văn phòng" (★ — sau ADR này chữ "Quản trị" ở đó sai sự thật khi Bán hàng đóng dấu);
-   - thẻ chặng trên lịch chung "Đặt gấp" (`src/shared/dieu-phoi-man.ts:45`) → "Điều chỉnh khẩn cấp" (★, cùng nhãn dấu).
-   - Nhãn chặng này và nhãn chuyến "Điều chỉnh khẩn cấp" của ADR-0104 Đ1 mục 5 **cùng chữ nhưng khác nguồn**: nhãn chặng đọc từ cột `short_notice_*` của `ord_transfer_leg`; nhãn chuyến đọc từ sự kiện chuyến mang `override_rule_code = 'MOC_TOI_THIEU'`. Câu "Trang đơn **không** hiện nhãn [chuyến] ở lượt này" của ADR-0104 Đ1 mục 5 vẫn đúng: trang đơn chỉ hiện nhãn chặng.
+   - ★ thẻ chặng trên lịch chung "Đặt gấp" (`src/shared/dieu-phoi-man.ts:45`): tệp 05 **không** nêu chỗ này; **điều phối chọn** (bề mặt, đảo ngược được). Đổi sang "Điều chỉnh khẩn cấp" thì thẻ chặng và nhãn chuyến của ADR-0104 Đ1 mục 5 mang cùng chữ trên cùng màn lịch chung, dù nghĩa khác (thẻ chặng: chặng được miễn mốc khi xếp; nhãn chuyến: chuyến đã có lệnh vượt mốc). Giữ "Đặt gấp" thì cùng một dấu mang hai tên ở trang đơn và lịch chung. Người soạn không chọn.
+   - Nhãn chặng và nhãn chuyến "Điều chỉnh khẩn cấp" của ADR-0104 Đ1 mục 5 **cùng chữ nhưng khác nguồn**: nhãn chặng đọc từ cột `short_notice_*` của `ord_transfer_leg`; nhãn chuyến đọc từ sự kiện chuyến mang `override_rule_code = 'MOC_TOI_THIEU'`. Câu "Trang đơn **không** hiện nhãn [chuyến] ở lượt này" của ADR-0104 Đ1 mục 5 vẫn đúng: trang đơn chỉ hiện nhãn chặng. Trên lịch chung hai nhãn có thể đứng cạnh nhau (xem gạch trên).
    - **Đuôi nhật ký " · đặt gấp: <nhãn lý do>"** (`ghiDatGapNhatKy`, `chang-dua-don.ts:46`) **không đổi**: đó là khuôn `detail` mà hàm đọc tin của ADR-0062 bóc ra (hợp đồng một chiều nhẹ).
    - **Tên nút "Đặt gấp"** giữ nguyên (đúng chữ chủ đọc trong câu hỏi "đặt gấp mọi đơn"); mã route, mã lỗi, tên ô không đổi. Giả định bề mặt; điều phối đổi được.
 9. **Chữ phải sửa vì sai sự thật sau ADR này** (mọi câu nói "chỉ / cần Quản trị (hoặc Toàn quyền) đặt gấp"):
@@ -125,7 +128,7 @@ Mỗi rào quan sát chặn thật: sửa cố ý → đỏ → hoàn nguyên, c
 4. **Thêm chặng `POST …/legs`:** chặng mới dưới mốc kèm `datGap` → 200; trên mốc kèm `datGap` → 409.
 5. **Thay chặng `POST …/legs/:legId/replace`:** như sửa chặng (cũ hoặc mới dưới mốc → 200; cả hai trên mốc → 409; bị chặn thì chặng cũ không bị đóng).
 6. **Phạm vi:** Bán hàng sửa chặng của đơn người khác mà không phụ trách → 403 (ô `order.trip.edit`, không đổi).
-7. **Một chỗ canh:** bài tĩnh — mọi chỗ ghi dấu (`legShortNotice`, tham số dấu của `changeLeg`, `addLeg`, `replaceLeg`, `updateTrip`) chỉ nhận giá trị trả về từ `xetDatGapSua`.
+7. **Một chỗ canh:** bài tĩnh — mọi chỗ ghi dấu **mới** (`legShortNotice`, tham số dấu của `changeLeg`, `addLeg`, `replaceLeg`, `updateTrip`) chỉ nhận giá trị trả về từ `xetDatGapSua`. **Ngoại lệ có tên:** tham số `datGapNhap` của lưu lại đơn nháp chỉ nhận giá trị từ `chepDatGapNhap` (chép dấu cũ từ CSDL). Kèm bài hành vi: Đối tác (hoặc Thực tập) lưu lại đơn nháp của mình có chặng Bán hàng đã đặt gấp, không đổi giờ, nơi → 200 và dấu còn nguyên.
 8. **Bài ghim ô:** sửa `src/shared/permissions.test.ts:24`, `:468-472`; sửa TC-22 `src/modules/orders/dat-gap.test.ts:50`.
 9. **Nhãn:** người chỉ thấy cờ thấy "Điều chỉnh khẩn cấp (văn phòng)" trên chặng và trong lịch sử đơn, người làm "Văn phòng", không tên; đuôi nhật ký " · đặt gấp: …" không đổi (bài khứ hồi của ADR-0062 xanh).
 10. **Kịch bản Chrome:** `dua-don-smoke`; `dat-gap-smoke` đang đỏ sẵn từ 1.80 (`BL-VC-SMOKE-CU`) — sửa kịch bản cùng lần hoặc ghi rõ chưa chạy được.
@@ -150,7 +153,7 @@ Không mục HIGH nào thuộc vùng chặng đưa đón hay ô đặt gấp. Kh
 - `LY_DO_DAT_GAP` ở `src/shared/chang-dua-don.ts:33-38` (tệp 05 ghi `:32-37`); dấu miễn mốc lúc xếp ở `moc-toi-thieu.ts:79`, `:116` (tệp 05 ghi `:67`, `:104`).
 - Giao diện: tệp 05 ghi `web/order.ts:257, :930, :1065`, `web/sheet-dua-don.ts:93, :96, :110, :119`; nay `web/order.ts:262, :941, :1103`, `web/sheet-dua-don.ts:103, :115, :118` (gắn `datGap`), `:132`, `:141`.
 - Hướng dẫn: tệp 05 ghi `huong-dan-ban-hang.ts:152-155`; nay mục "Đơn sát giờ — Đặt gấp" ở `:154-164`, thêm `:199`, `:216`; `huong-dan-doi-tac.ts` thêm `:138`, `:147`.
-- Tệp 05 Hướng A chưa nêu ca `PUT …/trip` nhiều chặng (Quyết định mục 6) và các chữ ★ ở mục 8, 9, 10.
+- Tệp 05 Hướng A chưa nêu ca `PUT …/trip` nhiều chặng (Quyết định mục 6), đường chép dấu cũ của đơn nháp (Quyết định mục 4, gạch cuối) và các chữ ★ ở mục 8, 9, 10.
 
 ## Chưa kiểm
 
