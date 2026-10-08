@@ -45,6 +45,8 @@ const CA: Record<string, unknown> = {
   "PUT /api/orders/:id/handler": { staffId: HDV },
   "POST /api/orders/:id/handler-cancel": { reason: "customer_requested" },
   "POST /api/orders/:id/handler-money-edit": {},
+  // Sổ đại lý đợt 1 (Task 5): ghi mức hoa hồng tay — thân HỢP LỆ (route kiểm thân trước đơn); đơn Đã giao ⇒ 409 order_delivered trước cả bước tìm bản chụp.
+  "POST /api/orders/:id/thuong-mai/:serviceId": { lyDo: "thoả thuận miệng với CTV Lan", hoaHong: { kieu: "RATE", tyLeBp: 1500 } },
 };
 const khoa = (r: { method: string; path: string }) => `${r.method} ${r.path}`;
 

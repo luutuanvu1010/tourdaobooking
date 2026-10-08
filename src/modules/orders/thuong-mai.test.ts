@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { banChupTuDb, dongGhiTuChup, moTaChup } from "./thuong-mai.ts";
+import { apGhiTay, banChupTuDb, dongGhiTuChup, dungThuongMai, kiemGhiTayVoiBanChup, kiemThanGhiTay, moTaChup, moTaGhiTay } from "./thuong-mai.ts";
 
 const set = { serviceId: "s1", beneficiaryPartyId: "dla", hoaHong: { status: "SET" as const, kind: "RATE" as const, rateBp: 1000, perPax: null, ruleId: "m1" },
   cungUng: { status: "SET" as const, termId: "d1", sellerPartyId: "ct", supplierPartyId: null, costRateBp: null } };
@@ -21,4 +21,226 @@ test("moTaChup: đếm dòng, không tỷ lệ, không tiền", () => {
   assert.equal(moTaChup([set, thieu]), "2 dòng: 1 có mức, 1 thiếu mức");
   assert.equal(moTaChup([{ ...set, hoaHong: { status: "NONE" as const } }]), "không người hưởng");
   assert.doesNotMatch(moTaChup([set, thieu]), /%|đ/);
+});
+
+// ===== Task 5: hai DTO (văn phòng / Đối tác), kiểm thân ghi tay, áp ghi tay, mô tả nhật ký =====
+
+const chupHai = [
+  { serviceId: "s1", beneficiaryPartyId: "dla", hoaHong: { status: "SET" as const, kind: "RATE" as const, rateBp: 1200, perPax: null, ruleId: "m1" },
+    cungUng: { status: "SET" as const, termId: "d1", sellerPartyId: "ct", supplierPartyId: null, costRateBp: null } },
+  { serviceId: "s2", beneficiaryPartyId: "dla", hoaHong: { status: "MISSING" as const, reason: "NO_RULE" as const },
+    cungUng: { status: "SET" as const, termId: "d2", sellerPartyId: "ncc", supplierPartyId: "ncc", costRateBp: 8000 } },
+];
+const dichVu = [{ id: "s1", name: "Vé Hòn Tằm", thanhTien: 2_000_000, soKhachTinh: 2 }, { id: "s2", name: "Tắm bùn", thanhTien: 300_000, soKhachTinh: 1 }];
+const ten = new Map([["dla", "Đại lý A"], ["ct", "Tour Đảo"], ["ncc", "i-resort"]]);
+const phan = { duKien: false, chuaChup: false, chup: chupHai, dichVu, ten, congTyChuId: "ct" };
+
+/** Mọi tên khoá (đệ quy) của một giá trị JSON. */
+function khoaCua(x: unknown): string[] {
+  if (Array.isArray(x)) return x.flatMap(khoaCua);
+  if (x && typeof x === "object") return Object.entries(x).flatMap(([k, v]) => [k, ...khoaCua(v)]);
+  return [];
+}
+
+test("DTO văn phòng: mức, hoa hồng, giá đại lý, cờ thiếu; khối nhà cung cấp chỉ khi xemNguoiBan; tổng null khi còn dòng thiếu", () => {
+  const a = dungThuongMai({ laDoiTac: false, xemNguoiBan: true, ...phan });
+  assert.ok("vanPhong" in a);
+  const vp = a.vanPhong;
+  assert.equal(vp.dong[0]!.hoaHong, 240_000);
+  assert.equal(vp.dong[0]!.giaDaiLy, 1_760_000);
+  assert.equal(vp.dong[0]!.muc, "12%");
+  assert.equal(vp.dong[0]!.thieu, null);
+  assert.deepEqual(vp.dong[0]!.nguoiBan, { ten: "Tour Đảo", laCongTy: true });
+  assert.equal(vp.dong[0]!.nhaCungCap, undefined, "người bán là công ty ⇒ không có khối nhà cung cấp");
+  assert.equal(vp.dong[1]!.thieu, "Chưa có mức cho dịch vụ này");
+  assert.equal(vp.dong[1]!.muc, null);
+  assert.equal(vp.dong[1]!.hoaHong, null);
+  assert.equal(vp.dong[1]!.giaDaiLy, null);
+  assert.deepEqual(vp.dong[1]!.nguoiBan, { ten: "i-resort", laCongTy: false });
+  assert.equal(vp.dong[1]!.nhaCungCap?.giaVon, 240_000);
+  assert.equal(vp.dong[1]!.nhaCungCap?.tyLeMua, "80%");
+  assert.equal(vp.tong.hoaHong, null);
+  assert.equal(vp.tong.giaDaiLy, null);
+  assert.equal(vp.tong.thanhTien, 2_300_000);
+  assert.deepEqual(vp.nguoiHuong, { ten: "Đại lý A" });
+  const b = dungThuongMai({ laDoiTac: false, xemNguoiBan: false, ...phan });
+  assert.ok("vanPhong" in b && b.vanPhong.dong[1]!.nhaCungCap === undefined);
+  assert.equal(b.vanPhong.dong[1]!.nguoiBan?.ten, "i-resort", "xemNguoiBan chỉ che khối tỷ lệ mua lại và giá vốn, không che tên người bán");
+});
+
+test("DTO văn phòng: đủ mức ⇒ tổng cộng; PER_PAX ghi 'đ/khách' theo SỐ KHÁCH; ghiTay lấy từ tập mã dịch vụ; không người hưởng ⇒ hoa hồng 0, người hưởng null", () => {
+  const chup = [
+    { serviceId: "s1", beneficiaryPartyId: "dla", hoaHong: { status: "SET" as const, kind: "PER_PAX" as const, rateBp: null, perPax: 50_000, ruleId: null },
+      cungUng: { status: "SET" as const, termId: null, sellerPartyId: "ct", supplierPartyId: null, costRateBp: null } },
+    { serviceId: "s2", beneficiaryPartyId: "dla", hoaHong: { status: "SET" as const, kind: "RATE" as const, rateBp: 1250, perPax: null, ruleId: "m1" },
+      cungUng: { status: "MISSING" as const } },
+  ];
+  const a = dungThuongMai({ laDoiTac: false, xemNguoiBan: true, ...phan, chup, ghiTay: new Set(["s1"]) });
+  assert.ok("vanPhong" in a);
+  assert.equal(a.vanPhong.dong[0]!.muc, "50.000đ/khách");
+  assert.equal(a.vanPhong.dong[0]!.hoaHong, 100_000, "50.000 × 2 khách tính hoa hồng");
+  assert.equal(a.vanPhong.dong[0]!.ghiTay, true);
+  assert.equal(a.vanPhong.dong[1]!.ghiTay, false);
+  assert.equal(a.vanPhong.dong[1]!.muc, "12,5%");
+  assert.equal(a.vanPhong.dong[1]!.hoaHong, 37_500, "12,5% × 300.000");
+  assert.equal(a.vanPhong.dong[1]!.nguoiBan, null, "cung ứng thiếu ⇒ không có người bán");
+  assert.deepEqual(a.vanPhong.tong, { thanhTien: 2_300_000, hoaHong: 137_500, giaDaiLy: 2_162_500 });
+  const khong = dungThuongMai({ laDoiTac: false, xemNguoiBan: true, ...phan, chup: chup.map((c) => ({ ...c, beneficiaryPartyId: null, hoaHong: { status: "NONE" as const } })) });
+  assert.ok("vanPhong" in khong);
+  assert.equal(khong.vanPhong.nguoiHuong, null);
+  assert.equal(khong.vanPhong.dong[0]!.hoaHong, 0);
+  assert.equal(khong.vanPhong.dong[0]!.muc, null);
+  assert.equal(khong.vanPhong.dong[0]!.thieu, null);
+});
+
+test("DTO văn phòng: đơn xác nhận trước đợt 1 (chuaChup) ⇒ mọi dòng 'Đơn xác nhận trước khi có bảng mức'; dòng thiếu bản chụp cũng vậy; không có tổng hoa hồng", () => {
+  const a = dungThuongMai({ laDoiTac: false, xemNguoiBan: true, ...phan, chuaChup: true, chup: [] });
+  assert.ok("vanPhong" in a);
+  assert.equal(a.vanPhong.chuaChup, true);
+  for (const d of a.vanPhong.dong) {
+    assert.equal(d.thieu, "Đơn xác nhận trước khi có bảng mức");
+    assert.equal(d.hoaHong, null);
+    assert.equal(d.nguoiBan, null);
+  }
+  assert.equal(a.vanPhong.tong.hoaHong, null);
+  const thieuMotDong = dungThuongMai({ laDoiTac: false, xemNguoiBan: true, ...phan, chup: [chupHai[0]!] });
+  assert.ok("vanPhong" in thieuMotDong);
+  assert.equal(thieuMotDong.vanPhong.dong[1]!.thieu, "Đơn xác nhận trước khi có bảng mức", "dòng dịch vụ không có bản chụp ⇒ NOT_CAPTURED, không lặng lẽ 0");
+});
+
+test("DTO Đối tác: chỉ số tiền hoa hồng của mình; không khoá rate/perPax/cost/ruleId/termId/source/supplier/muc, không nhãn mức, không số lạ", () => {
+  const a = dungThuongMai({ laDoiTac: true, xemNguoiBan: false, ...phan });
+  assert.ok("doiTac" in a);
+  const s = JSON.stringify(a);
+  for (const k of ["rate", "perPax", "cost", "ruleId", "termId", "source", "supplier", "nhaCungCap", "1200", "8000"]) assert.doesNotMatch(s, new RegExp(k, "i"), k);
+  // Brief gốc dò chuỗi con "muc" (i), nhưng khoá HỢP ĐỒNG `choCongTyCaiMuc` chứa "Muc" ⇒ bài không thể xanh. Giữ NGUYÊN tên khoá (Task 10 dùng) và dò "muc" như TÊN KHOÁ ĐỦ,
+  // cộng dò nhãn mức ở GIÁ TRỊ ("%" của tỷ lệ, "đ/khách" của mức mỗi khách) — chặt không kém bản gốc (xem Ruling Task 5 ở sổ thi công).
+  assert.ok(!khoaCua(a).some((k) => /^muc$/i.test(k)), "không có khoá tên muc");
+  assert.doesNotMatch(s, /%/, "không nhãn tỷ lệ");
+  assert.doesNotMatch(s, /đ\/khách/, "không nhãn mức mỗi khách");
+  assert.equal(a.doiTac.dong[0]!.hoaHong, 240_000);
+  assert.equal(a.doiTac.dong[0]!.giaDaiLy, 1_760_000);
+  assert.equal(a.doiTac.dong[1]!.hoaHong, null);
+  assert.equal(a.doiTac.dong[1]!.giaDaiLy, null);
+  assert.equal(a.doiTac.choCongTyCaiMuc, true);
+  assert.deepEqual(a.doiTac.tong, { thanhTien: 2_300_000, hoaHong: null, giaDaiLy: null });
+  assert.deepEqual(Object.keys(a.doiTac).sort(), ["choCongTyCaiMuc", "dong", "duKien", "tong"], "danh sách trắng khoá cấp trên");
+  assert.deepEqual(Object.keys(a.doiTac.dong[0]!).sort(), ["giaDaiLy", "hoaHong", "serviceId", "ten", "thanhTien"], "danh sách trắng khoá của dòng");
+});
+
+test("DTO Đối tác: dù xemNguoiBan = true (tài khoản lai) vẫn là DTO hẹp; đủ mức ⇒ choCongTyCaiMuc false và có tổng; đơn chưa chụp ⇒ chờ công ty", () => {
+  const du = dungThuongMai({ laDoiTac: true, xemNguoiBan: true, ...phan, chup: [chupHai[0]!, { ...chupHai[1]!, hoaHong: { status: "SET" as const, kind: "RATE" as const, rateBp: 500, perPax: null, ruleId: "m2" } }] });
+  assert.ok("doiTac" in du);
+  assert.equal(du.doiTac.choCongTyCaiMuc, false);
+  assert.deepEqual(du.doiTac.tong, { thanhTien: 2_300_000, hoaHong: 255_000, giaDaiLy: 2_045_000 });
+  assert.doesNotMatch(JSON.stringify(du), /nhaCungCap|giaVon|tyLeMua|i-resort/);
+  const chua = dungThuongMai({ laDoiTac: true, xemNguoiBan: false, ...phan, chuaChup: true, chup: [] });
+  assert.ok("doiTac" in chua);
+  assert.equal(chua.doiTac.choCongTyCaiMuc, true);
+  assert.equal(chua.doiTac.dong[0]!.hoaHong, null);
+  const nhap = dungThuongMai({ laDoiTac: true, xemNguoiBan: false, ...phan, duKien: true });
+  assert.ok("doiTac" in nhap && nhap.doiTac.duKien === true);
+});
+
+test("kiemThanGhiTay: lý do ≥ 10 ký tự; ít nhất một phần; số hợp lệ; không dãy số dài", () => {
+  assert.equal(kiemThanGhiTay({ lyDo: "ngắn", hoaHong: { kieu: "RATE", tyLeBp: 1500 } }).ok, false);
+  assert.equal(kiemThanGhiTay({ lyDo: "thoả thuận miệng với CTV Lan" }).ok, false, "không gửi phần nào");
+  assert.ok(kiemThanGhiTay({ lyDo: "thoả thuận miệng với CTV Lan", hoaHong: { kieu: "RATE", tyLeBp: 1500 } }).ok);
+  assert.ok(kiemThanGhiTay({ lyDo: "nhà cung cấp mới cho vé này", nguoiBan: { partyId: "ncc", tyLeMuaBp: 7500 } }).ok);
+  assert.equal(kiemThanGhiTay({ lyDo: "gọi 0905123456 xác nhận", hoaHong: { kieu: "RATE", tyLeBp: 1500 } }).ok, false);
+});
+
+test("kiemThanGhiTay: trường khớp kiểu bắt buộc (RATE có tỷ lệ, PER_PAX có đ/khách), số trong khoảng, lý do cắt khoảng trắng và tối đa 300", () => {
+  const ly = "thoả thuận miệng với CTV Lan";
+  const sai = (b: unknown) => kiemThanGhiTay(b);
+  assert.equal(sai({ lyDo: ly, hoaHong: { kieu: "RATE" } }).ok, false, "RATE thiếu tyLeBp");
+  assert.equal(sai({ lyDo: ly, hoaHong: { kieu: "PER_PAX" } }).ok, false, "PER_PAX thiếu moiKhach");
+  assert.equal(sai({ lyDo: ly, hoaHong: { kieu: "PER_PAX", tyLeBp: 1500 } }).ok, false, "PER_PAX mang tyLeBp thay vì moiKhach");
+  assert.equal(sai({ lyDo: ly, hoaHong: { kieu: "RATE", moiKhach: 50_000 } }).ok, false, "RATE mang moiKhach thay vì tyLeBp");
+  assert.equal(sai({ lyDo: ly, hoaHong: { kieu: "RATE", tyLeBp: 1500, moiKhach: 50_000 } }).ok, false, "mang cả hai số");
+  assert.equal(sai({ lyDo: ly, hoaHong: { kieu: "RATE", tyLeBp: 10_001 } }).ok, false);
+  assert.equal(sai({ lyDo: ly, hoaHong: { kieu: "RATE", tyLeBp: -1 } }).ok, false);
+  assert.equal(sai({ lyDo: ly, hoaHong: { kieu: "RATE", tyLeBp: 12.5 } }).ok, false);
+  assert.equal(sai({ lyDo: ly, hoaHong: { kieu: "RATE", tyLeBp: "1500" } }).ok, false);
+  assert.equal(sai({ lyDo: ly, hoaHong: { kieu: "PER_PAX", moiKhach: -5 } }).ok, false);
+  assert.equal(sai({ lyDo: ly, hoaHong: { kieu: "PER_PAX", moiKhach: 100_000_001 } }).ok, false);
+  assert.equal(sai({ lyDo: ly, hoaHong: { kieu: "GIAM" } }).ok, false);
+  assert.equal(sai({ lyDo: ly, hoaHong: [] }).ok, false);
+  assert.equal(sai({ lyDo: ly, nguoiBan: { partyId: "x y" } }).ok, false, "mã hồ sơ lạ");
+  assert.equal(sai({ lyDo: ly, nguoiBan: {} }).ok, false);
+  assert.equal(sai({ lyDo: ly, nguoiBan: { partyId: "ncc", tyLeMuaBp: 10_001 } }).ok, false);
+  assert.equal(sai({ lyDo: ly.padEnd(301, "x"), hoaHong: { kieu: "RATE", tyLeBp: 1 } }).ok, false, "lý do dài quá 300");
+  assert.equal(sai({ lyDo: "         ngắn      ", hoaHong: { kieu: "RATE", tyLeBp: 1 } }).ok, false, "cắt khoảng trắng rồi mới đếm 10 ký tự");
+  assert.equal(sai({ hoaHong: { kieu: "RATE", tyLeBp: 1 } }).ok, false, "thiếu lý do");
+  assert.equal(sai(null).ok, false);
+  assert.equal(sai([]).ok, false);
+  const tot = sai({ lyDo: `  ${ly}  `, hoaHong: { kieu: "PER_PAX", moiKhach: 0 }, nguoiBan: { partyId: "ncc" } });
+  assert.ok(tot.ok);
+  assert.equal(tot.value.lyDo, ly, "lý do đã cắt khoảng trắng");
+  assert.deepEqual(tot.value.hoaHong, { kieu: "PER_PAX", moiKhach: 0 }, "0đ/khách hợp lệ (mức 0 do Kế toán chủ động ghi)");
+  assert.deepEqual(tot.value.nguoiBan, { partyId: "ncc" });
+  for (const m of [sai({ lyDo: "ngắn", hoaHong: { kieu: "RATE", tyLeBp: 1 } }), sai({ lyDo: ly, hoaHong: { kieu: "RATE" } })]) {
+    assert.ok(!m.ok);
+    assert.match(m.message, /[ăâêôơưđáàảãạéèẻẽẹíìỉĩịóòỏõọúùủũụýỳỷỹỵ]/i, "câu báo có dấu tiếng Việt");
+  }
+});
+
+const truocTay = chupHai[1]!; // thiếu mức, người bán = nhà cung cấp 80%
+
+test("apGhiTay: phần không gửi chép từ bản cũ; hoa hồng gửi lên ⇒ SET với ruleId null; người bán là công ty ⇒ không nhà cung cấp, không a%, không mã điều khoản", () => {
+  const a = apGhiTay(truocTay, { lyDo: "thoả thuận miệng với CTV Lan", hoaHong: { kieu: "RATE", tyLeBp: 1500 } }, "ct");
+  assert.deepEqual(a.hoaHong, { status: "SET", kind: "RATE", rateBp: 1500, perPax: null, ruleId: null });
+  assert.deepEqual(a.cungUng, truocTay.cungUng, "người bán không gửi ⇒ chép nguyên");
+  assert.equal(a.serviceId, "s2");
+  assert.equal(a.beneficiaryPartyId, "dla");
+  const b = apGhiTay(truocTay, { lyDo: "thoả thuận miệng với CTV Lan", hoaHong: { kieu: "PER_PAX", moiKhach: 50_000 } }, "ct");
+  assert.deepEqual(b.hoaHong, { status: "SET", kind: "PER_PAX", rateBp: null, perPax: 50_000, ruleId: null });
+  const c = apGhiTay(truocTay, { lyDo: "Tour Đảo tự bán dịch vụ này", nguoiBan: { partyId: "ct" } }, "ct");
+  assert.deepEqual(c.cungUng, { status: "SET", termId: null, sellerPartyId: "ct", supplierPartyId: null, costRateBp: null });
+  assert.deepEqual(c.hoaHong, truocTay.hoaHong, "hoa hồng không gửi ⇒ chép nguyên");
+  const d = apGhiTay(chupHai[0]!, { lyDo: "nhà cung cấp mới cho vé này", nguoiBan: { partyId: "ncc", tyLeMuaBp: 7500 } }, "ct");
+  assert.deepEqual(d.cungUng, { status: "SET", termId: null, sellerPartyId: "ncc", supplierPartyId: "ncc", costRateBp: 7500 });
+  assert.throws(() => apGhiTay(chupHai[0]!, { lyDo: "nhà cung cấp mới cho vé này", nguoiBan: { partyId: "ncc" } }, "ct"), /tyLeMuaBp/, "không bao giờ tự lấy a% = 0");
+});
+
+test("kiemGhiTayVoiBanChup: hoa hồng cho đơn không người hưởng ⇒ 409; nhà cung cấp phải có a%; công ty không a%; hợp lệ ⇒ ok", () => {
+  const ly = "thoả thuận miệng với CTV Lan";
+  const khongHuong = { serviceId: "s1", beneficiaryPartyId: null, hoaHong: { status: "NONE" as const }, cungUng: chupHai[0]!.cungUng };
+  const a = kiemGhiTayVoiBanChup(khongHuong, { lyDo: ly, hoaHong: { kieu: "RATE", tyLeBp: 1500 } }, "ct");
+  assert.ok(!a.ok);
+  assert.equal(a.status, 409);
+  assert.match(a.message, /không có người hưởng/);
+  assert.ok(kiemGhiTayVoiBanChup(khongHuong, { lyDo: ly, nguoiBan: { partyId: "ncc", tyLeMuaBp: 7000 } }, "ct").ok, "đơn không người hưởng vẫn đổi được người bán");
+  const b = kiemGhiTayVoiBanChup(truocTay, { lyDo: ly, nguoiBan: { partyId: "ncc" } }, "ct");
+  assert.ok(!b.ok);
+  assert.equal(b.status, 400);
+  assert.match(b.message, /tỷ lệ mua lại/);
+  const c = kiemGhiTayVoiBanChup(truocTay, { lyDo: ly, nguoiBan: { partyId: "ct", tyLeMuaBp: 7000 } }, "ct");
+  assert.ok(!c.ok);
+  assert.equal(c.status, 400);
+  assert.ok(kiemGhiTayVoiBanChup(truocTay, { lyDo: ly, nguoiBan: { partyId: "ct" } }, "ct").ok);
+  assert.ok(kiemGhiTayVoiBanChup(truocTay, { lyDo: ly, hoaHong: { kieu: "RATE", tyLeBp: 1500 } }, "ct").ok);
+});
+
+test("moTaGhiTay: một dòng, mức trước → sau, người bán chỉ TÊN (không a%), không tiền khách, không lý do", () => {
+  const ten2 = new Map([["ct", "Tour Đảo"], ["ncc", "i-resort"]]);
+  const thieuMuc = { ...chupHai[1]!, cungUng: chupHai[0]!.cungUng };
+  const muoiLam = apGhiTay(thieuMuc, { lyDo: "thoả thuận miệng với CTV Lan", hoaHong: { kieu: "RATE", tyLeBp: 1500 } }, "ct");
+  assert.equal(moTaGhiTay(thieuMuc, muoiLam, "Vé Hòn Tằm", ten2), "Vé Hòn Tằm: thiếu mức → 15%");
+  const muoi = chupHai[0]!;
+  const muoiLamHai = apGhiTay(muoi, { lyDo: "thoả thuận miệng với CTV Lan", hoaHong: { kieu: "RATE", tyLeBp: 1500 } }, "ct");
+  assert.equal(moTaGhiTay(muoi, muoiLamHai, "Vé Hòn Tằm", ten2), "Vé Hòn Tằm: 12% → 15%");
+  const doiBan = apGhiTay(muoi, { lyDo: "nhà cung cấp mới cho vé này", nguoiBan: { partyId: "ncc", tyLeMuaBp: 7500 } }, "ct");
+  const cau = moTaGhiTay(muoi, doiBan, "Vé Hòn Tằm", ten2);
+  assert.equal(cau, "Vé Hòn Tằm: người bán Tour Đảo → i-resort");
+  assert.doesNotMatch(cau, /75|%/, "tỷ lệ mua lại (a%) chỉ người có supply.terms.view xem — không vào nhật ký");
+  const caHai = apGhiTay(thieuMuc, { lyDo: "nhà cung cấp mới cho vé này", hoaHong: { kieu: "PER_PAX", moiKhach: 50_000 }, nguoiBan: { partyId: "ncc", tyLeMuaBp: 7500 } }, "ct");
+  assert.equal(moTaGhiTay(thieuMuc, caHai, "Vé Hòn Tằm", ten2), "Vé Hòn Tằm: thiếu mức → 50.000đ/khách; người bán Tour Đảo → i-resort");
+  const doiTyLe = apGhiTay(chupHai[1]!, { lyDo: "nhà cung cấp đổi tỷ lệ mua lại", nguoiBan: { partyId: "ncc", tyLeMuaBp: 7000 } }, "ct");
+  const cauTyLe = moTaGhiTay(chupHai[1]!, doiTyLe, "Tắm bùn", ten2);
+  assert.equal(cauTyLe, "Tắm bùn: đổi tỷ lệ mua lại của i-resort");
+  assert.doesNotMatch(cauTyLe, /\d/, "không số");
+  const giuNguyen = apGhiTay(muoi, { lyDo: "ghi lại cho chắc, mức giữ nguyên", hoaHong: { kieu: "RATE", tyLeBp: 1200 } }, "ct");
+  assert.equal(moTaGhiTay(muoi, giuNguyen, "Vé Hòn Tằm", ten2), "Vé Hòn Tằm: 12% (đánh dấu ghi tay)");
+  assert.doesNotMatch(moTaGhiTay(thieuMuc, muoiLam, "Vé Hòn Tằm", ten2), /thoả thuận|CTV/, "lý do không vào nhật ký (nằm ở bản chụp)");
 });

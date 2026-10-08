@@ -7,10 +7,11 @@ import type { CommissionRuleDto, CommissionRuleListResponse, NguoiHuongTimRespon
 import { error, escapeLike, json, kemLocation, readJson } from "../../shared/http";
 import { can, holdsPartner } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
+import { NHAN_LY_DO_THIEU } from "../../shared/so-dai-ly-nhan";
 import { vnToday } from "../../shared/vn-date";
 import { allRules, allTerms, beneficiaryRoles, closeRuleStatement, closeTermStatement, findBeneficiaries, groupsOf, insertRuleStatement, insertTermStatement, isBeneficiary,
   openRolesOf, ruleById, rulesOn, suppliers, termById, termsOn, type RuleRow, type TermRow } from "./repository";
-import { MA_RE, PARTY_RE, chonMuc, hieuLuc, kiemNgayDong, kiemThanDieuKhoan, kiemThanMuc, laNgay, moTaMuc, nguoiHuongCua, type DongDieuKhoan, type DongMuc, type LyDoThieu,
+import { MA_RE, PARTY_RE, chonMuc, hieuLuc, kiemNgayDong, kiemThanDieuKhoan, kiemThanMuc, laNgay, moTaMuc, nguoiHuongCua, type DongDieuKhoan, type DongMuc,
   type NguoiHuong } from "./rules";
 
 export { chupDon, soKhachTinhHoaHong, tinhDongDoiTac, type BanChup, type DongPhanDoiTac, type KieuMuc, type LyDoThieu, type NguoiHuong } from "./rules";
@@ -30,15 +31,6 @@ export async function docBangChoChup(db: D1Database, v: { bookerPartyId: string 
   return { nguoiHuong, muc: muc.map(dongMuc), dieuKhoan: dk.map(dongDk), nhom };
 }
 export const laNguoiHuong = (db: D1Database, partyId: string): Promise<boolean> => isBeneficiary(db, partyId);
-
-// Bảng tạm: năm câu lý do thiếu mức bằng tiếng Việt, đúng chữ của NHAN_LY_DO_THIEU ở kế hoạch Task 5. Task 5 chuyển sang dùng src/shared/so-dai-ly-nhan.ts và XOÁ bảng này.
-const NHAN_LY_DO_TAM: Readonly<Record<LyDoThieu, string>> = {
-  NO_RULE: "Chưa có mức cho dịch vụ này",
-  RULE_CONFLICT: "Hai mức khác nhau cùng áp — Kế toán chọn một",
-  MANUAL_LINE: "Dòng nhập tay — Kế toán ghi mức",
-  BOOKER_NOT_BENEFICIARY: "Bên đặt không thuộc loại được hưởng hoa hồng",
-  NOT_CAPTURED: "Đơn xác nhận trước khi có bảng mức",
-};
 
 /** Cùng câu cho trigger `prc_supplier_mismatch` và cho lời kiểm trước ở route (ràng buộc CHECK của bảng không có tiền tố mã nên không dịch được từ lỗi). */
 const CAU_TY_LE_MUA_LAI = "Tour Đảo bán thì không ghi tỷ lệ mua lại; nhà cung cấp bán thì phải ghi.";
@@ -137,7 +129,7 @@ export const pricingModule: AppModule = {
       const nguoiHuong = { loai: nh.loai, vai: nh.loai === "HUONG" ? nh.vai.map((c) => tenVai.get(c) ?? c) : [] };
       const kq = chonMuc({ nguoiHuong: nh, ngay, catalogCode: dichVu, groupCode: bang.nhom.get(dichVu) ?? null, dong: bang.muc });
       if (kq.trangThai === "NONE") return json({ ngay, nguoiHuong, ketQua: { trangThai: "NONE" } } satisfies ThuTraResponse);
-      if (kq.trangThai === "MISSING") return json({ ngay, nguoiHuong, ketQua: { trangThai: "MISSING", lyDo: NHAN_LY_DO_TAM[kq.lyDo] } } satisfies ThuTraResponse);
+      if (kq.trangThai === "MISSING") return json({ ngay, nguoiHuong, ketQua: { trangThai: "MISSING", lyDo: NHAN_LY_DO_THIEU[kq.lyDo] } } satisfies ThuTraResponse);
       const dong = await ruleById(env.DB, kq.dong.id);
       if (!dong) return error(409, "stale", "Bảng mức vừa đổi — thử lại.");
       return json({ ngay, nguoiHuong, ketQua: { trangThai: "SET", bac: kq.bac, muc: dtoMuc(dong, tenVai, ngay) } } satisfies ThuTraResponse);

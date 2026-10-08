@@ -1,10 +1,10 @@
-// Bốn hàm SQL của thuong-mai-repo.ts, chạy thẳng trên D1 giả (SQLite thật + migration thật): chuỗi changes() > 0, ghi tay có lính gác, bản chụp hiện hành, đếm.
+// Các hàm SQL của thuong-mai-repo.ts, chạy thẳng trên D1 giả (SQLite thật + migration thật): chuỗi changes() > 0, ghi tay có lính gác, bản chụp hiện hành, đếm.
 // Task 5 (ghi mức tay, đọc phần thương mại) dùng lại các hàm này; route xác nhận (chup-xac-nhan.test.ts) mới chỉ chạm `cauChupChuoi`.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { fakeD1, openDb } from "../../../tests/audit/harness.mjs";
-import { banChupHienHanh, cauChupChuoi, cauGhiTay, demBanChup } from "./thuong-mai-repo.ts";
+import { banChupHienHanh, cauChupChuoi, cauGhiTay, demBanChup, laNhaCungCap, tenHoSo } from "./thuong-mai-repo.ts";
 import { dongGhiTuChup } from "./thuong-mai.ts";
 
 const AT = "2026-10-01T00:00:00.000Z";
@@ -62,4 +62,30 @@ test("cauGhiTay: chỉ đơn đã xác nhận và chưa Đã giao; banChupHienHa
     cungUng: { status: "SET", termId: null, sellerPartyId: congTy, supplierPartyId: null, costRateBp: null } }, v("t3", "MANUAL", "t2"));
   await db.batch([cauGhiTay(db, tay2)]);
   assert.equal(await demBanChup(db, ID), 2, "đơn Đã giao: câu ghi tay không chèn dù trigger terms_order_delivered đã gỡ — lính gác nằm trong câu");
+});
+
+test("tenHoSo: trả tên các hồ sơ có trong view công bố (bỏ trùng, bỏ mã lạ); danh sách rỗng ⇒ bản đồ rỗng", async () => {
+  const { sqlite, db, congTy } = dung();
+  sqlite.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES ('pty-ncc', 'ORGANIZATION', 'i-resort', 1, ?, ?)").run(AT, AT);
+  const ten = await tenHoSo(db, ["pty-dla", "pty-ncc", "pty-dla", "pty-khong-co", congTy]);
+  assert.equal(ten.get("pty-dla"), "Đại lý A");
+  assert.equal(ten.get("pty-ncc"), "i-resort");
+  assert.ok(ten.has(congTy), "công ty chủ cũng là một hồ sơ");
+  assert.equal(ten.has("pty-khong-co"), false);
+  assert.equal(ten.size, 3);
+  assert.equal((await tenHoSo(db, [])).size, 0);
+});
+
+test("laNhaCungCap: chỉ hồ sơ đang mang vai Nhà cung cấp (vai đã đóng, vai khác, hồ sơ không có ⇒ false)", async () => {
+  const { sqlite, db } = dung();
+  const vai = (id: string, party: string, role: string, den: string | null) =>
+    sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, valid_to_date, created_at, updated_at) VALUES (?, ?, ?, '2026-01-01', ?, ?, ?)").run(id, party, role, den, AT, AT);
+  sqlite.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES ('pty-ncc', 'ORGANIZATION', 'i-resort', 1, ?, ?)").run(AT, AT);
+  vai("r1", "pty-ncc", "SUPPLIER", null);
+  vai("r2", "pty-dla", "TRAVEL_AGENCY", null);
+  assert.equal(await laNhaCungCap(db, "pty-ncc"), true);
+  assert.equal(await laNhaCungCap(db, "pty-dla"), false, "đại lý không phải nhà cung cấp");
+  assert.equal(await laNhaCungCap(db, "pty-khong-co"), false);
+  sqlite.prepare("UPDATE pty_party_role SET valid_to_date = '2026-02-01' WHERE id = 'r1'").run();
+  assert.equal(await laNhaCungCap(db, "pty-ncc"), false, "vai đã đóng không tính");
 });
