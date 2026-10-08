@@ -49,6 +49,8 @@ const lienKetDau = [
   can(staff, "admin.manage") && h("a", { class: "row-link", href: "/loai-giay-to-nguoi" }, "Loại giấy tờ cá nhân", icon("next", 20)),
 ];
 const lienKetSau = [
+  // Khoá sổ tháng (sổ đại lý đợt 1 Task 12): ô ledger.view không ngữ cảnh (Kế toán, Toàn quyền) — cùng điều kiện mục thanh bên ở web/shell.ts và route GET /api/ledger/ky.
+  can(staff, "ledger.view") && h("a", { class: "row-link", href: "/khoa-thang" }, "Khoá sổ tháng", icon("next", 20)),
   can(staff, "audit.view") && h("a", { class: "row-link", href: "/audit" }, "Nhật ký", icon("next", 20)), // ADR-0038 điều 6: chỉ Toàn quyền
   // ADR-0075 điều 7: sổ phiên đăng nhập của mọi tài khoản — chỉ IT/Toàn quyền (ô auth.session.viewAll); lối vào ở điện thoại (thanh bên máy tính có mục riêng).
   can(staff, "auth.session.viewAll") && h("a", { class: "row-link", href: "/sessions" }, "Phiên đăng nhập", icon("next", 20)),
