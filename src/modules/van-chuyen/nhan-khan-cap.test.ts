@@ -12,7 +12,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
-import { ADM, DRIVER, DRIVER2, LOC, NGAY, NGAY_SAU, SALES, batDongHo, chiTiet, don, setup, taoChuyen, uuid, xe } from "../../../tests/audit/dieu-phoi-khung.mjs";
+import { ADM, DRIVER, DRIVER2, LOC, NGAY, NGAY_SAU, SALES, batDongHo, chiTiet, don, setup, taoChuyen, uuid, xe, xepHet } from "../../../tests/audit/dieu-phoi-khung.mjs";
 
 const PL = { lyDo: "PHA_LE_SU_CO" }; // nhãn "Sự cố vận hành"
 const goi = (w: any, as: string, m: string, duoi: string, body: Record<string, unknown>) => w.call(m, `/api/van-chuyen/chuyen${duoi}`, { as, body: { requestId: uuid(), ...body } });
@@ -260,6 +260,53 @@ test("Phiếu D1 CAO-1: sửa chuyến gửi nghiPhaLe mà KHÔNG vi phạm kho�
     assert.deepEqual(luatSuKien(w, "UPDATED", t.chuyen.id), [null]);
     assert.deepEqual(await phaLeDong(w, t.chuyen.id, "UPDATED"), [null]);
     assert.equal(w.q("SELECT rest_override_reason_code r FROM vc_trip WHERE id = ?", t.chuyen.id)[0].r, "PHA_LE_SU_CO", "THẤP-1: cột vẫn lưu (hiện trạng)");
+  } finally {
+    tat();
+  }
+});
+
+// ---- Phiếu kiểm hẹp D1 CAO-B: thứ tự luật trên MỘT lệnh sửa chuyến (ADR-0104 :85 — MOC_TOI_THIEU > KHOANG_NGHI > CAM_KET; sự kiện chỉ lưu MỘT mã) ------------
+test("Phiếu hẹp D1 CAO-B (thứ tự mốc > nghỉ): Bán hàng sửa chuyến DƯỚI mốc vừa đổi xe vừa dời giờ sát chuyến trước của xe mới (vượt khoảng nghỉ thật), gửi phaLe + nghiPhaLe → sự kiện UPDATED mang MOC_TOI_THIEU, khanCap true", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const x1 = xe(w);
+    const x2 = xe(w);
+    await taoChuyen(w, { xe: x1, taiXe: `pty-${DRIVER}`, bd: "08:00", kt: "10:00" });
+    const t = await taoChuyen(w, { xe: x2, taiXe: `pty-${DRIVER2}`, bd: "11:00", kt: "12:00" });
+    const r = await goi(w, SALES, "PUT", `/${t.chuyen.id}`, {
+      version: t.chuyen.version, xeId: x1, batDau: { ngay: NGAY, gio: "10:10" }, ketThuc: { ngay: NGAY, gio: "12:00" }, phaLe: PL, nghiPhaLe: PL,
+    });
+    assert.equal(r.status, 200, r.text);
+    assert.deepEqual(luatSuKien(w, "UPDATED", t.chuyen.id), ["MOC_TOI_THIEU"]);
+    assert.equal(await nhan(w, t.chuyen.id), true, "nhãn Điều chỉnh khẩn cấp");
+    const nk = nhatKy(w, "trip_edited", t.chuyen.id);
+    assert.match(nk, / · điều chỉnh khẩn cấp mốc tối thiểu: Sự cố vận hành/, nk);
+    assert.match(nk, / · điều chỉnh khẩn cấp khoảng nghỉ: Sự cố vận hành/, `luật nghỉ vẫn có trong nhật ký — ${nk}`);
+  } finally {
+    tat();
+  }
+});
+
+test("Phiếu hẹp D1 CAO-B (thứ tự nghỉ > cam kết): Quản trị sửa chuyến NGOÀI mốc đổi xe 16 → 15 chỗ (chặng đòi 16 chỗ) và dời giờ sát chuyến trước của xe mới, gửi nghiPhaLe + camKetPhaLe → sự kiện UPDATED mang KHOANG_NGHI", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const x15 = xe(w, 15);
+    const x16 = xe(w, 16);
+    const a = await don(w, { ngay: NGAY_SAU, gio: "13:00", soNguoi: 2 });
+    w.sqlite.prepare("UPDATE ord_transfer_leg SET min_vehicle_seats = 16 WHERE id = ?").run(a.legId);
+    await taoChuyen(w, { xe: x15, taiXe: `pty-${DRIVER}`, ngay: NGAY_SAU, bd: "08:00", kt: "10:00" });
+    const t = await taoChuyen(w, { xe: x16, taiXe: `pty-${DRIVER2}`, ngay: NGAY_SAU, bd: "11:00", kt: "15:00" });
+    await xepHet(w, t, a, 2, ADM);
+    const r = await goi(w, ADM, "PUT", `/${t.chuyen.id}`, {
+      version: await phienBan(w, t.chuyen.id), xeId: x15, batDau: { ngay: NGAY_SAU, gio: "10:10" }, ketThuc: { ngay: NGAY_SAU, gio: "15:00" }, nghiPhaLe: PL, camKetPhaLe: PL,
+    });
+    assert.equal(r.status, 200, r.text);
+    assert.deepEqual(luatSuKien(w, "UPDATED", t.chuyen.id), ["KHOANG_NGHI"]);
+    const nk = nhatKy(w, "trip_edited", t.chuyen.id);
+    assert.match(nk, / · phá lệ khoảng nghỉ: Sự cố vận hành/, nk);
+    assert.match(nk, / · phá lệ cam kết: Sự cố vận hành/, `luật cam kết vẫn có trong nhật ký — ${nk}`);
   } finally {
     tat();
   }
