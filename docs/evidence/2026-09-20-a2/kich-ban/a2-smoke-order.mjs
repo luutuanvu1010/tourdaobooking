@@ -230,9 +230,10 @@ try {
   p = await env.as(ACCOUNTS.accounting, `/order?id=${order.id}`);
   await p.waitFor("document.querySelectorAll('#order .svc-view').length === 2", "kế toán xem đơn");
   assert.ok((await p.ev("document.querySelectorAll('.history li').length")) >= 1, "kế toán thấy nhật ký mọi đơn");
-  assert.equal(await p.ev("document.querySelectorAll('#actions .btn').length"), 0);
+  // 2026-10-08 (gói A2, ADR-0063 D1): đơn 1 đã xác nhận, chưa Đã giao, có dịch vụ danh mục → Kế toán có ĐÚNG một nút "Sửa số khách dịch vụ"; không Sửa/Xác nhận/Huỷ.
+  assert.deepEqual(await p.ev("[...document.querySelectorAll('#actions .btn')].map((b) => b.textContent)"), ["Sửa số khách dịch vụ"]);
   p.close();
-  ok("quyền: SALES khác không nút và không lịch sử (không lỗi); kế toán thấy lịch sử, không nút");
+  ok("quyền: SALES khác không nút và không lịch sử (không lỗi); kế toán thấy lịch sử, chỉ nút 'Sửa số khách dịch vụ'");
 
   // ---- 7) lỗi tải: mã lạ và thiếu mã ----
   p = await env.as(ACCOUNTS.salesA, "/order?id=khong-co");
