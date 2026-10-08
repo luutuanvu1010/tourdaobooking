@@ -82,15 +82,16 @@ const tenDoiTuongNhatKy = (r: { target_role_code: string | null; target_party_id
 export const pricingModule: AppModule = {
   name: "pricing",
   routes: [
-    // Đường cố định trước đường có :id. Mọi route hỏi `can()` ở dòng đầu thân (cổng `office` chỉ lọc thô — ADR-0019).
+    // Đường cố định trước đường có :id. Mọi route hỏi `can()` ở dòng đầu thân (cổng `office` chỉ lọc thô — ADR-0019). Tài khoản có quyền Đối tác (kể cả tài khoản lai, có thêm
+    // quyền nội bộ) KHÔNG đọc, không ghi bảng tỷ lệ / người bán: "có quyền Đối tác là áp" — `holdsPartner` cùng một điều kiện với ô quyền ở dòng đầu mỗi route.
     route("GET", "/api/pricing/hoa-hong", "office", async ({ env, staff }) => {
-      if (!can(staff, "partner.commission.view")) return FORBIDDEN();
+      if (!can(staff, "partner.commission.view") || holdsPartner(staff)) return FORBIDDEN();
       const [dong, vaiHuong, tenVai] = await Promise.all([allRules(env.DB), beneficiaryRoles(env.DB), tenLoaiVai(env.DB)]);
       const homNay = vnToday(new Date());
       return json({ homNay, dong: dong.map((r) => dtoMuc(r, tenVai, homNay)), vai: vaiHuong.map((code) => ({ code, ten: tenVai.get(code) ?? code })) } satisfies CommissionRuleListResponse);
     }),
     route("POST", "/api/pricing/hoa-hong", "office", async ({ env, request, staff }) => {
-      if (!can(staff, "partner.commission.write")) return FORBIDDEN();
+      if (!can(staff, "partner.commission.write") || holdsPartner(staff)) return FORBIDDEN();
       const kq = kiemThanMuc(await readJson(request));
       if (!kq.ok) return error(400, "invalid_input", kq.message);
       const v = kq.value;
@@ -107,7 +108,7 @@ export const pricingModule: AppModule = {
       return kemLocation(json({ dong: dtoMuc(dong!, tenVai, vnToday(new Date())) }, 201), "/hoa-hong");
     }),
     route("POST", "/api/pricing/hoa-hong/:id/dong", "office", async ({ env, request, params, staff }) => {
-      if (!can(staff, "partner.commission.write")) return FORBIDDEN();
+      if (!can(staff, "partner.commission.write") || holdsPartner(staff)) return FORBIDDEN();
       const id = params.id!;
       const row = PARTY_RE.test(id) ? await ruleById(env.DB, id) : null;
       if (!row) return error(404, "not_found", "Không tìm thấy dòng mức.");
@@ -126,7 +127,7 @@ export const pricingModule: AppModule = {
     }),
     // "Thử tra" cho văn phòng: một đối tác + một dịch vụ + một ngày ⇒ mức nào thắng (cùng hàm `chonMuc` với lúc Xác nhận đơn). Chỉ đọc.
     route("GET", "/api/pricing/thu-tra", "office", async ({ env, url, staff }) => {
-      if (!can(staff, "partner.commission.view")) return FORBIDDEN();
+      if (!can(staff, "partner.commission.view") || holdsPartner(staff)) return FORBIDDEN();
       const doiTac = url.searchParams.get("doiTac") ?? "";
       const dichVu = url.searchParams.get("dichVu") ?? "";
       const ngay = url.searchParams.get("ngay") || vnToday(new Date());
@@ -142,7 +143,7 @@ export const pricingModule: AppModule = {
       return json({ ngay, nguoiHuong, ketQua: { trangThai: "SET", bac: kq.bac, muc: dtoMuc(dong, tenVai, ngay) } } satisfies ThuTraResponse);
     }),
     route("GET", "/api/pricing/cung-ung", "office", async ({ env, staff }) => {
-      if (!can(staff, "supply.terms.view")) return FORBIDDEN();
+      if (!can(staff, "supply.terms.view") || holdsPartner(staff)) return FORBIDDEN();
       const [dong, ncc, cty] = await Promise.all([allTerms(env.DB), suppliers(env.DB), ownerCompany(env.DB)]);
       const homNay = vnToday(new Date());
       return json({
@@ -151,7 +152,7 @@ export const pricingModule: AppModule = {
       } satisfies SupplyTermListResponse);
     }),
     route("POST", "/api/pricing/cung-ung", "office", async ({ env, request, staff }) => {
-      if (!can(staff, "supply.terms.write")) return FORBIDDEN();
+      if (!can(staff, "supply.terms.write") || holdsPartner(staff)) return FORBIDDEN();
       const kq = kiemThanDieuKhoan(await readJson(request));
       if (!kq.ok) return error(400, "invalid_input", kq.message);
       const v = kq.value;
@@ -172,7 +173,7 @@ export const pricingModule: AppModule = {
       return kemLocation(json({ dong: dtoDk((await termById(env.DB, id))!, cty.partyId, vnToday(new Date())) }, 201), "/nguoi-ban");
     }),
     route("POST", "/api/pricing/cung-ung/:id/dong", "office", async ({ env, request, params, staff }) => {
-      if (!can(staff, "supply.terms.write")) return FORBIDDEN();
+      if (!can(staff, "supply.terms.write") || holdsPartner(staff)) return FORBIDDEN();
       const id = params.id!;
       // Mã dòng gieo sẵn (`prc-st-goc-all`) không phải UUID ⇒ chỉ kiểm dạng chữ-số-gạch, rồi tra.
       const row = PARTY_RE.test(id) ? await termById(env.DB, id) : null;

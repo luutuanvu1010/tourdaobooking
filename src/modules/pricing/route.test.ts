@@ -11,6 +11,8 @@ const KT = "44444444-4444-4444-8444-444444444444";
 const DT = "55555555-5555-4555-8555-555555555555";
 const HR = "66666666-6666-4666-8666-666666666666";
 const SA = "77777777-7777-4777-8777-777777777777";
+const SP = "88888888-8888-4888-8888-888888888888"; // tài khoản lai: Bán hàng + Đối tác
+const KP = "99999999-9999-4999-8999-999999999999"; // tài khoản lai: Kế toán + Đối tác
 const NOW = "2026-10-01T00:00:00.000Z";
 type W = ReturnType<typeof world>;
 function setup(): W {
@@ -18,6 +20,7 @@ function setup(): W {
   for (const [id, phone, name, perms] of [
     [SALES, "0900000001", "An Bán", ["SALES"]], [HDV, "0900000002", "Nam HDV", ["FIELD"]], [ADM, "0900000003", "Quản Trị", ["ADMIN"]],
     [KT, "0900000005", "Lan Kế Toán", ["ACCOUNTING"]], [DT, "0900000006", "Đại Lý A", ["PARTNER"]], [HR, "0900000008", "Hà Nhân Sự", ["HR"]], [SA, "0900000007", "Chủ", ["SUPER_ADMIN"]],
+    [SP, "0900000009", "Sơn Lai Bán", ["SALES", "PARTNER"]], [KP, "0900000010", "Khoa Lai Kế", ["ACCOUNTING", "PARTNER"]],
   ] as const) seedStaff(w.sqlite, { id, phone, name, perms: [...perms] });
   w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES ('r-dt', ?, 'TRAVEL_AGENCY', '2026-01-01', ?, ?)").run(`pty-${DT}`, NOW, NOW);
   w.sqlite.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES ('pty-ncc', 'ORGANIZATION', 'i-resort', 1, ?, ?)").run(NOW, NOW);
@@ -176,4 +179,46 @@ test("thêm mức cho nhóm dịch vụ không có ⇒ 400 câu tiếng Việt (
   assert.match(dichVu.json.error.message, /danh mục/);
   assert.equal(Number(w.q("SELECT count(*) AS n FROM prc_commission_rule")[0].n), 0, "không dòng nào được ghi");
   assert.equal(Number(w.q("SELECT count(*) AS n FROM audit_log WHERE action = 'prc_commission_rule_added'")[0].n), 0, "không nhật ký thừa");
+});
+
+test("tài khoản lai (quyền Đối tác kèm quyền nội bộ) không đọc, không ghi được bảng tỷ lệ ở cả bảy route văn phòng; Kế toán thuần vẫn dùng được", async () => {
+  const w = setup();
+  const idMuc = (await w.call("POST", "/api/pricing/hoa-hong", { as: KT, body: mucVai })).json.dong.id;
+  const dem = () => ["prc_commission_rule", "prc_supply_term", "audit_log"].map((t) => Number(w.q(`SELECT count(*) AS n FROM ${t}`)[0].n));
+  const truoc = dem();
+  const thanMuc = { ...mucVai, doiTuong: { loai: "VAI", code: "COLLABORATOR" } }; // thân hợp lệ: nếu cổng hở thì ghi được 201
+  const thanDk = { phamVi: "SERVICE", catalogCode: "IRESORT", nguoiBanPartyId: "pty-ncc", tyLeMuaBp: 8000, tuNgay: "2026-10-01" };
+  const ca: [string, string, string, string, unknown?][] = [
+    [SP, "GET", "/api/pricing/hoa-hong", "Bán hàng + Đối tác xem bảng mức"],
+    [SP, "GET", `/api/pricing/thu-tra?doiTac=pty-${DT}&dichVu=HONTAM&ngay=2026-10-10`, "Bán hàng + Đối tác thử tra"],
+    [KP, "GET", "/api/pricing/cung-ung", "Kế toán + Đối tác xem người bán"],
+    [KP, "POST", "/api/pricing/hoa-hong", "Kế toán + Đối tác thêm mức", thanMuc],
+    [KP, "POST", `/api/pricing/hoa-hong/${idMuc}/dong`, "Kế toán + Đối tác đóng mức", { denNgay: "2026-12-31" }],
+    [KP, "POST", "/api/pricing/cung-ung", "Kế toán + Đối tác thêm điều khoản", thanDk],
+    [KP, "POST", "/api/pricing/cung-ung/prc-st-goc-all/dong", "Kế toán + Đối tác đóng điều khoản", { denNgay: "2026-12-31" }],
+  ];
+  for (const [as, method, path, ten, body] of ca) {
+    const r = await w.call(method, path, body === undefined ? { as } : { as, body });
+    assert.equal(r.status, 403, `${ten}: phải 403, nhận ${r.status} — ${r.text.slice(0, 120)}`);
+    assert.doesNotMatch(r.text, /tyLe|moiKhach/, `${ten}: thân 403 không được chứa tỷ lệ`);
+  }
+  assert.deepEqual(dem(), truoc, "không dòng mức, điều khoản hay nhật ký nào được ghi thêm");
+  // Đối chứng: cùng thân, tài khoản nội bộ thuần (Kế toán) vẫn ghi / đọc được.
+  assert.equal((await w.call("POST", "/api/pricing/hoa-hong", { as: KT, body: thanMuc })).status, 201);
+  assert.equal((await w.call("GET", "/api/pricing/cung-ung", { as: KT })).status, 200);
+  assert.equal((await w.call("GET", `/api/pricing/thu-tra?doiTac=pty-${DT}&dichVu=HONTAM&ngay=2026-10-10`, { as: SALES })).status, 200);
+});
+
+test("dịch lỗi trigger: mức theo vai không được hưởng ⇒ 400; người bán không mang vai Nhà cung cấp ⇒ 400 (câu tiếng Việt, không mã thô)", async () => {
+  const w = setup();
+  const vai = await w.call("POST", "/api/pricing/hoa-hong", { as: KT, body: { ...mucVai, doiTuong: { loai: "VAI", code: "DRIVER_EXTERNAL" } } });
+  assert.equal(vai.status, 400, vai.text);
+  assert.match(vai.json.error.message, /Loại đối tác này không nằm trong danh sách được hưởng/);
+  assert.doesNotMatch(vai.text, /prc_/);
+  const banHang = await w.call("POST", "/api/pricing/cung-ung", { as: KT, body: { phamVi: "SERVICE", catalogCode: "IRESORT", nguoiBanPartyId: `pty-${SALES}`, tyLeMuaBp: 8000, tuNgay: "2026-10-01" } });
+  assert.equal(banHang.status, 400, banHang.text);
+  assert.match(banHang.json.error.message, /Người bán phải là Tour Đảo hoặc hồ sơ mang vai Nhà cung cấp/);
+  assert.doesNotMatch(banHang.text, /prc_/);
+  assert.equal(Number(w.q("SELECT count(*) AS n FROM prc_commission_rule")[0].n), 0);
+  assert.equal(Number(w.q("SELECT count(*) AS n FROM prc_supply_term")[0].n), 1, "chỉ còn dòng gieo sẵn");
 });
