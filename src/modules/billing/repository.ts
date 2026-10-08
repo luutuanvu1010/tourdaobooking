@@ -326,3 +326,43 @@ export interface NewAccountingEntry {
 }
 export const accountingEntryInsertStatement = (db: D1Database, e: NewAccountingEntry) =>
   db.prepare(ENTRY_INSERT).bind(e.id, e.orderId, e.entered ? 1 : 0, e.invoiceNumber, e.reason, e.at, e.by, e.expectedCurrentId);
+
+// ---- Mã giao dịch ngân hàng (ADR-0092 Đ6; migration 0088). "Còn hiệu lực" = vị từ hieuLuc (không phải dòng đảo, chưa bị đảo). ----
+export interface BankTxnRow {
+  receipt_id: string;
+  order_id: string;
+  amount: number;
+  transferred_amount: number;
+}
+const BANK_TXN_OF_CODE = defineSql(
+  "billing",
+  "bank_txn_of_code",
+  `SELECT t.receipt_id, r.order_id, r.amount, t.transferred_amount FROM bil_receipt_bank_txn t JOIN bil_payment_receipt r ON r.id = t.receipt_id
+   WHERE t.txn_code = ?1 AND r.reverses_id IS NULL AND NOT EXISTS (SELECT 1 FROM bil_payment_receipt x WHERE x.reverses_id = r.id)`,
+);
+export async function bankTxnOfCode(db: D1Database, ma: string): Promise<BankTxnRow[]> {
+  return (await db.prepare(BANK_TXN_OF_CODE).bind(ma).all<BankTxnRow>()).results;
+}
+const BANK_TXN_OF_ORDER = defineSql(
+  "billing",
+  "bank_txn_of_order",
+  "SELECT t.receipt_id, t.txn_code, t.transferred_amount FROM bil_receipt_bank_txn t JOIN bil_payment_receipt r ON r.id = t.receipt_id WHERE r.order_id = ?1",
+);
+export async function bankTxnOfOrder(db: D1Database, orderId: string): Promise<Map<string, { ma: string; soThucChuyen: number }>> {
+  const rows = (await db.prepare(BANK_TXN_OF_ORDER).bind(orderId).all<{ receipt_id: string; txn_code: string; transferred_amount: number }>()).results;
+  return new Map(rows.map((r) => [r.receipt_id, { ma: r.txn_code, soThucChuyen: r.transferred_amount }]));
+}
+/** Gắn mã — lính gác: lần thu đã chèn (lô ghi lần thu có lính gác mốc Đã giao; không chèn ⇒ changes = 0, không lỗi khoá ngoại). */
+const BANK_TXN_INSERT = defineSql(
+  "billing",
+  "bank_txn_insert",
+  `INSERT INTO bil_receipt_bank_txn (id, receipt_id, txn_code, transferred_amount, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?5, ?6 WHERE EXISTS (SELECT 1 FROM bil_payment_receipt WHERE id = ?2)`,
+);
+export const bankTxnInsertStatement = (db: D1Database, v: { id: string; receiptId: string; ma: string; soThucChuyen: number; at: string; by: string }) =>
+  db.prepare(BANK_TXN_INSERT).bind(v.id, v.receiptId, v.ma, v.soThucChuyen, v.at, v.by);
+const BANK_TXN_CUTOFF = defineSql("billing", "bank_txn_cutoff", "SELECT cutoff_at FROM bil_audit_cutoff WHERE code = 'R-BIL-D6'");
+/** Mốc cắt C1. null (migration chưa áp) ⇒ nơi gọi coi là BẮT BUỘC (đóng an toàn). */
+export async function mocMaGiaoDich(db: D1Database): Promise<string | null> {
+  return (await db.prepare(BANK_TXN_CUTOFF).first<{ cutoff_at: string }>())?.cutoff_at ?? null;
+}

@@ -48,6 +48,9 @@ export const AUDIT_ACTIONS = {
   ledger_adjustment: { label: "Ghi điều chỉnh sổ", group: "ledger" },
   ledger_receipt_replaced: { label: "Thay lần thu", group: "ledger" },
   ledger_reversal: { label: "Ghi dòng đảo sổ", group: "ledger" },
+  // ADR-0092 Đ6 (migration 0088): gắn mã giao dịch ngân hàng vào lần thu — target = lần thu (`ledger`, id lần thu); `detail` = "gắn mã giao dịch ngân hàng"
+  // (chữ cố định); KHÔNG chép mã giao dịch, không số tài khoản.
+  ledger_bank_txn_linked: { label: "Gắn mã giao dịch ngân hàng", group: "ledger" },
   // ADR-0089 (cọc đơn huỷ — migration 0079): duyệt / huỷ duyệt / chi / chuyển / đã hoàn ngoài hệ thống. Không số tiền trong detail (chỉ lý do).
   deposit_refund_approved: { label: "Duyệt hoàn cọc", group: "ledger" },
   deposit_transfer_approved: { label: "Duyệt chuyển tiền sang đơn mới", group: "ledger" },

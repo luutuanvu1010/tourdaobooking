@@ -1636,6 +1636,9 @@ export interface LanThuDto {
   nguoiGhi: string | null;
   ghiChu: string | null;
   ghiLuc: string;
+  /** ADR-0092 Đ6: mã giao dịch ngân hàng đã chuẩn hoá + số tiền thực chuyển — CHỈ có khoá này khi người xem giữ `ledger.write` (Kế toán, Toàn quyền). */
+  maGiaoDich?: string;
+  soThucChuyen?: number;
 }
 
 /** `GET /api/orders/:id/payments` — tiền của MỘT đơn + lý do đang giữ + nút nào được hiện (máy chủ vẫn kiểm lại khi bấm). */
@@ -1757,6 +1760,9 @@ export interface LanThuInput {
   nguoiThu: "toi" | "cong_ty" | { partyId: string };
   ngayPhatSinh?: string;
   ghiChu?: string;
+  /** ADR-0092 Đ6 (C1): BẮT BUỘC khi hình thức chuyển khoản + Công ty thu + người ghi là Kế toán / Toàn quyền; người khác gửi ⇒ 400. */
+  maGiaoDich?: string;
+  soThucChuyen?: number;
 }
 
 /** `POST /api/ledger/balances` — tiền từng đơn (chỉ đơn người gọi được xem tiền; đơn khác bị bỏ khỏi kết quả). */
