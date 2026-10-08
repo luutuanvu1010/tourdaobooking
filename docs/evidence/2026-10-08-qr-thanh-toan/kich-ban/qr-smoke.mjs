@@ -192,8 +192,9 @@ try {
     assert.equal(await p.ev(`fetch('/api/orders/${don.id}/payments', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ soTien: 150000, hinhThuc: 'CASH', nguoiThu: 'toi' }) }).then((r) => r.status)`), 201, "ghi lần thu 150.000 từ chính trang");
     assert.match(await p.ev(`document.querySelector('[data-khoi="thanh-toan"]').textContent`), /Còn lại1\.350\.000/, "trang CHƯA tải lại: dòng «Còn lại» của thẻ Thanh toán vẫn là số cũ");
     await p.ev(`document.querySelector('[data-action="qr-thanh-toan"]').click(), true`);
-    await p.waitFor(`!document.querySelector('.qr-anh').hidden && !document.querySelector('[data-action="qr-luu-anh"]').disabled`, "mã hiện + nút Lưu ảnh bật", 15000);
-    assert.equal(await p.ev(`document.querySelector('.sheet .alert.danger').hidden`), true, "không báo lỗi 'lớn hơn số còn lại'");
+    // Chờ mã HOẶC câu lỗi, để khi vỡ thì báo đúng câu lỗi của máy chủ thay vì hết giờ chờ.
+    await p.waitFor(`(!document.querySelector('.qr-anh').hidden && !document.querySelector('[data-action="qr-luu-anh"]').disabled) || !document.querySelector('.sheet .alert.danger').hidden`, "mã hiện hoặc câu lỗi hiện", 15000);
+    assert.equal(await p.ev(`document.querySelector('.sheet .alert.danger').hidden ? '' : document.querySelector('.sheet .alert.danger').textContent.trim()`), "", "mở QR lần đầu KHÔNG báo lỗi (không gửi số còn lại cũ của lúc tải trang)");
     assert.equal(await p.ev(`document.getElementById('qr-so-tien').value`), "1.200.000", "ô hiện số còn lại MỚI do máy chủ trả");
     assert.equal(await p.ev(`document.querySelectorAll('[data-khoi="qr-thong-tin"] p')[3]?.textContent`), "Số tiền: 1.200.000đ");
     p.close();
