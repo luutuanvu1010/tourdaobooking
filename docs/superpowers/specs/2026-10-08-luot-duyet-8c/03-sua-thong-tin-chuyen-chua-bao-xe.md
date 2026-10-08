@@ -11,7 +11,7 @@ Trên trang đơn có bảng "Sửa thông tin chuyến". Bảng này đổi đ�
 **Ý 2 — đổi ngày mà tài xế không được báo.** Khi văn phòng sửa giờ đón ở từng chặng, tài xế đang lái chuyến đó nhận tin "Văn phòng vừa đổi giờ đón… mở để xem". Nhưng nếu đổi ngày qua bảng "Sửa thông tin chuyến" thì tài xế không nhận gì, dù giờ hẹn của khách đã đổi thật. Chuyến vẫn bị giữ để người xếp xe xử lý, nên văn phòng biết, chỉ tài xế là không biết.
 
 Có ba cách:
-1. **Máy trả ghế khi bỏ chặng và báo tài xế khi đổi ngày (khuyến nghị).** Được: bảng này làm giống hệt các nút sửa chặng khác, và tài xế luôn biết giờ hẹn đổi. Mất: thêm một chỗ nữa trong lô ghi, kèm thêm bài kiểm. Không mở thêm quyền cho ai, vì mọi người dùng được bảng này đều đã có quyền xếp xe.
+1. **Máy trả ghế khi bỏ chặng và báo tài xế khi đổi ngày (khuyến nghị).** Được: bảng này làm giống hệt các nút sửa chặng khác, và tài xế luôn biết giờ hẹn đổi. Mất: mỗi lần lưu bảng này máy ghi thêm vài dòng về chuyến xe trong cùng một lần lưu, và phải viết thêm bài kiểm. Không mở thêm quyền cho ai, vì mọi người dùng được bảng này đều đã có quyền xếp xe.
 2. **Chỉ báo tài xế; ghế để người xếp xe tự gỡ.** Được: ít việc hơn, giữ đúng chữ quyết định 8/10. Mất: hai nút bỏ chặng vẫn cho hai kết quả khác nhau.
 3. **Giữ nguyên cả hai.** Được: không làm gì. Mất: tài xế có thể tới đón theo giờ cũ cho tới khi văn phòng gỡ khách khỏi chuyến.
 

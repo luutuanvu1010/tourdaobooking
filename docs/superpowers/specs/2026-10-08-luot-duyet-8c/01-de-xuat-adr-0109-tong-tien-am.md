@@ -1,6 +1,18 @@
 # ADR-0109 (đề xuất) — Phải thu của đơn không xuống dưới 0 khi bớt khách làm tổng tiền âm
 
-> **Trạng thái:** **proposed**, vai soạn, 2026-10-08. Chủ chưa duyệt (Hiến pháp N3). **Lượt 8c, tệp 01.** Số 0109 lấy từ dòng "số ADR mới kế tiếp" cuối `docs/adr/README.md` (0105–0107 đang chép từ lượt 8b; 0108 là VietQR ở nhánh `claude/ticket-sales-qr-payment-cf8e18`). `git log --all -S "ADR-0109"` chỉ gặp một câu nhắc trong hồ sơ lượt 8a (`2bd077f2`), không ADR nào dùng số này. Mọi `tệp:dòng` đo trên `luot-duyet-8c` @ `b8927c27` (bằng `claude/van-chuyen-goi-a-c` lúc soạn).
+- **Trạng thái:** **proposed**, vai soạn, 2026-10-08. Chủ chưa duyệt (Hiến pháp N3). **Lượt 8c, tệp 01.**
+- **Ngày:** 2026-10-08 (đề xuất).
+- **Văn bản trình duyệt:** tệp này; trang ghép `docs/superpowers/specs/2026-10-08-luot-duyet-8c/00-trang-ghep.md`.
+- **Số:** 0109 lấy từ dòng "số ADR mới kế tiếp" cuối `docs/adr/README.md` (0105–0107 đang chép từ lượt 8b; 0108 là VietQR ở nhánh `claude/ticket-sales-qr-payment-cf8e18`). `git log --all -S "ADR-0109"` chỉ gặp một câu nhắc trong hồ sơ lượt 8a (`2bd077f2`), không ADR nào dùng số này.
+- **Mốc đo mã:** mọi `tệp:dòng` đo trên `luot-duyet-8c` @ `b8927c27` (bằng `claude/van-chuyen-goi-a-c` lúc soạn).
+- **Sửa:** ADR-0063 D1.12 (vế "dư lớn hơn số khách đã trả"); ADR-0079 `:43`, `:57` (iv), `:75` (giảm giá bên đặt chịu = giảm giá hiệu lực). Bảng ở mục 5.
+- **Xây trên lỗ đang hở:** không (mục 8).
+- **Cửa:** hai chiều; không migration.
+
+## Lời chủ dự án
+- 2026-09-29: "Không chặn, chờ hoàn" — khách trả dư thành khoản chờ hoàn (chú thích `src/modules/billing/rules.ts:62`; ADR-0063 D1.11).
+- 2026-10-08, lượt 8a, chủ chọn "Duyệt (Recommended)" cho câu duyệt có vế "tổng tiền âm thì cảnh báo, không chặn" (ADR-0063 D1.12; chú thích `src/shared/so-khach-van-phong.ts:50-51`).
+- Hiến chương 5.9 (`docs/ARCHITECTURE.md:107`, chủ duyệt): khi đối tượng giảm giá trị sau khi đã thu tiền, không chặn thao tác phản ánh thực tế; phần dư thành khoản chờ hoàn.
 
 ## Cho chủ dự án
 
@@ -15,9 +27,11 @@ Có ba cách:
 
 Nếu chọn cách 1, chỉ những đơn đang âm mới đổi số; đơn bình thường không đổi đồng nào. Đơn đã "Đã giao" không bị ảnh hưởng, vì đơn âm chưa từng lên "Đã giao" được. Trên biên nhận gửi khách, tôi giả định dòng "Giảm giá" hiện phần thực dùng (500.000 ở ví dụ) để ba dòng tạm tính, giảm giá, tổng cộng khớp nhau. Trang đơn nội bộ vẫn ghi giảm giá gốc kèm cảnh báo. Đây là chữ trên màn hình, bạn muốn khác thì đổi được.
 
+Có một hệ quả cho đơn của đại lý mà bạn cần biết trước khi duyệt. Phần sổ hoa hồng và giảm giá của đại lý đã được duyệt ngày 1/10 nhưng chưa làm. Quyết định đó ghi rằng đại lý chịu đúng số giảm giá đã cho khách, kể cả khi bớt khách. Theo cách 1, với đơn tổng âm, đại lý chỉ chịu phần giảm giá thực dùng: ở ví dụ là 500.000 chứ không phải 800.000, tức đại lý nợ công ty ít hơn 300.000 so với chữ cũ. Lý do là nếu giữ 800.000 thì công ty thu của đại lý nhiều hơn cả giá dịch vụ, và sổ không cân. Hôm nay chưa có số nào đổi, vì phần đó chưa làm.
+
 Việc này đụng tiền, nên sau khi thi công phải có người kiểm độc lập, và ca mẫu SV-SK-04 phải được Kế toán xác nhận lại theo đáp án mới. Đây cũng là một trong các điều đang chặn phát hành phần sửa số khách (A2).
 
-**Câu duyệt gợi ý:** "Duyệt ADR-0109: phải thu của đơn không dưới 0, tính ở một hàm cho mọi màn; giảm giá giữ số đã ghi; trang đơn cảnh báo khi giảm giá lớn hơn tiền dịch vụ; ca SV-SK-04 đổi đáp án theo."
+**Câu duyệt gợi ý:** "Duyệt ADR-0109: phải thu của đơn không dưới 0, tính ở một hàm cho mọi màn; giảm giá giữ số đã ghi; trang đơn cảnh báo khi giảm giá lớn hơn tiền dịch vụ; đơn đại lý chịu phần giảm giá thực dùng; ca SV-SK-04 đổi đáp án theo."
 
 ---
 
@@ -25,7 +39,7 @@ Việc này đụng tiền, nên sau khi thi công phải có người kiểm đ
 
 ### 1. Hiện trạng mã
 - **Phải thu công bố:** `effectiveMoney` = `subtotal − discount`, không kẹp (`src/modules/orders/money-adjustment.ts:227-229`). Chi tiết đơn đi qua `applyAdjustmentToOrder` (`:219`). Danh sách và doanh thu tuần đi qua `computeEffectiveMoney` (`src/modules/orders/repository.ts:1179-1197`; `toSummaryDtos` `:410-417`; cộng doanh thu tuần `:725-735`, cộng cả số âm).
-- **Đường tính thứ hai:** `phaiThuCua` (`src/modules/orders/hoan-tat.ts:9-18`) tự trừ `effectiveSubtotal(...) - r.discount` ở `:15`, không gọi `effectiveMoney`. Hôm nay hai đường cho cùng số; kẹp ở một bên thì trang đơn và sổ lệch nhau (Hiến chương 5.4, `docs/ARCHITECTURE.md:97`).
+- **Đường tính thứ hai:** `phaiThuCua` (`src/modules/orders/hoan-tat.ts:9-18`) tự trừ `effectiveSubtotal(...) - r.discount` ở `:15`, không gọi `effectiveMoney`. Hôm nay hai đường cho cùng số; kẹp ở một bên thì trang đơn và sổ lệch nhau (Hiến chương 5.4, `docs/ARCHITECTURE.md:97`). Đã tìm mọi chỗ trừ `discount` trong `src`, `web`, `scripts` (trừ bài kiểm): ngoài hai chỗ này chỉ còn phép tính lúc lập / lưu nháp (`src/modules/orders/rules.ts:176`, `src/shared/service-form.ts:411`), nơi giảm giá đã bị chặn ≤ tạm tính, và một kiểm dữ liệu đã lưu (`src/modules/orders/nguoi-dat-gop-repo.ts:10`). Hàng rào 5.4 hiện có (`src/buildlines-guard.test.ts`, `docs/SO-HANG-RAO.md:28`) chỉ canh `buildLines`, nên không bắt được chỗ `hoan-tat.ts:15`.
 - **Còn lại / dư:** `conLai` (`src/modules/billing/rules.ts:73-83`) tính `conLai = max(0, phaiThu − daThu)` và `du = max(0, daThu − phaiThu)`. Phải thu âm làm `du` lớn hơn `daThu`.
 - **Hoàn tối đa:** `ghiHoanKhach` chặn `so.value > daThu`, câu "Không hoàn quá số khách đã trả" (`src/modules/billing/service.ts:456-457`). Lưới CSDL: trigger `refund_exceeds_paid` (`migrations/0045_billing_so_cong_no.sql:216`).
 - **Điều kiện "Đã giao":** `lyDoChuaGiaoDuoc` trả `overpaid` khi `du > 0` (`rules.ts:467`). `daGiao` (`service.ts:252`) ghi phiếu DELIVERED với `dueSnapshot: info.phaiThu` (`:278`), số này lấy từ `thongTinGiaoDon` → `phaiThuCua`, không qua `conLai`. CSDL có trigger `bil_posting_delivered_paid` đòi đã thu = `due_snapshot` (`0045:232-241`), và cột `due_snapshot` có `CHECK (due_snapshot IS NULL OR due_snapshot >= 0)` (`0045:103`). "Hoàn thành" kiểm đã thu = `due_snapshot` (`migrations/0083_bil_thay_lan_thu.sql:27-51`).
@@ -49,7 +63,8 @@ Việc này đụng tiền, nên sau khi thi công phải có người kiểm đ
 | SV-SK-04 sau khi sửa | phải thu 0; dư 200.000 | phải thu 100.000; dư 100.000 | phải thu −300.000; dư 500.000 |
 | Lên "Đã giao" | sau khi hoàn 200.000 | sau khi hoàn 100.000 | không bao giờ |
 | Đổi số đơn khác | chỉ đơn đang âm | mọi đơn có giảm giá đã sửa số khách. SV-SK-02: phải thu 2.000.000 → khoảng 1.938.462, cần luật làm tròn | không |
-| Trái câu ADR đã duyệt | ADR-0063 D1.12 (vế "dư lớn hơn số đã trả") | ADR-0063 D1.4 "giảm giá giữ nguyên" (`:32`) và D1.12 | không |
+| Đơn đã "Đã giao" | không đổi (đơn âm chưa từng giao được) | đơn có giảm giá và từng sửa số khách: khối Thanh toán tính lại phải thu (`src/modules/billing/service.ts:170`, `:188`), nên lệch với `due_snapshot` đã chốt lúc giao, và đơn đã chốt hiện "Còn lại" hoặc "Khách trả dư" sai (ADR-0088 `:25`: phải thu của đơn đã giao = `due_snapshot`) | không đổi |
+| Trái câu ADR đã duyệt | ADR-0063 D1.12 (vế "dư lớn hơn số đã trả"); ADR-0079 `:43`, `:75` | ADR-0063 D1.4 "giảm giá giữ nguyên" (`:32`) và D1.12; ADR-0079 `:43`, `:75` | không |
 | Migration | không | không nếu tính lúc đọc; có nếu lưu giảm giá mới (cột tiền khoá `0081:20-22`; bảng điều chỉnh không có cột giảm giá `0021:5-13`) | không |
 
 Biến thể (b) "giảm giá tối đa bằng tạm tính mới" ra **đúng số tiền như (a)**, vì `tạm tính − min(giảm giá, tạm tính) = max(0, tạm tính − giảm giá)`. Hai cách chỉ khác chữ trên biên nhận, đã gộp vào mục 2.4.
@@ -61,7 +76,8 @@ Biến thể (b) "giảm giá tối đa bằng tạm tính mới" ra **đúng s�
 - Ô "Còn thiếu tiền" (`src/modules/billing/index.ts:256`): không đổi, vì còn lại vốn đã là 0.
 - Phiếu "Đã giao": `due_snapshot` = 0 (hôm nay không ghi được). I1 của ADR-0088 vẫn đúng.
 - Sổ công nợ: không sinh dòng mới, ngoài dòng hoàn khách khi người trả không phải công ty (như mọi lần hoàn).
-- **ADR-0079** (chưa thi công; `gross_snapshot` chưa có trong mã): `:43` ghi dòng `GIAM_GIA_BEN_DAT` "đúng số giảm giá cấp đơn (`orders.discount`)", còn `:57` (iv) ghi "= `gross_snapshot` − `due_snapshot` đúng từng đồng". Trên đơn tổng âm có người hưởng, hai câu này cho hai số khác nhau. ADR-0109 chốt theo (iv): đại lý chịu **giảm giá hiệu lực**, tức tối đa phần thực dùng.
+- **ADR-0079** (chưa thi công; `gross_snapshot`, `GIAM_GIA_BEN_DAT` chưa có trong mã): `:43` ghi dòng `GIAM_GIA_BEN_DAT` "đúng số giảm giá cấp đơn (`orders.discount`)", `:75` ghi khi giảm khách sau xác nhận thì dòng đó "vẫn ghi đúng số giảm giá", còn `:57` (iv) ghi "= `gross_snapshot` − `due_snapshot` đúng từng đồng". Trên đơn tổng âm có người hưởng, `:43`/`:75` và (iv) cho hai số khác nhau. ADR-0109 chốt theo (iv): đại lý chịu **giảm giá hiệu lực**, tức tối đa phần thực dùng. Giữ số đầy đủ thì sổ không cân: công ty thu của đại lý nhiều hơn giá dịch vụ, và luật cân đối R-BIL-2 (`ADR-0079:96`) sai. Ví dụ SV-SK-04 nếu là đơn đại lý: đại lý nợ 500.000 thay vì 800.000.
+- **Không đổi số** (đã đọc): hoa hồng `RATE` tính trên thành tiền dòng **trước** giảm giá cấp đơn, `PER_PAX` theo số khách (ADR-0077 `:82-83`); giá vốn tính trước giảm giá (ADR-0078 `:58`); dòng điều chỉnh số khách không khoá theo kỳ (ADR-0080 `:70`). Dấu "đã nhập phần mềm kế toán" (ADR-0060, `src/modules/billing/nhap-ke-toan.ts`) không xuất số tiền nào.
 - ADR-0081 (đại lý xem sổ, ô `giamGiaMinhChiu`): theo cùng số hiệu lực. Chưa kiểm phần này đã thi công tới đâu.
 - ADR-0089 `:106` ("Cần chi hoàn" gồm trả dư của đơn không huỷ): mã hôm nay chỉ liệt khoản duyệt (`src/modules/billing/coc-repo.ts:109`), chưa thấy phần trả dư. Khi làm phần đó, (a) bảo đảm số trả dư không vượt tiền thật.
 
@@ -72,6 +88,7 @@ Biến thể (b) "giảm giá tối đa bằng tạm tính mới" ra **đúng s�
 | ADR-0063 D1.12 (`docs/adr/ADR-0063-sua-don-sau-xac-nhan.md:43`) | "… thì tổng ra số âm (`effectiveMoney` = `subtotal − discount`, …), và sổ báo "dư chờ hoàn" lớn hơn số khách thật đã trả." | "… thì phải thu bằng 0 (ADR-0109); dư chờ hoàn bằng đúng số khách đã trả. Không chặn; cảnh báo khi giảm giá lớn hơn tạm tính hiện hành." |
 | ADR-0079 `:43` | "… đúng số giảm giá cấp đơn (`orders.discount`)" | "… đúng giảm giá hiệu lực = min(`orders.discount`, tạm tính hiện hành) (ADR-0109), tức `gross_snapshot − due_snapshot` như (iv)" |
 | ADR-0079 `:57` (iv) | "(giảm giá cấp đơn là phần chênh duy nhất giữa hai số)" | "(giảm giá **hiệu lực** là phần chênh duy nhất — ADR-0109)" |
+| ADR-0079 `:75` | "Dòng `GIAM_GIA_BEN_DAT` vẫn ghi đúng số giảm giá." | "Dòng `GIAM_GIA_BEN_DAT` ghi đúng giảm giá hiệu lực = min(giảm giá, tạm tính hiện hành) (ADR-0109); bằng số giảm giá khi tạm tính còn ≥ giảm giá." |
 
 Không đổi: ADR-0063 D1.4 "giảm giá của đơn giữ nguyên" (`:32`) — đúng nguyên văn với (a).
 
@@ -87,10 +104,14 @@ Không đổi: ADR-0063 D1.4 "giảm giá của đơn giữ nguyên" (`:32`) —
   - kịch bản Chrome `docs/evidence/2026-10-08-a2-so-khach/kich-ban/sua-so-khach-smoke.mjs:110-127` (đang khoá "Tổng cộng −650.000").
 - **SV-SK-04, đáp án mới theo (a):** `sau` = { tam_tinh 500.000, phai_thu 0, con_lai 0, du 200.000 }; `canh_bao_tong_am` true (giảm giá 800.000 > tạm tính 500.000); `truoc` giữ nguyên. Gợi ý thêm ca SV-SK-08: hoàn 200.000 → "Đã giao" được, `due_snapshot` 0. Theo (b): `sau` = {500.000, 100.000, 0, 100.000}, không cảnh báo, và SV-SK-02 đổi. Theo (c): giữ đáp án; ca không xác nhận được, đúng như ghi chú hiện có.
 
-### 7. Cửa, migration, kiểm
+### 7. Cửa và migration
 - **Hai chiều:** luật nằm ở mã, không ghi dữ liệu mới; đổi lại là sửa một hàm. **Không migration.**
-- **Việc lớn (tiền):** kế hoạch, mỗi task đỏ → xanh, người kiểm độc lập chỉ-đọc. Thêm bài tĩnh "một hàm phải thu": ngoài `effectiveMoney` không chỗ nào tự trừ `discount`.
 - **Phát hành:** cùng A2 (đang chặn phát hành chờ câu này), sau Sổ tiền.
+
+### Bài kiểm / hàng rào (mỗi rào: sửa cố ý → đỏ → hoàn nguyên, có dòng `docs/SO-HANG-RAO.md` kèm ngày)
+- **Việc lớn (tiền):** kế hoạch, mỗi task đỏ → xanh, người kiểm độc lập chỉ-đọc.
+- **Nới rộng hàng rào 5.4:** bài tĩnh mới "một hàm phải thu" — ngoài `effectiveMoney` và hai chỗ lập / lưu nháp đã liệt kê ở mục 1, mã chạy thật không chỗ nào trừ `discount`. Quan sát chặn thật: khôi phục cố ý `- r.discount` ở `hoan-tat.ts:15` → đỏ → hoàn nguyên → xanh. Thêm một dòng sổ hàng rào cạnh dòng `buildlines-guard`.
+- Bài hành vi: SV-SK-04 mới; "hoàn 200.000 rồi Đã giao trả 200, `due_snapshot` 0"; đơn tổng âm vẫn có câu cảnh báo (điều kiện mới); đơn huỷ không đổi số cọc; doanh thu tuần cộng 0 cho đơn âm.
 
 ### 8. Sổ dừng dây chuyền (`docs/quyen-hoan.json`)
 - Không xây trên lỗ đang hở.

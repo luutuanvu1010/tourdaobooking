@@ -11,15 +11,16 @@
 
 Lượt này có ba quyết định. Quyết định thứ nhất đụng tiền: đơn bớt khách tới mức tiền dịch vụ nhỏ hơn giảm giá thì phải thu tính bằng 0, để Kế toán hoàn đúng tiền khách đã trả và đơn lên "Đã giao" được. Quyết định thứ hai không đổi gì trong mã, chỉ ghi thành luật hai chỗ mã đang làm khác chữ quyết định về thứ tự điểm dừng. Quyết định thứ ba cho bảng "Sửa thông tin chuyến" của đơn trả ghế trên xe khi bỏ chặng và báo tài xế khi đổi ngày, giống các nút sửa chặng khác.
 
-Ghép ba việc lại, tôi không thấy lỗ mới, và không ai được thêm quyền. Có ba điều bạn nên biết:
+Ghép ba việc lại, tôi không thấy lỗ mới, và không ai được thêm quyền. Có bốn điều bạn nên biết:
 1. **Một con số dùng ở nhiều màn.** Quyết định thứ nhất đổi con số "phải thu" mà trang đơn, biên nhận gửi khách, doanh thu tuần trên Trang chủ và sổ tiền cùng dùng. Chỉ đơn đang âm mới đổi số, nhưng nút "Đã giao" của các đơn đó sẽ mở lại được sau khi hoàn tiền.
 2. **Câu cảnh báo phải đổi điều kiện hiện.** Hôm nay câu cảnh báo trên trang đơn hiện khi tổng tiền âm. Sau quyết định thứ nhất, tổng không còn âm, nên nếu giữ điều kiện cũ thì câu này sẽ lặng lẽ biến mất. Vì vậy điều kiện mới là "giảm giá lớn hơn tiền dịch vụ".
-3. **Người dùng bảng "Sửa thông tin chuyến" đều đã có quyền xếp xe.** Nên khi máy trả ghế thay họ, không ai làm được việc gì mới với xe. Điều này khác với Đối tác, Thực tập hay hướng dẫn viên ở quyết định 8/10, những người không có quyền xếp xe mà vẫn làm máy trả ghế.
+3. **Đơn của đại lý chịu phần giảm giá thực dùng.** Phần sổ hoa hồng của đại lý đã duyệt nhưng chưa làm. Theo quyết định thứ nhất, với đơn đại lý bị bớt khách tới mức tổng âm, đại lý nợ công ty phần giảm giá thực dùng chứ không phải toàn bộ số giảm giá đã cho, nếu không thì sổ không cân. Hôm nay chưa có số nào đổi.
+4. **Người dùng bảng "Sửa thông tin chuyến" đều đã có quyền xếp xe.** Nên khi máy trả ghế thay họ, không ai làm được việc gì mới với xe. Điều này khác với Đối tác, Thực tập hay hướng dẫn viên ở quyết định 8/10, những người không có quyền xếp xe mà vẫn làm máy trả ghế.
 
 ## Ba câu hỏi cho chủ (chép thẳng vào hộp hỏi; phương án khuyến nghị đứng đầu)
 
 **Câu 1** — tiêu đề ngắn: `Tổng âm`. Câu hỏi: "Đơn bớt khách tới mức tiền dịch vụ nhỏ hơn giảm giá (tổng tiền âm): tính phải thu thế nào? (ADR-0109)"
-- **Phải thu tối thiểu bằng 0 (Recommended)** — Kế toán hoàn đúng số khách đã trả là đơn lên Đã giao được; giảm giá giữ số đã ghi; trang đơn vẫn cảnh báo.
+- **Phải thu tối thiểu bằng 0 (Recommended)** — Kế toán hoàn đúng số khách đã trả là đơn lên Đã giao được; giảm giá giữ số đã ghi; trang đơn vẫn cảnh báo; đơn đại lý chịu phần giảm giá thực dùng.
 - **Giảm giá co theo tỷ lệ số khách** — khách vẫn trả một phần; tiền của mọi đơn có giảm giá đã sửa số khách đều đổi; trái câu "giảm giá giữ nguyên" đã duyệt.
 - **Giữ như hôm nay** — đơn tổng âm kẹt, không bao giờ lên Đã giao; không có đường tay để gỡ.
 
@@ -134,7 +135,8 @@ Thứ tự giá trị: SALES, ACCOUNTING, ADMIN, FIELD, PARTNER, SUPER_ADMIN, IN
 
 ### 7. Lời chủ, quyết định đã duyệt bị thay
 - Lời chủ 8/10 "tổng tiền âm thì cảnh báo, không chặn": không mâu thuẫn với #1 (a) — vẫn không chặn, vẫn cảnh báo, chỉ thêm luật tính.
-- ADR-0063 D1.12, vế "dư lớn hơn số đã trả" → thay bởi ADR-0109; ADR-0079 `:43`, `:57` → chốt giảm giá hiệu lực.
+- ADR-0063 D1.12, vế "dư lớn hơn số đã trả" → thay bởi ADR-0109.
+- ADR-0079 `:43`, `:57` (iv), `:75` (chủ duyệt 1/10, chưa thi công) → đại lý chịu **giảm giá hiệu lực**. Trên đơn đại lý tổng âm, đại lý nợ công ty ít hơn chữ cũ (ví dụ SV-SK-04: 500.000 thay vì 800.000); giữ chữ cũ thì sổ không cân. Đây là hệ quả của quyết định #1, không phải quyết định thứ tư, nhưng phần "Cho chủ dự án" của tệp 01 và câu duyệt có nói rõ.
 - ADR-0104 Đ2.4 (chủ duyệt 8/10) → ADR-0111 nếu chọn (a).
 - ADR-0096 Đ1.3b, Đ1.3c → ADR-0110 nếu giữ mã.
 
@@ -142,5 +144,6 @@ Thứ tự giá trị: SALES, ACCOUNTING, ADMIN, FIELD, PARTNER, SUPER_ADMIN, IN
 - Toàn bộ là thiết kế trên giấy: chưa chạy mã, chưa xem production.
 - Chữ V-3, V-5 của phiếu kiểm A2 (không có trong kho).
 - Production có đơn tổng âm nào không.
+- ADR-0081 (đại lý xem sổ) đã thi công tới đâu.
 - Ca ↑ ↓ trên chuyến đang vướng lỗi khác (tệp 02 §3).
 - Khuôn `detail` của dòng `order_leg_updated` thêm vào (tệp 03 §3).
