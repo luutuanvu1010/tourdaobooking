@@ -332,7 +332,7 @@
           { "chang": "AMIANA với soNguoi = 1", "so": 1, "trangThai": "BOARDED", "len": "d7-amiana", "xuong": "d7-ben" },
           { "chang": "$nen.chang.MUONG_THANH", "so": 3, "trangThai": "WAITING", "len": "d7-muong-thanh", "xuong": "d7-cang" },
           { "loai": "CREW", "so": 1, "nguoiDiKem": "hdv-doan-a", "trangThai": "BOARDED", "len": null, "xuong": null, "suatIds": ["s7-crew-1"] }
-        ], "ghi_chu": "không có nhóm Novotel; điểm d7-novotel không có trong nền riêng này. Suất người đi kèm (CREW) không có chặng, không có điểm lên / xuống (migrations/0042_chuyen_xe.sql:140-141)." }
+        ], "ghi_chu": "không có nhóm Novotel; điểm d7-novotel không có trong nền riêng này. Suất người đi kèm (CREW) không có chặng (migrations/0042_chuyen_xe.sql:141); hôm nay lệnh xếp tạo suất người đi kèm không có điểm lên / xuống (src/modules/van-chuyen/dieu-phoi-lenh.ts:249 @046fb6b5) — CSDL không cấm có." }
       },
       "cac_buoc": [
         { "ma": "TH07-1-GUI-ONBOARD", "lenh": "GUI", "ai": "tk-tx-a", "bayGioMs": "2026-09-30 06:25",

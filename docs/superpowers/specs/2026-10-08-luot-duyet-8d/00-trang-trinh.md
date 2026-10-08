@@ -6,7 +6,7 @@
 
 Phần "tài xế nhờ xe khác đón khách" bạn đã duyệt ngày 30/9, rồi hoãn ngày 2/10, và nay được đưa vào làm trong nhiệm vụ Vận chuyển và Bán hàng bạn giao. Trước khi làm phần lưu dữ liệu, cần một văn bản quyết định mới để sửa đúng mấy chỗ văn bản 30/9 viết cứng hoặc tự nói khác nhau. Tôi chia thành hai lượt hỏi, mỗi lượt tối đa ba quyết định: lượt đầu có bốn hộp (điều kiện chuyển, cách ghi dấu vết, nới hai bài kiểm tự động, mười tình huống mẫu), lượt sau có ba hộp (cứu hộ, thu hồi xuất bến, khách đặt gấp). Bạn chỉ cần chọn trong các hộp dưới đây; phương án khuyến nghị luôn đứng đầu.
 
-Có hai điều bạn nên biết mà không cần chọn. Thứ nhất, khi một xe đã nhận đón một điểm thì các lần nhờ khác cho cùng điểm đó tự huỷ, đúng như bạn đồng ý ngày 1/10; tài xế có lần nhờ bị huỷ không nhận tin, chỉ thấy "Đã huỷ" khi mở màn hình. Thứ hai, khi cứu hộ xe hỏng, người đi kèm đoàn (ví dụ hướng dẫn viên) sang xe cứu hộ cùng khách và được tính vào số chỗ, đúng chữ văn bản 30/9. Ngoài ra, văn bản 30/9 ghi thứ tự các bước lưu theo một cách máy không chạy được, nên văn bản mới viết lại thứ tự cho đúng; kết quả không đổi.
+Có hai điều bạn nên biết mà không cần chọn. Thứ nhất, khi một xe đã nhận đón một điểm thì các lần nhờ khác cho cùng điểm đó tự huỷ, đúng như bạn đồng ý ngày 1/10; tài xế có lần nhờ bị huỷ không nhận tin, chỉ thấy "Đã huỷ" khi mở màn hình. Thứ hai, khi cứu hộ xe hỏng, người đi kèm đoàn (ví dụ hướng dẫn viên) sang xe cứu hộ cùng khách và được tính vào số chỗ, đọc theo chữ văn bản 30/9 (cứu hộ chuyển mọi chỗ đang có người của xe hỏng). Ngoài ra, văn bản 30/9 ghi thứ tự các bước lưu theo một cách máy không chạy được, nên văn bản mới viết lại thứ tự cho đúng; kết quả không đổi.
 
 ---
 
