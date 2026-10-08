@@ -421,7 +421,8 @@ test("migration tài khoản nhận tiền có đúng một tệp; ngân hàng g
   assert.ok(rows.length >= 30, `chỉ gieo ${rows.length} ngân hàng`);
   assert.equal(new Set(rows.map((r) => r.bin)).size, rows.length, "BIN trùng");
   assert.ok(rows.every((r) => /^\d{6}$/.test(r.bin)));
-  assert.deepEqual(db.prepare("SELECT bin FROM pty_bank WHERE code = 'VCB'").get(), { bin: "970436" });
+  // node:sqlite trả hàng KHÔNG có prototype ⇒ so trường, không deepEqual cả hàng với đối tượng thường.
+  assert.equal((db.prepare("SELECT bin FROM pty_bank WHERE code = 'VCB'").get() as { bin: string }).bin, "970436");
 });
 
 test("(a) chỉ hồ sơ ĐANG là công ty chủ có tài khoản", () => {
@@ -951,13 +952,18 @@ Lớp chống ghi trùng (ADR-0094) **tự áp** cho route `PUT` này: router b�
 
 Thêm dòng ghi chú `// 2026-10-0x (ADR-0108 đ2): + GET/PUT /api/parties/:id/tai-khoan-nhan-tien (office) = N+2.` và nâng hai số đếm từ N lên N + 2.
 
-- [ ] **Bước 13: Chạy, thấy xanh.** `node --test src/modules/parties/tai-khoan-nhan-tien-route.test.ts src/route-access.test.ts` → PASS.
+- [ ] **Bước 12b: Ba bài ghim bị chạm** (người kiểm độc lập kế hoạch đã chạy `npm test` trên bản thử và thấy đúng ba chỗ đỏ này):
+  - `src/modules/parties/tai-xe-dieu-phoi.test.ts`, bài "TC-3 parties/index.ts xuất đúng …", ghim danh sách tên xuất của `parties/index.ts`. Thêm `taiKhoanNhanTienHienHanh` vào danh sách tên mới được phép, cạnh `taiXeChoDieuPhoi`/`hoSoCaNhanKhop`, theo đúng cách bài đang ghi. Sửa tên bài và chú thích cho có "ADR-0108 đ2". Kiểu `TaiKhoanNhanTien` chỉ là kiểu, nên không vào danh sách nếu bài chỉ đếm tên chạy được. Đọc bài trước khi sửa.
+  - `src/lan-gui-phu-route.test.ts`, bài "H2 (3)": số route ghi có đăng nhập đổi từ 152 thành **153**. Nối vào cuối chuỗi chú thích của câu khẳng định: `; QR thanh toán (ADR-0108 đ2): +1 PUT /api/parties/:id/tai-khoan-nhan-tien = 153`.
+  - Đổi nhãn ô `company.legal.write` ở `src/shared/tro-ly-cau-truc-ten.ts` thì `npm test` (bước sinh trước khi chạy bài) sinh lại `src/shared/tro-ly-cau-truc.ts`, mà tệp này bị bài `src/shared/tro-ly-cau-truc.test.ts` ghim. Phải **commit cả tệp sinh**.
+
+- [ ] **Bước 13: Chạy, thấy xanh.** `node --test src/modules/parties/tai-khoan-nhan-tien-route.test.ts src/route-access.test.ts src/modules/parties/tai-xe-dieu-phoi.test.ts src/lan-gui-phu-route.test.ts` → PASS.
 
 - [ ] **Bước 14: Kiểm toàn bộ rồi commit**
 
 ```bash
 npm run typecheck && npm test
-git add src/modules/parties src/shared/contracts.ts src/shared/audit-actions.ts src/shared/tro-ly-cau-truc-ten.ts src/route-access.test.ts
+git add src/modules/parties src/shared/contracts.ts src/shared/audit-actions.ts src/shared/tro-ly-cau-truc-ten.ts src/shared/tro-ly-cau-truc.ts src/route-access.test.ts src/lan-gui-phu-route.test.ts
 git commit -m "Tài khoản nhận tiền: hàm công bố và hai route của Toàn quyền
 
 Chỉ người giữ ô sửa thông tin công ty chủ đọc và đổi được. Đổi là đóng dòng cũ, mở
@@ -1598,7 +1604,7 @@ VALUES ('R-BIL-D6', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), strftime('%Y-%m-%dT%H
 
 - [ ] **Bước 5: Chạy, thấy xanh.** `node --test src/migrations-ma-giao-dich.test.ts` → PASS cả 6 bài.
 
-- [ ] **Bước 6: Quan sát chặn thật (P16).** Lần lượt tạm xoá trigger (b) và (e) trong tệp migration → chạy bài → thấy đúng bài tương ứng đỏ → hoàn nguyên → xanh. Ghi hai dòng vào sổ thi công.
+- [ ] **Bước 6: Quan sát chặn thật (P16).** Lần lượt tạm xoá **từng** trigger (a) `bil_receipt_bank_txn_receipt`, (b) `…_duplicate`, (c) `…_amount_mismatch`, (d) `…_over`, (e) `bil_debt_line_company_received_txn`, (f) `bil_posting_replacement_txn`, cùng hai trigger chỉ-thêm, trong tệp migration. Mỗi lần chạy bài, thấy đúng bài tương ứng đỏ, rồi hoàn nguyên và thấy xanh. Ghi mỗi trigger một dòng vào bảng "Quan sát chặn thật" của sổ thi công (sổ hàng rào ở Task 13 lấy ngày từ đây).
 
 - [ ] **Bước 7: Từ điển dữ liệu.** Thêm cạnh các bảng `bil_*` của `docs/data-dictionary.json`:
 
@@ -2033,6 +2039,7 @@ const SALES = "11111111-1111-4111-8111-111111111111";
 const HDV = "22222222-2222-4222-8222-222222222222";
 const ADM = "33333333-3333-4333-8333-333333333333";
 const KT = "44444444-4444-4444-8444-444444444444";
+const KT2 = "45454545-4545-4545-8545-454545454545";
 const SA = "77777777-7777-4777-8777-777777777777";
 const AT = "2026-09-01T00:00:00.000Z";
 const vnHomNay = () => new Date(Date.now() + 7 * 3600_000).toISOString().slice(0, 10);
@@ -2044,7 +2051,7 @@ function setup(): W {
   const w = world();
   for (const [id, phone, name, perms] of [
     [SALES, "0900000001", "An Bán", ["SALES"]], [HDV, "0900000002", "Nam HDV", ["FIELD"]], [ADM, "0900000003", "Quản Trị", ["ADMIN"]],
-    [KT, "0900000005", "Lan Kế Toán", ["ACCOUNTING"]], [SA, "0900000007", "Chủ", ["SUPER_ADMIN"]],
+    [KT, "0900000005", "Lan Kế Toán", ["ACCOUNTING"]], [KT2, "0900000015", "Hoa Kế Toán", ["ACCOUNTING"]], [SA, "0900000007", "Chủ", ["SUPER_ADMIN"]],
   ] as const) seedStaff(w.sqlite, { id, phone, name, perms: [...perms] });
   return w;
 }
@@ -2062,7 +2069,7 @@ function don(w: W, tong = 1_000_000): string {
 }
 const ck = (soTien: number, them: Record<string, unknown> = {}) => ({ soTien, hinhThuc: "BANK_TRANSFER", nguoiThu: "cong_ty", ...them });
 const thu = (w: W, as: string, orderId: string, body: unknown) => w.call("POST", `/api/orders/${orderId}/payments`, { as, body });
-const xacNhan = (w: W, receiptId: string, body: unknown = {}) => w.call("POST", `/api/ledger/company-receipts/${receiptId}/confirm`, { as: KT, body });
+const xacNhan = (w: W, receiptId: string, body: unknown = {}, as = KT) => w.call("POST", `/api/ledger/company-receipts/${receiptId}/confirm`, { as, body });
 const cuoi = (w: W, orderId: string) => String(w.q("SELECT id FROM bil_payment_receipt WHERE order_id = ? AND reverses_id IS NULL ORDER BY rowid DESC LIMIT 1", orderId)[0].id);
 const soDong = (w: W, sql: string, ...a: unknown[]) => Number(w.q(sql, ...a)[0].n);
 
@@ -2190,7 +2197,9 @@ test("Review Focus 3: hai Kế toán bấm 'Công ty đã nhận' cùng lúc ⇒
   const id = don(w);
   assert.equal((await thu(w, HDV, id, ck(400_000))).status, 201);
   const r = cuoi(w, id);
-  const kq = await Promise.all([xacNhan(w, r, { maGiaoDich: "CL0001", soThucChuyen: 400_000 }), xacNhan(w, r, { maGiaoDich: "CL0001", soThucChuyen: 400_000 })]);
+  // Hai Kế toán KHÁC nhau; mở phiên trước (hai lời gọi đầu cùng lúc của MỘT tài khoản đụng UNIQUE aut_session.staff_id của khung thử — không phải điều cần kiểm).
+  for (const as of [KT, KT2]) assert.equal((await w.call("GET", "/api/auth/me", { as })).status, 200);
+  const kq = await Promise.all([xacNhan(w, r, { maGiaoDich: "CL0001", soThucChuyen: 400_000 }, KT), xacNhan(w, r, { maGiaoDich: "CL0001", soThucChuyen: 400_000 }, KT2)]);
   assert.deepEqual(kq.map((x) => x.status).sort(), [200, 409], kq.map((x) => x.text).join(" | "));
 });
 
@@ -2314,6 +2323,28 @@ test("R-BIL-D6b: Kế toán tự ghi CK – Công ty thu sau mốc không mã �
     VALUES ('l1', 'p1', 'hdv', ?, 300, 'HELD', 'o2', ?, ?, ?)`).run(ct, giuHo, SAU, SAU);
   assert.equal(dem(db, "R-BIL-D6b"), 1, "khoản còn giữ hộ chưa xác nhận không tính");
 });
+
+test("R-BIL-D6b ghim hai điều kiện then chốt: nửa thu chuyển cọc (transfer_of_id) KHÔNG tính; khoản giữ hộ ĐÃ 'Công ty đã nhận' mà không mã thì TÍNH", () => {
+  const { db, ct } = moi();
+  // Gỡ thêm trong CSDL thử: trigger cặp chuyển cọc (0079) để chèn nửa thu đơn lẻ; trigger (e) của 0088 để dựng "Công ty đã nhận" thiếu mã.
+  for (const t of ["bil_payment_receipt_coc_transfer_pair", "bil_payment_receipt_coc_transfer_target", "bil_debt_line_company_received_txn"]) db.exec(`DROP TRIGGER ${t}`);
+  const coc = lanThu(db, ct, "o3", 500);
+  const nuaThu = `r${++n}`;
+  db.prepare(`INSERT INTO bil_payment_receipt (id, order_id, kind_code, amount, collector_party_id, collector_role_code, method_code, collected_for_party_id, stage_code,
+      occurred_date, reverses_id, note, created_at, created_by, updated_at, updated_by, transfer_of_id) VALUES (?, 'o4', 'CUSTOMER_PAYMENT', 500, ?, 'COMPANY', 'BANK_TRANSFER', ?, 'PREPAID', '2026-10-08', NULL, NULL, ?, 'kt', ?, 'kt', ?)`)
+    .run(nuaThu, ct, ct, SAU, SAU, coc);
+  gan(db, coc, "COC1", 500); // lần thu gốc có mã — chỉ còn nửa thu chuyển cọc là "không mã"
+  assert.equal(dem(db, "R-BIL-D6b"), 0, "nửa thu chuyển cọc không bị đòi mã");
+  const giu = lanThu(db, ct, "o5", 300);
+  db.prepare("INSERT INTO bil_posting (id, kind_code, order_id, occurred_date, created_at, updated_at) VALUES ('p2', 'RECEIPT', 'o5', '2026-10-08', ?, ?)").run(SAU, SAU);
+  db.prepare(`INSERT INTO bil_debt_line (id, posting_id, debtor_party_id, creditor_party_id, amount, kind_code, order_id, receipt_id, created_at, updated_at)
+    VALUES ('l2', 'p2', 'hdv', ?, 300, 'HELD', 'o5', ?, ?, ?)`).run(ct, giu, SAU, SAU);
+  assert.equal(dem(db, "R-BIL-D6b"), 0, "còn giữ hộ, chưa xác nhận ⇒ chưa tính");
+  db.prepare("INSERT INTO bil_posting (id, kind_code, order_id, occurred_date, created_at, updated_at) VALUES ('p3', 'COMPANY_RECEIVED', 'o5', '2026-10-08', ?, ?)").run(SAU, SAU);
+  db.prepare(`INSERT INTO bil_debt_line (id, posting_id, debtor_party_id, creditor_party_id, amount, kind_code, order_id, receipt_id, reverses_line_id, created_at, updated_at)
+    VALUES ('l3', 'p3', ?, 'hdv', 300, 'HELD', 'o5', ?, 'l2', ?, ?)`).run(ct, giu, SAU, SAU);
+  assert.equal(dem(db, "R-BIL-D6b"), 1, "đã 'Công ty đã nhận' mà không mã ⇒ vi phạm");
+});
 ```
 
 - [ ] **Bước 2: Chạy, thấy đỏ.** `node --test src/audit-ma-giao-dich.test.ts` → FAIL "phải có đúng một kiểm R-BIL-D6a".
@@ -2352,7 +2383,11 @@ test("R-BIL-D6b: Kế toán tự ghi CK – Công ty thu sau mốc không mã �
 
 - [ ] **Bước 4: Chạy, thấy xanh.** `node --test src/audit-ma-giao-dich.test.ts src/audit-invariants.test.ts src/audit-coc-don-huy.test.ts` → PASS.
 
-- [ ] **Bước 5: Quan sát chặn thật (P16).** Tạm đổi `SUM(r.amount) > MAX(...)` thành `SUM(r.amount) > MAX(...) * 2` → bài D6a đỏ → hoàn nguyên. Ghi vào sổ thi công.
+- [ ] **Bước 5: Quan sát chặn thật (P16).** Ba đột biến, mỗi cái chạy bài, thấy đỏ, rồi hoàn nguyên:
+  - D6a: tạm đổi `SUM(r.amount) > MAX(...)` thành `SUM(r.amount) > MAX(...) * 2` thì bài D6a phải đỏ.
+  - D6b: tạm bỏ `AND r.transfer_of_id IS NULL` thì bài "ghim hai điều kiện" phải đỏ.
+  - D6b: tạm bỏ nhánh `OR EXISTS (… COMPANY_RECEIVED)` thì bài "ghim hai điều kiện" phải đỏ.
+  Ghi ba dòng vào bảng "Quan sát chặn thật" của sổ thi công. Người kiểm độc lập kế hoạch đã thấy hai đột biến D6b sống sót qua bài cũ, nên bài mới ở Bước 1 là bắt buộc.
 
 - [ ] **Bước 6: Kiểm toàn bộ rồi commit**
 
@@ -2590,6 +2625,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 **Files:**
 - Modify: `web/order.ts` (`tienCard`, `nutKeToanLanThu`, `khoiKeToan`, `nutGhiThu`; thêm `oMaGiaoDich`, `nutQr`, `moBangQr`)
+- Modify: `web/order-form.ts` (khối ẩn ô "Thanh toán trước" — Bước 7b)
 - Modify: `public/app.css` (token `--w-qr` ở nhóm "Riêng của Tour Đảo Booking"; ba lớp `.qr-*` cạnh `.pay-form`)
 - Modify: `src/shared/so-do-trang.ts` (sinh lại bằng `npm run build:web`)
 
@@ -2872,6 +2908,19 @@ function moBangQr(order: Order, t: Api.OrderPaymentsResponse, opener: HTMLElemen
 
 (giữ hai dòng `nutChot` như cũ).
 
+- [ ] **Bước 7b: Form lập đơn: người có quyền ghi sổ ghi tiền trả trước ở trang đơn** (người kiểm độc lập kế hoạch, VỪA-4; ruling của điều phối). `web/order-form.ts` gửi tiền trả trước bằng `POST /api/orders/:id/payments` mà không có ô mã. Sau Task 7, người có `ledger.write` (thực tế chỉ Toàn quyền, vì Kế toán không có `order.create`) chọn Chuyển khoản + Công ty sẽ luôn bị 400 `bank_txn_required`: đơn vẫn lưu nhưng tiền trả trước rơi. Theo đúng khuôn form đang dùng khi **sửa** đơn, ẩn ba ô trả trước cho người này và chỉ lối sang trang đơn, nơi có ô mã. Ngay sau khối `if (editId) { for (const f of ["prepaid-amount-field", …]) … }`, thêm:
+
+```ts
+// ADR-0092 Đ6 (C1): người có quyền ghi sổ (Toàn quyền) ghi CK – Công ty thu phải kèm mã giao dịch ngân hàng — ô mã chỉ ở trang đơn ⇒ form không nhận tiền trả
+// trước của người này (tránh lần gửi chắc chắn 400 làm rơi tiền trả trước); cùng khuôn với lúc sửa đơn.
+if (!editId && can(staff, "ledger.write")) {
+  for (const f of ["prepaid-amount-field", "prepaid-method-field", "prepaid-collector-field"]) byId(f).hidden = true;
+  byId("prepaid-hint").textContent = "Tiền khách đã trả trước ghi ở trang đơn sau khi lưu (mục Thanh toán → Ghi lần thu, kèm mã giao dịch ngân hàng nếu chuyển khoản vào tài khoản công ty).";
+}
+```
+
+Ô `prepaidAmount` bị ẩn thì `num("prepaidAmount")` vẫn đọc giá trị rỗng (0), nên không gửi lần thu. Kiểm lại điều này bằng cách đọc `num()` trước khi tin. Kịch bản Chrome của form lập đơn (ba `a2-smoke-*.mjs`, đã có trong Bước 10) phải chạy lại; nếu kịch bản nào đăng nhập bằng tài khoản Toàn quyền mà nhập tiền trả trước thì sửa tối thiểu cho kịch bản và ghi ruling vào sổ thi công.
+
 - [ ] **Bước 8: CSS.** Trong `public/app.css`, ở nhóm token "Riêng của Tour Đảo Booking" của `:root`, thêm `--w-qr: 18rem;`. Sau dòng `.kt-khoi { … }`, thêm:
 
 ```css
@@ -2901,7 +2950,7 @@ Lặp cho `a2-smoke-*.mjs` còn lại cùng thư mục, `docs/evidence/2026-09-2
 - [ ] **Bước 11: Commit**
 
 ```bash
-git add web/order.ts public/app.css src/shared/so-do-trang.ts docs/evidence docs/superpowers/plans/2026-10-08-qr-thanh-toan-thi-cong-nhat-ky.md
+git add web/order.ts web/order-form.ts public/app.css src/shared/so-do-trang.ts docs/evidence docs/superpowers/plans/2026-10-08-qr-thanh-toan-thi-cong-nhat-ky.md
 git commit -m "Màn đơn: nút QR thanh toán, lưu ảnh, lối tắt Khách đã chuyển khoản
 
 Bảng QR lấy chuỗi và các dòng in từ máy chủ, chỉ vẽ ma trận lên canvas; ảnh dựng sẵn
@@ -3235,7 +3284,7 @@ rào đã quan sát chặn thật. Đường Kế toán tự ghi được khai l
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 ```
 
-- [ ] **Bước 7: Người kiểm độc lập (bắt buộc — việc lớn).** Giao trợ lý loại `nguoi-kiem-doc-lap` (chỉ đọc), kèm: đặc tả, ADR-0108, trang ghép, kế hoạch này, sổ thi công, danh sách commit của nhánh. Yêu cầu: đọc mã thật, tự chạy lại `npm run typecheck`, `npm test`, các bài mới, đối chiếu từng mục §8 của đặc tả (trừ §8.6 là việc của chủ), đặc biệt: cổng và thứ tự quyền của route QR; nhật ký không chép số/mã; DTO danh sách trắng; bốn đường ghi và vị trí dòng nối trong lô; bài so trigger ↔ hàm; tệp bên thứ ba đúng bản đã kiểm toàn vẹn. Chỉ báo "đạt" dựa trên báo cáo đó + test. Phát hiện CAO thì sửa (vòng mới của người thi công) rồi kiểm lại.
+- [ ] **Bước 7: Người kiểm độc lập (bắt buộc — việc lớn).** Giao trợ lý loại `nguoi-kiem-doc-lap` (chỉ đọc), kèm: đặc tả, ADR-0108, trang ghép, kế hoạch này, sổ thi công, danh sách commit của nhánh. Yêu cầu: đọc mã thật, tự chạy lại `npm run typecheck`, `npm test`, các bài mới, đối chiếu từng mục §8 của đặc tả (trừ §8.6 là việc của chủ), đặc biệt: cổng và thứ tự quyền của route QR; nhật ký không chép số/mã; DTO danh sách trắng; bốn đường ghi và vị trí dòng nối trong lô; bài so trigger ↔ hàm; tệp bên thứ ba đúng bản đã kiểm toàn vẹn; bản đồ quyền KHÔNG đổi ô nào (trích `src/shared/permissions.test.ts` xanh làm bằng chứng — trang ghép §0). Chỉ báo "đạt" dựa trên báo cáo đó + test. Phát hiện CAO thì sửa (vòng mới của người thi công) rồi kiểm lại.
 
 - [ ] **Bước 8: Chủ quét thử (§8.6 — AI không tự xác nhận).** Đưa chủ các bước: (1) chạy `node scripts/dev-iphone.mjs` để mở Nền tảng trên D1 tạm trong mạng nội bộ; (2) đăng nhập tài khoản Toàn quyền thử, cài **tài khoản thật của công ty** ở mục "Tài khoản nhận tiền"; (3) mở một đơn thử, bấm "QR thanh toán" với số tiền nhỏ (vd 1.000đ); (4) quét bằng **ít nhất hai ứng dụng ngân hàng khác nhau**, kiểm đúng ngân hàng, tên chủ tài khoản, số tiền, nội dung — **không cần bấm chuyển**. Ghi kết quả chủ báo vào sổ thi công.
 
