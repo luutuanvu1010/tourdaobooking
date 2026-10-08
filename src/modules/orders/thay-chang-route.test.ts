@@ -281,12 +281,13 @@ test("(h) câu ĐẦU lô thay chặng tự đóng + khoá: chặng đã bị b�
   }
 });
 
-test("(i) ĐUA qua route: lệnh bỏ chặng khác đóng chặng cũ NGAY TRƯỚC lô thay (mốc đơn chưa đẩy) → 409 leg_closed; không thêm chặng, không nhật ký, lý do cũ giữ nguyên", async () => {
+test("(i) ĐUA qua route: lệnh bỏ chặng khác đóng chặng cũ NGAY TRƯỚC lô thay (mốc đơn chưa đẩy) → 409 leg_closed; không thêm chặng, không nhật ký, lý do cũ giữ nguyên, ghi kép giữ nguyên", async () => {
   const tat = batDongHo();
   try {
     const w = setup();
     const d = await don(w, { gio: "13:00" });
     const truoc = await chup(w, d);
+    const banSaoTruoc = banSao(w, d.id);
     // Bọc LÔ GHI (khuôn chenTruocLo — src/modules/billing/sau-da-giao.test.ts T-1; lô ĐỌC của bước lập kế hoạch đi qua nguyên): "người khác" bỏ chặng mà
     // không đẩy mốc đơn, ngay trước lô thay.
     const goc = w.env.DB.batch;
@@ -298,7 +299,8 @@ test("(i) ĐUA qua route: lệnh bỏ chặng khác đóng chặng cũ NGAY TRƯ
       w.sqlite.prepare("UPDATE ord_transfer_leg SET closed_at = ?, close_reason_code = 'NOT_NEEDED', updated_at = ? WHERE id = ?").run("2027-03-10T00:00:00.000Z", "2027-03-10T00:00:00.000Z", d.legId);
       return goc(stmts);
     };
-    const r = await thay(w, d.id, d.legId, SALES, { expectedUpdatedAt: truoc.updatedAt, leg: MOI });
+    // Chặng mới khác CẢ giờ lẫn nơi với chặng cũ — lô thua mà câu ghi kép lọt lính gác thì hai cột cũ của `order_service` đổi (người kiểm V2, 2026-10-08).
+    const r = await thay(w, d.id, d.legId, SALES, { expectedUpdatedAt: truoc.updatedAt, leg: { ...MOI, pickupTime: "14:00" } });
     assert.equal(daChen, true, "route đi qua db.batch (ca đua thật sự xảy ra)");
     assert.equal(r.status, 409, r.text);
     assert.equal(r.json.error.code, "leg_closed");
@@ -306,6 +308,8 @@ test("(i) ĐUA qua route: lệnh bỏ chặng khác đóng chặng cũ NGAY TRƯ
     assert.equal(soNhatKy(w, d.id), truoc.nhatKy, "không nhật ký");
     assert.equal(w.q("SELECT count(*) n FROM ord_transfer_leg WHERE order_id = ?", d.id)[0].n, truoc.soDong, "không thêm chặng");
     assert.equal(w.q("SELECT updated_at FROM orders WHERE id = ?", d.id)[0].updated_at, truoc.updatedAt, "mốc đơn không đổi");
+    assert.deepEqual(banSaoTruoc, [{ pickup_time: "13:00", pickup_place: "Khách sạn Dò Tìm" }], "ghi kép trước lô = chặng cũ");
+    assert.deepEqual(banSao(w, d.id), banSaoTruoc, "lô thua: ghi kép (pickup_time, pickup_place của order_service) giữ nguyên");
   } finally {
     tat();
   }
