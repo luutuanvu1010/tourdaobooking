@@ -787,7 +787,10 @@ export const NO_BOOKER: BookerWrite = { partyId: null, before: [], note: null };
 /**
  * Giá trị ghi vào `orders.booker_party_id`: chỉ khi hồ sơ còn ĐANG HOẠT ĐỘNG và là CÁ NHÂN, hoặc là TỔ CHỨC đang mang một vai được hưởng hoa hồng (đọc qua
  * view công bố `v_pty_party_label`, `v_pty_open_role` của `parties` và `v_prc_beneficiary_role` của `pricing`, ADR-0002 điều 3; sổ đại lý đợt 1), không thì
- * NULL — lưới cho khoảng giữa lúc service kiểm và lúc ghi; KHÔNG đặt EXISTS vào WHERE (đơn sẽ chèn 0 dòng lặng lẽ). MỘT tham số: id hồ sơ (NULL ⇒ NULL).
+ * NULL — lưới cho khoảng giữa lúc service kiểm và lúc ghi; KHÔNG đặt EXISTS vào WHERE của `createOrder` / `updateDraftOrder` (đơn sẽ chèn 0 dòng lặng lẽ; ở đó NULL chỉ
+ * rơi vào NHÁP, chưa có bản chụp — lúc xác nhận bên đặt được đọc lại từ CSDL). `changeBooker` thì ĐẶT CHÍNH BIỂU THỨC NÀY vào WHERE có chủ đích (vế "yêu cầu gắn hồ sơ mà
+ * biểu thức ra NULL"): đơn đã xác nhận có bản chụp mà mất bên đặt trong khi bản chụp lại mang người hưởng là sai tiền — UPDATE khớp 0 dòng ⇒ cả chuỗi `changes() > 0`
+ * không ghi gì ⇒ route trả 409 vừa được sửa. MỘT tham số: id hồ sơ (NULL ⇒ NULL).
  */
 const BOOKER_VALUE = `(SELECT l.id FROM v_pty_party_label l WHERE l.id = ? AND l.active = 1 AND (l.party_kind = 'PERSON'
   OR EXISTS (SELECT 1 FROM v_pty_open_role r JOIN v_prc_beneficiary_role b ON b.role_type_code = r.role_type_code WHERE r.party_id = l.id)))`;
@@ -1392,6 +1395,8 @@ export async function changeLeg(
 /**
  * Đổi khách (ADR-0011 điều 2): hồ sơ người đặt + tên/SĐT chụp trên đơn, cho đơn NHÁP hoặc ĐÃ XÁC NHẬN, còn khớp mốc `updated_at`. Không đụng tiền, dịch vụ,
  * số khách. `booker.before` (hồ sơ mới) đứng TRƯỚC câu UPDATE vì khoá ngoại. Trả false nếu đơn đã huỷ / đã bị người khác sửa.
+ * I1 (vòng sửa 1 của Task 6): yêu cầu GẮN một hồ sơ (`booker.partyId` khác NULL) mà `BOOKER_VALUE` ra NULL lúc lô chạy (hồ sơ vừa bị ngưng / vai vừa đóng / loại vai vừa bị
+ * tắt giữa lúc route kiểm và lúc ghi) ⇒ UPDATE khớp 0 dòng, trả false (route nói 409): không ghi NULL lặng lẽ, không bản chụp mang người hưởng trên đơn mất bên đặt.
  * `alsoChange` (sổ đại lý đợt 1): các câu CHỤP LẠI mức khi bên đặt đổi trên đơn đã xác nhận có bản chụp — dựng theo mốc `at` của lô, trải CUỐI lô, SAU câu nhật ký
  * `booker_changed` (chính nó `changes() > 0` nối từ câu UPDATE) nên chuỗi `changes() > 0` của các câu chụp nối thẳng từ UPDATE: UPDATE thua (đơn đã bị sửa / huỷ)
  * thì không câu nào ghi gì. Trigger `terms_*` rơi ⇒ cả lô rơi (bên đặt cũ giữ nguyên).
@@ -1411,9 +1416,9 @@ export async function changeBooker(
     db
       .prepare(
         `UPDATE orders SET customer_name = ?, customer_phone = ?, booker_party_id = ${BOOKER_VALUE}, updated_at = ?
-         WHERE id = ? AND status IN ('draft', 'confirmed') AND updated_at = ?`,
+         WHERE id = ? AND status IN ('draft', 'confirmed') AND updated_at = ? AND (? IS NULL OR ${BOOKER_VALUE} IS NOT NULL)`,
       )
-      .bind(change.customerName, change.customerPhone, booker.partyId, at, orderId, change.expectedUpdatedAt),
+      .bind(change.customerName, change.customerPhone, booker.partyId, at, orderId, change.expectedUpdatedAt, booker.partyId, booker.partyId),
     auditStatement(db, { orderId, staffId, action: "booker_changed", at, detail }, "changes() > 0"),
     ...(alsoChange?.(at) ?? []),
   ]);

@@ -2,7 +2,9 @@
 //  - văn phòng gắn được hồ sơ TỔ CHỨC mang vai được hưởng (trước đây bị loại, `BOOKER_VALUE` ghi NULL lặng lẽ);
 //  - tài khoản Đối tác có hồ sơ cá nhân đang mang vai được hưởng luôn là bên đặt của đơn mình lập (thu hẹp theo lời chủ 2026-10-08);
 //  - đổi bên đặt trên đơn đã xác nhận có bản chụp ⇒ chụp lại CÙNG lô; đơn xác nhận trước đợt 1 (không bản chụp) không chụp (N15);
-//  - `OrderDetailDto.bookerLaDoiTac` do máy chủ tính; biên nhận in tên khách, không in tên bên đặt.
+//  - `OrderDetailDto.bookerLaDoiTac` do máy chủ tính; biên nhận in tên khách, không in tên bên đặt;
+//  - vòng sửa 1 — K1 (lời chủ 2026-10-09): mọi tài khoản giữ quyền Đối tác (kể cả lai) KHÔNG chọn được đại lý / cộng tác viên khác làm bên đặt ở cả ba đường
+//    (lập đơn, lưu nháp, đổi khách) — văn phòng lập hộ; I1: bên đặt mất điều kiện ngay trước lô đổi khách ⇒ 409, không bản chụp có người hưởng trên đơn mất bên đặt.
 // Id hồ sơ trong bài là chuỗi dạng UUID (máy chủ chỉ nhận `PARTY_ID_RE`); không dùng chữ "pty-dla" rút gọn vì thân yêu cầu sẽ bị 400 "Hồ sơ khách không hợp lệ".
 // Ca tranh chấp dùng `chenTruocLo` / `chenTruocLoCho` (mẫu của chup-xac-nhan.test.ts), không dùng `Promise.all` (không tạo tranh chấp thật trong khung thử).
 import { test } from "node:test";
@@ -24,6 +26,8 @@ const KHACH = "dda00000-0000-4000-8000-000000000004"; // cá nhân khách lẻ (
 const HDV = "dda00000-0000-4000-8000-000000000005"; // cá nhân mang GUIDE_FREELANCE (vai được hưởng cấp cá nhân)
 const AT = "2026-10-01T00:00:00.000Z";
 const CAU_KHONG_HUONG = "Hồ sơ tổ chức này không phải đối tác được hưởng hoa hồng.";
+const CAU_DOI_TAC_CAM = "Đơn qua đại lý hoặc cộng tác viên do văn phòng lập hộ — tài khoản đối tác không chọn được bên đặt này.";
+const CAU_STALE = "Đơn vừa được người khác sửa, hãy tải lại rồi sửa tiếp.";
 
 type W = ReturnType<typeof world>;
 function toChuc(w: W, id: string, ten: string, vai: string): void {
@@ -70,6 +74,19 @@ const bookerCua = (w: W, id: string): string | null => w.q("SELECT booker_party_
 const mocCua = (w: W, id: string): string => w.q("SELECT updated_at AS u FROM orders WHERE id = ?", id)[0].u as string;
 const dem = (w: W, sql: string, ...a: unknown[]): number => Number(w.q(sql, ...a)[0].n);
 const nhatKy = (w: W, id: string, action: string): number => dem(w, "SELECT count(*) AS n FROM audit_log WHERE order_id = ? AND action = ?", id, action);
+/** Dấu vết ghi vào CSDL của cả thế giới thử — một ca 403 / 409 không được làm nó đổi. Nhật ký đếm TRỪ `client_outdated_body` (dòng đếm máy gửi thân kiểu cũ — thân bài
+ * không mang mã lần gửi — ghi NGOÀI lô, trước mọi kiểm bên đặt; không phải việc của luật đang thử). */
+const dauVet = (w: W) => ({
+  don: dem(w, "SELECT count(*) AS n FROM orders"), hoSo: dem(w, "SELECT count(*) AS n FROM pty_party"),
+  chup: dem(w, "SELECT count(*) AS n FROM ord_service_terms"), nhatKy: dem(w, "SELECT count(*) AS n FROM audit_log WHERE action <> 'client_outdated_body'"),
+});
+const laCam = (r: { status: number; json: any; text: string }): void => {
+  assert.equal(r.status, 403, r.text);
+  assert.equal(r.json.error.code, "partner_booker_forbidden");
+  assert.equal(r.json.error.message, CAU_DOI_TAC_CAM);
+};
+/** Văn phòng "lập hộ": gắn thẳng bên đặt lên một đơn của tài khoản Đối tác bằng SQL (đơn nháp hoặc trước khi xác nhận). */
+const vanPhongGan = (w: W, id: string, ben: string): void => { w.sqlite.prepare("UPDATE orders SET booker_party_id = ? WHERE id = ?").run(ben, id); };
 const chup = (w: W, id: string) => w.q("SELECT * FROM ord_service_terms WHERE order_id = ? ORDER BY created_at, order_service_id", id);
 /** Bản chụp HIỆN HÀNH (chưa bị bản nào thay) của đơn, theo dòng dịch vụ. */
 const hienHanh = (w: W, id: string) =>
@@ -231,11 +248,95 @@ test("ca 3b: Đối tác CHƯA gắn hồ sơ gửi bên đặt được hưởn
   assert.equal(sua.json.error.code, "partner_no_party");
 });
 
-test("ca 3c: tài khoản lai (Bán hàng + Đối tác) — hồ sơ không mang vai được hưởng (LC-1/LC-3 ở tầng ứng dụng cấm vai bên ngoài trên tài khoản lai) nên giữ hành vi cũ: bên đặt theo thân gửi lên", async () => {
+test("ca 3c (K1): tài khoản lai (Bán hàng + Đối tác) có hồ sơ không mang vai được hưởng — chọn đại lý làm bên đặt ⇒ 403 đúng câu, không để lại đơn / hồ sơ / nhật ký; khách lẻ hoặc không gửi vẫn 201", async () => {
   const w = setup();
-  const r = await lap(w, LAI, { bookerPartyId: DLA });
-  assert.equal(r.status, 201, r.text);
-  assert.equal(bookerCua(w, r.json.order.id), DLA);
+  const truoc = dauVet(w);
+  laCam(await lap(w, LAI, { bookerPartyId: DLA }));
+  assert.deepEqual(dauVet(w), truoc, "ca 403 không được để lại gì (đơn, hồ sơ, bản chụp, nhật ký)");
+  const khach = await lap(w, LAI, { bookerPartyId: KHACH });
+  assert.equal(khach.status, 201, khach.text);
+  assert.equal(bookerCua(w, khach.json.order.id), KHACH);
+  const khong = await lap(w, LAI, {});
+  assert.equal(khong.status, 201, khong.text);
+  assert.equal(bookerCua(w, khong.json.order.id), null);
+});
+
+test("ca 3d (K1): Đối tác có hồ sơ KHÔNG mang vai được hưởng (DT2) — chọn tổ chức được hưởng, hoặc cá nhân mang vai được hưởng ⇒ 403; tổ chức không được hưởng ⇒ 400 như cũ; lưu nháp cùng luật", async () => {
+  const w = setup();
+  const truoc = dauVet(w);
+  laCam(await lap(w, DT2, { bookerPartyId: DLA }));
+  laCam(await lap(w, DT2, { bookerPartyId: HDV }));
+  assert.deepEqual(dauVet(w), truoc);
+  const khongHuong = await lap(w, DT2, { bookerPartyId: KXH });
+  assert.equal(khongHuong.status, 400, khongHuong.text);
+  assert.equal(khongHuong.json.error.message, CAU_KHONG_HUONG);
+  const tao = await lap(w, DT2, { bookerPartyId: KHACH });
+  assert.equal(tao.status, 201, tao.text);
+  const id = tao.json.order.id as string;
+  const sau = dauVet(w);
+  const moc = mocCua(w, id);
+  for (const ben of [DLA, HDV]) laCam(await w.call("PUT", `/api/orders/${id}`, { as: DT2, body: thanDon({ expectedUpdatedAt: tao.json.order.updatedAt, bookerPartyId: ben }) }));
+  assert.deepEqual(dauVet(w), sau);
+  assert.equal(bookerCua(w, id), KHACH, "lưu nháp bị từ chối thì bên đặt cũ giữ nguyên");
+  assert.equal(mocCua(w, id), moc);
+});
+
+test("ca 3e (K1): tài khoản lai gửi đại lý ở CẢ BA đường — lập đơn, lưu nháp, đổi khách (nháp và đã xác nhận) ⇒ 403, không đổi gì; Bán hàng thuần vẫn qua cả ba", async () => {
+  const w = setup();
+  assert.equal((await muc(w, { doiTuong: { loai: "VAI", code: "TRAVEL_AGENCY" }, phamVi: "ALL", kieu: "RATE", tyLeBp: 1000 })).status, 201);
+  // (1) lập đơn
+  laCam(await lap(w, LAI, { bookerPartyId: DLA }));
+  // (2) lưu nháp
+  const nhap = await lap(w, LAI, {});
+  const idNhap = nhap.json.order.id as string;
+  laCam(await w.call("PUT", `/api/orders/${idNhap}`, { as: LAI, body: thanDon({ expectedUpdatedAt: nhap.json.order.updatedAt, bookerPartyId: DLA }) }));
+  // (3) đổi khách: đơn nháp rồi đơn đã xác nhận (có bản chụp)
+  const truocNhap = dauVet(w);
+  laCam(await doiBen(w, idNhap, DLA, LAI));
+  assert.deepEqual(dauVet(w), truocNhap);
+  const xn = await lap(w, LAI, {});
+  const idXn = xn.json.order.id as string;
+  assert.equal((await xacNhan(w, idXn, LAI)).status, 200);
+  const truocXn = dauVet(w);
+  laCam(await doiBen(w, idXn, DLA, LAI));
+  assert.deepEqual(dauVet(w), truocXn, "không bản chụp mới, không nhật ký đổi khách / chụp lại");
+  for (const id of [idNhap, idXn]) assert.equal(bookerCua(w, id), null);
+  // Bán hàng thuần (không giữ quyền Đối tác): lập đơn, lưu nháp, đổi khách đều qua.
+  const ban = await lap(w, SALES, { bookerPartyId: DLA });
+  assert.equal(ban.status, 201, ban.text);
+  const suaBan = await w.call("PUT", `/api/orders/${ban.json.order.id}`, { as: SALES, body: thanDon({ expectedUpdatedAt: ban.json.order.updatedAt, bookerPartyId: DLB }) });
+  assert.equal(suaBan.status, 200, suaBan.text);
+  assert.equal(bookerCua(w, ban.json.order.id), DLB);
+  const banXn = await lap(w, SALES, {});
+  assert.equal((await xacNhan(w, banXn.json.order.id)).status, 200);
+  assert.equal((await doiBen(w, banXn.json.order.id, DLA)).status, 200);
+  assert.equal(bookerCua(w, banXn.json.order.id), DLA);
+});
+
+test("ca 3f (K1): bên đặt ĐANG LƯU trên đơn do văn phòng gắn thì Đối tác / tài khoản lai lưu lại nháp và sửa tên khách không bị chặn; đổi sang đại lý KHÁC thì 403", async () => {
+  const w = setup();
+  for (const as of [LAI, DT2]) {
+    const tao = await lap(w, as, {});
+    const id = tao.json.order.id as string;
+    vanPhongGan(w, id, DLA);
+    const luu = await w.call("PUT", `/api/orders/${id}`, { as, body: thanDon({ expectedUpdatedAt: mocCua(w, id), bookerPartyId: DLA, customerName: "Khách Sửa Tên" }) });
+    assert.equal(luu.status, 200, `${as}: ${luu.text}`);
+    assert.equal(bookerCua(w, id), DLA);
+    const truoc = dauVet(w);
+    laCam(await w.call("PUT", `/api/orders/${id}`, { as, body: thanDon({ expectedUpdatedAt: mocCua(w, id), bookerPartyId: DLB }) }));
+    assert.deepEqual(dauVet(w), truoc);
+    assert.equal(bookerCua(w, id), DLA, "đổi sang đại lý khác bị từ chối ⇒ bên đặt do văn phòng gắn giữ nguyên");
+  }
+});
+
+test("ca 3g (K1): thứ tự nhánh — ép bên đặt thắng 403; Đối tác chưa gắn hồ sơ gửi đại lý vẫn 409 'nhờ văn phòng' (không phải 403)", async () => {
+  const w = setup();
+  const ep = await lap(w, DT, { bookerPartyId: DLB });
+  assert.equal(ep.status, 201, ep.text);
+  assert.equal(bookerCua(w, ep.json.order.id), `pty-${DT}`, "hồ sơ được hưởng: bên đặt bị ép, không phải 403");
+  const chuaGan = await lap(w, DT3, { bookerPartyId: DLB });
+  assert.equal(chuaGan.status, 409, chuaGan.text);
+  assert.equal(chuaGan.json.error.code, "partner_no_party");
 });
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------
@@ -438,15 +539,80 @@ test("ca 5c: Đối tác và tài khoản lai gọi chi tiết đơn ⇒ thêm �
   assert.equal(chiTietDt.status, 200, chiTietDt.text);
   assert.equal(chiTietDt.json.order.bookerLaDoiTac, true, "bên đặt là hồ sơ của chính tài khoản, đang mang vai được hưởng");
   assert.deepEqual(khoa(chiTietDt.json).filter((k) => cam.test(k)), []);
-  const lai = await lap(w, LAI, { bookerPartyId: DLA });
+  // K1 (vòng sửa 1): tài khoản lai không tự chọn được đại lý; đơn do văn phòng lập hộ (gắn đại lý bằng SQL) thì lai vẫn xác nhận / sửa tên khách / đọc chi tiết được.
+  const lai = await lap(w, LAI, {});
   const idLai = lai.json.order.id as string;
+  vanPhongGan(w, idLai, DLA);
   assert.equal((await xacNhan(w, idLai, LAI)).status, 200);
-  assert.equal((await doiBen(w, idLai, DLB, LAI)).status, 200, "tài khoản lai là chủ đơn nên đổi được bên đặt");
   const chiTietLai = await w.call("GET", `/api/orders/${idLai}`, { as: LAI });
   assert.equal(chiTietLai.status, 200, chiTietLai.text);
-  assert.equal(typeof chiTietLai.json.order.bookerLaDoiTac, "boolean");
+  assert.equal(chiTietLai.json.order.bookerLaDoiTac, true);
   assert.deepEqual(khoa(chiTietLai.json).filter((k) => cam.test(k)), []);
-  const doi = await doiBen(w, idLai, DLA, LAI);
+  laCam(await doiBen(w, idLai, DLB, LAI));
+  const doi = await doiBen(w, idLai, DLA, LAI, { customerName: "Khách Đổi Tên" });
   assert.equal(doi.status, 200, doi.text);
-  assert.deepEqual(khoa(doi.json).filter((k) => cam.test(k)), [], "phản hồi đổi bên đặt cũng không mang khoá thương mại");
+  assert.equal(bookerCua(w, idLai), DLA);
+  assert.deepEqual(khoa(doi.json).filter((k) => cam.test(k)), [], "phản hồi đổi khách của tài khoản lai cũng không mang khoá thương mại");
+  // Đổi sang khách lẻ (được phép) chụp lại mức: phản hồi vẫn sạch khoá thương mại.
+  const veKhach = await doiBen(w, idLai, KHACH, LAI);
+  assert.equal(veKhach.status, 200, veKhach.text);
+  assert.deepEqual(khoa(veKhach.json).filter((k) => cam.test(k)), []);
+});
+
+// ---------------------------------------------------------------------------------------------------------------------------------------------
+// I1 (người kiểm vòng 1) — bên đặt hợp lệ lúc route kiểm nhưng mất điều kiện NGAY TRƯỚC lô đổi khách: `BOOKER_VALUE` ra NULL
+// ---------------------------------------------------------------------------------------------------------------------------------------------
+const MAT_DIEU_KIEN: ReadonlyArray<readonly [string, (w: W) => void]> = [
+  ["hồ sơ bị ngưng", (w) => { w.sqlite.prepare("UPDATE pty_party SET active = 0 WHERE id = ?").run(DLA); }],
+  ["vai được hưởng bị đóng ngày", (w) => { w.sqlite.prepare("UPDATE pty_party_role SET valid_to_date = '2026-02-01' WHERE party_id = ?").run(DLA); }],
+  ["loại vai bị tắt khỏi danh sách được hưởng", (w) => { w.sqlite.prepare("UPDATE prc_beneficiary_role SET active = 0 WHERE role_type_code = 'TRAVEL_AGENCY'").run(); }],
+];
+
+for (const [ten, phaMat] of MAT_DIEU_KIEN) {
+  test(`I1 (${ten}): đơn ĐÃ XÁC NHẬN, bên đặt mới mất điều kiện ngay trước lô đổi khách ⇒ 409 'vừa được sửa'; bên đặt cũ giữ, không bản chụp mới (nhất là không bản chụp có người hưởng), không nhật ký đổi / chụp lại`, async () => {
+    const w = setup();
+    const id = await donDaXacNhan(w);
+    const truoc = dauVet(w);
+    chenTruocLo(w, LO_DOI_BEN, () => phaMat(w));
+    const r = await doiBen(w, id, DLA);
+    assert.equal(r.status, 409, r.text);
+    assert.equal(r.json.error.code, "stale");
+    assert.equal(r.json.error.message, CAU_STALE);
+    assert.equal(bookerCua(w, id), null, "bên đặt cũ (khách lẻ) giữ nguyên");
+    assert.deepEqual(dauVet(w), truoc, "cả lô không ghi gì");
+    assert.equal(nhatKy(w, id, "booker_changed"), 0);
+    assert.equal(nhatKy(w, id, "order_terms_recaptured"), 0);
+    assert.equal(hienHanh(w, id).filter((c) => c.beneficiary_party_id !== null).length, 0, "không bản chụp hiện hành nào mang người hưởng");
+    // Đơn không bị kẹt: đổi sang khách lẻ cá nhân (không cần điều kiện hưởng) vẫn chạy bình thường.
+    const lai = await doiBen(w, id, KHACH);
+    assert.equal(lai.status, 200, lai.text);
+    assert.equal(bookerCua(w, id), KHACH);
+  });
+
+  test(`I1b (${ten}): đơn NHÁP — cùng khe ⇒ 409, không ghi NULL lặng lẽ, không nhật ký 'gắn hồ sơ khách' sai`, async () => {
+    const w = setup();
+    const tao = await lap(w, SALES, { bookerPartyId: KHACH });
+    const id = tao.json.order.id as string;
+    const truoc = dauVet(w);
+    chenTruocLo(w, LO_DOI_BEN, () => phaMat(w));
+    const r = await doiBen(w, id, DLA);
+    assert.equal(r.status, 409, r.text);
+    assert.equal(r.json.error.message, CAU_STALE);
+    assert.equal(bookerCua(w, id), KHACH, "bên đặt cũ giữ nguyên, không bị ghi NULL");
+    assert.deepEqual(dauVet(w), truoc);
+    assert.equal(nhatKy(w, id, "booker_changed"), 0);
+  });
+}
+
+test("I1c: bỏ gắn bên đặt (null) và đổi sang khách lẻ vẫn chạy khi không bên đặt nào mất điều kiện — vế mới của câu UPDATE không chặn nhầm", async () => {
+  const w = setup();
+  const id = await donDaXacNhan(w);
+  assert.equal((await doiBen(w, id, DLA)).status, 200);
+  assert.equal((await doiBen(w, id, null)).status, 200);
+  assert.equal(bookerCua(w, id), null);
+  assert.equal((await doiBen(w, id, KHACH)).status, 200);
+  assert.equal(bookerCua(w, id), KHACH);
+  const moi = await w.call("PUT", `/api/orders/${id}/booker`, { as: SALES, body: { customerName: "Khách Thử", customerPhone: "0912345678", newBooker: { fullName: "Người Mới Hoàn Toàn", phone: "0977777777" }, expectedUpdatedAt: mocCua(w, id) } });
+  assert.equal(moi.status, 200, moi.text);
+  assert.ok(bookerCua(w, id), "tạo hồ sơ cá nhân mới cùng lô vẫn gắn được");
 });
