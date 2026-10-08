@@ -1,5 +1,5 @@
 // XE ĐANG CHẠY (ADR-0052 D5.1, D5.2, D5.3a — Vận chuyển Đợt 5) trên API THẬT (wrangler dev, D1 local tạm): chuyến NGÀY MAI, tài xế công ty bấm Xuất bến sớm
-// (xe đang chạy); văn phòng thêm đơn thứ hai vào xe (Bán hàng không phá lệ → 409 "cần Quản trị phá lệ"; Quản trị phá lệ → 200, điểm mới mang cờ, bản chốt
+// (xe đang chạy); văn phòng thêm đơn thứ hai vào xe (ADR-0104 Đ1: xe chạy luôn dưới mốc ⇒ Bán hàng 409 lớp điều chỉnh khẩn cấp, canQuyen đúng; kèm lý do → 200, điểm mới mang cờ, bản chốt
 // thêm dòng sau xuất bến); Bán hàng báo huỷ một khách (suất vẫn chiếm chỗ; lần hai 409; Kế toán 403); cập nhật điểm khi xe chạy không có gì lệch → 200 / 0;
 // dọn: tài xế kết thúc gián đoạn. Dữ liệu dùng một lần (SĐT ngẫu nhiên, biển số theo Date.now()). Tên, số GIẢ.
 import assert from "node:assert/strict";

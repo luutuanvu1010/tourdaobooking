@@ -6,7 +6,7 @@
 import type { ChangChoChuyen, ChangLichChung } from "../orders";
 import { kiemKetThuc, kiemXuatBen } from "../../shared/dieu-phoi-kiem";
 import { error } from "../../shared/http";
-import { lyDoGiu } from "../../shared/ly-do-giu";
+import { lyDoGiu, type LyDoGiu } from "../../shared/ly-do-giu";
 import { msToVnLocal } from "../../shared/vn-date";
 import { legFlags, lyDoDangDung, tenDiem, tripsTouching, type AllocRow, type TripRow } from "./chuyen-repo";
 import {
@@ -14,6 +14,7 @@ import {
 } from "./dieu-phoi";
 import { chinhSachVao, diemVao, docChung, docNguCanh, suatVao, type NenChuyen } from "./dieu-phoi-doc";
 import { kiemGioLenh, ketThucTruoc, vaoGio, type NenGio } from "./dieu-phoi-gio";
+import { lyDoGiuCuaChuyen } from "./dieu-phoi-dto";
 import { CHUYEN_CU, chanDaoMoi, chanToiDiemTra, chayLo, loi409 } from "./dieu-phoi-route";
 import { chinhSachHienHanh, currentDispatchPolicy } from "./repository";
 import type { DoiThuTuThan, KetThucGianDoanThan, TienDoThan } from "./dieu-phoi-than";
@@ -81,7 +82,9 @@ export async function lenhXuatBen(
     xuatBenMs: x.ms,
   };
   const kq = kiemXuatBen(vao);
-  if (!kq.dat || !cs || kq.chup.taiXePartyId === null) return loi409("chua_du_dieu_kien_xuat_ben", kq.lyDo);
+  // ADR-0104 Đ1 mục 9 ★: ai xử lý khoảng nghỉ / nghỉ thiếu / cam kết theo mốc của chuyến lúc lệnh chạy (`lyDoGiuCuaChuyen` — cùng hàm với màn).
+  const lyDoLuc = (ds: readonly LyDoGiu[]) => lyDoGiuCuaChuyen(t, ds, bayGioMs, cs?.min_lead_minutes ?? null);
+  if (!kq.dat || !cs || kq.chup.taiXePartyId === null) return loi409("chua_du_dieu_kien_xuat_ben", lyDoLuc(kq.lyDo));
   // Bản chốt: khách trỏ DÒNG hành khách hiện hành (của đúng chặng, đúng khoá người — sau khi gắn tên còn thiếu); người đi kèm trỏ hồ sơ.
   const dong = new Map<string, string>();
   for (const ch of hk) for (const p of ch.nguoi) dong.set(`${ch.legId}|${p.personKey}`, p.rowId);
@@ -103,7 +106,7 @@ export async function lenhXuatBen(
     if (!row) {
       const moi = new Map(hk.map((ch) => [ch.legId, ch.nguoi.map((p) => p.personKey)]));
       const lai = kiemXuatBen({ ...vao, chang: vao.chang.map((ch) => (moi.has(ch.legId) ? { ...ch, nguoiCuaDon: moi.get(ch.legId)! } : ch)) });
-      return lai.dat ? CHUYEN_CU() : loi409("chua_du_dieu_kien_xuat_ben", lai.lyDo);
+      return lai.dat ? CHUYEN_CU() : loi409("chua_du_dieu_kien_xuat_ben", lyDoLuc(lai.lyDo));
     }
     chot.push({ allocationId: a.id, passengerRowId: row, crewPartyId: null });
   }

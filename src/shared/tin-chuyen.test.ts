@@ -70,18 +70,20 @@ function moiTapCon<T>(m: readonly T[]): T[][] {
   const c = moiTapCon(con);
   return [...c, ...c.map((t) => [dau as T, ...t])];
 }
-test("mọi tập con quyền × mọi hành động: nhận ⇒ qua can(trip.view) (tài xế: assigned + có dòng lái lúc đó); chỉ-DRIVER_PARTNER không bao giờ", () => {
+test("mọi tập con quyền × mọi hành động × cờ khẩn cấp: nhận ⇒ qua can(trip.view) (tài xế: assigned + có dòng lái lúc đó); tin khẩn cấp chỉ cho tài xế đang lái; chỉ-DRIVER_PARTNER không bao giờ", () => {
   const tap = moiTapCon(PERMISSION_CODES as readonly PermissionCode[]);
   assert.equal(tap.length, 1024);
   for (const permissions of tap) {
-    for (const action of [...HANH_DONG_TIN_CHUYEN, "trip_allocated", "trip_departed"]) {
-      for (const partyId of ["p-b", null]) {
+    // ADR-0104 Đ1 mục 6: "trip_allocated" nay TRONG danh sách (sinh tin có điều kiện) — hành động ngoài danh sách thử bằng "trip_departed" + một mã lạ.
+    for (const action of [...HANH_DONG_TIN_CHUYEN, "trip_departed", "trip_khong_co_that"]) {
+      for (const partyId of ["p-b", null]) for (const khanCap of [false, true]) {
         const n = { id: "lap", permissions, partyId };
-        const d = dong({ action, actorId: "khac", don: [{ orderId: "o1", maDon: "DH-1", ownerId: "lap", handlerStaffId: null }] });
+        const d = dong({ action, actorId: "khac", khanCap, don: [{ orderId: "o1", maDon: "DH-1", ownerId: "lap", handlerStaffId: null }] });
         const t = tinChuyenCho(n, d);
         if (!t) continue;
         const laiDung = partyId !== null && laiLucSuKien(d.lai, partyId, d.luc) !== null && can(n, "trip.view", { assigned: true });
         assert.ok(laiDung || can(n, "trip.view"), `nhận mà không có trip.view: ${JSON.stringify(permissions)} ${action}`);
+        if (t.loai === "khan_cap") assert.ok(laiDung && khanCap, `tin khẩn cấp cho người không lái / không cờ: ${JSON.stringify(permissions)} ${action}`);
         assert.ok((HANH_DONG_TIN_CHUYEN as readonly string[]).includes(action), `hành động ngoài danh sách D6.1 sinh tin: ${action}`);
         assert.notDeepEqual(permissions, ["DRIVER_PARTNER"]);
       }

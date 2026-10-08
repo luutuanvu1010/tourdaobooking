@@ -8,7 +8,7 @@ import { kiemXuatBen, type KiemXuatBenVao } from "../../shared/dieu-phoi-kiem";
 import type { KetQuaKiem, LoaiSuKienChuyen, MaLuatPhaLe, TrangThaiChuyen } from "../../shared/dieu-phoi-kieu";
 import { dungLichChung } from "../../shared/dieu-phoi-lich-chung";
 import { error, json } from "../../shared/http";
-import { lyDoGiu, type LyDoGiu, type MaGiu } from "../../shared/ly-do-giu";
+import { lyDoGiu, lyDoTheoMoc, type LyDoGiu, type MaGiu } from "../../shared/ly-do-giu";
 import { chuyenDuoiMoc, duQuyen, lopCanCho, lopCuaLuat, lopVuotMoc, lopVuotNghiCamKet, type LenhVuotMoc, type LopVuot } from "../../shared/moc-toi-thieu";
 import { maskLongDigits } from "../../shared/text-guards";
 import { daoMoiSauDoi, diemDonChuaToiCuaDiemTra, sapDonTruocTra } from "../../shared/thu-tu-diem";
@@ -19,7 +19,7 @@ import {
 } from "./chuyen-repo";
 import type { CauCoNhan, DiemMoi, SuKienCuaLo } from "./dieu-phoi";
 import {
-  banChupDto, canhBaoDto, chuyenTomTat, diemChuyenDto, lyDoDangDung, lyDoGiuDto, nhatKyChuyenDto, suatChuyenDto, taiXeChon, xeChon,
+  banChupDto, canhBaoDto, chuyenTomTat, diemChuyenDto, lyDoDangDung, lyDoGiuCuaChuyen, lyDoGiuDto, nhatKyChuyenDto, suatChuyenDto, taiXeChon, xeChon,
 } from "./dieu-phoi-dto";
 import { boSungXe, chinhSachVao, docChung, docNguCanh, type DuLieuChung, type NenChuyen, type NguCanhChuyen } from "./dieu-phoi-doc";
 import { gioSomNhatKhaiDto, ketThucTruoc } from "./dieu-phoi-gio";
@@ -154,7 +154,8 @@ export function loiKiem(
   const code = moc ? "can_pha_le" : luat.includes("KHOANG_NGHI") ? "chua_du_nghi" : "can_pha_le_cam_ket";
   const lop = lopCanCho(luat, v.duoiMoc, v.lenhMoc);
   const cau = lop === "QUAN_TRI" ? undefined : moc && thongBaoMoc ? thongBaoMoc : THONG_BAO_KHAN_CAP[code];
-  return loi409(code, thieu, { canQuyen: duQuyen(luat, v.duoiMoc, v.lenhMoc, v.quyenVuot), lop }, cau);
+  // Đ1 mục 9 ★: lý do kèm theo cùng lớp với câu — dưới mốc thì khoảng nghỉ / cam kết do người xếp xe điều chỉnh khẩn cấp (`lyDoTheoMoc`).
+  return loi409(code, thieu.map((l) => lyDoTheoMoc(l, v.duoiMoc)), { canQuyen: duQuyen(luat, v.duoiMoc, v.lenhMoc, v.quyenVuot), lop }, cau);
 }
 // ---- Thứ tự điểm (ADR-0096 Đ1, gói A1) -----------------------------------------------------------------------------------------------------------------
 /**
@@ -437,7 +438,7 @@ export async function cuocChiTiet(
     trip: t, xe: c.xe.find((x) => x.id === t.vehicle_id), events: nen.events,
     diem: nen.stops.map((s) => diemChuyenDto(s, { allocs: nen.allocs, chang: nc.chang, stops: nen.stops, events: nen.events, nhan })),
     suat: nen.allocs.filter((a) => a.valid_to_at === null).map((a) => suatChuyenDto(a, { changLich: nc.changLich, changNgoai: nc.changNgoai, ten, events: nen.events, nhan, tenDiKem, lyDoNhan })),
-    lienHe, conThieu: lyDoGiuDuPhong(t, nc, c, bayGioMs, true), lyDo: c.lyDo.filter((r) => r.reason_group === "KET_THUC_GIAN_DOAN"), nhan, trongNgay,
+    lienHe, conThieu: lyDoGiuCuaChuyen(t, lyDoGiuDuPhong(t, nc, c, bayGioMs, true), bayGioMs, c.chinhSach?.min_lead_minutes ?? null), lyDo: c.lyDo.filter((r) => r.reason_group === "KET_THUC_GIAN_DOAN"), nhan, trongNgay,
   });
 }
 /** "Cuốc của tôi" (route 19, R-P17): mỗi chuyến — không tên, không SĐT; điều kiện còn thiếu = lý do giữ dự phóng (chuyến chưa chạy). */
@@ -454,7 +455,9 @@ export async function danhSachCuoc(db: D1Database, trips: readonly TripRow[], li
       trip: t, stops: stops.filter((x) => x.trip_id === t.id), allocs: a, events: events.filter((e) => e.trip_id === t.id || e.related_trip_id === t.id),
       legIds: [...new Set(a.flatMap((x) => (x.kind === "PASSENGER" && x.leg_id !== null ? [x.leg_id] : [])))], tu: "", den: "",
     };
-    const conThieu = t.status === "PLANNED" ? lyDoGiuDuPhong(t, await docNguCanh(db, nen, lich, c, [], bayGioMs), c, bayGioMs, false) : [];
+    const conThieu = t.status === "PLANNED"
+      ? lyDoGiuCuaChuyen(t, lyDoGiuDuPhong(t, await docNguCanh(db, nen, lich, c, [], bayGioMs), c, bayGioMs, false), bayGioMs, c.chinhSach?.min_lead_minutes ?? null)
+      : [];
     ra.push(cuocCuaToiItem(t, { xe: c.xe.find((x) => x.id === t.vehicle_id), stops: nen.stops, allocs: a, conThieu }));
   }
   return ra;

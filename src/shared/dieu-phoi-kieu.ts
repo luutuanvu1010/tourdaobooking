@@ -16,7 +16,7 @@ export type NhomLyDo = (typeof NHOM_LY_DO)[number];
 export const NHAN_NHOM_LY_DO: Readonly<Record<NhomLyDo, string>> = {
   DOI_GIO_XE: "Đổi giờ xe tới",
   BAO_HUY_DIEM: "Báo huỷ điểm đón",
-  PHA_LE: "Phá lệ",
+  PHA_LE: "Điều chỉnh khẩn cấp, phá lệ", // ADR-0104 Đ1 mục 9: CÙNG danh mục lý do cho hai lớp (mã nhóm giữ PHA_LE)
   TU_CHOI_NHAN: "Không nhận chuyển điểm",
   KET_THUC_GIAN_DOAN: "Kết thúc gián đoạn",
   HUY_CHUYEN: "Huỷ chuyến",

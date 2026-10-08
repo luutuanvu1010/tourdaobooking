@@ -153,19 +153,26 @@ try {
     await shotFull(p, "g3-sua-chuyen-tuyen-may-tinh.png");
   });
 
-  await b.step("6", "sửa chuyến đang khoá (Bán hàng): dải cảnh báo vùng khoá; đổi tài xế → câu 'cần Quản trị phá lệ' dưới ô Tài xế, không hộp phá lệ", async () => {
+  // ADR-0104 Đ1 (NỚI có tên, 2026-10-08): đổi tài xế chuyến dưới mốc = điều chỉnh khẩn cấp — Bán hàng có ô trip.urgent_adjust: hộp "Điều chỉnh khẩn cấp"
+  // mở (Bán hàng chỉ mở rồi đóng; Quản trị gửi thật ở bước 9). Khoảng nghỉ ngoài mốc (bước 4) vẫn "cần Quản trị phá lệ".
+  await b.step("6", "sửa chuyến đang khoá (Bán hàng): dải cảnh báo vùng khoá nói điều chỉnh khẩn cấp; đổi tài xế → câu dưới ô Tài xế + hộp 'Điều chỉnh khẩn cấp' ('Điều chỉnh khẩn cấp và lưu'); đóng, không gửi", async () => {
     await di(p, `/chuyen-sua?id=${d.T4.id}`);
     await choForm(p);
     assert.equal(await p.ev(txt("#cx-title")), `Sửa chuyến ${d.T4.ma}`);
     assert.equal(await p.ev(`document.querySelector('#cx-back').getAttribute('href')`), `/chuyen?id=${d.T4.id}`);
     assert.equal(await p.ev(txt("#cx-form .banner-title")), "Chuyến đã vào vùng khoá trước giờ xuất bến");
-    assert.equal(await p.ev(txt("#cx-form .banner-lines")), "Đổi xe, đổi tài xế cần Quản trị phá lệ. Đổi giờ không cần phá lệ.");
+    assert.equal(await p.ev(txt("#cx-form .banner-lines")), "Đổi xe, đổi tài xế là điều chỉnh khẩn cấp — khi lưu, bạn sẽ chọn lý do. Đổi giờ không cần điều chỉnh khẩn cấp.");
     assert.equal(await p.ev(txt("#cx-xe-hint")), "15 chỗ · xe công ty · đang có 0 khách xếp");
     await p.ev(typeInto("#cx-tai-xe", d.CUONG.partyId));
     await gui(p);
-    await p.waitFor(`!document.getElementById('cx-tai-xe-error').hidden`, "câu dưới Tài xế");
-    assert.equal(await p.ev(loi("tai-xe")), "Trong mốc tối thiểu trước giờ xuất bến — cần Quản trị phá lệ");
-    assert.equal(await p.ev(`!!document.querySelector('[data-action="pha-le-gui"]')`), false);
+    await p.waitFor(`!document.getElementById('cx-tai-xe-error').hidden && !!document.querySelector('[data-action="pha-le-gui"]')`, "câu dưới Tài xế + hộp điều chỉnh khẩn cấp");
+    await sleep(600);
+    assert.equal(await p.ev(loi("tai-xe")), "Trong mốc tối thiểu trước giờ xuất bến — người xếp xe điều chỉnh khẩn cấp kèm lý do");
+    assert.equal(await p.ev(txt(".dp-sheet-pha-le h2, .dp-sheet-pha-le .sheet-title")), "Điều chỉnh khẩn cấp");
+    assert.equal(await p.ev(txt('[data-action="pha-le-gui"]')), "Điều chỉnh khẩn cấp và lưu");
+    await shotView(p, "b3-khan-cap-ban-hang-may-tinh.png");
+    await p.ev(`[...document.querySelectorAll('.dp-sheet-pha-le button')].find((x) => x.innerText.trim() === 'Đóng').click()`);
+    await p.waitFor(`!document.querySelector('[data-action="pha-le-gui"]')`, "đóng hộp, không gửi");
     const put = ghi(p).at(-1);
     assert.equal(put.method, "PUT");
     assert.deepEqual(Object.keys(JSON.parse(put.body)).sort(), ["requestId", "taiXePartyId", "version"], "chỉ gửi ô đã đổi");
@@ -206,17 +213,18 @@ try {
   // ---- Quản trị, điện thoại (3b: đổi tài xế chuyến đang khoá → hộp phá lệ) -------------------------------------------------------------------------------------
   const qm = await env.as(ACCOUNTS.admin, `/chuyen-sua?id=${d.T4.id}`, MOB);
   await choForm(qm);
-  await b.step("9", `3b 390 Quản trị: đổi tài xế ${d.T4.ma} (đang khoá) → hộp "Phá lệ" (lý do nhóm Phá lệ, nút khoá tới khi chọn) → gửi lại CHÍNH lệnh kèm phá lệ → sang chi tiết${axeNote()}`, async () => {
-    assert.equal(await qm.ev(txt("#cx-form .banner-lines")), "Đổi xe, đổi tài xế cần Quản trị phá lệ — khi lưu, bạn sẽ chọn lý do phá lệ. Đổi giờ không cần phá lệ.");
+  await b.step("9", `3b 390 Quản trị: đổi tài xế ${d.T4.ma} (đang khoá) → hộp "Điều chỉnh khẩn cấp" (ADR-0104 Đ1; lý do nhóm Điều chỉnh khẩn cấp, phá lệ; nút khoá tới khi chọn) → gửi lại CHÍNH lệnh kèm lý do → sang chi tiết${axeNote()}`, async () => {
+    assert.equal(await qm.ev(txt("#cx-form .banner-lines")), "Đổi xe, đổi tài xế là điều chỉnh khẩn cấp — khi lưu, bạn sẽ chọn lý do. Đổi giờ không cần điều chỉnh khẩn cấp.");
     await qm.ev(typeInto("#cx-tai-xe", d.CUONG.partyId));
     await gui(qm);
-    await qm.waitFor(`!!document.querySelector('[data-action="pha-le-gui"]')`, "hộp phá lệ mở");
+    await qm.waitFor(`!!document.querySelector('[data-action="pha-le-gui"]')`, "hộp điều chỉnh khẩn cấp mở");
     await sleep(600);
-    assert.equal(await qm.ev(txt(".dp-sheet-pha-le h2, .dp-sheet-pha-le .sheet-title")), "Phá lệ");
+    assert.equal(await qm.ev(txt(".dp-sheet-pha-le h2, .dp-sheet-pha-le .sheet-title")), "Điều chỉnh khẩn cấp");
+    assert.equal(await qm.ev(txt('[data-action="pha-le-gui"]')), "Điều chỉnh khẩn cấp và lưu");
     assert.deepEqual(await qm.ev(`[...document.querySelectorAll('.dp-sheet-pha-le .vc-reason')].map((x) => x.textContent)`), ["Sự cố vận hành", "Đơn đặt gấp", "Khác"]);
     assert.equal(await qm.ev(`document.querySelector('[data-action="pha-le-gui"]').disabled`), true);
-    assert.match(await qm.ev(txt(".dp-sheet-pha-le .dp-sheet-sum")), new RegExp(`^${d.T4.ma} · .* Trong mốc tối thiểu trước giờ xuất bến — cần Quản trị phá lệ$`));
-    assert.equal(await qm.ev(loi("tai-xe")), "Trong mốc tối thiểu trước giờ xuất bến — cần Quản trị phá lệ");
+    assert.match(await qm.ev(txt(".dp-sheet-pha-le .dp-sheet-sum")), new RegExp(`^${d.T4.ma} · .* Trong mốc tối thiểu trước giờ xuất bến — người xếp xe điều chỉnh khẩn cấp kèm lý do$`));
+    assert.equal(await qm.ev(loi("tai-xe")), "Trong mốc tối thiểu trước giờ xuất bến — người xếp xe điều chỉnh khẩn cấp kèm lý do");
     await axe(qm, "hộp phá lệ 390");
     await shotView(qm, "b3-pha-le-dien-thoai.png");
     await qm.ev(click('.dp-sheet-pha-le .vc-reason[data-code="PHA_LE_SU_CO"]'));

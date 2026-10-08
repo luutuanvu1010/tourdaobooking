@@ -2,12 +2,13 @@
 // 03 Tao sua chuyen.dc.html; bản đối chiếu 2.2, 2.3, H18, Q1.
 // - Ô: Xe (xe bảo dưỡng không chọn được), Tài xế (nhóm công ty / từng nhà xe), Giờ bắt đầu, Giờ kết thúc (kết thúc ≤ bắt đầu = sang ngày hôm sau). KHÔNG ô "Ghi chú cho tài
 //   xế" (chủ trả lời Q1: chưa làm).
-// - Lỗi hiện dưới đúng ô sau khi bấm Lưu (409 → `truongLoiChuyen`); tạo mới / dời giờ không bao giờ cần phá lệ mốc (máy chủ quyết — 2.2, 2.3); "cần phá lệ" (khoảng
-//   nghỉ; đổi xe / tài xế của chuyến đã vào vùng khoá) → Quản trị, Toàn quyền mở hộp Phá lệ (H18, `canQuyen` của máy chủ); Bán hàng thấy câu dưới ô.
+// - Lỗi hiện dưới đúng ô sau khi bấm Lưu (409 → `truongLoiChuyen`); tạo mới / dời giờ không bao giờ cần vượt mốc (máy chủ quyết — 2.2, 2.3); cần vượt luật
+//   (khoảng nghỉ; cam kết khi đổi xe; đổi xe / tài xế của chuyến đã vào vùng khoá) → người đủ ô của LỚP mở hộp (H18, `canQuyen` + `lop` của máy chủ — ADR-0104
+//   Đ1): chuyến dưới mốc "Điều chỉnh khẩn cấp và lưu" (Bán hàng, Quản trị, Toàn quyền), ngoài mốc "Phá lệ và lưu" (Quản trị, Toàn quyền); thiếu ô thấy câu.
 // - Ô "Tuyến" (Đợt 4 G3 — không có trong bản vẽ, theo khuôn ô Xe): danh sách tuyến đang dùng (GET /api/van-chuyen/tuyen — chỉ tên, không giá); sửa chuyến gửi
 //   `tuyen` CHỈ khi đổi; tuyến cũ đã ngưng dùng vẫn hiện là lựa chọn đang chọn. Lỗi tải danh mục thì ẩn ô, không chặn form. Màn không báo số tiền nào.
 // - Cột phải "<biển số> trong ngày" (máy tính): các chuyến của xe đang chọn trong ngày (từ GET /lich); chuyến máy chủ báo trùng giờ tô đỏ.
-import { gioHien, thanPhaLe, truongLoiChuyen } from "../src/shared/dieu-phoi-man";
+import { NUT_VUOT, gioHien, thanPhaLe, truongLoiChuyen } from "../src/shared/dieu-phoi-man";
 import type { ChuyenChiTietResponse, ChuyenTomTatDto, GioVnDto, LichChungResponse, LyDoDangDungDto, TaiXeChonDto, TuyenDto, TuyenListResponse, XeChonDto } from "../src/shared/contracts";
 import { can } from "../src/shared/permissions";
 import { addDays, isISODate, ngayNgan, vnToday } from "../src/shared/vn-date";
@@ -178,7 +179,9 @@ function dung(ngay: string, chuyen: ChuyenChiTietResponse["chuyen"] | null, xe: 
     truong("cx-tai-xe", "Tài xế", selTx, null, loiTx),
     h("div", { class: "dp-cx-gio" }, truong("cx-tu", "Giờ bắt đầu", oTu, null, loiTu), truong("cx-den", "Giờ kết thúc", oDen, hintDen, loiDen)),
     chuyen?.khoaMoc.dangKhoa
-      ? dai("warning", "Chuyến đã vào vùng khoá trước giờ xuất bến", [`Đổi xe, đổi tài xế cần Quản trị phá lệ${can(staff, "trip.override") ? " — khi lưu, bạn sẽ chọn lý do phá lệ" : ""}. Đổi giờ không cần phá lệ.`])
+      ? dai("warning", "Chuyến đã vào vùng khoá trước giờ xuất bến", [
+        `Đổi xe, đổi tài xế là điều chỉnh khẩn cấp${can(staff, "trip.urgent_adjust") ? " — khi lưu, bạn sẽ chọn lý do" : ", cần người xếp xe làm"}. Đổi giờ không cần điều chỉnh khẩn cấp.`,
+      ])
       : null,
     h("div", { class: "dp-cx-actions" }, huyMay, luuMay),
   );
@@ -291,7 +294,8 @@ function dung(ngay: string, chuyen: ChuyenChiTietResponse["chuyen"] | null, xe: 
         moPhaLe({
           lyDo,
           tomTat: [h("div", { class: "dp-sheet-sum-title" }, chuyen ? `${chuyen.ma} · ${thuNgay(st.ngay)}` : `Chuyến mới · ${thuNgay(st.ngay)}`), h("div", { class: "dp-note" }, l.lyDo.map((x) => x.loiNhan).join("; "))],
-          nutChinh: "Phá lệ và lưu",
+          nutChinh: NUT_VUOT.luu[l.lop],
+          lop: l.lop,
           opener: luuMay,
           onXacNhan: (code) => gui(code),
         });

@@ -10,8 +10,8 @@ import { NHAN_SU_KIEN_CHUYEN, NHAN_TRANG_THAI_CHUYEN, isNhomLyDo, type ChangVao,
 import { noiLechCuaSuat } from "../../shared/dieu-phoi-kiem";
 import { NHAN_CANH_BAO_LICH, type CanhBaoLich } from "../../shared/dieu-phoi-lich-chung";
 import { NHAN_TRANG_THAI_CHANG, type TrangThaiChangRa } from "../../shared/dieu-phoi-trang-thai";
-import { NHAN_AI_XU_LY, type LyDoGiu } from "../../shared/ly-do-giu";
-import { gioXetMocXep } from "../../shared/moc-toi-thieu";
+import { NHAN_AI_XU_LY, lyDoTheoMoc, type LyDoGiu } from "../../shared/ly-do-giu";
+import { chuyenDuoiMoc, gioXetMocXep } from "../../shared/moc-toi-thieu";
 import { maskLongDigits } from "../../shared/text-guards";
 import { msToVnLocal, vnLocalToMs } from "../../shared/vn-date";
 import type { AllocRow, BanChupRow, EventRow, StopRow, TripRow, XeCuaDonRow, XeDieuPhoiRow } from "./chuyen-repo";
@@ -24,6 +24,14 @@ export const gioVn = (ms: number): GioVnDto => {
   const { date, time } = msToVnLocal(ms);
   return { ngay: date, gio: time };
 };
+/**
+ * ADR-0104 Đ1 mục 9 ★: lý do giữ của MỘT chuyến theo lớp — "dưới mốc" lúc đọc (giờ xét mốc xếp, cùng phép `khoaMoc`; xe đang chạy luôn dưới mốc; không có
+ * chính sách → ngoài mốc) chọn ai xử lý khoảng nghỉ / nghỉ thiếu / cam kết (`lyDoTheoMoc`). Một chỗ cho lịch, chi tiết, cuốc tài xế, 409 xuất bến.
+ */
+export function lyDoGiuCuaChuyen(t: TripRow, lyDo: readonly LyDoGiu[], bayGioMs: number, phut: number | null): LyDoGiu[] {
+  const duoiMoc = chuyenDuoiMoc({ dangChay: t.status === "RUNNING", gioXetMs: gioXetMocXep({ batDauMs: t.planned_start_ms, batDauSomNhatMs: t.earliest_start_ms }) }, bayGioMs, phut);
+  return lyDo.map((l) => lyDoTheoMoc(l, duoiMoc));
+}
 export const lyDoGiuDto = (l: LyDoGiu): LyDoGiuDto => ({ ma: l.ma, loiNhan: l.loiNhan, aiXuLy: l.aiXuLy, aiXuLyNhan: NHAN_AI_XU_LY[l.aiXuLy] });
 export const canhBaoDto = (c: CanhBaoLich): CanhBaoLichDto => ({ loai: c.loai, nhan: NHAN_CANH_BAO_LICH[c.loai], legId: c.legId, tripId: c.tripId, maDon: c.orderCode });
 /** Tên nơi của điểm: tên danh mục, hoặc chữ tự do ĐÃ CHE dãy số (lưu đã che — che lần nữa cho chắc). */
@@ -81,7 +89,7 @@ export function chuyenTomTat(
     xe: { id: t.vehicle_id, bienSo: v.xe?.plate_number ?? "", soCho: v.xe?.passenger_capacity ?? 0, chuXe: v.xe?.owner_name ?? "", chuLaCongTy: v.xe?.owner_is_company === 1 },
     taiXe: t.driver_party_id ? { partyId: t.driver_party_id, ten: tx?.displayName ?? "(không còn là tài xế)", loai: tx?.loai ?? "NHA_XE" } : null,
     tai,
-    lyDoGiu: v.lyDoGiu.map(lyDoGiuDto),
+    lyDoGiu: lyDoGiuCuaChuyen(t, v.lyDoGiu, v.bayGioMs, v.chung.chinhSach?.min_lead_minutes ?? null).map(lyDoGiuDto),
     khoaMoc: khoaMoc(t, v.bayGioMs, v.chung.chinhSach?.min_lead_minutes ?? null),
     xuatBen: t.departed_at === null ? null : mocTienDo(suKienCuoi(v.events, t.id, ["DEPARTED"]), v.nhan), // ADR-0097 Đ3: thu hồi xuất bến → chưa xuất bến
     ketThucThat: mocTienDo(suKienCuoi(v.events, t.id, ["ENDED", "ENDED_INTERRUPTED"]), v.nhan),

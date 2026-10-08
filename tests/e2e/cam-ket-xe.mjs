@@ -129,6 +129,8 @@ assert.equal((await sqlRows(`SELECT status AS x FROM vc_trip WHERE id = '${tripI
 console.log("✓ (4) bật minVehicleSeats 30 trên xe 15 chỗ → xuất bến 409 chua_du_dieu_kien_xuat_ben có lý do CAM_KET; chuyến vẫn PLANNED");
 
 // --- (5) ADR-0104 Đ1: chuyến DƯỚI mốc — Bán hàng điều chỉnh khẩn cấp cả mốc lẫn cam kết ---
+// Không phụ thuộc giờ chạy: đơn E, F đón NGÀY MAI 10:00 nên lúc xác nhận luôn còn ≥ 10 giờ (ngoài mốc, không cần đặt gấp); chuyến bắt đầu sau 2 giờ 30 (luôn
+// dưới mốc) — chạy sau 21:30 giờ VN thì chuyến qua nửa đêm (máy chủ không chặn chuyến qua đêm) và vẫn cách chuyến (2) ngày mai 09:30 nhiều giờ.
 const vnSau = (phut) => {
   const iso = new Date(Date.now() + 7 * 3600e3 + phut * 60e3).toISOString();
   return { ngay: iso.slice(0, 10), gio: iso.slice(11, 16) };

@@ -10,7 +10,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import {
-  ACC, ADM, DRIVER, DRIVER2, LOC, NGAY, NGAY_SAU, SALES, batDongHo, chiTiet, don, setup, taoChuyen, uuid, xe,
+  ACC, ADM, DRIVER, DRIVER2, LOC, NGAY, NGAY_SAU, SALES, batDongHo, chiTiet, don, setup, taoChuyen, tienDo, uuid, xe,
 } from "../../../tests/audit/dieu-phoi-khung.mjs";
 
 const PL = { lyDo: "PHA_LE_SU_CO" };
@@ -284,6 +284,53 @@ test("NT-2 (ADR-0104 Đ1 mục 8): Bán hàng điều chỉnh khẩn cấp xếp
     w.sqlite.exec("CREATE TEMP TABLE suat_tay AS SELECT * FROM vc_trip_allocation WHERE trip_id = '" + t.chuyen.id + "' LIMIT 1");
     w.sqlite.exec("UPDATE suat_tay SET id = 'suat-tay-1', passenger_key = NULL");
     assert.throws(() => w.sqlite.exec("INSERT INTO vc_trip_allocation SELECT * FROM suat_tay"), /lc02_capacity/);
+  } finally {
+    tat();
+  }
+});
+
+// ---- Đ1 mục 9 ★: "ai xử lý" của lý do kèm theo lớp ----------------------------------------------------------------------------------------------------
+test("Đ1 mục 9 ★ (ly-do-giu theo mốc): khoảng nghỉ / cam kết — 409 lệnh, lý do giữ ở chi tiết / lịch / cuốc tài xế, 409 xuất bến: chuyến dưới mốc → Văn phòng (người xếp xe điều chỉnh khẩn cấp); ngoài mốc → Quản trị (câu cũ)", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    // (1) 409 của lệnh tạo chuyến thiếu khoảng nghỉ.
+    const x1 = xe(w);
+    await taoChuyen(w, { xe: x1, taiXe: `pty-${DRIVER}`, bd: "08:00", kt: "10:00" });
+    const d0 = await taoTho(w, SALES, { xe: x1, taiXe: `pty-${DRIVER2}`, bd: "10:10", kt: "11:00" });
+    assert.equal(d0.status, 409, d0.text);
+    assert.deepEqual(d0.json.error.lyDo.map((l: any) => [l.ma, l.aiXuLy, l.aiXuLyNhan]), [["KHOANG_NGHI", "VAN_PHONG", "Văn phòng"]]);
+    assert.match(d0.json.error.lyDo[0].loiNhan, /^Chưa đủ khoảng nghỉ giữa hai chuyến — người xếp xe điều chỉnh khẩn cấp kèm lý do: CX-/);
+    const x2 = xe(w);
+    await taoChuyen(w, { xe: x2, taiXe: `pty-${DRIVER}`, ngay: NGAY_SAU, bd: "08:00", kt: "10:00" });
+    const n0 = await taoTho(w, SALES, { xe: x2, taiXe: `pty-${DRIVER2}`, ngay: NGAY_SAU, bd: "10:10", kt: "11:00" });
+    assert.equal(n0.status, 409, n0.text);
+    assert.deepEqual(n0.json.error.lyDo.map((l: any) => [l.ma, l.aiXuLy, l.aiXuLyNhan]), [["KHOANG_NGHI", "QUAN_TRI", "Quản trị"]]);
+    assert.match(n0.json.error.lyDo[0].loiNhan, /^Chưa đủ khoảng nghỉ giữa hai chuyến — cần Quản trị phá lệ: CX-/);
+    // (2) Lý do GIỮ: cam kết bật SAU khi xếp (chặng đòi xe ≥ 30 chỗ, xe 15 chỗ) trên chuyến dưới mốc.
+    const camKet = (ds: any[]) => ds.filter((l) => l.ma === "CAM_KET").map((l) => [l.aiXuLy, l.loiNhan.startsWith("Trái cam kết xe riêng / số chỗ tối thiểu")]);
+    const a = await don(w, { gio: "13:00" });
+    const t = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER2}`, bd: "11:00", kt: "15:00" });
+    assert.equal((await xep(w, SALES, t.chuyen.id, [{ legId: a.legId, soSuat: 2 }], { phaLe: PL })).status, 200);
+    w.sqlite.prepare("UPDATE ord_transfer_leg SET min_vehicle_seats = 30 WHERE id = ?").run(a.legId);
+    assert.deepEqual(camKet((await chiTiet(w, t.chuyen.id)).chuyen.lyDoGiu), [["VAN_PHONG", true]], "chi tiết");
+    const lich = (await w.call("GET", `/api/van-chuyen/lich?ngay=${NGAY}`, { as: SALES })).json;
+    assert.deepEqual(camKet(lich.chuyen.find((c: any) => c.id === t.chuyen.id).lyDoGiu), [["VAN_PHONG", true]], "lịch");
+    const cuoc = await w.call("GET", `/api/van-chuyen/cuoc-cua-toi/${t.chuyen.id}`, { as: DRIVER2 });
+    assert.equal(cuoc.status, 200, cuoc.text);
+    assert.deepEqual(camKet(cuoc.json.dieuKienConThieu), [["VAN_PHONG", true]], "cuốc tài xế");
+    const xb = await tienDo(w, "van-phong", t.chuyen.id, "xuat-ben");
+    assert.equal(xb.status, 409, xb.text);
+    assert.equal(xb.json.error.code, "chua_du_dieu_kien_xuat_ben");
+    assert.deepEqual(camKet(xb.json.error.lyDo), [["VAN_PHONG", true]], "409 xuất bến");
+    // (3) Cùng lý do trên chuyến NGOÀI mốc (ngày mai) → Quản trị.
+    const b = await don(w, { ngay: NGAY_SAU, gio: "13:00" });
+    const t3 = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER2}`, ngay: NGAY_SAU, bd: "11:00", kt: "15:00" });
+    assert.equal((await xep(w, SALES, t3.chuyen.id, [{ legId: b.legId, soSuat: 2 }])).status, 200);
+    w.sqlite.prepare("UPDATE ord_transfer_leg SET min_vehicle_seats = 30 WHERE id = ?").run(b.legId);
+    assert.deepEqual(camKet((await chiTiet(w, t3.chuyen.id)).chuyen.lyDoGiu), [["QUAN_TRI", true]], "chi tiết ngoài mốc");
+    const cuoc3 = await w.call("GET", `/api/van-chuyen/cuoc-cua-toi/${t3.chuyen.id}`, { as: DRIVER2 });
+    assert.deepEqual(camKet(cuoc3.json.dieuKienConThieu), [["QUAN_TRI", true]], "cuốc tài xế ngoài mốc");
   } finally {
     tat();
   }

@@ -146,13 +146,15 @@ try {
   // ---- Bán hàng, điện thoại: T4 TRONG vùng khoá — vẫn bấm được, không phá lệ ------------------------------------------------------------------------------------
   const pm = await env.as(ACCOUNTS.salesA, `/chuyen?id=${d.T4.id}`, MOB);
   await cho(pm);
-  await b.step("4", `390 Bán hàng ${d.T4.ma} (trong vùng khoá): câu khoá nói "cập nhật khách theo đơn không cần phá lệ"; dải + nút; bấm → không hộp phá lệ, tên mới hiện, hết giữ${axeNote()}`, async () => {
-    assert.equal(await pm.ev(txt(".dp-ct-lock")), "Trong 48 giờ trước giờ xuất bến — khoá xếp khách, đổi xe, đổi tài xế. Cần Quản trị phá lệ. Cập nhật điểm theo đơn và cập nhật khách theo đơn không cần phá lệ.");
+  // ADR-0104 Đ1 (2026-10-08): câu khoá theo ô điều chỉnh khẩn cấp (Bán hàng có ô) — "cập nhật khách theo đơn không cần điều chỉnh khẩn cấp"; thẻ khách
+  // không còn dòng khoá cho Bán hàng (rút / chuyển trong vùng khoá là điều chỉnh khẩn cấp), nên chỉ còn MỘT ổ khoá (đầu trang) để đo.
+  await b.step("4", `390 Bán hàng ${d.T4.ma} (trong vùng khoá): câu khoá nói "cập nhật khách theo đơn không cần điều chỉnh khẩn cấp"; dải + nút; bấm → không hộp xác nhận, tên mới hiện, hết giữ${axeNote()}`, async () => {
+    assert.equal(await pm.ev(txt(".dp-ct-lock")), "Trong 48 giờ trước giờ xuất bến — khoá xếp khách, đổi xe, đổi tài xế. Bạn có thể điều chỉnh khẩn cấp kèm lý do. Cập nhật điểm theo đơn và cập nhật khách theo đơn không cần điều chỉnh khẩn cấp.");
     assert.deepEqual(await pm.ev(daiGiu), [TIEU_DE_GIU]);
     // Vòng 5f (nhật ký 13.11): ổ khoá của dòng khoá không bị flex ép nhỏ khi câu dài xuống nhiều dòng — cỡ vẽ = cỡ khai của biểu tượng (16 ở đầu trang,
     // 14 ở thẻ khách — khớp chữ 14 của dòng).
     const oKhoa = await pm.ev(`[...document.querySelectorAll('.dp-ct-lock svg, .dp-khach-khoa svg')].map((x) => [Math.round(x.getBoundingClientRect().width), Number(x.getAttribute('width'))])`);
-    assert.equal(oKhoa.length, 2, "dòng khoá đầu trang + dòng khoá thẻ khách");
+    assert.equal(oKhoa.length, 1, "dòng khoá đầu trang (ADR-0104 Đ1: Bán hàng không còn dòng khoá ở thẻ khách)");
     for (const [ve, khai] of oKhoa) assert.equal(ve, khai, `ổ khoá bị ép nhỏ: ${JSON.stringify(oKhoa)}`);
     assert.ok(await pm.ev(noOverflowX));
     await axe(pm, "dải khách đổi 390");

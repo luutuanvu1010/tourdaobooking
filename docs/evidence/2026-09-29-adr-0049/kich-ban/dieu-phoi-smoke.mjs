@@ -38,7 +38,7 @@ const keoTha = (legId, chuyenId) => `(() => {
   leg.dispatchEvent(new DragEvent('dragend', { bubbles: true, dataTransfer: dt }));
   return ok;
 })()`;
-const CAM = ["Gọi tài xế", "Đã gọi báo", "Phá lệ"];
+const CAM = ["Gọi tài xế", "Đã gọi báo", "Phá lệ", "Điều chỉnh khẩn cấp"]; // ADR-0104 Đ1: cũng không có nút "Điều chỉnh khẩn cấp" đứng riêng (2.13)
 const khongNutCam = async (p) => {
   const nut = await p.ev(`[...document.querySelectorAll('main button, main a.vc-btn')].map((x) => x.innerText.trim())`);
   for (const c of CAM) assert.ok(!nut.includes(c), `không nút "${c}" (H7 / Q2 / 2.13): ${JSON.stringify(nut)}`);
@@ -152,23 +152,32 @@ try {
     assert.equal((await p.ev(soLieu))[2], "CHƯA XẾP 0");
   });
 
-  await b.step("5", "ngày trong vùng khoá (Bán hàng): đổi ngày bằng ô ngày → địa chỉ đổi; chặng 'Quá mốc' + dòng khoá 'Cần Quản trị phá lệ' ở Cần xử lý; khối chuyến mang ổ khoá theo khoaMoc; xếp vào chuyến đang khoá → máy chủ đòi phá lệ → câu trong hộp, không hộp phá lệ", async () => {
+  // ADR-0104 Đ1 (NỚI có tên, 2026-10-08): vượt mốc là điều chỉnh khẩn cấp — Bán hàng có ô trip.urgent_adjust: chặng quá mốc KHÔNG còn dòng khoá; xếp vào chuyến
+  // đang khoá → máy chủ 409 lớp KHAN_CAP canQuyen đúng → hộp "Điều chỉnh khẩn cấp" (Bán hàng chỉ mở rồi đóng; Quản trị gửi thật ở bước 7).
+  await b.step("5", "ngày trong vùng khoá (Bán hàng): đổi ngày bằng ô ngày → địa chỉ đổi; chặng 'Quá mốc' ở Cần xử lý KHÔNG dòng khoá (ADR-0104 Đ1); khối chuyến mang ổ khoá theo khoaMoc; xếp vào chuyến đang khoá → máy chủ đòi điều chỉnh khẩn cấp → hộp 'Điều chỉnh khẩn cấp' (đóng, không gửi)", async () => {
     await p.ev(typeInto("#dp-ngay", d.NGAY_KHOA));
     await p.waitFor(`location.search === '?ngay=${d.NGAY_KHOA}' && !!document.querySelector('.dp-khoi[data-chuyen="${d.T4.id}"]')`, "sang ngày khoá");
     assert.match(await p.ev(txt("#dp-ngay-nhan")), / · ngày mai$/);
     assert.match((await p.ev(the))[0].text, /^10:00 Quá mốc Citadines Bayfront → Bến tàu du lịch Nha Trang/);
     const q = (await p.ev(viec)).find((x) => x.loai === "CHẶNG QUÁ MỐC");
-    assert.deepEqual([q.tieuDe, q.khoa, q.nut], ["10:00 · Citadines Bayfront → Bến tàu du lịch Nha Trang", "Cần Quản trị phá lệ", []]);
+    assert.deepEqual([q.tieuDe, q.khoa, q.nut], ["10:00 · Citadines Bayfront → Bến tàu du lịch Nha Trang", null, []]);
     assert.match((await p.ev(khoi)).find((x) => x.id === d.T4.id).label, /đang khoá$/);
     await p.ev(moThe(d.O4.legId));
     await p.waitFor(`!!document.querySelector('[data-action="xep-gui"]')`, "hộp xếp mở");
     await p.ev(click(`.dp-sheet-xep .vc-reason[data-code="${d.T4.id}"]`));
-    assert.equal(await p.ev(txt(".dp-sheet-xep .dg-lock-note")), "Chuyến đã vào vùng khoá trước giờ xuất bến — cần Quản trị phá lệ.");
+    assert.equal(await p.ev(txt(".dp-sheet-xep .dg-lock-note")), "Chuyến đã vào vùng khoá trước giờ xuất bến — khi xếp, bạn sẽ chọn lý do điều chỉnh khẩn cấp.");
     assert.equal(await p.ev(txt(`.dp-sheet-xep .vc-reason[data-code="${d.T4.id}"] .dp-radio-sub`)), "đang khoá");
     await p.ev(click('[data-action="xep-gui"]'));
-    await p.waitFor(`!!document.querySelector('.dp-sheet-xep .vc-field-error:not([hidden])')`, "câu lỗi trong hộp");
-    assert.match(await p.ev(txt(".dp-sheet-xep .vc-field-error")), /cần Quản trị phá lệ/);
-    assert.equal(await p.ev(`!!document.querySelector('[data-action="pha-le-gui"]')`), false);
+    await p.waitFor(`!!document.querySelector('[data-action="pha-le-gui"]') && !document.querySelector('[data-action="xep-gui"]')`, "hộp điều chỉnh khẩn cấp thay hộp xếp");
+    await sleep(600);
+    assert.equal(await p.ev(txt('[data-action="pha-le-gui"]')), "Điều chỉnh khẩn cấp và xếp");
+    assert.equal(await p.ev(txt("#dp-pha-le-label")), "Lý do điều chỉnh khẩn cấp");
+    assert.match(await p.ev(txt(".dp-sheet-pha-le")), /Việc điều chỉnh khẩn cấp ghi vào nhật ký chuyến kèm tên bạn\./);
+    assert.doesNotMatch(await p.ev(txt(".dp-sheet-pha-le")), /Phá lệ|Quản trị/);
+    await shotView(p, "b1-khan-cap-xep-ban-hang-may-tinh.png");
+    await p.ev(`[...document.querySelectorAll('.dp-sheet-pha-le button')].find((x) => x.innerText.trim() === 'Đóng').click()`);
+    await p.waitFor(`!document.querySelector('[data-action="pha-le-gui"]')`, "đóng hộp, không gửi");
+    assert.equal(ghi(p).filter((r) => r.path.endsWith("/phan-bo") && JSON.parse(r.body).phaLe).length, 0, "Bán hàng đóng hộp: không lệnh kèm lý do");
     await khongNutCam(p);
     assert.equal(await p.ev(noCode), "");
   });
@@ -216,7 +225,7 @@ try {
 
   // ---- Quản trị, máy tính ------------------------------------------------------------------------------------------------------------------------------------
   const q = await env.as(ACCOUNTS.admin, `/dieu-phoi?ngay=${d.NGAY_KHOA}`, DESK);
-  await b.step("7", `1f 1040 Quản trị: menu Vận chuyển đủ mục (Điều phối xe đầu); chặng quá mốc KHÔNG dòng khoá, KHÔNG nút "Phá lệ" riêng; xếp vào chuyến đang khoá → hộp Phá lệ → "Phá lệ và xếp" gửi lại kèm phaLe`, async () => {
+  await b.step("7", `1f 1040 Quản trị: menu Vận chuyển đủ mục (Điều phối xe đầu); chặng quá mốc KHÔNG dòng khoá, KHÔNG nút vượt luật riêng; xếp vào chuyến đang khoá → hộp "Điều chỉnh khẩn cấp" (ADR-0104 Đ1) → "Điều chỉnh khẩn cấp và xếp" gửi lại kèm phaLe`, async () => {
     await cho(q);
     const nav = await q.ev(vcSub);
     assert.deepEqual(nav.items, ["Điều phối xe", "Xe đang chạy", "Bảng giá thuê xe", "Bảng kê chi phí xe", "Xe", "Lịch xe bận", "Sắp hết hạn", "Loại giấy tờ xe", "Lý do điều phối"]); // + Đợt 4 + "Lịch xe bận" (Đợt 3, 2/10)
@@ -227,11 +236,11 @@ try {
     await q.ev(moThe(d.O4.legId));
     await q.waitFor(`!!document.querySelector('[data-action="xep-gui"]')`, "hộp xếp mở");
     await q.ev(click(`.dp-sheet-xep .vc-reason[data-code="${d.T4.id}"]`));
-    assert.equal(await q.ev(txt(".dp-sheet-xep .dg-lock-note")), "Chuyến đã vào vùng khoá trước giờ xuất bến — khi xếp, bạn sẽ chọn lý do phá lệ.");
+    assert.equal(await q.ev(txt(".dp-sheet-xep .dg-lock-note")), "Chuyến đã vào vùng khoá trước giờ xuất bến — khi xếp, bạn sẽ chọn lý do điều chỉnh khẩn cấp.");
     await q.ev(click('[data-action="xep-gui"]'));
     await q.waitFor(`!!document.querySelector('[data-action="pha-le-gui"]') && !document.querySelector('[data-action="xep-gui"]')`, "hộp phá lệ thay hộp xếp");
     await sleep(600);
-    assert.equal(await q.ev(txt('[data-action="pha-le-gui"]')), "Phá lệ và xếp");
+    assert.equal(await q.ev(txt('[data-action="pha-le-gui"]')), "Điều chỉnh khẩn cấp và xếp");
     assert.match(await q.ev(txt(".dp-sheet-pha-le .dp-sheet-sum")), new RegExp(`^Xếp chặng 10:00 · Citadines Bayfront → Bến tàu du lịch Nha Trang ${d.O4.ma} · 2 khách → vào ${d.T4.ma} \\(xuất bến 10:00\\)`));
     await axe(q, "hộp phá lệ xếp 1040");
     await shotView(q, "b1-pha-le-xep-may-tinh.png");

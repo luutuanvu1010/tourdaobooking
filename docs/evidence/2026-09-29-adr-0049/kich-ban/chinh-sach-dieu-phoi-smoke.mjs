@@ -14,7 +14,7 @@ const O = (truong) => `#cs-${truong}`;
 const loiO = (truong) => txt(`#cs-${truong}-error`);
 const lichSu = `[...document.querySelectorAll('#cs-lich-su .dp-hist-row')].map((r) => r.innerText.replace(/\\s+/g, ' ').trim())`;
 // + nhóm BAN_XE (ADR-0055, Đợt 3 — 0071 gieo 4 lý do); + nhóm BAO_HUY_DIEM (ADR-0052 D5.2, Đợt 5 — 0076 gieo 4 lý do); Đợt 4 (migration 0073, ADR-0057 T2): nhóm "Chi phí xe thuê" ở cuối — do máy chủ gieo, màn Lý do tự hiện. Gói A1 (migration 0085, ADR-0097 Đ2.5): + nhóm "Điều chỉnh chuyến đang chạy" ở cuối.
-const NHOM_BAN_VE = ["Phá lệ", "Huỷ chuyến", "Kết thúc gián đoạn", "Bỏ qua điểm", "Đổi giờ xe tới", "Báo huỷ điểm đón", "Lý do xe bận", "Chi phí xe thuê", "Điều chỉnh chuyến đang chạy"];
+const NHOM_BAN_VE = ["Điều chỉnh khẩn cấp, phá lệ", /* ADR-0104 Đ1 mục 9: tên nhóm PHA_LE */ "Huỷ chuyến", "Kết thúc gián đoạn", "Bỏ qua điểm", "Đổi giờ xe tới", "Báo huỷ điểm đón", "Lý do xe bận", "Chi phí xe thuê", "Điều chỉnh chuyến đang chạy"];
 
 try {
   // ---- Toàn quyền, máy tính ----------------------------------------------------------------------------------------------------------------------------------
@@ -175,7 +175,7 @@ try {
   await b.step("8", "8c 1040 Quản trị: năm nhóm (Phá lệ, Huỷ chuyến, Kết thúc gián đoạn, Bỏ qua điểm, Đổi giờ xe tới) — KHÔNG 'Đặt gấp', 'Bỏ chặng'; số đếm; không lộ mã; thanh bên có 'Lý do điều phối', KHÔNG 'Chính sách điều phối'", async () => {
     const n = await a.ev(nhom);
     assert.deepEqual(n.map((x) => x.nhom), NHOM_BAN_VE);
-    assert.deepEqual(n[0], { nhom: "Phá lệ", dem: "3", dong: ["Sự cố vận hành", "Đơn đặt gấp", "Khác"] });
+    assert.deepEqual(n[0], { nhom: "Điều chỉnh khẩn cấp, phá lệ", dem: "3", dong: ["Sự cố vận hành", "Đơn đặt gấp", "Khác"] });
     assert.deepEqual(n[3].dong, ["Không còn khách ở điểm", "Khác"]);
     // R-P22 (Q-B-3): lý do HỆ THỐNG "Không còn khách ở điểm" — không có nút "Ngưng", có ghi chú; lý do thường cùng nhóm vẫn có "Ngưng".
     const heThong = '.dp-reason[data-code="BO_QUA_KHONG_CON_KHACH"]';
