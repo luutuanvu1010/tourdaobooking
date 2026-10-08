@@ -3,14 +3,25 @@
 //   npm run build:web && CHROME_BIN=<đường dẫn tuyệt đối tới docs/evidence/2026-09-20-a2/kich-ban/chrome-wrap.sh> node docs/evidence/2026-10-08-a2-so-khach/kich-ban/sua-so-khach-smoke.mjs
 // Bảy bước: (1) Bán hàng KHÔNG phải người lập không thấy nút; (2) Kế toán thấy nút, mở bảng: bộ đếm cho loại khách sửa được, dịch vụ nhập tay chỉ xem, bốn
 // lý do không ô chữ, nút Lưu khoá tới khi chọn lý do, ô số 16px; (3) bớt 1 người lớn + "Khách bớt người" → lưu, dải "Đã lưu…", tiền tính lại, Lịch sử có dòng
-// đúng khuôn; (4) người lập thấy nút; (5) tổng âm ở 1040: dải vàng kèm câu cảnh báo + câu thường trực ở khối Thanh toán; (6) đơn Đã giao: không có nút;
-// (7) không lỗi console, không tràn ngang.
+// đúng khuôn; (4) người lập thấy nút; (5) giảm giá lớn hơn tạm tính ở 1040 (ADR-0109): dải vàng kèm câu cảnh báo + câu thường trực ở khối Thanh toán,
+// Tổng cộng 0, khách trả dư = đúng số đã trả; (5b) biên nhận in giảm giá hiệu lực, ảnh xác nhận dựng được; (5c) Kế toán 390: câu cảnh báo và "Ghi hoàn cho
+// khách" cùng trang, hoàn xong hết "Khách trả dư", câu vẫn đúng; (6) đơn Đã giao: không có nút; (7) không lỗi console, không tràn ngang.
+// Có AXE_JS=<…/axe.min.js> thì bước 5 và 5c kiểm axe 0 vi phạm critical/serious.
 import assert from "node:assert/strict";
-import { mkdirSync } from "node:fs";
+import { mkdirSync, readFileSync } from "node:fs";
 import { ACCOUNTS, ok, startEnv, vnDate } from "../../2026-09-20-a2/kich-ban/a2-cdp.mjs";
 
 const OUT = process.env.OUT ?? "docs/evidence/2026-10-08-a2-so-khach";
 mkdirSync(OUT, { recursive: true });
+// ADR-0109: kiểm axe-core (0 vi phạm critical/serious) ở bước 5 và 5c khi có AXE_JS (tệp axe.min.js ngoài repo); thiếu biến thì in rõ "bỏ qua".
+const AXE = process.env.AXE_JS ? readFileSync(process.env.AXE_JS, "utf8") : null;
+async function axeKhong(p, nhan) {
+  if (!AXE) return "axe: BỎ QUA (thiếu AXE_JS)";
+  if (!(await p.ev("typeof axe !== 'undefined'"))) await p.ev(`${AXE}\n;true`);
+  const v = await p.ev("axe.run(document).then((r) => r.violations.filter((x) => x.impact === 'critical' || x.impact === 'serious').map((x) => ({ id: x.id, impact: x.impact, mau: x.nodes.slice(0, 2).map((n) => n.target.join(' ')) })))");
+  assert.deepEqual(v, [], `axe (${nhan}): ${JSON.stringify(v)}`);
+  return "axe 0 critical/serious";
+}
 const NUT = "Sửa số khách dịch vụ";
 const nutCo = "[...document.querySelectorAll('#actions .btn')].some((b) => b.textContent === 'Sửa số khách dịch vụ')";
 const pairs = "[...document.querySelectorAll('.totals .kv')].map((k) => [k.children[0].textContent, k.children[1].textContent])";
@@ -120,11 +131,41 @@ try {
   await p.waitFor("document.querySelector('.sheet-root') === null && document.getElementById('error').classList.contains('banner-warning')", "dải vàng tổng âm");
   assert.match(await p.ev("document.getElementById('error').textContent"), /Đã lưu số khách mới — giảm giá đang lớn hơn tiền dịch vụ\..*Giảm giá lớn hơn tiền dịch vụ sau khi bớt khách/);
   assert.match(await p.ev("document.querySelector('[data-canh-bao=\"tong-am\"]')?.textContent ?? ''"), /nếu chưa hoàn thì Kế toán hoàn lại cho khách/);
-  assert.deepEqual((await p.ev(pairs)).slice(0, 3), [["Tạm tính", "1.350.000 ₫"], ["Giảm giá", "2.000.000 ₫"], ["Tổng cộng", "0 ₫"]]);
+  assert.deepEqual((await p.ev(pairs)).slice(0, 5), [
+    ["Tạm tính", "1.350.000 ₫"], ["Giảm giá", "2.000.000 ₫"], ["Tổng cộng", "0 ₫"], ["Khách hàng đã trả trước", "700.000 ₫"], ["Khách trả dư", "700.000 ₫ — chờ Kế toán hoàn"],
+  ], "ADR-0109: phải thu 0, dư = đúng số khách đã trả (không phồng 1.350.000)");
   assert.deepEqual(p.consoleErrors, [], `lỗi console: ${p.consoleErrors}`);
+  const axe5 = await axeKhong(p, "5-trang-don-1040");
   await p.shot(`${OUT}/03-tong-am-1040.png`);
+  ok(`5) giảm giá vượt tạm tính (1040): dải vàng kèm câu cảnh báo, câu thường trực ở khối Thanh toán, Tổng cộng 0, khách trả dư 700.000 (ADR-0109); ${axe5}`);
+
+  // ---- 5b) biên nhận gửi khách (ADR-0109 QĐ4): in giảm giá HIỆU LỰC — Tạm tính 1.350.000 − Giảm giá 1.350.000 = Tổng cộng 0 ----
+  const bn = await p.ev(`fetch('/api/orders/${don2}/receipt').then((r) => r.json()).then((j) => [j.receipt.subtotal, j.receipt.discount, j.receipt.total, j.receipt.daTra, j.receipt.conLai])`);
+  assert.deepEqual(bn, [1350000, 1350000, 0, 700000, 0], "biên nhận cân ba dòng");
+  await p.ev("document.querySelector('[data-action=\"send-confirmation\"]').click()");
+  await p.waitFor("(document.querySelector('.sheet .confirm-img')?.naturalWidth ?? 0) > 0", "ảnh biên nhận dựng xong");
+  assert.deepEqual(p.consoleErrors, [], `lỗi console: ${p.consoleErrors}`);
+  await p.shot(`${OUT}/04-bien-nhan-tong-am-1040.png`);
   p.close();
-  ok("5) giảm giá vượt tạm tính (1040): dải vàng kèm câu cảnh báo, câu thường trực ở khối Thanh toán, Tổng cộng 0 (ADR-0109)");
+  ok("5b) biên nhận (1040): /receipt [1.350.000, 1.350.000, 0], đã trả 700.000, còn lại 0; ảnh xác nhận dựng được");
+
+  // ---- 5c) Kế toán ở 390: câu cảnh báo (khối Thanh toán) và hàng "Ghi hoàn cho khách" (khối Kế toán) cùng trang; hoàn 700.000 (người trả = Bán hàng A, người
+  // đang giữ tiền mặt) → dòng "Khách trả dư" biến mất, Còn lại 0; câu cảnh báo vẫn còn và vẫn đúng ("nếu chưa hoàn…") ----
+  p = await env.as(ACCOUNTS.accounting, `/order?id=${don2}`);
+  await p.waitFor("document.querySelector('[data-canh-bao=\"tong-am\"]') !== null && document.querySelector('[data-action=\"ghi-hoan\"]') !== null", "câu cảnh báo + nút Ghi hoàn (390)");
+  await p.ev("document.querySelector('[data-action=\"ghi-hoan\"]').click()");
+  await p.waitFor("document.querySelector('[data-khoi=\"xac-nhan-ghi-hoan\"]') !== null", "hàng Ghi hoàn mở");
+  assert.ok((await p.ev("document.documentElement.scrollWidth - innerWidth")) <= 0, "không tràn ngang 390");
+  await p.shot(`${OUT}/05-canh-bao-va-ghi-hoan-390.png`);
+  const axe5c = await axeKhong(p, "5c-ghi-hoan-390");
+  await p.ev("(() => { const f = document.querySelector('[data-khoi=\"xac-nhan-ghi-hoan\"]'); const s = f.querySelectorAll('select'); s[s.length - 1].selectedIndex = 1; f.querySelector('button[type=\"submit\"]').click(); })()");
+  await p.waitFor("document.querySelector('[data-action=\"ghi-hoan\"]') === null && [...document.querySelectorAll('.totals .kv')].some((k) => k.children[0].textContent === 'Còn lại')", "đã hoàn: hết dòng Khách trả dư");
+  assert.deepEqual((await p.ev(pairs)).slice(0, 5), [["Tạm tính", "1.350.000 ₫"], ["Giảm giá", "2.000.000 ₫"], ["Tổng cộng", "0 ₫"], ["Khách hàng đã trả trước", "0 ₫"], ["Còn lại", "0 ₫"]]);
+  assert.match(await p.ev("document.querySelector('[data-canh-bao=\"tong-am\"]')?.textContent ?? ''"), /Khách đã trả bao nhiêu thì số đó là tiền trả dư; nếu chưa hoàn thì Kế toán hoàn lại cho khách/, "câu vẫn còn sau khi hoàn, chữ vẫn đúng");
+  assert.deepEqual(p.consoleErrors, [], `lỗi console: ${p.consoleErrors}`);
+  await p.shot(`${OUT}/06-da-hoan-390.png`);
+  p.close();
+  ok(`5c) Kế toán 390: câu cảnh báo + Ghi hoàn cùng trang; hoàn 700.000 → hết "Khách trả dư", Còn lại 0, câu cảnh báo vẫn đúng; ${axe5c}`);
 
   // ---- 6) đơn Đã giao: không có nút (Kế toán) ----
   const don3 = await donXacNhan({ services: [{ ...td101(1), departDate: vnDate(0) }], daTra: 1350000 });

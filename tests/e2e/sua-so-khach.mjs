@@ -2,7 +2,7 @@
 // Bài đơn vị cùng hành vi: src/modules/orders/so-khach-van-phong-route.test.ts (quyền đủ 12 tài khoản, thứ tự từ chối, nhật ký, tin); sổ vàng
 // golden/sua-so-khach-van-phong.json. Kịch bản này chứng minh trên wrangler thật: (1) Kế toán bớt khách sau khi khách đã trả → dư chờ hoàn, nhật ký đúng
 // khuôn; (2) quyền: Bán hàng không phải người lập, HDV đang phụ trách, tài khoản lai Bán hàng + HDV đang phụ trách → 403; người lập, Quản trị, Toàn quyền
-// → 200; (3) lý do chỉ từ danh sách; (4) giảm giá > tạm tính không chặn, có câu cảnh báo, phải thu kẹp 0 (ADR-0109); (5) sau Đã giao → 409, và SQL chèn tay bị trigger 0044 chặn.
+// → 200; (3) lý do chỉ từ danh sách; (4) giảm giá > tạm tính không chặn, có câu cảnh báo, phải thu kẹp 0; hoàn rồi Đã giao, Hoàn thành; chưa trả cũng Đã giao được (ADR-0109); (5) sau Đã giao → 409, và SQL chèn tay bị trigger 0044 chặn.
 import assert from "node:assert/strict";
 import { ACCOUNTS, call, catalogService, ensureFakeCatalog, gieoTaiKhoanLai, orderInput, session, sqlRows, sql, vnDate } from "./lib.mjs";
 
@@ -87,6 +87,36 @@ const tienDon = async (id) => (await call(ACC, "GET", `/api/orders/${id}/payment
   const p = await tienDon(don.id);
   assert.deepEqual([p.phaiThu, p.daThu, p.conLai, p.du], [0, 50000, 0, 50000]);
   console.log("✓ CA 3: giảm giá 150.000 > tạm tính 100.000 vẫn lưu, có câu cảnh báo; phải thu 0, dư 50.000 = đúng số khách đã trả (ADR-0109)");
+}
+
+// ---- CA 3b (ADR-0109 bài 3): giảm giá > tạm tính sau khi bớt khách, Kế toán hoàn đúng số khách đã trả → "Đã giao" được, phiếu chụp phải thu 0 (CHECK
+// due_snapshot ≥ 0 và trigger bil_posting_delivered_paid của D1 thật nhận) → "Hoàn thành" được.
+{
+  const don = await donXacNhan({ adult: 2, discount: 150000, departDate: vnDate(0) });
+  assert.equal((await call(ACC, "POST", `/api/orders/${don.id}/payments`, { soTien: 50000, hinhThuc: "BANK_TRANSFER", nguoiThu: "cong_ty" })).status, 201, "Kế toán ghi khách đã trả 50.000");
+  const r = await sua(ACC, don, 1);
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  const hoan = await call(ACC, "POST", "/api/ledger/refunds", { orderId: don.id, soTien: 50000, hinhThuc: "BANK_TRANSFER", nguoiTra: "cong_ty" });
+  assert.ok([200, 201].includes(hoan.status), JSON.stringify(hoan.body));
+  const p = await tienDon(don.id);
+  assert.deepEqual([p.phaiThu, p.daThu, p.conLai, p.du], [0, 0, 0, 0]);
+  const d = await call(F, "POST", `/api/orders/${don.id}/delivered`, {});
+  assert.equal(d.status, 200, JSON.stringify(d.body));
+  assert.deepEqual((await sqlRows(`SELECT due_snapshot FROM bil_posting WHERE order_id = '${don.id}' AND kind_code = 'DELIVERED'`)).map((x) => x.due_snapshot), [0]);
+  const xong = await call(ACC, "POST", `/api/orders/${don.id}/completed`, {});
+  assert.equal(xong.status, 200, JSON.stringify(xong.body));
+  console.log("✓ CA 3b: hoàn đúng 50.000 khách đã trả → Đã giao 200 (due_snapshot 0) → Hoàn thành 200 (ADR-0109)");
+}
+
+// ---- CA 3c (ADR-0109): khách CHƯA trả đồng nào, bớt khách tới giảm giá > tạm tính → khối Thanh toán [0, 0, 0, 0], "Đã giao" được ngay (trước đây 409 overpaid).
+{
+  const don = await donXacNhan({ adult: 2, discount: 150000, departDate: vnDate(0) });
+  assert.equal((await sua(ACC, don, 1)).status, 200);
+  const p = await tienDon(don.id);
+  assert.deepEqual([p.phaiThu, p.daThu, p.conLai, p.du], [0, 0, 0, 0]);
+  const d = await call(F, "POST", `/api/orders/${don.id}/delivered`, {});
+  assert.equal(d.status, 200, JSON.stringify(d.body));
+  console.log("✓ CA 3c: chưa trả đồng nào → phải thu 0, Đã giao 200 (ADR-0109)");
 }
 
 // ---- CA 4: đơn nháp → 409 (sửa trong form); sau Đã giao → 409 order_delivered; SQL chèn tay dòng điều chỉnh bị trigger 0044 chặn (lưới cuối).
