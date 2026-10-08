@@ -85,6 +85,7 @@ const STRICT: readonly { module: string; file: string }[] = [
   { module: "locations", file: "modules/locations/repository.ts" },
   { module: "maintenance", file: "modules/maintenance/repository.ts" },
   { module: "parties", file: "modules/parties/repository.ts" },
+  { module: "pricing", file: "modules/pricing/repository.ts" }, // Task 2: luật thuần, Task 3 thêm SQL
   { module: "staff", file: "modules/staff/repository.ts" },
   { module: "thongbao", file: "modules/thongbao/repository.ts" },
   { module: "van-chuyen", file: "modules/van-chuyen/repository.ts" }, // ADR-0040 D1 (siết: SQL đi qua defineSql, EXPLAIN)
@@ -113,7 +114,7 @@ test("ADR-0058 Đ6: lệch có hạn — catalog còn LEGACY tới hạn", () =>
  * STRICT — không bảng, không câu SQL, không `env.DB`/`.prepare(`/`.batch(`/`DB.exec(` ở BẤT KỲ tệp nào trong module
  * (kể cả `index.ts`/`tram.ts`, không chỉ `repository.ts` — module này còn không có `repository.ts`).
  */
-const KHONG_DB = ["bangtin", "pricing"] as const;
+const KHONG_DB = ["bangtin"] as const;
 
 /**
  * Hạng "module không bảng" (KHONG_BANG, ADR-0024 điều 1 — accepted 2026-09-29): chặt hơn STRICT (không bảng, không view, không câu SQL nào — không
