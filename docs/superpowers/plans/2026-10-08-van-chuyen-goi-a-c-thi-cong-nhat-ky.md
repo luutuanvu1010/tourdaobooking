@@ -25,6 +25,11 @@ Sổ điều phối (CLAUDE.md §9, P19). Trạng thái sống ở đây, không
 - **G9 — ADR-0104 Đ2 (i), đơn không còn xác nhận mà chưa huỷ (`delivered`, `completed`)** (câu hỏi 4 của kế hoạch): áp đúng chữ ADR đã duyệt "đơn không còn xác nhận → đóng … `REMOVED`"; không mở lại quyết định đã duyệt chỉ vì người lập kế hoạch khuyến nghị lệch. Đóng suất là đặt `valid_to_at`, không xoá dòng. Đường chạm thật: tám điểm gọi đều chạy trên đơn `confirmed` (hoặc vừa huỷ), nên thực tế chỉ nút tay "Cập nhật khách theo đơn" gặp ca này (dữ liệu lệch: đơn đã giao còn ghế trên chuyến chưa chạy). Suất đóng không mở lại được (trigger `lc09_leg` đòi đơn `confirmed`) — đúng nghĩa đơn đã giao. Nói với chủ một lần trong báo cáo.
 - **G10 — ADR-0104 Đ2 (iv), dữ liệu cam kết khi người không xếp xe sửa đơn** (câu hỏi 3 của kế hoạch — tan, không hỏi chủ): `kiemCamKet` chỉ cần, cho mỗi chặng có suất mở trên chuyến, `legId`, `orderId`, `xeRieng`, `choToiThieu` (khoá phá lệ không dùng mã đơn; lời lý do không đi ra ngoài lô máy). Gốc lắp ráp KHÔNG gọi `lichChungChang` (giữ nguyên luật `src/CLAUDE.md`, không ngoại lệ N10/S13); `van-chuyen` đọc bốn cột đó qua một view công bố hẹp mới của `orders` (khuôn `v_ord_leg_key`; tên đề xuất `v_ord_leg_commit`: `id, order_id, exclusive_vehicle, min_vehicle_seats`), cùng migration với `v_aud_order_cmd`. Đây là lối đọc xuyên module chuẩn của Hiến chương Phần II, không nới hàng rào. Ghi chú thêm: (iv) chỉ thêm suất cho chặng ĐÃ có suất mở trên chuyến, nên tập chặng — và vì vậy kết quả `kiemCamKet` — không đổi; kiểm vẫn giữ đúng chữ ADR. Người kiểm Đ2 xét lại điểm này.
 
+- **G11 — ADR-0107 Quyết định mục 6** (`PUT …/trip` nhiều chặng, ADR giao điều phối chọn): cách **(a)**. Chỉ chặng nào tự nó đang dưới mốc mới nhận dấu đặt gấp; chặng còn xa trong cùng lệnh không nhận, lệnh vẫn 200. Lý do: lời chủ 8b câu 4 "chỉ bấm được khi chặng thật sự còn dưới 6 giờ" tính theo từng chặng. Cách (b) (409 cả lệnh) chặn việc hợp lệ. Bài kiểm hai chặng là bắt buộc.
+- **G12 — ADR-0105 bài 1** (nới bài khoá DTO tài xế thêm đúng một khoá `diaChiChiDuong`): coi là nằm trong lời duyệt 8b câu 1. Câu hỏi không có nguyên văn câu "đồng ý nới bài khoá" của câu duyệt gợi ý tệp 03, nhưng hai điều đủ để kết luận: nút không thể có nếu điểm đến không tới được trình duyệt tài xế, và chủ đã chấp nhận rõ rủi ro điểm đến ra Google/Apple. Phạm vi nới chỉ đúng một khoá, chỉ trong ngày chạy.
+- **G13 — ADR-0105, nút Apple chỉ hiện trên máy Apple** (bề mặt, đảo ngược được): mô tả phương án chủ chọn là "Thêm nút Apple Maps cho người dùng iPhone"; Apple Maps trên web Android chưa kiểm. Hoàn tác: bỏ điều kiện ẩn.
+- **G14 — ADR-0107, thẻ chặng trên lịch chung của bảng điều phối giữ chữ "Đặt gấp"** (bề mặt): không để đứng cạnh nhãn chuyến "Điều chỉnh khẩn cấp" của ADR-0104 mà khác nghĩa. Nhãn của dấu với người chỉ thấy cờ (trang đơn, lịch sử) theo ADR-0107 mục 8.
+
 ## Giai đoạn 1 — tiêu chí nghiệm thu và trạng thái
 
 | Mã | Tiêu chí (hành vi kiểm được) | Trạng thái |
@@ -94,6 +99,7 @@ Sổ điều phối (CLAUDE.md §9, P19). Trạng thái sống ở đây, không
 
   **Người kiểm Đ1 phải đối chiếu ô quyền với ADR-0104 Q-1 b và lời chủ 8a**, không đối chiếu với kế hoạch.
 - **Đ2 — chờ Đ1 gộp** (kế hoạch mục 0: tuần tự).
+- **Bản chép 8b** (ADR-0105, 0106, 0107 + dòng mục lục + câu trỏ ADR cũ): người soạn xong (`2667bee3`, `9748f59e`, đã nhập vào nhánh). **Đang kiểm độc lập một vòng**, gồm cả G11–G14. Đạt thì điều phối chép vào `docs/adr/` bằng công cụ sửa tệp (`cmp` khớp). ADR-0105 chỉ giao thi công sau khi chép.
 - **Lượt duyệt 8c — đang soạn**, nhánh `luot-duyet-8c`, ba quyết định kèm trang ghép:
   - tổng tiền âm sau khi bớt khách (ADR mới 0109, chặn phát hành A2);
   - hai chỗ mã lệch ADR-0096 ở §16;
