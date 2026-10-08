@@ -27,8 +27,10 @@ Sổ điều phối (CLAUDE.md §9, P19). Trạng thái sống ở đây, không
 
 - **G11 — ADR-0107 Quyết định mục 6** (`PUT …/trip` nhiều chặng, ADR giao điều phối chọn): cách **(a)**. Chỉ chặng nào tự nó đang dưới mốc mới nhận dấu đặt gấp; chặng còn xa trong cùng lệnh không nhận, lệnh vẫn 200. Lý do: lời chủ 8b câu 4 "chỉ bấm được khi chặng thật sự còn dưới 6 giờ" tính theo từng chặng. Cách (b) (409 cả lệnh) chặn việc hợp lệ. Bài kiểm hai chặng là bắt buộc.
 - **G12 — ADR-0105 bài 1** (nới bài khoá DTO tài xế thêm đúng một khoá `diaChiChiDuong`): coi là nằm trong lời duyệt 8b câu 1. Câu hỏi không có nguyên văn câu "đồng ý nới bài khoá" của câu duyệt gợi ý tệp 03, nhưng hai điều đủ để kết luận: nút không thể có nếu điểm đến không tới được trình duyệt tài xế, và chủ đã chấp nhận rõ rủi ro điểm đến ra Google/Apple. Phạm vi nới chỉ đúng một khoá, chỉ trong ngày chạy.
-- **G13 — ADR-0105, nút Apple chỉ hiện trên máy Apple** (bề mặt, đảo ngược được): mô tả phương án chủ chọn là "Thêm nút Apple Maps cho người dùng iPhone"; Apple Maps trên web Android chưa kiểm. Hoàn tác: bỏ điều kiện ẩn.
-- **G14 — ADR-0107, thẻ chặng trên lịch chung của bảng điều phối giữ chữ "Đặt gấp"** (bề mặt): không để đứng cạnh nhãn chuyến "Điều chỉnh khẩn cấp" của ADR-0104 mà khác nghĩa. Nhãn của dấu với người chỉ thấy cờ (trang đơn, lịch sử) theo ADR-0107 mục 8.
+- **G13 — ADR-0105, nút Apple chỉ hiện trên máy của Apple** (bề mặt, đảo ngược được): mô tả phương án chủ chọn là "Thêm nút Apple Maps cho người dùng iPhone"; Apple Maps trên web Android chưa kiểm. Theo phiếu kiểm 8b (C2), "máy Apple" (iPhone, iPad, Mac) rộng hơn chữ "iPhone" của chủ; điều phối giữ "máy Apple", vì cả ba đều có Apple Maps và iPadOS đôi khi tự báo là Mac. Thân ADR-0105 ghi đúng luật này và kèm bài thuần cho hàm nhận diện máy. Hoàn tác: bỏ điều kiện ẩn.
+- **G14 — bỏ** (phiếu kiểm 8b): giữ chữ "Đặt gấp" trên thẻ chặng của lịch chung là trái chữ câu 4 ("Dấu sẽ mang nhãn 'Điều chỉnh khẩn cấp'"). Điều phối theo đúng chữ chủ: thẻ chặng đổi thành "Điều chỉnh khẩn cấp".
+- **G15 — ADR-0107, dấu đặt gấp chỉ LƯU khi giờ MỚI của chặng dưới mốc** (siết, CLAUDE.md §3; phiếu kiểm 8b C1). Phiếu kiểm tái hiện đường né mốc: Quản trị sửa chặng còn 150 phút sang 5 ngày sau, kèm `datGap` → 200, dấu nằm trên chặng ở xa, tới ngày thì xếp miễn mốc. Lỗ tương tự có ở `replace` và `PUT …/trip`. Mô tả phương án chủ chọn ở câu 4 hứa "không ai đóng dấu sớm để né mốc 6 giờ được nữa". Cổng cho gửi lệnh vẫn xét `min(cũ, mới)`; lệnh dời ra xa vẫn 200 nhưng chặng không mang dấu. Gộp G11: `PUT …/trip` dấu theo từng chặng (`updateTrip` phải đổi từ một `datGap` chung sang dấu theo chặng).
+- **H2 (phiếu kiểm 8b)**: ô `order.leg.short_notice` còn được hỏi ở `van-chuyen/index.ts:1112` (danh sách đơn nháp chờ đặt gấp ở lịch chung). Khi Bán hàng có ô, họ thấy danh sách này; không mở dữ liệu mới (vì đã có `order.view any`). Nhãn `aiXuLy` đổi thành "Bán hàng, Quản trị" (bề mặt); thêm bài ghim.
 
 ## Giai đoạn 1 — tiêu chí nghiệm thu và trạng thái
 
@@ -100,6 +102,14 @@ Sổ điều phối (CLAUDE.md §9, P19). Trạng thái sống ở đây, không
   **Người kiểm Đ1 phải đối chiếu ô quyền với ADR-0104 Q-1 b và lời chủ 8a**, không đối chiếu với kế hoạch.
 - **Đ2 — chờ Đ1 gộp** (kế hoạch mục 0: tuần tự).
 - **Bản chép 8b** (ADR-0105, 0106, 0107 + dòng mục lục + câu trỏ ADR cũ): người soạn xong (`2667bee3`, `9748f59e`, đã nhập vào nhánh). **Đang kiểm độc lập một vòng**, gồm cả G11–G14. Đạt thì điều phối chép vào `docs/adr/` bằng công cụ sửa tệp (`cmp` khớp). ADR-0105 chỉ giao thi công sau khi chép.
+  - **Phiếu kiểm độc lập 8b**:
+    - ADR-0106, README và câu trỏ ĐẠT. Người kiểm tự phá vế `doiKetThuc` và thấy đỏ ở `nghi-chup-lai.test.ts:89` (`60 !== 45`), quan sát 2026-10-08.
+    - ADR-0105 KHÔNG ĐẠT (C2, chữ "hai nút trên mọi máy" gán sai lời chủ).
+    - ADR-0107 KHÔNG ĐẠT (C1, đường né mốc gọi là "chủ đã duyệt").
+    - CAO: H1 (thân ghi "không có nguyên văn câu hỏi"), H2 (ô có chỗ hỏi thứ hai), H3 (danh sách bài ghim bị nới thiếu 6 bài).
+    - Mã 409 mới và việc bỏ ép `chiOPhu` không đổi hành vi nào ngoài phép siết đã duyệt. G11, G12, G13 đúng (G12 có điều kiện ghi căn cứ); G14 trái chữ chủ.
+
+    Điều phối giao người soạn sửa đủ theo C1 (cách b → G15), C2, H1–H3 và các mục THẤP. Đây là chữ của bản chép, nên không mở vòng kiểm thứ hai; điều phối tự đọc diff trước khi chép.
 - **Lượt duyệt 8c — đang soạn**, nhánh `luot-duyet-8c`, ba quyết định kèm trang ghép:
   - tổng tiền âm sau khi bớt khách (ADR mới 0109, chặn phát hành A2);
   - hai chỗ mã lệch ADR-0096 ở §16;
