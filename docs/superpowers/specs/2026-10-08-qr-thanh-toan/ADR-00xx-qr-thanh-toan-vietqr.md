@@ -1,6 +1,6 @@
 # ADR-00xx — Mã QR thanh toán VietQR trên đơn: tài khoản nhận tiền của công ty chủ, route đọc QR theo `order.view` + `money.view`, phát hành cùng ADR-0092 Đ6
 
-- **Trạng thái:** **proposed** (bản nháp vòng 3 ở thư mục đặc tả; chép vào `docs/adr/` khi chủ duyệt).
+- **Trạng thái:** bản nháp đã được duyệt 2026-10-08 và **chép thành `docs/adr/ADR-0108-qr-thanh-toan-vietqr.md`** (bản chính thức). Tệp này giữ làm lịch sử, không sửa tiếp.
 - **Số hiệu:** tạm `00xx`. 0103 và 0104 đang là số tạm của lượt Vận chuyển (nhánh `a1-luat-loi-chuyen`); số chính thức chốt khi chép theo thứ tự chủ duyệt.
 - **Ngày:** 2026-10-08.
 - **Đặc tả:** `docs/superpowers/specs/2026-10-08-qr-thanh-toan/README.md`. **Trang ghép:** `trang-ghep.md` cùng thư mục.

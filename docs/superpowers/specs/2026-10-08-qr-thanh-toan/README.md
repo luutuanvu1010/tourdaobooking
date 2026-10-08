@@ -1,7 +1,7 @@
 # Đặc tả: mã QR thanh toán (VietQR) trên đơn + mã giao dịch ngân hàng khi Kế toán xác nhận
 
 - **Ngày:** 2026-10-08. **Người soạn:** AI (phiên lập kế hoạch, nhánh `claude/ticket-sales-qr-payment-cf8e18`, mốc `main` @`4d98a205`).
-- **Trạng thái:** bản nháp vòng 4, chờ chủ duyệt. Người kiểm độc lập vòng 1, 2, 3 đều kết luận ĐẠT CÓ ĐIỀU KIỆN; vòng 3 không còn mục CAO (đã chạy thử lối ra trên mã thật bằng khung thử). Mọi mục đã sửa, bảng theo dõi ở §12; điều kiện còn lại là câu C4 (§9). Bản vòng 4 chỉ sửa chữ, chưa kiểm lại. Kèm: ADR nháp `ADR-00xx-qr-thanh-toan-vietqr.md` và trang ghép `trang-ghep.md` cùng thư mục.
+- **Trạng thái:** **ĐÃ DUYỆT** — chủ dự án 2026-10-08 (chat, "Duyệt (Recommended)"), cùng ADR-0108 (`docs/adr/ADR-0108-qr-thanh-toan-vietqr.md`, chép từ bản nháp `ADR-00xx-qr-thanh-toan-vietqr.md` cùng thư mục). Người kiểm độc lập vòng 1, 2, 3 đều ĐẠT CÓ ĐIỀU KIỆN; vòng 3 không còn CAO; điều kiện cuối (C4) chủ đã trả lời. Bảng theo dõi ở §12. Đặc tả đã duyệt là chuẩn tắc: sửa sau này bằng bản mới trỏ về bản này. Kèm: ADR nháp `ADR-00xx-qr-thanh-toan-vietqr.md` và trang ghép `trang-ghep.md` cùng thư mục.
 - **Loại việc:** việc lớn (tiền, quyền, dữ liệu): sau thi công bắt buộc người kiểm độc lập chỉ đọc (CLAUDE.md §3).
 - **Xây trên lỗ đang hở: TNV-G1, TNV-G3, TNV-G4, HC-4.2** (`docs/quyen-hoan.json`, cả bốn mức HIGH, hạn 2026-10-31):
   - **TNV-G1:** nút QR ẩn ở đơn huỷ nhờ `conLai` trả 0, mà đó là phần sửa của G1 (migration 0078–0079).
@@ -168,7 +168,7 @@ Khoản do người không phải Kế toán khai (dòng giữ hộ) **chưa** c
 | C2 | "Cho phép, có ghi lý do" | trường `xay_tren_cho_phep` ở bốn mục TNV-G1, G3, G4, HC-4.2 của `docs/quyen-hoan.json` (hạn giữ nguyên 31/10) |
 | C3 | "Chép bộ vẽ miễn phí" | §7 phương án (a) |
 
-**C4 — chờ chủ (sau người kiểm vòng 3).** Ca kẹt "mã dùng chung nhiều đơn đã giao, số thực chuyển nhập sai" (§10 "Hạn chế đã biết"). Khuyến nghị: **chấp nhận là hạn chế đã biết**; lối ra tạm là người phụ trách hệ thống sửa bằng SQL theo sổ tay, có nhật ký; đường sửa trong Nền tảng làm cùng việc vá HC-4.2. Phương án khác: làm đường sửa ngay, thêm một quyết định nên phải tách lượt duyệt, chậm hơn.
+**C4 — ĐÃ TRẢ LỜI 2026-10-08: "Chấp nhận, sửa sau (Recommended)".** Ca kẹt "mã dùng chung nhiều đơn đã giao, số thực chuyển nhập sai" (§10 "Hạn chế đã biết"). Khuyến nghị: **chấp nhận là hạn chế đã biết**; lối ra tạm là người phụ trách hệ thống sửa bằng SQL theo sổ tay, có nhật ký; đường sửa trong Nền tảng làm cùng việc vá HC-4.2. Phương án khác: làm đường sửa ngay, thêm một quyết định nên phải tách lượt duyệt, chậm hơn.
 
 Nội dung câu hỏi gốc (giữ để đối chiếu):
 
