@@ -75,6 +75,9 @@ test("LENH_DONG_SUAT (bảng lệnh → mã đóng suất, một chỗ): 'cập 
     KET_THUC_GIAN_DOAN: "TRIP_INTERRUPTED",
     DOI_DIEM_THEO_CHANG: "STOP_CHANGED",
     DOI_KHACH_THEO_DON: "PASSENGER_CHANGED",
+    // ADR-0104 Đ2 (phán quyết G7 của điều phối, 2026-10-08 — nới có tên N6 trong docs/SO-HANG-RAO.md): máy đồng bộ chuyến theo đơn đóng ghế của đơn huỷ /
+    // chặng bỏ / ghế thừa bằng REMOVED (cùng họ "rút khách"); khoá người đổi vẫn PASSENGER_CHANGED (DOI_KHACH_THEO_DON).
+    DONG_BO_THEO_DON: "REMOVED",
   });
   assert.equal(LENH_DONG_SUAT.DOI_DIEM_THEO_CHANG, "STOP_CHANGED");
   assert.equal(LENH_DONG_SUAT.DOI_KHACH_THEO_DON, "PASSENGER_CHANGED", "R-P29 (chủ lần 16): mã RIÊNG, không dùng lại STOP_CHANGED / REMOVED");

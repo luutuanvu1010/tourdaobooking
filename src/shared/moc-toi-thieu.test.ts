@@ -167,6 +167,12 @@ test("R-P29 (chủ lần 16): lệnh 'cập nhật khách theo đơn' (DOI_KHACH
   const batDau = ms("2026-09-30", "06:00");
   assert.equal(kiemMocXep(cx(batDau), batDau - 60 * PHUT, 360, { loai: "DOI_KHACH_THEO_DON" }).canPhaLe, false, "một giờ trước xuất bến vẫn cập nhật khách được");
 });
+test("ADR-0104 Đ2.5: lệnh máy 'đồng bộ chuyến theo đơn' (DONG_BO_THEO_DON) là lệnh lúc xếp nhưng KHÔNG khoá theo mốc — không miễn luật lõi, không cần vượt mốc", () => {
+  assert.ok((LENH_XEP as readonly string[]).includes("DONG_BO_THEO_DON"));
+  assert.ok(!(LENH_KHOA_THEO_MOC as readonly string[]).includes("DONG_BO_THEO_DON"), "khuôn DOI_KHACH_THEO_DON — ngoài LENH_KHOA_THEO_MOC");
+  const batDau = ms("2026-09-30", "06:00");
+  assert.equal(kiemMocXep(cx(batDau), batDau - 10 * PHUT, 360, { loai: "DONG_BO_THEO_DON" }).canPhaLe, false);
+});
 
 test("mucMoc: quá mốc (dưới mốc) → đỏ; sát mốc (dưới mốc + cảnh báo) → vàng; còn lại bình thường; ranh giới đúng phút", () => {
   const leg = ms("2026-09-30", "12:00");

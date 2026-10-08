@@ -73,6 +73,9 @@ export const LENH_XEP = [
   "DOI_DIEM_THEO_CHANG",
   // R-P29 (chủ lần 16): "cập nhật khách theo đơn" — máy theo đúng đơn, không đổi xe của ai theo ý người → KHÔNG vào LENH_KHOA_THEO_MOC (không cần phá lệ).
   "DOI_KHACH_THEO_DON",
+  // ADR-0104 Đ2.5: máy đồng bộ chuyến theo đơn (lệnh đơn nối khúc chuyến vào cùng lô) — khuôn DOI_KHACH_THEO_DON: KHÔNG vào LENH_KHOA_THEO_MOC; không miễn luật
+  // lõi (LC-01, 02, 09, 10, 15 — trigger vẫn chạy).
+  "DONG_BO_THEO_DON",
 ] as const;
 export type LenhXep = (typeof LENH_XEP)[number];
 /** Lệnh bị KHOÁ trong mốc (đổi "ai đi xe nào", đổi xe, đổi tài xế — ADR-0049 D2; huỷ chuyến còn khách — kế hoạch route 8). Các lệnh khác không khoá. */

@@ -132,6 +132,9 @@ export const LENH_DONG_SUAT = {
   DOI_DIEM_THEO_CHANG: "STOP_CHANGED",
   // R-P29 (chủ lần 16): "cập nhật khách theo đơn" — suất mang khoá người không còn trong đơn đóng bằng mã RIÊNG (không dùng lại STOP_CHANGED / REMOVED).
   DOI_KHACH_THEO_DON: "PASSENGER_CHANGED",
+  // ADR-0104 Đ2 (phán quyết G7): máy đồng bộ chuyến theo đơn đóng ghế của đơn huỷ / chặng bỏ / đơn không còn xác nhận (luật (i)) và ghế thừa chưa tên (luật
+  // (iii)) bằng REMOVED — cùng họ "rút khách"; khoá người đổi (luật (ii)) vẫn DOI_KHACH_THEO_DON. Mã mới thì phải dựng lại bảng suất (CHECK đóng 0042:133).
+  DONG_BO_THEO_DON: "REMOVED",
 } as const satisfies Record<string, LyDoDongSuat>;
 
 // ---- Kiểu VÀO của luật thuần ------------------------------------------------------------------------------------------------------------------------------
