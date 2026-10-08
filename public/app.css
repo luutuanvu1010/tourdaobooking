@@ -1964,6 +1964,10 @@ body.login-page main.login { display: flex; flex-direction: column; flex: 1; min
 .vc-btn-stop:hover, .vc-btn-stop:active { background: var(--c-danger-soft); }
 .vc-btn-danger { color: var(--c-on-dark); background: var(--c-danger); border: 1px solid var(--c-danger); }
 .vc-btn-text { gap: var(--s1); padding: 0 var(--s2); font-weight: var(--fw-bold); color: var(--c-primary); background: none; border: 0; }
+/* Nút Vận chuyển mang thêm .btn KHÔNG chuyển dần màu nền / viền (chỉ giữ lún khi bấm + bóng), như các nút .vc-btn-* khác. Lý do: .vc-btn:disabled đổi CẢ màu
+   chữ lẫn nền; .btn chỉ chuyển dần nền → lúc vừa mở khoá chữ đã trắng mà nền còn xám nhạt (#fff trên #f2f5f9 = 1,09:1, axe color-contrast ở hộp
+   "Điều chỉnh kết quả"; cuoc-smoke bước 8c). Chuyển dần cả màu chữ cũng không đủ: giữa chừng chữ xám vừa trên nền xanh vừa. */
+.vc-btn.btn { transition-property: transform, box-shadow; }
 .vc-btn:disabled { color: var(--c-text-muted); background: var(--c-surface-alt); border-color: var(--c-surface-alt); cursor: not-allowed; opacity: 1; box-shadow: none; } /* 1.70: box-shadow none — nút chính đặc ở chân bảng có bóng, khoá thì xám phẳng (kiểm độc lập TB-2) */
 .vc-hist-toggle svg { transition: transform var(--m-fast); }
 .vc-hist-toggle[aria-expanded="true"] svg { transform: rotate(180deg); }
