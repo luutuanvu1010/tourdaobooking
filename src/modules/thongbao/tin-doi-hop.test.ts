@@ -210,7 +210,7 @@ test("màn hình khoá (gõ cửa THẬT qua gốc lắp ráp, fetch giả): s�
     await suaChang(w, ADM, a.don.id, { pickupTime: "13:30" });
     assert.deepEqual(await nguoiDuocGo(), [SALES, FIELD, DRIVER].sort(), "MQ-07 (Bán hàng, tài xế) + tin đơn đổi (HDV); không Quản trị (người sửa), Kế toán, tài xế khác, Đối tác");
     // Lệnh SAU của cùng người trên cùng đơn, cũng báo "chuyen" nhưng KHÔNG ghi dòng đổi (đặt gấp — nhật ký order_leg_short_notice): không gõ cửa lại tin cũ.
-    // Đồng hồ giả đứng yên giữa các request → tiến 1 phút (thật: mỗi request một mốc khác), vẫn trong 2 phút.
+    // Đồng hồ giả đứng yên giữa các request → tiến 1 phút (thật: mỗi request một mốc khác) — cố ý vẫn trong 2 phút để bài bắt cách "đọc dòng đổi trong cửa sổ thời gian".
     denGio("06:11");
     const legA = (await donXem(w, a.don.id)).services[0].legs[0].id;
     const g = await w.call("POST", `/api/orders/${a.don.id}/legs/${legA}/short-notice`, { as: ADM, body: { lyDo: "KHAC" } });
