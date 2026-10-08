@@ -12,6 +12,7 @@
 // Điểm hết khách → bỏ qua; cột phá lệ cam kết xoá khi hết vi phạm (khuôn `camKetSauGiam`). Chuyến RUNNING: không câu nào, chỉ cờ nhắc (Đ2.7). Chuyến đã
 // kết thúc / huỷ: không gì (Đ2.8).
 import { kiemCamKet, type ChangCamKet } from "./cam-ket-xe.ts";
+import type { DongBoChuyenDto } from "./contracts.ts";
 import { khoaNguoiRanh, moLaiSauDoiKhach } from "./dieu-phoi-kiem.ts";
 import { LENH_DONG_SUAT, type DiemVao, type LyDoDongSuat, type SuatVao, type TrangThaiChuyen } from "./dieu-phoi-kieu.ts";
 
@@ -87,6 +88,8 @@ export interface VaoDongBo {
   chuyen: readonly ChuyenDongBo[];
   /** Suất MỞ của các chặng trên MỌI chuyến (L-D1 — `allocsOpenByLegs`), kể cả chuyến không trong `chuyen`. */
   suatMoCuaChang: readonly SuatVao[];
+  /** Suất đã có cờ "văn phòng báo huỷ" (xe đang chạy — ADR-0052 D5.2): không nhắc lại. */
+  daBaoHuy?: ReadonlySet<string>;
   newId: () => string;
 }
 export interface SuatMoDongBo {
@@ -169,6 +172,8 @@ export function dongBoChuyenTheoDon(v: VaoDongBo): KetQuaDongBo {
     mo.set(m.tripId, [...(mo.get(m.tripId) ?? []), m]);
     ghiNguyenNhan(m.tripId, ch.orderCode, nn, 0, 1);
   };
+  /** Suất khách CHỜ ĐÓN trên xe đang chạy, chưa báo huỷ — luật sẽ đóng nhưng máy không ghi ⇒ nhắc văn phòng bấm Báo huỷ (Đ2.7). */
+  const canNhac = (s: SuatVao) => dangChay(s.tripId) && s.trangThai === "WAITING" && !(v.daBaoHuy?.has(s.id) ?? false);
   const theoThuTu = (a: SuatVao, b: SuatVao) => thuTuChuyen(a.tripId) - thuTuChuyen(b.tripId) || soSanh(a.id, b.id);
   // Khoá đã cấp trong lô (theo chặng) — khoá người tính CHUNG cho mọi khúc (chỉ mục duy nhất chặng + người trên suất mở ở MỌI chuyến).
   const khoaDaCap = new Map<string, Set<string>>();
@@ -192,13 +197,13 @@ export function dongBoChuyenTheoDon(v: VaoDongBo): KetQuaDongBo {
     if (ch.dong !== null) {
       for (const s of moAll) {
         if (ghiDuoc(s.tripId)) dongSuat(s, LENH_DONG_SUAT.DONG_BO_THEO_DON, ch, ch.dong);
-        else if (dangChay(s.tripId) && s.trangThai === "WAITING") nhac = true;
+        else if (canNhac(s)) nhac = true;
       }
       continue;
     }
     const nguoi = new Set(ch.nguoi);
     const lech = moAll.filter((s) => s.personKey !== null && !nguoi.has(s.personKey));
-    if (lech.some((s) => dangChay(s.tripId) && s.trangThai === "WAITING")) nhac = true;
+    if (lech.some(canNhac)) nhac = true;
     const lechGhi = lech.filter((s) => ghiDuoc(s.tripId));
     if (lechGhi.length > 0) {
       for (const s of lechGhi) daDong.add(s.id); // khoá của suất sắp đóng không chiếm chỗ khi tính khoá rảnh
@@ -226,7 +231,7 @@ export function dongBoChuyenTheoDon(v: VaoDongBo): KetQuaDongBo {
     }
     const tripId = [...chuyenCuaChang][0]!;
     if (!ghiDuoc(tripId)) {
-      if (dangChay(tripId) && moAll.some((s) => s.trangThai === "WAITING")) nhac = true;
+      if (moAll.some(canNhac)) nhac = true;
       continue;
     }
     const chuaTen = moAll.filter((s) => s.personKey === null && !daDong.has(s.id)).sort((a, b) => soSanh(a.id, b.id));
@@ -309,3 +314,43 @@ export const moTaTheoDon = (k: Pick<KhucDongBo, "theoDon">): string =>
   }).join("; ");
 /** `detail` của nhật ký `trip_order_synced` (Đ2.9) — trước đuôi cam kết. */
 export const moTaKhuc = (k: Pick<KhucDongBo, "ma" | "theoDon">): string => `${k.ma}: máy cập nhật theo đơn — ${moTaTheoDon(k)}`;
+
+// ---- Hàm tiêm `ctx.dongBoChuyen` (ADR-0104 Đ2.1 — gốc lắp ráp nối van-chuyen; orders / dispatch không import van-chuyen) ---------------------------------
+/** Đầu vào từ điểm gọi (route đơn): câu đơn ĐÃ SOẠN chưa chạy + mã nhật ký của câu cổng đơn + trạng thái đơn SAU lệnh. */
+export interface VaoDongBoTheoDon {
+  orderId: string;
+  /** id dòng audit_log của câu cổng đơn — hành động phải thuộc HANH_DONG_CONG_DON (bài ghép). */
+  auditIdDon: string;
+  bayGioMs: number;
+  sau: SauDon;
+  /** Số người lệnh này tăng ở từng chặng; vắng = không tăng (Đ2.1). */
+  tangTheoChang?: Readonly<Record<string, number>>;
+  cauDon: readonly D1PreparedStatement[];
+}
+/**
+ * Kết quả của hàm tiêm: `lo` = danh sách ĐẦY ĐỦ chưa chạy `[câu đơn…, khúc chuyến…]` (vượt trần / không có gì để đồng bộ → đúng `cauDon`). Điểm gọi chạy MỘT
+ * `db.batch(lo)`; chỉ số kết quả của câu đơn không đổi (câu đơn đứng đầu). `sauKhiGhi(kq)` (khi lệnh đơn THẮNG) trả phần "chuyến" của phản hồi — khúc thua
+ * cổng chuyến bật `capNhatTay` — và (bản do router bọc) tự báo Bảng tin cho từng khúc thắng. `dichLoi(e)`: lỗi trigger chuyến của lô → 409 `trip_rule`, lỗi
+ * khác → null (route tự dịch như cũ).
+ */
+export interface DongBoTheoDon {
+  lo: D1PreparedStatement[];
+  soCauDon: number;
+  nhac: string | null;
+  capNhatTay: boolean;
+  sauKhiGhi: (kq: readonly D1Result[]) => { dto: DongBoChuyenDto; bao: { tripId: string; requestId: string }[] };
+  dichLoi: (e: unknown) => Response | null;
+}
+/** Kiểu của `ctx.dongBoChuyen` — orders / dispatch nhận làm tham số (không import van-chuyen). */
+export type NoiChuyen = (x: VaoDongBoTheoDon) => Promise<DongBoTheoDon>;
+/**
+ * Không có máy đồng bộ (hàm tiêm vắng — chỉ khung thử cố ý tắt): lô = đúng câu đơn, chuyến giữ như cũ; phản hồi báo `capNhatTay` (máy không đồng bộ được — nói
+ * thật, không đoán "không có chuyến nào").
+ */
+export function dongBoDiThang(x: Pick<VaoDongBoTheoDon, "cauDon">): DongBoTheoDon {
+  return {
+    lo: [...x.cauDon], soCauDon: x.cauDon.length, nhac: null, capNhatTay: true,
+    sauKhiGhi: () => ({ dto: { nhac: null, capNhatTay: true }, bao: [] }),
+    dichLoi: () => null,
+  };
+}

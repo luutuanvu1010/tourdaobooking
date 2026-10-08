@@ -191,6 +191,8 @@ export const nguongHetHanHienHanh = (db: D1Database): Promise<number> => current
 export { viecXeCuaNguoi } from "./chuyen-repo";
 // TIN CHUYẾN (ADR-0052 D6.3): CHỈ gốc lắp ráp gọi (bài siết ở src/architecture.test.ts) — thongbao nhận dữ kiện qua ctx.chuyenChoTin.
 export { chuyenChoTinTheoId, suKienTheoYeuCau } from "./chuyen-repo";
+/** ADR-0104 Đ2.1 — máy đồng bộ chuyến theo đơn: CHỈ gốc lắp ráp gọi (`ctx.dongBoChuyen`; bài siết ở src/architecture.test.ts). */
+export { dongBoChuyenChoDon } from "./dong-bo-don";
 
 // ---- Chính sách điều phối, điều kiện xuất bến, hạng bằng, danh mục lý do (ADR-0049 D2; kế hoạch mục 1.7 route 9–18, Task A7) ------------------------------
 // Chính sách / điều kiện / hạng bằng: dòng có ngày hiệu lực, CHỈ THÊM, `valid_from_at` = lúc ghi (I28). Hai lần ghi cùng mili-giây vấp khoá duy nhất → 409

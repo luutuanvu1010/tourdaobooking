@@ -234,6 +234,43 @@ export async function legFlags(db: D1Database, legIds: readonly string[]): Promi
   return (await db.prepare(LEG_FLAGS).bind(JSON.stringify(legIds)).all<LegFlagRow>()).results;
 }
 
+// ---- Đọc của máy ĐỒNG BỘ CHUYẾN THEO ĐƠN (ADR-0104 Đ2; gốc lắp ráp gọi — người sửa đơn có thể KHÔNG có trip.view: không câu nào trả dữ liệu ra ngoài) ----
+/** Mọi chặng của MỘT đơn (kể cả chặng đã đóng) + mã đơn — qua view công bố của orders. */
+const CHANG_CUA_DON_DONG_BO = defineSql(
+  "van-chuyen",
+  "chang_cua_don_dong_bo",
+  `SELECT k.id, k.order_id, o.order_code, k.is_open FROM v_ord_leg_key k LEFT JOIN v_ord_order_label o ON o.id = k.order_id WHERE k.order_id = ?1 ORDER BY k.id`,
+);
+export async function changCuaDonDongBo(db: D1Database, orderId: string): Promise<{ id: string; order_id: string; order_code: string | null; is_open: number }[]> {
+  return (await db.prepare(CHANG_CUA_DON_DONG_BO).bind(orderId).all<{ id: string; order_id: string; order_code: string | null; is_open: number }>()).results;
+}
+/** Khoá người HIỆN HÀNH của đơn (view công bố — cùng nguồn trigger LC-10). Không tên. */
+const NGUOI_CUA_DON = defineSql(
+  "van-chuyen",
+  "nguoi_cua_don",
+  "SELECT person_key FROM v_ord_passenger_key WHERE order_id = ?1 AND has_current_row = 1 ORDER BY person_key",
+);
+export async function nguoiCuaDon(db: D1Database, orderId: string): Promise<string[]> {
+  return (await db.prepare(NGUOI_CUA_DON).bind(orderId).all<{ person_key: string }>()).results.map((r) => r.person_key);
+}
+/** Bốn cột cam kết của các chặng (0089 `v_ord_leg_commit` — phán quyết G10) + mã đơn (nhãn lý do cam kết). */
+const CAM_KET_CHANG = defineSql(
+  "van-chuyen",
+  "cam_ket_chang",
+  `SELECT c.id, c.order_id, o.order_code, c.exclusive_vehicle, c.min_vehicle_seats
+   FROM v_ord_leg_commit c LEFT JOIN v_ord_order_label o ON o.id = c.order_id WHERE c.id IN (SELECT value FROM json_each(?1))`,
+);
+export async function camKetChang(db: D1Database, legIds: readonly string[]): Promise<{ id: string; order_id: string; order_code: string | null; exclusive_vehicle: number; min_vehicle_seats: number | null }[]> {
+  if (legIds.length === 0) return [];
+  return (await db.prepare(CAM_KET_CHANG).bind(JSON.stringify(legIds)).all<{ id: string; order_id: string; order_code: string | null; exclusive_vehicle: number; min_vehicle_seats: number | null }>()).results;
+}
+/** Chuyến theo danh sách id. */
+const TRIPS_BY_IDS = defineSql("van-chuyen", "trips_by_ids", `SELECT ${COT_CHUYEN} FROM vc_trip t WHERE t.id IN (SELECT value FROM json_each(?1)) ORDER BY t.code, t.id`);
+export async function tripsByIds(db: D1Database, ids: readonly string[]): Promise<TripRow[]> {
+  if (ids.length === 0) return [];
+  return (await db.prepare(TRIPS_BY_IDS).bind(JSON.stringify(ids)).all<TripRow>()).results;
+}
+
 /** Xe chưa ngừng + chủ (tên, cờ công ty chủ hiện tại) — danh sách chọn xe của văn phòng và dữ liệu vào luật thuần. */
 export interface XeDieuPhoiRow {
   id: string;

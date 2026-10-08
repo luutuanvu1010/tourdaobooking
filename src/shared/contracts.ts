@@ -444,7 +444,15 @@ export interface PassengerListResponse {
   soKhachDoan: number;
   vuotSoKhach: boolean;
   orderUpdatedAt: string;
+  /** Chỉ phản hồi của lệnh GHI (`POST`) — ADR-0104 Đ2. */
+  dongBoChuyen?: DongBoChuyenDto;
 }
+/**
+ * ADR-0104 Đ2 — phần "chuyến" của phản hồi lệnh đơn có nối máy đồng bộ chuyến (huỷ đơn, bỏ / thay chặng, sửa chặng, sửa khách, sửa số khách — cả đường HDV).
+ * KHÔNG mang dữ liệu chuyến nào (Đ2.13 — không mã chuyến, biển số, tài xế). `nhac` = câu cố định khi đơn có khách chờ đón trên xe ĐANG CHẠY (văn phòng bấm
+ * Báo huỷ); `capNhatTay` = máy không nối được phần chuyến (vượt trần câu, hoặc chuyến vừa đổi giữa lúc đọc và lúc ghi) — người xếp xe bấm "Cập nhật khách theo đơn".
+ */
+export interface DongBoChuyenDto { nhac: string | null; capNhatTay: boolean }
 /** `POST /api/orders/:id/passengers` (đơn đã xác nhận): thêm dòng mới, sửa = dòng mới trỏ dòng hiện hành, huỷ = mọi dòng của người đó. */
 export interface PassengerChangeInput {
   expectedUpdatedAt: string;
