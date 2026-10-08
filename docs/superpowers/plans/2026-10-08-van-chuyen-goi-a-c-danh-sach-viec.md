@@ -3,7 +3,7 @@
 > **Đây là nơi DUY NHẤT trả lời "còn bao nhiêu việc".** Chủ dự án yêu cầu 2026-10-08: "ghi lại tệp đó, và chúng ta làm 1 lần cho xong".
 > - **Luật 1:** thêm một việc vào bảng này phải hỏi chủ trước. Phát hiện không chặn phát hành ghi vào mục "Nợ để sau", không chen vào bảng.
 > - **Luật 2:** làm theo đúng thứ tự trong bảng. Việc sau chỉ bắt đầu sớm khi không đụng cùng tệp với việc đang làm.
-> - **Luật 3:** báo cáo cho chủ luôn theo bảng này ("xong x / 11").
+> - **Luật 3:** báo cáo cho chủ luôn theo bảng này ("xong x / 12").
 > - **Luật 4:** cột "Xong khi" là tiêu chí nghiệm thu. Việc lớn (dữ liệu, quyền, tiền, tin) còn phải có người kiểm độc lập chỉ-đọc báo đạt.
 >
 > Lý do, ruling và bằng chứng chi tiết vẫn ghi ở sổ thi công `2026-10-08-van-chuyen-goi-a-c-thi-cong-nhat-ky.md`; tệp này chỉ trỏ tới.
@@ -20,6 +20,7 @@
 | 4 | ADR-0105 — hai nút Chỉ đường (migration 0090) | Theo kế hoạch ADR-0105; thêm dòng bản đồ vào `RANG_BUOC_NGOAI.md`; kịch bản Chrome nhóm Chỉ đường xanh có `AXE_JS`; kiểm độc lập | Chưa làm |
 | 5 | ADR-0109 — phải thu không âm | Theo kế hoạch ADR-0109; phiếu phản biện là danh sách bắt buộc; kiểm độc lập (tiền) | Chưa làm |
 | 6 | G17 — báo tài xế khi `PUT /api/orders/:id/trip` đổi ngày / giờ đón chặng đã xếp | Bài đỏ trước, xanh sau; e2e liên quan xanh | Chưa làm |
+| 6b | **Bảng sự kiện Vận chuyển** (chủ đồng ý 2026-10-09: "ok" cho hướng "ép hệ thống vào một khuôn khổ rồi tự suy ra quy tắc / việc cần làm"): mỗi lệnh làm đổi chuyến xe một dòng — ai được bấm, luật kiểm, dữ liệu đổi, sự kiện, nhật ký, ai nhận tin; bài máy đối chiếu bảng với mã hai chiều | Bảng dựng từ mã hiện có + bài máy đối chiếu đã quan sát chặn thật; danh sách chỗ lệch thay cho việc lặt vặt; chủ duyệt như quyết định mới. **Làm trước A5 và C3**; A5, C3 khai dòng vào bảng trước khi viết mã | Đang làm |
 | 7 | A4 — tài xế đối tác dùng Nền tảng, báo bận (ADR-0053 D7.1, D8, D9) | Theo kế hoạch A4 đã phản biện; kiểm độc lập; cuối việc báo chủ phần pháp lý; thử iPhone thật | Chưa làm |
 | 8 | A5 — chuyển khách giữa hai xe (ADR-0111) | Theo kế hoạch A5 + các điểm ADR-0111 thắng kế hoạch (sổ thi công); mười tình huống chạy thành bài; kiểm độc lập; chủ xác nhận bộ 24 bước lượt 1 lúc nghiệm thu | Chưa làm |
 | 9 | C2 — màn tài xế: "Điểm kế tiếp", nút dính đáy, giờ hẹn 16px, xác nhận "Đã đón N khách", khoá nút khi đang gửi, nút Kết thúc khớp máy chủ, đồng hồ chờ "Vắng", ẩn nút Hỗ trợ | Từng mục C53, C54, C56, C57, C59, C61 có bài / kịch bản Chrome xanh có `AXE_JS`; ảnh thật hai cỡ màn hình | Chưa làm |
