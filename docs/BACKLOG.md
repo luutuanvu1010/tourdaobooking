@@ -222,3 +222,10 @@
 - **Ngày:** 2026-10-08 · **Nêu bởi:** kế hoạch thi công `docs/superpowers/plans/2026-10-08-qr-thanh-toan-ke-hoach.md` (ADR-0108, ADR-0092 Đ6) · **Trạng thái chung:** `ý tưởng` (không phải lời duyệt).
 - **BL-QR-TIN-DOI-TK — tin báo cho Kế toán khi công ty đổi tài khoản nhận tiền.** Hôm nay đổi tài khoản chỉ ghi nhật ký (không chép số tài khoản), chưa có tin nào báo ai. Chờ loại tin của sổ tiền (đặc tả `docs/superpowers/specs/2026-10-06-tin-bao-so-tien.md`) rồi thêm một loại tin "Tài khoản nhận tiền đã đổi".
 - **BL-QR-SUA-MA — đường sửa riêng cho mã giao dịch và số tiền thực chuyển.** Hạn chế đã biết (câu C4 của đặc tả, chủ chấp nhận 2026-10-08): nhập sai mã hoặc số thực chuyển thì chỉ sửa bằng "Đảo" (trước Đã giao) hoặc "Thay lần thu"; ca kẹt là mã dùng chung nhiều đơn đã giao mà số thực chuyển nhập sai ngay từ đầu. Đường sửa riêng cần luật hai người (HC-4.2 trong `docs/quyen-hoan.json`) nên chờ HC-4.2 được vá.
+
+## 25. Đổi chữ "lần thu" thành "khoản thu" trên toàn Nền tảng (chủ chốt 2026-10-08)
+
+- **Ngày:** 2026-10-08 · **Nêu bởi:** chủ dự án, trong chat phiên QR thanh toán ("'Ghi lần thu' là 1 cụm từ cực kỳ tối nghĩa") · **Trạng thái:** `đã chốt tên, chưa làm`.
+- **Tên mới chủ đã chọn:** "Khoản thu" — "Ghi lần thu" → **"Ghi khoản thu"**; "Thay lần thu" → **"Sửa khoản thu đã ghi"**; "Ghi bù lần thu" → **"Ghi bù khoản thu"**; các câu khác có chữ "lần thu" đổi theo cùng kiểu.
+- **Khi nào:** việc nhỏ riêng, làm NGAY SAU khi nhánh QR thanh toán đã nhập `main` (nhánh đó cũng thêm chữ "lần thu"), dựng trên `main` mới nhất.
+- **Phạm vi phải quét:** nhãn và câu báo ở `web/*.ts` (khoảng 17 tệp có chữ này), `src/shared/` (câu lỗi, Trợ giúp, nhật ký thay đổi chỉ sửa mục MỚI — mục cũ là hồ sơ có ngày, giữ nguyên), kho tri thức Trợ lý Mai sinh từ nhãn (`npm run build:web` sinh lại `src/shared/so-do-trang.ts` và tệp cấu trúc Trợ lý), kịch bản Chrome dò nút theo tên (`docs/evidence/*/kich-ban/`), tài liệu mô tả (`docs/SYSTEM-DESIGN.md`, `docs/CHANGE-GUIDE.md`). Tên cột / mã trong CSDL (`bil_receipt`…) KHÔNG đổi — chỉ chữ người dùng thấy.
