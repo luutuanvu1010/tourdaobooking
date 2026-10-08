@@ -201,6 +201,9 @@ test("khối van-chuyen: đủ tuyến; tên hành khách chỉ ở GET /chuyen/
     seedStaff(w.sqlite, { id: DRIVER4, phone: "0900000046", name: "Tài Xế Bốn", perms: ["DRIVER"] });
     thanhTaiXe(w, `pty-${DRIVER3}`);
     thanhTaiXe(w, `pty-${DRIVER4}`);
+    // ADR-0105 (phép 5): địa chỉ đánh dấu của nơi trả (LOC — mọi đơn của khối trả ở đây) chỉ được rời máy chủ ở GET /cuoc-cua-toi/:id trong ngày chạy.
+    const DIA_CHI_VC = "Số 9 Đường Dò Chỉ Đường";
+    w.sqlite.prepare("UPDATE loc_location SET address = ? WHERE id = ?").run(DIA_CHI_VC, LOC);
     const than: { route: string; khoa: string; text: string; json: unknown; coCaiDeLo: boolean }[] = [];
     /** Thân có mảng `suat` và ÍT NHẤT một suất trong đó đã gắn tên trong CSDL (lúc gọi) — nếu route lỡ kèm tên thì tên PHẢI hiện (kiểm độc lập K2a V2). */
     const coCaiDeLo = (j: any): boolean =>
@@ -324,6 +327,7 @@ test("khối van-chuyen: đủ tuyến; tên hành khách chỉ ở GET /chuyen/
         for (const t of TEN_VC) assert.ok(!txt.includes(t), `DTO ngoài ngày chạy lộ tên "${t}"`);
         const k = moiKhoa(f);
         assert.ok(!k.has("hoTen") && !k.has("namSinh") && !k.has("lienHe"), "DTO ngoài ngày chạy: không hoTen / namSinh / lienHe");
+        assert.ok(!k.has("diaChiChiDuong") && !txt.includes(DIA_CHI_VC), "DTO ngoài ngày chạy: không chuỗi đích chỉ đường (ADR-0105)");
         assert.equal(f.suat.length, 2, "chống bài rỗng: cuốc ngày mai có suất");
       },
       "POST /api/van-chuyen/chuyen/:id/cap-nhat-diem": async () => {
@@ -397,6 +401,7 @@ test("khối van-chuyen: đủ tuyến; tên hành khách chỉ ở GET /chuyen/
         // Trong ngày chạy, sau xuất bến: DTO tài xế CÓ tên (chống bài rỗng cho route thứ hai được trả tên).
         const a = await goi("GET /api/van-chuyen/cuoc-cua-toi/:id", "cuốc A trong ngày", "GET", `/api/van-chuyen/cuoc-cua-toi/${T.A.chuyen.id}`, DRIVER);
         assert.deepEqual(a.suat.map((s: any) => s.hoTen).sort(), TEN_VC, "chống bài rỗng: cuốc trong ngày chạy CÓ tên");
+        assert.ok(JSON.stringify(a).includes(DIA_CHI_VC), "chống bài rỗng (ADR-0105): cuốc trong ngày chạy CÓ chuỗi đích là địa chỉ đánh dấu");
       },
       [`${V}/xuat-ben`]: async () => {
         await goi(`${V}/xuat-ben`, "văn phòng xuất bến B", "POST", `/api/van-chuyen/chuyen/${T.B.chuyen.id}/xuat-ben`, SALES, { requestId: rid() });
@@ -562,6 +567,16 @@ test("khối van-chuyen: đủ tuyến; tên hành khách chỉ ở GET /chuyen/
       if (t.route.includes("/cuoc-cua-toi")) assert.deepEqual(k.filter((x) => KHOA_GOI_BAO_KEY.test(x)), [], `DTO tài xế "${t.khoa}" có khoá gọi báo`);
     }
     assert.doesNotMatch(JSON.stringify(w.q("SELECT * FROM audit_log")), KHOA_NOI_RE, "nhật ký có chuỗi khoá nơi (L:<id> / T:<hex>)");
+
+    // (5) ADR-0105 — chuỗi đích chỉ đường (địa chỉ đánh dấu của nơi trả) CHỈ ở GET /cuoc-cua-toi/:id; không ở mọi route khác (kể cả phản hồi lệnh tài xế),
+    // không ở nhật ký, không ở cột chữ vc_*.
+    for (const t of than) {
+      if (t.route === "GET /api/van-chuyen/cuoc-cua-toi/:id") continue;
+      assert.ok(!t.text.includes(DIA_CHI_VC), `thân "${t.khoa}" (${t.route}) có địa chỉ chỉ đường`);
+      assert.ok(!moiKhoa(t.json).has("diaChiChiDuong"), `thân "${t.khoa}" (${t.route}) có khoá diaChiChiDuong`);
+    }
+    assert.ok(!JSON.stringify(w.q("SELECT * FROM audit_log")).includes(DIA_CHI_VC), "nhật ký có địa chỉ chỉ đường");
+    for (const b of bangVc) assert.ok(!JSON.stringify(w.q(`SELECT * FROM ${b}`)).includes(DIA_CHI_VC), `bảng ${b} chứa địa chỉ chỉ đường`);
     assert.ok(w.q("SELECT count(*) n FROM vc_trip_stop WHERE place_key GLOB 'T:*'")[0].n >= 1 && w.q("SELECT count(*) n FROM vc_trip_stop WHERE place_key GLOB 'L:*'")[0].n >= 1, "chống bài rỗng: có khoá T: và L: để dò");
     for (const b of ["vc_trip_departure_check", "vc_trip_departure_check_item", "vc_trip_manifest"]) {
       const cot = w.q(`PRAGMA table_info(${b})`).map((r: any) => r.name as string);
@@ -578,7 +593,8 @@ test("khối van-chuyen: đủ tuyến; tên hành khách chỉ ở GET /chuyen/
 // lỡ truyền `kemTen = true` cũng không lộ gì hôm nay — nhưng là lỗ chờ sẵn. Bài này đọc mã `src/modules/van-chuyen/*.ts` (bỏ chú thích):
 //   - `chiTietChuyen(` và `cuocChiTiet(` CHỈ được gọi trong `index.ts` (nơi khai route);
 //   - đối thứ 5 của `chiTietChuyen` (kemTen) là chữ `true` ĐÚNG ở GET /api/van-chuyen/chuyen/:id, chữ `false` ở MỌI nơi khác (không biến, không biểu thức);
-//   - đối thứ 4 (`hk`) và thứ 5 (`lienHe`) của `cuocChiTiet` là `[]` và `null` ở MỌI nơi khác GET /api/van-chuyen/cuoc-cua-toi/:id.
+//   - đối thứ 4 (`hk`) và thứ 5 (`lienHe`) của `cuocChiTiet` là `[]` và `null` ở MỌI nơi khác GET /api/van-chuyen/cuoc-cua-toi/:id;
+//   - đối thứ 9 (`kemChiDuong`, ADR-0105 — siết G18-B) của `cuocChiTiet` là chữ `true` ĐÚNG ở GET /api/van-chuyen/cuoc-cua-toi/:id, chữ `false` ở mọi nơi khác.
 /** Tách đối số của lời gọi bắt đầu ngay sau dấu "(" ở vị trí `mo` (đếm ngoặc; chuỗi đã được giữ nguyên nên không có ngoặc lạ trong mã này). */
 function doiSo(code: string, mo: number): string[] {
   const ra: string[] = [];
@@ -624,6 +640,8 @@ test("khối van-chuyen (bài 3, quét mã — K2a V2): chỉ GET /chuyen/:id tr
       } else {
         dem.cuoc++;
         if (khoa !== "GET /api/van-chuyen/cuoc-cua-toi/:id" && (a[3] !== "[]" || a[4] !== "null")) loi.push(`${khoa}: cuocChiTiet(…, hk = ${a[3]}, lienHe = ${a[4]}, …) — phải là [] và null`);
+        const mongCd = khoa === "GET /api/van-chuyen/cuoc-cua-toi/:id" ? "true" : "false";
+        if (a[8] !== mongCd) loi.push(`${khoa}: cuocChiTiet(…, kemChiDuong = ${a[8]}) — phải là chữ ${mongCd}`);
       }
     }
   }

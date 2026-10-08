@@ -1461,7 +1461,7 @@ export const vanChuyenModule: AppModule = {
     // Khuôn hai bước (mục 1.2): (1) `can(trip.view, { assigned: true })` — tài khoản không có ô nào → 403 trước mọi truy vấn; (2) chuyến có dòng lái MỞ của
     // CHÍNH người gọi (`assigned`) và ô của lệnh → không thì 404 (kể cả người có ô `any` — văn phòng bấm thay qua route office, R-P1); (3) rồi mới đọc thân
     // (400). Thân có `xayRaLuc` → 400 `xay_ra_khong_nhan` (tài xế bấm = giờ máy chủ). Hàm hẹp của orders gọi ở đây, SAU `can()`; `lienHeChoTaiXe` CHỈ ở GET
-    // chi tiết và chỉ khi `trongNgayChay` (mục 1.6).
+    // chi tiết và chỉ khi `trongNgayChay` (mục 1.6). Chuỗi đích "Chỉ đường" (ADR-0105, đối cuối `kemChiDuong` của `cuocChiTiet`) cũng CHỈ ở GET chi tiết.
     route("GET", "/api/van-chuyen/cuoc-cua-toi", "staff", async ({ env, url, staff }) => {
       if (!can(staff, "trip.view", { assigned: true })) return CAN_XEM_CUOC();
       const bayGioMs = Date.now();
@@ -1486,7 +1486,7 @@ export const vanChuyenModule: AppModule = {
       const hk = trongNgay ? await hanhKhachChoChuyen(env.DB, nen.legIds) : [];
       const donIds = [...new Set(lich.chang.filter((c) => nen.allocs.some((a) => a.valid_to_at === null && a.leg_id === c.legId)).map((c) => c.orderId))];
       const lienHe = trongNgay ? await lienHeChoTaiXe(env.DB, donIds) : null;
-      return json(await cuocChiTiet(env.DB, nen, lich.chang, hk, lienHe, nhanNhanVien, bayGioMs, trongNgay) satisfies CuocChiTietResponse);
+      return json(await cuocChiTiet(env.DB, nen, lich.chang, hk, lienHe, nhanNhanVien, bayGioMs, trongNgay, true) satisfies CuocChiTietResponse);
     }),
 
     // route 21 ↔ 31
@@ -1511,7 +1511,7 @@ export const vanChuyenModule: AppModule = {
       const trongNgay = trongNgayChay({ ngayChay: nen2.trip.service_date, trangThai: nen2.trip.status, xuatBenMs: nen2.trip.departed_ms }, vnToday(new Date(bayGioMs)));
       const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
       // Phản hồi lệnh tiến độ KHÔNG kèm họ tên / liên hệ — chỉ GET /cuoc-cua-toi/:id (TC-39: đúng hai route van-chuyen trả tên); màn tải lại chi tiết.
-      return json(await cuocChiTiet(env.DB, nen2, lich2.chang, [], null, nhanNhanVien, bayGioMs, trongNgay) satisfies CuocChiTietResponse);
+      return json(await cuocChiTiet(env.DB, nen2, lich2.chang, [], null, nhanNhanVien, bayGioMs, trongNgay, false) satisfies CuocChiTietResponse);
     }),
 
     // route 22 ↔ 32
@@ -1534,7 +1534,7 @@ export const vanChuyenModule: AppModule = {
       const trongNgay = trongNgayChay({ ngayChay: nen2.trip.service_date, trangThai: nen2.trip.status, xuatBenMs: nen2.trip.departed_ms }, vnToday(new Date(bayGioMs)));
       const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
       // Phản hồi lệnh tiến độ KHÔNG kèm họ tên / liên hệ — chỉ GET /cuoc-cua-toi/:id (TC-39: đúng hai route van-chuyen trả tên); màn tải lại chi tiết.
-      return json(await cuocChiTiet(env.DB, nen2, lich2.chang, [], null, nhanNhanVien, bayGioMs, trongNgay) satisfies CuocChiTietResponse);
+      return json(await cuocChiTiet(env.DB, nen2, lich2.chang, [], null, nhanNhanVien, bayGioMs, trongNgay, false) satisfies CuocChiTietResponse);
     }),
 
     // route 23 ↔ 33
@@ -1557,7 +1557,7 @@ export const vanChuyenModule: AppModule = {
       const trongNgay = trongNgayChay({ ngayChay: nen2.trip.service_date, trangThai: nen2.trip.status, xuatBenMs: nen2.trip.departed_ms }, vnToday(new Date(bayGioMs)));
       const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
       // Phản hồi lệnh tiến độ KHÔNG kèm họ tên / liên hệ — chỉ GET /cuoc-cua-toi/:id (TC-39: đúng hai route van-chuyen trả tên); màn tải lại chi tiết.
-      return json(await cuocChiTiet(env.DB, nen2, lich2.chang, [], null, nhanNhanVien, bayGioMs, trongNgay) satisfies CuocChiTietResponse);
+      return json(await cuocChiTiet(env.DB, nen2, lich2.chang, [], null, nhanNhanVien, bayGioMs, trongNgay, false) satisfies CuocChiTietResponse);
     }),
 
     // route 24 ↔ 34
@@ -1580,7 +1580,7 @@ export const vanChuyenModule: AppModule = {
       const trongNgay = trongNgayChay({ ngayChay: nen2.trip.service_date, trangThai: nen2.trip.status, xuatBenMs: nen2.trip.departed_ms }, vnToday(new Date(bayGioMs)));
       const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
       // Phản hồi lệnh tiến độ KHÔNG kèm họ tên / liên hệ — chỉ GET /cuoc-cua-toi/:id (TC-39: đúng hai route van-chuyen trả tên); màn tải lại chi tiết.
-      return json(await cuocChiTiet(env.DB, nen2, lich2.chang, [], null, nhanNhanVien, bayGioMs, trongNgay) satisfies CuocChiTietResponse);
+      return json(await cuocChiTiet(env.DB, nen2, lich2.chang, [], null, nhanNhanVien, bayGioMs, trongNgay, false) satisfies CuocChiTietResponse);
     }),
 
     // route 25 ↔ 35
@@ -1603,7 +1603,7 @@ export const vanChuyenModule: AppModule = {
       const trongNgay = trongNgayChay({ ngayChay: nen2.trip.service_date, trangThai: nen2.trip.status, xuatBenMs: nen2.trip.departed_ms }, vnToday(new Date(bayGioMs)));
       const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
       // Phản hồi lệnh tiến độ KHÔNG kèm họ tên / liên hệ — chỉ GET /cuoc-cua-toi/:id (TC-39: đúng hai route van-chuyen trả tên); màn tải lại chi tiết.
-      return json(await cuocChiTiet(env.DB, nen2, lich2.chang, [], null, nhanNhanVien, bayGioMs, trongNgay) satisfies CuocChiTietResponse);
+      return json(await cuocChiTiet(env.DB, nen2, lich2.chang, [], null, nhanNhanVien, bayGioMs, trongNgay, false) satisfies CuocChiTietResponse);
     }),
 
     // route 26 ↔ 36
@@ -1626,7 +1626,7 @@ export const vanChuyenModule: AppModule = {
       const trongNgay = trongNgayChay({ ngayChay: nen2.trip.service_date, trangThai: nen2.trip.status, xuatBenMs: nen2.trip.departed_ms }, vnToday(new Date(bayGioMs)));
       const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
       // Phản hồi lệnh tiến độ KHÔNG kèm họ tên / liên hệ — chỉ GET /cuoc-cua-toi/:id (TC-39: đúng hai route van-chuyen trả tên); màn tải lại chi tiết.
-      return json(await cuocChiTiet(env.DB, nen2, lich2.chang, [], null, nhanNhanVien, bayGioMs, trongNgay) satisfies CuocChiTietResponse);
+      return json(await cuocChiTiet(env.DB, nen2, lich2.chang, [], null, nhanNhanVien, bayGioMs, trongNgay, false) satisfies CuocChiTietResponse);
     }),
 
     // route 27 ↔ 37
@@ -1649,7 +1649,7 @@ export const vanChuyenModule: AppModule = {
       const trongNgay = trongNgayChay({ ngayChay: nen2.trip.service_date, trangThai: nen2.trip.status, xuatBenMs: nen2.trip.departed_ms }, vnToday(new Date(bayGioMs)));
       const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
       // Phản hồi lệnh tiến độ KHÔNG kèm họ tên / liên hệ — chỉ GET /cuoc-cua-toi/:id (TC-39: đúng hai route van-chuyen trả tên); màn tải lại chi tiết.
-      return json(await cuocChiTiet(env.DB, nen2, lich2.chang, [], null, nhanNhanVien, bayGioMs, trongNgay) satisfies CuocChiTietResponse);
+      return json(await cuocChiTiet(env.DB, nen2, lich2.chang, [], null, nhanNhanVien, bayGioMs, trongNgay, false) satisfies CuocChiTietResponse);
     }),
 
     // route 28 ↔ 38
@@ -1672,7 +1672,7 @@ export const vanChuyenModule: AppModule = {
       const trongNgay = trongNgayChay({ ngayChay: nen2.trip.service_date, trangThai: nen2.trip.status, xuatBenMs: nen2.trip.departed_ms }, vnToday(new Date(bayGioMs)));
       const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
       // Phản hồi lệnh tiến độ KHÔNG kèm họ tên / liên hệ — chỉ GET /cuoc-cua-toi/:id (TC-39: đúng hai route van-chuyen trả tên); màn tải lại chi tiết.
-      return json(await cuocChiTiet(env.DB, nen2, lich2.chang, [], null, nhanNhanVien, bayGioMs, trongNgay) satisfies CuocChiTietResponse);
+      return json(await cuocChiTiet(env.DB, nen2, lich2.chang, [], null, nhanNhanVien, bayGioMs, trongNgay, false) satisfies CuocChiTietResponse);
     }),
 
     // route 29 ↔ 39
@@ -1695,7 +1695,7 @@ export const vanChuyenModule: AppModule = {
       const trongNgay = trongNgayChay({ ngayChay: nen2.trip.service_date, trangThai: nen2.trip.status, xuatBenMs: nen2.trip.departed_ms }, vnToday(new Date(bayGioMs)));
       const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
       // Phản hồi lệnh tiến độ KHÔNG kèm họ tên / liên hệ — chỉ GET /cuoc-cua-toi/:id (TC-39: đúng hai route van-chuyen trả tên); màn tải lại chi tiết.
-      return json(await cuocChiTiet(env.DB, nen2, lich2.chang, [], null, nhanNhanVien, bayGioMs, trongNgay) satisfies CuocChiTietResponse);
+      return json(await cuocChiTiet(env.DB, nen2, lich2.chang, [], null, nhanNhanVien, bayGioMs, trongNgay, false) satisfies CuocChiTietResponse);
     }),
 
     // ADR-0052 D5b (Vận chuyển Đợt 5 A-1b — chủ duyệt 5/10): tài xế BỔ SUNG TÊN một khách chưa có tên trên chuyến mình đang lái, trong ngày chạy. Thứ tự:

@@ -11,7 +11,7 @@ type Diem = { id: string; tripId: string; seq: number; loai: "PICKUP" | "DROPOFF
 const T = "t-1";
 const BEN = "L:ben-tau";
 const stop = (id: string, seq: number, kind: "PICKUP" | "DROPOFF", place_key: string, status = "PENDING") => ({
-  id, trip_id: T, seq, kind, location_id: place_key.slice(2), place_text: null, place_key, location_name: null, planned_date: null, planned_time: null, status,
+  id, trip_id: T, seq, kind, location_id: place_key.slice(2), place_text: null, place_key, location_name: null, location_address: null, planned_date: null, planned_time: null, status,
   arrived_at: null, done_at: null, skip_reason_code: null,
 });
 /** Mô phỏng vòng dựng điểm của `lenhXepLo`: mỗi chặng ĐÓN rồi TRẢ, rồi sắp lại theo suất còn mở sau lệnh. */

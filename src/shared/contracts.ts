@@ -1601,6 +1601,8 @@ export interface CuocChiTietResponse {
     daToi: MocTienDoDto | null;
     /** Đợt 5 D5.1: điểm văn phòng thêm khi xe đang chạy. */
     themKhiChay: boolean;
+    /** ADR-0105: chuỗi đích "Chỉ đường" — CHỈ GET /cuoc-cua-toi/:id TRONG ngày chạy (khuôn `hoTen`); ngoài khung và ở phản hồi lệnh: VẮNG MẶT. */
+    diaChiChiDuong?: string;
   }[];
   suat: {
     id: string;
