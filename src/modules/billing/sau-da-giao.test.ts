@@ -46,6 +46,7 @@ const CA: Record<string, unknown> = {
   "PUT /api/orders/:id/handler": { staffId: HDV },
   "POST /api/orders/:id/handler-cancel": { reason: "customer_requested" },
   "POST /api/orders/:id/handler-money-edit": {},
+  "POST /api/orders/:id/money-edit": {}, // ADR-0063 D1 (văn phòng sửa số khách) — 409 TRƯỚC khi đọc thân
 };
 const khoa = (r: { method: string; path: string }) => `${r.method} ${r.path}`;
 
