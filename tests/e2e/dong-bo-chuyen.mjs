@@ -2,11 +2,14 @@
 //   (1) Bán hàng đổi khách của đơn A (huỷ một người đã gắn tên + thêm người mới, MỘT lệnh) → suất cũ đóng PASSENGER_CHANGED, suất mới mang khoá người mới,
 //       chuyến KHÔNG giữ KHACH_DA_DOI; nhật ký `trip_order_synced` + sự kiện ALLOCATION_ORDER_SYNCED cùng id, mang người sửa đơn; câu không tên;
 //   (2) HDV tăng số khách đơn B 2 → 3 (handler-money-edit, Q-2 = a) → mở thêm đúng 1 suất; phản hồi HDV chỉ `{ ok, dongBoChuyen }` (không dữ liệu chuyến);
-//   (3) Bán hàng huỷ đơn A → mọi suất của A đóng REMOVED trong cùng lô, chuyến không giữ DON_DA_HUY.
+//   (3) Bán hàng huỷ đơn A → mọi suất của A đóng REMOVED trong cùng lô, chuyến không giữ DON_DA_HUY;
+//   (4) HDV huỷ đơn B (handler-cancel) → như văn phòng: suất của B đóng REMOVED, nhật ký mang HDV; phản hồi HDV chỉ `{ ok, dongBoChuyen }`;
+//   (5) xe ĐANG CHẠY (tài xế xuất bến chuyến thứ hai) + Bán hàng huỷ đơn E → máy KHÔNG ghi gì lên chuyến đang chạy, phản hồi mang ĐÚNG câu nhắc
+//       "Báo huỷ"; chi tiết chuyến `coKhachDonHuy`; dọn: tài xế kết thúc gián đoạn.
 // Kiểm định kỳ (audit-invariants, gồm R-VC-6 phủ trip_order_synced) chạy cuối bộ e2e khi chạy ĐỦ bộ (chạy lẻ thì không). Dữ liệu dùng một lần (SĐT ngẫu nhiên, biển số theo Date.now()),
 // chuyến NGÀY MAI. Tên khách GIẢ.
 import assert from "node:assert/strict";
-import { ACCOUNTS, call, catalogService, ensureFakeCatalog, orderInput, randomPhone, session, sql, sqlRows, vnDate } from "./lib.mjs";
+import { ACCOUNTS, call, catalogService, ensureFakeCatalog, login, moCuaSoXuatBen48Gio, orderInput, randomPhone, session, sql, sqlRows, vnDate } from "./lib.mjs";
 
 await ensureFakeCatalog();
 const ADMIN = await session(ACCOUNTS.admin);
@@ -16,7 +19,8 @@ const FIELD = await session(ACCOUNTS.field);
 const [{ id: salesId }] = await sqlRows(`SELECT id FROM staff WHERE phone = '${ACCOUNTS.salesA.phone}'`);
 const [{ id: fieldId }] = await sqlRows(`SELECT id FROM staff WHERE phone = '${ACCOUNTS.field.phone}'`);
 const LOC = "a941dd7d-faab-4098-9ab9-1df7fa6dd551"; // Bến tàu du lịch Nha Trang (0010)
-const D = vnDate(1);
+const D = vnDate(1); // ADR-0096 Đ2 (LC-20): chuyến NGÀY MAI + cửa sổ 48 giờ — bước (5) xuất bến ngay được, giờ đón vẫn ngoài mốc 6 giờ
+await moCuaSoXuatBen48Gio();
 const duoi = String(Date.now()).slice(-6);
 const uuid = () => crypto.randomUUID();
 const P = (n) => ({ fullName: `Khách Đồng Bộ E2E ${n}`, birthYear: 1934, paxCode: null });
@@ -26,6 +30,9 @@ let r;
 // --- Nền: tài xế công ty (GPLX D1), xe 15 chỗ có Kiểm định + Bảo hiểm ---
 r = await call(TAO_TK, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Tài Xế Đồng Bộ E2E", phone: randomPhone(), roles: ["DRIVER_INTERNAL"] });
 assert.equal(r.status, 201, JSON.stringify(r.body));
+const txDangNhap = await login(r.body.staff.phone, r.body.pin);
+assert.equal(txDangNhap.status, 200, JSON.stringify(txDangNhap.body));
+const TX = txDangNhap.cookie;
 const [{ party_id: txParty }] = await sqlRows(`SELECT party_id FROM staff WHERE id = '${r.body.staff.id}'`);
 r = await call(ADMIN, "POST", `/api/parties/${txParty}/documents`, { typeCode: "GPLX", number: `79${String(Date.now()).slice(-10)}`, classCode: "D1", expiryDate: vnDate(400) });
 assert.equal(r.status, 201, JSON.stringify(r.body));
@@ -104,3 +111,44 @@ assert.equal(nk.length, 3);
 assert.equal(nk[2].detail, `${ma}: máy cập nhật theo đơn — ${a.orderCode} (đơn huỷ): trả 2 ghế`);
 for (const x of nk) assert.doesNotMatch(x.detail, /Khách Đồng Bộ E2E|1934|09\d{8}/, "nhật ký không tên, không năm sinh, không SĐT");
 console.log("✓ (3) huỷ đơn A → 2 suất đóng REMOVED cùng lô; không giữ DON_DA_HUY; ba dòng nhật ký máy không tên");
+
+// --- (4) HDV huỷ đơn B (handler-cancel) ---
+r = await call(FIELD, "POST", `/api/orders/${b.id}/handler-cancel`, { reason: "customer_requested" });
+assert.equal(r.status, 200, JSON.stringify(r.body));
+assert.deepEqual(r.body, { ok: true, dongBoChuyen: { nhac: null, capNhatTay: false } }, "HDV: không dữ liệu chuyến");
+assert.equal((await moCua(legB)).length, 0, "mọi suất của B đóng cùng lô");
+nk = await nhatKyMay();
+assert.equal(nk.length, 4);
+assert.equal(nk[3].staff_id, fieldId, "nhật ký mang HDV");
+assert.equal(nk[3].detail, `${ma}: máy cập nhật theo đơn — ${b.orderCode} (đơn huỷ): trả 3 ghế`);
+assert.ok(!(await lyDoGiu()).includes("DON_DA_HUY"), "không giữ DON_DA_HUY");
+console.log("✓ (4) HDV huỷ đơn B → 3 suất đóng REMOVED cùng lô, nhật ký mang HDV; phản hồi HDV chỉ { ok, dongBoChuyen }");
+
+// --- (5) Xe ĐANG CHẠY: chuyến thứ hai (cùng xe, cùng tài xế, sau chuyến một), tài xế xuất bến sớm, Bán hàng huỷ đơn E ---
+const legE0 = { ...leg(`Khách sạn Đồng Bộ E2E E ${duoi}`), pickupTime: "13:30" };
+const e = await call(SALES, "POST", "/api/orders", orderInput({ services: [catalogService({ pax: { adult: 2 }, departDate: D, legs: [legE0] })], passengers: [P(6), P(7)] }));
+assert.equal(e.status, 201, JSON.stringify(e.body));
+assert.equal((await call(SALES, "POST", `/api/orders/${e.body.order.id}/status`, { status: "confirmed" })).status, 200);
+const legE = e.body.order.services[0].legs[0].id;
+r = await call(SALES, "POST", "/api/van-chuyen/chuyen", { requestId: uuid(), xeId, taiXePartyId: txParty, batDau: { ngay: D, gio: "13:00" }, ketThuc: { ngay: D, gio: "15:00" } });
+assert.equal(r.status, 201, JSON.stringify(r.body));
+const trip2 = r.body.chuyen.id;
+r = await call(SALES, "POST", `/api/van-chuyen/chuyen/${trip2}/phan-bo`, { version: r.body.chuyen.version, requestId: uuid(), chang: [{ legId: legE, soSuat: 2 }] });
+assert.equal(r.status, 200, JSON.stringify(r.body));
+r = await call(TX, "POST", `/api/van-chuyen/cuoc-cua-toi/${trip2}/xuat-ben`, { requestId: uuid() });
+assert.equal(r.status, 200, JSON.stringify(r.body));
+assert.equal(r.body.chuyen.trangThai, "RUNNING");
+const [{ version: vTruoc }] = await sqlRows(`SELECT version FROM vc_trip WHERE id = '${trip2}'`);
+r = await call(SALES, "POST", `/api/orders/${e.body.order.id}/status`, { status: "cancelled", lyDo: "KHACH_DOI_Y" });
+assert.equal(r.status, 200, JSON.stringify(r.body));
+assert.deepEqual(r.body.dongBoChuyen, { nhac: "Đơn có khách trên xe đang chạy — văn phòng bấm Báo huỷ", capNhatTay: false });
+const moE = await sqlRows(`SELECT status, office_cancel_at FROM vc_trip_allocation WHERE trip_id = '${trip2}' AND leg_id = '${legE}' AND valid_to_at IS NULL`);
+assert.deepEqual(moE.map((x) => [x.status, x.office_cancel_at]), [["WAITING", null], ["WAITING", null]], "máy không đóng suất, không đặt cờ báo huỷ trên xe đang chạy");
+assert.equal((await sqlRows(`SELECT version FROM vc_trip WHERE id = '${trip2}'`))[0].version, vTruoc, "không câu nào ghi lên chuyến đang chạy");
+assert.equal((await sqlRows(`SELECT count(*) AS n FROM audit_log WHERE action = 'trip_order_synced' AND target_id = '${trip2}'`))[0].n, 0);
+r = await call(SALES, "GET", `/api/van-chuyen/chuyen/${trip2}`);
+assert.equal(r.status, 200, JSON.stringify(r.body));
+assert.equal(r.body.chuyen.coKhachDonHuy, true, "màn Xe đang chạy có dòng nhắc Báo huỷ");
+r = await call(TX, "POST", `/api/van-chuyen/cuoc-cua-toi/${trip2}/ket-thuc-gian-doan`, { requestId: uuid(), lyDo: "GIAN_DOAN_KHAC" });
+assert.equal(r.status, 200, JSON.stringify(r.body));
+console.log("✓ (5) xe đang chạy: huỷ đơn E → 200 + câu nhắc Báo huỷ; suất, cờ báo huỷ, phiên bản chuyến không đổi; chi tiết chuyến coKhachDonHuy; dọn bằng kết thúc gián đoạn");
