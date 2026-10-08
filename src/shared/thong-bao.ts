@@ -1,10 +1,11 @@
 // THÔNG BÁO HỆ THỐNG (ADR-0034) — luật thuần dùng chung server ↔ web/: tin về đơn là HÌNH CHIẾU của audit_log; một hàm lọc cho cả số đỏ
 // lẫn danh sách. Không I/O. Luật quyền chỉ qua can()/hasPermission/isOffice và các hàm của bang-tin.ts — không viết tay luật mới.
-import { duocThayTinDon, nhanKetNoi, nhanSuKien, type TrangThaiPhuTrach } from "./bang-tin.ts";
+import { duocThayTinDoi, duocThayTinDon, nhanKetNoi, nhanSuKien, type TrangThaiPhuTrach } from "./bang-tin.ts";
 import { can, coQuyenTien, hasPermission, isExternalPermission, isOffice, PERMISSION_CODES, PERMISSION_LABEL, type PermissionCode, type PermissionHolder } from "./permissions.ts";
 import type { GuiThongBaoRequest, HopThongBaoResponse, LoaiTin, NguoiNhanTin, TinDto } from "./contracts.ts";
-import { tinChuyenCho, type DongChuyen } from "./tin-chuyen.ts";
+import { tinChuyenCho, tinGioHenCho, type ChuyenCuaChang, type DongChuyen, type NguoiNhanChuyen } from "./tin-chuyen.ts";
 import { HANH_DONG_DOI_SO_KHACH } from "./audit-actions.ts";
+import { phanDoiCuaTin, type PhanDoiTin } from "./tin-doi-don.ts";
 
 export const HANH_DONG_TIN_DON = ["created", "order_claimed", "order_handler_changed", "confirmed", "cancelled", "order_cancelled_by_field"] as const;
 /**
@@ -13,6 +14,12 @@ export const HANH_DONG_TIN_DON = ["created", "order_claimed", "order_handler_cha
  */
 export const HANH_DONG_TIN_DOI: readonly string[] = ["trip_updated", "order_leg_updated", "order_leg_added", "order_leg_closed", ...HANH_DONG_DOI_SO_KHACH];
 export const laHanhDongTinDoi = (a: string): boolean => HANH_DONG_TIN_DOI.includes(a);
+const laDoiSoKhach = (a: string): boolean => (HANH_DONG_DOI_SO_KHACH as readonly string[]).includes(a);
+/**
+ * ADR-0062 Đ1 "mốc bắt đầu": chỉ dòng nguồn ghi TỪ mốc này mới thành tin (đơn đổi + MQ-07) — tránh "Của tôi" bật lên hàng loạt tin cũ ngay sau triển khai.
+ * GIÁ TRỊ TẠM trong lúc thi công (e2e thấy tin); K1B đặt = lúc gộp / phát hành, rồi bật bài NT-B16 (thong-bao-doi.test.ts). ISO có mili-giây (so CHUỖI).
+ */
+export const MOC_TIN_DOI = "2026-09-30T00:00:00.000Z";
 export const NGAY_GIU_TIN = 30;
 export const TOI_DA_TIN = 100;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -21,6 +28,14 @@ export interface DongDon {
   id: string; orderId: string; maDon: string; action: string; actorId: string | null; tenNguoiLam: string | null;
   luc: string; ownerId: string; phuTrach: TrangThaiPhuTrach; lapChuaCoNguoi: boolean;
   cungLoLap: boolean; // order_handler_changed cùng mốc với dòng created của đơn = chọn người phụ trách LÚC LẬP (ADR-0030 Task 1.3) → không thành tin riêng
+  // ---- Chỉ dòng ĐỔI (ADR-0062 — view v_aud_order_change; gốc lắp ráp dựng cho gõ cửa). Dòng tin đơn cũ để vắng. ----
+  /** Chữ nhật ký có khuôn do máy chủ viết — CHỈ hàm đọc `phanDoiCuaTin` dùng, không bao giờ in thô. */
+  detail?: string | null;
+  /** Đơn có dòng `confirmed` TRƯỚC dòng này (tính từ nhật ký — cùng một câu cho hộp thư lẫn gõ cửa). Vắng = không biết → không tin. */
+  sauXacNhan?: boolean;
+  /** MQ-07: id chặng của dòng sửa chặng (cột leg_id) + chuyến giữ suất MỞ của chặng lúc `luc` (dữ kiện van-chuyen qua hàm tiêm). Vắng / rỗng = chưa xếp. */
+  legId?: string | null;
+  chuyenCuaChang?: readonly ChuyenCuaChang[];
 }
 export interface DongThuCong {
   id: string; tieuDe: string; noiDung: string; quanTrong: boolean; nhan: string[]; nguoiGuiId: string;
@@ -34,6 +49,9 @@ export interface DongTaiKhoan {
   id: string; accountId: string; tenTaiKhoan: string; quyenTaiKhoan: readonly PermissionCode[]; actorId: string | null; tenNguoiLam: string | null; luc: string;
 }
 type LoaiTinDon = Exclude<LoaiTin, "thu_cong" | "chuyen" | "tai_khoan">;
+/** Phần đổi của một dòng đổi (ADR-0062 Đ2) — null = dòng không thành tin (không qua bộ lọc nguồn / không có đoạn nhận ra). */
+export const phanDoiCuaDong = (d: DongDon): PhanDoiTin | null => phanDoiCuaTin(d.action, d.detail ?? null, laDoiSoKhach(d.action));
+const phanCua = phanDoiCuaDong;
 
 export function loaiTinDon(d: DongDon): LoaiTinDon | null {
   switch (d.action) {
@@ -44,11 +62,12 @@ export function loaiTinDon(d: DongDon): LoaiTinDon | null {
     case "order_handler_changed": return d.cungLoLap ? null : "giao";
     case "confirmed": return d.phuTrach.coNguoi ? "xac_nhan" : "cho_nhan";
     case "cancelled": case "order_cancelled_by_field": return "huy";
-    default: return null;
+    // ADR-0062 Đ1: dòng đổi thành tin khi đơn ĐÃ xác nhận trước đó VÀ hàm đọc nhận ra phần đổi (mốc / cửa sổ do locHopThongBao xét).
+    default: return laHanhDongTinDoi(d.action) && d.sauXacNhan === true && phanCua(d) !== null ? "doi_sau_xac_nhan" : null;
   }
 }
 
-const CAU: Record<LoaiTinDon, { coTen: (ten: string, ma: string) => string; khongTen: (ma: string) => string }> = {
+const CAU: Record<Exclude<LoaiTinDon, "doi_sau_xac_nhan">, { coTen: (ten: string, ma: string) => string; khongTen: (ma: string) => string }> = {
   lap: { coTen: (t, m) => `${t} vừa lập đơn mới ${m}`, khongTen: (m) => `Có đơn mới ${m}` },
   cho_nhan: { coTen: (t, m) => `${t} vừa xác nhận đơn ${m}, chưa có người phụ trách`, khongTen: (m) => `Có đơn mới ${m}, chưa có người phụ trách` },
   nhan: { coTen: (t, m) => `${t} vừa nhận đơn ${m}`, khongTen: (m) => `Đơn ${m} vừa có người nhận` },
@@ -56,6 +75,22 @@ const CAU: Record<LoaiTinDon, { coTen: (ten: string, ma: string) => string; khon
   xac_nhan: { coTen: (t, m) => `${t} vừa xác nhận đơn ${m}`, khongTen: (m) => `Đơn ${m} vừa được xác nhận` },
   huy: { coTen: (t, m) => `${t} vừa huỷ đơn ${m}`, khongTen: (m) => `Đơn ${m} vừa bị huỷ` },
 };
+
+/** Chữ của một phần đổi khi GHÉP nhiều dòng cùng lô (câu chung thành cụm cố định — không chữ thô). */
+const chuPhan = (p: PhanDoiTin): string => (p.loai === "cu-the" ? p.phan : p.cau === "so-khach" ? "đổi số khách" : "đổi chặng đưa đón");
+/**
+ * Câu tin "đơn đổi sau xác nhận" (ADR-0062 Đ2): chỉ nhãn cố định + giá trị đã kiểm dạng (phanDoiCuaTin). Một dòng: câu theo loại; nhiều dòng cùng lô: nối phần
+ * đổi bằng "; " (bỏ trùng). `ten` = null khi người xem không qua order.history.view.
+ */
+function cauTinDoi(ten: string | null, ma: string, phan: readonly PhanDoiTin[]): string {
+  const dau = (x: string) => (ten !== null ? `${ten} đổi đơn ${ma}: ${x}` : `Đơn ${ma}: ${x}`);
+  const p = phan[0]!;
+  if (phan.length === 1 && p.loai === "chung" && p.cau === "chang") return ten !== null ? `${ten} vừa đổi chặng đưa đón của đơn ${ma}` : `Đơn ${ma} vừa đổi chặng đưa đón`;
+  return dau([...new Set(phan.map(chuPhan))].join("; "));
+}
+/** Liên kết tin đổi (ADR-0062 Đ2, NT-B11): văn phòng → trang đơn; người lập xem được đơn mình (Đối tác / Thực tập — order.view own) → trang đơn; còn lại → "Việc của tôi". */
+const lienKetTinDoi = (staff: PermissionHolder, d: DongDon): string =>
+  isOffice(staff) || (d.ownerId === staff.id && can(staff, "order.view", { ownerId: d.ownerId })) ? `/order?id=${d.orderId}` : "/account";
 
 /**
  * "Toàn công ty" (K3; ADR-0034 điều 6 sửa bởi ADR-0048): có ít nhất một quyền KHÔNG thuộc EXTERNAL_PERMISSIONS (Đối tác, Tài xế đối tác) — cùng hằng với LC-1.
@@ -87,18 +122,34 @@ export const chuanHoaMocGio = (x: string): string => new Date(x).toISOString();
 
 export function locHopThongBao(
   staff: PermissionHolder & { readonly partyId?: string | null },
-  vao: { don: DongDon[]; thuCong: DongThuCong[]; chuyen?: DongChuyen[]; taiKhoan?: DongTaiKhoan[]; docDenLuc: string; now: string; ngan: "cua-toi" | "tat-ca" },
+  vao: {
+    don: DongDon[]; thuCong: DongThuCong[]; chuyen?: DongChuyen[]; taiKhoan?: DongTaiKhoan[]; docDenLuc: string; now: string; ngan: "cua-toi" | "tat-ca";
+    /** ADR-0062 Đ1 mốc bắt đầu của dòng đổi — vắng = MOC_TIN_DOI (bài kiểm truyền mốc riêng). */
+    mocTinDoi?: string;
+  },
 ): HopThongBaoResponse {
   const moc = new Date(Date.parse(vao.now) - NGAY_GIU_TIN * 86400000).toISOString();
+  const mocDoi = vao.mocTinDoi ?? MOC_TIN_DOI;
   const ketNoi = new Set(nhanKetNoi(staff));
+  const nguoiChuyen: NguoiNhanChuyen = { id: staff.id, permissions: staff.permissions, partyId: staff.partyId ?? null };
   const tat: TinDto[] = [];
+  /** Dòng đổi đủ điều kiện nguồn, gom theo LÔ (cùng đơn + cùng người làm + cùng mốc — ADR-0062 Đ1 "cùng lô = một tin"). */
+  const loDoi = new Map<string, { d: DongDon; p: PhanDoiTin }[]>();
   for (const d of vao.don) {
     if (d.luc < moc || d.actorId === staff.id) continue;
+    if (laHanhDongTinDoi(d.action)) {
+      if (d.luc < mocDoi || loaiTinDon(d) !== "doi_sau_xac_nhan") continue;
+      const k = JSON.stringify([d.orderId, d.actorId, d.luc]);
+      const lo = loDoi.get(k) ?? [];
+      lo.push({ d, p: phanCua(d)! });
+      loDoi.set(k, lo);
+      continue;
+    }
     let loai = loaiTinDon(d);
     // ADR-0045 (vòng kiểm độc lập I-1): người KHÔNG nhận được đơn (Kế toán…) thấy dòng xác nhận của đơn chưa có người như tin "xác nhận"
     // thường (ở "Tất cả") — giữ đúng hành vi trước 1.30, không để việc xác nhận biến mất khỏi hộp của họ.
     if (loai === "cho_nhan" && !duocThayTinDon(staff, true)) loai = "xac_nhan";
-    if (!loai || !duocThayTinDon(staff, loai === "cho_nhan")) continue;
+    if (!loai || loai === "doi_sau_xac_nhan" || !duocThayTinDon(staff, loai === "cho_nhan")) continue; // dòng đổi đã rẽ nhánh ở trên
     // Hộp KHÔNG biết người phụ trách trước sự kiện. Nhãn cho-nhan do chính loại tin quyết (dòng dưới), nên bỏ mọi cho-nhan nhanSuKien suy ra.
     // Hôm nay (ADR-0030 chưa lên main) nhanSuKien chưa nhận null → truyền { coNguoi: false, staffId: null }; kết quả đúng nhờ .filter.
     // KHI GỘP ADR-0030 Task 1.4: đổi thành handlerTruoc: null ("không biết" — không bao giờ coi là "chưa ai", NT-3). Mục "Phụ thuộc ADR-0030" điểm 6.
@@ -118,8 +169,37 @@ export function locHopThongBao(
       luc: d.luc, cuaToi, chuaDoc: d.luc > vao.docDenLuc, mo: false, // ADR-0045: "chờ nhận" chỉ tồn tại khi đơn ĐANG chưa có người → không còn tin chờ nhận "mờ"
     });
   }
+  // ADR-0062 + ADR-0052 D6.2 MQ-07 — MỘT hàm chọn tin cho mỗi lô đổi: mỗi người nhận TỐI ĐA MỘT tin (ADR-0062 Đ3 "chống trùng"). Xét MQ-07 TRƯỚC (tài xế không
+  // qua cửa tin đơn); người đủ điều kiện MQ-07 nhận tin chuyến "gọi báo khách" / "mở để xem" và KHÔNG nhận tin đơn đổi cho lô đó ở ngăn nào.
+  for (const lo of loDoi.values()) {
+    const d = lo[0]!.d;
+    let gioHen: { cau: string; lienKet: string } | null = null;
+    for (const x of lo) {
+      if (x.d.action !== "order_leg_updated" || !x.p.gioHen || !x.d.chuyenCuaChang?.length) continue;
+      gioHen = tinGioHenCho(nguoiChuyen, {
+        actorId: x.d.actorId, luc: x.d.luc, maDon: x.d.maDon, ownerId: x.d.ownerId, handlerStaffId: x.d.phuTrach.staffId, chuyen: x.d.chuyenCuaChang,
+      });
+      if (gioHen) break;
+    }
+    if (gioHen) {
+      tat.push({
+        id: d.id, loai: "chuyen", cau: gioHen.cau, maDon: null, noiDung: null, nguoiGui: null, nhomNhan: null, quanTrong: false, daHieuLuc: null,
+        lienKet: gioHen.lienKet, luc: d.luc, cuaToi: true, chuaDoc: d.luc > vao.docDenLuc, mo: false,
+      });
+      continue;
+    }
+    if (!duocThayTinDoi(staff, d.ownerId)) continue;
+    // Người lập + người phụ trách HIỆN TẠI (handlerTruoc "không biết") + tat-ca; bỏ cho-nhan (đơn đã xác nhận — tin đổi không phải việc hàng chờ).
+    const chung = nhanSuKien({ ownerId: d.ownerId, handlerTruoc: null, handlerSau: d.phuTrach }).filter((t) => t !== "cho-nhan" && ketNoi.has(t));
+    if (!chung.length) continue;
+    const coTen = d.tenNguoiLam !== null && can(staff, "order.history.view", { ownerId: d.ownerId, assigned: d.phuTrach.staffId === staff.id });
+    tat.push({
+      id: d.id, loai: "doi_sau_xac_nhan", maDon: d.maDon, noiDung: null, nguoiGui: null, nhomNhan: null, quanTrong: false, daHieuLuc: null,
+      cau: cauTinDoi(coTen ? d.tenNguoiLam : null, d.maDon, lo.map((x) => x.p)), lienKet: lienKetTinDoi(staff, d),
+      luc: d.luc, cuaToi: chung.some((t) => t !== "tat-ca"), chuaDoc: d.luc > vao.docDenLuc, mo: false,
+    });
+  }
   // ADR-0052 D6.2: tin CHUYẾN — người nhận do MỘT hàm (tinChuyenCho, src/shared/tin-chuyen.ts); luôn ở "Của tôi" của người nhận, không bao giờ tat-ca.
-  const nguoiChuyen = { id: staff.id, permissions: staff.permissions, partyId: staff.partyId ?? null };
   for (const d of vao.chuyen ?? []) {
     if (d.luc < moc) continue;
     const t = tinChuyenCho(nguoiChuyen, d);
