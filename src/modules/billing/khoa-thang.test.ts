@@ -193,6 +193,37 @@ test("ca 6: GET /api/ledger/ky (Kế toán) ⇒ daKhoa, keTiep, bảng kiểm c�
   assert.equal((await w.call("GET", "/api/ledger/ky", { as: SA })).status, 200);
 });
 
+test("ca 6b (vòng sửa 1, I-1): mọi dòng sổ ghi lùi ngày ≤ cuối tháng ⇒ số dư cuối tháng của bảng kiểm = số dư của sổ hôm nay, từng người (ghim dấu và phép nối của BALANCES_AT)", async () => {
+  const w = setup();
+  const a = don(w, 1_000_000);
+  const b = don(w, 1_000_000);
+  const c = don(w, 1_000_000);
+  const ghi = async (ten: string, p: Promise<{ status: number; text: string }>) => { const r = await p; assert.equal(r.status, 201, `${ten}: ${r.text}`); };
+  // Tháng 8: HDV giữ 300.000 (đơn a), công ty giữ 150.000 (đơn a), Bán hàng giữ 200.000 (đơn b), rồi HDV nộp về công ty 100.000 (quyết toán).
+  await ghi("HDV giữ", thu(w, KT, a, { soTien: 300_000, hinhThuc: "CASH", nguoiThu: { partyId: `pty-${HDV}` }, ngayPhatSinh: "2026-08-10" }));
+  await ghi("công ty giữ", thu(w, KT, a, { soTien: 150_000, hinhThuc: "CASH", nguoiThu: "cong_ty", ngayPhatSinh: "2026-08-12" }));
+  await ghi("Bán hàng giữ", thu(w, KT, b, { soTien: 200_000, hinhThuc: "CASH", nguoiThu: { partyId: `pty-${SALES}` }, ngayPhatSinh: "2026-08-14" }));
+  await ghi("quyết toán", w.call("POST", "/api/ledger/settlements", { as: KT, body: { chieu: "nop", partyId: `pty-${HDV}`, phanBo: [{ orderId: a, soTien: 100_000 }], ngayPhatSinh: "2026-08-20" } }));
+  assert.equal((await khoa(w, "2026-08")).status, 201);
+  // Tháng 9 (ghi lùi ngày): Bán hàng giữ thêm 90.000 (đơn c); đảo lần thu 200.000 của Bán hàng; HDV hoàn khách 50.000 từ số đang giữ.
+  const lanThuBanHang = String(w.q("SELECT id FROM bil_payment_receipt WHERE order_id = ? AND amount = 200000", b)[0].id);
+  await ghi("Bán hàng giữ thêm", thu(w, KT, c, { soTien: 90_000, hinhThuc: "CASH", nguoiThu: { partyId: `pty-${SALES}` }, ngayPhatSinh: "2026-09-03" }));
+  await ghi("đảo lần thu", w.call("POST", "/api/ledger/adjustments", { as: KT, body: { loai: "dao_lan_thu", receiptId: lanThuBanHang, lyDo: "Đảo lần thu ghi nhầm người giữ", ngayPhatSinh: "2026-09-05" } }));
+  await ghi("hoàn khách", w.call("POST", "/api/ledger/refunds", { as: KT, body: { orderId: a, soTien: 50_000, hinhThuc: "CASH", nguoiTra: { partyId: `pty-${HDV}` }, ngayPhatSinh: "2026-09-10" } }));
+  // Không có dòng nào sau 30/09/2026 (hôm nay > 30/09): hai bên phải bằng nhau từng người — KHÔNG viết cứng số dư.
+  const ky = await w.call("GET", "/api/ledger/ky", { as: KT });
+  assert.equal(ky.status, 200, ky.text);
+  assert.equal(ky.json.keTiep, "2026-09");
+  const so = await w.call("GET", "/api/ledger", { as: KT });
+  assert.equal(so.status, 200, so.text);
+  const theoTen = (x: { ten: string }, y: { ten: string }) => x.ten.localeCompare(y.ten);
+  const cuoiThang = [...ky.json.bangKiem.soDuCuoiThang].sort(theoTen);
+  const homNay = so.json.soDu.map((x: { ten: string; dangGiu: number }) => ({ ten: x.ten, soDu: x.dangGiu })).sort(theoTen);
+  assert.deepEqual(cuoiThang, homNay);
+  // Không đối chiếu rỗng với rỗng: có ít nhất hai người đang giữ tiền (HDV và Bán hàng).
+  assert.ok(cuoiThang.length >= 2, `số người trong bảng kiểm: ${cuoiThang.length}`);
+});
+
 test("ca 7: khoá hết các tháng đã qua ⇒ keTiep null, bangKiem null, coTheKhoa false", async () => {
   const w = setup();
   const r = await w.call("GET", "/api/ledger/ky", { as: KT });

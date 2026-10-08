@@ -109,7 +109,7 @@ export const balancesWithOwner = async (db: D1Database): Promise<{ party_id: str
 /**
  * Số dư mọi bên với công ty chủ TÍNH ĐẾN ngày ?1 (khoá tháng — ADR-0080 D1: bảng kiểm trước khi khoá): cùng phép cộng hai chiều như view `v_bil_party_balance`
  * (dòng nợ + dòng đảo chiều) nhưng chỉ lấy dòng nợ có NGÀY PHÁT SINH của phiếu nguồn `<= ?1`. Cùng quy ước dấu và bộ lọc công ty chủ như `BALANCES_WITH_OWNER`.
- * Không có dòng nào sau ngày ?1 ⇒ trùng `balancesWithOwner` (bài `khoa-thang.test.ts`).
+ * Không có dòng nào sau ngày ?1 ⇒ trùng `balancesWithOwner` (bài "ca 6b" ở `khoa-thang.test.ts`: lần thu ba người giữ, quyết toán, đảo lần thu, hoàn khách — so từng người, không số cứng).
  */
 const BALANCES_AT = defineSql(
   "billing",
