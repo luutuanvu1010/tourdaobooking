@@ -4,8 +4,9 @@
 //   B. Danh bạ — Quản trị không thấy mục (máy chủ 403); Toàn quyền: hồ sơ không phải công ty chủ không có mục; công ty chủ chưa cài: ô "Chọn ngân hàng" trống, chưa chọn / bỏ trống
 //      ⇒ câu hiện TRONG mục, chưa gửi PUT, #error đầu trang ẩn; ba ô 16px, nằm trọn trong khung 390; cài lần đầu bằng VCB (không hỏi lại; "Đã lưu…"; tiêu điểm về tiêu đề; nhật ký
 //      chỉ chữ cố định, không chép số).
+//   C0. Số còn lại GIẢM sau khi trang tải (sửa sau kiểm cuối, A1): mở QR lần đầu KHÔNG báo "lớn hơn số còn lại", ô và dòng "Số tiền" hiện số còn lại MỚI do máy chủ trả.
 //   C. Bảng QR (390 và 1040): sáu dòng đúng, ô số tiền 16px, ảnh mã ≤ 18rem, không tràn ngang, KHÔNG yêu cầu mạng ra ngoài (kể cả sau "Lưu ảnh"), axe sạch; "Lưu ảnh" ⇒ tải tệp
-//      PNG đúng tên bằng liên kết blob (đọc lại: PNG thật, rộng 720); gõ số khác ⇒ hai nút tắt + dòng nhắc, "Tạo lại mã" ⇒ bật lại; số quá lớn ⇒ câu 400; dựng ảnh hỏng ⇒ mã hiện
+//      PNG đúng tên bằng liên kết blob (đọc lại: PNG thật, rộng 720); ô trống hoặc 0 rồi "Tạo lại mã" ⇒ ô hiện đúng số máy chủ đã dùng (A1); gõ số khác ⇒ hai nút tắt + dòng nhắc, "Tạo lại mã" ⇒ bật lại; số quá lớn ⇒ câu 400; dựng ảnh hỏng ⇒ mã hiện
 //      nhưng hai nút tắt; "Khách đã chuyển khoản" ⇒ bảng đóng, form "Ghi lần thu" mở sẵn số trên QR, ô tiêu điểm, Bán hàng không có ô mã.
 //   D. Danh bạ khi đã cài (390): lỗi 400 của máy chủ hiện TRONG mục, giữ số đã gõ; (1040) đổi tài khoản: hỏi lại đúng chữ, Huỷ = không gửi, bấm đúp = một PUT, "đã cũ" khi người khác
 //      đổi giữa chừng, ô nhập xoá trắng.
@@ -36,6 +37,8 @@ try {
   const don1 = await lapDon("Khách Mã QR", "0903 111 222");
   assert.equal((await call(ACCOUNTS.salesA, "POST", `/api/orders/${don1.id}/payments`, { soTien: 500000, hinhThuc: "CASH", nguoiThu: "toi" })).status, 201);
   const noiDung = don1.orderCode.replace(/[^A-Z0-9]/g, "");
+  // Hai đơn riêng cho khối C0 (mỗi khổ một đơn, chưa thu đồng nào ⇒ còn lại 1.350.000): C0 ghi thêm tiền vào đơn của nó, nên không dùng don1 (C và C2 cần don1 còn 850.000).
+  const donC0 = new Map([["390", await lapDon("Khách Còn Lại 390", "0903 111 390")], ["1040", await lapDon("Khách Còn Lại 1040", "0903 111 104")]]);
 
   // ---------------------------------------------------------------- A. chưa cài tài khoản
   for (const [kho, vp] of KHO) {
@@ -179,6 +182,24 @@ try {
   p.close();
   ok("B4) 1040: cài lần đầu (chọn VCB rõ ràng; không hỏi lại; «Đã lưu…» trong mục; tiêu điểm về tiêu đề; nhật ký chữ cố định, không chép số; số không lên đường dẫn; axe sạch)");
 
+  // ---------------------------------------------------------------- C0. Số còn lại giảm SAU khi trang tải (A1)
+  // Trang nhớ "còn lại" của lúc tải (1.350.000); một lần thu 150.000 ghi bằng chính trang đang mở (ADR-0074: không đăng nhập lại tài khoản này) mà trang KHÔNG tải lại,
+  // nên số còn lại thật đã là 1.200.000. Mở QR lần đầu: ô phải lấy số của MÁY CHỦ, không gửi số cũ ⇒ không câu 400 "lớn hơn số còn lại".
+  for (const [kho, vp] of KHO) {
+    const don = donC0.get(kho);
+    p = await env.as(ACCOUNTS.salesA, `/order?id=${don.id}`, vp);
+    await p.waitFor(`!!document.querySelector('[data-action="qr-thanh-toan"]')`, "nút QR thanh toán");
+    assert.equal(await p.ev(`fetch('/api/orders/${don.id}/payments', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ soTien: 150000, hinhThuc: 'CASH', nguoiThu: 'toi' }) }).then((r) => r.status)`), 201, "ghi lần thu 150.000 từ chính trang");
+    assert.match(await p.ev(`document.querySelector('[data-khoi="thanh-toan"]').textContent`), /Còn lại1\.350\.000/, "trang CHƯA tải lại: dòng «Còn lại» của thẻ Thanh toán vẫn là số cũ");
+    await p.ev(`document.querySelector('[data-action="qr-thanh-toan"]').click(), true`);
+    await p.waitFor(`!document.querySelector('.qr-anh').hidden && !document.querySelector('[data-action="qr-luu-anh"]').disabled`, "mã hiện + nút Lưu ảnh bật", 15000);
+    assert.equal(await p.ev(`document.querySelector('.sheet .alert.danger').hidden`), true, "không báo lỗi 'lớn hơn số còn lại'");
+    assert.equal(await p.ev(`document.getElementById('qr-so-tien').value`), "1.200.000", "ô hiện số còn lại MỚI do máy chủ trả");
+    assert.equal(await p.ev(`document.querySelectorAll('[data-khoi="qr-thong-tin"] p')[3]?.textContent`), "Số tiền: 1.200.000đ");
+    p.close();
+    ok(`C0) ${kho}: còn lại giảm sau khi tải trang ⇒ mở QR không lỗi, ô và dòng «Số tiền» hiện 1.200.000 (số máy chủ trả)`);
+  }
+
   // ---------------------------------------------------------------- C. Bảng QR trên màn đơn, hai khổ
   for (const [kho, vp] of KHO) {
     p = await env.as(ACCOUNTS.salesA, `/order?id=${don1.id}`, vp);
@@ -201,7 +222,7 @@ try {
     assert.equal(d.dong.length, 6, JSON.stringify(d.dong));
     assert.match(d.dong[0], /\S/, "dòng tên công ty có chữ");
     assert.deepEqual(d.dong.slice(1), [`Vietcombank · ${SO_1}`, "Chủ tài khoản: CONG TY TNHH TOUR DAO", "Số tiền: 850.000đ", `Nội dung: ${noiDung}`, `Mã đơn: ${don1.orderCode}`]);
-    assert.equal(d.amount, "850.000", "ô số tiền điền sẵn số còn lại");
+    assert.equal(d.amount, "850.000", "ô số tiền hiện số còn lại do máy chủ trả (điền SAU khi mở, không lấy từ dữ liệu lúc tải trang)");
     assert.equal(d.font, "16px", "ô số tiền 16px");
     assert.deepEqual(d.foot, ["Lưu ảnh", "Khách đã chuyển khoản"]);
     assert.equal(d.lechNgang, false, "không tràn ngang");
@@ -224,6 +245,14 @@ try {
     if (kho === "390") writeFileSync(join(OUT, "smoke-anh-luu.png"), Buffer.from(tai.b64, "base64"));
     khongRaNgoai(p, env, `${kho}: sau Lưu ảnh (dựng ảnh nạp phông)`);
 
+    // A1: ô TRỐNG hoặc 0 rồi "Tạo lại mã" ⇒ máy chủ dùng số còn lại ⇒ ô phải hiện lại đúng số máy chủ đã dùng (không để trống / 0). Không phụ thuộc thời gian: mỗi lần đợi mã mới về.
+    for (const gocGo of ["", "0"]) {
+      await p.ev(setInput(`document.getElementById('qr-so-tien')`, gocGo));
+      assert.equal(await p.ev(`document.getElementById('qr-so-tien').value`), gocGo, `ô giữ «${gocGo}» khi chưa tạo lại`);
+      await p.ev(`document.querySelector('[data-action="qr-tao-lai"]').click(), true`);
+      await p.waitFor(`document.querySelectorAll('[data-khoi="qr-thong-tin"] p')[3]?.textContent === 'Số tiền: 850.000đ' && !document.querySelector('[data-action="qr-luu-anh"]').disabled`, `ô «${gocGo}» ⇒ mã 850.000đ`, 15000);
+      assert.equal(await p.ev(`document.getElementById('qr-so-tien').value`), "850.000", `ô «${gocGo}» rồi Tạo lại mã ⇒ ô hiện đúng số máy chủ đã dùng`);
+    }
     // Gõ số khác mà CHƯA tạo lại ⇒ hai nút tắt + dòng nhắc; tạo lại ⇒ bật lại
     const nutTat = `[...document.querySelectorAll('.sheet-foot button')].map((b) => b.disabled)`;
     assert.deepEqual(await p.ev(nutTat), [false, false], "trước khi gõ: hai nút bật");

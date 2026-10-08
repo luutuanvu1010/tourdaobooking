@@ -1019,8 +1019,9 @@ function nutQr(order: Order, t: Api.OrderPaymentsResponse): HTMLButtonElement {
 }
 
 function moBangQr(order: Order, t: Api.OrderPaymentsResponse, opener: HTMLElement): void {
+  // Ô số tiền để TRỐNG lúc mở: số còn lại trong `t` là của lúc tải trang và có thể đã cũ. Lần gọi đầu không gửi `soTien` (máy chủ mặc định = số còn lại hiện hành);
+  // ô được đặt lại theo số máy chủ đã dùng ngay khi phản hồi về (xem `nap`).
   const soTien = h("input", { type: "text", inputmode: "numeric", autocomplete: "off", id: "qr-so-tien" }) as HTMLInputElement;
-  setMoneyValue(soTien, t.conLai);
   const tao = h("button", { type: "button", class: "btn", "data-action": "qr-tao-lai" }, "Tạo lại mã");
   const trangThai = h("p", { class: "muted", role: "status", "data-khoi": "qr-trang-thai", hidden: true });
   const canvas = h("canvas", { class: "qr-anh", role: "img", "aria-label": "Mã QR thanh toán", hidden: true }) as HTMLCanvasElement;
@@ -1071,6 +1072,8 @@ function moBangQr(order: Order, t: Api.OrderPaymentsResponse, opener: HTMLElemen
     try {
       const r = await api<Api.QrThanhToanResponse>(`/api/orders/${encodeURIComponent(order.id)}/qr-thanh-toan${so > 0 ? `?soTien=${so}` : ""}`);
       if (lanNay !== lan) return;
+      // Ô hiện ĐÚNG số máy chủ đã dùng (trống / 0 ⇒ số còn lại hiện hành). Không bắn `input` nên không đụng bộ đếm `lan` và hai nút; phản hồi cũ đã bị chặn ở dòng trên.
+      setMoneyValue(soTien, r.qr.soTien);
       veMaQr(canvas, r.qr.payload);
       canvas.hidden = false;
       replaceChildren(dong, ...dongThongTinQr(r.qr).map((x) => h("p", null, x)));
@@ -1105,7 +1108,10 @@ function moBangQr(order: Order, t: Api.OrderPaymentsResponse, opener: HTMLElemen
   daChuyen?.addEventListener("click", () => {
     const so = hien?.soTien;
     bang.close(false);
-    if (so) moGhiThu?.(so);
+    if (!so) return;
+    // Trang đã vẽ lại thẻ Thanh toán (tin báo của đơn) và đơn không còn ghi lần thu được nữa: `moGhiThu` là null. Nói ra thay vì đóng bảng im lặng.
+    if (!moGhiThu) return hienLoiTaiCho(banner("warning", "Đơn vừa thay đổi — tải lại trang để ghi lần thu.", { action: "reload_page" }));
+    moGhiThu(so);
   });
   void nap();
 }
