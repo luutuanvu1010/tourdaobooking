@@ -486,7 +486,11 @@ export { datGiaoStatement, hoanThanhStatement, type DatGiaoInput } from "./hoan-
 export const donChoBienNhan = (db: D1Database, id: string): Promise<OrderDetailDto | null> => loadOrderView(db, id, false);
 
 /** `detail` (ADR-0062 Đ2) = chữ dòng nhật ký VỪA ghi; vắng = y nguyên số khách, không ghi gì. Route KHÔNG chuyển nó đi đâu: màn hình khoá do gốc lắp ráp tự đọc lại dòng đổi của chính request (`dayGoCuaDoi`, mốc `batDau` của router). */
-export type MoneyEditResult = { ok: true; detail?: string } | { ok: false; code: "not_found" | "not_confirmed" | "invalid_input" | "stale"; message?: string };
+export type MoneyEditResult =
+  | { ok: true; detail?: string; dongBoChuyen?: DongBoChuyenDto }
+  | { ok: false; code: "not_found" | "not_confirmed" | "invalid_input" | "stale"; message?: string }
+  /** ADR-0104 Đ2: lỗi của PHẦN CHUYẾN trong lô (đã dịch — 409 `trip_rule`). */
+  | { ok: false; code: "trip_rule"; res: Response };
 
 /**
  * Kết quả SOẠN một lần sửa số khách (chưa chạy gì): `cau` = câu ghi đơn chưa chạy (dòng điều chỉnh + nhật ký cùng id), `auditId` = id đó (sinh trước),
@@ -541,14 +545,29 @@ function sauSuaSoKhach(trangThai: string, chang: readonly ChangSoNguoi[], truoc:
   return { sau: { trangThai, soNguoiTheoChang: s.soNguoiTheoChang }, tangTheoChang: s.tangTheoChang };
 }
 
-export async function editMoneyAsHandler(db: D1Database, orderId: string, staffId: string, body: Record<string, unknown> | null): Promise<MoneyEditResult> {
+export async function editMoneyAsHandler(
+  db: D1Database, orderId: string, staffId: string, body: Record<string, unknown> | null, noiChuyen: NoiChuyen,
+): Promise<MoneyEditResult> {
   const meta = await getMeta(db, orderId);
   if (!meta) return { ok: false, code: "not_found" };
   if (meta.status !== "confirmed") return { ok: false, code: "not_confirmed" };
   const soan = await soanSuaSoKhach(db, orderId, staffId, body, "order_money_adjusted_by_field");
   if (!soan.ok) return { ok: false, code: soan.code, message: soan.message };
   if (!soan.ghi) return { ok: true };
-  return (await chayLoSuaSoKhach(db, soan.cau)) !== null ? { ok: true, detail: soan.detail } : { ok: false, code: "stale" };
+  // ADR-0104 Đ2 (điểm gọi 7): route dispatch truyền `noiChuyen` = ctx.dongBoChuyen; MỘT lô câu đơn + khúc chuyến (Q-2 = a: chỉ mở tối đa số vừa tăng).
+  const dong = await noiChuyen({
+    orderId, auditIdDon: soan.auditId, bayGioMs: Date.now(), cauDon: soan.cau,
+    ...sauSuaSoKhach(meta.status, await openLegsByOrders(db, [orderId]), soan.truoc, soan.sau),
+  });
+  let kq: D1Result[] | null;
+  try {
+    kq = await chayLoSuaSoKhach(db, dong.lo);
+  } catch (e) {
+    const res = dong.dichLoi(e);
+    if (res) return { ok: false, code: "trip_rule", res };
+    throw e;
+  }
+  return kq !== null ? { ok: true, detail: soan.detail, dongBoChuyen: dong.sauKhiGhi(kq).dto } : { ok: false, code: "stale" };
 }
 
 /**

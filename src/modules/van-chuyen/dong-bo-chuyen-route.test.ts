@@ -463,3 +463,27 @@ test("NT-5 (thêm từ kế hoạch) hai chuyến CÙNG chặng, đổi hai ngư
     tat();
   }
 });
+
+// ---- HDV sửa số khách (điểm gọi 7) ------------------------------------------------------------------------------------------------------------------------
+test("NT-5 tăng khách qua HDV (handler-money-edit, Q-2 = a) → mở thêm đúng số vừa tăng; nhật ký + sự kiện mang HDV; phản hồi chỉ câu cố định + cờ", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const d = await don(w, { soNguoi: 2, handler: FIELD });
+    const t = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER}` });
+    await xepHet(w, t, d, 2);
+    const r = await w.call("POST", `/api/orders/${d.id}/handler-money-edit`, {
+      as: FIELD, body: { reason: "Khách thêm người", services: [{ id: svcId(w, d.id), pax: { adult: 3, child: 0, senior: 0, infant: 0 } }] },
+    });
+    assert.equal(r.status, 200, r.text);
+    assert.deepEqual(r.json, { ok: true, dongBoChuyen: { nhac: null, capNhatTay: false } });
+    assert.equal(moCua(w, t.chuyen.id, d.legId).length, 3);
+    const nk = nhatKyDongBo(w);
+    assert.equal(nk.length, 1);
+    assert.equal(nk[0]!.staff_id, FIELD);
+    assert.equal(suKien(w, nk[0]!.id).created_by, FIELD);
+    assert.match(nk[0]!.detail, new RegExp(`${d.code} \\(thêm khách\\): thêm 1 ghế$`));
+  } finally {
+    tat();
+  }
+});
