@@ -1,7 +1,7 @@
 // Luật thuần khoá tháng (ADR-0080 phần D1; đặc tả 2026-10-08 §8). MỘT nguồn cho câu báo tháng đã khoá: `src/shared/ky-khoa.ts` (Ruling Task 7 — luật thuần của
 // billing chạy thẳng bằng node nên không import được module này); tệp này tái xuất `kyCua`, `cauKyKhoa`, `nhanThang` để module khác vẫn lấy qua `ky-so/index.ts`.
 // Không cắt tháng bằng `slice(5, 7)` (bài `src/ngay-mot-ham.test.ts`): dùng `tachThang`.
-import { cauKyKhoa, kyCua, nhanThang, tachThang } from "../../shared/ky-khoa.ts";
+import { GHI_CHU_KHOA_TOI_DA, cauKyKhoa, kyCua, nhanThang, tachThang } from "../../shared/ky-khoa.ts";
 export { cauKyKhoa, kyCua, nhanThang };
 export function thangKeTiep(period: string): string {
   const { nam, thang } = tachThang(period);
@@ -17,10 +17,10 @@ export function ngayCuoiThang(period: string): string {
   const { nam, thang } = tachThang(period);
   return `${period}-${String(new Date(Date.UTC(nam, thang, 0)).getUTCDate()).padStart(2, "0")}`;
 }
-/** Ghi chú khi khoá tháng: tuỳ chọn, ≤ 200 ký tự (khớp CHECK của `ky_period_close.note`), không dãy ≥ 8 chữ số (khuôn billing: không SĐT / số tài khoản). */
+/** Ghi chú khi khoá tháng: tuỳ chọn, ≤ `GHI_CHU_KHOA_TOI_DA` (200) ký tự (khớp CHECK của `ky_period_close.note`), không dãy ≥ 8 chữ số (khuôn billing: không SĐT / số tài khoản). */
 export function docGhiChuKy(raw: unknown): { ok: true; value: string | null } | { ok: false; message: string } {
   if (raw === undefined || raw === null || raw === "") return { ok: true, value: null };
-  if (typeof raw !== "string" || raw.length > 200) return { ok: false, message: "Ghi chú tối đa 200 ký tự." };
+  if (typeof raw !== "string" || raw.length > GHI_CHU_KHOA_TOI_DA) return { ok: false, message: `Ghi chú tối đa ${GHI_CHU_KHOA_TOI_DA} ký tự.` };
   if (/\d{8,}/.test(raw.replace(/[\s.-]/g, ""))) return { ok: false, message: "Ghi chú không được chứa số điện thoại / số tài khoản." };
   return { ok: true, value: raw.trim() || null };
 }

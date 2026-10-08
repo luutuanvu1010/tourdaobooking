@@ -6,13 +6,13 @@
 // trình duyệt) nói rõ điều đó. Số tiền chỉ định dạng để hiện, trang không cộng trừ gì (tiền dẫn xuất tính ở máy chủ). Chữ ở `src/shared/khoa-thang-hien-thi.ts` (có bài kiểm).
 import { ApiError, api, type Api } from "./api";
 import { can } from "../src/shared/permissions";
-import { nhanThang } from "../src/shared/ky-khoa";
+import { GHI_CHU_KHOA_TOI_DA, nhanThang } from "../src/shared/ky-khoa";
 import {
   CAU_BANG_KIEM_KHONG_CHAN,
   CAU_CHUA_KHOA_THANG_NAO,
   CAU_HET_THANG_KHOA,
   CAU_KHONG_CO,
-  GHI_CHU_KHOA_TOI_DA,
+  GOI_Y_GHI_CHU_KHOA,
   cauDaKhoaXong,
   cauXacNhanKhoa,
   demKhoan,
@@ -81,6 +81,8 @@ if (!can(staff, "ledger.view")) {
       okEl.scrollIntoView({ block: "nearest" });
     } catch (err) {
       showError(errorEl, reasonOf(err));
+      // `#error` ở đầu trang còn hộp xác nhận ở đáy: không cuộn thì (nhất là trên điện thoại) người dùng không thấy câu từ chối (khuôn các trang chính sách điều phối).
+      errorEl.scrollIntoView({ block: "nearest" });
       if (err instanceof ApiError && (err.status === 409 || err.code === "period_not_past")) {
         // Tháng vừa được khoá / không còn là tháng khoá được: số liệu trên màn đã cũ, đóng hộp và tải lại.
         xacNhan = false;
@@ -89,7 +91,7 @@ if (!can(staff, "ledger.view")) {
         // Mọi lỗi khác, nhất là 400 `invalid_input` của ghi chú (máy chủ không nhận dãy ≥ 8 chữ số, kể cả ngày viết «30.09.2026»): GIỮ hộp và chữ đã gõ để người dùng sửa
         // ghi chú rồi bấm lại. Luật ghi chú chỉ ở máy chủ (`docGhiChuKy`); trang không chép lại.
         tatDieuKhien(false);
-        if (err instanceof ApiError && err.code === "invalid_input") document.getElementById("ky-ghi-chu")?.focus();
+        if (err instanceof ApiError && err.code === "invalid_input") document.getElementById("ky-ghi-chu")?.focus({ preventScroll: true });
       }
     }
   }
@@ -148,7 +150,7 @@ if (!can(staff, "ledger.view")) {
       replaceChildren(khuKhoaEl, h("div", { class: "actions" }, nut));
       return;
     }
-    const ghiChuEl = h("textarea", { id: "ky-ghi-chu", rows: 2, maxlength: GHI_CHU_KHOA_TOI_DA, autocomplete: "off" });
+    const ghiChuEl = h("textarea", { id: "ky-ghi-chu", rows: 2, maxlength: GHI_CHU_KHOA_TOI_DA, autocomplete: "off", "aria-describedby": "ky-ghi-chu-goi-y" });
     const nutXacNhan = h("button", { type: "button", id: "ky-xac-nhan-btn", class: "btn btn-primary btn-chinh" }, nhanNutXacNhanKhoa(period));
     const nutThoi = h("button", { type: "button", class: "btn" }, "Thôi");
     const tat = (t: boolean): void => {
@@ -169,6 +171,7 @@ if (!can(staff, "ledger.view")) {
         { id: "ky-xac-nhan", class: "maint-confirm", role: "group", "aria-label": "Xác nhận khoá sổ tháng", tabindex: -1 },
         h("p", null, h("strong", null, cauXacNhanKhoa(period))),
         h("label", null, "Ghi chú (không bắt buộc)", ghiChuEl),
+        h("span", { class: "hint", id: "ky-ghi-chu-goi-y" }, GOI_Y_GHI_CHU_KHOA), // ngoài nhãn để đọc màn hình không đọc hai lần (đã nối bằng aria-describedby)
         h("div", { class: "maint-actions" }, nutXacNhan, nutThoi),
       ),
     );

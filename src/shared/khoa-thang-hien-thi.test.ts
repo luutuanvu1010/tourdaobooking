@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   CAU_HET_THANG_KHOA,
-  GHI_CHU_KHOA_TOI_DA,
+  GOI_Y_GHI_CHU_KHOA,
   cauDaKhoaXong,
   cauXacNhanKhoa,
   demKhoan,
@@ -11,6 +11,7 @@ import {
   thangDaKhoaMoiTruoc,
   tieuDeKeTiep,
 } from "./khoa-thang-hien-thi.ts";
+import { GHI_CHU_KHOA_TOI_DA } from "./ky-khoa.ts";
 
 // Câu hộp xác nhận là hàng rào con người duy nhất trước một việc không đảo ngược (đặc tả §13: khoá nhầm tháng chỉ cứu được bằng khôi phục cả cơ sở dữ liệu).
 test("hộp xác nhận nêu đúng tháng, nói KHÔNG mở lại được và đường cứu duy nhất", () => {
@@ -45,8 +46,13 @@ test("số khoản của khối bảng kiểm: rỗng ghi 'Không có'", () => {
   assert.equal(demKhoan(12), "12 khoản");
 });
 
-// Máy chủ (`docGhiChuKy` ở module ky-so, CHECK 200 của `ky_period_close.note`) vẫn là nơi quyết; hằng này chỉ để ô ghi chú ở giao diện không cho gõ quá. `src/shared/`
-// không được import module nên bài này không so trực tiếp — bài `docGhiChuKy` ở `src/modules/ky-so/rules.test.ts` khoá con số 200 ở phía máy chủ.
+// Máy chủ (`docGhiChuKy` ở module ky-so, CHECK 200 của `ky_period_close.note`) vẫn là nơi quyết. Hằng độ dài nằm MỘT chỗ ở `ky-khoa.ts`: `docGhiChuKy` và ô ghi chú ở giao diện
+// cùng import nó — bài `docGhiChuKy` ở `src/modules/ky-so/rules.test.ts` khoá con số 200 ở phía máy chủ bằng chuỗi 200/201 ký tự.
 test("giới hạn ghi chú ở giao diện là 200 ký tự (khớp máy chủ)", () => {
   assert.equal(GHI_CHU_KHOA_TOI_DA, 200);
+});
+
+// Gợi ý dưới ô ghi chú (vòng sửa 1): ngày viết dạng 30/09/2026 (luật ghi chú không chặn), không số điện thoại / số tài khoản.
+test("gợi ý ô ghi chú chỉ cách viết ngày an toàn và nhắc không ghi số điện thoại / số tài khoản", () => {
+  assert.equal(GOI_Y_GHI_CHU_KHOA, "Ghi ngày dạng 30/09/2026. Không ghi số điện thoại hay số tài khoản.");
 });

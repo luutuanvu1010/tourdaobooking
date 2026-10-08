@@ -49,3 +49,12 @@ test("docGhiChuKy: tuỳ chọn, ≤ 200 ký tự, không dãy ≥ 8 chữ số 
   assert.deepEqual(docGhiChuKy(123), { ok: false, message: "Ghi chú tối đa 200 ký tự." });
   assert.deepEqual(docGhiChuKy("gọi 0912 345 678"), { ok: false, message: "Ghi chú không được chứa số điện thoại / số tài khoản." });
 });
+
+// Gợi ý ở ô ghi chú của màn Khoá sổ tháng («Ghi ngày dạng 30/09/2026») dựa vào đây: dấu gạch chéo tách các nhóm số nên ngày không thành dãy ≥ 8 chữ số; ngày viết bằng dấu chấm / gạch
+// nối thì dính luật (đã nêu cho chủ ở sổ thi công Task 12, không nới ở vòng này).
+test("docGhiChuKy: ngày 30/09/2026 qua; 30.09.2026 và 2026-09-30 bị chặn như dãy số dài", () => {
+  assert.deepEqual(docGhiChuKy("Đối chiếu xong ngày 30/09/2026"), { ok: true, value: "Đối chiếu xong ngày 30/09/2026" });
+  const chan = { ok: false, message: "Ghi chú không được chứa số điện thoại / số tài khoản." };
+  assert.deepEqual(docGhiChuKy("Đối chiếu xong ngày 30.09.2026"), chan);
+  assert.deepEqual(docGhiChuKy("Đối chiếu xong ngày 2026-09-30"), chan);
+});

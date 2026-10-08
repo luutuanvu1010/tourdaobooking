@@ -2,8 +2,9 @@
 // câu hộp xác nhận phải nói rõ "KHÔNG mở lại được" (khoá nhầm tháng chỉ cứu được bằng khôi phục cả cơ sở dữ liệu, lỗ HC-5.19). Tháng luôn qua `nhanThang` (MM/YYYY), không tự cắt chuỗi.
 import { nhanThang } from "./ky-khoa.ts";
 
-/** Ghi chú khi khoá: tối đa 200 ký tự — khớp `docGhiChuKy` ở máy chủ (CHECK của `ky_period_close.note`). */
-export const GHI_CHU_KHOA_TOI_DA = 200;
+/** Gợi ý dưới ô ghi chú khi khoá. Chỉ là chữ giao diện: luật ghi chú (`docGhiChuKy`, máy chủ) chặn dãy ≥ 8 chữ số sau khi bỏ dấu chấm, gạch nối, khoảng trắng — ngày viết
+ *  «30/09/2026» không dính luật đó, «30.09.2026» hay «2026-09-30» thì dính (bài `src/modules/ky-so/rules.test.ts` khoá điều này). Độ dài tối đa: `GHI_CHU_KHOA_TOI_DA` ở `ky-khoa.ts`. */
+export const GOI_Y_GHI_CHU_KHOA = "Ghi ngày dạng 30/09/2026. Không ghi số điện thoại hay số tài khoản.";
 
 export const CAU_CHUA_KHOA_THANG_NAO = "Chưa khoá tháng nào";
 export const CAU_KHONG_CO = "Không có";
