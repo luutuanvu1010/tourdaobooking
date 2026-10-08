@@ -82,6 +82,8 @@ const chuPhan = (p: PhanDoiTin): string => (p.loai === "cu-the" ? p.phan : p.cau
  * Câu tin "đơn đổi sau xác nhận" (ADR-0062 Đ2): chỉ nhãn cố định + giá trị đã kiểm dạng (phanDoiCuaTin). Một dòng: câu theo loại; nhiều dòng cùng lô: nối phần
  * đổi bằng "; " (bỏ trùng). `ten` = null khi người xem không qua order.history.view.
  */
+/** Thứ tự phần đổi trong MỘT lô (cùng đơn + người làm + mốc): bỏ chặng đứng trước thêm chặng (lô thay chặng đọc như người làm đã làm). */
+const THU_TU_PHAN_DOI: readonly string[] = ["trip_updated", "order_leg_closed", "order_leg_updated", "order_leg_added", "order_money_adjusted_by_field", "order_money_adjusted"];
 function cauTinDoi(ten: string | null, ma: string, phan: readonly PhanDoiTin[]): string {
   const dau = (x: string) => (ten !== null ? `${ten} đổi đơn ${ma}: ${x}` : `Đơn ${ma}: ${x}`);
   const p = phan[0]!;
@@ -172,6 +174,9 @@ export function locHopThongBao(
   // ADR-0062 + ADR-0052 D6.2 MQ-07 — MỘT hàm chọn tin cho mỗi lô đổi: mỗi người nhận TỐI ĐA MỘT tin (ADR-0062 Đ3 "chống trùng"). Xét MQ-07 TRƯỚC (tài xế không
   // qua cửa tin đơn); người đủ điều kiện MQ-07 nhận tin chuyến "gọi báo khách" / "mở để xem" và KHÔNG nhận tin đơn đổi cho lô đó ở ngăn nào.
   for (const lo of loDoi.values()) {
+    // Thứ tự CỐ ĐỊNH trong lô (SQL không hứa thứ tự cho các dòng cùng mốc): theo THU_TU_PHAN_DOI rồi theo id — câu "bỏ chặng đón; thêm chặng đón" của lô
+    // thay chặng và id tin không đổi giữa các lần đọc (phiếu kiểm A3 T3).
+    lo.sort((a, b) => THU_TU_PHAN_DOI.indexOf(a.d.action) - THU_TU_PHAN_DOI.indexOf(b.d.action) || (a.d.id < b.d.id ? -1 : a.d.id > b.d.id ? 1 : 0));
     const d = lo[0]!.d;
     let gioHen: { cau: string; lienKet: string } | null = null;
     for (const x of lo) {

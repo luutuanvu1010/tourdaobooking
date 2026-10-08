@@ -110,6 +110,16 @@ test("NT-B7.9 + 7.10: 'sau xác nhận' do nguồn tính (sauXacNhan) — hàm l
 
 // ---- NT-B8: cùng lô một tin; mốc bắt đầu ---------------------------------------------------------------------------------------------------
 
+test("thay chặng (một lô: bỏ + thêm, cùng mốc): câu luôn 'bỏ chặng đón; thêm chặng đón' và id tin cố định — không phụ thuộc thứ tự dòng SQL trả (phiếu kiểm A3 T3)", () => {
+  const bo = doi({ id: "r1", action: "order_leg_closed", detail: "Chiều đi · Tour đảo: bỏ chặng (lý do: Nhập sai)", legId: "leg-1" });
+  const them = doi({ id: "r2", action: "order_leg_added", detail: "Chiều đi · Tour đảo: thêm — giờ đón 06:30", legId: null });
+  for (const lo of [[bo, them], [them, bo]]) {
+    const t = hop(LAN, lo).tin;
+    assert.deepEqual(t.map((x) => x.cau), ["Quản Trị đổi đơn TD-1: bỏ chặng đón; thêm chặng đón"], JSON.stringify(t.map((x) => x.cau)));
+    assert.equal(t[0]!.id, "r1", "id tin = dòng đứng đầu theo thứ tự cố định");
+  }
+});
+
 test("NT-B8 cùng đơn + cùng người + cùng mốc → MỘT tin (nối phần đổi bằng '; '); khác mốc → hai tin; dòng trước MOC_TIN_DOI → không tin", () => {
   const a = doi({ id: "a1" });
   const b = doi({ id: "a2", action: "order_leg_added", detail: "Chiều về · Tour đảo: thêm — ngày đón 2026-10-10" });

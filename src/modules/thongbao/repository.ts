@@ -34,9 +34,11 @@ const LIST_DOI = defineSql("thongbao", "list_doi", `${DOI_CHON}
   WHERE e.created_at >= ?1 AND e.created_at >= ?2
   ORDER BY e.created_at DESC LIMIT 3000`);
 // Gõ cửa (ADR-0062 Đ4): dòng đổi MỚI NHẤT của người vừa làm trên đơn này, ghi từ ?3 — gốc lắp ráp gọi ngay sau lệnh đổi (route không truyền chữ nhật ký).
+// Thứ tự phụ `e.id` (view không có rowid): lô thay chặng (replaceLeg) ghi HAI dòng cùng mốc (bỏ + thêm) — chọn dòng nào cũng ra cùng người nhận (cả hai không
+// sinh MQ-07; người nhận tin đơn đổi theo đơn), thứ tự phụ chỉ để lần đọc nào cũng như nhau (phiếu kiểm A3 T3).
 const DOI_VUA_GHI = defineSql("thongbao", "doi_vua_ghi", `${DOI_CHON}
   WHERE e.order_id = ?1 AND e.staff_id = ?2 AND e.created_at >= ?3
-  ORDER BY e.created_at DESC LIMIT 1`);
+  ORDER BY e.created_at DESC, e.id LIMIT 1`);
 const LIST_THU_CONG = defineSql("thongbao", "list_thu_cong", `
   SELECT n.id, n.tieu_de, n.noi_dung, n.quan_trong, n.created_by, COALESCE(s.label, '') AS ten_nguoi_gui, n.created_at, (n.valid_to IS NOT NULL) AS thu_hoi,
          (SELECT group_concat(t.tag, ' ') FROM ntf_notice_target t WHERE t.notice_id = n.id) AS tags,
