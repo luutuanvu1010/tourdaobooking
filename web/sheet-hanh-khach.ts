@@ -14,7 +14,8 @@ import { vnToday } from "../src/shared/vn-date";
 export interface SheetHanhKhachOptions {
   orderId: string;
   ds: Api.PassengerListResponse;
-  onSaved: () => void;
+  /** `dongBo` = phần chuyến của phản hồi (ADR-0104 Đ2) — trang đơn hiện câu nhắc / cập nhật tay. */
+  onSaved: (dongBo?: Api.DongBoChuyenDto) => void;
   onReload: () => void;
 }
 
@@ -42,9 +43,9 @@ export function openSheetHanhKhach(o: SheetHanhKhachOptions, opener: HTMLElement
     luu.textContent = "Đang lưu…";
     renderBanner(bannerEl, null);
     try {
-      await api<Api.PassengerListResponse>(`/api/orders/${encodeURIComponent(o.orderId)}/passengers`, { method: "POST", body: than });
+      const r = await api<Api.PassengerListResponse>(`/api/orders/${encodeURIComponent(o.orderId)}/passengers`, { method: "POST", body: than });
       bt.close(false);
-      o.onSaved();
+      o.onSaved(r.dongBoChuyen);
     } catch (err) {
       bt.setBusy(false);
       luu.disabled = false;

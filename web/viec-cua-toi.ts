@@ -14,6 +14,7 @@ import { APP_NAME } from "./phien-ban";
 import { handlerFailure, myJobActions } from "../src/shared/handler-view";
 import { PAX_LABEL, type PaxCode } from "../src/shared/order-lines";
 import { banner, type Banner } from "../src/shared/order-errors";
+import { cauDongBoChuyen } from "../src/shared/dong-bo-chuyen-cau";
 import { can, holdsPartner } from "../src/shared/permissions";
 import { tripDeparted } from "../src/shared/trip-rules";
 import { ngayNgan, vnToday } from "../src/shared/vn-date";
@@ -120,6 +121,15 @@ interface SheetOutcome {
   said?: string;
 }
 
+/**
+ * Thành công: câu đọc cho trình đọc màn hình; phần chuyến của phản hồi (ADR-0104 Đ2, kế hoạch §8 — chỉ câu cố định, HDV không xem chuyến) có câu nhắc thì kèm
+ * dải vàng mang đúng câu đó (xe đang chạy → văn phòng bấm Báo huỷ; chuyến cần cập nhật tay).
+ */
+function thanhCong(said: string, dongBo: Api.DongBoChuyenDto | undefined): SheetOutcome {
+  const cau = cauDongBoChuyen([dongBo]);
+  return cau.length > 0 ? { said, banner: banner("warning", said, { lines: cau.map((text) => ({ text })) }) } : { said };
+}
+
 /** Lỗi của máy chủ nghĩa là "màn hình đã cũ" (đơn vừa đổi, không còn phụ trách, không còn đơn) → đóng bảng, tải lại, báo bằng banner. */
 const isOutdated = (err: unknown): err is ApiError => err instanceof ApiError && (err.status === 409 || err.status === 403 || err.status === 404);
 
@@ -201,12 +211,12 @@ function openEditSheet(a: Api.MyAssignmentDto, opener: HTMLElement, done: (r: Sh
     }
     setBusy(true);
     try {
-      await api<Api.HandlerMoneyEditResponse>(`/api/orders/${encodeURIComponent(a.orderId)}/handler-money-edit`, {
+      const r = await api<Api.HandlerMoneyEditResponse>(`/api/orders/${encodeURIComponent(a.orderId)}/handler-money-edit`, {
         method: "POST",
         body: { reason, services: moneyEditServices(a.services, draft) },
       });
       sheet.close(false);
-      done({ said: `Đã lưu số khách mới cho đơn ${a.orderCode}.` });
+      done(thanhCong(`Đã lưu số khách mới cho đơn ${a.orderCode}.`, r.dongBoChuyen));
     } catch (err) {
       setBusy(false);
       if (isOutdated(err)) {
@@ -280,12 +290,12 @@ function openCancelSheet(a: Api.MyAssignmentDto, departDate: string | null, open
     showError(errorBox, null);
     setBusy(true);
     try {
-      await api<Api.HandlerCancelResponse>(`/api/orders/${encodeURIComponent(a.orderId)}/handler-cancel`, {
+      const r = await api<Api.HandlerCancelResponse>(`/api/orders/${encodeURIComponent(a.orderId)}/handler-cancel`, {
         method: "POST",
         body: chosen === "other" ? { reason: chosen, note } : { reason: chosen },
       });
       sheet.close(false);
-      done({ said: `Đã huỷ đơn ${a.orderCode}.` });
+      done(thanhCong(`Đã huỷ đơn ${a.orderCode}.`, r.dongBoChuyen));
     } catch (err) {
       // 400 (note rỗng hoặc chứa số điện thoại — máy chủ, không phải ở đây, kiểm) → giữ bảng mở, KHÔNG mất nội dung đã gõ, hiện đúng lỗi máy chủ.
       setBusy(false);

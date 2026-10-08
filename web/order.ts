@@ -33,6 +33,7 @@ import { NO_HANDLER_TEXT, handlerControls, handlerFailure, handlerSaved, hoiDuoc
 import { HANDLER_HIDDEN } from "../src/shared/order-confirmation";
 import { type PaxCounts } from "../src/shared/order-lines";
 import { banner, classifyOrderError, type Banner } from "../src/shared/order-errors";
+import { cauDongBoChuyen } from "../src/shared/dong-bo-chuyen-cau";
 import { cauKhoaXacNhan, khongQuyenSuaText, orderActions, paxFullText, suaChuyenDuoc, suaKhachDuoc } from "../src/shared/order-view";
 import { CHUA_XEP_XE, dongXeTrenDon, duocXemXeTrenDon } from "../src/shared/xe-tren-don";
 import { canhBaoTongAm, duocSuaSoKhachVanPhong, nguonBangSuaSoKhach } from "../src/shared/so-khach-van-phong";
@@ -98,6 +99,17 @@ function show(b: Banner | null): void {
     reloadPage: () => location.reload(),
     editHref: (serviceId) => `/order-form?id=${encodeURIComponent(id!)}&focus=${encodeURIComponent(serviceId)}`,
   });
+}
+
+/**
+ * Sau lệnh đơn nối máy đồng bộ chuyến (ADR-0104 Đ2, kế hoạch §8): có câu nhắc (xe đang chạy → "Báo huỷ"; cập nhật tay) thì dải VÀNG mang câu đó thay dải xanh
+ * "đã lưu"; không có thì dải xanh như cũ (`xong` null = không dải xanh). `them` = dòng vàng sẵn có của lệnh (vd tổng tiền âm). Tải lại lỗi thì giữ banner lỗi.
+ */
+function baoSauLenh(xong: string, xanh: string | null, dongBo: readonly (Api.DongBoChuyenDto | undefined)[], them: readonly string[] = []): void {
+  if (!bannerEl.hidden) return;
+  const cau = [...them, ...cauDongBoChuyen(dongBo)];
+  if (cau.length > 0) show(banner("warning", xong, { lines: cau.map((text) => ({ text })) }));
+  else if (xanh !== null) show(banner("info", xanh));
 }
 
 /** Lỗi của máy chủ → banner theo ma trận đặc tả 5.2 (incomplete_trip có danh sách thiếu); lỗi mạng → câu chung. */
@@ -260,9 +272,9 @@ function nutSuaDuaDon(order: Order): HTMLButtonElement {
     openSheetDuaDon(
       {
         order, diem, coDatGap: can(staff!, "order.leg.short_notice"), mocPhut,
-        onSaved: () =>
+        onSaved: (dongBo) =>
           void load().then(() => {
-            if (bannerEl.hidden) show(banner("info", "Đã lưu đưa đón."));
+            baoSauLenh("Đã lưu đưa đón.", "Đã lưu đưa đón.", dongBo);
             document.querySelector<HTMLElement>('[data-action="sua-dua-don"]')?.focus();
           }),
         onReload: () => void load(),
@@ -279,9 +291,9 @@ function nutSuaDanhSach(order: Order, ds: Api.PassengerListResponse): HTMLButton
     openSheetHanhKhach(
       {
         orderId: order.id, ds,
-        onSaved: () =>
+        onSaved: (dongBo) =>
           void load().then(() => {
-            if (bannerEl.hidden) show(banner("info", "Đã lưu danh sách hành khách."));
+            baoSauLenh("Đã lưu danh sách hành khách.", "Đã lưu danh sách hành khách.", [dongBo]);
             document.querySelector<HTMLElement>('[data-action="sua-danh-sach"]')?.focus();
           }),
         onReload: () => void load(),
@@ -1078,9 +1090,9 @@ function nutSuaSoKhach(order: Order, nguon: MoneyEditSource[]): HTMLButtonElemen
         nguon,
         onSaved: (r) =>
           void load().then(() => {
-            if (!bannerEl.hidden) return; // tải lại lỗi thì giữ banner lỗi, không đè
-            if (r.canhBaoTongAm) show(banner("warning", "Đã lưu số khách mới — tổng tiền của đơn đang âm.", { lines: [{ text: r.canhBaoTongAm }] }));
-            else show(banner("info", r.daGhi ? "Đã lưu số khách mới, Nền tảng đã tính lại tiền." : "Số khách không đổi nên không ghi gì."));
+            // tải lại lỗi thì giữ banner lỗi, không đè (baoSauLenh)
+            const xanh = r.daGhi ? "Đã lưu số khách mới, Nền tảng đã tính lại tiền." : "Số khách không đổi nên không ghi gì.";
+            baoSauLenh(r.canhBaoTongAm ? "Đã lưu số khách mới — tổng tiền của đơn đang âm." : xanh, xanh, [r.dongBoChuyen], r.canhBaoTongAm ? [r.canhBaoTongAm] : []);
             focusSoKhach();
           }),
         onReload: () => void load().then(focusSoKhach),
@@ -1156,11 +1168,12 @@ function nutHuyDon(): HTMLElement {
       nut.disabled = true;
       show(null);
       try {
-        await api(`/api/orders/${encodeURIComponent(id!)}/status`, {
+        const r = await api<Api.OrderResponse>(`/api/orders/${encodeURIComponent(id!)}/status`, {
           method: "POST",
           body: chon === "OTHER" ? { status: "cancelled", lyDo: chon, ghiChu: ghiChu.value.trim() } : { status: "cancelled", lyDo: chon },
         });
         await load();
+        baoSauLenh("Đã huỷ đơn.", null, [r.dongBoChuyen]); // ADR-0104 Đ2: chỉ hiện khi có câu nhắc (huỷ đơn vốn không có dải xanh)
       } catch (err) {
         show(errorBanner(err));
         capNhat();
