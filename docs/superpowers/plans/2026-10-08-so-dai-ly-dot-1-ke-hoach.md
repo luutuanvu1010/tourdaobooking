@@ -2409,7 +2409,7 @@ git commit -m "Khoá sổ tháng ở chi phí xe thuê: dòng đảo và ngày m
 
 - [ ] **Step 2: Đỏ** `node --test src/audit-invariants.test.ts`.
 
-- [ ] **Step 3: Viết mười mục** trong `scripts/audit-checks.mjs` theo đúng khuôn mục hiện có (mỗi mục có `what` tiếng Việt nói rõ hỏng gì, `note` trỏ đặc tả §9). Câu SQL chỉ đọc.
+- [ ] **Step 3: Viết mười mục** trong `scripts/audit-checks.mjs` theo đúng khuôn mục hiện có (mỗi mục có `what` tiếng Việt nói rõ hỏng gì, `note` trỏ đặc tả §9). Câu SQL chỉ đọc. Mức: tám mã "lỗi" dùng mức lỗi thường của tệp; `R-PRC-5` và `R-ORD-T1w` dùng `level: "warn"` (cảnh báo VĨNH VIỄN — không làm đỏ kể cả `--strict` mà e2e và runbook dùng), KHÔNG dùng `'warn-unless-strict'`.
 
 - [ ] **Step 4: Xanh** `node --test src/audit-invariants.test.ts`, rồi `npm run db:migrate:local` trên D1 local tạm của e2e (hoặc chạy ở Task 13) và `node scripts/audit-invariants.mjs --db local` ⇒ thoát 0.
 
@@ -2423,3 +2423,241 @@ git commit -m "Kiểm định kỳ sổ đại lý: bảng mức, bản chụp �
 ```
 
 ---
+
+### Task 10: Màn "Hoa hồng đối tác" (`/hoa-hong`) và "Người bán dịch vụ" (`/nguoi-ban`)
+
+**Files:**
+- Create: `src/shared/so-dai-ly-nhap.ts` (+ `.test.ts`) — đọc ô nhập tỷ lệ / tiền / ngày của hai màn (thuần, có bài)
+- Create: `public/hoa-hong.html`, `web/hoa-hong.ts`, `public/nguoi-ban.html`, `web/nguoi-ban.ts`
+- Modify: `package.json` (`build:web`), `src/shared/sw-policy.ts` (`PAGES`, `PRECACHE`), `web/shell.ts` (nhóm `management`), `web/account.ts` (mục ở tab "Tôi"), `public/app.css` (chỉ khi cần lớp mới — chỉ token), `src/shared/so-do-trang.ts` (sinh)
+
+**Interfaces:**
+- Consumes: route Task 3 (`GET/POST /api/pricing/hoa-hong`, `POST …/:id/dong`, `GET /api/pricing/thu-tra`, `GET/POST /api/pricing/cung-ung`, `POST …/:id/dong`, `GET /api/pricing/nguoi-huong`); DTO `CommissionRuleListResponse`, `SupplyTermListResponse`, `ThuTraResponse`, `NguoiHuongTimResponse` (qua `Api.*` của `web/api.ts`); `nhanMuc`, `nhanTyLeBp`, `NHAN_LY_DO_THIEU` (Task 5); `GET /api/catalog…` hiện có để chọn dịch vụ / nhóm (dùng `web/catalog-picker.ts` nếu hợp; không thì danh sách chọn đọc route danh mục đang dùng ở form đơn).
+- Produces: `docTyLePhanTram(raw: string): { ok: true; bp: number } | { ok: false; message: string }`, `docTienMoiKhach(raw: string): { ok: true; dong: number } | { ok: false; message: string }`; hai trang với id phần tử cố định cho kịch bản Chrome (Task 13): `#muc-list`, `#muc-add-form`, `#thu-tra-form`, `#thu-tra-ket-qua`, `#dk-list`, `#dk-add-form`.
+
+- [ ] **Step 1: Bài đỏ** `src/shared/so-dai-ly-nhap.test.ts`:
+
+```ts
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { docTienMoiKhach, docTyLePhanTram } from "./so-dai-ly-nhap.ts";
+test("docTyLePhanTram: dấu phẩy hoặc chấm, tối đa hai chữ số thập phân, 0…100", () => {
+  assert.deepEqual(docTyLePhanTram("12,5"), { ok: true, bp: 1250 });
+  assert.deepEqual(docTyLePhanTram("12.5"), { ok: true, bp: 1250 });
+  assert.deepEqual(docTyLePhanTram(" 15 "), { ok: true, bp: 1500 });
+  assert.deepEqual(docTyLePhanTram("0"), { ok: true, bp: 0 });
+  assert.deepEqual(docTyLePhanTram("100"), { ok: true, bp: 10000 });
+  assert.deepEqual(docTyLePhanTram("0,01"), { ok: true, bp: 1 });
+  for (const sai of ["", "abc", "12,555", "100,01", "-1", "1e2", "12,5%x"]) assert.equal(docTyLePhanTram(sai).ok, false, sai);
+  assert.deepEqual(docTyLePhanTram("12,5%"), { ok: true, bp: 1250 }, "cho phép dấu % ở cuối");
+});
+test("docTienMoiKhach: số nguyên đồng, bỏ dấu chấm nghìn", () => {
+  assert.deepEqual(docTienMoiKhach("50.000"), { ok: true, dong: 50_000 });
+  assert.deepEqual(docTienMoiKhach("0"), { ok: true, dong: 0 });
+  for (const sai of ["", "50,5", "-1", "abc"]) assert.equal(docTienMoiKhach(sai).ok, false, sai);
+});
+```
+
+- [ ] **Step 2: Đỏ** `node --test src/shared/so-dai-ly-nhap.test.ts`.
+
+- [ ] **Step 3: Viết** `src/shared/so-dai-ly-nhap.ts`:
+
+```ts
+// Đọc ô nhập của màn bảng mức / người bán (thuần). Tỷ lệ lưu bằng PHẦN VẠN nguyên (12,5% = 1250) — không số thực ở bất kỳ đâu.
+export function docTyLePhanTram(raw: string): { ok: true; bp: number } | { ok: false; message: string } {
+  const s = raw.trim().replace(/%$/, "").trim();
+  const m = /^(\d{1,3})(?:[.,](\d{1,2}))?$/.exec(s);
+  if (!m) return { ok: false, message: "Tỷ lệ là số từ 0 tới 100, tối đa hai chữ số sau dấu phẩy (vd 12,5)." };
+  const bp = Number(m[1]) * 100 + Number((m[2] ?? "").padEnd(2, "0") || "0");
+  return bp <= 10_000 ? { ok: true, bp } : { ok: false, message: "Tỷ lệ không quá 100%." };
+}
+export function docTienMoiKhach(raw: string): { ok: true; dong: number } | { ok: false; message: string } {
+  const s = raw.trim().replace(/\./g, "");
+  if (!/^\d{1,9}$/.test(s)) return { ok: false, message: "Số tiền mỗi khách là số nguyên đồng (vd 50.000)." };
+  return { ok: true, dong: Number(s) };
+}
+```
+
+- [ ] **Step 4: Xanh** `node --test src/shared/so-dai-ly-nhap.test.ts`.
+
+- [ ] **Step 5: Hai trang** theo công thức c của `docs/CHANGE-GUIDE.md` (khuôn `public/locations.html` + `web/locations.ts`: `initShell` đầu tiên, hàm `act()` khoá nút khi ghi, lỗi qua `showError`, bảng `.table-wrap` cho máy tính + `.card-list` cho điện thoại, không `innerHTML`, dựng bằng `h()`).
+
+  **`/hoa-hong`** — tiêu đề "Hoa hồng đối tác", dòng mô tả "Mức hoa hồng cho đối tác theo dịch vụ. Mức không sửa, không xoá được — chỉ thêm mức mới và đóng mức cũ." Ba khối:
+  1. **Danh sách** (`#muc-list` / thẻ): cột Áp cho (tên vai hoặc tên đối tác), Phạm vi ("Dịch vụ HONTAM" / "Nhóm Du thuyền" / "Mọi dịch vụ" — tên nhóm, tên dịch vụ lấy từ danh mục đã nạp, không in mã thô nếu có tên), Mức (`nhanMuc`), Từ ngày, Đến ngày ("—" khi mở), trạng thái ("Đang áp" / "Đã đóng" theo `conHieuLuc`), nút "Đóng mức" (chỉ khi `can(staff, "partner.commission.write")` và dòng còn mở) ⇒ hộp nhỏ chọn "Ngày kết thúc" (mặc định hôm nay) ⇒ `POST …/:id/dong`. Lọc trên máy: "Đang áp / Tất cả", ô tìm theo tên đối tượng.
+  2. **Thêm mức** (`#muc-add-form`, chỉ khi có `partner.commission.write`): "Áp cho" — hai lựa chọn "Loại đối tác" (danh sách `vai` của phản hồi) hoặc "Một đối tác" (ô tìm gọi `GET /api/pricing/nguoi-huong?q=` có trễ 300 ms, tối đa 20 kết quả); "Phạm vi" — "Một dịch vụ" / "Một nhóm dịch vụ" / "Mọi dịch vụ"; "Kiểu" — "Phần trăm" (ô `docTyLePhanTram`) / "Số tiền mỗi khách" (ô `docTienMoiKhach`, `inputmode="numeric"`); "Từ ngày" (mặc định hôm nay), "Đến ngày" (tuỳ chọn), "Ghi chú". Lỗi đọc ô hiện ngay dưới ô, không gửi.
+  3. **Thử tra** (`#thu-tra-form`, ai xem được trang đều dùng): chọn đối tác (ô tìm như trên), dịch vụ, ngày ⇒ `GET /api/pricing/thu-tra` ⇒ `#thu-tra-ket-qua` in "Áp mức <nhanMuc> — <lời bậc>" với lời bậc: 1 "mức riêng của đối tác cho dịch vụ này", 2 "mức riêng của đối tác cho nhóm", 3 "mức riêng của đối tác cho mọi dịch vụ", 4 "mức của loại đối tác cho dịch vụ này", 5 "… cho nhóm", 6 "… cho mọi dịch vụ"; `MISSING` ⇒ câu `lyDo`; `NONE` ⇒ "Không có người hưởng hoa hồng".
+
+  **`/nguoi-ban`** — tiêu đề "Người bán dịch vụ", mô tả "Dịch vụ nào do Tour Đảo bán, dịch vụ nào do nhà cung cấp bán và Tour Đảo mua lại bao nhiêu phần trăm." Danh sách (`#dk-list`): Phạm vi, Người bán (tên; công ty chủ ghi "Tour Đảo (công ty)"), Tỷ lệ mua lại (`nhanTyLeBp` hoặc "—"), Từ ngày, Đến ngày, nút "Đóng" (có `supply.terms.write`); dòng "Mọi dịch vụ" của công ty có hộp xác nhận riêng: "Đóng dòng mặc định thì dịch vụ chưa có điều khoản riêng sẽ thiếu người bán cho tới khi mở dòng mới. Vẫn đóng?". Thêm (`#dk-add-form`): Phạm vi, Người bán (chọn "Tour Đảo" hoặc một hồ sơ trong `nhaCungCap`), Tỷ lệ mua lại (chỉ hiện khi chọn nhà cung cấp; bắt buộc), Từ ngày, Đến ngày, Ghi chú. Nhóm "Thuê xe" vẫn chọn được ở giao diện; máy chủ trả 409 câu tiếng Việt và trang hiện câu đó.
+
+  Trang tự ẩn khối ghi khi thiếu ô ghi; người không có ô xem mở trang ⇒ máy chủ 403 ⇒ `showError` "Bạn không có quyền xem trang này." (khuôn trang khác).
+
+- [ ] **Step 6: Đăng ký trang.** `package.json` `build:web` thêm `web/hoa-hong.ts web/nguoi-ban.ts`; `src/shared/sw-policy.ts` thêm `"/hoa-hong"`, `"/nguoi-ban"` vào `PAGES` và `"/hoa-hong"`, `"/js/hoa-hong.js"`, `"/nguoi-ban"`, `"/js/nguoi-ban.js"` vào `PRECACHE`. Điều hướng: `web/shell.ts` nhóm `management` (máy tính) thêm `{ href: "/hoa-hong", label: "Hoa hồng đối tác", icon: <biểu tượng có sẵn gần nghĩa nhất trong web/icons.ts>, active: (p) => p === "/hoa-hong" }` khi `can(staff, "partner.commission.view")` và `{ href: "/nguoi-ban", label: "Người bán dịch vụ", … }` khi `can(staff, "supply.terms.view")`; mảng `active` của tab "Tôi" (điện thoại) thêm hai đường; `web/account.ts` thêm hai dòng mục cùng điều kiện. Ẩn/hiện ở web không thay cổng của route (công thức e).
+
+- [ ] **Step 7: Kiểm.** `npm run build:web` (sinh lại `src/shared/so-do-trang.ts` — commit cùng), `npm test` (`sw-policy.test.ts` so `PAGES` với `public/*.html`), `npm run typecheck`. Mở thử bằng `npm run dev` hoặc `node scripts/dev-iphone.mjs` với tài khoản Kế toán, Bán hàng: kịch bản Chrome viết ở Task 13.
+
+- [ ] **Step 8: Commit.**
+
+```bash
+git add src/shared/so-dai-ly-nhap.ts src/shared/so-dai-ly-nhap.test.ts public/hoa-hong.html public/nguoi-ban.html web/hoa-hong.ts web/nguoi-ban.ts web/shell.ts web/account.ts package.json src/shared/sw-policy.ts src/shared/so-do-trang.ts public/app.css
+git commit -m "Màn Hoa hồng đối tác và Người bán dịch vụ" -m "Kế toán đặt và đóng mức hoa hồng, thử tra mức nào thắng cho một đối tác và một dịch vụ; khai người bán và tỷ lệ mua lại. Tỷ lệ nhập dạng 12,5 được đổi thành phần vạn nguyên ở một hàm thuần có bài." -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
+```
+
+---
+
+### Task 11: Trang đơn và form lập đơn: khối "Phần đối tác", ghi mức tay, nhãn bên đặt, ô "Đặt qua đối tác"
+
+**Files:**
+- Create: `web/phan-doi-tac.ts` (khối "Phần đối tác" + bảng trượt "Ghi mức tay"), `web/dat-qua-doi-tac.ts` (ô "Đặt qua đối tác")
+- Modify: `web/order.ts` (gắn khối; nhãn "Bên đặt (đối tác)"), `web/order-form.ts` (ô "Đặt qua đối tác", dòng chỉ đọc cho tài khoản Đối tác, nạp lại nháp), `web/booker-sheet.ts` (ô "Đặt qua đối tác" ở bảng đổi bên đặt), `public/order.html`, `public/order-form.html` (chỗ gắn nếu trang cần phần tử tĩnh), `public/app.css` (chỉ token), `package.json` không đổi (hai tệp mới được `order.ts`/`order-form.ts` import, esbuild gói chung), `src/shared/so-do-trang.ts` (sinh)
+
+**Interfaces:**
+- Consumes: `GET /api/orders/:id/thuong-mai` (`ThuongMaiResponse`), `POST /api/orders/:id/thuong-mai/:serviceId` (Task 5); `OrderDetailDto.bookerLaDoiTac` (Task 6); `GET /api/pricing/nguoi-huong` (Task 3); `CAU_THIEU_MUC`, `nhanMuc` (Task 5); `docTyLePhanTram`, `docTienMoiKhach` (Task 10).
+- Produces: `initPhanDoiTac(host: HTMLElement, v: { orderId: string; coGhiTay: boolean; xemNguoiBan: boolean }): Promise<void>`; `oDatQuaDoiTac(v: { daChon: { partyId: string; ten: string } | null; onDoi: (chon: { partyId: string; ten: string } | null) => void }): HTMLElement`; id cố định: `#phan-doi-tac`, `#ghi-tay-sheet`, `#dat-qua-doi-tac`.
+
+- [ ] **Step 1: Khối "Phần đối tác"** (`web/phan-doi-tac.ts`). Trang đơn gọi khối khi `can(staff, "order.terms.view", { ownerId, assigned })` (cùng phạm vi trang đơn đang dùng cho ô tiền). Hai dạng theo phản hồi:
+  - `vanPhong`: tiêu đề "Phần đối tác" + dòng "Người hưởng: <tên>" (hoặc "Không có người hưởng hoa hồng"); đơn nháp ⇒ nhãn "Dự kiến — tính theo bảng mức hôm nay, chưa lưu"; `chuaChup` ⇒ "Đơn xác nhận trước khi có bảng mức". Bảng: Dịch vụ, Thành tiền, Khách tính, Mức, Hoa hồng, Giá đại lý, Người bán; dòng thiếu mức tô màu cảnh báo (token cảnh báo có sẵn) với câu `thieu` + " · " + `CAU_THIEU_MUC`; dòng ghi tay có nhãn "ghi tay". Khối nhà cung cấp (khi có `nhaCungCap`): "Mua lại <tyLeMua> — giá vốn <giaVon>". Hàng tổng; tổng hoa hồng `null` ⇒ "Chưa đủ mức". Nút "Ghi mức tay" từng dòng khi `coGhiTay` (`can(staff, "order.terms.override")`) và đơn đã xác nhận, chưa "Đã giao", không `chuaChup`.
+  - `doiTac`: tiêu đề "Hoa hồng của bạn"; bảng Dịch vụ, Thành tiền, Hoa hồng, Giá đại lý; `choCongTyCaiMuc` ⇒ dòng "Đang chờ Công ty cài mức cho một số dịch vụ". Không có cột Mức, không người bán.
+  - Bảng trượt "Ghi mức tay" (`#ghi-tay-sheet`, dùng bảng trượt chung của `web/` như `booker-sheet.ts`): Kiểu ("Phần trăm" / "Số tiền mỗi khách" / "Không đổi hoa hồng"), ô số, khối người bán tuỳ chọn ("Không đổi" / "Tour Đảo" / chọn nhà cung cấp + tỷ lệ mua lại — danh sách nhà cung cấp lấy từ `GET /api/pricing/cung-ung` CHỈ khi người dùng có `supply.terms.view`; không có thì ẩn khối người bán), "Lý do" bắt buộc (≥ 10 ký tự, đếm ký tự hiện dưới ô). Gửi ⇒ phản hồi là phần thương mại mới ⇒ vẽ lại khối. 409 ⇒ hiện câu máy chủ và nạp lại khối.
+
+- [ ] **Step 2: Nhãn bên đặt** (`web/order.ts`, dòng "Hồ sơ khách"): `order.bookerLaDoiTac` ⇒ nhãn "Bên đặt (đối tác)", không thì giữ nhãn cũ. Không suy ở giao diện.
+
+- [ ] **Step 3: Ô "Đặt qua đối tác"** (`web/dat-qua-doi-tac.ts`): nút "Đặt qua đối tác" ⇒ ô tìm theo tên (`GET /api/pricing/nguoi-huong?q=`, trễ 300 ms) ⇒ chọn ⇒ hiện "Đặt qua: <tên>" + nút "Bỏ chọn". `web/order-form.ts`: khi đã chọn, ô tra hồ sơ khách theo SĐT (`booker-picker`) ẩn đi, hai ô tên + SĐT khách vẫn hiện và vẫn là khách đi tour; thân gửi `bookerPartyId = partyId` đã chọn; bỏ chọn ⇒ trở lại như cũ. Tài khoản `holdsPartner(staff)` mà DTO tài khoản cho biết hồ sơ được hưởng (dùng cờ có sẵn của `/api/auth/me` nếu có; không có thì hiện dòng chỉ đọc "Bên đặt: <tên hồ sơ của bạn>" khi tài khoản giữ PARTNER và có hồ sơ — máy chủ quyết thật ở Task 6) ⇒ thay ô chọn người đặt bằng dòng chỉ đọc đó. Mở lại nháp: bên đặt đang lưu có `bookerLaDoiTac` ⇒ nạp vào ô "Đặt qua đối tác" (không vào ô tra SĐT). `web/booker-sheet.ts`: thêm cùng ô ở bảng đổi bên đặt.
+
+- [ ] **Step 4: Kiểm.** `npm run build:web` (commit `src/shared/so-do-trang.ts` nếu đổi), `npm run typecheck`, `npm test`. Chạy lại ba `a2-smoke-*.mjs` ở `docs/evidence/2026-09-20-a2/kich-ban/` (web/CLAUDE.md: sửa `order-form.ts`, `order.ts` thì chạy chúng) và `chon-hdv-lap-don-smoke.mjs` — xanh như trước. Kịch bản mới viết ở Task 13.
+
+- [ ] **Step 5: Commit.**
+
+```bash
+git add web public src/shared/so-do-trang.ts
+git commit -m "Trang đơn: khối Phần đối tác và ghi mức tay; form đơn: ô Đặt qua đối tác" -m "Văn phòng thấy mức, hoa hồng, giá đại lý từng dịch vụ, Kế toán ghi mức tay có lý do; Đối tác chỉ thấy số tiền hoa hồng của mình. Chọn đại lý bằng ô riêng để tên và SĐT khách đi tour không bị đè (đặc tả §7)." -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
+```
+
+---
+
+### Task 12: Màn "Khoá tháng" (`/khoa-thang`)
+
+**Files:**
+- Create: `public/khoa-thang.html`, `web/khoa-thang.ts`
+- Modify: `package.json` (`build:web`), `src/shared/sw-policy.ts`, `web/shell.ts`, `web/account.ts`, `src/shared/so-do-trang.ts` (sinh)
+
+**Interfaces:**
+- Consumes: `GET /api/ledger/ky`, `POST /api/ledger/ky/:period/khoa` (Task 7), `KySoResponse`.
+- Produces: trang với `#ky-da-khoa`, `#ky-bang-kiem`, `#ky-khoa-btn`.
+
+- [ ] **Step 1: Trang** (khuôn công thức c): tiêu đề "Khoá sổ tháng"; mô tả "Khoá một tháng đã qua: sau khi khoá, không ai ghi thêm tiền có ngày trong tháng đó — sai sót ghi vào tháng đang mở bằng điều chỉnh có lý do. Không mở lại được." Khối "Các tháng đã khoá" (`#ky-da-khoa`, "Chưa khoá tháng nào" khi rỗng). Khối "Tháng khoá được kế tiếp: MM/YYYY" + bảng kiểm (`#ky-bang-kiem`): "Khoản Công ty thu – chuyển khoản chờ xác nhận" (số khoản + danh sách mã đơn, số tiền, ngày), "Lần thu chưa rõ người thu" (như trên), "Số dư từng bên cuối tháng" (tên, số dư); mỗi khối rỗng ghi "Không có". Bảng kiểm không chặn. Nút "Khoá tháng MM/YYYY" (`#ky-khoa-btn`, chỉ khi `coTheKhoa`) ⇒ hộp xác nhận: "Khoá sổ tháng MM/YYYY? Việc này KHÔNG mở lại được. Muốn sửa sau khi khoá chỉ còn cách khôi phục cả cơ sở dữ liệu." + ô ghi chú tuỳ chọn ⇒ `POST` ⇒ vẽ lại theo phản hồi. `keTiep === null` ⇒ "Chưa có tháng nào khoá được (tháng hiện tại chưa qua)."
+
+- [ ] **Step 2: Đăng ký** như Task 10 Bước 6: `build:web` thêm `web/khoa-thang.ts`; `PAGES` `"/khoa-thang"`; `PRECACHE` `"/khoa-thang"`, `"/js/khoa-thang.js"`; `management` thêm `{ href: "/khoa-thang", label: "Khoá sổ tháng", … }` khi `can(staff, "ledger.view")` (không ngữ cảnh = any — Kế toán, Toàn quyền); tab "Tôi" và `web/account.ts` cùng điều kiện.
+
+- [ ] **Step 3: Kiểm.** `npm run build:web`, `npm test`, `npm run typecheck`.
+
+- [ ] **Step 4: Commit.**
+
+```bash
+git add public/khoa-thang.html web/khoa-thang.ts web/shell.ts web/account.ts package.json src/shared/sw-policy.ts src/shared/so-do-trang.ts
+git commit -m "Màn Khoá sổ tháng" -m "Kế toán xem các tháng đã khoá, bảng kiểm của tháng kế tiếp và khoá có hộp xác nhận nói rõ không mở lại được (đặc tả §8, §13)." -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
+```
+
+---
+
+### Task 13: Thử đầu–cuối, kịch bản Chrome, ảnh thật
+
+**Files:**
+- Create: `tests/e2e/so-dai-ly.mjs`, `tests/e2e/khoa-thang.mjs`, `docs/evidence/2026-10-08-so-dai-ly-dot-1/README.md`, `docs/evidence/2026-10-08-so-dai-ly-dot-1/kich-ban/so-dai-ly-smoke.mjs`, ảnh `docs/evidence/2026-10-08-so-dai-ly-dot-1/anh/*.png`
+- Modify: `tests/e2e/run.mjs` (`ALL`, `THOI_GIAN`), `tests/e2e/README.md` (bảng kịch bản)
+
+**Interfaces:**
+- Consumes: mọi route Task 3–7; `login()`/`session()` của `tests/e2e/lib.mjs` (Turnstile bật — luôn qua hai hàm này), tài khoản `salesA`, `accountant`, `admin`, `field` của `ACCOUNTS`.
+- Produces: hai kịch bản e2e trong `ALL`; một kịch bản Chrome + ảnh hai khổ (390 px điện thoại, 1040 px máy tính) cho chủ duyệt một lượt (điều A3).
+
+- [ ] **Step 1: `tests/e2e/so-dai-ly.mjs`** (D1 local tạm, cùng khuôn kịch bản khác — đọc `tests/e2e/qr-thanh-toan.mjs` làm mẫu). Các bước, mỗi bước một `assert` có câu tiếng Việt:
+  1. `accountant` tạo hồ sơ tổ chức "Đại lý E2E <Date.now()>" mang vai `TRAVEL_AGENCY` qua route hồ sơ hiện có (khuôn `tests/e2e/parties.mjs`).
+  2. `accountant` thêm mức `TRAVEL_AGENCY` · mọi dịch vụ · 10% từ hôm nay ⇒ 201 + `Location: /hoa-hong`; thêm trùng ⇒ 409; `salesA` thêm ⇒ 403; `field` `GET /api/pricing/hoa-hong` ⇒ 403.
+  3. `salesA` lập đơn với `bookerPartyId` = đại lý vừa tạo, một dịch vụ thật của danh mục (khuôn lập đơn ở `tests/e2e/orders.mjs`) ⇒ 201; `GET …/thuong-mai` đơn nháp ⇒ `vanPhong.duKien === true`.
+  4. `salesA` xác nhận đơn ⇒ 200; `GET …/thuong-mai` ⇒ hoa hồng = `lamTronNuaLen(1000 × thành tiền, 10000)` (tự tính trong kịch bản từ DTO đơn), `duKien === false`.
+  5. `accountant` đóng mức (`denNgay` = hôm nay); đơn đã xác nhận GET lại ⇒ hoa hồng KHÔNG đổi (A-3: bản chụp giữ nguyên).
+  6. Đơn khách lẻ của `salesA` xác nhận ⇒ `GET …/thuong-mai` ⇒ `nguoiHuong === null`.
+  7. Không đóng dòng điều khoản gieo sẵn `prc-st-goc-all` và không đổi công ty chủ (D1 dùng chung — đặc tả §13).
+  
+  Thêm `"so-dai-ly"` vào `ALL` của `tests/e2e/run.mjs` sau `"qr-thanh-toan"`; `THOI_GIAN["so-dai-ly"] = 15`; một dòng ở bảng `tests/e2e/README.md`.
+
+- [ ] **Step 2: `tests/e2e/khoa-thang.mjs`** — đặc tả §12 mục 11c: các kịch bản chạy chung D1 trong một nhóm, tháng đã khoá không mở lại được. Kịch bản CHỈ khoá tháng **2025-01** (và **2025-02** để thử liền kề) — không kịch bản nào ghi tiền vào năm 2025 (rà: `grep -rn "2025-0[12]" tests/e2e` phải không thấy ngày phát sinh tiền nào; có thì đổi sang tháng khác chưa ai dùng và ghi vào README). Vì dòng sổ sớm nhất trên D1 e2e là tháng hiện tại, khoá 2025-01 hợp lệ (≤ tháng sổ sớm nhất). Bước:
+  1. `admin` `POST /api/ledger/ky/2025-01/khoa` ⇒ 403. `accountant` khoá tháng hiện tại ⇒ 400.
+  2. `accountant` khoá `2025-01` ⇒ 201 + `Location: /khoa-thang`; khoá `2025-03` ⇒ 409 (không liền kề); khoá `2025-02` ⇒ 201; khoá `2025-02` lần hai ⇒ 409. (Thứ tự này cố ý: lần khoá đầu tiên trên bảng rỗng phải là `2025-01`, nếu không mọi tháng sau sẽ phải liền kề tháng đã khoá trước.)
+  3. `accountant` ghi lần thu cho một đơn đã xác nhận của kịch bản với `ngayPhatSinh: "2025-02-15"` ⇒ 409 câu "Tháng 02/2025 đã khoá sổ — ghi vào tháng đang mở (điều chỉnh, có lý do)". (Đường "ngày phát sinh không được trước ngày lập đơn" nếu có trong luật billing thì sẽ trả lỗi khác trước — đọc `docLanThu`; khi đó dùng đường điều chỉnh `POST /api/ledger/adjustments` loại không gắn đơn nếu có, hoặc ghi chú ở README rằng ca này chỉ kiểm ở khung thử, không ép e2e.)
+  4. `GET /api/ledger/ky` (`accountant`) ⇒ `daKhoa` chứa `2025-01`, `2025-02`.
+  
+  Kịch bản chạy lại trên D1 MỚI mỗi lần (run.mjs dựng D1 tạm) nên khoá 2025-01 không dồn qua lần chạy. Thêm `"khoa-thang"` vào CUỐI `ALL` trước `"passkey"` (giữ ràng buộc "passkey cuối"); `THOI_GIAN["khoa-thang"] = 5`; dòng README ghi rõ "khoá 2025-01/02 trên D1 chung — không kịch bản nào được ghi tiền năm 2025".
+
+- [ ] **Step 3: Chạy e2e đủ bộ.** `npm run test:e2e` (cần mạng). Cuối bộ `audit-invariants --strict` phải thoát 0; nếu `R-ORD-T1` hoặc `R-ORD-T1w` bắn vì một kịch bản cũ chèn thẳng đơn `confirmed` bằng SQL (`grep -rn "status.*'confirmed'\|'confirmed'" tests/e2e/*.mjs`), sửa kịch bản đó để xác nhận qua route hoặc chèn kèm bản chụp (đặc tả §9) — không nới mã kiểm. Ghi số kịch bản xanh vào sổ thi công.
+
+- [ ] **Step 4: Kịch bản Chrome** `docs/evidence/2026-10-08-so-dai-ly-dot-1/kich-ban/so-dai-ly-smoke.mjs` (khuôn `docs/evidence/2026-09-20-a2/kich-ban/a2-smoke-form.mjs`; cần Chrome + axe-core ngoài repo — cách chạy `tests/e2e/README.md`; D1 tạm qua `node scripts/dev-iphone.mjs` hoặc `npm run dev` trên D1 local, KHÔNG D1 remote). Trang của tài khoản nào mở SAU CÙNG (chung kho cookie). Các bước, mỗi bước chụp ảnh ở 390 px và 1040 px vào `anh/`:
+  1. Kế toán: `/hoa-hong` — danh sách, thêm mức 12,5% cho "Công ty lữ hành" nhóm "Du thuyền", thử tra ra "bậc 5"; ô tỷ lệ gõ "12,555" hiện lỗi dưới ô.
+  2. Kế toán: `/nguoi-ban` — thêm i-resort 80% cho một dịch vụ; chọn nhóm Thuê xe hiện câu 409.
+  3. Bán hàng: form lập đơn — "Đặt qua đối tác" chọn đại lý, ô tra SĐT ẩn, hai ô khách còn; lưu nháp; mở lại nháp thấy đại lý ở ô "Đặt qua đối tác".
+  4. Bán hàng: trang đơn nháp — khối "Phần đối tác" nhãn "Dự kiến"; xác nhận; khối hết nhãn "Dự kiến"; dòng "Bên đặt (đối tác)".
+  5. Kế toán: trang đơn có dòng thiếu mức — "Ghi mức tay" 15% có lý do ⇒ khối vẽ lại, dòng có nhãn "ghi tay".
+  6. Kế toán: `/khoa-thang` — bảng kiểm, hộp xác nhận (chụp hộp, KHÔNG bấm khoá trên D1 dùng lại; bấm thật chỉ trên D1 tạm dựng riêng cho kịch bản).
+  7. Đối tác (mở sau cùng): trang đơn của mình — "Hoa hồng của bạn", không cột Mức; form lập đơn — dòng chỉ đọc "Bên đặt: …".
+  Mỗi trang chạy axe-core: 0 lỗi mức nghiêm trọng. `README.md` thư mục bằng chứng: bảng "bước → ảnh → kết quả", lệnh chạy, ngày chạy.
+
+- [ ] **Step 5: Đề xuất dòng cho `web/CLAUDE.md`** (tệp luật — AI không tự sửa, N9): ghi vào `docs/superpowers/specs/2026-10-08-so-dai-ly-dot-1/de-xuat-luat-dot-1.md` (tạo ở Task 14) một dòng cho bảng "Sửa tệp nào thì chạy lại kịch bản Chrome nào": `web/hoa-hong.ts`, `web/nguoi-ban.ts`, `web/khoa-thang.ts`, `web/phan-doi-tac.ts`, `web/dat-qua-doi-tac.ts` ⇒ `so-dai-ly-smoke.mjs`.
+
+- [ ] **Step 6: Gửi ảnh cho chủ** (SendUserFile, `display: "render"`) — một lượt, kèm một câu: chủ duyệt nhãn "Hoa hồng", "Giá đại lý" và bố cục (điều A3). Chưa có lời duyệt thì ghi "chờ chủ duyệt ảnh" ở sổ thi công, không chặn Task 14.
+
+- [ ] **Step 7: Commit.**
+
+```bash
+git add tests/e2e docs/evidence/2026-10-08-so-dai-ly-dot-1
+git commit -m "Thử đầu–cuối và kịch bản Chrome cho sổ đại lý đợt 1" -m "E2E: mức → lập đơn qua đại lý → xác nhận chụp mức → đóng mức không đổi đơn cũ; khoá tháng chỉ chạm năm 2025 để không làm hỏng kịch bản khác trên D1 chung (đặc tả §12 mục 11c). Ảnh hai khổ để chủ duyệt một lượt." -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
+```
+
+---
+
+### Task 14: Tài liệu, sổ hàng rào, sổ vàng, nhật ký thay đổi, đề xuất luật, kiểm độc lập
+
+**Files:**
+- Create: `golden/so-cong-no-luot-2.json`, `src/so-vang-so-dai-ly.test.ts`, `docs/superpowers/specs/2026-10-08-so-dai-ly-dot-1/de-xuat-luat-dot-1.md`
+- Modify: `golden/README.md`, `docs/SYSTEM-DESIGN.md` (§5, §6, §7, §8, §17), `docs/CHANGE-GUIDE.md` (§1 bảng, công thức mới, bẫy, §3 ma trận), `docs/SO-HANG-RAO.md`, `docs/HANDOFF-N1.md` (runbook lần phát hành + "Việc còn treo"), `docs/BACKLOG.md`, `src/shared/changelog.ts`, tệp hướng dẫn theo vai của Trợ giúp (`grep -rln "Kế toán" src/shared/huong-dan*.ts`), `docs/superpowers/plans/2026-10-08-so-dai-ly-dot-1-thi-cong-nhat-ky.md`
+
+**Interfaces:**
+- Consumes: mọi task trước; `lamTronNuaLen`, `hoaHongDong`, `giaVonDong` (Task 2) cho lớp 2 của sổ vàng.
+- Produces: sổ vàng `so-cong-no-luot-2.json` (mọi ca `cho_xac_nhan`), bài sổ vàng riêng, tệp đề xuất luật, tài liệu mô tả khớp mã.
+
+- [ ] **Step 1: Sổ vàng.** `golden/so-cong-no-luot-2.json` — ca A-1, A-2 (hai bước: 3 khách tính ⇒ 150.000; 4 khách tính ⇒ 200.000), A-3, A-4, A-5 (gồm ca nửa đồng 1.000.004 × 12,5% ⇒ 125.001), B-3 (80% × 300.000 ⇒ 240.000), số lấy NGUYÊN từ ví dụ trong ADR-0077/0078 (đọc ADR, không tự đặt số); mỗi ca: `ma`, `mo_ta`, `dau_vao` (thành tiền, khách tính, kiểu, tỷ lệ phần vạn / đ mỗi khách, tỷ lệ mua lại), `dap_an` (hoa hồng, giá đại lý, giá vốn), `xac_nhan: { trang_thai: "cho_xac_nhan" }`. Bài `src/so-vang-so-dai-ly.test.ts`: lớp 1 tự cân mọi ca (giá đại lý = thành tiền − hoa hồng; số nguyên không âm); lớp 2 chạy `hoaHongDong`/`giaVonDong` thật CHỈ ca `da_xac_nhan` (hôm nay chưa có ⇒ `test.todo` có tên ca), ca chờ in chẩn đoán "khớp / lệch mã" (khuôn `src/so-vang-chi-phi-xe.test.ts`). Thêm một dòng ở bảng `golden/README.md`: trạng thái "**A-1…A-5, B-3: CHỜ chủ dự án / Kế toán xác nhận** (AI soạn 2026-10-08; câu trả lời điều A1 của chủ chỉ xác nhận cách làm tròn)". AI không đổi trạng thái ca nào (N8).
+
+- [ ] **Step 2: Sổ hàng rào** (`docs/SO-HANG-RAO.md`): một dòng mỗi nhóm, cột "Đã thấy chặn thật" chép ngày + kết quả từ bảng "Quan sát chặn thật" của sổ thi công (không có quan sát ⇒ không ghi dòng, để là lời khuyên):
+  - Trigger bảng mức / điều khoản (`prc_*`, Task 1).
+  - Trigger bản chụp đơn (`terms_*`, Task 1) + chuỗi `changes() > 0` của lô xác nhận (Task 4 P16).
+  - Trigger khoá tháng (`ky_*`, bốn `*_period_closed`) + bài nguồn `lo-dich-khoa-ky.test.ts` (Task 7).
+  - Bài số lạ `src/so-la-doi-tac.test.ts` (Task 5) và bài khoá ⊆ ô quyền (Task 5, 7).
+  - Ba chỗ nới hàng rào kiến trúc C12 (Task 1, 7, 8) — cột ghi chú "NỚI đã duyệt C12".
+  - Kiểm định kỳ R-PRC-*, R-ORD-T1/T1w/T2, R-KY-* (Task 9).
+
+- [ ] **Step 3: Tài liệu mô tả** (thua mã — sửa cho khớp mã, cùng commit):
+  - `docs/SYSTEM-DESIGN.md`: §5 thêm `prc_*`, `ord_service_terms`, `ord_audit_cutoff`, `ky_period_close`, migration số đã chốt; §6 luồng "chụp mức lúc xác nhận", "ghi mức tay", "khoá tháng"; §7 mười hai route mới; §8 bảy ô quyền; §17 hiện trạng sổ đại lý đợt 1 (việc đợt 2, 3 còn lại).
+  - `docs/CHANGE-GUIDE.md`: §1 thêm dòng "muốn đổi mức hoa hồng / người bán / khoá tháng → xem …"; công thức mới (chữ cái kế tiếp chưa dùng) "Sổ đại lý: bảng mức, bản chụp, khoá tháng" (chuỗi `changes()` của lô xác nhận; thêm đường ghi tiền mới phải gọi `loiKhoaKy` / `cauTriggerKhoa`; DTO Đối tác danh sách trắng); bẫy: (a) đổi công ty chủ phải đóng dòng điều khoản "mọi dịch vụ" cũ và mở dòng mới cho công ty mới (`R-PRC-3`); (b) e2e chung không khoá tháng nào ngoài 2025-01/02; (c) khung thử / e2e chèn thẳng đơn `confirmed` phải kèm bản chụp; §3 ma trận "đổi gì → chạy kiểm nào" thêm `pricing`, `ky-so`.
+  - `docs/data-dictionary.json` đã làm ở Task 1 — kiểm `npm run dict` không đổi gì.
+
+- [ ] **Step 4: Runbook + việc treo** (`docs/HANDOFF-N1.md`): mục runbook cho lần phát hành sổ đại lý đợt 1 theo đặc tả §13 — khoảng hở migration → deploy (60 phút ân hạn của `R-ORD-T1`), hoàn tác Worker làm `R-ORD-T1` đỏ cho tới đợt 2 (đúng tín hiệu), không khoá tháng nào trong ngày phát hành, khoá nhầm chỉ cứu bằng Time Travel (HC-5.19 chưa diễn tập), đơn đại lý mới bị giữ "Đã giao" tới đợt 2. "Việc còn treo": chụp bù đơn cũ (đợt 2, C4 = A), gộp hồ sơ trùng với bản chụp (đặc tả §7 bảng), R-BIL-2 vào bảng kiểm khoá tháng (đợt 2), mở khoá "Đã giao" đơn đại lý (đợt 2). `docs/BACKLOG.md`: cùng bốn mục, trỏ đặc tả.
+
+- [ ] **Step 5: Nhật ký thay đổi** (`src/shared/changelog.ts`): mục mới đầu danh sách, số phiên bản = số kế tiếp sau bản mới nhất trên `main` LÚC GỘP (hôm nay 1.86 ⇒ 1.87; nhánh khác lên trước thì đổi số khi dựng lại trên `main`), lời thường cho người dùng: "Kế toán đặt mức hoa hồng cho đối tác theo từng dịch vụ hoặc nhóm dịch vụ; đơn đặt qua đối tác hiện hoa hồng và giá đại lý; đối tác thấy số tiền hoa hồng của mình; Kế toán khoá sổ từng tháng." Chạy `node --test src/shared/app-info.test.ts`. Trợ giúp theo vai: thêm mục ngắn cho Kế toán ("Đặt mức hoa hồng", "Ghi mức tay", "Khoá sổ tháng") và Bán hàng ("Lập đơn đặt qua đối tác") vào tệp hướng dẫn theo vai đang có (khuôn mục sẵn có; `npm run build:web` nếu tệp sinh).
+
+- [ ] **Step 6: Đề xuất luật** `docs/superpowers/specs/2026-10-08-so-dai-ly-dot-1/de-xuat-luat-dot-1.md` (AI không sửa tệp luật / chuẩn tắc — chỉ đề xuất, N9):
+  1. Diff đề xuất cho `docs/ARCHITECTURE.md` bảng thi hành dòng 5.14 (khoá kỳ đã có cơ chế: trigger + mã + kiểm định kỳ).
+  2. Bổ sung ADR-0090: có nên thêm `ledger.period.close` vào `O_GHI_TIEN` (đặc tả §6 N6) — nêu được/mất, khuyến nghị.
+  3. Dòng cho bảng kịch bản Chrome của `web/CLAUDE.md` (Task 13 Bước 5).
+  4. Dòng bẫy cho `CLAUDE.md` §10: "Sổ đại lý (ADR-0077/0078/0080 D1): chụp mức trong lô xác nhận bằng chuỗi `changes()`; DTO Đối tác danh sách trắng; tháng đã khoá không mở lại; e2e chỉ khoá 2025-01/02."
+  Mỗi mục: chữ hiện tại, chữ đề xuất, lý do một câu.
+
+- [ ] **Step 7: Kiểm cuối của người thi công.** `npm run typecheck`, `npm test`, `npm run test:e2e`, `node scripts/audit-invariants.mjs --db local` (sau e2e), `npm run build:web`. Ghi kết quả (số bài, thời gian) vào sổ thi công.
+
+- [ ] **Step 8: Commit.**
+
+```bash
+git add golden src/so-vang-so-dai-ly.test.ts src/shared/changelog.ts src/shared docs
+git commit -m "Sổ đại lý đợt 1: tài liệu, sổ hàng rào, sổ vàng chờ xác nhận, nhật ký thay đổi, đề xuất luật" -m "Tài liệu mô tả sửa cho khớp mã; mọi hàng rào AI dựa vào có dòng và ngày quan sát chặn thật; sổ vàng A-1…A-5, B-3 chờ chủ / Kế toán xác nhận (AI không tự xác nhận). Đề xuất sửa ARCHITECTURE 5.14, ADR-0090, web/CLAUDE.md, CLAUDE.md §10 để chủ duyệt." -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
+```
+
+- [ ] **Step 9: Kiểm độc lập (việc lớn — dữ liệu, quyền, tiền).** Giao trợ lý `nguoi-kiem-doc-lap` (chỉ đọc) kiểm cả nhánh so với đặc tả: đọc mã thật, tự chạy `npm run typecheck`, `npm test`, bài số lạ, bài nguồn khoá tháng, `audit-invariants`; đối chiếu §12 tiêu chí 1–12 từng mục; tìm đường ghi tiền chưa dịch lỗi khoá tháng, DTO Đối tác lộ khoá, ô quyền không có route hỏi. Báo cáo lưu `docs/superpowers/specs/2026-10-08-so-dai-ly-dot-1/kiem-doc-lap-thi-cong.md`. Phát hiện mức HIGH trở lên ⇒ sửa (vòng mới của task liên quan) và kiểm lại; mục "Dừng dây chuyền" của CLAUDE.md §3 áp nếu là lỗ an ninh. Chỉ báo "đạt" dựa trên báo cáo này + test.
+
+- [ ] **Step 10: Báo chủ** (bốn mục có nhãn, lời thường — CLAUDE.md §4): đã làm; đã kiểm (có người kiểm độc lập); chưa làm / chưa kiểm (đợt 2, 3; ảnh chờ duyệt; sổ vàng chờ xác nhận); cần bạn quyết (đề xuất luật; lệnh `npm run day-len` đưa một lần, kèm "cần chạy `npm run trien-khai`" vì có migration).
