@@ -109,7 +109,7 @@ test("prc_commission_rule: không xoá; chỉ đóng một lần; không chồng
   muc(db, { from: "2026-06-01" });
   muc(db, { party: dl, scope: "SERVICE", code: "HONTAM" });
   assert.throws(() => muc(db, { party: txd }), /prc_target_not_beneficiary:/);
-  assert.throws(() => muc(db, { role: "DRIVER_EXTERNAL" }), /prc_role_not_beneficiary:|FOREIGN KEY constraint failed/);
+  assert.throws(() => muc(db, { role: "DRIVER_EXTERNAL" }), /prc_role_not_beneficiary:/); // đã đo: trigger bắn trước khoá ngoại
   assert.throws(() => muc(db, { scope: "SERVICE", code: null }), /CHECK constraint failed/);
   assert.throws(() => muc(db, { scope: "GROUP", group: "DTH", bp: 10001 }), /CHECK constraint failed/);
   run(db, "UPDATE prc_beneficiary_role SET active = 0, updated_at = ? WHERE role_type_code = 'COLLABORATOR'", AT);
@@ -119,6 +119,10 @@ test("prc_commission_rule: không xoá; chỉ đóng một lần; không chồng
 test("prc_beneficiary_role: không xoá, chỉ tắt (active = 0); view chỉ trả vai đang bật", () => {
   const { db } = moi();
   assert.throws(() => run(db, "DELETE FROM prc_beneficiary_role WHERE role_type_code = 'TAXI_DRIVER'"), /prc_append_only:/);
+  // UPDATE đổi khoá hay cột tạo không được lách trigger chặn xoá (vai biến khỏi danh sách đóng / thêm vai lạ); chỉ active và người/giờ cập nhật đổi được.
+  assert.throws(() => run(db, "UPDATE prc_beneficiary_role SET role_type_code = 'GUIDE_INTERNAL' WHERE role_type_code = 'TAXI_DRIVER'"), /prc_append_only:/);
+  assert.throws(() => run(db, "UPDATE prc_beneficiary_role SET created_by = 'ai-do' WHERE role_type_code = 'TAXI_DRIVER'"), /prc_append_only:/);
+  assert.throws(() => run(db, "UPDATE prc_beneficiary_role SET created_at = '2020-01-01T00:00:00.000Z' WHERE role_type_code = 'TAXI_DRIVER'"), /prc_append_only:/);
   run(db, "UPDATE prc_beneficiary_role SET active = 0, updated_at = ? WHERE role_type_code = 'TAXI_DRIVER'", AT);
   const vai = (db.prepare("SELECT role_type_code FROM v_prc_beneficiary_role ORDER BY 1").all() as { role_type_code: string }[]).map((r) => r.role_type_code);
   assert.deepEqual(vai, ["COLLABORATOR", "GUIDE_FREELANCE", "HOTEL_RECEPTION", "TRAVEL_AGENCY"]);
@@ -128,7 +132,7 @@ test("prc_supply_term: người bán ≠ công ty phải là nhà cung cấp; a%
   const { db, ct, dl, ncc } = moi();
   dieuKhoan(db, { scope: "SERVICE", code: "IRESORT", seller: ncc, supplier: ncc, bp: 8000 });
   assert.throws(() => dieuKhoan(db, { scope: "SERVICE", code: "HONTAM", seller: dl, supplier: dl, bp: 8000 }), /prc_seller_not_supplier:/);
-  assert.throws(() => dieuKhoan(db, { scope: "SERVICE", code: "HONTAM", seller: ct, supplier: ct, bp: 8000 }), /prc_supplier_mismatch:|CHECK constraint failed/);
+  assert.throws(() => dieuKhoan(db, { scope: "SERVICE", code: "HONTAM", seller: ct, supplier: ct, bp: 8000 }), /prc_supplier_mismatch:/); // đã đo: trigger bắn trước CHECK
   assert.throws(() => dieuKhoan(db, { scope: "SERVICE", code: "HONTAM2", seller: ncc }), /prc_supplier_mismatch:/, "người bán là nhà cung cấp mà không a%");
   // Đóng dòng ALL gieo sẵn trước, để ca dưới chỉ chạm đúng trigger "ALL chỉ cho công ty" (không chạm trigger chồng khoảng).
   run(db, "UPDATE prc_supply_term SET valid_to_date = '2026-12-31', updated_at = ? WHERE scope = 'ALL'", AT);
@@ -204,6 +208,33 @@ test("ord_service_terms AUTO: dòng mức phải còn hiệu lực ở ngày ch�
   run(db, "UPDATE prc_commission_rule SET valid_to_date = '2026-10-07', updated_at = ? WHERE id = ?", AT, m);
   assert.throws(() => chen(1000, "2026-10-08"), /terms_rule_stale:/, "dòng mức đã đóng trước ngày chụp");
   chen(1000, "2026-10-07");
+});
+
+test("ord_service_terms: bản AUTO ở trạng thái SET phải trỏ dòng nguồn (không lách hai trigger «vừa đổi»); cung ứng MISSING không mang mã điều khoản; MANUAL không cần mã", () => {
+  const { db, ct, dl } = moi();
+  const goc = one<{ id: string }>(db, "SELECT id FROM prc_supply_term WHERE scope = 'ALL'").id;
+  type K = { src: "AUTO" | "MANUAL"; cs: "NONE" | "SET"; rule: string | null; ss: "SET" | "MISSING"; term: string | null; sup?: string };
+  const them = (o: string, s: string, k: K) => run(db, `INSERT INTO ord_service_terms (id, order_id, order_service_id, beneficiary_party_id, commission_status, commission_kind, commission_rate_bp,
+      commission_rule_id, supply_status, seller_party_id, supply_term_id, source, reason, supersedes_id, captured_date, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '2026-10-08', ?, ?)`,
+    id("t"), o, s, k.cs === "SET" ? dl : null, k.cs, k.cs === "SET" ? "RATE" : null, k.cs === "SET" ? 1000 : null, k.rule, k.ss, k.ss === "SET" ? ct : null, k.term, k.src,
+    k.src === "MANUAL" ? "thoả thuận riêng với đại lý" : null, k.sup ?? null, AT, AT);
+  // (a) AUTO + hoa hồng SET mà không trỏ dòng mức ⇒ trigger terms_rule_stale không chạy (mã NULL) — CHECK phải chặn.
+  const d1 = don(db, "confirmed");
+  assert.throws(() => them(d1.o, d1.s, { src: "AUTO", cs: "SET", rule: null, ss: "SET", term: goc }), /CHECK constraint failed/);
+  // (b) AUTO + cung ứng SET mà không trỏ điều khoản ⇒ trigger terms_term_stale không chạy.
+  const d2 = don(db, "confirmed");
+  assert.throws(() => them(d2.o, d2.s, { src: "AUTO", cs: "NONE", rule: null, ss: "SET", term: null }), /CHECK constraint failed/);
+  // (c) cung ứng MISSING mà vẫn mang mã điều khoản (bản MANUAL, để trigger «vừa đổi» của AUTO không bắn trước).
+  const d3 = don(db, "confirmed");
+  const a = id("t");
+  run(db, `INSERT INTO ord_service_terms (id, order_id, order_service_id, beneficiary_party_id, commission_status, supply_status, seller_party_id, supply_term_id, source, captured_date, created_at, updated_at)
+    VALUES (?, ?, ?, NULL, 'NONE', 'SET', ?, ?, 'AUTO', '2026-10-08', ?, ?)`, a, d3.o, d3.s, ct, goc, AT, AT);
+  assert.throws(() => them(d3.o, d3.s, { src: "MANUAL", cs: "NONE", rule: null, ss: "MISSING", term: goc, sup: a }), /CHECK constraint failed/);
+  // (d) đối chứng: MANUAL + hoa hồng SET + cung ứng SET, cả hai mã NULL ⇒ nhận (ghi tay không có dòng nguồn).
+  them(d3.o, d3.s, { src: "MANUAL", cs: "SET", rule: null, ss: "SET", term: null, sup: a });
+  assert.equal(one<{ n: number }>(db, "SELECT count(*) AS n FROM ord_service_terms WHERE order_service_id = ?", d3.s).n, 2);
+  assert.equal(one<{ n: number }>(db, "SELECT count(*) AS n FROM ord_service_terms WHERE order_id IN (?, ?)", d1.o, d2.o).n, 0, "hai bản AUTO sai không được lọt vào");
 });
 
 test("ord_service_terms AUTO: điều khoản người bán phải còn hiệu lực ở ngày chụp và khớp người bán / nhà cung cấp / a%", () => {

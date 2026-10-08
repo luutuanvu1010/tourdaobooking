@@ -29,6 +29,10 @@ INSERT INTO prc_beneficiary_role (role_type_code, active, created_at, created_by
   FROM pty_role_type WHERE code IN ('TRAVEL_AGENCY', 'GUIDE_FREELANCE', 'HOTEL_RECEPTION', 'TAXI_DRIVER', 'COLLABORATOR');
 CREATE TRIGGER prc_beneficiary_role_no_delete BEFORE DELETE ON prc_beneficiary_role
 BEGIN SELECT RAISE(ABORT, 'prc_append_only: không xoá vai được hưởng — tắt bằng active = 0'); END;
+-- UPDATE chỉ được đổi active (+ người/giờ cập nhật): đổi khoá hay cột tạo sẽ làm một vai biến khỏi danh sách đóng / thêm vai lạ, lách trigger chặn xoá.
+CREATE TRIGGER prc_beneficiary_role_update_scope BEFORE UPDATE ON prc_beneficiary_role
+WHEN NEW.role_type_code IS NOT OLD.role_type_code OR NEW.created_at IS NOT OLD.created_at OR NEW.created_by IS NOT OLD.created_by
+BEGIN SELECT RAISE(ABORT, 'prc_append_only: chỉ đổi được active và người/giờ cập nhật'); END;
 CREATE VIEW v_prc_beneficiary_role AS SELECT role_type_code FROM prc_beneficiary_role WHERE active = 1;
 
 -- Bảng mức hoa hồng (ADR-0077 điều 4). Đúng một trong (đối tác, vai); phạm vi khớp mã; đúng một trong (tỷ lệ, đ/khách).
@@ -172,7 +176,12 @@ CREATE TABLE ord_service_terms (
   CHECK ((supply_status = 'SET') = (seller_party_id IS NOT NULL)),
   CHECK ((supplier_party_id IS NULL) = (cost_rate_bp IS NULL)),
   CHECK (supplier_party_id IS NULL OR supplier_party_id = seller_party_id),
-  CHECK ((source = 'AUTO' AND reason IS NULL) OR (source = 'MANUAL' AND reason IS NOT NULL AND length(trim(reason)) >= 10 AND length(reason) <= 500 AND supersedes_id IS NOT NULL))
+  CHECK ((source = 'AUTO' AND reason IS NULL) OR (source = 'MANUAL' AND reason IS NOT NULL AND length(trim(reason)) >= 10 AND length(reason) <= 500 AND supersedes_id IS NOT NULL)),
+  -- Bản AUTO ở trạng thái SET phải trỏ dòng nguồn: hai trigger «vừa đổi» (rule_valid / term_valid) chỉ chạy khi mã nguồn KHÔNG NULL, nên thiếu mã thì lớp CSDL chống ghi số cũ vô hiệu.
+  -- Chỉ bản MANUAL (ghi mức tay) được SET mà không có dòng nguồn. Cung ứng MISSING thì không mang mã điều khoản.
+  CHECK (source <> 'AUTO' OR commission_status <> 'SET' OR commission_rule_id IS NOT NULL),
+  CHECK (source <> 'AUTO' OR supply_status <> 'SET' OR supply_term_id IS NOT NULL),
+  CHECK (supply_status = 'SET' OR supply_term_id IS NULL)
 );
 CREATE INDEX ord_service_terms_order_ix ON ord_service_terms(order_id);
 CREATE INDEX ord_service_terms_service_ix ON ord_service_terms(order_service_id);

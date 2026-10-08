@@ -870,7 +870,7 @@ test("ADR-0049 D1 (siết): KHÔNG module nào import van-chuyen — không cạ
 });
 
 /**
- * View công bố mà trigger của van-chuyen được đọc (ADR-0049 kế hoạch mục 1.4; Hiến chương 5.3): sáu view của kế hoạch + `v_ord_passenger_row` (R-P19 — chủ
+ * View công bố mà trigger của van-chuyen được đọc (ADR-0049 kế hoạch mục 1.4; Hiến chương 5.3; hiện là tám view): sáu view của kế hoạch + `v_ord_passenger_row` (R-P19 — chủ
  * chốt 29/9, Trả lời lần 13: bỏ khoá ngoại sang ord_*, bản chốt kiểm bằng trigger đọc view) + `v_ky_closed_period` (ADR-0080 D1, sổ đại lý đợt 1: trigger
  * `vc_trip_cost_line_period_closed` đọc tháng đã khoá). Thêm tên = NỚI (Điều 9.4): `v_ky_closed_period` là NỚI hàng rào đã duyệt — chủ duyệt C12 2026-10-01,
  * xem docs/superpowers/specs/2026-10-01-de-xuat-adr-so-tien-luot-2/de-xuat-luat.md.
@@ -879,20 +879,20 @@ const VIEW_CHO_TRIGGER_VC = [
   "v_ord_leg_key", "v_ord_order_flag", "v_ord_passenger_key", "v_ord_passenger_row", "v_pty_carrier_driver", "v_pty_carrier", "v_pty_owner_company",
   "v_ky_closed_period",
 ] as const;
-/** Tên bảng / view (khác `vc_*` và khác sáu view) xuất hiện trong thân một trigger — câu báo trong dấu nháy đơn bỏ qua. */
+/** Tên bảng / view (khác `vc_*` và khác tám view đã liệt kê ở VIEW_CHO_TRIGGER_VC) xuất hiện trong thân một trigger — câu báo trong dấu nháy đơn bỏ qua. */
 function triggerDocNgoai(sql: string, objects: readonly string[]): string[] {
   const text = sql.replace(/'(?:[^']|'')*'/g, "''");
   return objects.filter((o) => !o.startsWith("vc_") && !(VIEW_CHO_TRIGGER_VC as readonly string[]).includes(o) && new RegExp(`\\b${o}\\b`, "i").test(text));
 }
 
-test("bộ bắt tên ngoài trong thân trigger: bắt JOIN orders / bảng pty_, cho qua vc_ + sáu view, bỏ qua chữ trong câu báo", () => {
+test("bộ bắt tên ngoài trong thân trigger: bắt JOIN orders / bảng pty_, cho qua vc_ + tám view đã liệt kê, bỏ qua chữ trong câu báo", () => {
   const objs = [...names("table"), ...names("view")];
   assert.deepEqual(triggerDocNgoai("CREATE TRIGGER x BEFORE INSERT ON vc_trip WHEN EXISTS (SELECT 1 FROM orders o) BEGIN SELECT RAISE(ABORT, 'x'); END", objs), ["orders"]);
   assert.deepEqual(triggerDocNgoai("CREATE TRIGGER x BEFORE INSERT ON vc_trip WHEN EXISTS (SELECT 1 FROM pty_party_role r) BEGIN SELECT 1; END", objs), ["pty_party_role"]);
   assert.deepEqual(triggerDocNgoai("CREATE TRIGGER x BEFORE INSERT ON vc_trip WHEN EXISTS (SELECT 1 FROM v_ord_leg_key k JOIN vc_trip t ON 1) BEGIN SELECT RAISE(ABORT, 'orders staff'); END", objs), []);
 });
 
-test("ADR-0049 D1 (siết, Hiến chương 5.3): thân MỌI trigger vc_* chỉ đọc bảng vc_ và view công bố đã liệt kê (v_ord_leg_key, v_ord_order_flag, v_ord_passenger_key, v_ord_passenger_row, v_pty_carrier_driver, v_pty_carrier, v_pty_owner_company)", () => {
+test("ADR-0049 D1 (siết, Hiến chương 5.3): thân MỌI trigger vc_* chỉ đọc bảng vc_ và view công bố đã liệt kê (v_ord_leg_key, v_ord_order_flag, v_ord_passenger_key, v_ord_passenger_row, v_pty_carrier_driver, v_pty_carrier, v_pty_owner_company, v_ky_closed_period)", () => {
   const objs = [...names("table"), ...names("view")];
   const trig = db.prepare("SELECT name, sql FROM sqlite_master WHERE type = 'trigger' AND name LIKE 'vc\\_%' ESCAPE '\\'").all() as { name: string; sql: string }[];
   assert.ok(trig.length >= 60, `chống bài rỗng: phải có ≥ 60 trigger vc_ (0033, 0039, 0041, 0042), thấy ${trig.length}`);

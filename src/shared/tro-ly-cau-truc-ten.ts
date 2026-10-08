@@ -28,7 +28,7 @@ export const TEN_PHAN_HE: Readonly<Record<string, TenLoiThuong>> = {
   dispatch: { ten: "Người phụ trách đơn", moTa: "Giao, nhận, đổi người phụ trách một đơn; hàng chờ nhận cho đơn chưa có ai phụ trách; hướng dẫn viên huỷ hoặc sửa số khách đơn mình phụ trách." },
   feedback: { ten: "Góp ý / Báo lỗi", moTa: "Mọi tài khoản gửi góp ý hoặc báo lỗi và theo dõi yêu cầu của mình; Toàn quyền tiếp nhận và trả lời." },
   "giao-dien": { ten: "Giao diện công ty", moTa: "Màu thanh trên, màu nút chính, phông chữ và cỡ chữ chung cho cả công ty; chỉ người phụ trách hệ thống chỉnh, ai cũng thấy kết quả. Có kiểm chữ đủ dễ đọc trước khi lưu và ghi nhật ký mỗi lần đổi." },
-  "ky-so": { ten: "Khoá tháng", moTa: "Kế toán khoá sổ một tháng đã qua để không ai ghi thêm tiền vào tháng đó nữa; khoá rồi thì không mở lại được — đang chuẩn bị, app chưa dùng." },
+  "ky-so": { ten: "Khoá tháng", moTa: "Kế toán khoá sổ một tháng đã qua để không ai ghi thêm tiền vào tháng đó nữa; khoá rồi thì không mở lại được — đang chuẩn bị, Nền tảng chưa dùng." },
   "lan-gui": { ten: "Chống ghi trùng", moTa: "Khi mạng chập chờn mà bấm Lưu lại, Nền tảng nhận ra lần bấm trước đã được ghi nên không ghi thêm lần nữa, và báo \"Lần bấm trước đã được ghi\". Chạy ngầm cho mọi thao tác lưu, không có màn hình riêng." },
   locations: { ten: "Địa điểm", moTa: "Danh sách nơi đón, nơi trả dùng chung khi lập đơn và xếp chuyến; Quản trị thêm, sửa ở trang Địa điểm." },
   maintenance: { ten: "Chế độ bảo trì", moTa: "Khi bật, chỉ người phụ trách hệ thống còn dùng được app; mọi người khác, kể cả Quản trị, thấy màn hình bảo trì. Chỉ người phụ trách hệ thống bật, tắt." },
