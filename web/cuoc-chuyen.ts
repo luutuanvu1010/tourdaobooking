@@ -14,6 +14,9 @@
 // - Mất mạng: dòng đó "Chưa gửi được" + "Bấm lại" (CÙNG requestId — bấm lại hai lần vẫn một lệnh); máy KHÔNG tự gửi lại (lệnh điều phối, khác câu 5a).
 //   C55 (đánh giá ERP 7/10): lần tải NỀN hỏng chỉ ẩn trang khi 403 / 404 (`loiTaiNenAnTrang`); mất mạng / lỗi máy chủ GIỮ dữ liệu đang có (chỉ bộ nhớ trang
 //   — ADR-0053 D7.2) và hiện dải "Mất mạng — dữ liệu lúc HH:MM" (`daiMatMang`) có nút "Tải lại".
+// - ADR-0105 (G13, G18-A): nhóm "Chỉ đường" ở điểm chưa xong (PENDING / ARRIVED) của chuyến kế hoạch / đang chạy, chỉ khi DTO có `diaChiChiDuong` (GET trong
+//   ngày chạy); Google Maps mọi máy, Apple Maps chỉ máy Apple (`nutChiDuongCuaDiem`, src/shared/chi-duong.ts). Liên kết `<a>` mở tab mới, `noreferrer noopener`;
+//   trang không đọc vị trí. Đọc lại GET sau lệnh hỏng → giữ chuỗi đích của lần GET trước (`giuChiDuong`).
 import { CAU_THU_TU_DAO, doiThuTuDuoc, giuTenKhach, ketThucDuoc, chiSuatKhach, soHieuTaiDiemDon, tenNguoiDiKemCuaChuyen, viecNguoiDiKem, type BuocDiem } from "../src/shared/tien-do-man";
 import type { CuocChiTietResponse } from "../src/shared/contracts";
 import { coCuocCuaToi } from "../src/shared/start-page";
@@ -33,6 +36,7 @@ import { diemMoiChuaXem, suatCuaKhach, type SuatTenDong } from "../src/shared/xe
 import { can } from "../src/shared/permissions";
 import { chiThieuTenTuLam, hauToDieuKienTaiXe } from "../src/shared/dieu-phoi-hien-thi";
 import { dongVuaGhi, hopKetThuc, hopTraCaDiem, type HopXacNhan, type LenhVuaGhi } from "../src/shared/xac-nhan-tien-do";
+import { giuChiDuong, nutChiDuongCuaDiem } from "../src/shared/chi-duong";
 
 const errorEl = byId("error");
 const trangEl = byId("cc-trang");
@@ -63,7 +67,7 @@ const gui = async (duoi: string, than: Record<string, unknown> = {}): Promise<vo
   try {
     await nap();
   } catch {
-    duLieu = giuTenKhach(r, duLieu);
+    duLieu = giuChiDuong(giuTenKhach(r, duLieu), duLieu);
   }
 };
 
@@ -236,7 +240,7 @@ function ve(): void {
     diem: r.diem, suat: r.suat, trangThai: c.trangThai, ngayXem: ngay, coNut: chayDuoc, onLenh: lenhDiem,
     choGui: new Set([...choGui.keys()]),
     vuaGhi,
-    phuDiem: (b) => ({ ben: nutThuTu(b), duoi: [...bayCua(b, r.suat), ...lienHeCua(b)] }),
+    phuDiem: (b) => ({ ben: nutThuTu(b), duoi: [...bayCua(b, r.suat), ...lienHeCua(b), ...chiDuongCua(b, r)] }),
   });
   // "Bấm lại" ở dòng khách chưa gửi được.
   for (const el of diem) {
@@ -291,6 +295,25 @@ function lienHeCua(b: BuocDiem): Child[] {
   const don = new Set(duLieu!.suat.filter((s) => s.diemLen === b.diem.id && s.maDon).map((s) => s.maDon));
   return lienHe.filter((l) => don.has(l.maDon)).map((l) =>
     h("div", { class: "dp-run-lien-he" }, icon("handset", 16), h("span", null, `Liên hệ: ${l.tenLienHe}`), h("a", { href: `tel:${l.sdtLienHe.replace(/[^\d+]/g, "")}` }, l.sdtLienHe)));
+}
+
+/**
+ * Nhóm "Chỉ đường" (ADR-0105) của một điểm: hai liên kết bản đồ (Apple chỉ trên máy Apple). Điểm nào có nút do `nutChiDuongCuaDiem` quyết — một luật với bài thuần.
+ * Liên kết là điều hướng (không phải lệnh) nên hiện cả trước xuất bến; không gửi gì ra ngoài khi chưa bấm.
+ */
+function chiDuongCua(b: BuocDiem, r: CuocChiTietResponse): Child[] {
+  const d = r.diem.find((x) => x.id === b.diem.id);
+  if (!d) return [];
+  const nut = nutChiDuongCuaDiem({ trangThaiChuyen: r.chuyen.trangThai, trangThaiDiem: d.trangThai, chuoiDich: d.diaChiChiDuong, ua: navigator.userAgent });
+  if (!nut.length) return [];
+  return [
+    h(
+      "div",
+      { class: "dp-run-chi-duong", role: "group", "aria-label": `Chỉ đường tới ${b.diem.tenNoi}` },
+      h("span", { class: "dp-run-chi-duong-nhan" }, "Chỉ đường"),
+      ...nut.map((n) => h("a", { class: "vc-btn vc-btn-ghost-primary", href: n.href, target: "_blank", rel: "noreferrer noopener", "data-ban-do": n.banDo }, n.nhan)),
+    ),
+  ];
 }
 
 /** Đổi thứ tự điểm CHƯA TỚI (route 29) — nút lên / xuống thay tay nắm kéo của bản vẽ 5a (bấm được bằng bàn phím); không ô giờ. */
@@ -416,7 +439,7 @@ function veDiemTruoc(r: CuocChiTietResponse): HTMLElement[] {
     phuDiem: (b) => {
       const d = theoId.get(b.diem.id)!;
       const hen = d.loai === "DROPOFF" && d.gioHen ? `Hẹn ${d.gioHen.gio} · ` : "";
-      return { duoi: [...bayCua(b, r.suat), h("div", { class: "dp-note dp-cc-so-nguoi" }, `${hen}${d.soNguoi} khách`)] };
+      return { duoi: [...bayCua(b, r.suat), h("div", { class: "dp-note dp-cc-so-nguoi" }, `${hen}${d.soNguoi} khách`), ...chiDuongCua(b, r)] };
     },
   });
 }

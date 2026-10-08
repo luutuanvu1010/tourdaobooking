@@ -63,3 +63,46 @@ test("chỉ đường (3): hai địa chỉ gốc bản đồ chỉ ở src/shar
     assert.deepEqual(noi, [], `${cam} không được xuất hiện (ADR-0105: không khoá dịch vụ, không nhúng bản đồ)`);
   }
 });
+
+/** Tách đối số của lời gọi bắt đầu ngay sau dấu "(" ở vị trí `mo` (đếm ngoặc) — khuôn `doiSo` của src/hanh-khach-khong-lo-ten.test.ts. */
+function doiSo(code: string, mo: number): string[] {
+  const ra: string[] = [];
+  let sau = 0;
+  let dau = mo;
+  for (let i = mo; i < code.length; i++) {
+    const c = code[i]!;
+    if (c === "(" || c === "[" || c === "{") sau++;
+    else if (c === ")" || c === "]" || c === "}") {
+      if (sau === 0) {
+        ra.push(code.slice(dau, i).trim());
+        return ra;
+      }
+      sau--;
+    } else if (c === "," && sau === 0) {
+      ra.push(code.slice(dau, i).trim());
+      dau = i + 1;
+    }
+  }
+  throw new Error("không đóng ngoặc");
+}
+
+test("chỉ đường (4): mọi liên kết bản đồ ở web/ (h(\"a\", { …\"data-ban-do\"… })) có target _blank + rel noreferrer noopener; chỉ web/cuoc-chuyen.ts gọi nutChiDuongCuaDiem(", () => {
+  const loi: string[] = [];
+  let soLienKet = 0;
+  const goiNut = new Set<string>();
+  for (const p of WEB) {
+    const code = maTs(p);
+    const f = rel(p);
+    if (/\bnutChiDuongCuaDiem\(/.test(code)) goiNut.add(f);
+    for (const m of code.matchAll(/\bh\(\s*"a"\s*,/g)) {
+      const thuocTinh = doiSo(code, code.indexOf("(", m.index!) + 1)[1] ?? "";
+      if (!thuocTinh.includes('"data-ban-do"')) continue;
+      soLienKet++;
+      if (!/\brel:\s*"noreferrer noopener"/.test(thuocTinh)) loi.push(`${f}: liên kết bản đồ thiếu rel: "noreferrer noopener"`);
+      if (!/\btarget:\s*"_blank"/.test(thuocTinh)) loi.push(`${f}: liên kết bản đồ thiếu target: "_blank"`);
+    }
+  }
+  assert.ok(soLienKet >= 1, "không có liên kết bản đồ nào ở web/ (chống bài rỗng — nhóm Chỉ đường của màn tài xế)");
+  assert.deepEqual(loi, []);
+  assert.deepEqual([...goiNut].sort(), ["web/cuoc-chuyen.ts"], "chỉ màn tài xế dựng nút chỉ đường");
+});

@@ -2600,6 +2600,9 @@ body.login-page main.login { display: flex; flex-direction: column; flex: 1; min
 .dp-run-lien-he { display: flex; align-items: center; gap: var(--s2); padding: 0 var(--s4); font-size: var(--fs-label); border-bottom: 1px solid var(--c-border); }
 .dp-run-lien-he a { display: flex; align-items: center; min-height: var(--tap-min); margin-left: auto; font-weight: var(--fw-bold); white-space: nowrap; }
 .dp-run-bay { display: flex; flex-wrap: wrap; gap: var(--s2); padding: 0 var(--s4) var(--s2) calc(var(--s4) + var(--dp-run-so) + var(--s3)); } /* số hiệu chuyến bay dưới điểm đón — thẳng cột với tên nơi */
+/* ADR-0105: nhóm "Chỉ đường" dưới điểm chưa xong — thẳng cột với tên nơi; hai liên kết là .vc-btn (vùng chạm --tap-min sẵn có). */
+.dp-run-chi-duong { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); padding: var(--s2) var(--s4) var(--s2) calc(var(--s4) + var(--dp-run-so) + var(--s3)); }
+.dp-run-chi-duong-nhan { flex-basis: 100%; font-size: var(--fs-label); color: var(--c-text-muted); } /* nhãn một dòng riêng → hai nút nằm cạnh nhau ở 390 */
 .dp-run-foot { display: flex; flex-direction: column; gap: var(--s2); padding: var(--s3) var(--s4); }
 .dp-run-foot .dp-run-btn { width: 100%; min-height: var(--h-field); font-size: var(--fs-vc-md); }
 .dp-khach { display: flex; flex-direction: column; gap: var(--s2); padding: var(--s2) var(--s4); border-bottom: 1px solid var(--c-border); }
