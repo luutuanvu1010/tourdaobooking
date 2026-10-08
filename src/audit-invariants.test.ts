@@ -2722,3 +2722,29 @@ test("R-KY-2: các tháng đã khoá liền nhau (kể cả qua năm) → 0; có
   khoaThangSdl(db, "2026-08", "2026-09-02T00:00:00.000Z"); // hở thứ hai: thiếu 06, 07
   assert.equal(violations(db, c), 2, "chỗ hở thứ hai");
 });
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Hàng rào «tách câu của wrangler» (Task 9, vòng sửa 1, I-1). `scripts/audit-invariants.mjs` gộp MỌI câu kiểm vào MỘT chuỗi `--command` rồi `wrangler d1 execute` tách chuỗi đó
+// lại bằng `splitSqlQuery` (src/d1/splitter.ts của wrangler). Bộ tách coi ` CASE ` / ` BEGIN ` (có khoảng trắng phía trước) là chỗ MỞ một khối và chỉ nhận ` END ` /
+// ` END;` (sau END là khoảng trắng hoặc dấu chấm phẩy) là chỗ ĐÓNG — `END)` KHÔNG đóng, nên mọi dấu `;` phía sau bị nuốt, số kết quả ít hơn số kiểm, script thoát mã 2
+// «Kết quả không khớp số kiểm» (lỗi thật bắt được ở R-ORD-T1: `… THEN 0 ELSE 1 END)`). Bài chạy CHÍNH hàm tách đó và so với `CHECKS.length`.
+// Chọn dùng hàm tách THẬT của wrangler (xuất công khai là `unstable_splitSqlQuery`, kiểm ở wrangler-dist/cli.js: `exports.unstable_splitSqlQuery = splitSqlQuery`) thay vì mô phỏng hai
+// biểu thức chính quy `isCompoundStatementStart` / `isCompoundStatementEnd`: mô phỏng có thể lệch khi wrangler đổi; hàm thật thì bài luôn kiểm đúng cái wrangler sẽ làm.
+// ---------------------------------------------------------------------------------------------------------------------
+test("tách câu của wrangler: chuỗi `--command` mà script gửi tách ra ĐÚNG bằng số kiểm, từng câu nguyên vẹn (không ` CASE … END)` / ` BEGIN … END)` nuốt dấu ;)", async () => {
+  // Dựng lại ĐÚNG cách script nối câu — và khoá để script không đổi cách nối mà bài không hay.
+  const GHEP = 'CHECKS.map(({ sql }) => `${sql.replace(/\\s+/g, " ").trim()};`).join(" ")';
+  const script = readFileSync(new URL("../scripts/audit-invariants.mjs", import.meta.url), "utf8");
+  assert.ok(script.includes(`"--command", ${GHEP}`), "script phải nối câu đúng cách bài này dựng lại — đổi cách nối thì sửa cả bài này");
+  const chuoi = CHECKS.map(({ sql }) => `${sql.replace(/\s+/g, " ").trim()};`).join(" ");
+
+  const { unstable_splitSqlQuery: tach } = (await import("wrangler")) as unknown as { unstable_splitSqlQuery: (sql: string) => string[] };
+  assert.equal(typeof tach, "function", "wrangler phải xuất hàm tách câu (unstable_splitSqlQuery) — nếu đổi tên thì cập nhật bài này");
+  const cau = tach(chuoi);
+  if (cau.length !== CHECKS.length) {
+    // chỉ ra kiểm đầu tiên bị nuốt dấu ; : câu tách ra thứ i không còn là câu kiểm thứ i
+    const lech = cau.findIndex((c, i) => c !== CHECKS[i]!.sql.replace(/\s+/g, " ").trim());
+    assert.fail(`wrangler tách ${cau.length} câu, phải đúng ${CHECKS.length} (một câu kiểm một kết quả); lệch đầu tiên ở kiểm ${CHECKS[lech]?.code ?? "?"} — kiểm tra ' CASE ' / ' BEGIN ' mà phần đóng là 'END)' (viết 'END )' hoặc bỏ CASE)`);
+  }
+  CHECKS.forEach((c, i) => assert.equal(cau[i], c.sql.replace(/\s+/g, " ").trim(), `câu tách thứ ${i} (${c.code}) phải là nguyên câu kiểm`));
+});

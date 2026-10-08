@@ -1285,12 +1285,12 @@ export const CHECKS = [
   {
     // R-ORD-T1 (đặc tả §9 sau kiểm độc lập N4): MỖI dòng dịch vụ của đơn đã xác nhận, xác nhận TỪ (mốc + 60 phút) trở đi, phải có ĐÚNG MỘT bản chụp hiện hành. Mốc = lúc áp migration
     // (bảng `ord_audit_cutoff`), KHÔNG suy từ bản chụp đầu — cách cũ tự tắt khi mã chụp không bao giờ chạy. 60 phút che quãng migration → deploy của runbook và lúc bản mới chưa lan tới
-    // mọi nơi. Thiếu dòng mốc thì chính kiểm này báo 1 lỗi (không im lặng xanh). Đếm theo DÒNG DỊCH VỤ. Hoàn tác Worker về bản cũ ⇒ đơn xác nhận lúc đó làm kiểm này đỏ tới đợt 2 (đúng tín hiệu).
+    // mọi nơi. Thiếu dòng mốc thì chính kiểm này báo 1 lỗi (không im lặng xanh; viết bằng `NOT EXISTS`, KHÔNG dùng `CASE … END)` — bộ tách câu của wrangler không đóng khối ở `END)` và nuốt mọi dấu `;` phía sau, xem bài «tách câu của wrangler»). Đếm theo DÒNG DỊCH VỤ. Hoàn tác Worker về bản cũ ⇒ đơn xác nhận lúc đó làm kiểm này đỏ tới đợt 2 (đúng tín hiệu).
     code: "R-ORD-T1",
     what: "dòng dịch vụ của đơn đã xác nhận sau ân hạn 60 phút kể từ mốc áp migration 0090 mà không có đúng một bản chụp thương mại hiện hành (mốc thiếu cũng tính lỗi)",
     sql: `SELECT (SELECT count(*) FROM order_service s JOIN orders o ON o.id = s.order_id
         WHERE o.status = 'confirmed' AND ${LUC_XAC_NHAN("o")} >= ${HET_AN_HA_T1} AND ${SO_BAN_CHUP_HIEN_HANH("s")} <> 1)
-      + (SELECT CASE WHEN EXISTS (SELECT 1 FROM ord_audit_cutoff WHERE code = 'R-ORD-T1') THEN 0 ELSE 1 END)`,
+      + (SELECT NOT EXISTS (SELECT 1 FROM ord_audit_cutoff WHERE code = 'R-ORD-T1'))`,
     level: "fail",
     note: "đặc tả sổ đại lý đợt 1 §9, §13: đơn xác nhận bằng bản cũ sau ân hạn thiếu bản chụp — chờ chụp bù ở đợt 2; Worker không được hoàn tác về bản cũ sau khi đã áp migration",
   },
