@@ -155,6 +155,19 @@ test("NT-B16 MOC_TIN_DOI: đúng dạng ISO đủ mili-giây; cổng phát hành
 
 // ---- NT-B9: Đối tác / Thực tập mở hẹp ĐÚNG loại tin mới, đúng đơn họ lập -------------------------------------------------------------------------
 
+// Cổng người xem tin đổi (`duocThayTinDoi`) là lớp RIÊNG, không trùng lọc nhãn `nguoi:` ngay sau nó: tài khoản đứng tên người phụ trách / người lập mà
+// không phải văn phòng, không HDV (dữ liệu lạ — route giao việc hôm nay không cho; phiếu kiểm lại A3 mục 2) vẫn có nhãn `nguoi:<mình>` khớp, chỉ cổng chặn.
+test("cổng duocThayTinDoi: Đối tác / Thực tập / tài xế / Tài xế đối tác / Nhân sự đứng tên người phụ trách → KHÔNG tin đổi; tài xế / Tài xế đối tác / Nhân sự đứng tên người lập → KHÔNG; đối chứng Đối tác / Thực tập người lập → có", () => {
+  const ai1 = (p: PermissionCode) => ({ id: "x", permissions: [p], partyId: "p-x" as string | null });
+  for (const p of ["PARTNER", "INTERN", "DRIVER", "DRIVER_PARTNER", "HR"] as PermissionCode[]) {
+    assert.deepEqual(hop(ai1(p), [doi({ phuTrach: { coNguoi: true, staffId: "x" } })], "tat-ca").tin, [], `${p} là người phụ trách`);
+  }
+  for (const p of ["DRIVER", "DRIVER_PARTNER", "HR"] as PermissionCode[]) {
+    assert.deepEqual(hop(ai1(p), [doi({ ownerId: "x" })], "tat-ca").tin, [], `${p} là người lập`);
+  }
+  for (const p of ["PARTNER", "INTERN"] as PermissionCode[]) assert.equal(hop(ai1(p), [doi({ ownerId: "x" })]).tin.length, 1, `${p} là người lập (câu 5 = Có)`);
+});
+
 test("NT-B9 Đối tác / Thực tập: có tin đổi của đơn MÌNH lập; KHÔNG có tin đổi đơn người khác; KHÔNG có tin đơn loại khác của đơn mình", () => {
   for (const s of [BX, NGAN]) {
     assert.deepEqual(hop(s, [doi()], "tat-ca").tin, [], `${s.id}: đơn của Lan`);
