@@ -63,7 +63,7 @@ test("Khung đọc theo giờ kết thúc thật: cửa sổ xuất bến 48 gi�
   }
 });
 
-// ---- Phiếu kiểm D1 CAO-4: ba bài chặn ba đột biến C0 còn sống sót ở lượt kiểm độc lập (C0a, C0b, C0f / C0g) -----------------------------------------
+// ---- Phiếu kiểm D1 CAO-4 + phiếu hẹp CAO-A: ba bài chặn bốn đột biến C0 còn sống sót ở lượt kiểm độc lập (C0a, C0b, C0f / C0g) -------------------------
 test("CAO-4 (C0a): chuyến A cùng tài xế KẾT THÚC GIỮA CHỪNG (ENDED_INTERRUPTED) thật lúc 06:50 — B (khởi hành 10:00 hôm sau, cửa sổ 48 giờ) xuất bến 07:00 → 409 NGHI_THIEU, không ghi", async () => {
   const tat = batDongHo(Date.parse(`${NGAY}T06:00:00+07:00`));
   try {
@@ -96,9 +96,41 @@ test("CAO-4 (C0b): A kết thúc thật 06:50 — NGOÀI cửa sổ 48 giờ c�
   }
 });
 
-// C0f / C0g (đối số khung ở chi tiết cuốc và "Cuốc của tôi") KHÔNG có bài: lý do giữ ở hai màn đó là DỰ PHÓNG xuất bến lúc max(bây giờ, khởi hành dự kiến)
-// (`lyDoGiuDuPhong`). Chuyến chỉ khung mở rộng mới đọc được thì đã kết thúc thật TRƯỚC (khởi hành dự kiến − 1 ngày) — cách giờ dự phóng hơn 24 giờ, lớn hơn trần
-// khoảng nghỉ (`NGHI_TOI_DA_PHUT` = 480) — nên kết quả luôn như nhau: đột biến tương đương, không bài nào bắt được (sổ hàng rào :450 ghi "dựa vào kỷ luật").
+// C0f / C0g (đối số khung ở chi tiết cuốc và "Cuốc của tôi"; phiếu kiểm hẹp D1 CAO-A — người thi công từng ghi nhầm là "đột biến tương đương"): khung KẾ
+// HOẠCH (`trips_touching`) còn loại chuyến lên kế hoạch SAU B hơn 24 giờ (vế giờ khởi hành dự kiến < cuối khung). Chuyến C như vậy mà chạy SỚM trong cửa sổ
+// > 24 giờ và vừa kết thúc thật thì chỉ khung theo giờ kết thúc thật mới đọc được — thiếu nó, màn tài xế báo "đủ điều kiện" còn máy chủ trả 409 NGHI_THIEU.
+test("CAO-A (C0f / C0g): chuyến C cùng tài xế, kế hoạch SAU B hơn 24 giờ (12:00 hôm sau), chạy SỚM trong cửa sổ 48 giờ, kết thúc thật 09:50 — lúc 09:55 B (10:00) hiện NGHI_THIEU ở chi tiết cuốc và \"Cuốc của tôi\"; xuất bến B 10:00 → 409 NGHI_THIEU", async () => {
+  const tat = batDongHo(Date.parse(`${NGAY}T06:00:00+07:00`));
+  try {
+    const w = setup();
+    await cuaSo48(w);
+    const b = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER}`, bd: "10:00", kt: "11:00" });
+    const c = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER}`, ngay: NGAY_SAU, bd: "12:00", kt: "13:00" });
+    denGio("08:00");
+    const xb = await tienDo(w, "tai-xe", c.chuyen.id, "xuat-ben");
+    assert.equal(xb.status, 200, xb.text);
+    denGio("09:50");
+    const kt = await tienDo(w, "tai-xe", c.chuyen.id, "ket-thuc");
+    assert.equal(kt.status, 200, kt.text);
+    denGio("09:55");
+    const ct = await w.call("GET", `/api/van-chuyen/cuoc-cua-toi/${b.chuyen.id}`, { as: DRIVER });
+    assert.equal(ct.status, 200, ct.text);
+    assert.deepEqual((ct.json.dieuKienConThieu ?? []).map((x: any) => x.ma), ["NGHI_THIEU"], `chi tiết cuốc (C0f): ${JSON.stringify(ct.json.dieuKienConThieu)}`);
+    const ds = await w.call("GET", `/api/van-chuyen/cuoc-cua-toi?tu=${NGAY}&den=${NGAY}`, { as: DRIVER });
+    assert.equal(ds.status, 200, ds.text);
+    const muc = ds.json.chuyen.find((x: any) => x.id === b.chuyen.id);
+    assert.ok(muc, "B có trong Cuốc của tôi");
+    assert.deepEqual((muc.dieuKienConThieu ?? []).map((x: any) => x.ma), ["NGHI_THIEU"], `Cuốc của tôi (C0g): ${JSON.stringify(muc.dieuKienConThieu)}`);
+    denGio("10:00");
+    const r = await tienDo(w, "tai-xe", b.chuyen.id, "xuat-ben");
+    assert.equal(r.status, 409, r.text);
+    assert.deepEqual(ma(r), ["NGHI_THIEU"], r.text);
+    assert.match(r.json.error.lyDo[0].loiNhan, new RegExp(c.chuyen.ma));
+    assert.equal(trangThai(w, b.chuyen.id), "PLANNED", "không ghi");
+  } finally {
+    tat();
+  }
+});
 
 test("Khung đọc theo giờ kết thúc thật: văn phòng KHAI xuất bến B lúc 06:40 — trước giờ chuyến A cùng tài xế kết thúc thật (06:50) → 409 gio_xay_ra_ngoai_khoang CHONG_CHUYEN_TRUOC (mốc chặn = mã chuyến A), không ghi; chi tiết chuyến B báo giờ khai sớm nhất 06:50 (một luật cho màn và máy chủ)", async () => {
   const tat = batDongHo(Date.parse(`${NGAY}T06:00:00+07:00`));
