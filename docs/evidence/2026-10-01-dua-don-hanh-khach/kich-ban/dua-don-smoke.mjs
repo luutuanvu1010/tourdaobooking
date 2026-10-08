@@ -5,7 +5,7 @@
 //   AXE_JS=<…/axe.min.js> CHROME_BIN=docs/evidence/2026-09-20-a2/kich-ban/chrome-wrap.sh OUT=docs/evidence/2026-10-01-dua-don-hanh-khach node docs/evidence/2026-10-01-dua-don-hanh-khach/kich-ban/dua-don-smoke.mjs
 // Kho cookie Chrome dùng CHUNG: Bán hàng → Kế toán → Đối tác (trang của tài khoản nào mở SAU CÙNG).
 import {
-  ACCOUNTS, CHU, DESK, MOB, apiCalls, assert, axe, axeNote, boDem, click, dungMoiTruong, noCode, noOverflowX, shotFull, shotView, shown, sleep, txt, typeInto, vnDate,
+  ACCOUNTS, CHU, DESK, MOB, apiCalls, assert, axe, axeNote, boDem, click, dungMoiTruong, fetchTrang, noCode, noOverflowX, shotFull, shotView, shown, sleep, txt, typeInto, vnDate,
 } from "../../2026-09-29-adr-0049/kich-ban/dp-lib.mjs";
 
 const DOI_TAC = { name: "Đối Tác Đưa Đón", phone: "0900000452", pin: "246452", permissions: ["PARTNER"] };
@@ -20,16 +20,18 @@ env.sql(`INSERT INTO loc_location (id, code, name, location_type_code, sort_orde
   ('${KS}', 'KS_MUONG_THANH', 'Khách sạn Mường Thanh Luxury Nha Trang', 'HOTEL', 20, ${T}, ${T}),
   ('${SB}', 'SB_CAM_RANH', 'Sân bay Cam Ranh', 'AIRPORT', 21, ${T}, ${T}),
   ('${GA}', 'GA_CAP_TREO', 'Ga cáp treo Vinpearl', 'CABLE_CAR', 22, ${T}, ${T});`);
-// Kịch bản đăng nhập Bán hàng, Đối tác ở CẢ lời gọi API (`call`) lẫn Chrome (`env.as` — mỗi lần một phiên mới). Luật "một máy" (ADR-0075, ADR-0085) đóng phiên
-// API khi Chrome đăng nhập ⇒ bước 6 và 12 từng đỏ 401 (2026-10-08). Chỉ trên D1 TẠM của kịch bản: chính sách đăng nhập của hai quyền này = "Nhiều máy".
-env.sql(`INSERT INTO aut_session_policy (id, permission_code, multi, valid_from_at, created_at, updated_at) VALUES
-  ('kich-ban-sales-nhieu-may', 'SALES', 1, ${T}, ${T}, ${T}), ('kich-ban-partner-nhieu-may', 'PARTNER', 1, ${T}, ${T}, ${T});`);
+// Luật "một máy" (ADR-0075, ADR-0085): mỗi lần đăng nhập đóng phiên cũ của cùng tài khoản — `call()` (đăng nhập riêng, giữ cookie) và Chrome (`env.as`,
+// mỗi lần một phiên mới) sẽ đá nhau (bước 6 và 12 từng đỏ 401, 2026-10-08). Nên: tài khoản ĐANG MỞ TRANG thì gọi API bằng PHIÊN CỦA TRANG (`fetchTrang`,
+// khuôn dp-lib.mjs — kho cookie Chrome dùng chung nên trang nào của tài khoản đó cũng mang phiên mới nhất); `call()` chỉ cho tài khoản chưa / không mở
+// trang (Quản trị; Đối tác lúc lập đơn TRƯỚC khi mở trang — sau đó chỉ gọi qua trang).
+const goiTrang = (pg) => (method, path, body) => fetchTrang(pg, method, path, body);
+const goiApi = (ai) => (method, path, body) => call(ai, method, path, body);
 const NO_TRIP = { departDate: NGAY, departTime: "", checkinDate: "", checkinTime: "", checkinPlace: "", note: "" };
 const base = { customerEmail: "", customerNote: "", discount: 0, paymentNote: "" };
 const leg = (o) => ({ direction: "OUT", pickupDate: NGAY, pickupTime: "07:30", pickupLocationId: KS, pickupPlace: "", dropoffLocationId: null, dropoffPlace: "", ...o });
 const svc = (adult, legs) => ({ kind: "catalog", catalogCode: "TD101", pax: { adult, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 1350000 }, unitPrices: { adult: 1350000 }, ...NO_TRIP, legs });
-const donApi = async (ai, ten, adult, legs, passengers) => {
-  const r = await call(ai, "POST", "/api/orders", { ...base, customerName: ten, customerPhone: "0903 111 222", services: [svc(adult, legs)], ...(passengers ? { passengers } : {}) });
+const donApi = async (goi, ten, adult, legs, passengers) => {
+  const r = await goi("POST", "/api/orders", { ...base, customerName: ten, customerPhone: "0903 111 222", services: [svc(adult, legs)], ...(passengers ? { passengers } : {}) });
   assert.equal(r.status, 201, r.text);
   return r.json.order;
 };
@@ -141,13 +143,13 @@ try {
     assert.equal(s0.legs.length, 2);
     assert.equal(than.passengers.length, 4);
     donId = new URL(await f.ev("location.href")).searchParams.get("id");
-    const o = (await call(ACCOUNTS.salesA, "GET", `/api/orders/${donId}`)).json.order;
+    const o = (await fetchTrang(f, "GET", `/api/orders/${donId}`)).json.order;
     const legs = [...o.services[0].legs].sort((a, b) => (a.direction < b.direction ? -1 : 1));
     assert.deepEqual(legs.map((l) => [l.direction, l.pickupDate, l.pickupTime, l.pickupLabel, l.dropoffLabel, l.flightCode]), [
       ["OUT", NGAY, null, "Khách sạn Mường Thanh Luxury Nha Trang", "Ga cáp treo Vinpearl", "VN1553"],
       ["RETURN", NGAY, "16:30", "Ga cáp treo Vinpearl", "Khách sạn Mường Thanh Luxury Nha Trang", null],
     ], JSON.stringify(legs));
-    const p = (await call(ACCOUNTS.salesA, "GET", `/api/orders/${donId}/passengers`)).json;
+    const p = (await fetchTrang(f, "GET", `/api/orders/${donId}/passengers`)).json;
     assert.equal(p.passengers.length, 4);
     // Mở lại form sửa nháp: còn đủ chặng + hành khách.
     await f.ev(`document.querySelector('.sheet[role=dialog] .sheet-close')?.click(); true`);
@@ -170,7 +172,7 @@ try {
   });
 
   await b.step("6", "Tiêu chí 6: xác nhận đơn thiếu nơi trả + thiếu tên → câu hỏi kèm cảnh báo, xác nhận VẪN thành công, dải vàng 'Đã xác nhận đơn.' liệt kê hai câu", async () => {
-    const o = await donApi(ACCOUNTS.salesA, "Khách Thiếu", 2, [leg({ dropoffLocationId: null })], []);
+    const o = await donApi(goiTrang(f), "Khách Thiếu", 2, [leg({ dropoffLocationId: null })], []);
     const p = await env.as(ACCOUNTS.salesA, `/order?id=${o.id}`, DESK);
     await p.waitFor(shown('[data-canh-bao="xac-nhan"]'), "câu cảnh báo dưới nút xác nhận");
     assert.deepEqual(await p.ev(`[...document.querySelectorAll('[data-canh-bao="xac-nhan"]')].map((x) => x.innerText.trim())`), ["Cần nơi trả trước khi xếp xe", "Còn 2 khách chưa có tên — cần đủ trước khi xe chạy"]);
@@ -179,16 +181,16 @@ try {
     await p.waitFor(`document.getElementById('error').innerText.includes('Đã xác nhận đơn.')`, "dải sau xác nhận", 10000);
     assert.match(await p.ev("window.__hoi"), /Cần nơi trả trước khi xếp xe\nCòn 2 khách chưa có tên/);
     assert.match(await p.ev(txt("#error")), /Cần nơi trả trước khi xếp xe .*Còn 2 khách chưa có tên/);
-    assert.equal((await call(ACCOUNTS.salesA, "GET", `/api/orders/${o.id}`)).json.order.status, "confirmed");
+    assert.equal((await fetchTrang(p, "GET", `/api/orders/${o.id}`)).json.order.status, "confirmed");
     await shotFull(p, "tc6-xac-nhan-canh-bao-1040.png");
     p.close();
   });
 
   // Đơn đã xác nhận cho M4/M5: 2 chặng, chiều về 2 người, 3 tên.
-  const o2 = await donApi(ACCOUNTS.salesA, "Khách Đã Xác Nhận", 4, [leg({ dropoffLocationId: GA }), leg({ direction: "RETURN", pickupTime: "16:30", pickupLocationId: GA, dropoffLocationId: KS, paxOverride: 2 })], [
+  const o2 = await donApi(goiTrang(f), "Khách Đã Xác Nhận", 4, [leg({ dropoffLocationId: GA }), leg({ direction: "RETURN", pickupTime: "16:30", pickupLocationId: GA, dropoffLocationId: KS, paxOverride: 2 })], [
     { fullName: "Nguyễn Văn An", birthYear: 1985, paxCode: "adult" }, { fullName: "Trần Thị Bình", birthYear: 1988, paxCode: "adult" }, { fullName: "Nguyễn Minh Khôi", birthYear: 2015, paxCode: "child" },
   ]);
-  r = await call(ACCOUNTS.salesA, "POST", `/api/orders/${o2.id}/status`, { status: "confirmed" });
+  r = await fetchTrang(f, "POST", `/api/orders/${o2.id}/status`, { status: "confirmed" });
   assert.equal(r.status, 200, r.text);
 
   const m = await env.as(ACCOUNTS.salesA, `/order?id=${o2.id}`, DESK);
@@ -218,7 +220,7 @@ try {
     const calls = apiCalls(m).filter((c) => c.path.includes("/legs"));
     assert.ok(calls.some((c) => c.method === "POST" && /\/legs\/[^/]+\/close$/.test(c.path) && JSON.parse(c.body).reasonCode === "NOT_NEEDED"), "đóng chặng có lý do");
     assert.ok(calls.some((c) => c.method === "PUT" && /\/legs\/[^/]+$/.test(c.path) && JSON.parse(c.body).leg.dropoffLocationId === SB), "sửa nơi trả");
-    const o = (await call(ACCOUNTS.salesA, "GET", `/api/orders/${o2.id}`)).json.order;
+    const o = (await fetchTrang(m, "GET", `/api/orders/${o2.id}`)).json.order;
     assert.deepEqual(o.services[0].legs.map((l) => [l.direction, l.dropoffLabel]), [["OUT", "Sân bay Cam Ranh"]]);
     await m.waitFor(`document.getElementById('error').innerText.includes('Đã lưu đưa đón.')`, "báo đã lưu");
   });
@@ -245,7 +247,7 @@ try {
     const than = JSON.parse(calls[0].body);
     assert.equal(than.reasonCode, "REPLACED");
     assert.equal(than.leg.pickupLocationId, SB);
-    const { order: o, history } = (await call(ACCOUNTS.salesA, "GET", `/api/orders/${o2.id}`)).json;
+    const { order: o, history } = (await fetchTrang(m, "GET", `/api/orders/${o2.id}`)).json;
     assert.deepEqual(o.services[0].legs.map((l) => [l.direction, l.pickupTime, l.pickupLabel]), [["OUT", "09:15", "Sân bay Cam Ranh"]]);
     assert.ok(history.some((e) => e.action === "order_leg_closed" && /bỏ — Đổi sang chặng khác$/.test(e.detail ?? "")), "lịch sử: bỏ — Đổi sang chặng khác");
     assert.ok(history.some((e) => e.action === "order_leg_added" && /nơi đón Sân bay Cam Ranh/.test(e.detail ?? "")), "lịch sử: thêm chặng mới");
@@ -318,7 +320,7 @@ try {
     const than = JSON.parse(post.body);
     assert.equal(than.them.length, 1);
     assert.equal(than.huy.length, 1);
-    const p = (await call(ACCOUNTS.salesA, "GET", `/api/orders/${o2.id}/passengers`)).json;
+    const p = (await fetchTrang(m5, "GET", `/api/orders/${o2.id}/passengers`)).json;
     assert.deepEqual(p.passengers.map((x) => x.fullName).sort(), ["Lê Thị Hồng", "Nguyễn Minh Khôi", "Nguyễn Văn An"]);
   });
   m5.close();
@@ -365,7 +367,7 @@ try {
 
   // ---- Đối tác (mở SAU CÙNG): Số người chiều về chỉ xem; gửi khoá này → 403 (tiêu chí 7) ---------------------------------------------------------------------------
   await b.step("12", `Tiêu chí 7 (390, Đối tác): form có chiều về → 'Số người chiều về' chỉ xem ('Cả đoàn' + 'Văn phòng điều chỉnh số người về'); khối Hành khách nhập được; API gửi paxOverride khác → 403; đơn đã xác nhận: có 'Sửa danh sách', KHÔNG 'Sửa đưa đón', câu khoá D5${axeNote()}`, async () => {
-    const od = await donApi(DOI_TAC, "Khách Đối Tác", 2, [leg({ dropoffLocationId: GA }), leg({ direction: "RETURN", pickupTime: "16:30", pickupLocationId: GA, dropoffLocationId: KS })]);
+    const od = await donApi(goiApi(DOI_TAC), "Khách Đối Tác", 2, [leg({ dropoffLocationId: GA }), leg({ direction: "RETURN", pickupTime: "16:30", pickupLocationId: GA, dropoffLocationId: KS })]);
     const p = await env.as(DOI_TAC, `/order-form?id=${od.id}`, MOB);
     await p.waitFor(shown(`${chang("RETURN")} .dd-xem`), "ô chỉ xem");
     assert.equal(await p.ev(txt(`${chang("RETURN")} .dd-xem`)), "Số người chiều về Cả đoàn Văn phòng điều chỉnh số người về");
@@ -379,13 +381,13 @@ try {
     await p.waitFor("location.pathname === '/order'", "lưu được", 15000);
     const put = apiCalls(p).filter((c) => c.method === "PUT" && c.path === `/api/orders/${od.id}`).at(-1);
     assert.ok(JSON.parse(put.body).services[0].legs.every((l) => !("paxOverride" in l)), "Đối tác không gửi khoá paxOverride");
-    const cur = (await call(DOI_TAC, "GET", `/api/orders/${od.id}`)).json.order;
+    const cur = (await fetchTrang(p, "GET", `/api/orders/${od.id}`)).json.order;
     const legs = cur.services[0].legs.map((l) => ({ id: l.id, direction: l.direction, pickupDate: l.pickupDate, pickupTime: l.pickupTime ?? "", pickupLocationId: l.pickupLocationId, pickupPlace: "", dropoffLocationId: l.dropoffLocationId, dropoffPlace: "", ...(l.direction === "RETURN" ? { paxOverride: 1 } : {}) }));
-    const r403 = await call(DOI_TAC, "PUT", `/api/orders/${od.id}`, { ...base, customerName: "Khách Đối Tác", customerPhone: "0903 111 222", services: [{ ...svc(2, legs), id: cur.services[0].id }], expectedUpdatedAt: cur.updatedAt });
+    const r403 = await fetchTrang(p, "PUT", `/api/orders/${od.id}`, { ...base, customerName: "Khách Đối Tác", customerPhone: "0903 111 222", services: [{ ...svc(2, legs), id: cur.services[0].id }], expectedUpdatedAt: cur.updatedAt });
     assert.equal(r403.status, 403, r403.text);
     // Đơn đã xác nhận: Đối tác thấy 'Sửa danh sách' (order.passenger.write own) nhưng KHÔNG 'Sửa đưa đón' (order.trip.edit none); câu khoá D5.
-    const cur2 = (await call(DOI_TAC, "GET", `/api/orders/${od.id}`)).json.order;
-    const xn = await call(DOI_TAC, "POST", `/api/orders/${od.id}/status`, { status: "confirmed" });
+    const cur2 = (await fetchTrang(p, "GET", `/api/orders/${od.id}`)).json.order;
+    const xn = await fetchTrang(p, "POST", `/api/orders/${od.id}/status`, { status: "confirmed" });
     assert.equal(xn.status, 200, xn.text);
     void cur2;
     await p.send("Page.navigate", { url: `${env.base}/order?id=${od.id}` });
