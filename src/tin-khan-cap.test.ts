@@ -224,3 +224,49 @@ test("Phiếu hẹp D1 CAO-C (ca biên): dời chặng thường từ chuyến N
     tat();
   }
 });
+
+// ---- Phiếu kiểm hẹp D1 THẤP-1: hai trần của hộp tin chuyến (src/modules/thongbao/repository.ts — `listTinChuyen`) -------------------------------------------
+/** Chèn `n` dòng nhật ký chuyến GIẢ (hình chiếu v_aud_trip_event — không có sự kiện vc_trip_event nên không sinh tin), lúc `tuMs` + i × 100 ms. */
+function chenDongGia(w: any, n: number, action: string, tripId: string, tuMs: number) {
+  const chen = w.sqlite.prepare("INSERT INTO audit_log (id, order_id, staff_id, action, target_type, target_id, detail, created_at) VALUES (?, NULL, ?, ?, 'trip', ?, 'x', ?)");
+  w.sqlite.exec("BEGIN");
+  for (let i = 0; i < n; i++) chen.run(`gia-${action}-${i}`, SALES, action, tripId, new Date(tuMs + i * 100).toISOString());
+  w.sqlite.exec("COMMIT");
+}
+test("Phiếu hẹp D1 THẤP-1 (K9 — trần nhóm tin cũ đọc ĐỦ 3000 dòng gần nhất): 2999 dòng sửa chuyến (chuyến khác, không tin cho tài xế này) MỚI HƠN tin huỷ chuyến của tài xế — tin huỷ là dòng thứ 3000, vẫn còn trong hộp", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const t = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER}`, ngay: NGAY_SAU, bd: "08:00", kt: "12:00" });
+    const khac = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER2}`, ngay: NGAY_SAU, bd: "08:00", kt: "12:00" });
+    denGio("06:10");
+    const h = await goi(w, ADM, "POST", `/${t.chuyen.id}/huy`, { version: await phienBan(w, t.chuyen.id), lyDo: "HUY_KHAC" });
+    assert.equal(h.status, 200, h.text);
+    const cauHuy = `Chuyến ${t.chuyen.ma} ngày 12/03 đã bị huỷ`;
+    const soTinHuy = async () => (await w.call("GET", "/api/thong-bao", { as: DRIVER })).json.tin.filter((x: any) => x.loai === "chuyen" && x.cau === cauHuy).length;
+    assert.equal(await soTinHuy(), 1, "trước: tài xế có tin huỷ");
+    denGio("07:00");
+    chenDongGia(w, 2999, "trip_edited", khac.chuyen.id, Date.now() - 40 * 60_000); // 06:20 → sau dòng huỷ (06:10), trước giờ đọc
+    assert.equal(w.q("SELECT count(*) n FROM v_aud_trip_event WHERE action IN ('trip_edited', 'trip_cancelled', 'trip_created') AND created_at >= (SELECT created_at FROM v_aud_trip_event WHERE action = 'trip_cancelled')")[0].n, 3000, "dòng huỷ là dòng thứ 3000 của nhóm cũ");
+    assert.equal(await soTinHuy(), 1, "tin huỷ vẫn còn (trần nhóm cũ = 3000)");
+  } finally {
+    tat();
+  }
+});
+
+test("Phiếu hẹp D1 THẤP-1 (K10 — trần riêng ba lệnh khách giữ dòng MỚI nhất): 1001 dòng xếp thường CŨ HƠN một lệnh xếp có điều chỉnh khẩn cấp thật — tài xế vẫn có tin khẩn cấp", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const khac = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER2}`, ngay: NGAY_SAU, bd: "08:00", kt: "12:00" });
+    chenDongGia(w, 1001, "trip_allocated", khac.chuyen.id, Date.now() - 60 * 60_000); // 05:00 → trước lệnh thật (06:00)
+    const a = await don(w, { gio: "13:00", soNguoi: 2 });
+    const t = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER}`, bd: "11:00", kt: "15:00" }); // dưới mốc
+    const x = await xep(w, SALES, t.chuyen.id, [{ legId: a.legId, soSuat: 2 }], { phaLe: PL });
+    assert.equal(x.status, 200, x.text);
+    assert.equal(w.q("SELECT count(*) n FROM v_aud_trip_event WHERE action = 'trip_allocated'")[0].n, 1002);
+    assert.deepEqual(await tinKhanCap(w, DRIVER), [`Văn phòng vừa điều chỉnh khẩn cấp chuyến ${t.chuyen.ma} ngày 11/03 (xếp thêm khách) — mở để xem`]);
+  } finally {
+    tat();
+  }
+});

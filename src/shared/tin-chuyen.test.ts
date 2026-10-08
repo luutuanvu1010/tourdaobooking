@@ -306,6 +306,8 @@ test("CAO-3: thayDoiCoTheCoTin — tập CỤ THỂ (viết tay, không suy từ
   const chuong = readFileSync(new URL("../../web/thong-bao-ui.ts", import.meta.url), "utf8");
   assert.match(chuong, /const coTheLai = coCuocCuaToi\(staff\);/);
   assert.match(chuong, /thayDoiCoTheCoTin\(e\.thayDoi, coTheLai\)/);
+  // Phiếu kiểm hẹp D1 THẤP-1 (K5): đúng MỘT lời gọi — không vế thứ hai nào (vd. "|| thayDoiCoTheCoTin(e.thayDoi, true)") nới chuông lại cho mọi máy.
+  assert.equal(chuong.split("thayDoiCoTheCoTin(").length - 1, 1, "chuông gọi thayDoiCoTheCoTin đúng một lần");
 });
 test("CAO-3: dongCoTheSinhTin — ba lệnh khách chỉ khi sự kiện mang cờ khẩn cấp; hành động sinh tin khác luôn; hành động ngoài danh sách không; gốc lắp ráp gõ cửa qua hàm này", () => {
   for (const a of ["trip_allocated", "trip_allocation_removed", "trip_allocation_moved"]) {
