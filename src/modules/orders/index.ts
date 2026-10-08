@@ -15,8 +15,8 @@ import { docLocDon } from "../../shared/loc-don";
 import { LOC_NHAP_TOI_DA_NGAY, LOC_NHAP_TOI_DA_UNG_VIEN, laDongNhapKeToan, soNgayKhoang } from "../../shared/nhap-ke-toan";
 import { editablePaxCodesOf, planMoneyEdit, type AdjustmentEntry } from "./money-adjustment";
 import {
-  addLeg, cancelOrder, changeBooker, daHuy, soanHuyDon, changeLeg, cocCuNhap, confirmOrder, countDrafts, createOrder, effectivePax, findOrder, getDashboard, getDepartDates, getLatestAdjustment, getMeta, getOrderRef,
-  chayLoSuaSoKhach, demThanCu, getServicesForSubtotal, getStoredServices, insertMoneyAdjustment, listOrderIds, listOrders, listPoolSources, replaceLeg, updateDraftOrder, updateTrip, writePassengerChange,
+  addLeg, cancelOrder, changeBooker, daHuy, soanHuyDon, soanSuaChang, soanThayChang, thangCauDau, changeLeg, cocCuNhap, confirmOrder, countDrafts, createOrder, effectivePax, findOrder, getDashboard, getDepartDates, getLatestAdjustment, getMeta, getOrderRef,
+  chayLoSuaSoKhach, demThanCu, getServicesForSubtotal, getStoredServices, insertMoneyAdjustment, listOrderIds, listOrders, listPoolSources, updateDraftOrder, updateTrip, writePassengerChange,
 } from "./repository";
 import {
   legById, legDatGapByOrder, legLichChungNhapRows, legLichChungRows, legShortNotice, legTripRows, manualPolicy, manualPolicyInsert, openLegsByOrders, orderContactRows, passengerRowsByOrders,
@@ -131,7 +131,14 @@ function legFailure(f: { code: "invalid_input" | "leg_not_found" | "leg_closed";
   return error(400, "invalid_input", f.message);
 }
 
-type LenhChang = { res: Response } | { sua: Parameters<typeof changeLeg>[4] | null };
+/** `soNguoi` (ADR-0104 Đ2 điểm gọi 4): số người hiệu lực của chặng trước / sau — chỉ khi lệnh đụng số người chiều về. */
+type LenhChang = { res: Response } | { sua: Parameters<typeof changeLeg>[4] | null; soNguoi?: { truoc: number; sau: number } };
+
+/** Đầu vào `sau` + `tangTheoChang` của máy đồng bộ chuyến cho lệnh SỬA chặng (ADR-0104 Đ2 điểm gọi 4): chỉ số người; giờ / nơi theo VK1-B (giữ + nút). */
+function sauSuaChang(trangThai: string, legId: string, sn: { truoc: number; sau: number } | undefined) {
+  if (!sn) return { sau: { trangThai } };
+  return { sau: { trangThai, soNguoiTheoChang: { [legId]: sn.sau } }, tangTheoChang: { [legId]: Math.max(0, sn.sau - sn.truoc) } };
+}
 
 /**
  * NHÁNH NHÁP của `PUT /api/orders/:id/legs/:legId` (ADR-0054 D10.3 "đường mới cho đơn nháp"; kế hoạch ô mới Task 3.5): thân CHỈ `paxOverride` +
@@ -172,7 +179,8 @@ async function lenhSuaChang(
     if (!x.ok) return { res: x.res };
     datGapMoi = x.value;
   }
-  return { sua: { kind: "update", ...plan.value, detail: kemDatGap(plan.value.detail, datGapMoi), datGap: datGapMoi, giuDatGap } };
+  const { soNguoi, ...v } = plan.value;
+  return { sua: { kind: "update", ...v, detail: kemDatGap(plan.value.detail, datGapMoi), datGap: datGapMoi, giuDatGap }, ...(soNguoi ? { soNguoi } : {}) };
 }
 
 /** Câu đầu lô sửa/đóng chặng không áp dụng: vì chặng vừa bị bỏ, đơn vừa huỷ, hay vì mốc chặng đã cũ? Đọc lại để trả đúng lý do. */
@@ -961,7 +969,7 @@ export const ordersModule: AppModule = {
       return json({ order: (await loadOrderView(env.DB, id, xemDuDatGap(staff)))! } satisfies OrderResponse, 201, { location: trangDon(id) });
     }),
 
-    route("PUT", "/api/orders/:id/legs/:legId", "orders", async ({ env, request, params, staff, isAssigned, baoThayDoi, mocToiThieu }) => {
+    route("PUT", "/api/orders/:id/legs/:legId", "orders", async ({ env, request, params, staff, isAssigned, baoThayDoi, mocToiThieu, dongBoChuyen }) => {
       const id = params.id!;
       const legId = params.legId!;
       if (!UUID_RE.test(id)) return NOT_FOUND();
@@ -974,12 +982,17 @@ export const ordersModule: AppModule = {
       const lenh = meta.status === "draft" ? await lenhSoNguoiVeNhap(env.DB, id, legId, request) : await lenhSuaChang(env.DB, id, legId, request, staff, meta.status, mocToiThieu);
       if ("res" in lenh) return lenh.res;
       if (lenh.sua === null) return json({ order: (await loadOrderView(env.DB, id, xemDuDatGap(staff)))! } satisfies OrderResponse); // không đổi gì
-      if (!(await changeLeg(env.DB, id, staff.id, meta.updatedAt, lenh.sua))) return legRaced(env.DB, id, legId);
+      // ADR-0104 Đ2 (điểm gọi 4): lô sửa chặng (câu đơn đứng đầu) + khúc chuyến của máy — chỉ theo SỐ NGƯỜI của chặng; đơn nháp không có suất (lc09).
+      const soan = soanSuaChang(env.DB, id, staff.id, meta.updatedAt, lenh.sua);
+      const dong = await dongBoChuyen({ orderId: id, auditIdDon: soan.auditId, bayGioMs: Date.now(), cauDon: soan.cau, ...sauSuaChang(meta.status, legId, lenh.soNguoi) });
+      const r = await chayLoNoiChuyen(env.DB, dong, thangCauDau);
+      if (r.kq === "loi") return r.res;
+      if (r.kq === "thua") return legRaced(env.DB, id, legId);
       baoThayDoi({ orderId: id, thayDoi: "chuyen" });
-      return json({ order: (await loadOrderView(env.DB, id, xemDuDatGap(staff)))! } satisfies OrderResponse);
+      return json({ order: (await loadOrderView(env.DB, id, xemDuDatGap(staff)))!, dongBoChuyen: r.dongBoChuyen } satisfies OrderResponse);
     }),
 
-    route("POST", "/api/orders/:id/legs/:legId/close", "orders", async ({ env, request, params, staff, isAssigned, baoThayDoi }) => {
+    route("POST", "/api/orders/:id/legs/:legId/close", "orders", async ({ env, request, params, staff, isAssigned, baoThayDoi, dongBoChuyen }) => {
       const id = params.id!;
       const legId = params.legId!;
       if (!UUID_RE.test(id)) return NOT_FOUND();
@@ -992,9 +1005,14 @@ export const ordersModule: AppModule = {
       if (!UUID_RE.test(legId)) return LEG_NOT_FOUND();
       const plan = await planCloseLeg(env.DB, id, legId, await readJson(request));
       if (!plan.ok) return legFailure(plan);
-      if (!(await changeLeg(env.DB, id, staff.id, meta.updatedAt, { kind: "close", ...plan.value }))) return legRaced(env.DB, id, legId);
+      // ADR-0104 Đ2 (điểm gọi 3): lô bỏ chặng (câu đơn đứng đầu) + khúc chuyến của máy (đóng suất của chặng — REMOVED).
+      const soan = soanSuaChang(env.DB, id, staff.id, meta.updatedAt, { kind: "close", ...plan.value });
+      const dong = await dongBoChuyen({ orderId: id, auditIdDon: soan.auditId, bayGioMs: Date.now(), cauDon: soan.cau, sau: { trangThai: meta.status, changDong: [legId] } });
+      const r = await chayLoNoiChuyen(env.DB, dong, thangCauDau);
+      if (r.kq === "loi") return r.res;
+      if (r.kq === "thua") return legRaced(env.DB, id, legId);
       baoThayDoi({ orderId: id, thayDoi: "chuyen" });
-      return json({ order: (await loadOrderView(env.DB, id, xemDuDatGap(staff)))! } satisfies OrderResponse);
+      return json({ order: (await loadOrderView(env.DB, id, xemDuDatGap(staff)))!, dongBoChuyen: r.dongBoChuyen } satisfies OrderResponse);
     }),
 
     // ---- THAY chặng (C14 — đánh giá ERP 2026-10-07): "Đổi sang chặng khác" / "Nhập nhầm" = đóng chặng cũ (`reasonCode` REPLACED | WRONG_ENTRY, vắng = REPLACED)
@@ -1004,7 +1022,7 @@ export const ordersModule: AppModule = {
     // 2026-10-08), TRƯỚC khi ghi: dưới mốc → 409 `short_notice_required` (Quản trị, Toàn quyền kèm `datGap` thì qua — dấu ghi lên chặng mới) và chặng cũ KHÔNG
     // bị đóng. Lệnh BỎ chặng đứng riêng vẫn không có luật mốc. Phản hồi 200 `{ order }` như route sửa / bỏ chặng: lệnh đổi chặng của một đơn có sẵn, trả lại
     // chính đơn đó (không có tài nguyên mới để trỏ `Location`).
-    route("POST", "/api/orders/:id/legs/:legId/replace", "orders", async ({ env, request, params, staff, isAssigned, baoThayDoi, mocToiThieu }) => {
+    route("POST", "/api/orders/:id/legs/:legId/replace", "orders", async ({ env, request, params, staff, isAssigned, baoThayDoi, mocToiThieu, dongBoChuyen }) => {
       const id = params.id!;
       const legId = params.legId!;
       if (!UUID_RE.test(id)) return NOT_FOUND();
@@ -1022,9 +1040,14 @@ export const ordersModule: AppModule = {
       if (!moc) return MOC_CHUA_CO();
       const x = xetDatGapSua(staff, body, duoiMocKhiSua(plan.value.cu, plan.value.leg, Date.now(), moc.phut), moc);
       if (!x.ok) return x.res;
-      if (!(await replaceLeg(env.DB, id, staff.id, { ...plan.value, detailThem: kemDatGap(plan.value.detailThem, x.value), datGap: x.value }))) return legRaced(env.DB, id, legId);
+      // ADR-0104 Đ2 (điểm gọi 8): lô thay chặng (câu đơn đứng đầu; mã nhật ký = dòng `order_leg_closed`) + khúc chuyến của máy (đóng suất của chặng CŨ).
+      const soan = soanThayChang(env.DB, id, staff.id, { ...plan.value, detailThem: kemDatGap(plan.value.detailThem, x.value), datGap: x.value });
+      const dong = await dongBoChuyen({ orderId: id, auditIdDon: soan.auditId, bayGioMs: Date.now(), cauDon: soan.cau, sau: { trangThai: meta.status, changDong: [legId] } });
+      const r = await chayLoNoiChuyen(env.DB, dong, thangCauDau);
+      if (r.kq === "loi") return r.res;
+      if (r.kq === "thua") return legRaced(env.DB, id, legId);
       baoThayDoi({ orderId: id, thayDoi: "chuyen" });
-      return json({ order: (await loadOrderView(env.DB, id, xemDuDatGap(staff)))! } satisfies OrderResponse);
+      return json({ order: (await loadOrderView(env.DB, id, xemDuDatGap(staff)))!, dongBoChuyen: r.dongBoChuyen } satisfies OrderResponse);
     }),
 
     // ---- ĐẶT GẤP (ADR-0049 D2, D3; kế hoạch Task A10, TC-22, TC-25, TC-28): Quản trị / Toàn quyền đóng dấu "đặt gấp" lên MỘT chặng còn mở của đơn nháp
@@ -1182,16 +1205,10 @@ export const ordersModule: AppModule = {
         // ADR-0104 Đ2 (điểm gọi 1): lô huỷ (câu đơn đứng đầu) + khúc chuyến của máy đồng bộ — MỘT db.batch. Chỉ nhánh huỷ nối máy (xác nhận không đụng chuyến).
         const huy = soanHuyDon(env.DB, id, staff.id, from, meta.updatedAt, lyDo.lyDo);
         const dong = await dongBoChuyen({ orderId: id, auditIdDon: huy.auditId, bayGioMs: Date.now(), sau: { trangThai: "cancelled" }, cauDon: huy.cau });
-        let kq: D1Result[];
-        try {
-          kq = await env.DB.batch(dong.lo);
-        } catch (e) {
-          const loi = dong.dichLoi(e);
-          if (loi) return loi;
-          throw e;
-        }
-        if (!daHuy(kq)) return RACED();
-        dongBo = dong.sauKhiGhi(kq).dto;
+        const r = await chayLoNoiChuyen(env.DB, dong, daHuy);
+        if (r.kq === "loi") return r.res;
+        if (r.kq === "thua") return RACED();
+        dongBo = r.dongBoChuyen;
       } else {
         const today = vnToday(new Date());
         const order = await findOrder(env.DB, id);

@@ -14,7 +14,7 @@ import { composePersonName, newPersonStatements, validatePersonFullName, type Co
 import {
   LY_DO_DONG_CHANG, MAX_CHANG_MOI_DICH_VU, chiDoiOPhu, chieuDiDau, docSoNguoiVe, doiNgayChang, isLyDoDongChang, kiemChang, moTaChang, tronChangCu, type ChangHopLe, type LyDoDongChang,
 } from "../../shared/chang-dua-don";
-import { tongKhach } from "../../shared/so-nguoi-chang";
+import { soNguoiChang, tongKhach } from "../../shared/so-nguoi-chang";
 import { laLyDoThayChang, type LyDoThayChang } from "../../shared/thay-chang";
 import {
   activeLocations, legById, passengerRowsByOrders, servicePaxByIds, servicePaxByOrder, type LegFields, type OPhuGhi, type PassengerRow,
@@ -174,6 +174,11 @@ export interface EditLegPlan {
   oPhu: OPhuGhi;
   /** Ngày, giờ, nơi đón, nơi trả y nguyên (`chiDoiOPhu`) — route không xét mốc, giữ dấu đặt gấp nếu thân không có `datGap` (chủ Q-B 1/10). */
   chiOPhu: boolean;
+  /**
+   * Số người HIỆU LỰC của chặng trước / sau lệnh (`soNguoiChang`) — CHỈ khi thân có `paxOverride` (ADR-0104 Đ2 điểm gọi 4: máy đồng bộ chuyến theo số người;
+   * giờ / nơi không đồng bộ — VK1-B). Vắng = lệnh không đụng số người.
+   */
+  soNguoi?: { truoc: number; sau: number };
 }
 /** `PUT /api/orders/:id/legs/:legId` — thân `{ expectedUpdatedAt (của CHẶNG), leg }`; không đổi chiều; điểm mới phải đang dùng; ngày đón đổi không được đã qua. */
 export async function planEditLeg(db: D1Database, orderId: string, legId: string, body: Record<string, unknown> | null, today: string): Promise<{ ok: true; value: EditLegPlan } | Failed> {
@@ -201,17 +206,22 @@ export async function planEditLeg(db: D1Database, orderId: string, legId: string
     ...(k.value.minVehicleSeats !== undefined ? { minVehicleSeats: k.value.minVehicleSeats } : {}),
   };
   // L-R1 CHỈ cho giá trị MỚI / ĐỔI (TC-P10): so số khách HIỆU LỰC (có điều chỉnh) của dịch vụ.
+  const soKhach = oPhu.paxOverride !== undefined ? await soKhachDichVu(db, svc.id) : null;
   if (oPhu.paxOverride != null && oPhu.paxOverride !== old.paxOverride) {
-    const vuot = vuotLR1(oPhu.paxOverride, await soKhachDichVu(db, svc.id));
+    const vuot = vuotLR1(oPhu.paxOverride, soKhach!);
     if (vuot) return { ok: false, code: "invalid_input", message: vuot };
   }
+  const soNguoi = soKhach === null ? undefined : {
+    truoc: soNguoiChang({ direction: old.direction, paxOverride: old.paxOverride }, soKhach),
+    sau: soNguoiChang({ direction: old.direction, paxOverride: oPhu.paxOverride ?? null }, soKhach),
+  };
   const sau = { ...fields, direction: old.direction, flightCode: oPhu.flightCode !== undefined ? oPhu.flightCode : old.flightCode, paxOverride: oPhu.paxOverride !== undefined ? oPhu.paxOverride : old.paxOverride,
     exclusiveVehicle: oPhu.exclusiveVehicle !== undefined ? oPhu.exclusiveVehicle : old.exclusiveVehicle, minVehicleSeats: oPhu.minVehicleSeats !== undefined ? oPhu.minVehicleSeats : old.minVehicleSeats };
   const detail = moTaChang(svc.name, moTaVao(old, named.names), moTaVao(sau, named.names));
   const mirror = dauSau(svc.legs.map((l) => (l.id === legId ? { ...l, ...fields } : l)), named.names);
   return {
     ok: true,
-    value: { legId, serviceId: svc.id, fields, expected, detail, mirror, cu: { pickupDate: old.pickupDate, pickupTime: old.pickupTime }, oPhu, chiOPhu: chiDoiOPhu(old, fields) },
+    value: { legId, serviceId: svc.id, fields, expected, detail, mirror, cu: { pickupDate: old.pickupDate, pickupTime: old.pickupTime }, oPhu, chiOPhu: chiDoiOPhu(old, fields), ...(soNguoi ? { soNguoi } : {}) },
   };
 }
 

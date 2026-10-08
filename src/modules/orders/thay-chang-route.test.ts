@@ -260,10 +260,13 @@ test("(f) dịch vụ đã đủ 10 chặng mở: thay một chặng vẫn đư�
   }
 });
 
-test("(g) chặng cũ đang có khách trên chuyến: thay xong chuyến bị giữ CHANG_DA_DONG — y như bỏ chặng hôm nay (orders không đụng van-chuyen)", async () => {
+// ADR-0104 Đ2 (kế hoạch N9 — đổi cách DỰNG, không nới luật): máy đồng bộ chuyến nay đóng suất của chặng cũ ngay trong lô thay chặng (bài
+// src/modules/van-chuyen/dong-bo-chuyen-route.test.ts). Bài này giữ phần "lý do giữ": dựng thế giới KHÔNG tiêm máy (`khongDongBoChuyen`) — chặng cũ còn suất thì
+// chuyến vẫn phải giữ CHANG_DA_DONG (lưới khi máy không nối được khúc chuyến: vượt trần, chuyến vừa đổi).
+test("(g) chặng cũ đang có khách trên chuyến, máy đồng bộ KHÔNG nối (N9): thay xong chuyến bị giữ CHANG_DA_DONG — y như bỏ chặng", async () => {
   const tat = batDongHo();
   try {
-    const w = setup();
+    const w = setup({ khongDongBoChuyen: true });
     const d = await don(w, { gio: "13:00", noiDon: "Khách sạn Cũ" });
     const c = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER}` });
     await xepHet(w, c, d, 2);

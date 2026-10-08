@@ -4,7 +4,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
-import { DRIVER, DRIVER2, FIELD, SALES, batDongHo, chiTiet, chuyenSan, denGio, don, setup, taoChuyen, tienDo, uuid, xe, xepHet } from "../../../tests/audit/dieu-phoi-khung.mjs";
+import { DRIVER, DRIVER2, FIELD, LOC, NGAY, SALES, batDongHo, chiTiet, chuyenSan, denGio, don, setup, taoChuyen, thanhTaiXe, tienDo, uuid, xe, xepHet } from "../../../tests/audit/dieu-phoi-khung.mjs";
+import { seedStaff } from "../../../tests/audit/harness.mjs";
 import { CAU_NHAC_XE_DANG_CHAY } from "../../shared/dong-bo-chuyen.ts";
 
 type W = any;
@@ -256,6 +257,147 @@ test("NT-5 thua cổng đơn (huỷ: người khác vừa sửa đơn — đổi
     assert.equal(w.q("SELECT status FROM orders WHERE id = ?", d.id)[0].status, "confirmed");
     assert.deepEqual(moCua(w, t.chuyen.id, d.legId), truoc);
     assert.deepEqual(nhatKyDongBo(w), []);
+  } finally {
+    tat();
+  }
+});
+
+// ---- Chặng: bỏ (điểm gọi 3), thay (điểm gọi 8), sửa số người chiều về (điểm gọi 4) ------------------------------------------------------------------------
+const layDon = async (w: W, id: string) => (await w.call("GET", `/api/orders/${id}`, { as: SALES })).json.order;
+const CHANG_MOI = { direction: "OUT", pickupDate: NGAY, pickupTime: "13:30", pickupLocationId: null, pickupPlace: "Khách sạn Mới", dropoffLocationId: LOC, dropoffPlace: "" };
+
+test("NT-5 bỏ chặng (văn phòng) → suất của chặng đóng REMOVED cùng lệnh; không giữ CHANG_DA_DONG; nhật ký nguyên nhân 'bỏ chặng'", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const d = await don(w, { soNguoi: 2 });
+    const t = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER}` });
+    await xepHet(w, t, d, 2);
+    const o = await layDon(w, d.id);
+    const r = await w.call("POST", `/api/orders/${d.id}/legs/${d.legId}/close`, { as: SALES, body: { expectedUpdatedAt: o.services[0].legs[0].updatedAt, reasonCode: "NOT_NEEDED" } });
+    assert.equal(r.status, 200, r.text);
+    assert.deepEqual(r.json.dongBoChuyen, { nhac: null, capNhatTay: false });
+    assert.deepEqual(moCua(w, t.chuyen.id, d.legId), []);
+    assert.deepEqual(daDong(w, t.chuyen.id).map((x) => x.r), ["REMOVED", "REMOVED"]);
+    assert.deepEqual(await lyDo(w, t.chuyen.id), []);
+    assert.match(nhatKyDongBo(w)[0]!.detail, new RegExp(`${d.code} \\(bỏ chặng\\): trả 2 ghế$`));
+  } finally {
+    tat();
+  }
+});
+
+test("NT-5 thay chặng (C14) → suất của chặng CŨ đóng REMOVED cùng lệnh; chặng mới chưa có suất", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const d = await don(w, { soNguoi: 2 });
+    const t = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER}` });
+    await xepHet(w, t, d, 2);
+    const o = await layDon(w, d.id);
+    const r = await w.call("POST", `/api/orders/${d.id}/legs/${d.legId}/replace`, { as: SALES, body: { expectedUpdatedAt: o.updatedAt, leg: CHANG_MOI } });
+    assert.equal(r.status, 200, r.text);
+    assert.deepEqual(r.json.dongBoChuyen, { nhac: null, capNhatTay: false });
+    assert.deepEqual(moCua(w, t.chuyen.id, d.legId), []);
+    assert.deepEqual(daDong(w, t.chuyen.id).map((x) => x.r), ["REMOVED", "REMOVED"]);
+    assert.equal(w.q("SELECT count(*) n FROM vc_trip_allocation WHERE valid_to_at IS NULL AND kind = 'PASSENGER'")[0].n, 0, "chặng mới chưa có suất");
+    assert.deepEqual(await lyDo(w, t.chuyen.id), []);
+  } finally {
+    tat();
+  }
+});
+
+/** Đơn đã xác nhận: dịch vụ 4 khách (2 có tên), CHỈ một chặng VỀ đón 13:00 ở bến, số người chiều về `ve`. */
+async function donVe(w: W, ve: number) {
+  const r = await w.call("POST", "/api/orders", {
+    as: SALES,
+    body: {
+      customerName: "Khách Liên Hệ Dò Tìm", customerPhone: "0912345678",
+      services: [{
+        kind: "catalog", catalogCode: "ZA1", pax: { adult: 4, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 777000 }, departDate: NGAY,
+        legs: [{ direction: "RETURN", pickupDate: NGAY, pickupTime: "13:00", pickupLocationId: LOC, pickupPlace: "", dropoffLocationId: null, dropoffPlace: "Khách sạn Dò Tìm", paxOverride: ve }],
+      }],
+      passengers: [{ fullName: "Khách Dò Tìm 1", birthYear: 1990, paxCode: "adult" }, { fullName: "Khách Dò Tìm 2", birthYear: 1991, paxCode: "adult" }],
+    },
+  });
+  assert.equal(r.status, 201, r.text);
+  assert.equal((await w.call("POST", `/api/orders/${r.json.order.id}/status`, { as: SALES, body: { status: "confirmed" } })).status, 200);
+  return { id: r.json.order.id as string, code: r.json.order.orderCode as string, legId: r.json.order.services[0].legs[0].id as string };
+}
+const suaVe = async (w: W, d: { id: string; legId: string }, ve: number) => {
+  const l = (await layDon(w, d.id)).services[0].legs[0];
+  return w.call("PUT", `/api/orders/${d.id}/legs/${d.legId}`, {
+    as: SALES,
+    body: { expectedUpdatedAt: l.updatedAt, leg: { direction: "RETURN", pickupDate: NGAY, pickupTime: "13:00", pickupLocationId: LOC, pickupPlace: "", dropoffLocationId: null, dropoffPlace: "Khách sạn Dò Tìm", paxOverride: ve } },
+  });
+};
+
+test("NT-5 sửa chặng: số người chiều về 3 → 2 (bớt) → đóng suất chưa tên; 2 → 4 (tăng 2) → mở thêm đúng 2 suất", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const d = await donVe(w, 3);
+    const t = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER}` });
+    await xep(w, t.chuyen.id, d.legId, 3);
+    const bot = await suaVe(w, d, 2);
+    assert.equal(bot.status, 200, bot.text);
+    assert.deepEqual(bot.json.dongBoChuyen, { nhac: null, capNhatTay: false });
+    assert.equal(moCua(w, t.chuyen.id, d.legId).length, 2);
+    assert.deepEqual(daDong(w, t.chuyen.id), [{ r: "REMOVED", k: null }]);
+    const tang = await suaVe(w, d, 4);
+    assert.equal(tang.status, 200, tang.text);
+    assert.equal(moCua(w, t.chuyen.id, d.legId).length, 4);
+    assert.deepEqual(nhatKyDongBo(w).map((x) => x.detail.replace(/^.*— /, "")), [`${d.code} (bớt khách): trả 1 ghế`, `${d.code} (thêm khách): thêm 2 ghế`]);
+  } finally {
+    tat();
+  }
+});
+
+test("NT-5 sửa chặng CHỈ giờ / nơi (VK1-B) → máy không đổi suất nào (giờ / nơi vẫn theo giữ + nút); lệnh đơn 200", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const d = await don(w, { soNguoi: 2 });
+    const t = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER}` });
+    await xepHet(w, t, d, 2);
+    const truoc = moCua(w, t.chuyen.id, d.legId);
+    const l = (await layDon(w, d.id)).services[0].legs[0];
+    const r = await w.call("PUT", `/api/orders/${d.id}/legs/${d.legId}`, { as: SALES, body: { expectedUpdatedAt: l.updatedAt, leg: { ...CHANG_MOI, pickupTime: "13:00" } } });
+    assert.equal(r.status, 200, r.text);
+    assert.deepEqual(r.json.dongBoChuyen, { nhac: null, capNhatTay: false });
+    assert.deepEqual(moCua(w, t.chuyen.id, d.legId), truoc);
+    assert.deepEqual(nhatKyDongBo(w), []);
+  } finally {
+    tat();
+  }
+});
+
+test("NT-5 vượt trần 74 câu phần chuyến (huỷ đơn 2 dịch vụ × 40 khách trên một xe) → không câu chuyến nào chạy, lệnh đơn 200, phản hồi capNhatTay; chuyến giữ DON_DA_HUY", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const dv = (gio: string) => ({
+      kind: "catalog", catalogCode: "ZA1", pax: { adult: 40, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 777000 }, departDate: NGAY,
+      legs: [{ direction: "OUT", pickupDate: NGAY, pickupTime: gio, pickupLocationId: null, pickupPlace: "Khách sạn Dò Tìm", dropoffLocationId: LOC, dropoffPlace: "" }],
+    });
+    const tao = await w.call("POST", "/api/orders", { as: SALES, body: { customerName: "Khách Liên Hệ Dò Tìm", customerPhone: "0912345678", services: [dv("13:00"), dv("13:10")], passengers: [] } });
+    assert.equal(tao.status, 201, tao.text);
+    const o = tao.json.order;
+    assert.equal((await w.call("POST", `/api/orders/${o.id}/status`, { as: SALES, body: { status: "confirmed" } })).status, 200);
+    const taiXeD = "66666666-6666-4666-8666-66666666666d";
+    seedStaff(w.sqlite, { id: taiXeD, phone: "0900000036", name: "Tài Xế Hạng D", perms: ["DRIVER"] });
+    thanhTaiXe(w, `pty-${taiXeD}`, { hang: "D" }); // xe 90 chỗ cần hạng D
+    const t = await taoChuyen(w, { xe: xe(w, 90), taiXe: `pty-${taiXeD}` });
+    const r0 = await w.call("POST", `/api/van-chuyen/chuyen/${t.chuyen.id}/phan-bo`, {
+      as: SALES, body: { version: (await chiTiet(w, t.chuyen.id)).chuyen.version, requestId: uuid(), chang: o.services.map((x: any) => ({ legId: x.legs[0].id, soSuat: 40 })) },
+    });
+    assert.equal(r0.status, 200, r0.text);
+    const r = await huyVanPhong(w, o.id);
+    assert.equal(r.status, 200, r.text);
+    assert.deepEqual(r.json.dongBoChuyen, { nhac: null, capNhatTay: true });
+    assert.equal(w.q("SELECT status FROM orders WHERE id = ?", o.id)[0].status, "cancelled", "lệnh đơn thắng");
+    assert.equal(w.q("SELECT count(*) n FROM vc_trip_allocation WHERE trip_id = ? AND valid_to_at IS NULL AND kind = 'PASSENGER'", t.chuyen.id)[0].n, 80, "không câu chuyến nào chạy");
+    assert.deepEqual(nhatKyDongBo(w), []);
+    assert.ok((await lyDo(w, t.chuyen.id)).includes("DON_DA_HUY"));
   } finally {
     tat();
   }
