@@ -2,15 +2,16 @@
 // Mọi nhân viên đang hoạt động xem được mọi đơn (§2.4-4); chỉ người lập đơn, người phụ trách đang mở của đơn (ADR-0009) hoặc admin được sửa/xác nhận/huỷ.
 // "Người phụ trách" do module `dispatch` giữ: `orders` KHÔNG import `dispatch` mà hỏi qua `ctx.isAssigned(orderId)` (gốc lắp ráp tiêm — ADR-0007 điều 4(b)).
 import { auditStatement, getAuditTrail } from "../audit";
-import { chupDon, docBangChoChup } from "../pricing";
+import { chupDon, docBangChoChup, laNguoiHuong } from "../pricing";
 import type {
   CanhBaoMocDto, CatalogChangeDto, CatalogChangedBody, DashboardResponse, DraftCountResponse, IncompleteTripBody, MyAssignmentDto, NhapTayResponse, OrderDetailDto, OrderDetailResponse,
-  OrderListResponse, MocToiThieuResponse, NguoiLapResponse, OrderResponse, PassengerListResponse, PaxCounts, PoolResponse, ShortNoticeRequiredBody,
+  OrderListResponse, MocToiThieuResponse, NguoiLapResponse, OrderResponse, PassengerListResponse, PaxCounts, PoolResponse, ShortNoticeRequiredBody, StaffProfile,
 } from "../../shared/contracts";
 import { UUID_RE, error, intParam, json, readJson, trangDon } from "../../shared/http";
 import { can, seesOnlyAssignedOrders, type PermissionHolder } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
 import { vnToday, vnWeekRange } from "../../shared/vn-date";
+import { benDatChoTaiKhoan, benDatDoiTacBiCam, type BookerInput } from "../../shared/booker";
 import { docLocDon } from "../../shared/loc-don";
 import { LOC_NHAP_TOI_DA_NGAY, LOC_NHAP_TOI_DA_UNG_VIEN, laDongNhapKeToan, soNgayKhoang } from "../../shared/nhap-ke-toan";
 import { maDonTuNoiDung } from "../../shared/noi-dung-chuyen-khoan";
@@ -35,7 +36,7 @@ import { docLyDoHuy, docPhanLoai, nhanNhomHuy, type LyDoHuy } from "../../shared
 import { lyDoHienHanh, phanLoaiStatement } from "./huy-don-repo";
 import { toPoolOrders } from "./pool";
 import { dongGhiTuChup, moTaChup } from "./thuong-mai";
-import { cauChupChuoi } from "./thuong-mai-repo";
+import { banChupHienHanh, cauChupChuoi, demBanChup } from "./thuong-mai-repo";
 import { laThanDonCu, laThanTripCu } from "./than-cu";
 import {
   PARTNER_DISCOUNT_CAP, PARTNER_DISCOUNT_MESSAGE, RETAIL_PRICE_MESSAGE, discountWithinCap, duocNhapTay, holdsPartner, lyDoKhongNhapTay, manualFreezeViolation,
@@ -108,6 +109,46 @@ function xetDatGapSua(
 /** Chủ H4 / N-14: người xem thấy ĐỦ dấu đặt gấp (lý do, người duyệt, lúc, ghi chú) hay chỉ cờ — MỘT câu hỏi bảng quyền cho mọi phản hồi chi tiết đơn. */
 const xemDuDatGap = (staff: PermissionHolder): boolean => can(staff, "order.leg.short_notice.view");
 const kemDatGap = (detail: string, d: DatGapWrite | null) => (d ? `${detail}${ghiDatGapNhatKy(LY_DO_DAT_GAP[d.lyDo as keyof typeof LY_DO_DAT_GAP])}` : detail);
+
+const BEN_DAT_DOI_TAC_CAM = () => error(403, "partner_booker_forbidden", "Đơn qua đại lý hoặc cộng tác viên do văn phòng lập hộ — tài khoản đối tác không chọn được bên đặt này.");
+
+/**
+ * Luật K1 (lời chủ 2026-10-09; hàm thuần `benDatDoiTacBiCam` ở `src/shared/booker.ts`): tài khoản giữ quyền Đối tác — kể cả tài khoản lai — gửi hồ sơ CÓ SẴN đang được
+ * hưởng mà khác hồ sơ của chính mình và khác bên đặt đang lưu (`dangLuu`; đơn mới = null) ⇒ 403 `partner_booker_forbidden`. `guiLaHuong` truyền sẵn khi nơi gọi đã hỏi
+ * `laNguoiHuong` (tránh hỏi hai lần); không truyền thì chỉ hỏi CSDL khi tài khoản giữ quyền Đối tác VÀ gửi hồ sơ có sẵn (nhân viên văn phòng không tốn thêm câu đọc).
+ * Dùng chung cho ba đường: lập đơn, lưu nháp (qua `benDatCuaTaiKhoan`) và đổi khách (`PUT …/booker`, gọi thẳng — đường này KHÔNG ép bên đặt, không 409 chưa gắn hồ sơ).
+ */
+async function chanBenDatDoiTac(
+  db: D1Database, staff: Pick<StaffProfile, "partyId" | "permissions">, guiLen: BookerInput, dangLuu: string | null, guiLaHuong?: boolean,
+): Promise<Response | null> {
+  const laDoiTac = holdsPartner(staff);
+  if (!laDoiTac || guiLen.kind !== "existing") return null;
+  const huong = guiLaHuong ?? (await laNguoiHuong(db, guiLen.partyId));
+  return benDatDoiTacBiCam({ laDoiTac, partyId: staff.partyId, guiLen, guiLaNguoiHuong: huong, benDatDangLuu: dangLuu }) ? BEN_DAT_DOI_TAC_CAM() : null;
+}
+
+/**
+ * Bên đặt của đơn do tài khoản này lập / lưu nháp (sổ đại lý đợt 1, ADR-0077 đ3 (i) — THU HẸP theo lời chủ 2026-10-08): Đối tác có hồ sơ cá nhân đang mang vai được
+ * hưởng ⇒ chính hồ sơ đó (`ep` = true: bỏ qua điều trình duyệt gửi, kể cả khi thân cũ không có khoá bên đặt). Thứ tự nhánh: ép bên đặt → Đối tác CHƯA gắn hồ sơ mà gửi
+ * bên đặt đang được hưởng ⇒ 409 (không có hồ sơ nào để ghi — không đoán) → luật K1 (403, `chanBenDatDoiTac`: Đối tác không tự chọn đại lý / cộng tác viên khác; `dangLuu` =
+ * bên đặt đang lưu trên đơn, đơn mới null). Còn lại giữ nguyên điều thân gửi (kể cả cá nhân khách lẻ, tổ chức không được hưởng → 400 ở `resolveBooker`). Gọi TRƯỚC `resolveBooker`.
+ */
+async function benDatCuaTaiKhoan(
+  db: D1Database,
+  staff: Pick<StaffProfile, "partyId" | "permissions">,
+  guiLen: BookerInput,
+  dangLuu: string | null,
+): Promise<{ ok: true; booker: BookerInput; ep: boolean } | { ok: false; res: Response }> {
+  const laDoiTac = holdsPartner(staff);
+  const huong = laDoiTac && staff.partyId !== null && (await laNguoiHuong(db, staff.partyId));
+  if (laDoiTac && !huong && guiLen.kind === "existing") {
+    const guiLaHuong = await laNguoiHuong(db, guiLen.partyId);
+    if (staff.partyId === null && guiLaHuong) return { ok: false, res: error(409, "partner_no_party", "Tài khoản đối tác chưa gắn hồ sơ — nhờ văn phòng") };
+    const cam = await chanBenDatDoiTac(db, staff, guiLen, dangLuu, guiLaHuong);
+    if (cam) return { ok: false, res: cam };
+  }
+  return { ok: true, booker: benDatChoTaiKhoan({ laDoiTac, partyId: staff.partyId, laNguoiHuong: huong, guiLen }), ep: huong };
+}
 
 /** Cảnh báo mốc (I27) + con số mốc (I31) cho phản hồi LẬP / SỬA NHÁP. `moc` null = nháp không chặng (không hỏi mốc). */
 async function phanHoiMoc(db: D1Database, orderId: string, order: OrderDetailDto, moc: MocToiThieu | null): Promise<{ canhBaoMoc: CanhBaoMocDto[]; mocToiThieuPhut: number | null }> {
@@ -727,7 +768,10 @@ export const ordersModule: AppModule = {
       if (!placed0.ok) return error(400, "invalid_input", placed0.message);
       const placed = oPhuNhap(staff, { ownerId: staff.id, assigned: false }, placed0.value, []); // kế hoạch ô mới Task 3.3
       if (!placed.ok) return placed.res;
-      const booker = await resolveBooker(env.DB, placed.value.booker, staff.id, new Date());
+      // Sổ đại lý đợt 1 (ADR-0077 đ3 (i), thu hẹp): Đối tác có hồ sơ được hưởng ⇒ bên đặt luôn là hồ sơ của tài khoản, bỏ qua điều trình duyệt gửi.
+      const ben = await benDatCuaTaiKhoan(env.DB, staff, placed.value.booker, null);
+      if (!ben.ok) return ben.res;
+      const booker = await resolveBooker(env.DB, ben.booker, staff.id, new Date());
       if (!booker.ok) return error(400, "invalid_input", booker.message);
       // ADR-0049 D2 (I25, I27): nháp CÓ chặng cần mốc tối thiểu để cảnh báo (không chặn lưu) — gọi ĐÚNG MỘT lần; chưa có mốc → 503 (không đoán).
       const coChang = placed.value.services.some((s) => s.legs.length > 0);
@@ -799,11 +843,14 @@ export const ordersModule: AppModule = {
       if (!expected) return error(400, "invalid_input", "Thiếu expectedUpdatedAt (mốc cập nhật của đơn mà form đã đọc).");
       // Thân yêu cầu không có CẢ HAI khoá `bookerPartyId`/`newBooker` (một `order-form.js` PWA cũ trong bộ nhớ đệm chưa biết trường người đặt) → GIỮ NGUYÊN
       // người đặt đang lưu, không gọi resolveBooker (đơn đang phụ trách bởi hồ sơ đã bị ngưng sẽ 400 nếu resolveBooker chạy lại). `bookerPartyId: null`
-      // tường minh vẫn bỏ gắn như cũ. Giới hạn đã biết: BOOKER_VALUE ghi NULL nếu hồ sơ giữ lại không còn là CÁ NHÂN ĐANG HOẠT ĐỘNG — chấp nhận được.
+      // tường minh vẫn bỏ gắn như cũ. Giới hạn đã biết: BOOKER_VALUE ghi NULL nếu hồ sơ giữ lại không còn đủ điều kiện (cá nhân đang hoạt động, hoặc tổ chức đang mang vai được hưởng) — chấp nhận được.
       const noBookerKeys = body !== null && typeof body === "object" && !("bookerPartyId" in body) && !("newBooker" in body);
-      const booker = noBookerKeys
+      // Sổ đại lý đợt 1: Đối tác có hồ sơ được hưởng luôn ghi hồ sơ của mình — kể cả khi thân cũ không có khoá bên đặt (nhường nhánh "giữ bên đặt cũ").
+      const ben = await benDatCuaTaiKhoan(env.DB, staff, placed.value.booker, meta.bookerPartyId);
+      if (!ben.ok) return ben.res;
+      const booker = noBookerKeys && !ben.ep
         ? { ok: true as const, write: { partyId: meta.bookerPartyId, before: [], note: null } }
-        : await resolveBooker(env.DB, placed.value.booker, staff.id, new Date(), { id: meta.bookerPartyId, name: meta.bookerName });
+        : await resolveBooker(env.DB, ben.booker, staff.id, new Date(), { id: meta.bookerPartyId, name: meta.bookerName });
       if (!booker.ok) return error(400, "invalid_input", booker.message);
       // ADR-0047: lưu nháp xoá–chèn lại chặng — giữ `created_*` của chặng gửi lại cùng id.
       const legMeta = new Map(ctx.stored.flatMap((s) => s.legs.map((l) => [l.id, { createdAt: l.createdAt, createdBy: l.createdBy }] as const)));
@@ -1008,12 +1055,48 @@ export const ordersModule: AppModule = {
       const parsed = validateBookerChange(await readJson(request));
       if (!parsed.ok) return error(400, "invalid_input", parsed.message);
       const v = parsed.value;
+      // K1 (lời chủ 2026-10-09): tài khoản giữ quyền Đối tác (kể cả lai, qua ô `order.trip.edit`) không tự chọn đại lý / cộng tác viên khác — văn phòng lập hộ. Đường này
+      // KHÔNG ép bên đặt (đổi khách là việc của người sửa đơn) và không có 409 chưa gắn hồ sơ: chỉ luật 403, đứng TRƯỚC mọi đọc / ghi khác.
+      const cam = await chanBenDatDoiTac(env.DB, staff, v.booker, meta.bookerPartyId);
+      if (cam) return cam;
       const booker = await resolveBooker(env.DB, v.booker, staff.id, new Date(), { id: meta.bookerPartyId, name: meta.bookerName });
       if (!booker.ok) return error(400, "invalid_input", booker.message);
       const snapshotChanged = v.customerName !== meta.customerName || v.customerPhone !== meta.customerPhone;
       const detail = [booker.write.note, snapshotChanged ? "sửa tên/SĐT khách trên đơn" : null].filter(Boolean).join(" | ");
       if (!detail) return json({ order: (await loadOrderView(env.DB, id, xemDuDatGap(staff)))! } satisfies OrderResponse); // không đổi gì
-      if (!(await changeBooker(env.DB, id, staff.id, v, booker.write, detail))) {
+      // Sổ đại lý đợt 1 (ADR-0077 điều 8): đơn ĐÃ XÁC NHẬN có bản chụp mà bên đặt đổi thật ⇒ chụp lại mức CÙNG lô với việc đổi (bản mới trỏ bản cũ, bản cũ còn). Đơn
+      // xác nhận trước đợt 1 (chưa có bản chụp) KHÔNG chụp — N15, đợt 2 chụp bù; đơn nháp chụp ở lúc xác nhận.
+      const benMoi = booker.write.partyId;
+      let kemChup: ((at: string) => D1PreparedStatement[]) | undefined;
+      if (meta.status === "confirmed" && benMoi !== meta.bookerPartyId && (await demBanChup(env.DB, id)) > 0) {
+        const order = await findOrder(env.DB, id); // chỉ cần mã dòng dịch vụ + mã danh mục: không phụ thuộc điều chỉnh số khách / tiền
+        if (!order) return NOT_FOUND();
+        const cu = new Map((await banChupHienHanh(env.DB, id)).map((r) => [r.order_service_id, r.id]));
+        const homNay = vnToday(new Date());
+        const bang = await docBangChoChup(env.DB, { bookerPartyId: benMoi, catalogCodes: order.services.flatMap((s) => (s.catalogCode ? [s.catalogCode] : [])), ngay: homNay });
+        const chup = chupDon({
+          nguoiHuong: bang.nguoiHuong, ngay: homNay, muc: bang.muc, dieuKhoan: bang.dieuKhoan,
+          dong: order.services.map((s) => ({ serviceId: s.id, catalogCode: s.catalogCode, groupCode: s.catalogCode ? (bang.nhom.get(s.catalogCode) ?? null) : null })),
+        });
+        kemChup = (at) => [
+          ...cauChupChuoi(env.DB, chup.map((c) => dongGhiTuChup(c, { id: crypto.randomUUID(), orderId: id, ngay: homNay, at, by: staff.id, source: "AUTO", reason: null, supersedesId: cu.get(c.serviceId) ?? null }))),
+          auditStatement(env.DB, { orderId: id, staffId: staff.id, action: "order_terms_recaptured", at, detail: moTaChup(chup) }, "changes() > 0"),
+        ];
+      }
+      let daDoi: boolean;
+      try {
+        daDoi = await changeBooker(env.DB, id, staff.id, v, booker.write, detail, kemChup);
+      } catch (e) {
+        const loi = e instanceof Error ? e.message : String(e);
+        // Bảng mức / điều khoản đổi giữa lúc đọc và lúc ghi (trigger terms_rule_stale / terms_term_stale): cả lô rơi, bên đặt cũ giữ nguyên — bấm lại là chụp theo bảng mới.
+        if (/\bterms_(rule|term)_stale:/.test(loi)) return error(409, "bang_muc_doi", "Bảng mức vừa đổi — thử lại");
+        // Bản chụp hiện hành bị bản khác thay giữa lúc đọc và lúc ghi (ghi mức tay chen vào: UNIQUE supersedes_id / terms_one_current), hoặc dòng dịch vụ không còn ⇒ cả lô rơi.
+        if (/ord_service_terms\.supersedes_id|\bterms_(one_current|supersede_mismatch|service_mismatch):/.test(loi)) return STALE();
+        // Đơn vừa "Đã giao" giữa lúc đọc và lúc ghi (trigger terms_order_delivered).
+        if (/\bterms_order_delivered:/.test(loi)) return DA_GIAO();
+        throw e;
+      }
+      if (!daDoi) {
         const now = await getMeta(env.DB, id);
         return now?.status === "cancelled" ? CANCELLED() : STALE();
       }

@@ -102,7 +102,7 @@ test("applyAdjustedPax: pax của after_json HỎNG (thiếu trường, không �
 // lần gọi parseAdjustmentAfter (mô phỏng đúng những gì getLatestAdjustment/getLatestAdjustments thật làm với CÙNG một after_json trong CSDL).
 // ---------------------------------------------------------------------------------------------------------------------
 const baseOrder = (): OrderDetailDto => ({
-  id: "o1", orderCode: "TD-1", staffId: "s1", staffName: "A", bookerPartyId: null, bookerName: null,
+  id: "o1", orderCode: "TD-1", staffId: "s1", staffName: "A", bookerPartyId: null, bookerName: null, bookerLaDoiTac: false,
   status: "confirmed", customerName: "K", customerPhone: "090", customerEmail: null, customerNote: null,
   subtotal: 600000, discount: 0, total: 600000,
   paymentNote: null, createdAt: "t", updatedAt: "t", confirmedAt: "t", deliveredAt: null, completedAt: null,

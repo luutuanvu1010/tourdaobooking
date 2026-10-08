@@ -81,7 +81,8 @@ test("lyDoChuaGiaoDuoc (NT-F1, NT-F6c, M1 = A): thứ tự lý do cố định, 
   assert.deepEqual([thieuNgay.ma, thieuNgay.cau, thieuNgay.aiXuLy], ["missing_date", "Dịch vụ Vé Hòn Tằm chưa có ngày đi — sửa đơn trước.", "Người lập đơn"]);
   const som = lyDoChuaGiaoDuoc({ ...base, homNay: "2026-10-09", so: du(1, 1) })!;
   assert.deepEqual([som.ma, som.cau], ["before_departure", "Chưa tới ngày đi (10/10/2026) — bấm từ ngày đi trở đi."], "ngày đi MUỘN NHẤT");
-  assert.equal(lyDoChuaGiaoDuoc({ ...base, coNguoiHuong: true, so: du(1, 1) })!.ma, "booker_partner");
+  const doiTac = lyDoChuaGiaoDuoc({ ...base, coNguoiHuong: true, so: du(1, 1) })!;
+  assert.deepEqual([doiTac.ma, doiTac.cau, doiTac.aiXuLy], ["booker_partner", "Đơn của đối tác (có người hưởng hoa hồng) — chưa bấm Đã giao được cho tới bản cập nhật sổ đại lý.", "Văn phòng"], "sổ đại lý đợt 1 đổi chữ (N5); luật chặn giữ nguyên");
   const chuaRo = lyDoChuaGiaoDuoc({ ...base, so: du(1_000_000, 1_000_000, 1) })!;
   assert.deepEqual([chuaRo.ma, chuaRo.aiXuLy], ["unknown_collector", "Kế toán"]);
   const thieu = lyDoChuaGiaoDuoc({ ...base, so: du(600_000, 1_000_000) })!;

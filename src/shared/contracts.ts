@@ -256,6 +256,8 @@ export interface OrderDto {
 
 export interface OrderDetailDto extends OrderDto {
   services: OrderServiceDto[];
+  /** Bên đặt đang mang một vai được hưởng hoa hồng (sổ đại lý đợt 1) — máy chủ tính từ vai ĐANG MỞ của hồ sơ bên đặt; false khi đơn không có bên đặt. Chỉ cờ: không tỷ lệ, không tiền. */
+  bookerLaDoiTac: boolean;
 }
 
 /** Thông tin chuyến rút gọn cho thẻ trong danh sách đơn — lấy từ dịch vụ ĐẦU TIÊN theo sort_order của đơn (không gộp nhiều dịch vụ). */

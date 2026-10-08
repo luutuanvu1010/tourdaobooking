@@ -63,7 +63,7 @@ for (const bad of ["00000000-0000-0000-0000-000000000000", "khong-phai-id"]) {
 const org = (await call(SALES, "POST", "/api/parties", { kind: "ORGANIZATION", displayName: `Đại lý ${tag}` })).body.party;
 r = await call(SALES, "POST", "/api/orders", orderInput({ bookerPartyId: org.id }));
 assert.equal(r.status, 400);
-assert.match(r.body.error.message, /đại lý/);
+assert.match(r.body.error.message, /không phải đối tác được hưởng hoa hồng/); // sổ đại lý đợt 1: tổ chức KHÔNG mang vai được hưởng vẫn bị từ chối (tổ chức mang vai được hưởng thì gắn được)
 const stopped = await person(`Đã Ngưng ${tag}`);
 await sql(`UPDATE pty_party SET active = 0 WHERE id = '${stopped.id}'`);
 r = await call(SALES, "POST", "/api/orders", orderInput({ bookerPartyId: stopped.id }));
