@@ -67,7 +67,8 @@ if (!can(staff, "ledger.view")) {
     render();
   }
 
-  /** Khoá tháng `period`; 201 vẽ lại theo thân phản hồi. 400 / 409 (tháng vừa được khoá, không liền kề…) hiện đúng câu của máy chủ rồi tải lại cho khỏi nhìn số cũ. */
+  /** Khoá tháng `period`; 201 vẽ lại theo thân phản hồi. 409 (tháng vừa được khoá, không liền kề…) và 400 `period_not_past` hiện đúng câu của máy chủ rồi tải lại cho khỏi nhìn số cũ;
+   *  400 `invalid_input` (ghi chú bị từ chối) hiện câu của máy chủ và GIỮ hộp cùng chữ đã gõ. */
   async function khoa(period: string, ghiChu: string, tatDieuKhien: (tat: boolean) => void): Promise<void> {
     showError(errorEl, null);
     hienOk(null);
@@ -80,10 +81,16 @@ if (!can(staff, "ledger.view")) {
       okEl.scrollIntoView({ block: "nearest" });
     } catch (err) {
       showError(errorEl, reasonOf(err));
-      if (err instanceof ApiError && (err.status === 409 || err.status === 400)) {
+      if (err instanceof ApiError && (err.status === 409 || err.code === "period_not_past")) {
+        // Tháng vừa được khoá / không còn là tháng khoá được: số liệu trên màn đã cũ, đóng hộp và tải lại.
         xacNhan = false;
         await load(true);
-      } else tatDieuKhien(false);
+      } else {
+        // Mọi lỗi khác, nhất là 400 `invalid_input` của ghi chú (máy chủ không nhận dãy ≥ 8 chữ số, kể cả ngày viết «30.09.2026»): GIỮ hộp và chữ đã gõ để người dùng sửa
+        // ghi chú rồi bấm lại. Luật ghi chú chỉ ở máy chủ (`docGhiChuKy`); trang không chép lại.
+        tatDieuKhien(false);
+        if (err instanceof ApiError && err.code === "invalid_input") document.getElementById("ky-ghi-chu")?.focus();
+      }
     }
   }
 
