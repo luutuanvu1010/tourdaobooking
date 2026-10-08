@@ -59,7 +59,7 @@ export interface SoTienDon {
   daThu: number;
   /** Còn phải thu (≥ 0). */
   conLai: number;
-  /** Khách đã trả dư, chờ Kế toán hoàn (≥ 0) — M2 (chủ 29/9 "Không chặn, chờ hoàn"). */
+  /** Khách đã trả dư, chờ Kế toán hoàn (≥ 0) — M2 (chủ 29/9 "Không chặn, chờ hoàn"). ≤ đã thu, vì phải thu do `orders` công bố không bao giờ âm (ADR-0109). */
   du: number;
   /** Số lần thu còn hiệu lực có người thu "chưa rõ" (cọc cũ). */
   chuaRo: number;
