@@ -1,19 +1,18 @@
 // Dữ liệu và câu lệnh CHƯA CHẠY mà `orders` công bố cho hai bước chốt đơn của billing (sổ tiền lượt 1 — ADR-0024 điều 3–4, ADR-0025). `orders` giữ sự thật
 // "đơn đã chốt" (hai cột mốc) và "phải thu hiện hành" (một cách tính tiền của đơn — Hiến chương 5.4); billing giữ tiền đã thu. Tệp này KHÔNG đọc bảng của
 // billing (ADR-0024 điều 4).
-import { effectiveSubtotal } from "./money-adjustment";
-import { getLatestAdjustments, getServicesForSubtotal } from "./repository";
+import { computeEffectiveMoney, getLatestAdjustments } from "./repository";
 import { confirmedOpenIds, giaoState, moneyBaseMany, serviceDates, type MoneyBaseRow } from "./hoan-tat-repo";
 
-/** "Phải thu hiện hành" = tổng khách phải trả SAU điều chỉnh số khách (máy chủ tính — cùng `effectiveSubtotal` với chi tiết đơn / danh sách). */
+/**
+ * "Phải thu hiện hành" = tổng khách phải trả SAU điều chỉnh số khách — đi qua `computeEffectiveMoney` → `effectiveMoney` (MỘT hàm phải thu, cùng đường với chi tiết
+ * đơn / danh sách / Trang chủ — ADR-0109 QĐ1; bài tĩnh `src/phai-thu-mot-ham.test.ts`). KHÔNG tự trừ giảm giá ở đây (TNV-G1 từng trích đúng chỗ này).
+ */
 async function phaiThuCua(db: D1Database, rows: readonly Pick<MoneyBaseRow, "id" | "discount" | "total">[]): Promise<Map<string, number>> {
   const latest = await getLatestAdjustments(db, rows.map((r) => r.id));
-  const services = await getServicesForSubtotal(db, [...latest.keys()]);
+  const tien = await computeEffectiveMoney(db, rows, latest);
   const out = new Map<string, number>();
-  for (const r of rows) {
-    const adj = latest.get(r.id);
-    out.set(r.id, adj === undefined ? r.total : effectiveSubtotal(services.get(r.id) ?? [], adj.after) - r.discount);
-  }
+  for (const r of rows) out.set(r.id, tien.get(r.id)!.total);
   return out;
 }
 
