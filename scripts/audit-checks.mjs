@@ -71,6 +71,26 @@ const HANH_DONG_CO_SU_KIEN = [
   "trip_ended", "trip_ended_interrupted",
 ];
 
+// ---- Sổ đại lý đợt 1 (đặc tả 2026-10-08 §9) — đoạn dùng chung của R-PRC-*, R-ORD-T*, R-KY-* ----
+/** "Hôm nay" giờ Việt Nam, dạng YYYY-MM-DD — cùng chữ với R-PTY-6 và migration (`date('now')` trần là UTC, lệch 7 giờ quanh nửa đêm). */
+const HOM_NAY_VN = "date('now', '+7 hours')";
+/** Dòng của bảng mức / điều khoản alias `x` CHƯA HẾT HẠN (còn mở, hoặc ngày kết thúc từ hôm nay trở đi). Dòng đã đóng là lịch sử chỉ-thêm, không sửa được ⇒ không báo mãi. */
+const CHUA_HET_HAN = (x) => `(${x}.valid_to_date IS NULL OR ${x}.valid_to_date >= ${HOM_NAY_VN})`;
+/**
+ * Hết ân hạn của R-ORD-T1 = mốc (`ord_audit_cutoff` dòng 'R-ORD-T1' = lúc áp migration 0090) + 60 phút, dạng số ngày Julian. MỘT hằng cho cả lỗi (R-ORD-T1: từ mốc này
+ * trở đi) lẫn cảnh báo (R-ORD-T1w: trước mốc này) để hai câu không lệch nhau chỗ chia vùng. `julianday` ở CẢ HAI vế so giờ: chuỗi ISO có `Z` của máy chủ không so thô
+ * với `datetime()` được; modifier `'+60 minutes'` cộng bằng số nguyên mili-giây nên đúng ngưỡng không sai một nhịp dấu phẩy động. Thiếu dòng mốc ⇒ NULL (R-ORD-T1 tự báo lỗi).
+ */
+const HET_AN_HA_T1 = "julianday((SELECT cutoff_at FROM ord_audit_cutoff WHERE code = 'R-ORD-T1'), '+60 minutes')";
+/** Lúc xác nhận của đơn alias `o` dạng ngày Julian; đơn không có mốc xác nhận (chèn thẳng bằng SQL) lấy lúc tạo — như R-ORD-15. */
+const LUC_XAC_NHAN = (o) => `julianday(COALESCE(${o}.confirmed_at, ${o}.created_at))`;
+/** Số bản chụp HIỆN HÀNH của dòng dịch vụ alias `s`: bản chưa bị bản nào khác trỏ `supersedes_id` tới. Alias nội bộ: t, n. */
+const SO_BAN_CHUP_HIEN_HANH = (s) =>
+  `(SELECT count(*) FROM ord_service_terms t WHERE t.order_service_id = ${s}.id AND NOT EXISTS (SELECT 1 FROM ord_service_terms n WHERE n.supersedes_id = t.id))`;
+/** Số dòng của bảng tiền `bang` thuộc tháng ĐÃ KHOÁ mà ghi (created_at) SAU lúc khoá tháng đó (closed_at). So giờ bằng `julianday` hai vế. Alias nội bộ: x, k. */
+const GHI_SAU_KHOA = (bang) =>
+  `(SELECT count(*) FROM ${bang} x JOIN ky_period_close k ON k.period = substr(x.occurred_date, 1, 7) WHERE julianday(x.created_at) > julianday(k.closed_at))`;
+
 /** @type {{ code: string, what: string, sql: string, level: 'fail' | 'warn-unless-strict' | 'warn', mode?: 'rows', note?: string }[]} */
 export const CHECKS = [
   { code: "R-N1-1", what: "mọi tài khoản có party_id", sql: "SELECT count(*) FROM staff WHERE party_id IS NULL", level: "warn-unless-strict" },
@@ -1206,6 +1226,115 @@ export const CHECKS = [
             AND sg.seq = (SELECT max(m.seq) FROM ctl_service_group m WHERE m.service_code = i.code))`,
     level: "warn",
     note: "cảnh báo (không chặn phát hành): Quản trị gán nhóm cho các dịch vụ này ở màn Danh mục",
+  },
+
+  // ---- Sổ đại lý đợt 1 (đặc tả 2026-10-08 §9; migration 0090). Trigger / CHECK của 0090 là đường chặn thứ nhất; các kiểm này là LƯỚI THỨ HAI cho SQL chạy tay và cho
+  // chuyện đổi SAU khi ghi (tắt vai, đổi nhóm dịch vụ, đổi công ty chủ) — thứ trigger lúc chèn không nhìn thấy. Bảng mức / điều khoản / bản chụp chỉ-thêm: dòng sai không sửa
+  // được, chỉ ĐÓNG (mức, điều khoản) — nên R-PRC-2/3/4 chỉ xét dòng CHƯA HẾT HẠN (đóng rồi là hết báo; đặc tả §13: đổi công ty chủ thì đóng dòng ALL cũ, mở dòng mới). ----
+  {
+    // R-PRC-1: trigger `prc_commission_rule_overlap` chặn lúc chèn; kiểm này bắt dòng lọt qua (trigger bị gỡ / SQL tay). Cùng khoá với trigger: (hồ sơ, vai, phạm vi, mã dịch vụ, nhóm).
+    code: "R-PRC-1",
+    what: "không có hai dòng mức hoa hồng cùng đối tượng (hồ sơ hoặc vai), cùng phạm vi và mã mà khoảng hiệu lực chồng nhau",
+    sql: overlap("prc_commission_rule", ["target_party_id", "target_role_code", "scope", "catalog_code", "group_code"], "valid_from_date"),
+    level: "fail",
+    note: "đặc tả sổ đại lý đợt 1 §9: một đối tượng, một phạm vi, một mã chỉ có MỘT mức tại mỗi ngày — Kế toán đóng một trong hai dòng",
+  },
+  {
+    // R-PRC-2: "tắt một vai = active 0, dòng mức cũ vẫn giữ; R-PRC-2 báo" (0090) — việc của Kế toán là đóng dòng mức theo vai đó (hết hạn ⇒ hết báo).
+    code: "R-PRC-2",
+    what: "dòng mức hoa hồng còn hiệu lực theo vai mà vai đó không còn trong danh sách vai được hưởng đang bật",
+    sql: `SELECT count(*) FROM prc_commission_rule r WHERE r.target_role_code IS NOT NULL AND ${CHUA_HET_HAN("r")}
+       AND r.target_role_code NOT IN (SELECT role_type_code FROM v_prc_beneficiary_role)`,
+    level: "fail",
+    note: "đặc tả sổ đại lý đợt 1 §9: vai bị tắt khỏi danh sách được hưởng mà dòng mức còn hiệu lực — Kế toán đóng dòng mức đó (hoặc bật lại vai)",
+  },
+  {
+    // R-PRC-3: ba nhánh, mỗi dòng đếm MỘT lần. (1) có a% mà người bán là công ty chủ; (2) người bán ≠ công ty chủ mà không mang vai Nhà cung cấp (đang mở);
+    // (3) người bán ≠ công ty chủ mà không có a%. Trigger 0090 (supplier_iff, seller_role) chặn lúc chèn; kiểm này còn bắt chuyện đổi SAU: nhà cung cấp thôi vai,
+    // hoặc đổi công ty chủ làm dòng ALL gieo sẵn lệch (đặc tả §13, N17 — đóng dòng cũ, mở dòng cho công ty mới).
+    code: "R-PRC-3",
+    what: "điều khoản người bán còn hiệu lực sai luật: có tỷ lệ mua lại mà người bán là công ty chủ; hoặc người bán khác công ty chủ mà không mang vai Nhà cung cấp; hoặc người bán khác công ty chủ mà không có tỷ lệ mua lại",
+    sql: `SELECT count(*) FROM prc_supply_term t WHERE ${CHUA_HET_HAN("t")}
+       AND ((t.cost_rate_bp IS NOT NULL AND EXISTS (SELECT 1 FROM v_pty_owner_company c WHERE c.party_id = t.seller_party_id))
+         OR (NOT EXISTS (SELECT 1 FROM v_pty_owner_company c WHERE c.party_id = t.seller_party_id)
+             AND (t.cost_rate_bp IS NULL
+               OR NOT EXISTS (SELECT 1 FROM v_pty_open_role r WHERE r.party_id = t.seller_party_id AND r.role_type_code = 'SUPPLIER'))))`,
+    level: "fail",
+    note: "đặc tả sổ đại lý đợt 1 §9, §13: Kế toán đóng điều khoản sai rồi mở dòng đúng (đổi công ty chủ thì đóng dòng 'mọi dịch vụ' cũ, mở dòng cho công ty mới)",
+  },
+  {
+    // R-PRC-4 (luật X3, điều A2): không ghi tỷ lệ mua lại cho nhóm Thuê xe (TXE) hay mã ĐANG thuộc nhóm đó (nhóm hiện hành = dòng seq lớn nhất, view v_ctl_service_group).
+    // Trigger `prc_supply_term_x3` chỉ chạy lúc chèn điều khoản; mã đổi sang nhóm TXE SAU khi ghi thì chỉ kiểm này thấy.
+    code: "R-PRC-4",
+    what: "điều khoản còn hiệu lực có tỷ lệ mua lại cho nhóm Thuê xe (TXE) hoặc cho dịch vụ đang thuộc nhóm Thuê xe",
+    sql: `SELECT count(*) FROM prc_supply_term t WHERE t.cost_rate_bp IS NOT NULL AND ${CHUA_HET_HAN("t")}
+       AND (t.group_code = 'TXE' OR EXISTS (SELECT 1 FROM v_ctl_service_group g WHERE g.catalog_code = t.catalog_code AND g.group_code = 'TXE'))`,
+    level: "fail",
+    note: "đặc tả sổ đại lý đợt 1 §9 (luật X3): dịch vụ Thuê xe không ghi nhà cung cấp mua lại — Kế toán đóng điều khoản đó",
+  },
+  {
+    // R-PRC-5: dòng mức theo HỒ SƠ còn hiệu lực HÔM NAY mà hồ sơ không còn vai được hưởng nào (cùng nghĩa trigger `prc_commission_rule_target_party`: vai đang mở VÀ đang bật).
+    // Tình trạng nghiệp vụ hợp lệ (công ty lữ hành thôi hợp tác) cần người rà soát — mức warn VĨNH VIỄN, không bao giờ đỏ kể cả --strict.
+    code: "R-PRC-5",
+    what: "dòng mức hoa hồng còn hiệu lực hôm nay theo hồ sơ mà hồ sơ đó không còn mở vai được hưởng hoa hồng nào",
+    sql: `SELECT count(*) FROM prc_commission_rule r WHERE r.target_party_id IS NOT NULL AND r.valid_from_date <= ${HOM_NAY_VN} AND ${CHUA_HET_HAN("r")}
+       AND NOT EXISTS (SELECT 1 FROM v_pty_open_role o JOIN v_prc_beneficiary_role b ON b.role_type_code = o.role_type_code WHERE o.party_id = r.target_party_id)`,
+    level: "warn",
+    note: "cảnh báo, không chặn phát hành (đặc tả sổ đại lý đợt 1 §9): hồ sơ này thôi vai được hưởng mà mức còn hiệu lực — Kế toán xem lại và đóng dòng mức nếu không còn hưởng",
+  },
+  {
+    // R-ORD-T1 (đặc tả §9 sau kiểm độc lập N4): MỖI dòng dịch vụ của đơn đã xác nhận, xác nhận TỪ (mốc + 60 phút) trở đi, phải có ĐÚNG MỘT bản chụp hiện hành. Mốc = lúc áp migration
+    // (bảng `ord_audit_cutoff`), KHÔNG suy từ bản chụp đầu — cách cũ tự tắt khi mã chụp không bao giờ chạy. 60 phút che quãng migration → deploy của runbook và lúc bản mới chưa lan tới
+    // mọi nơi. Thiếu dòng mốc thì chính kiểm này báo 1 lỗi (không im lặng xanh). Đếm theo DÒNG DỊCH VỤ. Hoàn tác Worker về bản cũ ⇒ đơn xác nhận lúc đó làm kiểm này đỏ tới đợt 2 (đúng tín hiệu).
+    code: "R-ORD-T1",
+    what: "dòng dịch vụ của đơn đã xác nhận sau ân hạn 60 phút kể từ mốc áp migration 0090 mà không có đúng một bản chụp thương mại hiện hành (mốc thiếu cũng tính lỗi)",
+    sql: `SELECT (SELECT count(*) FROM order_service s JOIN orders o ON o.id = s.order_id
+        WHERE o.status = 'confirmed' AND ${LUC_XAC_NHAN("o")} >= ${HET_AN_HA_T1} AND ${SO_BAN_CHUP_HIEN_HANH("s")} <> 1)
+      + (SELECT CASE WHEN EXISTS (SELECT 1 FROM ord_audit_cutoff WHERE code = 'R-ORD-T1') THEN 0 ELSE 1 END)`,
+    level: "fail",
+    note: "đặc tả sổ đại lý đợt 1 §9, §13: đơn xác nhận bằng bản cũ sau ân hạn thiếu bản chụp — chờ chụp bù ở đợt 2; Worker không được hoàn tác về bản cũ sau khi đã áp migration",
+  },
+  {
+    // R-ORD-T1w: phần còn lại của R-ORD-T1 — đơn đã xác nhận, CHƯA "Đã giao", xác nhận TRƯỚC (mốc + 60 phút) (đơn cũ, hoặc rơi vào quãng migration → deploy), có dòng dịch vụ chưa có bản chụp
+    // nào: đợt 2 chụp bù. Mỗi dòng kết quả = một đơn (mã đơn). Cùng hằng ân hạn với R-ORD-T1.
+    code: "R-ORD-T1w",
+    what: "đơn đã xác nhận, chưa Đã giao, xác nhận trước hết ân hạn mốc 0090, còn dòng dịch vụ chưa có bản chụp thương mại (đơn cũ — đợt 2 chụp bù); liệt kê mã đơn",
+    sql: `SELECT o.order_code FROM orders o
+       WHERE o.status = 'confirmed' AND o.delivered_at IS NULL AND ${LUC_XAC_NHAN("o")} < ${HET_AN_HA_T1}
+         AND EXISTS (SELECT 1 FROM order_service s WHERE s.order_id = o.id AND ${SO_BAN_CHUP_HIEN_HANH("s")} = 0)`,
+    mode: "rows",
+    level: "warn",
+    note: "cảnh báo, không chặn phát hành (đặc tả sổ đại lý đợt 1 §9): đơn xác nhận trước khi có bảng mức — chờ chụp bù ở đợt 2",
+  },
+  {
+    // R-ORD-T2: bản chụp là chỉ-thêm (trigger chặn sửa/xoá) và CHECK của 0090 đòi lý do ≥ 10 ký tự cho bản MANUAL, đúng một trong (tỷ lệ, đ/khách) cho hoa hồng SET. Kiểm này là lưới
+    // cho dòng lọt qua CHECK (bảng dựng lại bằng SQL tay, migration sai). Xét MỌI bản (kể cả bản đã bị thay) — một bản sai là sai mãi.
+    code: "R-ORD-T2",
+    what: "bản chụp thương mại do tay ghi (MANUAL) mà lý do rỗng, hoặc hoa hồng đã có mức (SET) mà không có đúng một trong tỷ lệ và số đồng mỗi khách",
+    sql: `SELECT count(*) FROM ord_service_terms t
+       WHERE (t.source = 'MANUAL' AND (t.reason IS NULL OR length(trim(t.reason)) = 0))
+          OR (t.commission_status = 'SET' AND (t.commission_rate_bp IS NULL) = (t.commission_per_pax IS NULL))`,
+    level: "fail",
+    note: "đặc tả sổ đại lý đợt 1 §9: bản chụp tay thiếu lý do, hoặc mức hoa hồng không rõ tỷ lệ hay đồng mỗi khách",
+  },
+  {
+    // R-KY-1 (ADR-0080 điều 3): bốn bảng tiền có ngày phát sinh không nhận dòng ghi SAU lúc khoá tháng của ngày phát sinh. Trigger `*_period_closed` chặn lúc chèn; kiểm này bắt dòng lọt qua.
+    // Chỉ so `created_at` > `closed_at` của ĐÚNG tháng của dòng; ghi trước khi khoá (hợp lệ) hay ghi đúng lúc khoá không tính.
+    code: "R-KY-1",
+    what: "không có lần thu, phiếu sổ, khoản hoàn ngoài hay chi phí xe nào thuộc tháng đã khoá sổ mà ghi SAU lúc khoá",
+    sql: `SELECT ${["bil_payment_receipt", "bil_posting", "bil_outside_refund", "vc_trip_cost_line"].map(GHI_SAU_KHOA).join(" + ")}`,
+    level: "fail",
+    note: "đặc tả sổ đại lý đợt 1 §9, §8: tiền ghi vào tháng đã khoá — tháng đã khoá không mở lại, sửa bằng điều chỉnh ở tháng đang mở",
+  },
+  {
+    // R-KY-2 (ADR-0080 điều 2): các tháng đã khoá liền nhau. Tháng `p` không phải tháng nhỏ nhất thì tháng liền trước `p` phải có trong bảng (trigger `ky_period_close_adjacent` chặn lúc chèn).
+    // Trừ tháng bằng `strftime(..., '-1 month')` trên ngày mùng 1 — không trừ chuỗi (qua năm 2026-01 → 2025-12).
+    code: "R-KY-2",
+    what: "các tháng đã khoá sổ liền nhau, không có tháng hở ở giữa",
+    sql: `SELECT count(*) FROM ky_period_close p WHERE p.period > (SELECT min(period) FROM ky_period_close)
+       AND NOT EXISTS (SELECT 1 FROM ky_period_close q WHERE q.period = strftime('%Y-%m', p.period || '-01', '-1 month'))`,
+    level: "fail",
+    note: "đặc tả sổ đại lý đợt 1 §9: tháng đã khoá không liền nhau — chỉ có thể do SQL chạy tay; khôi phục theo runbook",
   },
 ];
 

@@ -2266,3 +2266,459 @@ test("R-VC-25 (Đợt 7 VK3-A): chuyến đã xuất bến trái cam kết xe ri
   batCamKet(e.leg, 0, 100);
   assert.equal(violations(db, c), 1, "chuyến PLANNED không đếm");
 });
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Sổ đại lý đợt 1 (đặc tả 2026-10-08 §9, kế hoạch Task 9): R-PRC-1…5, R-ORD-T1, R-ORD-T1w, R-ORD-T2, R-KY-1, R-KY-2 — lưới THỨ HAI sau trigger / CHECK của
+// migration 0090. Mỗi mã có ca xanh (dữ liệu do đúng luồng sinh ra) và ca đỏ; ca đỏ hoặc gỡ ĐÚNG trigger đang chặn việc tạo vi phạm, hoặc bật tạm
+// `ignore_check_constraints` (R-ORD-T2: ràng buộc nằm ở CHECK, không ở trigger), hoặc đi đường thật (tắt vai, đổi nhóm, đổi công ty chủ) — như SQL gõ tay trên D1.
+// "Hôm nay" của các kiểm có hạn ngày là giờ Việt Nam: bài dùng `vnNgay` (= date('now', '+7 hours')).
+// ---------------------------------------------------------------------------------------------------------------------
+const SDL_MUC: [string, string][] = [
+  ["R-PRC-1", "fail"], ["R-PRC-2", "fail"], ["R-PRC-3", "fail"], ["R-PRC-4", "fail"], ["R-PRC-5", "warn"],
+  ["R-ORD-T1", "fail"], ["R-ORD-T1w", "warn"], ["R-ORD-T2", "fail"], ["R-KY-1", "fail"], ["R-KY-2", "fail"],
+];
+
+test("Sổ đại lý đợt 1: đủ mười kiểm, đúng mức đã chốt (chỉ R-PRC-5 và R-ORD-T1w là cảnh báo VĨNH VIỄN — không 'warn-unless-strict'); R-ORD-T1w liệt kê dòng; kiểm nào cũng có ghi chú trỏ đặc tả", () => {
+  assert.deepEqual(SDL_MUC.map(([code]) => [code, one(code).level]), SDL_MUC);
+  assert.equal(one("R-ORD-T1w").mode, "rows");
+  for (const [code] of SDL_MUC) {
+    if (code !== "R-ORD-T1w") assert.equal(one(code).mode, undefined, `${code}: kiểm đếm, không liệt kê`);
+    assert.match(one(code).note ?? "", /§9/, `${code}: note trỏ đặc tả §9`);
+    assert.ok(one(code).what.length > 20, `${code}: what nói rõ hỏng gì`);
+  }
+  // "Hôm nay" giờ VN: cùng chữ với R-PTY-6 (date('now') trần là UTC — lệch 7 giờ quanh nửa đêm).
+  for (const code of ["R-PRC-2", "R-PRC-3", "R-PRC-4", "R-PRC-5"]) assert.match(one(code).sql, /date\('now', '\+7 hours'\)/, `${code}: hôm nay theo giờ Việt Nam`);
+  // MỘT hằng ân hạn cho cả lỗi và cảnh báo: hai câu không thể lệch nhau về chỗ chia vùng.
+  for (const code of ["R-ORD-T1", "R-ORD-T1w"]) assert.match(one(code).sql, /'\+60 minutes'/, `${code}: ân hạn 60 phút`);
+});
+
+// ---- Dựng dữ liệu chung ----
+/** Hồ sơ TỔ CHỨC `id`, tuỳ chọn mang một vai (đang mở từ 2026-01-01). */
+function toChucSdl(db: DatabaseSync, id: string, vai?: string): string {
+  db.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES (?, 'ORGANIZATION', ?, 1, ?, ?)").run(id, id, T1, T1);
+  db.prepare("INSERT INTO pty_organization (party_id, created_at, updated_at) VALUES (?, ?, ?)").run(id, T1, T1);
+  if (vai) vaiSdl(db, id, vai);
+  return id;
+}
+function vaiSdl(db: DatabaseSync, party: string, vai: string): void {
+  db.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES (?, ?, ?, '2026-01-01', ?, ?)").run(`vai-${party}-${vai}`, party, vai, T1, T1);
+}
+/** Đóng vai đang mở (như Quản trị bấm "Kết thúc vai") — đường THẬT làm một dòng mức / điều khoản cũ mất chỗ dựa. */
+const dongVaiSdl = (db: DatabaseSync, party: string, vai: string, ngay = vnNgay(-1)) =>
+  db.prepare("UPDATE pty_party_role SET valid_to_date = ?, updated_at = ? WHERE party_id = ? AND role_type_code = ? AND valid_to_date IS NULL").run(ngay, T2, party, vai);
+interface MucSdl { id: string; party?: string | null; role?: string | null; scope?: "SERVICE" | "GROUP" | "ALL"; catalog?: string | null; group?: string | null; tu?: string; den?: string | null; rate?: number }
+function mucSdl(db: DatabaseSync, o: MucSdl): void {
+  const scope = o.scope ?? "ALL";
+  db.prepare(
+    `INSERT INTO prc_commission_rule (id, target_party_id, target_role_code, scope, catalog_code, group_code, kind, rate_bp, per_pax_amount, valid_from_date, valid_to_date, note,
+       created_at, created_by, updated_at, updated_by) VALUES (?, ?, ?, ?, ?, ?, 'RATE', ?, NULL, ?, ?, NULL, ?, NULL, ?, NULL)`,
+  ).run(o.id, o.party ?? null, o.role ?? null, scope, scope === "SERVICE" ? (o.catalog ?? "S1") : null, scope === "GROUP" ? (o.group ?? "TDA") : null, o.rate ?? 1000, o.tu ?? "2026-01-01", o.den ?? null, T1, T1);
+}
+/** Đóng dòng mức / điều khoản (đường THẬT: chỉ đặt valid_to_date, đúng trigger close_only). */
+const dongDongSdl = (db: DatabaseSync, bang: "prc_commission_rule" | "prc_supply_term", id: string, den = vnNgay(-1)) =>
+  db.prepare(`UPDATE ${bang} SET valid_to_date = ?, updated_at = ? WHERE id = ?`).run(den, T2, id);
+interface DieuKhoanSdl { id: string; seller: string; cost?: number | null; scope?: "SERVICE" | "GROUP" | "ALL"; catalog?: string | null; group?: string | null; tu?: string; den?: string | null }
+function dieuKhoanSdl(db: DatabaseSync, o: DieuKhoanSdl): void {
+  const scope = o.scope ?? "SERVICE";
+  const cost = o.cost ?? null;
+  db.prepare(
+    `INSERT INTO prc_supply_term (id, scope, catalog_code, group_code, seller_party_id, supplier_party_id, cost_rate_bp, valid_from_date, valid_to_date, note, created_at, created_by, updated_at, updated_by)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, NULL, ?, NULL)`,
+  ).run(o.id, scope, scope === "SERVICE" ? (o.catalog ?? "S1") : null, scope === "GROUP" ? (o.group ?? "TDA") : null, o.seller, cost === null ? null : o.seller, cost, o.tu ?? "2026-01-01", o.den ?? null, T1, T1);
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+test("R-PRC-1: hai dòng mức cùng (đối tượng, phạm vi, mã) chồng hiệu lực → vi phạm (gỡ trigger prc_commission_rule_overlap); khác đối tượng / phạm vi / mã, hoặc nối tiếp không chồng → 0", () => {
+  const c = one("R-PRC-1");
+  const db = build();
+  const dl = toChucSdl(db, "dl-1", "TRAVEL_AGENCY");
+  toChucSdl(db, "dl-2", "TRAVEL_AGENCY");
+  assert.equal(violations(db, c), 0, "chưa dòng nào");
+  mucSdl(db, { id: "m-1", party: "dl-1", scope: "ALL", tu: "2026-01-01", den: "2026-03-31" });
+  mucSdl(db, { id: "m-2", party: "dl-1", scope: "ALL", tu: "2026-04-01" }); // nối tiếp ngay ngày sau: không chồng
+  mucSdl(db, { id: "m-3", party: "dl-2", scope: "ALL" }); // đối tượng khác
+  mucSdl(db, { id: "m-4", party: dl, scope: "GROUP", group: "TDA" }); // phạm vi khác
+  mucSdl(db, { id: "m-5", party: dl, scope: "SERVICE", catalog: "S1" });
+  mucSdl(db, { id: "m-6", party: dl, scope: "SERVICE", catalog: "S2" }); // mã khác
+  mucSdl(db, { id: "m-7", role: "TAXI_DRIVER", scope: "ALL" }); // vai, không phải hồ sơ
+  assert.equal(violations(db, c), 0, "ca xanh: đủ kiểu khác nhau, không cặp nào chồng");
+  assert.throws(() => mucSdl(db, { id: "m-x", party: "dl-1", scope: "ALL", tu: "2026-06-01" }), /prc_overlap/, "trigger chặn trước");
+  db.exec("DROP TRIGGER prc_commission_rule_overlap");
+  mucSdl(db, { id: "m-x", party: "dl-1", scope: "ALL", tu: "2026-06-01" }); // chồng m-2 (mở)
+  assert.equal(violations(db, c), 1, "cùng hồ sơ, cùng phạm vi ALL, chồng");
+  mucSdl(db, { id: "m-y", role: "TAXI_DRIVER", scope: "ALL", tu: "2026-02-01" }); // chồng m-7 (cùng vai)
+  assert.equal(violations(db, c), 2, "cùng vai, cùng phạm vi, chồng");
+  mucSdl(db, { id: "m-z", party: "dl-1", scope: "SERVICE", catalog: "S1", tu: "2026-01-01", den: "2026-01-31" }); // chồng m-5 (cùng mã)
+  assert.equal(violations(db, c), 3, "cùng mã dịch vụ, chồng");
+});
+
+test("R-PRC-2: dòng mức theo vai mà vai KHÔNG còn trong danh sách đang bật → vi phạm; dòng đã hết hạn (đóng) thì không tính; vai bật lại → 0", () => {
+  const c = one("R-PRC-2");
+  const db = build();
+  mucSdl(db, { id: "m-vai", role: "TAXI_DRIVER", scope: "ALL" });
+  mucSdl(db, { id: "m-vai2", role: "COLLABORATOR", scope: "ALL" });
+  mucSdl(db, { id: "m-hs", party: toChucSdl(db, "dl-1", "TRAVEL_AGENCY"), scope: "ALL" }); // theo hồ sơ — không thuộc kiểm này
+  assert.equal(violations(db, c), 0, "mọi vai đang bật");
+  const tat = (vai: string, active: 0 | 1) => db.prepare("UPDATE prc_beneficiary_role SET active = ?, updated_at = ? WHERE role_type_code = ?").run(active, T2, vai);
+  tat("TAXI_DRIVER", 0); // đường THẬT (đặc tả: tắt vai = active 0, dòng mức cũ vẫn giữ)
+  assert.equal(violations(db, c), 1, "vai bị tắt, dòng mức còn hiệu lực");
+  tat("COLLABORATOR", 0);
+  assert.equal(violations(db, c), 2);
+  dongDongSdl(db, "prc_commission_rule", "m-vai", vnNgay(0));
+  assert.equal(violations(db, c), 2, "dòng đóng với ngày kết thúc = HÔM NAY vẫn còn hiệu lực hôm nay");
+  dongDongSdl(db, "prc_commission_rule", "m-vai2", vnNgay(-1));
+  assert.equal(violations(db, c), 1, "Kế toán đóng dòng mức (hết hạn từ hôm qua) → hết báo — bản cũ nằm lại làm lịch sử, không báo mãi");
+  tat("TAXI_DRIVER", 1);
+  assert.equal(violations(db, c), 0, "bật lại vai");
+});
+
+test("R-PRC-3: điều khoản cung ứng — có tỷ lệ mà người bán là công ty chủ; người bán khác mà không mang vai Nhà cung cấp; người bán khác mà không có tỷ lệ → vi phạm (đủ ba nhánh, mỗi dòng đếm MỘT lần); chỉ xét dòng còn hiệu lực", () => {
+  const c = one("R-PRC-3");
+  const db = build();
+  const chu = chuCongTy(db);
+  const ncc = toChucSdl(db, "ncc-1", "SUPPLIER");
+  assert.equal(violations(db, c), 0, "dòng gieo sẵn: công ty chủ bán mọi dịch vụ, không tỷ lệ");
+  dieuKhoanSdl(db, { id: "t-ok", seller: ncc, cost: 7000, catalog: "S1" }); // nhà cung cấp mang vai + có tỷ lệ
+  dieuKhoanSdl(db, { id: "t-ok2", seller: chu, catalog: "S9" }); // công ty chủ bán một dịch vụ, không tỷ lệ
+  assert.equal(violations(db, c), 0, "ca xanh");
+
+  // Nhánh 1 — công ty chủ MÀ có tỷ lệ mua lại (trigger supplier_iff chặn).
+  assert.throws(() => dieuKhoanSdl(db, { id: "t-1", seller: chu, cost: 5000, catalog: "S2" }), /prc_supplier_mismatch/, "trigger chặn trước");
+  db.exec("DROP TRIGGER prc_supply_term_supplier_iff");
+  dieuKhoanSdl(db, { id: "t-1", seller: chu, cost: 5000, catalog: "S2" });
+  assert.equal(violations(db, c), 1, "nhánh 1: công ty chủ mà ghi tỷ lệ mua lại");
+
+  // Nhánh 2 — người bán khác, có tỷ lệ, nhưng vai Nhà cung cấp đã đóng sau đó (đường thật).
+  const ncc2 = toChucSdl(db, "ncc-2", "SUPPLIER");
+  dieuKhoanSdl(db, { id: "t-2", seller: ncc2, cost: 6000, catalog: "S3" });
+  assert.equal(violations(db, c), 1, "đang mang vai → sạch");
+  dongVaiSdl(db, ncc2, "SUPPLIER");
+  assert.equal(violations(db, c), 2, "nhánh 2: nhà cung cấp thôi vai mà điều khoản còn mở");
+
+  // Nhánh 3 — người bán khác, mang vai, nhưng không có tỷ lệ (trigger supplier_iff đã gỡ ở trên).
+  dieuKhoanSdl(db, { id: "t-3", seller: ncc, catalog: "S4" });
+  assert.equal(violations(db, c), 3, "nhánh 3: nhà cung cấp mà không có tỷ lệ");
+
+  // Một dòng sai cả hai vế (không vai, không tỷ lệ) vẫn chỉ đếm MỘT.
+  const ncc3 = toChucSdl(db, "ncc-3");
+  db.exec("DROP TRIGGER prc_supply_term_seller_role");
+  dieuKhoanSdl(db, { id: "t-23", seller: ncc3, catalog: "S5" });
+  assert.equal(violations(db, c), 4, "một dòng sai hai vế đếm một lần");
+
+  // Đóng dòng sai → hết báo (dòng cũ nằm lại làm lịch sử; đóng là cách sửa duy nhất vì bảng chỉ-thêm).
+  for (const id of ["t-1", "t-2", "t-3", "t-23"]) dongDongSdl(db, "prc_supply_term", id);
+  assert.equal(violations(db, c), 0, "đã đóng hết");
+});
+
+test("R-PRC-3 + đổi công ty chủ (đặc tả §13, N17): dòng ALL gieo sẵn trỏ công ty cũ → ĐỎ; đóng dòng cũ, mở dòng ALL cho công ty mới → XANH (dòng đóng không báo mãi)", () => {
+  const c = one("R-PRC-3");
+  const db = build();
+  toChucSdl(db, "pty-org-moi");
+  assert.equal(violations(db, c), 0);
+  db.exec(`INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES ('ptr-org-moi', 'pty-org-moi', '${OWNER_COMPANY_ROLE}', '2026-09-21', '${T1}', '${T1}')`);
+  assert.equal(congTyChu(db), "pty-org-moi", "công ty chủ đã đổi (trigger pty_party_role_owner_company_switch)");
+  assert.equal(violations(db, c), 1, "dòng ALL gieo sẵn: người bán không còn là công ty chủ và không có tỷ lệ");
+  dongDongSdl(db, "prc_supply_term", "prc-st-goc-all", vnNgay(-1));
+  dieuKhoanSdl(db, { id: "t-moi", seller: "pty-org-moi", scope: "ALL", tu: vnNgay(0) });
+  assert.equal(violations(db, c), 0, "đóng dòng cũ + mở dòng mới cho công ty mới → hết đỏ");
+});
+
+test("R-PRC-4: điều khoản có tỷ lệ mua lại cho nhóm Thuê xe (TXE) hoặc mã đang thuộc nhóm đó → vi phạm (gỡ trigger X3); mã đổi nhóm SAU khi ghi cũng bị bắt; không tỷ lệ / nhóm khác / dòng đóng → 0", () => {
+  const c = one("R-PRC-4");
+  const db = build();
+  const chu = chuCongTy(db);
+  const ncc = toChucSdl(db, "ncc-1", "SUPPLIER");
+  const dv = (code: string) => db.prepare("INSERT INTO catalog_item (code, name, unit, price_adult, in_sheet, first_seen_at, updated_at) VALUES (?, 'Dịch vụ thử', 'perPax', 100000, 1, ?, ?)").run(code, T1, T1);
+  const gan = (code: string, seq: number, nhom: string | null) =>
+    db.prepare("INSERT INTO ctl_service_group (id, service_code, group_code, seq, valid_from_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)").run(`g-${code}-${seq}`, code, nhom, seq, T1, T1, T1);
+  dv("ZH1"); gan("ZH1", 1, "TDA");
+  dv("XE1"); gan("XE1", 1, "TXE");
+  dieuKhoanSdl(db, { id: "t-ok", seller: ncc, cost: 7000, catalog: "ZH1" }); // có tỷ lệ, dịch vụ thường
+  dieuKhoanSdl(db, { id: "t-ok-nhom", seller: ncc, cost: 7000, scope: "GROUP", group: "TDA" }); // có tỷ lệ, cả nhóm thường
+  dieuKhoanSdl(db, { id: "t-chu-ma", seller: chu, catalog: "XE1" }); // công ty chủ bán mã Thuê xe — không tỷ lệ
+  assert.equal(violations(db, c), 0, "ca xanh: tỷ lệ chỉ ở dịch vụ / nhóm thường; Thuê xe chỉ do công ty chủ bán, không tỷ lệ");
+
+  assert.throws(() => dieuKhoanSdl(db, { id: "t-x", seller: ncc, cost: 5000, scope: "GROUP", group: "TXE" }), /prc_transfer_no_supplier/, "trigger X3 chặn trước");
+  db.exec("DROP TRIGGER prc_supply_term_x3");
+  dieuKhoanSdl(db, { id: "t-a", seller: ncc, cost: 5000, scope: "GROUP", group: "TXE" });
+  assert.equal(violations(db, c), 1, "tỷ lệ cho CẢ nhóm TXE");
+  dv("XE2"); gan("XE2", 1, "TXE");
+  dieuKhoanSdl(db, { id: "t-b", seller: ncc, cost: 5000, catalog: "XE2" });
+  assert.equal(violations(db, c), 2, "tỷ lệ cho mã đang thuộc nhóm TXE (qua v_ctl_service_group)");
+  // Đổi nhóm SAU khi ghi (trigger X3 chỉ chạy lúc chèn điều khoản): ZH1 chuyển sang TXE → dòng t-ok trở thành sai; chuyển về → hết.
+  gan("ZH1", 2, "TXE");
+  assert.equal(violations(db, c), 3, "mã bị chuyển sang TXE sau khi đã ghi tỷ lệ");
+  gan("ZH1", 3, "TDA");
+  assert.equal(violations(db, c), 2, "nhóm hiện hành = dòng seq lớn nhất: chuyển về TDA → hết");
+  dongDongSdl(db, "prc_supply_term", "t-a");
+  dongDongSdl(db, "prc_supply_term", "t-b");
+  assert.equal(violations(db, c), 0, "đóng hai dòng sai → hết");
+});
+
+test("R-PRC-5: dòng mức còn hiệu lực hôm nay theo hồ sơ mà hồ sơ không còn vai được hưởng nào (đóng vai / vai bị tắt) → vi phạm; còn vai khác / dòng đã hết hạn / chưa tới ngày hiệu lực / theo vai → 0", () => {
+  const c = one("R-PRC-5");
+  const db = build();
+  toChucSdl(db, "dl-1", "TRAVEL_AGENCY");
+  mucSdl(db, { id: "m-1", party: "dl-1", scope: "ALL" });
+  mucSdl(db, { id: "m-vai", role: "TAXI_DRIVER", scope: "ALL" }); // theo vai: không thuộc kiểm này (R-PRC-2 lo)
+  assert.equal(violations(db, c), 0, "hồ sơ còn vai Công ty lữ hành");
+  vaiSdl(db, "dl-1", "COLLABORATOR");
+  dongVaiSdl(db, "dl-1", "TRAVEL_AGENCY");
+  assert.equal(violations(db, c), 0, "đóng một vai nhưng còn vai được hưởng khác → vẫn được hưởng");
+  dongVaiSdl(db, "dl-1", "COLLABORATOR");
+  assert.equal(violations(db, c), 1, "đóng hết vai được hưởng");
+  vaiSdl(db, "dl-1", "GUIDE_FREELANCE");
+  assert.equal(violations(db, c), 0, "mở lại một vai được hưởng → hết");
+  db.prepare("UPDATE prc_beneficiary_role SET active = 0, updated_at = ? WHERE role_type_code = 'GUIDE_FREELANCE'").run(T2);
+  assert.equal(violations(db, c), 1, "vai còn mở nhưng đã bị gỡ khỏi danh sách được hưởng");
+  dongDongSdl(db, "prc_commission_rule", "m-1", vnNgay(-1));
+  assert.equal(violations(db, c), 0, "dòng mức đã hết hạn hôm qua → không còn hiệu lực hôm nay");
+  toChucSdl(db, "dl-2", "TRAVEL_AGENCY");
+  mucSdl(db, { id: "m-2", party: "dl-2", scope: "ALL", tu: vnNgay(1) }); // bắt đầu NGÀY MAI — chưa còn hiệu lực hôm nay
+  mucSdl(db, { id: "m-3", party: "dl-2", scope: "SERVICE", catalog: "S1", tu: "2026-01-01", den: vnNgay(0) }); // hết hạn HÔM NAY — còn hiệu lực hôm nay
+  dongVaiSdl(db, "dl-2", "TRAVEL_AGENCY"); // hồ sơ thôi hợp tác SAU khi mức đã ghi
+  assert.equal(violations(db, c), 1, "ngày kết thúc = hôm nay vẫn còn hiệu lực; dòng bắt đầu ngày mai chưa tính");
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// R-ORD-T1 / R-ORD-T1w / R-ORD-T2 — bản chụp thương mại của đơn (đặc tả §5, §9). Mốc của R-ORD-T1 = ord_audit_cutoff 'R-ORD-T1' = LÚC ÁP MIGRATION, tức lúc
+// bài chạy: bài đọc mốc từ CSDL rồi dựng giờ xác nhận tương đối (trước mốc, trong ân hạn, sát ngưỡng, sau ân hạn) — không viết cứng ngày.
+// ---------------------------------------------------------------------------------------------------------------------
+const PHUT_MS = 60_000;
+const mocT1Ms = (db: DatabaseSync): number => Date.parse(String((db.prepare("SELECT cutoff_at FROM ord_audit_cutoff WHERE code = 'R-ORD-T1'").get() as { cutoff_at: string }).cutoff_at));
+/** Đơn `id` ở trạng thái xác nhận lúc `luc` (null = không có mốc xác nhận, như đơn chèn thẳng bằng SQL) với `n` dòng dịch vụ; trả mã các dòng dịch vụ. `tao` = ngày tạo đơn. */
+function donXacNhanSdl(db: DatabaseSync, id: string, luc: string | null, n = 1, tao = T1): string[] {
+  db.prepare(`INSERT INTO orders (id, order_code, staff_id, status, customer_name, customer_phone, created_at, updated_at) VALUES (?, ?, 's-an', 'draft', 'K', '0900000009', ?, ?)`).run(id, `TD-${id}`, tao, tao);
+  const dv: string[] = [];
+  for (let i = 1; i <= n; i++) {
+    dv.push(`sv-${id}-${i}`);
+    // ngày khởi hành + số khách: trigger `incomplete_trip` đòi hai thứ này mới cho đơn sang 'confirmed'
+    db.prepare("INSERT INTO order_service (id, order_id, sort_order, catalog_code, name, unit, pax_adult, depart_date) VALUES (?, ?, ?, 'S1', 'Tour', 'perPax', 1, '2026-09-30')").run(dv[i - 1], id, i);
+  }
+  db.prepare("UPDATE orders SET status = 'confirmed', confirmed_at = ? WHERE id = ?").run(luc, id);
+  return dv;
+}
+let soBanChup = 0;
+interface BanChupSdl { dv: string; supersedes?: string | null; manual?: { reason: string | null; rate?: number | null; perPax?: number | null; kind?: "RATE" | "PER_PAX" } }
+/**
+ * Bản chụp của dòng dịch vụ `dv` (đơn phải đã xác nhận). Không `manual` = bản AUTO gọn nhất (không hoa hồng, chưa có người bán); có `manual` = bản MANUAL ghi
+ * mức hoa hồng tay (cần hồ sơ 'dl-bc' làm người hưởng). Trả mã bản chụp.
+ */
+function banChupSdl(db: DatabaseSync, o: BanChupSdl): string {
+  const id = `bc-${++soBanChup}`;
+  const order = (db.prepare("SELECT order_id FROM order_service WHERE id = ?").get(o.dv) as { order_id: string }).order_id;
+  const m = o.manual;
+  db.prepare(
+    `INSERT INTO ord_service_terms (id, order_id, order_service_id, beneficiary_party_id, commission_status, missing_reason, commission_kind, commission_rate_bp, commission_per_pax,
+       commission_rule_id, supply_status, seller_party_id, supplier_party_id, cost_rate_bp, supply_term_id, source, reason, supersedes_id, captured_date,
+       created_at, created_by, updated_at, updated_by) VALUES (?, ?, ?, ?, ?, NULL, ?, ?, ?, NULL, 'MISSING', NULL, NULL, NULL, NULL, ?, ?, ?, ?, ?, NULL, ?, NULL)`,
+  ).run(id, order, o.dv, m ? "dl-bc" : null, m ? "SET" : "NONE", m ? (m.kind ?? "RATE") : null, m?.rate ?? null, m?.perPax ?? null, m ? "MANUAL" : "AUTO", m ? m.reason : null, o.supersedes ?? null, vnNgay(0), T1, T1);
+  return id;
+}
+/** Chạy `f` với CHECK tắt (R-ORD-T2: ràng buộc bị phá nằm ở CHECK, không ở trigger — chỉ SQL tay lách được). */
+function boCheck<T>(db: DatabaseSync, f: () => T): T {
+  db.exec("PRAGMA ignore_check_constraints = ON");
+  try {
+    return f();
+  } finally {
+    db.exec("PRAGMA ignore_check_constraints = OFF");
+  }
+}
+
+test("R-ORD-T1 + R-ORD-T1w: đơn trước mốc / trong ân hạn thiếu chụp ⇒ chỉ CẢNH BÁO (T1w liệt kê mã đơn); sát ngưỡng vẫn là ân hạn; từ ngưỡng (mốc + 60 phút) thiếu chụp ⇒ LỖI; đủ chụp ⇒ xanh", () => {
+  const t1 = one("R-ORD-T1");
+  const w = one("R-ORD-T1w");
+  const db = build();
+  const moc = mocT1Ms(db);
+  const luc = (phut: number) => isoMs(moc + phut * PHUT_MS);
+  const dem = () => [violations(db, t1), violations(db, w)];
+  assert.deepEqual(dem(), [0, 0], "chưa đơn nào");
+
+  donXacNhanSdl(db, "o-truoc", luc(-24 * 60)); // xác nhận bằng bản cũ, từ trước migration
+  assert.deepEqual(dem(), [0, 1], "trước mốc, thiếu chụp ⇒ không lỗi, có cảnh báo");
+  donXacNhanSdl(db, "o-anha", luc(30)); // khoảng migration → deploy
+  assert.deepEqual(dem(), [0, 2], "trong ân hạn, thiếu chụp ⇒ không lỗi, có cảnh báo");
+  donXacNhanSdl(db, "o-sat", isoMs(moc + 60 * PHUT_MS - 1)); // 1 mili-giây trước hết ân hạn
+  assert.deepEqual(dem(), [0, 3], "sát ngưỡng vẫn là ân hạn");
+  donXacNhanSdl(db, "o-nguong", luc(60)); // đúng ngưỡng: "≥ mốc + 60 phút"
+  assert.deepEqual(dem(), [1, 3], "đúng ngưỡng ⇒ lỗi");
+  donXacNhanSdl(db, "o-sau", luc(120));
+  assert.deepEqual(dem(), [2, 3], "sau ân hạn, thiếu chụp ⇒ LỖI (và không còn nằm trong danh sách cảnh báo)");
+  const [dvDu1, dvDu2] = donXacNhanSdl(db, "o-du", luc(120), 2);
+  banChupSdl(db, { dv: dvDu1! });
+  banChupSdl(db, { dv: dvDu2! });
+  assert.deepEqual(dem(), [2, 3], "sau ân hạn, ĐỦ chụp (cả hai dòng dịch vụ) ⇒ xanh");
+  const [dvNua1] = donXacNhanSdl(db, "o-nua", luc(180), 2);
+  banChupSdl(db, { dv: dvNua1! });
+  assert.deepEqual(dem(), [3, 3], "đơn hai dịch vụ mới chụp một dòng ⇒ đếm theo DÒNG dịch vụ còn thiếu (1)");
+
+  // Chụp bù về sau (đợt 2) làm cảnh báo hết — mỗi ca cũ hết khi dòng dịch vụ có bản chụp hiện hành.
+  banChupSdl(db, { dv: "sv-o-truoc-1" });
+  banChupSdl(db, { dv: "sv-o-anha-1" });
+  assert.deepEqual(dem(), [3, 1], "hai đơn được chụp bù ⇒ T1w còn đúng một đơn (o-sat)");
+  const hang = db.prepare(w.sql.replace(/\s+/g, " ").trim()).all() as Record<string, unknown>[];
+  assert.deepEqual(hang.map((r) => Object.values(r)), [["TD-o-sat"]], "T1w liệt kê MÃ ĐƠN (order_code), mỗi đơn một dòng");
+});
+
+test("R-ORD-T1 + R-ORD-T1w: chỉ đơn ĐÃ XÁC NHẬN; T1w bỏ đơn đã Đã giao; mốc xác nhận thiếu lấy ngày tạo (như R-ORD-15); hai bản hiện hành hoặc thiếu hẳn đều là lỗi, bản MANUAL thay AUTO vẫn đúng một", () => {
+  const t1 = one("R-ORD-T1");
+  const w = one("R-ORD-T1w");
+  const db = build();
+  toChucSdl(db, "dl-bc");
+  const moc = mocT1Ms(db);
+  const luc = (phut: number) => isoMs(moc + phut * PHUT_MS);
+  const dem = () => [violations(db, t1), violations(db, w)];
+
+  // đơn nháp có dịch vụ (kể cả tạo sau ân hạn) không xét
+  addOrder(db, "o-nhap");
+  db.prepare("INSERT INTO order_service (id, order_id, sort_order, catalog_code, name, unit, pax_adult) VALUES ('sv-nhap', 'o-nhap', 0, 'S1', 'Tour', 'perPax', 1)").run();
+  assert.deepEqual(dem(), [0, 0], "đơn nháp không phải đối tượng của kiểm này");
+
+  // đơn Đã giao thiếu chụp trong ân hạn: không vào danh sách cảnh báo (việc chụp bù chỉ làm cho đơn chưa giao); sau ân hạn vẫn là lỗi
+  donXacNhanSdl(db, "o-giao-anha", luc(10));
+  db.prepare("UPDATE orders SET delivered_at = ?, delivered_by = 's-an' WHERE id = 'o-giao-anha'").run(luc(20));
+  assert.deepEqual(dem(), [0, 0], "đơn đã Đã giao, trong ân hạn ⇒ không cảnh báo");
+  donXacNhanSdl(db, "o-giao-sau", luc(100));
+  db.prepare("UPDATE orders SET delivered_at = ?, delivered_by = 's-an' WHERE id = 'o-giao-sau'").run(luc(110));
+  assert.deepEqual(dem(), [1, 0], "đơn Đã giao sau ân hạn thiếu chụp ⇒ vẫn là lỗi");
+
+  // đơn không có mốc xác nhận (chèn thẳng): lấy ngày tạo — cũ ⇒ cảnh báo; tạo sau ân hạn ⇒ lỗi
+  donXacNhanSdl(db, "o-khong-moc-cu", null);
+  assert.deepEqual(dem(), [1, 1], "không mốc xác nhận, tạo từ trước ⇒ cảnh báo (đơn cũ)");
+  donXacNhanSdl(db, "o-khong-moc-moi", null, 1, luc(300));
+  assert.deepEqual(dem(), [2, 1], "không mốc xác nhận, tạo sau ân hạn ⇒ lỗi");
+
+  // bản MANUAL thay bản AUTO: vẫn đúng MỘT bản hiện hành
+  const [dv] = donXacNhanSdl(db, "o-chuoi", luc(120));
+  const goc = banChupSdl(db, { dv: dv! });
+  banChupSdl(db, { dv: dv!, supersedes: goc, manual: { reason: "Kế toán chỉnh theo hợp đồng", rate: 1000 } });
+  assert.deepEqual(dem(), [2, 1], "chuỗi AUTO → MANUAL có đúng một bản hiện hành ⇒ xanh");
+  // hai bản gốc cùng một dòng dịch vụ (chỉ tạo được khi gỡ trigger one_current): hai bản hiện hành ⇒ lỗi
+  assert.throws(() => banChupSdl(db, { dv: dv! }), /terms_one_current/, "trigger chặn trước");
+  db.exec("DROP TRIGGER ord_service_terms_one_current");
+  banChupSdl(db, { dv: dv! });
+  assert.deepEqual(dem(), [3, 1], "hai bản hiện hành ⇒ lỗi (không phải đúng một)");
+});
+
+test("R-ORD-T1 không tự tắt: mốc ord_audit_cutoff 'R-ORD-T1' mất (chỉ khi bỏ trigger chặn xoá) ⇒ LỖI — cách cũ 'bản chụp đầu + 15 phút' im lặng xanh khi không ai chụp (N4)", () => {
+  const t1 = one("R-ORD-T1");
+  const db = build();
+  assert.equal(violations(db, t1), 0);
+  assert.throws(() => db.exec("DELETE FROM ord_audit_cutoff WHERE code = 'R-ORD-T1'"), /terms_append_only/, "trigger chặn trước");
+  db.exec("DROP TRIGGER ord_audit_cutoff_no_delete");
+  db.exec("DELETE FROM ord_audit_cutoff WHERE code = 'R-ORD-T1'");
+  assert.equal(violations(db, t1), 1, "không còn mốc ⇒ không thể phân vùng ⇒ báo lỗi, không im lặng");
+});
+
+test("R-ORD-T2: bản MANUAL có lý do rỗng (NULL / trống / chỉ khoảng trắng), bản SET không có ĐÚNG MỘT trong tỷ lệ / đ mỗi khách → vi phạm (CHECK bị tắt tạm); bản hợp lệ → 0; mỗi dòng đếm một lần", () => {
+  const c = one("R-ORD-T2");
+  const db = build();
+  toChucSdl(db, "dl-bc");
+  const moc = mocT1Ms(db);
+  let n = 0;
+  /** Một đơn có bản AUTO gốc + một bản MANUAL thay thế do `manual` mô tả (chèn dưới CHECK tắt nếu `lach`). */
+  const chuoi = (manual: NonNullable<BanChupSdl["manual"]>, lach: boolean): void => {
+    const [dv] = donXacNhanSdl(db, `o-t2-${++n}`, isoMs(moc - 3_600_000));
+    const goc = banChupSdl(db, { dv: dv! });
+    if (lach) boCheck(db, () => banChupSdl(db, { dv: dv!, supersedes: goc, manual }));
+    else banChupSdl(db, { dv: dv!, supersedes: goc, manual });
+  };
+  chuoi({ reason: "Kế toán ghi mức tay có lý do", rate: 1250 }, false);
+  chuoi({ reason: "Kế toán ghi mức tay có lý do", kind: "PER_PAX", perPax: 50000 }, false);
+  assert.equal(violations(db, c), 0, "ca xanh: MANUAL có lý do, SET đúng một trong hai");
+
+  assert.throws(() => chuoi({ reason: "", rate: 1250 }, false), /CHECK constraint/, "CHECK chặn trước");
+  chuoi({ reason: "", rate: 1250 }, true);
+  assert.equal(violations(db, c), 1, "lý do trống");
+  chuoi({ reason: null, rate: 1250 }, true);
+  assert.equal(violations(db, c), 2, "lý do NULL");
+  chuoi({ reason: "     ", rate: 1250 }, true);
+  assert.equal(violations(db, c), 3, "lý do chỉ có khoảng trắng");
+  chuoi({ reason: "Kế toán ghi mức tay có lý do", rate: 1250, perPax: 50000 }, true);
+  assert.equal(violations(db, c), 4, "SET mang CẢ tỷ lệ lẫn đ mỗi khách");
+  chuoi({ reason: "Kế toán ghi mức tay có lý do" }, true);
+  assert.equal(violations(db, c), 5, "SET không mang số nào");
+  chuoi({ reason: "", rate: 1250, perPax: 50000 }, true);
+  assert.equal(violations(db, c), 6, "một dòng sai hai vế vẫn đếm một lần");
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// R-KY-1 / R-KY-2 — khoá tháng (đặc tả §8, §9; ADR-0080 D1). Trigger `*_period_closed` chặn ghi vào tháng đã khoá; kiểm này là lưới cho dòng lọt qua (trigger bị gỡ /
+// SQL tay). Mọi dòng ở đây có ngày phát sinh trong tháng 2026-09.
+// ---------------------------------------------------------------------------------------------------------------------
+const KHOA_08 = "2026-09-05T00:00:00.000Z";
+const KHOA_09 = "2026-10-02T00:00:00.000Z";
+const SAU_KHOA_09 = "2026-10-03T00:00:00.000Z";
+function khoaThangSdl(db: DatabaseSync, period: string, luc: string): void {
+  db.prepare("INSERT INTO ky_period_close (period, closed_at, closed_by, note, created_at, created_by, updated_at, updated_by) VALUES (?, ?, 's-an', NULL, ?, NULL, ?, NULL)").run(period, luc, luc, luc);
+}
+
+test("R-KY-1 (sổ tiền): lần thu / phiếu sổ / hoàn ngoài ghi SAU lúc khoá tháng của ngày phát sinh → vi phạm (gỡ đúng trigger *_period_closed của bảng); ghi trước khi khoá, ghi vào tháng mở, ghi đúng lúc khoá → 0", () => {
+  const c = one("R-KY-1");
+  const db = build();
+  donBil(db, "o-ky");
+  // Ba trigger của luồng hoàn ngoài hệ thống (đơn huỷ cũ, một dòng, trong số còn giữ) không liên quan tới kiểm này — gỡ để dựng dòng thô.
+  for (const t of ["bil_outside_refund_legacy", "bil_outside_refund_once", "bil_outside_refund_record_within"]) db.exec(`DROP TRIGGER ${t}`);
+  const hoanNgoai = (id: string, ngay: string, luc: string) =>
+    db.prepare(`INSERT INTO bil_outside_refund (id, order_id, kind_code, amount, reason, target_id, occurred_date, created_at, created_by, updated_at, updated_by)
+                VALUES (?, 'o-ky', 'RECORD', 1000, 'Đã hoàn ngoài hệ thống', NULL, ?, ?, 's-an', ?, 's-an')`).run(id, ngay, luc, luc);
+  assert.equal(violations(db, c), 0, "chưa tháng nào khoá");
+
+  // Ghi TRƯỚC khi khoá (hợp lệ): tháng 2026-09, ghi lúc 2026-09-30.
+  lanThuBil(db, { id: "r-ky-1", order: "o-ky", amount: 1000, at: BIL_AT });
+  phieuBil(db, { id: "p-ky-1", order: "o-ky", kind: "RECEIPT", at: BIL_AT });
+  hoanNgoai("ro-ky-1", "2026-09-30", BIL_AT);
+  khoaThangSdl(db, "2026-08", KHOA_08); // tháng 8 khoá sớm hơn — chứng tỏ câu kiểm so ĐÚNG tháng của dòng, không so với mốc khoá nào đó
+  khoaThangSdl(db, "2026-09", KHOA_09);
+  assert.equal(violations(db, c), 0, "ghi lúc 2026-09-30, khoá 2026-10-02 ⇒ hợp lệ (và lúc ghi lớn hơn mốc khoá của tháng 8 vẫn không sao)");
+  hoanNgoai("ro-ky-thang10", "2026-10-05", SAU_KHOA_09); // tháng 10 đang mở: ghi sau mốc khoá tháng 9 là bình thường
+  assert.equal(violations(db, c), 0, "ghi vào tháng đang mở sau lúc khoá tháng trước ⇒ hợp lệ");
+
+  // Mỗi bảng: trigger chặn trước; gỡ ĐÚNG trigger của bảng đó, chèn dòng thuộc tháng 9 mà ghi sau lúc khoá ⇒ đếm.
+  assert.throws(() => lanThuBil(db, { id: "r-ky-2", order: "o-ky", amount: 1000, at: SAU_KHOA_09 }), /period_closed/, "trigger lần thu chặn trước");
+  db.exec("DROP TRIGGER bil_payment_receipt_period_closed");
+  lanThuBil(db, { id: "r-ky-2", order: "o-ky", amount: 1000, at: KHOA_09 }); // ghi ĐÚNG lúc khoá (không lớn hơn)
+  assert.equal(violations(db, c), 0, "ghi đúng lúc khoá ⇒ chưa vi phạm (so lớn hơn hẳn)");
+  lanThuBil(db, { id: "r-ky-3", order: "o-ky", amount: 1000, at: SAU_KHOA_09 });
+  assert.equal(violations(db, c), 1, "lần thu ghi sau khoá");
+  assert.throws(() => phieuBil(db, { id: "p-ky-2", order: "o-ky", kind: "RECEIPT", at: SAU_KHOA_09 }), /period_closed/, "trigger phiếu chặn trước");
+  db.exec("DROP TRIGGER bil_posting_period_closed");
+  phieuBil(db, { id: "p-ky-2", order: "o-ky", kind: "RECEIPT", at: SAU_KHOA_09 });
+  assert.equal(violations(db, c), 2, "phiếu sổ ghi sau khoá");
+  assert.throws(() => hoanNgoai("ro-ky-2", "2026-09-30", SAU_KHOA_09), /period_closed/, "trigger hoàn ngoài chặn trước");
+  db.exec("DROP TRIGGER bil_outside_refund_period_closed");
+  hoanNgoai("ro-ky-2", "2026-09-30", SAU_KHOA_09);
+  assert.equal(violations(db, c), 3, "hoàn ngoài ghi sau khoá");
+});
+
+test("R-KY-1 (chi phí xe): dòng chi phí chuyến ghi SAU lúc khoá tháng của ngày phát sinh → vi phạm; ghi trước khoá / đúng lúc khoá → 0", () => {
+  const c = one("R-KY-1");
+  const db = tho(); // dựng thô: đã gỡ trigger của vc_trip_cost_line (kể cả vc_trip_cost_line_period_closed) — như SQL gõ tay trên D1
+  const trip = chuyenTho(db);
+  cpTho(db, { trip, kind: "AGREED", amount: 1_350_000, at: T2 }); // phát sinh 2026-09-21, ghi 2026-09-21
+  khoaThangSdl(db, "2026-09", KHOA_09);
+  assert.equal(violations(db, c), 0, "ghi trước khi khoá");
+  cpTho(db, { trip, kind: "ADJUSTMENT", amount: 5000, at: KHOA_09 });
+  assert.equal(violations(db, c), 0, "ghi đúng lúc khoá");
+  cpTho(db, { trip, kind: "ADJUSTMENT", amount: 5000, at: SAU_KHOA_09 });
+  assert.equal(violations(db, c), 1, "chi phí xe ghi sau khoá tháng của ngày phát sinh");
+});
+
+test("R-KY-2: các tháng đã khoá liền nhau (kể cả qua năm) → 0; có tháng hở (chỉ tạo được khi gỡ trigger ky_period_close_adjacent) → đếm tháng đứng sau chỗ hở", () => {
+  const c = one("R-KY-2");
+  const db = build();
+  assert.equal(violations(db, c), 0, "chưa tháng nào khoá");
+  khoaThangSdl(db, "2025-12", "2026-01-02T00:00:00.000Z");
+  assert.equal(violations(db, c), 0, "một tháng");
+  khoaThangSdl(db, "2026-01", "2026-02-02T00:00:00.000Z"); // qua năm: 2025-12 → 2026-01
+  khoaThangSdl(db, "2026-02", "2026-03-02T00:00:00.000Z");
+  assert.equal(violations(db, c), 0, "ba tháng liền nhau, qua ranh giới năm");
+  assert.throws(() => khoaThangSdl(db, "2026-04", "2026-05-02T00:00:00.000Z"), /period_not_adjacent/, "trigger chặn trước");
+  db.exec("DROP TRIGGER ky_period_close_adjacent");
+  khoaThangSdl(db, "2026-04", "2026-05-02T00:00:00.000Z"); // hở: thiếu 2026-03
+  assert.equal(violations(db, c), 1, "2026-04 đứng sau chỗ hở");
+  khoaThangSdl(db, "2026-05", "2026-06-02T00:00:00.000Z"); // nối tiếp 2026-04: không thêm vi phạm
+  assert.equal(violations(db, c), 1, "tháng nối tiếp tháng sau chỗ hở không bị tính thêm");
+  khoaThangSdl(db, "2026-08", "2026-09-02T00:00:00.000Z"); // hở thứ hai: thiếu 06, 07
+  assert.equal(violations(db, c), 2, "chỗ hở thứ hai");
+});
