@@ -237,7 +237,7 @@ test("prc_commission_rule: không xoá; chỉ đóng một lần; không chồng
   assert.throws(() => muc(db, { party: txd }), /prc_target_not_beneficiary:/);
   assert.throws(() => muc(db, { role: "DRIVER_EXTERNAL" }), /prc_role_not_beneficiary:|FOREIGN KEY constraint failed/);
   assert.throws(() => muc(db, { scope: "SERVICE", code: null }), /CHECK constraint failed/);
-  assert.throws(() => muc(db, { scope: "GROUP", group: "VE", bp: 10001 }), /CHECK constraint failed/);
+  assert.throws(() => muc(db, { scope: "GROUP", group: "DTH", bp: 10001 }), /CHECK constraint failed/);
   run(db, "UPDATE prc_beneficiary_role SET active = 0, updated_at = ? WHERE role_type_code = 'COLLABORATOR'", AT);
   assert.throws(() => muc(db, { role: "COLLABORATOR" }), /prc_role_not_beneficiary:/);
 });
@@ -387,7 +387,7 @@ CREATE TABLE prc_commission_rule (
   target_role_code TEXT REFERENCES prc_beneficiary_role(role_type_code),
   scope            TEXT NOT NULL CHECK (scope IN ('SERVICE', 'GROUP', 'ALL')),
   catalog_code     TEXT,
-  group_code       TEXT,
+  group_code       TEXT REFERENCES ctl_group(code),
   kind             TEXT NOT NULL CHECK (kind IN ('RATE', 'PER_PAX')),
   rate_bp          INTEGER CHECK (rate_bp BETWEEN 0 AND 10000),
   per_pax_amount   INTEGER CHECK (per_pax_amount >= 0),
@@ -434,7 +434,7 @@ CREATE TABLE prc_supply_term (
   id                TEXT PRIMARY KEY,
   scope             TEXT NOT NULL CHECK (scope IN ('SERVICE', 'GROUP', 'ALL')),
   catalog_code      TEXT,
-  group_code        TEXT,
+  group_code        TEXT REFERENCES ctl_group(code),
   seller_party_id   TEXT NOT NULL REFERENCES pty_party(id),
   supplier_party_id TEXT REFERENCES pty_party(id),
   cost_rate_bp      INTEGER CHECK (cost_rate_bp BETWEEN 0 AND 10000),
