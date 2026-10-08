@@ -20,6 +20,7 @@ const KIND_ICON: Record<LoaiTin, IconName> = {
   huy: "ban",
   chuyen: "truck", // tin chuyến xe (ADR-0052 D6) — giữ màu mặc định `.ntf-badge`
   tai_khoan: "lock", // ngưng tài khoản giữ tiền — chỉ Toàn quyền nhận (ADR-0090 đ3)
+  doi_sau_xac_nhan: "history", // đơn đã xác nhận đổi giờ / nơi đón / số khách (ADR-0062) — giữ màu mặc định `.ntf-badge`
 };
 /** Màu vòng biểu tượng theo loại (đúng bản mẫu: chờ nhận = cát, nhận/xác nhận = xanh lá, huỷ = nguy hiểm, tin công ty = primary/cát đậm nếu quan trọng; "lập"/"giao" giữ màu mặc định `.ntf-badge`). */
 const KIND_BADGE_CLASS: Partial<Record<LoaiTin, string>> = {

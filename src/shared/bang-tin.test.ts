@@ -8,6 +8,7 @@ import {
   HANDLER_TRUOC_KHONG_BIET,
   THAY_DOI,
   choNoiLai,
+  duocThayTinDoi,
   duocThayTinDon,
   laSuKienChuyenHopLe,
   laSuKienHopLe,
@@ -417,4 +418,20 @@ test("duocThayTinDon: văn phòng/HDV thấy; Đối tác/Thực tập không; t
   assert.equal(duocThayTinDon(ai("SALES"), true), true); // SALES có dispatch.claim
   assert.equal(duocThayTinDon(ai("ACCOUNTING"), true), false); // Kế toán không nhận đơn
   assert.equal(duocThayTinDon(ai("FIELD"), true), true); // FIELD dispatch.claim = any (ADR-0030 S20-6/S20-12 — HDV tự nhận đơn chờ)
+});
+
+// ADR-0062 Đ3 + câu 5 = Có (NT-B9): mở hẹp CHỈ cho tin "đơn đổi sau xác nhận" — Đối tác / Thực tập là NGƯỜI LẬP. duocThayTinDon và thongBaoNoi KHÔNG đổi.
+test("duocThayTinDoi: văn phòng + HDV như duocThayTinDon; Đối tác / Thực tập chỉ khi là người lập; tài xế, Nhân sự, Tài xế đối tác không", () => {
+  const ai = (id: string, ...p: PermissionCode[]) => ({ id, permissions: p });
+  for (const p of ["SALES", "ACCOUNTING", "ADMIN", "SUPER_ADMIN", "FIELD"] as const) assert.equal(duocThayTinDoi(ai("x", p), "khac"), true, p);
+  for (const p of ["PARTNER", "INTERN"] as const) {
+    assert.equal(duocThayTinDoi(ai("x", p), "x"), true, `${p} người lập`);
+    assert.equal(duocThayTinDoi(ai("x", p), "khac"), false, `${p} không phải người lập`);
+    assert.equal(duocThayTinDon(ai("x", p), false), false, `${p}: duocThayTinDon giữ nguyên`);
+  }
+  for (const p of ["DRIVER", "DRIVER_PARTNER", "HR"] as const) assert.equal(duocThayTinDoi(ai("x", p), "x"), false, p);
+  // thongBaoNoi vẫn loại Đối tác / Thực tập với MỌI loại thay đổi (Q-C ADR-0022 giữ — tin đổi không thông báo nổi).
+  for (const p of ["PARTNER", "INTERN"] as const) {
+    for (const thayDoi of THAY_DOI) assert.equal(thongBaoNoi(ai("x", p), { loai: "don", orderId: "o1", maDon: "TD1", thayDoi, luc: "2026-10-08T00:00:00.000Z" }), null, `${p} ${thayDoi}`);
+  }
 });

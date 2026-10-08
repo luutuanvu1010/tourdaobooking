@@ -8,7 +8,7 @@
 // ADR-0030 Task 1.3 (chọn HDV lúc lập ghi created + order_handler_changed CÙNG mốc) chưa lên main. Thêm khi nhánh đó gộp.
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { ACCOUNTS, BASE, call, ensureFakeCatalog, login, orderInput, randomPhone, session, sql, sqlRows } from "./lib.mjs";
+import { ACCOUNTS, BASE, call, catalogService, ensureFakeCatalog, login, orderInput, randomPhone, session, sql, sqlRows, vnDate } from "./lib.mjs";
 
 const A = await session(ACCOUNTS.salesA), B = await session(ACCOUNTS.salesB), KT = await session(ACCOUNTS.accountant), TQ = await session(ACCOUNTS.superAdmin);
 assert.equal((await call(null, "GET", "/api/thong-bao")).status, 401);
@@ -414,5 +414,69 @@ console.log("✓ Web Push: thiếu khoá VAPID → gửi tin / lập đơn vẫn
   await call(V.cookie, "POST", "/api/account/thong-bao/may/huy", { tatCa: true }); // dọn
 }
 console.log("✓ Web Push (ADR-0046): đổi quyền không tắt máy; đăng xuất chỉ tắt đúng máy đó");
+
+// ---- ADR-0062 Đ3–Đ4 (gói A3, 2026-10-08): tin "đơn đổi sau xác nhận" trên đường THẬT (wrangler dev, D1 local tạm). Bán hàng A lập, HDV phụ trách,
+// Quản trị sửa. e2e không có khoá VAPID (run.mjs ép rỗng) ⇒ chỉ kiểm hộp thư; màn hình khoá + MQ-07 (cần chuyến đã xếp) ở khung thử
+// src/modules/thongbao/tin-doi-hop.test.ts. Không có tài khoản Đối tác cố định ⇒ ca "Đối tác người lập nhận" cũng ở khung thử.
+{
+  const FLD = await session(ACCOUNTS.field);
+  const ADM = await session(ACCOUNTS.admin);
+  const fldId = await idOf(ACCOUNTS.field.phone);
+  const LOC = "a941dd7d-faab-4098-9ab9-1df7fa6dd551"; // Bến tàu du lịch Nha Trang (migration 0010)
+  const OUT = { direction: "OUT", pickupDate: "", pickupTime: "06:30", pickupLocationId: null, pickupPlace: "Khách sạn Dò Tìm E2E", dropoffLocationId: LOC, dropoffPlace: "" };
+  const RET = { direction: "RETURN", pickupDate: vnDate(8), pickupTime: "16:00", pickupLocationId: LOC, pickupPlace: "", dropoffLocationId: null, dropoffPlace: "Khách sạn Dò Tìm E2E" };
+  const r0 = await call(A, "POST", "/api/orders", orderInput({ services: [catalogService({ pax: { adult: 2 }, departDate: vnDate(7), legs: [OUT] })], handlerStaffId: fldId }));
+  assert.equal(r0.status, 201, JSON.stringify(r0.body));
+  let d = r0.body.order;
+  const xem = async () => (await call(A, "GET", `/api/orders/${d.id}`)).body.order;
+  const tinDoi = async (who, ngan = "cua-toi") =>
+    (await call(who, "GET", `/api/thong-bao?ngan=${ngan}`)).body.tin.filter((t) => t.loai === "doi_sau_xac_nhan" && t.maDon === d.orderCode);
+
+  // Đơn còn NHÁP: sửa chuyến (PUT /trip ghi trip_updated) → không tin, kể cả sau khi xác nhận (tính "sau xác nhận" theo nhật ký).
+  const nhap = await call(A, "PUT", `/api/orders/${d.id}/trip`, { expectedUpdatedAt: d.updatedAt, services: [{ id: d.services[0].id, departDate: vnDate(7), departTime: "07:00", checkinDate: "", checkinTime: "", checkinPlace: "", note: "" }] });
+  assert.equal(nhap.status, 200, JSON.stringify(nhap.body));
+  assert.equal((await call(A, "POST", `/api/orders/${d.id}/status`, { status: "confirmed" })).status, 200);
+  assert.deepEqual(await tinDoi(A), [], "sửa lúc nháp → không tin đổi");
+
+  // Quản trị đổi giờ đón chặng → người lập (A) + HDV phụ trách nhận ở "Của tôi"; Quản trị (người sửa) không nhận ở ngăn nào.
+  d = await xem();
+  let leg = d.services[0].legs.find((l) => l.direction === "OUT");
+  const sua = (body) => call(ADM, "PUT", `/api/orders/${d.id}/legs/${leg.id}`, { expectedUpdatedAt: leg.updatedAt, leg: { pickupDate: leg.pickupDate, pickupTime: leg.pickupTime, pickupLocationId: null, pickupPlace: leg.pickupPlace, dropoffLocationId: LOC, dropoffPlace: "", ...body } });
+  let r = await sua({ pickupTime: "07:15" });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  for (const [who, ten] of [[A, "người lập"], [FLD, "HDV phụ trách"]]) {
+    const t = await tinDoi(who);
+    assert.equal(t.length, 1, `${ten}: đúng một tin đổi — ${JSON.stringify(t)}`);
+    assert.ok(t[0].cau.includes("giờ đón 06:30 → 07:15"), `${ten}: câu nêu giờ cũ → mới — ${t[0].cau}`);
+    assert.equal(t[0].cuaToi, true);
+  }
+  assert.equal((await tinDoi(ADM, "tat-ca")).length + (await tinDoi(ADM)).length, 0, "người sửa không nhận tin của chính mình");
+  assert.equal((await tinDoi(KT, "tat-ca")).length, 1, "Kế toán (xem mọi đơn) thấy ở ngăn Tất cả");
+  console.log("✓ ADR-0062: đổi giờ đón sau xác nhận → người lập + HDV phụ trách; người sửa không; sửa lúc nháp không");
+
+  // Đổi nơi đón → "đổi nơi đón", KHÔNG ghi nơi mới (chữ, dãy số) ở câu tin.
+  d = await xem();
+  leg = d.services[0].legs.find((l) => l.direction === "OUT");
+  r = await sua({ pickupPlace: "Nhà nghỉ Dò Tìm Mới 0905123456" });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  const noi = (await tinDoi(A)).find((t) => t.cau.includes("đổi nơi đón"));
+  assert.ok(noi, "có tin 'đổi nơi đón'");
+  assert.ok(!/Dò Tìm Mới|0905123456/.test(JSON.stringify(await tinDoi(A))), "tin không ghi nơi mới");
+
+  // Quản trị thêm chặng về → "thêm chặng đón"; HDV sửa số khách → người lập nhận, HDV (người sửa) không, lý do không vào câu.
+  d = await xem();
+  r = await call(ADM, "POST", `/api/orders/${d.id}/legs`, { expectedUpdatedAt: d.updatedAt, serviceId: d.services[0].id, leg: RET });
+  assert.equal(r.status, 201, JSON.stringify(r.body));
+  assert.ok((await tinDoi(FLD)).some((t) => t.cau.includes("thêm chặng đón")), "HDV phụ trách nhận tin thêm chặng");
+  const truocHdv = (await tinDoi(FLD)).length;
+  d = await xem();
+  r = await call(FLD, "POST", `/api/orders/${d.id}/handler-money-edit`, { reason: "Khách Dò Tìm báo thêm người", services: [{ id: d.services[0].id, pax: { adult: 3, child: 0, senior: 0, infant: 0 } }] });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  const soKhach = (await tinDoi(A)).filter((t) => t.cau.includes("số khách"));
+  assert.equal(soKhach.length, 1, `người lập nhận tin số khách — ${JSON.stringify(await tinDoi(A))}`);
+  assert.ok(!soKhach[0].cau.includes("Dò Tìm báo"), "lý do không vào câu tin");
+  assert.equal((await tinDoi(FLD)).length, truocHdv, "HDV (người sửa số khách) không nhận tin của chính mình");
+  console.log("✓ ADR-0062: đổi nơi đón không lộ nơi; thêm chặng; HDV sửa số khách → người lập (không lý do)");
+}
 
 console.log("THONGBAO OK");

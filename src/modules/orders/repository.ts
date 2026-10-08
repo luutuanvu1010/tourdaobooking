@@ -1,4 +1,5 @@
 import { auditStatement, type AuditAction } from "../audit";
+import type { HanhDongDoiSoKhach } from "../../shared/audit-actions";
 import { LY_DO_DAT_GAP, chieuDiDau, isLyDoDatGap, xepChang, type ChangDaLuu, type ChangHopLe, type LyDoDongChang } from "../../shared/chang-dua-don";
 import type { LegDto, OrderDetailDto, OrderDto, OrderItemDto, OrderServiceDto, OrderSummaryDto, OrderSummaryTripDto } from "../../shared/contracts";
 import { escapeLike } from "../../shared/http";
@@ -1220,7 +1221,10 @@ export async function insertMoneyAdjustment(
   after: AdjustmentEntry[],
   subtotalBefore: number,
   subtotalAfter: number,
-  reason: string,
+  /** ADR-0062 Đ1-a: chỉ hành động mang cờ `doiSoKhach` (kiểu dẫn từ AUDIT_ACTIONS) — mọi đường ghi dòng này tự vào tập nguồn tin "đơn đổi sau xác nhận". */
+  action: HanhDongDoiSoKhach,
+  /** ADR-0062 Đ2: "số khách: <phần đổi> · lý do: <lý do>" — nơi gọi dựng bằng doanSoKhach + ghepLyDo (src/shared/tin-doi-don.ts). */
+  detail: string,
 ): Promise<boolean> {
   const id = crypto.randomUUID();
   const at = new Date().toISOString();
@@ -1229,7 +1233,7 @@ export async function insertMoneyAdjustment(
       db
         .prepare(`INSERT INTO order_money_adjustment (id, order_id, seq, before_json, after_json, subtotal_before, subtotal_after) VALUES (?, ?, ?, ?, ?, ?, ?)`)
         .bind(id, orderId, expectedSeq, JSON.stringify(before), JSON.stringify(after), subtotalBefore, subtotalAfter),
-      auditStatement(db, { id, orderId, staffId, action: "order_money_adjusted_by_field", at, detail: reason }),
+      auditStatement(db, { id, orderId, staffId, action, at, detail }),
     ]);
     return true;
   } catch (e) {
@@ -1357,7 +1361,8 @@ export async function replaceLeg(
   const auditId = crypto.randomUUID();
   const results = await db.batch([
     legCloseReplaceChecked(db, plan.legId, orderId, plan.reason, at, staffId, plan.expected),
-    auditStatement(db, { id: auditId, orderId, staffId, action: "order_leg_closed", at, detail: plan.detailDong }, "changes() > 0"),
+    // target_id = id chặng CŨ — cùng khuôn với changeLeg (cột leg_id của v_aud_order_change, 0086).
+    auditStatement(db, { id: auditId, orderId, staffId, action: "order_leg_closed", targetType: "order", targetId: plan.legId, at, detail: plan.detailDong }, "changes() > 0"),
     auditStatement(db, { orderId, staffId, action: "order_leg_added", at, detail: plan.detailThem }, "changes() > 0"),
     orderTouchGuarded(db, orderId, at, plan.expected, auditId),
     legInsertGuarded(db, legWriteOf({ ...plan.leg, id: null }, plan.serviceId, orderId, staffId, at, new Map(), plan.datGap), auditId),
@@ -1398,7 +1403,8 @@ export async function changeLeg(
         : legCloseChecked(db, plan.legId, orderId, plan.reason, at, staffId, plan.expected);
   const results = await db.batch([
     first,
-    auditStatement(db, { id: auditId, orderId, staffId, action: plan.kind === "close" ? "order_leg_closed" : "order_leg_updated", at, detail: plan.detail }, "changes() > 0"),
+    // target_id = id CHẶNG (target_type vẫn "order" — mặc định của audit): khoá của tin MQ-07 (ADR-0052 D6.2) qua cột leg_id của v_aud_order_change (0086).
+    auditStatement(db, { id: auditId, orderId, staffId, action: plan.kind === "close" ? "order_leg_closed" : "order_leg_updated", targetType: "order", targetId: plan.legId, at, detail: plan.detail }, "changes() > 0"),
     orderTouchGuarded(db, orderId, at, orderUpdatedAt, auditId),
     serviceMirrorUpdateGuarded(db, plan.serviceId, orderId, plan.mirror, auditId),
   ]);

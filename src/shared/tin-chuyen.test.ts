@@ -3,8 +3,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { PERMISSION_CODES, can, type PermissionCode } from "./permissions.ts";
 import {
-  HANH_DONG_TIN_CHUYEN, dangChayLucSuKien, dungDongChuyen, laiLucSuKien, taiXeNhanSuKien, thayDoiCoTheCoTin, thayDoiCuaHanhDongChuyen, tinChuyenCho,
-  type DongChuyen, type NguoiNhanChuyen,
+  HANH_DONG_TIN_CHUYEN, chuyenCuaChangLuc, dangChayLucSuKien, dungDongChuyen, laiLucSuKien, taiXeNhanSuKien, thayDoiCoTheCoTin, thayDoiCuaHanhDongChuyen,
+  tinChuyenCho, tinGioHenCho, type DongChuyen, type DongGioHen, type NguoiNhanChuyen,
 } from "./tin-chuyen.ts";
 
 const T0 = "2027-03-11T01:00:00.000Z", T1 = "2027-03-11T02:00:00.000Z", T2 = "2027-03-11T03:00:00.000Z";
@@ -168,4 +168,65 @@ test("Đợt 5: cập nhật điểm trên chuyến CHƯA chạy (chưa xuất b
     assert.equal(thayDoiCuaHanhDongChuyen(d.action, dangChayLucSuKien(d)), "cap_nhat");
   }
   assert.equal(dangChayLucSuKien(dangChay({ action: "trip_stops_synced" })), true);
+});
+
+// ---- MQ-07 (ADR-0052 D6.2): giờ hẹn chặng đổi khi đã xếp — người nhận tính từ KHOÁ (người lập, người phụ trách, dòng lái), không đọc detail ----------------
+const gh = (v: Partial<DongGioHen> = {}): DongGioHen => ({
+  actorId: "khac", luc: T1, maDon: "DH-1", ownerId: "lap", handlerStaffId: null,
+  chuyen: [{ tripId: "t1", ma: "CX-1103-02", ngayChay: "2027-03-11", lai: [{ partyId: "p-a", tu: T0, den: T1 }, { partyId: "p-b", tu: T1, den: null }] }], ...v,
+});
+
+test("tinGioHenCho: người lập / phụ trách qua trip.call_ack → 'gọi báo khách'; tài xế có dòng lái lúc sự kiện → 'mở để xem'; người làm không tự nhận", () => {
+  assert.deepEqual(tinGioHenCho(nguoi("lap", ["SALES"]), gh()), { cau: "Đơn DH-1: giờ hẹn đổi ở chuyến CX-1103-02 ngày 11/03 — gọi báo khách", lienKet: "/chuyen?id=t1" });
+  assert.deepEqual(tinGioHenCho(nguoi("pt", ["SALES"]), gh({ handlerStaffId: "pt" }))?.lienKet, "/chuyen?id=t1");
+  assert.equal(tinGioHenCho(nguoi("khac-ban", ["SALES"]), gh()), null, "Bán hàng không lập / không phụ trách");
+  assert.equal(tinGioHenCho(nguoi("qt", ["ADMIN"]), gh()), null, "Quản trị không lập / không phụ trách (call_ack any không đủ)");
+  assert.equal(tinGioHenCho(nguoi("lap", ["FIELD"]), gh()), null, "HDV: không trip.view");
+  assert.equal(tinGioHenCho(nguoi("lap", ["PARTNER"]), gh()), null, "Đối tác: không trip.view");
+  assert.equal(tinGioHenCho(nguoi("lap", ["ACCOUNTING"]), gh()), null, "Kế toán người lập: trip.view any nhưng call_ack none");
+  assert.deepEqual(tinGioHenCho(TX_B, gh()), { cau: "Văn phòng vừa đổi giờ đón ở chuyến CX-1103-02 ngày 11/03 — mở để xem", lienKet: "/cuoc-chuyen?id=t1" });
+  assert.equal(tinGioHenCho(TX_A, gh({ luc: T2 })), null, "dòng lái của A đóng ở T1 < lúc sự kiện");
+  assert.equal(tinGioHenCho(nguoi("tx-p", ["DRIVER_PARTNER"], "p-b"), gh()), null, "Tài xế đối tác: trip.view none");
+  assert.equal(tinGioHenCho(nguoi("lap", ["SALES"]), gh({ actorId: "lap" })), null, "E3");
+  assert.equal(tinGioHenCho(nguoi("lap", ["SALES"]), gh({ chuyen: [] })), null, "chặng chưa xếp");
+});
+
+test("tinGioHenCho × mọi tập con quyền: nhận ⇒ qua can(trip.view) (tài xế: assigned + dòng lái); văn phòng nhận ⇒ là người lập / phụ trách VÀ qua trip.call_ack", () => {
+  const tap = moiTapCon(PERMISSION_CODES as readonly PermissionCode[]);
+  for (const permissions of tap) {
+    for (const partyId of ["p-b", null]) {
+      for (const [ownerId, handlerStaffId] of [["n", null], ["khac", "n"], ["khac", null]] as const) {
+        const n = { id: "n", permissions, partyId };
+        const d = gh({ ownerId, handlerStaffId });
+        const t = tinGioHenCho(n, d);
+        if (!t) continue;
+        const laiDung = partyId !== null && laiLucSuKien(d.chuyen[0]!.lai, partyId, d.luc) !== null && can(n, "trip.view", { assigned: true });
+        const vanPhong = (ownerId === "n" || handlerStaffId === "n") && can(n, "trip.view") && can(n, "trip.call_ack", { ownerId, assigned: handlerStaffId === "n" });
+        assert.ok(laiDung || vanPhong, `${JSON.stringify(permissions)} ${partyId} ${ownerId}/${handlerStaffId}`);
+        assert.ok(!/Khách|SĐT|09\d{8}/.test(t.cau));
+      }
+    }
+  }
+});
+
+test("chuyenCuaChangLuc: chỉ suất của ĐÚNG chặng MỞ lúc sự kiện (mở ≤ t, còn mở hoặc đóng ≥ t); mỗi chuyến một lần; chuyến thiếu dữ kiện bỏ", () => {
+  const f = {
+    chuyen: [
+      { tripId: "t1", ma: "CX-2", ngayChay: "2027-03-11", lai: [], xuatBen: null },
+      { tripId: "t2", ma: "CX-1", ngayChay: "2027-03-11", lai: [], xuatBen: null },
+    ],
+    vang: [],
+    suatChang: [
+      { legId: "leg-1", tripId: "t1", tu: T0, den: null },
+      { legId: "leg-1", tripId: "t1", tu: T0, den: null }, // suất thứ hai cùng chuyến
+      { legId: "leg-1", tripId: "t2", tu: T0, den: T1 }, // đóng ĐÚNG lúc sự kiện → còn tính
+      { legId: "leg-1", tripId: "t3", tu: T0, den: null }, // chuyến không có dữ kiện
+      { legId: "leg-1", tripId: "t1", tu: T2, den: null }, // mở SAU sự kiện
+      { legId: "leg-2", tripId: "t2", tu: T0, den: null }, // chặng khác
+    ],
+  };
+  assert.deepEqual(chuyenCuaChangLuc(f, "leg-1", T1).map((c) => c.tripId), ["t2", "t1"], "sắp theo mã chuyến");
+  assert.deepEqual(chuyenCuaChangLuc(f, "leg-1", T2).map((c) => c.tripId), ["t1"]);
+  assert.deepEqual(chuyenCuaChangLuc(f, "leg-9", T1), []);
+  assert.deepEqual(chuyenCuaChangLuc({ chuyen: f.chuyen, vang: [] }, "leg-1", T1), [], "không có suatChang (dữ kiện cũ) → []");
 });

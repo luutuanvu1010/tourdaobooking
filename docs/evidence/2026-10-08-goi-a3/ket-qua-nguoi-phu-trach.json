@@ -1,0 +1,32 @@
+{
+  "ghiChu": "Đo bằng Chrome headless trên wrangler dev cục bộ (D1 tạm, danh mục giả); không phải iPhone thật, không phải WebKit.",
+  "buoc": [
+    {
+      "id": "o",
+      "name": "lý do nhiều dòng của “Lịch sử” (order_money_adjusted_by_field, reason có ký tự xuống dòng) hiện ĐÚNG nhiều dòng — đo bằng Range.getClientRects thật, không suy luận từ chiều cao",
+      "dat": true
+    }
+  ],
+  "axe": {},
+  "do": {
+    "history-detail-nhieu-dong": {
+      "soDong": 4,
+      "dauDong": [
+        true,
+        true
+      ],
+      "caoDiv": 86,
+      "whiteSpace": "pre-line",
+      "text": "số khách: Tour thử lý do nhiều dòng: người lớn 2 → 3 · lý do: Khách gọi lại xin đổi:\n- Thêm 1 người lớn\n- Đổi giờ đón sang 8:00"
+    },
+    "hdv-xem-don-cua-minh": {}
+  },
+  "anh": {
+    "nguoi-phu-trach-lich-su-nhieu-dong.png": "390×844"
+  },
+  "dem": {},
+  "tongKet": {
+    "dat": 1,
+    "hong": 0
+  }
+}

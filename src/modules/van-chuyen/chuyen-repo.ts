@@ -5,7 +5,7 @@
 // - Câu GHI sau câu cổng đều mang `EXISTS (SELECT 1 FROM vc_trip WHERE id = ?T AND last_cmd_id = ?cmd)` (bài thứ tự lô — Task A14). Mỗi suất MỘT câu INSERT
 //   (trigger sức chứa theo dòng — kế hoạch mục 4 điểm 3). Không câu DELETE nào (không xoá cứng).
 import { defineSql } from "../../shared/sql-registry.ts";
-import type { ChuyenChoTin } from "../../shared/tin-chuyen.ts";
+import type { ChuyenChoTin, HoiChuyenChoTin } from "../../shared/tin-chuyen.ts";
 
 // ---- Đọc -------------------------------------------------------------------------------------------------------------------------------------------------------
 export interface TripRow {
@@ -776,13 +776,21 @@ const VANG_CHO_TIN = defineSql("van-chuyen", "vang_cho_tin", `
   SELECT e.id AS su_kien_id, k.order_id FROM vc_trip_event e
   JOIN vc_trip_allocation a ON a.id = e.allocation_id JOIN v_ord_leg_key k ON k.id = a.leg_id
   WHERE e.id IN (SELECT value FROM json_each(?1)) AND e.kind = 'PASSENGER_NO_SHOW'`);
+// MQ-07 (ADR-0052 D6.2): MỌI suất khách (mở lẫn đã đóng — kèm khoảng hiệu lực) của các chặng được hỏi; thongbao lọc "mở lúc sự kiện" bằng hàm thuần.
+const SUAT_CHANG_CHO_TIN = defineSql("van-chuyen", "suat_chang_cho_tin", `
+  SELECT a.leg_id, a.trip_id, a.valid_from_at AS tu, a.valid_to_at AS den FROM vc_trip_allocation a
+  WHERE a.kind = 'PASSENGER' AND a.leg_id IN (SELECT value FROM json_each(?1))`);
 
 export async function suKienTheoYeuCau(db: D1Database, requestId: string): Promise<{ id: string; tripId: string; relatedTripId: string | null } | null> {
   const r = await db.prepare(SU_KIEN_THEO_YEU_CAU).bind(requestId).first<{ id: string; trip_id: string; related_trip_id: string | null }>();
   return r ? { id: r.id, tripId: r.trip_id, relatedTripId: r.related_trip_id } : null;
 }
-export async function chuyenChoTinTheoId(db: D1Database, q: { tripIds: readonly string[]; suKienIds: readonly string[] }): Promise<ChuyenChoTin> {
-  const tj = JSON.stringify([...new Set(q.tripIds)]);
+export async function chuyenChoTinTheoId(db: D1Database, q: HoiChuyenChoTin): Promise<ChuyenChoTin> {
+  // MQ-07: hỏi theo chặng → đọc suất trước, chuyến của các suất đó vào cùng ba câu dưới (một lần gọi hàm tiêm — không vòng hai).
+  const suat = q.legIds?.length
+    ? (await db.prepare(SUAT_CHANG_CHO_TIN).bind(JSON.stringify([...new Set(q.legIds)])).all<{ leg_id: string; trip_id: string; tu: string; den: string | null }>()).results
+    : null;
+  const tj = JSON.stringify([...new Set([...q.tripIds, ...(suat ?? []).map((x) => x.trip_id)])]);
   const [t, l, v] = await Promise.all([
     db.prepare(CHUYEN_CHO_TIN).bind(tj).all<{ trip_id: string; ma: string; ngay_chay: string; xuat_ben: string | null }>(),
     db.prepare(LAI_CHO_TIN).bind(tj).all<{ trip_id: string; party_id: string; tu: string; den: string | null }>(),
@@ -792,5 +800,6 @@ export async function chuyenChoTinTheoId(db: D1Database, q: { tripIds: readonly 
     chuyen: t.results.map((c) => ({ tripId: c.trip_id, ma: c.ma, ngayChay: c.ngay_chay, xuatBen: c.xuat_ben,
       lai: l.results.filter((x) => x.trip_id === c.trip_id).map((x) => ({ partyId: x.party_id, tu: x.tu, den: x.den })) })),
     vang: v.results.map((x) => ({ suKienId: x.su_kien_id, orderId: x.order_id })),
+    ...(suat ? { suatChang: suat.map((x) => ({ legId: x.leg_id, tripId: x.trip_id, tu: x.tu, den: x.den })) } : {}),
   };
 }

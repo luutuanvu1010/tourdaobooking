@@ -29,6 +29,7 @@ import { dongHienHanh, kiemHanhKhach, soKhachDoan } from "../../shared/hanh-khac
 import type { PaxCode } from "../../shared/order-lines";
 import { soNguoiChang, tongKhach } from "../../shared/so-nguoi-chang";
 import { maskLongDigits } from "../../shared/text-guards";
+import { doanSoKhach, ghepLyDo } from "../../shared/tin-doi-don";
 import { docLyDoHuy, docPhanLoai, nhanNhomHuy, type LyDoHuy } from "../../shared/ly-do-huy";
 import { lyDoHienHanh, phanLoaiStatement } from "./huy-don-repo";
 import { toPoolOrders } from "./pool";
@@ -446,7 +447,8 @@ export { datGiaoStatement, hoanThanhStatement, type DatGiaoInput } from "./hoan-
  */
 export const donChoBienNhan = (db: D1Database, id: string): Promise<OrderDetailDto | null> => loadOrderView(db, id, false);
 
-export type MoneyEditResult = { ok: true } | { ok: false; code: "not_found" | "not_confirmed" | "invalid_input" | "stale"; message?: string };
+/** `detail` (ADR-0062 Đ2) = dòng nhật ký VỪA ghi — route truyền cho tin "đơn đổi sau xác nhận" (màn hình khoá); vắng = y nguyên số khách, không ghi gì. */
+export type MoneyEditResult = { ok: true; detail?: string } | { ok: false; code: "not_found" | "not_confirmed" | "invalid_input" | "stale"; message?: string };
 
 /**
  * Sửa số khách qua đường hẹp của người phụ trách CẤP HẸP (FIELD, ADR-0014 điều 6) — CHỈ ghi thêm một dòng điều chỉnh, không đụng
@@ -474,8 +476,10 @@ export async function editMoneyAsHandler(db: D1Database, orderId: string, staffI
   if (!plan.ok) return { ok: false, code: plan.code, message: plan.message };
   if (!plan.write) return { ok: true }; // y nguyên số khách: không ghi dòng điều chỉnh, không đổi tiền (DK-T2-01)
 
-  const ok = await insertMoneyAdjustment(db, orderId, staffId, (latest?.seq ?? 0) + 1, plan.before, plan.after, plan.subtotalBefore, plan.subtotalAfter, plan.reason);
-  return ok ? { ok: true } : { ok: false, code: "stale" };
+  // ADR-0062 Đ2: đoạn đầu có khuôn "số khách: …" (tên danh mục, hoặc nhãn "dịch vụ nhập tay"), lý do tự gõ LUÔN ở cuối.
+  const detail = ghepLyDo(doanSoKhach(plan.before, plan.after, servicesByOrder.get(orderId) ?? []), plan.reason);
+  const ok = await insertMoneyAdjustment(db, orderId, staffId, (latest?.seq ?? 0) + 1, plan.before, plan.after, plan.subtotalBefore, plan.subtotalAfter, "order_money_adjusted_by_field", detail);
+  return ok ? { ok: true, detail } : { ok: false, code: "stale" };
 }
 
 /**

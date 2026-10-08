@@ -156,6 +156,15 @@ export function duocThayTinDon(staff: PermissionHolder, choNhan: boolean): boole
 }
 
 /**
+ * ADR-0062 Đ3 + câu 5 = Có (chủ 30/9): ai được thấy tin "đơn đổi sau xác nhận" — như `duocThayTinDon` (văn phòng + HDV), MỞ HẸP thêm NGƯỜI LẬP của đơn xem được
+ * đơn mình lập (`can(order.view, { ownerId })` — ô `own` của Đối tác / Thực tập; hỏi bảng quyền, không hỏi thẳng mã quyền — bài giao-dien-hoi-bang-quyen).
+ * Chỉ loại tin này; `duocThayTinDon` và `thongBaoNoi` không đổi (Q-C ADR-0022: Đối tác không thông báo nổi).
+ */
+export function duocThayTinDoi(staff: PermissionHolder, ownerId: string): boolean {
+  return duocThayTinDon(staff, false) || (ownerId === staff.id && can(staff, "order.view", { ownerId }));
+}
+
+/**
  * Có hiện thông báo nổi cho tài khoản `staff` khi nhận sự kiện `suKien` không, và nếu có thì câu gì + bấm vào đi đâu (TD-4). Đối tác/Thực tập
  * (không văn phòng, không Hướng dẫn viên) không bao giờ hiện (Q-C ADR-0022, điều 12 ADR-0014: chỉ chấm đếm, không thông báo nổi). `tao_cho_nhan`
  * không bao giờ nổi (ADR-0045: lưu nháp không báo ai — kể cả đơn chờ nhận). Hướng dẫn viên bấm vào mở `/account` (hôm nay không mở được `/order`).

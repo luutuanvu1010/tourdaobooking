@@ -24,7 +24,16 @@ export interface ChuyenChoTin {
   /** `xuatBen` = giờ xuất bến (ISO) của chuyến, null = chưa xuất bến (Đợt 5 — tin "cập nhật điểm" chỉ khi xe đang chạy). */
   chuyen: { tripId: string; ma: string; ngayChay: string; lai: KhoangLai[]; xuatBen: string | null }[];
   vang: { suKienId: string; orderId: string }[];
+  /**
+   * MQ-07 (ADR-0052 D6.2): mọi suất KHÁCH của các chặng được hỏi (`legIds`), kèm khoảng hiệu lực — chuyến của chúng có mặt trong `chuyen`. Lọc "mở lúc sự kiện"
+   * ở `chuyenCuaChangLuc` (thuần). Vắng = không hỏi chặng nào.
+   */
+  suatChang?: { legId: string; tripId: string; tu: string; den: string | null }[];
 }
+/** Câu hỏi dữ kiện chuyến của thongbao (hàm tiêm `ctx.chuyenChoTin`): theo chuyến, theo sự kiện vắng, và (MQ-07) theo chặng. */
+export interface HoiChuyenChoTin { tripIds: readonly string[]; suKienIds: readonly string[]; legIds?: readonly string[] }
+/** MQ-07: một chuyến đang giữ suất MỞ của chặng lúc sự kiện — ghép sẵn (mã, ngày, khoảng lái) để hộp thông báo lẫn gõ cửa dùng chung một hàm. */
+export interface ChuyenCuaChang { tripId: string; ma: string; ngayChay: string; lai: KhoangLai[] }
 export interface DongChuyen extends DongChuyenTho { maChuyen: string; ngayChay: string; lai: KhoangLai[]; don: DonCuaTin[]; xuatBen: string | null }
 export interface NguoiNhanChuyen extends PermissionHolder { readonly partyId: string | null }
 
@@ -53,11 +62,13 @@ function loaiCho(n: NguoiNhanChuyen, d: DongChuyen): LoaiTinChuyen | null {
 }
 
 const hoa = (s: string) => s.charAt(0).toLocaleUpperCase("vi-VN") + s.slice(1);
+/** "chuyến <mã> ngày <dd/mm>" — năm khi khác năm của lúc sự kiện (Kiểu D). Một chỗ cho tin chuyến và tin MQ-07. */
+const moTaChuyen = (ma: string, ngayChay: string, luc: string) => `chuyến ${ma} ngày ${ngayNgan(ngayChay, msToVnLocal(Date.parse(luc)).date)}`;
 
 export function tinChuyenCho(n: NguoiNhanChuyen, d: DongChuyen): { loai: LoaiTinChuyen; cau: string; lienKet: string } | null {
   const loai = loaiCho(n, d);
   if (!loai) return null;
-  const c = `chuyến ${d.maChuyen} ngày ${ngayNgan(d.ngayChay, msToVnLocal(Date.parse(d.luc)).date)}`; // năm khi khác năm của lúc sự kiện (Kiểu D)
+  const c = moTaChuyen(d.maChuyen, d.ngayChay, d.luc);
   const id = encodeURIComponent(d.tripId);
   switch (loai) {
     case "xep_lai": return { loai, cau: `Bạn được xếp lái ${c}`, lienKet: `/cuoc-chuyen?id=${id}` };
@@ -77,6 +88,40 @@ export function tinChuyenCho(n: NguoiNhanChuyen, d: DongChuyen): { loai: LoaiTin
       return { loai, cau: `Có khách vắng ở ${c} (đơn ${ma})`, lienKet: `/chuyen?id=${id}` };
     }
   }
+}
+
+// ---- MQ-07 (ADR-0052 D6.2 dòng "giờ hẹn chặng đổi khi đã xếp"; chống trùng với tin đơn đổi — ADR-0062 Đ3) ----------------------------------------------
+/** Hành động nhật ký sinh tin MQ-07 (D6.1: `order_leg_updated` của chặng đang có suất mở). Nguồn: view `v_aud_order_change` (cột `leg_id`), không phải v_aud_trip_event. */
+export const HANH_DONG_TIN_GIO_HEN = ["order_leg_updated"] as const;
+/** Một lần sửa chặng đã xếp: KHOÁ (người làm, lúc, đơn, người lập, người phụ trách) + chuyến giữ suất mở lúc sự kiện. Không tên, SĐT, nơi. */
+export interface DongGioHen {
+  actorId: string | null; luc: string; maDon: string; ownerId: string; handlerStaffId: string | null; chuyen: readonly ChuyenCuaChang[];
+}
+
+/** Chuyến giữ suất KHÁCH mở của chặng `legId` lúc `luc` (mở ≤ t và còn mở hoặc đóng ≥ t — so CHUỖI ISO), mỗi chuyến một lần, sắp theo mã. Thiếu dữ kiện → bỏ. */
+export function chuyenCuaChangLuc(f: ChuyenChoTin, legId: string, luc: string): ChuyenCuaChang[] {
+  const id = new Set((f.suatChang ?? []).filter((s) => s.legId === legId && s.tu <= luc && (s.den === null || s.den >= luc)).map((s) => s.tripId));
+  return f.chuyen.filter((c) => id.has(c.tripId)).map((c) => ({ tripId: c.tripId, ma: c.ma, ngayChay: c.ngayChay, lai: c.lai })).sort((a, b) => (a.ma < b.ma ? -1 : a.ma > b.ma ? 1 : 0));
+}
+
+/**
+ * Người nhận tin MQ-07 — MỘT hàm thuần (hộp thông báo + gõ cửa qua locHopThongBao). Nhận khi (và chỉ khi), không phải người làm:
+ *   - tài xế có dòng lái bao lúc sự kiện trên một chuyến giữ suất của chặng, qua `can(trip.view, { assigned: true })` → "mở để xem" (không mã đơn);
+ *   - người LẬP hoặc người PHỤ TRÁCH đơn, qua `can(trip.view)` (ô any) VÀ `can(trip.call_ack, { ownerId, assigned })` → "gọi báo khách". Quản trị có call_ack any
+ *     nhưng không lập / không phụ trách thì KHÔNG nhận (việc gọi là của người phụ trách đơn — ADR-0051).
+ * HDV, Đối tác, Thực tập (không trip.view) không bao giờ nhận — họ nhận tin đơn đổi (ADR-0062) nếu đủ điều kiện, do locHopThongBao quyết.
+ */
+export function tinGioHenCho(n: NguoiNhanChuyen, d: DongGioHen): { cau: string; lienKet: string } | null {
+  if (d.actorId === n.id || d.chuyen.length === 0) return null;
+  if (n.partyId !== null && can(n, "trip.view", { assigned: true })) {
+    const pid = n.partyId;
+    const c = d.chuyen.find((x) => laiLucSuKien(x.lai, pid, d.luc) !== null);
+    if (c) return { cau: `Văn phòng vừa đổi giờ đón ở ${moTaChuyen(c.ma, c.ngayChay, d.luc)} — mở để xem`, lienKet: `/cuoc-chuyen?id=${encodeURIComponent(c.tripId)}` };
+  }
+  const assigned = d.handlerStaffId === n.id;
+  if (!(d.ownerId === n.id || assigned) || !can(n, "trip.view") || !can(n, "trip.call_ack", { ownerId: d.ownerId, assigned })) return null;
+  const c = d.chuyen[0]!;
+  return { cau: `Đơn ${d.maDon}: giờ hẹn đổi ở ${moTaChuyen(c.ma, c.ngayChay, d.luc)} — gọi báo khách`, lienKet: `/chuyen?id=${encodeURIComponent(c.tripId)}` };
 }
 
 /** Ghép dòng nhật ký với dữ kiện van-chuyen + đơn. Chuyến không có dữ kiện (đã lạ) → bỏ dòng (không đoán). */
