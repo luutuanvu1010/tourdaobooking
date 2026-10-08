@@ -3,6 +3,8 @@
 // departure_window_minutes (mặc định 720 trong BẢNG, CHECK 60–2880). Lớp máy chủ: dieu-phoi-kiem.test.ts + bài route.
 // P16 hai cách: (1) mỗi bài chặn có vế "DROP TRIGGER → cùng câu ghi QUA" (chứng minh chính trigger chặn, chạy mọi lần); (2) biến môi trường
 // CUA_SO_THU_TU_SQL trỏ bản sao đã sửa cố ý của migration (bỏ trigger) → bài đỏ (quan sát một lần, ghi ở báo cáo A1 + đề xuất dòng sổ hàng rào).
+// Quan sát chặn thật 2026-10-08: bốn bản sao — bỏ vc_trip_departure_stop_order → bài LC-19 đỏ; bỏ vc_trip_departure_window → hai bài LC-20 đỏ (kể cả nhánh
+// không có chính sách); bỏ CHECK 60–2880 → bài cột đỏ; DEFAULT 1440 → bài cột + bài LC-20 đỏ. Bản thật: mọi bài xanh.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
