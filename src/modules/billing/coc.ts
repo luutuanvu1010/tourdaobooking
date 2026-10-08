@@ -16,7 +16,7 @@ import {
   conLaiCuaKhoan, hoanNgoaiTrangThai, kiemChi, kiemDuyet, kiemGhiHoanNgoai, kiemHuyDuyet, kiemXacNhanHoanNgoai, METHOD_CODES, nhacCoc, sinhDongHoanKhach, sinhDongLanThu,
   soDuTheoBen, soTienCoc, type DuyetRow, type HoanNgoaiRow, type KiemCoc, type SoTienCoc,
 } from "./rules";
-import { CHUA_CO_CONG_TY, PARTY_ID_RE, docLyDo, docNgay, docSoTien, lineOf, loi, toLineRow, toReceiptRow, type KetQua, type NguoiGoi } from "./service";
+import { CHUA_CO_CONG_TY, PARTY_ID_RE, docLyDo, docNgay, docSoTien, layKyDaKhoa, lineOf, loi, loiKhoaKy, toLineRow, toReceiptRow, type KetQua, type NguoiGoi } from "./service";
 
 /** Kiểm độc lập vòng 2 CAO-1: đơn nhận đổi trạng thái giữa lúc duyệt chuyển và lúc chuyển. */
 const CAU_DON_NHAN_HONG = "Đơn nhận đã huỷ hoặc đã giao — huỷ khoản duyệt chuyển rồi duyệt lại sang đơn khác.";
@@ -56,10 +56,13 @@ function dichLoiTrigger(e: unknown): { ok: false; res: Response } | null {
   for (const [ma, cau] of CAU_TRIGGER) if (new RegExp(`\\b${ma}:`).test(msg)) return loi(409, ma, cau);
   return null;
 }
-async function chayLo(db: D1Database, stmts: D1PreparedStatement[]): Promise<{ ok: true; kq: D1Result[] } | { ok: false; res: Response }> {
+/** MỘT lô ghi của cọc. `ngays` = các ngày phát sinh mà lô ghi vào bốn bảng có khoá tháng (lỗi trigger `period_closed:` dịch ra câu của tháng đầu tiên đã khoá). */
+async function chayLo(db: D1Database, stmts: D1PreparedStatement[], ngays: readonly string[]): Promise<{ ok: true; kq: D1Result[] } | { ok: false; res: Response }> {
   try {
     return { ok: true, kq: await db.batch(stmts) };
   } catch (e) {
+    const k = await loiKhoaKy(db, e, ngays);
+    if (k) return k;
     const l = dichLoiTrigger(e);
     if (l) return l;
     throw e;
@@ -196,7 +199,7 @@ export async function ghiDuyet(db: D1Database, input: { orderId: string; raw: un
   const lo = await chayLo(db, [
     approvalInsertStatement(db, { id: duyetId, orderId: input.orderId, kind: b.loai === "chuyen" ? "TRANSFER" : "REFUND", amount: so.value, targetOrderId: donNhanId, reason: lyDo.value!, approvedDate: homNay, at, by: input.ai.staffId }),
     auditStatement(db, { orderId: input.orderId, staffId: input.ai.staffId, action: b.loai === "chuyen" ? "deposit_transfer_approved" : "deposit_refund_approved", at, detail: lyDo.value! }, "changes() > 0"),
-  ]);
+  ], [homNay]);
   if (!lo.ok) return lo;
   return { ok: true, value: { duyetId, donNhanId } };
 }
@@ -220,7 +223,7 @@ export async function ghiHuyDuyet(db: D1Database, input: { orderId: string; duye
   const lo = await chayLo(db, [
     approvalVoidStatement(db, { id: crypto.randomUUID(), voidsId: goc.id, orderId: input.orderId, amount: so.value, reason: lyDo.value!, date: vnToday(new Date()), at, by: input.ai.staffId }),
     auditStatement(db, { orderId: input.orderId, staffId: input.ai.staffId, action: "deposit_approval_voided", at, detail: lyDo.value! }, "changes() > 0"),
-  ]);
+  ], [vnToday(new Date())]);
   if (!lo.ok) return lo;
   if ((lo.kq[0]!.meta.changes ?? 0) === 0) return KHOAN_KHONG_CO();
   return { ok: true, value: null };
@@ -235,7 +238,7 @@ export async function ghiChiHoan(db: D1Database, input: { orderId: string; raw: 
   const so = docSoTien(b.soTien);
   if (!so.ok) return so;
   if (typeof b.hinhThuc !== "string" || !(METHOD_CODES as readonly string[]).includes(b.hinhThuc)) return loi(400, "invalid_input", "Chọn hình thức hoàn (tiền mặt, chuyển khoản hoặc khác).");
-  const ngay = docNgay(b.ngayPhatSinh);
+  const ngay = docNgay(b.ngayPhatSinh, await layKyDaKhoa(db));
   if (!ngay.ok) return ngay;
   const ghiChu = docLyDo(b.ghiChu, false);
   if (!ghiChu.ok) return ghiChu;
@@ -267,7 +270,7 @@ export async function ghiChiHoan(db: D1Database, input: { orderId: string; raw: 
     stmts.push(postingIfReceiptStatement(db, { id: postingId, kind: "REFUND", orderId: input.orderId, reason: ghiChu.value, reversesPostingId: null, occurredDate: ngay.value, dueSnapshot: null, at, by: input.ai.staffId }, receiptId));
     for (const x of dong) stmts.push(lineIfPostingStatement(db, lineOf(x, postingId, input.orderId, receiptId, at, input.ai.staffId)));
   }
-  const lo = await chayLo(db, stmts);
+  const lo = await chayLo(db, stmts, [ngay.value]);
   if (!lo.ok) return lo;
   return { ok: true, value: null };
 }
@@ -281,7 +284,7 @@ export async function ghiChuyen(db: D1Database, input: { orderId: string; raw: u
   if (typeof b.duyetId !== "string" || !UUID_RE.test(b.duyetId)) return loi(400, "invalid_input", "Chọn khoản duyệt chuyển.");
   const so = docSoTien(b.soTien);
   if (!so.ok) return so;
-  const ngay = docNgay(b.ngayPhatSinh);
+  const ngay = docNgay(b.ngayPhatSinh, await layKyDaKhoa(db));
   if (!ngay.ok) return ngay;
   const d = await docCoc(db, input.orderId);
   if (!d) return DON_CHUA_HUY();
@@ -322,7 +325,7 @@ export async function ghiChuyen(db: D1Database, input: { orderId: string; raw: u
     stmts.push(postingIfReceiptStatement(db, { id: p, kind: "RECEIPT", orderId: goc.targetOrderId, reason: null, reversesPostingId: null, occurredDate: ngay.value, dueSnapshot: null, at, by: input.ai.staffId }, vaoId));
     for (const x of vao) stmts.push(lineIfPostingStatement(db, lineOf(x, p, goc.targetOrderId, vaoId, at, input.ai.staffId)));
   }
-  const lo = await chayLo(db, stmts);
+  const lo = await chayLo(db, stmts, [ngay.value]);
   if (!lo.ok) return lo;
   if ((lo.kq[1]!.meta.changes ?? 0) === 0) {
     // Nửa thu không chèn được (đơn nhận vừa huỷ / Đã giao) mà nửa chi đã chèn — không được để lệch: lỗi lập trình nếu tới đây; lô vẫn đã ghi ⇒ báo rõ.
@@ -340,7 +343,7 @@ export async function ghiHoanNgoai(db: D1Database, input: { orderId: string; raw
   if (!so.ok) return so;
   const lyDo = docLyDo(b.lyDo, true);
   if (!lyDo.ok) return lyDo;
-  const ngay = docNgay(b.ngayPhatSinh);
+  const ngay = docNgay(b.ngayPhatSinh, await layKyDaKhoa(db));
   if (!ngay.ok) return ngay;
   const d = await docCoc(db, input.orderId);
   if (!d) return DON_CHUA_HUY();
@@ -350,7 +353,7 @@ export async function ghiHoanNgoai(db: D1Database, input: { orderId: string; raw
   const lo = await chayLo(db, [
     outsideRecordStatement(db, { id: crypto.randomUUID(), orderId: input.orderId, amount: so.value, reason: lyDo.value!, occurredDate: ngay.value, at, by: input.ai.staffId }),
     auditStatement(db, { orderId: input.orderId, staffId: input.ai.staffId, action: "deposit_outside_recorded", at, detail: lyDo.value! }, "changes() > 0"),
-  ]);
+  ], [ngay.value]);
   if (!lo.ok) return lo;
   return { ok: true, value: null };
 }
@@ -372,7 +375,7 @@ export async function xacNhanHoanNgoai(db: D1Database, input: { orderId: string;
   const lo = await chayLo(db, [
     outsideDecideStatement(db, { id: crypto.randomUUID(), orderId: input.orderId, recordId: ghi.id, kind: b.dongY ? "CONFIRM" : "REJECT", reason: lyDo.value, occurredDate: vnToday(new Date()), at, by: input.ai.staffId }),
     auditStatement(db, { orderId: input.orderId, staffId: input.ai.staffId, action: b.dongY ? "deposit_outside_confirmed" : "deposit_outside_rejected", at, detail: lyDo.value ?? undefined }, "changes() > 0"),
-  ]);
+  ], [vnToday(new Date())]);
   if (!lo.ok) return lo;
   if ((lo.kq[0]!.meta.changes ?? 0) === 0) return loi(404, "not_found", "Không tìm thấy dòng đã hoàn ngoài hệ thống.");
   return { ok: true, value: null };

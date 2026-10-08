@@ -2,12 +2,13 @@
 // vào MỘT db.batch() (ADR-0024 điều 4, ADR-0002 quy tắc 3). Route (index.ts) hỏi quyền TRƯỚC rồi mới gọi các hàm ở đây. Không SQL thô (module nghiêm).
 import { auditStatement } from "../audit";
 import { cauBaoVeNguoiPhuTrach } from "../dispatch";
+import { cauTriggerKhoa, kyCua, kyDaKhoaTu, ngayCuoiThang, thangDaKhoa, thangKhoaDuocKeTiep } from "../ky-so";
 import { datGiaoStatement, hoanThanhStatement, phaiThuNhieuDon, thongTinGiaoDon, type ThongTinGiaoDon } from "../orders";
-import type { CocDonDto, LanThuDto, LanThuInput, LyDoGiuDonDto, OrderPaymentsResponse, SoCongNoResponse, SoCuaToiResponse } from "../../shared/contracts";
+import type { CocDonDto, KySoResponse, LanThuDto, LanThuInput, LyDoGiuDonDto, OrderPaymentsResponse, SoCongNoResponse, SoCuaToiResponse } from "../../shared/contracts";
 import { UUID_RE, error, json } from "../../shared/http";
 import { vnToday } from "../../shared/vn-date";
 import {
-  balancesWithOwner, bankTxnInsertStatement, bankTxnOfCode, bankTxnOfOrder, lineById, lineIfPostingStatement, lineReversed, linesOfOrder, linesOfParty, linesOfReceipt, mocMaGiaoDich, orderOwners, orderState, ownerCompanyId, partyLabels,
+  balancesAt, balancesWithOwner, bankTxnInsertStatement, bankTxnOfCode, bankTxnOfOrder, earliestLedgerMonth, lineById, lineIfPostingStatement, lineReversed, linesOfOrder, linesOfParty, linesOfReceipt, mocMaGiaoDich, orderOwners, orderState, ownerCompanyId, partyLabels,
   pendingCompany, postingIfCompletedAtStatement, postingIfDeliveredAtStatement, postingIfReceiptStatement, postingPlainStatement, receiptAtDeliveryStatement,
   receiptBeforeDeliveredStatement, receiptById, receiptRefundStatement, receiptReversalStatement, receiptsOfOrder, receiptsOfOrders, unknownReceipts, type LineDbRow,
   type NewLine, type NewReceipt, type ReceiptDbRow,
@@ -45,6 +46,15 @@ export interface NguoiGoi {
 
 export type KetQua<T> = { ok: true; value: T } | { ok: false; res: Response };
 export const loi = (status: number, code: string, message: string): { ok: false; res: Response } => ({ ok: false, res: error(status, code, message) });
+
+/** Hàm "ngày này thuộc tháng đã khoá sổ chưa" (ADR-0080 D1) — đọc tập tháng đã khoá MỘT lần ở đầu mỗi lệnh ghi, rồi truyền xuống luật thuần. */
+export const layKyDaKhoa = async (db: D1Database): Promise<(ngay: string) => boolean> => kyDaKhoaTu(new Set(await thangDaKhoa(db)));
+
+/** Lỗi trigger khoá tháng (tháng vừa khoá giữa lúc kiểm và lúc ghi — Review Focus 3) ⇒ 409 đúng câu của tháng đó. Gọi ĐẦU mọi `catch` của lô ghi tiền. */
+export async function loiKhoaKy(db: D1Database, e: unknown, ngays: readonly string[]): Promise<{ ok: false; res: Response } | null> {
+  const cau = await cauTriggerKhoa(db, e, ngays);
+  return cau ? loi(409, "period_closed", cau) : null;
+}
 
 /** Lỗi kèm trường dữ liệu trong thân `error` (giao diện đọc qua ApiError.details) — vd 409 "số thực chuyển lệch" mang số đã ghi để điền sẵn (không route tra mã). */
 export const loiKem = (status: number, code: string, message: string, them: Record<string, unknown>): { ok: false; res: Response } => ({
@@ -152,8 +162,8 @@ export async function docLanThu(db: D1Database, raw: unknown, ai: NguoiGoi, cong
   } else {
     return loi(400, "invalid_input", "Chọn người thu tiền.");
   }
-  const ngay = ngayPhatSinh({ chon: b.ngayPhatSinh, homNay: vnToday(new Date()), laKeToan: ai.laKeToan });
-  if (!ngay.ok) return loi(400, "invalid_input", ngay.message);
+  const ngay = ngayPhatSinh({ chon: b.ngayPhatSinh, homNay: vnToday(new Date()), laKeToan: ai.laKeToan, kyDaKhoa: await layKyDaKhoa(db) });
+  if (!ngay.ok) return ngay.khoa ? loi(409, "period_closed", ngay.message) : loi(400, "invalid_input", ngay.message);
   let ghiChu: string | null = null;
   if (b.ghiChu !== undefined && b.ghiChu !== null && b.ghiChu !== "") {
     if (typeof b.ghiChu !== "string" || b.ghiChu.length > 500) return loi(400, "invalid_input", "Ghi chú tối đa 500 ký tự.");
@@ -318,6 +328,8 @@ export async function ghiLanThu(db: D1Database, input: { orderId: string; delive
   try {
     kq = await db.batch(stmts);
   } catch (e) {
+    const k = await loiKhoaKy(db, e, [lt.value.ngayPhatSinh]);
+    if (k) return k;
     const m = loiMaTrigger(e);
     if (m) return m;
     throw e;
@@ -373,6 +385,9 @@ export async function daGiao(
   try {
     await db.batch(stmts);
   } catch (e) {
+    // Phiếu Đã giao ghi ngày hôm nay (không khoá được); lần thu nhập kèm (Kế toán / Toàn quyền ghi lùi ngày) có thể thuộc tháng vừa bị khoá.
+    const k = await loiKhoaKy(db, e, [homNay, ...(lt ? [lt.ngayPhatSinh] : [])]);
+    if (k) return k;
     const m = loiMaTrigger(e);
     if (m) return m;
     if (loiTrigger(e, "delivered_not_paid")) return loi(409, "not_deliverable", "Số tiền đã thu vừa thay đổi — tải lại màn hình rồi thử lại.");
@@ -412,6 +427,8 @@ export async function hoanThanh(db: D1Database, input: { orderId: string; info: 
   try {
     await db.batch(stmts);
   } catch (e) {
+    const k = await loiKhoaKy(db, e, [vnToday(new Date())]);
+    if (k) return k;
     if (loiTrigger(e, "completed_unsettled")) return loi(409, "not_completable", "Còn người giữ tiền của công ty vì đơn này — tải lại màn hình để xem.");
     if (loiTrigger(e, "completed_due_mismatch")) return loi(409, "not_completable", "Số đã thu khác phải thu lúc Đã giao — tải lại màn hình để xem.");
     if (loiTrigger(e, "order_completed")) return loi(409, "order_completed", "Đơn đã Hoàn thành.");
@@ -435,9 +452,11 @@ export const docLyDo = (raw: unknown, batBuoc: boolean): KetQua<string | null> =
 };
 export const docSoTien = (raw: unknown): KetQua<number> =>
   typeof raw === "number" && Number.isInteger(raw) && raw > 0 && raw <= MAX_SO_TIEN ? { ok: true, value: raw } : loi(400, "invalid_input", "Số tiền phải là số nguyên dương (đồng).");
-export const docNgay = (raw: unknown): KetQua<string> => {
-  const n = ngayPhatSinh({ chon: raw, homNay: vnToday(new Date()), laKeToan: true });
-  return n.ok ? { ok: true, value: n.value } : loi(400, "invalid_input", n.message);
+/** Ngày phát sinh do Kế toán chọn (đường ghi sổ): tháng đã khoá ⇒ 409 `period_closed`; `kyDaKhoa` do hàm gọi đọc một lần ở đầu lệnh (`layKyDaKhoa`). */
+export const docNgay = (raw: unknown, kyDaKhoa: (ngay: string) => boolean): KetQua<string> => {
+  const n = ngayPhatSinh({ chon: raw, homNay: vnToday(new Date()), laKeToan: true, kyDaKhoa });
+  if (n.ok) return { ok: true, value: n.value };
+  return n.khoa ? loi(409, "period_closed", n.message) : loi(400, "invalid_input", n.message);
 };
 
 /** "Công ty đã nhận" (H3): Kế toán xác nhận khoản "Công ty thu" do người khác khai — phiếu COMPANY_RECEIVED = dòng đảo của dòng giữ hộ trên người khai. */
@@ -453,7 +472,7 @@ export async function xacNhanCongTyNhan(db: D1Database, input: { receiptId: stri
   const conNo = soDuCap(dongDon, cho[0]!.debtor_party_id, cho[0]!.creditor_party_id);
   if (conNo < cho.reduce((t, l) => t + l.amount, 0)) return loi(409, "held_already_settled", CAU_DA_NOP);
   const b = (input.raw ?? {}) as Record<string, unknown>;
-  const ngay = docNgay(b.ngayPhatSinh);
+  const ngay = docNgay(b.ngayPhatSinh, await layKyDaKhoa(db));
   if (!ngay.ok) return ngay;
   // ADR-0092 Đ6 đường 1 + C1: khoản chuyển khoản ghi TỪ mốc cắt bắt buộc mã; khoản cũ hơn mốc không bắt buộc (nhập thì vẫn gắn và kiểm). Tiền mặt không nhận mã.
   const laCK = rc.method_code === "BANK_TRANSFER";
@@ -475,6 +494,8 @@ export async function xacNhanCongTyNhan(db: D1Database, input: { receiptId: stri
   try {
     await db.batch(stmts);
   } catch (e) {
+    const k = await loiKhoaKy(db, e, [ngay.value]);
+    if (k) return k;
     const m = loiMaTrigger(e);
     if (m) return m;
     if (/UNIQUE constraint failed: bil_debt_line\.reverses_line_id/.test(e instanceof Error ? e.message : String(e))) return loi(409, "stale", "Khoản này vừa được xác nhận.");
@@ -508,7 +529,7 @@ export async function ghiQuyetToan(db: D1Database, input: { raw: unknown; ai: Ng
   const [nhan, owners] = await Promise.all([partyLabels(db, [b.partyId]), orderOwners(db, phanBo.map((p) => p.orderId))]);
   if (!nhan.get(b.partyId)) return loi(400, "invalid_input", "Không tìm thấy người nộp / người nhận.");
   if (phanBo.some((p) => !owners.has(p.orderId))) return loi(404, "not_found", "Không tìm thấy đơn.");
-  const ngay = docNgay(b.ngayPhatSinh);
+  const ngay = docNgay(b.ngayPhatSinh, await layKyDaKhoa(db));
   if (!ngay.ok) return ngay;
   const ghiChu = docLyDo(b.ghiChu, false);
   if (!ghiChu.ok) return ghiChu;
@@ -531,6 +552,8 @@ export async function ghiQuyetToan(db: D1Database, input: { raw: unknown; ai: Ng
   try {
     await db.batch(stmts);
   } catch (e) {
+    const k = await loiKhoaKy(db, e, [ngay.value]);
+    if (k) return k;
     // Người khác vừa ghi nộp / xác nhận giữa lúc đọc và lúc ghi → trigger 0080 huỷ cả lô.
     if (loiTrigger(e, "settlement_sign_flip")) return loi(409, "stale", "Số tiền người này đang giữ vừa thay đổi — tải lại rồi thử lại.");
     throw e;
@@ -566,7 +589,7 @@ export async function ghiHoanKhach(db: D1Database, input: { raw: unknown; ai: Ng
     const giu = kiemHoanNguoiGiu({ dangGiu: soDuCap((await linesOfOrder(db, b.orderId)).map(toLineRow), nguoiTra, congTyId), soTien: so.value });
     if (!giu.ok) return loi(409, giu.ma, giu.cau);
   }
-  const ngay = docNgay(b.ngayPhatSinh);
+  const ngay = docNgay(b.ngayPhatSinh, await layKyDaKhoa(db));
   if (!ngay.ok) return ngay;
   const ghiChu = docLyDo(b.ghiChu, false);
   if (!ghiChu.ok) return ghiChu;
@@ -588,6 +611,8 @@ export async function ghiHoanKhach(db: D1Database, input: { raw: unknown; ai: Ng
   try {
     await db.batch(stmts);
   } catch (e) {
+    const k = await loiKhoaKy(db, e, [ngay.value]);
+    if (k) return k;
     // Kiểm độc lập T-3: người khác vừa ghi hoàn / đảo lần thu giữa lúc đọc và lúc ghi → trigger bil_payment_receipt_refund_within_paid huỷ cả lô.
     if (loiTrigger(e, "refund_exceeds_paid")) return loi(409, "stale", "Không hoàn quá số khách đã trả — số đã thu vừa thay đổi, tải lại rồi thử lại.");
     if (loiTrigger(e, "coc_needs_approval")) return loi(409, "coc_needs_approval", "Đơn huỷ: hoàn qua “Duyệt hoàn cọc” rồi “Ghi chi hoàn”.");
@@ -608,7 +633,7 @@ export async function ghiDieuChinh(db: D1Database, input: { raw: unknown; ai: Ng
   const b = (input.raw ?? {}) as Record<string, unknown>;
   const lyDo = docLyDo(b.lyDo, true);
   if (!lyDo.ok) return lyDo;
-  const ngay = docNgay(b.ngayPhatSinh);
+  const ngay = docNgay(b.ngayPhatSinh, await layKyDaKhoa(db));
   if (!ngay.ok) return ngay;
   const at = new Date().toISOString();
   const by = input.ai.staffId;
@@ -642,6 +667,8 @@ export async function ghiDieuChinh(db: D1Database, input: { raw: unknown; ai: Ng
     try {
       await db.batch(stmts);
     } catch (e) {
+      const k = await loiKhoaKy(db, e, [ngay.value]);
+      if (k) return k;
       if (/UNIQUE constraint failed: bil_(payment_receipt\.reverses_id|debt_line\.reverses_line_id)/.test(e instanceof Error ? e.message : String(e))) return loi(409, "stale", "Lần thu này đã được đảo.");
       // ADR-0089 đ15 (mọi lúc — NT-B2): đảo làm đã trả dưới tổng duyệt hoàn cọc của đơn huỷ.
       if (loiTrigger(e, "coc_paid_below_approved")) return loi(409, "coc_paid_below_approved", "Đơn đã duyệt hoàn cọc — huỷ duyệt phần chưa chi trước khi đảo lần thu.");
@@ -670,6 +697,8 @@ export async function ghiDieuChinh(db: D1Database, input: { raw: unknown; ai: Ng
     try {
       await db.batch(stmts);
     } catch (e) {
+      const k = await loiKhoaKy(db, e, [ngay.value]);
+      if (k) return k;
       if (/UNIQUE constraint failed: bil_debt_line\.reverses_line_id/.test(e instanceof Error ? e.message : String(e))) return loi(409, "stale", "Dòng này đã được đảo.");
       if (loiTrigger(e, "held_already_settled")) return loi(409, "held_already_settled", "Khoản giữ hộ này đã được ghi nộp — đảo lần nộp trước.");
       if (loiTrigger(e, "held_single_reversal")) return HELD_DON_LE();
@@ -708,7 +737,13 @@ export async function ghiDieuChinh(db: D1Database, input: { raw: unknown; ai: Ng
       lineIfPostingStatement(db, lineOf({ debtorPartyId: b.benNo, creditorPartyId: b.benDuocNo, amount: so.value, kind: b.loaiDong, reversesLineId: null }, postingId, b.orderId, null, at, by)),
       auditStatement(db, { orderId: b.orderId, staffId: by, action: "ledger_adjustment", at, detail: chiTiet }),
     ];
-    await db.batch(stmts);
+    try {
+      await db.batch(stmts);
+    } catch (e) {
+      const k = await loiKhoaKy(db, e, [ngay.value]);
+      if (k) return k;
+      throw e;
+    }
     return { ok: true, value: { orderId: b.orderId } };
   }
   return loi(400, "invalid_input", "Chọn loại: đảo lần thu, đảo dòng sổ hoặc điều chỉnh.");
@@ -749,5 +784,28 @@ export async function soCongNo(db: D1Database): Promise<SoCongNoResponse> {
     soDu: soDu.map((r) => ({ partyId: r.party_id, ten: r.label ?? "—", dangGiu: r.balance })),
     choXacNhan: cho.map((r) => ({ receiptId: r.receipt_id, orderId: r.order_id, maDon: r.order_code, soTien: r.amount, ngay: r.occurred_date, nguoiKhai: r.nguoi_khai ?? "—" })),
     chuaRo: chuaRo.map((r) => ({ receiptId: r.receipt_id, orderId: r.order_id, maDon: r.order_code, soTien: r.amount, ngay: r.occurred_date })),
+  };
+}
+
+/**
+ * Khoá sổ tháng (ADR-0080 D1): tháng đã khoá, tháng khoá được kế tiếp và bảng kiểm của tháng đó — dùng chung cho `GET /api/ledger/ky` và thân `201` của lệnh khoá.
+ * Bảng kiểm chỉ có mã đơn, số tiền, ngày (không SĐT, không mã giao dịch, không người khai). `coTheKhoa` = người gọi có ô `ledger.period.close` (route hỏi) VÀ còn tháng khoá được.
+ */
+export async function kySoResponse(db: D1Database, v: { homNay: string; coQuyenKhoa: boolean }): Promise<KySoResponse> {
+  const [daKhoa, som] = await Promise.all([thangDaKhoa(db), earliestLedgerMonth(db)]);
+  const keTiep = thangKhoaDuocKeTiep({ homNay: v.homNay, daKhoa, thangSoSomNhat: som });
+  if (keTiep === null) return { daKhoa, keTiep: null, coTheKhoa: false, bangKiem: null };
+  const [cho, chuaRo, soDu] = await Promise.all([pendingCompany(db), unknownReceipts(db), balancesAt(db, ngayCuoiThang(keTiep))]);
+  const trongThang = <T extends { occurred_date: string }>(rows: readonly T[]): T[] => rows.filter((r) => kyCua(r.occurred_date) === keTiep);
+  return {
+    daKhoa,
+    keTiep,
+    coTheKhoa: v.coQuyenKhoa,
+    bangKiem: {
+      thang: keTiep,
+      choXacNhanCongTy: trongThang(cho).map((r) => ({ orderCode: r.order_code, amount: r.amount, ngay: r.occurred_date })),
+      chuaRoNguoiThu: trongThang(chuaRo).map((r) => ({ orderCode: r.order_code, amount: r.amount, ngay: r.occurred_date })),
+      soDuCuoiThang: soDu.map((r) => ({ ten: r.label ?? "—", soDu: r.balance })),
+    },
   };
 }

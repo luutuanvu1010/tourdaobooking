@@ -106,6 +106,33 @@ const BALANCES_WITH_OWNER = defineSql(
 export const balancesWithOwner = async (db: D1Database): Promise<{ party_id: string; label: string | null; balance: number }[]> =>
   (await db.prepare(BALANCES_WITH_OWNER).all<{ party_id: string; label: string | null; balance: number }>()).results;
 
+/**
+ * Số dư mọi bên với công ty chủ TÍNH ĐẾN ngày ?1 (khoá tháng — ADR-0080 D1: bảng kiểm trước khi khoá): cùng phép cộng hai chiều như view `v_bil_party_balance`
+ * (dòng nợ + dòng đảo chiều) nhưng chỉ lấy dòng nợ có NGÀY PHÁT SINH của phiếu nguồn `<= ?1`. Cùng quy ước dấu và bộ lọc công ty chủ như `BALANCES_WITH_OWNER`.
+ * Không có dòng nào sau ngày ?1 ⇒ trùng `balancesWithOwner` (bài `khoa-thang.test.ts`).
+ */
+const BALANCES_AT = defineSql(
+  "billing",
+  "balances_at",
+  `SELECT b.party_id, pl.display_name AS label, SUM(b.so) AS balance FROM (
+     SELECT l.debtor_party_id AS party_id, l.creditor_party_id AS counterparty_id, l.amount AS so FROM bil_debt_line l JOIN bil_posting p ON p.id = l.posting_id WHERE p.occurred_date <= ?1
+     UNION ALL
+     SELECT l.creditor_party_id, l.debtor_party_id, -l.amount FROM bil_debt_line l JOIN bil_posting p ON p.id = l.posting_id WHERE p.occurred_date <= ?1
+   ) b LEFT JOIN v_pty_party_label pl ON pl.id = b.party_id
+   WHERE b.counterparty_id = (SELECT party_id FROM v_pty_owner_company LIMIT 1) GROUP BY b.party_id, pl.display_name HAVING SUM(b.so) <> 0 ORDER BY pl.sort_key`,
+);
+export const balancesAt = async (db: D1Database, ngayCuoi: string): Promise<{ party_id: string; label: string | null; balance: number }[]> =>
+  (await db.prepare(BALANCES_AT).bind(ngayCuoi).all<{ party_id: string; label: string | null; balance: number }>()).results;
+
+/** Tháng ("YYYY-MM") của dòng sổ tiền sớm nhất (lần thu, phiếu, dòng hoàn ngoài) — lần khoá tháng ĐẦU TIÊN không được bắt đầu SAU tháng này (ADR-0080 D1). */
+const THANG_SO_SOM_NHAT = defineSql(
+  "billing",
+  "earliest_ledger_month",
+  `SELECT substr(min(d), 1, 7) AS thang FROM (SELECT min(occurred_date) AS d FROM bil_payment_receipt UNION ALL SELECT min(occurred_date) FROM bil_posting
+   UNION ALL SELECT min(occurred_date) FROM bil_outside_refund)`,
+);
+export const earliestLedgerMonth = async (db: D1Database): Promise<string | null> => (await db.prepare(THANG_SO_SOM_NHAT).first<{ thang: string | null }>())?.thang ?? null;
+
 /** Khoản "Công ty thu" do người không phải Kế toán khai, CHƯA được Kế toán xác nhận (dòng giữ hộ trên người khai chưa bị đảo — H3). */
 const PENDING_COMPANY = defineSql(
   "billing",
