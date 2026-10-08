@@ -217,6 +217,30 @@ test("ord_service_terms AUTO: điều khoản người bán phải còn hiệu l
   chen("2026-10-08", ct, goc);
 });
 
+test("v_ord_terms_missing: đơn có bản HIỆN HÀNH thiếu hoa hồng hoặc thiếu người bán thì có mặt; bản mới thay thế (đủ) thì biến mất", () => {
+  const { db, ct, dl } = moi();
+  const goc = one<{ id: string }>(db, "SELECT id FROM prc_supply_term WHERE scope = 'ALL'").id;
+  const thieu = () => (db.prepare("SELECT order_id FROM v_ord_terms_missing ORDER BY order_id").all() as { order_id: string }[]).map((r) => r.order_id);
+  // Đơn 1: hoa hồng MISSING (không có mức) nhưng đã có người bán.
+  const d1 = don(db, "confirmed");
+  const t1 = id("t");
+  run(db, `INSERT INTO ord_service_terms (id, order_id, order_service_id, beneficiary_party_id, commission_status, missing_reason, supply_status, seller_party_id, supply_term_id, source, captured_date, created_at, updated_at)
+    VALUES (?, ?, ?, ?, 'MISSING', 'NO_RULE', 'SET', ?, ?, 'AUTO', '2026-10-08', ?, ?)`, t1, d1.o, d1.s, dl, ct, goc, AT, AT);
+  // Đơn 2: người bán MISSING (không có điều khoản) nhưng hoa hồng NONE.
+  const d2 = don(db, "confirmed");
+  run(db, `INSERT INTO ord_service_terms (id, order_id, order_service_id, beneficiary_party_id, commission_status, supply_status, seller_party_id, supply_term_id, source, captured_date, created_at, updated_at)
+    VALUES (?, ?, ?, NULL, 'NONE', 'MISSING', NULL, NULL, 'AUTO', '2026-10-08', ?, ?)`, id("t"), d2.o, d2.s, AT, AT);
+  // Đơn 3: đủ cả hai ⇒ không có mặt.
+  const d3 = don(db, "confirmed");
+  chup(db, d3.o, d3.s);
+  assert.deepEqual(thieu(), [d1.o, d2.o].sort());
+  // Bản MANUAL thay bản hiện hành của đơn 1 bằng hoa hồng SET ⇒ bản MISSING cũ không còn là hiện hành ⇒ đơn 1 biến mất; đơn 2 vẫn còn.
+  run(db, `INSERT INTO ord_service_terms (id, order_id, order_service_id, beneficiary_party_id, commission_status, commission_kind, commission_rate_bp, supply_status, seller_party_id, supply_term_id,
+      source, reason, supersedes_id, captured_date, created_at, updated_at) VALUES (?, ?, ?, ?, 'SET', 'RATE', 1500, 'SET', ?, ?, 'MANUAL', 'Kế toán ghi mức tay cho đơn này', ?, '2026-10-08', ?, ?)`,
+    id("t"), d1.o, d1.s, dl, ct, goc, t1, AT, AT);
+  assert.deepEqual(thieu(), [d2.o]);
+});
+
 test("ord_audit_cutoff: chỉ-thêm (không sửa, không xoá)", () => {
   const { db } = moi();
   assert.throws(() => run(db, "UPDATE ord_audit_cutoff SET cutoff_at = '2020-01-01T00:00:00.000Z' WHERE code = 'R-ORD-T1'"), /terms_append_only:/);
