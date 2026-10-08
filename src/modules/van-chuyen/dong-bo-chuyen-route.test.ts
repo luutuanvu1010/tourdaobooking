@@ -513,3 +513,55 @@ test("NT-5 tăng khách qua HDV (handler-money-edit, Q-2 = a) → mở thêm đ�
     tat();
   }
 });
+
+// ---- Phiếu kiểm Đ2 CAO-1: câu đơn và phần chuyến ghi trong CÙNG MỘT db.batch (ADR-0104 Đ2.3) ----
+// Hạ sức chở của xe giữa lúc máy đọc và lúc ghi ⇒ câu mở suất của máy vấp luật sức chở (LC-02) lúc ghi. Một lô: CẢ lô huỷ, lệnh đơn không để lại gì.
+// Chia lô làm hai (câu đơn chạy trước, phần chuyến sau) thì câu đơn đã ghi rồi mới vấp ⇒ bài đỏ.
+test("CAO-1 (Đ2.3 một lô): sửa chặng 3 → 4 người, xe bị hạ còn 3 chỗ giữa lúc đọc và lúc ghi → 409 trip_rule; pax_override vẫn 3, không dòng order_leg_updated, chuyến không đổi", async () => {
+  const tat = batDongHo();
+  let xeId = "";
+  let bat = false;
+  try {
+    const w = setup({ chenGiuaDocVaGhi: async () => { if (bat) w.sqlite.prepare("UPDATE vc_vehicle SET passenger_capacity = 3 WHERE id = ?").run(xeId); } });
+    const d = await donVe(w, 3);
+    xeId = xe(w);
+    const t = await taoChuyen(w, { xe: xeId, taiXe: `pty-${DRIVER}` });
+    await xep(w, t.chuyen.id, d.legId, 3);
+    const truoc = moCua(w, t.chuyen.id, d.legId);
+    const nkTruoc = w.q("SELECT count(*) n FROM audit_log WHERE action = 'order_leg_updated'")[0].n;
+    bat = true;
+    const r = await suaVe(w, d, 4);
+    assert.equal(r.status, 409, r.text);
+    assert.equal(r.json.error.code, "trip_rule", r.text);
+    assert.equal(w.q("SELECT pax_override FROM ord_transfer_leg WHERE id = ?", d.legId)[0].pax_override, 3, "câu đơn không được ghi riêng");
+    assert.equal(w.q("SELECT count(*) n FROM audit_log WHERE action = 'order_leg_updated'")[0].n, nkTruoc, "không dòng nhật ký sửa chặng");
+    assert.deepEqual(moCua(w, t.chuyen.id, d.legId), truoc);
+    assert.deepEqual(nhatKyDongBo(w), []);
+  } finally {
+    tat();
+  }
+});
+
+test("CAO-1 (Đ2.3 một lô): văn phòng sửa số khách 2 → 3, xe bị hạ còn 2 chỗ giữa lúc đọc và lúc ghi → 409 trip_rule; không dòng điều chỉnh, không nhật ký sửa số khách, chuyến không đổi", async () => {
+  const tat = batDongHo();
+  let xeId = "";
+  let bat = false;
+  try {
+    const w = setup({ chenGiuaDocVaGhi: async () => { if (bat) w.sqlite.prepare("UPDATE vc_vehicle SET passenger_capacity = 2 WHERE id = ?").run(xeId); } });
+    const d = await don(w, { soNguoi: 2 });
+    xeId = xe(w);
+    const t = await taoChuyen(w, { xe: xeId, taiXe: `pty-${DRIVER}` });
+    await xepHet(w, t, d, 2);
+    const truoc = moCua(w, t.chuyen.id, d.legId);
+    bat = true;
+    const r = await suaSoKhach(w, d.id, 3);
+    assert.equal(r.status, 409, r.text);
+    assert.equal(r.json.error.code, "trip_rule", r.text);
+    assert.equal(w.q("SELECT count(*) n FROM order_money_adjustment WHERE order_id = ?", d.id)[0].n, 0, "câu đơn không được ghi riêng");
+    assert.equal(w.q("SELECT count(*) n FROM audit_log WHERE action = 'order_money_adjusted'")[0].n, 0, "không dòng nhật ký sửa số khách");
+    assert.deepEqual(moCua(w, t.chuyen.id, d.legId), truoc);
+    assert.deepEqual(nhatKyDongBo(w), []);
+  } finally {
+    tat();
+  }
+});
