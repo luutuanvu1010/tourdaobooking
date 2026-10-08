@@ -61,6 +61,12 @@ export const AUDIT_ACTIONS = {
   deposit_outside_recorded: { label: "Ghi đã hoàn ngoài hệ thống", group: "ledger" },
   deposit_outside_confirmed: { label: "Xác nhận đã hoàn ngoài hệ thống", group: "ledger" },
   deposit_outside_rejected: { label: "Từ chối dòng đã hoàn ngoài hệ thống", group: "ledger" },
+  // Sổ đại lý đợt 1 (ADR-0077, ADR-0078 B1; module pricing): thêm / đóng dòng mức hoa hồng và điều khoản người bán — `order_id` NULL; `detail` = mô tả lời thường
+  // ("<đối tượng> · <phạm vi> · <mức>"), KHÔNG SĐT, không tiền khách.
+  prc_commission_rule_added: { label: "Thêm mức hoa hồng", group: "ledger" },
+  prc_commission_rule_closed: { label: "Đóng mức hoa hồng", group: "ledger" },
+  prc_supply_term_added: { label: "Thêm điều khoản người bán", group: "ledger" },
+  prc_supply_term_closed: { label: "Đóng điều khoản người bán", group: "ledger" },
   order_handler_changed: { label: "Đổi người phụ trách", group: "order" },
   order_claimed: { label: "Tự nhận phụ trách đơn", group: "order" },
   booker_changed: { label: "Đổi khách", group: "order" },

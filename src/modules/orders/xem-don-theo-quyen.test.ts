@@ -295,6 +295,7 @@ test("ADR-0030 L1-12: MỌI ô của Đối tác (PARTNER) giữ nguyên — ghi
     "trip.view": "none", "trip.dispatch": "none", "trip.override": "none", "trip.progress": "none", "trip.call_ack": "none", "trip.passenger.add": "none", // ADR-0049 D3: Đối tác không thấy lịch xe (C1); ADR-0052 D5b: không bổ sung tên
     "assistant.ask": "any", // ADR-0066 điều 1: hỏi trợ lý Hỗ trợ — mọi tài khoản đăng nhập
     "auth.session.viewAll": "none", "auth.session.revoke": "none", "auth.session.policy": "none", // ADR-0075 điều 7: sổ phiên chỉ Toàn quyền
+    "partner.commission.view": "none", "partner.commission.write": "none", "supply.terms.view": "none", "supply.terms.write": "none", // sổ đại lý đợt 1: Đối tác không thấy bảng mức, người bán (ADR-0077 điều 11; tỷ lệ chỉ văn phòng)
   };
   const actual = Object.fromEntries((Object.keys(MATRIX) as OperationCode[]).map((op) => [op, MATRIX[op].PARTNER]));
   assert.deepEqual(actual, PARTNER_ROW);

@@ -28,6 +28,7 @@ import { locationsModule } from "./modules/locations";
 import { feedbackModule } from "./modules/feedback";
 import { maintenanceBlock, maintenanceModule, type MaintenanceState } from "./modules/maintenance";
 import { partiesModule } from "./modules/parties";
+import { pricingModule } from "./modules/pricing";
 import { cauDoiNguoiDat, donCuaNguoiDat, findOrderRef, ordersModule } from "./modules/orders";
 import { accountOfParty, listStaffAccounts, nhanNhanVienTheoId, soDangNhapTheoHoSo } from "./modules/staff";
 import { dayGoCua, dongChuyenTheoId, tatMayCuaCacPhienStatement, tatMayCuaPhienStatement, tatMayStatement, tatMayTruPhienStatement, thongbaoModule } from "./modules/thongbao";
@@ -56,7 +57,7 @@ async function nemNeuLoi(viec: [string, Promise<unknown> | null][]): Promise<voi
 }
 
 const APP_OPTIONS: AppOptions = {
-  modules: [authModule, accountsModule, ordersModule, dispatchModule, billingModule, receiptModule, catalogModule, auditModule, locationsModule, partiesModule, companyModule, maintenanceModule, giaoDienModule, feedbackModule, bangtinModule, thongbaoModule, vanChuyenModule, troLyModule],
+  modules: [authModule, accountsModule, ordersModule, dispatchModule, billingModule, pricingModule, receiptModule, catalogModule, auditModule, locationsModule, partiesModule, companyModule, maintenanceModule, giaoDienModule, feedbackModule, bangtinModule, thongbaoModule, vanChuyenModule, troLyModule],
   currentStaff,
   // Cấu hình bắt buộc: khoá phiên (auth) VÀ khoá HMAC của lớp vé (lan-gui, ADR-0094 đ4) — mỗi module kiểm khoá của mình; thiếu một ⇒ mọi API 500.
   checkConfig: (env) => checkAuthConfig(env) ?? checkLanGuiConfig(env),

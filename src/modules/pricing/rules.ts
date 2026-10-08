@@ -155,3 +155,95 @@ export function tinhDongDoiTac(c: BanChup, tien: { thanhTien: number; soKhachTin
   const giaVon = cu.status === "SET" && cu.supplierPartyId !== null && cu.costRateBp !== null ? giaVonDong({ costRateBp: cu.costRateBp, thanhTien: tien.thanhTien }) : null;
   return { serviceId: c.serviceId, thanhTien: tien.thanhTien, soKhachTinh: tien.soKhachTinh, hoaHong, giaDaiLy: hoaHong === null ? null : tien.thanhTien - hoaHong, giaVon };
 }
+
+// ===== Kiểm thân route của bảng mức và điều khoản (Task 3; đặc tả §6). Chỉ thêm, không đổi hàm ở trên. =====
+type Ket<T> = { ok: true; value: T } | { ok: false; message: string };
+const NGAY_RE = /^\d{4}-\d{2}-\d{2}$/;
+export const PARTY_RE = /^[A-Za-z0-9-]{1,64}$/;
+export const MA_RE = /^[A-Za-z0-9_]{1,40}$/;
+export const laNgay = (s: unknown): s is string => typeof s === "string" && NGAY_RE.test(s) && new Date(`${s}T00:00:00Z`).toISOString().slice(0, 10) === s;
+const laPhanVan = (n: unknown): n is number => typeof n === "number" && Number.isInteger(n) && n >= 0 && n <= 10_000;
+/** Ghi chú tuỳ chọn ≤ 200 ký tự, không dãy ≥ 8 chữ số (khuôn billing: không SĐT / số tài khoản). */
+function docGhiChu(raw: unknown): Ket<string | null> {
+  if (raw === undefined || raw === null || raw === "") return { ok: true, value: null };
+  if (typeof raw !== "string" || raw.length > 200) return { ok: false, message: "Ghi chú tối đa 200 ký tự." };
+  if (/\d{8,}/.test(raw.replace(/[\s.-]/g, ""))) return { ok: false, message: "Ghi chú không được chứa số điện thoại / số tài khoản." };
+  return { ok: true, value: raw.trim() || null };
+}
+function docPhamVi(b: Record<string, unknown>): Ket<{ scope: PhamVi; catalogCode: string | null; groupCode: string | null }> {
+  if (b.phamVi === "ALL") return { ok: true, value: { scope: "ALL", catalogCode: null, groupCode: null } };
+  if (b.phamVi === "SERVICE" && typeof b.catalogCode === "string" && MA_RE.test(b.catalogCode)) return { ok: true, value: { scope: "SERVICE", catalogCode: b.catalogCode, groupCode: null } };
+  if (b.phamVi === "GROUP" && typeof b.groupCode === "string" && MA_RE.test(b.groupCode)) return { ok: true, value: { scope: "GROUP", catalogCode: null, groupCode: b.groupCode } };
+  return { ok: false, message: "Chọn phạm vi: một dịch vụ, một nhóm dịch vụ, hoặc mọi dịch vụ." };
+}
+function docKhoangNgay(b: Record<string, unknown>): Ket<{ validFrom: string; validTo: string | null }> {
+  if (!laNgay(b.tuNgay)) return { ok: false, message: "Ngày bắt đầu không hợp lệ." };
+  if (b.denNgay === undefined || b.denNgay === null || b.denNgay === "") return { ok: true, value: { validFrom: b.tuNgay, validTo: null } };
+  if (!laNgay(b.denNgay) || b.denNgay < b.tuNgay) return { ok: false, message: "Ngày kết thúc không hợp lệ hoặc trước ngày bắt đầu." };
+  return { ok: true, value: { validFrom: b.tuNgay, validTo: b.denNgay } };
+}
+
+export type ThanMuc = Omit<DongMuc, "id" | "validFrom" | "validTo"> & { validFrom: string; validTo: string | null; note: string | null };
+/** Thân `POST /api/pricing/hoa-hong`: { doiTuong: { loai: "VAI", code } | { loai: "DOI_TAC", partyId }, phamVi, catalogCode?, groupCode?, kieu, tyLeBp? | moiKhach?, tuNgay, denNgay?, ghiChu? }. */
+export function kiemThanMuc(raw: unknown): Ket<ThanMuc> {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return { ok: false, message: "Thiếu thông tin mức hoa hồng." };
+  const b = raw as Record<string, unknown>;
+  const dt = b.doiTuong as Record<string, unknown> | undefined;
+  let targetPartyId: string | null = null;
+  let targetRoleCode: string | null = null;
+  if (dt?.loai === "VAI" && typeof dt.code === "string" && MA_RE.test(dt.code)) targetRoleCode = dt.code;
+  else if (dt?.loai === "DOI_TAC" && typeof dt.partyId === "string" && PARTY_RE.test(dt.partyId)) targetPartyId = dt.partyId;
+  else return { ok: false, message: "Chọn áp cho một loại đối tác hoặc một đối tác cụ thể." };
+  const pv = docPhamVi(b);
+  if (!pv.ok) return pv;
+  let kind: KieuMuc;
+  let rateBp: number | null = null;
+  let perPaxAmount: number | null = null;
+  if (b.kieu === "RATE" && laPhanVan(b.tyLeBp)) { kind = "RATE"; rateBp = b.tyLeBp; }
+  else if (b.kieu === "PER_PAX" && typeof b.moiKhach === "number" && Number.isInteger(b.moiKhach) && b.moiKhach >= 0 && b.moiKhach <= 100_000_000) { kind = "PER_PAX"; perPaxAmount = b.moiKhach; }
+  else return { ok: false, message: "Mức phải là tỷ lệ từ 0% tới 100% (tối đa hai chữ số thập phân) hoặc số tiền mỗi khách không âm." };
+  const kn = docKhoangNgay(b);
+  if (!kn.ok) return kn;
+  const gc = docGhiChu(b.ghiChu);
+  if (!gc.ok) return gc;
+  return { ok: true, value: { targetPartyId, targetRoleCode, ...pv.value, kind, rateBp, perPaxAmount, ...kn.value, note: gc.value } };
+}
+
+export type ThanDieuKhoan = { scope: PhamVi; catalogCode: string | null; groupCode: string | null; sellerPartyId: string; costRateBp: number | null; validFrom: string; validTo: string | null; note: string | null };
+/** Thân `POST /api/pricing/cung-ung`: { phamVi, catalogCode?, groupCode?, nguoiBanPartyId, tyLeMuaBp?, tuNgay, denNgay?, ghiChu? }. Nhà cung cấp = người bán (máy chủ suy). */
+export function kiemThanDieuKhoan(raw: unknown): Ket<ThanDieuKhoan> {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return { ok: false, message: "Thiếu thông tin điều khoản." };
+  const b = raw as Record<string, unknown>;
+  const pv = docPhamVi(b);
+  if (!pv.ok) return pv;
+  if (typeof b.nguoiBanPartyId !== "string" || !PARTY_RE.test(b.nguoiBanPartyId)) return { ok: false, message: "Chọn người bán." };
+  let costRateBp: number | null = null;
+  if (b.tyLeMuaBp !== undefined && b.tyLeMuaBp !== null) {
+    if (!laPhanVan(b.tyLeMuaBp)) return { ok: false, message: "Tỷ lệ mua lại phải từ 0% tới 100%." };
+    costRateBp = b.tyLeMuaBp;
+  }
+  const kn = docKhoangNgay(b);
+  if (!kn.ok) return kn;
+  const gc = docGhiChu(b.ghiChu);
+  if (!gc.ok) return gc;
+  return { ok: true, value: { ...pv.value, sellerPartyId: b.nguoiBanPartyId, costRateBp, ...kn.value, note: gc.value } };
+}
+
+export function kiemNgayDong(raw: unknown, tuNgay: string): Ket<string> {
+  const d = (raw as { denNgay?: unknown } | null)?.denNgay;
+  if (!laNgay(d) || d < tuNgay) return { ok: false, message: "Ngày kết thúc không hợp lệ hoặc trước ngày bắt đầu của dòng." };
+  return { ok: true, value: d };
+}
+
+const nhanBp = (bp: number): string => {
+  const nguyen = Math.floor(bp / 100);
+  const le = String(bp % 100).padStart(2, "0").replace(/0+$/, "");
+  return le ? `${nguyen},${le}%` : `${nguyen}%`;
+};
+const nhanDong = (n: number): string => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+/** Mô tả một dòng mức cho nhật ký: "<đối tượng> · <phạm vi> · <mức>". Không SĐT, không tiền khách. */
+export function moTaMuc(v: { doiTuong: string; scope: PhamVi; catalogCode: string | null; groupCode: string | null; kind: KieuMuc; rateBp: number | null; perPaxAmount: number | null }): string {
+  const pv = v.scope === "ALL" ? "mọi dịch vụ" : v.scope === "GROUP" ? `nhóm ${v.groupCode}` : `dịch vụ ${v.catalogCode}`;
+  const muc = v.kind === "RATE" ? nhanBp(v.rateBp ?? 0) : `${nhanDong(v.perPaxAmount ?? 0)}đ/khách`;
+  return `${v.doiTuong} · ${pv} · ${muc}`;
+}

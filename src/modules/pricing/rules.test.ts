@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  chonDieuKhoan, chonMuc, chupDon, giaVonDong, hoaHongDong, lamTronNuaLen, nguoiHuongCua, soKhachTinhHoaHong, tinhDongDoiTac,
+  chonDieuKhoan, chonMuc, chupDon, giaVonDong, hoaHongDong, kiemNgayDong, kiemThanDieuKhoan, kiemThanMuc, lamTronNuaLen, moTaMuc, nguoiHuongCua, soKhachTinhHoaHong, tinhDongDoiTac,
   type DongDieuKhoan, type DongMuc, type NguoiHuong,
 } from "./rules.ts";
 
@@ -25,6 +25,9 @@ test("người hưởng: bên đặt mang vai được hưởng ⇒ HUONG; vai b
   assert.deepEqual(g([{ roleTypeCode: "SALES", roleGroup: "INTERNAL" }]), { loai: "NONE" });
   assert.deepEqual(g([{ roleTypeCode: "TRAVEL_AGENCY", roleGroup: "EXTERNAL" }], "ct"), { loai: "NONE" });
   assert.deepEqual(g([], null), { loai: "NONE" });
+  // Mang cả vai được hưởng lẫn vai bên ngoài không được hưởng: vẫn HUONG, và `vai` chỉ giữ vai được hưởng.
+  assert.deepEqual(g([{ roleTypeCode: "TRAVEL_AGENCY", roleGroup: "EXTERNAL" }, { roleTypeCode: "DRIVER_EXTERNAL", roleGroup: "EXTERNAL" }]),
+    { loai: "HUONG", partyId: "p", vai: ["TRAVEL_AGENCY"] });
 });
 
 test("chonMuc: đủ sáu bậc, bậc cụ thể nhất thắng", () => {
@@ -41,6 +44,8 @@ test("chonMuc: đủ sáu bậc, bậc cụ thể nhất thắng", () => {
   assert.deepEqual(bac(c("HONTAM", "VE")), [1, 1200]);
   assert.deepEqual(bac(c("DUTHUYEN", "DTH")), [2, 1300]);
   assert.deepEqual(bac(c("KHAC", "VE")), [3, 1100]);
+  // Mức riêng của đối tác (bậc 3, mọi dịch vụ) thắng mức theo vai ở bậc dịch vụ (bậc 4): thứ tự là "đối tác trước, vai sau", không phải "phạm vi trước".
+  assert.deepEqual(bac(c("VINW", "VE")), [3, 1100]);
   const B: NguoiHuong = { loai: "HUONG", partyId: "dl-b", vai: ["TRAVEL_AGENCY"] };
   assert.deepEqual(bac(c("VINW", "VE", B)), [4, 900]);
   assert.deepEqual(bac(c("TOURDAO", "TOUR", B)), [5, 800]);
@@ -68,6 +73,13 @@ test("chonMuc: hai vai cùng bậc khác mức ⇒ RULE_CONFLICT; cùng mức �
   assert.deepEqual(c(DL_A, giong, null), { trangThai: "MISSING", lyDo: "MANUAL_LINE" });
   assert.deepEqual(c({ loai: "KHONG_HUONG", partyId: "tx" }, giong), { trangThai: "MISSING", lyDo: "BOOKER_NOT_BENEFICIARY" });
   assert.deepEqual(c({ loai: "NONE" }, giong), { trangThai: "NONE" });
+});
+
+test("chonMuc: hai vai cùng bậc, cùng giá trị 1000 nhưng khác kiểu (tỷ lệ so với đ/khách) ⇒ RULE_CONFLICT", () => {
+  const hai: NguoiHuong = { loai: "HUONG", partyId: "p", vai: ["COLLABORATOR", "TRAVEL_AGENCY"] };
+  const ds = [muc({ targetRoleCode: "TRAVEL_AGENCY", kind: "RATE", rateBp: 1000, perPaxAmount: null }),
+    muc({ targetRoleCode: "COLLABORATOR", kind: "PER_PAX", rateBp: null, perPaxAmount: 1000 })];
+  assert.deepEqual(chonMuc({ nguoiHuong: hai, catalogCode: "X", groupCode: null, ngay: "2026-10-10", dong: ds }), { trangThai: "MISSING", lyDo: "RULE_CONFLICT" });
 });
 
 test("chonMuc: dịch vụ Chưa phân loại chỉ khớp bậc dịch vụ hoặc mọi dịch vụ", () => {
@@ -159,4 +171,39 @@ test("bên đặt cũng là nhà cung cấp của dòng ⇒ hoa hồng dòng đ�
   const [c] = chupDon({ nguoiHuong: nh, ngay: "2026-10-10", dong: [{ serviceId: "s", catalogCode: "IRESORT", groupCode: "VE", thanhTien: 300_000 }], muc: [muc({})],
     dieuKhoan: [dk({}), dk({ scope: "SERVICE", catalogCode: "IRESORT", sellerPartyId: "ncc", supplierPartyId: "ncc", costRateBp: 8000 })] });
   assert.deepEqual(c!.hoaHong, { status: "MISSING", reason: "RULE_CONFLICT" });
+});
+
+// ===== Task 3: luật kiểm thân route (đặc tả §6) =====
+test("kiemThanMuc: đúng một đối tượng, phạm vi khớp mã, tỷ lệ phần vạn 0…10000 hoặc đ/khách ≥ 0, ngày hợp lệ, ghi chú không chứa dãy số dài", () => {
+  const goc = { doiTuong: { loai: "VAI", code: "TRAVEL_AGENCY" }, phamVi: "GROUP", groupCode: "DTH", kieu: "RATE", tyLeBp: 1500, tuNgay: "2026-10-10" };
+  const ok = kiemThanMuc(goc);
+  assert.ok(ok.ok);
+  assert.deepEqual(ok.ok && ok.value, { targetPartyId: null, targetRoleCode: "TRAVEL_AGENCY", scope: "GROUP", catalogCode: null, groupCode: "DTH", kind: "RATE", rateBp: 1500, perPaxAmount: null,
+    validFrom: "2026-10-10", validTo: null, note: null });
+  assert.equal(kiemThanMuc({ ...goc, tyLeBp: 10001 }).ok, false);
+  assert.equal(kiemThanMuc({ ...goc, tyLeBp: 12.5 }).ok, false, "phần vạn phải là số nguyên");
+  assert.equal(kiemThanMuc({ ...goc, phamVi: "SERVICE" }).ok, false, "phạm vi dịch vụ mà không có mã");
+  assert.equal(kiemThanMuc({ ...goc, kieu: "PER_PAX", tyLeBp: undefined, moiKhach: -1 }).ok, false);
+  assert.equal(kiemThanMuc({ ...goc, tuNgay: "2026-02-30" }).ok, false);
+  assert.equal(kiemThanMuc({ ...goc, denNgay: "2026-10-09" }).ok, false, "ngày kết thúc trước ngày bắt đầu");
+  assert.equal(kiemThanMuc({ ...goc, ghiChu: "gọi 0905123456" }).ok, false);
+  assert.equal(kiemThanMuc({ ...goc, doiTuong: { loai: "DOI_TAC", partyId: "x y" } }).ok, false);
+});
+
+test("kiemThanDieuKhoan: người bán bắt buộc; tỷ lệ mua lại phần vạn khi có", () => {
+  assert.ok(kiemThanDieuKhoan({ phamVi: "SERVICE", catalogCode: "IRESORT", nguoiBanPartyId: "pty-1", tyLeMuaBp: 8000, tuNgay: "2026-10-10" }).ok);
+  assert.equal(kiemThanDieuKhoan({ phamVi: "SERVICE", catalogCode: "IRESORT", tuNgay: "2026-10-10" }).ok, false);
+  assert.equal(kiemThanDieuKhoan({ phamVi: "ALL", nguoiBanPartyId: "pty-1", tyLeMuaBp: -5, tuNgay: "2026-10-10" }).ok, false);
+});
+
+test("kiemNgayDong: ngày đóng ≥ ngày bắt đầu của dòng", () => {
+  assert.ok(kiemNgayDong({ denNgay: "2026-10-31" }, "2026-10-01").ok);
+  assert.equal(kiemNgayDong({ denNgay: "2026-09-30" }, "2026-10-01").ok, false);
+  assert.equal(kiemNgayDong({}, "2026-10-01").ok, false);
+});
+
+test("moTaMuc: lời thường cho nhật ký, không SĐT, tỷ lệ bỏ số 0 thừa", () => {
+  assert.equal(moTaMuc({ doiTuong: "Công ty lữ hành", scope: "GROUP", catalogCode: null, groupCode: "DTH", kind: "RATE", rateBp: 1250, perPaxAmount: null }), "Công ty lữ hành · nhóm DTH · 12,5%");
+  assert.equal(moTaMuc({ doiTuong: "đối tác pty-1", scope: "SERVICE", catalogCode: "HONTAM", groupCode: null, kind: "PER_PAX", rateBp: null, perPaxAmount: 50_000 }), "đối tác pty-1 · dịch vụ HONTAM · 50.000đ/khách");
+  assert.equal(moTaMuc({ doiTuong: "Cộng tác viên", scope: "ALL", catalogCode: null, groupCode: null, kind: "RATE", rateBp: 1000, perPaxAmount: null }), "Cộng tác viên · mọi dịch vụ · 10%");
 });

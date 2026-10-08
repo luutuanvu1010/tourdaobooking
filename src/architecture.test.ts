@@ -50,8 +50,7 @@ const ALLOWED_EDGES: Record<string, readonly string[]> = {
   // pricing: ADR-0024 điều 2 — tỷ lệ chiết khấu/hoa hồng chụp trong luồng của đơn lúc Xác nhận (lượt 2; lượt 1 chưa import).
   orders: ["audit", "catalog", "staff", "parties", "locations", "pricing"],
   parties: ["locations", "audit"],
-  // ADR-0024 điều 1–2: chính sách giá theo ngày (lượt 2). GIẢ ĐỊNH BỀ MẶT (kế hoạch Task 1a): lượt 1 CHƯA tạo thư mục src/modules/pricing/ (không SQL ⇒
-  // chưa vào STRICT được) — chỉ khai ranh giới; tạo thư mục + STRICT ở lượt 2.
+  // ADR-0024 điều 1–2, ADR-0077: bảng mức hoa hồng + điều khoản người bán — tạo ở sổ đại lý đợt 1 (route /api/pricing/*; đọc view công bố của parties, catalog; ghi nhật ký qua audit).
   pricing: ["parties", "catalog", "audit"],
   // ADR-0024 điều 1: biên nhận theo danh sách trắng — KHÔNG bảng, KHÔNG SQL (hạng KHONG_BANG); chuyển tay cầm DB cho hàm công bố của các module dưới.
   receipt: ["orders", "billing", "parties", "company"],
@@ -85,7 +84,7 @@ const STRICT: readonly { module: string; file: string }[] = [
   { module: "locations", file: "modules/locations/repository.ts" },
   { module: "maintenance", file: "modules/maintenance/repository.ts" },
   { module: "parties", file: "modules/parties/repository.ts" },
-  { module: "pricing", file: "modules/pricing/repository.ts" }, // Task 2: luật thuần, Task 3 thêm SQL
+  { module: "pricing", file: "modules/pricing/repository.ts" }, // ADR-0077 — sổ đại lý đợt 1: bảng mức, điều khoản người bán
   { module: "staff", file: "modules/staff/repository.ts" },
   { module: "thongbao", file: "modules/thongbao/repository.ts" },
   { module: "van-chuyen", file: "modules/van-chuyen/repository.ts" }, // ADR-0040 D1 (siết: SQL đi qua defineSql, EXPLAIN)

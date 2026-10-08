@@ -85,6 +85,11 @@ const ADR: Record<string, [Scope, Scope, Scope, Scope, Scope, Scope, Scope, Scop
   "auth.session.viewAll": ["none", "none", "none", "none", "none", "any", "none", "none", "none", "none"], // ADR-0075 điều 7: xem sổ phiên của MỌI tài khoản — chỉ Toàn quyền (vai IT mang Toàn quyền)
   "auth.session.revoke": ["none", "none", "none", "none", "none", "any", "none", "none", "none", "none"], // ADR-0075 điều 7: gỡ một phiên đăng nhập — chỉ Toàn quyền
   "auth.session.policy": ["none", "none", "none", "none", "none", "any", "none", "none", "none", "none"], // ADR-0085: chỉ Toàn quyền
+  // Sổ đại lý đợt 1 (ADR-0077 điều 11, ADR-0078 điều 6; đặc tả 2026-10-08 §6): xem bảng mức — Bán hàng, Kế toán, Quản trị, Toàn quyền; đặt mức và người bán — Kế toán, Quản trị, Toàn quyền.
+  "partner.commission.view": ["any", "any", "any", "none", "none", "any", "none", "none", "none", "none"],
+  "partner.commission.write": ["none", "any", "any", "none", "none", "any", "none", "none", "none", "none"],
+  "supply.terms.view": ["none", "any", "any", "none", "none", "any", "none", "none", "none", "none"], // Bán hàng KHÔNG xem tỷ lệ mua lại của nhà cung cấp
+  "supply.terms.write": ["none", "any", "any", "none", "none", "any", "none", "none", "none", "none"],
 };
 const ORDER: readonly PermissionCode[] = ["SALES", "ACCOUNTING", "ADMIN", "FIELD", "PARTNER", "SUPER_ADMIN", "INTERN", "DRIVER", "DRIVER_PARTNER", "HR"];
 const OPS = Object.keys(ADR) as OperationCode[];
@@ -344,6 +349,7 @@ test("ADR-0040 D3 + ADR-0049 D3: MỌI ô của Tài xế (DRIVER) — ghim nguy
     "order.handover": "none", "order.complete": "none", "ledger.view": "none", "ledger.write": "none",
     "assistant.ask": "any", // ngoại lệ có tên (ADR-0066 điều 1): hỏi trợ lý Hỗ trợ cách dùng app — trợ lý không đọc dữ liệu nghiệp vụ
     "auth.session.viewAll": "none", "auth.session.revoke": "none", "auth.session.policy": "none", // ADR-0075 điều 7: chỉ Toàn quyền
+    "partner.commission.view": "none", "partner.commission.write": "none", "supply.terms.view": "none", "supply.terms.write": "none", // sổ đại lý đợt 1: tài xế không xem bảng mức, người bán
   };
   assert.deepEqual(Object.fromEntries((Object.keys(MATRIX) as OperationCode[]).map((op) => [op, MATRIX[op].DRIVER])), DRIVER_ROW);
 });
@@ -376,6 +382,7 @@ test("ADR-0048 D2: MỌI ô của Tài xế đối tác (DRIVER_PARTNER) — ghi
     "order.handover": "none", "order.complete": "none", "ledger.view": "none", "ledger.write": "none", // sổ tiền lượt 1 (bản làm mới §2) — mọi ô tiền = none
     "assistant.ask": "any", // ngoại lệ có tên (ADR-0066 điều 1): hỏi trợ lý Hỗ trợ — mọi tài khoản đăng nhập
     "auth.session.viewAll": "none", "auth.session.revoke": "none", "auth.session.policy": "none", // ADR-0075 điều 7: chỉ Toàn quyền
+    "partner.commission.view": "none", "partner.commission.write": "none", "supply.terms.view": "none", "supply.terms.write": "none", // sổ đại lý đợt 1: tài xế đối tác không thấy mọi con số hoa hồng
   };
   assert.deepEqual(Object.fromEntries((Object.keys(MATRIX) as OperationCode[]).map((op) => [op, MATRIX[op].DRIVER_PARTNER])), DRIVER_PARTNER_ROW);
 });
@@ -403,6 +410,7 @@ test("ADR-0071: MỌI ô của Nhân sự (HR) — ghim nguyên dòng, chỉ ba 
     "trip.view": "none", "trip.dispatch": "none", "trip.override": "none", "trip.progress": "none", "trip.call_ack": "none", "trip.passenger.add": "none",
     "assistant.ask": "any",
     "auth.session.viewAll": "none", "auth.session.revoke": "none", "auth.session.policy": "none", // ADR-0075 điều 7: chỉ Toàn quyền
+    "partner.commission.view": "none", "partner.commission.write": "none", "supply.terms.view": "none", "supply.terms.write": "none", // sổ đại lý đợt 1 (ADR-0071: Nhân sự chỉ ba ô tài khoản)
   };
   assert.deepEqual(Object.fromEntries((Object.keys(MATRIX) as OperationCode[]).map((op) => [op, MATRIX[op].HR])), HR_ROW);
 });

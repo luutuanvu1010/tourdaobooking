@@ -117,6 +117,15 @@ export async function taiKhoanNhanTienHienHanh(db: D1Database): Promise<TaiKhoan
   return { congTy: r.cong_ty, nganHang: r.bank_short_name, bin: r.bin, soTaiKhoan: r.account_number, chuTaiKhoan: r.account_name };
 }
 
+/**
+ * HÀM CÔNG BỐ về tên vai (sổ đại lý đợt 1): tên tiếng Việt của MỌI mã vai hồ sơ, kể cả vai đã ngưng — chỉ nhãn, KHÔNG phải điều kiện cho phép
+ * (vai hồ sơ không bao giờ là điều kiện cho phép). Dùng ở màn bảng mức hoa hồng (pricing) để hiện "Công ty lữ hành" thay vì mã. Đọc lại câu `role_types`
+ * của chính parties, không thêm câu SQL mới.
+ */
+export async function tenLoaiVai(db: D1Database): Promise<Map<string, string>> {
+  return new Map((await listRoleTypes(db)).map((r) => [r.code, r.name]));
+}
+
 /** Mã vai tài khoản "Tài xế công ty" (ADR-0040 D3; Ruling R12) — lấy kiểu từ ROLE_CODES để không viết chuỗi rời lệch danh mục vai. */
 const VAI_TAI_XE_CONG_TY = "DRIVER_INTERNAL" satisfies RoleCode;
 /** Mã vai tài khoản "Tài xế đối tác" (ADR-0048 D2) — cùng cách lấy kiểu. */

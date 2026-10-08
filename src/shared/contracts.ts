@@ -2057,3 +2057,24 @@ export interface BangKeResponse {
   soThieuGia: number;
   nhom: BangKeNhomDto[];
 }
+
+// ===== Sổ đại lý đợt 1 (ADR-0077, ADR-0078 B1; module pricing) =====
+/** Đối tượng của một dòng mức: một LOẠI đối tác (vai) hoặc MỘT đối tác cụ thể. `ten` là tên lời thường (tên vai / tên hồ sơ) — không SĐT. */
+export type DoiTuongMucDto = { loai: "VAI"; code: string; ten: string } | { loai: "DOI_TAC"; partyId: string; ten: string };
+export interface CommissionRuleDto {
+  id: string; doiTuong: DoiTuongMucDto; phamVi: "SERVICE" | "GROUP" | "ALL"; catalogCode: string | null; groupCode: string | null;
+  kieu: "RATE" | "PER_PAX"; tyLeBp: number | null; moiKhach: number | null; tuNgay: string; denNgay: string | null; ghiChu: string | null; conHieuLuc: boolean;
+}
+export interface CommissionRuleListResponse { homNay: string; dong: CommissionRuleDto[]; vai: { code: string; ten: string }[] }
+export interface SupplyTermDto {
+  id: string; phamVi: "SERVICE" | "GROUP" | "ALL"; catalogCode: string | null; groupCode: string | null; nguoiBan: { partyId: string; ten: string; laCongTy: boolean };
+  tyLeMuaBp: number | null; tuNgay: string; denNgay: string | null; ghiChu: string | null; conHieuLuc: boolean;
+}
+export interface SupplyTermListResponse { homNay: string; dong: SupplyTermDto[]; nhaCungCap: { partyId: string; ten: string }[]; congTyChu: { partyId: string; ten: string } | null }
+/** Kết quả "thử tra": đối tác + dịch vụ + ngày ⇒ mức nào thắng, ở bậc nào. `lyDo` là câu tiếng Việt (không mã thô). */
+export interface ThuTraResponse {
+  ngay: string;
+  nguoiHuong: { loai: "NONE" | "HUONG" | "KHONG_HUONG"; vai: string[] };
+  ketQua: { trangThai: "NONE" } | { trangThai: "SET"; bac: 1 | 2 | 3 | 4 | 5 | 6; muc: CommissionRuleDto } | { trangThai: "MISSING"; lyDo: string };
+}
+export interface NguoiHuongTimResponse { ketQua: { partyId: string; ten: string; loai: "PERSON" | "ORGANIZATION" }[] }
