@@ -21,6 +21,9 @@ try {
   const TEXT = (sel) => `(document.querySelector(${JSON.stringify(sel)})?.textContent ?? '')`;
   const dAn = (F) => `[...document.querySelectorAll('${F} [data-o]')].map((l) => l.hidden)`;
   const khongTaiLai = `!/Tải lại đơn/.test(document.getElementById('error').textContent)`;
+  // Hàng Kế toán nằm trong cột phải hẹp của trang đơn (máy tính): `.grid.two` chia theo KHUNG NHÌN từng ép nó thành hai cột ~135px (ô mã chỉ thấy ~11 ký tự, nhãn xuống dòng).
+  // CSS `.order-layout .side .pay-form .grid.two` xếp một cột; ô mã phải trải gần hết bề ngang hàng.
+  const oMaDuRong = (F) => `(() => { const f = document.querySelector('${F}'); const i = f.querySelector('[data-o="ma-giao-dich"] input'); return i.getBoundingClientRect().width / f.getBoundingClientRect().width >= 0.9; })()`;
   const khaiCk = async (don, soTien) => assert.equal((await call(ACCOUNTS.salesA, "POST", `/api/orders/${don.id}/payments`, { soTien, hinhThuc: "BANK_TRANSFER", nguoiThu: "cong_ty" })).status, 201);
   const mo = async (p, action, khoi) => {
     await p.waitFor(`!!document.querySelector('[data-action="${action}"]')`, `nút ${action}`);
@@ -60,6 +63,7 @@ try {
       const F = '[data-khoi="xac-nhan-xac-nhan-ck"]';
       await mo(k, "xac-nhan-ck", "xac-nhan-xac-nhan-ck");
       assert.equal(await k.ev(`document.querySelectorAll('${F} [data-o]').length`), 2, "hai ô: mã giao dịch và số thực chuyển");
+      assert.equal(await k.ev(oMaDuRong(F)), true, "ô mã trải gần hết bề ngang hàng (không bị bóp thành nửa cột ở cột phải)");
       // Bỏ trống ⇒ máy chủ chặn bằng câu tiếng Việt (người dùng đang nhìn hàng xác nhận ở giữa màn hình, banner lỗi nằm đầu trang)
       await k.ev(`document.querySelector('${F}').scrollIntoView({ block: "center" }), true`);
       await k.ev(`document.querySelector('${F} button[type="submit"]').click(), true`);
@@ -110,6 +114,7 @@ try {
       await mo(k, "thay-lan-thu", "xac-nhan-thay-lan-thu");
       const d0 = await k.ev(`({ ma: document.querySelector('${F} [data-o="ma-giao-dich"] input').value, so: document.querySelector('${F} [data-o="so-thuc-chuyen"] input').value, an: ${dAn(F)}, hinhThuc: document.querySelectorAll('${F} select')[0].value, nguoi: document.querySelectorAll('${F} select')[1].value })`);
       assert.deepEqual(d0, { ma: ma(2), so: "300.000", an: [false, false], hinhThuc: "BANK_TRANSFER", nguoi: "cong_ty" }, "điền sẵn mã + số thực chuyển của lần thu cũ, hai ô hiện");
+      assert.equal(await k.ev(oMaDuRong(F)), true, "ô mã của hàng Thay lần thu trải gần hết bề ngang hàng");
       await k.ev(chonGiaTri(`document.querySelectorAll('${F} select')[0]`, "CASH"));
       assert.deepEqual(await k.ev(dAn(F)), [true, true], "tiền mặt: hai ô mã ẩn");
       await k.ev(chonGiaTri(`document.querySelectorAll('${F} select')[0]`, "BANK_TRANSFER"));
