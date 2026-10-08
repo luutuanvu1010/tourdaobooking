@@ -1,0 +1,32 @@
+{
+  "ghiChu": "Chrome headless trên wrangler dev cục bộ (D1 tạm); không phải iPhone thật, không phải WebKit.",
+  "buoc": [
+    {
+      "id": "a",
+      "name": "người lập (Sales Một), khổ 390: ba tin đổi của đơn ở 'Của tôi'; không chữ / dãy số của nơi mới, không lý do",
+      "dat": true
+    },
+    {
+      "id": "b",
+      "name": "HDV (người phụ trách), khổ 390: tin giờ đón + đổi nơi đón của Quản Trị; không tin số khách (chính mình sửa); bấm tin → trang Tôi",
+      "dat": true
+    }
+  ],
+  "do": {
+    "nguoiLap": [
+      "HDV Tin Đổi đổi đơn TD-20261008-0001: đổi số khách (Tour thử tin đổi: người lớn 2 → 3)",
+      "Quản Trị đổi đơn TD-20261008-0001: Chiều đi: đổi nơi đón",
+      "Quản Trị đổi đơn TD-20261008-0001: Chiều đi: giờ đón 06:30 → 07:15"
+    ],
+    "hdv": [
+      "Quản Trị đổi đơn TD-20261008-0001: Chiều đi: đổi nơi đón",
+      "Quản Trị đổi đơn TD-20261008-0001: Chiều đi: giờ đón 06:30 → 07:15",
+      "Sales Một vừa giao đơn TD-20261008-0001 cho người khác phụ trách",
+      "Sales Một vừa xác nhận đơn TD-20261008-0001"
+    ]
+  },
+  "anh": {
+    "a3-hop-thu-nguoi-lap-390.png": "390×844",
+    "a3-hop-thu-hdv-390.png": "390×844"
+  }
+}
