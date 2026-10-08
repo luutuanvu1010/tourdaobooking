@@ -118,7 +118,10 @@ export const AUDIT_ACTIONS = {
   // (TÊN điểm danh mục). Không order_id, không dữ liệu cá nhân.
   transfer_template_set: { label: "Đổi mẫu đưa đón của dịch vụ", group: "trip" },
   trip_passengers_synced: { label: "Cập nhật khách theo đơn", group: "trip" }, // R-P29 (chủ lần 16) — route `cap-nhat-khach`; detail chỉ mã chuyến, mã đơn, SỐ khách
-  trip_stops_synced: { label: "Cập nhật điểm theo đơn", group: "trip" }, // ADR-0050 VK1-B — route `cap-nhat-diem` (A13); detail chỉ mã đơn + tên nơi danh mục / "nơi tự do"
+  trip_stops_synced: { label: "Cập nhật điểm theo đơn", group: "trip" },
+  // ADR-0104 Đ2.9: máy cập nhật chuyến theo đơn — một dòng mỗi KHÚC chuyến của lô đồng bộ (cùng lô với lệnh đơn); staff_id = người vừa sửa đơn; detail chỉ mã
+  // chuyến, mã đơn, nhãn nguyên nhân cố định, số ghế trả / thêm (LC-18). KHÔNG phải một trong ba hành động tin có điều kiện (HANH_DONG_TIN_KHACH).
+  trip_order_synced: { label: "Máy cập nhật chuyến theo đơn", group: "trip" }, // ADR-0050 VK1-B — route `cap-nhat-diem` (A13); detail chỉ mã đơn + tên nơi danh mục / "nơi tự do"
   // ADR-0049 D1 (Task A13): lệnh KẾ HOẠCH của chuyến xe. orderId NULL, targetType "trip" (I17). "Sửa chuyến xe" mang tên `trip_edited` — `trip_updated`
   // đã là hành động của orders ("Sửa thông tin chuyến" của ĐƠN, nhóm order) nên không dùng lại (GA-37).
   trip_created: { label: "Tạo chuyến xe", group: "trip" },

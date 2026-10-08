@@ -46,6 +46,8 @@ export const LOAI_SU_KIEN_CHUYEN = [
   // ADR-0097 (gói A1, V3-B): văn phòng sửa kết quả MỘT suất bằng sự kiện điều chỉnh có lý do (Đ2 — đóng suất cũ REMOVED, mở suất thay thế); thu hồi xuất bến
   // nhầm (Đ3 — RUNNING → PLANNED khi chưa có tiến độ). Lý do ở cột `reason_code` (nhóm DIEU_CHINH — trigger 0085).
   "CORRECTION", "DEPARTURE_REVOKED",
+  // ADR-0104 Đ2.9: máy cập nhật chuyến theo đơn — lô của lệnh đơn (huỷ đơn, bỏ chặng, sửa khách / số khách) đóng / mở suất trên chuyến chưa chạy.
+  "ALLOCATION_ORDER_SYNCED",
 ] as const;
 export type LoaiSuKienChuyen = (typeof LOAI_SU_KIEN_CHUYEN)[number];
 export const NHAN_SU_KIEN_CHUYEN: Readonly<Record<LoaiSuKienChuyen, string>> = {
@@ -71,6 +73,7 @@ export const NHAN_SU_KIEN_CHUYEN: Readonly<Record<LoaiSuKienChuyen, string>> = {
   PASSENGER_NAMED: "Tài xế bổ sung tên khách",
   CORRECTION: "Văn phòng điều chỉnh kết quả khách",
   DEPARTURE_REVOKED: "Văn phòng thu hồi xuất bến",
+  ALLOCATION_ORDER_SYNCED: "Máy cập nhật chuyến theo đơn",
 };
 
 /**

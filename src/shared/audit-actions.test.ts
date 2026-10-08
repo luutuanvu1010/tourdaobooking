@@ -19,6 +19,9 @@ test("isAuditAction chỉ nhận mã đã khai (kể cả không nhận thuộc 
   assert.ok(!isAuditAction(undefined));
 });
 
+test("ADR-0104 Đ2.9: hành động 'máy cập nhật chuyến theo đơn' (trip_order_synced) thuộc nhóm 'Điều phối xe' (trip), có nhãn", () => {
+  assert.deepEqual({ ...AUDIT_ACTIONS.trip_order_synced }, { label: "Máy cập nhật chuyến theo đơn", group: "trip" });
+});
 test("ADR-0050 VK1-B: hành động 'cập nhật điểm theo đơn' (trip_stops_synced) thuộc nhóm 'Điều phối xe' (trip), có nhãn", () => {
   assert.deepEqual({ ...AUDIT_ACTIONS.trip_stops_synced }, { label: "Cập nhật điểm theo đơn", group: "trip" });
 });
