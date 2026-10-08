@@ -2389,12 +2389,12 @@ Hỏi chủ trong chat, nêu: tên gói `qrcode-generator`, phiên bản, nguồ
 - [ ] **Bước 2: Tải vào thư mục nháp, kiểm mã toàn vẹn, đọc hết tệp.**
 
 ```bash
-cd "$TMPDIR" && npm pack qrcode-generator@<phiên bản> && tar -xzf qrcode-generator-<phiên bản>.tgz && shasum -a 512 qrcode-generator-<phiên bản>.tgz | xxd -r -p | base64
+cd "$TMPDIR" && npm pack qrcode-generator@2.0.4 && tar -xzf qrcode-generator-2.0.4.tgz && shasum -a 512 qrcode-generator-2.0.4.tgz | xxd -r -p | base64
 ```
 
-So chuỗi cuối với `dist.integrity` (phần sau `sha512-`). Khớp mới dùng. Mở `package/qrcode.js` (gói 1.4.x đặt ở gốc gói; gói đổi chỗ thì dùng tệp mà trường `main` của `package/package.json` chỉ tới). **Đọc hết tệp**: không gọi mạng, không chạy chuỗi thành mã, không ghi HTML thô. Thấy `innerHTML`, `eval`, `new Function`, `fetch`, `XMLHttpRequest` thì DỪNG và báo chủ; không sửa tệp (C3 là chép nguyên).
+So chuỗi cuối với `dist.integrity` (phần sau `sha512-`). Khớp mới dùng. Lúc lập kế hoạch (2026-10-08) bản mới nhất là **2.0.4**: `exports.import` = `./dist/qrcode.mjs` (bản mô-đun ES), `exports.types` = `./dist/qrcode.d.ts`, integrity `sha512-mZSiP6RnbHl4xL2Ap5HfkjLnmxfKcPWpWe/c+5XxCuetEenqmNFf1FH/ftXPCtFG5/TDobjsjz6sSNL0Sr8Z9g==`, cả gói giải nén 555.539 byte. Bản khác 2.0.4 thì dừng, báo chủ (chủ duyệt đúng một phiên bản). Mở `package/dist/qrcode.mjs` (tệp mà `exports.import` của `package/package.json` chỉ tới). **Đọc hết tệp**: không gọi mạng, không chạy chuỗi thành mã, không ghi HTML thô. Thấy `innerHTML`, `eval`, `new Function`, `fetch`, `XMLHttpRequest` thì DỪNG và báo chủ; không sửa tệp (C3 là chép nguyên). Ghi dung lượng chính xác của tệp này vào sổ thi công.
 
-- [ ] **Bước 3: Chép tệp và thêm đầu tệp.** Chép `package/qrcode.js` sang `web/vendor/qrcode.js` **nguyên văn**, chỉ thêm bốn dòng chú thích lên đầu (không đụng thân tệp, giữ nguyên dòng giấy phép gốc):
+- [ ] **Bước 3: Chép tệp và thêm đầu tệp.** Chép `package/dist/qrcode.mjs` sang `web/vendor/qrcode.js` **nguyên văn** (đổi đuôi tên để TypeScript nhận khai kiểu `qrcode.d.ts` cùng tên; nội dung không đổi), chỉ thêm khối chú thích lên đầu (không đụng thân tệp, giữ nguyên dòng giấy phép gốc). Nếu bản `dist` đã bị lược mất dòng bản quyền và giấy phép thì chép nguyên văn thông báo MIT từ `package/LICENSE` vào khối chú thích đầu tệp, vì giấy phép MIT đòi giữ thông báo này. Đối chiếu `package/dist/qrcode.d.ts` với khai kiểu tối thiểu ở Bước 4 (tên hàm, kiểu tham số, kiểu xuất mặc định). Lệch thì sửa khai kiểu của mình cho khớp, không sửa tệp chép.
 
 ```js
 // CHÉP NGUYÊN từ gói npm qrcode-generator@<phiên bản> (Kazuhiko Arase, giấy phép MIT — dòng giấy phép gốc ở dưới). ADR-0108 đ3, câu C3 (chủ dự án 2026-10-08).
