@@ -88,6 +88,8 @@ export function chuyenTomTat(
     diem: v.stops.filter((s) => s.trip_id === t.id).map((s) => ({
       id: s.id, thuTu: s.seq, loai: s.kind, tenNoi: tenNoi(s), trangThai: s.status, daToi: mocTienDo(suKienCuoi(v.events, t.id, ["STOP_ARRIVED"], (e) => e.stop_id === s.id), v.nhan),
     })),
+    // ADR-0104 Đ1 mục 5: từ sự kiện ĐÃ ĐỌC (`eventsByTrips` — sự kiện của chuyến kể cả dời vào / ra, GA-35); không câu đọc mới.
+    khanCap: v.events.some((e) => (e.trip_id === t.id || e.related_trip_id === t.id) && e.override_rule_code === "MOC_TOI_THIEU"),
   };
 }
 

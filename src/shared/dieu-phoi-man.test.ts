@@ -173,11 +173,13 @@ test("nhanDiem: trạng thái điểm dừng + lệch đơn (R-P16) + muộn hơ
   assert.equal(nhanDiem({ ...d, lechDon: false, loai: "DROPOFF", gioHen: null }).loai, "Trả");
 });
 
-test("dongNhatKy: giờ (hai giờ khi văn phòng khai), ai bấm (tên hoặc 'máy'), nội dung + số người + phá lệ", () => {
+test("dongNhatKy: giờ (hai giờ khi văn phòng khai), ai bấm (tên hoặc 'máy'), nội dung + số người + vượt luật (ADR-0104 Đ1 mục 5: mốc → 'điều chỉnh khẩn cấp', khoảng nghỉ / cam kết → 'phá lệ')", () => {
   const n = (o: Partial<NhatKyChuyenDto>): NhatKyChuyenDto => ({ id: "e", loai: "ALLOCATED", nhan: "Xếp khách lên xe", gioXayRa: g("06:10"), gioGhiNhan: g("06:10"), vanPhongKhai: false, nguoiBam: "Phạm Thu Hoa", may: false, soNguoi: 4, phaLe: null, ...o });
   assert.deepEqual(dongNhatKy(n({}), NGAY), { gio: "06:10", ai: "Phạm Thu Hoa", laMay: false, noiDung: "Xếp khách lên xe · 4 khách", vanPhongKhai: false });
   assert.deepEqual(dongNhatKy(n({ may: true, nguoiBam: null, soNguoi: null, nhan: "Bỏ qua điểm" }), NGAY).ai, "máy");
-  assert.equal(dongNhatKy(n({ phaLe: { luat: "MOC_TOI_THIEU", lyDoNhan: "Sự cố vận hành" } }), NGAY).noiDung, "Xếp khách lên xe · 4 khách · phá lệ: Sự cố vận hành");
+  assert.equal(dongNhatKy(n({ phaLe: { luat: "MOC_TOI_THIEU", lyDoNhan: "Sự cố vận hành" } }), NGAY).noiDung, "Xếp khách lên xe · 4 khách · điều chỉnh khẩn cấp: Sự cố vận hành");
+  assert.equal(dongNhatKy(n({ phaLe: { luat: "KHOANG_NGHI", lyDoNhan: "Khác" } }), NGAY).noiDung, "Xếp khách lên xe · 4 khách · phá lệ: Khác");
+  assert.equal(dongNhatKy(n({ phaLe: { luat: "CAM_KET", lyDoNhan: "Khác" } }), NGAY).noiDung, "Xếp khách lên xe · 4 khách · phá lệ: Khác");
   assert.equal(dongNhatKy(n({ vanPhongKhai: true, gioXayRa: g("07:31"), gioGhiNhan: g("07:45"), nguoiBam: "Hoa" }), NGAY).gio, "07:31 · ghi lúc 07:45");
   assert.equal(dongNhatKy(n({ gioXayRa: g("17:05", "2026-09-29") }), NGAY).gio, "17:05 29/09");
 });

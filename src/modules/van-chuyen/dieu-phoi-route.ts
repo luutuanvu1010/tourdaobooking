@@ -9,7 +9,7 @@ import type { KetQuaKiem, LoaiSuKienChuyen, MaLuatPhaLe, TrangThaiChuyen } from 
 import { dungLichChung } from "../../shared/dieu-phoi-lich-chung";
 import { error, json } from "../../shared/http";
 import { lyDoGiu, type LyDoGiu, type MaGiu } from "../../shared/ly-do-giu";
-import { duQuyen, lopCanCho, lopVuotMoc, lopVuotNghiCamKet, type LenhVuotMoc, type LopVuot } from "../../shared/moc-toi-thieu";
+import { chuyenDuoiMoc, duQuyen, lopCanCho, lopCuaLuat, lopVuotMoc, lopVuotNghiCamKet, type LenhVuotMoc, type LopVuot } from "../../shared/moc-toi-thieu";
 import { maskLongDigits } from "../../shared/text-guards";
 import { daoMoiSauDoi, diemDonChuaToiCuaDiemTra, sapDonTruocTra } from "../../shared/thu-tu-diem";
 import { msToVnLocal, ngayNgan } from "../../shared/vn-date";
@@ -108,13 +108,21 @@ export function loi409(code: string, lyDo: readonly LyDoGiu[] = [], extra: Omit<
 /** Route đổi lớp ra ô bằng chữ viết thẳng (ADR-0104 Đ1 mục 2; bài lop-vuot.test.ts) rồi truyền hàm này xuống lệnh. */
 export type QuyenVuot = (lop: LopVuot) => boolean;
 /**
- * Ngữ cảnh lớp của MỘT lệnh (ADR-0104 Đ1 mục 0, 2): `duoiMoc` = chuyến dưới mốc theo định nghĩa của lệnh (`chuyenDuoiMoc`); `lenhMoc` = lệnh bị khoá theo mốc
- * mà request này làm (rỗng = lệnh không sinh luật mốc); `quyenVuot` = hàm của route.
+ * Ngữ cảnh lớp của MỘT lệnh (ADR-0104 Đ1 mục 0, 2): `duoiMoc` = chuyến dưới mốc theo định nghĩa của lệnh (`chuyenDuoiMoc`); `conPhut` = số phút (làm tròn
+ * xuống) từ lúc lệnh chạy tới giờ xét mốc của lệnh, null = xe đang chạy — chỉ để ghi nhật ký (mục 4); `lenhMoc` = lệnh bị khoá theo mốc mà request này làm
+ * (rỗng = lệnh không sinh luật mốc); `quyenVuot` = hàm của route.
  */
 export interface VuotLenh {
   duoiMoc: boolean;
+  conPhut: number | null;
   lenhMoc: readonly LenhVuotMoc[];
   quyenVuot: QuyenVuot;
+}
+/** Dựng `VuotLenh` từ giờ xét mốc của lệnh — MỘT chỗ tính "dưới mốc" và "còn N phút" (không có chính sách → ngoài mốc, `chuyenDuoiMoc`). */
+export function vuotLenh(
+  c: { dangChay: boolean; gioXetMs: number }, bayGioMs: number, phut: number | null, lenhMoc: readonly LenhVuotMoc[], quyenVuot: QuyenVuot,
+): VuotLenh {
+  return { duoiMoc: chuyenDuoiMoc(c, bayGioMs, phut), conPhut: c.dangChay ? null : Math.floor((c.gioXetMs - bayGioMs) / 60000), lenhMoc, quyenVuot };
 }
 /**
  * Cờ vượt người gọi GỬI (`phaLe` → luật mốc; `nghiPhaLe` / `camKetPhaLe` → khoảng nghỉ, cam kết) mà thiếu ô của lớp → 403, kiểm TRƯỚC luật (ADR-0104 Đ1
@@ -318,7 +326,21 @@ export const gioNgan = (ms: number, bayGioMs: number): string => {
   return `${time} ${ngayNgan(date, msToVnLocal(bayGioMs).date)}`;
 };
 const TEN_LUAT_PHA_LE: Record<MaLuatPhaLe, string> = { MOC_TOI_THIEU: "mốc tối thiểu", KHOANG_NGHI: "khoảng nghỉ", CAM_KET: "cam kết" };
-export const phaLeNhatKy = (luat: MaLuatPhaLe, nhan: string): string => ` · phá lệ ${TEN_LUAT_PHA_LE[luat]}: ${nhan}`;
+/**
+ * Đuôi nhật ký của MỘT luật bị vượt (ADR-0104 Đ1 mục 4) — lớp quyết LÚC GHI theo luật (`lopCuaLuat`): `KHAN_CAP` " · điều chỉnh khẩn cấp <luật>: <lý do>",
+ * `QUAN_TRI` " · phá lệ <luật>: <lý do>". Số phút còn lại đi riêng, một lần mỗi lô (`gioKhanCapNhatKy`). Chỉ tên luật + nhãn lý do (LC-18).
+ */
+export const phaLeNhatKy = (luat: MaLuatPhaLe, nhan: string, v: Pick<VuotLenh, "duoiMoc" | "lenhMoc">): string =>
+  ` · ${lopCuaLuat(luat, v.duoiMoc, v.lenhMoc) === "KHAN_CAP" ? "điều chỉnh khẩn cấp" : "phá lệ"} ${TEN_LUAT_PHA_LE[luat]}: ${nhan}`;
+/**
+ * ADR-0104 Đ1 mục 4: "cộng số phút còn lại tới giờ xuất bến" — MỘT lần mỗi lô, khi lô ghi ít nhất một luật lớp `KHAN_CAP` (`luatDaGhi` = các luật lô này ghi
+ * đuôi). " · còn N phút" (N = `conPhut`, giờ xét mốc của lệnh); quá giờ mà xe chưa chạy " · quá giờ xuất bến N phút"; xe đang chạy " · xe đang chạy".
+ */
+export function gioKhanCapNhatKy(luatDaGhi: readonly (MaLuatPhaLe | null | undefined)[], v: Pick<VuotLenh, "duoiMoc" | "lenhMoc" | "conPhut">): string {
+  if (!luatDaGhi.some((l) => l && lopCuaLuat(l, v.duoiMoc, v.lenhMoc) === "KHAN_CAP")) return "";
+  if (v.conPhut === null) return " · xe đang chạy";
+  return v.conPhut >= 0 ? ` · còn ${v.conPhut} phút` : ` · quá giờ xuất bến ${-v.conPhut} phút`;
+}
 export const maDonGon = (codes: readonly string[]): string => [...new Set(codes)].sort().join(", ");
 
 // ---- Chi tiết chuyến ---------------------------------------------------------------------------------------------------------------------------------------

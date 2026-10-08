@@ -29,7 +29,7 @@ import type {
   DepartureRuleDto, DepartureRuleListResponse, DispatchPolicyDto, DispatchPolicyResponse, LicenseCapacityDto, LicenseCapacityResponse, TripReasonDto, TripReasonListResponse,
 } from "../../shared/contracts";
 import { NHAN_NHOM_LY_DO, laLyDoHeThong, type NhomLyDo } from "../../shared/dieu-phoi-kieu";
-import { chuyenDuoiMoc, type MocToiThieu } from "../../shared/moc-toi-thieu";
+import type { MocToiThieu } from "../../shared/moc-toi-thieu";
 import {
   MA_LY_DO_RE, chiTietChinhSach, chiTietDieuKien, chiTietHangBang, chiTietLyDo, kiemChinhSachMoi, kiemDieuKienMoi, kiemHangBangMoi, kiemLyDoMoi, kiemSuaLyDo,
 } from "./chinh-sach";
@@ -52,7 +52,7 @@ import { chinhSachVao, docChung, docNen, khungChuyen, taiXeVao, xeVao, type NenC
 import { dungLichNgay, lenhBaoHuy, lenhBoSungTen, lenhCapNhatDiem, lenhCapNhatKhach, lenhDoi, lenhHuy, lenhRut, lenhSuaChuyen, lenhThemDiemDangChay, lenhXep } from "./dieu-phoi-lenh";
 import {
   CAN_DIEU_PHOI, CAN_XEM_CHUYEN, KHONG_CO_CHUYEN, chanCoVuot, chayLo, chiTietChuyen, cuocChiTiet, danhSachCuoc, gioNgan, loi409, loiKiem, lyDoHopLe, nhanLyDo, phaLeNhatKy,
-  traLenhLap, type QuyenVuot, type VuotLenh,
+  gioKhanCapNhatKy, traLenhLap, vuotLenh, type QuyenVuot,
 } from "./dieu-phoi-route";
 import {
   docBaoHuy, docBoSungTen, docCapNhatDiem, docDieuChinhSuat, docDoi, docDoiThuTu, docHuy, docKetThucGianDoan, docRut, docSuaChuyen, docTaoChuyen, docThemDiem, docThuHoiXuatBen,
@@ -1136,7 +1136,7 @@ export const vanChuyenModule: AppModule = {
       if (!lap) {
         const chung = await docChung(env.DB, nowIso, vnToday(new Date(bayGioMs)));
         // ADR-0104 Đ1 mục 0: tạo chuyến không có luật mốc; "dưới mốc" = giờ bắt đầu của chuyến mới — quyết lớp của cờ vượt khoảng nghỉ.
-        const vuot: VuotLenh = { duoiMoc: chuyenDuoiMoc({ dangChay: false, gioXetMs: t.batDauMs }, bayGioMs, chung.chinhSach?.min_lead_minutes ?? null), lenhMoc: [], quyenVuot };
+        const vuot = vuotLenh({ dangChay: false, gioXetMs: t.batDauMs }, bayGioMs, chung.chinhSach?.min_lead_minutes ?? null, [], quyenVuot);
         const cam = chanCoVuot({ moc: false, nghiCamKet: t.nghiPhaLe !== null }, vuot);
         if (cam) return cam;
         const xeRow = chung.xe.find((x) => x.id === t.xeId);
@@ -1177,7 +1177,7 @@ export const vanChuyenModule: AppModule = {
             chiPhi: kh.kh,
             taiXePartyId: t.taiXePartyId, policyId: chung.chinhSach?.id ?? null,
             phaLeNghi: t.nghiPhaLe ? { luat: "KHOANG_NGHI", lyDo: t.nghiPhaLe.lyDo, policyId: chung.chinhSach?.id ?? null } : null,
-            detail: `${ma} · xe ${xeRow.plate_number} (${xeRow.passenger_capacity} chỗ) · ${gioNgan(t.batDauMs, bayGioMs)} → ${gioNgan(t.ketThucMs, bayGioMs)}${tenT}${t.nghiPhaLe ? phaLeNhatKy("KHOANG_NGHI", nhanLyDo(chung, t.nghiPhaLe.lyDo)) : ""}${chiTietChiPhiNhatKy(kh.kh, thue)}`,
+            detail: `${ma} · xe ${xeRow.plate_number} (${xeRow.passenger_capacity} chỗ) · ${gioNgan(t.batDauMs, bayGioMs)} → ${gioNgan(t.ketThucMs, bayGioMs)}${tenT}${t.nghiPhaLe ? phaLeNhatKy("KHOANG_NGHI", nhanLyDo(chung, t.nghiPhaLe.lyDo), vuot) + gioKhanCapNhatKy(["KHOANG_NGHI"], vuot) : ""}${chiTietChiPhiNhatKy(kh.kh, thue)}`,
           });
           try {
             const r = await chayLo(env.DB, lo, t.requestId);

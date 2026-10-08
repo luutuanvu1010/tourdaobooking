@@ -606,8 +606,9 @@ test("Đợt 7 bài 6 (C6): xếp cần CẢ mốc lẫn cam kết — thiếu c
   assert.deepEqual({ ...ev }, { r: "MOC_TOI_THIEU", l: "PHA_LE_SU_CO" });
   assert.equal(camKetCua(w, t.chuyen.id).r, "PHA_LE_KHAC");
   const nk = w.q("SELECT detail FROM audit_log WHERE action = 'trip_allocated' ORDER BY rowid DESC")[0].detail as string;
-  assert.match(nk, /phá lệ mốc tối thiểu: Sự cố vận hành/);
-  assert.match(nk, /phá lệ cam kết: Khác/);
+  // ADR-0104 Đ1 mục 4 (đổi có tên — chữ nhật ký): chuyến DƯỚI mốc (bắt đầu sau 2 giờ) ⇒ cả hai luật lớp KHAN_CAP: "điều chỉnh khẩn cấp …" + MỘT lần "còn N phút".
+  assert.match(nk, / · điều chỉnh khẩn cấp mốc tối thiểu: Sự cố vận hành · điều chỉnh khẩn cấp cam kết: Khác · còn 1[12]\d phút$/);
+  assert.doesNotMatch(nk, /phá lệ/);
 });
 
 test("Đợt 7 dời (Task 4): dời B sang chuyến có XE RIÊNG của A → 409 can_pha_le_cam_ket; Quản trị phá lệ → 200, cột chuyến ĐÍCH ghi; dời B tiếp sang chuyến trống → nguồn hết vi phạm, cột về trống trong cùng lô (C7), Bán hàng làm được", async () => {

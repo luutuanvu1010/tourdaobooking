@@ -338,7 +338,9 @@ export function nhanDiem(d: DiemChuyenDto): { nhan: string; tone: Tone; ghiChu: 
 export function dongNhatKy(n: NhatKyChuyenDto, ngayXem: string): { gio: string; ai: string; laMay: boolean; noiDung: string; vanPhongKhai: boolean } {
   const gio = n.vanPhongKhai ? `${gioHien(n.gioXayRa, ngayXem)} · ghi lúc ${gioHien(n.gioGhiNhan, ngayXem)}` : gioHien(n.gioXayRa, ngayXem);
   const laMay = n.may || n.nguoiBam === null;
-  const noiDung = [n.nhan, n.soNguoi !== null ? `${n.soNguoi} khách` : null, n.phaLe ? `phá lệ: ${n.phaLe.lyDoNhan}` : null].filter((x) => x !== null).join(" · ");
+  // ADR-0104 Đ1 mục 5: vượt MỐC luôn là điều chỉnh khẩn cấp; vượt khoảng nghỉ / cam kết hiện "phá lệ" (sự kiện không lưu lớp — lệch đã biết Đ1.5).
+  const vuot = n.phaLe ? `${n.phaLe.luat === "MOC_TOI_THIEU" ? "điều chỉnh khẩn cấp" : "phá lệ"}: ${n.phaLe.lyDoNhan}` : null;
+  const noiDung = [n.nhan, n.soNguoi !== null ? `${n.soNguoi} khách` : null, vuot].filter((x) => x !== null).join(" · ");
   return { gio, ai: laMay ? "máy" : maskLongDigits(n.nguoiBam!), laMay, noiDung, vanPhongKhai: n.vanPhongKhai };
 }
 

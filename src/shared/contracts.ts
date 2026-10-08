@@ -1240,6 +1240,12 @@ export interface ChuyenTomTatDto {
   xuatBen: MocTienDoDto | null;
   ketThucThat: MocTienDoDto | null;
   diem: { id: string; thuTu: number; loai: "PICKUP" | "DROPOFF"; tenNoi: string; trangThai: string; daToi: MocTienDoDto | null }[];
+  /**
+   * ADR-0104 Đ1 mục 5: nhãn "Điều chỉnh khẩn cấp" — chuyến có sự kiện (mọi loại, kể cả dời khách vào / ra — GA-35) mang luật vượt `MOC_TOI_THIEU`; tính lúc
+   * đọc. Vượt khoảng nghỉ / cam kết mà không vượt mốc → false (nhãn "Phá lệ" ở nhật ký) — kể cả bốn ca Bán hàng làm dưới mốc (lệch đã biết Đ1.5). CHỈ DTO
+   * văn phòng (lịch chung, chi tiết chuyến); không vào DTO tài xế.
+   */
+  khanCap: boolean;
 }
 export interface ChangLichDto {
   legId: string;
