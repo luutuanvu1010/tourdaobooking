@@ -6,6 +6,7 @@
 import { CHIEU_LABEL, DAU_DAT_GAP, KHUON_SO_HIEU_CHUYEN_BAY, LY_DO_DAT_GAP } from "./chang-dua-don.ts";
 import { PAX_LABEL, PAX_ORDER, type PaxCode, type PaxCounts } from "./order-lines.ts";
 import { NHAN_GIO, NHAN_TRUONG_THOI_GIAN } from "./truong-thoi-gian.ts";
+import { ngayDayDu } from "./vn-date.ts";
 
 /** Đầu đoạn số khách (dấu hai chấm NGAY sau "khách" — khác tiền tố "số khách đi xe " của ADR-0065) và dấu tách lý do. */
 export const DAU_SO_KHACH = "số khách: ";
@@ -83,7 +84,7 @@ function khopGiaTri(s: string, kieu: "ngay" | "gio"): number {
   const m = (kieu === "ngay" ? NGAY_RE : GIO_RE).exec(s);
   return m ? m[0].length : -1;
 }
-const hienNgay = (v: string) => (/^\d{4}-\d{2}-\d{2}$/.test(v) ? `${v.slice(8, 10)}/${v.slice(5, 7)}/${v.slice(0, 4)}` : v);
+const hienNgay = (v: string) => ngayDayDu(v); // "dd/mm/yyyy" qua MỘT hàm ngày (bài src/ngay-mot-ham.test.ts); "(trống)" giữ nguyên
 
 /**
  * Phần "<nhãn> A → B" với A, B đã kiểm dạng, đứng tại vị trí `i` của `s`. Trả [vị trí sau phần, chữ câu tin] hoặc null. Chữ câu tin ghép từ NHÃN CỐ ĐỊNH +

@@ -192,9 +192,11 @@ export type AuditAction = keyof typeof AUDIT_ACTIONS;
 
 /** ADR-0062 Đ1-a: hành động mang cờ `doiSoKhach` — kiểu DẪN từ AUDIT_ACTIONS (tham số hành động của insertMoneyAdjustment chỉ nhận kiểu này). */
 export type HanhDongDoiSoKhach = { [K in AuditAction]: (typeof AUDIT_ACTIONS)[K] extends { doiSoKhach: true } ? K : never }[AuditAction];
-export const HANH_DONG_DOI_SO_KHACH: readonly HanhDongDoiSoKhach[] = (Object.keys(AUDIT_ACTIONS) as AuditAction[]).filter(
+// `@__PURE__`: hằng tính lúc nạp tệp — không chú thích thì esbuild phải giữ cả bảng AUDIT_ACTIONS trong gói của MỌI trang có nhập tệp này (vd qua web/format.ts),
+// làm gói trang Đơn hàng vượt trần (bài src/goi-trang-nhe.test.ts). Có chú thích: trang không dùng hằng thì bỏ được cả lời gọi lẫn bảng.
+export const HANH_DONG_DOI_SO_KHACH: readonly HanhDongDoiSoKhach[] = /* @__PURE__ */ (() => (Object.keys(AUDIT_ACTIONS) as AuditAction[]).filter(
   (a): a is HanhDongDoiSoKhach => (AUDIT_ACTIONS[a] as { doiSoKhach?: true }).doiSoKhach === true,
-);
+))();
 
 /** Loại đối tượng của một dòng nhật ký — trùng với nhóm hành động. */
 export type AuditTargetType = AuditGroup;
