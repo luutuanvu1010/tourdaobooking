@@ -718,39 +718,70 @@ async function veGiayTo(sec: HTMLElement, p: Api.PartyDto): Promise<void> {
   ve();
 }
 
-/** Mục "Tài khoản nhận tiền" của hồ sơ công ty chủ (ADR-0108 đ2; đặc tả QR §4.1): xem tài khoản đang dùng, cài / đổi (máy chủ đóng dòng cũ + mở dòng mới). */
-async function veTaiKhoanNhanTien(sec: HTMLElement, p: Api.PartyDto): Promise<void> {
+/** Một dòng báo trong mục "Tài khoản nhận tiền": lỗi (đỏ), đã lưu (xanh), lưu ý (cát) — kiểu có sẵn của `.alert`. */
+interface TinTaiKhoan { kieu: "loi" | "ok" | "luu-y"; chu: string }
+const LOP_TIN_TKNT = { loi: "alert danger", ok: "alert ok", "luu-y": "alert warn" } as const;
+const TIN_TKNT_DA_CU = "Có người vừa đổi tài khoản nhận tiền nên bản bạn đang xem đã cũ. Các ô nhập đã được xoá trắng — hãy xem dòng tài khoản hiện tại ở trên, rồi nhập lại nếu vẫn cần đổi.";
+
+/**
+ * Mục "Tài khoản nhận tiền" của hồ sơ công ty chủ (ADR-0108 đ2; đặc tả QR §4.1): xem tài khoản đang dùng, cài / đổi (máy chủ đóng dòng cũ + mở dòng mới).
+ * Mọi thông báo của mục hiện NGAY TRONG mục (không qua `#error` đầu trang: ở điện thoại nút Lưu nằm cuối hồ sơ nên banner đầu trang nằm ngoài màn hình) — vì vậy
+ * mục tự gọi máy chủ, không đi qua `act()` của trang. `tin` có nghĩa là mục vừa vẽ lại SAU một lần lưu: hiện dòng báo và đưa tiêu điểm về tiêu đề (lần vẽ đầu thì không).
+ * `daLuu` = phản hồi PUT (cùng dạng GET) để khỏi đọc lại.
+ */
+async function veTaiKhoanNhanTien(sec: HTMLElement, p: Api.PartyDto, tin?: TinTaiKhoan, daLuu?: Api.TaiKhoanNhanTienResponse): Promise<void> {
   const url = `/api/parties/${encodeURIComponent(p.id)}/tai-khoan-nhan-tien`;
-  const tieuDe = h("h3", { id: "tknt-title" }, "Tài khoản nhận tiền");
+  const tieuDe = h("h3", { id: "tknt-title", tabindex: -1 }, "Tài khoản nhận tiền");
   let r: Api.TaiKhoanNhanTienResponse;
   try {
-    r = await api<Api.TaiKhoanNhanTienResponse>(url);
+    r = daLuu ?? (await api<Api.TaiKhoanNhanTienResponse>(url));
   } catch (err) {
     replaceChildren(sec, tieuDe, h("p", { class: "alert danger", role: "alert" }, err instanceof ApiError ? err.message : "Không tải được tài khoản nhận tiền."));
+    if (tin) tieuDe.focus();
     return;
   }
+  // Khung chứa dòng báo: dòng mới được dựng lại mỗi lần (role đúng loại: lỗi = alert, còn lại = status) rồi đọc lên cho máy đọc màn hình.
+  const khuTin = h("div", null);
+  const datTin = (t: TinTaiKhoan | null) =>
+    replaceChildren(khuTin, t ? h("p", { class: LOP_TIN_TKNT[t.kieu], role: t.kieu === "loi" ? "alert" : "status" }, t.chu) : null);
+  datTin(tin ?? null);
   const hienTai = r.hienTai
     ? h("p", { "data-khoi": "tknt-hien-tai" }, `${r.hienTai.nganHang} · ${r.hienTai.soTaiKhoan} · ${r.hienTai.chuTaiKhoan}`)
     : h("p", { class: "muted", "data-khoi": "tknt-hien-tai" }, "Chưa cài tài khoản — mã QR thanh toán chưa dùng được.");
-  const nh = select(r.nganHang.map((b) => ({ value: b.ma, label: b.ten })), r.hienTai?.maNganHang);
+  // Đổi tài khoản: chọn sẵn ngân hàng đang dùng. Cài lần đầu (hoặc ngân hàng đang dùng đã ngưng): bắt đầu bằng ô trống "Chọn ngân hàng" để không ai lưu nhầm ngân hàng đứng đầu danh sách.
+  const coSan = !!r.hienTai && r.nganHang.some((b) => b.ma === r.hienTai!.maNganHang);
+  const nh = select([...(coSan ? [] : [{ value: "", label: "Chọn ngân hàng" }]), ...r.nganHang.map((b) => ({ value: b.ma, label: b.ten }))], coSan ? r.hienTai!.maNganHang : "");
   const so = input("", { inputmode: "numeric", autocomplete: "off", maxlength: "23", id: "tknt-so" }) as HTMLInputElement;
   const ten = input("", { autocomplete: "off", maxlength: "100", id: "tknt-ten", placeholder: "Như ngân hàng in, vd CONG TY TNHH TOUR DAO" }) as HTMLInputElement;
   const luu = button(r.hienTai ? "Đổi tài khoản" : "Lưu tài khoản", (b) => {
-    if (!so.value.trim() || !ten.value.trim()) return showError(errorEl, "Nhập số tài khoản và tên chủ tài khoản.");
-    if (r.hienTai && !confirm("Đổi tài khoản nhận tiền? Từ lúc này mã QR mới sẽ chỉ tiền về tài khoản mới; tài khoản cũ được lưu lại trong lịch sử.")) return;
+    if (b.disabled) return;
+    datTin(null);
+    if (!nh.value) return datTin({ kieu: "loi", chu: "Chọn ngân hàng nhận tiền." });
+    if (!so.value.trim() || !ten.value.trim()) return datTin({ kieu: "loi", chu: "Nhập số tài khoản và tên chủ tài khoản." });
+    if (r.hienTai && !confirm("Đổi tài khoản nhận tiền? Từ lúc này mã QR mới sẽ chuyển tiền về tài khoản mới; tài khoản cũ được lưu lại trong lịch sử.")) return;
     const body: Api.TaiKhoanNhanTienInput = { maNganHang: nh.value, soTaiKhoan: so.value.trim(), chuTaiKhoan: ten.value.trim(), truocDo: r.hienTai?.id ?? null };
-    void act(async () => {
-      await api(url, { method: "PUT", body });
-      await veTaiKhoanNhanTien(sec, p);
-    }, b, () => veTaiKhoanNhanTien(sec, p));
+    b.disabled = true; // khoá từ lúc bấm đến khi xong (bấm đúp không gửi hai lần); thành công / "đã cũ" thì cả mục được vẽ lại, nút mới thay nút này
+    void (async () => {
+      try {
+        const moi = await api<Api.TaiKhoanNhanTienResponse>(url, { method: "PUT", body });
+        await veTaiKhoanNhanTien(sec, p, { kieu: "ok", chu: "Đã lưu tài khoản nhận tiền." }, moi);
+      } catch (err) {
+        if (err instanceof ApiError && err.code === "stale") await veTaiKhoanNhanTien(sec, p, { kieu: "luu-y", chu: TIN_TKNT_DA_CU });
+        else datTin({ kieu: "loi", chu: err instanceof ApiError ? err.message : "Không kết nối được máy chủ." });
+      } finally {
+        b.disabled = false;
+      }
+    })();
   }, "btn btn-primary");
   replaceChildren(
     sec,
     tieuDe,
     hienTai,
     h("div", { class: "grid three" }, field("Ngân hàng", nh), field("Số tài khoản", so), field("Tên chủ tài khoản", ten)),
+    khuTin,
     h("div", { class: "actions" }, luu),
   );
+  if (tin) tieuDe.focus();
 }
 
 byId<HTMLFormElement>("search-form").addEventListener("submit", (e) => {
