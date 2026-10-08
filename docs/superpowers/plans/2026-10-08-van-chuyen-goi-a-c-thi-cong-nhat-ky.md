@@ -106,6 +106,7 @@ Sổ điều phối (CLAUDE.md §9, P19). Trạng thái sống ở đây, không
   - `PUT /api/orders/:id/trip` (G8 + A3 V3 MQ-07).
   
   Soạn xong kiểm một vòng rồi mới trình chủ.
+  - Người soạn đã xong (`ef73bbf7`, `625815b0`, đã nhập vào nhánh): ADR-0109 đề xuất (phải thu ≥ 0), tệp 02 (giữ mã, số tạm 0110), tệp 03 (`PUT /trip` gọi đồng bộ + báo tài xế, số tạm 0111), trang ghép, ba câu hỏi soạn sẵn. Người soạn nêu thêm: phương án (a) sửa chữ ADR-0079 về đơn đại lý (đã duyệt, chưa thi công); phần "báo tài xế khi đổi ngày" có thể là mã lệch ADR-0052 D6.2 nên tự áp được. **Đang kiểm độc lập một vòng** theo ba góc: tiền, mã chuyến, quy trình/lời chủ.
 
 ## Việc song song
 
