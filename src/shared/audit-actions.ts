@@ -33,6 +33,8 @@ export const AUDIT_ACTIONS = {
   cancelled: { label: "Huỷ đơn", group: "order" },
   order_cancelled_by_field: { label: "Huỷ đơn (hướng dẫn viên đang phụ trách)", group: "order" },
   order_cancel_reason_classified: { label: "Phân loại lý do huỷ", group: "order" },
+  // Sổ đại lý đợt 1 (ADR-0077 điều 8): chụp mức hoa hồng + người bán của từng dòng lúc Xác nhận — `detail` chỉ đếm dòng (không tỷ lệ, không tiền, không tên đối tác).
+  order_terms_captured: { label: "Chụp mức hoa hồng lúc xác nhận", group: "order" },
   order_money_adjusted_by_field: { label: "Sửa số khách (hướng dẫn viên đang phụ trách)", group: "order" },
   // Sổ tiền lượt 1 (ADR-0025, ADR-0026) — `detail` không SĐT, không số tiền chi tiết (kế hoạch §3.4).
   order_delivered: { label: "Đã giao – đã thu đủ", group: "order" },
