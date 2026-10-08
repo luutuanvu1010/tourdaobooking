@@ -69,7 +69,7 @@ try {
   await cho(p);
   await b.step("2", `1040 Bán hàng ${d.T1.ma}: dải "${TIEU_DE_GIU}" + nút; "Đủ tên khách" ✕ kèm câu; bấm (không hộp xác nhận) → CÙNG trang: tên mới hiện (đọc lại GET), hết giữ${axeNote()}`, async () => {
     assert.deepEqual(await p.ev(daiGiu), [TIEU_DE_GIU]);
-    assert.equal(await p.ev(txt("#ct-trang > .banner-danger .banner-lines")), `${CAU(d.O1.ma)} Ai xử lý: Văn phòng. Không cần phá lệ, kể cả trong vùng khoá trước giờ xuất bến.`);
+    assert.equal(await p.ev(txt("#ct-trang > .banner-danger .banner-lines")), `${CAU(d.O1.ma)} Ai xử lý: Văn phòng. Không cần điều chỉnh khẩn cấp hay phá lệ, kể cả trong vùng khoá trước giờ xuất bến.`);
     assert.deepEqual(await p.ev(dieuKien), [{ nhan: "Đủ tên khách", sub: `${CAU(d.O1.ma)} · Ai xử lý: Văn phòng` }]);
     assert.equal(await p.ev(txt(".dp-ct-head .chip")), "Bị giữ");
     assert.equal(await p.ev(`document.querySelector('main').innerText.includes('Khách Mới Thay')`), false, "trước khi bấm: xe chưa có khách mới");

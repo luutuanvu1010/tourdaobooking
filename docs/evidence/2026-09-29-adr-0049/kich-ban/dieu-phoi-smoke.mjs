@@ -274,7 +274,7 @@ try {
   const k = await env.as(ACCOUNTS.accounting, `/dieu-phoi?ngay=${d.NGAY_XA}`, DESK);
   await b.step("8", `1e Kế toán: dải "Chỉ xem", không "+ Chuyến mới", thẻ chặng / việc không nút; bấm khối chỉ có "Mở chuyến"; menu chỉ Điều phối xe; không lệnh ghi${axeNote()}`, async () => {
     await cho(k);
-    assert.equal(await k.ev(txt(".dp-readonly")), "Chỉ xem — Kế toán không xếp xe, không phá lệ.");
+    assert.equal(await k.ev(txt(".dp-readonly")), "Chỉ xem — Kế toán không xếp xe, không điều chỉnh khẩn cấp hay phá lệ.");
     assert.equal(await k.ev(shown("#dp-moi")), false);
     assert.equal(await k.ev(`document.querySelectorAll('#dp-cot-chua-xep button, #dp-cot-can-xu-ly button, #dp-cot-can-xu-ly .vc-btn').length`), 0);
     assert.deepEqual((await k.ev(vcSub)).items, ["Điều phối xe", "Xe đang chạy", "Bảng giá thuê xe", "Bảng kê chi phí xe"], "Kế toán: + «Xe đang chạy» (Đợt 5) + hai mục tiền xe thuê (Đợt 4 G0)");

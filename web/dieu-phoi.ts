@@ -328,7 +328,7 @@ function veCanXuLy(viec: ViecCanXuLy[]): void {
   replaceChildren(
     cotCxl,
     dauCot("Cần xử lý", viec.length),
-    co.dieuPhoi ? null : h("div", { class: "dp-readonly" }, "Chỉ xem — Kế toán không xếp xe, không phá lệ."),
+    co.dieuPhoi ? null : h("div", { class: "dp-readonly" }, "Chỉ xem — Kế toán không xếp xe, không điều chỉnh khẩn cấp hay phá lệ."),
     ...(viec.length ? viec.map(mucViec) : [h("div", { class: "dp-col-empty" }, "Không có việc cần xử lý.")]),
   );
 }

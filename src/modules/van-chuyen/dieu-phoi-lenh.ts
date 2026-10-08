@@ -5,12 +5,12 @@ import type { ChangChoChuyen, ChangLichChung, ChangNhapLichChung } from "../orde
 import type { StaffProfile } from "../../shared/contracts";
 import { changXetTheoDon, khoaNguoiRanh, kiemTaoSuaChuyen, kiemXep, moLaiSauDoiKhach, noiLechCuaSuat, suatKhachDaDoi, tenLucXep } from "../../shared/dieu-phoi-kiem";
 import { kiemCamKet, type KetQuaCamKet } from "../../shared/cam-ket-xe";
-import type { ChangVao, KetQuaKiem, MaLuatPhaLe } from "../../shared/dieu-phoi-kieu";
+import { NHAN_NHOM_LY_DO, type ChangVao, type KetQuaKiem, type MaLuatPhaLe } from "../../shared/dieu-phoi-kieu";
 import type { CanhBaoGioLai } from "../../shared/gio-lai";
 import { dungLichChung } from "../../shared/dieu-phoi-lich-chung";
 import { error } from "../../shared/http";
 import { lyDoGiu, type LyDoGiu } from "../../shared/ly-do-giu";
-import { batDauSomNhatSauDoiGio, gioXetMocXep, gioXetSuaChuyen, kiemMocXep, lopVuotNghiCamKet, type LenhVuotMoc } from "../../shared/moc-toi-thieu";
+import { batDauSomNhatSauDoiGio, gioXetMocXep, gioXetSuaChuyen, kiemMocXep, type LenhVuotMoc } from "../../shared/moc-toi-thieu";
 import { addDays, msToVnLocal, vnLocalToMs } from "../../shared/vn-date";
 import { khungBanXeTrongKhoang } from "./khung-ban-repo";
 import type { LichChungResponse } from "../../shared/contracts";
@@ -38,7 +38,9 @@ const NHA_XE_THOI_HOP_TAC = (v: { doiTuyen: boolean; doiNgay: boolean }) => erro
 const NGAY_MS = 86_400_000;
 const nowIsoOf = (ms: number) => new Date(ms).toISOString();
 const homNay = (ms: number) => msToVnLocal(ms).date;
-const PHA_LE_KHONG_HOP_LE = () => error(400, "invalid_input", "Lý do phá lệ không có trong danh mục.");
+// Phiếu D1 THẤP-11: câu dùng chung cho hộp "Điều chỉnh khẩn cấp" lẫn hộp "Phá lệ" — nói tên nhóm lý do (màn Lý do điều phối), không nói "phá lệ" trơn.
+export const CAU_LY_DO_VUOT_LA = `Lý do không có trong nhóm "${NHAN_NHOM_LY_DO.PHA_LE}".`;
+const PHA_LE_KHONG_HOP_LE = () => error(400, "invalid_input", CAU_LY_DO_VUOT_LA);
 const phaLeCua = (chung: DuLieuChung, luat: MaLuatPhaLe, p: { lyDo: string } | null): PhaLe | null =>
   p ? { luat, lyDo: p.lyDo, policyId: chung.chinhSach?.id ?? null } : null;
 /**
@@ -196,6 +198,8 @@ export async function lenhSuaChuyen(
   // khi luật nghỉ thật sự bị vượt và không có luật ưu tiên hơn (`phaLe` ở trên — CAO-1); còn lại (mốc ưu tiên, hoặc gửi cờ mà không vi phạm) đuôi nhật ký ghi
   // theo cột để nhật ký có đủ luật bị vượt — không ghi hai lần khi sự kiện đã mang KHOANG_NGHI.
   const nghiNhatKy = b.nghiPhaLe && phaLe?.luat !== "KHOANG_NGHI" ? phaLeNhatKy("KHOANG_NGHI", nhanLyDo(chung, b.nghiPhaLe.lyDo), vuot) : "";
+  // Đuôi vượt luật theo lớp. Lệnh KHÔNG đổi gì khác (chỉ gửi cờ nghỉ / cam kết) thì đuôi đứng ngay sau mã chuyến — không lặp tên luật ở đầu (phiếu D1 THẤP-11).
+  const duoi = `${phaLe ? phaLeNhatKy(phaLe.luat, nhanLyDo(chung, phaLe.lyDo), vuot) : ""}${nghiNhatKy}${ck.nhatKy}${gioKhanCapNhatKy([phaLe?.luat, nghiNhatKy ? "KHOANG_NGHI" : null, ck.phaLe?.luat], vuot)}`;
   const lo = loSuaChuyen(db, {
     ...lenhChung(b.requestId, staff, bayGioMs), tripId: t.id, version: b.version,
     moi: {
@@ -206,7 +210,7 @@ export async function lenhSuaChuyen(
     doiTaiXe: doiTaiXe ? taiXeId : null,
     diem: diemDoi.map((d) => ({ id: d.id, seq: d.thuTu, ngayXeToi: d.gioXeToi?.ngay ?? null, gioXeToi: d.gioXeToi?.gio ?? null })),
     phaLe: phaLe ?? ck.phaLe, policyId: chung.chinhSach?.id ?? null, camKet: ck.lo,
-    detail: `${t.code}: ${thay.join("; ") || `${lopVuotNghiCamKet(vuot.duoiMoc) === "KHAN_CAP" ? "điều chỉnh khẩn cấp" : "phá lệ"} ${b.nghiPhaLe ? "khoảng nghỉ" : "cam kết"}`}${phaLe ? phaLeNhatKy(phaLe.luat, nhanLyDo(chung, phaLe.lyDo), vuot) : ""}${nghiNhatKy}${ck.nhatKy}${gioKhanCapNhatKy([phaLe?.luat, nghiNhatKy ? "KHOANG_NGHI" : null, ck.phaLe?.luat], vuot)}${chiTietChiPhiNhatKy(kh.kh, thue, false, await tenNhaXePhiHuy(db, kh.kh.phiHuyBiDao))}`,
+    detail: `${t.code}: ${thay.length > 0 ? `${thay.join("; ")}${duoi}` : duoi.replace(/^ · /, "")}${chiTietChiPhiNhatKy(kh.kh, thue, false, await tenNhaXePhiHuy(db, kh.kh.phiHuyBiDao))}`,
   });
   const r = await chayLo(db, lo, b.requestId);
   return r.ok ? null : r.res;

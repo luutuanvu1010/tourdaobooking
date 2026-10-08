@@ -16,6 +16,8 @@ import {
 const PL = { lyDo: "PHA_LE_SU_CO" };
 const AT = "2026-09-01T00:00:00.000Z";
 const CAU_QUAN_TRI = "Chỉ Quản trị hoặc Toàn quyền phá lệ được.";
+// Phiếu D1 THẤP-11: câu 400 lý do ngoài nhóm — hiện cả trong hộp "Điều chỉnh khẩn cấp", nên nói tên nhóm lý do, không nói "phá lệ" trơn.
+const CAU_LY_DO_LA = "Lý do không có trong nhóm \"Điều chỉnh khẩn cấp, phá lệ\".";
 let so = 0;
 
 /** Tài xế công ty MỚI (hồ sơ người + vai DRIVER_INTERNAL + GPLX hạng D1 — số GIẢ). */
@@ -80,6 +82,7 @@ test("NT-1 (ADR-0104 Đ1 mục 1, 2): chuyến DƯỚI mốc — Bán hàng xế
     assert.equal((await xep(w, SALES, t.chuyen.id, [{ legId: a.legId, soSuat: 2 }], { phaLe: {} })).status, 400);
     const sai = await xep(w, SALES, t.chuyen.id, [{ legId: a.legId, soSuat: 2 }], { phaLe: { lyDo: "KHONG_CO_MA_NAY" } });
     assert.equal(sai.status, 400, sai.text);
+    assert.equal(sai.json.error.message, CAU_LY_DO_LA);
     assert.equal(w.q("SELECT count(*) n FROM vc_trip_event WHERE kind = 'ALLOCATED'")[0].n, 0, "từ chối thì không ghi");
     // Xếp.
     const x = await xep(w, SALES, t.chuyen.id, [{ legId: a.legId, soSuat: 2 }], { phaLe: PL });
@@ -134,6 +137,9 @@ test("NT-1 (ADR-0104 Đ1 mục 0, 2 — 'Chỉ khi chuyến còn dưới 6 giờ
     assert.equal(d0.json.error.lop, "KHAN_CAP");
     assert.equal(d0.json.error.canQuyen, true);
     assert.equal(d0.json.error.message, "Chưa đủ khoảng nghỉ giữa hai chuyến — cần điều chỉnh khẩn cấp kèm lý do.");
+    const dSai = await taoTho(w, SALES, { xe: x1, taiXe: `pty-${DRIVER2}`, bd: "10:10", kt: "11:00", nghiPhaLe: { lyDo: "KHONG_CO_MA_NAY" } });
+    assert.equal(dSai.status, 400, dSai.text);
+    assert.equal(dSai.json.error.message, CAU_LY_DO_LA, "tạo chuyến: câu 400 lý do ngoài nhóm (THẤP-11)");
     const d1 = await taoTho(w, SALES, { xe: x1, taiXe: `pty-${DRIVER2}`, bd: "10:10", kt: "11:00", nghiPhaLe: PL });
     assert.equal(d1.status, 201, d1.text);
     assert.deepEqual(suKien(w, "CREATED", d1.json.chuyen.id), [{ r: "KHOANG_NGHI", l: "PHA_LE_SU_CO", c: SALES }]);

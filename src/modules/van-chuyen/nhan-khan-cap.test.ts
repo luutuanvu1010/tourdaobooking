@@ -218,7 +218,9 @@ test("NT-4 lệch đã biết ADR-0104 Đ1.5 (bốn ca): Bán hàng làm dưới
       assert.equal(await nhan(w, t.chuyen.id), false, "ca 4: lệch đã biết — nhãn 'Phá lệ'");
       assert.deepEqual(await phaLeDong(w, t.chuyen.id, "UPDATED"), [{ luat: "CAM_KET", lyDoNhan: "Sự cố vận hành" }], "ca 4: dòng nhật ký có nhãn Phá lệ");
       const nk = nhatKy(w, "trip_edited", t.chuyen.id);
-      assert.match(nk, /: điều chỉnh khẩn cấp cam kết · điều chỉnh khẩn cấp cam kết: Sự cố vận hành · còn 300 phút/, `ca 4: nhật ký đúng lớp — ${nk}`);
+      // Phiếu D1 THẤP-11: lệnh chỉ gửi cờ (không đổi gì khác) — đuôi vượt luật đứng ngay sau mã chuyến, tên luật KHÔNG lặp ở đầu.
+      assert.match(nk, /^CX-\d{4}-\d{2}: điều chỉnh khẩn cấp cam kết: Sự cố vận hành · còn 300 phút/, `ca 4: nhật ký đúng lớp — ${nk}`);
+      assert.equal(nk.split("điều chỉnh khẩn cấp cam kết").length, 2, `ca 4: tên luật ghi MỘT lần — ${nk}`);
     }
   } finally {
     tat();
