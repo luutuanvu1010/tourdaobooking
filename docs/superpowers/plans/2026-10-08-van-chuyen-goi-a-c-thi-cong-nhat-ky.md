@@ -66,6 +66,13 @@ Sổ điều phối (CLAUDE.md §9, P19). Trạng thái sống ở đây, không
 - Tệp 05 (ADR-0107 Bán hàng đặt gấp): **"Duyệt cả hai ý (Recommended)"** — Q-3 = a; nhãn "Điều chỉnh khẩn cấp" vì ADR-0104 đã duyệt.
 - Việc kế: người soạn chuẩn bị bản chép ADR-0105 (viết lại theo Q-1 b: hai nút, chỗ "ngoài phạm vi: Apple Maps" bỏ), ADR-0106, ADR-0107 + dòng mục lục + dòng trỏ ADR cũ; một vòng kiểm; điều phối chép vào `docs/adr/`. Số 0105–0107 còn trống (0108 VietQR ở nhánh khác, 0103 bỏ trống).
 
+## Lượt duyệt 8c — chủ trả lời 2026-10-08 (AskUserQuestion, nguyên văn nhãn đã chọn)
+
+- Hai câu, chép nguyên văn từ mục 4 phiếu tổng hợp `docs/superpowers/specs/2026-10-08-luot-duyet-8c/phieu-kiem-tong-hop.md` (cũng ở `00-trang-ghep.md` mục "Hai câu hỏi cho chủ"). Câu 3 (Sửa chuyến) không hỏi — G8 đóng; phần báo tài xế tự áp — G17.
+- Câu 1 `Tổng âm` (tệp 01, ADR-0109 đề xuất): **"Phải thu không âm (Recommended)"** — phương án (a): phải thu tối thiểu bằng 0 trong phép tính còn lại / dư; giảm giá vẫn lưu số đã ghi; trang đơn vẫn cảnh báo; đơn không âm không đổi đồng nào; với đơn đại lý, đại lý chịu phần giảm giá thực dùng. Sửa chữ quyết định sửa số khách 8/10 và ADR-0079 (sổ đại lý, chưa thi công). Nhãn "xây trên lỗ đang hở: TNV-G1, TNV-G3" — điều kiện chỉ phát hành sau Sổ tiền, cùng A2.
+- Câu 2 `Thứ tự điểm` (tệp 02): **"Giữ cách đang làm (Recommended)"** — giữ mã cả hai chỗ (chỉ chặn đảo MỚI; ↑ ↓ của chuyến chưa chạy đi qua lệnh Sửa chuyến); ghi thành ADR-0110 sửa chữ ADR-0096 Đ1.3b (Đ1.3c là chú giải); mục `SYSTEM-DESIGN.md` §16 tương ứng đóng khi ADR chép xong.
+- Việc kế: người soạn chuẩn bị bản chép ADR-0109, ADR-0110 (trạng thái accepted, lời chủ nguyên văn) + dòng mục lục + câu trỏ ở dòng Trạng thái các ADR bị sửa; một vòng kiểm; điều phối chép vào `docs/adr/`. Sau đó lập kế hoạch thi công ADR-0109 (tiền — việc lớn, người kiểm độc lập). ADR-0110 không đổi mã.
+
 ## Giai đoạn 2 — bắt đầu 8/10 (phần đã duyệt, không chờ câu trả lời)
 
 - **Số migration giữ chỗ** (đo 8/10 trên mọi nhánh: lớn nhất `0083`): A1 = `0084` (+ `0085` nếu tách); A3 = `0086`. Đo lại trước khi gộp `main`.
@@ -120,7 +127,7 @@ Sổ điều phối (CLAUDE.md §9, P19). Trạng thái sống ở đây, không
 
     Điều phối giao người soạn sửa đủ theo C1 (cách b → G15), C2, H1–H3 và các mục THẤP. Đây là chữ của bản chép, nên không mở vòng kiểm thứ hai; điều phối tự đọc diff trước khi chép.
   - **Đã chép vào sổ quyết định 8/10** (`29c4ebc0`): ba tệp ADR khớp bản chép từng byte (`cmp`), dòng mục lục 0105–0107, câu trỏ ở dòng Trạng thái ADR-0047, 0049, 0053, 0104. Còn: dòng bản đồ Google/Apple vào `RANG_BUOC_NGOAI.md` khi thi công ADR-0105.
-- **Lượt duyệt 8c — đang soạn**, nhánh `luot-duyet-8c`, ba quyết định kèm trang ghép:
+- **Lượt duyệt 8c — chủ đã trả lời 8/10 (mục "Lượt duyệt 8c")**, nhánh `luot-duyet-8c`, ba quyết định kèm trang ghép:
   - tổng tiền âm sau khi bớt khách (ADR mới 0109, chặn phát hành A2);
   - hai chỗ mã lệch ADR-0096 ở §16;
   - `PUT /api/orders/:id/trip` (G8 + A3 V3 MQ-07).
