@@ -92,7 +92,8 @@ try {
   const o2 = c2.json.order;
   assert.equal((await call(ACCOUNTS.salesA, "POST", `/api/orders/${o2.id}/payments`, { soTien: 300000, hinhThuc: "BANK_TRANSFER", nguoiThu: "cong_ty" })).status, 201);
   assert.equal((await call(ACCOUNTS.salesA, "POST", `/api/orders/${o2.id}/payments`, { soTien: 1200000, hinhThuc: "CASH", nguoiThu: "toi" })).status, 201);
-  const tien2 = async () => (await call(ACCOUNTS.accounting, "GET", `/api/orders/${o2.id}/payments`)).json;
+  // Đọc bằng tài khoản Toàn quyền (không phải Kế toán): đăng nhập lại Kế toán sẽ thay phiên của trang Kế toán đang mở (ADR-0074, `bi_thay`) và đá trang đó về /login.
+  const tien2 = async () => (await call(ACCOUNTS.chu, "GET", `/api/orders/${o2.id}/payments`)).json;
   const t0 = await tien2();
   assert.deepEqual([t0.du, t0.keToan.choXacNhan.length, t0.keToan.dangGiu.map((d) => d.soTien)], [150000, 1, [1500000]]);
   const k = await env.as(ACCOUNTS.accounting, `/order?id=${o2.id}`);
@@ -107,6 +108,8 @@ try {
   await k.ev(setInput("document.querySelector('[data-khoi=\"xac-nhan-xac-nhan-ck\"] [data-o=\"so-thuc-chuyen\"] input')", "300000"));
   await k.ev("document.querySelector('[data-khoi=\"xac-nhan-xac-nhan-ck\"] button[type=\"submit\"]').click(); true");
   await k.waitFor("!document.querySelector('[data-action=\"xac-nhan-ck\"]')", "hết nút xác nhận CK", 10000);
+  // Chờ dấu hiệu GHI XONG (chỉ thêm chờ, không đổi khẳng định): nút mở hàng biến mất ngay khi hàng xác nhận mở nên không đủ làm mốc; hàng xác nhận chỉ mất sau khi máy chủ ghi xong và trang tải lại.
+  await k.waitFor("!document.querySelector('[data-khoi=\"xac-nhan-xac-nhan-ck\"]')", "hàng xác nhận CK đóng sau khi ghi", 10000);
   assert.deepEqual((await tien2()).keToan.dangGiu.map((d) => d.soTien), [1200000], "sau xác nhận: Bán hàng còn giữ 1.200.000");
   // (b) Đảo đòi lý do: gửi trống → báo lỗi, không ghi; bấm Thôi.
   await k.ev("document.querySelector('[data-action=\"dao-lan-thu\"]').click(); true");
@@ -122,6 +125,7 @@ try {
   await k.ev("(() => { const s = document.querySelectorAll('[data-khoi=\"xac-nhan-ghi-hoan\"] select'); s[0].value = 'CASH'; s[1].value = s[1].options[1].value; return true; })()");
   await k.ev("document.querySelector('[data-khoi=\"xac-nhan-ghi-hoan\"] button[type=\"submit\"]').click(); true");
   await k.waitFor("!document.querySelector('[data-action=\"ghi-hoan\"]')", "hết nút hoàn (hết dư)", 10000);
+  await k.waitFor("!document.querySelector('[data-khoi=\"xac-nhan-ghi-hoan\"]')", "hàng hoàn đóng sau khi ghi", 10000);
   const t1 = await tien2();
   assert.deepEqual([t1.du, t1.conLai, t1.keToan.dangGiu.map((d) => d.soTien)], [0, 0, [1050000]], "hoàn 150.000 từ tiền Bán hàng giữ");
   // (d) Ghi đã nộp về công ty.
@@ -129,6 +133,7 @@ try {
   await k.waitFor("!!document.querySelector('[data-khoi=\"xac-nhan-da-nop\"]')", "hàng xác nhận nộp");
   await k.ev("document.querySelector('[data-khoi=\"xac-nhan-da-nop\"] button[type=\"submit\"]').click(); true");
   await k.waitFor("!document.querySelector('[data-action=\"da-nop\"]')", "hết nút nộp", 10000);
+  await k.waitFor("!document.querySelector('[data-khoi=\"xac-nhan-da-nop\"]')", "hàng xác nhận nộp đóng sau khi ghi", 10000);
   assert.deepEqual((await tien2()).keToan.dangGiu, [], "không còn ai giữ tiền của công ty vì đơn này");
   assert.equal(await k.ev("document.documentElement.scrollWidth - document.documentElement.clientWidth <= 1"), true, "không tràn ngang 390");
   await k.shot(`${OUT}/6-ke-toan-sau-390.png`);

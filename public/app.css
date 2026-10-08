@@ -1078,6 +1078,8 @@ body.login-page::before { content: ""; display: block; height: env(safe-area-ins
 .banner-lines { margin: var(--s2) 0 0; padding-left: var(--s4); }
 .banner-edit { display: inline-flex; align-items: center; justify-content: center; min-width: var(--tap-min); min-height: var(--tap-min); margin-left: var(--s2); font-weight: var(--fw-bold); color: inherit; }
 .banner-actions { display: flex; flex-wrap: wrap; gap: var(--s2); margin-top: var(--s3); }
+/* Banner lỗi của trang (#error): `scrollIntoView` tới đây (lỗi của thao tác ở thẻ Thanh toán, đặt gấp…) không được để banner chui dưới thanh đầu trang dính ở điện thoại — cùng khuôn `.hdv-sec`. */
+#error { scroll-margin-top: calc(var(--bar-h) + env(safe-area-inset-top) + var(--s3)); }
 
 /* chip, nhãn giá */
 .chip { display: inline-block; white-space: nowrap; padding: 0 var(--s2); font-size: var(--fs-badge); font-weight: var(--fw-semibold); line-height: 1.5; border-radius: var(--radius-pill); }

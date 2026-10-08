@@ -26,7 +26,7 @@ try {
   });
   assert.equal(created.status, 201, JSON.stringify(created.json));
   const o = created.json.order;
-  assert.equal((await call(ACCOUNTS.accounting, "POST", `/api/orders/${o.id}/payments`, { soTien: 500000, hinhThuc: "BANK_TRANSFER", nguoiThu: "cong_ty" })).status, 201);
+  assert.equal((await call(ACCOUNTS.accounting, "POST", `/api/orders/${o.id}/payments`, { soTien: 500000, hinhThuc: "BANK_TRANSFER", nguoiThu: "cong_ty", maGiaoDich: "FTCOC0001", soThucChuyen: 500000 })).status, 201); // Kế toán ghi CK – Công ty thu ⇒ đòi mã giao dịch (ADR-0092 Đ6)
   assert.equal((await call(ACCOUNTS.salesA, "POST", `/api/orders/${o.id}/status`, { status: "confirmed" })).status, 200);
 
   // ---- 1) Bán hàng: hộp Huỷ đơn bắt chọn lý do, KHÔNG có nhóm Công ty huỷ; huỷ "Khách đổi ý" ----

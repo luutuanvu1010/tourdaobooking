@@ -110,7 +110,14 @@ function errorBanner(err: unknown): Banner {
   );
   // 409 ở trang đơn (vd invalid_transition: đơn vừa đổi trạng thái ở nơi khác) phải có nút "Tải lại đơn" — PWA standalone không có tải lại của trình duyệt.
   // Trừ incomplete_trip: banner đó đã có liên kết "Sửa" tới đúng dịch vụ và ma trận đặc tả 5.2 ghi cột Hành động là "—" (stale đã có reload_order sẵn).
-  return b.action === "none" && err.status === 409 && err.code !== "incomplete_trip" ? { ...b, action: "reload_order" } : b;
+  // Trừ lỗi mã giao dịch (`bank_txn_*`, ADR-0092 Đ6): tải lại đơn xoá form đang nhập và số thực chuyển điền sẵn từ lần 409 — Kế toán cần sửa ngay tại form đó.
+  return b.action === "none" && err.status === 409 && err.code !== "incomplete_trip" && !err.code.startsWith("bank_txn_") ? { ...b, action: "reload_order" } : b;
+}
+
+/** Hiện banner lỗi của một thao tác ngay trong thẻ (form xác nhận / ghi lần thu) và đưa nó vào tầm nhìn: banner nằm đầu trang, ngoài màn hình điện thoại khi người dùng đang ở thẻ Thanh toán. */
+function hienLoiTaiCho(b: Banner): void {
+  show(b);
+  bannerEl.scrollIntoView({ block: "nearest" });
 }
 
 /** "Chiều đi · <dịch vụ>" của một chặng của đơn đang xem (dòng banner 409 `short_notice_required`). */
@@ -562,7 +569,7 @@ function hangXacNhan(opts: { nhan: string; action: string; cau: string; nutGhi: 
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
       const loiNhap = opts.kiem?.() ?? null;
-      if (loiNhap) return show(banner("danger", loiNhap));
+      if (loiNhap) return hienLoiTaiCho(banner("danger", loiNhap));
       ghi.disabled = true;
       show(null);
       try {
@@ -570,7 +577,7 @@ function hangXacNhan(opts: { nhan: string; action: string; cau: string; nutGhi: 
         await load();
         if (bannerEl.hidden) show(banner("info", opts.bao));
       } catch (err) {
-        show(errorBanner(err));
+        hienLoiTaiCho(errorBanner(err));
         ghi.disabled = false;
       }
     });
@@ -970,9 +977,9 @@ function nutGhiThu(order: Order, t: Api.OrderPaymentsResponse): HTMLElement {
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
       const so = parseMoney(soTien.value);
-      if (so <= 0) return show(banner("danger", "Nhập số tiền đã thu."));
+      if (so <= 0) return hienLoiTaiCho(banner("danger", "Nhập số tiền đã thu."));
       const loiMa = loiCuaMa(ma?.doc() ?? null);
-      if (loiMa) return show(banner("danger", loiMa));
+      if (loiMa) return hienLoiTaiCho(banner("danger", loiMa));
       ghi.disabled = true;
       show(null);
       try {
@@ -988,7 +995,7 @@ function nutGhiThu(order: Order, t: Api.OrderPaymentsResponse): HTMLElement {
         if (bannerEl.hidden) show(banner("info", `Đã ghi lần thu ${vnd(so)}.`));
       } catch (err) {
         ma?.tuLoi(err);
-        show(errorBanner(err));
+        hienLoiTaiCho(errorBanner(err));
         ghi.disabled = false;
       }
     });
@@ -1014,8 +1021,8 @@ function nutQr(order: Order, t: Api.OrderPaymentsResponse): HTMLButtonElement {
 function moBangQr(order: Order, t: Api.OrderPaymentsResponse, opener: HTMLElement): void {
   const soTien = h("input", { type: "text", inputmode: "numeric", autocomplete: "off", id: "qr-so-tien" }) as HTMLInputElement;
   setMoneyValue(soTien, t.conLai);
-  soTien.addEventListener("input", () => regroupMoney(soTien));
   const tao = h("button", { type: "button", class: "btn", "data-action": "qr-tao-lai" }, "Tạo lại mã");
+  const trangThai = h("p", { class: "muted", role: "status", "data-khoi": "qr-trang-thai", hidden: true });
   const canvas = h("canvas", { class: "qr-anh", role: "img", "aria-label": "Mã QR thanh toán", hidden: true }) as HTMLCanvasElement;
   const dong = h("div", { class: "qr-dong", "data-khoi": "qr-thong-tin" });
   const loiEl = h("p", { class: "alert danger", role: "alert", hidden: true });
@@ -1025,9 +1032,27 @@ function moBangQr(order: Order, t: Api.OrderPaymentsResponse, opener: HTMLElemen
   let hien: Api.QrThanhToanDto | null = null;
   let dangChiaSe = false;
   let lan = 0; // số thứ tự lần tạo mã: phản hồi của lần cũ (mạng chậm) không được vẽ đè mã của lần mới hơn
+  /** Hai nút dùng SỐ của mã đang hiện (ảnh lưu, số điền sẵn vào form ghi thu): chỉ bật khi mã VÀ ảnh đã sẵn; mọi lúc khác tắt cả hai — không để trạng thái nửa vời. */
+  const datNut = (bat: boolean): void => {
+    luu.disabled = !bat;
+    if (daChuyen) daChuyen.disabled = !bat;
+  };
+  const datTrangThai = (chu: string): void => {
+    trangThai.textContent = chu;
+    trangThai.hidden = chu === "";
+  };
+  soTien.addEventListener("input", () => {
+    regroupMoney(soTien);
+    // Số trong ô đã khác mã đang hiện: huỷ lần tạo còn bay, tắt hai nút theo mã cũ cho tới khi người dùng bấm "Tạo lại mã".
+    lan++;
+    anh = null;
+    hien = null;
+    datNut(false);
+    datTrangThai("Số tiền đã đổi — bấm “Tạo lại mã” để dùng số mới.");
+  });
   const bang = moBangTruot({
     title: "QR thanh toán",
-    body: [h("label", null, "Số tiền (₫)", soTien), h("div", { class: "handler-actions" }, tao), loiEl, h("div", { class: "qr-khung" }, canvas), dong],
+    body: [h("label", null, "Số tiền (₫)", soTien), h("div", { class: "handler-actions" }, tao), trangThai, loiEl, h("div", { class: "qr-khung" }, canvas), dong],
     foot: [luu, daChuyen],
     footClass: "qr-foot",
     opener,
@@ -1037,8 +1062,8 @@ function moBangQr(order: Order, t: Api.OrderPaymentsResponse, opener: HTMLElemen
     const lanNay = ++lan;
     const so = parseMoney(soTien.value);
     loiEl.hidden = true;
-    luu.disabled = true;
-    if (daChuyen) daChuyen.disabled = true;
+    datTrangThai("Đang tạo mã…");
+    datNut(false);
     anh = null;
     hien = null;
     canvas.hidden = true;
@@ -1046,17 +1071,25 @@ function moBangQr(order: Order, t: Api.OrderPaymentsResponse, opener: HTMLElemen
     try {
       const r = await api<Api.QrThanhToanResponse>(`/api/orders/${encodeURIComponent(order.id)}/qr-thanh-toan${so > 0 ? `?soTien=${so}` : ""}`);
       if (lanNay !== lan) return;
-      hien = r.qr;
       veMaQr(canvas, r.qr.payload);
       canvas.hidden = false;
       replaceChildren(dong, ...dongThongTinQr(r.qr).map((x) => h("p", null, x)));
-      if (daChuyen) daChuyen.disabled = false;
-      const png = await dungAnhQr(r.qr); // dựng SẴN: bảng chia sẻ của iOS phải mở ngay trong lần bấm "Lưu ảnh"
-      if (lanNay !== lan) return;
-      anh = png;
-      luu.disabled = false;
+      datTrangThai("");
+      try {
+        const png = await dungAnhQr(r.qr); // dựng SẴN: bảng chia sẻ của iOS phải mở ngay trong lần bấm "Lưu ảnh"
+        if (lanNay !== lan) return;
+        hien = r.qr;
+        anh = png;
+        datNut(true);
+      } catch {
+        if (lanNay !== lan) return;
+        // Mã vẫn quét được trên màn hình, nhưng không có ảnh để lưu ⇒ KHÔNG bật "Khách đã chuyển khoản" (cùng số với ảnh): người dùng bấm "Tạo lại mã" để thử lại.
+        loiEl.textContent = "Chưa dựng được ảnh để lưu — bấm “Tạo lại mã” để thử lại.";
+        loiEl.hidden = false;
+      }
     } catch (err) {
       if (lanNay !== lan) return;
+      datTrangThai("");
       loiEl.textContent = err instanceof ApiError ? err.message : "Không tạo được mã — thử lại.";
       loiEl.hidden = false;
     }

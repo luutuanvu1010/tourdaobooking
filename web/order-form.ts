@@ -39,6 +39,8 @@ import { initShell, setBarTitle } from "./shell";
 
 const params = new URLSearchParams(location.search);
 const editId = params.get("id");
+/** Tiền trả trước KHÔNG nhận ở form này (ẩn ba ô, không đọc số): đang SỬA đơn, hoặc người lập có quyền ghi sổ (ADR-0092 Đ6 — ô mã chỉ có ở trang đơn). Đặt SAU `initShell()` (cần biết tài khoản); đọc ở `recompute`, `validate` và bước hai của lúc lưu thay cho `editId`. */
+let traTruocAn = Boolean(editId);
 const focusId = params.get("focus");
 const today = vnToday(new Date());
 /** ≥ 960px: form hai cột, banner lỗi nằm ở cột phải dính (luôn thấy). Dưới 960px (điện thoại VÀ iPad dọc 641–959px) form một cột, banner nằm CUỐI form → lỗi phải cuộn tới banner. Đọc LÚC CẦN: xoay iPad đổi khổ. */
@@ -257,7 +259,7 @@ function renderOwner(focus = false): void {
 // ---- tóm tắt tiền và trạng thái nút ----
 function recompute(): void {
   const ds = drafts();
-  const s = orderSummary(ds, num("discount"), editId ? 0 : num("prepaidAmount"));
+  const s = orderSummary(ds, num("discount"), traTruocAn ? 0 : num("prepaidAmount"));
   byId("sum-subtotal").textContent = vnd(s.subtotal);
   byId("sum-total").textContent = vnd(s.total);
   // Sổ tiền lượt 1 (ADR-0026 đ9): KHÔNG tự trừ ra "còn lại" ở trình duyệt — chỉ nhắc lại số trả trước sẽ ghi thành lần thu sau khi lưu.
@@ -326,7 +328,7 @@ function validate(): { banner: Banner; focus: HTMLElement } | null {
     lines.push("Các dịch vụ đang khác ngày — chọn một ngày cho cả đơn.");
     focusables.push(orderDateEl);
   }
-  const s = orderSummary(drafts(), num("discount"), editId ? 0 : num("prepaidAmount"));
+  const s = orderSummary(drafts(), num("discount"), traTruocAn ? 0 : num("prepaidAmount"));
   if (s.discount > s.subtotal) lines.push("Giảm giá không được vượt quá tạm tính.");
   else if (s.traTruoc > s.total) {
     lines.push("Thanh toán trước không được vượt quá tổng cộng.");
@@ -455,7 +457,7 @@ async function luu(datGap?: { entry: Entry; legKey: string; than: { lyDo: LyDoDa
     // BƯỚC HAI (sổ tiền lượt 1 — ADR-0026 đ9, NT-S6): tiền trả trước KHÔNG nằm trong lô tạo đơn; đơn đã lưu xong mới ghi LẦN THU qua billing. Lỗi ở bước này
     // KHÔNG làm mất đơn: vẫn sang trang đơn, kèm `thutruoc=loi` để trang đơn báo "Đơn đã lưu, chưa ghi được tiền trả trước — thử lại".
     let thuTruocLoi = "";
-    const traTruoc = editId ? 0 : num("prepaidAmount");
+    const traTruoc = traTruocAn ? 0 : num("prepaidAmount");
     if (traTruoc > 0) {
       try {
         await api(`/api/orders/${encodeURIComponent(order.id)}/payments`, {
@@ -648,6 +650,10 @@ if (editId) {
 if (!editId && can(staff, "ledger.write")) {
   for (const f of ["prepaid-amount-field", "prepaid-method-field", "prepaid-collector-field"]) byId(f).hidden = true;
   byId("prepaid-hint").textContent = "Tiền khách đã trả trước ghi ở trang đơn sau khi lưu (mục Thanh toán → Ghi lần thu, kèm mã giao dịch ngân hàng nếu chuyển khoản vào tài khoản công ty).";
+  // Form dùng được trong lúc tải (initShell, danh mục…): số đã gõ sớm phải bị xoá và không còn được đọc, kẻo vẫn gửi lần thu CK – Công ty thu không mã (400) và làm rơi tiền trả trước.
+  traTruocAn = true;
+  field("prepaidAmount").value = "";
+  recompute();
 }
 if (editId) {
   byId("form-title").textContent = "Sửa đơn";
