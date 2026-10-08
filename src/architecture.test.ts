@@ -113,7 +113,7 @@ test("ADR-0058 Đ6: lệch có hạn — catalog còn LEGACY tới hạn", () =>
  * STRICT — không bảng, không câu SQL, không `env.DB`/`.prepare(`/`.batch(`/`DB.exec(` ở BẤT KỲ tệp nào trong module
  * (kể cả `index.ts`/`tram.ts`, không chỉ `repository.ts` — module này còn không có `repository.ts`).
  */
-const KHONG_DB = ["bangtin"] as const;
+const KHONG_DB = ["bangtin", "pricing"] as const;
 
 /**
  * Hạng "module không bảng" (KHONG_BANG, ADR-0024 điều 1 — accepted 2026-09-29): chặt hơn STRICT (không bảng, không view, không câu SQL nào — không

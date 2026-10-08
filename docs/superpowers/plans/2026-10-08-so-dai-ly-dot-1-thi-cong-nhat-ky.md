@@ -14,6 +14,7 @@
 - Ruling (Task 1): thêm `"ky-so": { ten: "Khoá tháng", … }` vào `TEN_PHAN_HE` (`src/shared/tro-ly-cau-truc-ten.ts`) và sinh lại `src/shared/tro-ly-cau-truc.ts` bằng `npm run build:web`, cùng commit với migration — khoản này không có trong brief Task 1 nhưng ràng buộc chung (Global Constraints, mục «Thêm ô quyền / module») đòi, và `npm test` đỏ ngay («Thiếu tên lời thường cho phân hệ "ky-so"», bước 0 của `scripts/chay-test.mjs`) khi `docs/data-dictionary.json` có thêm module mà bảng tên thiếu — quan sát chặn thật tự nhiên của bộ sinh kho trợ lý. Chữ mô tả ghi «đang chuẩn bị, app chưa dùng» (cùng khuôn dòng `pricing` hiện có), vì lượt này chưa có màn hình / route nào của phân hệ; `pricing` giữ nguyên chữ cũ tới Task 3 (lúc có route thì Task 3 sửa mô tả cả hai) — giá nếu sai: sửa một dòng chữ và chạy lại `npm run build:web`.
 - Ruling (Task 1): sửa nền của bài cũ `src/migrations-ten-vai-tai-xe-taxi.test.ts` (bài «(b) sau migration…», NGOÀI danh sách tệp của brief Task 1): bài mở MỌI migration rồi so toàn bảng `pty_role_type` với bản trước `0063`, nên migration `0090` thêm dòng `SUPPLIER` làm bài đỏ («chỉ đổi đúng cột name của đúng một dòng»). Giữ nguyên cách mở (mọi migration) và cả hai câu khẳng định (mọi dòng cũ giữ nguyên qua mọi migration về sau; tên `TAXI_DRIVER` cuối cùng khớp `ROLES`); chỉ lọc `sau` về các mã đã có trước `0063` trước khi so, để một vai MỚI do migration về sau thêm không làm bài đỏ — không thu hẹp bài về «ngay sau tệp này» — giá nếu sai: hoàn nguyên hai dòng (bài đỏ lại mỗi khi có migration sau thêm vai).
 - Ruling (Task 1): chưa tạo `src/modules/ky-so/index.ts` — bài kiến trúc xanh khi chưa có thư mục module (module chỉ cần ở `docs/data-dictionary.json` `modules` và `ALLOWED_EDGES`); thư mục tạo ở Task 7 như kế hoạch — giá nếu sai: tạo tệp tối thiểu.
+- Ruling (Task 2): thêm `"pricing"` vào `KHONG_DB` (`src/architecture.test.ts` dòng 116) — luật thuần không có câu SQL, không `env.DB`, không bảng, không view. Tạo `src/modules/pricing/index.ts` xuất rules.ts (module đã ở data-dictionary.json nên cần index.ts trong src/) — giá nếu sai: sửa lại danh sách / xoá index.ts.
 
 ## Quan sát chặn thật (P16)
 | Hàng rào | Sửa cố ý | Đỏ ở bài | Hoàn nguyên | Ngày |
@@ -30,6 +31,11 @@
 | CHECK `ord_service_terms`: bản AUTO + cung ứng SET phải có `supply_term_id` (I-1) | Như trên | Cùng bài đỏ, đúng ở ca (b) (dòng 227) | Khôi phục; xanh | 2026-10-08 |
 | CHECK `ord_service_terms`: cung ứng MISSING không mang `supply_term_id` (I-1) | Như trên | Cùng bài đỏ, đúng ở ca (c) (dòng 233) | Khôi phục; xanh | 2026-10-08 |
 | Trigger `prc_beneficiary_role_update_scope` (M-2): UPDATE chỉ đổi được `active` và người/giờ cập nhật | Gỡ trigger | Bài «prc_beneficiary_role: không xoá, chỉ tắt…» đỏ (dòng 123, ca đổi `role_type_code`) | Khôi phục; xanh | 2026-10-08 |
+
+## Task 2: Luật thuần của `pricing`
+| Hàng rào | Sửa cố ý | Đỏ ở bài | Hoàn nguyên | Ngày |
+|---|---|---|---|---|
+| Hàm `lamTronNuaLen`: làm tròn nửa lên `(2*tu+mau)/(2*mau)` | Đổi thành `Math.floor(tu/mau)` | `node --test src/modules/pricing/rules.test.ts`: bài «làm tròn nửa lên theo dòng (điều A1)…» đỏ ở ca đúng nửa đồng (1.000.004 × 12,5% ra 125.001) — kỳ vọng 125.001 nhưng lấy 124.999 | Khôi phục `Math.floor((2*tu+mau)/(2*mau))`; 14/14 bài xanh | 2026-10-08 |
 
 ## Vòng sửa 1 (người kiểm độc lập → điều phối, 2026-10-08)
 Người kiểm kết luận đúng đặc tả, một điểm Important và bốn Minor; điều phối ra Ruling 5: ba CHECK mới và trigger chặn UPDATE là siết thêm, sửa thẳng trong `0090` vì `0090` chưa áp remote. Bài đỏ trước, xanh sau (RED: `node --test src/migrations-so-dai-ly.test.ts` 13/15 đạt — bài «prc_beneficiary_role…» (đã thêm ca UPDATE) và bài mới «bản AUTO ở trạng thái SET…» đỏ «Missing expected exception»; GREEN sau khi sửa migration).
