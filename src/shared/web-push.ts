@@ -49,7 +49,8 @@ export function imLang(quanTrong: boolean, now: Date): boolean {
 }
 
 /** `THAY_DOI` (`src/shared/bang-tin.ts`, ADR-0022) → hành động của hộp thông báo (`ntf_*`/`loaiTinDon`, ADR-0034) mà `dayGoCua` (Task 3)
- * dựng thành một `DongDon` để đưa qua `nguoiNhanDay`. `sua`/`chuyen`/`tien` không phải tin của hộp → không rung máy nào. */
+ * dựng thành một `DongDon` để đưa qua `nguoiNhanDay`. `sua`/`chuyen`/`tien` = null ở bảng này; riêng "chuyen" / "tien" gốc lắp ráp (`src/index.ts`) gõ cửa
+ * theo DÒNG ĐỔI do chính request ghi (ADR-0062, `dayGoCuaDoi` của `thongbao`) — request không ghi dòng đổi thì không rung máy nào. */
 const HANH_DONG_CUA_THAY_DOI: Record<ThayDoiDon, string | null> = {
   tao: "created",
   tao_cho_nhan: "created",

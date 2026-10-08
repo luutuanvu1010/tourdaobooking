@@ -447,7 +447,7 @@ export { datGiaoStatement, hoanThanhStatement, type DatGiaoInput } from "./hoan-
  */
 export const donChoBienNhan = (db: D1Database, id: string): Promise<OrderDetailDto | null> => loadOrderView(db, id, false);
 
-/** `detail` (ADR-0062 Đ2) = dòng nhật ký VỪA ghi — route truyền cho tin "đơn đổi sau xác nhận" (màn hình khoá); vắng = y nguyên số khách, không ghi gì. */
+/** `detail` (ADR-0062 Đ2) = chữ dòng nhật ký VỪA ghi; vắng = y nguyên số khách, không ghi gì. Route KHÔNG chuyển nó đi đâu: màn hình khoá do gốc lắp ráp tự đọc lại dòng đổi của chính request (`dayGoCuaDoi`, mốc `batDau` của router). */
 export type MoneyEditResult = { ok: true; detail?: string } | { ok: false; code: "not_found" | "not_confirmed" | "invalid_input" | "stale"; message?: string };
 
 /**
