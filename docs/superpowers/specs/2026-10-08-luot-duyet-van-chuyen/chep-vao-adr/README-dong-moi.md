@@ -13,7 +13,7 @@ Cũ:
 Mới:
 
 ```
-| [0063](ADR-0063-sua-don-sau-xac-nhan.md) | **Sửa đơn sau xác nhận — D1 văn phòng sửa số khách:** route mới cổng `office`, ô `order.money.edit` không đổi (Bán hàng đơn mình lập; Kế toán, Quản trị, Toàn quyền mọi đơn); một luật tiền `planMoneyEdit`; lý do mã đóng (ADR-0023 điều 4); tổng tiền âm cảnh báo, không chặn; không phải đường thêm dịch vụ nhập tay (ADR-0061 điều 5 không áp); HC-4.2 không áp (chủ xác nhận); phát hành sau Sổ tiền. D3 "đổi giờ tối đa 2 lần mỗi đơn" còn ở đề xuất `docs/superpowers/specs/2026-09-30-de-xuat-adr-ra-soat/ADR-0063-sua-don-sau-xac-nhan.md` | hai chiều (route, chữ, mã lý do); một chiều nhẹ (dòng điều chỉnh đã ghi) | **accepted một phần** 2026-10-08: D1 (chủ, lượt 8a, "Duyệt (Recommended)"); phần đổi giờ tối đa 2 lần vẫn proposed |
+| [0063](ADR-0063-sua-don-sau-xac-nhan.md) | **Sửa đơn sau xác nhận — D1 văn phòng sửa số khách:** route mới cổng `office`, ô `order.money.edit` không đổi (Bán hàng đơn mình lập; Kế toán, Quản trị, Toàn quyền mọi đơn); một luật tiền `planMoneyEdit`; lý do mã đóng (ADR-0023 điều 4); tổng tiền âm cảnh báo, không chặn; không phải đường thêm dịch vụ nhập tay; HC-4.2 không áp (chủ xác nhận); phát hành sau Sổ tiền. Sửa ADR-0061 điều 5 (không áp cho route D1), chữ ADR-0014 `:86` (người phụ trách Bán hàng trừ ô `order.money.edit`). D3 "đổi giờ tối đa 2 lần mỗi đơn" còn ở đề xuất `docs/superpowers/specs/2026-09-30-de-xuat-adr-ra-soat/ADR-0063-sua-don-sau-xac-nhan.md` | hai chiều (route, chữ, mã lý do); một chiều nhẹ (dòng điều chỉnh đã ghi) | **accepted một phần** 2026-10-08: D1 (chủ, lượt 8a, "Duyệt (Recommended)"); phần đổi giờ tối đa 2 lần vẫn proposed |
 ```
 
 ## 2. Thêm dòng 0104 (ngay sau dòng 0102, `:111`)

@@ -1,6 +1,6 @@
 # ADR-0104 — Điều chỉnh khẩn cấp sát giờ và Đồng bộ chuyến theo đơn
 
-- **Trạng thái:** **accepted** 2026-10-08 — chủ dự án trả lời lượt duyệt 8a qua câu hỏi chọn phương án; nhãn đã chọn nguyên văn: Đ1 **"Duyệt, Bán hàng cũng được"**, tức **Q-1 = b** (khác khuyến nghị); Đ2 **"Duyệt, máy tự thêm ghế khi còn chỗ (Recommended)"**, tức **Q-2 = a**, kèm việc nới đúng một chỗ của bài kiểm thứ tự ghi (phần ghi của đơn được đứng đầu lô). Ghi ở sổ thi công `docs/superpowers/plans/2026-10-08-van-chuyen-goi-a-c-thi-cong-nhat-ky.md`, mục "Lượt duyệt 8a" (nhánh `claude/van-chuyen-goi-a-c` @ `4fd27fe1`). Phần khoảng nghỉ và cam kết theo **cách đọc của điều phối** ghi ở cùng mục (chỉ siết, xem Đ1 mục 2). Thân văn bản trình duyệt (tệp 02) viết theo Q-1 a; bản này viết lại mọi chỗ theo Q-1 b. AI soạn bản chép, không tự duyệt (Hiến pháp N3, Điều 7.2). Từ mốc này chỉ sửa dòng trạng thái; đổi nội dung = ADR mới trỏ về ADR này.
+- **Trạng thái:** **accepted** 2026-10-08 — chủ dự án trả lời lượt duyệt 8a qua câu hỏi chọn phương án; nhãn đã chọn nguyên văn: Đ1 **"Duyệt, Bán hàng cũng được"**, tức **Q-1 = b** (khác khuyến nghị); Đ2 **"Duyệt, máy tự thêm ghế khi còn chỗ (Recommended)"**, tức **Q-2 = a**, kèm việc nới đúng một chỗ của bài kiểm thứ tự ghi (phần ghi của đơn được đứng đầu lô). Ghi ở sổ thi công `docs/superpowers/plans/2026-10-08-van-chuyen-goi-a-c-thi-cong-nhat-ky.md`, mục "Lượt duyệt 8a" (nhánh `claude/van-chuyen-goi-a-c` @ `4fd27fe1`). Hai điểm bổ sung chủ xác nhận cùng ngày 2026-10-08 qua câu hỏi chọn phương án, ghi ở sổ thi công `docs/superpowers/plans/2026-10-08-van-chuyen-goi-a-c-thi-cong-nhat-ky.md`, dòng "Câu hỏi thêm 8/10" (nhánh `claude/van-chuyen-goi-a-c` @ `ea474b4d`): cam kết **"Cho bỏ qua cả hai (Recommended)"** — dưới mốc, Bán hàng bỏ qua được cả cam kết xe riêng lẫn số chỗ tối thiểu (mã `CAM_KET`, không tách), mỗi lần đều phải chọn lý do; sát giờ **"Chỉ khi chuyến còn dưới 6 giờ (Recommended)"** — chuyến còn hơn 6 giờ mới chạy thì bỏ qua khoảng nghỉ và cam kết vẫn chỉ Quản trị, Toàn quyền làm được, và vẫn gọi là "Phá lệ" (Đ1 mục 0b, mục 2). Thân văn bản trình duyệt (tệp 02) viết theo Q-1 a; bản này viết lại mọi chỗ theo Q-1 b. AI soạn bản chép, không tự duyệt (Hiến pháp N3, Điều 7.2). Từ mốc này chỉ sửa dòng trạng thái; đổi nội dung = ADR mới trỏ về ADR này.
 - **Ngày:** 2026-10-08.
 - **Văn bản trình duyệt:** `docs/superpowers/specs/2026-10-08-luot-duyet-van-chuyen/02-de-xuat-adr-dieu-chinh-khan-cap-va-dong-bo-chuyen.md`; trang ghép `docs/superpowers/specs/2026-10-08-luot-duyet-van-chuyen/00-trang-ghep.md` (hai hồ sơ có ngày, đóng băng; chỗ đổi nghĩa do Q-1 b ghi ở Đ1 mục 9 của bản này).
 - **Thay:** đề xuất ADR-0091 ("Bán hàng phá lệ mốc 6 giờ, nhãn 'Ngoại lệ 6 giờ'", `docs/superpowers/specs/2026-10-02-luot-duyet-3-pin-tam-va-ngoai-le-6-gio.md`, chưa từng được duyệt) **ở phần xếp xe**. Phần đặt gấp phía đơn chuyển sang ADR-0107 (số tạm, lượt 8b). ADR-0093 trong cùng tệp đó không bị đụng.
@@ -17,13 +17,13 @@
 - 2026-10-02 (câu 5, lượt 3): *"cho phép (nhưng phải có nhãn hoặc ký hiệu riêng để nhận biết đây là ngoại lệ được cho phép và/hoặc đáng chú ý, không phải đơn bình thường)"*.
 - Lượt duyệt 8a (2026-10-08), câu hỏi Q-1 nguyên văn: *"Ngoài việc với khách, Bán hàng có được Điều chỉnh khẩn cấp các việc sau sát giờ không: đổi xe, đổi tài xế, huỷ chuyến còn khách, bỏ qua khoảng nghỉ giữa hai chuyến, bỏ qua cam kết xe riêng?"* — chủ chọn **"Duyệt, Bán hàng cũng được"**.
 - Câu hỏi Q-2 nguyên văn: *"Khi đơn thêm khách, máy có tự thêm ghế trên cùng xe nếu xe còn chỗ không?"*, phương án (a): *"chỉ thêm đúng số khách vừa thêm trên đơn, trên đúng xe đó, cùng điểm đón, khi xe còn chỗ và không phạm cam kết xe riêng. Không đủ chỗ thì giữ xe và báo người xếp xe."* — chủ chọn **"Duyệt, máy tự thêm ghế khi còn chỗ (Recommended)"**.
-- **Cách đọc của điều phối (giả định, chỉ siết; sổ thi công):** câu Q-1 ghi "các việc sau **sát giờ**", nên Bán hàng chỉ được bỏ qua khoảng nghỉ và cam kết xe riêng khi chuyến đang dưới mốc 6 giờ; ngoài mốc thì hai việc đó vẫn hỏi `trip.override` (Quản trị, Toàn quyền). Chủ muốn mở cả ngoài mốc thì phải nói thêm.
+- 2026-10-08, hai câu bổ sung của lượt 8a, nhãn đã chọn nguyên văn, ghi ở sổ thi công `docs/superpowers/plans/2026-10-08-van-chuyen-goi-a-c-thi-cong-nhat-ky.md`, dòng "Câu hỏi thêm 8/10" (nhánh `claude/van-chuyen-goi-a-c` @ `ea474b4d`) (người soạn không có nguyên văn câu hỏi; nội dung phương án theo điều phối chuyển lại):
+  - cam kết: **"Cho bỏ qua cả hai (Recommended)"** — dưới mốc, Bán hàng bỏ qua được cả cam kết xe riêng lẫn số chỗ tối thiểu (mã `CAM_KET`, không tách), mỗi lần đều phải chọn lý do;
+  - sát giờ: **"Chỉ khi chuyến còn dưới 6 giờ (Recommended)"** — khi chuyến còn hơn 6 giờ mới chạy, bỏ qua khoảng nghỉ và cam kết vẫn chỉ Quản trị, Toàn quyền làm được (`trip.override`), và vẫn gọi là "Phá lệ".
 - **Nguồn phân tích:** `docs/superpowers/specs/2026-10-07-danh-gia-erp-van-chuyen-ban-hang.md`: C03, C04, C05, C06, N2 và Gói B (B1, B2).
 
 ## Bối cảnh mã (đo @ `809918d5`)
 
-| Điểm | Hiện trạng | Nguồn |
-|---|---|---|
 | Điểm | Hiện trạng | Nguồn |
 |---|---|---|
 | Bảy lệnh khoá theo mốc | `XEP, RUT, DOI_DI, DOI_DEN, DOI_XE, DOI_TAI_XE, HUY_CO_KHACH` | `src/shared/moc-toi-thieu.ts:65`; lệnh không khoá `DOI_DIEM_THEO_CHANG`, `DOI_KHACH_THEO_DON` `:56-62` |
@@ -49,16 +49,23 @@
 
 ### Đ1. Điều chỉnh khẩn cấp (Q-1 = b)
 
-0. **Một định nghĩa "chuyến dưới mốc":** chuyến bị ghi của lệnh (lệnh dời: chuyến đích; tạo chuyến: chuyến mới theo giờ bắt đầu của nó) có `gioXetMocXep(chuyen) − bây giờ < mốc` lúc máy chủ nhận lệnh — cùng phép tính "trong vùng khoá" của `kiemMocXep` / `batDauSomNhatSauDoiGio` (`src/shared/moc-toi-thieu.ts`), mốc của chính sách hiện hành, khoá dính như hôm nay. Xe đang chạy luôn dưới mốc (`src/shared/dieu-phoi-kiem.ts:277`). Dấu đặt gấp của chặng **không** làm chuyến thôi dưới mốc: dấu chỉ miễn luật mốc của `XEP`, `DOI_DEN` (`moc-toi-thieu.ts:67, :104`), không đổi thời điểm. Máy chủ tính cờ này một lần mỗi request.
+0. **"Chuyến dưới mốc" — mỗi lệnh đúng một định nghĩa, là phép xét mốc lệnh đó đang dùng cho luật khoá.** Máy chủ tính một lần mỗi request, theo mốc của chính sách hiện hành:
+   - xếp, rút, dời, thêm khách khi xe chạy, huỷ chuyến: `gioXetMocXep(chuyen) − bây giờ < mốc` (phép tính của `kiemMocXep`, khoá dính theo giờ sớm nhất từng có — `src/shared/moc-toi-thieu.ts:91`, `:110-118` @`4fd27fe1`); lệnh dời xét chuyến đích, nơi khoảng nghỉ và cam kết được kiểm; xe đang chạy luôn dưới mốc (`src/shared/dieu-phoi-kiem.ts:277` @`4fd27fe1`);
+   - sửa chuyến `PUT /chuyen/:id`: giờ xét = `min(giờ cũ, giờ mới, giờ sớm nhất từng có)`, đúng như luật khoá đổi xe / đổi tài xế (`src/shared/dieu-phoi-kiem.ts:145-148` @`4fd27fe1`);
+   - tạo chuyến: giờ bắt đầu của chuyến mới (lệnh tạo không có luật khoá mốc, cùng chú thích `:145`).
+   - Dấu đặt gấp của chặng **không** làm chuyến thôi dưới mốc: dấu chỉ miễn luật mốc của `XEP`, `DOI_DEN` (`moc-toi-thieu.ts:78-79`, `:116` @`4fd27fe1`; bảng bối cảnh đo @`809918d5` ghi `:67, :104`), không đổi thời điểm.
+   - **Rào mềm, nói thẳng:** dời giờ một mình không bị khoá mốc (`dieu-phoi-kiem.ts:145-146`). Vì vậy Bán hàng có thể dời giờ một chuyến vào trong 6 giờ trước (lệnh trước, hoặc ngay trong cùng lệnh sửa), rồi vượt khoảng nghỉ với lớp khẩn cấp. Đây là hệ quả của luật lấy giờ xét `min(cũ, mới, sớm nhất)` cho lệnh sửa chuyến (phiếu kiểm bản chép, mục I-3: một lệnh một định nghĩa), **không** phải của lời chủ. Lớp bù: lý do bắt buộc, nhật ký ghi người và lý do; bài kiểm 1 ghim ca này để ai đổi phải đổi có chủ ý.
+   - **Ca một lệnh có thể đọc ngược lời chủ [CHỜ CHỦ: dời giờ trong lệnh sửa]:** chuyến đang còn hơn 6 giờ, Bán hàng trong **cùng** lệnh sửa vừa dời giờ vào trong 6 giờ vừa vượt khoảng nghỉ → theo I-3 là lớp khẩn cấp, Bán hàng làm được; trong khi lời chủ "Chỉ khi chuyến còn dưới 6 giờ" nói khi chuyến còn hơn 6 giờ thì chỉ Quản trị, Toàn quyền. Hai cách: (a) giữ I-3 như trên; (b) riêng lớp quyền của khoảng nghỉ, cam kết ở lệnh sửa chuyến xét theo giờ trước khi sửa (`min(cũ, sớm nhất)`) — chặn ca một lệnh, nhưng lệnh sửa có hai định nghĩa, và ca hai lệnh (dời giờ trước, sửa sau) vẫn qua. Người soạn không tự chọn vì đây là quyền.
+0b. **"Cam kết" trong ADR này = cam kết xe riêng và số chỗ tối thiểu (mã `CAM_KET`, không tách)** — chủ xác nhận 2026-10-08, **"Cho bỏ qua cả hai (Recommended)"**; mỗi lần bỏ qua đều phải chọn lý do. Mã gồm cả R-XR (`src/shared/cam-ket-xe.ts:66`) lẫn R-CX (`:72`), chung một cờ `camKetPhaLe`, nhãn "Trái cam kết xe riêng / số chỗ tối thiểu" (`src/shared/ly-do-giu.ts:63`; cả hai tệp @`4fd27fe1`).
 1. **Ô mới `trip.urgent_adjust`** (nhãn giao diện "Điều chỉnh khẩn cấp"):
    - SALES `any`, ADMIN `any`, SUPER_ADMIN `any`; mọi cột khác `none`.
-   - Phạm vi: vượt mốc ở **mọi** lệnh bị khoá; vượt khoảng nghỉ và cam kết xe riêng **khi chuyến dưới mốc**.
+   - Phạm vi: vượt mốc ở **mọi** lệnh bị khoá; vượt khoảng nghỉ và cam kết (mục 0b) **khi chuyến dưới mốc** (mục 0).
    - Bài ghim: ô này không rộng hơn `trip.dispatch` ở mọi cột (khuôn bài ghim của `trip.call_ack`, `permissions.ts:198-201`).
    - Không thêm mã quyền, nên `EXTERNAL_PERMISSIONS` và trigger LC-1 không đổi.
    - Thi công phải sửa hai bài sẵn có: `src/shared/permissions.test.ts:95` (bảng ADR trong bài có hàng ô mới) và `src/shared/tro-ly-cau-truc.test.ts:38-39` (mọi ô có tên trong `TEN_THAO_TAC` của `src/shared/tro-ly-cau-truc-ten.ts`). Đây là thêm hàng, không phải nới.
 2. **Hàm thuần xếp lớp** (đặt ở `src/shared/moc-toi-thieu.ts`; trả `"KHAN_CAP"` hoặc `"QUAN_TRI"`, không trả tên ô):
-   - `lopVuotMoc(lenh)`: cả bảy lệnh bị khoá `XEP`, `RUT`, `DOI_DI`, `DOI_DEN`, `DOI_XE`, `DOI_TAI_XE`, `HUY_CO_KHACH` (`moc-toi-thieu.ts:65`) và lệnh thêm khách khi xe chạy (xét mốc như `XEP`, `dieu-phoi-kiem.ts:279`) → `"KHAN_CAP"`. Dưới Q-1 b không lệnh khoá nào ra `"QUAN_TRI"`; hàm vẫn giữ để có **một** chỗ quyết (bài kiểm 3).
-   - `lopVuotNghiCamKet(duoiMoc)` (tên đề xuất): chuyến dưới mốc → `"KHAN_CAP"`; ngoài mốc → `"QUAN_TRI"`. Đây là cách đọc của điều phối, chỉ siết so với chữ Q-1.
+   - `lopVuotMoc(lenh)`: cả bảy lệnh bị khoá `XEP`, `RUT`, `DOI_DI`, `DOI_DEN`, `DOI_XE`, `DOI_TAI_XE`, `HUY_CO_KHACH` (`moc-toi-thieu.ts:77` @`4fd27fe1`) và lệnh thêm khách khi xe chạy (xét mốc như `XEP`, `dieu-phoi-kiem.ts:279` @`4fd27fe1`) → `"KHAN_CAP"`. Dưới Q-1 b hàm luôn trả `"KHAN_CAP"`. Hàm vẫn giữ để có **một** chỗ quyết (bài kiểm 3) và để còn tách lớp sau (ví dụ chủ muốn trả một lệnh về Quản trị) mà không sửa bảy route.
+   - `lopVuotNghiCamKet(duoiMoc)` (tên đề xuất): chuyến dưới mốc → `"KHAN_CAP"`; ngoài mốc → `"QUAN_TRI"`. Đây là lời chủ 2026-10-08, **"Chỉ khi chuyến còn dưới 6 giờ (Recommended)"**; lớp `QUAN_TRI` vẫn mang chữ "Phá lệ".
    - Route đổi lớp thành ô bằng tên viết **tường minh**: `lop === "KHAN_CAP" ? can(staff, "trip.urgent_adjust") : can(staff, "trip.override")`, vì hàng rào "mỗi ô phải được máy chủ hỏi" chỉ đếm chuỗi ô viết thẳng (`src/permission-enforcement.test.ts:14`).
    - **Bảy chỗ hỏi ô** (`src/modules/van-chuyen/index.ts` @`4fd27fe1`): `:1124` tạo chuyến (khoảng nghỉ); `:1197` sửa chuyến `PUT /chuyen/:id` — đổi xe, tài xế, giờ (mốc, khoảng nghỉ, cam kết); `:1230` xếp (mốc, cam kết); `:1277` thêm khách khi xe chạy (mốc, cam kết); `:1325` rút (mốc); `:1348` dời (mốc, cam kết); `:1374` huỷ chuyến (mốc). Mỗi chỗ: cờ mốc hỏi theo `lopVuotMoc` (tức `trip.urgent_adjust`); cờ khoảng nghỉ, cam kết hỏi theo `lopVuotNghiCamKet`.
    - `PUT /chuyen/:id` dưới mốc hỏi `trip.urgent_adjust` (văn bản trình duyệt viết theo Q-1 a là `trip.override`).
@@ -73,9 +80,14 @@
    - Chỉ mã chuyến, mã đơn, số khách, nhãn lý do (LC-18).
 5. **Nhãn trên lịch chung và chi tiết chuyến văn phòng; chữ "Phá lệ" còn dùng ở đâu:**
    - **"Điều chỉnh khẩn cấp"** tính lúc đọc từ **mọi** sự kiện mang `override_rule_code = 'MOC_TOI_THIEU'`, mọi loại — kể cả `UPDATED` (đổi xe, đổi tài xế) và `CANCELLED` (huỷ chuyến còn khách). Văn bản trình duyệt (Q-1 a) chỉ dán nhãn cho sự kiện lệnh khách; Q-1 b đảo điều đó.
-   - **"Phá lệ: <lý do>"** (cách hiện hôm nay, `src/shared/dieu-phoi-man.ts:335`) chỉ còn cho sự kiện vượt khoảng nghỉ hoặc cam kết **mà không vượt mốc** — trên thực tế là Quản trị, Toàn quyền làm khi chuyến **ngoài** mốc.
-   - Trả lời thẳng: dưới Q-1 b, chữ "Phá lệ" chỉ còn ở (i) nhãn chuyến nói trên; (ii) hộp xác nhận và nút khi lớp `QUAN_TRI`; (iii) đuôi nhật ký lớp `QUAN_TRI`; (iv) nhãn nhóm lý do "Điều chỉnh khẩn cấp, phá lệ". Mọi lệnh dưới mốc mang chữ "Điều chỉnh khẩn cấp".
-   - **Chỗ lệch nhỏ đã biết, không xử lý ở lượt này:** một sự kiện chỉ lưu **một** `override_rule_code`, mốc được chọn trước (`src/modules/van-chuyen/dieu-phoi-lenh.ts:155, :210, :308, :470`), và sự kiện không lưu "dưới mốc hay không". Hai ca hiếm dưới mốc mà không vượt mốc — chặng đã đặt gấp kèm vượt cam kết; tạo chuyến mới trong mốc kèm vượt khoảng nghỉ — Bán hàng làm được (lớp `KHAN_CAP`), hộp xác nhận và nhật ký ghi đúng "điều chỉnh khẩn cấp", nhưng nhãn trên lịch hiện "Phá lệ". Muốn đúng tuyệt đối phải lưu lớp vào sự kiện (cột mới, migration); để sau nếu chủ cần.
+   - **"Phá lệ: <lý do>"** (cách hiện hôm nay, `src/shared/dieu-phoi-man.ts:335`) chỉ còn cho sự kiện vượt khoảng nghỉ hoặc cam kết **mà không vượt mốc**. Sự kiện đó có thể do Quản trị, Toàn quyền làm khi chuyến ngoài mốc, nhưng cũng có thể do người giữ `trip.urgent_adjust` làm khi chuyến dưới mốc (bốn ca dưới đây). Vì vậy chữ "Phá lệ" trên lịch **không** cho biết ai làm hay chuyến có dưới mốc không; muốn biết thì xem nhật ký.
+   - Trả lời thẳng: dưới Q-1 b, chữ "Phá lệ" chỉ còn ở (i) nhãn chuyến nói trên; (ii) hộp xác nhận và nút khi lớp `QUAN_TRI`; (iii) đuôi nhật ký lớp `QUAN_TRI`; (iv) nhãn nhóm lý do "Điều chỉnh khẩn cấp, phá lệ". Hộp xác nhận, nút và nhật ký của mọi lệnh dưới mốc mang chữ "Điều chỉnh khẩn cấp"; nhãn trên lịch thì lệch ở bốn ca dưới đây.
+   - **Chỗ lệch đã biết, không xử lý ở lượt này:** một sự kiện chỉ lưu **một** `override_rule_code`, theo thứ tự `MOC_TOI_THIEU` > `KHOANG_NGHI` > `CAM_KET` (chú thích C6, `src/modules/van-chuyen/dieu-phoi-lenh.ts:41-45`; `:155`, `:171`), và không lưu "dưới mốc hay không". Bốn ca dưới mốc mà không vượt mốc, nên nhãn trên lịch hiện "Phá lệ" dù người làm có thể là Bán hàng (lớp `KHAN_CAP`):
+     1. tạo chuyến mới trong mốc kèm vượt khoảng nghỉ;
+     2. xếp chặng đã đặt gấp kèm vượt cam kết;
+     3. sửa chuyến **chỉ đổi giờ** kèm vượt khoảng nghỉ;
+     4. sửa chuyến **chỉ gửi `camKetPhaLe`** (ví dụ sau khi đơn bật "xe riêng").
+     Ca 3 và 4 thường gặp. Muốn nhãn đúng tuyệt đối phải lưu lớp vào sự kiện (cột mới, migration); để sau nếu chủ cần.
    - Trang đơn **không** hiện nhãn ở lượt này (`orders` phải đọc qua một view công bố mới của `van-chuyen`); để sau nếu chủ cần.
    - **Không** vào DTO tài xế (danh sách trắng `src/modules/van-chuyen/tai-xe-dto.ts`).
    - Không tin cho Quản trị, không ô đếm trên Trang chủ (khác ADR-0091 đ6–đ7).
@@ -100,14 +112,13 @@
      - Nút `web/chuyen.ts:739, :896, :928`; `web/dieu-phoi.ts:503`: "Điều chỉnh khẩn cấp và …" khi chuyến dưới mốc.
      - ★ Nút `web/chuyen.ts:966` "Phá lệ và huỷ" (huỷ chuyến còn khách): nay **đổi** thành "Điều chỉnh khẩn cấp và huỷ", Bán hàng thấy. Lệnh huỷ chỉ cần vượt luật mốc, nên luôn thuộc lớp khẩn cấp.
      - Nhãn nhóm lý do `src/shared/dieu-phoi-kieu.ts:19`: "Phá lệ" → "Điều chỉnh khẩn cấp, phá lệ".
-     - ★ `src/shared/ly-do-giu.ts:58-59`: `MOC_TOI_THIEU` → "người xếp xe điều chỉnh khẩn cấp"; `KHOANG_NGHI` → `aiXuLy` theo mốc (chuyến dưới mốc: người xếp xe; ngoài mốc: Quản trị).
+     - ★ `src/shared/ly-do-giu.ts:58-59`: `MOC_TOI_THIEU` → "người xếp xe điều chỉnh khẩn cấp"; `KHOANG_NGHI` (`:59`) và `CAM_KET` (`:63`) → `aiXuLy` theo mốc (chuyến dưới mốc: người xếp xe; ngoài mốc: Quản trị).
      - Hướng dẫn `src/shared/huong-dan-ban-hang.ts:124, :126, :142`: viết lại cùng lần phát hành, có cả đổi xe, đổi tài xế, huỷ chuyến sát giờ.
      - ★ Tên ô cho trợ lý Mai `src/shared/tro-ly-cau-truc-ten.ts:124-125`: thêm `trip.urgent_adjust` "vượt mốc mọi lệnh bị khoá; khoảng nghỉ, cam kết khi chuyến dưới mốc"; `trip.override` còn "khoảng nghỉ, cam kết khi chuyến ngoài mốc; duyệt đề nghị leo thang".
      - ★ Nhãn "Điều chỉnh khẩn cấp" trên lịch / chi tiết chuyến: dán cả lên đổi xe, đổi tài xế, huỷ chuyến còn khách dưới mốc (Đ1 mục 5); không vào DTO tài xế.
      - Phản hồi lệnh đơn và màn "Xe đang chạy": câu nhắc cố định "văn phòng bấm Báo huỷ" (Đ2 mục 7), không đổi so với văn bản trình duyệt.
 
 ### Đ2. Đồng bộ chuyến theo đơn (Q-2 = a)
-
 
 1. **Nơi chạy — câu chưa chạy, CÙNG một lô với lệnh đơn** (Hiến chương 1.2 "một lô ghi nguyên khối" `docs/ARCHITECTURE.md:25`; 5.3 "câu lệnh chưa chạy do module chủ cấp" `:95`):
    - Hàm dựng lô thuần mới trong `src/modules/van-chuyen/dieu-phoi.ts` (tên đề xuất `loDongBoChuyen(db, { cauDon, khuc })`; tên bắt đầu `lo…` và được xuất để bài thứ tự lô tự quét thấy) **nhận danh sách câu đơn đã soạn** (`cauDon`, chưa chạy) cùng kế hoạch từng khúc chuyến, và **trả danh sách đầy đủ chưa chạy** `[câu đơn…, khúc chuyến 1…, khúc chuyến 2…]`. `van-chuyen` chỉ **nối** câu đơn đã soạn sẵn vào đầu, không tự soạn hay chạy câu nào trên bảng `ord_*` hay `audit_log`.
@@ -194,29 +205,43 @@
 - **Tài liệu mô tả:** `docs/SYSTEM-DESIGN.md` (§6, §7, bảng view), `docs/CHANGE-GUIDE.md`, `docs/data-dictionary.json` + `npm run dict`, hướng dẫn Bán hàng, nhật ký thay đổi lời thường.
 - **Việc lớn** (dữ liệu + quyền): kế hoạch riêng, mỗi task đỏ → xanh, người kiểm độc lập chỉ-đọc.
 
-## Câu ADR bị thay (nguyên văn → mới; không sửa tệp ADR cũ)
+## Câu ADR bị thay (nguyên văn → mới; không sửa thân ADR cũ)
 
-Dòng có dấu ★ là thêm so với văn bản trình duyệt, vì Q-1 b buộc phải sửa; thiếu thì các ADR đã duyệt mâu thuẫn nhau.
+- **Câu chung:** mọi câu cùng nghĩa ("cần Quản trị phá lệ" mốc / khoảng nghỉ / cam kết) trong ADR-0049, ADR-0052, ADR-0056 đọc theo ADR-0104 Đ1, kể cả câu không liệt kê dưới đây.
+- **Cột "Nguyên văn"** chép bản gốc của ADR cũ, chưa tính các lần sửa trước (ADR-0049 `:162` đã bị ADR-0052 `:192` sửa; `:200` đã bị ADR-0052 `:189` và ADR-0056 `:99` sửa). **Cột "Mới"** đã gộp đủ các lần sửa đó.
+- Dòng có dấu ★ là thêm so với văn bản trình duyệt (tệp 02), vì Q-1 b buộc phải sửa; thiếu thì các ADR đã duyệt mâu thuẫn nhau.
+- Dòng trỏ ở dòng Trạng thái của từng ADR cũ: `dong-tro-adr-cu.md` cùng thư mục.
 
 | Nguồn | Nguyên văn | Mới |
 |---|---|---|
+| ★ ADR-0049 `:3` (dòng Trạng thái, phần "Bổ sung bởi ADR-0056") | "(Quản trị/Toàn quyền phá lệ, ô `trip.override`)" | "(chuyến dưới mốc: Bán hàng, Quản trị, Toàn quyền — `trip.urgent_adjust`; ngoài mốc: Quản trị, Toàn quyền — `trip.override`; ADR-0104 Đ1)". Ghi bằng dòng trỏ, vì đây là dòng Trạng thái. |
 | ADR-0049 `:29` (tóm tắt, ý 4) | "Trong 6 giờ, chỉ khoá "ai đi xe nào", đổi xe, đổi tài xế. **Chỉ Quản trị, Toàn quyền phá lệ**, kèm lý do." | "… Bán hàng, Quản trị, Toàn quyền **điều chỉnh khẩn cấp** mọi lệnh bị khoá trong mốc (xếp, rút, dời, thêm khách khi xe chạy, đổi xe, đổi tài xế, huỷ chuyến còn khách), kèm lý do (ADR-0104 Đ1)." |
+| ★ ADR-0049 `:48` (ĐP3) | "ĐP3: chỉ Quản trị, Toàn quyền phá lệ;" | "ĐP3: chủ đảo 2026-10-08 — Bán hàng, Quản trị, Toàn quyền điều chỉnh khẩn cấp mọi lệnh bị khoá trong mốc; khoảng nghỉ, cam kết: dưới mốc như trên, ngoài mốc chỉ Quản trị, Toàn quyền (ADR-0104 Đ1);" |
 | ADR-0049 `:129` (LC-09) | "Đơn huỷ sau khi xếp → **giữ**" | "Đơn huỷ sau khi xếp → máy rút suất trên chuyến chưa chạy trong cùng lô huỷ đơn (ADR-0104 Đ2); xe đang chạy: nhắc văn phòng Báo huỷ; máy chưa làm được thì **giữ**" |
-| ADR-0049 `:162` (dòng **Xếp**, cột "Ai phá lệ") | "**chỉ Quản trị, Toàn quyền** (ô mới `trip.override`), kèm lý do nhóm `PHA_LE`" | "Bán hàng, Quản trị, Toàn quyền (ô `trip.urgent_adjust`), kèm lý do nhóm `PHA_LE`, cho mọi lệnh bị khoá. Lệnh máy 'Đồng bộ chuyến theo đơn' không khoá theo mốc (ADR-0104)." |
+| ADR-0049 `:162` (dòng **Xếp**, cột "Ai phá lệ") | "**chỉ Quản trị, Toàn quyền** (ô mới `trip.override`), kèm lý do nhóm `PHA_LE`" | "Bán hàng, Quản trị, Toàn quyền (ô `trip.urgent_adjust`), kèm lý do nhóm `PHA_LE`, cho mọi lệnh bị khoá. Chuyển khách qua đề nghị giữa hai chuyến theo ADR-0052 `:192` (đích đang chạy: không kiểm mốc; đích chưa chạy trong mốc: leo thang, Quản trị / Toàn quyền duyệt). Lệnh máy 'Đồng bộ chuyến theo đơn' không khoá theo mốc (ADR-0104)." |
 | ★ ADR-0049 `:171` (Khoảng nghỉ) | "Chỉ Quản trị, Toàn quyền phá lệ, ghi vào `rest_override_reason_code`." | "Chuyến dưới mốc lúc bấm: Bán hàng, Quản trị, Toàn quyền (ô `trip.urgent_adjust`); ngoài mốc: chỉ Quản trị, Toàn quyền (`trip.override`); ghi vào `rest_override_reason_code` (ADR-0104 Đ1)." |
-| ADR-0049 `:200` (bảng ô) | "`trip.override` — phá lệ mốc lúc xếp, khoảng nghỉ" | "`trip.override` — vượt khoảng nghỉ và cam kết (ADR-0056) khi chuyến ngoài mốc; duyệt / bác đề nghị leo thang (ADR-0052)"; thêm dòng "`trip.urgent_adjust` — vượt mốc mọi lệnh bị khoá; vượt khoảng nghỉ, cam kết khi chuyến dưới mốc: SALES `any`, ADMIN `any`, SUPER_ADMIN `any`, còn lại `none`" |
+| ADR-0049 `:200` (bảng ô) | "`trip.override` — phá lệ mốc lúc xếp, khoảng nghỉ" | "`trip.override` — vượt khoảng nghỉ và cam kết xe riêng / số chỗ tối thiểu khi chuyến ngoài mốc; duyệt / bác đề nghị leo thang (ADR-0052 `:189`)"; thêm dòng "`trip.urgent_adjust` — vượt mốc mọi lệnh bị khoá; vượt khoảng nghỉ, cam kết khi chuyến dưới mốc: SALES `any`, ADMIN `any`, SUPER_ADMIN `any`, còn lại `none`" |
 | ★ ADR-0049 `:302` (bảng ô ↔ dữ liệu) | "\| `trip.override` \| sự kiện `PHA_LE`; `vc_trip.rest_override_reason_code` \| chỉ Quản trị, Toàn quyền \|" | giữ dòng, thêm "(ngoài mốc)"; thêm dòng "\| `trip.urgent_adjust` \| sự kiện mang `override_rule_code`; `vc_trip.rest_override_reason_code`, cột phá lệ cam kết khi chuyến dưới mốc \| Bán hàng, Quản trị, Toàn quyền \|" |
+| ★ ADR-0049 `:313` (bảng cổng) | "\| Bảng điều phối, chi tiết chuyến, xếp xe, phá lệ, xuất bến bấm thay \| `office` \| `trip.view` / `trip.dispatch` / `trip.progress` / `trip.override` \| …" | "\| Bảng điều phối, chi tiết chuyến, xếp xe, điều chỉnh khẩn cấp, phá lệ, xuất bến bấm thay \| `office` \| `trip.view` / `trip.dispatch` / `trip.progress` / `trip.urgent_adjust` / `trip.override` \| …" |
 | ADR-0049 `:365` (phương án bị loại) | "**Bán hàng tự phá lệ mốc 6 giờ:** chủ chọn chỉ Quản trị, Toàn quyền (ĐP3)." | "Chủ đảo ngày 2026-10-08 (*"Bán hàng và Quản trị"*; lượt 8a Q-1 b) cho mọi lệnh bị khoá; phạm vi ở ADR-0104 Đ1." |
 | ADR-0050 `:219-221` | "**Vì sao không để máy tự dời khi đơn đổi:** … một việc chạy nền tự sửa chuyến là **tác nhân tự động** (Hiến chương 5.11, K1): cần tài khoản riêng + ADR riêng" | "Đổi **nơi** vẫn giữ chuyến + nút (VK1-B). Huỷ đơn, bớt / thêm khách, đổi người, bỏ chặng: máy đồng bộ **trong cùng lô lệnh sửa đơn của người**, ghi tên người đó, không chạy nền (ADR-0104 Đ2) — không phải tác nhân tự động theo 5.11." |
 | ADR-0050 `:361` | "**Máy tự dời suất khi đơn đổi:** xem VK1-B." | "… trừ ADR-0104 Đ2." |
+| ★ ADR-0052 `:29` (tóm tắt, ý 4) | "**thêm điểm đón** (khách không "đặt gấp" cần Quản trị phá lệ)" | "**thêm điểm đón** (khách không "đặt gấp" cần điều chỉnh khẩn cấp — Bán hàng, Quản trị, Toàn quyền; ADR-0104 Đ1)" |
+| ★ ADR-0052 `:77` (mốc 6 giờ khi chuyển) | "Xe đích `PLANNED` mà đã trong mốc → đề nghị `ESCALATED` (…), Quản trị / Toàn quyền phá lệ kèm lý do như ADR-0049 D2." | "… Quản trị / Toàn quyền duyệt đề nghị leo thang kèm lý do (`trip.override`, không đổi). Điều chỉnh khẩn cấp của ADR-0104 **không** áp cho đề nghị chuyển khách giữa hai chuyến; văn phòng muốn tự dời khách thì dùng lệnh dời (ADR-0104 Đ1)." |
 | ADR-0052 `:98` (D5.1, mốc) | "mọi chặng khác … → **chỉ Quản trị, Toàn quyền phá lệ** (`trip.override`) kèm lý do" | "→ Bán hàng, Quản trị, Toàn quyền **điều chỉnh khẩn cấp** (`trip.urgent_adjust`) kèm lý do" |
 | ADR-0052 `:148` (D6.1, danh sách hành động sinh tin — một chiều) | (danh sách đóng) | "+ đồng bộ chuyến theo đơn; + xếp / rút / dời khách lớp điều chỉnh khẩn cấp — chỉ chuyến có tài xế" (đổi xe, đổi tài xế, huỷ chuyến, thêm khách khi xe chạy đã có trong danh sách) |
-| ★ ADR-0056 `:62-63` (cam kết xe riêng) | "lệnh xếp / đổi xe trả 409 "cần Quản trị phá lệ cam kết"; Quản trị / Toàn quyền gửi phá lệ, lý do nhóm `PHA_LE` (ô `trip.override` có sẵn …)" | "chuyến dưới mốc: Bán hàng, Quản trị, Toàn quyền gửi điều chỉnh khẩn cấp (ô `trip.urgent_adjust`); ngoài mốc: Quản trị, Toàn quyền phá lệ (`trip.override`); lý do nhóm `PHA_LE` (ADR-0104 Đ1)" |
+| ★ ADR-0052 `:192` (câu thay dòng **Xếp** của ADR-0049) | "… Đích chưa chạy trong mốc: như dòng này (leo thang, Quản trị / Toàn quyền phá lệ). Văn phòng thêm khách vào xe đang chạy (D5.1) **vẫn** theo dòng này." | "… Đích chưa chạy trong mốc: leo thang, Quản trị / Toàn quyền duyệt (`trip.override`, không đổi). Văn phòng thêm khách vào xe đang chạy (D5.1) theo dòng này, tức điều chỉnh khẩn cấp của Bán hàng, Quản trị, Toàn quyền (ADR-0104 Đ1)." |
+| ★ ADR-0052 `:246` (bài 7) | "chặng không đặt gấp …, Bán hàng → 409 "cần Quản trị"; Bán hàng gọi phá lệ → 403; Quản trị phá lệ có lý do → 200 + sự kiện `PHA_LE`" | "chặng không đặt gấp …, Bán hàng không gửi lý do → 409 (lớp `KHAN_CAP`); Bán hàng hoặc Quản trị gửi điều chỉnh khẩn cấp có lý do → 200 + sự kiện mang `override_rule_code = 'MOC_TOI_THIEU'` (ADR-0104 Đ1)" |
+| ★ ADR-0056 `:53` (mốc 6 giờ) | "xếp lại trong 6 giờ vẫn cần Quản trị phá lệ mốc (luật có sẵn)." | "xếp lại trong 6 giờ cần điều chỉnh khẩn cấp (Bán hàng, Quản trị, Toàn quyền — ADR-0104 Đ1)." |
+| ★ ADR-0056 `:62-63` (cam kết) | "lệnh xếp / đổi xe trả 409 "cần Quản trị phá lệ cam kết"; … Quản trị / Toàn quyền gửi phá lệ, lý do nhóm `PHA_LE` (ô `trip.override` có sẵn …)" | "chuyến dưới mốc: Bán hàng, Quản trị, Toàn quyền gửi điều chỉnh khẩn cấp (ô `trip.urgent_adjust`); ngoài mốc: Quản trị, Toàn quyền phá lệ (`trip.override`); lý do nhóm `PHA_LE` (ADR-0104 Đ1)" |
+| ★ ADR-0056 `:68` (vi phạm mới sau phá lệ) | "… ⇒ lệnh trả 409 / cổng **giữ**, cần Quản trị phá lệ lại;" | "… ⇒ lệnh trả 409 / cổng **giữ**, cần vượt lại theo ADR-0104 Đ1 (chuyến dưới mốc: Bán hàng, Quản trị, Toàn quyền; ngoài mốc: Quản trị, Toàn quyền);" |
+| ★ ADR-0056 `:119` (bài kiểm) | "`SALES` gửi phá lệ cam kết → 403;" | "`SALES` gửi phá lệ cam kết khi chuyến ngoài mốc → 403; khi chuyến dưới mốc → 200 (ADR-0104 Đ1);" |
+| ★ ADR-0056 `:134` (bài kiểm) | "`SALES` gửi phá lệ → 403." | "`SALES` gửi phá lệ cam kết khi chuyến ngoài mốc → 403; dưới mốc → 200 (ADR-0104 Đ1)." |
 | ADR-0007 điều 4(b) (`:37`) | khuôn hàm tiêm | "+ `ctx.dongBoChuyen` (nhận câu đơn đã soạn, trả lô đầy đủ chưa chạy)" |
 | Sổ hỏi đáp Vận chuyển lần 16, R-P29 (không phải ADR) | "Giữ xe + nút cập nhật" | máy đồng bộ trước; nút giữ làm đường tay |
 | Đề xuất ADR-0091 (chưa duyệt) | toàn văn | bỏ phần xếp xe; phần đặt gấp chuyển sang ADR-0107 (số tạm, lượt 8b); giữ ý "nhãn riêng" của lời chủ 2/10 |
 
-ADR-0052 D5.2 (báo huỷ trên xe đang chạy) và ADR-0052 `:80-85` (duyệt / bác đề nghị leo thang) **không** bị thay.
+**Không đổi:** ADR-0049 `:339` (bài ghim `trip.override` chỉ Quản trị + Toàn quyền — giá trị ô giữ nguyên); ADR-0052 D5.2 (báo huỷ trên xe đang chạy); ADR-0052 `:80-85` và `:189` (duyệt / bác đề nghị leo thang vẫn `trip.override`).
 
 ## Cửa một chiều / hai chiều
 
@@ -243,13 +268,17 @@ Mỗi rào phải quan sát chặn thật: sửa cố ý → đỏ → hoàn ngu
 1. **Quyền:**
    - Bán hàng xếp / rút / dời / thêm khi chạy trong mốc kèm lý do → 200; thiếu lý do → 400.
    - Bán hàng đổi xe, đổi tài xế trong mốc kèm lý do → 200; Bán hàng huỷ chuyến còn khách trong mốc → 200 (Q-1 b).
-   - Bán hàng bỏ qua khoảng nghỉ hoặc cam kết khi chuyến dưới mốc → 200; ngoài mốc → 403 (cách đọc của điều phối); Quản trị bỏ qua khoảng nghỉ ngoài mốc → 200.
+   - Bán hàng bỏ qua khoảng nghỉ hoặc cam kết khi chuyến dưới mốc → 200; ngoài mốc → 403 (lời chủ "Chỉ khi chuyến còn dưới 6 giờ"); Quản trị bỏ qua khoảng nghỉ ngoài mốc → 200.
    - 409 trả đúng lớp: thiếu luật nào khi chuyến dưới mốc → lớp `KHAN_CAP`; chỉ thiếu khoảng nghỉ / cam kết khi chuyến ngoài mốc → lớp `QUAN_TRI`, và `canQuyen` của Bán hàng = sai.
    - Chặng mang dấu đặt gấp không làm chuyến thôi "dưới mốc": xếp chặng đặt gấp vào chuyến dưới mốc mà vượt cam kết → Bán hàng 200.
+   - Rào mềm (Đ1 mục 0): Bán hàng sửa một chuyến đang ngoài mốc, chỉ dời giờ vào trong 6 giờ, kèm vượt khoảng nghỉ trong cùng lệnh → 200 (giờ xét `min(cũ, mới, sớm nhất)`) [CHỜ CHỦ: dời giờ trong lệnh sửa]; nếu chủ chọn cách (b) ở Đ1 mục 0 thì ca này → 403 và thêm ca hai lệnh → 200.
    - Kế toán → 403; Quản trị → 200 mọi lệnh.
 2. **LC-02:** Bán hàng điều chỉnh khẩn cấp xếp vượt số chỗ → 409, và SQL tay bị trigger `lc02_capacity` chặn.
 3. **Một chỗ xếp lớp:** bài quét — mọi chỗ hỏi ô cho ba luật (mốc, khoảng nghỉ, cam kết) đều đi qua `lopVuotMoc` / `lopVuotNghiCamKet`; ở bảy chỗ hỏi ô, cả `trip.urgent_adjust` lẫn `trip.override` có lời gọi `can(` viết tường minh.
-4. **Nhãn:** đổi xe trong mốc (Bán hàng hay Quản trị) → chuyến mang nhãn "Điều chỉnh khẩn cấp"; Quản trị bỏ qua khoảng nghỉ ngoài mốc → nhãn "Phá lệ", không mang nhãn khẩn cấp; ca chặng đặt gấp + vượt cam kết dưới mốc → nhãn "Phá lệ" (khoá chỗ lệch đã biết ở Đ1 mục 5, để ai sửa thì phải sửa có chủ ý).
+4. **Nhãn:**
+   - đổi xe trong mốc (Bán hàng hay Quản trị) → chuyến mang nhãn "Điều chỉnh khẩn cấp";
+   - Quản trị bỏ qua khoảng nghỉ ngoài mốc → nhãn "Phá lệ", không mang nhãn khẩn cấp;
+   - bốn ca lệch ở Đ1 mục 5 (tạo chuyến trong mốc + khoảng nghỉ; chặng đặt gấp + cam kết; sửa chuyến chỉ đổi giờ + khoảng nghỉ; sửa chuyến chỉ gửi `camKetPhaLe`), mỗi ca do Bán hàng làm dưới mốc → 200 và nhãn "Phá lệ". Bài ghim chỗ lệch đã biết, để ai sửa thì phải sửa có chủ ý.
 5. **Đồng bộ:**
    - Huỷ đơn trong mốc (chuyến `PLANNED`) → suất đóng `REMOVED` trong cùng lô, chuyến hết `DON_DA_HUY`, nhật ký mang `staff_id` người huỷ, tài xế nhận tin.
    - HDV huỷ qua `handler-cancel` → như trên, và HDV gọi route xếp vẫn 403.
@@ -273,7 +302,7 @@ Mỗi rào phải quan sát chặn thật: sửa cố ý → đỏ → hoàn ngu
 
 - **Đổi ô `trip.override` của Bán hàng thành `any`:** mở luôn khoảng nghỉ và cam kết **ngoài** mốc (câu Q-1 chỉ hỏi việc sát giờ), và mở cả việc duyệt / bác đề nghị leo thang của ADR-0052 (`docs/adr/ADR-0052-dieu-phoi-luot-2-chuyen-diem-va-xe-dang-chay.md:80-85`), vốn cùng ô này.
 - **Q-1 a (đổi xe, đổi tài xế, huỷ chuyến còn khách vẫn chỉ Quản trị, Toàn quyền):** khuyến nghị của văn bản trình duyệt; chủ chọn b ngày 2026-10-08.
-- **Mở khoảng nghỉ, cam kết cho Bán hàng cả ngoài mốc:** câu Q-1 chỉ hỏi việc "sát giờ"; theo cách đọc của điều phối (chỉ siết) không mở. Chủ muốn mở thì cần ADR mới.
+- **Mở khoảng nghỉ, cam kết cho Bán hàng cả ngoài mốc:** chủ chọn **"Chỉ khi chuyến còn dưới 6 giờ (Recommended)"** ngày 2026-10-08. Muốn mở thì cần ADR mới.
 - **Lưu lớp "dưới mốc" vào sự kiện để nhãn chuyến đúng tuyệt đối:** cần cột mới (migration); hai ca lệch ở Đ1 mục 5 hiếm, để sau nếu chủ cần.
 - **Nút "Xin phá lệ" và tin cho Quản trị** (báo cáo ERP C04 (iii), ADR-0091 đ7): chủ bác khái niệm này ngày 8/10.
 - **Đồng bộ chạy nền, Cron hay hàng đợi:** là tác nhân tự động không định danh, tức xây trên lỗ đang hở HC-5.11; trái ĐP8 (ADR-0049 `:364`).
@@ -301,6 +330,7 @@ Mỗi rào phải quan sát chặn thật: sửa cố ý → đỏ → hoàn ngu
 - Nguồn đọc trạng thái đơn cho dòng nhắc trên màn "Xe đang chạy" (dự kiến cùng nguồn với `DON_DA_HUY`, chưa lần tới hàm đọc).
 - Bảng tin và tin điện thoại tới máy thật; tranh chấp đồng thời thật trên D1.
 - Thân ADR-0096, ADR-0097 (đón trước trả, cửa sổ xuất bến, sự kiện `CORRECTION`) chưa đối chiếu với Đ2.
-- Chủ chưa tự xác nhận cách đọc "khoảng nghỉ, cam kết chỉ mở cho Bán hàng khi chuyến dưới mốc" (điều phối tự áp vì chỉ siết; sổ thi công mục "Lượt duyệt 8a").
 - Dòng giao diện ở Đ1 mục 9 lấy theo trang ghép (đo @`809918d5`); chưa đo lại @`4fd27fe1`. Số dòng bảy chỗ hỏi ô đã đo lại @`4fd27fe1`.
-- Hai ca lệch nhãn ở Đ1 mục 5: chưa đếm trên production có xảy ra hay không.
+- Bốn ca lệch nhãn ở Đ1 mục 5: chưa đếm trên production xảy ra bao nhiêu.
+- [CHỜ CHỦ: dời giờ trong lệnh sửa] ở Đ1 mục 0 và bài kiểm 1: chưa có câu trả lời; bản này viết theo I-3 (cách a).
+- ADR-0052 `:77`: bản chép giữ đề nghị chuyển khách leo thang ở `trip.override` (không mở cho Bán hàng); đây là cách đọc hẹp của người soạn, chưa hỏi chủ.

@@ -48,12 +48,20 @@
 
 ### HC-4.2 — chủ xác nhận cách đọc hẹp
 
-Câu duyệt của phương án chủ chọn có câu: *"Tôi xác nhận mục sổ 'bút toán điều chỉnh phải có người duyệt' (HC-4.2) không áp cho việc sửa số khách trên đơn."* Căn cứ và lập luận ngược chiều đã trình đủ ở bản tóm, mục C:
+Phương án chủ chọn ("Duyệt (Recommended)") mang nội dung câu duyệt gợi ý của tệp 01. Câu duyệt đó có một câu để chủ tự xác nhận rằng mục sổ HC-4.2 "bút toán điều chỉnh phải có người duyệt" không áp cho việc sửa số khách trên đơn. Đây là nội dung phương án chủ đã chọn, không phải lời chủ nói nguyên văn. Căn cứ và lập luận ngược chiều đã trình đủ ở bản tóm, mục C:
 - chữ Hiến chương hệ thống 4.2 không ghi "khác người tạo"; phạm vi mục sổ là "bút toán điều chỉnh sổ tiền (công nợ, chi phí chuyến)";
 - hướng dẫn viên đang phụ trách đã sửa số khách một mình qua route hẹp, ghi cùng bảng, mà mục sổ không coi đó là lỗ;
 - ngược chiều: billing có đọc kết quả bảng này (`phaiThuNhieuDon`, `src/modules/billing/service.ts:217`; `src/modules/orders/hoan-tat.ts:8-17`), và `docs/ARCHITECTURE.md:145` xếp `order_money_adjustment` vào hàng 4.2 / 5.5.
 
 Vì chủ đã xác nhận, D1 **không** mang dòng "xây trên lỗ đang hở: HC-4.2".
+
+### Không thuộc phần đã duyệt (việc của lượt sau)
+
+Đề xuất gốc có hai điểm **không** nằm trong bản tóm chủ đã đọc, nên chưa duyệt:
+- D1.10 của đề xuất gốc: báo Bảng tin loại `tien` sau khi lô ghi xong (như route hướng dẫn viên);
+- D1.11 của đề xuất gốc: luật khi giảm số khách làm "số khách đi xe" vượt tổng (thuộc ADR-0065 D3, còn proposed).
+
+Người lập kế hoạch thi công D1 không coi hai điểm này là đã duyệt; muốn làm thì đưa vào lượt duyệt sau.
 
 ### D2. Thứ tự thi công
 
@@ -76,7 +84,7 @@ Không chép vào đây. Văn bản đầy đủ ở đề xuất gốc, mục D
 | Nguồn | Nguyên văn | Mới |
 |---|---|---|
 | ADR-0061 điều 5 (`docs/adr/ADR-0061-mo-lai-dich-vu-nhap-tay-noi-bo.md:38`) | "Route sửa sau xác nhận tương lai (C2) **phải** gọi `duocNhapTay` — bài tĩnh dưới đây canh." | "Không áp cho route D1 của ADR-0063: route chỉ ghi điều chỉnh số khách của dịch vụ đã có, không thêm, đổi tên hay đổi giá dịch vụ. Kế toán thêm dịch vụ nhập tay sau xác nhận là quyết định riêng sau; ô `order.service.manual` của Kế toán vẫn chưa có tác dụng." |
-| ADR-0014 `:86` (cấp đầy đủ của người phụ trách `SALES`) | "… sửa số khách/dịch vụ/tiền sau xác nhận (`order.money.edit`)." | "… trừ sửa số khách sau xác nhận: Bán hàng chỉ sửa đơn mình lập (ô `own`, lời chủ 30/9; ADR-0063 D1)." |
+| ADR-0014 `:86` (cấp đầy đủ của người phụ trách `SALES`) | "… sửa số khách/dịch vụ/tiền sau xác nhận (`order.money.edit`)." | "… trừ ô `order.money.edit`: Bán hàng chỉ sửa đơn mình lập (ô `own`, lời chủ 30/9; ADR-0063 D1)." |
 | Chú thích mã `src/modules/dispatch/index.ts` (không phải ADR) | "… dành cho một route KHÁC, chưa làm …" | cập nhật khi thi công: "… dành cho route văn phòng `POST /api/orders/:id/money-edit` (ADR-0063 D1)". |
 
 ## Cửa một chiều / hai chiều
